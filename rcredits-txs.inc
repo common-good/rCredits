@@ -47,7 +47,7 @@ function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $opti
     }
   }
   
-  if (@$tx and $q->fetchAssoc()) say('transaction list truncated'); // there was more than we could show
+  if (@$tx and $q->fetchAssoc()) r\Web\say('transaction list truncated'); // there was more than we could show
   if (@$download) {
 /*    if ($states == STATES_BOTH) { // get proper totals in $totDone
       foreach ($totPending as $key => $value) if ($totDone[$key] !== FALSE) $totDone[$key] += $value;
@@ -91,7 +91,7 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
   $data = $tx_data ? unserialize($tx_data) : array();
   $is_reward = ($tx_type != TX_TRANSFER and $tx_type != TX_BANK);
 //  $r = round(@$tx_r, 2);
-  $amount = $total = number_format($tx_amount, 2);
+  $amount = number_format($tx_amount, 2);
 //  $usd = number_format($tx_amount - $r, 2);
 //  $rpct = $tx_amount == 0 ? R_NONE : number_format(100 * $r / $tx_amount, 1);
 //  if ($rpct == '100.0') $rpct = '100'; // keep the field narrow (4 chars max)

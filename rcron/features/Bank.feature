@@ -24,6 +24,18 @@ Scenario: a member is barely below minimum
   | action    | amount |*
   | draw from | $30    |
 
+Scenario: a member has a negative balance
+  Given balances:
+  | id   | r   | usd | rewards |*
+  | .ZZA | -50 |   0 |      20 |
+  When cron runs "bank"
+  Then usd transfers:
+  | payer | amount |*
+  | .ZZA | -150    |
+  And we notice "under min|banked" to member ".ZZA" with subs:
+  | action    | amount |*
+  | draw from | $150   |
+
 Scenario: an unbanked member barely below minimum draws on another account
   Given balances:
   | id   | r     | usd |*
@@ -68,6 +80,7 @@ Scenario: a member is under minimum but already requested barely enough funds fr
   Given balances:
   | id   | r   | usd    | rewards |*
   | .ZZA | 10  |     10 |      20 |
+  | .ZZB | 100 |      0 |      20 |
   When cron runs "bank"
   Then usd transfers:
   | payer | amount |*

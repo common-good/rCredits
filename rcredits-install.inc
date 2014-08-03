@@ -43,6 +43,7 @@ function tableDefs($schema = array()) {
     'country' => setupField('country index', 'int 4'),
     'postalAddr' => setupField('complete postal address', 'varchar 255'),
     'notes' => setupField('miscellaneous notes about the user or the account', 'text medium'),
+    'activated' => setupField('when was the account activated', 'int 11', 0),
     'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11', 0),
     'signedBy' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
     'rebate' => setupField('current rebate percentage (sales bonus is double)', 'numeric 5,3', R_REBATE),

@@ -238,9 +238,10 @@ function setCttyAdmin($value, $main, $other) {
  * @param int $xid: the transaction number
  * @param string $where: additional (security check) criteria, if any
  * @param assoc $subs: additional substitions for $where
+ * @param bool $force: <reverse despite any shortfall>
  * @return array [message, subs] where subs is an assoc of [
  */
-function undoTx($xid, $where = '1', $subs = array()) {
+function undoTx($xid, $where = '1', $subs = array(), $force = FALSE) {
   $mya = r\acct();
   $oldRecord = lastTx("xid=:xid AND $where", compact('xid') + $subs);
 ///  debug(compact('xid','where','subs','oldRecord'));
@@ -269,7 +270,7 @@ function undoTx($xid, $where = '1', $subs = array()) {
     $otherAcct = $old_toMe ? r\acct($old_payer, $old_payerAgent) : r\acct($old_payee, $old_payeeAgent);
     $type = $old_toMe ? 'charge' : 'payment';
     $otherTid = $old_toMe ? $old_payerTid : $old_payeeTid;
-    return reverse($xid, $old_amount, $otherAcct, $data, $old_goods, $old_tid, $type, $otherTid); // create an offsetting transaction
+    return reverse($xid, $old_amount, $otherAcct, $data, $old_goods, $old_tid, $type, $otherTid, $force); // create an offsetting transaction
   }
 
   $amount = u\fmtAmt($old_amount);
@@ -283,7 +284,7 @@ function undoTx($xid, $where = '1', $subs = array()) {
 /**
  * Create an offsetting transaction (nearly the same as the original but with a negative amount).
  */
-function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid) {
+function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid, $force) {
   $mya = r\acct();
 ///    print_r(compact(u\ray('xid amount acct data tid toMe'))); die();
   u\EXPECT(compact(u\ray('xid amount acct data tid type otherTid')), 'id float acct assoc|empty string string id');
@@ -295,7 +296,8 @@ function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid
   $what = u\order($type == 'payment', $myFor, $otherFor);
   if (@$data['rebate'] or @$data['bonus']) list ($data['rebate'], $data['bonus']) = array(-$data['rebate'], -$data['bonus']);
   $data['undoes'] = $xid; // remember what we're reversing (especially to get the realness right)
-  list ($message, $args, $confirm) = transfer($type, $mya, $acct, -$amount, $old_goods, $what, TRUE, $data);
+  if ($force) $data += compact('force');
+  list ($message, $args, $confirm) = transfer($type, $mya, $acct, -$amount, $old_goods, $what, NULL, TRUE, $data);
 
   if (@$args['success']) {
     extract(u\just('xid tid otherTid', $args), EXTR_PREFIX_ALL, 'new');
@@ -304,7 +306,7 @@ function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid
     $old_data = serialize($old_data);
     $myFor = "(reversed by #$new_tid) ";
     $otherFor = str_replace($new_tid, $new_otherTid, $myFor);
-    list ($payerFor, $payeeFor) = u\order($type == 'payment', $otherFor, $myFor);
+    list ($payerFor, $payeeFor) = u\order($type == 'payment', $myFor, $otherFor);
     $sql = <<<EOF
       UPDATE r_txs SET 
         payerFor=CONCAT(:payerFor, payerFor), 
@@ -351,6 +353,7 @@ function payInvoice($nvid, &$msg = '') {
  * @param numeric $amount: the transaction amount
  * @param bool $goods: is this for real goods and services
  * @param string $for OR array($payerFor, $payeeFor): description of the transaction's purpose (user input)
+ * @param int $created: time of transaction (defaults to current time)
  * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE)
  * @param array $data: associative array of info about the transaction this request is reversing (if any), 
  *   indexed by any of:
@@ -360,6 +363,7 @@ function payInvoice($nvid, &$msg = '') {
  *   'preapproved': the transaction is preapproved (from some other region)
  *   'bilateral': set TRUE if a company with B_CHARGE wants to pretend it doesn't
  *      (Typically upon recursion, to handle shortfall invoice -- currently UNUSED)
+ *   'force': <do the transaction despite any shortfall (1 for original transaction, -1 for forced reversal)>
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    subs: replacement parameters, specific to the message (in particular, success=TRUE or FALSE)
@@ -369,22 +373,22 @@ function payInvoice($nvid, &$msg = '') {
  * $confirmed (user confirmed the transaction request), $paying_invoice, $goods (the transaction is an exchange for real stuff),
  * $shortfall (how inadequate the payer's balance is)
   */
-function transfer($ttype, $a1, $a2, $amount, $goods = FALSE, $for, $confirmed = TRUE, $data = array()) {
+function transfer($ttype, $a1, $a2, $amount, $goods = FALSE, $for, $created = NULL, $confirmed = TRUE, $data = array()) {
   global $scanned, $channel;
 
   u\EXPECT(in_array($ttype, u\ray('payment,charge,invoice payment')), 'bad transaction type');
-// disabled for now  if ($a2 == 'ALL') return $ttype == 'payment' ? r\payEmployees($amount, $for, $confirmed) : array('no ALL', array(), FALSE);
   u\setDft($for, $goods ? R_FOR_GOODS : R_FOR_CASH);
+  u\setDft($created, time());
   u\EXPECT(compact(u\ray('a1 a2 goods confirmed data')), 'acct acct bool bool assoc');
 
   list ($myid, $uid) = array($a1->id, $a2->id);
   $taking = ($ttype == 'charge');
-  if (r\dupTx($uid, $myid, $taking ? $amount : -$amount)) return array('duplicate transaction', u\ray('op', $taking ? t('charged') : t('paid')), FALSE);
+  if (r\dupTx($uid, $myid, $taking ? $amount : -$amount)) return r\txRet('duplicate transaction', u\ray('op', $taking ? t('charged') : t('paid')));
   $reallyTaking = ($taking xor $amount < 0); // not taking if charging a negative amount
 
   // Check permissions
-//  if ($err = r\txPermErr($a1, $a2, $reallyTaking)) return array($err, array(), FALSE);
-  if ($err = r\txPermErr($a1, $a2, $taking, $amount < 0)) return array($err, array(), FALSE);
+//  if ($err = r\txPermErr($a1, $a2, $reallyTaking)) return r\txRet($err, array());
+  if ($err = r\txPermErr($a1, $a2, $taking, $amount < 0)) return r\txRet($err, array());
    
   // Analyze who's buying or selling
   list ($payer, $payee) = u\order($taking, $uid, $myid);
@@ -404,18 +408,18 @@ function transfer($ttype, $a1, $a2, $amount, $goods = FALSE, $for, $confirmed = 
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 
   // Check the amount and calculate any balance shortfall
-  if ($error = u\badAmount($amount)) return array($error, array(), FALSE);
+  if ($error = u\badAmount($amount)) return r\txRet($error, array());
   $totalHit = $amount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
-  if ($shortfall = r\shortfall(abs($totalHit), $reallyTaking ? $a2 : $a1, $preapproved, $goods, $confirmed)) {
+  if ($shortfall = @$data['force'] ? 0 : r\shortfall(abs($totalHit), $reallyTaking ? $a2 : $a1, $preapproved, $goods, $confirmed)) {
     $short = u\fmtAmt($shortfall);
     $otherName = $a2->fullName;
     $msg = ($goods ? 'short ' : 'short cash ') . ($reallyTaking ? 'from' : 'to');
     r\suggestMin($reallyTaking ? $a2 : $a1);
-    return array($msg, compact(u\ray('otherName short how')), FALSE);
+    return r\txRet($msg, compact(u\ray('otherName short how')));
   }
   
-  $info = compact(u\ray('type amount payer payee payerAgent payeeAgent for data taking goods'));
+  $info = compact(u\ray('type created amount payer payee payerAgent payeeAgent for data taking goods'));
   $txs = $confirmed ? r\transact($info, $preapproved) : array(r\txSetup($info));
   
   // Report results
@@ -437,7 +441,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods = FALSE, $for, $confirmed = 
   } else {
     $message = $goods ? $ttype : 'exchange';
   }
-  return array($message, $args, !$confirmed);
+  return r\txRet($message, $args, !$confirmed);
 }
 
 /**

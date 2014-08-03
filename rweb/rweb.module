@@ -110,7 +110,7 @@ function rweb_menu() {
     'account/contact' => menuLocal(t('Contact Info'), '*Contact', 'manage'),
     'account/preferences' => menuLocal(t('Preferences'), 'Options', 'manage'),
     'account/security' => menuLocal(t('Security'), 'Security 2', 'manage personish'),
-    'account/bank' => menuLocal(t('Bank Info'), 'Bank 2', 'manage dw'),
+    'account/bank' => menuLocal(t('Bank Info'), 'Bank 2', 'manage'),
     'account/company' => menuLocal(t('Company Info'), 'Company', 'manage co'),
     'account/relations' => menuLocal(t('Relations'), 'Relations', 'manage'),
     'account/boxes' => menuLocal(t('Devices'), 'Boxes', 'manage'),

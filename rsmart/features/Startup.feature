@@ -30,9 +30,7 @@ Scenario: Device should have an identifier
   Then we return error "missing device"
   
 Scenario: Device gives a bad code
-  When agent ":ZZA" asks device %random for op "identify" with:
-  | member | code |*
-  | .ZZB   | ccB  |
+  When agent ":ZZA" asks device %random for op "time" with: ""
   Then we return error "unknown device"
 
 Scenario: An Agent for an inactive company tries an op

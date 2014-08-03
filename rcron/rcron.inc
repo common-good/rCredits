@@ -485,7 +485,7 @@ function homogenize() {
   $result = db\q('SELECT AVG(usd) AS avg, community FROM users WHERE uid>1 AND :IS_OK GROUP BY community');
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    queueEach('homogenize1', 'SELECT uid, usd, community AS ctty FROM users WHERE community=:community AND uid>1 AND usd>:avg AND :IS_OK', compact('avg', 'community'));
+    queueEach('homogenize1', 'SELECT uid, usd, community AS ctty FROM users WHERE community=:community AND uid>1 AND usd>:avg AND :IS_BANK AND :IS_OK', compact('avg', 'community'));
   }
   queueNextAfter('homogenize');
 }
@@ -497,7 +497,7 @@ function homogenize() {
 function homogenize1($item) {
   extract(u\just('uid usd ctty', $item));
   $a = r\acct($uid);
-  $result = db\q('SELECT uid AS uid2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND :IS_DW AND r>=floor+:R_CHUNK ORDER BY usd', compact('ctty', 'usd'));
+  $result = db\q('SELECT uid AS uid2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND :IS_BANK AND r>=floor+:R_CHUNK ORDER BY usd', compact('ctty', 'usd'));
   while ($row = $result->fetchAssoc()) {
     extract($row);
     $a2 = r\acct($uid2); // use the latest variables, because tradeR might have changed the values
@@ -517,7 +517,7 @@ function pool() {
     $ctty = r\acct($community);
     if (!$ctty->usdAccount) continue; // not-yet-active region or community account
 //    $sql = 'SELECT uid, usd, community FROM users WHERE uid>1 AND :IS_OK AND community=:community AND usd>=2*:R_CHUNK ORDER BY usd DESC';
-    $sql = 'SELECT uid, usd, community FROM users WHERE uid>1 AND :IS_OK AND :community=:community AND usd>0 ORDER BY usd DESC'; // just one community for now
+    $sql = 'SELECT uid, usd, community FROM users WHERE uid>1 AND :IS_BANK AND :IS_OK AND :community=:community AND usd>0 ORDER BY usd DESC'; // just one community for now
     //if ($ctty->usd / $total < R_CTTY_USD_SHARE) 
     queueEach('pool1', $sql, compact('community')); // okay if ctty has a bit too much
   }
@@ -573,7 +573,7 @@ function draw1($item) {
   $a = r\acct($uid);
   if (!$amount = toBank(-$shortfall, $a, FALSE)) return;
 
-  if ($a->draw('cash', abs($amount))) {
+  if ($a->draw(abs($amount))) {
     $amount = u\fmtAmt(abs(@$amount));
     r\notify($uid, 'under min|drew', compact('amount'));
   } else r\notify($uid, 'under min|cannot draw');

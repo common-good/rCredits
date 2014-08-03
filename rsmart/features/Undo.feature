@@ -27,8 +27,8 @@ Setup:
   | id   | selling         |*
   | .ZZC | this,that,other |
   And company flags:
-  | id   | flags            |*
-  | .ZZC | refund,sell cash |
+  | id   | flags        |*
+  | .ZZC | refund,r4usd |
   And relations:
   | id   | main | agent | permission |*
   | :ZZA | .ZZC | .ZZA  | scan       |
@@ -54,14 +54,31 @@ Scenario: An agent asks to undo a charge
   | 5   | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #2 |      0 |
   | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  |      0 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
-  Then we respond ok "report undo|report transaction" with subs:
+  Then we respond ok txid 7 created %now balance 250 rewards 250
+  And with message "report undo|report transaction" with subs:
   | solution | did      | otherName | amount | rewardType | rewardAmount |*
   | reversed | refunded | Abe One   | $80    | reward     | $-8          |
-  And with balance
-  | name    | balance | spendable | cashable | did     | amount | forCash |*
-  | Abe One | $250    |           | $0       |         |        |         |
-  And with undo ""
+  And with did ""
+  And with undo "4"
   And we notice "new refund|reward other" to member ".ZZA" with subs:
+  | created | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
+  | %today  | Corner Pub | $80    | reverses #2  | reward          | $-4               |
+
+Scenario: An agent asks to undo a charge when balance is secret
+  Given transactions: 
+  | xid | created   | type     | amount | from | to   | purpose      | taking |*
+  | 4   | %today-6m | signup   |    250 | ctty | .ZZE | signup       |      0 |
+  | 5   | %today-1d | transfer |     80 | .ZZE | .ZZC | whatever     |      1 |
+  | 6   | %today-1d | rebate   |      4 | ctty | .ZZE | rebate on #2 |      0 |
+  | 7   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  |      0 |
+  When agent ":ZZB" asks device "devC" to undo transaction 5
+  Then we respond ok txid 8 created %now balance "*250" rewards 250
+  And with message "report undo|report transaction" with subs:
+  | solution | did      | otherName | amount | rewardType | rewardAmount |*
+  | reversed | refunded | Eve Five  | $80    | reward     | $-8          |
+  And with did ""
+  And with undo "5"
+  And we notice "new refund|reward other" to member ".ZZE" with subs:
   | created | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Corner Pub | $80    | reverses #2  | reward          | $-4               |
 
@@ -72,13 +89,12 @@ Scenario: An agent asks to undo a refund
   | 5   | %today-1d | rebate   |     -4 | ctty | .ZZA | rebate on #2 |      0 |
   | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  |      0 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
-  Then we respond ok "report undo|report transaction" with subs:
+  Then we respond ok txid 7 created %now balance 250 rewards 250
+  And with message "report undo|report transaction" with subs:
   | solution | did        | otherName | amount | rewardType | rewardAmount |*
   | reversed | re-charged | Abe One   | $80    | reward     | $8           |
-  And with balance
-  | name    | balance | spendable | cashable | did     | amount | forCash |*
-  | Abe One | $250    |           | $0       |         |        |         |
-  And with undo ""
+  And with did ""
+  And with undo "4"
   And we notice "new charge|reward other" to member ".ZZA" with subs:
   | created | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Corner Pub | $80    | reverses #2  | reward          | $4                |
@@ -88,13 +104,12 @@ Scenario: An agent asks to undo a cash-out charge
   | xid | created   | type     | amount | from | to   | purpose  | goods | taking |*
   | 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | cash out |     0 |      1 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
-  Then we respond ok "report undo|report exchange" with subs:
+  Then we respond ok txid 5 created %now balance 250 rewards 250
+  And with message "report undo|report exchange" with subs:
   | solution | did      | otherName | amount |*
   | reversed | credited | Abe One   | $80    |
-  And with balance
-  | name    | balance | spendable | cashable | did     | amount | forCash |*
-  | Abe One | $250    |           | $0       |         |        |         |
-  And with undo ""
+  And with did ""
+  And with undo "4"
   And we notice "new payment" to member ".ZZA" with subs:
   | created | fullName | otherName  | amount | payeePurpose |*
   | %today  | Abe One  | Corner Pub | $80    | reverses #2  |
@@ -104,13 +119,12 @@ Scenario: An agent asks to undo a cash-in payment
   | xid | created   | type     | amount | from | to   | purpose | goods | taking |*
   | 4   | %today-1d | transfer |    -80 | .ZZA | .ZZC | cash in |     0 |      1 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
-  Then we respond ok "report undo|report exchange" with subs:
+  Then we respond ok txid 5 created %now balance 250 rewards 250
+  And with message "report undo|report exchange" with subs:
   | solution | did        | otherName | amount |*
   | reversed | re-charged | Abe One   | $80    |
-  And with balance
-  | name    | balance | spendable | cashable | did     | amount | forCash |*
-  | Abe One | $250    |           | $0       |         |        |         |
-  And with undo ""
+  And with did ""
+  And with undo "4"
   And we notice "new charge" to member ".ZZA" with subs:
   | created | fullName | otherName  | amount | payerPurpose |*
   | %today  | Abe One  | Corner Pub | $80    | reverses #2  |
@@ -123,9 +137,21 @@ Scenario: An agent asks to undo a charge, with insufficient balance
   | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  |     0 |      0 |
   | 7   | %today    | transfer |    300 | .ZZC | .ZZB | labor        |     0 |      0 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
-  Then we return error "short to" with subs:
-  | short |*
-  | $38   |
+  Then we respond ok txid 8 created %now balance 250 rewards 250
+  And with message "report undo|report transaction" with subs:
+  | solution | did      | otherName | amount | rewardType | rewardAmount |*
+  | reversed | refunded | Abe One   | $80    | reward     | $-8          |
+  And with did ""
+  And with undo "4"
+  And we notice "new refund|reward other" to member ".ZZA" with subs:
+  | created | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
+  | %today  | Corner Pub | $80    | reverses #2  | reward          | $-4               |
+  And balances:
+  | id   | balance |*
+  | ctty |    -750 |
+  | .ZZA |     250 |
+  | .ZZB |     550 |
+  | .ZZC |     -50 |
 
 Scenario: An agent asks to undo a refund, with insufficient balance  
   Given transactions: 
@@ -135,9 +161,21 @@ Scenario: An agent asks to undo a refund, with insufficient balance
   | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  |     0 |      0 |
   | 7   | %today    | transfer |    300 | .ZZA | .ZZB | labor        |     0 |      0 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
-  Then we return error "short from" with subs:
-  | otherName |*
-  | Abe One   |
+  Then we respond ok txid 8 created %now balance -50 rewards 250
+  And with message "report undo|report transaction" with subs:
+  | solution | did        | otherName | amount | rewardType | rewardAmount |*
+  | reversed | re-charged | Abe One   | $80    | reward     | $8           |
+  And with did ""
+  And with undo "4"
+  And we notice "new charge|reward other" to member ".ZZA" with subs:
+  | created | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
+  | %today  | Corner Pub | $80    | reverses #2  | reward          | $4                |
+  And balances:
+  | id   | balance |*
+  | ctty |    -750 |
+  | .ZZA |     -50 |
+  | .ZZB |     550 |
+  | .ZZC |     250 |
 
 Scenario: An agent asks to undo a charge, without permission
   Given transactions: 
@@ -161,13 +199,8 @@ Scenario: An agent asks to undo a refund, without permission
   | what  |*
   | sales |
 
-Scenario: An agent asks to undo someone else's transaction
-  Given transactions: 
-  | xid | created   | type     | amount | from | to   | purpose      | goods | taking |*
-  | 4   | %today-1d | transfer |     80 | .ZZB | .ZZD | whatever     |     0 |      0 |
-  When agent ":ZZA" asks device "devC" to undo transaction 4
-  Then we return error "undo no match"
-
 Scenario: An agent asks to undo a non-existent transaction
   When agent ":ZZA" asks device "devC" to undo transaction 99
-  Then we return error "undo no match"
+  Then we respond ok txid 0 created "" balance 250 rewards 250
+  And with did ""
+  And with undo ""

@@ -300,6 +300,10 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformcompany.labeled fieldset#edit-description-format {margin-left:8em;}
 #rcreditswebformcompany fieldset#edit-description-format .fieldset-wrapper {margin:0;}
 #rcreditswebformcompany textarea {border-color:lightblue; max-width:45em;}
+#rcreditswebformcompany #permissions {display:inline-block;}
+#rcreditswebformcompany #permissions table {width:auto;}
+#rcreditswebformcompany #permissions td {text-align:center;}
+#rcreditswebformcompany #permissions #perm-head td {background-color:white;}
 
 #rcreditswebformcompany input#edit-submit {margin-top:2em; display:inline-block;}
 #rcreditswebformcompany #edit-links {display:block; width:30em;}

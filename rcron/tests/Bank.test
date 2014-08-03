@@ -71,6 +71,21 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| draw from | $30    |"');
   }
 
+  // Scenario: a member has a negative balance
+  public function testAMemberHasANegativeBalance_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "ASSOC'
+    . '\\| id   | r   | usd | rewards |'
+    . '\\| .ZZA | -50 |   0 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('usd transfers: "ASSOC'
+    . '\\| payer | amount |'
+    . '\\| .ZZA | -150    |"');
+    And__('we notice "under min|banked" to member ".ZZA" with subs: "ASSOC'
+    . '\\| action    | amount |'
+    . '\\| draw from | $150   |"');
+  }
+
   // Scenario: an unbanked member barely below minimum draws on another account
   public function testAnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount_0() {
     $this->setUp2(__FUNCTION__, 0);
@@ -128,7 +143,8 @@ class rcronBank extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "ASSOC'
     . '\\| id   | r   | usd    | rewards |'
-    . '\\| .ZZA | 10  |     10 |      20 |"');
+    . '\\| .ZZA | 10  |     10 |      20 |'
+    . '\\| .ZZB | 100 |      0 |      20 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
     . '\\| payer | amount |'

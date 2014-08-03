@@ -79,8 +79,9 @@ class acct {
     if ($secure += u\just(R_SECURE_FIELDS, $info)) foreach ($secure as $key => $value) unset($info[$key]);
     if ($data += u\just(R_DATA_FIELDS, $info)) foreach ($data as $key => $value) unset($info[$key]);
     $data['stepsDone'] = r\stepsDone0();
+    if (@$signed) $signedBy = @$legalName;
     
-    $record = compact(u\ray('phone status mail init pass name fullName state flags rebate community created login access'));
+    $record = compact(u\ray('phone status mail init pass name fullName state flags rebate community created login access signed signedBy'));
     foreach ($record as $key => $value) unset($info[$key]);
     foreach (u\ray('number secure data') as $one) unset($info[$one]); // special cases
 
@@ -380,7 +381,7 @@ class acct {
 ///    debug(compact(u\ray('type need get retrying ray avail')));
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
-    $avail += $get ? $this->draw($type, $need - $avail) : $this->canDraw($type); // get or just asking
+    $avail += $get ? $this->draw($need - $avail) : $this->canDraw($type); // get or just asking
     if ($shortfall = max(0, $need - $avail) and !$get and !$retrying) {
       $lastWeek = strtotime('-10 days'); // EFTs never take this long
       $where = "payer=:id AND payee=0 AND amount<0 AND completed=0 AND created>$lastWeek"; // recent USD in
@@ -421,11 +422,11 @@ EOF;
   
   /**
    * Draw the needed amount from other accounts.
-   * @param string $type: purpose of the draw (see acct::available())
+   * @param string $type: UNUSED purpose of the draw (see acct::shortfall())
    * @param float $need: the amount needed
    * @return float: the amount drawn
    */
-  public function draw($type, $need) {
+  public function draw($need) {
     list ($from, $to, $auto) = array(t(' from '), t(' to '), t('automatic transfer'));
     $left = $need; // how much left to be drawn
     $id = $this->id;
@@ -438,8 +439,9 @@ EOF;
     $result = db\q($sql, compact('id'));
     while ($row = $result->fetchAssoc()) {
       extract($row);
-      $avail = r\avail($type, $row);
-      if ($amount = max(0, min($left, $avail))) {
+      $avail = r\avail('buy', $row);
+      $amount = round(min($left, $avail), 2);
+      if ($amount > 0) {
         list ($fromQuid, $toQuid) = array(r\quid($uid), $this->mainQid);
         list ($payer, $payee) = array($uid, $this->id);
         $for = array($auto . $to . $toQuid, $auto . $from . $fromQuid);
@@ -449,7 +451,7 @@ EOF;
       }
       
     }
-    return $need - $left;
+    return round($need - $left, 2);
   }
 
   /**
@@ -495,26 +497,23 @@ EOF;
   
   /**
    * Return an auxiliary filename for the account.
-   * @param string $type: picture or proof
+   * @param string $type: picture, picture2, or proof
    * @param bool $ideal: return the ideal normal name, even if the file does not exist (default FALSE)
    * @param bool $old: use the old filename structure and location
    * @return: the relative file path (relative to Drupal)
    */
   public function auxFilename($type = 'picture', $ideal = FALSE, $old = FALSE) {
-    if ($old) {
-      $dir = $type == 'picture' ? R_PICTURE_DIR_OLD : R_PROOF_DIR_OLD;
-      $file = "$this->id-$this->created";
-    } else {
-      $dir = $type == 'picture' ? R_PICTURE_DIR : R_PROOF_DIR;
-      $cardCode = @$this->secure['cardCode']; // @ for testing
-      $file = "$this->id-$cardCode";
-      if ($type == 'picture') $file .= '.jpg';
-    }
+    $dir = $type == 'picture' ? R_PICTURE_DIR : ($type == 'picture2' ? R_PICTURE_DIR . '/small' : R_PROOF_DIR);
+    $cardCode = @$this->secure['cardCode']; // @ for testing
+    $file = "$this->id-$cardCode";
+    if (u\abbreviates('picture', $type)) $file .= '.jpg';
     if (!$ideal and !$this->hasAux($type)) $file = $this->co ? R_DFT_PICTURE_WIDE : R_DFT_PICTURE;
     return "$dir/$file";
   }
   
   public function hasAux($type = 'picture') {return file_exists(DRUPAL_ROOT . $this->auxFilename($type, TRUE));}
+  
+  public function cardCode() {return $this->agent->secure[$this->proSe ? 'cardCode' : 'cardCode2'];}
   
   /**
    * Return TRUE if a connected funding source is verified.
@@ -728,8 +727,8 @@ EOF;
       extract(u\just('bankAccount', $this->secure));
       list ($route, $account) = u\parseBankAccount(@$bankAccount);
       $bankName = db\lookup('name', 'r_banks', 'route=:route', compact('route'));
-      $legalName = $this->legalName;
-      r\tellStaff(t('Outgoing ACH Request'), compact('bankName route legalName account amount'));
+      $fullName = $this->fullName;
+      r\tellStaff(t('Outgoing ACH Request'), compact('bankName route fullName account amount'));
     }
   }
     
@@ -754,12 +753,22 @@ EOF;
     $this->update(compact('coFlags'));
   }
   
+  public function setCoCans($can) {
+    $coFlags = $this->coFlags;
+    for ($i = 0; $i < 2 * CO_CANS_BITS; $i++) {
+      $bit = u\bit(CO_CANS + $i);
+      $coFlags = isset($can[$i]) ? ($coFlags | $bit) : ($coFlags & ~$bit);
+    }
+    $this->update(compact('coFlags'));
+  }
+  
   /**
    * Set all appropriate bits in the flags or coFlags field.
    * (called in form _submit functions)
    * @param string $bits: comma-delimited list of bit names (lowercase)
    * @param array $values: simple array of bit values
    * @param string $prefix: 'co' (for coFlags bits) or 'b' (for flags bits)
+   * (NO LONGER USED for 'co', but check)
    */
   public function setBits($bits, $values, $prefix) {
     foreach (u\ray($bits) as $bitName) {

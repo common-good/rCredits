@@ -58,8 +58,8 @@ class rsmartExchange extends DrupalWebTestCase {
     . '\\| id   | selling         |'
     . '\\| .ZZC | this,that,other |"');
     And__('company flags: "ASSOC'
-    . '\\| id   | flags            |'
-    . '\\| .ZZC | refund,sell cash |"');
+    . '\\| id   | flags        |'
+    . '\\| .ZZC | refund,r4usd |"');
     And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| :ZZA | .ZZC | .ZZA  | buy        |'
@@ -90,13 +90,14 @@ class rsmartExchange extends DrupalWebTestCase {
   // Scenario: A cashier asks to charge someone for cash
   public function testACashierAsksToChargeSomeoneForCash_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "cash": "cash out"');
-    Then_('we respond ok with tx 7 and message "report exchange" with subs: "ASSOC'
+    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "cash": "cash out" at %now');
+    Then_('we respond ok txid 7 created %now balance 150 rewards 150');
+    And__('with message "report exchange" with subs: "ASSOC'
     . '\\| did     | otherName | amount |'
     . '\\| charged | Bea Two   | $100   |"');
-    And__('with balance "ASSOC'
-    . '\\| name    | balance | spendable | cashable | did     | amount | forCash  |'
-    . '\\| Bea Two | $150    |           | $0       | charged | $100   | for cash |"');
+    And__('with did "ASSOC'
+    . '\\| did     | amount | forCash  |'
+    . '\\| charged | $100   | for cash |"');
     And__('with undo "ASSOC'
     . '\\| created | amount | tofrom | otherName |'
     . '\\| %dmy    | $100   | from   | Bea Two   |"');
@@ -114,13 +115,14 @@ class rsmartExchange extends DrupalWebTestCase {
   // Scenario: A cashier asks to refund someone
   public function testACashierAsksToRefundSomeone_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "cash": "cash in"');
-    Then_('we respond ok with tx 7 and message "report exchange" with subs: "ASSOC'
+    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "cash": "cash in" at %now');
+    Then_('we respond ok txid 7 created %now balance 350 rewards 150');
+    And__('with message "report exchange" with subs: "ASSOC'
     . '\\| did      | otherName | amount |'
     . '\\| credited | Bea Two   | $100   |"');
-    And__('with balance "ASSOC'
-    . '\\| name    | balance | spendable | cashable | did      | amount | forCash  |'
-    . '\\| Bea Two | $350    |           | $200     | credited | $100   | for cash |"');
+    And__('with did "ASSOC'
+    . '\\| did      | amount | forCash  |'
+    . '\\| credited | $100   | for cash |"');
     And__('with undo "ASSOC'
     . '\\| created | amount | tofrom | otherName |'
     . '\\| %dmy    | $100   | to     | Bea Two   |"');
@@ -138,7 +140,7 @@ class rsmartExchange extends DrupalWebTestCase {
   // Scenario: A cashier asks to charge another member, with insufficient balance
   public function testACashierAsksToChargeAnotherMemberWithInsufficientBalance_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "cash": "cash out"');
+    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "cash": "cash out" at %now');
     Then_('we return error "short cash from" with subs: "ASSOC'
     . '\\| otherName |'
     . '\\| Bea Two   |"');
@@ -147,7 +149,7 @@ class rsmartExchange extends DrupalWebTestCase {
   // Scenario: A cashier asks to refund another member, with insufficient balance
   public function testACashierAsksToRefundAnotherMemberWithInsufficientBalance_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $-400 for "cash": "cash in"');
+    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $-400 for "cash": "cash in" at %now');
     Then_('we return error "short cash to" with subs: "ASSOC'
     . '\\| short |'
     . '\\| $300  |"');
@@ -156,56 +158,56 @@ class rsmartExchange extends DrupalWebTestCase {
   // Scenario: A cashier asks to pay self
   public function testACashierAsksToPaySelf_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZA" asks device "devC" to charge ".ZZC" $300 for "cash": "cash out"');
+    When_('agent ":ZZA" asks device "devC" to charge ".ZZC" $300 for "cash": "cash out" at %now');
     Then_('we return error "shoulda been login"');
   }
 
   // Scenario: Device gives no member id
   public function testDeviceGivesNoMemberId_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZA" asks device "devC" to charge "" $300 for "cash": "cash out"');
+    When_('agent ":ZZA" asks device "devC" to charge "" $300 for "cash": "cash out" at %now');
     Then_('we return error "missing member"');
   }
 
   // Scenario: Device gives bad account id
   public function testDeviceGivesBadAccountId_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZA" asks device "devC" to charge %whatever $300 for "cash": "cash out"');
-    Then_('we return error "bad member"');
+    When_('agent ":ZZA" asks device "devC" to charge %whatever $300 for "cash": "cash out" at %now');
+    Then_('we return error "bad customer"');
   }
 
   // Scenario: Device gives no amount
   public function testDeviceGivesNoAmount_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $"" for "cash": "cash out"');
+    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $"" for "cash": "cash out" at %now');
     Then_('we return error "bad amount"');
   }
 
   // Scenario: Device gives bad amount
   public function testDeviceGivesBadAmount_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $%whatever for "cash": "cash out"');
+    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $%whatever for "cash": "cash out" at %now');
     Then_('we return error "bad amount"');
   }
 
   // Scenario: Device gives too big an amount
   public function testDeviceGivesTooBigAnAmount_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $10,000,000 for "cash": "cash out"');
+    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $10,000,000 for "cash": "cash out" at %now');
     Then_('we return error "amount too big"');
   }
 
   // Scenario: Device gives no purpose for goods and services
   public function testDeviceGivesNoPurposeForGoodsAndServices_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": ""');
+    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "" at %now');
     Then_('we return error "missing description"');
   }
 
   // Scenario: Seller agent lacks permission to buy
   public function testSellerAgentLacksPermissionToBuy_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZB" asks device "devC" to charge ".ZZB" $-100 for "goods": "refund"');
+    When_('agent ":ZZB" asks device "devC" to charge ".ZZB" $-100 for "goods": "refund" at %now');
     Then_('we return error "no perm" with subs: "ASSOC'
     . '\\| what    |'
     . '\\| refunds |"');
@@ -214,7 +216,7 @@ class rsmartExchange extends DrupalWebTestCase {
   // Scenario: Seller agent lacks permission to scan and sell
   public function testSellerAgentLacksPermissionToScanAndSell_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZD" asks device "devC" to charge ".ZZA" $100 for "cash": "cash out"');
+    When_('agent ":ZZD" asks device "devC" to charge ".ZZA" $100 for "cash": "cash out" at %now');
     Then_('we return error "no perm" with subs: "ASSOC'
     . '\\| what  |'
     . '\\| sales |"');
@@ -223,7 +225,7 @@ class rsmartExchange extends DrupalWebTestCase {
   // Scenario: Buyer agent lacks permission to buy
   public function testBuyerAgentLacksPermissionToBuy_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZA" asks device "devC" to charge ":ZZE" $100 for "cash": "cash out"');
+    When_('agent ":ZZA" asks device "devC" to charge ":ZZE" $100 for "cash": "cash out" at %now');
     Then_('we return error "other no perm" with subs: "ASSOC'
     . '\\| otherName | what      |'
     . '\\| Eve Five  | purchases |"');

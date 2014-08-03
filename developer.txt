@@ -191,14 +191,14 @@ G. Special rCredits datatypes
   States: AZ  CA  FL  GA  IL  IN  MD  MI  MO  NJ  NY  OH  PA  TN  TX  WI (16)
 
   Regions: 
-  NE	ME, NH, VT, MA, CT, RI (New England) (6)
-  VR	VA, WV (Virginias) (2)
-  CL	NC, SC (Carolinas) (2)
-  NW	WA, OR (Northwest) (2)
-    RM	MT, ID, NV, UT, WY, CO, NM (Rocky Mountains plus NM) (7)
-    MW	ND, SD, NE, KS, MN, IA (Midwest, west of the Mississippi River) (6)
-    US	DE, KY, AL, MS, LA, AR, OK, DC (southeast continental miscellany) (7+1)
-    UA	AK, HI + territories (PR, VI, AS, GU, MP, etc) (non-contiguous) (2+5+)
+  NE:	ME, NH, VT, MA, CT, RI (New England) (6)
+  VR:	VA, WV (Virginias) (2)
+  CL:	NC, SC (Carolinas) (2)
+  NW:	WA, OR (Northwest) (2)
+  RM:	MT, ID, NV, UT, WY, CO, NM (Rocky Mountains plus NM) (7)
+  MW:	ND, SD, NE, KS, MN, IA (Midwest, west of the Mississippi River) (6)
+  US:	DE, KY, AL, MS, LA, AR, OK, DC (southeast continental miscellany) (7+1)
+  UA:	AK, HI + territories (PR, VI, AS, GU, MP, etc) (non-contiguous) (2+5+)
 
   Other countries or groups of countries will also have region codes, which will default (for now) to their 2-letter country code.
   US Population maps: http://www.towndesktop.com/images/states/michigan-pop-total.jpg

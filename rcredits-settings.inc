@@ -4,6 +4,7 @@
  * Specialized rCredits settings for this rCredits server
  */
 
+define('ADMIN_NAME', 'William Spademan');
 define('R_REGION_NAME', 'rCredits Western Mass');
 define('R_REGION_LEGALNAME', 'rCredits Western Massachusetts Region');
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)

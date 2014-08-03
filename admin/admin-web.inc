@@ -25,22 +25,23 @@ function seeSecure($a) {
  * @param int $xid: tx record ID
  * @param float $oldAmt: the old amount (for a consistency check)
  * @param float $newAmt: what the amount should be
- */
+ */ /*
 function changeTxAmt($xid, $oldAmt, $newAmt) {
-  if (!$rec = db\lookup('payer,payee,amount,created,goods', 'r_txs', 'xid=:xid', compact('xid'))) return say(t('No such transaction.'), 'err');
+  if (!$rec = db\lookup('payer,payee,amount,created,goods', 'r_txs', 'xid=:xid', compact('xid'))) return say(t('No such transaction.'), 'ERR');
   extract($rec);
-  if ($amount != $oldAmt) return say(t('The existing amount of that transaction is different.'), 'err');
-  if (u\fmtDate($created) != u\fmtDate(REQUEST_TIME)) return say(t('That transaction is not from today.'), 'err');
-  if ($goods) return say(t('That transaction has rewards.'), 'err');
+  if ($amount != $oldAmt) return say(t('The existing amount of that transaction is different.'), 'ERR');
+  if (u\fmtDate($created) != u\fmtDate(REQUEST_TIME)) return say(t('That transaction is not from today.'), 'ERR');
+  if ($goods) return say(t('That transaction has rewards.'), 'ERR');
+  if (!$amount = round($newAmt, 2)) return say(t('Bad new amount.'), 'ERR');
+
   $DBTX = \db_transaction();
-  if (!$amount = round($newAmt, 2)) return say(t('Bad new amount.'));
   db\update('r_txs', compact('xid', 'amount'), 'xid');
   $change = $newAmt - $oldAmt;
   if ($payee > 0) db\q('UPDATE users SET r=r+:change WHERE uid=:payee', compact('change', 'payee'));
   if ($payer > 0) db\q('UPDATE users SET r=r-:change WHERE uid=:payer', compact('change', 'payer'));
   say(t('done'));
   unset($DBTX);
-}
+}*/
 
 /**
  * Return Summary fields exclusively for community admins (admin, cAdmin, or cAdmin2).
@@ -57,7 +58,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     $ctty = $a->community;
     $count = item(db\recCount('users', 'community=:ctty AND uid<>:ctty', compact('ctty')), t('Members:'));
   } else { // managing some individual community member account
-    $a->nextStep(); // update Dwolla status
+    if (!$a->ok) $a->nextStep(); // update Dwolla status
     if ($cAdmin) {
       $donations = db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
       if ($donationInfo = $a->ok ? '' : db\lookup('honor,honored,share', 'r_gifts', 'uid=:uid', compact('uid'))) {
@@ -67,10 +68,9 @@ function adminSummary($a, $cAdmin = FALSE) {
       $donations = item(u\fmtAmt($donations) . @$donationInfo, t('Donations:'));
 
       $floor = textField(t('Credit floor:'), '', dft(u\fmtAmt($a->floor)));
-      if (!$a->stepsDone['dw']) { // show info needed to open a Dwolla account
-        extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
-        $dwInfo = item(u\rayTable(u\ray('usdEmail usdPass phone SSN address zip usdPIN', @$s_usdEmail, @$s_usdPass, @substr(@$s_usdPhone, 2), $a->federalId, $a->address, $a->postalCode, @$s_usdPin)));
-      }
+//      if (!$a->stepsDone['dw']) { // show info needed to open a Dwolla account
+      extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
+      $dwInfo = item(u\rayTable(u\ray('usdEmail usdPass phone SSN address zip usdPIN', @$s_usdEmail, @$s_usdPass, @substr(@$s_usdPhone, 2), ($a->ok or $a->can(B_BANK)) ? '' : ($a->federalId . ' (' . substr($a->federalId, -4) . ')'), $a->address, $a->postalCode, @$s_usdPin)));
     }
   
     $steps = $a->ok

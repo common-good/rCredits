@@ -1,3 +1,18 @@
+2014-08
+. fixed bug: homogenize crashes on "null dw number" trying to tradeR to/from 26742000000080. Require B_BANK, not just B_DW.
+. community admin can now skip the agreement step when inputting a paper signup
+. modified and added code to handle offline rPOS transactions
+. fixed bug that recorded signup helper's account rather than their qid
+. changed automatic nighttime draws to be always allowed, regardless of rewards level
+. fixed bug: don't allow pw reset for companies
+. fixed bug that allowed admin to set "ok" bit without "member" bit
+. fixed bug that ignored null state on signup
+. added email address to summary page
+. alert staff on insufficient funds and other tx failures
+. created smaller picture (in photos/small) for passing to POS: 50% (300x400 -- about 12k) ideally at 35%
+. fixed bug: "reverses #" was giving wrong tid for cust/co 
+. fixed bug: rcron now handles negative balances right, when bringing accounts up to minimum.
+
 2014-06-25
 . fixed bug: u\monthDay1 failed for other years
 . moved Txs utility functions to their own namespace (Txs aka x)

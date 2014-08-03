@@ -344,7 +344,7 @@ class call {
     $acct = be\identify($my_who);
     if ($acct != 'ALL' and !u\isAcct($acct)) return tt($acct); // return the array if error
 
-    list ($message, $args, $confirm) = be\transfer($type, r\acct(), $acct, $my_amount, !u\forCash($my_what), $my_what, $this->confirmed);
+    list ($message, $args, $confirm) = be\transfer($type, r\acct(), $acct, $my_amount, !u\forCash($my_what), $my_what, NULL, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
   

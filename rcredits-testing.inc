@@ -112,8 +112,11 @@ function doAccount($info = array()) {
   $flags0 = @$flags;
   $flags = 0;
   if (@$flags0) foreach (u\ray($flags0) as $one) $flags |= u\bit(u\consta('b', $one));
-  if ($flags & u\bit(B_OK)) $flags |= u\bit(B_MEMBER);
-
+  if (!$testOnly) {
+    if ($flags & u\bit(B_OK)) $flags |= u\bit(B_MEMBER);
+    if ($flags & u\bit(B_DW)) $flags |= u\bit(B_BANK);
+  }
+  
   if (isset($acctType)) $flags |= (($acctType === R_PERSONAL or $acctType == 'personal') ? 0 : u\bit(B_CO)); // === required
   
   foreach (u\ray('id email acctType dw cc cc2') as $one) unset($info[$one]);
@@ -310,7 +313,7 @@ function doneStep($uid, $step) {
   $a = r\acct($uid = t\uid($uid));
   return @$a->stepDone($step); // might have to do the steps below also
   
-  if ($step == 'photo') return file_put_contents(DRUPAL_ROOT . $a->auxFilename('picture', TRUE), 'whatever');
+  if ($step == 'photo') return t\makePicture('whatever', $a);
   if ($step == 'sign') return $a->update(u\ray('signed', REQUEST_TIME));
   if ($step == 'donate') return db\insert('r_gifts', u\ray('uid amount', $uid, 123));
   if ($step == 'proxies') return db\q('INSERT INTO r_proxies (person, proxy) VALUES (:uid, 2),(:uid, 3)', compact('uid'));
@@ -670,13 +673,13 @@ function fixEmail(&$email) {
 }
 
 function makePicture($picture, $a) {
-  $filename = DRUPAL_ROOT . $a->auxFilename('picture', TRUE);
+  $filename = DRUPAL_ROOT . $a->auxFilename('picture2', TRUE);
   return (bool) file_put_contents($filename, $picture);
 }
 
 // UNUSED
 function getPicture($picture) {
-  return file_get_contents(DRUPAL_ROOT . R_PICTURE_DIR . "/$picture.jpg");
+  return file_get_contents(DRUPAL_ROOT . R_PICTURE_DIR . "/small/$picture.jpg");
 }
 
 function lastMinuteSubs($string) {
@@ -684,6 +687,10 @@ function lastMinuteSubs($string) {
   if (u\abbreviates('%dmy', $string)) return subAgo($string, '%d-%b-%Y');
   if (u\abbreviates('%dm', $string)) return subAgo($string, '%d-%b');
   if (u\abbreviates('%md', $string)) return subAgo($string, '%b %d');
+  if (u\abbreviates('%can_', $string)) {
+    $perm = u\consta('b', substr($string, 5));
+    return $GLOBALS['share permissions'][$perm - B_RELATED];
+  }
   if ($string == '%chk') return '&#10004;';
   if ($string == '%ctty') return R_REGION_NAME;
   return $string;
@@ -1064,7 +1071,7 @@ function clear($ch) {
   $dir = DRUPAL_ROOT . R_PICTURE_DIR;
   $zza = '' . r\unQuid('.ZZA');
   $zza = substr($zza, 0, strlen($zza) - 1); // ignore last digit
-  shell_exec(str_replace('/', '\\', "DEL \"$dir/$zza*\""));
+  shell_exec(str_replace('/', '\\', "DEL \"$dir/small/$zza*\""));
   ctty('aaa')->setBit(B_MEMBER);
   ctty('aaa')->setBit(B_OK);
 
@@ -1142,7 +1149,7 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   $xi = $i = 0;
   foreach ($A as $one) {
     if ($one === '' or substr($one, 0, 1) == '_') continue; // ignore _labels
-    if (strpos($one, '%') !== FALSE) $one = t\lastMinuteSubs($one);
+    if (strpos($one, '%') !== FALSE) $one = t\lastMinuteSubs(htmlspecialchars($one));
     if ($showDebugs) t\output("EXPECT page with " . u\purify($one, ''));
     if (($one = u\redash($one)) !== '') $i = strpos($model, $one, $xi = $i);
     if ($showDebugs) t\output(compact('xi','i','one'));

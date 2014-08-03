@@ -14,7 +14,7 @@ Before growing fast:
 . DONE economic circle(s)
 . 2 more new board members, including a business leader
 . ID verification
-. Software:
+. DONE Software:
   - DONE invoices
   - sound admin tools: 
 . $25 for inviting and helping (software and promo)
@@ -23,14 +23,25 @@ Before growing fast:
 . after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org
 
 TASKS FOR NEXT UPDATE:
-. rebuild menus
-. chmod tcpdf/cache
+. make note of all company bits and restore them after the update
+. create small pictures in photos/small ( use f('a.eachAcct', 'shrinkPhoto'); )
+. set helper for each ok account (use   f('a.eachAcct'); )
 (no other special tasks yet)
 
-. "no bank" option on signup!
-. alert staff on insufficient funds
-. activate automatic credit lines (average throughput over the past 6 months, prorated as 1/6 of monthly throughput for 30-day-old accounts, etc.)
-. accounts that draw on others are forbidden to cash out, but they can draw rewards from other accounts.
+. split off from users data any fields that are usually set (especially helper, which should be included in changeUid list)
+. make bank connection optional, with other choices listed
+. when making a new rcard in admin, rename photo(s) with new cardCode
+. forbid unauthorized signed-out transactions (in smart.inc), because app accidentally allowed a refund by a cashier without being signed in.
+. in invite email, warn the potential member about the required donation "of any size -- a penny or more" and "you supply the same info as for opening a bank account"
+. setting member bit on community gets message ~ "you must specify helper"
+. relabel member and rTrader bits for ctty on Summary page
+. after creating company, sign user back in with company account selected and status page displayed
+. add share pct to preference page
+. make a changeUid interface for Admin: select account1 from lookup box, go to separate page to input target community
+. improve "send another invite" message so people click the link.
+. r cache does not get updated on editTx (new amount gets added, old amount does not get subtracted) (see r\setTxField)
+. "no bank" option on signup: require the connect step even if no dw, but put a no-bank option on the BankInfo form
+. bankless accounts that draw on others are forbidden to cash out, (but they can draw rewards from other accounts).
 . add graphs 2-4 to the account statements in a "Community" section, with short explanations of the significance.
 . give category totals on monthly statements (anything before ~*([{|\;:,.</ or end of string is a category)
 . handle separate USD balances for each community, without requiring a separate USD account (?) Better if we can open multiple accounts for ACH!
@@ -55,6 +66,7 @@ Also, a couple notes :
 6. Add icons to the balance listing, or at least + and - signs in red or green depending on whether it’s a debit or credit. 
 . for rebates/bonuses, give xid# for ctty purpose (eg "rebate on #3847")
 . subtotals by purpose in downloaded PDFs (and CSV?)
+. maybe change relations qid to company QID dot letter, like NEW.AAB.A, meaning <first employee of the AAB company> (relations table will need a company sequence number). This will allow the app to distinguish companies offline.
 . notices should say to contact us at community admin's email address (not necessarily new@rcredits.org)
 . rdo for min needs expires date (all entries should have an expires date)
 . donations on Summary page: always show honors and howoften. show sum separately from first.
@@ -66,6 +78,7 @@ Also, a couple notes :
 . remove invoicing code from be\transfer (but crash if called inappropriately)
 . leave erroneous export fields blank and don't leave a dangling "-" on zip
 . add "Ever" to period choices in formTxs
+. joint accounts: implement as a higher-level view of two or more accounts (for anyone who has read permission on those accounts?)
 . unset bits u10, u15, u19
 . explain tax options on 1099-B page
 . add "check online" to the ticklers

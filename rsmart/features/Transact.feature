@@ -23,8 +23,8 @@ Setup:
   | id   | selling         |*
   | .ZZC | this,that,other |
   And company flags:
-  | id   | flags            |*
-  | .ZZC | refund,sell cash |
+  | id   | flags        |*
+  | .ZZC | refund,r4usd |
   And relations:
   | id   | main | agent | permission |*
   | :ZZA | .ZZC | .ZZA  | buy        |
@@ -50,14 +50,15 @@ Setup:
 #  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to agent  |
 
 Scenario: A cashier asks to charge someone
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food" at %now
   # cash exchange would be for "cash": "cash out"
-  Then we respond ok with tx 5 and message "report transaction" with subs:
+  Then we respond ok txid 5 created %now balance 160 rewards 260
+  And with message "report transaction" with subs:
   | did     | otherName | amount | rewardType | rewardAmount |*
   | charged | Bea Two   | $100   | reward     | $10          |
-  And with balance
-  | name    | balance | spendable | cashable | did     | amount | forCash |*
-  | Bea Two | $160    |           | $0       | charged | $100   |         |
+  And with did
+  | did     | amount | forCash |*
+  | charged | $100   |         |
   And with undo
   | created | amount | tofrom | otherName |*
   | %dmy    | $100   | from   | Bea Two   |
@@ -72,13 +73,14 @@ Scenario: A cashier asks to charge someone
   | .ZZC |     360 |
 
 Scenario: A cashier asks to refund someone
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "goods": "food"
-  Then we respond ok with tx 5 and message "report transaction" with subs:
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "goods": "food" at %now
+  Then we respond ok txid 5 created %now balance 340 rewards 240
+  And with message "report transaction" with subs:
   | did      | otherName | amount | rewardType | rewardAmount |*
   | refunded | Bea Two   | $100   | reward     | $-10         |
-  And with balance
-  | name    | balance | spendable | cashable | did      | amount | forCash |*
-  | Bea Two | $340    |           | $100     | refunded | $100   |         |
+  And with did
+  | did      | amount | forCash |*
+  | refunded | $100   |         |
   And with undo
   | created | amount | tofrom | otherName |*
   | %dmy    | $100   | to     | Bea Two   |
@@ -93,66 +95,66 @@ Scenario: A cashier asks to refund someone
   | .ZZC |     140 |
 
 Scenario: A cashier asks to charge another member, with insufficient balance
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "goods": "food" at %now
   Then we return error "short from" with subs:
   | otherName |*
   | Bea Two   |  
 
 Scenario: A cashier asks to refund another member, with insufficient balance
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $-300 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $-300 for "goods": "food" at %now
   Then we return error "short to" with subs:
   | short |*
   | $50   |
 
 Scenario: A cashier asks to pay self
-  When agent ":ZZA" asks device "devC" to charge ".ZZC" $300 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ".ZZC" $300 for "goods": "food" at %now
   Then we return error "shoulda been login"
 
 Scenario: Device gives no member id
-  When agent ":ZZA" asks device "devC" to charge "" $300 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge "" $300 for "goods": "food" at %now
   Then we return error "missing member"
   
 Scenario: Device gives bad account id
-  When agent ":ZZA" asks device "devC" to charge %whatever $300 for "goods": "food"
-  Then we return error "bad member"
+  When agent ":ZZA" asks device "devC" to charge %whatever $300 for "goods": "food" at %now
+  Then we return error "bad customer"
 
 Scenario: Device gives no amount
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $"" for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $"" for "goods": "food" at %now
   Then we return error "bad amount"
   
 Scenario: Device gives bad amount
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $%whatever for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $%whatever for "goods": "food" at %now
   Then we return error "bad amount"
   
 Scenario: Device gives too big an amount
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $10,000,000 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $10,000,000 for "goods": "food" at %now
   Then we return error "amount too big"
 
 Scenario: Device gives no purpose for goods and services
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": ""
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "" at %now
   Then we return error "missing description"
 
 Scenario: Seller agent lacks permission to buy
-  When agent ":ZZB" asks device "devC" to charge ".ZZB" $-100 for "goods": "refund"
+  When agent ":ZZB" asks device "devC" to charge ".ZZB" $-100 for "goods": "refund" at %now
   Then we return error "no perm" with subs:
   | what    |*
   | refunds |
 
 Scenario: Seller agent lacks permission to scan and sell
-  When agent ":ZZD" asks device "devC" to charge ".ZZA" $100 for "goods": "food"
+  When agent ":ZZD" asks device "devC" to charge ".ZZA" $100 for "goods": "food" at %now
   Then we return error "no perm" with subs:
   | what  |*
   | sales |
   
 Scenario: Buyer agent lacks permission to buy
-  When agent ":ZZA" asks device "devC" to charge ":ZZE" $100 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ":ZZE" $100 for "goods": "food" at %now
   Then we return error "other no perm" with subs:
   | otherName | what      |*
   | Eve Five  | purchases |
 
 Scenario: Seller tries to charge the customer twice
-  Given agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"
+  Given agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food" at "%now-1min"
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food" at %now
   Then we return error "duplicate transaction" with subs:
   | op      |*
   | charged |

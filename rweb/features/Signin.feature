@@ -121,6 +121,17 @@ Scenario: A member asks for a new password for an unknown account
   | bogus |
   Then we say "error": "bad account id"
   
+Scenario: A member asks for a new password for a company
+  Given members:
+  | id   | fullName | pass | email | flags |*
+  | .ZZC | Our Pub  | c1   | c@    | co    |
+  When member "?" completes form "account/password" with values:
+  | name    |*
+  | new.zzc |
+  Then we say "error": "no co pass" with subs:
+  | company |*
+  | Our Pub |
+  
 #.........................................................
 
 Scenario: A member clicks a link to reset password

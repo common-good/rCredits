@@ -67,6 +67,7 @@ function members($list) {return t\members($list);}
  * balances: (ARG)
  *
  * in: MAKE Bank AMemberIsBarelyBelowMinimum
+ *     MAKE Bank AMemberHasANegativeBalance
  *     MAKE Bank AnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount
  *     MAKE Bank AnUnbankedMemberBarelyBelowMinimumCannotDrawOnAnotherAccount
  *     MAKE Bank AMemberIsAtMinimum
@@ -95,6 +96,7 @@ function balances($list) {return t\balances($list);}
  * cron runs (ARG)
  *
  * in: MAKE Bank AMemberIsBarelyBelowMinimum
+ *     MAKE Bank AMemberHasANegativeBalance
  *     MAKE Bank AnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount
  *     MAKE Bank AnUnbankedMemberBarelyBelowMinimumCannotDrawOnAnotherAccount
  *     MAKE Bank AMemberIsAtMinimum
@@ -129,6 +131,7 @@ function cronRuns($op) {return t\cronRuns($op);}
  * usd transfers: (ARG)
  *
  * in: TEST Bank AMemberIsBarelyBelowMinimum
+ *     TEST Bank AMemberHasANegativeBalance
  *     TEST Bank AMemberIsWellBelowMinimum
  *     TEST Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     TEST Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
@@ -178,6 +181,7 @@ function transactions($list) {return t\transactions($list);}
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
  * in: TEST Bank AMemberIsBarelyBelowMinimum
+ *     TEST Bank AMemberHasANegativeBalance
  *     TEST Bank AnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount
  *     TEST Bank AMemberIsWellBelowMinimum
  *     TEST Gifts ADonationCanBeCompleted

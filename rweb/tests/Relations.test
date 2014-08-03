@@ -74,8 +74,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZA | .ZZD  | scan         | 1          | 1          | 1       | 0    |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | Draw | My employer? | My employee? | Family? | Permission  |_requests      |'
-    . '\\| Dee Four   | No   | No           | Yes          | Yes     | scan rCards | -- |"');
+    . '\\| Other      | Draw | My employer? | My employee? | Family? | Permission |_requests      |'
+    . '\\| Dee Four   | No   | No           | Yes          | Yes     | %can_scan  | -- |"');
   }
 
   // Scenario: Member has an employee, unconfirmed
@@ -86,8 +86,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZA | .ZZD  | refund     | 1          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
-    . '\\| Dee Four   | No           | Yes          | No      | give refunds | request rCard |"');
+    . '\\| Other      | My employer? | My employee? | Family? | Permission  |_requests      |'
+    . '\\| Dee Four   | No           | Yes          | No      | %can_refund | request rCard |"');
   }
 
   // Scenario: Member has a relation with a contractor
@@ -98,8 +98,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZA | .ZZB  | buy        | 0          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
-    . '\\| Bea Two    | No           | No           | No      | buy and sell | --            |"');
+    . '\\| Other      | My employer? | My employee? | Family? | Permission |_requests      |'
+    . '\\| Bea Two    | No           | No           | No      | %can_buy   | --            |"');
   }
 
   // Scenario: Member has an employee, claimed
@@ -110,8 +110,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZA | .ZZD  | sell         | 0          | 1          | 0       |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission    |_requests      |'
-    . '\\| Dee Four   | No           | No           | No      | send invoices | -- |"');
+    . '\\| Other      | My employer? | My employee? | Family? | Permission |_requests      |'
+    . '\\| Dee Four   | No           | No           | No      | %can_sell  | -- |"');
   }
 
   // Scenario: Employee can only read
@@ -122,8 +122,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZA | .ZZD  | read       | 1          | 1          | 1       |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission        |_requests      |'
-    . '\\| Dee Four   | No           | Yes          | Yes     | read transactions | --       |"');
+    . '\\| Other      | My employer? | My employee? | Family? | Permission |_requests      |'
+    . '\\| Dee Four   | No           | Yes          | Yes     | %can_read  | --       |"');
   }
 
   // Scenario: Member has an employer
@@ -134,8 +134,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZB | .ZZA  | sell         | 1          | 1          | 1        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
-    . '\\| Bea Two    | Yes          | No           | No      | no access    | --       |"');
+    . '\\| Other      | My employer? | My employee? | Family? | Permission |_requests      |'
+    . '\\| Bea Two    | Yes          | No           | No      | %can_none  | --       |"');
   }
 
   // Scenario: Member has access to employee account
@@ -147,12 +147,12 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 2  | .ZZD | .ZZA  | sell       | 0          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
-    . '\\| Dee Four   | No           | Yes          | Yes     | no access    | --            |"');
+    . '\\| Other      | My employer? | My employee? | Family? | Permission |_requests      |'
+    . '\\| Dee Four   | No           | Yes          | Yes     | %can_none  | --            |"');
     When_('member ".ZZD" visits page "account/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission    |_requests      |'
-    . '\\| Abe One    | Yes          | No           | No      | send invoices | -- |"');
+    . '\\| Other      | My employer? | My employee? | Family? | Permission |_requests      |'
+    . '\\| Abe One    | Yes          | No           | No      | %can_sell  | -- |"');
   }
 
   // Scenario: Member company has relations
@@ -186,25 +186,25 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| .ZZF | .ZZB | .ZZA  |            |     20 | 1           | 1           | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission    |_requests      |'
-    . '\\| Bea Two    | Yes          | Yes          | Yes     | send invoices | request rCard |'
-    . '\\| Corner Pub | No           | --           | No      | --            | --       |'
-    . '\\| Dee Four   | Yes          | Yes          | Yes     | scan rCards   | -- |"');
+    . '\\| Other      | My employer? | My employee? | Family? | Permission |_requests      |'
+    . '\\| Bea Two    | Yes          | Yes          | Yes     | %can_sell  | request rCard |'
+    . '\\| Corner Pub | No           | --           | No      | --         | --       |'
+    . '\\| Dee Four   | Yes          | Yes          | Yes     | %can_scan  | -- |"');
     When_('member ".ZZB" visits page "account/relations"');
     Then_('we show "Relations" with: "ARRAY'
     . '\\| Other   | My employee? | Family? | Permission |_requests      |'
-    . '\\| Abe One | Yes          | No      | no access  | --            |"');
+    . '\\| Abe One | Yes          | No      | %can_none  | --            |"');
     When_('member ".ZZD" visits page "account/relations"');
     Then_('we show "Relations" with: "ARRAY'
     . '\\| Other   | My employer? | My employee? | Family? | Permission |_requests      |'
-    . '\\| Abe One | No           | No           | No      | no access  | --            |"');
+    . '\\| Abe One | No           | No           | No      | %can_none  | --            |"');
     And__('with: "ARRAY'
     . '\\|_Header  |'
     . '\\| Family? |"');
     When_('member ":ZZD" visits page "account/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other   | My employee? | Owns | Permission     |_requests      |'
-    . '\\| Abe One | Yes          | No   | manage account | request rCard |"');
+    . '\\| Other   | My employee? | Owns | Permission  |_requests      |'
+    . '\\| Abe One | Yes          | No   | %can_manage | request rCard |"');
     And__('without: "ARRAY'
     . '\\| employer? |"');
   }
@@ -219,8 +219,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| who     |'
     . '\\| Bea Two |"');
     And__('we show "Relations" with: "ARRAY'
-    . '\\| Other      | Draw | My employer? | My employee? | Family? | Permission   |_requests      |'
-    . '\\| Bea Two    | No   | No           | No           | No      | no access    | --            |"');
+    . '\\| Other      | Draw | My employer? | My employee? | Family? | Permission |_requests      |'
+    . '\\| Bea Two    | No   | No           | No           | No      | %can_none  | --            |"');
   }
 
 }

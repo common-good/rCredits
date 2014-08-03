@@ -86,7 +86,6 @@ EOF
 
   // confirm
   'yes or no' =>  '@yesNo', // to replace with yesNo(url)
-  'confirm undo' => t('Undo @created transfer of @amount @tofrom @otherName?'),
 
   // errors
   'missing purpose' => t('<p>What purpose? For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/etc". Rebates and bonuses are intended as rewards for productive economic activity in rCredits.</p>
@@ -153,6 +152,7 @@ EOF
   'need a manager' => t('A company account must have at least one person to manage it.'),
   'self must sign' => t('You cannot sign this agreement on behalf of another person.'),
   'bad zip' => t('US zipcodes must be 5 digits, possibly followed by a hyphen and 4 more digits.'),
+  'bad state' => t('You must say what state.'),
   'password required' => t('You must supply your current password, to change your email address or password.'),
   'bad account id' => t('That account does not exist. Check your typing?'),
   'bad login' => t('That account/password combination does not exist. Try again or <!a>ask for a new password</a>.', array('!a' => 'a href="' . url("$base_url/account/password") . '"')),
@@ -207,6 +207,7 @@ EOF
   'illegal amount change' => t('You cannot @action the original amount (@amount). <@a>Send an invoice</a> instead.'),
   'bad achmin' => t('The minimum transfer amount must be at least $@R_ACHMIN.'),
   'say why not' => t('You must say why you are denying the invoice.'),
+  'no co pass' => t('Company accounts do not have passwords. Sign in to your personal account, then select @company from the dropdown in the upper right corner.'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
 
@@ -1273,7 +1274,7 @@ function transfer($op, $info, $confirmed) {
   $op = $op == 'pay' ? t('paid') : ($op == 'charge' ? 'charged' : $op . 'ed'); // for possible error message
   $goods = ($goods and !u\forCash($purpose));
   list ($msg, $args, $confirm) = 
-     $txType == 'payment' ? be\transfer($txType, $mya, $a, $amount, $goods, $purpose, $confirmed)
+     $txType == 'payment' ? be\transfer($txType, $mya, $a, $amount, $goods, $purpose, NULL, $confirmed)
      : ($txType == 'charge' ? be\invoice($mya, $a, $amount, $goods, $purpose, $confirmed)
      : communityTransfer($txType, $a, $amount, $purpose, $confirmed));
 
@@ -1397,6 +1398,9 @@ function blank_field($fields, $prefix = '') {
  *   say('index', array(optional args), 'optional error field')
  *   say('index', 'error field')
  *   say(array(index, args), 'optional error field')
+ *
+ * Note: the optional error field prevents form submission only if the field exists (so use "ERR" only when form submission is not an issue)
+ *
  * @return FALSE (transfer() depends on this)
  */
 function say($index, $args = array(), $errField = '') {

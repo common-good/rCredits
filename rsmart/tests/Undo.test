@@ -65,8 +65,8 @@ class rsmartUndo extends DrupalWebTestCase {
     . '\\| id   | selling         |'
     . '\\| .ZZC | this,that,other |"');
     And__('company flags: "ASSOC'
-    . '\\| id   | flags            |'
-    . '\\| .ZZC | refund,sell cash |"');
+    . '\\| id   | flags        |'
+    . '\\| .ZZC | refund,r4usd |"');
     And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| :ZZA | .ZZC | .ZZA  | scan       |'
@@ -93,14 +93,34 @@ class rsmartUndo extends DrupalWebTestCase {
     . '\\| 5   | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #2 |      0 |'
     . '\\| 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  |      0 |"');
     When_('agent ":ZZB" asks device "devC" to undo transaction 4');
-    Then_('we respond ok "report undo|report transaction" with subs: "ASSOC'
+    Then_('we respond ok txid 7 created %now balance 250 rewards 250');
+    And__('with message "report undo|report transaction" with subs: "ASSOC'
     . '\\| solution | did      | otherName | amount | rewardType | rewardAmount |'
     . '\\| reversed | refunded | Abe One   | $80    | reward     | $-8          |"');
-    And__('with balance "ASSOC'
-    . '\\| name    | balance | spendable | cashable | did     | amount | forCash |'
-    . '\\| Abe One | $250    |           | $0       |         |        |         |"');
-    And__('with undo ""');
+    And__('with did ""');
+    And__('with undo "4"');
     And__('we notice "new refund|reward other" to member ".ZZA" with subs: "ASSOC'
+    . '\\| created | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
+    . '\\| %today  | Corner Pub | $80    | reverses #2  | reward          | $-4               |"');
+  }
+
+  // Scenario: An agent asks to undo a charge when balance is secret
+  public function testAnAgentAsksToUndoAChargeWhenBalanceIsSecret_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('transactions: "ASSOC'
+    . '\\| xid | created   | type     | amount | from | to   | purpose      | taking |'
+    . '\\| 4   | %today-6m | signup   |    250 | ctty | .ZZE | signup       |      0 |'
+    . '\\| 5   | %today-1d | transfer |     80 | .ZZE | .ZZC | whatever     |      1 |'
+    . '\\| 6   | %today-1d | rebate   |      4 | ctty | .ZZE | rebate on #2 |      0 |'
+    . '\\| 7   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  |      0 |"');
+    When_('agent ":ZZB" asks device "devC" to undo transaction 5');
+    Then_('we respond ok txid 8 created %now balance "*250" rewards 250');
+    And__('with message "report undo|report transaction" with subs: "ASSOC'
+    . '\\| solution | did      | otherName | amount | rewardType | rewardAmount |'
+    . '\\| reversed | refunded | Eve Five  | $80    | reward     | $-8          |"');
+    And__('with did ""');
+    And__('with undo "5"');
+    And__('we notice "new refund|reward other" to member ".ZZE" with subs: "ASSOC'
     . '\\| created | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
     . '\\| %today  | Corner Pub | $80    | reverses #2  | reward          | $-4               |"');
   }
@@ -114,13 +134,12 @@ class rsmartUndo extends DrupalWebTestCase {
     . '\\| 5   | %today-1d | rebate   |     -4 | ctty | .ZZA | rebate on #2 |      0 |'
     . '\\| 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  |      0 |"');
     When_('agent ":ZZB" asks device "devC" to undo transaction 4');
-    Then_('we respond ok "report undo|report transaction" with subs: "ASSOC'
+    Then_('we respond ok txid 7 created %now balance 250 rewards 250');
+    And__('with message "report undo|report transaction" with subs: "ASSOC'
     . '\\| solution | did        | otherName | amount | rewardType | rewardAmount |'
     . '\\| reversed | re-charged | Abe One   | $80    | reward     | $8           |"');
-    And__('with balance "ASSOC'
-    . '\\| name    | balance | spendable | cashable | did     | amount | forCash |'
-    . '\\| Abe One | $250    |           | $0       |         |        |         |"');
-    And__('with undo ""');
+    And__('with did ""');
+    And__('with undo "4"');
     And__('we notice "new charge|reward other" to member ".ZZA" with subs: "ASSOC'
     . '\\| created | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
     . '\\| %today  | Corner Pub | $80    | reverses #2  | reward          | $4                |"');
@@ -133,13 +152,12 @@ class rsmartUndo extends DrupalWebTestCase {
     . '\\| xid | created   | type     | amount | from | to   | purpose  | goods | taking |'
     . '\\| 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | cash out |     0 |      1 |"');
     When_('agent ":ZZB" asks device "devC" to undo transaction 4');
-    Then_('we respond ok "report undo|report exchange" with subs: "ASSOC'
+    Then_('we respond ok txid 5 created %now balance 250 rewards 250');
+    And__('with message "report undo|report exchange" with subs: "ASSOC'
     . '\\| solution | did      | otherName | amount |'
     . '\\| reversed | credited | Abe One   | $80    |"');
-    And__('with balance "ASSOC'
-    . '\\| name    | balance | spendable | cashable | did     | amount | forCash |'
-    . '\\| Abe One | $250    |           | $0       |         |        |         |"');
-    And__('with undo ""');
+    And__('with did ""');
+    And__('with undo "4"');
     And__('we notice "new payment" to member ".ZZA" with subs: "ASSOC'
     . '\\| created | fullName | otherName  | amount | payeePurpose |'
     . '\\| %today  | Abe One  | Corner Pub | $80    | reverses #2  |"');
@@ -152,13 +170,12 @@ class rsmartUndo extends DrupalWebTestCase {
     . '\\| xid | created   | type     | amount | from | to   | purpose | goods | taking |'
     . '\\| 4   | %today-1d | transfer |    -80 | .ZZA | .ZZC | cash in |     0 |      1 |"');
     When_('agent ":ZZB" asks device "devC" to undo transaction 4');
-    Then_('we respond ok "report undo|report exchange" with subs: "ASSOC'
+    Then_('we respond ok txid 5 created %now balance 250 rewards 250');
+    And__('with message "report undo|report exchange" with subs: "ASSOC'
     . '\\| solution | did        | otherName | amount |'
     . '\\| reversed | re-charged | Abe One   | $80    |"');
-    And__('with balance "ASSOC'
-    . '\\| name    | balance | spendable | cashable | did     | amount | forCash |'
-    . '\\| Abe One | $250    |           | $0       |         |        |         |"');
-    And__('with undo ""');
+    And__('with did ""');
+    And__('with undo "4"');
     And__('we notice "new charge" to member ".ZZA" with subs: "ASSOC'
     . '\\| created | fullName | otherName  | amount | payerPurpose |'
     . '\\| %today  | Abe One  | Corner Pub | $80    | reverses #2  |"');
@@ -174,9 +191,21 @@ class rsmartUndo extends DrupalWebTestCase {
     . '\\| 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  |     0 |      0 |'
     . '\\| 7   | %today    | transfer |    300 | .ZZC | .ZZB | labor        |     0 |      0 |"');
     When_('agent ":ZZB" asks device "devC" to undo transaction 4');
-    Then_('we return error "short to" with subs: "ASSOC'
-    . '\\| short |'
-    . '\\| $38   |"');
+    Then_('we respond ok txid 8 created %now balance 250 rewards 250');
+    And__('with message "report undo|report transaction" with subs: "ASSOC'
+    . '\\| solution | did      | otherName | amount | rewardType | rewardAmount |'
+    . '\\| reversed | refunded | Abe One   | $80    | reward     | $-8          |"');
+    And__('with did ""');
+    And__('with undo "4"');
+    And__('we notice "new refund|reward other" to member ".ZZA" with subs: "ASSOC'
+    . '\\| created | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
+    . '\\| %today  | Corner Pub | $80    | reverses #2  | reward          | $-4               |"');
+    And__('balances: "ASSOC'
+    . '\\| id   | balance |'
+    . '\\| ctty |    -750 |'
+    . '\\| .ZZA |     250 |'
+    . '\\| .ZZB |     550 |'
+    . '\\| .ZZC |     -50 |"');
   }
 
   // Scenario: An agent asks to undo a refund, with insufficient balance
@@ -189,9 +218,21 @@ class rsmartUndo extends DrupalWebTestCase {
     . '\\| 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  |     0 |      0 |'
     . '\\| 7   | %today    | transfer |    300 | .ZZA | .ZZB | labor        |     0 |      0 |"');
     When_('agent ":ZZB" asks device "devC" to undo transaction 4');
-    Then_('we return error "short from" with subs: "ASSOC'
-    . '\\| otherName |'
-    . '\\| Abe One   |"');
+    Then_('we respond ok txid 8 created %now balance -50 rewards 250');
+    And__('with message "report undo|report transaction" with subs: "ASSOC'
+    . '\\| solution | did        | otherName | amount | rewardType | rewardAmount |'
+    . '\\| reversed | re-charged | Abe One   | $80    | reward     | $8           |"');
+    And__('with did ""');
+    And__('with undo "4"');
+    And__('we notice "new charge|reward other" to member ".ZZA" with subs: "ASSOC'
+    . '\\| created | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
+    . '\\| %today  | Corner Pub | $80    | reverses #2  | reward          | $4                |"');
+    And__('balances: "ASSOC'
+    . '\\| id   | balance |'
+    . '\\| ctty |    -750 |'
+    . '\\| .ZZA |     -50 |'
+    . '\\| .ZZB |     550 |'
+    . '\\| .ZZC |     250 |"');
   }
 
   // Scenario: An agent asks to undo a charge, without permission
@@ -222,21 +263,13 @@ class rsmartUndo extends DrupalWebTestCase {
     . '\\| sales |"');
   }
 
-  // Scenario: An agent asks to undo someone else's transaction
-  public function testAnAgentAsksToUndoSomeoneElsesTransaction_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    Given('transactions: "ASSOC'
-    . '\\| xid | created   | type     | amount | from | to   | purpose      | goods | taking |'
-    . '\\| 4   | %today-1d | transfer |     80 | .ZZB | .ZZD | whatever     |     0 |      0 |"');
-    When_('agent ":ZZA" asks device "devC" to undo transaction 4');
-    Then_('we return error "undo no match"');
-  }
-
   // Scenario: An agent asks to undo a non-existent transaction
   public function testAnAgentAsksToUndoANonexistentTransaction_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZA" asks device "devC" to undo transaction 99');
-    Then_('we return error "undo no match"');
+    Then_('we respond ok txid 0 created "" balance 250 rewards 250');
+    And__('with did ""');
+    And__('with undo ""');
   }
 
 }

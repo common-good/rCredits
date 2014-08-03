@@ -23,3 +23,5 @@ files[] = tests/Unilateral.test
 files[] = tests/IdentifyCustomer.test
 files[] = tests/Identify.test
 files[] = tests/Exchange.test
+files[] = tests/Time.test
+files[] = tests/Offline.test

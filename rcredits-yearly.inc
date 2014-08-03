@@ -74,7 +74,7 @@ function recT($year) {
   $coName = $transmitterName = pad('Society to Benefit Everyone, Inc.', 80);
   $coAddr = pad('PO Box 21', 40) . pad('Ashfield', 40) . 'MA' . pad('013300021', 9);
   $payees = lpad(0, 8); // not possible to know the count yet
-  $contact = pad('William Spademan', 40) . pad('4136281021', 15) . pad('wspademan@gmail.com', 50);
+  $contact = pad(ADMIN_NAME, 40) . pad('4136281021', 15) . pad('wspademan@gmail.com', 50);
   $source = pad('I', 1); // V=vendor I=in-house
   $vendor = sp(40) . sp(40) . sp(40) . sp(2) . sp(9);
   $vendorContact = sp(40) . sp(15);

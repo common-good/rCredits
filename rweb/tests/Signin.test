@@ -206,6 +206,20 @@ class rwebSignin extends DrupalWebTestCase {
     Then_('we say "error": "bad account id"');
   }
 
+  // Scenario: A member asks for a new password for a company
+  public function testAMemberAsksForANewPasswordForACompany_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('members: "ASSOC'
+    . '\\| id   | fullName | pass | email | flags |'
+    . '\\| .ZZC | Our Pub  | c1   | c@    | co    |"');
+    When_('member "?" completes form "account/password" with values: "ASSOC'
+    . '\\| name    |'
+    . '\\| new.zzc |"');
+    Then_('we say "error": "no co pass" with subs: "ASSOC'
+    . '\\| company |'
+    . '\\| Our Pub |"');
+  }
+
   // Scenario: A member clicks a link to reset password
   public function testAMemberClicksALinkToResetPassword_0() {
     $this->setUp2(__FUNCTION__, 0);

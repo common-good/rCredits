@@ -85,7 +85,7 @@ function formAdmin_submit($form, &$sta) {
       r\makeCardCode($a);
       seeSecure($a);
     }
-    return r\go('print-rcard/' . $a->qid);
+    return r\go('/print-rcard/' . $a->qid);
   } elseif ($op == 'seeSecure') {
     if (@$a) {
       say(u\rayTable(u\ray('legalName dwAccount phone federalId dob physicalAddr', @$a->legalName, @$a->usdAccount, substr(@$a->phone, 2), @$a->federalId, u\fmtDate(@$a->dob), @$a->address . ' ' . $a->postalCode)));
@@ -320,7 +320,7 @@ function memberID($id) {
   $qid = $acct->qid;
   
   if ($proSe = $acct->proSe) {
-    $nameSize = strlen($fullName) > 22 ? '100px' : '120px';
+    $nameSize = strlen($fullName) > 21 ? '100px' : '120px';
     $fields = array('cardCode', 0, 'member', 'Member');
   } else {
     if (!@$acct->agent->secure['cardCode2']) r\makeCardCode($acct);

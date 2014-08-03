@@ -1110,12 +1110,30 @@ function caller($skip = 0) {
 /**/ $preargs = print_r(@$precaller->args, 1);
   return " called $caller->function($args) ($caller->line in $file), from $precaller->function($preargs) ($precaller->line in $file)\n";
 }
-   
+
+/**
+ * Show what bits are set in the given integer (for debugging).
+ */ 
+function bits($n) {
+  $res = '';
+  for($i = 0; $i < 33; $i++) if ($n & (1 << $i)) $res .= " $i";
+  return $res;
+}
+
 function purify($s) {
   if (is_array($s)) {
     foreach ($s as $key => $value) $s[$key] = purify($value);
     return $s;
   } return preg_replace('/( [\x00-\x7F] | [\xC0-\xDF][\x80-\xBF] | [\xE0-\xEF][\x80-\xBF]{2} | [\xF0-\xF7][\x80-\xBF]{3} ) | ./x', '$1', $s);
+}
+
+/**
+ * Return the obvious WHERE clause for the given fields (fieldname1=:fieldname1 AND ...).
+ */
+function where($ray) {
+  if (!is_numeric(key($ray))) $ray = array_keys($ray);
+  foreach ($ray as $k) $ret[] = "$k=:$k";
+  return join(' AND ', $ret);
 }
 
 /**

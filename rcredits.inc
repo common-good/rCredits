@@ -143,16 +143,25 @@ define('CO_CONSUMER_COOP', 6);
 define('CO_GOVERNMENT', 7);
 define('CO_PUBLICLY_TRADED', 8);
 
-define('CO_CANS', 15); // company permission bits
-define('CO_u15', 15);
-define('CO_REFUND', 16);
-define('CO_SELL_CASH', 17);
-define('CO_BUY_CASH', 18);
-define('CO_u19', 19);
-define('CO_u20', 20);
-define('CO_REQUIRE_CASHIER', 21); // prohibit anonymous use of rPOS devices AND allow other companies to use
+define('CO_CANS', 15); // company permission bits when signed OUT: bits 15-21
+define('CO_CHARGE', 0);
+define('CO_UNDO', 1);
+define('CO_R4USD', 2);
+define('CO_USD4R', 3);
+define('CO_REFUND', 4);
+define('CO_BUY', 5);
+define('CO_u21', 6); // unused
+define('CO_MANAGE', 7); // this bit is not actually stored here, but pass B_MANAGE to the app in this position
+define('CO_CANS_BITS', 7); // number of bits for permissions (each: signed in and out)
+define('CO_AGENT_CANS', CO_CANS + CO_CANS_BITS); // company permission bits when signed IN (limited by agent)
+define('CO_CANS_MASK', pow(2, CO_CANS_BITS + 1) - 1); // the CANS bits -- signed-IN permission bits are 22-28
 
-define('CO_CAN_BIT_DESCS', 'u0,refund,sell cash,buy cash');
+define('CO_U29', 29); //
+define('CO_U30', 30); //
+define('CO_U31', 31); //
+
+define('CO_CAN_BITS', 'charge undo r4usd usd4r refund buy');
+define('CO_CAN_BIT_DESCS', 'charge customers,undo last transaction,give rCredits for USD,give USD for rCredits,refund any amount,make payments');
 
 // Permissions, options, and flags (flags field in account record)
 // If we need more bits, create a flags2 field and make the B_ defs negative for acct::hasBit and setBit
@@ -202,13 +211,14 @@ define('R_CAPACITY', 'u.usd'); // how much rCredits is each account WILLING and 
 
 // Relationship permissions used in calls to acct::can() -- stored (less B_RELATED) in r_relations
 define('B_RELATED', 100); // has a relationship record
+define('B_NONE', 100); // no access
 define('B_READ', 101); // can view Transaction History
 define('B_SCAN', 102); // can scan rCard (or view -- permissions are cummulative)
 define('B_REFUND', 103); // can undo transactions and make refunds at point of sale
 define('B_SELL', 104); // can send invoices (or scan or view)
 define('B_BUY', 105); // can make purchase for the account (or sell or scan or view)
 define('B_MANAGE', 106); // can manage all aspects of the account
-$GLOBALS['share permissions'] = array(t('no access'), t('read transactions'), t('scan rCards'), t('give refunds'), t('send invoices'), t('buy and sell'), t('manage account'));
+$GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept rCard payments'), t('give refunds & give USD for rCredits'), t('send invoices'), t('make purchases'), t('manage account'));
 
 // Other special pseudo-bit values for acct::can()
 define('B_MANAGING_CTTY', 120); // cadmin is actually managing a qualified account
@@ -334,11 +344,11 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   }
   $myName = $acct->fullName;
   $otherName = r\acct($otherUid)->fullName;
-  $created = u\fmtDate($created);
+  $created = u\fmtDate($created0 = $created);
 
   $success = TRUE;
   foreach (u\ray('r payer payee') as $one) unset($tx[$one]); // else preempts all subs that start thus
-  return compact(u\ray('created xid role payerPurpose payeePurpose toMe confirmAction amount tofrom balance otherUid myName otherName short success')) + $tx;
+  return compact(u\ray('created created0 xid role payerPurpose payeePurpose toMe confirmAction amount tofrom balance otherUid myName otherName short success')) + $tx;
 }
 
 /**
@@ -503,7 +513,7 @@ function txSetup($info) {
   u\setDft($for, $goods ? R_FOR_GOODS : R_FOR_CASH);
   u\setDft($payerAgent, $payer);
   u\setDft($payeeAgent, $payee);
-  u\setDft($created, REQUEST_TIME);
+  u\setDft($created, time());
 //  $rewardBasis = ($payee == r\cgfId() and $for == 'donation') ? $amount : $r;
   $data = serialize(dataSetup($payer, $payee, $amount, $goods, @$data ?: array()));
   $taking += 0;
@@ -796,7 +806,7 @@ function acceptGift($info) {
 /**
  * Notify rCredits staff (Community Admin, if uid is in their area)
  * @param string $index: the message or message index
- * @param assoc $subs: substitutions for the message OR (if no subs in message) data to show
+ * @param assoc $subs: substitutions for the message and/or data to show (show both)
  * @param bool/int $uid: related account record id (defaults to current account), none if FALSE
  */
 function tellStaff($index, $subs = array(), $uid = TRUE) {
@@ -1056,12 +1066,13 @@ function uidRegion($uid) {
 /**
  * Return the rCredits region id for the given geographical location
  * @param int $country: country ID
- * @param int $state: state or province ID
+ * @param int $state: state or province ID (defaults to MA)
  * @param int $zip: postal code
  * @param string $raw: (RETURNED) the alphabetic identifier for the region (usually 3 characters)
  * @return int: the region uid
  */
 function region($country = '', $state = '', $zip = '', &$raw = '') {
+  if (!$state) $state =  R_STATE_ID;
   $where = "s.country_id=:country AND s.id=:state AND (r.zips='' OR :zip RLIKE r.zips) ORDER BY (r.zips='')";
   $region = db\lookup('region', 'r_regions r INNER JOIN r_states s ON r.state=s.abbreviation', $where, compact('state', 'zip', 'country'));
   if (!$region) $region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
@@ -1249,11 +1260,11 @@ function makeDevice($uid, $code = '', $ch = NULL) {
  * @return the new uid
  */
 function deleteAccount($uid) {r\changeUid($uid, FALSE, FALSE, TRUE);}
-function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE, $delete = FALSE) {
+function changeUid($oldUid, $newUid = FALSE, $unusable = FALSE, $delete = FALSE) {
   $a = r\acct($oldUid);
   if ($delete) {
     foreach (u\ray('r_usd r_txs') as $table) {
-      if (db\exists($table, 'payer=:oldUid OR payee=:oldUid', compact('oldUid'))) return r\Web\say('Account "@name" has transactions in @table, so it cannot be deleted.', u\ray('name table', $a->fullName, $table), 'err');
+      if (db\exists($table, 'payer=:oldUid OR payee=:oldUid', compact('oldUid'))) return r\Web\say('Account "@name" has transactions in @table, so it cannot be deleted.', u\ray('name table', $a->fullName, $table), 'ERR');
     }
   } elseif (!$newUid) {
     $region = @$a->postalCode ? r\region(@$a->country, @$a->state, $a->postalCode) : communityUid();
@@ -1262,6 +1273,7 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE, $delete = FALSE) 
   $subs = array( // all tables are listed, to be sure we don't leave any out
     'r_ach:uid',
   // r_areas
+  // r_banks
     'r_boxes:uid',
   // r_countries
     'r_do:uid',
@@ -1295,7 +1307,7 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE, $delete = FALSE) 
     'users:community',
   );
   foreach (u\ray(DRUPAL_UID_TABLES) as $one) $subs[] = "$one:uid";
-  foreach (u\ray('picture proof') as $one) { // file ops cannot be rolled back, so they must follow db ops
+  foreach (u\ray('picture picture2 proof') as $one) { // file ops can't be rolled back, so must follow db ops
     $oldFilename = DRUPAL_ROOT . $a->auxFilename($one, TRUE); // get old name while account exists
     $newFilename = str_replace("/$oldUid-", "/$newUid-", $oldFilename);
     $files[$oldFilename] = $newFilename;
@@ -1318,6 +1330,17 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE, $delete = FALSE) 
   }
   unset($DBTX); // commit
   return $newUid;
+}
+
+/**
+ * Package the return arguments and alert staff on certain errors.
+ * @param string $message: the success or error message
+ * @param assoc $info: message substitutions and other info about transaction
+ * @param bool $confirm: <to be confirmed> (default FALSE)
+ */
+function txRet($message, $info, $confirm = FALSE) {
+  if (!@$info['success']) r\tellStaff('failed transaction', $info);
+  return array($message, $info, $confirm);
 }
 
 /**

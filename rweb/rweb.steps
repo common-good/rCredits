@@ -65,6 +65,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Signin AMemberAsksForANewPasswordForAccountID
  *     MAKE Signin AMemberAsksForANewPasswordForEmail
  *     MAKE Signin AMemberAsksForANewPasswordForAnUnknownAccount
+ *     MAKE Signin AMemberAsksForANewPasswordForACompany
  *     MAKE Signin AMemberClicksALinkToResetPassword
  *     MAKE Signin AMemberClicksALinkToResetPasswordWithWrongCode
  *     MAKE Signin AMemberClicksALinkToResetPasswordForUnknownAccount
@@ -175,6 +176,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     MAKE Relations Setup
  *     MAKE ScanCard Setup
  *     MAKE Signin Setup
+ *     MAKE Signin AMemberAsksForANewPasswordForACompany
  *     TEST Signup ANewbieRegistersInWesternMassachusetts
  *     TEST Signup ANewbieRegistersWithADifferentLegalName
  *     TEST Signup ANewbieRegistersElsewhere
@@ -231,6 +233,7 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Gift AMemberDonatesWithInsufficientFunds
  *     TEST RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance
  *     TEST Relations AMemberAddsARelation
+ *     TEST Signin AMemberAsksForANewPasswordForACompany
  *     TEST Signup AMemberRegistersBadName
  *     TEST Signup AMemberRegistersAgain
  *     TEST Signup AMemberRegistersWithABadCompany

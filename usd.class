@@ -414,7 +414,7 @@ array (
   'Type' => 'deposit',
   'UserType' => 'Dwolla',
   'DestinationId' => '812-448-6052',
-  'DestinationName' => 'William Spademan',
+  'DestinationName' => ADMIN_NAME,
   'SourceId' => 'XXX1990',
   'SourceName' => 'Computer Practitioner',
   'ClearingDate' => '3/29/2013',

@@ -26,7 +26,7 @@ function setupBasicAccounts() {
   $info += u\ray('legalName postalAddr', R_REGION_LEGALNAME, R_REGION_ADDR);
   new r\acct($info);
 
-  $values = array(r\unQuid('R_ADMIN_QID'), $server, 'williamspademan', 'William Spademan', R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_DW)));
+  $values = array(r\unQuid('R_ADMIN_QID'), $server, 'williamspademan', ADMIN_NAME, R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_DW)));
   $info = array_combine($keys, $values);
   list ($phone, $address, $city, $state) = array('+14136281021', 'PO Box 305', 'Ashfield', R_STATE_ID);
   $info += compact(u\ray('mail phone address city state'));
@@ -209,12 +209,12 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
 function ssnCheck($a) {
   if (!$ssnData = @$a->ssnData) {
     $ssnData = u\ssnLookup($a->federalId);
-    $a->update(compact('ssnData'));
+    $xml = simplexml_load_string($ssnData);
+    $json = json_encode($xml);
+    $ssnData = json_decode($json, TRUE);
+    if ($ssnData['ResultCount']) $a->update(compact('ssnData')); // ResultCount is 0 for tests and failures
   }
-  $xml = simplexml_load_string($ssnData);
-  $json = json_encode($xml);
-  $d = json_decode($json, TRUE);
-  $d = $d['searchResults'];
+  $d = $ssnData['searchResults'];
   
   $name = $a->fullName . ($a->legalName == $a->fullName ? '' : "<br>$a->legalName");
   $rows[] = array(t('Data Given'), $name, u\fmtDate($a->dob), r\location($a, TRUE), '', '');
@@ -266,6 +266,7 @@ function eachAcct($func = 'changeIt') {
   if (!function_exists($func)) {
     if (function_exists($func2 = 'rCredits\\' . $func)) $func = $func2;
     if (function_exists($func2 = 'rCredits\\Web\\' . $func)) $func = $func2;
+    if (function_exists($func2 = 'rCredits\\Admin\\' . $func)) $func = $func2;
   }
   foreach ($result as $one) $func(r\acct($one));
 }
@@ -285,6 +286,14 @@ OR changeIt(a('aaa'));
 
  */
 function changeIt($a) {
+  if (!$a->ok) return;
+  if ($helper = $a->helper ?: (db\lookup('inviter', 'r_invites', 'invitee=:id', u\ray('id', $a->id)) ?: '')) {
+    if (!is_object($helper)) $helper = r\acct($helper);
+    $helper = $helper->mainQid;
+    $a->update(compact('helper'));
+/**/    debug("helper for $a->fullName is $a->helper");
+/**/  } else debug("Unknown helper for account $a->mainQid ($a->fullName)");
+  
 ///  if ($a->ok and $a->can(B_BANK) and !$a->secure['bankAccount']) debug($a->legalName);
 }
 
@@ -385,7 +394,7 @@ function makeTestCards() {
   $a = a('aab');
   $selling = "groceries\ngifts\nsundries\ndeli\nbaked goods";
   $a->update(u\ray('fullName selling', 'Corner Store', $selling));
-  $a->setCoBit(CO_REQUIRE_CASHIER, FALSE);
+//  $a->setCoBit(CO_REQUIRE_CASHIER, FALSE);
 
   $a = a('aaa');
   $a->update(u\ray('fullName', 'Bob Bossman'));
@@ -397,7 +406,7 @@ function makeTestCards() {
   
   $a = a('aaq');
   $a->update(u\ray('fullName', 'Helga\'s Hardware'));
-  $a->setCoBit(CO_REQUIRE_CASHIER, TRUE);
+//  $a->setCoBit(CO_REQUIRE_CASHIER, TRUE);
   
   $a = a('aak');
   $a->update(u\ray('fullName', 'Curt Customer'));
@@ -449,4 +458,23 @@ function getBanks() {
     foreach (u\ray('name address city') as $field) $$field = ucwords(strtolower(trim($$field)));
     db\insert('r_banks', compact(u\ray($fieldNames)));
   }
+}
+
+/**
+ * Create a smaller photo to send to POS devices.
+ * @param acct $a: the account whose photo is to be shrunk
+ * @param string $err: (RETURNED) the error message, if any
+ * @return <success>
+  include_once __DIR__ . '/../rcredits/admin/admin.inc';
+  debug (rCredits\Admin\shrinkPhoto(a('aaa'), $err));
+  debug ($err);
+ */
+function shrinkPhoto($a, &$err = '') {
+  if ($a->co) return !$err = 'tried to shrink a company photo';
+  if ($a->hasAux('picture2')) return !$err = 'POS photo already exists';
+  $photoPath = DRUPAL_ROOT . $a->auxFilename('picture', TRUE);
+  $smallPath = DRUPAL_ROOT . $a->auxFilename('picture2', TRUE);
+/**/  debug(compact('photoPath','smallPath'));
+  if (!$success = copy($photoPath, $smallPath)) return !$err = 'copy failed';
+  return u\fixPicture($smallPath, R_PERSONAL_ASPECT, R_PIXEL_FACTOR / 2, $err);
 }
