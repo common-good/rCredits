@@ -325,20 +325,16 @@ function txSummary($starting, $ending) {
 ///  debug(compact('nowInfo','oldInfo'));
 
   $dif = array();
-  foreach (u\ray('inProper outProper rInProper rOutProper usdIn usdOut rewards bank fees') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
+  foreach (u\ray('inProper outProper usdIn usdOut rewards bank fees') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
   extract($dif, EXTR_PREFIX_ALL, 'd');
   $p_committed = $mya->committed; // this will include all pending commitments
   
   $fields = 'old bank in out fees rewards new';
   $values = array($o_balance, $d_bank, $d_inProper, $d_outProper, $d_fees, $d_rewards, $n_balance); // both
-/*    ($currency == 2 ? array($o_balance, $d_bank, $d_inProper, $d_outProper, $d_fees, $d_rewards, $n_balance) // both
-  : ($currency == 0 ? array($o_r, 0, $d_rInProper, $d_rOutProper, 0, $d_rewards, $n_r) // r
-  : ($currency == 1 ? array($o_usd, $d_bank, $d_usdIn, $d_usdOut, $d_fees, 0, $n_usd) : ''))); // usd
-  */
   $values = array_combine(u\ray($fields), $values);
 
-  $p_rInProper = $p_rOutProper = $p_inProper = $p_outProper = $p_rewards = 0; // temporary until we implement invoices
-  $p_balance = $p_bank + $p_rInProper - $p_rOutProper + $p_rewards - $p_committed;
+  $p_inProper = $p_outProper = $p_rewards = 0; // temporary until we include unpaid invoice data here
+  $p_balance = $p_bank - $p_committed;
   $values += compact(u\ray('p_inProper p_bank p_outProper p_rewards p_committed p_balance'));
   foreach ($values as $key => $value) $$key = number_format($value, 2);
  

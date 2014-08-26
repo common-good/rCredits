@@ -29,7 +29,7 @@ define('DW_TEST_AUTHS',
 function doRecords($list, $type) {
   global $testOnly;
 /**/    if ($testOnly) t\output("Expect $type: " . print_r($list, 1), 'expect');
-  u\EXPECT(!is_numeric(key($list[0])), 'doThing should be an assoc: ' . print_r($list, 1));
+/**/  u\EXPECT(!is_numeric(key($list[0])), 'doThing should be an assoc: ' . print_r($list, 1));
 
   $function = 'rCredits\\Testing\\do';
   $function .= function_exists($function . $type) ? $type : 'Thing';
@@ -120,12 +120,13 @@ function doAccount($info = array()) {
   if (isset($acctType)) $flags |= (($acctType === R_PERSONAL or $acctType == 'personal') ? 0 : u\bit(B_CO)); // === required
   
   foreach (u\ray('id email acctType dw cc cc2') as $one) unset($info[$one]);
-  $info = compact(u\ray('uid flags ' . $fixFields)) + $info;
+  u\preray(compact(u\ray('uid flags ' . $fixFields)), $info);
   fixValues($info, TRUE);
 
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return output("No such uid: $uid");
     foreach ($info as $key => $value) {
+      if ($key == 'uid') $key = 'id';
       if (!eq($acct->$key, $value)) {
         if ($key == 'pass' and (!isset($pass) or r\Web\passwordOkay($acct, @$pass))) continue;
         return output("Wrong value for $key. Expected:$value Got:" . $acct->$key);
@@ -225,7 +226,8 @@ function doRelation($info) {
   global $testOnly;
   extract($info);
   
-  $reid = u\num($id, u\a2n(substr($id, -3)));
+  if (@$id) $reid = t\uid(str_replace(R_AGENT_MARK, R_MEMBER_MARK, $id));
+//  u\num($id, u\a2n(substr($id, -3)));
   if (!$mainAcct = r\acct(t\uid($main))) return output("main:$main is not an id");
   if (!$agtAcct = r\acct(t\uid($agent))) return output("agent:$agent is not an id");
   //u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
@@ -240,7 +242,8 @@ function doRelation($info) {
   if ($testOnly) {
     return verifyRecord('r_relations', $info);
   } else {
-    db\insert('r_relations', $info);
+//    db\insert('r_relations', $info);
+    r\acct($main)->newRelation($other, $info['permission'], @$employee, @$isOwner, @$draw, $reid);
     if (@$rCard == 'yes') r\Web\memberId($id); // make a Company Agent rCard
     return TRUE;
   }
@@ -672,9 +675,10 @@ function fixEmail(&$email) {
   return $email;
 }
 
-function makePicture($picture, $a) {
-  $filename = DRUPAL_ROOT . $a->auxFilename('picture2', TRUE);
-  return (bool) file_put_contents($filename, $picture);
+function makePicture($photo, $a) {
+//  $filename = DRUPAL_ROOT . $a->auxFilename('picture2', TRUE);
+//  return (bool) file_put_contents($filename, $picture);
+  return $a->update(compact('photo'));
 }
 
 // UNUSED
@@ -689,7 +693,7 @@ function lastMinuteSubs($string) {
   if (u\abbreviates('%md', $string)) return subAgo($string, '%b %d');
   if (u\abbreviates('%can_', $string)) {
     $perm = u\consta('b', substr($string, 5));
-    return $GLOBALS['share permissions'][$perm - B_RELATED];
+    return htmlspecialchars($GLOBALS['share permissions'][$perm - B_RELATED]);
   }
   if ($string == '%chk') return '&#10004;';
   if ($string == '%ctty') return R_REGION_NAME;
@@ -1068,10 +1072,10 @@ function clear($ch) {
   db\q('UPDATE users SET floor=0,minimum=NULL,r=0,usd=0,rewards=0,committed=0');
 
 //  $files = glob(DRUPAL_ROOT . R_PICTURE_DIR . "/*"); // get all picture file names
-  $dir = DRUPAL_ROOT . R_PICTURE_DIR;
-  $zza = '' . r\unQuid('.ZZA');
-  $zza = substr($zza, 0, strlen($zza) - 1); // ignore last digit
-  shell_exec(str_replace('/', '\\', "DEL \"$dir/small/$zza*\""));
+//  $dir = DRUPAL_ROOT . R_PICTURE_DIR;
+//  $zza = '' . r\unQuid('.ZZA');
+//  $zza = substr($zza, 0, strlen($zza) - 1); // ignore last digit
+//  shell_exec(str_replace('/', '\\', "DEL \"$dir/small/$zza*\""));
   ctty('aaa')->setBit(B_MEMBER);
   ctty('aaa')->setBit(B_OK);
 
@@ -1144,7 +1148,7 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   $model = $formOut[$type];
 
   if (!$content) return FALSE; // probably an accidental single-row array with no labels
-  u\EXPECT(is_numeric(key($content[0])), 'shown with should be an array, not an assoc: ' . print_r($content, 1));
+/**/  u\EXPECT(is_numeric(key($content[0])), 'shown with should be array, not assoc: ' . print_r($content, 1));
   $A = call_user_func_array('array_merge', $content);
   $xi = $i = 0;
   foreach ($A as $one) {

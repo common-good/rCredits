@@ -732,10 +732,11 @@ function acctType($acctType) {
  */
 function suCompanyRelation($other, $data) {
   extract(u\just('company companyPhone isOwner employeeOk contractor', $data));
-  $isOwner = (int) @$isOwner; // POSTed as "isOwner" when TRUE
-  $employeeOk = (int) (@$employeeOk or @$contractor);
+//  $isOwner = (int) @$isOwner; // POSTed as "isOwner" when TRUE
+//  $employee = (int) (@$employeeOk or @$contractor);
   if ($main = findCompany($company, @$companyPhone)) { // company account exists
-    return db\insert('r_relations', compact(u\ray('main other employeeOk isOwner')));
+//    return db\insert('r_relations', compact(u\ray('main other employeeOk isOwner')));
+    return r\acct($main)->newRelation($other, 0, @$employeeOk, @$isOwner); // no permissions/draw (for security)
   } else return FALSE;
 }
 
@@ -747,13 +748,14 @@ function suCreatorRelation($args, $myid) {
   if (!@$isOwner and !@$employeeOk and !@$flow) return; // no useful relation (for example by true invitation)
 
   if (!$error = u\EXPECT($params, 'int int int id', TRUE)) { // if not a hack attempt
-    list ($main, $other, $employerOk, $permission) = array($myid, $by, $employeeOk, r\perm(B_MANAGE));
+//    list ($main, $other, $employee, $permission) = array($myid, $by, $employeeOk, r\perm(B_MANAGE));
     $draw = ($flow & 2) ? 1 : 0;
-    db\insert('r_relations', compact(u\ray('main other employerOk employeeOk isOwner draw permission')));
-    if ($flow & 1) {
-      list ($main, $other, $draw) = array($other, $main, TRUE);
-      db\insert('r_relations', compact(u\ray('main other draw')));
-    }
+//    db\insert('r_relations', compact(u\ray('main other employee isOwner draw permission')));
+    r\acct($myid)->newRelation($by, r\perm(B_MANAGE), $employeeOk, $isOwner, $draw);
+    if ($flow & 1) r\acct($by)->newRelation($myid, 0, 0, 0, TRUE);
+//      list ($main, $other, $draw) = array($other, $main, TRUE);
+//      db\insert('r_relations', compact(u\ray('main other draw')));
+//    }
   } else r\tellStaff("bad params in formSignup: $error -- ", $params);
 } 
 

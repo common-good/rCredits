@@ -56,7 +56,7 @@ Scenario: Device has no identifier yet
 Scenario: Device should have an identifier
   When agent ":ZZA" asks device "" to identify "ZZB-ccB2"
   Then we return error "missing device"
- 
+
 Scenario: a cashier signs in, signing another cashier out
   When agent ":ZZA" asks device "devC" to identify "ZZB-ccB2"
   Then we respond with:

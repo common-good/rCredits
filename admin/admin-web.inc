@@ -49,9 +49,11 @@ function changeTxAmt($xid, $oldAmt, $newAmt) {
 function adminSummary($a, $cAdmin = FALSE) {
   global $base_url;
   include_once __DIR__ . '/../admin/admin.inc';  
+
   $mya = r\acct();
-  $uid = $a->id;
   $admin = $mya->admin;
+
+  $uid = $a->id;
   $self = ($uid == $mya->agent->id);
   
   if ($a->ctty) { // managing the community itself
@@ -80,9 +82,11 @@ function adminSummary($a, $cAdmin = FALSE) {
     if ($rels = a\showRelations($a)) $relations = item($rels, t('Relations:'));
   }
 
-  if ($cAdmin) {
+  if ($cAdmin and !$self) {
     $legalName = textField(t('Legal Name:'), '', required($a->legalName));    
-    $rTrader = boolField(t('rTrader?'), t('Is this account approved to use rCredits? (member, <a href="' . $base_url . '/account/photo">good photo</a>, ss# checks out)'), $a->ok + 0);
+    $rTrader = $a->ctty
+    ? boolField(t('Ctty Up?'), '', $a->ok + 0)
+    : boolField(t('rTrader?'), t('Is this account approved to use rCredits? (member, <a href="' . $base_url . '/account/photo">good photo</a>, ss# checks out)'), $a->ok + 0);
     if (!$a->ok and !$a->co) {
       if ($a->member) $ssnCheck = item(a\ssnCheck($a));
       if ($helper = $a->helper ?: (db\lookup('inviter', 'r_invites', 'invitee=:myid', u\ray('myid', $uid)) ?: '')) {
@@ -96,19 +100,20 @@ function adminSummary($a, $cAdmin = FALSE) {
     $adminableDefaults = array();
     foreach ($bits as $bitName) {
       $bit = u\consta('b', $bitName);
+      if ($a->ctty and $bit == B_MEMBER) $bitName = t('cttyActive');
       $adminables[$bit] = $bitName;
       if ($a->hasBit($bit)) $adminableDefaults[] = $bitName;
     }
     $adminable2 = boxesField('adminable', t('Other bits:'), '', $adminableDefaults, $adminables);
     $who = textField(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
-  }      
-  if (!$self) {
     $notes = formField('textarea', t('Notes:'), '', dft($a->notes));
     $submit = submit(t('Go'));    
-    $qid = hidField($a->mainQid);
-  }
+  }      
+
   $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
-  return compact(u\ray('legalName donations date steps dwInfo relations floor ssnCheck adminable2 rTrader helper notes count submit back qid'));
+  $uid = hidField($uid);
+
+  return compact(u\ray('legalName donations date steps dwInfo relations floor ssnCheck adminable2 rTrader helper notes count submit back uid'));
 }
 
 function showCardCode($a) {

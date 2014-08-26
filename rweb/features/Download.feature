@@ -54,7 +54,7 @@ Scenario: A member downloads transactions for the past year
   When member ".ZZA" visits page "history/period=365&download=1"
   Then we download "rcredits%todayn-12m-%todayn.csv" with:
   # For example rcredits20120525-20130524.csv
-  | Tx# | Date    | Name    | From bank | From you | To you | Purpose    | Reward | Net  |*
+  | Tx# | Date    | Name    | From bank | From you | To you | Purpose | Reward/Fee | Net  |*
   | b1  | %ymd-4m |         |      1000 |          |        | from bank  |        | 1000 |
   | 8   | %ymd-5d | Our Pub |           |          |    100 | cash CJ    |        |  100 |
   | 7   | %ymd-5d | Our Pub |           |       80 |        | this CF    |      4 |  -76 |

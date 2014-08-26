@@ -108,9 +108,8 @@ function myTransactions($starting, $ending, $id = NULL) {
   } elseif (!@$id) $id = $mya->id;
   
   $where = 't.created>=:starting AND t.created<=:ending'
-  . ' AND t.type>=0'
-// NO! . ' AND (amount>0 OR type=:TX_FINE)'
-  . ' ORDER BY t.xid DESC';
+  . ' AND t.type>=0' // omit invisible transactions
+  . ' ORDER BY t.created DESC, t.xid DESC';
   
   if (@$ctty) { // all transactions in the community or region
     $sql = <<<EOF
@@ -178,7 +177,6 @@ EOF;
  *   each element is an associative array of new values, keyed by field name
  *   if a record is to be updated to all zeros, it is simply deleted.
  * @return string: a report of what got updated
- * employeeOk can be updated only by other, all else only by main
  */
 function updateRelations($updates) {
 ///  debug($updates);
@@ -189,10 +187,10 @@ function updateRelations($updates) {
     unset($data['original']);
 ///    debug(compact('updates','data','employeeOk2'));
     
-    if ($isAgent = ($myid != $main)) {
-      r\reverseRelations($main, $other, $data, 'permission employerOk isOwner draw'); // giving employer permission?(!) -- create (or update?) a proper record (originally was just the employer's record)
+/*    if ($isAgent = ($myid != $main)) {
+      r\reverseRelations($main, $other, $data, 'permission employee isOwner draw'); // giving employer permission?(!) -- create (or update?) a proper record (originally was just the employer's record)
     } else r\reverseRelations($main, $other, $data, 'employeeOk'); // claiming to be an employee?
-    
+*/    
     $reidSub = $subs = compact('reid');
     $changes = '';
     foreach ($data as $field => $value) {
@@ -207,15 +205,16 @@ function updateRelations($updates) {
     $where = 'reid=:reid';
     if (!empty($data)) db\q("UPDATE r_relations SET $changes WHERE $where", $subs);
 
-    $msg = 'updated relation';
-    if (!r\relation('permission>0 OR employerOk OR employeeOk OR isOwner OR amount OR draw', $where, $reidSub)
-      and (!r\relation('employerOk OR employeeOk', 'main=:other AND other=:main', compact('main', 'other')))) {
+    if (!r\relation('permission>0 OR employee OR isOwner OR draw', $where, $reidSub)) {
+//      and (!r\relation('employee', 'main=:other AND other=:main', compact('main', 'other')))) {
       setCttyAdmin(FALSE, $main, $other);
       db\q("DELETE FROM r_relations WHERE $where", $reidSub);
-      $pot = '(:main, :other)';
-      if (!r\relation(1, "main IN $pot AND other IN $pot", compact('main', 'other'))) $msg = 'deleted relation';
+//      $pot = '(:main, :other)';
+//      if (!r\relation(1, "main IN $pot AND other IN $pot", compact('main', 'other'))) 
+      $msg = 'deleted relation';
     } else {
       setCttyAdmin(@$data['permission'] >= r\perm(B_MANAGE), $main, $other);
+      $msg = 'updated relation';
     }    
     $otherName = $fullName;
     $report .= u\tt($msg, compact('otherName')) . '<br>';
@@ -291,10 +290,11 @@ function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid
 
   if (!is_array($data)) $data = array();
   $old_data = $data; // remember original data from transaction we're reversing
+  extract(u\just('rebate bonus xfee', $data));
   $myFor = t('reverses #') . $tid;
   $otherFor = str_replace($tid, $otherTid, $myFor);
   $what = u\order($type == 'payment', $myFor, $otherFor);
-  if (@$data['rebate'] or @$data['bonus']) list ($data['rebate'], $data['bonus']) = array(-$data['rebate'], -$data['bonus']);
+  foreach (u\ray('rebate bonus xfee') as $k) if (@$$k) $data[$k] = -$$k;
   $data['undoes'] = $xid; // remember what we're reversing (especially to get the realness right)
   if ($force) $data += compact('force');
   list ($message, $args, $confirm) = transfer($type, $mya, $acct, -$amount, $old_goods, $what, NULL, TRUE, $data);
@@ -414,7 +414,8 @@ function transfer($ttype, $a1, $a2, $amount, $goods = FALSE, $for, $created = NU
   if ($shortfall = @$data['force'] ? 0 : r\shortfall(abs($totalHit), $reallyTaking ? $a2 : $a1, $preapproved, $goods, $confirmed)) {
     $short = u\fmtAmt($shortfall);
     $otherName = $a2->fullName;
-    $msg = ($goods ? 'short ' : 'short cash ') . ($reallyTaking ? 'from' : 'to');
+    $msg = ($goods ? 'short ' : 'short cash ') 
+    . ($reallyTaking ? ($a2->can(B_SECRET_BAL) ? 'from vague' : 'from') : 'to');
     r\suggestMin($reallyTaking ? $a2 : $a1);
     return r\txRet($msg, compact(u\ray('otherName short how')));
   }
@@ -494,7 +495,7 @@ function invoice($a1, $a2, $amount, $goods = FALSE, $purpose = NULL, $confirmed 
 function fund($uid, $type, $amount, $for, $confirmed = TRUE) {
   $payeeAgent = $payee = $uid;
   $mya = r\acct(); // (null, if just registering or running as cron)
-  u\EXPECT($type <= TX_REWARDS or $mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
+  u\EXPECT(r\isReward($type) or $mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
   if ($type == TX_FINE) $amount = -$amount;
   if (!$confirmed) return $amount;
   
@@ -627,10 +628,12 @@ function creditInfo($args = array()) {
   
   $sql = <<<EOF
     SELECT 
-    SUM(IF(t.payee=:uid, amount, 0)) AS rIn,
-    SUM(IF(t.payer=:uid, amount, 0)) AS rOut, 
+    SUM(IF(t.payee=:uid, amount, 0)) AS `in`,
+    SUM(IF(t.payer=:uid, amount, 0)) AS `out`, 
     SUM(IF(t.payee=:uid AND t.type=:TX_REFUND, amount, 0)) AS refunds,
-    SUM(IF(t.payer=:uid OR t.type=:TX_TRANSFER OR t.type > :TX_REWARDS, 0, amount)) AS rewards
+    SUM(IF(t.type IN (:TX_REWARDS), amount, 0)) AS rewards,
+    SUM(IF(t.type=:TX_XFEE, IF(t.payer=:uid, -amount, amount), 0)) AS xfees,
+    SUM(IF(:HAS_XFEE, IF(t.payer=:uid, -amount, amount), 0)) AS xin
     FROM r_txs t
     WHERE (t.payer=:uid OR t.payee=:uid) AND t.created<:asof
 EOF;
@@ -658,26 +661,24 @@ EOF;
     r\tellStaff('fee/refund mismatch', $subs+$args+$info);
   }
   $rewards -= $refunds; // Dwolla fee refunds are a hidden reward
-  $in = $rIn - $refunds; // this includes (unhidden) rewards
-  $out = $rOut;
-  $rIn += $usdOut;
-  $rOut += $usdIn;
+  $r = ($in - $out) + ($usdOut - $usdIn);
+  $in -= $refunds; // this includes (unhidden) rewards
+  $in -= $xin; $out -= $xin;
 
   $bank = -$bank; // make it "from bank" instead of "to bank"
+  $usd = $bank - $fees + $usdIn - $usdOut;
   $balance = $bank + $in - $out;
   $outProper = $out;
   $inProper = $in - $rewards;
 
-  $usd = $bank - $fees + $usdIn - $usdOut;
-  $r = $rIn - $rOut;
-  $rOutProper = $rOut;
-  $rInProper = $rIn - $rewards;
-  
-  $resultKeys = 'in out rewards refunds fees rIn rOut inProper outProper balance rInProper rOutProper r usdIn usdOut usd bank';
+  $resultKeys = 'in out rewards refunds fees xfees xin inProper outProper balance r usdIn usdOut usd bank';
   $result = compact(u\ray($resultKeys));
   
   $fancy = array();
-  foreach ($result as $key => $value) $fancy[$key] = u\fmtAmt(@$value + 0);
+  foreach ($result as $k => $v) {
+    $result[$k] = $v = round($v, 2);
+    $fancy[$k] = u\fmtAmt($v);
+  }
   $result['fancy'] = $fancy;
 ///debug($result);
   return (object) $result;

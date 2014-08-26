@@ -2,6 +2,9 @@
 /**
  * @file
  * rCredits admin
+   error_reporting(E_ALL);
+  ini_set("display_errors", 1);
+
    include_once __DIR__ . '/../rcredits/admin/admin.inc';
  */
 namespace rCredits\Admin;
@@ -43,9 +46,10 @@ function setupBasicAccounts() {
   $secure = compact(u\ray('auth usdEmail usdPhone usdPass usdPin'));
   $wws->update(compact('usdAccount', 'secure'));
   
-  list ($main, $other, $permission) = array($cgf->id, $wws->id, r\perm(B_MANAGE));
-  db\insert('r_relations', compact(u\ray('main other permission'))); // wws can manage CGF
-
+//  list ($main, $other, $permission) = array($cgf->id, $wws->id, r\perm(B_MANAGE));
+//  db\insert('r_relations', compact(u\ray('main other permission'))); // wws can manage CGF
+  $cgf->newRelation($wws->id, r\perm(B_MANAGE));
+  
   $a1 = r\acct(1); // set up system admin record (uid=1)
   foreach (array(B_ADMIN, B_CO) as $bit) $a1->setBit($bit, TRUE, FALSE);
   $a1->update(compact(u\ray('fullName', t('System Administrator'))));
@@ -93,7 +97,7 @@ function showRelations($a) {
   $ret = '';
   $sql = <<<EOF
     SELECT IF(r.main=:uid, other, main) AS them, main, IF(r.main=:uid, u2.fullName, u1.fullName) as who, 
-      permission, employeeOk, employerOk, isOwner, draw,
+      permission, employee, isOwner, draw,
       u1.:IS_CO AS iCo, u2.:IS_CO AS uCo
     FROM r_relations r LEFT JOIN users u1 ON u1.uid=r.main LEFT JOIN users u2 ON u2.uid=r.other
     WHERE :uid IN (r.main, r.other)
@@ -108,18 +112,16 @@ EOF;
       $role = $isOwner ? t('owned by')
         : ($draw ? t('drawn on by')
         : ($permission >= B_MANAGE ? t('managed by')
-        : (($permission >= B_SCAN or $employerOk) ? t('employs')
-        : ($employeeOk ? t('employs')
+        : (($permission >= B_SCAN or $employee) ? t('employs')
         : ($permission >= B_READ ? t('readable by')
-        : t('? by'))))));
+        : t('? by')))));
     } else {
       $role = $isOwner ? t('owns')
         : ($draw ? t('draws from')
         : ($permission >= B_MANAGE ? t('manages')
-        : (($permission >= B_SCAN or $employerOk) ? t('works for')
-        : ($employeeOk ? t('works for')
+        : (($permission >= B_SCAN or $employee) ? t('works for')
         : ($permission >= B_READ ? t('can read')
-        : t('can ?'))))));
+        : t('can ?')))));
     }
     $ret .= ($ret ? ', ' : '') . "$role <a href=\"$base_url/sadmin/member-info/$them\">$who</a>";
   }
@@ -244,58 +246,6 @@ function ssnName($v) {
   return ucWords(strtolower(str_replace('-', '', @"$v->firstname $v->middlename $v->lastname")));
 }
 function ssnAddr($v) {return ucWords(strtolower(@"$v->address, $v->city, $v->state $v->zip"));}
-
-/**
- * Utility to do something to each existing transaction
-  include_once __DIR__ . '/../rcredits/admin/admin.inc';
-  eachTx();
- */
-function eachTx($func = 'changeIt') {
-  $result = db\q('SELECT * FROM r_txs');
-  if (!function_exists($func)) $func = 'rCredits\\' . $func;
-  while ($row = $result->fetchAssoc()) $func($row);
-}
-
-/**
- * Utility to do something to each member account (see example below)
-  include_once __DIR__ . '/../rcredits/admin/admin.inc';
-  f('a.eachAcct');
- */
-function eachAcct($func = 'changeIt') {
-  $result = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
-  if (!function_exists($func)) {
-    if (function_exists($func2 = 'rCredits\\' . $func)) $func = $func2;
-    if (function_exists($func2 = 'rCredits\\Web\\' . $func)) $func = $func2;
-    if (function_exists($func2 = 'rCredits\\Admin\\' . $func)) $func = $func2;
-  }
-  foreach ($result as $one) $func(r\acct($one));
-}
-
-/**
- * General purpose utility, usually called from eachAcct, as above.
- * For example:
- *    changeIt($a):
- *    $us = new r\usd($a);
- *    $us->each('rCredits\\Cron\\bankFollowup', 0, u\ray('deposit withdrawal'));
- 
-  include_once __DIR__ . '/../rcredits/admin/admin.inc';
-  foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
-  f('a.changeIt', $one);
-OR changeIt(a('aaa'));
-}
-
- */
-function changeIt($a) {
-  if (!$a->ok) return;
-  if ($helper = $a->helper ?: (db\lookup('inviter', 'r_invites', 'invitee=:id', u\ray('id', $a->id)) ?: '')) {
-    if (!is_object($helper)) $helper = r\acct($helper);
-    $helper = $helper->mainQid;
-    $a->update(compact('helper'));
-/**/    debug("helper for $a->fullName is $a->helper");
-/**/  } else debug("Unknown helper for account $a->mainQid ($a->fullName)");
-  
-///  if ($a->ok and $a->can(B_BANK) and !$a->secure['bankAccount']) debug($a->legalName);
-}
 
 /*
 function fixdw($a) {
@@ -471,10 +421,118 @@ function getBanks() {
  */
 function shrinkPhoto($a, &$err = '') {
   if ($a->co) return !$err = 'tried to shrink a company photo';
-  if ($a->hasAux('picture2')) return !$err = 'POS photo already exists';
+//  if ($a->hasAux('picture2')) return !$err = 'POS photo already exists';
+  if (@$a->photo) $err = 'POS photo already exists'; // not really an error
   $photoPath = DRUPAL_ROOT . $a->auxFilename('picture', TRUE);
-  $smallPath = DRUPAL_ROOT . $a->auxFilename('picture2', TRUE);
-/**/  debug(compact('photoPath','smallPath'));
-  if (!$success = copy($photoPath, $smallPath)) return !$err = 'copy failed';
-  return u\fixPicture($smallPath, R_PERSONAL_ASPECT, R_PIXEL_FACTOR / 2, $err);
+//  $smallPath = DRUPAL_ROOT . $a->auxFilename('picture2', TRUE);
+//  if (!$success = copy($photoPath, $smallPath)) return !$err = 'copy failed';
+  if (!$photo = u\fixPicture($photoPath, R_PERSONAL_ASPECT, R_PIXEL_FACTOR / 2, FALSE, $err)) return FALSE;
+  return $a->update(compact('photo'));
+}
+
+/**
+ * Move a field out of data or secure and into its own field in users.
+ * (call after reinstall)
+   include_once __DIR__ . '/../rcredits/admin/admin.inc';
+  f('a.moveFieldFrom', 'helper', 'data');
+ */
+function moveFieldFrom($field, $from = 'data') {
+  $uids = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
+  foreach ($uids as $uid) {
+    $a = r\acct($uid);
+    $ray = $a->$from;
+    $$field = @$ray[$field]; // not $$from[] because PHP attaches the index first
+    if ($field = 'helper') {
+      $$field = $$field ? r\acct($$field)->id : 0;
+    }
+    unset($ray[$field]);
+    $$from = $ray;
+    $a->update(compact($from, $field));
+  }
+}
+
+/**
+ * Move a field into data or secure in users.
+   include_once __DIR__ . '/../rcredits/admin/admin.inc';
+  f('a.moveFieldTo', 'question', 'secure');
+ */
+function moveFieldTo($field, $to = 'data') {
+  $q = db\q("SELECT uid,$field FROM users WHERE uid>1");
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $a = r\acct($uid);
+    $v = $a->$to;
+    $v += compact($field);
+    $a->update(u\ray($to, $v));
+  }
+}
+
+/**
+ * Utility to do something to each existing transaction
+  include_once __DIR__ . '/../rcredits/admin/admin.inc';
+  eachTx();
+ */
+function eachTx($func = 'changeIt') {
+  $result = db\q('SELECT * FROM r_txs');
+  if (!function_exists($func)) $func = 'rCredits\\' . $func;
+  while ($row = $result->fetchAssoc()) $func($row);
+}
+
+/**
+ * Utility to do something to each member account (see example below)
+  include_once __DIR__ . '/../rcredits/admin/admin.inc';
+  f('a.eachAcct');
+ */
+function eachAcct($func = 'changeIt') {
+  $result = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
+  if (!function_exists($func)) {
+    if (function_exists($func2 = 'rCredits\\' . $func)) $func = $func2;
+    if (function_exists($func2 = 'rCredits\\Web\\' . $func)) $func = $func2;
+    if (function_exists($func2 = 'rCredits\\Admin\\' . $func)) $func = $func2;
+  }
+  foreach ($result as $one) $func(r\acct($one));
+}
+
+/**
+ * General purpose utility, usually called from eachAcct, as above.
+ * For example:
+ *    changeIt($a):
+ *    $us = new r\usd($a);
+ *    $us->each('rCredits\\Cron\\bankFollowup', 0, u\ray('deposit withdrawal'));
+ 
+  include_once __DIR__ . '/../rcredits/admin/admin.inc';
+  foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
+  f('a.changeIt', $one);
+OR changeIt(a('aaa'));
+}
+
+ */
+function changeIt($a) {
+  if (!$a->ok) return;
+  $err = '';
+  shrinkPhoto($a, $err); if (!$err) $err = 'OK';
+/**/  debug("$a->fullName: $err");
+}
+
+function fixRelations() {
+  $q = db\q('SELECT reid, main, other, permission, isOwner, draw, employee FROM r_relations');
+
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    list ($mainName, $otherName) = array(r\acct($main)->fullName, r\acct($other)->fullName);
+    if (!$permission and !$isOwner and !$draw and !$employee) {
+      db\q('DELETE FROM r_relations WHERE reid=:reid', compact('reid'));
+/**/  debug("Record DELETED: $mainName -- $otherName");
+    } else if ($reid < 999999) {
+      $region = r\acct($main)->region;
+      if ($region == r\serverUid()) {
+        $newReid = -$region + $reid;
+        db\q('UPDATE r_relations SET reid=:newReid WHERE reid=:reid', compact('reid', 'newReid'));
+      } else { // foreign region
+        $newReid = r\acct($main)->newRelation($other, $permission, $employee, $isOwner, $draw);
+        db\q('DELETE FROM r_relations WHERE reid=:reid', compact('reid'));
+      }
+/**/  debug("Record MOVED: $reid to $newReid ($mainName -- $otherName)");
+    }
+  }
 }

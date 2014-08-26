@@ -28,12 +28,8 @@ require_once __DIR__ . '/../rcredits-testing.inc';
  */
 function extraSetup($feature) {
   global $sms_devel; $sms_devel = TRUE;
-  $cgfUid = r\cgfId();
-
-  db\q('DELETE FROM users WHERE uid>:cgfUid', compact('cgfUid'));
-  db\q('DELETE FROM r_txs');
-  db\q('DELETE FROM r_relations');
-
+  t\clear(TX_SMS);
+  
   if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
     $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
   }

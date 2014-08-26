@@ -60,15 +60,16 @@ function rdo($code) {
 
   if (@$expires and time() >= $expires) return doSay(t('That link has expired.'));
 
+  $a = r\acct($id);
   $channel = TX_LINK;
   $DBTX = \db_transaction();
   
-  if ($op == 'min') {
-    $result = r\acct($id)->update(u\ray('minimum', $amount));
-  } elseif ($op == 'sql') {
-    $result = db\q($sql, $subs);
-  } elseif ($op == 'addr') {
-    $a = r\acct($id);
+  if ($op == 'min') $result = $a->update(u\ray('minimum', $amount));
+  if ($op == 'nosecret') $result = $a->setBit(B_SECRET_BAL, FALSE);
+  if ($op == 'debtok') $result = $a->setBit(B_DEBT_OK, TRUE); // unused yet
+  if ($op == 'sql') $result = db\q($sql, $subs);
+
+  if ($op == 'addr') {
     $phone = $a->co ? t('Phone: ') . u\fmtPhone($a->phone) . "<br>" : '';
     $addr = t('Physical address: ') . r\location($a, TRUE);
     return doSay("$a->fullName<br>$a->postalAddr<br>$addr<br>$phone", 'status');
@@ -216,7 +217,7 @@ function statement($month) {
   $info = be\creditInfo(u\ray('asof', $end));
   list ($bal9, $rewardsEver) = array($info->balance, $info->rewards);
 //  u\EXPECT($bal9 == round($bal0 + @$frombank - @$fromyou + @$toyou + @$reward, 2), 'balance mismatch');
-  if (round($bal9, 2) != round($bal0 + @$frombank - @$fromyou + @$toyou + @$reward, 2)) return r\go('empty', 'balance mismatch: ' . $bal9 . ' ' . print_r(compact('tot', 'bal0', 'bal9'), 1));
+/**/  if (round($bal9, 2) != round($bal0 + @$frombank - @$fromyou + @$toyou + @$reward, 2)) return r\go('empty', 'balance mismatch: ' . $bal9 . ' ' . print_r(compact('tot', 'bal0', 'bal9'), 1));
   
   $pdf->barHead('SUMMARY');
   $fields = explode('; ', 'Starting Balance/bal0/32/; /plus/7/R; From Bank/frombank/25/C; /minus/7/C; FROM You/fromyou/25/C; /plus/7/C; TO You/toyou/25/C; /plus/7/C/; Rewards/reward/25/C; /equals/7/R; Ending Balance/bal9/33/R');
@@ -247,7 +248,7 @@ function statement($month) {
 
   $pdf->setFontSize($size);
   $pdf->barHead('DETAILS');
-  $fields = u\ray('Tx#/tid/10/C /space/1/ Date//17/ Name//55/ /space/1/ Purpose//75/ /space/1/ Amount//20/R Reward//20/R');
+  $fields = u\ray('Tx#/tid/10/C /space/1/ Date//17/ Name//55/ /space/1/ Purpose//75/ /space/1/ Amount//20/R *Extra/extra/20/R');
   $pdf->colHeads($fields);
 
   $pdf->setFontSize(.9 * $size);
@@ -255,12 +256,47 @@ function statement($month) {
     foreach ($row as $k => $v) $row[$k] = str_replace(',', '', strip_tags($v));
     extract(u\just('tid date name fromyou toyou purpose reward', array_combine($classes, $row)));
     $amount = number_format($toyou - $fromyou, 2);
+    if ($reward == '--') $reward = 0;
+    $extra = number_format($reward, 2);
     foreach ($fields as $one) {
       list ($head, $fieldName, $width, $align) = explode('/', $one);
       if (!$fieldName) $fieldName = strtolower($head);
       $debit = ($align == 'R' and is_numeric($n = str_replace(',', '', $$fieldName)) and $n < 0);
       if ($debit) $pdf->SetTextColor(128, 0, 0); else $pdf->SetTextColor();
-      $pdf->Cell($width, 0, $$fieldName, '', $head == 'Reward' ? 1 : 0, $align, '', '', 1);
+      $pdf->Cell($width, 0, $$fieldName, '', $head == '*Extra' ? 1 : 0, $align, '', '', 1);
+    }
+    x\addCat($cats, $purpose, $toyou - $fromyou, $dups);
+    if ($reward) x\addCat($cats, r\usdin($purpose) ? t('exchange fees') : t('rewards'), $reward, $zot);
+  }
+  
+  $pdf->newLine();
+  $pdf->Cell($pageWidth, 0, t('* The Extras column includes incentive rewards and any fees paid or received.'), '', 1 , 'L');
+  
+  if (@$dups) { // don't show categorization unless it's worthwhile
+    $pdf->setFontSize($size);
+    $pdf->newLine();
+    $pdf->barHead('CATEGORY TOTALS');
+    $fields = u\ray('Category/cat/75/ Total/total/25/R Count/count/17/R');
+    $pdf->colHeads($fields);
+    $pdf->setFontSize(.9 * $size);
+
+    $otherCount = $other = 0;
+    foreach ($cats as $cat => $one) if ($one[0] == 1) {
+      $otherCount++;
+      $other += $one[1];
+      unset($cats[$cat]);
+    }
+    
+    ksort($cats);
+    if ($otherCount) $cats[t('other')] = array($otherCount, $other);
+    
+    foreach ($cats as $cat => $ray) {
+      list ($count, $amount) = $ray;
+      $total = number_format($amount, 2);
+      foreach ($fields as $one) {
+        list ($head, $fieldName, $width, $align) = explode('/', $one);
+        $pdf->Cell($width, 0, $$fieldName, '', $head == 'Count' ? 1 : 0, $align, '', '', 1);
+      }
     }
   }
   
@@ -376,7 +412,7 @@ function formMembership($a, &$sta = '', $code = '') {
     if (t\est() and @$result) return $result;
 //    $gotIdProof = (@$a->dob and @$a->federalId and ($co ?: $a->hasAux('proof')));
 //    $gotSecurity = (($secure = @$a->secure) and @$secure['auth'] and @$a->dob and @$a->federalId and ($co ?: $a->hasAux('proof')));
-    $ready = ($ok_sign and $ok_contact and $ok_donate and $ok_photo and $ok_prefs and $ok_dw);
+    $ready = (@$ok_sign and $ok_contact and $ok_donate and $ok_photo and $ok_prefs and $ok_dw); // @ for testing
     $ready = ($ready and ($co? ($ok_company and $ok_relations) : ($ok_proxies and ($ok_verify or !$dw0))));
   } else $ready = TRUE;
 
@@ -639,7 +675,7 @@ function formInvite($form, &$sta) {
   $subject = textField(t('Subject:'), t('The subject of your message'), required(($admin ? ADMIN_NAME : $agent->fullName) . t(' invites you to rCredits')));
 
   $default = $admin ? 
-      tt("The rCredits system is up and running. Check it out and sign up!\n\nWilliam")
+      tt("The rCredits network is growing. Check it out and sign up!\n\nWilliam")
     : (@$agent->data['inviteBody'] ?: tt("rCredits looks amazing. I signed up. Check it out!\n\n@name", u\ray('name', $agent->fullName)));
   $messageHelp = strtr(t('Invite them to sign up, and say why. A short @BLURB will follow your message, with a signup link.'), array('@BLURB' => blurbLink()));
   $message = formField('textarea', t('Message:'), $messageHelp, required($default));
@@ -727,14 +763,14 @@ function formSummary($form, &$sta, $qid = '') {
   
   if (!$a->ctty) { // unless this is a community account
     $acctType = $a->co ? t('company account') : t('personal account');
-    $extra = $mya->cAdmin ? " id#$a->id" : '';
-    $accountId = formField('item', t('ID:'), '', ($a->mainQid ?: 'N/A') . ' (' . $acctType . ")$extra");
     $balance = u\fmtAmt($a->r + $a->usd);
     $balance = item($balance . ($a->rewards ? " (see <a href=\"$base_url/history\">" . t('Transaction History') . '</a>)' : ''), t('Balance:'));
 
     $rewards = formField('item', t('Rewards:'), t('to date'), u\fmtAmt($a->rewards));
     $committed = formField('item', t('Committed:'), t('rewards reserved for donation to Common Good Finance'), u\fmtAmt(max(0, $a->committed)));
-  }
+  } else $acctType = t('community account');
+  $extra = $mya->cAdmin ? " id#$a->id" : '';
+  $accountId = formField('item', t('ID:'), '', ($a->mainQid ?: 'N/A') . ' (' . $acctType . ")$extra");
 
   $fields = 'another title accountName agentName accountId';
   if ($a->can(B_MANAGE)) $fields .= ' balance rewards committed';
@@ -745,8 +781,8 @@ function formSummary_validate($form, &$sta) {
 //  if (!r\acct()->cAdmin2) return hack('non-admin submitted summary form');
   if (op($sta) == 'another') return;
 
-  extract(u\just('qid who legalName floor rTrader helper adminable', $sta['input']));
-  $a = r\acct(@$qid);
+  extract(u\just('uid who legalName floor rTrader helper adminable', $sta['input']));
+  $a = r\acct(@$uid);
   
   if ($rTrader and !$a->ok) {
     if (!$a->co) { // no helper for company accounts
@@ -773,8 +809,8 @@ function formSummary_submit($form, &$sta) {
   if (op($sta) == 'another') return r\go('another');
   if (!r\acct()->cAdmin) return; // hack attempt
 
-  extract(u\just('qid who legalName floor notes helper rTrader adminable', $sta['input']));
-  $a = r\acct(@$qid);
+  extract(u\just('uid who legalName floor notes helper rTrader adminable', $sta['input']));
+  $a = r\acct(@$uid);
   $aa = $a->agent;
 
   $a->stampNotes($notes);
@@ -784,21 +820,21 @@ function formSummary_submit($form, &$sta) {
     return say('changed account|lost old changes', compact('newAcct', 'oldAcct'));
   } 
   
-  if ($a->id > 0) {
+  $DBTX = \db_transaction();
+
+  if (!$a->ctty) {
 //    $a->setBit(B_CHARGE, @$canCharge, FALSE);
-    $DBTX = \db_transaction();
     r\membershipEvent($a, 'ok', $rTrader); // activate the account
-    $a->setBit(B_OK, $rTrader, TRUE);
-
-    $a->setBits(B_ADMINABLE, $adminable, 'b');
     $helper = $helper->mainQid;
-    $a->update(compact(u\ray('legalName floor notes helper')));
-    
     if (!a\shrinkPhoto($a, $err)) return say($err, 'ERR');
-    unset($DBTX);
-
-    say('info saved');
   }
+
+  $a->setBit(B_OK, $rTrader, TRUE);
+  $a->setBits(B_ADMINABLE, $adminable, 'b');
+  $a->update(compact(u\ray('legalName floor notes helper')));
+  
+  unset($DBTX);
+  say('info saved');
 }
 
 /**
@@ -859,7 +895,7 @@ function formPhoto_submit($form, &$sta) {
   db\q('DELETE FROM file_managed');
   $tempName = str_replace('temporary://', \file_directory_temp() . '/', $picture->uri);
   $aspect = !$mya->co ? R_PERSONAL_ASPECT : R_COMMERCIAL_ASPECT;
-  if (!u\fixPicture($tempName, $aspect, R_PIXEL_FACTOR, $err)) {
+  if (!u\fixPicture($tempName, $aspect, R_PIXEL_FACTOR, TRUE, $err)) {
     if ($err == 'aspect') $err = !$mya->co ? 'bad personal aspect' : 'bad commercial aspect';
     return say($err, 'picture');
   }
@@ -1438,13 +1474,13 @@ function formGet($form, &$sta) {
   $avail = hidField($avail);
   $balance = item(tt('balances', compact('toSpend', 'toCash')), t('Balance:'));
   $amount = textField(t('Amount $'), t('Transfer how much?'));
-  $get = submit('FROM BANK to here');
+  $get = submit('From Bank');
 //  $fromBank = formField('checkbox', t('Automate:'), t('(recommended) Refill my rCredits account from my bank account automatically, as needed.'), dft($isSetUp ? $mya->can(B_FROM_BANK) : TRUE));
   
 //  $maximum = textField(t('Maximum:'), tt('prompt max'), dft(u\fmtAmt($isSetUp ? $mya->maximum : R_MAXR_DEFAULT, 's')));
 //  $excess = textField(t('Excess'), '', dft(u\fmtAmt($mya->overMax(), 's')));
 //  $toBank = formField('checkbox', t('Automate:'), t('Transfer any excess to my bank account automatically every few days.'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
-  $put = submit('TO BANK from here');
+  $put = submit('To Bank');
 
   return labeled(compact(u\ray('title subtext waiting balance amount get put avail')));
 }
@@ -2319,8 +2355,8 @@ function formSecurity_submit($form, &$sta) {
   say('info saved');
 }
 
-define('R_REL_EMPLOYER_COL', 2); // number of amount/employer column
-define('R_REL_OWNER_COL', 4); // number of family/owner column
+//define('R_REL_EMPLOYER_COL', 2); // number of amount/employer column
+define('R_REL_OWNER_COL', 3); // number of family/owner column
 
 /**
  * Give someone access to the current account or mark them as an employee or owner.
@@ -2332,22 +2368,29 @@ function formRelations($form, &$sta) {
   $co = $mya->co;
   if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
   $acctIdentifiers = be\accountName($myid);
-  $header = u\ray('Other account,Draw,My employer?,My employee?,Family?,Permission,');
-  $classes = u\prefixValues('rel-', u\ray('person draw employer employee owner permission link'));
+  $header = u\ray('Other account,Draw,My employee?,Family?,Permission,');
+  $classes = u\prefixValues('rel-', u\ray('person draw employee owner permission link'));
   if ($co) {
-    $header[R_REL_EMPLOYER_COL] = ''; // was '$/mo';
+//    $header[R_REL_EMPLOYER_COL] = ''; // was '$/mo';
     if ($mya->co) $header[R_REL_OWNER_COL] = 'Owns 10%+';
     if (!$mya->ok) $mya->stepDone('relations');
   }
-  
-  $sql = <<<EOF
-    SELECT DISTINCT s.reid, s.main, s.other, s.amount, IF(:myid=s.main, v.fullName, u.fullName) AS fullName,
-      s.permission, s.employerOk, s.employeeOk, s.isOwner, s.draw,
-      s2.reid AS reid2, s2.employerOk AS employerOk2, s2.employeeOk AS employeeOk2
+
+/*    SELECT DISTINCT s.reid, s.main, s.other, s.amount, IF(:myid=s.main, v.fullName, u.fullName) AS fullName,
+      s.permission, s.employee, s.isOwner, s.draw,
+      s2.reid AS reid2, s2.employee AS employee2
     FROM ((r_relations s RIGHT JOIN users u ON u.uid = s.main)
       RIGHT JOIN users v ON v.uid = s.other)
       LEFT JOIN r_relations s2 ON (s2.other=s.main AND s2.main=s.other)
     WHERE s.main=:myid OR (s.other=:myid AND s2.reid IS NULL)
+    ORDER BY fullName, IF(:myid=s.main, s.other, s.main), (:myid=s.other)
+*/  
+  $sql = <<<EOF
+    SELECT DISTINCT s.reid, s.main, s.other, IF(:myid=s.main, v.fullName, u.fullName) AS fullName,
+      s.permission, s.employee, s.isOwner, s.draw
+    FROM ((r_relations s RIGHT JOIN users u ON u.uid = s.main)
+      RIGHT JOIN users v ON v.uid = s.other)
+    WHERE s.main=:myid
     ORDER BY fullName, IF(:myid=s.main, s.other, s.main), (:myid=s.other)
 EOF;
   $result = db\q($sql, compact('myid'));
@@ -2355,37 +2398,35 @@ EOF;
   while ($row = $result->fetchAssoc()) {
     extract($row);
     $raws0[$reid] = $row; // original ("0") raw values from table
-    if ($other == $myid) list ($main, $other, $amount, $permission, $employerOk, $employeeOk, $isOwner, $draw, $reid2, $employerOk2, $employeeOk2)
-      = array($other, $main, 0, 0, 0, 0, 0, 0, $reid, $employerOk, $employeeOk);
+/*    if ($other == $myid) list ($main, $other, $amount, $permission, $employee, $isOwner, $draw, $reid2, $employee2)
+      = array($other, $main, 0, 0, 0, 0, 0, $reid, $employee); */
     
     $otherCo = r\acct($other)->co;
     $otherPerson = !$otherCo;
 
     $idLink = R_NONE; // default to no link
     if (!$otherCo) {
-//      if ($employeeOk and $permission >= r\perm(B_REFUND)) {
-      if ($employerOk and $permission >= r\perm(B_REFUND)) {
+      if ($employee and $permission >= r\perm(B_REFUND)) {
         $idLink = "<a href=\"$base_url/request-employee-rcard/$other\">request&nbsp;rCard</a>";
       }
     }
 
     $ii = count($rows) . "-$reid"; // "row-reid"
     $drawn = toggle('draw', $draw, $ii);
-    $employer = toggle('employeeOk', @$employeeOk2, $ii, @$employeeOk2 xor @$employerOk2);
-    $employee = !$otherCo ? toggle('employerOk', $employerOk, $ii, $employerOk xor $employeeOk) : R_NONE;
+//    $employer = toggle('employeeOk', @$employeeOk2, $ii, @$employeeOk2 xor @$employee2);
+    $isEmployee = !$otherCo ? toggle('employee', $employee, $ii) : R_NONE;
     $Owner = toggle('isOwner', $isOwner, $ii);
     $perm = $otherPerson ? dropdown('permission', $permission, $GLOBALS['share permissions'], $ii) : R_NONE;
     $amountValue = ''; // was amountField('amount', number_format($amount,0), $ii);
 
-    $thisRow = array($fullName, $drawn, !$co ? $employer : $amountValue, $employee, $Owner, $perm, $idLink);
-    $employeeOk = @$employeeOk2;
-    $thisRaw = compact(u\ray((!$co ? 'employeeOk' : 'amount') . ' draw employerOk isOwner permission'));
+    $thisRow = array($fullName, $drawn, $isEmployee, $Owner, $perm, $idLink);
+    $thisRaw = compact(u\ray('draw employee isOwner permission'));
 //      if ($co) array_splice($thisRow, 1, 1, $amount); // companies can't be employees
     
     $rows[] = $thisRow; // what to show on screen
     $raws[] = $thisRaw; // original conceptual ("raw") values for what's show on screen
   }
-  $sta['original_settings'] = compact('raws0', 'raws');
+  $sta['rawValues'] = compact('raws0', 'raws');
   
   $aExact = "a href=\"$base_url/help/payment-exchanges\"";
   $aInvite = "a href=\"$base_url/invite\"";
@@ -2447,24 +2488,24 @@ function formRelations_submit($form, &$sta) {
   $mya = r\acct();
 
   if ($other = @$sta['input']['other']) { // adding a new relation
-    $main = $mya->id;
-    $permission = 0; // default to no permissions
-    $info = compact(u\ray('main other permission'));
-    db\insert('r_relations', $info);
+//    $main = $mya->id;
+//    $permission = 0; // default to no permissions
+//    $info = compact(u\ray('main other permission'));
+//    db\insert('r_relations', $info);
+    $mya->newRelation($other);
     $who = r\acct($other)->fullName;
     say('report new relation', compact('who'));
   }
 
   $changes = array();
-  extract(u\just('raws0 raws', $sta['original_settings']));
-///  debug($sta['original_settings']);
+  extract(u\just('raws0 raws', $sta['rawValues']));
+///  debug($sta['rawValues']);
   foreach ($sta['input'] as $key => $value) { // ... be\updateRelations will have to check permissions and data carefully
     if (!strpos($key, '-')) continue;
     list ($key, $rawnum, $reid) = explode('-', $key); // eg split permission-2-37
     if (!in_array($key, array_keys($raws))) return 'bad field in relations'; // hack attempt?
 
     $value = 0 + strtr($value, array('true' => 1, 'false' => 0));
-/// if ($key == 'employeeOk') debug($value);
 /// debug(compact('value','rawnum','key'));
 /// debug(0 + $raws[$rawnum][$key]);
     if ($value != 0 + $raws[$rawnum][$key]) { // changed?
@@ -2836,8 +2877,8 @@ function formCompany_validate($form, &$sta) {
   extract(u\just('selling', $sta['input']));
   $selling = explode("\n", $selling);
   foreach ($selling as $one) {
-    $one = trim(strtolower($one));
-    if (!u\nonish($one) and !in_array($one, array('', 'refund', 'usd in', 'usd out'))) $new[] = $one;
+    $one = trim(strtolower($one)); // don't allow empty or reserved values
+    if (!u\nonish($one) and !in_array($one, array('', 'refund', 'usd out')) and !r\usdin($one)) $new[] = $one;
   }
   if (!@$new) return say('missing field', u\ray('field', 'selling'), 'selling');
   $sta['input']['selling'] = join("\n", $new);

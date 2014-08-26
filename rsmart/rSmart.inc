@@ -197,23 +197,22 @@ function identify($args) {
     if (@$restricted === FALSE) return posErr('unknown device');
     if ($restricted) return posErr('restricted'); */
 
-    $descriptions = explode("\n", $a->selling) ?: array('?');
-    $agentCan = ($a->can(B_SCAN) ? u\bit(CO_CHARGE) | u\bit(CO_R4USD) : 0)
-         | ($a->can(B_REFUND) ? u\bit(CO_UNDO) | u\bit(CO_REFUND) | u\bit(CO_USD4R) : 0)
-         | ($a->can(B_BUY) ? u\bit(CO_BUY) : 0)
-         | ($a->can(B_MANAGE) ? u\bit(CO_MANAGE) : 0);
-    $cans = ($a->coFlags >> CO_CANS) & CO_CANS_MASK;
-    $agentCans = ($a->coFlags >> CO_AGENT_CANS) & CO_CANS_MASK & $agentCan; // limit standard permissions by agent
-    $can = $cans | ($agentCans << (CO_CANS_BITS + 1)); // extra bit is for "manage" permission
-//    $default = $a->coCan(CO_REQUIRE_CASHIER) ? '' : $a->mainQid;
-    $default = $a->mainQid;
-    $company = $a->fullName;
+    $descriptions = explode("\n", $mya->selling) ?: array('?');
+    $agentCan = ($mya->can(B_SCAN) ? u\bit(CO_CHARGE) | u\bit(CO_R4USD) : 0)
+         | ($mya->can(B_REFUND) ? u\bit(CO_UNDO) | u\bit(CO_REFUND) | u\bit(CO_USD4R) : 0)
+         | ($mya->can(B_BUY) ? u\bit(CO_BUY) : 0)
+         | ($mya->can(B_MANAGE) ? u\bit(CO_MANAGE) : 0);
+    $agentCans = ($mya->coFlags >> CO_AGENT_CANS) & CO_CANS_MASK & $agentCan; // limit standard perms by agent
+//    $default = $mya->coCan(CO_REQUIRE_CASHIER) ? '' : $mya->mainQid;
+    $default = $mya->mainQid;
+    $company = $mya->fullName;
 ///    $company .= " can=$can agentCan=$agentCan cans=$cans agentCans=$agentCans mask=" . CO_CANS_MASK; // debug(
     $time = time();
     
   } else { // identifying customer
     if ($code != $cardCode) return posErr('bad customer');
     if (!@$deviceId) return posErr('unknown device'); // tried to scan a customer card before very first agent scan-in
+    $agentCans = 0;
     $company = $a->proSe ? "" : $a->fullName;
     $place = r\location($a);
     unset($device); // don't pass it back
@@ -221,6 +220,8 @@ function identify($args) {
   }
 
   $name = $a->agent->fullName;
+  $can = ($mya->coFlags >> CO_CANS) & CO_CANS_MASK;
+  $can |= $agentCans << (CO_CANS_BITS + 1); // extra bit is for "manage" permission
   
   return ok(compact(u\ray('logon device name place company balance rewards descriptions can default time')));
 }
@@ -243,21 +244,21 @@ function photo($args) {
   if (!@$member) return photoReturn('missing member');
   if (!$a = getCustomer($member, $err)) return photoReturn($err);
   if (!PRESTORE)  if ($code != $a->cardCode()) return photoReturn('bad customer');
-  $picFilename = $a->agent->auxFilename('picture2');
+//  $picFilename = $a->agent->auxFilename('picture2');
+//  $pic = @file_get_contents(DRUPAL_ROOT . $picFilename);
 //  exit(DRUPAL_ROOT . $picFilename);
 //  exit(file_exists(DRUPAL_ROOT . $picFilename));
-  $pic = @file_get_contents(DRUPAL_ROOT . $picFilename);
 //  exit(strlen($pic));
-  return photoReturn($pic, $picFilename);
+  return photoReturn($a->photo);
 }
 
-function photoReturn($pic, $picFilename = '') {
+function photoReturn($pic) {
   $max = 50;
   $message = strlen($pic) < $max ? $pic : bin2hex(substr($pic, 0, $max)); // identifies pic w/out a big db hit
   u\loga('out', compact('message'));
 
   if (t\est()) {
-    if (strpos($picFilename, 'no-photo')) $message = 'no photo';
+    if (!$pic) $message = 'no photo';
     t\output($message); 
     return $message;
   } else exit($pic);
@@ -336,7 +337,7 @@ function charge($args, $type = 'charge') {
  * @param array $args:
  *   txid: transaction record number
  * @return: json (ok, message, balance)
- */
+ *//*
 function undo($args) {
   global $mya; $myid = $mya->id;
   if ($err = missingArg($keys = 'txid', $args)) return posErr($err);
@@ -351,7 +352,7 @@ function undo($args) {
   $message = u\tt($msg, $subs);
 /// (no undo of an undo)  $undo = u\tt('confirm undo', $subs);
   return ok(compact(u\ray('message balance rewards')));
-}
+}*/
 
 /**
  * Report if an argument is missing.

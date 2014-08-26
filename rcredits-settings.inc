@@ -25,7 +25,8 @@ define('R_COUNTRY_ID', US_COUNTRY_ID); // this region's country: United States
 define('R_STATE_ID', 1020); // Massachusetts
 define('R_REBATE', isDEV ? 5 : 10); // standard initial rebate percentage
 define('R_BONUS_FACTOR', 1); // standard bonus is this times standard rebate
-define('R_MIN_REBATE', .05); // members get this even for a purchase with no rcredits (subject to dwindling)
+define('R_XFEE_CARD', .03); // percentage fee for exchanges of USD for rCredits using a credit/debit card
+define('R_XFEE_CHECK', 3.00); // flat fee for exchanges of USD for rCredits with a check
 define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller limits also apply)
 define('R_SIGNUP_GIFT', 5); // UNUSED how much to give people to play with, even before they are fully set up
 define('R_SIGNUP_BONUS', 20); // how much people start with at this time

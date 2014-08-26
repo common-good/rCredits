@@ -74,14 +74,17 @@ function update($table, $info, $key, $either = FALSE) {
     if ($command != 'INSERT INTO') return TRUE;
     if ($result) return $result; // if there is no serial field, result will be false, so check
 
-    require_once __DIR__ . '/rcredits-install.inc';
-    $schema = r\tableDefs();
-    $id = $table == 'users' ? 'uid' : $schema[$table]['primary key'][0];
-    u\EXPECT($id and isset($info[$id]), 'no primary key ' . $id);
-
-    $field1 = reset($schema[$table]['fields']);
-    if ($hasSerial = ($field1['type'] == 'serial')) return FALSE;
-
+    if ($table == 'users') {
+      $id = 'uid';
+    } else {
+      require_once __DIR__ . '/rcredits-install.inc';
+      $schema = r\tableDefs();
+      $id = $schema[$table]['primary key'][0];
+      u\EXPECT($id and isset($info[$id]), 'no primary key ' . $id);
+      $field1 = reset($schema[$table]['fields']);
+      if ($hasSerial = ($field1['type'] == 'serial')) return FALSE; // record ID would have been returned above
+    }
+    
     return db\lookup($id, $table, "`$id`=:id", u\ray('id', $info[$id])); // return the supplied id if success
   } catch (PDOException $e) {u\EXPECT(FALSE, "PDOException: $e->message");} 
 }

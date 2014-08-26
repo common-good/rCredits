@@ -268,3 +268,6 @@ http://www.designshock.com/the-most-complete-android-style-icon-set-15000-icons/
 
 QUESTIONS:
 . do box cookies need to be encrypted to avoid spoofing?
+
+useful SQL queries:
+SELECT SUM(-amount)/10 AS weeklyAmt, AVG(-amount) AS avgAmt, COUNT(amount)/10 AS weeklyACHs FROM r_usd WHERE created>UNIX_TIMESTAMP()-10*7*24*3600 AND amount<0 (ACHs over past 10 weeks)

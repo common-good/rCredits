@@ -24,110 +24,110 @@ Setup:
 
 Scenario: Member has an employee, confirmed
   Given relations:
-  | id | main | agent | permission   | employerOk | employeeOk | isOwner | draw |*
-  | 1  | .ZZA | .ZZD  | scan         | 1          | 1          | 1       | 0    |
+  | id | main | agent | permission   | employee | isOwner | draw |*
+  | 1  | .ZZA | .ZZD  | scan         | 1          | 1       | 0    |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | Draw | My employer? | My employee? | Family? | Permission |_requests      |
-  | Dee Four   | No   | No           | Yes          | Yes     | %can_scan  | -- |
+  | Other      | Draw | My employee? | Family? | Permission |_requests      |
+  | Dee Four   | No   | Yes          | Yes     | %can_scan  | -- |
 
 Scenario: Member has an employee, unconfirmed
   Given relations:
-  | id | main | agent | permission | employerOk | employeeOk | isOwner |*
-  | 1  | .ZZA | .ZZD  | refund     | 1          | 0          | 0        |
+  | id | main | agent | permission | employee | isOwner |*
+  | 1  | .ZZA | .ZZD  | refund     | 1          | 0       |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission  |_requests      |
-  | Dee Four   | No           | Yes          | No      | %can_refund | request rCard |
+  | Other      | My employee? | Family? | Permission  |_requests      |
+  | Dee Four   | Yes          | No      | %can_refund | request rCard |
 
 Scenario: Member has a relation with a contractor
   Given relations:
-  | id | main | agent | permission | employerOk | employeeOk | isOwner |*
-  | 1  | .ZZA | .ZZB  | buy        | 0          | 0          | 0        |
+  | id | main | agent | permission | employee | isOwner |*
+  | 1  | .ZZA | .ZZB  | buy        | 0          | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission |_requests      |
-  | Bea Two    | No           | No           | No      | %can_buy   | --            |
+  | Other      | My employee? | Family? | Permission |_requests      |
+  | Bea Two    | No           | No      | %can_buy   | --            |
   
 Scenario: Member has an employee, claimed
   Given relations:
-  | id | main | agent | permission   | employerOk | employeeOk | isOwner |*
-  | 1  | .ZZA | .ZZD  | sell         | 0          | 1          | 0       |
+  | id | main | agent | permission   | employee | isOwner |*
+  | 1  | .ZZA | .ZZD  | sell         | 0          | 0       |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission |_requests      |
-  | Dee Four   | No           | No           | No      | %can_sell  | -- |
+  | Other      | My employee? | Family? | Permission |_requests      |
+  | Dee Four   | No           | No      | %can_sell  | -- |
   
 Scenario: Employee can only read
   Given relations:
-  | id | main | agent | permission | employerOk | employeeOk | isOwner |*
-  | 1  | .ZZA | .ZZD  | read       | 1          | 1          | 1       |
+  | id | main | agent | permission | employee | isOwner |*
+  | 1  | .ZZA | .ZZD  | read       | 1          | 1       |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission |_requests      |
-  | Dee Four   | No           | Yes          | Yes     | %can_read  | --       |
+  | Other      | My employee? | Family? | Permission |_requests      |
+  | Dee Four   | Yes          | Yes     | %can_read  | --       |
   
 Scenario: Member has an employer
   Given relations:
-  | id | main | agent | permission   | employerOk | employeeOk | isOwner |*
-  | 1  | .ZZB | .ZZA  | sell         | 1          | 1          | 1        |
+  | id | main | agent | permission   | employee | isOwner |*
+  | 1  | .ZZB | .ZZA  | sell         | 1          | 1        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission |_requests      |
-  | Bea Two    | Yes          | No           | No      | %can_none  | --       |
+  | Other      | My employee? | Family? | Permission |_requests      |
+  And without:
+  | Bea Two |
   
 Scenario: Member has access to employee account
   Given relations:
-  | id | main | agent | permission | employerOk | employeeOk | isOwner |*
-  | 1  | .ZZA | .ZZD  |            | 1          | 1          | 1        |
-  | 2  | .ZZD | .ZZA  | sell       | 0          | 0          | 0        |
+  | id | main | agent | permission | employee | isOwner |*
+  | 1  | .ZZA | .ZZD  |            | 1          | 1        |
+  | 2  | .ZZD | .ZZA  | sell       | 0          | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission |_requests      |
-  | Dee Four   | No           | Yes          | Yes     | %can_none  | --            |
+  | Other      | My employee? | Family? | Permission |_requests      |
+  | Dee Four   | Yes          | Yes     | %can_none  | --            |
   When member ".ZZD" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission |_requests      |
-  | Abe One    | Yes          | No           | No      | %can_sell  | -- |
+  | Other      | My employee? | Family? | Permission |_requests      |
+  | Abe One    | No           | No      | %can_sell  | -- |
 
 Scenario: Member company has relations
   Given relations:
-  | id   | main | agent | permission | employerOk | employeeOk | isOwner |*
-  | .ZZA | .ZZC | .ZZA  | manage     | 1          | 1          | 1        |
+  | id   | main | agent | permission | employee | isOwner |*
+  | :ZZA | .ZZC | .ZZA  | manage     | 1          | 1        |
   When member ":ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Other   | My employee? | Owns | Permission     |_requests      |
   | Abe One | Yes          | Yes  | manage account | request rCard |
-  And without:
-  | My employer? |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission   |_requests      |
-  | Corner Pub | Yes          | --           | No      | --           | --            |
+  | Other      | My employee? | Family? | Permission   |_requests      |
+  And without:
+  | Corner Pub |
 
 Scenario: It's complicated
   Given relations:
-  | id   | main | agent | permission | amount | employerOk | employeeOk | isOwner |*
-  | .ZZA | .ZZA | .ZZD  | scan       |     10 | 1           | 0           | 1        |
-  | .ZZB | .ZZD | .ZZA  |            |     20 | 0           | 1           | 0        |
-  | .ZZC | .ZZA | .ZZC  | buy        |     30 | 0           | 1           | 0        |
-  | .ZZD | .ZZC | .ZZA  | manage     |     40 | 1           | 0           | 0        |
-  | .ZZE | .ZZA | .ZZB  | sell       |     10 | 1           | 0           | 1        |
-  | .ZZF | .ZZB | .ZZA  |            |     20 | 1           | 1           | 0        |
+  | id   | main | agent | permission | employee | isOwner |*
+  | .ZZA | .ZZA | .ZZD  | scan       | 1        | 1       |
+  | .ZZB | .ZZD | .ZZA  |            | 0        | 0       |
+  | .ZZC | .ZZA | .ZZC  | buy        | 0        | 0       |
+  | .ZZD | .ZZC | .ZZA  | manage     | 1        | 0       |
+  | .ZZE | .ZZA | .ZZB  | sell       | 1        | 1       |
+  | .ZZF | .ZZB | .ZZA  |            | 1        | 0       |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission |_requests      |
-  | Bea Two    | Yes          | Yes          | Yes     | %can_sell  | request rCard |
-  | Corner Pub | No           | --           | No      | --         | --       |
-  | Dee Four   | Yes          | Yes          | Yes     | %can_scan  | -- |
+  | Other      | My employee? | Family? | Permission |_requests      |
+  | Bea Two    | Yes          | Yes     | %can_sell  | request rCard |
+  | Corner Pub | --           | No      | --         | --       |
+  | Dee Four   | Yes          | Yes     | %can_scan  | -- |
   When member ".ZZB" visits page "account/relations"
   Then we show "Relations" with:
   | Other   | My employee? | Family? | Permission |_requests      |
   | Abe One | Yes          | No      | %can_none  | --            |
   When member ".ZZD" visits page "account/relations"
   Then we show "Relations" with:
-  | Other   | My employer? | My employee? | Family? | Permission |_requests      |
-  | Abe One | No           | No           | No      | %can_none  | --            |
+  | Other   | My employee? | Family? | Permission |_requests      |
+  | Abe One | No           | No      | %can_none  | --            |
   And with:
   |_Header  |
   | Family? |
@@ -135,8 +135,6 @@ Scenario: It's complicated
   Then we show "Relations" with:
   | Other   | My employee? | Owns | Permission  |_requests      |
   | Abe One | Yes          | No   | %can_manage | request rCard |
-  And without:
-  | employer? |
 
 Scenario: A member adds a relation
   When member ".ZZA" completes form "account/relations" with values:
@@ -146,6 +144,6 @@ Scenario: A member adds a relation
   | who     |*
   | Bea Two |
   And we show "Relations" with:
-  | Other      | Draw | My employer? | My employee? | Family? | Permission |_requests      |
-  | Bea Two    | No   | No           | No           | No      | %can_none  | --            |
+  | Other      | Draw | My employee? | Family? | Permission |_requests      |
+  | Bea Two    | No   | No           | No      | %can_none  | --            |
   

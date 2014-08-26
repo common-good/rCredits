@@ -54,7 +54,7 @@ function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $opti
     } elseif ($states == STATES_PENDING) $totDone = $totPending;
     */
     
-    u\splice($totDone, 'buttons', 1); // don't download buttons
+    u\splice($totDone, 'state', 2); // don't download status or buttons
     u\splice($totDone, 'fromyou', 0, u\ray('frombank', 0));
     $totDone['date'] = '';
     $totDone['name'] = 'TOTALS';
@@ -82,18 +82,18 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
 
   extract($tx, EXTR_PREFIX_ALL, 'tx');
   $xid = $tx_xid;
+  $amount = $tx_amount;
 
   if ($banking = ($tx_type == TX_BANK)) {
-    $tx_purpose = ($tx_amount < 0 ? t('from') : t('to')) . ' ' . t('bank');
-    if ($tx_amount < 0) list ($tx_amount, $tx_payee) = array(-$tx_amount, $myid);
+    $tx_purpose = ($amount < 0 ? t('from') : t('to')) . ' ' . t('bank');
+    if ($amount < 0) list ($amount, $tx_payee) = array(-$amount, $myid);
   }
   
   $data = $tx_data ? unserialize($tx_data) : array();
-  $is_reward = ($tx_type != TX_TRANSFER and $tx_type != TX_BANK);
+  $isExtra = ($tx_type != TX_TRANSFER and $tx_type != TX_BANK);
 //  $r = round(@$tx_r, 2);
-  $amount = number_format($tx_amount, 2);
-//  $usd = number_format($tx_amount - $r, 2);
-//  $rpct = $tx_amount == 0 ? R_NONE : number_format(100 * $r / $tx_amount, 1);
+//  $usd = number_format($amount - $r, 2);
+//  $rpct = $amount == 0 ? R_NONE : number_format(100 * $r / $amount, 1);
 //  if ($rpct == '100.0') $rpct = '100'; // keep the field narrow (4 chars max)
 //  $rpct = sprintf('<span title="$%sr + $%sus">%s</span>', $r, $usd, $rpct);
 //  $amount = $currency == RUSD_R ? $r : ($currency == RUSD_USD ? $usd : $total);
@@ -104,7 +104,7 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
     $reward = $banking ? 0 : (@$data['bonus'] + @$data['rebate']);
     $tid = $xid; // for community use the actual transaction numbers
     $payeeName = $banking ? '' : r\acct($tx_payee)->fullName;
-    txNeatAmounts($amount, $reward, $is_reward);
+    txNeatAmounts($amount, $reward, $isExtra);
     $row = array($tid, strftime('%d-%b-%Y', $tx_created), r\acct($tx_payer)->fullName, $payeeName, $total, $rpct, $amount, $usd, $state, $tx_purpose, $reward);
   } else { // individual account transaction history
   */
@@ -113,15 +113,18 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
   $byMe = $banking ?: (@$tx_taking == $toMe);
   $tid = ($banking or $myid < 0) ? $xid : ($toMe ? @$tx_payeeTid : @$tx_payerTid);
   $agent = $toMe ? @$tx_payeeAgent : @$tx_payerAgent;
-  $reward = $banking ? 0 : @$data[$toMe ? 'bonus' : 'rebate'];
-  $net = number_format(($toMe ? $tx_amount : -$tx_amount) + $reward, 2);
-  txNeatAmounts($amount, $reward, $is_reward);
+  $reward = $banking ? 0 : ($toMe ? (@$data['bonus'] + @$data['xfee']) : (@$data['rebate'] - @$data['xfee']));
+  $net = number_format(($toMe ? $amount : -$amount) + $reward, 2);
+  
+  if (isset($data['xfee'])) {$amount = -$amount; $toMe = !$toMe;}
+  $amount = number_format($amount, 2);
+  txNeatAmounts($amount, $reward, $isExtra);
   list ($toYou, $fromYou) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
-//  if ($tx_amount == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make payment exchanges clear
+//  if ($amount == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make payment exchanges clear
   if ($tx_type == TX_REFUND) list ($reward, $toYou) = array($toYou, R_NONE);
   $button1 = ''; //(!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', '', $toMe, $byMe)) : '';
-  $button2 = ((!$is_reward or $mya->cAdmin) and !@$data['undoneBy']) ? r\Web\button(' X ', "$url&do=no", txAct('no', '', $toMe, $byMe)) : '';
-  $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Transaction'><img src='$rUrl/images/icons/edit.png' width=20 height=20 border=0 /></a>" : '';
+  $button2 = ((!$isExtra or $mya->cAdmin) and !@$data['undoneBy']) ? r\Web\button(' X ', "$url&do=no", txAct('no', '', $toMe, $byMe)) : '';
+  $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$isExtra) ? "<a href='$url&do=edit' title='Edit Transaction'><img src='$rUrl/images/icons/edit.png' width=20 height=20 border=0 /></a>" : '';
   $buttons = ($banking or $toYou == $fromYou) ? '' : "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
 //    $row = array($tid, strftime('%d-%b', $tx_created), @$tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $buttons, $tx_purpose, $reward, $net);
   $row = array($tid, strftime($csv ? '%Y-%m-%d' : '%d-%b', $tx_created), @$tx_name, $fromYou, $toYou, $state, $buttons, $tx_purpose, $reward, $net);
@@ -178,7 +181,7 @@ function txFields($download = FALSE, $agents = FALSE, $channels = FALSE, $boxes 
   } else { // individual account transaction history
   */
   $classes = 'tid date name fromyou toyou state buttons purpose reward net';
-  $headers = t('Tx#,Date,Name,From you,To you,Status,Action,Purpose,Reward,Net');
+  $headers = t('Tx#,Date,Name,From you,To you,Status,Action,Purpose,Reward/Fee,Net');
 //  }
 
   $header = array_combine(u\ray($classes), u\ray($headers)); // make splices and additions easy and clear
@@ -189,7 +192,7 @@ function txFields($download = FALSE, $agents = FALSE, $channels = FALSE, $boxes 
 
   if (@$download) { // downloading -- modify standard individual or community field list
     $downloadHeader = $header;
-    u\splice($downloadHeader, 'buttons', 1); // don't download buttons
+    u\splice($downloadHeader, 'state', 2); // don't download status or buttons
     u\splice($downloadHeader, 'fromyou', 0, u\ray('frombank', t('From bank')));
   }
 
@@ -213,7 +216,7 @@ function addRow(&$tot, $row, $tx, &$csvRow = '') {
     $row['fromyou'] = $row['toyou'] = '';
   } else $frombank = '';
   
-  u\splice($row, 'buttons', 1); // don't download buttons
+  u\splice($row, 'state', 2); // don't download status or buttons
   u\splice($row, 'fromyou', 0, compact('frombank'));
 
   foreach ($row as $k => $v) $row[$k] = $v == R_NONE ? '' : strip_tags($v);
@@ -234,9 +237,9 @@ function txColoredState($data) {
   return "<span style='color:$color;'>$state</span>";
 }
 
-function txNeatAmounts(&$amount, &$reward, $is_reward) {
+function txNeatAmounts(&$amount, &$reward, $isExtra) {
   $reward = $reward ? number_format($reward, 2) : R_NONE;
-  if ($is_reward) list ($amount, $reward) = array(R_NONE, $amount); // show refunds, inflation, grants, fines, and signup bonus as rewards
+  if ($isExtra) list ($amount, $reward) = array(R_NONE, $amount); // show refunds, inflation, grants, fines, and signup bonus as rewards
 }
 
 /**
@@ -263,3 +266,16 @@ function txAct($do, $state, $toMe, $byMe) {
 }
 
 function popHelp($text, $help) {return "<span title=\"$help\">$text</span>";}
+
+function addCat(&$cats, $purpose, $amount, &$dups) {    
+  if (strpos($purpose, '(') === 0 and ($i = strpos($purpose, ')')) and $i < strlen($purpose) - 1) {
+    $purpose = substr($purpose, $i + 1); // remove reversal info, if any
+  }
+  if ($m = strpbrk($purpose, ':-;(/[{~#*') and $i = strpos($purpose, $m) and $i < strlen($purpose) - 1) {
+    $cat = substr($purpose, 0, $i);
+  } else $cat = $purpose;
+  
+  if ($one = @$cats[$cat]) $dups = TRUE; else $one = array(0, 0);
+  list ($oldCount, $oldAmount) = $one;
+  $cats[$cat] = array($oldCount + 1, $oldAmount + $amount);
+}

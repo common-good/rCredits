@@ -71,8 +71,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Signin AMemberClicksALinkToResetPasswordForUnknownAccount
  *     MAKE Transact AMemberAsksToChargeAnotherMember
  *     MAKE Transact AMemberAsksToPayAnotherMember
- *     MAKE TransactUsd AMemberAsksToChargeAnotherMember
- *     MAKE TransactUsd AMemberAsksToPayAnotherMember
  */
 function memberCompletesFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values);}
 
@@ -116,8 +114,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Transact AMemberConfirmsRequestToPayAMemberCompany
  *     MAKE Transact AMemberConfirmsRequestToPayTheSameMemberTheSameAmount
  *     MAKE Transact AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount
- *     MAKE TransactUsd AMemberConfirmsRequestToChargeAnotherMember
- *     MAKE TransactUsd AMemberConfirmsRequestToPayAnotherMember
  */
 function memberConfirmsFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values, TRUE);}
 
@@ -189,7 +185,6 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     MAKE Summary Setup
  *     MAKE Transact Setup
  *     MAKE Transactions Setup
- *     MAKE TransactUsd Setup
  */
 function members($list) {return t\members($list);}
 
@@ -214,7 +209,6 @@ function members($list) {return t\members($list);}
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
  *     MAKE Transactions Setup
- *     TEST TransactUsd AMemberConfirmsRequestToPayAnotherMember
  */
 function transactions($list) {return t\transactions($list);}
 
@@ -243,8 +237,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
  *     TEST Transact AMemberConfirmsRequestToPayTheSameMemberTheSameAmount
  *     TEST Transact AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount
- *     TEST TransactUsd AMemberConfirmsRequestToChargeAnotherMember
- *     TEST TransactUsd AMemberConfirmsRequestToPayAnotherMember
  */
 function weSayWithSubs($type, $index, $subs) {
   global $testOnly;
@@ -347,8 +339,6 @@ function weShow($what, $show = TRUE) {return t\weShow($what, $show);}
  *
  * in: TEST Transact AMemberAsksToChargeAnotherMember
  *     TEST Transact AMemberAsksToPayAnotherMember
- *     TEST TransactUsd AMemberAsksToChargeAnotherMember
- *     TEST TransactUsd AMemberAsksToPayAnotherMember
  */
 function weShowWithSubs($page, $subs) {
   global $testOnly;
@@ -425,8 +415,8 @@ function with($content) {return weShow($content);}
 /**
  * without: (ARG)
  *
- * in: TEST Relations MemberCompanyHasRelations
- *     TEST Relations ItsComplicated
+ * in: TEST Relations MemberHasAnEmployer
+ *     TEST Relations MemberCompanyHasRelations
  *     TEST Signup AnInvitedNewbieVisitsTheRegistrationPage
  *     TEST Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage
  *     TEST Summary ACompanyAgentClicksOnTheSummaryTab
@@ -484,7 +474,6 @@ function withoutOptions($options) {
  *     MAKE Summary Setup
  *     MAKE Transact Setup
  *     MAKE Transactions Setup
- *     MAKE TransactUsd Setup
  */
 function relations($relations) {return t\relations($relations);}
 
@@ -514,10 +503,6 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
  *     BOTH Transactions Setup
- *     MAKE TransactUsd Setup
- *     TEST TransactUsd AMemberAsksToChargeAnotherMember
- *     TEST TransactUsd AMemberConfirmsRequestToChargeAnotherMember
- *     TEST TransactUsd AMemberConfirmsRequestToPayAnotherMember
  */
 function balances($list) {return t\balances($list);}
 
@@ -731,8 +716,6 @@ function memberOnetimePasswordIs($id, $pass) {
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
- *     TEST TransactUsd AMemberConfirmsRequestToChargeAnotherMember
- *     TEST TransactUsd AMemberConfirmsRequestToPayAnotherMember
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 
@@ -861,8 +844,7 @@ function agentCardCodeIs($id, $cardCode2) {
 /**
  * cron runs (ARG)
  *
- * in: MAKE Community Setup
- *     MAKE Community CronCalculatesTheStatistics
+ * in: MAKE Community CronCalculatesTheStatistics
  *     MAKE Summary Setup
  */
 function cronRuns($op) {return t\cronRuns($op);}
@@ -979,7 +961,6 @@ function devices($list) {return t\devices($list);}
  * invoices: (ARG)
  *
  * in: TEST Transact AMemberConfirmsRequestToChargeAnotherMember
- *     TEST TransactUsd AMemberConfirmsRequestToChargeAnotherMember
  */
 function invoices($list) {return t\invoices($list);}
 

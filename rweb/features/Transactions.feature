@@ -57,7 +57,7 @@ Scenario: A member clicks NO
   | 100 | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |
   When member ".ZZA" visits page "history/period=5"
   Then we show "Transaction History" with:
-  |_tid | Date   | Name       | From you | To you | Status   | _ | Purpose | Reward |
+  |_tid | Date   | Name       | From you | To you | Status   | _ | Purpose | Reward/Fee |
   | 11  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X | cash CL | --     |
   # expand this to have rewards, for a better test.
   When member ".ZZA" visits page "history/period=5&do=no&xid=100"
@@ -74,7 +74,7 @@ Scenario: A member confirms NO
   | .ZZA | 500 |
   When member ".ZZA" confirms form "history/period=5&do=no&xid=100" with values: ""
   Then we show "Transaction History" with:
-  |_tid | Date   | Name       | From you | To you | Status   | _ | Purpose                   | Reward |
+  |_tid | Date   | Name       | From you | To you | Status   | _ | Purpose                   | Reward/Fee |
   | 12  | %dm    | Corner Pub | 101.00   | --     | %chk     | X | reverses #11              | --     |
   | 11  | %dm-5d | Corner Pub | --       | 101.00 | disputed |   | (reversed by #12) cash CL | --     |
 Resume
@@ -88,7 +88,7 @@ Scenario: A member looks at transactions for the past year
   | $1,000.00 |      0.00 |   460.00 | 1,110.00 |  268.00 | $1,918.00 |
   | PENDING   |    -44.00 |     0.00 |     0.00 |    0.00 |  - $44.00 |
   And with:
-  |_tid | Date   | Name       | From you | To you | Status  |_do   | Purpose    | Reward |
+  |_tid | Date   | Name       | From you | To you | Status  |_do   | Purpose    | Reward/Fee |
 # | b4  | %dm-5d |            |  22.00   | --     | pending |      | to bank    | --     |
 # | b3  | %dm-5d |            |  33.00   | --     | pending |      | to bank    | --     |
   | 6   | %dm-6d | Bea Two    | 100.00   | --     | %chk    | X    | cash V     | --     |
@@ -111,7 +111,7 @@ Scenario: A member looks at transactions for the past few days
   | $2,132.00 |      0.00 |   220.00 |   0.00 |    6.00 | $1,918.00 |
   | PENDING   |    -44.00 |     0.00 |   0.00 |    0.00 |  - $44.00 |
   And with:
-  |_tid | Date   | Name       | From you | To you | Status  | _    | Purpose    | Reward |
+  |_tid | Date   | Name       | From you | To you | Status  | _    | Purpose    | Reward/Fee |
   | 6   | %dm-6d | Bea Two    | 100.00   | --     | %chk    | X    | cash V     | --     |
   | 5   | %dm-1w | Corner Pub | 120.00   | --     | %chk    | X    | this Q     | 6.00   |
   And without:
@@ -143,7 +143,7 @@ Scenario: Transactions with other states show up properly
   | .ZZC |    2320 |
   When member ".ZZA" visits page "history/period=5&options=%RUSD_BOTH%STATES_BOTH%_N%_N%_N%_XCH%_VPAY"
   Then we show "Transaction History" with:
-  |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward |
+  |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |
   | 15  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X  | cash CL    | --     |
   | 13  | %dm-5d | Corner Pub | 80.00    | --     | disputed | OK | this CF    | 4.00   |
   | 11  | %dm-5d | Corner Pub | --       | 100.00 | denied   | X  | labor CA   | 10.00  |
@@ -157,7 +157,7 @@ Scenario: Transactions with other states show up properly
   | bonus   |
   When member ".ZZC" visits page "history/period=5&options=%RUSD_BOTH%STATES_BOTH%_N%_N%_N%_XCH%_VPAY"
   Then we show "Transaction History" with:
-  |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward |
+  |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |
   | 10  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK | cash CL    | --     |
   | 8   | %dm-5d | Abe One    | --       | 80.00  | disputed | X  | this CF    | 8.00   |
   | 7   | %dm-5d | Abe One    | --       | 5.00   | denied   | X  | cash CE    | --     |
@@ -175,7 +175,7 @@ Scenario: A member clicks OK
   | 102 | %today-5d | bonus    | pending |      8 | ctty | .ZZC | bonus    | 0      |
   When member ".ZZA" visits page "history/period=5"
   Then we show "Transaction History" with:
-  |_tid | Date   | Name       | From you | To you | Status | _  | Purpose | Reward |
+  |_tid | Date   | Name       | From you | To you | Status | _  | Purpose | Reward/Fee |
   | 11  | %dm-5d | Corner Pub | 80.00    | --     | ok?    | OK | this CF | 4.00   |
   When member ".ZZA" visits page "history/period=5&do=ok&xid=100"
   Then we show "tx summary|confirm tx action" with subs:
@@ -194,7 +194,7 @@ Scenario: A member confirms OK
   | did    | otherName  | amount | rewardType | rewardAmount |*
   | paid   | Corner Pub | $80    | reward     | $4           |
   And we show "Transaction History" with:
-  |_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward |
+  |_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward/Fee |
   | 12  | %dm    | Corner Pub | 80.00    | --     | %chk   | X | this CF | 4.00   |
   And we notice "new payment|reward other" to member ".ZZC" with subs:
   | created | fullName   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*

@@ -109,6 +109,7 @@ function cleanAmount($amount) {
   $amount = trim($amount);
   if (substr($amount, 0, 1) == '$') $amount = substr($amount, 1);
   if (u\nonish($amount)) $amount = 0;
+  $amount = str_replace('--', '', $amount); // useful for monthly statements
   return preg_replace('/[ \,]/', '', $amount); // ignore spaces and commas
 }
 
@@ -706,11 +707,12 @@ function firstUnusedId($key, $table, $starting = 1, $before = PHP_INT_MAX, $wher
  * @param string $filename: path of file to normalize (file will be replaced)
  * @param string $aspect: the desired width:height ratio
  * @param int $factor: normalized size is the aspect times $factor.
+ * @param bool $modify: modify the file (default TRUE, otherwise return the fixed image)
  * @param string $error: (returned) the error message, if any
- * @return: TRUE for success, else FALSE
+ * @return if modifying file: TRUE for success, else FALSE; if not modifying file: return the image else ''
  * @todo: handle webp and xpm images?
  */
-function fixPicture($filename, $aspect, $factor, &$error) {
+function fixPicture($filename, $aspect, $factor, $modify = TRUE, &$error = '') {
   $acceptableImages = IMAGETYPE_GIF | IMAGETYPE_JPEG | IMAGETYPE_PNG | IMAGETYPE_WBMP | IMAGETYPE_XBM;
   if (!$info = @getimagesize($filename)) return (!$error = 'not an image');
   list ($w, $h, $type, $attr) = $info;
@@ -728,8 +730,15 @@ function fixPicture($filename, $aspect, $factor, &$error) {
   
   cropImage($img, ($w-$w*$wFactor)/2, ($h-$h*$hFactor)/2, $w*$wFactor, $h*$hFactor); // narrow or shorten
   resizeImage($img, $w0 * $factor, $h0 * $factor);
-  if (!imagejpeg($img, $filename, 100)) return (!$error = 'file save error');
-  return TRUE;
+
+  if ($modify) {
+    if (!imagejpeg($img, $filename, 100)) return (!$error = 'file save error');
+    return TRUE;
+  } else {
+    ob_start();
+    imagejpeg($img);
+    return ob_get_clean();   
+  }
 }
 
 function cropImage(&$img, $x, $y, $w, $h) {  

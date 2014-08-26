@@ -41,9 +41,9 @@ define('US', '<span class="us">us</span>');
 define('R_VERSION', '1.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx helper'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
-define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2'); // non-personal encrypted fields (must be complete list)
+define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
 define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData'); // personal identifying information
 define('R_SECRET_URL', isPRODUCTION ? 'http://rcredits.org' : (isDEV ? 'http://localhost/rcredits-promo' : 'http://' . STAGE)); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
@@ -99,6 +99,7 @@ define('R_CTTY_USD_SHARE', 1); // fraction of a community's total USD to hold in
 define('R_CC_RATE', 2.5); // typical credit card percentage rate
 define('R_CODE_LEN', 20); // length of most random identifiers
 define('R_DUPTX_MINS', 10); // number of minutes before a duplicate transaction is allowed
+define('HAS_XFEE', "data LIKE '%s:4:\"xfee\";%'"); // sql to recognize a transaction that has an exchange fee
 
 define('DW_SITE', isPRODUCTION ? 'https://www.dwolla.com' : 'https://uat.dwolla.com');
 //                               : 'http://new.rcredits.org/stage.php?stageWord=' . R_STAGE_WORD . '&request=');
@@ -248,8 +249,9 @@ define('TX_CRON', 5);
 define('TX_LINK', 6); // user clicked a no-signin link
 define('TX_CHANNELS', t('System SMS Web App Tone Cron Link'));
 
-// Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits)
+// Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits) -- negative types generally not shown
 define('TX_BANK', -9); // used only internally, to mark bank transfers
+define('TX_XFEE', -4); // exchange fee (for buying rCredits with a credit/debit card or check)
 define('TX_REFUND', -3); // refund of fees (Dwolla)
 define('TX_BONUS', -2); // sales bonus (negative reward types are invisible on transaction history)
 define('TX_REBATE', -1); // sales rebate
@@ -258,7 +260,7 @@ define('TX_SIGNUP', 1); // signup incentive reward
 define('TX_u2', 2); // UNUSED pioneer reward (special early-stage rewards) -- might change later to TX_OTHER
 define('TX_INFLATION', 3); // reward to conpensate for inflation
 define('TX_HELPER', 4); // reward for inviting and assisting with account opening
-define('TX_REWARDS', 4); // above this, it's not "rewards"
+define('TX_REWARDS', '-3,-2,-1,1,3,4'); // only these count as rewards
 
 define('TX_GRANT', 5);
 define('TX_LOAN', 6);
@@ -296,6 +298,32 @@ $GLOBALS['topics'] = array( // topics for 'message' email
   'account funded' => t('Account FUNDED'),
   'approved' => t('Account APPROVED!'),
 );
+
+/**
+ * Save a record in the given table, in the appropriate regional section of the id field's number space.
+ * @param string $table: table to save in (users or r_relations)
+ * @param string $idField: name of record ID field (uid or reid)
+ * @param assoc $record: the record to save (possibly with record ID already chosen)
+ * @param int $region: record ID of the region in which to create a new record (defaults to server region)
+ * @return record ID of the inserted record
+ */
+function regionalInsert($table, $idField, $record, $region = NULL) {
+  if (@$record[$idField]) return db\insert($table, $record); // predestined id (probably for testing)
+  if (!@$region) $region = r\serverUid();
+  
+  for ($try = 0; $try < 20; $try++) { // limit the retries
+    $id = $record[$idField] = u\firstUnusedId($idField, $table, -$region, -$region + R_REGION_MAX);
+    try {
+      if (db\insert($table, $record)) return $id;
+    } catch (Exception $e) { // BIG MYSTERY: why does this happen sometimes with no collision?
+      if ($table == 'users' and db\lookup('mail', 'users', 'uid=:id', compact('id')) == $mail) {
+        r\tellStaff('another immaculate birth', $record, $uid);
+        return $id; // record magically exists
+      }
+    }
+  }
+  u\EXPECT(FALSE, "failed to save $table record in region $region after $try tries.");
+}
 
 /**
  * Format and return args for reporting a transaction (old or new) to the current account.
@@ -456,34 +484,41 @@ function txSave($tx) {
   return $tx + compact(u\ray('xid serial payerTid payeeTid'));
 }
 
+define('TX_REWARD_FIELDS', 'serial type amount goods payer payee payerAgent payeeAgent for taking created');
+
 /**
- * Add rebate and bonus to the transaction set, if appropriate.
+ * Add rebate and bonus or exchange fees to the transaction set, if appropriate.
  */
 function txRewards(&$txs) {
-  extract(u\just('type serial goods payer payee data payerTid payeeTid created', $txs[0]));
+  extract(u\just('type serial goods payer payee data payerTid payeeTid created payeeFor', $txs[0]));
   
   if ($type != TX_TRANSFER) return;
-  if (!$goods) return; // quit unless rebates and bonuses apply
-  if (owning($payer, $payee)) return; // no rewards for transactions between owner and owned
   $rewards = unserialize($data);
   
-  foreach (array('rebate', 'bonus') as $type) {
-    $amount = $rewards[$type];
-    $to = $type == 'rebate' ? $payer : $payee;
-    $tid = $type == 'rebate' ? $payerTid : $payeeTid;
-    $type = u\consta('tx', $type);
-    if ($amount and $to > 0) $txs[] = txSave(txRewardSetup($serial, $type, $to, $amount, $tid, $created));
+  if ($goods) {
+    foreach (array('rebate', 'bonus') as $type) {
+      $amount = $rewards[$type];
+      $type = u\consta('tx', $type);
+      list ($to, $tid, $for) = $type == TX_REBATE
+        ? array($payer, $payerTid, t('rebate')) 
+        : array($payee, $payeeTid, t('bonus'));
+      $for .= t( ' on #') . $tid;
+      if ($amount and $to > 0) $txs[] = txSave(txRewardSetup($serial, $type, $to, $amount, $for, $created));
+    }
+  } elseif ($amount = @$rewards['xfee']) {
+    list ($type, $goods, $payerAgent, $payeeAgent, $taking) = array(TX_XFEE, FALSE, $payer, $payee, TRUE);
+    $for = ($amount == R_XFEE_CHECK and !strpos($payeeFor, '(card)')) ? t('check fee') : t('card fee');
+    $txs[] = txSave(txSetup(compact(u\ray(TX_REWARD_FIELDS))));
   }
 }
 
-function txRewardSetup($serial, $type, $payee, $amount, $tid, $created) {
+function txRewardSetup($serial, $type, $payee, $amount, $for, $created) {
   $payer = $payerAgent = r\acct($payee)->community;
   $payeeAgent = $payee;
   $taking = FALSE;
   $goods = FALSE;
-  $for = ($type == TX_REBATE ? t('rebate') : t('bonus')) . t( ' on #') . $tid;
 
-  return txSetup(compact(u\ray('serial type amount goods payer payee payerAgent payeeAgent for taking created'))); // created is here mostly for testing
+  return txSetup(compact(u\ray(TX_REWARD_FIELDS)));
 }
 
 /**
@@ -514,8 +549,7 @@ function txSetup($info) {
   u\setDft($payerAgent, $payer);
   u\setDft($payeeAgent, $payee);
   u\setDft($created, time());
-//  $rewardBasis = ($payee == r\cgfId() and $for == 'donation') ? $amount : $r;
-  $data = serialize(dataSetup($payer, $payee, $amount, $goods, @$data ?: array()));
+  $data = dataSetup($payer, $payee, $amount, $goods, $for, @$data ?: array(), $channel);
   $taking += 0;
   $goods += 0;
   $box = @$boxUser ?: 0;
@@ -528,18 +562,25 @@ function txSetup($info) {
 
 /**
  * Set up and return the data field for a transaction.
- * @param assoc $data: forced values, if any
+ * @param assoc $data: forced values for rebates/bonuses/xfees, if any
+ * $param int $channel: passed here in case we are reversing or editing a transaction on a different channel
+ * @return the revised $data, serialized
  */
-function dataSetup($payer, $payee, $amount, $goods, $data = array()) {
+function dataSetup($payer, $payee, $amount, $goods, $for, $data, $channel) {
   u\EXPECT(is_array($data), 'data should be array');
+  if (r\owning($payer, $payee)) return serialize($data); // no rewards or xfees for txs between owner and owned
+
   if ($goods and !isset($data['rebate'])) {
     $rebate = (string) ($goods ? r\rebate($payer, $payee, $amount) : 0); // force string, to avoid long serializations
     $bonus = (string) ($goods ? r\bonus($payee, $payer, $amount) : 0);
     $data += compact('rebate', 'bonus');
+  } elseif (!$goods and !isset($data['xfee']) and $channel == TX_SMART) {
+    if (($xfee = r\xfee($for, $amount)) !== '') $data += compact('xfee'); // record even when xfee=0 (cash xchg)
   }
+  
   unset($data['preapproved']); // don't need these (but keep 'undoes' and original rebate/bonus, if any)
   unset($data['bilateral']);
-  return $data;
+  return serialize($data);
 }
 
 function cacheBothTotals($txs) {foreach(u\ray('payer payee') as $one) cacheTotals($txs[0][$one], $txs);}
@@ -619,7 +660,7 @@ function worksForUs($name, $us = NULL) {
   $sql = <<<EOF
     SELECT u.uid, u.data FROM r_relations r
     INNER JOIN users u ON u.uid=r.other
-    WHERE r.main=:us AND r.employerOk
+    WHERE r.main=:us AND r.employee
     ORDER BY (u.fullName LIKE :pattern) DESC
 EOF;
   $q = db\q($sql, compact('us', 'pattern'));
@@ -651,6 +692,14 @@ function makeDo($data) {
   if (@$once) $data = u\ray('op', db\insert('r_do', u\ray('uid expires data', @$id, @$expires, serialize($data))));
 
   return "$base_url/do/" . r\makeDoCode($data);
+}
+
+/**
+ * Return an address (a) tag for the indicated one-click op.
+ */
+function makeDoA($op, $id, $amount = NULL, $once = TRUE, $other = array()) {
+  $link = r\makeDo(compact(u\ray('op id amount once')) + $other);
+  return "a href=\"$link\"";
 }
 
 /**
@@ -720,10 +769,16 @@ function notify($uid, $index, $subs = array(), $force = FALSE) {
  */
 function suggestMin($a) {
   $suggested = u\fmtAmt($suggested0 = max(R_ACHMIN, $a->rewards, (R_SUGGEST_BUMP * $a->minimum) ?: R_MINR_DEFAULT));
-  $a1 = 'a href="' . r\makeDo('op id amount once', 'min', $a->id, $suggested0, TRUE) . '"';
-  r\notify($a->id, 'you were short', compact(u\ray('suggested a1')));
-}
+  $a1 = r\makeDoA('min', $a->id, $suggested0);
+  $msg = 'you were short';
   
+  if ($a->can(B_SECRET_BAL)) {
+    $a2 = r\makeDoA('nosecret', $a->id);
+    $msg .= '|be not secretive';
+  }
+  r\notify($a->id, $msg, compact(u\ray('suggested a1 a2')));
+}
+
 /**
  * Create an rCard security code for the given account (either for an individual or a company agent).
  * @param acct $a: the account
@@ -856,53 +911,48 @@ function tempName($info) {
  * @param string $fieldName: the field to update
  * @param mixed $newValue: what to update it to
  * @param int $xid: transaction id
- * @param bool $allRelated: set all related transactions too -- ie ones with the same serial (default FALSE)
- * NOTE: tx data changes(date, agent, field, oldvalue) (this gives a complete history of the transaction)
+ * NOTE: tx data['changes'] = [date, agent, field, oldvalue] (this gives a complete history of the transaction)
  *     (prefixes added to the payerFor or payeeFor fields when changing state will not be included in changes)
  */
-function setTxField($fieldName, $newValue, $xid, $allRelated = FALSE) {
+function setTxField($fieldName, $newValue, $xid) {
+  u\EXPECT(compact(u\ray('fieldName xid')), 'name zid');
   $myid = acct()->id;
-  u\EXPECT(compact(u\ray('fieldName xid allRelated')), 'name zid bool');
   
   $where = "xid=:xid and $myid in (payer, payee)"; // "$myid in" is a security measure
   $txs = db\records('r_txs', $where, compact('xid'));
   $tx = (array) $txs[0];
-  extract(u\just("$fieldName data payer payee amount goods", $tx));
+  extract(u\just("$fieldName data payer payee amount goods payeeFor channel", $tx));
   
-  $data = unserialize($data);
-  $data['changes'][] = array(REQUEST_TIME, acct()->agentId, $fieldName, $$fieldName);
+  $dataRay = unserialize($data);
+  $dataRay['changes'][] = array(REQUEST_TIME, acct()->agentId, $fieldName, $$fieldName);
 
   $DBTX = \db_transaction();
   
-  $setGoods = ($fieldName == 'goods');
-  if ($setGoods or $fieldName == 'amount') {
-    extract(u\just('rebate bonus', $data));
-    if (@$rebate or @$bonus) {
-      db\q('DELETE FROM r_txs WHERE serial=:xid AND xid<>:xid', compact('xid')); // remove any rewards
-      $txs = array(array('amount' => -$amount) + $tx); // negate the amount
-      $txs[] = u\ray('type payer payee amount', -1, TX_REBATE, $payer, -$rebate);
-      $txs[] = u\ray('type payer payee amount', -1, TX_BONUS, $payee, -$bonus);
-      r\cacheBothTotals($txs); // subtract values from cache for the old transaction
-      unset($data['rebate']);
-      unset($data['bonus']);
+  $financial = ($fieldName == 'goods' or $fieldName == 'amount'); // financial info changed
+  
+  if ($financial) {
+    extract(u\just('rebate bonus xfee', $dataRay));
+    $txsNeg = array(array('amount' => -$amount) + $tx); // negate the transaction amount
+
+    if (@$rebate or @$bonus or @$xfee) { // undo the extras
+      db\q('DELETE FROM r_txs WHERE serial=:xid AND xid<>:xid', compact('xid'));
+      foreach (u\ray('rebate bonus xfee') as $k) {
+        list ($from, $to) = array($k == 'xfee' ? $payer : -1, $k == 'rebate' ? $payer : $payee);
+        if (@$$k) $txsNeg[] = u\ray('type payer payee amount', u\consta('tx', $k), $from, $to, -$$k);
+        unset($dataRay[$k]);
+      }
     }
-    $tx[$fieldName] = $newValue;
-    if ($tx['goods']) {
-      $tx['data'] = serialize($data = dataSetup($payer, $payee, $tx['amount'], TRUE, $data));
-      $txs = array($tx);
-      r\txRewards($txs); // create new rewards transactions
-    } else $txs = array($tx);
+    r\cacheBothTotals($txsNeg); // subtract old values from cache
+    $$fieldName = $tx[$fieldName] = $newValue; // revise transaction record and update variable
+    $tx['data'] = $data = dataSetup($payer, $payee, $amount, $goods, $payeeFor, $dataRay, $channel);
+    $txs = array($tx);
+    r\txRewards($txs); // create new rewards transactions
     r\cacheBothTotals($txs); // cache values for the revised transaction
-  }
-    
-  $data = serialize($data);
+  } else $data = serialize($dataRay);
+
   $sql = "UPDATE r_txs SET $fieldName=:newValue,data=:data WHERE $where";
   db\q($sql, compact(u\ray('newValue data xid')));
 
-  if ($allRelated) {
-    $sql2 = "UPDATE r_txs SET $fieldName=:newValue WHERE serial=:xid AND type<>:TX_TRANSFER";
-    db\q($sql2, compact(u\ray('newValue xid'))); // gotta do the auxiliary records separately so as not to affect their data field (separate query, to avoid "unbuffered query" error -- known Drupal bug)
-  }
   unset($DBTX); // commit
 }
 
@@ -971,7 +1021,7 @@ function definiteName($uid) {
 /**
  * Return a zid and region for the qid
  * @param string $qid: a qid of any length or type (the region part defaults to the server region)
- * @return [zid, regionUid]
+ * @return [zid, regionUid, $isRel]
  */
 function unQid($qid) {
   if (!u\isQid($qid)) {
@@ -980,7 +1030,7 @@ function unQid($qid) {
   }
   list ($regionId, $type, $iid) = preg_split('/(' . R_MARKS . ')/U', $qid, 0, PREG_SPLIT_DELIM_CAPTURE);
   $id = u\a2n($iid);
-  return array($type == R_MEMBER_MARK ? $id : -$id, serverUid($regionId));
+  return array($id, serverUid($regionId), $type != R_MEMBER_MARK);
 }
   
 /**
@@ -1004,16 +1054,17 @@ function quid($uid, $agentId = '') {
     return u\n2a($regionNum, -3) . R_MEMBER_MARK . u\n2a($i, -3);
   } else {
     $reid = relation('reid', $uid, $agentId); // compound quid
-    return R_SERVER_ID . R_AGENT_MARK . u\n2a($reid, -3);
+    return str_replace(R_MEMBER_MARK, R_AGENT_MARK, quid($reid));
+//    return R_SERVER_ID . R_AGENT_MARK . u\n2a($reid, -3);
   }
 }
 
 /**
- * Return the uid for a pro se quid (local or complete).
+ * Return the record ID for a quid (local or complete, pro se or not).
  */
-function unQuid($quid, $zid = NULL, $region = NULL) {
-  if (is_null($zid)) list ($zid, $region) = r\unQid($quid); // break it down
-  return $zid < 0 ? FALSE : (-$region + $zid);
+function unQuid($quid, $zid = NULL, $region = NULL, $isRel = FALSE) {
+  if (is_null($zid)) list ($zid, $region, $isRel) = r\unQid($quid); // break it down
+  return $isRel ? NULL : (-$region + $zid);
 }
 
 /**
@@ -1073,7 +1124,7 @@ function uidRegion($uid) {
  */
 function region($country = '', $state = '', $zip = '', &$raw = '') {
   if (!$state) $state =  R_STATE_ID;
-  $where = "s.country_id=:country AND s.id=:state AND (r.zips='' OR :zip RLIKE r.zips) ORDER BY (r.zips='')";
+  $where = ":zip RLIKE r.zips OR (r.zips='' AND s.country_id=:country AND s.id=:state) ORDER BY (r.zips='')";
   $region = db\lookup('region', 'r_regions r INNER JOIN r_states s ON r.state=s.abbreviation', $where, compact('state', 'zip', 'country'));
   if (!$region) $region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
   return -r\unQuid(($raw = $region ?: 'ZZZ') . '.AAA');
@@ -1112,7 +1163,7 @@ function nonoUndo($oldRecord, &$subs = array()) {
  *   Returned with all fields listed in $fields unset (if any of those fields has a positive value)
  * @param string $fields: space-delimited list of fields to check
  * @return (none)
- */
+ *//*
 function reverseRelations($other, $main, &$data, $fields) {
   foreach (u\ray($fields) as $field) if (@$data[$field]) $stay = TRUE;
   if (!@$stay and !isset($data['employeeOk'])) return; // this function also UNsets employeeOk
@@ -1124,7 +1175,7 @@ function reverseRelations($other, $main, &$data, $fields) {
   } else db\insert('r_relations', $subs);
 
   foreach (u\ray($fields) as $field) unset($data[$field]); // don't get these fields mixed in with the reverse record
-}
+}*/
 
 /**
  * Say whether one of the accounts owns the other (or can draw from it).
@@ -1139,8 +1190,7 @@ function owning($uid1, $uid2) {
  * @param int $company: defaults to current uid
  */
 function isEmployee($uid, $company = '') {
-  if (!$company) $company = acct()->id;
-  return relation(1, $company, $uid, 'employerOk AND employeeOk');
+  return relation(1, $company ?: acct()->id, $uid, 'employee');
 }
 
 function communityUid($postalCode = '') {
@@ -1175,7 +1225,7 @@ function loginString($id) {
  */
 function employees() {
   $myid = r\acct()->id;
-  return db\q('SELECT other FROM r_relations WHERE main=:myid AND employerOk', compact('myid'))->fetchCol();
+  return db\q('SELECT other FROM r_relations WHERE main=:myid AND employee', compact('myid'))->fetchCol();
 }
 
 /**
@@ -1304,6 +1354,7 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = FALSE, $delete = FALSE)
   // r_usderror
     'r_user_industries:uid',
     'users:uid',
+    'users:helper',
     'users:community',
   );
   foreach (u\ray(DRUPAL_UID_TABLES) as $one) $subs[] = "$one:uid";
@@ -1868,19 +1919,28 @@ function up($up = NULL) {
 
 /**
  * Return the rebate on the given amount for the given account.
- * Never less than R_MIN_REBATE unless the account is a nonperson (no longer used)
  * @todo? or manager of company with no (other) employees (set bit?)
  */
 function rebate($from, $to, $amount = 1) {
   if (relation(1, $to, $from, 'isOwner OR draw')) return 0;
   if (relation(1, $from, $to, 'isOwner OR draw')) return 0;
   $a = r\acct($from);
-//  return max(!$a->co ? R_MIN_REBATE : 0, round($amount * $a->rebate / 100, 2));
-  return round($amount * $a->rebate / 100, 2);
+  return '' . round($amount * $a->rebate / 100, 2); // ''. to avoid serializing a long float
 }
 
+/**
+ * Return the appropriate exchange fee for the given transaction description and amount.
+ */
+function xfee($for, $amount) {
+  if (is_array($for)) $for = $for[1];
+  if (!r\usdin($for)) return '';
+  if (strpos($for, '(cash)')) return 0;
+  if (!strpos($for, '(card)') and !strpos($for, '(check)')) return 0; // for FCCoop until they update their app
+  return '' . round(strpos($for, '(card)') ? -R_XFEE_CARD * $amount : R_XFEE_CHECK, 2);
+}
+  
 //function bonus($to, $from, $amount = 1) {return round($amount * (t\est() ? 2 : R_BONUS_FACTOR) * r\acct($to)->rebate / 100, 2);}
-function bonus($to, $from, $amount = 1) {return round($amount * (t\est() ? 2 : R_BONUS_FACTOR) * rebate($to, $from), 2);}
+function bonus($to, $from, $amount = 1) {return '' . round($amount * (t\est() ? 2 : R_BONUS_FACTOR) * rebate($to, $from), 2);}
 
 // Single line functions that need no explanation
 //function userField($field, $who = '', $subs = array()) {return tableField($field, 'users', $who, $subs);}
@@ -1900,3 +1960,6 @@ function cgfId() {return \variable_get('cgf_uid');}
 function disputeTx($xid) {return db\setData('r_txs', $xid, u\ray('disputed', TRUE));}
 function denyInv($nvid) {return db\setData('r_invoices', $nvid, u\ray('denied', TRUE));}
 function stepsDone0() {return array_fill_keys(u\ray(R_STEPS), FALSE);}
+function isReward($type) {return in_array($type, u\ray(TX_REWARDS));}
+//function usdin($for) {return u\abbreviates('usd in (', strtolower(is_array($for) ? $for[1] : $for));}
+function usdin($for) {return u\abbreviates('usd in', strtolower(is_array($for) ? $for[1] : $for));}

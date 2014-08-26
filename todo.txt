@@ -13,41 +13,58 @@ Before growing fast:
 . DONE emails and invites don't get marked as spam
 . DONE economic circle(s)
 . 2 more new board members, including a business leader
-. ID verification
+. DONE ID verification
 . DONE Software:
   - DONE invoices
   - sound admin tools: 
 . $25 for inviting and helping (software and promo)
-    select DISTINCT u.fullName as member, u.mail, i.id, u2.fullName as inviter from users u left join r_invites i ON i.invitee=u.uid LEFT JOIN users u2 ON u2.uid=i.inviter WHERE (u.flags & 2) AND NOT (u.flags & 64) ORDER BY u.uid
 . get GFM and Foster's to pay suppliers and/or employees at least half what they take in
-. after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org
+. after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
 
 TASKS FOR NEXT UPDATE:
-. make note of all company bits and restore them after the update
-. create small pictures in photos/small ( use f('a.eachAcct', 'shrinkPhoto'); )
-. set helper for each ok account (use   f('a.eachAcct'); )
+. backup DB
+. queries:
+  ALTER TABLE r_relations CHANGE reid reid BIGINT(20) AUTO_INCREMENT;
+  ALTER TABLE r_relations CHANGE employerOk employee TINYINT(4);
+  ALTER TABLE r_relations DROP employeeOk;
+  ALTER TABLE r_relations DROP amount;
+  ALTER TABLE users DROP maximum;
+. run utils:
+  include_once __DIR__ . '/../rcredits/admin/admin.inc';
+  f('a.moveFieldTo', 'question', 'secure');
+. *** REINSTALL ***
+. run utils:
+  include_once __DIR__ . '/../rcredits/admin/admin.inc';
+  f('a.moveFieldFrom', 'helper', 'data');
+  f('a.eachAcct'); // to shrink photos into new photo field
+  f('a.fixRelations'); // to relocate relations record IDs to the appropriate number space for their region
+. RENAME photos/small directory (then DELETE)
+. add a "Creative Thought" account.
 (no other special tasks yet)
 
+. in notices, when $ drawn from bank automatically, tell member how to adjust settings (maybe tell how every time?)
+. add "no connected bank account for now" to Bank Info page
+. no "verify" reminder if not can dw (eg Jenny Ladd account)
+. annual tax ack for sharing rewards
+. bug: changing Preston's notice frequency works, but does not say "saved" and the spinner persists.
+. in statements categorization, separate other (goods & services) from other (cash/loan/etc.)
+. in statements, add "..." to abbreviated categories
+. give message to app on "time" request, when an update is needed: "You need to download the latest version of this app from the Play Store. Be sure to set your device to update apps automatically."
 . split off from users data any fields that are usually set (especially helper, which should be included in changeUid list)
-. make bank connection optional, with other choices listed
-. when making a new rcard in admin, rename photo(s) with new cardCode
+. make bank connection optional, with other choices listed.  "no bank" option on signup: require the connect step even if no dw, but put a no-bank option on the BankInfo form
+. when making a new rcard in admin, rename photo with new cardCode
 . forbid unauthorized signed-out transactions (in smart.inc), because app accidentally allowed a refund by a cashier without being signed in.
-. in invite email, warn the potential member about the required donation "of any size -- a penny or more" and "you supply the same info as for opening a bank account"
-. setting member bit on community gets message ~ "you must specify helper"
-. relabel member and rTrader bits for ctty on Summary page
 . after creating company, sign user back in with company account selected and status page displayed
 . add share pct to preference page
 . make a changeUid interface for Admin: select account1 from lookup box, go to separate page to input target community
 . improve "send another invite" message so people click the link.
-. r cache does not get updated on editTx (new amount gets added, old amount does not get subtracted) (see r\setTxField)
-. "no bank" option on signup: require the connect step even if no dw, but put a no-bank option on the BankInfo form
 . bankless accounts that draw on others are forbidden to cash out, (but they can draw rewards from other accounts).
 . add graphs 2-4 to the account statements in a "Community" section, with short explanations of the significance.
-. give category totals on monthly statements (anything before ~*([{|\;:,.</ or end of string is a category)
 . handle separate USD balances for each community, without requiring a separate USD account (?) Better if we can open multiple accounts for ACH!
+
 . Jesse Seaver says: I think this summary would be better served in a table layout, with date, description, and amount, vs a string including this information as it is now. 
 
-Also, I feel that it’s important these kinds of statements are set up in a way in which people are used to. I would mimic a major banking statement as much as possible, but make it more lighthearted and fun. Like a real bank, but a bank that is unique in this was as well. Getting your monthly statement should be fun, and something I look forward to right? So, it needs to have a little more personality and feel like a real credit statement. 
+Also, I feel that it’s important these kinds of statements are set up in a way in which people are used to. I would mimic a major banking statement as much as possible, but make it more lighthearted and fun. Like a real bank, but a bank that is unique in this way as well. Getting your monthly statement should be fun, and something I look forward to right? So, it needs to have a little more personality and feel like a real credit statement. 
 
 Attached is a quick example if what I would do with the monthly message below. 
 
@@ -64,6 +81,7 @@ Also, a couple notes :
 5. Can I have a QR code that will pull up my Rcredit profile, or a way to pay me in credits via a mobile app / mobile site? 
 
 6. Add icons to the balance listing, or at least + and - signs in red or green depending on whether it’s a debit or credit. 
+
 . for rebates/bonuses, give xid# for ctty purpose (eg "rebate on #3847")
 . subtotals by purpose in downloaded PDFs (and CSV?)
 . maybe change relations qid to company QID dot letter, like NEW.AAB.A, meaning <first employee of the AAB company> (relations table will need a company sequence number). This will allow the app to distinguish companies offline.

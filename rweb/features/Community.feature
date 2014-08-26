@@ -64,15 +64,6 @@ Setup:
   | .ZZC |  338.05 |  2900 |  275.05 |      6.62 |
   | .AAB |    1.10 |     0 |    0.10 |         0 |
   # total rewards < total r, because we made a grant, a loan, and a fine.
-  When cron runs ""
-  # causes coverFee() to run
-  Then balances:
-  | id   | r       | usd      | rewards |*
-  | ctty | -845.90 |    10.00 |    0.00 |
-  | .ZZA |   43.00 |   990.00 |  279.00 |
-  | .ZZB |  463.75 |  2099.75 |  278.50 |
-  | .ZZC |  338.05 |  2900.00 |  275.05 |
-  | .AAB |    1.10 |     0.00 |    0.10 |
   
 Scenario: cron calculates the statistics
   Given cron runs "acctStats"

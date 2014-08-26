@@ -107,7 +107,7 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| $1,000.00 |      0.00 |   460.00 | 1,110.00 |  268.00 | $1,918.00 |'
     . '\\| PENDING   |    -44.00 |     0.00 |     0.00 |    0.00 |  - $44.00 |"');
     And__('with: "ARRAY'
-    . '\\|_tid | Date   | Name       | From you | To you | Status  |_do   | Purpose    | Reward |'
+    . '\\|_tid | Date   | Name       | From you | To you | Status  |_do   | Purpose    | Reward/Fee |'
     . '\\| 6   | %dm-6d | Bea Two    | 100.00   | --     | %chk    | X    | cash V     | --     |'
     . '\\| 5   | %dm-1w | Corner Pub | 120.00   | --     | %chk    | X    | this Q     | 6.00   |'
     . '\\| 4   | %dm-3m | Bea Two    | 240.00   | --     | %chk    | X    | what G     | 12.00  |'
@@ -131,7 +131,7 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| $2,132.00 |      0.00 |   220.00 |   0.00 |    6.00 | $1,918.00 |'
     . '\\| PENDING   |    -44.00 |     0.00 |   0.00 |    0.00 |  - $44.00 |"');
     And__('with: "ARRAY'
-    . '\\|_tid | Date   | Name       | From you | To you | Status  | _    | Purpose    | Reward |'
+    . '\\|_tid | Date   | Name       | From you | To you | Status  | _    | Purpose    | Reward/Fee |'
     . '\\| 6   | %dm-6d | Bea Two    | 100.00   | --     | %chk    | X    | cash V     | --     |'
     . '\\| 5   | %dm-1w | Corner Pub | 120.00   | --     | %chk    | X    | this Q     | 6.00   |"');
     And__('without: "ARRAY'

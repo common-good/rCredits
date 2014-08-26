@@ -97,8 +97,8 @@ Scenario: A cashier asks to refund someone
 Scenario: A cashier asks to charge another member, with insufficient balance
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "goods": "food" at %now
   Then we return error "short from" with subs:
-  | otherName |*
-  | Bea Two   |  
+  | otherName | short |*
+  | Bea Two   | $50   |
 
 Scenario: A cashier asks to refund another member, with insufficient balance
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $-300 for "goods": "food" at %now

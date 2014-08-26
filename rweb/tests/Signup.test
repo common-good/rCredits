@@ -229,8 +229,8 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| id   | fullName | email | postalCode | state | city    | flags |'
     . '\\| .AAC | Abe One  | a@    | 01002      | MA    | Amherst | dw    |"');
     And__('relations: "ASSOC'
-    . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |'
-    . '\\| 1  | .AAD | .AAC  |            |          0 |          1 |       1 |      0 |    0 |"');
+    . '\\| id   | main | agent | permission | employee | isOwner | draw |'
+    . '\\| :AAA | .AAD | .AAC  |            |        0 |       1 |    0 |"');
   }
 
   // Scenario: A member registers with an unknown company
@@ -302,8 +302,8 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| id   | fullName | email | postalCode | phone        | city    | flags | floor |'
     . '\\| .AAD | AAcme Co | aco@  | 01002      | +14132539876 | Amherst | co,dw |     0 |"');
     And__('relations: "ASSOC'
-    . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |'
-    . '\\| 1  | .AAD | .AAC  | manage     |          1 |          1 |       1 |      0 |    1 |"');
+    . '\\| id   | main | agent | permission | employee | isOwner | draw |'
+    . '\\| :AAA | .AAD | .AAC  | manage     |        1 |       1 |    1 |"');
     And__('balances: "ASSOC'
     . '\\| id   | r | usd | rewards |'
     . '\\| .AAD | 0 |   0 |       0 |"');

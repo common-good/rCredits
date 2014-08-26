@@ -1,4 +1,30 @@
-2014-08
+2014-08-26
+. in invite email, warn the potential member about the required donation "of any size -- a penny or more" and "you supply the same info as for opening a bank account"
+. relabel member and rTrader bits for ctty on Summary page
+. fixed bug: setting member bit on community gets message ~ "you must specify helper"
+. small photo is now saved in users table (account record), to accommodate replication
+. revised relations table (and related code), to eliminate reverse record (and employeeOk and amount fields)
+. moved helper field out of users:data f('a.moveFieldFrom', 'helper', 'data');
+. moved question field into users:secure f('a.moveFieldTo', 'question', 'secure');
+. queries:
+  ALTER TABLE r_relations CHANGE reid reid BIGINT(20) AUTO_INCREMENT;
+  ALTER TABLE r_relations CHANGE employerOk employee TINYINT(4);
+  ALTER TABLE r_relations DROP employeeOk;
+  ALTER TABLE r_relations DROP amount;
+  ALTER TABLE users DROP maximum;
+  f('a.fixRelations'); // to relocate relations record IDs to the appropriate number space for their region
+. RENAME photos/small directory (then DELETE)
+. ALTER TABLE users DROP question;
+
+2014-08-07 (corresponds to Android App v202)
+. support for exchange transaction fees (3% for credit card, $3 for a check)
+. monthly statements now include a summary by description category (most punctuation separates category from detail)
+. bug fix: transaction edits are handled properly (finally)
+. History now shows USD in as being from the company to the customer (instead of vice versa and negative)
+. creditInfo likewise reports USD in as debits to the company, credits to the customer
+. added a suggestion to customer to not be secretive, when s/he tries to overspend
+
+2014-08-04
 . fixed bug: homogenize crashes on "null dw number" trying to tradeR to/from 26742000000080. Require B_BANK, not just B_DW.
 . community admin can now skip the agreement step when inputting a paper signup
 . modified and added code to handle offline rPOS transactions
@@ -12,6 +38,9 @@
 . created smaller picture (in photos/small) for passing to POS: 50% (300x400 -- about 12k) ideally at 35%
 . fixed bug: "reverses #" was giving wrong tid for cust/co 
 . fixed bug: rcron now handles negative balances right, when bringing accounts up to minimum.
+. make note of all company bits and restore them after the update
+. create small pictures in photos/small ( use f('a.eachAcct', 'shrinkPhoto'); )
+. set helper for each ok account (use   f('a.eachAcct'); )
 
 2014-06-25
 . fixed bug: u\monthDay1 failed for other years

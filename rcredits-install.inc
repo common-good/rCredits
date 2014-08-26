@@ -44,6 +44,7 @@ function tableDefs($schema = array()) {
     'postalAddr' => setupField('complete postal address', 'varchar 255'),
     'notes' => setupField('miscellaneous notes about the user or the account', 'text medium'),
     'activated' => setupField('when was the account activated', 'int 11', 0),
+    'helper' => setupField('who invited this person or company', 'int big'),
     'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11', 0),
     'signedBy' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
     'rebate' => setupField('current rebate percentage (sales bonus is double)', 'numeric 5,3', R_REBATE),
@@ -57,6 +58,7 @@ function tableDefs($schema = array()) {
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2', 0),
     'committed' => setupField('amount committed (for donations to CGF)', 'numeric 11,2', 0),
 //    'frozen' => setupField('amount of rCredits currently unavailable until specific dates or indefinitely', 'text medium'),
+    'photo' => setupField('member photo', 'blob big'),
   );
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
@@ -348,12 +350,12 @@ function tableDefs($schema = array()) {
     'reid' => setupField('relationship record id', 'serial 11'),
     'main' => setupField('uid of the account to which others are related', 'int big'),
     'other' => setupField('uid of a user related to that account', 'int big'), // eg owner, agent, employee, supplier
-    'amount' => setupField('average monthly amount paid to other', 'numeric 11,2', 0), // typically to employee or supplier
+//    'amount' => setupField('average monthly amount paid to other', 'numeric 11,2', 0), // typically to employee or supplier
     'draw' => setupField('whether credit can flow from main to agent', 'int tiny', 0),
     'permission' => setupField('what type of permission the agent has on the main account', 'int tiny', 0),
-    'employerOk' => setupField('employer says this agent is an employee', 'int tiny', 0),
-    'employeeOk' => setupField('employee says this agent is an employee', 'int tiny', 0),
-    'isOwner' => setupField('this agent is an owner (or part owner)', 'int tiny', 0),
+    'employee' => setupField('agent is an employee (according to employer)', 'int tiny', 0),
+//    'employeeOk' => setupField('employee says this agent is an employee', 'int tiny', 0),
+    'isOwner' => setupField('this agent is an owner (or part owner) or family relation', 'int tiny', 0),
   );
   $foreignKeys = foreignKey('main') + foreignKey('other') + foreignKey('foreignUid');
   $indexes = index('main') + index('other');
