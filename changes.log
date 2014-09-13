@@ -1,3 +1,10 @@
+2014-09-13
+. fixed bug: admin Summary form was trying to shrink photo always
+. fixed bug: helper was trying to be recorded as qid rather than uid
+. bug fix to adapt to accidental API change by Dwolla: added "/" to end of fundingsources URL in dwolla.php
+. refactored integer bit array bit-setting/getting code
+. added (rough) calculation and display of account, transaction, and (not yet) ach risks (following revisions to Policy to Prevent Fraud, Money-Laundering, and Financial Crime)
+
 2014-08-26
 . in invite email, warn the potential member about the required donation "of any size -- a penny or more" and "you supply the same info as for opening a bank account"
 . relabel member and rTrader bits for ctty on Summary page

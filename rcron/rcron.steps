@@ -57,8 +57,12 @@ function extraSubs(&$subs) {
  *     MAKE Notices Setup
  *     MAKE Pool Setup
  *     MAKE Recache Setup
+ *     BOTH Risk Setup
+ *     TEST Risk WeCalculateAccountRisks
  *     MAKE Sharing Setup
  *     MAKE Tickle Setup
+ *     MAKE Trust Setup
+ *     TEST Trust WeCalculateTrust
  */
 function members($list) {return t\members($list);}
 
@@ -113,6 +117,8 @@ function balances($list) {return t\balances($list);}
  *     MAKE Pool NormalPoolingHappens
  *     MAKE Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
+ *     MAKE Risk Setup
+ *     MAKE Risk WeCalculateAccountRisks
  *     MAKE Sharing InflationAdjustmentsAreDistributed
  *     MAKE Tickle ANewbieHasNotTakenTheFirstStep
  *     MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
@@ -124,6 +130,7 @@ function balances($list) {return t\balances($list);}
  *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
+ *     MAKE Trust WeCalculateTrust
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
@@ -152,6 +159,7 @@ function bankTransferCountIs($count) {return (t\usdTransferCount('payee=0') == $
  * relations: (ARG)
  *
  * in: MAKE Bank Setup
+ *     MAKE Risk Setup
  */
 function relations($relations) {return t\relations($relations);}
 
@@ -207,6 +215,7 @@ function weNoticeToMember($notice, $id) {return t\notice($notice, $id);}
  *
  * in: BOTH Gifts ADonationCanBeCompleted
  *     BOTH Gifts ARecurringDonationCanBeCompleted
+ *     MAKE Risk Setup
  *     TEST Sharing InflationAdjustmentsAreDistributed
  */
 function gifts($gifts) {return t\gifts($gifts);}
@@ -398,7 +407,8 @@ function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
 /**
  * invites: (ARG)
  *
- * in: MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
+ * in: MAKE Risk Setup
+ *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
  *     MAKE Tickle ANonmemberHasAcceptedTheInvitation
  *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
  */
@@ -421,3 +431,18 @@ function itsTimeFor($what) {
   global $testOnly, $timeFor;
   return $testOnly ? $timeFor[$what] : ($timeFor[$what] = TRUE);
 }
+
+/**
+ * proxies: (ARG)
+ *
+ * in: MAKE Risk Setup
+ *     MAKE Trust Setup
+ */
+function proxies($list) {return t\proxies($list);}
+/**
+ * member field values: (ARG)
+ *
+ * in: MAKE Risk Setup
+ */
+function memberFieldValues($list) {return t\memberFieldValues($list);}
+

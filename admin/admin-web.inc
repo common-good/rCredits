@@ -86,7 +86,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     $legalName = textField(t('Legal Name:'), '', required($a->legalName));    
     $rTrader = $a->ctty
     ? boolField(t('Ctty Up?'), '', $a->ok + 0)
-    : boolField(t('rTrader?'), t('Is this account approved to use rCredits? (member, <a href="' . $base_url . '/account/photo">good photo</a>, ss# checks out)'), $a->ok + 0);
+    : boolField(t('rTrader?'), t('Is this account approved to use rCredits? (member, <a href="' . $base_url . '/account/photo">good photo</a>, ss# checks out, set cashCo/moves/mediaConx/shady[no SSN history OR ungooglable co]/mismatch/fishy)'), $a->ok + 0);
     if (!$a->ok and !$a->co) {
       if ($a->member) $ssnCheck = item(a\ssnCheck($a));
       if ($helper = $a->helper ?: (db\lookup('inviter', 'r_invites', 'invitee=:myid', u\ray('myid', $uid)) ?: '')) {
@@ -95,7 +95,7 @@ function adminSummary($a, $cAdmin = FALSE) {
       }
       $helper = textField(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper) + autocomplete());
     }
-
+/*
     $bits = u\ray(B_ADMINABLE . ($admin ? ' admin' : ''));
     $adminableDefaults = array();
     foreach ($bits as $bitName) {
@@ -105,6 +105,15 @@ function adminSummary($a, $cAdmin = FALSE) {
       if ($a->hasBit($bit)) $adminableDefaults[] = $bitName;
     }
     $adminable2 = boxesField('adminable', t('Other bits:'), '', $adminableDefaults, $adminables);
+  */
+
+    if (!$a->co) {
+      $moves = textField(t('Moves:'), t('How many times has this person moved in the past decade?'), dft($a->moves));
+      $mediaConx = textField(t('Media Conx:'), t('How many 1st or 2nd-degree connections do you have with this person on FaceBook or LinkedIn?'), dft($a->mediaConx));
+    }
+    $risks = bitsField('risks0', t('Risks:'), $a->risks, 'k', K_ACCT_RISKS);
+    $adminable = bitsField('misc', t('Other bits:'), $a->flags, 'b', B_ADMINABLE . ($admin ? ' admin' : ''), $a->ctty ? array('member' => t('cttyActive')) : NULL);
+    
     $who = textField(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
     $notes = formField('textarea', t('Notes:'), '', dft($a->notes));
     $submit = submit(t('Go'));    
@@ -113,7 +122,7 @@ function adminSummary($a, $cAdmin = FALSE) {
   $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
   $uid = hidField($uid);
 
-  return compact(u\ray('legalName donations date steps dwInfo relations floor ssnCheck adminable2 rTrader helper notes count submit back uid'));
+  return compact(u\ray('legalName donations date steps dwInfo relations floor ssnCheck risks adminable rTrader helper notes count submit back uid'));
 }
 
 function showCardCode($a) {

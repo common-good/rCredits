@@ -21,6 +21,7 @@ define('MIN_SECS', 60);
 define('HOUR_SECS', 60 * MIN_SECS);
 define('DAY_SECS', 24 * HOUR_SECS);
 define('WEEK_SECS', 7 * DAY_SECS);
+define('WEEK7_SECS', 52 * DAY_SECS);
 define('MONTH_DAYS', 30.4368);
 define('YEAR_SECS', 12 * MONTH_DAYS * DAY_SECS);
 define('US_COUNTRY_ID', 1228); // United States
@@ -41,7 +42,7 @@ define('US', '<span class="us">us</span>');
 define('R_VERSION', '1.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
 define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData'); // personal identifying information
@@ -229,6 +230,30 @@ define('B_CTTYACTIVE', 123); // account's community is approved to operate
 define('B_CTTYUP', 124); // account's community is operating
 define('B_SHOW_ALL', 999); // special signal to acct::can() to return all permissions
 $GLOBALS['permissions'] = 'related read sell buy manage - company charge - member partner steward - rtrader - - managing_ctty cadmin - admin';
+
+// Canonic strings
+define('S_REFUND', t('refund'));
+define('S_USD_OUT', t('USD out'));
+define('S_USD_IN', t('USD in'));
+
+// Risk definitions (for accounts and transactions) -- suspiciousness for possible reporting to FinCEN
+define('K_DAY_THRESHOLD', 300); // how large an amount (from one payer to one payee) is suspicious in one day
+define('K_WEEK_THRESHOLD', 600); // how large an amount is suspicious in one week
+define('K_7WEEK_THRESHOLD', 1200); // how large an amount is suspicious in one 52-day period
+define('K_YEAR_THRESHOLD', 2400); // how large an amount is suspicious in one year
+define('K_RED', 100); // lowest score to flag for investigation
+define('K_GREEN', -999); // maximum score for an account to be unquestionably beyond reproach
+define('K_LINES', 20); // number of lines to show for each type of each potentially risky record (acct or tx)
+define('K_MISER_DONATION', 5); // minimum donation to not be a miser
+define('K_MISER_SHARE', 25); // minimum sharing percentage, to not be a miser
+
+// names and weights of account and transaction risks (and, for negative weights, assurance)
+// weight is the number of such risks that together would make the account or transaction suspicious
+// a weight of "X" means the risk is named but does not contribute to the total risk score
+define('K_ACCT_RISKS', 'trusted:-4,socialConx:-3,hasBank:-3,geography:4,cashCo:2,new:2,moves:1,rents:10,badConx:3,homeCo:20,shady:3,miser:5,photoMismatch:1,addrMismatch:5,ssnMismatch:1,poBox:5,activity:1,fishy:2');
+define('K_RENTS', 4);
+
+define('K_TX_RISKS', 'UNDONE:0,cashin:5,cashout:2,b2p:1,p2p:2,inhouse:2,bySuspect:3,toSuspect:3,absent:2,invoiceless:2,big:3,often:3,offline:10,firstOffline:3,origins:1,suspectOut:XXX'); // names of transaction risks
 
 define('FLOW_NONE', 0); // which way can credit flow, with another account
 define('FLOW_TO', 1);
@@ -1962,4 +1987,4 @@ function denyInv($nvid) {return db\setData('r_invoices', $nvid, u\ray('denied', 
 function stepsDone0() {return array_fill_keys(u\ray(R_STEPS), FALSE);}
 function isReward($type) {return in_array($type, u\ray(TX_REWARDS));}
 //function usdin($for) {return u\abbreviates('usd in (', strtolower(is_array($for) ? $for[1] : $for));}
-function usdin($for) {return u\abbreviates('usd in', strtolower(is_array($for) ? $for[1] : $for));}
+function usdin($for) {return u\abbreviates(S_USD_IN, strtolower(is_array($for) ? $for[1] : $for));}

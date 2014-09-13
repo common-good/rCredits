@@ -92,6 +92,10 @@ function rweb_menu() {
     'get' => menuNorm(t('Bank'), 'Get', 'manage bank ok'),
     'directory' => menuNorm(t('Find Co'), 'Directory', 'sell'),
     'community' => menuNorm(t('Community'), 'Reports 1', 'anyone'),
+    'community/graphs' => menuLocal(t('Graphs'), '*Reports 1', 'anyone'),
+    'community/flags' => menuLocal(t('Flags'), 'Flags 1', 'anyone'),
+    'community/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
+    
     'invite' => menuNorm(t('Invite'), 'Invite', 'anyone'),
     'signout' => menuNorm(t('Sign out'), '', 'anyone', 'signout'),
 

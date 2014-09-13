@@ -270,10 +270,11 @@ function fieldSet($id, $flds, $prompt = '') {return formField('fieldset', $promp
  * @param string $title: field label
  * @param string $description: helpful description of field
  * @param mixed $dft: the default value (TRUE or FALSE) or an assoc of attributes
+ * @param array $labels: labels for the two choices (defaults to [No, Yes])
  */
-function boolField($title = '', $description = '', $dft = NULL) {
+function boolField($title = '', $description = '', $dft = NULL, $labels = NULL) {
   $class = array('yesno');
-  return formField('radios', $title, $description, (is_array($dft) ? $dft : required(@$dft ?: 0)) + attrib(compact('class')), array(t('No'), t('Yes')));
+  return formField('radios', $title, $description, (is_array($dft) ? $dft : required(@$dft ?: 0)) + attrib(compact('class')), @$labels ?: array(t('No'), t('Yes')));
 }
 
 /*
@@ -304,6 +305,28 @@ $boxes
 <div class="description">$desc</div>
 EOF
   );
+}
+
+/**
+ * Return a set of checkboxes representing bits in a bit array.
+ * @param string $fieldName: internal name of field   
+ * @param string $label: short prompt for the set of boxes
+ * @param int $bitRay: the bit array (current value)
+ * @param string $prefix: prefix for defined constants for this bit array field
+ * @param string $bits: string array (space or comma-delimited) of names of bits to include (without prefixes)
+ * @param assoc $aliases: map of bit names to their aliases to display
+ */
+function bitsField($fieldName, $label, $bitRay, $prefix, $bits, $aliases = array()) {
+  $bits = u\ray($bits);
+  if (!is_numeric(key($bits))) $bits = array_keys($bits); // ignore values (eg weights for risk arrays)
+  $defaults = array();
+  foreach ($bits as $bitName) {
+    $bit = u\consta($prefix, $bitName);
+    if (@$aliases) $bitName = strtr($bitName, $aliases);
+    $bitNames[$bit] = $bitName;
+    if (u\getBit($bitRay, $bit)) $defaults[] = $bitName;
+  }
+  return boxesField($fieldName, $label, '', $defaults, $bitNames);
 }
 
 /**
@@ -829,7 +852,7 @@ function nameAndEmail($what, $fullName = '') {
  */
 function contactFields($defaults = array()) {
   $country = $state = ''; // make sure these are not NULL
-  $fields = 'phone dupOk faxetc country postalCode address city state postalAddr'; // had verifyBy
+  $fields = 'phone dupOk faxetc country postalCode address city state tenure owns postalAddr'; // had verifyBy
   $mya = r\acct();
   extract($defaults ?: ($mya ? (array) $mya->account($fields) : array()));
 //  $dupPhone = @$defaults['dupPhone'];
@@ -857,6 +880,8 @@ function contactFields($defaults = array()) {
   $address = textField(t('Street Address:'), t('Where is your building located (physical address)?'), required(@$address) + $addressAttrib);
   $city = textField(t('City:'), t(''), required(@$city) + $cityAttrib);
   $state = formField('select', t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
+  if (!$mya) $tenure = textField(t('How long:'), t('About how many MONTHS have you lived at this address?'), $mya ? NULL : required());
+  $owns = boolField('', '', $mya ? dft(!$mya->risk(K_RENTS)) : NULL, array(t('Rent'), t('Own')));
   $postalAddr = textField(t('Postal Address:'), t('Where does the post office send your mail (usually)?'), required(@$postalAddr));
 
   return compact(u\ray($fields));

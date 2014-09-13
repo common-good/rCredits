@@ -456,7 +456,7 @@ class DwollaRestClient {
    * @return array Funding Sources
    */
   public function fundingSources() {
-      $response = $this->get('fundingsources');
+      $response = $this->get('fundingsources/');
       return $this->parse($response);
   }
 

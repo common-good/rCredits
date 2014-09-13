@@ -51,8 +51,9 @@ function setupBasicAccounts() {
   $cgf->newRelation($wws->id, r\perm(B_MANAGE));
   
   $a1 = r\acct(1); // set up system admin record (uid=1)
-  foreach (array(B_ADMIN, B_CO) as $bit) $a1->setBit($bit, TRUE, FALSE);
-  $a1->update(compact(u\ray('fullName', t('System Administrator'))));
+  $flags = $a1->flags;
+  foreach (array(B_ADMIN, B_CO) as $bit) u\setBit($flags, $bit);
+  $a1->update('fullName flags', t('System Administrator'), $flags);
 }
 
 /**
@@ -152,6 +153,7 @@ function usdAccts($where = "postalCode LIKE '013%'") {
   }
   return showRecords($lines);
 }*/
+define('ID_KEYS', 'id uid t.uid myid payer payee main other inviter invitee proxy person owner defaultAgent');
 
 function showRecords($ray) {
   $cgfLen = strlen(r\cgfId());
@@ -160,11 +162,11 @@ function showRecords($ray) {
   foreach ($ray as $row) {
     $line = '';
     foreach ($row as $key => $value) {
-      if ($value and in_array($key, u\ray('id uid t.uid myid payer payee main other inviter invitee proxy person owner defaultAgent')) and strlen($value) >= $cgfLen) {
+      if ($value and in_array($key, u\ray(ID_KEYS)) and strlen($value) >= $cgfLen) {
         if ($a = r\acct($value)) $value = $a->name; else $value .= t(' (missing)'); // eg, when uid is changed
       } // member ID. Don't include agent/payerAgent/etc. here
       if ($value and $key == 'channel') $value = u\rayv(u\ray(TX_CHANNELS), $value);
-      if ($key == 'reid') $value = u\n2a($value, -3);
+      if ($key == 'reid') $value = str_replace(R_MEMBER_MARK, R_AGENT_MARK, r\quid($value));
       if ($value and in_array($key, u\ray(R_DATE_FIELDS))) $value = '<div style="line-height:65%;">' . strftime('%d%b', $value) . '<span style="font-size:50%;">\'' . strftime('%y', $value) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $value) . '</span></div>';
 //      if ($key == 'flags') $value = "<div style='text-transform:capitalize; font-size:7px; line-height:11px;'>" . bs($value) . '</div>';
       if ($key == 'flags') $value = "<div style='text-transform:none; font-size:7px; line-height:11px;'>" . bs($value) . '</div>';
@@ -344,7 +346,7 @@ function makeTestCards() {
   $a = a('aab');
   $selling = "groceries\ngifts\nsundries\ndeli\nbaked goods";
   $a->update(u\ray('fullName selling', 'Corner Store', $selling));
-//  $a->setCoBit(CO_REQUIRE_CASHIER, FALSE);
+//  $a->setBitx(CO_REQUIRE_CASHIER, FALSE, 'coFlags');
 
   $a = a('aaa');
   $a->update(u\ray('fullName', 'Bob Bossman'));
@@ -356,7 +358,7 @@ function makeTestCards() {
   
   $a = a('aaq');
   $a->update(u\ray('fullName', 'Helga\'s Hardware'));
-//  $a->setCoBit(CO_REQUIRE_CASHIER, TRUE);
+//  $a->setBitx(CO_REQUIRE_CASHIER, TRUE, 'coFlags');
   
   $a = a('aak');
   $a->update(u\ray('fullName', 'Curt Customer'));

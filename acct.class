@@ -51,9 +51,10 @@ class acct {
    * @param assoc $info: array of field values for new account
    */
   private function createNew($info) {
-    $fields = 'phone number mail pass fullName legalName name flags rebate country state postalCode created login access uid community'; // used to include secure
-    if (t\est()) $fields .= ' usdAccount';
-    extract(u\just($fields, $info));
+    //$fields = 'phone number mail pass fullName legalName name flags rebate country state postalCode created login access uid community'; // used to include secure
+    //if (t\est()) $fields .= ' usdAccount';
+//    extract(u\just($fields, $info));
+    extract($info);
     u\setDft($phone, @$number);
     if ($phone) $phone = u\fmtPhone($phone, '+n');
     
@@ -139,8 +140,11 @@ class acct {
   /**
    * Read in the account record, if we haven't yet.
    * This function should be called before any reference to self::$records[$this->id] (except in contructor).
+   * @param bool $force: reread even if we already have an account record
    */
-  public function reread() {if (!@self::$records[$this->id]) self::getRecord($this->id, TRUE);}
+  public function reread($force = FALSE) {
+    if (!@self::$records[$this->id] or $force) self::getRecord($this->id, TRUE);
+  }
   
   /**
    * Return the value of the specified field that is not a simple property of the acct class.
@@ -160,17 +164,20 @@ class acct {
     if ($field == 'qid') return $this->proSe ? $this->mainQid : r\quid($this->id, $this->agentId);
     if ($field == 'ctty') return ($this->id < 0);
     if ($field == 'region') return r\uidRegion($this->id);
+    if ($field == 'owns') return !$this->risk(K_RENTS);
 
     if (in_array($field, u\ray(R_SECRET_FIELDS))) $this->getHidden();
     $result = @self::$records[$this->id]->$field; // returns NULL if field not set
 
     if ($field == 'data') return @$result ? unserialize($result) : array();
-    if ($field == 'secure') return @$result ? unserialize(u\ezdecrypt($result, R_WORD)) : array();
     if ($field == 'usdAccount') return @$result ? u\ezdecrypt(hex2bin($result), R_WORD) : NULL;
     if ($field == 'language') {
       $language = $result;
       return \user_preferred_language((object) compact('language'));
     }
+    if ($field == 'secure') return @$result ? unserialize(u\ezdecrypt($result, R_WORD)) : array();
+    if (in_array($field, u\ray(R_SECURE_FIELDS))) return $this->secure[$field];
+
     return $result;
   }
   
@@ -243,6 +250,9 @@ class acct {
     if (isset($info['secure'])) { // serialize and encrypt before updating this
       $usdArray = $info['secure']; // was " + ($this->secure ?: array())"
       $info['secure'] = u\ezencrypt(serialize($usdArray), R_WORD);
+    } elseif ($secureFields = u\just(R_SECURE_FIELDS, $info)) {
+      $info['secure'] = u\ezencrypt(serialize($secureFields + $this->secure), R_WORD);
+      foreach ($secureFields as $k => $zot) unset($info[$k]);
     }
     if (@$info['usdAccount']) $info['usdAccount'] = bin2hex(u\ezencrypt($info['usdAccount'], R_WORD));
     if (isset($info['pass'])) $info['pass'] = r\passHash($info['pass']);
@@ -261,7 +271,7 @@ class acct {
       $key = offsiteData(@$this->offsite, $this->account(R_SECRET_FIELDS));
       if ($key and is_numeric($key)) $info['offsite'] = $key; else return FALSE; // if attempt to store fails, save nothing
     }
-    u\setDft($info['flags'], $this->flags); // accommodate setBit caching flags to be set/unset
+//NO    u\setDft($info['flags'], $this->flags); // accommodate setBit caching flags to be set/unset
 
     $info['uid'] = $this->id; // make sure dbUpdate gets this
     foreach (u\ray(R_SECRET_FIELDS . ' ' . R_DATA_FIELDS) as $field) unset($info[$field]); // don't pass these to dbUpdate
@@ -326,9 +336,10 @@ class acct {
    * Set the bit in the flags field to the given value.
    * @param int $bit: number of bit to set (0 - 31)
    * @param bool $on: whether to set it ON or OFF
-   * @param boot $now: whether to write to the database (DEFAULT TRUE) or just to the cache (awaiting write)
+   * NO @param boot $now: whether to write to the database (DEFAULT TRUE) or just to the cache (awaiting write)
    */
-  public function setBit($bit, $on = TRUE, $now = TRUE) {
+  public function setBit($bit, $on = TRUE) {return $this->setBitx($bit, $on, 'flags');}
+  /*
     $this->reread();
 // gets caught anyway    u\EXPECT(compact('int', 'on'), 'int bool');
     u\EXPECT($bit <= B_MAX, 'setting too big a bit');
@@ -337,7 +348,7 @@ class acct {
     self::$records[$this->id]->flags = $flags;
     $this->refreshCan();
     return $now ? $this->update(compact('flags')) : TRUE;
-  }
+  }*/
   
   public function refreshCan() {
     self::$perms[$this->id] = NULL; // force redo in can()
@@ -731,27 +742,22 @@ EOF;
       r\tellStaff(t('Outgoing ACH Request'), compact('bankName route fullName account amount'));
     }
   }
-    
-  /**
-   * Say whether this company account has the bit.
-   * @param int $bit: the bit in question (return all, if omitted)
-   * @return TRUE if the bit is there, else FALSE (or an integer bit collection if no param)
-   */
-  public function coCan($bit = NULL) {
-    return is_null($bit) ? $this->coFlags : (bool) ($this->coFlags & u\bit($bit));
-  }
   
   /**
-   * Set the bit in the company field (coFlags) to the given value.
+   * Set the bit in the given integer bit collection field to the given value.
    * @param int $bit: number of bit to set (0 - 31)
    * @param bool $on: whether to set it ON or OFF
-   * @param boot $now: whether to write to the database (DEFAULT TRUE) or just to the cache (awaiting write)
    */
-  public function setCoBit($bit, $on = TRUE) {
-    $bit = u\bit($bit0 = $bit);
-    $coFlags = $on ? ($this->coFlags | $bit) : ($this->coFlags & ~$bit);
-    $this->update(compact('coFlags'));
+  public function setBitx($bit, $on = TRUE, $field = 'flags') {
+    $n = $this->$field;
+    u\setBit($n, $bit, $on);
+    $this->update($field, $n);
   }
+  
+  public function risk($bit) {return u\getbit($this->risks, $bit);}
+  public function setRisk($bit, $on = TRUE) {$this->setBitx($bit, $on, 'risks');}
+  public function coCan($bit = NULL) {return u\getbit($this->coFlags, $bit);}
+  public function setCoBit($bit, $on = TRUE) {$this->setBitx($bit, $on, 'coFlags');}
   
   public function setCoCans($can) {
     $coFlags = $this->coFlags;
@@ -761,22 +767,30 @@ EOF;
     }
     $this->update(compact('coFlags'));
   }
+
+  /**
+   * Set all account risk bits at once (called from formSummary for community admins)
+   * @param array $values: numeric array of bit values (eg [3 => 3, 5 => 5])
+   */
+  public function setRisks($values) {
+    $risks = 0;
+    foreach ($values as $bit) u\setBit($risks, $bit);
+    $this->update(compact('risks'));
+  }
   
   /**
-   * Set all appropriate bits in the flags or coFlags field.
-   * (called in form _submit functions)
-   * @param string $bits: comma-delimited list of bit names (lowercase)
-   * @param array $values: simple array of bit values
-   * @param string $prefix: 'co' (for coFlags bits) or 'b' (for flags bits)
-   * (NO LONGER USED for 'co', but check)
+   * Set all appropriate bits in the flags field (called from formSummary for community admins)
+   * @param array $values: numeric array of bit values (eg [3 => 3, 5 => 5])
    */
-  public function setBits($bits, $values, $prefix) {
-    foreach (u\ray($bits) as $bitName) {
-      if (substr($bitName, 0, 1) == 'u') continue; // undefined
-      $bit = u\consta($prefix, $bitName);
-      $value = isset($values[$bit]); // isset because bit 0 is 0 when checked
-      if ($prefix == 'co') $this->setCoBit($bit, $value); else $this->setBit($bit, $value, FALSE);
-    }	  
+  public function setBits($values) {
+    $flags = $this->flags;
+    foreach (u\ray(B_ADMINABLE) as $bitName) { // set all these on or off
+//      if (substr($bitName, 0, 1) == 'u') continue; // lowercase u means undefined
+      $bit = u\consta('b', $bitName);
+      $on = isset($values[$bit]); // isset because bit 0 is 0 when checked
+      u\setBit($flags, $bit, $on);
+    }
+    $this->update(compact('flags'));
   }  
 
   /**

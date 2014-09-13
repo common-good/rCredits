@@ -290,8 +290,9 @@ form.rweb  .form-no {color:red;}
 
 #rcreditswebformsummary  .form-checkboxes {margin-left:8em;}
 #rcreditswebformsummary  .form-type-checkbox {max-width:110px;}
-#rcreditswebformsummary #edit-adminable {margin-top:-24px;}
-#rcreditswebformsummary  label[for="edit-adminable"] {display:inline-block;}
+#rcreditswebformsummary #edit-risks0, #rcreditswebformsummary #edit-misc {margin-top:-24px;}
+#rcreditswebformsummary  label[for="edit-risks0"],
+#rcreditswebformsummary  label[for="edit-misc"] {display:inline-block;}
 #rcreditswebformsummary #edit-returnmo,
 #rcreditswebformsummary #edit-cttybenemo {margin-bottom:0;}
 

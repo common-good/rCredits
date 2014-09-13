@@ -3,6 +3,8 @@
  * @file
  * Functions to run periodically.
  
+ f('cr.zot', arg1,...);
+ 
  * = written
  ** = tested
  
@@ -58,7 +60,7 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/../usd.class';
 
-define('R_DAILY_TASKS', 'START usdTxsThere recache checkAccts acctStats cttyStats tickle lessOften gifts homogenize pool bank notices END');
+define('R_DAILY_TASKS', 'START usdTxsThere recache checkAccts acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts homogenize pool bank notices END');
 //define ('R_DAILY_TASKS', 'START redistribute END');
 
 /**
@@ -461,10 +463,203 @@ function cttyStats1($item) {
 }
 
 /**
+ * Calculate how much each member is trusted by the others.
+ * Use risk field as temp since it gets reset later each night
+ */
+function trust() {
+  db\q('UPDATE users SET trust=1');
+  $sql = <<<EOF
+    UPDATE users u 
+    INNER JOIN
+      (SELECT proxy AS uid,SUM(straw) AS bale
+       FROM 
+         (SELECT proxy,up.trust/p.priority AS straw
+          FROM r_proxies p 
+          LEFT JOIN users up ON up.uid=p.person) s
+       GROUP BY proxy) b
+    ON b.uid=u.uid
+    SET u.risk=u.trust+:weight*b.bale WHERE NOT :IS_CO
+EOF;
+  for ($i = 0, $weight = 1; $i < 30; $i++, $weight /= 2) {
+    db\q($sql, compact('weight'));
+    db\q('UPDATE users SET trust=risk');
+  }
+  if (t\est()) db\q('UPDATE users SET trust=ROUND(trust, 2)'); // make the results easily testable
+}
+
+/**
+ * Calculate risks of financial misbehavior for each account.
+ * Do companies first, so their risk can be used to help assess individual risk.
+ * Do the whole thing twice, to take into account relations with suspicious individuals.
+ */
+function acctRisk() {
+  for ($i=0; $i<2; $i++) { // do it twice
+    queueEach('acctRisk1', 'SELECT uid FROM users WHERE uid>1 and :IS_OK ORDER BY :IS_CO DESC');
+  }
+  queueNextAfter('acctRisk');
+}
+
+function acctRisk1($item) {
+  global $_risk; $_risk = '';
+  
+  extract($item);
+  $a = r\acct($uid);
+  global $_qid; $_qid = $a->mainQid;
+///  if ($a->mainQid != 'NEW.ZZA') return; // debug(
+  $idSub = u\ray('id', $a->id);
+  if ($a->community <> r\serverUid()) setRisk('geography'); // HIDTA (Washtenaw cty, MI)
+  // criminal
+  debug($a->risk(4));
+  setRisk('cashCo', $a); // high-risk company type according to regs
+  $tenure = $a->tenure / 12 + (time() - $a->created) / YEAR_SECS; // years of residence ($a->tenure is in months)
+  setRisk('new', 1 / $tenure, $tenure < 1);
+  setRisk('moves', $a->moves, $a->moves > 0); // moves over past decade
+  setRisk('rents', $a);
+  
+  $trusted = $a->trust; // how well trusted (trust is always >=1)
+  $invitedMe = '(SELECT 1 FROM r_invites i WHERE i.inviter=u.uid AND (i.invitee=:id OR i.email=:email))';
+  $inviteTrust = db\lookup('SUM(trust)', 'users u', $invitedMe, u\ray('id email', $a->id, $a->mail));
+  $trusted += $inviteTrust; // invited by trusted people
+  $relations = db\lookup('COUNT(*)', 'r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND NOT r.isOwner AND r.other=:id AND u.risk<:K_GREEN', $idSub);
+  $trusted += $relations; // access to (trusted by) non-suspect businesses
+  setRisk('trusted', $trusted, $trusted > 1.5);
+  
+  $iInvited = '(SELECT 1 FROM r_invites i WHERE (i.invitee=u.uid OR i.email=u.mail) AND i.inviter=:id)';
+  $badConx = db\lookup('COUNT(*)', 'users u', "$iInvited AND u.risk>=:K_RED", $idSub);
+  $relations = db\lookup('COUNT(*)', 'r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND r.other=:id AND u.risk>=:K_RED', $idSub);
+  $badConx += $relations; // access to (trusted by) suspect businesses
+  setRisk('badConx', $badConx, 'ifany'); // invited suspicious accounts
+//  $con += $inviteTrust / 3; 
+
+  setRisk('socialConx', $a->mediaConx, 'ifany'); // 1st or 2nd-degree social media connections to administrator
+
+  if ($a->co and db\lookup('CONCAT(address,postalCode)', 'users', 'uid<>:id', $idSub) == ($a->address . $a->postalCode)) setRisk('homeCo'); // company shares physical address
+  setRisk('shady', $a); // no substantial internet search results and/or no SSN history
+  if ($a->can(B_BANK)) setRisk('hasBank'); // has a connected bank account
+  if (db\lookup('SUM(amount*IF(often=1,1,12))', 'r_gifts', 'share>=0 AND uid=:id', $idSub) < K_MISER_DONATION and $a->share < K_MISER_SHARE) setRisk('miser'); // unusually small donation to CGF
+  
+  setRisk('photoMismatch', $a); // photo mismatches ID or DOB
+  setRisk('addrMismatch', $a); // addr mismatches ID
+  if (strpos($a->postalAddr, $a->address) === FALSE or strpos($a->postalAddr, 'box') !== FALSE) setRisk('poBox'); // separate postal address
+  setRisk('ssnMismatch', $a); // weird SSN history
+    // activity
+  setRisk('fishy', $a); // something else fishy
+  
+  extract(setRisk());
+  $risk *= K_RED; // normalize
+///  u\deb(compact('risk','risks'));
+  $a->update(compact('risk','risks'));
+}
+
+/**
+ * Calculate risks of financial misbehavior for each recent transaction.
+ * Include any substantial payments from the community (over $100).
+ */
+function txRisk() {
+  queueEach('txRisk1', 'SELECT * FROM r_txs WHERE risk IS NULL AND (payer>0 OR ABS(amount)>100) ORDER BY created');
+  queueNextAfter('txRisk');
+}
+
+function txRisk1($item) {
+  global $_risk; $_risk = '';
+
+  extract($item); // all tx fields
+  extract(u\just('force undoneBy', unserialize($data)));
+  list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
+  
+  if ($undoneBy) setRisk('UNDONE'); // tell admin not to worry about this tx, if it shows up as suspicious
+  if ($goods) {
+    if ($amount > 0 and $channel == TX_SMART and r\usdin($payeeFor)) {
+      setRisk('cashin');
+    } else {
+      setRisk('cashout');
+    }
+  }
+
+  if ($a1->co and !$a2->co and !r\isEmployee($payee, $payer)) setRisk('b2p'); // company payment to non-employee individual
+  if (!$a1->co and !$a2->co and $a1->postalAddr != $a2->postalAddr) setRisk('p2p'); // transaction between individuals at different postal addresses
+  if (r\owning($payer, $payee) or r\isEmployee($payer, $payee)) setRisk('inhouse'); // transaction with owner or family member or payment by employee
+  if ($a1->risk >= 1) setRisk('bySuspect'); // payment by suspicious account
+  if ($a2->risk >= 1) setRisk('toSuspect'); // payment to suspicious account
+  if ($channel == TX_WEB or $channel == TX_SMS) {
+    setRisk('absent'); // transaction by web or SMS (no in person)
+    if (strpos($payeeFor.$payerFor, '(inv#') === FALSE) setRisk('invoiceless'); // without an invoice
+  }
+
+  $since = time() - WEEK7_SECS; // just recent activity by customers, in case many are new
+  $count = db\lookup('COUNT(*)', 'r_txs', 'payer=:payer AND payee=:payee AND created>:since', compact('payer', 'payee', 'since'));
+  extract(db\lookup('AVG(ABS(amount)) AS avgAmt, COUNT(*) AS avgCnt', 'r_txs', 'payee=:payee AND created>:since GROUP BY payer', compact('payee', 'since'))); // average amount and number of purchases per customer
+  if (abs($amount) > $avgAmt) setRisk('big', $amount / $avgAmt); // unusually big for this payee
+  if ($count > $avgCnt) setRisk('often', $count / $avgCnt); // unusually frequent for this payee
+  if ($force) { // offline
+    setRisk('offline');
+    if (!db\exists('r_txs', 'payer=:payer AND payee=:payee AND xid<>:xid', compact('payer', 'payee', 'xid'))) setRisk('firstOffline'); // offline for first payment to this company
+  }
+  
+  $since = time() - YEAR_SECS;
+  $table = 'SELECT payee,risk,created FROM r_txs UNION SELECT uid AS payee,risk,created FROM r_usd';
+  $avgRisk = db\lookup('AVG(risk)', $table, 'payee=:payer AND created BETWEEN :since AND :created', compact('since', 'created'));
+  if ($avgRisk > 0) setRisk('origins', $avgRisk, $avgRisk > 1/10); // risk of money's origins
+
+  extract(setRisk());
+  $risk *= abs($amount) / K_DAY_THRESHOLD;
+  db\update('r_txs', compact('xid', 'risk', 'risks'), 'xid');
+}
+
+ /*
+function setRisk($weight = NULL, $bit = NULL) {
+  global $_risk, $_risks; // use _ to distinguish from extracted risk and risks fields (not needed, but clearer)
+  log(compact('weight','bit','_risk','_risks'));
+  if (is_null($weight)) return u\ray('risk risks', $_risk, $_risks);
+  
+  if (!isset($_risk)) $_risk = $_risks = 0;
+  if (abs($weight) > 1 / 1000000000) $_risk += 1 / $weight;
+  if (!is_null($bit)) u\setBit($_risks, $bit);
+}*/
+
+/**
+ * Update the risk variables.
+ * call by:
+ *   setrisk(bitName, multiplier, setBit); OR
+ *   setrisk(bitName, $a);
+ * @param string $bitName: what risk type -- allows lookup of risk weight and bit number. 
+ *   (if risk weight is non-numeric, it does not contribute to the risk score)
+ * @param float $multiplier: what to multiply inverted weight by, before adding to risk score
+ * @param bool $setBit: <set the named bit in $_risks> ("ifany" here means set the bit if $multiplier nonzero
+ * @param acct $a: add the standard risk score for this risk type, if the bit is already set in this acct
+ * @return assoc [risk, risks] if called with no params
+ */
+function setRisk($bitName = NULL, $multiplier = 1, $setBit = TRUE) {
+  global $_risk, $_risks; // use _ to distinguish from extracted risk and risks fields (not needed, but clearer)
+  global $_acctRisks, $_txRisks, $_acctRiskBits, $_txRiskBits;
+/// log("bitName=$bitName multiplier=$multiplier _risk=$_risk _risks=$_risks"); // debug()
+  if (is_null($bitName)) return u\ray('risk risks', $_risk, $_risks);
+  
+  if (@$_risk === '') {
+    $_risk = $_risks = 0;
+    $_acctRisks = u\ray(K_ACCT_RISKS);
+    $_txRisks = u\ray(K_TX_RISKS);
+    $_acctRiskBits = array_flip(array_keys($_acctRisks));
+    $_txRiskBits = array_flip(array_keys($_txRisks));
+  }
+  
+  if (is_numeric($bit = @$_acctRiskBits[$bitName])) {
+    $weight = $_acctRisks[$bitName];
+  } else {$bit = $_txRiskBits[$bitName]; $weight = $_txRisks[$bitName];}
+
+  if (is_object($a = $multiplier)) list ($multiplier, $setBit) = array($a->risk($bit) ? 1 : 0, 'ifany');
+  if ($setBit == 'ifany' ? ($multiplier != 0) : $setBit) u\setBit($_risks, $bit);
+  if (is_numeric($weight)) $_risk += $multiplier / $weight;
+
+  global $_qid;
+  debug(compact(u\ray('_qid bitName multiplier setBit bit weight _risk _risks')));
+}
+
+/**
  * Handle one-time and recurring gifts that it's time to handle.
  */
 function gifts() {
-  queueEach('gift1', "SELECT g.* FROM r_gifts g INNER JOIN users u ON u.uid=g.uid WHERE NOT completed and giftDate<=:REQUEST_TIME AND :IS_OK");
+  queueEach('gift1', 'SELECT g.* FROM r_gifts g INNER JOIN users u ON u.uid=g.uid WHERE NOT completed and giftDate<=:REQUEST_TIME AND :IS_OK');
   queueNextAfter('gifts');
 }
 
@@ -755,3 +950,4 @@ function achify() {
 function pad($s, $n) {return substr(str_pad($s, $n), 0, $n);}
 function lpad($s, $n) {return str_pad(substr($s, 0, $n), $n, '0', STR_PAD_LEFT);}
 function padnum($n, $len) {return lpad(str_replace('.', '', abs($n)), $len);}
+function log($msg) {file_put_contents('cron.log', print_r($msg, 1) . "\n" . @file_get_contents('cron.log'));}

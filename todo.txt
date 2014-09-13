@@ -22,26 +22,20 @@ Before growing fast:
 . after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
 
 TASKS FOR NEXT UPDATE:
-. backup DB
-. queries:
-  ALTER TABLE r_relations CHANGE reid reid BIGINT(20) AUTO_INCREMENT;
-  ALTER TABLE r_relations CHANGE employerOk employee TINYINT(4);
-  ALTER TABLE r_relations DROP employeeOk;
-  ALTER TABLE r_relations DROP amount;
-  ALTER TABLE users DROP maximum;
-. run utils:
-  include_once __DIR__ . '/../rcredits/admin/admin.inc';
-  f('a.moveFieldTo', 'question', 'secure');
-. *** REINSTALL ***
-. run utils:
-  include_once __DIR__ . '/../rcredits/admin/admin.inc';
-  f('a.moveFieldFrom', 'helper', 'data');
-  f('a.eachAcct'); // to shrink photos into new photo field
-  f('a.fixRelations'); // to relocate relations record IDs to the appropriate number space for their region
-. RENAME photos/small directory (then DELETE)
-. add a "Creative Thought" account.
+. DELETE photos/small directory
+. REINSTALL
 (no other special tasks yet)
 
+. make account selection give first letters and submenus, for admin (as well as full qid and/or choose ctty first)
+. change "I don't have a bank" to "no bank" on paper signup
+. limit Fibonacci to 8 (just keep repeating every 8 days thereafter)
+. show quarterly/monthly etc. for gift on summary!
+. create r_ach by transforming r_usd!
+. add share % to summary even when not activating
+. Real Pickles got an inappropriate cache mismatch (~"minimum is -500.00, should be 0")
+. simplify what happens when user selects an account from the dropdown (should be fast)
+. for business accounts, the how-to-sign-in email should mention signing in to PERSONAL acct and choosing the company from the dropdown in the upper right corner
+. ** creating company account fails (creates acct but goes to sign in with no message and fails to create relation)
 . in notices, when $ drawn from bank automatically, tell member how to adjust settings (maybe tell how every time?)
 . add "no connected bank account for now" to Bank Info page
 . no "verify" reminder if not can dw (eg Jenny Ladd account)
@@ -95,18 +89,14 @@ Also, a couple notes :
 . hidable advanced settings for Txs
 . remove invoicing code from be\transfer (but crash if called inappropriately)
 . leave erroneous export fields blank and don't leave a dangling "-" on zip
-. add "Ever" to period choices in formTxs
 . joint accounts: implement as a higher-level view of two or more accounts (for anyone who has read permission on those accounts?)
 . unset bits u10, u15, u19
 . explain tax options on 1099-B page
 . add "check online" to the ticklers
 . put memberInfo in Summary?
-. add legalName to input fields on Summary page for cAdmin
 . handle failed deposits/withdrawals (notify the member)
 . fix rSMS Transact and Undo tests
 . establish ways to prove we know who the member is (show photo, etc)
-. move question to secure
-. make sure there's a way to delete employees
 . LATER new company bit for sell cash (set it for GFM, test with CGF)
 . link on signup pages "Skip this step and return to Checklist"
 . graph improvements:

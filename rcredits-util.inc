@@ -515,7 +515,7 @@ function randomInt($len = NULL) {
 
 /**
  * Translate constant parameters in a string.
- * For example, "SELECT * FROM table WHERE zot IN (:R_THIS, :R_THAT)" fills in the constants.
+ * For example, SUBS("SELECT * FROM table WHERE zot IN (:R_THIS, :R_THAT)") fills in the constants.
  * Constants of the form "IS_WHATEVER" are a special case. They are taken to mean the corresponding
  *   bit number B_WHATEVER in a field called $flagField
  *   NOTE to developer: this could be expanded later to handle a second flag field named {$flagField}2
@@ -1121,11 +1121,15 @@ function caller($skip = 0) {
 }
 
 /**
- * Show what bits are set in the given integer (for debugging).
+ * Show what bits are set in the given integer.
+ * @param int $n: the integer bit array
+ * @param string $descs: string array of bit names (default: use bit numbers)
+ * @return: a list of the bits set n the integer
  */ 
-function bits($n) {
+function bits($n, $descs = '') {
   $res = '';
-  for($i = 0; $i < 33; $i++) if ($n & (1 << $i)) $res .= " $i";
+  if ($descs) $descs = u\ray($descs);
+  for($i = 0; $i < 33; $i++) if ($n & (1 << $i)) $res .= ' ' . ($descs ? $descs[$i] : $i);
   return $res;
 }
 
@@ -1154,6 +1158,17 @@ function nextBusDay($start = 0) {
   return (strftime('%u', REQUEST_TIME + $start) > 5 and !t\est()) ? t('Monday')
   : ($start == 0 ? t('today') : ($start == 1 ? t('tomorrow') : strftime('%A', REQUEST_TIME + $start)));
 }
+
+/**
+ * Return the value of the given bit.
+ * @param mixed $bit:
+ *   int - return the numeric value of that bit number (power of 2)
+ *   ray - return the array of bit numbers as an integer bit array (recursively)
+ */
+function bit($bit) {return is_array($bit) ? (bit(array_shift($bit)) | ($bit ? bit($bit) : 0)) : (1 << $bit);}
+
+function getBit($n, $bit = NULL) {return is_null($bit) ? $n : (bool) ($n & u\bit($bit));}
+function setBit(&$n, $bit, $on = TRUE) {return $n = $on ? ($n | u\bit($bit)) : ($n & ~u\bit($bit));}
 
 // Single line functions that need little or no explanation
 function nn($a, $else = '') {return is_null($a) ? $else : $a;}
@@ -1188,7 +1203,6 @@ function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('1%b%Y', $ti
 function prefix($prefix, &$var) {$var = $prefix . $var;}
 function preray($prefix, &$r0) {$r = $prefix + (array) $r0; $r0 = is_object($r0) ? (object) $r : $r;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
-function bit($bit) {return is_array($bit) ? (bit(array_shift($bit)) | ($bit ? bit($bit) : 0)) : (1 << $bit);}
 function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}
 function consta($prefix, $var) {return constant(strtoupper(str_replace(' ', '_', $prefix . "_$var")));}
 function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}

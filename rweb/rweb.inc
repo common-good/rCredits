@@ -823,14 +823,15 @@ function formSummary_submit($form, &$sta) {
   $DBTX = \db_transaction();
 
   if (!$a->ctty) {
-//    $a->setBit(B_CHARGE, @$canCharge, FALSE);
+//    $a->setBit(B_CHARGE, @$canCharge);
+    if ($rTrader and !$a->ok and !a\shrinkPhoto($a, $err)) return say($err, 'ERR');
     r\membershipEvent($a, 'ok', $rTrader); // activate the account
-    $helper = $helper->mainQid;
-    if (!a\shrinkPhoto($a, $err)) return say($err, 'ERR');
+    $helper = $helper->id;
   }
 
   $a->setBit(B_OK, $rTrader, TRUE);
-  $a->setBits(B_ADMINABLE, $adminable, 'b');
+  $a->setRisks($risks);
+  $a->setBits($adminable);
   $a->update(compact(u\ray('legalName floor notes helper')));
   
   unset($DBTX);
@@ -1714,7 +1715,7 @@ function formSignup_validate($form, &$sta) {
   }
   if (!$state) return say('bad state', 'state');
   if (!formBasic_validate($form, $sta, $acctType == R_PERSONAL)) return;
-
+  if ($err = u\badAmount($tenure, '>=0')) return say($err, u\ray('field', t('How-long')), 'tenure');
   if (!isset($mya->secure['pin']) and @$pin === '') return say('pin required', 'pin');
   if (@$pin and strlen($pin) != 4) return say('wrong pin len', 'pin');
   
@@ -1746,7 +1747,7 @@ function formSignup_validate($form, &$sta) {
 }
 
 function formSignup_submit($form, &$sta) {
-  $dbFields = 'fullName legalName mail community flags phone federalId dob pin country postalCode address city state postalAddr oneTimePass by wants calling signupCo signed'; // had verifyBy
+  $dbFields = 'fullName legalName mail community flags phone federalId dob pin country postalCode address city state postalAddr oneTimePass by wants calling signupCo signed tenure'; // had verifyBy
   extract(u\just('acctType args company ats ' . $dbFields, $sta['input']));
   if (op($sta) == 'continue') return r\go('signup/' . urldecode(u\urlArgs()) . '&dwok=1'); // got agreement, so continue
   if (!emailOkay($mail)) return; // I don't know how people create duplicate accounts, but maybe this will prevent it. Nope, apparently not. (ws 1/27/2014)
@@ -1780,6 +1781,7 @@ function formSignup_submit($form, &$sta) {
   setupGlobals($myid); // some rcredits functions need to know who we are
   
   invitation($code, $myid); // mark the invitation used
+  if (!$owns) $mya->setRisk(K_RENTS);
   
   if (@$signupCo) {
     suCompanyRelation($myid, $signupCo);
@@ -1859,13 +1861,16 @@ function formContact_validate($form, &$sta) {
 }
 
 function formContact_submit($form, &$sta) {
-  extract($info = u\just('fullName name mail phone faxetc country postalCode state city address postalAddr', $sta['input'])); // had verifyBy
+  extract($info = u\just('fullName name mail phone faxetc country postalCode state city address postalAddr owns', $sta['input'])); // had verifyBy
+  unset($info['owns']);
+  
   $mya = r\acct();
   if ($mya->id == 1) unset($info['name']); // don't change 'admin'
   
 //  if (isset($verifyBy)) $info['verifyBy'] =  verifyBy(@$verifyBy); // @ for testing
   $info = u\normalizeCase(u\just('fullName city address postalAddr', $info)) + $info;
 
+  $mya->setRisk('rents', !$owns);
   if ($mya->update($info)) {
 // (problematic if addPhone fails)  if (!$mya->ok) say('step completed');
     $mya->stepDone('contact', $info);
@@ -2148,7 +2153,7 @@ function formBank_submit($form, &$sta) {
   extract(u\just('routingNumber bankAccount bankAccountType deposit1 deposit2', $sta['input']));
   $op = op($sta);
   if ($op == 'submit') {
-    $mya->setBit('B_SAVINGS', (bool) $bankAccountType, FALSE);
+    $mya->setBit('B_SAVINGS', $bankAccountType); // must precede conversion to string
     $bankAccountType = $bankAccountType ? 'Savings' : 'Checking';
     if (@$mya->secure['auth'] and $us->step() == 'Finished') { // only if we have a Dwolla account (in case Dwolla's Reg API breaks again)
       if (!$us->addBank($bankAccount, @$routingNumber, $bankAccountType, $err)) {
@@ -2877,8 +2882,8 @@ function formCompany_validate($form, &$sta) {
   extract(u\just('selling', $sta['input']));
   $selling = explode("\n", $selling);
   foreach ($selling as $one) {
-    $one = trim(strtolower($one)); // don't allow empty or reserved values
-    if (!u\nonish($one) and !in_array($one, array('', 'refund', 'usd out')) and !r\usdin($one)) $new[] = $one;
+    $one = trim($one); // don't allow empty or reserved values
+    if (!u\nonish($one) and !in_array($one, array('', S_REFUND, S_USD_OUT)) and !r\usdin($one)) $new[] = strtolower($one);
   }
   if (!@$new) return say('missing field', u\ray('field', 'selling'), 'selling');
   $sta['input']['selling'] = join("\n", $new);
@@ -2894,7 +2899,7 @@ function formCompany_submit($form, &$sta) {
 
   $mya->setCoCans($can);
   //$mya->setBits(CO_CAN_BITS, $can, 'co');
-//  $mya->setCoBit(CO_REQUIRE_CASHIER, @$requireCashier);
+//  $mya->setBitx(CO_REQUIRE_CASHIER, @$requireCashier, 'coFlags');
   $mya->update($info = compact(u\ray('description website selling')));
   
   $DBTX = db_transaction();
@@ -3035,14 +3040,15 @@ function formOptions_submit($form, $sta) {
   extract($info = u\just('minimum achMin smsNotices notices statements payVirtual debtOk secretBal', $sta['input']));
 
 //  $mya->setBit(B_NOTIFY_EMAIL, $notifyBy & 1, FALSE);
-  $mya->setBit(B_NOTIFY_SMS, @$smsNotices, FALSE);
-  $mya->setBit(B_NOTICE_WEEKLY, $notices == 1, FALSE);
-  $mya->setBit(B_NOTICE_MONTHLY, $notices == 2, FALSE);
-  $mya->setBit(B_PAPER, @$statements, FALSE);
-  $mya->setBit(B_DEBT_OK, @$debtOk, FALSE);
-  $mya->setBit(B_SECRET_BAL, @$secretBal, FALSE);
+  $flags = $mya->flags;
+  u\setBit($flags, B_NOTIFY_SMS, @$smsNotices);
+  u\setBit($flags, B_NOTICE_WEEKLY, $notices == 1);
+  u\setBit($flags, B_NOTICE_MONTHLY, $notices == 2);
+  u\setBit($flags, B_PAPER, @$statements);
+  u\setBit($flags, B_DEBT_OK, @$debtOk);
+  u\setBit($flags, B_SECRET_BAL, @$secretBal);
   
-  $mya->update(compact(u\ray('minimum achMin'))); // flag bits get saved automatically
+  $mya->update(compact(u\ray('minimum achMin flags')));
   $mya->stepDone('prefs', $info);
   return $mya->ok ? say('options saved') : r\go('status', 'options saved|step completed');
 }
@@ -3071,6 +3077,97 @@ function formReports_validate($form, &$sta) {
 
 function formReports_submit($form, &$sta) {
   formTxs_submit($form, $sta, 'community');
+}
+
+/**
+ * Show accounts and recent transactions and ACHs that carry risk of fraud.
+ */
+function formFlags($form, &$sta) {
+  $mya = r\acct();
+  $MAXLINES = 20; // max number of lines to show in each section
+  $title = item(t('Suspicious Activity Report for ' . strftime('%A, %m/%d/%y')));
+  $subtext = item(tt(t('<p>Suspicious accounts, transactions, and ACHs are listed first. Only the top @MAXLINES are listed. System administrators will investigate any accounts or transactions with a suspiciousness score of @K_RED or more (shown in red).</p>'), compact('MAXLINES')));
+  
+  $txHeader = $acctHeader = $accts = $txs = $achs = '';
+  $headers = u\ray(t('Score Account Type Reasons'));
+  foreach ($headers as $v) $acctHeader .= "<th>$v</th>";
+  $acctHeader = "<tr>$acctHeader</tr>";
+
+  $headers = u\ray(t('Score Tx# Amount Description Reasons'));
+  foreach ($headers as $v) $txHeader .= "<th>$v</th>";
+  $txHeader = "<tr>$txHeader</tr>";
+
+  $where = $mya->admin ? 1 : ('community=' . $mya->community);
+  $q = db\q("SELECT uid,risk,risks,:IS_CO as co FROM users WHERE uid>1 AND :IS_OK AND $where ORDER BY risk DESC LIMIT :K_LINES");
+  
+  while ($row = riskRow($q, K_ACCT_RISKS)) {
+    extract($row);
+    $qid = r\quid($uid);
+    $type = $co ? t('Co') : t('Indiv');
+    $accts .= "<tr><td>$risk</td><td>$qid</td><td>$type</td><td>$risks</td></tr>\n";
+  }
+  
+  $q = db\q('SELECT xid,risk,risks,amount,payeeFor AS description FROM r_txs ORDER BY risk DESC LIMIT :K_LINES');
+  
+  while ($row = riskRow($q, K_TX_RISKS)) {
+    extract($row);
+    $amount = number_format(abs($amount), 2);
+    $txs .= "<tr><td>$risk</td><td>$xid</td><td>$amount</td><td>$description<td>$risks</td></tr>\n";
+  }
+  
+  $q = db\q('SELECT txid,risk,risks,amount FROM r_usd ORDER BY risk DESC LIMIT :K_LINES');
+  
+  while ($row = riskRow($q, K_TX_RISKS)) {
+    extract($row);
+    $way = $amount < 0 ? t('in') : t('out');
+    $amount = number_format(abs($amount), 2);
+    $achs .= "<tr><td>$risk</td><td>$txid</td><td>$amount</td><td>$way<td>$risks</td></tr>\n";
+  }
+  
+  $table = item(<<<EOF
+  <h3>ACCOUNTS</h3>
+  <table>
+  $acctHeader
+  $accts
+  </table>
+  <h3>TRANSACTIONS</h3>
+  <table>
+  $txHeader
+  $txs
+  </table>
+  <h3>ACHs</h3>
+  <table>
+  $txHeader
+  $achs
+  </table>
+EOF
+  );
+  return compact(u\ray('title subtext table'));
+}
+
+function riskRow($q, $descs) {
+  if (!$row = $q->fetchAssoc()) return FALSE;
+
+  global $riskQ, $riskCount; 
+  if ($q == @$riskQ) {
+    $riskCount++;
+    if ($riskCount > K_LINES) return FALSE;
+  } else {$riskQ = $q; $riskCount = 1;}
+  
+  $risk = round($row['risk']);
+  if ($risk >= K_RED) $risk = "<span style=\"color:red;\">$risk</span>";
+  if ($risk <= K_GREEN) $risk = "<span style=\"color:green;\">$risk</span>";
+  $row['risk'] = $risk;
+  
+  $type = key($row);
+  list ($id, $risks, $why) = array($row[$type], $row['risks'], '');
+  $descs = u\ray($descs);
+  foreach (array_keys($descs) AS $bit => $bitName) {
+    if ($descs[$bitName] < 0) $bitName = "<span style=\"color:green;\">$bitName</span>";
+    if (u\getBit($risks, $bit)) $why .= "<a href=\"$type-risk/id=$id&bit=$bit\">$bitName</a> ";
+  }
+  $row['risks'] = $why;
+  return $row;
 }
 
 /**

@@ -44,7 +44,7 @@ function doThing($info, $type) {
   global $testOnly;
   extract($info);
   if (@$id) $info['uid'] = t\uid($id); unset($info['id']);
-  foreach (u\ray('inviter invitee') as $one) if (@$$one) $info[$one] = t\uid($$one);
+  foreach (u\ray('inviter invitee person proxy') as $one) if (@$$one) $info[$one] = t\uid($$one) ?: 0;
   $table = 'r_' . strtolower($type) . 's';
   return $testOnly ? verifyRecord($table, $info) : db\insert($table, $info);
 }
@@ -52,6 +52,7 @@ function doThing($info, $type) {
 function invites($list) {return doRecords($list, 'Invite');}
 function gifts($list) {return doRecords($list, 'Gift');}
 function notices($list) {return doRecords($list, 'Notice');}
+function proxies($list) {return doRecords($list, 'Proxie');}
 function members($list) {return doRecords($list, 'Account');}
 function invoices($list) {return doRecords($list, 'Invoice');}
 function devices($list) {return doRecords($list, 'Boxe');}
@@ -109,27 +110,37 @@ function doAccount($info = array()) {
     $fixFields = 'rebate fullName legalName name pass mail secure community postalCode country cardCode cardCode2 ' . $moneyFields;
   } else $fixFields = '';
 
-  $flags0 = @$flags;
-  $flags = 0;
-  if (@$flags0) foreach (u\ray($flags0) as $one) $flags |= u\bit(u\consta('b', $one));
-  if (!$testOnly) {
-    if ($flags & u\bit(B_OK)) $flags |= u\bit(B_MEMBER);
-    if ($flags & u\bit(B_DW)) $flags |= u\bit(B_BANK);
+  if (isset($flags)) {
+    $flags0 = @$flags;
+    $flags = 0;
+    if (@$flags0) foreach (u\ray($flags0) as $one) $flags |= u\bit(u\consta('b', $one));
+    if (!$testOnly) {
+      if ($flags & u\bit(B_OK)) $flags |= u\bit(B_MEMBER);
+      if ($flags & u\bit(B_DW)) $flags |= u\bit(B_BANK);
+    }
+    
+    if (isset($acctType)) $flags |= (($acctType === R_PERSONAL or $acctType == 'personal') ? 0 : u\bit(B_CO)); // === required
+  }
+  print_r(compact('$risks','$risks0','flags'));
+  if (isset($risks)) {
+    $risks0 = $risks;
+    $bits = array_flip(array_keys(u\ray(K_ACCT_RISKS)));
+    $risks = 0;
+    if ($risks0) foreach (u\ray($risks0) as $bit) $risks |= $bits[$bit];
   }
   
-  if (isset($acctType)) $flags |= (($acctType === R_PERSONAL or $acctType == 'personal') ? 0 : u\bit(B_CO)); // === required
-  
   foreach (u\ray('id email acctType dw cc cc2') as $one) unset($info[$one]);
-  u\preray(compact(u\ray('uid flags ' . $fixFields)), $info);
+  u\preray(compact(u\ray('uid flags risks ' . $fixFields)), $info);
   fixValues($info, TRUE);
 
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return output("No such uid: $uid");
+    $acct->reread(TRUE); // this is required, for example, for cron's Trust test
     foreach ($info as $key => $value) {
       if ($key == 'uid') $key = 'id';
       if (!eq($acct->$key, $value)) {
         if ($key == 'pass' and (!isset($pass) or r\Web\passwordOkay($acct, @$pass))) continue;
-        return output("Wrong value for $key. Expected:$value Got:" . $acct->$key);
+        return output("Wrong value for $key (uid=$uid). Expected:$value Got:" . $acct->$key);
       }
     }
     return TRUE;
@@ -243,7 +254,7 @@ function doRelation($info) {
     return verifyRecord('r_relations', $info);
   } else {
 //    db\insert('r_relations', $info);
-    r\acct($main)->newRelation($other, $info['permission'], @$employee, @$isOwner, @$draw, $reid);
+    r\acct($main)->newRelation($other, $info['permission'], @$employee, @$isOwner, @$draw, @$reid);
     if (@$rCard == 'yes') r\Web\memberId($id); // make a Company Agent rCard
     return TRUE;
   }
@@ -353,6 +364,21 @@ function doMemberFields($one) {
     }
     return TRUE;
   } else return ($a->update($one));
+}
+
+/**
+ * Check or make member field assignments.
+ */
+function memberFieldValues($list) {
+  global $testOnly;
+  foreach ($list as $one) {
+    extract(u\just('id field value', $one));
+    $a = r\acct(t\uid($id));
+    if ($testOnly) {
+      if (t\badEq('fieldValue wanted/actual:', $value, $a->$field, $id)) return FALSE;
+    } else $a->update($field, $value);
+  }
+  return TRUE;
 }
 
 /**
@@ -469,6 +495,8 @@ function usd($list) {
 
 /**
  * Run the op in the background, return TRUE.
+include_once __DIR__ . '/../rcredits/rcredits-testing.inc';
+f('t.cronRuns', 'op');
  */
 function cronRuns($op) {
   global $testOnly; if($testOnly) return FALSE;
@@ -786,7 +814,8 @@ function verifyRecord($table, $info) {
     $crit[] = $value === '' ? "($key IS NULL or $key='')"
     : ((in_array($key, u\ray(R_DATE_FIELDS)) or stripos($key, 'date') !== FALSE) ? 
       "$key-($key%:DAY_SECS)<=>:$key-(:$key%:DAY_SECS)" 
-      : "$key<=>:$key"); // null-safe ==
+    : (in_array($key, u\ray('trust risk')) ? "CAST(ROUND($key, 2) AS CHAR)<=>:$key"
+    : "$key<=>:$key")); // null-safe ==
   }
 
   $crit = join(' AND ', $crit);

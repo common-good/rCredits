@@ -74,6 +74,8 @@ D. rCredits namespaces and how they are abbreviated in calling files. Functions 
    \   Drupal functions are marked with a (technically superfluous) leading backslash
  
 E. Database clues
+   - Download table with latest zipcodes, counties, etc. at unitedstateszipcodes.org/zip-code-database/
+   - get countries/states table from CiviCRM db.
    - All rCredits tables begin with "r_", except `offsite` and `users`.
    - Uid fields in every table are bigint (unlike standard Drupal)
    - users (we use this as a table of accounts, not of users, and added many new fields)
@@ -116,6 +118,9 @@ E. Database clues
 		 - achMin: minimum transfer from bank account or drawn-on account (draw for purchases may override)
 		 - pinThreshold: minimum purchase amount before PIN is required (NYI)
 		 - lastTx: [xid, other-me, amount, created] information about the account's most recent transaction
+		 - tenure: number of months at current address (supplied by user)
+		 - moves: number of moves over the past decade (gleaned from SSN history)
+		 - mediaConx: how many 1st and 2nd-degree connections with the system adminstrator
      . description is html for the company's page (N/A for personal accounts)
      . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community == uid
      . minimum: the user's preferred minimum balance. Request at least achMin more (and always a multiple of R_ACHMIN) automatically from bank if balance goes under by even one cent.
@@ -143,6 +148,7 @@ E. Database clues
 		   bonus and rebate: the dollar amounts of any rewards associated with a payment
 		   preapproved: (not in the table, just internally) transaction is preapproved by another server (a payment or an authorized business unilaterally charging a customer)
 		   disputed: TRUE if the payer disputes the transaction (else not set)
+		   force: 1/-1 if transaction was taken offline (-1 if the transaction reverses another transaction)
    (more to come...)
    - r_usd: record of USD transactions, so that can be rolled back if not in this table
        ALSO a record of what deposits and withrawals (to/from the USD bank) have been made/completed

@@ -29,7 +29,7 @@ function tableDefs($schema = array()) {
   $fields = array( // additional/changed users fields
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
     'community' => setupField("uid of this account's Common Good Community", 'int big'),
-    'question' => setupField('security question', 'varchar 255'),
+//    'question' => setupField('security question', 'varchar 255'),
     'usdAccount' => setupField('USD account number (hex of encrypted)', 'varchar 255'), // searchable
     'secure' => setupField('other non-personal encrypted data', 'blob normal'), 
     'offsite' => setupField('index to encrypted data stored off-site', 'int big', NULL, '010'),
@@ -59,6 +59,9 @@ function tableDefs($schema = array()) {
     'committed' => setupField('amount committed (for donations to CGF)', 'numeric 11,2', 0),
 //    'frozen' => setupField('amount of rCredits currently unavailable until specific dates or indefinitely', 'text medium'),
     'photo' => setupField('member photo', 'blob big'),
+    'risk' => setupField('today\'s suspiciousness rating', 'float medium', NULL),
+    'risks' => setupField('list of risk factors', 'int big', 0, '010'),
+    'trust' => setupField('how much this person is trusted by others in the community', 'float medium', 0),
   );
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
@@ -208,6 +211,8 @@ function tableDefs($schema = array()) {
     'channel' => setupField('through what medium was the transaction entered', 'int tiny'),
     'box' => setupField('on what machine was the transaction entered', 'int 11', 0), // 0 = none
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
+    'risk' => setupField('suspiciousness rating', 'float medium', NULL),
+    'risks' => setupField('list of risk factors', 'int big', 0, '010'),
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee') + foreignKey('payerAgent') + foreignKey('payeeAgent');
   $indexes = index('payer') + index('payee') + index('created') + index('payerTid') + index('payeeTid'); // also serial/type/taking/goods/payerAgent/payeeAgent/channel/?
@@ -240,6 +245,8 @@ function tableDefs($schema = array()) {
     'payee' => setupField('user id of the payee', 'int big', 0), // 0 for bank transfers
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'completed' => setupField('Unixtime transaction was completed', 'int 11', 0), // for deposits / withdrawals
+    'risk' => setupField('suspiciousness rating', 'float medium', NULL),
+    'risks' => setupField('list of risk factors', 'int big', 0, '010'),
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee');
   $indexes = index('created');
@@ -257,7 +264,7 @@ function tableDefs($schema = array()) {
   $indexes = array();
   $schema['r_usderror'] = setupTable('USD error messages from USD gateway', $fields, 'id', $foreignKeys, $indexes);
 
-  // table r_ach
+  // table r_ach (maybe create this by transforming r_usd)
   $fields = array(
     'txid' => setupField('record id', 'serial 11'),
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
@@ -265,6 +272,8 @@ function tableDefs($schema = array()) {
     'created' => setupField('Unixtime request was created', 'int 11', 0),
     'completed' => setupField('Unixtime request was completed', 'int 11', 0), // <=0 means number of attempts made (set to -9 to give up early)
     'tid' => setupField("account's transaction ID", 'int 11'),
+    'risk' => setupField('suspiciousness rating', 'float medium', NULL),
+    'risks' => setupField('list of risk factors', 'int big', 0, '010'),
   );
   $foreignKeys = foreignKey('uid');
   $indexes = index('created') + index('completed') + index('uid');
@@ -347,7 +356,7 @@ function tableDefs($schema = array()) {
   
   // table r_relations
   $fields = array(
-    'reid' => setupField('relationship record id', 'serial 11'),
+    'reid' => setupField('relationship record id', 'serial big'),
     'main' => setupField('uid of the account to which others are related', 'int big'),
     'other' => setupField('uid of a user related to that account', 'int big'), // eg owner, agent, employee, supplier
 //    'amount' => setupField('average monthly amount paid to other', 'numeric 11,2', 0), // typically to employee or supplier
