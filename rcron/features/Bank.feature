@@ -105,3 +105,17 @@ Scenario: a member is under minimum and has requested insufficient funds from th
   | payer | amount       |*
   | .ZZA  | -30 |
 
+Scenario: a member member with zero minimum has balance below minimum
+  Given balances:
+  | id   | minimum | r   | usd |*
+  | .ZZA |       0 | -10 |   0 |
+  When cron runs "bank"
+  Then bank transfer count is 0
+  
+Scenario: an unbanked member with zero minimum has balance below minimum
+  Given balances:
+  | id   | minimum | r   | usd |*
+  | .ZZA |       0 |   0 |   0 |
+  | .ZZB |       0 | -10 |   0 |
+  When cron runs "bank"
+  Then bank transfer count is 0

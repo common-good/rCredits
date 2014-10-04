@@ -1,7 +1,7 @@
 rCredits Software
 To Do
 
-- (from mike) after we grow, might be nice to do newsletter features on:
+- (from mike morton) after we grow, might be nice to do newsletter features on:
         • the person who’s successfully directly invited the most other people
         • ditto, but directly-and-indirectly combined, sort of “most descendants”
         • the longest chain of successful invites (probably not that long, so maybe more than one chain)
@@ -9,6 +9,7 @@ To Do
 
 Before growing fast:
 . ACH debits (need EIN doc, cert from town, signers in person with ss#/dob/license/physAddr)
+  OR "remotely-created checks" (RCC) with "remote deposit" OR "electronically-created payment orders"
   (treasury management). The following accounts will need to re-supply a routing number and bank account number: Adam Konner, William Spademan, John G Root Jr, Janet Henderson, John F. Eichholz, Alden Booth, Barbara Ann Fingold, Julia Bond Ellingboe, Gary L. Schaefer, Diane C. Miller, Peter Robert Letson, Jennifer Atlee, Nancy Hazard, Denise M. Ward, Daniel S Rosenberg, Addie Rose Holland, Ellen Kaufmann, Rebecca Jane Meier, 
 . DONE emails and invites don't get marked as spam
 . DONE economic circle(s)
@@ -20,12 +21,41 @@ Before growing fast:
 . $25 for inviting and helping (software and promo)
 . get GFM and Foster's to pay suppliers and/or employees at least half what they take in
 . after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
+. tell members about ACH (including risks, benefits, privacy, safeguards etc.)
+. ask GFCU: checking account? ACHs just for GFCU customers? not even now just for food-system related txs?
 
 TASKS FOR NEXT UPDATE:
-. DELETE photos/small directory
-. REINSTALL
+. rebuild menus
 (no other special tasks yet)
 
+. enlarge media conx box on summary
+. not-yet-member companies should not appear on Find Co list
+. add proxies, invited by, invited, and trust score to summary
+. set community caches in cron (to track inter-community debts)
+. txRisk and achRisk appear never to run in cron
+. allow user to select time range for Flags (default to past week)
+. always show all red flags
+. describe selected flag at top of Flags help page
+• Spell out more detail for “An individual account has the same postal address”?
+ “A web search for this individual or company produces sketchy results” is vague. Specify who can make that decision?
+• “Something is akimbo” is unusual usage. Akimbo refers only to body position, I think.
+• “Something just seems a little off” is very vague. Explain how it gets set.
+• Are “exchanges cash” and “trades cash” the same?
+• Puzzled by “ without an invoice. And no mention of an invoice in the transaction description”. How else would we know it‘s “without an invoice”?
+. add a "changes" field to users (use only after rTrader bit is set, ignore date and cache fields, ignore floor when set automatically, ignore password/risk/risks/trust/, handle data&secure only as individual virtual fields)
+. force=-1 does not get recorded in the reversing transaction!
+. why does cron Risk test fail when run as part of the whole Cron suite? (but not otherwise)
+. somehow two identical grocery purchases were recorded for Nancy Hazard, from one POS request (not forced). One was later reversed by the device. Try to detect and prevent that (don't accept two charge requests from a single device within a few seconds of each other? wait a sec?) (handle as well as possible from both ends)
+. after saving summary, if any risk bits changed, rerun the risk calculation for that account
+. combine txedit with txInfo form and allow editing of txAdminOk bit (only), along with amount, goods, and for. 
+. setting either adminOk or txAdminOk should record who did it in notes (for acct) or data (for tx)
+. whenever a suspicious account participates in a transaction (even an automatic one), email the admin (include a list of acct risks) OR calculate each transaction risk right away (next cron) and email if it's risky
+. let cAdmin2 see history without changing account (like for memberInfo)
+. add an admin3 bit for regulators (and bank partners) that is read-only
+. notify people when their invitees start signing up and finish signing up. Also, when a week or a month goes by and they haven't accepted the invitation or finished signing up or verified their bank account
+. people still think they're done after the 0th step. Make it more obvious ("WAIT!" filling the screen?)
+. see whether 2nd-degree invitees behave any differently from 1st degree
+. change TX_POS to TX_POS (we expect to have another app or a more general app, that lets the payer initiate)
 . make account selection give first letters and submenus, for admin (as well as full qid and/or choose ctty first)
 . change "I don't have a bank" to "no bank" on paper signup
 . limit Fibonacci to 8 (just keep repeating every 8 days thereafter)

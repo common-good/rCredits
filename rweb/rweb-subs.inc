@@ -26,7 +26,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'report new relation' => t('@who is now related to this account. You will need to adjust the permissions or other settings.'),
   'report new cell' => t('Mobile number @number is now connected to this account.'),
   'report delete cell' => t('Mobile number @number has been removed from this account.'),
-  'your account is ready' => t('<p></p><p>So far so good! We sent you an email with your user ID and a link to the next step. If you don\'t see it within 60 seconds, check your spam folder.</p>'),
+  'your account is ready' => t('<p></p><p>So far so good. <b class="stopnot">But WAIT!</b> You have a few steps still to go. We sent you an email with your user ID and a link to the next step. If you don\'t see it within 60 seconds, check your spam folder.</p>'),
   'company is ready' => t(<<<EOF
     <p></p><p>To finish setting up this company account:</p>
     <ol>
@@ -49,7 +49,7 @@ EOF
   'downloading' => t('Your download will begin shortly...'),
   'changed account' => t('You are now managing the account for @newAcct.'),
   'lost old changes' => t('Any unsaved changes to account @oldAcct have been discarded.'),
-  'take a step' => t('Your account is <b style="color:red;">not yet activated</b>. <a href="status"><span id="nextstep">Take the next step!</span> Click here</a>.'),
+  'take a step' => t('Your account is <b class="stopnot">not yet activated.</b> <a href="status" class="nextstep">Click here for the next step!</a>.'),
   'got token' => t('Your rCredits and US Dollar accounts have been successfully connected!'),
   'company rcard' => t('Send a <a href="@href">company rCard</a> to @name at @address.'),
   'amount rounded' => t('"@amount" was rounded to the nearest integer value.'),
@@ -282,16 +282,23 @@ function boolField($title = '', $description = '', $dft = NULL, $labels = NULL) 
  * Drupal is inconsistent about checkboxes formatting, making our scripts fail.
  * Specifically, when the checkbox inputs have a unique id, radiocheck.js fails to set the value successfully
  * (at least it never appears in $_POST). So we do it here by hand.
+ * @param string $tag:
+ * @param string $title:
+ * @param string $desc:
+ * @param array $choices: bit name for each checkbox
+ * @param array $aliases: bit name to display for each checkbox (defaults to bit name)
  */
-function boxesField($tag, $title, $desc, $defaults, $choices) {
+function boxesField($tag, $title, $desc, $defaults, $choices, $aliases = NULL) {
+  u\setDft($aliases, $choices);
   $boxes = '';
   if (!$defaults) $defaults = array();
-  foreach ($choices as $key => $value) {
-    $checked = in_array($value, $defaults) ? ' CHECKED' : '';
+  foreach ($choices as $k => $v) {
+    $alias = $aliases[$k];
+    $checked = in_array($v, $defaults) ? ' CHECKED' : '';
     $boxes .= <<<EOF
-    <div class="form-item form-type-checkbox form-item-$tag-$key">
-       <input type="checkbox" name="{$tag}[$key]" value="$key"$checked class="form-checkbox" />
-       <label class="option" for="edit-$tag-$key"><div class="box"></div><div>$value</div></label>
+    <div class="form-item form-type-checkbox form-item-$tag-$k">
+       <input type="checkbox" name="{$tag}[$k]" value="$k"$checked class="form-checkbox" />
+       <label class="option" for="edit-$tag-$k"><div class="box"></div><div>$alias</div></label>
     </div>
 EOF;
   }
@@ -312,21 +319,21 @@ EOF
  * @param string $fieldName: internal name of field   
  * @param string $label: short prompt for the set of boxes
  * @param int $bitRay: the bit array (current value)
- * @param string $prefix: prefix for defined constants for this bit array field
- * @param string $bits: string array (space or comma-delimited) of names of bits to include (without prefixes)
- * @param assoc $aliases: map of bit names to their aliases to display
+ * @param string $prefix: prefix for defined constants for this bit array field (empty means use $bits index)
+ * @param string $bits: array (space or comma-delimited) of names of bits to include (without prefixes)
+ * @param assoc $aliases: map of bit names to their display aliases (which may include formatting)
  */
 function bitsField($fieldName, $label, $bitRay, $prefix, $bits, $aliases = array()) {
   $bits = u\ray($bits);
   if (!is_numeric(key($bits))) $bits = array_keys($bits); // ignore values (eg weights for risk arrays)
   $defaults = array();
-  foreach ($bits as $bitName) {
-    $bit = u\consta($prefix, $bitName);
-    if (@$aliases) $bitName = strtr($bitName, $aliases);
+  foreach ($bits as $bit => $bitName) {
+    if ($prefix) $bit = u\consta($prefix, $bitName);
     $bitNames[$bit] = $bitName;
+    $bitAliases[$bit] = @$aliases ? strtr($bitName, $aliases) : $bitName;
     if (u\getBit($bitRay, $bit)) $defaults[] = $bitName;
   }
-  return boxesField($fieldName, $label, '', $defaults, $bitNames);
+  return boxesField($fieldName, $label, '', $defaults, $bitNames, $bitAliases);
 }
 
 /**
@@ -358,7 +365,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   try {
     $mya = r\acct();
 ///    global $zot; $zot = @$zot . ' ' . $function; if (strlen(@$zot) > 50) die($zot);
-    if (!$mya and !in_array($function, u\ray("$anonForms Signup Signin Pass Empty ChangePassword Help Agreement Reports Menu I ResetPassword Profile Accept Buy Summary HandleInvoice"))) r\go('');
+    if (!$mya and !in_array($function, u\ray("$anonForms Signup Signin Pass Empty ChangePassword Help Agreement Reports Flags Menu I ResetPassword Profile Accept Buy Summary HandleInvoice"))) r\go('');
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
     $specialForm = in_array($function, u\ray('Help Empty footer accounts Admin Login MemberList MemberInfo'));
@@ -874,15 +881,15 @@ function contactFields($defaults = array()) {
   $dupOk = hidField(0, attrib(u\ray('id', 'edit-dupOk')));
 //  $dupOk = boolField(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
 //  $verifyBy = $mya ? NULL : formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
-  if ($mya) $faxetc = textField(t('Fax etc:'), t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.'), dft(@$faxetc));
+  $faxetc = @$faxetc ? textField(t('Fax etc:'), t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.'), dft(@$faxetc)) : NULL;
   $country = formField('select', t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
   $postalCode = textField(t('Postal code:'), t('Postal code for your <em>physical location</em>'), required(@$postalCode) + $zipAttrib);
   $address = textField(t('Street Address:'), t('Where is your building located (physical address)?'), required(@$address) + $addressAttrib);
   $city = textField(t('City:'), t(''), required(@$city) + $cityAttrib);
   $state = formField('select', t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
-  if (!$mya) $tenure = textField(t('How long:'), t('About how many MONTHS have you lived at this address?'), $mya ? NULL : required());
-  $owns = boolField('', '', $mya ? dft(!$mya->risk(K_RENTS)) : NULL, array(t('Rent'), t('Own')));
-  $postalAddr = textField(t('Postal Address:'), t('Where does the post office send your mail (usually)?'), required(@$postalAddr));
+  $tenure = @$mya ? NULL : textField(t('How long:'), t('About how many MONTHS have you lived at this address?'), required(@$tenure));
+  $owns = boolField('', '', $mya ? dft($mya->owns) : NULL, array(t('Rent'), t('Own')));
+  $postalAddr = textField(t('Postal Addr:'), t('Where does the post office send your mail (usually)?'), required(@$postalAddr));
 
   return compact(u\ray($fields));
 }  
@@ -1358,7 +1365,7 @@ function doSay($msg, $type = 'error') {
       \drupal_set_message($msg, 'error'); // this fails
       \drupal_goto('error/' . $R_FATAL_ERROR); // this fails -- use shutdown function to show error page (getting message from log)
     case TX_SMS: if (@$rsms_number) \sms_send($rsms_number, R_SYS_ERR); break;
-    case TX_SMART: be\api_error(R_SYS_ERR);
+    case TX_POS: be\api_error(R_SYS_ERR);
     default: di e('with no channel');
   }
  */
@@ -1401,6 +1408,16 @@ function menu($title, $type, $function, $args, $perms = '') {
     'options' => u\ray('class', $title),
   );
   return $item;
+}
+
+/**
+ * Return a help message for the page.
+ */
+function helpText($page, $tag = '') {
+  include_once __DIR__ . '/rweb-help.inc';
+  $page = strtolower($page);
+  $help = $page == 'charge' ? strtr(rawHelp('pay', $tag), u\ray('pay', 'charge')) : rawHelp($page, $tag);
+  return u\SUBS(@$help) ?: tt('no help', compact('page'));
 }
 
 /**

@@ -1,3 +1,24 @@
+2014-10-04
+. fixed bug in deleteUid that might have deleted some things that shouldn't be
+. calculation and display of ach risks
+. display of single transaction details
+. added risk-related fields to admin's Summary form
+. added seeData to Admin panel
+. refactored transactions as new x class
+. handle failed transaction save (txSave return FALSE)
+. share percentage limited to 50%
+. improved account not opened yet message
+. DELETE photos/small directory
+. REINSTALL
+. f('a.eachAcct',function($a) {$a->update('tenure', 12);});
+. fixed bugs in recording helper
+. on flags page: say what the transaction volumes are (for bigyear, etc) in description.
+. on company page, ask for annual gross and number of employees (both required)
+. risks: different BIG thresholds for companies, based on number of employees
+. set moreIn and moreOut in cron txRisk1 (flag unusually large receipts or expenses of an account)
+. on flags page: key to what the weights are and how each risk is calculated (linked to by risk name) And point out that green is a "good" risk.
+. removed u10, u15, and u19 on production server
+
 2014-09-13
 . fixed bug: admin Summary form was trying to shrink photo always
 . fixed bug: helper was trying to be recorded as qid rather than uid

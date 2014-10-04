@@ -119,15 +119,16 @@ function cleanAmount($amount) {
  *   The cleaned-up amount is returned by ref.
  * @param string $restriction: none (the default), >0, or >=0
  * @param bool $fractionLimit: maximum digits after the decimal (default 2)
+ * @param numeric $max: maximum amount ('' if no maximum) (defaults to R_MAX_AMOUNT)
  * @return: FALSE if not a bad amount, else error message
  */
-function badAmount(&$amount, $restriction = '', $fractionLimit = 2) {
+function badAmount(&$amount, $restriction = '', $fractionLimit = 2, $max = R_MAX_AMOUNT) {
   if (!is_numeric($new = cleanAmount($amount))) return 'bad amount';
 
   $amount = $new;
   $dotPos = strpos($amount, '.');
   if ($dotPos !== FALSE and strlen($amount) > $dotPos + 1 + $fractionLimit) return 'too fractional';
-  if ($amount > R_MAX_AMOUNT) return 'amount too big';
+  if ($max !== '' and $amount > $max) return 'amount too big';
   if ($restriction == '>0' and $amount <= 0) return 'nonpositive amount';
   if ($restriction == '>=0' and $amount < 0) return 'negative amount';
   return FALSE;
@@ -670,7 +671,7 @@ function seeAssoc($info) {
 function ssnLookup($ssn) {
   $xml = file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.ssncheck');
   $xml = strtr($xml, u\ray('[ssnUser] [ssnPass] [ssn]', R_SSN_USER, R_SSN_PASS, $ssn));
-  return file_get_contents('ssnresult.txt'); // testing
+  if (!isPRODUCTION) return file_get_contents('ssnresult.txt'); // testing
   return file_get_contents("https://www.nationalpublicdata.com/feeds/FDSFeed.cfm?xml=" . urlencode($xml));
 }
 
@@ -1066,17 +1067,19 @@ function formatNum($num, $format) {
  * Return a table display of an array.
  * @param assoc $ray: the array
  * @param bool $across: if TRUE (the default) show labels on top, otherwise on the left
+ * @param bool $recurse: show array elements as another table
  * @return HTML for a table displaying the labeled values
  */
-function rayTable($ray, $across = TRUE) {
+function rayTable($ray, $across = TRUE, $recurse = FALSE) {
   $heads = $values = $lines = '';
-  if ($across) {
-    foreach ($ray as $k => $v) {
+  foreach ($ray as $k => $v) {
+    if (is_array($v) and $recurse) $v = rayTable($v, !$across, TRUE);
+    if ($across) {
       $heads .= "<th>$k</th>";
       $values .= "<td>$v</td>";
-    }
-    $lines = "<tr>$heads</tr>\n<tr>$values</tr>";
-  } else foreach ($ray as $k => $v) $lines .= "<tr><th>$k</th><td>$v</td></tr>\n";
+    } else $lines .= "<tr><th>$k</th><td>$v</td></tr>\n";
+  }
+  if ($across) $lines = "<tr>$heads</tr>\n<tr>$values</tr>";
   return "<table>\n$lines</table>\n";
 }
     
@@ -1160,6 +1163,18 @@ function nextBusDay($start = 0) {
 }
 
 /**
+ * Say whether one string abbreviates another.
+ * @param string $s: the possible abbreviation
+ * @param string $string: the possibly abbreviated string
+ * @param bool $noCase: <ignore case>
+ * @return <the first string abbreviates the second>
+ */
+function abbreviates($s, $string, $noCase = FALSE) {
+  if ($noCase) list ($s, $string) = array(strtolower($s), strtolower($string));
+  return (substr($string, 0, strlen($s)) == $s);
+}
+
+/**
  * Return the value of the given bit.
  * @param mixed $bit:
  *   int - return the numeric value of that bit number (power of 2)
@@ -1179,7 +1194,6 @@ function nray($a, $else = FALSE) {return !is_array($a) ? $a : $else;}
 function small($n) {return (abs($n) < .001);}
 function equy($a, $b) {return small($a - $b);} // sort of equal
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
-function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
 /**/ function prlog($log = 'rCredits') {print_r(loga($log));} // keep this
 function order($one1st, $one, $two) {return $one1st ? array($one, $two) : array($two, $one);}
 function both(&$vars, $k, $one1st, $one, $two) {list ($vars[$k], $vars['other' . ucwords($k)]) = u\order($one1st, $one, $two);}
@@ -1218,3 +1232,5 @@ function strip($a) {foreach ($a as $i => $v) $a[$i] = strip_tags($v); return $a;
 function initials($s) {return preg_replace('/[^A-Z]/', '', ucwords(strtr($s, u\ray('Jr', ''))));}
 function roughName($name) {return preg_replace("/[^A-Z '\-]/", '', strtoupper(trim(str_replace('  ', ' ', $name))));}
 function urlArgs() {return basename(t\est() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);}
+function in($a, $b) {return (strpos($a, $b) !== FALSE);}
+function uc1($s) {return ucwords(substr($s, 0, 1)) . substr($s, 1);}

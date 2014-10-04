@@ -42,3 +42,4 @@ files[] = tests/Community.test
 files[] = tests/Boxes.test
 files[] = tests/Bank.test
 files[] = tests/EditTx.test
+files[] = tests/Company.test

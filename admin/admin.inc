@@ -124,7 +124,7 @@ EOF;
         : ($permission >= B_READ ? t('can read')
         : t('can ?')))));
     }
-    $ret .= ($ret ? ', ' : '') . "$role <a href=\"$base_url/sadmin/member-info/$them\">$who</a>";
+    $ret .= ($ret ? ', ' : '') . "$role <a href=\"$base_url/sadmin/acct-info/$them\">$who</a>";
   }
   return $ret;
 }
@@ -209,6 +209,7 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
 
 /**
  * Show results of an SSN search, compared to personal data supplied by the member.
+ * Updates the moves field, if it isn't set yet.
  */
 function ssnCheck($a) {
   if (!$ssnData = @$a->ssnData) {
@@ -225,10 +226,13 @@ function ssnCheck($a) {
   $name = ssnName($one = (object) $d['ssnnames']['ssnname']);
   $rows[] = array(t('Found'), $name, u\fmtDate(strtotime($one->dob)), $d['deathsearchresults'] ? 'DEAD' : '', '', '');
   
+  $counties = array();
   foreach($d['addresses']['address'] as $one) {
     $one = (object) $one;
-    $rows[] = array(u\fmtDate(strtotime($one->datereported)), ssnName($one), u\fmtDate(strtotime($one->dob)), ssnAddr($one), ucwords(strtolower($one->county)));
+    $rows[] = array($one->datereported ? u\fmtDate(strtotime($one->datereported)) : '', ssnName($one), $one->dob ? u\fmtDate(strtotime($one->dob)) : '', ssnAddr($one), ucwords(strtolower($one->county)));
+    $counties[$one->county] = 1;
   }
+  if (!is_numeric($a->moves)) $a->update('moves', max(0, count($counties) - 1));
   
   $lines = '';
   foreach ($rows as $one) {
@@ -245,7 +249,8 @@ EOF;
 }  
 
 function ssnName($v) {
-  return ucWords(strtolower(str_replace('-', '', @"$v->firstname $v->middlename $v->lastname")));
+  foreach (u\ray('firstname middlename lastname') as $k) $$k = $v->$k ?: ''; // convert array() to ''
+  return ucWords(strtolower(str_replace('-', '', @"$firstname $middlename $lastname")));
 }
 function ssnAddr($v) {return ucWords(strtolower(@"$v->address, $v->city, $v->state $v->zip"));}
 
@@ -484,10 +489,11 @@ function eachTx($func = 'changeIt') {
  * Utility to do something to each member account (see example below)
   include_once __DIR__ . '/../rcredits/admin/admin.inc';
   f('a.eachAcct');
+  f('a.eachAcct', function($a) {...});
  */
 function eachAcct($func = 'changeIt') {
   $result = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
-  if (!function_exists($func)) {
+  if (!is_callable($func) and !function_exists($func)) {
     if (function_exists($func2 = 'rCredits\\' . $func)) $func = $func2;
     if (function_exists($func2 = 'rCredits\\Web\\' . $func)) $func = $func2;
     if (function_exists($func2 = 'rCredits\\Admin\\' . $func)) $func = $func2;
@@ -538,3 +544,12 @@ function fixRelations() {
     }
   }
 }
+
+/*
+// f('db.q','UPDATE users SET risk=NULL');
+f('db.q','UPDATE r_txs SET risk=NULL,risks=0');
+f('db.q','UPDATE r_usd SET risk=NULL,risks=0');
+cron('acctRisk');
+cron('txRisk');
+cron('achRisk');
+*/

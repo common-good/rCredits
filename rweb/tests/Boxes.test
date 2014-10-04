@@ -66,7 +66,7 @@ class rwebBoxes extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('devices: "ASSOC'
     . '\\| id   | channel | code         | boxnum | boxName   | access    |'
-    . '\\| .ZZA | app     | A3           |      3 |           | %today-4w |'
+    . '\\| .ZZA | pos     | A3           |      3 |           | %today-4w |'
     . '\\| .ZZA | sms     | +12002002000 |      2 |           | %today-2d |'
     . '\\| .ZZA | sms     | +14004004000 |      4 | whatEver  | %today-3w |"');
     When_('member ".ZZA" visits page "account/boxes"');

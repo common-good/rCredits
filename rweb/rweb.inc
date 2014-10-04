@@ -7,6 +7,7 @@ use rCredits\Testing as t;
 use rCredits\db as db;
 use rCredits\Txs as x;
 use rCredits\Admin as a;
+use rCredits\Risk as k;
 
 require_once __DIR__ . '/rweb-subs.inc';
 require_once __DIR__ . '/../rcredits-backend.inc';
@@ -150,10 +151,9 @@ EOF;
     $selection = 'uid, fullName AS display FROM users WHERE :IS_CO AND name LIKE :string';
   } elseif (u\abbreviates('ctty', $role)) { // ctty or cttyPerson
     $mya = r\acct($myid);
-    $cttyId = $mya->community;
+    $cttyCrit = ($cttyId = $mya->community) ? "AND community=$cttyId" : '';
     $personal = $role == 'ctty' ? '' : ' AND NOT :IS_CO';
-    $selection = "uid, fullName AS display FROM users WHERE name LIKE :string AND community=:cttyId$personal";
-    $params .= ' cttyId';
+    $selection = "uid, fullName AS display FROM users WHERE name LIKE :string $cttyCrit $personal";
   } else $selection = 'uid, fullName AS display FROM users WHERE name LIKE :string';
   $sql = "SELECT DISTINCT HIGH_PRIORITY $selection AND uid>1 ORDER BY display LIMIT 10"; // omit communities and regions
 //return drupal_json_output(array('zot' => "role=$role myid=$myid string=$string sql=$selection"));
@@ -335,7 +335,7 @@ function formDonate($form, &$sta) {
     'often' => formField('select', t('When:'), '', required(), $oftens),
     'honor' => formField('select', t('Honoring:'), '', '', $honors),
     'honored' => formField('textarea'),
-    'share' => textField(t('Share:'), t('What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (and/or the rCredits community), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 100%. The current average is sharePct%.', compact('sharePct')), required($mya->share)),
+    'share' => textField(t('Share:'), t('What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (and/or the rCredits community), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. The current average is sharePct%.', compact('sharePct')), required($mya->share)),
     'submit' => submit('Donate'),
   );
 
@@ -352,7 +352,8 @@ function formDonate_validate($form, &$sta) {
   if ($share === '') return say('missing field', array('field' => 'share'), 'share');
   if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
   if ($err = u\badAmount($share, '>=0', 3)) return say($err, 'share');
-  $share = min($share, 999.999); // any bigger kills PDO
+  if ($share > 50) return say('share too big', 'share');
+//  $share = min($share, 999.999); // any bigger kills PDO
   $sta['input'] = compact(u\ray('amount share')) + $sta['input'];
 }
 
@@ -382,8 +383,10 @@ function formDonate_submit($form, &$sta) {
 
 function formHelp($form, &$sta, $what = '') {
   include_once __DIR__ . '/rweb-help.inc';
+
+  list ($what, $tag) = (strpos($what, '@')) ? explode('@', $what) : array($what, ''); // bookmarks
   $title = item($what ? str_replace('Rcredits', 'rCredits', ucwords(str_replace('-', ' ', $what))) : t('General Help'));
-  $text = formField('item', '', '', helpText($what ?: 'general'));
+  $text = formField('item', '', '', helpText($what ?: 'general', $tag));
   return compact(u\ray('title text'));
 }
 
@@ -441,7 +444,7 @@ function formMembership($a, &$sta = '', $code = '') {
       . ($co ? t('your Charter, Articles of Organization, or similar document.')
         : t('a photo of your driver\'s license or other official ID.'))
       . ($gotSecurity ? t(' <span class="pending">(DONE, pending approval)</span>') : ''); */
-    $stepBank = ($ok_connect ? t('Verify') : t('Connect')) . t(' your <a>Bank Account</a> (your doorway to the mainstream economy).') . ($co ? t(' <em>(optional for companies)</em>') : '');
+    $stepBank = ($ok_connect ? t('Verify') : t('Connect')) . t(' your <a>Bank Account</a> if you have one (your doorway to the mainstream economy).') . ($co ? t(' <em>(optional)</em>') : '');
 /*
     $stepProof = t('<a>Prove your identity.</a> Upload ')
       . ($co ? t('your Charter, Articles of Organization, or similar document.')
@@ -724,10 +727,10 @@ function formSummary($form, &$sta, $qid = '') {
   global $base_url;
   if (!$mya = r\acct()) return r\go('/user/login'); // this cannot be '' (infinite redirect)
   
-  if ($mya->cAdmin2) { // ctty admin not administering own acct
+  if ($mya->can(B_REGULATOR)) { // some kind of admin (regulator, cAdmin2, cAdmin, or admin
     include_once __DIR__ . '/../admin/admin-web.inc';  
     if (!$a = r\acct($qid)) return r\go('/sadmin/member-list', t('Unrecognized Account Code: ') . $qid, 'ERR');
-    $form = adminSummary($a, $mya->cAdmin and $a->id != $mya->agentId);
+    $form = adminSummary($a, $mya->cAdmin and $a->id != $mya->agentId); // ctty admin not administering own acct
 
     $extras = '<br>' . u\fmtPhone($a->phone) . " ($a->faxetc)<br>$a->mail";
     $idLink = 'href="' . $base_url . '/print-rcard/' . $a->mainQid . '" target="_blank"';
@@ -781,26 +784,27 @@ function formSummary_validate($form, &$sta) {
 //  if (!r\acct()->cAdmin2) return hack('non-admin submitted summary form');
   if (op($sta) == 'another') return;
 
-  extract(u\just('uid who legalName floor rTrader helper adminable', $sta['input']));
+  extract(u\just('uid who legalName floor rTrader helper mediaConx moves adminable', $sta['input']));
   $a = r\acct(@$uid);
   
   if ($rTrader and !$a->ok) {
-    if (!$a->co) { // no helper for company accounts
-      if (empty($helper)) return say(t('You must specify who gets the helper reward.'), 'helper');
-      if (!$aHelper = whois($helper, 'helper', $sta['input'])) return say(t('I don\'t know what helper account you mean.'), 'helper');
-      $sta['input']['helper'] = $aHelper;
-    }
+    if (!$a->co and empty($helper)) return say(t('You must specify who gets the helper reward.'), 'helper');
     if (is_null(@$adminable[B_MEMBER])) return say(t('That account is not READY (not a member).'), 'adminable'); // test "is_null" because 0 is the value when set
   }
+
+  if (@$helper) {
+    if (!$helper = whois($helper, 'helper', $sta['input'])) return say(t('I don\'t know what helper account you mean.'), 'helper');
+    $helper = $helper->id;
+  } else {unset($helper); unset($sta['input']['helper']);}
   
   if (isset($floor)) {
     if ($error = u\badAmount($floor)) return say($error, 'floor'); 
-    $sta['input']['floor'] = u\cleanAmount($floor);
+    $floor = u\cleanAmount($floor);
   }
-  if (@$who) {
-    if (!$aNew = whois($who, 'who', $sta['input'])) return say(t('I don\'t know what account you mean to go to.'), 'who');
-    $sta['input']['who'] = $aNew;
-  }
+  if (isset($mediaConx) and $err = u\badAmount($mediaConx, '>=0', 0)) return say($err, 'mediaConx');
+  if (isset($moves) and $err = u\badAmount($moves, '>=0', 0)) return say($err, 'moves');
+  if (@$who and !$who = whois($who, 'who', $sta['input'])) return say(t('I don\'t know what account you mean to go to.'), 'who');
+  u\preray(compact(u\ray('helper floor who')), $sta['input']);
 }
 
 function formSummary_submit($form, &$sta) {
@@ -809,7 +813,7 @@ function formSummary_submit($form, &$sta) {
   if (op($sta) == 'another') return r\go('another');
   if (!r\acct()->cAdmin) return; // hack attempt
 
-  extract(u\just('uid who legalName floor notes helper rTrader adminable', $sta['input']));
+  extract(u\just('uid who legalName floor notes helper mediaConx moves rTrader risks adminable', $sta['input']));
   $a = r\acct(@$uid);
   $aa = $a->agent;
 
@@ -826,16 +830,66 @@ function formSummary_submit($form, &$sta) {
 //    $a->setBit(B_CHARGE, @$canCharge);
     if ($rTrader and !$a->ok and !a\shrinkPhoto($a, $err)) return say($err, 'ERR');
     r\membershipEvent($a, 'ok', $rTrader); // activate the account
-    $helper = $helper->id;
   }
 
   $a->setBit(B_OK, $rTrader, TRUE);
-  $a->setRisks($risks);
-  $a->setBits($adminable);
-  $a->update(compact(u\ray('legalName floor notes helper')));
+  $risks0 = $a->risks;
+  $a->setRisks(@$risks);
+  if ($a->risks != $risks0) {
+    include_once __DIR__ . '/../rcredits-risk.inc';
+    k\acctRisk1($uid);
+  }
+
+  $a->setBits(@$adminable);
+  $a->update(compact(u\ray('legalName floor notes helper mediaConx moves')));
   
   unset($DBTX);
   say('info saved');
+}
+
+/**
+ * Recalculate risk.
+ * @param string $type: type of entity: acct or tx
+ * @param int $id: record ID for the entity
+ * @param bool $show: <show the risk calculation>
+ */
+function formRerisk($form, &$sta, $type = '', $id = '', $show = FALSE) {
+  include_once __DIR__ . '/../rcredits-risk.inc';
+  global $showRiskCalc; 
+  
+  $showRiskCalc = '';
+
+  if ($type == 'acct') {
+    k\acctRisk1($id, $risk, $calc);
+    $w = ''; $m = K_RED;
+  } elseif ($type == 'tx') {
+    $x = r\x($id);
+    k\txRisk1($x->ray, $risk, $calc);
+    $w = u\fmtAmt($x->amount);
+    $m = tt('@K_RED / @K_THRESHOLD');
+  }
+
+  $risk = round($risk);
+  
+  $showRiskCalc = <<< EOF
+  <table id="riskCalc">
+  <tr><th>Risk Name</th><th>Weight</th><th>Multiplier</th><th>Risk</th><th>Set Flag?</th></tr>
+  $showRiskCalc
+  <tr><td><b>TOTAL</b></td><td>$w</td><td>$m</td><td>$calc</td><td>= $risk</td></tr>
+  </table>
+EOF;
+  say($showRiskCalc);
+  r\go("sadmin/$type-info/$id", t('info saved'));
+}
+
+/**
+ * Show information about a specific transaction and its risks.
+ */
+function formTxInfo($form, &$sta, $xid = '') {
+  global $base_url;
+  include_once __DIR__ . '/../admin/admin-web.inc';  
+  include __DIR__ . '/risk-descs.inc';
+  return txInfo($xid);
 }
 
 /**
@@ -1288,7 +1342,7 @@ function formMenu($form, &$sta) {return array('title' => item('Menu'));}
 function formEmpty($form, &$sta, $doSay = FALSE) {
   $title = item(t('Miscellaneous')); // this is suppressed with CSS
   if ($doSay) $subtext = item(t('To protect your account, no sign-in was required for this action. To sign in safely, always go to rCredits.org.'));
-// FAILS :(  if ($doSay == 'test') $testMessages = item(print_r(\drupal_get_messages(), 1));
+/// FAILS :(  if ($doSay == 'test') $testMessages = item(print_r(\drupal_get_messages(), 1));
   return compact(u\ray('title testMessages subtext'));
 }
 
@@ -1698,7 +1752,7 @@ EOF
 
 function formSignup_validate($form, &$sta) {
   if (!isset($sta['buttons'])) $sta['buttons'] = array(); // for testing (keep Drupal from griping)
-  extract(u\just('agreed args by acctType mail phone dupOk country pin company companyPhon copts fullName legalName postalCode address city state postalAddr', $sta['input']));
+  extract(u\just('agreed args by acctType mail phone dupOk country tenure pin company companyPhon copts fullName legalName postalCode address city state postalAddr', $sta['input']));
 
   if (op($sta) == 'continue') { // don't require Dwolla checkbox, so we can give a good message
     return @$agreed ? '' : say('dwolla terms required', 'agreed');
@@ -1748,7 +1802,7 @@ function formSignup_validate($form, &$sta) {
 
 function formSignup_submit($form, &$sta) {
   $dbFields = 'fullName legalName mail community flags phone federalId dob pin country postalCode address city state postalAddr oneTimePass by wants calling signupCo signed tenure'; // had verifyBy
-  extract(u\just('acctType args company ats ' . $dbFields, $sta['input']));
+  extract(u\just('acctType args company ats owns ' . $dbFields, $sta['input']));
   if (op($sta) == 'continue') return r\go('signup/' . urldecode(u\urlArgs()) . '&dwok=1'); // got agreement, so continue
   if (!emailOkay($mail)) return; // I don't know how people create duplicate accounts, but maybe this will prevent it. Nope, apparently not. (ws 1/27/2014)
 
@@ -1781,7 +1835,7 @@ function formSignup_submit($form, &$sta) {
   setupGlobals($myid); // some rcredits functions need to know who we are
   
   invitation($code, $myid); // mark the invitation used
-  if (!$owns) $mya->setRisk(K_RENTS);
+  if (!$owns) $mya->setRisk('rents');
   
   if (@$signupCo) {
     suCompanyRelation($myid, $signupCo);
@@ -1870,7 +1924,7 @@ function formContact_submit($form, &$sta) {
 //  if (isset($verifyBy)) $info['verifyBy'] =  verifyBy(@$verifyBy); // @ for testing
   $info = u\normalizeCase(u\just('fullName city address postalAddr', $info)) + $info;
 
-  $mya->setRisk('rents', !$owns);
+  $mya->setRisk('rents', !@$owns); // @ for tests
   if ($mya->update($info)) {
 // (problematic if addPhone fails)  if (!$mya->ok) say('step completed');
     $mya->stepDone('contact', $info);
@@ -2553,7 +2607,7 @@ function formBoxes($form, &$sta) {
     $type = $types[$channel += 0]; // make sure channel is int, not string
     $boxName = 
         @$boxName ? htmlspecialchars($boxName)
-      : ($channel == TX_SMART ? (t('POS Device #') . $boxnum)
+      : ($channel == TX_POS ? (t('POS Device #') . $boxnum)
       : ($channel == TX_WEB ? (t('Computer/Browser #') . $boxnum)
       : ($channel == TX_SMS ? u\fmtPhone($code)
       : 'ERROR')));
@@ -2859,48 +2913,51 @@ $permissions
 </table></div>
 EOF;
 
-  $form = array(
-    'title' => item(t('Company Information')),
-    'links' => item($links),
-    'name' => formField('item', t('Company name:'), '', $mya->fullName),
-    'photo' => item(t('<@a>Change your company photo</a>', u\ray('@a', 'a href=photo')), t('Photo')),
-    'categories' => formField('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($myCats), $cats),
-    'selling' => formField('textarea', t('Selling:'), t('Enter one or more transaction descriptions for when you make a sale &mdash; one line for each. Put the most common one first.'), required($mya->selling)),
-    'can2' => item($permissions, t('Permissions:'), t('Limit permissions further for each agent, on the Relations page.')),
-//    'shareRpos' => boolField(t('Share rPOS:'), t('Allow other companies to use our POS device(s).'), dft($mya->coCan(CO_SHARE_RPOS) ?: 0)),
-//    'requireCashier' => boolField(t('Must scan in:'), t('Require a cashier to sign in before using rPOS (this also allows you to share the device with another company).'), dft($mya->coCan(CO_REQUIRE_CASHIER) ?: 0)),
-    'website' => textField(t('Website(s):'), t('Especially if you want to accept payments on your website, be sure to list it here.'), dft($mya->website)),
-    'descPreface' => item(t('<br>What does this company do? The description you enter below will appear on your rCredits web page.')),
-    'description' => formField('text_format', t('Description:'), '', $filtered_html + dft($mya->description)),
-    'submit' => submit(),
-  );
+  $title = item(t('Company Information'));
+  $links = item($links);
+  $name = formField('item', t('Company name:'), '', $mya->fullName);
+  $photo = item(t('<@a>Change your company photo</a>', u\ray('@a', 'a href=photo')), t('Photo'));
+  $categories = formField('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($myCats), $cats);
+  $selling = formField('textarea', t('Selling:'), t('Enter one or more transaction descriptions for when you make a sale &mdash; one line for each. Put the most common one first.'), required($mya->selling));
+  $can2 = item($permissions, t('Permissions:'), t('Limit permissions further for each agent, on the Relations page.'));
+//    $shareRpos = boolField(t('Share rPOS:'), t('Allow other companies to use our POS device(s).'), dft($mya->coCan(CO_SHARE_RPOS) ?: 0));
+//    $requireCashier = boolField(t('Must scan in:'), t('Require a cashier to sign in before using rPOS (this also allows you to share the device with another company).'), dft($mya->coCan(CO_REQUIRE_CASHIER) ?: 0));
+  $website = textField(t('Website(s):'), t('Especially if you want to accept payments on your website, be sure to list it here.'), dft($mya->website));
+  $descPreface = item(t('<br>What does this company do? The description you enter below will appear on your rCredits web page.'));
+  $description = formField('text_format', t('Description:'), '', $filtered_html + dft($mya->description));
+  $employees = textField(t('Employees:'), t('How many employees do you have?'), required($mya->employees));
+  $gross = textField(t('Annual Gross:'), '', required($mya->gross));
+  $submit = submit();
 
-  return labeled($form);
+  return labeled(compact(u\ray('title links name photo categories selling can2 website descPreface description employees gross submit')));
 }
 
 function formCompany_validate($form, &$sta) {
-  extract(u\just('selling', $sta['input']));
+  extract(u\just($fields = 'selling employees gross', $sta['input']));
   $selling = explode("\n", $selling);
   foreach ($selling as $one) {
     $one = trim($one); // don't allow empty or reserved values
     if (!u\nonish($one) and !in_array($one, array('', S_REFUND, S_USD_OUT)) and !r\usdin($one)) $new[] = strtolower($one);
   }
   if (!@$new) return say('missing field', u\ray('field', 'selling'), 'selling');
-  $sta['input']['selling'] = join("\n", $new);
+  $selling = join("\n", $new);
+  if ($err = u\badAmount($employees, '>=0')) return say($err, 'employees');
+  if ($err = u\badAmount($gross, '', 2, '')) return say($err, 'gross');
+  u\preray(compact(u\ray($fields)), $sta['input']);
 }
 
 function formCompany_submit($form, &$sta) {
   $mya = r\acct();
   $id = $mya->id;
-  extract(u\just('description website selling categories can requireCashier', $sta['input']));
+  extract(u\just('description website selling categories can requireCashier employees gross', $sta['input']));
 //  $description = \check_markup($description['value']);
-  $description = @$description['value'];
+  if (is_array($description)) $description = @$description['value']; // when t\est(), description is scalar
   $website = str_ireplace('http://', '', @$website);
 
-  $mya->setCoCans($can);
+  $mya->setCoCans(@$can);
   //$mya->setBits(CO_CAN_BITS, $can, 'co');
 //  $mya->setBitx(CO_REQUIRE_CASHIER, @$requireCashier, 'coFlags');
-  $mya->update($info = compact(u\ray('description website selling')));
+  $mya->update($info = compact(u\ray('description website selling employees gross')));
   
   $DBTX = db_transaction();
   db\q('DELETE FROM r_user_industries WHERE uid=:id', compact('id')); // out with the old
@@ -3057,11 +3114,11 @@ function formReports($form, &$sta) {
   if ($mya = r\acct()) {
     $admin = $mya->admin;
 // (use Admin tab instead)    $cadmin2 = $mya->can(B_CADMIN2);
-    $myCtty = $mya->community ?: 0;
-  } else $myCtty = 0;
+    if ($myCtty = $mya->community and $ctty = r\acct($myCtty)) $cttyName = $ctty->fullName;
+  }
 
   $title = item(t('Community Statistics'));
-  $subheader = item($myCtty ? t('for ') . r\acct($myCtty)->fullName : ' ');
+  $subheader = item(@$cttyName ? t('for ') . $cttyName : ' ');
   $subtext = item(t('This page helps us keep an eye on our economy so we can manage it effectively together. <b class="loud">Click</b> any chart for an explanation, or <b class="loud">hover</b> for the numbers.'));
   $charts = item(showCharts('all'));
 //  $shared = @$admin ? item(fundRpt($shared, @$lm_shared, '$'), t('Shared w CGF:')) : NULL;
@@ -3085,89 +3142,98 @@ function formReports_submit($form, &$sta) {
 function formFlags($form, &$sta) {
   $mya = r\acct();
   $MAXLINES = 20; // max number of lines to show in each section
+  include __DIR__ . '/risk-descs.inc';
+  
   $title = item(t('Suspicious Activity Report for ' . strftime('%A, %m/%d/%y')));
-  $subtext = item(tt(t('<p>Suspicious accounts, transactions, and ACHs are listed first. Only the top @MAXLINES are listed. System administrators will investigate any accounts or transactions with a suspiciousness score of @K_RED or more (shown in red).</p>'), compact('MAXLINES')));
-  
-  $txHeader = $acctHeader = $accts = $txs = $achs = '';
-  $headers = u\ray(t('Score Account Type Reasons'));
-  foreach ($headers as $v) $acctHeader .= "<th>$v</th>";
+  $subtext = item(tt(t('<p>Any potentially suspicious accounts, transactions, and bank transfers (ACHs) are listed here, so all members can keep an eye on things. Only the top @MAXLINES are listed in each category. System administrators will investigate any account or transaction with a suspiciousness score of @K_RED or more (shown in red).</p><p>Green risks are "good" (they mitigate other risk factors). Hover over any risk for a brief description or click it for details.</p>'), compact('MAXLINES')));
+
+  $achHeader = $txHeader = $acctHeader = $accts = $txs = $achs = '';
+  $headers = u\ray(t('Score Account Type Created Risks'));
+  foreach ($headers as $v) {$vLow = strtolower($v); $acctHeader .= "<th class=\"k-$vLow\">$v</th>";}
   $acctHeader = "<tr>$acctHeader</tr>";
-
-  $headers = u\ray(t('Score Tx# Amount Description Reasons'));
-  foreach ($headers as $v) $txHeader .= "<th>$v</th>";
+  $where = (!$mya or $mya->admin)? 1 : "community=$mya->community";
+  $q = db\q("SELECT risk AS score,uid,IF(:IS_CO,'Co','Indiv') as type,created,risks FROM users WHERE uid>1 AND :IS_OK AND $where ORDER BY risk DESC LIMIT :K_LINES");
+  while ($line = riskLine($q, K_ACCT_RISKS)) $accts .= $line;
+  
+  $headers = u\ray(t('Score Tx# Date Amount From To Description Risks'));
+  foreach ($headers as $v) {$vLow = strtolower($v); $txHeader .= "<th class=\"k-$vLow\">$v</th>";}
   $txHeader = "<tr>$txHeader</tr>";
+  $since = u\ray('since', strtotime('-80 days', strtotime('today'))); // change this to a standard date-range selector
+  $q = db\q('SELECT risk AS score,xid,created,amount,payer,payee,payeeFor AS description,risks FROM r_txs WHERE (payer>0 OR ABS(amount)>:K_CTTY_THRESHOLD) AND created>:since ORDER BY risk DESC LIMIT :K_LINES', $since);
+  while ($line = riskLine($q, K_TX_RISKS)) $txs .= $line;
 
-  $where = $mya->admin ? 1 : ('community=' . $mya->community);
-  $q = db\q("SELECT uid,risk,risks,:IS_CO as co FROM users WHERE uid>1 AND :IS_OK AND $where ORDER BY risk DESC LIMIT :K_LINES");
-  
-  while ($row = riskRow($q, K_ACCT_RISKS)) {
-    extract($row);
-    $qid = r\quid($uid);
-    $type = $co ? t('Co') : t('Indiv');
-    $accts .= "<tr><td>$risk</td><td>$qid</td><td>$type</td><td>$risks</td></tr>\n";
-  }
-  
-  $q = db\q('SELECT xid,risk,risks,amount,payeeFor AS description FROM r_txs ORDER BY risk DESC LIMIT :K_LINES');
-  
-  while ($row = riskRow($q, K_TX_RISKS)) {
-    extract($row);
-    $amount = number_format(abs($amount), 2);
-    $txs .= "<tr><td>$risk</td><td>$xid</td><td>$amount</td><td>$description<td>$risks</td></tr>\n";
-  }
-  
-  $q = db\q('SELECT txid,risk,risks,amount FROM r_usd ORDER BY risk DESC LIMIT :K_LINES');
-  
-  while ($row = riskRow($q, K_TX_RISKS)) {
-    extract($row);
-    $way = $amount < 0 ? t('in') : t('out');
-    $amount = number_format(abs($amount), 2);
-    $achs .= "<tr><td>$risk</td><td>$txid</td><td>$amount</td><td>$way<td>$risks</td></tr>\n";
-  }
+  $headers = u\ray(t('Score Tx# Date Amount Account Description Risks'));
+  foreach ($headers as $v) {$vLow = strtolower($v); $achHeader .= "<th class=\"k-$vLow\">$v</th>";}
+  $achHeader = "<tr>$achHeader</tr>";
+  $q = db\q("SELECT risk AS score,txid,created,ABS(t.amount) AS amount,payer,IF(t.amount<0,'in','out') AS way,risks FROM r_usd t WHERE created>:since AND payee=0 ORDER BY risk DESC LIMIT :K_LINES", $since);
+  while ($line = riskLine($q, K_TX_RISKS)) $achs .= $line;
   
   $table = item(<<<EOF
+  <center>
   <h3>ACCOUNTS</h3>
-  <table>
+  <table id="accts">
   $acctHeader
   $accts
   </table>
   <h3>TRANSACTIONS</h3>
-  <table>
+  <table id="txs">
   $txHeader
   $txs
   </table>
   <h3>ACHs</h3>
-  <table>
-  $txHeader
+  <table id="achs">
+  $achHeader
   $achs
   </table>
+  </center>
 EOF
   );
   return compact(u\ray('title subtext table'));
 }
 
-function riskRow($q, $descs) {
+/**
+ * Return a formatted line for the next record, describing its risks.
+ * @param SQLresult $q: the query result
+ * @param string $descs: a space-delimited string array of risk descriptions and weights
+ * @return an HTML table row to show the record
+ */
+function riskLine($q, $descs) {
+  global $base_url; 
   if (!$row = $q->fetchAssoc()) return FALSE;
+  
+  if (@$row['amount'] + 0 < 0) list ($row['payer'], $row['payee'], $row['amount']) = array($row['payee'], $row['payer'], -$row['amount']); // don't show user negative amounts
+  extract(u\just('uid xid created score amount risks', $row));
 
+  $regulator = (($mya = r\acct()) and $mya->can(B_REGULATOR));
   global $riskQ, $riskCount; 
   if ($q == @$riskQ) {
     $riskCount++;
     if ($riskCount > K_LINES) return FALSE;
   } else {$riskQ = $q; $riskCount = 1;}
   
-  $risk = round($row['risk']);
-  if ($risk >= K_RED) $risk = "<span style=\"color:red;\">$risk</span>";
-  if ($risk <= K_GREEN) $risk = "<span style=\"color:green;\">$risk</span>";
-  $row['risk'] = $risk;
+  $score = round($score);
+  if ($score >= K_RED) $score = "<span class=\"risky\">$score</span>";
+  if ($score <= K_GREEN) $score = "<span class=\"safe\">$score</span>";
+  $row['score'] = $score;
   
-  $type = key($row);
-  list ($id, $risks, $why) = array($row[$type], $row['risks'], '');
-  $descs = u\ray($descs);
-  foreach (array_keys($descs) AS $bit => $bitName) {
-    if ($descs[$bitName] < 0) $bitName = "<span style=\"color:green;\">$bitName</span>";
-    if (u\getBit($risks, $bit)) $why .= "<a href=\"$type-risk/id=$id&bit=$bit\">$bitName</a> ";
+  foreach (u\just('uid payer payee', $row) as $k => $v) {
+    list ($region, $local) = explode('.', $qid = r\quid($v));
+//    $row[$k] = "<span>$region.</span>$local";
+    $a = r\acct($qid);
+    if ($regulator or $a->co) {
+      $v = "<a href=\"$base_url/sadmin/acct-info/$qid\" title=\"$a->fullName\">$local</a>";
+    } else $v = t('...');
+    $row[$k] = $v;
   }
-  $row['risks'] = $why;
-  return $row;
+  
+  if (isset($amount)) $row['amount'] = number_format($amount, 2);
+  if ($regulator and isset($xid)) $row['xid'] = "<a href=\"$base_url/sadmin/tx-info/$xid\">$xid</a>";
+  if (isset($created)) $row['created'] = strftime(@$uid ? '%d-%b-%Y' : '%d-%b', $created);
+  $row['risks'] = r\riskList($risks, $descs);
+  
+  $line = '';
+  foreach ($row as $k => $v) $line .= "<td class=\"k-$k\">$v</td>";
+  return "<tr>$line</tr>\n";
 }
 
 /**

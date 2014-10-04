@@ -32,7 +32,7 @@ function q($sql, $subs = array(), $log = FALSE) {
 
 /**
  * Look the field up in the table, returning the first record matching the criteria.
- * @param string $fieldName: field name, function, or list of field names
+ * @param string $fieldName: field name, function, or list of field names (* for all)
  *   A list of field names cannot contain a function or a left paren
  * @param string $table: table to look in
  * @param string $where: criteria (defaults to ALL)
@@ -47,8 +47,9 @@ function lookup($fieldName, $table, $where = '1', $subs = array()) {
 ///  if (strpos($table, 'nonce')) debug(compact('sql','subs'));
   $result = db\q($sql, $subs);
   $fieldCount = strpos($fieldName, '(') ? 1 : substr_count($fieldName, ',') + 1; // function or array, not both
-  $result = $fieldCount > 1 ? $result->fetchAssoc() : $result->fetchField();
-  u\EXPECT($fieldCount == 1 or !$result or count($result) == $fieldCount, 'field count is off'); // eg, if $fieldName == 'a,a'
+  $several = ($fieldName == '*' or $fieldCount > 1);
+  $result = $several ? $result->fetchAssoc() : $result->fetchField();
+  if ($several and $fieldName != '*' and $result) u\EXPECT(count($result) == $fieldCount, 'field count is off'); // eg, if $fieldName == 'a,a'
   return $result;
 }
 
@@ -115,19 +116,9 @@ function exists($table, $where = '1', $subs = array()) {
 /**
  * Return an array of record objects
  */
-function records($table, $where = '1', $subs = array(), $fields = '*', $cache = FALSE) {
-/*  $sql = <<<EOF
-    SELECT COLUMN_NAME FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA=:db AND TABLE_NAME=:table AND COLUMN_KEY='PRI'
-EOF;
-  $db = 'devcore'; // @todo: get proper db name
-  $key = db\q($sql, compact('table', 'db')); */
-///  if (!$cache) die('no cache getRecords');
-//  echo " SELECT $fields FROM $table WHERE $where ";
+function records($table, $where = '1', $subs = array(), $fields = '*') {
   return db\q("SELECT $fields FROM $table WHERE $where", $subs)->fetchAll(); // fetchAll means fetchAllObject
 }
-
-function recCount($table, $where = '1', $subs = array()) {return db\lookup('COUNT(*)', $table, $where, $subs);}
 
 /**
  * Set new values in the data field of a record.
@@ -142,3 +133,6 @@ function setData($table, $id, $values) {
   $data = $values + (db\lookup('data', $table, "$key=:id", compact('id')) ?: array());
   return $table == 'users' ? r\acct($id)->update(compact('data')) : db\update($table, compact('data'));
 }
+
+function recCount($table, $where = '1', $subs = array()) {return db\lookup('COUNT(*)', $table, $where, $subs);}
+

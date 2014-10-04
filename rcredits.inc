@@ -23,12 +23,13 @@ define('DAY_SECS', 24 * HOUR_SECS);
 define('WEEK_SECS', 7 * DAY_SECS);
 define('WEEK7_SECS', 52 * DAY_SECS);
 define('MONTH_DAYS', 30.4368);
-define('YEAR_SECS', 12 * MONTH_DAYS * DAY_SECS);
+define('YEAR_SECS', round(12 * MONTH_DAYS * DAY_SECS));
 define('US_COUNTRY_ID', 1228); // United States
 
 require_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
 require_once __DIR__ . '/rcredits-db.inc';
 require_once __DIR__ . '/acct.class';
+require_once __DIR__ . '/x.class';
 
 define('MINI_LAUNCH', TRUE);
 define('CGF_EMAIL', isDEV ? 'wspademan+cgf@gmail.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
@@ -42,7 +43,7 @@ define('US', '<span class="us">us</span>');
 define('R_VERSION', '1.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags gross employees stats verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
 define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData'); // personal identifying information
@@ -196,14 +197,14 @@ define('B_u23', 23); //
 define('B_u24', 24); // 
 define('B_u25', 25); // 
 define('B_u26', 26); // 
-define('B_u27', 27); // 
+define('B_REGULATOR', 27); // is a bank partner or government regulator (read-only admin)
 define('B_CADMIN2', 28); // is a community sub-administrator
 define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
 define('B_MAX', 31); // maximum bit number
-define('B_ADMINABLE', 'co member dw bona cadmin cadmin2 nonudge closed'); // for cAdmin to set
-define('B_LIST', 'member dw ok bona bank u5 co photoid charge nonudge u10 u11 payroll weekly monthly u15 sms paper secret u19 debt draws savings u23 u24 u25 u26 u27 cadmin2 cadmin admin closed');
+define('B_ADMINABLE', 'co member dw bona cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
+define('B_LIST', 'member dw ok bona bank u5 co photoid charge nonudge u10 u11 payroll weekly monthly u15 sms paper secret u19 debt draws savings u23 u24 u25 u26 regulator cadmin2 cadmin admin closed');
 
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
 define('R_DEMAND', 'u.usd'); // definitely WANTS this many rCredits (was LEAST(u.usd, IFNULL(u.minimum,0)-u.r))
@@ -237,23 +238,27 @@ define('S_USD_OUT', t('USD out'));
 define('S_USD_IN', t('USD in'));
 
 // Risk definitions (for accounts and transactions) -- suspiciousness for possible reporting to FinCEN
-define('K_DAY_THRESHOLD', 300); // how large an amount (from one payer to one payee) is suspicious in one day
+define('K_THRESHOLD', 200); // how big an amount in a single transaction is suspicious
+define('K_DAY_THRESHOLD', 300); // how big an amount spent or received by an individual in one day is suspicious
 define('K_WEEK_THRESHOLD', 600); // how large an amount is suspicious in one week
 define('K_7WEEK_THRESHOLD', 1200); // how large an amount is suspicious in one 52-day period
 define('K_YEAR_THRESHOLD', 2400); // how large an amount is suspicious in one year
+define('K_LIMIT_FACTOR', 3); // how many times the various thresholds is a prohibited amount
+define('K_UNUSUAL_BUMP', 20); // what percentage 7-week increase (in or out) is suspicious
 define('K_RED', 100); // lowest score to flag for investigation
 define('K_GREEN', -999); // maximum score for an account to be unquestionably beyond reproach
 define('K_LINES', 20); // number of lines to show for each type of each potentially risky record (acct or tx)
 define('K_MISER_DONATION', 5); // minimum donation to not be a miser
 define('K_MISER_SHARE', 25); // minimum sharing percentage, to not be a miser
+define('K_CTTY_THRESHOLD', 100); // minimum size of community transactions to consider for risk analysis
 
 // names and weights of account and transaction risks (and, for negative weights, assurance)
 // weight is the number of such risks that together would make the account or transaction suspicious
 // a weight of "X" means the risk is named but does not contribute to the total risk score
-define('K_ACCT_RISKS', 'trusted:-4,socialConx:-3,hasBank:-3,geography:4,cashCo:2,new:2,moves:1,rents:10,badConx:3,homeCo:20,shady:3,miser:5,photoMismatch:1,addrMismatch:5,ssnMismatch:1,poBox:5,activity:1,fishy:2');
-define('K_RENTS', 4);
-
-define('K_TX_RISKS', 'UNDONE:0,cashin:5,cashout:2,b2p:1,p2p:2,inhouse:2,bySuspect:3,toSuspect:3,absent:2,invoiceless:2,big:3,often:3,offline:10,firstOffline:3,origins:1,suspectOut:XXX'); // names of transaction risks
+define('K_ACCT_RISKS', 'adminOk:-0.5,trusted:-4,socialConx:-3,hasBank:-3,geography:4,cashCo:2,new:4,moves:1,rents:10,badConx:2,homeCo:20,shady:3,miser:5,photoOff:1,addrOff:5,ssnOff:1,poBox:5,fishy:2,moreIn:2,moreOut:2,bigDay:1,bigWeek:1,big7Week:1,bigYear:2');
+define('K_ACCT_RISKS_EDITABLE', 'adminOk cashCo rents shady photoOff addrOff ssnOff fishy');
+define('K_TX_RISKS', 'txAdminOk:-0.5,redo:2,exchange:2,cashIn:5,cashOut:2,fromBank:5,toBank:2,b2p:1,p2p:2,inhouse:2,fromSuspect:3,toSuspect:3,absent:4,invoiceless:2,bigFrom:3,biggestFrom:3,oftenFrom:3,bigTo:3,biggestTo:3,oftenTo:3,offline:10,firstOffline:3,origins:3,suspectOut:2'); // names of transaction risks
+define('K_ADMINOK', 1 << 0); // community admin blessed the account or transaction
 
 define('FLOW_NONE', 0); // which way can credit flow, with another account
 define('FLOW_TO', 1);
@@ -265,10 +270,10 @@ define('TX_DENIED', -1); // invoice rejected by the non-originator
 define('TX_PENDING', 0); // charged, waiting for confirmation (in all other states, transaction is complete)
 
 // Transaction channels (roughly in order of simplicity and generality of messages)
-define('TX_SYSTEM', 0);
+define('TX_SYS', 0);
 define('TX_SMS', 1); 
 define('TX_WEB', 2);
-define('TX_SMART', 3); // smart phone or other computer-like device
+define('TX_POS', 3); // smart phone or other computer-like device
 define('TX_TONE', 4); // touch tone phone
 define('TX_CRON', 5);
 define('TX_LINK', 6); // user clicked a no-signin link
@@ -297,6 +302,7 @@ define('TX_TYPES', 'payment signup u2 inflation helper grant loan investment u8 
 define('TX_DEFAULT_PERIOD', 30); // number of days to show in transaction history, by default
 define('TX_MAX_ROWS', 100); // maximum number of transactions to show on one screen
 define('TX_DOWNLOAD_MONEY_FIELDS', 'frombank fromyou toyou reward net');
+define('TX_DATA_FIELDS', 'rebate bonus undoneBy undoes disputed force changes'); // serialized pseudo-fields in the data field of a transaction record
 
 $GLOBALS['emailSubjects'] = array(
 /*  'new-payment' => t('rCredits PAYMENT from {otherName}'),
@@ -373,14 +379,14 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   list ($payerPurpose, $payeePurpose) = array($payerFor, $payeeFor); // clearer names, for substitutions
   $tofrom = $toMe ? t('from') : t('to');
   $uid = $otherUid = ($toMe ? $payer : $payee);
-  $confirmAction = $toMe ? t('charge') : ($channel == TX_SMART ? t('credit') : t('pay'));
+  $confirmAction = $toMe ? t('charge') : ($channel == TX_POS ? t('credit') : t('pay'));
 
   If ($amount < 0) { // for POS
     $amount = -$amount; // rephrase as positive
     $tofrom = t('to');
     $confirmAction = $toMe ? t('credit') : t('charge');
     u\both($tx, 'did', $toMe, $goods ?  t('refunded') : t('credited'), t('charged'));
-  } else u\both($tx, 'did', $toMe, $reverses ? t('re-charged') : t('charged'), ($channel == TX_SMART ? t('credited') : t('paid')));
+  } else u\both($tx, 'did', $toMe, $reverses ? t('re-charged') : t('charged'), ($channel == TX_POS ? t('credited') : t('paid')));
 
 ///  debug(compact('tx','toMe','amount','reverses','goods'));
 
@@ -462,179 +468,6 @@ function tradeR($amount, $uid1, $uid2, &$err = '') {
   }
   r\usd::commit();
   return $txid;
-}
-
-/**
- * Record a transaction between two participants
- * and create related transactions for any applicable incentive rewards
- * @param assoc $info: transaction data
- *   amount: (required) how much to transfer
- *   payer, payee: (required) uids
- *   for: purpose of the transaction OR a simple array (payer's purpose, payee's purpose)
- *   etc.
- * @param bool $done: whether this is a transaction (TRUE) or invoice (FALSE)
- * @return array: the list of transactions created (main, rebate, bonus)
- */
-function transact($info, $done = TRUE) {
-  $txs = array();
-
-  $DBTX = db_transaction();
-  $txs[] = txSave(txSetup($info));
-  r\txRewards($txs);
-  r\cacheBothTotals($txs);
-  unset($DBTX); // commit
-
-  return $txs;
-}
-
-/**
- * Save the transaction
- * @param assoc $tx: transaction info.
- *   amount: (required) how much to transfer
- *   payer, payee: (required) uids
- *   for: purpose of the transaction OR a simple array (payer's purpose, payee's purpose)
- *   etc.
- * @return the transaction array, with extra info added
- */
-function txSave($tx) {
-  $xid = db\insert('r_txs', $tx);
-  if (!@$tx['serial']) { // main transaction needs some touching up, now that we know the xid
-    extract(u\just('payer payee', $tx));
-    $payerTid = $payer > 0 ? r\xid2tid($xid, $payer) : 0;
-    $payeeTid = $payee > 0 ? r\xid2tid($xid, $payee) : 0;
-    $sql = "UPDATE r_txs SET serial=:xid, payerTid=:payerTid, payeeTid=:payeeTid WHERE xid=:xid";
-    db\q($sql, compact(u\ray('xid payerTid payeeTid')));
-    $serial = $xid; // set serial for this and remember it for dependents
-  }
-  return $tx + compact(u\ray('xid serial payerTid payeeTid'));
-}
-
-define('TX_REWARD_FIELDS', 'serial type amount goods payer payee payerAgent payeeAgent for taking created');
-
-/**
- * Add rebate and bonus or exchange fees to the transaction set, if appropriate.
- */
-function txRewards(&$txs) {
-  extract(u\just('type serial goods payer payee data payerTid payeeTid created payeeFor', $txs[0]));
-  
-  if ($type != TX_TRANSFER) return;
-  $rewards = unserialize($data);
-  
-  if ($goods) {
-    foreach (array('rebate', 'bonus') as $type) {
-      $amount = $rewards[$type];
-      $type = u\consta('tx', $type);
-      list ($to, $tid, $for) = $type == TX_REBATE
-        ? array($payer, $payerTid, t('rebate')) 
-        : array($payee, $payeeTid, t('bonus'));
-      $for .= t( ' on #') . $tid;
-      if ($amount and $to > 0) $txs[] = txSave(txRewardSetup($serial, $type, $to, $amount, $for, $created));
-    }
-  } elseif ($amount = @$rewards['xfee']) {
-    list ($type, $goods, $payerAgent, $payeeAgent, $taking) = array(TX_XFEE, FALSE, $payer, $payee, TRUE);
-    $for = ($amount == R_XFEE_CHECK and !strpos($payeeFor, '(card)')) ? t('check fee') : t('card fee');
-    $txs[] = txSave(txSetup(compact(u\ray(TX_REWARD_FIELDS))));
-  }
-}
-
-function txRewardSetup($serial, $type, $payee, $amount, $for, $created) {
-  $payer = $payerAgent = r\acct($payee)->community;
-  $payeeAgent = $payee;
-  $taking = FALSE;
-  $goods = FALSE;
-
-  return txSetup(compact(u\ray(TX_REWARD_FIELDS)));
-}
-
-/**
- * Create a new transaction and set up all the important fields.
- * @param assoc $info: transaction info.
- *   amount: (required) how much to transfer
- *   payer, payee: (required) uids
- *   for: purpose of the transaction OR a simple array (payer's purpose, payee's purpose)
- *   etc.
- * @return the array, with some extra field information added
- * Give full rewards for donations to CGF, whether in r or USD
- */
-function txSetup($info) {
-  global $channel, $boxUser; // through what medium was the transaction requested (web, SMS, etc.), what machine
-  $fields = 'type data taking goods amount payer payee payerAgent payeeAgent created';
-  extract(u\just($fields . ' for', $info));
-
-  $specs = " -- payer=$payer payee=$payee";
-  u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid');
-  u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading' . $specs);
-  list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
-  u\EXPECT($a1->ok and $a2->ok, 'non-member in tx' . $specs);
-  
-  u\setDft($type, TX_TRANSFER);
-  u\setDft($taking, FALSE);
-  u\setDft($goods, FALSE);
-  u\setDft($for, $goods ? R_FOR_GOODS : R_FOR_CASH);
-  u\setDft($payerAgent, $payer);
-  u\setDft($payeeAgent, $payee);
-  u\setDft($created, time());
-  $data = dataSetup($payer, $payee, $amount, $goods, $for, @$data ?: array(), $channel);
-  $taking += 0;
-  $goods += 0;
-  $box = @$boxUser ?: 0;
-
-  list ($payerFor, $payeeFor) = is_array($for) ? $for : array($for, $for);
-  unset($info['for']);
-
-  return compact(u\ray($fields . ' payerFor payeeFor channel box')) + $info;
-}
-
-/**
- * Set up and return the data field for a transaction.
- * @param assoc $data: forced values for rebates/bonuses/xfees, if any
- * $param int $channel: passed here in case we are reversing or editing a transaction on a different channel
- * @return the revised $data, serialized
- */
-function dataSetup($payer, $payee, $amount, $goods, $for, $data, $channel) {
-  u\EXPECT(is_array($data), 'data should be array');
-  if (r\owning($payer, $payee)) return serialize($data); // no rewards or xfees for txs between owner and owned
-
-  if ($goods and !isset($data['rebate'])) {
-    $rebate = (string) ($goods ? r\rebate($payer, $payee, $amount) : 0); // force string, to avoid long serializations
-    $bonus = (string) ($goods ? r\bonus($payee, $payer, $amount) : 0);
-    $data += compact('rebate', 'bonus');
-  } elseif (!$goods and !isset($data['xfee']) and $channel == TX_SMART) {
-    if (($xfee = r\xfee($for, $amount)) !== '') $data += compact('xfee'); // record even when xfee=0 (cash xchg)
-  }
-  
-  unset($data['preapproved']); // don't need these (but keep 'undoes' and original rebate/bonus, if any)
-  unset($data['bilateral']);
-  return serialize($data);
-}
-
-function cacheBothTotals($txs) {foreach(u\ray('payer payee') as $one) cacheTotals($txs[0][$one], $txs);}
-
-/**
- * Keep track of r balance, rewards, committed amount in the account record
- * None of these figures is authoritative except 'committed'. 
- * The r balance and rewards are (definitively) the sum of the relevant fields in transactions.
- * The USD balance is (definitively) what is actually in the Dwolla account.
- */
-function cacheTotals($uid, $txs) {
-  extract(u\just('amount type xid payer payee created', $txs[0]), EXTR_PREFIX_ALL, 't');
-//  if ($t_state < TX_DONE) return; // don't change totals if transaction doesn't count (yet)
-  if ($uid <= 1) return; // cache only usd for community and region
-
-  $a = r\acct($uid);
-  $cache = $a->account('r rewards committed lastTx access');
-  $cache->access = REQUEST_TIME; // track last transaction or login (just the major access)
-
-  $toMe = $uid == $t_payee ? -1 : 1;
-  if ($t_payer > 0) $cache->lastTx = array($t_xid, $toMe * ($t_payee - $t_payer), round($toMe * $t_amount, 2), $t_created);
-
-  foreach ($txs as $tx) {
-    extract(u\just('payer payee amount type', $tx));
-    if ($payer == $uid or $payee == $uid) $a->recache3($payee == $uid ? $amount : -$amount, $type, $cache);
-  }
-
-  $a->update((array) $cache);
-  if ($t_type == TX_TRANSFER and $t_amount > 0) r\membershipEvent($a, 'bona', TRUE);
 }
 
 /**
@@ -784,7 +617,7 @@ function notify($uid, $index, $subs = array(), $force = FALSE) {
   if (@$warning) {
     if ($channel == TX_WEB) Web\say($warning);
     if ($channel == TX_SMS) SMS\send(r\acct()->smsNumber, $warning);
-    if ($channel == TX_SMART) { } // dunno how to handle this
+    if ($channel == TX_POS) { } // dunno how to handle this
   }
 }
 
@@ -929,56 +762,6 @@ function tempName($info) {
   if (isset($my_email)) return R_TEMP_NAME_PREFIX . str_replace('@', ' AT ', str_replace('.', ' DOT ', $my_email));
 // NO  if (isset($my_website)) return R_TEMP_NAME_PREFIX . str_replace('.', ' DOT ', str_replace('/', ' SLASH ', $my_website));
   return R_TEMP_NAME_PREFIX . substr(md5('zot' . strval(REQUEST_TIME)), 0, 10); // pseudo random
-}
-
-/**
- * Set a transaction field for the current user.
- * @param string $fieldName: the field to update
- * @param mixed $newValue: what to update it to
- * @param int $xid: transaction id
- * NOTE: tx data['changes'] = [date, agent, field, oldvalue] (this gives a complete history of the transaction)
- *     (prefixes added to the payerFor or payeeFor fields when changing state will not be included in changes)
- */
-function setTxField($fieldName, $newValue, $xid) {
-  u\EXPECT(compact(u\ray('fieldName xid')), 'name zid');
-  $myid = acct()->id;
-  
-  $where = "xid=:xid and $myid in (payer, payee)"; // "$myid in" is a security measure
-  $txs = db\records('r_txs', $where, compact('xid'));
-  $tx = (array) $txs[0];
-  extract(u\just("$fieldName data payer payee amount goods payeeFor channel", $tx));
-  
-  $dataRay = unserialize($data);
-  $dataRay['changes'][] = array(REQUEST_TIME, acct()->agentId, $fieldName, $$fieldName);
-
-  $DBTX = \db_transaction();
-  
-  $financial = ($fieldName == 'goods' or $fieldName == 'amount'); // financial info changed
-  
-  if ($financial) {
-    extract(u\just('rebate bonus xfee', $dataRay));
-    $txsNeg = array(array('amount' => -$amount) + $tx); // negate the transaction amount
-
-    if (@$rebate or @$bonus or @$xfee) { // undo the extras
-      db\q('DELETE FROM r_txs WHERE serial=:xid AND xid<>:xid', compact('xid'));
-      foreach (u\ray('rebate bonus xfee') as $k) {
-        list ($from, $to) = array($k == 'xfee' ? $payer : -1, $k == 'rebate' ? $payer : $payee);
-        if (@$$k) $txsNeg[] = u\ray('type payer payee amount', u\consta('tx', $k), $from, $to, -$$k);
-        unset($dataRay[$k]);
-      }
-    }
-    r\cacheBothTotals($txsNeg); // subtract old values from cache
-    $$fieldName = $tx[$fieldName] = $newValue; // revise transaction record and update variable
-    $tx['data'] = $data = dataSetup($payer, $payee, $amount, $goods, $payeeFor, $dataRay, $channel);
-    $txs = array($tx);
-    r\txRewards($txs); // create new rewards transactions
-    r\cacheBothTotals($txs); // cache values for the revised transaction
-  } else $data = serialize($dataRay);
-
-  $sql = "UPDATE r_txs SET $fieldName=:newValue,data=:data WHERE $where";
-  db\q($sql, compact(u\ray('newValue data xid')));
-
-  unset($DBTX); // commit
 }
 
 /**
@@ -1335,7 +1118,7 @@ function makeDevice($uid, $code = '', $ch = NULL) {
  * @return the new uid
  */
 function deleteAccount($uid) {r\changeUid($uid, FALSE, FALSE, TRUE);}
-function changeUid($oldUid, $newUid = FALSE, $unusable = FALSE, $delete = FALSE) {
+function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
   $a = r\acct($oldUid);
   if ($delete) {
     foreach (u\ray('r_usd r_txs') as $table) {
@@ -1392,7 +1175,7 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = FALSE, $delete = FALSE)
   $DBTX = \db_transaction();
   foreach ($subs as $one) {
     list ($table, $field) = explode(':', $one);
-    if ($delete) {
+    if ($delete and in_array($one, u\ray('r_boxes:uid r_do:uid r_gifts:uid r_invites:inviter r_invoices:payee r_notices:uid r_proxies:person r_relations:main r_relations:other r_txs:payerAgent r_txs:payeeAgent r_user_industries:uid users:uid'))) {
       db\q("DELETE FROM $table WHERE $field=:oldUid", compact('oldUid'));
     } else db\q("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
   }
@@ -1411,10 +1194,11 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = FALSE, $delete = FALSE)
 /**
  * Package the return arguments and alert staff on certain errors.
  * @param string $message: the success or error message
- * @param assoc $info: message substitutions and other info about transaction
+ * @param assoc $info: (optional) message substitutions and other info about transaction
+ *   includes success=TRUE if the transaction was successful
  * @param bool $confirm: <to be confirmed> (default FALSE)
  */
-function txRet($message, $info, $confirm = FALSE) {
+function txRet($message, $info = array(), $confirm = FALSE) {
   if (!@$info['success']) r\tellStaff('failed transaction', $info);
   return array($message, $info, $confirm);
 }
@@ -1790,6 +1574,25 @@ EOF;
 }
 
 /**
+ * Interpret an integer bit array of risks.
+ * @param string $descs: a space-delimited string array of risk descriptions and weights
+ * @return formatted list of risk names, with HTML titles
+ */
+function riskList($risks, $descs) {  
+  global $riskHelp, $base_url;
+
+  $bitNames = array_keys($descs = u\ray($descs));
+  foreach ($bitNames AS $bit => $bitName) {
+    if (u\getBit($risks, $bit)) {
+      $class = $descs[$bitName] < 0 ? 'goodRisk' : 'badRisk';
+      $helpIndex = @$riskHelp ? array_search($bitName, array_keys($riskHelp)) : -1;
+      $why[] = "<a href=\"$base_url/help/flags@$bitName\" class=\"$class riskHelp$helpIndex\">$bitName</a>";
+    }
+  }
+  return @$why ? join(', ', $why) : '';
+}
+
+/**
  * Check account permissions for a transaction or invoice
  * @param acct $a1: the account paying or requesting payment
  * @param acct $a2: the other account
@@ -1842,7 +1645,7 @@ function tableField($field, $table, $which = '', $subs = array()) {
     }
   } elseif (!$which) return FALSE;
   
-  $result = db\records($table, is_numeric($which) ? "uid=$which" : $which, $subs, $field, TRUE);
+  $result = db\records($table, is_numeric($which) ? "uid=$which" : $which, $subs, $field);
   if (count($result) < 1) return FALSE;
   u\EXPECT(count($result) == 1, "ambiguous in tableField(): $which");
 ///  u\EXPECT(is_object($result[0]), 'bad object array in tableField(): ' . print_r($result, 1)); // keep this
@@ -1987,4 +1790,4 @@ function denyInv($nvid) {return db\setData('r_invoices', $nvid, u\ray('denied', 
 function stepsDone0() {return array_fill_keys(u\ray(R_STEPS), FALSE);}
 function isReward($type) {return in_array($type, u\ray(TX_REWARDS));}
 //function usdin($for) {return u\abbreviates('usd in (', strtolower(is_array($for) ? $for[1] : $for));}
-function usdin($for) {return u\abbreviates(S_USD_IN, strtolower(is_array($for) ? $for[1] : $for));}
+function usdin($for) {return u\abbreviates(S_USD_IN, is_array($for) ? $for[1] : $for, TRUE);}

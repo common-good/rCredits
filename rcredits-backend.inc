@@ -12,51 +12,7 @@ use rCredits\Util as u;
 use rCredits\Testing as t;
 use rCredits\Backend as be;
 
-define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows');
-/*
-define('API_URL', REAL ? (R_SITE_URL . '/api') : 'http://localhost/devcore/api');
-
-function send($data) {
-  $ch = curl_init();
-  curl_setopt($ch, CURLOPT_URL, API_URL);
-  curl_setopt($ch, CURLOPT_POST, 1); //post the data
-  curl_setopt($ch, CURLOPT_POSTFIELDS, prep($data));
-  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); //enable RETURN_TRANSFER so curl_exec() returns result of the request
-  $result = curl_exec($ch);
-  curl_close($ch);
-////  echo $result;
-  exit();
-}
-
-function prep($data) {
-  global $my_id, $code;
-  return array('json' => u\jsonEncode(compact('my_id', 'code') + $data));
-}
-*/
-
-/*
-function doOp($op0, $args, $interface = 'API', $success = 1) {
-  if (!@$op0) return error('no op');
-  $op = "rCredits\\$interface\\$op0";
-  $message = $result = function_exists($op) ? $op($args) : error('unknown op');
-  if (!is_array($result)) $result = compact('message');
-  return ($op0 == 'photo' or (!is_array($message) and strpos($message, '"success":"0"'))) ?
-      $message 
-    : apiOut(array_merge(compact('success'), $result)); // args can override success
-}
-
-function error($message, $subs = '', $success = 0) {
-  $message = u\tt($message, $subs);
-  return apiOut(compact('success', 'message'));
-}
-
-function apiOut($args) {
-  $result = u\jsonEncode($args);
-  u\loga('out', $args);
-  if (t\est()) {t\output($args, 'output'); return $result;}
-  exit($result);
-}
-*/
+define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows'); // used?
 
 /**
  * Return the user's bank transactions for the given period (inclusive)
@@ -382,13 +338,14 @@ function transfer($ttype, $a1, $a2, $amount, $goods = FALSE, $for, $created = NU
   u\EXPECT(compact(u\ray('a1 a2 goods confirmed data')), 'acct acct bool bool assoc');
 
   list ($myid, $uid) = array($a1->id, $a2->id);
+  $erInfo = compact(u\ray('ttype amount goods for')) + u\ray('a1 a2', $a1->fullName, $a2->fullName);
   $taking = ($ttype == 'charge');
   if (r\dupTx($uid, $myid, $taking ? $amount : -$amount)) return r\txRet('duplicate transaction', u\ray('op', $taking ? t('charged') : t('paid')));
   $reallyTaking = ($taking xor $amount < 0); // not taking if charging a negative amount
 
   // Check permissions
 //  if ($err = r\txPermErr($a1, $a2, $reallyTaking)) return r\txRet($err, array());
-  if ($err = r\txPermErr($a1, $a2, $taking, $amount < 0)) return r\txRet($err, array());
+  if ($err = r\txPermErr($a1, $a2, $taking, $amount < 0)) return r\txRet($err, $erInfo);
    
   // Analyze who's buying or selling
   list ($payer, $payee) = u\order($taking, $uid, $myid);
@@ -408,7 +365,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods = FALSE, $for, $created = NU
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 
   // Check the amount and calculate any balance shortfall
-  if ($error = u\badAmount($amount)) return r\txRet($error, array());
+  if ($error = u\badAmount($amount)) return r\txRet($error, $erInfo);
   $totalHit = $amount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
   if ($shortfall = @$data['force'] ? 0 : r\shortfall(abs($totalHit), $reallyTaking ? $a2 : $a1, $preapproved, $goods, $confirmed)) {
@@ -421,10 +378,10 @@ function transfer($ttype, $a1, $a2, $amount, $goods = FALSE, $for, $created = NU
   }
   
   $info = compact(u\ray('type created amount payer payee payerAgent payeeAgent for data taking goods'));
-  $txs = $confirmed ? r\transact($info, $preapproved) : array(r\txSetup($info));
+  if (!$x = new r\x($info, $confirmed)) return r\txRet('tx save err', $erInfo);
   
   // Report results
-  $args = r\txReportArgs($a1, $txs[0], TRUE, $shortfall);
+  $args = r\txReportArgs($a1, $x->ray, TRUE, $shortfall);
 
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $reallyTaking ? ($preapproved ? 'new charge' : 'new invoice')
@@ -490,7 +447,7 @@ function invoice($a1, $a2, $amount, $goods = FALSE, $purpose = NULL, $confirmed 
  * @param int $amount: how much to transfer
  * @param string $for: purpose of funding
  * @param bool $confirmed: actually do it? (otherwise just see if it can be done)
- * @return int: the incentive amount (FALSE if the current account does not have permission to do this)
+ * @return int: the incentive amount (FALSE on failure)
  */
 function fund($uid, $type, $amount, $for, $confirmed = TRUE) {
   $payeeAgent = $payee = $uid;
@@ -501,7 +458,7 @@ function fund($uid, $type, $amount, $for, $confirmed = TRUE) {
   
   $payer = r\acct($payee)->community;
   $payerAgent = (@$mya and $mya->id < 0) ? $mya->agentId : $payer; // take note if funded by community admin
-  r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')));
+  if (!new r\x(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')))) return FALSE;
   //$types = u\ray(TX_TYPES);
   $subs = u\ray('amount purpose', u\fmtAmt(abs($amount)), $for);
   $index = $type == TX_FINE ? 'got fine' : 'got funding';

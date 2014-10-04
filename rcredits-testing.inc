@@ -25,6 +25,7 @@ define('DW_TEST_AUTHS',
 . 'W6J/pu0Gu3aLD7htZ+2AKBjvi7dnHYXeU0VKHu0SRFoOZB3T7G '
 . 'v8bSxiLSb58y42i1lBeH7x1zxUrnygEnpe3AKFSy7HCjhTsC7V '
 );
+define('T_BALANCE_FIELDS', 'id r usd balance dwolla floor rewards minimum share committed');
 
 function doRecords($list, $type) {
   global $testOnly;
@@ -69,7 +70,7 @@ function companyFlags($list) {return doRecords($list, 'CompanyFlags');}
 function doBoxe($info = array()) {
   global $testOnly, $channel; // be careful not to overwrite channel with a local variable
   //$boxName = $info['boxName'];
-  $info['channel'] = @strtr(@$info['channel'], u\ray('sms app web', TX_SMS, TX_SMART, TX_WEB)) ?: $channel;
+  $info['channel'] = @strtr(@$info['channel'], u\ray('sms pos web', TX_SMS, TX_POS, TX_WEB)) ?: $channel;
   //if ($testOnly) $boxName = htmlspecialchars(@$boxName);
   return doThing($info, 'boxe');
 }
@@ -102,12 +103,14 @@ function doAccount($info = array()) {
     u\setDft($community, r\serverUid());
     u\setDft($postalCode, '01301');
     u\setDft($country, 'US');
+    u\setDft($postalAddr, @$address . ', ' . @$city . ', ' . r\realState(@$state, $country) . ' ' . $postalCode);
+
     $moneyFields = 'share committed floor r usd rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
     if (@$cc) $cardCode = $cc;
     if (@$cc2) $cardCode2 = $cc2;
 
-    $fixFields = 'rebate fullName legalName name pass mail secure community postalCode country cardCode cardCode2 ' . $moneyFields;
+    $fixFields = 'rebate fullName legalName name pass mail secure community postalCode country postalAddr cardCode cardCode2 ' . $moneyFields;
   } else $fixFields = '';
 
   if (isset($flags)) {
@@ -121,13 +124,8 @@ function doAccount($info = array()) {
     
     if (isset($acctType)) $flags |= (($acctType === R_PERSONAL or $acctType == 'personal') ? 0 : u\bit(B_CO)); // === required
   }
-  print_r(compact('$risks','$risks0','flags'));
-  if (isset($risks)) {
-    $risks0 = $risks;
-    $bits = array_flip(array_keys(u\ray(K_ACCT_RISKS)));
-    $risks = 0;
-    if ($risks0) foreach (u\ray($risks0) as $bit) $risks |= $bits[$bit];
-  }
+
+  if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
   
   foreach (u\ray('id email acctType dw cc cc2') as $one) unset($info[$one]);
   u\preray(compact(u\ray('uid flags risks ' . $fixFields)), $info);
@@ -136,11 +134,12 @@ function doAccount($info = array()) {
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return output("No such uid: $uid");
     $acct->reread(TRUE); // this is required, for example, for cron's Trust test
-    foreach ($info as $key => $value) {
+    foreach ($info as $key => $want) {
       if ($key == 'uid') $key = 'id';
-      if (!eq($acct->$key, $value)) {
+      $actual = ($key == 'trust' or $key == 'risk') ? round($acct->$key, 2) : $acct->$key;
+      if (!eq($actual, $want)) {
         if ($key == 'pass' and (!isset($pass) or r\Web\passwordOkay($acct, @$pass))) continue;
-        return output("Wrong value for $key (uid=$uid). Expected:$value Got:" . $acct->$key);
+        return output("uid $uid -- Wrong value for $key. Expected:$want Got:$actual");
       }
     }
     return TRUE;
@@ -189,42 +188,55 @@ function doTx($info, $thing) {
   extract($info);
 
   u\setDft($created, REQUEST_TIME);
-  $payer = uid($from);
-  $payee = uid($to); 
+  if (@$from) $payer = uid($from);
+  if (@$to) $payee = uid($to); 
 //  u\setDft($r, $amount);
 //  if ($amount != $r) u\setDft($usdXid, 10000 + $xid);
-  $for = @$purpose ?: 'cash';
-  if (strpos($for, ',')) $for = explode(',', $for); // specifying both payerFor and payeeFor
-
+  if (@$purpose) $for = $purpose; // ?: 'cash';
+  if (strpos(@$for, ',')) $for = explode(',', $for); // specifying both payerFor and payeeFor
   foreach (u\ray('from to for') as $one) unset($info[$one]);
+  if (isset($risks)) {
+    $risks = getRisks($risks, K_TX_RISKS);
+  } 
+
+  if (!$testOnly) u\setDft($risk, NULL); // indicates that risk has not been calculated yet
   
   if ($inv) {
-    u\setDft($goods, u\forCash($for) ? 0 : 1);
+    u\setDft($goods, u\forCash(@$for) ? 0 : 1);
   } else {
     if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
     u\setDft($type, TX_TRANSFER);
     foreach (u\ray('type') as $one) if (!is_numeric($$one)) $$one = u\consta('tx', $$one);
-    u\setDft($goods, ($type != TX_TRANSFER or u\forCash($for)) ? 0 : 1);
+    u\setDft($goods, ($type != TX_TRANSFER or u\forCash(@$for)) ? 0 : 1);
     if ($goods) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
-    $payerAgent = uid(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
-    $payeeAgent = uid(@$toAgent ?: $to );
+    $data = array();
+    if (u\in(@$purpose, 'offline')) $data['force'] = 1;
+    if (u\in(@$purpose, 'undoneBy:') or u\in(@$purpose, 'undoes:')) {
+      list ($k, $v) = explode(':', @$purpose);
+      $data += array($k => $v);
+    }
+    if (@$fromAgent or @$from) $payerAgent = uid(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
+    if (@$toAgent or @$to) $payeeAgent = uid(@$toAgent ?: $to );
     u\setDft($taking, 0);
     unset($info['purpose']);
-    $info = compact(u\ray('xid created payer payerAgent payee payeeAgent type channel goods taking')) + $info;
+    $fields = 'xid payer payerAgent payee payeeAgent type goods taking data risk risks';
+    if (!$testOnly) $fields .= ' channel created';
+    $info = compact(u\ray($fields)) + $info;
   }
 
   if ($testOnly or @$type == TX_REBATE or @$type == TX_BONUS) {
     if ($inv) return verifyRecord('r_invoices', $info);
-    if ($testOnly) list ($info['payerFor'], $info['payeeFor']) = is_array($for) ? $for : array($for, $for);
+    if ($testOnly and @$for) list ($info['payerFor'], $info['payeeFor']) = is_array($for) ? $for : array($for, $for);
     unset($info['for']);
+    if (!$testOnly) unset($info['risk']);
     return verifyRecord('r_txs', $info); // fails if rebate/bonus description is wrong (so omit it on create)
   }
   
   if ($inv) {
     return db\insert('r_invoices', $info);
   } else {
-    $txs = r\transact($info + compact('for'));
-    return $txs[0]['xid'];
+    $x = new r\x($info + compact('for'));
+    return $x->id;
   }
 }
 
@@ -351,7 +363,7 @@ function doneStep($uid, $step) {
  */
 function doMemberFields($one) {
   global $testOnly;
-  $balFields = u\just('id dw/usd r usd balance dwolla floor rewards minimum share committed', $one);
+  $balFields = u\just(T_BALANCE_FIELDS. ' dw/usd', $one);
   if (!doBalance($balFields, $testOnly)) return;
 
   $a = r\acct($id = t\uid($one['id']));
@@ -363,7 +375,7 @@ function doMemberFields($one) {
       if (t\badEq("db $key", $a->$key, $value, $id)) return FALSE;
     }
     return TRUE;
-  } else return ($a->update($one));
+  } else return ($one ? $a->update($one) : TRUE); // handle no fields other than balFields
 }
 
 /**
@@ -374,6 +386,7 @@ function memberFieldValues($list) {
   foreach ($list as $one) {
     extract(u\just('id field value', $one));
     $a = r\acct(t\uid($id));
+    if ($field == 'helper' or $field == 'community') $value = t\uid($value);
     if ($testOnly) {
       if (t\badEq('fieldValue wanted/actual:', $value, $a->$field, $id)) return FALSE;
     } else $a->update($field, $value);
@@ -393,7 +406,7 @@ function doBalance($one) {
     $one['usd'] = $one['dwolla'] = $one['dw/usd'];
     unset($one['dw/usd']);
   }
-  extract(u\just('id r usd balance dwolla floor rewards minimum share committed', $one));
+  extract(u\just(T_BALANCE_FIELDS, $one));
   if (!$a = r\acct($id = t\uid($id0 = $id))) return t\output("account $id0 does not exist");
 /// print_r(compact('a','id','id0'));
 /// print_r(' unQuid=' . r\unQuid($id0));
@@ -408,7 +421,7 @@ function doBalance($one) {
     }
     unset($one['id']);
     unset($one['dwolla']);
-    return ($a->update($one));
+    return ($one ? $a->update($one) : TRUE); // handle only id being passed
   }
 
   // verify
@@ -452,16 +465,18 @@ function usdTransfers($txs) {
   
   foreach ($txs as $tx) {
     if ($testOnly) {
-      extract(u\just('payer payee amount', $tx));
-      $payer = t\uid($payer);
-      $payee = @$payee ? (is_numeric($payee) ? $payee : t\uid($payee)) : 0;
+      extract(u\just('payer payee', $tx));
+      if (@$payer) $tx['payer'] = t\uid($payer);
+      if (@$payee and !is_numeric($payee)) $tx['payee'] = t\uid($payee);
 ///      debug(compact(u\ray('payer payee amount')));
-      if (!db\exists('r_usd', 'payer=:payer AND amount=:amount and payee=:payee', compact(u\ray('payer payee amount')))) return FALSE;
+      return verifyRecord('r_usd', $tx);
     } else {
       foreach (u\just('payer payee', $tx) as $key => $value) {
         if ($value) $tx[$key] = t\uid($value);
       }
       u\setDft($tx['txid'], t\seq());
+      u\setDft($tx['risk'], NULL);
+      u\setDft($tx['created'], @$tx['completed']);
       if (!db\insert('r_usd', $tx)) return FALSE;
       extract($tx);
       $a1 = r\acct($payer);
@@ -499,7 +514,7 @@ include_once __DIR__ . '/../rcredits/rcredits-testing.inc';
 f('t.cronRuns', 'op');
  */
 function cronRuns($op) {
-  global $testOnly; if($testOnly) return FALSE;
+  global $testOnly; if(@$testOnly) return FALSE;
   global $cronOp; $cronOp = $op;
   $func = "rCredits\\Cron\\$op";
 
@@ -802,7 +817,7 @@ function logIn($id) {
  * Ignore fields with value "?".
  * Example call:
  *   $info = doRelation($info, TRUE);
- *   return verifyRecord('relations', $info);
+ *   return verifyRecord('r_relations', $info);
  */
 function verifyRecord($table, $info) {
 ///debug(compact('table','info'));
@@ -811,7 +826,7 @@ function verifyRecord($table, $info) {
   unset($info['data']);
   foreach ($info as $key => $value) {
     if ($value == '?') {unset($info[$key]); continue;}
-    $crit[] = $value === '' ? "($key IS NULL or $key='')"
+    $crit[] = $value === '' ? "($key IS NULL or $key=:$key)"
     : ((in_array($key, u\ray(R_DATE_FIELDS)) or stripos($key, 'date') !== FALSE) ? 
       "$key-($key%:DAY_SECS)<=>:$key-(:$key%:DAY_SECS)" 
     : (in_array($key, u\ray('trust risk')) ? "CAST(ROUND($key, 2) AS CHAR)<=>:$key"
@@ -914,7 +929,7 @@ function pageForm($page, $msg = '', $field = '') {
   $xlastGo = @$lastGo; // notice whether a goto happens. ignore all but the deepest (last).
 
   if (u\abbreviates('/user/', $page)) {
-    $login = (strpos($page, 'user/login') !== FALSE);
+    $login = u\in($page, 'user/login');
     $sta = @$formSta ?: array();
     list ($form, $function) = FALSE ? array('user_register_form', 'formRegister')
       : ($login ? array('user_login', 'formLogin') : array());
@@ -1091,7 +1106,7 @@ function clear($ch) {
   global $channel; $channel = $ch;
 
   $cgfUid = r\cgfId();
-  $tables = 'r_boxes r_do r_gifts r_invites r_log r_notices r_proxies r_relations r_txs r_invoices r_stats r_usd r_user_industries queue';
+  $tables = 'r_ach r_boxes r_do r_gifts r_invites r_invoices r_log r_notices r_proxies r_relations r_stats r_txs r_usd r_user_industries queue';
 
   //db\q('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   db\q('DELETE FROM users WHERE uid>1 or uid<0');
@@ -1127,6 +1142,20 @@ function fixPageArgs($page) {
     $page = preg_replace($pat, "$start$word=$what$end", $page);
   }
   return $page;
+}
+
+/**
+ * Interpret the risk bits.
+ * @param string $risks0: comma-separated list of names of risk bits to set
+ * @param string $descs: comma-separated list of all possible risk bit names, with weights
+ * @return an integer bit array of the desired risks
+ */
+function getRisks($risks0, $descs) {
+  if (!$risks0) return 0;
+  $bits = array_flip(array_keys(u\ray($descs)));
+  $risks = 0;
+  foreach (u\ray($risks0) as $bit) $risks |= u\bit($bits[$bit]);
+  return $risks;
 }
 
 /**
@@ -1182,7 +1211,7 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   $xi = $i = 0;
   foreach ($A as $one) {
     if ($one === '' or substr($one, 0, 1) == '_') continue; // ignore _labels
-    if (strpos($one, '%') !== FALSE) $one = t\lastMinuteSubs(htmlspecialchars($one));
+    if (u\in($one, '%')) $one = t\lastMinuteSubs(htmlspecialchars($one));
     if ($showDebugs) t\output("EXPECT page with " . u\purify($one, ''));
     if (($one = u\redash($one)) !== '') $i = strpos($model, $one, $xi = $i);
     if ($showDebugs) t\output(compact('xi','i','one'));

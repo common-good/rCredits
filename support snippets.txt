@@ -1,0 +1,74 @@
+SIGN IN. To sign in to your rCredits account. Go to rCredits.org and click "Sign in" in the upper right corner. Type your account code (or username or email address) and password. Your username is normally your full name, all lowercase with no spaces.
+___________________________________________________________________
+
+FORGOT PASSWORD. If you lost your password, click "Forgot it". A temporary password will be emailed to you within a minute or so. Sign in with that temporary password to choose a new (or the same) permanent password.
+___________________________________________________________________
+
+TRANSACTION HISTORY. To view your transaction history, click the Transactions tab. Choose a number of days or enter specific dates. Then click Show to see the transactions on-screen, or click Download to get a spreadsheet that includes the totals for that period.
+___________________________________________________________________
+
+TRANSFERS FROM THE BANK.
+Automatic transfers from your bank account are always multiples of $10. Otherwise, just enough is taken to bring you back up to your minimum.
+When you use your rCard, causing your rCredits account balance to go below your chosen "minimum", the rCredits system transfers more money in from your checking account -- always a multiple of $10. This transfer is reported to you on your weekly "rCredits Notices".
+You can treat your rCredits account just like a bank account. It has a balance. When you spend money from your rCredits account or move money out, the balance goes down. Money can go out of your rCredits account in 3 ways:
+When you pay for something with rCredits (usually by using your rCard)
+When you donate to Common Good Finance (including donating some of your incentive rewards every month).
+When you explicitly move money from your rCredits account to your bank account. This makes your checking account balance go up, the same amount that your rCredits balance goes down.
+Likewise when you get money into your rCredits account, the balance goes up. You get money into your account in three ways:
+Somebody gives you money (for example, Common Good Finance sent you $25 to refund your "deposit" from the 2003 S2BE system)
+You get incentive rewards or a monthly inflation adjustment.
+You move some money in from your checking account (which happens automatically if your rCredits balance goes below your chosen "minimum"). This makes your checking account balance go down, the same amount that your rCredits balance goes up.
+___________________________________________________________________
+
+You can keep this from happening so often by increasing your minimum. You currently have it set at $50. Otherwise, here's what typically happens:
+You start with $50 in your account.
+You spend $40 on groceries, leaving you $10 plus a $5 bonus = $15.
+That night the rCredits system requests $40 more from your bank account.
+Two days later, you try to buy some more groceries, but there's still only $15 in your account because the bank transfer takes 3-5 business days.
+___________________________________________________________________
+
+HOW IS THE SYSTEM SELF-SUSTAINING? The rCredits system itself currently has neither income nor expenses, in the usual sense. We, as a community, are issuing credit -- very much like gift certificates that we all agree to accept for our goods and services -- except that the certificates circulate. That is, whoever accepts a certificate can then spend it. The local effect is the same as if we could just print dollar bills.
+___________________________________________________________________
+
+There is a limit to how many rCredits we can issue. So we must use our ability to issue them wisely, to create a self-sustaining local economy. There are two phases in that path:
+In the short term, members volunteer a percentage of their transaction incentives as a donation to support administration of the system. During this phase, Common Good Finance is handling the administration, but at some point the members will (collectively) take over.
+Once there is enough interest and active participation to be a functioning Common Good Community, we (the Greenfield rCredits / Common Good Community) can issue rCredits together as grants, zero-interest loans, and equity investments, to promote the sustainable well being of our community and everyone in it. The community's investments will provide an income stream to pay administrative costs of the system.
+___________________________________________________________________
+
+3. Here are some things to read, to get the full picture:
+rCredits.org (follow all the links)
+The members' site: click "The Agreement" at the bottom of any page and follow the links in the agreement.
+For a broader understanding of what is money and what other communities are doing to create sustainable local economic systems, there is plenty of great information out there to keep you busy for years. On of our board members put together a good list of resources on The Credit to the People site (http://www.credittothepeople.org/Resources.html).
+___________________________________________________________________
+
+BACKING. How are rCredits backed? First rCredits are backed by every member's agreement to accept rCredits as payment for their goods and services (including labor). Second, rCredits are backed by every member's promise to return the rCredits they got free
+___________________________________________________________________
+
+INVITATION. I just emailed you an invitation to rCredits, the community-centered democratic economic system I've been working on (with a lot of other people) for the past decade. I hope you'll sign up.
+
+If you don't see the invitation, check your spam folder. If the invitation is not in your spam folder, go to rCredits.org, click on "Accept an invitation" under the red button on the left, and type your email into the form.
+___________________________________________________________________
+
+TO OPEN A COMPANY ACCOUNT: Sign in to your account at rCredits.org and click the "Open Another Account" button. Follow the steps to create a company account for your business. To set up and manage your new company account, sign in to your PERSONAL account and choose the company from the dropdown in the upper right corner. After a day or two you will receive in the mail a Company Agent rCard that you can use for business purchases. You can also use your Company Agent rCard to set up the rPOS app on your Android smartphone.
+___________________________________________________________________
+
+TO ACCEPT RCREDITS PAYMENTS: Use an Android smartphone or tablet. Get the free rPOS app from Google's Play Store. Run the app and give it a try! Here are more detailed instructions:
+___________________________________________________________________
+
+RESPONSE TO REQUESTS FOR AN INVITATION
+Great that you want to participate! How did you hear about rCredits?
+
+You have to be invited by somebody who knows you, to open an account (that's part of our Policy to Prevent Financial Crime). So we will try to find an existing member who knows you and ask them to send you an invitation. Meanwhile, if you know someone who has an rCredits account, feel free to ask them for an invitation (to invite someone, they just have to sign in at rCredits.org and click the Invite tab). Thanks for requesting an invitation!
+
+But I see you are friends with XXX and I'm inviting her, so maybe she will invite you?
+___________________________________________________________________
+
+RCREDITS POS PROCEDURES STEP BY STEP
+https://docs.google.com/document/d/1Y5izb3OwGfMQlglcyNmKojyhXffivPHUpauqIzuQVwY
+___________________________________________________________________
+
+You can also send an rCredits invoice to a customer (using the "Charge" tab), which they can just click to pay you in rCredits. Or they can use their "Pay" tab to pay you in rCredits on their initiative.
+___________________________________________________________________
+
+routing
+211870799 GSB

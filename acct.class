@@ -164,7 +164,7 @@ class acct {
     if ($field == 'qid') return $this->proSe ? $this->mainQid : r\quid($this->id, $this->agentId);
     if ($field == 'ctty') return ($this->id < 0);
     if ($field == 'region') return r\uidRegion($this->id);
-    if ($field == 'owns') return !$this->risk(K_RENTS);
+    if ($field == 'owns') return !$this->risk('rents');
 
     if (in_array($field, u\ray(R_SECRET_FIELDS))) $this->getHidden();
     $result = @self::$records[$this->id]->$field; // returns NULL if field not set
@@ -314,6 +314,15 @@ class acct {
   }
 
   /**
+   * Return the account's name and qid, with a link to a fuller description.
+   */
+  public function linkedDesc() {
+    global $base_url;
+    $qid = "<a href=\"$base_url/sadmin/acct-info/$this->mainQid\">$this->mainQid</a>";
+    return "$this->fullName ($qid)";
+  }
+  
+  /**
    * Calculate updated r, rewards, and committed caches for a transaction (but do not write to db)
    * @param assoc $tx: the transaction record (or at least these fields: payer, payee, amount, type)
    * @param int $type: transaction type
@@ -456,8 +465,7 @@ EOF;
         list ($fromQuid, $toQuid) = array(r\quid($uid), $this->mainQid);
         list ($payer, $payee) = array($uid, $this->id);
         $for = array($auto . $to . $toQuid, $auto . $from . $fromQuid);
-        r\transact(compact(u\ray('amount payer payee for')));
-        $left -= $amount;
+        if (new r\x(compact(u\ray('amount payer payee for')))) $left -= $amount;
         if ($left <= 0) break;
       }
       
@@ -595,12 +603,12 @@ EOF;
    */
   function stepDone($step, $details = array()) {
     $stepsDone = $this->stepsDone ?: r\stepsDone0();
-    if (!$this->member and !$stepsDone[$step]) { // unless already done
+    if (!$stepsDone[$step]) { // unless already done
       $stepsDone[$step] = TRUE;
       $this->update(compact('stepsDone'));
       r\tellStaff('Step completed: ' . strtoupper($step), $details, $this->id);
 
-      if ($step == 'dw' and $stepsDone['connect']) r\Web\connectBank($this);
+      if (!$this->member and $step == 'dw' and $stepsDone['connect']) r\Web\connectBank($this);
     }
     
     if (!$nextStep = $this->nextStep()) r\membershipEvent($this, 'member');
@@ -774,7 +782,7 @@ EOF;
    */
   public function setRisks($values) {
     $risks = 0;
-    foreach ($values as $bit) u\setBit($risks, $bit);
+    if ($values) foreach ($values as $bit) u\setBit($risks, $bit);
     $this->update(compact('risks'));
   }
   
@@ -783,6 +791,7 @@ EOF;
    * @param array $values: numeric array of bit values (eg [3 => 3, 5 => 5])
    */
   public function setBits($values) {
+    u\setDft($values, array()); // fails in arg list (dunno why)
     $flags = $this->flags;
     foreach (u\ray(B_ADMINABLE) as $bitName) { // set all these on or off
 //      if (substr($bitName, 0, 1) == 'u') continue; // lowercase u means undefined
@@ -819,9 +828,11 @@ EOF;
       $can[B_ADMIN] = $aa->admin;
       $can[B_CADMIN] = $aa->cAdmin;
       $can[B_CADMIN2] = $aa->can(B_CADMIN2);
+      $can[B_REGULATOR] = $aa->can(B_REGULATOR);
     }
     
-    if ($can[B_CADMIN]) $can[B_CADMIN2] = TRUE; // community admin has subordinate powers also
+    if ($can[B_CADMIN]) $can[B_CADMIN2] = TRUE; // community admin has subordinate powers too
+    if ($can[B_CADMIN2]) $can[B_REGULATOR] = TRUE;
     $can[B_PERSONISH] = !$can[B_CO] or $can[B_ADMIN];
 
     $perm = $this->proSe ?
@@ -837,7 +848,7 @@ EOF;
     
     if ($can[B_ADMIN]) {
       if (R_ADMIN_CAN_MANAGE_CTTYS) {
-        $can[B_CADMIN] = $can[B_CADMIN2] = TRUE; // temporary extra power, until communities are independent
+        $can[B_CADMIN] = $can[B_CADMIN2] = $can[B_REGULATOR] = TRUE; // temporary extra power, until communities are independent
         $can[B_READ] = $can[B_SCAN] = $can[B_SELL] = $can[B_BUY] = $can[B_MANAGE] = TRUE;
       }
       if ($this->proSe) $can[B_CO] = TRUE; // show company settings on own account (for debugging)

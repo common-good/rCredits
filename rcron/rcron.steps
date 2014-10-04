@@ -58,7 +58,7 @@ function extraSubs(&$subs) {
  *     MAKE Pool Setup
  *     MAKE Recache Setup
  *     BOTH Risk Setup
- *     TEST Risk WeCalculateAccountRisks
+ *     TEST Risk WeCalculateRisks
  *     MAKE Sharing Setup
  *     MAKE Tickle Setup
  *     MAKE Trust Setup
@@ -78,6 +78,8 @@ function members($list) {return t\members($list);}
  *     MAKE Bank AMemberIsWellBelowMinimum
  *     MAKE Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
+ *     MAKE Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
+ *     MAKE Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Gifts Setup
  *     MAKE Homogenize Setup
  *     TEST Homogenize LevelingHappens
@@ -107,6 +109,8 @@ function balances($list) {return t\balances($list);}
  *     MAKE Bank AMemberIsWellBelowMinimum
  *     MAKE Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
+ *     MAKE Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
+ *     MAKE Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Gifts ADonationCanBeCompleted
  *     MAKE Gifts ARecurringDonationCanBeCompleted
  *     MAKE Homogenize LevelingHappens
@@ -118,7 +122,7 @@ function balances($list) {return t\balances($list);}
  *     MAKE Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
  *     MAKE Risk Setup
- *     MAKE Risk WeCalculateAccountRisks
+ *     MAKE Risk WeCalculateRisks
  *     MAKE Sharing InflationAdjustmentsAreDistributed
  *     MAKE Tickle ANewbieHasNotTakenTheFirstStep
  *     MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
@@ -144,6 +148,8 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     TEST Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
  *     MAKE Inflation Setup
  *     TEST LostUsdTxs ASystemCrashLeavesATransactionIncomplete
+ *     MAKE Risk Setup
+ *     TEST Risk WeCalculateRisks
  */
 function usdTransfers($tx) {return t\usdTransfers($tx);}
 
@@ -152,6 +158,8 @@ function usdTransfers($tx) {return t\usdTransfers($tx);}
  *
  * in: TEST Bank AMemberIsAtMinimum
  *     TEST Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
+ *     TEST Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
+ *     TEST Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  */
 function bankTransferCountIs($count) {return (t\usdTransferCount('payee=0') == $count);}
 
@@ -176,6 +184,8 @@ function relations($relations) {return t\relations($relations);}
  *     MAKE LostUsdTxs Setup
  *     MAKE Pool Setup
  *     MAKE Recache Setup
+ *     MAKE Risk Setup
+ *     TEST Risk WeCalculateRisks
  *     MAKE Sharing Setup
  *     TEST Sharing InflationAdjustmentsAreDistributed
  *     MAKE Tickle AMemberGetsACreditLine

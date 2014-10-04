@@ -21,6 +21,7 @@ Setup:
   And members have:
   | id   | usdAccount |*
   | ctty | cttyAcct   |
+# cttyAcct is apparently ignored (look into that)
 
 # (no longer leaving anything unpooled)
 # Scenario: Normal pooling happens

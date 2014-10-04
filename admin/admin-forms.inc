@@ -37,8 +37,8 @@ function formAdmin($form, &$sta, $args = '') {
     $do1099b = submit('1099B');
     $tables .= ' notices boxes do log stats usd';
   }
-  if ($ctty = $mya->community) {
-    $cttyName = r\acct($ctty)->name;
+  if (!$admin and $ctty = $mya->community) {
+    $cttyName = @r\acct($ctty)->fullName; // @ for testing
     if ($mya->cttyUp) $stopCtty = submit(t('STOP ') . $cttyName); else $startCtty = submit(t('START ') . $cttyName);
   }
   
@@ -48,12 +48,15 @@ function formAdmin($form, &$sta, $args = '') {
   $printId = submit(t('Print ID'));
   $connectBank = submit(t('Connect Bank'));
   $seeSecure = submit(t('See Secure'));
+  $seeData = submit(t('See Data'));
   $newUsdEmail = submit(t('New USD Email'));
-  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeSecure connectBank do1099b')));
+  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeSecure connectBank do1099b')));
   
   $form = compact('title');
-  foreach (u\ray($tables) as $one) $form[$one] = submit($one);
-  $form += compact(u\ray('memberList inviteeStatus makeCtty stop start stopCtty startCtty acctSet'));
+  if ($mya->cAdmin) {
+    foreach (u\ray($tables) as $one) $form[$one] = submit($one);
+    $form += compact(u\ray('inviteeStatus stop start stopCtty startCtty acctSet'));
+  }
   return $form;
 }
 
@@ -91,6 +94,8 @@ function formAdmin_submit($form, &$sta) {
       say(u\rayTable(u\ray('legalName dwAccount phone federalId dob physicalAddr', @$a->legalName, @$a->usdAccount, substr(@$a->phone, 2), @$a->federalId, u\fmtDate(@$a->dob), @$a->address . ' ' . $a->postalCode)));
       seeSecure($a);
     }
+  } elseif ($op == 'seeData') {
+    if (@$a and $a->proSe) say(u\rayTable($a->data, FALSE, TRUE));
   } elseif ($op == 'connectBank') {
     r\Web\connectBank($a);
   } elseif ($op == 'do1099b') {
@@ -223,7 +228,7 @@ function formMemberList($form, &$sta) {
     $notes = str_replace("\n", "<br>\n", $notes);
     $notes = str_replace('do:', '<b style="color:blue; font-size:130%;">do:</b>', $notes);
     $a = r\acct($uid);
-    $fullName = "<a href=\"$base_url/sadmin/member-info/$a->mainQid\">$fullName</a>";
+    $fullName = "<a href=\"$base_url/sadmin/acct-info/$a->mainQid\">$fullName</a>";
     $steps = a\showSteps($a);
     $date = u\fmtDate($a->ok ? $access : $login);
 

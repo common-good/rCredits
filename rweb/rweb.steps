@@ -77,7 +77,10 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
 /**
  * member (ARG) confirms form (ARG) with values: (ARG)
  *
- * in: MAKE Contact AMemberUpdatesContactInfo
+ * in: MAKE Company AMemberUpdatesCompanyInfo
+ *     MAKE Company AMemberGivesABadEmployeeCount
+ *     MAKE Company AMemberGivesABadGross
+ *     MAKE Contact AMemberUpdatesContactInfo
  *     MAKE Contact AMemberGivesABadPhone
  *     MAKE Contact AMemberGivesABadEmail
  *     MAKE Contact AMemberUpdatesToADifferentState
@@ -158,6 +161,8 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  * in: MAKE Bank Setup
  *     MAKE Boxes Setup
  *     MAKE Community Setup
+ *     MAKE Company Setup
+ *     TEST Company AMemberUpdatesCompanyInfo
  *     MAKE Contact Setup
  *     TEST Contact AMemberUpdatesContactInfo
  *     TEST Contact AMemberUpdatesToADifferentState
@@ -266,7 +271,10 @@ function weSayWithSubs($type, $index, $subs) {
 /**
  * we say (ARG): (ARG)
  *
- * in: TEST Contact AMemberUpdatesContactInfo
+ * in: TEST Company AMemberUpdatesCompanyInfo
+ *     TEST Company AMemberGivesABadEmployeeCount
+ *     TEST Company AMemberGivesABadGross
+ *     TEST Contact AMemberUpdatesContactInfo
  *     TEST Contact AMemberGivesABadPhone
  *     TEST Contact AMemberGivesABadEmail
  *     TEST Contact AMemberUpdatesToADifferentState
@@ -368,6 +376,7 @@ function weShowWithSubs($page, $subs) {
  * in: TEST Boxes AMemberVisitsTheDevicesPageWithNoDevicesYet
  *     TEST Boxes AMemberHasAllKindsOfDevices
  *     TEST Community CronCalculatesTheStatistics
+ *     TEST Company AMemberVisitsTheCompanyInfoPage
  *     TEST Contact AMemberVisitsTheContactInfoPage
  *     TEST Get AMemberAsksToDoTwoTransfersOutInOneDay
  *     TEST RealUsd AMixedRCreditsUSDTransactionHappens
@@ -455,6 +464,7 @@ function withoutOptions($options) {
  * relations: (ARG)
  *
  * in: MAKE Community Setup
+ *     MAKE Company Setup
  *     MAKE Download Setup
  *     MAKE EditTx Setup
  *     MAKE Flow Setup
@@ -519,6 +529,7 @@ function usd($list) {return t\usd($list);}
  * in: MAKE Boxes AMemberVisitsTheDevicesPageWithNoDevicesYet
  *     MAKE Boxes AMemberHasAllKindsOfDevices
  *     MAKE Community CronCalculatesTheStatistics
+ *     MAKE Company AMemberVisitsTheCompanyInfoPage
  *     MAKE Contact AMemberVisitsTheContactInfoPage
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
  *     MAKE RealUsd AMixedRCreditsUSDTransactionHappens

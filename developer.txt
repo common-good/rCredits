@@ -142,13 +142,14 @@ E. Database clues
      . payer: uid of the account being debited.
 	 . payee: uid of the account being creditd. CANNOT BE A COMMUNITY (uid<0) until getStats() is revised.
      . amount: the transaction amount
-     . data: We use this to store non-essential and unusual essential information in a serialized associative array:
+     . data: non-essential and unusual essential information in a serialized associative array:
 		   undoneBy: xid of the transaction that reversed this one (if it is reversed)
 		   undoes: the transaction id of the undone transaction that this transaction reversed
 		   bonus and rebate: the dollar amounts of any rewards associated with a payment
 		   preapproved: (not in the table, just internally) transaction is preapproved by another server (a payment or an authorized business unilaterally charging a customer)
 		   disputed: TRUE if the payer disputes the transaction (else not set)
 		   force: 1/-1 if transaction was taken offline (-1 if the transaction reverses another transaction)
+		   changes: array of important changes made to the record
    (more to come...)
    - r_usd: record of USD transactions, so that can be rolled back if not in this table
        ALSO a record of what deposits and withrawals (to/from the USD bank) have been made/completed

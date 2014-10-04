@@ -17,7 +17,7 @@ Scenario: A member visits the devices page with no devices yet
 Scenario: A member has all kinds of devices
   Given devices:
   | id   | channel | code         | boxnum | boxName   | access    |*
-  | .ZZA | app     | A3           |      3 |           | %today-4w |
+  | .ZZA | pos     | A3           |      3 |           | %today-4w |
   | .ZZA | sms     | +12002002000 |      2 |           | %today-2d |
   | .ZZA | sms     | +14004004000 |      4 | whatEver  | %today-3w |
   When member ".ZZA" visits page "account/boxes"

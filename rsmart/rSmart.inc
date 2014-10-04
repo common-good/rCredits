@@ -6,7 +6,7 @@ use rCredits\Util as u;
 use rCredits\Backend as be;
 use rCredits\Testing as t;
 
-define('PRESTORE', TRUE); // accommodate the pre-Google Store app until everyone has switched over
+define('PRESTORE', FALSE); // accommodate the pre-Google Store app until everyone has switched over
 /**
  * @file
  * Smart phone interface to the rCredits system.
@@ -50,7 +50,7 @@ define('RPOS_FILENAME_DEBUG', 'http://rc4.me/rPOS-debug-unaligned.apk');
 define('R_QR_HEADER', 'HTTP://RC2.ME/I/'); // for transient QR IDs
 define('R_TRANSIENCE', 60); // number of seconds for device's transient QR to be valid
 
-$GLOBALS[TX_SMART . ' messages'] = array(
+$GLOBALS[TX_POS . ' messages'] = array(
   'bad customer' => t('That rCard is not valid.'),
   'bad agent' => t('That is not a valid agent rCard.'),
   'agent cannot scan' => t('That agent is not authorized to charge customers.'),
@@ -75,7 +75,7 @@ $GLOBALS[TX_SMART . ' messages'] = array(
  *   message: an error message or help message to display on the device; or not set
  */
 function pos($args = FALSE) {
-  global $channel; $channel = TX_SMART;
+  global $channel; $channel = TX_POS;
   global $scanned; $scanned = true;
   global $mya;
   
@@ -191,7 +191,7 @@ function identify($args) {
         if ($owner = db\lookup('uid', 'r_boxes', 'code=:device', compact('device')) and !r\acct($owner)->coCan(CO_REQUIRE_CASHIER)) return posErr('restricted');
       } else $device = u\code(R_CODE_LEN); */
       if (!$device) $device = u\code(R_CODE_LEN);
-      r\makeDevice($a->id, $device, TX_SMART); // card is legit, so use device's code, if any
+      r\makeDevice($a->id, $device, TX_POS); // card is legit, so use device's code, if any
     }
 /*  $restricted = db\lookup('restricted', 'r_boxes', 'code=:device', compact('device')); // 1 or 0
     if (@$restricted === FALSE) return posErr('unknown device');

@@ -143,7 +143,7 @@ function rcredits_mail($index, &$msg_array, $info) {
     $info['region'] = strtolower(R_SERVER_ID);
 
     $email = $info['email'];
-//    foreach ($info as $k => $v) if (is_object($v) or is_array($v)) mail('wspademan@gmail.com', 'acct obj in _mail', print_r(compact('index','msg_array','info','uid','k','v'), 1) . print_r(debug_backtrace(), 1));
+///    foreach ($info as $k => $v) if (is_object($v) or is_array($v)) mail('wspademan@gmail.com', 'acct obj in _mail', print_r(compact('index','msg_array','info','uid','k','v'), 1) . print_r(debug_backtrace(), 1));
     foreach ($info as $k => $v) if (!is_object($v) and !is_array($v)) $subs['{' . $k . '}'] = $v;
     $msg_array['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
     $message = @$info['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
@@ -203,6 +203,7 @@ function bs($n) {
 
 /**/ function tm($n) {debug($result = date('m-d-Y H:i:s a', $n)); return $result;}
 function a($id = 'ZZA') {global $lastA; return $lastA = r\acct(r\fullQid(strlen($id) == 3 ? '.' . $id : $id));}
+function x($xid) {r\x($xid);}
 function us($a = '') {global $lastA; return new r\usd($a ? (is_object($a) ? $a : a($a)) : $lastA);}
 /**/ function da($idfield) {list ($id, $field) = u\ray($idfield); debug(a($id)->$field);}
 /**/ function step($a) {debug(us($a)->step());}
@@ -227,15 +228,23 @@ function f($func) {
  * For example, d('u.fmtAmt 35.2') would show and return rCredits\Util\fmtAmt(35.2) = "$35.20".
  */
 /**/ function d($s) {debug($result = call_user_func_array('f', func_get_args()));}
-/*  $s = u\ray($s);
-  $func = array_shift($s);
-  $func = strtr("^$func", u\ray('^rw. ^u. ^be. ^. ^r. ^', '\\rCredits\\Web\\', '\\rCredits\\Util\\', '\\rCredits\\Backend\\', '\\rCredits\\Testing\\', '\\rCredits\\', ''));
-///  debug($result = call_user_func_array($func, $s));
-  return $result;
-}*/
+
 
 function r($a, $b='', $c='', $d='', $e='', $f='', $g='', $h='', $i='', $j='', $k='', $l='', $m='') {
   return u\ray($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m);
+}
+
+define('ONE_CRON_OP', 'one cron op'); // flags a call of cron() in PHP window
+
+/**
+ * Run a background op in the foreground (not on production server).
+ */
+function cron($op) {
+/**/ if (isPRODUCTION) return debug("Don't run cron this way on production server.");
+  global $testOnly; if(@$testOnly) return FALSE;
+  global $cronOp; $cronOp = ONE_CRON_OP;
+  $func = "rCredits\\Cron\\$op";
+  return $func();
 }
 
 /*

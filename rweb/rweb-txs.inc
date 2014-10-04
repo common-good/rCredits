@@ -286,11 +286,12 @@ function txEdit_validate($form, &$sta) {
 function txEdit_submit($form, &$sta) {
   extract(u\just('amount goods purpose orig', $sta['input']));
   extract($orig = unserialize($orig), EXTR_PREFIX_ALL, 'x');
+  $x = r\x($x_xid);
 
   $forField = $x_toMe ? 'payeeFor' : 'payerFor';
-  if ($purpose != $orig[$forField]) r\setTxField($forField, $purpose, $x_xid);
-  if ($goodsChange = ($goods != $x_goods)) r\setTxField('goods', $goods, $x_xid);
-  if ($amtChange = ($amount != $x_amount)) r\setTxField('amount', $amount, $x_xid);
+  if ($purpose != $orig[$forField]) $x->setField($forField, $purpose);
+  if ($goodsChange = ($goods != $x_goods)) $x->setField('goods', $goods);
+  if ($amtChange = ($amount != $x_amount)) $x->setField('amount', $amount);
   if ($amtChange or $goodsChange) {
     $agent = r\agent();
     $msg = 'tx edited' . ($goodsChange ? '|new tx goods' : '') . ($amtChange ? '|new tx amount' : '');

@@ -224,6 +224,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'year is 4 digits' => t('Be sure to type all four digits of the year.'),
   'date too early' => t('That date is too early.'),
   'date too late' => t('That date is too late.'),
+  'tx save err' => t('The transaction could not be saved. Try again!'),
+  'share too big' => t('You are not allowed to donate more than half your transaction rewards. Here\'s why: The rCredits system aligns your personal financial benefit with benefit to the community, so you can do what is best for the community just by doing what is best for you. If your personal benefit percentage is too small, you lose that convenient compass.'),
 
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',

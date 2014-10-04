@@ -135,6 +135,7 @@ function rweb_menu() {
     
     'another' => callback(t('Open Another Account'), 'Another', 'manage'),
     'handle-invoice' => callback(t('Handle Invoice'), 'HandleInvoice 1', 'anyone'),
+    'rerisk' => callback(t('Recalculate Risk'), 'Rerisk 1 2 3', 'regulator'),
 
     'sadmin' => menuNorm(t('Admin'), 'Admin', 'cadmin2'),
     'sadmin/panel' => menuLocal(t('Panel'), '*Admin', 'cadmin'),
@@ -148,7 +149,8 @@ function rweb_menu() {
     'sadmin/tests' => menuLocal(t('Test'), '2', isDEV ? 'dev' : NULL, 'test'),
     'sadmin/php' => menuLocal(t('PHP'), 'php', 'dev', 'util'),
     'sadmin/zot' => menuLocal('zot', '', 'admin'), // Drupal bug: last choice is omitted
-    'sadmin/member-info' => callback('Member Info', 'Summary 2', 'cadmin2'),
+    'sadmin/acct-info' => callback('Account Info', 'Summary 2', 'regulator'),
+    'sadmin/tx-info' => callback('Transaction Info', 'TxInfo 2', 'regulator'),
     'print-rcard' => callback(t('Print ID Card'), '1 ', 'cadmin', 'memberID'),
 //    'rcredits/util' => callback('Util', '2', 'admin', 'util'),
 
