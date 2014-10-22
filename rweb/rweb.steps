@@ -49,7 +49,8 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
 /**
  * member (ARG) completes form (ARG) with values: (ARG)
  *
- * in: MAKE Bank AMemberTransfersFundsToTheBank
+ * in: MAKE Bank AMemberTransfersFundsFromTheBank
+ *     MAKE Bank AMemberTransfersFundsToTheBank
  *     MAKE Flow AMemberOverdrawsWithNotEnoughToDrawOn
  *     MAKE Get AMemberMovesCreditToTheBank
  *     MAKE Get AMemberDrawsCreditFromTheBank
@@ -220,7 +221,8 @@ function transactions($list) {return t\transactions($list);}
 /**
  * we say (ARG): (ARG) with subs: (ARG)
  *
- * in: TEST Bank AMemberTransfersFundsToTheBank
+ * in: TEST Bank AMemberTransfersFundsFromTheBank
+ *     TEST Bank AMemberTransfersFundsToTheBank
  *     TEST EditTx ABuyerTriesToDecreaseAPaymentAmount
  *     TEST Flow AMemberOverdrawsWithNotEnoughToDrawOn
  *     TEST Get AMemberMovesCreditToTheBank
@@ -490,8 +492,7 @@ function relations($relations) {return t\relations($relations);}
 /**
  * balances: (ARG)
  *
- * in: MAKE Bank Setup
- *     BOTH Community Setup
+ * in: TEST Community Setup
  *     BOTH Download Setup
  *     TEST EditTx Setup
  *     TEST EditTx ABuyerIncreasesAPaymentAmount
@@ -796,7 +797,8 @@ function dwollaIsDown() {
 /**
  * usd transfers: (ARG)
  *
- * in: TEST Bank AMemberTransfersFundsToTheBank
+ * in: TEST Bank AMemberTransfersFundsFromTheBank
+ *     TEST Bank AMemberTransfersFundsToTheBank
  *     MAKE Community Setup
  *     MAKE Download Setup
  *     MAKE Get Setup

@@ -7,6 +7,7 @@
 define('ADMIN_NAME', 'William Spademan');
 define('R_REGION_NAME', 'rCredits Western Mass');
 define('R_REGION_LEGALNAME', 'rCredits Western Massachusetts Region');
+define('R_ORG_LEGALNAME', 'Society to Benefit Everyone, Inc.');
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA B=Boston
 define('R_REGION_SHORTNAME', R_SERVER_ID . '.');

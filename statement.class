@@ -14,7 +14,7 @@ require_once(__DIR__ . "/../tcpdf/config/lang/eng.php");
 require_once(__DIR__ . "/../tcpdf/tcpdf.php");
 define('R_LOGO', __DIR__ . '/images/rlogo150.png');
 
-class pdf extends \TCPDF {
+class Statement extends \TCPDF {
   public $regionName; // name of region
   public $regionInfo; // addr, phone, email of region
   public $qid; // rCredits account in header
@@ -25,13 +25,15 @@ class pdf extends \TCPDF {
    * @param acct $a: the rCredits account object
    * @param int $month: month date (for account statements) (defaults to current month)
    */
-	public function __construct($a, $month = REQUEST_TIME) {
+	public function __construct($a = NULL, $month = REQUEST_TIME) {
+//    parent::__construct('P', 'in', 'LETTER');
+    parent::__construct('P');
+    u\setDft($a, r\acct());
     $ctty = r\acct($a->community);
     list ($this->regionName, $phone) = array($ctty->fullName, u\fmtPhone($ctty->phone));
     $this->regionInfo = "$ctty->postalAddr<br>$phone &#8226; $ctty->mail";
     $this->qid = $a->mainQid;
     $this->month = strftime('%B %Y', $month);
-    parent::__construct();
   }
   
   public function Header() {

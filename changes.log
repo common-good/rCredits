@@ -1,3 +1,19 @@
+2014-10-21 (rWeb tests do not pass -- not usable yet)
+. hidable advanced settings for Txs
+. cron now calculates the right values for trust (was giving some negative values).
+. when making a new rcard in admin, rename photo with new cardCode
+. created new r_transit table from Wikipedia's transit code page
+. UPDATE r_transit t INNER JOIN  `r_states` s ON t.location = s.name SET t.location = s.abbreviation
+. UPDATE r_banks SET name=REPLACE(REPLACE(REPLACE(name,'N.a','N.A'),'Td Bank Na','TD Bank NA'),'U.s','U.S'), address=REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(address,'P.o','P.O'),'Po B','PO B'),'U.s','U.S'),'N.e','N.E'),'N.w','N.W'),'S.e','S.E'),'S.w','S.W')
+. UPDATE r_banks SET name=REPLACE(CONCAT(name,'|'), ' Na|',' NA') WHERE RIGHT(name,3)=' Na'
+. notices are now available online
+. notices are in table format instead of <ul>
+. changed bank info form to use RCC or ACH (independent of Dwolla)
+. make users type their account number backwards too ($35 value)
+. *** add a "changes" field to users (use only after rTrader bit is set, ignore date and cache fields, ignore floor when set automatically, ignore password/risk/risks/trust/, handle data&secure only as individual virtual fields)
+. complete usd transfers (set completed field) automatically: immediately for members with enough credit (floor), 2 days after deposit for others.
+. cron send a message at about 8am if it has not completed successfully for a day or more
+
 2014-10-04
 . fixed bug in deleteUid that might have deleted some things that shouldn't be
 . calculation and display of ach risks

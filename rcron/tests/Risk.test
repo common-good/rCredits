@@ -46,11 +46,11 @@ class rcronRisk extends DrupalWebTestCase {
     Given('members: "ASSOC'
     . '\\| id   | fullName   | email | address | postalCode | flags   | risks    | tenure | moves | share |'
     . '\\| .ZZA | Abe One    | a@    | 1 A St. |      01001 | ok,bona | adminOk  | 21     | 0     |    10 |'
-    . '\\| .ZZB | Bea Two    | b@    | 2 A St. |      01001 | ok,bona | rents    | 13     | 1     |    20 |'
+    . '\\| .ZZB | Bea Two    | b@    | 2 A St. |      01001 | ok,bona | rents    | 43     | 1     |    20 |'
     . '\\| .ZZC | Corner Pub | c@    | 3 C St. |      01003 | ok,co   | cashCo   | 18     |       |     1 |'
-    . '\\| .ZZD | Dee Four   | d@    | 3 C St. |      01003 | ok,bank |          | 15     | 0     |     5 |'
+    . '\\| .ZZD | Dee Four   | d@    | 3 C St. |      01003 | ok      | hasBank  | 25     | 0     |     5 |'
     . '\\| .ZZE | Eve Five   | e@    | 5 A St. |      01001 | ok,bona | shady    | 1      | 0     |     8 |'
-    . '\\| .ZZF | Flo Six    | f@    | 6 A St. |      01001 | ok,bona | photoOff | 12     | 0     |    50 |'
+    . '\\| .ZZF | Flo Six    | f@    | 6 A St. |      01001 | ok,bona | photoOff | 32     | 0     |    50 |'
     . '\\| .ZZG | Guy Seven  | g@    | 7 A St. |      01001 | ok      | addrOff  | 11     | 5     |    25 |'
     . '\\| .ZZH | Hal Eight  | h@    | 8 A St. |      01001 | ok,bona | ssnOff   | 100    | 10    |    25 |'
     . '\\| .ZZI | Ida Nine   | i@    | 9 A St. |      01001 | ok      | fishy    | 3      | 20    |    25 |"');
@@ -122,13 +122,12 @@ class rcronRisk extends DrupalWebTestCase {
     . '\\| id   | trust |'
     . '\\| .ZZA |  8.57 |'
     . '\\| .ZZB |  8.57 |'
-    . '\\| .ZZC |     0 |'
     . '\\| .ZZD |  8.57 |'
-    . '\\| .ZZE |     0 |'
-    . '\\| .ZZF |     0 |'
-    . '\\| .ZZG |     0 |'
-    . '\\| .ZZH |     0 |'
-    . '\\| .ZZI |     0 |"');
+    . '\\| .ZZE |     1 |'
+    . '\\| .ZZF |     1 |'
+    . '\\| .ZZG |     1 |'
+    . '\\| .ZZH |     1 |'
+    . '\\| .ZZI |     1 |"');
     break;
 
 
@@ -140,16 +139,16 @@ class rcronRisk extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('cron runs "acctRisk"');
     Then_('members: "ASSOC'
-    . '\\| id   | risk    | risks |'
-    . '\\| .ZZA | -124.96 | adminOk,trusted,geography,badConx,moreIn,moreOut,big7Week |'
-    . '\\| .ZZB | -431.17 | trusted,socialConx,moves,rents,moreIn |'
-    . '\\| .ZZC |  391.67 | cashCo,homeCo,miser,bigDay,bigWeek,big7Week |'
-    . '\\| .ZZD | -441.83 | trusted,hasBank |'
-    . '\\| .ZZE |  403.33 | new,shady,poBox,moreOut |'
-    . '\\| .ZZF |  225.00 | photoOff,bigDay |'
-    . '\\| .ZZG |  647.27 | new,moves,badConx,addrOff |'
-    . '\\| .ZZH | 1103.00 | moves,ssnOff |'
-    . '\\| .ZZI | 2150.00 | new,moves,fishy |"');
+    . '\\| id   | risks |'
+    . '\\| .ZZA | adminOk,trusted,geography,badConx,moreIn,moreOut,big7Week |'
+    . '\\| .ZZB | trusted,socialConx,moves,rents,moreIn |'
+    . '\\| .ZZC | cashCo,homeCo,miser,bigDay,bigWeek,big7Week |'
+    . '\\| .ZZD | trusted,hasBank |'
+    . '\\| .ZZE | new,shady,poBox,moreOut |'
+    . '\\| .ZZF | photoOff,bigDay |'
+    . '\\| .ZZG | new,moves,badConx,addrOff |'
+    . '\\| .ZZH | moves,ssnOff |'
+    . '\\| .ZZI | new,moves,fishy |"');
     When_('cron runs "txRisk"');
     Then_('transactions: "ASSOC'
     . '\\| xid | risks |'

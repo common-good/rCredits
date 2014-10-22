@@ -1,3 +1,8 @@
+@font-face {
+    font-family: "GnuMICR";
+    src: url(http://new.rcredits.org/GnuMICR.ttf) format("truetype");
+}
+
 /*img {max-width:100%; height:auto;}*/
 /* img {width:auto; height:auto;} */
 /* ems for font-size, px for most else */
@@ -36,6 +41,10 @@ label.option {font-weight:bold;}
 .goodRisk {color:green;}
 .badRisk {color:orange;}
 .tagged {color:red;}
+
+#advanced {display:none;}
+#edit-showadvanced,
+#edit-showsimple {display:inline-block;}
 
 #messages .stopnot {font-weight:bold; font-size:200%; color:red;}	
 #messages .nextstep,
@@ -280,6 +289,12 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformsignup #help-link,
 #rcreditswebformsignup .form-item-agreed label {display:none;}
 #rcreditswebformsignup .form-item-companyPhon label span {display:none;}
+#rcreditswebformsignup .form-item-tenure {display:inline-block;}
+#rcreditswebformsignup .form-item-owns {display:inline-block; margin-bottom:0;}
+#rcreditswebformsignup .form-item-owns label {width:5px;}
+#rcreditswebformsignup #edit-pin,
+#rcreditswebformsignup #edit-tenure {width:40px;}
+#rcreditswebformsignup .form-item-pin .description {display:inline-block; width:auto; margin:3px 0 0 5px;}
 
 /* Request New Password */
 #rcreditswebformpass #edit-name {width:20em;}
@@ -289,6 +304,7 @@ form.rweb  .form-no {color:red;}
 
 /* Summary / Member Info / Account Info */
 #rcreditswebformsummary .form-item {margin-bottom:5px;}
+#rcreditswebformsummary #edit-balance, #rcreditswebformsummary #edit-rewards {display:inline-block;}
 #rcreditswebformsummary #edit-floor .description,
 #rcreditswebformsummary #edit-committed .description,
 #rcreditswebformsummary #edit-rewards .description {display:inline-block; margin-left:.25em;}
@@ -303,7 +319,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformsummary #edit-returnmo,
 #rcreditswebformsummary #edit-cttybenemo {margin-bottom:0;}
 #rcreditswebformsummary #edit-risks .noEdit {margin-left:-17px; padding-left:17px; background-color:darkgray;}
-#rcreditswebformsummary #edit-mediaconx {width:15px;}
+#rcreditswebformsummary #edit-mediaconx {width:25px;}
 #rcreditswebformsummary #edit-moves .description,
 #rcreditswebformsummary .form-item-mediaConx .description,
 #rcreditswebformsummary .form-item-rTrader .description,
@@ -462,6 +478,13 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformflags .k-risks {text-align:left;}
 #rcreditswebformflags .k-amount, #rcreditswebformflags .k-score {text-align:right;}
 #rcreditswebformflags .k-created {min-width:50px;}
+#rcreditswebformflags .form-item-period {display:inline-block;}
+#rcreditswebformflags .form-item-ending {display:inline-block;}
+#rcreditswebformflags .form-item-starting {margin-bottom:0;}
+#rcreditswebformflags input {max-width:110px;}
+#rcreditswebformflags .form-submit {margin-left:10px; max-width:120px;}
+#rcreditswebformflags .form-item-period label {display:inline-block;}
+#rcreditswebformflags #edit-title, #rcreditswebformflags #edit-subtext {margin-left:0;}
 
 /* Member List */
 #memberlist {width:auto; cell-spacing:5px;}
@@ -504,9 +527,6 @@ form.rweb  .form-no {color:red;}
 #rcreditswebforminvoices .txs-buttons div:first-child {font-weight:bold;}
 #rcreditswebforminvoices .txs-buttons div:first-child +div input {color:green;}
 #rcreditswebforminvoices .txs-buttons div:first-child +div+div input {color:red;}
-#rcreditswebforminvoices #advanced {display:none;}
-#rcreditswebforminvoices #edit-showadvanced,
-#rcreditswebforminvoices #edit-showsimple {display:inline-block;}
 
 /* Handle Invoice */
 #rcreditswebformhandleinvoice #edit-title {margin-left:0;}
@@ -627,6 +647,10 @@ form.rweb  .form-no {color:red;}
 /* Pay with rcredits */
 #rcreditswebformbuy #edit-submit label {margin-left:100px; width:100%; color:blue;}
 
+/* Print Checks */
+/* #rcreditswebformprintchecks {margin-left:50px;} */
+#rcreditswebformprintchecks .form-item-reprint label {text-align:right;}
+
 /* Directory */
 #rcreditswebformdirectory #edit-title label {margin-left:0px;}
 /*#rcreditswebformdirectory .form-item-area {display:inline-block;} */
@@ -730,11 +754,18 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformget .form-item-amount {display:inline-block;}
 
 /* Bank */
+#rcreditswebformbank #edit-title, #rcreditswebformbank #edit-subtext {margin-left:5px; margin-right:5px;}
+#rcreditswebformbank  .form-item-connect {margin-bottom:0px;}
+#rcreditswebformbank #connectFields2 {margin:0px; background-color:silver;}
+#rcreditswebformbank #edit-checkhint {float:right;}
+#rcreditswebformbank #edit-checkhint img {width:300px;}
+#rcreditswebformbank #connectFields2 .description {display:inline-block;}
+
 #rcreditswebformbank .form-item-deposit1,
 #rcreditswebformbank .form-item-deposit2 {display:inline-block; width:auto;}
 #rcreditswebformbank #edit-deposit1,
 #rcreditswebformbank #edit-deposit2 {width:50px;}
-#rcreditswebformbank #edit-submit {display:block; clear:left;}
+#rcreditswebformbank #edit-submit {display:block; clear:left; margin-top:20px;}
 
 /* Security */
 #rcreditswebformsecurity #edit-title,
@@ -897,6 +928,8 @@ and (max-device-width : 480px) { */
   
   #rcreditswebformmembership #edit-steps {margin-left:0;}
   #rcreditswebformsettings #edit-icons {display:none;}
+  
+  #rcreditswebformbank #edit-checkhint {float:none;}
   
   #rcreditswebformtx {width:100%;}
 //  #rcreditswebformtx .form-type-radios {display:inline-block; margin-left:25px; max-width:160px; border:2px solid darkblue;}

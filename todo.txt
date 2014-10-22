@@ -8,12 +8,16 @@ To Do
 - Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site)
 
 Before growing fast:
+. write rCredits Security Protocols
+. choose one of the following banks for our business account, so we can maybe do remote deposit of check images someday: Bank of America, Chase, US Bank, Zions Bank, Bank of the West or Wells Fargo
 . ACH debits (need EIN doc, cert from town, signers in person with ss#/dob/license/physAddr)
   OR "remotely-created checks" (RCC) with "remote deposit" OR "electronically-created payment orders"
   (treasury management). The following accounts will need to re-supply a routing number and bank account number: Adam Konner, William Spademan, John G Root Jr, Janet Henderson, John F. Eichholz, Alden Booth, Barbara Ann Fingold, Julia Bond Ellingboe, Gary L. Schaefer, Diane C. Miller, Peter Robert Letson, Jennifer Atlee, Nancy Hazard, Denise M. Ward, Daniel S Rosenberg, Addie Rose Holland, Ellen Kaufmann, Rebecca Jane Meier, 
+. add employee count and gross to all businesses (and tenure/mediaconx to all individuals) created before 10/5/2014
 . DONE emails and invites don't get marked as spam
 . DONE economic circle(s)
 . 2 more new board members, including a business leader
+. Ask David Kulp to set up replication
 . DONE ID verification
 . DONE Software:
   - DONE invoices
@@ -23,16 +27,29 @@ Before growing fast:
 . after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
 . tell members about ACH (including risks, benefits, privacy, safeguards etc.)
 . ask GFCU: checking account? ACHs just for GFCU customers? not even now just for food-system related txs?
+. open rWMR account
+. get 15-mo CD at Citizens
 
 TASKS FOR NEXT UPDATE:
-. rebuild menus
+. upload r_banks and r_transit
+. reinstall
+. UPDATE r_usd SET deposit=1 WHERE amount<0 AND payee=0 AND completed>0
+. ALTER TABLE users DROP column question, DROP column maximum
+. copy new fonts to TCPDF folder
 (no other special tasks yet)
 
-. enlarge media conx box on summary
+. *** in cron, set completed date for outstanding bank transfers deposited 2 days ago.
+. reflect rCredits escrow amount due each community on graphs
+. expired invites should not count as dups (maybe count as dups only unaccepted invites sent within last 2 weeks)
+. when a member draws on another for part of a $167.43 purchase against a $71.94 balance, it says $0 short.
+. when a member draws from another for part of a purchase, draw enough to leave a zero balance, if not debt okay (bug as of 10/7/2014)
+. set flag bits if contribution to score is 1/20 or more (make it a defined constant)
+. make moves and tenure editable fields on Summary
+. show Go button on memberInfo form
+. on Flags page, change labor... to labor, and automatic transfer... to automatic transfer else suppress non-rcard
 . not-yet-member companies should not appear on Find Co list
 . add proxies, invited by, invited, and trust score to summary
-. set community caches in cron (to track inter-community debts)
-. txRisk and achRisk appear never to run in cron
+. set community r caches in cron (to track inter-community debts)
 . allow user to select time range for Flags (default to past week)
 . always show all red flags
 . describe selected flag at top of Flags help page
@@ -42,7 +59,6 @@ TASKS FOR NEXT UPDATE:
 • “Something just seems a little off” is very vague. Explain how it gets set.
 • Are “exchanges cash” and “trades cash” the same?
 • Puzzled by “ without an invoice. And no mention of an invoice in the transaction description”. How else would we know it‘s “without an invoice”?
-. add a "changes" field to users (use only after rTrader bit is set, ignore date and cache fields, ignore floor when set automatically, ignore password/risk/risks/trust/, handle data&secure only as individual virtual fields)
 . force=-1 does not get recorded in the reversing transaction!
 . why does cron Risk test fail when run as part of the whole Cron suite? (but not otherwise)
 . somehow two identical grocery purchases were recorded for Nancy Hazard, from one POS request (not forced). One was later reversed by the device. Try to detect and prevent that (don't accept two charge requests from a single device within a few seconds of each other? wait a sec?) (handle as well as possible from both ends)
@@ -76,7 +92,6 @@ TASKS FOR NEXT UPDATE:
 . give message to app on "time" request, when an update is needed: "You need to download the latest version of this app from the Play Store. Be sure to set your device to update apps automatically."
 . split off from users data any fields that are usually set (especially helper, which should be included in changeUid list)
 . make bank connection optional, with other choices listed.  "no bank" option on signup: require the connect step even if no dw, but put a no-bank option on the BankInfo form
-. when making a new rcard in admin, rename photo with new cardCode
 . forbid unauthorized signed-out transactions (in smart.inc), because app accidentally allowed a refund by a cashier without being signed in.
 . after creating company, sign user back in with company account selected and status page displayed
 . add share pct to preference page
@@ -116,7 +131,6 @@ Also, a couple notes :
 . when admin enters data from paper, remember it was paper (flag bit?), present the "Add Another Account" button, ask for inviter (accept an email or name), offer a single checkbox for "signed", etc.
 . add link to explanation of rCredits staying in the system on Summary and Bank pages
 . bug: memberInfo form shows "can ?" for Emily on Adam's record
-. hidable advanced settings for Txs
 . remove invoicing code from be\transfer (but crash if called inappropriately)
 . leave erroneous export fields blank and don't leave a dangling "-" on zip
 . joint accounts: implement as a higher-level view of two or more accounts (for anyone who has read permission on those accounts?)
@@ -217,7 +231,6 @@ Also, a couple notes :
 . committed amount can go negative (on a refund). make sure cron handles it right.
 . Fix this problem in tests: Too many args (11) in statement: next random code is ""dxCX>tz0Asz4@,8F=I6u6Ng_p}1U[6cZfitLjNd[X1WmC8BpD"" (maybe in test-defs.php? subargs are recognized by "=>", so it's not that...)
 
-. have Gherkin always send us the whole array, which must still be rectangular. use t\hdrs() to make the first row or column keys/hdrs for the others
 . drive xml error from USPS on Signin, and handle it gracefully
 . rewrite form testing system to use just menu_execute_active_handler, drupal_validate_form, etc. (assuring official behavior). For example, be able to test required fields.
 . (later) suggest reaching out to increase rebate pct

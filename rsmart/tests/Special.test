@@ -1,0 +1,119 @@
+<?php
+//
+// Feature: Transact
+//   AS a company agent
+//   I WANT to transfer rCredits to or from another member
+//   SO my company can sell stuff and give refunds.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rsmart.steps';
+
+class rsmartSpecial extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Special';
+  const FEATURE_NAME = 'rsmart Test - Special';
+  const DESCRIPTION = 'Transact';
+  const MODULE = 'rsmart';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "ASSOC'
+    . '\\| id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags      |'
+    . '\\| .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,bona    |'
+    . '\\| .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,bona    |'
+    . '\\| .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,bona |'
+    . '\\| .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,bona    |'
+    . '\\| .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,bona,secret_bal |'
+    . '\\| .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,bona |"');
+    And__('devices: "ASSOC'
+    . '\\| id   | code |'
+    . '\\| .ZZC | devC |"');
+    And__('selling: "ASSOC'
+    . '\\| id   | selling         |'
+    . '\\| .ZZC | this,that,other |"');
+    And__('company flags: "ASSOC'
+    . '\\| id   | flags        |'
+    . '\\| .ZZC | refund,r4usd |"');
+    And__('relations: "ASSOC'
+    . '\\| id   | main | agent | permission | draw |'
+    . '\\| :ZZA | .ZZC | .ZZA  | buy        |    0 |'
+    . '\\| :ZZB | .ZZC | .ZZB  | scan       |    0 |'
+    . '\\| :ZZD | .ZZC | .ZZD  | read       |    0 |'
+    . '\\| :ZZE | .ZZF | .ZZE  | sell       |    1 |"');
+    And__('transactions: "ASSOC'
+    . '\\| xid | created   | type   | amount | from | to   | purpose |'
+    . '\\| 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |'
+    . '\\| 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  |'
+    . '\\| 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |'
+    . '\\| 4   | %today-6m | grant  |  71.94 | ctty | .ZZE | stuff   |'
+    . '\\| 5   | %today-6m | grant  | 398.65 | ctty | .ZZF | stuff   |"');
+    Then_('balances: "ASSOC'
+    . '\\| id   | balance |'
+    . '\\| ctty |   -1000 |'
+    . '\\| .ZZA |     250 |'
+    . '\\| .ZZB |     250 |'
+    . '\\| .ZZC |     250 |'
+    . '\\| .ZZE |   71.94 |'
+    . '\\| .ZZF |  398.65 |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: A cashier asks to charge someone who draws
+  public function testACashierAsksToChargeSomeoneWhoDraws_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "ASSOC'
+    . '\\| id    | r      | floor   | rewards |'
+    . '\\| .ZZE  |  71.94 | -65.22  | 174.64  |'
+    . '\\| .ZZF  | 398.65 | -226.48 | 419.77  |"');
+    When_('agent ":ZZA" asks device "devC" to charge ".ZZE" $167.43 for "goods": "groceries" at %now');
+    Then_('we respond ok txid 6 created %now balance 160 rewards 260');
+    And__('with message "report transaction" with subs: "ASSOC'
+    . '\\| did     | otherName | amount | rewardType | rewardAmount |'
+    . '\\| charged | Bea Two   | $100   | reward     | $10          |"');
+    And__('with did "ASSOC'
+    . '\\| did     | amount | forCash |'
+    . '\\| charged | $100   |         |"');
+    And__('with undo "ASSOC'
+    . '\\| created | amount | tofrom | otherName |'
+    . '\\| %dmy    | $100   | from   | Bea Two   |"');
+    And__('we notice "new charge|reward other" to member ".ZZB" with subs: "ASSOC'
+    . '\\| created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
+    . '\\| %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |"');
+    And__('balances: "ASSOC'
+    . '\\| id   | balance |'
+    . '\\| ctty |    -770 |'
+    . '\\| .ZZA |     250 |'
+    . '\\| .ZZB |     160 |'
+    . '\\| .ZZC |     360 |"');
+  }
+
+}

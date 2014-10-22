@@ -74,9 +74,11 @@ function rweb_menu() {
     'history/invoices-to' => menuLocal(t('Invoices TO You'), 'Invoices to', 'read'),
     'history/invoices-from' => menuLocal(t('Invoices FROM You'), 'Invoices from', 'read'),
     'history/statements' => menuLocal(t('Statements'), 'Statements', 'read'),
+    'history/notices' => menuLocal(t('Notices'), 'Notices', 'read'),
     'history/1099-B' => menuLocal(t('1099-B Forms'), '1099b', 'read'),
     'history/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
     'history/statement' => callback(t('Statement'), '2', 'read', 'statement'),
+    'history/notice' => callback(t('Notice'), 'Notice 2', 'read'),
 
     'charge' => menuNorm(t('Charge'), 'Tx 1', 'sell ok'),
     'pay' => menuNorm(t('Pay'), 'Tx 1', 'buy ok'),
@@ -93,7 +95,7 @@ function rweb_menu() {
     'directory' => menuNorm(t('Find Co'), 'Directory', 'sell'),
     'community' => menuNorm(t('Community'), 'Reports 1', 'anyone'),
     'community/graphs' => menuLocal(t('Graphs'), '*Reports 1', 'anyone'),
-    'community/flags' => menuLocal(t('Flags'), 'Flags 1', 'anyone'),
+    'community/flags' => menuLocal(t('Flags'), 'Flags 2', 'anyone'),
     'community/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
     
     'invite' => menuNorm(t('Invite'), 'Invite', 'anyone'),
@@ -141,6 +143,7 @@ function rweb_menu() {
     'sadmin/panel' => menuLocal(t('Panel'), '*Admin', 'cadmin'),
     'sadmin/member-list' => menuLocal(t('Member List'), 'MemberList', 'cadmin2'),
     'sadmin/export-list' => menuLocal(t('Export'), 'DownloadMemberList', 'cadmin2'),
+    'sadmin/print-checks' => menuLocal(t('Print Checks'), 'PrintChecks', 'admin'),
     'sadmin/another' => menuLocal(t('New Account'), 'Another', 'cadmin'),
     'sadmin/make-community' => menuLocal(t('Make Ctty'), 'MakeCtty', 'admin'),
     'sadmin/sms' => menuLocal(t('Test SMS'), 'SMS', 'admin'),
@@ -152,6 +155,7 @@ function rweb_menu() {
     'sadmin/acct-info' => callback('Account Info', 'Summary 2', 'regulator'),
     'sadmin/tx-info' => callback('Transaction Info', 'TxInfo 2', 'regulator'),
     'print-rcard' => callback(t('Print ID Card'), '1 ', 'cadmin', 'memberID'),
+    'sadmin/checks' => callback(t('Checks'), '2', 'admin', 'printChecks'),
 //    'rcredits/util' => callback('Util', '2', 'admin', 'util'),
 
     'help' => callback(t('Help'), 'Help 1', 'anyone'),

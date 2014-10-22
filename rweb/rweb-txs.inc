@@ -6,6 +6,7 @@ use rCredits\Testing as t;
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Txs as x;
+use rCredits\Web as w;
 
 /**
  * @file
@@ -22,58 +23,35 @@ define('TX_OPT_BOXES', 3);
 define('TX_OPT_EXCHANGES', 4);
 define('TX_OPT_PEXCHANGES', 5);
 
-define('STATES_DONE', 0); // show just completed transactions
-define('STATES_PENDING', 1); // show just open invoices
-define('STATES_BOTH', 2); // show both completed and pending transactions
-
-define('_N', 0); // used in tests
-define('_XCH', 1);
-define('_VPAY', 1);
-
-define('RUSD_R', 0);
-define('RUSD_USD', 1);
-define('RUSD_BOTH', 2); // show both rCredits (0) and USD (1)
-
-$GLOBALS['TX_DAYS'] = array(1 => 'today', 7 => '7 days', 30 => '30 days', 90 => '90 days', 180 => '6 months', 365 => '12 months', -1 => 'Year to date', -2 => 'Ever');
+$GLOBALS['TX_DAYS'] = array(1 => 'day', 7 => '7 days', 30 => '30 days', 90 => '90 days', 180 => '6 months', 365 => '12 months', -1 => 'Year to date', -2 => 'Ever');
 
 /**
  * List Transactions
  */
 function formTxs($form, &$sta, $args = '') {
-  global $agtViaBoxHelp, $base_url;
+  global $agtViaBoxHelp;
   $agtViaBoxHelp = t('Agent is who did the transaction on your behalf.|Channel (Via) is where the transaction originated -- what type of device: Web, Smartphone, SMS, or Automatic.|Box is where the transaction originated -- which specific device.');
   $optHelp = $agtViaBoxHelp . '|' . t('Exchanges are 1-to-1 trades of US Dollars for rCredits (usually automatic).|PExchanges are daily automatic payment exchanges of rCredits between company and employee. The company pays the employee in US Dollars, then the employee trades back some US Dollars 1-to-1 for rCredits. The net effect is that the employee gets paid partly in US Dollars, partly in rCredits.');
 
-  global $base_url;
   $mya = r\acct();
   
-  extract(u\just('options period starting ending do xid download downloaded variety', $args)); 
-  $report = $mya->admin ? (@$variety == 'stats') : FALSE; // no community txs list yet for non-admins
-  if (!$report and @$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
-
-  $page = $report ? 'community' : 'history';
-  u\setDft($period, TX_DEFAULT_PERIOD);
-  if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = !$mya->co ? '200001' : '210001'; // defaults for TX_OPT_KEYS options (2=both)
-  $options = array_combine($urlOpts, str_split($options));
-  u\setDft($states, STATES_DONE);
-//  u\setDft($currency, 2); // both
-//  if (@$download) $options['currency']  = RUSD_BOTH; // always both for download
-  extract($options);
-  $options = join('', array_values($options));
+  extract(u\just('options period starting ending do xid download downloaded', $args)); 
+  if (@$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
 
   // Setup option array, including defaults and help
+  /*
   $optDefaults = $opts = array();
   $optHelp = array_combine($keys = u\ray(TX_OPT_KEYS), u\ray($optHelp));
   foreach ($keys as $one) {
     $value = $opts[u\consta('tx_opt', $one)] = x\popHelp($one, $optHelp[$one]); // set TX_OPT_CHANNELS etc.
     if (@$$one) $optDefaults[] = $value; // set up option field values
   }
+  */
   
-  list ($starting, $ending) = txDates(@$period, @$starting, @$ending);
-  $url0 = @"$base_url/$page/period=$period&starting=$starting&ending=$ending&options=$options&variety=$variety";
+  extract(u\just('dateRange url starting ending', dateRange($args, 'history')));
 
   $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
-  list ($header, $classes, $rows, $totals) = x\getTxRows($starting, $ending, $url0, $maxRows, compact(u\ray('download agents channels boxes')));
+  list ($header, $classes, $rows, $totals) = x\getTxRows($starting, $ending, $url, $maxRows, compact(u\ray('download agents channels boxes')));
   
   // prepare screen display
   $classes = u\prefixValues('tx-', $classes);
@@ -85,88 +63,29 @@ function formTxs($form, &$sta, $args = '') {
   $empty = tt('no txs');
   $list = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
   $transactions = item("<div id=\"txs-title\">TRANSACTIONS</div>$list <br>&nbsp;");
-  
-  if ($report) {
-    $agents = $summary = NULL;
-  } else {
-//    $reports = item(t("<a href=\"$base_url/history/1099-B\">Annual Tax Report</a>"));
-    $summary = formField('markup', '', '', array('markup' => txSummary($starting, $ending)));
-  }
+  $summary = formField('markup', '', '', array('markup' => txSummary($starting, $ending)));
 
-  //$radios = array(t('rCredits'), t('USD'), t('both'));
-//  $currency = hidField(2); //formField('radios', t('Currency:'), '', dft($currency), $radios); 
-  $states = hidField($states);
-  //$radios = array(t('completed'), t('open invoices'), t('both'));
-//  $states = formField('radios', t('Types:'), '', dft($states), $radios);
-  //$opts2Desc = TRUE ? '' : t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, SMS, or Automatic. Exchanges are 1-to-1 trades of rCredits for US Dollars. PExchanges are 1-to-1 trades that earn incentive rewards.');
-  // (NOT USED YET) $opts2 = boxesField('opts', t('Show:'), $opts2Desc, $optDefaults, $opts);
-  
   $divider = item('<hr>');
-  $period = formField('select', t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
-  $submitPeriod = submit(t('Show ')); // label has to be different from submitDates (see below)
-  $downloadPeriod = submit(t('Download '));
-  $starting = textField(t('OR Starting:'), '', dft(u\fmtDate($starting)));
-  $ending = textField(t('Ending:'), '', dft(u\fmtDate($ending)));
-  $submitDates = submit(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
-  $downloadDates = submit(t(' Download'));
   $title = "";
   $title = item(t('Transaction History'));
 
-  $form = compact(u\ray('title subtext states opts2 divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
-  if (@$downloaded) js("window.open(\"$url0&download=1\", \"download\");", 'inline', 'footer');
+  $form = compact('title') + $dateRange + compact(u\ray('summary transactions states'));
+  if (@$downloaded) js("window.open(\"$url&download=1\", \"download\");", 'inline', 'footer');
   return labeled($form);
 }
 
-function formTxs_validate($form, &$sta) {
-  extract(u\just('period starting ending', $sta['input']));
-  $op = op($sta);
-  list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? txDates(@$period) : txDates('', @$starting, @$ending);
-  u\preray(compact(u\ray('starting ending period')), $sta['input']);
-}
+function formTxs_validate($form, &$sta) {w\dateRangeValidate($sta);}
 
-function formTxs_submit($form, &$sta, $page = 'history') {
+function formTxs_submit($form, &$sta) {
   if (confirming_s($sta)) return;
-  extract(u\just('states period starting ending opts options do xid', $sta['input']));
-  if (isset($states)) { // $options summarizes everything when clicking on OK or NO or EDIT
-//    $options = $currency . $states;
-    $options = $states;
-    // (NOT USED YET) foreach (u\ray(TX_OPT_KEYS) as $one) $options .= (@$opts[u\consta('TX_OPT', $one)] ? 1 : 0);
-  }
-  $url = @"$page/period=$period&starting=$starting&ending=$ending&options=$options";
-  $op = op($sta);
-  if (u\abbreviates('download', $op)) {
-    say('downloading');
-//    if ($currency != 2) say('download always both');
-    $url .= '&downloaded=1';    
-  }
-  $sta['redirect'] = $url;
+  dateRangeRedirect('history', $sta);
 }
 
 /**
  * List the available account statement dates, with links.
  */
 function formStatements($form, $sta) {
-  $mya = r\acct();
-  $start = u\monthDay1($mya->created);
-  $month = strtotime('-1 month', u\monthDay1(REQUEST_TIME));
-  
-  for (; $month >= $start; $month = strtotime('-1 month', $month)) {
-    $year = date('Y', $month);
-    $text = strftime('%b%Y', $month);
-    $list[$year] = @$list[$year] . "<a href=\"statement/$text\" target=\"_blank\">$text</a><br>\n";
-  }
-  if (@$list) {
-    $headers = $data = '';
-    foreach ($list as $year => $v) {
-      $headers .= "<th>$year</th>";
-      $data .= "<td>$v</td>";
-    }
-    $list = "<table id=\"statements\">\n<tr>$headers</tr>\n<tr>$data</tr>\n</table>";
-  } else $list = t('There are no statements available yet for this account.');
-  
-  $title = item(t('Account Statements'));
-  $list = item($list);
-  return compact('title', 'list');
+  return monthChoices(t('Statements'), 'statement');
 }
 
 /**
@@ -383,39 +302,26 @@ function formInvoices($form, &$sta, $toFrom, $args = '') {
   extract(u\just('period starting ending download downloaded states nvid do', $args)); 
 
   $choices = array(t('open'), t('paid'), t('denied'));
-  u\setDft($states, $statesDft = '0,1,2');
-  foreach (u\ray($states) as $k) $stateDfts[] = $choices[$k];
-  
-  $showAdvJs = 'jQuery(\'#advanced\').show(); jQuery(\'#simple\').hide();';
-  if ($states != $statesDft or (@$ending and $ending != strtotime('tomorrow') - 1)) js($showAdvJs, 'inline', 'footer'); // showing advanced selection
-  u\setDft($period, TX_DEFAULT_PERIOD);
-  list ($starting, $ending) = txDates(@$period, @$starting, @$ending);
-  $url0 = @"$base_url/history/invoices-$toFrom/period=$period&starting=$starting&ending=$ending&states=$states";
+  extract(u\just('dateRange url starting ending states', dateRange($args, "history/invoices-$toFrom", $choices, '0,1,2')));
 
   if (@$do == 'ok') {$ok = be\payInvoice($nvid, $msg); say($msg, $ok ? '' : 'ERR');}
-  if (@$do == 'no') return r\go("handle-invoice/nvid=$nvid&toMe=$toMe&ret=" . u\urlify($url0));
+  if (@$do == 'no') return r\go("handle-invoice/nvid=$nvid&toMe=$toMe&ret=" . u\urlify($url));
   
-  $period = formField('select', t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
-  $submitPeriod = submit(t('Show ')); // label has to be different from submitDates (see below)
-  $downloadPeriod = submit(t('Download '));
-  $showAdvanced = item('<a class="nospin" href="javascript:' . $showAdvJs . '">advanced</a>');
-  $simple = fieldSet('simple', compact(u\ray('period submitPeriod downloadPeriod showAdvanced')));
-  
-  $states2 = boxesField('states', t('Show:'), '', $stateDfts, $choices);
-  $list = item(invoiceList($toMe, $starting, $ending, $states, $url0, @$download)); // must precede starting & ending
-  $starting = textField(t('Starting:'), '', dft(u\fmtDate($starting)));
-  $ending = textField(t('Ending:'), '', dft(u\fmtDate($ending)));
-  $submitDates = submit(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
-  $downloadDates = submit(t(' Download'));
-  $showSimple = item('<a class="nospin" href="javascript:jQuery(\'#advanced\').hide(); jQuery(\'#simple\').show();">simpler</a>');
-  $advanced = fieldSet('advanced', compact(u\ray('states2 starting ending submitDates downloadDates showSimple')));
+  $list = item(invoiceList($toMe, $starting, $ending, $states, $url, @$download)); // must precede starting & ending
 
   $title = item(t('Invoices ') . ($toMe ? t('TO You') : t('FROM You')));
   $toFrom = hidField($toFrom);
 
-  $form = compact(u\ray('title subtext simple advanced list toFrom'));
-  if (@$downloaded) js("window.open(\"$url0&download=1\", \"download\");", 'inline', 'footer');
+  //simple advanced
+  $form = compact('title') + $dateRange + compact(u\ray('list toFrom'));
+  if (@$downloaded) js("window.open(\"$url&download=1\", \"download\");", 'inline', 'footer');
   return labeled($form);
+}
+
+function formInvoices_validate($form, &$sta) {w\dateRangeValidate($sta);}
+
+function formInvoices_submit($form, &$sta) {
+  dateRangeRedirect('history/invoices-' . $sta['input']['toFrom'], $sta);
 }
 
 /**
@@ -492,21 +398,4 @@ EOF;
   $caption = $sticky = '';
   $empty = tt('no invoices');
   return theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
-}
-
-function formInvoices_validate($form, &$sta) {return formTxs_validate($form, $sta);}
-
-function formInvoices_submit($form, &$sta) {
-  if (confirming_s($sta)) return;
-  extract(u\just('states period starting ending do xid toFrom', $sta['input']));
-
-  $states = @join(',', $states);
-  $url = @"history/invoices-$toFrom/period=$period&starting=$starting&ending=$ending&states=$states";
-  $op = op($sta);
-
-  if (u\abbreviates('download', $op)) {
-    say('downloading');
-    $url .= '&downloaded=1';    
-  }
-  $sta['redirect'] = $url;
 }

@@ -208,6 +208,8 @@ EOF
   'bad achmin' => t('The minimum transfer amount must be at least $@R_ACHMIN.'),
   'say why not' => t('You must say why you are denying the invoice.'),
   'no co pass' => t('Company accounts do not have passwords. Sign in to your personal account, then select @company from the dropdown in the upper right corner.'),
+  'account number mismatch' => t('You must have mistyped your account number forwards or backwards. Try again.'),
+  'yes or no' => t('You must answer Yes or No.'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
 
@@ -291,7 +293,7 @@ function boolField($title = '', $description = '', $dft = NULL, $labels = NULL) 
 function boxesField($tag, $title, $desc, $defaults, $choices, $aliases = NULL) {
   u\setDft($aliases, $choices);
   $boxes = '';
-  if (!$defaults) $defaults = array();
+  if (!@$defaults) $defaults = array();
   foreach ($choices as $k => $v) {
     $alias = $aliases[$k];
     $checked = in_array($v, $defaults) ? ' CHECKED' : '';
@@ -711,9 +713,9 @@ function dwollaTerms() {
   global $rUrl;
   $title = item(t('Welcome to rCredits!'));
   $subtext = item(t(<<<EOF
-<p>Your rCredits account will contain both US Dollars and rCredits (incentive rewards issued by the rCredits community).</p>
+<p>Your rCredits account will contain both US Dollars and rCredits (incentive rewards issued by your rCredits community).</p>
 
-<p>Our partnership with Dwolla connects you to the mainstream economy. We use the Dwolla network to transfer US Dollars between rCredits members. A few required words about Dwolla:</p>
+<p>Our partnership with Dwolla connects you to the mainstream economy. We use the Dwolla network to transfer funds between your rCredits account and your checking account. A few required words about Dwolla:</p>
 <div id="graphics"><div><img src="$rUrl/images/dwolla.jpg" /><img id="veridian-logo" src="$rUrl/images/veridian.jpg" /></div></div>
 <p>Financial institutions play an important role in the Dwolla network.</p>
 
@@ -887,8 +889,8 @@ function contactFields($defaults = array()) {
   $address = textField(t('Street Address:'), t('Where is your building located (physical address)?'), required(@$address) + $addressAttrib);
   $city = textField(t('City:'), t(''), required(@$city) + $cityAttrib);
   $state = formField('select', t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
-  $tenure = @$mya ? NULL : textField(t('How long:'), t('About how many MONTHS have you lived at this address?'), required(@$tenure));
-  $owns = boolField('', '', $mya ? dft($mya->owns) : NULL, array(t('Rent'), t('Own')));
+  if (!@$mya) $tenure = textField(t('How long:'), t('MONTHS at this address.'), required(@$tenure));
+  $owns = boolField('', '', @$mya ? dft($mya->owns) : 0, [t('Rent'), t('Own')]);
   $postalAddr = textField(t('Postal Addr:'), t('Where does the post office send your mail (usually)?'), required(@$postalAddr));
 
   return compact(u\ray($fields));
@@ -1163,6 +1165,70 @@ function identifiers($acct) {
       <div id="id-location">$location</div>
     </div id-other>
 EOF;
+}
+
+/**
+ * Present simple and advanced versions of date range selection, for display with optional download.
+ * @param assoc $args: parameters passed upon form submission, perhaps including date range selection
+ * @param string $url: page to submit to (gets returned, prefixed with base_url and with parameters appended)
+ * @param array $choices: choices for selection of states to show
+ * @param string $settings: comma-delimited string array of indexes into choices for state settings
+ * @param bool $downloadable: <show option to download data>
+ * @return assoc [dateRange, url, starting, ending]
+ *   dateRange: formatted simple/advanced paired date-selection fieldsets, with submission buttons and states
+ *   url: page to submit to
+ *   starting: (int) starting date
+ *   ending: (int) ending date
+ *   states: (array) options to display
+ */
+function dateRange($args, $url, $choices = [], $settings = '', $downloadable = TRUE) {
+  global $base_url;
+  extract(u\just('period starting ending states', $args));
+  u\setDft($states, $settings);
+  if ($choices) {
+    if ($states) foreach (u\ray($states) as $k) $stateDfts[] = $choices[$k];
+    $states2 = boxesField('states', t('Show:'), '', @$stateDfts, $choices);
+  }
+  $showAdvJs = 'jQuery(\'#advanced\').show(); jQuery(\'#simple\').hide();';
+  if ($states != $settings or (@$ending and $ending != strtotime('tomorrow') - 1)) js($showAdvJs, 'inline', 'footer'); // showing advanced selection
+  u\setDft($period, TX_DEFAULT_PERIOD);
+  list ($starting, $ending) = txDates(@$period, @$starting, @$ending);
+  $url = "$base_url/$url/period=$period&starting=$starting&ending=$ending&states=$states";
+
+  $showAdvanced = item('<a class="nospin" href="javascript:' . $showAdvJs . '">advanced</a>');
+  $period = formField('select', t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
+  $submitPeriod = submit(t('Show ')); // label has to be different from submitDates (see below)
+  if ($downloadable) $downloadPeriod = submit(t('Download '));
+  $simple = fieldSet('simple', compact(u\ray('period submitPeriod downloadPeriod showAdvanced')));
+  
+  $res = compact(u\ray('url starting ending states')); // the easy parts of the result
+  $starting = textField(t('Starting:'), '', dft(u\fmtDate($starting)));
+  $ending = textField(t('Ending:'), '', dft(u\fmtDate($ending)));
+  $submitDates = submit(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
+  $showSimple = item('<a class="nospin" href="javascript:jQuery(\'#advanced\').hide(); jQuery(\'#simple\').show();">simpler</a>');
+  if ($downloadable) $downloadDates = submit(t(' Download'));
+  $advanced = fieldSet('advanced', compact(u\ray('states2 starting ending submitDates downloadDates showSimple')));
+  return u\ray('dateRange', compact('simple', 'advanced')) + $res;
+}
+
+function dateRangeValidate(&$sta) {
+  extract(u\just('period starting ending', $sta['input']));
+  $op = op($sta);
+  list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? txDates(@$period) : txDates('', @$starting, @$ending);
+  u\preray(compact(u\ray('starting ending period')), $sta['input']);
+}
+
+function dateRangeRedirect($page, &$sta) {
+  if (confirming_s($sta)) return;
+
+  $sta['input']['states'] = @join(',', @$sta['input']['states'] ?: []);
+  $url = "$page/" . http_build_query(u\just('states period starting ending', $sta['input']));
+
+  if (u\abbreviates('download', op($sta))) {
+    say('downloading');
+    $url .= '&downloaded=1';    
+  }
+  $sta['redirect'] = $url;
 }
 
 /**
@@ -1576,7 +1642,7 @@ EOF;
 
 /**
  * Connect a bank account to the given rCredits account.
- */
+ *//*
 function connectBank($a) {
   $secure = $a->secure;
   if (!$bankAccount = @$secure['bankAccount']) return say(t('Member has not yet entered bank info.'), 'zot');
@@ -1588,6 +1654,38 @@ function connectBank($a) {
   $us = new r\usd($a);
   if (!$us->addBank($bankAccount, @$routingNumber, $secure['bankAccountType'], $err)) return say($err, 'zot');
   say('info saved');
+}
+*/
+
+/**
+ * Return a form showing month choices.
+ * @param string $title: page title
+ * @param string $thing: "statement" or "notice"
+ * @param int $end: how many months from now to end (starts with account creation month)
+ * @param string $target: link target ('' or _blank)
+ */
+function monthChoices($title, $thing, $end = -1, $target = '_blank') {
+  $mya = r\acct();
+  $start = u\monthDay1($mya->created);
+  $month = strtotime($end ? $end . ' month' : 'today', u\monthDay1(REQUEST_TIME));
+  
+  for (; $month >= $start; $month = strtotime('-1 month', $month)) {
+    $year = date('Y', $month);
+    $text = strftime('%b%Y', $month);
+    $list[$year] = @$list[$year] . "<a href=\"$thing/$text\" target=\"$target\">$text</a><br>\n";
+  }
+  if (@$list) {
+    $headers = $data = '';
+    foreach ($list as $year => $v) {
+      $headers .= "<th>$year</th>";
+      $data .= "<td>$v</td>";
+    }
+    $list = "<table id=\"{$thing}s\">\n<tr>$headers</tr>\n<tr>$data</tr>\n</table>";
+  } else $list = t('There are no @THING available yet for this account.', ['@THING' => strtolower($title)]);
+  
+  $title = item($title);
+  $list = item($list);
+  return compact('title', 'list');
 }
 
 /**

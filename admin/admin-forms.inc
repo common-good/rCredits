@@ -15,6 +15,8 @@ use rCredits\Admin as a;
 include_once __DIR__ . '/admin.inc';
 include_once __DIR__ . '/admin-web.inc';
 
+//define('R_CHECK_BASE', 1000000); // where to start numbering remotely-created checks (added to txid)
+
 /**
  * Make various administrative operations available to the admin and cAdmin.
  */
@@ -46,11 +48,11 @@ function formAdmin($form, &$sta, $args = '') {
   $account = textField(t('Account:'), t('Account to do something to'),auto());
   $make = boxfield(t('Make:'));
   $printId = submit(t('Print ID'));
-  $connectBank = submit(t('Connect Bank'));
+//  $connectBank = submit(t('Connect Bank'));
   $seeSecure = submit(t('See Secure'));
   $seeData = submit(t('See Data'));
   $newUsdEmail = submit(t('New USD Email'));
-  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeSecure connectBank do1099b')));
+  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeSecure do1099b')));
   
   $form = compact('title');
   if ($mya->cAdmin) {
@@ -83,10 +85,14 @@ function formAdmin_submit($form, &$sta) {
   }
   
   if ($op == 'printId') {
+    if ($a->co and $a->proSe) return say(t('A company cannot have an rCard (only its agents have rCards).'));
     if (@$make) {
-      seeSecure($a);
+//      seeSecure($a);
+      $oldFile = DRUPAL_ROOT . $a->auxFilename('picture', TRUE);
       r\makeCardCode($a);
-      seeSecure($a);
+      $newFile = DRUPAL_ROOT . $a->auxFilename('picture', TRUE);
+      rename($oldFile, $newFile);
+//      seeSecure($a);
     }
     return r\go('/print-rcard/' . $a->qid);
   } elseif ($op == 'seeSecure') {
@@ -96,8 +102,8 @@ function formAdmin_submit($form, &$sta) {
     }
   } elseif ($op == 'seeData') {
     if (@$a and $a->proSe) say(u\rayTable($a->data, FALSE, TRUE));
-  } elseif ($op == 'connectBank') {
-    r\Web\connectBank($a);
+/*  } elseif ($op == 'connectBank') {
+    r\Web\connectBank($a); */
   } elseif ($op == 'do1099b') {
     include_once __DIR__ . '/../rcredits/rcredits-yearly.inc';
     r\Special\do1099bs();
@@ -303,6 +309,121 @@ function formDownloadMemberList_submit($form, &$sta) {
   exit();
 }
 
+define('DEPOSIT_DATE1', 1411517529); // first deposit date
+
+/**
+ * Print checks for transfers from member bank accounts.
+ */
+function formPrintChecks($form, &$sta) {
+  $where = 'payee=0 AND amount<0 and created>:DEPOSIT_DATE1'; // transfer from any member's bank account
+  $count = db\count('r_usd', $where . ' AND deposit=0');
+  $previous = db\lookup('MAX(deposit)', 'r_usd', $where);
+  if ($previous == 1) $previous = 0; // handle transition from Dwolla
+  $oldCount = $previous ? db\count('r_usd', $where . ' AND deposit=:previous', compact('previous')) : 0;
+
+  $title = item(t('Print Checks'));
+  $count = item($count . t(' checks'), t('Print:'));
+  if ($previous) $reprint = boxField(t('Reprint:'), t('Include (reprint) ') . $oldCount . t(' checks from ') . u\fmtDate($previous) . '?');
+  if ($count or $previous) $submit = submit(t('Print checks'));
+  $previous = hidField($previous);
+  return labeled(compact(u\ray('title count reprint submit previous')));
+}
+
+function formPrintChecks_submit($form, &$sta) {
+  extract(u\just('reprint previous', $sta['input']));
+  r\go("sadmin/checks/previous=$previous&reprint=" . @$reprint);
+}
+
+function printChecks($args) {
+  extract(u\just('reprint previous', $args));
+  include_once __DIR__ . '/../check.class';
+  $ck = new r\Check();
+  $ck->setPrintHeader(FALSE);
+  $ck->setPrintFooter(FALSE);
+  $ck->setPageUnit('in'); // measure everything in inches
+//  $ck->SetMargins(0, 0, 0); // left/top/right margin
+  $ck->SetAutoPageBreak(FALSE);
+
+  $where = @$reprint ? "(deposit=0 OR deposit>=$previous)" : 'deposit=0';
+  $q = db\q("SELECT txid,created,payer,-amount AS amount,deposit FROM r_usd WHERE $where AND payee=0 AND amount<0 AND created>:DEPOSIT_DATE1 ORDER BY created");
+  $pos = 3; // before first position of 3, on 3-up check paper
+  $count = 0;
+  while ($tx = $q->fetchAssoc()) {
+    if ($pos == 3) {$pos = 1; $ck->AddPage();} else $pos++;
+    printOneCheck($ck, $pos, $tx);
+    $count++;
+  }
+  $date = strftime('%Y-%m-%d', $previous);
+//  if (t\est()) $ck->Close(); else $ck->Output("Checks-for-rCredits-$date.pdf", 'I'); //Close and output PDF document
+  $ck->Output("checks-for-rCredits-$date.pdf", 'I'); //Close and output PDF document
+  say($count . t(' checks printed'));
+//  r\go('sadmin');
+}
+
+/**
+ * Print a check to transfer funds from a member bank account to the rCredits Escrow account,
+ * according to the given record in r_usd.
+ * @param Check $ck: the Check object to place the check in.
+ * @param int $pos: what position on the current page (1, 2, or 3)
+ * @param assoc $tx: the relevant fields from the r_usd record
+ */
+function printOneCheck(&$ck, $pos, $tx) {
+  extract(u\just('txid created payer amount deposit', $tx));
+//  $amount = 1234567.89;
+  $a = r\acct($payer);
+
+  list ($W, $H) = array($ck->pageW, $ck->pageH);
+  $lineH = $ck->lineH; // standard line height in inches
+  $m = .25; // left/right margins
+  $mt = ($pos - 1) * CHECK_HEIGHT + $m; // top margin
+  
+  $phone = u\fmtPhone($a->phone);
+  $routing = substr($a->bankAccount, 4, 9);
+  $account = substr($a->bankAccount, 4 + 9);
+  $bankInfo = db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
+  if (!$bankInfo) {say("Skipped transaction #$txid for $a->fullName (no bank info)"); return;}
+  //u\EXPECT((bool) $bankInfo, 'no bank info');
+  extract($bankInfo, EXTR_PREFIX_ALL, 'b');
+  if (strlen($b_zip) > 5) $b_zip = substr($b_zip, 0, 5) . '-' . substr($b_zip, 5);
+  if (!$prefix = db\lookup('id', 'r_transit', 'location=:location', u\ray('location', "$b_city, $b_state"))) {
+    $prefix = db\lookup('id', 'r_transit', 'location=:b_state', compact('b_state'));
+    //u\EXPECT((bool) $prefix, 'no transit prefix');
+  }
+  $transit = $prefix . '-' . substr($routing, 4, 4) . '/' . substr($routing, 0, 4);
+  $dollars = floor($amount);
+  $cents = round(100 * ($amount - $dollars)) ?: t('NO');
+
+  $ck->say("<b>$a->legalName</b><br><small>$a->postalAddr<br>$phone</small>", $m, $y = $mt, $W - $m);
+  $ck->say("$transit<br>$account", $W / 2, '', $W / 4, '', '8', 'C');
+  $ck->say("<b>$txid</b>", -$W / 4, '', -$W / 4 - $m, '', '', 'R');
+
+  $ck->say('DATE:', 6.7, $y += .4, '', .25, '8');
+  $ck->say(u\fmtDate(), 7.1, '', '', .25);
+
+  $ck->say('Pay to the<br>Order of', $m, $y += .4, '', 2 * $lineH, '8 CAPS');
+  $ck->say('  rCredits', $m + .7, $y + $lineH, 5.9, $lineH, '', '', 'BR');
+  $ck->say('$ ' . number_format($amount, 2), 7, '');
+  
+  $ck->say(u\n2english($dollars) . " and $cents/100", $m, $y += .65, 6.9, $lineH, '', '', 'B');
+  $ck->say('DOLLARS', $m + 6.9, '', '', $lineH, '8');
+//  $ck->Image(__DIR__ . '/../images/icons/padlock.gif', $W - $m - .5, $y, $lineH, $lineH);
+  
+  $ck->say("<b>$b_name</b><br><small>$b_address<br>$b_city, $b_state $b_zip</small>", $m + 1, $y += .4, '', '', '9');
+  
+  $ck->say(t('Pre-authorized Check'), $W - $W / 3, $y + .35, $W / 3 - $m, $lineH, 'CAPS', 'C', 'B'); // $y+ not +=
+  $ck->say(t('No Signature Required'), '', $y + .35 + $lineH, $W / 3 - $m, $lineH, '8 CAPS', 'C');
+  
+  $ck->say('MEMO:', $m, $y += .5, '', $lineH, '8');
+  $ck->say(t('for rCredits'), $m + .5, '');
+
+  // clear band must be at least .625" high, at least 0.1875" from bottom (so leave more). Micr should be 12pt
+  $ck->say("A{$routing}A {$account}C $txid", $m, $mt - $m + CHECK_HEIGHT - .25 - $lineH * (12 / CHECK_FONT_SIZE), '', '', 'GnuMICR 12');
+  
+//  $ck->say('', 0, $mt - $m + CHECK_HEIGHT, $W, 1, '', '', 'T'); // comment this out
+  
+  if (!$deposit) db\update('r_usd', u\ray('deposit txid', strtotime('today'), $txid), 'txid');
+}
+
 define('PHOTO_MAX', 90); // maximum height and width of photo
 
 /**
@@ -310,7 +431,7 @@ define('PHOTO_MAX', 90); // maximum height and width of photo
  * @param mixed $id: quid or uid of account to make a card for
  */
 function memberID($id) {
-  require_once __DIR__ . '/../pdf.class';
+  require_once __DIR__ . '/../statement.class';
 
   if (!$mya = r\acct()) exit('You must first sign in.');
 /*  if ($scan) {
@@ -347,7 +468,7 @@ function memberID($id) {
   $info = @getimagesize($photo);
   list ($photoW, $photoH) = is_array($info) ? $info : array(0, 0);
   list ($photoW, $photoH) = $photoW > $photoH ? array(PHOTO_MAX, '') : array('', PHOTO_MAX);
-  $pdf = new r\pdf($acct);
+  $pdf = new r\Statement($acct); // this function should be rewritten to use r\check class instead maybe?
   $pdf->setPrintHeader(FALSE);
   $pdf->setPrintFooter(FALSE);
   $pdf->AddPage();
@@ -547,3 +668,4 @@ EOF;
 
   exit();
 }
+

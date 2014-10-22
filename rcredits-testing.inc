@@ -119,7 +119,7 @@ function doAccount($info = array()) {
     if (@$flags0) foreach (u\ray($flags0) as $one) $flags |= u\bit(u\consta('b', $one));
     if (!$testOnly) {
       if ($flags & u\bit(B_OK)) $flags |= u\bit(B_MEMBER);
-      if ($flags & u\bit(B_DW)) $flags |= u\bit(B_BANK);
+//      if ($flags & u\bit(B_DW)) $flags |= u\bit(B_BANK);
     }
     
     if (isset($acctType)) $flags |= (($acctType === R_PERSONAL or $acctType == 'personal') ? 0 : u\bit(B_CO)); // === required
@@ -195,9 +195,7 @@ function doTx($info, $thing) {
   if (@$purpose) $for = $purpose; // ?: 'cash';
   if (strpos(@$for, ',')) $for = explode(',', $for); // specifying both payerFor and payeeFor
   foreach (u\ray('from to for') as $one) unset($info[$one]);
-  if (isset($risks)) {
-    $risks = getRisks($risks, K_TX_RISKS);
-  } 
+  if (isset($risks)) $risks = getRisks($risks, K_TX_RISKS);
 
   if (!$testOnly) u\setDft($risk, NULL); // indicates that risk has not been calculated yet
   
@@ -453,7 +451,7 @@ function usdTransferCount($where = '1') {
   global $testOnly;
   
   if($testOnly) {
-    return db\recCount('r_usd', $where);
+    return db\count('r_usd', $where);
   } else {
     db\q("DELETE FROM r_usd WHERE $where");
     return 0; // 0 is the only thing we can make it!
@@ -465,11 +463,12 @@ function usdTransfers($txs) {
   
   foreach ($txs as $tx) {
     if ($testOnly) {
-      extract(u\just('payer payee', $tx));
+      extract(u\just('payer payee risks', $tx));
       if (@$payer) $tx['payer'] = t\uid($payer);
       if (@$payee and !is_numeric($payee)) $tx['payee'] = t\uid($payee);
 ///      debug(compact(u\ray('payer payee amount')));
-      return verifyRecord('r_usd', $tx);
+      if (isset($risks)) $tx['risks'] = getRisks($risks, K_TX_RISKS);
+      if (!verifyRecord('r_usd', $tx)) return FALSE;
     } else {
       foreach (u\just('payer payee', $tx) as $key => $value) {
         if ($value) $tx[$key] = t\uid($value);
@@ -486,7 +485,7 @@ function usdTransfers($txs) {
         $a1->update('usd r', $a1->usd - $amount, $a1->r + $amount);
         $a2->update('usd r', $a2->usd + $amount, $a2->r - $amount);
         if ($amount > DW_FEE_THRESHOLD) r\queue('coverFee', compact(u\ray('txid payee')));
-      } elseif (@$completed) $a1->update('usd', $a1->usd - $amount);
+      } elseif (@$completed) $a1->update('r', $a1->r - $amount);
     }
   }
   return TRUE;
@@ -645,11 +644,7 @@ function findEmail($index, $email, $subs) {
 
   $subs = @$subs[0] ?: @$subs;
   t\fixEmail($email);
-  foreach ($subs as $k => $v) {
-    if (strpos($v, ',')) $subs[$k] = $v = '<li>' . join("</li>\n<li>", explode(',', $v)) . "</li>";
-    $esubs['{' . $k . '}'] = $v;
-  }
-  //foreach ($subs as $k => $v) $esubs[u\hug($k, '{}')] = $v;
+  foreach ($subs as $k => $v) $esubs['{' . $k . '}'] = $v;
   $message = @$subs['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
   $message = str_replace("\r\n", '', $message);
   $messageDpy = t\showSubs($message, $esubs);
@@ -660,15 +655,16 @@ function findEmail($index, $email, $subs) {
   $subject = strtr($subject, $esubs);
   $pattern = '/\{[A-Z]+[A-Z0-9]*\}/i';
   if (preg_match($pattern, $message. $subject)) return FALSE; // no other subs
+  
+  foreach ($subs as $k => $v) $subs[$k] = strip_tags($v);
   ksort($subs);
   
   foreach ($testEmails as $one) {
     extract($one, EXTR_PREFIX_ALL, 't');
     if ($t_index == $index and $t_email == $email) {
+      foreach ($t_subs as $k => $v) $t_subs[$k] = strtr(strip_tags($v), ["\n" => '', '&nbsp;' => ' ']);
       ksort($t_subs);
-      $keys = join(' ', array_keys($subs));
-      $t_keys = join(' ', array_keys($t_subs));
-      if (u\just($keys, $t_subs) == u\just($t_keys, $subs)) return TRUE; // has these subs
+      if (u\just(array_keys($subs), $t_subs) == u\just(array_keys($t_subs), $subs)) return TRUE; // has these subs
     }
   }
   output(u\ray('EXPECT', '') + compact(u\ray('index email subjectDpy subs messageDpy')), 'email');

@@ -79,13 +79,13 @@ function showActivity($a) {
   $uid = $a->id;
   $cgf = r\cgfId();
   $when = strtotime('-3 months');
-  $count = $a->co ? db\recCount('r_txs', 'payee=:uid AND created>:when', compact('uid', 'when'))
-    : db\recCount('r_txs', 'payer=:uid AND payee<>:cgf AND created>:when', compact(u\ray('uid cgf when')));
+  $count = $a->co ? db\count('r_txs', 'payee=:uid AND created>:when', compact('uid', 'when'))
+    : db\count('r_txs', 'payer=:uid AND payee<>:cgf AND created>:when', compact(u\ray('uid cgf when')));
   $ret = t('@count @what', u\ray('@count @what', $count, $a->co ? t('sales') : t('purchases')));
-  $subs = u\ray('@signed', u\fmtDate($a->signed));
+  $subs = u\ray('@signed @use', u\fmtDate($a->signed ?: $a->created), u\fmtDate($a->ok ? $a->access : $a->login));
   $ret .= (@$a->signed and $a->signed < $when) 
-    ? t(' in the past 3 months (member since @signed)', $subs)
-    : t(' since joining on @signed', $subs);
+    ? t(' in the past 3 months (member since @signed, last use/signin @use)', $subs)
+    : t(' since joining on @signed (last use/signin @use)', $subs);
   return $ret;
 }
 
@@ -324,11 +324,11 @@ function checkStats($ctty, $asof) {
     $crit = 'BETWEEN :created AND :created+:DAY_SECS-1';
     //$r += db\lookup('SUM(amount)', 'r_txs', 'payer<0 AND created ' . $crit, compact('created'));
     //$usd += db\lookup('-SUM(amount)', 'r_usd', 'payee=0 AND completed ' . $crit, compact('created'));
-    //$newbs = db\recCount('users', 'created<:created', compact('created')) - $pAccts - $bAccts;
+    //$newbs = db\count('users', 'created<:created', compact('created')) - $pAccts - $bAccts;
 ///    debug(compact(u\ray('id created r usd newbs users'))); break;
 //    db\update('r_stats', compact(u\ray('r usd newbs id')), 'id');
 
-    $newbs = db\recCount('users', 'created<:created AND community=:new', compact('created', 'new')) - $pAccts - $bAccts;
+    $newbs = db\count('users', 'created<:created AND community=:new', compact('created', 'new')) - $pAccts - $bAccts;
     $id = db\lookup('id', 'r_stats', 'created=:created AND ctty<>0', compact('created'));
     db\update('r_stats', compact(u\ray('newbs id')), 'id');
   }

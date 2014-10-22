@@ -37,16 +37,21 @@ function ray($s, $value1 = NULL) {
   }
 
   u\EXPECT(compact('s'), 'string');
-  $pattern = strpos($s, "\n") ? '/\R/' : (strpos($s, '|') ? ' *\| *' : (strpos($s, ',') ? '\, *' : (strpos($s, ';') ? '; *' : (strpos($s, ' ') ? '  *' : FALSE)))); // strangely ' +' fails but '  *' works
+  $pattern = strpos($s, "\n") !== FALSE ? '/\R/' 
+    : (strpos($s, '|') !== FALSE ? ' *\| *' 
+    : (strpos($s, ',') !== FALSE ? '\, *' 
+    : (strpos($s, ';') !== FALSE ? '; *' 
+    : (strpos($s, ' ') !== FALSE ? '  *' // strangely ' +' fails but '  *' works
+    : FALSE))));
   $simple = $pattern ? mb_split($pattern, $s) : array($s);
   if (!strpos($pattern, ',') or !strpos($s, ':')) return $simple; // no subargs
 
-  $array = array();
+  $ray = [];
   foreach ($simple as $one) {
     list ($key, $value) = explode(':', $one);
-    $array[$key] = $value;
+    $ray[$key] = $value;
   }
-  return $array;
+  return $ray;
 }
 
 /**
@@ -54,16 +59,16 @@ function ray($s, $value1 = NULL) {
  * call by extract(u\rayy(func_get_args()));
  * The called function cannot otherwise accept an assoc as its first argument.
  * @param array $args: func_get_args() from the called function
- * @return u\ray called with those args if viable, else array()
+ * @return u\ray called with those args if viable, else []
  */
 function rayy($args) {
-  return (count($args) >= 2 and is_string($args[0])) ? call_user_func_array('rCredits\\Util\\ray', $args) : array();
+  return (count($args) >= 2 and is_string($args[0])) ? call_user_func_array('rCredits\\Util\\ray', $args) : [];
 }
 
 /* this is probably a bad idea
 function preK($prefix, $s) {
   if (is_array($s)) {
-    $new = array();
+    $new = [];
     foreach ($s as $key => $value) $new[$prefix . ucwords($key)] = $value;
     return $new;
   } else return $prefix . ucwords($s);
@@ -73,19 +78,32 @@ function preK($prefix, $s) {
 /**
  * Return just the specified key/value pairs from the given array, trimmed.
  * Typical use: extract(just('key2 key4 key 7', $info));
- * If a key did not exist in the original array, it will no be in the returned array either.
+ * If a key did not exist in the original array, it will not be in the returned array either.
  * @param string/array $these: array or space-delimited array of field names
- * @param array/object/string $args: possible key/value pairs to return (passed as array, object, or UrlArgString)
+ * @param array/object/string $info: possible key/value pairs to return (passed as array, object, or UrlArgString)
  * @return array of the results, trimmed
  */
-function just($these, $args) {
-  $result = array();
-  if (is_string($args)) {
-    parse_str(strpos($args, urlencode('=')) ? urldecode($args) : $args, $array);
-  } else $array = (array) $args; // in case it was an object
-  if (!is_array($these)) $these = ray($these);
-  foreach ($these as $one) if (isset($array[$one])) $result[$one] = is_string($array[$one]) ? trim($array[$one]) : $array[$one];
+function just($these, $info) {
+  $result = [];
+  if (is_string($info)) {
+    parse_str(strpos($info, urlencode('=')) ? urldecode($info) : $info, $ray);
+  } else $ray = (array) $info; // in case it was an object
+  if (!is_array($these)) $these = u\ray($these);
+  foreach ($these as $one) if (isset($ray[$one])) $result[$one] = is_string($ray[$one]) ? trim($ray[$one]) : $ray[$one];
   return $result;
+}
+
+/**
+ * Return all but the specified key/value pairs from the given array.
+ * @param string/array $these: array or space-delimited array of field names
+ * @param array/object/string $info: possible key/value pairs to return (passed as array, object, or UrlArgString)
+ * @return array of the results (not trimmed)
+ */
+function justNot($these, $info) {
+  if (!is_array($these)) $these = u\ray($these);
+  $info = (array) $info;
+  foreach ($these as $field) unset($info[$field]);
+  return $info;
 }
 
 /**
@@ -178,6 +196,7 @@ function fmtAmt($amount, $options = 's$') {
 //  if (!is_numeric($amount)) $amount = -999999;
   u\EXPECT(compact('amount'), 'float', 'bad num');
   $amount = number_format($amount, 2);
+  if ($amount == '-0.00') $amount = '0.00'; // this happens, for small negative amounts
   if (strpos($options, '$')) $amount = '$' . $amount;
   if (strpos($options, 's')) $amount = str_replace('.00', '', $amount);
   if (strpos($options, 'r')) $amount .= 'r';
@@ -372,30 +391,30 @@ function fmtPhone($phone, $how = '+') {
 /**
  * Return the array with its keys prefixed by the given string
  */
-function prefixKeys($prefix, $array) {
-  EXPECT(compact('prefix', 'array'), 'string array');
-  if ($prefix == '') return $array;
-  $new_array = array();
-  foreach ($array as $key => $value) $new_array[$prefix . $key] = $value;
-  return $new_array;
+function prefixKeys($prefix, $ray) {
+  EXPECT(compact('prefix', 'ray'), 'string array');
+  if ($prefix == '') return $ray;
+  $newRay = [];
+  foreach ($ray as $key => $value) $newRay[$prefix . $key] = $value;
+  return $newRay;
 }
 
-function prefixValues($prefix, $array) {
-  foreach ($array as $key => $value) $array[$key] = $prefix . $value;
-  return $array;
+function prefixValues($prefix, $ray) {
+  foreach ($ray as $key => $value) $ray[$key] = $prefix . $value;
+  return $ray;
 }
 
-function changeKey($oldKey, $newKey, &$array) {
-  $array[$newKey] = $array[$oldKey];
-  unset($array[$oldKey]);
-  return $array;
+function changeKey($oldKey, $newKey, &$ray) {
+  $ray[$newKey] = $ray[$oldKey];
+  unset($ray[$oldKey]);
+  return $ray;
 }
 
 /**
  * Return the difference between two arrays (better than array_diff_assoc)
  */
 function diff($a, $b) {
-  $result = array();
+  $result = [];
   foreach ($a as $key => $one) if (!is_null($a[$key])) {
     if ($a[$key] != @$b[$key] or !isset($b[$key])) $result[] = $key . (isset($b[$key]) ? '' : ': missing in #2');
   }
@@ -415,12 +434,12 @@ function diff($a, $b) {
  * @param array $subs (optional). '@' will be prepended to the keys.
  * @todo get the r\'s out of this utilities file OR stop trying to separate u\ from r\
  */   
-function tt($message, $subs = array(), $adhocChannel = '') {
+function tt($message, $subs = [], $adhocChannel = '') {
   global $channel;
  
   if (!$adhocChannel) $adhocChannel = $channel;
   if (is_array($message)) list ($message, $subs) = $message;
-  if (!$subs) $subs = array(); // accept ''
+  if (!$subs) $subs = []; // accept ''
   $messages = explode('|', $message);
   $channels = ray(TX_CHANNELS);
 
@@ -477,7 +496,7 @@ This function uses the ignore_errors context parameter. Without this set (the de
 
 When using POST with REST, take care: PHP's HTTP redirection handler will drop your POST payload if the endpoint issues a redirect. If you experience problems using POST with the function below, it might be due to redirects. Most of the POST calls I've run into issue redirects if the URL is missing a trailing '/' character. In other words, if you experience problems where it seems like your parameters are not being sent in, try appending a '/' to the end of the URL and try it again.
  */
-function httpRequest($url, $content = FALSE, $responseFormat = 'raw', $extra_headers = array(), $method = 'POST', $request_format = 'url') {
+function httpRequest($url, $content = FALSE, $responseFormat = 'raw', $extra_headers = [], $method = 'POST', $request_format = 'url') {
   $ignore_errors = TRUE;
   $headers = array('Content-Type' => $request_format == 'json' ? 'application/json' : 'application/x-www-form-urlencoded') + $extra_headers;
 
@@ -529,7 +548,7 @@ function SUBS($string, $prefix = ':', $flagField = 'flags') {
   $string = preg_replace("/([a-z]+[0-9]?\.)?{$prefix}IS_([A-Z0-9_]*)/ms", "($1$flagField&(1<<:B_$2))", $string);
 //  $string = preg_replace("/\\{$prefix}IS_([A-Z0-9_]*)/ms", "($flagField&(1<<:B_$1))", $string);
   preg_match_all("/\\$prefix([A-Z_][A-Z0-9_]*)/ms", $string, $matches);
-  $map = array();
+  $map = [];
   foreach ($matches[1] as $one) if (defined($one)) $map["$prefix$one"] = constant($one);
   return strtr($string, $map);
 }
@@ -625,7 +644,7 @@ function expect1($arg, $value, $type, $ret) {
  * @param int $adhocChannel: a second channel used from within the primary channel
  * @return the log record id (for exception handler and shutdown function)
  */  
-function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
+function loga($type, $info = [], $special = '', $adhocChannel = FALSE) {
 /**/  if (strlen($type) >= 60) die('in loga: ' . $type); // (KEEP) don't use EXPECT here
   global $channel;
   u\setDft($channel, -1);
@@ -696,7 +715,7 @@ function parseBankAccount($bankAccount) {
  * @param assoc $subs: substitutions for the other criteria
  * @return: the id (null if none available)
  */
-function firstUnusedId($key, $table, $starting = 1, $before = PHP_INT_MAX, $where0 = '1', $subs = array()) {
+function firstUnusedId($key, $table, $starting = 1, $before = PHP_INT_MAX, $where0 = '1', $subs = []) {
   if (!db\exists("$table t1", "$where0 AND t1.$key=$starting", $subs)) return $starting;
   $where = "$where0 AND t1.$key>=$starting AND t1.$key<$before-1 AND t2.$key IS NULL ORDER BY t1.$key";
   $prev = db\lookup("t1.$key", "$table t1 LEFT JOIN $table t2 ON t2.$key=(t1.$key+1)", $where, $subs);
@@ -848,7 +867,7 @@ function ezdecrypt($data, $key = R_WORD) {return ezencrypt($data, $key, FALSE);}
 function csvStart($filename) {
   global $csvFile;
   global $testCSVname; $testCSVname = $filename;
-  global $testCSV; $testCSV = array();
+  global $testCSV; $testCSV = [];
   
   header('Content-type: text/plain');
   header("Content-Disposition: attachment; filename=\"$filename\";");
@@ -1029,14 +1048,14 @@ function fsize($url) {
   return strlen($s);
 }
 
-function trimAll(&$array) {
-  foreach ($array as $key => $value) if (is_string($value)) $array[$key] = trim($value);
-  return $array;
+function trimAll(&$ray) {
+  foreach ($ray as $key => $value) if (is_string($value)) $ray[$key] = trim($value);
+  return $ray;
 }
 
 function deb($arg = '') {
   global $counterI;
-  $msgCount = count(@$_SESSION['messages']['status'] ?: array());
+  $msgCount = count(@$_SESSION['messages']['status'] ?: []);
 /**/ log(($counterI = @$counterI + 1) . " ($msgCount messages): " . print_r($arg, 1), 'debug'); // keep
 }
 
@@ -1162,6 +1181,38 @@ function nextBusDay($start = 0) {
   : ($start == 0 ? t('today') : ($start == 1 ? t('tomorrow') : strftime('%A', REQUEST_TIME + $start)));
 }
 
+define('ENGLISH_ONES', t(' One Two Three Four Five Six Seven Eight Nine Ten Eleven Twelve Thirteen Fourteen Fifteen Sixteen Seventeen Eighteen Nineteen'));
+define('ENGLISH_TENS', t(' X Twenty Thirty Forty Fifty Sixty Seventy Eighty Ninety'));
+define('ENGLISH_LIONS', t(' Thousand Million Billion Trillion Quadrillion Quintillion Sextillion Septillion Octillion Nonillion'));
+
+/**
+ * Return the number as an anglicized string.
+ * @param int $num: the number to convert.
+ * @param int $tri: recursion depth (handle three digits at a time)
+ */
+function n2english($num, $tri = 0) {
+  if ($num < 0) return t('Negative ') . n2english(-$num);
+  if ($num == 0) return t('Zero');
+ 
+  $ones = u\ray(ENGLISH_ONES);
+  $tens = u\ray(ENGLISH_TENS);
+  $lions = u\ray(ENGLISH_LIONS);
+  $r = floor($num / 1000); // chunk the number, ...rxyy
+  $x = ($num / 100) % 10;
+  $y = $num % 100;
+
+  $res = ''; // the result
+
+  if ($x > 0) $res = $ones[$x] . t(' Hundred '); // do hundreds
+  if ($y >= 20) { // ones and tens
+    $res .= $tens[floor($y / 10)];
+    if ($y = $y % 10) $res .= '-' . $ones[$y];
+  } elseif ($y > 0) $res .= $ones[$y]; // just ones
+  if ($res != '') $res .= ' ' . $lions[$tri]; // add triplet modifier only if there is something left
+
+  return str_replace('  ', ' ', trim($r > 0 ? n2english($r, $tri + 1) . ' ' . $res : $res));
+}
+
 /**
  * Say whether one string abbreviates another.
  * @param string $s: the possible abbreviation
@@ -1217,7 +1268,7 @@ function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('1%b%Y', $ti
 function prefix($prefix, &$var) {$var = $prefix . $var;}
 function preray($prefix, &$r0) {$r = $prefix + (array) $r0; $r0 = is_object($r0) ? (object) $r : $r;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
-function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}
+function log($message, $type = 'state', $info = []) {return u\loga($type, compact('message') + $info);}
 function consta($prefix, $var) {return constant(strtoupper(str_replace(' ', '_', $prefix . "_$var")));}
 function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}
 function jsonEncode($s) {return json_encode($s) ?: json_encode(u\purify($s));} // , JSON_UNESCAPED_SLASHES

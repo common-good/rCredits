@@ -8,9 +8,9 @@ Setup:
   | id   | fullName   | address | city  | state  | postalCode | country | postalAddr | email | flags |*
   | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK | a@    | ok    |
   And balances:
-  | id   | usd  | r   | rewards |*
-  | cgf  |    0 |   0 |       0 |
-  | .ZZA |  100 |  20 |      20 |
+  | id   | r   | rewards |*
+  | cgf  |   0 |       0 |
+  | .ZZA | 120 |      20 |
 
 Scenario: A donation can be completed
   Given gifts:

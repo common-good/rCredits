@@ -44,20 +44,17 @@ class rcronRecache extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "ASSOC'
-    . '\\| id   | fullName   | dw | email | flags      |'
-    . '\\| .ZZA | Abe One    |  1 | a@    | ok,dw,bona |'
-    . '\\| .ZZB | Bea Two    |  0 | b@    | ok,dw,bona |'
-    . '\\| .ZZC | Corner Pub |    | c@    | ok,dw,co   |"');
-    And__('balances: "ASSOC'
-    . '\\| id   | dw/usd |'
-    . '\\| .ZZA |      5 |"');
+    . '\\| id   | fullName   |email | flags    |'
+    . '\\| .ZZA | Abe One    | a@    | ok,bona |'
+    . '\\| .ZZB | Bea Two    | b@    | ok,bona |'
+    . '\\| .ZZC | Corner Pub | c@    | ok,co   |"');
     And__('transactions: "ASSOC'
     . '\\| xid   | created   | type       | amount | from | to   | purpose | taking |'
     . '\\| .AAAB | %today-6m | %TX_SIGNUP |     10 | ctty | .ZZA | signup  | 0      |"');
     Then_('balances: "ASSOC'
-    . '\\| id   | r  | usd | rewards |'
-    . '\\| .ZZA | 10 |   5 |      10 |'
-    . '\\| .ZZB |  0 |   0 |       0 |"');
+    . '\\| id   | r  | rewards |'
+    . '\\| .ZZA | 10 |      10 |'
+    . '\\| .ZZB |  0 |       0 |"');
     break;
 
 
@@ -68,31 +65,30 @@ class rcronRecache extends DrupalWebTestCase {
   public function testBalancesGetOutOfWhack_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "ASSOC'
-    . '\\| id     | r  | usd  | rewards | minimum | floor |'
-    . '\\| .ZZA   |  0 | 8.52 |       0 |       0 |     2 |'
-    . '\\| .ZZB   | 20 |    0 |       0 |     -10 |   -50 |"');
+    . '\\| id     | r  |rewards | minimum | floor |'
+    . '\\| .ZZA   |  0 |      0 |       0 |     2 |'
+    . '\\| .ZZB   | 20 |      0 |     -10 |   -50 |"');
     When_('cron runs "recache"');
     Then_('we tell staff "cache mismatch" with subs: "ASSOC'
     . '\\| id   | key     | is   | shouldBe |'
     . '\\| .ZZA | r       |    0 |       10 |'
-    . '\\| .ZZA | usd     | 8.52 |        5 |'
     . '\\| .ZZA | rewards |    0 |       10 |'
     . '\\| .ZZA | minimum |    0 |        2 |'
     . '\\| .ZZB | r       |   20 |        0 |'
     . '\\| .ZZB | minimum |  -10 |        0 |"');
     And__('balances: "ASSOC'
-    . '\\| id     | r  | usd | rewards | minimum |'
-    . '\\| .ZZA   | 10 |   5 |      10 |       2 |'
-    . '\\| .ZZB   |  0 |   ? |       0 |       0 |"');
+    . '\\| id     | r  | rewards | minimum |'
+    . '\\| .ZZA   | 10 |      10 |       2 |'
+    . '\\| .ZZB   |  0 |       0 |       0 |"');
   }
 
   // Scenario: Balances get a tiny bit out of whack
   public function testBalancesGetATinyBitOutOfWhack_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "ASSOC'
-    . '\\| id     | r       | usd |'
-    . '\\| .ZZA   | 10.0001 |   5 |'
-    . '\\| .ZZB   |       0 |   ? |"');
+    . '\\| id     | r       |'
+    . '\\| .ZZA   | 10.0001 |'
+    . '\\| .ZZB   |       0 |"');
     When_('cron runs "recache"');
     Then_('we tell staff "cache mismatch" with subs: "ASSOC'
     . '\\| id   | key     | is      | shouldBe |'

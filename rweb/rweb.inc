@@ -8,6 +8,7 @@ use rCredits\db as db;
 use rCredits\Txs as x;
 use rCredits\Admin as a;
 use rCredits\Risk as k;
+use rCredits\Web as w;
 
 require_once __DIR__ . '/rweb-subs.inc';
 require_once __DIR__ . '/../rcredits-backend.inc';
@@ -50,7 +51,7 @@ function rdo($code) {
   global $channel;
   if (strpos($code, ' ')) return doSay($code);
   if (!$info = r\doCode($code)) return doSay(t('That link is archaic.'));
-
+  print_r($info);
   if ($once = is_numeric($doid = @$info['op'])) {
     if (!$result = db\lookup('uid,data', 'r_do', 'doid=:doid', compact('doid'))) return doSay(t('That link is no longer valid.')); // already used OR deleted because it expired
     extract(u\just('uid data', $result));
@@ -89,12 +90,12 @@ function rdo($code) {
 
 /**
  * Automatically deactivate an account (called when the user changes the Dwolla email or password).
- */
+ */ /*
 function coup($usdEmail) {
   list ($email) = explode('@', $usdEmail);
   list ($code, $region, $id) = explode('.', $email);
-/**/  if (!$a = r\acct(strtoupper("$region.$id"))) die('no1');
-/**/  if (@$a->secure['usdEmail'] != $usdEmail) die('no2');
+  if (!$a = r\acct(strtoupper("$region.$id"))) die('no1');
+  if (@$a->secure['usdEmail'] != $usdEmail) die('no2');
   if ($a->usd > 0) { // store its USD in ctty fund (single transfer for speed? many for hard-to-contest?)
     if (!r\tradeR(min(R_MAX_DAILY_EXCHANGE, $a->usd), $a->community, $a->id, $err) or $a->usd > R_MAX_DAILY_EXCHANGE) {
       r\tellStaff("Immediate coup threat: $a-fullName $$a->usd ($err)");
@@ -103,6 +104,7 @@ function coup($usdEmail) {
   $a->suspend(t('your Dwolla PIN, email, and/or password was changed.'));
   exit('ok');
 }
+*/
 
 /**
  * Generate choices for a member autocomplete field
@@ -172,6 +174,31 @@ EOF;
 }
 
 /**
+ * List the months for which notices are available for the current account, with links.
+ */
+function formNotices($form, $sta) {
+  return monthChoices(t('Notices'), 'notice', 0, '');
+}
+
+/**
+ * List notices for a given month.
+ * @param string $month: mmmyyyy
+ */
+function formNotice($form, $sta, $month = '') {
+  if (!$start = strtotime("1$month")) return r\go('empty', t('That is not a recognizable month.' . $month), 'ERR');
+  $start = u\monthDay1($start);
+  $end = strtotime('+1 month', $start) - 1;
+
+  $mya = r\acct();
+  if ($noticeArgs = r\noticeArgs($mya->id, "created BETWEEN $start AND $end", FALSE, TRUE)) {
+    extract(u\just('messages', $noticeArgs));
+  } else $messages = '';
+  $title = item(t('Notices for ') . strftime('%B %Y', $start));
+  $list = item("<table>$messages</table>");
+  return compact('title', 'list');
+}
+
+/**
  * Generate an account statement for the given month.
  * @param string $month: mmmyyyy
  */
@@ -183,9 +210,9 @@ function statement($month) {
   $end = strtotime('+1 month', $start) - 1;
   if (!$mya = r\acct()) return r\go('', t('You must first sign in.'), 'ERR');
 
-  include_once __DIR__ . '/../pdf.class';
+  include_once __DIR__ . '/../statement.class';
   
-  $pdf = new r\pdf($mya, $start);
+  $pdf = new r\Statement($mya, $start);
 
   $size = $pdf->getFontSizePt();
   $m = 5; // left/right margin size
@@ -226,7 +253,7 @@ function statement($month) {
   list ($plus, $minus, $equals, $space) = array('+', '-', '=', ' ');
   $committed = $mya->committed;
   $avg = r\averageBalance($mya->id, $mya->created, $end);
-  $yield = number_format(100 * $rewardsEver / $avg, 1) . '%';
+  $yield = number_format($avg ? 100 * $rewardsEver / $avg : 0, 1) . '%';
   foreach (u\ray('bal0 frombank fromyou toyou reward bal9 rewardsEver committed') as $one) $$one = number_format(@$$one, 2);
 
   $pdf->setFontSize(.9 * $size);
@@ -406,7 +433,7 @@ function formMembership($a, &$sta = '', $code = '') {
   $co = $a->co;
   $ok = $a->ok;
   $mempage = is_numeric($code) ? $code : FALSE;
-  $dw = $dw0 = $a->can(B_DW);
+//  $dw = $dw0 = $a->can(B_DW);
   $dw = FALSE;
   extract($a->stepsDone ?: array(), EXTR_PREFIX_ALL, 'ok');
 
@@ -416,7 +443,8 @@ function formMembership($a, &$sta = '', $code = '') {
 //    $gotIdProof = (@$a->dob and @$a->federalId and ($co ?: $a->hasAux('proof')));
 //    $gotSecurity = (($secure = @$a->secure) and @$secure['auth'] and @$a->dob and @$a->federalId and ($co ?: $a->hasAux('proof')));
     $ready = (@$ok_sign and $ok_contact and $ok_donate and $ok_photo and $ok_prefs and $ok_dw); // @ for testing
-    $ready = ($ready and ($co? ($ok_company and $ok_relations) : ($ok_proxies and ($ok_verify or !$dw0))));
+//    $ready = ($ready and ($co? ($ok_company and $ok_relations) : ($ok_proxies and ($ok_verify or !$dw0))));
+    $ready = ($ready and ($co? ($ok_company and $ok_relations) : ($ok_proxies and $ok_connect)));
   } else $ready = TRUE;
 
   if ($updating) return $ready;
@@ -465,7 +493,7 @@ function formMembership($a, &$sta = '', $code = '') {
     $message2 .= memberStep($stepNum++, $ok_prefs, $stepPrefs, 'account/preferences')
                . memberStep($stepNum++, $ok_photo, $stepPhoto, 'account/photo');
 
-    if (!$co and ($dw or $dw0)) $message2 .= memberStep($stepNum++, $ok_verify, $stepBank, 'account/bank');
+    if (!$co) $message2 .= memberStep($stepNum++, $ok_verify, $stepBank, 'account/bank');
 //    if (!$co) $message2 .= memberStep($stepNum++, $gotIdProof, $stepProof, 'account/id-proof');
     if ($co)
     $message2 .= memberStep($stepNum++, $ok_company, $stepCompany, 'account/company')
@@ -475,7 +503,7 @@ function formMembership($a, &$sta = '', $code = '') {
   } elseif (FALSE) {
     $message1 = t('<h2>You have completed all membership steps.</h2><p>Within 24 hours, you should receive an email saying your account is approved and you can expect your rCard in the mail within a day or two. Hurray!</p>'); // UNUSED
   } else {
-    $bonusMsg = ($a->can(B_BONA) or ($a->can(B_BANK) and $a->minimum > 0)) ? '' : t("<p>To receive your $" . R_SIGNUP_BONUS . " signup bonus, you must have a way to get money into your account. Ask someone to pay you with rCredits OR <a href=\"$base_url/get\">transfer funds from you bank account</a>. As soon as you get some money in, your signup bonus will arrive.</p>");
+    $bonusMsg = ($a->can(B_BONA) or ($a->bank and $a->minimum > 0)) ? '' : t("<p>To receive your $" . R_SIGNUP_BONUS . " signup bonus, you must have a way to get money into your account. Ask someone to pay you with rCredits OR <a href=\"$base_url/get\">transfer funds from you bank account</a>. As soon as you get some money in, your signup bonus will arrive.</p>");
     $personMsg = !$a->co ? t(' You are also responsible for guiding your local economy, together with hundreds of other rCredits members -- setting investment and grant-making priorities, electing local directors for your Common Good Community, planning a sustainable local prosperity for all residents, and offering help to communities elsewhere.</p>') . $bonusMsg : '</p>';
     $message1 = t('<h2>Congratulations! Your account is Activated.</h2><p>You are authorized to use rCredits to buy and sell with other members.') . $personMsg;
   }
@@ -743,7 +771,7 @@ function formSummary($form, &$sta, $qid = '') {
       if (t\est() and $mem !== TRUE) return $mem; // redirected to another page
       if (!$a->ok) say('setup complete');
       say('adjust settings');
-      //if ($a->can(B_DW) and !$a->can(B_BANK)) say('verify bank');
+//      if ($a->can(B_DW) and !$a->can(B_BANK)) say('verify bank');
     } else say('take a step');
     
     if ($a->legalName != $a->fullName) $legalName = item($a->legalName, t('Legal Name:'));    
@@ -1123,7 +1151,7 @@ function changeWho($args = '') {
 
   $mya = r\acct($acct);
   svar('myid', $mya->id); // this gets checked ONLY in setupGlobals()
-  $mya->setBank();
+//  $mya->setBank();
   r\go($page);
 }
 
@@ -1434,18 +1462,18 @@ function formBuy_submit($form, &$sta) {
  */
 function formHandleInvoice($form, &$sta, $args = '') {
   $mya = r\acct();
-  extract(u\just('nvid ret code', $args));
+  extract(u\just('nvid ret code toMe', $args));
   $ret = @$ret ? @u\deurlify($ret) : 'empty/1';
   
   if ($err = r\badUnpaidInv(@$nvid, $inv)) return r\go($ret, $err, 'ERR');
   extract(u\just('nvid amount payer payee purpose created data', $inv));
   if ($mya) {
-    if ($payer != $mya->id) return hack(t('bad payer in invoice payment'));
+    if ($payer != $mya->id and $payee != $mya->id) return hack(t('bad person in invoice payment'));
   } elseif (!$info = r\doCode($code) or $info['id'] != $nvid) return hack(t('fake doCode in handleInvoice'));
 
   $subs = u\ray('amount what', u\fmtAmt($amount), $purpose);
   
-  if (@$args['toMe']) {
+  if (@$toMe) {
     $title = item(t('Confirm Payment'));
     $subs += u\ray('who', r\acct($payee)->fullName);
     $subtext = item(tt('Pay @amount to @who for @what?', $subs));
@@ -1489,7 +1517,7 @@ function formHandleInvoice_submit($form, &$sta) {
     db\q('DELETE FROM r_invoices WHERE nvid=:nvid', compact('nvid'));
     r\notify($payer, 'invoice withdrawn', $subs);
     $msg = 'invoice delete done';
-  } elseif ($op == 'deny' or $whyNot) {
+  } elseif ($op == 'deny' or @$whyNot) {
     $data = serialize(compact('whyNot') + (@$data ? unserialize($data) : array()));
     db\q('UPDATE r_invoices SET status=:TX_DENIED, data=:data WHERE nvid=:nvid', compact('nvid', 'data'));
     r\notify($payee, 'invoice denied', $subs);
@@ -1558,24 +1586,24 @@ function formGet_validate($form, &$sta) {
 }
   
 function formGet_submit($form, &$sta) {
-  //$mya = r\acct();
-  $us = new r\usd($mya = r\acct());
+  $mya = r\acct();
+//  $us = new r\usd($mya = r\acct());
   extract(u\just('amount', $sta['input']));
 
   if (op($sta) == 'put') {
     $action = 'deposit to';
     if (!$mya->cacheOk()) return r\go('', 'cannot bank', u\ray('action error', $action, t('data integrity issue')));
-    if ($need = max(0, $amount - $mya->usd)) {
+/*    if ($need = max(0, $amount - $mya->usd)) {
       if (!$got = r\getUsd($need, $mya) or $got < $need) return say('cannot offload', 'amount');
-    }
+    } */
   } else list ($action, $amount) = array('draw from', -$amount);
   
-//  $mya->bank(-$amount);
-  if ($us->bank($amount, $error) or isDEV) { // ignore lack of verified bank connection, if testing
-    $amount = u\fmtAmt(abs(@$amount));
-    say('banked', $subs = compact(u\ray('action amount')));
-    r\tellStaff('banked', $subs);
-  } else return say('cannot bank', compact('action', 'error'), 'amount'); // delete this when we ditch Dwolla
+  $mya->bank($amount);
+//  if ($us->bank($amount, $error) or isDEV) { // ignore lack of verified bank connection, if testing
+  $amount = u\fmtAmt(abs(@$amount));
+  say('banked', $subs = compact(u\ray('action amount')));
+  r\tellStaff('banked', $subs);
+//  } else return say('cannot bank', compact('action', 'error'), 'amount'); // delete this when we ditch Dwolla
 }
 
 /**
@@ -1714,7 +1742,7 @@ EOF
 
   if ($personal) {
     $acctType = hidField(R_PERSONAL);
-    $pin = formField('password', t('PIN:'), t('Choose a 4-character security code (to verify your identity quickly, when appropriate).')); // first time logging in, get PIN
+    $pin = formField('password', t('PIN:'), t('Choose a 4-character security code.')); // first time logging in, get PIN
     $calling = textField(t('Life Calling:'), t('One of the main purposes of rCredits is to provide you the opportunity to do what you feel called to do in life. What would bring you joy to do, to earn rCredits (that you\'re not doing yet)? What might you have to offer?'));
     $companyOptions = array(
       'isOwner' => t('owner'),
@@ -2017,9 +2045,9 @@ define('R_BASIC_FIELDS', 'first last org federalId dob');
 function formBasic_validate($form, &$sta, $personal = 'mya') {
   extract(u\just(R_BASIC_FIELDS, $sta['input']));
   if ((string) $personal == 'mya') {
-    $us = new r\usd($mya = r\acct());
+//    $us = new r\usd($mya = r\acct());
     $personal = !$mya->co;
-    $dw = $mya->can(B_DW);
+//    $dw = $mya->can(B_DW);
   }
   $what = $personal ? 'social security number' : 'federal ID';
   if ($personal) {
@@ -2032,16 +2060,17 @@ function formBasic_validate($form, &$sta, $personal = 'mya') {
     if ($personal) { // personal
       if ($err = u\badName($first)) return say($err, 'first');
       if ($err = u\badName($last)) return say($err, 'last');
-      $emptyErr = t('There was a problem submitting your data. Try again?'); // (this happened early on)
-      if ($dw and !$us->ssn($federalId, $err)) return say(@$err ?: $emptyErr, 'org');
-      if ($dw and $us->step() == 'AccountInfo' and !$us->accountInfo($dob, '', $first, $last, '', '', $err)) {
+//      $emptyErr = t('There was a problem submitting your data. Try again?'); // (this happened early on)
+//      if ($dw and !$us->ssn($federalId, $err)) return say(@$err ?: $emptyErr, 'org');
+/*      if ($dw and $us->step() == 'AccountInfo' and !$us->accountInfo($dob, '', $first, $last, '', '', $err)) {
         return say(@$err ?: $emptyErr, 'first');
-      }
+      } */
     } else { // org
       if ($err = u\badName($org)) return say($err, 'org');
-      if ($dw and !$us->accountInfo('', $federalId, '', '', $org, $mya->businessStructure(), $err)) {
+/*      if ($dw and !$us->accountInfo('', $federalId, '', '', $org, $mya->businessStructure(), $err)) {
         if ($err) return say($err ?: $emptyErr, 'first');
       }
+      */
     }
   }
   u\preray(compact(u\ray(R_BASIC_FIELDS)), $sta['input']);
@@ -2146,6 +2175,7 @@ function formKba_submit($form, &$sta) {
  * Connect a bank account.
  */
 function formBank($form, &$sta, $args = '') {
+  global $rUrl;
   $mya = r\acct();
   $typeOptions = array('checking', 'savings or money market');
   extract(u\just('bankAccount', $mya->secure));
@@ -2154,15 +2184,17 @@ function formBank($form, &$sta, $args = '') {
 
   $title = item(t('Bank Information'));
   
-  if (@$bankAccount) {
+  if (@$bankAccount and @$eftOk) {
     if ($usa) list ($route, $bankAccount) = u\parseBankAccount(@$bankAccount);
     $bankAccount = str_repeat('x', strlen($bankAccount) - 4) . substr($bankAccount, -4, 4);
-
+    $bankAccount = item($bankAccount, t('Account:'));
+    $remove = submit(t('Remove connection'));
+    return labeled(compact(u\ray('title bankAccount remove')));
+/*
     $us = new r\usd($mya);
     $source = $us->source($err);
     $verified = @$source['Verified'];
     $bankAccount = item($bankAccount . ($verified ? t(' (verified)') : ''), t('Account:'));
-
     if ($verified) { // account is all set (later this will want to be a form to change/add/remove)
     } else { // got an account, but not yet verified
       $subtext = item(tt('verify connection'));
@@ -2170,27 +2202,51 @@ function formBank($form, &$sta, $args = '') {
       $deposit2 = textField(t('Deposit #2:'), '', suffix('&cent;'));
       $verify = submit(t('Verify'));
     }
-  } else { // no account yet, so get one
-    $subtext = item(t('Complete this form to connect your rCredits account to your bank and the mainstream economy. Checking accounts work best, because of legal restrictions on other types.'));
-    if ($usa) $routingNumber = textField(t('Routing:'), t('What is the 9-digit routing number (type carefully). This number appears in the lower left corner of your checks (or call your bank to ask).'), required());
-    $bankAccount = textField(t('Account:'), t('What is the account number? (be sure to get this right)'), required());
-    $bankAccountType = formField('radios', t('Type:'), '', required($mya->can(B_SAVINGS)), $typeOptions);
-    $submit = submit(t('Connect'));
+*/
+  } else { // no account yet or EFT not yet authorized
+    u\setDft($eftOk, TRUE);
+    $subtext = item(t('<p>Complete this form to authorize funds to be taken from your checking account in exchange for any rCredits you request, in amounts not to exceed $1,000 per day. Funds may be transferred either by Remotely-Created Check (RCC) or by Automated Clearing House (ACH) direct debit.</p><p>Do you want to connect your checking account at this time?</p>'));
+    $connect = boolField(t('Connect:'), t('Connecting lets you use your rCard like a debit card. Otherwise you can trade US Dollars for rCredits at a participating business.'), $eftOk);
+
+    if ($usa) {
+      $checkHint = item("<img src=\"$rUrl/images/check-hint.png\">");
+      $routingNumber = textField(t('Routing:'), t('Type carefully your bank\'s routing number.'));
+    }
+    $bankAccount1 = textField(t('Account:'), t('Type carefully your checking account number.'));
+    $bankAccount2 = textField(t('Backwards:'), t('Now type your account number backwards (we need to be REALLY SURE we don\'t connect to the wrong account).'));
+    //$bankAccountType = formField('radios', t('Type:'), '', required($mya->can(B_SAVINGS)), $typeOptions);
+    $connectFields = fieldSet('connectFields2', compact(u\ray('checkHint routingNumber bankAccount1 bankAccount2')));
+    $submit = submit($eftOk ? t('Connect') : '');    
+    $eftOk = $eftOk ? 1 : 0;
+    
+    $js = <<<EOF
+function showConx(show) {var f=jQuery("fieldset#connectFields2"); if (show) f.show(); else f.hide();}
+showConx($eftOk);
+jQuery("#edit-connect-0").click(function() {showConx(false); jQuery("#edit-submit").val("Save");});
+jQuery("#edit-connect-1").click(function() {showConx(true); jQuery("#edit-submit").val("Connect");});
+EOF;
+    js($js, 'inline', 'footer');
+    return labeled(compact(u\ray('title subtext connect connectFields submit')));
   }
 
-  return labeled(compact(u\ray('title subtext routingNumber bankAccount bankAccountType deposit1 deposit2 submit verify remove')));
+//  return labeled(compact(u\ray('title subtext connect routingNumber bankAccount bankAccount2 bankAccountType deposit1 deposit2 submit verify remove')));
 }
 
 function formBank_validate($form, &$sta) {
-  $op = op($sta);
-  if ($op == 'submit') {
-    extract(u\just('routingNumber bankAccount bankAccountType', $sta['input']));
-    foreach (u\ray($accts = 'routingNumber bankAccount') as $one) $$one = preg_replace('/[\.\- ]/', '', $$one);
-    u\preray(compact(u\ray($accts)), $sta['input']);
-    if (!preg_match('/^(|[0-9]{9})$/', $routingNumber)) say('bad routing number', 'routingNumber');
-    if (!preg_match('/^[0-9]{3,17}$/', $bankAccount)) say('bad account number', 'bankAccount'); // {3,20} ? Dwolla says 3-17
-    if (!isset($bankAccountType)) say('missing field', u\ray('field', 'Account Type'), 'bankAccountType');
-    if (!db\exists('r_banks', 'route=:routingNumber', compact('routingNumber'))) return say('bad routing number', 'routingNumber');
+//  if ($op == 'submit') {
+  if (op($sta) == 'remove') return;
+  extract(u\just('connect routingNumber bankAccount bankAccount2 bankAccountType', $sta['input']));
+  if (is_null($connect)) return say('yes or no', 'connect');
+
+  foreach (u\ray($accts = 'routingNumber bankAccount bankAccount2') as $one) $$one = preg_replace('/[\.\- ]/', '', $$one);
+  u\preray(compact(u\ray($accts)), $sta['input']);
+  if (!preg_match('/^(|[0-9]{9})$/', $routingNumber)) say('bad routing number', 'routingNumber');
+//    if (!isset($bankAccountType)) say('missing field', u\ray('field', 'Account Type'), 'bankAccountType');
+  if (!db\exists('r_banks', 'route=:routingNumber', compact('routingNumber'))) return say('bad routing number', 'routingNumber');
+  if (!preg_match('/^[0-9]{3,17}$/', $bankAccount)) say('bad account number', 'bankAccount'); // {3,20} ? Dwolla says 3-17
+  if ($bankAccount != strrev($bankAccount2)) say('account number mismatch', 'bankAccount2');
+    
+/*
   } elseif ($op == 'verify') {
     extract(u\just('deposit1 deposit2', $sta['input']));
     for ($i = 1; $i <= 2; $i++) {
@@ -2199,28 +2255,36 @@ function formBank_validate($form, &$sta) {
       if ($$v < 1 or $$v >= DW_VERIFY_ROOF) say('bad deposit cents', $v);
     }
   }
+*/
 }
 
 function formBank_submit($form, &$sta) {
   $mya = r\acct();
-  $us = new r\usd($mya);
-  extract(u\just('routingNumber bankAccount bankAccountType deposit1 deposit2', $sta['input']));
+//  $us = new r\usd($mya);
+//  extract(u\just('routingNumber bankAccount bankAccountType deposit1 deposit2', $sta['input']));
+  extract(u\just('routingNumber bankAccount', $sta['input']));
   $op = op($sta);
   if ($op == 'submit') {
+    $bankAccountType = 'Checking';
+/*
     $mya->setBit('B_SAVINGS', $bankAccountType); // must precede conversion to string
-    $bankAccountType = $bankAccountType ? 'Savings' : 'Checking';
     if (@$mya->secure['auth'] and $us->step() == 'Finished') { // only if we have a Dwolla account (in case Dwolla's Reg API breaks again)
       if (!$us->addBank($bankAccount, @$routingNumber, $bankAccountType, $err)) {
         //return say($err, 'bankAccount');
         r\tellStaff("Dwolla said $err. Try again.", $sta['input'], $mya->id);
       }
     }
+*/    
     if ($mya->country == US_COUNTRY_ID) $bankAccount = "USkk$routingNumber$bankAccount";
     $secure = compact(u\ray('bankAccount bankAccountType')) + $mya->secure;
     $mya->update(compact('secure'));
     $mya->stepDone('connect');
-    say('info saved|verify connection|return to membership');
+    $mya->setRisk('hasBank');
+    say('info saved|return to membership');
   } elseif ($op == 'remove') {
+    $mya->setRisk('hasBank', FALSE);
+  }
+/*
   } elseif ($op == 'verify') {
     if (!$source = $us->source($err)) return say($err, 'ERR');
     if (!$us->verifyBank($source['Id'], $deposit1/100, $deposit2/100, $err)) return say($err, 'deposit1');
@@ -2228,11 +2292,12 @@ function formBank_submit($form, &$sta) {
     $mya->stepDone('verify');
     r\go('status', 'step completed');
   }
+*/
 }
 
 /**
  * Get the member's photo ID, as part of Dwolla's registration process.
- */
+ *//*
 function formPhotoId($form, &$sta) {
   $mya = r\acct();
   $person = !$mya->co;
@@ -2278,6 +2343,7 @@ function formPhotoId_submit($form, &$sta) {
   say('id verification pending');
   return r\go('status');
 }
+*/
 
 /**
  * Get the member's security info and proof of ID, open a Dwolla account.
@@ -2797,7 +2863,7 @@ function loginFollowup($edit, $account, $goto = 'summary') {
   setupGlobals($myid, TRUE);
 
 //  r\setCook('loginto', '', REQUEST_TIME-1); // no more default login
-  $mya->setBank();
+//  $mya->setBank();
 
   u\loga('login', compact('name'), $myid);
   return r\go($goto);
@@ -3057,7 +3123,7 @@ function formOptions($form, &$sta) {
   $notices = formField('radios', t('Email notices:'), t('How often, at most, do you want an email digest of your rCredits messages? (No email if no messages.)'), required($dft), $noticeRadios);
   $smsNotices = boxField(t('SMS notices:'), tt('Send me a text message when I receive a payment, charge, or invoice (requires a <a href="' . $base_url . '/account/boxes">connected cell phone</a>).'), $mya->can(B_NOTIFY_SMS));
   $mediumRadios = array(
-    t('I will accept electronic statements*.'), 
+    t('I will accept electronic statements**.'), 
     t('I choose to receive printed statements by mail.') . u\SUBS(t('<div>I agree to pay $:R_STATEMENT_COST per month to cover the postage and handling costs for this service.</div>'))
   );
   $statements = formField('radios', t('Statements:'), '', required((int) $mya->can(B_PAPER)), $mediumRadios);
@@ -3068,7 +3134,7 @@ function formOptions($form, &$sta) {
   $debtOk = boxField(t('Debt Okay:'), tt('Allow my account balance to go negative, limited by my current "credit floor" (which starts at zero, then gets lower and lower as time goes by &mdash; currently @floor). I understand there will be a substantial fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', compact('floor')), $mya->can(B_DEBT_OK));
   $submit = submit(t('Update Preferences'));
   $posttext = item(tt(<<<EOF
-<h4>* Disclaimers required by the IRS:</h4>
+<h4>** Disclaimers required by the IRS:</h4>
 <p>Your choice of how to receive statements applies to all statements you receive from now on. You can change your preference at any time by returning to this Preferences page (using the Settings gear in the upper right corner) or by notifying the regional administrator by mail: @R_REGION_LEGALNAME, @R_REGION_ADDR. Any change will be confirmed in writing (electronically if you accept electronic statements, otherwise by US Mail).</p>
 <p>To view your electronic statements, you need an typical computer or mobile device connected to the internet, including an email program and a web browser. To print the statements, you need a printer.</p>
 <p>Your annual tax statements will be accessible online from January through December.</p>
@@ -3139,12 +3205,17 @@ function formReports_submit($form, &$sta) {
 /**
  * Show accounts and recent transactions and ACHs that carry risk of fraud.
  */
-function formFlags($form, &$sta) {
+function formFlags($form, &$sta, $args = '') {
   $mya = r\acct();
   $MAXLINES = 20; // max number of lines to show in each section
   include __DIR__ . '/risk-descs.inc';
+
+  u\setDft($args['period'], 1);
+  extract(u\just('period starting ending download downloaded', $args)); 
+  extract(u\just('dateRange url starting ending', dateRange($args, 'community/flags', [], '', FALSE)));
+  $url = hidField($url);
   
-  $title = item(t('Suspicious Activity Report for ' . strftime('%A, %m/%d/%y')));
+  $title = item(t('Suspicious Activity Report')); //  . strftime('%A, %m/%d/%y')
   $subtext = item(tt(t('<p>Any potentially suspicious accounts, transactions, and bank transfers (ACHs) are listed here, so all members can keep an eye on things. Only the top @MAXLINES are listed in each category. System administrators will investigate any account or transaction with a suspiciousness score of @K_RED or more (shown in red).</p><p>Green risks are "good" (they mitigate other risk factors). Hover over any risk for a brief description or click it for details.</p>'), compact('MAXLINES')));
 
   $achHeader = $txHeader = $acctHeader = $accts = $txs = $achs = '';
@@ -3158,14 +3229,14 @@ function formFlags($form, &$sta) {
   $headers = u\ray(t('Score Tx# Date Amount From To Description Risks'));
   foreach ($headers as $v) {$vLow = strtolower($v); $txHeader .= "<th class=\"k-$vLow\">$v</th>";}
   $txHeader = "<tr>$txHeader</tr>";
-  $since = u\ray('since', strtotime('-80 days', strtotime('today'))); // change this to a standard date-range selector
-  $q = db\q('SELECT risk AS score,xid,created,amount,payer,payee,payeeFor AS description,risks FROM r_txs WHERE (payer>0 OR ABS(amount)>:K_CTTY_THRESHOLD) AND created>:since ORDER BY risk DESC LIMIT :K_LINES', $since);
+  $subs = compact('starting', 'ending');
+  $q = db\q('SELECT risk AS score,xid,created,amount,payer,payee,payeeFor AS description,risks FROM r_txs WHERE (payer>0 OR ABS(amount)>:K_CTTY_THRESHOLD) AND created BETWEEN :starting AND :ending ORDER BY risk DESC LIMIT :K_LINES', $subs);
   while ($line = riskLine($q, K_TX_RISKS)) $txs .= $line;
 
   $headers = u\ray(t('Score Tx# Date Amount Account Description Risks'));
   foreach ($headers as $v) {$vLow = strtolower($v); $achHeader .= "<th class=\"k-$vLow\">$v</th>";}
   $achHeader = "<tr>$achHeader</tr>";
-  $q = db\q("SELECT risk AS score,txid,created,ABS(t.amount) AS amount,payer,IF(t.amount<0,'in','out') AS way,risks FROM r_usd t WHERE created>:since AND payee=0 ORDER BY risk DESC LIMIT :K_LINES", $since);
+  $q = db\q("SELECT risk AS score,txid,created,ABS(t.amount) AS amount,payer,IF(t.amount<0,'in','out') AS way,risks FROM r_usd t WHERE created BETWEEN :starting AND :ending AND payee=0 ORDER BY risk DESC LIMIT :K_LINES", $subs);
   while ($line = riskLine($q, K_TX_RISKS)) $achs .= $line;
   
   $table = item(<<<EOF
@@ -3188,8 +3259,13 @@ function formFlags($form, &$sta) {
   </center>
 EOF
   );
-  return compact(u\ray('title subtext table'));
+
+  if (@$downloaded) js("window.open(\"$url&download=1\", \"download\");", 'inline', 'footer');
+  return labeled(compact('title') + $dateRange + compact('subtext', 'table'));
 }
+
+function formFlags_validate($form, &$sta) {w\dateRangeValidate($sta);}
+function formFlags_submit($form, &$sta) {dateRangeRedirect('community/flags', $sta);}
 
 /**
  * Return a formatted line for the next record, describing its risks.
@@ -3211,6 +3287,7 @@ function riskLine($q, $descs) {
     if ($riskCount > K_LINES) return FALSE;
   } else {$riskQ = $q; $riskCount = 1;}
   
+  u\setDft($score, '');
   $score = round($score);
   if ($score >= K_RED) $score = "<span class=\"risky\">$score</span>";
   if ($score <= K_GREEN) $score = "<span class=\"safe\">$score</span>";
@@ -3219,8 +3296,10 @@ function riskLine($q, $descs) {
   foreach (u\just('uid payer payee', $row) as $k => $v) {
     list ($region, $local) = explode('.', $qid = r\quid($v));
 //    $row[$k] = "<span>$region.</span>$local";
-    $a = r\acct($qid);
-    if ($regulator or $a->co) {
+    $a = r\acct($v);
+    if ($v < 0) {
+      $v = t('ctty');
+    } elseif ($regulator or $a->co) {
       $v = "<a href=\"$base_url/sadmin/acct-info/$qid\" title=\"$a->fullName\">$local</a>";
     } else $v = t('...');
     $row[$k] = $v;

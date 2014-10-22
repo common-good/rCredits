@@ -44,12 +44,12 @@ function lookup($fieldName, $table, $where = '1', $subs = array()) {
   u\EXPECT(compact(u\ray('fieldName table where subs')), 'notempty notempty notempty assoc');
   if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
   $sql = "SELECT $fieldName FROM $table WHERE $where";
-///  if (strpos($table, 'nonce')) debug(compact('sql','subs'));
+/// debug(compact('sql','subs'));
   $result = db\q($sql, $subs);
   $fieldCount = strpos($fieldName, '(') ? 1 : substr_count($fieldName, ',') + 1; // function or array, not both
   $several = ($fieldName == '*' or $fieldCount > 1);
   $result = $several ? $result->fetchAssoc() : $result->fetchField();
-  if ($several and $fieldName != '*' and $result) u\EXPECT(count($result) == $fieldCount, 'field count is off'); // eg, if $fieldName == 'a,a'
+  if ($several and $fieldName != '*' and $result) u\EXPECT(\count($result) == $fieldCount, 'field count is off'); // eg, if $fieldName == 'a,a' (\count because this class has a count function!)
   return $result;
 }
 
@@ -134,5 +134,5 @@ function setData($table, $id, $values) {
   return $table == 'users' ? r\acct($id)->update(compact('data')) : db\update($table, compact('data'));
 }
 
-function recCount($table, $where = '1', $subs = array()) {return db\lookup('COUNT(*)', $table, $where, $subs);}
+function count($table, $where = '1', $subs = array()) {return db\lookup('COUNT(*)', $table, $where, $subs);}
 

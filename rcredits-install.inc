@@ -30,7 +30,7 @@ function tableDefs($schema = array()) {
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
     'community' => setupField("uid of this account's Common Good Community", 'int big'),
 //    'question' => setupField('security question', 'varchar 255'),
-    'usdAccount' => setupField('USD account number (hex of encrypted)', 'varchar 255'), // searchable
+    'usdAccount' => setupField('USD (Dwolla) account number (hex of encrypted)', 'varchar 255'), // searchable
     'secure' => setupField('other non-personal encrypted data', 'blob normal'), 
     'offsite' => setupField('index to encrypted data stored off-site', 'int big', NULL, '010'),
     'fullName' => setupField('full name of the individual or entity', 'varchar 60'),
@@ -62,6 +62,7 @@ function tableDefs($schema = array()) {
     'risk' => setupField('today\'s suspiciousness rating', 'float medium', NULL),
     'risks' => setupField('list of risk factors', 'int big', 0, '010'),
     'trust' => setupField('how much this person is trusted by others in the community', 'float medium', 0),
+    'stats' => setupField('account statistics', 'text medium'),
   );
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
@@ -238,19 +239,20 @@ function tableDefs($schema = array()) {
 
   // table r_usd
   $fields = array(
-    'txid' => setupField('the unique transaction ID', 'varchar 255'), 
+    'txid' => setupField('the unique transaction ID', 'serial big'), 
     'tid' => setupField("payer's transaction ID", 'int 11'), // used only for bank transfers
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int big'), 
     'payee' => setupField('user id of the payee', 'int big', 0), // 0 for bank transfers
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'completed' => setupField('Unixtime transaction was completed', 'int 11', 0), // for deposits / withdrawals
+    'deposit' => setupField('Unixtime transfer check was printed and deposited', 'int 11', 0),
     'risk' => setupField('suspiciousness rating', 'float medium', NULL),
     'risks' => setupField('list of risk factors', 'int big', 0, '010'),
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee');
   $indexes = index('created');
-  $schema['r_usd'] = setupTable('Record of USD (Dwolla) transactions in the region', $fields, 'txid', $foreignKeys, $indexes);
+  $schema['r_usd'] = setupTable('Record of transfers to or from a bank account', $fields, 'txid', $foreignKeys, $indexes);
 
   // table r_usderror
   $fields = array(

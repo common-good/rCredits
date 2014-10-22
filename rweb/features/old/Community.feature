@@ -24,12 +24,13 @@ Setup:
   |  101 | .ZZB  |     0 |  -2000 | %today-4d |
   |  102 | .ZZC  |     0 |  -3050 | %today-5d |
   |  103 | .ZZC  |     0 |     50 | %today-2d |
-  Then balances:
-  | id   | r     |*
+  And balances:
+  | id   | usd   |*
+  | ctty |     0 |
   | .ZZA |  1000 |
   | .ZZB |  2000 |
   | .ZZC |  3000 |
-  Given transactions: 
+  And transactions: 
   | xid | created   | type      | amount | from | to   | purpose | goods |*
   |   1 | %today-4m | signup    |    250 | ctty | .ZZA | signup  | 0     |
   |   2 | %today-4m | signup    |    250 | ctty | .ZZB | signup  | 0     |
@@ -51,13 +52,17 @@ Setup:
   |  29 | %today-2d | fine      |     -6 | ctty | .ZZC | fine    | 0     | %TX_WEB  |
   |  30 | %today-1d | transfer  |    100 | .ZZC | .ZZA | payroll | 1     | %TX_WEB  |
   |  33 | %today-1d | transfer  |      1 | .ZZC | .AAB | sharing rewards with CGF | 1 | %TX_CRON |
+  And usd transfers:
+  | completed | amount | payer | payee |*
+  | %today-1d |     10 | .ZZA  | ctty  |
+  | %today-1d |    100 | .ZZC  | .ZZB  |
   Then balances:
-  | id   | r       | rewards | committed |*
-  | ctty | -835.65 |    0.00 |         0 |
-  | .ZZA | 1033.00 |  279.00 |      2.80 |
-  | .ZZB | 2563.50 |  278.50 |      5.30 |
-  | .ZZC | 3238.05 |  275.05 |      6.62 |
-  | .AAB |    1.10 |    0.10 |         0 |
+  | id   | r       | usd   | rewards | committed |*
+  | ctty | -845.65 |    10 |    0.00 |         0 |
+  | .ZZA |   43.00 |   990 |  279.00 |      2.80 |
+  | .ZZB |  463.50 |  2100 |  278.50 |      5.30 |
+  | .ZZC |  338.05 |  2900 |  275.05 |      6.62 |
+  | .AAB |    1.10 |     0 |    0.10 |         0 |
   # total rewards < total r, because we made a grant, a loan, and a fine.
   
 Scenario: cron calculates the statistics

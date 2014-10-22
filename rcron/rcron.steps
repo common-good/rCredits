@@ -51,11 +51,8 @@ function extraSubs(&$subs) {
  *
  * in: MAKE Bank Setup
  *     MAKE Gifts Setup
- *     MAKE Homogenize Setup
  *     MAKE Inflation Setup
- *     MAKE LostUsdTxs Setup
  *     MAKE Notices Setup
- *     MAKE Pool Setup
  *     MAKE Recache Setup
  *     BOTH Risk Setup
  *     TEST Risk WeCalculateRisks
@@ -81,13 +78,8 @@ function members($list) {return t\members($list);}
  *     MAKE Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Gifts Setup
- *     MAKE Homogenize Setup
- *     TEST Homogenize LevelingHappens
  *     TEST Inflation Setup
- *     MAKE LostUsdTxs Setup
- *     MAKE Pool Setup
- *     TEST Pool NormalPoolingHappens
- *     BOTH Recache Setup
+ *     TEST Recache Setup
  *     BOTH Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
  *     TEST Sharing InflationAdjustmentsAreDistributed
@@ -113,12 +105,9 @@ function balances($list) {return t\balances($list);}
  *     MAKE Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Gifts ADonationCanBeCompleted
  *     MAKE Gifts ARecurringDonationCanBeCompleted
- *     MAKE Homogenize LevelingHappens
  *     MAKE Inflation InflationAdjustmentsAreDistributed
- *     MAKE LostUsdTxs ASystemCrashLeavesATransactionIncomplete
  *     MAKE Notices AMemberGetsSomeNotices
  *     MAKE Notices AMemberGetsSomeWeeklyNotices
- *     MAKE Pool NormalPoolingHappens
  *     MAKE Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
  *     MAKE Risk Setup
@@ -126,7 +115,6 @@ function balances($list) {return t\balances($list);}
  *     MAKE Sharing InflationAdjustmentsAreDistributed
  *     MAKE Tickle ANewbieHasNotTakenTheFirstStep
  *     MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
- *     MAKE Tickle ANewbieIsOnTheVerifyStep
  *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
  *     MAKE Tickle ANonmemberHasAcceptedTheInvitation
  *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
@@ -147,7 +135,6 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     TEST Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     TEST Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
  *     MAKE Inflation Setup
- *     TEST LostUsdTxs ASystemCrashLeavesATransactionIncomplete
  *     MAKE Risk Setup
  *     TEST Risk WeCalculateRisks
  */
@@ -178,11 +165,8 @@ function relations($relations) {return t\relations($relations);}
  * in: TEST Bank AnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount
  *     TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ARecurringDonationCanBeCompleted
- *     MAKE Homogenize Setup
  *     MAKE Inflation Setup
  *     TEST Inflation InflationAdjustmentsAreDistributed
- *     MAKE LostUsdTxs Setup
- *     MAKE Pool Setup
  *     MAKE Recache Setup
  *     MAKE Risk Setup
  *     TEST Risk WeCalculateRisks
@@ -205,7 +189,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ARecurringDonationCanBeCompleted
  *     TEST Sharing InflationAdjustmentsAreDistributed
- *     TEST Tickle ANewbieIsOnTheVerifyStep
  *     TEST Tickle AMemberGetsACreditLine
  *     TEST Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  */
@@ -293,7 +276,7 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
  * in: 
  */
 function noticeCountIs($count) {
-  return (db\recCount('r_notices') == $count);
+  return (db\count('r_notices') == $count);
 }
 
 /**
@@ -347,8 +330,7 @@ function weDoNotTellStaff($topic) {return !t\weTellStaff($topic);}
 /**
  * usd transfer count is (ARG)
  *
- * in: TEST LostUsdTxs Setup
- *     BOTH LostUsdTxs ASystemCrashLeavesATransactionIncomplete
+ * in: 
  */
 function usdTransferCountIs($count) {return (t\usdTransferCount() == $count);}
 
@@ -366,7 +348,7 @@ function nextDOCodeIs($code) {
 /**
  * member (ARG) trades $(ARG) USD to member (ARG) for rCredits
  *
- * in: MAKE LostUsdTxs ASystemCrashLeavesATransactionIncomplete
+ * in: 
  */
 function memberTradesUSDToMemberForRCredits($id1, $amount, $id2) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -390,8 +372,7 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
 /**
  * members have: (ARG)
  *
- * in: MAKE Pool Setup
- *     TEST Tickle AMemberGetsACreditLine
+ * in: TEST Tickle AMemberGetsACreditLine
  *     TEST Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     TEST Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
  *     BOTH Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
@@ -410,7 +391,6 @@ function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $inf
  * member (ARG) has done step (ARG)
  *
  * in: MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
- *     MAKE Tickle ANewbieIsOnTheVerifyStep
  */
 function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
 

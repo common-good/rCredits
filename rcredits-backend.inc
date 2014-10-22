@@ -624,6 +624,7 @@ EOF;
 
   $bank = -$bank; // make it "from bank" instead of "to bank"
   $usd = $bank - $fees + $usdIn - $usdOut;
+  $r += $usd; $usd = 0; // phase out usd field
   $balance = $bank + $in - $out;
   $outProper = $out;
   $inProper = $in - $rewards;

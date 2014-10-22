@@ -43,16 +43,19 @@ define('US', '<span class="us">us</span>');
 define('R_VERSION', '1.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags gross employees stats verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags gross employees verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
 define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData'); // personal identifying information
+define('R_HIDE_CHANGES', R_SECRET_FIELDS . ' ' . R_SECURE_FIELDS . ' changes usd r rewards committed floor login access activated data secure offsite usdAccount pass notes trust risk risks stats'); // do not record changes to these fields (generally anything secret, or often-changed -- perhaps automatically)
+
 define('R_SECRET_URL', isPRODUCTION ? 'http://rcredits.org' : (isDEV ? 'http://localhost/rcredits-promo' : 'http://' . STAGE)); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
-define('R_STEPS', 'contact sign dw donate proxies prefs photo connect verify company relations'); // membership steps
+//define('R_STEPS', 'contact sign dw donate proxies prefs photo connect verify company relations'); // membership steps
+define('R_STEPS', 'contact sign donate proxies prefs photo connect company relations'); // membership steps
 define('R_NOLOG', R_SECURE_FIELDS . ' code oneTimeLoginUrl password pass newPass form_build_id form_token form_id ' . R_SECRET_FIELDS); // don't log these
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
@@ -173,18 +176,17 @@ define('B_DW', 1); // has a connected Dwolla account
 define('B_OK', 2); // approved to use rCredits for real (set by admin when ready). For ctty: is operational
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
 define('B_FROZEN', 3); // ctty: is frozen (no member can cash out)
-define('B_BANK', 4); // has an effective connected bank account
+define('B_BANK', 4); // UNUSED has an effective connected bank account
 define('B_u5', 5); //
 define('B_CO', 6); // company account (could be personal also, for independent contractor)
-define('B_PHOTOID', 7); // photoid required and not yet approved
+define('B_PHOTOID', 7); // UNUSED photoid required and not yet approved
 define('B_CHARGE', 8); // UNUSED (any company can do this) can charge customers without confirmation
 define('B_NONUDGE', 9); // don't send reminders
 define('B_u10', 10); //
 define('B_u11', 11); // 
-define('B_PAYROLL', 12); // automatically pay employees their total daily salary - employer chooses pay period)
+define('B_PAYROLL', 12); // NYI automatically pay employees their total daily salary - employer chooses pay period
 define('B_NOTICE_WEEKLY', 13); // send notices only weekly
 define('B_NOTICE_MONTHLY', 14); // send notices only monthly
-//define('B_NOTIFY_EMAIL', 15); // notifications by email
 define('B_u15', 15); //
 define('B_NOTIFY_SMS', 16); // notifications by SMS
 define('B_PAPER', 17); // will not accept electronic statements
@@ -245,6 +247,7 @@ define('K_7WEEK_THRESHOLD', 1200); // how large an amount is suspicious in one 5
 define('K_YEAR_THRESHOLD', 2400); // how large an amount is suspicious in one year
 define('K_LIMIT_FACTOR', 3); // how many times the various thresholds is a prohibited amount
 define('K_UNUSUAL_BUMP', 20); // what percentage 7-week increase (in or out) is suspicious
+define('K_BIT_MIN', .05); // lowest risk factor that sets a bit
 define('K_RED', 100); // lowest score to flag for investigation
 define('K_GREEN', -999); // maximum score for an account to be unquestionably beyond reproach
 define('K_LINES', 20); // number of lines to show for each type of each potentially risky record (acct or tx)
@@ -255,10 +258,11 @@ define('K_CTTY_THRESHOLD', 100); // minimum size of community transactions to co
 // names and weights of account and transaction risks (and, for negative weights, assurance)
 // weight is the number of such risks that together would make the account or transaction suspicious
 // a weight of "X" means the risk is named but does not contribute to the total risk score
-define('K_ACCT_RISKS', 'adminOk:-0.5,trusted:-4,socialConx:-3,hasBank:-3,geography:4,cashCo:2,new:4,moves:1,rents:10,badConx:2,homeCo:20,shady:3,miser:5,photoOff:1,addrOff:5,ssnOff:1,poBox:5,fishy:2,moreIn:2,moreOut:2,bigDay:1,bigWeek:1,big7Week:1,bigYear:2');
+define('K_ACCT_RISKS', 'adminOk:-0.5,trusted:-4,socialConx:-3,hasBank:-3,geography:4,cashCo:2,new:5,moves:3,rents:10,badConx:2,homeCo:20,shady:3,miser:5,photoOff:1,addrOff:5,ssnOff:1,poBox:5,fishy:2,moreIn:2,moreOut:2,bigDay:1,bigWeek:1,big7Week:1,bigYear:2');
 define('K_ACCT_RISKS_EDITABLE', 'adminOk cashCo rents shady photoOff addrOff ssnOff fishy');
 define('K_TX_RISKS', 'txAdminOk:-0.5,redo:2,exchange:2,cashIn:5,cashOut:2,fromBank:5,toBank:2,b2p:1,p2p:2,inhouse:2,fromSuspect:3,toSuspect:3,absent:4,invoiceless:2,bigFrom:3,biggestFrom:3,oftenFrom:3,bigTo:3,biggestTo:3,oftenTo:3,offline:10,firstOffline:3,origins:3,suspectOut:2'); // names of transaction risks
-define('K_ADMINOK', 1 << 0); // community admin blessed the account or transaction
+define('K_ADMINOK', 0); // community admin blessed the account or transaction
+define('HAS_BANK', '(risks&(1<<3))'); // account has a connected bank account (mysql criterion)
 
 define('FLOW_NONE', 0); // which way can credit flow, with another account
 define('FLOW_TO', 1);
@@ -454,7 +458,8 @@ function xid2tid($xid, $uid) {
  * @param string $err: (RETURNED) an error message on failure
  * @return string $txid: USD transaction ID (from Dwolla) or FALSE on failure
  * Caller is responsible for determining whether the accounts have enough r and USD for the trade.
- */
+ * NOTE: This function can go away once all Dwolla funds have been pooled into the community account.
+ *//*
 function tradeR($amount, $uid1, $uid2, &$err = '') {
   if ($amount > R_MAX_DAILY_EXCHANGE) {$err = 'rTrade amount over max'; return FALSE;}
   $us1 = new r\usd($a1 = r\acct($uid1));
@@ -469,6 +474,7 @@ function tradeR($amount, $uid1, $uid2, &$err = '') {
   r\usd::commit();
   return $txid;
 }
+*/
 
 /**
  * Say whether an account's proposed transaction duplicates the last recent one.
@@ -693,7 +699,7 @@ function acceptGift($info) {
   if ($often != 1) {
     $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
     $recurs = u\ray(t('once monthly quarterly annual'));
-    $count = db\recCount('r_gifts', 'uid=:uid AND often=:often', compact('uid', 'often'));
+    $count = db\count('r_gifts', 'uid=:uid AND often=:often', compact('uid', 'often'));
     $recurring = t(' (@how gift #@count)', u\ray('@how @count', $recurs[strpos('1MQY', $often)], $count));
   }
 
@@ -1259,6 +1265,33 @@ function go($page, $msg = '', $field = '') {
 }
 
 /**
+ * Return parameters for notices for the account.
+ * @param int $uid: the account record ID
+ * @param string $where: criteria to filter notices for this account
+ * @param bool $weekly: digest notices for the week
+ * @param bool $monthly: digest notices for the month
+ * @param int $at: time of reporting
+ * @return assoc of all parameters in the notices template (FALSE if none)
+ */
+function noticeArgs($uid, $where, $weekly, $monthly, $at = REQUEST_TIME) {
+  $a = r\acct($uid);
+  $q = db\q("SELECT message, created FROM r_notices WHERE uid=:uid AND ($where)", compact('uid'));
+
+  while ($row = $q->fetch()) {
+    $date = ($weekly or $monthly) ? (strftime('%b&nbsp;%d', $row->created)) : '';
+    $messages[] = "<tr><td class=\"notice-date\" style=\"vertical-align:top;\">$date</td><td>$row->message</td></tr>";
+  }
+
+  if (@$messages) $messages = join("\n", $messages); else return FALSE;
+  $unit = $weekly ? 'week' : ($monthly ? 'month' : 'day');
+  $yestertime = u\fmtDate($start = strtotime("-1 $unit", $at));
+  $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
+  extract(u\just('return', $a->stats()));
+  list ($balance, $rewards, $ourEmail) = array(u\fmtAmt($a->usd + $a->r), u\fmtAmt($a->rewards), R_REGION_EMAIL);
+  return compact(u\ray('messages unit range yestertime balance rewards return ourEmail'));
+}
+
+/**
  * Set or return the proxy for the person
  */
 function proxy($person, $priority = 1, $proxy = NULL) {
@@ -1273,7 +1306,7 @@ function proxy($person, $priority = 1, $proxy = NULL) {
  * @param float $request: how much to try to get
  * @param acct $acct: rCredits account that is trading rCredits to third parties
  * @return how much USD we actually delivered
- */
+ *//*
 function getUsd($request, $acct) {
   $need = $request;
   r\usd::beginAtom();
@@ -1287,6 +1320,7 @@ function getUsd($request, $acct) {
   r\usd::commit($got); // accept partial success
   return $got;
 }
+*/
 
 /**
  * Return the uid of the next account in line wanting/willing and able to trade enough US Dollars for rCredits.
@@ -1297,7 +1331,7 @@ function getUsd($request, $acct) {
  * return: the best account to handle the trade (there may be none that wants so many rCredits)
  *    if no account wants to buy any, return FALSE (this would be really bad and should never ever happen)
  *    NOTE that CGF is the buyer of last resort.    
- */
+ *//*
 function nextRBuyer(&$amount, $except) {
   if ($amount > R_CHUNK) $amount = R_CHUNK; // keep it cheap
   $sql = <<<EOF
@@ -1317,6 +1351,7 @@ EOF;
   $amount = min($amount, round($got, 2)); // take what we could get
   return r\acct($uid);
 }
+*/
 
 /**
  * Return a system-wide or community-wide total.
@@ -1709,7 +1744,7 @@ function passHash($pass) {
  * Return the median (untested)
  */
 function median($field, $table = 'users', $where = 1, $subs = array()) {
-  $middle = db\recCount($table, $where, $subs) / 2;
+  $middle = db\count($table, $where, $subs) / 2;
   $limit = floor($middle) . (is_int($middle) ? ', 1' : ', 2');
   return db\lookup('AVG($field)', 'users', "$where ORDER BY $field LIMIT $limit", $subs);
 }

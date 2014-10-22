@@ -29,12 +29,12 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
   // criminal
   setRisk('cashCo', $a); // high-risk company type according to regs
   $tenure = $a->tenure / 12 + (time() - $a->created) / YEAR_SECS; // years of residence ($a->tenure is in months)
-  setRisk('new', 1 / $tenure, $tenure < 1);
+  setRisk('new', .5 / ($tenure * $tenure), $tenure < 1); // half a year is the standard
   setRisk('moves', $a->moves, $a->moves > 0); // moves over past decade
   setRisk('rents', $a);
   
-  $trusted = $a->trust; // how well trusted (trust is always >=1)
-  $inviteTrust = db\lookup('SUM(trust)', 'users u INNER JOIN r_invites i ON i.inviter=u.uid', 'i.invitee=:id OR i.email=:email', u\ray('id email', $a->id, $a->mail)); // trustedness of accounts that invited this one
+  $trusted = $a->trust - 1; // how well trusted (trust is always >=1)
+  $inviteTrust = db\lookup('SUM(trust - 1)', 'users u INNER JOIN r_invites i ON i.inviter=u.uid', 'i.invitee=:id OR i.email=:email', u\ray('id email', $a->id, $a->mail)); // trustedness of accounts that invited this one
   $trusted += $inviteTrust; // invited by trusted people
   $relations = db\lookup('COUNT(*)', 'r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND NOT r.isOwner AND r.other=:id AND u.risk<:K_GREEN', $idSub);
   $trusted += $relations; // access to (trusted by) non-suspect businesses
@@ -48,7 +48,8 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
 
   if ($a->co and db\exists('users', 'uid<>:id AND address=:address AND postalCode=:postalCode', u\ray('id address postalCode', $a->id, $a->address, $a->postalCode))) setRisk('homeCo'); // company shares physical address
   setRisk('shady', $a); // no substantial internet search results and/or no SSN history
-  if ($a->can(B_BANK)) setRisk('hasBank'); // has a connected bank account
+//  if ($a->can(B_BANK)) setRisk('hasBank'); // has a connected bank account
+  setRisk('hasBank', $a); // has a connected bank account
   if ($uid != r\cgfId() and db\lookup('SUM(amount*IF(often=1,1,12))', 'r_gifts', 'share>=0 AND uid=:id', $idSub) + 0 < K_MISER_DONATION and $a->share < K_MISER_SHARE) setRisk('miser'); // unusually small donation to CGF
   
   setRisk('photoOff', $a); // photo mismatches ID or DOB
@@ -83,7 +84,7 @@ function txRisk1($tx, &$risk = 0, &$calc = 0) {
   if ($neg = ($amount < 0)) list ($payer, $payee, $amount) = array($payee, $payer, -$amount);
   list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
   
-  if ($risks & K_ADMINOK) setRisk('txAdminOk'); // administrator blessed this transaction
+  if ($risks & u\bit(K_ADMINOK)) setRisk('txAdminOk'); // administrator blessed this transaction
   if (@$undoes and $undoneData = @unserialize(db\lookup('data', 'r_txs', 'xid=:undoes', compact('undoes')))) {
     if (@$undoneData['undoes']) setRisk('redo');
   }
@@ -162,13 +163,13 @@ function achRisk1($tx, &$risk = 0, &$calc = 0) {
  *   setrisk(bitName, multiplier, setBit); OR
  *   setrisk(bitName, $a);
  * @param string $bitName: what risk type -- allows lookup of risk weight and bit number. 
- *   (if risk weight is non-numeric, it does not contribute to the risk score)
+ *   UNUSED: (if risk weight is non-numeric, it does not contribute to the risk score)
  * @param float $multiplier: what to multiply inverted weight by, before adding to risk score
- * @param bool $setBit: <set the named bit in $_risks> ("ifany" here means set the bit if $multiplier nonzero
+ * @param bool $setBit: UNUSED <set the named bit in $_risks> ("ifany" means set the bit if $multiplier nonzero
  * @param acct $a: add the standard risk score for this risk type, if the bit is already set in this acct
  * @return assoc [risk, risks] if called with no params
  */
-function setRisk($bitName = NULL, $multiplier = 1, $setBit = TRUE) {
+function setRisk($bitName = NULL, $multiplier = 1, $setBit = '') {
   global $showRiskCalc;
   global $_risk, $_risks; // use _ to distinguish from extracted risk and risks fields (not needed, but clearer)
   global $_acctRisks, $_txRisks, $_acctRiskBits, $_txRiskBits;
@@ -187,13 +188,18 @@ function setRisk($bitName = NULL, $multiplier = 1, $setBit = TRUE) {
     $weight = $_acctRisks[$bitName];
   } else {$bit = $_txRiskBits[$bitName]; $weight = $_txRisks[$bitName];}
 
-  if (is_object($a = $multiplier)) list ($multiplier, $setBit) = array($a->risk($bit) ? 1 : 0, 'ifany');
-  if ($setBit == 'ifany' ? ($multiplier != 0) : $setBit) u\setBit($_risks, $bit);
-  if (is_numeric($weight) and $weight) $_risk += ($risk = $multiplier / $weight);
+//  if (is_object($a = $multiplier)) list ($multiplier, $setBit) = array($a->risk($bit) ? 1 : 0, 'ifany');
+  if (is_object($a = $multiplier)) $multiplier = $a->risk($bit) ? 1 : 0;
+//  if (is_numeric($weight) and $weight) {
+  $_risk += ($risk = $multiplier / $weight);
+//  if ($setBit == 'ifany' ? ($multiplier != 0) : $setBit) u\setBit($_risks, $bit);
+  if (abs($risk) >= K_BIT_MIN and $multiplier > 0) { // don't show bit if risk is reversed
+    $setBit = t('yes'); u\setBit($_risks, $bit);
+  } else $setBit = '';
+//  }
 
   if (isset($showRiskCalc) and $risk) {
     $class = $weight < 0 ? 'goodRisk' : 'badRisk';
-    if ($setBit == '1') $setBit = 'yes'; // allow 'ifany' also
     $showRiskCalc .= <<< EOF
 <tr>
   <td class="$class">$bitName</td>

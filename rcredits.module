@@ -208,6 +208,7 @@ function us($a = '') {global $lastA; return new r\usd($a ? (is_object($a) ? $a :
 /**/ function da($idfield) {list ($id, $field) = u\ray($idfield); debug(a($id)->$field);}
 /**/ function step($a) {debug(us($a)->step());}
 function ctty($id) {return a(a($id)->community);}
+function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
 
 /**
  * f('u.func arg1 arg2') OR f('u.func', arg1, arg2)
@@ -228,11 +229,6 @@ function f($func) {
  * For example, d('u.fmtAmt 35.2') would show and return rCredits\Util\fmtAmt(35.2) = "$35.20".
  */
 /**/ function d($s) {debug($result = call_user_func_array('f', func_get_args()));}
-
-
-function r($a, $b='', $c='', $d='', $e='', $f='', $g='', $h='', $i='', $j='', $k='', $l='', $m='') {
-  return u\ray($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m);
-}
 
 define('ONE_CRON_OP', 'one cron op'); // flags a call of cron() in PHP window
 

@@ -44,11 +44,11 @@ class rwebBank extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "ASSOC'
-    . '\\| id   | fullName | flags           |'
-    . '\\| .ZZA | A Mem    | ok,dw,bona,bank |'
-    . '\\| .ZZB | B Mem    | ok,dw,bona      |'
-    . '\\| .ZZC | C Mem    | ok,dw,bona      |'
-    . '\\| .ZZD | D Mem    | ok,dw,bona      |"');
+    . '\\| id   | fullName | flags   | risks   |'
+    . '\\| .ZZA | A Mem    | ok,bona | hasBank |'
+    . '\\| .ZZB | B Mem    | ok,bona |         |'
+    . '\\| .ZZC | C Mem    | ok,bona |         |'
+    . '\\| .ZZD | D Mem    | ok,bona |         |"');
     And__('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\| 1   | %today-7m | signup   |    100 | ctty | .ZZA | signup  |'
@@ -56,16 +56,24 @@ class rwebBank extends DrupalWebTestCase {
     . '\\| 3   | %today-7m | signup   |    100 | ctty | .ZZC | signup  |'
     . '\\| 4   | %today-7m | signup   |    100 | ctty | .ZZD | signup  |'
     . '\\| 8   | %today    | transfer |     80 | .ZZD | .ZZA | gift    |"');
-    And__('balances: "ASSOC'
-    . '\\| id   | usd |'
-    . '\\| .ZZA |  10 |'
-    . '\\| .ZZB |  10 |'
-    . '\\| .ZZC |  10 |'
-    . '\\| .ZZD |  10 |"');
     break;
 
 
     }
+  }
+
+  // Scenario: A member transfers funds from the bank
+  public function testAMemberTransfersFundsFromTheBank_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" completes form "get" with values: "ASSOC'
+    . '\\| amount | op  |'
+    . '\\|     40 | get |"');
+    Then_('we say "status": "banked" with subs: "ASSOC'
+    . '\\| action     | amount |'
+    . '\\| draw from  | $40    |"');
+    And__('usd transfers: "ASSOC'
+    . '\\| payer | payee | amount |'
+    . '\\| .ZZA  |     0 |    -40 |"');
   }
 
   // Scenario: A member transfers funds to the bank
@@ -79,9 +87,6 @@ class rwebBank extends DrupalWebTestCase {
     . '\\| deposit to | $40    |"');
     And__('usd transfers: "ASSOC'
     . '\\| payer | payee | amount |'
-    . '\\| .ZZB  | .ZZA  |     10 |'
-    . '\\| .ZZC  | .ZZA  |     10 |'
-    . '\\| .ZZD  | .ZZA  |     10 |'
     . '\\| .ZZA  |     0 |     40 |"');
   }
 

@@ -58,7 +58,7 @@ function adminSummary($a, $cAdmin = FALSE) {
   
   if ($a->ctty) { // managing the community itself
     $ctty = $a->community;
-    $count = item(db\recCount('users', 'community=:ctty AND uid<>:ctty', compact('ctty')), t('Members:'));
+    $count = item(db\count('users', 'community=:ctty AND uid<>:ctty', compact('ctty')), t('Members:'));
   } else { // managing some individual community member account
     if (!$a->ok) $a->nextStep(); // update Dwolla status
     if ($cAdmin) {
@@ -72,15 +72,14 @@ function adminSummary($a, $cAdmin = FALSE) {
       $floor = textField(t('Credit floor:'), '', dft(u\fmtAmt($a->floor)));
 //      if (!$a->stepsDone['dw']) { // show info needed to open a Dwolla account
       extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
-      $dwInfo = item(u\rayTable(u\ray('usdEmail usdPass phone SSN address zip usdPIN', @$s_usdEmail, @$s_usdPass, @substr(@$s_usdPhone, 2), ($a->ok or $a->can(B_BANK)) ? '' : ($a->federalId . ' (' . substr($a->federalId, -4) . ')'), $a->address, $a->postalCode, @$s_usdPin)));
+      $dwInfo = item(u\rayTable(u\ray('usdEmail usdPass phone SSN address zip usdPIN', @$s_usdEmail, @$s_usdPass, @substr(@$s_usdPhone, 2), $a->ok ? '' : ($a->federalId . ' (' . substr($a->federalId, -4) . ')'), $a->address, $a->postalCode, @$s_usdPin)));
       if (!$a->co) $trust = item($a->trust, t('Trust:'), t('This person\'s trust rating'));
     }
   
     $steps = $a->ok
       ? item(a\showActivity($a), t('Activity:'))
       : item(a\showSteps($a), t('To do (red):'), t('sign=agreement | contact=contact info | dw:for admin to do | connect=connect bank | verify=verify bank deposits'));
-    $created = item(u\fmtDate($a->created), t('Created:'));
-    $lastUse = $a->ok ? item(u\fmtDate($a->access), t('Last use:')) : item(u\fmtDate($a->login), t('Last signin'));
+//    $created = item(u\fmtDate($a->created), t('Created:'));
     if ($rels = a\showRelations($a)) $relations = item($rels, t('Relations:'));
   }
 
@@ -90,7 +89,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     $legalName = textField(t('Legal Name:'), '', required($a->legalName));    
     $rTrader = $a->ctty
     ? boolField(t('Ctty Up?'), '', $a->ok + 0)
-    : boolField(t('rTrader?'), t('Is account approved to use rCredits? -- member, <@a>good photo</a>, ss# checks out, set risks and mediaConx', array('@a' => 'a href="' . $base_url . '/account/photo"')), $a->ok + 0);
+    : boolField(t('rTrader?'), t('Is account approved to use rCredits? -- member, <@a>good photo</a>, ss# checks out, set risks and mediaConx', array('@a' => "a href=$base_url/account/photo")), $a->ok + 0);
     if (!$a->ok and !$a->co) {
       if ($helper = $a->helper ?: (db\lookup('inviter', 'r_invites', 'invitee=:myid', u\ray('myid', $uid)) ?: '')) {
         $hA = r\acct($helper);
@@ -133,7 +132,7 @@ function adminSummary($a, $cAdmin = FALSE) {
   $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
   $uid = hidField($uid);
 
-  return compact(u\ray('donations created tenure lastUse steps dwInfo relations ssnCheck moves floor legalName risk risks2 mediaConx adminable2 rTrader helper notes count submit back uid'));
+  return compact(u\ray('donations tenure steps dwInfo relations ssnCheck moves floor legalName risk risks2 mediaConx adminable2 rTrader helper notes count submit back uid'));
 }
 
 function showCardCode($a) {

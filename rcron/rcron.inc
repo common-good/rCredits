@@ -62,7 +62,7 @@ NOTES:
 
 include_once __DIR__ . '/../usd.class';
 
-define('R_DAILY_TASKS', 'START usdTxsThere recache checkAccts acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts homogenize pool bank notices END');
+define('R_DAILY_TASKS', 'START recache checkAccts acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank notices END'); // had homogenize, pool 
 //define ('R_DAILY_TASKS', 'START redistribute END');
 
 /**
@@ -94,6 +94,11 @@ function periodic() {
 function everyHour() {
   // stuff to do every hour
   queueEach('acctHourly', "SELECT uid FROM users WHERE uid<>0");
+  if (strftime('%H') == (R_DAILY_HOUR + 6) % 24) {
+    $lastCron = \variable_get('r_last_cron', []);
+    $lastTime = @$lastCron['day'];
+    if (REQUEST_TIME - $lastTime > DAY_SECS) r\tellStaff('daily cron FAILED');
+  }
   // r\tellStaff('hourly cron');
 }
 
@@ -212,7 +217,7 @@ function lessOften() {
  * @param int $periodLen: approximate length of the period, in seconds
  */
 function often($period, $code, $value, $periodLen) {
-  $lastCron = \variable_get('r_last_cron', array());
+  $lastCron = \variable_get('r_last_cron', []);
   $lastTime = @$lastCron[$period];
   $elapsed = REQUEST_TIME - $lastTime;
   list ($point, $lastPoint) = array(strftime("%$code", REQUEST_TIME), strftime("%$code", $lastTime));
@@ -322,9 +327,9 @@ function shareCommitted($item) {
 /**
  * (1) Identify inconsistencies caused by system crashes and reconcile them.
  * (2) Notice and record completion of EFTs.
- */
+ *//*
 function usdTxsThere() {
-  queueEach('usdTxThere', 'SELECT uid FROM users WHERE :IS_OK AND :IS_DW');
+  queueEach('usdTxThere', 'SELECT uid FROM users WHERE :IS_OK AND :HAS_BANK');
   r\queue('usdTxsThereEND');
 }
 function usdTxsThereEND() {queueNextAfter('usdTxsThere');}
@@ -338,11 +343,11 @@ function usdTxThere($item) {
 }
 
 function usdTxQ($info) {r\queue($info['Type'] == 'money_sent' ? 'lostUsdTx' : 'bankFollowup', $info);}
-
+*/
 /**
  * Record any unrecorded USD transaction (any that has no record in r_usd).
  * @param assoc $tx: the lost transaction
- */
+ *//*
 function lostUsdTx($tx) {
   extract(u\just('Id Notes Amount SourceId DestinationId Date', $tx));
   if (!u\abbreviates(t\est() . USD_NOTE_PREFIX, $Notes)) return; // not one of ours
@@ -359,15 +364,17 @@ function lostUsdTx($tx) {
   r\usd::addToAtom($txid, $amount, $payer, $payee, $created, $created);
   r\usd::commit();
 }
+*/
 
 /**
  * Mark recently completed bank transfers complete.
  * @param assoc $tx: the USD deposit or withdrawal transaction
  * Note that transfers to the bank were marked complete immediately, but not with the correct ClearingDate.
- */
+ *//*
 function bankFollowup($tx) {
   r\usdTransferDone($tx);
 }
+*/
 
 /**
  * Recalculate and update cached financial balances for each account.
@@ -466,27 +473,24 @@ function cttyStats1($item) {
 
 /**
  * Calculate how much each member is trusted by the others.
- * Use risk field as temp since it gets reset later each night
  */
 function trust() {
-  db\q('UPDATE users SET trust=1');
+  db\q('UPDATE users SET trust=IF(:IS_CO,NULL,1)');
   $sql = <<<EOF
     UPDATE users u 
     INNER JOIN
       (SELECT proxy AS uid,SUM(straw) AS bale
        FROM 
-         (SELECT proxy,up.trust/p.priority AS straw
+         (SELECT proxy,IFNULL(up.trust,0)/p.priority AS straw
           FROM r_proxies p 
           LEFT JOIN users up ON up.uid=p.person) s
        GROUP BY proxy) b
     ON b.uid=u.uid
-    SET u.risk=u.trust+:weight*b.bale WHERE NOT :IS_CO
+    SET u.trust=u.trust+:weight*b.bale WHERE NOT :IS_CO
 EOF;
-  for ($i = 0, $weight = 1; $i < 30; $i++, $weight /= 2) {
-    db\q($sql, compact('weight'));
-    db\q('UPDATE users SET trust=risk');
-  }
+  for ($i = 0, $weight = 1; $i < 32; $i++, $weight /= 2) db\q($sql, compact('weight'));
   if (t\est()) db\q('UPDATE users SET trust=ROUND(trust, 2)'); // make the results easily testable
+  queueNextAfter('trust');
 }
 
 /**
@@ -554,7 +558,7 @@ function gift1($item) {r\acceptGift($item);}
  * Spread the USD out somewhat equally among the membership
  * Any account that might have more than the average after sending a chunk to the ctty, gives a chunk to others.
  * Note that an account's rCredits balance (r) can go negative if merely trading for USD
- */
+ *//*
 function homogenize() {
   $result = db\q('SELECT AVG(usd) AS avg, community FROM users WHERE uid>1 AND :IS_OK GROUP BY community');
   while ($row = $result->fetchAssoc()) {
@@ -563,11 +567,12 @@ function homogenize() {
   }
   queueNextAfter('homogenize');
 }
+*/
 
 /**
  * Offload some USD from an account, to others with less.
  * Avoid lending an account USD beyond its credit limit (keep r >= floor).
- */
+ *//*
 function homogenize1($item) {
   extract(u\just('uid usd ctty', $item));
   $a = r\acct($uid);
@@ -579,11 +584,12 @@ function homogenize1($item) {
     // This trade might fail (gently) if a bank transfer goes through in between
   }
 }
+*/
 
 /**
  * Hold some of the community's USD in the community account.
  * Leave each contributing account with at least R_CHUNK so it can help someone cash out the next day (NOPE -- not doing that anymore).
- */
+ *//*
 function pool() {
   $result = db\q('SELECT SUM(usd) AS total, SUM(1) AS sources, community FROM users GROUP BY community');
   while ($row = $result->fetchAssoc()) { // for each community
@@ -597,16 +603,18 @@ function pool() {
   }
   queueNextAfter('pool');
 }
+*/
 
 /**
  * Trade $10us to the community, leaving the account with at least $10us (if possible).
- */
+ *//*
 function pool1($item) {
   extract(u\just('uid usd community', $item));
 //  if ($usd >= R_CHUNK) r\tradeR(R_CHUNK, $community, $uid); // might fail (gently) if a bank transfer goes through in between
   $community = r\serverUid(); // just one community for now
   if ($usd > 0) r\tradeR(min($usd, R_CHUNK), $community, $uid); // might fail (gently) if a bank transfer goes through in between
 }
+*/
 
 /**
  * Transfer funds from Dwolla to bank account or vice versa, according to account's settings
@@ -616,14 +624,14 @@ function bank() {
   $sql = <<<EOF
   SELECT uid, :R_SHORTFALL AS shortfall
   FROM users 
-  WHERE :R_SHORTFALL>0 AND minimum>0 AND uid>1 AND :IS_OK AND :IS_DW
+  WHERE :R_SHORTFALL>0 AND minimum>0 AND uid>1 AND :IS_OK AND :HAS_BANK
 EOF;
   queueEach('bank1', $sql);
   
   $sql = <<<EOF
   SELECT uid, :R_SHORTFALL AS shortfall, r.main as ma
   FROM users u INNER JOIN r_relations r ON r.other=u.uid
-  WHERE :R_SHORTFALL>0 AND minimum>0 AND uid>1 AND :IS_OK AND NOT :IS_DW AND r.draw
+  WHERE :R_SHORTFALL>0 AND minimum>0 AND uid>1 AND :IS_OK AND NOT :HAS_BANK AND r.draw
 EOF;
   queueEach('draw1', $sql);
   queueNextAfter('bank');
@@ -634,12 +642,13 @@ function bank1($item) {
   $a = r\acct($uid);
   if (!$amount = toBank(-$shortfall, $a)) return;
   $action = 'draw from';
-  $usAcct = new r\usd($a);
+//  $usAcct = new r\usd($a);
 
-  if ($usAcct->bank($amount, $error)) {
-    $amount = u\fmtAmt(abs(@$amount));
-    r\notify($uid, 'under min|banked', compact(u\ray('action amount')));
-  } elseif (REQUEST_TIME - $a->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
+//  if ($usAcct->bank($amount, $error)) {
+  $a->bank($amount);
+  $amount = u\fmtAmt(abs(@$amount));
+  r\notify($uid, 'under min|banked', compact(u\ray('action amount')));
+//  } elseif (REQUEST_TIME - $a->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
 }
 
 function draw1($item) {
@@ -658,7 +667,7 @@ function draw1($item) {
  * @param float $amount: the amount wanting to go to or (if negative) from the bank
  * @param acct $a: which account
  * @param bool $banky: the account has a connected bank account
- * @return: the amount to deposit or (if negative (UNUSED)) withdraw (zero if none).
+ * @return: the amount to transfer TO (UNUSED) or (if negative) FROM the bank account (zero if none).
  */
 function toBank($amount, $a, $banky = TRUE) {
   if ($banky) {
@@ -696,21 +705,8 @@ function notices() {
 function notice($item) {
   extract(u\just('uid daily weekly monthly', $item));
 
-  $a = r\acct($uid);
-  $result = db\q('SELECT message, created FROM r_notices WHERE uid=:uid AND NOT sent', compact('uid'));
-  $messages = '';
-
-  while ($row = $result->fetch()) {
-    $date = ($weekly or $monthly) ? (strftime('%b %d', $row->created) . ': ') : '';
-    $messages .= "<li>$date$row->message</li>\n";
-  }
-  if ($messages) {
-    $unit = $weekly ? 'week' : ($monthly ? 'month' : 'day');
-    $yestertime = u\fmtDate($start = strtotime("-1 $unit", REQUEST_TIME));
-    $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
-    extract(u\just('return', $a->stats()));
-    list ($balance, $rewards, $ourEmail) = array(u\fmtAmt($a->usd + $a->r), u\fmtAmt($a->rewards), R_REGION_EMAIL);
-    r\notify($uid, 'notices', compact(u\ray('messages unit range yestertime balance rewards return ourEmail')), TRUE);
+  if ($args = r\noticeArgs($uid, 'NOT sent', $weekly, $monthly)) {
+    r\notify($uid, 'notices', $args, TRUE);
     db\q('UPDATE r_notices SET sent=:REQUEST_TIME WHERE uid=:uid AND NOT sent', compact('uid'));
   }
 }
@@ -792,7 +788,7 @@ function achify() {
     extract($row);
     if ($amount < 0) continue; // ignore these while the system is young (admin may want to dissuade the member)
     $a = r\acct($uid);
-    if (!$a->can(B_BANK) or !$a->ok) continue;
+    if (!$a->bank or !$a->ok) continue;
     extract(u\just('bankAccount bankAccountType', $a->secure));
     if (!@$bankAccount) continue;
     list ($route, $account) = u\parseBankAccount($bankAccount);

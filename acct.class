@@ -165,18 +165,19 @@ class acct {
     if ($field == 'ctty') return ($this->id < 0);
     if ($field == 'region') return r\uidRegion($this->id);
     if ($field == 'owns') return !$this->risk('rents');
+    if ($field == 'bank') return $this->risk('hasBank');
 
     if (in_array($field, u\ray(R_SECRET_FIELDS))) $this->getHidden();
     $result = @self::$records[$this->id]->$field; // returns NULL if field not set
 
-    if ($field == 'data') return @$result ? unserialize($result) : array();
+    if ($field == 'data') return @$result ? unserialize($result) : [];
     if ($field == 'usdAccount') return @$result ? u\ezdecrypt(hex2bin($result), R_WORD) : NULL;
     if ($field == 'language') {
       $language = $result;
       return \user_preferred_language((object) compact('language'));
     }
     if ($field == 'secure') return @$result ? unserialize(u\ezdecrypt($result, R_WORD)) : array();
-    if (in_array($field, u\ray(R_SECURE_FIELDS))) return $this->secure[$field];
+    if (in_array($field, u\ray(R_SECURE_FIELDS))) return @$this->secure[$field];
 
     return $result;
   }
@@ -236,6 +237,8 @@ class acct {
    * @param mixed $value1 (etc): new values for those fields
    *   The flags field will always be included.
    * @return: TRUE if update succeeds, FALSE if update fails (saving either onsite or offsite)
+   * NOTE: data['changes'] = [date, oldvalues, agent] (this gives a complete history of the account record)
+   *   but old secure and hidden data is replaced with ''
    */
   public function update($info, $just = NULL) {
     $this->reread();
@@ -264,7 +267,7 @@ class acct {
     if ($data = @$info['data']) {
       $info['data'] = serialize($data);
       u\preray($data, self::$records[$this->id]); // cache these individually
-    } elseif ($data = u\just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data + ($this->data ?: array()));
+    } elseif ($data = u\just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data += $this->data);
     u\preray($info, self::$records[$this->id]); // cache the field values
 
     if ($toHide) { // store protected information securely, offsite
@@ -273,8 +276,15 @@ class acct {
     }
 //NO    u\setDft($info['flags'], $this->flags); // accommodate setBit caching flags to be set/unset
 
+    if ($this->ok and time() - $this->activated > 30) { // don't record changes until member is a month old
+      if ($old = u\justNot(R_HIDE_CHANGES, $info)) { // see if there are any changes to remember
+        $changes = ($this->changes ?: []) + [time(), $old];
+        $info['data'] = serialize(compact('changes') + ($data ?: $this->data));
+      }
+    }
     $info['uid'] = $this->id; // make sure dbUpdate gets this
-    foreach (u\ray(R_SECRET_FIELDS . ' ' . R_DATA_FIELDS) as $field) unset($info[$field]); // don't pass these to dbUpdate
+    $info = u\justNot(R_SECRET_FIELDS . ' ' . R_DATA_FIELDS, $info); // don't pass these to dbUpdate
+
     return db\update('users', $info, 'uid');
   }
 
@@ -461,6 +471,7 @@ EOF;
       extract($row);
       $avail = r\avail('buy', $row);
       $amount = round(min($left, $avail), 2);
+///      debug(compact('row','avail','amount','left','need','id'));
       if ($amount > 0) {
         list ($fromQuid, $toQuid) = array(r\quid($uid), $this->mainQid);
         list ($payer, $payee) = array($uid, $this->id);
@@ -608,7 +619,7 @@ EOF;
       $this->update(compact('stepsDone'));
       r\tellStaff('Step completed: ' . strtoupper($step), $details, $this->id);
 
-      if (!$this->member and $step == 'dw' and $stepsDone['connect']) r\Web\connectBank($this);
+//      if (!$this->member and $step == 'dw' and $stepsDone['connect']) r\Web\connectBank($this);
     }
     
     if (!$nextStep = $this->nextStep()) r\membershipEvent($this, 'member');
@@ -624,7 +635,7 @@ EOF;
     foreach (u\ray($unset) as $one) unset($steps[$one]);
     foreach ($steps as $step => $done) if (!$done) break;
     if ($done) return FALSE;
-
+/*
     if ($step == 'dw') {
       if ($this->can(B_DW) and !@$this->secure['auth']) {
         $this->createUsdAccount($err); // initialize Dwolla account
@@ -632,7 +643,7 @@ EOF;
       }
       if ((new r\usd($this))->step() == 'Finished') $step = $this->stepDone('dw'); // happens externally
     }
-
+*/
     return $step;
   }
 
@@ -728,27 +739,32 @@ EOF;
   
   /**
    * Set or unset the BANK bit
-   */
+   *//*
   public function setBank() {
     if (!$this->can(B_BANK) and $this->dwStatus() >= DW_VSAVINGS) $this->setBit(B_BANK, TRUE);
-  }
+  }*/
 
   /**
    * Request a transfer of funds to or from a connected bank account.
-   * @param float $amount: the amount to transfer from bank to rCredits (<0 means from rCredits to bank)
+   * @param float $amount: the amount to transfer TO or (if negative) FROM the bank
    */
   public function bank($amount) {
-    $uid = $this->id;
-    $info = u\ray('amount uid created completed tid', $amount, $uid, REQUEST_TIME, 0, r\getUsdTid($uid));
-    db\insert('r_ach', $info); // add to list of ACH requests
-    
-    if ($amount < 0) { // tell staff to transfer the funds using BillPay
+    $payer = $this->id;
+    $tid = r\getUsdTid($payer);
+    $created = REQUEST_TIME;
+    $completed = ($amount > 0 or $this->r - -$amount >= $this->floor) ? $created : 0;
+
+    $DBTX = \db_transaction();
+    if ($completed) $this->update('r', $this->r - $amount);
+    db\insert('r_usd', $tx = compact(u\ray('amount payer created completed tid')));
+    if ($amount > 0) { // tell staff to transfer the funds using BillPay or check
       extract(u\just('bankAccount', $this->secure));
       list ($route, $account) = u\parseBankAccount(@$bankAccount);
       $bankName = db\lookup('name', 'r_banks', 'route=:route', compact('route'));
       $fullName = $this->fullName;
-      r\tellStaff(t('Outgoing ACH Request'), compact('bankName route fullName account amount'));
+      r\tellStaff(t('outgoing bank transfer request'), compact('bankName route fullName account amount'));
     }
+    unset($DBTX);
   }
   
   /**
@@ -763,7 +779,21 @@ EOF;
   }
   
   public function risk($bit) {return u\getbit($this->risks, $bit);}
-  public function setRisk($bit, $on = TRUE) {$this->setBitx($bit, $on, 'risks');}
+
+  /**
+   * Set the bit (identified by number or name) in the "risks" integer bit collection field.
+   * @param mixed $bit: number of bit to set (0 - 31) or name of bit
+   * @param bool $on: whether to set it ON or OFF
+   */
+  public function setRisk($bit, $on = TRUE) {
+    if (!is_numeric($bitName = $bit)) {
+      $acctRiskBits = array_flip(array_keys(u\ray(K_ACCT_RISKS)));
+      $txRiskBits = array_flip(array_keys(u\ray(K_TX_RISKS)));
+      if (!is_numeric($bit = @$acctRiskBits[$bitName])) $bit = $txRiskBits[$bitName];
+    }
+    $this->setBitx($bit, $on, 'risks');
+  }
+  
   public function coCan($bit = NULL) {return u\getbit($this->coFlags, $bit);}
   public function setCoBit($bit, $on = TRUE) {$this->setBitx($bit, $on, 'coFlags');}
   
