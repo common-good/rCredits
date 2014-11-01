@@ -49,7 +49,7 @@ class rsmartIdentify extends DrupalWebTestCase {
     . '\\| .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 | ok,bona    |'
     . '\\| .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      | ok,co,bona |'
     . '\\| .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 | ok,bona    |'
-    . '\\| .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 | ok,bona,secret_bal |'
+    . '\\| .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 | ok,bona,secret |'
     . '\\| .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      | ok,co,bona |'
     . '\\| .ZZG | Gil Seven  | g@    | Gtown | GA    | ccG |      |            |"');
     And__('devices: "ASSOC'

@@ -5,10 +5,10 @@ SO I can see what happened, accept or refuse offers, adjust descriptions, and co
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType    | flags         | created    |*
-  | .ZZA | Abe One    | -100  | personal    | ok,dw,bona    | %today-15m |
-  | .ZZB | Bea Two    | -200  | personal    | ok,dw,co,bona | %today-15m |
-  | .ZZC | Corner Pub | -300  | corporation | ok,dw,co,bona | %today-15m |
+  | id   | fullName   | floor | acctType    | flags      | created    |*
+  | .ZZA | Abe One    | -100  | personal    | ok,bona    | %today-15m |
+  | .ZZB | Bea Two    | -200  | personal    | ok,co,bona | %today-15m |
+  | .ZZC | Corner Pub | -300  | corporation | ok,co,bona | %today-15m |
   And relations:
   | id   | main | agent | permission |*
   | .ZZA | .ZZA | .ZZB  | buy        |
@@ -23,13 +23,12 @@ Setup:
   |  .ZZA |     0 |    -11 |   2 | %today-1w  |         0  |
   |  .ZZA |     0 |     22 |   4 | %today-5d  |         0  |
   |  .ZZA |     0 |     33 |   3 | %today-5d  |         0  |
-  And balances:
-  | id   | usd   |*
-  | ctty | 10000 |
+  Then balances:
+  | id   | r     |*
   | .ZZA |  1000 |
   | .ZZB |  2000 |
   | .ZZC |  3000 |
-  And transactions: 
+  Given transactions: 
   | xid   | created   | type     | amount | from | to   | purpose | taking |*
   | .AAAB | %today-7m | signup   |    250 | ctty | .ZZA | signup  | 0      |
   | .AAAC | %today-6m | signup   |    250 | ctty | .ZZB | signup  | 0      |
@@ -45,39 +44,11 @@ Setup:
   | .AAAS | %today-1w | bonus    |     12 | ctty | .ZZC | bonus   | 0      |
   | .AAAV | %today-6d | transfer |    100 | .ZZA | .ZZB | cash V  | 0      |
   Then balances:
-  | id   | balance | rewards | r    | usd   |*
-  | ctty |    9196 |       0 | -804 | 10000 |
-  | .ZZA |    1918 |     268 |  918 |  1000 |
-  | .ZZB |    2554 |     274 |  554 |  2000 |
-  | .ZZC |    2332 |     262 | -668 |  3000 |
-Skip
-Scenario: A member clicks NO
-  Given transactions:
-  | xid | created   | type     | state    | amount | from | to   | purpose  | taking |*
-  | 100 | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |
-  When member ".ZZA" visits page "history/period=5"
-  Then we show "Transaction History" with:
-  |_tid | Date   | Name       | From you | To you | Status   | _ | Purpose | Reward/Fee |
-  | 11  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X | cash CL | --     |
-  # expand this to have rewards, for a better test.
-  When member ".ZZA" visits page "history/period=5&do=no&xid=100"
-  Then we show "tx summary|confirm tx action" with subs:
-  | amount | otherName  | otherDid | purpose | created   | txAction                     |*
-  | $100   | Corner Pub | paid     | cash CL | %today-5d | REVERSE this disputed charge |
-  
-Scenario: A member confirms NO
-  Given transactions:
-  | xid | created   | type     | state    | amount | from | to   | purpose  | taking |*
-  | 100 | %today-5d | transfer | disputed |    101 | .ZZC | .ZZA | cash CL  | 1      |
-  And balances:
-  | id   | r   |*
-  | .ZZA | 500 |
-  When member ".ZZA" confirms form "history/period=5&do=no&xid=100" with values: ""
-  Then we show "Transaction History" with:
-  |_tid | Date   | Name       | From you | To you | Status   | _ | Purpose                   | Reward/Fee |
-  | 12  | %dm    | Corner Pub | 101.00   | --     | %chk     | X | reverses #11              | --     |
-  | 11  | %dm-5d | Corner Pub | --       | 101.00 | disputed |   | (reversed by #12) cash CL | --     |
-Resume
+  | id   | r       | rewards |*
+  | .ZZA |    1918 |     268 |
+  | .ZZB |    2554 |     274 |
+  | .ZZC |    2332 |     262 |
+
 Scenario: A member looks at transactions for the past year
   When member ".ZZA" visits page "history/period=365"
   Then we show "Transaction History" with:
@@ -137,11 +108,10 @@ Scenario: Transactions with other states show up properly
   | .AACK | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |
   Then balances:
   | id   | balance |*
-  | ctty |    9220 |
   | .ZZA |    1942 |
   | .ZZB |    2554 |
   | .ZZC |    2320 |
-  When member ".ZZA" visits page "history/period=5&options=%RUSD_BOTH%STATES_BOTH%_N%_N%_N%_XCH%_VPAY"
+  When member ".ZZA" visits page "history/period=5"
   Then we show "Transaction History" with:
   |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |
   | 15  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X  | cash CL    | --     |
@@ -155,7 +125,7 @@ Scenario: Transactions with other states show up properly
   | never   |
   | rebate  |
   | bonus   |
-  When member ".ZZC" visits page "history/period=5&options=%RUSD_BOTH%STATES_BOTH%_N%_N%_N%_XCH%_VPAY"
+  When member ".ZZC" visits page "history/period=5"
   Then we show "Transaction History" with:
   |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |
   | 10  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK | cash CL    | --     |

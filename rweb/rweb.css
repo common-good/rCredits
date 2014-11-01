@@ -318,8 +318,8 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformsummary  label[for="edit-adminable"] {display:inline-block;}
 #rcreditswebformsummary #edit-returnmo,
 #rcreditswebformsummary #edit-cttybenemo {margin-bottom:0;}
-#rcreditswebformsummary #edit-risks .noEdit {margin-left:-17px; padding-left:17px; background-color:darkgray;}
-#rcreditswebformsummary #edit-mediaconx {width:25px;}
+#rcreditswebformsummary .noEdit {margin-left:-17px; padding-left:17px; background-color:darkgray;}
+#rcreditswebformsummary #edit-mediaconx {width:45px;}
 #rcreditswebformsummary #edit-moves .description,
 #rcreditswebformsummary .form-item-mediaConx .description,
 #rcreditswebformsummary .form-item-rTrader .description,
@@ -327,6 +327,12 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformsummary #edit-tenure .description {display:inline-block; margin-left:0; width:auto;}
 #rcreditswebformsummary .form-item {margin-bottom:15px;}
 #rcreditswebformsummary #edit-risk input {margin-left:10px;}
+#rcreditswebformsummary input#edit-floor,
+#rcreditswebformsummary #edit-minimum,
+#rcreditswebformsummary #edit-achmin {width:60px;}
+#rcreditswebformsummary .form-item-floor,
+#rcreditswebformsummary .form-item-minimum,
+#rcreditswebformsummary .form-item-achMin {display:inline-block; margin-right:0;}
 
 /* Company Info */
 #rcreditswebformcompany fieldset#edit-description-format {background-color:lightblue; max-width:45em;}
@@ -341,7 +347,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformcompany input#edit-submit {margin-top:2em; display:inline-block;}
 #rcreditswebformcompany #edit-links {display:block; width:30em;}
 /*#rcreditswebformcompany.labeled #edit-links {margin-left:8em;}*/
-#rcreditswebformcompany #edit-links label {width:100%; text-align:left; font-weight:normal;}
+#rcreditswebformcompany #edit-links {width:100%; text-align:left;}
 #rcreditswebformcompany.labeled .form-item-categories label {vertical-align:top;}
 #rcreditswebformcompany #edit-can2 {margin-top:12px;}
 #rcreditswebformcompany #edit-can2 div {margin-top:0; margin-bottom:0;}
@@ -744,6 +750,8 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformoptions #edit-notices div {display:inline-block;}
 #rcreditswebformoptions #edit-posttext {margin-top:15px;}
 #rcreditswebformoptions #edit-posttext p {font-size:80%; margin:5px 20px;}
+#rcreditswebformoptions #edit-minimum,
+#rcreditswebformoptions #edit-achmin {width:80px;}
 
 /* Get */
 #rcreditswebformget #edit-title,

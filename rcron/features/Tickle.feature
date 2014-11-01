@@ -5,12 +5,12 @@ SO I don't get forgotten and miss out on stuff.
 
 Setup:
   Given members:
-  | id   | fullName | email | flags | access    | floor |*
-  | .ZZA | Abe One  | a@    |       | %today-1d |     0 |
-  | .ZZB | Bea Two  | b@    |       | %today-2d |     0 |
-  | .ZZD | Dee Four | d@    |       | %today-3d |     0 |
-  | .ZZE | Eve Five | e@    | ok    | %today-3m |     0 |
-  | .ZZF | Flo Six  | f@    | ok    | %today-3m |     0 |
+  | id   | fullName | email | flags   | access    | floor |*
+  | .ZZA | Abe One  | a@    |         | %today-1d |     0 |
+  | .ZZB | Bea Two  | b@    |         | %today-2d |     0 |
+  | .ZZD | Dee Four | d@    |         | %today-3d |     0 |
+  | .ZZE | Eve Five | e@    | ok,bona | %today-3m |     0 |
+  | .ZZF | Flo Six  | f@    | ok      | %today-3m |     0 |
 
 Scenario: A newbie has not taken the first step
   When cron runs "tickle"

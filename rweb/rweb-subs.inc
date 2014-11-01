@@ -28,7 +28,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'report delete cell' => t('Mobile number @number has been removed from this account.'),
   'your account is ready' => t('<p></p><p>So far so good. <b class="stopnot">But WAIT!</b> You have a few steps still to go. We sent you an email with your user ID and a link to the next step. If you don\'t see it within 60 seconds, check your spam folder.</p>'),
   'company is ready' => t(<<<EOF
-    <p></p><p>To finish setting up this company account:</p>
+    <p></p><p>After you finish setting up this account, to manage it in the future:</p>
     <ol>
       <li>Sign in to your personal account</li>
       <li>Choose your company account from the account-selection dropdown box in the upper right corner of the screen.</li>
@@ -108,7 +108,7 @@ EOF
 //  'bad pin' => t('Your PIN must be exactly 4 digits'),
   'bad federal id' => t('That is not a correct @what. Try again.'),
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
-  'short to' => t('You are @short short for that transaction. <a href="account/preferences">Increase your minimum balance</a>!'),
+  'short to' => t('You are @short short for that transaction. <@a>Click here</a> to increase your minimum balance!', ['@a'=>'a href=account/preferences']),
   'no such company' => t('There is no such company.'),
   'op canceled' => t('Operation Canceled.'),
   'demand not yet' => t('You will be notified when there are some rCredits for you to buy with US Dollars.'),
@@ -180,7 +180,7 @@ EOF
   'missing contact info' => t("<h2>Missing Contact Information</h2><p>Please complete your <@a1>Contact Information</a> before continuing.</p>"),
   'correct and retry' => t('Please correct the problem and resubmit this form.'),
   'duplicate transaction' => t('You already just @op that member that much.'),
-  'duplicate phone' => t('That phone number is already the primary phone for another account.<br><br>If this is your ONLY phone and you can make do without a connected bank account (that is, if you have some other easy way to get money into and out of your rCredits account): <input type="button" value="Continue With No Bank Connection" onclick="jQuery(\'#edit-dupOk\').val(1); jQuery(\'#rcreditswebform@form\').submit();" />'),
+//  'duplicate phone' => t('That phone number is already the primary phone for another account.<br><br>If this is your ONLY phone and you can make do without a connected bank account (that is, if you have some other easy way to get money into and out of your rCredits account): <input type="button" value="Continue With No Bank Connection" onclick="jQuery(\'#edit-dupOk\').val(1); jQuery(\'#rcreditswebform@form\').submit();" />'),
   'not a duplicate phone' => t('That phone number is NOT the primary phone for another account.'),
   'bad pin' => t('That is not your correct PIN.'),
   'wrong pin len' => t('Your PIN must be exactly 4 characters long.'),
@@ -247,7 +247,7 @@ function button($value, $href = '', $title = '', $class = '', $id = '') {
   return $markup;
 }
 
-function formField($type, $title = '', $description = '', $other = array(), $options = NULL) {
+function formField($type, $title = '', $description = '', $other = [], $options = NULL) {
   if (!is_array($other)) $other = array(($type == 'item' ? 'markup' : 'value') => $other);
   if ($type == 'select' and !isset($other['default_value'])) $other['default_value'] = key($options); // Drupal's select fails without a default
   $title_display = 'before';
@@ -257,9 +257,9 @@ function formField($type, $title = '', $description = '', $other = array(), $opt
 }
 
 function submit($title = '', $other = '') {return formField('submit', '', $other, $title ?: t('Save'));}
-function item($markup, $title = '', $desc = '', $other = array()) {return formField('item', $title, $desc, compact('markup') + $other);}
-function hidField($value = '', $options = array()) {return formField('hidden', '', '', compact('value') + $options);}
-function textField($title = '', $description = '', $other = array(), $options = NULL) {
+function item($markup, $title = '', $desc = '', $other = []) {return formField('item', $title, $desc, compact('markup') + $other);}
+function hidField($value = '', $options = []) {return formField('hidden', '', '', compact('value') + $options);}
+function textField($title = '', $description = '', $other = [], $options = NULL) {
   return formField('textfield', $title, $description, $other, $options);
 }
 function boxField($title, $desc = '', $other = NULL) {
@@ -293,7 +293,7 @@ function boolField($title = '', $description = '', $dft = NULL, $labels = NULL) 
 function boxesField($tag, $title, $desc, $defaults, $choices, $aliases = NULL) {
   u\setDft($aliases, $choices);
   $boxes = '';
-  if (!@$defaults) $defaults = array();
+  if (!@$defaults) $defaults = [];
   foreach ($choices as $k => $v) {
     $alias = $aliases[$k];
     $checked = in_array($v, $defaults) ? ' CHECKED' : '';
@@ -325,10 +325,10 @@ EOF
  * @param string $bits: array (space or comma-delimited) of names of bits to include (without prefixes)
  * @param assoc $aliases: map of bit names to their display aliases (which may include formatting)
  */
-function bitsField($fieldName, $label, $bitRay, $prefix, $bits, $aliases = array()) {
+function bitsField($fieldName, $label, $bitRay, $prefix, $bits, $aliases = []) {
   $bits = u\ray($bits);
   if (!is_numeric(key($bits))) $bits = array_keys($bits); // ignore values (eg weights for risk arrays)
-  $defaults = array();
+  $defaults = [];
   foreach ($bits as $bit => $bitName) {
     if ($prefix) $bit = u\consta($prefix, $bitName);
     $bitNames[$bit] = $bitName;
@@ -344,9 +344,9 @@ function bitsField($fieldName, $label, $bitRay, $prefix, $bits, $aliases = array
 function acctTypeField() {
   $coAcctTypes = $GLOBALS['account types'];
   unset($coAcctTypes[R_PERSONAL]);
-  $onclick = "attrClick(this);";
-  $acctTypeAttrib = attrib(compact('onclick'));  
-  return formField('radios', t('Account type:'), '', required() + $acctTypeAttrib, $coAcctTypes);
+//  $onclick = "attrClick(this);";
+//  $acctTypeAttrib = attrib(compact('onclick'));  
+  return formField('radios', t('Account type:'), '', required(), $coAcctTypes);
 }
 
 /**
@@ -367,7 +367,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   try {
     $mya = r\acct();
 ///    global $zot; $zot = @$zot . ' ' . $function; if (strlen(@$zot) > 50) die($zot);
-    if (!$mya and !in_array($function, u\ray("$anonForms Signup Signin Pass Empty ChangePassword Help Agreement Reports Flags Menu I ResetPassword Profile Accept Buy Summary HandleInvoice"))) r\go('');
+    if (!$mya and !in_array($function, u\ray("$anonForms Signup Signin Pass Empty TestRecovery ChangePassword Help Agreement Reports Flags Menu I ResetPassword Profile Accept Buy Summary HandleInvoice"))) r\go('');
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
     $specialForm = in_array($function, u\ray('Help Empty footer accounts Admin Login MemberList MemberInfo'));
@@ -434,7 +434,7 @@ function box() {
  * @param int $code: machine identifier
  */
 function boxUser($code, $uid) {
-  if ($id = @$_COOKIE[$cookid = 'boxnum' . $uid] and !t\est()) return $id; // we only get this if last set today
+  if ($id = @$_COOKIE[$cookid = 'boxnum' . $uid] and !u\test()) return $id; // we only get this if last set today
   if ($id = db\lookup('id', 'r_boxes', 'code=:code AND uid=:uid', compact(u\ray('code uid')))) {
     db\update('r_boxes', u\ray('id access', $id, REQUEST_TIME), 'id');
   } else $id = r\makeDevice($uid, $code, TX_WEB);
@@ -448,7 +448,7 @@ function boxUser($code, $uid) {
  * @return mixed: FALSE only if we're not being flooded
  */
 function flooding($uid, &$sta) {
-  if (t\est()) return !$uid;
+  if (u\test()) return !$uid;
   $trigger = 'flood_control_triggered';
   $limit = 50; //variable_get('user_failed_login_ip_limit', 50);
   $window = HOUR_SECS; //variable_get('user_failed_login_ip_window', HOUR_SECS);
@@ -514,11 +514,11 @@ function which($choices = '', $resultField = '', $info = '', $question = 'Which 
     r\go($formName); // reload page
   }
 
-  if (!is_array($pop = svar('pop'))) return array();
+  if (!is_array($pop = svar('pop'))) return [];
   extract(svar('pop'), EXTR_PREFIX_ALL, 'pop');
-  if ($formName != $pop_formName) return array();
+  if ($formName != $pop_formName) return [];
   if ($choices == 'info') return $pop_info; // called as which('info') (#2)
-  if ($choices) return array();
+  if ($choices) return [];
   
   svar('pop', NULL); // called with no args (#3)
   $onchange = "this.form.elements['$pop_resultField'].value=this.options[this.selectedIndex].text; this.form.submit();";
@@ -605,7 +605,7 @@ function setupUsd(&$step, $redirectOk = TRUE) {
 
   if ($step == 'AuthorizedRepresentative') {
     u\EXPECT($mya->co, 'verify rep for person?!');
-    $byId = @$mya->by ?: (t\est() ? $mya->agentId : FALSE);
+    $byId = @$mya->by ?: (u\test() ? $mya->agentId : FALSE);
     u\EXPECT($byId, 'no by for non-person');
     $by = r\acct($byId);
     list ($first, $last) = u\parseName($by->fullName);
@@ -653,7 +653,7 @@ function goButton($label, $goto, $title) {
 function goButtonIf($perms, $label, $goto, $title) {
   $mya = r\acct();
   if (!is_array($perms)) $perms = array($perms);
-  foreach ($perms as $perm) if (!$mya->can($perm)) return array();
+  foreach ($perms as $perm) if (!$mya->can($perm)) return [];
   return goButton($label, $goto, $title);
 }
 
@@ -694,8 +694,8 @@ function remainder() {
 
 function boxOpt($field, $opts, $sta) {
 ///debug(compact('field','opts','sta'));
-  foreach ((@$sta['input'][$field] ?: array()) as $key => $value) $result[] = $opts[$key]; // note that key==value
-  return @$result ?: array();
+  foreach ((@$sta['input'][$field] ?: []) as $key => $value) $result[] = $opts[$key]; // note that key==value
+  return @$result ?: [];
 }
 
 /**
@@ -857,13 +857,15 @@ function nameAndEmail($what, $fullName = '') {
 /**
  * Return the part of the form that is (mostly) common to formContact and formSignup
  * @param assoc $defaults: initial field values (defaults to current values) - see list at "$fields ="...
- * include all fields (for Contact form) only if r\acct() is set
+ * @param bool $old: <show contact fields for an established account (on Contact form)>
  */
-function contactFields($defaults = array()) {
+function contactFields($defaults = [], $old) {
   $country = $state = ''; // make sure these are not NULL
-  $fields = 'phone dupOk faxetc country postalCode address city state tenure owns postalAddr'; // had verifyBy
-  $mya = r\acct();
-  extract($defaults ?: ($mya ? (array) $mya->account($fields) : array()));
+  $fields = 'phone faxetc country postalCode address city state tenure owns postalAddr'; // had verifyBy
+  if ($old) {
+    $mya = r\acct();
+    extract($defaults ?: ($mya ? (array) $mya->account($fields) : []));
+  }
 //  $dupPhone = @$defaults['dupPhone'];
 
 //  js('http://ziplookup.googlecode.com/git/public/ziplookup/zipLookup.min.js', 'file', 'header');
@@ -879,8 +881,9 @@ function contactFields($defaults = array()) {
   $onchange = "zipChange('010 013');";
   $zipAttrib = attrib(compact('onchange'));
   
-  $phone = textField(t('Phone:'), $mya ? '' : t('Your phone number. This should not be a number already used for another rCredits account &mdash; unless you have no other phone number.'), required(@$phone ? u\fmtPhone($phone): ''));
-  $dupOk = hidField(0, attrib(u\ray('id', 'edit-dupOk')));
+  $phone = textField(t('Phone:'), '', required(@$phone ? u\fmtPhone($phone): ''));
+//$mya ? '' : t('Your phone number. This should not be a number already used for another rCredits account &mdash; unless you have no other phone number.')
+//  $dupOk = hidField(0, attrib(u\ray('id', 'edit-dupOk')));
 //  $dupOk = boolField(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
 //  $verifyBy = $mya ? NULL : formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
   $faxetc = @$faxetc ? textField(t('Fax etc:'), t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.'), dft(@$faxetc)) : NULL;
@@ -889,8 +892,8 @@ function contactFields($defaults = array()) {
   $address = textField(t('Street Address:'), t('Where is your building located (physical address)?'), required(@$address) + $addressAttrib);
   $city = textField(t('City:'), t(''), required(@$city) + $cityAttrib);
   $state = formField('select', t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
-  if (!@$mya) $tenure = textField(t('How long:'), t('MONTHS at this address.'), required(@$tenure));
-  $owns = boolField('', '', @$mya ? dft($mya->owns) : 0, [t('Rent'), t('Own')]);
+  $tenure = $old ? NULL : textField(t('How long:'), t('MONTHS at this address.'), required(@$tenure));
+  $owns = boolField('', '', $old ? dft((int) $mya->owns) : 0, [t('Rent'), t('Own')]);
   $postalAddr = textField(t('Postal Addr:'), t('Where does the post office send your mail (usually)?'), required(@$postalAddr));
 
   return compact(u\ray($fields));
@@ -900,16 +903,14 @@ function contactFields($defaults = array()) {
  * Say whether the phone number is acceptable.
  * @param string $phone: phone number in any format
  * @param int $country: country code
- * @param mixed $dupOk: duplicate phone is ok
  * @param string $form: the current form name, all lowercase, without "form" (in case of duplicate phone).
  * @return TRUE if the phone number is acceptable
  */
-function phoneOk(&$phone, $country, $dupOk, $form = '') {
+function phoneOk(&$phone, $country, $form = '') {
   $myid = @r\acct()->id ?: 0;
   if (!$phone = u\fmtPhone($phone, '+n')) return say('bad phone', 'phone');
   if ($country == US_COUNTRY_ID and strlen($phone) != 12) return say('bad phone', 'phone');
-  $dup = db\exists('users', 'phone=:phone and uid<>:myid', compact('phone', 'myid'));
-  if ($dup and !$dupOk) return say('duplicate phone', compact('form'), 'phone');
+  //$dup = db\exists('users', 'phone=:phone and uid<>:myid', compact('phone', 'myid'));
   // NO! this makes contact form fail. if (!$dup and $dupOk) return say('not a duplicate phone', 'phone');
   return TRUE;
 }
@@ -1051,13 +1052,13 @@ function directoryList($which, $region) {
   $which = u\ignoreSuffix($which, 'ants ant ian es ers ing er or ion s');
   $which = str_replace(' ', '%', \db_like(" $which ")); // allow abbreviations of each word
   $region = \db_like($region) . '%';
-  $rows = array();
+  $rows = [];
   $sql = <<<EOF
     SELECT DISTINCT u.uid, IFNULL(i.industry, '~Other') AS industry, u.name AS short_name, u.fullName, u.data
     FROM users u 
     LEFT JOIN r_user_industries ui ON ui.uid=u.uid
     LEFT JOIN r_industries i ON i.iid=ui.iid
-    WHERE :IS_CO AND u.$field LIKE :region AND (u.fullName LIKE :which OR i.industry LIKE :which)
+    WHERE :IS_CO AND :IS_OK AND u.$field LIKE :region AND (u.fullName LIKE :which OR i.industry LIKE :which)
     ORDER BY industry, u.fullName
 EOF;
   $result = db\q($sql, compact(u\ray('region which')));
@@ -1097,7 +1098,7 @@ function scanIn($acct) {
 
   // Tell Drupal who is now logged in
   global $user; $user = $mya->agent->account();
-  $user->roles = array();
+  $user->roles = [];
   $user->uid = $mya->agent->id;
   drupal_session_regenerate();
 
@@ -1111,7 +1112,7 @@ function scanIn($acct) {
 }
 */
 
-function hack($message, $info = array()) {
+function hack($message, $info = []) {
   u\loga('hack', $_SERVER, $message);
   return r\acct() ? signout() : r\go('');
 }
@@ -1258,7 +1259,7 @@ function form_step(&$sta, &$info = NULL, $next_step = '') {
 
 function step_one(&$sta) {form_step($sta, $zot, NULL);}
 
-function previous_state(&$sta, $message = '', $args = array()) {
+function previous_state(&$sta, $message = '', $args = []) {
   if ($message) {
     $sta = $sta['storage']['previous'][$sta['storage']['step']];
     $sta['storage']['say'] = array($message, $args);
@@ -1513,7 +1514,7 @@ function blank_field($fields, $prefix = '') {
  *
  * @return FALSE (transfer() depends on this)
  */
-function say($index, $args = array(), $errField = '') {
+function say($index, $args = [], $errField = '') {
   global $fieldErr; // used mostly in tests (and in formTx)
   if (!@$index) return;
 ///  if (is_array($index) and !isset($index[0])) debug($index);
@@ -1579,7 +1580,7 @@ EOF;
 
   $charts = u\ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-rcredits');
   if ($whichChart != 'all') $charts = u\just($whichChart, $charts);
-  foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, array());
+  foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, []);
   $moneyFields = u\ray('funds savings usd bankInPerMo bankOutPerMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo');
 
   while ($row = $q->fetchAssoc()) {
@@ -1598,7 +1599,7 @@ EOF;
     $velocityData[] = "[$date,{v:$rate,f:'$rate2'}]";
     $bankingData[] = "[$date,{v:$bankInPerMo,f:'$bankInPerMo2'},{v:$bankOutPerMo,f:'$bankOutPerMo2'}]";
 
-    $x2x = array();
+    $x2x = [];
     foreach ($txTypes as $k => $desc) {
       list ($x, $x2, $xTxs) = array(${"{$k}PerMo"}, u\fmtAmt(${"{$k}PerMo"}), ${"{$k}TxsPerMo"});
       $x = max($x, 1); // to make the logarithmic scale look okay
@@ -1637,7 +1638,7 @@ EOF;
     if (count($charts) > 1) $one = "<a href=\"help/$help\">$one</a>";
     $charts[$k] = "<div>$one</div>";
   }
-  return t\est() ? $js : join('', $charts);
+  return u\test() ? $js : join('', $charts);
 }
 
 /**
@@ -1660,19 +1661,20 @@ function connectBank($a) {
 /**
  * Return a form showing month choices.
  * @param string $title: page title
- * @param string $thing: "statement" or "notice"
+ * @param string $things: "statements" or "notices"
  * @param int $end: how many months from now to end (starts with account creation month)
  * @param string $target: link target ('' or _blank)
  */
-function monthChoices($title, $thing, $end = -1, $target = '_blank') {
+function monthChoices($title, $things, $end = -1, $target = '_blank') {
   $mya = r\acct();
-  $start = u\monthDay1($mya->created);
-  $month = strtotime($end ? $end . ' month' : 'today', u\monthDay1(REQUEST_TIME));
+  $start = u\monthDay1($mya->created); // start of account's first month
+  $thisMo = u\monthDay1(REQUEST_TIME); // start of this month
+  $month = $end ? u\plusMonths($end, $thisMo) : $thisMo;
   
-  for (; $month >= $start; $month = strtotime('-1 month', $month)) {
+  for (; $month >= $start; $month = u\plusMonths(-1, $month)) {
     $year = date('Y', $month);
     $text = strftime('%b%Y', $month);
-    $list[$year] = @$list[$year] . "<a href=\"$thing/$text\" target=\"$target\">$text</a><br>\n";
+    $list[$year] = @$list[$year] . "<a href=\"$things/$text\" target=\"$target\">$text</a><br>\n";
   }
   if (@$list) {
     $headers = $data = '';
@@ -1680,7 +1682,7 @@ function monthChoices($title, $thing, $end = -1, $target = '_blank') {
       $headers .= "<th>$year</th>";
       $data .= "<td>$v</td>";
     }
-    $list = "<table id=\"{$thing}s\">\n<tr>$headers</tr>\n<tr>$data</tr>\n</table>";
+    $list = "<table id=\"$things\">\n<tr>$headers</tr>\n<tr>$data</tr>\n</table>";
   } else $list = t('There are no @THING available yet for this account.', ['@THING' => strtolower($title)]);
   
   $title = item($title);
@@ -1715,9 +1717,9 @@ function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   $agent = r\agent();
   if ($admin = $agent->admin) $agent = r\agent(R_ADMIN_QID); // use William for admin invites
   
-  if (!$dupsOk) {
-    if (db\exists('r_invites', 'email=:email', compact('email'))) return say("NOT sent to $email (dup).");
-    if (db\exists('users', 'mail=:email', compact('email'))) return say("NOT sent to $email (user).");
+  if (!$dupsOk) { // applies only to community admins
+    if (db\exists('r_invites', 'email=:email and :REQUEST_TIME-invited<:R_INVITE_DAYS*:DAY_SECS', compact('email'))) return say("NOT sent to $email (dup).");
+    if (db\exists('users', 'mail=:email', compact('email'))) return say("NOT sent to $email (already a member).");
   }
 
   $info = array(
@@ -1745,6 +1747,9 @@ function focusOn($focusFieldName) {
  * Return true if the current account has all the accesses listed.
  */
 function webAccess($perms = NULL) {
+//  global $specia; if (@$specia) die('webAccess perms=' . $perms);
+  if ($perms == 'dev' and isDEV) return TRUE;
+//  die("perms=$perms");
   setupGlobals(); // remember who we are (the main reason for this function)
   if (!@$perms or !$mya = r\acct()) return FALSE;
   foreach (u\ray($perms) as $one) if (!$mya->can(u\consta('b', $one))) return FALSE;
@@ -1786,8 +1791,8 @@ function amtErr($field, &$sta, $restriction = '', $fractionLimit = 2) {
 }
 
 // one-line functions that need no explanation
-function tt($message, $subs = array()) {return u\tt($message, $subs);}
-//function block_def($info, $extra = array()) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
+function tt($message, $subs = []) {return u\tt($message, $subs);}
+//function block_def($info, $extra = []) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
 function blockView($subject, $content) {return compact(u\ray('subject content'));}
 
 function disabled($value) {return array('value' => $value, 'disabled' => TRUE);}
@@ -1797,8 +1802,9 @@ function attrib($attributes) {return compact('attributes');}
 function suffix($suffix = '') {$suffix .= '<div class="clearfix"></div>'; return compact('suffix');}
 function prefix($prefix) {return compact('prefix');}
 function autocomplete($type = '') {return array('autocomplete_path' => "autocomplete/$type/" . @r\acct()->id);}
-function required($dft = NULL) {return array('required' => TRUE) + (isset($dft) ? dft($dft) : array());}
+function required($dft = NULL) {return array('required' => TRUE) + (isset($dft) ? dft($dft) : []);}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
-function op($sta) {global $testOp; return t\est() ? $testOp : (svar('button') ?: @$sta['clicked_button']['#parents'][0]);}
+function op($sta) {global $testOp; return u\test() ? $testOp : (svar('button') ?: @$sta['clicked_button']['#parents'][0]);}
 function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}
 function blurbLink() {global $rUrl; return "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">description of rCredits</a>";}
+function sayFieldErr($err, $field) {return say(strtoupper($field) . ': ' . tt($err), $field);}

@@ -51,8 +51,9 @@ function formAdmin($form, &$sta, $args = '') {
 //  $connectBank = submit(t('Connect Bank'));
   $seeSecure = submit(t('See Secure'));
   $seeData = submit(t('See Data'));
+  $seeChanges = submit(t('See Changes'));
   $newUsdEmail = submit(t('New USD Email'));
-  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeSecure do1099b')));
+  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeChanges seeSecure do1099b')));
   
   $form = compact('title');
   if ($mya->cAdmin) {
@@ -104,6 +105,8 @@ function formAdmin_submit($form, &$sta) {
     if (@$a and $a->proSe) say(u\rayTable($a->data, FALSE, TRUE));
 /*  } elseif ($op == 'connectBank') {
     r\Web\connectBank($a); */
+  } elseif ($op == 'seeChanges') {
+    r\go("sadmin/changes/$a->mainQid");
   } elseif ($op == 'do1099b') {
     include_once __DIR__ . '/../rcredits/rcredits-yearly.inc';
     r\Special\do1099bs();
@@ -133,6 +136,53 @@ function formAdmin_submit($form, &$sta) {
   foreach (u\ray('boxes do stats') as $one) if ($op == $one) return say(a\showQuery("r_$one"));
 }
 
+/**
+ * Display dated changes made to an account.
+ * @param string $qid: the account QID
+ */
+function formSeeChanges($form, &$sta, $qid) {
+  $a = r\acct($qid);
+  $title = item(t('Account Changes for ') . $a->fullName);
+  $list[] = '<tr><th>Date</th><th>Field</th><th>Old Value</th><th>New Value</th>';
+  $rec = []; // track historical field values
+
+  if ($a->changes) {
+    foreach ($a->changes as $one) {
+      list ($date, $info) = $one;
+      $date = u\fmtDate($date);
+      foreach ($info as $k => $v) {
+        $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, $a->$k);
+        $rec[$k] = $oldValue = a\formatField($k, $v);
+        $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";
+      }
+    }
+  } else $list[] = '<tr><td colspan=3>No changes</td></tr>';
+  
+  $list = join("\n", $list);
+  $list = item("<table>$list</table>");
+  
+  return compact(u\ray('title list'));
+}
+
+/**
+ * Log back in to admin automatically.
+ */
+function formTestRecovery($form, &$sta, $doSay = FALSE) {
+  if (isDEV and !r\acct()) { // called after testing, in case session got destroyed
+    $uid = \user_authenticate('admin', DEV_ADMIN_PASS);
+    global $user; $user = \user_load($uid, TRUE);
+    \drupal_session_regenerate();
+    if ($msgs = @unserialize(@file_get_contents(T_MSG_FILE))) {
+      unlink(T_MSG_FILE);
+      \drupal_get_messages(); // throw out any existing messages
+      $_SESSION['messages'] = $msgs;
+    }
+    r\go('sadmin');
+  }
+  
+  $title = item(t('Recover Admin'));
+  return compact(u\ray('title'));
+}
 
 /**
  * Create a new community or region.
@@ -188,7 +238,7 @@ function formMakeCtty_submit($form, &$sta) {
   $dbFields = 'uid name fullName legalName mail flags phone faxetc federalId address country state city postalCode postalAddr'; // had verifyBy
   extract(u\just('zips region ' . $dbFields, $sta['input']));
 
-  $flags = u\bit(B_CO) | u\bit(B_DW) | u\bit(B_OK);
+  $flags = u\bit(B_CO) | u\bit(B_OK);
   $administer_users = FALSE; // for testing (keep Drupal from griping)
   $status = 1;
 
@@ -345,7 +395,7 @@ function printChecks($args) {
   $ck->SetAutoPageBreak(FALSE);
 
   $where = @$reprint ? "(deposit=0 OR deposit>=$previous)" : 'deposit=0';
-  $q = db\q("SELECT txid,created,payer,-amount AS amount,deposit FROM r_usd WHERE $where AND payee=0 AND amount<0 AND created>:DEPOSIT_DATE1 ORDER BY created");
+  $q = db\q("SELECT txid,created,payer,-amount AS amount,deposit FROM r_usd WHERE $where AND payee=0 AND amount<0 AND created>:DEPOSIT_DATE1 ORDER BY created, txid");
   $pos = 3; // before first position of 3, on 3-up check paper
   $count = 0;
   while ($tx = $q->fetchAssoc()) {
@@ -353,9 +403,8 @@ function printChecks($args) {
     printOneCheck($ck, $pos, $tx);
     $count++;
   }
-  $date = strftime('%Y-%m-%d', $previous);
-//  if (t\est()) $ck->Close(); else $ck->Output("Checks-for-rCredits-$date.pdf", 'I'); //Close and output PDF document
-  $ck->Output("checks-for-rCredits-$date.pdf", 'I'); //Close and output PDF document
+  $date = strftime('%Y-%m-%d', @$previous ?: time());
+  if (u\test()) $ck->Close(); else $ck->Output("checks-for-rCredits-$date.pdf", 'I'); //Close and output PDF
   say($count . t(' checks printed'));
 //  r\go('sadmin');
 }
@@ -526,7 +575,7 @@ EOF;
 //  $pdf->Image(__DIR__ . '/../images/icons/print.png', 120, 30, 32, 32, '', '', '', true, 150, '', false, false, 0, false, false, false);
   
 //  if ($scan) $pdf->StopTransform();
-  if (t\est()) $pdf->Close(); else $pdf->Output('rCredits-ID-Card.pdf', 'I'); //Close and output PDF document
+  if (u\test()) $pdf->Close(); else $pdf->Output('rCredits-ID-Card.pdf', 'I'); //Close and output PDF document
 }
 
 function formSMS($form, &$sta) {
@@ -551,12 +600,14 @@ function formSMS_submit($form, $sta) {
 
 function test($arg = '') {
   global $user;
+  \drupal_get_messages(); // clear messages
+  $modules = u\prefixValues('rcredits/', u\ray('admin rcron rweb rsmart'));
   include_once __DIR__ . '/../../gherkin/test.php';
-/*  $adminPass = '123';
-  $account = \user_authenticate('admin', $adminPass);
-  $user = \user_load($account, TRUE);
-  \drupal_session_regenerate(); */
-  \drupal_goto('sadmin/handy');
+  if ($user->uid != 1) { // test signed us out
+    file_put_contents(T_MSG_FILE, serialize(\drupal_get_messages()));
+    \session_destroy();
+    \drupal_goto('sadmin/recover'); // has to be a form available when logged out
+  } else \drupal_goto('sadmin');
 }
 
 function util($arg) {

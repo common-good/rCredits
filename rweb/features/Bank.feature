@@ -23,12 +23,12 @@ Scenario: A member transfers funds from the bank
   When member ".ZZA" completes form "get" with values:
   | amount | op  |*
   |     40 | get |
-  Then we say "status": "banked" with subs:
-  | action     | amount |*
-  | draw from  | $40    |
+  Then we say "status": "banked|bank tx number" with subs:
+  | action     | amount | checkNum |*
+  | draw from  | $40    |        1 |
   And usd transfers:
-  | payer | payee | amount |*
-  | .ZZA  |     0 |    -40 |
+  | txid | payer | payee | amount |*
+  |    1 | .ZZA  |     0 |    -40 |
   
 Scenario: A member transfers funds to the bank
   When member ".ZZA" completes form "get" with values:

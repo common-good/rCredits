@@ -45,7 +45,7 @@ Scenario: A member confirms request to charge another member
   When member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods | purpose |*
   | charge | Bea Two | 100    | 1     | labor   |
-  Then we say "status": "report invoice" with subs:
+  Then we say "status": "report invoice|balance unchanged" with subs:
   | did     | otherName | amount |*
   | charged | Bea Two   | $100   |
   And we notice "new invoice" to member ".ZZB" with subs:

@@ -83,7 +83,7 @@ class rwebCompany extends DrupalWebTestCase {
     When_('member ":ZZA" confirms form "account/company" with values: "ASSOC'
     . '\\| selling | website     | description   | employees | gross |'
     . '\\| stuff   | www.pub.com | we do vittles |        -2 |   100 |"');
-    Then_('we say "error": "negative amount"');
+    Then_('we say error in field "employees": "negative amount"');
   }
 
   // Scenario: A member gives a bad gross
@@ -92,7 +92,7 @@ class rwebCompany extends DrupalWebTestCase {
     When_('member ":ZZA" confirms form "account/company" with values: "ASSOC'
     . '\\| selling | website     | description   | employees | gross |'
     . '\\| stuff   | www.pub.com | we do vittles |         2 |  junk |"');
-    Then_('we say "error": "bad amount"');
+    Then_('we say error in field "gross": "bad amount"');
   }
 
 }

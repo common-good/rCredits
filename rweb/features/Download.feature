@@ -5,10 +5,10 @@ SO I can see what happened and possbily integrate with an accounting program.
 
 Setup:
   Given members:
-  | id   | fullName | floor | acctType    | flags         |*
-  | .ZZA | Abe One  | -100  | personal    | ok,dw,bona    |
-  | .ZZB | Bea Two  | -200  | personal    | ok,dw,co,bona |
-  | .ZZC | Our Pub  | -300  | corporation | ok,dw,co,bona |
+  | id   | fullName | floor | acctType    | flags      |*
+  | .ZZA | Abe One  | -100  | personal    | ok,bona    |
+  | .ZZB | Bea Two  | -200  | personal    | ok,co,bona |
+  | .ZZC | Our Pub  | -300  | corporation | ok,co,bona |
   And relations:
   | id   | main | agent | permission |*
   | .ZZA | .ZZA | .ZZB  | buy        |
@@ -16,14 +16,11 @@ Setup:
   | .ZZC | .ZZC | .ZZB  | buy        |
   | .ZZD | .ZZC | .ZZA  | sell       |
   And usd transfers:
-  | payer | payee | amount | created   | completed | tid |*
-  | .ZZA  |     0 |  -1000 | %today-4m | %today-4m |   1 |
-  | .ZZB  |     0 |  -2000 | %today-5m | %today-5m |   1 |
-  | .ZZC  |     0 |  -3000 | %today-6m | %today-6m |   1 |
-  | .ZZA  |     0 |   -200 | %today-3d |         0 |   2 |
-  And balances:
-  | id   | usd   |*
-  | ctty | 10000 |
+  | txid | payer | payee | amount | created   | completed | tid |*
+  |  501 | .ZZA  |     0 |  -1000 | %today-4m | %today-4m |   1 |
+  |  502 | .ZZB  |     0 |  -2000 | %today-5m | %today-5m |   1 |
+  |  503 | .ZZC  |     0 |  -3000 | %today-6m | %today-6m |   1 |
+  |  504 | .ZZA  |     0 |   -200 | %today-3d |         0 |   2 |
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose  | taking |*
   |   1 | %today-7m | signup   |    250 | ctty | .ZZA | signup   | 0      |
@@ -44,18 +41,17 @@ Setup:
   |  16 | %today-5d | bonus    |      8 | ctty | .ZZC | bonus    | 0      |
   |  17 | %today-5d | transfer |    100 | .ZZC | .ZZA | cash CJ  | 1      |
   Then balances:
-  | id   | r    | usd   | rewards |*
-  | ctty | -816 | 10000 |       0 |
-  | .ZZA |  -58 |  1000 |     272 |
-  | .ZZB |  554 |  2000 |     274 |
-  | .ZZC |  320 |  3000 |     270 |
+  | id   | r    | rewards |*
+  | .ZZA |  942 |     272 |
+  | .ZZB | 2554 |     274 |
+  | .ZZC | 3320 |     270 |
 
 Scenario: A member downloads transactions for the past year
   When member ".ZZA" visits page "history/period=365&download=1"
   Then we download "rcredits%todayn-12m-%todayn.csv" with:
   # For example rcredits20120525-20130524.csv
   | Tx# | Date    | Name    | From bank | From you | To you | Purpose | Reward/Fee | Net  |*
-  | b1  | %ymd-4m |         |      1000 |          |        | from bank  |        | 1000 |
+  | 501 | %ymd-4m |         |      1000 |          |        | from bank  |        | 1000 |
   | 8   | %ymd-5d | Our Pub |           |          |    100 | cash CJ    |        |  100 |
   | 7   | %ymd-5d | Our Pub |           |       80 |        | this CF    |      4 |  -76 |
   | 6   | %ymd-6d | Bea Two |           |      100 |        | cash V     |        | -100 |

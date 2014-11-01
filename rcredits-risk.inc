@@ -193,9 +193,8 @@ function setRisk($bitName = NULL, $multiplier = 1, $setBit = '') {
 //  if (is_numeric($weight) and $weight) {
   $_risk += ($risk = $multiplier / $weight);
 //  if ($setBit == 'ifany' ? ($multiplier != 0) : $setBit) u\setBit($_risks, $bit);
-  if (abs($risk) >= K_BIT_MIN and $multiplier > 0) { // don't show bit if risk is reversed
-    $setBit = t('yes'); u\setBit($_risks, $bit);
-  } else $setBit = '';
+  $setBit = (abs($risk) >= K_BIT_MIN and $multiplier > 0) ? t('yes') : ''; // don't show bit if risk is reversed
+  if ($setBit or (is_object($a) and $multiplier > 0)) u\setBit($_risks, $bit);
 //  }
 
   if (isset($showRiskCalc) and $risk) {

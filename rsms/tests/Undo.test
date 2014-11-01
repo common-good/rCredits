@@ -131,9 +131,9 @@ class rsmsUndo extends DrupalWebTestCase {
   // Scenario: The caller refuses to pay the latest invoice
   public function testTheCallerRefusesToPayTheLatestInvoice_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('transactions: "ASSOC'
-    . '\\| created   | state       | amount | from | to   | purpose  | taking |'
-    . '\\| %today    | %TX_PENDING | 100    | .ZZA | .ZZB | cleaning | 1      |"');
+    Given('invoices: "ASSOC'
+    . '\\| created   | status      | amount | from | to   | purpose  |'
+    . '\\| %today    | %TX_PENDING | 100    | .ZZA | .ZZB | cleaning |"');
     When_('phone +20001 confirms "undo"');
     Then_('we say to phone +20001 "report undo" with subs: "ASSOC'
     . '\\| solution          |'
@@ -146,9 +146,9 @@ class rsmsUndo extends DrupalWebTestCase {
   // Scenario: The caller refuses a pending payment
   public function testTheCallerRefusesAPendingPayment_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('transactions: "ASSOC'
-    . '\\| created   | state       | amount | from | to   | purpose | taking |'
-    . '\\| %today    | %TX_PENDING | 100    | .ZZC | .ZZA | wages   | 0      |"');
+    Given('invoices: "ASSOC'
+    . '\\| created   | status      | amount | from | to   | purpose |'
+    . '\\| %today    | %TX_PENDING | 100    | .ZZC | .ZZA | wages   |"');
     When_('phone +20001 confirms "undo from .ZZC"');
     Then_('we say to phone +20001 "report undo" with subs: "ASSOC'
     . '\\| solution          |'

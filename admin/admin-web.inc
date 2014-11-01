@@ -63,13 +63,15 @@ function adminSummary($a, $cAdmin = FALSE) {
     if (!$a->ok) $a->nextStep(); // update Dwolla status
     if ($cAdmin) {
       $donations = db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
-      if ($donationInfo = $a->ok ? '' : db\lookup('honor,honored', 'r_gifts', 'uid=:uid', compact('uid'))) {
+      if ($donationInfo = $a->ok ? '' : db\lookup('often,honor,honored', 'r_gifts', 'uid=:uid', compact('uid'))) {
         extract($donationInfo);
-        $donationInfo = " ($honor) $honored";
+        $donationInfo = "howoften:$often ($honor) $honored";
       }
       $donations = item(u\fmtAmt($donations) . "@$donationInfo $a->share%", t('Donations:'));
 
       $floor = textField(t('Credit floor:'), '', dft(u\fmtAmt($a->floor)));
+      $minimum = textField(t('Minimum:'), '', dft(u\fmtAmt($a->minimum)));
+      $achMin = textField(t('ACH Min:'), '', dft(u\fmtAmt($a->achMin)));
 //      if (!$a->stepsDone['dw']) { // show info needed to open a Dwolla account
       extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
       $dwInfo = item(u\rayTable(u\ray('usdEmail usdPass phone SSN address zip usdPIN', @$s_usdEmail, @$s_usdPass, @substr(@$s_usdPhone, 2), $a->ok ? '' : ($a->federalId . ' (' . substr($a->federalId, -4) . ')'), $a->address, $a->postalCode, @$s_usdPin)));
@@ -96,7 +98,7 @@ function adminSummary($a, $cAdmin = FALSE) {
         $helper = "$hA->mainQid   $hA->fullName";
       }
       $helper = textField(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper) + autocomplete());
-    }
+    } elseif (!$a->co) $helper = item($a->helper ? r\acct($a->helper)->fullName : t('N/A'), t('Helped by:'));
 
     if ($a->member and !$a->co) $ssnCheck = item(a\ssnCheck($a));
   
@@ -108,12 +110,21 @@ function adminSummary($a, $cAdmin = FALSE) {
       $class = $acctRisks[$k] < 0 ? 'goodRisk' : 'badRisk';
       $helpIndex = $riskHelpKeys[$k];
       $class .= " riskHelp$helpIndex";
-      if (!isset($risksEditable[$k])) $class .= " noEdit";
+      if (!isset($risksEditable[$k])) $class .= ' noEdit';
       $aliases[$k] = "<div class=\"$class\">$k</div>";
     }
     $risks2 = bitsField('risks', t('Risks:'), $a->risks, '', K_ACCT_RISKS, $aliases);
 
-    $adminable2 = bitsField('adminable', t('Other bits:'), $a->flags, 'b', B_ADMINABLE . ($admin ? ' admin' : ''), $a->ctty ? array('member' => t('cttyActive')) : NULL);
+    $adminable = u\ray(B_ADMINABLE . ($admin ? ' admin' : ''));
+    foreach (u\ray(B_LIST) as $k) if (strpos($k, 'u') === FALSE) { // ignore undefined bits
+      $blist[] = $k0 = $k;
+      // $helpIndex = $helpKeys[$k];
+      $class = in_array($k, $adminable) ? '' : 'noEdit';
+      if ($k == 'member' and $a->ctty) $k = t('cttyActive');
+      $aliases[$k0] = "<div class=\"$class\">$k</div>";
+    }
+    $adminable2 = bitsField('adminable', t('Flags:'), $a->flags, 'b', join(' ', $blist), $aliases);
+//    $adminable2 = bitsField('adminable', t('Other bits:'), $a->flags, 'b', B_ADMINABLE . ($admin ? ' admin' : ''), $a->ctty ? array('member' => t('cttyActive')) : NULL);
     
     $who = textField(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
   }      
@@ -127,12 +138,12 @@ function adminSummary($a, $cAdmin = FALSE) {
 
   $notes = formField('textarea', t('Notes:'), '', dft($a->notes));
   $risk = item(round($a->risk) . button(t('Recalculate'), "$base_url/rerisk/acct/$uid/1"), t('Risk Score:'));
-  if ($a->can(B_CADMIN2)) $submit = submit(t('Go'));    
+  if ($mya->can(B_CADMIN2)) $submit = submit(t('Go'));    
 
   $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
   $uid = hidField($uid);
 
-  return compact(u\ray('donations tenure steps dwInfo relations ssnCheck moves floor legalName risk risks2 mediaConx adminable2 rTrader helper notes count submit back uid'));
+  return compact(u\ray('donations tenure steps dwInfo relations ssnCheck moves floor minimum achMin legalName risk risks2 mediaConx adminable2 rTrader helper notes count submit back uid'));
 }
 
 function showCardCode($a) {

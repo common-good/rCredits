@@ -18,11 +18,11 @@ Scenario: a member is barely below minimum
   | .ZZA | 99.99 |      20 |
   When cron runs "bank"
   Then usd transfers:
-  | payer | amount |*
-  | .ZZA | -30     |
-  And we notice "under min|banked" to member ".ZZA" with subs:
-  | action    | amount |*
-  | draw from | $30    |
+  | txid | payer | amount |*
+  |    1 | .ZZA  | -30    |
+  And we notice "under min|banked|bank tx number" to member ".ZZA" with subs:
+  | action    | amount | checkNum |*
+  | draw from | $30    |        1 |
 
 Scenario: a member has a negative balance
   Given balances:
@@ -30,11 +30,11 @@ Scenario: a member has a negative balance
   | .ZZA | -50 |      20 |
   When cron runs "bank"
   Then usd transfers:
-  | payer | amount |*
-  | .ZZA | -150    |
-  And we notice "under min|banked" to member ".ZZA" with subs:
-  | action    | amount |*
-  | draw from | $150   |
+  | txid | payer | amount |*
+  |    1 | .ZZA  | -150   |
+  And we notice "under min|banked|bank tx number" to member ".ZZA" with subs:
+  | action    | amount | checkNum |*
+  | draw from | $150   |        1 |
 
 Scenario: an unbanked member barely below minimum draws on another account
   Given balances:
@@ -70,11 +70,11 @@ Scenario: a member is well below minimum
   | .ZZA | 50 | 25      | 151     |
   When cron runs "bank"
   Then usd transfers:
-  | payer | amount               |*
-  | .ZZA  | %(-100 - %R_ACHMIN) |
-  And we notice "under min|banked" to member ".ZZA" with subs:
-  | action    | amount                |*
-  | draw from | $%(100 + %R_ACHMIN) |
+  | txid | payer | amount              |*
+  |    1 | .ZZA  | %(-100 - %R_ACHMIN) |
+  And we notice "under min|banked|bank tx number" to member ".ZZA" with subs:
+  | action    | amount              | checkNum |*
+  | draw from | $%(100 + %R_ACHMIN) |        1 |
 
 Scenario: a member is under minimum but already requested barely enough funds from the bank
   Given balances:

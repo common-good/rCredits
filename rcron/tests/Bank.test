@@ -64,11 +64,11 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| .ZZA | 99.99 |      20 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
-    . '\\| payer | amount |'
-    . '\\| .ZZA | -30     |"');
-    And__('we notice "under min|banked" to member ".ZZA" with subs: "ASSOC'
-    . '\\| action    | amount |'
-    . '\\| draw from | $30    |"');
+    . '\\| txid | payer | amount |'
+    . '\\|    1 | .ZZA  | -30    |"');
+    And__('we notice "under min|banked|bank tx number" to member ".ZZA" with subs: "ASSOC'
+    . '\\| action    | amount | checkNum |'
+    . '\\| draw from | $30    |        1 |"');
   }
 
   // Scenario: a member has a negative balance
@@ -79,11 +79,11 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| .ZZA | -50 |      20 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
-    . '\\| payer | amount |'
-    . '\\| .ZZA | -150    |"');
-    And__('we notice "under min|banked" to member ".ZZA" with subs: "ASSOC'
-    . '\\| action    | amount |'
-    . '\\| draw from | $150   |"');
+    . '\\| txid | payer | amount |'
+    . '\\|    1 | .ZZA  | -150   |"');
+    And__('we notice "under min|banked|bank tx number" to member ".ZZA" with subs: "ASSOC'
+    . '\\| action    | amount | checkNum |'
+    . '\\| draw from | $150   |        1 |"');
   }
 
   // Scenario: an unbanked member barely below minimum draws on another account
@@ -131,11 +131,11 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| .ZZA | 50 | 25      | 151     |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
-    . '\\| payer | amount               |'
-    . '\\| .ZZA  | %(-100 - %R_ACHMIN) |"');
-    And__('we notice "under min|banked" to member ".ZZA" with subs: "ASSOC'
-    . '\\| action    | amount                |'
-    . '\\| draw from | $%(100 + %R_ACHMIN) |"');
+    . '\\| txid | payer | amount              |'
+    . '\\|    1 | .ZZA  | %(-100 - %R_ACHMIN) |"');
+    And__('we notice "under min|banked|bank tx number" to member ".ZZA" with subs: "ASSOC'
+    . '\\| action    | amount              | checkNum |'
+    . '\\| draw from | $%(100 + %R_ACHMIN) |        1 |"');
   }
 
   // Scenario: a member is under minimum but already requested barely enough funds from the bank

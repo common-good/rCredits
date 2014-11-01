@@ -177,7 +177,7 @@ EOF
   if ($i == 'issuing-rcredits') return showCharts('issued') . t(<<<EOF
     <p>rCredits are a type of credit. Like any medium of exchange, they represent value. They make it possible for us to trade goods and services with each other in our community, without having to trade something directly with whoever has what we want, and without having to give them something of precisely the same value ("barter"). The medium of exchange lets us give any amount of our goods or services to any participant in the economy, then receive the same value of goods or services from some other participant(s). If everyone both buys and sells, the credits move through the community in interconnected circles of exchange.</p>
     <p>Issuing rCredits is a community responsibility. This is the key to creating a Common Good Economy. We must issue as much credit as we need, to enable our exchanges of goods and services -- but no more than the value we as a community are capable of producing.</p>
-    <p>Once rCredits become well-established and popular in a community, we can issue them together, with careful planning, as grants, loans, and equity investments. Together we can fund whatever enterprises and activities we decide would be best -- for our community, for communities elsewhere, and for the world.</p>
+    <p>Once rCredits become well-established and popular in a community, we can issue them together, with careful planning, as grants, zero-interest loans, and equity investments. Together we can fund whatever enterprises and activities we decide would be best -- for our community, for communities elsewhere, and for the world.</p>
     <p>In the meantime, until then, rCredits are issued automatically:</p>
     <ol>
       <li>as a stand-in for US Dollars, which are held unused in a separate account, and</li>
@@ -190,13 +190,13 @@ EOF
   if ($i == 'common-good-community') return t(<<<EOF
     <p>The purpose of the rCredits system is to create and fund community-centered participatory democracy. A community that has met the <a href='$base_url/help/common-good-community-requirements'>requirements</a> to become a Common Good Community may apply to Common Good Finance for certification. This certification permits the community to issue rCredits independently -- deciding for itself how many rCredits to issue (within safe limits) and what to fund with them.</p>
 
-    <p>A Common Good Community is in "good standing" when it is issuing rCredits responsibly, so they accurately represent the potential of its members to produce corresponding goods and services in the short term.  A Common Good Community may lose its good standing if it runs a trade deficit with other Common Good Communities and fails to redeem it in timely manner. Common Good Finance and the other communities will provide ongoing feedback, to prevent this from happening accidentally.</p>
+    <p>A Common Good Community is in "good standing" when it is issuing rCredits responsibly, so they accurately represent the potential of its members to produce corresponding goods and services in the short term.  A Common Good Community may lose its good standing if it runs a trade deficit with other Common Good Communities and fails to redeem it in a timely manner. Common Good Finance and the other communities will provide ongoing feedback, to prevent this from happening accidentally.</p>
     $back
 EOF
   );
 
   if ($i == 'cash-crunch') return t(<<<EOF
-    <p>Once your geographic area becomes a Common Good Community, you can together decide to spend, grant, lend, and/or invest some of the US Dollars that members have put into their rCredits accounts and that are sitting unused. Of course you want to be careful not to use ALL of the US Dollars. From time to time, members will want to exchange some of their rCredits for US Dollars, to pay companies and individuals not yet participating in the rCredits system. There need to be enough US Dollars in reserve to cover the likely amount of those withdrawals.</p>
+    <p>Once your geographic area becomes a Common Good Community, you can together decide to spend, grant, lend, and/or invest some of the US Dollars that members have put into their rCredits accounts, that are sitting unused. Of course you want to be careful not to use ALL of the US Dollars. From time to time, members will want to exchange some of their rCredits for US Dollars, to pay companies and individuals not yet participating in the rCredits system. There need to be enough US Dollars in reserve to cover the likely amount of those withdrawals.</p>
 
     <p>If you and your community misjudge and use too much of your US Dollar reserve, you will have a cash crunch until more US Dollars come in. There are many ways to handle this situation. For example, you might ask members who can, to add funds to their rCredits account. Or you might get a short-term loan from a traditional bank or credit union. It will be up to you and your community to choose what to do.</p>
     $back
@@ -228,7 +228,7 @@ EOF
      <ul><li>continue to make purchases with them for a limited time OR</li>
          <li>trade them for other members' US Dollars that <i>they</i> returned to the community.</li>
      </ul>
-     <p>We ALL make this agreement so if the system fails, everyone is protected and no one is left holding the bag.</p>
+     <p>We ALL make this agreement so if the system fails, everyone is protected and no one is loses what they put in.</p>
       <p>Once a Common Good Community has ongoing revenue to cover its expenses and any incentive rewards, it is no longer in any danger of ending abruptly. The system has been running successfully for many months now, to everyone's increasing benefit. So the long-term success of our pioneering Common Good Community in Greenfield, Massachusetts is looking more and more certain.</p>
     $back
 EOF

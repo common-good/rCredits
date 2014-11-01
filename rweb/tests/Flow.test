@@ -53,18 +53,18 @@ class rwebFlow extends DrupalWebTestCase {
     . '\\| NEW.ZZA | .ZZC | .ZZA  | manage     |    1 |'
     . '\\| NEW.ZZB | .ZZC | .ZZB  | sell       |    0 |"');
     And__('balances: "ASSOC'
-    . '\\| id   | usd  | r   | rewards |'
-    . '\\| .ZZA |    0 |  20 |      20 |'
-    . '\\| .ZZB |  100 |  20 |      20 |'
-    . '\\| .ZZC |  100 |  20 |      20 |"');
+    . '\\| id   | r   | rewards |'
+    . '\\| .ZZA |  20 |      20 |'
+    . '\\| .ZZB | 120 |      20 |'
+    . '\\| .ZZC | 120 |      20 |"');
     break;
 
 
     }
   }
 
-  // Scenario: A member overdraws
-  public function testAMemberOverdraws_0() {
+  // Scenario: A member draws
+  public function testAMemberDraws_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" confirms form "pay" with values: "ASSOC'
     . '\\| op  | who  | amount | goods | purpose |'
@@ -77,8 +77,8 @@ class rwebFlow extends DrupalWebTestCase {
     . '\\|   4 | bonus    |   3.00 | ctty | .ZZB | bonus on #1  |"');
   }
 
-  // Scenario: A member overdraws and draws from both r and USD
-  public function testAMemberOverdrawsAndDrawsFromBothRAndUSD_0() {
+  // Scenario: A member draws again
+  public function testAMemberDrawsAgain_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" confirms form "pay" with values: "ASSOC'
     . '\\| op  | who  | amount | goods | purpose |'
@@ -97,7 +97,7 @@ class rwebFlow extends DrupalWebTestCase {
     When_('member ".ZZA" completes form "pay" with values: "ASSOC'
     . '\\| op  | who  | amount | goods | purpose |'
     . '\\| pay | .ZZB |    200 |     1 | food    |"');
-    Then_('we say "error": "short to" with subs: "ASSOC'
+    Then_('we say "error": "short to|short cash help" with subs: "ASSOC'
     . '\\| short |'
     . '\\| $60   |"');
   }

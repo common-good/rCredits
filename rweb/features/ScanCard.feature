@@ -16,23 +16,6 @@ Setup:
   And relations:
   | id   | main | agent | permission |*
   | :ZZB | .ZZC | .ZZB  | read       |
-  And transactions: 
-  | xid | created   | type   | amount | from | to   | purpose | taking |*
-  |   1 | %today-6m | signup |    250 | ctty | .ZZA | signup  | 0      |
-  |   2 | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |
-  |   3 | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |
-  And balances:
-  | id   | usd  |*
-  | ctty | 1000 |
-  | .ZZA |  100 |
-  | .ZZB |  200 |
-  | .ZZC |  300 |
-  Then balances:
-  | id   | r    |*
-  | ctty | -750 |
-  | .ZZA |  250 |
-  | .ZZB |  250 |
-  | .ZZC |  250 |
 
 Scenario: Someone scans a member card
   When member "?" visits page "I/ZZB.ccB"

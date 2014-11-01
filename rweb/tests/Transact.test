@@ -90,7 +90,7 @@ class rwebTransact extends DrupalWebTestCase {
     When_('member ".ZZA" confirms form "charge" with values: "ASSOC'
     . '\\| op     | who     | amount | goods | purpose |'
     . '\\| charge | Bea Two | 100    | 1     | labor   |"');
-    Then_('we say "status": "report invoice" with subs: "ASSOC'
+    Then_('we say "status": "report invoice|balance unchanged" with subs: "ASSOC'
     . '\\| did     | otherName | amount |'
     . '\\| charged | Bea Two   | $100   |"');
     And__('we notice "new invoice" to member ".ZZB" with subs: "ASSOC'

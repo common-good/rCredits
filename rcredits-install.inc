@@ -28,6 +28,7 @@ function tableDefs($schema = array()) {
   // table user (additions to Drupal standard)
   $fields = array( // additional/changed users fields
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
+    'changes' => setupField('changes made to the account', 'text big'),
     'community' => setupField("uid of this account's Common Good Community", 'int big'),
 //    'question' => setupField('security question', 'varchar 255'),
     'usdAccount' => setupField('USD (Dwolla) account number (hex of encrypted)', 'varchar 255'), // searchable
@@ -267,6 +268,7 @@ function tableDefs($schema = array()) {
   $schema['r_usderror'] = setupTable('USD error messages from USD gateway', $fields, 'id', $foreignKeys, $indexes);
 
   // table r_ach (maybe create this by transforming r_usd)
+  /*
   $fields = array(
     'txid' => setupField('record id', 'serial 11'),
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
@@ -280,6 +282,7 @@ function tableDefs($schema = array()) {
   $foreignKeys = foreignKey('uid');
   $indexes = index('created') + index('completed') + index('uid');
   $schema['r_ach'] = setupTable('Record of ACH requests', $fields, 'txid', $foreignKeys, $indexes);
+  */
 
   // table r_banks
   $fields = array(

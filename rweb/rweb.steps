@@ -53,10 +53,11 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Bank AMemberTransfersFundsToTheBank
  *     MAKE Flow AMemberOverdrawsWithNotEnoughToDrawOn
  *     MAKE Get AMemberMovesCreditToTheBank
- *     MAKE Get AMemberDrawsCreditFromTheBank
+ *     MAKE Get AMemberDrawsCreditFromTheBankWithZeroFloor
+ *     MAKE Get AMemberDrawsCreditFromTheBankWithAdequateFloor
  *     MAKE Get AMemberMovesTooLittleToTheBank
  *     MAKE Get AMemberTriesToCashOutRewardsAndorPendingWithdrawals
- *     MAKE Get AMemberMovesInconvenientlyMuchToTheBank
+ *     MAKE Get AMemberMovesTooMuchToTheBank
  *     MAKE Get AMemberTriesToGoBelowTheirMinimum
  *     MAKE Get AMemberAsksToDoTwoTransfersOutInOneDay
  *     MAKE Gift AMemberDonates
@@ -86,11 +87,9 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Contact AMemberGivesABadEmail
  *     MAKE Contact AMemberUpdatesToADifferentState
  *     MAKE Contact AMemberUpdatesToADifferentName
- *     MAKE Flow AMemberOverdraws
- *     MAKE Flow AMemberOverdrawsAndDrawsFromBothRAndUSD
- *     MAKE RealUsd AMixedRCreditsUSDTransactionHappens
- *     MAKE RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance
- *     MAKE RealUsd AMemberBuysSomethingWhenDwollaIsDown
+ *     MAKE Flow AMemberDraws
+ *     MAKE Flow AMemberDrawsAgain
+ *     MAKE Membership AMemberSignsInForTheFirstTime
  *     MAKE Signin AMemberSignsInWithUsernameOnTheMemberSite
  *     MAKE Signin AMemberSignsInWithAccountIDOnTheMemberSite
  *     MAKE Signin AMemberSignsInWithEmailOnTheMemberSite
@@ -174,7 +173,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     MAKE Get Setup
  *     MAKE Gift Setup
  *     MAKE Membership Setup
- *     MAKE RealUsd Setup
+ *     TEST Membership AMemberSignsInForTheFirstTime
  *     MAKE Relations Setup
  *     MAKE ScanCard Setup
  *     MAKE Signin Setup
@@ -201,15 +200,11 @@ function members($list) {return t\members($list);}
  *     MAKE Community Setup
  *     MAKE Download Setup
  *     MAKE EditTx Setup
- *     TEST Flow AMemberOverdraws
- *     TEST Flow AMemberOverdrawsAndDrawsFromBothRAndUSD
+ *     TEST Flow AMemberDraws
+ *     TEST Flow AMemberDrawsAgain
  *     MAKE Get Setup
  *     TEST Gift AMemberDonates
- *     MAKE RealUsd Setup
- *     TEST RealUsd AMixedRCreditsUSDTransactionHappens
- *     TEST RealUsd AMemberBuysSomethingWhenDwollaIsDown
  *     MAKE Relations Setup
- *     MAKE ScanCard Setup
  *     MAKE Summary Setup
  *     MAKE Transact Setup
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
@@ -226,13 +221,13 @@ function transactions($list) {return t\transactions($list);}
  *     TEST EditTx ABuyerTriesToDecreaseAPaymentAmount
  *     TEST Flow AMemberOverdrawsWithNotEnoughToDrawOn
  *     TEST Get AMemberMovesCreditToTheBank
- *     TEST Get AMemberDrawsCreditFromTheBank
+ *     TEST Get AMemberDrawsCreditFromTheBankWithZeroFloor
+ *     TEST Get AMemberDrawsCreditFromTheBankWithAdequateFloor
  *     TEST Get AMemberTriesToCashOutRewardsAndorPendingWithdrawals
- *     TEST Get AMemberMovesInconvenientlyMuchToTheBank
+ *     TEST Get AMemberMovesTooMuchToTheBank
  *     TEST Get AMemberAsksToDoTwoTransfersOutInOneDay
  *     TEST Gift AMemberDonates
  *     TEST Gift AMemberDonatesWithInsufficientFunds
- *     TEST RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance
  *     TEST Relations AMemberAddsARelation
  *     TEST Signin AMemberAsksForANewPasswordForACompany
  *     TEST Signup AMemberRegistersBadName
@@ -274,8 +269,6 @@ function weSayWithSubs($type, $index, $subs) {
  * we say (ARG): (ARG)
  *
  * in: TEST Company AMemberUpdatesCompanyInfo
- *     TEST Company AMemberGivesABadEmployeeCount
- *     TEST Company AMemberGivesABadGross
  *     TEST Contact AMemberUpdatesContactInfo
  *     TEST Contact AMemberGivesABadPhone
  *     TEST Contact AMemberGivesABadEmail
@@ -285,6 +278,8 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST EditTx ABuyerChangesTheGoodsStatus
  *     TEST Get AMemberMovesTooLittleToTheBank
  *     TEST Get AMemberTriesToGoBelowTheirMinimum
+ *     TEST Membership AMemberSignsInForTheFirstTime
+ *     TEST Membership AMemberDoesItAll
  *     TEST Signin AMemberTypesTheWrongPassword
  *     TEST Signin AMemberTypesAnUnknownUsernameID
  *     TEST Signin AMemberTypesTheWrongPasswordFromRCreditsorg
@@ -301,15 +296,13 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST Signup ANewbieRegistersFromElsewhere
  *     TEST Summary MembersAccountIsNotActive
  */
-function weSay($type, $index) {
-  global $testOnly;
-  return weSayWithSubs($type, $index, array());
-}
+function weSay($type, $index) {return weSayWithSubs($type, $index, array());}
 
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: TEST Signin AMemberAsksForANewPasswordForUsername
+ * in: TEST Membership AMemberSignsInForTheFirstTime
+ *     TEST Signin AMemberAsksForANewPasswordForUsername
  *     TEST Signin AMemberAsksForANewPasswordForAccountID
  *     TEST Signin AMemberAsksForANewPasswordForEmail
  *     TEST Signup ANewbieRegistersInWesternMassachusetts
@@ -323,13 +316,18 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
  *
  * in: TEST Gift AMemberDonates
  *     TEST Gift AMemberDonatesWithInsufficientFunds
+ *     TEST Membership AMemberDoesItAll
+ *     TEST Membership AMemberOpensABusinessAccount
  */
 function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
 /**
  * we show (ARG)
  *
- * in: TEST Signin AMemberSignsInWithUsernameOnTheMemberSite
+ * in: TEST Membership AMemberSignsInForTheFirstTime
+ *     TEST Membership AMemberDoesItAll
+ *     TEST Membership AMemberOpensABusinessAccount
+ *     TEST Signin AMemberSignsInWithUsernameOnTheMemberSite
  *     TEST Signin AMemberSignsInWithAccountIDOnTheMemberSite
  *     TEST Signin AMemberSignsInWithEmailOnTheMemberSite
  *     TEST Signin AMemberSignsInWithUsernameFromRCreditsorg
@@ -340,7 +338,6 @@ function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs)
  *     TEST Signin AMemberClicksALinkToResetPassword
  *     TEST Signin AMemberClicksALinkToResetPasswordWithWrongCode
  *     TEST Signin AMemberClicksALinkToResetPasswordForUnknownAccount
- *     TEST Signup AMemberRegistersACompany
  */
 function weShow($what, $show = TRUE) {return t\weShow($what, $show);}
 
@@ -350,27 +347,7 @@ function weShow($what, $show = TRUE) {return t\weShow($what, $show);}
  * in: TEST Transact AMemberAsksToChargeAnotherMember
  *     TEST Transact AMemberAsksToPayAnotherMember
  */
-function weShowWithSubs($page, $subs) {
-  global $testOnly;
-  global $testConfirmation; // confirmation message output, if any
-  global $formOut; // for testing
-
-  $subs = @$subs[0] ?: array(); // comes in as "" if no subs
-  if (strpos($page, 'confirm ') !== FALSE) {
-    foreach (u\just(R_DATE_FIELDS, $subs) as $k => $v) if (is_numeric($v)) $subs[$k] = u\fmtDate($v);
-    $wanted = u\tt($page, $subs);
-    t\output("<b>WANTED: </b>$wanted", 'screen');
-/**/ debug(compact('wanted','testConfirmation')); // redundant but very easy
-    return ($wanted == $testConfirmation);
-  }
-  $form = strtr(t\strip(r\Web\showForm($page, @$subs['arg1'], @$subs['arg2'])), $subs);
-  t\output("<b>WANTED: </b>$form", 'screen');
-  if ($form != $formOut['text']) return FALSE;
-  unset($subs['arg1']);
-  unset($subs['arg2']);
-  foreach ($subs as $one) if (strpos($form, $one) === FALSE) return FALSE; // sometimes we dunno what to sub for
-  return TRUE;
-}
+function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
 
 /**
  * we show (ARG) with: (ARG)
@@ -381,7 +358,9 @@ function weShowWithSubs($page, $subs) {
  *     TEST Company AMemberVisitsTheCompanyInfoPage
  *     TEST Contact AMemberVisitsTheContactInfoPage
  *     TEST Get AMemberAsksToDoTwoTransfersOutInOneDay
- *     TEST RealUsd AMixedRCreditsUSDTransactionHappens
+ *     TEST Membership AMemberClicksTheMembershipLink
+ *     TEST Membership ACompanyAgentClicksOnTheMembershipLink
+ *     TEST Membership AMemberOpensABusinessAccount
  *     TEST Relations MemberHasAnEmployeeConfirmed
  *     TEST Relations MemberHasAnEmployeeUnconfirmed
  *     TEST Relations MemberHasARelationWithAContractor
@@ -399,7 +378,6 @@ function weShowWithSubs($page, $subs) {
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithBadInvite
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
- *     TEST Signup AnInvitedNewbieVisitsTheRegistrationPage
  *     TEST Signup AMemberRegistersACompany
  *     TEST Summary AMemberClicksOnTheSummaryTab
  *     TEST Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage
@@ -407,17 +385,12 @@ function weShowWithSubs($page, $subs) {
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
  *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
  */
-function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  if ($title and !weShow($title, $showDebugs)) return FALSE;
-  return weShow($content, $showDebugs);
-}
+function weShowWith($title, $content = FALSE, $debug = TRUE) {return t\weShowWith($title, $content, $debug);}
 
 /**
  * with: (ARG)
  *
- * in: TEST RealUsd AMixedRCreditsUSDTransactionHappens
- *     TEST Relations ItsComplicated
+ * in: TEST Relations ItsComplicated
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
  *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
  */
@@ -426,9 +399,9 @@ function with($content) {return weShow($content);}
 /**
  * without: (ARG)
  *
- * in: TEST Relations MemberHasAnEmployer
+ * in: TEST Membership ACompanyAgentClicksOnTheMembershipLink
+ *     TEST Relations MemberHasAnEmployer
  *     TEST Relations MemberCompanyHasRelations
- *     TEST Signup AnInvitedNewbieVisitsTheRegistrationPage
  *     TEST Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage
  *     TEST Summary ACompanyAgentClicksOnTheSummaryTab
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
@@ -446,10 +419,7 @@ function without($content) {
  *
  * in: TEST Signup AMemberRegistersACompany
  */
-function withOptions($options, $showDebugs = TRUE) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  return t\shownWith($options, 'options', $showDebugs);
-}
+function withOptions($options, $debug = TRUE) {return t\shownWith($options, 'options', $debug);}
 
 /**
  * without options: (ARG)
@@ -493,27 +463,24 @@ function relations($relations) {return t\relations($relations);}
  * balances: (ARG)
  *
  * in: TEST Community Setup
- *     BOTH Download Setup
+ *     TEST Download Setup
  *     TEST EditTx Setup
  *     TEST EditTx ABuyerIncreasesAPaymentAmount
  *     TEST EditTx ABuyerChangesTheGoodsStatus
  *     MAKE Flow Setup
  *     TEST Get Setup
  *     TEST Get AMemberMovesCreditToTheBank
+ *     TEST Get AMemberDrawsCreditFromTheBankWithZeroFloor
+ *     TEST Get AMemberDrawsCreditFromTheBankWithAdequateFloor
  *     MAKE Gift Setup
- *     MAKE RealUsd Setup
- *     TEST RealUsd AMixedRCreditsUSDTransactionHappens
- *     TEST RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance
- *     TEST RealUsd AMemberBuysSomethingWhenDwollaIsDown
  *     TEST Relations Setup
- *     BOTH ScanCard Setup
  *     TEST Signup AMemberRegistersACompany
  *     TEST Summary Setup
  *     TEST Transact Setup
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
- *     BOTH Transactions Setup
+ *     TEST Transactions Setup
  */
 function balances($list) {return t\balances($list);}
 
@@ -533,7 +500,11 @@ function usd($list) {return t\usd($list);}
  *     MAKE Company AMemberVisitsTheCompanyInfoPage
  *     MAKE Contact AMemberVisitsTheContactInfoPage
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
- *     MAKE RealUsd AMixedRCreditsUSDTransactionHappens
+ *     MAKE Membership AMemberSignsInForTheFirstTime
+ *     MAKE Membership AMemberClicksTheMembershipLink
+ *     MAKE Membership ACompanyAgentClicksOnTheMembershipLink
+ *     MAKE Membership AMemberDoesItAll
+ *     MAKE Membership AMemberOpensABusinessAccount
  *     MAKE Relations MemberHasAnEmployeeConfirmed
  *     MAKE Relations MemberHasAnEmployeeUnconfirmed
  *     MAKE Relations MemberHasARelationWithAContractor
@@ -555,8 +526,6 @@ function usd($list) {return t\usd($list);}
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithBadInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
- *     MAKE Signup AnInvitedNewbieVisitsTheRegistrationPage
- *     MAKE Signup AMemberRegistersACompany
  *     MAKE Summary AMemberClicksOnTheSummaryTab
  *     MAKE Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage
  *     MAKE Summary ACompanyAgentClicksOnTheSummaryTab
@@ -564,17 +533,13 @@ function usd($list) {return t\usd($list);}
  *     MAKE Transactions AMemberLooksAtTransactionsForThePastYear
  *     MAKE Transactions AMemberLooksAtTransactionsForThePastFewDays
  */
-function memberVisitsPage($id, $page) { // pass options in URL
-  global $testOnly; if ($testOnly) return FALSE;
-  if (!t\login($id)) return FALSE;
-  t\pageForm(t\fixPageArgs($page), FALSE);
-  return TRUE;
-}
+function memberVisitsPage($id, $page) {return t\memberVisitsPage($id, $page);}
 
 /**
  * member is logged out
  *
- * in: MAKE Signin Setup
+ * in: MAKE Membership AMemberSignsInForTheFirstTime
+ *     MAKE Signin Setup
  *     MAKE Signin AMemberClicksALinkToResetPassword
  *     MAKE Signup Setup
  */
@@ -589,11 +554,11 @@ function memberIsLoggedOut() {
 /**
  * invitation to email (ARG) is (ARG)
  *
- * in: MAKE Signup ANewbieVisitsTheRegistrationPageWithNoInvite
+ * in: MAKE Membership AMemberSignsInForTheFirstTime
+ *     MAKE Signup ANewbieVisitsTheRegistrationPageWithNoInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithBadInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
- *     MAKE Signup AnInvitedNewbieVisitsTheRegistrationPage
  *     MAKE Signup ANewbieRegistersInWesternMassachusetts
  *     MAKE Signup ANewbieRegistersWithADifferentLegalName
  *     MAKE Signup ANewbieRegistersElsewhere
@@ -655,7 +620,10 @@ function memberAccountIsNotActive($id) {
 /**
  * with done (ARG)
  *
- * in: 
+ * in: TEST Membership AMemberClicksTheMembershipLink
+ *     TEST Membership ACompanyAgentClicksOnTheMembershipLink
+ *     TEST Membership AMemberDoesItAll
+ *     TEST Membership AMemberOpensABusinessAccount
  */
 function withDone($steps) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -666,7 +634,8 @@ function withDone($steps) {
 /**
  * member (ARG) has done step (ARG)
  *
- * in: 
+ * in: MAKE Membership AMemberDoesItAll
+ *     MAKE Membership AMemberOpensABusinessAccount
  */
 function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
 
@@ -684,11 +653,13 @@ function memberSupplies($uid, $field, $value) {
 /**
  * member (ARG) has permission (ARG)
  *
- * in: 
+ * in: MAKE Membership AMemberDoesItAll
+ *     MAKE Membership AMemberOpensABusinessAccount
  */
 function memberHasPermission($uid, $permission) {
   global $testOnly; if ($testOnly) return FALSE;
-  return r\acct(t\uid($uid))->setBit(u\consta('b', $permission), TRUE);
+  r\acct(t\uid($uid))->setBit(u\consta('b', $permission), TRUE);
+  return TRUE;
 }
 
 /**
@@ -787,7 +758,7 @@ function withDownloadColumns($columns) {
 /**
  * Dwolla is down
  *
- * in: MAKE RealUsd AMemberBuysSomethingWhenDwollaIsDown
+ * in: 
  */
 function dwollaIsDown() {
   global $testOnly; if ($testOnly) return FALSE;
@@ -803,7 +774,8 @@ function dwollaIsDown() {
  *     MAKE Download Setup
  *     MAKE Get Setup
  *     TEST Get AMemberMovesCreditToTheBank
- *     TEST Get AMemberDrawsCreditFromTheBank
+ *     TEST Get AMemberDrawsCreditFromTheBankWithZeroFloor
+ *     TEST Get AMemberDrawsCreditFromTheBankWithAdequateFloor
  *     MAKE Get AMemberAsksToDoTwoTransfersOutInOneDay
  *     MAKE Summary Setup
  *     MAKE Transactions Setup
@@ -814,8 +786,7 @@ function usdTransfers($tx) {return t\usdTransfers($tx);}
 /**
  * usd transfer count is (ARG)
  *
- * in: TEST RealUsd AMixedRCreditsUSDTransactionHappens
- *     TEST RealUsd AMemberBuysSomethingWhenDwollaIsDown
+ * in: 
  */
 function usdTransferCountIs($count) {return (t\usdTransferCount() == $count);}
 
@@ -887,7 +858,9 @@ function statisticsGetSet($time) {
 /**
  * members have: (ARG)
  *
- * in: MAKE Summary Setup
+ * in: MAKE Membership AMemberDoesItAll
+ *     MAKE Membership AMemberOpensABusinessAccount
+ *     MAKE Summary Setup
  */
 function membersHave($list) {return t\membersHave($list);}
 
@@ -932,7 +905,7 @@ function memberChoseToVerifyPhoneBy($id, $verifyBy) {
 /**
  * account (ARG) was set up by member (ARG)
  *
- * in: 
+ * in: MAKE Membership AMemberOpensABusinessAccount
  */
 function accountWasSetUpByMember($coId, $id) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -1028,7 +1001,8 @@ function aMemberPostsToWithValues($page, $values) {return memberConfirmsFormWith
 /**
  * member (ARG) is logged in
  *
- * in: TEST Signin AMemberSignsInWithUsernameOnTheMemberSite
+ * in: TEST Membership AMemberSignsInForTheFirstTime
+ *     TEST Signin AMemberSignsInWithUsernameOnTheMemberSite
  *     TEST Signin AMemberSignsInWithAccountIDOnTheMemberSite
  *     TEST Signin AMemberSignsInWithEmailOnTheMemberSite
  *     TEST Signin AMemberSignsInWithUsernameFromRCreditsorg
@@ -1044,7 +1018,8 @@ function memberIsLoggedIn($id) {
 /**
  * next random code is (ARG)
  *
- * in: MAKE Signin AMemberAsksForANewPasswordForUsername
+ * in: MAKE Membership AMemberSignsInForTheFirstTime
+ *     MAKE Signin AMemberAsksForANewPasswordForUsername
  *     MAKE Signin AMemberAsksForANewPasswordForAccountID
  *     MAKE Signin AMemberAsksForANewPasswordForEmail
  *     MAKE Signin AMemberClicksALinkToResetPassword
@@ -1055,3 +1030,13 @@ function memberIsLoggedIn($id) {
  *     MAKE Signup ANewbieRegistersFromElsewhere
  */
 function nextRandomCodeIs($code) {global $nextCode; return $nextCode = $code;}
+
+/**
+ * we say error in field (ARG): (ARG)
+ *
+ * in: TEST Company AMemberGivesABadEmployeeCount
+ *     TEST Company AMemberGivesABadGross
+ */
+function weSayErrorInField($field, $index) {
+  return weSayWithSubs('error', strtoupper($field) . ':|' . $index, []);
+}

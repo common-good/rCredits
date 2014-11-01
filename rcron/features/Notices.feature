@@ -7,7 +7,7 @@ Setup:
   Given members:
   | id   | fullName   | flags     | email |*
   | .ZZA | Abe One    | ok        | a@    |
-  | .ZZB | Bea Two    | member,ok,notice_weekly | b@    |
+  | .ZZB | Bea Two    | member,ok,weekly | b@    |
   | .ZZC | Corner Pub | co,ok     | c@    |
 
 Scenario: a member gets some notices

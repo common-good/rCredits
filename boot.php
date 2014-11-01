@@ -11,6 +11,7 @@ define('STAGE', 'ws.rcredits.org'); // staging site (for secrets, etc.)
 define('PRODUCTION', 'new.rcredits.org'); // production site (used for setting $base_url)
 define('isDEV', (bool) @$_SERVER['WINDIR']); // developing on Windows (unlike production or staging server)
 define('isPRODUCTION', strtolower($_SERVER['HTTP_HOST']) == PRODUCTION);
+define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
 
 $dbs = (array) json_decode(utf8_encode(file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.databases')));
 $db_name = isDEV ? 'new_rcredits' : key($dbs);

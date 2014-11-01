@@ -26,6 +26,7 @@ define('DW_TEST_AUTHS',
 . 'v8bSxiLSb58y42i1lBeH7x1zxUrnygEnpe3AKFSy7HCjhTsC7V '
 );
 define('T_BALANCE_FIELDS', 'id r usd balance dwolla floor rewards minimum share committed');
+define('T_MSG_FILE', 'test-messages.txt');
 
 function doRecords($list, $type) {
   global $testOnly;
@@ -94,7 +95,7 @@ function doAccount($info = array()) {
     $name = u\shortName($fullName);
     u\setDft($legalName, $fullName);
   //  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
-    u\setDft($pass, '123');
+    if (trim(@$pass) === '') $pass = '123';
 
     $zza = r\unQuid('.ZZA');
     $mailDft = ($zza <= $uid and $uid < $zza + 26) ? chr(ord('a') + $uid - $zza) : \user_password(10);
@@ -197,11 +198,10 @@ function doTx($info, $thing) {
   foreach (u\ray('from to for') as $one) unset($info[$one]);
   if (isset($risks)) $risks = getRisks($risks, K_TX_RISKS);
 
-  if (!$testOnly) u\setDft($risk, NULL); // indicates that risk has not been calculated yet
-  
   if ($inv) {
     u\setDft($goods, u\forCash(@$for) ? 0 : 1);
   } else {
+    if (!$testOnly) u\setDft($risk, NULL); // indicates that risk has not been calculated yet
     if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
     u\setDft($type, TX_TRANSFER);
     foreach (u\ray('type') as $one) if (!is_numeric($$one)) $$one = u\consta('tx', $$one);
@@ -217,11 +217,12 @@ function doTx($info, $thing) {
     if (@$toAgent or @$to) $payeeAgent = uid(@$toAgent ?: $to );
     u\setDft($taking, 0);
     unset($info['purpose']);
-    $fields = 'xid payer payerAgent payee payeeAgent type goods taking data risk risks';
-    if (!$testOnly) $fields .= ' channel created';
-    $info = compact(u\ray($fields)) + $info;
   }
 
+  $fields = 'xid payer payerAgent payee payeeAgent type goods taking data risk risks';
+  if (!$testOnly) $fields .= $inv ? ' created' : ' created channel';
+  $info = compact(u\ray($fields)) + $info;
+  
   if ($testOnly or @$type == TX_REBATE or @$type == TX_BONUS) {
     if ($inv) return verifyRecord('r_invoices', $info);
     if ($testOnly and @$for) list ($info['payerFor'], $info['payeeFor']) = is_array($for) ? $for : array($for, $for);
@@ -316,12 +317,16 @@ function notice($notice, $id, $subs = array()) {
   $info = u\ray('uid sent', $uid, @$subs['sent'] ?: 0);
   $msgs = db\q($sql, $info)->fetchCol();
 ///  debug(compact(u\ray('message sql info msgs')));
-  foreach ($msgs as $msg) if (strip_tags($msg) == $message) {
-    $thatThing['notice'] = $msg; // remember for "And that <thing> blah blah blah"
-    return TRUE;
+  foreach ($msgs as $msg) {
+    if (strip_tags($msg) == $message) {
+      $thatThing['notice'] = $msg; // remember for "And that <thing> blah blah blah"
+      return TRUE;
+    }
+    t\output("GOT notice: $msg");
   }
-  
-/**/ return t\output('Expected notice ' . print_r($info + compact('message'), 1));
+
+  t\output('EXPECTED (but did not get) notice ' . print_r($info + compact('message'), 1));
+  return FALSE;  
 }
 
 /**
@@ -335,7 +340,8 @@ function doneStep($uid, $step) {
   }
   
   $a = r\acct($uid = t\uid($uid));
-  return @$a->stepDone($step); // might have to do the steps below also
+  @$a->stepDone($step); // might have to do the steps below also
+  return TRUE;
   
   if ($step == 'photo') return t\makePicture('whatever', $a);
   if ($step == 'sign') return $a->update(u\ray('signed', REQUEST_TIME));
@@ -480,12 +486,15 @@ function usdTransfers($txs) {
       extract($tx);
       $a1 = r\acct($payer);
       
+/*
       if (@$payee and $payee != -1) {
         $a2 = r\acct($payee);
         $a1->update('usd r', $a1->usd - $amount, $a1->r + $amount);
         $a2->update('usd r', $a2->usd + $amount, $a2->r - $amount);
         if ($amount > DW_FEE_THRESHOLD) r\queue('coverFee', compact(u\ray('txid payee')));
-      } elseif (@$completed) $a1->update('r', $a1->r - $amount);
+      } else
+      */
+      if (@$completed) $a1->update('r', $a1->r - $amount);
     }
   }
   return TRUE;
@@ -682,6 +691,41 @@ function showSubs($s, $subs) {
   return strtr($s, $subs);
 }
 
+function memberVisitsPage($id, $page) { // pass options in URL
+  global $testOnly; if ($testOnly) return FALSE;
+  if (!t\login($id)) return FALSE;
+  t\pageForm(t\fixPageArgs($page), FALSE);
+  return TRUE;
+}
+
+function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  if ($title and !weShow($title, $showDebugs)) return FALSE;
+  return weShow($content, $showDebugs);
+}
+
+function weShowWithSubs($page, $subs) {
+  global $testOnly;
+  global $testConfirmation; // confirmation message output, if any
+  global $formOut; // for testing
+
+  $subs = @$subs[0] ?: array(); // comes in as "" if no subs
+  if (strpos($page, 'confirm ') !== FALSE) {
+    foreach (u\just(R_DATE_FIELDS, $subs) as $k => $v) if (is_numeric($v)) $subs[$k] = u\fmtDate($v);
+    $wanted = u\tt($page, $subs);
+    t\output("<b>WANTED: </b>$wanted", 'screen');
+/**/ debug(compact('wanted','testConfirmation')); // redundant but very easy
+    return ($wanted == $testConfirmation);
+  }
+  $form = strtr(t\strip(r\Web\showForm($page, @$subs['arg1'], @$subs['arg2'])), $subs);
+  t\output("<b>WANTED: </b>$form", 'screen');
+  if ($form != $formOut['text']) return FALSE;
+  unset($subs['arg1']);
+  unset($subs['arg2']);
+  foreach ($subs as $one) if (strpos($form, $one) === FALSE) return FALSE; // sometimes we dunno what to sub for
+  return TRUE;
+}
+
 /**
  * Convert country and state names or abbreviations to the corresponding indices, and other tweaks.
  * @param assoc $info: field names and values
@@ -751,8 +795,8 @@ function subAgo($string, $fmt) {
   $bPreC = substr($b, 0, strlen($b) - 1);
   $periods = array('d' => 'days', 'w' => 'weeks', 'm' => 'months', 'y' => 'years');
   $period = $periods[$lastC];
-///  debug(compact(u\ray('string fmt lastC a b bPreC period')));
-  return (strftime($fmt, strtotime("$bPreC $period ago")));
+/// debug(compact(u\ray('string fmt lastC a b bPreC period')));
+  return (strftime($fmt, $period == 'months' ? u\plusMonths(-$bPreC) : strtotime("$bPreC $period ago")));
 }
 
 /**
@@ -824,7 +868,7 @@ function verifyRecord($table, $info) {
     if ($value == '?') {unset($info[$key]); continue;}
     $crit[] = $value === '' ? "($key IS NULL or $key=:$key)"
     : ((in_array($key, u\ray(R_DATE_FIELDS)) or stripos($key, 'date') !== FALSE) ? 
-      "$key-($key%:DAY_SECS)<=>:$key-(:$key%:DAY_SECS)" 
+      "DATE(FROM_UNIXTIME($key))<=>DATE(FROM_UNIXTIME(:$key))" 
     : (in_array($key, u\ray('trust risk')) ? "CAST(ROUND($key, 2) AS CHAR)<=>:$key"
     : "$key<=>:$key")); // null-safe ==
   }
@@ -1045,7 +1089,7 @@ function eq($a, $b) {
  * Fake $_SERVER params for testing
  */
 function SERVER($key, $value = NULL) {
-  if (!t\est()) return $_SERVER[$key];
+  if (!u\test()) return $_SERVER[$key];
   global $T_SERVER;
   if (isset($value)) $T_SERVER[$key] = $value; else return $T_SERVER[$key];
 }
@@ -1076,16 +1120,9 @@ function color($msg, $color = 'normal') {
  */
 function output($msg, $color = 'error') {
   global $testModule;
-  if (t\est() and !@$testModule) \drupal_set_message(color($msg, $color));
+  if (u\test() and !@$testModule) \drupal_set_message(color($msg, $color));
   return $color == 'error' ? FALSE : TRUE;
 }
-
-/**
- * Return 't' and a number unique to the current test run (also meaning TRUE) if we are testing
- * otherwise FALSE. The return is used with USD_NOTE_PREFIX in usd class
- * call by t\est()
- */
-function est() {return (@TESTING == 1 ? 't' . REQUEST_TIME : FALSE);}
 
 /**
  * Clear out all possible data, so as to start the test fresh
@@ -1163,7 +1200,7 @@ function getRisks($risks0, $descs) {
  * @return: [$value, $bal], where
  *   $bal is the current actual USD balance for account $a
  *   $value is the value of the expression
- */
+ *//*
 function parseAmt($var, $a) {
   u\EXPECT(!is_numeric($var), 'expected non-numeric var');
   
@@ -1181,6 +1218,7 @@ function parseAmt($var, $a) {
 ///  debug(compact(u\ray('var a bal i op value')));
   return array($$var + $value, $bal);
 }
+*/
 
 function badEq($type, $v1, $v2, $id) {
   if (t\eq($v1, $v2)) return FALSE;
@@ -1198,6 +1236,7 @@ function badEq($type, $v1, $v2, $id) {
  * @return TRUE if all the content is included
  */
 function shownWith($content, $type = 'text', $showDebugs = TRUE) {
+  global $testOnly; if (!$testOnly) return FALSE;
   global $formOut;
   $model = $formOut[$type];
 
@@ -1257,6 +1296,6 @@ function seq($table = 'r_usd') {
   return $id;
 }
 
-function log($msg) {if (t\est()) u\log($msg, 'debug');}
+function log($msg) {if (u\test()) u\log($msg, 'debug');}
 function that($thing) {global $thatThing; return $thatThing[$thing];}
 function dosayFilename($type) {return __DIR__ . "/../dosay-$type.txt";}

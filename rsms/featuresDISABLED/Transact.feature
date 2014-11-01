@@ -59,45 +59,30 @@ Scenario: The caller confirms a request to charge
   | charged | Corner Pub | $100   | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your balance is unchanged, pending payment. Invoice #2"
   And we notice "new invoice" to member "c@" with subs:
-  | created | fullName   | otherName | amount | payerPurpose |*
-  | %today  | Corner Pub | Abe One    | $100   | labor       |
+  | created | fullName   | otherName | amount | purpose |*
+  | %today  | Corner Pub | Abe One   | $100   | labor   |
 
-Scenario: The caller confirms a unilateral charge
-  Given phone +20001 can charge unilaterally
-  When phone +20001 confirms "100 from .ZZC for labor"
-  Then the community has r$-765
-  And phone +20003 has r$155
-  And we say to phone +20001 "report transaction" with subs:
-  | did     | otherName | amount | rewardType | rewardAmount | balance | tid |*
-  | charged | Corner Pub | $100   | bonus       | $10           | $360    | 2   |
-  # "You charged Corner Pub $100 (bonus: $10). Your new balance is $110. Transaction #1"
-  And we notice "new charge" to member "c@" with subs:
-  | created | fullName   | otherName | amount | payerPurpose |*
-  | %today  | Corner Pub | Abe One    | $100   | labor         |
-
-Scenario: The caller confirms a payment with insufficient balance
-  When phone +20001 confirms "300 to .ZZC for groceries"
-  Then the community has r$-787.50
-  And phone +20003 has r$525
-  And we say to phone +20001 "report short payment" with subs:
-  | did    | otherName | amount | short | balance | tid |*
-  | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
-  # "SPLIT TRANSACTION! You paid Corner Pub $100 (rebate: $5). You will need to use US Dollars for the remainder. Your new balance is $5. Transaction #2"
+Scenario: The caller requests a payment with insufficient balance
+  When phone +20001 says "300 to .ZZC for groceries"
+  And we say to phone +20001 "short to" with subs:
+  | short |*
+  | $50   |
 
 Scenario: The caller asks to pay the latest invoice
   Given invoices:
-  | created   | state       | amount | from | to   | purpose| taking |*
-  | %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |
+  | created   | status      | amount | from | to   | purpose|*
+  | %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  |
+  And the expected nonce for phone +20003 is "NONCY"
   When phone +20003 says "pay"
   Then we say to phone +20003 "confirm pay invoice|please confirm" with subs:
-  | amount | otherName | created   |*
-  | $100   | Abe One    | %today-3d |
+  | amount | otherName | created | nonce |*
+  | $100   | Abe One   | %dmy-3d | NONCY |
   # "Pay Abe One $100 for goods and services (invoice 14-May-2013)? Type MANGO to confirm."
 
 Scenario: The caller confirms payment of the latest invoice
   Given invoices:
-  | created   | state       | amount | from | to   | purpose| taking |*
-  | %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |
+  | created   | status      | amount | from | to   | purpose|*
+  | %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  |
   When phone +20003 confirms "pay"
   Then the community has r$-765
   And phone +20001 has r$360
@@ -108,9 +93,9 @@ Scenario: The caller confirms payment of the latest invoice
 
 Scenario: The caller asks to pay the latest invoice from a particular member
   Given invoices:
-  | created   | state       | amount | from | to   | purpose| taking |*
-  | %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |
-  | %today-1d | %TX_PENDING | 100    | .ZZC | .ZZB | labor  | 1      |
+  | created   | status      | amount | from | to   | purpose|*
+  | %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  |
+  | %today-1d | %TX_PENDING | 100    | .ZZC | .ZZB | labor  |
   When phone +20003 says "pay .ZZA"
   Then we say to phone +20003 "confirm pay invoice|please confirm" with subs:
   | amount | otherName | created   |*

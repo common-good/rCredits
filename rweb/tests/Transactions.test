@@ -44,10 +44,10 @@ class rwebTransactions extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "ASSOC'
-    . '\\| id   | fullName   | floor | acctType    | flags         | created    |'
-    . '\\| .ZZA | Abe One    | -100  | personal    | ok,dw,bona    | %today-15m |'
-    . '\\| .ZZB | Bea Two    | -200  | personal    | ok,dw,co,bona | %today-15m |'
-    . '\\| .ZZC | Corner Pub | -300  | corporation | ok,dw,co,bona | %today-15m |"');
+    . '\\| id   | fullName   | floor | acctType    | flags      | created    |'
+    . '\\| .ZZA | Abe One    | -100  | personal    | ok,bona    | %today-15m |'
+    . '\\| .ZZB | Bea Two    | -200  | personal    | ok,co,bona | %today-15m |'
+    . '\\| .ZZC | Corner Pub | -300  | corporation | ok,co,bona | %today-15m |"');
     And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| .ZZA | .ZZA | .ZZB  | buy        |'
@@ -62,13 +62,12 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\|  .ZZA |     0 |    -11 |   2 | %today-1w  |         0  |'
     . '\\|  .ZZA |     0 |     22 |   4 | %today-5d  |         0  |'
     . '\\|  .ZZA |     0 |     33 |   3 | %today-5d  |         0  |"');
-    And__('balances: "ASSOC'
-    . '\\| id   | usd   |'
-    . '\\| ctty | 10000 |'
+    Then_('balances: "ASSOC'
+    . '\\| id   | r     |'
     . '\\| .ZZA |  1000 |'
     . '\\| .ZZB |  2000 |'
     . '\\| .ZZC |  3000 |"');
-    And__('transactions: "ASSOC'
+    Given('transactions: "ASSOC'
     . '\\| xid   | created   | type     | amount | from | to   | purpose | taking |'
     . '\\| .AAAB | %today-7m | signup   |    250 | ctty | .ZZA | signup  | 0      |'
     . '\\| .AAAC | %today-6m | signup   |    250 | ctty | .ZZB | signup  | 0      |'
@@ -84,11 +83,10 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| .AAAS | %today-1w | bonus    |     12 | ctty | .ZZC | bonus   | 0      |'
     . '\\| .AAAV | %today-6d | transfer |    100 | .ZZA | .ZZB | cash V  | 0      |"');
     Then_('balances: "ASSOC'
-    . '\\| id   | balance | rewards | r    | usd   |'
-    . '\\| ctty |    9196 |       0 | -804 | 10000 |'
-    . '\\| .ZZA |    1918 |     268 |  918 |  1000 |'
-    . '\\| .ZZB |    2554 |     274 |  554 |  2000 |'
-    . '\\| .ZZC |    2332 |     262 | -668 |  3000 |"');
+    . '\\| id   | r       | rewards |'
+    . '\\| .ZZA |    1918 |     268 |'
+    . '\\| .ZZB |    2554 |     274 |'
+    . '\\| .ZZC |    2332 |     262 |"');
     break;
 
 

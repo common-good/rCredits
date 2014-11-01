@@ -8,10 +8,10 @@ SO I can see how well the rCredits system is doing for myself, for my ctty, and 
 
 Setup:
   Given members:
-  | id   | fullName   | email | flags         | minimum | floor | share | created   |*
-  | .ZZA | Abe One    | a@    | ok,dw,bona    |       5 |     0 |    10 | %today-2m |
-  | .ZZB | Bea Two    | b@    | ok,dw,bona    |    1000 |   -20 |    20 | %today-3w |
-  | .ZZC | Corner Pub | c@    | ok,dw,co,bona |    2000 |    10 |    30 | %today-2w |
+  | id   | fullName   | email | flags      | minimum | floor | share | created   |*
+  | .ZZA | Abe One    | a@    | ok,bona    |       5 |     0 |    10 | %today-2m |
+  | .ZZB | Bea Two    | b@    | ok,bona    |    1000 |   -20 |    20 | %today-3w |
+  | .ZZC | Corner Pub | c@    | ok,co,bona |    2000 |    10 |    30 | %today-2w |
   And relations:
   | id   | main | agent | permission |*
   | .ZZA | .ZZA | .ZZB  | buy        |

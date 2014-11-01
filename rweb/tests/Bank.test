@@ -68,12 +68,12 @@ class rwebBank extends DrupalWebTestCase {
     When_('member ".ZZA" completes form "get" with values: "ASSOC'
     . '\\| amount | op  |'
     . '\\|     40 | get |"');
-    Then_('we say "status": "banked" with subs: "ASSOC'
-    . '\\| action     | amount |'
-    . '\\| draw from  | $40    |"');
+    Then_('we say "status": "banked|bank tx number" with subs: "ASSOC'
+    . '\\| action     | amount | checkNum |'
+    . '\\| draw from  | $40    |        1 |"');
     And__('usd transfers: "ASSOC'
-    . '\\| payer | payee | amount |'
-    . '\\| .ZZA  |     0 |    -40 |"');
+    . '\\| txid | payer | payee | amount |'
+    . '\\|    1 | .ZZA  |     0 |    -40 |"');
   }
 
   // Scenario: A member transfers funds to the bank

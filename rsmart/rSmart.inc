@@ -25,7 +25,7 @@ define('PRESTORE', FALSE); // accommodate the pre-Google Store app until everyon
  *
  * REQUESTS:
  * (see https://docs.google.com/document/d/1fZE_wmEBRTBO9DAZcY4ewQTA70gqwWqeqkUnJSfWMV0/edit)
- * time:	[] => [ok=”1”, time]
+ * time:	[] => [ok=”1”, time, message]
  * identify:	[member, code] 
  *      => [ok, message, logon=”1”, name, descriptions[], can, device, default, company, time]
  *   OR	=> [ok, message, logon=”0”, name, place, company, balance]
@@ -42,7 +42,7 @@ define('PRESTORE', FALSE); // accommodate the pre-Google Store app until everyon
 ///debug(rCredits\Smart\pos($args));
  */
 
-define('RPOS_VERSION', 102); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first, before bumping the number up here.)
+define('RPOS_VERSION', 203); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first, before bumping the number up here.)
 //define('RPOS_FILENAME', 'http://ws.rcredits.org/rPOS-' . rPOS_VERSION . '.apk');
 define('RPOS_FILENAME', 'http://rc4.me/rpos.apk');
 define('RPOS_FILENAMEB', 'http://rc4.me/rposb.apk'); // version for buggy front-camera-only machines
@@ -115,7 +115,7 @@ function ok($args, $ok = "1") {
   $result = u\jsonEncode(compact('ok') + $args);
   if (@$args['op'] != 'time') u\loga('out', $args); // avoid filling the log with time requests
   //{t\output($args, 'output'); 
-  if (t\est()) return $result;
+  if (u\test()) return $result;
   exit($result);
 }
 
@@ -140,7 +140,8 @@ function getTime($args) {
   extract(u\just($keys, $args));
   $time = time();
 //  if (((int) $version) < RPOS_VERSION) $update = (substr($version, 0, 1) == '0') ? RPOS_FILENAMEB : RPOS_FILENAME;
-  return ok(compact('time'));
+  if (((int) $version) < RPOS_VERSION) $message = t('Your rPOS app needs updating. Search for "rCredits" in the Google Play Store, to download the latest version.');
+  return ok(compact('time', 'message'));
 }
  
 /**
@@ -257,7 +258,7 @@ function photoReturn($pic) {
   $message = strlen($pic) < $max ? $pic : bin2hex(substr($pic, 0, $max)); // identifies pic w/out a big db hit
   u\loga('out', compact('message'));
 
-  if (t\est()) {
+  if (u\test()) {
     if (!$pic) $message = 'no photo';
     t\output($message); 
     return $message;
@@ -404,7 +405,7 @@ function getCustomer($customer, &$err = '') {
  * @return: assoc [balance, rewards]
  */
 function balrew($a) {
-  $balance = ($a->can(B_SECRET_BAL) ? '*' : '') . round($a->r + $a->usd, 2);
+  $balance = ($a->can(B_SECRET) ? '*' : '') . round($a->r + $a->usd, 2);
   $rewards = $a->rewards;
   return compact('balance', 'rewards');
 }

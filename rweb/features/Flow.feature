@@ -14,12 +14,12 @@ Setup:
   | NEW.ZZA | .ZZC | .ZZA  | manage     |    1 |
   | NEW.ZZB | .ZZC | .ZZB  | sell       |    0 |
   And balances:
-  | id   | usd  | r   | rewards |*
-  | .ZZA |    0 |  20 |      20 |
-  | .ZZB |  100 |  20 |      20 |
-  | .ZZC |  100 |  20 |      20 |
+  | id   | r   | rewards |*
+  | .ZZA |  20 |      20 |
+  | .ZZB | 120 |      20 |
+  | .ZZC | 120 |      20 |
 
-Scenario: A member overdraws
+Scenario: A member draws
   When member ".ZZA" confirms form "pay" with values:
   | op  | who  | amount | goods | purpose |*
   | pay | .ZZB |     30 |     1 | food    |
@@ -30,7 +30,7 @@ Scenario: A member overdraws
   |   3 | rebate   |   1.50 | ctty | .ZZA | rebate on #2 |
   |   4 | bonus    |   3.00 | ctty | .ZZB | bonus on #1  |
   
-Scenario: A member overdraws and draws from both r and USD
+Scenario: A member draws again
   When member ".ZZA" confirms form "pay" with values:
   | op  | who  | amount | goods | purpose |*
   | pay | .ZZB |    130 |     1 | food    |
@@ -45,7 +45,7 @@ Scenario: A member overdraws with not enough to draw on
   When member ".ZZA" completes form "pay" with values:
   | op  | who  | amount | goods | purpose |*
   | pay | .ZZB |    200 |     1 | food    |
-  Then we say "error": "short to" with subs:
+  Then we say "error": "short to|short cash help" with subs:
   | short |*
   | $60   |
   

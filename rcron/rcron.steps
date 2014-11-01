@@ -82,7 +82,7 @@ function members($list) {return t\members($list);}
  *     TEST Recache Setup
  *     BOTH Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
- *     TEST Sharing InflationAdjustmentsAreDistributed
+ *     TEST Sharing MembersShareTheirTransactionRewards
  *     MAKE Tickle AMemberGetsACreditLine
  *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
@@ -112,7 +112,7 @@ function balances($list) {return t\balances($list);}
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
  *     MAKE Risk Setup
  *     MAKE Risk WeCalculateRisks
- *     MAKE Sharing InflationAdjustmentsAreDistributed
+ *     MAKE Sharing MembersShareTheirTransactionRewards
  *     MAKE Tickle ANewbieHasNotTakenTheFirstStep
  *     MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
  *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
@@ -171,7 +171,7 @@ function relations($relations) {return t\relations($relations);}
  *     MAKE Risk Setup
  *     TEST Risk WeCalculateRisks
  *     MAKE Sharing Setup
- *     TEST Sharing InflationAdjustmentsAreDistributed
+ *     TEST Sharing MembersShareTheirTransactionRewards
  *     MAKE Tickle AMemberGetsACreditLine
  *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
@@ -188,7 +188,7 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Bank AMemberIsWellBelowMinimum
  *     TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ARecurringDonationCanBeCompleted
- *     TEST Sharing InflationAdjustmentsAreDistributed
+ *     TEST Sharing MembersShareTheirTransactionRewards
  *     TEST Tickle AMemberGetsACreditLine
  *     TEST Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  */
@@ -209,7 +209,7 @@ function weNoticeToMember($notice, $id) {return t\notice($notice, $id);}
  * in: BOTH Gifts ADonationCanBeCompleted
  *     BOTH Gifts ARecurringDonationCanBeCompleted
  *     MAKE Risk Setup
- *     TEST Sharing InflationAdjustmentsAreDistributed
+ *     TEST Sharing MembersShareTheirTransactionRewards
  */
 function gifts($gifts) {return t\gifts($gifts);}
 

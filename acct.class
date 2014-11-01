@@ -52,7 +52,7 @@ class acct {
    */
   private function createNew($info) {
     //$fields = 'phone number mail pass fullName legalName name flags rebate country state postalCode created login access uid community'; // used to include secure
-    //if (t\est()) $fields .= ' usdAccount';
+    //if (u\test()) $fields .= ' usdAccount';
 //    extract(u\just($fields, $info));
     extract($info);
     u\setDft($phone, @$number);
@@ -170,7 +170,7 @@ class acct {
     if (in_array($field, u\ray(R_SECRET_FIELDS))) $this->getHidden();
     $result = @self::$records[$this->id]->$field; // returns NULL if field not set
 
-    if ($field == 'data') return @$result ? unserialize($result) : [];
+    if ($field == 'data' or $field == 'changes') return @$result ? unserialize($result) : [];
     if ($field == 'usdAccount') return @$result ? u\ezdecrypt(hex2bin($result), R_WORD) : NULL;
     if ($field == 'language') {
       $language = $result;
@@ -264,10 +264,26 @@ class acct {
     if ($toHide and !$this->gotOffsite()) $this->getHidden(); // get what's offsite before updating it
     if (!@self::$records[$this->id]) self::$records[$this->id] = new \stdClass();
     unset($info['uid']); // necessary?
+
+//    if ($this->ok and time() - $this->activated > 30) { // don't record changes until member is a month old
+    if ($this->ok) { // don't record changes until member is active
+      $changes = u\justNot(R_HIDE_CHANGES, $info); // see if there are any changes to remember
+      foreach ($changes as $k => $v) { // don't record if no change
+        if ($v == $this->$k) {
+          unset($changes[$k]);
+        } elseif (isset(self::$records[$this->id]->$k)) $changes[$k] = @self::$records[$this->id]->$k;
+      }
+      if ($changes) {
+        $changes = serialize([[time(), $changes]] + $this->changes);
+        $info += compact('changes');
+      }
+    }
+    
     if ($data = @$info['data']) {
       $info['data'] = serialize($data);
       u\preray($data, self::$records[$this->id]); // cache these individually
     } elseif ($data = u\just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data += $this->data);
+
     u\preray($info, self::$records[$this->id]); // cache the field values
 
     if ($toHide) { // store protected information securely, offsite
@@ -275,13 +291,6 @@ class acct {
       if ($key and is_numeric($key)) $info['offsite'] = $key; else return FALSE; // if attempt to store fails, save nothing
     }
 //NO    u\setDft($info['flags'], $this->flags); // accommodate setBit caching flags to be set/unset
-
-    if ($this->ok and time() - $this->activated > 30) { // don't record changes until member is a month old
-      if ($old = u\justNot(R_HIDE_CHANGES, $info)) { // see if there are any changes to remember
-        $changes = ($this->changes ?: []) + [time(), $old];
-        $info['data'] = serialize(compact('changes') + ($data ?: $this->data));
-      }
-    }
     $info['uid'] = $this->id; // make sure dbUpdate gets this
     $info = u\justNot(R_SECRET_FIELDS . ' ' . R_DATA_FIELDS, $info); // don't pass these to dbUpdate
 
@@ -349,29 +358,21 @@ class acct {
     }
   }
 
-  public function hasBit($bit) {return (bool) ($this->flags & u\bit($bit + 0));}
-  
   /**
    * Set the bit in the flags field to the given value.
    * @param int $bit: number of bit to set (0 - 31)
    * @param bool $on: whether to set it ON or OFF
-   * NO @param boot $now: whether to write to the database (DEFAULT TRUE) or just to the cache (awaiting write)
+   * @return <successful>
    */
-  public function setBit($bit, $on = TRUE) {return $this->setBitx($bit, $on, 'flags');}
-  /*
-    $this->reread();
-// gets caught anyway    u\EXPECT(compact('int', 'on'), 'int bool');
-    u\EXPECT($bit <= B_MAX, 'setting too big a bit');
-    $bit = u\bit($bit0 = $bit);
-    $flags = $on ? ($this->flags | $bit) : ($this->flags & ~$bit);
-    self::$records[$this->id]->flags = $flags;
-    $this->refreshCan();
-    return $now ? $this->update(compact('flags')) : TRUE;
-  }*/
-  
-  public function refreshCan() {
-    self::$perms[$this->id] = NULL; // force redo in can()
+  public function setBit($bit, $on = TRUE) {
+    $res = $this->setBitx($bit, $on, 'flags'); 
+    if (@self::$perms[$id][$this->agentId]) {
+      self::$perms[$id][$this->agentId][$bit] = $on;
+    } // else can gets refreshed automatically next time can() is called
+    return $res;
   }
+  
+  // public function refreshCan() {self::$perms[$this->id] = NULL;} // UNUSED force redo in can()
 
   /**
    * Set the current account being managed
@@ -395,23 +396,21 @@ class acct {
    * @param string $type: (does not default, to make sure we know what we're doing)
    *   buy: the amount of credit available for a purchase 
    *     (including credit lines and US Dollars in Dwolla)
-   *   exch: the amount of rCredits available to trade for US Dollars
-   *     (not including credit lines and rewards)
    *   cash: the amount of credit available to trade for cash
-   *     (including US Dollars in Dwolla, not including credit lines and rewards)
+   *     (not including credit lines and rewards)
    * @param float $need: the amount needed
    * @param bool $get: draw from other accounts as needed, then say whether there is enough
-   * @param bool $retrying: recursed after updating cache usd amount
+   * @param bool $retrying: UNUSED recursed after updating cache usd amount
    * @return how much short of what's needed is this account
    */
-  function shortfall($type, $need = 0, $get = FALSE, $retrying = FALSE) {
-    $ray = (array) $this->account(R_MONEY_FIELDS);
-    $ray['fees'] = 0;
-    $avail = r\avail($type, $ray);
-///    debug(compact(u\ray('type need get retrying ray avail')));
+  public function shortfall($type, $need = 0, $get = FALSE) {
+    $avail = $this->avail($type);
+///    debug(compact(u\ray('type need get avail')));
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
-    $avail += $get ? $this->draw($need - $avail) : $this->canDraw($type); // get or just asking
+    $avail += $get ? $this->draw($need - $avail) : $this->canDraw(); // get or just asking
+    $shortfall = max(0, $need - $avail);
+/*
     if ($shortfall = max(0, $need - $avail) and !$get and !$retrying) {
       $lastWeek = strtotime('-10 days'); // EFTs never take this long
       $where = "payer=:id AND payee=0 AND amount<0 AND completed=0 AND created>$lastWeek"; // recent USD coming in
@@ -421,62 +420,66 @@ class acct {
         }
       }
     }
+    */
     return $shortfall; 
   }
   
   /**
-   * Return how much is available in this account, without drawing on other accounts.
-   * @param string $type: buy, exch, or cash
+   * Return how much is available in this account for the given operation, without drawing on other accounts.
+   * @param string $type: purpose of the potential expenditure: buy or cash -- see acct::shortfall())
    */
-  function rAvailable($type) {return r\avail($type, (array) $this->account(R_MONEY_FIELDS), TRUE);}
+  public function avail($type) {
+    $floor = $this->floor;
+    if (!$this->can(B_DEBT)) $floor = max($floor, 0); // no going into debt without permission
+    if ($type == 'cash') $floor = max($floor, $this->rewards); // no exchanging rewards for cash
+    return $this->r - $this->committed - $floor;
+  }
   
   /**
    * Return the amount this account can draw from other accounts.
    * Repairs the B_DRAWS bit if all such relations have ended.
-   * @param string $type: purpose of the draw (see $this->shortfall))
    */
-  private function canDraw($type) {
+  private function canDraw() {
     if (!$this->can(B_DRAWS)) return FALSE;
     
     $id = $this->id;
-    $sums = u\sumAs(R_MONEY_FIELDS, 'u.');
+    $availBuy = R_AVAIL_BUY; // contains a constant, so can't use :R_AVAIL_BUY
     $sql = <<<EOF
-      SELECT $sums, 0 AS fees, COUNT(*) as count
+      SELECT SUM($availBuy) AS avail, COUNT(*) as count
       FROM users u INNER JOIN r_relations r ON r.main=u.uid
       WHERE r.other=:id AND r.draw
 EOF;
-    $row = db\q($sql, compact('id'))->fetchAssoc();
+    if (!$row = db\q($sql, compact('id'))->fetchAssoc()) return 0;
     if (!$row['count']) $this->setBit(B_DRAWS, FALSE); // doesn't really have any drawable accounts
-    return r\avail($type, $row);
+    return $row['avail'];
   }
   
   /**
    * Draw the needed amount from other accounts.
-   * @param string $type: UNUSED purpose of the draw (see acct::shortfall())
    * @param float $need: the amount needed
    * @return float: the amount drawn
    */
   public function draw($need) {
+    if (!$this->can(B_DRAWS)) return 0;
     list ($from, $to, $auto) = array(t(' from '), t(' to '), t('automatic transfer'));
     $left = $need; // how much left to be drawn
     $id = $this->id;
-    $fields = join(',', u\ray(R_MONEY_FIELDS));
+    $availBuy = R_AVAIL_BUY; // contains a constant, so can't use :R_AVAIL_BUY
     $sql = <<<EOF
-      SELECT u.uid, $fields FROM users u INNER JOIN r_relations r ON r.main=u.uid
+      SELECT u.uid,$availBuy AS avail FROM users u INNER JOIN r_relations r ON r.main=u.uid
       WHERE r.other=:id AND r.draw
 EOF;
 ///debug(compact(u\ray('type need from to auto left id fields sql')));
     $result = db\q($sql, compact('id'));
     while ($row = $result->fetchAssoc()) {
       extract($row);
-      $avail = r\avail('buy', $row);
       $amount = round(min($left, $avail), 2);
 ///      debug(compact('row','avail','amount','left','need','id'));
       if ($amount > 0) {
         list ($fromQuid, $toQuid) = array(r\quid($uid), $this->mainQid);
         list ($payer, $payee) = array($uid, $this->id);
         $for = array($auto . $to . $toQuid, $auto . $from . $fromQuid);
-        if (new r\x(compact(u\ray('amount payer payee for')))) $left -= $amount;
+        if (new r\x(compact(u\ray('amount payer payee goods for')))) $left -= $amount;
         if ($left <= 0) break;
       }
       
@@ -494,10 +497,12 @@ EOF;
     $info = be\creditInfo(compact('uid'));
     foreach (u\ray('r usd rewards minimum') as $key) {
       $is = $this->$key;
-      if ($uid < 0 and $key != 'usd') continue; // for communities and regions, only usd is cached
-      $shouldBe = $key == 'usd' ? $this->actualUsd()
+      if ($uid < 0) continue; // for communities and regions, only usd is cached
+//      if ($uid < 0 and $key != 'usd') continue; // for communities and regions, only usd is cached
+/*      $shouldBe = $key == 'usd' ? $this->actualUsd()
         : ($key == 'minimum' ? max(0, $this->floor, $this->minimum) 
-        : $info->$key);
+        : $info->$key); */
+      $shouldBe = $key == 'minimum' ? max(0, $this->floor, $this->minimum) : $info->$key;
       $shouldBe = round($shouldBe, 2);
       if ($is != $shouldBe) {
         r\tellStaff('cache mismatch', compact(u\ray('key is shouldBe')), $uid);
@@ -565,7 +570,7 @@ EOF;
   /**
    * Update the account's cached USD amount and return it.
    * @param float $change: if non-zero, update the USD cache by this much, without checking Dwolla or r_usd
-   */
+   *//*
   public function actualUsd($change = 0) {
     $dw = $this->can(B_DW);
     if ($change) {
@@ -577,7 +582,7 @@ EOF;
       $usd = $usAcct->bal($err); // $err is inaccessibility (usd=0)
       if ($err) return $this->usd; // can't get the figure from Dwolla
 
-      if (t\est()) { // only these tests adjust according to Dwolla
+      if (u\test()) { // only these tests adjust according to Dwolla
         global $sceneTest; $scene = (object) $sceneTest->getInfo();
         if (!in_array($scene->short_name, u\ray('Recache RealUsd IncompleteUsdTxs'))) return $this->usd;
       }
@@ -585,14 +590,16 @@ EOF;
     if ($usd != $this->usd) $this->update(compact('usd')); // somehow balance got off
     return $usd;
   }
+*/
 
   /**
    * Return the amount waiting to be transferred to or (if negative) from the bank.
-   * @param bool $justTo: ignore withdrawals from bank
+   * @param bool $justTo: 'to': ignore transfers from bank, 'from': ignore transfers to bank
    */
   public function waitingToBank($justTo = FALSE) {
-    $where = 'payer=:id AND payee=0 AND NOT completed AND created>:ancient';
-    if ($justTo) $where .= ' AND amount>0';
+    $where = 'payer=:id AND payee=0 AND (NOT completed OR NOT deposit) AND created>:ancient';
+    if ($justTo == 'to') $where .= ' AND amount>0';
+    if ($justTo == 'from') $where .= ' AND amount<0';
     list ($id, $ancient) = array($this->id, REQUEST_TIME - R_ANCIENT_EFT * DAY_SECS);
     return db\lookup('SUM(amount)', 'r_usd', $where, compact('id', 'ancient')) + 0;
   }
@@ -631,7 +638,7 @@ EOF;
    */
   function nextStep() {
     $steps = $this->stepsDone ?: r\stepsDone0(); // don't change the real data
-    $unset = $this->co ? 'proxies connect verify' : 'company relations';
+    $unset = $this->co ? 'proxies connect' : 'company relations';
     foreach (u\ray($unset) as $one) unset($steps[$one]);
     foreach ($steps as $step => $done) if (!$done) break;
     if ($done) return FALSE;
@@ -668,7 +675,7 @@ EOF;
    * @return [returnMo, return, cttyBeneMo, cttyBene]
    */
   public function stats() {
-    extract($this->stats ?: array());
+    if ($this->stats) extract(unserialize($this->stats));
     $years = round((strtotime('today') - strtotime('today', $this->created)) / DAY_SECS) * DAY_SECS / YEAR_SECS;
     // rounding is to assure consistency for tests, despite daylight savings time changes
     $returnMo = @$avgBalPastMo > 0 ? 
@@ -699,7 +706,7 @@ EOF;
     if ($this->id == 1) return ($err = 'not registering admin');
     $usdPass = u\code() . '*B2'; // satisfy Dwolla (and our own security)
     $usdEmail = strtolower(u\code(4) . '.' . $this->mainQid) . '@rc4.me';
-    //if (t\est()) $usdEmail = 'wspademan+' . strtolower(\user_password(4) . '.' . $this->mainQid) . '@gmail.com';
+    //if (u\test()) $usdEmail = 'wspademan+' . strtolower(\user_password(4) . '.' . $this->mainQid) . '@gmail.com';
     $usdPin = u\randomString(4, 'digits');
     if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
     $usdPhone = $this->phone;
@@ -746,54 +753,84 @@ EOF;
 
   /**
    * Request a transfer of funds to or from a connected bank account.
-   * @param float $amount: the amount to transfer TO or (if negative) FROM the bank
+   * @param numeric $amount: the amount to transfer TO or (if negative) FROM the bank
+   * @param int $completed: (RETURNED) the completion date
+   * @return the transaction number (FALSE if failure)
    */
-  public function bank($amount) {
+  public function bank($amount, &$completed = '') {
     $payer = $this->id;
     $tid = r\getUsdTid($payer);
     $created = REQUEST_TIME;
-    $completed = ($amount > 0 or $this->r - -$amount >= $this->floor) ? $created : 0;
+    $completed = ($amount > 0 or -$amount <= -$this->floor) ? $created : 0;
 
     $DBTX = \db_transaction();
-    if ($completed) $this->update('r', $this->r - $amount);
-    db\insert('r_usd', $tx = compact(u\ray('amount payer created completed tid')));
+    $txid = db\insert('r_usd', $tx = compact(u\ray('amount payer created completed tid')));
+    u\EXPECT((bool) $txid, 'saving usd record');
+
     if ($amount > 0) { // tell staff to transfer the funds using BillPay or check
+      $this->update('r', $this->r - $amount);
       extract(u\just('bankAccount', $this->secure));
       list ($route, $account) = u\parseBankAccount(@$bankAccount);
       $bankName = db\lookup('name', 'r_banks', 'route=:route', compact('route'));
       $fullName = $this->fullName;
       r\tellStaff(t('outgoing bank transfer request'), compact('bankName route fullName account amount'));
-    }
+    } elseif ($completed) $this->completeUsdTx(0, -$amount, $created);
+
     unset($DBTX);
+    return $txid;
   }
-  
+
+  /**
+   * Mark a USD transfer complete, update cache, and report.
+   * @param int $txid: the transfer record ID (if NULL, no need to mark it complete)
+   * @param numeric $amount: transfer amount (positive)
+   * @param int $created: Unixtime record was created
+   * @return <success>
+   */
+  public function completeUsdTx($txid, $amount, $created) {
+    if (@$txid and !db\update('r_usd', ['txid'=>$txid, 'completed'=>time()], 'txid')) return FALSE;
+    $this->update('r', $this->r + $amount);
+    $hour = strftime('%H', strtotime($created)); // creation hour 
+    $auto = $hour == R_DAILY_HOUR ? t(' automatic') : ''; // (space is intentional)
+    $amount = u\fmtAmt(abs($amount));
+    r\notify($this->id, 'transfer complete', compact('auto', 'amount'));
+    r\membershipEvent($this, 'bona', TRUE);
+    return TRUE;
+  }
+    
   /**
    * Set the bit in the given integer bit collection field to the given value.
    * @param int $bit: number of bit to set (0 - 31)
    * @param bool $on: whether to set it ON or OFF
+   * @return <successful>
    */
   public function setBitx($bit, $on = TRUE, $field = 'flags') {
     $n = $this->$field;
     u\setBit($n, $bit, $on);
-    $this->update($field, $n);
+    return $this->update($field, $n);
   }
-  
-  public function risk($bit) {return u\getbit($this->risks, $bit);}
 
   /**
    * Set the bit (identified by number or name) in the "risks" integer bit collection field.
    * @param mixed $bit: number of bit to set (0 - 31) or name of bit
    * @param bool $on: whether to set it ON or OFF
    */
-  public function setRisk($bit, $on = TRUE) {
-    if (!is_numeric($bitName = $bit)) {
-      $acctRiskBits = array_flip(array_keys(u\ray(K_ACCT_RISKS)));
-      $txRiskBits = array_flip(array_keys(u\ray(K_TX_RISKS)));
-      if (!is_numeric($bit = @$acctRiskBits[$bitName])) $bit = $txRiskBits[$bitName];
-    }
-    $this->setBitx($bit, $on, 'risks');
-  }
+  public function setRisk($bit, $on = TRUE) {$this->setBitx($this::riskBit($bit), $on, 'risks');}
+    
+  public function risk($bit) {return u\getbit($this->risks, $this::riskBit($bit));}
   
+  /**
+   * Return the bit number for risk bit name.
+   * @param mixed $bit: the bit name or number
+   * @return the bit number
+   */
+  private static function riskBit($bit) {
+    if (is_numeric($bitName = $bit)) return $bit;
+    $acctRiskBits = array_flip(array_keys(u\ray(K_ACCT_RISKS)));
+    $txRiskBits = array_flip(array_keys(u\ray(K_TX_RISKS)));
+    return is_numeric($bit = @$acctRiskBits[$bitName]) ? $bit : $txRiskBits[$bitName];
+  }
+
   public function coCan($bit = NULL) {return u\getbit($this->coFlags, $bit);}
   public function setCoBit($bit, $on = TRUE) {$this->setBitx($bit, $on, 'coFlags');}
   
@@ -834,41 +871,46 @@ EOF;
 
   /**
    * Say whether this account/agent has the permission.
-   * @param int $permission: the permission in question (DEFAULT B_READ)
+   * @param int $bit: the permission in question (DEFAULT B_READ)
    */
-  public function can($permission = B_READ) {
-    $id = $this->id;
-    if (!@self::$perms[$id]) self::$perms[$id] = array();
-    $can = @self::$perms[$id][$this->agentId] ?: $this->getCan();
-    return $can[$permission];
+  public function can($bit = B_READ) {
+    if ($bit <= B_MAX) { // ordinary bits
+      $can = (bool) ($this->flags & (1 << $bit)); // these are easy. be efficient.
+      if (in_array($bit, [B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN])) {
+        if (!$this->proSe) { // admin permissions depend on agent
+          return ($aa = $this->agent) ? $aa->can($bit) : FALSE; // timing errors in _construct can give no agent
+        }
+        if (!$can and $bit < R_ADMIN_CAN_MANAGE_CTTYS ? B_ADMIN : B_CADMIN) return $this->can($bit + 1); // not this admin bit, maybe the next higher?
+      }
+      return $can;
+    }
+
+    if ($bit == B_CTTYACTIVE or $bit == B_CTTYUP) {
+      $a = $this->id < 0 ? r\acct($this->community) : $this;
+      return $this->can($bit == B_CTTYACTIVE ? B_MEMBER : B_OK);
+    }    
+
+    if ($bit == B_BANK) return $this->risk(K_HASBANK); // might get set after getCan() is called
+    $can = @self::$perms[$this->id][$this->agentId] ?: $this->getCan();
+    return $can[$bit];
   }
 
   /**
-   * Set up permissions (::$perms) if we haven't yet (setBit() resets this)
+   * Set up permissions (::$perms) if we haven't yet
    * @return the permissions array for this account
    */
   private function getCan() {
-    $can = array();
-    if (!$aa = $this->agent) return $can; // timing errors can cause this
     $id = $this->id;
     
-    for ($bit = 0; $bit < B_MAX; $bit++) $can[$bit] = $this->hasBit($bit);
-    
-    if (!$this->proSe) { // admin permissions depend on agent, not account
-      $can[B_ADMIN] = $aa->admin;
-      $can[B_CADMIN] = $aa->cAdmin;
-      $can[B_CADMIN2] = $aa->can(B_CADMIN2);
-      $can[B_REGULATOR] = $aa->can(B_REGULATOR);
-    }
-    
-    if ($can[B_CADMIN]) $can[B_CADMIN2] = TRUE; // community admin has subordinate powers too
-    if ($can[B_CADMIN2]) $can[B_REGULATOR] = TRUE;
-    $can[B_PERSONISH] = !$can[B_CO] or $can[B_ADMIN];
+    // collect efficient bits, for reference within this function
+    for ($bit = 0; $bit <= B_MAX; $bit++) $can[$bit] = $this->can($bit);
+    foreach ([B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN] as $bit) $can[$bit] = $this->can($bit);
+ 
+    $can[B_PERSON] = !$can[B_CO];
 
-    $perm = $this->proSe ?
-        (($id < 0) ? 0 : B_MANAGE) // communities must be managed by an agent, never directly
-      : ($can[B_CADMIN] and $this->community == $aa->community) ? 
-            B_MANAGE : (B_RELATED + relation('permission', $id, $this->agentId));
+    $perm = $this->proSe ? ($id < 0 ? 0 : B_MANAGE) // communities must be managed by an agent, never directly
+      : ($can[B_CADMIN] and $this->community == $this->agent->community) ? B_MANAGE 
+      : (B_RELATED + relation('permission', $id, $this->agentId));
     for ($i = B_RELATED; $i <= B_MANAGE; $i++) $can[$i] = ($i <= $perm); // set all, even the false ones
 
     // (NO! this should never happen) if ($can[B_OK]) $can[B_MEMBER] = TRUE;
@@ -876,24 +918,11 @@ EOF;
 
     if (!$can[B_MEMBER]) $can[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
     
-    if ($can[B_ADMIN]) {
-      if (R_ADMIN_CAN_MANAGE_CTTYS) {
-        $can[B_CADMIN] = $can[B_CADMIN2] = $can[B_REGULATOR] = TRUE; // temporary extra power, until communities are independent
-        $can[B_READ] = $can[B_SCAN] = $can[B_SELL] = $can[B_BUY] = $can[B_MANAGE] = TRUE;
-      }
-      if ($this->proSe) $can[B_CO] = TRUE; // show company settings on own account (for debugging)
-    };
-    $can[B_DEV] = (isDEV or $can[B_ADMIN]); // used in menu system for tests page, etc.
-    
-    if ($can[B_MANAGING_CTTY] = ($can[B_CADMIN] and $id == $this->community)) $can[B_BUY] = TRUE;
-    if ($id < 0) { // account IS a community, avoid infinite recursion
-      $can[B_CTTYACTIVE] = $can[B_MEMBER];
-      $can[B_CTTYUP] = $can[B_OK];
-    } else {
-      $ctty = r\acct($this->community);
-      $can[B_CTTYACTIVE] = @$ctty->member; // recurses (_get calls can() for "member" and "ok")
-      $can[B_CTTYUP] = @$ctty->ok;
+    if ($can[B_ADMIN] and R_ADMIN_CAN_MANAGE_CTTYS) { // temporary extra power, until communities are independent
+      $can[B_READ] = $can[B_SCAN] = $can[B_SELL] = $can[B_BUY] = $can[B_MANAGE] = TRUE;
     }
+    $can[B_DEV] = (isDEV or $can[B_ADMIN]); // used in menu system for tests page, etc.
+    if ($can[B_MANAGING_CTTY] = ($can[B_CADMIN] and $id == $this->community)) $can[B_BUY] = TRUE;
     
     ksort($can); // easier to debug
     return self::$perms[$id][$this->agentId] = $can;

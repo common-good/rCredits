@@ -84,8 +84,8 @@ function formTxs_submit($form, &$sta) {
 /**
  * List the available account statement dates, with links.
  */
-function formStatements($form, $sta) {
-  return monthChoices(t('Statements'), 'statement');
+function formStatements($form, $sta, $month = '') {
+  return $month ? statement($month) : monthChoices(t('Statements'), 'statements');
 }
 
 /**
@@ -98,7 +98,7 @@ function formStatements($form, $sta) {
 function txConfirm($do, $xid, &$sta) {
   $mya = r\acct();
   $myid = $mya->id;
-  if (t\est() and @$sta['confirm']) return FALSE;
+  if (u\test() and @$sta['confirm']) return FALSE;
   if (confirming_v($sta)) return FALSE;
   if (!$details = be\lastTx('xid=:xid', compact('xid'), TRUE)) return 'bad tx id'; // bail on hack attempt
   $subs = r\txReportArgs($mya, $details);
@@ -186,7 +186,7 @@ function txEdit_validate($form, &$sta) {
   extract($orig = unserialize($orig), EXTR_PREFIX_ALL, 'x');
   
   if ($goods and trim($purpose) == '') return say('missing purpose', 'purpose');
-  if ($error = u\badAmount($amount, '>0')) return say($error, 'amount');
+  if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
 ///debug(compact('x_toMe','amount','x_amount'));
   if (!$mya->cAdmin and ($x_toMe ? ($amount > $x_amount) : ($amount < $x_amount))) {
     $who = r\acct($x_toMe ? $x_payer : $x_payee)->name;
@@ -387,7 +387,7 @@ EOF;
   }
   if ($tx and $q->fetchAssoc()) say('transaction list truncated'); // there was more than we could show
 
-  if (@$download) {if (t\est()) return; else exit();}
+  if (@$download) {if (u\test()) return; else exit();}
 
   // prepare screen display
   $classes = u\prefixValues('tx-', $classes);

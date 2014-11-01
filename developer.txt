@@ -60,7 +60,7 @@ C. rCredits module structure
    Each interface (rWeb, rSmart, rSMS, and rCron) has its sub-module in its own folder, with its own features and tests. Actually rCron is not a Drupal module and rSmart and rSMS probably don't need to be either.
    Code that is unlikely ever to apply to more than one interface, should not go in the main rcredits folder and vice versa.
    
-D. rCredits namespaces and how they are abbreviated in calling files. Functions that are called outside their named space should be preceded by these namespace identifiers even when called from within the named space. For example, write t\est() not est() even within rcredits-testing.inc.
+D. rCredits namespaces and how they are abbreviated in calling files. Functions that are called outside their named space should be preceded by these namespace identifiers even when called from within the named space. For example, write u\test() not est() even within rcredits-testing.inc.
    r\ rCredits: shared business logic code
          (r\Web) rCredits\Web
          (r\Smart) rCredits\Smart

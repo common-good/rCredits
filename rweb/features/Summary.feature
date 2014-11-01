@@ -8,9 +8,9 @@ SO I know where it stands.
 Setup:
   Given members:
   | id   | fullName   | postalAddr                   | floor | flags         |*
-  | .ZZA | Abe One    | 1 A St., Atown, AK 01000     | -100  | ok,dw,bona    |
-  | .ZZB | Bea Two    | 2 B St., Btown, UT 02000     | -200  | ok,dw,bona    |
-  | .ZZC | Corner Pub | 3 C St., Ctown, Cher, FRANCE | -300  | ok,dw,co,bona |
+  | .ZZA | Abe One    | 1 A St., Atown, AK 01000     | -100  | ok,bona    |
+  | .ZZB | Bea Two    | 2 B St., Btown, UT 02000     | -200  | ok,bona    |
+  | .ZZC | Corner Pub | 3 C St., Ctown, Cher, FRANCE | -300  | ok,co,bona |
   And members have:
   | id   | created   | share |*
   | ctty | %today-9w |     0 |
@@ -43,11 +43,10 @@ Setup:
   | .AAAL | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #5 |
   | .AAAM | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #4  |
   Then balances:
-  | id   | balance | r    |*
-  | ctty |    -768 | -768 |
-  | .ZZA |     266 |  166 |
-  | .ZZB |     479 |  279 |
-  | .ZZC |     623 |  323 |
+  | id   | r   |*
+  | .ZZA | 266 |
+  | .ZZB | 479 |
+  | .ZZC | 623 |
   Given cron runs "acctStats"
 
 Scenario: A member clicks on the summary tab

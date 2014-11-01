@@ -33,7 +33,8 @@ function bankTransfers($starting, $ending, $uid = NULL) {
   } elseif (!@$uid) $uid = $mya->id;
   
   $where = "t.completed BETWEEN :starting AND :ending ORDER BY t.completed DESC";
-  $fields = "CONCAT('b', tid) AS xid, amount, t.payer, t.payee, :TX_BANK AS type, t.completed AS created, '' AS data, IF(t.amount<0, 1, 0) AS toMe";
+//  $fields = "CONCAT('b', tid) AS xid, amount, t.payer, t.payee, :TX_BANK AS type, t.completed AS created, '' AS data, IF(t.amount<0, 1, 0) AS toMe";
+  $fields = "txid AS xid, amount, t.payer, t.payee, :TX_BANK AS type, t.completed AS created, '' AS data, IF(t.amount<0, 1, 0) AS toMe";
   
   if (@$ctty) { // community or region
     $sql = <<<EOF
@@ -372,8 +373,11 @@ function transfer($ttype, $a1, $a2, $amount, $goods = FALSE, $for, $created = NU
     $short = u\fmtAmt($shortfall);
     $otherName = $a2->fullName;
     $msg = ($goods ? 'short ' : 'short cash ') 
-    . ($reallyTaking ? ($a2->can(B_SECRET_BAL) ? 'from vague' : 'from') : 'to');
-    r\suggestMin($reallyTaking ? $a2 : $a1);
+    . ($reallyTaking ? ($a2->can(B_SECRET) ? 'from vague' : 'from') 
+                        : ($channel == TX_WEB ? 'to|short cash help' : 'to'));
+    $payerA = $reallyTaking ? $a2 : $a1;
+    if (!$payerA->can(B_DEBT) and $payerA->floor < 0 and $channel == TX_WEB) $msg .= '|try debt';
+    r\suggestMin($payerA);
     return r\txRet($msg, compact(u\ray('otherName short how')));
   }
   
@@ -436,7 +440,8 @@ function invoice($a1, $a2, $amount, $goods = FALSE, $purpose = NULL, $confirmed 
     $subs['a'] = "a href=\"$href\""; // link to pay/deny
     //$a2->update(u\ray('lastTx', array($nvid, $payee - $payer, round($amount, 2), $created, 'inv')));
     r\notify($payer, 'new invoice', $subs); // notify other party by email about this invoice
-    return array('report invoice', $subs + u\ray('success', TRUE), FALSE);
+    $msg = 'report invoice' . ($amount > 0 ? '|balance unchanged' : '');
+    return array($msg, $subs + ['success'=>TRUE], FALSE);
   } else return array('charge', $subs, TRUE);
 }
 

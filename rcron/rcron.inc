@@ -43,7 +43,7 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 
 WEEKLY
 - soldOut() and missedOut() tell members what they did that was dumb (sold rC or missed a chance to buy them)
-- after first month, lower floor according to sales (only if B_DEBT_OK)
+- after first month, lower floor according to sales (only if B_DEBT)
 
 MONTHLY
 - inflation adjustment (monthly, calculating daily bals from history) is credited to the new month. calculated as the sum of t*bal*APR, where bal is each balance they had during the preceding month and t is the number of years that balance lasted. (see daily notify and fine, above)
@@ -60,7 +60,7 @@ NOTES:
   where <star> means * (not the same as for the production site) 
  */
 
-include_once __DIR__ . '/../usd.class';
+//include_once __DIR__ . '/../usd.class';
 
 define('R_DAILY_TASKS', 'START recache checkAccts acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank notices END'); // had homogenize, pool 
 //define ('R_DAILY_TASKS', 'START redistribute END');
@@ -106,9 +106,10 @@ function everyHour() {
  * Account checks to do every hour.
  */
 function acctHourly($item) {
+  return; // nothing to do, currently
   extract(u\just('uid', $item));
   $a = r\acct($uid);
-  $a->shortfall('buy', PHP_INT_MAX); // notice recent deposits, if any
+//  $a->shortfall('buy', PHP_INT_MAX); // notice recent deposits, if any
 }
 
 function everyDay() {
@@ -123,54 +124,54 @@ function everyDay() {
  * Do things a certain number of days after the created, signed, invite, firstTx, last login, or last access date.
  */
 function tickle() {
-  // Remind newbie to take another step (or admin to activate it)
-  $delays = '1,2,3,5,8,13,21,34,55,89,144'; // Fibonacci progression of delays
-  $elapsed = '(FLOOR((:REQUEST_TIME-access)/:DAY_SECS)+1)';
-  $sql = "SELECT uid, $elapsed AS elapsed FROM users WHERE $elapsed IN ($delays) AND uid>1 AND NOT :IS_OK AND NOT :IS_NONUDGE";
-  queueEach('tickleStep', $sql);
+//  $delays = '1,2,3,5,8,13,21,34,55,89,144'; // Fibonacci progression of delays
+  $today = strtotime('today');
+  $timeSince = "(FLOOR(($today-@DATE)/:DAY_SECS)+1)"; // $today works better in tests than :REQUEST_TIME or time()
 
   // Remind invitee to accept
   $delays = '3,8,21';
-  $elapsed = str_replace('access', 'invited', $elapsed);
+  $elapsed = str_replace('@DATE', 'invited', $timeSince);
   $sql = <<<EOF
     SELECT email, inviter, code, $elapsed AS elapsed FROM r_invites i
     LEFT JOIN users u ON u.mail=i.email
     WHERE $elapsed IN ($delays) AND u.uid IS NULL AND invitee=0
 EOF;
   queueEach('tickleSignup', $sql);
-  
+    
+  // Remind newbie to take another step (or admin to activate it)
+  $delays = '1,2,3,5,8'; // Fibonacci progression of delays (followed by every week)
+  $elapsed = str_replace('@DATE', 'access', $timeSince);
+  $sql = <<<EOF
+    SELECT uid, $elapsed AS elapsed FROM users 
+    WHERE ($elapsed IN ($delays) OR ($elapsed>8 AND $elapsed%7=0))
+    AND uid>1 AND NOT :IS_OK AND NOT :IS_NONUDGE
+EOF;
+  queueEach('tickleStep', $sql);
+
   // Tickle sometime after first Tx (activation date)
-  $elapsed = str_replace('invited', 'firstTx', $elapsed);
+  $elapsed = str_replace('@DATE', 'date0', $timeSince);
   $months = "ROUND($elapsed/:MONTH_DAYS)";
   $start = strtotime('-6 months', strtotime('today', time()));
+  $day = date('d');
+  $tomorrow = date('d', strtotime('+1'));
   $sql = <<<EOF
     SELECT uid, $months AS months, monthly
     FROM users u LEFT JOIN (
-      SELECT payer, MIN(created) AS firstTx, SUM(IF(created<:start, 0, amount))/6 AS monthly
+      SELECT payer, MIN(created) AS date0, SUM(IF(created<:start, 0, amount))/6 AS monthly,
+      DAY(FROM_UNIXTIME(MIN(created))) AS day0
       FROM r_txs GROUP BY payer
     ) t ON t.payer=u.uid
     WHERE $elapsed>15 AND uid > 1 AND :IS_BONA
-    AND DAY(NOW())=IF(DAY(FROM_UNIXTIME(firstTx))>28, 1, DAY(FROM_UNIXTIME(firstTx)))
+    AND ($day=day0 OR (day0>$day AND $tomorrow=1) OR ($day>day0 AND DAY(FROM_UNIXTIME(date0))=1))
 EOF;
   queueEach('tickleActive', $sql, compact('start'));
   
   queueNextAfter('tickle');
 }
 
-function tickleStep($item) {
-  extract(u\just('uid elapsed', $item));
-  $a = r\acct($uid);
-  if (!$a->member and $step = $a->nextStep()) {
-    $msg = $step == 'verify' ? 'call bank' : (($step == 'sign' or $step == 'contact') ? 'do step one' : 'take another step');
-    $when = $elapsed < 3 ? 
-      (u\nextBusDay(+1) . t(' (how about 10am?)'))
-    : (u\nextBusDay(0) . t(' between 9am and 4pm')); // for verify
-    if ($step != 'verify' or $elapsed > 1) r\notify($a->id, "$msg|sign in", compact('when'));
-  } elseif (!$a->ok) {
-    return r\tellStaff('activate account', '', $a->uid);
-  }
-}
-
+/**
+ * Remind invitee to accept invitation.
+ */
 function tickleSignup($item) {
   global $base_url;
   extract(u\just('email inviter code elapsed', $item));
@@ -178,6 +179,26 @@ function tickleSignup($item) {
   $count = $elapsed < 7 ? t('two') : ($elapsed < 14 ? t('one') : 0);
   $nudge = $count ? u\tt("We will send you just @count more reminder(s)", compact('count')) : t('This is your last reminder');
   r\rMail('nonmember', $email, u\ray('inviterName nudge code noFrame', $inviterName, $nudge, $code, TRUE));
+}
+
+/**
+ * Remind newb to take another step.
+ */
+function tickleStep($item) {
+  extract(u\just('uid elapsed', $item));
+  $a = r\acct($uid);
+  if (!$a->member and $step = $a->nextStep()) {
+//    $msg = $step == 'verify' ? 'call bank' : (($step == 'sign' or $step == 'contact') ? 'do step one' : 'take another step');
+    $msg = ($step == 'sign' or $step == 'contact') ? 'do step one' : 'take another step';
+/*    $when = $elapsed < 3 ? 
+      (u\nextBusDay(+1) . t(' (how about 10am?)'))
+    : (u\nextBusDay(0) . t(' between 9am and 4pm')); // for verify
+    */
+//    if ($step != 'verify' or $elapsed > 1) r\notify($a->id, "$msg|sign in", compact('when'));
+    r\notify($a->id, "$msg|sign in");
+  } elseif (!$a->ok) {
+    return r\tellStaff('activate account', '', $a->uid);
+  }
 }
 
 /**
@@ -189,7 +210,7 @@ function tickleActive($item) {
   $ratio = $monthly ? $a->floor / $monthly : 0;
   if ($ratio > 1.1 or $ratio < .9) {
     $a->update(u\ray('floor', round(-$monthly, 2)));
-    $msg = 'new floor' . ($a->can(B_DEBT_OK) ? '' : '|no floor effect');
+    $msg = 'new floor' . ($a->can(B_DEBT) ? '' : '|no floor effect');
     r\notify($uid, $msg, u\ray('floor', u\fmtAmt(-$monthly)));
   }
 }
@@ -240,7 +261,7 @@ function everyWeek() {
  */
 function everyMonth() {
   $start = u\monthDay1($end = u\monthDay1() - 1);
-  if (t\est()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // the past 30 days
+  if (u\test()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // the past 30 days
   queueEach('inflationAdjust', "SELECT uid, $start AS start, $end AS end FROM users WHERE :IS_OK AND uid>1");  
   queueEach('shareCommitted', 'SELECT uid, committed, share FROM users WHERE :IS_OK AND committed>0');
 }
@@ -259,11 +280,11 @@ function everyYear() {
  * @param assoc $item:
  *   txid: payer's USD transaction id (payee's txid is one less)
  *   payee: uid of recipient
- */ 
+ */ /*
 function coverFee($item) {
   extract(u\just('txid payee', $item));
   $usA = new r\usd($a = r\acct($payee));
-  if (t\est()) $txid = t\seq() - 2; else $txid--; // get the payee's txid
+  if (u\test()) $txid = t\seq() - 2; else $txid--; // get the payee's txid
   if (!$fee = $usA->fee($txid)) return;
   if ($fee == '?') {
     r\tellStaff('no Dwolla for coverFee', $item);
@@ -279,7 +300,7 @@ function coverFee($item) {
   $a->actualUsd(-$fee);
   r\usd::commit();
 }
-
+*/
 //****************************************************
 
 /**
@@ -336,7 +357,7 @@ function usdTxsThereEND() {queueNextAfter('usdTxsThere');}
 
 function usdTxThere($item) {
   $uid = $item['uid'];
-  if (t\est() and realId($uid)) return; // ignore real accounts in tests
+  if (u\test() and realId($uid)) return; // ignore real accounts in tests
   $usAcct = new r\usd($a = r\acct($uid));
   $since = strtotime(R_ANCIENT_EFT. ' days ago'); // bank transfers sometimes take many days
   $usAcct->each('rCredits\\Cron\\usdTxQ', $since, u\ray('money_sent deposit withdrawal'));
@@ -350,14 +371,14 @@ function usdTxQ($info) {r\queue($info['Type'] == 'money_sent' ? 'lostUsdTx' : 'b
  *//*
 function lostUsdTx($tx) {
   extract(u\just('Id Notes Amount SourceId DestinationId Date', $tx));
-  if (!u\abbreviates(t\est() . USD_NOTE_PREFIX, $Notes)) return; // not one of ours
+  if (!u\abbreviates(u\test() . USD_NOTE_PREFIX, $Notes)) return; // not one of ours
   if (db\exists('r_usd', 'txid=:Id', compact('Id'))) return;
   $created = strtotime($Date);
-  if (!t\est() and time() - $created < 60) return; // too recent, maybe still in process? (handle tomorrow)
+  if (!u\test() and time() - $created < 60) return; // too recent, maybe still in process? (handle tomorrow)
   list ($txid, $amount) = array($Id, $Amount);
   $payer = r\whoseUsd($SourceId);
   $payee = r\whoseUsd($DestinationId);
-  if (t\est() and (!$payer or !$payee)) return;
+  if (u\test() and (!$payer or !$payee)) return;
   u\EXPECT($payer and $payee, "missing person in lost tx: payer=$payer payee=$payee");
   r\tellStaff("lost USD tx: #$txid $amount ($payer to $payee)", $tx, FALSE);
   r\usd::beginAtom();
@@ -388,7 +409,7 @@ function recache() {
 
 function recache1($item) {
   extract($item);
-  if (t\est() and realId($uid)) return; // ignore real accounts in tests
+  if (u\test() and realId($uid)) return; // ignore real accounts in tests
   $a = r\acct($uid);
   $a->cacheOk();
   //$a->update(compact(array_keys($item)));
@@ -427,7 +448,7 @@ function acctStats1($item, $asof = REQUEST_TIME) {
   extract(u\just('uid asof', $item));
   $a = r\acct($uid);
   $asof = strtotime('today', $asof);
-  $monthAgo = strtotime('-1 month', $asof);
+  $monthAgo = u\plusMonths(-1, $asof);
   $avgBalPastMo = @round(r\averageBalance($uid, $monthAgo, $asof, $minPastMo), 2);
   $avgBalEver = @round(r\averageBalance($uid, strtotime('today', $a->created), $asof), 2);
   $subs = compact('uid', 'monthAgo', 'asof');
@@ -454,7 +475,7 @@ EOF;
   $row3 = db\q($sql, $subs)->fetchAssoc() ?: array(); // get bankedEver, bankedPastMo
   $newData = $row1 + $row2 + $row3 + compact(u\ray('avgBalPastMo avgBalEver minPastMo'));
   foreach ($newData as $k => $v) $newData[$k] = round($v, 2); // avoid long decimals in data field
-  $a->update(u\ray('stats picture', $newData, $minPastMo * 100));
+  $a->update(u\ray('stats picture', serialize($newData), $minPastMo * 100));
 }
 
 /**
@@ -489,7 +510,7 @@ function trust() {
     SET u.trust=u.trust+:weight*b.bale WHERE NOT :IS_CO
 EOF;
   for ($i = 0, $weight = 1; $i < 32; $i++, $weight /= 2) db\q($sql, compact('weight'));
-  if (t\est()) db\q('UPDATE users SET trust=ROUND(trust, 2)'); // make the results easily testable
+  if (u\test()) db\q('UPDATE users SET trust=ROUND(trust, 2)'); // make the results easily testable
   queueNextAfter('trust');
 }
 
@@ -563,7 +584,7 @@ function homogenize() {
   $result = db\q('SELECT AVG(usd) AS avg, community FROM users WHERE uid>1 AND :IS_OK GROUP BY community');
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    queueEach('homogenize1', 'SELECT uid, usd, community AS ctty FROM users WHERE community=:community AND uid>1 AND usd>:avg AND :IS_BANK AND :IS_OK', compact('avg', 'community'));
+    queueEach('homogenize1', 'SELECT uid, usd, community AS ctty FROM users WHERE community=:community AND uid>1 AND usd>:avg AND :HAS_BANK AND :IS_OK', compact('avg', 'community'));
   }
   queueNextAfter('homogenize');
 }
@@ -576,7 +597,7 @@ function homogenize() {
 function homogenize1($item) {
   extract(u\just('uid usd ctty', $item));
   $a = r\acct($uid);
-  $result = db\q('SELECT uid AS uid2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND :IS_BANK AND r>=floor+:R_CHUNK ORDER BY usd', compact('ctty', 'usd'));
+  $result = db\q('SELECT uid AS uid2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND :HAS_BANK AND r>=floor+:R_CHUNK ORDER BY usd', compact('ctty', 'usd'));
   while ($row = $result->fetchAssoc()) {
     extract($row);
     $a2 = r\acct($uid2); // use the latest variables, because tradeR might have changed the values
@@ -597,7 +618,7 @@ function pool() {
     $ctty = r\acct($community);
     if (!$ctty->usdAccount) continue; // not-yet-active region or community account
 //    $sql = 'SELECT uid, usd, community FROM users WHERE uid>1 AND :IS_OK AND community=:community AND usd>=2*:R_CHUNK ORDER BY usd DESC';
-    $sql = 'SELECT uid, usd, community FROM users WHERE uid>1 AND :IS_BANK AND :IS_OK AND :community=:community AND usd>0 ORDER BY usd DESC'; // just one community for now
+    $sql = 'SELECT uid, usd, community FROM users WHERE uid>1 AND :HAS_BANK AND :IS_OK AND :community=:community AND usd>0 ORDER BY usd DESC'; // just one community for now
     //if ($ctty->usd / $total < R_CTTY_USD_SHARE) 
     queueEach('pool1', $sql, compact('community')); // okay if ctty has a bit too much
   }
@@ -617,10 +638,18 @@ function pool1($item) {
 */
 
 /**
- * Transfer funds from Dwolla to bank account or vice versa, according to account's settings
+ * 1. Mark deposited transfers complete 2 business days after deposit (if not already marked complete)
+ * 2. Transfer funds from member bank accounts to rCredits or vice versa, according to account's settings
+ * 3. Transfer funds from a connected account, if appropriate.
  */
 function bank() {
 //  $excess = 'LEAST(usd, :R_EXCESS)';
+  $weekday = strftime('%u', time()); // 1-7 Mon-Sun
+  if ($weekday < 6) { // no completions on Saturday or Sunday
+    $sql = 'SELECT * FROM r_usd WHERE amount<0 AND NOT completed AND deposit AND :REQUEST_TIME>=deposit+:R_USDTX_DAYS*:DAY_SECS';
+    queueEach('completeUsdTx', $sql);
+  }
+  
   $sql = <<<EOF
   SELECT uid, :R_SHORTFALL AS shortfall
   FROM users 
@@ -634,7 +663,14 @@ EOF;
   WHERE :R_SHORTFALL>0 AND minimum>0 AND uid>1 AND :IS_OK AND NOT :HAS_BANK AND r.draw
 EOF;
   queueEach('draw1', $sql);
+  
+  
   queueNextAfter('bank');
+}
+
+function completeUsdTx($item) {
+  extract(u\just('txid payer amount created', $item));
+  r\acct($payer)->completeUsdTx($txid, -$amount, $created);
 }
 
 function bank1($item) {
@@ -645,9 +681,9 @@ function bank1($item) {
 //  $usAcct = new r\usd($a);
 
 //  if ($usAcct->bank($amount, $error)) {
-  $a->bank($amount);
+  if (!$checkNum = $a->bank($amount)) return; // may never happen, but if mysql is unavailable just redo next day
   $amount = u\fmtAmt(abs(@$amount));
-  r\notify($uid, 'under min|banked', compact(u\ray('action amount')));
+  r\notify($uid, 'under min|banked|bank tx number', compact(u\ray('action amount checkNum')));
 //  } elseif (REQUEST_TIME - $a->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
 }
 
@@ -694,10 +730,10 @@ function notices() {
   $weekly = (strftime('%A') == R_WEEKLY_DAY or @$timeFor['weekly']);
   $monthly = (strftime('%d') == R_MONTHLY_DAY or @$timeFor['monthly']);
 
-  $where = $dailySql = '((NOT :IS_NOTICE_WEEKLY AND NOT :IS_NOTICE_MONTHLY) OR NOT :IS_MEMBER)'; // daily
-  if ($weekly) $where .= ' OR :IS_NOTICE_WEEKLY';
-  if ($monthly) $where .= ' OR :IS_NOTICE_MONTHLY';
-  $sql = "SELECT DISTINCT u.uid, :IS_NOTICE_WEEKLY AS weekly, :IS_NOTICE_MONTHLY AS monthly FROM r_notices n JOIN users u ON u.uid=n.uid WHERE NOT sent AND ($where)";
+  $where = $dailySql = '((NOT :IS_WEEKLY AND NOT :IS_MONTHLY) OR NOT :IS_MEMBER)'; // daily
+  if ($weekly) $where .= ' OR :IS_WEEKLY';
+  if ($monthly) $where .= ' OR :IS_MONTHLY';
+  $sql = "SELECT DISTINCT u.uid, :IS_WEEKLY AS weekly, :IS_MONTHLY AS monthly FROM r_notices n JOIN users u ON u.uid=n.uid WHERE NOT sent AND ($where)";
   queueEach('notice', $sql);
   queueNextAfter('notices');
 }
@@ -729,7 +765,7 @@ function queueNextAfter($task) {
   if ($cronOp == ONE_CRON_OP) return; // doing just one, so do nothing more
   $tasks = u\ray(R_DAILY_TASKS);
 
-  if (t\est() and @$cronOp and $cronOp != 'ALL') {
+  if (u\test() and @$cronOp and $cronOp != 'ALL') {
     r\queue($task == $cronOp ? 'END' : $cronOp);
   } else r\queue($tasks[array_search($task, $tasks) + 1]);
 }

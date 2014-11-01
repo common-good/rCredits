@@ -31,10 +31,10 @@ Scenario: A member gives a bad employee count
   When member ":ZZA" confirms form "account/company" with values:
   | selling | website     | description   | employees | gross |*
   | stuff   | www.pub.com | we do vittles |        -2 |   100 |
-  Then we say "error": "negative amount"
+  Then we say error in field "employees": "negative amount"
 
 Scenario: A member gives a bad gross
   When member ":ZZA" confirms form "account/company" with values:
   | selling | website     | description   | employees | gross |*
   | stuff   | www.pub.com | we do vittles |         2 |  junk |
-  Then we say "error": "bad amount"
+  Then we say error in field "gross": "bad amount"

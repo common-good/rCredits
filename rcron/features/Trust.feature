@@ -6,16 +6,16 @@ AND identify disjoint circles of trust that may flag potential security risks.
 
 Setup:
   Given members:
-  | id   | fullName   | email | flags      |*
-  | .ZZA | Abe One    | a@    | ok,dw,bona |
-  | .ZZB | Bea Two    | b@    | ok,dw,bona |
-  | .ZZC | Corner Pub | c@    | ok,dw,co   |
-  | .ZZD | Dee Four   | d@    | ok,dw      |
-  | .ZZE | Eve Five   | e@    | ok,dw      |
-  | .ZZF | Flo Six    | f@    | ok,dw      |
-  | .ZZG | Guy Seven  | g@    | ok,dw      |
-  | .ZZH | Hal Eight  | h@    | ok,dw      |
-  | .ZZI | Ida Nine   | i@    | ok,dw      |
+  | id   | fullName   | email | flags   |*
+  | .ZZA | Abe One    | a@    | ok,bona |
+  | .ZZB | Bea Two    | b@    | ok,bona |
+  | .ZZC | Corner Pub | c@    | ok,co   |
+  | .ZZD | Dee Four   | d@    | ok      |
+  | .ZZE | Eve Five   | e@    | ok      |
+  | .ZZF | Flo Six    | f@    | ok      |
+  | .ZZG | Guy Seven  | g@    | ok      |
+  | .ZZH | Hal Eight  | h@    | ok      |
+  | .ZZI | Ida Nine   | i@    | ok      |
   And proxies:
   | person | proxy | priority |*
   | .ZZA   | .ZZB  |        1 |

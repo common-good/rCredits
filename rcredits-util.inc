@@ -371,7 +371,7 @@ function fmtPhone($phone, $how = '+') {
     $phone = substr($phone, 1);
   } elseif (substr($phone, 0, 1) == '+') $foreign = $phone = substr($phone, 1);
 
-  if (!is_numeric($phone) or (!t\est() and strlen($phone) < MIN_PHONE_DIGITS) or strlen($phone) > MAX_PHONE_DIGITS) return FALSE;
+  if (!is_numeric($phone) or (!u\test() and strlen($phone) < MIN_PHONE_DIGITS) or strlen($phone) > MAX_PHONE_DIGITS) return FALSE;
   if (!$foreign and substr($phone, 0, 1) < 2) return FALSE; // US phone numbers cannot start with 0 or 1
   if (!$foreign and strlen($phone) != 10) return FALSE;
 
@@ -691,7 +691,7 @@ function ssnLookup($ssn) {
   $xml = file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.ssncheck');
   $xml = strtr($xml, u\ray('[ssnUser] [ssnPass] [ssn]', R_SSN_USER, R_SSN_PASS, $ssn));
   if (!isPRODUCTION) return file_get_contents('ssnresult.txt'); // testing
-  return file_get_contents("https://www.nationalpublicdata.com/feeds/FDSFeed.cfm?xml=" . urlencode($xml));
+  return @file_get_contents("https://www.nationalpublicdata.com/feeds/FDSFeed.cfm?xml=" . urlencode($xml));
 }
 
 /**
@@ -741,6 +741,7 @@ function fixPicture($filename, $aspect, $factor, $modify = TRUE, &$error = '') {
   if (!($acceptableImages & $type)) return (!$error = 'not an image');
   list ($w0, $h0) = explode(':', $aspect);
   $off = $w/$h - $w0/$h0; // how much is the aspect off by?
+///  debug(compact(u\ray('w h w0 h0 off aspect factor')));
   if (abs($off) > .35) return (!$error = 'aspect');
   $k = 1 - $off * $h / $w; // wFactor, if we need to correct width
   list ($wFactor, $hFactor) = $off > 0 ? array($k, 1) : array(1, 1 / $k);
@@ -1129,7 +1130,7 @@ EOF;
  */
 function code($len = 20) {
   global $nextCode;
-  return (t\est() and @$nextCode) ? $nextCode : \user_password($len);
+  return (u\test() and @$nextCode) ? $nextCode : \user_password($len);
 }
 
 function caller($skip = 0) {
@@ -1177,7 +1178,7 @@ function where($ray) {
  * @return the common speech term for the next business day starting then.
  */
 function nextBusDay($start = 0) {
-  return (strftime('%u', REQUEST_TIME + $start) > 5 and !t\est()) ? t('Monday')
+  return (strftime('%u', REQUEST_TIME + $start) > 5 and !u\test()) ? t('Monday')
   : ($start == 0 ? t('today') : ($start == 1 ? t('tomorrow') : strftime('%A', REQUEST_TIME + $start)));
 }
 
@@ -1226,6 +1227,21 @@ function abbreviates($s, $string, $noCase = FALSE) {
 }
 
 /**
+ * Return the time with some number of months added (or subtracted)
+ * @param int $months: how many months to add (may be negative)
+ * @param int $time: starting time (defaults to current time)
+ * @return int: the resulting time, same day of month if possible, otherwise last day of month.
+ * strtotime() should do this, but it actually returns March 2nd for strtotime('-1 month', strtotime('3/30/2014'))
+ */
+function plusMonths($months, $time = '') {
+  if ($time === '') $time = time();
+  if ($months > 0) $months = '+' . $months;
+  $res = strtotime($months . 'months', $time);
+  $day = date('d', $res);
+  return $day == date('d', $time) ? $res : strtotime("-$day", $res); // use last day of month if same day fails
+}
+
+/**
  * Return the value of the given bit.
  * @param mixed $bit:
  *   int - return the numeric value of that bit number (power of 2)
@@ -1237,6 +1253,7 @@ function getBit($n, $bit = NULL) {return is_null($bit) ? $n : (bool) ($n & u\bit
 function setBit(&$n, $bit, $on = TRUE) {return $n = $on ? ($n | u\bit($bit)) : ($n & ~u\bit($bit));}
 
 // Single line functions that need little or no explanation
+function test() {return (@TESTING == 1);} // set in test.php (when running an acceptance test)
 function nn($a, $else = '') {return is_null($a) ? $else : $a;}
 function num($a, $else = 0) {return is_numeric($a) ? $a : $else;}
 function eq($a, $b, $else = FALSE) {return $a == $b ? $a : $else;}
@@ -1282,6 +1299,6 @@ function rayv($a, $i) {return $a[$i];} // useful when $a is returned from a func
 function strip($a) {foreach ($a as $i => $v) $a[$i] = strip_tags($v); return $a;}
 function initials($s) {return preg_replace('/[^A-Z]/', '', ucwords(strtr($s, u\ray('Jr', ''))));}
 function roughName($name) {return preg_replace("/[^A-Z '\-]/", '', strtoupper(trim(str_replace('  ', ' ', $name))));}
-function urlArgs() {return basename(t\est() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);}
+function urlArgs() {return basename(u\test() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);}
 function in($a, $b) {return (strpos($a, $b) !== FALSE);}
 function uc1($s) {return ucwords(substr($s, 0, 1)) . substr($s, 1);}

@@ -73,9 +73,9 @@ Scenario: The caller confirms undoing a payment
   # "You gave Corner Pub $100 cash/loan/etc. Your new balance is $150. Transaction #2"
 
 Scenario: The caller refuses to pay the latest invoice
-  Given transactions:
-  | created   | state       | amount | from | to   | purpose  | taking |*
-  | %today    | %TX_PENDING | 100    | .ZZA | .ZZB | cleaning | 1      |
+  Given invoices:
+  | created   | status      | amount | from | to   | purpose  |*
+  | %today    | %TX_PENDING | 100    | .ZZA | .ZZB | cleaning |
   When phone +20001 confirms "undo"
   Then we say to phone +20001 "report undo" with subs:
   | solution          |*
@@ -85,9 +85,9 @@ Scenario: The caller refuses to pay the latest invoice
   | %today  | Bea Two  | Abe One    | $100   | cleaning       |
 
 Scenario: The caller refuses a pending payment
-  Given transactions:
-  | created   | state       | amount | from | to   | purpose | taking |*
-  | %today    | %TX_PENDING | 100    | .ZZC | .ZZA | wages   | 0      |
+  Given invoices:
+  | created   | status      | amount | from | to   | purpose |*
+  | %today    | %TX_PENDING | 100    | .ZZC | .ZZA | wages   |
   When phone +20001 confirms "undo from .ZZC"
   Then we say to phone +20001 "report undo" with subs:
   | solution          |*

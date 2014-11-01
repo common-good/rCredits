@@ -5,17 +5,17 @@ SO CGF can continue to promote and maintain the rCredits system for my benefit a
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType    | flags      | share |*
-  | .ZZA | Abe One    | -100  | personal    | ok,bona    |    50 |
-  | .ZZB | Bea Two    | -200  | personal    | ok,co,bona |    10 |
-  | .ZZC | Corner Pub | -300  | corporation | ok,co,bona |     0 |
+  | id   | fullName   | floor | acctType    | flags        | share |*
+  | .ZZA | Abe One    | -100  | personal    | ok,bona,debt |    50 |
+  | .ZZB | Bea Two    | -200  | personal    | ok,co,bona   |    10 |
+  | .ZZC | Corner Pub | -300  | corporation | ok,co,bona   |     0 |
   When transactions: 
   | xid | created | type     | amount | from | to   | purpose |*
   |   1 | %today  | transfer |     40 | .ZZA | .ZZB | what G  |
   |   2 | %today  | rebate   |      2 | ctty | .ZZA | rebate on #1 |
   |   3 | %today  | bonus    |      4 | ctty | .ZZB | bonus on #1  |
 
-Scenario: Inflation adjustments are distributed
+Scenario: members share their transaction rewards
   When cron runs "lessOften"
   Then gifts:
   | id   | giftDate | amount | often | honor  | share |*

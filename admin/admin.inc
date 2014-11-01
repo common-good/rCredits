@@ -14,6 +14,7 @@ use rCredits\DB as db;
 use rCredits\Backend as be;
 use rCredits\Testing as t;
 use rCredits\Util as u;
+use rCredits\Admin as a;
 
 /**
  * Set up the basic user accounts and relations on the server.
@@ -24,18 +25,18 @@ function setupBasicAccounts() {
   if (db\exists('users', 'uid=:server', compact('server'))) return; // already done
   $keys = u\ray('uid community name fullName mail postalCode country minimum rebate flags');
 
-  $values = array($server, $server, R_REGION_SHORTNAME, R_REGION_NAME, R_REGION_EMAIL, R_REGION_POSTAL_AREA, R_COUNTRY_ID, 0, 0, u\bit(array(B_OK, B_DW, B_CO)));
+  $values = array($server, $server, R_REGION_SHORTNAME, R_REGION_NAME, R_REGION_EMAIL, R_REGION_POSTAL_AREA, R_COUNTRY_ID, 0, 0, u\bit(array(B_OK, B_CO)));
   $info = array_combine($keys, $values);
   $info += u\ray('legalName postalAddr', R_REGION_LEGALNAME, R_REGION_ADDR);
   new r\acct($info);
 
-  $values = array(r\unQuid('R_ADMIN_QID'), $server, 'williamspademan', ADMIN_NAME, R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_DW)));
+  $values = array(r\unQuid('R_ADMIN_QID'), $server, 'williamspademan', ADMIN_NAME, R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK)));
   $info = array_combine($keys, $values);
   list ($phone, $address, $city, $state) = array('+14136281021', 'PO Box 305', 'Ashfield', R_STATE_ID);
   $info += compact(u\ray('mail phone address city state'));
   $wws = new r\acct($info);
   
-  $values = array(r\unQuid('NEW.AAB'), $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_DW, B_CO)));
+  $values = array(r\unQuid('NEW.AAB'), $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_CO)));
   $info = array_combine($keys, $values);
   list ($phone, $address, $city, $state) = array(CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
   $info += compact(u\ray('mail phone address city state'));
@@ -78,7 +79,7 @@ function showSteps($a) {
 function showActivity($a) {
   $uid = $a->id;
   $cgf = r\cgfId();
-  $when = strtotime('-3 months');
+  $when = u\plusMonths(-3);
   $count = $a->co ? db\count('r_txs', 'payee=:uid AND created>:when', compact('uid', 'when'))
     : db\count('r_txs', 'payer=:uid AND payee<>:cgf AND created>:when', compact(u\ray('uid cgf when')));
   $ret = t('@count @what', u\ray('@count @what', $count, $a->co ? t('sales') : t('purchases')));
@@ -156,26 +157,32 @@ function usdAccts($where = "postalCode LIKE '013%'") {
 define('ID_KEYS', 'id uid t.uid myid payer payee main other inviter invitee proxy person owner defaultAgent');
 
 function showRecords($ray) {
-  $cgfLen = strlen(r\cgfId());
   if (!$ray or empty($ray)) return 'data set is empty';
   $lines[] = '<tr><th>' . join('</th><th>', array_keys((array) $ray[0])) . "</th></tr>\n";
   foreach ($ray as $row) {
     $line = '';
-    foreach ($row as $key => $value) {
-      if ($value and in_array($key, u\ray(ID_KEYS)) and strlen($value) >= $cgfLen) {
-        if ($a = r\acct($value)) $value = $a->name; else $value .= t(' (missing)'); // eg, when uid is changed
-      } // member ID. Don't include agent/payerAgent/etc. here
-      if ($value and $key == 'channel') $value = u\rayv(u\ray(TX_CHANNELS), $value);
-      if ($key == 'reid') $value = str_replace(R_MEMBER_MARK, R_AGENT_MARK, r\quid($value));
-      if ($value and in_array($key, u\ray(R_DATE_FIELDS))) $value = '<div style="line-height:65%;">' . strftime('%d%b', $value) . '<span style="font-size:50%;">\'' . strftime('%y', $value) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $value) . '</span></div>';
-//      if ($key == 'flags') $value = "<div style='text-transform:capitalize; font-size:7px; line-height:11px;'>" . bs($value) . '</div>';
-      if ($key == 'flags') $value = "<div style='text-transform:none; font-size:7px; line-height:11px;'>" . bs($value) . '</div>';
-      if ($key == 'for2' and $value == $row->for1) $value = 'same';
-      $line .= "  <td>$value</td>\n";
+    foreach ($row as $k => $v) {
+      $v = a\formatField($k, $v);
+      if ($k == 'for2' and $v == $row->for1) $v = 'same';
+      $line .= "  <td>$v</td>\n";
     }
     $lines[] = $line;
   }
   return "<table>\n<tr>" . join("</tr>\n<tr>\n", $lines) . "</tr>\n</table>";
+}
+
+/**
+ * Return the given field, formatted for viewing.
+ */
+function formatField($k, $v) {
+  if ($v and in_array($k, u\ray(ID_KEYS)) and strlen($v) >= strlen(r\cgfId())) {
+    if ($a = r\acct($v)) $v = $a->name; else $v .= t(' (missing)'); // eg, when uid is changed
+  } // member ID. Don't include agent/payerAgent/etc. here
+  if ($v and $k == 'channel') $v = u\rayv(u\ray(TX_CHANNELS), $v);
+  if ($k == 'reid') $v = str_replace(R_MEMBER_MARK, R_AGENT_MARK, r\quid($v));
+  if ($v and in_array($k, u\ray(R_DATE_FIELDS))) $v = '<div style="line-height:65%;">' . strftime('%d%b', $v) . '<span style="font-size:50%;">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
+  if ($k == 'flags') $v = "<div style='text-transform:none; font-size:7px; line-height:11px;'>" . a\flagsDesc($v, B_LIST) . '</div>';
+  return $v;
 }
 
 /**
@@ -213,13 +220,15 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
  */
 function ssnCheck($a) {
   if (!$ssnData = @$a->ssnData) {
-    $ssnData = u\ssnLookup($a->federalId);
+    if (!$ssnData = u\ssnLookup($a->federalId)) return r\Web\say(t('No data returned from ssnLookup (probably timed out).'));;
     $xml = simplexml_load_string($ssnData);
     $json = json_encode($xml);
     $ssnData = json_decode($json, TRUE);
-    if ($ssnData['ResultCount']) $a->update(compact('ssnData')); // ResultCount is 0 for tests and failures
-  }
-  $d = $ssnData['searchResults'];
+    if (!is_array($d = $ssnData['searchResults']) or $ssnData['ResultCount'] + 0 <= 0) {
+      return r\Web\say(t('No SSN data available: ') . print_r($d, 1));
+    }
+    $a->update(compact('ssnData')); // ResultCount is 0 for tests, <=0 for failure
+  } else $d = $ssnData['searchResults'];
   
   $name = $a->fullName . ($a->legalName == $a->fullName ? '' : "<br>$a->legalName");
   $rows[] = array(t('Data Given'), $name, u\fmtDate($a->dob), r\location($a, TRUE), '', '');
@@ -227,16 +236,18 @@ function ssnCheck($a) {
   $rows[] = array(t('Found'), $name, u\fmtDate(strtotime($one->dob)), $d['deathsearchresults'] ? 'DEAD' : '', '', '');
   
   $counties = array();
-  foreach($d['addresses']['address'] as $one) {
-    $one = (object) $one;
-    $rows[] = array($one->datereported ? u\fmtDate(strtotime($one->datereported)) : '', ssnName($one), $one->dob ? u\fmtDate(strtotime($one->dob)) : '', ssnAddr($one), ucwords(strtolower($one->county)));
-    $counties[$one->county] = 1;
+  $addresses = $d['addresses']['address'];
+  if (@$addresses['lastname']) $addresses = [$addresses];
+  foreach($addresses as $rec) {
+    $rec = (object) $rec;
+    $rows[] = array($rec->datereported ? u\fmtDate(strtotime($rec->datereported)) : '', ssnName($rec), $rec->dob ? u\fmtDate(strtotime($rec->dob)) : '', ssnAddr($rec), ucwords(strtolower($rec->county)));
+    if (REQUEST_TIME - @strtotime($rec->datereported) < 10 * YEAR_SECS) $counties[$rec->county] = 1;
   }
-  if (!is_numeric($a->moves)) $a->update('moves', max(0, count($counties) - 1));
+  if (!@$a->moves) $a->update('moves', max(0, count($counties) - 1));
   
   $lines = '';
-  foreach ($rows as $one) {
-    list ($head, $name, $dob, $address, $county) = $one;
+  foreach ($rows as $rec) {
+    list ($head, $name, $dob, $address, $county) = $rec;
     $lines .= "<tr><th>$head</th><td>$name</td><td>$dob</td><td>$address</td><td>$county</td></tr>\n";
   }
   
@@ -246,7 +257,7 @@ function ssnCheck($a) {
   $lines
   </table>
 EOF;
-}  
+} 
 
 function ssnName($v) {
   foreach (u\ray('firstname middlename lastname') as $k) $$k = $v->$k ?: ''; // convert array() to ''
@@ -379,7 +390,7 @@ function makeTestCards() {
 $a = a('nya.aaa');
     $usdPass = f('u.code') . '*B2'; // satisfy Dwolla (and our own security)
     $usdEmail = strtolower(f('u.code',4) . '.' . $a->mainQid . '@rc4.me');
-    //if (t\est()) $usdEmail = 'wspademan+' . strtolower(\user_password(4) . '.' . $this->mainQid) . '@gmail.com';
+    //if (u\test()) $usdEmail = 'wspademan+' . strtolower(\user_password(4) . '.' . $this->mainQid) . '@gmail.com';
     $usdPin = f('u.randomString', 4, 'digits');
 //    if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
     $usdPhone = $a->phone;
@@ -504,22 +515,16 @@ function eachAcct($func = 'changeIt') {
 /**
  * General purpose utility, usually called from eachAcct, as above.
  * For example:
- *    changeIt($a):
- *    $us = new r\usd($a);
- *    $us->each('rCredits\\Cron\\bankFollowup', 0, u\ray('deposit withdrawal'));
- 
+ *    changeIt($a);
   include_once __DIR__ . '/../rcredits/admin/admin.inc';
   foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
   f('a.changeIt', $one);
 OR changeIt(a('aaa'));
 }
-
  */
 function changeIt($a) {
-  if (!$a->ok) return;
-  $err = '';
-  shrinkPhoto($a, $err); if (!$err) $err = 'OK';
-/**/  debug("$a->fullName: $err");
+  if ($a->bankAccount) $a->setRisk('hasBank');
+  $a->setBit(4, FALSE);
 }
 
 function fixRelations() {
@@ -543,6 +548,19 @@ function fixRelations() {
 /**/  debug("Record MOVED: $reid to $newReid ($mainName -- $otherName)");
     }
   }
+}
+
+/**
+ * Return a readable list of names of bits set in the given integer bit array.
+ * @param int $n: the bit array
+ * @param string $list: delimited list of bit names
+ * @return list of bit names set in $n
+ */
+function flagsDesc($n, $list) {
+  $bits = u\ray($list);
+  $res = '';
+  for ($i=0; $i <= B_MAX; $i++) if ($n & u\bit($i)) {$res .= $bits[$i] . ' ';}
+  return $res;
 }
 
 /*

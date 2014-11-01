@@ -111,54 +111,38 @@ class rsmsTransact extends DrupalWebTestCase {
     . '\\| did     | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
     And__('we notice "new invoice" to member "c@" with subs: "ASSOC'
-    . '\\| created | fullName   | otherName | amount | payerPurpose |'
-    . '\\| %today  | Corner Pub | Abe One    | $100   | labor       |"');
+    . '\\| created | fullName   | otherName | amount | purpose |'
+    . '\\| %today  | Corner Pub | Abe One   | $100   | labor   |"');
   }
 
-  // Scenario: The caller confirms a unilateral charge
-  public function testTheCallerConfirmsAUnilateralCharge_0() {
+  // Scenario: The caller requests a payment with insufficient balance
+  public function testTheCallerRequestsAPaymentWithInsufficientBalance_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('phone +20001 can charge unilaterally');
-    When_('phone +20001 confirms "100 from .ZZC for labor"');
-    Then_('the community has r$-765');
-    And__('phone +20003 has r$155');
-    And__('we say to phone +20001 "report transaction" with subs: "ASSOC'
-    . '\\| did     | otherName | amount | rewardType | rewardAmount | balance | tid |'
-    . '\\| charged | Corner Pub | $100   | bonus       | $10           | $360    | 2   |"');
-    And__('we notice "new charge" to member "c@" with subs: "ASSOC'
-    . '\\| created | fullName   | otherName | amount | payerPurpose |'
-    . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
-  }
-
-  // Scenario: The caller confirms a payment with insufficient balance
-  public function testTheCallerConfirmsAPaymentWithInsufficientBalance_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    When_('phone +20001 confirms "300 to .ZZC for groceries"');
-    Then_('the community has r$-787.50');
-    And__('phone +20003 has r$525');
-    And__('we say to phone +20001 "report short payment" with subs: "ASSOC'
-    . '\\| did    | otherName | amount | short | balance | tid |'
-    . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
+    When_('phone +20001 says "300 to .ZZC for groceries"');
+    And__('we say to phone +20001 "short to" with subs: "ASSOC'
+    . '\\| short |'
+    . '\\| $50   |"');
   }
 
   // Scenario: The caller asks to pay the latest invoice
   public function testTheCallerAsksToPayTheLatestInvoice_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('invoices: "ASSOC'
-    . '\\| created   | state       | amount | from | to   | purpose| taking |'
-    . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |"');
+    . '\\| created   | status      | amount | from | to   | purpose|'
+    . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  |"');
+    And__('the expected nonce for phone +20003 is "NONCY"');
     When_('phone +20003 says "pay"');
     Then_('we say to phone +20003 "confirm pay invoice|please confirm" with subs: "ASSOC'
-    . '\\| amount | otherName | created   |'
-    . '\\| $100   | Abe One    | %today-3d |"');
+    . '\\| amount | otherName | created | nonce |'
+    . '\\| $100   | Abe One   | %dmy-3d | NONCY |"');
   }
 
   // Scenario: The caller confirms payment of the latest invoice
   public function testTheCallerConfirmsPaymentOfTheLatestInvoice_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('invoices: "ASSOC'
-    . '\\| created   | state       | amount | from | to   | purpose| taking |'
-    . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |"');
+    . '\\| created   | status      | amount | from | to   | purpose|'
+    . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  |"');
     When_('phone +20003 confirms "pay"');
     Then_('the community has r$-765');
     And__('phone +20001 has r$360');
@@ -171,9 +155,9 @@ class rsmsTransact extends DrupalWebTestCase {
   public function testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('invoices: "ASSOC'
-    . '\\| created   | state       | amount | from | to   | purpose| taking |'
-    . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |'
-    . '\\| %today-1d | %TX_PENDING | 100    | .ZZC | .ZZB | labor  | 1      |"');
+    . '\\| created   | status      | amount | from | to   | purpose|'
+    . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  |'
+    . '\\| %today-1d | %TX_PENDING | 100    | .ZZC | .ZZB | labor  |"');
     When_('phone +20003 says "pay .ZZA"');
     Then_('we say to phone +20003 "confirm pay invoice|please confirm" with subs: "ASSOC'
     . '\\| amount | otherName | created   |'

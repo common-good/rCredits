@@ -3,6 +3,7 @@ namespace rCredits\SMS;
 use rCredits as r;
 use rCredits\Backend as be;
 use rCredits\Util as u;
+use rCredits\Db as db;
 
 /**
  * @file
@@ -46,6 +47,7 @@ class call {
    *   what to reply to the caller
    */
   function handle_call() {
+    return t('rCredits text messaging has been discontinued.');
     if (!r\up()) return tt('system down');
     if ($mya = r\acct() and !$mya->cttyUp) return tt('your community down', u\ray('contact', $mya->cAdminContact()));
     try {
@@ -298,7 +300,6 @@ class call {
    * Give funds to the caller from someone else.
    */
   function do_charge() {
-    return tt('no charging');
     return $this->do_transfer('charge');
   }
 
@@ -313,39 +314,51 @@ class call {
     $mya = r\acct();
     $myid = $mya->id;
 
-    if (!$mya->can(B_BUY)) return tt('no perm', u\ray('what', t('purchases')));
-    extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe xid
-    if (isset($my_amount)) return $this->do_transfer('payment'); // complete syntax
+    if (!$mya->can(B_BUY)) return tt('no perm', ['what' => t('purchases')]);
+    extract(u\just('amount who xid', $this->parms));
+    if (isset($amount)) return $this->do_transfer('payment'); // complete syntax
     
     // confirmed invoice payment
     if ($this->confirmed) {
-      list ($message, $args) = be\payInvoice($my_xid);
+      list ($message, $args) = be\payInvoice($xid);
       return tt($message, $args);
     }
     
     // unconfirmed invoice payment
-    $where = 'xid<=0 AND payer=:myid';
-    if (isset($my_who)) {
-      if (!u\isAcct($acct = be\identify($my_who))) return tt($acct); // return if error
-      $otherUid = $acct->id;
-      $where .= ' AND payee=:otherUid';
-    }
-    if(!$result = be\lastTx($where, compact(u\ray('myid otherUid')))) return tt('no matching invoice');
-    $this->parms['xid'] = $result['xid'];
-    return $this->confirm('pay invoice', r\txReportArgs($mya, $result));
+    $where = 'status=:TX_PENDING ORDER BY nvid DESC';
+    $fields = 'nvid,amount,payee,created';
+    if (isset($who)) {
+      if (!u\isAcct($a = be\identify($who))) return tt($a); // return if error
+      $payee = $a->id;
+      $res = db\lookup($fields, 'r_invoices', "payee=:payee AND $where", compact('payee'));
+    } else $res = db\lookup($fields, 'r_invoices', $where);
+
+    if(!$res) return tt('no matching invoice');
+    extract($res);
+    $this->parms['xid'] = $nvid;
+    $otherName = r\acct($payee)->fullName;
+    $created = u\fmtDate($created);
+    $amount = u\fmtAmt($amount);
+    return $this->confirm('pay invoice', compact(u\ray('otherName amount created')));
   }
   
   /**
    * Create a transaction for the caller.
+   * @param string $type: 'payment' or 'charge'
    */
   function do_transfer($type) {
-    extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
+    extract(u\just('amount who what', $this->parms));
 
-    $acct = be\identify($my_who);
-    if ($acct != 'ALL' and !u\isAcct($acct)) return tt($acct); // return the array if error
+    $a = be\identify($who);
+    if ($a != 'ALL' and !u\isAcct($a)) return tt($a); // return the array if error
 
-    list ($message, $args, $confirm) = be\transfer($type, r\acct(), $acct, $my_amount, !u\forCash($my_what), $my_what, NULL, $this->confirmed);
-    return $confirm ? $this->confirm($message, $args) : tt($message, $args);
+    $mya = r\acct();
+    $goods = !u\forCash($what);
+    
+    list ($msg, $args, $confirm) = 
+      $type == 'payment' ? be\transfer($type, $mya, $a, $amount, $goods, $what, NULL, $this->confirmed)
+      : be\invoice($mya, $a, $amount, $goods, $what, $this->confirmed);
+    return $confirm ? $this->confirm($msg, $args) : tt($msg, $args);
   }
   
 } // end of SMS call class definition

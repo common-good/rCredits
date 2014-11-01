@@ -44,3 +44,4 @@ define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars
 define('R_INFLATION_RATE', .05); // annual USD inflation rate (but never less than zero) (extra big is okay)
 define('R_LAUNCH', strtotime('12/15/2013'));
 define('R_ADMIN_QID', 'NEW.AAA'); // William's account code
+define('R_USDTX_DAYS', 2); // how many days it takes for a transfer to clear from bank to rCredits account

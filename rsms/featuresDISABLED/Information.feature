@@ -13,7 +13,7 @@ Scenario: Getting information
   And the total demand for rCredits is $26,987.56
   When phone %number1 says "information"
   Then we say to phone %number1 "account info" with subs:
-  | quid    | balance | rewards | totalDemand  |
+  | quid    | balance | rewards | totalDemand  |*
   | NEW.ZZA | $200    | $2.50   | $26,987.56   |
   # "Your balance is $200, including $2.50 rewards. The current demand for rCredits is $26,900."
   # Leave the cents off balance and rewards rather than adding ".00". 
@@ -24,6 +24,6 @@ Scenario: Getting information, larger amounts
   And the total demand for rCredits is $1,226,987.25
   When phone %number1 says "information"
   Then we say to phone %number1 "account info" with subs:
-  | quid    | balance     | rewards  | totalDemand   |
+  | quid    | balance     | rewards  | totalDemand   |*
   | NEW.ZZA | $100,000.01 | $99,908  | $1.22 million |
   # "Your balance is $100,000.01, including $99,908 not yet available. The current demand for rCredits is $1.22 million."

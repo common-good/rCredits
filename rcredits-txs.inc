@@ -61,7 +61,7 @@ function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $opti
     foreach(u\just(TX_DOWNLOAD_MONEY_FIELDS, $totDone) as $key => $value) $totDone[$key] = round($value, 2);
     //if ($value === FALSE) $totDone[$key] = '-';
     u\csv(array_values($totDone));
-    if (!t\est()) exit();
+    if (!u\test()) exit();
   }
   
   return array($header, $classes, @$download ? $rows : sortRows($rows), $totDone);
@@ -229,9 +229,9 @@ function addRow(&$tot, $row, $tx, &$csvRow = '') {
 }
 
 function txColoredState($data) {
-  $state = @$data['disputed'] ? 1 : 0;
   $states = array('&#10004;', 'disputed');
   $colors = array('green', 'red');
+  $state = @$data['disputed'] ? 1 : 0;
   $color = $colors[$state];
   $state = $states[$state];
   return "<span style='color:$color;'>$state</span>";

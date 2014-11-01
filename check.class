@@ -45,6 +45,7 @@ class Check extends \TCPDF {
    * @param mixed $borders: border width if numeric or "B" for bottom, "R" for right, etc. (default none)
    */
   public function say($text, $x, $y, $w = '', $h = '', $format = '', $align = '', $borders = 0) {
+    global $pdfSays; $pdfSays[] = $text;
     $formats = [];
     $font = 'Arial';
     $size = CHECK_FONT_SIZE;

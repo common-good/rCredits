@@ -44,10 +44,10 @@ class rcronSharing extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "ASSOC'
-    . '\\| id   | fullName   | floor | acctType    | flags      | share |'
-    . '\\| .ZZA | Abe One    | -100  | personal    | ok,bona    |    50 |'
-    . '\\| .ZZB | Bea Two    | -200  | personal    | ok,co,bona |    10 |'
-    . '\\| .ZZC | Corner Pub | -300  | corporation | ok,co,bona |     0 |"');
+    . '\\| id   | fullName   | floor | acctType    | flags        | share |'
+    . '\\| .ZZA | Abe One    | -100  | personal    | ok,bona,debt |    50 |'
+    . '\\| .ZZB | Bea Two    | -200  | personal    | ok,co,bona   |    10 |'
+    . '\\| .ZZC | Corner Pub | -300  | corporation | ok,co,bona   |     0 |"');
     When_('transactions: "ASSOC'
     . '\\| xid | created | type     | amount | from | to   | purpose |'
     . '\\|   1 | %today  | transfer |     40 | .ZZA | .ZZB | what G  |'
@@ -59,8 +59,8 @@ class rcronSharing extends DrupalWebTestCase {
     }
   }
 
-  // Scenario: Inflation adjustments are distributed
-  public function testInflationAdjustmentsAreDistributed_0() {
+  // Scenario: members share their transaction rewards
+  public function testMembersShareTheirTransactionRewards_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('cron runs "lessOften"');
     Then_('gifts: "ASSOC'

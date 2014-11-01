@@ -1,3 +1,79 @@
+2014-11-01
+. SMS text messaging is discontinued
+. continued eliminating hooks for Dwolla
+. no longer trying to shrink company photos
+. tests are now independent of rcredits (but not Drupal)
+. set flag bits if contribution to score is 1/20 or more (make it a defined constant)
+. show Go button on memberInfo form
+. after saving summary, if any risk bits changed, rerun the risk calculation for that account
+. added a permissions bit for regulators (and bank partners) that is read-only
+. people still think they're done after the 0th step. Made it more obvious ("WAIT!" big)
+. changed TX_SMART to TX_POS (we expect to have another app or a more general app, that lets the payer initiate)
+. changed "I don't have a bank" to "no bank" on paper signup
+. show quarterly/monthly etc. for gift on summary!
+. zapped r_ach table. (replacement is being created by transforming r_usd)
+. added share % to summary even when not activating
+. added "no connected bank account for now" to Bank Info page
+. now shows a picture of where to find routing and acct numbers. Sort of like http://www.nationwide.com/routing-and-account-numbers.jsp does. Or draw a mockup of a check and put those two fields in the right places.
+. hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
+. duplicate phones no longer forbidden
+. bank account removal
+. user can see notices online
+. Summary show helper name.
+. assume any "share" less than 1% is already hundredths
+. individual notice page should be under history (history/notice)
+. not-yet-member companies should not appear on Find Co list
+. when a member draws from another for part of a purchase, leave a zero balance, if not debt okay
+. on flags page do not give links (just titles) for unprivileged users
+. allow user to select time range for Flags
+. add minimum and other settings to Summary screen (for admin)
+. When a member is short, include in the message some mention of debtok and floor, if not debtok.
+. wrote plusMonths to handle month arithmetic (strtotime does it weird)
+. on history, show bank tid as txid, not b-something
+. first admin test (for printing checks)
+. tell member the txid when banking (say or notice)
+. after creating company, sign user back in with company account selected and status page displayed
+. fixed bug: creating company account fails (creates acct but goes to sign in with no message and fails to create relation)
+. add a users changes field and TEST
+. give message to app on "time" request, when an update is needed: "You need to download the latest version of this app from the Play Store.
+. on NSF for cash/loan/etc., explain that rewards cannot be cashed out
+. in cron, set completed date for outstanding bank transfers deposited 2 business days ago. And write tests.
+. expired invites no longer count as dups
+. limit Fibonacci to 8 (just keep repeating every 8 days thereafter)
+. data tasks:
+	0. Backup NEW db and copy it to WS
+	1. Do all of the below on WS
+	. DROP TABLE r_banks
+	. upload r_banks and r_transit
+	. upload software
+	. reinstall: /devel/reinstall?destination=sadmin/handy
+	. ALTER TABLE users DROP column question, DROP column maximum;
+	  ALTER TABLE r_txs DROP column usdXid, DROP column r, DROP column completed;
+	  DROP TABLE r_ach;
+	  UPDATE users SET share=50 WHERE share>50;
+	. copy new fonts to TCPDF folder
+	. include_once __DIR__ . '/../rcredits/admin/admin.inc';
+	  f('a.eachAcct', function($a) {$a->setRisk('hasBank', (bool) $a->bankAccount); $a->setBit(1, FALSE); $a->setBit(4, FALSE); $a->setBit(8, FALSE);});
+	  a(-26742000000001)->setBit(1, FALSE);
+	  a(-25026000000001)->setBit(1, FALSE);
+	. make sure Dan's account can request a bank transfer
+	. make sure Admin users list shows no unused bits 
+	. make note of who has how much USD (11 rows):
+	  CGF 8.52, GFM 7.91, heatherG 10, leighR 60, matthewG 10, scottR 40, Sheila 20, snows 6.75, pint 6.40, upinngil 9.85, rWM 40,894.78
+	. make note of who has pending bank transfers, for how much (and keep track of them as they come in over the next few days) (11 rows): betsy 70, fred 120, jeffC 30 / nancyHaz 40, tamaraMcK 10, ellenK 70, andyG 50, johnWaite 100 / peter 190, mona 110, realpick 601.12
+	. a('abr')->update('bankAccount', ''); a('abr')->setRisk('hasBank', FALSE); // zap Stephen Cobb's locked account
+	. UPDATE users SET r=r+usd WHERE usd IS NOT NULL (11 rows)
+	. DELETE FROM r_usd WHERE amount<0 and NOT completed AND txid<6030837 (5 rows)
+	. UPDATE r_usd SET completed=NOW() WHERE amount<0 AND payee=0 AND completed=0 (11 rows)
+	. UPDATE r_usd SET deposit=1 WHERE amount<0 AND payee=0 AND completed>0 (686 rows)
+	2. Backup NEW rcredits module (in case we need to undo the update)
+	3. connect CGF's rCredits escrow account (in Dwolla)
+	4. Do #1 on NEW (except Dwolla stuff)
+		a. alert people who need to reconnect their bank account
+		b. alert people who were unable to have a connected bank account that they can now, if they want: Emi, Helen, Carol Letson, Marilyn Andrews, Ed Smith
+		c. alert people who are OK and hasBank but not old bank bit(not verified) that funds can be transferred to and from their account (and will be if they are below their minimum): Keegan Rodgers, Just Abundance, Inc., Delta Carney, Preston M. Browning, Jr., Kristie Faufaw, Christopher B Rawlings, Amylia Jackson, Henrietta M. Startup, Peter Garbus, Jennifer Ladd, Will Savitri, Just Soap, Richard G. Kelly, Daphne Bye, Clare Higgins, Artisan Beverage Cooperative
+		d. on WS:  include_once __DIR__ . '/../rcredits/admin/admin.inc'; f('a.makeTestCards');
+		
 2014-10-21 (rWeb tests do not pass -- not usable yet)
 . hidable advanced settings for Txs
 . cron now calculates the right values for trust (was giving some negative values).

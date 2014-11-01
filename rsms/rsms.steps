@@ -75,6 +75,7 @@ function phoneHasNoAccount($number) {
  *     MAKE Transact TheCallerAsksToPayAMemberId
  *     MAKE Transact TheCallerAsksToPayAPlayerByName
  *     MAKE Transact TheCallerAsksToChargeAMemberId
+ *     MAKE Transact TheCallerRequestsAPaymentWithInsufficientBalance
  *     MAKE Transact TheCallerAsksToPayTheLatestInvoice
  *     MAKE Transact TheCallerAsksToPayTheLatestInvoiceFromAParticularMember
  *     MAKE Undo UndoTheLastTransaction
@@ -131,8 +132,7 @@ function weSayToPhone($number, $message) {
  *     TEST Transact TheCallerAsksToChargeAMemberId
  *     TEST Transact TheCallerConfirmsAPayment
  *     TEST Transact TheCallerConfirmsARequestToCharge
- *     TEST Transact TheCallerConfirmsAUnilateralCharge
- *     TEST Transact TheCallerConfirmsAPaymentWithInsufficientBalance
+ *     MAKE Transact TheCallerRequestsAPaymentWithInsufficientBalance
  *     TEST Transact TheCallerAsksToPayTheLatestInvoice
  *     TEST Transact TheCallerConfirmsPaymentOfTheLatestInvoice
  *     TEST Transact TheCallerAsksToPayTheLatestInvoiceFromAParticularMember
@@ -228,8 +228,6 @@ function phoneEmailIs($number, $email) {
  *     TEST Exchange TheCallerAsksToTradeCashForRCredits
  *     TEST Transact TheCallerConfirmsAPayment
  *     TEST Transact TheCallerConfirmsARequestToCharge
- *     TEST Transact TheCallerConfirmsAUnilateralCharge
- *     TEST Transact TheCallerConfirmsAPaymentWithInsufficientBalance
  *     TEST Transact TheCallerConfirmsPaymentOfTheLatestInvoice
  *     TEST Undo Setup
  *     TEST Undo TheCallerConfirmsUndoingACharge
@@ -263,8 +261,6 @@ function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
  * the community has r$(ARG)
  *
  * in: TEST Transact TheCallerConfirmsAPayment
- *     TEST Transact TheCallerConfirmsAUnilateralCharge
- *     TEST Transact TheCallerConfirmsAPaymentWithInsufficientBalance
  *     TEST Transact TheCallerConfirmsPaymentOfTheLatestInvoice
  *     TEST Undo Setup
  *     TEST Undo TheCallerConfirmsUndoingACharge
@@ -321,8 +317,6 @@ function members($list) {return t\members($list);}
  * in: MAKE Exchange Setup
  *     MAKE Transact Setup
  *     MAKE Undo Setup
- *     MAKE Undo TheCallerRefusesToPayTheLatestInvoice
- *     MAKE Undo TheCallerRefusesAPendingPayment
  */
 function transactions($list) {return t\transactions($list);}
 
@@ -333,8 +327,6 @@ function transactions($list) {return t\transactions($list);}
  *     MAKE Exchange TheCallerConfirmsAnImplicitTradeOfRCreditsForCash
  *     MAKE Transact TheCallerConfirmsAPayment
  *     MAKE Transact TheCallerConfirmsARequestToCharge
- *     MAKE Transact TheCallerConfirmsAUnilateralCharge
- *     MAKE Transact TheCallerConfirmsAPaymentWithInsufficientBalance
  *     MAKE Transact TheCallerConfirmsPaymentOfTheLatestInvoice
  *     MAKE Transact TheCallerAsksToPayACompanyAgent
  *     MAKE Undo TheCallerConfirmsUndoingACharge
@@ -347,7 +339,7 @@ function phoneConfirms($number, $request) {
   phoneSays($number, $request);
 ///  debug(be\todo($number));
 ///  if (!$nonce = be\todo($number)->nonce) debug(print_r(compact('number','request','nonce'), 1));
-  if (!$nonce = be\todo($number)->nonce) return FALSE; // (null kills phoneSays)
+  if (!$nonce = be\todo($number)->nonce) return FALSE;
   phoneSays($number, $nonce);
   return TRUE;
 }
@@ -355,7 +347,7 @@ function phoneConfirms($number, $request) {
 /**
  * phone (ARG) can charge unilaterally
  *
- * in: MAKE Transact TheCallerConfirmsAUnilateralCharge
+ * in: 
  */
 function phoneCanChargeUnilaterally($number) {
   global $testOnly;
@@ -370,6 +362,7 @@ function phoneCanChargeUnilaterally($number) {
  *
  * in: MAKE Help ACallerTypesAnUnrecognizedCommand
  *     MAKE Help CallerGivesTheWrongNonce
+ *     MAKE Transact TheCallerAsksToPayTheLatestInvoice
  */
 function theExpectedNonceForPhoneIs($number, $nonce) {
   global $testOnly;
@@ -452,7 +445,6 @@ function balances($list) {return t\balances($list);}
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
  * in: TEST Transact TheCallerConfirmsARequestToCharge
- *     TEST Transact TheCallerConfirmsAUnilateralCharge
  *     TEST Undo TheCallerRefusesToPayTheLatestInvoice
  *     TEST Undo TheCallerRefusesAPendingPayment
  */
@@ -464,8 +456,7 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  * in: MAKE Transact TheCallerAsksToPayTheLatestInvoice
  *     MAKE Transact TheCallerConfirmsPaymentOfTheLatestInvoice
  *     MAKE Transact TheCallerAsksToPayTheLatestInvoiceFromAParticularMember
+ *     MAKE Undo TheCallerRefusesToPayTheLatestInvoice
+ *     MAKE Undo TheCallerRefusesAPendingPayment
  */
-function invoices($arg1) {
-  global $testOnly;
-  todo;
-}
+function invoices($list) {return t\invoices($list);}

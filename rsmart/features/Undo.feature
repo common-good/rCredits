@@ -18,7 +18,7 @@ Setup:
   | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |      5 | ok,bona    |
   | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,bona |
   | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |      5 | ok,bona    |
-  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |      5 | ok,bona,secret_bal |
+  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |      5 | ok,bona,secret |
   | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,bona |
   And devices:
   | id   | code |*

@@ -34,13 +34,14 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'system down' => t('The rCredits system is under maintenance at the moment. Try again in a few minutes?'),
   'your community down' => t('Your rCredits community is temporarily on hold. Contact your rCredits Community Admin for details: @contact'),
   'other community down' => t('That rCredits community is temporarily on hold.'),
-  'account info' => t("Your balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @totalDemand."),
+  'account info' => t('Your balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @totalDemand.'),
 //  'account info2' => t("More account info"), // not used yet
 //  'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
-  'report transaction' => t("You @did @otherName @amount (@rewardType: @rewardAmount)."),
-  'report offer' => t("You offered @otherName @amount (@rewardType: @rewardAmount). Your balance is unchanged, pending acceptance."), //  Transaction #@tid
-  'report invoice' => t("You @did @otherName @amount. Your balance is unchanged, pending payment."), // Invoice #@tid
-  'report broke invoice' => t("@otherName does not have enough rCredits at this time, so an invoice has been sent, for @short."), // UNUSED probably // Invoice #@tid
+  'report transaction' => t('You @did @otherName @amount (@rewardType: @rewardAmount).'),
+  'report offer' => t('You offered @otherName @amount (@rewardType: @rewardAmount). Your balance is unchanged, pending acceptance.'), //  Transaction #@tid
+  'report invoice' => t('You @did @otherName @amount.'), // Invoice #@tid
+  'balance unchanged' => t('Your balance is unchanged, pending payment.'),
+  'report broke invoice' => t('@otherName does not have enough rCredits at this time, so an invoice has been sent, for @short.'), // UNUSED probably // Invoice #@tid
 //  'report short payment' => t("SPLIT! You paid @otherName @amount (@short remains to be paid). Transaction #@tid"),
 //  'report short invoice' => t("SPLIT! You charged @otherName @amount (@short has been invoiced). Transaction #@tid, Invoice #@t2id"),
 //  'report short invoice' => t("SPLIT! You charged @otherName @amount (@short remains to be paid). Transaction #@tid"),
@@ -111,14 +112,16 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'over max' => t('Your balance is over the maximum you set.'),
   'under min' => t('Your balance has fallen below the minimum you set.'),
   'banked' => t('A request has been made to @action your bank a total of @amount. This request may take up to 5 days to go through.'),
+  'bank tx number' => t('The transaction will appear on your bank statement as check #@checkNum.'),
   'drew' => t('A total of @amount has been drawn from your connected account(s).'),
   'payment exchange received' => t('You received from @fullName a payment exchange of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
   'payment exchanges offered' => t('You made payment exchanges to @offers @whom, totaling @total.'),
   'card ordered' => t('A Company Agent rCard will be US mailed to @name.'),
-  'balances' => t('Your balance available to spend is @toSpend. You can move up to @toCash today to your bank account.'),
+  'balances' => t('@toSpend to spend (you can <@a>cash out</a> up to @toCash today).', ['@a' => 'a href=' . $GLOBALS['base_url'] . '/help/cashing-out']),
   'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
   'new floor' => t('Your allowable minimum balance has been changed to @floor, based on your average use of rCredits over the past 6 months.'),
   'no floor effect' => t('This currently has no effect, because you chose not to let your balance go negative. To change this setting, sign in at rCredits.org, click the Settings gear, then the Preferences tab. Put a check mark next to "Debt Okay" and save your preferences.'),
+  'available now' => t('The funds are available immediately in your rCredits account.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -173,12 +176,14 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'short cash to' => t('You are @short short, for that exchange.'),
   'short cash from' => t('@otherName is @short short for that exchange.'),
   'short cash from vague' => t('@otherName does not have enough rCredits for that exchange.'),
+  'short cash help' => t('<@a>Click here</a> for more information about cashing out incentive rewards.', ['@a'=>'a href=' . $GLOBALS['base_url'] . '/help/cashing-out']),
   'short to' => t('You are @short short, for that payment. Increase your minimum!'),
   'short from' => t('@otherName is @short short for this request.'),
   'short from vague' => t('@otherName does not have enough funds for this request.'),
   'min too low' => t('Your minimum is set too low, causing conflicting deposits and withdrawals from your bank account. To increase your minimum to @suggestion, visit the @page page (under Settings).'),
   'you were short' => t('You tried to make a purchase but did not have enough funds in your account. A higher "minimum" setting might keep this from happening again. To increase your minimum to the recommended setting of @suggested, <@a1>click here</a>.'),
   'be not secretive' => t('Also, you have chosen to keep your balance secret. <@a2>Click here to change that</a> and let the cashier tell you how much you are short next it happens.'),
+  'try debt' => t('You might also want to select "Debt Okay" in your Preferences (there is no charge for using reserve credit as long as you bring your balance back up within 30 days). <@a3>Click here to select "Debt Okay".</a> '),
   'click option' => t('OR <a href="@url">click here</a>'),
 //  'shortr to' => t('You do not have enough rCredits, for that transaction. Type "get r <amount>" to get more rCredits.'),
 //  'shortr from' => t('@otherName does not have enough rCredits for that transaction at this time.'),
@@ -337,33 +342,6 @@ function create($number, $uid, $status = SMS_PRIMARY) {
 ///  debug("creating SMS record for number $code, uid $uid");
   return r\makeDevice($uid, $number, TX_SMS);
 }
-
-/**
- * Add the cell owner's full name to the account.
- * @return the full name
- *//*
-function setup_name($acct, $fullName) {
-  $fullName = str_replace('  ', ' ', trim($fullName));
-  if (strlen($fullName) > 60) throw new rSMSexception(tt('name too long'));
-  if (!u\validName($fullName)) throw new rSMSexception(tt("what's your name really?"));
-  $fullName = u\normalizeCase($fullName);
-  $name = r\uniqueName($fullName);
-//  if (r\userField(1, 'name=:name', compact('name'))) throw new rSMSexception(tt('duplicate name'));
-  $acct->update(compact('name', 'fullName'));
-  return $fullName;
-}
-*/
-
-/**
- * Add the caller's email to the account.
- * @return object: the account
- *//*
-function setup_email($acct, $email) {
-  if (!\valid_email_address($email)) throw new rSMSexception(tt("what's your email really?"));
-  if (r\userField(1, 'mail=:email', compact('email'))) throw new rSMSexception(tt('duplicate email'));
-  $mail = $init = $email;
-  return $acct->update(compact('mail', 'init'));
-}*/
 
 /**
  * Return a pattern that includes all abbreviations of the word.

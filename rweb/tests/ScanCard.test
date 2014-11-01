@@ -55,23 +55,6 @@ class rwebScanCard extends DrupalWebTestCase {
     And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| :ZZB | .ZZC | .ZZB  | read       |"');
-    And__('transactions: "ASSOC'
-    . '\\| xid | created   | type   | amount | from | to   | purpose | taking |'
-    . '\\|   1 | %today-6m | signup |    250 | ctty | .ZZA | signup  | 0      |'
-    . '\\|   2 | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |'
-    . '\\|   3 | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |"');
-    And__('balances: "ASSOC'
-    . '\\| id   | usd  |'
-    . '\\| ctty | 1000 |'
-    . '\\| .ZZA |  100 |'
-    . '\\| .ZZB |  200 |'
-    . '\\| .ZZC |  300 |"');
-    Then_('balances: "ASSOC'
-    . '\\| id   | r    |'
-    . '\\| ctty | -750 |'
-    . '\\| .ZZA |  250 |'
-    . '\\| .ZZB |  250 |'
-    . '\\| .ZZC |  250 |"');
     break;
 
 

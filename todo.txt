@@ -8,16 +8,15 @@ To Do
 - Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site)
 
 Before growing fast:
-. write rCredits Security Protocols
-. choose one of the following banks for our business account, so we can maybe do remote deposit of check images someday: Bank of America, Chase, US Bank, Zions Bank, Bank of the West or Wells Fargo
-. ACH debits (need EIN doc, cert from town, signers in person with ss#/dob/license/physAddr)
-  OR "remotely-created checks" (RCC) with "remote deposit" OR "electronically-created payment orders"
-  (treasury management). The following accounts will need to re-supply a routing number and bank account number: Adam Konner, William Spademan, John G Root Jr, Janet Henderson, John F. Eichholz, Alden Booth, Barbara Ann Fingold, Julia Bond Ellingboe, Gary L. Schaefer, Diane C. Miller, Peter Robert Letson, Jennifer Atlee, Nancy Hazard, Denise M. Ward, Daniel S Rosenberg, Addie Rose Holland, Ellen Kaufmann, Rebecca Jane Meier, 
-. add employee count and gross to all businesses (and tenure/mediaconx to all individuals) created before 10/5/2014
+. DONE write rCredits Security Protocols
+. "remotely-created checks" (RCC). The following accounts will need to re-supply a routing number and bank account number: Adam Konner, William Spademan, John G Root Jr, Janet Henderson, John F. Eichholz, Alden Booth, Barbara Ann Fingold, Julia Bond Ellingboe, Gary L. Schaefer, Diane C. Miller, Peter Robert Letson, Jennifer Atlee, Nancy Hazard, Denise M. Ward, Daniel S Rosenberg, Addie Rose Holland, Ellen Kaufmann, Rebecca Jane Meier, 
+. tell members about RCC (including risks, benefits, privacy, safeguards etc.)
+. write to each participating business. Describe identity verification onsite through app. Ask them for employee count and annual gross
+. add mediaconx to all individual accounts created before 10/5/2014
 . DONE emails and invites don't get marked as spam
 . DONE economic circle(s)
 . 2 more new board members, including a business leader
-. Ask David Kulp to set up replication
+. DONE Ask David Kulp to set up replication
 . DONE ID verification
 . DONE Software:
   - DONE invoices
@@ -25,75 +24,86 @@ Before growing fast:
 . $25 for inviting and helping (software and promo)
 . get GFM and Foster's to pay suppliers and/or employees at least half what they take in
 . after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
-. tell members about ACH (including risks, benefits, privacy, safeguards etc.)
 . ask GFCU: checking account? ACHs just for GFCU customers? not even now just for food-system related txs?
-. open rWMR account
-. get 15-mo CD at Citizens
+. DONE open rWMR account (dba rCredits account for rCredits escrow, at Citizens. I made it clear that we were providing escrow service to our members, for their payments to their associations (that are also members of S2BE).
+. ? (ask board) get 15-mo CD at Citizens before end of November. Deposit $20k.
 
 TASKS FOR NEXT UPDATE:
+0. Backup NEW db and copy it to WS
+1. Do all of the below on WS
+. DROP TABLE r_banks
 . upload r_banks and r_transit
-. reinstall
-. UPDATE r_usd SET deposit=1 WHERE amount<0 AND payee=0 AND completed>0
-. ALTER TABLE users DROP column question, DROP column maximum
+. upload software
+. reinstall: /devel/reinstall?destination=sadmin/handy
+. ALTER TABLE users DROP column question, DROP column maximum;
+  ALTER TABLE r_txs DROP column usdXid, DROP column r, DROP column completed;
+  DROP TABLE r_ach;
+  UPDATE users SET share=50 WHERE share>50;
 . copy new fonts to TCPDF folder
-(no other special tasks yet)
+. include_once __DIR__ . '/../rcredits/admin/admin.inc';
+  f('a.eachAcct', function($a) {$a->setRisk('hasBank', (bool) $a->bankAccount); $a->setBit(1, FALSE); $a->setBit(4, FALSE); $a->setBit(8, FALSE);});
+  a(-26742000000001)->setBit(1, FALSE);
+  a(-25026000000001)->setBit(1, FALSE);
+. make sure Dan's account can request a bank transfer
+. make sure Admin users list shows no unused bits 
+. make note of who has how much USD (11 rows):
+  CGF 8.52, GFM 7.91, heatherG 10, leighR 60, matthewG 10, scottR 40, Sheila 20, snows 6.75, pint 6.40, upinngil 9.85, rWM 40,894.78
+. make note of who has pending bank transfers, for how much (and keep track of them as they come in over the next few days) (11 rows): betsy 70, fred 120, jeffC 30 / nancyHaz 40, tamaraMcK 10, ellenK 70, andyG 50, johnWaite 100 / peter 190, mona 110, realpick 601.12
+. a('abr')->update('bankAccount', ''); a('abr')->setRisk('hasBank', FALSE); // zap Stephen Cobb's locked account
+. UPDATE users SET r=r+usd WHERE usd IS NOT NULL (11 rows)
+. DELETE FROM r_usd WHERE amount<0 and NOT completed AND txid<6030837 (5 rows)
+. UPDATE r_usd SET completed=NOW() WHERE amount<0 AND payee=0 AND completed=0 (11 rows)
+. UPDATE r_usd SET deposit=1 WHERE amount<0 AND payee=0 AND completed>0 (686 rows)
+2. Backup NEW rcredits module (in case we need to undo the update)
+3. connect CGF's rCredits escrow account (in Dwolla)
+4. Do #1 on NEW (except Dwolla stuff)
+    a. alert people who need to reconnect their bank account
+	b. alert people who were unable to have a connected bank account that they can now, if they want: Emi, Helen, Carol Letson, Marilyn Andrews, Ed Smith
+	c. alert people who are OK and hasBank but not old bank bit(not verified) that funds can be transferred to and from their account (and will be if they are below their minimum): Keegan Rodgers, Just Abundance, Inc., Delta Carney, Preston M. Browning, Jr., Kristie Faufaw, Christopher B Rawlings, Amylia Jackson, Henrietta M. Startup, Peter Garbus, Jennifer Ladd, Will Savitri, Just Soap, Richard G. Kelly, Daphne Bye, Clare Higgins, Artisan Beverage Cooperative
+	d. on WS:  include_once __DIR__ . '/../rcredits/admin/admin.inc'; f('a.makeTestCards');
+5. Ask Dwolla if there will be any problem transferring $40k from rWM to CGF, then moving it to CGF's bank account (rWM is a project of CGF)
+6. transfer all funds from each user to CGF (in Dwolla) after they come in
+7. transfer all funds from rWM to CGF (as much per day as possible)
+8. call Angela at Citizens to warn her that funds are coming
+9. transfer all funds from CGF to bank account
 
-. *** in cron, set completed date for outstanding bank transfers deposited 2 days ago.
-. reflect rCredits escrow amount due each community on graphs
-. expired invites should not count as dups (maybe count as dups only unaccepted invites sent within last 2 weeks)
-. when a member draws on another for part of a $167.43 purchase against a $71.94 balance, it says $0 short.
-. when a member draws from another for part of a purchase, draw enough to leave a zero balance, if not debt okay (bug as of 10/7/2014)
-. set flag bits if contribution to score is 1/20 or more (make it a defined constant)
-. make moves and tenure editable fields on Summary
-. show Go button on memberInfo form
-. on Flags page, change labor... to labor, and automatic transfer... to automatic transfer else suppress non-rcard
-. not-yet-member companies should not appear on Find Co list
-. add proxies, invited by, invited, and trust score to summary
+. do not allow companies to draw from bank (yet)
+. in statements categorization, separate other (goods & services) from other (cash/loan/etc.)
+. in statements, add "..." to abbreviated categories
 . set community r caches in cron (to track inter-community debts)
-. allow user to select time range for Flags (default to past week)
+. in cron, if any created date in r_txs is more than two days (48 hours) off from its predecessor, tell admin about it (including how far off): get min xid0 in past 3 days, select xid where xid>xid0 but created<now-3days
+. don't make account opener manager if "by" is ADMIN or cadmin (and give account a temp password)
+. * add a Pay button to member company rCredits webpage
+. *** txs should not show X (undo) on receipts, for non-buyers
+. moves is off by one when current county does not appear in ss-search list
+. joint accounts: implement as a higher-level view of two or more accounts (for anyone who has read permission on those accounts?)
+. JGR2 says inflation tx does not appear on statements summary
+. when admin changes "goods"ness of a transaction, data gets double-serialized (don't. and look for data starting "{{")
+. when admin enters data from paper, remember it was paper (risk bit), present the "Add Another Account" button, ask for inviter (accept an email or name), offer a single checkbox for "signed", etc.
+. after ditching Dwolla, delete r_usd transactions with payee<>0
+. reflect rCredits escrow amount due each community on graphs
+. when a member draws on another for part of a $167.43 purchase against a $71.94 balance, it says $0 short.
+. make moves and tenure editable fields on Summary
+. on Flags page, change labor... to labor, and automatic transfer... to automatic transfer else suppress non-rcard
+. add proxies, invited by, invited, and trust score to summary
 . always show all red flags
 . describe selected flag at top of Flags help page
-• Spell out more detail for “An individual account has the same postal address”?
- “A web search for this individual or company produces sketchy results” is vague. Specify who can make that decision?
-• “Something is akimbo” is unusual usage. Akimbo refers only to body position, I think.
-• “Something just seems a little off” is very vague. Explain how it gets set.
-• Are “exchanges cash” and “trades cash” the same?
-• Puzzled by “ without an invoice. And no mention of an invoice in the transaction description”. How else would we know it‘s “without an invoice”?
 . force=-1 does not get recorded in the reversing transaction!
-. why does cron Risk test fail when run as part of the whole Cron suite? (but not otherwise)
 . somehow two identical grocery purchases were recorded for Nancy Hazard, from one POS request (not forced). One was later reversed by the device. Try to detect and prevent that (don't accept two charge requests from a single device within a few seconds of each other? wait a sec?) (handle as well as possible from both ends)
-. after saving summary, if any risk bits changed, rerun the risk calculation for that account
 . combine txedit with txInfo form and allow editing of txAdminOk bit (only), along with amount, goods, and for. 
+. for business accounts, the how-to-sign-in email should mention signing in to PERSONAL acct and choosing the company from the dropdown in the upper right corner
 . setting either adminOk or txAdminOk should record who did it in notes (for acct) or data (for tx)
 . whenever a suspicious account participates in a transaction (even an automatic one), email the admin (include a list of acct risks) OR calculate each transaction risk right away (next cron) and email if it's risky
 . let cAdmin2 see history without changing account (like for memberInfo)
-. add an admin3 bit for regulators (and bank partners) that is read-only
 . notify people when their invitees start signing up and finish signing up. Also, when a week or a month goes by and they haven't accepted the invitation or finished signing up or verified their bank account
-. people still think they're done after the 0th step. Make it more obvious ("WAIT!" filling the screen?)
 . see whether 2nd-degree invitees behave any differently from 1st degree
-. change TX_POS to TX_POS (we expect to have another app or a more general app, that lets the payer initiate)
 . make account selection give first letters and submenus, for admin (as well as full qid and/or choose ctty first)
-. change "I don't have a bank" to "no bank" on paper signup
-. limit Fibonacci to 8 (just keep repeating every 8 days thereafter)
-. show quarterly/monthly etc. for gift on summary!
-. create r_ach by transforming r_usd!
-. add share % to summary even when not activating
 . Real Pickles got an inappropriate cache mismatch (~"minimum is -500.00, should be 0")
 . simplify what happens when user selects an account from the dropdown (should be fast)
-. for business accounts, the how-to-sign-in email should mention signing in to PERSONAL acct and choosing the company from the dropdown in the upper right corner
-. ** creating company account fails (creates acct but goes to sign in with no message and fails to create relation)
 . in notices, when $ drawn from bank automatically, tell member how to adjust settings (maybe tell how every time?)
-. add "no connected bank account for now" to Bank Info page
-. no "verify" reminder if not can dw (eg Jenny Ladd account)
 . annual tax ack for sharing rewards
 . bug: changing Preston's notice frequency works, but does not say "saved" and the spinner persists.
-. in statements categorization, separate other (goods & services) from other (cash/loan/etc.)
-. in statements, add "..." to abbreviated categories
-. give message to app on "time" request, when an update is needed: "You need to download the latest version of this app from the Play Store. Be sure to set your device to update apps automatically."
-. split off from users data any fields that are usually set (especially helper, which should be included in changeUid list)
-. make bank connection optional, with other choices listed.  "no bank" option on signup: require the connect step even if no dw, but put a no-bank option on the BankInfo form
 . forbid unauthorized signed-out transactions (in smart.inc), because app accidentally allowed a refund by a cashier without being signed in.
-. after creating company, sign user back in with company account selected and status page displayed
 . add share pct to preference page
 . make a changeUid interface for Admin: select account1 from lookup box, go to separate page to input target community
 . improve "send another invite" message so people click the link.
@@ -101,13 +111,7 @@ TASKS FOR NEXT UPDATE:
 . add graphs 2-4 to the account statements in a "Community" section, with short explanations of the significance.
 . handle separate USD balances for each community, without requiring a separate USD account (?) Better if we can open multiple accounts for ACH!
 
-. Jesse Seaver says: I think this summary would be better served in a table layout, with date, description, and amount, vs a string including this information as it is now. 
-
-Also, I feel that it’s important these kinds of statements are set up in a way in which people are used to. I would mimic a major banking statement as much as possible, but make it more lighthearted and fun. Like a real bank, but a bank that is unique in this way as well. Getting your monthly statement should be fun, and something I look forward to right? So, it needs to have a little more personality and feel like a real credit statement. 
-
-Attached is a quick example if what I would do with the monthly message below. 
-
-Also, a couple notes : 
+. Jesse Seaver says: 
 
 1. The first line of a new account shouldn’t say my account fell below the sufficient balance. Because I am a new user, it should say “Initial Deposit” or something like that. 
 
@@ -122,26 +126,17 @@ Also, a couple notes :
 6. Add icons to the balance listing, or at least + and - signs in red or green depending on whether it’s a debit or credit. 
 
 . for rebates/bonuses, give xid# for ctty purpose (eg "rebate on #3847")
-. subtotals by purpose in downloaded PDFs (and CSV?)
 . maybe change relations qid to company QID dot letter, like NEW.AAB.A, meaning <first employee of the AAB company> (relations table will need a company sequence number). This will allow the app to distinguish companies offline.
 . notices should say to contact us at community admin's email address (not necessarily new@rcredits.org)
 . rdo for min needs expires date (all entries should have an expires date)
-. donations on Summary page: always show honors and howoften. show sum separately from first.
-. helper field on Summary page should be qid and (fullName)
-. when admin enters data from paper, remember it was paper (flag bit?), present the "Add Another Account" button, ask for inviter (accept an email or name), offer a single checkbox for "signed", etc.
 . add link to explanation of rCredits staying in the system on Summary and Bank pages
 . bug: memberInfo form shows "can ?" for Emily on Adam's record
 . remove invoicing code from be\transfer (but crash if called inappropriately)
 . leave erroneous export fields blank and don't leave a dangling "-" on zip
-. joint accounts: implement as a higher-level view of two or more accounts (for anyone who has read permission on those accounts?)
-. unset bits u10, u15, u19
 . explain tax options on 1099-B page
 . add "check online" to the ticklers
-. put memberInfo in Summary?
 . handle failed deposits/withdrawals (notify the member)
-. fix rSMS Transact and Undo tests
 . establish ways to prove we know who the member is (show photo, etc)
-. LATER new company bit for sell cash (set it for GFM, test with CGF)
 . link on signup pages "Skip this step and return to Checklist"
 . graph improvements:
   - (from mike) might be interesting to show on the statistics page not only the number of signed up users but also lines for how many have used their card in the last 30 days. Or any other way to measure activity.
@@ -151,34 +146,27 @@ Also, a couple notes :
 . when reversing a sharing in ws., reversed tx gets wrong tid in purpose and offsetting tx does not appear (BAD)
 . track buyers and sellers in stats: SELECT DISTINCT uid,fullName FROM r_txs t, users u WHERE uid IN (payer, payee) AND uid>1 AND payee<>26742000000002 AND payer>0
 . scatter graph: sector II x-axis buyers (primarily) pay y-axis sellers (primarily). sector I y-axis sellers pay x-axis buyers (mostly payroll), order by how extreme ($bought-$sold), with extremes on the top/outside
-. tell newbs their bank's phone number (to make it easy to confirm the deposits)
 . Adam: I've noticed the rcredits member site keeps me logged in long after I've stopped using it, even after I close the tab and then reopen it hours or days later. For a financial site where money can be moved, I'd recommend either auto-logout after 10-20 minutes of inactivity, or (better) requiring me to re-enter my password before doing certain things like paying people if it's been more than 10-20 min since I last entered it. 
-. on NSF for cash/loan/etc., explain that rewards cannot be cashed out
-. implemented a FREEZE button for cttyadmins (disables transfers of USD out)
+. implement a FREEZE button for cttyadmins (disables transfers of USD out)
 . change cached "r" field in users to bal (total of r and usd)
 . use legalName on Relations page!!
-. now includes inviter in proxy list
+. include inviter in proxy list
 . Pay page does not figure shortfall properly (omits draw!)
 . If Matt leaves his phone untouched for X minutes and Sheila picks it up, should it insist that she sign in? Or at least say “Are you still Matt?” ?
 . Should we not allow you to undo the last transaction if it was more than Y minutes ago?
-. remade patch files
-. made "back to member list" link on member info page go to bookmark for the edited account
-. fixed messy security page for admins
-. made some Preferences "advanced"
-. added "[?]" to "cash/loan/etc", linking to more info -- including an example of reimbursement
-. add a checkbox for "I don’t have a bank account" (and I can find another rCredits member to pay me in rCredits or trade rCredits for US Dollars or allow my account to draw from their account automatically) 
-. let other communities have a list of not-yet-members
-. added a users data field: require PIN for purchases over $x. (requires a change to App also)
+. remake patch files
+. make "back to member list" link on member info page go to bookmark for the edited account
+. fix messy security page for admins
+. make some Preferences "advanced"
+. add "[?]" to "cash/loan/etc", linking to more info -- including an example of reimbursement
+. let other communities have a list of not-yet-members?
+. require PIN for purchases over $x. (requires a change to App also)
 . option to send text message on purchase
-. * add a Pay button to member company rCredits webpage
-. * hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
 - * detailed membership tests: New Pass, Photo, Agreement, Donate, Proxies, Usd, proof of ID, Options
 
 . maybe change tx type from TX_SIGNUP to TX_PIONEER for early txs where payerFor='pioneer bonus'
 . add link to the agreement on rCredits.org
 . give admin tweak msg upon SHOWING bank form
-. *** txs should not show X on receipts, for non-buyers
-. *** monthly pdf statements
 - ** implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
 - for admin, put initial gift and share% on member's Summary page (attached to addr)
 . when opening "another account", pass type (personal or company) to signup form (already does?)
@@ -187,7 +175,6 @@ Also, a couple notes :
 • I think I had to click “Upload and Save” twice, once to upload-and-display, once to save. Is that correct?
 • The place which now shows a teeny photo was a [-] before. Confusing. Omit it from the web page entirely?
 • The phrase “Checking accounts work best because of legal restrictions on other types” But why not attach that warning to the second radio button? Just “(these won’t work as well as checking accounts…)” ?
-• A picture of where to find routing and acct numbers would be nice. Sort of like http://www.nationwide.com/routing-and-account-numbers.jsp does. Or draw a mockup of a check and put those two fields in the right places.
 • The full-contact-info page asked again whether to verify by text or voice. Does it really need to know that?
 • Instead of “Choose File” in the upload-photo page, how about “Choose Photo”? (make input an invisible overlay): http://stackoverflow.com/questions/5191375/a-file-input-button-for-all-browsers-is-this-possible/5191970#5191970
 
@@ -219,8 +206,6 @@ Also, a couple notes :
 . LATER add option for company to enable access by others to their device(s). But default to no access. That way, an unsigned-in cashier can't accidentally sign in another company's agent. ("restricted" field in r_boxes? B_READ means "can use our rPOS devices" in relations form?) May require a A.testDevice param in rPOS.
 . give stage server hidden fields! (currently crashes on $a->dob)
 . * when user has no access to the page, show login page if user is not logged in (requires a change to Drupal)
-. trying to change company name and email complains that phone is already taken
-. in admin a() handle non-local regions right
 . * write rweb feature tests for automatic one-click actions (see rcron/features/old/SoldOut.feature for an example)
 - * help for all pages
 - * in daily: alert staff if deposit / withdrawal not complete after 5 days
@@ -236,38 +221,28 @@ Also, a couple notes :
 . (later) suggest reaching out to increase rebate pct
 . handle menu logout from restricted page (does not log out)
 . (later) use rc4.me for login and email redirection (with forward.php). Database table accounts has fields email (primary), username (all lowercase letters), and region (3 or 4 uppercase letters). So user can log in at rc4.me (linked to by rcredits.org), which then forwards the request to the appropriate server. Scanned cards go directly to the proper server (new.rc2.me/A/AAAcode OR /a/... for agents, B&b for 4-letter users, etc.).
-. before depending on anyone's cached USD balance, make sure the unavailability of their Dwolla account is not because they changed their PIN.
 . add to misc.js: for each text input on the page, if the current value includes "XX-", make it silver. onEnter, zap the contents (set .length=0 ?)
 . when there is an error, don't make user retype the hidden fields (so soc sec and dob should not be password type) (also when error happens in submit, because there is a dwolla error)
-. don't make account opener manager if by is ADMIN or cadmin (and give account a temp password)
 . warn admin when changing to rTrader prematurely, that it may cause double withdrawal from bank (happened to Dan)
 - when contesting a tx, ask for comment (add it to payer's "for"). The next day (and thereafter) don't allow editing the for. Include payer's note in notice to payee.
 - LATER (when available) tests with dev sandbox and reg sandbox!
-- LATER bank account removal
 - move SMS notices option to cell form (and add field to r_boxes)?
 - on MSIE 8, sign-in CSS has alignment problem, menu failure in MSIE 8, autocomplete looks funny
 - LATER give user a chance to name the machine
 * LATER prefs: "Show address (show my address to companies I pay or donate to)" -- just assume TRUE for now. 
-- make a way for user to see notices online
-- anti-scam: if USD goes out of an account twice in quick succession, set an "always check USD bal" flag (then don't allow a tx if Dwolla is down) and/or change coverFee() to afterUsdTx() and check both parties' real USD balances
 - combine channel and box on Transaction History?
 - warn people about their tax liability (ask what their tax year is? warn in December?)
 - trans history: default today on starting/ending and/or pass true defaults properly for period
-- make sure we're handling all bad GET data gracefully
 - no rebate / bonus for manager of company with no (other) employees (set bit?)
 - add a login field to relations and record last login time of agent/company pair
 - return error from u\httpRequest() (instead of u\EXPECT), throw hiddenData error in acct::offsiteData(). Catch it on Summary screen at least (display gentle Warning message).
-- option to never convert r to us. rCredits can then be seized only by the CGC. No. this is still problematic because it invites abuse and might pit the community against the individual or against the larger society.
 - account checks: auto-deposit or minimum>0 but not connected to checking account yet: notice to user
 - block repeated 404s
 - pagination for trans history
 - recommend password practices
-- rethink nested usd transaction atoms (is the logic right?)
-- retest SMS
 - handle 10-day interval for deposits/withdrawals for non-checking accounts
 - Hilary's list
 - * don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either). Exception: links that do not require sign-in (for example, suggested account changes and merchant charges -- merchant creates invoice. no shipping until you accept it -- like paypal).
-- settle where email links go and what they do
 - create region records as needed, when a new member is outside NEW. Handle region totals in r\total()
 - in r\transact() we should rollback the transaction if it leaves the payer in unauthorized debt (due to a timing error that might be exploited intentionally by a determined hacker)
 - Maybe remove security algorithms from public view (see https://help.github.com/articles/remove-sensitive-data)
@@ -279,9 +254,6 @@ Also, a couple notes :
 - /password should give error if user is logged in
 - back button
 - revisit t\addAttrib and t\snapshot (does Drupal make ids lowercase?)
-- phase out tablefield and/or userfield
-- 1/6 month credit after first month, etc. up to 6 mos.
-- make digests viewable online
 - nightly: recalc exchange rates / allow users to express amounts in any currency (rounding DOWN); transactions will need to record exchange rate (true currency will be tied to region, regardless of how the user chooses to have it displayed)
 - how much can the community safely create? this depends on velocity of circulation and two kinds of demand: 
     (1) company/employee/contractor demand and (2) other (by people who have no rCredits income source)
@@ -305,11 +277,7 @@ Also, a couple notes :
 - relation.class
 - Coding security policy: never show any personal identifying info (R_SECRET_FIELDS) in the HTML. EVER. For example, when verifying someone's identity, the staff member should ask for the last 4 of their ss#, type it in and press submit. The code does a compare and returns just yes or no. Even the member cannot ever see what they earlier typed in. We might want to have a similar but weaker restriction on phone numbers and addresses -- like maybe those are protected for personal accounts. When 1099 time comes, the reports go out electronically only (no preview, etc.) Even user 1 and other admins don't have access to PII. Also put in some safe-guards to prevent repetitive guessing.
 - beef up security 
-- I figure we can continue without interruption or pain for a few days whenever Dwolla goes down. The current plan is to give everyone (everyone who has been a member for at least a month) one month of reserve credit -- that is, however much rCredits they earned in the past 30 days plus however much rCredits they typically buy (with US Dollars) in 30 days. No fees for that loan as long as it is paid back within 30 days or within 3 days after Dwolla comes back up, whichever is later.
-
-  It would be good to have an alternate way to trade rCredits for USD before that happens.
-
-  Let's hope that by the time we get a DoS attack on a regional rCredits server, we're big enough to hire competent people to fight it. As a corollary, we probably want to encourage regions to use large hosting companies rather than small local ones. Unfortunately.
+- Let's hope that by the time we get a DoS attack on a regional rCredits server, we're big enough to hire competent people to fight it. As a corollary, we probably want to encourage regions to use large hosting companies rather than small local ones. Unfortunately.
 
   We will also want a way to cope with internet outages (local or national). (David this paragraph is mostly for you, after the next sentence.) The current plan is to develop a mobile app that saves a working copy of the entire system in a distributed network (of smart devices) with lots of redundancy. For example, we want each merchant's device(s) to recognize their repeat customers. Each new customer who pays with a smart device (rather than a card) (which we will encourage at some point, perhaps by giving people an extra $5 if they forgo the card, or an extra penny per transaction) brings data to the merchant:
   some encrypted gem that gets passed from member to member on each transaction, to prove their identity and/or balance and/or connection to the merchant's community
@@ -412,7 +380,6 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
 @todo: option to suppress current balance in messages (make it a separate message) B_SHOWBAL (default TRUE)
 @todo: Miscellaneous other data to collect:
   Names and Social Security Numbers of Dependents [and answer: why do we need this?]
-  If this is a joint account, do you want separate balances? (if so, it will be treated as separate accounts except that available funds may be transferred automatically to any of the joined accounts that dips below its credit limit.)
 @todo: closed accounts have only read perm and point (data[new_account]) at new account qid
 @todo: servers exchange info on which ss#s (or other ids) are dups
 @todo
