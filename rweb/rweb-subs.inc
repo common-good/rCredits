@@ -5,6 +5,7 @@ use rCredits\DB as db;
 use rCredits\Backend as be;
 use rCredits\Util as u;
 use rCredits\Testing as t;
+use rCredits\Web as w;
 
 /**
  * @file
@@ -65,7 +66,7 @@ EOF
   'agent created' => t('The agent account was successfully created.'),
   'phone verified' => t('Your phone number has been verified.'),
   'id verification pending' => t('Your photo ID has been uploaded successfully. Now we need to wait for our partner organization to verify your identity. Please feel free to email us if you have questions.'),
-  'verify bank' => t('In particular, you still need to verify the connection to your bank account. After 2-5 days, contact your bank (by phone or online) to find out the two small deposit amounts (each less than @DW_VERIFY_ROOF cents). Then go to settings and click "Bank Info" or <a href="account/bank">click here</a> to go there directly.'),
+//  'verify bank' => t('In particular, you still need to verify the connection to your bank account. After 2-5 days, contact your bank (by phone or online) to find out the two small deposit amounts (each less than @DW_VERIFY_ROOF cents). Then go to settings and click "Bank Info" or <a href="account/bank">click here</a> to go there directly.'),
   'adjust settings' => t('<b>TIP:</b> You can adjust your settings by clicking the gear in the upper right corner. '),
   'payroll done' => t('Payroll upload was successful. You paid @count employees a total of @total.'),
   'tx edited' => t('Your transaction #@tid was edited by @who.'),
@@ -73,11 +74,13 @@ EOF
   'new tx amount' => t('The new amount is @amount.'),
 
   // prompts
-  'prompt min' => t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days (a couple days to leave the bank and a couple more to arrive in your rCredits account).'), // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
+  'note' => '<b class="loud">' . t('NOTE:') . '</b>',
+  'ach warning' => t('If there are insufficient funds in your bank account when you request an exchange for rCredits (either explicitly, or automatically by choosing a "minimum"), your bank will charge you a $20-35 fee, just like for a bounced check. If this happens more than once, the rCredits system will <i>also</i> charge you $20, to cover <i>its</i> bank fee. So make sure you have enough in your bank account to cover those automatic refills.', ['@fee'=>R_DEPOSIT_RETURN_FEE]),
+  // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
 //  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
   'legalname desc' => t(' full legal name, properly capitalized, as on your government-issued ID.'),
   'usename desc' => t('This should be the name you use in formal letters, at work, on your checks and credit cards, etc.'),
-  'verify connection' => t('Two small deposits (under @DW_VERIFY_ROOF cents) have been sent to your bank. Call your bank after 3-5 business days, to find out the amounts. Then come back to the Bank Info page and fill in those amounts, to verify the connection to your bank account. Here\'s how: Go to rCredits.org, click "Members\'s Site", sign in, click the Settings gear in the upper right corner, then click "Bank Info". We will send you a reminder by email.'),
+//  'verify connection' => t('Two small deposits (under @DW_VERIFY_ROOF cents) have been sent to your bank. Call your bank after 3-5 business days, to find out the amounts. Then come back to the Bank Info page and fill in those amounts, to verify the connection to your bank account. Here\'s how: Go to rCredits.org, click "Members\'s Site", sign in, click the Settings gear in the upper right corner, then click "Bank Info". We will send you a reminder by email.'),
   'ssTitle' => t('Soc Sec #:'),
   'einTitle' => t('Federal ID:'),
   'ssDesc' => t('Your social security number (for tax reporting)'),
@@ -186,7 +189,7 @@ EOF
   'wrong pin len' => t('Your PIN must be exactly 4 characters long.'),
   'pin required' => t('You must choose a PIN.'),
   'only us banks' => t('Unfortunately, at this time, we can handle only U.S. banks.'),
-  'bad deposit cents' => t('Each deposit is a number less than @DW_VERIFY_ROOF.'),
+//  'bad deposit cents' => t('Each deposit is a number less than @DW_VERIFY_ROOF.'),
   'no can scan' => t('You do not have permission to scan an individual\'s rCard.'),
   'must opt' => t('You must not create a limited account for this person without giving him or her the opportunity to open a real rCredits account. <@a>Invite them</a>!', array('@a' => 'a href=invite')),
   'must agree' => t('Accept Terms checkbox field is required.'), // drupal shows this
@@ -208,7 +211,7 @@ EOF
   'bad achmin' => t('The minimum transfer amount must be at least $@R_ACHMIN.'),
   'say why not' => t('You must say why you are denying the invoice.'),
   'no co pass' => t('Company accounts do not have passwords. Sign in to your personal account, then select @company from the dropdown in the upper right corner.'),
-  'account number mismatch' => t('You must have mistyped your account number forwards or backwards. Try again.'),
+  'account number mismatch' => t('You must have mistyped your account number once. Try again.'),
   'yes or no' => t('You must answer Yes or No.'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
@@ -266,6 +269,29 @@ function boxField($title, $desc = '', $other = NULL) {
   return formField('checkbox', $title, '<div class="box"></div>' . $desc, $other);
 }
 function fieldSet($id, $flds, $prompt = '') {return formField('fieldset', $prompt, '', compact('id')) + $flds;}
+
+/**
+ * Return a form field for sharing percentage.
+ */
+function shareField() {
+  $mya = r\acct();
+  $sharePct = round(db\lookup('AVG(share)', 'r_gifts', 'share>=0'), 1);
+  return textField(t('Share:'), t('What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (and/or the rCredits community), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. The current average is sharePct%.', compact('sharePct')), required($mya->share));
+}
+
+/**
+ * Return an error message if the chosen sharing amount is invalid.
+ * @param string $share: (MODIFIED) the member's chosen sharing percentage (returned normalized)
+ * @param bool $required: whether to insist on input
+ * @return FALSE if no error, otherwise the error message or index.
+ */
+function badShare(&$share, $required = FALSE) {
+  $share = trim(str_replace('%', '', $share));
+  if ($required and $share === '') return tt('missing field', ['field' => 'share']);
+  if ($err = u\badAmount($share, '>=0', 3)) return t('AMOUNT:|') . $err;
+  if ($share < 1) $share *= 100; // if under 1% assume they meant more
+  if ($share > R_SHARE_MIN) return 'share too big';
+}
 
 /**
  * Return a boolean (Yes / No) field.
@@ -1193,7 +1219,7 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   $showAdvJs = 'jQuery(\'#advanced\').show(); jQuery(\'#simple\').hide();';
   if ($states != $settings or (@$ending and $ending != strtotime('tomorrow') - 1)) js($showAdvJs, 'inline', 'footer'); // showing advanced selection
   u\setDft($period, TX_DEFAULT_PERIOD);
-  list ($starting, $ending) = txDates(@$period, @$starting, @$ending);
+  list ($starting, $ending) = rangeDates(@$period, @$starting, @$ending);
   $url = "$base_url/$url/period=$period&starting=$starting&ending=$ending&states=$states";
 
   $showAdvanced = item('<a class="nospin" href="javascript:' . $showAdvJs . '">advanced</a>');
@@ -1215,7 +1241,7 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
 function dateRangeValidate(&$sta) {
   extract(u\just('period starting ending', $sta['input']));
   $op = op($sta);
-  list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? txDates(@$period) : txDates('', @$starting, @$ending);
+  list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? rangeDates(@$period) : rangeDates('', @$starting, @$ending);
   u\preray(compact(u\ray('starting ending period')), $sta['input']);
 }
 
@@ -1231,6 +1257,25 @@ function dateRangeRedirect($page, &$sta) {
   }
   $sta['redirect'] = $url;
 }
+
+/**
+ * Return usable starting and ending dates (inclusive).
+ * @param int $period: index into TX_DAYS -- for calculating starting and ending if none explicitly specified
+ * @param int $starting: explicit starting date (optional)
+ * @param int $ending: explicit ending date (optional)
+ * @return array($starting, $ending, $period), where $starting is adjusted to start of day and $ending to end of day
+ */
+function rangeDates($period, $starting = '', $ending = '') {
+  if (@$starting and !is_numeric($starting) and $err = u\badDate($starting)) say($err, 'starting');
+  if (@$starting > REQUEST_TIME) say('beyond today', 'starting');
+  if (@$ending and !is_numeric($ending) and $err = u\badDate($ending)) say($err, 'ending');
+  if (!@$ending or $ending > REQUEST_TIME) $ending = REQUEST_TIME;
+
+  $period = (int) @$starting ? ($ending - $starting) / DAY_SECS : (@$period ?: TX_DEFAULT_PERIOD);
+  $ago = $period == '1' ? '1 day' : (@$GLOBALS['TX_DAYS'][$period] ?: ($period . ' days'));
+  if (!@$starting) $starting = strtotime($period == '-1' ? '1jan' : ($period == '-2' ? '1/1/2013' : "$ago ago"));
+  return array(strtotime('today', $starting), strtotime('tomorrow', $ending) - 1, $period);
+}  
 
 /**
  * Set or report next step in form's workflow
@@ -1412,17 +1457,8 @@ function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
  * @param string $msg: the message or message index
  */
 function doSay($msg, $type = 'error') {
-  if (isDEV) file_put_contents(t\dosayFilename($type), $msg); // in case called from a test
+  if (u\test()) file_put_contents(t\dosayFilename($type), $msg); // in case called from a test
   return r\go('empty/1', $msg, $type == 'error');
-  /*
-  $template = file_get_contents(DRUPAL_ROOT . R_PATH . '/templates/do.html');
-  $map = u\ray('TITLE BASE_URL VERSION MSGTYPE MESSAGE SUBTEXT',
-    t('No-signin Action ') . ($type == 'error' ? t('ERROR') : t('Success!')),
-    BASE_URL, R_VERSION, $type, tt($msg),
-    t('To protect your account, no sign-in was required for this action. To sign in safely, always go to rCredits.org.')
-  );
-  exit(strtr($template, $map));
-  */
 }
 
 /**
@@ -1534,54 +1570,52 @@ function say($index, $args = [], $errField = '') {
  * @return: html of the relevant charts, in their proper divs
  */
 function showCharts($whichChart) {
+  global $base_url;
   if ($mya = r\acct()) {
     $myCtty = $mya->community ?: 0;
   } else $myCtty = 0;
 
   list ($in, $out, $fees, $net, $personal, $companies) = array(t('in'), t('out'), t('fees'), t('net'), t('personal'), t('companies'));
-  extract(r\stats($myCtty)); // careful with this (don't overwrite local vars)
-  list ($r0, $usd0) = array($r, $usd);
-  list ($txRewards, $total) = array($rebates + $bonuss + $refunds + $fines, ($r + $usd) ?: .001);
-  $velocity = number_format(100 * $perMo / $total, 1) . t('% per mo.');
-
-  foreach (u\ray('bankInPerMo bankOutPerMo r usd total signups inflations helpers txRewards grants loans fines') as $one) {
-    ${$one . '0'} = $$one;
-    $$one = u\fmtAmt($$one);
-  }
-
+  extract($stats = r\stats($myCtty)); // careful with this (don't overwrite local vars)
+  extract(w\fundStats($stats, TRUE)); // get the formatted versions, with originals in {var}0
+ 
   $issuedData = array(
-    "['in trade for USD',{v:$usd0,f:'$usd'}]",
+    "['for USD',{v:$usd0,f:'$usd'}]",
     "['inflation offset',{v:$inflations0,f:'$inflations'}]",
     "['signup bonuses',{v:$signups0,f:'$signups'}]",
-    "['purchase rewards',{v:$txRewards0,f:'$txRewards'}]",
+    "['purchase reward',{v:$txRewards0,f:'$txRewards'}]",
     "['inviter/helper',{v:$helpers0,f:'$helpers'}]",
+    "['spent (net)',{v:$spent0,f:'$spent'}]",
     "['grants',{v:$grants0,f:'$grants'}]",
     "['loans',{v:$loans0,f:'$loans'}]",
+    "['invested',{v:$invests0,f:'$invests'}]",
+//   "['fees',{v:$usd0,f:'$usd'}$fines]" think of a way to handle these negatives (separate pie?)
+//   "['trade (net)',{v:$trade0,f:'$trade'}]",
   );
-  $superTotal = u\fmtAmt($total0 + $usd0);
-//    "['fees',{v:$usd0,f:'$usd'}$fines]" think of a way to handle this
+  $superTotal = u\fmtAmt($r0 + $usd0);
 
   $txTypes = u\ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly rCard purchases)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
 
   $avg = u\fmtAmt($txsPerMo ? $perMo / $txsPerMo : 0);
   $txs = "$txsPerMo @ $avg avg";
 
-  $crit = "ctty=$myCtty";
-  // r+usd-perMo AS savings
+  $created0 = db\lookup('MIN(created)', 'r_stats'); // show every n days since beginning + daily past n days
   $sql = <<<EOF
-    SELECT created, IF(r+usd=0, 0, perMo/(r+usd)) AS rate, r+usd AS funds, usd, savings,
-      pAccts, bAccts, pAccts+bAccts AS accts, newbs,
+    SELECT created, IF(r=0, 0, perMo/r) AS rate, r AS funds, bankIn-bankOut AS usd, savings,
+      pAccts, bAccts, pAccts+bAccts AS accts, newbs, top5,
       bankInPerMo, bankOutPerMo,
       perMo, p2bPerMo, b2bPerMo, b2pPerMo,
       txsPerMo, p2bTxsPerMo, b2bTxsPerMo, b2pTxsPerMo
-    FROM r_stats WHERE $crit AND created>:R_LAUNCH ORDER BY created
+    FROM r_stats WHERE ctty=$myCtty
+    AND (DATEDIFF(FROM_UNIXTIME(:REQUEST_TIME), FROM_UNIXTIME(created))<:STATS_GRAIN OR DATEDIFF(FROM_UNIXTIME(created), FROM_UNIXTIME(:created0))%:STATS_GRAIN=0)
+    AND created>:R_LAUNCH ORDER BY created
 EOF;
-  $q = db\q($sql);
+  $q = db\q($sql, compact('created0'));
 
   $charts = u\ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-rcredits');
   if ($whichChart != 'all') $charts = u\just($whichChart, $charts);
   foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, []);
-  $moneyFields = u\ray('funds savings usd bankInPerMo bankOutPerMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo');
+  $moneyFields = u\ray('funds savings top5 usd bankInPerMo bankOutPerMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo');
 
   while ($row = $q->fetchAssoc()) {
     extract($row);
@@ -1595,7 +1629,7 @@ EOF;
     $rate2 = number_format(100 * $rate, 1) . '%';
 
     $acctsData[] = "[$date,$pAccts,$newbs,$bAccts]";
-    $fundsData[] = "[$date,{v:$funds,f:'$funds2'},{v:$savings,f:'$savings2'},{v:$usd,f:'$usd2'}]";
+    $fundsData[] = "[$date,{v:$funds,f:'$funds2'},{v:$usd,f:'$usd2'},{v:$savings,f:'$savings2'},{v:$top5,f:'$top52'}]";
     $velocityData[] = "[$date,{v:$rate,f:'$rate2'}]";
     $bankingData[] = "[$date,{v:$bankInPerMo,f:'$bankInPerMo2'},{v:$bankOutPerMo,f:'$bankOutPerMo2'}]";
 
@@ -1612,13 +1646,14 @@ EOF;
 
   $accts = "{$pAccts} members + {$bAccts} co = " . ($pAccts + $bAccts);
   $netUsdIn = u\fmtAmt($bankInPerMo - $bankOutPerMo) . t(' (net)');
+  $velocity = number_format($r0 ? 100 * $perMo / $r0 : 0, 1) . t('% per mo.');
   
   $js = <<<EOF
   var accts = '$accts';
   var funds = '$superTotal';
   var velocity = '$velocity';
   var netUsdIn = '$netUsdIn';
-  var issued = '$total';
+  var issued = '$r';
   var fees = '(minus $fines in fees)';
   var txs = '$txs';
   google.setOnLoadCallback({$whichChart}Chart);  
@@ -1635,10 +1670,31 @@ EOF;
 
   foreach($charts as $k => $help) {
     $one = "<div id=\"{$k}Chart\" class=\"onechart\"></div>";
-    if (count($charts) > 1) $one = "<a href=\"help/$help\">$one</a>";
+    if (count($charts) > 1) $one = "<a href=\"$base_url/help/$help\">$one</a>";
     $charts[$k] = "<div>$one</div>";
   }
   return u\test() ? $js : join('', $charts);
+}
+
+/**
+ * Return an array of formatted amounts for the given statics.
+ * Used in graphs and table of community funds
+ */
+function fundStats($stats, $includeRaw = FALSE, $format = 's$') {
+  extract($stats);
+//  list ($r0, $usd0) = array($r, $usd);
+  $trade = $tradeIn + $tradeOut; // tradeIn is negative
+  $spent = $cttyBuys + $cttyIncomes; // cttyIncomes is negative
+  $txRewards = $rebates + $bonuss + $fines; // $fines is negative
+  $usd = $bankIn - $bankOut;
+
+//  foreach (u\ray('bankInPerMo bankOutPerMo r usd total signups inflations helpers txRewards grants loans fines') as $one) {
+  $res['ctty'] = $ctty ? trim(strtr(r\acct($ctty)->fullName, [t('Region')=>'', t('rCredits')=>''])) : t('TOTAL');
+  foreach (u\ray('r usd trade signups txRewards helpers inflations spent grants loans invests fines') as $one) {
+    if ($includeRaw) $res[$one . '0'] = $$one;
+    $res[$one] = u\fmtAmt($$one, $format);
+  }
+  return $res;
 }
 
 /**
@@ -1808,3 +1864,4 @@ function op($sta) {global $testOp; return u\test() ? $testOp : (svar('button') ?
 function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}
 function blurbLink() {global $rUrl; return "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">description of rCredits</a>";}
 function sayFieldErr($err, $field) {return say(strtoupper($field) . ': ' . tt($err), $field);}
+function popHelp($text, $help) {return "<span title=\"$help\">$text</span>";}

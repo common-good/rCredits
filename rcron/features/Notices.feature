@@ -17,8 +17,8 @@ Scenario: a member gets some notices
   | .ZZA | %today  |    0 | You stone. |
   When cron runs "notices"
   Then we email "notices" to member "a@" with subs:
-  | fullName | shortName | unit | range           | yestertime      | region | messages             | balance | rewards | return | ourEmail |*
-  | Abe One  | abeone    | day  | %fancyYesterday | %fancyYesterday | new    | You rock.<br>You stone. | $0 | $0 | 5.0 | %R_REGION_EMAIL |
+  | fullName | shortName | unit | range           | yestertime      | region | messages                  | balance | rewards | return | ourEmail |*
+  | Abe One  | abeone    | day  | %fancyYesterday | %fancyYesterday | new    | *You rock.<br>*You stone. | $0 | $0 | 5.0 | %R_REGION_EMAIL |
   And notices:
   | id   | created | sent   | message    |*
   | .ZZA | %today  | %today | You rock.  |

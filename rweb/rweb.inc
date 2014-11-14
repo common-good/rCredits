@@ -12,8 +12,9 @@ use rCredits\Web as w;
 
 require_once __DIR__ . '/rweb-subs.inc';
 require_once __DIR__ . '/../rcredits-backend.inc';
-require_once __DIR__ . '/../rcredits-testing.inc'; // else fails in showForm()
 include_once __DIR__ . '/rweb-txs.inc'; // treat this as an extension of this file, just to make menu ['file'] consistent
+// FAILS (WHY?) include_once __DIR__ . (u\test() ? '/../rcredits-testing.inc' : '/../testing-stub.inc'); // else fail in showForm()
+include_once __DIR__ . '/../rcredits-testing.inc'; // else fail in showForm()
 
 /**
  * @file
@@ -204,6 +205,7 @@ function notice($month = '') {
  */
 function statement($month) {
   include_once __DIR__ . '/../rcredits-txs.inc';
+  $purposeLenMax = 60; // maximum number of characters in purpose field, not including added "..."
 
   if (!$start = strtotime("1$month")) return r\go('empty', t('That is not a recognizable month.'), 'ERR');
   $start = u\monthDay1($start);
@@ -275,7 +277,7 @@ function statement($month) {
 
   $pdf->setFontSize($size);
   $pdf->barHead('DETAILS');
-  $fields = u\ray('Tx#/tid/10/C /space/1/ Date//17/ Name//55/ /space/1/ Purpose//75/ /space/1/ Amount//20/R *Extra/extra/20/R');
+  $fields = u\ray('Tx#/tid/15/C /space/1/ Date//17/ Name//55/ /space/1/ Purpose//70/ /space/1/ Amount//20/R *Extra/extra/20/R');
   $pdf->colHeads($fields);
 
   $pdf->setFontSize(.9 * $size);
@@ -283,6 +285,7 @@ function statement($month) {
     foreach ($row as $k => $v) $row[$k] = str_replace(',', '', strip_tags($v));
     extract(u\just('tid date name fromyou toyou purpose reward', array_combine($classes, $row)));
     $amount = number_format($toyou - $fromyou, 2);
+    if (strlen($purpose) > $purposeLenMax + 3) $purpose = substr($purpose, 0, $purposeLenMax) . '...';
     if ($reward == '--') $reward = 0;
     $extra = number_format($reward, 2);
     foreach ($fields as $one) {
@@ -293,7 +296,7 @@ function statement($month) {
       $pdf->Cell($width, 0, $$fieldName, '', $head == '*Extra' ? 1 : 0, $align, '', '', 1);
     }
     x\addCat($cats, $purpose, $toyou - $fromyou, $dups);
-    if ($reward) x\addCat($cats, r\usdin($purpose) ? t('exchange fees') : t('rewards'), $reward, $zot);
+    if ($reward) x\addCat($cats, r\usdin($purpose) ? t('exchange fees') : t('rewards, including inflation adjustment'), $reward, $zot);
   }
   
   $pdf->newLine();
@@ -307,15 +310,18 @@ function statement($month) {
     $pdf->colHeads($fields);
     $pdf->setFontSize(.9 * $size);
 
-    $otherCount = $other = 0;
+    $otherInCount = $otherIn = $otherOutCount = $otherOut = 0;
     foreach ($cats as $cat => $one) if ($one[0] == 1) {
-      $otherCount++;
-      $other += $one[1];
+      if ($one[1] < 0) {
+        $otherOutCount++; $otherOut += $one[1];
+      } else {$otherInCount++; $otherIn += $one[1];}
+      
       unset($cats[$cat]);
     }
     
     ksort($cats);
-    if ($otherCount) $cats[t('other')] = array($otherCount, $other);
+    if ($otherInCount) $cats[t('other funds IN')] = array($otherInCount, $otherIn);
+    if ($otherOutCount) $cats[t('other funds OUT')] = array($otherOutCount, $otherOut);
     
     foreach ($cats as $cat => $ray) {
       list ($count, $amount) = $ray;
@@ -352,7 +358,6 @@ function formDonate($form, &$sta) {
   $onchange = str_replace('show()', "show(); jQuery('#edit-amount').focus()", R_GIFT_SHOWHIDE);
   $giftAttrib = attrib(compact('onchange'));
    
-  $sharePct = round(db\lookup('AVG(share)', 'r_gifts', 'share>=0'), 1);
   $delay = $mya->ok ? '' : t(' The amount you choose will come from your account once it is activated and has enough funds.</p>');
   $form = array(
     'title' => item(t('Donate to Common Good Finance')),
@@ -362,7 +367,7 @@ function formDonate($form, &$sta) {
     'often' => formField('select', t('When:'), '', required(), $oftens),
     'honor' => formField('select', t('Honoring:'), '', '', $honors),
     'honored' => formField('textarea'),
-    'share' => textField(t('Share:'), t('What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (and/or the rCredits community), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. The current average is sharePct%.', compact('sharePct')), required($mya->share)),
+    'share' => w\shareField(),
     'submit' => submit('Donate'),
   );
 
@@ -375,12 +380,8 @@ function formDonate_validate($form, &$sta) {
   extract(u\just('gift amount share often', $sta['input']));
   if (!$amount = $gift ?: $amount) return say('missing field', array('field' => 'amount'), 'amount');
   if (!$often) return say('missing field', array('field' => 'when'), 'often');
-  $share = trim(str_replace('%', '', $share));
-  if ($share === '') return say('missing field', array('field' => 'share'), 'share');
   if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
-  if ($err = u\badAmount($share, '>=0', 3)) return sayFieldErr($err, 'share');
-  if ($share < 1) $share *= 100; // if under 1% assume they meant more
-  if ($share > 50) return say('share too big', 'share');
+  if ($err = w\badShare($share)) return say($err, 'share');
 //  $share = min($share, 999.999); // any bigger kills PDO
   $sta['input'] = compact(u\ray('amount share')) + $sta['input'];
 }
@@ -545,7 +546,7 @@ function formAgreement($form, &$sta) {
     $aacct = $mya->admin ? $mya : $mya->agent;
     $signedBy = textField(t('Signed:'), t('Type your full name here ') . "($aacct->legalName)");
     $submit = submit(t('Sign'));
-    $addendum = MINI_LAUNCH ? t('During the Pilot Phase, this means paying attention to your experience and making comments to improve the system before it goes public. The amount of rCredits circulating during this Pilot Phase will intentionally be kept small.') : '';
+    $addendum = R_PILOT ? t('During the Pilot Phase, this means paying attention to your experience and making comments to improve the system.') : '';
     $instructions = t(<<<EOF
       <div id='instructions'>
       <p><b>Instructions:</b> Put a check mark in each checkbox to indicate you have read that section and agree to it. Really DO read the agreement and make sure you understand it. This agreement, that we make with each other, is the foundation for the rCredits system and the Common Good Economy.</p>
@@ -802,8 +803,16 @@ function formSummary($form, &$sta, $qid = '') {
     $rewards = formField('item', t('Rewards:'), t('to date'), u\fmtAmt($a->rewards));
     $committed = formField('item', t('Committed:'), t('rewards reserved for donation to Common Good Finance'), u\fmtAmt(max(0, $a->committed)));
   } else $acctType = t('community account');
-  $extra = $mya->cAdmin ? " id#$a->id" : '';
-  $accountId = formField('item', t('ID:'), '', ($a->mainQid ?: 'N/A') . ' (' . $acctType . ")$extra");
+  if ($mya->cAdmin) {
+    $extra = " id#$a->id";
+    $routing = @substr($a->bankAccount, 4, 9);
+    if ($routing and $bankInfo = db\lookup('*', 'r_banks', 'route=:routing', compact('routing'))) {
+      extract($bankInfo, EXTR_PREFIX_ALL, 'b');
+      $bankInfo = "a title=\"$b_name (routing #$b_route)\n$b_address, $b_city $b_zip\"";
+      $extra .= strtr(t(' <@a>bank info</a>'), ['@a'=>$bankInfo]); // strtr circumvents Drupal crap
+    }
+  } else $extra = '';
+  $accountId = formField('item', t('ID:'), '', ($a->mainQid ?: 'N/A') . ' (' . $acctType . ')' . $extra);
 
   $fields = 'another title accountName accountId';
   if ($a->can(B_MANAGE)) $fields .= ' balance rewards committed';
@@ -873,6 +882,7 @@ function formSummary_submit($form, &$sta) {
   }
 
   $a->setBits(@$adminable);
+  if ($a->helper) unset($helper); // don't overwrite
   $a->update(compact(u\ray('legalName floor minimum achMin notes helper mediaConx moves')));
   
   unset($DBTX);
@@ -1542,7 +1552,7 @@ function formGet($form, &$sta) {
   $myid = $mya->id;
   $isSetUp = !is_null($mya->minimum); // user has already saved some options
   $title = item(t('Bank Transfer'));
-  $subtext = item(t('<p>Transfer funds to or from your connected bank account. Transfers may take 3-5 business days.</p><p>To refill your rCredits account automatically, as needed, adjust your "minimum" setting on the <@a>Preferences</a> page.</p>', ['@a' => "a href=$base_url/account/preferences"]));
+  $subtext = item(t('<p>Transfer funds to or from your connected bank account. Transfers may take 3-5 business days.</p><p>To refill your rCredits account automatically (or not), as needed, adjust your "minimum" setting on the <@a>Preferences</a> page.</p>', ['@a' => "a href=$base_url/account/preferences"]));
 
 //  $minimum = textField(t('Minimum:'), tt('prompt min'), dft(u\fmtAmt($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
   $toSpend = u\fmtAmt($mya->avail('buy'));
@@ -2222,8 +2232,10 @@ function formBank($form, &$sta, $args = '') {
       $checkHint = item("<img src=\"$rUrl/images/check-hint.png\">");
       $routingNumber = textField(t('Routing:'), t('Type carefully your bank\'s routing number.'));
     }
-    $bankAccount = textField(t('Account:'), t('Type carefully your checking account number.'));
-    $bankAccount2 = textField(t('Backwards:'), t('Now type your account number backwards (we need to be REALLY SURE we don\'t connect to the wrong account).'));
+    //$bankAccount = textField(t('Account:'), t('Type carefully your checking account number.'));
+    $bankAccount = formField('password', t('Account:'), t('Type carefully your checking account number.'));
+    
+    $bankAccount2 = formField('password', t('Again:'), t('Type your account number again (we need to be REALLY SURE we don\'t connect to the wrong account).'));
     //$bankAccountType = formField('radios', t('Type:'), '', required($mya->can(B_SAVINGS)), $typeOptions);
     $connectFields = fieldSet('connectFields2', compact(u\ray('checkHint routingNumber bankAccount bankAccount2')));
     $submit = submit($doConnect ? t('Connect') : '');    
@@ -2254,7 +2266,7 @@ function formBank_validate($form, &$sta) {
 //    if (!isset($bankAccountType)) say('missing field', u\ray('field', 'Account Type'), 'bankAccountType');
   if (!db\exists('r_banks', 'route=:routingNumber', compact('routingNumber'))) return say('bad routing number', 'routingNumber');
   if (!preg_match('/^[0-9]{3,17}$/', $bankAccount)) say('bad account number', 'bankAccount'); // {3,20} ? Dwolla says 3-17
-  if ($bankAccount != strrev($bankAccount2)) say('account number mismatch', 'bankAccount2');
+  if ($bankAccount != $bankAccount2) say('account number mismatch', 'bankAccount2');
     
 /*
   } elseif ($op == 'verify') {
@@ -3125,12 +3137,14 @@ function formOptions($form, &$sta) {
   $title = item(t('Account Preferences'));
 //  $virtualMaxMessage = $mya->co ? t(' If you choose to enable payment exchanges, this setting is moot (irrelevant and unused).') : '';
   $subtext = item(t('(The defaults here are appropriate for most people.)'));
-  $minimum = textField(t('Minimum:'), tt('prompt min'), required(u\fmtAmt($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
-  $achMin = textField(t('Min Transfer:'), t('Automatic transfers from your bank account will never be less than this amount (for easier bookkeeping).'), required(u\fmtAmt($mya->achMin ?: R_ACHMIN_DEFAULT, 's')));
+  $minimum = textField(t('Minimum:'), t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days. Choose zero if you tend to bounce checks, live close to the wire, or prefer not to use automatic refills. ') . tt('note|ach warning'), required(u\fmtAmt($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
+  $achMin = textField(t('Min Transfer:'), t('Automatic transfers from your bank account will always be a multiple of $@dft and never less than this amount (choose a large round number for easier bookkeeping).', ['@dft'=>R_ACHMIN]), required(u\fmtAmt($mya->achMin ?: R_ACHMIN_DEFAULT, 's')));
   //$maxDft = $isSetUp ? $mya->maximum : R_MAXR_DEFAULT;
   //$maxDft = $maxDft < 0 ? '' : u\fmtAmt($maxDft, 's');
 //  $maximum = textField(t('Maximum:'), tt('prompt max') . $virtualMaxMessage, dft($maxDft));
 //  $toBank = formField('checkbox', t('To bank:'), t('(recommended) Automatically transfer the excess to your bank account. [<a href="../help/to-bank">why ever not?</a>]'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
+  if ($mya->ok) $share = w\sharefield($mya); // don't show this during signup (it's on the donation page)
+
   $noticeRadios = array(t('daily'), t('weekly'), t('monthly'));
   $dft = $mya->can(B_WEEKLY) ? 1 : ($mya->can(B_MONTHLY) ? 2 : 0);
   $notices = formField('radios', t('Email notices:'), t('How often, at most, do you want an email digest of your rCredits messages? (No email if no messages.)'), required($dft), $noticeRadios);
@@ -3144,7 +3158,7 @@ function formOptions($form, &$sta) {
   $secretBal = boxField(t('Secret Balance:'), t("Don't let merchants see my balance, even if I ask."), $mya->can(B_SECRET));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $floor = u\fmtAmt($mya->floor);
-  $debtOk = boxField(t('Debt Okay:'), tt('Let me use my rCard as a <i>credit</i> card, allowing my account balance to go negative, limited by my current "credit floor" (which starts at zero, then gets lower and lower as time goes by &mdash; currently @floor). I understand there will be a substantial fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', compact('floor')), $mya->can(B_DEBT));
+  $debtOk = boxField(t('Debt Okay:'), tt('Let me use my rCard as a <i>credit</i> card, allowing my account balance to go negative, limited by my current "credit floor" (which starts at zero, then gets lower and lower as time goes by &mdash; currently @floor). I understand there will be a fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', compact('floor')), $mya->can(B_DEBT));
   $submit = submit(t('Update Preferences'));
   $posttext = item(tt(<<<EOF
 <h4>** Disclaimers required by the IRS:</h4>
@@ -3154,7 +3168,7 @@ function formOptions($form, &$sta) {
 EOF
   ));
   
-  $form = compact(u\ray('title subtext minimum achMin smsNotices notices statements secretBal debtOk submit posttext'));
+  $form = compact(u\ray('title subtext minimum achMin share smsNotices notices statements secretBal debtOk submit posttext'));
 //  js('showMax();', 'inline', 'footer');
   return labeled($form);
 }
@@ -3164,6 +3178,7 @@ function formOptions_validate($form, &$sta) {
   $floor = u\fmtAmt($mya->floor);
   if ($err = amtErr('minimum', $sta)) return say($err, 'minimum');
   if ($err = amtErr('achMin', $sta)) return say($err, 'achMin');
+  if ($err = w\badShare($sta['input']['share'], TRUE)) return say($err, 'share');
 
   extract(u\just('minimum achMin', $sta['input'])); // after amtErr checks
   if ($minimum < $mya->floor) return say('min sub floor', compact('floor'), 'minimum');
@@ -3173,7 +3188,7 @@ function formOptions_validate($form, &$sta) {
 function formOptions_submit($form, $sta) {
   global $base_url;
   $mya = r\acct();
-  extract($info = u\just('minimum achMin smsNotices notices statements debtOk secretBal', $sta['input']));
+  extract($info = u\just('minimum achMin share smsNotices notices statements debtOk secretBal', $sta['input']));
 
 //  $mya->setBit(B_NOTIFY_EMAIL, $notifyBy & 1, FALSE);
   $flags = $mya->flags;
@@ -3184,7 +3199,7 @@ function formOptions_submit($form, $sta) {
   u\setBit($flags, B_DEBT, @$debtOk);
   u\setBit($flags, B_SECRET, @$secretBal);
   
-  $mya->update(compact(u\ray('minimum achMin flags')));
+  $mya->update(compact(u\ray('minimum achMin share flags')));
   $mya->stepDone('prefs', $info);
   return $mya->ok ? say('options saved') : r\go('status', 'options saved|step completed');
 }
@@ -3223,34 +3238,55 @@ function formFlags($form, &$sta, $args = '') {
   $MAXLINES = 20; // max number of lines to show in each section
   include __DIR__ . '/risk-descs.inc';
 
-  u\setDft($args['period'], 1);
+// fails  u\setDft($args['period'], 1);
   extract(u\just('period starting ending download downloaded', $args)); 
+  if (!@$period) $args['period'] = $period = 1;
   extract(u\just('dateRange url starting ending', dateRange($args, 'community/flags', [], '', FALSE)));
   $url = hidField($url);
   
   $title = item(t('Suspicious Activity Report')); //  . strftime('%A, %m/%d/%y')
   $subtext = item(tt(t('<p>Any potentially suspicious accounts, transactions, and bank transfers (ACHs) are listed here, so all members can keep an eye on things. Only the top @MAXLINES are listed in each category. System administrators will investigate any account or transaction with a suspiciousness score of @K_RED or more (shown in red).</p><p>Green risks are "good" (they mitigate other risk factors). Hover over any risk for a brief description or click it for details.</p>'), compact('MAXLINES')));
 
-  $achHeader = $txHeader = $acctHeader = $accts = $txs = $achs = '';
+  $achHeader = $txHeader = $acctHeader = '';
+  $accts = $txs = $achs = '';
   $headers = u\ray(t('Score Account Type Created Risks'));
   foreach ($headers as $v) {$vLow = strtolower($v); $acctHeader .= "<th class=\"k-$vLow\">$v</th>";}
   $acctHeader = "<tr>$acctHeader</tr>";
-  $where = (!$mya or $mya->admin)? 1 : "community=$mya->community";
-  $q = db\q("SELECT risk AS score,uid,IF(:IS_CO,'Co','Indiv') as type,created,risks FROM users WHERE uid>1 AND :IS_OK AND $where ORDER BY risk DESC LIMIT :K_LINES");
-  while ($line = riskLine($q, K_ACCT_RISKS)) $accts .= $line;
+  list ($cttyCrit, $cttysCrit) = (!$mya or $mya->admin)? [1, 1] 
+    : ["community=$mya->community", "$mya->community IN (u1.community, u2.community)"];
+  $sql = <<<EOF
+    SELECT risk AS score,uid,IF(:IS_CO,'Co','Indiv') as type,created,risks FROM users 
+    WHERE uid>1 AND :IS_OK AND $cttyCrit
+    ORDER BY risk DESC LIMIT :K_LINES
+EOF;
+  $q = db\q($sql);
+  for ($i = 0; $line = riskLine($q, K_ACCT_RISKS, $red) and ($i < K_LINES or $red); $i++) $accts .= $line;
   
   $headers = u\ray(t('Score Tx# Date Amount From To Description Risks'));
   foreach ($headers as $v) {$vLow = strtolower($v); $txHeader .= "<th class=\"k-$vLow\">$v</th>";}
   $txHeader = "<tr>$txHeader</tr>";
   $subs = compact('starting', 'ending');
-  $q = db\q('SELECT risk AS score,xid,created,amount,payer,payee,payeeFor AS description,risks FROM r_txs WHERE (payer>0 OR ABS(amount)>:K_CTTY_THRESHOLD) AND created BETWEEN :starting AND :ending ORDER BY risk DESC LIMIT :K_LINES', $subs);
-  while ($line = riskLine($q, K_TX_RISKS)) $txs .= $line;
+  $sql = <<<EOF
+    SELECT t.risk AS score,xid,t.created,amount,payer,payee,payeeFor AS description,t.risks 
+    FROM r_txs t LEFT JOIN users u1 ON u1.uid=payer LEFT JOIN users u2 ON u2.uid=payee 
+    WHERE (payer>0 OR ABS(amount)>:K_CTTY_THRESHOLD) 
+    AND $cttysCrit AND t.created BETWEEN :starting AND :ending 
+    ORDER BY t.risk DESC LIMIT :K_LINES
+EOF;
+  $q = db\q($sql, $subs);
+  for ($i = 0; $line = riskLine($q, K_TX_RISKS, $red) and ($i < K_LINES or $red); $i++) $txs .= $line;
 
   $headers = u\ray(t('Score Tx# Date Amount Account Description Risks'));
   foreach ($headers as $v) {$vLow = strtolower($v); $achHeader .= "<th class=\"k-$vLow\">$v</th>";}
   $achHeader = "<tr>$achHeader</tr>";
-  $q = db\q("SELECT risk AS score,txid,created,ABS(t.amount) AS amount,payer,IF(t.amount<0,'in','out') AS way,risks FROM r_usd t WHERE created BETWEEN :starting AND :ending AND payee=0 ORDER BY risk DESC LIMIT :K_LINES", $subs);
-  while ($line = riskLine($q, K_TX_RISKS)) $achs .= $line;
+  $sql = <<<EOF
+    SELECT t.risk AS score,txid,t.created,ABS(t.amount) AS amount,payer,IF(t.amount<0,'in','out') AS way,t.risks 
+    FROM r_usd t LEFT JOIN users u ON u.uid=payer
+    WHERE t.created BETWEEN :starting AND :ending AND payee=0 AND $cttyCrit
+    ORDER BY t.risk DESC LIMIT :K_LINES
+EOF;
+  $q = db\q($sql, $subs);
+  for ($i = 0; $line = riskLine($q, K_TX_RISKS, $red) and ($i < K_LINES or $red); $i++) $achs .= $line;
   
   $table = item(<<<EOF
   <center>
@@ -3280,18 +3316,45 @@ EOF
 function formFlags_validate($form, &$sta) {w\dateRangeValidate($sta);}
 function formFlags_submit($form, &$sta) {dateRangeRedirect('community/flags', $sta);}
 
+function formCttyFunds($form, &$sta) {
+  $title = item(t('Funds in Each rCredits Community'));
+  $subtext = item(t('How rCredits were issued in each community. Hover over headings for more information.'));
+  $headers = u\ray(t('Community r USD Trade Signup+ Purchase+ Invite+ Inflate+ Spent Grant Loan Invest Fees'));
+  $headHelps = u\ray(t('Community name (abbreviated)|Total rCredits issued to date|In exchange for US Dollars|Net trade balance with other communities|Signup bonuses (incentive rewards for opening an rCredits account)|Purchase rewards (incentive rewards for buying or selling using rCredits)|Incentive rewards for inviting (and helping) a new member to open an rCredits account|Monthly inflation adjustments|rCredits community spending (net)|rCredits community grants|Zero-interest loans from the rCredits community|Investments by the rCredits community|Fees collected by the rCredits community'));
+  foreach ($headers as $k => $v) $headers[$k] = w\popHelp($v, $headHelps[$k]);
+  $headers = '<tr><th>' . join('</th><th>', $headers) . '</th></tr>';
+  
+  $q = db\q('SELECT DISTINCT ctty FROM r_stats ORDER BY ctty=0, ctty');
+  while ($row = $q->fetchAssoc()) { // not fetchField because one value is 0
+    extract($row);
+    $stats = w\fundStats(r\stats($ctty), FALSE, '1');
+    $list[] = '<tr><td>' . join('</td><td>', $stats) . '</td></tr>';
+  }
+  $list = join("\n", @$list ?: [t('No statistics are available')]); // @ is for tests
+  
+  $list = item(<<<EOF
+<table id="cttyFunds">
+$headers
+$list
+</table>
+EOF
+  );
+  return compact(u\ray('title subtext list'));
+}
+
 /**
  * Return a formatted line for the next record, describing its risks.
  * @param SQLresult $q: the query result
  * @param string $descs: a space-delimited string array of risk descriptions and weights
+ * @param bool $red: (RETURNED) the
  * @return an HTML table row to show the record
  */
-function riskLine($q, $descs) {
+function riskLine($q, $descs, &$red = '') {
   global $base_url; 
   if (!$row = $q->fetchAssoc()) return FALSE;
   
   if (@$row['amount'] + 0 < 0) list ($row['payer'], $row['payee'], $row['amount']) = array($row['payee'], $row['payer'], -$row['amount']); // don't show user negative amounts
-  extract(u\just('uid xid created score amount risks', $row));
+  extract(u\just('uid xid created description score amount risks', $row));
 
   $regulator = (($mya = r\acct()) and $mya->can(B_REGULATOR));
   global $riskQ, $riskCount; 
@@ -3301,8 +3364,9 @@ function riskLine($q, $descs) {
   } else {$riskQ = $q; $riskCount = 1;}
   
   u\setDft($score, '');
-  $score = round($score);
-  if ($score >= K_RED) $score = "<span class=\"risky\">$score</span>";
+  $score = round($score) + 0; // +0 to avoid "-0"
+  $red = ($score >= K_RED);
+  if ($red) $score = "<span class=\"risky\">$score</span>";
   if ($score <= K_GREEN) $score = "<span class=\"safe\">$score</span>";
   $row['score'] = $score;
   
@@ -3323,6 +3387,9 @@ function riskLine($q, $descs) {
   if (isset($amount)) $row['amount'] = number_format($amount, 2);
   if ($regulator and isset($xid)) $row['xid'] = "<a href=\"$base_url/sadmin/tx-info/$xid\">$xid</a>";
   if (isset($created)) $row['created'] = strftime(@$uid ? '%d-%b-%Y' : '%d-%b', $created);
+  if (isset($description)) foreach ([t('labor'), t('automatic transfer'), t('donation')] as $k) {
+    if (u\abbreviates($k, $description)) $row['description'] = $k;
+  }
   $row['risks'] = r\riskList($risks, $descs);
   
   $line = '';

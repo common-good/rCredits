@@ -25,17 +25,20 @@ define('WEEK7_SECS', 52 * DAY_SECS);
 define('MONTH_DAYS', 30.4368);
 define('YEAR_SECS', round(12 * MONTH_DAYS * DAY_SECS));
 define('US_COUNTRY_ID', 1228); // United States
+define('R_BULLET', '&#8226'); // bullet in emails (where CSS is difficult)
+define('STATS_GRAIN', 10); // granularity of statistics, in days
 
 require_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
 require_once __DIR__ . '/rcredits-db.inc';
 require_once __DIR__ . '/acct.class';
 require_once __DIR__ . '/x.class';
 
-define('MINI_LAUNCH', TRUE);
+define('CGF_LEGALNAME', 'Society to Benefit Everyone, Inc.');
 define('CGF_EMAIL', isDEV ? 'wspademan+cgf@gmail.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
 define('CGF_PHONE', '+14136281723');
-define('CGF_ADDRESS', 'PO Box 21');
+define('CGF_ADDRESS', '48 Buckland Road');
 define('CGF_CITY', 'Ashfield');
+define('CGF_POSTALADDR', 'PO Box 21, Ashfield, MA 01330');
 define('CGF_EIN', '205280780');
 
 define('R', '<span class="r">r</span>');
@@ -47,9 +50,10 @@ define('R_DATA_FIELDS', 'newAccount by calling wants legalName website descripti
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
 define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData'); // personal identifying information
-define('R_HIDE_CHANGES', R_SECRET_FIELDS . ' ' . R_SECURE_FIELDS . ' changes usd r rewards committed floor login access activated data secure offsite stepsDone usdAccount pass notes trust risk risks stats'); // do not record changes to these fields (generally anything secret, or often-changed -- perhaps automatically)
+define('R_HIDE_CHANGES', R_SECRET_FIELDS . ' ' . R_SECURE_FIELDS . ' changes usd r rewards committed floor login access activated data secure offsite stepsDone lastTx usdAccount pass notes picture trust risk risks stats'); // do not record changes to these fields (generally anything secret, or often-changed -- perhaps automatically)
 define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_CASH', '(r-committed-GREATEST(0, floor, rewards))'); // balance available to cash out
+define('R_SHARE_MIN', 50); // minimum sharing percentage
 
 define('R_SECRET_URL', isPRODUCTION ? 'http://rcredits.org' : (isDEV ? 'http://localhost/rcredits-promo' : 'http://' . STAGE)); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
@@ -90,7 +94,7 @@ define('R_PIXEL_FACTOR', 200); // what to multiply the aspect ratio components b
 define('R_GET_AUTH_URI', 'usd-get-auth'); // where Dwolla calls us back for getting auth code
 define('R_INDIVIDUAL_GIFT', 50); // suggested donation for individuals
 define('R_COMPANY_GIFT', 250); // suggested donation for companies
-define('R_BUYS_BEFORE_BONUS', MINI_LAUNCH ? 1 : 3); // number of purchases required before signup bonus
+define('R_BUYS_BEFORE_BONUS', R_PILOT ? 1 : 3); // number of purchases required before signup bonus
 define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
 define('R_ACCT_REGION', '(-FLOOR((uid-1)/' . R_REGION_MAX . ')-1)'); // SQL region expression
 define('R_CTTY_UID0', -R_REGION_MAX); // community uids are less than this (farther from zero)
@@ -107,7 +111,9 @@ define('R_CC_RATE', 2.5); // typical credit card percentage rate
 define('R_CODE_LEN', 20); // length of most random identifiers
 define('R_DUPTX_MINS', 10); // number of minutes before a duplicate transaction is allowed
 define('HAS_XFEE', "data LIKE '%s:4:\"xfee\";%'"); // sql to recognize a transaction that has an exchange fee
+define('R_DEPOSIT_RETURN_FEE', 20); // what we charge members for a second bounced transfer
 
+/*
 define('DW_SITE', isPRODUCTION ? 'https://www.dwolla.com' : 'https://uat.dwolla.com');
 //                               : 'http://new.rcredits.org/stage.php?stageWord=' . R_STAGE_WORD . '&request=');
 //define('DW_TEST_ACCT', '8127139234'); // "reflector" account on www (totally reimburses anything under $10)
@@ -117,12 +123,11 @@ define('DW_TESTER_AUTH', 'lBtIKmAL/b9PzZhrPX0m5SwIGMtAIHcxXiEq2gTMYwtZ+LYK7x');
 /*  'usdPhone' => '+14136281021',
   'usdEmail' => 'h8hg.new.aaa@rc4.me',
   'usdPass' => 'a4P33bu8sXhy7mL27ebE*B2',
-  */
 define('DW_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
 define('DW_FEE', .25); // the fee
 define('DW_VERIFY_ROOF', 20); // bank verification deposits are less than this (actually less than 15 cents)
 define('DW_STEPS', 'Email Phone Address Ssn Kba AuthorizedRepresentative Finished'); // registration steps
-
+*/
 define('R_USPS_WEB_TOOLS_ID', '921COMMO5331'); // USPS API credentials
 
 // Filenames
@@ -173,6 +178,7 @@ define('CO_CAN_BIT_DESCS', 'charge customers,undo last transaction,give rCredits
 
 // Permissions, options, and flags (flags field in account record)
 // If we need more bits, create a flags2 field and make the B_ defs negative or 32-63 for setBit
+// for documentation of IS_OK etc. see u\SUBS()
 define('B_MEMBER', 0); // fulfilled membership requirements (ready to be approved). For ctty: is an official CGC
 define('B_u1', 1); // UNUSED
 define('B_OK', 2); // approved to use rCredits for real (set by admin when ready). For ctty: is operational
@@ -210,11 +216,10 @@ define('B_MAX', 31); // maximum bit number
 define('B_ADMINABLE', 'co member bona cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
 define('B_LIST', 'member u1 ok bona u4 u5 co u7 u8 nonudge u10 u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings u23 u24 u25 u26 regulator cadmin2 cadmin admin closed');
 
-define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
-define('R_DEMAND', 'u.usd'); // definitely WANTS this many rCredits (was LEAST(u.usd, IFNULL(u.minimum,0)-u.r))
-define('R_CAPACITY', 'u.usd'); // how much rCredits is each account WILLING and able to buy
-
-// for documentation of IS_OK etc. see u\SUBS()
+define('R_SHORTFALL', 'GREATEST(0, minimum-r)'); // sql for shortfall in account (to draw in)
+//define('R_DEMAND', 'u.usd'); // definitely WANTS this many rCredits (was LEAST(u.usd, IFNULL(u.minimum,0)-u.r))
+//define('R_CAPACITY', 'u.usd'); // how much rCredits is each account WILLING and able to buy
+define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+refunds+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community)
 
 // Relationship permissions used in calls to acct::can() -- stored (less B_RELATED) in r_relations
 define('B_RELATED', 100); // has a relationship record
@@ -225,7 +230,8 @@ define('B_REFUND', 103); // can undo transactions and make refunds at point of s
 define('B_SELL', 104); // can send invoices (or scan or view)
 define('B_BUY', 105); // can make purchase for the account (or sell or scan or view)
 define('B_MANAGE', 106); // can manage all aspects of the account
-$GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept rCard payments'), t('give refunds & give USD for rCredits'), t('send invoices'), t('make purchases'), t('manage account'));
+define('B_JOINT', 107); // make this a joint account (give agent permission to treat it that way) -- no companies!
+$GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept rCard payments'), t('give refunds & give USD for rCredits'), t('send invoices'), t('make purchases'), t('manage account'), t('joint account'));
 
 // Other special pseudo-bit values for acct::can() and rweb.module menus
 define('B_MANAGING_CTTY', 120); // cadmin is actually managing a qualified account
@@ -252,7 +258,7 @@ define('K_LIMIT_FACTOR', 3); // how many times the various thresholds is a prohi
 define('K_UNUSUAL_BUMP', 20); // what percentage 7-week increase (in or out) is suspicious
 define('K_BIT_MIN', .05); // lowest risk factor that sets a bit
 define('K_RED', 100); // lowest score to flag for investigation
-define('K_GREEN', -999); // maximum score for an account to be unquestionably beyond reproach
+define('K_GREEN', -500); // threshold for an account or transaction to be unquestionably beyond reproach
 define('K_LINES', 20); // number of lines to show for each type of each potentially risky record (acct or tx)
 define('K_MISER_DONATION', 5); // minimum donation to not be a miser
 define('K_MISER_SHARE', 25); // minimum sharing percentage, to not be a miser
@@ -261,9 +267,9 @@ define('K_CTTY_THRESHOLD', 100); // minimum size of community transactions to co
 // names and weights of account and transaction risks (and, for negative weights, assurance)
 // weight is the number of such risks that together would make the account or transaction suspicious
 // a weight of "X" means the risk is named but does not contribute to the total risk score
-define('K_ACCT_RISKS', 'adminOk:-0.5,trusted:-4,socialConx:-3,hasBank:-3,geography:4,cashCo:2,new:5,moves:3,rents:10,badConx:2,homeCo:20,shady:3,miser:5,photoOff:1,addrOff:5,ssnOff:1,poBox:5,fishy:2,moreIn:2,moreOut:2,bigDay:1,bigWeek:1,big7Week:1,bigYear:2');
+define('K_ACCT_RISKS', 'adminOk:-0.3,trusted:-4,socialConx:-3,hasBank:-3,geography:4,cashCo:2,new:5,moves:3,rents:10,badConx:2,homeCo:20,shady:3,miser:5,photoOff:1,addrOff:5,ssnOff:1,poBox:5,fishy:2,moreIn:2,moreOut:2,bigDay:1,bigWeek:1,big7Week:1,bigYear:2');
 define('K_ACCT_RISKS_EDITABLE', 'adminOk cashCo rents shady photoOff addrOff ssnOff fishy');
-define('K_TX_RISKS', 'txAdminOk:-0.5,redo:2,exchange:2,cashIn:5,cashOut:2,fromBank:5,toBank:2,b2p:1,p2p:2,inhouse:2,fromSuspect:3,toSuspect:3,absent:4,invoiceless:2,bigFrom:3,biggestFrom:3,oftenFrom:3,bigTo:3,biggestTo:3,oftenTo:3,offline:10,firstOffline:3,origins:3,suspectOut:2'); // names of transaction risks
+define('K_TX_RISKS', 'txAdminOk:-0.3,redo:2,exchange:2,cashIn:5,cashOut:2,fromBank:5,toBank:2,b2p:2,p2p:2,inhouse:2,fromSuspect:3,toSuspect:3,absent:4,invoiceless:4,bigFrom:3,biggestFrom:3,oftenFrom:3,bigTo:3,biggestTo:3,oftenTo:3,offline:10,firstOffline:3,origins:3,suspectOut:2'); // names of transaction risks
 define('K_ADMINOK', 0); // community admin blessed the account or transaction
 define('K_HASBANK', 3); // account has a connected bank account
 define('HAS_BANK', '(risks&(1<<' . K_HASBANK . '))'); // mysql criterion
@@ -290,7 +296,7 @@ define('TX_CHANNELS', t('System SMS Web App Tone Cron Link'));
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits) -- negative types generally not shown
 define('TX_BANK', -9); // used only internally, to mark bank transfers
 define('TX_XFEE', -4); // exchange fee (for buying rCredits with a credit/debit card or check)
-define('TX_REFUND', -3); // refund of fees (Dwolla)
+define('TX_REFUND', -3); // UNUSED refund of fees (Dwolla)
 define('TX_BONUS', -2); // sales bonus (negative reward types are invisible on transaction history)
 define('TX_REBATE', -1); // sales rebate
 define('TX_TRANSFER', 0); // normal fund transfer (usually for actual goods and services) -- not creating rC
@@ -491,7 +497,7 @@ function tradeR($amount, $uid1, $uid2, &$err = '') {
 function dupTx($uid, $other, $amount) {
   if (!$lastTx = r\acct($uid)->lastTx) return FALSE;
   list ($xid, $dif, $oldAmt, $created) = $lastTx;
-  t\log(compact(u\ray('uid other amount lastTx')));
+///  t\log(compact(u\ray('uid other amount lastTx')));
   return ($dif == $other - $uid and $amount == $oldAmt and REQUEST_TIME - $created < R_DUPTX_MINS * MIN_SECS);
 }
  
@@ -613,7 +619,7 @@ function notify($uid, $index, $subs = [], $force = FALSE) {
     $mailed = r\rMail($index, $acct->mail, $subs); // no need to pass $acct->language
   } else { //if ($acct->can(B_NOTIFY_EMAIL)) {
     list ($message, $created) = array(u\tt($index, $subs), REQUEST_TIME);
-    if (u\test()) t\output("Notice to $fullName: $message");
+    t\output("Notice to $fullName: $message");
     db\insert('r_notices', compact(u\ray('uid message created')));
   }
   
@@ -682,6 +688,7 @@ function membershipEvent($a, $status, $do = TRUE) {
     if ($status == 'ok') {
       u\EXPECT(@r\acct()->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
       r\message($a->id, 'approved');
+      $a->update('activated', time());
     }
     unset($DBTX);
     
@@ -844,7 +851,10 @@ function definiteName($uid) {
 /**
  * Return a zid and region for the qid
  * @param string $qid: a qid of any length or type (the region part defaults to the server region)
- * @return [zid, regionUid, $isRel]
+ * @return [zid, regionUid, $isRel] (FALSE on failure) where
+ *   zid is the record ID
+ *   regionUid is the region account ID
+ *   isRel is <this qid represents a relation between two accounts>
  */
 function unQid($qid) {
   if (!u\isQid($qid)) {
@@ -884,8 +894,19 @@ function quid($uid, $agentId = '') {
 
 /**
  * Return the record ID for a quid (local or complete, pro se or not).
+ * call by:
+ *   unQuid(quid) OR
+ *   unQuid('', zid, region, isRel)
+ * @param string quid: an account record ID such as NEW.AAA, .AAA, NEW:AAA, :AAA, !NEW, or !NEW.AAA
+ * @param int $zid: offset within a region
+ * @param int $region: region ID
+ * @param bool isRel: <this qid represents a relation between two accounts>
  */
 function unQuid($quid, $zid = NULL, $region = NULL, $isRel = FALSE) {
+  if (substr($quid, 0, 1) == '!') {
+    if (!strpos($quid, '.')) $quid .= '.AAA';
+    return -unQuid(substr($quid, 1));
+  }
   if (is_null($zid)) list ($zid, $region, $isRel) = r\unQid($quid); // break it down
   return $isRel ? NULL : (-$region + $zid);
 }
@@ -1214,7 +1235,7 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
  * @param bool $confirm: <to be confirmed> (default FALSE)
  */
 function txRet($message, $info = [], $confirm = FALSE) {
-  if (!@$info['success']) r\tellStaff('failed transaction', $info);
+  if (!@$info['success']) r\tellStaff('failed transaction', $info + compact('message', 'confirm'));
   return array($message, $info, $confirm);
 }
 
@@ -1286,8 +1307,8 @@ function noticeArgs($uid, $where, $weekly, $monthly, $at = REQUEST_TIME) {
   $q = db\q("SELECT message, created FROM r_notices WHERE uid=:uid AND ($where)", compact('uid'));
 
   while ($row = $q->fetch()) {
-    $date = ($weekly or $monthly) ? (strftime('%b&nbsp;%d', $row->created)) : '';
-    $messages[] = "<tr><td class=\"notice-date\" style=\"vertical-align:top;\">$date</td><td>$row->message</td></tr>";
+    $date = ($weekly or $monthly) ? (strftime('%b&nbsp;%d', $row->created)) : R_BULLET;
+    $messages[] = "<tr><td class=\"notice-date\" style=\"vertical-align:top; margin-right:5px;\">$date</td><td>$row->message</td></tr>";
   }
 
   if (@$messages) $messages = join("\n", $messages); else return FALSE;
@@ -1372,7 +1393,7 @@ EOF;
  *    rebates: rCredits issued as rebates (including on USD transactions)
  *    bonuses: rCredits issued as sales bonuses
  * @param int $ctty: the community account id for which to return totals (default ALL)
- */
+ *//*
 function totals($ctty = 'ALL', $calculate = FALSE) {
   $totals = \variable_get('r_totals');
   if ($calculate or !@$totals or !@$totals[$ctty]) {
@@ -1390,8 +1411,9 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
   $result = db\lookup('SUM(minimum)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty')); // minima
   $result -= -r\balance($ctty); // less how many rCredits are in circulation
   $result -= r\totalUSD($ctty); // less how much official currency is in play
-  */
+  *//*
 }
+*/
 
 /**
  * Return totals for the given community
@@ -1400,7 +1422,7 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
  *   r floor rewards usd minimum excess
  *   signup rebate bonus inflation grant loan fine maxRebate
  *   balance (-r) demand (minimum - r)
- */
+ *//*
 function getTotals($ctty) {
   $subs = @$ctty ? compact('ctty') : [];
   $where = (@$ctty ? "community=:ctty" : 1) . ' AND uid>0 AND :IS_OK';
@@ -1421,6 +1443,7 @@ function getTotals($ctty) {
   $balance = -$result1['r'];
   return $result1 + $result2 + compact(u\ray('balance'));
 }
+*/
 
 /**
  * Return system-wide or community-wide statistics.
@@ -1430,7 +1453,7 @@ function getTotals($ctty) {
  * @return assoc of named statistics (see r_stats table def)
  */
 function stats($ctty = 0, $when = REQUEST_TIME) {
-  if ($when < 0) $when = getStats($ctty);
+  if ($when < 0) $when = r\getStats($ctty);
 
   $sql = 'SELECT * FROM r_stats WHERE created<=:when AND ctty=:ctty ORDER BY id DESC LIMIT 1';
   if ($info = db\q($sql, compact('ctty', 'when'))->fetchAssoc()) return $info;
@@ -1443,8 +1466,7 @@ function stats($ctty = 0, $when = REQUEST_TIME) {
  * Return the amount the community has ever paid out
  */
 function cttyPaidEver($ctty = 0) {
-  $sum = 'cttyBuys+signups+rebates+bonuss+inflations+refunds+grants+loans+invests+fines+cttyOut';
-  return db\lookup($sum, 'r_stats', 'created=' . strtotime('today'));
+  return db\lookup(R_CTTY_BENE, 'r_stats', 'created=' . strtotime('today'));
 }
   
 /**
@@ -1458,12 +1480,11 @@ function cttyPaidEver($ctty = 0) {
 function getStats($ctty, $created = NULL) {
   u\setDft($created, u\test() ? REQUEST_TIME : time());
   $subs = compact('created', $ctty ? 'ctty' : '');
-  list ($cttyCrit, $payerCrit, $cttysCrit) = $ctty ? 
-    array('community=:ctty', 'payer=:ctty', '(u.community=:ctty OR u2.community=:ctty)')
-  : array('1', 'payer<1', '1');
+  list ($cttyCrit, $payerCrit, $payeeCrit, $cttysCrit) = $ctty ? 
+    array('community=:ctty', 'payer=:ctty', 'payee=:ctty', '(u.community=:ctty OR u2.community=:ctty)')
+  : array('1', 'payer<1', 'payee<1', '1');
     
-  // get pAccts, bAccts, newbs, savings
-//       SUM(r) AS r, SUM(usd) AS usd, 
+/*
   $sql = <<<EOF
     SELECT SUM(IF(firstTx<:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
       SUM(IF(firstTx<:created AND :IS_CO, 1, 0)) AS bAccts,
@@ -1473,16 +1494,45 @@ function getStats($ctty, $created = NULL) {
       SELECT payee, MIN(created) AS firstTx
       FROM r_txs GROUP BY payee
     ) t ON t.payee=u.uid
-    WHERE uid NOT IN (0,1) AND $cttyCrit AND u.created<:created 
+    WHERE uid NOT IN (0,1) AND $cttyCrit AND u.created<=:created 
 EOF;
-  $result1 = db\q($sql, $subs)->fetchAssoc() ?: [];
+*/
 
+  // get pAccts, bAccts, newbs, savings
+  $sql = <<<EOF
+    SELECT SUM(IF(activated AND activated<=:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
+      SUM(IF(activated AND activated<=:created AND :IS_CO, 1, 0)) AS bAccts,
+      SUM(IF(created<=:created AND (NOT activated OR activated>:created), 1, 0)) AS newbs,
+      SUM(picture)/100 AS savings
+    FROM users
+    WHERE uid>1 AND $cttyCrit AND created<=:created 
+EOF;
+  $res = db\q($sql, $subs)->fetchAssoc() ?: [];
+
+  // get top5
+  $sql = <<<EOF
+    SELECT SUM(picture)/100 AS top5
+    FROM (SELECT picture FROM users WHERE uid>1 AND $cttyCrit AND created<=:created
+      ORDER BY picture DESC LIMIT 5) u0
+EOF;
+  $res += db\q($sql, $subs)->fetchAssoc() ?: [];
+  
+  // get usd
+  $sql = <<<EOF
+    SELECT
+    SUM(IF(t.payee=0 AND amount<0, -amount, 0)) AS bankIn,
+    SUM(IF(t.payee=0 AND amount>0, amount, 0)) AS bankOut
+    FROM r_usd t LEFT JOIN users u ON u.uid=t.payer
+    WHERE $cttyCrit AND t.completed AND t.completed<=:created
+EOF;
+  $res += db\q($sql, $subs)->fetchAssoc() ?: [];
+  
   // get buyers, sellers
   // (@todo?)
-    
   $sums = '';
-  foreach (u\ray('cttyBuy signup rebate bonus inflation helper refund grant loan invest fine') as $one) { // fine<=0
-    $type = $one == 'cttyBuy' ? TX_TRANSFER : u\consta('tx', $one);
+  foreach (u\ray('signup xfee rebate bonus inflation helper refund grant loan invest fine') as $one) { // fine<=0
+//    $type = $one == 'cttyBuy' ? TX_TRANSFER : u\consta('tx', $one);
+    $type = u\consta('tx', $one);
 /*    if ($type == TX_TRANSFER) $type .= " AND $payerCrit AND amount<>0";
     $value = $type == TX_TRANSFER ? 
         "IF(type=$type AND $payerCrit, amount, 0)" // rCredits issued as ctty purchases
@@ -1490,45 +1540,42 @@ EOF;
 */
     $sums .= "SUM(IF(type=$type AND $payerCrit, amount, 0)) AS `{$one}s`, ";
   }
-  // get purchases, signups, rebates, bonuss, inflations, helpers, refunds, grants, loans, investments, fines, shared
-  $cttyInOut = $ctty == 0 ? '' : <<<EOF
-    SUM(IF(u2.community=:ctty AND u.community<>:ctty, amount, 0)) AS cttyIn,
-    SUM(IF(u.community=:ctty AND u2.community<>:ctty, amount, 0)) AS cttyOut,
+
+  // get cttyBuys, cttyIncomes  
+  $sums .= <<<EOF
+    SUM(IF(type=:TX_TRANSFER AND ($payerCrit OR ($payeeCrit AND amount<0)), ABS(amount), 0)) AS cttyBuys,
+    SUM(IF(type=:TX_TRANSFER AND $payeeCrit AND amount>0, -amount, 0)) AS cttyIncomes,
+EOF;
+
+  // get purchases, signups, xfees, rebates, bonuss, inflations, helpers, refunds, grants, loans, investments, fines, shared
+  $sums .= $ctty == 0 ? '' : <<<EOF
+    SUM(IF(u.community<>:ctty AND u2.community=:ctty, -amount, 0)) AS tradeIn,
+    SUM(IF(u2.community<>:ctty AND u.community=:ctty, amount, 0)) AS tradeOut,
 EOF;
     
   $sql = <<<EOF
     SELECT $sums SUM(IF(channel=:TX_CRON AND payeeFor='sharing rewards with CGF', amount, 0)) AS shared,
-    $cttyInOut
     SUM(IF(goods, amount, 0)) AS purchases, SUM(IF(payer>1 AND NOT goods, amount, 0)) AS forCashs
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
-    WHERE $cttysCrit AND t.created<:created
+    WHERE $cttysCrit AND t.created<=:created
 EOF;
-  $result2 = db\q($sql, $subs)->fetchAssoc() ?: [];
+  $res2 = db\q($sql, $subs)->fetchAssoc() ?: [];
 
   // get r
-  $result2['r'] = array_sum($result2) - $result2['shared'] - $result2['purchases'] - $result2['forCashs'];
-  $result2['r'] -= 2 * @$result2['cttyOut'];
+  $res2['r'] = array_sum($res2) - $res2['shared'] - $res2['purchases'] - $res2['forCashs'];
+  $res2['r'] += $res['bankIn'] - $res['bankOut']; // include r provided in exchange for USD
+  $res += $res2;
 
-  // get usd, modify r
-  
+/*
   $cttyInOut = $ctty == 0 ? '' : <<<EOF
-    SUM(IF(u.community=:ctty AND t.payee NOT IN (-1,0), amount, 0)) AS usd2r,
+    SUM(IF(u.community=:ctty AND t.payee<>0, amount, 0)) AS usd2r,
     SUM(IF(u2.community=:ctty, amount, 0)) AS r2usd,
 EOF;
+*/
 
-  $sql = <<<EOF
-    SELECT
-    $cttyInOut
-    SUM(IF(t.payee=0, -amount, 0)) AS usd,
-    SUM(IF(t.payee=-1, amount, 0)) AS fees
-    FROM r_usd t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
-    WHERE $cttysCrit AND t.completed AND t.completed<:created
-EOF;
-  $usdResult = db\q($sql, $subs)->fetchAssoc() ?: [];
-  $usdNetIn = @$usdResult['r2usd'] - @$usdResult['usd2r'];
-  $result2['usd'] = $usdResult['usd'] + $usdNetIn - $usdResult['fees'];
-  $result2['r'] -= $usdNetIn;
-///  debug(compact('ctty','result2','usdResult'));
+//  $usdNetIn = @$res['r2usd'] - @$res['usd2r'];
+//  $res2['usd'] = $res['usd'] + $usdNetIn;
+///  debug(compact('ctty','res2','res'));
 
   // get perMo, txsPerMo, p2b(Txs)PerMo, b2b(Txs)PerMo, b2p(Txs)PerMo, cash(Txs)PerMo
   $subs += u\ray('monthAgo', u\plusMonths(-1, $created));
@@ -1548,9 +1595,9 @@ EOF;
     SUM(IF(NOT goods, 1, 0)) AS cashTxsPerMo
 
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
-    WHERE $cttysCrit AND t.created>:monthAgo AND t.created<:created
+    WHERE $cttysCrit AND t.created>:monthAgo AND t.created<=:created
 EOF;
-  $result3 = db\q($sql, $subs)->fetchAssoc() ?: [];
+  $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
   // get bankIn(Txs)PerMo, bankOut(Txs)PerMo
   $sql = <<<EOF
@@ -1562,15 +1609,13 @@ EOF;
 
     FROM r_usd t LEFT JOIN users u ON t.payer=u.uid
     WHERE $cttyCrit AND t.completed AND t.payee=0
-    AND completed<:created AND :monthAgo>0
+    AND completed<=:created AND completed>:monthAgo
 EOF;
-  $usdResult = db\q($sql, $subs)->fetchAssoc() ?: []; // "AND :monthAgo>0" just to match sub count
-  $result4 = db\q($sql . ' AND completed>:monthAgo', $subs)->fetchAssoc() ?: [];
+  $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
-///debug(compact(u\ray('result1 result2 result3 result4')));
-  $info = $result1 + $result2 + $result3 + $result4 + compact('created', 'ctty');
-  foreach ($info as $key => $value) {if (is_null($value)) $info[$key] = 0;}
-  db\insert('r_stats', $info);
+  foreach ($res as $k => $v) {if (is_null($v)) $res[$k] = 0;}
+///  debug($res + compact('created', 'ctty'));
+  db\insert('r_stats', $res + compact('created', 'ctty'));
   return $created;
 }
 
@@ -1585,7 +1630,7 @@ EOF;
  */
 function averageBalance($uid, $start, $end = REQUEST_TIME, &$min = '', &$days = '') {
   //u\EXPECT($uid > 1, 'bad uid for avg');
-  $days = round(($end + 1 - $start) / DAY_SECS); // rounding is for daylight savings time changes
+  if (!$days = round(($end + 1 - $start) / DAY_SECS)) return 0; // rounding is for daylight savings time changes
   $min = $bal = be\creditInfo(u\ray('uid asof', $uid, $start))->balance;
   $day = 0;
   $avg = 0;

@@ -63,18 +63,22 @@ function adminSummary($a, $cAdmin = FALSE) {
     if (!$a->ok) $a->nextStep(); // update Dwolla status
     if ($cAdmin) {
       $donations = db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
-      if ($donationInfo = $a->ok ? '' : db\lookup('often,honor,honored', 'r_gifts', 'uid=:uid', compact('uid'))) {
+      if ($donationInfo = db\lookup('often,honor,honored', 'r_gifts', 'uid=:uid', compact('uid'))) {
         extract($donationInfo);
         $donationInfo = "howoften:$often ($honor) $honored";
       }
-      $donations = item(u\fmtAmt($donations) . "@$donationInfo $a->share%", t('Donations:'));
+      $donations = item(u\fmtAmt($donations) . ", $donationInfo @$a->share%", t('Donations:'));
 
       $floor = textField(t('Credit floor:'), '', dft(u\fmtAmt($a->floor)));
-      $minimum = textField(t('Minimum:'), '', dft(u\fmtAmt($a->minimum)));
-      $achMin = textField(t('ACH Min:'), '', dft(u\fmtAmt($a->achMin)));
+//      if ($a->stepsDone['prefs']) { // don't even look at these if newbie hasn't chosen yet
+//        $minimum = textField(t('Minimum:'), '', dft(u\fmtAmt($a->minimum)));
+//        $achMin = textField(t('ACH Min:'), '', dft(u\fmtAmt($a->achMin ?: R_ACHMIN_DEFAULT, 's')));
+//      }
+        $minimum = item(u\fmtAmt($a->minimum), t('Minimum:'));
+        $achMin = item(u\fmtAmt($a->achMin), t('ACH Min:'));
 //      if (!$a->stepsDone['dw']) { // show info needed to open a Dwolla account
       extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
-      $dwInfo = item(u\rayTable(u\ray('usdEmail usdPass phone SSN address zip usdPIN', @$s_usdEmail, @$s_usdPass, @substr(@$s_usdPhone, 2), $a->ok ? '' : ($a->federalId . ' (' . substr($a->federalId, -4) . ')'), $a->address, $a->postalCode, @$s_usdPin)));
+      $dwInfo = item(u\rayTable(u\ray('usdEmail usdPass usdPIN', @$s_usdEmail, @$s_usdPass, @$s_usdPin), FALSE));
       if (!$a->co) $trust = item($a->trust, t('Trust:'), t('This person\'s trust rating'));
     }
   
@@ -83,6 +87,11 @@ function adminSummary($a, $cAdmin = FALSE) {
       : item(a\showSteps($a), t('To do (red):'), t('sign=agreement | contact=contact info | dw:for admin to do | connect=connect bank | verify=verify bank deposits'));
 //    $created = item(u\fmtDate($a->created), t('Created:'));
     if ($rels = a\showRelations($a)) $relations = item($rels, t('Relations:'));
+    
+    $invited = item(db\count('r_invites', 'inviter=:uid', compact('uid')), t('Invited:'));
+    $invitedBy = item(db\lst('fullName', 'r_invites i LEFT JOIN users u ON u.uid=i.inviter', 'invitee=:uid', compact('uid')), t('Invited by:'));
+    $proxies = item(db\lst('fullName', 'r_proxies p LEFT JOIN users u ON u.uid=p.proxy', 'p.person=:uid ORDER BY priority', compact('uid')), t('Proxies:'));
+    $proxyFor = item(db\count('r_proxies', 'proxy=:uid', compact('uid')), t('Proxy for:'));
   }
 
   if ($cAdmin and !$self) {
@@ -129,6 +138,24 @@ function adminSummary($a, $cAdmin = FALSE) {
     $who = textField(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
   }      
 
+  if ($a->id == r\cgfId()) {
+    $sql = <<<EOF
+      SELECT u.community AS ctty, SUM(IF(payee=:uid, amount, 0)) AS `in`,
+        SUM(IF(payer=:uid, amount, 0)) AS `out`
+      FROM r_txs t LEFT JOIN users u ON u.uid=IF(payer=:uid, payee, payer)
+      WHERE (payer=:uid AND payee<0) OR payee=:uid GROUP BY community
+EOF;
+    $q = db\q($sql, compact('uid'));
+    $lines = '<tr><th>Community</th><th>Donations</th><th>Paid</th><th>Due</th></tr>';
+    while ($row = $q->fetchAssoc()) {
+      extract($row);
+      $row['due'] = round(($in - $out) / 2, 2);
+      foreach (['in', 'out', 'due'] as $k) $$k = number_format($row[$k], 2);
+      $ctty = r\acct($ctty)->fullName;
+      $lines .= "<tr><td>$ctty</td><td>$in</td><td>$out</td><td>$due</td></tr>\n";
+    }
+    $cgfDonations = item("<table id=\"cgf-donations\">$lines</table>");
+  }
   $tenure = item($a->tenure . t(' month(s)'), t('Tenure:'), t('(How long had this person or company been at this address before opening an rCredits account?)'));
 
   if (!$a->co) {
@@ -138,12 +165,13 @@ function adminSummary($a, $cAdmin = FALSE) {
 
   $notes = formField('textarea', t('Notes:'), '', dft($a->notes));
   $risk = item(round($a->risk) . button(t('Recalculate'), "$base_url/rerisk/acct/$uid/1"), t('Risk Score:'));
+  if (!$a->co) $trust = item(number_format($a->trust, 1), t('Trust:'));
   if ($mya->can(B_CADMIN2)) $submit = submit(t('Go'));    
 
   $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
   $uid = hidField($uid);
 
-  return compact(u\ray('donations tenure steps dwInfo relations ssnCheck moves floor minimum achMin legalName risk risks2 mediaConx adminable2 rTrader helper notes count submit back uid'));
+  return compact(u\ray('donations cgfDonations tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin legalName risk trust risks2 mediaConx adminable2 rTrader helper notes count submit back uid'));
 }
 
 function showCardCode($a) {

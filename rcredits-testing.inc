@@ -14,6 +14,7 @@ use rCredits\Admin as a;
 
 global $base_path;
 define('BASE_PATH', $base_path);
+/*
 define('DW_TEST_PASS', 'Password1'); // usdPass for sandbox accounts
 define('DW_TEST_PIN', '9999'); // usdPin
 define('DW_TEST_ACCTS', DW_TESTER_ACCT . ' ' . '8127419900 8127431130 8127423717 8127418871 8127401872'); // usdAccount
@@ -26,6 +27,8 @@ define('DW_TEST_AUTHS',
 . 'v8bSxiLSb58y42i1lBeH7x1zxUrnygEnpe3AKFSy7HCjhTsC7V '
 );
 define('T_BALANCE_FIELDS', 'id r usd balance dwolla floor rewards minimum share committed');
+*/
+define('T_BALANCE_FIELDS', 'id r balance floor rewards minimum share committed');
 define('T_MSG_FILE', 'test-messages.txt');
 
 function doRecords($list, $type) {
@@ -146,7 +149,7 @@ function doAccount($info = array()) {
     return TRUE;
   }
   if (!$a = new r\acct($info)) return FALSE;
-
+/*
   if (is_numeric(@$dw)) {
     $accts = u\ray(DW_TEST_ACCTS);
     $auths = u\ray(DW_TEST_AUTHS);
@@ -160,7 +163,7 @@ function doAccount($info = array()) {
 ///debug("dw=$dw usnum=$us->number test=" . DW_TESTER_ACCT); 
     if ($us->number != DW_TESTER_ACCT) $us->setbal(0, $err);
   }
-  
+  */
   if (@$picture) if (!makePicture($picture, $a)) return FALSE;
 
   return $uid;
@@ -312,20 +315,22 @@ function notice($notice, $id, $subs = array()) {
       $subs[$key] = u\fmtAmt($num, 's$' . $currency);
     }
   }
-  $message = strip_tags(u\tt($notice, @$subs));
+  
+  $map = ['&nbsp;'=>'', '&#8226;'=>''];
+  $message = strtr(strip_tags(u\tt($notice, @$subs)), $map);
   $sql = 'SELECT message FROM r_notices WHERE uid=:uid AND sent=:sent ORDER BY msgid DESC';
   $info = u\ray('uid sent', $uid, @$subs['sent'] ?: 0);
   $msgs = db\q($sql, $info)->fetchCol();
 ///  debug(compact(u\ray('message sql info msgs')));
   foreach ($msgs as $msg) {
-    if (strip_tags($msg) == $message) {
+    if (strtr(strip_tags($msg), $map) == $message) {
       $thatThing['notice'] = $msg; // remember for "And that <thing> blah blah blah"
       return TRUE;
     }
     t\output("GOT notice: $msg");
   }
 
-  t\output('EXPECTED (but did not get) notice ' . print_r($info + compact('message'), 1));
+/**/  t\output('EXPECTED (but did not get) notice ' . print_r($info + compact('message'), 1));
   return FALSE;  
 }
 
@@ -406,40 +411,42 @@ function memberFieldValues($list) {
  */
 function doBalance($one) {
   global $testOnly;
-  if (isset($one['dw/usd'])) {
+/*  if (isset($one['dw/usd'])) {
     $one['usd'] = $one['dwolla'] = $one['dw/usd'];
     unset($one['dw/usd']);
-  }
+  }*/
   extract(u\just(T_BALANCE_FIELDS, $one));
   if (!$a = r\acct($id = t\uid($id0 = $id))) return t\output("account $id0 does not exist");
 /// print_r(compact('a','id','id0'));
 /// print_r(' unQuid=' . r\unQuid($id0));
+/*
   if ($hasdw = in_array($a->usdAccount, array(DW_TEST_ACCT, DW_TESTER_ACCT))) $us = new r\usd($a);
   $dodw = (isset($dwolla) and $hasdw);
-
+*/
   if (!$testOnly) { // setting the values
-    if ($dodw and !$us->setbal($dwolla, $err)) return t\output("Can't set dwolla bal for $id to $$dwolla -- $err");
+/*    if ($dodw and !$us->setbal($dwolla, $err)) return t\output("Can't set dwolla bal for $id to $$dwolla -- $err");
     if ($hasdw and @$usd == '?') {
       $one['usd'] = $us->bal($err);
       if (@$err) return t\output("Can't get dwolla bal for $id -- $err");
-    }
+    } */
     unset($one['id']);
-    unset($one['dwolla']);
+//    unset($one['dwolla']);
     return ($one ? $a->update($one) : TRUE); // handle only id being passed
   }
 
   // verify
   $calc = t\uidCredit($id);
-  foreach (u\ray('r usd balance rewards') as $one) {
+  foreach (u\ray('r balance rewards') as $one) {
     if (isset($$one) and $$one != '?') {
-      $cachedVal = $one == 'balance' ? $a->r + $a->usd : $a->$one;
-      if (($id > 0 or $one == 'usd') and t\badEq("cached $one", $cachedVal, $$one, $id)) return FALSE;
-      if ($one != 'usd' and ($id > 0 or $one == 'r')) {
-        if (t\badEq("calc $one", $calc->$one, $$one, $id)) return FALSE;
-      }
+//      $cachedVal = $one == 'balance' ? $a->r + $a->usd : $a->$one;
+      $cachedVal = $one == 'balance' ? $a->r : $a->$one;
+//      if (($id > 0 or $one == 'usd') and t\badEq("cached $one", $cachedVal, $$one, $id)) return FALSE;
+      if (($id > 0) and t\badEq("cached $one", $cachedVal, $$one, $id)) return FALSE;
+//      if ($one != 'usd' and ($id > 0 or $one == 'r')) {
+      if ($id > 0 or $one == 'r') if (t\badEq("calc $one", $calc->$one, $$one, $id)) return FALSE;
     }
   }
-  if ($dodw and $dwolla != '?' and t\badEq('dwolla bal', $us->bal($err), $dwolla, $id)) return t\output("Dwolla err: $err");
+//  if ($dodw and $dwolla != '?' and t\badEq('dwolla bal', $us->bal($err), $dwolla, $id)) return t\output("Dwolla err: $err");
   foreach (u\ray('floor minimum share committed') as $one) {
     if (isset($$one) and $$one != '?' and $id > 0) if (t\badEq("db $one", $a->$one, $$one, $id)) return FALSE;
   }
@@ -664,19 +671,23 @@ function findEmail($index, $email, $subs) {
   $subject = strtr($subject, $esubs);
   $pattern = '/\{[A-Z]+[A-Z0-9]*\}/i';
   if (preg_match($pattern, $message. $subject)) return FALSE; // no other subs
+
+  $map = ["\n"=>'', R_BULLET=>'*', '&nbsp;'=>' '];
   
-  foreach ($subs as $k => $v) $subs[$k] = strip_tags($v);
+  foreach ($subs as $k => $v) $subs[$k] = strtr(strip_tags($v), $map);
   ksort($subs);
   
   foreach ($testEmails as $one) {
     extract($one, EXTR_PREFIX_ALL, 't');
     if ($t_index == $index and $t_email == $email) {
-      foreach ($t_subs as $k => $v) $t_subs[$k] = strtr(strip_tags($v), ["\n" => '', '&nbsp;' => ' ']);
+      foreach ($t_subs as $k => $v) $t_subs[$k] = strtr(strip_tags($v), $map);
       ksort($t_subs);
       if (u\just(array_keys($subs), $t_subs) == u\just(array_keys($t_subs), $subs)) return TRUE; // has these subs
+/**/  foreach ($subs as $k=>$v) if (isset($t_subs[$k]) and $v != $t_subs[$k]) debug("k=$k v=$v tv=" . @$t_subs[$k]);
+/**/  foreach ($t_subs as $k=>$v) if (isset($subs[$k]) and $v != @$subs[$k]) debug("k=$k tv=$v v=" . @$subs[$k]);
     }
   }
-  output(u\ray('EXPECT', '') + compact(u\ray('index email subjectDpy subs messageDpy')), 'email');
+  output(['EXPECTED (but did not get)'=>''] + compact(u\ray('index email subjectDpy subs messageDpy')), 'email');
   return FALSE;
 }
 

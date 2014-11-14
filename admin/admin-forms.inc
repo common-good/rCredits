@@ -11,6 +11,7 @@ use rCredits\Util as u;
 use rCredits\Testing as t;
 use rCredits\db as db;
 use rCredits\Admin as a;
+use rCredits\Web as w;
 
 include_once __DIR__ . '/admin.inc';
 include_once __DIR__ . '/admin-web.inc';
@@ -53,12 +54,12 @@ function formAdmin($form, &$sta, $args = '') {
   $seeData = submit(t('See Data'));
   $seeChanges = submit(t('See Changes'));
   $newUsdEmail = submit(t('New USD Email'));
-  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeChanges seeSecure do1099b')));
+  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeChanges seeSecure')));
   
   $form = compact('title');
   if ($mya->cAdmin) {
     foreach (u\ray($tables) as $one) $form[$one] = submit($one);
-    $form += compact(u\ray('inviteeStatus stop start stopCtty startCtty acctSet'));
+    $form += compact(u\ray('inviteeStatus do1099b stop start stopCtty startCtty acctSet'));
   }
   return $form;
 }
@@ -108,7 +109,7 @@ function formAdmin_submit($form, &$sta) {
   } elseif ($op == 'seeChanges') {
     r\go("sadmin/changes/$a->mainQid");
   } elseif ($op == 'do1099b') {
-    include_once __DIR__ . '/../rcredits/rcredits-yearly.inc';
+    include_once __DIR__ . '/../rcredits-yearly.inc';
     r\Special\do1099bs();
   } elseif ($op == 'inviteeStatus') {
     return r\go('invited-whom');
@@ -138,9 +139,9 @@ function formAdmin_submit($form, &$sta) {
 
 /**
  * Display dated changes made to an account.
- * @param string $qid: the account QID
+ * @param string $qid: the account QID (default to current account)
  */
-function formSeeChanges($form, &$sta, $qid) {
+function formSeeChanges($form, &$sta, $qid = '') {
   $a = r\acct($qid);
   $title = item(t('Account Changes for ') . $a->fullName);
   $list[] = '<tr><th>Date</th><th>Field</th><th>Old Value</th><th>New Value</th>';
@@ -156,7 +157,7 @@ function formSeeChanges($form, &$sta, $qid) {
         $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";
       }
     }
-  } else $list[] = '<tr><td colspan=3>No changes</td></tr>';
+  } else $list[] = '<tr><td colspan=4>No changes</td></tr>';
   
   $list = join("\n", $list);
   $list = item("<table>$list</table>");
@@ -290,7 +291,7 @@ function formMemberList($form, &$sta) {
 
     if ($cAdmin) {
       $bits = array(); // zap previous value
-      foreach (u\ray('member ok dw bank') as $one) if ($a->can(u\consta('b', $one))) $bits[] = $one;
+      foreach (u\ray('member ok bank') as $one) if ($a->can(u\consta('b', $one))) $bits[] = $one;
       $bits = $bits ? ('<span style="color:darkgreen;"> ' . join(' ', $bits) . "</span><br>\n") : '';
     } else $bits = '';
     
@@ -359,118 +360,136 @@ function formDownloadMemberList_submit($form, &$sta) {
   exit();
 }
 
-define('DEPOSIT_DATE1', 1411517529); // first deposit date
+//define('DEPOSIT_DATE1', 1411517529); // first deposit date
 
 /**
  * Print checks for transfers from member bank accounts.
  */
-function formPrintChecks($form, &$sta) {
-  $where = 'payee=0 AND amount<0 and created>:DEPOSIT_DATE1'; // transfer from any member's bank account
-  $count = db\count('r_usd', $where . ' AND deposit=0');
-  $previous = db\lookup('MAX(deposit)', 'r_usd', $where);
-  if ($previous == 1) $previous = 0; // handle transition from Dwolla
-  $oldCount = $previous ? db\count('r_usd', $where . ' AND deposit=:previous', compact('previous')) : 0;
+function formDeposits($form, &$sta, $deposit = '') {
+//  if ($deposit) return r\go("sadmin/deposit/$deposit");
+  $title = item(t('Deposits'));
 
-  $title = item(t('Print Checks'));
-  $count = item($count . t(' checks'), t('Print:'));
-  if ($previous) $reprint = boxField(t('Reprint:'), t('Include (reprint) ') . $oldCount . t(' checks from ') . u\fmtDate($previous) . '?');
-  if ($count or $previous) $submit = submit(t('Print checks'));
-  $previous = hidField($previous);
-  return labeled(compact(u\ray('title count reprint submit previous')));
+  foreach ($ways = [t('IN'), t('OUT')] as $way) {  
+    $where = 'payee=0 AND amount' . ($way == t('IN') ? '<0' : '>0');
+    $count = db\count('r_usd', $where . ' AND deposit=0');
+    $previous = db\lookup('MAX(deposit)', 'r_usd', $where);
+    if ($previous == 1) $previous = 0; // handle transition from Dwolla
+    $oldCount = $previous ? db\count('r_usd', $where . ' AND deposit=:previous', compact('previous')) : 0;
+    $count = item(t('Checks') . " $way: $count");
+    if ($previous) $reprint = boxField('', t('Include/Reprint ') . $oldCount . t(' checks from ') . strftime('%d-%b', $previous) . '?'); else unset($reprint);
+    if ($count or $previous) $submit = submit(t('Print checks ') . $way);
+    $previous = hidField($previous);
+///    echo "\n\n\nway=$way " . print_r(u\prefixKeys($way, compact(u\ray('count reprint submit previous'))), 1) . "\n\n\n";
+    $$way = w\fieldSet("_$way", u\prefixKeys($way, compact(u\ray('count reprint submit previous'))));
+  }
+  
+  $deposits = item(a\deposits(), ' ');
+  return compact('title', $ways, 'deposits');
 }
 
-function formPrintChecks_submit($form, &$sta) {
-  extract(u\just('reprint previous', $sta['input']));
-  r\go("sadmin/checks/previous=$previous&reprint=" . @$reprint);
+function formDeposits_submit($form, &$sta) {
+  $op = w\op($sta);
+  $way = str_replace('submit', '', $op); // cute. INsubmit or OUTsubmit -> IN or OUT
+  foreach (['reprint', 'previous'] as $k) $$k = @$sta['input'][$way . $k];
+  r\go("sadmin/checks/way=$way&date=0&previous=$previous&reprint=" . @$reprint);
+}
+
+function depositDetails($args) {
+  extract(u\just('way date total count', $args));
+  include_once __DIR__ . '/../pdf.class';
+  $pdf = new r\Pdf();
+
+  $m = .5; // left/right margin size
+  $pdf->setPageUnit('in'); // measure everything in inches
+  $pdf->SetMargins($m, $m, $m);  // left/top/right margin, needed for auto page breaks
+  $pdf->SetAutoPageBreak($count > 47, $m); // leave space at bottom (count compensates for TCPDF bug)
+  $pdf->setPrintHeader(FALSE);
+  $pdf->setPrintFooter(TRUE);
+//  $pdf->setLanguageArray($l); // (eg "page" in footer)
+
+  $in = (strtoupper($way) == 'IN');
+  list ($activity, $where) = $in ? [t('DEPOSIT'), 'amount<0'] : [t('CASHOUT'), 'amount>0'];
+  $today = $date == 1 ? t('(Historical)') : u\fmtDate($date ?: time());
+  $pdf->setupFooter('', "rCredits $activity $today", ['A'.ESCROW_ROUTING.'A '.ESCROW_ACCOUNT.'C', 'GnuMICR 12'], 'Page @PAGE of @PAGES');
+  $pdf->AddPage();
+
+  $phone = u\fmtPhone(CGF_PHONE);
+  $left = tt(<<<EOF
+<h1><b>$activity Details</b><br>
+$today</h1><br>
+<br>
+<br>
+<b>@CGF_LEGALNAME<br>
+dba rCredits</b><br>
+PO Box 21<br>
+Ashfield, MA 01330<br>
+$phone<br>
+<br>
+<br>
+<b>Citizens Bank</b><br>
+Account #@ESCROW_ACCOUNT<br>
+Greenfield Branch<br>
+89 French King Highway<br>
+Greenfield, MA 01301<br>
++1 413 774 2135<br>
+<br>
+<br>
+<b>TOTAL: $$total</b><br>
+$count checks<br>
+EOF
+  );
+  
+  $pdf->say($left, $m, 0);
+
+  $sql = <<<EOF
+    SELECT ABS(amount) AS amount, txid, uid, u.fullName AS name FROM r_usd t LEFT JOIN users u ON u.uid=t.payer 
+    WHERE $where AND deposit=$date AND payee=0 ORDER BY txid
+EOF;
+  $q = db\q($sql);
+  $x = $pdf->pageW / 2 - 1;
+  $pdf->setY($m);
+  
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+// (needs htmlcell instead of cell)   if (!$in) $name = r\acct($uid)->bankInfoLink();
+    $pdf->setX($x);
+    $pdf->Cell(1, 0, u\fmtAmt($amount, ''), '', 0, 'R');
+    $pdf->setX($x + 1.25);
+    $pdf->Cell($x - 1.25, 0, "(# $txid) $name", '', 1);
+  }
+  $pdf->setX($x);
+  $pdf->Cell(1, 0, '----------------', '', 1, 'R');
+  $pdf->setX($x);
+  $pdf->Cell(1, 0, '$ ' . u\fmtAmt($total, ''), '', 0, 'R');
+  $pdf->setX($x + 1.25);
+  $pdf->Cell(($pdf->pageW - $x) - 1.25, 0, t('TOTAL'), '', 1);
+
+  if (u\test()) $pdf->Close(); else $pdf->Output('rCredits-deposit-$date.pdf', 'I'); //Close and output
 }
 
 function printChecks($args) {
-  extract(u\just('reprint previous', $args));
-  include_once __DIR__ . '/../check.class';
-  $ck = new r\Check();
+  extract(u\just('way date reprint previous', $args));
+  include_once __DIR__ . '/../pdf.class';
+  $ck = new r\Pdf();
   $ck->setPrintHeader(FALSE);
   $ck->setPrintFooter(FALSE);
   $ck->setPageUnit('in'); // measure everything in inches
 //  $ck->SetMargins(0, 0, 0); // left/top/right margin
   $ck->SetAutoPageBreak(FALSE);
 
-  $where = @$reprint ? "(deposit=0 OR deposit>=$previous)" : 'deposit=0';
-  $q = db\q("SELECT txid,created,payer,-amount AS amount,deposit FROM r_usd WHERE $where AND payee=0 AND amount<0 AND created>:DEPOSIT_DATE1 ORDER BY created, txid");
+  $where = @$reprint ? "(deposit=0 OR deposit>=$previous)" : "deposit=$date";
+  $where .= strtoupper($way) == 'IN' ? ' AND amount<0' : ' AND amount>0';
+  $q = db\q("SELECT txid,created,payer,amount,deposit FROM r_usd WHERE $where AND payee=0 ORDER BY created, txid");
   $pos = 3; // before first position of 3, on 3-up check paper
   $count = 0;
   while ($tx = $q->fetchAssoc()) {
     if ($pos == 3) {$pos = 1; $ck->AddPage();} else $pos++;
-    printOneCheck($ck, $pos, $tx);
+    a\printCheck($ck, $pos, $tx);
     $count++;
   }
   $date = strftime('%Y-%m-%d', @$previous ?: time());
-  if (u\test()) $ck->Close(); else $ck->Output("checks-for-rCredits-$date.pdf", 'I'); //Close and output PDF
-  say($count . t(' checks printed'));
-//  r\go('sadmin');
-}
-
-/**
- * Print a check to transfer funds from a member bank account to the rCredits Escrow account,
- * according to the given record in r_usd.
- * @param Check $ck: the Check object to place the check in.
- * @param int $pos: what position on the current page (1, 2, or 3)
- * @param assoc $tx: the relevant fields from the r_usd record
- */
-function printOneCheck(&$ck, $pos, $tx) {
-  extract(u\just('txid created payer amount deposit', $tx));
-//  $amount = 1234567.89;
-  $a = r\acct($payer);
-
-  list ($W, $H) = array($ck->pageW, $ck->pageH);
-  $lineH = $ck->lineH; // standard line height in inches
-  $m = .25; // left/right margins
-  $mt = ($pos - 1) * CHECK_HEIGHT + $m; // top margin
-  
-  $phone = u\fmtPhone($a->phone);
-  $routing = substr($a->bankAccount, 4, 9);
-  $account = substr($a->bankAccount, 4 + 9);
-  $bankInfo = db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
-  if (!$bankInfo) {say("Skipped transaction #$txid for $a->fullName (no bank info)"); return;}
-  //u\EXPECT((bool) $bankInfo, 'no bank info');
-  extract($bankInfo, EXTR_PREFIX_ALL, 'b');
-  if (strlen($b_zip) > 5) $b_zip = substr($b_zip, 0, 5) . '-' . substr($b_zip, 5);
-  if (!$prefix = db\lookup('id', 'r_transit', 'location=:location', u\ray('location', "$b_city, $b_state"))) {
-    $prefix = db\lookup('id', 'r_transit', 'location=:b_state', compact('b_state'));
-    //u\EXPECT((bool) $prefix, 'no transit prefix');
-  }
-  $transit = $prefix . '-' . substr($routing, 4, 4) . '/' . substr($routing, 0, 4);
-  $dollars = floor($amount);
-  $cents = round(100 * ($amount - $dollars)) ?: t('NO');
-
-  $ck->say("<b>$a->legalName</b><br><small>$a->postalAddr<br>$phone</small>", $m, $y = $mt, $W - $m);
-  $ck->say("$transit<br>$account", $W / 2, '', $W / 4, '', '8', 'C');
-  $ck->say("<b>$txid</b>", -$W / 4, '', -$W / 4 - $m, '', '', 'R');
-
-  $ck->say('DATE:', 6.7, $y += .4, '', .25, '8');
-  $ck->say(u\fmtDate(), 7.1, '', '', .25);
-
-  $ck->say('Pay to the<br>Order of', $m, $y += .4, '', 2 * $lineH, '8 CAPS');
-  $ck->say('  rCredits', $m + .7, $y + $lineH, 5.9, $lineH, '', '', 'BR');
-  $ck->say('$ ' . number_format($amount, 2), 7, '');
-  
-  $ck->say(u\n2english($dollars) . " and $cents/100", $m, $y += .65, 6.9, $lineH, '', '', 'B');
-  $ck->say('DOLLARS', $m + 6.9, '', '', $lineH, '8');
-//  $ck->Image(__DIR__ . '/../images/icons/padlock.gif', $W - $m - .5, $y, $lineH, $lineH);
-  
-  $ck->say("<b>$b_name</b><br><small>$b_address<br>$b_city, $b_state $b_zip</small>", $m + 1, $y += .4, '', '', '9');
-  
-  $ck->say(t('Pre-authorized Check'), $W - $W / 3, $y + .35, $W / 3 - $m, $lineH, 'CAPS', 'C', 'B'); // $y+ not +=
-  $ck->say(t('No Signature Required'), '', $y + .35 + $lineH, $W / 3 - $m, $lineH, '8 CAPS', 'C');
-  
-  $ck->say('MEMO:', $m, $y += .5, '', $lineH, '8');
-  $ck->say(t('for rCredits'), $m + .5, '');
-
-  // clear band must be at least .625" high, at least 0.1875" from bottom (so leave more). Micr should be 12pt
-  $ck->say("A{$routing}A {$account}C $txid", $m, $mt - $m + CHECK_HEIGHT - .25 - $lineH * (12 / CHECK_FONT_SIZE), '', '', 'GnuMICR 12');
-  
-//  $ck->say('', 0, $mt - $m + CHECK_HEIGHT, $W, 1, '', '', 'T'); // comment this out
-  
-  if (!$deposit) db\update('r_usd', u\ray('deposit txid', strtotime('today'), $txid), 'txid');
+  if (u\test()) $ck->Close(); else $ck->Output("rCredits-deposit-checks-$way-$date.pdf", 'I'); //Close and output 
+//  say($count . t(' checks printed'));
 }
 
 define('PHOTO_MAX', 90); // maximum height and width of photo
@@ -482,7 +501,7 @@ define('PHOTO_MAX', 90); // maximum height and width of photo
 function memberID($id) {
   require_once __DIR__ . '/../statement.class';
 
-  if (!$mya = r\acct()) exit('You must first sign in.');
+// causes test to fail  if (!$mya = r\acct()) exit('You must first sign in.');
 /*  if ($scan) {
     $perm = r\relation('permission', $mya->id, $id);
     if ($perm < r\perm(B_SCAN)) exit('That is not an employee with scan permission.');
@@ -613,7 +632,7 @@ function test($arg = '') {
 function util($arg) {
 //  if ($arg == 'modal') drupal_goto('modal');
   if ($arg == 'reset') r\reset();
-  if ($arg == 'changeAgent') {
+/*  if ($arg == 'changeAgent') {
     //session_destroy();
     $mya = r\acct('NEW.ZZB');
     svar('myid', $mya->id);
@@ -621,12 +640,19 @@ function util($arg) {
     $user->roles = array();
     setupGlobals();
     r\go('');
+  } */
+  if ($arg == 'reinstall') { // from devel module
+    $modules = ['rcredits','rsms','rsmart','rweb'];
+    \module_disable($modules, FALSE);
+    \drupal_uninstall_modules($modules, FALSE);
+    \module_enable($modules, FALSE);
+    \drupal_set_message(t('Uninstalled and installed: %names.', array('%names' => implode(', ', $modules))));
   }
   if ($arg == 'clear_sessions') db\q('TRUNCATE table SESSIONS');
   //if ($arg == 'tests') r\go('http://localhost/devcore/rcredits/test?menu=1');
   if ($arg == 'php') r\go('devel/php');
   
-  \drupal_set_message("Doing rCredits Util '$arg'...");
+  \drupal_set_message("DONE with \"$arg\".");
   \drupal_goto('sadmin/handy');
 }
 
@@ -636,30 +662,31 @@ function handyLinks() {
   $test_path = "$base_url/sites/all/modules";
 
   $links = array(
-//    'rcredits/test?menu=1|Test Menu|',
-    'rcredits/util/changeAgent|Change Agent to Bea|',
-    'reinstall|Reinstall rCredits|',//    "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
-    'sms|Simulate an SMS transaction|Simulate SMS',
-//    'admin/config/development/testing|Test|Test',
-//    'deletetests.php|Delete old tests|Delete old tests',
-//    'rcredits/util/reset|Reset rCredits|',
+    'devel/menu/reset?destination=sadmin/handy|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Redo MENUS',
+    'rcredits/util/reinstall|REINSTALL r|',
     'rcredits/util/clear_sessions|Clear Sessions|',
     
     'devel/settings|Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the block administration page.|Devel settings',
     'devel/cache/clear?destination=sadmin/handy|Clear the CSS cache and all database cache tables which store page, node, theme and variable caches.|Empty cache',
-    'devel/entity/info|View entity information across the whole site.|Entity info',
-//    'devel/php|Execute some PHP code|Execute PHP Code',
-    'devel/field/info|View fields information across the whole site.|Field info',
-    'devel/reference|View a list of currently defined user functions with documentation links.|Function reference',
-    'devel/elements|View the active form/render elements for this site.|Hook_elements()',
-    'devel/menu/item?path=node|Details about a given menu item.|Menu item',
+    'devel/reference|View a list of currently defined user functions with documentation links.|Functions',
+    'devel/elements|View the active form/render elements for this site.|Elements',
     'devel/phpinfo|View your server&#039;s PHP configuration|PHPinfo()',
-    'devel/menu/reset?destination=sadmin/handy|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Rebuild menus',
-    'devel/reinstall?destination=sadmin/handy|Run hook_uninstall() and then hook_install() for a given module.|Reinstall modules',
+    'devel/variable?destination=sadmin/handy|Edit and delete site variables.|Variables',
+//    "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
+//    'rcredits/test?menu=1|Test Menu|',
+//    'rcredits/util/changeAgent|Change Agent to Bea|',
+//    'sms|Simulate an SMS transaction|Simulate SMS',
+//    'admin/config/development/testing|Test|Test',
+//    'deletetests.php|Delete old tests|Delete old tests',
+//    'rcredits/util/reset|Reset rCredits|',
+//    'devel/entity/info|View entity information across the whole site.|Entity info',
+//    'devel/php|Execute some PHP code|Execute PHP Code',
+//    'devel/field/info|View fields information across the whole site.|Field info',
+//(empty array)    'devel/menu/item?path=node|Details about a given menu item.|Menu item',
+//    'devel/reinstall?destination=sadmin/handy|Run hook_uninstall() and then hook_install() for a given module.|Reinstall modules',
 //    'devel/run-cron|Run cron|Run cron',
-    'devel/session|List the contents of SESSION.|Session viewer',
-    'devel/theme/registry|View a list of available theme functions across the whole site.|Theme registry',
-    'devel/variable?destination=sadmin/handy|Edit and delete site variables.|Variable editor',
+//    'devel/session|List the contents of SESSION.|Session viewer',
+//    'devel/theme/registry|View a list of available theme functions across the whole site.|Theme registry',
   );
 
   $result = array();

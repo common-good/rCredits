@@ -109,9 +109,10 @@ function get1099b($payee) {
         IF($tome, payeeFor, payerFor) AS `for` ,
         $tome AS tome
       FROM r_txs WHERE :payee IN (payer, payee) AND created BETWEEN $start AND $end 
-      AND (goods OR (type NOT IN (:TX_TRANSFER, :TX_REFUND)))
+      AND (goods OR type<>:TX_TRANSFER)
       ORDER BY created
 EOF;
+//      AND (goods OR (type NOT IN (:TX_TRANSFER, :TX_REFUND)))
     $q1099 = db\q($sql, compact('payee'));
   }
 
@@ -592,43 +593,45 @@ function creditInfo($args = array()) {
     SELECT 
     SUM(IF(t.payee=:uid, amount, 0)) AS `in`,
     SUM(IF(t.payer=:uid, amount, 0)) AS `out`, 
-    SUM(IF(t.payee=:uid AND t.type=:TX_REFUND, amount, 0)) AS refunds,
     SUM(IF(t.type IN (:TX_REWARDS), amount, 0)) AS rewards,
     SUM(IF(t.type=:TX_XFEE, IF(t.payer=:uid, -amount, amount), 0)) AS xfees,
     SUM(IF(:HAS_XFEE, IF(t.payer=:uid, -amount, amount), 0)) AS xin
     FROM r_txs t
-    WHERE (t.payer=:uid OR t.payee=:uid) AND t.created<:asof
+    WHERE (t.payer=:uid OR t.payee=:uid) AND t.created<=:asof
 EOF;
+//    SUM(IF(t.payee=:uid AND t.type=:TX_REFUND, amount, 0)) AS refunds,
   
   $sums = db\q($sql, $subs)->fetchAssoc();
 
-  $dates = @$pending ? 'NOT completed AND created <:asof' : 'completed AND completed<:asof';
+  $dates = @$pending ? 'NOT completed AND created <=:asof' : 'completed AND completed<=:asof';
   $sql = <<<EOF
     SELECT 
     SUM(IF(payee=0, amount, 0)) AS bank,
-    SUM(IF(payee=-1, amount, 0)) AS fees,
-    SUM(IF(payee IN (0, -1, :uid), 0, amount)) AS usdOut,
+    SUM(IF(payee IN (0, :uid), 0, amount)) AS usdOut,
     SUM(IF(payer=:uid, 0, amount)) AS usdIn
     FROM r_usd WHERE :uid IN (payer, payee) AND $dates
 EOF;
   $sums += db\q($sql, $subs)->fetchAssoc();
+//    SUM(IF(payee=-1, amount, 0)) AS fees,
 ///if ($sums['usdOut'] or $sums['usdIn']) debug(compact('sql','subs','sums'));
 
   foreach ($sums as $key => $value) $sums[$key] = $value + 0; // no nulls
   extract($sums);
 
-  if (!@$pending and $refunds != $fees) {
+/*  if (!@$pending and $refunds != $fees) {
     $info = compact(u\ray('uid fees refunds'));
-/**/ t\output('ERROR: fee/refund mismatch: ' . print_r($info, 1));
+/// t\output('ERROR: fee/refund mismatch: ' . print_r($info, 1));
     r\tellStaff('fee/refund mismatch', $subs+$args+$info);
   }
   $rewards -= $refunds; // Dwolla fee refunds are a hidden reward
+  */
   $r = ($in - $out) + ($usdOut - $usdIn);
-  $in -= $refunds; // this includes (unhidden) rewards
+//  $in -= $refunds; // this includes (unhidden) rewards
   $in -= $xin; $out -= $xin;
 
   $bank = -$bank; // make it "from bank" instead of "to bank"
-  $usd = $bank - $fees + $usdIn - $usdOut;
+  $usd = $bank + $usdIn - $usdOut;
+//  $usd = $bank - $fees + $usdIn - $usdOut;
   $r += $usd; $usd = 0; // phase out usd field
   $balance = $bank + $in - $out;
   $outProper = $out;

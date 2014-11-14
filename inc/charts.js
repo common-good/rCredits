@@ -40,16 +40,18 @@ function fundsChart() {
   var data = new google.visualization.DataTable();
   data.addColumn('date', 'Date');
   data.addColumn('number', 'r');
+  data.addColumn('number', 'USD');
   data.addColumn('number', 'Savings');
-  data.addColumn('number', 'USD (as yet unused)');
+  data.addColumn('number', 'Top 5');
   data.addRows(fundsData);
 
   var options = {
     title: 'Funds in the rCredits System: ' + funds,
     width: chartWidth, height: chartHeight,
-    colors: ['green', 'yellow', 'blue'],
+    colors: ['green', 'blue', 'yellow', 'red'],
     series: {
-      1: {areaOpacity: 0}
+      2: {areaOpacity: 0},
+      3: {areaOpacity: 0}
     },
     hAxis: {format: 'MMM d', gridlines: {count: 5}, title: '', titleTextStyle: {color: 'darkgray'}},
     legend: {position: 'bottom'}

@@ -114,10 +114,18 @@ function exists($table, $where = '1', $subs = array()) {
 }
 
 /**
- * Return an array of record objects
+ * Return an array of record objects.
  */
 function records($table, $where = '1', $subs = array(), $fields = '*') {
   return db\q("SELECT $fields FROM $table WHERE $where", $subs)->fetchAll(); // fetchAll means fetchAllObject
+}
+
+/**
+ * Return a list of matching data.
+ */
+function lst($field, $table, $where = '1', $subs = []) { // lst because "list" is a reserved word
+  $ray = db\q("SELECT $field FROM $table WHERE $where", $subs)->fetchCol();
+  return join(', ', $ray);
 }
 
 /**

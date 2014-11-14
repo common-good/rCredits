@@ -87,17 +87,21 @@ function tableDefs($schema = array()) {
     'id' => setupField('statistics record id', 'serial big'),
     'ctty' => setupField('community or region record id', 'int big'),
     'created' => setupField('Unixtime record was created', 'int 11', 0),
-    'r' => setupField('amount of rCredits issued to date', 'numeric 11,2', 0),
-    'usd' => setupField('amount of US Dollars in the system', 'numeric 11,2', 0),
+    'r' => setupField('amount of rCredits issued to date', 'numeric 11,2', 0), // including stand-ins for USD
+    'bankIn' => setupField('amount of US Dollars brought in the system', 'numeric 11,2', 0),
+    'bankOut' => setupField('amount of US Dollars taken out of the system', 'numeric 11,2', 0),
+//    'usd' => setupField('amount of US Dollars in the system', 'numeric 11,2', 0),
     'purchases' => setupField('amount of purchases ever', 'numeric 11,2', 0),
     'forCashs' => setupField('amount of exchanges for cash ever', 'numeric 11,2', 0),
-    'cttyIn' =>setupField('amount of transfers to this community from elsewhere', 'numeric 11,2', 0),
-    'cttyOut' =>setupField('amount of transfers from this community to elsewhere', 'numeric 11,2', 0), // including rCredits traded out for USD
+    'tradeIn' =>setupField('amount of transfers to this community from elsewhere', 'numeric 11,2', 0),
+    'tradeOut' =>setupField('amount of transfers from this community to elsewhere', 'numeric 11,2', 0),
     'cttyBuys' => setupField('amount of community purchases ever', 'numeric 11,2', 0),
+    'cttyIncomes' => setupField('amount of community income ever', 'numeric 11,2', 0),
     'signups' => setupField('amount of signup bonuses ever', 'numeric 11,2', 0),
     'inflations' => setupField('amount of inflation adjustments ever', 'numeric 11,2', 0),
     'helpers' => setupField('amount of helper rewards ever', 'numeric 11,2', 0),
-    'refunds' => setupField('amount of Dwolla fee reimbursements ever', 'numeric 11,2', 0),
+//    'refunds' => setupField('amount of Dwolla fee reimbursements ever', 'numeric 11,2', 0),
+    'xfees' => setupField('amount of exchange fees', 'numeric 11,2', 0),
     'rebates' => setupField('amount of rebate rewards ever', 'numeric 11,2', 0),
     'bonuss' => setupField('amount of transaction bonus rewards ever', 'numeric 11,2', 0),
     'grants' => setupField('amount of grants ever', 'numeric 11,2', 0), // drupal bug in addfield: this field cannot be named "grant" (gets "Duplicate column name" mysql error)
@@ -109,6 +113,7 @@ function tableDefs($schema = array()) {
     'bAccts' => setupField('number of company accounts', 'int medium', 0),
     'newbs' => setupField('number of not-yet-active accounts', 'int medium', 0),
     'savings' => setupField('funds held for 30 days or more', 'numeric 11,2', 0),
+    'top5' => setupField('savings held in top 5 accounts', 'numeric 11,2', 0),
     'bankInPerMo' => setupField('amount transferred into the system in the past month', 'numeric 11,2', 0),
     'bankOutPerMo' => setupField('amount transferred out of the system in the past month', 'numeric 11,2', 0),
     'xchPerMo' => setupField('exchange volume within system in the past month', 'numeric 11,2', 0),
@@ -267,23 +272,6 @@ function tableDefs($schema = array()) {
   $indexes = array();
   $schema['r_usderror'] = setupTable('USD error messages from USD gateway', $fields, 'id', $foreignKeys, $indexes);
 
-  // table r_ach (maybe create this by transforming r_usd)
-  /*
-  $fields = array(
-    'txid' => setupField('record id', 'serial 11'),
-    'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
-    'uid' => setupField('record ID of the account', 'int big'), 
-    'created' => setupField('Unixtime request was created', 'int 11', 0),
-    'completed' => setupField('Unixtime request was completed', 'int 11', 0), // <=0 means number of attempts made (set to -9 to give up early)
-    'tid' => setupField("account's transaction ID", 'int 11'),
-    'risk' => setupField('suspiciousness rating', 'float medium', NULL),
-    'risks' => setupField('list of risk factors', 'int big', 0, '010'),
-  );
-  $foreignKeys = foreignKey('uid');
-  $indexes = index('created') + index('completed') + index('uid');
-  $schema['r_ach'] = setupTable('Record of ACH requests', $fields, 'txid', $foreignKeys, $indexes);
-  */
-
   // table r_banks
   $fields = array(
     'route' => setupField('routing number', 'int 9'),
@@ -345,19 +333,6 @@ function tableDefs($schema = array()) {
   $foreignKeys = foreignKey('myid') + foreignKey('agent');
   $indexes = index('type') + index('channel') + index('myid') + index('agent');  
   $schema['r_log'] = setupTable('Development and error log', $fields, 'logid', $foreignKeys, $indexes);
-  
-  // table r_demand
-  /*
-  $fields = array(
-    'id' => setupField('demand record id', 'serial 11'),
-    'time' => setupField('date/time requested', 'int 11'),
-    'amount' => setupField('request amount', 'numeric 11,2'), 
-    'who' => setupField('uid of the account requesting rCredits', 'int 11'),
-  );
-  $foreignKeys = foreignKey('who');
-  $indexes = index('who');
-  $schema['r_demand'] = setupTable('Who requested rCredits when', $fields, 'id', $foreignKeys, $indexes);
-  */
   
   // table r_relations
   $fields = array(

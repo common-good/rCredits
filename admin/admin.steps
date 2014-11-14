@@ -37,6 +37,7 @@ function extraSetup($feature) {
  */
 function extraSubs(&$subs) {
   $subs['%dmy-2w'] = t\subAgo('%today-2w', '%d-%b-%Y');
+  $subs['%dm-2w'] = t\subAgo('%today-2w', '%d-%b');
   $subs['%dmy'] = t\subAgo('%today', '%d-%b-%Y');
 //  $subs['%replace_this'] = 'with this';
 }
@@ -86,7 +87,6 @@ function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
  * member (ARG) completes form (ARG) with values: (ARG)
  *
  * in: MAKE Changes AMemberChangesSomeSettings
- *     MAKE Checks AdminPrintsChecks
  */
 function memberCompletesFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values);}
 

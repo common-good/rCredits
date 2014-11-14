@@ -1,3 +1,48 @@
+2014-11-14
+. UPDATE r_usd SET completed=1414728000 WHERE completed=2014 (10/31/2014, fixing the oops of 11/01)
+. banks: UPDATE r_banks SET name=REPLACE(name,'Fcu','FCU'), address=REPLACE(REPLACE(REPLACE(REPLACE(address,'Bx','Box'),'bx','Box'),'P.O.Box','PO Box'),'P O Box','PO Box');
+  UPDATE r_banks SET address=REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(address,'Box1','Box 1'),'Box2','Box 2'),'Box3','Box 3'),'Box4','Box 4'),'Box5','Box 5'),'Box6','Box 6'),'Box7','Box 7'),'Box8','Box 8'),'Box9','Box 9');
+. omit lastTx from changes
+. UPDATE users set changes=NULL where changes like '%lastTx%'
+. put bullets back in notices when there are no dates (everyday notices)
+. statements don't work (spurious output in addition to PDF)
+. in user stats field, round amounts to cents
+. created test function stubs for non-testing environment
+. in statements categorization, separate other (goods & services) from other (cash/loan/etc.)
+. in statements, add "..." to abbreviated categories
+. print escrow deposit slip automatically, with list of checks, count, and total
+. admin deposit page for printing checks in and out, with summary and detail of past deposits/checks
+. generalized check.class as pdf.class
+. did away with T_REFUND (and the Dwolla fees they refunded)
+. UPDATE users SET activated=0;
+  UPDATE users u LEFT JOIN (SELECT payer, MIN(created) AS dt1 FROM r_usd WHERE payee=0 GROUP BY payer) t ON t.payer=u.uid SET activated=dt1 WHERE dt1>0;
+  UPDATE users u LEFT JOIN (SELECT payer AS id, MIN(created) AS dt1 FROM r_txs GROUP BY payer) t ON t.id=u.uid SET activated=dt1 WHERE dt1>0 AND (activated=0 OR activated>dt1);
+  UPDATE users u LEFT JOIN (SELECT payee AS id, MIN(created) AS dt1 FROM r_txs GROUP BY payee) t ON t.id=u.uid SET activated=dt1 WHERE dt1>0 AND (activated=0 OR activated>dt1);
+  UPDATE users SET activated=signed WHERE activated=0 AND (flags&(1<<2)) AND signed>0;
+. DELETE FROM r_txs WHERE type=-3;
+  DELETE FROM r_usd WHERE payee=-1;
+  UPDATE r_usd SET deposit=1 WHERE payee=0 AND deposit<1 AND txid <=6117399;
+  UPDATE r_banks SET name=REPLACE(name, 'Rbs Citizens', 'RBS Citizens');
+. bank info for admin on Summary page
+. base member counts on activated date and redo stats
+. in stats, calculate usd right for each community and track payments out (to another community) and payments in. Redo 
+. inflation did not seem to appear on statements summary. clarified.
+. DELETE FROM `r_usd` WHERE payee<>0
+. found out why Artisan gift failed (somehow it was OK but not MEMBER)
+. balance was getting adjusted every day! (fix and delete most such notices)
+. reflect rCredits escrow amount due each community on graphs (requires fixing data)
+. in stats, company count was off
+. fix formatting of dates in notices table for weekly/monthly
+. an extra community button that lists communitys and amounts: r TOTAL,usd,trade,signup,etc. (including trade balance right after usd)
+. pay attention to the number-of-days selector on flags page (show only that many days)
+. flags shown are for the current community unless admin or not signed in
+. always show all red flags
+. describe selected flag at top of Flags help page
+. on Flags page, change labor... to labor, and automatic transfer... to automatic transfer else suppress non-rcard
+. made a() and r\acct() work with community quids (!NEW, !NEW.AAB, etc)
+. add proxies, invited by, invited, and trust score to summary
+. update users set minimum = 0 WHERE minimum IS NOT NULL AND name NOT IN ('carolgletson', 'marilynandrews')
+
 2014-11-01
 . SMS text messaging is discontinued
 . continued eliminating hooks for Dwolla
@@ -59,12 +104,12 @@
 	. make sure Dan's account can request a bank transfer
 	. make sure Admin users list shows no unused bits 
 	. make note of who has how much USD (11 rows):
-	  CGF 8.52, GFM 7.91, heatherG 10, leighR 60, matthewG 10, scottR 40, Sheila 20, snows 6.75, pint 6.40, upinngil 9.85, rWM 40,894.78
-	. make note of who has pending bank transfers, for how much (and keep track of them as they come in over the next few days) (11 rows): betsy 70, fred 120, jeffC 30 / nancyHaz 40, tamaraMcK 10, ellenK 70, andyG 50, johnWaite 100 / peter 190, mona 110, realpick 601.12
+	  Sheila 20, scottR 40z, matthewG 10 (write this one off), CGF 8.52z, GFM 7.91z, heatherG 10z, leighR 60z, snows 6.75z, pint 6.40z, upinngil 9.85z, rWM 40,894.78
+	. make note of who has pending bank transfers, for how much (and keep track of them as they come in over the next few days) (11 rows): betsy 70xz, fred 120xz, jeffC 30xz / nancyHaz 40xz, tamaraMcK 10xz, ellenK 70xz, andyG 50xz, johnWaite 100xz / peter 190xz, mona 110xz, realpick 601.12xz
 	. a('abr')->update('bankAccount', ''); a('abr')->setRisk('hasBank', FALSE); // zap Stephen Cobb's locked account
 	. UPDATE users SET r=r+usd WHERE usd IS NOT NULL (11 rows)
 	. DELETE FROM r_usd WHERE amount<0 and NOT completed AND txid<6030837 (5 rows)
-	. UPDATE r_usd SET completed=NOW() WHERE amount<0 AND payee=0 AND completed=0 (11 rows)
+	. UPDATE r_usd SET completed=NOW() WHERE amount<0 AND payee=0 AND completed=0 (11 rows)(oops NOW() becomes 2014)
 	. UPDATE r_usd SET deposit=1 WHERE amount<0 AND payee=0 AND completed>0 (686 rows)
 	2. Backup NEW rcredits module (in case we need to undo the update)
 	3. connect CGF's rCredits escrow account (in Dwolla)
@@ -73,7 +118,7 @@
 		b. alert people who were unable to have a connected bank account that they can now, if they want: Emi, Helen, Carol Letson, Marilyn Andrews, Ed Smith
 		c. alert people who are OK and hasBank but not old bank bit(not verified) that funds can be transferred to and from their account (and will be if they are below their minimum): Keegan Rodgers, Just Abundance, Inc., Delta Carney, Preston M. Browning, Jr., Kristie Faufaw, Christopher B Rawlings, Amylia Jackson, Henrietta M. Startup, Peter Garbus, Jennifer Ladd, Will Savitri, Just Soap, Richard G. Kelly, Daphne Bye, Clare Higgins, Artisan Beverage Cooperative
 		d. on WS:  include_once __DIR__ . '/../rcredits/admin/admin.inc'; f('a.makeTestCards');
-		
+	
 2014-10-21 (rWeb tests do not pass -- not usable yet)
 . hidable advanced settings for Txs
 . cron now calculates the right values for trust (was giving some negative values).

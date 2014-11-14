@@ -4,10 +4,11 @@
  * Specialized rCredits settings for this rCredits server
  */
 
+define('R_PILOT', TRUE); // pilot phase
 define('ADMIN_NAME', 'William Spademan');
+define('SIGNATORY', 'William Spademan, President');
 define('R_REGION_NAME', 'rCredits Western Mass');
 define('R_REGION_LEGALNAME', 'rCredits Western Massachusetts Region');
-define('R_ORG_LEGALNAME', 'Society to Benefit Everyone, Inc.');
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA B=Boston
 define('R_REGION_SHORTNAME', R_SERVER_ID . '.');
@@ -45,3 +46,5 @@ define('R_INFLATION_RATE', .05); // annual USD inflation rate (but never less th
 define('R_LAUNCH', strtotime('12/15/2013'));
 define('R_ADMIN_QID', 'NEW.AAA'); // William's account code
 define('R_USDTX_DAYS', 2); // how many days it takes for a transfer to clear from bank to rCredits account
+define('ESCROW_ACCOUNT', '1326532739'); // escrow account number
+define('ESCROW_ROUTING', '211070175'); // escrow account routing number

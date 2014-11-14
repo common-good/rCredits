@@ -151,9 +151,7 @@ E. Database clues
 		   force: 1/-1 if transaction was taken offline (-1 if the transaction reverses another transaction)
 		   changes: array of important changes made to the record
    (more to come...)
-   - r_usd: record of USD transactions, so that can be rolled back if not in this table
-       ALSO a record of what deposits and withrawals (to/from the USD bank) have been made/completed
-	   @todo: these two different uses should be separated if we continue to use Dwolla (not necessary if, as planned, we switch to doing our own EFTs to and from a single USD bank account)
+   - r_usd: record of transfers to/from a USD bank made/completed/deposited (records with payee<>0 should be deleted. Also payer field should be renamed payee and amount should be negated (not crucial).
    - offsite: protected personal identifying information from the NEW region
      . id: a random id that matches the type and length of the original data
      . data: the original data, encrypted, len=

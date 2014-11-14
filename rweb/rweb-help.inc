@@ -352,13 +352,14 @@ EOF
     <ol>
       <li><b style='color:white; background-color:darkgreen;'>rCredits</b>. These are the funds that we issue together as a community, by agreeing to accept them as payment for our goods and services. The chart distinguishes between two categories of rCredits*:
       <ul>
-        <li><b style='color:black; background-color:yellow;'>rCredits that sit</b>. You keep some rCredits in your account, unspent for now. Maybe you plan to spend them next month. Or maybe you are holding them in your rCredits account as a hedge against inflation. Either way, we call funds that are unused for a month or more "savings".</li>
+        <li><b style='color:black; background-color:yellow;'>rCredits that sit</b>. You keep some rCredits in your account, unspent for now. Maybe you plan to spend them next month. Or maybe you are holding them in your rCredits account as a hedge against inflation. Either way, we call funds that are unused for a month or more "savings". The accounts with the 5 highest savings amounts are totaled and shown separately as well**.</li>
         <li><b>rCredits that circulate</b> (green above the yellow line). Members use the remaining rCredits every month, to make purchases from other members (check the <a href="$base_url/help/velocity">Velocity graph</a>, to see what fraction of the rCredits are used each month).</li>
       </ul></li>
       <li><b style='color:white; background-color:darkblue;'>US Dollars</b> (which currently just sit). When you transfer funds from bank account to your rCredits account or when you trade US Dollars for rCredits at a member business, that money goes into the community's US Dollar bank account. The system issues you an equivalent amount of rCredits to spend or hold in your account. For now, the US Dollars just accumulate, unused. Once we have enough active participation to establish a Common Good Community, we can decide together how best to use that money &mdash; for grants, zero-interest loans, and equity investments for sustainability and the common good.</li>
     </ol>
     <p>The total funds in the rCredits system (the total under our control as a community) is the Sum of the rCredits (circulating or sitting) and the US Dollars.</p>
     <p>* The distinction between "savings" and rCredits that are actually being used is important. The value of rCredits, like any currency, is what you can get for them. When you save your rCredits funds for spending a month or more in the future, it probably means you are confident (1) that you will be able to spend them within the rCredits system OR (2) that you will be able to trade them for US Dollars because other members can spend them within the system. So savings are a <em>speculative</em> <a href="$base_url/help/demand">demand</a> for rCredits, rather than a demand based in current reality. The speculation may indeed be accurate, but <a href='velocity'>circulation velocity</a> and <a href='demand'>net monthly influx of US Dollars</a> are stronger measures of the system's capacity for additional rCredits.</p>
+    <p>** <b style='color:white; background-color:darkred;'>Top 5</b>. Balanced participation among many members maximizes the system's predictability and protects against a cash crunch. Expect the "Top 5" line to level off as the system grows.</p>
     $back
 EOF
   );
@@ -406,7 +407,7 @@ EOF
   if ($i == 'flags') {
     include_once __DIR__ . '/risk-descs.inc';
     extract($riskHelp, EXTR_PREFIX_ALL, 'h');
-    $acctRisks = $txRisks = '';
+    $acctRisks = $txRisks = $special = '';
     foreach (u\ray(K_ACCT_RISKS) as $k => $weight) {
       $extra = '';
       if ($k == 'trusted') $extra = t('This risk factor is multiplied by the number of other accounts that trust this member. Being chosen as an alternate proxy counts as half. Likewise being chosen as someone\'s proxy\'s proxy counts as half.');
@@ -416,23 +417,27 @@ EOF
       if ($k == 'moves') $extra = t('This risk factor is multiplied by the number of times the member has moved, over the past decade (if known)');
       if ($k == 'bigDay') $extra = t('For individual accounts, the number of "employees" is 1.');
       if (in_array($k, array('bigWeek', 'big7Week', 'bigYear'))) $extra = t('(see bigDay)');
-      $acctRisks .= riskHelpLine($k, $weight, $extra, $tag);
+      $acctRisks .= ($line = riskHelpLine($k, $weight, $extra, $tag));
+      if ($tag == $k) $special = $line;
     }
     foreach (u\ray(K_TX_RISKS) as $k => $weight) {
       $extra = '';
       if ($k == 'origins') $extra = t('This risk factor is multiplied by the average risk of the payer\'s receiving transactions over the past year.');
       if (in_array($k, u\ray('fromSuspect toSuspect suspectOut suspectIn'))) $extra = tt('This risk factor is multiplied by the suspicious account risk, divided by the "unusually large" threshold ($@K_THRESHOLD).');
       if ($k == 'invoiceless') $extra = t('And no mention of an invoice in the transaction description.');
-      $txRisks .= riskHelpLine($k, $weight, $extra, $tag);
+      $txRisks .= ($line = riskHelpLine($k, $weight, $extra, $tag));
+      if ($tag == $k) $special = $line;
     }
 
     $acctRisks = t('<h2>Account Flags</h2>') . "\n<table>$acctRisks</table>\n";
     $txRisks = t('<h2>Transaction and ACH Flags</h2>') . "\n<table>$txRisks</table>\n";
     $score = number_format(K_RED*300*8/15/K_THRESHOLD, 0);
     $score = "<span class=\"badRisk\">$score</span>";
+//    if ($special) $special = preg_replace('/^(.*)\[(.*)\](.*)/', '<div id="special-flag"><big style="color:red;">$1</big> (weight:$2) $3</div>', $special);
     return tt(<<<EOF
       <div id="risk-help">
-      <p>Suspicious Activity Risk Scores (flags) are calculated based on a weight divisor assigned to each type of risk. That divisor (shown in square brackets for each item below) is an assessment of how many same-sized risks would together make an account or transaction suspicious -- a higher divisor means less risk. <span class="goodRisk">Risk factors with a negative divisor</span> are mitigating.</p>
+      <table id="special-flag">$special</table>
+      <p>Suspicious Activity Risk Scores (flags) are calculated based on a weight divisor assigned to each type of risk. That divisor (shown in square brackets for each item below) is an assessment of how many same-sized risks would together make an account or transaction suspicious -- a higher divisor means less risk. <span class="goodRisk">Risk factors with a negative divisor</span> (shown in green) are mitigating.</p>
       <p>Risk scores are then proportional to the sum of the inverses of those weight divisors - a higher score means more risk. For transactions, the score is further multiplied by the transaction amount and divided by the "unusually large" threshold ($@K_THRESHOLD). All risk scores (whether for accounts, transactions, or ACHs) are finally multiplied by @K_RED and rounded to the nearest integer. So @K_RED is the minimum "suspicious" score.</p>
       <p>For example, a $300 transaction with two risk factors having weight divisors of 3 and 5 respectively, would be scored 100 * 300 * (&#8531; + &#x2155;) / @K_THRESHOLD = @score (asterisk here means multiply, slash means divide).</p>
 EOF
@@ -443,7 +448,8 @@ EOF
 function riskHelpLine($k, $weight, $extra = '', $tag) {
   global $riskHelp;
   $basic = u\uc1($riskHelp[$k]);
-  $class = $tag == $k ? 'tagged' : ($weight < 0 ? 'goodRisk' : 'badRisk');
+//  $class = $tag == $k ? 'tagged' : ($weight < 0 ? 'goodRisk' : 'badRisk');
+  $class = $weight < 0 ? 'goodRisk' : 'badRisk';
   return "<tr><td class=\"$class\">$k</td><td class=\"weight\">[$weight]</td><td>$basic. $extra</td></tr>\n";
 }
 

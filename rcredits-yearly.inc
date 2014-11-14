@@ -71,7 +71,7 @@ function recT($year) {
   $TCC = '08C20';
   $testing = pad(TEST1099 ? 'T' : ' ', 1);
   $foreign = pad(FALSE, 1); // 1 for foreign
-  $coName = $transmitterName = pad('Society to Benefit Everyone, Inc.', 80);
+  $coName = $transmitterName = pad(CGF_LEGALNAME, 80);
   $coAddr = pad('PO Box 21', 40) . pad('Ashfield', 40) . 'MA' . pad('013300021', 9);
   $payees = lpad(0, 8); // not possible to know the count yet
   $contact = pad(ADMIN_NAME, 40) . pad('4136281021', 15) . pad('wspademan@gmail.com', 50);

@@ -1,0 +1,145 @@
+<?php
+namespace rCredits;
+use rCredits as r;
+use rCredits\Util as u;
+use rCredits\Testing as t;
+
+/**
+ * @file
+ * rCredits PDF class
+ * Extends the TCPDF class -- for printing checks, statements, deposit details, etc.
+ */
+
+require_once(__DIR__ . "/../tcpdf/config/lang/eng.php");
+require_once(__DIR__ . "/../tcpdf/tcpdf.php");
+
+define('PDF_FONT_SIZE', 12); // points
+define('CHECK_HEIGHT', 3.5); // inch height of checks
+
+class Pdf extends \TCPDF {
+  private $lastX; // x-coordinate of last text
+  private $lastY; // y-coordinate of last text
+  public $pageW; // page width
+  public $pageH; // page height
+  public $lineH; // standard line height in inches
+  private $hdr = []; // header array [logo, L, C, R]
+  private $fdr = []; // footer array [logo, L, C, R]
+  
+  /**
+   * Create a PDF object.
+   */
+	public function __construct() {
+    parent::__construct('P', 'in', 'LETTER');
+    $this->pageW = $this->getPageWidth();
+    $this->pageH = $this->getPageHeight();
+    $this->lineH = PDF_FONT_SIZE / 72;
+  }
+
+  /**
+   * Put some text somewhere on the page.
+   * @param string $text: what to say
+   * @param int $x, $y: position coordinates (negative means from trailing edge, '' for same as previous)
+   * @param int $w, $h: box size (defaults to until page edge)
+   *   If $h is specified, text is justified to the bottom of the box.
+   * @param string $format: string list of formats: B, I, CAPS, <font-size>, <font-family>
+   *   (default normal, Arial, 10-point)
+   * @param string $align: horizontal alignment (L, R, C)
+   * @param mixed $borders: border width if numeric or "B" for bottom, "R" for right, etc. (default none)
+   */
+  public function say($text, $x, $y, $w = '', $h = '', $format = '', $align = '', $borders = 0) {
+    global $pdfSays; $pdfSays[] = $text;
+    $formats = [];
+    $font = 'Arial';
+    $size = PDF_FONT_SIZE;
+    if ($x === '') $x = $this->lastX;
+    if ($y === '') $y = $this->lastY;
+    if ($w === '') $w = $this->pageW - $x;
+    $h0 = $h;
+    if ($h === '') $h = $this->pageH - $y;
+    if ($format) foreach (u\ray($format) as $fmt) {
+      if ($fmt == 'B') {$formats[] = 'font-weight:bold;'; continue;}
+      if ($fmt == 'I') {$formats[] = 'font-style:italic;'; continue;}
+      if ($fmt == 'CAPS') {$text = str_replace('<BR>', '<br>', strtoupper($text)); continue;}
+      if (is_numeric($fmt)) {$size = $fmt; continue;}
+      $font = $fmt;
+    }
+    $formats[] = "font-family:$font;";
+    $formats[] = "font-size:{$size}pt;";
+    $format = join(' ', $formats);
+    $offset = $h0 ? ((PDF_FONT_SIZE - $size) / 72) * (substr_count($text, '<br>') + 1) : 0;
+    $text = "<div style=\"$format\">$text</div>";
+    $this->writeHTMLCell($w, $h, $x, $y + $offset, $text, $borders, 0, FALSE, TRUE, $align);
+    list ($this->lastX, $this->lastY) = [$x, $y];
+///    debug("wrote $text at $x,$y");
+  }
+
+  public function setupHeader($args) {$this->hdr = $this->map(func_get_args());}
+  public function setupFooter($args) {$this->ftr = $this->map(func_get_args());}
+  
+  public function Header() {
+    $m = .25; // basic margin
+    if ($this->hdr[0]) $this->Image($this->hdr[0], $m + 2, $m, 10, '', 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
+    $this->SetFont('helvetica', '', 9);
+    $this->say($this->hdr[1], $this->hdr[0] ? $m + .5 : $m, $m);
+    $this->say($this->hdr[2], $m, $m, '', '', '', 'C');
+    $this->say($this->hdr[3], $m, $m, '', '', '', 'R');
+    $this->Line($m, $y = $m + 1.5, $this->pageW - $m, $y); // set y to max after L,C,or R
+  }
+
+  public function Footer() {
+    $m = .25; // basic margin
+    $y = $this->pageH - $m - .25;
+    $this->Line($m, $y - .1, $this->pageW - $m, $y - .1);
+    $this->say($this->ftr[1], $this->ftr[0] ? $m + .5 : $m, $y);
+    if (is_array($center = $this->ftr[2])) {
+      list ($center, $format) = $center;
+    } else $format = '';
+    $this->say($center, $m, $y, '', '', $format, 'C');
+    $this->say($this->ftr[3], $m, $y, '', '', '', 'R');
+  }
+  
+  /**
+   * Return headers or footer content, with standard replacements.
+   */
+  private function map($content) {
+    if (is_array($content)) {
+      foreach ($content as $k => $v) $content[$k] = $this->map($v);
+      return $content;
+    }
+    return strtr($content, [
+      '@PAGE' => $this->getAliasNumPage(),
+      '@PAGES' => $this->getAliasNbPages(),
+    ]);
+  }
+  
+  /**
+   * Output a solid-background section header bar.
+   * @param string $subtitle: section header text
+   */
+  function barHead($subtitle) {
+    $this->SetTextColor(255,255,255);
+    $this->setFontSize(1.2 * PDF_FONT_SIZE);
+    $this->SetFillColor(0,0,128);
+    $this->Cell(0, 0, $subtitle, '', 1, 'C', TRUE);
+    $this->setFontSize(.5 * PDF_FONT_SIZE);
+    $this->newLine();
+    $this->setFontSize(PDF_FONT_SIZE);
+    $this->SetTextColor();
+  }
+
+  /**
+   * Output column headers.
+   */
+  function colHeads($fields) {
+    $this->SetTextColor(0,0,128);
+    foreach ($fields as $one) {
+      list ($head, $fieldName, $width, $align) = explode('/', $one);
+      $this->Cell($width, 0, $head, '', 0, $align);
+    }
+    $this->newLine();
+    $this->SetTextColor();
+  }
+
+  function newLine() {$this->Cell(0, 0, '', '', 1);}
+
+}

@@ -9,10 +9,10 @@ To Do
 
 Before growing fast:
 . DONE write rCredits Security Protocols
-. "remotely-created checks" (RCC). The following accounts will need to re-supply a routing number and bank account number: Adam Konner, William Spademan, John G Root Jr, Janet Henderson, John F. Eichholz, Alden Booth, Barbara Ann Fingold, Julia Bond Ellingboe, Gary L. Schaefer, Diane C. Miller, Peter Robert Letson, Jennifer Atlee, Nancy Hazard, Denise M. Ward, Daniel S Rosenberg, Addie Rose Holland, Ellen Kaufmann, Rebecca Jane Meier, 
-. tell members about RCC (including risks, benefits, privacy, safeguards etc.)
+. DONE "remotely-created checks" (RCC). The following accounts will need to re-supply a routing number and bank account number: Adam Konner, William Spademan, John G Root Jr, Janet Henderson, John F. Eichholz, Alden Booth, Barbara Ann Fingold, Julia Bond Ellingboe, Gary L. Schaefer, Diane C. Miller, Peter Robert Letson, Jennifer Atlee, Nancy Hazard, Denise M. Ward, Daniel S Rosenberg, Addie Rose Holland, Ellen Kaufmann, Rebecca Jane Meier, 
+. DONE tell members about RCC (including risks, benefits, privacy, safeguards etc.)
 . write to each participating business. Describe identity verification onsite through app. Ask them for employee count and annual gross
-. add mediaconx to all individual accounts created before 10/5/2014
+. DONE add mediaconx to all individual accounts created before 10/5/2014
 . DONE emails and invites don't get marked as spam
 . DONE economic circle(s)
 . 2 more new board members, including a business leader
@@ -27,67 +27,41 @@ Before growing fast:
 . ask GFCU: checking account? ACHs just for GFCU customers? not even now just for food-system related txs?
 . DONE open rWMR account (dba rCredits account for rCredits escrow, at Citizens. I made it clear that we were providing escrow service to our members, for their payments to their associations (that are also members of S2BE).
 . ? (ask board) get 15-mo CD at Citizens before end of November. Deposit $20k.
+. propose to citizens that for every 10,000 we keep on deposit, they would forgive one $20 fee a month (on average).
+. video about Admin'ing
 
 TASKS FOR NEXT UPDATE:
-0. Backup NEW db and copy it to WS
-1. Do all of the below on WS
-. DROP TABLE r_banks
-. upload r_banks and r_transit
-. upload software
-. reinstall: /devel/reinstall?destination=sadmin/handy
-. ALTER TABLE users DROP column question, DROP column maximum;
-  ALTER TABLE r_txs DROP column usdXid, DROP column r, DROP column completed;
-  DROP TABLE r_ach;
-  UPDATE users SET share=50 WHERE share>50;
-. copy new fonts to TCPDF folder
-. include_once __DIR__ . '/../rcredits/admin/admin.inc';
-  f('a.eachAcct', function($a) {$a->setRisk('hasBank', (bool) $a->bankAccount); $a->setBit(1, FALSE); $a->setBit(4, FALSE); $a->setBit(8, FALSE);});
-  a(-26742000000001)->setBit(1, FALSE);
-  a(-25026000000001)->setBit(1, FALSE);
-. make sure Dan's account can request a bank transfer
-. make sure Admin users list shows no unused bits 
-. make note of who has how much USD (11 rows):
-  CGF 8.52, GFM 7.91, heatherG 10, leighR 60, matthewG 10, scottR 40, Sheila 20, snows 6.75, pint 6.40, upinngil 9.85, rWM 40,894.78
-. make note of who has pending bank transfers, for how much (and keep track of them as they come in over the next few days) (11 rows): betsy 70, fred 120, jeffC 30 / nancyHaz 40, tamaraMcK 10, ellenK 70, andyG 50, johnWaite 100 / peter 190, mona 110, realpick 601.12
-. a('abr')->update('bankAccount', ''); a('abr')->setRisk('hasBank', FALSE); // zap Stephen Cobb's locked account
-. UPDATE users SET r=r+usd WHERE usd IS NOT NULL (11 rows)
-. DELETE FROM r_usd WHERE amount<0 and NOT completed AND txid<6030837 (5 rows)
-. UPDATE r_usd SET completed=NOW() WHERE amount<0 AND payee=0 AND completed=0 (11 rows)
-. UPDATE r_usd SET deposit=1 WHERE amount<0 AND payee=0 AND completed>0 (686 rows)
-2. Backup NEW rcredits module (in case we need to undo the update)
-3. connect CGF's rCredits escrow account (in Dwolla)
-4. Do #1 on NEW (except Dwolla stuff)
-    a. alert people who need to reconnect their bank account
-	b. alert people who were unable to have a connected bank account that they can now, if they want: Emi, Helen, Carol Letson, Marilyn Andrews, Ed Smith
-	c. alert people who are OK and hasBank but not old bank bit(not verified) that funds can be transferred to and from their account (and will be if they are below their minimum): Keegan Rodgers, Just Abundance, Inc., Delta Carney, Preston M. Browning, Jr., Kristie Faufaw, Christopher B Rawlings, Amylia Jackson, Henrietta M. Startup, Peter Garbus, Jennifer Ladd, Will Savitri, Just Soap, Richard G. Kelly, Daphne Bye, Clare Higgins, Artisan Beverage Cooperative
-	d. on WS:  include_once __DIR__ . '/../rcredits/admin/admin.inc'; f('a.makeTestCards');
-5. Ask Dwolla if there will be any problem transferring $40k from rWM to CGF, then moving it to CGF's bank account (rWM is a project of CGF)
-6. transfer all funds from each user to CGF (in Dwolla) after they come in
-7. transfer all funds from rWM to CGF (as much per day as possible)
-8. call Angela at Citizens to warn her that funds are coming
-9. transfer all funds from CGF to bank account
+. tell members with no bank about fees: (NEW) agvbauer@gmail.com, walker@owleyes.us, sullicait@gmail.com,  Dan@pvLocalFirst.org, ed+smith@elderlex.com, emilypeyton2012@gmail.com, ljapple@crocker.com, majapanevska@gmail.com, marilynandrews1@verizon.net, nanparati@aol.com, zeamoonsoulwoodz@gmail.com
+. tell member with bank about fees (see in Downloads: listemxxx.html)
 
+. *** investigate the dozen attempts (in one week) to recognize NEW.ABU with wrong cardCode: SELECT * FROM `r_log` l join r_log l2 on l2.logid=l.logid+1 WHERE l2.info like '%bad customer%'
+
+. *** B_BOUNCED: disable minimum, warn member, charge fee $20
+. *** warn new members about fee.
+. *** The system thinks you are trying to "cash out" your $5 of rewards. This is a design bug and is scheduled to be fixed. You are the first company with 10%+ owners that has tried to do payroll partly in rCredits, so we didn't notice the bug until now. I will try to get it fixed before your next payroll.
+. cache non-automatic r for pre-CGC cttys
+. download to app 100 one-use cardcodes
+. fix picture in upper right corner
+. don't let admin set OK until member is set (either automatically or manually -- two steps). if admin unsets member, unset OK too.
+. replace testing.inc with testing stub that defines stub functions if not already defined
+. make account field persist with last account number on Admin Panel
+. tests for auto banking when deposited or not
+. see if anyone requested paper statements
+. adapt notice message when bank transfer goes through immediately (add a note to that effect, like for bank tab)
+. suggest higher achmin (at least half of minimum?)
+. refactor statement, and memberId classes to extend whatever is common among them, while revising statement and memberId
+. make a way for members to cancel a bank transfer request
 . do not allow companies to draw from bank (yet)
-. in statements categorization, separate other (goods & services) from other (cash/loan/etc.)
-. in statements, add "..." to abbreviated categories
-. set community r caches in cron (to track inter-community debts)
 . in cron, if any created date in r_txs is more than two days (48 hours) off from its predecessor, tell admin about it (including how far off): get min xid0 in past 3 days, select xid where xid>xid0 but created<now-3days
 . don't make account opener manager if "by" is ADMIN or cadmin (and give account a temp password)
 . * add a Pay button to member company rCredits webpage
 . *** txs should not show X (undo) on receipts, for non-buyers
 . moves is off by one when current county does not appear in ss-search list
 . joint accounts: implement as a higher-level view of two or more accounts (for anyone who has read permission on those accounts?)
-. JGR2 says inflation tx does not appear on statements summary
 . when admin changes "goods"ness of a transaction, data gets double-serialized (don't. and look for data starting "{{")
 . when admin enters data from paper, remember it was paper (risk bit), present the "Add Another Account" button, ask for inviter (accept an email or name), offer a single checkbox for "signed", etc.
-. after ditching Dwolla, delete r_usd transactions with payee<>0
-. reflect rCredits escrow amount due each community on graphs
 . when a member draws on another for part of a $167.43 purchase against a $71.94 balance, it says $0 short.
 . make moves and tenure editable fields on Summary
-. on Flags page, change labor... to labor, and automatic transfer... to automatic transfer else suppress non-rcard
-. add proxies, invited by, invited, and trust score to summary
-. always show all red flags
-. describe selected flag at top of Flags help page
 . force=-1 does not get recorded in the reversing transaction!
 . somehow two identical grocery purchases were recorded for Nancy Hazard, from one POS request (not forced). One was later reversed by the device. Try to detect and prevent that (don't accept two charge requests from a single device within a few seconds of each other? wait a sec?) (handle as well as possible from both ends)
 . combine txedit with txInfo form and allow editing of txAdminOk bit (only), along with amount, goods, and for. 
@@ -109,7 +83,6 @@ TASKS FOR NEXT UPDATE:
 . improve "send another invite" message so people click the link.
 . bankless accounts that draw on others are forbidden to cash out, (but they can draw rewards from other accounts).
 . add graphs 2-4 to the account statements in a "Community" section, with short explanations of the significance.
-. handle separate USD balances for each community, without requiring a separate USD account (?) Better if we can open multiple accounts for ACH!
 
 . Jesse Seaver says: 
 

@@ -63,8 +63,8 @@ class rcronNotices extends DrupalWebTestCase {
     . '\\| .ZZA | %today  |    0 | You stone. |"');
     When_('cron runs "notices"');
     Then_('we email "notices" to member "a@" with subs: "ASSOC'
-    . '\\| fullName | shortName | unit | range           | yestertime      | region | messages             | balance | rewards | return | ourEmail |'
-    . '\\| Abe One  | abeone    | day  | %fancyYesterday | %fancyYesterday | new    | You rock.<br>You stone. | $0 | $0 | 5.0 | %R_REGION_EMAIL |"');
+    . '\\| fullName | shortName | unit | range           | yestertime      | region | messages                  | balance | rewards | return | ourEmail |'
+    . '\\| Abe One  | abeone    | day  | %fancyYesterday | %fancyYesterday | new    | *You rock.<br>*You stone. | $0 | $0 | 5.0 | %R_REGION_EMAIL |"');
     And__('notices: "ASSOC'
     . '\\| id   | created | sent   | message    |'
     . '\\| .ZZA | %today  | %today | You rock.  |'

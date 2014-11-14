@@ -326,13 +326,20 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformsummary .form-item-helper .description,
 #rcreditswebformsummary #edit-tenure .description {display:inline-block; margin-left:0; width:auto;}
 #rcreditswebformsummary .form-item {margin-bottom:15px;}
+#rcreditswebformsummary #edit-invited,
+#rcreditswebformsummary #edit-invitedby,
+#rcreditswebformsummary #edit-proxies,
+#rcreditswebformsummary #edit-proxyfor,
+#rcreditswebformsummary #edit-risk,
+#rcreditswebformsummary #edit-trust {display:inline-block;}
 #rcreditswebformsummary #edit-risk input {margin-left:10px;}
-#rcreditswebformsummary input#edit-floor,
-#rcreditswebformsummary #edit-minimum,
-#rcreditswebformsummary #edit-achmin {width:60px;}
+#rcreditswebformsummary input#edit-floor {width:60px;}
+/*#rcreditswebformsummary #edit-minimum,
+#rcreditswebformsummary #edit-achmin {width:60px;} */
 #rcreditswebformsummary .form-item-floor,
-#rcreditswebformsummary .form-item-minimum,
-#rcreditswebformsummary .form-item-achMin {display:inline-block; margin-right:0;}
+#rcreditswebformsummary #edit-minimum,
+#rcreditswebformsummary #edit-achmin {display:inline-block; margin-right:0;}
+#rcreditswebformsummary #edit-dwinfo table {width:auto;}
 
 /* Company Info */
 #rcreditswebformcompany fieldset#edit-description-format {background-color:lightblue; max-width:45em;}
@@ -410,6 +417,10 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformproxies #edit-title {margin-left:0;}
 #rcreditswebformproxies #edit-subtext  {font-weight:normal; font-size:85%; margin-left:0;}
 
+/* Community Funds */
+#rcreditswebformcttyfunds #cttyFunds td {text-align:right;}
+#rcreditswebformcttyfunds #cttyFunds td:first-child {text-align:left;}
+
 /* Reports (Statistics/Community) */
 #rcreditswebformreports .form-type-item {margin-top:15px; margin-bottom:0;}
 #rcreditswebformreports .description {clear:none;}
@@ -480,6 +491,7 @@ form.rweb  .form-no {color:red;}
 /* Flags (AML Risks) */
 #rcreditswebformflags table {width:auto;}
 #rcreditswebformflags .risky {font-weight:bold; color:red;}
+#rcreditswebformflags .safe {font-weight:bold; color:green;}
 #rcreditswebformflags th, #rcreditswebformflags td {text-align:center;}
 #rcreditswebformflags .k-risks {text-align:left;}
 #rcreditswebformflags .k-amount, #rcreditswebformflags .k-score {text-align:right;}
@@ -641,6 +653,12 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformanother .form-type-radio {margin-left:0px;}
 #rcreditswebformanother #edit-submit {margin-top:20px;}
 
+/* Help */
+#rcreditswebformhelp #special-flag {width:auto; font-size:130%; margin:0 50px 20px 50px; background-color:lightyellow; padding:10px;}
+#rcreditswebformhelp #special-flag .goodRisk,
+#rcreditswebformhelp #special-flag .badRisk,
+#rcreditswebformhelp #special-flag .weight {font-size:150%;}
+
 /* Boxes Cell (Devices) */
 #rcreditswebformboxes input#edit-delete {margin-right:100%;}
 #rcreditswebformboxes table.table-select-processed {max-width:500px;}
@@ -653,9 +671,14 @@ form.rweb  .form-no {color:red;}
 /* Pay with rcredits */
 #rcreditswebformbuy #edit-submit label {margin-left:100px; width:100%; color:blue;}
 
-/* Print Checks */
-/* #rcreditswebformprintchecks {margin-left:50px;} */
-#rcreditswebformprintchecks .form-item-reprint label {text-align:right;}
+/* Deposits */
+/* #rcreditswebformdeposits {margin-left:50px;} */
+#rcreditswebformdeposits fieldset {width:290px; display:inline-block;}
+#rcreditswebformdeposits .form-item-reprint label {text-align:right;}
+#rcreditswebformdeposits  #deposits {width:auto; display:inline-block;}
+#rcreditswebformdeposits  #deposits td {text-align:right;}
+#rcreditswebformdeposits  #deposits td:first-child {text-align:left;}
+#rcreditswebformdeposits  #edit-count {margin-bottom:3px;}
 
 /* Directory */
 #rcreditswebformdirectory #edit-title label {margin-left:0px;}
@@ -751,6 +774,7 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformoptions #edit-posttext {margin-top:15px;}
 #rcreditswebformoptions #edit-posttext p {font-size:80%; margin:5px 20px;}
 #rcreditswebformoptions #edit-minimum,
+#rcreditswebformoptions #edit-share,
 #rcreditswebformoptions #edit-achmin {width:80px;}
 
 /* Get */
@@ -761,13 +785,16 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformget input.form-text {width:150px;}
 #rcreditswebformget .form-item-amount {display:inline-block;}
 
-/* Bank */
+/* Bank Info */
 #rcreditswebformbank #edit-title, #rcreditswebformbank #edit-subtext {margin-left:5px; margin-right:5px;}
 #rcreditswebformbank  .form-item-connect {margin-bottom:0px;}
 #rcreditswebformbank #connectFields2 {margin:0px; background-color:silver;}
 #rcreditswebformbank #edit-checkhint {float:right;}
 #rcreditswebformbank #edit-checkhint img {width:300px;}
 #rcreditswebformbank #connectFields2 .description {display:inline-block;}
+#rcreditswebformbank #edit-routingnumber,
+#rcreditswebformbank #edit-bankaccount,
+#rcreditswebformbank #edit-bankaccount2 {width:250px;} 
 
 #rcreditswebformbank .form-item-deposit1,
 #rcreditswebformbank .form-item-deposit2 {display:inline-block; width:auto;}

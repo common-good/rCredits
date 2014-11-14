@@ -76,8 +76,9 @@ function rweb_menu() {
     'history/statements' => menuLocal(t('Statements'), 'Statements 2', 'read'),
     'history/notices' => menuLocal(t('Notices'), 'Notices 2', 'read'),
     'history/1099-B' => menuLocal(t('1099-B Forms'), '1099b', 'read'),
+    'history/changes' => menuLocal(t('See Changes'), 'SeeChanges', 'cadmin'),
     'history/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
-//    'history/statement' => callback(t('Statement'), '2', 'read', 'statement'),
+    'history/statement' => callback(t('Statement'), '2', 'read', 'statement'),
 //    'history/notice' => callback(t('Notice'), 'Notice 2', 'read'),
 
     'charge' => menuNorm(t('Charge'), 'Tx 1', 'sell ok'),
@@ -93,8 +94,9 @@ function rweb_menu() {
 
     'get' => menuNorm(t('Bank'), 'Get', 'manage bank ok'),
     'directory' => menuNorm(t('Find Co'), 'Directory', 'sell'),
-    'community' => menuNorm(t('Community'), 'Reports 1', 'anyone'),
-    'community/graphs' => menuLocal(t('Graphs'), '*Reports 1', 'anyone'),
+    'community' => menuNorm(t('Community'), 'CttyFunds', 'anyone'),
+    'community/funds' => menuLocal(t('Funds'), '*CttyFunds', 'anyone'),
+    'community/graphs' => menuLocal(t('Graphs'), 'Reports 1', 'anyone'),
     'community/flags' => menuLocal(t('Flags'), 'Flags 2', 'anyone'),
     'community/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
     
@@ -143,7 +145,7 @@ function rweb_menu() {
     'sadmin/panel' => menuLocal(t('Panel'), '*Admin', 'cadmin'),
     'sadmin/member-list' => menuLocal(t('Member List'), 'MemberList', 'cadmin2'),
     'sadmin/export-list' => menuLocal(t('Export'), 'DownloadMemberList', 'cadmin2'),
-    'sadmin/print-checks' => menuLocal(t('Print Checks'), 'PrintChecks', 'admin'),
+    'sadmin/deposits' => menuLocal(t('Deposits'), 'Deposits', 'admin'),
     'sadmin/another' => menuLocal(t('New Account'), 'Another', 'cadmin'),
     'sadmin/make-community' => menuLocal(t('Make Ctty'), 'MakeCtty', 'admin'),
     'sadmin/sms' => menuLocal(t('Test SMS'), 'SMS', 'admin'),
@@ -154,9 +156,10 @@ function rweb_menu() {
     'sadmin/zot' => menuLocal('zot', '', 'admin'), // Drupal bug: last choice is omitted
     'sadmin/acct-info' => callback('Account Info', 'Summary 2', 'regulator'),
     'sadmin/tx-info' => callback('Transaction Info', 'TxInfo 2', 'regulator'),
+    'sadmin/deposit-details' => callback(t('Deposit Details'), '2', 'admin', 'depositDetails'),
     'sadmin/checks' => callback(t('Checks'), '2', 'admin', 'printChecks'),
     'sadmin/changes' => callback(t('See Changes'), 'SeeChanges 2', 'cadmin'),
-//    'rcredits/util' => callback('Util', '2', 'admin', 'util'),
+    'rcredits/util' => callback('Util', '2', 'admin', 'util'),
     'sadmin/recover' => callback(t('Empty'), 'TestRecovery 1', 'dev'),
     'print-rcard' => callback(t('Print ID Card'), '1 ', 'cadmin', 'memberID'),
 

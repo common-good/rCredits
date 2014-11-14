@@ -162,7 +162,7 @@ EOF;
       FROM r_txs GROUP BY payer
     ) t ON t.payer=u.uid
     WHERE $elapsed>15 AND uid > 1 AND :IS_BONA
-    AND ($day=day0 OR (day0>$day AND $tomorrow=1) OR ($day>day0 AND DAY(FROM_UNIXTIME(date0))=1))
+    AND ($day=day0 OR (day0>$day AND $tomorrow=1))
 EOF;
   queueEach('tickleActive', $sql, compact('start'));
   
@@ -207,8 +207,8 @@ function tickleStep($item) {
 function tickleActive($item) {
   extract(u\just('uid months monthly', $item));
   $a = r\acct($uid);
-  $ratio = $monthly ? $a->floor / $monthly : 0;
-  if ($ratio > 1.1 or $ratio < .9) {
+  $ratio = $monthly ? $a->floor / $monthly : 1;
+  if ($ratio > 1.1 or $ratio < .9) { // big change (or any change in sign)
     $a->update(u\ray('floor', round(-$monthly, 2)));
     $msg = 'new floor' . ($a->can(B_DEBT) ? '' : '|no floor effect');
     r\notify($uid, $msg, u\ray('floor', u\fmtAmt(-$monthly)));
@@ -441,7 +441,7 @@ function acctStats() {
 
 /**
  * Update stats for one account.
- * data[stats] will be an assoc: [avgBalPastMo, avgBalEver, minPastMo]
+ * stats will be an assoc: [avgBalPastMo, avgBalEver, minPastMo, etc.]
  * picture (an otherwise unused field) will be minPastMo in cents (ready for r\stats to SUM)
  */
 function acctStats1($item, $asof = REQUEST_TIME) {
@@ -449,8 +449,8 @@ function acctStats1($item, $asof = REQUEST_TIME) {
   $a = r\acct($uid);
   $asof = strtotime('today', $asof);
   $monthAgo = u\plusMonths(-1, $asof);
-  $avgBalPastMo = @round(r\averageBalance($uid, $monthAgo, $asof, $minPastMo), 2);
-  $avgBalEver = @round(r\averageBalance($uid, strtotime('today', $a->created), $asof), 2);
+  $avgBalPastMo = r\averageBalance($uid, $monthAgo, $asof, $minPastMo);
+  $avgBalEver = r\averageBalance($uid, strtotime('today', $a->created), $asof);
   $subs = compact('uid', 'monthAgo', 'asof');
   
   $sql = <<<EOF
@@ -470,11 +470,11 @@ EOF;
   
   $sql = <<<EOF
     SELECT SUM(amount) AS bankedEver, SUM(IF(completed<:monthAgo, 0, amount)) AS bankedPastMo
-    FROM r_usd WHERE payer=:uid AND completed AND completed<:asof
+    FROM r_usd WHERE payer=:uid AND payee=0 AND completed AND completed<:asof
 EOF;
   $row3 = db\q($sql, $subs)->fetchAssoc() ?: array(); // get bankedEver, bankedPastMo
   $newData = $row1 + $row2 + $row3 + compact(u\ray('avgBalPastMo avgBalEver minPastMo'));
-  foreach ($newData as $k => $v) $newData[$k] = round($v, 2); // avoid long decimals in data field
+  foreach ($newData as $k => $v) $newData[$k] = '' . round($v, 2); // avoid long decimals
   $a->update(u\ray('stats picture', serialize($newData), $minPastMo * 100));
 }
 
@@ -638,27 +638,27 @@ function pool1($item) {
 */
 
 /**
- * 1. Mark deposited transfers complete 2 business days after deposit (if not already marked complete)
+ * 1. Mark deposited transfers complete R_USDTX_DAYS business days after deposit (if not already marked complete)
  * 2. Transfer funds from member bank accounts to rCredits or vice versa, according to account's settings
  * 3. Transfer funds from a connected account, if appropriate.
  */
 function bank() {
 //  $excess = 'LEAST(usd, :R_EXCESS)';
-  $weekday = strftime('%u', time()); // 1-7 Mon-Sun
-  if ($weekday < 6) { // no completions on Saturday or Sunday
+  $weekday = strftime('%w'); // 0-6 Sun-Sat (use %w because %u fails on Windows and maybe linux)
+  if (u\test() or in_array($weekday, [2, 3, 4, 5])) { // no completions on Saturday, Sunday, or Monday
     $sql = 'SELECT * FROM r_usd WHERE amount<0 AND NOT completed AND deposit AND :REQUEST_TIME>=deposit+:R_USDTX_DAYS*:DAY_SECS';
     queueEach('completeUsdTx', $sql);
   }
   
   $sql = <<<EOF
-  SELECT uid, :R_SHORTFALL AS shortfall
+  SELECT uid
   FROM users 
   WHERE :R_SHORTFALL>0 AND minimum>0 AND uid>1 AND :IS_OK AND :HAS_BANK
 EOF;
   queueEach('bank1', $sql);
   
   $sql = <<<EOF
-  SELECT uid, :R_SHORTFALL AS shortfall, r.main as ma
+  SELECT uid, r.main as ma
   FROM users u INNER JOIN r_relations r ON r.other=u.uid
   WHERE :R_SHORTFALL>0 AND minimum>0 AND uid>1 AND :IS_OK AND NOT :HAS_BANK AND r.draw
 EOF;
@@ -674,52 +674,39 @@ function completeUsdTx($item) {
 }
 
 function bank1($item) {
-  extract(u\just('uid shortfall', $item));
+  extract(u\just('uid', $item));
   $a = r\acct($uid);
-  if (!$amount = toBank(-$shortfall, $a)) return;
+  if (!$amount = getR($a)) return; // check shortfall here NOT in query, balance may change
   $action = 'draw from';
-//  $usAcct = new r\usd($a);
-
-//  if ($usAcct->bank($amount, $error)) {
-  if (!$checkNum = $a->bank($amount)) return; // may never happen, but if mysql is unavailable just redo next day
-  $amount = u\fmtAmt(abs(@$amount));
+  if (!$checkNum = $a->bank(-$amount)) return; // may never happen, but if mysql is unavailable just redo next day
+  $amount = u\fmtAmt($amount);
   r\notify($uid, 'under min|banked|bank tx number', compact(u\ray('action amount checkNum')));
-//  } elseif (REQUEST_TIME - $a->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
 }
 
 function draw1($item) {
-  extract(u\just('uid shortfall ma', $item));
+  extract(u\just('uid ma', $item)); // ma is UNUSED
   $a = r\acct($uid);
-  if (!$amount = toBank(-$shortfall, $a, FALSE)) return;
+  if (!$amount = getR($a, FALSE)) return;
 
-  if ($a->draw(abs($amount))) {
-    $amount = u\fmtAmt(abs(@$amount));
+  if ($a->draw($amount)) {
+    $amount = u\fmtAmt($amount);
     r\notify($uid, 'under min|drew', compact('amount'));
   } else r\notify($uid, 'under min|cannot draw');
 }
 
 /**
- * Given a desired amount to transfer to the bank, return the amount to actually transfer.
- * @param float $amount: the amount wanting to go to or (if negative) from the bank
+ * Given an account's shortfall, return the amount to actually transfer to rCredits.
  * @param acct $a: which account
  * @param bool $banky: the account has a connected bank account
- * @return: the amount to transfer TO (UNUSED) or (if negative) FROM the bank account (zero if none).
+ * @return: the amount to transfer from the connected bank account or drawn for other rCredits accts (0 if none).
  */
-function toBank($amount, $a, $banky = TRUE) {
+function getR($a, $banky = TRUE) {
+  if (!$need = max(0, $a->minimum - $a->r)) return 0;
   if ($banky) {
-    $waiting = $a->waitingToBank(); // amount already requested (if any)
-  /*  if ($waiting * $amount < 0) { // flip flop -- user could choose better settings (but continue anyway)
-      $suggestion = u\fmtAmt(round($a->minimum + max($a->minimum * .2, 50, abs($amount), abs($waiting)), -1));
-      r\suggest($a, 'min too low', compact('suggestion'));
-    } */
-    $amount -= $waiting;
+    $waiting = -$a->waitingToBank(); // amount already requested (if any)
+    $need = round($need - $waiting, 2); // avoid a re-request
   }
-  return $amount < 0 ? min(-$a->achMin, R_ACHMIN * floor($amount / R_ACHMIN)) : 0;
-/*  if ($amount > 0) { // excess
-    return $amount >= $a->achMin ? $amount : 0;
-  } elseif ($amount < 0) { // shortfall
-    return min($amount, -$a->achMin);
-  } else return 0; */
+  return $need <=0 ? 0 : max($a->achMin, round(R_ACHMIN * ceil($need / R_ACHMIN)), 2);
 }
 
 /**

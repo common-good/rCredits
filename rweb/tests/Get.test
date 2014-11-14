@@ -180,7 +180,7 @@ class rwebGet extends DrupalWebTestCase {
     . '\\| put |     10 |"');
     Then_('we show "Bank Transfer" with: "ARRAY'
     . '\\|_Pending |'
-    . '\\| You have total pending transfer requests of $134 from your bank account. |"');
+    . '\\| You have total pending transfer requests of $6 to your bank account. |"');
     And__('we say "error": "short put|short cash help" with subs: "ASSOC'
     . '\\| max |'
     . '\\| $0  |"');

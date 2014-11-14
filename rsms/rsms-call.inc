@@ -233,7 +233,9 @@ class call {
 //    be\todo($this->number, 'account info2', ''); // queue up more info (not used yet)
     $mya = r\acct();
     $quid = $mya->mainQid;
-    $totalDemand = r\totals()->fancy['demand'];
+    $stats = r\stats(); // show system-wide demand. later maybe just $mya->community
+    $totalDemand = u\fmtAmt($stats['usd']);
+//    $totalDemand = r\totals()->fancy['demand'];
     list ($balance, $rewards) = array(u\fmtAmt($mya->r + $mya->usd), u\fmtAmt($mya->rewards));
     return tt('account info', compact(u\ray('quid balance rewards totalDemand')));
   }

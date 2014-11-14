@@ -119,3 +119,16 @@ Scenario: an unbanked member with zero minimum has balance below minimum
   | .ZZB |       0 | -10 |
   When cron runs "bank"
   Then bank transfer count is 0
+
+Scenario: a member has a deposited but not completed transfer
+  Given balances:
+  | id   | r   |*
+  | .ZZA |  80 |
+  | .ZZB | 100 |
+  And usd transfers:
+  | txid | payer | amount | created   | completed | deposit    |*
+  | 5001 | .ZZA  |    -50 | %today-4d |         0 | %(%today-%R_USDTX_DAYS*%DAY_SECS-9) |
+  # -9 in case the test takes a while (elapsed time is slightly more than R_USDTX_DAYS days)
+  When cron runs "bank"
+  Then bank transfer count is 1
+

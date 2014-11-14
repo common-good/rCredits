@@ -193,4 +193,18 @@ class rcronBank extends DrupalWebTestCase {
     Then_('bank transfer count is 0');
   }
 
+  // Scenario: a member has a deposited but not completed transfer
+  public function testAMemberHasADepositedButNotCompletedTransfer_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "ASSOC'
+    . '\\| id   | r   |'
+    . '\\| .ZZA |  80 |'
+    . '\\| .ZZB | 100 |"');
+    And__('usd transfers: "ASSOC'
+    . '\\| txid | payer | amount | created   | completed | deposit    |'
+    . '\\| 5001 | .ZZA  |    -50 | %today-4d |         0 | %(%today-%R_USDTX_DAYS*%DAY_SECS-9) |"');
+    When_('cron runs "bank"');
+    Then_('bank transfer count is 1');
+  }
+
 }

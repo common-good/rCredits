@@ -1,7 +1,13 @@
-Feature: Checks
+Feature: Deposits
 AS an administrator
-I WANT to print checks from members
+I WANT to print checks from members to rCredits
 SO we can accept their US Dollars in exchange for rCredits
+
+AND I WANT to print checks from rCredits to members
+So we can accommodate members' requests to cash out
+
+AND I WANT to display deposit statements for current and past deposits
+SO I can make deposits easily and review past deposits if necessary
 
 Setup:
   Given members:
@@ -22,15 +28,11 @@ Scenario: admin prints checks
   | 5002 | .ZZA  |     0 |   -400 | %today-2w |         0 | %today    |
   | 5003 | .ZZB  |     0 |   -100 | %today-1d |         0 | %today    |  
   | 5004 | .ZZC  |     0 |   -300 | %today    |         0 |         0 |
-  When member ".ZZB" visits page "sadmin/print-checks"
-  Then we show "Print Checks" with:
-  | Print   | 3 checks |
-  | Reprint | 1 checks from %dmy-2w |
-  When member ".ZZB" completes form "sadmin/checks" with values:
-#  | reprint | previous  |*
-#  |       1 | %today-1m |
-  | reprint |*
-  |       0 |
+  When member ".ZZB" visits page "sadmin/deposits"
+  Then we show "Deposits" with:
+  | Checks IN | 3 |
+  | Include   | 1 checks from %dm-2w |
+  When member ".ZZB" visits page "sadmin/checks/way=IN&date=0&previous=%today-3w&reprint=0"
   Then we show pdf with:
   |_name    |_postalAddr          |_phone        |_transit      |_acct |_txid |_date |_amt   |_amount |_bank |*
   | Abe One | 1 A, Aton, MA 01001 | 413 772 0001 | 53-7028/2118 |   01 | 5002 | %dmy | $ 400 | Four Hundred and NO/100 | Greenfield Co-op Bank |

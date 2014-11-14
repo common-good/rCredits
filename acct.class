@@ -495,7 +495,7 @@ EOF;
   public function cacheOk() {
     $uid = $this->id;
     $info = be\creditInfo(compact('uid'));
-    foreach (u\ray('r usd rewards minimum') as $key) {
+    foreach (u\ray('r rewards minimum') as $key) {
       $is = $this->$key;
       if ($uid < 0) continue; // for communities and regions, only usd is cached
 //      if ($uid < 0 and $key != 'usd') continue; // for communities and regions, only usd is cached
@@ -560,14 +560,6 @@ EOF;
   }*/
   
   /**
-   * Update the account's caches to reflect a trade of r for usd
-   * @param float $change: how much rCredits got traded for usd (could be negative)
-   */
-  public function cacheR2Usd($change) {
-    return $this->update('r usd', $this->r - $change, $this->usd + $change);
-  }
-  
-  /**
    * Update the account's cached USD amount and return it.
    * @param float $change: if non-zero, update the USD cache by this much, without checking Dwolla or r_usd
    *//*
@@ -593,15 +585,14 @@ EOF;
 */
 
   /**
-   * Return the amount waiting to be transferred to or (if negative) from the bank.
-   * @param bool $justTo: 'to': ignore transfers from bank, 'from': ignore transfers to bank
+   * Return the amount waiting to be transferred TO or (if negative) FROM the bank.
+   * @param bool $justTo: 'to'=<ignore transfers FROM bank>, 'from'=<ignore transfers TO bank>
    */
   public function waitingToBank($justTo = FALSE) {
-    $where = 'payer=:id AND payee=0 AND (NOT completed OR NOT deposit) AND created>:ancient';
+    $where = 'payer=:id AND payee=0 AND NOT completed';
     if ($justTo == 'to') $where .= ' AND amount>0';
     if ($justTo == 'from') $where .= ' AND amount<0';
-    list ($id, $ancient) = array($this->id, REQUEST_TIME - R_ANCIENT_EFT * DAY_SECS);
-    return db\lookup('SUM(amount)', 'r_usd', $where, compact('id', 'ancient')) + 0;
+    return db\lookup('SUM(amount)', 'r_usd', $where, ['id'=>$this->id]) + 0;
   }
 
   /**
@@ -938,6 +929,7 @@ EOF;
 
 function IA($quid = '', $no_abbrev = TRUE) {
   if (!$quid) return array(acct()->id, acct()->agentId, serverUid());
+  if (substr($quid, 0, 1) == '!') return ($id = r\unQuid($quid)) ? [$id, $id] : FALSE;
   if (!u\isQid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
   if (!u\isQid($quid)) return FALSE;
 
@@ -947,8 +939,8 @@ function IA($quid = '', $no_abbrev = TRUE) {
     if (!$record = relation('main,other', 'reid=:reid', compact('reid'))) return FALSE;
     return array_values($record);
   } else {
-    $zuid = r\unQuid('', $zid, $regionUid); // unQuid not unQid
-    return array($zuid, $zuid); // pro Se
+    $id = r\unQuid('', $zid, $regionUid); // unQuid not unQid
+    return array($id, $id); // pro Se
   }
 }
 

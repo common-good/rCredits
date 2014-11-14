@@ -114,8 +114,7 @@ Scenario: a member asks to do two transfers out in one day
   | put |     10 |
   Then we show "Bank Transfer" with:
   |_Pending |
-  | You have total pending transfer requests of $134 from your bank account. |
-# 134 is 140in - 6out
+  | You have total pending transfer requests of $6 to your bank account. |
   And we say "error": "short put|short cash help" with subs:
   | max |*
   | $0  |

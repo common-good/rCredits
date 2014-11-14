@@ -31,7 +31,7 @@ define('RSMS_PREFIX', 'r: '); // identify us
 
 $GLOBALS[TX_SMS . ' messages'] = array(
   // reports
-  'system down' => t('The rCredits system is under maintenance at the moment. Try again in a few minutes?'),
+  'system down' => t('The rCredits system is under maintenance. Please try again in a few minutes?'),
   'your community down' => t('Your rCredits community is temporarily on hold. Contact your rCredits Community Admin for details: @contact'),
   'other community down' => t('That rCredits community is temporarily on hold.'),
   'account info' => t('Your balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @totalDemand.'),
@@ -224,7 +224,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'cannot bank' => t('The rCredits system was unable to @action your bank: @error'),
   'cannot draw' => t('But the rCredits system was unable to draw from your connected account(s).'),
   'no source' => t('there is no valid funding source'),
-  'not verified' => t('you have not yet verified the connection to your bank account. Check your bank statement online or call your bank (2-5 days after giving your routing and account numbers). There will be two small deposits made to your account, each less than @DW_VERIFY_ROOF cents. Sign in to rCredits.org, then follow the instructions there to supply those two deposit amounts.'),
+//  'not verified' => t('you have not yet verified the connection to your bank account. Check your bank statement online or call your bank (2-5 days after giving your routing and account numbers). There will be two small deposits made to your account, each less than @DW_VERIFY_ROOF cents. Sign in to rCredits.org, then follow the instructions there to supply those two deposit amounts.'),
   'agreement required' => t('You must agree to Dwolla\'s terms of service or you cannot participate in the rCredits system.'),
   'year is 4 digits' => t('Be sure to type all four digits of the year.'),
   'date too early' => t('That date is too early.'),

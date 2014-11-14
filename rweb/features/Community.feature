@@ -9,9 +9,9 @@ SO I can see how well the rCredits system is doing for myself, for my ctty, and 
 Setup:
   Given members:
   | id   | fullName   | email | flags      | minimum | floor | share | created   |*
-  | .ZZA | Abe One    | a@    | ok,bona    |       5 |     0 |    10 | %today-2m |
-  | .ZZB | Bea Two    | b@    | ok,bona    |    1000 |   -20 |    20 | %today-3w |
-  | .ZZC | Corner Pub | c@    | ok,co,bona |    2000 |    10 |    30 | %today-2w |
+  | .ZZA | Abe One    | a@    | ok,bona    |       5 |     0 |    10 | %today-6m |
+  | .ZZB | Bea Two    | b@    | ok,bona    |    1000 |   -20 |    20 | %today-5w |
+  | .ZZC | Corner Pub | c@    | ok,co,bona |    2000 |    10 |    30 | %today-4w |
   And relations:
   | id   | main | agent | permission |*
   | .ZZA | .ZZA | .ZZB  | buy        |
@@ -63,7 +63,7 @@ Setup:
 Scenario: cron calculates the statistics
   Given cron runs "acctStats"
   And cron runs "cttyStats"
-  When member ".ZZA" visits page "community"
+  When member ".ZZA" visits page "community/graphs"
   Then we show "Statistics" with:
   | | for %R_REGION_NAME |
   |_rCredits Accounts: | 2 members + 1 co = 3 |

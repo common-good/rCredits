@@ -170,7 +170,7 @@ function badSsn(&$ssn, $dob) {
   $s1 = substr($ssn, 0, 3);
   $s2 = substr($ssn, 3, 2);
   $s3 = substr($ssn, 5);
-  if (@$dob) { // ssn (not ein)
+  if (FALSE AND @$dob) { // ssn (not ein) -- We got an SSN that violated these rules. Better to let it go a step more.
     if ($c1 == '9' or $s1 == '000' or $s1 == '666' or $s2 == '00' or $s3 == '0000') $bad = TRUE;
     if (substr($ssn, 0, 8) == '98765432') $bad = TRUE; // advertising numbers, according to Wikipedia
     if ($dob < strtotime('25Jun2011')) if ($c1 == '8' or ($c1 == '7' and $s1 > '771')) $bad = TRUE;
@@ -182,7 +182,8 @@ function badSsn(&$ssn, $dob) {
  * Format the given amount as currency.
  *
  * @param float $amount
- * $param string $options (default s$): 
+ * $param string $opt (default s$):
+ *   1 = round to nearest dollar
  *   s = simplify: Omit the cents for whole dollar amounts
  *   $ = include initial dollar sign
  *   r = include a trailing r
@@ -190,17 +191,17 @@ function badSsn(&$ssn, $dob) {
  * @return
  *   the formatted amount
  */
-function fmtAmt($amount, $options = 's$') {
-  $options = ' ' . $options; // simplify strpos check
+function fmtAmt($amount, $opt = 's$') {
+  $opt = ' ' . $opt; // simplify strpos check
   $amount = cleanAmount(nn($amount, 0));
 //  if (!is_numeric($amount)) $amount = -999999;
   u\EXPECT(compact('amount'), 'float', 'bad num');
-  $amount = number_format($amount, 2);
-  if ($amount == '-0.00') $amount = '0.00'; // this happens, for small negative amounts
-  if (strpos($options, '$')) $amount = '$' . $amount;
-  if (strpos($options, 's')) $amount = str_replace('.00', '', $amount);
-  if (strpos($options, 'r')) $amount .= 'r';
-  if (strpos($options, 'u')) $amount .= 'us';
+  $amount = number_format($amount, strpos($opt, '1') ? 0 : 2);
+  if ($amount == '-0.00') $amount = strpos($opt, '1') ? '0' : '0.00'; // this happens, for small negative amounts
+  if (strpos($opt, '$')) $amount = '$' . $amount;
+  if (strpos($opt, 's')) $amount = str_replace('.00', '', $amount);
+  if (strpos($opt, 'r')) $amount .= 'r';
+  if (strpos($opt, 'u')) $amount .= 'us';
   return $amount;
 }
 
@@ -1270,7 +1271,7 @@ function myInt($n) {return (is_numeric($n) and $n == (int) $n);}
 function myFloat($n) {return (is_numeric($n) and $n == (float) $n);}
 function isId($id) {return (myInt($id) and $id > 0);}
 //function is_ruid($ruid) {return (is_array($ruid) and array_keys($ruid) == array(0, 1, 2) and isZid($ruid[0]) and isZid($ruid[1]) and isZid($ruid[2]));}
-function isQid($qid) {return preg_match('/^[A-Z]{3}' . R_MARKS . '[A-Z]{3,}$/', $qid);}
+function isQid($qid) {return preg_match('/(^[A-Z]{3}' . R_MARKS . '[A-Z]{3,}$)|(^![A-Z]{3}(\.[A-Z]{3,})?$)/', $qid);}
 function isZid($zid) {return (myInt($zid) and $zid !== 0);}
 function isNonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
 function isName($value) {return preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value);}

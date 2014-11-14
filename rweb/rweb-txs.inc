@@ -30,7 +30,7 @@ $GLOBALS['TX_DAYS'] = array(1 => 'day', 7 => '7 days', 30 => '30 days', 90 => '9
  */
 function formTxs($form, &$sta, $args = '') {
   global $agtViaBoxHelp;
-  $agtViaBoxHelp = t('Agent is who did the transaction on your behalf.|Channel (Via) is where the transaction originated -- what type of device: Web, Smartphone, SMS, or Automatic.|Box is where the transaction originated -- which specific device.');
+  $agtViaBoxHelp = '|' . t('Agent is who did the transaction on your behalf.|Channel (Via) is where the transaction originated -- what type of device: Web, Smartphone, SMS, or Automatic.|Box is where the transaction originated -- which specific device.');
   $optHelp = $agtViaBoxHelp . '|' . t('Exchanges are 1-to-1 trades of US Dollars for rCredits (usually automatic).|PExchanges are daily automatic payment exchanges of rCredits between company and employee. The company pays the employee in US Dollars, then the employee trades back some US Dollars 1-to-1 for rCredits. The net effect is that the employee gets paid partly in US Dollars, partly in rCredits.');
 
   $mya = r\acct();
@@ -43,7 +43,7 @@ function formTxs($form, &$sta, $args = '') {
   $optDefaults = $opts = array();
   $optHelp = array_combine($keys = u\ray(TX_OPT_KEYS), u\ray($optHelp));
   foreach ($keys as $one) {
-    $value = $opts[u\consta('tx_opt', $one)] = x\popHelp($one, $optHelp[$one]); // set TX_OPT_CHANNELS etc.
+    $value = $opts[u\consta('tx_opt', $one)] = w\popHelp($one, $optHelp[$one]); // set TX_OPT_CHANNELS etc.
     if (@$$one) $optDefaults[] = $value; // set up option field values
   }
   */
@@ -85,7 +85,7 @@ function formTxs_submit($form, &$sta) {
  * List the available account statement dates, with links.
  */
 function formStatements($form, $sta, $month = '') {
-  return $month ? statement($month) : monthChoices(t('Statements'), 'statements');
+  return $month ? r\go("history/statement/$month") : monthChoices(t('Statements'), 'statements');
 }
 
 /**
@@ -121,25 +121,6 @@ function handleTx($do, $xid, &$sta, $args) {
   return FALSE;
 }
  
-/**
- * Return usable starting and ending dates (inclusive).
- * @param int $period: index into TX_DAYS -- for calculating starting and ending if none explicitly specified
- * @param int $starting: explicit starting date (optional)
- * @param int $ending: explicit ending date (optional)
- * @return array($starting, $ending, $period), where $starting is adjusted to start of day and $ending to end of day
- */
-function txDates($period, $starting = '', $ending = '') {
-  if (@$starting and !is_numeric($starting) and $err = u\badDate($starting)) say($err, 'starting');
-  if (@$starting > REQUEST_TIME) say('beyond today', 'starting');
-  if (@$ending and !is_numeric($ending) and $err = u\badDate($ending)) say($err, 'ending');
-  if (!@$ending or $ending > REQUEST_TIME) $ending = REQUEST_TIME;
-
-  $period = (int) @$starting ? ($ending - $starting) / DAY_SECS : (@$period ?: TX_DEFAULT_PERIOD);
-  $ago = @$GLOBALS['TX_DAYS'][$period] ?: ($period . ' days');
-  if (!@$starting) $starting = strtotime($period == '-1' ? '1jan' : ($period == '-2' ? '1/1/2013' : "$ago ago"));
-  return array(strtotime('today', $starting), strtotime('tomorrow', $ending) - 1, $period);
-}  
-
 /**
  * Handle click 'OK' or 'NO' (approving or undoing a transaction)
  */
@@ -245,12 +226,12 @@ function txSummary($starting, $ending) {
 ///  debug(compact('nowInfo','oldInfo'));
 
   $dif = array();
-  foreach (u\ray('inProper outProper usdIn usdOut rewards bank fees') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
+  foreach (u\ray('inProper outProper usdIn usdOut rewards bank') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
   extract($dif, EXTR_PREFIX_ALL, 'd');
   $p_committed = $mya->committed; // this will include all pending commitments
   
-  $fields = 'old bank in out fees rewards new';
-  $values = array($o_balance, $d_bank, $d_inProper, $d_outProper, $d_fees, $d_rewards, $n_balance); // both
+  $fields = 'old bank in out rewards new';
+  $values = array($o_balance, $d_bank, $d_inProper, $d_outProper, $d_rewards, $n_balance); // both
   $values = array_combine(u\ray($fields), $values);
 
   $p_inProper = $p_outProper = $p_rewards = 0; // temporary until we include unpaid invoice data here
@@ -269,8 +250,8 @@ function txSummary($starting, $ending) {
   $classes = u\prefixValues('txsum-', u\ray('one banksign bank fromsign fromyou tosign toyou rewardssign rewards sharesign share balancesign balance'));
   $heads = u\ray(t('Starting balance,,From Bank,,From You,,To You,,Rewards,,To CGF,,Ending balance'));
   $headHelp = u\ray(t('Your account balance at the start of this time period||How much was transferred from your bank account to your rCredits account||How much you spent||How much you received||How much incentive rewards did you receive||Amount of rewards you committed to share with Common Good Finance||Your account balance at the end of this time period'));
-  foreach ($heads as $key => $value) if ($value) $heads[$key] = x\popHelp($value, $headHelp[$key]);
-  $PENDING = x\popHelp(t('PENDING'), t('Pending transfers, transaction requests, and commitments as of ') . $ending);
+  foreach ($heads as $key => $value) if ($value) $heads[$key] = w\popHelp($value, $headHelp[$key]);
+  $PENDING = w\popHelp(t('PENDING'), t('Pending transfers, transaction requests, and commitments as of ') . $ending);
   
   $rows = array(
     array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,,,,,$ending")),
@@ -337,7 +318,7 @@ function invoiceList($toMe, $starting, $ending, $states, $url, $download) {
 
   $header = array_combine($classes, u\ray($headers)); // make splices and additions easy and clear
   $downloadHeader = $header;
-  foreach ($header as $key => $value) $header[$key] = x\popHelp($value, $headHelp[$key]);
+  foreach ($header as $key => $value) $header[$key] = w\popHelp($value, $headHelp[$key]);
 
   $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
   if (@$download) {

@@ -30,7 +30,7 @@ function setupBasicAccounts() {
   $info += u\ray('legalName postalAddr', R_REGION_LEGALNAME, R_REGION_ADDR);
   new r\acct($info);
 
-  $values = array(r\unQuid('R_ADMIN_QID'), $server, 'williamspademan', ADMIN_NAME, R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK)));
+  $values = array(r\unQuid(R_ADMIN_QID), $server, 'williamspademan', ADMIN_NAME, R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK)));
   $info = array_combine($keys, $values);
   list ($phone, $address, $city, $state) = array('+14136281021', 'PO Box 305', 'Ashfield', R_STATE_ID);
   $info += compact(u\ray('mail phone address city state'));
@@ -43,10 +43,11 @@ function setupBasicAccounts() {
   $cgf = new r\acct($info);
   \variable_set('cgf_uid', $cgf->id);
   
+  /*
   list ($usdAccount, $auth, $usdEmail, $usdPhone, $usdPass, $usdPin) = array(DW_TESTER_ACCT, DW_TESTER_AUTH, R_TESTER_EMAIL, $wws->phone, DW_TEST_PASS, DW_TEST_PIN);
   $secure = compact(u\ray('auth usdEmail usdPhone usdPass usdPin'));
   $wws->update(compact('usdAccount', 'secure'));
-  
+  */
 //  list ($main, $other, $permission) = array($cgf->id, $wws->id, r\perm(B_MANAGE));
 //  db\insert('r_relations', compact(u\ray('main other permission'))); // wws can manage CGF
   $cgf->newRelation($wws->id, r\perm(B_MANAGE));
@@ -225,7 +226,7 @@ function ssnCheck($a) {
     $json = json_encode($xml);
     $ssnData = json_decode($json, TRUE);
     if (!is_array($d = $ssnData['searchResults']) or $ssnData['ResultCount'] + 0 <= 0) {
-      return r\Web\say(t('No SSN data available: ') . print_r($d, 1));
+/**/  return r\Web\say(t('No SSN data available: ') . print_r($d, 1));
     }
     $a->update(compact('ssnData')); // ResultCount is 0 for tests, <=0 for failure
   } else $d = $ssnData['searchResults'];
@@ -272,11 +273,13 @@ function fixdw($a) {
 
 /**
  * Redo all the stats
+ * @param int $keepUpto: date of last valid stats records (redo all subsequent dates)
 include_once __DIR__ . '/../rcredits/admin/admin.inc';
 f('a.fixStats');
  */
 function fixStats($keepUpto = 0) {
   include_once __DIR__ . '/../rcron/rcron.inc';
+  $blockAgo = strtotime(-STATS_GRAIN, strtotime('today'));
   
   $sql = <<<EOF
     SELECT community AS ctty, MIN(t.created) AS start
@@ -287,8 +290,8 @@ EOF;
   u\preray(array(0 => min($cttys)), $cttys); // show all dates overall
 
   db\q($keepUpto ? "DELETE FROM r_stats WHERE id>$keepUpto" : 'TRUNCATE r_stats');
-  $start = $keepUpto ? strtotime('tomorrow', db\lookup('MAX(created)', 'r_stats')) : (@$cttys[0] ?: REQUEST_TIME);
-  $created = strtotime('today', $start); // use first moment of the day
+  $start0 = $keepUpto ? strtotime('+' . ($keepUpto < $blockAgo ? STATS_GRAIN : 1), db\lookup('MAX(created)', 'r_stats')) : (@$cttys[0] ?: REQUEST_TIME);
+  $created = strtotime('today', $start0); // use first moment of the day
   
   while ($created <= REQUEST_TIME) {
     $acctQ = db\q('SELECT uid FROM users WHERE uid>1');
@@ -296,9 +299,10 @@ EOF;
     while ($row = $acctQ->fetchAssoc()) r\Cron\acctStats1($row, $created); // set individual account stats
     foreach ($cttys as $ctty => $start) if ($created >= $start) {
       r\getStats($ctty, $created); // set community stats
-      if ($ctty != 0) if (!checkStats($ctty, $created)) return; // verify
+/// this fails on cross-community txs!  if ($ctty != 0) if ($err = badStats($ctty, $created)) return debug($err); // verify
     }
-    $created = strtotime('tomorrow', $created);
+    $delta = $created < $blockAgo ? STATS_GRAIN : 1;
+    $created = strtotime("+$delta days", $created);
   }
 }
   
@@ -307,23 +311,16 @@ EOF;
  * @param int $ctty: record ID of community to check
  * @param int $created: stats date to check
  */
-function checkStats($ctty, $asof) {
-  $q = db\q('SELECT uid FROM users WHERE community=:ctty', compact('ctty'));
+function badStats($ctty, $asof) {
+  $q = db\q('SELECT uid FROM users WHERE community=:ctty AND uid > 1', compact('ctty'));
   while ($row = $q->fetchAssoc()) {
     extract(u\just('uid', $row));
-    $info = u\just('r usd', (array) be\creditInfo(compact('uid','asof')));
-//    unset($info['fancy']);
-    if ($uid < 0) $info['r'] = -$info['usd']; // don't include r for communities (it would cancel out the others)
-    if (@$totals) {
-      foreach($info as $k => $v) $totals[$k] += $v;
-    } else $totals = $info;
+    $r = be\creditInfo(compact('uid','asof'))->r;
+    $total = @$total + $r;
   }
-  $stats = db\lookup('r,usd', 'r_stats', 'ctty=:ctty AND created=:asof', compact('ctty', 'asof'));
-  foreach (u\ray('r usd') as $k) if ($stats[$k] != round($totals[$k], 2)) {
-/**/ debug(u\ray('STATS_ERROR', compact(u\ray('k ctty asof stats totals')))); return FALSE;
-//      r\tellStaff(t('bad stats'), compact(u\ray('k ctty asof stats totals')));
-  }
-  return TRUE;
+  $rStat = db\lookup('r', 'r_stats', 'ctty=:ctty AND created=:asof', compact('ctty', 'asof'));
+  if ($rStat == round($total, 2)) return FALSE;
+  return ['STATS_ERROR' => compact(u\ray('ctty asof rStat total'))];
 }
 
 /*
@@ -571,3 +568,140 @@ cron('acctRisk');
 cron('txRisk');
 cron('achRisk');
 */
+
+/**
+ * Return a table of deposits.
+ */
+function deposits() {
+  $sql = <<<EOF
+    SELECT SUM(IF(amount<0, -amount, 0)) AS amountIn, SUM(IF(amount<0, 1, 0)) AS countIn,
+      SUM(IF(amount>0, -amount, 0)) AS amountOut, SUM(IF(amount>0, 1, 0)) AS countOut,
+      deposit
+    FROM r_usd WHERE payee=0
+    GROUP BY deposit ORDER BY deposit<>0, deposit DESC, amount>0
+EOF;
+
+  $q = db\q($sql); // include today's potential deposit at the top
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $date = $deposit == 1 ? t('<b>ANCIENT</b>') : ($deposit ? u\fmtDate($deposit) : t('<b>TODAY</b>'));
+    foreach (['In', 'Out'] as $way) {
+      list ($total, $count) = [u\fmtAmt(${"amount$way"}, ''), number_format(${"count$way"})];
+      if (!$count) continue;
+      $details = t('<@a>details</a>', ['@a'=>"a href=deposit-details/way=$way&date=$deposit&total=$total&count=$count"]);
+      $checks = t('<@a>checks</a>', ['@a'=>"a href=checks/way=$way&date=$deposit"]);
+      $wayDesc = $way == 'In' ? t('IN') : t('OUT');
+      $deposits[] =<<<EOF
+<tr>
+  <td>$date</td>
+  <td>$wayDesc</td>
+  <td>$count</td>
+  <td>$total</td>
+  <td>$details &nbsp; $checks</td>
+</tr>
+EOF;
+    }
+  }
+  $deposits = @$deposits ? join("\n", $deposits) : '<tr><td colspan=4>No deposits</td></tr>';
+  $header = '<tr><th>Deposit</th><th></th><th>Count</th><th>Total</th><th></th></tr>';
+  return <<<EOF
+<table id="deposits">
+$header
+$deposits
+</table>
+EOF;
+}
+
+/**
+ * Print a check
+ * @param Pdf $ck: the Check object to place the check in.
+ * @param int $pos: what position on the current page (1, 2, or 3)
+ * @param assoc $tx: relevant fields from the r_usd record
+ */
+function printCheck(&$ck, $pos, $tx) {
+  extract(u\just('txid created payer amount deposit', $tx));
+  $escrow = 'USkk' . ESCROW_ROUTING . ESCROW_ACCOUNT;
+  $a = r\acct($payer);
+  list ($fromName, $addr, $phone, $fromAcct, $toName, $toAcct) = $amount < 0 // which way
+    ? [$a->legalName, $a->postalAddr, $a->phone, $a->bankAccount, 'rCredits', $escrow] // from bank to escrow
+    : ['rCredits (' . CGF_LEGALNAME . ')', CGF_POSTALADDR, CGF_PHONE, $escrow, $a->legalName, $a->bankAccount];
+  $memo = $amount < 0 ? t('for rCredits') : t('for DEPOSIT to account #') . substr($toAcct, 4 + 9);
+
+  list ($signature, $belowLine) = $amount < 0 
+  ? [t('Pre-authorized Check'), t('No Signature Required')] 
+  : ['', SIGNATORY];
+  
+  list ($W, $H) = array($ck->pageW, $ck->pageH);
+  $lineH = $ck->lineH; // standard line height in inches
+  $m = .25; // left/right margins
+  $mt = ($pos - 1) * CHECK_HEIGHT + $m; // top margin
+
+  $phone = u\fmtPhone($phone);
+  $routing = substr($fromAcct, 4, 9);
+  $account = substr($fromAcct, 4 + 9);
+  
+  $bankInfo = db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
+  if (!$bankInfo) {say("Skipped transaction #$txid for $a->fullName (no bank info)"); return;}
+  //u\EXPECT((bool) $bankInfo, 'no bank info');
+  extract($bankInfo, EXTR_PREFIX_ALL, 'b');
+  if (strlen($b_zip) > 5) $b_zip = substr($b_zip, 0, 5) . '-' . substr($b_zip, 5);
+  if (!$prefix = db\lookup('id', 'r_transit', 'location=:location', u\ray('location', "$b_city, $b_state"))) {
+    $prefix = db\lookup('id', 'r_transit', 'location=:b_state', compact('b_state'));
+    //u\EXPECT((bool) $prefix, 'no transit prefix');
+  }
+  $transit = $prefix . '-' . substr($routing, 4, 4) . '/' . substr($routing, 0, 4);
+  
+  $amount = abs($amount);
+  $dollars = floor($amount);
+  $cents = round(100 * ($amount - $dollars)) ?: t('NO');
+
+  $ck->say("<b>$fromName</b><br><small>$addr<br>$phone</small>", $m, $y = $mt, $W - $m);
+  $ck->say("$transit<br>$account", $W / 2, '', $W / 4, '', '8', 'C');
+  $ck->say("<b>$txid</b>", -$W / 4, '', -$W / 4 - $m, '', '', 'R');
+
+  $ck->say('DATE:', 6.7, $y += .4, '', .25, '8');
+  $ck->say(u\fmtDate(), 7.1, '', '', .25);
+
+  $ck->say('Pay to the<br>Order of', $m, $y += .4, '', 2 * $lineH, '8 CAPS');
+  $ck->say("  $toName", $m + .7, $y + $lineH, 5.9, $lineH, '', '', 'BR');
+  $ck->say('$ ' . number_format($amount, 2), 7, '');
+  
+  $ck->say(u\n2english($dollars) . " and $cents/100", $m, $y += .65, 6.9, $lineH, '', '', 'B');
+  $ck->say('DOLLARS', $m + 6.9, '', '', $lineH, '8');
+//  $ck->Image(__DIR__ . '/../images/icons/padlock.gif', $W - $m - .5, $y, $lineH, $lineH);
+  
+  $ck->say("<b>$b_name</b><br><small>$b_address<br>$b_city, $b_state $b_zip</small>", $m + 1, $y += .4, '', '', '9');
+  
+  $ck->say($signature, $W - $W / 3, $y + .35, $W / 3 - $m, $lineH, 'CAPS', 'C', 'B'); // $y+ not +=
+  $ck->say($belowLine, '', $y + .35 + $lineH, $W / 3 - $m, $lineH, '8 CAPS', 'C');
+  
+  $ck->say('MEMO:', $m, $y += .5, '', $lineH, '8');
+  $ck->say($memo, $m + .5, '');
+
+  // clear band must be at least .625" high, at least 0.1875" from bottom (so leave more). Micr should be 12pt
+  $ck->say("A{$routing}A {$account}C $txid", $m, $mt - $m + CHECK_HEIGHT - .25 - $lineH * (12 / PDF_FONT_SIZE), '', '', 'GnuMICR 12');
+  
+//  $ck->say('', 0, $mt - $m + CHECK_HEIGHT, $W, 1, '', '', 'T'); // comment this out
+  
+  if (!$deposit) db\update('r_usd', u\ray('deposit txid', strtotime('today'), $txid), 'txid');
+}
+
+// list accounts to send post-DW email to
+function listem($miw = 0, $dw = 0, $min = 0) {
+  $cttyCrit = $miw ? 'community=-25026000000001' : 'community=-26742000000001';
+  $minCrit = $dw ? '1' : ($min ? 'minimum>0' : '(minimum IS NULL OR minimum=0)');
+  $q = db\q("SELECT uid,mail,community,minimum,(minimum IS NULL) AS nullMin FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND $cttyCrit AND $minCrit ORDER BY fullName");
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $a = r\acct($uid);
+    $hasDw = (bool) $a->usdEmail;
+    if ($dw and $hasDw) {
+      $dwInfo = u\rayTable(u\ray('Dwolla Email,Dwolla Pass,Dwolla PIN', @$a->usdEmail, @$a->usdPass, @$a->usdPin), FALSE);
+      $dwInfo = strtr($dwInfo, ['<table>'=>'<table style="width:auto;">', '<th>'=>'<th style="text-transform:none;">']);
+      $res[] = "$a->fullName &lt;$a->mail&gt; min:$minimum<br>$dwInfo";
+    } elseif (!$dw and !$hasDw and !$nullMin) $res[] = $mail;
+  }
+  $res = @$res ? join($dw ? '<br><br>' : ', ', $res) : 'none';
+  \drupal_set_message($res);
+}
+    

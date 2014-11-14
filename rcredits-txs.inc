@@ -6,6 +6,7 @@ use rCredits\Testing as t;
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Txs as x;
+use rCredits\Web as w;
 
 /**
  * @file
@@ -121,7 +122,7 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
   txNeatAmounts($amount, $reward, $isExtra);
   list ($toYou, $fromYou) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
 //  if ($amount == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make payment exchanges clear
-  if ($tx_type == TX_REFUND) list ($reward, $toYou) = array($toYou, R_NONE);
+//  if ($tx_type == TX_REFUND) list ($reward, $toYou) = array($toYou, R_NONE);
   $button1 = ''; //(!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', '', $toMe, $byMe)) : '';
   $button2 = ((!$isExtra or $mya->cAdmin) and !@$data['undoneBy']) ? r\Web\button(' X ', "$url&do=no", txAct('no', '', $toMe, $byMe)) : '';
   $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$isExtra) ? "<a href='$url&do=edit' title='Edit Transaction'><img src='$rUrl/images/icons/edit.png' width=20 height=20 border=0 /></a>" : '';
@@ -172,7 +173,7 @@ function setupDownload($starting, $ending) {
  */
 function txFields($download = FALSE, $agents = FALSE, $channels = FALSE, $boxes = FALSE) {
   global $agtViaBoxHelp;
-  $headHelp = t('Transaction number|Date transaction was completed|Payer name|Payee name|Transaction amount|Current state of transaction -- check mark means completed.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent|Amounts you received|Click a symbol to approve, deny, or reverse a transaction or to edit the purpose|The net change in account balance') . (@$agtViaBoxHelp ? "|$agtViaBoxHelp" : '');
+  $headHelp = t('Transaction number|Date transaction was completed|Payer name|Payee name|Transaction amount|Current state of transaction -- check mark means completed.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent|Amounts you received|Click a symbol to approve, deny, or reverse a transaction or to edit the purpose|The net change in account balance') . @$agtViaBoxHelp;
   $classes = 'tid date from to amount state purpose reward';
   $helpFields = $classes . ' name fromyou toyou buttons net' . (@$agtViaBoxHelp ? ' agent channel box' : '');
   $headHelp = array_combine(u\ray($helpFields), u\ray($headHelp));
@@ -196,7 +197,7 @@ function txFields($download = FALSE, $agents = FALSE, $channels = FALSE, $boxes 
     u\splice($downloadHeader, 'fromyou', 0, u\ray('frombank', t('From bank')));
   }
 
-  foreach ($header as $key => $value) $header[$key] = popHelp($value, $headHelp[$key]);
+  foreach ($header as $k => $v) $header[$k] = w\popHelp($v, $headHelp[$k]);
   
   return array(array_keys($header), array_values($header), @array_values($downloadHeader));
 }
@@ -265,14 +266,12 @@ function txAct($do, $state, $toMe, $byMe) {
   }
 }
 
-function popHelp($text, $help) {return "<span title=\"$help\">$text</span>";}
-
 function addCat(&$cats, $purpose, $amount, &$dups) {    
   if (strpos($purpose, '(') === 0 and ($i = strpos($purpose, ')')) and $i < strlen($purpose) - 1) {
-    $purpose = substr($purpose, $i + 1); // remove reversal info, if any
+    $purpose = trim(substr($purpose, $i + 1)); // remove reversal info, if any
   }
   if ($m = strpbrk($purpose, ':-;(/[{~#*') and $i = strpos($purpose, $m) and $i < strlen($purpose) - 1) {
-    $cat = substr($purpose, 0, $i);
+    $cat = trim(substr($purpose, 0, $i));
   } else $cat = $purpose;
   
   if ($one = @$cats[$cat]) $dups = TRUE; else $one = array(0, 0);

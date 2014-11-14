@@ -77,6 +77,7 @@ function members($list) {return t\members($list);}
  *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
  *     MAKE Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
+ *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
  *     MAKE Gifts Setup
  *     TEST Inflation Setup
  *     TEST Recache Setup
@@ -103,6 +104,7 @@ function balances($list) {return t\balances($list);}
  *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
  *     MAKE Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
+ *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
  *     MAKE Gifts ADonationCanBeCompleted
  *     MAKE Gifts ARecurringDonationCanBeCompleted
  *     MAKE Inflation InflationAdjustmentsAreDistributed
@@ -134,6 +136,7 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     TEST Bank AMemberIsWellBelowMinimum
  *     TEST Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     TEST Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
+ *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
  *     MAKE Inflation Setup
  *     MAKE Risk Setup
  *     TEST Risk WeCalculateRisks
@@ -147,6 +150,7 @@ function usdTransfers($tx) {return t\usdTransfers($tx);}
  *     TEST Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     TEST Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
  *     TEST Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
+ *     TEST Bank AMemberHasADepositedButNotCompletedTransfer
  */
 function bankTransferCountIs($count) {return (t\usdTransferCount('payee=0') == $count);}
 
