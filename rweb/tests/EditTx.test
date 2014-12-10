@@ -44,10 +44,10 @@ class rwebEditTx extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "ASSOC'
-    . '\\| id   | fullName   | email | flags      |'
-    . '\\| .ZZA | Abe One    | a@    | ok,bona    |'
-    . '\\| .ZZB | Bea Two    | b@    | ok,bona    |'
-    . '\\| .ZZC | Corner Pub | c@    | ok,co,bona |"');
+    . '\\| id   | fullName   | rebate | flags      |'
+    . '\\| .ZZA | Abe One    |      5 | ok,bona    |'
+    . '\\| .ZZB | Bea Two    |     10 | ok,bona    |'
+    . '\\| .ZZC | Corner Pub |     10 | ok,co,bona |"');
     And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| :ZZA | .ZZC | .ZZA  | sell       |'
@@ -77,7 +77,7 @@ class rwebEditTx extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" edits transaction "4" with values: "ASSOC'
     . '\\| amount | goods | purpose |'
-    . '\\|     40 |     1 | stuff   |"');
+    . '\\|     40 |     2 | stuff   |"');
     Then_('balances: "ASSOC'
     . '\\| id   | balance | rewards |'
     . '\\| ctty |    -756 |         |'
@@ -107,11 +107,11 @@ class rwebEditTx extends DrupalWebTestCase {
     . '\\| .ZZC |     250 |     250 |"');
     And__('we say "status": "info saved"');
     And__('we notice "tx edited|new tx goods" to member ".ZZA" with subs: "ASSOC'
-    . '\\| tid | who     | what          |'
-    . '\\| 2   | you     | cash/loan/etc |"');
+    . '\\| tid | who     | what        |'
+    . '\\| 2   | you     | other money |"');
     And__('we notice "tx edited|new tx goods" to member ".ZZB" with subs: "ASSOC'
-    . '\\| tid | who     | what          |'
-    . '\\| 2   | Abe One | cash/loan/etc |"');
+    . '\\| tid | who     | what  |'
+    . '\\| 2   | Abe One | other money |"');
   }
 
   // Scenario: A buyer tries to decrease a payment amount
@@ -119,7 +119,7 @@ class rwebEditTx extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" edits transaction "4" with values: "ASSOC'
     . '\\| amount | goods | purpose |'
-    . '\\|     10 |     1 | stuff   |"');
+    . '\\|     10 |     2 | stuff   |"');
     Then_('we say "error": "illegal amount change" with subs: "ASSOC'
     . '\\| amount | action   | a |'
     . '\\| $20    | decrease | ? |"');

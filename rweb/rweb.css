@@ -386,7 +386,7 @@ form.rweb  .form-no {color:red;}
 
 /* Transact (tx) form (labeled) */
 #rcreditswebformtx .form-type-radios {border:0;}
-#rcreditswebformtx .form-type-radio {display:inline-block;}
+//#rcreditswebformtx .form-type-radio {display:inline-block;}
 #rcreditswebformtx.confirmation .user-picture {float:left; margin-right:20px;}
 #rcreditswebformtx.confirmation #id-other {float:left; clear:right; min-width:200px; max-width:300px; font-weight:normal; font-size:20px;}
 #rcreditswebformtx.confirmation #id-name {margin-top:30px; font-weight:bold; font-size:30px; color:darkgreen;}
@@ -416,6 +416,9 @@ form.rweb  .form-no {color:red;}
 /* Proxies */
 #rcreditswebformproxies #edit-title {margin-left:0;}
 #rcreditswebformproxies #edit-subtext  {font-weight:normal; font-size:85%; margin-left:0;}
+
+/* Proxy */
+#rcreditswebformproxy #edit-submit {display:none;}
 
 /* Community Funds */
 #rcreditswebformcttyfunds #cttyFunds td {text-align:right;}

@@ -41,7 +41,7 @@ Setup:
   | 6   | %today-4m | grant    |    250 | ctty | .ZZF | stuff   |
   Then balances:
   | id   | balance | rewards |*
-  | ctty |    -750 |         |
+  | ctty |   -1000 |         |
   | .ZZA |     150 |     350 |
   | .ZZB |     250 |     150 |
   | .ZZC |     350 |     250 |
@@ -54,9 +54,9 @@ Setup:
 Scenario: A cashier asks to charge someone for cash
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "cash": "cash out" at %now
   Then we respond ok txid 7 created %now balance 150 rewards 150
-  And with message "report exchange" with subs:
-  | did     | otherName | amount |*
-  | charged | Bea Two   | $100   |
+  And with message "report tx" with subs:
+  | did     | otherName | amount | why         |*
+  | charged | Bea Two   | $100   | other money |
   And with did
   | did     | amount | forCash  |*
   | charged | $100   | for cash |
@@ -68,7 +68,7 @@ Scenario: A cashier asks to charge someone for cash
   | %today  | Bea Two  | Corner Pub | $100   | cash out     |
   And balances:
   | id   | balance |*
-  | ctty |    -500 |
+  | ctty |   -1000 |
   | .ZZA |     150 |
   | .ZZB |     150 |
   | .ZZC |     450 |
@@ -76,9 +76,9 @@ Scenario: A cashier asks to charge someone for cash
 Scenario: A cashier asks to refund someone
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "cash": "cash in" at %now
   Then we respond ok txid 7 created %now balance 350 rewards 150
-  And with message "report exchange" with subs:
-  | did      | otherName | amount |*
-  | credited | Bea Two   | $100   |
+  And with message "report tx" with subs:
+  | did      | otherName | amount | why         |*
+  | credited | Bea Two   | $100   | other money |
   And with did
   | did      | amount | forCash  |*
   | credited | $100   | for cash |
@@ -90,20 +90,20 @@ Scenario: A cashier asks to refund someone
   | %today  | Bea Two  | Corner Pub | $100   | cash in      |
   And balances:
   | id   | balance |*
-  | ctty |    -500 |
+  | ctty |   -1000 |
   | .ZZA |     150 |
   | .ZZB |     350 |
   | .ZZC |     250 |
 
 Scenario: A cashier asks to charge another member, with insufficient balance
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "cash": "cash out" at %now
-  Then we return error "short cash from" with subs:
+  Then we return error "short from" with subs:
   | otherName | short |*
   | Bea Two   | $200  |
 
 Scenario: A cashier asks to refund another member, with insufficient balance
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $-400 for "cash": "cash in" at %now
-  Then we return error "short cash to" with subs:
+  Then we return error "short to" with subs:
   | short |*
   | $300  |
 

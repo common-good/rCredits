@@ -36,7 +36,7 @@ function ray($s, $value1 = NULL) {
     return array_combine($keys, $args);
   }
 
-  u\EXPECT(compact('s'), 'string');
+// this func is called too often for the overhead u\EXPECT(compact('s'), 'string');
   $pattern = strpos($s, "\n") !== FALSE ? '/\R/' 
     : (strpos($s, '|') !== FALSE ? ' *\| *' 
     : (strpos($s, ',') !== FALSE ? '\, *' 
@@ -53,6 +53,8 @@ function ray($s, $value1 = NULL) {
   }
   return $ray;
 }
+
+function obj() {return (object) call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
 
 /**
  * Let a called function receive a single assoc arg or several named args, simulating a call with u\ray(s,...).
@@ -538,7 +540,7 @@ function randomInt($len = NULL) {
  * Translate constant parameters in a string.
  * For example, SUBS("SELECT * FROM table WHERE zot IN (:R_THIS, :R_THAT)") fills in the constants.
  * Constants of the form "IS_WHATEVER" are a special case. They are taken to mean the corresponding
- *   bit number B_WHATEVER in a field called $flagField
+ *   bit number B_WHATEVER in a field called $flagField. Identifiers of the form x.:IS_WHATEVER are permitted.
  *   NOTE to developer: this could be expanded later to handle a second flag field named {$flagField}2
  *     by changing the expression to "IF(:B_$1<32,$flagField&(1<<:B_$1),{$flagField}2&(1<<(:B_$1-32)))".
  * @param string $string: the string to fix
@@ -582,12 +584,12 @@ function wentities($s) {
  */
 function EXPECT($assertion, $message = '', $ret = FALSE) {
   if (is_array($assertion)) {
-    list ($args, $types) = array($assertion, $message); // for clarity
+    list ($args, $types) = array($assertion, $message); // rename for clarity
 ///    EXPECT(compact(ray('args types')), 'assoc string'); // can't do this because infinite recursion
 ///    EXPECT(count($args) != count($types = explode(' ', $types)), 'wrong number of types expected'); // infinite recursion
-///    if(count($args) != count($types = explode(' ', $types))) die('wrong number of types expected: ' . print_r(debug_backtrace(), 1));
-/**/ if (isDEV and count($args) != count(explode(' ', $types))) debug(debug_backtrace()); // keep
-    $types = array_combine(array_keys($args), explode(' ', $types)); // not ray() here, $types may have '|'
+    $vs = explode(' ', $types);
+/**/ if (isDEV and count($args) != count($vs)) debug(debug_backtrace());
+    $types = array_combine(array_keys($args), $vs); // not ray() here, $types may have '|'
     foreach ($args as $key => $value) if ($error = expect1($key, $value, $types[$key], $ret)) return $error;
   } elseif (!$assertion) {
     if ($ret) return $message; else throw new \Exception($message);

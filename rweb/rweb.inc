@@ -30,21 +30,21 @@ function usdCallback($type, $uid) {
 }*/
 
 /**
- * Complete a "no signin required" request (made by the user clicking on a link we sent).
+ * Complete a "no signin required" request (made by the user clicking a link we sent).
  * @param string code: an encoded serialized array of parameters, possibly including:
- *   op: what to do
- *   id: a related record id
- *   before: when the link expires
+ *   op: what to do (REQUIRED)
+ *   v: an amount or identifier
+ *   mo: month link was created, relative to first rdo (see rdoMonth())
  *   sql: a database request, if any
  *   subs: substitutions for the database request
- *   amount: an amount
  *   
  * Possible values for op:
  *   (numeric): record id in r_do -- other parameters for one-time op are serialized in that record's data field
- *   min: change minimum to $amount
- *   sql: do the database operation
- *   addr: show an address (for shipping or thank-you card)
- *   pay: pay an invoice
+ *      including the true op. The record also includes uid and expiration time.
+ *   min: change minimum to $v
+ *   sql: do the database operation in $sql
+ *   addr: show an address for account QID $v (for shipping or thank-you card)
+ *   pay: pay invoice number $v
  * Alternatively, code can be an error message (recognized by having a space in it).
  * @see also r\makeDo()
  */
@@ -54,31 +54,47 @@ function rdo($code) {
   if (!$info = r\doCode($code)) return doSay(t('That link is archaic.'));
 ///  print_r($info);
   if ($once = is_numeric($doid = @$info['op'])) {
-    if (!$row = db\lookup('uid,data', 'r_do', 'doid=:doid', compact('doid'))) return doSay(t('That link is no longer valid.')); // already used OR deleted because it expired
-    extract(u\just('uid data', $row));
-    $info = unserialize($data);
-    $info['id'] = $uid; // id is always uid, for one-time operations (required for integrity of changeUid)
+    if (!$row = db\lookup('uid,data,expires', 'r_do', 'doid=:doid', compact('doid'))) return doSay(t('That link is no longer valid.')); // already used OR deleted because it expired
+    extract($row);
+    $info = unserialize($data) + $row; // get new op, etc.
+    $a = r\acct($uid);
   }
-  extract(u\just('op id expires sql subs amount', $info));
+  extract(u\just('op id v mo expires sql subs', $info));
 
+  if (@$mo) $expires = (r\rdoMonth() > $mo + 3) ? 1 : 0; // finagle expiration if link is older than 3 months
   if (@$expires and time() >= $expires) return doSay(t('That link has expired.'));
 
-  $a = r\acct($id);
   $channel = TX_LINK;
   $DBTX = \db_transaction();
   
-  if ($op == 'min') $res = $a->update(u\ray('minimum', $amount));
+  if ($op == 'min') {
+    if ($jid = $a->jid and $jid < $a->id) $a = r\acct($jid); // for joint accounts, update on the master
+    $res = $a->update(u\ray('minimum', $v));
+  }
   if ($op == 'nosecret') $res = $a->setBit(B_SECRET, FALSE);
   if ($op == 'debtok') $res = $a->setBit(B_DEBT, TRUE);
   if ($op == 'sql') $res = db\q($sql, $subs);
 
   if ($op == 'addr') {
+    $a = r\acct($v);
     $phone = $a->co ? t('Phone: ') . u\fmtPhone($a->phone) . "<br>" : '';
     $addr = t('Physical address: ') . r\location($a, TRUE);
     return doSay("$a->fullName<br>$a->postalAddr<br>$addr<br>$phone", 'status');
-  } elseif ($op == 'inv') { // pay or deny an invoice ($once is irrelevant here)
-    if ($err = r\badUnpaidInv($nvid = $id)) return doSay($err);
-    return r\go("handle-invoice/nvid=$id&toMe=1&code=$code");
+  } elseif ($op == 'inv') {
+    if ($err = r\badUnpaidInv($v)) return doSay($err);
+    return r\go("handle-invoice/nvid=$v&toMe=1&code=$code");
+  } elseif ($op == 'join') {
+    $otherId = $v;
+    $joint = r\perm(B_JOINT);
+    if  (r\relation(1, $otherId, $a->id, 'permission=:joint', compact('joint'))) { // inviter still wants it?
+      $a->unjoin(); // zap any other joins or join requests
+      if ($reid = r\relation('reid', $a->id, $otherId)) {
+        $info = ['permission'=>$joint, 'draw'=>0] + compact('reid');
+      } else $info = u\ray('main other permission draw', $a->id, $otherId, $joint, 0);
+      db\update('r_relations', $info, 'reid', TRUE); // create relation or just set permission
+      $a->join(r\acct($otherId)); // remember who is joined
+      $res = TRUE;
+    }
   }
 
   if (!@$res) return doSay(t('Request failed.'));
@@ -178,7 +194,7 @@ EOF;
  * List the months for which notices are available for the current account, with links.
  */
 function formNotices($form, $sta, $month = '') {
-  return $month ? notice($month) : monthChoices(t('Notices'), 'notices', 0, '');
+  return $month ? notice($month) : monthChoices(t('Notices'), 'notices', '', 0, '');
 }
 
 /**
@@ -231,7 +247,7 @@ function statement($month) {
   //$pdf->writeHTMLCell(40, 10, 160, 84.5, '<div style="font-size:44px;">rCredits.org</div>');
   list ($address, $city, $state, $zip) = u\parseAddr($mya->postalAddr);
   $pdf->setX($m + 10);
-  $pdf->Cell(0, 0, $mya->fullName, '', 2);
+  $pdf->Cell(0, 0, $mya->j_fullName, '', 2);
   $pdf->Cell(0, 0, $address, '', 2);
   $pdf->Cell(0, 0, "$city, $state $zip", '', 2);
   
@@ -253,8 +269,10 @@ function statement($month) {
   $pdf->colHeads($fields);
 
   list ($plus, $minus, $equals, $space) = array('+', '-', '=', ' ');
-  $committed = $mya->committed;
+  $committed = $mya->j_committed;
   $avg = r\averageBalance($mya->id, $mya->created, $end);
+  if ($jid = $mya->jid and $j = r\acct($jid)) $avg += r\averageBalance($j->id, $j->created, $end);
+  
   $yield = number_format($avg ? 100 * $rewardsEver / $avg : 0, 1) . '%';
   foreach (u\ray('bal0 frombank fromyou toyou reward bal9 rewardsEver committed') as $one) $$one = number_format(@$$one, 2);
 
@@ -506,7 +524,7 @@ function formMembership($a, &$sta = '', $code = '') {
   } elseif (FALSE) {
     $message1 = t('<h2>You have completed all membership steps.</h2><p>Within 24 hours, you should receive an email saying your account is approved and you can expect your rCard in the mail within a day or two. Hurray!</p>'); // UNUSED
   } else {
-    $bonusMsg = ($a->can(B_BONA) or ($a->bank and $a->minimum > 0)) ? '' : t('<p>To receive your $@BONUS signup bonus, you must have a way to get money into your account. Ask someone to pay you with rCredits OR <@a>transfer funds from your bank account</a>. As soon as you get some money in, your signup bonus will arrive.</p>', ['@BONUS'=>R_SIGNUP_BONUS, '@a'=>'a href=$base_url/get']);
+    $bonusMsg = ($a->can(B_BONA) or ($a->bank and $a->j_minimum > 0)) ? '' : t('<p>To receive your $@BONUS signup bonus, you must have a way to get money into your account. Ask someone to pay you with rCredits, or <@a>transfer funds from your bank account</a>, or trade US Dollars for rCredits at a participating business. As soon as you get some money in, your signup bonus will arrive.</p>', ['@BONUS'=>R_SIGNUP_BONUS, '@a'=>'a href=$base_url/get']);
     $personMsg = !$a->co ? t(' You are also responsible for guiding your local economy, together with hundreds of other rCredits members -- setting investment and grant-making priorities, electing local directors for your Common Good Community, planning a sustainable local prosperity for all residents, and offering help to communities elsewhere.</p>') . $bonusMsg : '</p>';
     $message1 = t('<h2>Congratulations! Your account is Activated.</h2><p>You are authorized to use rCredits to buy and sell with other members.') . $personMsg;
   }
@@ -624,12 +642,53 @@ function formAgreement_submit($form, &$sta) {
 }
 
 /**
+ * Choose one proxy.
+ * @param int $priority: 1 for proxy, 2 for alternate
+ * uid is not passed, for security.
+ */
+function formProxy($form, &$sta, $priority = '') {
+  if ($priority != 1 and $priority != 2) w\hack('bad proxy priority');
+  $dft = r\acct()->proxy($priority);
+  if (!$choices = w\proxyChoices($dft)) r\go('account/proxies', 'no local proxy');
+
+  $title = $priority == 1 ? t('Your #1 Proxy') : t('Your Alternate Proxy');
+  $title = item($title . t(' (choose one)'));
+  $list = item($choices);
+  $submit = submit();
+  $priority = hidField($priority);
+  $js = <<<EOF
+jQuery("input[name='proxyChoice']").change(function() {
+  jQuery("#saywait").show();
+  jQuery("#edit-submit").click();
+});
+EOF;
+  js($js, 'inline', 'footer');
+  return compact(u\ray('title list submit priority'));
+}
+
+function formProxy_validate($form, &$sta) {
+  extract(u\just('priority proxyChoice', $sta['input']));
+  if ($proxyChoice == r\acct()->proxy(1+2 - $priority)) r\go('account/proxies', 'doubled proxy', 'err'); // can't just return say() because js gets deactivated (drupal bug?)
+}
+
+function formProxy_submit($form, &$sta) {
+  $mya = r\acct();
+  extract(u\just('priority proxyChoice', $sta['input']));
+
+  $mya->proxy($priority, $proxyChoice);
+  if ($mya->proxy(1+2 - $priority)) { // do we already have the other proxy?
+    $mya->stepDone('proxies');
+    r\go($mya->ok ? 'account/proxies' : 'status', 'info saved');
+  } else say('proxy to go');
+
+  r\go('account/proxies', 'info saved');
+}
+
+/**
  * Choose default proxies.
  */
 function formProxies($form, &$sta) {
   global $base_url;
-  $mya = r\acct();
-  $id = $mya->id;
   
   $title = item(t('Proxies'));
   $subtext = item(t(<<<EOF
@@ -646,36 +705,46 @@ EOF
   $proxy2 = textField(t('Alternate:'), t('Who will vote on your behalf, if your Proxy doesn\'t vote either? (even before resorting to your Proxy\'s Proxy)'), dft(r\definiteName(r\proxy($id, 2))) + autocomplete('cttyPerson'));
   */
 
-  $ctty = $mya->community;
-  $myid = $mya->id;
   //$region = r\uidRegion($myid); // AND :R_ACCT_REGION=:region (don't use this)
-  $choices = [];
+/*  $choices = [];
   $result = db\q('SELECT uid, fullName, city FROM users WHERE uid>1 AND uid<>:myid AND NOT :IS_CO AND community=:ctty ORDER BY created DESC', compact(u\ray('myid ctty')));
   while ($row = $result->fetchAssoc()) { // show choices in reverse order, so inviter(s) are at top
     extract($row);
     $choices[$uid] = "$fullName ($city)";
   }
   $choices = array(0 => empty($choices) ? t('--No other members nearby. Invite someone!--') : t('--Select a proxy--')) + $choices; // tricky to keep PHP from re-indexing
-
-  list ($p1, $p2) = array(r\proxy($id, 1), r\proxy($id, 2));
+  */
+/*
+  if ($proxyChoices = w\proxyChoices()) {
+    $choices = [0=>t('--Select a proxy--')] + $proxyChoices; // tricky to keep PHP from re-indexing
+  } else say('no local proxy');
   $proxy1 = formField('select', t('Proxy:'), t('Who will vote on your behalf, when you don\'t vote directly? (You can change your choices at any time.)'), required($p1), $choices);
   $proxy2 = formField('select', t('Alternate:'), t('Who will vote on your behalf, if your Proxy doesn\'t vote either? (even before resorting to your Proxy\'s Proxy)'), required($p2), $choices);
-  $submit = submit(t('Save'));
-  $form = compact(u\ray('title subtext proxy1 proxy2 submit'));
+*/
+  $mya = r\acct();
+  foreach ([1, 2] as $priority) {
+    if ($p = $mya->proxy($priority)) $p = r\acct($p)->fullName; else $p = t('(none chosen)');
+    $proxy[$priority] = $p . t(' [<@a>show choices</a>]', ['@a'=>"a href=proxy/$priority"]);
+  }
+  $proxy1 = item($proxy[1], t('Proxy:'), t('Who will vote on your behalf, when you don\'t vote directly? (You can change your choices at any time.)'));
+  $proxy2 = item($proxy[2], t('Alternate:'), t('Who will vote on your behalf, if your Proxy doesn\'t vote either? (even before resorting to your Proxy\'s Proxy)'));
+  $form = compact(u\ray('title subtext proxy1 proxy2'));
   return labeled($form);
 }
 
+/*
 function formProxies_validate($form, &$sta) {
   extract($fields = u\just('proxy1 proxy2', $sta['input']));
   foreach ($fields as $field => $value) if (!$value) return say('required field', compact('field'), $field);
-/*    if (!$proxy = $sta['input'][$proxyName]) continue; // ignore blanks
+    if (!$proxy = $sta['input'][$proxyName]) continue; // ignore blanks
     if (!$proxy = whois($proxy, $proxyName, $sta['input'])) return FALSE;
     $name = $proxy->fullName;
     if ($proxy->co) return say('inhuman proxy', compact('name'), $proxyName);
-    $sta['input'][$proxyName] = $proxy->id; */
+    $sta['input'][$proxyName] = $proxy->id; 
   if ($proxy1 == $proxy2) return say('doubled proxy', 'proxy2');
 }
-
+*/
+/*
 function formProxies_submit($form, &$sta) {
   $mya = r\acct();
   extract($info = u\just('proxy1 proxy2', $sta['input']));
@@ -686,7 +755,7 @@ function formProxies_submit($form, &$sta) {
     r\go('status', 'info saved');
   } else say('proxy to go');
 }
-
+*/
 /**
  * Invite someone to sign up for rCredits (on behalf of the account, not the agent).
  */
@@ -779,36 +848,36 @@ function formSummary($form, &$sta, $qid = '') {
     
     if ($a->legalName != $a->fullName) $legalName = item($a->legalName, t('Legal Name:'));    
     //extract(u\just('r usd pAccts', r\stats($a->community)));
-    extract(u\just('returnMo return cttyBeneMo cttyBene', $a->stats()));
+    extract(u\just('returnMo return cttyBeneMo cttyBene', $a->j_stats()));
     $returnMo = item("$returnMo% APR " . t('over the past month'), t('Your return:'));
     $return = item("$return% APR " . t('overall (ever)'), ' ', t('Your effective rate of return on your average balance [<@a>details</a>]', u\ray('@a', 'a href=help/your-return')));
     $cttyBeneMo = item("$cttyBeneMo " . t('over the past month'), t('Social return:'));
     $cttyBene = item("$cttyBene " . t('overall (ever)'), ' ', t('How much your participation has benefited the community financially [<@a>details</a>]', u\ray('@a', 'a href=help/social-return')));    
-    $floorDesc = t('Your balance can go this low') . ($a->floor < 0 ? t(' for up to 30 days') : '')
+    $floorDesc = t('Your balance can go this low') . ($a->j_floor < 0 ? t(' for up to 30 days') : '')
     . '. ' . t('See "Debt Okay" in') . " <a href=\"$base_url/account/preferences\">Preferences</a>.";
-    $floor = formField('item', t('Credit floor:'), $floorDesc, u\fmtAmt($a->floor));
+    $floor = formField('item', t('Credit floor:'), $floorDesc, u\fmtAmt($a->j_floor));
     $form = compact(u\ray('legalName returnMo return cttyBeneMo cttyBene floor'));
   }
   
   if ($a->agent->can(B_MEMBER)) $another = submit(t('Open Another Account'));
   $title = item(t('Account Summary'));
   if (isDEV and !$a->proSe) $agentName = ' &nbsp; &nbsp; ' . t('<b>Agent: </b>') . $a->agent->fullName;
-  $accountName = item($a->fullName . " ($a->name)" . @$agentName, t('Name:'), $a->postalAddr . @$extras);
+  $accountName = item("$a->j_fullName ($a->j_name)" . @$agentName, t('Name:'), $a->postalAddr . @$extras);
   
   if (!$a->ctty) { // unless this is a community account
-    $acctType = $a->co ? t('company account') : t('personal account');
-    $balance = u\fmtAmt($a->r);
-    $balance = item($balance . ($a->rewards ? t(' (see <@a>History</a>)', ['@a'=>"a href=$base_url/history"]) : ''), t('Balance:'));
+    $acctType = $a->co ? t('company account') : ($a->jid ? t('joint account') : t('personal account'));
+    $balance = u\fmtAmt($a->j_r);
+    $balance = item($balance . ($a->j_rewards ? t(' (see <@a>History</a>)', ['@a'=>"a href=$base_url/history"]) : ''), t('Balance:'));
 
-    $rewards = formField('item', t('Rewards:'), t('to date'), u\fmtAmt($a->rewards));
-    $committed = formField('item', t('Committed:'), t('rewards reserved for donation to Common Good Finance'), u\fmtAmt(max(0, $a->committed)));
+    $rewards = formField('item', t('Rewards:'), t('to date'), u\fmtAmt($a->j_rewards));
+    $committed = formField('item', t('Committed:'), t('rewards reserved for donation to Common Good Finance'), u\fmtAmt(max(0, $a->j_committed)));
   } else $acctType = t('community account');
   if ($mya->cAdmin) {
     $extra = " id#$a->id";
     $routing = @substr($a->bankAccount, 4, 9);
     if ($routing and $bankInfo = db\lookup('*', 'r_banks', 'route=:routing', compact('routing'))) {
       extract($bankInfo, EXTR_PREFIX_ALL, 'b');
-      $bankInfo = "a title=\"$b_name (routing #$b_route)\n$b_address, $b_city $b_zip\"";
+      $bankInfo = "a title=\"$b_name (routing #$b_route)\n$b_address, $b_city, $b_state $b_zip\"";
       $extra .= strtr(t(' <@a>bank info</a>'), ['@a'=>$bankInfo]); // strtr circumvents Drupal crap
     }
   } else $extra = '';
@@ -823,7 +892,7 @@ function formSummary_validate($form, &$sta) {
 //  if (!r\acct()->cAdmin2) return hack('non-admin submitted summary form');
   if (op($sta) == 'another') return;
 
-  extract(u\just('uid who legalName floor minimum achMin rTrader helper mediaConx moves adminable', $sta['input']));
+  extract(u\just('uid who legalName floor rTrader helper mediaConx moves adminable', $sta['input']));
   $a = r\acct(@$uid);
   
   if ($rTrader and !$a->ok) {
@@ -836,7 +905,7 @@ function formSummary_validate($form, &$sta) {
     $helper = $helper->id;
   } else {unset($helper); unset($sta['input']['helper']);}
   
-  foreach (u\ray('floor minimum achMin') as $k) {
+  foreach (u\ray('floor') as $k) {
     if (isset($$k)) {
       if ($err = u\badAmount($$k)) return sayFieldErr($err, $k); 
       $$k = u\cleanAmount($$k);
@@ -845,7 +914,7 @@ function formSummary_validate($form, &$sta) {
   if (isset($mediaConx) and $err = u\badAmount($mediaConx, '>=0', 0)) return sayFieldErr($err, 'mediaConx');
   if (isset($moves) and $err = u\badAmount($moves, '>=0', 0)) return sayFieldErr($err, 'moves');
   if (@$who and !$who = whois($who, 'who', $sta['input'])) return say(t('I don\'t know what account you mean to go to.'), 'who');
-  u\preray(compact(u\ray('helper floor minimum achMin who')), $sta['input']);
+  u\preray(compact(u\ray('helper who floor')), $sta['input']);
 }
 
 function formSummary_submit($form, &$sta) {
@@ -854,7 +923,7 @@ function formSummary_submit($form, &$sta) {
   if (op($sta) == 'another') return r\go('another');
   if (!r\acct()->cAdmin) return; // hack attempt
 
-  extract(u\just('uid who legalName floor minimum achMin notes helper mediaConx moves rTrader risks adminable', $sta['input']));
+  extract(u\just('uid who legalName floor notes helper mediaConx moves rTrader risks adminable', $sta['input']));
   $a = r\acct(@$uid);
   $aa = $a->agent;
 
@@ -883,7 +952,7 @@ function formSummary_submit($form, &$sta) {
 
   $a->setBits(@$adminable);
   if ($a->helper) unset($helper); // don't overwrite
-  $a->update(compact(u\ray('legalName floor minimum achMin notes helper mediaConx moves')));
+  $a->update(compact(u\ray('legalName floor notes helper mediaConx moves')));
   
   unset($DBTX);
   say('info saved');
@@ -1114,7 +1183,7 @@ function formAccounts($form, &$sta) {
   $src = $base_url . $mya->agent->auxFilename('picture2');
   $signOut = t('Sign out');
   $choices['signout'] = $signOut;
-  $icon = item('<img id="my_icon" src="' . $src . '"/>');
+//  $icon = item('<img id="my_icon" src="' . $src . '"/>');
 
   if ($mya->can(B_MANAGE)) $settings = item(divButton('account/settings', 'Settings'));
 
@@ -1263,20 +1332,17 @@ function formTx($form, &$sta, $args = '') {
   
   focusOn(@$who ? 'amount' : 'who');
 
-  //$onchange = "nixwhat();";
-  $radios = array(t('cash/loan/etc.'), t('goods & services'));
-  
   // set up form fields
   $title = item(ucwords($type));
   $whoLabel = ($type == 'loan' ? 'Lend to' : ucwords($type)) . ' whom:';
 
-//  $onchange = $incentive ? '' : "if(this.value.toUpperCase() == 'ALL') jQuery('#edit-purpose').val('payroll');";
   $who = textField($whoLabel, t('Type a name, id, email, or phone'), dft(@$who) + autocomplete($role));
 
   $amount = textField('Amount: $', t('Amount to ') . $type, dft(@$amount));
   $dollarSign = item('$'); // for mobile
-  $goods = $incentive ? hidField(FALSE) : formField('radios', '&nbsp;', '', dft(isset($goods) ? $goods : 1), $radios); //  + attrib(compact('onchange'))
-  $purpose = textField('For:', t('Description of goods and services or purpose'), dft(@$purpose));
+//  u\setDft($goods, R_FOR_GOODS);
+  $goods = $incentive ? hidField(FALSE) : formField('radios', t('For:'), '', @$goods ? dft($goods) : '', u\ray(R_WHYS)); //  + attrib(compact('onchange'))
+  $purpose = textField(' ', t('Description of goods and services or purpose'), dft(@$purpose));
   $calc = item(u\calculator('amount'));
   $scanClass = 'not-scanned';
   $$type = submit(ucwords($type));
@@ -1364,11 +1430,11 @@ function formPayroll_submit($form, &$sta) {
   }
   if (!@$deductionsCol) return say('bad payroll csv', u\ray('line', t('0 -- missing headers')), 'payroll');
   if (!@$toPay) return say('empty payroll', 'payroll');
-  if ($shortfall = $mya->shortfall('buy', $total)) return say('short to', u\ray('short', u\fmtAmt($shortfall)), 'payroll');
+  if ($shortfall = $mya->shortfall(R_FOR_GOODS, $total)) return say('short to', u\ray('short', u\fmtAmt($shortfall)), 'payroll');
   
   foreach ($toPay as $one) {
     list ($uid, $amt, $period) = $one;
-    list ($msg, $subs) = be\transfer('payment', $mya, r\acct($uid), $amt, TRUE, t('labor: ') . $period);
+    list ($msg, $subs) = be\transfer('payment', $mya, r\acct($uid), $amt, R_FOR_GOODS, t('labor: ') . $period);
     say($msg, $subs);
     if (!@$subs['success']) $err = TRUE;
   }
@@ -1461,7 +1527,7 @@ function formBuy_submit($form, &$sta) {
   extract(u\just('hid', $sta['input']));
   extract(u\just('amount for co a return_to', unserialize($hid)));
   
-  list ($index, $subs) = be\transfer('payment', $a, $co, $amount, TRUE, $for);
+  list ($index, $subs) = be\transfer('payment', $a, $co, $amount, R_FOR_GOODS, $for);
   if (!@$subs['success']) return r\go('', tt($index, $subs), 'zot');
 
   return r\go('', "Success! <a href='$my_return_to'>Click here</a> to return to the $company_name website.");
@@ -1550,16 +1616,16 @@ function formGet($form, &$sta) {
   global $base_url;
   $mya = r\acct();
   $myid = $mya->id;
-  $isSetUp = !is_null($mya->minimum); // user has already saved some options
+  $jid = $mya->jid ?: 0;
   $title = item(t('Bank Transfer'));
-  $subtext = item(t('<p>Transfer funds to or from your connected bank account. Transfers may take 3-5 business days.</p><p>To refill your rCredits account automatically (or not), as needed, adjust your "minimum" setting on the <@a>Preferences</a> page.</p>', ['@a' => "a href=$base_url/account/preferences"]));
+  $subtext = item(t('<p>Transfer funds to or from your connected bank account. Transfers may take 3-5 business days.</p><p>To refill your rCredits account automatically (or not), as needed, adjust your "minimum" setting on the <@a>Preferences</a> page.</p>', ['@a' => "a href=$base_url/account/preferences"]) . tt('note|ach warning'));
 
 //  $minimum = textField(t('Minimum:'), tt('prompt min'), dft(u\fmtAmt($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
-  $toSpend = u\fmtAmt($mya->avail('buy'));
+  $toSpend = u\fmtAmt($mya->avail(R_FOR_GOODS));
   $waiting0 = $mya->waitingToBank();
 
-  if (!db\exists('r_usd', 'payer=:myid AND payee=0 AND amount>0 AND created>:dayAgo', u\ray('myid dayAgo', $myid, strtotime('-1 day')))) { // limit to one withdrawal request per day
-    $avail = $mya->avail('cash'); // drawing from connected accounts not allowed here
+  if (!db\exists('r_usd', 'payer IN (:myid,:jid) AND amount>0 AND created>:dayAgo', u\ray('myid jid dayAgo', $myid, $jid, strtotime('-1 day')))) { // limit to one withdrawal request per day
+    $avail = $mya->avail(R_FOR_USD); // drawing from connected accounts not allowed here
 //    $avail = db\lookup('SUM(LEAST(usd, :DW_FEE_THRESHOLD))', 'users', 'community=:ctty and uid<>:myid', u\ray('ctty myid', $mya->community, $myid)); // remove this one-day limit if people complain?
 //    $avail = min($myAvail, $mya->usd + $avail); // what i have or what USD is available, whichever is less
   } else $avail = 0;
@@ -1596,7 +1662,7 @@ function formGet_validate($form, &$sta) {
     return say('short put|short cash help', compact('max'), 'amount');
   }
 //  $a1 = 'a href="' . $base_url . '/account/preferences"';
-  if ($mya->r + $mya->usd - $amount < $mya->minimum) return say('change min first', 'amount');
+  if ($mya->j_r - $amount < $mya->j_minimum) return say('change min first', 'amount');
 }
   
 function formGet_submit($form, &$sta) {
@@ -1606,10 +1672,7 @@ function formGet_submit($form, &$sta) {
 
   if (op($sta) == 'put') {
     $action = 'deposit to';
-    if (!$mya->cacheOk()) return r\go('', 'cannot bank', u\ray('action error', $action, t('data integrity issue')));
-/*    if ($need = max(0, $amount - $mya->usd)) {
-      if (!$got = r\getUsd($need, $mya) or $got < $need) return say('cannot offload', 'amount');
-    } */
+//    if (!$mya->cacheOk()) return r\go('', 'cannot bank', u\ray('action error', $action, t('data integrity issue')));
   } else list ($action, $amount) = array('draw from', -$amount);
   
 //  if ($us->bank($amount, $error) or isDEV) { // ignore lack of verified bank connection, if testing
@@ -2014,7 +2077,7 @@ EOF;
 
 /**
  * Ask for the 5-digit phone verification code that Dwolla sent.
- */
+ *//*
 function formVerifyPhone($form, &$sta) {
   $mya = r\acct();
   $title = item(t('Verify Phone'));
@@ -2033,10 +2096,10 @@ function formVerifyPhone_validate($form, &$sta) {
 function formVerifyPhone_submit($form, &$sta) {
   return r\go('status', 'phone verified');
 }
-
+*/
 /**
  * Offer to revise data that affects social security number verification.
- */
+ *//*
 function formBasic($form, &$sta) {
   $mya = r\acct();
   $nameDesc = t(', properly capitalized, as on your most recent government-issued ID');
@@ -2053,7 +2116,7 @@ function formBasic($form, &$sta) {
 
   return labeled(compact(u\ray('title first last org acctType')) + ssnFields($personal) + compact('submit'));
 }
-
+*/
 define('R_BASIC_FIELDS', 'first last org federalId dob');
 
 /**
@@ -2096,7 +2159,7 @@ function formBasic_validate($form, &$sta, $personal = 'mya') {
   u\preray(compact(u\ray(R_BASIC_FIELDS)), $sta['input']);
   return TRUE;
 }
-
+/*
 function formBasic_submit($form, &$sta) {
   $mya = r\acct();
   extract(u\just(R_BASIC_FIELDS, $sta['input']));
@@ -2104,7 +2167,7 @@ function formBasic_submit($form, &$sta) {
   if ($mya->update(compact(u\ray('legalName federalId dob')))) say('info saved');
   return r\go('status'); // on to next step (or total failure)
 }
-
+*/
 function getqs() {
   return json_decode ('[
   {
@@ -2157,7 +2220,7 @@ function getqs() {
 /**
  * Ask a set of personal questions to confirm the person's identity.
  * If the answers fail 3 times (or even if the user refreshes the screen 3 times), the PhotoId step is next.
- */
+ *//*
 function formKba($form, &$sta) {
   $us = new r\usd($mya = r\acct());
   $form['title'] = item(t('Confirm Your Identity'));
@@ -2190,6 +2253,7 @@ function formKba_submit($form, &$sta) {
   if (!$us->verifyKba($sta['input']['transactionId'], $answers, $err)) say($err, 'ERR');
   return r\go('status');
 }
+*/
 
 /**
  * Connect a bank account.
@@ -2426,10 +2490,10 @@ Please upload a copy of your EIN documentation or Non-Profit Status documentatio
   $title = item(t('Security Information'));
   $federalId = adminField(t('Federal ID:'));
   $dob = $person ? adminField(t('Birthdate:')) : NULL;
-  $usdAccount = adminField(t('Dwolla Account:'));
+/*  $usdAccount = adminField(t('Dwolla Account:'));
   $usdEmail = adminField(t('Dwolla Email:'));
   $usdPass = adminField(t('Dwolla Pass:'));
-  $usdPin = adminField(t('Dwolla PIN:'));
+  $usdPin = adminField(t('Dwolla PIN:')); */
   
   $pw = item(t('<@a>Change your password</a>', u\ray('@a', "a href=$base_url/account/change-password")), ' ');
   $pin = item(t('<@a>Change your PIN</a>', u\ray('@a', "a href=$base_url/account/change-pin")), ' ');
@@ -2443,7 +2507,7 @@ Please upload a copy of your EIN documentation or Non-Profit Status documentatio
 //    'posttext = item(t('We partner with Dwolla to handle the US Dollars you spend and receive. When you click "Save" here, you will be sent to the Dwolla site, to "Allow" the needed permissions.'));
 //    $submit = submit($has ? t('Save') : t('Upload and Save'));  );
   $submit = submit();
-  $form = compact(u\ray('title federalId dob usdAccount usdEmail usdPass usdPin pw pin photo question answer submit'));
+  $form = compact(u\ray('title federalId dob pw pin photo question answer submit'));
   
   if ($mya->cAdmin) {
     foreach (u\ray('pin answer') as $field) { // and idProof
@@ -2514,26 +2578,15 @@ function formRelations($form, &$sta) {
   global $base_url;
   $mya = r\acct();
   $myid = $mya->id;
-  $co = $mya->co;
-  if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
+//  if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
   $acctIdentifiers = be\accountName($myid);
   $header = u\ray('Other account,Draw,My employee?,Family?,Permission,');
   $classes = u\prefixValues('rel-', u\ray('person draw employee owner permission link'));
-  if ($co) {
-//    $header[R_REL_EMPLOYER_COL] = ''; // was '$/mo';
-    if ($mya->co) $header[R_REL_OWNER_COL] = 'Owns 10%+';
+  if ($co = $mya->co) {
+    $header[R_REL_OWNER_COL] = 'Owns 10%+';
     if (!$mya->ok) $mya->stepDone('relations');
   }
 
-/*    SELECT DISTINCT s.reid, s.main, s.other, s.amount, IF(:myid=s.main, v.fullName, u.fullName) AS fullName,
-      s.permission, s.employee, s.isOwner, s.draw,
-      s2.reid AS reid2, s2.employee AS employee2
-    FROM ((r_relations s RIGHT JOIN users u ON u.uid = s.main)
-      RIGHT JOIN users v ON v.uid = s.other)
-      LEFT JOIN r_relations s2 ON (s2.other=s.main AND s2.main=s.other)
-    WHERE s.main=:myid OR (s.other=:myid AND s2.reid IS NULL)
-    ORDER BY fullName, IF(:myid=s.main, s.other, s.main), (:myid=s.other)
-*/  
   $sql = <<<EOF
     SELECT DISTINCT s.reid, s.main, s.other, IF(:myid=s.main, v.fullName, u.fullName) AS fullName,
       s.permission, s.employee, s.isOwner, s.draw
@@ -2547,9 +2600,6 @@ EOF;
   while ($row = $result->fetchAssoc()) {
     extract($row);
     $raws0[$reid] = $row; // original ("0") raw values from table
-/*    if ($other == $myid) list ($main, $other, $amount, $permission, $employee, $isOwner, $draw, $reid2, $employee2)
-      = array($other, $main, 0, 0, 0, 0, 0, $reid, $employee); */
-    
     $otherCo = r\acct($other)->co;
     $otherPerson = !$otherCo;
 
@@ -2565,7 +2615,10 @@ EOF;
 //    $employer = toggle('employeeOk', @$employeeOk2, $ii, @$employeeOk2 xor @$employee2);
     $isEmployee = !$otherCo ? toggle('employee', $employee, $ii) : R_NONE;
     $Owner = toggle('isOwner', $isOwner, $ii);
-    $perm = $otherPerson ? dropdown('permission', $permission, $GLOBALS['share permissions'], $ii) : R_NONE;
+    $permissions = $GLOBALS['share permissions'];
+// NO    if (!$mya->can(B_JOINED)) $permissions[$permission = B_JOINT] .= '?'; // pending agreement
+    if ($co or $otherCo) unset($permissions[r\perm(B_JOINT)]); // no joint accounts with a company
+    $perm = $otherPerson ? dropdown('permission', $permission, $permissions, $ii) : R_NONE;
     $amountValue = ''; // was amountField('amount', number_format($amount,0), $ii);
 
     $thisRow = array($fullName, $drawn, $isEmployee, $Owner, $perm, $idLink);
@@ -2580,7 +2633,7 @@ EOF;
   $aExact = "a href=\"$base_url/help/payment-exchanges\"";
   $aInvite = "a href=\"$base_url/invite\"";
   $aAgent = "a href=\"$base_url/agent\"";
-  $help = tt('Connect individual rCredits participants to your account &mdash; either as owners, employees, or others, with limited or full access to the account. If they don\'t have an account yet, <@aInvite>invite them</a>!', compact(u\ray('aExact aInvite aAgent')));
+  $help = tt('Connect individual rCredits participants to your account &mdash; either as owners, employees, or others, with limited or full access to the account. If they don\'t have an account yet, <@aInvite>invite them</a>! Each permission includes all the permission above it.', compact(u\ray('aExact aInvite aAgent')));
   //If they wish NOT to open a real account, create an <@aAgent>rPOS Sign-in Account</a> for them.
 
   $subtext = '<span id="account-label">' . t('Current Account') . ":</span> <span id='account-identifiers'>$acctIdentifiers</span><br><br>$help";
@@ -2596,9 +2649,9 @@ EOF;
   $form = array(
     'title' => item(t('Relations')),
     'subtext' => item($subtext),
-    'newPerson' => textField(t('Add Someone:'), t("name, id, email, or phone"), autocomplete('relation')),
+    'newPerson' => textField(t('Add Someone:'), t('name, id, email, or phone')), // autocomplete causes problems
+//    'newPerson' => textField(t('Add Someone:'), t('name, id, email, or phone'), autocomplete('relation')),
     'list' => formField('item', '', '', array('markup' => $list)),
-//    'new_permission' => formField('select', '', '', dft(count($GLOBALS['share permissions']) - 1), $GLOBALS['share permissions']),
     'go' => submit(t('Save Changes')),
   );
 
@@ -2606,15 +2659,14 @@ EOF;
 }
 
 function formRelations_validate($form, &$sta) {
-if (confirming_v($sta)) return;
+//  if (confirming_v($sta)) return;
   $mya = r\acct();
-  $myid = $mya->id;
-  extract(u\just('newPerson', $sta['input']));
   
-  if (@$newPerson) {
-    $acct = whois($newPerson, 'newPerson', $sta['input'], 'no self-relation');
-    if (($id = @$acct->id) and r\relation(1, $myid, $id)) return say('already related', 'newPerson');
-    $sta['input']['other'] = $id; // save for submission handling
+  if ($newPerson = @$sta['input']['newPerson']) {
+    $a = whois($newPerson, 'newPerson', $sta['input'], 'no self-relation');
+    $id = $a ? $a->id : '';
+    if ($id and r\relation(1, $mya->id, $id)) return say('already related', 'newPerson');
+    $sta['input']['newPerson'] = $id; // save for submission handling
   }
   $managers = 0; // for company accounts there needs to be at least one manager
   foreach ($sta['input'] as $key => $value) {
@@ -2634,15 +2686,10 @@ if (confirming_v($sta)) return;
 }
 
 function formRelations_submit($form, &$sta) {
-  if (confirming_s($sta)) return;
-
+//  if (confirming_s($sta)) return;
   $mya = r\acct();
 
-  if ($other = @$sta['input']['other']) { // adding a new relation
-//    $main = $mya->id;
-//    $permission = 0; // default to no permissions
-//    $info = compact(u\ray('main other permission'));
-//    db\insert('r_relations', $info);
+  if ($other = @$sta['input']['newPerson']) { // adding a new relation
     $mya->newRelation($other);
     $who = r\acct($other)->fullName;
     say('report new relation', compact('who'));
@@ -2651,21 +2698,33 @@ function formRelations_submit($form, &$sta) {
   $changes = [];
   extract(u\just('raws0 raws', $sta['rawValues']));
 ///  debug($sta['rawValues']);
-  foreach ($sta['input'] as $key => $value) { // ... be\updateRelations will have to check permissions and data carefully
-    if (!strpos($key, '-')) continue;
-    list ($key, $rawnum, $reid) = explode('-', $key); // eg split permission-2-37
-    if (!in_array($key, array_keys($raws))) return 'bad field in relations'; // hack attempt?
+  $joinPerm = r\perm(B_JOINT);
+  
+  $DBTX = \db_transaction();
+  foreach ($sta['input'] as $k => $v) { // ... be\updateRelations must check permissions and data carefully
+    if (!strpos($k, '-')) continue;
+    list ($k, $rawnum, $reid) = explode('-', $k); // eg split permission-2-37
+/**/ if (!in_array($k, $ks = array_keys($raws))) return say("bad field in relations: $k " . print_r($ks, 1), 'err'); // hack attempt?
 
-    $value = 0 + strtr($value, array('true' => 1, 'false' => 0));
-/// debug(compact('value','rawnum','key'));
-/// debug(0 + $raws[$rawnum][$key]);
-    if ($value != 0 + $raws[$rawnum][$key]) { // changed?
-      $changes[$reid][$key] = $value;
+    $v = 0 + strtr($v, array('true' => 1, 'false' => 0));
+    $oldv = 0 + $raws[$rawnum][$k];
+/// debug(compact('v','rawnum','k'));
+/// debug(0 + $raws[$rawnum][$k]);
+    if ($v != $oldv) { // changed
+      if ($k == 'permission' and ($v == $joinPerm or $oldv == $joinPerm)) {
+        if ($v == $joinPerm) {
+          if (@$gotJoin) {say('too many joins', 'err'); continue;} else $gotJoin = TRUE;
+        }
+        r\setJoin($reid, @$gotJoin); // handle joining or unjoining accounts
+      }
+      $changes[$reid][$k] = $v;
       $changes[$reid]['original'] = @$raws0[$reid]; // save for update reporting and permission-checking
     }
   }
 ///  debug($changes);
   if (!empty($changes)) say(be\updateRelations($changes));
+  unset($DBTX);
+  
   if (!$mya->ok) return r\go('status', 'step completed');
   if (u\test()) return r\go('account/relations');
 }
@@ -3137,7 +3196,7 @@ function formOptions($form, &$sta) {
   $title = item(t('Account Preferences'));
 //  $virtualMaxMessage = $mya->co ? t(' If you choose to enable payment exchanges, this setting is moot (irrelevant and unused).') : '';
   $subtext = item(t('(The defaults here are appropriate for most people.)'));
-  $minimum = textField(t('Minimum:'), t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days. Choose zero if you tend to bounce checks, live close to the wire, or prefer not to use automatic refills. ') . tt('note|ach warning'), required(u\fmtAmt($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
+  $minimum = textField(t('Minimum:'), t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days. Choose zero if you tend to bounce checks, live close to the wire, or prefer not to use automatic refills. ') . tt('note|ach warning'), required(u\fmtAmt($isSetUp ? $mya->j_minimum : R_MINR_DEFAULT, 's')));
   $achMin = textField(t('Min Transfer:'), t('Automatic transfers from your bank account will always be a multiple of $@dft and never less than this amount (choose a large round number for easier bookkeeping).', ['@dft'=>R_ACHMIN]), required(u\fmtAmt($mya->achMin ?: R_ACHMIN_DEFAULT, 's')));
   //$maxDft = $isSetUp ? $mya->maximum : R_MAXR_DEFAULT;
   //$maxDft = $maxDft < 0 ? '' : u\fmtAmt($maxDft, 's');
@@ -3157,7 +3216,7 @@ function formOptions($form, &$sta) {
 
   $secretBal = boxField(t('Secret Balance:'), t("Don't let merchants see my balance, even if I ask."), $mya->can(B_SECRET));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
-  $floor = u\fmtAmt($mya->floor);
+  $floor = u\fmtAmt($mya->j_floor);
   $debtOk = boxField(t('Debt Okay:'), tt('Let me use my rCard as a <i>credit</i> card, allowing my account balance to go negative, limited by my current "credit floor" (which starts at zero, then gets lower and lower as time goes by &mdash; currently @floor). I understand there will be a fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', compact('floor')), $mya->can(B_DEBT));
   $submit = submit(t('Update Preferences'));
   $posttext = item(tt(<<<EOF
@@ -3175,13 +3234,13 @@ EOF
 
 function formOptions_validate($form, &$sta) {
   $mya = r\acct();
-  $floor = u\fmtAmt($mya->floor);
+  $floor = u\fmtAmt($mya->j_floor);
   if ($err = amtErr('minimum', $sta)) return say($err, 'minimum');
   if ($err = amtErr('achMin', $sta)) return say($err, 'achMin');
-  if ($err = w\badShare($sta['input']['share'], TRUE)) return say($err, 'share');
+  if ($mya->ok and $err = w\badShare($sta['input']['share'], TRUE)) return say($err, 'share');
 
   extract(u\just('minimum achMin', $sta['input'])); // after amtErr checks
-  if ($minimum < $mya->floor) return say('min sub floor', compact('floor'), 'minimum');
+  if ($minimum < $mya->j_floor) return say('min sub floor', compact('floor'), 'minimum');
   if ($achMin < R_ACHMIN) return say('bad achmin', 'achMin');
 }
 
@@ -3193,12 +3252,16 @@ function formOptions_submit($form, $sta) {
 //  $mya->setBit(B_NOTIFY_EMAIL, $notifyBy & 1, FALSE);
   $flags = $mya->flags;
   u\setBit($flags, B_BYSMS, @$smsNotices);
-  u\setBit($flags, B_WEEKLY, $notices == 1);
-  u\setBit($flags, B_MONTHLY, $notices == 2);
+  u\setBit($flags, B_WEEKLY, @$notices == 1);
+  u\setBit($flags, B_MONTHLY, @$notices == 2);
   u\setBit($flags, B_PAPER, @$statements);
   u\setBit($flags, B_DEBT, @$debtOk);
   u\setBit($flags, B_SECRET, @$secretBal);
   
+  if ($jid = $mya->jid and $jid < $mya->id) { // slave setting minimum and/or achMin
+    r\acct($jid)->update(compact('minimum', 'achMin')); // set it only on master
+    $minimum = 0;
+  }
   $mya->update(compact(u\ray('minimum achMin share flags')));
   $mya->stepDone('prefs', $info);
   return $mya->ok ? say('options saved') : r\go('status', 'options saved|step completed');
@@ -3240,7 +3303,7 @@ function formFlags($form, &$sta, $args = '') {
 
 // fails  u\setDft($args['period'], 1);
   extract(u\just('period starting ending download downloaded', $args)); 
-  if (!@$period) $args['period'] = $period = 1;
+  if (!@$period) $args['period'] = $period = 7;
   extract(u\just('dateRange url starting ending', dateRange($args, 'community/flags', [], '', FALSE)));
   $url = hidField($url);
   

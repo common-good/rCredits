@@ -25,7 +25,7 @@ date_default_timezone_set('America/New_York'); // server handles just one timezo
 //define('DW_LAG', 1 * HOUR_SECS); // no longer used (Dwolla uses greenwich mean time, our PHP adjusts)
 define('R_COUNTRY_ID', US_COUNTRY_ID); // this region's country: United States
 define('R_STATE_ID', 1020); // Massachusetts
-define('R_REBATE', isDEV ? 5 : 10); // standard initial rebate percentage
+define('R_REBATE', 10); // standard initial rebate percentage
 define('R_BONUS_FACTOR', 1); // standard bonus is this times standard rebate
 define('R_XFEE_CARD', .03); // percentage fee for exchanges of USD for rCredits using a credit/debit card
 define('R_XFEE_CHECK', 3.00); // flat fee for exchanges of USD for rCredits with a check
@@ -45,6 +45,6 @@ define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars
 define('R_INFLATION_RATE', .05); // annual USD inflation rate (but never less than zero) (extra big is okay)
 define('R_LAUNCH', strtotime('12/15/2013'));
 define('R_ADMIN_QID', 'NEW.AAA'); // William's account code
-define('R_USDTX_DAYS', 2); // how many days it takes for a transfer to clear from bank to rCredits account
+define('R_USDTX_DAYS', 5); // how many days it takes for a transfer to clear from bank to rCredits account
 define('ESCROW_ACCOUNT', '1326532739'); // escrow account number
 define('ESCROW_ROUTING', '211070175'); // escrow account routing number

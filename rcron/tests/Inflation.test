@@ -44,20 +44,20 @@ class rcronInflation extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "ASSOC'
-    . '\\| id   | fullName   | floor | acctType    | flags      |'
-    . '\\| .ZZA | Abe One    | -500  | personal    | ok,bona    |'
-    . '\\| .ZZB | Bea Two    | -500  | personal    | ok,co,bona |'
-    . '\\| .ZZC | Corner Pub | -500  | corporation | ok,co,bona |"');
+    . '\\| id   | fullName   | floor | acctType    | flags      | rebate |'
+    . '\\| .ZZA | Abe One    | -500  | personal    | ok,bona    |      5 |'
+    . '\\| .ZZB | Bea Two    | -500  | personal    | ok,co,bona |     10 |'
+    . '\\| .ZZC | Corner Pub | -500  | corporation | ok,co,bona |     10 |"');
     And__('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|   1 | %today-2m | signup   |    100 | ctty | .ZZA | signup  |'
     . '\\|   2 | %today-2m | signup   |    100 | ctty | .ZZB | signup  |'
     . '\\|   3 | %today-2m | signup   |    100 | ctty | .ZZC | signup  |"');
     And__('usd transfers: "ASSOC'
-    . '\\| payer | payee | amount | completed |'
-    . '\\| .ZZA  |     0 |   -400 | %today-2m |'
-    . '\\| .ZZB  |     0 |   -100 | %today-2m |'
-    . '\\| .ZZC  |     0 |   -300 | %today-2m |"');
+    . '\\| payer | amount | completed |'
+    . '\\| .ZZA  |   -400 | %today-2m |'
+    . '\\| .ZZB  |   -100 | %today-2m |'
+    . '\\| .ZZC  |   -300 | %today-2m |"');
     Then_('balances: "ASSOC'
     . '\\| id   | r   |'
     . '\\| .ZZA | 500 |'
@@ -102,21 +102,21 @@ class rcronInflation extends DrupalWebTestCase {
     When_('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|  12 | %today-5d | transfer |    100 | .ZZC | .ZZA | labor M |'
-    . '\\|  13 | %today-5d | rebate   |      5 | ctty | .ZZC | rebate on #3 |'
-    . '\\|  14 | %today-5d | bonus    |     10 | ctty | .ZZA | bonus on #6  |"');
+    . '\\|  13 | %today-5d | rebate   |     10 | ctty | .ZZC | rebate on #3 |'
+    . '\\|  14 | %today-5d | bonus    |      5 | ctty | .ZZA | bonus on #6  |"');
     Then_('balances: "ASSOC'
     . '\\| id   | r   |'
-    . '\\| .ZZA | 397 |'
+    . '\\| .ZZA | 392 |'
     . '\\| .ZZB | 564 |'
-    . '\\| .ZZC | 205 |"');
+    . '\\| .ZZC | 210 |"');
     When_('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|  15 | %today-4d | transfer |     50 | .ZZB | .ZZC | cash P  |"');
     Then_('balances: "ASSOC'
     . '\\| id   | r   |'
-    . '\\| .ZZA | 397 |'
+    . '\\| .ZZA | 392 |'
     . '\\| .ZZB | 514 |'
-    . '\\| .ZZC | 255 |"');
+    . '\\| .ZZC | 260 |"');
     When_('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|  16 | %today-3d | transfer |    120 | .ZZA | .ZZC | this Q  |'
@@ -124,17 +124,17 @@ class rcronInflation extends DrupalWebTestCase {
     . '\\|  18 | %today-3d | bonus    |     12 | ctty | .ZZC | bonus on #5  |"');
     Then_('balances: "ASSOC'
     . '\\| id   | r   |'
-    . '\\| .ZZA | 283 |'
+    . '\\| .ZZA | 278 |'
     . '\\| .ZZB | 514 |'
-    . '\\| .ZZC | 387 |"');
+    . '\\| .ZZC | 392 |"');
     When_('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|  19 | %today-1d | transfer |    100 | .ZZA | .ZZB | cash V  |"');
     Then_('balances: "ASSOC'
     . '\\| id   | r   |'
-    . '\\| .ZZA | 183 |'
+    . '\\| .ZZA | 178 |'
     . '\\| .ZZB | 614 |'
-    . '\\| .ZZC | 387 |"');
+    . '\\| .ZZC | 392 |"');
     break;
 
 
@@ -149,7 +149,7 @@ class rcronInflation extends DrupalWebTestCase {
     . '\\| xid| created| type      | amount                               | from | to   | purpose |'
     . '\\| 20 | %today | inflation | %(round(%R_INFLATION_RATE*38.42, 2)) | ctty | .ZZA | inflation adjustment |'
     . '\\| 21 | %today | inflation | %(round(%R_INFLATION_RATE*23.11, 2)) | ctty | .ZZB | inflation adjustment |'
-    . '\\| 22 | %today | inflation | %(round(%R_INFLATION_RATE*31.45, 2)) | ctty | .ZZC | inflation adjustment |"');
+    . '\\| 22 | %today | inflation | %(round(%R_INFLATION_RATE*31.52, 2)) | ctty | .ZZC | inflation adjustment |"');
   }
 
 }

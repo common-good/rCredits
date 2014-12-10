@@ -1,0 +1,116 @@
+<?php
+//
+// Feature: Joint
+//   AS a member with a joint account
+//   I WANT to draw on the sum of the balances in the two accounts
+//   SO I can make purchases as a financial unit with my account partner.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rsmart.steps';
+
+class rsmartJoint extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Joint';
+  const FEATURE_NAME = 'rsmart Test - Joint';
+  const DESCRIPTION = 'Joint';
+  const MODULE = 'rsmart';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "ASSOC'
+    . '\\| id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags          | jid  |'
+    . '\\| .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,bona        | .ZZB |'
+    . '\\| .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,bona        | .ZZA |'
+    . '\\| .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,bona     |      |'
+    . '\\| .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,bona        |      |'
+    . '\\| .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,bona,secret |      |'
+    . '\\| .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,bona     |      |"');
+    And__('devices: "ASSOC'
+    . '\\| id   | code |'
+    . '\\| .ZZC | devC |"');
+    And__('selling: "ASSOC'
+    . '\\| id   | selling         |'
+    . '\\| .ZZC | this,that,other |"');
+    And__('company flags: "ASSOC'
+    . '\\| id   | flags        |'
+    . '\\| .ZZC | refund,r4usd |"');
+    And__('relations: "ASSOC'
+    . '\\| id   | main | agent | permission |'
+    . '\\| :ZZA | .ZZC | .ZZA  | buy        |'
+    . '\\| :ZZB | .ZZC | .ZZB  | scan       |'
+    . '\\| :ZZD | .ZZC | .ZZD  | read       |'
+    . '\\| :ZZE | .ZZC | .ZZE  | sell       |'
+    . '\\| :ZZF | .ZZA | .ZZB  | joint      |'
+    . '\\| :ZZG | .ZZB | .ZZA  | joint      |"');
+    And__('transactions: "ASSOC'
+    . '\\| xid | created   | type   | amount | from | to   | purpose |'
+    . '\\| 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |'
+    . '\\| 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  |'
+    . '\\| 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |'
+    . '\\| 4   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |"');
+    Then_('balances: "ASSOC'
+    . '\\| id   | balance |'
+    . '\\| ctty |   -1000 |'
+    . '\\| .ZZA |     250 |'
+    . '\\| .ZZB |     250 |'
+    . '\\| .ZZC |     250 |'
+    . '\\| .ZZF |     250 |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: A cashier asks to charge someone
+  public function testACashierAsksToChargeSomeone_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('agent ":ZZE" asks device "devC" to charge ".ZZB" $400 for "goods": "food" at %now');
+    Then_('we respond ok txid 5 created %now balance 140 rewards 540');
+    And__('with message "report tx|reward" with subs: "ASSOC'
+    . '\\| did     | otherName | amount | why                | rewardAmount |'
+    . '\\| charged | Bea Two   | $400   | goods and services | $20          |"');
+    And__('with did "ASSOC'
+    . '\\| did     | amount | forCash |'
+    . '\\| charged | $400   |         |"');
+    And__('with undo "ASSOC'
+    . '\\| created | amount | tofrom | otherName |'
+    . '\\| %dmy    | $400   | from   | Bea Two   |"');
+    And__('we notice "new charge|reward other" to member ".ZZB" with subs: "ASSOC'
+    . '\\| created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
+    . '\\| %today  | Bea Two  | Corner Pub | $400   | food         | reward          | $40               |"');
+    And__('balances: "ASSOC'
+    . '\\| id   | balance |'
+    . '\\| ctty |   -1060 |'
+    . '\\| .ZZA |     100 |'
+    . '\\| .ZZB |      40 |'
+    . '\\| .ZZC |     670 |'
+    . '\\| .ZZF |     250 |"');
+  }
+
+}

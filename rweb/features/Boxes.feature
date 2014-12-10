@@ -33,9 +33,9 @@ Scenario: A member adds a cell phone
   | new            |*
   | (413) 772-1000 |
   Then we show "Verify" with:
-  | We sent a verification code | +1 413.772.1000 |
+  | We sent a verification code | +1 413 772 1000 |
   | Code: | Verify |
-
+Skip
 Scenario: A member verifies the cell phone
   Given the expected nonce is %whatever
   When member ".ZZA" confirms form "account/boxes" with values:

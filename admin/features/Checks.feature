@@ -23,16 +23,16 @@ Setup:
   
 Scenario: admin prints checks
   Given usd transfers:
-  | txid | payer | payee | amount | created   | deposit   | completed |*
-  | 5001 | .ZZA  |     0 |   -100 | %today-3w | %today-2w | %today-3w |
-  | 5002 | .ZZA  |     0 |   -400 | %today-2w |         0 | %today    |
-  | 5003 | .ZZB  |     0 |   -100 | %today-1d |         0 | %today    |  
-  | 5004 | .ZZC  |     0 |   -300 | %today    |         0 |         0 |
+  | txid | payer | amount | created   | deposit   | completed |*
+  | 5001 | .ZZA  |   -100 | %today-3w | %today-2w | %today-3w |
+  | 5002 | .ZZA  |   -400 | %today-2w |         0 | %today    |
+  | 5003 | .ZZB  |   -100 | %today-1d |         0 | %today    |  
+  | 5004 | .ZZC  |   -300 | %today    |         0 |         0 |
   When member ".ZZB" visits page "sadmin/deposits"
   Then we show "Deposits" with:
   | Checks IN | 3 |
   | Include   | 1 checks from %dm-2w |
-  When member ".ZZB" visits page "sadmin/checks/way=IN&date=0&previous=%today-3w&reprint=0"
+  When member ".ZZB" visits page "sadmin/checks/way=IN&date=0&previous=%today-3w&reprint=0&mark=1"
   Then we show pdf with:
   |_name    |_postalAddr          |_phone        |_transit      |_acct |_txid |_date |_amt   |_amount |_bank |*
   | Abe One | 1 A, Aton, MA 01001 | 413 772 0001 | 53-7028/2118 |   01 | 5002 | %dmy | $ 400 | Four Hundred and NO/100 | Greenfield Co-op Bank |

@@ -9,39 +9,46 @@ To Do
 
 Before growing fast:
 . DONE write rCredits Security Protocols
-. DONE "remotely-created checks" (RCC). The following accounts will need to re-supply a routing number and bank account number: Adam Konner, William Spademan, John G Root Jr, Janet Henderson, John F. Eichholz, Alden Booth, Barbara Ann Fingold, Julia Bond Ellingboe, Gary L. Schaefer, Diane C. Miller, Peter Robert Letson, Jennifer Atlee, Nancy Hazard, Denise M. Ward, Daniel S Rosenberg, Addie Rose Holland, Ellen Kaufmann, Rebecca Jane Meier, 
+. DONE "remotely-created checks" (RCC). And shut down Dwolla accounts.
 . DONE tell members about RCC (including risks, benefits, privacy, safeguards etc.)
 . write to each participating business. Describe identity verification onsite through app. Ask them for employee count and annual gross
 . DONE add mediaconx to all individual accounts created before 10/5/2014
 . DONE emails and invites don't get marked as spam
 . DONE economic circle(s)
-. 2 more new board members, including a business leader
 . DONE Ask David Kulp to set up replication
 . DONE ID verification
 . DONE Software:
   - DONE invoices
   - sound admin tools: 
 . $25 for inviting and helping (software and promo)
-. get GFM and Foster's to pay suppliers and/or employees at least half what they take in
+. DONE get GFM and Foster's to pay suppliers and/or employees at least half what they take in
 . after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
-. ask GFCU: checking account? ACHs just for GFCU customers? not even now just for food-system related txs?
 . DONE open rWMR account (dba rCredits account for rCredits escrow, at Citizens. I made it clear that we were providing escrow service to our members, for their payments to their associations (that are also members of S2BE).
-. ? (ask board) get 15-mo CD at Citizens before end of November. Deposit $20k.
-. propose to citizens that for every 10,000 we keep on deposit, they would forgive one $20 fee a month (on average).
 . video about Admin'ing
 
 TASKS FOR NEXT UPDATE:
-. tell members with no bank about fees: (NEW) agvbauer@gmail.com, walker@owleyes.us, sullicait@gmail.com,  Dan@pvLocalFirst.org, ed+smith@elderlex.com, emilypeyton2012@gmail.com, ljapple@crocker.com, majapanevska@gmail.com, marilynandrews1@verizon.net, nanparati@aol.com, zeamoonsoulwoodz@gmail.com
-. tell member with bank about fees (see in Downloads: listemxxx.html)
 
-. *** investigate the dozen attempts (in one week) to recognize NEW.ABU with wrong cardCode: SELECT * FROM `r_log` l join r_log l2 on l2.logid=l.logid+1 WHERE l2.info like '%bad customer%'
-
+. tests for rdo
+. disallow repeat EINs!! (tell Ed Smith? and Janet Massucci and maybe Adam K. and Jim Bates)
+. ** inflation only for master of joint account
+. autocomplete in relations causes failure of newperson field unless clicked twice (temporarily bypassed by disabling autocomplete)
+. test automatic unjoin of previous join, if a join is requested with a new account
+. investigate the dozen attempts (in one week) to recognize NEW.ABU with wrong cardCode: SELECT * FROM `r_log` l join r_log l2 on l2.logid=l.logid+1 WHERE l2.info like '%bad customer%'
+. for admin, show just the relevant community on flags page
+. cAdmin2 doesn't get to see floor! fix.
+. refuse first tx if no photoid yet
+. ***on Pay tab and Charge tab, if cash/loan/etc is selected, ask if it is for USD (at Adam's urging)
+. show cAdmin the top trusted people (SELECT fullName,trust FROM `users` WHERE community=:ctty ORDER BY trust DESC)
+. let admin edit tx date
+. ** any smartphone tx from over 24 hours ago should get put in as yesterday
+. change language to clarify that incentives are incentives say "rewards" (signup reward, etc) no "bonus" or "rebate". "inflation adjustment" is okay and member should be able to keep that.
+. alert staff on Undo
+. alert staff on prefs change (if B_OK)
+. for staff always show channel and agent
 . *** B_BOUNCED: disable minimum, warn member, charge fee $20
-. *** warn new members about fee.
-. *** The system thinks you are trying to "cash out" your $5 of rewards. This is a design bug and is scheduled to be fixed. You are the first company with 10%+ owners that has tried to do payroll partly in rCredits, so we didn't notice the bug until now. I will try to get it fixed before your next payroll.
 . cache non-automatic r for pre-CGC cttys
 . download to app 100 one-use cardcodes
-. fix picture in upper right corner
+. fix picture in upper right corner?
 . don't let admin set OK until member is set (either automatically or manually -- two steps). if admin unsets member, unset OK too.
 . replace testing.inc with testing stub that defines stub functions if not already defined
 . make account field persist with last account number on Admin Panel
@@ -57,7 +64,6 @@ TASKS FOR NEXT UPDATE:
 . * add a Pay button to member company rCredits webpage
 . *** txs should not show X (undo) on receipts, for non-buyers
 . moves is off by one when current county does not appear in ss-search list
-. joint accounts: implement as a higher-level view of two or more accounts (for anyone who has read permission on those accounts?)
 . when admin changes "goods"ness of a transaction, data gets double-serialized (don't. and look for data starting "{{")
 . when admin enters data from paper, remember it was paper (risk bit), present the "Add Another Account" button, ask for inviter (accept an email or name), offer a single checkbox for "signed", etc.
 . when a member draws on another for part of a $167.43 purchase against a $71.94 balance, it says $0 short.

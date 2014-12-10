@@ -137,7 +137,7 @@ Scenario: It's complicated
   | Abe One | Yes          | No   | %can_manage | request rCard |
 
 Scenario: A member adds a relation
-  When member ".ZZA" completes form "account/relations" with values:
+  When member ".ZZA" completes relations form with values:
   | newPerson |*
   | beatwo    |
   Then we say "status": "report new relation" with subs:
@@ -146,4 +146,19 @@ Scenario: A member adds a relation
   And we show "Relations" with:
   | Other      | Draw | My employee? | Family? | Permission |_requests      |
   | Bea Two    | No   | No           | No      | %can_none  | --            |
+
+Scenario: A member tries to add a relation with self
+  When member ".ZZA" completes relations form with values:
+  | newPerson |*
+  | abeone    |
+  Then we say "error": "no self-relation"
+
+Scenario: A member tries to add a relation again
+  Given relations:
+  | id | main | agent | permission | employee | isOwner |*
+  | 1  | .ZZA | .ZZB  | scan       | 1        | 1       |
+  When member ".ZZA" completes relations form with values:
+  | newPerson |*
+  | beatwo    |
+  Then we say "error": "already related"
   

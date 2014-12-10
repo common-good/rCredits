@@ -52,10 +52,10 @@ Scenario: A cashier charged someone offline
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
   And balances:
   | id   | balance |*
-  | ctty |    -770 |
+  | ctty |   -1015 |
   | .ZZA |     250 |
   | .ZZB |     160 |
-  | .ZZC |     360 |
+  | .ZZC |     355 |
 
 Scenario: A cashier charged someone offline and they have insufficient balance
   Given transactions: 
@@ -68,10 +68,10 @@ Scenario: A cashier charged someone offline and they have insufficient balance
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
   And balances:
   | id   | balance |*
-  | ctty |    -770 |
+  | ctty |   -1015 |
   | .ZZA |     450 |
   | .ZZB |     -40 |
-  | .ZZC |     360 |
+  | .ZZC |     355 |
 
 Scenario: A cashier charged someone offline but it actually went through
   Given agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food" at "%now-1hour"
@@ -80,10 +80,10 @@ Scenario: A cashier charged someone offline but it actually went through
   #And we notice nothing
   And balances:
   | id   | balance |*
-  | ctty |    -770 |
+  | ctty |   -1015 |
   | .ZZA |     250 |
   | .ZZB |     160 |
-  | .ZZC |     360 |
+  | .ZZC |     355 |
 
 Scenario: A cashier declined to charge someone offline and it didn't go through
   When reconciling ":ZZA" on "devC" charging ".ZZB" $100 for "goods": "food" at "%now-1hour" force -1

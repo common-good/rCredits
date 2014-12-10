@@ -195,11 +195,7 @@ function devices($list) {
  *
  * in: 
  */
-function balances($list) {
-  global $testOnly;
-  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']))->balance, $one['balance'])) return FALSE;
-  return TRUE;
-}
+function balances($list) {return t\balances($list);}
 
 /**
  * member (ARG) asks device (ARG) to do this: (ARG) (ARG) $(ARG) ((ARG): (ARG))

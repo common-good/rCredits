@@ -85,7 +85,11 @@ function formTxs_submit($form, &$sta) {
  * List the available account statement dates, with links.
  */
 function formStatements($form, $sta, $month = '') {
-  return $month ? r\go("history/statement/$month") : monthChoices(t('Statements'), 'statements');
+  if ($month) return r\go("history/statement/$month");
+  
+  $mo = date('F');
+  $subtext = date('d') < 10 ? tt('note|Statements are not final until the 10th of the next month.', compact('mo')) : '';
+  return monthChoices(t('Statements'), 'statements', $subtext);
 }
 
 /**
@@ -110,12 +114,24 @@ function txConfirm($do, $xid, &$sta) {
 }
 
 function handleTx($do, $xid, &$sta, $args) {
+  $url = str_replace('&do=', '&did=', "history/$args"); // don't do it again
+
+  if (substr($xid, 0, 1) == 'b') { // reversing bank transfer
+    if (!r\acct()->admin) return FALSE; // only admin can do this currently
+    u\EXPECT($do == 'no', 'trying to edit bank transfer');
+    $tx = db\lookup('*', 'r_usd', 'txid=:xid', ['xid'=>substr($xid, 1)]);
+    foreach (u\just('txid amount tid', $tx) as $k => $v) $tx[$k] = -$v; // reverse transfer
+    extract($tx);
+    $mya = r\acct();
+    $mya->bank($amount, $zot, $tx);
+    r\go($url, tt('Reversed @amount bank transfer for @who.', u\ray('amount who', u\fmtAmt(-$amount), $mya->fullName)));
+  }
+  
   if (!$xid = (int) @$xid) return FALSE;
   if ($do == 'edit') return txEdit($xid);
   if ($do == 'ok' or $do == 'no') {
     if ($confirm = txConfirm($do, $xid, $sta)) return $confirm;
     if (!$sta['rebuild']) txOKorNO($do, $xid); // don't do anything if canceling
-    $url = str_replace('&do=', '&did=', "history/$args"); // don't do it again
     return r\go($url); // back to the normal form
   }
   return FALSE;
@@ -141,7 +157,6 @@ function txEdit($xid) {
   extract(u\just('taking toMe payer payee amount goods payerFor payeeFor', $details));
   
   if (!$mya->can($taking ? B_SELL : B_BUY)) return FALSE;
-  $radios = array(t('cash/loan/etc.'), t('goods & services'));
   
   $form = array(    
     '#validate' => array('rCredits\\Web\\txEdit_validate'),
@@ -153,7 +168,7 @@ function txEdit($xid) {
   $title = item(t('Edit Transaction'));
   $to = item(r\acct($toMe ? $payer : $payee)->fullName, $toMe ? t('From:') : t('To:'));
   $amount = textField(t('Amount: $'), '', dft(number_format($amount,2)));
-  $goods = formField('radios', '&nbsp;', '', dft($goods), $radios);
+  $goods = formField('radios', '&nbsp;', '', dft($goods), u\ray(R_WHYS));
   $purpose = textField(t('For:'), '', dft(u\nonish(@$purpose) ? '' : $purpose));
   $submit = submit(t('Update'));
 
@@ -166,7 +181,7 @@ function txEdit_validate($form, &$sta) {
   extract(u\just('amount goods purpose orig', $sta['input']));
   extract($orig = unserialize($orig), EXTR_PREFIX_ALL, 'x');
   
-  if ($goods and trim($purpose) == '') return say('missing purpose', 'purpose');
+  if ($goods == R_FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
 ///debug(compact('x_toMe','amount','x_amount'));
   if (!$mya->cAdmin and ($x_toMe ? ($amount > $x_amount) : ($amount < $x_amount))) {
@@ -195,7 +210,7 @@ function txEdit_submit($form, &$sta) {
   if ($amtChange or $goodsChange) {
     $agent = r\agent();
     $msg = 'tx edited' . ($goodsChange ? '|new tx goods' : '') . ($amtChange ? '|new tx amount' : '');
-    $what = $goods ? t('real goods or services') : t('cash/loan/etc');
+    $what = u\ray(R_WHYS)[$goods];
     $amount = u\fmtAmt($amount);
 
     foreach (array($x_payer => $x_payerTid, $x_payee => $x_payeeTid) as $uid => $tid) {
@@ -226,7 +241,7 @@ function txSummary($starting, $ending) {
 ///  debug(compact('nowInfo','oldInfo'));
 
   $dif = array();
-  foreach (u\ray('inProper outProper usdIn usdOut rewards bank') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
+  foreach (u\ray('inProper outProper rewards bank') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
   extract($dif, EXTR_PREFIX_ALL, 'd');
   $p_committed = $mya->committed; // this will include all pending commitments
   

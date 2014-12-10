@@ -25,7 +25,7 @@ class x {
    * @param assoc $info: initial field values for the transaction, to be created and saved in the database
    * @param bool $save: <save the record in the database>
    */
-  function __construct($xid = array(), $save = TRUE) {
+  function __construct($xid = [], $save = TRUE) {
     if (is_array($info = $xid)) { // referring to existing db record
       $this->ray = $this->createNew($info, $save); // create new record
     } else $this->ray = db\lookup('*', 'r_txs', 'xid=:xid', compact('xid'));
@@ -39,7 +39,7 @@ class x {
   public function __get($field) {
     if ($field == 'id') $field = 'xid';
     $res = @$this->ray[$field];
-    if ($field == 'data') return $res ? unserialize($res) : array();
+    if ($field == 'data') return $res ? unserialize($res) : [];
     return $res;
   }
     
@@ -107,8 +107,9 @@ class x {
     if ($type != TX_TRANSFER) return TRUE;
     $rewards = unserialize($data);
     
-    if ($goods) {
+    if ($goods == R_FOR_GOODS) {
       foreach (array('rebate', 'bonus') as $type) {
+      u\EXPECT(isset($rewards[$type]), 'nope!');
         $amount = $rewards[$type];
         $type = u\consta('tx', $type);
         list ($to, $tid, $for) = $type == TX_REBATE
@@ -120,7 +121,7 @@ class x {
         }
       }
     } elseif ($amount = @$rewards['xfee']) {
-      list ($type, $goods, $payerAgent, $payeeAgent, $taking) = array(TX_XFEE, FALSE, $payer, $payee, TRUE);
+      list ($type, $goods, $payerAgent, $payeeAgent, $taking) = array(TX_XFEE, R_FOR_USD, $payer, $payee, TRUE);
       $for = ($amount == R_XFEE_CHECK and !strpos($payeeFor, '(card)')) ? t('check fee') : t('card fee');
       if ($xray = $this->save(compact(u\ray(TX_REWARD_FIELDS)))) $xrays[] = $xray; else return FALSE;
     }
@@ -132,7 +133,7 @@ class x {
     $payer = $payerAgent = r\acct($payee)->community;
     $payeeAgent = $payee;
     $taking = FALSE;
-    $goods = FALSE;
+    $goods = R_FOR_USD; // not actually for USD, but certainly not for goods or non-goods, since not an exchange
 
     return $this->setup(compact(u\ray(TX_REWARD_FIELDS)));
   }
@@ -145,7 +146,6 @@ class x {
    *   for: purpose of the transaction OR a simple array (payer's purpose, payee's purpose)
    *   etc.
    * @return the array, with some extra field information added
-   * Give full rewards for donations to CGF, whether in r or USD
    */
   private function setup($info) {
     global $channel, $boxUser; // through what medium was the transaction requested (web, SMS, etc.), what machine
@@ -160,17 +160,17 @@ class x {
     
     u\setDft($type, TX_TRANSFER);
     u\setDft($taking, FALSE);
-    u\setDft($goods, FALSE);
-    u\setDft($for, $goods ? R_FOR_GOODS : R_FOR_CASH);
+    u\setDft($goods, R_FOR_USD);
+    u\setDft($for, u\ray(R_WHYS)[$goods]);
     u\setDft($payerAgent, $payer);
     u\setDft($payeeAgent, $payee);
     u\setDft($created, time());
-    $data = $this->dataSetup($payer, $payee, $amount, $goods, $for, @$data ?: array(), $channel);
+    $data = $this->dataSetup($payer, $payee, $amount, $goods, $for, @$data ?: [], $channel);
     $taking += 0;
     $goods += 0;
     $box = @$boxUser ?: 0;
 
-    list ($payerFor, $payeeFor) = is_array($for) ? $for : array($for, $for);
+    list ($payerFor, $payeeFor) = is_array($for) ? $for : [$for, $for];
     unset($info['for']);
 
     return compact(u\ray($fields . ' payerFor payeeFor channel box')) + $info;
@@ -186,16 +186,15 @@ class x {
     u\EXPECT(is_array($data), 'data should be array');
     if (r\owning($payer, $payee)) return serialize($data); // no rewards or xfees for txs between owner and owned
 
-    if ($goods and !isset($data['rebate'])) {
-      $rebate = (string) ($goods ? r\rebate($payer, $payee, $amount) : 0); // force string, to avoid long serializations
-      $bonus = (string) ($goods ? r\bonus($payee, $payer, $amount) : 0);
+    if ($goods == R_FOR_GOODS and !isset($data['rebate'])) {
+      $rebate = (string) r\rebate($payer, $payee, $amount); // force string, to avoid long serializations
+      $bonus = (string) ($goods == R_FOR_GOODS ? r\bonus($payee, $payer, $amount) : 0);
       $data += compact('rebate', 'bonus');
-    } elseif (!$goods and !isset($data['xfee']) and $channel == TX_POS) {
+    } elseif ($goods == R_FOR_NONGOODS and !isset($data['xfee']) and $channel == TX_POS) {
       if (($xfee = r\xfee($for, $amount)) !== '') $data += compact('xfee'); // record even when xfee=0 (cash xchg)
     }
     
     unset($data['preapproved']); // don't need these (but keep 'undoes' and original rebate/bonus, if any)
-    unset($data['bilateral']);
     return serialize($data);
   }
   
@@ -209,10 +208,9 @@ class x {
   }
 
   /**
-   * Keep track of r balance, rewards, committed amount in the account record
+   * Keep track of r, rewards, and committed amounts in the account record
    * None of these figures is authoritative except 'committed'. 
-   * The r balance and rewards are (definitively) the sum of the relevant fields in transactions.
-   * The USD balance is (definitively) what is actually in the Dwolla account.
+   * r and rewards are the sum of the relevant fields in transactions.
    * @return <success>
    */
   private function cacheTotals($uid, $xrays) {
@@ -258,7 +256,7 @@ class x {
     if (isset($just)) $info = u\just($just, $info);
     if ($data = @$info['data']) {
       $info['data'] = serialize($data);
-    } elseif ($data = u\just(TX_DATA_FIELDS, $info)) $info['data'] = serialize($data + ($this->data ?: array()));
+    } elseif ($data = u\just(TX_DATA_FIELDS, $info)) $info['data'] = serialize($data + ($this->data ?: []));
 
     $info['xid'] = $this->id; // make sure db\update gets this
     return db\update('r_txs', $info, 'xid');

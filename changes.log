@@ -1,3 +1,23 @@
+2014-12-09
+. sometimes ssncheck returns an array of birthdates (see c line 237 in admin.inc -- try Maja H)
+. ** make a way to easily uncomplete bounced checks: On History page created offsetting record with reversed amount, txid, and tid; same everything else
+. removed payee field from r_usd
+. removed photo icon in upper right (temporarily?)
+. delete garbage from r_do daily
+. let anyone exchange unlimited cash with any other member. Just don't allow cashing out rewards via bank transfer. 
+. on Deposits page: no checks link for today unless they have been printed
+. joint accounts: implemented as a higher-level view of two personal accounts (larger groups need their own EIN)
+. default flags period to 7 days
+. made it easier to choose proxies
+. we now handle photo id numbers (id proof) from smartphone on first transaction
+. rsmart getTime() function now returns '!update' rather than a message, when appropriate
+. fixed bug: payment to region says region doesn't have permission to make sales
+. consolidated confirm and report messages
+. DELETE FROM r_do WHERE completed IS NULL OR completed<0
+. UPDATE r_txs SET goods=2 WHERE goods=1
+. UPDATE r_invoices SET goods=2 WHERE goods=1
+. fixed bug whereby app reversing a transaction with insufficient funds would retry over and over
+
 2014-11-14
 . UPDATE r_usd SET completed=1414728000 WHERE completed=2014 (10/31/2014, fixing the oops of 11/01)
 . banks: UPDATE r_banks SET name=REPLACE(name,'Fcu','FCU'), address=REPLACE(REPLACE(REPLACE(REPLACE(address,'Bx','Box'),'bx','Box'),'P.O.Box','PO Box'),'P O Box','PO Box');

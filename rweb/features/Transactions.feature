@@ -5,10 +5,10 @@ SO I can see what happened, accept or refuse offers, adjust descriptions, and co
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType    | flags      | created    |*
-  | .ZZA | Abe One    | -100  | personal    | ok,bona    | %today-15m |
-  | .ZZB | Bea Two    | -200  | personal    | ok,co,bona | %today-15m |
-  | .ZZC | Corner Pub | -300  | corporation | ok,co,bona | %today-15m |
+  | id   | fullName   | floor | acctType    | flags      | created    | rebate |*
+  | .ZZA | Abe One    | -100  | personal    | ok,bona    | %today-15m |      5 |
+  | .ZZB | Bea Two    | -200  | personal    | ok,co,bona | %today-15m |     10 |
+  | .ZZC | Corner Pub | -300  | corporation | ok,co,bona | %today-15m |     10 |
   And relations:
   | id   | main | agent | permission |*
   | .ZZA | .ZZA | .ZZB  | buy        |
@@ -16,13 +16,13 @@ Setup:
   | .ZZC | .ZZC | .ZZB  | buy        |
   | .ZZD | .ZZC | .ZZA  | sell       |
   And usd transfers:
-  | payer | payee | amount | tid | created    | completed  |*
-  |  .ZZA |     0 |  -1000 |   1 | %today-13m | %today-13m |
-  |  .ZZB |     0 |  -2000 |   1 | %today-13m | %today-13m |
-  |  .ZZC |     0 |  -3000 |   1 | %today-13m | %today-13m |
-  |  .ZZA |     0 |    -11 |   2 | %today-1w  |         0  |
-  |  .ZZA |     0 |     22 |   4 | %today-5d  |         0  |
-  |  .ZZA |     0 |     33 |   3 | %today-5d  |         0  |
+  | payer | amount | tid | created    | completed  |*
+  |  .ZZA |  -1000 |   1 | %today-13m | %today-13m |
+  |  .ZZB |  -2000 |   1 | %today-13m | %today-13m |
+  |  .ZZC |  -3000 |   1 | %today-13m | %today-13m |
+  |  .ZZA |    -11 |   2 | %today-1w  |         0  |
+  |  .ZZA |     22 |   4 | %today-5d  |         0  |
+  |  .ZZA |     33 |   3 | %today-5d  |         0  |
   Then balances:
   | id   | r     |*
   | .ZZA |  1000 |
@@ -160,9 +160,9 @@ Scenario: A member confirms OK
   | 102 | %today-5d | bonus    | pending |      8 | ctty | .ZZC | bonus    | 0      |
   And next DO code is "whatever"
   When member ".ZZA" confirms form "history/period=5&do=ok&xid=100" with values: ""
-  Then we say "status": "report transaction" with subs:
-  | did    | otherName  | amount | rewardType | rewardAmount |*
-  | paid   | Corner Pub | $80    | reward     | $4           |
+  Then we say "status": "report tx|reward" with subs:
+  | did    | otherName  | amount | why                | rewardAmount |*
+  | paid   | Corner Pub | $80    | goods and services | $4           |
   And we show "Transaction History" with:
   |_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward/Fee |
   | 12  | %dm    | Corner Pub | 80.00    | --     | %chk   | X | this CF | 4.00   |

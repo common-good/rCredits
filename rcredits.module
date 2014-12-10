@@ -84,11 +84,11 @@ function rcredits_exception_handler($e) {
 //    $trace_msg .= "<!--$trace-->"; // source will contain the whole trace
   $msg = '<b>Exception:</b>' . R_SYS_ERR. "<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
-  if (!isDEV) {
-    if (isPRODUCTION) mail(R_TESTER_EMAIL, 'rCredits FATAL ERROR', $message);
+  if (isPRODUCTION) {
+    mail(R_TESTER_EMAIL, 'rCredits FATAL ERROR', $message);
     $R_FATAL_ERROR = u\loga('FATAL', compact('message')); // this gets picked up by rcredits_shutdown()
 /**/  die(); // invoke shutdown
-  } else echo 'FATAL ERROR: ' . $msg;
+/**/ } else echo 'FATAL ERROR: ' . $msg;
 }
 
 /**
@@ -234,40 +234,3 @@ function cron($op) {
   $func = "rCredits\\Cron\\$op";
   return $func();
 }
-
-/*
-  SELECT 
-    u.fullName, 
-    SUM(IF(t.payee=u.uid, amount, 0)) AS `in`,
-    SUM(IF(t.payer=u.uid, amount, 0)) AS `out`, 
-    SUM(IF(t.type=1, 0, t.r)) AS rewards,
-    u.r+u.usd AS bal, u.rewards AS rewards2
-    FROM r_txs t, users u
-    WHERE (t.payer=u.uid OR t.payee=u.uid) GROUP BY u.uid
-
-  SELECT 
-    u.fullName, 
-    SUM(IF(t.payee=u.uid, 1, 0)) AS `in`,
-    SUM(IF(t.payer=u.uid, 1, 0)) AS `out`, 
-    SUM(IF(t.type=1, 0, 1)) AS rewards
-    FROM r_txs t, users u
-    WHERE (t.payer=u.uid OR t.payee=u.uid) AND t.amount>0 GROUP BY u.uid
-    
-  SELECT u.fullName, SUM(-t.amount) AS bank FROM r_usd t, users u WHERE t.payer=u.uid AND t.payee=0 GROUP BY u.uid ORDER BY u.uid
-  
-  SELECT u.fullName, SUM(t.r) AS virtual FROM r_txs t LEFT JOIN users u ON u.uid=t.payee WHERE t.payeeFor LIKE '%virtual%' GROUP BY u.uid
-  SELECT u.fullName, SUM(t.r) AS virtual FROM r_txs t LEFT JOIN users u ON u.uid=t.payer WHERE t.payerFor LIKE '%virtual%' GROUP BY u.uid
-  
-  $a = rCredits\acct('NEW.AAD');
-$usa = new rCredits\usd($a); */
-/// $usa->each('print_r', 0, array('deposit','withdrawal','fee'));
-/*
-function test() {
-  include_once __DIR__ . '/usd.class';
-  $usdW = new r\usd($w = r\acct(410044001));
-  $usdA = new r\usd($a = r\acct(410061551));
-/// debug($usdW->bal()); // keep
-  $tx = $usdW->bank(-1, $err);
-/// debug($tx.$err); // keep
-  $usdW->each('test1', strtotime('60 days ago'), array('deposit'));
-}*/

@@ -248,8 +248,7 @@ function tableDefs($schema = array()) {
     'txid' => setupField('the unique transaction ID', 'serial big'), 
     'tid' => setupField("payer's transaction ID", 'int 11'), // used only for bank transfers
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
-    'payer' => setupField('user id of the payer', 'int big'), 
-    'payee' => setupField('user id of the payee', 'int big', 0), // 0 for bank transfers
+    'payer' => setupField('user id of the account holder', 'int big'), 
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'completed' => setupField('Unixtime transaction was completed', 'int 11', 0), // for deposits / withdrawals
     'deposit' => setupField('Unixtime transfer check was printed and deposited', 'int 11', 0),
@@ -391,7 +390,7 @@ function tableDefs($schema = array()) {
   // table r_notices
   $fields = array(
     'msgid' => setupField('notice record id', 'serial 11'),
-    'uid' => setupField('uid of member notified', 'int big'),
+    'uid' => setupField('account record ID of member notified', 'int big'),
     'created' => setupField('date of notice', 'int 11', 0),
     'sent' => setupField('date sent (0 if not sent yet)', 'int 11', 0),
     'message' => setupField('the notice text', 'text medium'),
@@ -408,6 +407,16 @@ function tableDefs($schema = array()) {
   $foreignKeys = array();
   $indexes = index('state');
   $schema['r_regions'] = setupTable('rCredits regions', $fields, 'region', $foreignKeys, $indexes);
+
+  // table r_near
+  $fields = [
+    'uid1' => setupField('account record ID of one account', 'int big'),
+    'uid2' => setupField('account record ID of other account', 'int big'),
+    'weight' => setupField('number of connections', 'int medium'),
+  ];
+  $foreignKeys = foreignKey('uid1', 'uid2');
+  $indexes = [];
+  $schema['r_near'] = setupTable('How members are connected', $fields, ['uid1', 'uid2'], $foreignKeys, $indexes);
 
   // table r_nonmembers (use -make instead)
 /*  $fields = array(

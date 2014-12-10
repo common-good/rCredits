@@ -5,8 +5,8 @@ SO I can enjoy the rCredit system's rapid growth and be a part of that.
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | postalCode | postalAddr | email | flags   |*
-  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | 1 A, A, AK | a@    | ok,bona |
+  | id   | fullName   | address | city  | state  | postalCode | postalAddr | rebate | flags   |*
+  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | 1 A, A, AK |      5 | ok,bona |
   And balances:
   | id     | r   | rewards |*
   | cgf    |   0 |       0 |
@@ -18,10 +18,10 @@ Scenario: A member donates
   | gift | amount | often | honor  | honored | share |*
   |    0 |     10 |     1 | memory | Jane Do |    10 |
   Then transactions:
-  | xid   | created | type     | amount | from | to   | purpose      |*
-  | .AAAB | %today  | transfer |     10 | .ZZA | cgf  | donation |
-  | .AAAC | %today  | rebate   |   0.50 | ctty | .ZZA | rebate on #1 |
-  | .AAAD | %today  | bonus    |   1.00 | ctty | cgf  | bonus on #1  |
+  | xid | created | type     | amount | from | to   | purpose      |*
+  |   1 | %today  | transfer |     10 | .ZZA | cgf  | donation |
+  |   2 | %today  | rebate   |   0.50 | ctty | .ZZA | rebate on #1 |
+  |   3 | %today  | bonus    |   1.00 | ctty | cgf  | bonus on #1  |
   And we say "status": "gift successful" with subs:
   | amount |*
   |    $10 |

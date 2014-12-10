@@ -5,10 +5,10 @@ SO I can see what happened and possbily integrate with an accounting program.
 
 Setup:
   Given members:
-  | id   | fullName | floor | acctType    | flags      |*
-  | .ZZA | Abe One  | -100  | personal    | ok,bona    |
-  | .ZZB | Bea Two  | -200  | personal    | ok,co,bona |
-  | .ZZC | Our Pub  | -300  | corporation | ok,co,bona |
+  | id   | fullName | floor | acctType    | flags      | rebate |*
+  | .ZZA | Abe One  | -100  | personal    | ok,bona    |      5 |
+  | .ZZB | Bea Two  | -200  | personal    | ok,co,bona |      5 |
+  | .ZZC | Our Pub  | -300  | corporation | ok,co,bona |     10 |
   And relations:
   | id   | main | agent | permission |*
   | .ZZA | .ZZA | .ZZB  | buy        |
@@ -16,11 +16,11 @@ Setup:
   | .ZZC | .ZZC | .ZZB  | buy        |
   | .ZZD | .ZZC | .ZZA  | sell       |
   And usd transfers:
-  | txid | payer | payee | amount | created   | completed | tid |*
-  |  501 | .ZZA  |     0 |  -1000 | %today-4m | %today-4m |   1 |
-  |  502 | .ZZB  |     0 |  -2000 | %today-5m | %today-5m |   1 |
-  |  503 | .ZZC  |     0 |  -3000 | %today-6m | %today-6m |   1 |
-  |  504 | .ZZA  |     0 |   -200 | %today-3d |         0 |   2 |
+  | txid | payer | amount | created   | completed | tid |*
+  |  501 | .ZZA  |  -1000 | %today-4m | %today-4m |   1 |
+  |  502 | .ZZB  |  -2000 | %today-5m | %today-5m |   1 |
+  |  503 | .ZZC  |  -3000 | %today-6m | %today-6m |   1 |
+  |  504 | .ZZA  |   -200 | %today-3d |         0 |   2 |
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose  | taking |*
   |   1 | %today-7m | signup   |    250 | ctty | .ZZA | signup   | 0      |
@@ -30,7 +30,7 @@ Setup:
   |   5 | %today-4m | transfer |    100 | .ZZC | .ZZA | usd F    | 1      |
   |   6 | %today-3m | transfer |    240 | .ZZA | .ZZB | what G   | 0      |
   |   7 | %today-3m | rebate   |     12 | ctty | .ZZA | rebate   | 0      |
-  |   8 | %today-3m | bonus    |     24 | ctty | .ZZB | bonus    | 0      |
+  |   8 | %today-3m | bonus    |     12 | ctty | .ZZB | bonus    | 0      |
   |   9 | %today-2w | transfer |     50 | .ZZB | .ZZC | cash P   | 0      |
   |  10 | %today-1w | transfer |    120 | .ZZA | .ZZC | this Q   | 1      |
   |  11 | %today-1w | rebate   |      6 | ctty | .ZZA | rebate   | 0      |
@@ -43,7 +43,7 @@ Setup:
   Then balances:
   | id   | r    | rewards |*
   | .ZZA |  942 |     272 |
-  | .ZZB | 2554 |     274 |
+  | .ZZB | 2542 |     262 |
   | .ZZC | 3320 |     270 |
 
 Scenario: A member downloads transactions for the past year

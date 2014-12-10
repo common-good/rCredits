@@ -26,3 +26,4 @@ files[] = tests/Exchange.test
 files[] = tests/Time.test
 files[] = tests/Offline.test
 files[] = tests/Special.test
+files[] = tests/Joint.test

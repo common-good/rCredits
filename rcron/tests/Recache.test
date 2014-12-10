@@ -65,21 +65,19 @@ class rcronRecache extends DrupalWebTestCase {
   public function testBalancesGetOutOfWhack_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "ASSOC'
-    . '\\| id     | r  |rewards | minimum | floor |'
-    . '\\| .ZZA   |  0 |      0 |       0 |     2 |'
-    . '\\| .ZZB   | 20 |      0 |     -10 |   -50 |"');
+    . '\\| id     | r  |rewards |'
+    . '\\| .ZZA   |  0 |      0 |'
+    . '\\| .ZZB   | 20 |      0 |"');
     When_('cron runs "recache"');
     Then_('we tell staff "cache mismatch" with subs: "ASSOC'
     . '\\| id   | key     | is   | shouldBe |'
     . '\\| .ZZA | r       |    0 |       10 |'
     . '\\| .ZZA | rewards |    0 |       10 |'
-    . '\\| .ZZA | minimum |    0 |        2 |'
-    . '\\| .ZZB | r       |   20 |        0 |'
-    . '\\| .ZZB | minimum |  -10 |        0 |"');
+    . '\\| .ZZB | r       |   20 |        0 |"');
     And__('balances: "ASSOC'
-    . '\\| id     | r  | rewards | minimum |'
-    . '\\| .ZZA   | 10 |      10 |       2 |'
-    . '\\| .ZZB   |  0 |       0 |       0 |"');
+    . '\\| id     | r  | rewards |'
+    . '\\| .ZZA   | 10 |      10 |'
+    . '\\| .ZZB   |  0 |       0 |"');
   }
 
   // Scenario: Balances get a tiny bit out of whack

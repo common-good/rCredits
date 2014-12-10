@@ -234,7 +234,8 @@ function ssnCheck($a) {
   $name = $a->fullName . ($a->legalName == $a->fullName ? '' : "<br>$a->legalName");
   $rows[] = array(t('Data Given'), $name, u\fmtDate($a->dob), r\location($a, TRUE), '', '');
   $name = ssnName($one = (object) $d['ssnnames']['ssnname']);
-  $rows[] = array(t('Found'), $name, u\fmtDate(strtotime($one->dob)), $d['deathsearchresults'] ? 'DEAD' : '', '', '');
+  $dob = $one->dob ? u\fmtDate(strtotime($one->dob)) : ''; // arrives as an empty array if none
+  $rows[] = array(t('Found'), $name, $dob, $d['deathsearchresults'] ? 'DEAD' : '', '', '');
   
   $counties = array();
   $addresses = $d['addresses']['address'];
@@ -364,23 +365,28 @@ function makeTestCards() {
   $a = a('aaa');
   $a->update(u\ray('fullName', 'Bob Bossman'));
   $a->upSecure('cardCode2', 'WeHlioM5JZv1O9G');
+  a\shrinkPhoto($a);
   
   $a = a('aad');
   $a->update(u\ray('fullName', 'Cathy Cashier'));
   $a->upSecure('cardCode2', 'ME04nW44DHzxVDg');
+  a\shrinkPhoto($a);
   
   $a = a('aaq');
   $a->update(u\ray('fullName', 'Helga\'s Hardware'));
 //  $a->setBitx(CO_REQUIRE_CASHIER, TRUE, 'coFlags');
+  a\shrinkPhoto($a);
   
   $a = a('aak');
   $a->update(u\ray('fullName', 'Curt Customer'));
   $a->upSecure('cardCode', 'NyCBBlUF1qWNZ2k');
   $a->upSecure('cardCode2', 'utbYceW3KLLCcaw');
+  a\shrinkPhoto($a);
   
   $a = a('abb');
   $a->update(u\ray('fullName', 'Susan Shopper'));
   $a->upSecure('cardCode', 'ZzhWMCq0zcBowqw');
+  a\shrinkPhoto($a);
 }
 
 /* for changing archaic Dwolla info
@@ -431,7 +437,7 @@ function getBanks() {
  * @param string $err: (RETURNED) the error message, if any
  * @return <success>
   include_once __DIR__ . '/../rcredits/admin/admin.inc';
-  debug (rCredits\Admin\shrinkPhoto(a('aaa'), $err));
+  debug (f('a.shrinkPhoto', a('aaa'), $err));
   debug ($err);
  */
 function shrinkPhoto($a, &$err = '') {
@@ -577,7 +583,7 @@ function deposits() {
     SELECT SUM(IF(amount<0, -amount, 0)) AS amountIn, SUM(IF(amount<0, 1, 0)) AS countIn,
       SUM(IF(amount>0, -amount, 0)) AS amountOut, SUM(IF(amount>0, 1, 0)) AS countOut,
       deposit
-    FROM r_usd WHERE payee=0
+    FROM r_usd
     GROUP BY deposit ORDER BY deposit<>0, deposit DESC, amount>0
 EOF;
 
@@ -589,7 +595,7 @@ EOF;
       list ($total, $count) = [u\fmtAmt(${"amount$way"}, ''), number_format(${"count$way"})];
       if (!$count) continue;
       $details = t('<@a>details</a>', ['@a'=>"a href=deposit-details/way=$way&date=$deposit&total=$total&count=$count"]);
-      $checks = t('<@a>checks</a>', ['@a'=>"a href=checks/way=$way&date=$deposit"]);
+      $checks = t('<@a>checks</a>', ['@a'=>"a href=checks/way=$way&date=$deposit&mark=0"]);
       $wayDesc = $way == 'In' ? t('IN') : t('OUT');
       $deposits[] =<<<EOF
 <tr>
@@ -617,8 +623,9 @@ EOF;
  * @param Pdf $ck: the Check object to place the check in.
  * @param int $pos: what position on the current page (1, 2, or 3)
  * @param assoc $tx: relevant fields from the r_usd record
+ * @param bool $mark: whether to set the deposit date for each relevant transfer, in r_usd
  */
-function printCheck(&$ck, $pos, $tx) {
+function printCheck(&$ck, $pos, $tx, $mark) {
   extract(u\just('txid created payer amount deposit', $tx));
   $escrow = 'USkk' . ESCROW_ROUTING . ESCROW_ACCOUNT;
   $a = r\acct($payer);
@@ -683,10 +690,11 @@ function printCheck(&$ck, $pos, $tx) {
   
 //  $ck->say('', 0, $mt - $m + CHECK_HEIGHT, $W, 1, '', '', 'T'); // comment this out
   
-  if (!$deposit) db\update('r_usd', u\ray('deposit txid', strtotime('today'), $txid), 'txid');
+  if (!$deposit and $mark) db\update('r_usd', u\ray('deposit txid', strtotime('today'), $txid), 'txid');
 }
 
 // list accounts to send post-DW email to
+/*
 function listem($miw = 0, $dw = 0, $min = 0) {
   $cttyCrit = $miw ? 'community=-25026000000001' : 'community=-26742000000001';
   $minCrit = $dw ? '1' : ($min ? 'minimum>0' : '(minimum IS NULL OR minimum=0)');
@@ -704,4 +712,4 @@ function listem($miw = 0, $dw = 0, $min = 0) {
   $res = @$res ? join($dw ? '<br><br>' : ', ', $res) : 'none';
   \drupal_set_message($res);
 }
-    
+*/

@@ -50,6 +50,7 @@ function extraSubs(&$subs) {
  *
  * in: MAKE Exchange Setup
  *     MAKE Identify Setup
+ *     MAKE Joint Setup
  *     MAKE Offline Setup
  *     MAKE Startup Setup
  *     MAKE Time Setup
@@ -63,6 +64,7 @@ function members($list) {return t\members($list);}
  *
  * in: MAKE Exchange Setup
  *     MAKE Identify Setup
+ *     MAKE Joint Setup
  *     MAKE Offline Setup
  *     MAKE Startup Setup
  *     MAKE Time Setup
@@ -76,6 +78,7 @@ function relations($relations) {return t\relations($relations);}
  *
  * in: MAKE Exchange Setup
  *     MAKE Identify Setup
+ *     MAKE Joint Setup
  *     MAKE Offline Setup
  *     MAKE Offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
  *     MAKE Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
@@ -90,6 +93,7 @@ function relations($relations) {return t\relations($relations);}
  *     MAKE Undo AnAgentAsksToUndoARefundWithInsufficientBalance
  *     MAKE Undo AnAgentAsksToUndoAChargeWithoutPermission
  *     MAKE Undo AnAgentAsksToUndoARefundWithoutPermission
+ *     BOTH Undo ACashierReversesATransactionWithInsufficientFunds
  */
 function transactions($list) {return t\transactions($list);}
 
@@ -206,6 +210,7 @@ function memberHasNoPicture($id) {
  *
  * in: MAKE Exchange Setup
  *     MAKE Identify Setup
+ *     MAKE Joint Setup
  *     MAKE Offline Setup
  *     MAKE Startup Setup
  *     MAKE Time Setup
@@ -220,6 +225,8 @@ function devices($list) {return t\devices($list);}
  * in: TEST Exchange Setup
  *     TEST Exchange ACashierAsksToChargeSomeoneForCash
  *     TEST Exchange ACashierAsksToRefundSomeone
+ *     TEST Joint Setup
+ *     TEST Joint ACashierAsksToChargeSomeone
  *     TEST Offline Setup
  *     TEST Offline ACashierChargedSomeoneOffline
  *     TEST Offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
@@ -230,8 +237,10 @@ function devices($list) {return t\devices($list);}
  *     TEST Transact Setup
  *     TEST Transact ACashierAsksToChargeSomeone
  *     TEST Transact ACashierAsksToRefundSomeone
+ *     TEST Undo Setup
  *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
  *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
+ *     TEST Undo ACashierReversesATransactionWithInsufficientFunds
  */
 function balances($list) {return t\balances($list);}
 
@@ -294,6 +303,7 @@ function withBalance($subs) {
  *
  * in: TEST Exchange ACashierAsksToChargeSomeoneForCash
  *     TEST Exchange ACashierAsksToRefundSomeone
+ *     TEST Joint ACashierAsksToChargeSomeone
  *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
  *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
  *     TEST Transact ACashierAsksToChargeSomeone
@@ -306,6 +316,7 @@ function withBalance($subs) {
  *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
  *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
  *     TEST Undo AnAgentAsksToUndoANonexistentTransaction
+ *     TEST Undo ACashierReversesATransactionWithInsufficientFunds
  */
 function withUndo($subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -343,7 +354,10 @@ function withUndo($subs) {
 function weReturnErrorWithSubs($msg, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $rposResult;
-  return ($rposResult['ok'] == '0' and $rposResult['message'] == strip_tags(u\tt($msg, @$subs[0])));
+  $msg = strip_tags(u\tt($msg, @$subs[0]));
+  if ($rposResult['ok'] == '0' and $rposResult['message'] == $msg) return TRUE;
+/**/ t\output(u\ray('wanted,actually sent', $msg, print_r($rposResult, 1)));
+  return FALSE;
 }
 
 /**
@@ -379,6 +393,7 @@ function weReturnError($msg) {return weReturnErrorWithSubs($msg, array());}
  *
  * in: MAKE Exchange Setup
  *     MAKE Identify Setup
+ *     MAKE Joint Setup
  *     MAKE Offline Setup
  *     MAKE Time Setup
  *     MAKE Transact Setup
@@ -391,6 +406,7 @@ function selling($selling) {return t\selling($selling);}
  *
  * in: MAKE Exchange Setup
  *     MAKE Identify Setup
+ *     MAKE Joint Setup
  *     MAKE Offline Setup
  *     MAKE Time Setup
  *     MAKE Transact Setup
@@ -417,6 +433,7 @@ function agentAsksDeviceForOpWith($agent, $device, $op, $extra) {
  *
  * in: TEST Exchange ACashierAsksToChargeSomeoneForCash
  *     TEST Exchange ACashierAsksToRefundSomeone
+ *     TEST Joint ACashierAsksToChargeSomeone
  *     TEST Offline ACashierChargedSomeoneOffline
  *     TEST Offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
  *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
@@ -430,6 +447,7 @@ function agentAsksDeviceForOpWith($agent, $device, $op, $extra) {
  *     TEST Undo AnAgentAsksToUndoACashinPayment
  *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
  *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
+ *     TEST Undo ACashierReversesATransactionWithInsufficientFunds
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 
@@ -450,6 +468,7 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  *     MAKE Exchange SellerAgentLacksPermissionToBuy
  *     MAKE Exchange SellerAgentLacksPermissionToScanAndSell
  *     MAKE Exchange BuyerAgentLacksPermissionToBuy
+ *     MAKE Joint ACashierAsksToChargeSomeone
  *     MAKE Offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
  *     MAKE Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
  *     MAKE Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
@@ -470,9 +489,16 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  *     MAKE Transact SellerTriesToChargeTheCustomerTwice
  */
 function agentAsksDeviceToChargeForAt($agent, $device, $member, $amount, $goods, $description, $created) {
-  global $testOnly; if ($testOnly) return FALSE;
-  $goods = $goods == 'goods' ? "1" : "0";
-  return t\hitServer('charge', compact(u\ray('member amount goods description created')), $agent, $device);
+  return reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $description, $created, 0);
+}
+
+/**
+ * agent (ARG) asks device (ARG) to charge (ARG) $(ARG) for (ARG): (ARG) at (ARG) force (ARG)
+ *
+ * in: MAKE Undo ACashierReversesATransactionWithInsufficientFunds
+ */
+function agentAsksDeviceToChargeForAtForce($agent, $device, $member, $amount, $goods, $desc, $created, $force) {
+  return reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $desc, $created, $force);
 }
 
 /**
@@ -487,7 +513,7 @@ function agentAsksDeviceToChargeForAt($agent, $device, $member, $amount, $goods,
  */
 function reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $description, $created, $force) {
   global $testOnly; if ($testOnly) return FALSE;
-  $goods = $goods == 'goods' ? "1" : "0";
+  $goods = t\goodsBit($goods);
   return t\hitServer('charge', compact(u\ray('member amount goods description created force')), $agent, $device);
 }
 
@@ -496,6 +522,7 @@ function reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goo
  *
  * in: TEST Exchange ACashierAsksToChargeSomeoneForCash
  *     TEST Exchange ACashierAsksToRefundSomeone
+ *     TEST Joint ACashierAsksToChargeSomeone
  *     TEST Transact ACashierAsksToChargeSomeone
  *     TEST Transact ACashierAsksToRefundSomeone
  *     TEST Undo AnAgentAsksToUndoACharge
@@ -519,6 +546,7 @@ function withDid($subs) {
  *
  * in: TEST Exchange ACashierAsksToChargeSomeoneForCash
  *     TEST Exchange ACashierAsksToRefundSomeone
+ *     TEST Joint ACashierAsksToChargeSomeone
  *     TEST Offline ACashierChargedSomeoneOffline
  *     TEST Offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
  *     TEST Offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
@@ -535,6 +563,7 @@ function withDid($subs) {
  *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
  *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
  *     TEST Undo AnAgentAsksToUndoANonexistentTransaction
+ *     TEST Undo ACashierReversesATransactionWithInsufficientFunds
  */
 function weRespondOkTxidCreatedBalanceRewards($txid, $created, $balance, $rewards) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -555,6 +584,7 @@ function weRespondOkTxidCreatedBalanceRewards($txid, $created, $balance, $reward
  *
  * in: TEST Exchange ACashierAsksToChargeSomeoneForCash
  *     TEST Exchange ACashierAsksToRefundSomeone
+ *     TEST Joint ACashierAsksToChargeSomeone
  *     TEST Transact ACashierAsksToChargeSomeone
  *     TEST Transact ACashierAsksToRefundSomeone
  *     TEST Undo AnAgentAsksToUndoACharge
@@ -589,3 +619,4 @@ function agentOnDeviceAsksForTheTime($agent, $device) {
   global $testOnly; if ($testOnly) return FALSE;
   return t\hitServer('time', array(), $agent, $device);
 }
+

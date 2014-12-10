@@ -5,10 +5,10 @@ SO I can make it right.
 
 Setup:
   Given members:
-  | id   | fullName   | email | flags      |*
-  | .ZZA | Abe One    | a@    | ok,bona    |
-  | .ZZB | Bea Two    | b@    | ok,bona    |
-  | .ZZC | Corner Pub | c@    | ok,co,bona |
+  | id   | fullName   | rebate | flags      |*
+  | .ZZA | Abe One    |      5 | ok,bona    |
+  | .ZZB | Bea Two    |     10 | ok,bona    |
+  | .ZZC | Corner Pub |     10 | ok,co,bona |
   And relations:
   | id   | main | agent | permission |*
   | :ZZA | .ZZC | .ZZA  | sell       |
@@ -31,7 +31,7 @@ Setup:
 Scenario: A buyer increases a payment amount
   When member ".ZZA" edits transaction "4" with values:
   | amount | goods | purpose |*
-  |     40 |     1 | stuff   |
+  |     40 |     2 | stuff   |
   Then balances:
   | id   | balance | rewards |*
   | ctty |    -756 |         |
@@ -58,16 +58,16 @@ Scenario: A buyer changes the goods status
   | .ZZC |     250 |     250 |
   And we say "status": "info saved"
   And we notice "tx edited|new tx goods" to member ".ZZA" with subs:
-  | tid | who     | what          |*
-  | 2   | you     | cash/loan/etc |
+  | tid | who     | what        |*
+  | 2   | you     | other money |
   And we notice "tx edited|new tx goods" to member ".ZZB" with subs:
-  | tid | who     | what          |*
-  | 2   | Abe One | cash/loan/etc |
+  | tid | who     | what  |*
+  | 2   | Abe One | other money |
 
 Scenario: A buyer tries to decrease a payment amount
   When member ".ZZA" edits transaction "4" with values:
   | amount | goods | purpose |*
-  |     10 |     1 | stuff   |
+  |     10 |     2 | stuff   |
   Then we say "error": "illegal amount change" with subs:
   | amount | action   | a |*
   | $20    | decrease | ? |

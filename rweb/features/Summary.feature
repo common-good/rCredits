@@ -7,10 +7,10 @@ SO I know where it stands.
 
 Setup:
   Given members:
-  | id   | fullName   | postalAddr                   | floor | flags         |*
-  | .ZZA | Abe One    | 1 A St., Atown, AK 01000     | -100  | ok,bona    |
-  | .ZZB | Bea Two    | 2 B St., Btown, UT 02000     | -200  | ok,bona    |
-  | .ZZC | Corner Pub | 3 C St., Ctown, Cher, FRANCE | -300  | ok,co,bona |
+  | id   | fullName   | postalAddr                   | floor | flags      | rebate |*
+  | .ZZA | Abe One    | 1 A St., Atown, AK 01000     | -100  | ok,bona    |      5 |
+  | .ZZB | Bea Two    | 2 B St., Btown, UT 02000     | -200  | ok,bona    |     10 |
+  | .ZZC | Corner Pub | 3 C St., Ctown, Cher, FRANCE | -300  | ok,co,bona |     10 |
   And members have:
   | id   | created   | share |*
   | ctty | %today-9w |     0 |
@@ -60,6 +60,7 @@ Scenario: A member clicks on the summary tab
   | Committed     | $0.60 |
   | Your return   | 20.6% |
   | _ever         | 544.1% |
+# or 541.4% (depends on daylight time?)
   | Social return | $9 |
   | _ever         | $9 |
   | Credit floor  | $-100 |

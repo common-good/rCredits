@@ -44,10 +44,10 @@ class rwebTransactions extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "ASSOC'
-    . '\\| id   | fullName   | floor | acctType    | flags      | created    |'
-    . '\\| .ZZA | Abe One    | -100  | personal    | ok,bona    | %today-15m |'
-    . '\\| .ZZB | Bea Two    | -200  | personal    | ok,co,bona | %today-15m |'
-    . '\\| .ZZC | Corner Pub | -300  | corporation | ok,co,bona | %today-15m |"');
+    . '\\| id   | fullName   | floor | acctType    | flags      | created    | rebate |'
+    . '\\| .ZZA | Abe One    | -100  | personal    | ok,bona    | %today-15m |      5 |'
+    . '\\| .ZZB | Bea Two    | -200  | personal    | ok,co,bona | %today-15m |     10 |'
+    . '\\| .ZZC | Corner Pub | -300  | corporation | ok,co,bona | %today-15m |     10 |"');
     And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| .ZZA | .ZZA | .ZZB  | buy        |'
@@ -55,13 +55,13 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| .ZZC | .ZZC | .ZZB  | buy        |'
     . '\\| .ZZD | .ZZC | .ZZA  | sell       |"');
     And__('usd transfers: "ASSOC'
-    . '\\| payer | payee | amount | tid | created    | completed  |'
-    . '\\|  .ZZA |     0 |  -1000 |   1 | %today-13m | %today-13m |'
-    . '\\|  .ZZB |     0 |  -2000 |   1 | %today-13m | %today-13m |'
-    . '\\|  .ZZC |     0 |  -3000 |   1 | %today-13m | %today-13m |'
-    . '\\|  .ZZA |     0 |    -11 |   2 | %today-1w  |         0  |'
-    . '\\|  .ZZA |     0 |     22 |   4 | %today-5d  |         0  |'
-    . '\\|  .ZZA |     0 |     33 |   3 | %today-5d  |         0  |"');
+    . '\\| payer | amount | tid | created    | completed  |'
+    . '\\|  .ZZA |  -1000 |   1 | %today-13m | %today-13m |'
+    . '\\|  .ZZB |  -2000 |   1 | %today-13m | %today-13m |'
+    . '\\|  .ZZC |  -3000 |   1 | %today-13m | %today-13m |'
+    . '\\|  .ZZA |    -11 |   2 | %today-1w  |         0  |'
+    . '\\|  .ZZA |     22 |   4 | %today-5d  |         0  |'
+    . '\\|  .ZZA |     33 |   3 | %today-5d  |         0  |"');
     Then_('balances: "ASSOC'
     . '\\| id   | r     |'
     . '\\| .ZZA |  1000 |'

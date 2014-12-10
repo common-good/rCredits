@@ -152,7 +152,7 @@ function usdTransfers($tx) {return t\usdTransfers($tx);}
  *     TEST Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  *     TEST Bank AMemberHasADepositedButNotCompletedTransfer
  */
-function bankTransferCountIs($count) {return (t\usdTransferCount('payee=0') == $count);}
+function bankTransferCountIs($count) {return (t\usdTransferCount() == $count);}
 
 /**
  * relations: (ARG)

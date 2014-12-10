@@ -89,9 +89,10 @@ function doAccount($info = array()) {
 /**/  if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
   extract($info); // any user table fields, plus dw (dwolla test account number)
   u\setDft($id, r\acct::nextId()); // default to first available number
-  $uid = uid($id); // change .AAB to 1, etc.
+  $uid = t\uid($id); // change .AAB to 1, etc.
 
   if (@$email) $mail = $info['mail'] = $email;
+  if (@$jid) $jid = t\uid($jid);
 
   if (!$testOnly) { // when making, set many defaults and mods
     u\setDft($fullName, 'doAccount ' . randomString(20, 'word'));
@@ -132,7 +133,7 @@ function doAccount($info = array()) {
   if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
   
   foreach (u\ray('id email acctType dw cc cc2') as $one) unset($info[$one]);
-  u\preray(compact(u\ray('uid flags risks ' . $fixFields)), $info);
+  u\preray(compact(u\ray('uid jid flags risks ' . $fixFields)), $info);
   fixValues($info, TRUE);
 
   if ($testOnly) {
@@ -192,8 +193,9 @@ function doTx($info, $thing) {
   extract($info);
 
   u\setDft($created, REQUEST_TIME);
-  if (@$from) $payer = uid($from);
-  if (@$to) $payee = uid($to); 
+  if (@$from) txUid($from, $payer, $fromAgent);
+  if (@$to) txUid($to, $payee, $toAgent);
+  
 //  u\setDft($r, $amount);
 //  if ($amount != $r) u\setDft($usdXid, 10000 + $xid);
   if (@$purpose) $for = $purpose; // ?: 'cash';
@@ -202,14 +204,14 @@ function doTx($info, $thing) {
   if (isset($risks)) $risks = getRisks($risks, K_TX_RISKS);
 
   if ($inv) {
-    u\setDft($goods, u\forCash(@$for) ? 0 : 1);
+    u\setDft($goods, u\forCash(@$for) ? R_FOR_USD : R_FOR_GOODS);
   } else {
     if (!$testOnly) u\setDft($risk, NULL); // indicates that risk has not been calculated yet
     if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
     u\setDft($type, TX_TRANSFER);
     foreach (u\ray('type') as $one) if (!is_numeric($$one)) $$one = u\consta('tx', $$one);
-    u\setDft($goods, ($type != TX_TRANSFER or u\forCash(@$for)) ? 0 : 1);
-    if ($goods) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
+    u\setDft($goods, ($type != TX_TRANSFER or u\forCash(@$for)) ? R_FOR_USD : R_FOR_GOODS);
+    if ($goods == R_FOR_GOODS) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
     $data = array();
     if (u\in(@$purpose, 'offline')) $data['force'] = 1;
     if (u\in(@$purpose, 'undoneBy:') or u\in(@$purpose, 'undoes:')) {
@@ -240,6 +242,19 @@ function doTx($info, $thing) {
     $x = new r\x($info + compact('for'));
     return $x->id;
   }
+}
+
+/**
+ * Interpret an id in a transaction or invoice.
+ * @param string $id: quid or partial quid (eg NEW.AAA or .AAA or NEW:AAA or :AAA)
+ * @param int $main: (RETURNED) the payer or payee
+ * @param int $other: (RETURNED) the payerAgent or payeeAgent
+ */
+function txUid($id, &$main, &$other) {
+  if (strpos($id, R_AGENT_MARK) !== FALSE) {
+    $reid = t\uid(str_replace(R_AGENT_MARK, R_MEMBER_MARK, $id));
+    extract(r\relation('main,other', $reid));
+  } else $main = $other = t\uid($id);
 }
 
 /**
@@ -316,7 +331,7 @@ function notice($notice, $id, $subs = array()) {
     }
   }
   
-  $map = ['&nbsp;'=>'', '&#8226;'=>''];
+  $map = ['&nbsp;'=>'', R_BULLET=>''];
   $message = strtr(strip_tags(u\tt($notice, @$subs)), $map);
   $sql = 'SELECT message FROM r_notices WHERE uid=:uid AND sent=:sent ORDER BY msgid DESC';
   $info = u\ray('uid sent', $uid, @$subs['sent'] ?: 0);
@@ -372,12 +387,13 @@ function doneStep($uid, $step) {
  */
 function doMemberFields($one) {
   global $testOnly;
-  $balFields = u\just(T_BALANCE_FIELDS. ' dw/usd', $one);
+  $balFields = u\just(T_BALANCE_FIELDS, $one);
   if (!doBalance($balFields, $testOnly)) return;
 
   $a = r\acct($id = t\uid($one['id']));
   foreach ($balFields as $k => $v) unset($one[$k]); // don't rehandle balance fields, and already got id
   fixValues($one, TRUE);
+  if (@$one['jid']) $one['jid'] = t\uid($one['jid']);
 
   if ($testOnly) {
     foreach ($one as $key => $value) if ($value != '?') {
@@ -411,44 +427,27 @@ function memberFieldValues($list) {
  */
 function doBalance($one) {
   global $testOnly;
-/*  if (isset($one['dw/usd'])) {
-    $one['usd'] = $one['dwolla'] = $one['dw/usd'];
-    unset($one['dw/usd']);
-  }*/
+
   extract(u\just(T_BALANCE_FIELDS, $one));
   if (!$a = r\acct($id = t\uid($id0 = $id))) return t\output("account $id0 does not exist");
 /// print_r(compact('a','id','id0'));
 /// print_r(' unQuid=' . r\unQuid($id0));
-/*
-  if ($hasdw = in_array($a->usdAccount, array(DW_TEST_ACCT, DW_TESTER_ACCT))) $us = new r\usd($a);
-  $dodw = (isset($dwolla) and $hasdw);
-*/
   if (!$testOnly) { // setting the values
-/*    if ($dodw and !$us->setbal($dwolla, $err)) return t\output("Can't set dwolla bal for $id to $$dwolla -- $err");
-    if ($hasdw and @$usd == '?') {
-      $one['usd'] = $us->bal($err);
-      if (@$err) return t\output("Can't get dwolla bal for $id -- $err");
-    } */
     unset($one['id']);
-//    unset($one['dwolla']);
     return ($one ? $a->update($one) : TRUE); // handle only id being passed
   }
 
   // verify
   $calc = t\uidCredit($id);
-  foreach (u\ray('r balance rewards') as $one) {
-    if (isset($$one) and $$one != '?') {
-//      $cachedVal = $one == 'balance' ? $a->r + $a->usd : $a->$one;
-      $cachedVal = $one == 'balance' ? $a->r : $a->$one;
-//      if (($id > 0 or $one == 'usd') and t\badEq("cached $one", $cachedVal, $$one, $id)) return FALSE;
-      if (($id > 0) and t\badEq("cached $one", $cachedVal, $$one, $id)) return FALSE;
-//      if ($one != 'usd' and ($id > 0 or $one == 'r')) {
-      if ($id > 0 or $one == 'r') if (t\badEq("calc $one", $calc->$one, $$one, $id)) return FALSE;
+  foreach (u\ray('r balance rewards') as $k) {
+    if (isset($$k) and $$k != '?') {
+      $cachedVal = $k == 'balance' ? $a->r : $a->$k;
+      if (($id > 0) and t\badEq("cached $k", $cachedVal, $$k, $id)) return FALSE;
+      if ($id > 0 or $k != 'rewards') if (!$a->jid) if (t\badEq("calc $k", $calc->$k, $$k, $id)) return FALSE;
     }
   }
-//  if ($dodw and $dwolla != '?' and t\badEq('dwolla bal', $us->bal($err), $dwolla, $id)) return t\output("Dwolla err: $err");
-  foreach (u\ray('floor minimum share committed') as $one) {
-    if (isset($$one) and $$one != '?' and $id > 0) if (t\badEq("db $one", $a->$one, $$one, $id)) return FALSE;
+  foreach (u\ray('floor minimum share committed') as $k) {
+    if (isset($$k) and $$k != '?' and $id > 0) if (t\badEq("db $k", $a->$k, $$k, $id)) return FALSE;
   }
   return TRUE;
 }
@@ -476,14 +475,12 @@ function usdTransfers($txs) {
   
   foreach ($txs as $tx) {
     if ($testOnly) {
-      extract(u\just('payer payee risks', $tx));
+      extract(u\just('payer risks', $tx));
       if (@$payer) $tx['payer'] = t\uid($payer);
-      if (@$payee and !is_numeric($payee)) $tx['payee'] = t\uid($payee);
-///      debug(compact(u\ray('payer payee amount')));
       if (isset($risks)) $tx['risks'] = getRisks($risks, K_TX_RISKS);
       if (!verifyRecord('r_usd', $tx)) return FALSE;
     } else {
-      foreach (u\just('payer payee', $tx) as $key => $value) {
+      foreach (u\just('payer', $tx) as $key => $value) {
         if ($value) $tx[$key] = t\uid($value);
       }
       u\setDft($tx['txid'], t\seq());
@@ -557,12 +554,12 @@ function cronRuns($op) {
  * @param int $uid: return credit info for this account id
  */
 function uidCredit($uid) {
-  $info = be\creditInfo(compact('uid'));
+  $info = be\creditInfo(u\ray('uid noj', $uid, TRUE));
   $a = r\acct($uid);
-  if ($uid >0) foreach (u\ray('r rewards') as $one) { // (community amounts don't get cached) (don't include usd)
-    if (!t\eq($v1 = $info->$one, $v2 = $a->$one + 0)) {
-      output("Calculated $one different from cache: $v1 <> $v2");
-      $info->$one = 'error';
+  if ($uid > 0 and !$a->jid) foreach (u\ray('r rewards') as $k) { // (community amounts don't get cached)
+    if (!t\eq($v1 = $info->$k, $v2 = $a->$k + 0)) {
+      output("Calculated $k different from cache: $v1 <> $v2");
+      $info->$k = 'error';
     }
   }
   return $info;
@@ -1310,3 +1307,4 @@ function seq($table = 'r_usd') {
 function log($msg) {if (u\test()) u\log($msg, 'debug');}
 function that($thing) {global $thatThing; return $thatThing[$thing];}
 function dosayFilename($type) {return __DIR__ . "/../dosay-$type.txt";}
+function goodsBit($s) {return $s == 'goods' ? "1" : ($s == 'cash' ? "0" : "ERROR");} // no 3rd why for rSmart

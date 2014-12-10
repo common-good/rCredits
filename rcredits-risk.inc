@@ -90,9 +90,9 @@ function txRisk1($tx, &$risk = 0, &$calc = 0) {
   }
   
   if (!$cttyPayer) { // most transfers to/from the community should be ignored
-    if (!$goods) {
+    if ($goods != R_FOR_GOODS) {
       if ($neg ? $a1->co : $a2->co) {
-        setRisk((!$neg and $channel == TX_POS and r\usdin($payeeFor)) ? ($xfee ? 'bankIn' : 'cashIn') : 'cashOut');
+        setRisk((!$neg and $channel == TX_POS and r\usdin($payeeFor)) ? (@$xfee ? 'bankIn' : 'cashIn') : 'cashOut');
       } else setRisk('exchange');
       if ($a1->risk >= K_RED) setRisk('suspectOut');
     } else {
@@ -169,7 +169,7 @@ function achRisk1($tx, &$risk = 0, &$calc = 0) {
  * @param acct $a: add the standard risk score for this risk type, if the bit is already set in this acct
  * @return assoc [risk, risks] if called with no params
  */
-function setRisk($bitName = NULL, $multiplier = 1, $setBit = '') {
+function setRisk($bitName = NULL, $multiplier = 1, $zot = '') {
   global $showRiskCalc;
   global $_risk, $_risks; // use _ to distinguish from extracted risk and risks fields (not needed, but clearer)
   global $_acctRisks, $_txRisks, $_acctRiskBits, $_txRiskBits;
@@ -229,7 +229,7 @@ function setBigRisk($uid, $ago, $threshold, $bitName) {
       SUM(IF(amount>0,amount,0)) AS `in`, 
       SUM(IF(amount<0,-amount,0)) AS `out`
     FROM (SELECT amount,created FROM r_usd 
-            WHERE payer=:uid AND completed>=created AND payee=0
+            WHERE payer=:uid AND completed>=created
           UNION SELECT IF(payee=:uid, amount, -amount) AS amount,created FROM r_txs 
             WHERE payer=:uid OR payee=:uid) t
     WHERE created BETWEEN :since AND :now

@@ -8,10 +8,10 @@ SO I can see how well the rCredits system is doing for myself, for my ctty, and 
 
 Setup:
   Given members:
-  | id   | fullName   | email | flags      | minimum | floor | share | created   |*
-  | .ZZA | Abe One    | a@    | ok,bona    |       5 |     0 |    10 | %today-6m |
-  | .ZZB | Bea Two    | b@    | ok,bona    |    1000 |   -20 |    20 | %today-5w |
-  | .ZZC | Corner Pub | c@    | ok,co,bona |    2000 |    10 |    30 | %today-4w |
+  | id   | fullName   | rebate | flags      | minimum | floor | share | created   | activated |*
+  | .ZZA | Abe One    |      5 | ok,bona    |       5 |     0 |    10 | %today-6m | %today-5m |
+  | .ZZB | Bea Two    |      5 | ok,bona    |    1000 |   -20 |    20 | %today-5w | %today-4w |
+  | .ZZC | Corner Pub |     10 | ok,co,bona |    2000 |    10 |    30 | %today-4w | %today-3w |
   And relations:
   | id   | main | agent | permission |*
   | .ZZA | .ZZA | .ZZB  | buy        |
@@ -19,11 +19,11 @@ Setup:
   | .ZZC | .ZZC | .ZZB  | buy        |
   | .ZZD | .ZZC | .ZZA  | sell       |
   And usd transfers:
-  | txid | payer | payee | amount | completed |*
-  |  100 | .ZZA  |     0 |  -1000 | %today-3d |
-  |  101 | .ZZB  |     0 |  -2000 | %today-4d |
-  |  102 | .ZZC  |     0 |  -3050 | %today-5d |
-  |  103 | .ZZC  |     0 |     50 | %today-2d |
+  | txid | payer | amount | completed |*
+  |  100 | .ZZA  |  -1000 | %today-3d |
+  |  101 | .ZZB  |  -2000 | %today-4d |
+  |  102 | .ZZC  |  -3050 | %today-5d |
+  |  103 | .ZZC  |     50 | %today-2d |
   Then balances:
   | id   | r     |*
   | .ZZA |  1000 |
@@ -36,12 +36,12 @@ Setup:
   |   3 | %today-4m | signup    |    250 | ctty | .ZZC | signup  | 0     |
   |   4 | %today-3m | transfer  |     10 | .ZZB | .ZZA | cash E  | 0     |
   |   5 | %today-3m | transfer  |    100 | .ZZC | .ZZA | usd F   | 0     |
-  |   6 | %today-3m | transfer  |    240 | .ZZA | .ZZB | what G  | 1     |
+  |   6 | %today-3m | transfer  |    240 | .ZZA | .ZZB | what G  | 2     |
   And statistics get set "%tomorrow-1m"
   And transactions: 
   | xid | created   | type      | amount | from | to   | purpose | goods | channel  |*
-  |  15 | %today-2w | transfer  |     50 | .ZZB | .ZZC | p2b     | 1     | %TX_WEB  |
-  |  18 | %today-1w | transfer  |    120 | .ZZA | .ZZC | this Q  | 1     | %TX_WEB  |
+  |  15 | %today-2w | transfer  |     50 | .ZZB | .ZZC | p2b     | 2     | %TX_WEB  |
+  |  18 | %today-1w | transfer  |    120 | .ZZA | .ZZC | this Q  | 2     | %TX_WEB  |
   |  23 | %today-6d | transfer  |    100 | .ZZA | .ZZB | cash V  | 0     | %TX_WEB  |
   |  24 | %today-2d | inflation |      1 | ctty | .ZZA | inflate | 0     | %TX_WEB  |
   |  25 | %today-2d | inflation |      2 | ctty | .ZZB | inflate | 0     | %TX_WEB  |
@@ -49,14 +49,14 @@ Setup:
   |  27 | %today-2d | grant     |      4 | ctty | .ZZA | grant   | 0     | %TX_WEB  |
   |  28 | %today-2d | loan      |      5 | ctty | .ZZB | loan    | 0     | %TX_WEB  |
   |  29 | %today-2d | fine      |     -6 | ctty | .ZZC | fine    | 0     | %TX_WEB  |
-  |  30 | %today-1d | transfer  |    100 | .ZZC | .ZZA | payroll | 1     | %TX_WEB  |
-  |  33 | %today-1d | transfer  |      1 | .ZZC | .AAB | sharing rewards with CGF | 1 | %TX_CRON |
+  |  30 | %today-1d | transfer  |    100 | .ZZC | .ZZA | payroll | 2     | %TX_WEB  |
+  |  33 | %today-1d | transfer  |      1 | .ZZC | .AAB | sharing rewards with CGF | 2 | %TX_CRON |
   Then balances:
   | id   | r       | rewards | committed |*
-  | ctty | -835.65 |    0.00 |         0 |
-  | .ZZA | 1033.00 |  279.00 |      2.80 |
-  | .ZZB | 2563.50 |  278.50 |      5.30 |
-  | .ZZC | 3238.05 |  275.05 |      6.62 |
+  | ctty | -823.70 |    0.00 |         0 |
+  | .ZZA | 1028.00 |  274.00 |      2.30 |
+  | .ZZB | 2551.50 |  266.50 |      2.90 |
+  | .ZZC | 3243.10 |  280.10 |      8.13 |
   | .AAB |    1.10 |    0.10 |         0 |
   # total rewards < total r, because we made a grant, a loan, and a fine.
   
@@ -67,11 +67,12 @@ Scenario: cron calculates the statistics
   Then we show "Statistics" with:
   | | for %R_REGION_NAME |
   |_rCredits Accounts: | 2 members + 1 co = 3 |
-  |_Funds in the rCredits System: | $12,835.65 |
+  |_Funds in the rCredits System: | $12,823.70 |
   |_rCredits Circulation Velocity: | 4.0% per mo. |
   |_Monthly Bank Transfers | $6,000 (net) |
+  |_rCredits Issued To-Date | $6,823.70 |
+  |_fees | $-6 |
   |_Monthly Transactions | 4 @ $67.75 |
-  |_rCredits Issued To-Date | $6,835.65 |
 # only 2 members and 1 company -- CGF and WWS are not counted because they have no transactions before today
   
 #  | Accounts        | 5 (3 personal, 2 companies) — up 5 from a month ago |

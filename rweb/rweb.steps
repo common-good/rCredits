@@ -51,6 +51,9 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *
  * in: MAKE Bank AMemberTransfersFundsFromTheBank
  *     MAKE Bank AMemberTransfersFundsToTheBank
+ *     MAKE Exchange AMemberAsksToChargeAnotherMember
+ *     MAKE Exchange AMemberAsksToPayAnotherMember
+ *     MAKE Exchange AMemberAsksToCashOutTooMuch
  *     MAKE Flow AMemberOverdrawsWithNotEnoughToDrawOn
  *     MAKE Get AMemberMovesCreditToTheBank
  *     MAKE Get AMemberDrawsCreditFromTheBankWithZeroFloor
@@ -62,7 +65,9 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Get AMemberAsksToDoTwoTransfersOutInOneDay
  *     MAKE Gift AMemberDonates
  *     MAKE Gift AMemberDonatesWithInsufficientFunds
- *     MAKE Relations AMemberAddsARelation
+ *     MAKE Joint AJoinedAccountSlaveMemberRequestsANewMinimum
+ *     MAKE Reimburse AMemberAsksToChargeAnotherMember
+ *     MAKE Reimburse AMemberAsksToPayAnotherMember
  *     MAKE Signin AMemberAsksForANewPasswordForUsername
  *     MAKE Signin AMemberAsksForANewPasswordForAccountID
  *     MAKE Signin AMemberAsksForANewPasswordForEmail
@@ -87,9 +92,14 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Contact AMemberGivesABadEmail
  *     MAKE Contact AMemberUpdatesToADifferentState
  *     MAKE Contact AMemberUpdatesToADifferentName
+ *     MAKE Exchange AMemberConfirmsRequestToChargeAnotherMember
+ *     MAKE Exchange AMemberConfirmsRequestToPayAnotherMember
  *     MAKE Flow AMemberDraws
  *     MAKE Flow AMemberDrawsAgain
  *     MAKE Membership AMemberSignsInForTheFirstTime
+ *     MAKE Reimburse AMemberConfirmsRequestToChargeAnotherMember
+ *     MAKE Reimburse AMemberConfirmsRequestToPayAnotherMember
+ *     MAKE Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
  *     MAKE Signin AMemberSignsInWithUsernameOnTheMemberSite
  *     MAKE Signin AMemberSignsInWithAccountIDOnTheMemberSite
  *     MAKE Signin AMemberSignsInWithEmailOnTheMemberSite
@@ -169,11 +179,14 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     TEST Contact AMemberUpdatesToADifferentName
  *     MAKE Download Setup
  *     MAKE EditTx Setup
+ *     MAKE Exchange Setup
  *     MAKE Flow Setup
  *     MAKE Get Setup
  *     MAKE Gift Setup
+ *     MAKE Joint Setup
  *     MAKE Membership Setup
  *     TEST Membership AMemberSignsInForTheFirstTime
+ *     MAKE Reimburse Setup
  *     MAKE Relations Setup
  *     MAKE ScanCard Setup
  *     MAKE Signin Setup
@@ -200,10 +213,18 @@ function members($list) {return t\members($list);}
  *     MAKE Community Setup
  *     MAKE Download Setup
  *     MAKE EditTx Setup
+ *     MAKE Exchange Setup
+ *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
  *     TEST Flow AMemberDraws
  *     TEST Flow AMemberDrawsAgain
  *     MAKE Get Setup
  *     TEST Gift AMemberDonates
+ *     MAKE Joint Setup
+ *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
+ *     MAKE Joint AJoinedAccountMemberUnjoinsTheAccount
+ *     MAKE Reimburse Setup
+ *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
+ *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
  *     MAKE Relations Setup
  *     MAKE Summary Setup
  *     MAKE Transact Setup
@@ -219,6 +240,9 @@ function transactions($list) {return t\transactions($list);}
  * in: TEST Bank AMemberTransfersFundsFromTheBank
  *     TEST Bank AMemberTransfersFundsToTheBank
  *     TEST EditTx ABuyerTriesToDecreaseAPaymentAmount
+ *     TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
+ *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
+ *     TEST Exchange AMemberAsksToCashOutTooMuch
  *     TEST Flow AMemberOverdrawsWithNotEnoughToDrawOn
  *     TEST Get AMemberMovesCreditToTheBank
  *     TEST Get AMemberDrawsCreditFromTheBankWithZeroFloor
@@ -228,6 +252,11 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Get AMemberAsksToDoTwoTransfersOutInOneDay
  *     TEST Gift AMemberDonates
  *     TEST Gift AMemberDonatesWithInsufficientFunds
+ *     TEST Joint AMemberRequestsAJointAccount
+ *     TEST Joint AMemberRequestsTwoJoinsAtOnce
+ *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
+ *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
+ *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
  *     TEST Relations AMemberAddsARelation
  *     TEST Signin AMemberAsksForANewPasswordForACompany
  *     TEST Signup AMemberRegistersBadName
@@ -255,14 +284,17 @@ function weSayWithSubs($type, $index, $subs) {
   if (@$wild) {
     $i = strpos($msg, $wild);
     $tailLen = strlen($msg) - $i - strlen($wild);
-    $result = FALSE;
     foreach ($msgs[$type] as $actual) {
-      if (substr($actual, 0, $i) == substr($msg, 0, $i) and substr($actual, -$tailLen) == substr($msg, -$tailLen)) {$result = TRUE; break;}
+      if (substr($actual, 0, $i) == substr($msg, 0, $i) and substr($actual, -$tailLen) == substr($msg, -$tailLen)) {$res = TRUE; break;}
     }
-  } else $result = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
-/**/  if (!$result) debug(u\ray('msg messages', $msg, \drupal_get_messages(NULL, FALSE)));
+  } else {
+    $tmsg = strip_tags($msg);
+    foreach (@$msgs[$type] ?: [] as $actual) if (strip_tags($actual) == $tmsg) {$res = TRUE; break;}
+//  $res = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
+  }
+/**/  if (!@$res) debug(u\ray('msg messages', $msg, \drupal_get_messages(NULL, FALSE)));
   t\output("EXPECT: $msg", 'output'); // this must come after array_search!
-  return $result;
+  return @$res;
 }
 
 /**
@@ -280,6 +312,8 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST Get AMemberTriesToGoBelowTheirMinimum
  *     TEST Membership AMemberSignsInForTheFirstTime
  *     TEST Membership AMemberDoesItAll
+ *     TEST Relations AMemberTriesToAddARelationWithSelf
+ *     TEST Relations AMemberTriesToAddARelationAgain
  *     TEST Signin AMemberTypesTheWrongPassword
  *     TEST Signin AMemberTypesAnUnknownUsernameID
  *     TEST Signin AMemberTypesTheWrongPasswordFromRCreditsorg
@@ -344,7 +378,11 @@ function weShow($what, $show = TRUE) {return t\weShow($what, $show);}
 /**
  * we show (ARG) with subs: (ARG)
  *
- * in: TEST Transact AMemberAsksToChargeAnotherMember
+ * in: TEST Exchange AMemberAsksToChargeAnotherMember
+ *     TEST Exchange AMemberAsksToPayAnotherMember
+ *     TEST Reimburse AMemberAsksToChargeAnotherMember
+ *     TEST Reimburse AMemberAsksToPayAnotherMember
+ *     TEST Transact AMemberAsksToChargeAnotherMember
  *     TEST Transact AMemberAsksToPayAnotherMember
  */
 function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
@@ -358,6 +396,9 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST Company AMemberVisitsTheCompanyInfoPage
  *     TEST Contact AMemberVisitsTheContactInfoPage
  *     TEST Get AMemberAsksToDoTwoTransfersOutInOneDay
+ *     TEST Joint AMemberRequestsAJointAccount
+ *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
+ *     TEST Joint AMemberRequestsTwoJoinsAtOnce
  *     TEST Membership AMemberClicksTheMembershipLink
  *     TEST Membership ACompanyAgentClicksOnTheMembershipLink
  *     TEST Membership AMemberOpensABusinessAccount
@@ -390,7 +431,8 @@ function weShowWith($title, $content = FALSE, $debug = TRUE) {return t\weShowWit
 /**
  * with: (ARG)
  *
- * in: TEST Relations ItsComplicated
+ * in: TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
+ *     TEST Relations ItsComplicated
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
  *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
  */
@@ -439,8 +481,14 @@ function withoutOptions($options) {
  *     MAKE Company Setup
  *     MAKE Download Setup
  *     MAKE EditTx Setup
+ *     MAKE Exchange Setup
  *     MAKE Flow Setup
+ *     MAKE Joint AMemberRequestsAJointAccount
+ *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
+ *     MAKE Joint AJoinedAccountMemberUnjoinsTheAccount
+ *     MAKE Joint AMemberRequestsTwoJoinsAtOnce
  *     MAKE Membership Setup
+ *     MAKE Reimburse Setup
  *     MAKE Relations MemberHasAnEmployeeConfirmed
  *     MAKE Relations MemberHasAnEmployeeUnconfirmed
  *     MAKE Relations MemberHasARelationWithAContractor
@@ -450,6 +498,7 @@ function withoutOptions($options) {
  *     MAKE Relations MemberHasAccessToEmployeeAccount
  *     MAKE Relations MemberCompanyHasRelations
  *     MAKE Relations ItsComplicated
+ *     MAKE Relations AMemberTriesToAddARelationAgain
  *     MAKE ScanCard Setup
  *     TEST Signup AMemberRegistersWithAnExistingCompany
  *     TEST Signup AMemberRegistersACompany
@@ -467,12 +516,22 @@ function relations($relations) {return t\relations($relations);}
  *     TEST EditTx Setup
  *     TEST EditTx ABuyerIncreasesAPaymentAmount
  *     TEST EditTx ABuyerChangesTheGoodsStatus
+ *     TEST Exchange Setup
+ *     TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
+ *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
  *     MAKE Flow Setup
  *     TEST Get Setup
  *     TEST Get AMemberMovesCreditToTheBank
  *     TEST Get AMemberDrawsCreditFromTheBankWithZeroFloor
  *     TEST Get AMemberDrawsCreditFromTheBankWithAdequateFloor
  *     MAKE Gift Setup
+ *     TEST Joint Setup
+ *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
+ *     TEST Joint AJoinedAccountMemberUnjoinsTheAccount
+ *     TEST Reimburse Setup
+ *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
+ *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
+ *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
  *     TEST Relations Setup
  *     TEST Signup AMemberRegistersACompany
  *     TEST Summary Setup
@@ -500,6 +559,7 @@ function usd($list) {return t\usd($list);}
  *     MAKE Company AMemberVisitsTheCompanyInfoPage
  *     MAKE Contact AMemberVisitsTheContactInfoPage
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
+ *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     MAKE Membership AMemberSignsInForTheFirstTime
  *     MAKE Membership AMemberClicksTheMembershipLink
  *     MAKE Membership ACompanyAgentClicksOnTheMembershipLink
@@ -695,7 +755,12 @@ function memberOnetimePasswordIs($id, $pass) {
  *
  * in: TEST EditTx ABuyerIncreasesAPaymentAmount
  *     TEST EditTx ABuyerChangesTheGoodsStatus
+ *     TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
+ *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
  *     TEST Gift AMemberDonates
+ *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
+ *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
+ *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
@@ -777,6 +842,7 @@ function dwollaIsDown() {
  *     TEST Get AMemberDrawsCreditFromTheBankWithZeroFloor
  *     TEST Get AMemberDrawsCreditFromTheBankWithAdequateFloor
  *     MAKE Get AMemberAsksToDoTwoTransfersOutInOneDay
+ *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     MAKE Summary Setup
  *     MAKE Transactions Setup
  */
@@ -829,6 +895,7 @@ function agentCardCodeIs($id, $cardCode2) {
  * cron runs (ARG)
  *
  * in: MAKE Community CronCalculatesTheStatistics
+ *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     MAKE Summary Setup
  */
 function cronRuns($op) {return t\cronRuns($op);}
@@ -858,7 +925,11 @@ function statisticsGetSet($time) {
 /**
  * members have: (ARG)
  *
- * in: MAKE Membership AMemberDoesItAll
+ * in: TEST Joint AMemberRequestsAJointAccount
+ *     BOTH Joint AJoinedAccountSlaveMemberRequestsANewMinimum
+ *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
+ *     BOTH Joint AJoinedAccountMemberUnjoinsTheAccount
+ *     MAKE Membership AMemberDoesItAll
  *     MAKE Membership AMemberOpensABusinessAccount
  *     MAKE Summary Setup
  */
@@ -946,7 +1017,9 @@ function devices($list) {return t\devices($list);}
 /**
  * invoices: (ARG)
  *
- * in: TEST Transact AMemberConfirmsRequestToChargeAnotherMember
+ * in: TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
+ *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
+ *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  */
 function invoices($list) {return t\invoices($list);}
 
@@ -1040,3 +1113,36 @@ function nextRandomCodeIs($code) {global $nextCode; return $nextCode = $code;}
 function weSayErrorInField($field, $index) {
   return weSayWithSubs('error', strtoupper($field) . ':|' . $index, []);
 }
+
+/**
+ * member (ARG) completes relations form with values: (ARG)
+ *
+ * in: MAKE Joint AMemberRequestsAJointAccount
+ *     MAKE Joint AJoinedAccountMemberUnjoinsTheAccount
+ *     MAKE Joint AMemberRequestsTwoJoinsAtOnce
+ *     MAKE Relations AMemberAddsARelation
+ *     MAKE Relations AMemberTriesToAddARelationWithSelf
+ *     MAKE Relations AMemberTriesToAddARelationAgain
+ */
+function memberCompletesRelationsFormWithValues($id1, $list) {
+  foreach ($list as $i => $rec) {
+    if (isset($rec['other'])) {
+      $reid = r\relation('reid', t\uid($id1), t\uid($rec['other'])); // compound quid
+      u\EXPECT($reid, "missing relation record for $id1,".$rec['other']);
+      unset($list[$i]['other']);
+      foreach (u\ray('draw permission employee isOwner') as $k) if (isset($rec[$k])) {
+        $list[$i]["$k-$i-$reid"] = $k == 'permission' ? u\consta('b', $rec[$k]) - B_RELATED : $rec[$k];
+        unset($list[$i][$k]);
+      }
+    }
+  }
+  return t\completeForm($id1, "account/relations", $list);
+}
+
+/**
+ * member (ARG) cache is ok
+ *
+ * in: TEST Joint AMemberRequestsAJointAccount
+ *     TEST Joint AJoinedAccountMemberUnjoinsTheAccount
+ */
+function memberCacheIsOk($id) {return r\acct(t\uid($id))->cacheOk();}

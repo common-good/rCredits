@@ -5,20 +5,20 @@ SO I maintain the value of my earnings and savings.
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType    | flags      |*
-  | .ZZA | Abe One    | -500  | personal    | ok,bona    |
-  | .ZZB | Bea Two    | -500  | personal    | ok,co,bona |
-  | .ZZC | Corner Pub | -500  | corporation | ok,co,bona |
+  | id   | fullName   | floor | acctType    | flags      | rebate |*
+  | .ZZA | Abe One    | -500  | personal    | ok,bona    |      5 |
+  | .ZZB | Bea Two    | -500  | personal    | ok,co,bona |     10 |
+  | .ZZC | Corner Pub | -500  | corporation | ok,co,bona |     10 |
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose |*
   |   1 | %today-2m | signup   |    100 | ctty | .ZZA | signup  |
   |   2 | %today-2m | signup   |    100 | ctty | .ZZB | signup  |
   |   3 | %today-2m | signup   |    100 | ctty | .ZZC | signup  |
   And usd transfers:
-  | payer | payee | amount | completed |*
-  | .ZZA  |     0 |   -400 | %today-2m |  
-  | .ZZB  |     0 |   -100 | %today-2m |  
-  | .ZZC  |     0 |   -300 | %today-2m |  
+  | payer | amount | completed |*
+  | .ZZA  |   -400 | %today-2m |  
+  | .ZZB  |   -100 | %today-2m |  
+  | .ZZC  |   -300 | %today-2m |  
   Then balances:
   | id   | r   |*
   | .ZZA | 500 |
@@ -63,21 +63,21 @@ Setup:
   When transactions: 
   | xid | created   | type     | amount | from | to   | purpose |*
   |  12 | %today-5d | transfer |    100 | .ZZC | .ZZA | labor M |
-  |  13 | %today-5d | rebate   |      5 | ctty | .ZZC | rebate on #3 |
-  |  14 | %today-5d | bonus    |     10 | ctty | .ZZA | bonus on #6  |
+  |  13 | %today-5d | rebate   |     10 | ctty | .ZZC | rebate on #3 |
+  |  14 | %today-5d | bonus    |      5 | ctty | .ZZA | bonus on #6  |
   Then balances:
   | id   | r   |*
-  | .ZZA | 397 |
+  | .ZZA | 392 |
   | .ZZB | 564 |
-  | .ZZC | 205 |
+  | .ZZC | 210 |
   When transactions: 
   | xid | created   | type     | amount | from | to   | purpose |*
   |  15 | %today-4d | transfer |     50 | .ZZB | .ZZC | cash P  |
   Then balances:
   | id   | r   |*
-  | .ZZA | 397 |
+  | .ZZA | 392 |
   | .ZZB | 514 |
-  | .ZZC | 255 |
+  | .ZZC | 260 |
   # A: (21*(100+400) + 110+400 + 130+480 + 92+280 + -3+280 + 2*(107+280) + 3*(31+140))/30 * R/12 = 
   When transactions: 
   | xid | created   | type     | amount | from | to   | purpose |*
@@ -86,17 +86,17 @@ Setup:
   |  18 | %today-3d | bonus    |     12 | ctty | .ZZC | bonus on #5  |
   Then balances:
   | id   | r   |*
-  | .ZZA | 283 |
+  | .ZZA | 278 |
   | .ZZB | 514 |
-  | .ZZC | 387 |
+  | .ZZC | 392 |
   When transactions: 
   | xid | created   | type     | amount | from | to   | purpose |*
   |  19 | %today-1d | transfer |    100 | .ZZA | .ZZB | cash V  |
   Then balances:
   | id   | r   |*
-  | .ZZA | 183 |
+  | .ZZA | 178 |
   | .ZZB | 614 |
-  | .ZZC | 387 |
+  | .ZZC | 392 |
 
 Scenario: Inflation adjustments are distributed
   When cron runs "lessOften"
@@ -104,7 +104,7 @@ Scenario: Inflation adjustments are distributed
   | xid| created| type      | amount                               | from | to   | purpose |*
   | 20 | %today | inflation | %(round(%R_INFLATION_RATE*38.42, 2)) | ctty | .ZZA | inflation adjustment |
   | 21 | %today | inflation | %(round(%R_INFLATION_RATE*23.11, 2)) | ctty | .ZZB | inflation adjustment |
-  | 22 | %today | inflation | %(round(%R_INFLATION_RATE*31.45, 2)) | ctty | .ZZC | inflation adjustment |
-# A: (21*(100+400) + 110+400 + 130+480 + 102+280 + 7+280 + 2*(117+280) + 2*(43+240) + 43+140)/30 * R/12 = 38.4222*R = 1.92
-# B: (21*200 + 2*(90+100) + 154+300 + 2*(264+300) + 3*(259+255) + 259+355)/30 * R/12 = 23.10556*R = 1.16
-# C: (22*400 + 3*(80+220) + -15+220 + -10+265 + 3*(82+305))/30 * R/12 = 31.4472*R = 1.57
+  | 22 | %today | inflation | %(round(%R_INFLATION_RATE*31.52, 2)) | ctty | .ZZC | inflation adjustment |
+# A: (21*500 + 510 + 610 + 382 + 287 + 2*(392) + 2*(278) + 173)/30 * R/12 = 38.3389*R = 1.92
+# B: (21*200 + 2*190 + 454 + 2*564 + 3*514 + 614)/30 * R/12 = 23.10556*R = 1.16
+# C: (22*400 + 3*300 + 210 + 260 + 3*392)/30 * R/12 = 31.5167*R = 1.58

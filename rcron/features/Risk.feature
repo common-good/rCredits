@@ -5,16 +5,16 @@ SO I can handle those risks appropriately
 
 Setup:
   Given members:
-  | id   | fullName   | email | address | postalCode | flags   | risks    | tenure | moves | share |*
-  | .ZZA | Abe One    | a@    | 1 A St. |      01001 | ok,bona | adminOk  | 21     | 0     |    10 |
-  | .ZZB | Bea Two    | b@    | 2 A St. |      01001 | ok,bona | rents    | 43     | 1     |    20 |
-  | .ZZC | Corner Pub | c@    | 3 C St. |      01003 | ok,co   | cashCo   | 18     |       |     1 |
-  | .ZZD | Dee Four   | d@    | 3 C St. |      01003 | ok      | hasBank  | 25     | 0     |     5 |
-  | .ZZE | Eve Five   | e@    | 5 A St. |      01001 | ok,bona | shady    | 1      | 0     |     8 |
-  | .ZZF | Flo Six    | f@    | 6 A St. |      01001 | ok,bona | photoOff | 32     | 0     |    50 |
-  | .ZZG | Guy Seven  | g@    | 7 A St. |      01001 | ok      | addrOff  | 11     | 5     |    25 |
-  | .ZZH | Hal Eight  | h@    | 8 A St. |      01001 | ok,bona | ssnOff   | 100    | 10    |    25 |
-  | .ZZI | Ida Nine   | i@    | 9 A St. |      01001 | ok      | fishy    | 3      | 20    |    25 |
+  | id   | fullName   | rebate | address | postalCode | flags   | risks    | tenure | moves | share |*
+  | .ZZA | Abe One    |      5 | 1 A St. |      01001 | ok,bona | adminOk  | 21     | 0     |    10 |
+  | .ZZB | Bea Two    |     10 | 2 A St. |      01001 | ok,bona | rents    | 43     | 1     |    20 |
+  | .ZZC | Corner Pub |     10 | 3 C St. |      01003 | ok,co   | cashCo   | 18     |       |     1 |
+  | .ZZD | Dee Four   |     10 | 3 C St. |      01003 | ok      | hasBank  | 25     | 0     |     5 |
+  | .ZZE | Eve Five   |     10 | 5 A St. |      01001 | ok,bona | shady    | 1      | 0     |     8 |
+  | .ZZF | Flo Six    |     10 | 6 A St. |      01001 | ok,bona | photoOff | 32     | 0     |    50 |
+  | .ZZG | Guy Seven  |     10 | 7 A St. |      01001 | ok      | addrOff  | 11     | 5     |    25 |
+  | .ZZH | Hal Eight  |     10 | 8 A St. |      01001 | ok,bona | ssnOff   | 100    | 10    |    25 |
+  | .ZZI | Ida Nine   |     10 | 9 A St. |      01001 | ok      | fishy    | 3      | 20    |    25 |
   And invites:
   | inviter | invitee | email |*
   | .ZZA    | .ZZD    | d2@   |
@@ -67,13 +67,13 @@ Setup:
   |  23 | %today-1d | transfer |     10 | .ZZF | .ZZE | cash    | %TX_WEB |
   |  24 | %today-1d | transfer |     11 | .ZZF | .ZZE | cash    | %TX_WEB |  
   And usd transfers:
-  | txid | payer | payee | amount | completed |*
-  |    1 | .ZZA  |     0 |   -400 | %today-2m |  
-  |    2 | .ZZB  |     0 |   -100 | %today-2m |  
-  |    3 | .ZZC  |     0 |   -300 | %today-2m |  
-  |    4 | .ZZE  |     0 |   -200 | %today    |  
-  |    5 | .ZZF  |     0 |    600 | %today    |  
-  |    6 | .ZZC  |     0 |    500 | %today    |
+  | txid | payer | amount | completed |*
+  |    1 | .ZZA  |   -400 | %today-2m |  
+  |    2 | .ZZB  |   -100 | %today-2m |  
+  |    3 | .ZZC  |   -300 | %today-2m |  
+  |    4 | .ZZE  |   -200 | %today    |  
+  |    5 | .ZZF  |    600 | %today    |  
+  |    6 | .ZZC  |    500 | %today    |
   And member field values:
   | id   | field      | value |*
   | .ZZA | community  |    -2 |

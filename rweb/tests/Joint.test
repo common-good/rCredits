@@ -1,0 +1,225 @@
+<?php
+//
+// Feature: Joint
+//   AS a member
+//   I WANT to join my rCredits account to someone else's
+//   SO we can share our finances, as for a typical "joint account" at a bank.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rweb.steps';
+
+class rwebJoint extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Joint';
+  const FEATURE_NAME = 'rweb Test - Joint';
+  const DESCRIPTION = 'Joint';
+  const MODULE = 'rweb';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "ASSOC'
+    . '\\| id   | fullName   | acctType    | flags      | rebate | minimum | created   |'
+    . '\\| .ZZA | Abe One    | personal    | ok,bona    |     10 |     100 | %today-6m |'
+    . '\\| .ZZB | Bea Two    | personal    | ok,bona    |     10 |      50 | %today-6m |'
+    . '\\| .ZZC | Corner Pub | corporation | ok,co,bona |      5 |       0 | %today-6m |'
+    . '\\| .ZZD | Dee Four   | personal    | ok,bona    |     10 |       0 | %today-6m |"');
+    And__('transactions: "ASSOC'
+    . '\\| xid | created   | type       | amount | from      | to   | purpose | taking |'
+    . '\\|   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |'
+    . '\\|   2 | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |'
+    . '\\|   3 | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |"');
+    Then_('balances: "ASSOC'
+    . '\\| id   | r    |'
+    . '\\| ctty | -750 |'
+    . '\\| .ZZA |  250 |'
+    . '\\| .ZZB |  250 |'
+    . '\\| .ZZC |  250 |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: A member requests a joint account
+  public function testAMemberRequestsAJointAccount_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('relations: "ASSOC'
+    . '\\| id | main | agent | permission | employee | isOwner | draw |'
+    . '\\| 1  | .ZZA | .ZZB  | none       |        0 |       0 |    0 |'
+    . '\\| 2  | .ZZB | .ZZA  | none       |        0 |       0 |    0 |"');
+    When_('member ".ZZA" completes relations form with values: "ASSOC'
+    . '\\| other | permission |'
+    . '\\| .ZZB  | joint      |"');
+    Then_('we say "status": "updated relation" with subs: "ASSOC'
+    . '\\| otherName |'
+    . '\\| Bea Two   |"');
+    And__('we show "Relations" with: "ARRAY'
+    . '\\| Other      | Draw | My employee? | Family? | Permission |_requests      |'
+    . '\\| Bea Two    | No   | No           | No      | %can_joint | --            |"');
+    And__('members have: "ASSOC'
+    . '\\| id   | jid | minimum |'
+    . '\\| .ZZA |     |     100 |'
+    . '\\| .ZZB |     |      50 |"');
+    When_('member ".ZZB" completes relations form with values: "ASSOC'
+    . '\\| other | permission |'
+    . '\\| .ZZA  | joint      |"');
+    Then_('members have: "ASSOC'
+    . '\\| id   | jid  | minimum |'
+    . '\\| .ZZA | .ZZB |     150 |'
+    . '\\| .ZZB | .ZZA |       0 |"');
+    And__('member ".ZZA" cache is ok');
+    And__('member ".ZZB" cache is ok');
+  }
+
+  // Scenario: A joined account slave member requests a new minimum
+  public function testAJoinedAccountSlaveMemberRequestsANewMinimum_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('members have: "ASSOC'
+    . '\\| id   | jid  | minimum |'
+    . '\\| .ZZA | .ZZB |     150 |'
+    . '\\| .ZZB | .ZZA |       0 |"');
+    When_('member ".ZZB" completes form "account/preferences" with values: "ASSOC'
+    . '\\| minimum | achMin | share |'
+    . '\\|     200 |    100 |    10 |"');
+    Then_('members have: "ASSOC'
+    . '\\| id   | minimum | achMin | share |'
+    . '\\| .ZZA |     200 |    100 |     0 |'
+    . '\\| .ZZB |       0 |    100 |    10 |"');
+  }
+
+  // Scenario: A joined account member looks at transaction history and summary
+  public function testAJoinedAccountMemberLooksAtTransactionHistoryAndSummary_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('members have: "ASSOC'
+    . '\\| id   | jid  | minimum |'
+    . '\\| .ZZA | .ZZB |     150 |'
+    . '\\| .ZZB | .ZZA |       0 |"');
+    And__('relations: "ASSOC'
+    . '\\| id | main | agent | permission | employee | isOwner | draw |'
+    . '\\| 1  | .ZZA | .ZZB  | joint      |        0 |       0 |    0 |'
+    . '\\| 2  | .ZZB | .ZZA  | joint      |        0 |       0 |    0 |"');
+    And__('usd transfers: "ASSOC'
+    . '\\| txid | payer | amount | created   | completed |'
+    . '\\|  600 | .ZZA  |  -1000 | %today-2w | %today-6m |'
+    . '\\|  601 | .ZZB  |   -600 | %today-2w | %today-2w |'
+    . '\\|  602 | .ZZA  |   -400 | %today-2w | %today-2w |'
+    . '\\|  603 | .ZZA  |    100 | %today    |         0 |"');
+    And__('transactions: "ASSOC'
+    . '\\| xid | created   | type     | amount | from | to   | purpose |'
+    . '\\|   4 | %today-1m | transfer |    200 | .ZZA | .ZZD | favors  |'
+    . '\\|   7 | %today-1w | transfer |    500 | .ZZA | .ZZB | usd     |'
+    . '\\|   8 | %today-2d | transfer |     50 | .ZZD | .ZZB | cash    |'
+    . '\\|   9 | %today-1d | transfer |    100 | .ZZC | .ZZA | labor   |"');
+    Then_('balances: "ASSOC'
+    . '\\| id   | r    |'
+    . '\\| ctty | -805 |'
+    . '\\| .ZZA | 1080 |'
+    . '\\| .ZZB | 1400 |'
+    . '\\| .ZZC |  155 |'
+    . '\\| .ZZD |  170 |"');
+    When_('member ".ZZB" visits page "history/period=14"');
+    Then_('we show "Transaction History" with: "ARRAY'
+    . '\\|_Start Date |_End Date |'
+    . '\\| %dmy-2w    | %dmy     |"');
+    And__('with: "ARRAY'
+    . '\\| Start     | From Bank | From You | To You | Rewards | To CGF | End       |'
+    . '\\| $1,320.00 |  1,000.00 |   500.00 | 650.00 |   10.00 |        | $2,480.00 |'
+    . '\\| PENDING   |   -100.00 |     0.00 |   0.00 |    0.00 |   0.00 | - $100.00 |"');
+    And__('with: "ARRAY'
+    . '\\|_tid | Date   | Name       | From you | To you | Status  |_do   | Purpose   | Reward/Fee | Agent |'
+    . '\\| 5   | %dm-1d | Corner Pub | --       | 100.00 | %chk    | X    | labor     | 10.00      | .ZZA  |'
+    . '\\| 4   | %dm-2d | Dee Four   | --       |  50.00 | %chk    | X    | cash      | --         | .ZZB  |'
+    . '\\| 3   | %dm-1w | Abe One    | 500.00   | 500.00 | %chk    | X    | usd       | --         | .ZZB  |'
+    . '\\| 602 | %dm-2w |            | --       | 400.00 |         |      | from bank | --         | .ZZA  |'
+    . '\\| 601 | %dm-2w |            | --       | 600.00 |         |      | from bank | --         | .ZZB  |"');
+    Given('cron runs "acctStats"');
+    When_('member ".ZZB" visits page "summary"');
+    Then_('we show "Account Summary" with: "ARRAY'
+    . '\\| Name          | Bea Two & Abe One (beatwo & abeone) |'
+    . '\\| ID            | .ZZB (joint account) |'
+    . '\\| Balance       | $2,480 |'
+    . '\\| Rewards       | $530 |'
+    . '\\| Your return   | 21.9% |'
+    . '\\| _ever         | 137.1% |'
+    . '\\| Social return | $37.50 |'
+    . '\\| _ever         | $37.50 |"');
+  }
+
+  // Scenario: A joined account member unjoins the account
+  public function testAJoinedAccountMemberUnjoinsTheAccount_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('members have: "ASSOC'
+    . '\\| id   | jid  | minimum |'
+    . '\\| .ZZA | .ZZB |     150 |'
+    . '\\| .ZZB | .ZZA |       0 |"');
+    And__('relations: "ASSOC'
+    . '\\| id | main | agent | permission | employee | isOwner | draw |'
+    . '\\| 1  | .ZZA | .ZZB  | joint      |        0 |       0 |    0 |'
+    . '\\| 2  | .ZZB | .ZZA  | joint      |        0 |       0 |    0 |"');
+    And__('transactions: "ASSOC'
+    . '\\| xid | created   | type     | amount | from | to   | purpose |'
+    . '\\|   4 | %today-1d | transfer |    100 | .ZZC | .ZZA | labor   |"');
+    Then_('balances: "ASSOC'
+    . '\\| id   | r    |'
+    . '\\| ctty | -765 |'
+    . '\\| .ZZA |  360 |'
+    . '\\| .ZZB |  250 |'
+    . '\\| .ZZC |  155 |"');
+    When_('member ".ZZB" completes relations form with values: "ASSOC'
+    . '\\| other | permission |'
+    . '\\| .ZZA  | none       |"');
+    Then_('members have: "ASSOC'
+    . '\\| id   | jid  | minimum | r   | rewards |'
+    . '\\| .ZZA |      |     150 | 305 |     260 |'
+    . '\\| .ZZB |      |     150 | 305 |     250 |"');
+    And__('member ".ZZA" cache is ok');
+    And__('member ".ZZB" cache is ok');
+  }
+
+  // Scenario: A member requests two joins at once
+  public function testAMemberRequestsTwoJoinsAtOnce_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('relations: "ASSOC'
+    . '\\| id | main | agent | permission | employee | isOwner | draw |'
+    . '\\| 1  | .ZZA | .ZZB  | none       |        0 |       0 |    0 |'
+    . '\\| 2  | .ZZA | .ZZD  | none       |        0 |       0 |    0 |"');
+    When_('member ".ZZA" completes relations form with values: "ASSOC'
+    . '\\| other | permission |'
+    . '\\| .ZZB  | joint      |'
+    . '\\| .ZZD  | joint      |"');
+    Then_('we say "status": "updated relation" with subs: "ASSOC'
+    . '\\| otherName |'
+    . '\\| Bea Two   |"');
+    And__('we show "Relations" with: "ARRAY'
+    . '\\| Other      | Draw | My employee? | Family? | Permission |_requests      |'
+    . '\\| Bea Two    | No   | No           | No      | %can_joint | --            |'
+    . '\\| Dee Four   | No   | No           | No      | %can_none  | --            |"');
+  }
+
+}

@@ -75,7 +75,7 @@ EOF
 
   // prompts
   'note' => '<b class="loud">' . t('NOTE:') . '</b>',
-  'ach warning' => t('If there are insufficient funds in your bank account when you request an exchange for rCredits (either explicitly, or automatically by choosing a "minimum"), your bank will charge you a $20-35 fee, just like for a bounced check. If this happens more than once, the rCredits system will <i>also</i> charge you $20, to cover <i>its</i> bank fee. So make sure you have enough in your bank account to cover those automatic refills.', ['@fee'=>R_DEPOSIT_RETURN_FEE]),
+  'ach warning' => t('If there are insufficient funds in your bank account when you request an exchange for rCredits (either explicitly, or automatically by choosing a "minimum"), your bank will charge you a $20-35 fee, just like for a bounced check. If this happens more than once, the rCredits system will <i>also</i> charge you $@fee, to cover <i>its</i> bank fee. So make sure you have enough in your bank account to cover your transfers.', ['@fee'=>R_DEPOSIT_RETURN_FEE]),
   // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
 //  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
   'legalname desc' => t(' full legal name, properly capitalized, as on your government-issued ID.'),
@@ -91,7 +91,7 @@ EOF
   'yes or no' =>  '@yesNo', // to replace with yesNo(url)
 
   // errors
-  'missing purpose' => t('<p>What purpose? For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/etc". Rebates and bonuses are intended as rewards for productive economic activity in rCredits.</p>
+  'missing purpose' => t('<p>What purpose? For buying or selling actual goods and services, you must include a description. Rebates and bonuses are intended as rewards for productive economic activity in rCredits.</p>
     <p>For everyone\'s protection, the rCredits software automatically detects and penalizes attempts to "game" the system.</p>'),
   'missing field0' => t('@field field is required.'), // Drupal's standard
   'missing field' => t('Missing a required field: @field'),
@@ -213,6 +213,9 @@ EOF
   'no co pass' => t('Company accounts do not have passwords. Sign in to your personal account, then select @company from the dropdown in the upper right corner.'),
   'account number mismatch' => t('You must have mistyped your account number once. Try again.'),
   'yes or no' => t('You must answer Yes or No.'),
+  'no local proxy' => t('No other members nearby. <@a>Invite someone</a>!', ['@a'=>'a href=../invite']),
+  'too many joins' => t('You can join to only one other account.'),
+  'short cash help' => t('<@a>Click here</a> for more information about cashing out incentive rewards.', ['@a'=>'a href=' . $GLOBALS['base_url'] . '/help/cashing-out']),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
 
@@ -230,6 +233,59 @@ function yesNo($yesURL, $noURL = '', $yesNext = 'empty', $noNext = 'empty') {
 &nbsp;
 <input type="button" name="op" onclick="document.location.href='$noURL'" value="No" class="form-local form-submit">
 EOF;
+}
+
+/**
+ * Return a list of proxy choices for the current account.
+ * @param int $dft: the current proxy choice, if any
+ */
+function proxyChoices($dft) {
+  $a = r\acct();
+  $uid = $a->id;
+  $table = <<<EOF
+    (SELECT DISTINCT IF(inviter=:uid, invitee, inviter) AS uid FROM r_invites WHERE :uid IN (inviter, invitee)
+    UNION SELECT DISTINCT IF(person=:uid, proxy, person) AS uid FROM r_proxies WHERE :uid IN (person, proxy)) q
+EOF;
+
+  if (!$friends = db\lst('uid', $table, 1, compact('uid'))) $friends = '0'; // list of account's friends
+  $sql = <<<EOF
+    SELECT u.uid, fullName, city, state, SUM(w) AS weight FROM (
+      SELECT uid, :PHP_INT_MAX/2 AS w FROM users 
+      WHERE uid IN ($friends)
+      UNION
+      SELECT uid, :PHP_INT_MAX/4 AS w FROM users 
+      WHERE (state=:state AND city=:city) OR postalCode=:zip
+      UNION
+      SELECT IF(uid1 IN ($friends), uid2, uid1) AS uid, weight AS w FROM r_near
+      WHERE uid1 IN ($friends) OR uid2 IN ($friends)
+    ) n LEFT JOIN users u ON u.uid=n.uid
+    WHERE community=:ctty AND u.uid>1 AND u.uid<>:uid AND NOT :IS_CO
+    GROUP BY u.uid, u.state, u.city 
+    ORDER BY GREATEST(SUM(w), :PHP_INT_MAX/4) DESC, state<>:state, state, city, SUM(w) DESC, fullName
+EOF;
+  $q = db\q($sql, u\ray('uid state city zip ctty', $uid, $a->state, $a->city, $a->postalCode, $a->community));
+  $res = $cityX = '';
+  while ($row = $q->fetchAssoc()) { // show choices in reverse order, so inviter(s) are at top
+    extract($row);
+    if ($weight < PHP_INT_MAX / 2) { // show city and maybe state
+      $state = $state = $a->state ? '' : (', ' . r\realState($state));
+    } else list ($city, $state) = [t('Top Suggestions'), ''];
+    if ($city <> $cityX) {
+      if ($cityX) $res .= "</td></tr>\n"; // finish previous line
+      $res .= "<tr><th>$city$state</th><td>";
+      $cityX = $city;
+    }
+    $checked = $dft == $uid ? 'CHECKED' : '';
+///    debug(compact('row','city','cityX','friends') + ['max/2-w'=>PHP_INT_MAX / 2 - $weight]);
+    $res .= <<<EOF
+<div class="form-type-radio">
+  <input type="radio" name="proxyChoice" $checked value="$uid" />
+  <label>$fullName</label>
+</div>
+EOF;
+  }
+  if ($res) $res .= '</td></tr>'; // finish last line
+  return "<table>$res</table>";
 }
 
 /**
@@ -616,7 +672,7 @@ EOF;
  a('whatever')->createUsdAccount($err);
 ///debug($err);
 
- */
+ *//*
 function setupUsd(&$step, $redirectOk = TRUE) {
   $us = new r\usd($mya = r\acct());
   if (!@$mya->secure['auth']) {
@@ -640,6 +696,7 @@ function setupUsd(&$step, $redirectOk = TRUE) {
   }
   if ($us->step() != $step) return setupUsd($step); // step may have progressed
 }
+*/
 
 function divButton($href, $title) {
   global $base_url, $rUrl;
@@ -948,7 +1005,7 @@ function no_selection($list) {
 
 function adminField($label) {
   $mya = r\acct();
-  return ($mya->cAdmin and $mya->usdAccount) ? item(R_ON_FILE, $label) : NULL;
+  return ($mya->cAdmin and $mya->federalId) ? item(R_ON_FILE, $label) : NULL;
 }
 
 /**
@@ -1389,8 +1446,7 @@ function detour($detour_via, $detour_args, $whence = '', $modal = TRUE) {
  */
 function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
   global $base_url;
-  $result = be\identify($who, $selfMsg);
-  if ($result == 'ALL' or u\isAcct($result)) return $result;
+  if (u\isAcct($result = be\identify($who, $selfMsg))) return $result;
 
   list ($msg, $args, $choices) = $result;
   foreach (u\ray('form_build_id form_token form_id op') as $one) unset($info[$one]); // just for neatness
@@ -1414,11 +1470,11 @@ function transfer($op, $info, $confirmed) {
   extract(u\just('who amount goods purpose', $info));
   $txType = $op == 'pay' ? 'payment' : strtolower($op);
   if (blank_field(compact(u\ray('who amount')))) return FALSE;
-  if (!$a = whois($who, 'who', $info)) return FALSE;
-  if ($goods and trim($purpose) == '') return say('missing purpose', 'purpose');
+  if (!$a = w\whois($who, 'who', $info)) return FALSE;
+  if ($goods == R_FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($error = u\badAmount($amount, '>0')) return say($error, 'amount');
   $op = $op == 'pay' ? t('paid') : ($op == 'charge' ? 'charged' : $op . 'ed'); // for possible error message
-  $goods = ($goods and !u\forCash($purpose));
+  if (u\forCash($purpose)) $goods = R_FOR_USD;
   list ($msg, $args, $confirm) = 
      $txType == 'payment' ? be\transfer($txType, $mya, $a, $amount, $goods, $purpose, NULL, $confirmed)
      : ($txType == 'charge' ? be\invoice($mya, $a, $amount, $goods, $purpose, $confirmed)
@@ -1718,10 +1774,11 @@ function connectBank($a) {
  * Return a form showing month choices.
  * @param string $title: page title
  * @param string $things: "statements" or "notices"
+ * @param string $subtext: explanatory text
  * @param int $end: how many months from now to end (starts with account creation month)
  * @param string $target: link target ('' or _blank)
  */
-function monthChoices($title, $things, $end = -1, $target = '_blank') {
+function monthChoices($title, $things, $subtext = '', $end = -1, $target = '_blank') {
   $mya = r\acct();
   $start = u\monthDay1($mya->created); // start of account's first month
   $thisMo = u\monthDay1(REQUEST_TIME); // start of this month
@@ -1742,8 +1799,9 @@ function monthChoices($title, $things, $end = -1, $target = '_blank') {
   } else $list = t('There are no @THING available yet for this account.', ['@THING' => strtolower($title)]);
   
   $title = item($title);
+  if ($subtext) $subtext = item($subtext);
   $list = item($list);
-  return compact('title', 'list');
+  return compact('title', 'subtext', 'list');
 }
 
 /**
@@ -1803,9 +1861,7 @@ function focusOn($focusFieldName) {
  * Return true if the current account has all the accesses listed.
  */
 function webAccess($perms = NULL) {
-//  global $specia; if (@$specia) die('webAccess perms=' . $perms);
   if ($perms == 'dev' and isDEV) return TRUE;
-//  die("perms=$perms");
   setupGlobals(); // remember who we are (the main reason for this function)
   if (!@$perms or !$mya = r\acct()) return FALSE;
   foreach (u\ray($perms) as $one) if (!$mya->can(u\consta('b', $one))) return FALSE;

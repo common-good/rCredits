@@ -25,7 +25,7 @@ define('WEEK7_SECS', 52 * DAY_SECS);
 define('MONTH_DAYS', 30.4368);
 define('YEAR_SECS', round(12 * MONTH_DAYS * DAY_SECS));
 define('US_COUNTRY_ID', 1228); // United States
-define('R_BULLET', '&#8226'); // bullet in emails (where CSS is difficult)
+define('R_BULLET', '&#8226;'); // bullet in emails (where CSS is difficult)
 define('STATS_GRAIN', 10); // granularity of statistics, in days
 
 require_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
@@ -46,11 +46,11 @@ define('US', '<span class="us">us</span>');
 define('R_VERSION', '1.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags gross employees verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags gross employees verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx jid'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
-define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
+define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2 question photoId'); // non-personal encrypted fields (must be complete list)
 define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData'); // personal identifying information
-define('R_HIDE_CHANGES', R_SECRET_FIELDS . ' ' . R_SECURE_FIELDS . ' changes usd r rewards committed floor login access activated data secure offsite stepsDone lastTx usdAccount pass notes picture trust risk risks stats'); // do not record changes to these fields (generally anything secret, or often-changed -- perhaps automatically)
+define('R_HIDE_CHANGES', R_SECRET_FIELDS . ' ' . R_SECURE_FIELDS . ' changes usd r rewards committed floor login access activated data secure offsite stepsDone lastTx usdAccount pass notes picture photo trust risk risks stats'); // do not record changes to these fields (generally anything secret, or often-changed -- perhaps automatically)
 define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_CASH', '(r-committed-GREATEST(0, floor, rewards))'); // balance available to cash out
 define('R_SHARE_MIN', 50); // minimum sharing percentage
@@ -78,9 +78,12 @@ define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter easy copying, max 14 for small QR)
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was '2 weeks')
-define('R_DEFAULT_PURPOSE', t('rCredits/USD exchange')); // default transaction purpose
-define('R_FOR_GOODS', t('goods and services')); // default purpose for goods
-define('R_FOR_CASH', t('cash/loan/etc.')); // default purpose for non-goods
+
+define('R_WHYS', t('other money,loan/reimbursement/etc.,goods and services')); // transaction purposes
+define('R_FOR_USD', 0); // index into R_WHYS for USD exchange
+define('R_FOR_NONGOODS', 1); // index into R_WHYS for loan, etc.
+define('R_FOR_GOODS', 2); // index into R_WHYS for goods
+
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_ACHMIN', 10); // minimum granularity of withdrawals from bank account
 define('R_ACHMIN_DEFAULT', 100); // suggested achMin
@@ -203,8 +206,8 @@ define('B_u19', 19); //
 define('B_DEBT', 20); // member chose to permit sub-zero balances
 define('B_DRAWS', 21); // this account draws on one or more others
 define('B_SAVINGS', 22); // the connected bank account is a savings or money market account
-define('B_u23', 23); // 
-define('B_u24', 24); // 
+define('B_JOINED', 23); // account is a joint account
+define('B_u24', 24); // account is the slave in a virtual joint account
 define('B_u25', 25); // 
 define('B_u26', 26); // 
 define('B_REGULATOR', 27); // is a bank partner or government regulator (read-only admin)
@@ -214,11 +217,8 @@ define('B_ADMIN', 30); // is a system administrator -- can manage server, includ
 define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
 define('B_MAX', 31); // maximum bit number
 define('B_ADMINABLE', 'co member bona cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
-define('B_LIST', 'member u1 ok bona u4 u5 co u7 u8 nonudge u10 u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings u23 u24 u25 u26 regulator cadmin2 cadmin admin closed');
+define('B_LIST', 'member u1 ok bona u4 u5 co u7 u8 nonudge u10 u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 u26 regulator cadmin2 cadmin admin closed');
 
-define('R_SHORTFALL', 'GREATEST(0, minimum-r)'); // sql for shortfall in account (to draw in)
-//define('R_DEMAND', 'u.usd'); // definitely WANTS this many rCredits (was LEAST(u.usd, IFNULL(u.minimum,0)-u.r))
-//define('R_CAPACITY', 'u.usd'); // how much rCredits is each account WILLING and able to buy
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+refunds+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community)
 
 // Relationship permissions used in calls to acct::can() -- stored (less B_RELATED) in r_relations
@@ -230,7 +230,7 @@ define('B_REFUND', 103); // can undo transactions and make refunds at point of s
 define('B_SELL', 104); // can send invoices (or scan or view)
 define('B_BUY', 105); // can make purchase for the account (or sell or scan or view)
 define('B_MANAGE', 106); // can manage all aspects of the account
-define('B_JOINT', 107); // make this a joint account (give agent permission to treat it that way) -- no companies!
+define('B_JOINT', 107); // make this a joint account (subsuming the other, with permission) -- no companies!
 $GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept rCard payments'), t('give refunds & give USD for rCredits'), t('send invoices'), t('make purchases'), t('manage account'), t('joint account'));
 
 // Other special pseudo-bit values for acct::can() and rweb.module menus
@@ -342,6 +342,7 @@ $GLOBALS['topics'] = array( // topics for 'message' email
   'account suspended' => t('Account SUSPENDED'),
   'account funded' => t('Account FUNDED'),
   'approved' => t('Account APPROVED!'),
+  'join accounts' => t('Invitation to Create a Joint Account'),
 );
 
 /**
@@ -394,12 +395,13 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   $tofrom = $toMe ? t('from') : t('to');
   $uid = $otherUid = ($toMe ? $payer : $payee);
   $confirmAction = $toMe ? t('charge') : ($channel == TX_POS ? t('credit') : t('pay'));
+  $why = u\ray(R_WHYS)[$goods];
 
   If ($amount < 0) { // for POS
     $amount = -$amount; // rephrase as positive
     $tofrom = t('to');
     $confirmAction = $toMe ? t('credit') : t('charge');
-    u\both($tx, 'did', $toMe, $goods ?  t('refunded') : t('credited'), t('charged'));
+    u\both($tx, 'did', $toMe, $goods == R_FOR_GOODS ?  t('refunded') : t('credited'), t('charged'));
   } else u\both($tx, 'did', $toMe, $reverses ? t('re-charged') : t('charged'), ($channel == TX_POS ? t('credited') : t('paid')));
 
 ///  debug(compact('tx','toMe','amount','reverses','goods'));
@@ -407,10 +409,10 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   $amount = u\fmtAmt($amount);
   $short = u\fmtAmt($shortfall);
   if ($getMyBalance) {
-    if ($acct->can(B_BUY)) $balance = u\fmtAmt($acct->avail('buy'));
+    if ($acct->can(B_BUY)) $balance = u\fmtAmt($acct->avail(R_FOR_GOODS));
   }
   
-  if ($goods) {
+  if ($goods == R_FOR_GOODS) {
 //    u\both($tx, 'rewardType', $toMe, t('bonus'), t('rebate'));
     u\both($tx, 'rewardType', $toMe, t('reward'), t('reward'));
     u\both($tx, 'rewardAmount', $toMe, u\fmtAmt(@$bonus + 0), u\fmtAmt(@$rebate + 0));
@@ -421,7 +423,7 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
 
   $success = TRUE;
   foreach (u\ray('r payer payee') as $one) unset($tx[$one]); // else preempts all subs that start thus
-  return compact(u\ray('created created0 xid role payerPurpose payeePurpose toMe confirmAction amount tofrom balance otherUid myName otherName short success')) + $tx;
+  return compact(u\ray('created created0 xid role why payerPurpose payeePurpose toMe confirmAction amount tofrom balance otherUid myName otherName short success')) + $tx;
 }
 
 /**
@@ -456,8 +458,11 @@ function whoseUsd($usdAccountId, $omit = NULL) {
  * @return string: the user's transaction number
  */
 function xid2tid($xid, $uid) {
-  $where = ':uid IN (payer, payee) AND xid<:xid AND type>=0';
-  return db\lookup('MAX(IF(payee=:uid, payeeTid, payerTid))', 'r_txs', $where, compact('uid', 'xid')) + 1;
+  $jid = r\acct($uid)->jid ?: 0;
+  $isIt = ' IN (:uid, :jid)';
+  $where = "(payer$isIt OR payee$isIt) AND xid<:xid AND type>=0";
+  $max = "MAX(GREATEST(IF(payee$isIt, payeeTid, 0), IF(payer$isIt, payerTid, 0)))";
+  return db\lookup($max, 'r_txs', $where, compact('uid', 'xid', 'jid')) + 1;
 }
 
 /**
@@ -492,7 +497,7 @@ function tradeR($amount, $uid1, $uid2, &$err = '') {
  * @param int $other: the other account record ID
  * @param float $amount: the amount proposed to transfer from the account to the other account (can be negative)
  * @return TRUE if the proposed transaction duplicates the last one.
- * @see also r\cacheTotals(), where the transaction data is recorded
+ * @see also x::cacheTotals(), where the transaction data is recorded
  */
 function dupTx($uid, $other, $amount) {
   if (!$lastTx = r\acct($uid)->lastTx) return FALSE;
@@ -501,22 +506,6 @@ function dupTx($uid, $other, $amount) {
   return ($dif == $other - $uid and $amount == $oldAmt and REQUEST_TIME - $created < R_DUPTX_MINS * MIN_SECS);
 }
  
-/**
- * Return the shortfall for the requested transaction.
- * @param float $request: how much is requested
- * @param acct $a: the payer's account
- * @param bool $preapproved: is the transaction preapproved (otherwise it's an invoice)
- * @param bool $confirmed: has the user confirmed his/her intent
- * @param bool $goods: is the transaction for real goods and services
- *
- * @return float: how much too little the payer has
- */
-function shortfall($request, $a, $preapproved, $goods, $confirmed) {
-  $shortfall = 0; // no shortfall if not preapproved
-  if (!$preapproved or $a->id < 0) return 0; // just an invoice or ctty, funds don't have to be there (yet)
-  return $a->shortfall($goods ? 'buy' : 'cash', $request, $confirmed);
-}
-
 /**
  * Say whether the named employee works for the account owner.
  * @param string $name: the employee's name
@@ -552,29 +541,29 @@ EOF;
 }
 
 /**
- * Return a link to a "no signin required" action.
- * @param assoc $data:
- *   op, once, expires, id, amount, sql, subs, etc.
- * @return a clickable link that will do something without requiring the member to sign in
- * @see also r\Web\rdo()
+ * Join or unjoin this account to another.
+ * @param int $reid: relations record ID
+ * @param bool $join: whether to join the accounts (otherwise unjoin)
  */
-function makeDo($data) {
-  global $base_url;
-  extract($data = u\rayy(func_get_args()) ?: $data);
-  
-  if (@$expires) $data['expires'] = ($expires += REQUEST_TIME);
-  if (@$once) $data = u\ray('op', db\insert('r_do', u\ray('uid expires data', @$id, @$expires, serialize($data))));
+function setJoin($reid, $join) {
+  extract(r\relation('main,other', $reid));
+  list ($a1, $a2) = [r\acct($main), r\acct($other)];
 
-  return "$base_url/do/" . r\makeDoCode($data);
+  if ($join) {
+    $a1->unjoin(); // zap any join or other join requests
+    if (r\relation('permission', $other, $main) == r\perm(B_JOINT)) { // confirming join
+      $a1->join($a2);
+    } else { // requesting join
+      $atag = $a2->makeDo('join', $main); // seek agreement
+      r\message($other, 'join accounts', u\ray('atag name', $atag, $a2->fullName));
+    }
+  } else $a1->unjoin($a2);
 }
 
 /**
- * Return an address (a) tag for the indicated one-click op.
+ * Return the number of months since the first rdo of this type (for conciseness).
  */
-function makeDoA($op, $id, $amount = NULL, $once = TRUE, $other = []) {
-  $link = r\makeDo(compact(u\ray('op id amount once')) + $other);
-  return "a href=\"$link\"";
-}
+function rdoMonth($time = REQUEST_TIME) {return round(($time - strtotime('12/1/2014')) / (MONTH_DAYS * DAY_SECS));}
 
 /**
  * Wrap all email, so it doesn't go out when testing.
@@ -642,16 +631,16 @@ function notify($uid, $index, $subs = [], $force = FALSE) {
  * @param acct $a: the account that needs a higher minimum
  */
 function suggestMin($a) {
-  $suggested = u\fmtAmt($suggested0 = max(R_ACHMIN, $a->rewards, (R_SUGGEST_BUMP * $a->minimum) ?: R_MINR_DEFAULT));
-  $a1 = r\makeDoA('min', $a->id, $suggested0);
+  $suggested = u\fmtAmt($suggested0 = max(R_ACHMIN, $a->j_rewards, (R_SUGGEST_BUMP * $a->j_minimum) ?: R_MINR_DEFAULT));
+  $a1 = $a->makeDo('min', $suggested0);
   $msg = 'you were short';
   
   if ($a->can(B_SECRET)) {
-    $a2 = r\makeDoA('nosecret', $a->id);
+    $a2 = $a->makeDo('nosecret');
     $msg .= '|be not secretive';
   }
   if (!$a->can(B_DEBT) and $a->floor < 0) {
-    $a3 = r\makeDoA('debtok', $a->id);
+    $a3 = $a->makeDo('debtok');
     $msg .= '|try debt';
   }
   
@@ -707,8 +696,8 @@ function membershipEvent($a, $status, $do = TRUE) {
 function acceptGift($info) {
   extract(u\just('donid uid giftDate amount often honor', $info));
   $a = r\acct($uid);
-  if ($a->shortfall('buy', $amount)) return FALSE; // wait until tomorrow, if not enough
-  if ($a->shortfall('buy', $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
+  if ($a->shortfall(R_FOR_GOODS, $amount)) return FALSE; // wait until tomorrow, if not enough
+  if ($a->shortfall(R_FOR_GOODS, $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
   $cgf = r\acct(r\cgfId());
 
 //  r\usd::beginAtom();
@@ -720,7 +709,7 @@ function acceptGift($info) {
   }
 
   $purpose = @$honor == 'share' ? t('sharing rewards with CGF') : (t('donation') . @$recurring);
-  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, TRUE, $purpose);
+  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, R_FOR_GOODS, $purpose);
 ///  debug(compact('msg','args','confirm'));
   if (@$args['success']) {
     $completed = REQUEST_TIME;
@@ -746,7 +735,7 @@ function acceptGift($info) {
  */
 function tellStaff($index, $subs = [], $uid = TRUE) {
   if (empty($subs)) $subs = []; // accept ''
-  foreach (u\ray('federalId dob answer secure pass') as $one) unset($subs[$one]); // secret stuff
+  foreach (u\ray('federalId dob answer secure pass') as $k) unset($subs[$k]); // secret stuff
   ksort($subs); // put the keys in a predictable order, for testing and easy reading
   $message = u\tt($index, $subs) . u\seeAssoc($subs);
 
@@ -886,7 +875,7 @@ function quid($uid, $agentId = '') {
     //$i = ($uid - 1) - $region * R_REGION_MAX; // -1 because uids are all bumped up by 1
     return u\n2a($regionNum, -3) . R_MEMBER_MARK . u\n2a($i, -3);
   } else {
-    $reid = relation('reid', $uid, $agentId); // compound quid
+    $reid = r\relation('reid', $uid, $agentId); // compound quid
     return str_replace(R_MEMBER_MARK, R_AGENT_MARK, quid($reid));
 //    return R_SERVER_ID . R_AGENT_MARK . u\n2a($reid, -3);
   }
@@ -1090,6 +1079,7 @@ function relation($field, $main, $other = [], $where = 'TRUE', $subs = []) {
     if (empty($other)) {
       $reid = $main;
       $where = "reid=:reid";
+      $subs += compact('reid');
     } else {
       $where = "main=:main AND other=:other AND ($where)";
       $subs += compact('main', 'other');
@@ -1157,8 +1147,9 @@ function deleteAccount($uid) {r\changeUid($uid, FALSE, FALSE, TRUE);}
 function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
   $a = r\acct($oldUid);
   if ($delete) {
-    foreach (u\ray('r_usd r_txs') as $table) {
-      if (db\exists($table, 'payer=:oldUid OR payee=:oldUid', compact('oldUid'))) return r\Web\say('Account "@name" has transactions in @table, so it cannot be deleted.', u\ray('name table', $a->fullName, $table), 'ERR');
+    if (db\exists($table = 'r_txs', 'payer=:oldUid OR payee=:oldUid', compact('oldUid'))
+      or db\exists($table = 'r_usd', 'payer=:oldUid', compact('oldUid'))) {
+      return r\Web\say('Account "@name" has transactions in @table, so it cannot be deleted.', u\ray('name table', $a->fullName, $table), 'ERR');
     }
   } elseif (!$newUid) {
     $region = @$a->postalCode ? r\region(@$a->country, @$a->state, $a->postalCode) : communityUid();
@@ -1179,6 +1170,8 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_invoices:payee',
     'r_log:myid',
     'r_log:agent',
+    'r_near:uid1',
+    'r_near:uid2',
   // r_nonces
   // r_nonmembers
     'r_notices:uid',
@@ -1315,19 +1308,9 @@ function noticeArgs($uid, $where, $weekly, $monthly, $at = REQUEST_TIME) {
   $unit = $weekly ? 'week' : ($monthly ? 'month' : 'day');
   $yestertime = u\fmtDate($start = $unit == 'month' ? u\plusMonths(-1, $at) : strtotime("-1 $unit", $at));
   $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
-  extract(u\just('return', $a->stats()));
-  list ($balance, $rewards, $ourEmail) = array(u\fmtAmt($a->usd + $a->r), u\fmtAmt($a->rewards), R_REGION_EMAIL);
+  extract(u\just('return', $a->j_stats()));
+  list ($balance, $rewards, $ourEmail) = array(u\fmtAmt($a->j_r), u\fmtAmt($a->j_rewards), R_REGION_EMAIL);
   return compact(u\ray('messages unit range yestertime balance rewards return ourEmail'));
-}
-
-/**
- * Set or return the proxy for the person
- */
-function proxy($person, $priority = 1, $proxy = NULL) {
-  if (!@$proxy) return db\lookup('proxy', 'r_proxies', 'person=:person AND priority=:priority', compact('person', 'priority'));
-  db\q('DELETE FROM r_proxies WHERE person=:person AND priority=:priority', compact('person', 'priority'));
-  $info = compact(u\ray('person priority proxy'));
-  db\insert('r_proxies', $info);
 }
 
 /**
@@ -1520,8 +1503,8 @@ EOF;
   // get usd
   $sql = <<<EOF
     SELECT
-    SUM(IF(t.payee=0 AND amount<0, -amount, 0)) AS bankIn,
-    SUM(IF(t.payee=0 AND amount>0, amount, 0)) AS bankOut
+    SUM(IF(amount<0, -amount, 0)) AS bankIn,
+    SUM(IF(amount>0, amount, 0)) AS bankOut
     FROM r_usd t LEFT JOIN users u ON u.uid=t.payer
     WHERE $cttyCrit AND t.completed AND t.completed<=:created
 EOF;
@@ -1555,7 +1538,8 @@ EOF;
     
   $sql = <<<EOF
     SELECT $sums SUM(IF(channel=:TX_CRON AND payeeFor='sharing rewards with CGF', amount, 0)) AS shared,
-    SUM(IF(goods, amount, 0)) AS purchases, SUM(IF(payer>1 AND NOT goods, amount, 0)) AS forCashs
+    SUM(IF(goods=:R_FOR_GOODS, amount, 0)) AS purchases, 
+    SUM(IF(payer>1 AND goods<>:R_FOR_GOODS, amount, 0)) AS forCashs
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
     WHERE $cttysCrit AND t.created<=:created
 EOF;
@@ -1582,17 +1566,17 @@ EOF;
 
   $sql = <<<EOF
     SELECT 
-    SUM(IF(goods, amount, 0)) AS perMo,
-    SUM(IF(goods AND NOT u.:IS_CO AND u2.:IS_CO, amount, 0)) AS p2bPerMo,
-    SUM(IF(goods AND u.:IS_CO AND u2.:IS_CO, amount, 0)) AS b2bPerMo,
-    SUM(IF(goods AND u.:IS_CO AND NOT u2.:IS_CO, amount, 0)) AS b2pPerMo,
-    SUM(IF(goods, 0, amount)) AS cashPerMo,
+    SUM(IF(goods=:R_FOR_GOODS, amount, 0)) AS perMo,
+    SUM(IF(goods=:R_FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, amount, 0)) AS p2bPerMo,
+    SUM(IF(goods=:R_FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, amount, 0)) AS b2bPerMo,
+    SUM(IF(goods=:R_FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, amount, 0)) AS b2pPerMo,
+    SUM(IF(goods=:R_FOR_GOODS, 0, amount)) AS cashPerMo,
 
-    SUM(IF(goods, 1, 0)) AS txsPerMo,
-    SUM(IF(goods AND NOT u.:IS_CO AND u2.:IS_CO, 1, 0)) AS p2bTxsPerMo,
-    SUM(IF(goods AND u.:IS_CO AND u2.:IS_CO, 1, 0)) AS b2bTxsPerMo,
-    SUM(IF(goods AND u.:IS_CO AND NOT u2.:IS_CO, 1, 0)) AS b2pTxsPerMo,
-    SUM(IF(NOT goods, 1, 0)) AS cashTxsPerMo
+    SUM(IF(goods=:R_FOR_GOODS, 1, 0)) AS txsPerMo,
+    SUM(IF(goods=:R_FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, 1, 0)) AS p2bTxsPerMo,
+    SUM(IF(goods=:R_FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, 1, 0)) AS b2bTxsPerMo,
+    SUM(IF(goods=:R_FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, 1, 0)) AS b2pTxsPerMo,
+    SUM(IF(goods=:R_FOR_GOODS, 0, 1)) AS cashTxsPerMo
 
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
     WHERE $cttysCrit AND t.created>:monthAgo AND t.created<=:created
@@ -1608,8 +1592,7 @@ EOF;
     SUM(IF(amount<0, 0, 1)) AS bankOutTxsPerMo
 
     FROM r_usd t LEFT JOIN users u ON t.payer=u.uid
-    WHERE $cttyCrit AND t.completed AND t.payee=0
-    AND completed<=:created AND completed>:monthAgo
+    WHERE $cttyCrit AND t.completed AND completed<=:created AND completed>:monthAgo
 EOF;
   $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
@@ -1638,7 +1621,7 @@ function averageBalance($uid, $start, $end = REQUEST_TIME, &$min = '', &$days = 
     SELECT SUM(IF(payee=:uid, amount, -amount)) AS total, FLOOR((completed-$start)/:DAY_SECS) AS day 
     FROM (
       (SELECT payer,payee,amount,created AS completed FROM r_txs)
-      UNION (SELECT payer,payee,amount,completed FROM r_usd WHERE payee=0)
+      UNION (SELECT payer,0 AS payee,amount,completed FROM r_usd)
     ) x WHERE :uid IN (payer, payee) AND completed BETWEEN $start AND $end 
     GROUP BY day
 EOF;
@@ -1803,6 +1786,9 @@ function rebate($from, $to, $amount = 1) {
   return '' . round($amount * $a->rebate / 100, 2); // ''. to avoid serializing a long float
 }
 
+function bonus($to, $from, $amount = 1) {return rebate($to, $from, $amount * R_BONUS_FACTOR);}
+//function bonus($to, $from, $amount = 1) {return round($amount * (u\test() ? 2 : R_BONUS_FACTOR) * r\acct($to)->rebate / 100, 2);}
+
 /**
  * Return the appropriate exchange fee for the given transaction description and amount.
  */
@@ -1814,9 +1800,6 @@ function xfee($for, $amount) {
   return '' . round(strpos($for, '(card)') ? -R_XFEE_CARD * $amount : R_XFEE_CHECK, 2);
 }
   
-//function bonus($to, $from, $amount = 1) {return round($amount * (u\test() ? 2 : R_BONUS_FACTOR) * r\acct($to)->rebate / 100, 2);}
-function bonus($to, $from, $amount = 1) {return '' . round($amount * (u\test() ? 2 : R_BONUS_FACTOR) * rebate($to, $from), 2);}
-
 // Single line functions that need no explanation
 function serverUid($regionId = R_SERVER_ID) {return -1 - R_REGION_MAX * u\a2n($regionId);} // -u\a2n($regionId) - 1;}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}

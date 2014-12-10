@@ -5,10 +5,10 @@ SO CGF can continue to promote and maintain the rCredits system for my benefit a
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType    | flags        | share |*
-  | .ZZA | Abe One    | -100  | personal    | ok,bona,debt |    50 |
-  | .ZZB | Bea Two    | -200  | personal    | ok,co,bona   |    10 |
-  | .ZZC | Corner Pub | -300  | corporation | ok,co,bona   |     0 |
+  | id   | fullName   | floor | acctType    | flags        | share | rebate |*
+  | .ZZA | Abe One    | -100  | personal    | ok,bona,debt |    50 |      5 |
+  | .ZZB | Bea Two    | -200  | personal    | ok,co,bona   |    10 |     10 |
+  | .ZZC | Corner Pub | -300  | corporation | ok,co,bona   |     0 |     10 |
   When transactions: 
   | xid | created | type     | amount | from | to   | purpose |*
   |   1 | %today  | transfer |     40 | .ZZA | .ZZB | what G  |
@@ -42,4 +42,4 @@ Scenario: members share their transaction rewards
   | $1     | $0.05        |
   And we notice "gift sent" to member ".ZZB" with subs:
   | amount | rewardAmount |*
-  | $0.40  | $0.02        |
+  | $0.40  | $0.04        |

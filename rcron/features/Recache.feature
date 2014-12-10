@@ -20,21 +20,19 @@ Setup:
 
 Scenario: Balances get out of whack
   Given balances:
-  | id     | r  |rewards | minimum | floor |*
-  | .ZZA   |  0 |      0 |       0 |     2 |
-  | .ZZB   | 20 |      0 |     -10 |   -50 |
+  | id     | r  |rewards |*
+  | .ZZA   |  0 |      0 |
+  | .ZZB   | 20 |      0 |
   When cron runs "recache"
   Then we tell staff "cache mismatch" with subs:
   | id   | key     | is   | shouldBe |*
   | .ZZA | r       |    0 |       10 |
   | .ZZA | rewards |    0 |       10 |
-  | .ZZA | minimum |    0 |        2 |
   | .ZZB | r       |   20 |        0 |
-  | .ZZB | minimum |  -10 |        0 |
   And balances:
-  | id     | r  | rewards | minimum |*
-  | .ZZA   | 10 |      10 |       2 |
-  | .ZZB   |  0 |       0 |       0 |
+  | id     | r  | rewards |*
+  | .ZZA   | 10 |      10 |
+  | .ZZB   |  0 |       0 |
   Skip (we might never want this feature)
   And we message member ".ZZA" with topic "account suspended" and subs:
   | why                        |*

@@ -236,7 +236,7 @@ class call {
     $stats = r\stats(); // show system-wide demand. later maybe just $mya->community
     $totalDemand = u\fmtAmt($stats['usd']);
 //    $totalDemand = r\totals()->fancy['demand'];
-    list ($balance, $rewards) = array(u\fmtAmt($mya->r + $mya->usd), u\fmtAmt($mya->rewards));
+    list ($balance, $rewards) = array(u\fmtAmt($mya->j_r), u\fmtAmt($mya->j_rewards));
     return tt('account info', compact(u\ray('quid balance rewards totalDemand')));
   }
 
@@ -355,7 +355,7 @@ class call {
     if ($a != 'ALL' and !u\isAcct($a)) return tt($a); // return the array if error
 
     $mya = r\acct();
-    $goods = !u\forCash($what);
+    $goods = u\forCash($what) ? R_FOR_USD : R_FOR_GOODS;
     
     list ($msg, $args, $confirm) = 
       $type == 'payment' ? be\transfer($type, $mya, $a, $amount, $goods, $what, NULL, $this->confirmed)

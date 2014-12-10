@@ -53,9 +53,9 @@ Scenario: A cashier asks to charge someone
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food" at %now
   # cash exchange would be for "cash": "cash out"
   Then we respond ok txid 5 created %now balance 160 rewards 260
-  And with message "report transaction" with subs:
-  | did     | otherName | amount | rewardType | rewardAmount |*
-  | charged | Bea Two   | $100   | reward     | $10          |
+  And with message "report tx|reward" with subs:
+  | did     | otherName | amount | why                | rewardAmount |*
+  | charged | Bea Two   | $100   | goods and services | $5           |
   And with did
   | did     | amount | forCash |*
   | charged | $100   |         |
@@ -67,17 +67,17 @@ Scenario: A cashier asks to charge someone
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
   And balances:
   | id   | balance |*
-  | ctty |    -770 |
+  | ctty |   -1015 |
   | .ZZA |     250 |
   | .ZZB |     160 |
-  | .ZZC |     360 |
+  | .ZZC |     355 |
 
 Scenario: A cashier asks to refund someone
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "goods": "food" at %now
   Then we respond ok txid 5 created %now balance 340 rewards 240
-  And with message "report transaction" with subs:
-  | did      | otherName | amount | rewardType | rewardAmount |*
-  | refunded | Bea Two   | $100   | reward     | $-10         |
+  And with message "report tx|reward" with subs:
+  | did      | otherName | amount | why                | rewardAmount |*
+  | refunded | Bea Two   | $100   | goods and services | $-5          |
   And with did
   | did      | amount | forCash |*
   | refunded | $100   |         |
@@ -89,10 +89,10 @@ Scenario: A cashier asks to refund someone
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $-10              |
   And balances:
   | id   | balance |*
-  | ctty |    -730 |
+  | ctty |    -985 |
   | .ZZA |     250 |
   | .ZZB |     340 |
-  | .ZZC |     140 |
+  | .ZZC |     145 |
 
 Scenario: A cashier asks to charge another member, with insufficient balance
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "goods": "food" at %now

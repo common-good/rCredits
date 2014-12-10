@@ -370,7 +370,7 @@ function formDeposits($form, &$sta, $deposit = '') {
   $title = item(t('Deposits'));
 
   foreach ($ways = [t('IN'), t('OUT')] as $way) {  
-    $where = 'payee=0 AND amount' . ($way == t('IN') ? '<0' : '>0');
+    $where = $way == t('IN') ? 'amount<0' : 'amount>0';
     $count = db\count('r_usd', $where . ' AND deposit=0');
     $previous = db\lookup('MAX(deposit)', 'r_usd', $where);
     if ($previous == 1) $previous = 0; // handle transition from Dwolla
@@ -391,7 +391,7 @@ function formDeposits_submit($form, &$sta) {
   $op = w\op($sta);
   $way = str_replace('submit', '', $op); // cute. INsubmit or OUTsubmit -> IN or OUT
   foreach (['reprint', 'previous'] as $k) $$k = @$sta['input'][$way . $k];
-  r\go("sadmin/checks/way=$way&date=0&previous=$previous&reprint=" . @$reprint);
+  r\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1&reprint=" . @$reprint);
 }
 
 function depositDetails($args) {
@@ -467,8 +467,16 @@ EOF;
   if (u\test()) $pdf->Close(); else $pdf->Output('rCredits-deposit-$date.pdf', 'I'); //Close and output
 }
 
+/**
+ * Create a PDF of all relevant checks.
+ * @param string $way: IN (from member bank account to rCredits) or OUT (from rCredits to member bank account)
+ * @param int $date: deposit/check date
+ * @param bool $reprint: whether to include a reprint of the previous deposit's checks
+ * @param int $previous: date of previous deposit
+ * @param bool $mark: whether to set the deposit date for each relevant transfer, in r_usd
+ */
 function printChecks($args) {
-  extract(u\just('way date reprint previous', $args));
+  extract(u\just('way date reprint previous mark', $args));
   include_once __DIR__ . '/../pdf.class';
   $ck = new r\Pdf();
   $ck->setPrintHeader(FALSE);
@@ -479,12 +487,12 @@ function printChecks($args) {
 
   $where = @$reprint ? "(deposit=0 OR deposit>=$previous)" : "deposit=$date";
   $where .= strtoupper($way) == 'IN' ? ' AND amount<0' : ' AND amount>0';
-  $q = db\q("SELECT txid,created,payer,amount,deposit FROM r_usd WHERE $where AND payee=0 ORDER BY created, txid");
+  $q = db\q("SELECT txid,created,payer,amount,deposit FROM r_usd WHERE $where ORDER BY created, txid");
   $pos = 3; // before first position of 3, on 3-up check paper
   $count = 0;
   while ($tx = $q->fetchAssoc()) {
     if ($pos == 3) {$pos = 1; $ck->AddPage();} else $pos++;
-    a\printCheck($ck, $pos, $tx);
+    a\printCheck($ck, $pos, $tx, $mark);
     $count++;
   }
   $date = strftime('%Y-%m-%d', @$previous ?: time());
@@ -712,7 +720,7 @@ function reinstall() {
   : array('lSsN1II4kj5gKQQxkm3bn7t0RVW-ZCntoAIhr7H9XbM', 'RwHRLEIACfa2ICgcLTOfRdDvpxADnpooX3JeSF1KXZg');
   $warning = isDEV ? '' : ('WARNING! This is ' . $_SERVER['HTTP_HOST']);
 
-  echo <<<EOF
+/**/ echo <<<EOF
     $warning<br><br>
 <form action="{$base_path}devel/reinstall?destination=handy" method="post" id="devel-reinstall" accept-charset="UTF-8"><div><div class="form-item form-type-checkboxes form-item-list">
  <div id="edit-list" class="form-checkboxes"><div class="form-item form-type-checkbox form-item-list-block">

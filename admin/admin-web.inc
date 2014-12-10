@@ -74,7 +74,7 @@ function adminSummary($a, $cAdmin = FALSE) {
 //        $minimum = textField(t('Minimum:'), '', dft(u\fmtAmt($a->minimum)));
 //        $achMin = textField(t('ACH Min:'), '', dft(u\fmtAmt($a->achMin ?: R_ACHMIN_DEFAULT, 's')));
 //      }
-        $minimum = item(u\fmtAmt($a->minimum), t('Minimum:'));
+        $minimum = item(u\fmtAmt($a->j_minimum), t('Minimum:'));
         $achMin = item(u\fmtAmt($a->achMin), t('ACH Min:'));
 //      if (!$a->stepsDone['dw']) { // show info needed to open a Dwolla account
       extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
@@ -195,7 +195,7 @@ function txInfo($xid) {
   $from = item(txInfoParty($payer, $payerAgent, $payerTid), t('From:'));
   $to = item(txInfoParty($payee, $payeeAgent, $payeeTid), t('To:'));
   $same = ($payerFor == $payeeFor);
-  $goodsDesc = $goods ? t(' (real goods and services)') : t(' (cash/loan/etc.)');
+  $goodsDesc = ' (' . u\ray(R_WHYS)[$goods] . ')';
   $for1 = item($payerFor . $goodsDesc, $same ? t('For:') : t('Payer Desc:'));
   if (!$same) $for2 = item($payeeFor, t('Payee Desc:'));
   $by = item($taking ? t('by payee') : t('by payer'), t('Initiated:'));

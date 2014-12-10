@@ -20,22 +20,21 @@ Scenario: A newbie has taken some steps but not all
   Given member ".ZZA" has done step "sign contact donate proxies prefs photo"
   When cron runs "tickle"
   Then we notice "take another step|sign in" to member ".ZZA"
-Skip
-Scenario: A newbie is on the verify step
-  Given member ".ZZA" has done step "sign contact donate proxies prefs photo connect"
-  And member ".ZZB" has done step "sign contact donate proxies prefs photo connect"
-  And member ".ZZD" has done step "sign contact donate proxies prefs photo connect"
-  When cron runs "tickle"
-  Then we notice "call bank|sign in" to member ".ZZB" with subs:
-  | when                       |*
-  | tomorrow (how about 10am?) |
-  And we notice "call bank|sign in" to member ".ZZD" with subs:
-  | when                      |*
-  | today between 9am and 4pm |
+
+#Scenario: A newbie is on the verify step
+#  Given member ".ZZA" has done step "sign contact donate proxies prefs photo connect"
+#  And member ".ZZB" has done step "sign contact donate proxies prefs photo connect"
+#  And member ".ZZD" has done step "sign contact donate proxies prefs photo connect"
+#  When cron runs "tickle"
+#  Then we notice "call bank|sign in" to member ".ZZB" with subs:
+#  | when                       |*
+#  | tomorrow (how about 10am?) |
+#  And we notice "call bank|sign in" to member ".ZZD" with subs:
+#  | when                      |*
+#  | today between 9am and 4pm |
 #  And we notice "gift sent" to member ".ZZA" with subs:
 #  | amount | rewardAmount |*
 #  |    $10 |        $0.50 |
-Resume
 
 Scenario: A nonmember has not accepted the invitation
   Given invites:

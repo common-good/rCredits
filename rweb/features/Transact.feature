@@ -7,10 +7,10 @@ SO I can buy and sell stuff.
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | postalCode | country | postalAddr | email | flags      |*
-  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK | a@    | ok,bona    |
-  | .ZZB | Bea Two    | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT | b@    | ok,bona    |
-  | .ZZC | Corner Pub | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR | c@    | ok,co,bona |
+  | id   | fullName   | address | city  | state  | postalCode | country | postalAddr | rebate | flags      |*
+  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK |      5 | ok,bona    |
+  | .ZZB | Bea Two    | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT |     10 | ok,bona    |
+  | .ZZC | Corner Pub | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR |     10 | ok,co,bona |
   And relations:
   | id   | main | agent | permission |*
   | :ZZA | .ZZA | .ZZB  | buy        |
@@ -36,18 +36,18 @@ Setup:
 Scenario: A member asks to charge another member
   When member ".ZZA" completes form "charge" with values:
   | op     | who     | amount | goods | purpose |*
-  | charge | Bea Two | 100    | 1     | labor   |
+  | charge | Bea Two | 100    | 2     | labor   |
   Then we show "confirm charge" with subs:
-  | amount | otherName |*
-  | $100   | Bea Two   |
+  | amount | otherName | why                |*
+  | $100   | Bea Two   | goods and services |
 
 Scenario: A member confirms request to charge another member
   When member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods | purpose |*
-  | charge | Bea Two | 100    | 1     | labor   |
-  Then we say "status": "report invoice|balance unchanged" with subs:
-  | did     | otherName | amount |*
-  | charged | Bea Two   | $100   |
+  | charge | Bea Two | 100    | 2     | labor   |
+  Then we say "status": "report tx|balance unchanged" with subs:
+  | did     | otherName | amount | why                |*
+  | charged | Bea Two   | $100   | goods and services |
   And we notice "new invoice" to member ".ZZB" with subs:
   | created | fullName | otherName | amount | purpose |*
   | %today  | Bea Two  | Abe One   | $100   | labor   |
@@ -64,18 +64,18 @@ Scenario: A member confirms request to charge another member
 Scenario: A member asks to pay another member
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | 1     | labor   |
+  | pay | Bea Two | 100    | 2     | labor   |
   Then we show "confirm payment" with subs:
-  | amount | otherName |*
-  | $100   | Bea Two   |
+  | amount | otherName | why                |*
+  | $100   | Bea Two   | goods and services |
   
 Scenario: A member confirms request to pay another member
   When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | 1     | labor   |
-  Then we say "status": "report transaction" with subs:
-  | did    | otherName | amount | rewardType | rewardAmount |*
-  | paid   | Bea Two   | $100   | reward     | $5           |
+  | pay | Bea Two | 100    | 2     | labor   |
+  Then we say "status": "report tx|reward" with subs:
+  | did    | otherName | amount | why                | rewardAmount |*
+  | paid   | Bea Two   | $100   | goods and services | $5           |
   And we notice "new payment|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Abe One   | $100   | labor        | reward          |               $10 |
@@ -95,10 +95,10 @@ Scenario: A member confirms request to pay a member company
   Given next DO code is "whatever"
   When member ".ZZA" confirms form "pay" with values:
   | op  | who        | amount | goods | purpose |*
-  | pay | Corner Pub | 100    | 1     | stuff   |
-  Then we say "status": "report transaction" with subs:
-  | did    | otherName  | amount | rewardType | rewardAmount |*
-  | paid   | Corner Pub | $100   | reward     | $5           |
+  | pay | Corner Pub | 100    | 2     | stuff   |
+  Then we say "status": "report tx|reward" with subs:
+  | did    | otherName  | amount | why                | rewardAmount |*
+  | paid   | Corner Pub | $100   | goods and services | $5           |
   And we notice "new payment|reward other" to member ".ZZC" with subs:
   | created | fullName   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*
   | %today  | Corner Pub | Abe One   | $100 | stuff | reward | $10 |
@@ -123,10 +123,10 @@ Resume
 Scenario: A member confirms request to pay the same member the same amount
   Given member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | 1     | labor   |  
+  | pay | Bea Two | 100    | 2     | labor   |  
   When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | 1     | labor   |
+  | pay | Bea Two | 100    | 2     | labor   |
   Then we say "error": "duplicate transaction" with subs:
   | op   |*
   | paid |
@@ -134,10 +134,10 @@ Scenario: A member confirms request to pay the same member the same amount
 Scenario: A member confirms request to charge the same member the same amount
   Given member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods | purpose |*
-  | charge | Bea Two | 100    | 1     | labor   |  
+  | charge | Bea Two | 100    | 2     | labor   |  
   When member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods | purpose |*
-  | charge | Bea Two | 100    | 1     | labor   |
+  | charge | Bea Two | 100    | 2     | labor   |
   Then we say "error": "duplicate transaction" with subs:
   | op      |*
   | charged |

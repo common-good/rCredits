@@ -72,8 +72,8 @@ class rwebBank extends DrupalWebTestCase {
     . '\\| action     | amount | checkNum |'
     . '\\| draw from  | $40    |        1 |"');
     And__('usd transfers: "ASSOC'
-    . '\\| txid | payer | payee | amount |'
-    . '\\|    1 | .ZZA  |     0 |    -40 |"');
+    . '\\| txid | payer | amount |'
+    . '\\|    1 | .ZZA  |    -40 |"');
   }
 
   // Scenario: A member transfers funds to the bank
@@ -86,8 +86,8 @@ class rwebBank extends DrupalWebTestCase {
     . '\\| action     | amount |'
     . '\\| deposit to | $40    |"');
     And__('usd transfers: "ASSOC'
-    . '\\| payer | payee | amount |'
-    . '\\| .ZZA  |     0 |     40 |"');
+    . '\\| payer | amount |'
+    . '\\| .ZZA  |     40 |"');
   }
 
 }

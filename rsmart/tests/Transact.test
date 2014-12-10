@@ -90,9 +90,9 @@ class rsmartTransact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food" at %now');
     Then_('we respond ok txid 5 created %now balance 160 rewards 260');
-    And__('with message "report transaction" with subs: "ASSOC'
-    . '\\| did     | otherName | amount | rewardType | rewardAmount |'
-    . '\\| charged | Bea Two   | $100   | reward     | $10          |"');
+    And__('with message "report tx|reward" with subs: "ASSOC'
+    . '\\| did     | otherName | amount | why                | rewardAmount |'
+    . '\\| charged | Bea Two   | $100   | goods and services | $5           |"');
     And__('with did "ASSOC'
     . '\\| did     | amount | forCash |'
     . '\\| charged | $100   |         |"');
@@ -104,10 +104,10 @@ class rsmartTransact extends DrupalWebTestCase {
     . '\\| %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |"');
     And__('balances: "ASSOC'
     . '\\| id   | balance |'
-    . '\\| ctty |    -770 |'
+    . '\\| ctty |   -1015 |'
     . '\\| .ZZA |     250 |'
     . '\\| .ZZB |     160 |'
-    . '\\| .ZZC |     360 |"');
+    . '\\| .ZZC |     355 |"');
   }
 
   // Scenario: A cashier asks to refund someone
@@ -115,9 +115,9 @@ class rsmartTransact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "goods": "food" at %now');
     Then_('we respond ok txid 5 created %now balance 340 rewards 240');
-    And__('with message "report transaction" with subs: "ASSOC'
-    . '\\| did      | otherName | amount | rewardType | rewardAmount |'
-    . '\\| refunded | Bea Two   | $100   | reward     | $-10         |"');
+    And__('with message "report tx|reward" with subs: "ASSOC'
+    . '\\| did      | otherName | amount | why                | rewardAmount |'
+    . '\\| refunded | Bea Two   | $100   | goods and services | $-5          |"');
     And__('with did "ASSOC'
     . '\\| did      | amount | forCash |'
     . '\\| refunded | $100   |         |"');
@@ -129,10 +129,10 @@ class rsmartTransact extends DrupalWebTestCase {
     . '\\| %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $-10              |"');
     And__('balances: "ASSOC'
     . '\\| id   | balance |'
-    . '\\| ctty |    -730 |'
+    . '\\| ctty |    -985 |'
     . '\\| .ZZA |     250 |'
     . '\\| .ZZB |     340 |'
-    . '\\| .ZZC |     140 |"');
+    . '\\| .ZZC |     145 |"');
   }
 
   // Scenario: A cashier asks to charge another member, with insufficient balance

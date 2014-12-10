@@ -87,12 +87,12 @@ EOF
 EOF
   );
 
-  if ($i == 'pay') return t(<<<EOF
+  if ($i == 'pay' and $whys = u\ray(R_WHYS)) return t(<<<EOF
     <p><b>Whom:</b> Type all or part of the full name of the account you want to pay. You can leave out the punctuation, spaces, and capitals. Or you can type their phone number or email address or their account ID. Note that a period in the account ID (a regular account) is different from a colon (an agent acting on behalf of an account).</p>
     <p><b>Amount:</b> The amount of the transaction, measured in dollars, to be paid in rCredits.</p>
-    <p><b>Purpose:</b> If this is a purely financial transaction, click "cash/loan/etc". Otherwise, a description is required (for purchases and sales of real goods and services). Donations to nonprofit organizations count as purchases of real services &mdash; services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank &mdash; your statements will call the purpose "cash".</p>
+    <p><b>Purpose:</b> If this is a purely financial transaction, click "@forMoney" or "@forNongoods". Otherwise, a description is required (for purchases and sales of real goods and services). Donations to nonprofit organizations count as purchases of real services &mdash; services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank &mdash; your statements will call the purpose "cash".</p>
 EOF
-  );
+  , ['@forMoney'=>$whys[R_FOR_USD], '@forNongoods'=>$whys[R_FOR_NONGOODS]]);
 
   if ($i == 'directory') return t(<<<EOF
     <p>This is where you can find out who takes rCredits for what you want. click a business name to see its rCredits webpage.</p>

@@ -62,7 +62,7 @@ NOTES:
 
 //include_once __DIR__ . '/../usd.class';
 
-define('R_DAILY_TASKS', 'START recache checkAccts acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank notices END'); // had homogenize, pool 
+define('R_DAILY_TASKS', 'START recache checkAccts setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank notices END'); // had homogenize, pool 
 //define ('R_DAILY_TASKS', 'START redistribute END');
 
 /**
@@ -109,7 +109,7 @@ function acctHourly($item) {
   return; // nothing to do, currently
   extract(u\just('uid', $item));
   $a = r\acct($uid);
-//  $a->shortfall('buy', PHP_INT_MAX); // notice recent deposits, if any
+//  $a->shortfall(R_FOR_GOODS, PHP_INT_MAX); // notice recent deposits, if any
 }
 
 function everyDay() {
@@ -118,6 +118,7 @@ function everyDay() {
   // miscellaneous quick stuff to do every day
   $time = time() - 7 * DAY_SECS;
   db\q('DELETE FROM r_log WHERE time<:time', compact('time')); // zap log except for the past few days
+  db\q('DELETE FROM r_do WHERE completed<0 AND :now>-completed', ['now'=>time()]); // completed<0 is -expiry time
 }
 
 /**
@@ -304,24 +305,6 @@ function coverFee($item) {
 //****************************************************
 
 /**
- * Tell a member about missed opportunities to keep their rCredits and spend them for rebates.
- * Suggest a specific easy remedy.
- * UNUSED
- */
-function soldOut($item) {
-  return; // UNUSED
-  /*
-  extract(u\just('payer total', $item));
-  $a = r\acct($payer);
-  if (!$rebatePct = $a->rebate) return; // no potential rebates (later suggest reaching out)
-  if (db\exists('r_usd', 'payer=:payer AND payee=0 AND amount>0 AND created>:REQUEST_TIME-:WEEK_SECS', compact('payer'))) return; // member moved money to bank account this week
-  $rebates = u\fmtAmt($rebatePct * $total / 100);
-  $total = u\fmtAmt($total);
-  suggestMin($a);
-  */
-}
-
-/**
  * Calculate and credit inflation adjustment to each member account.
  */
 function inflationAdjust($item) {
@@ -409,7 +392,7 @@ function recache() {
 
 function recache1($item) {
   extract($item);
-  if (u\test() and realId($uid)) return; // ignore real accounts in tests
+//  if (u\test() and realId($uid)) return; // ignore real accounts in tests
   $a = r\acct($uid);
   $a->cacheOk();
   //$a->update(compact(array_keys($item)));
@@ -426,8 +409,32 @@ function checkAccts() {
 function checkAcct($item) {
   extract($item); // (prepared for additional tasks)
   $a = r\acct($uid);
-  if (r\membershipEvent($a, 'bona', $a->usd > 0)) r\tellStaff('noticed BONA late', NULL, $uid);
+  if (r\membershipEvent($a, 'bona', $a->j_r > 0)) r\tellStaff('noticed BONA late', NULL, $uid);
   //look at agreement date and first transaction date and last transaction date. queue appropriate funcs
+}
+
+/**
+ * Analyze anew how each member relates to other members.
+ */
+function setNear() {
+  db\q('TRUNCATE r_near'); // start from scratch
+  $queries = join(' UNION ', [
+    'SELECT DISTINCT inviter AS id1, invitee AS id2, 1 AS w FROM r_invites WHERE invitee',
+    'SELECT DISTINCT person AS id1, proxy AS id2, 1 AS w FROM r_proxies',
+    'SELECT DISTINCT payer AS id1, payee AS id2, 1 AS w FROM r_txs WHERE payer>0 AND payee>0',
+    'SELECT DISTINCT main AS id1, other AS id2, 1 AS w FROM r_relations',
+    'SELECT DISTINCT u1.uid AS id1, u2.uid AS id2, 0.5 AS w FROM users u1 INNER JOIN users u2 ON (u2.city=u1.city OR u2.postalCode=u1.postalCode) WHERE u1.uid<>u2.uid',
+  ]); // each type of relationship counts as one point
+  $sql = <<<EOF
+    INSERT INTO r_near
+    SELECT LEAST(q.id1, q.id2) AS uid1, GREATEST(q.id1, q.id2) AS uid2, SUM(w) AS weight 
+    FROM ($queries) q 
+    LEFT JOIN users u ON u.uid=q.id1
+    LEFT JOIN users v ON v.uid=q.id2
+    WHERE NOT u.:IS_CO AND NOT v.:IS_CO
+    GROUP BY LEAST(q.id1, q.id2), GREATEST(q.id1, q.id2)
+EOF;
+  db\q($sql);
 }
 
 /**
@@ -470,7 +477,7 @@ EOF;
   
   $sql = <<<EOF
     SELECT SUM(amount) AS bankedEver, SUM(IF(completed<:monthAgo, 0, amount)) AS bankedPastMo
-    FROM r_usd WHERE payer=:uid AND payee=0 AND completed AND completed<:asof
+    FROM r_usd WHERE payer=:uid AND completed AND completed<:asof
 EOF;
   $row3 = db\q($sql, $subs)->fetchAssoc() ?: array(); // get bankedEver, bankedPastMo
   $newData = $row1 + $row2 + $row3 + compact(u\ray('avgBalPastMo avgBalEver minPastMo'));
@@ -550,7 +557,7 @@ function txRisk1($item) {
  * Calculate risks of financial misbehavior for each recent ACH.
  */
 function achRisk() {
-  queueEach('achRisk1', 'SELECT * FROM r_usd WHERE risk IS NULL AND payee=0 ORDER BY created');
+  queueEach('achRisk1', 'SELECT * FROM r_usd WHERE risk IS NULL ORDER BY created');
   queueNextAfter('achRisk');
 }
 
@@ -653,14 +660,15 @@ function bank() {
   $sql = <<<EOF
   SELECT uid
   FROM users 
-  WHERE :R_SHORTFALL>0 AND minimum>0 AND uid>1 AND :IS_OK AND :HAS_BANK
+  WHERE minimum>0 AND r<minimum AND uid>1 AND :IS_OK AND :HAS_BANK
 EOF;
-  queueEach('bank1', $sql);
+  queueEach('bank1', $sql); // Note: joint slave r values cannot be negative unless both are (see r\cache)
   
   $sql = <<<EOF
   SELECT uid, r.main as ma
   FROM users u INNER JOIN r_relations r ON r.other=u.uid
-  WHERE :R_SHORTFALL>0 AND minimum>0 AND uid>1 AND :IS_OK AND NOT :HAS_BANK AND r.draw
+  WHERE minimum>0 AND r<minimum AND uid>1 AND :IS_OK AND NOT :HAS_BANK AND r.draw 
+  AND r.permission<>:B_JOINT-:B_RELATED
 EOF;
   queueEach('draw1', $sql);
   
@@ -676,7 +684,8 @@ function completeUsdTx($item) {
 function bank1($item) {
   extract(u\just('uid', $item));
   $a = r\acct($uid);
-  if (!$amount = getR($a)) return; // check shortfall here NOT in query, balance may change
+  if ($a->j_r >= $a->j_minimum) return; // joint account balance is sufficient
+  if (!$amount = getHowMuchR($a)) return; // check shortfall here NOT in query, balance may change
   $action = 'draw from';
   if (!$checkNum = $a->bank(-$amount)) return; // may never happen, but if mysql is unavailable just redo next day
   $amount = u\fmtAmt($amount);
@@ -686,7 +695,8 @@ function bank1($item) {
 function draw1($item) {
   extract(u\just('uid ma', $item)); // ma is UNUSED
   $a = r\acct($uid);
-  if (!$amount = getR($a, FALSE)) return;
+  if ($a->jid) return; // don't draw within a joint account
+  if (!$amount = getHowMuchR($a, FALSE)) return;
 
   if ($a->draw($amount)) {
     $amount = u\fmtAmt($amount);
@@ -695,13 +705,13 @@ function draw1($item) {
 }
 
 /**
- * Given an account's shortfall, return the amount to actually transfer to rCredits.
+ * Given an account's shortfall, return how much to actually transfer from wherever to the rCredits account.
  * @param acct $a: which account
  * @param bool $banky: the account has a connected bank account
  * @return: the amount to transfer from the connected bank account or drawn for other rCredits accts (0 if none).
  */
-function getR($a, $banky = TRUE) {
-  if (!$need = max(0, $a->minimum - $a->r)) return 0;
+function getHowMuchR($a, $banky = TRUE) {
+  if (!$need = max(0, $a->minimum - $a->j_r)) return 0;
   if ($banky) {
     $waiting = -$a->waitingToBank(); // amount already requested (if any)
     $need = round($need - $waiting, 2); // avoid a re-request
@@ -740,7 +750,7 @@ function notice($item) {
 function END() {
   $lastCron = \variable_get('r_last_cron', array());
   $elapsed = time() - @$lastCron['day'];
-//  echo "Daily cron done after $elapsed seconds"; // keep
+///  echo "Daily cron done after $elapsed seconds"; // keep
   r\tellStaff("At " . strftime('%I:%M%P') . ", after $elapsed secs, daily cron ended successfully.", '', FALSE);
 }
 
@@ -757,17 +767,6 @@ function queueNextAfter($task) {
   } else r\queue($tasks[array_search($task, $tasks) + 1]);
 }
 
-function paymentExchangeError($a1, $a2) {
-  paymentExchangeError1($a1, 'to', $a2);
-  paymentExchangeError1($a2, 'from', $a1);
-  return FALSE;
-}
-
-function paymentExchangeError1($a1, $way, $a2) {
-  $other = $a2->fullName;
-  r\notify($a1->id, 'payment exchange error', compact('way', 'other'));
-}
-
 function queueEach($op, $sql, $subs = array()) {
   global $cronOp; // this is set to ONE_CRON_OP when calling cron() from PHP window on test server
   $result = db\q($sql, $subs);
@@ -777,7 +776,7 @@ function queueEach($op, $sql, $subs = array()) {
   }
 }
 
-function realId($uid) {return ($uid <= r\cgfId());}
+//function realId($uid) {return ($uid <= r\cgfId());}
 
 /**
  * Create an ACH request file (debits only, for now).
@@ -853,4 +852,4 @@ function achify() {
 function pad($s, $n) {return substr(str_pad($s, $n), 0, $n);}
 function lpad($s, $n) {return str_pad(substr($s, 0, $n), $n, '0', STR_PAD_LEFT);}
 function padnum($n, $len) {return lpad(str_replace('.', '', abs($n)), $len);}
-function log($msg) {file_put_contents('cron.log', print_r($msg, 1) . "\n" . @file_get_contents('cron.log'));}
+/**/ function log($msg) {file_put_contents('cron.log', print_r($msg, 1) . "\n" . @file_get_contents('cron.log'));}

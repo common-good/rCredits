@@ -5,10 +5,10 @@ SO I can spend up to my total credit line.
 
 Setup:
   Given members:
-  | id   | fullName   | email | flags      |*
-  | .ZZA | Abe One    | a@    | ok,bona    |
-  | .ZZB | Bea Two    | b@    | ok,bona    |
-  | .ZZC | Corner Pub | c@    | ok,co,bona |
+  | id   | fullName   | rebate | flags      |*
+  | .ZZA | Abe One    |      5 | ok,bona    |
+  | .ZZB | Bea Two    |     10 | ok,bona    |
+  | .ZZC | Corner Pub |     10 | ok,co,bona |
   And relations:
   | id      | main | agent | permission | draw |*
   | NEW.ZZA | .ZZC | .ZZA  | manage     |    1 |
@@ -22,7 +22,7 @@ Setup:
 Scenario: A member draws
   When member ".ZZA" confirms form "pay" with values:
   | op  | who  | amount | goods | purpose |*
-  | pay | .ZZB |     30 |     1 | food    |
+  | pay | .ZZB |     30 |     2 | food    |
   Then transactions:
   | xid | type     | amount | from | to   | purpose      |*
   |   1 | transfer |     10 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |
@@ -33,7 +33,7 @@ Scenario: A member draws
 Scenario: A member draws again
   When member ".ZZA" confirms form "pay" with values:
   | op  | who  | amount | goods | purpose |*
-  | pay | .ZZB |    130 |     1 | food    |
+  | pay | .ZZB |    130 |     2 | food    |
   Then transactions:
   | xid | type     | amount | from | to   | purpose      |*
   |   1 | transfer |    110 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |
@@ -44,8 +44,8 @@ Scenario: A member draws again
 Scenario: A member overdraws with not enough to draw on
   When member ".ZZA" completes form "pay" with values:
   | op  | who  | amount | goods | purpose |*
-  | pay | .ZZB |    200 |     1 | food    |
-  Then we say "error": "short to|short cash help" with subs:
+  | pay | .ZZB |    200 |     2 | food    |
+  Then we say "error": "short to" with subs:
   | short |*
   | $60   |
   

@@ -27,8 +27,8 @@ Scenario: A member transfers funds from the bank
   | action     | amount | checkNum |*
   | draw from  | $40    |        1 |
   And usd transfers:
-  | txid | payer | payee | amount |*
-  |    1 | .ZZA  |     0 |    -40 |
+  | txid | payer | amount |*
+  |    1 | .ZZA  |    -40 |
   
 Scenario: A member transfers funds to the bank
   When member ".ZZA" completes form "get" with values:
@@ -38,5 +38,5 @@ Scenario: A member transfers funds to the bank
   | action     | amount |*
   | deposit to | $40    |
   And usd transfers:
-  | payer | payee | amount |*
-  | .ZZA  |     0 |     40 |
+  | payer | amount |*
+  | .ZZA  |     40 |
