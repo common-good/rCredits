@@ -35,6 +35,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'your community down' => t('Your rCredits community is temporarily on hold. Contact your rCredits Community Admin for details: @contact'),
   'other community down' => t('That rCredits community is temporarily on hold.'),
   'account info' => t('Your balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @totalDemand.'),
+  'invite reward' => t('inviting and/or assisting new member @fullName'),
+  'employee invite reward' => t('inviting and/or assisting a new member\'s manager (at @fullName)'),
 //  'account info2' => t("More account info"), // not used yet
 //  'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
   'reward' => t('(reward: @rewardAmount)'), // @rewardType
@@ -80,7 +82,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'account suspended' => t('Your account has been temporarily suspended @why'),
   'to protect data integrity.' => t('to protect data integrity.'),
   'account funded' => t('Funds have arrived in your rCredits account! You may now use your rCard for purchases.'),
-  'transfer complete' => t('Your requested@auto transfer of @amount (into your rCredits account) has completed.'),
+  'transfer complete' => t('Your requested @transfer of @amount (into your rCredits account) has completed.'),
   'triggers new card' => t('<b>NOTE:</b> If you change your @field, a new rCard will be mailed to you and your account will be charged $@R_CARD_COST. '),
   'call bank' => t('Remember to check your bank account online or call your bank @when and ask them for the two tiny deposit amounts to your account (both under 20 cents). Then sign in to your account and follow the links to enter those amounts, so we can send you your rCard!'),
   'do step one' => t('Remember to sign back in to rCredits, to complete your account setup (you have several steps left to go).'),
@@ -119,7 +121,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'card ordered' => t('A Company Agent rCard will be US mailed to @name.'),
   'balances' => t('@toSpend to spend (you can <@a>cash out</a> up to @toCash today).', ['@a' => 'a href=' . $GLOBALS['base_url'] . '/help/cashing-out']),
   'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
-  'new floor' => t('Your allowable minimum balance has been changed to @floor, based on your average use of rCredits over the past 6 months.'),
+  'new floor' => t('Your credit limit has been changed to @limit, based on your average use of rCredits over the past 6 months.'),
   'no floor effect' => t('This currently has no effect, because you chose not to let your balance go negative. To change this setting, sign in at rCredits.org, click the Settings gear, then the Preferences tab. Put a check mark next to "Debt Okay" and save your preferences.'),
   'available now' => t('The funds are available immediately in your rCredits account.'),
 
@@ -383,7 +385,7 @@ function intent($intent, $command, $pattern, $message) {
  * @param array $subs: associative array of substitutions (@ will be prepended to each key)
  * return string: the message after any substitutions
  */
-function tt($message, $subs = array()) {return u\tt($message, $subs, TX_SMS);} // TX_SMS in case called from another interface
+function tt($message, $subs = []) {return u\tt($message, $subs, TX_SMS);} // TX_SMS in case called from another interface
 
 // one-line functions that need no explanation
 function uid($number) {return (int) db\lookup('uid', 'r_boxes', 'code=:number', compact('number'));}

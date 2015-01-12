@@ -40,7 +40,7 @@ function formTxs($form, &$sta, $args = '') {
 
   // Setup option array, including defaults and help
   /*
-  $optDefaults = $opts = array();
+  $optDefaults = $opts = [];
   $optHelp = array_combine($keys = u\ray(TX_OPT_KEYS), u\ray($optHelp));
   foreach ($keys as $one) {
     $value = $opts[u\consta('tx_opt', $one)] = w\popHelp($one, $optHelp[$one]); // set TX_OPT_CHANNELS etc.
@@ -56,7 +56,7 @@ function formTxs($form, &$sta, $args = '') {
   // prepare screen display
   $classes = u\prefixValues('tx-', $classes);
   $attributes = array('id' => 'txlist');
-  $cols = array();
+  $cols = [];
   foreach ($classes as $class) $cols[] = compact('class');
   $colgroups = array($cols);
   $caption = $sticky = '';
@@ -240,7 +240,7 @@ function txSummary($starting, $ending) {
   extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'o');
 ///  debug(compact('nowInfo','oldInfo'));
 
-  $dif = array();
+  $dif = [];
   foreach (u\ray('inProper outProper rewards bank') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
   extract($dif, EXTR_PREFIX_ALL, 'd');
   $p_committed = $mya->committed; // this will include all pending commitments
@@ -281,7 +281,7 @@ function txSummary($starting, $ending) {
     ),
   );
   $attributes = array('id' => 'txsum');
-  $header = $cols = array();
+  $header = $cols = [];
   foreach ($classes as $class) $cols[] = compact('class');
   $colgroups = array($cols);
   $caption = $sticky = $empty = '';
@@ -341,7 +341,7 @@ function invoiceList($toMe, $starting, $ending, $states, $url, $download) {
     u\csv($downloadHeader);
   } else $csv = FALSE;
 
-  $rows = array();
+  $rows = [];
   list ($yu, $me) = u\order($toMe, 'payee', 'payer');
   $where = ":uid=i.$me AND i.created BETWEEN :starting AND :ending";
   if (strpos($states, '0') === FALSE) $where .= ' AND i.status<>:TX_PENDING';
@@ -388,7 +388,7 @@ EOF;
   // prepare screen display
   $classes = u\prefixValues('tx-', $classes);
   $attributes = array('id' => 'txlist');
-  $cols = array();
+  $cols = [];
   foreach ($classes as $class) $cols[] = compact('class');
   $colgroups = array($cols);
   $caption = $sticky = '';

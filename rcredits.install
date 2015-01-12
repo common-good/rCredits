@@ -32,7 +32,7 @@ function rcredits_install() {
   variable_set('user_register', USER_REGISTER_VISITORS); // let visitors register themselves
   
   // favicon
-  $theme = variable_get('theme_rcredits_settings', array());
+  $theme = variable_get('theme_rcredits_settings', []);
   $theme['toggle_favicon'] = TRUE;
   $theme['default_favicon'] = 0;
   $theme['favicon_path'] = 'sites/all/modules/rcredits/images/icons/favicon.ico';
@@ -86,7 +86,7 @@ function rcredits_install() {
  * This is where tables structures get deleted (if the table exists) and rebuilt.
  */
 function rcredits_schema() {
-  $schema = array();
+  $schema = [];
   foreach (r\tableDefs() as $table => $scheme) if (!\db_table_exists($table)) $schema[$table] = $scheme;
   return $schema;
 }

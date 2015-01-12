@@ -73,13 +73,13 @@ Scenario: a cashier scans a customer card
   When agent ":ZZB" asks device "devC" to identify "ZZD.ccD"
   Then we respond with:
   | ok | name     | place     | company | logon | balance | rewards |*
-  | 1  | Dee Four | Dtown, DE |         | 0     | 250     | 250     |
+  | 1  | Dee Four | Dtown, DE |         | -1    | 250     | 250     |
 
 Scenario: the default cashier scans a customer card
   When agent ".ZZC" asks device "devC" to identify "ZZD.ccD"
   Then we respond with:
   | ok | name     | place     | company | logon | balance | rewards |*
-  | 1  | Dee Four | Dtown, DE |         | 0     | 250     | 250     |
+  | 1  | Dee Four | Dtown, DE |         | -1    | 250     | 250     |
   
 Scenario: an unauthorized cashier scans in
   When agent "" asks device "devC" to identify "ZZD-ccD2"
@@ -97,13 +97,13 @@ Scenario: a cashier scans a customer card whose balance is secret
   When agent ":ZZB" asks device "devC" to identify "ZZE.ccE"
   Then we respond with:
   | ok | name     | place     | company | logon | balance | rewards |*
-  | 1  | Eve Five | Etown, IL |         | 0     | *250    | 250     |
+  | 1  | Eve Five | Etown, IL |         | -1    | *250    | 250     |
 
 Scenario: a cashier scans a company customer card
   When agent ":ZZB" asks device "devC" to identify "ZZE-ccE2"
   Then we respond with:
   | ok | name     | place     | company | logon |*
-  | 1  | Eve Five | Ftown, FL | Far Co  | 0     |
+  | 1  | Eve Five | Ftown, FL | Far Co  | -1    |
 
 Scenario: Device asks for a picture to go with the QR
   Given member ".ZZB" has picture "picture1"

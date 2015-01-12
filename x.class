@@ -63,8 +63,7 @@ class x {
     if (!$save) return $xray;
     
     $DBTX = db_transaction();
-//    if ($xray = $this->save($xray)) $xrays[] = $xray; else {$DBTX->rollback(); return FALSE;}
-    if (!$xrays[] = $this->save($xray)) {$DBTX->rollback(); return FALSE;}
+    if ($xray = $this->save($xray)) $xrays[] = $xray; else {$DBTX->rollback(); return FALSE;}
     if (!$this->rewards($xrays) or !$this->cacheBothTotals($xrays)) {$DBTX->rollback(); return FALSE;}
     unset($DBTX); // commit
 
@@ -231,7 +230,7 @@ class x {
     }
 
     if (!$a->update((array) $cache)) return FALSE;
-    if ($t_type == TX_TRANSFER and $t_amount > 0) r\membershipEvent($a, 'bona', TRUE);
+// NO    if ($t_type == TX_TRANSFER and $t_amount > 0) r\membershipEvent($a, 'bona', TRUE);
     return TRUE;
   }
   

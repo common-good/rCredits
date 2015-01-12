@@ -91,8 +91,8 @@ class rwebSummary extends DrupalWebTestCase {
     }
   }
 
-  // Scenario: A member clicks on the summary tab
-  public function testAMemberClicksOnTheSummaryTab_0() {
+  // Scenario: A member clicks the summary tab
+  public function testAMemberClicksTheSummaryTab_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" visits page "summary"');
     Then_('we show "Account Summary" with: "ARRAY'
@@ -103,14 +103,13 @@ class rwebSummary extends DrupalWebTestCase {
     . '\\| Rewards       | $256 |'
     . '\\| Committed     | $0.60 |'
     . '\\| Your return   | 20.6% |'
-    . '\\| _ever         | 544.1% |'
     . '\\| Social return | $9 |'
     . '\\| _ever         | $9 |'
-    . '\\| Credit floor  | $-100 |"');
+    . '\\| Credit limit  | $100 |"');
   }
 
-  // Scenario: An agent clicks on the summary tab without permission to manage
-  public function testAnAgentClicksOnTheSummaryTabWithoutPermissionToManage_0() {
+  // Scenario: An agent clicks the summary tab without permission to manage
+  public function testAnAgentClicksTheSummaryTabWithoutPermissionToManage_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ":ZZA" visits page "summary"');
     Then_('we show "Account Summary" with: "ARRAY'
@@ -120,8 +119,8 @@ class rwebSummary extends DrupalWebTestCase {
     . '\\| Balance | Rewards | Floor  |"');
   }
 
-  // Scenario: A company agent clicks on the summary tab
-  public function testACompanyAgentClicksOnTheSummaryTab_0() {
+  // Scenario: A company agent clicks the summary tab
+  public function testACompanyAgentClicksTheSummaryTab_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ":ZZD" visits page "summary"');
     Then_('we show "Account Summary" with: "ARRAY'

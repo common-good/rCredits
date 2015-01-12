@@ -100,9 +100,8 @@ EOF
   'no relations' => t('There are not yet any relations for this account.'),
   'no devices' => t('Surprisingly, this account has no related devices.'),
   'required field' => t('@field must not be blank.'),
-  'duplicate email' => t('"@duplicateAccount" is already using that email address. If you want to use the same email address for this account, add a tag to the local part, for example "@emailTagged".'), // used in user.module
-//  'duplicate email' => t('That email address is already taken by @duplicateAccount.'),
-  'forgot password' => t('If you just forgot the password to the other account, <a href="@passwordLink">click here</a> to request a new password.'), // used in user.module
+  'duplicate email' => t('"@who" is already using that email address. If you want to use the same email address for this account, add a tag to the local part, for example "@emailTagged".'), // used in user.module
+  'forgot password' => t('If you just forgot the password to the other account, <@a>click here</a> to request a new password.'), // used in user.module
   'bad name' => t('That is not a plausible name.'),
   'bad phone' => t('That is not a proper phone number.'),
 //  'bad account code' => t('That is not your account code.'),
@@ -174,7 +173,7 @@ EOF
   'po in location' => t('Your physical location address cannot be a Post Office box.'),
   'missing currency' => t('You must choose rCredits, USD, or both.'),
   'download always both' => t('Note: Downloads always include both rCredits and USD amounts.'),
-  'sign in to scan' => t('You must <a href="/user/login">sign in</a> (or scan yourself in) BEFORE scanning a customer card.'),
+//  'sign in to scan' => t('You must <a href="/user/login">sign in</a> (or scan yourself in) BEFORE scanning a customer card.'),
   'change min first' => t('That request would leave you with less than your minimum balance. <a href="account/preferences">Lower your minimum</a> first.'),
   'bad member id' => t('That is not a valid member ID!'),
   'bad card' => t('That is not a valid member ID.'),
@@ -216,6 +215,8 @@ EOF
   'no local proxy' => t('No other members nearby. <@a>Invite someone</a>!', ['@a'=>'a href=../invite']),
   'too many joins' => t('You can join to only one other account.'),
   'short cash help' => t('<@a>Click here</a> for more information about cashing out incentive rewards.', ['@a'=>'a href=' . $GLOBALS['base_url'] . '/help/cashing-out']),
+  'link expired' => t('That link has expired.'),
+  'login failed' => t('Your attempt to sign in failed. Click the "Password problems" link if you need a new password.'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
 
@@ -258,27 +259,35 @@ EOF;
       UNION
       SELECT IF(uid1 IN ($friends), uid2, uid1) AS uid, weight AS w FROM r_near
       WHERE uid1 IN ($friends) OR uid2 IN ($friends)
+      UNION
+      SELECT uid, 0 AS w FROM users
     ) n LEFT JOIN users u ON u.uid=n.uid
     WHERE community=:ctty AND u.uid>1 AND u.uid<>:uid AND NOT :IS_CO
     GROUP BY u.uid, u.state, u.city 
-    ORDER BY GREATEST(SUM(w), :PHP_INT_MAX/4) DESC, state<>:state, state, city, SUM(w) DESC, fullName
+    ORDER BY state<>:state, state, city, fullName
 EOF;
+//    ORDER BY GREATEST(SUM(w), :PHP_INT_MAX/4) DESC, state<>:state, state, city, SUM(w) DESC, fullName
   $q = db\q($sql, u\ray('uid state city zip ctty', $uid, $a->state, $a->city, $a->postalCode, $a->community));
   $res = $cityX = '';
   while ($row = $q->fetchAssoc()) { // show choices in reverse order, so inviter(s) are at top
     extract($row);
-    if ($weight < PHP_INT_MAX / 2) { // show city and maybe state
-      $state = $state = $a->state ? '' : (', ' . r\realState($state));
-    } else list ($city, $state) = [t('Top Suggestions'), ''];
+    $state = $state == $a->state ? '' : (', ' . r\realState($state));
+/*    if ($weight < PHP_INT_MAX / 2) { // show city and maybe state
+      $state = $state == $a->state ? '' : (', ' . r\realState($state));
+    } else list ($city, $state) = [t('Top Suggestions'), '']; */
     if ($city <> $cityX) {
       if ($cityX) $res .= "</td></tr>\n"; // finish previous line
       $res .= "<tr><th>$city$state</th><td>";
       $cityX = $city;
     }
+    $class = $weight < PHP_INT_MAX / 4 ? 'choice4'
+    : ($weight == PHP_INT_MAX / 4 ? 'choice3'
+    : ($weight <= PHP_INT_MAX / 2 ? 'choice2'
+    : 'choice1' ));
     $checked = $dft == $uid ? 'CHECKED' : '';
 ///    debug(compact('row','city','cityX','friends') + ['max/2-w'=>PHP_INT_MAX / 2 - $weight]);
     $res .= <<<EOF
-<div class="form-type-radio">
+<div class="form-type-radio $class">
   <input type="radio" name="proxyChoice" $checked value="$uid" />
   <label>$fullName</label>
 </div>
@@ -332,7 +341,7 @@ function fieldSet($id, $flds, $prompt = '') {return formField('fieldset', $promp
 function shareField() {
   $mya = r\acct();
   $sharePct = round(db\lookup('AVG(share)', 'r_gifts', 'share>=0'), 1);
-  return textField(t('Share:'), t('What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (and/or the rCredits community), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. The current average is sharePct%.', compact('sharePct')), required($mya->share));
+  return textField(t('Share:'), t('What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (and/or the rCredits community), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, when you make a $10 purchase you get a $1 reward, so your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.', compact('sharePct')), required(($mya->share + 0) . '%'));
 }
 
 /**
@@ -438,7 +447,7 @@ function acctTypeField() {
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formArray, $formSta, $rUrl;
   $anonForms = 'Admin Test Handy footer accounts';
-  setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
+  setGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
   if (!@$formSta['confirm'] and !in_array($function, u\ray($anonForms))) {
     if ($logs = $_POST) {
       foreach (u\just(R_NOLOG, $logs) as $k => $zot) $logs[$k] = '?';
@@ -555,7 +564,7 @@ function noFlood(&$sta) {\flood_clear_event('failed_login_attempt_user', @$sta['
  * @param int $agent: the account agent, if any (defaults to the account ID)
  * @param bool $force: resetup even if already done
  */
-function setupGlobals($agent = '', $force = FALSE) {
+function setGlobals($agent = '', $force = FALSE) {
   global $user, $channel, $boxUser;
   if (@$channel and !$force) return; // already setup
   if (!$agent) $agent = @$user->uid; // register_submit supplies agent (no one else does)
@@ -663,41 +672,6 @@ function memberStep($step, $done, $text, $links = '', $newWindow = FALSE) {
 EOF;
 }
 
-/**
- * Go to the next USD setup page (return the page if testing) or return FALSE.
- * @param string $step: (returned) the next Dwolla setup step
- * @param bool $redirectOk: okay to redirect to an appropriate page
- * @return (if testing) a redirect page to display as appropriate, else FALSE
- 
- a('whatever')->createUsdAccount($err);
-///debug($err);
-
- *//*
-function setupUsd(&$step, $redirectOk = TRUE) {
-  $us = new r\usd($mya = r\acct());
-  if (!@$mya->secure['auth']) {
-    if (!$mya->createUsdAccount($err)) return say($err, 'ERR'); // set auth
-  }
-  if (!$mya->usdAccount) if (!$us->me($err)) return say($err, 'ERR'); // set usdAccount
-  if (!$step = $us->step($err)) return say($err, 'ERR');
-
-  if ($step == 'AccountInfo') return $redirectOk ? r\go('account/basic', 'redo info', 'ERR') : FALSE; // here on ssn() failure
-  if ($step == 'Kba') return $redirectOk ? r\go('account/kba') : FALSE; // here on accountInfo() failure
-  if ($step == 'PhotoId') return $redirectOk ? r\go('account/photo-id') : FALSE; // here on Kba() success (else call Dwolla)
-
-  if ($step == 'AuthorizedRepresentative') {
-    u\EXPECT($mya->co, 'verify rep for person?!');
-    $byId = @$mya->by ?: (u\test() ? $mya->agentId : FALSE);
-    u\EXPECT($byId, 'no by for non-person');
-    $by = r\acct($byId);
-    list ($first, $last) = u\parseName($by->fullName);
-    $state = r\realState($by->state, $by->country);
-    if (!$us->authorizedRep($first, $last, $by->address, $by->city, $state, $by->postalCode, substr($by->phone, 2), $by->dob, $by->federalId, $err)) return say($err, 'ERR');
-  }
-  if ($us->step() != $step) return setupUsd($step); // step may have progressed
-}
-*/
-
 function divButton($href, $title) {
   global $base_url, $rUrl;
   if (strpos($href, 'http') === FALSE) $href = "$base_url/$href";
@@ -788,7 +762,7 @@ function boxOpt($field, $opts, $sta) {
 function ssnFields($personal = TRUE) {
   $ssTitle = tt($personal ? 'ssTitle' : 'einTitle');
   if ($personal) $dob = textField(t('Birthdate:'), t('Your date of birth (mm/dd/yyyy)'), required());
-  $federalId = textField("<span class=\"title\">$ssTitle</span>", tt($personal ? 'ssDesc' : 'einDesc'), required()); // textfield so user doesn't have to retype on error
+  $federalId = formField('password', "<span class=\"title\">$ssTitle</span>", tt($personal ? 'ssDesc' : 'einDesc'), required()); // textfield so user doesn't have to retype on error
   return compact(u\ray('dob federalId'));
 }
 
@@ -858,16 +832,16 @@ function suCompanyRelation($other, $data) {
 /**
  * Set up relationship of this new account with the account that created it (if any).
  */
-function suCreatorRelation($args, $myid) {
-  extract($params = u\just('isOwner employeeOk flow by', $args));
+function suCreatorRelation($helper, $args, $myid) {
+  extract($params = u\just('isOwner employeeOk flow', $args));
   if (!@$isOwner and !@$employeeOk and !@$flow) return; // no useful relation (for example by true invitation)
 
-  if (!$error = u\EXPECT($params, 'int int int id', TRUE)) { // if not a hack attempt
-//    list ($main, $other, $employee, $permission) = array($myid, $by, $employeeOk, r\perm(B_MANAGE));
+  if (!$error = u\EXPECT($params, 'int int int', TRUE)) { // if not a hack attempt
+//    list ($main, $other, $employee, $permission) = array($myid, $helper, $employeeOk, r\perm(B_MANAGE));
     $draw = ($flow & 2) ? 1 : 0;
 //    db\insert('r_relations', compact(u\ray('main other employee isOwner draw permission')));
-    r\acct($myid)->newRelation($by, r\perm(B_MANAGE), $employeeOk, $isOwner, $draw);
-    if ($flow & 1) r\acct($by)->newRelation($myid, 0, 0, 0, TRUE);
+    r\acct($myid)->newRelation($helper, r\perm(B_MANAGE), $employeeOk, $isOwner, $draw);
+    if ($flow & 1) r\acct($helper)->newRelation($myid, 0, 0, 0, TRUE);
 //      list ($main, $other, $draw) = array($other, $main, TRUE);
 //      db\insert('r_relations', compact(u\ray('main other draw')));
 //    }
@@ -883,13 +857,23 @@ function suCreatorRelation($args, $myid) {
 function emailOkay(&$mail, $uid = '') {
   $email = str_replace("'", '&#039;', $mail);
   if ($error = \user_validate_mail($email)) return say('bad email', compact('email'), 'mail');
-  if ($duplicateAccount = db\lookup('fullName', 'users', 'mail=:email and uid<>:uid', compact('email', 'uid'))) {
-    $passwordLink = \url("password/$email");
-    $emailTagged = str_replace('@', '+whatever@', $mail);
-    if (!$uid) $forgot = '|forgot password';
-    return say('duplicate email' . @$forgot, compact(u\ray('emailTagged duplicateAccount passwordLink')), 'mail');
-  }
+  if (emailDup($email, $uid)) return FALSE;
   $mail = $email;
+  return TRUE;
+}
+
+/**
+ * Say whether the email is a duplicate and complain if it is.
+ * @param string $email: the email address to test
+ * @param int $uid: the account it is for (empty if the account is not created yet)
+ * @return <email is a dup>
+ */
+function emailDup($email, $uid) {
+  if (!$who = db\lookup('fullName', 'users', 'mail=:email and uid<>:uid', compact('email', 'uid'))) return FALSE;
+  $a = "a href=account/password/$email";
+  $emailTagged = str_replace('@', '+whatever@', $email);
+  if (!$uid) $forgot = '|forgot password';
+  say('duplicate email' . @$forgot, compact(u\ray('emailTagged who a')), 'mail');
   return TRUE;
 }
 
@@ -902,10 +886,10 @@ function tellStaffNewMember($params) {
   $country = r\realCountry($country);
   $state = @$state ? r\realState($state) : 'state lookup failed';
   $acctType = $GLOBALS['account types'][$acctType];
-  $by = @$by ? r\acct($by)->fullName : 'unknown';
+  $helper = @$helper ? r\acct($helper)->fullName : 'unknown';
   $copts = u\jsonEncode(@$copts);
   $ats = @join(',', array_values($ats));
-  $params = compact(u\ray('phone country state acctType by copts ats')) + $params;
+  $params = compact(u\ray('phone country state acctType helper copts ats')) + $params;
   unset($params['code']); // don't need to see this
   $message = '<h2>NEW SIGNUP</h2>';
   r\tellStaff($message, $params);
@@ -1013,16 +997,13 @@ function adminField($label) {
  * @param string $field: the field in question
  * @param string $show: the field to display, if any (default none)
  * @return the appropriate markup
- */
+ *//*
 function show($field, $show = '') {
   global $base_url;
   $mya = r\acct();
   
   if ($field == $show) {
-    if (strpos(R_SECURE_FIELDS, $field) !== FALSE) {
-      $secure = $mya->secure;
-      $result = $secure[$field];
-    } elseif ($field == 'idProof') { // display the proof image alone (then user clicks on Back)
+    if ($field == 'idProof') { // display the proof image alone (then user clicks on Back)
       $proofFilename = DRUPAL_ROOT . $mya->auxFilename('proof');
       $imgString = u\decode(file_get_contents($proofFilename), hex2bin($mya->idProof));
       header("Content-Type: image/jpeg");
@@ -1036,6 +1017,7 @@ function show($field, $show = '') {
   } else $result = "<a href=\"$base_url/account/security/show=$field\">show</a>";
   return "[$result] ";
 }
+*/
 
 function onFile($field, $sta) {
   return (@$sta['complete form'][$field]['#value'] == R_ON_FILE and @$sta['input'][$field] == R_ON_FILE);
@@ -1185,7 +1167,7 @@ function scanIn($acct) {
   $user->uid = $mya->agent->id;
   drupal_session_regenerate();
 
-  setupGlobals();
+  setGlobals();
   svar('scanned_in', TRUE);
   $agentName = $mya->agent->fullName;
   $companyName = $mya->fullName;
@@ -1206,7 +1188,7 @@ function signout() {
 }
 
 /*function changeAccount($quid = '') {
-  setupGlobals();
+  setGlobals();
   if (!$mya = r\acct()) return r\go('');
   if ((!$acct = r\acct($quid, $mya->id)) or !$acct->can()) return hack('i'); // hacker. so leave.
   svar('myid', $acct->id);
@@ -1469,7 +1451,7 @@ function transfer($op, $info, $confirmed) {
   $myid = $mya->id;
   extract(u\just('who amount goods purpose', $info));
   $txType = $op == 'pay' ? 'payment' : strtolower($op);
-  if (blank_field(compact(u\ray('who amount')))) return FALSE;
+  if (blank_field(compact(u\ray('who goods amount')))) return FALSE;
   if (!$a = w\whois($who, 'who', $info)) return FALSE;
   if ($goods == R_FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($error = u\badAmount($amount, '>0')) return say($error, 'amount');
@@ -1532,7 +1514,7 @@ function error($logid) {
   if ($info0 = db\lookup('info', 'r_log', 'logid=:logid', compact('logid'))) {
     if (!$info = json_decode(utf8_encode($info0))) $info = $info0; // probably too big for json
   }
-  r\go('/user/login/err=' . R_SYS_ERR);
+  r\go('signin/err=' . R_SYS_ERR);
 }
 
 /**
@@ -1582,7 +1564,7 @@ function helpText($page, $tag = '') {
 /**
  * Complain about an input error if a required field is blank
  * @param array $fields: associative array of field names, with or without a prefix
- * @param string $prefix: option field name prefix (add if missing, else remove from message)
+ * @param string $prefix: UNUSED? optional field name prefix (add if missing, else remove from message)
  */
 function blank_field($fields, $prefix = '') {
   foreach ($fields as $key => $value) {
@@ -1633,6 +1615,7 @@ function showCharts($whichChart) {
 
   list ($in, $out, $fees, $net, $personal, $companies) = array(t('in'), t('out'), t('fees'), t('net'), t('personal'), t('companies'));
   extract($stats = r\stats($myCtty)); // careful with this (don't overwrite local vars)
+  if ($spent < 0) $stats['spent'] = $spent = 0;
   extract(w\fundStats($stats, TRUE)); // get the formatted versions, with originals in {var}0
  
   $issuedData = array(
@@ -1862,9 +1845,13 @@ function focusOn($focusFieldName) {
  */
 function webAccess($perms = NULL) {
   if ($perms == 'dev' and isDEV) return TRUE;
-  setupGlobals(); // remember who we are (the main reason for this function)
+  setGlobals(); // remember who we are (the main reason for this function)
   if (!@$perms or !$mya = r\acct()) return FALSE;
-  foreach (u\ray($perms) as $one) if (!$mya->can(u\consta('b', $one))) return FALSE;
+  foreach (u\ray($perms) as $perm) {
+    $not = (substr($perm, 0, 1) == '-');
+    $hasPerm = $mya->can(u\consta('b', $not ? substr($perm, 1) : $perm));
+    if ($not ? $hasPerm : !$hasPerm) return FALSE;
+  }
   return TRUE;
 }
 
@@ -1914,7 +1901,7 @@ function attrib($attributes) {return compact('attributes');}
 function suffix($suffix = '') {$suffix .= '<div class="clearfix"></div>'; return compact('suffix');}
 function prefix($prefix) {return compact('prefix');}
 function autocomplete($type = '') {return array('autocomplete_path' => "autocomplete/$type/" . @r\acct()->id);}
-function required($dft = NULL) {return array('required' => TRUE) + (isset($dft) ? dft($dft) : []);}
+function required($dft = NULL) {return ['required' => TRUE] + (isset($dft) ? dft($dft) : []);}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
 function op($sta) {global $testOp; return u\test() ? $testOp : (svar('button') ?: @$sta['clicked_button']['#parents'][0]);}
 function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}

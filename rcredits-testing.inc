@@ -71,7 +71,7 @@ function companyFlags($list) {return doRecords($list, 'CompanyFlags');}
 /**
  * Create device (box) records.
  */
-function doBoxe($info = array()) {
+function doBoxe($info = []) {
   global $testOnly, $channel; // be careful not to overwrite channel with a local variable
   //$boxName = $info['boxName'];
   $info['channel'] = @strtr(@$info['channel'], u\ray('sms pos web', TX_SMS, TX_POS, TX_WEB)) ?: $channel;
@@ -84,7 +84,7 @@ function doBoxe($info = array()) {
  * Minimum parameters: none
  * @return uid
  */
-function doAccount($info = array()) {
+function doAccount($info = []) {
   global $testOnly;
 /**/  if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
   extract($info); // any user table fields, plus dw (dwolla test account number)
@@ -93,6 +93,7 @@ function doAccount($info = array()) {
 
   if (@$email) $mail = $info['mail'] = $email;
   if (@$jid) $jid = t\uid($jid);
+  if (@$helper or !@$testOnly) $helper = t\uid(@$helper ?: '.AAA'); // everyone but .AAA should have a helper
 
   if (!$testOnly) { // when making, set many defaults and mods
     u\setDft($fullName, 'doAccount ' . randomString(20, 'word'));
@@ -132,8 +133,8 @@ function doAccount($info = array()) {
 
   if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
   
-  foreach (u\ray('id email acctType dw cc cc2') as $one) unset($info[$one]);
-  u\preray(compact(u\ray('uid jid flags risks ' . $fixFields)), $info);
+  foreach (u\ray('id email acctType dw cc cc2') as $one) unset($info[$one]); // these are not real fields
+  u\preray(compact(u\ray('uid jid helper flags risks ' . $fixFields)), $info); // add in changed fields
   fixValues($info, TRUE);
 
   if ($testOnly) {
@@ -150,21 +151,7 @@ function doAccount($info = array()) {
     return TRUE;
   }
   if (!$a = new r\acct($info)) return FALSE;
-/*
-  if (is_numeric(@$dw)) {
-    $accts = u\ray(DW_TEST_ACCTS);
-    $auths = u\ray(DW_TEST_AUTHS);
-    list ($usdAccount, $auth) = array($accts[$dw], $auths[$dw]);
-    list ($usdEmail, $usdPass, $usdPin) = array("gordon+william+$dw@dwolla.com", DW_TEST_PASS, DW_TEST_PIN);
-    $usdType = 'Dwolla';
-    $pin = $usdPin;
-    $secure = compact(u\ray('usdType usdPin pin auth')) + ($a->secure ?: array());
-    $a->update(compact(u\ray('usdAccount secure')));
-    $us = new r\usd($a);
-///debug("dw=$dw usnum=$us->number test=" . DW_TESTER_ACCT); 
-    if ($us->number != DW_TESTER_ACCT) $us->setbal(0, $err);
-  }
-  */
+
   if (@$picture) if (!makePicture($picture, $a)) return FALSE;
 
   return $uid;
@@ -212,7 +199,7 @@ function doTx($info, $thing) {
     foreach (u\ray('type') as $one) if (!is_numeric($$one)) $$one = u\consta('tx', $$one);
     u\setDft($goods, ($type != TX_TRANSFER or u\forCash(@$for)) ? R_FOR_USD : R_FOR_GOODS);
     if ($goods == R_FOR_GOODS) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
-    $data = array();
+    $data = [];
     if (u\in(@$purpose, 'offline')) $data['force'] = 1;
     if (u\in(@$purpose, 'undoneBy:') or u\in(@$purpose, 'undoes:')) {
       list ($k, $v) = explode(':', @$purpose);
@@ -313,7 +300,7 @@ function doCompanyFlags($info) {
 /**
  * Return TRUE if the notice has been queued to member $id
  */
-function notice($notice, $id, $subs = array()) {
+function notice($notice, $id, $subs = []) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $base_url, $thatThing;
 
@@ -364,19 +351,15 @@ function doneStep($uid, $step) {
   return TRUE;
   
   if ($step == 'photo') return t\makePicture('whatever', $a);
-  if ($step == 'sign') return $a->update(u\ray('signed', REQUEST_TIME));
+  if ($step == 'sign') return $a->update('signed', REQUEST_TIME);
   if ($step == 'donate') return db\insert('r_gifts', u\ray('uid amount', $uid, 123));
   if ($step == 'proxies') return db\q('INSERT INTO r_proxies (person, proxy) VALUES (:uid, 2),(:uid, 3)', compact('uid'));
   
-  if ($step == 'contact') return $a->update(u\ray('postalAddr', 'The World'));
-  if ($step == 'connect') {
-    $secure = @$a->secure;
-    $secure['bankAccount'] = 'USkk123456789whatever';
-    return $a->update(compact('secure'));
-  }
-  if ($step == 'prefs') return $a->update(u\ray('minimum', 0));
+  if ($step == 'contact') return $a->update('postalAddr', 'The World');
+  if ($step == 'connect') return $a->update('bankAccount', 'USkk123456789whatever');
+  if ($step == 'prefs') return $a->update('minimum', 0);
   //if ($step == 'invite') return db\insert('r_invites', u\ray('inviter email code', $uid, 'any@example.com', 'whatever'));
-  if ($step == 'company') return $a->update(u\ray('selling', 'stuff'));
+  if ($step == 'company') return $a->update('selling', 'stuff');
   // if ($step == 'relations') ?
   return FALSE;
 }
@@ -577,7 +560,7 @@ function uid($id) {
 
 function getErrors() {
   $errors = \drupal_get_messages('error', FALSE);
-  $errors = @$errors['error'] ?: array();
+  $errors = @$errors['error'] ?: [];
   foreach ($errors as $key => $value) {
     if (u\abbreviates('Unable to send e-mail', $value) or strpos(strip_tags($value), 'expected to be a reference, value given in drupal_retrieve_form()')) unset($errors[$key]); // ignore these when testing
   }
@@ -588,7 +571,7 @@ function getErrors() {
  * Find the message in the log table.
  * @param assoc $subs: subs for message iff message index is passed.
  */
-function findMessage($type, $fields, $message = '', $subject = '', $subs = array()) {
+function findMessage($type, $fields, $message = '', $subject = '', $subs = []) {
   global $channel;
 
   $mya = r\acct();
@@ -616,9 +599,9 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   return db\exists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
-function weTellStaff($topic, $subs = array()) {
+function weTellStaff($topic, $subs = []) {
   global $testOnly; if (!$testOnly) return FALSE;
-  if (!@$subs[0]) $subs[0] = array();
+  if (!@$subs[0]) $subs[0] = [];
   foreach ($subs as $one) {
     $index = 'tell-staff';
     $subject = str_replace('{topic}', $topic, $GLOBALS['emailSubjects'][$index]);
@@ -717,7 +700,7 @@ function weShowWithSubs($page, $subs) {
   global $testConfirmation; // confirmation message output, if any
   global $formOut; // for testing
 
-  $subs = @$subs[0] ?: array(); // comes in as "" if no subs
+  $subs = @$subs[0] ?: []; // comes in as "" if no subs
   if (strpos($page, 'confirm ') !== FALSE) {
     foreach (u\just(R_DATE_FIELDS, $subs) as $k => $v) if (is_numeric($v)) $subs[$k] = u\fmtDate($v);
     $wanted = u\tt($page, $subs);
@@ -810,7 +793,7 @@ function subAgo($string, $fmt) {
 /**
  * Send an RPC API request to the server, for rPOS.
  */
-function hitServer($op, $extra = array(), $agent, $device = '', $version = '999') {
+function hitServer($op, $extra = [], $agent, $device = '', $version = '999') {
   global $rposResult;
   $agent = r\fullQid($agent);
   if (@$extra['member']) $extra['member'] = r\fullQid($extra['member']);
@@ -910,7 +893,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   $xlastGo = @$lastGo; // notice whether a goto happens, so we can skip post-processing
 /// debug(compact(u\ray('id page values confirmed testOnly')));
 
-  $values = @$values[0] ?: array();
+  $values = @$values[0] ?: [];
   t\fixValues($values);
   if (isset($values['amount']) and !is_numeric($values['amount'])) {
     $a = r\acct(r\fullQid($id));
@@ -926,7 +909,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
     $formSta['confirm'] = TRUE;
   }
 
-  $_POST = $values;
+  t\POST($values);
   if (!$form = t\pageForm(t\fixPageArgs($page), FALSE)) return FALSE; // probably access error
   $sta = $formSta; $formSta = NULL; // don't let $formSta influence other forms that get invoked
   
@@ -935,28 +918,27 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
     if ($confirmed) $validate = FALSE;
   }
   
-  $dfts = array();
+  $dfts = [];
   foreach ($form as $key => $field) if (substr($key, 0, 1) != '#') {
     if (@$field['#type'] == 'hidden') $dfts[$key] = $field['#value'];
   }
   $sta['values'] = $sta['input'] = $values + $dfts; // add to whatever status the form left off in
   $fieldErr = FALSE; // no field errors yet
   
-//  $form_id = "rCredits\\Web\\
-//  if ($validate) drupal_validate_form($form_id, $form, $formSta);
   if ($validate and @$lastGo == $xlastGo) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $sta);
   
   $lastIdentifierTag = '</div identifiers>';
   if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
   if ($fieldErr) return TRUE; // no submit if field error
-  if (@$lastGo == $xlastGo) foreach (t\postProcess($form, $page, 'submit') as $one) $one($form, $sta);
+  if (@$lastGo == $xlastGo) foreach (t\postProcess($form, $page, 'submit') as $func) $func($form, $sta);
 
+  /*
   if ($page == '/user/login') { // fudge this test until we can take over the login process from Drupal
-    if (!$id = @$sta['uid']) return TRUE; // login failed, but test succeeded
+    if (!$id = @$sta['uid'] or $id == '?') return TRUE; // login failed, but test succeeded
     t\logIn($id);
-    r\Web\loginFollowup($sta, r\acct($id)->account());
+    r\Web\loginFollowup('', $sta);
   }
-
+*/
   return TRUE;
 }
 
@@ -978,12 +960,12 @@ function pageForm($page, $msg = '', $field = '') {
 
   if (u\abbreviates('/user/', $page)) {
     $login = u\in($page, 'user/login');
-    $sta = @$formSta ?: array();
-    list ($form, $function) = FALSE ? array('user_register_form', 'formRegister')
-      : ($login ? array('user_login', 'formLogin') : array());
+    $sta = @$formSta ?: [];
+    list ($form, $function) = FALSE ? array('user_register_form', 'formSignup')
+      : ($login ? array('user_login', 'formSignin') : []);
     $function = 'rCredits\\Web\\' . $function;
     // (FAILS for user_login) $form = \drupal_get_form($form, $args);
-    $form = $login ? array() : \drupal_get_form($form, $args);
+    $form = $login ? [] : \drupal_get_form($form, $args);
     $function($form, $sta, $args);
     if ($login and @$form['newPass']) $form['newPass'] = \form_process_password_confirm($form['newPass']);
     $form2 = $form; $rent = \drupal_render($form2);
@@ -1004,7 +986,7 @@ function pageForm($page, $msg = '', $field = '') {
 function getFormOut($out) {
   global $formOut;
 
-  $formOut = array();
+  $formOut = [];
   $formOut['options'] = t\dropdownOptions($out) . PHP_EOL . t\radioOptions($out);
   $formOut['steps'] = t\getSteps($out);
   $formOut['done'] = join('', t\getSteps($out, TRUE));
@@ -1021,7 +1003,7 @@ function getFormOut($out) {
  */
 function getSteps($out, $set = NULL) {
   if (!@$set) $set = isset($set) ? '>' : '';
-  if (!preg_match_all("/done-(\d) state$set/", $out, $matches)) return array();
+  if (!preg_match_all("/done-(\d) state$set/", $out, $matches)) return [];
   return $matches[1];
 }
 
@@ -1029,7 +1011,7 @@ function postProcess($form, $formName, $type) {
   $functions = @$form["#$type"];
   if (!@$functions or @($functions == '<')) {
     $function = "rCredits\\Web\\form{$formName}_$type";
-    $functions = function_exists($function) ? array($function) : array();
+    $functions = function_exists($function) ? array($function) : [];
   }
   return $functions;
 }
@@ -1042,7 +1024,7 @@ function postLogout($function) {
     if ($skipToStep == $function) {
       if (strlen(serialize($msgs)) > strlen(serialize(@$_SESSION['messages']))) {
         foreach (u\ray('status error notice') as $type) {
-          $_SESSION['messages'][$type] = array_merge((@$msgs[$type] ?: array()), (@$_SESSION['messages'][$type] ?: array()));
+          $_SESSION['messages'][$type] = array_merge((@$msgs[$type] ?: []), (@$_SESSION['messages'][$type] ?: []));
           if (empty($_SESSION['messages'][$type])) unset($_SESSION['messages'][$type]);
         }
       }
@@ -1055,7 +1037,7 @@ function postLogout($function) {
   */
 //u\deb('postLogout returning FALSE, about to save skiptostep '.$function);
   $vars = array(
-    'msgs' => @$_SESSION['messages'] ?: array(),
+    'msgs' => @$_SESSION['messages'] ?: [],
     'skipToStep' => $function, // tell gherkin function to skip steps in interrupted scene until this step
   );
 //  cache_set('t_messages', $vars); // save the test results so far
@@ -1084,12 +1066,12 @@ function strip($form) {
   return preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($form));
 }
 
-function eq($a, $b) {
+function eq($a, $b, $offBy = .0001) {
   $result = (is_numeric($a) and is_numeric($b)) ? 
-      (abs($a - $b) < .0001)
+      (abs($a - $b) < $offBy)
     : ($a == $b or (empty($a) and empty($b)));
-/**/ if (!$result) echo 'not equal: ' . print_r(compact('a','b'), 1); // keep for now
-//  if (!$result) output("unequal: a=$a b=$b", 'error'); // keep for now
+/// if (!$result) echo 'not equal: ' . print_r(compact('a','b'), 1); // keep for now
+  if (!$result) output("unequal: a=$a b=$b", 'error');
   return $result;
 }
 
@@ -1100,6 +1082,15 @@ function SERVER($key, $value = NULL) {
   if (!u\test()) return $_SERVER[$key];
   global $T_SERVER;
   if (isset($value)) $T_SERVER[$key] = $value; else return $T_SERVER[$key];
+}
+
+/**
+ * Fake $_POST params for testing
+ */
+function POST($value = NULL) {
+  if (!u\test()) return $_POST;
+  global $T_POST;
+  if (isset($value)) $T_POST = $value; else return $T_POST;
 }
 
 /**
@@ -1147,7 +1138,7 @@ function clear($ch) {
   global $channel; $channel = $ch;
 
   $cgfUid = r\cgfId();
-  $tables = 'r_ach r_boxes r_do r_gifts r_invites r_invoices r_log r_notices r_proxies r_relations r_stats r_txs r_usd r_user_industries queue';
+  $tables = 'r_ach r_boxes r_do r_gifts r_invites r_invoices r_log r_notices r_proxies r_relations r_stats r_txs r_usd r_user_industries queue offsite';
 
   //db\q('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   db\q('DELETE FROM users WHERE uid>1 or uid<0');
@@ -1308,3 +1299,4 @@ function log($msg) {if (u\test()) u\log($msg, 'debug');}
 function that($thing) {global $thatThing; return $thatThing[$thing];}
 function dosayFilename($type) {return __DIR__ . "/../dosay-$type.txt";}
 function goodsBit($s) {return $s == 'goods' ? "1" : ($s == 'cash' ? "0" : "ERROR");} // no 3rd why for rSmart
+function approxTime($a, $b) {return t\eq($a, $b, 20);}

@@ -12,6 +12,7 @@ define('PRODUCTION', 'new.rcredits.org'); // production site (used for setting $
 define('isDEV', (bool) @$_SERVER['WINDIR']); // developing on Windows (unlike production or staging server)
 define('isPRODUCTION', strtolower($_SERVER['HTTP_HOST']) == PRODUCTION);
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
+global $R_POST; $R_POST = $_POST;
 
 $dbs = (array) json_decode(utf8_encode(file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.databases')));
 $db_name = isDEV ? 'new_rcredits' : key($dbs);
@@ -45,7 +46,11 @@ $databases = array (
 ini_set('error_reporting', isDEV ? E_ALL : (E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT));
 ini_set('max_execution_time', isDEV ? 0 : 240); // don't ever timeout when developing
 $conf['cron_safe_threshold'] = 0; // disable poorman's cron
-
+if (isDEV) {
+  error_reporting(E_ALL);
+  ini_set('display_errors', TRUE);
+  ini_set('display_startup_errors', TRUE);
+}
 
 $uri = 'I' . $_SERVER['REQUEST_URI']; // handle scanned rCard URIs
 if (isDEV) $uri = str_replace('/devcore/', '/', $uri);

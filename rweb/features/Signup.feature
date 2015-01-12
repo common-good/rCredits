@@ -120,8 +120,8 @@ Scenario: A member registers again
   | fullName | email | phone      | postalCode | federalId   | dob      | acctType    |*
   | Bea Two  | a@ | 413-253-0002 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL |
   Then we say "error": "duplicate email|forgot password" with subs:
-  | duplicateAccount | emailTagged            | passwordLink                       |*
-  | Abe One          | a+whatever@example.com | %BASE_PATHpassword/a%40example.com |
+  | who     | emailTagged            | a                                       |*
+  | Abe One | a+whatever@example.com | a href=account/password/a%40example.com |
 #  And member is logged out
 # That email is taken. Click here to get a new password.
 
@@ -199,7 +199,7 @@ Scenario: A member registers a company
   | id   | fullName | email | postalCode | federalId   | phone        | flags |*
   | .AAC | Abe One  | a@    | 01330      | 111-22-3333 | +14136280000 | ok    |
 #  And invitation to email "a@" is "c0D3"
-#  When member "?" visits page "signup/code=c0D3&personal=&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1"
+#  When member "?" visits page "signup/code=c0D3&personal=&helper=NEW.AAC&flow=from&isOwner=1&employeeOk=1"
   When member ".AAC" confirms form "another" with values:
   | relation | flow |*
   |        1 |    0 |
@@ -211,7 +211,7 @@ Scenario: A member registers a company
   | partnership         |
   | private corporation |
   Given invitation to email "a@" is "c0D3"
-  When member "?" confirms form "signup/code=c0D3&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1" with values:
+  When member "?" confirms form "signup/code=c0D3&helper=NEW.AAC&flow=from&isOwner=1&employeeOk=1" with values:
   | fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhon | companyOptions | address | city    | state | postalAddr                 | tenure | owns |*
   | AAcme Co | aco@ | 413-253-9876 | 01002      | 111-22-3333 | %CO_CORPORATION | | | | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 |
   Then members:

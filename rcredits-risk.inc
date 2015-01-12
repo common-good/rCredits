@@ -112,7 +112,7 @@ function txRisk1($tx, &$risk = 0, &$calc = 0) {
 
     if ($channel == TX_WEB or $channel == TX_SMS) {
       setRisk('absent'); // transaction by web or SMS (no in person)
-      if (strpos($payeeFor.$payerFor, '(inv#') === FALSE and strpos($payeeFor.$payerFor, 'invoice') === FALSE and !r\isEmployee($payee, $payer)) setRisk('invoiceless'); // payment to non-employee without an invoice
+      if (strpos($payeeFor.$payerFor, 'inv#') === FALSE and strpos($payeeFor.$payerFor, 'invoice') === FALSE and !r\isEmployee($payee, $payer)) setRisk('invoiceless'); // payment to non-employee without an invoice
     }
   }
 

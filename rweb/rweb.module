@@ -23,7 +23,7 @@ define('RWEB_BLOCKS', 'accounts footer');
  * Implements hook_block_info().
  */
 function rweb_block_info() {
-  $info = array();
+  $info = [];
   foreach (u\ray(RWEB_BLOCKS) as $one) {
     $def = array('info' => ucfirst($one) . ' Block');
     $status = 1;
@@ -68,6 +68,9 @@ function rweb_menu() {
   //$modal = array('modal' => TRUE);
   
   $menu = array(
+    'signin' => callback('Sign in', 'Signin', 'anyone'),
+    'signinx' => callback('Sign in from elsewhere', 'Signinx', 'anyone'),
+
     'summary' => menuNorm(t('Summary'), 'Summary', 'anyone'),
     'history' => menuNorm(t('History'), 'Txs 1', 'read'),
     'history/transactions' => menuLocal(t('Transactions'), '*Txs 1', 'read'),
@@ -125,7 +128,6 @@ function rweb_menu() {
     'account/proxies' => menuLocal(t('Proxies'), 'Proxies', 'manage person'),
     'account/settings' => menuLocal(t('Settings'), 'Settings', 'manage'),
 
-    'signin' => callback('Signin', 'Signin', 'anyone'),
     'reset' => callback(t('Choose New Password'), 'ResetPassword 1', 'anyone'),
     'account/password' => callback(t('Request New Password'), 'Pass 2', 'anyone'),
     'account/change-password' => callback('Change Password', 'ChangePassword', 'manage'),
@@ -150,9 +152,9 @@ function rweb_menu() {
     'sadmin/another' => menuLocal(t('New Account'), 'Another', 'cadmin'),
     'sadmin/make-community' => menuLocal(t('Make Ctty'), 'MakeCtty', 'admin'),
     'sadmin/sms' => menuLocal(t('Test SMS'), 'SMS', 'admin'),
-    'sadmin/handy' => menuLocal(t('Handy'), '', 'dev', 'handyLinks'),
-    'sadmin/tests' => menuLocal(t('Test'), '2', isDEV ? 'dev' : NULL, 'test'),
-    'sadmin/php' => menuLocal(t('PHP'), 'php', 'dev', 'util'),
+    'sadmin/handy' => isDEV ? NULL : menuLocal(t('Handy'), '', 'dev', 'handyLinks'),
+//    'sadmin/tests' => menuLocal(t('Test'), '2', isDEV ? 'dev' : NULL, 'test'),
+    'sadmin/php' => isDEV ? NULL : menuLocal(t('PHP'), 'php', 'dev', 'util'),
     'sadmin/zot' => menuLocal('zot', '', 'admin'), // Drupal bug: last choice is omitted
     'sadmin/acct-info' => callback('Account Info', 'Summary 2', 'regulator'),
     'sadmin/tx-info' => callback('Transaction Info', 'TxInfo 2', 'regulator'),
@@ -160,7 +162,7 @@ function rweb_menu() {
     'sadmin/checks' => callback(t('Checks'), '2', 'admin', 'printChecks'),
     'sadmin/changes' => callback(t('See Changes'), 'SeeChanges 2', 'cadmin'),
     'rcredits/util' => callback('Util', '2', 'admin', 'util'),
-    'sadmin/recover' => callback(t('Empty'), 'TestRecovery 1', 'dev'),
+    'sadmin/recover' => callback(t('Empty'), 'TestRecovery 1', 'dev'), // also go here manually, if needed
     'print-rcard' => callback(t('Print ID Card'), '1 ', 'cadmin', 'memberID'),
 
     'help' => callback(t('Help'), 'Help 1', 'anyone'),
@@ -172,7 +174,7 @@ function rweb_menu() {
     'menu' => callback('Main Menu', 'Menu', 'anyone'),
     'member' => callback('Company Profile', 'Profile', 'anyone'),
     'autocomplete' => callback('Identify', '1 2 3', 'anyone', 'auto'),
-    'do' => callback('Do', '1', 'anyone', 'rdo'),
+    'do' => callback('Do', '1 2', 'anyone', 'rdo'),
     'coup' => callback(t('Disable account'), '1', 'anyone', 'coup'),    
     'invited-whom' => callback('Invited Whom', 'InvitedWhom', 'manage'),
 
@@ -200,9 +202,11 @@ function rweb_form_alter(&$form, &$sta, $form_id) {
 ///debug($form_id);
 ///debug($_SERVER);
 //  if ($form_id == 'user_pass_reset') return r\Web\resetAlter($form, $sta);
-  if ($form_id == 'user_login') {return r\Web\formLogin($form, $sta);}
+//  if ($form_id == 'user_login') {return r\Web\formLogin($form, $sta);} // NEVER CALLED!
   // (has no effect, keep as comment) if ($form_id == 'user_register') {return r\Web\formRegister($form, $sta);}
   $req = basename($_SERVER['REQUEST_URI']);
+///  debug(compact('req','form_id'));
+  if ($req == 'login' and !user_is_logged_in()) {header('location:' . (isDEV ? 'http://localhost/devcore/signin' : R_SITE_URL . '/signin')); exit();} // nothing else works
   if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isDEV ? 'http://localhost/devcore' : R_SITE_URL)); exit();} // nothing else works
   if ($req == 'user' and user_is_logged_in()) r\go('summary'); // summary not ''
 }
@@ -210,7 +214,7 @@ function rweb_form_alter(&$form, &$sta, $form_id) {
 //function rweb_form_user_register_form_alter(&$form, &$sta, $form_id) {r\Web\formRegister($form, $sta);}
 //function rweb_form_user_login_block_alter(&$form, &$sta, $form_id) {return r\Web\formLogin($form, $sta, FALSE);}
 // (has no effect, keep as comment) function rweb_form_user_login_form_alter(&$form, &$sta, $form_id) {return r\Web\formLogin($form, $sta);}
-function rweb_user_login(&$edit, $account) {r\Web\loginFollowup($edit, $account);}
+//function rweb_user_login(&$edit, $account) {r\Web\loginFollowup($edit, $account->uid);}
 //function rweb_form_user_pass_alter(&$form, &$sta) {return r\Web\passAlter($form, $sta);}
 
 /*function rweb_form_user_profile_form_alter(&$form, &$sta, $form_id) {

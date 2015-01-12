@@ -239,24 +239,33 @@ form.rweb  .form-no {color:red;}
 /* Menu */
 #menu {display:none;}
 
-/* Reset (first time or resetting password) */
+/* Reset (first time or resetting password) (beginning with stuff from user.css) */
+.password-strength {width:17em; float:right; margin-top:1.4em;}
+.password-strength-title {display: inline;}
+.password-strength-text {float:right; font-weight:bold;}
+.password-indicator {background-color:#C4C4C4; height:0.3em; width:100%;}
+.password-indicator div {height:100%; width:0%; background-color:#47C965;}
+input.password-confirm,
+input.password-field {width:16em; margin-bottom:0.4em;}
+div.password-confirm {float: right; margin-top:1.5em; visibility:hidden; width: 17em;}
+
 #rcreditswebformresetpassword {margin-left:30px;}
-#rcreditswebformresetpassword .password-strength {width:18em;}
 #rcreditswebformresetpassword #edit-tip label {font-weight:normal; width:100%; text-align:left;}
-#rcreditswebformresetpassword .password-suggestions {background-color:lightyellow; width:240px;}
+#rcreditswebformresetpassword .password-suggestions.description {float:right; background-color:lightyellow; width:240px;}
+#rcreditswebformresetpassword .form-item-newPass {}
 #rcreditswebformresetpassword .confirm-parent label,
-#rcreditswebformresetpassword .password-parent label {text-align:left; width:auto;}
+#rcreditswebformresetpassword .password-parent label {text-align:left; width:200px;}
 #rcreditswebformresetpassword .form-item-newPass label[for="edit-newpass"] {display:none;}
 #rcreditswebformresetpassword #edit-subtext {margin:5px 0;}
 #rcreditswebformresetpassword #edit-subtext em {font-style:normal; color:red;}
 
-/* Login */
-#user-login #edit-tip label {font-weight:normal; width:100%; text-align:left;}
-#user-login #edit-name,
-#user-login #edit-pass {width:20em;}
-#user-login #edit-forgot {display:inline-block; margin:5px 0 0 15px;}
-#user-login #edit-subtext {margin:5px 0;}
-#user-login #edit-subtext em {font-style:normal; color:red;}
+/* Login (Signin) */
+#rcreditswebformsignin #edit-tip label {font-weight:normal; width:100%; text-align:left;}
+#rcreditswebformsignin #edit-name,
+#rcreditswebformsignin #edit-pass {width:20em;}
+#rcreditswebformsignin #edit-forgot {display:inline-block; margin:5px 0 0 15px;}
+#rcreditswebformsignin #edit-subtext {margin:5px 0;}
+#rcreditswebformsignin #edit-subtext em {font-style:normal; color:red;}
 
 /* Login block */
 #user-login-form input#edit-name,
@@ -419,6 +428,11 @@ form.rweb  .form-no {color:red;}
 
 /* Proxy */
 #rcreditswebformproxy #edit-submit {display:none;}
+#rcreditswebformproxy .form-type-radio {width:160px;}
+#rcreditswebformproxy .form-type-radio label {font-weight:normal; font-size:80%;}
+#rcreditswebformproxy .choice3 label {background-color:lightyellow;}
+#rcreditswebformproxy .choice2 label {background-color:yellow;}
+#rcreditswebformproxy .choice1 label {background-color:yellow;}
 
 /* Community Funds */
 #rcreditswebformcttyfunds #cttyFunds td {text-align:right;}
@@ -799,10 +813,10 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformbank #edit-bankaccount,
 #rcreditswebformbank #edit-bankaccount2 {width:250px;} 
 
-#rcreditswebformbank .form-item-deposit1,
+/*#rcreditswebformbank .form-item-deposit1,
 #rcreditswebformbank .form-item-deposit2 {display:inline-block; width:auto;}
 #rcreditswebformbank #edit-deposit1,
-#rcreditswebformbank #edit-deposit2 {width:50px;}
+#rcreditswebformbank #edit-deposit2 {width:50px;} */
 #rcreditswebformbank #edit-submit {display:block; clear:left; margin-top:20px;}
 
 /* Security */

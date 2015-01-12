@@ -43,14 +43,15 @@ define('CGF_EIN', '205280780');
 
 define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
-define('R_VERSION', '1.1'); // software version
+define('R_VERSION', '2.0'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags gross employees verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx jid'); // fields stored in the account's "data" array field (serialized)
-define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
-define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2 question photoId'); // non-personal encrypted fields (must be complete list)
-define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData'); // personal identifying information
-define('R_HIDE_CHANGES', R_SECRET_FIELDS . ' ' . R_SECURE_FIELDS . ' changes usd r rewards committed floor login access activated data secure offsite stepsDone lastTx usdAccount pass notes picture photo trust risk risks stats'); // do not record changes to these fields (generally anything secret, or often-changed -- perhaps automatically)
+define('R_DATA_FIELDS', 'newAccount by calling wants website description selling coFlags gross employees verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
+define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
+define('R_SECURE_FIELDS', 'cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
+define('R_SECRET_FIELDS', 'legalName federalId dob idProof answer ssnData photoId pin bankAccount'); // personal identifying information
+define('R_HIDE_CHANGES', R_SECRET_FIELDS . ' ' . R_SECURE_FIELDS . ' changes usd r rewards committed floor login access activated data secure secret offsite stepsDone lastTx usdAccount pass notes picture photo trust risk risks stats getAppData appData'); // do not record changes to these fields (generally anything secret, or often-changed -- perhaps automatically)
+define('R_APP_DATA_GETS', '!device !members !txs '); // data requests from the rPOS app
 define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_CASH', '(r-committed-GREATEST(0, floor, rewards))'); // balance available to cash out
 define('R_SHARE_MIN', 50); // minimum sharing percentage
@@ -60,9 +61,8 @@ define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities ca
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
-//define('R_STEPS', 'contact sign dw donate proxies prefs photo connect verify company relations'); // membership steps
 define('R_STEPS', 'contact sign donate proxies prefs photo connect company relations'); // membership steps
-define('R_NOLOG', R_SECURE_FIELDS . ' code oneTimeLoginUrl password pass newPass form_build_id form_token form_id ' . R_SECRET_FIELDS); // don't log these
+define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret code oneTimeLoginUrl password pass newPass form_build_id form_token form_id ' . R_SECRET_FIELDS); // don't log these
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
@@ -86,7 +86,7 @@ define('R_FOR_GOODS', 2); // index into R_WHYS for goods
 
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_ACHMIN', 10); // minimum granularity of withdrawals from bank account
-define('R_ACHMIN_DEFAULT', 100); // suggested achMin
+define('R_ACHMIN_DEFAULT', 50); // suggested achMin
 define('R_ACH_TRIES', 3); // how many times to retry an ACH
 
 define('R_SUGGEST_BUMP', 1.25); // suggested minimum multiplier, so as not to unnecessarily sell rCredits
@@ -116,21 +116,6 @@ define('R_DUPTX_MINS', 10); // number of minutes before a duplicate transaction 
 define('HAS_XFEE', "data LIKE '%s:4:\"xfee\";%'"); // sql to recognize a transaction that has an exchange fee
 define('R_DEPOSIT_RETURN_FEE', 20); // what we charge members for a second bounced transfer
 
-/*
-define('DW_SITE', isPRODUCTION ? 'https://www.dwolla.com' : 'https://uat.dwolla.com');
-//                               : 'http://new.rcredits.org/stage.php?stageWord=' . R_STAGE_WORD . '&request=');
-//define('DW_TEST_ACCT', '8127139234'); // "reflector" account on www (totally reimburses anything under $10)
-define('DW_TEST_ACCT', '8127419900'); // "reflector" account on www (totally reimburses anything under $10)
-define('DW_TESTER_ACCT', '8127413762'); // william's account on Dwolla sandbox
-define('DW_TESTER_AUTH', 'lBtIKmAL/b9PzZhrPX0m5SwIGMtAIHcxXiEq2gTMYwtZ+LYK7x');
-/*  'usdPhone' => '+14136281021',
-  'usdEmail' => 'h8hg.new.aaa@rc4.me',
-  'usdPass' => 'a4P33bu8sXhy7mL27ebE*B2',
-define('DW_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
-define('DW_FEE', .25); // the fee
-define('DW_VERIFY_ROOF', 20); // bank verification deposits are less than this (actually less than 15 cents)
-define('DW_STEPS', 'Email Phone Address Ssn Kba AuthorizedRepresentative Finished'); // registration steps
-*/
 define('R_USPS_WEB_TOOLS_ID', '921COMMO5331'); // USPS API credentials
 
 // Filenames
@@ -187,9 +172,9 @@ define('B_u1', 1); // UNUSED
 define('B_OK', 2); // approved to use rCredits for real (set by admin when ready). For ctty: is operational
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
 define('B_FROZEN', 3); // ctty: is frozen (no member can cash out)
-define('B_u4', 4); // UNUSED (was BANK)
+define('B_COUNTED', 4); // someone got a COUNTED reward for this employee signing up
 define('B_u5', 5); //
-define('B_CO', 6); // company account (could be personal also, for independent contractor)
+define('B_CO', 6); // company account
 define('B_u7', 7); // UNUSED photoid required and not yet approved
 define('B_u8', 8); // UNUSED (any company can do this) can charge customers without confirmation
 define('B_NONUDGE', 9); // don't send reminders
@@ -217,7 +202,7 @@ define('B_ADMIN', 30); // is a system administrator -- can manage server, includ
 define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
 define('B_MAX', 31); // maximum bit number
 define('B_ADMINABLE', 'co member bona cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
-define('B_LIST', 'member u1 ok bona u4 u5 co u7 u8 nonudge u10 u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 u26 regulator cadmin2 cadmin admin closed');
+define('B_LIST', 'member u1 ok bona counted u5 co u7 u8 nonudge u10 u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 u26 regulator cadmin2 cadmin admin closed');
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+refunds+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community)
 
@@ -442,14 +427,14 @@ function badUnpaidInv($nvid, &$inv = '') {
  * Return the rCredits account id for the given USD account id.
  * @param string $usdAccountId: the Dwolla ID (with no hyphens)
  * @param int $omit: an account id to ignore (optional)
- */
+ *//*
 function whoseUsd($usdAccountId, $omit = NULL) {
   $usdAccount = bin2hex(u\ezencrypt(str_replace('-', '', $usdAccountId), R_WORD));
   $where = 'usdAccount=:usdAccount' . (@$omit ? ' AND uid<>:omit' : '');
   if (u\test()) $where .= " AND mail<>':R_TESTER_EMAIL'";
   $subs = compact('usdAccount') + (@$omit ? compact('omit') : []);
   return db\lookup('uid', 'users', $where, $subs);
-}
+}*/
 
 /**
  * Return the user's sequential transaction number
@@ -652,8 +637,8 @@ function suggestMin($a) {
  * @param acct $a: the account
  */
 function makeCardCode($a) {
-  $secure = u\ray($a->proSe ? 'cardCode' : 'cardCode2', r\cardCode($a->qid)) + $a->agent->secure;
-  $a->agent->update(compact('secure')); // resave the secure fields
+  $field = $a->proSe ? 'cardCode' : 'cardCode2';
+  $a->agent->update($field, r\cardCode($a->qid)); // resave the secure fields
 }
 
 /**
@@ -665,27 +650,19 @@ function makeCardCode($a) {
  */
 function membershipEvent($a, $status, $do = TRUE) {
   $bit = @u\consta('b', $status); // get the appropriate bit, if any
-  if ($do and ($bit === FALSE or !$a->can($bit))) { // met the prerequisite and hasn't previously
-    $DBTX = \db_transaction();
-    if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
-    if ($status == 'bona' and !$a->co) {
-      be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
-      //if (@$a->helper) be\fund($a->helper, TX_HELPER, R_HELPER_BONUS, t('reward for inviting and assisting'));
-      r\message($a->id, 'account funded');
-      $helper = t(' invited by: ') . @r\acct($a->helper)->fullName . " ($a->mainQid)"; // @ for testing
-    }
-    if ($status == 'ok') {
-      u\EXPECT(@r\acct()->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
-      r\message($a->id, 'approved');
-      $a->update('activated', time());
-    }
-    unset($DBTX);
-    
-    $fullName = $a->fullName;
-    $quid = $a->mainQid;
-    tellStaff('event', compact(u\ray('fullName quid status helper')), $a->id);
-	  return TRUE;
-  } else return FALSE;
+  if (!$do or ($bit !== FALSE and $a->can($bit))) return FALSE; // do nothing or bit already set
+
+  if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
+  if ($status == 'ok') {
+    u\EXPECT(@r\acct()->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
+    r\message($a->id, 'approved');
+    $a->update('activated', time());
+  }
+  
+  $fullName = $a->fullName;
+  $quid = $a->mainQid;
+  tellStaff('event', compact(u\ray('fullName quid status')), $a->id);
+  return TRUE;
 }
 
 /**
@@ -710,7 +687,6 @@ function acceptGift($info) {
 
   $purpose = @$honor == 'share' ? t('sharing rewards with CGF') : (t('donation') . @$recurring);
   list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, R_FOR_GOODS, $purpose);
-///  debug(compact('msg','args','confirm'));
   if (@$args['success']) {
     $completed = REQUEST_TIME;
     db\update('r_gifts', compact('donid', 'completed'), 'donid');
@@ -750,7 +726,7 @@ function tellStaff($index, $subs = [], $uid = TRUE) {
   $noFrame = TRUE;
   $topic = strlen($index) < 20 ? strip_tags($index) : '';
   r\rMail('tell-staff', $email, compact(u\ray('email message topic noFrame uid')));
-  if ($email != R_REGION_EMAIL) { // temporary until ctty admins get established
+  if ($email != R_REGION_EMAIL and $email != R_TESTER_EMAIL) { // temporary until ctty admins get established
     $email = R_REGION_EMAIL;
     r\rMail('tell-staff', $email, compact(u\ray('email message topic noFrame uid')));
   }
@@ -1603,30 +1579,36 @@ EOF;
 }
 
 /**
- * Return the average balance for the given account and given period.
+ * Return the average balance for the given account (possibly joint) and given period.
  * @param int $uid: account id (can be a community or region too)
  * @param int $start: starting date (should be 0 hours) -- first full day to include in the period
  * @param int $end: ending date (should be 0 hours) -- last full day to include in the period
+ * @param bool $noj: ignore any joined account
  * @param float $min: minimum end-of-day balance in the period
  * @param float $days: (RETURNED) (UNUSED) number of days from start to end, inclusive
  * @return float: the average balance for that period (possibly with fractional cents)
  */
-function averageBalance($uid, $start, $end = REQUEST_TIME, &$min = '', &$days = '') {
+function averageBalance($uid, $start, $end = REQUEST_TIME, $noj = FALSE, &$min = '', &$days = '') {
   //u\EXPECT($uid > 1, 'bad uid for avg');
   if (!$days = round(($end + 1 - $start) / DAY_SECS)) return 0; // rounding is for daylight savings time changes
   $min = $bal = be\creditInfo(u\ray('uid asof', $uid, $start))->balance;
+  $jid = @$noj ? 0 : (r\acct($uid)->jid ?: 0);
+  $isPayer = 't.payer IN (:uid, :jid)';
+  $isPayee = 't.payee IN (:uid, :jid)'; // account can be both payer and payee, if joint account
+
   $day = 0;
   $avg = 0;
   $sql = <<<EOF
-    SELECT SUM(IF(payee=:uid, amount, -amount)) AS total, FLOOR((completed-$start)/:DAY_SECS) AS day 
+    SELECT SUM(IF($isPayee, amount, -amount)) AS total, 
+    FLOOR((completed-$start)/:DAY_SECS) AS day 
     FROM (
       (SELECT payer,payee,amount,created AS completed FROM r_txs)
-      UNION (SELECT payer,0 AS payee,amount,completed FROM r_usd)
-    ) x WHERE :uid IN (payer, payee) AND completed BETWEEN $start AND $end 
+      UNION (SELECT u.payer AS payee,0 AS payer,-u.amount AS amount,completed FROM r_usd u)
+    ) t WHERE ($isPayer XOR $isPayee) AND completed BETWEEN $start AND $end 
     GROUP BY day
 EOF;
 
-  $result = db\q($sql, compact('uid'));
+  $result = db\q($sql, compact('uid', 'jid'));
   while($row = $result->fetchAssoc()) {
     $dayx = $day;
     extract($row); // total, day

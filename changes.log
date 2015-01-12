@@ -1,6 +1,25 @@
+2015-01-11
+. version 2.0
+. make ss# a password-type field
+. no cadmin email to NEW (since I get them anyway as admin)
+. chose a more secure admin pw
+. move fields around according to privacy/security policy
+. put our security/privacy policies in a footer link ("privacy")
+. remove the following fields from secure: usdType usdPhone usdEmail usdPass usdPin auth
+. inflation only for master of joint account, based on sum
+. make account field persist with last account number on Admin Panel
+. fixed bug: leaving goods blank on pay or charge form crashed
+. refactored handling of data/secure/secret fields
+. in notices and Summary, report "credit line" not "floor"
+. admin signin redirect to sadmin page
+. upgraded to Drupal 7.34 (post Drupalgeddon)
+. make sure pie chart doesn't try to show negatives
+. bona rewards (including rewards to inviter) now happen in cron
+. added B_COUNTED bit to mark employees as having triggered a reward to their company's manager's inviter
+
 2014-12-09
 . sometimes ssncheck returns an array of birthdates (see c line 237 in admin.inc -- try Maja H)
-. ** make a way to easily uncomplete bounced checks: On History page created offsetting record with reversed amount, txid, and tid; same everything else
+. make a way to easily uncomplete bounced checks: On History page created offsetting record with reversed amount, txid, and tid; same everything else
 . removed payee field from r_usd
 . removed photo icon in upper right (temporarily?)
 . delete garbage from r_do daily
@@ -17,6 +36,7 @@
 . UPDATE r_txs SET goods=2 WHERE goods=1
 . UPDATE r_invoices SET goods=2 WHERE goods=1
 . fixed bug whereby app reversing a transaction with insufficient funds would retry over and over
+. on Pay tab and Charge tab, if cash/loan/etc is selected, ask if it is for USD (at Adam's urging)
 
 2014-11-14
 . UPDATE r_usd SET completed=1414728000 WHERE completed=2014 (10/31/2014, fixing the oops of 11/01)
@@ -388,7 +408,7 @@
   rCredits\changeUid(-8915, -26742000000001, FALSE);
   rCredits\changeUid(-8321, -25026000000001, FALSE);
   for ($i = 1; $i <= 10; $i++) rCredits\changeUid(24960000000000 + $i, 25026000000000 + $i, FALSE);
-  \variable_set('r_totals', array());
+  \variable_set('r_totals', []);
 
 2014-02-12
 . fix data (already done on production server):

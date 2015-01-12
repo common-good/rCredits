@@ -197,8 +197,8 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| fullName | email | phone      | postalCode | federalId   | dob      | acctType    |'
     . '\\| Bea Two  | a@ | 413-253-0002 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL |"');
     Then_('we say "error": "duplicate email|forgot password" with subs: "ASSOC'
-    . '\\| duplicateAccount | emailTagged            | passwordLink                       |'
-    . '\\| Abe One          | a+whatever@example.com | %BASE_PATHpassword/a%40example.com |"');
+    . '\\| who     | emailTagged            | a                                       |'
+    . '\\| Abe One | a+whatever@example.com | a href=account/password/a%40example.com |"');
   }
 
   // Scenario: A member registers with an existing company
@@ -284,7 +284,7 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| partnership         |'
     . '\\| private corporation |"');
     Given('invitation to email "a@" is "c0D3"');
-    When_('member "?" confirms form "signup/code=c0D3&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1" with values: "ASSOC'
+    When_('member "?" confirms form "signup/code=c0D3&helper=NEW.AAC&flow=from&isOwner=1&employeeOk=1" with values: "ASSOC'
     . '\\| fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhon | companyOptions | address | city    | state | postalAddr                 | tenure | owns |'
     . '\\| AAcme Co | aco@ | 413-253-9876 | 01002      | 111-22-3333 | %CO_CORPORATION | | | | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 |"');
     Then_('members: "ASSOC'

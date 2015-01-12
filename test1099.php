@@ -7,7 +7,7 @@ $s = file_get_contents($flnm);
 $s = explode("\n", $s);
 
 checkTyp($rec = getRec($s), 'T');
-echo 'This is ' . (substr($rec, 27, 1) == 'T' ? 'a <b style="color:orange;">TEST</b> file.' : 'NOT a test file.') . "<br>\n";
+echo $flnm . ":<br>\nThis is " . (substr($rec, 27, 1) == 'T' ? 'a <b style="color:orange;">TEST</b> file.' : 'NOT a test file.') . "<br>\n";
 checkTyp(getRec($s), 'A');
 
 $tot = 0;

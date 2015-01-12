@@ -97,7 +97,7 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  */
 function weShowPdfWith($list) {
   global $testOnly, $pdfSays;
-  $in = strip_tags(join(' ', $pdfSays));
+  $in = strip_tags(join(' ', @$pdfSays ?: []));
   $px = 0;
   foreach ($list as $k => $v) {
     foreach ($v as $one) {

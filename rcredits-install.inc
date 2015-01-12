@@ -15,7 +15,7 @@ use rCredits\DB as db;
  * using or ignoring each table key, depending on whether the table exists (otherwise Drupal deletes all the data)
  * @param assoc $schema: the schema to modify or empty, if creating from scratch
  */
-function tableDefs($schema = array()) {
+function tableDefs($schema = []) {
   require_once 'rcredits.inc'; // Drupal bug. hook_schema needs these explicit, both uninstalling and installing.
   require_once 'rcredits-settings.inc';
   require_once 'rcredits-util.inc';
@@ -66,7 +66,7 @@ function tableDefs($schema = array()) {
     'stats' => setupField('account statistics', 'text medium'),
   );
   // need foreign keys here
-  $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
+  $schema['users']['fields'] = (@$schema['users']['fields'] ?: []) + $fields;
   $schema['users']['fields']['uid'] = setupField('Unique user ID', 'int big'); // not unsigned
   $schema['users']['fields']['data'] = setupField('serialized array of miscellaneous data', 'text medium');
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
@@ -267,8 +267,8 @@ function tableDefs($schema = array()) {
     'ok' => setupField('is it okay to get this error?', 'int tiny', 0),
     'created' => setupField('Unixtime error happened', 'int 11', 0),
   );
-  $foreignKeys = array();
-  $indexes = array();
+  $foreignKeys = [];
+  $indexes = [];
   $schema['r_usderror'] = setupTable('USD error messages from USD gateway', $fields, 'id', $foreignKeys, $indexes);
 
   // table r_banks
@@ -404,7 +404,7 @@ function tableDefs($schema = array()) {
     'region' => setupField('region id', 'char 3'),
     'state' => setupField('state or province abbreviation', 'char 2'),
   );
-  $foreignKeys = array();
+  $foreignKeys = [];
   $indexes = index('state');
   $schema['r_regions'] = setupTable('rCredits regions', $fields, 'region', $foreignKeys, $indexes);
 
@@ -418,6 +418,17 @@ function tableDefs($schema = array()) {
   $indexes = [];
   $schema['r_near'] = setupTable('How members are connected', $fields, ['uid1', 'uid2'], $foreignKeys, $indexes);
 
+  // table r_votes
+  $fields = [
+    'vid' => setupField('vote record id', 'serial 11'),
+    'uid' => setupField('account record ID', 'int big'),
+    'issue' => setupField('name of the question being voted on', 'varchar 255'),
+    'vote' => setupField('how the account voted on this issue', 'int medium'),
+  ];
+  $foreignKeys = foreignKey('uid');
+  $indexes = index('uid');
+  $schema['r_votes'] = setupTable('How members voted on issues', $fields, 'vid', $foreignKeys, $indexes);
+  
   // table r_nonmembers (use -make instead)
 /*  $fields = array(
     'id' => setupField('non-member company record id', 'serial 11'),
@@ -465,8 +476,8 @@ function tableDefs($schema = array()) {
  * @param boolean $unmake: whether to unmake, rather than make
  * @param array $extras: associative array of table_name (only for unmaking)
  */
-function make_fields($unmake = FALSE, $extras = array()) {
-  $schema = array();
+function make_fields($unmake = FALSE, $extras = []) {
+  $schema = [];
   \rcredits_schema_alter($schema); // get the fields to add (or drop)
   foreach ($schema as $table_name => $one) {
     if ($unmake and isset($extras[$table_name])) $one += $extras[$table_name];
@@ -481,7 +492,7 @@ function make_fields($unmake = FALSE, $extras = array()) {
   }
 }
 
-function setupTable($description, $fields, $primary_key, $foreignKeys = array(), $indexes = array()) {
+function setupTable($description, $fields, $primary_key, $foreignKeys = [], $indexes = []) {
   $result = compact('description', 'fields', 'indexes') + array('foreign keys' => $foreignKeys);
   return is_null($primary_key) ? $result : ($result + array('primary key' => (is_array($primary_key) ? $primary_key : array($primary_key))));
 }
@@ -531,13 +542,13 @@ function setupField($description = '', $type = 'varchar 255', $default = '', $SU
  */
 function makeGeoDropdowns() {
   if (!isDEV) return;
-  $js = 'var cs = new Array();'; // countries
-  $js .= "\n\nvar ss = new Array();"; // states
+  $js = 'var cs = new [];'; // countries
+  $js .= "\n\nvar ss = new [];"; // states
   $cq = \db_query('SELECT * FROM r_countries');
   while ($crow = $cq->fetchAssoc()) {
     $cid = $crow['id']; $cname = addslashes($crow['name']);
     $js .= "\n\ncs[$cid] = '$cname';";
-    $js .= "\n\nss[$cid] = new Array();";
+    $js .= "\n\nss[$cid] = new [];";
     $sq = db\q('SELECT * FROM r_states WHERE country_id=:cid', compact('cid'));
     while ($srow = $sq->fetchAssoc()) {
       $sid = $srow['id']; $sname = addslashes($srow['name']);

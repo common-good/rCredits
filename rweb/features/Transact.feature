@@ -141,4 +141,11 @@ Scenario: A member confirms request to charge the same member the same amount
   Then we say "error": "duplicate transaction" with subs:
   | op      |*
   | charged |
-  
+
+Scenario: A member leaves goods blank
+  Given member ".ZZA" confirms form "pay" with values:
+  | op  | who     | amount | goods | purpose |*
+  | pay | Bea Two | 100    |       | labor   |  
+  Then we say "error": "required field" with subs:
+  | field |*
+  | GOODS |

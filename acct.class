@@ -21,8 +21,8 @@ class acct {
   var $id; // the account's record id
   var $agentId; // record id (in the agent's regional server) of whoever is acting on behalf of the account
   var $mainQid; // nearly alphabetic representation of id, id, and region for external queries
-  private static $perms = array(); // permissions for all acct objects, indexed by id and agent
-  private static $records = FALSE; // account records for all acct objects, indexed by id
+  private static $perms = []; // permissions for all acct objects, indexed by id and agent
+  public static $rs = FALSE; // account records for all acct objects, indexed by id
   
   /**
    * Instantiate (create or retrieve) a member account for transactions and/or contact
@@ -39,7 +39,7 @@ class acct {
    * @param id/qid $id: the account's record id (can this be a community?) (DEFAULT to myid)
    * @param id/qid $agent: the agent's record id on this server OR the foreign agent's qid (DEFAULT to same as $id)
    */
-  function __construct($id = array(), $agent = '') {
+  function __construct($id = [], $agent = '') {
     $a = $this;
     if (is_array($info = $id)) { // referring to existing db record
       $a->createNew($info); // create new db record
@@ -52,9 +52,6 @@ class acct {
    * @param assoc $info: array of field values for new account
    */
   private function createNew($info) {
-    //$fields = 'phone number mail pass fullName legalName name flags rebate country state postalCode created login access uid community'; // used to include secure
-    //if (u\test()) $fields .= ' usdAccount';
-//    extract(u\just($fields, $info));
     extract($info);
     u\setDft($phone, @$number);
     if ($phone) $phone = u\fmtPhone($phone, '+n');
@@ -62,10 +59,10 @@ class acct {
     $status = TRUE;
     u\EXPECT($mail, 'account with no email address');
     $init = $mail;
-    $pass = (isset($pass) and trim($pass) !== '') ? r\passHash(trim($pass)) : ''; // no pass if none chosen yet
     u\setDft($fullName, @$legalName);
-    $short_name = @$fullName ? u\shortName($fullName) : '';
-    u\setDft($name, @$short_name ?: tempName($info));
+    u\setDft($legalName, $fullName);
+    $shortName = @$fullName ? u\shortName($fullName) : '';
+    u\setDft($name, @$shortName ?: tempName($info));
     u\setDft($flags, 0);
     u\setDft($rebate, R_REBATE);
     if (@$state and !is_numeric(@$state)) { // allow state abbrevs within US
@@ -75,34 +72,28 @@ class acct {
     u\setDft($created, REQUEST_TIME);
     u\setDft($login, $created);
     u\setDft($access, $login);
-    u\setDft($data, array());
-    u\setDft($secure, array());
-    
-    if ($secure += u\just(R_SECURE_FIELDS, $info)) foreach ($secure as $key => $value) unset($info[$key]);
-    if ($data += u\just(R_DATA_FIELDS, $info)) foreach ($data as $key => $value) unset($info[$key]);
-    $data['stepsDone'] = r\stepsDone0();
-    if (@$signed) $signedBy = @$legalName;
-    
-    $record = compact(u\ray('phone status mail init pass name fullName state flags rebate community created login access signed signedBy'));
-    foreach ($record as $key => $value) unset($info[$key]);
-    foreach (u\ray('number secure data') as $one) unset($info[$one]); // special cases
 
+    $stepsDone = r\stepsDone0();
+    if (@$signed) $signedBy = @$legalName;
+
+    if (!@$uid) $region = @$postalCode ? r\region(@$country, @$state, @$postalCode) : $community;
+    $record = compact('uid', 'name');
+    
     $DBTX = db_transaction();
-    if (@$uid) {
-      $record += compact('uid');
-    } else $region = @$postalCode ? r\region(@$country, @$state, @$postalCode) : $community;
     $uid = r\regionalInsert('users', 'uid', $record, @$region);
+    if (!($flags & u\bit(B_CO))) u\setDft($cardCode, r\cardCode(r\quid($uid))); // must postcede $uid =
 
     if (isset($number)) {
       $success = SMS\create($number, $uid);
       u\EXPECT($success, 'Unable to create SMS record.');
+      unset($info['number']);
     }
 
-    list($this->id, $this->agentId) = array($uid, $uid);
-    self::$records[$this->id] = (object) ($record + $info + $data);
-    if (!($flags & u\bit(B_CO))) u\setDft($secure['cardCode'], r\cardCode(r\quid($uid))); // must postcede $uid =
+    list($this->id, $this->agentId) = array($uid, $uid); // finish creating the object
+    self::$rs[$this->id] = (object) $record;
 
-    $this->update(compact('secure', 'data') + $info); // this is easier to do after saving the record
+    u\preray(compact(u\ray('phone status mail init pass fullName legalName flags rebate state community created login access signedBy cardCode')), $info); // things we may have added or changed
+    $this->update($info); // this is a lot easier to do after saving the record
     unset($DBTX); // commit
   }
 
@@ -120,31 +111,30 @@ class acct {
       if ($error = u\EXPECT($agent == $zot, 'agent agent not allowed', $test)) return FALSE;
     }
 
-    $record = self::getRecord($id);
-    if ($error = u\EXPECT((bool) $record, 'That account does not exist.', $test)) return FALSE; // don't use tt() here (many calls)
+    $got = (bool) self::getRecord($id); // read the record into cache
+    if ($error = u\EXPECT($got, 'That account does not exist.', $test)) return FALSE; // don't use tt() here (many calls)
     u\EXPECT($id and $agent, "Missing acct property: [$id, $agent]");
     return array($id, $agent);
   }
   
   private static function getRecord($id, $reread = FALSE) {
-/**/ if (@self::$records[$id] and !property_exists(self::$records[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$records, 1)); // keep this
-    if (@self::$records[$id] and !$reread) return self::$records[$id];
+/// if (@self::$rs[$id] and !property_exists(self::$rs[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$rs, 1)); // keep this
+    if (@self::$rs[$id] and !$reread) return self::$rs[$id];
     if (!$records = db\records('users', "uid=:id LIMIT 1", compact('id'))) { // no such record here
       if (TRUE) return FALSE; // not foreign either
       // contact other server here, for a subset of the record
     }
-    $data = @$records[0]->data; // treat data fields like any other
-    $data = $data ? unserialize($data) : array();
-    return self::$records[$id] = (object) (((array) $records[0]) + $data);
+
+    return self::$rs[$id] = (object) $records[0];
   }
 
   /**
    * Read in the account record, if we haven't yet.
-   * This function should be called before any reference to self::$records[$this->id] (except in contructor).
-   * @param bool $force: reread even if we already have an account record
+   * This function should be called before any reference to self::$rs[$this->id] (except in contructor).
+   * @param bool $force: reread even if we already have an account record (used only externally)
    */
   public function reread($force = FALSE) {
-    if (!@self::$records[$this->id] or $force) self::getRecord($this->id, TRUE);
+    if (!@self::$rs[$this->id] or $force) self::getRecord($this->id, TRUE);
   }
   
   /**
@@ -158,15 +148,8 @@ class acct {
    */
   public function __get($field) {
     $a = $this;
+    if (u\abbreviates('j_', $field)) return $a->jGet(substr($field, 2)); // real field name is minus the "j_"
     $a->reread(); // necessary when we pass an acct object to another page
-
-    if (u\abbreviates('j_', $field)) {
-      $field = substr($field, 2); // real field name is minus the "j_"
-      if ($jid = $a->jid) {
-        $j = u\nn(r\acct($jid)->$field, 0); // use 0 if other value is null
-        return is_numeric($j) ? round($j + $a->$field, 2) : ($a->$field . " & $j"); // assume $ for numeric fields
-      }
-    }
 
     if (in_array($field, u\ray('ok member co admin cAdmin cAdmin2 cttyActive cttyUp'))) return $a->can(u\consta('b', $field));
     if ($field == 'agent') return acct($a->agentId);
@@ -176,58 +159,74 @@ class acct {
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'bank') return $a->risk('hasBank');
+    if ($field == 'slave') return ($jid = $a->jid and $jid < $a->id); // slave in a joint account
+    if ($a->getSpecial($field, $result)) return $result; // set up caches, if appropriate
+    $result = @self::$rs[$a->id]->$field; // returns NULL if field not set
+    if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
 
-    if (in_array($field, u\ray(R_SECRET_FIELDS))) $a->getHidden();
-    $result = @self::$records[$a->id]->$field; // returns NULL if field not set
-
-    if ($field == 'data' or $field == 'changes') return @$result ? unserialize($result) : [];
-    if ($field == 'usdAccount') return @$result ? u\ezdecrypt(hex2bin($result), R_WORD) : NULL;
-    if ($field == 'language') {
-      $language = $result;
-      return \user_preferred_language((object) compact('language'));
+    if (in_array($field, u\ray('data changes secure secret')) and !is_array($result)) { // special not yet arrayed
+      if ($field == 'secret') return (self::$rs[$a->id]->secret = $a->offsite ? offsiteData($a->offsite) : []);
+      if (!$result) return [];
+      if ($field == 'secure') $result = u\ezdecrypt($result, R_WORD);
+      return (self::$rs[$a->id]->$field = unserialize($result));
     }
-    if ($field == 'secure') return @$result ? unserialize(u\ezdecrypt($result, R_WORD)) : array();
-    if (in_array($field, u\ray(R_SECURE_FIELDS))) return @$a->secure[$field];
 
     return $result;
+  }
+
+  /**
+   * Cache the set of special fields of which any of the given fields is a member.
+   * @param mixed $fields: array or space-delimited list of possibly special field names (data/secure/secret)
+   */
+  private function getSpecial($field, &$result) {
+    $a = $this;
+    foreach (['data', 'secure', 'secret'] as $set) {
+      if ($a->special($field, strtoupper($set))) {
+        $set = $a->$set;
+        u\preray($set, self::$rs[$a->id]); // cache all components of the special field
+        $result = @$set[$field]; // must be separate line from $a->set (PHP bug)
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+  
+  /**
+   * Say whether the given field(s) is/are the specified kind of special.
+   * @param mixed $fields: array or space-delimited list of fields (one or more)
+   * @param string $specialType: name of space-delimited list of special fields of a certain type.
+   * @return <at least one of $fields is in the $specialType list>
+   */
+  private function special($fields, $specialType) {
+    $specials = constant("R_{$specialType}_FIELDS");
+    return is_array($fields) ? (bool) array_intersect($fields, u\ray($specials))
+    : (strpos($fields, ' ') === FALSE ? u\inList($fields, $specials) // be efficient, if just one field
+    : (bool) array_intersect(u\ray($fields), u\ray($specials)));
+  }
+  
+  /**
+   * Handle joint field request (for example $a->j_r)
+   * @param string $field: normal name of field to get for both members of the joint account (if it is joint)
+   * @return if joint: the sum or concatenation of the member account values, otherwise just the normal value
+   */
+  private function jGet($field) {
+    $a = $this;
+    if (!$jid = $a->jid) return $a->$field;
+    $j = u\nn(r\acct($jid)->$field, 0); // use 0 if other value is null
+    return is_numeric($j) ? round($j + $a->$field, 2) : ($a->$field . " & $j"); // assume $ for numeric fields
   }
   
   /**
    * Return the entire account object or just certain fields.
    * @param string $just: space-delimited list of fields to return
-   * @param bool getHidden: whether we need to return the actual values of personal identifying information fields
-   *   NOTE: getHidden is ignored if $just is specified
    */
-  public function account($just = '', $getHidden = FALSE) {
+  public function account($just = '') {
     $this->reread(); // make sure we have read the record from the db
-    if (($getHidden or $just) and !$this->gotOffsite()) {
-      if ($just) $getHidden = (count(array_intersect(u\ray($just), u\ray(R_SECRET_FIELDS))) > 0);
-      if ($getHidden) $this->getHidden();
-    }
-    $account = @self::$records[$this->id];
+    $account = @self::$rs[$this->id];
     return $just ? (object) u\just($just, $account) : $account;
   }
 
-  private function gotOffsite($set = FALSE) {
-    $this->reread();
-    if ($set) {
-      self::$records[$this->id]->gotOffsite = TRUE; // applies to all objects for the id
-    } else return @self::$records[$this->id]->gotOffsite;
-  }
- 
-  /**
-   * Read protected personal identifying information fields into the account record
-   */
-  private function getHidden() {
-    $a = $this;
-    $a->reread();
-    if (!$a->offsite or $a->gotOffsite()) return; // no offsite data or already got it
-    $data = (array) offsiteData($a->offsite); // get protected data from offsite
-    foreach ($data as $key => $value) self::$records[$a->id]->$key = $value;
-    $a->gotOffsite(TRUE);
-  }
-  
-  public static function _clear() {self::$perms = self::$records = array();}
+  public static function _clear() {self::$perms = self::$rs = [];}
   
   /**
    * Return the next available uid in the specified region.
@@ -240,83 +239,60 @@ class acct {
   /**
    * Update the saved record in the database with the given data.
    * Call by:
-   *   update($info, $just); OR
+   *   update($info); OR
    *   update($fields, $value1, ...)
    * @param assoc $info: data to update
-   * @param string $just: update only these fields (update all if NULL, none if '')
    * @param string $fields: space-delimited list of field names
    * @param mixed $value1 (etc): new values for those fields
    *   The flags field will always be included.
    * @return: TRUE if update succeeds, FALSE if update fails (saving either onsite or offsite)
-   * NOTE: data['changes'] = [date, oldvalues, agent] (this gives a complete history of the account record)
-   *   but old secure and hidden data is replaced with ''
    */
-  public function update($info, $just = NULL) {
+  public function update($info) {
     $a = $this;
-    $a->reread();
-    if (!is_array($info)) { // second syntax
-      $args = func_get_args();
-      $keys = u\ray(array_shift($args));
-      u\EXPECT(count($keys) == count($args), 'assoc arg count mismatch');
-      return $a->update(array_combine($keys, $args));
-    }
-    if (isset($just)) $info = u\just($just, $info);
+    if (!is_array($info)) return $a->update(u\rayy(func_get_args())); // second syntax
+    if ($a->ok) $a->recordChanges($info); // record changes if member is active
     
-    if (isset($info['secure'])) { // serialize and encrypt before updating this
-      $usdArray = $info['secure']; // was " + ($a->secure ?: array())"
-      $info['secure'] = u\ezencrypt(serialize($usdArray), R_WORD);
-    } elseif ($secureFields = u\just(R_SECURE_FIELDS, $info)) {
-      $info['secure'] = u\ezencrypt(serialize($secureFields + $a->secure), R_WORD);
-      foreach ($secureFields as $k => $zot) unset($info[$k]);
-    }
-    if (@$info['usdAccount']) $info['usdAccount'] = bin2hex(u\ezencrypt($info['usdAccount'], R_WORD));
-    if (isset($info['pass'])) $info['pass'] = r\passHash($info['pass']);
-
-    $toHide = count(array_intersect(array_keys($info), u\ray(R_SECRET_FIELDS))); // how many fields to hide
-    if ($toHide and !$a->gotOffsite()) $a->getHidden(); // get what's offsite before updating it
-    if (!@self::$records[$a->id]) self::$records[$a->id] = new \stdClass();
-    unset($info['uid']); // necessary?
-
-//    if ($a->ok and time() - $a->activated > 30) { // don't record changes until member is a month old
-    if ($a->ok) { // don't record changes until member is active
-      $changes = u\justNot(R_HIDE_CHANGES, $info); // see if there are any changes to remember
-      foreach ($changes as $k => $v) { // don't record if no change
-        if ($v == $a->$k) {
-          unset($changes[$k]);
-        } elseif (isset(self::$records[$a->id]->$k)) $changes[$k] = @self::$records[$a->id]->$k;
-      }
-      if ($changes) {
-        $changes = serialize([[time(), $changes]] + $a->changes);
-        $info += compact('changes');
-      }
-    }
-    
-    if ($data = @$info['data']) {
-      $info['data'] = serialize($data);
-      u\preray($data, self::$records[$a->id]); // cache these individually
+    if (isset($info['data'])) {
+      $info['data'] = serialize($info['data']);
     } elseif ($data = u\just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data += $a->data);
 
-    u\preray($info, self::$records[$a->id]); // cache the field values
-
-    if ($toHide) { // store protected information securely, offsite
-      $key = offsiteData(@$a->offsite, $a->account(R_SECRET_FIELDS));
-      if ($key and is_numeric($key)) $info['offsite'] = $key; else return FALSE; // if attempt to store fails, save nothing
+    if (isset($info['secure'])) { // serialize and encrypt before updating this
+      $info['secure'] = u\ezencrypt(serialize($info['secure']), R_WORD);
+    } elseif ($secureFields = u\just(R_SECURE_FIELDS, $info)) {
+      $info['secure'] = u\ezencrypt(serialize($secureFields + $a->secure), R_WORD);
     }
-    $info['uid'] = $a->id; // make sure dbUpdate gets this
-    $info = u\justNot(R_SECRET_FIELDS . ' ' . R_DATA_FIELDS, $info); // don't pass these to dbUpdate
+    if (isset($info['pass'])) $info['pass'] = r\passHash($info['pass']);
 
+    if ($secrets = u\just(R_SECRET_FIELDS, $info)) { // store protected information securely, offsite
+      $offsite = offsiteData(@$a->offsite, $secret = $secrets + $a->secret);
+      if ($offsite and is_numeric($offsite)) u\preray(compact('offsite'), $info); else return FALSE; // if attempt to store fails, save nothing
+    }
+
+    $info = u\justNot(R_SECRET_FIELDS . ' ' . R_SECURE_FIELDS . ' ' . R_DATA_FIELDS, $info); // don't pass these
+    u\preray(compact('secret') + $info, self::$rs[$a->id]); // cache the new field values (AFTER storing secrets might fail)
+    $info['uid'] = $a->id; // make sure db\update gets this
     return db\update('users', $info, 'uid');
   }
 
-  public function upSecure($key, $value) {
-    return $this->update(u\ray('secure', u\ray($key, $value) + ($this->secure ?: array())));
+  /**
+   * Record memorable changes being made to an account record.
+   * @param assoc $info: (MODIFIED) all changes being made (returned with changes field added)
+   */
+  private function recordChanges(&$info) {
+    $a = $this;
+    $changes = u\justNot(R_HIDE_CHANGES, $info); // see if there are any changes to remember
+    foreach ($changes as $k => $v) { // don't record if no change
+      if ($v == $a->$k) {
+        unset($changes[$k]);
+      } elseif (isset(self::$rs[$a->id]->$k)) $changes[$k] = @self::$rs[$a->id]->$k;
+    }
+    if ($changes) {
+      $changes = serialize([[time(), $changes]] + $a->changes);
+      $info += compact('changes');
+    }
   }
-  public function upData($key, $value) {
-    return $this->update(u\ray('data', u\ray($key, $value) + $this->data));
-  }
-  public function usd($info = FALSE, &$err = '') {return new r\usd($this, $info, $err);}
+  
   public function isNonprofit() {return (bool) ($this->coFlags & u\bit(CO_NONPROFIT));}
-//  public function gotContact() {return ($this->can(B_PHONE_OK) and $this->address and $this->postalAddr and $this->city and $this->country and $this->postalCode and $this->can(B_SS_OK));}
   
   /**
    * Create a new relationship record.
@@ -375,9 +351,8 @@ class acct {
    * @param numeric $r: (RETURNED FIXED) the prospective balance to cache for this account
    */
   private function slaveCacheR(&$r) {
-    $jid = $this->jid;
-    if ($r >= 0 or !$jid or $this->id < $jid) return; // not negative or not slave -- no problem!
-    $j = r\acct($jid);
+    if ($r >= 0 or !$this->slave) return; // not negative or not slave -- no problem!
+    $j = r\acct($this->jid);
     $j->update('r', $j->r + $r); // send the negative balance to the master
     $r = 0;
   }
@@ -433,17 +408,7 @@ class acct {
 
     $avail += $get ? $this->draw($need - $avail) : $this->canDraw(); // get or just asking
     $shortfall = max(0, $need - $avail);
-/*
-    if ($shortfall = max(0, $need - $avail) and !$get and !$retrying) {
-      $lastWeek = strtotime('-10 days'); // EFTs never take this long
-      $where = "payer=:id AND payee=0 AND amount<0 AND completed=0 AND created>$lastWeek"; // recent USD coming in
-      if ($txid = db\lookup('txid', 'r_usd', $where, u\ray('id', $this->id))) { // found USD coming in
-        if ($tx = (new r\usd($this))->tx($txid)) {
-          if (r\usdTransferDone($tx)) return $this->shortfall($type, $need, $get, TRUE);
-        }
-      }
-    }
-    */
+
     return $shortfall; 
   }
   
@@ -492,7 +457,7 @@ EOF;
       SELECT u.uid,$availBuy AS avail FROM users u INNER JOIN r_relations r ON r.main=u.uid
       WHERE r.other=:id AND r.draw
 EOF;
-///debug(compact(u\ray('type need from to auto left id fields sql')));
+///   debug(compact(u\ray('type need from to auto left id fields sql')));
     $result = db\q($sql, compact('id'));
     while ($row = $result->fetchAssoc()) {
       extract($row);
@@ -632,7 +597,7 @@ EOF;
    */
   public function auxFilename($type = 'picture', $ideal = FALSE, $old = FALSE) {
     $dir = $type == 'picture' ? R_PICTURE_DIR : ($type == 'picture2' ? R_PICTURE_DIR . '/small' : R_PROOF_DIR);
-    $cardCode = @$this->secure['cardCode']; // @ for testing
+    $cardCode = @$this->cardCode; // @ for testing
     $file = "$this->id-$cardCode";
     if (u\abbreviates('picture', $type)) $file .= '.jpg';
     if (!$ideal and !$this->hasAux($type)) $file = $this->co ? R_DFT_PICTURE_WIDE : R_DFT_PICTURE;
@@ -641,50 +606,17 @@ EOF;
   
   public function hasAux($type = 'picture') {return file_exists(DRUPAL_ROOT . $this->auxFilename($type, TRUE));}
   
-  public function cardCode() {return $this->agent->secure[$this->proSe ? 'cardCode' : 'cardCode2'];}
-  
-  /**
-   * Return TRUE if a connected funding source is verified.
-   */ /* UNUSED (but maybe useful?)
-  public function verified() {
-    $usA = new r\usd($this);
-    $source = $usA->source($err);
-    return @$source['Verified'];
-  }*/
-  
-  /**
-   * Update the account's cached USD amount and return it.
-   * @param float $change: if non-zero, update the USD cache by this much, without checking Dwolla or r_usd
-   *//*
-  public function actualUsd($change = 0) {
-    $dw = $this->can(B_DW);
-    if ($change) {
-      u\EXPECT($dw, 'no dw');
-      $usd = $this->usd + $change; // manual update
-    } else {
-      if (!$dw) return 0;
-      $usAcct = new usd($this);
-      $usd = $usAcct->bal($err); // $err is inaccessibility (usd=0)
-      if ($err) return $this->usd; // can't get the figure from Dwolla
-
-      if (u\test()) { // only these tests adjust according to Dwolla
-        global $sceneTest; $scene = (object) $sceneTest->getInfo();
-        if (!in_array($scene->short_name, u\ray('Recache RealUsd IncompleteUsdTxs'))) return $this->usd;
-      }
-    }
-    if ($usd != $this->usd) $this->update(compact('usd')); // somehow balance got off
-    return $usd;
+  public function cardCode() {
+    $field = $this->proSe ? 'cardCode' : 'cardCode2';
+    return $this->agent->$field;
   }
-*/
-
+  
   /**
    * Return the total amount waiting to be transferred TO or (if negative result) FROM the bank.
    * @param bool $justTo: (UNUSED) 'to'=<ignore transfers FROM bank>, 'from'=<ignore transfers TO bank>
    */
   public function waitingToBank() {
-    $id = $jid = $this->jid ? "$this->id,$jid" : $this->id;
-//    if ($justTo == 'to') $where .= ' AND amount>0';
-//    if ($justTo == 'from') $where .= ' AND amount<0';
+    $id = ($jid = $this->jid) ? "$this->id,$jid" : $this->id;
     return db\lookup('SUM(amount)', 'r_usd', "payer IN ($id) AND NOT completed") + 0;
   }
 
@@ -703,14 +635,12 @@ EOF;
    * @param assoc $details: any details to report to the staff
    * @return the next step (FALSE if none)
    */
-  function stepDone($step, $details = array()) {
+  function stepDone($step, $details = []) {
     $stepsDone = $this->stepsDone ?: r\stepsDone0();
     if (!$stepsDone[$step]) { // unless already done
       $stepsDone[$step] = TRUE;
       $this->update(compact('stepsDone'));
       r\tellStaff('Step completed: ' . strtoupper($step), $details, $this->id);
-
-//      if (!$this->member and $step == 'dw' and $stepsDone['connect']) r\Web\connectBank($this);
     }
     
     if (!$nextStep = $this->nextStep()) r\membershipEvent($this, 'member');
@@ -726,15 +656,6 @@ EOF;
     foreach (u\ray($unset) as $one) unset($steps[$one]);
     foreach ($steps as $step => $done) if (!$done) break;
     if ($done) return FALSE;
-/*
-    if ($step == 'dw') {
-      if ($this->can(B_DW) and !@$this->secure['auth']) {
-        $this->createUsdAccount($err); // initialize Dwolla account
-        if ($err) r\tellStaff($err, compact('step', 'details'), $this->id);
-      }
-      if ((new r\usd($this))->step() == 'Finished') $step = $this->stepDone('dw'); // happens externally
-    }
-*/
     return $step;
   }
 
@@ -824,7 +745,6 @@ EOF;
 
     if ($amount > 0) { // tell staff to transfer the funds using BillPay or check
       $a->update('r', $a->r - $amount);
-      extract(u\just('bankAccount', $a->secure));
       if ($txid > 0) r\tellStaff(t('outgoing bank transfer request'), compact('amount'));
     } elseif ($completed) $a->completeUsdTx(0, -$amount, $created);
 
@@ -840,13 +760,16 @@ EOF;
    * @return <success>
    */
   public function completeUsdTx($txid, $amount, $created) {
+    global $channel;
+    $a = $this;
+    
     if (@$txid and !db\update('r_usd', ['txid'=>$txid, 'completed'=>time()], 'txid')) return FALSE;
-    $this->update('r', $this->r + $amount);
+    $a->update('r', $a->r + $amount);
     $hour = strftime('%H', strtotime($created)); // creation hour 
-    $auto = $hour == R_DAILY_HOUR ? t(' automatic') : ''; // (space is intentional)
+    $transfer = $channel == TX_CRON ? t('automatic transfer') : t('transfer');
     $amount = u\fmtAmt(abs($amount));
-    r\notify($this->id, 'transfer complete', compact('auto', 'amount'));
-    r\membershipEvent($this, 'bona', TRUE);
+    r\notify($a->id, 'transfer complete', compact('transfer', 'amount'));
+    if (!$a->can(B_BONA)) r\message($a->id, 'account funded');
     return TRUE;
   }
 
@@ -856,23 +779,27 @@ EOF;
    * @param string $op: what to do (REQUIRED)
    * @param numeric $v: an amount or identifier
    * @param int $life: number of seconds until link expires (link gets invalidated after doing operation once)
-   * @param assoc $params: other parameters (sql, subs, etc.)
+   * @param assoc $info: other parameters (sql, subs, etc.)
    * @return <a> tag guts for a clickable link that will do something without requiring the member to sign in
+   *    makeDo0 returns just the url (for form action, for example)
    * @see also r\Web\rdo()
    */
-  function makeDo($op, $v = NULL, $life = WEEK7_SECS, $params = []) {
+  function makeDo0($op, $v = NULL, $life = WEEK7_SECS, $info = []) {
     global $base_url;
   //  extract($data = u\rayy(func_get_args()) ?: $data);
-    extract($params);
-    $params += compact('op');
-    if (!is_null($v)) $params += compact('v');
+    extract($info);
+    $info += compact('op');
+    if (!is_null($v)) $info += compact('v');
     
     if (@$life) {
-      $data = u\ray('uid expires data', $this->id, time() + $life, serialize($params));
-      $params = u\ray('op', db\insert('r_do', $data)); // (preliminary) op is r_do record ID
-    } else $params += ['mo'=>rdoMonth()]; // remember month, in case we need to know when link was created
+      $data = u\ray('uid expires data', $this->id, time() + $life, serialize($info));
+      $info = u\ray('op', db\insert('r_do', $data)); // (preliminary) op is r_do record ID
+    } else $info += ['mo'=>rdoMonth()]; // remember month, in case we need to know when link was created
 
-    return "a href=\"$base_url/do/" . r\makeDoCode($params) . '"';
+    return "$base_url/do/" . r\makeDoCode($info);
+  }
+  function makeDo($op, $v = NULL, $life = WEEK7_SECS, $info = []) {
+    return 'a href="' . $this->makeDo0($op, $v, $life, $info) . '"';
   }
   
   /**
@@ -935,7 +862,7 @@ EOF;
    * @param array $values: numeric array of bit values (eg [3 => 3, 5 => 5])
    */
   public function setBits($values) {
-    u\setDft($values, array()); // fails in arg list (dunno why)
+    u\setDft($values, []); // fails in arg list (dunno why)
     $flags = $this->flags;
     foreach (u\ray(B_ADMINABLE) as $bitName) { // set all these on or off
 //      if (substr($bitName, 0, 1) == 'u') continue; // lowercase u means undefined
@@ -1038,18 +965,12 @@ function IA($quid = '', $no_abbrev = TRUE) {
  * Store or retrieve the given offsite data.
  * @param string (bigint) $id: record key of offsite data to retrieve or update (if empty, store the data)
  * @param assoc $data: fields to store or update offsite (if NULL, retrieve the data)
- * @return: the actual data (if RETRIEVING) or record key (if STORING)
+ * @return array: the actual data (if RETRIEVING) or record key (if STORING)
  */
 function offsiteData($id, $data = NULL) {
-/// debug(strlen(u\ezencrypt(serialize($orig = $data), R_WORD)));
   if (isset($data)) $data = bin2hex(u\ezencrypt(serialize($data), R_WORD));
-/// debug(strlen($data));
-/// debug($data);
-/// debug(u\ezencrypt(serialize($orig), R_WORD) == hex2bin($data));
-/// debug(R_SECRET_URL . '/offsite.php');
   $result = u\httpRequest(R_SECRET_URL . '/offsite.php', compact('id', 'data'));
-/// debug($result);
-  return isset($data) ? $result : unserialize(u\ezdecrypt(hex2bin($result), R_WORD)); // hex2bin = pack('H*'
+  return isset($data) ? $result : (array) unserialize(u\ezdecrypt(hex2bin($result), R_WORD)); // hex2bin=pack('H*'
 }  
 
 function acct($uid = '', $agent = '', &$error = '') {

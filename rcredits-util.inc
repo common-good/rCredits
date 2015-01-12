@@ -67,6 +67,14 @@ function rayy($args) {
   return (count($args) >= 2 and is_string($args[0])) ? call_user_func_array('rCredits\\Util\\ray', $args) : [];
 }
 
+/**
+ * Say whether the string is a member of the given space-delimited list.
+ * @param string $needle: what to look for
+ * @param string $hay: where to look
+ * @return <needle is in the hay>
+ */
+function inList($needle, $hay) {return (strpos(" $hay ", " $needle ") !== FALSE);}
+
 /* this is probably a bad idea
 function preK($prefix, $s) {
   if (is_array($s)) {
@@ -825,7 +833,7 @@ file_put_contents($filepath, $text);
 //list ($stuff, $key) = rCredits\Util\encode('this is a test', compact('pass', 'salt'));
 //file_put_contents($file, $stuff);
 $stuff2 = file_get_contents($newFilepath);
-//// echo rCredits\Util\decode($stuff2, $key);
+/// echo rCredits\Util\decode($stuff2, $key);
 
  */
 function encode($content, $passSalt) {
@@ -1136,7 +1144,7 @@ function code($len = 20) {
   return (u\test() and @$nextCode) ? $nextCode : \user_password($len);
 }
 
-function caller($skip = 0) {
+function showCaller($skip = 0) {
   $trace = debug_backtrace();
   for ($i = 0; $i <= $skip; $i++) array_shift($trace); // discard THIS call
   $caller = (object) array_shift($trace); $file = basename(@$caller->file);
@@ -1305,3 +1313,5 @@ function roughName($name) {return preg_replace("/[^A-Z '\-]/", '', strtoupper(tr
 function urlArgs() {return basename(u\test() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);}
 function in($a, $b) {return (strpos($a, $b) !== FALSE);}
 function uc1($s) {return ucwords(substr($s, 0, 1)) . substr($s, 1);}
+function nextAfter($needle, $hay) {return $hay[array_search($needle, $hay) + 1];}
+function caller($depth = 1) {return debug_backtrace()[$depth + 1]['function'];}

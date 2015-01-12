@@ -127,6 +127,7 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Transact AMemberConfirmsRequestToPayAMemberCompany
  *     MAKE Transact AMemberConfirmsRequestToPayTheSameMemberTheSameAmount
  *     MAKE Transact AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount
+ *     MAKE Transact AMemberLeavesGoodsBlank
  */
 function memberConfirmsFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values, TRUE);}
 
@@ -268,6 +269,7 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
  *     TEST Transact AMemberConfirmsRequestToPayTheSameMemberTheSameAmount
  *     TEST Transact AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount
+ *     TEST Transact AMemberLeavesGoodsBlank
  */
 function weSayWithSubs($type, $index, $subs) {
   global $testOnly;
@@ -420,9 +422,9 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     TEST Signup AMemberRegistersACompany
- *     TEST Summary AMemberClicksOnTheSummaryTab
- *     TEST Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage
- *     TEST Summary ACompanyAgentClicksOnTheSummaryTab
+ *     TEST Summary AMemberClicksTheSummaryTab
+ *     TEST Summary AnAgentClicksTheSummaryTabWithoutPermissionToManage
+ *     TEST Summary ACompanyAgentClicksTheSummaryTab
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
  *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
  */
@@ -444,8 +446,8 @@ function with($content) {return weShow($content);}
  * in: TEST Membership ACompanyAgentClicksOnTheMembershipLink
  *     TEST Relations MemberHasAnEmployer
  *     TEST Relations MemberCompanyHasRelations
- *     TEST Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage
- *     TEST Summary ACompanyAgentClicksOnTheSummaryTab
+ *     TEST Summary AnAgentClicksTheSummaryTabWithoutPermissionToManage
+ *     TEST Summary ACompanyAgentClicksTheSummaryTab
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
  *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
  */
@@ -586,9 +588,9 @@ function usd($list) {return t\usd($list);}
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithBadInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
- *     MAKE Summary AMemberClicksOnTheSummaryTab
- *     MAKE Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage
- *     MAKE Summary ACompanyAgentClicksOnTheSummaryTab
+ *     MAKE Summary AMemberClicksTheSummaryTab
+ *     MAKE Summary AnAgentClicksTheSummaryTabWithoutPermissionToManage
+ *     MAKE Summary ACompanyAgentClicksTheSummaryTab
  *     MAKE Summary MembersAccountIsNotActive
  *     MAKE Transactions AMemberLooksAtTransactionsForThePastYear
  *     MAKE Transactions AMemberLooksAtTransactionsForThePastFewDays

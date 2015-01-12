@@ -148,7 +148,7 @@ function weRespondWith($args) {
       $value = $flags;
     }
     if ($key == 'device' and $value == '?' and $rposResult[$key]) continue; // any value will do for new dev
-    if ($key == 'time' and abs($value - $rposResult["time"]) < 10) continue; // %now time is approximate
+    if ($key == 'time' and t\approxTime($value, $rposResult["time"])) continue; // %now time is approximate
     
     if ($value != @$rposResult[$key]) {
 /**/  $value = print_r(@$value, 1);
@@ -570,8 +570,8 @@ function weRespondOkTxidCreatedBalanceRewards($txid, $created, $balance, $reward
   global $rposResult;
   $ok = '1';
   foreach (u\ray('ok txid balance rewards') as $k) if (@$rposResult[$k] != $$k) $error = TRUE;
-  if (abs(@$rposResult['created'] - $created) > 10) $error = TRUE;
-  
+  if (!t\approxTime(@$rposResult['created'], $created)) $error = TRUE;
+
   if (@$error) {
 /**/ t\output('Expecting: ' . print_r(compact(u\ray('ok txid created balance rewards')), 1), 'expect');
 /**/ t\output('Got: ' . print_r($rposResult, 1));

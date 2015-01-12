@@ -115,9 +115,8 @@ Scenario: A joined account member looks at transaction history and summary
   | Balance       | $2,480 |
   | Rewards       | $530 |
 #  | Committed     | $0.60 |
-  | Your return   | 21.9% |
-  | _ever         | 137.1% |
-# or 136.7% (depends on daylight time?)
+#  | Your return   | 21.9% | (sometimes is 20.2%)
+#  | _ever         | 136.7% | or 137.1% (depends on daylight time?) or 68.0%?!
   | Social return | $37.50 |
   | _ever         | $37.50 |
   

@@ -18,7 +18,7 @@ use rCredits\Util as u;
  * @param bool $log: whether to log the operation
  * @return: if inserting, then the id of the inserted record, else the query object (FALSE if failure)
  */
-function q($sql, $subs = array(), $log = FALSE) {
+function q($sql, $subs = [], $log = FALSE) {
   global $channel;
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
   if (strpos($sql, 'INSERT INTO') !== FALSE) $return = \Database::RETURN_INSERT_ID;
@@ -40,7 +40,7 @@ function q($sql, $subs = array(), $log = FALSE) {
  * @return: the value of what was looked up -- an assoc of values if a list of fields was requested
  *   FALSE if none
  */
-function lookup($fieldName, $table, $where = '1', $subs = array()) {
+function lookup($fieldName, $table, $where = '1', $subs = []) {
   u\EXPECT(compact(u\ray('fieldName table where subs')), 'notempty notempty notempty assoc');
   if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
   $sql = "SELECT $fieldName FROM $table WHERE $where";
@@ -104,7 +104,7 @@ function insert($table, $info) {return db\update($table, $info, '');}
  * call by dbExists($table, $where, $subs)
  *      or dbExists($table, $subs) where $subs contains the required field names and their values
  */
-function exists($table, $where = '1', $subs = array()) {
+function exists($table, $where = '1', $subs = []) {
   if (is_array($where)) {
     $subs = $where;
     foreach ($where as $key => $value) $where[$key] = "$key=:$key";
@@ -116,7 +116,7 @@ function exists($table, $where = '1', $subs = array()) {
 /**
  * Return an array of record objects.
  */
-function records($table, $where = '1', $subs = array(), $fields = '*') {
+function records($table, $where = '1', $subs = [], $fields = '*') {
   return db\q("SELECT $fields FROM $table WHERE $where", $subs)->fetchAll(); // fetchAll means fetchAllObject
 }
 
@@ -138,9 +138,9 @@ function setData($table, $id, $values) {
   $keys = u\ray('users r_txs r_invoices', 'uid', 'xid', 'nvid');
   $key = $keys[$table];
   u\EXPECT($key, 'bad table');
-  $data = $values + (db\lookup('data', $table, "$key=:id", compact('id')) ?: array());
+  $data = $values + (db\lookup('data', $table, "$key=:id", compact('id')) ?: []);
   return $table == 'users' ? r\acct($id)->update(compact('data')) : db\update($table, compact('data'));
 }
 
-function count($table, $where = '1', $subs = array()) {return db\lookup('COUNT(*)', $table, $where, $subs);}
+function count($table, $where = '1', $subs = []) {return db\lookup('COUNT(*)', $table, $where, $subs);}
 

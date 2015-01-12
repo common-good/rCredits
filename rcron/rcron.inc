@@ -60,9 +60,7 @@ NOTES:
   where <star> means * (not the same as for the production site) 
  */
 
-//include_once __DIR__ . '/../usd.class';
-
-define('R_DAILY_TASKS', 'START recache checkAccts setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank notices END'); // had homogenize, pool 
+define('R_DAILY_TASKS', 'START recache checkAccts setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank bona employees notices END'); // had homogenize, pool 
 //define ('R_DAILY_TASKS', 'START redistribute END');
 
 /**
@@ -113,7 +111,7 @@ function acctHourly($item) {
 }
 
 function everyDay() {
-  queueNextAfter('START');
+  queueNext('START');
 //  \variable_set('daily', REQUEST_TIME);
   // miscellaneous quick stuff to do every day
   $time = time() - 7 * DAY_SECS;
@@ -167,7 +165,7 @@ EOF;
 EOF;
   queueEach('tickleActive', $sql, compact('start'));
   
-  queueNextAfter('tickle');
+  queueNext();
 }
 
 /**
@@ -210,9 +208,9 @@ function tickleActive($item) {
   $a = r\acct($uid);
   $ratio = $monthly ? $a->floor / $monthly : 1;
   if ($ratio > 1.1 or $ratio < .9) { // big change (or any change in sign)
-    $a->update(u\ray('floor', round(-$monthly, 2)));
+    $a->update(['floor' => round(-$monthly, 2)]);
     $msg = 'new floor' . ($a->can(B_DEBT) ? '' : '|no floor effect');
-    r\notify($uid, $msg, u\ray('floor', u\fmtAmt(-$monthly)));
+    r\notify($uid, $msg, ['limit' => u\fmtAmt($monthly)]);
   }
 }
  
@@ -225,7 +223,7 @@ function lessOften() {
   often('year', 'm', '01', 365 * DAY_SECS);  
 //  if (strftime('%A') == R_WEEKLY_DAY) everyWeek();
 //  if (strftime('%d') == R_MONTHLY_DAY) everyMonth();
-  queueNextAfter('lessOften');
+  queueNext();
 }
 
 /**
@@ -309,6 +307,8 @@ function coverFee($item) {
  */
 function inflationAdjust($item) {
   extract(u\just('uid start end', $item));
+  $a = r\acct($uid);
+  if ($a->slave) return; // slave in joint account gets no inflation (master gets inflation for both)
   $avg = r\averageBalance($uid, $start, $end);
   $adjustment = round($avg * R_INFLATION_RATE / 12, 2);
   if ($adjustment > 0) be\fund($uid, TX_INFLATION, $adjustment, t('inflation adjustment')); // don't adjust debts
@@ -324,7 +324,7 @@ function shareCommitted($item) {
   $info = u\ray('giftDate uid amount often honor share', REQUEST_TIME, $uid, $committed, 1, 'share', -1);
   $DBTX = \db_transaction();
   db\insert('r_gifts', $info);
-  r\acct($uid)->update(array('committed' => 0));
+  r\acct($uid)->update(['committed' => 0]);
   unset($DBTX);
 }
 
@@ -336,7 +336,7 @@ function usdTxsThere() {
   queueEach('usdTxThere', 'SELECT uid FROM users WHERE :IS_OK AND :HAS_BANK');
   r\queue('usdTxsThereEND');
 }
-function usdTxsThereEND() {queueNextAfter('usdTxsThere');}
+function usdTxsThereEND() {queueNext();}
 
 function usdTxThere($item) {
   $uid = $item['uid'];
@@ -387,7 +387,7 @@ function bankFollowup($tx) {
 function recache() {
   $fields = 'uid, r, usd, rewards, minimum, floor';
   queueEach('recache1', "SELECT $fields FROM users WHERE :IS_OK"); // make this IS_MEMBER if early gift
-  queueNextAfter('recache');
+  queueNext();
 }
 
 function recache1($item) {
@@ -403,13 +403,13 @@ function recache1($item) {
  */
 function checkAccts() {
   queueEach('checkAcct', "SELECT uid, minimum, rewards FROM users WHERE uid<>0");
-  queueNextAfter('checkAccts');
+  queueNext();
 }
 
 function checkAcct($item) {
   extract($item); // (prepared for additional tasks)
   $a = r\acct($uid);
-  if (r\membershipEvent($a, 'bona', $a->j_r > 0)) r\tellStaff('noticed BONA late', NULL, $uid);
+// NO  if (r\membershipEvent($a, 'bona', $a->j_r > 0)) r\tellStaff('noticed BONA late', NULL, $uid);
   //look at agreement date and first transaction date and last transaction date. queue appropriate funcs
 }
 
@@ -435,6 +435,7 @@ function setNear() {
     GROUP BY LEAST(q.id1, q.id2), GREATEST(q.id1, q.id2)
 EOF;
   db\q($sql);
+  queueNext();
 }
 
 /**
@@ -443,11 +444,11 @@ EOF;
 function acctStats() {
   db\q('UPDATE users SET picture=0'); // clear temp field
   queueEach('acctStats1', 'SELECT uid FROM users WHERE uid>1 AND :IS_OK');
-  queueNextAfter('acctStats');
+  queueNext();
 }
 
 /**
- * Update stats for one account.
+ * Update stats for one account (joint accounts are aggregated in acct::j_stats(), not here)
  * stats will be an assoc: [avgBalPastMo, avgBalEver, minPastMo, etc.]
  * picture (an otherwise unused field) will be minPastMo in cents (ready for r\stats to SUM)
  */
@@ -456,15 +457,15 @@ function acctStats1($item, $asof = REQUEST_TIME) {
   $a = r\acct($uid);
   $asof = strtotime('today', $asof);
   $monthAgo = u\plusMonths(-1, $asof);
-  $avgBalPastMo = r\averageBalance($uid, $monthAgo, $asof, $minPastMo);
-  $avgBalEver = r\averageBalance($uid, strtotime('today', $a->created), $asof);
+  $avgBalPastMo = r\averageBalance($uid, $monthAgo, $asof, TRUE, $minPastMo);
+  $avgBalEver = r\averageBalance($uid, strtotime('today', $a->created), $asof, TRUE);
   $subs = compact('uid', 'monthAgo', 'asof');
   
   $sql = <<<EOF
     SELECT SUM(amount) AS giftsEver, SUM(IF(completed<:monthAgo, 0, amount)) AS giftsPastMo
     FROM r_gifts WHERE uid=:uid AND completed AND completed<:asof
 EOF;
-  $row1 = db\q($sql, $subs)->fetchAssoc() ?: array(); // giftsEver, giftsPastMo
+  $row1 = db\q($sql, $subs)->fetchAssoc() ?: []; // giftsEver, giftsPastMo
   
   $sql = <<<EOF
     SELECT SUM(IF(type IN (:TX_REBATE,:TX_BONUS), amount, 0)) AS beneEver,
@@ -473,13 +474,13 @@ EOF;
     SUM(IF(type IN (:TX_SIGNUP,:TX_INFLATION,:TX_GRANT) AND created>=:monthAgo, amount, 0)) AS extraPastMo
     FROM r_txs WHERE payee=:uid AND created<:asof
 EOF;
-  $row2 = db\q($sql, $subs)->fetchAssoc() ?: array(); // get beneEver, benePastMo
+  $row2 = db\q($sql, $subs)->fetchAssoc() ?: []; // get beneEver, benePastMo
   
   $sql = <<<EOF
     SELECT SUM(amount) AS bankedEver, SUM(IF(completed<:monthAgo, 0, amount)) AS bankedPastMo
     FROM r_usd WHERE payer=:uid AND completed AND completed<:asof
 EOF;
-  $row3 = db\q($sql, $subs)->fetchAssoc() ?: array(); // get bankedEver, bankedPastMo
+  $row3 = db\q($sql, $subs)->fetchAssoc() ?: []; // get bankedEver, bankedPastMo
   $newData = $row1 + $row2 + $row3 + compact(u\ray('avgBalPastMo avgBalEver minPastMo'));
   foreach ($newData as $k => $v) $newData[$k] = '' . round($v, 2); // avoid long decimals
   $a->update(u\ray('stats picture', serialize($newData), $minPastMo * 100));
@@ -491,7 +492,7 @@ EOF;
 function cttyStats() {
   r\getStats(0); // for all our communities at once
   queueEach('cttyStats1', 'SELECT DISTINCT community AS ctty FROM users WHERE community IS NOT NULL');
-  queueNextAfter('cttyStats');
+  queueNext();
 }
 
 function cttyStats1($item) {
@@ -518,7 +519,7 @@ function trust() {
 EOF;
   for ($i = 0, $weight = 1; $i < 32; $i++, $weight /= 2) db\q($sql, compact('weight'));
   if (u\test()) db\q('UPDATE users SET trust=ROUND(trust, 2)'); // make the results easily testable
-  queueNextAfter('trust');
+  queueNext();
 }
 
 /**
@@ -531,7 +532,7 @@ function acctRisk() {
   for ($i=0; $i<2; $i++) { // do it twice (for good and bad Conx)
     queueEach('acctRisk1', 'SELECT uid FROM users WHERE uid>1 and :IS_OK ORDER BY :IS_CO DESC');
   }
-  queueNextAfter('acctRisk');
+  queueNext();
 }
 
 function acctRisk1($item) {
@@ -545,7 +546,7 @@ function acctRisk1($item) {
  */
 function txRisk() {
   queueEach('txRisk1', 'SELECT * FROM r_txs WHERE risk IS NULL AND ABS(amount)>0 AND (payer>0 OR ABS(amount)>:K_CTTY_THRESHOLD) ORDER BY created');
-  queueNextAfter('txRisk');
+  queueNext();
 }
 
 function txRisk1($item) {
@@ -558,7 +559,7 @@ function txRisk1($item) {
  */
 function achRisk() {
   queueEach('achRisk1', 'SELECT * FROM r_usd WHERE risk IS NULL ORDER BY created');
-  queueNextAfter('achRisk');
+  queueNext();
 }
 
 function achRisk1($item) {
@@ -571,7 +572,7 @@ function achRisk1($item) {
  */
 function gifts() {
   queueEach('gift1', 'SELECT g.* FROM r_gifts g INNER JOIN users u ON u.uid=g.uid WHERE NOT completed and giftDate<=:REQUEST_TIME AND :IS_OK');
-  queueNextAfter('gifts');
+  queueNext();
 }
 
 /**
@@ -593,7 +594,7 @@ function homogenize() {
     extract($row);
     queueEach('homogenize1', 'SELECT uid, usd, community AS ctty FROM users WHERE community=:community AND uid>1 AND usd>:avg AND :HAS_BANK AND :IS_OK', compact('avg', 'community'));
   }
-  queueNextAfter('homogenize');
+  queueNext();
 }
 */
 
@@ -629,7 +630,7 @@ function pool() {
     //if ($ctty->usd / $total < R_CTTY_USD_SHARE) 
     queueEach('pool1', $sql, compact('community')); // okay if ctty has a bit too much
   }
-  queueNextAfter('pool');
+  queueNext();
 }
 */
 
@@ -653,7 +654,8 @@ function bank() {
 //  $excess = 'LEAST(usd, :R_EXCESS)';
   $weekday = strftime('%w'); // 0-6 Sun-Sat (use %w because %u fails on Windows and maybe linux)
   if (u\test() or in_array($weekday, [2, 3, 4, 5])) { // no completions on Saturday, Sunday, or Monday
-    $sql = 'SELECT * FROM r_usd WHERE amount<0 AND NOT completed AND deposit AND :REQUEST_TIME>=deposit+:R_USDTX_DAYS*:DAY_SECS';
+    $sql = 'SELECT * FROM r_usd WHERE amount<0 AND NOT completed AND :REQUEST_TIME>=created+:R_USDTX_DAYS*:DAY_SECS'; // this allows us to wait arbitrarily long to deposit chks
+//    $sql = 'SELECT * FROM r_usd WHERE amount<0 AND NOT completed AND deposit AND :REQUEST_TIME>=deposit+:R_USDTX_DAYS*:DAY_SECS'; // this depends on deposits almost every day
     queueEach('completeUsdTx', $sql);
   }
   
@@ -673,7 +675,7 @@ EOF;
   queueEach('draw1', $sql);
   
   
-  queueNextAfter('bank');
+  queueNext();
 }
 
 function completeUsdTx($item) {
@@ -720,6 +722,49 @@ function getHowMuchR($a, $banky = TRUE) {
 }
 
 /**
+ * Give signup bonuses.
+ */
+function bona() {
+  $sql = 'SELECT u.uid FROM users u LEFT JOIN r_txs t ON t.payer=u.uid WHERE NOT :IS_BONA AND NOT :IS_CO AND t.taking'; // new human member who has complete an rCard purchase
+  queueEach('bona1', $sql);
+  queueNext();
+}
+
+function bona1($item) {
+  extract(u\just('uid', $item));
+  $a = r\acct($uid);
+  
+  $DBTX = \db_transaction();
+  r\membershipEvent($a, 'bona');
+  be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
+  
+  if (!r\acct($a->helper)->admin) { // helper is not admin
+    $fullName = $a->fullName;
+    be\fund($a->helper, TX_HELPER, R_HELPER_BONUS, u\tt('invite reward', compact('fullName')));
+  }
+  unset($DBTX);
+}
+  
+/**
+ * For each new employee, reward the inviter of their company (if nobody has been rewarded for that employee yet).
+ */
+function employees() {
+  $sql = 'SELECT u.uid, r.main AS company FROM r_relations r INNER JOIN users u ON u.uid=r.other WHERE r.employee AND :IS_BONA AND NOT :IS_COUNTED';
+  queueEach('employee', $sql);
+  queueNext();
+}
+
+function employee($item) {
+  extract(u\just('uid company', $item));
+  $co = r\acct($company);
+  if ($helper = $co->helper and $helper != $uid) { // if is for tests (handles no helper)
+    $fullName = $co->fullName;
+    be\fund($helper, TX_HELPER, R_COUNTED_BONUS, u\tt('employee invite reward', compact('fullName')));
+    r\acct($uid)->setBit(B_COUNTED);
+  }
+}
+  
+/**
  * Send daily, weekly, or monthly message digests. (Newbies are always daily)
  */
 function notices() {
@@ -732,7 +777,7 @@ function notices() {
   if ($monthly) $where .= ' OR :IS_MONTHLY';
   $sql = "SELECT DISTINCT u.uid, :IS_WEEKLY AS weekly, :IS_MONTHLY AS monthly FROM r_notices n JOIN users u ON u.uid=n.uid WHERE NOT sent AND ($where)";
   queueEach('notice', $sql);
-  queueNextAfter('notices');
+  queueNext();
 }
 
 function notice($item) {
@@ -748,7 +793,7 @@ function notice($item) {
  * Last task queued once the everyDay() function has gotten things started.
  */
 function END() {
-  $lastCron = \variable_get('r_last_cron', array());
+  $lastCron = \variable_get('r_last_cron', []);
   $elapsed = time() - @$lastCron['day'];
 ///  echo "Daily cron done after $elapsed seconds"; // keep
   r\tellStaff("At " . strftime('%I:%M%P') . ", after $elapsed secs, daily cron ended successfully.", '', FALSE);
@@ -757,17 +802,19 @@ function END() {
 /**
  * Run the next daily function.
  */
-function queueNextAfter($task) {
-  global $cronOp;
+function queueNext($task = NULL) {
+  global $cronOp; 
   if ($cronOp == ONE_CRON_OP) return; // doing just one, so do nothing more
-  $tasks = u\ray(R_DAILY_TASKS);
+
+  u\setDft($task, str_replace(__NAMESPACE__ . '\\', '', u\caller()));
 
   if (u\test() and @$cronOp and $cronOp != 'ALL') {
     r\queue($task == $cronOp ? 'END' : $cronOp);
-  } else r\queue($tasks[array_search($task, $tasks) + 1]);
+  } else r\queue(u\nextAfter($task, u\ray(R_DAILY_TASKS)));
+//  } else r\queue($tasks[array_search($task, $tasks) + 1]);
 }
 
-function queueEach($op, $sql, $subs = array()) {
+function queueEach($op, $sql, $subs = []) {
   global $cronOp; // this is set to ONE_CRON_OP when calling cron() from PHP window on test server
   $result = db\q($sql, $subs);
   while ($row = $result->fetchAssoc()) {
@@ -777,79 +824,3 @@ function queueEach($op, $sql, $subs = array()) {
 }
 
 //function realId($uid) {return ($uid <= r\cgfId());}
-
-/**
- * Create an ACH request file (debits only, for now).
- */
-function achify() {
-  $count = $hash = $credits = $debits = 0;
-  
-  $tdRoute = '21127445'; // sending bank's routing number without the final "0"
-  $now = strftime('%y%m%d%H%M');
-  $fileId = 'A'; // distinguishes files on the same date and between the same participants (A-Z, 0-9)
-  $dest = pad('TD BANK NA', 23);
-  $source = pad('SOC TO BENEFIT EVERYONE', 23);
-  $ref = pad('', 8);
-  $recs[] = "101 {$tdRoute}0" . '1' . CGF_EIN . "$now{$fileId}094101$dest$source$ref"; // file header
-  
-  $class = '200'; // mixed credits and debits (225 for debits only, 220 for credits only)
-  $coName = pad(strtoupper('RCREDITS SYSTEM'), 16); // 'SOC BENFT EVRYON'? 'COM GOOD FINANCE'? 'COMMON GOOD FIN'?
-  $extra = pad('', 20); // discretionary (we can use this space for anything)
-  $code = 'PPD'; // prearranged payment and deposit
-  //$purpose = pad($amount > 0 ? t('rCredits') : t('money out'), 10);
-  $purpose = pad(t('rCredits+-'), 10);
-  $when = pad(strftime('%b %d'), 6); // descriptive date
-  $effective = strftime('%y%m%d'); // requested settlement date
-  $batch = lpad(1, 7); // should this be unique for all our batches ever? or just within the file?
-  $recs[] = "5$class$coName$extra" . '1' . CGF_EIN . "$code$purpose$when$effective" . "0001$tdRoute$batch"; // co batch header
-
-  $longAgo = REQUEST_TIME - DAY_SECS * 10;
-  db\q('UPDATE r_ach SET completed=-9 WHERE created<=:longAgo', compact('longAgo')); // stop trying if too old
-  $q = db\q('SELECT txid,uid,amount FROM r_ach WHERE completed<=0 AND completed>-:R_ACH_TRIES ORDER BY txid');
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    if ($amount < 0) continue; // ignore these while the system is young (admin may want to dissuade the member)
-    $a = r\acct($uid);
-    if (!$a->bank or !$a->ok) continue;
-    extract(u\just('bankAccount bankAccountType', $a->secure));
-    if (!@$bankAccount) continue;
-    list ($route, $account) = u\parseBankAccount($bankAccount);
-    $code = @$bankAccountType == 'checking' ? ($amount < 0 ? 22 : 27) : ($amount < 0 ? 32 : 37);
-    $account = pad($account, 17);
-    if ($amount < 0) $credits -= $amount; else $debits += $amount;
-    $amount = padnum($amount, 10);
-    $acctId = pad(($a->co ? 'EIN #' : 'SSN #') . $a->federalId, 15);
-    $name = pad($a->legalName, 22);
-    $extra = pad('', 2); // discretionary
-    $trace = $tdRoute . lpad($txid, 7); // 15 chars total
-    $recs[] = "6$code$route$account$amount$acctId$name$extra" . "0$trace"; // one ach request
-    $count += 1;
-    $hash = substr($hash + $route, 10);
-  }
-  
-  if (!$count) return; // must be separate line from padding
-  
-  $count = lpad($count, 6);
-  $hash = lpad($hash, 10);
-  $debits = padnum($debits, 12);
-  $credits = padnum($credits, 12);
-  $auth = lpad('?', 8) . lpad('', 11); //
-  $b6 = pad('', 6);
-  $recs[] = "8$class$count$hash$debits$credits" . '1' . CGF_EIN . "$auth$b6$tdRoute$batch";  // batch control
-
-  $batches = lpad(1, 6);
-  $blocks = lpad(ceil((2 + $count + 2) / 10), 6); // how many blocks of 10 lines, rounded up
-  $count = lpad($count, 8);
-  $b39 = lpad('', 39);
-  $recs[] = "9$batches$blocks$count$hash$debits$credits$b39"; // file control
-  
-  //foreach ($recs as $line) u\EXPECT(strlen($line) == 94, 'bad ach line len: ' . $line);
-/**/ foreach ($recs as $line) if (strlen($line) != 94) debug('bad ach line len: ' . strlen($line) . " - $line");
-  file_put_contents(__DIR__ . "/../ach-$now.txt", join("\n", $recs));
-  r\tellStaff('ach ready');
-}
-
-function pad($s, $n) {return substr(str_pad($s, $n), 0, $n);}
-function lpad($s, $n) {return str_pad(substr($s, 0, $n), $n, '0', STR_PAD_LEFT);}
-function padnum($n, $len) {return lpad(str_replace('.', '', abs($n)), $len);}
-/**/ function log($msg) {file_put_contents('cron.log', print_r($msg, 1) . "\n" . @file_get_contents('cron.log'));}

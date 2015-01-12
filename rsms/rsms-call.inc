@@ -136,7 +136,7 @@ class call {
           if (count($keys)) {
             if (count($matches) < count($keys)) $matches[] = ''; // make the optional final argument null, if omitted
             $this->parms = array_combine($keys, $matches);
-          } else $this->parms = array();
+          } else $this->parms = [];
           if ($command == 'more') $this->parms['todo'] = $todo->todo;
           $this->command = $command;
           return $this;

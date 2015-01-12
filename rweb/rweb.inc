@@ -46,9 +46,10 @@ function usdCallback($type, $uid) {
  *   addr: show an address for account QID $v (for shipping or thank-you card)
  *   pay: pay invoice number $v
  * Alternatively, code can be an error message (recognized by having a space in it).
+ * @param string $args: urlencoded array of arguments passed from an email (from whence $_POST is not reliably received by Drupal)
  * @see also r\makeDo()
  */
-function rdo($code) {
+function rdo($code, $args = '') {
   global $channel;
   if (strpos($code, ' ')) return doSay($code);
   if (!$info = r\doCode($code)) return doSay(t('That link is archaic.'));
@@ -62,13 +63,13 @@ function rdo($code) {
   extract(u\just('op id v mo expires sql subs', $info));
 
   if (@$mo) $expires = (r\rdoMonth() > $mo + 3) ? 1 : 0; // finagle expiration if link is older than 3 months
-  if (@$expires and time() >= $expires) return doSay(t('That link has expired.'));
+  if (@$expires and time() >= $expires) return doSay('link expired');
 
   $channel = TX_LINK;
   $DBTX = \db_transaction();
   
   if ($op == 'min') {
-    if ($jid = $a->jid and $jid < $a->id) $a = r\acct($jid); // for joint accounts, update on the master
+    if ($jid = $a->jid and $a->slave) $a = r\acct($jid); // for joint accounts, update on the master
     $res = $a->update(u\ray('minimum', $v));
   }
   if ($op == 'nosecret') $res = $a->setBit(B_SECRET, FALSE);
@@ -80,10 +81,32 @@ function rdo($code) {
     $phone = $a->co ? t('Phone: ') . u\fmtPhone($a->phone) . "<br>" : '';
     $addr = t('Physical address: ') . r\location($a, TRUE);
     return doSay("$a->fullName<br>$a->postalAddr<br>$addr<br>$phone", 'status');
-  } elseif ($op == 'inv') {
+  } 
+  
+  if ($op == 'inv') {
     if ($err = r\badUnpaidInv($v)) return doSay($err);
     return r\go("handle-invoice/nvid=$v&toMe=1&code=$code");
-  } elseif ($op == 'join') {
+  } 
+  
+  if ($op == 'vote' or $op == 'yesno') { // NOTE: about a third of the time, $_POST comes in empty (even from the same computer)
+    $issue = $v;
+    if ($issue != '20141220') return doSay('link expired');
+//    $vote = 0;
+//    foreach (u\ray('wl sl wd ed no') as $k => $vv) $vote |= u\setBit($vote, $k, isset($_POST[$vv]));
+    extract(u\just('yes no', $args));
+    $vote = @$yes ? 1 : 0;
+    $info = compact(u\ray('uid issue vote'));
+    $vid = db\lookup('vid', 'r_votes', 'uid=:uid AND issue=:issue', compact('uid', 'issue'));
+//    $vid = 0;
+///debug(compact(u\ray('op args issue yes no vote info vid')));
+    if ($vid) db\update('r_votes', $info + compact('vid'), 'vid'); else db\insert('r_votes', $info);
+    $say = t('Thank you for your RSVP! ');
+    if (@$no) $say .= t('We will miss you. ');
+    r\tellStaff('RSVP!', ['coming'=>@$yes ? 'yes' : 'no'], $uid);
+    $res = TRUE;
+  }
+  
+  if ($op == 'join') {
     $otherId = $v;
     $joint = r\perm(B_JOINT);
     if  (r\relation(1, $otherId, $a->id, 'permission=:joint', compact('joint'))) { // inviter still wants it?
@@ -102,7 +125,7 @@ function rdo($code) {
 
   unset($DBTX);
 
-  return doSay(t('Your request was successfully completed.'), 'status');
+  return doSay(@$say . t('Your request was successfully completed.'), 'status');
 }
 
 /**
@@ -258,11 +281,11 @@ function statement($month) {
 
   list ($header, $classes, $rows, $tot) = x\getTxRows($start, $end); // get the transaction data
   extract(u\just('frombank fromyou toyou reward', $tot));
-  $bal0 = be\creditInfo(u\ray('asof', $start))->balance;
+  $bal0 = be\creditInfo(u\ray('asof', $start - 1))->balance; // balance BEFORE start of this period
   $info = be\creditInfo(u\ray('asof', $end));
   list ($bal9, $rewardsEver) = array($info->balance, $info->rewards);
 //  u\EXPECT($bal9 == round($bal0 + @$frombank - @$fromyou + @$toyou + @$reward, 2), 'balance mismatch');
-/**/  if (round($bal9, 2) != round($bal0 + @$frombank - @$fromyou + @$toyou + @$reward, 2)) return r\go('empty', 'balance mismatch: ' . $bal9 . ' ' . print_r(compact('tot', 'bal0', 'bal9'), 1));
+/**/  if (round($bal9, 2) != round($bal0 + @$frombank - @$fromyou + @$toyou + @$reward, 2)) return r\go('empty', 'balance mismatch: ' . print_r(compact('tot', 'bal0', 'bal9'), 1));
   
   $pdf->barHead('SUMMARY');
   $fields = explode('; ', 'Starting Balance/bal0/32/; /plus/7/R; From Bank/frombank/25/C; /minus/7/C; FROM You/fromyou/25/C; /plus/7/C; TO You/toyou/25/C; /plus/7/C/; Rewards/reward/25/C; /equals/7/R; Ending Balance/bal9/33/R');
@@ -270,8 +293,8 @@ function statement($month) {
 
   list ($plus, $minus, $equals, $space) = array('+', '-', '=', ' ');
   $committed = $mya->j_committed;
-  $avg = r\averageBalance($mya->id, $mya->created, $end);
-  if ($jid = $mya->jid and $j = r\acct($jid)) $avg += r\averageBalance($j->id, $j->created, $end);
+  $avg = r\averageBalance($mya->id, $mya->created, $end, TRUE);
+  if ($jid = $mya->jid and $j = r\acct($jid)) $avg += r\averageBalance($j->id, $j->created, $end, TRUE);
   
   $yield = number_format($avg ? 100 * $rewardsEver / $avg : 0, 1) . '%';
   foreach (u\ray('bal0 frombank fromyou toyou reward bal9 rewardsEver committed') as $one) $$one = number_format(@$$one, 2);
@@ -455,7 +478,7 @@ function formMembership($a, &$sta = '', $code = '') {
   $mempage = is_numeric($code) ? $code : FALSE;
 //  $dw = $dw0 = $a->can(B_DW);
 //  $dw = FALSE;
-  extract($a->stepsDone ?: [], EXTR_PREFIX_ALL, 'ok');
+  extract($a->stepsDone ?: r\stepsDone0(), EXTR_PREFIX_ALL, 'ok');
 
   if (!$ok or !$a->can(B_MEMBER)) {
 //    if ($dw and !$a->can(B_PHOTOID)) $result = setupUsd($step, !$updating); // result used only when testing
@@ -653,6 +676,7 @@ function formProxy($form, &$sta, $priority = '') {
 
   $title = $priority == 1 ? t('Your #1 Proxy') : t('Your Alternate Proxy');
   $title = item($title . t(' (choose one)'));
+  $subtext = item(t('Choose someone you know and trust. Top suggestions for you are highlighted.'));
   $list = item($choices);
   $submit = submit();
   $priority = hidField($priority);
@@ -663,7 +687,7 @@ jQuery("input[name='proxyChoice']").change(function() {
 });
 EOF;
   js($js, 'inline', 'footer');
-  return compact(u\ray('title list submit priority'));
+  return compact(u\ray('title subtext list submit priority'));
 }
 
 function formProxy_validate($form, &$sta) {
@@ -825,7 +849,7 @@ function formUser($form, &$sta) {return \user_login($form, $sta);} // called fro
  */
 function formSummary($form, &$sta, $qid = '') {
   global $base_url;
-  if (!$mya = r\acct()) return r\go('/user/login'); // this cannot be '' (infinite redirect)
+  if (!$mya = r\acct()) return r\go('signin'); // this cannot be '' (infinite redirect)
   
   if ($mya->can(B_REGULATOR)) { // some kind of admin (regulator, cAdmin2, cAdmin, or admin
     include_once __DIR__ . '/../admin/admin-web.inc';  
@@ -853,17 +877,16 @@ function formSummary($form, &$sta, $qid = '') {
     $return = item("$return% APR " . t('overall (ever)'), ' ', t('Your effective rate of return on your average balance [<@a>details</a>]', u\ray('@a', 'a href=help/your-return')));
     $cttyBeneMo = item("$cttyBeneMo " . t('over the past month'), t('Social return:'));
     $cttyBene = item("$cttyBene " . t('overall (ever)'), ' ', t('How much your participation has benefited the community financially [<@a>details</a>]', u\ray('@a', 'a href=help/social-return')));    
-    $floorDesc = t('Your balance can go this low') . ($a->j_floor < 0 ? t(' for up to 30 days') : '')
+    $floorDesc = t('Your balance can go this far below zero') . ($a->j_floor < 0 ? t(' for up to 30 days') : '')
     . '. ' . t('See "Debt Okay" in') . " <a href=\"$base_url/account/preferences\">Preferences</a>.";
-    $floor = formField('item', t('Credit floor:'), $floorDesc, u\fmtAmt($a->j_floor));
-    $form = compact(u\ray('legalName returnMo return cttyBeneMo cttyBene floor'));
+    $creditLimit = formField('item', t('Credit limit:'), $floorDesc, u\fmtAmt(-$a->j_floor));
+    $form = compact(u\ray('legalName returnMo return cttyBeneMo cttyBene creditLimit'));
   }
   
   if ($a->agent->can(B_MEMBER)) $another = submit(t('Open Another Account'));
   $title = item(t('Account Summary'));
   if (isDEV and !$a->proSe) $agentName = ' &nbsp; &nbsp; ' . t('<b>Agent: </b>') . $a->agent->fullName;
   $accountName = item("$a->j_fullName ($a->j_name)" . @$agentName, t('Name:'), $a->postalAddr . @$extras);
-  
   if (!$a->ctty) { // unless this is a community account
     $acctType = $a->co ? t('company account') : ($a->jid ? t('joint account') : t('personal account'));
     $balance = u\fmtAmt($a->j_r);
@@ -872,9 +895,10 @@ function formSummary($form, &$sta, $qid = '') {
     $rewards = formField('item', t('Rewards:'), t('to date'), u\fmtAmt($a->j_rewards));
     $committed = formField('item', t('Committed:'), t('rewards reserved for donation to Common Good Finance'), u\fmtAmt(max(0, $a->j_committed)));
   } else $acctType = t('community account');
+
   if ($mya->cAdmin) {
     $extra = " id#$a->id";
-    $routing = @substr($a->bankAccount, 4, 9);
+    $routing = substr($a->bankAccount, 4, 9);
     if ($routing and $bankInfo = db\lookup('*', 'r_banks', 'route=:routing', compact('routing'))) {
       extract($bankInfo, EXTR_PREFIX_ALL, 'b');
       $bankInfo = "a title=\"$b_name (routing #$b_route)\n$b_address, $b_city, $b_state $b_zip\"";
@@ -892,20 +916,20 @@ function formSummary_validate($form, &$sta) {
 //  if (!r\acct()->cAdmin2) return hack('non-admin submitted summary form');
   if (op($sta) == 'another') return;
 
-  extract(u\just('uid who legalName floor rTrader helper mediaConx moves adminable', $sta['input']));
+  extract(u\just('uid who legalName creditLimit rTrader helper mediaConx moves adminable', $sta['input']));
   $a = r\acct(@$uid);
   
   if ($rTrader and !$a->ok) {
-    if (!$a->co and empty($helper)) return say(t('You must specify who gets the helper reward.'), 'helper');
+    if (empty($helper)) return say(t('You must specify who gets the helper reward.'), 'helper');
     if (is_null(@$adminable[B_MEMBER])) return say(t('That account is not READY (not a member).'), 'adminable'); // test "is_null" because 0 is the value when set
   }
 
   if (@$helper) {
-    if (!$helper = whois($helper, 'helper', $sta['input'])) return say(t('I don\'t know what helper account you mean.'), 'helper');
-    $helper = $helper->id;
+    if (!$h = whois($helper, 'helper', $sta['input'])) return say(t('I don\'t know what helper account you mean.'), 'helper');
+    $helper = $h->id;
   } else {unset($helper); unset($sta['input']['helper']);}
   
-  foreach (u\ray('floor') as $k) {
+  foreach (u\ray('creditLimit') as $k) {
     if (isset($$k)) {
       if ($err = u\badAmount($$k)) return sayFieldErr($err, $k); 
       $$k = u\cleanAmount($$k);
@@ -914,7 +938,7 @@ function formSummary_validate($form, &$sta) {
   if (isset($mediaConx) and $err = u\badAmount($mediaConx, '>=0', 0)) return sayFieldErr($err, 'mediaConx');
   if (isset($moves) and $err = u\badAmount($moves, '>=0', 0)) return sayFieldErr($err, 'moves');
   if (@$who and !$who = whois($who, 'who', $sta['input'])) return say(t('I don\'t know what account you mean to go to.'), 'who');
-  u\preray(compact(u\ray('helper who floor')), $sta['input']);
+  u\preray(compact(u\ray('helper who creditLimit')), $sta['input']);
 }
 
 function formSummary_submit($form, &$sta) {
@@ -923,7 +947,7 @@ function formSummary_submit($form, &$sta) {
   if (op($sta) == 'another') return r\go('another');
   if (!r\acct()->cAdmin) return; // hack attempt
 
-  extract(u\just('uid who legalName floor notes helper mediaConx moves rTrader risks adminable', $sta['input']));
+  extract(u\just('uid who legalName creditLimit notes helper mediaConx moves rTrader risks adminable', $sta['input']));
   $a = r\acct(@$uid);
   $aa = $a->agent;
 
@@ -937,7 +961,6 @@ function formSummary_submit($form, &$sta) {
   $DBTX = \db_transaction();
 
   if (!$a->ctty) {
-//    $a->setBit(B_CHARGE, @$canCharge);
     if ($rTrader and !$a->ok and !$a->co and !a\shrinkPhoto($a, $err)) return say($err, 'ERR');
     r\membershipEvent($a, 'ok', $rTrader); // activate the account
   }
@@ -951,7 +974,8 @@ function formSummary_submit($form, &$sta) {
   }
 
   $a->setBits(@$adminable);
-  if ($a->helper) unset($helper); // don't overwrite
+  if ($a->helper and ($a->ok or !@$helper)) unset($helper); // don't overwrite if too late or empty
+  $floor = -$creditLimit;
   $a->update(compact(u\ray('legalName floor notes helper mediaConx moves')));
   
   unset($DBTX);
@@ -1011,7 +1035,7 @@ function formPhoto($form, &$sta) {
   $mya = r\acct();
 
   $form0['#user'] = $mya->account();
-  user_account_form($form0, $sta);
+  \user_account_form($form0, $sta);
   extract(u\just('picture_upload picture_current', $form0['picture']));
   $title = item(t('Profile Photo'));
   
@@ -1066,6 +1090,10 @@ function formPhoto_submit($form, &$sta) {
     return say($err, 'picture');
   }
   if (!rename($tempName, $pictureFilename)) return say('file save error', 'picture'); // (rename fails)
+  if ($mya->photo) { // only for activated personal accounts (not-yet-activated ones do it when activated)
+    include_once __DIR__ . '/../admin/admin.inc';
+    if (!a\shrinkPhoto($mya, $err)) return say($err, 'picture');
+  }
   
   $mya->stepDone('photo');
   $msg = 'photo saved' . ($mya->ok ? '' : '|step completed|return to membership');
@@ -1080,7 +1108,7 @@ function formPhoto_submit($form, &$sta) {
 function formChangePassword($form, &$sta) {
   $mya = r\acct();
   $form['#user'] = $mya->account();
-  user_account_form($form, $sta);
+  \user_account_form($form, $sta);
 // Each region has its own timezone.  system_user_timezone($form, $sta);
 
   $form['title'] = formField('item', t('Change Password'), '', weight(-99));
@@ -1155,8 +1183,7 @@ function formChangePin_submit($form, &$sta) {
   extract($info = u\just('pin', $sta['values'])); // values NOT input
   $mya = r\acct();
   
-  $secure = compact('pin') + $mya->secure;
-  if (empty($pin) or !$mya->update(compact('secure'))) return r\go('security', t('Your PIN remains unchanged.'));
+  if (empty($pin) or !$mya->update(compact('pin'))) return r\go('security', t('Your PIN remains unchanged.'));
 //  if (r\acct()->update(u\ray('pass', r\passHash($pass)))) {
   say(t('Your new pin has been saved.'));
   return r\go('account/security');
@@ -1229,12 +1256,12 @@ function changeWho($args = '') {
   extract(u\just('acct page', $_GET));
   if ($acct == 'signout') return signout();
   
-  setupGlobals();
+  setGlobals();
   $mya = r\acct();
   if (!@$mya->admin and !r\acct($acct, $mya->agentId)->can()) hack('accts');
 
   $mya = r\acct($acct);
-  svar('myid', $mya->id); // this gets checked ONLY in setupGlobals()
+  svar('myid', $mya->id); // this gets checked ONLY in setGlobals()
 //  $mya->setBank();
   r\go($page);
 }
@@ -1341,7 +1368,7 @@ function formTx($form, &$sta, $args = '') {
   $amount = textField('Amount: $', t('Amount to ') . $type, dft(@$amount));
   $dollarSign = item('$'); // for mobile
 //  u\setDft($goods, R_FOR_GOODS);
-  $goods = $incentive ? hidField(FALSE) : formField('radios', t('For:'), '', @$goods ? dft($goods) : '', u\ray(R_WHYS)); //  + attrib(compact('onchange'))
+  $goods = $incentive ? hidField(FALSE) : formField('radios', t('For:'), '', dft(@$goods), u\ray(R_WHYS)); // required() fails here
   $purpose = textField(' ', t('Description of goods and services or purpose'), dft(@$purpose));
   $calc = item(u\calculator('amount'));
   $scanClass = 'not-scanned';
@@ -1363,9 +1390,7 @@ function formTx_submit($form, &$sta) {
   global $fieldErr;
   if (confirming_s($sta)) return;
   transfer($op = op($sta), $sta['input'], TRUE); // op who amount goods what
-  if (!$fieldErr) { // this is especially important when skipping the confirmation (scanning)
-    return r\go($op);
-  }
+  if (!$fieldErr) return r\go($op); // this is especially important when skipping the confirmation (scanning)
 }
 
 /**
@@ -1763,7 +1788,7 @@ function formAnother_submit($form, &$sta) {
     $a = $mya; // opening another on behalf of a member
     $signed = REQUEST_TIME;
   }
-  $by = $a->id;
+  $helper = $a->id;
   $code = r\invite($a->mail, $a->id);
   $flow += 0;
   $isOwner = (@$isOwner or $relation == 0);
@@ -1772,7 +1797,7 @@ function formAnother_submit($form, &$sta) {
   if (!$personal and (@$company or @$companyPhone)) {
     if (findCompany(@$company, @$companyPhone)) list ($fullName, $phone) = array(@$company, @$companyPhone);
   }
-  $args = http_build_query(compact(u\ray('code personal fullName phone isOwner employeeOk flow by signed')));
+  $args = http_build_query(compact(u\ray('code personal fullName phone isOwner employeeOk flow helper signed')));
   if ($personal) \session_destroy();
   r\go('signup/' . $args);
 }
@@ -1787,11 +1812,11 @@ function formAnother_submit($form, &$sta) {
  *   isOwner: is the inviter an owner (these last four params are processed by suCreatorRelation())
  *   employeeOk: is the inviter an employee
  *   flow: which way credit can flow (be drawn)
- *   by: uid of account creating this one -- non null (same as $inviter) means created with formAnother
+ *   helper: uid of account creating this one -- non null (same as $inviter) means created with formAnother
  */
 function formSignup($form, &$sta, $args = '') {
   if (!$args) $args = basename(t\SERVER('REQUEST_URI')); // because menu_execute_active_handler fails
-  extract(u\just('code personal fullName phone', $args));
+  extract(u\just('code personal fullName phone helper', $args));
   if (@$personal and r\acct()) return r\go('', 'must be signed out', 'err');
 
   $sta['no_cache'] = TRUE; // otherwise the javascript-populated dropdowns get lost
@@ -1849,19 +1874,19 @@ EOF
 
   $submit = submit(t('Sign up'));
   $args = hidField(@$args);
-  $by = hidField(@$inviter);
+  $helper = hidField(@$helper ? r\acct($helper)->id : @$inviter);
   
   $form = compact(u\ray('title subtext acctType'))
         + nameAndEmail($personal ? t('Full name') : t('Company'), @$fullName)
         + contactFields(compact('phone'), FALSE) + ssnFields($personal)
-        + compact(u\ray('pin calling companyInfo buysAt submit args by'));
+        + compact(u\ray('pin calling companyInfo buysAt submit args helper'));
 //  keep_values($form);
   return labeled($form);
 }
 
 function formSignup_validate($form, &$sta) {
   if (!isset($sta['buttons'])) $sta['buttons'] = []; // for testing (keep Drupal from griping)
-  extract(u\just('agreed args by acctType mail phone country tenure pin company companyPhon copts fullName legalName postalCode address city state postalAddr', $sta['input']));
+  extract(u\just('agreed args acctType mail phone country tenure pin company companyPhon copts fullName legalName postalCode address city state postalAddr', $sta['input']));
 
   if (op($sta) == 'continue') { // don't require Dwolla checkbox, so we can give a good message
     return @$agreed ? '' : say('dwolla terms required', 'agreed');
@@ -1879,7 +1904,7 @@ function formSignup_validate($form, &$sta) {
   if (!$state) return say('bad state', 'state');
   if (!formBasic_validate($form, $sta, $acctType == R_PERSONAL)) return;
   if ($err = u\badAmount($tenure, '>=0')) return say(t('How-long: ') . tt($err), 'tenure');
-  if (!isset($mya->secure['pin']) and @$pin === '') return say('pin required', 'pin');
+  if (@$pin === '') return say('pin required', 'pin');
   if (@$pin and strlen($pin) != 4) return say('wrong pin len', 'pin');
   
   if (@$copts) extract(u\just('isOwner employeeOk contractor', $copts));
@@ -1910,7 +1935,7 @@ function formSignup_validate($form, &$sta) {
 }
 
 function formSignup_submit($form, &$sta) {
-  $dbFields = 'fullName legalName mail community flags phone federalId dob pin country postalCode address city state postalAddr oneTimePass by wants calling signupCo signed tenure'; // had verifyBy
+  $dbFields = 'fullName legalName mail community flags phone federalId dob pin country postalCode address city state postalAddr oneTimePass helper wants calling signupCo signed tenure'; // had verifyBy
   extract(u\just('acctType args company ats owns ' . $dbFields, $sta['input']));
 //  if (op($sta) == 'continue') return r\go('signup/' . urldecode(u\urlArgs()) . '&dwok=1'); // got agreement, so continue
   if (!emailOkay($mail)) return; // I don't know how people create duplicate accounts, but maybe this will prevent it. Nope, apparently not. (ws 1/27/2014)
@@ -1918,7 +1943,7 @@ function formSignup_submit($form, &$sta) {
   if (u\test() and !@$args) $args = basename(t\SERVER('REQUEST_URI'));
 
   u\EXPECT($args, 'no args');
-  extract(u\just('code by signed', $args)); // look for by on URL in case of Create Another Account
+  extract(u\just('code signed', $args)); // look for helper on URL in case of Create Another Account
 
   $DBTX = \db_transaction();
   $wants = wants(@$ats);
@@ -1941,7 +1966,7 @@ function formSignup_submit($form, &$sta) {
   
   $myid = $mya->id;
   u\EXPECT($myid > 0, 'registration failure');
-  setupGlobals($myid); // some rcredits functions need to know who we are
+  setGlobals($myid); // some rcredits functions need to know who we are
   
   invitation($code, $myid); // mark the invitation used
   if (!$owns) $mya->setRisk('rents');
@@ -1950,7 +1975,7 @@ function formSignup_submit($form, &$sta) {
     suCompanyRelation($myid, $signupCo);
     $mya->update(compact('signupCo'));
   }
-  if (@$by and @$args and !r\acct($by)->cAdmin) suCreatorRelation($args, $myid);
+  if (@$helper and @$args and !r\acct($helper)->cAdmin) suCreatorRelation($helper, $args, $myid);
   
   // report to staff and user
   $quid = $mya->mainQid;
@@ -1963,8 +1988,8 @@ function formSignup_submit($form, &$sta) {
     $goto = @$signed ? 'status' : 'empty';
   } else { // non-personal company (no independent login)
     say('company is ready', compact('quid'));
-    //if (@$by) $quid = r\quid($by); // "if" for dev faked code HUH?
-    if (!@$by) hack('company no by');
+    //if (@$helper) $quid = r\quid($helper); // "if" for dev faked code HUH?
+    if (!@$helper) hack('company no helper');
     svar('myid', $mya->id); // this is necessary for company creation, to keep the company selected
     $goto = 'status';
   }
@@ -1981,15 +2006,14 @@ function formSignup_submit($form, &$sta) {
  */
 function formContact($form, &$sta) {
   $mya = r\acct();
-  extract((array) $mya->account('fullName mail postalAddr'));
   focusOn('fullname');
-  $fullNameDesc = tt('usename desc');
-  if ($mya->ok) $fullNameDesc .= '<br>' . tt('triggers new card', u\ray('field', t('name'))) . ($mya->co ? t('Your username and rCredits webpage address') : t('Your username')) . t(' will also change.');
+  $nameDesc = tt('usename desc');
+  if ($mya->ok) $nameDesc .= '<br>' . tt('triggers new card', u\ray('field', t('name'))) . ($mya->co ? t('Your username and rCredits webpage address') : t('Your username')) . t(' will also change.');
   $title = item(t('Contact Information'));
-  $fullName = textField($mya->co ? t('Company name:') : t('Your name:'), $fullNameDesc, required(@$fullName));
+  $fullName = textField($mya->co ? t('Company name:') : t('Your name:'), $nameDesc, required(@$mya->fullName));
   $onchange = "jQuery('.form-item-pin').show();";
-  $mail = textField(t('Email:'), '', attrib(compact('onchange')) + required(@$mail));
-  if (!$mya->admin and isset($mya->secure['pin'])) $pin = formField('password', t('PIN:'), t('Required for changing your email address'));
+  $mail = textField(t('Email:'), '', attrib(compact('onchange')) + required(@$mya->mail));
+  if (!$mya->admin and $mya->pin !== '') $pin = formField('password', t('PIN:'), t('Required for changing your email address'));
 
   $submit = submit();
 
@@ -2018,7 +2042,7 @@ function formContact_validate($form, &$sta) {
   }
 
   if (!emailOkay($mail, $mya->id)) return; // say('bad email', u\ray('email', $mail), 'mail');
-  if (!$mya->admin and $mail != $mya->mail and $pin != $mya->agent->secure['pin']) return say('bad pin', 'pin');
+  if (!$mya->admin and $mail != $mya->mail and $pin != $mya->agent->pin) return say('bad pin', 'pin');
   if (!phoneOk($phone, $country, TRUE)) return;
   if (stripos(@$address, ' box ') or stripos(@$address, 'pob ') !== FALSE) return say('po in location', 'address');
   
@@ -2261,32 +2285,17 @@ function formKba_submit($form, &$sta) {
 function formBank($form, &$sta, $args = '') {
   global $rUrl;
   $mya = r\acct();
-//  $typeOptions = array('checking', 'savings or money market');
-  extract(u\just('bankAccount', $mya->secure));
   $usa = ($mya->country == US_COUNTRY_ID);
-//  if (!$usa) r\go('empty', t('only us banks'));
 
   $title = item(t('Bank Information'));
   
   if ($hasBank = $mya->risk('hasBank')) {
+    $bankAccount = $a->bankAccount;
     if ($usa) list ($route, $bankAccount) = u\parseBankAccount(@$bankAccount);
     $bankAccount = str_repeat('x', strlen($bankAccount) - 4) . substr($bankAccount, -4, 4);
     $bankAccount = item($bankAccount, t('Account:'));
     $remove = submit(t('Remove connection'));
     return labeled(compact(u\ray('title bankAccount remove')));
-/*
-    $us = new r\usd($mya);
-    $source = $us->source($err);
-    $verified = @$source['Verified'];
-    $bankAccount = item($bankAccount . ($verified ? t(' (verified)') : ''), t('Account:'));
-    if ($verified) { // account is all set (later this will want to be a form to change/add/remove)
-    } else { // got an account, but not yet verified
-      $subtext = item(tt('verify connection'));
-      $deposit1 = textField(t('Deposit #1:'), '', suffix('&cent;'));
-      $deposit2 = textField(t('Deposit #2:'), '', suffix('&cent;'));
-      $verify = submit(t('Verify'));
-    }
-*/
   } else { // no account yet or EFT not yet authorized
     $doConnect = (int) !@$mya->stepsDone['connect'];
     $subtext = item(t('<p>Complete this form to authorize funds to be taken from your checking account in exchange for any rCredits you request, in amounts not to exceed $1,000 per day. Funds may be transferred either by Remotely-Created Check (RCC) or by Automated Clearing House (ACH) direct debit.</p><p>Do you want to connect your checking account at this time?</p>'));
@@ -2314,11 +2323,9 @@ EOF;
     return labeled(compact(u\ray('title subtext connect connectFields submit')));
   }
 
-//  return labeled(compact(u\ray('title subtext connect routingNumber bankAccount bankAccount2 bankAccountType deposit1 deposit2 submit verify remove')));
 }
 
 function formBank_validate($form, &$sta) {
-//  if ($op == 'submit') {
   if (op($sta) == 'remove') return;
   extract(u\just('connect routingNumber bankAccount bankAccount2 bankAccountType', $sta['input']));
   if (is_null($connect)) return say('yes or no', 'connect');
@@ -2327,46 +2334,19 @@ function formBank_validate($form, &$sta) {
   foreach (u\ray($accts = 'routingNumber bankAccount bankAccount2') as $one) $$one = preg_replace('/[\.\- ]/', '', @$$one);
   u\preray(compact(u\ray($accts)), $sta['input']);
   if (!preg_match('/^(|[0-9]{9})$/', $routingNumber)) say('bad routing number', 'routingNumber');
-//    if (!isset($bankAccountType)) say('missing field', u\ray('field', 'Account Type'), 'bankAccountType');
   if (!db\exists('r_banks', 'route=:routingNumber', compact('routingNumber'))) return say('bad routing number', 'routingNumber');
   if (!preg_match('/^[0-9]{3,17}$/', $bankAccount)) say('bad account number', 'bankAccount'); // {3,20} ? Dwolla says 3-17
   if ($bankAccount != $bankAccount2) say('account number mismatch', 'bankAccount2');
-    
-/*
-  } elseif ($op == 'verify') {
-    extract(u\just('deposit1 deposit2', $sta['input']));
-    for ($i = 1; $i <= 2; $i++) {
-      $v = "deposit$i";
-      $sta['input'][$v] = u\digits($$v);
-      if ($$v < 1 or $$v >= DW_VERIFY_ROOF) say('bad deposit cents', $v);
-    }
-  }
-*/
 }
 
 function formBank_submit($form, &$sta) {
   $mya = r\acct();
-//  $us = new r\usd($mya);
-//  extract(u\just('routingNumber bankAccount bankAccountType deposit1 deposit2', $sta['input']));
   extract(u\just('routingNumber bankAccount', $sta['input']));
   $op = op($sta);
   if ($op == 'submit') {
-    $bankAccountType = 'Checking';
-/*
-    $mya->setBit('B_SAVINGS', $bankAccountType); // must precede conversion to string
-    if (@$mya->secure['auth'] and $us->step() == 'Finished') { // only if we have a Dwolla account (in case Dwolla's Reg API breaks again)
-      if (!$us->addBank($bankAccount, @$routingNumber, $bankAccountType, $err)) {
-        //return say($err, 'bankAccount');
-        r\tellStaff("Dwolla said $err. Try again.", $sta['input'], $mya->id);
-      }
-    }
-*/    
-    if (@$bankAccount) {
-      if ($mya->country == US_COUNTRY_ID) $bankAccount = "USkk$routingNumber$bankAccount";
-      $secure = compact(u\ray('bankAccount bankAccountType')) + $mya->secure;
-      $mya->update(compact('secure'));
-      $mya->setRisk('hasBank');
-    }
+    if ($mya->country == US_COUNTRY_ID) $bankAccount = "USkk$routingNumber$bankAccount";
+    $mya->update(compact('bankAccount'));
+    $mya->setRisk('hasBank');
     $mya->stepDone('connect');
     say('info saved|return to membership');
   } elseif ($op == 'remove') {
@@ -2488,13 +2468,6 @@ Please upload a copy of your EIN documentation or Non-Profit Status documentatio
 //    'subtext = item(t('Just like for a bank account, we need to verify your identity. The photo ID file you upload can be either an image or a PDF. Please be patient while the file is encrypted &mdash; it may take several seconds.'));
 
   $title = item(t('Security Information'));
-  $federalId = adminField(t('Federal ID:'));
-  $dob = $person ? adminField(t('Birthdate:')) : NULL;
-/*  $usdAccount = adminField(t('Dwolla Account:'));
-  $usdEmail = adminField(t('Dwolla Email:'));
-  $usdPass = adminField(t('Dwolla Pass:'));
-  $usdPin = adminField(t('Dwolla PIN:')); */
-  
   $pw = item(t('<@a>Change your password</a>', u\ray('@a', "a href=$base_url/account/change-password")), ' ');
   $pin = item(t('<@a>Change your PIN</a>', u\ray('@a', "a href=$base_url/account/change-pin")), ' ');
   $photo = item(t('<@a>Change your photo</a>', u\ray('@a', "a href=$base_url/account/photo")), ' ', $mya->member ? tt('triggers new card', u\ray('field', 'photo')) : ' ');
@@ -2504,17 +2477,9 @@ Please upload a copy of your EIN documentation or Non-Profit Status documentatio
         formField('item', t('Photo ID:'), '', R_ON_FILE . ($mya->ok ? '' : t(' (pending approval)')))
       : formField('file', t('Photo ID:'), tt('Upload an image of your @proofType. (maximum @R_MAX_PHOTOID_SIZE MB)', compact('proofType')), attrib(array('enctype = "multipart/form-data")));
       */
-//    'posttext = item(t('We partner with Dwolla to handle the US Dollars you spend and receive. When you click "Save" here, you will be sent to the Dwolla site, to "Allow" the needed permissions.'));
 //    $submit = submit($has ? t('Save') : t('Upload and Save'));  );
   $submit = submit();
-  $form = compact(u\ray('title federalId dob pw pin photo question answer submit'));
-  
-  if ($mya->cAdmin) {
-    foreach (u\ray('pin answer') as $field) { // and idProof
-      u\prefix(show($field, @$show), $form[$field]['#description']);
-    }
-//    if (!$mya->admin) unset($form['subtext']);
-  }
+  $form = compact(u\ray('title pw pin photo question answer submit'));
 
 //  if (!$person) unset($form['idProof']); // for now, do not require company proof
   
@@ -2559,11 +2524,11 @@ function formSecurity_submit($form, &$sta) {
   $mya = r\acct();
   $info = u\just('federalId dob pin question answer idProof', $sta['input']);
 
-  foreach ($info as $key => $value) if ($value == R_ON_FILE or $value == @$form[$key]['#default_value']) unset($info[$key]); // don't change if on file or unchanged
-  extract($info); // extract just the ones that changed
+  foreach ($info as $k => $v) if ($v == R_ON_FILE or $v == @$form[$k]['#default_value']) unset($info[$k]); // don't change if on file or unchanged
 
-  $info = u\just(R_SECRET_FIELDS . ' question', $info);
-  if (!empty($info) and !$mya->update($info)) return say('info not saved', 'ERR');
+  if (!empty($info)) {
+    if (!$mya->update($info)) return say('info not saved', 'ERR');
+  }
 
   say('info saved');
 }
@@ -2863,30 +2828,30 @@ function formResetPassword_submit($form, &$sta) {
   $mya = r\acct($uid);
   $mya->update(u\ray('pass oneTimePass', $newPass, ''));
   say('info saved');
-  global $user; $user = \user_load($uid, TRUE);
-  \drupal_session_regenerate();
-  loginFollowup($sta, $user); // lead user to next step
+  loginFollowup('', $sta + compact('uid')); // lead user to next step
 }
 
 /**
  * Login from elsewhere.
  */
-function formSignin($form, &$sta) {
-  extract(u\just('id pw', $_POST)); // posted from rCredits.org
+function formSigninx($form, &$sta) {
+  extract(u\just('id pw', t\POST())); // posted from rCredits.org
 
   if (flooding($uid = r\loginString(@$id), $sta)) return r\go('', 'flooded', 'ERR'); // getting hammered
-  if (!\user_authenticate($name = r\acct($uid)->name, @$pw)) return r\go('', 'bad login', 'ERR');
+//  if (!\user_authenticate($name = r\acct($uid)->name, @$pw)) return r\go('', 'bad login', 'ERR');
+  $a = r\acct($uid);
+  $sta['uid'] = ((isDEV and $uid == 1) or passwordOkay($a, @$pw)) ? $uid : FALSE;
+  if (!$sta['uid']) return r\go('', 'bad login', 'ERR');
   noFlood($sta);
-  global $user; $user = \user_load($uid, TRUE);
-  \drupal_session_regenerate();
-  loginFollowup(u\ray('input', compact('name')), $user);
+  $input = ['name' => $a->name];
+  loginFollowup('', compact('uid', 'input'));
 }
 
 /**
  * Completely redo the login form (see user_login() in user.module).
  * @see also loginFollowup, below (called from rweb_user_login()).
  */
-function formLogin(&$form, &$sta) {
+function formSignin($form, &$sta) {
   global $base_url;
 
   unset($form['actions']);
@@ -2894,7 +2859,7 @@ function formLogin(&$form, &$sta) {
 
   $title = item(t('Welcome to rCredits!'));
   $signup = isDEV ? "<a href=\"$base_url/signup/code=w\">Signup</a>" : '';
-  $subtext = item(t('<p>Not yet a member? <@a>Check it out</a>!</p>', u\ray('@a', 'a href=http://rCredits.org')) . $signup . t('<p><b>TIP</b>: Try not to sign in to your financial accounts on a public computer. Or if you do, be careful! Check the address bar at the top of the screen to make sure you have the right website (<b><em>new.rcredits.org/</em>...</b>). And be sure to sign OUT when you\'re done!</p>'));
+  $subtext = item(t('<p>Not yet a member? <@a>Check it out</a>!</p>', u\ray('@a', 'a href=http://rCredits.org')) . $signup . tt('<p><b>TIP</b>: Try not to sign in to your financial accounts on a public computer. Or if you do, be careful! Check the address bar at the top of the screen to make sure you have the right website (<b><em>:R_SITE_URL/</em>...</b>). And be sure to sign OUT when you\'re done!</p>'));
 //  if (($name = @$_COOKIE['loginto']) and ($uid = r\loginString($name))) {
 
 //  if (@$id and @$code and $uid = r\loginString($id) and $mya = r\acct($uid) and $mya->oneTimePass['pass'] == $code) {
@@ -2911,7 +2876,7 @@ function formLogin(&$form, &$sta) {
   $form = compact(u\ray('title name pass submit subtext')) + $form;
 
   $form['#validate'] = array('rCredits\\Web\\login_extra_validate', 'user_login_final_validate'); // add replacement function
-  
+  $form['#submit'] = ['rCredits\\Web\\loginFollowup'];
   
   $form['external_input'] = hidField(serialize(@$sta['input'])); // pass this to rweb_user_login
 //  $form['#submit'][] = 'rCredits\\Web\\login_form_submit';
@@ -2931,26 +2896,36 @@ function login_extra_validate($form, &$sta) {
   extract(u\just('name pass', $sta['input']));
   if (flooding($uid = r\loginString($name), $sta)) return FALSE; // getting hammered
   $sta['uid'] = ((isDEV and $uid == 1) or passwordOkay(r\acct($uid), $pass)) ? $uid : FALSE;
-//  }
-  if ($sta['uid']) noFlood($sta);
+  if ($sta['uid']) noFlood($sta); else return say('login failed', 'name');
 }
 
-function loginFollowup($edit, $account, $goto = 'summary') {
-  extract(u\just('name', $edit['input']));
+/**
+ * Finish signing in.
+ * @param assoc $sta: intermal input or external input (from a member merchant website), including
+ *   $uid: record ID of account signing in
+ * @param string $goto: what page to start on for non-admin
+ */
+function loginFollowup($form, $sta, $goto = 'summary') {
+  extract(u\just('uid input external_input', $sta));
+  if (!@$uid) die('sign-in is not authorized' . print_r(debug_backtrace(), 1));
+  $mya = r\acct($uid);
+  global $user; $user = $mya->account();
+  $user->timezone = ''; // keep Drupal happy (avoids complaint in bootstrap.inc)
+  $user->roles = 
+  drupal_session_regenerate(); // this may need to be disabled for testing?
+
+  extract(u\just('name', $sta['input']));
   
   foreach ($_SESSION as $key => $value) if (u\abbreviates('rcredits_', $key)) unset($_SESSION[$key]);
-  svar('external_input', @unserialize($edit['external_input'])); // save params from external online merchant
+  svar('external_input', @unserialize($sta['external_input'])); // save params from external online merchant
 
-  $mya = r\acct($myid = $account->uid);
-  svar('myid', $myid);
+  svar('myid', $uid);
   svar('scanned_in', FALSE);
-  setupGlobals($myid, TRUE);
+  setGlobals($uid, TRUE);
 
 //  r\setCook('loginto', '', REQUEST_TIME-1); // no more default login
-//  $mya->setBank();
-
-  u\loga('login', compact('name'), $myid);
-  return r\go($goto);
+  u\loga('login', compact('name'), $uid);
+  return r\go($uid == 1 ? 'sadmin' : $goto);
 }
 
 function formPass($form, $sta, $id = '') {
@@ -3157,7 +3132,7 @@ function formI($form, &$sta, $who = '') {
   $co = $a->co;
   
   $mya = r\acct();
-  if (!$gotCode = @$a->agent->secure[$field]) return say('bad card code', 'ERR');
+  if (!$gotCode = @$a->agent->$field) return say('bad card code', 'ERR');
   if ($gotCode != $code) return say('bad card code', 'ERR');
   list ($otherId, $otherAgent) = array($a->id, $a->agentId);
 
@@ -3196,8 +3171,8 @@ function formOptions($form, &$sta) {
   $title = item(t('Account Preferences'));
 //  $virtualMaxMessage = $mya->co ? t(' If you choose to enable payment exchanges, this setting is moot (irrelevant and unused).') : '';
   $subtext = item(t('(The defaults here are appropriate for most people.)'));
-  $minimum = textField(t('Minimum:'), t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days. Choose zero if you tend to bounce checks, live close to the wire, or prefer not to use automatic refills. ') . tt('note|ach warning'), required(u\fmtAmt($isSetUp ? $mya->j_minimum : R_MINR_DEFAULT, 's')));
-  $achMin = textField(t('Min Transfer:'), t('Automatic transfers from your bank account will always be a multiple of $@dft and never less than this amount (choose a large round number for easier bookkeeping).', ['@dft'=>R_ACHMIN]), required(u\fmtAmt($mya->achMin ?: R_ACHMIN_DEFAULT, 's')));
+  $minimum = textField(t('Minimum:'), '<p>' . t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your rCredits balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days. Choose zero if you tend to bounce checks, live close to the wire, or prefer not to use automatic refills.') . '</p><p>' . tt('note|ach warning') . '</p>', required(u\fmtAmt($isSetUp ? $mya->j_minimum : R_MINR_DEFAULT, 's$')));
+  $achMin = textField(t('Min Transfer:'), t('Choose a multiple of $@dft. This much (or more, if necessary) will be transferred from your bank account to your rCredits account when your balance goes below the minumum you chose, above.', ['@dft'=>R_ACHMIN]), required(u\fmtAmt($mya->achMin ?: R_ACHMIN_DEFAULT, 's$')));
   //$maxDft = $isSetUp ? $mya->maximum : R_MAXR_DEFAULT;
   //$maxDft = $maxDft < 0 ? '' : u\fmtAmt($maxDft, 's');
 //  $maximum = textField(t('Maximum:'), tt('prompt max') . $virtualMaxMessage, dft($maxDft));
@@ -3216,8 +3191,8 @@ function formOptions($form, &$sta) {
 
   $secretBal = boxField(t('Secret Balance:'), t("Don't let merchants see my balance, even if I ask."), $mya->can(B_SECRET));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
-  $floor = u\fmtAmt($mya->j_floor);
-  $debtOk = boxField(t('Debt Okay:'), tt('Let me use my rCard as a <i>credit</i> card, allowing my account balance to go negative, limited by my current "credit floor" (which starts at zero, then gets lower and lower as time goes by &mdash; currently @floor). I understand there will be a fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', compact('floor')), $mya->can(B_DEBT));
+  $limit = u\fmtAmt(-$mya->j_floor);
+  $debtOk = boxField(t('Debt Okay:'), tt('Let me use my rCard as a <i>credit</i> card, allowing my account balance to go negative, limited by my current credit limit (currently @limit &mdash; based on my account activity). I understand there will be a fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', compact('limit')), $mya->can(B_DEBT));
   $submit = submit(t('Update Preferences'));
   $posttext = item(tt(<<<EOF
 <h4>** Disclaimers required by the IRS:</h4>
@@ -3258,7 +3233,7 @@ function formOptions_submit($form, $sta) {
   u\setBit($flags, B_DEBT, @$debtOk);
   u\setBit($flags, B_SECRET, @$secretBal);
   
-  if ($jid = $mya->jid and $jid < $mya->id) { // slave setting minimum and/or achMin
+  if ($jid = $mya->jid and $mya->slave) { // slave setting minimum and/or achMin
     r\acct($jid)->update(compact('minimum', 'achMin')); // set it only on master
     $minimum = 0;
   }
@@ -3567,17 +3542,17 @@ function formRequestRCard_submit($form, &$sta) {
 /**
  * Resubmit the phone number to Dwolla, to get a verification code.
  * Called directly from /account/readd-phone, as well as from setupUsd()
- */
+ *//*
 function addPhone() {
   $us = new r\usd($mya = r\acct());
   if (!$phoneId = $us->addPhone(substr($mya->phone, 2), @$mya->verifyBy, $err)) {
     return r\go('account/contact', $err ?: t('Unknown error'), 'phone');
   }
-  $mya->upSecure('usdPhone', $mya->phone);
+  $mya->update('usdPhone', $mya->phone);
 
   svar('phoneId', $phoneId);
   return r\go('account/verify-phone');
-}
+}*/
 
 function formFooter() {
   global $base_url, $rUrl;
@@ -3604,6 +3579,7 @@ $loggedInLinks
     <a href="http://rCredits.org">About rCredits</a> |
     <a href="$base_url/agreement">The Agreement</a> |
     <a href="$base_url/community">Community Statistics</a> |
+    <a href="https://docs.google.com/document/d/1dtSRdMu2756GQpvUE19mjX3s92YdtJsdcPlB9s4zQ4I/edit">Privacy</a> |
     <a href="$base_url/help/$helpType">Help</a>
 <br><br>
 website copyright &copy; $year <a href="http://CommonGoodFinance.org">Common Good Finance&trade;</a>, a 501(c)(3) nonprofit<br/>

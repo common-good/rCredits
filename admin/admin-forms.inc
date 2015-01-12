@@ -22,7 +22,7 @@ include_once __DIR__ . '/admin-web.inc';
  * Make various administrative operations available to the admin and cAdmin.
  */
 function formAdmin($form, &$sta, $args = '') {
-//  $form = u\insertBefore(compact('communities'), formCommunity(array(), &$sta, $args), 'count');
+//  $form = u\insertBefore(compact('communities'), formCommunity([], &$sta, $args), 'count');
 
 /* (This dropdown might be better here than at the top of every page)
    (top of page dropdown would then include only the CURRENTLY selected community (and the admin))
@@ -46,15 +46,16 @@ function formAdmin($form, &$sta, $args = '') {
   }
   
   $inviteeStatus = submit(t('Invitee Status'));
-  $account = textField(t('Account:'), t('Account to do something to'),auto());
+  $account = textField(t('Account:'), t('Account to do something to'), (auto() ?: []) + dft(svar('adminingAcct')));
   $make = boxfield(t('Make:'));
   $printId = submit(t('Print ID'));
 //  $connectBank = submit(t('Connect Bank'));
   $seeSecure = submit(t('See Secure'));
+//  $seeHidden = submit(t('See Hidden'));
   $seeData = submit(t('See Data'));
   $seeChanges = submit(t('See Changes'));
   $newUsdEmail = submit(t('New USD Email'));
-  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeChanges seeSecure')));
+  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeChanges seeSecure seeHidden')));
   
   $form = compact('title');
   if ($mya->cAdmin) {
@@ -82,11 +83,12 @@ function formAdmin_submit($form, &$sta) {
   }
 
   if (@$account) {
-    $a = a($account); // should use whois first
+    if (!$a = a($account)) return say('That is not an account.'); // should use whois first
+    svar('adminingAcct', $account); // remember what account we're working on
     if (!$admin and $a->community != $mya->community) return say('That account is not in your community.', 'ERR');
   }
   
-  if ($op == 'printId') {
+  if (@$a and $op == 'printId') {
     if ($a->co and $a->proSe) return say(t('A company cannot have an rCard (only its agents have rCards).'));
     if (@$make) {
 //      seeSecure($a);
@@ -99,7 +101,8 @@ function formAdmin_submit($form, &$sta) {
     return r\go('/print-rcard/' . $a->qid);
   } elseif ($op == 'seeSecure') {
     if (@$a) {
-      say(u\rayTable(u\ray('legalName dwAccount phone federalId dob physicalAddr', @$a->legalName, @$a->usdAccount, substr(@$a->phone, 2), @$a->federalId, u\fmtDate(@$a->dob), @$a->address . ' ' . $a->postalCode)));
+      say(u\rayTable(u\ray('fullName phone dob physicalAddr', $a->fullName, substr(@$a->phone, 2), u\fmtDate(@$a->dob), @$a->address . ' ' . $a->postalCode)));
+      seeHidden($a);
       seeSecure($a);
     }
   } elseif ($op == 'seeData') {
@@ -170,8 +173,9 @@ function formSeeChanges($form, &$sta, $qid = '') {
  */
 function formTestRecovery($form, &$sta, $doSay = FALSE) {
   if (isDEV and !r\acct()) { // called after testing, in case session got destroyed
-    $uid = \user_authenticate('admin', DEV_ADMIN_PASS);
-    global $user; $user = \user_load($uid, TRUE);
+    //$uid = \user_authenticate('admin', DEV_ADMIN_PASS);
+    $mya = r\acct(1);
+    global $user; $user = $mya->account();
     \drupal_session_regenerate();
     if ($msgs = @unserialize(@file_get_contents(T_MSG_FILE))) {
       unlink(T_MSG_FILE);
@@ -290,7 +294,7 @@ function formMemberList($form, &$sta) {
     $date = u\fmtDate($a->ok ? $access : $login);
 
     if ($cAdmin) {
-      $bits = array(); // zap previous value
+      $bits = []; // zap previous value
       foreach (u\ray('member ok bank') as $one) if ($a->can(u\consta('b', $one))) $bits[] = $one;
       $bits = $bits ? ('<span style="color:darkgreen;"> ' . join(' ', $bits) . "</span><br>\n") : '';
     } else $bits = '';
@@ -525,7 +529,7 @@ function memberID($id) {
     $nameSize = strlen($fullName) > 21 ? '100px' : '120px';
     $fields = array('cardCode', 0, 'member', 'Member');
   } else {
-    if (!@$acct->agent->secure['cardCode2']) r\makeCardCode($acct);
+    if (!@$acct->agent->cardCode2) r\makeCardCode($acct);
     $acct = $acct->agent; // hereafter it's all about the agent
     $fullName = "$acct->fullName<br>$fullName"; // agent and company
     $nameSize = '72px';
@@ -536,7 +540,7 @@ function memberID($id) {
   list ($region, $tail) = explode($mark, $qid);
   $urlMark = $proSe ? $mark : R_AGENT_URL_MARK;
   $server = isPRODUCTION ? 'RC2.ME' : 'RC4.ME';
-  $qrUrl = "HTTP://$region.$server/$tail$urlMark" . $acct->secure[$cardField]; // NOT r\cardCode($qid);
+  $qrUrl = "HTTP://$region.$server/$tail$urlMark" . $acct->$cardField; // NOT r\cardCode($qid);
 //  $qrServer = strtoupper('http://' . R_SERVER_ID . '.rC2.me/I/');
 //  $qrUrl = $qrServer . str_replace(R_AGENT_MARK, R_AGENT_URL_MARK, $qid . $mark) . $acct->secure[$cardField];
   $photo = DRUPAL_ROOT . $acct->auxFilename('picture');
@@ -568,7 +572,7 @@ function memberID($id) {
     $pdf->Rect(0, 0, 200, 128.57, 'D');
     $pdf->writeHTMLCell(80, 50, 13, 35 + $lower, "<div style=\"font-size:180px; text-align:left; color:darkgreen; font-weight:bold;\">r<span style=\"color:darkblue;\">POS</span><br><span style=\"font-size:140px;\">SIGN-IN</span></div>");
   } */
-  // Image params: $file, $x='', $y='', $w=0, $h=0, $type='', $link='', $align='', $resize=false, $dpi=300, $palign='', $ismask=false, $imgmask=false, $border=0, $fitbox=false, $hidden=false, $fitonpage=false, $alt=false, $altimgs=array())
+  // Image params: $file, $x='', $y='', $w=0, $h=0, $type='', $link='', $align='', $resize=false, $dpi=300, $palign='', $ismask=false, $imgmask=false, $border=0, $fitbox=false, $hidden=false, $fitonpage=false, $alt=false, $altimgs=[])
 
   if ($proSe) {
     $pdf->Image(__DIR__ . '/../images/idcard/background.jpg', 0, 0, 202, 128, '', '', '', true, 150, '', false, false, 0, false, false, false); // white background for company cards
@@ -645,8 +649,8 @@ function util($arg) {
     $mya = r\acct('NEW.ZZB');
     svar('myid', $mya->id);
     global $user; $user = $mya->account();
-    $user->roles = array();
-    setupGlobals();
+    $user->roles = [];
+    setGlobals();
     r\go('');
   } */
   if ($arg == 'reinstall') { // from devel module
@@ -661,7 +665,7 @@ function util($arg) {
   if ($arg == 'php') r\go('devel/php');
   
   \drupal_set_message("DONE with \"$arg\".");
-  \drupal_goto('sadmin/handy');
+  \drupal_goto('sadmin');
 }
 
 function handyLinks() {
@@ -670,16 +674,16 @@ function handyLinks() {
   $test_path = "$base_url/sites/all/modules";
 
   $links = array(
-    'devel/menu/reset?destination=sadmin/handy|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Redo MENUS',
+    'devel/menu/reset?destination=sadmin|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Redo MENUS',
     'rcredits/util/reinstall|REINSTALL r|',
     'rcredits/util/clear_sessions|Clear Sessions|',
     
     'devel/settings|Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the block administration page.|Devel settings',
-    'devel/cache/clear?destination=sadmin/handy|Clear the CSS cache and all database cache tables which store page, node, theme and variable caches.|Empty cache',
+    'devel/cache/clear?destination=sadmin|Clear the CSS cache and all database cache tables which store page, node, theme and variable caches.|Empty cache',
     'devel/reference|View a list of currently defined user functions with documentation links.|Functions',
     'devel/elements|View the active form/render elements for this site.|Elements',
     'devel/phpinfo|View your server&#039;s PHP configuration|PHPinfo()',
-    'devel/variable?destination=sadmin/handy|Edit and delete site variables.|Variables',
+    'devel/variable?destination=sadmin|Edit and delete site variables.|Variables',
 //    "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
 //    'rcredits/test?menu=1|Test Menu|',
 //    'rcredits/util/changeAgent|Change Agent to Bea|',
@@ -697,7 +701,7 @@ function handyLinks() {
 //    'devel/theme/registry|View a list of available theme functions across the whole site.|Theme registry',
   );
 
-  $result = array();
+  $result = [];
   foreach ($links as $link) {
     list ($url, $title, $label) = explode('|', $link);
     if (!$label) $label = $title;

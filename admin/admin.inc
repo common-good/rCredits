@@ -15,6 +15,7 @@ use rCredits\Backend as be;
 use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Admin as a;
+use rCredits\Web as w;
 
 /**
  * Set up the basic user accounts and relations on the server.
@@ -194,7 +195,7 @@ function formatField($k, $v) {
  * @param string $fields: list of fields to display
  * @param array $joinFields: list of fields joining to users table (limit by community if called by Ctty Admin)
  */
-function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields = array()) {
+function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields = []) {
   $limit = 500; // max records to show
   
   $mya = r\acct();
@@ -221,12 +222,12 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
  */
 function ssnCheck($a) {
   if (!$ssnData = @$a->ssnData) {
-    if (!$ssnData = u\ssnLookup($a->federalId)) return r\Web\say(t('No data returned from ssnLookup (probably timed out).'));;
+    if (!$ssnData = u\ssnLookup($a->federalId)) return w\say(t('No data returned from ssnLookup (probably timed out).'));;
     $xml = simplexml_load_string($ssnData);
     $json = json_encode($xml);
     $ssnData = json_decode($json, TRUE);
     if (!is_array($d = $ssnData['searchResults']) or $ssnData['ResultCount'] + 0 <= 0) {
-/**/  return r\Web\say(t('No SSN data available: ') . print_r($d, 1));
+/**/  return w\say(t('No SSN data available: ') . print_r($d, 1));
     }
     $a->update(compact('ssnData')); // ResultCount is 0 for tests, <=0 for failure
   } else $d = $ssnData['searchResults'];
@@ -237,7 +238,7 @@ function ssnCheck($a) {
   $dob = $one->dob ? u\fmtDate(strtotime($one->dob)) : ''; // arrives as an empty array if none
   $rows[] = array(t('Found'), $name, $dob, $d['deathsearchresults'] ? 'DEAD' : '', '', '');
   
-  $counties = array();
+  $counties = [];
   $addresses = $d['addresses']['address'];
   if (@$addresses['lastname']) $addresses = [$addresses];
   foreach($addresses as $rec) {
@@ -262,7 +263,7 @@ EOF;
 } 
 
 function ssnName($v) {
-  foreach (u\ray('firstname middlename lastname') as $k) $$k = $v->$k ?: ''; // convert array() to ''
+  foreach (u\ray('firstname middlename lastname') as $k) $$k = $v->$k ?: ''; // convert [] to ''
   return ucWords(strtolower(str_replace('-', '', @"$firstname $middlename $lastname")));
 }
 function ssnAddr($v) {return ucWords(strtolower(@"$v->address, $v->city, $v->state $v->zip"));}
@@ -363,29 +364,29 @@ function makeTestCards() {
 //  $a->setBitx(CO_REQUIRE_CASHIER, FALSE, 'coFlags');
 
   $a = a('aaa');
-  $a->update(u\ray('fullName', 'Bob Bossman'));
-  $a->upSecure('cardCode2', 'WeHlioM5JZv1O9G');
+  $a->update('fullName', 'Bob Bossman');
+  $a->update('cardCode2', 'WeHlioM5JZv1O9G');
   a\shrinkPhoto($a);
   
   $a = a('aad');
-  $a->update(u\ray('fullName', 'Cathy Cashier'));
-  $a->upSecure('cardCode2', 'ME04nW44DHzxVDg');
+  $a->update('fullName', 'Cathy Cashier');
+  $a->update('cardCode2', 'ME04nW44DHzxVDg');
   a\shrinkPhoto($a);
   
   $a = a('aaq');
-  $a->update(u\ray('fullName', 'Helga\'s Hardware'));
+  $a->update('fullName', 'Helga\'s Hardware');
 //  $a->setBitx(CO_REQUIRE_CASHIER, TRUE, 'coFlags');
   a\shrinkPhoto($a);
   
   $a = a('aak');
-  $a->update(u\ray('fullName', 'Curt Customer'));
-  $a->upSecure('cardCode', 'NyCBBlUF1qWNZ2k');
-  $a->upSecure('cardCode2', 'utbYceW3KLLCcaw');
+  $a->update('fullName', 'Curt Customer');
+  $a->update('cardCode', 'NyCBBlUF1qWNZ2k');
+  $a->update('cardCode2', 'utbYceW3KLLCcaw');
   a\shrinkPhoto($a);
   
   $a = a('abb');
-  $a->update(u\ray('fullName', 'Susan Shopper'));
-  $a->upSecure('cardCode', 'ZzhWMCq0zcBowqw');
+  $a->update('fullName', 'Susan Shopper');
+  $a->update('cardCode', 'ZzhWMCq0zcBowqw');
   a\shrinkPhoto($a);
 }
 
@@ -397,7 +398,7 @@ $a = a('nya.aaa');
     $usdPin = f('u.randomString', 4, 'digits');
 //    if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
     $usdPhone = $a->phone;
-    $secure = compact(f('u.ray','usdPhone usdEmail usdPass usdPin')) + (@$a->secure ?: array());
+    $secure = compact(f('u.ray','usdPhone usdEmail usdPass usdPin')) + (@$a->secure ?: []);
 ///debug($secure);
     $a->update(compact('secure'));
     */
@@ -648,7 +649,7 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   $account = substr($fromAcct, 4 + 9);
   
   $bankInfo = db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
-  if (!$bankInfo) {say("Skipped transaction #$txid for $a->fullName (no bank info)"); return;}
+  if (!$bankInfo) {w\say("Skipped transaction #$txid for $a->fullName (no bank info)"); return;}
   //u\EXPECT((bool) $bankInfo, 'no bank info');
   extract($bankInfo, EXTR_PREFIX_ALL, 'b');
   if (strlen($b_zip) > 5) $b_zip = substr($b_zip, 0, 5) . '-' . substr($b_zip, 5);
@@ -681,6 +682,7 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   
   $ck->say($signature, $W - $W / 3, $y + .35, $W / 3 - $m, $lineH, 'CAPS', 'C', 'B'); // $y+ not +=
   $ck->say($belowLine, '', $y + .35 + $lineH, $W / 3 - $m, $lineH, '8 CAPS', 'C');
+//  if (!$signature) $ck->Image(__DIR__ . '/../images/checksig.png', $W - $W / 3, $y, $W / 3 - $m, 5 * $lineH);
   
   $ck->say('MEMO:', $m, $y += .5, '', $lineH, '8');
   $ck->say($memo, $m + .5, '');
@@ -693,23 +695,65 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   if (!$deposit and $mark) db\update('r_usd', u\ray('deposit txid', strtotime('today'), $txid), 'txid');
 }
 
-// list accounts to send post-DW email to
-/*
-function listem($miw = 0, $dw = 0, $min = 0) {
-  $cttyCrit = $miw ? 'community=-25026000000001' : 'community=-26742000000001';
-  $minCrit = $dw ? '1' : ($min ? 'minimum>0' : '(minimum IS NULL OR minimum=0)');
-  $q = db\q("SELECT uid,mail,community,minimum,(minimum IS NULL) AS nullMin FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND $cttyCrit AND $minCrit ORDER BY fullName");
+function vote20141214($uid = FALSE) {
+  $info = ['noFrame'=>TRUE, 'subject'=>'rCredits celebration! when can you come?'];
+  $sql = $uid ? 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid=:uid AND NOT :IS_CO ORDER BY fullName'
+    : 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid>1 AND NOT :IS_CO ORDER BY fullName';
+  $q = db\q($sql, ['ctty'=>r\serverUid()] + ($uid ? compact('uid') : []));
+  for ($i = 0; $row = $q->fetchAssoc(); $i++) {
+    $action = r\acct($row['uid'])->makeDo0('vote', '20141214');
+    $row += $info + compact('action');
+    w\say("mailing to ".$row['fullName']);
+    r\rMail('survey2014-12-14', $row['email'], $row); // strangely, $row + $info + compact('action') fails here
+  }
+  w\say($i . ' emails sent.');
+}
+
+function rsvp20141220($uid = FALSE) {
+  $info = ['noFrame'=>TRUE, 'subject'=>'rCredits Celebration / rCredits Seminar'];
+  $sql = $uid ? 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid=:uid AND NOT :IS_CO ORDER BY fullName'
+    : 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid>1 AND NOT :IS_CO ORDER BY fullName';
+  $q = db\q($sql, ['ctty'=>r\serverUid()] + ($uid ? compact('uid') : []));
+  for ($i = 0; $row = $q->fetchAssoc(); $i++) {
+    $action = r\acct($row['uid'])->makeDo0('yesno', '20141220');
+    $yes = "$action/yes=1";
+    $no = "$action/no=1";
+    $row += $info + compact('yes', 'no');
+    w\say("mailing to ".$row['fullName']);
+    r\rMail('rsvp2014-12-20', $row['email'], $row); // strangely, $row + $info + compact('action') fails here
+  }
+  w\say($i . ' emails sent.');
+}
+
+function endofyear2014($uid = FALSE) {
+  $info = ['noFrame'=>TRUE, 'subject'=>'rCredits Pilot Completed! / Seminar TONIGHT'];
+  $where = $uid ? 'uid=:uid' : 'NOT :IS_NONUDGE AND community=:ctty AND uid>1 AND NOT :IS_CO ORDER BY fullName';
+  $sql = 'SELECT uid,fullName,mail AS email FROM users WHERE ' . $where;
+  $q = db\q($sql, $uid ? compact('uid') : ['ctty'=>r\serverUid()]);
+  for ($i = 0; $row = $q->fetchAssoc(); $i++) {
+    $row += $info;
+    w\say("mailing to ".$row['fullName']);
+    r\rMail('endofyear2014', $row['email'], $row); // strangely, $row + $info + compact('action') fails here
+  }
+  w\say($i . ' emails sent.');
+}
+
+function moveFieldsToHidden() {
+  $q = db\q("SELECT uid FROM users WHERE uid<>0");
+  $dataFields = [];
+  $secureFields = u\ray('photoId pin bankAccount');
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $a = r\acct($uid);
-    $hasDw = (bool) $a->usdEmail;
-    if ($dw and $hasDw) {
-      $dwInfo = u\rayTable(u\ray('Dwolla Email,Dwolla Pass,Dwolla PIN', @$a->usdEmail, @$a->usdPass, @$a->usdPin), FALSE);
-      $dwInfo = strtr($dwInfo, ['<table>'=>'<table style="width:auto;">', '<th>'=>'<th style="text-transform:none;">']);
-      $res[] = "$a->fullName &lt;$a->mail&gt; min:$minimum<br>$dwInfo";
-    } elseif (!$dw and !$hasDw and !$nullMin) $res[] = $mail;
+    if ($a->pin or $a->bankAccount) continue; // don't do this twice (and overwrite with nulls)!
+    $data = $a->data;
+    $secure = $a->secure;
+    foreach ($dataFields as $k) $$k = @$data[$k];
+    foreach ($secureFields as $k) $$k = @$secure[$k];
+    $data = $secure = [];
+    foreach (u\ray(R_DATA_FIELDS) as $k) if (!is_null($a->$k)) $data[$k] = $a->$k;
+    foreach (u\ray(R_SECURE_FIELDS) as $k) if (!is_null($a->$k)) $secure[$k] = $a->$k;
+/**/    debug($row + compact($dataFields, $secureFields, 'data', 'secure'));
+    $a->update(compact($dataFields, $secureFields, 'data', 'secure'));
   }
-  $res = @$res ? join($dw ? '<br><br>' : ', ', $res) : 'none';
-  \drupal_set_message($res);
 }
-*/

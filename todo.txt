@@ -27,17 +27,28 @@ Before growing fast:
 . video about Admin'ing
 
 TASKS FOR NEXT UPDATE:
+backup db (DONE)
+upgrade to Drupal 7.34 (post Drupalgeddon) (try it on ws first)
+replace user.module, form.inc, update.fetch.inc, user.js (rename originals 0...)
+f('a.moveFieldsToHidden');
+make sure nobody has bit 4 set (B_COUNTED)
 
+. remove by from data fields (after feb 1)
+. tighten up security
+. change bottom-of-check numbers to other format -- test with just David G's acct (for FFCU for example)
+. ** create new community for first member in the region (NEV, etc.), but report them as coming from server org on 1099-B (for both the member and the state).
+. when updating relations to give "joint" permission, mention that the other account will receive a confirm email
+. in welcome message, warn newbie they will have to show an ID before first purchase
+. MAYBE for transfer requests over the person's credit limit, if the amount is $20 or more and the credit limit is $10 or more, split the request so some can be credited immediately (but don't do two separate checks? -- not easy)
+. rename tables without r_ and rename drupal tables to _... (search for lowercase "'r_" and " r_" but look out for variables like r_last_cron (found in variables table or created with extract(...'r'))
 . tests for rdo
-. disallow repeat EINs!! (tell Ed Smith? and Janet Massucci and maybe Adam K. and Jim Bates)
-. ** inflation only for master of joint account
+. disallow repeat EINs? (tell Ed Smith? and Janet Massucci and maybe Adam K. and Jim Bates)
 . autocomplete in relations causes failure of newperson field unless clicked twice (temporarily bypassed by disabling autocomplete)
 . test automatic unjoin of previous join, if a join is requested with a new account
 . investigate the dozen attempts (in one week) to recognize NEW.ABU with wrong cardCode: SELECT * FROM `r_log` l join r_log l2 on l2.logid=l.logid+1 WHERE l2.info like '%bad customer%'
 . for admin, show just the relevant community on flags page
 . cAdmin2 doesn't get to see floor! fix.
-. refuse first tx if no photoid yet
-. ***on Pay tab and Charge tab, if cash/loan/etc is selected, ask if it is for USD (at Adam's urging)
+. refuse first tx if no photoid yet (wait for everyone to be using version 2.11 or better)
 . show cAdmin the top trusted people (SELECT fullName,trust FROM `users` WHERE community=:ctty ORDER BY trust DESC)
 . let admin edit tx date
 . ** any smartphone tx from over 24 hours ago should get put in as yesterday
@@ -51,7 +62,6 @@ TASKS FOR NEXT UPDATE:
 . fix picture in upper right corner?
 . don't let admin set OK until member is set (either automatically or manually -- two steps). if admin unsets member, unset OK too.
 . replace testing.inc with testing stub that defines stub functions if not already defined
-. make account field persist with last account number on Admin Panel
 . tests for auto banking when deposited or not
 . see if anyone requested paper statements
 . adapt notice message when bank transfer goes through immediately (add a note to that effect, like for bank tab)
@@ -288,7 +298,7 @@ function health($where = 'TRUE') {
   
   $payeeDemandSql = demandSql('payee', 2, 2.5, $where);
   $payerDemandSql = demandSql('payer', 0, 3, $where);
-  $return eachAccount($queries, $ons, $where, $subs = array()) {
+  $return eachAccount($queries, $ons, $where, $subs = []) {
 
 // * @param string $measure: current, future, count, or growth
   if ($measure == 'current' or $measure == 'growth') {
@@ -336,7 +346,7 @@ function demandSql($other, $minRepeats, $months) {
 EOF;
 }
 
-function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
+function eachAccount($queries, $ons, $where = 'TRUE', $subs = []) {
   $fields = 'u.uid';
   $tables = 'users u';
   foreach ($queries as $q => $query) {

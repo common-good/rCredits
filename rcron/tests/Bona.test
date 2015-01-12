@@ -1,0 +1,144 @@
+<?php
+//
+// Feature: Bona
+//   AS a member
+//   I WANT to receive incentive rewards for signing up and for inviting/helping others sign up
+//   SO I can do well by doing good.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rcron.steps';
+
+class rcronBona extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Bona';
+  const FEATURE_NAME = 'rcron Test - Bona';
+  const DESCRIPTION = 'Bona';
+  const MODULE = 'rcron';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rcron.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "ASSOC'
+    . '\\| id   | fullName | minimum | flags   | achMin | risks   | helper | rebate |'
+    . '\\| .ZZA | Abe One  |     100 | ok,bona | 30     |         |        |      5 |'
+    . '\\| .ZZB | Bea Two  |     100 | ok      | 30     | hasBank | .ZZA   |     10 |'
+    . '\\| .ZZC | Our Pub  |       0 | ok,bona | 30     |         | .ZZB   |     10 |'
+    . '\\| .ZZD | Dee Four |     100 | ok      | 30     | hasBank | .ZZA   |     10 |"');
+    And__('relations: "ASSOC'
+    . '\\| main | agent | employee |'
+    . '\\| .ZZC | .ZZD  |        1 |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: a member gets money for the first time
+  public function testAMemberGetsMoneyForTheFirstTime_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('member field values: "ASSOC'
+    . '\\| id   | field | value |'
+    . '\\| .ZZB | floor | -100  |"');
+    When_('cron runs "bank"');
+    Then_('usd transfers: "ASSOC'
+    . '\\| txid | payer | amount | completed |'
+    . '\\|    1 | .ZZB  | -100   | %today    |"');
+    And__('we notice "under min|banked|bank tx number" to member ".ZZB" with subs: "ASSOC'
+    . '\\| action    | amount | checkNum |'
+    . '\\| draw from | $100   |        1 |"');
+    And__('we notice "transfer complete" to member ".ZZB" with subs: "ASSOC'
+    . '\\| transfer           | amount |'
+    . '\\| automatic transfer | $100   |"');
+    And__('we message member ".ZZB" with topic "account funded" and subs: ""');
+    Given('transactions: "ASSOC'
+    . '\\| xid | created | type     | amount | from | to   | purpose | taking |'
+    . '\\|   1 | %today  | transfer |     50 | .ZZB | .ZZC | stuff   |      1 |"');
+    When_('cron runs "bona"');
+    Then_('we notice "got funding" to member ".ZZB" with subs: "ASSOC'
+    . '\\| amount           | purpose      |'
+    . '\\| $%R_SIGNUP_BONUS | signup bonus |"');
+    And__('we notice "got funding" to member ".ZZA" with subs: "ASSOC'
+    . '\\| amount           | purpose                                      |'
+    . '\\| $%R_HELPER_BONUS | inviting and/or assisting new member Bea Two |"');
+    And__('members: "ASSOC'
+    . '\\| id   | flags          |'
+    . '\\| .ZZB | member,ok,bona |"');
+    And__('balances: "ASSOC'
+    . '\\| id   | r                     | rewards             |'
+    . '\\| .ZZA | %R_HELPER_BONUS       | %R_HELPER_BONUS     |'
+    . '\\| .ZZB | %(55+%R_SIGNUP_BONUS) | %(5+R_SIGNUP_BONUS) |'
+    . '\\| .ZZC | 55                    | 5                   |"');
+  }
+
+  // Scenario: an employee gets money for the first time
+  public function testAnEmployeeGetsMoneyForTheFirstTime_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('member field values: "ASSOC'
+    . '\\| id   | field | value |'
+    . '\\| .ZZD | floor | -100  |"');
+    When_('cron runs "bank"');
+    Then_('usd transfers: "ASSOC'
+    . '\\| txid | payer | amount | completed |'
+    . '\\|    1 | .ZZB  | -100   |         0 |'
+    . '\\|    2 | .ZZD  | -100   | %today    |"');
+    And__('we notice "under min|banked|bank tx number" to member ".ZZD" with subs: "ASSOC'
+    . '\\| action    | amount | checkNum |'
+    . '\\| draw from | $100   |        2 |"');
+    And__('we notice "transfer complete" to member ".ZZD" with subs: "ASSOC'
+    . '\\| transfer           | amount |'
+    . '\\| automatic transfer | $100   |"');
+    And__('we message member ".ZZD" with topic "account funded" and subs: ""');
+    Given('transactions: "ASSOC'
+    . '\\| xid | created | type     | amount | from | to   | purpose | taking |'
+    . '\\|   1 | %today  | transfer |     50 | .ZZD | .ZZC | stuff   |      1 |"');
+    When_('cron runs "bona"');
+    Then_('we notice "got funding" to member ".ZZD" with subs: "ASSOC'
+    . '\\| amount           | purpose      |'
+    . '\\| $%R_SIGNUP_BONUS | signup bonus |"');
+    And__('we notice "got funding" to member ".ZZA" with subs: "ASSOC'
+    . '\\| amount           | purpose                                       |'
+    . '\\| $%R_HELPER_BONUS | inviting and/or assisting new member Dee Four |"');
+    And__('members: "ASSOC'
+    . '\\| id   | flags          |'
+    . '\\| .ZZD | member,ok,bona |"');
+    When_('cron runs "employees"');
+    Then_('we notice "got funding" to member ".ZZB" with subs: "ASSOC'
+    . '\\| amount            | purpose                                                       |'
+    . '\\| $%R_COUNTED_BONUS | inviting and/or assisting a new member\'s manager (at Our Pub) |"');
+    And__('members: "ASSOC'
+    . '\\| id   | flags                  |'
+    . '\\| .ZZD | member,ok,bona,counted |"');
+    And__('balances: "ASSOC'
+    . '\\| id   | r                     | rewards              |'
+    . '\\| .ZZA | %R_HELPER_BONUS       | %R_HELPER_BONUS      |'
+    . '\\| .ZZB | %R_COUNTED_BONUS      | %R_COUNTED_BONUS     |'
+    . '\\| .ZZC | 55                    | 5                    |'
+    . '\\| .ZZD | %(55+%R_SIGNUP_BONUS) | %(5+%R_SIGNUP_BONUS) |"');
+  }
+
+}

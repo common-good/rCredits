@@ -13,11 +13,11 @@ define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New Englan
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA B=Boston
 define('R_REGION_SHORTNAME', R_SERVER_ID . '.');
 define('R_REGION_ADDR', 'c/o CGF, PO Box 21, Ashfield, MA 01330');
-define('R_REGION_PHONE', '+1 413.376.5021');
+define('R_REGION_PHONE', '+1 413 628 1723'); // was 376.5021 (and maybe again someday)
 define('R_TESTER_EMAIL', 'wspademan@gmail.com'); // tester's personal email
 define('R_REGION_EMAIL', strpos($_SERVER['HTTP_HOST'], '.') < 3 ? str_replace('@', '_cgf@', R_TESTER_EMAIL) : (strtolower(R_SERVER_ID) . '@rCredits.org'));
 define('R_REGION_EIN', '46-1821792');
-define('R_SITE_URL', 'https://new.rCredits.org');
+define('R_SITE_URL', 'https://' . (isPRODUCTION ? PRODUCTION : STAGE));
 
 // (you don't get an ID card unless you are in this geographic area)
 define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that matches this regular expression is in the region
@@ -33,6 +33,7 @@ define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller 
 define('R_SIGNUP_GIFT', 5); // UNUSED how much to give people to play with, even before they are fully set up
 define('R_SIGNUP_BONUS', 20); // how much people start with at this time
 define('R_HELPER_BONUS', 20); // how much you get for inviting and assisting someone with account opening
+define('R_COUNTED_BONUS', 10); // how much you get for each member employee of a company you invite/assist
 define('R_FLOOR', 0); // how low can user's balance go, by default
 define('R_DAILY_HOUR', isDEV ? '00' : '01'); // what time (2-digit 24-hour clock hour) to start intensive daily maintenance tasks
 define('R_WEEKLY_DAY', 'Sunday'); // what day of the week to do weekly tasks

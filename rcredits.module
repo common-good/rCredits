@@ -41,6 +41,7 @@ require_once 'rcron/rcron.inc'; // required here by cron
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Testing as t;
+use rCredits\Web as w;
 
 define('R_SYS_ERR', "The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again.<br>\n");
 
@@ -144,19 +145,22 @@ function rcredits_mail($index, &$msg_array, $info) {
 
     $email = $info['email'];
 ///    foreach ($info as $k => $v) if (is_object($v) or is_array($v)) mail('wspademan@gmail.com', 'acct obj in _mail', print_r(compact('index','msg_array','info','uid','k','v'), 1) . print_r(debug_backtrace(), 1));
-    foreach ($info as $k => $v) if (!is_object($v) and !is_array($v)) $subs['{' . $k . '}'] = $v;
+    $nolog = u\ray(R_NOLOG);
+    foreach ($info as $k0 => $v) if (!is_object($v) and !is_array($v)) {
+      $k = '{' . $k0 . '}';
+      $subs[$k] = $v;
+      $logSubs[$k] = in_array($k0, $nolog) ? '(?)' : $v; // hide personal info and secrets
+    }
     $msg_array['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
     $message = @$info['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
-
     $subject = @$info['subject'] ?: $GLOBALS['emailSubjects'][$index];
     $subject = $msg_array['subject'] = strtr($subject, $subs);
-    $message = $msg_array['body'][] = strtr($message, $subs);
+    $msg_array['body'][] = strtr($message, $subs);
 
-    $message = str_replace("\r\n", '', $message); // easier reading for log and tests
+    // prepare log params
+    $message = str_replace("\r\n", '', strtr($message, $logSubs)); // easier reading for log and tests
     $fields = compact(u\ray('index email subject message'));
 /**/ t\output('Actual (in hook_mail) ' . print_r($fields, 1), 'email');
-
-    foreach (u\ray(R_NOLOG) as $one) $fields['message'] = str_replace(@$info[$one], '(?)', $message); // no secret
     u\loga('email', $fields, @$acct);
 }
 
@@ -201,19 +205,67 @@ function x($xid) {r\x($xid);}
 /**/ function step($a) {debug(us($a)->step());}
 function ctty($id) {return a(a($id)->community);}
 function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
+/**/ function flog($s) {file_put_contents('flog.txt', print_r($s, 1) . "\n", FILE_APPEND);}
 
 /**
  * f('u.func arg1 arg2') OR f('u.func', arg1, arg2)
  */
 function f($func) {
+  if (substr($func, 0, 2) == 'a.') include_once __DIR__ . '/admin/admin.inc';
+  if (substr($func, 0, 2) == 'y.') include_once __DIR__ . '/rcredits-yearly.inc';
   $args = func_get_args();
   if (strpos($func, ' ') and count($args) == 1) $args = u\ray($args[0]);
   $func = array_shift($args);
   
   list ($n, $func) = explode('.', $func);
-  $funcs = u\ray('r w s u be db t p a cr', '', 'Web', 'Smart', 'Util', 'Backend', 'DB', 'Testing', 'SMS', 'Admin', 'Cron');
+  $funcs = u\ray('r w s u be db t p a cr y', '', 'Web', 'Smart', 'Util', 'Backend', 'DB', 'Testing', 'SMS', 'Admin', 'Cron', 'Special');
   $func = 'rCredits\\' . ($funcs[$n] ? $funcs[$n] . '\\' : '') . $func;
   return call_user_func_array($func, $args);
+}
+
+/**
+ * Execute a "patch" to a built-in Drupal script.
+ * @param string $function: name of the Drupal function being patched, concatenated with the starting line number
+ * @param #2, etc.: varies.
+ * @return varies.
+ */
+function patch($name) {
+  $args = func_get_args();
+  
+  // user.module
+  if ($name == 'user_access810') return FALSE;
+  if ($name == 'user_account_form_validate1250') return w\emailDup($args[1], $args[2]); // does this get called?
+  if ($name == 'user_login_final_validate2207') {
+    $email = $args[1];
+    \watchdog('user', 'Login attempt failed for %user.', array('%user' => $email));
+    $a = 'href=account/password';
+    return (\drupal_get_messages('error', FALSE)) ? '' : w\say('bad login', compact('a'), 'name');
+  }
+  if ($name == '_user_mail_notify3569') {
+    list ($op, $account, $language) = $args;
+    $language = @$language ?: \user_preferred_language($account);
+    $uid = $account->uid;
+    return drupal_mail('rCredits', $op, $account->mail, $language, compact('uid'));
+  }
+  if ($name == 'user_form_process_password_confirm3595') return array(
+    'strengthTitle' => t('strength:'),
+    'makeLonger' => t('Make it longer'),
+    'weak' => t('Weak (not strong enough)'),
+    'fair' => t('Fair (but not strong enough)'),
+    'good' => t('Good (but not strong enough)'),
+    'strong' => t('Strong (but not strong enough)'),
+    'verystrong' => t('Very strong (strong enough)'),
+    'mighty' => t('Mighty (strong enough)'),
+    'paranoid' => t('Paranoid? (plenty strong)'),
+  );
+  
+  // form.inc
+  if ($name == 'form_select_options2741') return $args[1]['#options']; // this accommodation for dynamic javascript dropdowns (set #options = NULL) is inadequate when there is an error on the form (see signup form)
+  if ($name == 'form_process_password_confirm2914') return ['#title' => t('New password:')];
+  if ($name == 'form_process_password_confirm2921') return ['#title' => t('Confirm new password:')];
+  
+  // update.fetch.inc
+  if ($name == '_update_cron_notify') return;
 }
 
 /**

@@ -14,10 +14,14 @@ use rCredits\Admin as a;
 
 function seeSecure($a) {
   $secure = $a->secure;
-  u\setDft($secure['usdType'], 'Dwolla');
-  foreach (u\ray(R_SECURE_FIELDS) as $one) if (isset($secure[$one])) $new[$one] = $secure[$one]; // reorder
-  $a->update(u\ray('secure', @$new ?: array()));
+  foreach (u\ray(R_SECURE_FIELDS) as $k) if (isset($secure[$k])) $new[$k] = $secure[$k]; // reorder
+  $a->update('secure', @$new ?: []);
   say(u\rayTable($a->secure, FALSE));
+}
+
+function seeHidden($a) {
+  foreach (u\ray(R_SECRET_FIELDS) as $k) if ($k != 'ssnData') $ray[$k] = $a->$k;
+  say(u\rayTable($ray, FALSE));
 }
 
 /**
@@ -69,7 +73,7 @@ function adminSummary($a, $cAdmin = FALSE) {
       }
       $donations = item(u\fmtAmt($donations) . ", $donationInfo @$a->share%", t('Donations:'));
 
-      $floor = textField(t('Credit floor:'), '', dft(u\fmtAmt($a->floor)));
+//      $creditLimit = textField(t('Credit limit:'), '', dft(u\fmtAmt(-$a->floor)));
 //      if ($a->stepsDone['prefs']) { // don't even look at these if newbie hasn't chosen yet
 //        $minimum = textField(t('Minimum:'), '', dft(u\fmtAmt($a->minimum)));
 //        $achMin = textField(t('ACH Min:'), '', dft(u\fmtAmt($a->achMin ?: R_ACHMIN_DEFAULT, 's')));
@@ -77,8 +81,8 @@ function adminSummary($a, $cAdmin = FALSE) {
         $minimum = item(u\fmtAmt($a->j_minimum), t('Minimum:'));
         $achMin = item(u\fmtAmt($a->achMin), t('ACH Min:'));
 //      if (!$a->stepsDone['dw']) { // show info needed to open a Dwolla account
-      extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
-      $dwInfo = item(u\rayTable(u\ray('usdEmail usdPass usdPIN', @$s_usdEmail, @$s_usdPass, @$s_usdPin), FALSE));
+//      extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
+//      $dwInfo = item(u\rayTable(u\ray('usdEmail usdPass usdPIN', @$s_usdEmail, @$s_usdPass, @$s_usdPin), FALSE));
       if (!$a->co) $trust = item($a->trust, t('Trust:'), t('This person\'s trust rating'));
     }
   
@@ -101,13 +105,13 @@ function adminSummary($a, $cAdmin = FALSE) {
     $rTrader = $a->ctty
     ? boolField(t('Ctty Up?'), '', $a->ok + 0)
     : boolField(t('rTrader?'), t('Is account approved to use rCredits? -- member, <@a>good photo</a>, ss# checks out, set risks and mediaConx', array('@a' => "a href=$base_url/account/photo")), $a->ok + 0);
-    if (!$a->ok and !$a->co) {
-      if ($helper = $a->helper ?: (db\lookup('inviter', 'r_invites', 'invitee=:myid', u\ray('myid', $uid)) ?: '')) {
+    if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
+      if ($helper = $a->helper ?: ($a->co ? $a->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
         $hA = r\acct($helper);
         $helper = "$hA->mainQid   $hA->fullName";
       }
       $helper = textField(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper) + autocomplete());
-    } elseif (!$a->co) $helper = item($a->helper ? r\acct($a->helper)->fullName : t('N/A'), t('Helped by:'));
+    } else $helper = item($a->helper ? r\acct($a->helper)->fullName : t('N/A'), t('Helped by:'));
 
     if ($a->member and !$a->co) $ssnCheck = item(a\ssnCheck($a));
   
@@ -175,9 +179,9 @@ EOF;
 }
 
 function showCardCode($a) {
-  $len = strlen(@$a->secure['cardCode']);
+  $len = strlen(@$a->cardCode);
   if ($len == 14 or $a->co) return;
-/**/ if ($a->ok) debug("$a->fullName\t" . $a->secure['cardCode'] . " (" . $len . ')');
+/**/ if ($a->ok) debug("$a->fullName\t" . $a->cardCode . " (" . $len . ')');
 }
 
 /**

@@ -9,32 +9,33 @@ use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Util as u;
 use rCredits\Backend as be;
+use rCredits\Web as w;
 
 define('EOL', "\r\n"); // must be two characters long (make sure download doesn't change it)
 define('STATE_CODE', '25'); // Massachusetts code, for combined Federal/State filing
-define('TEST1099', FALSE); // must be set TRUE for a successful test
 
 /**
  * Create 1099-B reports for the IRS as a downloadable file to be uploaded to the IRS FIRE site.
+ * Log in at fire.irs.gov (or fire.test.irs.gov)
+ * @param mixed $testMode: must be set non-FALSE for a successful test. If >1, it is a single uid to test.
  */
-function do1099bs() {
-  global $f1099, $err1099;
-
+function do1099bs($testMode = FALSE) {
+  
   $year = date('Y') - 1;
-  $filename = "forms1099b-FY$year.bin"; // binary file extension, to discourage automatic changes during FTP
+  $filename = "forms1099b-FY$year.bin$testMode"; // binary file extension: discourage automatic changes during FTP
   header("Cache-Control: public");
   header("Content-Description: File Transfer");
   header("Content-Disposition: attachment; filename=$filename");
   header("Content-Type: application/octet-stream");
   header("Content-Transfer-Encoding: binary");
 
-  $f1099 = fopen('php://output', 'w');
-  putRec(recT($year));
+  putRec(recT($year, $testMode));
   putRec(recA($year));
   $bCount = 0; // IRS instructions pub 1220 call this "number of payees", but say it means "number of B records"
   $total = 0;
   
-  $q = db\q('SELECT uid FROM users ORDER BY uid');
+  $q = ($uid = $testMode and $uid > 1) ? db\q('SELECT uid FROM users WHERE uid=:uid', compact('uid'))
+  : db\q('SELECT uid FROM users ORDER BY uid');
   while ($row = $q->fetchAssoc()) {
     extract($row); // uid
     do1099b($year, $uid, $total);
@@ -46,8 +47,8 @@ function do1099bs() {
   putRec(recC($bCount, $totals));
   putRec(recK($bCount, $totals));
   putRec(recF($bCount));
-//  lenCheck('Xadlfkjdafadflkajfl;kdjfl;');
-  if (!@$err1099) exit();
+  flush();
+  if (!@$err1099) exit(); // shouldn't we exit in any case?
 }
 
 /**
@@ -65,11 +66,11 @@ function do1099b($year, $payee, &$total) {
   }
 }
 
-function recT($year) {
+function recT($year, $testMode) {
   //$region = r\acct(r\serverUid());
   $prior = pad('', 1); // P for prior year data, else ' '
   $TCC = '08C20';
-  $testing = pad(TEST1099 ? 'T' : ' ', 1);
+  $testing = pad($testMode ? 'T' : ' ', 1);
   $foreign = pad(FALSE, 1); // 1 for foreign
   $coName = $transmitterName = pad(CGF_LEGALNAME, 80);
   $coAddr = pad('PO Box 21', 40) . pad('Ashfield', 40) . 'MA' . pad('013300021', 9);
@@ -94,7 +95,7 @@ function recA($year) {
   $payerName = pad(R_REGION_LEGALNAME, 80);
   $isAgent = lpad(0, 1); // 1 if second half of payerName is transfer agent, else 0
   $payerAddr = pad('c/o Common Good Finance, PO Box 21', 40) . pad('Ashfield', 40) . 'MA' . pad('013300021', 9);
-  $payerPhone = pad('4133765021', 15);
+  $payerPhone = pad('4136281723', 15); // was 4133765021 (maybe again someday)
   
   return 'A' . $year . $combo . sp(5) . $regionTIN . $nameControl . $lastEver . $type . $amountCodes . sp(8) . $foreign . $payerName . $isAgent . $payerAddr . $payerPhone . sp(260) . seq() . sp(241) . EOL;
 }
@@ -181,8 +182,8 @@ function lenCheck($rec) {
  * @param string $rec: the record
  */
 function putRec($rec) {
-  global $f1099;
-  fwrite($f1099, lenCheck($rec));
+  //fwrite(STDOUT, lenCheck($rec));
+/**/  echo lenCheck($rec);
 }
 
 /**

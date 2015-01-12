@@ -42,7 +42,7 @@ use rCredits\Testing as t;
 ///debug(rCredits\Smart\pos($args));
  */
 
-define('RPOS_VERSION', 203); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first, before bumping the number up here.)
+define('RPOS_VERSION', 211); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first, before bumping the number up here.)
 //define('RPOS_FILENAME', 'http://ws.rcredits.org/rPOS-' . rPOS_VERSION . '.apk');
 define('RPOS_FILENAME', 'http://rc4.me/rpos.apk');
 define('RPOS_FILENAMEB', 'http://rc4.me/rposb.apk'); // version for buggy front-camera-only machines
@@ -79,7 +79,7 @@ function pos($args = FALSE) {
   global $scanned; $scanned = true;
   global $mya;
   
-  if (!r\up()) return posErr('system down');
+  if (!r\up()) exit('system down'); // app does not (and should not) distinguish this from system failure
   if (!$args) $args = $_POST;
   u\loga('in', $args);
   extract(u\just('op device agent member', $args));
@@ -124,7 +124,7 @@ function ok($args, $ok = "1") {
  * @param string $message: what to say
  * @return: does not return (when testing, return the json result)
  */
-function posErr($message, $subs = array()) {
+function posErr($message, $subs = []) {
   $message = u\tt($message, $subs);
   return ok(compact('message'), "0");
 }
@@ -134,14 +134,15 @@ function posErr($message, $subs = array()) {
  * time:	[] => [ok=”1”, time]
  * @return json:
  *   time: the current unixtime
+ *   message: something for the app to say or do (if it begins with "!")
  */
 function getTime($args) {
   if ($err = missingArg($keys = 'version', $args)) return posErr($err); 
-  extract(u\just($keys, $args));
+  extract(u\just($keys . ' data', $args));
   $time = time();
-//  if (((int) $version) < RPOS_VERSION) $update = (substr($version, 0, 1) == '0') ? RPOS_FILENAMEB : RPOS_FILENAME;
-//  if (((int) $version) < RPOS_VERSION) $message = t('Your rPOS app needs updating. Search for "rCredits" in the Google Play Store, to download the latest version.');
+  $message = handleAppData(@$data);
   if (((int) $version) < RPOS_VERSION) $message = '!update';
+  if (((int) $version) < 211) $message = t("Your app needs updating.\n\nSearch for \"rCredits\" in the Google Play Store, to download the latest version.");
   return ok(compact('time', 'message'));
 }
  
@@ -174,12 +175,12 @@ function identify($args) {
 
   if (!$a = @$agent ? getCustomer(@$member, $err) : $mya) return posErr($err);
 
+  $logon = '1'; // assume logging in
   if (@$agent) {
     if ($agent == $member) return posErr('already scanned in');
-    if ($a->id != $mya->id) { // customer
-      $logon = $a->photoId ? '-1' : '0'; // regular or first-time transaction
-    } else $logon = '1'; // changing to another agent for the same company
-  } else $logon = '1';
+    if ($a->id != $mya->id) $logon = $a->photoId ? '0' : '-1'; // regular or first-time transaction for customer
+    if ($logon == -1 and time() < strtotime('3/1/2015') and in_array($a->name, ['mesaverde', 'thepeoplespint'])) $logon = 0;
+  }
 
   $cardCode = $a->cardCode();
   if (isDEV and $code == 'zot') $cardCode = $code; // for debugging
@@ -422,10 +423,10 @@ function balrew($a) {
  * @return array of descriptions
  */
 function getDescriptions($a) {
-  $ray = array();
+  $ray = [];
   //if ($default = $a->description) $ray[] = $default;
   $sql = 'SELECT payeeFor, COUNT( payeeFor )  FROM r_txs WHERE payee=:id GROUP BY payeeFor ORDER BY COUNT(payeeFor) DESC';
-  return $ray + (db\q($sql, u\ray('id', $a->id))->fetchCol() ?: array());
+  return $ray + (db\q($sql, u\ray('id', $a->id))->fetchCol() ?: []);
 }
 
 /**
@@ -446,4 +447,24 @@ function fixNegative(&$msg, $phrase, $rephrase) {
  */
 function getDevice($code, $uid) {
   return db\lookup('id', 'r_boxes', 'code=:code AND uid=:uid', compact('code', 'uid'));
+}
+
+/**
+ * Handle the data requested and sent from the rPOS app on an account's device.
+ * @param string $data: json-encoded data that we requested from the app
+ * @return string $message: what to respond to the app's "time" request: another request for data or ''
+ */
+function handleAppData($data) {
+  global $mya;
+  if (!$mya) return '';
+  if (!$get = $mya->getAppData) return '';
+  $appData = $mya->appData ?: [];
+  if ($data) {
+    $data = (array) json_decode($data);
+    ksort($data);
+    $appData[$get] = $data;
+    $get = u\nextAfter($get, u\ray(R_APP_DATA_GETS));
+    $mya->update('getAppData appData', $get, $appData);
+  }
+  return $get;
 }

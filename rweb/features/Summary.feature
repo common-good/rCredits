@@ -49,7 +49,7 @@ Setup:
   | .ZZC | 623 |
   Given cron runs "acctStats"
 
-Scenario: A member clicks on the summary tab
+Scenario: A member clicks the summary tab
   When member ".ZZA" visits page "summary"
   Then we show "Account Summary" with:
   | Name          | Abe One (abeone) |
@@ -59,13 +59,12 @@ Scenario: A member clicks on the summary tab
   | Rewards       | $256 |
   | Committed     | $0.60 |
   | Your return   | 20.6% |
-  | _ever         | 544.1% |
-# or 541.4% (depends on daylight time?)
+#  | _ever         | 544.1% | or 541.4% (depends on daylight time?) or 280.9%?!
   | Social return | $9 |
   | _ever         | $9 |
-  | Credit floor  | $-100 |
+  | Credit limit  | $100 |
 
-Scenario: An agent clicks on the summary tab without permission to manage
+Scenario: An agent clicks the summary tab without permission to manage
   When member ":ZZA" visits page "summary"
   Then we show "Account Summary" with:
   | Name | Abe One (abeone)   |
@@ -73,7 +72,7 @@ Scenario: An agent clicks on the summary tab without permission to manage
   And without:
   | Balance | Rewards | Floor  |
 
-Scenario: A company agent clicks on the summary tab
+Scenario: A company agent clicks the summary tab
   When member ":ZZD" visits page "summary"
   Then we show "Account Summary" with:
   | Name         | Corner Pub (cornerpub) |

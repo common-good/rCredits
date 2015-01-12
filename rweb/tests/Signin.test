@@ -56,7 +56,7 @@ class rwebSignin extends DrupalWebTestCase {
   // Scenario: A member visits the member site
   public function testAMemberVisitsTheMemberSite_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "?" visits page "/user/login"');
+    When_('member "?" visits page "signin"');
     Then_('we show "Welcome to rCredits" with: "ARRAY'
     . '\\| Username/ID | account ID, email, or username |'
     . '\\| Password    | Password problems? |'
@@ -66,7 +66,7 @@ class rwebSignin extends DrupalWebTestCase {
   // Scenario: A member signs in with username on the member site
   public function testAMemberSignsInWithUsernameOnTheMemberSite_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "?" confirms form "/user/login" with values: "ASSOC'
+    When_('member "?" confirms form "signin" with values: "ASSOC'
     . '\\| name   | pass |'
     . '\\| abeone | a1   |"');
     Then_('member ".ZZA" is logged in');
@@ -76,7 +76,7 @@ class rwebSignin extends DrupalWebTestCase {
   // Scenario: A member signs in with account ID on the member site
   public function testAMemberSignsInWithAccountIDOnTheMemberSite_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "?" confirms form "/user/login" with values: "ASSOC'
+    When_('member "?" confirms form "signin" with values: "ASSOC'
     . '\\| name    | pass |'
     . '\\| new.zza | a1   |"');
     Then_('member ".ZZA" is logged in');
@@ -86,7 +86,7 @@ class rwebSignin extends DrupalWebTestCase {
   // Scenario: A member signs in with email on the member site
   public function testAMemberSignsInWithEmailOnTheMemberSite_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "?" confirms form "/user/login" with values: "ASSOC'
+    When_('member "?" confirms form "signin" with values: "ASSOC'
     . '\\| name          | pass |'
     . '\\| a@example.com | a1   |"');
     Then_('member ".ZZA" is logged in');
@@ -96,7 +96,7 @@ class rwebSignin extends DrupalWebTestCase {
   // Scenario: A member types the wrong password
   public function testAMemberTypesTheWrongPassword_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "?" confirms form "/user/login" with values: "ASSOC'
+    When_('member "?" confirms form "signin" with values: "ASSOC'
     . '\\| name   | pass |'
     . '\\| abeone | a2   |"');
     Then_('we say "error": "bad login"');
@@ -105,7 +105,7 @@ class rwebSignin extends DrupalWebTestCase {
   // Scenario: A member types an unknown username/ID
   public function testAMemberTypesAnUnknownUsernameID_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "?" confirms form "/user/login" with values: "ASSOC'
+    When_('member "?" confirms form "signin" with values: "ASSOC'
     . '\\| name  | pass |'
     . '\\| bogus | a1   |"');
     Then_('we say "error": "bad login"');
@@ -114,7 +114,7 @@ class rwebSignin extends DrupalWebTestCase {
   // Scenario: A member signs in with username from rCredits.org
   public function testAMemberSignsInWithUsernameFromRCreditsorg_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('a member posts to "signin" with values: "ASSOC'
+    When_('a member posts to "signinx" with values: "ASSOC'
     . '\\| id     | pw |'
     . '\\| abeone | a1 |"');
     Then_('member ".ZZA" is logged in');
@@ -124,7 +124,7 @@ class rwebSignin extends DrupalWebTestCase {
   // Scenario: A member signs in with account ID from rCredits.org
   public function testAMemberSignsInWithAccountIDFromRCreditsorg_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('a member posts to "signin" with values: "ASSOC'
+    When_('a member posts to "signinx" with values: "ASSOC'
     . '\\| id      | pw |'
     . '\\| new.zza | a1 |"');
     Then_('member ".ZZA" is logged in');
@@ -134,7 +134,7 @@ class rwebSignin extends DrupalWebTestCase {
   // Scenario: A member signs in with email from rCredits.org
   public function testAMemberSignsInWithEmailFromRCreditsorg_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('a member posts to "signin" with values: "ASSOC'
+    When_('a member posts to "signinx" with values: "ASSOC'
     . '\\| id            | pw |'
     . '\\| a@example.com | a1 |"');
     Then_('member ".ZZA" is logged in');
@@ -144,7 +144,7 @@ class rwebSignin extends DrupalWebTestCase {
   // Scenario: A member types the wrong password from rCredits.org
   public function testAMemberTypesTheWrongPasswordFromRCreditsorg_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('a member posts to "signin" with values: "ASSOC'
+    When_('a member posts to "signinx" with values: "ASSOC'
     . '\\| id     | pw |'
     . '\\| abeone | a2 |"');
     Then_('we show "Welcome to rCredits"');
@@ -154,7 +154,7 @@ class rwebSignin extends DrupalWebTestCase {
   // Scenario: A member types an unknown username/ID from rCredits.org
   public function testAMemberTypesAnUnknownUsernameIDFromRCreditsorg_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('a member posts to "signin" with values: "ASSOC'
+    When_('a member posts to "signinx" with values: "ASSOC'
     . '\\| id    | pw |'
     . '\\| bogus | a1 |"');
     Then_('we show "Welcome to rCredits"');
@@ -235,7 +235,7 @@ class rwebSignin extends DrupalWebTestCase {
     Then_('member ".ZZA" is logged in');
     And__('we show "Account Summary"');
     Given('member is logged out');
-    When_('member "?" confirms form "/user/login" with values: "ASSOC'
+    When_('member "?" confirms form "signin" with values: "ASSOC'
     . '\\| name   | pass      |'
     . '\\| abeone | %whatever |"');
     Then_('we show "Account Summary"');

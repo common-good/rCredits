@@ -165,8 +165,6 @@ class rwebJoint extends DrupalWebTestCase {
     . '\\| ID            | .ZZB (joint account) |'
     . '\\| Balance       | $2,480 |'
     . '\\| Rewards       | $530 |'
-    . '\\| Your return   | 21.9% |'
-    . '\\| _ever         | 137.1% |'
     . '\\| Social return | $37.50 |'
     . '\\| _ever         | $37.50 |"');
   }

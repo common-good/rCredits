@@ -72,8 +72,8 @@ Scenario: A member gets a credit line
   | id   | floor |*
   | .ZZE |   -50 |
   And we notice "new floor|no floor effect" to member ".ZZE" with subs:
-  | floor |*
-  |  $-50 |
+  | limit |*
+  |  $50 |
 
 Scenario: A member gets a bigger credit line after several months
   Given balances:
@@ -88,8 +88,8 @@ Scenario: A member gets a bigger credit line after several months
   | id   | floor |*
   | .ZZE |  -300 |
   And we notice "new floor|no floor effect" to member ".ZZE" with subs:
-  | floor |*
-  | $-300 |
+  | limit |*
+  | $300 |
 
 Scenario: A member gets no new credit line because it's the wrong day
   Given balances:

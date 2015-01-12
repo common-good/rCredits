@@ -18,10 +18,10 @@ Scenario: A donation can be completed
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 |         0 |
   When cron runs "gifts"
   Then transactions:
-  | xid   | created | type     | amount | from      | to      | purpose      |*
-  | .AAAB | %today  | transfer |     10 | .ZZA      | cgf     | donation |
-  | .AAAC | %today  | rebate   |   0.50 | community | .ZZA    | rebate on #1 |
-  | .AAAD | %today  | bonus    |   1.00 | community | cgf     | bonus on #1  |
+  | xid | created | type     | amount | from      | to      | purpose      |*
+  |   1 | %today  | transfer |     10 | .ZZA      | cgf     | donation |
+  |   2 | %today  | rebate   |   0.50 | community | .ZZA    | rebate on #1 |
+  |   3 | %today  | bonus    |   1.00 | community | cgf     | bonus on #1  |
   And gifts:
   | id   | giftDate   | amount | often | honor  | honored | share | completed |*
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |

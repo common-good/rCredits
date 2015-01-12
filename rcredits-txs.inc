@@ -19,7 +19,7 @@ define('TX_TID_MAX', 10000); // zero-filler
  * Get a formatted list of transaction records.
  * @return [$header, $classes, $rows, $totals]
  */
-function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $options = array()) {
+function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $options = []) {
   $mya = r\acct();
   extract(u\just('download agents channels boxes', $options));
   if ($mya->jid) $agents = TRUE; // show which partner did it, on joint account
@@ -36,7 +36,7 @@ function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $opti
 //  $pendings = ($states != STATES_DONE);
 //  $txOpts = compact(u\ray('dones pendings exchanges pexchanges'));
   $txOpts = compact(u\ray('dones pendings', TRUE, FALSE));
-  $rows = array();
+  $rows = [];
   
   foreach (u\ray('bankTransfers myTransactions') as $func) { // transfers first (usually not many)
     $func = "rCredits\\Backend\\$func";
@@ -95,7 +95,7 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
     $toMe = $mya->isMe(@$tx_payee);
     $agent = $toMe ? @$tx_payeeAgent : @$tx_payerAgent;
   }
-  $data = $tx_data ? unserialize($tx_data) : array();
+  $data = $tx_data ? unserialize($tx_data) : [];
   $isExtra = ($tx_type != TX_TRANSFER and $tx_type != TX_BANK);
 //  $r = round(@$tx_r, 2);
 //  $usd = number_format($amount - $r, 2);
