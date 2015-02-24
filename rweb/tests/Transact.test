@@ -205,7 +205,7 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| pay | Bea Two | 100    |       | labor   |"');
     Then_('we say "error": "required field" with subs: "ASSOC'
     . '\\| field |'
-    . '\\| GOODS |"');
+    . '\\| \'\'For\'\' |"');
   }
 
 }

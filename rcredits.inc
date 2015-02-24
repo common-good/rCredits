@@ -27,6 +27,7 @@ define('YEAR_SECS', round(12 * MONTH_DAYS * DAY_SECS));
 define('US_COUNTRY_ID', 1228); // United States
 define('R_BULLET', '&#8226;'); // bullet in emails (where CSS is difficult)
 define('STATS_GRAIN', 10); // granularity of statistics, in days
+define('INFLATION_DESC', t('inflation adjustment'));
 
 require_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
 require_once __DIR__ . '/rcredits-db.inc';
@@ -46,12 +47,13 @@ define('US', '<span class="us">us</span>');
 define('R_VERSION', '2.0'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', 'newAccount by calling wants website description selling coFlags gross employees verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'legalName newAccount by calling wants website description selling coFlags gross employees verifyBy signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
-define('R_SECURE_FIELDS', 'cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
-define('R_SECRET_FIELDS', 'legalName federalId dob idProof answer ssnData photoId pin bankAccount'); // personal identifying information
-define('R_HIDE_CHANGES', R_SECRET_FIELDS . ' ' . R_SECURE_FIELDS . ' changes usd r rewards committed floor login access activated data secure secret offsite stepsDone lastTx usdAccount pass notes picture photo trust risk risks stats getAppData appData'); // do not record changes to these fields (generally anything secret, or often-changed -- perhaps automatically)
-define('R_APP_DATA_GETS', '!device !members !txs '); // data requests from the rPOS app
+define('R_SECURE_FIELDS', 'cardCode cardCode2 pin federalId ssnData dob bankAccount photoId question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
+//define('R_SECURE_FIELDS', 'cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
+//define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData photoId pin bankAccount'); // personal identifying information
+define('R_HIDE_CHANGES', R_SECURE_FIELDS . ' changes usd r rewards committed floor login access activated data secure secret offsite stepsDone lastTx usdAccount pass notes picture photo trust risk risks stats getAppData appData'); // do not record changes to these fields (generally anything secret, or often-changed -- perhaps automatically)
+define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
 define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_CASH', '(r-committed-GREATEST(0, floor, rewards))'); // balance available to cash out
 define('R_SHARE_MIN', 50); // minimum sharing percentage
@@ -62,7 +64,9 @@ define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divid
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
 define('R_STEPS', 'contact sign donate proxies prefs photo connect company relations'); // membership steps
-define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret code oneTimeLoginUrl password pass newPass form_build_id form_token form_id ' . R_SECRET_FIELDS); // don't log these
+define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret code oneTimeLoginUrl password pass newPass form_build_id form_token form_id'); // don't log these
+define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts Summary'); // don't log visits to these forms
+define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin Pass Empty TestRecovery ChangePassword Help Agreement Reports Flags Menu I ResetPassword Profile Accept Buy HandleInvoice Directory'); // no login required
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
@@ -418,7 +422,7 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
  * @return the error message (FALSE if no error)
  */
 function badUnpaidInv($nvid, &$inv = '') {
-  $fields = 'nvid,status,amount,payer,payee,purpose,data,created';
+  $fields = 'nvid,status,amount,payer,payee,goods,purpose,data,created';
   if (!$inv = db\lookup($fields, 'r_invoices', 'nvid=:nvid', compact('nvid'))) return 'no matching invoice';
   if ($inv['status'] > 0) return 'already paid';
 }
@@ -1286,7 +1290,9 @@ function noticeArgs($uid, $where, $weekly, $monthly, $at = REQUEST_TIME) {
   $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
   extract(u\just('return', $a->j_stats()));
   list ($balance, $rewards, $ourEmail) = array(u\fmtAmt($a->j_r), u\fmtAmt($a->j_rewards), R_REGION_EMAIL);
-  return compact(u\ray('messages unit range yestertime balance rewards return ourEmail'));
+  $companies = \variable_get('companies');
+  $companies = $companies[u\test() ? r\serverUid() : $a->community];
+  return compact(u\ray('messages unit range yestertime balance rewards return ourEmail companies'));
 }
 
 /**
@@ -1598,12 +1604,13 @@ function averageBalance($uid, $start, $end = REQUEST_TIME, $noj = FALSE, &$min =
 
   $day = 0;
   $avg = 0;
+  // use "1" as payer for r_usd, to avoid matching jid=0
   $sql = <<<EOF
-    SELECT SUM(IF($isPayee, amount, -amount)) AS total, 
-    FLOOR((completed-$start)/:DAY_SECS) AS day 
+    SELECT SUM(IF($isPayee, t.amount, -t.amount)) AS total, 
+    FLOOR((t.completed-$start)/:DAY_SECS) AS day 
     FROM (
       (SELECT payer,payee,amount,created AS completed FROM r_txs)
-      UNION (SELECT u.payer AS payee,0 AS payer,-u.amount AS amount,completed FROM r_usd u)
+      UNION (SELECT payer,1 AS payee,amount,completed FROM r_usd)
     ) t WHERE ($isPayer XOR $isPayee) AND completed BETWEEN $start AND $end 
     GROUP BY day
 EOF;
@@ -1613,7 +1620,7 @@ EOF;
     $dayx = $day;
     extract($row); // total, day
     $avg += $bal * ($day - $dayx) / $days;
-///debug(compact('uid','day','dayx','bal','avg','total'));
+/// debug(compact('uid','day','dayx','bal','avg','total'));
     $bal += $total;
     $min = min($min, $bal);
   }
@@ -1621,7 +1628,7 @@ EOF;
   $day = round(($end - $start) / DAY_SECS); // end of period
   $avg += $bal * ($day - $dayx) / $days;
   $min = round($min, 2);
-///debug(compact('uid','day','dayx','bal','avg'));
+/// debug(compact('uid','day','dayx','bal','avg'));
 
   return $avg; // average end-of-day balance
 }

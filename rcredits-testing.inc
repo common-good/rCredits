@@ -644,6 +644,7 @@ function findEmail($index, $email, $subs) {
   $message = @$subs['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
   $message = str_replace("\r\n", '', $message);
   $messageDpy = t\showSubs($message, $esubs);
+  $esubs['{companies}'] = ''; // don't test this
   $message = strtr($message, $esubs);
   $subject = @$info['subject'] ?: $GLOBALS['emailSubjects'][$index];
   $subject = $GLOBALS['emailSubjects'][$index];

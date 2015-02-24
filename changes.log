@@ -1,3 +1,31 @@
+2015-02-23
+. accept first-time customers offline only if the company accepts any risk of fraud (suggest they ask for ID)
+. disabled no-connection alert in /misc/autocomplete.js
+. secure message form on Help page, including attachments
+. show expired invitations on invitation status page
+. show admin each member's invitation status page (but not their invite page)
+. fixed averageBalance bug (bad union query in function); effective APR was wrong in notices
+. fixed bug in bank info form: opting for no connection nonetheless was setting hasBank=TRUE
+. fixed bug in bank info form that kept radio buttons from working right if user toggled back and forth
+. made link to invitation status more obvious
+. did away with secret fields (use secure field instead)
+. when no SSN data is available, just show it in the error message
+. changed format of Micr font check info at bottom of checks to "C000{$txid}C A{$routing}A {$account}C"
+. set helper field for companies
+. moved oneTimePass to secure
+. fixed bug in click to pay invoice: goods field was omitted
+. added bank address to deposit slip for outgoing checks
+. inflation adjustment ($0) and other incentives should not appear as a separate category in Statement summary (happens for joint accounts)
+. list current businesses at the bottom of every notice digest and remind others to open a company account.
+. *** add totals of all, labor, dividend, and other on 1099-B page.
+. make invitee descriptions more explicit ("member", "accepted another invite", "has not yet responded", "account incomplete",...)
+. provide a "Cancel/Reverse" button for the Bank tab, to reverse just the most recent request.
+. alphabet index for members, for ctty admins
+. don't say activate account when it's closed
+. change extension of remaining .php include files to .inc
+. remake menus
+. change boot.php to boot.inc in settings.php
+
 2015-01-11
 . version 2.0
 . make ss# a password-type field

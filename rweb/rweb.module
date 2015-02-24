@@ -95,15 +95,15 @@ function rweb_menu() {
     'invest' => menuNorm(t('Invest'), 'Tx', 'managing_ctty'),
     'fine' => menuNorm(t('Fine'), 'Tx', 'managing_ctty'),
 
-    'get' => menuNorm(t('Bank'), 'Get', 'manage bank ok'),
-    'directory' => menuNorm(t('Find Co'), 'Directory', 'sell'),
+    'get' => menuNorm(t('Bank'), 'Get 1', 'manage bank ok'),
+    'directory' => menuNorm(t('Find Co'), 'Directory', 'anyone'),
     'community' => menuNorm(t('Community'), 'CttyFunds', 'anyone'),
     'community/funds' => menuLocal(t('Funds'), '*CttyFunds', 'anyone'),
     'community/graphs' => menuLocal(t('Graphs'), 'Reports 1', 'anyone'),
     'community/flags' => menuLocal(t('Flags'), 'Flags 2', 'anyone'),
     'community/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
     
-    'invite' => menuNorm(t('Invite'), 'Invite', 'anyone'),
+    'invite' => menuNorm(t('Invite'), 'Invite', 'ok'),
     'signout' => menuNorm(t('Sign out'), '', 'anyone', 'signout'),
 
     'handy' => isDEV ? menuNorm(t('Handy'), '', 'dev', 'handyLinks') : NULL,

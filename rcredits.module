@@ -224,10 +224,12 @@ function f($func) {
 }
 
 /**
- * Execute a "patch" to a built-in Drupal script.
+ * Execute a "patch" to a built-in Drupal script. Patched files are also copied to .../rcredits/patches/
  * @param string $function: name of the Drupal function being patched, concatenated with the starting line number
  * @param #2, etc.: varies.
  * @return varies.
+ * Note that javascript patches do not appear here. 
+ * And query.js is not patched, it is simply updated to the latest jquery.min.js (currently version 1.11).
  */
 function patch($name) {
   $args = func_get_args();
@@ -264,8 +266,8 @@ function patch($name) {
   if ($name == 'form_process_password_confirm2914') return ['#title' => t('New password:')];
   if ($name == 'form_process_password_confirm2921') return ['#title' => t('Confirm new password:')];
   
-  // update.fetch.inc
-  if ($name == '_update_cron_notify') return;
+  if ($name == '_update_cron_notify') return; // update.fetch.inc
+  if ($name == 'file_munge_filename1174') return; // file.inc
 }
 
 /**

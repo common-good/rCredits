@@ -222,12 +222,12 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
  */
 function ssnCheck($a) {
   if (!$ssnData = @$a->ssnData) {
-    if (!$ssnData = u\ssnLookup($a->federalId)) return w\say(t('No data returned from ssnLookup (probably timed out).'));;
-    $xml = simplexml_load_string($ssnData);
+    if (!$ssnData0 = u\ssnLookup($a->federalId)) return w\say(t('No data returned from ssnLookup (probably timed out).'));
+    $xml = simplexml_load_string($ssnData0);
     $json = json_encode($xml);
     $ssnData = json_decode($json, TRUE);
     if (!is_array($d = $ssnData['searchResults']) or $ssnData['ResultCount'] + 0 <= 0) {
-/**/  return w\say(t('No SSN data available: ') . print_r($d, 1));
+/**/  return w\say(t('No SSN data available: ') . print_r($ssnData0, 1));
     }
     $a->update(compact('ssnData')); // ResultCount is 0 for tests, <=0 for failure
   } else $d = $ssnData['searchResults'];
@@ -390,18 +390,6 @@ function makeTestCards() {
   a\shrinkPhoto($a);
 }
 
-/* for changing archaic Dwolla info
-$a = a('nya.aaa');
-    $usdPass = f('u.code') . '*B2'; // satisfy Dwolla (and our own security)
-    $usdEmail = strtolower(f('u.code',4) . '.' . $a->mainQid . '@rc4.me');
-    //if (u\test()) $usdEmail = 'wspademan+' . strtolower(\user_password(4) . '.' . $this->mainQid) . '@gmail.com';
-    $usdPin = f('u.randomString', 4, 'digits');
-//    if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
-    $usdPhone = $a->phone;
-    $secure = compact(f('u.ray','usdPhone usdEmail usdPass usdPin')) + (@$a->secure ?: []);
-///debug($secure);
-    $a->update(compact('secure'));
-    */
 // MEMBER LIST: SELECT fullName, city FROM users WHERE (postalCode LIKE '010%' OR postalCode LIKE '013%') AND NOT (flags&(1<<6)) AND NOT (flags&(1<<9)) ORDER BY city, fullName
 
 /**
@@ -413,6 +401,7 @@ $a = a('nya.aaa');
   f('a.getBanks');
  */
 function getBanks() {
+  return; // seldom used (and move SQL name fixes here? see changes.log)
   $fieldNames = 'route branch fedRoute type modified newRoute name address city state zip phone status view';
   $lens = u\ray('9 1 9 1 6 9 36 36 20 2 9 10 1 1'); // also 5 chars of filler at end
   $fields = array_combine(u\ray($fieldNames), $lens);
@@ -485,7 +474,7 @@ function moveFieldTo($field, $to = 'data') {
     $a = r\acct($uid);
     $v = $a->$to;
     $v += compact($field);
-    $a->update(u\ray($to, $v));
+    $a->update($to, $v);
   }
 }
 
@@ -688,13 +677,15 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   $ck->say($memo, $m + .5, '');
 
   // clear band must be at least .625" high, at least 0.1875" from bottom (so leave more). Micr should be 12pt
-  $ck->say("A{$routing}A {$account}C $txid", $m, $mt - $m + CHECK_HEIGHT - .25 - $lineH * (12 / PDF_FONT_SIZE), '', '', 'GnuMICR 12');
-  
+//  if ($a->id != 26742000000042) {
+//    $ck->say("A{$routing}A {$account}C $txid", $m, $mt - $m + CHECK_HEIGHT - .25 - $lineH * (12 / PDF_FONT_SIZE), '', '', 'GnuMICR 12');
+//  } else 
+  $ck->say("C000{$txid}C A{$routing}A {$account}C", $m, $mt - $m + CHECK_HEIGHT - .25 - $lineH * (12 / PDF_FONT_SIZE), '', '', 'GnuMICR 12');
 //  $ck->say('', 0, $mt - $m + CHECK_HEIGHT, $W, 1, '', '', 'T'); // comment this out
   
   if (!$deposit and $mark) db\update('r_usd', u\ray('deposit txid', strtotime('today'), $txid), 'txid');
 }
-
+/*
 function vote20141214($uid = FALSE) {
   $info = ['noFrame'=>TRUE, 'subject'=>'rCredits celebration! when can you come?'];
   $sql = $uid ? 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid=:uid AND NOT :IS_CO ORDER BY fullName'
@@ -753,7 +744,37 @@ function moveFieldsToHidden() {
     $data = $secure = [];
     foreach (u\ray(R_DATA_FIELDS) as $k) if (!is_null($a->$k)) $data[$k] = $a->$k;
     foreach (u\ray(R_SECURE_FIELDS) as $k) if (!is_null($a->$k)) $secure[$k] = $a->$k;
-/**/    debug($row + compact($dataFields, $secureFields, 'data', 'secure'));
+///    debug($row + compact($dataFields, $secureFields, 'data', 'secure'));
     $a->update(compact($dataFields, $secureFields, 'data', 'secure'));
   }
 }
+*/
+
+function noHidden($uid = '') {
+  $q = $uid ? db\q('SELECT :uid', compact('uid')) : db\q("SELECT uid FROM users WHERE uid<>0 ORDER BY uid");
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $a = r\acct($uid);
+    $secure = $a->secure;
+    if (!$secure['federalId']) {
+      $secret = $a->secret;
+      foreach ($secret as $k => $v) $secure[$k] = $v;
+      $a->update(compact('secure'));
+    }
+/**/    debug(['fullName'=>$a->fullName] + $secure);
+  }
+}
+/*
+function retro() {
+  $q=f('db.q','Select uid from users WHERE NOT :IS_CO AND uid>1 AND :IS_BONA');
+  while ($row=$q->fetchAssoc()) {
+    extract($row);
+    $a = a($uid);
+    $h = a($a->helper);
+    if (!$h->cAdmin) { // helper is not admin
+      $fullName = $a->fullName;
+      f('be.fund',$a->helper, TX_HELPER, R_HELPER_BONUS, f('u.tt','invite reward', compact('fullName')));
+///      debug("helper bonus to $h->fullName for inviting $fullName");
+    }
+  }
+}*/

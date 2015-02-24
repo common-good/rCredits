@@ -1,0 +1,22 @@
+Simplified, extended instructions for upgrading to a newer Drupal (minor) version
+
+- Make a backup of your Drupal instance. (For ex: with MySQL)
+- Download the latest release of your current Drupal version.
+- Extract the [tar ball or zip] Drupal package: tar -xzvf drupal-x.y.tar.gz
+- ls -l (to see who owns the site)
+- chown -R siteowner drupal-x.y
+- chgrp -R siteowner drupal-x.y
+- click STOP on the Admin page
+- Set your site on maintenance mode
+- Delete all the files & folders inside your original Drupal instance except for /sites folder and any custom files you added elsewhere (/photos, /drupal-x.y, ...).
+- Move all the folders and files except /sites from inside /drupal-x.y into your original Drupal instance.
+- (N/A) If the update release includes changes to settings.php replace old settings.php in .../sites/default/ with the new one, and edit site-specific entries (eg database name, user, and password)
+- (N/A) If you have modified files such as .htaccess or robots.txt re-apply those changes to the new files.
+- (N/A) If you have a favicon.ico file that was deleted replace it too
+- Login to your site as administrator or as user no 1
+- Run update.php by navigating to http://...yourdrupalsitename/update.php
+- Follow the process to update your Drupal instance
+- (replace user.module, user.js, form.inc, update.fetch.inc (rename originals 0...))
+- Disable maintenance mode
+- click START on the Admin page
+- Delete drupal-x.y and drupal-x.y.tar.gz

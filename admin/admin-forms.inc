@@ -35,8 +35,10 @@ function formAdmin($form, &$sta, $args = '') {
   $tables = 'users txs gifts proxies relations invites'; // tables to show
   
   $title = item(t('System Administration'));
+  
   if ($admin) {
     if (r\up()) $stop = submit(t('STOP')); else $start = submit(t('START'));
+    $do1099btest = submit(t('1099B TEST'));
     $do1099b = submit('1099B');
     $tables .= ' notices boxes do log stats usd';
   }
@@ -55,12 +57,14 @@ function formAdmin($form, &$sta, $args = '') {
   $seeData = submit(t('See Data'));
   $seeChanges = submit(t('See Changes'));
   $newUsdEmail = submit(t('New USD Email'));
-  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeChanges seeSecure seeHidden')));
+  $askForAppData = submit(t('Ask for App Data'));
+  $seeAppData = submit(t('See App Data'));
+  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeChanges seeSecure askForAppData seeAppData')));
   
   $form = compact('title');
   if ($mya->cAdmin) {
     foreach (u\ray($tables) as $one) $form[$one] = submit($one);
-    $form += compact(u\ray('inviteeStatus do1099b stop start stopCtty startCtty acctSet'));
+    $form += compact(u\ray('inviteeStatus do1099btest do1099b stop start stopCtty startCtty acctSet'));
   }
   return $form;
 }
@@ -99,10 +103,16 @@ function formAdmin_submit($form, &$sta) {
 //      seeSecure($a);
     }
     return r\go('/print-rcard/' . $a->qid);
+  } elseif ($op == 'askForAppData') {
+    $gets = u\ray(R_APP_DATA_GETS);
+    $a->update('getAppData appData', $gets[0], []);
+    say(t('Request for app data sent to ') . $a->fullName);
+  } elseif ($op == 'seeAppData') {
+/**/ debug($a->appData);
   } elseif ($op == 'seeSecure') {
     if (@$a) {
       say(u\rayTable(u\ray('fullName phone dob physicalAddr', $a->fullName, substr(@$a->phone, 2), u\fmtDate(@$a->dob), @$a->address . ' ' . $a->postalCode)));
-      seeHidden($a);
+//      seeHidden($a);
       seeSecure($a);
     }
   } elseif ($op == 'seeData') {
@@ -111,9 +121,9 @@ function formAdmin_submit($form, &$sta) {
     r\Web\connectBank($a); */
   } elseif ($op == 'seeChanges') {
     r\go("sadmin/changes/$a->mainQid");
-  } elseif ($op == 'do1099b') {
+  } elseif ($op == 'do1099b' or $test1099 = ($op == 'do1099btest')) {
     include_once __DIR__ . '/../rcredits-yearly.inc';
-    r\Special\do1099bs();
+    r\Special\do1099bs($test1099);
   } elseif ($op == 'inviteeStatus') {
     return r\go('invited-whom');
   }
@@ -129,7 +139,12 @@ function formAdmin_submit($form, &$sta) {
   if ($op == 'log') return say(a\showQuery('r_log', 1, 'logid DESC', $logFields));
   if ($op == 'tells') return say(a\showQuery('r_log', "info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50", 'logid DESC', $logFields));
 
-  if ($op == 'txs') return say(a\showQuery('r_txs', isDEV ? 1 : 'type NOT IN (:TX_REBATE,:TX_BONUS)', 'xid DESC', 'xid, t.created, type AS ty, goods AS gd, payer, payee, amount, payerFor AS for1, payeeFor AS for2, payerTid AS tid1, payeeTid AS tid2', array('payer', 'payee')));
+  $fields = <<<EOF
+    xid, t.created, type AS ty, goods AS gd, 
+    IF (LOCATE('"force";s:1:"1"', data)>0, 1, IF(LOCATE('"force";s:2:"-1"', data)>0, -1, IF(LOCATE('"force";s:1:"0"', data)>0, '0', ''))) AS f,
+    payer, payee, amount, payerFor AS for1, payeeFor AS for2, payerTid AS tid1, payeeTid AS tid2
+EOF;
+  if ($op == 'txs') return say(a\showQuery('r_txs', isDEV ? 1 : 'type NOT IN (:TX_REBATE,:TX_BONUS)', 'xid DESC', $fields, array('payer', 'payee')));
 
   if ($op == 'gifts') return say(a\showQuery('r_gifts', "honor<>'share'", 'donid DESC', 'donid,giftDate,t.uid,amount,often,honor,honored,t.share,completed', 'uid'));
   if ($op == 'invites') return say(a\showQuery('r_invites', 1, 'invited DESC', 'invited, inviter, invitee, email', 'inviter'));
@@ -367,7 +382,7 @@ function formDownloadMemberList_submit($form, &$sta) {
 //define('DEPOSIT_DATE1', 1411517529); // first deposit date
 
 /**
- * Print checks for transfers from member bank accounts.
+ * Offer to print checks or a deposit slip for transfers to or from member bank accounts.
  */
 function formDeposits($form, &$sta, $deposit = '') {
 //  if ($deposit) return r\go("sadmin/deposit/$deposit");
@@ -403,15 +418,18 @@ function depositDetails($args) {
   include_once __DIR__ . '/../pdf.class';
   $pdf = new r\Pdf();
 
+  if (!$in = (strtoupper($way) == 'IN')) $total = -$total;
+  $total = u\fmtAmt($total, '$');
+
   $m = .5; // left/right margin size
+  $colW = 1.25; // amount column width
   $pdf->setPageUnit('in'); // measure everything in inches
   $pdf->SetMargins($m, $m, $m);  // left/top/right margin, needed for auto page breaks
-  $pdf->SetAutoPageBreak($count > 47, $m); // leave space at bottom (count compensates for TCPDF bug)
+  $pdf->SetAutoPageBreak($count > ($in ? 47 : 9), $m); // leave space at bottom (count compensates for TCPDF bug)
   $pdf->setPrintHeader(FALSE);
   $pdf->setPrintFooter(TRUE);
 //  $pdf->setLanguageArray($l); // (eg "page" in footer)
 
-  $in = (strtoupper($way) == 'IN');
   list ($activity, $where) = $in ? [t('DEPOSIT'), 'amount<0'] : [t('CASHOUT'), 'amount>0'];
   $today = $date == 1 ? t('(Historical)') : u\fmtDate($date ?: time());
   $pdf->setupFooter('', "rCredits $activity $today", ['A'.ESCROW_ROUTING.'A '.ESCROW_ACCOUNT.'C', 'GnuMICR 12'], 'Page @PAGE of @PAGES');
@@ -438,7 +456,7 @@ Greenfield, MA 01301<br>
 +1 413 774 2135<br>
 <br>
 <br>
-<b>TOTAL: $$total</b><br>
+<b>TOTAL: $total</b><br>
 $count checks<br>
 EOF
   );
@@ -458,15 +476,27 @@ EOF;
 // (needs htmlcell instead of cell)   if (!$in) $name = r\acct($uid)->bankInfoLink();
     $pdf->setX($x);
     $pdf->Cell(1, 0, u\fmtAmt($amount, ''), '', 0, 'R');
-    $pdf->setX($x + 1.25);
-    $pdf->Cell($x - 1.25, 0, "(# $txid) $name", '', 1);
+    $pdf->setX($x + $colW);
+    $pdf->Cell($x - $colW, 0, "(# $txid) $name", '', 1);
+    if (!$in) { // for outgoing checks, show bank address
+      $pdf->setX($x + $colW);
+      if ($bankInfo = r\acct($uid)->bankInfo) {
+        extract($bankInfo, EXTR_PREFIX_ALL, 'b');
+        $pdf->Cell($x, 0, $b_name, '', 1);
+        $pdf->setX($x + $colW);
+        $pdf->Cell($x, 0, $b_address, '', 1);
+        $pdf->setX($x + $colW);
+        $pdf->Cell($x, 0, "$b_city, $b_state $b_zip", '', 1);
+      } else $pdf->Cell($x, 0, 'NO BANK ADDRESS', '', 1);
+      $pdf->newLine(); // a blank line between
+    }
   }
   $pdf->setX($x);
   $pdf->Cell(1, 0, '----------------', '', 1, 'R');
   $pdf->setX($x);
-  $pdf->Cell(1, 0, '$ ' . u\fmtAmt($total, ''), '', 0, 'R');
-  $pdf->setX($x + 1.25);
-  $pdf->Cell(($pdf->pageW - $x) - 1.25, 0, t('TOTAL'), '', 1);
+  $pdf->Cell(1, 0, $total, '', 0, 'R');
+  $pdf->setX($x + $colW);
+  $pdf->Cell(($pdf->pageW - $x) - $colW, 0, t('TOTAL'), '', 1);
 
   if (u\test()) $pdf->Close(); else $pdf->Output('rCredits-deposit-$date.pdf', 'I'); //Close and output
 }
@@ -632,7 +662,7 @@ function formSMS_submit($form, $sta) {
 function test($arg = '') {
   global $user;
   \drupal_get_messages(); // clear messages
-  $modules = u\prefixValues('rcredits/', u\ray('admin rcron rweb rsmart'));
+  $modules = u\prefixValues('rcredits/', u\ray('admin rweb rcron rsmart'));
   include_once __DIR__ . '/../../gherkin/test.php';
   if ($user->uid != 1) { // test signed us out
     file_put_contents(T_MSG_FILE, serialize(\drupal_get_messages()));

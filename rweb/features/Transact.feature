@@ -148,4 +148,4 @@ Scenario: A member leaves goods blank
   | pay | Bea Two | 100    |       | labor   |  
   Then we say "error": "required field" with subs:
   | field |*
-  | GOODS |
+  | ''For'' |

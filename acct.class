@@ -160,7 +160,10 @@ class acct {
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'bank') return $a->risk('hasBank');
     if ($field == 'slave') return ($jid = $a->jid and $jid < $a->id); // slave in a joint account
-    if ($a->getSpecial($field, $result)) return $result; // set up caches, if appropriate
+    if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
+      : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
+
+      if ($a->getSpecial($field, $result)) return $result; // set up caches, if appropriate
     $result = @self::$rs[$a->id]->$field; // returns NULL if field not set
     if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
 
@@ -180,7 +183,7 @@ class acct {
    */
   private function getSpecial($field, &$result) {
     $a = $this;
-    foreach (['data', 'secure', 'secret'] as $set) {
+    foreach (['data', 'secure'] as $set) { // , 'secret'
       if ($a->special($field, strtoupper($set))) {
         $set = $a->$set;
         u\preray($set, self::$rs[$a->id]); // cache all components of the special field
@@ -263,12 +266,14 @@ class acct {
     }
     if (isset($info['pass'])) $info['pass'] = r\passHash($info['pass']);
 
+    /*
     if ($secrets = u\just(R_SECRET_FIELDS, $info)) { // store protected information securely, offsite
       $offsite = offsiteData(@$a->offsite, $secret = $secrets + $a->secret);
       if ($offsite and is_numeric($offsite)) u\preray(compact('offsite'), $info); else return FALSE; // if attempt to store fails, save nothing
     }
+    */
 
-    $info = u\justNot(R_SECRET_FIELDS . ' ' . R_SECURE_FIELDS . ' ' . R_DATA_FIELDS, $info); // don't pass these
+    $info = u\justNot(R_SECURE_FIELDS . ' ' . R_DATA_FIELDS, $info); // don't pass these
     u\preray(compact('secret') + $info, self::$rs[$a->id]); // cache the new field values (AFTER storing secrets might fail)
     $info['uid'] = $a->id; // make sure db\update gets this
     return db\update('users', $info, 'uid');
@@ -612,8 +617,7 @@ EOF;
   }
   
   /**
-   * Return the total amount waiting to be transferred TO or (if negative result) FROM the bank.
-   * @param bool $justTo: (UNUSED) 'to'=<ignore transfers FROM bank>, 'from'=<ignore transfers TO bank>
+   * Return the total waiting to be credited as a transfer TO or (if negative result) FROM the member's bank.
    */
   public function waitingToBank() {
     $id = ($jid = $this->jid) ? "$this->id,$jid" : $this->id;

@@ -284,7 +284,7 @@ function payInvoice($nvid, &$msg = '') {
   extract(u\just('payer payee amount goods purpose', $inv));
   
   $DBTX = \db_transaction();
-  $purpose .= " (inv#$nvid)";
+  $purpose .= " (rCredits inv#$nvid)";
   list ($index, $subs) = be\transfer('payment', r\acct($payer), r\acct($payee), $amount, $goods, $purpose);
   if ($ok = @$subs['success']) db\q('UPDATE r_invoices SET status=:xid WHERE nvid=:nvid', u\ray('xid nvid', @$subs['xid'], $nvid));
   unset($DBTX);
@@ -443,15 +443,17 @@ function invoice($a1, $a2, $amount, $goods = R_FOR_USD, $purpose = NULL, $oked =
 function fund($uid, $type, $amount, $for, $oked = TRUE) {
   $payeeAgent = $payee = $uid;
   $mya = r\acct(); // (null, if just registering or running as cron)
-  u\EXPECT(r\isReward($type) or $mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
+  $isReward = r\isReward($type);
+  u\EXPECT($isReward or $mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
   if ($type == TX_FINE) $amount = -$amount;
   if (!$oked) return $amount;
   
   $payer = r\acct($payee)->community;
   $payerAgent = (@$mya and $mya->id < 0) ? $mya->agentId : $payer; // take note if funded by community admin
   if (!new r\x(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')))) return FALSE;
-  //$types = u\ray(TX_TYPES);
-  $subs = u\ray('amount purpose', u\fmtAmt(abs($amount)), $for);
+  $types = u\ray(TX_TYPES);
+  $thing = $isReward ? t('reward') : $types[$type];
+  $subs = u\ray('amount purpose thing', u\fmtAmt(abs($amount)), $for, $thing);
   $index = $type == TX_FINE ? 'got fine' : 'got funding';
   if ($type == TX_INFLATION) $index .= '|inflation details';
   r\notify($uid, $index, $subs);
@@ -482,7 +484,7 @@ function addCell($number, $validate = FALSE) {
   
   //$status = SMS_PRIMARY;
   r\makeDevice($myid, $numberInternal, TX_SMS);
-  if (!$mya->phone) $mya->update(u\ray('phone', $numberInternal)); // use it as contact phone, if none yet
+  if (!$mya->phone) $mya->update('phone', $numberInternal); // use it as contact phone, if none yet
   return array('report new cell', u\ray('number', $numberPretty));
 }
 

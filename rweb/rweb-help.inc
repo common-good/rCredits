@@ -27,27 +27,25 @@ function rawHelp($i, $tag = '') {
 EOF
   );
   
+  //Help is also available for the <a href="$base_url/help/sms">Text Messaging Interface</a>.
   $back = '<p>' . u\backButton() . '</p>';
   if ($i == 'general') return tt(<<<EOF
-    <p>Help is also available for the <a href="$base_url/help/sms">Text Messaging Interface</a>.
-    Use the tabs above and the icons at the top right, to try all the features of the rCredits system. Here's an overview of what's where:</p>
+    <p>Use the tabs above and the icons at the top right, to try all the features of the rCredits system. Here's an overview of what's where:</p>
     <h2>Tabs:</h2>
     <ul>
       <li><b>Summary</b>: an overview of your account.</li>
-      <li><b>Transactions</b>: shows your recent transactions so you can accept, edit, print, or undo them.</li>
-      <li><b>Charge</b>: Invoice another participant (to be paid in rCredits and/or US Dollars). Or, if you have a qualified business account, you can charge them. Normally, both buyer and seller get an incentive reward of additional rCredits.</li>
-      <li><b>Pay</b>: Transfer your rCredits to another participant. Normally, both buyer and seller get an incentive reward of additional rCredits.</li>
-      <li><b>Get r/USD</b> Transfer money to or from your bank account.</li>
-      <li><b>Find Companies</b>. Find out who takes rCredits for what you want.</li>
-      <li><b>Reports</b>. See how the rCredits economy is doing in your community.</li>
+      <li><b>History</b>: shows your recent transactions, invoices, notices, monthly statements, and annual tax forms (Form 1099-B).</li>
+      <li><b>Charge</b>: Invoice another participant (to be paid in rCredits and/or US Dollars). Both buyer and seller get an incentive reward for purchases of goods and services.</li>
+      <li><b>Pay</b>: Transfer your rCredits to another participant. Both buyer and seller get an incentive reward for purchases of goods and services.</li>
+      <li><b>Bank</b> Transfer money to or from your bank account.</li>
+      <li><b>Find Co</b>. Find out who takes rCredits in your area.</li>
+      <li><b>Community</b>. See how the rCredits economy is doing in your community.</li>
+      <li><b>Invite</b>. Invite a friend to open an rCredits account and get incentive rewards!</li>
     </ul>
-    <h2>Icons, etc.</h2>
-    <ul>
-      <li><b>Sign out (Your icon)</b>: click the picture of yourself to sign out or change users.</li>
-      <li><b>Settings (Gear icon)</b>: Change your account settings, customize your company webpage (or make a Buy-with-rCredits button), make another donation, or connect a mobile device.</li>
-    </ul>
+    <h2>Settings (Gear icon, upper right):</h2>
+    <p>Change your account settings, including contact information, general preferences, security settings, bank account connection, relations with other accounts, and proxy choices.</p>
 
-    <p>If you need help and can't find the answer here, please feel free to <a href="mailto:@R_REGION_EMAIL?subject=help with rCredits" target="_blank">email us</a>.</p>
+    <p>If you need help and can't find the answer here, please feel free to <a href="mailto:@R_REGION_EMAIL?subject=help with rCredits" target="_blank">email us</a> or use this form to send us a secure encrypted message.</p>
 EOF
   );
 
@@ -181,7 +179,7 @@ EOF
     <p>In the meantime, until then, rCredits are issued automatically:</p>
     <ol>
       <li>as a stand-in for US Dollars, which are held unused in a separate account, and</li>
-      <li>as incentives for doing what will strengthen and grow the system (signup bonuses, purchase rewards, and inflation adjustments).</li>
+      <li>as incentives for doing what will strengthen and grow the system (signup bonuses, purchase rewards, inviter/helper rewards, and inflation offset).</li>
     </ol>
     $back
 EOF

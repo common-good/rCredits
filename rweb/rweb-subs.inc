@@ -52,7 +52,7 @@ EOF
   'lost old changes' => t('Any unsaved changes to account @oldAcct have been discarded.'),
   'take a step' => t('Your account is <b class="stopnot">not yet activated.</b> <a href="status" class="nextstep">Click here for the next step!</a>.'),
   'got token' => t('Your rCredits and US Dollar accounts have been successfully connected!'),
-  'company rcard' => t('Send a <a href="@href">company rCard</a> to @name at @address.'),
+  'company rcard' => t('Send a <a href="@href">company rCard</a> for @otherName to @manager at @address.'),
   'amount rounded' => t('"@amount" was rounded to the nearest integer value.'),
   'invite sent' => t('Your invitation has been sent.'),
   'repeat invite' => t('Come back any time, to send more invitations (click "Invite Someone" at the bottom of any page).'),
@@ -181,7 +181,6 @@ EOF
   'upload required' => t('You must upload a file.'),
   'missing contact info' => t("<h2>Missing Contact Information</h2><p>Please complete your <@a1>Contact Information</a> before continuing.</p>"),
   'correct and retry' => t('Please correct the problem and resubmit this form.'),
-  'duplicate transaction' => t('You already just @op that member that much.'),
 //  'duplicate phone' => t('That phone number is already the primary phone for another account.<br><br>If this is your ONLY phone and you can make do without a connected bank account (that is, if you have some other easy way to get money into and out of your rCredits account): <input type="button" value="Continue With No Bank Connection" onclick="jQuery(\'#edit-dupOk\').val(1); jQuery(\'#rcreditswebform@form\').submit();" />'),
   'not a duplicate phone' => t('That phone number is NOT the primary phone for another account.'),
   'bad pin' => t('That is not your correct PIN.'),
@@ -217,6 +216,7 @@ EOF
   'short cash help' => t('<@a>Click here</a> for more information about cashing out incentive rewards.', ['@a'=>'a href=' . $GLOBALS['base_url'] . '/help/cashing-out']),
   'link expired' => t('That link has expired.'),
   'login failed' => t('Your attempt to sign in failed. Click the "Password problems" link if you need a new password.'),
+  'file save error' => t('Your file upload did not succeed.'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
 
@@ -244,8 +244,10 @@ function proxyChoices($dft) {
   $a = r\acct();
   $uid = $a->id;
   $table = <<<EOF
-    (SELECT DISTINCT IF(inviter=:uid, invitee, inviter) AS uid FROM r_invites WHERE :uid IN (inviter, invitee)
-    UNION SELECT DISTINCT IF(person=:uid, proxy, person) AS uid FROM r_proxies WHERE :uid IN (person, proxy)) q
+    (SELECT DISTINCT IF(inviter=:uid, invitee, inviter) AS uid FROM r_invites 
+      WHERE :uid IN (inviter, invitee) AND invitee>0
+    UNION SELECT DISTINCT IF(person=:uid, proxy, person) AS uid FROM r_proxies 
+      WHERE :uid IN (person, proxy)) q
 EOF;
 
   if (!$friends = db\lst('uid', $table, 1, compact('uid'))) $friends = '0'; // list of account's friends
@@ -446,9 +448,9 @@ function acctTypeField() {
  */
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formArray, $formSta, $rUrl;
-  $anonForms = 'Admin Test Handy footer accounts';
+  
   setGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
-  if (!@$formSta['confirm'] and !in_array($function, u\ray($anonForms))) {
+  if (!@$formSta['confirm'] and !in_array($function, u\ray(R_NOLOG_FORMS))) {
     if ($logs = $_POST) {
       foreach (u\just(R_NOLOG, $logs) as $k => $zot) $logs[$k] = '?';
       u\loga('in', $logs);
@@ -458,7 +460,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   try {
     $mya = r\acct();
 ///    global $zot; $zot = @$zot . ' ' . $function; if (strlen(@$zot) > 50) die($zot);
-    if (!$mya and !in_array($function, u\ray("$anonForms Signup Signin Pass Empty TestRecovery ChangePassword Help Agreement Reports Flags Menu I ResetPassword Profile Accept Buy Summary HandleInvoice"))) r\go('');
+    if (!$mya and !in_array($function, u\ray(R_ANON_FORMS))) r\go('');
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
     $specialForm = in_array($function, u\ray('Help Empty footer accounts Admin Login MemberList MemberInfo'));
@@ -475,13 +477,13 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     \rweb_form_alter($form, $formSta, $formName);
     
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
+    js('inc/misc.js', 'file', 'footer'); // used to be just for specialForms
     if (!$specialForm) {
     /* User should not need explicit help with a page!
       $extras = array('#id' => 'help-link', '#weight' => @$form['title']['#weight']);
       $help_link = item(t('<a><div></div>Help with this page</a>')) + $extras; // add a help link at top of page
       $form = compact('help_link') + $form;
       */
-      js('inc/misc.js', 'file', 'footer');
       if (@$form['country']) {
         js('inc/countries.js', 'file', 'header');
         if ($mya and \form_get_errors()) js("print_country($mya->country, $mya->state);", 'inline', 'footer');
@@ -1109,21 +1111,38 @@ function oneTimePass($name) {
 
 /**
  * Return a formatted, categorized list of businesses
+ * @param string $which: word search for business name or industry
+ * @param mixed $region: community (the default), postalCode (maybe partial), or country (maybe partial)
+ * @param bool $withButtons: include "Pay" and "Chg" buttons
  */
-function directoryList($which, $region) {
+function directoryList($which, $region, $withButtons = FALSE) {
   global $base_url;
+  
+  if ($withButtons and $mya = r\acct()) {
+    $canBuy = $mya->can(B_BUY);
+    $canSell = $mya->can(B_SELL);
+  } else $canBuy = $canSell = FALSE;
+
   list ($symbolMember, $symbolRTrader, $symbolNonMember) = array('m', 'R', '-');
-  $field = is_numeric($region) ? 'postalCode' : 'country';
+  
+  if (!$region or (is_numeric($region) and $region < 0)) {
+    if (!$region) $region = r\serverUid();
+    $regionCrit = 'community=:region';
+  } else {
+    $region = \db_like($region) . '%';
+    $regionCrit = '(postalCode LIKE :region OR country LIKE :region)';
+  }
+  $regionCrit = "($regionCrit OR name='cgf')"; // always include CGF
+  
   $which = u\ignoreSuffix($which, 'ants ant ian es ers ing er or ion s');
   $which = str_replace(' ', '%', \db_like(" $which ")); // allow abbreviations of each word
-  $region = \db_like($region) . '%';
   $rows = [];
   $sql = <<<EOF
     SELECT DISTINCT u.uid, IFNULL(i.industry, '~Other') AS industry, u.name AS short_name, u.fullName, u.data
     FROM users u 
     LEFT JOIN r_user_industries ui ON ui.uid=u.uid
     LEFT JOIN r_industries i ON i.iid=ui.iid
-    WHERE :IS_CO AND :IS_OK AND u.$field LIKE :region AND (u.fullName LIKE :which OR i.industry LIKE :which)
+    WHERE :IS_CO AND u.uid>1 AND :IS_OK AND $regionCrit AND (u.fullName LIKE :which OR i.industry LIKE :which)
     ORDER BY industry, u.fullName
 EOF;
   $result = db\q($sql, compact(u\ray('region which')));
@@ -1139,12 +1158,12 @@ EOF;
       $headed = TRUE; // always show the category (but keep the option to disable this choice)
       $list .= $headed ? ($list ? '</ul>' : '') . "<ul><h2>$cat</h2>\n" : '<li>&nbsp;</li>';
     }
-    $mya = r\acct();
-    $acct = r\acct($uid);
-    $pay = $mya->can(B_BUY) ? button('pay', "$base_url/pay/who=$short_name") : '';
-    $chg = $mya->can(B_SELL) ? button('chg', "$base_url/charge/who=$short_name") : '';
+    $a = r\acct($uid);
+    $pay = $canBuy ? button('pay', "$base_url/pay/who=$short_name") : '';
+    $chg = $canSell ? button('chg', "$base_url/charge/who=$short_name") : '';
     $fullName = "<a href='$base_url/member/$short_name'>$fullName</a>";
-    $item = "$pay$chg $fullName";
+    list ($selling) = explode("\n", $a->selling);
+    $item = "$pay$chg <div class=\"company\">$fullName</div><div class=\"selling\">$selling</div>";
     if (!$headed) $item = "- $item <span>($industry)</span>";
     $list .= "<li>$item</li>\n";
   }
@@ -1450,12 +1469,14 @@ function transfer($op, $info, $confirmed) {
   $mya = r\acct();
   $myid = $mya->id;
   extract(u\just('who amount goods purpose', $info));
+  if (!in_array($op, ['pay', 'charge'])) $goods = 0; // make sure this is set, for blank_field check
   $txType = $op == 'pay' ? 'payment' : strtolower($op);
-  if (blank_field(compact(u\ray('who goods amount')))) return FALSE;
+  if (blank_field(compact(u\ray('who amount')))) return FALSE;
+  if (!isset($goods) or $goods === '') return say('required field', ['field'=>'"For"'], 'ERR'); // '' is for test
   if (!$a = w\whois($who, 'who', $info)) return FALSE;
   if ($goods == R_FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($error = u\badAmount($amount, '>0')) return say($error, 'amount');
-  $op = $op == 'pay' ? t('paid') : ($op == 'charge' ? 'charged' : $op . 'ed'); // for possible error message
+//  $op = $op == 'pay' ? t('paid') : ($op == 'charge' ? 'charged' : $op . 'ed'); // for possible error message
   if (u\forCash($purpose)) $goods = R_FOR_USD;
   list ($msg, $args, $confirm) = 
      $txType == 'payment' ? be\transfer($txType, $mya, $a, $amount, $goods, $purpose, NULL, $confirmed)
@@ -1615,8 +1636,8 @@ function showCharts($whichChart) {
 
   list ($in, $out, $fees, $net, $personal, $companies) = array(t('in'), t('out'), t('fees'), t('net'), t('personal'), t('companies'));
   extract($stats = r\stats($myCtty)); // careful with this (don't overwrite local vars)
-  if ($spent < 0) $stats['spent'] = $spent = 0;
   extract(w\fundStats($stats, TRUE)); // get the formatted versions, with originals in {var}0
+  foreach (['txRewards0', 'spent0', 'trade0'] as $k) $$k = max(0, $$k); // don't display negative values
  
   $issuedData = array(
     "['for USD',{v:$usd0,f:'$usd'}]",
@@ -1628,8 +1649,8 @@ function showCharts($whichChart) {
     "['grants',{v:$grants0,f:'$grants'}]",
     "['loans',{v:$loans0,f:'$loans'}]",
     "['invested',{v:$invests0,f:'$invests'}]",
-//   "['fees',{v:$usd0,f:'$usd'}$fines]" think of a way to handle these negatives (separate pie?)
-//   "['trade (net)',{v:$trade0,f:'$trade'}]",
+//   "['fees',{v:$usd0,f:'$usd'}$fines]" think of a way to handle negatives (separate pie?)
+    "['trade (net)',{v:$trade0,f:'$trade'}]",
   );
   $superTotal = u\fmtAmt($r0 + $usd0);
 

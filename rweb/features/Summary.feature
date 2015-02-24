@@ -58,11 +58,12 @@ Scenario: A member clicks the summary tab
   | Balance       | $266 |
   | Rewards       | $256 |
   | Committed     | $0.60 |
+  | Credit limit  | $100 |
   | Your return   | 20.6% |
-#  | _ever         | 544.1% | or 541.4% (depends on daylight time?) or 280.9%?!
+  | _ever         | 544.1% |
+#  or 541.4% (depends on daylight time?) or 280.9%?!
   | Social return | $9 |
   | _ever         | $9 |
-  | Credit limit  | $100 |
 
 Scenario: An agent clicks the summary tab without permission to manage
   When member ":ZZA" visits page "summary"
@@ -78,8 +79,6 @@ Scenario: A company agent clicks the summary tab
   | Name         | Corner Pub (cornerpub) |
   | _Address     | 3 C St., Ctown, Cher, FRANCE |
   | ID           | .ZZC (company account) |
-  And without:
-  | Balance      | $623 |
 
 Scenario: Member's account is not active
   Given member ".ZZA" account is not active

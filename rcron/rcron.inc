@@ -6,6 +6,7 @@ use rCredits\Util as u;
 use rCredits\Testing as t;
 use rCredits\Backend as be;
 use rCredits\Risk as k;
+use rCredits\Cron as cron;
 
 /**
  * @file
@@ -62,6 +63,7 @@ NOTES:
 
 define('R_DAILY_TASKS', 'START recache checkAccts setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank bona employees notices END'); // had homogenize, pool 
 //define ('R_DAILY_TASKS', 'START redistribute END');
+include_once __DIR__ . '/rcron-subs.inc';
 
 /**
  * Do a queued task
@@ -143,7 +145,7 @@ EOF;
   $sql = <<<EOF
     SELECT uid, $elapsed AS elapsed FROM users 
     WHERE ($elapsed IN ($delays) OR ($elapsed>8 AND $elapsed%7=0))
-    AND uid>1 AND NOT :IS_OK AND NOT :IS_NONUDGE
+    AND uid>1 AND NOT :IS_OK AND NOT :IS_NONUDGE AND NOT :IS_CLOSED
 EOF;
   queueEach('tickleStep', $sql);
 
@@ -208,7 +210,7 @@ function tickleActive($item) {
   $a = r\acct($uid);
   $ratio = $monthly ? $a->floor / $monthly : 1;
   if ($ratio > 1.1 or $ratio < .9) { // big change (or any change in sign)
-    $a->update(['floor' => round(-$monthly, 2)]);
+    $a->update('floor', round(-$monthly, 2));
     $msg = 'new floor' . ($a->can(B_DEBT) ? '' : '|no floor effect');
     r\notify($uid, $msg, ['limit' => u\fmtAmt($monthly)]);
   }
@@ -324,7 +326,7 @@ function shareCommitted($item) {
   $info = u\ray('giftDate uid amount often honor share', REQUEST_TIME, $uid, $committed, 1, 'share', -1);
   $DBTX = \db_transaction();
   db\insert('r_gifts', $info);
-  r\acct($uid)->update(['committed' => 0]);
+  r\acct($uid)->update('committed', 0);
   unset($DBTX);
 }
 
@@ -483,7 +485,7 @@ EOF;
   $row3 = db\q($sql, $subs)->fetchAssoc() ?: []; // get bankedEver, bankedPastMo
   $newData = $row1 + $row2 + $row3 + compact(u\ray('avgBalPastMo avgBalEver minPastMo'));
   foreach ($newData as $k => $v) $newData[$k] = '' . round($v, 2); // avoid long decimals
-  $a->update(u\ray('stats picture', serialize($newData), $minPastMo * 100));
+  $a->update('stats picture', serialize($newData), $minPastMo * 100);
 }
 
 /**
@@ -498,6 +500,10 @@ function cttyStats() {
 function cttyStats1($item) {
   extract(u\just('ctty', $item));
   r\getStats($ctty); // record stats for one community on the regional server
+
+  $companies = \variable_get('companies', []);
+  $companies[$ctty] = cron\companies($ctty);
+  \variable_set('companies', $companies);
 }
 
 /**
@@ -725,7 +731,7 @@ function getHowMuchR($a, $banky = TRUE) {
  * Give signup bonuses.
  */
 function bona() {
-  $sql = 'SELECT u.uid FROM users u LEFT JOIN r_txs t ON t.payer=u.uid WHERE NOT :IS_BONA AND NOT :IS_CO AND t.taking'; // new human member who has complete an rCard purchase
+  $sql = 'SELECT u.uid FROM users u LEFT JOIN r_txs t ON t.payer=u.uid WHERE NOT :IS_BONA AND NOT :IS_CO AND t.taking'; // new human member who has completed an rCard purchase
   queueEach('bona1', $sql);
   queueNext();
 }
@@ -738,7 +744,7 @@ function bona1($item) {
   r\membershipEvent($a, 'bona');
   be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
   
-  if (!r\acct($a->helper)->admin) { // helper is not admin
+  if (!r\acct($a->helper)->cAdmin) { // helper is not admin
     $fullName = $a->fullName;
     be\fund($a->helper, TX_HELPER, R_HELPER_BONUS, u\tt('invite reward', compact('fullName')));
   }
@@ -757,10 +763,13 @@ function employees() {
 function employee($item) {
   extract(u\just('uid company', $item));
   $co = r\acct($company);
-  if ($helper = $co->helper and $helper != $uid) { // if is for tests (handles no helper)
-    $fullName = $co->fullName;
-    be\fund($helper, TX_HELPER, R_COUNTED_BONUS, u\tt('employee invite reward', compact('fullName')));
-    r\acct($uid)->setBit(B_COUNTED);
+  if ($coHelper = $co->helper and $helper = r\acct($coHelper)->helper) { // if is for tests (handles no helper)
+    $h = r\acct($helper);
+    if ($helper != $uid and !$h->cAdmin) {
+      $fullName = $co->fullName;
+      be\fund($helper, TX_HELPER, R_COUNTED_BONUS, u\tt('employee invite reward', compact('fullName')));
+      r\acct($uid)->setBit(B_COUNTED);
+    }
   }
 }
   

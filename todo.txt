@@ -1,48 +1,41 @@
 rCredits Software
 To Do
 
+- "rCredits Accepted Here" window stickers, register stickers (maybe just business card size)
 - (from mike morton) after we grow, might be nice to do newsletter features on:
         • the person who’s successfully directly invited the most other people
         • ditto, but directly-and-indirectly combined, sort of “most descendants”
         • the longest chain of successful invites (probably not that long, so maybe more than one chain)
 - Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site)
 
-Before growing fast:
-. DONE write rCredits Security Protocols
-. DONE "remotely-created checks" (RCC). And shut down Dwolla accounts.
-. DONE tell members about RCC (including risks, benefits, privacy, safeguards etc.)
-. write to each participating business. Describe identity verification onsite through app. Ask them for employee count and annual gross
-. DONE add mediaconx to all individual accounts created before 10/5/2014
-. DONE emails and invites don't get marked as spam
-. DONE economic circle(s)
-. DONE Ask David Kulp to set up replication
-. DONE ID verification
-. DONE Software:
-  - DONE invoices
-  - sound admin tools: 
-. $25 for inviting and helping (software and promo)
-. DONE get GFM and Foster's to pay suppliers and/or employees at least half what they take in
+. some of Kirsten's contingent compensation has no time limit
+. write to each participating business. Ask them for employee count and annual gross
 . after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
-. DONE open rWMR account (dba rCredits account for rCredits escrow, at Citizens. I made it clear that we were providing escrow service to our members, for their payments to their associations (that are also members of S2BE).
 . video about Admin'ing
 
 TASKS FOR NEXT UPDATE:
-backup db (DONE)
-upgrade to Drupal 7.34 (post Drupalgeddon) (try it on ws first)
-replace user.module, form.inc, update.fetch.inc, user.js (rename originals 0...)
-f('a.moveFieldsToHidden');
-make sure nobody has bit 4 set (B_COUNTED)
+. remake menus
+. change boot.php to boot.inc in settings.php
 
+. *** for appData requests, target a specific device (or each device for a particular business) and record the results in r_boxes
+. add links to company page
+. Gary P and Betsy C have legalname change listed, with no actual change. that should not happen.
+. when the letsons joined their accounts, the slave got an NYA area relation ID. should be NEW. Test (both email confirmation and relations page confirmation)
+. make it a "preference" setting: "Don't tell non-members I'm a member." or some such.
+. when admin reverses a reversal of a payment (from the company account) it should not tell the customer they have been invoiced
+. *** store company card security code in relations table, not cardcode2
+. alert staff about unusual format names, cities, addresses, and postalAddrs
+. reversing a reversed transaction should not ask "Okay to dispute this [negative] charge"
+. why does Leigh Rae show as "accepted" (not Member) on Emily M's invited-whom page?
 . remove by from data fields (after feb 1)
 . tighten up security
-. change bottom-of-check numbers to other format -- test with just David G's acct (for FFCU for example)
 . ** create new community for first member in the region (NEV, etc.), but report them as coming from server org on 1099-B (for both the member and the state).
 . when updating relations to give "joint" permission, mention that the other account will receive a confirm email
 . in welcome message, warn newbie they will have to show an ID before first purchase
 . MAYBE for transfer requests over the person's credit limit, if the amount is $20 or more and the credit limit is $10 or more, split the request so some can be credited immediately (but don't do two separate checks? -- not easy)
 . rename tables without r_ and rename drupal tables to _... (search for lowercase "'r_" and " r_" but look out for variables like r_last_cron (found in variables table or created with extract(...'r'))
 . tests for rdo
-. disallow repeat EINs? (tell Ed Smith? and Janet Massucci and maybe Adam K. and Jim Bates)
+. disallow repeat EINs for individuals? (tell Ed Smith? and Janet Massucci and maybe Adam K. and Jim Bates)
 . autocomplete in relations causes failure of newperson field unless clicked twice (temporarily bypassed by disabling autocomplete)
 . test automatic unjoin of previous join, if a join is requested with a new account
 . investigate the dozen attempts (in one week) to recognize NEW.ABU with wrong cardCode: SELECT * FROM `r_log` l join r_log l2 on l2.logid=l.logid+1 WHERE l2.info like '%bad customer%'

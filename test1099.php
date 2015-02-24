@@ -1,8 +1,12 @@
 <?php
+// localhost/devcore/sites/all/modules/rcredits/test1099.php?t1 tests forms1099b-FY2015(1).bin1 (?1 -> .bin)
+// The "t" means it's a test file
+
 $num = $_SERVER['QUERY_STRING'];
+if (substr($num, 0, 1) == 't') {$num = substr($num, 1); $test = 1;}
 if ($num) $num = " ($num)";
 $year = date('Y') - 1;
-$flnm = "c:\\Documents\\Downloads\\forms1099b-FY$year$num.bin";
+$flnm = "c:\\Documents\\Downloads\\forms1099b-FY$year$num.bin" . @$test;
 $s = file_get_contents($flnm);
 $s = explode("\n", $s);
 

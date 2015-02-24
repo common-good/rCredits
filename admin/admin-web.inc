@@ -19,10 +19,12 @@ function seeSecure($a) {
   say(u\rayTable($a->secure, FALSE));
 }
 
+/*
 function seeHidden($a) {
   foreach (u\ray(R_SECRET_FIELDS) as $k) if ($k != 'ssnData') $ray[$k] = $a->$k;
   say(u\rayTable($ray, FALSE));
 }
+*/
 
 /**
  * Change a transaction amount (only if the transaction happened today and only for a non-rewardable type).
@@ -129,7 +131,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     $risks2 = bitsField('risks', t('Risks:'), $a->risks, '', K_ACCT_RISKS, $aliases);
 
     $adminable = u\ray(B_ADMINABLE . ($admin ? ' admin' : ''));
-    foreach (u\ray(B_LIST) as $k) if (strpos($k, 'u') === FALSE) { // ignore undefined bits
+    foreach (u\ray(B_LIST) as $k) if (strpos($k, 'u') !== 0) { // ignore undefined bits ("u" in 0th position)
       $blist[] = $k0 = $k;
       // $helpIndex = $helpKeys[$k];
       $class = in_array($k, $adminable) ? '' : 'noEdit';

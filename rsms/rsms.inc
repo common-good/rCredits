@@ -36,10 +36,10 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'other community down' => t('That rCredits community is temporarily on hold.'),
   'account info' => t('Your balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @totalDemand.'),
   'invite reward' => t('inviting and/or assisting new member @fullName'),
-  'employee invite reward' => t('inviting and/or assisting a new member\'s manager (at @fullName)'),
+  'employee invite reward' => t('inviting and/or assisting a member\'s manager (at @fullName -- $@R_COUNTED_BONUSr per employee)'),
 //  'account info2' => t("More account info"), // not used yet
 //  'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
-  'reward' => t('(reward: @rewardAmount)'), // @rewardType
+  'reward' => t('(reward: @rewardAmountr)'), // @rewardType
 //  'report offer' => t('You offered @otherName @amount (@rewardType: @rewardAmount). Your balance is unchanged, pending acceptance.'), //  Transaction #@tid
 //  'report invoice' => t('You @did @otherName @amount.'), // Invoice #@tid
    'report tx' => t("You @did @otherName @amount for @why."),
@@ -73,8 +73,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'nothing undone' => t('Nothing undone.'),
   'event' => t('Account @fullName (@quid) is now @status.'),
   'approved' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
-  'got funding' => t('You have received a payment of @amount from your rCredits community for @purpose.'),
-  'got fine' => t('Your rCredits community charged you a fee of @amount for @purpose.'),
+  'got funding' => t('You have received a @thing of @amountr from your rCredits community for @purpose.'),
+  'got fine' => t('Your rCredits community charged you a fee of @amountr for @purpose.'),
   'inflation details' => t('Inflation adjustment is set at 5% APR pending a reliable measure of the true inflation rate.'),
   'gift sent' => t('Your chosen gift of @amount to Common Good Finance has gone through. Your rebate is @rewardAmount.'),
   'tx summary' => t('@otherName @otherDid you @amount for "@purpose" on @created.'),
@@ -118,12 +118,13 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'drew' => t('A total of @amount has been drawn from your connected account(s).'),
   'payment exchange received' => t('You received from @fullName a payment exchange of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
   'payment exchanges offered' => t('You made payment exchanges to @offers @whom, totaling @total.'),
-  'card ordered' => t('A Company Agent rCard will be US mailed to @name.'),
+  'card ordered' => t('A Company Agent rCard for @otherName will be US mailed to @manager.'),
   'balances' => t('@toSpend to spend (you can <@a>cash out</a> up to @toCash today).', ['@a' => 'a href=' . $GLOBALS['base_url'] . '/help/cashing-out']),
   'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
   'new floor' => t('Your credit limit has been changed to @limit, based on your average use of rCredits over the past 6 months.'),
   'no floor effect' => t('This currently has no effect, because you chose not to let your balance go negative. To change this setting, sign in at rCredits.org, click the Settings gear, then the Preferences tab. Put a check mark next to "Debt Okay" and save your preferences.'),
   'available now' => t('The funds are available immediately in your rCredits account.'),
+  'transfer canceled' => t('Your transfer request #@txid has been canceled.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -234,6 +235,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'tx save err' => t('The transaction could not be saved. Try again!'),
   'share too big' => t('You are not allowed to donate more than half your transaction rewards. Here\'s why: The rCredits system aligns your personal financial benefit with benefit to the community, so you can do what is best for the community just by doing what is best for you. If your personal benefit percentage is too small, you lose that convenient compass.'),
   'no photoid' => t('You must make a purchase in person using your rCard and show your driver\'s license or state ID, before any other transaction.'),
+  'duplicate transaction' => t('You already just @op that member that much.'),
 
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',

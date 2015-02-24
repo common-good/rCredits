@@ -78,6 +78,8 @@ function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $opti
  */
 function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FALSE, $boxes = FALSE, $url0 = '') {
   global $base_url, $rUrl;
+  static $xtid; u\setDft($xtid, 1);
+  
   $mya = r\acct();
   $myid = $mya->id;
   $txChannels = u\ray(TX_CHANNELS);
@@ -143,7 +145,7 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
 //  finishCsvRow($csv, array_combine($classes, $row), $tx, $tot);
   
   if ($banking) $tid = substr($tid, 1); // remove "-", for sorting
-  $sort = substr(TX_TID_MAX + $tid, 1) . ($banking ? '5' : '0'); // 0 and 5 to be deterministic
+  $sort = substr(TX_TID_MAX + ($xtid = $tid ?: $xtid - 1), 1) . ($banking ? '5' : '0'); // 0 and 5 for determinism
   array_unshift($row, $tx_created . $sort); // sort by date (fails around the year 2260), then by tid
   
   return $row;
@@ -155,10 +157,14 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
  * @return array: those rows without the sort column, sorted
  */
 function sortRows($rows) {
-  if (!@$rows) return @$rows; // no records
-  foreach ($rows as $i => $row) $keys[] = array_shift($rows[$i]);
+  if (!@$rows) return []; // no records
+  $count = count($rows);
+  foreach ($rows as $i => $row) {
+    $keys[] = array_shift($rows[$i]); // assume we never will list more than a million at once
+  }
   $rows = array_combine($keys, $rows);
   krsort($rows, SORT_STRING);
+  u\EXPECT(count($rows) == $count, "ksort lost rows: was $count, now " . count($rows));
   return array_values($rows);
 }
 
@@ -267,6 +273,13 @@ function txAct($do, $state, $toMe, $byMe) {
   }
 }
 
+/**
+ * Sum the amounts in each transaction category, based on description.
+ * @param array $cats: (MODIFIED) counts and amount totals, indexed by category description
+ * @param string $purpose: description of transaction
+ * @param numeric $amount: transaction amount
+ * @param bool $dups: (RETURNED) set TRUE if this category has at least two transactions in it
+ */
 function addCat(&$cats, $purpose, $amount, &$dups) {    
   if (strpos($purpose, '(') === 0 and ($i = strpos($purpose, ')')) and $i < strlen($purpose) - 1) {
     $purpose = trim(substr($purpose, $i + 1)); // remove reversal info, if any
@@ -278,4 +291,22 @@ function addCat(&$cats, $purpose, $amount, &$dups) {
   if ($one = @$cats[$cat]) $dups = TRUE; else $one = array(0, 0);
   list ($oldCount, $oldAmount) = $one;
   $cats[$cat] = array($oldCount + 1, $oldAmount + $amount);
+}
+
+/**
+ * Adjust the categories list before displaying.
+ */
+function finishCats(&$cats) {
+  $otherInCount = $otherIn = $otherOutCount = $otherOut = 0;
+  foreach ($cats as $cat => $one) if ($one[0] == 1 and $cat != INFLATION_DESC) { // show inflation in summary
+    if ($one[1] < 0) {
+      $otherOutCount++; $otherOut += $one[1];
+    } else {$otherInCount++; $otherIn += $one[1];}
+    
+    unset($cats[$cat]);
+  }
+  
+  ksort($cats);
+  if ($otherInCount) $cats[t('other funds IN')] = array($otherInCount, $otherIn);
+  if ($otherOutCount) $cats[t('other funds OUT')] = array($otherOutCount, $otherOut);
 }

@@ -102,10 +102,11 @@ class rwebSummary extends DrupalWebTestCase {
     . '\\| Balance       | $266 |'
     . '\\| Rewards       | $256 |'
     . '\\| Committed     | $0.60 |'
+    . '\\| Credit limit  | $100 |'
     . '\\| Your return   | 20.6% |'
+    . '\\| _ever         | 544.1% |'
     . '\\| Social return | $9 |'
-    . '\\| _ever         | $9 |'
-    . '\\| Credit limit  | $100 |"');
+    . '\\| _ever         | $9 |"');
   }
 
   // Scenario: An agent clicks the summary tab without permission to manage
@@ -127,8 +128,6 @@ class rwebSummary extends DrupalWebTestCase {
     . '\\| Name         | Corner Pub (cornerpub) |'
     . '\\| _Address     | 3 C St., Ctown, Cher, FRANCE |'
     . '\\| ID           | .ZZC (company account) |"');
-    And__('without: "ARRAY'
-    . '\\| Balance      | $623 |"');
   }
 
   // Scenario: Member's account is not active

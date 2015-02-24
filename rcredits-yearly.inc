@@ -22,13 +22,7 @@ define('STATE_CODE', '25'); // Massachusetts code, for combined Federal/State fi
 function do1099bs($testMode = FALSE) {
   
   $year = date('Y') - 1;
-  $filename = "forms1099b-FY$year.bin$testMode"; // binary file extension: discourage automatic changes during FTP
-  header("Cache-Control: public");
-  header("Content-Description: File Transfer");
-  header("Content-Disposition: attachment; filename=$filename");
-  header("Content-Type: application/octet-stream");
-  header("Content-Transfer-Encoding: binary");
-
+  u\beginDownload("forms1099b-FY$year.bin$testMode"); // binary file extension: discourage automatic changes during FTP
   putRec(recT($year, $testMode));
   putRec(recA($year));
   $bCount = 0; // IRS instructions pub 1220 call this "number of payees", but say it means "number of B records"

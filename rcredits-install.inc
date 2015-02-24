@@ -43,7 +43,7 @@ function tableDefs($schema = []) {
     'postalCode' => setupField('postal code for physical address (no punctuation)', 'varchar 255'),
     'country' => setupField('country index', 'int 4'),
     'postalAddr' => setupField('complete postal address', 'varchar 255'),
-    'notes' => setupField('miscellaneous notes about the user or the account', 'text medium'),
+    'notes' => setupField('miscellaneous notes about the user or the account', 'text big'),
     'activated' => setupField('when was the account activated', 'int 11', 0),
     'helper' => setupField('who invited this person or company', 'int big'),
     'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11', 0),
@@ -68,7 +68,7 @@ function tableDefs($schema = []) {
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: []) + $fields;
   $schema['users']['fields']['uid'] = setupField('Unique user ID', 'int big'); // not unsigned
-  $schema['users']['fields']['data'] = setupField('serialized array of miscellaneous data', 'text medium');
+  $schema['users']['fields']['data'] = setupField('serialized array of miscellaneous data', 'text big');
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
 
 // 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
@@ -428,7 +428,18 @@ function tableDefs($schema = []) {
   $foreignKeys = foreignKey('uid');
   $indexes = index('uid');
   $schema['r_votes'] = setupTable('How members voted on issues', $fields, 'vid', $foreignKeys, $indexes);
-  
+
+  // table r_tous (messages to us)
+  $fields = [
+    'id' => setupField('vote record id', 'serial 11'),
+    'uid' => setupField('account record ID', 'int big'),
+    'time' => setupField('date/time of message', 'int 11', 0),
+    'message' => setupField('the message', 'blob normal'),
+  ];
+  $foreignKeys = foreignKey('uid');
+  $indexes = index('uid');
+  $schema['r_tous'] = setupTable('Secure messages sent from member to us.', $fields, 'id', $foreignKeys, $indexes);
+    
   // table r_nonmembers (use -make instead)
 /*  $fields = array(
     'id' => setupField('non-member company record id', 'serial 11'),

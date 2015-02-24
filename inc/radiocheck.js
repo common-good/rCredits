@@ -12,7 +12,7 @@ jQuery(".form-type-radio > label").each(function(index) {
   var input=jQuery(this).parent().children("input:first");
   if(input.attr("checked")) jQuery(this).addClass("opt-on");
   jQuery(this).click(function() {
-    if(!input.attr("checked")) {
+  if(!jQuery(this).hasClass("opt-on")) { // more reliable than !input.attr("checked")
 	  input.click();
       jQuery(this).parent().parent().find("label").removeClass("opt-on");
       jQuery(this).addClass("opt-on");

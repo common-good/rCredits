@@ -294,7 +294,7 @@ function weSayWithSubs($type, $index, $subs) {
     foreach (@$msgs[$type] ?: [] as $actual) if (strip_tags($actual) == $tmsg) {$res = TRUE; break;}
 //  $res = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
   }
-/**/  if (!@$res) debug(u\ray('msg messages', $msg, \drupal_get_messages(NULL, FALSE)));
+/**/  if (!@$res) debug(compact('msg', 'msgs') + ['dmsgs'=>\drupal_get_messages(NULL, FALSE)]);
   t\output("EXPECT: $msg", 'output'); // this must come after array_search!
   return @$res;
 }
@@ -447,7 +447,6 @@ function with($content) {return weShow($content);}
  *     TEST Relations MemberHasAnEmployer
  *     TEST Relations MemberCompanyHasRelations
  *     TEST Summary AnAgentClicksTheSummaryTabWithoutPermissionToManage
- *     TEST Summary ACompanyAgentClicksTheSummaryTab
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
  *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
  */

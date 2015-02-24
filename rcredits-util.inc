@@ -789,72 +789,6 @@ function resizeImage(&$img, $w, $h) {
 }
 
 /**
- * Encrypt the given file and save in new path.
- * @param bool $delete: whether to delete the source file
- * @return: the encryption key (FALSE if unsuccessful)
- */
-function encryptFile($filepath, $newFilepath = '', $passSalt, $delete = TRUE) {
-  if ($newFilepath === '') $newFilepath = $filepath;
-  $content = file_get_contents($filepath);
-  $destination = dirname($newFilepath);
-  if (!is_dir($destination)) mkdir($destination);
-
-  list ($encryptedFile, $encryptionKey) = encode($content, $passSalt);
-  if (file_put_contents($newFilepath, $encryptedFile)) {
-    if ($delete) unlink($filepath);
-    return $encryptionKey;
-  } else return FALSE;
-}
-
-/**
- * Encrypt the content with the password and salt.
- * @param mixed $content: what to encrypt
- * @param assoc $passSalt: [pass]=password, [salt]=salt
- * @return array(encryptedContent, Key)
-
-$filepath = 'zot.txt';
-$newFilepath = 'zot2.txt';
-$pass = 'dlfkdj';
-$salt = 'sdfdlkjl';
-$passSalt = compact('pass', 'salt');
-$delete = TRUE;
-
-$text = 'this is a test';
-file_put_contents($filepath, $text);
-
-  $content = file_get_contents($filepath);
-
-  list ($encryptedFile, $encryptionKey) = rCredits\Util\encode($content, $passSalt);
-  if (file_put_contents($newFilepath, $encryptedFile)) {
-    if ($delete) unlink($filepath);
-    $key = $encryptionKey;
-  }
-  
-//list ($stuff, $key) = rCredits\Util\encode('this is a test', compact('pass', 'salt'));
-//file_put_contents($file, $stuff);
-$stuff2 = file_get_contents($newFilepath);
-/// echo rCredits\Util\decode($stuff2, $key);
-
- */
-function encode($content, $passSalt) {
-  require_once __DIR__ . '/cryptastic.php';
-  $cryptastic = new \cryptastic;
-  $encryptionKey = $cryptastic->pbkdf2($passSalt['pass'], $passSalt['salt'], 1000, 32);
-  EXPECT($encryptionKey, 'Failed to generate secret key.');
-  $encryptedContent = $cryptastic->encrypt($content, $encryptionKey);
-  EXPECT($encryptedContent, 'Failed to complete encryption.');
-  return array($encryptedContent, $encryptionKey);
-}
-
-function decode($crypt, $key) {
-  require_once __DIR__ . '/cryptastic.php';
-  $cryptastic = new \cryptastic;
-  $result = $cryptastic->decrypt($crypt, $key);
-  EXPECT($result, 'Failed to complete decryption');
-  return $result;
-}
-
-/**
  * Quicker encryption for often-used fields.
  * @param string $key: a base64-encoded encryption key (maximum 24 characters, so the resultant key is at most 16 chars)
  * @return the encrypted string (or the decrypted string with trailing nulls deleted, if $encrypt is FALSE)
@@ -1165,6 +1099,18 @@ function bits($n, $descs = '') {
   if ($descs) $descs = u\ray($descs);
   for($i = 0; $i < 33; $i++) if ($n & (1 << $i)) $res .= ' ' . ($descs ? $descs[$i] : $i);
   return $res;
+}
+
+/**
+ * Tell the browser to download subsequent output. (end with exit())
+ * @param string $filename: what to name the downloaded file
+ */
+function beginDownload($filename) {  
+  header("Cache-Control: public");
+  header("Content-Description: File Transfer");
+  header("Content-Disposition: attachment; filename=$filename");
+  header("Content-Type: application/octet-stream");
+  header("Content-Transfer-Encoding: binary");
 }
 
 function purify($s) {

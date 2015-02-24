@@ -9,7 +9,7 @@ Setup:
   | .ZZA | Abe One  |     100 | ok,bona | 30     |         |        |      5 |
   | .ZZB | Bea Two  |     100 | ok      | 30     | hasBank | .ZZA   |     10 |
   | .ZZC | Our Pub  |       0 | ok,bona | 30     |         | .ZZB   |     10 |
-  | .ZZD | Dee Four |     100 | ok      | 30     | hasBank | .ZZA   |     10 |
+  | .ZZD | Dee Four |     100 | ok      | 30     | hasBank | .ZZB   |     10 |
   And relations:
   | main | agent | employee |*
   | .ZZC | .ZZD  |        1 |
@@ -35,11 +35,11 @@ Scenario: a member gets money for the first time
   |   1 | %today  | transfer |     50 | .ZZB | .ZZC | stuff   |      1 |
   When cron runs "bona"
   Then we notice "got funding" to member ".ZZB" with subs:
-  | amount           | purpose      |*
-  | $%R_SIGNUP_BONUS | signup bonus |
+  | amount           | purpose      | thing  |*
+  | $%R_SIGNUP_BONUS | signup bonus | reward |
   And we notice "got funding" to member ".ZZA" with subs:
-  | amount           | purpose                                      |*
-  | $%R_HELPER_BONUS | inviting and/or assisting new member Bea Two |
+  | amount           | purpose                                      | thing  |*
+  | $%R_HELPER_BONUS | inviting and/or assisting new member Bea Two | reward |
   And members:
   | id   | flags          |*
   | .ZZB | member,ok,bona |
@@ -71,24 +71,24 @@ Scenario: an employee gets money for the first time
   |   1 | %today  | transfer |     50 | .ZZD | .ZZC | stuff   |      1 |
   When cron runs "bona"
   Then we notice "got funding" to member ".ZZD" with subs:
-  | amount           | purpose      |*
-  | $%R_SIGNUP_BONUS | signup bonus |
-  And we notice "got funding" to member ".ZZA" with subs:
-  | amount           | purpose                                       |*
-  | $%R_HELPER_BONUS | inviting and/or assisting new member Dee Four |
+  | amount           | purpose      | thing  |*
+  | $%R_SIGNUP_BONUS | signup bonus | reward |
+  And we notice "got funding" to member ".ZZB" with subs:
+  | amount           | purpose                                       | thing  |*
+  | $%R_HELPER_BONUS | inviting and/or assisting new member Dee Four | reward |
   And members:
   | id   | flags          |*
   | .ZZD | member,ok,bona |
   When cron runs "employees"
-  Then we notice "got funding" to member ".ZZB" with subs:
-  | amount            | purpose                                                       |*
-  | $%R_COUNTED_BONUS | inviting and/or assisting a new member's manager (at Our Pub) |
+  Then we notice "got funding" to member ".ZZA" with subs:
+  | amount            | purpose                                                       | thing  |*
+  | $%R_COUNTED_BONUS | inviting and/or assisting a member's manager (at Our Pub -- $%R_COUNTED_BONUSr per employee) | reward |
   And members:
   | id   | flags                  |*
   | .ZZD | member,ok,bona,counted |
   And balances:
   | id   | r                     | rewards              |*
-  | .ZZA | %R_HELPER_BONUS       | %R_HELPER_BONUS      |
-  | .ZZB | %R_COUNTED_BONUS      | %R_COUNTED_BONUS     |
+  | .ZZA | %R_COUNTED_BONUS      | %R_COUNTED_BONUS     |
+  | .ZZB | %R_HELPER_BONUS       | %R_HELPER_BONUS      |
   | .ZZC | 55                    | 5                    |
   | .ZZD | %(55+%R_SIGNUP_BONUS) | %(5+%R_SIGNUP_BONUS) |
