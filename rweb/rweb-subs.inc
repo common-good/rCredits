@@ -217,6 +217,7 @@ EOF
   'link expired' => t('That link has expired.'),
   'login failed' => t('Your attempt to sign in failed. Click the "Password problems" link if you need a new password.'),
   'file save error' => t('Your file upload did not succeed.'),
+  'forced without perm' => t('<p>An unauthorized transaction was made using a Company Agent rCard.</p><ul><li>Date: @date</li><li>Customer</li><li>@a2 (by @agent2)</li><li>Company: @a1 (by @agent1)</li><li>Amount: @amount</li><li>For: @for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
 
@@ -479,11 +480,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
     js('inc/misc.js', 'file', 'footer'); // used to be just for specialForms
     if (!$specialForm) {
-    /* User should not need explicit help with a page!
-      $extras = array('#id' => 'help-link', '#weight' => @$form['title']['#weight']);
-      $help_link = item(t('<a><div></div>Help with this page</a>')) + $extras; // add a help link at top of page
-      $form = compact('help_link') + $form;
-      */
+      js('jQuery(".messages").dblclick(function() {jQuery(this).hide();});', 'inline', 'header');
       if (@$form['country']) {
         js('inc/countries.js', 'file', 'header');
         if ($mya and \form_get_errors()) js("print_country($mya->country, $mya->state);", 'inline', 'footer');

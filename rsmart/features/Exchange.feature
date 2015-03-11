@@ -52,7 +52,7 @@ Setup:
 #  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to agent  |
 
 Scenario: A cashier asks to charge someone for cash
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "cash": "cash out" at %now
+  When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $100 for "cash": "cash out" at %now
   Then we respond ok txid 7 created %now balance 150 rewards 150
   And with message "report tx" with subs:
   | did     | otherName | amount | why         |*
@@ -74,7 +74,7 @@ Scenario: A cashier asks to charge someone for cash
   | .ZZC |     450 |
 
 Scenario: A cashier asks to refund someone
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "cash": "cash in" at %now
+  When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $-100 for "cash": "cash in" at %now
   Then we respond ok txid 7 created %now balance 350 rewards 150
   And with message "report tx" with subs:
   | did      | otherName | amount | why         |*
@@ -96,19 +96,19 @@ Scenario: A cashier asks to refund someone
   | .ZZC |     250 |
 
 Scenario: A cashier asks to charge another member, with insufficient balance
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "cash": "cash out" at %now
+  When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $300 for "cash": "cash out" at %now
   Then we return error "short from" with subs:
   | otherName | short |*
   | Bea Two   | $200  |
 
 Scenario: A cashier asks to refund another member, with insufficient balance
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $-400 for "cash": "cash in" at %now
+  When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $-400 for "cash": "cash in" at %now
   Then we return error "short to" with subs:
   | short |*
   | $300  |
 
 Scenario: A cashier asks to pay self
-  When agent ":ZZA" asks device "devC" to charge ".ZZC" $300 for "cash": "cash out" at %now
+  When agent ":ZZA" asks device "devC" to charge ".ZZC-ccC" $300 for "cash": "cash out" at %now
   Then we return error "shoulda been login"
 
 Scenario: Device gives no member id
@@ -120,36 +120,40 @@ Scenario: Device gives bad account id
   Then we return error "bad customer"
 
 Scenario: Device gives no amount
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $"" for "cash": "cash out" at %now
+  When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $"" for "cash": "cash out" at %now
   Then we return error "bad amount"
   
 Scenario: Device gives bad amount
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $%whatever for "cash": "cash out" at %now
+  When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $%whatever for "cash": "cash out" at %now
   Then we return error "bad amount"
   
 Scenario: Device gives too big an amount
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $10,000,000 for "cash": "cash out" at %now
+  When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $10,000,000 for "cash": "cash out" at %now
   Then we return error "amount too big"
 
 Scenario: Device gives no purpose for goods and services
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "" at %now
+  When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $100 for "goods": "" at %now
   Then we return error "missing description"
 
 Scenario: Seller agent lacks permission to buy
-  When agent ":ZZB" asks device "devC" to charge ".ZZB" $-100 for "goods": "refund" at %now
+  When agent ":ZZB" asks device "devC" to charge ".ZZB-ccB" $-100 for "goods": "refund" at %now
   Then we return error "no perm" with subs:
   | what    |*
   | refunds |
 
 Scenario: Seller agent lacks permission to scan and sell
-  When agent ":ZZD" asks device "devC" to charge ".ZZA" $100 for "cash": "cash out" at %now
+  When agent ":ZZD" asks device "devC" to charge ".ZZA-ccA" $100 for "cash": "cash out" at %now
   Then we return error "no perm" with subs:
   | what  |*
   | sales |
   
 Scenario: Buyer agent lacks permission to buy
-  When agent ":ZZA" asks device "devC" to charge ":ZZE" $100 for "cash": "cash out" at %now
+  When agent ":ZZA" asks device "devC" to charge ":ZZE-ccE2" $100 for "cash": "cash out" at %now
   Then we return error "other no perm" with subs:
   | otherName | what      |*
   | Eve Five  | purchases |
-
+  
+Scenario: Device sends wrong card code
+  When agent ":ZZA" asks device "devC" to charge ".ZZB-whatever" $100 for "cash": "cash out" at %now
+  Then we return error "bad customer"
+  

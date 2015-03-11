@@ -215,14 +215,14 @@ Scenario: A cashier reverses a transaction with insufficient funds
   Given transactions: 
   | xid | created   | type  | amount | from | to   | purpose |*
   | 4   | %today-1m | grant |    100 | ctty | .ZZC | jnsaqwa |
-  And agent ":ZZB" asks device "devC" to charge ".ZZA" $-100 for "cash": "cash in" at "%now-1hour" force 0
+  And agent ":ZZB" asks device "devC" to charge ".ZZA-ccA" $-100 for "cash": "cash in" at "%now-1hour" force 0
   Then transactions: 
   | xid | created | type     | amount | from | to   | purpose |*
   | 5   | %today  | transfer |   -100 | .ZZA | :ZZB | cash in |
   Given transactions:
   | xid | created | type     | amount | from | to   | purpose |*
   | 6   | %today  | transfer |      1 | .ZZA | .ZZB | cash    |
-  When agent ":ZZB" asks device "devC" to charge ".ZZA" $-100 for "cash": "cash in" at "%now-1hour" force -1
+  When agent ":ZZB" asks device "devC" to charge ".ZZA-ccA" $-100 for "cash": "cash in" at "%now-1hour" force -1
   Then we respond ok txid 7 created %now balance 249 rewards 250
   And with undo "5"
   And we notice "new charge" to member ".ZZA" with subs:

@@ -1,3 +1,13 @@
+2015-03-11
+. fix <small> sizes on notice footer
+. handle company agent photoID in rsmart
+. handle company agent photo properly in rsmart
+. handle offline transactions with inadequate permissions by messaging everyone involved
+. check rCard security code on rsmart charge requests
+. warn user they have to open a personal account first
+. make a way to ask the app to delete a record: !delete:txs,15
+. deposit total fails if there are commas in any amounts
+
 2015-02-23
 . accept first-time customers offline only if the company accepts any risk of fraud (suggest they ask for ID)
 . disabled no-connection alert in /misc/autocomplete.js

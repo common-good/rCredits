@@ -465,7 +465,7 @@ function formHelp($form, &$sta, $what = '') {
   list ($what, $tag) = (strpos($what, '@')) ? explode('@', $what) : array($what == 'other' ? '' : $what, '');
   $title = item($what ? str_replace('Rcredits', 'rCredits', ucwords(str_replace('-', ' ', $what))) : t('General Help'));
   $stranger = t('Interested in rCredits? Visit <@a>rCredits.org</a> for more information or to request an invitation to participate.', ['@a' => 'a href=http://rCredits.org']);
-  $text = formField('item', '', '', $signedIn? helpText($what ?: 'general', $tag) : $stranger);
+  $text = formField('item', '', '', ($signedIn or $what)? helpText($what ?: 'general', $tag) : $stranger);
   if ($signedIn and !$what) {
     if ($mya->admin) {
       $q = db\q('SELECT id, message AS msg FROM r_tous WHERE uid=:uid', ['uid' => $mya->id]);
@@ -1268,12 +1268,18 @@ function formAccounts($form, &$sta) {
     $index = $details = '';
     foreach ($ltrs as $ltr => $accts) {
       $index .= "<a id=\"index-$ltr\">$ltr</a>";
-      $detail = '';
+      $detail = $detailDivs = '';
+      $i = 0;
       foreach ($accts as $uid => $v) {
+        $i++;
         $page = urlencode($_SERVER['REQUEST_URI']);
         $detail .= "<a href=\"$base_url/change-account?acct=$uid&page=$page\">$v</a>";
+        if ($i == count($accts) or $i % 12 == 0) {
+          $detailDivs .= "<div>$detail</div>\n";
+          $detail = '';
+        }
       }
-      $details .= "<div id=\"index-$ltr-detail\" class=\"index-detail\">$detail</div>\n";
+      $details .= "<div id=\"index-$ltr-detail\" class=\"index-detail\">$detailDivs</div>\n";
     }
     $index = item($index . $details);
   }
@@ -1907,13 +1913,23 @@ function formSignup($form, &$sta, $args = '') {
   $sta['no_cache'] = TRUE; // otherwise the javascript-populated dropdowns get lost
   u\setDft($personal, TRUE);
 
-  $title = item(t('Sign up for rCredits'));
-
+  $title = item($personal ? t('Open a Personal rCredits Account') : t('Open a Company Account'));
+  $clarify = $personal ? t('To open a company account, use the "Open Another Account" button after your personal account is approved.') : t('To open another personal account, send an Invitation (click the Invite tab).');
+  $onclick = $onmouseover = 
+  $forother = $personal ? t('company account') : t('personal account');
+  $forother = item("[<a class=\"nospin\">$forother</a>]");
+  $js = <<<EOF
+var clarify = function() {alert('$clarify');};
+jQuery('#edit-forother a').click(clarify);
+//jQuery('#edit-forother a').mouseover(clarify);
+EOF;
+  js($js, 'inline', 'footer');
+  
   if (@$code != 'w' and !$email = invitation(@$code, '', $inviter, $err)) {
     if (@$inviter) {
-      $a = r\acct($inviter);
-      $inviterEmail = htmlspecialchars($a->mail);
-      $inviterName = htmlspecialchars($a->fullName);
+      $ia = r\acct($inviter);
+      $inviterEmail = htmlspecialchars($ia->mail);
+      $inviterName = htmlspecialchars($ia->fullName);
       $a = "a target=\"_blank\" href=\"mailto:$inviterEmail?subject=invite me again?&body=Hi $inviterName, the rCredits invitation you sent me expired. :( Please send me another one. :)\"";
     }
     $subtext = item(tt($err, compact('a', 'inviterName')));
@@ -1961,7 +1977,7 @@ EOF
   $args = hidField(@$args);
   $helper = hidField(@$helper ? r\acct($helper)->id : @$inviter);
   
-  $form = compact(u\ray('title subtext acctType'))
+  $form = compact(u\ray('title forother subtext acctType'))
         + nameAndEmail($personal ? t('Full name') : t('Company'), @$fullName)
         + contactFields(compact('phone'), FALSE) + ssnFields($personal)
         + compact(u\ray('pin calling companyInfo buysAt submit args helper'));

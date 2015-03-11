@@ -14,9 +14,18 @@ To Do
 . video about Admin'ing
 
 TASKS FOR NEXT UPDATE:
-. remake menus
-. change boot.php to boot.inc in settings.php
 
+. rename charge "invoice"?
+. in signup, make email verification a step and let user do it in any order
+. *** the wrong transactions require approval on reversal (maybe)
+. *** dispute and deny fail!
+. add notice of statement availability to (first) monthly notices
+. simplify admin log display by suppressing email body
+. simplify admin tx display by suppressing sharing and inflation
+. change credit limits on first day of month (no change until membership for a full month or more)
+. on 1099-B page show total donations for the year
+. for non-standard date ranges, make sure History still shows advanced options after submit
+. put notice footer data in a table (bal, rew, apr, community bene?)
 . *** for appData requests, target a specific device (or each device for a particular business) and record the results in r_boxes
 . add links to company page
 . Gary P and Betsy C have legalname change listed, with no actual change. that should not happen.

@@ -55,7 +55,7 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@" is ""');
     When_('member "?" visits page "signup"');
-    Then_('we show "Sign up for rCredits" with: "ARRAY'
+    Then_('we show "Open a Personal rCredits Account" with: "ARRAY'
     . '\\|_errorPhrase         |'
     . '\\| you must be invited |"');
   }
@@ -65,7 +65,7 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@" is "c0D3"');
     When_('member "?" visits page "signup/code=WhAtEvEr"');
-    Then_('we show "Sign up for rCredits" with: "ARRAY'
+    Then_('we show "Open a Personal rCredits Account" with: "ARRAY'
     . '\\|_errorPhrase         |'
     . '\\| you must be invited |"');
   }
@@ -76,7 +76,7 @@ class rwebSignup extends DrupalWebTestCase {
     Given('invitation to email "a@" is "c0D3"');
     And__('invitation "c0D3" was sent on "%today-5w"');
     When_('member "?" visits page "signup/code=c0D3"');
-    Then_('we show "Sign up for rCredits" with: "ARRAY'
+    Then_('we show "Open a Personal rCredits Account" with: "ARRAY'
     . '\\|_errorPhrase            |'
     . '\\| invitation has expired |"');
   }
@@ -89,7 +89,7 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns |'
     . '\\| Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St., Agawam, MA 01001 |     18 |    1 |"');
     When_('member "?" visits page "signup/code=c0D3"');
-    Then_('we show "Sign up for rCredits" with: "ARRAY'
+    Then_('we show "Open a Personal rCredits Account" with: "ARRAY'
     . '\\|_errorPhrase                      |'
     . '\\| invitation has already been used |"');
   }
@@ -276,7 +276,7 @@ class rwebSignup extends DrupalWebTestCase {
     When_('member ".AAC" confirms form "another" with values: "ASSOC'
     . '\\| relation | flow |'
     . '\\|        1 |    0 |"');
-    Then_('we show "Sign up for rCredits" with: "ARRAY'
+    Then_('we show "Open a Company Account" with: "ARRAY'
     . '\\|_nameDescription      |'
     . '\\| properly capitalized |"');
     And__('with options: "ARRAY'

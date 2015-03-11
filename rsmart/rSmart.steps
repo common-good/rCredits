@@ -113,6 +113,7 @@ function transactions($list) {return t\transactions($list);}
  *     MAKE Identify ACashierScansACustomerCardWhoseBalanceIsSecret
  *     MAKE Identify ACashierScansACompanyCustomerCard
  *     MAKE Identify ANonyetactiveMemberCardIsScanned
+ *     MAKE Identify AMemberMakesAPurchaseForTheFirstTime
  *     MAKE Time ACashierSignsIn
  */
 function agentAsksDeviceToIdentify($agent, $device, $qr) {
@@ -133,6 +134,7 @@ function agentAsksDeviceToIdentify($agent, $device, $qr) {
  *     TEST Identify TheDefaultCashierScansACustomerCard
  *     TEST Identify ACashierScansACustomerCardWhoseBalanceIsSecret
  *     TEST Identify ACashierScansACompanyCustomerCard
+ *     TEST Identify AMemberMakesAPurchaseForTheFirstTime
  *     TEST Time TheDeviceAsksForTheTime
  *     TEST Time ACashierSignsIn
  */
@@ -370,6 +372,7 @@ function weReturnErrorWithSubs($msg, $subs) {
  *     TEST Exchange DeviceGivesBadAmount
  *     TEST Exchange DeviceGivesTooBigAnAmount
  *     TEST Exchange DeviceGivesNoPurposeForGoodsAndServices
+ *     TEST Exchange DeviceSendsWrongCardCode
  *     TEST Identify DeviceShouldHaveAnIdentifier
  *     TEST Identify AnUnauthorizedCashierScansIn
  *     TEST Identify ACashierScansACustomerCardBeforeSigningIn
@@ -385,6 +388,7 @@ function weReturnErrorWithSubs($msg, $subs) {
  *     TEST Transact DeviceGivesBadAmount
  *     TEST Transact DeviceGivesTooBigAnAmount
  *     TEST Transact DeviceGivesNoPurposeForGoodsAndServices
+ *     TEST Transact DeviceSendsWrongCardCode
  */
 function weReturnError($msg) {return weReturnErrorWithSubs($msg, array());}
 
@@ -468,6 +472,7 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  *     MAKE Exchange SellerAgentLacksPermissionToBuy
  *     MAKE Exchange SellerAgentLacksPermissionToScanAndSell
  *     MAKE Exchange BuyerAgentLacksPermissionToBuy
+ *     MAKE Exchange DeviceSendsWrongCardCode
  *     MAKE Joint ACashierAsksToChargeSomeone
  *     MAKE Offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
  *     MAKE Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
@@ -487,6 +492,7 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  *     MAKE Transact SellerAgentLacksPermissionToScanAndSell
  *     MAKE Transact BuyerAgentLacksPermissionToBuy
  *     MAKE Transact SellerTriesToChargeTheCustomerTwice
+ *     MAKE Transact DeviceSendsWrongCardCode
  */
 function agentAsksDeviceToChargeForAt($agent, $device, $member, $amount, $goods, $description, $created) {
   return reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $description, $created, 0);
@@ -514,7 +520,8 @@ function agentAsksDeviceToChargeForAtForce($agent, $device, $member, $amount, $g
 function reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $description, $created, $force) {
   global $testOnly; if ($testOnly) return FALSE;
   $goods = t\goodsBit($goods);
-  return t\hitServer('charge', compact(u\ray('member amount goods description created force')), $agent, $device);
+  list ($member, $code) = explode('-', $member . '-'); // code is empty if omitted
+  return t\hitServer('charge', compact(u\ray('member code amount goods description created force')), $agent, $device);
 }
 
 /**
@@ -620,3 +627,10 @@ function agentOnDeviceAsksForTheTime($agent, $device) {
   return t\hitServer('time', array(), $agent, $device);
 }
 
+
+/**
+ * member (ARG) has no photo ID recorded
+ *
+ * in: MAKE Identify AMemberMakesAPurchaseForTheFirstTime
+ */
+function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}

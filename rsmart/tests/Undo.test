@@ -284,14 +284,14 @@ class rsmartUndo extends DrupalWebTestCase {
     Given('transactions: "ASSOC'
     . '\\| xid | created   | type  | amount | from | to   | purpose |'
     . '\\| 4   | %today-1m | grant |    100 | ctty | .ZZC | jnsaqwa |"');
-    And__('agent ":ZZB" asks device "devC" to charge ".ZZA" $-100 for "cash": "cash in" at "%now-1hour" force 0');
+    And__('agent ":ZZB" asks device "devC" to charge ".ZZA-ccA" $-100 for "cash": "cash in" at "%now-1hour" force 0');
     Then_('transactions: "ASSOC'
     . '\\| xid | created | type     | amount | from | to   | purpose |'
     . '\\| 5   | %today  | transfer |   -100 | .ZZA | :ZZB | cash in |"');
     Given('transactions: "ASSOC'
     . '\\| xid | created | type     | amount | from | to   | purpose |'
     . '\\| 6   | %today  | transfer |      1 | .ZZA | .ZZB | cash    |"');
-    When_('agent ":ZZB" asks device "devC" to charge ".ZZA" $-100 for "cash": "cash in" at "%now-1hour" force -1');
+    When_('agent ":ZZB" asks device "devC" to charge ".ZZA-ccA" $-100 for "cash": "cash in" at "%now-1hour" force -1');
     Then_('we respond ok txid 7 created %now balance 249 rewards 250');
     And__('with undo "5"');
     And__('we notice "new charge" to member ".ZZA" with subs: "ASSOC'

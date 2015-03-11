@@ -75,7 +75,6 @@ define('R_MAX_UPLOAD_SIZE', 3); // maximum upload size in MB
 define('R_MAX_PHOTOID_SIZE', 2.5); // Dwolla's limit (MB)
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal FinCEN regulation
-define('R_MAX_RTX', 1000); // never transfer more rCredits than this at once (self-imposed limit for safety)
 define('R_INVITE_DAYS', 30); // number of days to accept invitation to membership
 define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
@@ -133,6 +132,7 @@ define('R_PICTURE_DIR', '/photos'); // precede this by DRUPAL_ROOT (file) or $ba
 define('R_PROOF_DIR', '/proofs');
 define('R_DFT_PICTURE', 'no-photo-available.jpg'); // default profile picture
 define('R_DFT_PICTURE_WIDE', 'no-photo-available-wide.jpg'); // default profile picture
+define('R_NOT_VALID', 'not-valid.png'); // says rcard is not valid for purchases
 
 // account type bits
 define('R_PERSONAL', 0);
@@ -332,6 +332,7 @@ $GLOBALS['topics'] = array( // topics for 'message' email
   'account funded' => t('Account FUNDED'),
   'approved' => t('Account APPROVED!'),
   'join accounts' => t('Invitation to Create a Joint Account'),
+  'force without perm' => t('Unauthorized transaction'),
 );
 
 /**
@@ -586,23 +587,23 @@ function message($uid, $index, $subs = []) {
  */
 function notify($uid, $index, $subs = [], $force = FALSE) {
   global $channel;
-  $acct = acct($uid);
-  u\EXPECT($acct, 'no account');
+  $a = r\acct($uid);
+  u\EXPECT($a, 'no account');
   $subs['uid'] = $uid;
   $subs['otherName'] = @$subs['myName']; // notifying someone else about US, if anyone
-  $fullName = $acct->fullName;
+  $fullName = $a->fullName;
   $warnIndexes = u\ray('new invoice,new offer,charge disputed');
   
   if ($force) {
-    $mailed = r\rMail($index, $acct->mail, $subs); // no need to pass $acct->language
-  } else { //if ($acct->can(B_NOTIFY_EMAIL)) {
+    $mailed = r\rMail($index, $a->mail, $subs); // no need to pass $a->language
+  } else { //if ($a->can(B_NOTIFY_EMAIL)) {
     list ($message, $created) = array(u\tt($index, $subs), REQUEST_TIME);
     t\output("Notice to $fullName: $message");
     db\insert('r_notices', compact(u\ray('uid message created')));
   }
   
-  if ($acct->can(B_BYSMS)) {
-    if ($num = $acct->smsNumber) $smsed = SMS\send($num, u\tt($index, $subs, TX_SMS));
+  if ($a->can(B_BYSMS)) {
+    if ($num = $a->smsNumber) $smsed = SMS\send($num, u\tt($index, $subs, TX_SMS));
   }
   if (FALSE and !@$mailed and !@$smsed and array_search($index, $warnIndexes) !== FALSE) {
     $notification = str_replace('-', ' ', $index);
@@ -610,7 +611,7 @@ function notify($uid, $index, $subs = [], $force = FALSE) {
   }
   if (@$warning) {
     if ($channel == TX_WEB) Web\say($warning);
-    if ($channel == TX_SMS) SMS\send(r\acct()->smsNumber, $warning);
+    if ($channel == TX_SMS) SMS\send($a->smsNumber, $warning);
     if ($channel == TX_POS) { } // dunno how to handle this
   }
 }
@@ -1772,7 +1773,7 @@ function rebate($from, $to, $amount = 1) {
   if (relation(1, $to, $from, 'isOwner OR draw')) return 0;
   if (relation(1, $from, $to, 'isOwner OR draw')) return 0;
   $a = r\acct($from);
-  return '' . round($amount * $a->rebate / 100, 2); // ''. to avoid serializing a long float
+  return '' . round(min(R_MAX_REBATE, $amount * $a->rebate / 100), 2); // ''. to avoid serializing a long float
 }
 
 function bonus($to, $from, $amount = 1) {return rebate($to, $from, $amount * R_BONUS_FACTOR);}
@@ -1802,8 +1803,8 @@ function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}
 function doCode($code) {return @unserialize(@u\ezdecrypt(@u\deurlify($code)));}  
 function makeDoCode($a) {return u\urlify(u\ezencrypt(serialize($a)));}
 function cgfId() {return \variable_get('cgf_uid');}
-function disputeTx($xid) {return db\setData('r_txs', $xid, u\ray('disputed', TRUE));}
-function denyInv($nvid) {return db\setData('r_invoices', $nvid, u\ray('denied', TRUE));}
+function disputeTx($xid) {return db\setData('r_txs', $xid, ['disputed' => TRUE]);}
+function denyInv($nvid) {return db\setData('r_invoices', $nvid, ['denied' => TRUE]);}
 function stepsDone0() {return array_fill_keys(u\ray(R_STEPS), FALSE);}
 function isReward($type) {return in_array($type, u\ray(TX_REWARDS));}
 //function usdin($for) {return u\abbreviates('usd in (', strtolower(is_array($for) ? $for[1] : $for));}

@@ -3,14 +3,6 @@ AS a member
 I WANT to manage my progress toward activating my account
 SO I can participate actively.
 
-#Special Dwolla magic:
-#You can receive emails at any non-@dwolla.com email address.  That means you can make new accounts without me needing to forward the confirmation emails to you.
-#Phones are automatically verified, so you don’t need to call VerifyPhone anymore.  You can cause the Verify Phone stage to fail by setting the phone number to 5551234567
-#You can fail the SSN now with specific “always fail” SSNs:
-#777777777 - will put user in Kba if personal account (if used for commercial account on AuthorizedRep call, will put them in PhotoId since there is no Kba for business acts)
-#888888888 - will put user in PhotoId
-#999999999 - will put user in AccountInfo
-
 #phone 1 means +1 413.772.0001
 
 Setup:

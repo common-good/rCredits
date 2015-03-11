@@ -731,7 +731,7 @@ function getHowMuchR($a, $banky = TRUE) {
  * Give signup bonuses.
  */
 function bona() {
-  $sql = 'SELECT u.uid FROM users u LEFT JOIN r_txs t ON t.payer=u.uid WHERE NOT :IS_BONA AND NOT :IS_CO AND t.taking'; // new human member who has completed an rCard purchase
+  $sql = 'SELECT DISTINCT u.uid FROM users u LEFT JOIN r_txs t ON t.payer=u.uid WHERE NOT :IS_BONA AND NOT :IS_CO AND t.taking'; // new human member who has completed an rCard purchase
   queueEach('bona1', $sql);
   queueNext();
 }

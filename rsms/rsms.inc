@@ -235,6 +235,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'tx save err' => t('The transaction could not be saved. Try again!'),
   'share too big' => t('You are not allowed to donate more than half your transaction rewards. Here\'s why: The rCredits system aligns your personal financial benefit with benefit to the community, so you can do what is best for the community just by doing what is best for you. If your personal benefit percentage is too small, you lose that convenient compass.'),
   'no photoid' => t('You must make a purchase in person using your rCard and show your driver\'s license or state ID, before any other transaction.'),
+  'other no photoid' => t('@who must make a purchase in person to verify their identity, before you can pay or charge them.'),
   'duplicate transaction' => t('You already just @op that member that much.'),
 
   // notices to staff

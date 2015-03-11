@@ -129,7 +129,7 @@ class rsmartIdentify extends DrupalWebTestCase {
     When_('agent ":ZZB" asks device "devC" to identify "ZZD.ccD"');
     Then_('we respond with: "ASSOC'
     . '\\| ok | name     | place     | company | logon | balance | rewards |'
-    . '\\| 1  | Dee Four | Dtown, DE |         | -1    | 250     | 250     |"');
+    . '\\| 1  | Dee Four | Dtown, DE |         | 0     | 250     | 250     |"');
   }
 
   // Scenario: the default cashier scans a customer card
@@ -138,7 +138,7 @@ class rsmartIdentify extends DrupalWebTestCase {
     When_('agent ".ZZC" asks device "devC" to identify "ZZD.ccD"');
     Then_('we respond with: "ASSOC'
     . '\\| ok | name     | place     | company | logon | balance | rewards |'
-    . '\\| 1  | Dee Four | Dtown, DE |         | -1    | 250     | 250     |"');
+    . '\\| 1  | Dee Four | Dtown, DE |         | 0     | 250     | 250     |"');
   }
 
   // Scenario: an unauthorized cashier scans in
@@ -168,7 +168,7 @@ class rsmartIdentify extends DrupalWebTestCase {
     When_('agent ":ZZB" asks device "devC" to identify "ZZE.ccE"');
     Then_('we respond with: "ASSOC'
     . '\\| ok | name     | place     | company | logon | balance | rewards |'
-    . '\\| 1  | Eve Five | Etown, IL |         | -1    | *250    | 250     |"');
+    . '\\| 1  | Eve Five | Etown, IL |         | 0     | *250    | 250     |"');
   }
 
   // Scenario: a cashier scans a company customer card
@@ -177,7 +177,7 @@ class rsmartIdentify extends DrupalWebTestCase {
     When_('agent ":ZZB" asks device "devC" to identify "ZZE-ccE2"');
     Then_('we respond with: "ASSOC'
     . '\\| ok | name     | place     | company | logon |'
-    . '\\| 1  | Eve Five | Ftown, FL | Far Co  | -1    |"');
+    . '\\| 1  | Eve Five | Ftown, FL | Far Co  | 0     |"');
   }
 
   // Scenario: Device asks for a picture to go with the QR
@@ -211,6 +211,16 @@ class rsmartIdentify extends DrupalWebTestCase {
     Then_('we return error "member inactive" with subs: "ASSOC'
     . '\\| name      |'
     . '\\| Gil Seven |"');
+  }
+
+  // Scenario: A member makes a purchase for the first time
+  public function testAMemberMakesAPurchaseForTheFirstTime_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('member ".ZZD" has no photo ID recorded');
+    When_('agent ".ZZC" asks device "devC" to identify "ZZD.ccD"');
+    Then_('we respond with: "ASSOC'
+    . '\\| ok | name     | place     | company | logon | balance | rewards |'
+    . '\\| 1  | Dee Four | Dtown, DE |         | -1    | 250     | 250     |"');
   }
 
 }

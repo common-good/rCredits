@@ -235,8 +235,8 @@ function undoTx($xid, $where = '1', $subs = [], $force = FALSE) {
 function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid, $force) {
   $mya = r\acct();
 ///    print_r(compact(u\ray('xid amount acct data tid toMe'))); die();
-  u\EXPECT(compact(u\ray('xid amount acct data tid type otherTid')), 'id float acct assoc|empty string string id');
-
+  u\EXPECT(compact(u\ray('xid amount acct data tid type otherTid')), 'id float acct assoc|empty string string int'); // otherTid may be 0 (for reversing rewards)
+  
   if (!is_array($data)) $data = [];
   $old_data = $data; // remember original data from transaction we're reversing
   extract(u\just('rebate bonus xfee', $data));
@@ -331,31 +331,44 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   u\setDft($created, time());
   u\EXPECT(compact(u\ray('a1 a2 goods oked data')), 'acct acct int bool assoc');
 
+  $type = TX_TRANSFER;
   list ($myid, $uid) = array($a1->id, $a2->id);
-  $erInfo = compact(u\ray('ttype amount goods for')) + u\ray('a1 a2', $a1->fullName, $a2->fullName);
+  $force = @$data['force'];
+  $erInfo = compact(u\ray('ttype amount goods for force')) + u\ray('a1 a2', $a1->fullName, $a2->fullName);
   $taking = ($ttype == 'charge');
-  if (r\dupTx($uid, $myid, $taking ? $amount : -$amount)) return r\txRet('duplicate transaction', u\ray('op', $taking ? t('charged') : t('paid')));
   $reallyTaking = ($taking xor $amount < 0); // not taking if charging a negative amount
   $final = (!$reallyTaking or @$scanned); // paying OR scanned (and therefor permitted to charge unilaterally)
 
-  // Check permissions
-  if ($err = r\txPermErr($a1, $a2, $taking, $amount < 0)) return r\txRet($err, $erInfo);
-  if (FALSE) // disabled until app is ready
-  foreach ([$a1, $a2] as $a) if (!$a->co and !$a->photoId) return r\txRet('no photoid', $erInfo);
-   
-  // Analyze who's buying or selling
-  list ($payer, $payee) = u\order($taking, $uid, $myid);
+  list ($loserA, $gainerA) = u\order($reallyTaking, $a2, $a1);
+  list ($payer, $payee) = u\order($taking, $uid, $myid); // Analyze who's buying or selling
   list ($payerAgent, $payeeAgent) = u\order($taking, $a2->agentId, $a1->agentId);
 
-  // Sort out what type of transfer this is
-  //$undoing = isset($data['undoes']);
-  $type = TX_TRANSFER;
+  if (!$force and r\dupTx($uid, $myid, $taking ? $amount : -$amount)) return r\txRet('duplicate transaction', u\ray('op', $taking ? t('charged') : t('paid')));
 
+  if ($err = r\txPermErr($a1, $a2, $taking, $amount < 0)) { // Check permissions
+    if ($force) {
+      $msg = 'forced without perm';
+      foreach (['agent1'=>$a1, 'agent2'=>$a2] as $k => $a) $erInfo += [$k => $a->proSe ? t('self') : $a->fullName];
+      foreach ([$a1, $a2] as $a) {
+        r\message($a->id, $msg, $erInfo);
+        if (!$a->proSe) r\message($a->agentId, $msg, $erInfo);
+      }
+      r\tellStaff($msg, $erInfo);
+    } else return r\txRet($err, $erInfo);
+  }
+  
+  foreach ([$a1, $a2] as $a) if (!$a->co and !($channel == TX_POS ? $a->agent->photoId : $a->photoId)) {
+    if ($force) {
+      r\tellStaff('forced without photoId', $erInfo); 
+    } elseif ($gainerA->id != r\cgfId()) {
+      return r\txRet($a == $a1 ? 'no photoid' : 'other no photoid', $erInfo + ['who' => $a2->fullName]);
+    }
+  }
+  
   // Check the amount and calculate any balance shortfall
   if ($error = u\badAmount($amount)) return r\txRet($error, $erInfo);
   $need = $amount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
 
-  $loserA = $reallyTaking ? $a2 : $a1;
   $shortfall = (!$final or @$data['force'] or $loserA->id < 0) ? 0 : $loserA->shortfall($goods, abs($need), $oked);
   if ($shortfall) {
     $short = u\fmtAmt($shortfall);
@@ -408,13 +421,15 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
  *    confirm: boolean "this needs to be confirmed"
  */
 function invoice($a1, $a2, $amount, $goods = R_FOR_USD, $purpose = NULL, $oked = TRUE) {
+  if ($err = u\badAmount($amount, '>0')) return r\txRet($err);
+  u\EXPECT(compact(u\ray('a1 a2 amount goods purpose oked')), 'acct acct float int string bool');
   u\setDft($purpose, $why = u\ray(R_WHYS)[$goods]);
   list ($payee, $payer) = array($a1->id, $a2->id);
-  if ($err = r\txPermErr($a1, $a2, TRUE)) return array($err, [], FALSE);
-  if ($err = u\badAmount($amount, '>0')) return array($err, [], FALSE);
-  u\EXPECT(compact(u\ray('a1 a2 amount goods purpose oked')), 'acct acct float int string bool');
-  if (r\dupTx($payee, $payer, -$amount)) return array('duplicate transaction', u\ray('op', t('charged')), FALSE);
-
+  if ($err = r\txPermErr($a1, $a2, TRUE)) return r\txRet($err);
+  if (r\dupTx($payee, $payer, -$amount)) return r\txRet('duplicate transaction', ['op' => t('charged')]);
+  if (!$a1->co and !$a1->photoId) return r\txRet('no photoid');
+  if (!$a2->co and !$a2->photoId) return r\txRet('other no photoid', ['who' => $a2->fullName]);
+  
   $subs = u\ray('myName otherName amount why purpose did', $a1->fullName, $a2->fullName, u\fmtAmt($amount), $why, $purpose, t('charged'));
 
   if ($oked) {

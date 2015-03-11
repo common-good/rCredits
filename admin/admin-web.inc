@@ -180,11 +180,12 @@ EOF;
   return compact(u\ray('donations cgfDonations tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin legalName risk trust risks2 mediaConx adminable2 rTrader helper notes count submit back uid'));
 }
 
+/*
 function showCardCode($a) {
   $len = strlen(@$a->cardCode);
   if ($len == 14 or $a->co) return;
-/**/ if ($a->ok) debug("$a->fullName\t" . $a->cardCode . " (" . $len . ')');
-}
+/// if ($a->ok) debug("$a->fullName\t" . $a->cardCode . " (" . $len . ')');
+}*/
 
 /**
  * Show information about a specific transaction and its risks.

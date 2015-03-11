@@ -74,8 +74,7 @@ class adminChecks extends DrupalWebTestCase {
     . '\\| 5004 | .ZZC  |   -300 | %today    |         0 |         0 |"');
     When_('member ".ZZB" visits page "sadmin/deposits"');
     Then_('we show "Deposits" with: "ARRAY'
-    . '\\| Checks IN | 3 |'
-    . '\\| Include   | 1 checks from %dm-2w |"');
+    . '\\| Checks IN | 3 |"');
     When_('member ".ZZB" visits page "sadmin/checks/way=IN&date=0&previous=%today-3w&reprint=0&mark=1"');
     Then_('we show pdf with: "ASSOC'
     . '\\|_name    |_postalAddr          |_phone        |_transit      |_acct |_txid |_date |_amt   |_amount |_bank |'

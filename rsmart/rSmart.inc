@@ -42,11 +42,7 @@ use rCredits\Testing as t;
 ///debug(rCredits\Smart\pos($args));
  */
 
-define('RPOS_VERSION', 211); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first, before bumping the number up here.)
-//define('RPOS_FILENAME', 'http://ws.rcredits.org/rPOS-' . rPOS_VERSION . '.apk');
-define('RPOS_FILENAME', 'http://rc4.me/rpos.apk');
-define('RPOS_FILENAMEB', 'http://rc4.me/rposb.apk'); // version for buggy front-camera-only machines
-define('RPOS_FILENAME_DEBUG', 'http://rc4.me/rPOS-debug-unaligned.apk');
+define('RPOS_VERSION', 213); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first (and make sure it is available in Google Play Store), before bumping the number up here.)
 define('R_QR_HEADER', 'HTTP://RC2.ME/I/'); // for transient QR IDs
 define('R_TRANSIENCE', 60); // number of seconds for device's transient QR to be valid
 
@@ -64,6 +60,7 @@ $GLOBALS[TX_POS . ' messages'] = array(
   'just did' => t("\n\nWe just @did @amount @forCash."), // "We" not "You" here, in case viewed by manager
   'unknown device' => t('This device is not recognized. You must scan yourself in (at least once) before charging a customer.'),
   'confirm undo' => t('Undo transfer of @amount @tofrom @otherName?'), // no creation date, unlike web and SMS
+  'member inactive' => t('That account is not yet activated.'),
 );
 
 /**
@@ -178,8 +175,8 @@ function identify($args) {
   $logon = '1'; // assume logging in
   if (@$agent) {
     if ($agent == $member) return posErr('already scanned in');
-    if ($a->id != $mya->id) $logon = $a->photoId ? '0' : '-1'; // regular or first-time transaction for customer
-    if ($logon == -1 and time() < strtotime('3/1/2015') and in_array($a->name, ['mesaverde', 'thepeoplespint'])) $logon = 0;
+    if ($a->id != $mya->id) $logon = $a->agent->photoId ? '0' : '-1'; // regular or first-time transaction for customer
+//    if ($logon == -1 and time() < strtotime('3/1/2015') and in_array($a->name, ['mesaverde', 'thepeoplespint'])) $logon = 0;
   }
 
   $cardCode = $a->cardCode();
@@ -251,7 +248,7 @@ function photo($args) {
 //  exit(DRUPAL_ROOT . $picFilename);
 //  exit(file_exists(DRUPAL_ROOT . $picFilename));
 //  exit(strlen($pic));
-  return photoReturn($a->photo);
+  return photoReturn($a->agent->photo);
 }
 
 function photoReturn($pic) {
@@ -268,12 +265,13 @@ function photoReturn($pic) {
 
 /*
  * Request a charge.
- * charge:	[member, amount, goods, description, created, force, photoid]
+ * charge:	[member, amount, code, goods, description, created, force, photoid]
  *   => [ok, message, txid, created, balance, undo]
  * @param array $args:
  *   agent: qid for the seller (company rep)
  *   member: qid for the customer (individual or company rep)
  *   amount: numeric dollar amount
+ *   code: card code (not required for reversals)
  *   goods: <transaction is for real goods and services>
  *   description: description of goods and services sold
  *   created: transaction creation date
@@ -285,16 +283,19 @@ function photoReturn($pic) {
 function charge($args, $type = 'charge') {
   global $mya;
   
-  if ($err = missingArg($keys = 'agent member amount goods description created', $args)) return posErr($err);
-  extract(u\just($keys . ' force photoid', $args));
+  $keys = 'agent member amount goods description created';
+  if ($err = missingArg($keys, $args)) return posErr($err);
+  extract(u\just($keys . ' force photoid version code', $args));
 
   if (!@$member) return posErr('missing member');
   if (@$description === '') return posErr('missing description');
   if (!$a = getCustomer($member, $err)) return posErr($err);
+  
   if ($mya->id == $a->id) return posErr("shoulda been login");
   if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
 
-  if (@$photoid and !$a->photoId) $a->update('photoId', $photoid);
+  $aa = $a->agent;
+  if (@$photoid and !$aa->photoId) $aa->update('photoId', $photoid);
 
   $goods = $goods ? R_FOR_GOODS : R_FOR_USD;
   $subs = u\ray('created payer payee amount goods payeeFor', $created, $a->id, $mya->id, $amount, $goods, $description);
@@ -322,6 +323,7 @@ function charge($args, $type = 'charge') {
     $txid = 0;
     $message = "Transaction has been canceled.";
   } else { // doesn't exist and should (forcing or not)
+    if (((int) $version) >= 214) if (@$code != $a->cardCode()) return posErr('bad customer');
     list ($msg, $subs, $zot) = be\transfer($type, $mya, $a, @$amount, @$goods, @$description, $created, TRUE, compact('force'));
     if (!@$subs['success']) return posErr($msg, $subs);
     $txid = $subs['xid'];
@@ -454,16 +456,21 @@ function getDevice($code, $uid) {
  * @param string $data: json-encoded data that we requested from the app
  * @return string $message: what to respond to the app's "time" request: another request for data or ''
  */
-function handleAppData($data) {
+function handleAppData($data0) {
   global $mya;
   if (!$mya) return '';
   if (!$get = $mya->getAppData) return '';
+  
   $appData = $mya->appData ?: [];
-  if ($data) {
-    $data = (array) json_decode($data);
-    ksort($data);
+  if ($data0) {
+    if ($getRay = !u\abbreviates('!delete:', $get)) {
+      $data = (array) json_decode($data0);
+      ksort($data);
+    } else $data = $data0;
     $appData[$get] = $data;
-    $get = u\nextAfter($get, u\ray(R_APP_DATA_GETS));
+    $data0 = str_replace("'", "\\'", str_replace('\\"', '"', $data0)); // make the email useful
+    r\tellStaff(t('got App Data'), u\ray('who get zdata', $mya->fullName, $get, $data0));
+    $get = $getRay ? u\nextAfter($get, u\ray(R_APP_DATA_GETS)) : '';
     $mya->update('getAppData appData', $get, $appData);
   }
   return $get;

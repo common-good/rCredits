@@ -110,13 +110,14 @@ function doAccount($info = []) {
     u\setDft($postalCode, '01301');
     u\setDft($country, 'US');
     u\setDft($postalAddr, @$address . ', ' . @$city . ', ' . r\realState(@$state, $country) . ' ' . $postalCode);
+    u\setDft($photoId, $postalCode . '999');
 
     $moneyFields = 'share committed floor r usd rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
     if (@$cc) $cardCode = $cc;
     if (@$cc2) $cardCode2 = $cc2;
 
-    $fixFields = 'rebate fullName legalName name pass mail secure community postalCode country postalAddr cardCode cardCode2 ' . $moneyFields;
+    $fixFields = 'rebate fullName legalName name pass mail secure community postalCode country postalAddr cardCode cardCode2 photoId ' . $moneyFields;
   } else $fixFields = '';
 
   if (isset($flags)) {
@@ -1264,6 +1265,16 @@ function constants($list) {
     extract(u\just('name value', $one));
     
   }
+}
+
+/**
+ * Say whether the member has shown a photo ID or (if not just testing) make it so.
+ * @param string $id: abbreviated member ID
+ */
+function noPhotoId($id) {
+  global $testOnly;
+  $a = r\acct(t\uid($id));
+  return $testOnly ? !$a->photoId : $a->update('photoId', '');
 }
 
 function weShow($what, $show = TRUE) {

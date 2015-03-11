@@ -7,10 +7,10 @@ SO I can buy and sell stuff.
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | postalCode | country | postalAddr | rebate | flags      |*
-  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK |      5 | ok,bona    |
-  | .ZZB | Bea Two    | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT |     10 | ok,bona    |
-  | .ZZC | Corner Pub | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR |     10 | ok,co,bona |
+  | id   | fullName | address | city  | state  | postalCode | country | postalAddr | rebate | flags      |*
+  | .ZZA | Abe One  | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK |      5 | ok,bona    |
+  | .ZZB | Bea Two  | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT |     10 | ok,bona    |
+  | .ZZC | Our Pub  | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR |     10 | ok,co,bona |
   And relations:
   | id   | main | agent | permission |*
   | :ZZA | .ZZA | .ZZB  | buy        |
@@ -90,18 +90,31 @@ Scenario: A member confirms request to pay another member
   | .ZZA |     155 |
   | .ZZB |     360 |
   | .ZZC |     250 |
-
+  
+Scenario: A member confirms request to pay another member a lot
+  Given balances:
+  | id   | r             |*
+  | .ZZB | %R_MAX_AMOUNT |
+  When member ".ZZB" confirms form "pay" with values:
+  | op  | who     | amount        | goods | purpose |*
+  | pay | Our Pub | %R_MAX_AMOUNT | 2     | food    |
+  Then transactions:
+  | xid | created | type     | amount        | from  | to   | purpose      | taking |*
+  |   4 | %today  | transfer | %R_MAX_AMOUNT | .ZZB  | .ZZC | food         | 0      |
+  |   5 | %today  | rebate   | %R_MAX_REBATE | ctty  | .ZZB | rebate on #2 | 0      |
+  |   6 | %today  | bonus    | %R_MAX_REBATE | ctty  | .ZZC | bonus on #2  | 0      |
+  
 Scenario: A member confirms request to pay a member company
   Given next DO code is "whatever"
   When member ".ZZA" confirms form "pay" with values:
-  | op  | who        | amount | goods | purpose |*
-  | pay | Corner Pub | 100    | 2     | stuff   |
+  | op  | who     | amount | goods | purpose |*
+  | pay | Our Pub | 100    | 2     | stuff   |
   Then we say "status": "report tx|reward" with subs:
-  | did    | otherName  | amount | why                | rewardAmount |*
-  | paid   | Corner Pub | $100   | goods and services | $5           |
+  | did    | otherName | amount | why                | rewardAmount |*
+  | paid   | Our Pub   | $100   | goods and services | $5           |
   And we notice "new payment|reward other" to member ".ZZC" with subs:
-  | created | fullName   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*
-  | %today  | Corner Pub | Abe One   | $100 | stuff | reward | $10 |
+  | created | fullName | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*
+  | %today  | Our Pub  | Abe One   | $100 | stuff | reward | $10 |
 Skip messages don't show up in get_file_contents simulation and I haven't figured out how to test this yet
   And that "notice" has link results:
   | _name | Abe One |
@@ -147,5 +160,37 @@ Scenario: A member leaves goods blank
   | op  | who     | amount | goods | purpose |*
   | pay | Bea Two | 100    |       | labor   |  
   Then we say "error": "required field" with subs:
-  | field |*
+  | field   |*
   | ''For'' |
+  
+Scenario: A member asks to charge another member before making an rCard purchase
+  Given member ".ZZA" has no photo ID recorded
+  When member ".ZZA" completes form "charge" with values:
+  | op     | who     | amount | goods | purpose |*
+  | charge | Bea Two | 100    | 2     | labor   |
+  Then we say "error": "no photoid"
+
+Scenario: A member asks to charge another member before the other has made an rCard purchase
+  Given member ".ZZB" has no photo ID recorded
+  When member ".ZZA" completes form "charge" with values:
+  | op     | who     | amount | goods | purpose |*
+  | charge | Bea Two | 100    | 2     | labor   |
+  Then we say "error": "other no photoid" with subs:
+  | who     |*
+  | Bea Two |
+  
+Scenario: A member asks to pay another member before making an rCard purchase
+  Given member ".ZZA" has no photo ID recorded
+  When member ".ZZA" completes form "pay" with values:
+  | op  | who     | amount | goods | purpose |*
+  | pay | Bea Two | 100    | 2     | labor   |
+  Then we say "error": "no photoid"
+  
+Scenario: A member asks to pay another member before the other has made an rCard purchase
+  Given member ".ZZB" has no photo ID recorded
+  When member ".ZZA" completes form "pay" with values:
+  | op  | who     | amount | goods | purpose |*
+  | pay | Bea Two | 100    | 2     | labor   |
+  Then we say "error": "other no photoid" with subs:
+  | who     |*
+  | Bea Two |

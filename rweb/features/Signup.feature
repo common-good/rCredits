@@ -10,14 +10,14 @@ Setup:
 Scenario: A newbie visits the registration page with no invite
   Given invitation to email "a@" is ""
   When member "?" visits page "signup"
-  Then we show "Sign up for rCredits" with:
+  Then we show "Open a Personal rCredits Account" with:
   |_errorPhrase         |
   | you must be invited |
 
 Scenario: A newbie visits the registration page with bad invite
   Given invitation to email "a@" is "c0D3"
   When member "?" visits page "signup/code=WhAtEvEr"
-  Then we show "Sign up for rCredits" with:
+  Then we show "Open a Personal rCredits Account" with:
   |_errorPhrase         |
   | you must be invited |
 
@@ -25,7 +25,7 @@ Scenario: A newbie visits the registration page with expired invite
   Given invitation to email "a@" is "c0D3"
   And invitation "c0D3" was sent on "%today-5w"
   When member "?" visits page "signup/code=c0D3"
-  Then we show "Sign up for rCredits" with:
+  Then we show "Open a Personal rCredits Account" with:
   |_errorPhrase            |
   | invitation has expired |
 
@@ -35,7 +35,7 @@ Scenario: A newbie visits the registration page with a used invite
   | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns |*
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St., Agawam, MA 01001 |     18 |    1 |
   When member "?" visits page "signup/code=c0D3"
-  Then we show "Sign up for rCredits" with:
+  Then we show "Open a Personal rCredits Account" with:
   |_errorPhrase                      |
   | invitation has already been used |
 
@@ -203,7 +203,7 @@ Scenario: A member registers a company
   When member ".AAC" confirms form "another" with values:
   | relation | flow |*
   |        1 |    0 |
-  Then we show "Sign up for rCredits" with:
+  Then we show "Open a Company Account" with:
   |_nameDescription      |
   | properly capitalized |
   And with options:

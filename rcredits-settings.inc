@@ -27,6 +27,7 @@ define('R_COUNTRY_ID', US_COUNTRY_ID); // this region's country: United States
 define('R_STATE_ID', 1020); // Massachusetts
 define('R_REBATE', 10); // standard initial rebate percentage
 define('R_BONUS_FACTOR', 1); // standard bonus is this times standard rebate
+define('R_MAX_REBATE', 500); // cap on rebate for a single transaction (max bonus is in proportion)
 define('R_XFEE_CARD', .03); // percentage fee for exchanges of USD for rCredits using a credit/debit card
 define('R_XFEE_CHECK', 3.00); // flat fee for exchanges of USD for rCredits with a check
 define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller limits also apply)
@@ -49,3 +50,4 @@ define('R_ADMIN_QID', 'NEW.AAA'); // William's account code
 define('R_USDTX_DAYS', 5); // how many days it takes for a transfer to clear from bank to rCredits account
 define('ESCROW_ACCOUNT', '1326532739'); // escrow account number
 define('ESCROW_ROUTING', '211070175'); // escrow account routing number
+define('R_MAX_TX_REWARD', 500); // cap on incentive rewards for a single transaction

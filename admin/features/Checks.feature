@@ -31,7 +31,7 @@ Scenario: admin prints checks
   When member ".ZZB" visits page "sadmin/deposits"
   Then we show "Deposits" with:
   | Checks IN | 3 |
-  | Include   | 1 checks from %dm-2w |
+# UNUSED  | Include   | 1 checks from %dm-2w |
   When member ".ZZB" visits page "sadmin/checks/way=IN&date=0&previous=%today-3w&reprint=0&mark=1"
   Then we show pdf with:
   |_name    |_postalAddr          |_phone        |_transit      |_acct |_txid |_date |_amt   |_amount |_bank |*

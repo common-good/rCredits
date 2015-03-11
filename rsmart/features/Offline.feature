@@ -45,7 +45,7 @@ Setup:
   | .ZZF |     250 |
 
 Scenario: A cashier charged someone offline
-  When reconciling ":ZZA" on "devC" charging ".ZZB" $100 for "goods": "food" at "%now-1hour" force 1
+  When reconciling ":ZZA" on "devC" charging ".ZZB-ccB" $100 for "goods": "food" at "%now-1hour" force 1
   Then we respond ok txid 5 created "%now-1hour" balance 160 rewards 260
   And we notice "new charge|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
@@ -61,7 +61,7 @@ Scenario: A cashier charged someone offline and they have insufficient balance
   Given transactions: 
   | xid | created | type     | amount | from | to   | purpose |*
   | 5   | %today  | transfer |    200 | .ZZB | .ZZA | cash    |
-  When reconciling ":ZZA" on "devC" charging ".ZZB" $100 for "goods": "food" at "%now-1hour" force 1
+  When reconciling ":ZZA" on "devC" charging ".ZZB-ccB" $100 for "goods": "food" at "%now-1hour" force 1
   Then we respond ok txid 6 created "%now-1hour" balance -40 rewards 260
   And we notice "new charge|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
@@ -74,8 +74,8 @@ Scenario: A cashier charged someone offline and they have insufficient balance
   | .ZZC |     355 |
 
 Scenario: A cashier charged someone offline but it actually went through
-  Given agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food" at "%now-1hour"
-  When reconciling ":ZZA" on "devC" charging ".ZZB" $100 for "goods": "food" at "%now-1hour" force 1
+  Given agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $100 for "goods": "food" at "%now-1hour"
+  When reconciling ":ZZA" on "devC" charging ".ZZB-ccB" $100 for "goods": "food" at "%now-1hour" force 1
   Then we respond ok txid 5 created "%now-1hour" balance 160 rewards 260
   #And we notice nothing
   And balances:
@@ -86,7 +86,7 @@ Scenario: A cashier charged someone offline but it actually went through
   | .ZZC |     355 |
 
 Scenario: A cashier declined to charge someone offline and it didn't go through
-  When reconciling ":ZZA" on "devC" charging ".ZZB" $100 for "goods": "food" at "%now-1hour" force -1
+  When reconciling ":ZZA" on "devC" charging ".ZZB-ccB" $100 for "goods": "food" at "%now-1hour" force -1
   Then we respond ok txid 0 created "" balance 250 rewards 250
   #And we notice nothing
   And balances:
@@ -97,8 +97,8 @@ Scenario: A cashier declined to charge someone offline and it didn't go through
   | .ZZC |     250 |
 
 Scenario: A cashier canceled offline a supposedly offline charge that actually went through
-  Given agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food" at "%now-1hour"
-  When reconciling ":ZZA" on "devC" charging ".ZZB" $100 for "goods": "food" at "%now-1hour" force -1
+  Given agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $100 for "goods": "food" at "%now-1hour"
+  When reconciling ":ZZA" on "devC" charging ".ZZB-ccB" $100 for "goods": "food" at "%now-1hour" force -1
   Then we respond ok txid 8 created %now balance 250 rewards 250
   And with undo "5"
   And we notice "new charge|reward other" to member ".ZZB" with subs:
@@ -115,11 +115,11 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   | .ZZC |     250 |
 
 Scenario: A cashier canceled offline a supposedly offline charge that actually went through, but customer is broke
-  Given agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "goods": "refund" at "%now-1hour"
+  Given agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $-100 for "goods": "refund" at "%now-1hour"
   And transactions: 
   | xid | created | type     | amount | from | to   | purpose |*
   | 8   | %today  | transfer |    300 | .ZZB | .ZZA | cash    |
-  When reconciling ":ZZA" on "devC" charging ".ZZB" $-100 for "goods": "refund" at "%now-1hour" force -1
+  When reconciling ":ZZA" on "devC" charging ".ZZB-ccB" $-100 for "goods": "refund" at "%now-1hour" force -1
   Then we respond ok txid 9 created %now balance -50 rewards 250
   And with undo "5"
   And we notice "new refund|reward other" to member ".ZZB" with subs:

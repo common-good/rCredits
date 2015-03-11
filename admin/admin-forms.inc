@@ -395,11 +395,11 @@ function formDeposits($form, &$sta, $deposit = '') {
     if ($previous == 1) $previous = 0; // handle transition from Dwolla
     $oldCount = $previous ? db\count('r_usd', $where . ' AND deposit=:previous', compact('previous')) : 0;
     $count = item(t('Checks') . " $way: $count");
-    if ($previous) $reprint = boxField('', t('Include/Reprint ') . $oldCount . t(' checks from ') . strftime('%d-%b', $previous) . '?'); else unset($reprint);
+//    if ($previous) $reprint = boxField('', t('Include/Reprint ') . $oldCount . t(' checks from ') . strftime('%d-%b', $previous) . '?'); else unset($reprint);
     if ($count or $previous) $submit = submit(t('Print checks ') . $way);
     $previous = hidField($previous);
 ///    echo "\n\n\nway=$way " . print_r(u\prefixKeys($way, compact(u\ray('count reprint submit previous'))), 1) . "\n\n\n";
-    $$way = w\fieldSet("_$way", u\prefixKeys($way, compact(u\ray('count reprint submit previous'))));
+    $$way = w\fieldSet("_$way", u\prefixKeys($way, compact(u\ray('count submit previous'))));
   }
   
   $deposits = item(a\deposits(), ' ');
@@ -409,8 +409,10 @@ function formDeposits($form, &$sta, $deposit = '') {
 function formDeposits_submit($form, &$sta) {
   $op = w\op($sta);
   $way = str_replace('submit', '', $op); // cute. INsubmit or OUTsubmit -> IN or OUT
-  foreach (['reprint', 'previous'] as $k) $$k = @$sta['input'][$way . $k];
-  r\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1&reprint=" . @$reprint);
+  $previous = @$sta['input'][$way . 'previous'];
+  r\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1");
+//  foreach (['reprint', 'previous'] as $k) $$k = @$sta['input'][$way . $k];
+//  r\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1&reprint=" . @$reprint);
 }
 
 function depositDetails($args) {
@@ -418,8 +420,7 @@ function depositDetails($args) {
   include_once __DIR__ . '/../pdf.class';
   $pdf = new r\Pdf();
 
-  if (!$in = (strtoupper($way) == 'IN')) $total = -$total;
-  $total = u\fmtAmt($total, '$');
+  if (!$in = (strtoupper($way) == 'IN')) $total = str_replace('-', '', $total);
 
   $m = .5; // left/right margin size
   $colW = 1.25; // amount column width
@@ -573,7 +574,7 @@ function memberID($id) {
   $qrUrl = "HTTP://$region.$server/$tail$urlMark" . $acct->$cardField; // NOT r\cardCode($qid);
 //  $qrServer = strtoupper('http://' . R_SERVER_ID . '.rC2.me/I/');
 //  $qrUrl = $qrServer . str_replace(R_AGENT_MARK, R_AGENT_URL_MARK, $qid . $mark) . $acct->secure[$cardField];
-  $photo = DRUPAL_ROOT . $acct->auxFilename('picture');
+  $photo = str_replace(R_DFT_PICTURE, R_NOT_VALID, DRUPAL_ROOT . $acct->auxFilename('picture'));
 
   $info = @getimagesize($photo);
   list ($photoW, $photoH) = is_array($info) ? $info : array(0, 0);

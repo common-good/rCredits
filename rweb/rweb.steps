@@ -78,6 +78,10 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Signin AMemberClicksALinkToResetPasswordForUnknownAccount
  *     MAKE Transact AMemberAsksToChargeAnotherMember
  *     MAKE Transact AMemberAsksToPayAnotherMember
+ *     MAKE Transact AMemberAsksToChargeAnotherMemberBeforeMakingAnRCardPurchase
+ *     MAKE Transact AMemberAsksToChargeAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase
+ *     MAKE Transact AMemberAsksToPayAnotherMemberBeforeMakingAnRCardPurchase
+ *     MAKE Transact AMemberAsksToPayAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase
  */
 function memberCompletesFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values);}
 
@@ -124,6 +128,7 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Signup ANewbieRegistersFromElsewhere
  *     MAKE Transact AMemberConfirmsRequestToChargeAnotherMember
  *     MAKE Transact AMemberConfirmsRequestToPayAnotherMember
+ *     MAKE Transact AMemberConfirmsRequestToPayAnotherMemberALot
  *     MAKE Transact AMemberConfirmsRequestToPayAMemberCompany
  *     MAKE Transact AMemberConfirmsRequestToPayTheSameMemberTheSameAmount
  *     MAKE Transact AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount
@@ -230,6 +235,7 @@ function members($list) {return t\members($list);}
  *     MAKE Summary Setup
  *     MAKE Transact Setup
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
+ *     TEST Transact AMemberConfirmsRequestToPayAnotherMemberALot
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
  *     MAKE Transactions Setup
  */
@@ -270,6 +276,8 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Transact AMemberConfirmsRequestToPayTheSameMemberTheSameAmount
  *     TEST Transact AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount
  *     TEST Transact AMemberLeavesGoodsBlank
+ *     TEST Transact AMemberAsksToChargeAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase
+ *     TEST Transact AMemberAsksToPayAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase
  */
 function weSayWithSubs($type, $index, $subs) {
   global $testOnly;
@@ -331,6 +339,8 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST Signup AMemberRegistersACompany
  *     TEST Signup ANewbieRegistersFromElsewhere
  *     TEST Summary MembersAccountIsNotActive
+ *     TEST Transact AMemberAsksToChargeAnotherMemberBeforeMakingAnRCardPurchase
+ *     TEST Transact AMemberAsksToPayAnotherMemberBeforeMakingAnRCardPurchase
  */
 function weSay($type, $index) {return weSayWithSubs($type, $index, array());}
 
@@ -539,6 +549,7 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Transact Setup
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
+ *     MAKE Transact AMemberConfirmsRequestToPayAnotherMemberALot
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
  *     TEST Transactions Setup
  */
@@ -1147,3 +1158,13 @@ function memberCompletesRelationsFormWithValues($id1, $list) {
  *     TEST Joint AJoinedAccountMemberUnjoinsTheAccount
  */
 function memberCacheIsOk($id) {return r\acct(t\uid($id))->cacheOk();}
+
+/**
+ * member (ARG) has no photo ID recorded
+ *
+ * in: MAKE Transact AMemberAsksToChargeAnotherMemberBeforeMakingAnRCardPurchase
+ *     MAKE Transact AMemberAsksToChargeAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase
+ *     MAKE Transact AMemberAsksToPayAnotherMemberBeforeMakingAnRCardPurchase
+ *     MAKE Transact AMemberAsksToPayAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase
+ */
+function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}

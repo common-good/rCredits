@@ -45,7 +45,8 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
 
 #edit-acct-index {display:none; float:left; z-index:2; margin:20px 0 5px 120px;}
 #edit-acct-index a {display:inline-block; color:yellow; padding:0px 7px 0px 7px;}
-#edit-acct-index .index-detail {display:none; position:absolute; left:3px; width:99%; height:400px; background-color:lightgray; border:2px solid darkred; font-size:11px; -webkit-border-radius:3px; border-radius:3px;}
+#edit-acct-index .index-detail {display:none; position:absolute; left:3px; width:940px; height:310px; background-color:lightgray; border:2px solid darkred; font-size:11px; -webkit-border-radius:3px; border-radius:3px;}
+#edit-acct-index .index-detail div {display:inline-block; width:185px; margin-bottom:15px;}
 #edit-acct-index .index-detail a {color:black; background-color:white; padding:2px 5px; margin:3px 3px; width:173px; display:inline-block;}
 #edit-acct-index .index-detail a small {font-size:70%;}
 
@@ -282,6 +283,8 @@ div.password-confirm {float: right; margin-top:1.5em; visibility:hidden; width: 
 #user-login-form #edit-tip label {font-weight:normal;}
 
 /* Signup (New account) */
+#rcreditswebformsignup #edit-title {display:inline-block; margin-left:0; width:auto;}
+#rcreditswebformsignup #edit-forother {display:inline-block; margin:15px 0 0 15px; font-size:70%;}
 #rcreditswebformsignup #edit-subtext {margin-left:0;}
 #rcreditswebformsignup #edit-company-text label {font-weight:normal; width:100%;}
 #rcreditswebformsignup .form-type-radios {border-bottom:0;}

@@ -90,7 +90,7 @@ class rsmartJoint extends DrupalWebTestCase {
   // Scenario: A cashier asks to charge someone
   public function testACashierAsksToChargeSomeone_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent ":ZZE" asks device "devC" to charge ".ZZB" $400 for "goods": "food" at %now');
+    When_('agent ":ZZE" asks device "devC" to charge ".ZZB-ccB" $400 for "goods": "food" at %now');
     Then_('we respond ok txid 5 created %now balance 140 rewards 540');
     And__('with message "report tx|reward" with subs: "ASSOC'
     . '\\| did     | otherName | amount | why                | rewardAmount |'
