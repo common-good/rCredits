@@ -40,10 +40,13 @@ require_once 'rcredits-backend.inc';
 require_once 'rcron/rcron.inc'; // required here by cron
 use rCredits as r;
 use rCredits\Util as u;
+use rCredits\DB as db;
 use rCredits\Testing as t;
 use rCredits\Web as w;
+use rCredits\Admin as a;
 
 define('R_SYS_ERR', "The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again.<br>\n");
+define('ONE_CRON_OP', 'one cron op'); // flags a call of f('cr. in PHP window, to prevent side-effects
 
 class rCreditsMailSystem extends DefaultMailSystem {
   public function format(array $message) {
@@ -196,7 +199,14 @@ function rcredits_cron_queue_info() {
   return compact('q');
 }
 
-/**/ function bs($n, $list = B_LIST) {debug(a\flagsDesc($n, $list));}
+/**
+ * Set or return a global variable.
+ */
+function g($varName) {
+
+}
+
+/**/ function bs($n, $list = B_LIST) {include __DIR__ . '\admin\admin.inc'; debug(a\flagsDesc($n, $list));}
 /**/ function tm($n) {debug($result = is_numeric($n) ? date('m-d-Y H:i:s a', $n) : strtotime($n)); return $result;}
 function a($id) {global $lastA; return $lastA = r\acct(r\fullQid(strlen($id) == 3 ? '.' . $id : $id));}
 function x($xid) {r\x($xid);}
@@ -208,19 +218,52 @@ function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_ar
 /**/ function flog($s) {file_put_contents('flog.txt', print_r($s, 1) . "\n", FILE_APPEND);}
 
 /**
+ * Return a function result, for a nicknamed namespace function.
+ * For example, f('u.fmtAmt 35.2') returns rCredits\Util\fmtAmt(35.2) = "$35.20".
  * f('u.func arg1 arg2') OR f('u.func', arg1, arg2)
  */
 function f($func) {
+  global $cronOp; $cronOp = ONE_CRON_OP; // just in case we use cr.
   if (substr($func, 0, 2) == 'a.') include_once __DIR__ . '/admin/admin.inc';
   if (substr($func, 0, 2) == 'y.') include_once __DIR__ . '/rcredits-yearly.inc';
   $args = func_get_args();
   if (strpos($func, ' ') and count($args) == 1) $args = u\ray($args[0]);
   $func = array_shift($args);
-  
+  return call_user_func_array(funcNickname($func), $args);
+}
+/**/ function d($s) {debug($result = call_user_func_array('f', func_get_args()));} // debug(f(...))
+
+/**
+ * Return the intended fully-qualified function name.
+ * @param string $func: a function name of the form x.func, where x is an abbreviated namespace
+ * @return the intended function name
+ */
+function funcNickname($func) {
   list ($n, $func) = explode('.', $func);
   $funcs = u\ray('r w s u be db t p a cr y', '', 'Web', 'Smart', 'Util', 'Backend', 'DB', 'Testing', 'SMS', 'Admin', 'Cron', 'Special');
-  $func = 'rCredits\\' . ($funcs[$n] ? $funcs[$n] . '\\' : '') . $func;
-  return call_user_func_array($func, $args);
+  return 'rCredits\\' . ($funcs[$n] ? $funcs[$n] . '\\' : '') . $func;
+}
+
+/**
+ * Utility to do something to each member account (see example below)
+ * call: eachAcct($func);
+ * or    eachAcct(function($a) {...});
+ */
+function eachA($func = 'a.changeIt') {
+  $result = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
+  if (!is_callable($func)) $func = funcNickname($func);
+  foreach ($result as $one) $func(r\acct($one));
+}
+
+/**
+ * Utility to do something to each existing transaction
+ * call: eachX();
+ * or    eachAcct(function($x) {...});
+ */
+function eachX($func = 'a.changeIt') {
+  $result = db\q('SELECT xid FROM r_txs');
+  if (!is_callable($func)) $func = funcNickname($func);
+  foreach ($result as $one) $func(r\x($one));
 }
 
 /**
@@ -247,7 +290,7 @@ function patch($name) {
     list ($op, $account, $language) = $args;
     $language = @$language ?: \user_preferred_language($account);
     $uid = $account->uid;
-    return drupal_mail('rCredits', $op, $account->mail, $language, compact('uid'));
+    return drupal_mail('rCredits', $op, r\acct($uid)->email, $language, compact('uid'));
   }
   if ($name == 'user_form_process_password_confirm3595') return array(
     'strengthTitle' => t('strength:'),
@@ -268,23 +311,17 @@ function patch($name) {
   
   if ($name == '_update_cron_notify') return; // update.fetch.inc
   if ($name == 'file_munge_filename1174') return; // file.inc
+  if ($name == 'filter_access1023') return TRUE; // filter.module (allows all users access to all field formats)
 }
 
 /**
- * Show the function result in the debug window and return the result.
- * For example, d('u.fmtAmt 35.2') would show and return rCredits\Util\fmtAmt(35.2) = "$35.20".
- */
-/**/ function d($s) {debug($result = call_user_func_array('f', func_get_args()));}
-
-define('ONE_CRON_OP', 'one cron op'); // flags a call of cron() in PHP window
-
-/**
  * Run a background op in the foreground (not on production server).
- */
+ *//*
 function cron($op) {
-/**/ if (isPRODUCTION) return debug("Don't run cron this way on production server.");
+/// if (isPRODUCTION) return debug("Don't run cron this way on production server.");
   global $testOnly; if(@$testOnly) return FALSE;
   global $cronOp; $cronOp = ONE_CRON_OP;
   $func = "rCredits\\Cron\\$op";
   return $func();
 }
+*/

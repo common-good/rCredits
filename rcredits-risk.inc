@@ -34,13 +34,13 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
   setRisk('rents', $a);
   
   $trusted = $a->trust - 1; // how well trusted (trust is always >=1)
-  $inviteTrust = db\lookup('SUM(trust - 1)', 'users u INNER JOIN r_invites i ON i.inviter=u.uid', 'i.invitee=:id OR i.email=:email', u\ray('id email', $a->id, $a->mail)); // trustedness of accounts that invited this one
+  $inviteTrust = db\lookup('SUM(trust - 1)', 'users u INNER JOIN r_invites i ON i.inviter=u.uid', 'i.invitee=:id OR i.email=:email', u\ray('id email', $a->id, $a->email)); // trustedness of accounts that invited this one
   $trusted += $inviteTrust; // invited by trusted people
   $relations = db\lookup('COUNT(*)', 'r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND NOT r.isOwner AND r.other=:id AND u.risk<:K_GREEN', $idSub);
   $trusted += $relations; // access to (trusted by) non-suspect businesses
   setRisk('trusted', $trusted, $trusted > 1.5);
   
-  $conxRisk = db\lookup('COUNT(*)', 'users u INNER JOIN r_invites i ON (i.invitee=u.uid OR i.email=u.mail)', "i.inviter=:id AND u.risk>=:K_RED", $idSub); // invited by this account
+  $conxRisk = db\lookup('COUNT(*)', 'users u INNER JOIN r_invites i ON i.invitee=u.uid', "i.inviter=:id AND u.risk>=:K_RED", $idSub); // invited by this account
   $relationsRisk = db\lookup('COUNT(*)', 'r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND r.other=:id AND u.risk>=:K_RED', $idSub); // access to (trusted by) suspect businesses
   setRisk('badConx', $conxRisk + $relationsRisk, 'ifany'); // invited suspicious accounts
 

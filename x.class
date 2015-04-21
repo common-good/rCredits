@@ -108,8 +108,8 @@ class x {
     
     if ($goods == R_FOR_GOODS) {
       foreach (array('rebate', 'bonus') as $type) {
-      u\EXPECT(isset($rewards[$type]), 'nope!');
-        $amount = $rewards[$type];
+      // u\EXPECT(isset($rewards[$type]), 'nope!'); NO! pay to owners, for example, has no reward
+        $amount = @$rewards[$type]; // @ for empty rewards to owners, for example
         $type = u\consta('tx', $type);
         list ($to, $tid, $for) = $type == TX_REBATE
           ? array($payer, $payerTid, t('rebate')) 

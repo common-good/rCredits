@@ -103,7 +103,7 @@ Scenario: a member is under minimum and has requested insufficient funds from th
   When cron runs "bank"
   Then usd transfers:
   | payer | amount       |*
-  | .ZZA  | -30 |
+  | .ZZA  | -110 |
 
 Scenario: a member member with zero minimum has balance below minimum
   Given balances:

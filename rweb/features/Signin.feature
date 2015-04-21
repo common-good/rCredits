@@ -50,7 +50,7 @@ Scenario: A member types an unknown username/ID
   Then we say "error": "bad login"
 
 #.........................................................
-
+Skip (remote signin is no longer allowed)
 Scenario: A member signs in with username from rCredits.org
   When a member posts to "signinx" with values:
   | id     | pw |*
@@ -85,9 +85,8 @@ Scenario: A member types an unknown username/ID from rCredits.org
   | bogus | a1 |
   Then we show "Welcome to rCredits"
   And we say "error": "bad login"
-
 #.........................................................
-
+Resume
 Scenario: A member asks for a new password for username
   Given next random code is "wHatEveR"
   When member "?" completes form "account/password" with values:

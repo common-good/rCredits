@@ -46,17 +46,20 @@ define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
 define('R_VERSION', '2.0'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
+define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty,Vacant Lot,Land,Cinema,Printing & Office Supply,Car Repair,Health Club/Gym,Restaurant,Hardware & Supply,Grocer,Farm,Food Processing,Department Store,Electric Company,Oil Company,Town Government,Community College,Hospital');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', 'legalName newAccount by calling wants website description selling coFlags gross employees verifyBy signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', isGAME ? 'legalName usd members toBona locus boughtAt lastTx' : 'legalName newAccount by calling wants website description shortDesc selling coFlags gross employees verifyBy signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
-define('R_SECURE_FIELDS', 'cardCode cardCode2 pin federalId ssnData dob bankAccount photoId question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
+define('R_SECURE_FIELDS', 'pw2 cardCode cardCode2 pin federalId ssnData dob bankAccount photoId question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
+define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount photoId'); // very secure fields (admin-encrypted)
 //define('R_SECURE_FIELDS', 'cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
 //define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData photoId pin bankAccount'); // personal identifying information
-define('R_HIDE_CHANGES', R_SECURE_FIELDS . ' changes usd r rewards committed floor login access activated data secure secret offsite stepsDone lastTx usdAccount pass notes picture photo trust risk risks stats getAppData appData'); // do not record changes to these fields (generally anything secret, or often-changed -- perhaps automatically)
+define('R_HIDE_CHANGES', R_SECURE_FIELDS . ' changes init r rewards committed floor login access activated data secure stepsDone lastTx pass notes picture photo trust risk risks stats getAppData appData'); // do not record changes to these fields (generally anything secret, or often-changed -- perhaps automatically)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
 define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_CASH', '(r-committed-GREATEST(0, floor, rewards))'); // balance available to cash out
-define('R_SHARE_MIN', 50); // minimum sharing percentage
+define('R_SHARE_MAX', 50); // minimum sharing percentage
+define('R_SHARE_DFT', 50); // default sharing percentage
 
 define('R_SECRET_URL', isPRODUCTION ? 'http://rcredits.org' : (isDEV ? 'http://localhost/rcredits-promo' : 'http://' . STAGE)); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
@@ -66,7 +69,7 @@ define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision ses
 define('R_STEPS', 'contact sign donate proxies prefs photo connect company relations'); // membership steps
 define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret code oneTimeLoginUrl password pass newPass form_build_id form_token form_id'); // don't log these
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts Summary'); // don't log visits to these forms
-define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin Pass Empty TestRecovery ChangePassword Help Agreement Reports Flags Menu I ResetPassword Profile Accept Buy HandleInvoice Directory'); // no login required
+define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin Sinx Pass Empty TestRecovery ChangePassword Help Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice Directory'); // no login required
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
@@ -103,7 +106,6 @@ define('R_COMPANY_GIFT', 250); // suggested donation for companies
 define('R_BUYS_BEFORE_BONUS', R_PILOT ? 1 : 3); // number of purchases required before signup bonus
 define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
 define('R_ACCT_REGION', '(-FLOOR((uid-1)/' . R_REGION_MAX . ')-1)'); // SQL region expression
-define('R_CTTY_UID0', -R_REGION_MAX); // community uids are less than this (farther from zero)
 define('R_DW_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // (credits CGF for referral)
 define('R_SIGNIN_HOURS', 24); // window for signing in after registering or resetting password
 define('R_MEMBER_MARK', '.'); // divides region from specific identifier in member IDs
@@ -161,8 +163,8 @@ define('CO_CANS_BITS', 7); // number of bits for permissions (each: signed in an
 define('CO_AGENT_CANS', CO_CANS + CO_CANS_BITS); // company permission bits when signed IN (limited by agent)
 define('CO_CANS_MASK', pow(2, CO_CANS_BITS + 1) - 1); // the CANS bits -- signed-IN permission bits are 22-28
 
-define('CO_U29', 29); //
-define('CO_U30', 30); //
+define('CO_FAST', 29); // fast checkout -- never ask for photoId (set by cAdmin)
+define('CO_TIP', 30); // ask customer what percent tip to add
 define('CO_U31', 31); //
 
 define('CO_CAN_BITS', 'charge undo r4usd usd4r refund buy');
@@ -179,10 +181,10 @@ define('B_FROZEN', 3); // ctty: is frozen (no member can cash out)
 define('B_COUNTED', 4); // someone got a COUNTED reward for this employee signing up
 define('B_u5', 5); //
 define('B_CO', 6); // company account
-define('B_u7', 7); // UNUSED photoid required and not yet approved
-define('B_u8', 8); // UNUSED (any company can do this) can charge customers without confirmation
+define('B_u7', 7); //
+define('B_u8', 8); //
 define('B_NONUDGE', 9); // don't send reminders
-define('B_u10', 10); //
+define('B_SEARCHY', 10); // user wants to be findable by other members, by phone or email
 define('B_u11', 11); // 
 define('B_PAYROLL', 12); // NYI automatically pay employees their total daily salary - employer chooses pay period
 define('B_WEEKLY', 13); // send notices only weekly
@@ -206,7 +208,7 @@ define('B_ADMIN', 30); // is a system administrator -- can manage server, includ
 define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
 define('B_MAX', 31); // maximum bit number
 define('B_ADMINABLE', 'co member bona cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
-define('B_LIST', 'member u1 ok bona counted u5 co u7 u8 nonudge u10 u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 u26 regulator cadmin2 cadmin admin closed');
+define('B_LIST', 'member u1 ok bona counted u5 co u7 u8 nonudge searchy u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 u26 regulator cadmin2 cadmin admin closed');
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+refunds+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community)
 
@@ -352,10 +354,7 @@ function regionalInsert($table, $idField, $record, $region = NULL) {
     try {
       if (db\insert($table, $record)) return $id;
     } catch (Exception $e) { // BIG MYSTERY: why does this happen sometimes with no collision?
-      if ($table == 'users' and db\lookup('mail', 'users', 'uid=:id', compact('id')) == $mail) {
-        r\tellStaff('another immaculate birth', $record, $uid);
-        return $id; // record magically exists
-      }
+      r\tellStaff('cannot save regional ' . $e->getMessage(), $record);
     }
   }
   u\EXPECT(FALSE, "failed to save $table record in region $region after $try tries.");
@@ -427,19 +426,6 @@ function badUnpaidInv($nvid, &$inv = '') {
   if (!$inv = db\lookup($fields, 'r_invoices', 'nvid=:nvid', compact('nvid'))) return 'no matching invoice';
   if ($inv['status'] > 0) return 'already paid';
 }
-
-/**
- * Return the rCredits account id for the given USD account id.
- * @param string $usdAccountId: the Dwolla ID (with no hyphens)
- * @param int $omit: an account id to ignore (optional)
- *//*
-function whoseUsd($usdAccountId, $omit = NULL) {
-  $usdAccount = bin2hex(u\ezencrypt(str_replace('-', '', $usdAccountId), R_WORD));
-  $where = 'usdAccount=:usdAccount' . (@$omit ? ' AND uid<>:omit' : '');
-  if (u\test()) $where .= " AND mail<>':R_TESTER_EMAIL'";
-  $subs = compact('usdAccount') + (@$omit ? compact('omit') : []);
-  return db\lookup('uid', 'users', $where, $subs);
-}*/
 
 /**
  * Return the user's sequential transaction number
@@ -559,6 +545,7 @@ function rdoMonth($time = REQUEST_TIME) {return round(($time - strtotime('12/1/2
  * Wrap all email, so it doesn't go out when testing.
  */
 function rMail($index, $email, $subs, $lingo = '') {
+  if (isGAME) return; // no emails from game site
   global $testEmails;
   $subs['email'] = $email;
   $testEmails[] = compact(u\ray('index email subs'));
@@ -587,6 +574,7 @@ function message($uid, $index, $subs = []) {
  */
 function notify($uid, $index, $subs = [], $force = FALSE) {
   global $channel;
+  if (isGAME) return;
   $a = r\acct($uid);
   u\EXPECT($a, 'no account');
   $subs['uid'] = $uid;
@@ -595,7 +583,7 @@ function notify($uid, $index, $subs = [], $force = FALSE) {
   $warnIndexes = u\ray('new invoice,new offer,charge disputed');
   
   if ($force) {
-    $mailed = r\rMail($index, $a->mail, $subs); // no need to pass $a->language
+    $mailed = r\rMail($index, $a->email, $subs); // no need to pass $a->language
   } else { //if ($a->can(B_NOTIFY_EMAIL)) {
     list ($message, $created) = array(u\tt($index, $subs), REQUEST_TIME);
     t\output("Notice to $fullName: $message");
@@ -651,6 +639,7 @@ function makeCardCode($a) {
  * @param acct $a: the account
  * @param string $status: what milestone or event to alert about
  * @param bool $do: prerequisite for the alert
+ * @return <the membership event happened and was handled>
  * If there is an appropriate bit to set, it will be set as appropriate.
  */
 function membershipEvent($a, $status, $do = TRUE) {
@@ -724,7 +713,7 @@ function tellStaff($index, $subs = [], $uid = TRUE) {
   if ($uid) {
     if ($mya = r\acct($uid > 1 ? $uid : '')) {
       $message = "$mya->fullName (#$mya->id): $message";
-      if ($ca = $mya->cAdminUid()) $email = r\acct($ca)->mail; // tell Community Admin
+      if ($ca = $mya->cAdminUid()) $email = r\acct($ca)->email; // tell Community Admin
     } else $uid = 1;
   } else $uid = 1; // default to sysadmin
 
@@ -848,17 +837,12 @@ function unQid($qid) {
 function quid($uid, $agentId = '') {
   if (!$agentId or $agentId == $uid) { // proSe
     if ($uid < 0) return '!' . quid(-$uid);
-    //if ($uid < 0) return u\n2a(-$uid - 1, -3); // -1 because region and ctty uids are bumped down by 1
     $region = uidRegion($uid);
     $regionNum = (-$region - 1) / R_REGION_MAX;
-    $i = $uid - -$region;
-    //$region = -uidRegion($uid) - 1;
-    //$i = ($uid - 1) - $region * R_REGION_MAX; // -1 because uids are all bumped up by 1
-    return u\n2a($regionNum, -3) . R_MEMBER_MARK . u\n2a($i, -3);
+    return u\n2a($regionNum, -3) . R_MEMBER_MARK . u\n2a($uid - -$region, -3);
   } else {
     $reid = r\relation('reid', $uid, $agentId); // compound quid
     return str_replace(R_MEMBER_MARK, R_AGENT_MARK, quid($reid));
-//    return R_SERVER_ID . R_AGENT_MARK . u\n2a($reid, -3);
   }
 }
 
@@ -909,7 +893,9 @@ function cardCode($qid) {
 
 /**
  * Set a cookie
- * @param int $expires: time when cookie expires (defaults to never -- about 1000 years from now)
+ * @param string $key: name of cookie
+ * @param string $value: value of cookie
+ * @param int $expires: time when cookie expires (defaults to never -- about 1000 years from now) 0=end of session
  * @return: the value
  */
 function setCook($key, $value, $expires = NULL) {
@@ -925,7 +911,6 @@ function setCook($key, $value, $expires = NULL) {
 function uidRegion($uid) {
   $uid = abs($uid) - 1; // -1 because uids are all bumped up by 1
   return -1 - ($uid - ($uid % R_REGION_MAX));
-  //return -floor(($uid - 1) / R_REGION_MAX) - 1; // -1 because uids are all bumped up by 1
 }
 
 /**
@@ -1007,10 +992,15 @@ function isEmployee($uid, $company = '') {
   return relation(1, $company ?: acct()->id, $uid, 'employee');
 }
 
-function communityUid($postalCode = '') {
+/**
+ * Return the community record ID for the given postal code.
+ * @param string $postalCode: postal code to identify community (if none, assume something in server community)
+ * @param bool $defaultZero: return 0 if postalCode does not match any community? (else return server uid)
+ */
+function communityUid($postalCode = '', $defaultZero = FALSE) {
   if (!$postalCode) return serverUid();
   $where = "country=':R_COUNTRY_ID' AND :postalCode RLIKE postalCode AND uid=community";
-  return db\lookup('uid', 'users', $where, compact(u\ray('postalCode'))) ?: serverUid();
+  return db\lookup('uid', 'users', $where, compact(u\ray('postalCode'))) ?: ($defaultZero ? 0 : serverUid());
 }
 
 /**
@@ -1031,7 +1021,8 @@ function uniqueName($fullName) {
  */
 function loginString($id) {
   if (u\isQid($id = trim(strtoupper($id))) and $acct = acct($id)) return $acct->id; // try to interpret as a qid
-  return db\lookup('uid', 'users', 'name=:id OR mail=:id', compact('id'));
+  $mail = bin2hex(u\cryptN(strtolower($id)));
+  return db\lookup('uid', 'users', 'name=:id OR mail=:mail', compact('id', 'mail'));
 }
   
 /**
@@ -1133,7 +1124,7 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
       return r\Web\say('Account "@name" has transactions in @table, so it cannot be deleted.', u\ray('name table', $a->fullName, $table), 'ERR');
     }
   } elseif (!$newUid) {
-    $region = @$a->postalCode ? r\region(@$a->country, @$a->state, $a->postalCode) : communityUid();
+    $region = @$a->postalCode ? r\region(@$a->country, @$a->state, $a->postalCode) : r\communityUid();
     $newUid = r\acct::nextId($region);
   }
   $subs = array( // all tables are listed, to be sure we don't leave any out
@@ -1191,8 +1182,8 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
   }
   $oldQuid = r\quid($oldUid);
   if ($unusable and !$delete) {
-    list ($uid, $name, $mail) = array($oldUid, "unusable-$oldQuid", "unusable$oldQuid@rcredits.org");
-    db\insert('users', compact(u\ray('uid name mail'))); // mark old uid unusable
+    list ($uid, $name, $email) = array($oldUid, "unusable-$oldQuid", "unusable$oldQuid@rcredits.org");
+    db\insert('users', compact(u\ray('uid name email'))); // mark old uid unusable
   }
   foreach ($files as $old => $new) if (file_exists($old)) {
     if ($delete) unlink($old); else rename($old, $new);

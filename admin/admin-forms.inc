@@ -16,20 +16,10 @@ use rCredits\Web as w;
 include_once __DIR__ . '/admin.inc';
 include_once __DIR__ . '/admin-web.inc';
 
-//define('R_CHECK_BASE', 1000000); // where to start numbering remotely-created checks (added to txid)
-
 /**
  * Make various administrative operations available to the admin and cAdmin.
  */
 function formAdmin($form, &$sta, $args = '') {
-//  $form = u\insertBefore(compact('communities'), formCommunity([], &$sta, $args), 'count');
-
-/* (This dropdown might be better here than at the top of every page)
-   (top of page dropdown would then include only the CURRENTLY selected community (and the admin))
-  $rows = db\q('SELECT uid, fullName FROM users WHERE uid<0 AND uid<:R_CTTY_UID0 ORDER BY fullName')->fetchAllKeyed();
-  $cttyChoices = array_merge(array('ctty-0' => 'Select a community to manage'), u\prefixKeys('ctty', $rows));
-  $community = formField('select', t('Manage:'), t('Select a community to manage'), '', $cttyChoices);
-*/
   $mya = r\acct();
   $admin = $mya->admin;
   $tables = 'users txs gifts proxies relations invites'; // tables to show
@@ -41,6 +31,7 @@ function formAdmin($form, &$sta, $args = '') {
     $do1099btest = submit(t('1099B TEST'));
     $do1099b = submit('1099B');
     $tables .= ' notices boxes do log stats usd';
+    $special = submit(t('Special'));
   }
   if (!$admin and $ctty = $mya->community) {
     $cttyName = @r\acct($ctty)->fullName; // @ for testing
@@ -64,7 +55,7 @@ function formAdmin($form, &$sta, $args = '') {
   $form = compact('title');
   if ($mya->cAdmin) {
     foreach (u\ray($tables) as $one) $form[$one] = submit($one);
-    $form += compact(u\ray('inviteeStatus do1099btest do1099b stop start stopCtty startCtty acctSet'));
+    $form += compact(u\ray('inviteeStatus do1099btest do1099b special stop start stopCtty startCtty acctSet'));
   }
   return $form;
 }
@@ -80,6 +71,7 @@ function formAdmin_submit($form, &$sta) {
     r\up($op == 'start');
     return r\up() ? say(t('System is UP.')) : say(t('System is DOWN.'), 'ERR');
   }
+  if ($op == 'special') return a\special();
   if ($up = ($op == 'startCtty') or $op == 'stopCtty') {
     $ctty = r\acct($mya->community);
     $ctty->setBit(B_OK, $up);
@@ -139,12 +131,15 @@ function formAdmin_submit($form, &$sta) {
   if ($op == 'log') return say(a\showQuery('r_log', 1, 'logid DESC', $logFields));
   if ($op == 'tells') return say(a\showQuery('r_log', "info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50", 'logid DESC', $logFields));
 
-  $fields = <<<EOF
+  if ($op == 'txs') {
+    $fields = <<<EOF
     xid, t.created, type AS ty, goods AS gd, 
-    IF (LOCATE('"force";s:1:"1"', data)>0, 1, IF(LOCATE('"force";s:2:"-1"', data)>0, -1, IF(LOCATE('"force";s:1:"0"', data)>0, '0', ''))) AS f,
+    IF (LOCATE('"force";s:1:"1"', u1.data)>0, 1, IF(LOCATE('"force";s:2:"-1"', u1.data)>0, -1, IF(LOCATE('"force";s:1:"0"', u1.data)>0, '0', ''))) AS f,
     payer, payee, amount, payerFor AS for1, payeeFor AS for2, payerTid AS tid1, payeeTid AS tid2
 EOF;
-  if ($op == 'txs') return say(a\showQuery('r_txs', isDEV ? 1 : 'type NOT IN (:TX_REBATE,:TX_BONUS)', 'xid DESC', $fields, array('payer', 'payee')));
+    if ($mya->admin) $fields = str_replace('u1.', '', $fields);
+    return say(a\showQuery('r_txs', isDEV ? 1 : 'type NOT IN (:TX_REBATE,:TX_BONUS)', 'xid DESC', $fields, array('payer', 'payee')));
+  }
 
   if ($op == 'gifts') return say(a\showQuery('r_gifts', "honor<>'share'", 'donid DESC', 'donid,giftDate,t.uid,amount,often,honor,honored,t.share,completed', 'uid'));
   if ($op == 'invites') return say(a\showQuery('r_invites', 1, 'invited DESC', 'invited, inviter, invitee, email', 'inviter'));
@@ -224,7 +219,7 @@ function formMakeCtty_validate($form, &$sta) {
   $mya = r\acct();
   $myid = $mya->id;
   extract(u\normalizeCase(u\just($normals = 'fullName legalName city address postalAddr', $sta['input'])));
-  extract(u\just('zips region mail phone country state postalCode', $sta['input']));
+  extract(u\just('zips region email phone country state postalCode', $sta['input']));
 
   if (preg_match("~$zips~", null) === false) return say(t('bad Zips REGEX'), 'zips');
   if ($region and !preg_match('/[A-Z]{3}/i', $region)) return say(t('bad region code'), 'region');
@@ -234,7 +229,7 @@ function formMakeCtty_validate($form, &$sta) {
     if ($err = u\badName($$field)) return say($err, compact('field'), $field);
   }
 
-  if (!emailOkay($mail, $mya->id)) return; 
+  if (!emailOkay($email, $mya->id)) return; 
   if (!phoneOk($phone, $country, FALSE, 'makectty')) return;
   if (stripos(@$address, ' box ') or stripos(@$address, 'pob ') !== FALSE) say('po in location', 'address');
 
@@ -251,11 +246,11 @@ function formMakeCtty_validate($form, &$sta) {
   }
   if (db\exists('users', 'name=:name', compact('name'))) return say('shortname taken', u\ray('otherName', $name), 'fullName');
   
-  u\preray(compact(u\ray($normals . ' mail phone uid name region')), $sta['input']); // fix formatting
+  u\preray(compact(u\ray($normals . ' email phone uid name region')), $sta['input']); // fix formatting
 }
 
 function formMakeCtty_submit($form, &$sta) {
-  $dbFields = 'uid name fullName legalName mail flags phone faxetc federalId address country state city postalCode postalAddr'; // had verifyBy
+  $dbFields = 'uid name fullName legalName email flags phone faxetc federalId address country state city postalCode postalAddr'; // had verifyBy
   extract(u\just('zips region ' . $dbFields, $sta['input']));
 
   $flags = u\bit(B_CO) | u\bit(B_OK);
@@ -274,9 +269,6 @@ function formMakeCtty_submit($form, &$sta) {
   $info = u\normalizeCase(u\just('fullName city address', $info)) + $info;
 
   if (!$a = new r\acct($info)) return say('cannot create account', 'zot');
-  
-  $a->createUsdAccount($err); // initialize Dwolla account
-  if ($err) say($err . t(' (You will have to initialize the Dwolla account manually, using a($uid)->createUsdAccount().)'));
 
   unset($DBTX); // commit
   say('info saved');
@@ -293,7 +285,7 @@ function formMemberList($form, &$sta) {
   $ctty = r\acct($mya->community);
 
   $title = item((($cAdmin and $ctty) ? $ctty->fullName : '') . t(' Member List'));
-  $sql = 'SELECT uid, login, access, fullName, notes, phone, mail AS email, postalAddr, :IS_CO AS co FROM users WHERE uid>1 AND community=:cttyId ORDER BY :IS_OK, IF(:IS_OK, fullName, 2000000000-login)'; // -login fails because it gets treated as a string
+  $sql = 'SELECT uid, login, access, fullName, notes, phone, postalAddr, :IS_CO AS co FROM users WHERE uid>1 AND community=:cttyId ORDER BY :IS_OK, IF(:IS_OK, fullName, 2000000000-login)'; // -login fails because it gets treated as a string
   $q = db\q($sql, u\ray('cttyId', $ctty->id));
   $list = "<table id='memberlist'>\n";
   $emails = '';
@@ -304,6 +296,7 @@ function formMemberList($form, &$sta) {
     $notes = str_replace("\n", "<br>\n", $notes);
     $notes = str_replace('do:', '<b style="color:blue; font-size:130%;">do:</b>', $notes);
     $a = r\acct($uid);
+    $email = $a->email;
     $fullName = "<a href=\"$base_url/sadmin/acct-info/$a->mainQid\">$fullName</a>";
     $steps = a\showSteps($a);
     $date = u\fmtDate($a->ok ? $access : $login);
@@ -366,11 +359,12 @@ function formDownloadMemberList_submit($form, &$sta) {
   $where = @$allCttys ? '1' : 'community=:cttyId';
   if (@$onlyActive) $where .= ' AND :IS_OK';
   if (@$onlyPeople) $where .= ' AND NOT :IS_CO';
-  $sql = "SELECT uid AS id, fullName, phone, mail AS email, postalAddr FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND $where ORDER BY :IS_OK, -signed, -created";
+  $sql = "SELECT uid AS id, fullName, phone, postalAddr FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND $where ORDER BY :IS_OK, -signed, -created";
   $q = db\q($sql, u\ray('cttyId', $ctty->id));
   while ($row = $q->fetchAssoc()) {
     extract($row);
     list ($first, $last) = u\parseName($fullName);
+    $email = r\acct($id)->email;
     list ($address, $city, $state, $zip) = u\parseAddr($postalAddr);
     if (is_numeric($zip)) $zip .= '-'; // prevent this from getting interpreted as a number
     $phone = u\fmtPhone($phone);
@@ -466,7 +460,7 @@ EOF
 
   $sql = <<<EOF
     SELECT ABS(amount) AS amount, txid, uid, u.fullName AS name FROM r_usd t LEFT JOIN users u ON u.uid=t.payer 
-    WHERE $where AND deposit=$date AND payee=0 ORDER BY txid
+    WHERE $where AND deposit=$date ORDER BY txid
 EOF;
   $q = db\q($sql);
   $x = $pdf->pageW / 2 - 1;

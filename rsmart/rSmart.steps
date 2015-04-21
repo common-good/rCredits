@@ -114,6 +114,7 @@ function transactions($list) {return t\transactions($list);}
  *     MAKE Identify ACashierScansACompanyCustomerCard
  *     MAKE Identify ANonyetactiveMemberCardIsScanned
  *     MAKE Identify AMemberMakesAPurchaseForTheFirstTime
+ *     MAKE Identify AMemberMakesAPurchaseForTheFirstTimeFromAnExemptCompany
  *     MAKE Time ACashierSignsIn
  */
 function agentAsksDeviceToIdentify($agent, $device, $qr) {
@@ -135,6 +136,7 @@ function agentAsksDeviceToIdentify($agent, $device, $qr) {
  *     TEST Identify ACashierScansACustomerCardWhoseBalanceIsSecret
  *     TEST Identify ACashierScansACompanyCustomerCard
  *     TEST Identify AMemberMakesAPurchaseForTheFirstTime
+ *     TEST Identify AMemberMakesAPurchaseForTheFirstTimeFromAnExemptCompany
  *     TEST Time TheDeviceAsksForTheTime
  *     TEST Time ACashierSignsIn
  */
@@ -340,12 +342,14 @@ function withUndo($subs) {
  *
  * in: TEST Exchange ACashierAsksToChargeAnotherMemberWithInsufficientBalance
  *     TEST Exchange ACashierAsksToRefundAnotherMemberWithInsufficientBalance
+ *     TEST Exchange DeviceGivesTooBigAnAmount
  *     TEST Exchange SellerAgentLacksPermissionToBuy
  *     TEST Exchange SellerAgentLacksPermissionToScanAndSell
  *     TEST Exchange BuyerAgentLacksPermissionToBuy
  *     TEST Identify ANonyetactiveMemberCardIsScanned
  *     TEST Transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance
  *     TEST Transact ACashierAsksToRefundAnotherMemberWithInsufficientBalance
+ *     TEST Transact DeviceGivesTooBigAnAmount
  *     TEST Transact SellerAgentLacksPermissionToBuy
  *     TEST Transact SellerAgentLacksPermissionToScanAndSell
  *     TEST Transact BuyerAgentLacksPermissionToBuy
@@ -370,7 +374,6 @@ function weReturnErrorWithSubs($msg, $subs) {
  *     TEST Exchange DeviceGivesBadAccountId
  *     TEST Exchange DeviceGivesNoAmount
  *     TEST Exchange DeviceGivesBadAmount
- *     TEST Exchange DeviceGivesTooBigAnAmount
  *     TEST Exchange DeviceGivesNoPurposeForGoodsAndServices
  *     TEST Exchange DeviceSendsWrongCardCode
  *     TEST Identify DeviceShouldHaveAnIdentifier
@@ -386,7 +389,6 @@ function weReturnErrorWithSubs($msg, $subs) {
  *     TEST Transact DeviceGivesBadAccountId
  *     TEST Transact DeviceGivesNoAmount
  *     TEST Transact DeviceGivesBadAmount
- *     TEST Transact DeviceGivesTooBigAnAmount
  *     TEST Transact DeviceGivesNoPurposeForGoodsAndServices
  *     TEST Transact DeviceSendsWrongCardCode
  */
@@ -410,6 +412,7 @@ function selling($selling) {return t\selling($selling);}
  *
  * in: MAKE Exchange Setup
  *     MAKE Identify Setup
+ *     MAKE Identify AMemberMakesAPurchaseForTheFirstTimeFromAnExemptCompany
  *     MAKE Joint Setup
  *     MAKE Offline Setup
  *     MAKE Time Setup
@@ -632,5 +635,6 @@ function agentOnDeviceAsksForTheTime($agent, $device) {
  * member (ARG) has no photo ID recorded
  *
  * in: MAKE Identify AMemberMakesAPurchaseForTheFirstTime
+ *     MAKE Identify AMemberMakesAPurchaseForTheFirstTimeFromAnExemptCompany
  */
 function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}

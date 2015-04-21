@@ -32,7 +32,7 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 - [later] notify and maybe fine late borrowers (might figure interest at the same time, since it requires examining each balance -- but only actually credit the interest monthly, otherwise discard it)
 - ** tickle(): things to do 2/30/60/90 (etc) days after login/access/created date
   . 1mo: notice - suggest sending invitations
-      $email = $mya->mail;
+      $email = $mya->email;
       $invited = ($nonperson or db\lookup('COUNT(*)', 'r_invites', 'inviter=:myid AND email<>:email', compact('myid', 'email')) >= 1);
           $step4 = t('<a>Invite someone</a> to sign up for rCredits! No one can join without an invitation. You can help by sending one. You might particularly want to invite companies and individuals you buy from or sell to (for example your employer or employees).');
 
@@ -61,7 +61,7 @@ NOTES:
   where <star> means * (not the same as for the production site) 
  */
 
-define('R_DAILY_TASKS', 'START recache checkAccts setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank bona employees notices END'); // had homogenize, pool 
+define('R_DAILY_TASKS', 'START recache checkAccts requests setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank bona employees notices END'); // had homogenize, pool 
 //define ('R_DAILY_TASKS', 'START redistribute END');
 include_once __DIR__ . '/rcron-subs.inc';
 
@@ -133,11 +133,13 @@ function tickle() {
   $delays = '3,8,21';
   $elapsed = str_replace('@DATE', 'invited', $timeSince);
   $sql = <<<EOF
-    SELECT email, inviter, code, $elapsed AS elapsed FROM r_invites i
-    LEFT JOIN users u ON u.mail=i.email
-    WHERE $elapsed IN ($delays) AND u.uid IS NULL AND invitee=0
+    SELECT email, inviter, code, $elapsed AS elapsed FROM r_invites
+    WHERE $elapsed IN ($delays) AND invitee=0
 EOF;
   queueEach('tickleSignup', $sql);
+/*    SELECT i.email, inviter, code, $elapsed AS elapsed FROM r_invites i
+    LEFT JOIN users u ON u.email=i.email
+    WHERE $elapsed IN ($delays) AND u.uid IS NULL AND invitee=0 */
     
   // Remind newbie to take another step (or admin to activate it)
   $delays = '1,2,3,5,8'; // Fibonacci progression of delays (followed by every week)
@@ -176,6 +178,7 @@ EOF;
 function tickleSignup($item) {
   global $base_url;
   extract(u\just('email inviter code elapsed', $item));
+  if (r\acct($email)) return; // invitee already began to open an account
   $inviterName = r\acct($inviter)->fullName;
   $count = $elapsed < 7 ? t('two') : ($elapsed < 14 ? t('one') : 0);
   $nudge = $count ? u\tt("We will send you just @count more reminder(s)", compact('count')) : t('This is your last reminder');
@@ -261,16 +264,17 @@ function everyWeek() {
  * Do monthly tasks.
  */
 function everyMonth() {
-  $start = u\monthDay1($end = u\monthDay1() - 1);
-  if (u\test()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // the past 30 days
+  $start = u\monthDay1($end = u\monthDay1() - 1); // mark start and end of preceding month
+  if (u\test()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // test: the past 30 days
   queueEach('inflationAdjust', "SELECT uid, $start AS start, $end AS end FROM users WHERE :IS_OK AND uid>1");  
   queueEach('shareCommitted', 'SELECT uid, committed, share FROM users WHERE :IS_OK AND committed>0');
 }
 
 /**
- * 1099s
+ * Yearly
  */
 function everyYear() {
+  r\tellStaff('generate 1099-B forms for IRS and states');
 }
 
 //************
@@ -311,6 +315,7 @@ function inflationAdjust($item) {
   extract(u\just('uid start end', $item));
   $a = r\acct($uid);
   if ($a->slave) return; // slave in joint account gets no inflation (master gets inflation for both)
+  if (db\exists('r_txs', 'payee=:uid AND type=:TX_INFLATION AND created>:end', compact('uid', 'end'))) return;
   $avg = r\averageBalance($uid, $start, $end);
   $adjustment = round($avg * R_INFLATION_RATE / 12, 2);
   if ($adjustment > 0) be\fund($uid, TX_INFLATION, $adjustment, t('inflation adjustment')); // don't adjust debts
@@ -331,48 +336,6 @@ function shareCommitted($item) {
 }
 
 /**
- * (1) Identify inconsistencies caused by system crashes and reconcile them.
- * (2) Notice and record completion of EFTs.
- *//*
-function usdTxsThere() {
-  queueEach('usdTxThere', 'SELECT uid FROM users WHERE :IS_OK AND :HAS_BANK');
-  r\queue('usdTxsThereEND');
-}
-function usdTxsThereEND() {queueNext();}
-
-function usdTxThere($item) {
-  $uid = $item['uid'];
-  if (u\test() and realId($uid)) return; // ignore real accounts in tests
-  $usAcct = new r\usd($a = r\acct($uid));
-  $since = strtotime(R_ANCIENT_EFT. ' days ago'); // bank transfers sometimes take many days
-  $usAcct->each('rCredits\\Cron\\usdTxQ', $since, u\ray('money_sent deposit withdrawal'));
-}
-
-function usdTxQ($info) {r\queue($info['Type'] == 'money_sent' ? 'lostUsdTx' : 'bankFollowup', $info);}
-*/
-/**
- * Record any unrecorded USD transaction (any that has no record in r_usd).
- * @param assoc $tx: the lost transaction
- *//*
-function lostUsdTx($tx) {
-  extract(u\just('Id Notes Amount SourceId DestinationId Date', $tx));
-  if (!u\abbreviates(u\test() . USD_NOTE_PREFIX, $Notes)) return; // not one of ours
-  if (db\exists('r_usd', 'txid=:Id', compact('Id'))) return;
-  $created = strtotime($Date);
-  if (!u\test() and time() - $created < 60) return; // too recent, maybe still in process? (handle tomorrow)
-  list ($txid, $amount) = array($Id, $Amount);
-  $payer = r\whoseUsd($SourceId);
-  $payee = r\whoseUsd($DestinationId);
-  if (u\test() and (!$payer or !$payee)) return;
-  u\EXPECT($payer and $payee, "missing person in lost tx: payer=$payer payee=$payee");
-  r\tellStaff("lost USD tx: #$txid $amount ($payer to $payee)", $tx, FALSE);
-  r\usd::beginAtom();
-  r\usd::addToAtom($txid, $amount, $payer, $payee, $created, $created);
-  r\usd::commit();
-}
-*/
-
-/**
  * Mark recently completed bank transfers complete.
  * @param assoc $tx: the USD deposit or withdrawal transaction
  * Note that transfers to the bank were marked complete immediately, but not with the correct ClearingDate.
@@ -381,6 +344,44 @@ function bankFollowup($tx) {
   r\usdTransferDone($tx);
 }
 */
+
+/**
+ * Gather requests for invitations
+ */
+function requests() {
+  $lastid = db\max('listid', 'r_request') + 0;
+  $secret = db\lookup('last', 'r_request', 'listid=3894');
+
+  if ($s = file_get_contents("http://rcredits.org/inc/requests.php?listid=$lastid&secret=$secret")) {
+    foreach ($rows = explode("\n", $s) as $row) {
+      $row = explode("\t", $row);
+      if (@$header) {
+        $row = array_combine($header, $row);
+        extract($row);
+        $z2 = substr($zip, 0, 2);
+        $row['ctty'] = $zip ? (r\communityUid($zip, TRUE) ?: ($z2 == '05' ? r\serverUid() : 0)) : 0;
+        if (!$created) $row['created'] = strtotime('9/1/2011');
+        $row['phone'] = u\fmtPhone($phone, '+n');
+        foreach (['first', 'last'] as $k) $row[$k] = u\normalizeCase($$k);
+        db\insert('r_request', $row);
+        r\tellStaff('invitation request', $row);
+      } else $header = $row + ['ctty'];
+    }
+  }
+
+  //  ON ((r.email<>'' AND u.email=r.email) OR
+  $sql = <<<EOF
+  UPDATE r_request r LEFT JOIN users u 
+  ON ((r.phone<>'' AND u.phone=r.phone) OR
+    (INSTR(u.fullName, r.first)>0 AND INSTR(u.fullName, r.last)>0 AND MID(u.postalCode, 1, 5)=MID(r.zip, 1, 5))
+  )
+  LEFT JOIN r_invites AS i ON (i.email=r.email AND i.invited>r.created)
+  SET done=1 WHERE NOT done AND (u.uid IS NOT NULL OR i.id IS NOT NULL)
+EOF;
+  db\q($sql);
+  
+  queueNext();
+}
 
 /**
  * Recalculate and update cached financial balances for each account.
@@ -411,7 +412,6 @@ function checkAccts() {
 function checkAcct($item) {
   extract($item); // (prepared for additional tasks)
   $a = r\acct($uid);
-// NO  if (r\membershipEvent($a, 'bona', $a->j_r > 0)) r\tellStaff('noticed BONA late', NULL, $uid);
   //look at agreement date and first transaction date and last transaction date. queue appropriate funcs
 }
 
@@ -808,28 +808,5 @@ function END() {
   r\tellStaff("At " . strftime('%I:%M%P') . ", after $elapsed secs, daily cron ended successfully.", '', FALSE);
 }
 
-/**
- * Run the next daily function.
- */
-function queueNext($task = NULL) {
-  global $cronOp; 
-  if ($cronOp == ONE_CRON_OP) return; // doing just one, so do nothing more
-
-  u\setDft($task, str_replace(__NAMESPACE__ . '\\', '', u\caller()));
-
-  if (u\test() and @$cronOp and $cronOp != 'ALL') {
-    r\queue($task == $cronOp ? 'END' : $cronOp);
-  } else r\queue(u\nextAfter($task, u\ray(R_DAILY_TASKS)));
-//  } else r\queue($tasks[array_search($task, $tasks) + 1]);
-}
-
-function queueEach($op, $sql, $subs = []) {
-  global $cronOp; // this is set to ONE_CRON_OP when calling cron() from PHP window on test server
-  $result = db\q($sql, $subs);
-  while ($row = $result->fetchAssoc()) {
-    $oneOp = "rCredits\\Cron\\$op";
-    if (@$cronOp == ONE_CRON_OP) $oneOp($row); else r\queue($op, $row);
-  }
-}
 
 //function realId($uid) {return ($uid <= r\cgfId());}

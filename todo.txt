@@ -1,6 +1,7 @@
 rCredits Software
 To Do
 
+- list people waiting to be invited, at bottom of notices
 - "rCredits Accepted Here" window stickers, register stickers (maybe just business card size)
 - (from mike morton) after we grow, might be nice to do newsletter features on:
         • the person who’s successfully directly invited the most other people
@@ -14,7 +15,53 @@ To Do
 . video about Admin'ing
 
 TASKS FOR NEXT UPDATE:
+. back up db
+. disable pw2 check in formSignin_validate
+. a(1)->update('pw2', f('r.passHash', '<pw2>'));
+. re-enable pw2 check in formSignin_validate
+. sign out and in
+. reinstall
+. ALTER TABLE `users` DROP `usdAccount` , DROP `offsite` , DROP `usd` ;
+. copy filter.module
+. run Special
 
+. improve our rating on https://www.ssllabs.com/ssltest/
+. move email, phone, addr, postalAddr to secure. also encrypt photo.
+GAME:
+. day 5, 6, and 7
+. beginning/end of everyday (including creating stats)
+. multiple stats by box in creating them
+
+. notify people when their invitees start signing up and finish signing up. Also, when a week or a month goes by and they haven't accepted the invitation or finished signing up or verified their bank account
+. *** see if anyone requested paper statements and alert staff if anyone ever chooses that
+. *** when user chooses "don't connect yet", set minimum to zero (and tell them)
+. change "other money" to "exchange for US Dollars (or other currency)" without being too long on mobile (and fix tests)
+. *** record bankAccount encrypted in r_usd (for a permanent record of checks actually used)
+. *** when showing old check images, use the original deposit date
+. notices should say to contact us at community admin's email address (not necessarily new@rcredits.org)
+
+. withdrawal should disable minimum if necessary to avoid an automatic reversal of the withdrawal
+. is trade figure on MIW pie chart the wrong sign?
+. explain on signup page why we ask for SSN, photo, etc.
+. create a special history/accounting page just for tips on accounting for rCredits (individual and business)
+. revise yearly 1099 report to generate a separate CSV for the state
+. reversing charge on customer history causes crash
+. add photo to Summary, for cAdmin
+. "Sign up" button -> "Next"
+. figure out why Snow's paying Barbara got the "nope!" message, but ABC paying Garth and Jeff doesn't (Barbara can draw on Snow's)
+. account dropdown in DEV fails (omits "devcore")
+. disallow choosing proxies until signed and donated (only members can view the local member list)
+. *** sometimes we receive two same-second identical transaction requests from the app -- not forced. ask experts why and figure out a way to prevent it.
+. game page (not for production site, ultimately for game.rcredits.org):
+  - for each player: assign an ID 4-24, say how much USD to start with
+  - Each day, for each player: user says where they moved, any new followers, how much they exchange; page then shows what happens and what everyone's balance & rewards are (and how much is in USD Escrow and how many rCredits have been issued and for what)
+  - Players can also finance new or old companies, in whole or in part. Type company ID (buying price is 10,000 times company ID) and ownership percentage. New companies can even be created in the triangles between other companies. Their ID can be any unused positive decimal number. Their neighbors are the three companies at the points of the triangle.
+  - Players can adjust g() parameters
+. global $g global array, g(varname) gets, g(varname, value) sets. Use this for R_ constants that a community might want to alter.
+. list goods choice first, etc last
+. send note to admin to deactivate account unless member clicks a link once a month (on average -- randomize). 7 days later admin deactivate and call. Members should be expected to read all special announcements (with highlight colors)
+. set default share percentage to 50
+. when a bank transfer gets reversed, automatically zero out the account's minimum
 . rename charge "invoice"?
 . in signup, make email verification a step and let user do it in any order
 . *** the wrong transactions require approval on reversal (maybe)
@@ -30,7 +77,6 @@ TASKS FOR NEXT UPDATE:
 . add links to company page
 . Gary P and Betsy C have legalname change listed, with no actual change. that should not happen.
 . when the letsons joined their accounts, the slave got an NYA area relation ID. should be NEW. Test (both email confirmation and relations page confirmation)
-. make it a "preference" setting: "Don't tell non-members I'm a member." or some such.
 . when admin reverses a reversal of a payment (from the company account) it should not tell the customer they have been invoiced
 . *** store company card security code in relations table, not cardcode2
 . alert staff about unusual format names, cities, addresses, and postalAddrs
@@ -47,10 +93,8 @@ TASKS FOR NEXT UPDATE:
 . disallow repeat EINs for individuals? (tell Ed Smith? and Janet Massucci and maybe Adam K. and Jim Bates)
 . autocomplete in relations causes failure of newperson field unless clicked twice (temporarily bypassed by disabling autocomplete)
 . test automatic unjoin of previous join, if a join is requested with a new account
-. investigate the dozen attempts (in one week) to recognize NEW.ABU with wrong cardCode: SELECT * FROM `r_log` l join r_log l2 on l2.logid=l.logid+1 WHERE l2.info like '%bad customer%'
 . for admin, show just the relevant community on flags page
 . cAdmin2 doesn't get to see floor! fix.
-. refuse first tx if no photoid yet (wait for everyone to be using version 2.11 or better)
 . show cAdmin the top trusted people (SELECT fullName,trust FROM `users` WHERE community=:ctty ORDER BY trust DESC)
 . let admin edit tx date
 . ** any smartphone tx from over 24 hours ago should get put in as yesterday
@@ -61,16 +105,13 @@ TASKS FOR NEXT UPDATE:
 . *** B_BOUNCED: disable minimum, warn member, charge fee $20
 . cache non-automatic r for pre-CGC cttys
 . download to app 100 one-use cardcodes
-. fix picture in upper right corner?
 . don't let admin set OK until member is set (either automatically or manually -- two steps). if admin unsets member, unset OK too.
 . replace testing.inc with testing stub that defines stub functions if not already defined
 . tests for auto banking when deposited or not
-. see if anyone requested paper statements
 . adapt notice message when bank transfer goes through immediately (add a note to that effect, like for bank tab)
 . suggest higher achmin (at least half of minimum?)
 . refactor statement, and memberId classes to extend whatever is common among them, while revising statement and memberId
-. make a way for members to cancel a bank transfer request
-. do not allow companies to draw from bank (yet)
+. do not allow companies to draw from bank (yet)?
 . in cron, if any created date in r_txs is more than two days (48 hours) off from its predecessor, tell admin about it (including how far off): get min xid0 in past 3 days, select xid where xid>xid0 but created<now-3days
 . don't make account opener manager if "by" is ADMIN or cadmin (and give account a temp password)
 . * add a Pay button to member company rCredits webpage
@@ -87,16 +128,12 @@ TASKS FOR NEXT UPDATE:
 . setting either adminOk or txAdminOk should record who did it in notes (for acct) or data (for tx)
 . whenever a suspicious account participates in a transaction (even an automatic one), email the admin (include a list of acct risks) OR calculate each transaction risk right away (next cron) and email if it's risky
 . let cAdmin2 see history without changing account (like for memberInfo)
-. notify people when their invitees start signing up and finish signing up. Also, when a week or a month goes by and they haven't accepted the invitation or finished signing up or verified their bank account
 . see whether 2nd-degree invitees behave any differently from 1st degree
-. make account selection give first letters and submenus, for admin (as well as full qid and/or choose ctty first)
-. Real Pickles got an inappropriate cache mismatch (~"minimum is -500.00, should be 0")
 . simplify what happens when user selects an account from the dropdown (should be fast)
 . in notices, when $ drawn from bank automatically, tell member how to adjust settings (maybe tell how every time?)
 . annual tax ack for sharing rewards
 . bug: changing Preston's notice frequency works, but does not say "saved" and the spinner persists.
 . forbid unauthorized signed-out transactions (in smart.inc), because app accidentally allowed a refund by a cashier without being signed in.
-. add share pct to preference page
 . make a changeUid interface for Admin: select account1 from lookup box, go to separate page to input target community
 . improve "send another invite" message so people click the link.
 . bankless accounts that draw on others are forbidden to cash out, (but they can draw rewards from other accounts).
@@ -118,13 +155,11 @@ TASKS FOR NEXT UPDATE:
 
 . for rebates/bonuses, give xid# for ctty purpose (eg "rebate on #3847")
 . maybe change relations qid to company QID dot letter, like NEW.AAB.A, meaning <first employee of the AAB company> (relations table will need a company sequence number). This will allow the app to distinguish companies offline.
-. notices should say to contact us at community admin's email address (not necessarily new@rcredits.org)
 . rdo for min needs expires date (all entries should have an expires date)
 . add link to explanation of rCredits staying in the system on Summary and Bank pages
 . bug: memberInfo form shows "can ?" for Emily on Adam's record
 . remove invoicing code from be\transfer (but crash if called inappropriately)
 . leave erroneous export fields blank and don't leave a dangling "-" on zip
-. explain tax options on 1099-B page
 . add "check online" to the ticklers
 . handle failed deposits/withdrawals (notify the member)
 . establish ways to prove we know who the member is (show photo, etc)
@@ -139,13 +174,11 @@ TASKS FOR NEXT UPDATE:
 . scatter graph: sector II x-axis buyers (primarily) pay y-axis sellers (primarily). sector I y-axis sellers pay x-axis buyers (mostly payroll), order by how extreme ($bought-$sold), with extremes on the top/outside
 . Adam: I've noticed the rcredits member site keeps me logged in long after I've stopped using it, even after I close the tab and then reopen it hours or days later. For a financial site where money can be moved, I'd recommend either auto-logout after 10-20 minutes of inactivity, or (better) requiring me to re-enter my password before doing certain things like paying people if it's been more than 10-20 min since I last entered it. 
 . implement a FREEZE button for cttyadmins (disables transfers of USD out)
-. change cached "r" field in users to bal (total of r and usd)
+. change cached "r" field in users to bal
 . use legalName on Relations page!!
-. include inviter in proxy list
 . Pay page does not figure shortfall properly (omits draw!)
 . If Matt leaves his phone untouched for X minutes and Sheila picks it up, should it insist that she sign in? Or at least say “Are you still Matt?” ?
 . Should we not allow you to undo the last transaction if it was more than Y minutes ago?
-. remake patch files
 . make "back to member list" link on member info page go to bookmark for the edited account
 . fix messy security page for admins
 . make some Preferences "advanced"
@@ -159,8 +192,6 @@ TASKS FOR NEXT UPDATE:
 . add link to the agreement on rCredits.org
 . give admin tweak msg upon SHOWING bank form
 - ** implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
-- for admin, put initial gift and share% on member's Summary page (attached to addr)
-. when opening "another account", pass type (personal or company) to signup form (already does?)
 
 . Suggestions from Mike:
 • I think I had to click “Upload and Save” twice, once to upload-and-display, once to save. Is that correct?
@@ -181,7 +212,6 @@ TASKS FOR NEXT UPDATE:
 . cash/loan/etc vs. goods & services: provide a link to help the member decide which
 . sort transactions by date before download (already does, for display)
 . report proper balance on tellStaff about gift
-. withdrawal should disable minimum if necessary to avoid an automatic reversal of the withdrawal
 . allow user to change box name (can change computer box name only if currently on that computer)
 - * reduce picture size and make thumbnails (for upper right corner)
 . check and correct deposit/withdrawal status (and balance) when visiting bank tab

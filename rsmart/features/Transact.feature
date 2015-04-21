@@ -128,7 +128,9 @@ Scenario: Device gives bad amount
   
 Scenario: Device gives too big an amount
   When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $10,000,000 for "goods": "food" at %now
-  Then we return error "amount too big"
+  Then we return error "amount too big" with subs:
+  | max           |*
+  | %R_MAX_AMOUNT |
 
 Scenario: Device gives no purpose for goods and services
   When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $100 for "goods": "" at %now

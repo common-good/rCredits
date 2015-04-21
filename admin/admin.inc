@@ -24,7 +24,7 @@ use rCredits\Web as w;
 function setupBasicAccounts() {
   $server = r\serverUid();
   if (db\exists('users', 'uid=:server', compact('server'))) return; // already done
-  $keys = u\ray('uid community name fullName mail postalCode country minimum rebate flags');
+  $keys = u\ray('uid community name fullName email postalCode country minimum rebate flags');
 
   $values = array($server, $server, R_REGION_SHORTNAME, R_REGION_NAME, R_REGION_EMAIL, R_REGION_POSTAL_AREA, R_COUNTRY_ID, 0, 0, u\bit(array(B_OK, B_CO)));
   $info = array_combine($keys, $values);
@@ -34,13 +34,13 @@ function setupBasicAccounts() {
   $values = array(r\unQuid(R_ADMIN_QID), $server, 'williamspademan', ADMIN_NAME, R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK)));
   $info = array_combine($keys, $values);
   list ($phone, $address, $city, $state) = array('+14136281021', 'PO Box 305', 'Ashfield', R_STATE_ID);
-  $info += compact(u\ray('mail phone address city state'));
+  $info += compact(u\ray('email phone address city state'));
   $wws = new r\acct($info);
   
   $values = array(r\unQuid('NEW.AAB'), $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_CO)));
   $info = array_combine($keys, $values);
   list ($phone, $address, $city, $state) = array(CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
-  $info += compact(u\ray('mail phone address city state'));
+  $info += compact(u\ray('email phone address city state'));
   $cgf = new r\acct($info);
   \variable_set('cgf_uid', $cgf->id);
   
@@ -229,6 +229,7 @@ function ssnCheck($a) {
     if (!is_array($d = $ssnData['searchResults']) or $ssnData['ResultCount'] + 0 <= 0) {
 /**/  return w\say(t('No SSN data available: ') . print_r($ssnData0, 1));
     }
+    unset($ssnData['searchResults']['ssn']); // has first 5 digits of SSN -- don't store it
     $a->update(compact('ssnData')); // ResultCount is 0 for tests, <=0 for failure
   } else $d = $ssnData['searchResults'];
   
@@ -267,11 +268,6 @@ function ssnName($v) {
   return ucWords(strtolower(str_replace('-', '', @"$firstname $middlename $lastname")));
 }
 function ssnAddr($v) {return ucWords(strtolower(@"$v->address, $v->city, $v->state $v->zip"));}
-
-/*
-function fixdw($a) {
-  if ($a->ok and $a->can(B_DW)) {$a->stepDone('dw'); $a->stepDone('connect');}
-}*/
 
 /**
  * Redo all the stats
@@ -479,33 +475,6 @@ function moveFieldTo($field, $to = 'data') {
 }
 
 /**
- * Utility to do something to each existing transaction
-  include_once __DIR__ . '/../rcredits/admin/admin.inc';
-  eachTx();
- */
-function eachTx($func = 'changeIt') {
-  $result = db\q('SELECT * FROM r_txs');
-  if (!function_exists($func)) $func = 'rCredits\\' . $func;
-  while ($row = $result->fetchAssoc()) $func($row);
-}
-
-/**
- * Utility to do something to each member account (see example below)
-  include_once __DIR__ . '/../rcredits/admin/admin.inc';
-  f('a.eachAcct');
-  f('a.eachAcct', function($a) {...});
- */
-function eachAcct($func = 'changeIt') {
-  $result = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
-  if (!is_callable($func) and !function_exists($func)) {
-    if (function_exists($func2 = 'rCredits\\' . $func)) $func = $func2;
-    if (function_exists($func2 = 'rCredits\\Web\\' . $func)) $func = $func2;
-    if (function_exists($func2 = 'rCredits\\Admin\\' . $func)) $func = $func2;
-  }
-  foreach ($result as $one) $func(r\acct($one));
-}
-
-/**
  * General purpose utility, usually called from eachAcct, as above.
  * For example:
  *    changeIt($a);
@@ -551,19 +520,11 @@ function fixRelations() {
  */
 function flagsDesc($n, $list) {
   $bits = u\ray($list);
+  for ($i = 0; $i < 32; $i++) if (!@$bits[$i]) $bits[$i] = $i; // show bit number if no name
   $res = '';
   for ($i=0; $i <= B_MAX; $i++) if ($n & u\bit($i)) {$res .= $bits[$i] . ' ';}
   return $res;
 }
-
-/*
-// f('db.q','UPDATE users SET risk=NULL');
-f('db.q','UPDATE r_txs SET risk=NULL,risks=0');
-f('db.q','UPDATE r_usd SET risk=NULL,risks=0');
-cron('acctRisk');
-cron('txRisk');
-cron('achRisk');
-*/
 
 /**
  * Return a table of deposits.
@@ -616,12 +577,13 @@ EOF;
  * @param bool $mark: whether to set the deposit date for each relevant transfer, in r_usd
  */
 function printCheck(&$ck, $pos, $tx, $mark) {
-  extract(u\just('txid created payer amount deposit', $tx));
+  extract(u\just('txid created payer amount deposit bankAccount', $tx));
   $escrow = 'USkk' . ESCROW_ROUTING . ESCROW_ACCOUNT;
+  $bankAccount = u\ezdecrypt($bankAccount, 0, $_COOKIE['pw2']);
   $a = r\acct($payer);
   list ($fromName, $addr, $phone, $fromAcct, $toName, $toAcct) = $amount < 0 // which way
-    ? [$a->legalName, $a->postalAddr, $a->phone, $a->bankAccount, 'rCredits', $escrow] // from bank to escrow
-    : ['rCredits (' . CGF_LEGALNAME . ')', CGF_POSTALADDR, CGF_PHONE, $escrow, $a->legalName, $a->bankAccount];
+    ? [$a->legalName, $a->postalAddr, $a->phone, $bankAccount, 'rCredits', $escrow] // from bank to escrow
+    : ['rCredits (' . CGF_LEGALNAME . ')', CGF_POSTALADDR, CGF_PHONE, $escrow, $a->legalName, $bankAccount];
   $memo = $amount < 0 ? t('for rCredits') : t('for DEPOSIT to account #') . substr($toAcct, 4 + 9);
 
   list ($signature, $belowLine) = $amount < 0 
@@ -750,20 +712,45 @@ function moveFieldsToHidden() {
 }
 */
 
-function noHidden($uid = '') {
-  $q = $uid ? db\q('SELECT :uid', compact('uid')) : db\q("SELECT uid FROM users WHERE uid<>0 ORDER BY uid");
+/**
+ * Make sure the very secure fields are encrypted with the admin's extra password.
+ */
+function secureVery($a = '') {
+  if (!r\acct()->admin) return; // don't bother if not admin
+  if ($a) {
+    if ($vflds = u\just(R_VSECURE_FIELDS, $a->secure)) return $a->update($vflds); // extra encryption
+  } else {
+    $q = db\q('SELECT uid FROM users WHERE :IS_OK');
+    while ($row = $q->fetchAssoc()) secureVery(r\acct($row['uid']));
+  }
+}
+
+function makeSecure() {
+  if (!r\acct()->admin or !$_COOKIE['pw2']) return; // don't bother if not admin
+  $q = db\q('SELECT uid FROM users WHERE uid<>0 AND init IS NOT NULL');
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $a = r\acct($uid);
-    $secure = $a->secure;
-    if (!$secure['federalId']) {
-      $secret = $a->secret;
-      foreach ($secret as $k => $v) $secure[$k] = $v;
-      $a->update(compact('secure'));
-    }
-/**/    debug(['fullName'=>$a->fullName] + $secure);
+/**/  debug($a->fullName);
+    $secure = $a->secure; unset($secure['email']); $a->update('secure', $secure);
+    $a->update('photo', $a->photo);
+    if (strpos($a->mail, '@')) $a->update('email', strtolower($a->mail));
+    secureVery($a);
+    $a->update('init', NULL);
   }
+
+  $q = db\q('SELECT txid, payer FROM r_usd WHERE bankAccount IS NULL');
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $a = r\acct($payer);
+    db\update('r_usd', u\ray('txid bankAccount', $txid, $a->secure['bankAccount']), 'txid');
+  }
+  $b = db\lookup('bankAccount', 'r_usd');
+/**/  debug(u\ezdecrypt($b, 0, $_COOKIE['pw2']));
 }
+
+function special() {makeSecure(); return '';}
+
 /*
 function retro() {
   $q=f('db.q','Select uid from users WHERE NOT :IS_CO AND uid>1 AND :IS_BONA');

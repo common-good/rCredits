@@ -20,11 +20,11 @@ Scenario: A member visits the company info page
 
 Scenario: A member updates company info
   When member ":ZZA" confirms form "account/company" with values:
-  | selling | website     | description   | employees | gross |*
-  | stuff   | www.pub.com | we do vittles |         2 |   100 |
+  | selling | website     | description   | employees | gross | tips |*
+  | stuff   | www.pub.com | we do vittles |         2 |   100 |    1 |
   Then members:
-  | id   | selling | website     | description   | employees | gross |*
-  | .ZZC | stuff   | www.pub.com | we do vittles |         2 |   100 |
+  | id   | selling | website     | description   | employees | gross | coFlags       |*
+  | .ZZC | stuff   | www.pub.com | we do vittles |         2 |   100 | %(1<<%CO_TIP) |
   And we say "status": "options saved"
   
 Scenario: A member gives a bad employee count

@@ -145,20 +145,22 @@ function cleanAmount($amount) {
  * Return an error message if the amount is bad.
  * @param string $amount: the questionable amount string (leading $ and any commas or spaces are ignored)
  *   The cleaned-up amount is returned by ref.
- * @param string $restriction: none (the default), >0, or >=0
+ * @param string $restriction: none (the default), >0, !=0, or >=0
  * @param bool $fractionLimit: maximum digits after the decimal (default 2)
  * @param numeric $max: maximum amount ('' if no maximum) (defaults to R_MAX_AMOUNT)
  * @return: FALSE if not a bad amount, else error message
  */
-function badAmount(&$amount, $restriction = '', $fractionLimit = 2, $max = R_MAX_AMOUNT) {
+function badAmount(&$amount, $restriction = '', $fractionLimit = 2, $max = NULL) {
   if (!is_numeric($new = cleanAmount($amount))) return 'bad amount';
 
   $amount = $new;
   $dotPos = strpos($amount, '.');
   if ($dotPos !== FALSE and strlen($amount) > $dotPos + 1 + $fractionLimit) return 'too fractional';
-  if ($max !== '' and $amount > $max) return 'amount too big';
+  if (is_null($max)) $max = isGAME ? PHP_INT_MAX : R_MAX_AMOUNT;
+  if ($max !== '' and abs($amount) > $max) return tt('amount too big', compact('max'));
   if ($restriction == '>0' and $amount <= 0) return 'nonpositive amount';
   if ($restriction == '>=0' and $amount < 0) return 'negative amount';
+  if ($restriction == '!=0' and $amount == 0) return 'zero amount';
   return FALSE;
 }
 
@@ -174,13 +176,13 @@ function badAmount(&$amount, $restriction = '', $fractionLimit = 2, $max = R_MAX
      Additionally, prior to June 25, 2011, we had never assigned a Social Security number with the first three digits of: 000, 666, 772 - 799, 800 - 899, 900 - 999.
  */
 function badSsn(&$ssn, $dob) {
-  if (in_array($ssn, u\ray('5551234567 777777777 888888888 999999999'))) return FALSE; // test numbers
+//  if (in_array($ssn, u\ray('5551234567 777777777 888888888 999999999'))) return FALSE; // test numbers
   if (strlen(u\digits($ssn)) != 9) $bad = TRUE; // zap all but the digits (call by ref)
-  $c1 = substr($ssn, 0, 1);
-  $s1 = substr($ssn, 0, 3);
-  $s2 = substr($ssn, 3, 2);
-  $s3 = substr($ssn, 5);
   if (FALSE AND @$dob) { // ssn (not ein) -- We got an SSN that violated these rules. Better to let it go a step more.
+    $c1 = substr($ssn, 0, 1);
+    $s1 = substr($ssn, 0, 3);
+    $s2 = substr($ssn, 3, 2);
+    $s3 = substr($ssn, 5);
     if ($c1 == '9' or $s1 == '000' or $s1 == '666' or $s2 == '00' or $s3 == '0000') $bad = TRUE;
     if (substr($ssn, 0, 8) == '98765432') $bad = TRUE; // advertising numbers, according to Wikipedia
     if ($dob < strtotime('25Jun2011')) if ($c1 == '8' or ($c1 == '7' and $s1 > '771')) $bad = TRUE;
@@ -607,7 +609,7 @@ function EXPECT($assertion, $message = '', $ret = FALSE) {
 }  
 
 function expect1($arg, $value, $type, $ret) {
-//  EXPECT(compact(ray('arg type')), 'name string'); // can't do this because infinite recursion
+//  EXPECT(compact(ray('arg type')), 'var string'); // can't do this because infinite recursion
 
 /**/ $msg = "Expected \$$arg ('" . print_r($value, 1) . "') to be type '$type'."; // standard err message (keep this)
   if (strpos($type, '|')) {
@@ -623,7 +625,7 @@ function expect1($arg, $value, $type, $ret) {
     case 'array': return EXPECT(is_array($value), $msg, $ret);
     case 'assoc': 
       if ($msg2 = EXPECT(is_array($value), $msg, $ret)) return $msg2;
-      foreach ($value as $key => $one) expect1("$arg key", $key, 'name', $ret);
+      foreach ($value as $key => $one) expect1("$arg key", $key, 'var', $ret);
       return;
     case 'bool': return EXPECT(is_bool($value) or $value == 0 or $value == 1, $msg, $ret);
     case 'email': return EXPECT(\valid_email_address($value), $msg, $ret);
@@ -632,6 +634,7 @@ function expect1($arg, $value, $type, $ret) {
     case 'id': return EXPECT(isId($value), $msg, $ret);
     case 'int': return EXPECT(myInt($value), $msg, $ret); // don't use is_int()
     case 'name': return EXPECT(isName($value), $msg, $ret);
+    case 'var': return EXPECT(isVarname($value), $msg, $ret);
     case 'notempty': return EXPECT(!empty($value), $msg, $ret);
     case 'notnull': return EXPECT(!is_null($value), $msg, $ret);
     case 'qid': return EXPECT(isQid($value), $msg, $ret);
@@ -674,7 +677,7 @@ function loga($type, $info = [], $special = '', $adhocChannel = FALSE) {
   // make it easy to match the message when searching
   if (isNonce($special) and @$info['message']) $info['message'] = str_replace(": $special", ': @nonce', $info['message']);
   // don't make code, password, and secret links any more accessible than they are
-  foreach (u\ray(R_NOLOG) as $one) if (@$info[$one]) $info[$one] = '(?)';
+  foreach (u\ray(R_NOLOG) as $one) if ($one != 'email' and @$info[$one]) $info[$one] = '(?)';
   $info = u\jsonEncode($info);
   $channels = ray(TX_CHANNELS); 
   if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
@@ -790,10 +793,50 @@ function resizeImage(&$img, $w, $h) {
 
 /**
  * Quicker encryption for often-used fields.
- * @param string $key: a base64-encoded encryption key (maximum 24 characters, so the resultant key is at most 16 chars)
+ * @param string $data: the plaintext data to encrypt
+ * @param string $key: a base64-encoded encryption key (max 24 characters, so resultant key is at most 16 chars)
+ * @param int $how: index to encryption method (0 or 1)
  * @return the encrypted string (or the decrypted string with trailing nulls deleted, if $encrypt is FALSE)
  */
-function ezencrypt($data, $key = R_WORD, $encrypt = TRUE) {
+define('CRYPT_FLAG', 'c~'); // flag start of encrypted data (add single digit $how)
+define('NO_IV', '!!'); // key starting like this means use a canonical initialization vector (for unique fields)
+ 
+function ezencrypt($data, $how = 0, $key = R_WORD, $encrypt = TRUE) {
+///  debug(($encrypt ? 'Encrypting ' : 'Decrypting ') . strlen($data) . ' chars, using method #' . $how . ' keylen=' . strlen($key));
+  if (empty($data)) return FALSE;
+  u\EXPECT(compact('data', 'how', 'key'), 'string int string');
+  $mode = MCRYPT_MODE_CBC;
+  $hows = [MCRYPT_RIJNDAEL_256, MCRYPT_TWOFISH]; 
+  $method = $hows[$how];
+
+  $td = mcrypt_module_open($method, '', $mode, '');
+  $keySize = mcrypt_enc_get_key_size($td);
+  $key = substr($key == R_WORD ? base64_decode($key) : $key, 0, $keySize);
+  $ivSize = mcrypt_get_iv_size($method, $mode); 
+
+  if ($encrypt) {
+    $iv = mcrypt_create_iv($ivSize, MCRYPT_RAND);
+    if (u\starts($key, NO_IV)) { // predictable iv (for unique-valued field)
+      if ($iv2 = \variable_get('iv', '')) {
+        $iv = $iv2;
+      } else \variable_set('iv', $iv);
+    }
+  } else {
+    $flagLen = strlen(CRYPT_FLAG . $how);
+    if (!u\starts($data, CRYPT_FLAG . $how)) return $data; // temporary fudge, to get data out
+//    u\EXPECT(u\starts($data, CRYPT_FLAG . $how), 'wrong encryption');
+    list ($iv, $data) = [substr($data, $flagLen, $ivSize), substr($data, $flagLen + $ivSize)];
+  }
+  $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
+  $data = $function($method, $key, $data, $mode, $iv);
+  mcrypt_module_close($td);
+  return $encrypt ? CRYPT_FLAG . "$how$iv$data" : rtrim($data, "\0");
+} 
+
+function ezdecrypt($data, $how = 0, $key = R_WORD) {return ezencrypt($data, $how, $key, FALSE);}
+function cryptN($data, $encrypt = TRUE) {return ezencrypt($data, 0, NO_IV . R_WORD, $encrypt);}  // use a known iv, so we can compare encrypted version
+
+function OLDencrypt($data, $key = R_WORD, $encrypt = TRUE) {
   if (empty($data)) return FALSE;
   u\EXPECT(compact('data'), 'string');
   $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
@@ -803,7 +846,7 @@ function ezencrypt($data, $key = R_WORD, $encrypt = TRUE) {
   return $encrypt ? $data : rtrim($data, "\0");
 } 
 
-function ezdecrypt($data, $key = R_WORD) {return ezencrypt($data, $key, FALSE);}
+function OLDdecrypt($data, $key = R_WORD) {return OLDencrypt($data, $key, FALSE);}
 
 /**
  * Initiate CSV download.
@@ -935,7 +978,7 @@ function parseAddr($address) {
  * Change something to the proper case, unless it is already right.
  * @param mixed $what: a string or array of strings to fix
  * @param string $proper: the PHP function to use, to fix the case
- * @return: the argument with case fixed
+ * @return: the argument with case fixed, utf8-encoded (ready to add to database)
  */
 function normalizeCase($what, $proper = 'ucwords') {
   if (is_array($what)) {
@@ -943,10 +986,10 @@ function normalizeCase($what, $proper = 'ucwords') {
     return $what;
   }
   if ($proper = 'ucwords') {
-    if ($what != strtolower($what) and $what != strtoupper($what)) return $what; // already mixed case
+    if ($what != strtolower($what) and $what != strtoupper($what)) return utf8_encode($what); // already mixedcase
     if (substr($what, 0, 4) == 'POB ') return $what; // special case for PO boxes
   }
-  return $proper(strtolower($what));
+  return utf8_encode($proper(strtolower($what)));
 }
 
 define('R_SMALL_WORDS', 'of|a|the|and|an|or|nor|but|is|if|then|else|when|at|from|by|on|off|for|in|out|over|to|into|with');
@@ -1182,6 +1225,7 @@ function abbreviates($s, $string, $noCase = FALSE) {
   if ($noCase) list ($s, $string) = array(strtolower($s), strtolower($string));
   return (substr($string, 0, strlen($s)) == $s);
 }
+function starts($string, $s, $noCase = FALSE) {return abbreviates($s, $string, $noCase);} // near synonym
 
 /**
  * Return the time with some number of months added (or subtracted)
@@ -1230,7 +1274,9 @@ function isId($id) {return (myInt($id) and $id > 0);}
 function isQid($qid) {return preg_match('/(^[A-Z]{3}' . R_MARKS . '[A-Z]{3,}$)|(^![A-Z]{3}(\.[A-Z]{3,})?$)/', $qid);}
 function isZid($zid) {return (myInt($zid) and $zid !== 0);}
 function isNonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
-function isName($value) {return preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value);}
+function isVarname($value) {return preg_match('/^[a-z_][a-z_\-0-9]*$/i', $value);}
+function isName($value) {return preg_match('/^[ \\x{00c0}-\\x{01ff}a-zA-Z0-9\,\.\'\\-]+$/u', $value);}
+///function isName($value) {return preg_match('/^([ \\p{InCJK_Radicals_Supplement}\\p{InKangxi_Radicals}\\p{InIdeographic_Description_Characters}\\p{InCJK_Symbols_and_Punctuation}\\p{InHiragana}\\p{InKatakana}\\p{InBopomofo}\\p{InHangul_Compatibility_Jamo}\\p{InKanbun}\\p{InBopomofo_Extended}\\p{InKatakana_Phonetic_Extensions}\\p{InEnclosed_CJK_Letters_and_Months}\\p{InCJK_Compatibility}\\p{InCJK_Unified_Ideographs_Extension_A}\\p{InYijing_Hexagram_Symbols}\\p{InCJK_Unified_Ideographs}a-zA-Z\'\\-])+$/', $value);}
 function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
 function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);}
 function s2t($s) {return strtotime($s) ?: strtotime(str_replace('-', '/', $s));}
@@ -1240,7 +1286,7 @@ function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back
 function digits(&$n) {return $n = preg_replace('/\D/', '', @$n);}
 function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('1%b%Y', $time));}
 function prefix($prefix, &$var) {$var = $prefix . $var;}
-function preray($prefix, &$r0) {$r = $prefix + (array) $r0; $r0 = is_object($r0) ? (object) $r : $r;}
+function preray($prefix, &$r0) {u\EXPECT($prefix !== FALSE, 'zot');$r = $prefix + (array) $r0; $r0 = is_object($r0) ? (object) $r : $r;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function log($message, $type = 'state', $info = []) {return u\loga($type, compact('message') + $info);}
 function consta($prefix, $var) {return constant(strtoupper(str_replace(' ', '_', $prefix . "_$var")));}

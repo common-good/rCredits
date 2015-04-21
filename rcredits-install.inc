@@ -31,9 +31,9 @@ function tableDefs($schema = []) {
     'changes' => setupField('changes made to the account', 'text big'),
     'community' => setupField("uid of this account's Common Good Community", 'int big'),
 //    'question' => setupField('security question', 'varchar 255'),
-    'usdAccount' => setupField('USD (Dwolla) account number (hex of encrypted)', 'varchar 255'), // searchable
-    'secure' => setupField('other non-personal encrypted data', 'blob normal'), 
-    'offsite' => setupField('index to encrypted data stored off-site', 'int big', NULL, '010'),
+//    'usdAccount' => setupField('USD (Dwolla) account number (hex of encrypted)', 'varchar 255'), // searchable
+    'secure' => setupField('encrypted data', 'blob normal'), 
+//    'offsite' => setupField('index to encrypted data stored off-site', 'int big', NULL, '010'),
     'fullName' => setupField('full name of the individual or entity', 'varchar 60'),
     'phone' => setupField('contact phone (no country code, no punctuation)', 'varchar 255'),
     'faxetc' => setupField('other contact details', 'varchar 255'),
@@ -55,7 +55,7 @@ function tableDefs($schema = []) {
 //    'maximum' => setupField('maximum rCredits balance (send excess to bank), 0=none)', 'numeric 11,2', -1), // -1 means no limit
     'share' => setupField('percentage of rebates/bonuses to donate to CGF', 'numeric 6,3', NULL),
     'r' => setupField('rCredits balance, including rewards (cached)', 'numeric 11,2', 0),
-    'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
+//    'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2', 0),
     'committed' => setupField('amount committed (for donations to CGF)', 'numeric 11,2', 0),
 //    'frozen' => setupField('amount of rCredits currently unavailable until specific dates or indefinitely', 'text medium'),
@@ -246,12 +246,13 @@ function tableDefs($schema = []) {
   // table r_usd
   $fields = array(
     'txid' => setupField('the unique transaction ID', 'serial big'), 
-    'tid' => setupField("payer's transaction ID", 'int 11'), // used only for bank transfers
+    'tid' => setupField("payer's transaction ID", 'int 11'), // set, but UNUSED
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
     'payer' => setupField('user id of the account holder', 'int big'), 
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'completed' => setupField('Unixtime transaction was completed', 'int 11', 0), // for deposits / withdrawals
     'deposit' => setupField('Unixtime transfer check was printed and deposited', 'int 11', 0),
+    'bankAccount' => setupField('Bank account for the transfer', 'blob normal'), // "blob tiny" does not exist
     'risk' => setupField('suspiciousness rating', 'float medium', NULL),
     'risks' => setupField('list of risk factors', 'int big', 0, '010'),
   );
@@ -386,7 +387,23 @@ function tableDefs($schema = []) {
   $foreignKeys = foreignKey('inviter') + foreignKey('invitee');
   $indexes = index('inviter') + index('code');
   $schema['r_invites'] = setupTable('Who invited whom', $fields, 'id', $foreignKeys, $indexes);
-  
+
+  // table r_request
+  $fields = array(
+    'listid' => setupField('record id', 'int big'), // pointer into origin table
+    'created' => setupField('Unixtime record created', 'int 11'),
+    'first' => setupField('first name of the individual', 'varchar 60'),
+    'last' => setupField('last name of the individual', 'varchar 60'),
+    'phone' => setupField('contact phone (no punctuation)', 'varchar 60'),
+    'email' => setupField('email of invitee', 'varchar 60'),
+    'zip' => setupField('postal code (no punctuation)', 'varchar 60'),
+    'ctty' => setupField('uid of this requester\'s Common Good Community', 'int big'), // gleaned from zip
+    'done' => setupField('are we done with this request', 'int tiny', 0), 
+  );
+  $foreignKeys = foreignKey('ctty');
+  $indexes = index('ctty');
+  $schema['r_request'] = setupTable('Requests to be invited', $fields, 'listid', $foreignKeys, $indexes);
+      
   // table r_notices
   $fields = array(
     'msgid' => setupField('notice record id', 'serial 11'),

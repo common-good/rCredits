@@ -59,13 +59,13 @@ class rwebGet extends DrupalWebTestCase {
     . '\\| 3   | %today-10d | signup |     10 | ctty | .ZZC | signup  |'
     . '\\| 4   | %today-10d | signup |     20 | ctty | .ZZD | signup  |"');
     And__('usd transfers: "ASSOC'
-    . '\\| txid | payer | amount | tid | created   | completed |'
-    . '\\| 5001 |  .ZZA |    -99 |   1 | %today-7d | %today-5d |'
-    . '\\| 5002 |  .ZZA |   -100 |   2 | %today-5d |         0 |'
-    . '\\| 5003 |  .ZZA |     13 |   3 | %today-2d | %today-2d |'
-    . '\\| 5004 |  .ZZB |      4 |   1 | %today-2d | %today-2d |'
-    . '\\| 5005 |  .ZZC |    -30 |   1 | %today-2d | %today-2d |'
-    . '\\| 5006 |  .ZZD |   -140 |   1 | %today-2d | %today-2d |"');
+    . '\\| txid | payer | amount | tid | created   | completed | deposit   |'
+    . '\\| 5001 |  .ZZA |    -99 |   1 | %today-7d | %today-5d | %today-1d |'
+    . '\\| 5002 |  .ZZA |   -100 |   2 | %today-5d |         0 | %today-1d |'
+    . '\\| 5003 |  .ZZA |     13 |   3 | %today-2d | %today-2d | %today-1d |'
+    . '\\| 5004 |  .ZZB |      4 |   1 | %today-2d | %today-2d | %today-1d |'
+    . '\\| 5005 |  .ZZC |    -30 |   1 | %today-2d | %today-2d | %today-1d |'
+    . '\\| 5006 |  .ZZD |   -140 |   1 | %today-2d | %today-2d | %today-1d |"');
     Then_('balances: "ASSOC'
     . '\\| id   | r    | rewards |'
     . '\\| .ZZA |  106 |      20 |'

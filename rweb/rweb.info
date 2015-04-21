@@ -47,3 +47,4 @@ files[] = tests/Membership2.test
 files[] = tests/Joint.test
 files[] = tests/Exchange.test
 files[] = tests/Reimburse.test
+files[] = tests/SignupCo.test

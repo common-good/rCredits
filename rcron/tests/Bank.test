@@ -169,7 +169,7 @@ class rcronBank extends DrupalWebTestCase {
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
     . '\\| payer | amount       |'
-    . '\\| .ZZA  | -30 |"');
+    . '\\| .ZZA  | -110 |"');
   }
 
   // Scenario: a member member with zero minimum has balance below minimum

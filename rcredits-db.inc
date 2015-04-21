@@ -20,6 +20,7 @@ use rCredits\Util as u;
  */
 function q($sql, $subs = [], $log = FALSE) {
   global $channel;
+//  \db_query("SET NAMES 'utf8'"); // only needed once per connection, but hey
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
   if (strpos($sql, 'INSERT INTO') !== FALSE) $return = \Database::RETURN_INSERT_ID;
   if ($log and !strpos($sql, 'r_log') and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs, $sql);
@@ -143,4 +144,5 @@ function setData($table, $id, $values) {
 }
 
 function count($table, $where = '1', $subs = []) {return db\lookup('COUNT(*)', $table, $where, $subs);}
+function max($field, $table, $where = '1', $subs = []) {return db\lookup("MAX($field)", $table, $where, $subs);}
 

@@ -14,9 +14,12 @@ use rCredits\Admin as a;
 
 function seeSecure($a) {
   $secure = $a->secure;
-  foreach (u\ray(R_SECURE_FIELDS) as $k) if (isset($secure[$k])) $new[$k] = $secure[$k]; // reorder
+  foreach (u\ray(R_SECURE_FIELDS) as $k) if (isset($secure[$k])) {
+    $new[$k] = $secure[$k]; // reorder
+    $show[$k] = $a->$k; // some need decrypting
+  }
   $a->update('secure', @$new ?: []);
-  say(u\rayTable($a->secure, FALSE));
+  say(u\rayTable($show, FALSE));
 }
 
 /*

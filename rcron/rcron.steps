@@ -399,7 +399,7 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
   $message = u\tt($topic, @$subs[0]);
   $topic = $GLOBALS['topics'][$topic];
   $fullName = $a->fullName;
-  return weEmailToMemberWithSubs('message', $a->mail, compact(u\ray('message topic fullName')));
+  return weEmailToMemberWithSubs('message', $a->email, compact(u\ray('message topic fullName')));
 }
 
 /**

@@ -96,7 +96,9 @@ E. Database clues
            admin is admin
            Common Good Finance is cgf (second in the "NEW" region)
            For regions, name is (uppercase) the 3-char start of their qids, followed by "."
-     . pass and mail should be called "password" and "email" but Drupal doesn't. So it's confusing. (just a heads-up)
+     . pass should be called "password" but Drupal doesn't. So it's confusing. (just a heads-up)
+	 . mail the account's email address, encrypted
+	 . init is not used.
 	 . access: tracks last transaction or login date/time (just major access)
      . we don't currently use theme, timezone, signature, or signature format.
 	 . picture: used as a temp field for calculating stats
@@ -126,17 +128,12 @@ E. Database clues
      . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community == uid
      . minimum: the user's preferred minimum balance. Request at least achMin more (and always a multiple of R_ACHMIN) automatically from bank if balance goes under by even one cent.
      . usdAccount is the USD account number, encrypted with R_WORD (which gets set in settings.php)
-     . secure is an encrypted (with R_WORD) serialized assoc:
-         UNUSED type: Dwolla
-         UNUSED auth: the Dwolla OAUTH code
-		 UNUSED usdPhone: phone used when creating Dwolla account
-		 UNUSED usdEmail: email used when creating Dwolla account
-		 UNUSED usdPin: Dwolla PIN
+     . secure is a doubly-encrypted (with R_WORD) serialized assoc:
          cardCode: security code for QR code on rCard
          cardCode2: security code for QR codes on person's rCard as an agent for a company
-	 . offsite (hidden, doubly encrypted)
          pin: the member's chosen 4-character PIN
          bankAccount: IBN (or fake IBN for US accounts created from routing number and account number)
+		 federalId: social security number or (for companies) EIN
    - r_txs
      . xid: record id
      . payerTid: Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.

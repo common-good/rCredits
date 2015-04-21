@@ -15,7 +15,6 @@ use rCredits\Util as u;
 
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/rweb.inc';
-//require_once __DIR__ . '/../rsmart/rsmart.inc'; // for smart api menu entry
 
 define('RWEB_BLOCKS', 'accounts footer');
 
@@ -64,12 +63,10 @@ MENU_NORMAL_ITEM	Menu type -- A "normal" menu item that's shown in menu and brea
 MENU_SUGGESTED_ITEM	Menu type -- A normal menu item, hidden until enabled by an administrator.
  */
 function rweb_menu() {
-  //$smart = array('module' => 'rsmart', 'file' => 'rsmart.inc');
-  //$modal = array('modal' => TRUE);
-  
+
   $menu = array(
     'signin' => callback('Sign in', 'Signin', 'anyone'),
-    'signinx' => callback('Sign in from elsewhere', 'Signinx', 'anyone'),
+//    'sinx' => callback('Sign in from elsewhere', 'Sinx', 'anyone'),
 
     'summary' => menuNorm(t('Summary'), 'Summary', 'anyone'),
     'history' => menuNorm(t('History'), 'Txs 1', 'read'),
@@ -101,6 +98,7 @@ function rweb_menu() {
     'community/funds' => menuLocal(t('Funds'), '*CttyFunds', 'anyone'),
     'community/graphs' => menuLocal(t('Graphs'), 'Reports 1', 'anyone'),
     'community/flags' => menuLocal(t('Flags'), 'Flags 2', 'anyone'),
+    'community/game' => menuLocal(t('Game'), 'Game', 'anyone'),
     'community/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
     
     'invite' => menuNorm(t('Invite'), 'Invite', 'ok'),
@@ -177,11 +175,11 @@ function rweb_menu() {
     'do' => callback('Do', '1 2', 'anyone', 'rdo'),
     'coup' => callback(t('Disable account'), '1', 'anyone', 'coup'),    
     'invited-whom' => callback('Invited Whom', 'InvitedWhom', 'manage'),
+    'waiting' => callback('Waiting', 'Waiting', 'manage'),
 
-    'accept' => callback('Accept Invitation', 'Accept', 'anyone'),
-    'pos' => callback('POS', '', 'anyone', 'rCredits\\Smart\\pos'),
-    R_GET_AUTH_URI => callback('USD Get Auth', 'getAuth2 1', 'manage', 'usdCallback'),
-    'usd-callback' => callback('USD Other Callback', 'callback 1', 'anyone', 'usdCallback'),
+    'accept' => callback('Accept Invitation', 'Accept', 'anyone'), // called from promo site rCredits.org
+    'pos' => callback('POS', '', 'anyone', 'rCredits\\Smart\\pos'), // called from the rPOS app
+    'whosin' => callback(t('Who\'s in?'), '', 'anyone', 'whosin'), // called from promo site
     'secret' => callback('Secret', '', 'anyone', 'secrets'),
     'error' => callback('System Error', '1', 'anyone', 'error'),
     

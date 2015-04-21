@@ -396,8 +396,29 @@ div.password-confirm {float: right; margin-top:1.5em; visibility:hidden; width: 
 #rcreditswebformaccount .form-type-radio input {display:block;}
 #rcreditswebformaccount .form-type-radio label {display:block;}*/
 
+/* Game */
+#rcreditswebformgame #edit-go2 {display:none;}
+#rcreditswebformgame .ok {color:red; font-weight:bold;}
+#rcreditswebformgame #edit-count {width:20px;}
+#rcreditswebformgame #edit-learn {display:inline-block; width:200px;}
+#rcreditswebformgame .form-item-learn label[for="edit-learn"] {display:inline-block;}
+#rcreditswebformgame th {vertical-align:middle;}
+#rcreditswebformgame .game-goto input {width:20px;}
+#rcreditswebformgame .game-usd input,
+#rcreditswebformgame .game-r input,
+#rcreditswebformgame .game-exchange input {width:50px; text-align:right;}
+#rcreditswebformgame .game-newFollowers input {width:50px;}
+#rcreditswebformgame .game-n {text-align:center; font-weight:normal; font-size:70%;}
+#rcreditswebformgame th.game-n {padding:2px;}
+#rcreditswebformgame td.game-n {padding:0; color:green;}
+#rcreditswebformgame .game-usd,
+#rcreditswebformgame .game-r,
+#rcreditswebformgame .game-rewards {text-align:right;}
+#rcreditswebformgame .game-members,
+#rcreditswebformgame .game-id {text-align:center;}
+
 /* Contact Info (labeled) */
-#rcreditswebformcontact .form-item-mail {}
+#rcreditswebformcontact .form-item-email {}
 #rcreditswebformcontact .form-item-pin {display:none; margin-left:180px;}
 #rcreditswebformcontact .form-item-pin label {width:50px;}
 #rcreditswebformcontact .form-item-pin .description {margin-left:53px; font-size:90%;}
@@ -923,6 +944,7 @@ and (max-device-width : 480px) { */
 
   #secondary-menu, /* upper right corner menu */
   #main-menu {display:none;}
+  #rcreditswebformtx  input#edit-cancel {left:110px;}
 
   body.page-menu #main-menu {display:block; position:absolute; left:0; top:72px; width:100%; padding:0;}
   #main-menu-links {margin:0; padding:0; width:100%; font-size:110%;}

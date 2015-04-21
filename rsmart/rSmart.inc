@@ -176,7 +176,7 @@ function identify($args) {
   if (@$agent) {
     if ($agent == $member) return posErr('already scanned in');
     if ($a->id != $mya->id) $logon = $a->agent->photoId ? '0' : '-1'; // regular or first-time transaction for customer
-//    if ($logon == -1 and time() < strtotime('3/1/2015') and in_array($a->name, ['mesaverde', 'thepeoplespint'])) $logon = 0;
+    if ($logon == -1 and $mya->coCan(CO_FAST)) $logon = 0; // this company exempt from photoId checks
   }
 
   $cardCode = $a->cardCode();

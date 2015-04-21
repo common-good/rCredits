@@ -9,8 +9,10 @@
  
 define('STAGE', 'ws.rcredits.org'); // staging site (for secrets, etc.)
 define('PRODUCTION', 'new.rcredits.org'); // production site (used for setting $base_url)
+define('GAME_SITE', 'game.rcredits.org');
 define('isDEV', (bool) @$_SERVER['WINDIR']); // developing on Windows (unlike production or staging server)
 define('isPRODUCTION', strtolower($_SERVER['HTTP_HOST']) == PRODUCTION);
+define('isGAME', (@$_SERVER['HTTP_HOST'] == GAME_SITE));
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
 global $R_POST; $R_POST = $_POST;
 
@@ -35,10 +37,12 @@ $databases = array (
       'database' => $db_name,
       'username' => $db_user,
       'password' => $db_pass,
+      'collation' => 'utf8_general_ci', // or utf8mb4_general_ci
       'host' => $db_host,
       'port' => $db_port,
       'driver' => $db_driver,
       'prefix' => '',
+      'pdo' => [PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8'], // or utf8mb4
     ),
   ),
 );

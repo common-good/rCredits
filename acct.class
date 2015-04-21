@@ -57,8 +57,7 @@ class acct {
     if ($phone) $phone = u\fmtPhone($phone, '+n');
     
     $status = TRUE;
-    u\EXPECT($mail, 'account with no email address');
-    $init = $mail;
+    u\EXPECT($email, 'account with no email address');
     u\setDft($fullName, @$legalName);
     u\setDft($legalName, $fullName);
     $shortName = @$fullName ? u\shortName($fullName) : '';
@@ -68,15 +67,14 @@ class acct {
     if (@$state and !is_numeric(@$state)) { // allow state abbrevs within US
       $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
-    u\setDft($community, communityUid(@$postalCode)); // defaults to current server
+    u\setDft($community, r\communityUid(@$postalCode)); // defaults to current server
     u\setDft($created, REQUEST_TIME);
     u\setDft($login, $created);
     u\setDft($access, $login);
 
     $stepsDone = r\stepsDone0();
-    if (@$signed) $signedBy = @$legalName;
 
-    if (!@$uid) $region = @$postalCode ? r\region(@$country, @$state, @$postalCode) : $community;
+    if (!@$uid) $region = @$postalCode ? r\region(@$country, @$state, @$postalCode) : r\uidRegion($community);
     $record = compact('uid', 'name');
     
     $DBTX = db_transaction();
@@ -92,7 +90,7 @@ class acct {
     list($this->id, $this->agentId) = array($uid, $uid); // finish creating the object
     self::$rs[$this->id] = (object) $record;
 
-    u\preray(compact(u\ray('phone status mail init pass fullName legalName flags rebate state community created login access signedBy cardCode')), $info); // things we may have added or changed
+    u\preray(compact(u\ray('phone status email pass fullName legalName flags rebate state community created login access cardCode')), $info); // things we may have added or changed
     $this->update($info); // this is a lot easier to do after saving the record
     unset($DBTX); // commit
   }
@@ -152,10 +150,12 @@ class acct {
     $a->reread(); // necessary when we pass an acct object to another page
 
     if (in_array($field, u\ray('ok member co admin cAdmin cAdmin2 cttyActive cttyUp'))) return $a->can(u\consta('b', $field));
+    if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\cryptN(hex2bin($a->mail), FALSE);
     if ($field == 'agent') return acct($a->agentId);
     if ($field == 'proSe') return ($a->id == $a->agentId);
     if ($field == 'qid') return $a->proSe ? $a->mainQid : r\quid($a->id, $a->agentId);
     if ($field == 'ctty') return ($a->id < 0);
+    if ($field == 'cttyA') return r\acct($a->community);
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'bank') return $a->risk('hasBank');
@@ -163,14 +163,14 @@ class acct {
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
       : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
 
-      if ($a->getSpecial($field, $result)) return $result; // set up caches, if appropriate
+    if ($a->getSpecial($field, $result)) return $result; // set up caches, if appropriate
     $result = @self::$rs[$a->id]->$field; // returns NULL if field not set
     if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
+    if ($field == 'photo') return u\ezdecrypt($result);
 
-    if (in_array($field, u\ray('data changes secure secret')) and !is_array($result)) { // special not yet arrayed
-      if ($field == 'secret') return (self::$rs[$a->id]->secret = $a->offsite ? offsiteData($a->offsite) : []);
+    if (in_array($field, u\ray('data changes secure')) and !is_array($result)) { // special not yet arrayed
       if (!$result) return [];
-      if ($field == 'secure') $result = u\ezdecrypt($result, R_WORD);
+      if ($field == 'secure') $result = u\starts($result, CRYPT_FLAG) ? u\ezdecrypt(u\ezdecrypt($result, 1), 0) : u\OLDdecrypt($result);
       return (self::$rs[$a->id]->$field = unserialize($result));
     }
 
@@ -183,11 +183,14 @@ class acct {
    */
   private function getSpecial($field, &$result) {
     $a = $this;
-    foreach (['data', 'secure'] as $set) { // , 'secret'
-      if ($a->special($field, strtoupper($set))) {
-        $set = $a->$set;
+    foreach (['data', 'secure'] as $k) {
+      if ($a->special($field, strtoupper($k))) {
+        $set = $a->$k;
         u\preray($set, self::$rs[$a->id]); // cache all components of the special field
         $result = @$set[$field]; // must be separate line from $a->set (PHP bug)
+        if ($k == 'secure' and in_array($field, u\ray(R_VSECURE_FIELDS)) and u\starts($result, CRYPT_FLAG)) {
+          if (@r\acct()->admin and $pw2 = @$_COOKIE['pw2']) $result = u\ezdecrypt($result, 0, $pw2);
+        }
         return TRUE;
       }
     }
@@ -248,33 +251,31 @@ class acct {
    * @param string $fields: space-delimited list of field names
    * @param mixed $value1 (etc): new values for those fields
    *   The flags field will always be included.
-   * @return: TRUE if update succeeds, FALSE if update fails (saving either onsite or offsite)
+   * @return: TRUE if update succeeds, FALSE if update fails
    */
   public function update($info) {
     $a = $this;
     if (!is_array($info)) return $a->update(u\rayy(func_get_args())); // second syntax
-    if ($a->ok) $a->recordChanges($info); // record changes if member is active
+    if ($a->ok and !isGAME) $a->recordChanges($info); // record changes if member is active
+
+    if (isset($info['photo'])) $info['photo'] = u\ezencrypt($info['photo']);
+    if (isset($info['email'])) $info['mail'] = bin2hex(u\cryptN($info['email']));
     
     if (isset($info['data'])) {
       $info['data'] = serialize($info['data']);
     } elseif ($data = u\just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data += $a->data);
 
-    if (isset($info['secure'])) { // serialize and encrypt before updating this
-      $info['secure'] = u\ezencrypt(serialize($info['secure']), R_WORD);
-    } elseif ($secureFields = u\just(R_SECURE_FIELDS, $info)) {
-      $info['secure'] = u\ezencrypt(serialize($secureFields + $a->secure), R_WORD);
+    if (($set = isset($info['secure'])) or $sFlds = u\just(R_SECURE_FIELDS, $info)) { // serialize and encrypt
+      if (!$set and @r\acct()->admin and $pw2 = @$_COOKIE['pw2'] and $vflds = u\just(R_VSECURE_FIELDS, $sFlds)) {
+        foreach ($vflds as $k => $v) if (!u\starts($v, CRYPT_FLAG)) $sFlds[$k] = u\ezencrypt($v . '', 0, $pw2);
+      }
+      $secure = $set ? $info['secure'] : ($sFlds + $a->secure);
+      $info['secure'] = u\ezencrypt(u\ezencrypt(serialize($secure), 0), 1);
     }
     if (isset($info['pass'])) $info['pass'] = r\passHash($info['pass']);
 
-    /*
-    if ($secrets = u\just(R_SECRET_FIELDS, $info)) { // store protected information securely, offsite
-      $offsite = offsiteData(@$a->offsite, $secret = $secrets + $a->secret);
-      if ($offsite and is_numeric($offsite)) u\preray(compact('offsite'), $info); else return FALSE; // if attempt to store fails, save nothing
-    }
-    */
-
-    $info = u\justNot(R_SECURE_FIELDS . ' ' . R_DATA_FIELDS, $info); // don't pass these
-    u\preray(compact('secret') + $info, self::$rs[$a->id]); // cache the new field values (AFTER storing secrets might fail)
+    $info = u\justNot(R_SECURE_FIELDS . ' email ' . R_DATA_FIELDS, $info); // don't pass these
+    u\preray($info, self::$rs[$a->id]); // cache the new field values
     $info['uid'] = $a->id; // make sure db\update gets this
     return db\update('users', $info, 'uid');
   }
@@ -637,14 +638,15 @@ EOF;
    * Mark a membership step as completed.
    * @param string $step: a named step (see R_STEPS)
    * @param assoc $details: any details to report to the staff
+   * @param bool $done: whether to set the step done or not done
    * @return the next step (FALSE if none)
    */
-  function stepDone($step, $details = []) {
+  function stepDone($step, $details = [], $done = TRUE) {
     $stepsDone = $this->stepsDone ?: r\stepsDone0();
     if (!$stepsDone[$step]) { // unless already done
-      $stepsDone[$step] = TRUE;
+      $stepsDone[$step] = $done;
       $this->update(compact('stepsDone'));
-      r\tellStaff('Step completed: ' . strtoupper($step), $details, $this->id);
+      if ($done) r\tellStaff('Step completed: ' . strtoupper($step), $details, $this->id);
     }
     
     if (!$nextStep = $this->nextStep()) r\membershipEvent($this, 'member');
@@ -676,7 +678,7 @@ EOF;
   function cAdminContact() {
     if (!$id = $this->cAdminUid()) return t('(no Community Admin)');
     $a = r\acct($id);
-    return "$a->fullName - $a->mail";
+    return "$a->fullName - $a->email";
   }
   
   /**
@@ -731,21 +733,30 @@ EOF;
   /**
    * Request a transfer of funds to or from a connected bank account.
    * @param numeric $amount: the amount to transfer TO or (if negative) FROM the bank
-   * @param int $completed: (RETURNED) the completion date
+   * @param int $completed: (also RETURNED) the completion date
    * @param assoc $tx: forced field values, if any
    * @return the transaction number (FALSE if failure)
    */
   public function bank($amount, &$completed = '', $tx = []) {
     $a = $this;
     $payer = $a->id;
+    $bankAccount = $a->secure['bankAccount']; // already-encrypted bank account
     if ($tx) extract($tx);
     u\setDft($tid, r\getUsdTid($payer));
     u\setDft($created, REQUEST_TIME);
     if (!$completed) $completed = ($amount > 0 or -$amount <= -$a->floor) ? $created : 0;
 
     $DBTX = \db_transaction();
-    $txid = db\insert('r_usd', $tx += compact(u\ray('amount payer created completed tid')));
-    u\EXPECT((bool) $txid, 'saving usd record');
+    $where = 'payer=:payer AND NOT deposit AND amount' . ($amount < 0 ? '<0' : '>0');
+    if ($res = db\lookup('txid,amount', 'r_usd', $where, compact('payer'))) { // found another the same direction
+      extract($res, EXTR_PREFIX_ALL, 't');
+      $amount += $t_amount;
+      $txid = $t_txid;
+      db\update('r_usd', compact(u\ray('txid amount completed bankAccount')), 'txid');
+    } else {
+      $txid = db\insert('r_usd', $tx += compact(u\ray('amount payer created completed tid bankAccount')));
+      u\EXPECT((bool) $txid, 'saving usd record');
+    }
 
     if ($amount > 0) { // tell staff to transfer the funds using BillPay or check
       $a->update('r', $a->r - $amount);
@@ -970,12 +981,12 @@ function IA($quid = '', $no_abbrev = TRUE) {
  * @param string (bigint) $id: record key of offsite data to retrieve or update (if empty, store the data)
  * @param assoc $data: fields to store or update offsite (if NULL, retrieve the data)
  * @return array: the actual data (if RETRIEVING) or record key (if STORING)
- */
+ *//*
 function offsiteData($id, $data = NULL) {
   if (isset($data)) $data = bin2hex(u\ezencrypt(serialize($data), R_WORD));
   $result = u\httpRequest(R_SECRET_URL . '/offsite.php', compact('id', 'data'));
   return isset($data) ? $result : (array) unserialize(u\ezdecrypt(hex2bin($result), R_WORD)); // hex2bin=pack('H*'
-}  
+}  */
 
 function acct($uid = '', $agent = '', &$error = '') {
   global $currentAcct; // use this ONLY in this class file
@@ -983,7 +994,7 @@ function acct($uid = '', $agent = '', &$error = '') {
     if (!$currentAcct) {$error = 'There is no current account.'; return FALSE;}
     return $currentAcct;
   }
-  if (strpos($uid, '@')) $uid = db\lookup('uid', 'users', 'mail=:uid', compact('uid'));
+  if (strpos($uid, '@')) $uid = db\lookup('uid', 'users', 'mail=:mail', ['mail' => bin2hex(u\cryptN($uid))]);
   if (!acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   if (!acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   return new acct($uid, $agent);

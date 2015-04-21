@@ -344,7 +344,7 @@ function fieldSet($id, $flds, $prompt = '') {return formField('fieldset', $promp
 function shareField() {
   $mya = r\acct();
   $sharePct = round(db\lookup('AVG(share)', 'r_gifts', 'share>=0'), 1);
-  return textField(t('Share:'), t('What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (and/or the rCredits community), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, when you make a $10 purchase you get a $1 reward, so your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.', compact('sharePct')), required(($mya->share + 0) . '%'));
+  return textField(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the rCredits community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes rCredits and handles administration of your rCredits community until the community can take over that responsibility.</p>', compact('sharePct')), required((($mya->share + 0) ?: R_SHARE_DFT) . '%'));
 }
 
 /**
@@ -358,7 +358,7 @@ function badShare(&$share, $required = FALSE) {
   if ($required and $share === '') return tt('missing field', ['field' => 'share']);
   if ($err = u\badAmount($share, '>=0', 3)) return t('AMOUNT:|') . $err;
   if ($share < 1) $share *= 100; // if under 1% assume they meant more
-  if ($share > R_SHARE_MIN) return 'share too big';
+  if ($share > R_SHARE_MAX) return 'share too big';
 }
 
 /**
@@ -849,15 +849,15 @@ function suCreatorRelation($helper, $args, $myid) {
 
 /**
  * Check email format and duplication and complain if appropriate.
- * @param string $mail: the email address to check (also returned with improvements)
+ * @param string $email0: the email address to check (also returned with improvements)
  * @param int $uid: account record id (optional), if changing email address rather than creating new account
  * @return: TRUE if email is okay to use, else FALSE
  */
-function emailOkay(&$mail, $uid = '') {
-  $email = str_replace("'", '&#039;', $mail);
-  if ($error = \user_validate_mail($email)) return say('bad email', compact('email'), 'mail');
+function emailOkay(&$email0, $uid = '') {
+  $email = strtolower(str_replace("'", '&#039;', $email0));
+  if ($error = \user_validate_mail($email)) return say('bad email', compact('email'), 'email');
   if (emailDup($email, $uid)) return FALSE;
-  $mail = $email;
+  $email0 = $email;
   return TRUE;
 }
 
@@ -867,12 +867,13 @@ function emailOkay(&$mail, $uid = '') {
  * @param int $uid: the account it is for (empty if the account is not created yet)
  * @return <email is a dup>
  */
-function emailDup($email, $uid) {
-  if (!$who = db\lookup('fullName', 'users', 'mail=:email and uid<>:uid', compact('email', 'uid'))) return FALSE;
-  $a = "a href=account/password/$email";
-  $emailTagged = str_replace('@', '+whatever@', $email);
+function emailDup($email0, $uid) {
+  $mail = bin2hex(u\cryptN($email0));
+  if (!$who = db\lookup('fullName', 'users', 'mail=:mail and uid<>:uid', compact('mail', 'uid'))) return FALSE;
+  $a = "a href=account/password/$email0";
+  $emailTagged = str_replace('@', '+whatever@', $email0);
   if (!$uid) $forgot = '|forgot password';
-  say('duplicate email' . @$forgot, compact(u\ray('emailTagged who a')), 'mail');
+  say('duplicate email' . @$forgot, compact(u\ray('emailTagged who a')), 'email');
   return TRUE;
 }
 
@@ -894,7 +895,12 @@ function tellStaffNewMember($params) {
   r\tellStaff($message, $params);
 }
 
+/**
+ * Return a record ID for the given company or company phone.
+ * @return record ID (FALSE if not found)
+ */
 function findCompany($company, $companyPhone) {
+  if (!$company and !$companyPhone) return FALSE;
   $companyShortName = u\shortName($company);
   $companyUid = db\lookup('uid', 'users', ':IS_CO AND phone=:companyPhone', compact('companyPhone'));
   if (!$companyUid) $companyUid = db\lookup('uid', 'users', ':IS_CO AND name=:companyShortName', compact('companyShortName'));
@@ -916,8 +922,8 @@ function nameAndEmail($what, $fullName = '') {
   $onchange = "var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);";
   $fullName = textField("$what:", tt('usename desc'), required(@$fullName) + attrib(compact('onchange')));
   $legalName = textField(t('Legal name:'), t('(if different) ') . $who . tt('legalname desc'));
-  $mail = textField(t('Email:'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>'), required());
-  return compact(u\ray('fullName legalName mail'));
+  $email = textField(t('Email:'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>'), required());
+  return compact(u\ray('fullName legalName email'));
 }
 
 /**
@@ -1084,10 +1090,12 @@ function invitation($code, $invitee = '', &$inviter = '', &$err = '') {
 
 function passwordOkay($a, $password, $passFieldName = 'pass') {
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
-  if (@$a->oneTimePass) extract(u\just('pass expires', $a->oneTimePass));
-  if ($password == @$pass) return ($a->admin or REQUEST_TIME < @$expires) ? TRUE : say('pass expired', $passFieldName);
-  $hash = \_password_crypt('sha512', $password, $a->pass);
-  return ($hash and $a->pass == $hash) ? TRUE : say('bad login', $passFieldName);
+  if (@$a->oneTimePass) {
+    extract(u\just('pass expires', $a->oneTimePass));
+    if ($password == @$pass) return ($a->admin or REQUEST_TIME < @$expires) ? TRUE : say('pass expired', $passFieldName);
+  }
+  $hash = \_password_crypt('sha512', $password, $a->$passFieldName);
+  return ($hash and $a->$passFieldName == $hash) ? TRUE : say('bad login', $passFieldName);
 }
 
 /**
@@ -1277,7 +1285,7 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   list ($starting, $ending) = rangeDates(@$period, @$starting, @$ending);
   $url = "$base_url/$url/period=$period&starting=$starting&ending=$ending&states=$states";
 
-  $showAdvanced = item('<a class="nospin" href="javascript:' . $showAdvJs . '">advanced</a>');
+  $showAdvanced = item('<a class="nospin" href="javascript:void(0);" onclick="javascript:' . $showAdvJs . '">advanced</a>');
   $period = formField('select', t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
   $submitPeriod = submit(t('Show ')); // label has to be different from submitDates (see below)
   if ($downloadable) $downloadPeriod = submit(t('Download '));
@@ -1287,7 +1295,7 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   $starting = textField(t('Starting:'), '', dft(u\fmtDate($starting)));
   $ending = textField(t('Ending:'), '', dft(u\fmtDate($ending)));
   $submitDates = submit(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
-  $showSimple = item('<a class="nospin" href="javascript:jQuery(\'#advanced\').hide(); jQuery(\'#simple\').show();">simpler</a>');
+  $showSimple = item('<a class="nospin" href="javascript:void(0);" onclick="javascript:jQuery(\'#advanced\').hide(); jQuery(\'#simple\').show();">simpler</a>');
   if ($downloadable) $downloadDates = submit(t(' Download'));
   $advanced = fieldSet('advanced', compact(u\ray('states2 starting ending submitDates downloadDates showSimple')));
   return u\ray('dateRange', compact('simple', 'advanced')) + $res;
@@ -1550,6 +1558,10 @@ function menu($title, $type, $function, $args, $perms = '') {
   if (strpos($function, '\\') === FALSE) $function = "rCredits\\Web\\$function";
   $smart = strpos($function, '\\Smart\\');
   $admin = ($perms == 'dev' or stripos($perms, 'admin') !== FALSE);
+  $file = $smart ? '../rsmart/rsmart.inc' 
+  : ($admin ? '../admin/admin-forms.inc' 
+  : 'rweb.inc');
+  
   if ($perms == 'anyone') $perms = FALSE;
   foreach ($args = u\ray($args) as $k => $value) if (is_numeric($value)) $args[$k] = (int) $value;
   
@@ -1563,7 +1575,7 @@ function menu($title, $type, $function, $args, $perms = '') {
     'weight' => @$menuWeight - 1,
     'menu_name' => 'main-menu', 
     'module' => $smart ? 'rsmart' : 'rweb',
-    'file' => $smart ? '../rsmart/rsmart.inc' : ($admin ? '../admin/admin-forms.inc' : 'rweb.inc'),
+    'file' => $file,
     'options' => u\ray('class', $title),
   );
   return $item;
@@ -1834,7 +1846,7 @@ function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   
   if (!$dupsOk) { // applies only to community admins
     if (db\exists('r_invites', 'email=:email and :REQUEST_TIME-invited<:R_INVITE_DAYS*:DAY_SECS', compact('email'))) return say("NOT sent to $email (dup).");
-    if (db\exists('users', 'mail=:email', compact('email'))) return say("NOT sent to $email (already a member).");
+//     if (db\exists('users', 'email=:email', compact('email'))) return say("NOT sent to $email (already a member).");
   }
 
   $info = array(
@@ -1888,8 +1900,8 @@ function css($sheet, $weight = -99) {
  */
 function js($what, $type, $scope, $weight = 0) {
   global $rUrl;
-  if ($type == 'file') $what = strpos($what, 'http') === FALSE ? "$rUrl/$what" : $what;
-  return drupal_add_js($what, compact('type', 'scope', 'weight'));
+  if ($type == 'file') $what = (strpos($what, 'http') !== FALSE or strpos($what, ':')) ? $what : "$rUrl/$what";
+  return \drupal_add_js($what, compact('type', 'scope', 'weight'));
 }
 
 function labeled($form) {

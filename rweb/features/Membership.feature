@@ -59,10 +59,10 @@ Scenario: A company agent clicks on the membership link
   | 2 | Donation |
   | 3 | Preferences |
   | 4 | Photo |
-  | 5 | Company Info |
-  | 6 | Relations |
+  | 5 | Bank Account |
+  | 6 | Company Info |
+  | 7 | Relations |
   And without:
-  || Bank Account |
   || Choose two people |
   And with done ""
 
@@ -127,8 +127,9 @@ Scenario: A member opens a business account
   | 2 | Donation |
   | 3 | Preferences |
   | 4 | Photo |
-  | 5 | Company |  
-  | 6 | Relations |
+  | 5 | Bank Account |
+  | 6 | Company Info |
+  | 7 | Relations |
   And with done ""
 
   When member ".ZZC" has done step "sign"
@@ -148,9 +149,13 @@ Scenario: A member opens a business account
   And member ":ZZA" visits page "status"
   Then with done "1234"
   
-  When member ".ZZC" has done step "company"
+  When member ".ZZC" has done step "connect"
   And member ":ZZA" visits page "status"
   Then with done "12345"
+
+  When member ".ZZC" has done step "company"
+  And member ":ZZA" visits page "status"
+  Then with done "123456"
   
   When member ":ZZA" visits page "account/relations"
   And member ":ZZA" visits page "status"

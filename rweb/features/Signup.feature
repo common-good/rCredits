@@ -194,38 +194,6 @@ Scenario: A member registers with a bad company phone
   | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | Aacme Co | %random      | isOwner=>1    |     18 |    1 |
   Then we say "error": "bad company phone" with subs: ""
 
-Scenario: A member registers a company
-  Given members:
-  | id   | fullName | email | postalCode | federalId   | phone        | flags |*
-  | .AAC | Abe One  | a@    | 01330      | 111-22-3333 | +14136280000 | ok    |
-#  And invitation to email "a@" is "c0D3"
-#  When member "?" visits page "signup/code=c0D3&personal=&helper=NEW.AAC&flow=from&isOwner=1&employeeOk=1"
-  When member ".AAC" confirms form "another" with values:
-  | relation | flow |*
-  |        1 |    0 |
-  Then we show "Open a Company Account" with:
-  |_nameDescription      |
-  | properly capitalized |
-  And with options:
-  |_acctType            |
-  | partnership         |
-  | private corporation |
-  Given invitation to email "a@" is "c0D3"
-  When member "?" confirms form "signup/code=c0D3&helper=NEW.AAC&flow=from&isOwner=1&employeeOk=1" with values:
-  | fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhon | companyOptions | address | city    | state | postalAddr                 | tenure | owns |*
-  | AAcme Co | aco@ | 413-253-9876 | 01002      | 111-22-3333 | %CO_CORPORATION | | | | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 |
-  Then members:
-  | id   | fullName | email | postalCode | phone        | city    | flags | floor |*
-  | .AAD | AAcme Co | aco@  | 01002      | +14132539876 | Amherst | co    |     0 |
-  And relations:
-  | id   | main | agent | permission | employee | isOwner | draw |*
-  | :AAA | .AAD | .AAC  | manage     |        1 |       1 |    1 |
-  And balances:
-  | id   | r | usd | rewards |*
-  | .AAD | 0 |   0 |       0 |
-  And we say "status": "company is ready"
-# (does not work yet because svar('myid'...) is not recognized by tests)  And we show "You're getting there!"
-
 Scenario: A newbie registers from elsewhere
   Given invitation to email "a@" is "c0D3"
   And next random code is "%name"

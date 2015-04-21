@@ -91,7 +91,7 @@ function doAccount($info = []) {
   u\setDft($id, r\acct::nextId()); // default to first available number
   $uid = t\uid($id); // change .AAB to 1, etc.
 
-  if (@$email) $mail = $info['mail'] = $email;
+//  if (@$email) $mail = $info['mail'] = $email;
   if (@$jid) $jid = t\uid($jid);
   if (@$helper or !@$testOnly) $helper = t\uid(@$helper ?: '.AAA'); // everyone but .AAA should have a helper
 
@@ -104,7 +104,7 @@ function doAccount($info = []) {
 
     $zza = r\unQuid('.ZZA');
     $mailDft = ($zza <= $uid and $uid < $zza + 26) ? chr(ord('a') + $uid - $zza) : \user_password(10);
-    u\setDft($mail, $mailDft . '@example.com'); // a@example.com, etc.
+    u\setDft($email, $mailDft . '@example.com'); // a@example.com, etc.
 
     u\setDft($community, r\serverUid());
     u\setDft($postalCode, '01301');
@@ -117,7 +117,7 @@ function doAccount($info = []) {
     if (@$cc) $cardCode = $cc;
     if (@$cc2) $cardCode2 = $cc2;
 
-    $fixFields = 'rebate fullName legalName name pass mail secure community postalCode country postalAddr cardCode cardCode2 photoId ' . $moneyFields;
+    $fixFields = 'rebate fullName legalName name pass email secure community postalCode country postalAddr cardCode cardCode2 photoId ' . $moneyFields;
   } else $fixFields = '';
 
   if (isset($flags)) {
@@ -134,7 +134,7 @@ function doAccount($info = []) {
 
   if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
   
-  foreach (u\ray('id email acctType dw cc cc2') as $one) unset($info[$one]); // these are not real fields
+  foreach (u\ray('id acctType dw cc cc2') as $one) unset($info[$one]); // these are not real fields
   u\preray(compact(u\ray('uid jid helper flags risks ' . $fixFields)), $info); // add in changed fields
   fixValues($info, TRUE);
 
@@ -580,17 +580,11 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = []) {
   $subs = @$subs[0] ?: @$subs;
   $agent = $mya ? $mya->agentId : 0;
   $myid = $mya ? $mya->id : 0;
-/*  if (!$myid and $type == 'email' and $email = @$fields['email']) {
-    $myid = $agent = db\lookup('uid', 'users', 'mail=:email', compact('email'));
-  } */
+
 
   if ($message = ($message ?: @$fields['message'])) {
     if ($channel != TX_SMS and strlen($message < 30)) $message = u\tt($message, $subs);
     $fields['message'] = $message;
-/*    if ($subject) { // must be email
-      $fields['message'] = str_replace("\r\n", '', $fields['message']);
-      $fields['subject'] = $subject;
-    } */
   } else unset($fields['message']); // empty message in features means NO message
 //  output(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
   output(array('EXPECT' => '') + $fields, 'output'); // keep this
@@ -726,7 +720,7 @@ function weShowWithSubs($page, $subs) {
  */
 function fixValues(&$info, $direct = FALSE) {
   global $rUrl;
-  $fields = 'postalCode country state email mail phone dob federalId idProof';
+  $fields = 'postalCode country state email phone dob federalId idProof';
   extract(u\just($fields, $info));
   if (@$postalCode or @$country or @$state) {
     u\setDft($country, 'US');
@@ -734,7 +728,7 @@ function fixValues(&$info, $direct = FALSE) {
   }
   if (@$country) $country = db\lookup('id', 'r_countries', ':country IN (name, iso_code)', compact('country'));
   if (@$state) $state = db\lookup('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country'));
-  if (@$mail) t\fixEmail($mail);
+//  if (@$mail) t\fixEmail($mail);
   if (@$email) t\fixEmail($email);
   if (strlen(@$phone) == 1) u\prefix('+1413772000', $phone);
   if (@$idProof) u\prefix("$rUrl/images/", $idProof);
@@ -901,7 +895,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
     $a = r\acct(r\fullQid($id));
     list ($values['amount']) = t\parseAmt($values['amount'], $a);
   }
-  if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
+//  if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
   
   t\logIn($id);
 
@@ -1172,7 +1166,7 @@ function fixPageArgs($page) {
   foreach ($special as $one) if (preg_match($pat = "`(/|&)$one(&|$)`", $page, $matches)) {
     list ($zot, $start, $word, $what, $end) = $matches;
     if ($word == 'by' or $word == 'id') $what = t\uid($what);
-    if ($word == 'flow') $what = u\consta('flow', $what);
+    if ($word == 'flow' and !is_numeric($what)) $what = u\consta('flow', $what);
     $page = preg_replace($pat, "$start$word=$what$end", $page);
   }
   return $page;

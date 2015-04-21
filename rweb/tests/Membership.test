@@ -106,10 +106,10 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| 2 | Donation |'
     . '\\| 3 | Preferences |'
     . '\\| 4 | Photo |'
-    . '\\| 5 | Company Info |'
-    . '\\| 6 | Relations |"');
+    . '\\| 5 | Bank Account |'
+    . '\\| 6 | Company Info |'
+    . '\\| 7 | Relations |"');
     And__('without: "ARRAY'
-    . '\\|| Bank Account |'
     . '\\|| Choose two people |"');
     And__('with done ""');
   }
@@ -171,8 +171,9 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| 2 | Donation |'
     . '\\| 3 | Preferences |'
     . '\\| 4 | Photo |'
-    . '\\| 5 | Company |'
-    . '\\| 6 | Relations |"');
+    . '\\| 5 | Bank Account |'
+    . '\\| 6 | Company Info |'
+    . '\\| 7 | Relations |"');
     And__('with done ""');
     When_('member ".ZZC" has done step "sign"');
     And__('member ":ZZA" visits page "status"');
@@ -187,9 +188,12 @@ class rwebMembership extends DrupalWebTestCase {
     When_('member ".ZZC" has done step "prefs"');
     And__('member ":ZZA" visits page "status"');
     Then_('with done "1234"');
-    When_('member ".ZZC" has done step "company"');
+    When_('member ".ZZC" has done step "connect"');
     And__('member ":ZZA" visits page "status"');
     Then_('with done "12345"');
+    When_('member ".ZZC" has done step "company"');
+    And__('member ":ZZA" visits page "status"');
+    Then_('with done "123456"');
     When_('member ":ZZA" visits page "account/relations"');
     And__('member ":ZZA" visits page "status"');
     Then_('we show "Your Account Setup Is Complete"');

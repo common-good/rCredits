@@ -1,3 +1,24 @@
+2015-04-
+. added a Delete button for admin to remove photo
+. fixed bug: empty new password crashes
+. forgot to set deposit date once, so did UPDATE r_usd SET deposit=1427428800 WHERE txid BETWEEN 6124063 AND 6124086
+. added list of people waiting for invites, to Invite page
+. fixed bug: users were unable to edit company description
+. combine any undeposited transfer requests into a single request with the current date and original txid
+. if running f('cr.something') from PHP window, call just that one function, not all subsequent daily functions as well.
+. refuse first tx if no photoid yet
+. make a way for members to cancel a bank transfer request
+. make account selection give first letters and submenus, for admin (as well as full qid and/or choose ctty first)
+. add share pct to preference page
+. explain tax options on 1099-B page
+. change from ECB to CBC encryption mode
+. double encrypt secure (two different methods)
+. Use extra encryption for social security numbers, with the second key stored offsite and used only once a year for tax reporting. I don't know if anyone else does that, but it would make it pretty close to impossible to steal those numbers. Less easy than spinning a barn full of straw into gold overnight, for example. Only admin can see "very secure" fields, and signing in as admin requires a long second password, stored on a thumb drive. That password also serves as the key for encrypting the "very secure" fields.
+. set init NULL, encrypt mail (searchable), encrypt photo.
+. store encrypted bankAccount in r_usd
+. ALTER TABLE `users` DROP `usdAccount` , DROP `offsite` , DROP `usd` ;
+. a(1)->update('pw2', r\passHash('<pw2>'));
+
 2015-03-11
 . fix <small> sizes on notice footer
 . handle company agent photoID in rsmart

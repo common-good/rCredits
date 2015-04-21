@@ -373,9 +373,6 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   if ($shortfall) {
     $short = u\fmtAmt($shortfall);
     $otherName = $a2->fullName;
-/*    $msg = ($goods ? 'short ' : 'short cash ') 
-    . ($reallyTaking ? ($a2->can(B_SECRET) ? 'from vague' : 'from') 
-                        : ($channel == TX_WEB ? 'to|short cash help' : 'to')); */
     $msg = $reallyTaking ? ($a2->can(B_SECRET) ? 'short from vague' : 'short from') : 'short to';
     if ($channel == TX_WEB) {
       if ($goods != R_FOR_GOODS) $msg .= '|short cash help';
@@ -525,7 +522,6 @@ function deleteCell($number) {
 function identify($who, $self_message = 'no self-trading') {
   $create = FALSE; // not currently used
   $who = trim($who);
-//  if (($all = strtoupper($who)) == 'ALL') return $allow_ALL ? $all : array('no ALL', [], []);
   $myid = r\acct()->id;
 
   if ($phone = u\fmtPhone($who, '+n')) $who = $phone;
@@ -543,14 +539,16 @@ function identify($who, $self_message = 'no self-trading') {
   }
 
   if (($short = u\shortName($who)) === '') $short = '-'; // abbreviations must not be null
+  $mail = strpos($who, '@') ? bin2hex(u\cryptN($who)) : '';
   
   $sql = <<<EOF
     SELECT DISTINCT u.uid, u.fullName FROM users u LEFT JOIN r_boxes s ON u.uid = s.uid 
-    WHERE (:who IN (s.code, u.phone, u.mail) OR INSTR(u.name, :short)) AND u.uid>0
+    WHERE (:who=s.code OR INSTR(u.name, :short) OR (:IS_SEARCHY AND (:who=u.phone OR :mail=u.mail))) 
+    AND u.uid>0
     ORDER BY u.fullName
 EOF;
 ///  debug(compact('sql', 'who', 'phone', 'short'));
-  $result = db\q($sql, compact(u\ray('who short')))->fetchAllKeyed(0, 1);
+  $result = db\q($sql, compact(u\ray('who short mail')))->fetchAllKeyed(0, 1);
   if (count($result) == 1) {
     return @$result[$myid] ? [$self_message, [], []] : r\acct(key($zot = $result)); // get the one entry (zot resets the pointer)
   } else unset($result[$myid]); // if self is one of many results, so ignore it
