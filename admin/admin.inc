@@ -579,7 +579,7 @@ EOF;
 function printCheck(&$ck, $pos, $tx, $mark) {
   extract(u\just('txid created payer amount deposit bankAccount', $tx));
   $escrow = 'USkk' . ESCROW_ROUTING . ESCROW_ACCOUNT;
-  $bankAccount = u\ezdecrypt($bankAccount, 0, $_COOKIE['pw2']);
+  $bankAccount = u\decrypt($bankAccount, 0, $_COOKIE['pw2']);
   $a = r\acct($payer);
   list ($fromName, $addr, $phone, $fromAcct, $toName, $toAcct) = $amount < 0 // which way
     ? [$a->legalName, $a->postalAddr, $a->phone, $bankAccount, 'rCredits', $escrow] // from bank to escrow
@@ -619,7 +619,7 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   $ck->say("<b>$txid</b>", -$W / 4, '', -$W / 4 - $m, '', '', 'R');
 
   $ck->say('DATE:', 6.7, $y += .4, '', .25, '8');
-  $ck->say(u\fmtDate(), 7.1, '', '', .25);
+  $ck->say(u\fmtDate($deposit ?: time()), 7.1, '', '', .25);
 
   $ck->say('Pay to the<br>Order of', $m, $y += .4, '', 2 * $lineH, '8 CAPS');
   $ck->say("  $toName", $m + .7, $y + $lineH, 5.9, $lineH, '', '', 'BR');
@@ -727,14 +727,22 @@ function secureVery($a = '') {
 
 function makeSecure() {
   if (!r\acct()->admin or !$_COOKIE['pw2']) return; // don't bother if not admin
-  $q = db\q('SELECT uid FROM users WHERE uid<>0 AND init IS NOT NULL');
+  $q = db\q('SELECT uid, address, postalAddr, faxetc FROM users WHERE uid<>0 AND init IS NOT NULL');
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $a = r\acct($uid);
 /**/  debug($a->fullName);
-    $secure = $a->secure; unset($secure['email']); $a->update('secure', $secure);
+
+    $secure = $a->secure; 
+    unset($secure['email']); 
+    $secure['address'] = $address;
+    $secure['postalAddr'] = $postalAddr;
+    $secure['faxetc'] = $faxetc;
+    $a->update('secure', $secure);
+
     $a->update('photo', $a->photo);
     if (strpos($a->mail, '@')) $a->update('email', strtolower($a->mail));
+    if ($a->phone and strpos($a->phone, '+') !== FALSE) $a->update('phone', $a->phone);
     secureVery($a);
     $a->update('init', NULL);
   }
@@ -746,10 +754,29 @@ function makeSecure() {
     db\update('r_usd', u\ray('txid bankAccount', $txid, $a->secure['bankAccount']), 'txid');
   }
   $b = db\lookup('bankAccount', 'r_usd');
-/**/  debug(u\ezdecrypt($b, 0, $_COOKIE['pw2']));
+/**/  debug(u\decrypt($b, 0, $_COOKIE['pw2']));
+
+  $q = db\q('SELECT listid, email, phone FROM r_request');
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $email = $email ? u\cryptN($email) : '';
+    $phone = $phone ? u\cryptN($phone) : '';
+    db\update('r_request', compact('listid', 'email', 'phone'), 'listid');
+  }
+  
+  $q = db\q('SELECT id, email FROM r_invites');
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $email = u\cryptN($email);
+    db\update('r_invites', compact('id', 'email'), 'id');
+  }
 }
 
-function special() {makeSecure(); return '';}
+function special() {
+  makeSecure();
+  if (isSTAGE) makeTestCards();
+  return '';
+}
 
 /*
 function retro() {

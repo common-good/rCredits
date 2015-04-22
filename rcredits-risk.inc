@@ -34,7 +34,7 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
   setRisk('rents', $a);
   
   $trusted = $a->trust - 1; // how well trusted (trust is always >=1)
-  $inviteTrust = db\lookup('SUM(trust - 1)', 'users u INNER JOIN r_invites i ON i.inviter=u.uid', 'i.invitee=:id OR i.email=:email', u\ray('id email', $a->id, $a->email)); // trustedness of accounts that invited this one
+  $inviteTrust = db\lookup('SUM(trust - 1)', 'users u INNER JOIN r_invites i ON i.inviter=u.uid', 'i.invitee=:id OR i.email=:email', u\ray('id email', $a->id, $a->mail)); // trustedness of accounts that invited this one
   $trusted += $inviteTrust; // invited by trusted people
   $relations = db\lookup('COUNT(*)', 'r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND NOT r.isOwner AND r.other=:id AND u.risk<:K_GREEN', $idSub);
   $trusted += $relations; // access to (trusted by) non-suspect businesses
@@ -46,7 +46,8 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
 
   setRisk('socialConx', $a->mediaConx, 'ifany'); // 1st or 2nd-degree social media connections to administrator
 
-  if ($a->co and db\exists('users', 'uid<>:id AND address=:address AND postalCode=:postalCode', u\ray('id address postalCode', $a->id, $a->address, $a->postalCode))) setRisk('homeCo'); // company shares physical address
+//  if ($a->co and db\exists('users', 'uid<>:id AND address=:address AND postalCode=:postalCode', u\ray('id address postalCode', $a->id, $a->address, $a->postalCode))) setRisk('homeCo'); // company shares physical address
+  if ($a->co and $a->dupAddr()) setRisk('homeCo'); // company shares physical address (encryption requires func)
   setRisk('shady', $a); // no substantial internet search results and/or no SSN history
 //  if ($a->can(B_BANK)) setRisk('hasBank'); // has a connected bank account
   setRisk('hasBank', $a); // has a connected bank account

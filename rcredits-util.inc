@@ -794,14 +794,15 @@ function resizeImage(&$img, $w, $h) {
 /**
  * Quicker encryption for often-used fields.
  * @param string $data: the plaintext data to encrypt
- * @param string $key: a base64-encoded encryption key (max 24 characters, so resultant key is at most 16 chars)
  * @param int $how: index to encryption method (0 or 1)
+ * @param string $key: the key (generally only 32 characters are used)
+ * @param bool $encrypt: <encrypt (rather than decrypt)>
+ * @param bool $noIV: <use a predictable initialization vector (only for searchable unique-valued fields)>
  * @return the encrypted string (or the decrypted string with trailing nulls deleted, if $encrypt is FALSE)
  */
 define('CRYPT_FLAG', 'c~'); // flag start of encrypted data (add single digit $how)
-define('NO_IV', '!!'); // key starting like this means use a canonical initialization vector (for unique fields)
  
-function ezencrypt($data, $how = 0, $key = R_WORD, $encrypt = TRUE) {
+function crypt($data, $how = 0, $key = R_WORD, $encrypt = TRUE, $noIV = FALSE) {
 ///  debug(($encrypt ? 'Encrypting ' : 'Decrypting ') . strlen($data) . ' chars, using method #' . $how . ' keylen=' . strlen($key));
   if (empty($data)) return FALSE;
   u\EXPECT(compact('data', 'how', 'key'), 'string int string');
@@ -811,42 +812,54 @@ function ezencrypt($data, $how = 0, $key = R_WORD, $encrypt = TRUE) {
 
   $td = mcrypt_module_open($method, '', $mode, '');
   $keySize = mcrypt_enc_get_key_size($td);
-  $key = substr($key == R_WORD ? base64_decode($key) : $key, 0, $keySize);
+  $key = substr($key, 0, $keySize);
   $ivSize = mcrypt_get_iv_size($method, $mode); 
 
-  if ($encrypt) {
+  if ($noIV) { // predictable iv (for unique-valued fields)
+    if (!$iv = \variable_get('iv', '')) \variable_set('iv', $iv = mcrypt_create_iv($ivSize, MCRYPT_RAND));
+  } elseif ($encrypt) {
     $iv = mcrypt_create_iv($ivSize, MCRYPT_RAND);
-    if (u\starts($key, NO_IV)) { // predictable iv (for unique-valued field)
-      if ($iv2 = \variable_get('iv', '')) {
-        $iv = $iv2;
-      } else \variable_set('iv', $iv);
-    }
   } else {
     $flagLen = strlen(CRYPT_FLAG . $how);
     if (!u\starts($data, CRYPT_FLAG . $how)) return $data; // temporary fudge, to get data out
-//    u\EXPECT(u\starts($data, CRYPT_FLAG . $how), 'wrong encryption');
+    u\EXPECT(u\starts($data, CRYPT_FLAG . $how), 'wrong encryption');
     list ($iv, $data) = [substr($data, $flagLen, $ivSize), substr($data, $flagLen + $ivSize)];
   }
   $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
   $data = $function($method, $key, $data, $mode, $iv);
   mcrypt_module_close($td);
-  return $encrypt ? CRYPT_FLAG . "$how$iv$data" : rtrim($data, "\0");
+  return $encrypt ? ($noIV ? $data : CRYPT_FLAG . "$how$iv$data") : rtrim($data, "\0");
 } 
 
-function ezdecrypt($data, $how = 0, $key = R_WORD) {return ezencrypt($data, $how, $key, FALSE);}
-function cryptN($data, $encrypt = TRUE) {return ezencrypt($data, 0, NO_IV . R_WORD, $encrypt);}  // use a known iv, so we can compare encrypted version
+function decrypt($data, $how = 0, $key = R_WORD) {return crypt($data, $how, $key, FALSE);}
 
-function OLDencrypt($data, $key = R_WORD, $encrypt = TRUE) {
+/** 
+ * Encrypt/decrypt using a known iv and hex2bin/bin2hex, so we can search the encrypted field.
+ */
+define('CRYPTN_FLAG', '!'); // flag start of cryptN-encrypted data
+
+function cryptN($data, $encrypt = TRUE) {
+  if (!$encrypt) {
+    if (!u\starts($data, CRYPTN_FLAG)) return $data; // temporary fudge, to get data out
+    u\EXPECT(u\starts($data, CRYPTN_FLAG), 'data not cryptNd');
+    $data = hex2bin(substr($data, strlen(CRYPTN_FLAG))); // convert to binary before decrypting
+  }
+  $res = crypt($data, 0, R_WORD, $encrypt, TRUE);
+  return $encrypt ? CRYPTN_FLAG . bin2hex($res) : $res; // convert to hex after encrypting
+}
+function decryptN($data) {return cryptN($data, FALSE);}
+
+function OLDencrypt($data, $encrypt = TRUE) {
   if (empty($data)) return FALSE;
   u\EXPECT(compact('data'), 'string');
   $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
   $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_ECB); 
   $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND); 
-  $data = $function(MCRYPT_RIJNDAEL_256, base64_decode(substr($key, 0, 24)), $data, MCRYPT_MODE_ECB, $iv); 
+  $data = $function(MCRYPT_RIJNDAEL_256, base64_decode(substr(R_WORD, 0, 16)), $data, MCRYPT_MODE_ECB, $iv); 
   return $encrypt ? $data : rtrim($data, "\0");
 } 
 
-function OLDdecrypt($data, $key = R_WORD) {return OLDencrypt($data, $key, FALSE);}
+function OLDdecrypt($data) {return OLDencrypt($data, FALSE);}
 
 /**
  * Initiate CSV download.
@@ -1216,16 +1229,18 @@ function n2english($num, $tri = 0) {
 
 /**
  * Say whether one string abbreviates another.
- * @param string $s: the possible abbreviation
- * @param string $string: the possibly abbreviated string
+ * @param string $starts: the possible abbreviation
+ * @param string $s: the possibly abbreviated string
  * @param bool $noCase: <ignore case>
  * @return <the first string abbreviates the second>
  */
-function abbreviates($s, $string, $noCase = FALSE) {
-  if ($noCase) list ($s, $string) = array(strtolower($s), strtolower($string));
-  return (substr($string, 0, strlen($s)) == $s);
+function abbreviates($starts, $s, $noCase = FALSE) {
+  if (!@$s or is_numeric($s)) $s = @$s . '';
+  u\EXPECT(compact('starts', 's', 'noCase'), 'string string bool');
+  if ($noCase) list ($starts, $s) = array(strtolower($starts), strtolower($s));
+  return (substr($s, 0, strlen($starts)) == $starts);
 }
-function starts($string, $s, $noCase = FALSE) {return abbreviates($s, $string, $noCase);} // near synonym
+function starts($s, $starts, $noCase = FALSE) {return abbreviates($starts, $s, $noCase);} // near synonym
 
 /**
  * Return the time with some number of months added (or subtracted)
@@ -1288,6 +1303,7 @@ function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('1%b%Y', $ti
 function prefix($prefix, &$var) {$var = $prefix . $var;}
 function preray($prefix, &$r0) {u\EXPECT($prefix !== FALSE, 'zot');$r = $prefix + (array) $r0; $r0 = is_object($r0) ? (object) $r : $r;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
+function ifSet(&$param, $value) {if (isset($param)) $param = $value;} // opposite of setDft
 function log($message, $type = 'state', $info = []) {return u\loga($type, compact('message') + $info);}
 function consta($prefix, $var) {return constant(strtoupper(str_replace(' ', '_', $prefix . "_$var")));}
 function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}

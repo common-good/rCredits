@@ -868,7 +868,7 @@ function emailOkay(&$email0, $uid = '') {
  * @return <email is a dup>
  */
 function emailDup($email0, $uid) {
-  $mail = bin2hex(u\cryptN($email0));
+  $mail = u\cryptN($email0);
   if (!$who = db\lookup('fullName', 'users', 'mail=:mail and uid<>:uid', compact('mail', 'uid'))) return FALSE;
   $a = "a href=account/password/$email0";
   $emailTagged = str_replace('@', '+whatever@', $email0);
@@ -1084,7 +1084,7 @@ function invitation($code, $invitee = '', &$inviter = '', &$err = '') {
   $lastweek = strtotime((R_INVITE_DAYS + 2) . ' days ago'); // +2 for leniance
   if ($invitee) return !$err = 'used invite';
   if ($invited < $lastweek) return !$err = 'expired invite';
-  return $email; // $inviter is returned implicitly
+  return u\cryptN($email, FALSE); // $inviter is returned implicitly
 
 }
 
@@ -1845,7 +1845,8 @@ function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   if ($admin = $agent->admin) $agent = r\agent(R_ADMIN_QID); // use William for admin invites
   
   if (!$dupsOk) { // applies only to community admins
-    if (db\exists('r_invites', 'email=:email and :REQUEST_TIME-invited<:R_INVITE_DAYS*:DAY_SECS', compact('email'))) return say("NOT sent to $email (dup).");
+    $cemail = u\cryptN($email);
+    if (db\exists('r_invites', 'email=:cemail and :REQUEST_TIME-invited<:R_INVITE_DAYS*:DAY_SECS', compact('cemail'))) return say("NOT sent to $email (dup).");
 //     if (db\exists('users', 'email=:email', compact('email'))) return say("NOT sent to $email (already a member).");
   }
 

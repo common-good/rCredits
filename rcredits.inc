@@ -44,13 +44,13 @@ define('CGF_EIN', '205280780');
 
 define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
-define('R_VERSION', '2.0'); // software version
+define('R_VERSION', '2.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty,Vacant Lot,Land,Cinema,Printing & Office Supply,Car Repair,Health Club/Gym,Restaurant,Hardware & Supply,Grocer,Farm,Food Processing,Department Store,Electric Company,Oil Company,Town Government,Community College,Hospital');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
 define('R_DATA_FIELDS', isGAME ? 'legalName usd members toBona locus boughtAt lastTx' : 'legalName newAccount by calling wants website description shortDesc selling coFlags gross employees verifyBy signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
-define('R_SECURE_FIELDS', 'pw2 cardCode cardCode2 pin federalId ssnData dob bankAccount photoId question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
+define('R_SECURE_FIELDS', 'pw2 address postalAddr faxetc cardCode cardCode2 pin federalId ssnData dob bankAccount photoId question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
 define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount photoId'); // very secure fields (admin-encrypted)
 //define('R_SECURE_FIELDS', 'cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
 //define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData photoId pin bankAccount'); // personal identifying information
@@ -1021,7 +1021,7 @@ function uniqueName($fullName) {
  */
 function loginString($id) {
   if (u\isQid($id = trim(strtoupper($id))) and $acct = acct($id)) return $acct->id; // try to interpret as a qid
-  $mail = bin2hex(u\cryptN(strtolower($id)));
+  $mail = u\cryptN(strtolower($id));
   return db\lookup('uid', 'users', 'name=:id OR mail=:mail', compact('id', 'mail'));
 }
   
@@ -1230,6 +1230,7 @@ function checkBona($uid) {
 function invite($email, $inviter, $code = '', $subject = '', $message = '') {
   $code = $code ?: u\code();
   $invited = REQUEST_TIME;
+  $email = u\cryptN($email);
   $info = compact(u\ray('code invited email inviter subject message'));
   db\insert('r_invites', $info);
   return $code;
@@ -1281,7 +1282,7 @@ function noticeArgs($uid, $where, $weekly, $monthly, $at = REQUEST_TIME) {
   $yestertime = u\fmtDate($start = $unit == 'month' ? u\plusMonths(-1, $at) : strtotime("-1 $unit", $at));
   $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
   extract(u\just('return', $a->j_stats()));
-  list ($balance, $rewards, $ourEmail) = array(u\fmtAmt($a->j_r), u\fmtAmt($a->j_rewards), R_REGION_EMAIL);
+  list ($balance, $rewards, $ourEmail) = array(u\fmtAmt($a->j_r), u\fmtAmt($a->j_rewards), $a->cttyA->email);
   $companies = \variable_get('companies');
   $companies = $companies[u\test() ? r\serverUid() : $a->community];
   return compact(u\ray('messages unit range yestertime balance rewards return ourEmail companies'));
@@ -1791,8 +1792,8 @@ function makeQueue($callback, $time = 15) {return array('worker callback' => "rC
 function queue($op, $item = []) {\DrupalQueue::get('q')->createItem(compact('op') + $item);}
 function perm($bit) {return $bit - B_RELATED;}
 function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}
-function doCode($code) {return @unserialize(@u\ezdecrypt(@u\deurlify($code)));}  
-function makeDoCode($a) {return u\urlify(u\ezencrypt(serialize($a)));}
+function doCode($code) {return @unserialize(@u\decrypt(@u\deurlify($code)));}  
+function makeDoCode($a) {return u\urlify(u\crypt(serialize($a)));}
 function cgfId() {return \variable_get('cgf_uid');}
 function disputeTx($xid) {return db\setData('r_txs', $xid, ['disputed' => TRUE]);}
 function denyInv($nvid) {return db\setData('r_invoices', $nvid, ['denied' => TRUE]);}

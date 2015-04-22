@@ -109,8 +109,9 @@ function doAccount($info = []) {
     u\setDft($community, r\serverUid());
     u\setDft($postalCode, '01301');
     u\setDft($country, 'US');
-    u\setDft($postalAddr, @$address . ', ' . @$city . ', ' . r\realState(@$state, $country) . ' ' . $postalCode);
-    u\setDft($photoId, $postalCode . '999');
+    $state = r\realState(@$state, $country);
+    u\setDft($postalAddr, @$address . ', ' . @$city . ", $state $postalCode");
+    u\setDft($photoId, "$state-{$postalCode}999");
 
     $moneyFields = 'share committed floor r usd rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
@@ -464,8 +465,10 @@ function usdTransfers($txs) {
       if (isset($risks)) $tx['risks'] = getRisks($risks, K_TX_RISKS);
       if (!verifyRecord('r_usd', $tx)) return FALSE;
     } else {
-      foreach (u\just('payer', $tx) as $key => $value) {
-        if ($value) $tx[$key] = t\uid($value);
+      if ($uid = $tx['payer']) {
+        $tx['payer'] = $uid = t\uid($uid);
+        $a = r\acct($uid);
+        $tx['bankAccount'] = @$a->secure['bankAccount'];
       }
       u\setDft($tx['txid'], t\seq());
       u\setDft($tx['risk'], NULL);

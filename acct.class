@@ -150,7 +150,8 @@ class acct {
     $a->reread(); // necessary when we pass an acct object to another page
 
     if (in_array($field, u\ray('ok member co admin cAdmin cAdmin2 cttyActive cttyUp'))) return $a->can(u\consta('b', $field));
-    if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\cryptN(hex2bin($a->mail), FALSE);
+    if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
+    if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
     if ($field == 'agent') return acct($a->agentId);
     if ($field == 'proSe') return ($a->id == $a->agentId);
     if ($field == 'qid') return $a->proSe ? $a->mainQid : r\quid($a->id, $a->agentId);
@@ -163,14 +164,23 @@ class acct {
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
       : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
 
-    if ($a->getSpecial($field, $result)) return $result; // set up caches, if appropriate
-    $result = @self::$rs[$a->id]->$field; // returns NULL if field not set
+    if (isset(self::$rs[$a->id]->$field)) {
+      $result = @self::$rs[$a->id]->$field; // returns NULL if field not set
+    } else $result = $a->getSpecial($field); // set up caches and get value, if appropriate
+
     if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
-    if ($field == 'photo') return u\ezdecrypt($result);
+    if ($field == 'photo') return u\decrypt($result);
+    if (in_array($field, u\ray(R_VSECURE_FIELDS)) and !is_array($result) and u\starts($result, CRYPT_FLAG)) { // !is_array() is temporary, for ssnData in transition
+      if (@r\acct()->admin and $pw2 = @$_COOKIE['pw2']) {
+        $result = u\decrypt($result, 0, $pw2);
+        if ($field == 'ssnData') $result = unserialize($result);
+        return @self::$rs[$a->id]->$field = $result;
+      }
+    }
 
     if (in_array($field, u\ray('data changes secure')) and !is_array($result)) { // special not yet arrayed
       if (!$result) return [];
-      if ($field == 'secure') $result = u\starts($result, CRYPT_FLAG) ? u\ezdecrypt(u\ezdecrypt($result, 1), 0) : u\OLDdecrypt($result);
+      if ($field == 'secure') $result = u\starts($result, CRYPT_FLAG) ? u\decrypt(u\decrypt($result, 1), 0) : u\OLDdecrypt($result);
       return (self::$rs[$a->id]->$field = unserialize($result));
     }
 
@@ -178,23 +188,19 @@ class acct {
   }
 
   /**
-   * Cache the set of special fields of which any of the given fields is a member.
-   * @param mixed $fields: array or space-delimited list of possibly special field names (data/secure/secret)
+   * Cache the set of special fields of which the given field is a member.
+   * @param mixed $field: possibly special field name (data/secure)
+   * @return the field value
    */
-  private function getSpecial($field, &$result) {
+  private function getSpecial($field) {
     $a = $this;
     foreach (['data', 'secure'] as $k) {
       if ($a->special($field, strtoupper($k))) {
-        $set = $a->$k;
-        u\preray($set, self::$rs[$a->id]); // cache all components of the special field
-        $result = @$set[$field]; // must be separate line from $a->set (PHP bug)
-        if ($k == 'secure' and in_array($field, u\ray(R_VSECURE_FIELDS)) and u\starts($result, CRYPT_FLAG)) {
-          if (@r\acct()->admin and $pw2 = @$_COOKIE['pw2']) $result = u\ezdecrypt($result, 0, $pw2);
-        }
-        return TRUE;
+        if ($set = $a->$k ?: []) u\preray($set, self::$rs[$a->id]); // cache all components of the special field
+        return @$set[$field]; // must be separate line from $a->set (PHP bug)
       }
     }
-    return FALSE;
+    return NULL;
   }
   
   /**
@@ -258,8 +264,9 @@ class acct {
     if (!is_array($info)) return $a->update(u\rayy(func_get_args())); // second syntax
     if ($a->ok and !isGAME) $a->recordChanges($info); // record changes if member is active
 
-    if (isset($info['photo'])) $info['photo'] = u\ezencrypt($info['photo']);
-    if (isset($info['email'])) $info['mail'] = bin2hex(u\cryptN($info['email']));
+    if (isset($info['photo'])) $info['photo'] = u\crypt($info['photo']);
+    if (isset($info['email'])) $info['mail'] = u\cryptN($info['email']);
+    if (isset($info['phone'])) $info['phone'] = u\cryptN($info['phone']);
     
     if (isset($info['data'])) {
       $info['data'] = serialize($info['data']);
@@ -267,15 +274,18 @@ class acct {
 
     if (($set = isset($info['secure'])) or $sFlds = u\just(R_SECURE_FIELDS, $info)) { // serialize and encrypt
       if (!$set and @r\acct()->admin and $pw2 = @$_COOKIE['pw2'] and $vflds = u\just(R_VSECURE_FIELDS, $sFlds)) {
-        foreach ($vflds as $k => $v) if (!u\starts($v, CRYPT_FLAG)) $sFlds[$k] = u\ezencrypt($v . '', 0, $pw2);
+        foreach ($vflds as $k => $v) if (is_array($v) or !u\starts($v, CRYPT_FLAG)) { // is_array is temporary for ssnData in transition
+          if ($k == 'ssnData') $v = serialize($v);
+          $info[$k] = $sFlds[$k] = u\crypt($v . '', 0, $pw2);
+        }
       }
       $secure = $set ? $info['secure'] : ($sFlds + $a->secure);
-      $info['secure'] = u\ezencrypt(u\ezencrypt(serialize($secure), 0), 1);
+      $info['secure'] = u\crypt(u\crypt(serialize($secure), 0), 1);
     }
     if (isset($info['pass'])) $info['pass'] = r\passHash($info['pass']);
 
-    $info = u\justNot(R_SECURE_FIELDS . ' email ' . R_DATA_FIELDS, $info); // don't pass these
     u\preray($info, self::$rs[$a->id]); // cache the new field values
+    $info = u\justNot(R_SECURE_FIELDS . ' email ' . R_DATA_FIELDS, $info); // don't pass these
     $info['uid'] = $a->id; // make sure db\update gets this
     return db\update('users', $info, 'uid');
   }
@@ -740,7 +750,7 @@ EOF;
   public function bank($amount, &$completed = '', $tx = []) {
     $a = $this;
     $payer = $a->id;
-    $bankAccount = $a->secure['bankAccount']; // already-encrypted bank account
+    $bankAccount = @$a->secure['bankAccount']; // already-encrypted bank account (@ is for testing)
     if ($tx) extract($tx);
     u\setDft($tid, r\getUsdTid($payer));
     u\setDft($created, REQUEST_TIME);
@@ -889,6 +899,17 @@ EOF;
   }  
 
   /**
+   * Say whether another active account has the same address
+   */
+  public function dupAddr() {
+    $a = $this;
+    if (!$address = $a->address) return FALSE;
+    $q = db\q('SELECT uid FROM users WHERE :IS_OK AND uid<>:id AND postalCode=:postalCode', u\ray('id postalCode', $a->id, $a->postalCode));
+    while ($row = $q->fetchAssoc()) if (r\acct($row['uid'])->address = $address) return TRUE;
+    return FALSE;      
+  }
+  
+  /**
    * Say whether this account/agent has the permission.
    * @param int $bit: the permission in question (DEFAULT B_READ)
    */
@@ -983,9 +1004,9 @@ function IA($quid = '', $no_abbrev = TRUE) {
  * @return array: the actual data (if RETRIEVING) or record key (if STORING)
  *//*
 function offsiteData($id, $data = NULL) {
-  if (isset($data)) $data = bin2hex(u\ezencrypt(serialize($data), R_WORD));
+  if (isset($data)) $data = bin2hex(u\crypt(serialize($data), R_WORD));
   $result = u\httpRequest(R_SECRET_URL . '/offsite.php', compact('id', 'data'));
-  return isset($data) ? $result : (array) unserialize(u\ezdecrypt(hex2bin($result), R_WORD)); // hex2bin=pack('H*'
+  return isset($data) ? $result : (array) unserialize(u\decrypt(hex2bin($result), R_WORD)); // hex2bin=pack('H*'
 }  */
 
 function acct($uid = '', $agent = '', &$error = '') {
@@ -994,7 +1015,7 @@ function acct($uid = '', $agent = '', &$error = '') {
     if (!$currentAcct) {$error = 'There is no current account.'; return FALSE;}
     return $currentAcct;
   }
-  if (strpos($uid, '@')) $uid = db\lookup('uid', 'users', 'mail=:mail', ['mail' => bin2hex(u\cryptN($uid))]);
+  if (strpos($uid, '@')) $uid = db\lookup('uid', 'users', 'mail=:mail', ['mail' => u\cryptN($uid)]);
   if (!acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   if (!acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   return new acct($uid, $agent);

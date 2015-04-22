@@ -472,7 +472,7 @@ function formHelp($form, &$sta, $what = '') {
       $q = db\q('SELECT id, message AS msg FROM r_tous WHERE uid=:uid', ['uid' => $mya->id]);
       while ($row = $q->fetchAssoc()) {
         extract($row);
-        $message[] = "#$id: " . u\ezdecrypt($msg);
+        $message[] = "#$id: " . u\decrypt($msg);
       }
       $message = $message ? join("<br><br>", $message) : '';
       $message = item($message, t('All messages:'), t('Be sure to delete resolved messages.'));
@@ -503,7 +503,7 @@ function formHelp_submit($form, &$sta) {
     $message .= $extra;
     if (!rename($tmp, $filename)) return say('file save error', 'file');
   }  
-  $message = u\ezencrypt($message);
+  $message = u\crypt($message);
   db\insert('r_tous', compact('uid', 'time', 'message'));
   r\tellStaff(t('secure message ') . @$extra);
   say(t('Your secure message has been sent. An administrator will respond as soon as possible.'));
@@ -1128,10 +1128,12 @@ function formPhoto_submit($form, &$sta) {
   
   if ($mya->admin and op($sta) == 'del' and $mya->hasAux('picture')) {
     rename($pictureFilename, str_replace('.jpg', '.X', $pictureFilename));
-    $mya->update('photo', '');
+    $stepsDone = $mya->stepsDone;
+    $stepsDone['photo'] = FALSE;
+    $mya->update('photo stepsDone', '', $stepsDone);
     $mya->setBit(B_MEMBER, FALSE);
     $mya->setBit(B_OK, FALSE);
-    return say(t('photo removed, person set to non-member (photo renamed to .X)'));
+    return say(t('photo removed, step undone, person set to non-member (photo renamed to .X)'));
   }
     
   if (!$picture = @$sta['values']['picture_upload']) {
@@ -1296,11 +1298,12 @@ function formAccounts($form, &$sta) {
 
   if ($mya->can(B_MANAGE)) $settings = item(divButton('account/settings', 'Settings'));
 
-  $onchange = "location.href='$base_url/change-account?acct=' + this.options[this.selectedIndex].value + '&page=' + encodeURIComponent(document.URL); jQuery('#saywait').show();";
+  $page = $_SERVER['REQUEST_URI'];
+  $onchange = "location.href='$base_url/change-account?acct=' + this.options[this.selectedIndex].value + '&page=$page'; jQuery('#saywait').show();";
   $account = formField('select', '', '', dft($myid) + attrib(compact('onchange')), $choices);
   $submit = submit(); // default submission
 
-  $chunks = explode('/', $_SERVER['REQUEST_URI']);
+  $chunks = explode('/', $page);
   if (isDEV) array_shift($chunks); // site is in a subfolder on the dev server
   $function = @$chunks[1]; // normally just one part of URI is the page (but sometimes two)
   foreach (u\ray('account user') as $one) {
@@ -2076,6 +2079,7 @@ function formSignup_submit($form, &$sta) {
   setGlobals($myid); // some rcredits functions need to know who we are
   
   w\invitation($code, $myid); // mark the invitation used
+  $email = u\cryptN($email);
   db\q('UPDATE r_invites SET invitee=:myid WHERE email=:email', compact('myid', 'email')); // and all such
   if (!$owns) $mya->setRisk('rents');
   
@@ -2222,7 +2226,7 @@ EOF;
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $invited = u\fmtDate($invited);
-    $started = !strpos($who, '@');
+    if (!$started = strpos($who, ' ')) $who = u\cryptN($who0 = $who, FALSE) ?: $who0; // decrypt email
     $status = ($member or $ok) ? t('is a Member!') : ($started ? t('account Not Complete') : ($expired ? t('expired') : '(no response yet)'));
     $color = $member ? 'green' : ($started ? 'orange' : ($expired ? 'red' : 'gray'));
     $nameClass = $co ? 'name co' : 'name';
@@ -2998,7 +3002,7 @@ function formSignin($form, &$sta) {
   $passDesc = tt('<@a>Password problems?</a>', compact('a'));
   $name = textField(t('Username/ID:'), t('Your account ID, email, or username (the letters of your full name, all lowercase)'), required(@$name));
   $pass = formField('password', t('Password:'), $passDesc, required());
-  $pw2 = hidField(@$pw2); // extra password for admins
+  $pw2 = hidField(@$pw2 ? $pw2 : ''); // extra password for admins
   
   $submit = submit(t('Sign in'));
   $form = compact(u\ray('title name pass pw2 submit subtext')) + $form;
@@ -3010,7 +3014,6 @@ function formSignin($form, &$sta) {
 //  $form['#submit'][] = 'rCredits\\Web\\login_form_submit';
 
   $form['#attributes']['class'][] = 'rweb labeled';
-//  debug($adminBox);
 //  if (TRUE) js('e:\\rCredits-admin.js', 'external', 'footer'); // get extra admin password
   js('inc/radiocheck.js', 'file', 'footer'); // this normally gets called in showForm()
   return t\snapShot($form);
@@ -3026,7 +3029,8 @@ function login_extra_validate($form, &$sta) {
   extract(u\just('name pass pw2', $sta['input']));
   if (flooding($uid = r\loginString($name), $sta)) return FALSE; // getting hammered
   $a = r\acct($uid);
-  if ($uid == 1 and !w\passwordOkay($a, @$pw2, 'pw2')) return say(t('Admin requires second pass.'), 'pass');
+  $pw2 = @$pw2 ? hex2bin($pw2) : '';
+  if ($uid == 1 and !w\passwordOkay($a, $pw2, 'pw2')) return say(t('Admin requires second pass.'), 'pass');
   $sta['uid'] = ((isDEV and $uid == 1) or passwordOkay($a, $pass)) ? $uid : FALSE;
   if ($sta['uid']) noFlood($sta); else return say('login failed', 'name');
   if ($uid == 1) r\setCook('pw2', $pw2); // store as cookie, so pw2 is never on server
@@ -3589,6 +3593,7 @@ function formAccept_validate($form, &$sta) {
 
 function formAccept_submit($form, &$sta) {
   extract(u\just('email', $sta['input']));
+  $email = u\cryptN($email);
   if (!$code = db\lookup('code', 'r_invites', 'email=:email ORDER BY (invitee IS NULL) DESC, invited DESC', compact('email'))) return say('bad invite', 'email');
   return r\go("signup/code=$code");
 }

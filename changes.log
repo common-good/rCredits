@@ -1,4 +1,25 @@
-2015-04-
+2015-04-21
+. version 2.1
+. made data, secure, and vsecure more efficient
+. no usd in admin users list
+. add taking to admin tx list
+. don't show vsecure, askappdata, seeappdata for cAdmin
+. move addr and postalAddr to secure
+. encrypt phone (searchable)
+. encrypt email in invites and email & phone in requests (then bin2hex)
+. when showing old check images, use the original deposit date
+. notices now say to contact us at community's email address (not necessarily new@rcredits.org)
+. fixed: account dropdown in DEV fails (omits "devcore")
+. upload new .databases
+. disable pw2 check in formSignin_validate
+. having generated a max 512-char u\randomString for pw2, a(1)->update('pw2', f('r.passHash', hex2bin('pw2'))); 
+. reinstall
+. ALTER TABLE `users` DROP `usdAccount` , DROP `offsite` , DROP `usd`;
+. copy filter.module
+. run Special to re-encrypt and move fields around
+. ALTER TABLE `users` DROP `address` , DROP `postalAddr` , DROP `faxetc`;
+
+2015-04-20
 . added a Delete button for admin to remove photo
 . fixed bug: empty new password crashes
 . forgot to set deposit date once, so did UPDATE r_usd SET deposit=1427428800 WHERE txid BETWEEN 6124063 AND 6124086
@@ -15,7 +36,7 @@
 . double encrypt secure (two different methods)
 . Use extra encryption for social security numbers, with the second key stored offsite and used only once a year for tax reporting. I don't know if anyone else does that, but it would make it pretty close to impossible to steal those numbers. Less easy than spinning a barn full of straw into gold overnight, for example. Only admin can see "very secure" fields, and signing in as admin requires a long second password, stored on a thumb drive. That password also serves as the key for encrypting the "very secure" fields.
 . set init NULL, encrypt mail (searchable), encrypt photo.
-. store encrypted bankAccount in r_usd
+. store encrypted bankAccount in r_usd (for a permanent record of checks actually used)
 . ALTER TABLE `users` DROP `usdAccount` , DROP `offsite` , DROP `usd` ;
 . a(1)->update('pw2', r\passHash('<pw2>'));
 

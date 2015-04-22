@@ -15,30 +15,19 @@ To Do
 . video about Admin'ing
 
 TASKS FOR NEXT UPDATE:
-. back up db
-. disable pw2 check in formSignin_validate
-. a(1)->update('pw2', f('r.passHash', '<pw2>'));
-. re-enable pw2 check in formSignin_validate
-. sign out and in
-. reinstall
-. ALTER TABLE `users` DROP `usdAccount` , DROP `offsite` , DROP `usd` ;
-. copy filter.module
-. run Special
 
-. improve our rating on https://www.ssllabs.com/ssltest/
-. move email, phone, addr, postalAddr to secure. also encrypt photo.
 GAME:
 . day 5, 6, and 7
 . beginning/end of everyday (including creating stats)
 . multiple stats by box in creating them
 
+. on relations page, for an individual account showing a relation to a company, isFamily column should be empty (not yes/no)
+. a\showQuery interpret email and phone (decryptN)
+. sometime separate photos into separate table, for efficiency
 . notify people when their invitees start signing up and finish signing up. Also, when a week or a month goes by and they haven't accepted the invitation or finished signing up or verified their bank account
 . *** see if anyone requested paper statements and alert staff if anyone ever chooses that
 . *** when user chooses "don't connect yet", set minimum to zero (and tell them)
 . change "other money" to "exchange for US Dollars (or other currency)" without being too long on mobile (and fix tests)
-. *** record bankAccount encrypted in r_usd (for a permanent record of checks actually used)
-. *** when showing old check images, use the original deposit date
-. notices should say to contact us at community admin's email address (not necessarily new@rcredits.org)
 
 . withdrawal should disable minimum if necessary to avoid an automatic reversal of the withdrawal
 . is trade figure on MIW pie chart the wrong sign?
@@ -49,7 +38,6 @@ GAME:
 . add photo to Summary, for cAdmin
 . "Sign up" button -> "Next"
 . figure out why Snow's paying Barbara got the "nope!" message, but ABC paying Garth and Jeff doesn't (Barbara can draw on Snow's)
-. account dropdown in DEV fails (omits "devcore")
 . disallow choosing proxies until signed and donated (only members can view the local member list)
 . *** sometimes we receive two same-second identical transaction requests from the app -- not forced. ask experts why and figure out a way to prevent it.
 . game page (not for production site, ultimately for game.rcredits.org):

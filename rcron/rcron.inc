@@ -178,7 +178,7 @@ EOF;
 function tickleSignup($item) {
   global $base_url;
   extract(u\just('email inviter code elapsed', $item));
-  if (r\acct($email)) return; // invitee already began to open an account
+  if (r\acct($email = u\cryptN($email, FALSE))) return; // invitee already began to open an account
   $inviterName = r\acct($inviter)->fullName;
   $count = $elapsed < 7 ? t('two') : ($elapsed < 14 ? t('one') : 0);
   $nudge = $count ? u\tt("We will send you just @count more reminder(s)", compact('count')) : t('This is your last reminder');
@@ -363,16 +363,18 @@ function requests() {
         if (!$created) $row['created'] = strtotime('9/1/2011');
         $row['phone'] = u\fmtPhone($phone, '+n');
         foreach (['first', 'last'] as $k) $row[$k] = u\normalizeCase($$k);
-        db\insert('r_request', $row);
         r\tellStaff('invitation request', $row);
+        foreach (['email', 'phone'] as $k) $row[$k] = u\cryptN($row[$k]);
+        db\insert('r_request', $row);
       } else $header = $row + ['ctty'];
     }
   }
 
-  //  ON ((r.email<>'' AND u.email=r.email) OR
   $sql = <<<EOF
   UPDATE r_request r LEFT JOIN users u 
-  ON ((r.phone<>'' AND u.phone=r.phone) OR
+  ON (
+    (r.email<>'' AND u.mail=r.email) OR
+    (r.phone<>'' AND u.phone=r.phone) OR
     (INSTR(u.fullName, r.first)>0 AND INSTR(u.fullName, r.last)>0 AND MID(u.postalCode, 1, 5)=MID(r.zip, 1, 5))
   )
   LEFT JOIN r_invites AS i ON (i.email=r.email AND i.invited>r.created)

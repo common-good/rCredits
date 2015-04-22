@@ -32,6 +32,8 @@ function formAdmin($form, &$sta, $args = '') {
     $do1099b = submit('1099B');
     $tables .= ' notices boxes do log stats usd';
     $special = submit(t('Special'));
+    $askForAppData = submit(t('Ask for App Data'));
+    $seeAppData = submit(t('See App Data'));
   }
   if (!$admin and $ctty = $mya->community) {
     $cttyName = @r\acct($ctty)->fullName; // @ for testing
@@ -48,8 +50,6 @@ function formAdmin($form, &$sta, $args = '') {
   $seeData = submit(t('See Data'));
   $seeChanges = submit(t('See Changes'));
   $newUsdEmail = submit(t('New USD Email'));
-  $askForAppData = submit(t('Ask for App Data'));
-  $seeAppData = submit(t('See App Data'));
   $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeChanges seeSecure askForAppData seeAppData')));
   
   $form = compact('title');
@@ -122,7 +122,7 @@ function formAdmin_submit($form, &$sta) {
   
   // handle all other buttons with showQuery()
   if ($op == 'users') {
-    $fields = 'uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, committed AS comit, share, floor, address, city, postalCode AS zip';
+    $fields = 'uid, flags, r, rewards, minimum AS min, committed AS comit, share, floor, address, city, postalCode AS zip';
     return say(a\showQuery('users', 1, 'name', $fields));
   }
   
@@ -133,7 +133,7 @@ function formAdmin_submit($form, &$sta) {
 
   if ($op == 'txs') {
     $fields = <<<EOF
-    xid, t.created, type AS ty, goods AS gd, 
+    xid, t.created, type AS ty, goods AS gd, taking AS k,
     IF (LOCATE('"force";s:1:"1"', u1.data)>0, 1, IF(LOCATE('"force";s:2:"-1"', u1.data)>0, -1, IF(LOCATE('"force";s:1:"0"', u1.data)>0, '0', ''))) AS f,
     payer, payee, amount, payerFor AS for1, payeeFor AS for2, payerTid AS tid1, payeeTid AS tid2
 EOF;
@@ -285,17 +285,18 @@ function formMemberList($form, &$sta) {
   $ctty = r\acct($mya->community);
 
   $title = item((($cAdmin and $ctty) ? $ctty->fullName : '') . t(' Member List'));
-  $sql = 'SELECT uid, login, access, fullName, notes, phone, postalAddr, :IS_CO AS co FROM users WHERE uid>1 AND community=:cttyId ORDER BY :IS_OK, IF(:IS_OK, fullName, 2000000000-login)'; // -login fails because it gets treated as a string
+  $sql = 'SELECT uid, login, access, fullName, notes, :IS_CO AS co FROM users WHERE uid>1 AND community=:cttyId ORDER BY :IS_OK, IF(:IS_OK, fullName, 2000000000-login)'; // -login fails because it gets treated as a string
   $q = db\q($sql, u\ray('cttyId', $ctty->id));
   $list = "<table id='memberlist'>\n";
   $emails = '';
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    $phone = str_replace('+1 ', '', u\fmtPhone($phone0 = $phone));
     $nameClass = $co ? 'name co' : 'name';
     $notes = str_replace("\n", "<br>\n", $notes);
     $notes = str_replace('do:', '<b style="color:blue; font-size:130%;">do:</b>', $notes);
     $a = r\acct($uid);
+    $phone = str_replace('+1 ', '', u\fmtPhone($phone0 = $a->phone));
+    $postalAddr = $a->postalAddr;
     $email = $a->email;
     $fullName = "<a href=\"$base_url/sadmin/acct-info/$a->mainQid\">$fullName</a>";
     $steps = a\showSteps($a);
@@ -359,13 +360,15 @@ function formDownloadMemberList_submit($form, &$sta) {
   $where = @$allCttys ? '1' : 'community=:cttyId';
   if (@$onlyActive) $where .= ' AND :IS_OK';
   if (@$onlyPeople) $where .= ' AND NOT :IS_CO';
-  $sql = "SELECT uid AS id, fullName, phone, postalAddr FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND $where ORDER BY :IS_OK, -signed, -created";
+  $sql = "SELECT uid AS id, fullName FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND $where ORDER BY :IS_OK, -signed, -created";
   $q = db\q($sql, u\ray('cttyId', $ctty->id));
   while ($row = $q->fetchAssoc()) {
     extract($row);
     list ($first, $last) = u\parseName($fullName);
-    $email = r\acct($id)->email;
-    list ($address, $city, $state, $zip) = u\parseAddr($postalAddr);
+    $a = r\acct($id);
+    $email = $a->email;
+    $phone = $a->phone;
+    list ($address, $city, $state, $zip) = u\parseAddr($a->postalAddr);
     if (is_numeric($zip)) $zip .= '-'; // prevent this from getting interpreted as a number
     $phone = u\fmtPhone($phone);
     u\csv(array_values(compact($fields)));
@@ -516,7 +519,7 @@ function printChecks($args) {
 
   $where = @$reprint ? "(deposit=0 OR deposit>=$previous)" : "deposit=$date";
   $where .= strtoupper($way) == 'IN' ? ' AND amount<0' : ' AND amount>0';
-  $q = db\q("SELECT txid,created,payer,amount,deposit FROM r_usd WHERE $where ORDER BY created, txid");
+  $q = db\q("SELECT txid,created,payer,amount,deposit,bankAccount FROM r_usd WHERE $where ORDER BY created, txid");
   $pos = 3; // before first position of 3, on 3-up check paper
   $count = 0;
   while ($tx = $q->fetchAssoc()) {
