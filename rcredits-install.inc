@@ -64,6 +64,7 @@ function tableDefs($schema = []) {
     'risks' => setupField('list of risk factors', 'int big', 0, '010'),
     'trust' => setupField('how much this person is trusted by others in the community', 'float medium', 0),
     'stats' => setupField('account statistics', 'text medium'),
+    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: []) + $fields;
@@ -220,6 +221,7 @@ function tableDefs($schema = []) {
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'risk' => setupField('suspiciousness rating', 'float medium', NULL),
     'risks' => setupField('list of risk factors', 'int big', 0, '010'),
+    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee') + foreignKey('payerAgent') + foreignKey('payeeAgent');
   $indexes = index('payer') + index('payee') + index('created') + index('payerTid') + index('payeeTid'); // also serial/type/taking/goods/payerAgent/payeeAgent/channel/?
@@ -246,7 +248,7 @@ function tableDefs($schema = []) {
   // table r_usd
   $fields = array(
     'txid' => setupField('the unique transaction ID', 'serial big'), 
-    'tid' => setupField("payer's transaction ID", 'int 11'), // set, but UNUSED
+    'tid' => setupField("payer's transaction ID", 'int 11'), // set, but currently UNUSED
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
     'payer' => setupField('user id of the account holder', 'int big'), 
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
@@ -255,22 +257,12 @@ function tableDefs($schema = []) {
     'bankAccount' => setupField('Bank account for the transfer', 'blob normal'), // "blob tiny" does not exist
     'risk' => setupField('suspiciousness rating', 'float medium', NULL),
     'risks' => setupField('list of risk factors', 'int big', 0, '010'),
+    'channel' => setupField('through what medium was the transaction entered', 'int tiny'),
+    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
-  $foreignKeys = foreignKey('payer') + foreignKey('payee');
-  $indexes = index('created');
+  $foreignKeys = foreignKey('payer');
+  $indexes = index('created') + index('payer') + index('deposit');
   $schema['r_usd'] = setupTable('Record of transfers to or from a bank account', $fields, 'txid', $foreignKeys, $indexes);
-
-  // table r_usderror
-  $fields = array(
-    'id' => setupField('record ID', 'serial 11'),
-    'error' => setupField('error message from USD server', 'varchar 255'),
-    'op' => setupField('operation that caused the error', 'varchar 60'),
-    'ok' => setupField('is it okay to get this error?', 'int tiny', 0),
-    'created' => setupField('Unixtime error happened', 'int 11', 0),
-  );
-  $foreignKeys = [];
-  $indexes = [];
-  $schema['r_usderror'] = setupTable('USD error messages from USD gateway', $fields, 'id', $foreignKeys, $indexes);
 
   // table r_banks
   $fields = array(
@@ -417,6 +409,7 @@ function tableDefs($schema = []) {
   $schema['r_notices'] = setupTable('Message digest buffer', $fields, 'msgid', $foreignKeys, $indexes);
 
   // table r_regions
+  /*
   $fields = array(
     'region' => setupField('region id', 'char 3'),
     'state' => setupField('state or province abbreviation', 'char 2'),
@@ -424,6 +417,7 @@ function tableDefs($schema = []) {
   $foreignKeys = [];
   $indexes = index('state');
   $schema['r_regions'] = setupTable('rCredits regions', $fields, 'region', $foreignKeys, $indexes);
+  */
 
   // table r_near
   $fields = [
@@ -620,15 +614,15 @@ function print_state(ci, dft_state){
 }
 
 function setPostalAddr() {
-	var country = $('#edit-country').val();
-	var state = $('#edit-state').val();
-	var city = $('#edit-city').val();
-	var address = $('#edit-address').val();
-	var postalCode = $('#edit-postalcode').val();
-	var postalAddr = $('#edit-postaladdr');
-	if (address != '' && postalCode != '' && city != '' && state != 0 && postalAddr.val() == '') {
-	  postalAddr.val(address + ', ' + city + ', ' + (country==USID ? STs[state] : ss[country][state]) + ' ' + postalCode + (country==USID ? '' : (' ' + cs[country])));
-	} // postalAddr.attr('selectionEnd',0); fails
+  var country = $('#edit-country').val();
+  var state = $('#edit-state').val();
+  var city = $('#edit-city').val();
+  var address = $('#edit-address').val();
+  var postalCode = $('#edit-postalcode').val();
+  var postalAddr = $('#edit-postaladdr');
+  if (address != '' && postalCode != '' && city != '' && state != 0 && postalAddr.val() == '') {
+    postalAddr.val(address + ', ' + city + ', ' + (country==USID ? STs[state] : ss[country][state]) + ' ' + postalCode + (country==USID ? '' : (' ' + cs[country])));
+  } // postalAddr.attr('selectionEnd',0); fails
 }
 
 function zipChange(z3s) {
@@ -643,7 +637,7 @@ function zipChange(z3s) {
 //        $('.message').html("Found Zipcode");
       },
       function(errMsg){ // zip couldn't be found,
-//	  alert(errMsg);
+//    alert(errMsg);
 //          $('.message').html("Error: " + errMsg);
       }
     );
@@ -654,7 +648,7 @@ function zipChange(z3s) {
 }
 EOF
   );
-  file_put_contents(__DIR__ . '/inc/countries.js', $js);
+  file_put_contents(__DIR__ . '/js/countries.js', $js);
 }
 
 /**

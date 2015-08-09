@@ -26,16 +26,10 @@ jQuery(".popup-close").click(function() {jQuery(this).parents("fieldset").hide()
 jQuery("#which-cancel").click(function() {jQuery("fieldset#which").hide();});
 // jQuery("#idcard").click(function() {window.open("Advance-ID-Card", "tempcard","height=250,width=600,left=100,location=0,menubar=0,resizable=0,scrollbars=0,status=0,toolbar=0");});
 var indexZ = 2;
-jQuery("#edit-acct-index a").mouseover(function() {
+jQuery("#index a").mouseover(function() {
   var detail = jQuery("#" + this.id + "-detail");
   indexZ++;
   detail.css("zIndex", indexZ); // hiding the others fails here (as does detail.zIndex(indexZ))
   detail.show();
 });
 jQuery(".index-detail").click(function() {jQuery("#edit-acct-index, .index-detail").hide();});
-jQuery("#logo img").mouseover(function() {
-  /* (FAILS) if (jQuery("#edit-acct-index").is(":visible")) {
-    jQuery("#edit-acct-index, .index-detail").hide();
-  } else jQuery("#edit-acct-index").show(); */
-  jQuery("#edit-acct-index").toggle();
-});

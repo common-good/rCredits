@@ -1,14 +1,204 @@
-<script type="text/javascript" src="http://localhost/devcore/misc/jquery.js?v=1.4.4"></script>
+<!DOCTYPE html>
+<html lang="en" dir="ltr"
+>
 
+<head profile="http://www.w3.org/1999/xhtml/vocab">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="shortcut icon" href="http://localhost/devcore/sites/all/modules/rcredits/images/icons/favicon.ico" type="image/vnd.microsoft.icon" />
+<meta name="Generator" content="Drupal 7 (http://drupal.org)" />
 
-<div id="saywait" style="z-index:2; position:absolute; top:200px; left:200px; display:none">
-<img src="images/saywait.gif" />
-</div>
-<a href="">here</a>
+    <meta name="MobileOptimized" content="width" />
+    <meta name="HandheldFriendly" content="true" />
+    <meta http-equiv="cleartype" content="on" />
+  <title>Admin | rCredits</title>
+  <meta name="description" content="">
+  <meta name="author" content="William Spademan -- for Society to Benefit Everyone, Inc.">
+  <style type="text/css" media="all">
+@import url("http://localhost/devcore/modules/system/system.base.css?nr8fk8");
+@import url("http://localhost/devcore/modules/system/system.menus.css?nr8fk8");
+@import url("http://localhost/devcore/modules/system/system.messages.css?nr8fk8");
+@import url("http://localhost/devcore/modules/system/system.theme.css?nr8fk8");
+</style>
+<style type="text/css" media="all">
+@import url("http://localhost/devcore/modules/field/theme/field.css?nr8fk8");
+@import url("http://localhost/devcore/modules/node/node.css?nr8fk8");
+</style>
+<style type="text/css" media="all">
+@import url("http://localhost/devcore/sites/all/themes/rcredits/css/layout.css?nr8fk8");
+@import url("http://localhost/devcore/sites/all/themes/rcredits/css/style.css?nr8fk8");
+@import url("http://localhost/devcore/sites/all/themes/rcredits/css/colors.css?nr8fk8");
+</style>
+<style type="text/css" media="print">
+@import url("http://localhost/devcore/sites/all/themes/rcredits/css/print.css?nr8fk8");
+</style>
 
-<script >
-jQuery('a').click(function() {
-  jQuery('#saywait').show();
-  alert('here');
-});
+  <link rel="stylesheet" href="css/bootstrap.min.css" />
+  <link rel="stylesheet" href="css/rcredits.css" type="text/css" />
+  <script type="text/javascript" src="http://localhost/devcore/misc/jquery.js?v=1.4.4"></script>
+<script type="text/javascript" src="http://localhost/devcore/misc/jquery.once.js?v=1.2"></script>
+<script type="text/javascript" src="http://localhost/devcore/misc/drupal.js?nr8fk8"></script>
+<script type="text/javascript" src="http://localhost/devcore/misc/form.js?v=7.34"></script>
+<script type="text/javascript" src="http://localhost/devcore/sites/all/modules/devel/devel_krumo_path.js?nr8fk8"></script>
+<script type="text/javascript">
+<!--//--><![CDATA[//><!--
+jQuery.extend(Drupal.settings, {"basePath":"\/devcore\/","pathPrefix":"","ajaxPageState":{"theme":"rcredits","theme_token":"Yrk3XIU6QSyuOfYjkRiDoSdUYUNNZe6aHA7ItdAfZAQ","js":{"http:\/\/localhost\/devcore\/sites\/all\/modules\/rcredits\/inc\/radiocheck.js":1,"http:\/\/localhost\/devcore\/sites\/all\/modules\/rcredits\/js\/bootstrap.min.js":1,"http:\/\/localhost\/devcore\/sites\/all\/modules\/rcredits\/js\/ie10-viewport-bug-workaround.js":1,"0":1,"http:\/\/localhost\/devcore\/sites\/all\/modules\/rcredits\/inc\/misc.js":1,"misc\/jquery.js":1,"misc\/jquery.once.js":1,"misc\/drupal.js":1,"misc\/form.js":1,"sites\/all\/modules\/devel\/devel_krumo_path.js":1},"css":{"modules\/system\/system.base.css":1,"modules\/system\/system.menus.css":1,"modules\/system\/system.messages.css":1,"modules\/system\/system.theme.css":1,"modules\/field\/theme\/field.css":1,"modules\/node\/node.css":1,"sites\/all\/themes\/rcredits\/css\/layout.css":1,"sites\/all\/themes\/rcredits\/css\/style.css":1,"sites\/all\/themes\/rcredits\/css\/colors.css":1,"sites\/all\/themes\/rcredits\/css\/print.css":1}}});
+//--><!]]>
 </script>
+
+</head>
+
+<body class="html not-front logged-in no-sidebars page-sadmin accounts" >
+  
+  <div id="page-wrapper"><div id="page">
+
+<div class="nav2">
+  <div class="nav2-inner">
+      <div id="social-networking" class="">
+      <a href="https://www.facebook.com/pages/rCredits/275916525799255" title="visit us on FaceBook"><img src="http://localhost/devcore/sites/all/modules/rcredits/images/social-facebook.png" /></a>
+      <a href="http://twitter.com/rcredits" title="visit us on Twitter"><img src="http://localhost/devcore/sites/all/modules/rcredits/images/social-twitter.png" /></a>
+    </div>
+  </div>
+</div>
+
+<nav class="navbar navbar-inverse navbar-fixed-top">
+  <div class="container">
+    <ol class="breadcrumb">
+    </ol>
+  
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <div class="pull-left">
+        <a class="navbar-brand" href="#"><div><img src="http://localhost/devcore/sites/all/modules/rcredits/images/rlogo-circle80.png" /></div></a>
+      </div>
+      <div class="pull-right">
+        <a class="account-photo collapsed" href="#" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar"><div></div></a>
+      </div>
+    </div>
+    <div id="navbar" class="collapse navbar-collapse">
+      <ul class="nav navbar-nav">
+<li class="menu-summary first"><a href="/devcore/summary">Summary</a></li>
+<li class="menu-history"><a href="/devcore/history">History</a></li>
+<li class="menu-find-co"><a href="/devcore/directory">Find Co</a></li>
+<li class="menu-community"><a href="/devcore/community">Community</a></li>
+<li class="menu-sign-out"><a href="/devcore/signout">Sign out</a></li>
+<li class="menu-handy"><a href="/devcore/handy">Handy</a></li>
+<li class="menu-test"><a href="/devcore/tests">Test</a></li>
+<li class="menu-php"><a href="/devcore/php">PHP</a></li>
+<li class="menu-admin last active"><a href="/devcore/sadmin" class="active-trail active">Admin</a></li>
+
+      </ul>
+    </div><!--/.navbar-collapse -->
+  </div>
+</nav>
+
+  
+  
+  <div id="main-wrapper" class="clearfix"><div id="main" class="clearfix">
+
+    <h2 class="element-invisible">You are here</h2><div class="breadcrumb"><a href="/devcore/">Home</a></div>
+    <div id="content" class="column"><div class="section">
+            <a id="main-content"></a>
+                    <h1 class="title" id="page-title">
+          Admin        </h1>
+                          <div class="tabs">
+          <h2 class="element-invisible">Primary tabs</h2><ul class="tabs primary"><li class="active"><a href="/devcore/sadmin" class="active">Panel<span class="element-invisible">(active tab)</span></a></li>
+<li><a href="/devcore/sadmin/member-list">Member List</a></li>
+<li><a href="/devcore/sadmin/export-list">Export</a></li>
+<li><a href="/devcore/sadmin/deposits">Deposits</a></li>
+<li><a href="/devcore/sadmin/another">New Account</a></li>
+<li><a href="/devcore/sadmin/make-community">Make Ctty</a></li>
+<li><a href="/devcore/sadmin/sms">Test SMS</a></li>
+<li><a href="/devcore/sadmin/zot">zot</a></li>
+</ul>        </div>
+                          <div class="region region-content">
+    <div id="block-system-main" class="block block-system">
+
+    
+  <div class="content">
+    <form class="rweb" action="/devcore/sadmin" method="post" id="rcreditswebformadmin" accept-charset="UTF-8"><div><div id="edit-title" class="form-item form-type-item">
+  System Administration
+</div>
+<input type="submit" id="edit-users" name="op" value="users" class="form-submit" /><input type="submit" id="edit-txs" name="op" value="txs" class="form-submit" /><input type="submit" id="edit-gifts" name="op" value="gifts" class="form-submit" /><input type="submit" id="edit-proxies" name="op" value="proxies" class="form-submit" /><input type="submit" id="edit-relations" name="op" value="relations" class="form-submit" /><input type="submit" id="edit-invites" name="op" value="invites" class="form-submit" /><input type="submit" id="edit-notices" name="op" value="notices" class="form-submit" /><input type="submit" id="edit-boxes" name="op" value="boxes" class="form-submit" /><input type="submit" id="edit-do" name="op" value="do" class="form-submit" /><input type="submit" id="edit-log" name="op" value="log" class="form-submit" /><input type="submit" id="edit-stats" name="op" value="stats" class="form-submit" /><input type="submit" id="edit-usd" name="op" value="usd" class="form-submit" /><input type="submit" id="edit-nonmembers" name="op" value="nonmembers" class="form-submit" /><input type="submit" id="edit-inviteestatus" name="op" value="Invitee Status" class="form-submit" /><input type="submit" id="edit-do1099btest" name="op" value="1099B TEST" class="form-submit" /><input type="submit" id="edit-do1099b" name="op" value="1099B" class="form-submit" /><input type="submit" id="edit-special" name="op" value="Special" class="form-submit" /><input type="submit" id="edit-stop" name="op" value="STOP" class="form-submit" /><fieldset class="form-wrapper" id="acctSet"><div class="fieldset-wrapper"><div class="form-item form-type-textfield form-item-account">
+  <label for="edit-account">Account: </label>
+ <input type="text" id="edit-account" name="account" value="" size="60" maxlength="128" class="form-text" />
+<div class="description">Account to do something to</div>
+</div>
+<div class="form-item form-type-checkbox form-item-make">
+  <label for="edit-make">Make: </label>
+ <input type="checkbox" id="edit-make" name="make" value="1" class="form-checkbox" />
+<div class="description"><div class="box"></div></div>
+</div>
+<input type="submit" id="edit-printid" name="op" value="Print ID" class="form-submit" /><input type="submit" id="edit-seedata" name="op" value="See Data" class="form-submit" /><input type="submit" id="edit-seechanges" name="op" value="See Changes" class="form-submit" /><input type="submit" id="edit-seesecure" name="op" value="See Secure" class="form-submit" /><input type="submit" id="edit-askforappdata" name="op" value="Ask for App Data" class="form-submit" /><input type="submit" id="edit-seeappdata" name="op" value="See App Data" class="form-submit" /></div></fieldset>
+<input type="hidden" name="form_build_id" value="form-0sMqt2GaFtZDoZtMhDF2l0mSvUhVnNogzI_GTkALgYU" />
+<input type="hidden" name="form_token" value="u2Ua6PY3eXXLflvHwWcy5IU-qLERHvnzQOIVoM8zHt0" />
+<input type="hidden" name="form_id" value="rCredits\Web\formAdmin" />
+</div></form>  </div>
+</div>
+  </div>
+      
+    </div></div> <!-- /.section, /#content -->
+
+  <div id="footer-wrapper"><div class="section">
+
+          <div id="footer" class="clearfix">
+          <div class="region region-footer">
+    <div id="block-rweb-footer" class="block block-rweb">
+
+    
+  <div class="content">
+    <form class="rweb" action="/devcore/sadmin" method="post" id="rcreditswebformfooter" accept-charset="UTF-8"><div><div id="edit-footertext" class="form-item form-type-item">
+  <hr>
+    <a href="http://localhost/devcore/donate">Donate</a> |
+    <a href="http://localhost/devcore/invite">Invite Someone</a> |
+    <a href="http://rCredits.org">About rCredits</a> |
+    <a href="http://localhost/devcore/agreement">The Agreement</a> |
+    <a href="http://localhost/devcore/community/graphs">Communities</a> |
+    <a href="https://docs.google.com/document/d/1dtSRdMu2756GQpvUE19mjX3s92YdtJsdcPlB9s4zQ4I/edit">Privacy</a> |
+    <a href="http://localhost/devcore/help/">Help</a>
+<br><br>
+website copyright &copy; 2015 <a href="http://CommonGoodFinance.org">Common Good Finance&trade;</a>, a 501(c)(3) nonprofit<br/>
+PO Box 21, Ashfield, MA 01330 USA<br/>
++1 413-628-1723 &nbsp; <a href="mailto:info@rCredits.org" target="_blank">info@rCredits.org</a><br>
+<div id="saywait"><br><img src="http://localhost/devcore/sites/all/modules/rcredits/images/saywait.gif" /><br>processing...</div>
+</div>
+<input type="hidden" name="form_build_id" value="form-AR-nb_CSr_iAsCi595Bu4d-RVJyiRBqx6VrALByqDDI" />
+<input type="hidden" name="form_token" value="cyT0jEbDcjyZx1j8aWzcESOyqYVqHnMp_lRmnWTg6jY" />
+<input type="hidden" name="form_id" value="rCredits\Web\formfooter" />
+</div></form>  </div>
+</div>
+  </div>
+      </div> <!-- /#footer -->
+    
+  </div></div> <!-- /.section, /#footer-wrapper -->
+
+</div></div> <!-- /#page, /#page-wrapper -->
+
+  <script type="text/javascript" src="http://localhost/devcore/sites/all/modules/rcredits/js/radiocheck.js?nr8fk8"></script>
+<script type="text/javascript" src="http://localhost/devcore/sites/all/modules/rcredits/js/bootstrap.min.js?nr8fk8"></script>
+<script type="text/javascript" src="http://localhost/devcore/sites/all/modules/rcredits/js/ie10-viewport-bug-workaround.js?nr8fk8"></script>
+<script type="text/javascript">
+<!--//--><![CDATA[//><!--
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-30262912-1']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+//--><!]]>
+</script>
+<script type="text/javascript" src="http://localhost/devcore/sites/all/modules/rcredits/js/misc.js?nr8fk8"></script>
+
+</body>
+</html>

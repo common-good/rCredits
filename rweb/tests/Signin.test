@@ -201,7 +201,7 @@ class rwebSignin extends DrupalWebTestCase {
     . '\\| a@example.com |"');
     When_('member "?" visits page "reset/id=abeone&code=NOTwHatEveR"');
     Then_('we say "error": "bad login"');
-    And__('we show "Welcome to rCredits"');
+    And__('we show "Miscellaneous"');
   }
 
   // Scenario: A member clicks a link to reset password for unknown account
@@ -213,7 +213,7 @@ class rwebSignin extends DrupalWebTestCase {
     . '\\| a@example.com |"');
     When_('member "?" visits page "reset/id=abeone&code=NOTwHatEveR"');
     Then_('we say "error": "bad login"');
-    And__('we show "Welcome to rCredits"');
+    And__('we show "Miscellaneous"');
   }
 
 }

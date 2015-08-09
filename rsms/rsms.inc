@@ -93,7 +93,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'new charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
   'new refund' => t('<b>Refund:</b> @otherName refunded you @amount for "@payerPurpose".'),
   'new payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
-  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". <@a>Click here to pay or deny this invoice</a>. Or sign in at rCredits.org and click "History", then "Invoices TO You".'),
+  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". <@a1>Click here to pay or deny this invoice</a>. Or sign in at rCredits.org and click "History", then "Invoices TO You".'),
 //  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". To pay (or deny) this invoice, <@a>click here</a>.'),
 
   'invoice denied' => t('<p><b>Invoice DENIED:</b> Your customer @payerName has declined to pay the following invoice:</p>
@@ -125,6 +125,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no floor effect' => t('This currently has no effect, because you chose not to let your balance go negative. To change this setting, sign in at rCredits.org, click the Settings gear, then the Preferences tab. Put a check mark next to "Debt Okay" and save your preferences.'),
   'available now' => t('The funds are available immediately in your rCredits account.'),
   'transfer canceled' => t('Your transfer request #@txid has been canceled.'),
+  'invite languishing' => t('After @elapsed days, your friend at @email has not accepted your invitation to rCredits. Call maybe? (the invitation may be in their spam folder or lost).'),
+  'invitee slow' => t('Your friend @fullName has not finished opening an rCredits account (@elapsed days after accepting your invitation). The next step is: "@step". Call maybe, to offer help?'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -238,6 +240,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no photoid' => t('You must make a purchase in person using your rCard and show your driver\'s license or state ID, before any other transaction.'),
   'other no photoid' => t('@who must make a purchase in person to verify their identity, before you can pay or charge them.'),
   'duplicate transaction' => t('You already just @op that member that much.'),
+  'no search' => t('OR that member has chosen not to be identified by email or phone number.'),
 
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',

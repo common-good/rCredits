@@ -22,41 +22,50 @@ use rCredits\Web as w;
  * called from installation and test setup
  */
 function setupBasicAccounts() {
-  $server = r\serverUid();
-  if (db\exists('users', 'uid=:server', compact('server'))) return; // already done
   $keys = u\ray('uid community name fullName email postalCode country minimum rebate flags');
 
-  $values = array($server, $server, R_REGION_SHORTNAME, R_REGION_NAME, R_REGION_EMAIL, R_REGION_POSTAL_AREA, R_COUNTRY_ID, 0, 0, u\bit(array(B_OK, B_CO)));
-  $info = array_combine($keys, $values);
-  $info += u\ray('legalName postalAddr', R_REGION_LEGALNAME, R_REGION_ADDR);
-  new r\acct($info);
+  $q = db\q('SELECT region,name,legalName,state AS st,zips AS postalCode,email,phone,postalAddr,cgc FROM r_regions');
+  while ($row = $q->fetchAssoc()) { // create or update all regions
+    extract($row);
+    if (isDEV and $region != R_SERVER_ID) continue; // don't slow the tests down so much
+    $fullName = $name ?: ('rCredits ' . db\lookup('name', 'r_states', 'abbreviation=:st', compact('st')));
+    if ($uid = db\lookup('uid', 'users', "name=CONCAT(:region, '.')", compact('region'))) {
+      r\acct($uid)->update(compact(u\ray('fullName email postalCode')));
+    } else {
+      $uid = r\serverUid($region);
+      if (!$email) $email = u\shortName(preg_replace('/ ?rCredits ?/i', '', $name)) . "@rCredits.org";
+      $state = db\lookup('id', 'r_states', 'abbreviation=:st', compact('st'));
+      $values = array($uid, $uid, $region . '.', $fullName, $email, $postalCode, R_COUNTRY_ID, 0, 0, u\bit($cgc ? [B_OK, B_CO] : B_CO));
+      $info = array_combine($keys, $values);
+      $info += u\ray('legalName postalAddr state', $legalName ?: $fullName, $postalAddr, $state);
+      new r\acct($info);
+    }
+  }
+  //$region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
 
-  $values = array(r\unQuid(R_ADMIN_QID), $server, 'williamspademan', ADMIN_NAME, R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK)));
-  $info = array_combine($keys, $values);
-  list ($phone, $address, $city, $state) = array('+14136281021', 'PO Box 305', 'Ashfield', R_STATE_ID);
-  $info += compact(u\ray('email phone address city state'));
-  $wws = new r\acct($info);
-  
-  $values = array(r\unQuid('NEW.AAB'), $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_CO)));
-  $info = array_combine($keys, $values);
-  list ($phone, $address, $city, $state) = array(CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
-  $info += compact(u\ray('email phone address city state'));
-  $cgf = new r\acct($info);
-  \variable_set('cgf_uid', $cgf->id);
-  
-  /*
-  list ($usdAccount, $auth, $usdEmail, $usdPhone, $usdPass, $usdPin) = array(DW_TESTER_ACCT, DW_TESTER_AUTH, R_TESTER_EMAIL, $wws->phone, DW_TEST_PASS, DW_TEST_PIN);
-  $secure = compact(u\ray('auth usdEmail usdPhone usdPass usdPin'));
-  $wws->update(compact('usdAccount', 'secure'));
-  */
-//  list ($main, $other, $permission) = array($cgf->id, $wws->id, r\perm(B_MANAGE));
-//  db\insert('r_relations', compact(u\ray('main other permission'))); // wws can manage CGF
-  $cgf->newRelation($wws->id, r\perm(B_MANAGE));
-  
   $a1 = r\acct(1); // set up system admin record (uid=1)
   $flags = $a1->flags;
   foreach (array(B_ADMIN, B_CO) as $bit) u\setBit($flags, $bit);
   $a1->update('fullName flags', t('System Administrator'), $flags);
+
+  $server = r\serverUid();
+  if ($server == r\serverUid('NEW')) { // no need to set up WWS and CGF unless in Western Mass region
+    if (db\exists('users', "name='cgf'")) return; // already done
+
+    $values = array(r\unQuid(R_ADMIN_QID), $server, 'williamspademan', ADMIN_NAME, R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK)));
+    $info = array_combine($keys, $values);
+    list ($phone, $address, $city, $state) = array('+14136281021', 'PO Box 305', 'Ashfield', R_STATE_ID);
+    $info += compact(u\ray('email phone address city state'));
+    $wws = new r\acct($info);
+    
+    $values = array(r\unQuid('NEW.AAB'), $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_CO)));
+    $info = array_combine($keys, $values);
+    list ($phone, $address, $city, $state) = array(CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
+    $info += compact(u\ray('email phone address city state'));
+    $cgf = new r\acct($info);
+    \variable_set('cgf_uid', $cgf->id);
+    $cgf->newRelation($wws->id, r\perm(B_MANAGE));
+  }
 }
 
 /**
@@ -231,21 +240,21 @@ function ssnCheck($a) {
     }
     unset($ssnData['searchResults']['ssn']); // has first 5 digits of SSN -- don't store it
     $a->update(compact('ssnData')); // ResultCount is 0 for tests, <=0 for failure
-  } else $d = $ssnData['searchResults'];
+  } else $d = @$ssnData['searchResults'] ?: []; // [] for admin without pw2
   
   $name = $a->fullName . ($a->legalName == $a->fullName ? '' : "<br>$a->legalName");
-  $rows[] = array(t('Data Given'), $name, u\fmtDate($a->dob), r\location($a, TRUE), '', '');
-  $name = ssnName($one = (object) $d['ssnnames']['ssnname']);
+  $rows[] = array(t('Data Given'), $name, u\fmtDate(is_numeric($a->dob) ? $a->dob: 0), r\location($a, TRUE), '', ''); // is_numeric check for admin without pw2
+  $name = ssnName($one = (object) @$d['ssnnames']['ssnname']);
   $dob = $one->dob ? u\fmtDate(strtotime($one->dob)) : ''; // arrives as an empty array if none
-  $rows[] = array(t('Found'), $name, $dob, $d['deathsearchresults'] ? 'DEAD' : '', '', '');
+  $rows[] = array(t('Found'), $name, $dob, @$d['deathsearchresults'] ? 'DEAD' : '', '', '');
   
   $counties = [];
-  $addresses = $d['addresses']['address'];
+  $addresses = @$d['addresses']['address'] ?: [];
   if (@$addresses['lastname']) $addresses = [$addresses];
   foreach($addresses as $rec) {
     $rec = (object) $rec;
     $rows[] = array($rec->datereported ? u\fmtDate(strtotime($rec->datereported)) : '', ssnName($rec), $rec->dob ? u\fmtDate(strtotime($rec->dob)) : '', ssnAddr($rec), ucwords(strtolower($rec->county)));
-    if (REQUEST_TIME - @strtotime($rec->datereported) < 10 * YEAR_SECS) $counties[$rec->county] = 1;
+    if (r\rTime() - @strtotime($rec->datereported) < 10 * YEAR_SECS) $counties[$rec->county] = 1;
   }
   if (!@$a->moves) $a->update('moves', max(0, count($counties) - 1));
   
@@ -287,11 +296,12 @@ EOF;
   $cttys = db\q($sql)->fetchAllKeyed();
   u\preray(array(0 => min($cttys)), $cttys); // show all dates overall
 
+  $now = r\rTime();
   db\q($keepUpto ? "DELETE FROM r_stats WHERE id>$keepUpto" : 'TRUNCATE r_stats');
-  $start0 = $keepUpto ? strtotime('+' . ($keepUpto < $blockAgo ? STATS_GRAIN : 1), db\lookup('MAX(created)', 'r_stats')) : (@$cttys[0] ?: REQUEST_TIME);
+  $start0 = $keepUpto ? strtotime('+' . ($keepUpto < $blockAgo ? STATS_GRAIN : 1), db\lookup('MAX(created)', 'r_stats')) : (@$cttys[0] ?: $now);
   $created = strtotime('today', $start0); // use first moment of the day
   
-  while ($created <= REQUEST_TIME) {
+  while ($created <= $now) {
     $acctQ = db\q('SELECT uid FROM users WHERE uid>1');
     db\q('UPDATE users SET picture=0'); // clear temp field  
     while ($row = $acctQ->fetchAssoc()) r\Cron\acctStats1($row, $created); // set individual account stats
@@ -579,7 +589,7 @@ EOF;
 function printCheck(&$ck, $pos, $tx, $mark) {
   extract(u\just('txid created payer amount deposit bankAccount', $tx));
   $escrow = 'USkk' . ESCROW_ROUTING . ESCROW_ACCOUNT;
-  $bankAccount = u\decrypt($bankAccount, 0, $_COOKIE['pw2']);
+  $bankAccount = ($pw2 = $_COOKIE['pw2']) ? u\decrypt($bankAccount, 0, $pw2) : '';
   $a = r\acct($payer);
   list ($fromName, $addr, $phone, $fromAcct, $toName, $toAcct) = $amount < 0 // which way
     ? [$a->legalName, $a->postalAddr, $a->phone, $bankAccount, 'rCredits', $escrow] // from bank to escrow
@@ -619,7 +629,7 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   $ck->say("<b>$txid</b>", -$W / 4, '', -$W / 4 - $m, '', '', 'R');
 
   $ck->say('DATE:', 6.7, $y += .4, '', .25, '8');
-  $ck->say(u\fmtDate($deposit ?: time()), 7.1, '', '', .25);
+  $ck->say(u\fmtDate($deposit ?: r\rTime()), 7.1, '', '', .25);
 
   $ck->say('Pay to the<br>Order of', $m, $y += .4, '', 2 * $lineH, '8 CAPS');
   $ck->say("  $toName", $m + .7, $y + $lineH, 5.9, $lineH, '', '', 'BR');
@@ -642,11 +652,35 @@ function printCheck(&$ck, $pos, $tx, $mark) {
 //  if ($a->id != 26742000000042) {
 //    $ck->say("A{$routing}A {$account}C $txid", $m, $mt - $m + CHECK_HEIGHT - .25 - $lineH * (12 / PDF_FONT_SIZE), '', '', 'GnuMICR 12');
 //  } else 
+  $account = str_replace('-', 'D', $account); // show dashes properly
   $ck->say("C000{$txid}C A{$routing}A {$account}C", $m, $mt - $m + CHECK_HEIGHT - .25 - $lineH * (12 / PDF_FONT_SIZE), '', '', 'GnuMICR 12');
 //  $ck->say('', 0, $mt - $m + CHECK_HEIGHT, $W, 1, '', '', 'T'); // comment this out
   
   if (!$deposit and $mark) db\update('r_usd', u\ray('deposit txid', strtotime('today'), $txid), 'txid');
 }
+
+/**
+ * Do automatic stuff that can be done only when admin signs in
+ */
+function adminSignin() {
+  $pw2 = @$_COOKIE['pw2'];
+  u\EXPECT($pw2, 'no pw2!');
+  
+  $q = db\q("SELECT txid,payer,bankAccount FROM r_usd WHERE bankAccount<>'' and bankAccount NOT LIKE ':CRYPT_FLAG%'");
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $bankAccount = u\crypt($bankAccount . '', 0, $pw2);
+    db\update('r_usd', compact('txid', 'bankAccount'), 'txid');
+    w\say(t('bank account encrypted in exchange record #TXID.', ['TXID'=>$txid]));
+    $a = r\acct($payer);
+    if ($bankAccount = $a->bankAccount and !u\starts($bankAccount, CRYPT_FLAG)) {
+      $bankAccount = u\crypt($bankAccount . '', 0, $pw2); // might be different (newer) than in r_usd
+      $a->update(compact('bankAccount'));
+      w\say(t('bank account encrypted for user USER', ['USER'=>$a->fullName]));
+    }
+  }
+}
+
 /*
 function vote20141214($uid = FALSE) {
   $info = ['noFrame'=>TRUE, 'subject'=>'rCredits celebration! when can you come?'];

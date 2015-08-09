@@ -28,7 +28,7 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
   if ($a->community <> r\serverUid()) setRisk('geography'); // HIDTA (Washtenaw cty, MI)
   // criminal
   setRisk('cashCo', $a); // high-risk company type according to regs
-  $tenure = $a->tenure / 12 + (time() - $a->created) / YEAR_SECS; // years of residence ($a->tenure is in months)
+  $tenure = $a->tenure / 12 + (r\rTime() - $a->created) / YEAR_SECS; // years of residence ($a->tenure is in months)
   setRisk('new', .5 / ($tenure * $tenure), $tenure < 1); // half a year is the standard
   setRisk('moves', $a->moves, $a->moves > 0); // moves over past decade
   setRisk('rents', $a);
@@ -223,7 +223,7 @@ EOF;
  */
 function setBigRisk($uid, $ago, $threshold, $bitName) {
   global $bigYearIn, $bigYearOut;
-  $now = time();
+  $now = r\rTime();
   $since = $now - $ago - 2 * HOUR_SECS; // an extra couple hours to handle daylight time changes and cron timing
   $mySql =<<<EOF
     SELECT COUNT(*) AS count0, 

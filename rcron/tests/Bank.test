@@ -46,7 +46,8 @@ class rcronBank extends DrupalWebTestCase {
     Given('members: "ASSOC'
     . '\\| id   | fullName | floor | minimum | flags | achMin | risks   |'
     . '\\| .ZZA | Abe One  |     0 |     100 | co,ok | 30     | hasBank |'
-    . '\\| .ZZB | Bea Two  |     0 |     100 | ok    | 30     |         |"');
+    . '\\| .ZZB | Bea Two  |   -50 |     100 | ok    | 30     |         |'
+    . '\\| .ZZD | Dee Four |   -50 |     300 | ok    | 30     | hasBank |"');
     And__('relations: "ASSOC'
     . '\\| id | main | agent | draw |'
     . '\\| 1  | .ZZA | .ZZB  | 1    |"');
@@ -64,8 +65,8 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| .ZZA | 99.99 |      20 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
-    . '\\| txid | payer | amount |'
-    . '\\|    1 | .ZZA  | -30    |"');
+    . '\\| txid | payer | amount | channel  |'
+    . '\\|    1 | .ZZA  | -30    | %TX_CRON |"');
     And__('we notice "under min|banked|bank tx number" to member ".ZZA" with subs: "ASSOC'
     . '\\| action    | amount | checkNum |'
     . '\\| draw from | $30    |        1 |"');
@@ -79,8 +80,8 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| .ZZA | -50 |      20 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
-    . '\\| txid | payer | amount |'
-    . '\\|    1 | .ZZA  | -150   |"');
+    . '\\| txid | payer | amount | channel  |'
+    . '\\|    1 | .ZZA  | -150   | %TX_CRON |"');
     And__('we notice "under min|banked|bank tx number" to member ".ZZA" with subs: "ASSOC'
     . '\\| action    | amount | checkNum |'
     . '\\| draw from | $150   |        1 |"');
@@ -95,8 +96,8 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| .ZZB | 99.99 |"');
     When_('cron runs "bank"');
     Then_('transactions: "ASSOC'
-    . '\\| xid | type     | amount | from | to   | purpose      |'
-    . '\\|   1 | transfer |     30 | .ZZA | .ZZB | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |"');
+    . '\\| xid | type     | amount | from | to   | goods           | purpose      |'
+    . '\\|   1 | transfer |     30 | .ZZA | .ZZB | %R_FOR_NONGOODS | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |"');
     And__('we notice "under min|drew" to member ".ZZB" with subs: "ASSOC'
     . '\\| amount |'
     . '\\| $30    |"');
@@ -131,8 +132,8 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| .ZZA | 50 | 25      | 151     |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
-    . '\\| txid | payer | amount              |'
-    . '\\|    1 | .ZZA  | %(-100 - %R_ACHMIN) |"');
+    . '\\| txid | payer | amount              | channel  |'
+    . '\\|    1 | .ZZA  | %(-100 - %R_ACHMIN) | %TX_CRON |"');
     And__('we notice "under min|banked|bank tx number" to member ".ZZA" with subs: "ASSOC'
     . '\\| action    | amount              | checkNum |'
     . '\\| draw from | $%(100 + %R_ACHMIN) |        1 |"');
@@ -147,8 +148,8 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| .ZZB | 100 |      20 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
-    . '\\| payer | amount |'
-    . '\\| .ZZA  |    -80 |"');
+    . '\\| payer | amount | channel  |'
+    . '\\| .ZZA  |    -80 | %TX_CRON |"');
     When_('cron runs "bank"');
     Then_('bank transfer count is 1');
   }
@@ -158,18 +159,18 @@ class rcronBank extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "ASSOC'
     . '\\| id   | r  | rewards |'
-    . '\\| .ZZA | 20 |      20 |"');
+    . '\\| .ZZD | 20 |      20 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
     . '\\| payer | amount |'
-    . '\\| .ZZA  |    -80 |"');
+    . '\\| .ZZD  |   -280 |"');
     Given('balances: "ASSOC'
     . '\\| id   | r     | rewards |'
-    . '\\| .ZZA | 19.99 |      20 |"');
+    . '\\| .ZZD | 19.99 |      20 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
-    . '\\| payer | amount       |'
-    . '\\| .ZZA  | -110 |"');
+    . '\\| payer | amount |'
+    . '\\| .ZZD  |   -310 |"');
   }
 
   // Scenario: a member member with zero minimum has balance below minimum

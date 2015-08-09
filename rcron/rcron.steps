@@ -44,6 +44,7 @@ function extraSubs(&$subs) {
   for ($i = 2; $i <= 5; $i++) $subs["%chunk$i"] = R_CHUNK * $i;
   for ($i = 1; $i <= 3; $i++) $subs["%id$i"] = mt_rand(r\cgfId() + R_REGION_MAX, PHP_INT_MAX);
   $subs['%md'] = strftime('%b %d'); // strangely, lastMinuteSubs fails for this in Notices multifield
+  $subs['%zzxCttyEmail'] = @r\acct(t\uid('.ZZA'))->cttyA->email;
 }
 
 /**
@@ -220,6 +221,8 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Gifts ARecurringDonationCanBeCompleted
  *     TEST Joint AJointAccountNeedsRefilling
  *     TEST Sharing MembersShareTheirTransactionRewards
+ *     TEST Tickle ANewbieHasNotTakenTheFirstStep
+ *     TEST Tickle ANonmemberHasNotAcceptedTheInvitation
  *     TEST Tickle AMemberGetsACreditLine
  *     TEST Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  */
@@ -423,7 +426,8 @@ function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $inf
 /**
  * member (ARG) has done step (ARG)
  *
- * in: MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
+ * in: MAKE Tickle ANewbieHasNotTakenTheFirstStep
+ *     MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
  */
 function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
 
@@ -431,6 +435,7 @@ function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
  * invites: (ARG)
  *
  * in: MAKE Risk Setup
+ *     MAKE Tickle ANewbieHasNotTakenTheFirstStep
  *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
  *     MAKE Tickle ANonmemberHasAcceptedTheInvitation
  *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead

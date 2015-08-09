@@ -40,7 +40,7 @@ function changeTxAmt($xid, $oldAmt, $newAmt) {
   if (!$rec = db\lookup('payer,payee,amount,created,goods', 'r_txs', 'xid=:xid', compact('xid'))) return say(t('No such transaction.'), 'ERR');
   extract($rec);
   if ($amount != $oldAmt) return say(t('The existing amount of that transaction is different.'), 'ERR');
-  if (u\fmtDate($created) != u\fmtDate(REQUEST_TIME)) return say(t('That transaction is not from today.'), 'ERR');
+  if (u\fmtDate($created) != u\fmtDate(r\rTime())) return say(t('That transaction is not from today.'), 'ERR');
   if ($goods) return say(t('That transaction has rewards.'), 'ERR');
   if (!$amount = round($newAmt, 2)) return say(t('Bad new amount.'), 'ERR');
 
@@ -72,6 +72,7 @@ function adminSummary($a, $cAdmin = FALSE) {
   } else { // managing some individual community member account
     if (!$a->ok) $a->nextStep(); // update Dwolla status
     if ($cAdmin) {
+      $photo = item($mya->photoHtml(TRUE));
       $donations = db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
       if ($donationInfo = db\lookup('often,honor,honored', 'r_gifts', 'uid=:uid', compact('uid'))) {
         extract($donationInfo);
@@ -119,7 +120,7 @@ function adminSummary($a, $cAdmin = FALSE) {
       $helper = textField(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper) + autocomplete());
     } else $helper = item($a->helper ? r\acct($a->helper)->fullName : t('N/A'), t('Helped by:'));
 
-    if ($a->member and !$a->co) $ssnCheck = item(a\ssnCheck($a));
+    if ($a->member and !$a->co and $admin) $ssnCheck = item(a\ssnCheck($a));
   
     $acctRisks = u\ray(K_ACCT_RISKS);
     $riskBits = array_keys($acctRisks);
@@ -159,13 +160,14 @@ EOF;
     $lines = '<tr><th>Community</th><th>Donations</th><th>Paid</th><th>Due</th></tr>';
     while ($row = $q->fetchAssoc()) {
       extract($row);
-      $row['due'] = round(($in - $out) / 2, 2);
+      $row['due'] = round($in / 2 - $out, 2);
       foreach (['in', 'out', 'due'] as $k) $$k = number_format($row[$k], 2);
       $ctty = r\acct($ctty)->fullName;
       $lines .= "<tr><td>$ctty</td><td>$in</td><td>$out</td><td>$due</td></tr>\n";
     }
     $cgfDonations = item("<table id=\"cgf-donations\">$lines</table>");
   }
+  $calling = item($a->calling, t('Calling:'));
   $tenure = item($a->tenure . t(' month(s)'), t('Tenure:'), t('(How long had this person or company been at this address before opening an rCredits account?)'));
 
   if (!$a->co) {
@@ -181,7 +183,7 @@ EOF;
   $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
   $uid = hidField($uid);
 
-  return compact(u\ray('donations cgfDonations tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin legalName risk trust risks2 mediaConx adminable2 rTrader helper notes count submit back uid'));
+  return compact(u\ray('photo donations cgfDonations calling tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin legalName risk trust risks2 mediaConx adminable2 rTrader helper notes count submit back uid'));
 }
 
 /*

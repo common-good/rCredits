@@ -7,7 +7,8 @@ Setup:
   Given members:
   | id   | fullName | floor | minimum | flags | achMin | risks   |*
   | .ZZA | Abe One  |     0 |     100 | co,ok | 30     | hasBank |
-  | .ZZB | Bea Two  |     0 |     100 | ok    | 30     |         |
+  | .ZZB | Bea Two  |   -50 |     100 | ok    | 30     |         |
+  | .ZZD | Dee Four |   -50 |     300 | ok    | 30     | hasBank |
   And relations:
   | id | main | agent | draw |*
   | 1  | .ZZA | .ZZB  | 1    |
@@ -18,8 +19,8 @@ Scenario: a member is barely below minimum
   | .ZZA | 99.99 |      20 |
   When cron runs "bank"
   Then usd transfers:
-  | txid | payer | amount |*
-  |    1 | .ZZA  | -30    |
+  | txid | payer | amount | channel  |*
+  |    1 | .ZZA  | -30    | %TX_CRON |
   And we notice "under min|banked|bank tx number" to member ".ZZA" with subs:
   | action    | amount | checkNum |*
   | draw from | $30    |        1 |
@@ -30,8 +31,8 @@ Scenario: a member has a negative balance
   | .ZZA | -50 |      20 |
   When cron runs "bank"
   Then usd transfers:
-  | txid | payer | amount |*
-  |    1 | .ZZA  | -150   |
+  | txid | payer | amount | channel  |*
+  |    1 | .ZZA  | -150   | %TX_CRON |
   And we notice "under min|banked|bank tx number" to member ".ZZA" with subs:
   | action    | amount | checkNum |*
   | draw from | $150   |        1 |
@@ -43,8 +44,8 @@ Scenario: an unbanked member barely below minimum draws on another account
   | .ZZB | 99.99 |
   When cron runs "bank"
   Then transactions:
-  | xid | type     | amount | from | to   | purpose      |*
-  |   1 | transfer |     30 | .ZZA | .ZZB | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |
+  | xid | type     | amount | from | to   | goods           | purpose      |*
+  |   1 | transfer |     30 | .ZZA | .ZZB | %R_FOR_NONGOODS | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |
   And we notice "under min|drew" to member ".ZZB" with subs:
   | amount |*
   | $30    |
@@ -70,8 +71,8 @@ Scenario: a member is well below minimum
   | .ZZA | 50 | 25      | 151     |
   When cron runs "bank"
   Then usd transfers:
-  | txid | payer | amount              |*
-  |    1 | .ZZA  | %(-100 - %R_ACHMIN) |
+  | txid | payer | amount              | channel  |*
+  |    1 | .ZZA  | %(-100 - %R_ACHMIN) | %TX_CRON |
   And we notice "under min|banked|bank tx number" to member ".ZZA" with subs:
   | action    | amount              | checkNum |*
   | draw from | $%(100 + %R_ACHMIN) |        1 |
@@ -83,27 +84,28 @@ Scenario: a member is under minimum but already requested barely enough funds fr
   | .ZZB | 100 |      20 |
   When cron runs "bank"
   Then usd transfers:
-  | payer | amount |*
-  | .ZZA  |    -80 |
+  | payer | amount | channel  |*
+  | .ZZA  |    -80 | %TX_CRON |
   When cron runs "bank"
 # (again)  
   Then bank transfer count is 1
   
 Scenario: a member is under minimum and has requested insufficient funds from the bank
+# This works only if member requests more than R_USDTX_QUICK the first time (hence ZZD, whose minimum is 300)
   Given balances:
   | id   | r  | rewards |*
-  | .ZZA | 20 |      20 |
+  | .ZZD | 20 |      20 |
   When cron runs "bank"
   Then usd transfers:
   | payer | amount |*
-  | .ZZA  |    -80 |
+  | .ZZD  |   -280 |
   Given balances:
   | id   | r     | rewards |*
-  | .ZZA | 19.99 |      20 |
+  | .ZZD | 19.99 |      20 |
   When cron runs "bank"
   Then usd transfers:
-  | payer | amount       |*
-  | .ZZA  | -110 |
+  | payer | amount |*
+  | .ZZD  |   -310 |
 
 Scenario: a member member with zero minimum has balance below minimum
   Given balances:
@@ -131,4 +133,6 @@ Scenario: a member has a deposited but not completed transfer
   # -9 in case the test takes a while (elapsed time is slightly more than R_USDTX_DAYS days)
   When cron runs "bank"
   Then bank transfer count is 1
+  
+
 

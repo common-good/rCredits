@@ -139,8 +139,14 @@ function setData($table, $id, $values) {
   $keys = u\ray('users r_txs r_invoices', 'uid', 'xid', 'nvid');
   $key = $keys[$table];
   u\EXPECT($key, 'bad table');
-  $data = $values + (db\lookup('data', $table, "$key=:id", compact('id')) ?: []);
-  return $table == 'users' ? r\acct($id)->update(compact('data')) : db\update($table, compact('data'));
+  $data = db\lookup('data', $table, "$key=:id", compact('id'));
+  $data = $values + ($data ? unserialize($data) : []);
+  if ($table == 'users') {
+    return r\acct($id)->update(compact('data'));
+  } else {
+    $data = serialize($data);
+    return db\update($table, u\ray("data $key", $data, $id), $key);
+  }
 }
 
 function count($table, $where = '1', $subs = []) {return db\lookup('COUNT(*)', $table, $where, $subs);}

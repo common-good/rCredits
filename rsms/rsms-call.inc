@@ -271,7 +271,7 @@ class call {
   function do_undo() {
     $mya = r\acct();
     $myid = $mya->id;
-    extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
+    extract($this->parms, EXTR_PREFIX_ALL, 'my'); // who and/or tofrom
 
     if ($this->confirmed) {
       list ($message, $args) = be\undoTx($my_xid);

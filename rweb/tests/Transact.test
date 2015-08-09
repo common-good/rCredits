@@ -73,12 +73,12 @@ class rwebTransact extends DrupalWebTestCase {
     }
   }
 
-  // Scenario: A member asks to charge another member
-  public function testAMemberAsksToChargeAnotherMember_0() {
+  // Scenario: A member asks to charge another member for goods
+  public function testAMemberAsksToChargeAnotherMemberForGoods_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" completes form "charge" with values: "ASSOC'
     . '\\| op     | who     | amount | goods | purpose |'
-    . '\\| charge | Bea Two | 100    | 2     | labor   |"');
+    . '\\| charge | Bea Two | 100    | %R_FOR_GOODS     | labor   |"');
     Then_('we show "confirm charge" with subs: "ASSOC'
     . '\\| amount | otherName | why                |'
     . '\\| $100   | Bea Two   | goods and services |"');
@@ -89,7 +89,7 @@ class rwebTransact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" confirms form "charge" with values: "ASSOC'
     . '\\| op     | who     | amount | goods | purpose |'
-    . '\\| charge | Bea Two | 100    | 2     | labor   |"');
+    . '\\| charge | Bea Two | 100    | %R_FOR_GOODS     | labor   |"');
     Then_('we say "status": "report tx|balance unchanged" with subs: "ASSOC'
     . '\\| did     | otherName | amount | why                |'
     . '\\| charged | Bea Two   | $100   | goods and services |"');
@@ -107,15 +107,26 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| .ZZC |     250 |"');
   }
 
-  // Scenario: A member asks to pay another member
-  public function testAMemberAsksToPayAnotherMember_0() {
+  // Scenario: A member asks to pay another member for goods
+  public function testAMemberAsksToPayAnotherMemberForGoods_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" completes form "pay" with values: "ASSOC'
     . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| pay | Bea Two | 100    | 2     | labor   |"');
+    . '\\| pay | Bea Two | 100    | %R_FOR_GOODS     | labor   |"');
     Then_('we show "confirm payment" with subs: "ASSOC'
     . '\\| amount | otherName | why                |'
     . '\\| $100   | Bea Two   | goods and services |"');
+  }
+
+  // Scenario: A member asks to pay another member for loan/reimbursement
+  public function testAMemberAsksToPayAnotherMemberForLoanreimbursement_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" completes form "pay" with values: "ASSOC'
+    . '\\| op  | who     | amount | goods | purpose |'
+    . '\\| pay | Bea Two | 100    | %R_FOR_NONGOODS | loan    |"');
+    Then_('we show "confirm payment" with subs: "ASSOC'
+    . '\\| amount | otherName | why                     |'
+    . '\\| $100   | Bea Two   | loan/reimbursement/etc. |"');
   }
 
   // Scenario: A member confirms request to pay another member
@@ -123,7 +134,7 @@ class rwebTransact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" confirms form "pay" with values: "ASSOC'
     . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| pay | Bea Two | 100    | 2     | labor   |"');
+    . '\\| pay | Bea Two | 100    | %R_FOR_GOODS     | labor   |"');
     Then_('we say "status": "report tx|reward" with subs: "ASSOC'
     . '\\| did    | otherName | amount | why                | rewardAmount |'
     . '\\| paid   | Bea Two   | $100   | goods and services | $5           |"');
@@ -151,7 +162,7 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| .ZZB | %R_MAX_AMOUNT |"');
     When_('member ".ZZB" confirms form "pay" with values: "ASSOC'
     . '\\| op  | who     | amount        | goods | purpose |'
-    . '\\| pay | Our Pub | %R_MAX_AMOUNT | 2     | food    |"');
+    . '\\| pay | Our Pub | %R_MAX_AMOUNT | %R_FOR_GOODS     | food    |"');
     Then_('transactions: "ASSOC'
     . '\\| xid | created | type     | amount        | from  | to   | purpose      | taking |'
     . '\\|   4 | %today  | transfer | %R_MAX_AMOUNT | .ZZB  | .ZZC | food         | 0      |'
@@ -165,7 +176,7 @@ class rwebTransact extends DrupalWebTestCase {
     Given('next DO code is "whatever"');
     When_('member ".ZZA" confirms form "pay" with values: "ASSOC'
     . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| pay | Our Pub | 100    | 2     | stuff   |"');
+    . '\\| pay | Our Pub | 100    | %R_FOR_GOODS     | stuff   |"');
     Then_('we say "status": "report tx|reward" with subs: "ASSOC'
     . '\\| did    | otherName | amount | why                | rewardAmount |'
     . '\\| paid   | Our Pub   | $100   | goods and services | $5           |"');
@@ -190,10 +201,10 @@ class rwebTransact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('member ".ZZA" confirms form "pay" with values: "ASSOC'
     . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| pay | Bea Two | 100    | 2     | labor   |"');
+    . '\\| pay | Bea Two | 100    | %R_FOR_GOODS     | labor   |"');
     When_('member ".ZZA" confirms form "pay" with values: "ASSOC'
     . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| pay | Bea Two | 100    | 2     | labor   |"');
+    . '\\| pay | Bea Two | 100    | %R_FOR_GOODS     | labor   |"');
     Then_('we say "error": "duplicate transaction" with subs: "ASSOC'
     . '\\| op   |'
     . '\\| paid |"');
@@ -204,10 +215,10 @@ class rwebTransact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('member ".ZZA" confirms form "charge" with values: "ASSOC'
     . '\\| op     | who     | amount | goods | purpose |'
-    . '\\| charge | Bea Two | 100    | 2     | labor   |"');
+    . '\\| charge | Bea Two | 100    | %R_FOR_GOODS     | labor   |"');
     When_('member ".ZZA" confirms form "charge" with values: "ASSOC'
     . '\\| op     | who     | amount | goods | purpose |'
-    . '\\| charge | Bea Two | 100    | 2     | labor   |"');
+    . '\\| charge | Bea Two | 100    | %R_FOR_GOODS     | labor   |"');
     Then_('we say "error": "duplicate transaction" with subs: "ASSOC'
     . '\\| op      |'
     . '\\| charged |"');
@@ -222,50 +233,6 @@ class rwebTransact extends DrupalWebTestCase {
     Then_('we say "error": "required field" with subs: "ASSOC'
     . '\\| field   |'
     . '\\| \'\'For\'\' |"');
-  }
-
-  // Scenario: A member asks to charge another member before making an rCard purchase
-  public function testAMemberAsksToChargeAnotherMemberBeforeMakingAnRCardPurchase_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    Given('member ".ZZA" has no photo ID recorded');
-    When_('member ".ZZA" completes form "charge" with values: "ASSOC'
-    . '\\| op     | who     | amount | goods | purpose |'
-    . '\\| charge | Bea Two | 100    | 2     | labor   |"');
-    Then_('we say "error": "no photoid"');
-  }
-
-  // Scenario: A member asks to charge another member before the other has made an rCard purchase
-  public function testAMemberAsksToChargeAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    Given('member ".ZZB" has no photo ID recorded');
-    When_('member ".ZZA" completes form "charge" with values: "ASSOC'
-    . '\\| op     | who     | amount | goods | purpose |'
-    . '\\| charge | Bea Two | 100    | 2     | labor   |"');
-    Then_('we say "error": "other no photoid" with subs: "ASSOC'
-    . '\\| who     |'
-    . '\\| Bea Two |"');
-  }
-
-  // Scenario: A member asks to pay another member before making an rCard purchase
-  public function testAMemberAsksToPayAnotherMemberBeforeMakingAnRCardPurchase_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    Given('member ".ZZA" has no photo ID recorded');
-    When_('member ".ZZA" completes form "pay" with values: "ASSOC'
-    . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| pay | Bea Two | 100    | 2     | labor   |"');
-    Then_('we say "error": "no photoid"');
-  }
-
-  // Scenario: A member asks to pay another member before the other has made an rCard purchase
-  public function testAMemberAsksToPayAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    Given('member ".ZZB" has no photo ID recorded');
-    When_('member ".ZZA" completes form "pay" with values: "ASSOC'
-    . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| pay | Bea Two | 100    | 2     | labor   |"');
-    Then_('we say "error": "other no photoid" with subs: "ASSOC'
-    . '\\| who     |'
-    . '\\| Bea Two |"');
   }
 
 }

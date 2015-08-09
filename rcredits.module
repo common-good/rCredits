@@ -137,7 +137,7 @@ function rcredits_mail($index, &$msg_array, $info) {
     if ($uid = (int) @$info['uid']) {
       //u\EXPECT($uid, 'bad uid in mail');
       $acct = r\acct($uid);
-      $info += (array) $acct->account();
+      $info += (array) $acct->account(); // this omits any special fields or special formatting
       $info['quid'] = $acct->mainQid;
       $langcode = $acct->language->language; // instead of $language = $msg_array['language']; 
       $info['shortName'] = $acct->name;
@@ -246,8 +246,8 @@ function funcNickname($func) {
 
 /**
  * Utility to do something to each member account (see example below)
- * call: eachAcct($func);
- * or    eachAcct(function($a) {...});
+ * call: eachA($func);
+ * or    eachA(function($a) {...});
  */
 function eachA($func = 'a.changeIt') {
   $result = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
@@ -277,6 +277,11 @@ function eachX($func = 'a.changeIt') {
 function patch($name) {
   $args = func_get_args();
   
+  // common.inc
+  if ($name == 'common2682') {
+    if (!r\acct()) $click = ' <a href="signin">' . t('Click here to sign in.') . '</a>'; // r\go('signout') fails
+    return t('You are not authorized to access this page.') . (isDEV ? $args[1] : '') . @$click;
+  }
   // user.module
   if ($name == 'user_access810') return FALSE;
   if ($name == 'user_account_form_validate1250') return w\emailDup($args[1], $args[2]); // does this get called?

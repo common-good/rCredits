@@ -73,7 +73,7 @@ function rcredits_install() {
     if (!@db\exists("$table", 'TRUE') and file_exists("$filename-insert.sql")) {
       $sql = file_get_contents("$filename-insert.sql"); // read in a single multi-record INSERT query
 /**/  if (!$db->query($sql)) die("Failed to insert records for $table."); // keep
-	  }
+    }
   }
 
   \db_query("DELETE from menu_links WHERE menu_name='main-menu' AND link_title='Home'"); // this is replaced by "Summary"

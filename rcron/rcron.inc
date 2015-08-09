@@ -12,7 +12,11 @@ use rCredits\Cron as cron;
  * @file
  * Functions to run periodically.
  
+ To run a single CRON function "zot" from the PHP window, use:
  f('cr.zot', arg1,...);
+ 
+ To run all the daily functions starting with a particular function "zot", use:
+ rCredits\Cron\zot(arg1,...); // to run all daily functions, zot=everyDay
  
  * = written
  ** = tested
@@ -71,7 +75,9 @@ include_once __DIR__ . '/rcron-subs.inc';
  */
 function doTask($item) {
   global $channel; $channel = TX_CRON;
-  $op = 'rCredits\\Cron\\' . array_shift($item);
+  $func = array_shift($item);
+  $op = 'rCredits\\Cron\\' . $func;
+  u\log(t('starting cron.') . $func, 'state', $item);
   $op($item);
 }
 
@@ -94,10 +100,10 @@ function periodic() {
 function everyHour() {
   // stuff to do every hour
   queueEach('acctHourly', "SELECT uid FROM users WHERE uid<>0");
-  if (strftime('%H') == (R_DAILY_HOUR + 6) % 24) {
+  if (strftime('%H') + 0 == (R_DAILY_HOUR + 6) % 24) {
     $lastCron = \variable_get('r_last_cron', []);
     $lastTime = @$lastCron['day'];
-    if (REQUEST_TIME - $lastTime > DAY_SECS) r\tellStaff('daily cron FAILED');
+    if (r\rTime() - $lastTime > DAY_SECS) r\tellStaff('daily cron FAILED');
   }
   // r\tellStaff('hourly cron');
 }
@@ -114,11 +120,10 @@ function acctHourly($item) {
 
 function everyDay() {
   queueNext('START');
-//  \variable_set('daily', REQUEST_TIME);
   // miscellaneous quick stuff to do every day
-  $time = time() - 7 * DAY_SECS;
+  $time = r\rTime() - 7 * DAY_SECS;
   db\q('DELETE FROM r_log WHERE time<:time', compact('time')); // zap log except for the past few days
-  db\q('DELETE FROM r_do WHERE completed<0 AND :now>-completed', ['now'=>time()]); // completed<0 is -expiry time
+  db\q('DELETE FROM r_do WHERE completed<0 AND :now>-completed', ['now'=>r\rTime()]); // completed<0 is -expiry time
 }
 
 /**
@@ -154,7 +159,7 @@ EOF;
   // Tickle sometime after first Tx (activation date)
   $elapsed = str_replace('@DATE', 'date0', $timeSince);
   $months = "ROUND($elapsed/:MONTH_DAYS)";
-  $start = strtotime('-6 months', strtotime('today', time()));
+  $start = strtotime('-6 months', strtotime('today', r\rTime()));
   $day = date('d');
   $tomorrow = date('d', strtotime('+1'));
   $sql = <<<EOF
@@ -176,13 +181,13 @@ EOF;
  * Remind invitee to accept invitation.
  */
 function tickleSignup($item) {
-  global $base_url;
   extract(u\just('email inviter code elapsed', $item));
   if (r\acct($email = u\cryptN($email, FALSE))) return; // invitee already began to open an account
   $inviterName = r\acct($inviter)->fullName;
   $count = $elapsed < 7 ? t('two') : ($elapsed < 14 ? t('one') : 0);
   $nudge = $count ? u\tt("We will send you just @count more reminder(s)", compact('count')) : t('This is your last reminder');
   r\rMail('nonmember', $email, u\ray('inviterName nudge code noFrame', $inviterName, $nudge, $code, TRUE));
+  r\notify($inviter, 'invite languishing', compact('email', 'elapsed'));
 }
 
 /**
@@ -199,9 +204,16 @@ function tickleStep($item) {
     : (u\nextBusDay(0) . t(' between 9am and 4pm')); // for verify
     */
 //    if ($step != 'verify' or $elapsed > 1) r\notify($a->id, "$msg|sign in", compact('when'));
-    r\notify($a->id, "$msg|sign in");
+    r\notify($uid, "$msg|sign in");
+    if ($elapsed >= 8) {
+      $q = db\q('SELECT DISTINCT inviter FROM r_invites WHERE invitee=:uid', compact('uid'));
+      while ($row = $q->fetchAssoc()) {
+        extract($row);
+        r\notify($inviter, 'invitee slow', u\ray('fullName elapsed step', $a->fullName, $elapsed, $step));
+      }
+    }
   } elseif (!$a->ok) {
-    return r\tellStaff('activate account', '', $a->uid);
+    return r\tellStaff('activate account', '', $uid);
   }
 }
 
@@ -244,20 +256,21 @@ function lessOften() {
 function often($period, $code, $value, $periodLen) {
   $lastCron = \variable_get('r_last_cron', []);
   $lastTime = @$lastCron[$period];
-  $elapsed = REQUEST_TIME - $lastTime;
-  list ($point, $lastPoint) = array(strftime("%$code", REQUEST_TIME), strftime("%$code", $lastTime));
+  $elapsed = r\rTime() - $lastTime;
+  list ($point, $lastPoint) = array(strftime("%$code", r\rTime()), strftime("%$code", $lastTime));
   if ($point >= $value and ($elapsed > $periodLen or ($elapsed > $periodLen / 2 and $point <= $lastPoint))) {
-    $lastCron[$period] = REQUEST_TIME;
+    $lastCron[$period] = r\rTime();
     \variable_set('r_last_cron', $lastCron); // remember that this periodic activity has been done
     $function = 'rCredits\\Cron\\every' . ucwords($period);
-    if ($period != 'hour' and $period != 'day') r\tellStaff("Running cron for $period at " . strftime('%I:%M%P', REQUEST_TIME));
+    if ($period != 'hour' and $period != 'day') r\tellStaff("Running cron for $period at " . strftime('%I:%M%P', r\rTime()));
     $function(); // do it
   }
 }
 
+/**
+ * Do weekly tasks.
+ */
 function everyWeek() {
-// This is no longer relevant  queueEach('soldOut', 'SELECT payer, SUM(r) AS total FROM r_txs WHERE payer>0 AND amount=0 AND type=:TX_TRANSFER AND NOT goods AND created>:REQUEST_TIME-:WEEK_SECS GROUP BY payer');
-// queueEach('missedOut', ??
 }
 
 /**
@@ -301,7 +314,7 @@ function coverFee($item) {
   
   r\usd::beginAtom();
   new r\x(u\ray($keys, $a->community, $payee, TX_REFUND, $fee, $for, 0));
-  r\usd::addToAtom($txid + 2, $fee, $payee, -1, REQUEST_TIME); // -1 to distinguish from bank transfers
+  r\usd::addToAtom($txid + 2, $fee, $payee, -1, r\rTime()); // -1 to distinguish from bank transfers
   $a->actualUsd(-$fee);
   r\usd::commit();
 }
@@ -315,7 +328,7 @@ function inflationAdjust($item) {
   extract(u\just('uid start end', $item));
   $a = r\acct($uid);
   if ($a->slave) return; // slave in joint account gets no inflation (master gets inflation for both)
-  if (db\exists('r_txs', 'payee=:uid AND type=:TX_INFLATION AND created>:end', compact('uid', 'end'))) return;
+  if (db\exists('r_txs', 'payee=:uid AND type=:TX_INFLATION AND created>=:end', compact('uid', 'end'))) return;
   $avg = r\averageBalance($uid, $start, $end);
   $adjustment = round($avg * R_INFLATION_RATE / 12, 2);
   if ($adjustment > 0) be\fund($uid, TX_INFLATION, $adjustment, t('inflation adjustment')); // don't adjust debts
@@ -328,7 +341,7 @@ function shareCommitted($item) {
   extract(u\just('uid committed share', $item));
   $share = round($share, 1);
   r\notify($uid, 'share gift', compact('share'));
-  $info = u\ray('giftDate uid amount often honor share', REQUEST_TIME, $uid, $committed, 1, 'share', -1);
+  $info = u\ray('giftDate uid amount often honor share', r\rTime(), $uid, $committed, 1, 'share', -1);
   $DBTX = \db_transaction();
   db\insert('r_gifts', $info);
   r\acct($uid)->update('committed', 0);
@@ -349,10 +362,10 @@ function bankFollowup($tx) {
  * Gather requests for invitations
  */
 function requests() {
-  $lastid = db\max('listid', 'r_request') + 0;
-  $secret = db\lookup('last', 'r_request', 'listid=3894');
+  $dlm = db\max('created', 'r_request') + 0;
+  $secret = urlencode(db\lookup('last', 'r_request', 'listid=3894'));
 
-  if ($s = file_get_contents("http://rcredits.org/inc/requests.php?listid=$lastid&secret=$secret")) {
+  if ($s = file_get_contents("http://rcredits.org/inc/requests.php?dlm=$dlm&secret=$secret")) {
     foreach ($rows = explode("\n", $s) as $row) {
       $row = explode("\t", $row);
       if (@$header) {
@@ -365,7 +378,7 @@ function requests() {
         foreach (['first', 'last'] as $k) $row[$k] = u\normalizeCase($$k);
         r\tellStaff('invitation request', $row);
         foreach (['email', 'phone'] as $k) $row[$k] = u\cryptN($row[$k]);
-        db\insert('r_request', $row);
+        db\update('r_request', $row, 'listid', TRUE);
       } else $header = $row + ['ctty'];
     }
   }
@@ -390,7 +403,7 @@ EOF;
  * Also give signup bonus, if appropriate.
  */
 function recache() {
-  $fields = 'uid, r, usd, rewards, minimum, floor';
+  $fields = 'uid, r, rewards, minimum, floor';
   queueEach('recache1', "SELECT $fields FROM users WHERE :IS_OK"); // make this IS_MEMBER if early gift
   queueNext();
 }
@@ -456,8 +469,9 @@ function acctStats() {
  * stats will be an assoc: [avgBalPastMo, avgBalEver, minPastMo, etc.]
  * picture (an otherwise unused field) will be minPastMo in cents (ready for r\stats to SUM)
  */
-function acctStats1($item, $asof = REQUEST_TIME) {
-  extract(u\just('uid asof', $item));
+function acctStats1($item, $asof = NULL) {
+  extract(u\just('uid', $item));
+  u\setDft($asof, r\rTime());
   $a = r\acct($uid);
   $asof = strtotime('today', $asof);
   $monthAgo = u\plusMonths(-1, $asof);
@@ -495,7 +509,7 @@ EOF;
  */
 function cttyStats() {
   r\getStats(0); // for all our communities at once
-  queueEach('cttyStats1', 'SELECT DISTINCT community AS ctty FROM users WHERE community IS NOT NULL');
+  queueEach('cttyStats1', 'SELECT DISTINCT uid AS ctty FROM users WHERE UID<0 AND :IS_CGC');
   queueNext();
 }
 
@@ -504,7 +518,7 @@ function cttyStats1($item) {
   r\getStats($ctty); // record stats for one community on the regional server
 
   $companies = \variable_get('companies', []);
-  $companies[$ctty] = cron\companies($ctty);
+  $companies[$ctty] = r\companies($ctty);
   \variable_set('companies', $companies);
 }
 
@@ -579,7 +593,8 @@ function achRisk1($item) {
  * Handle one-time and recurring gifts that it's time to handle.
  */
 function gifts() {
-  queueEach('gift1', 'SELECT g.* FROM r_gifts g INNER JOIN users u ON u.uid=g.uid WHERE NOT completed and giftDate<=:REQUEST_TIME AND :IS_OK');
+  $now = r\rTime();
+  queueEach('gift1', 'SELECT g.* FROM r_gifts g INNER JOIN users u ON u.uid=g.uid WHERE NOT completed and giftDate<=:now AND :IS_OK', compact('now'));
   queueNext();
 }
 
@@ -592,68 +607,6 @@ function gifts() {
 function gift1($item) {r\acceptGift($item);}
 
 /**
- * Spread the USD out somewhat equally among the membership
- * Any account that might have more than the average after sending a chunk to the ctty, gives a chunk to others.
- * Note that an account's rCredits balance (r) can go negative if merely trading for USD
- *//*
-function homogenize() {
-  $result = db\q('SELECT AVG(usd) AS avg, community FROM users WHERE uid>1 AND :IS_OK GROUP BY community');
-  while ($row = $result->fetchAssoc()) {
-    extract($row);
-    queueEach('homogenize1', 'SELECT uid, usd, community AS ctty FROM users WHERE community=:community AND uid>1 AND usd>:avg AND :HAS_BANK AND :IS_OK', compact('avg', 'community'));
-  }
-  queueNext();
-}
-*/
-
-/**
- * Offload some USD from an account, to others with less.
- * Avoid lending an account USD beyond its credit limit (keep r >= floor).
- *//*
-function homogenize1($item) {
-  extract(u\just('uid usd ctty', $item));
-  $a = r\acct($uid);
-  $result = db\q('SELECT uid AS uid2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND :HAS_BANK AND r>=floor+:R_CHUNK ORDER BY usd', compact('ctty', 'usd'));
-  while ($row = $result->fetchAssoc()) {
-    extract($row);
-    $a2 = r\acct($uid2); // use the latest variables, because tradeR might have changed the values
-    if ($a2->usd < $a->usd - R_CHUNK and $a2->r >= $a2->floor + R_CHUNK) r\tradeR(R_CHUNK, $uid2, $uid);
-    // This trade might fail (gently) if a bank transfer goes through in between
-  }
-}
-*/
-
-/**
- * Hold some of the community's USD in the community account.
- * Leave each contributing account with at least R_CHUNK so it can help someone cash out the next day (NOPE -- not doing that anymore).
- *//*
-function pool() {
-  $result = db\q('SELECT SUM(usd) AS total, SUM(1) AS sources, community FROM users GROUP BY community');
-  while ($row = $result->fetchAssoc()) { // for each community
-    extract($row); // total, sources, community
-    $ctty = r\acct($community);
-    if (!$ctty->usdAccount) continue; // not-yet-active region or community account
-//    $sql = 'SELECT uid, usd, community FROM users WHERE uid>1 AND :IS_OK AND community=:community AND usd>=2*:R_CHUNK ORDER BY usd DESC';
-    $sql = 'SELECT uid, usd, community FROM users WHERE uid>1 AND :HAS_BANK AND :IS_OK AND :community=:community AND usd>0 ORDER BY usd DESC'; // just one community for now
-    //if ($ctty->usd / $total < R_CTTY_USD_SHARE) 
-    queueEach('pool1', $sql, compact('community')); // okay if ctty has a bit too much
-  }
-  queueNext();
-}
-*/
-
-/**
- * Trade $10us to the community, leaving the account with at least $10us (if possible).
- *//*
-function pool1($item) {
-  extract(u\just('uid usd community', $item));
-//  if ($usd >= R_CHUNK) r\tradeR(R_CHUNK, $community, $uid); // might fail (gently) if a bank transfer goes through in between
-  $community = r\serverUid(); // just one community for now
-  if ($usd > 0) r\tradeR(min($usd, R_CHUNK), $community, $uid); // might fail (gently) if a bank transfer goes through in between
-}
-*/
-
-/**
  * 1. Mark deposited transfers complete R_USDTX_DAYS business days after deposit (if not already marked complete)
  * 2. Transfer funds from member bank accounts to rCredits or vice versa, according to account's settings
  * 3. Transfer funds from a connected account, if appropriate.
@@ -662,9 +615,10 @@ function bank() {
 //  $excess = 'LEAST(usd, :R_EXCESS)';
   $weekday = strftime('%w'); // 0-6 Sun-Sat (use %w because %u fails on Windows and maybe linux)
   if (u\test() or in_array($weekday, [2, 3, 4, 5])) { // no completions on Saturday, Sunday, or Monday
-    $sql = 'SELECT * FROM r_usd WHERE amount<0 AND NOT completed AND :REQUEST_TIME>=created+:R_USDTX_DAYS*:DAY_SECS'; // this allows us to wait arbitrarily long to deposit chks
+    $now = r\rTime();
+    $sql = 'SELECT * FROM r_usd WHERE amount<0 AND NOT completed AND (amount>=-:R_USDTX_QUICK OR :now>=created+:R_USDTX_DAYS*:DAY_SECS)'; // this allows us to wait arbitrarily long to deposit chks
 //    $sql = 'SELECT * FROM r_usd WHERE amount<0 AND NOT completed AND deposit AND :REQUEST_TIME>=deposit+:R_USDTX_DAYS*:DAY_SECS'; // this depends on deposits almost every day
-    queueEach('completeUsdTx', $sql);
+    queueEach('completeUsdTx', $sql, compact('now'));
   }
   
   $sql = <<<EOF
@@ -687,8 +641,8 @@ EOF;
 }
 
 function completeUsdTx($item) {
-  extract(u\just('txid payer amount created', $item));
-  r\acct($payer)->completeUsdTx($txid, -$amount, $created);
+  extract(u\just('txid payer amount channel', $item));
+  r\acct($payer)->completeUsdTx($txid, -$amount, @$channel == TX_CRON);
 }
 
 function bank1($item) {
@@ -794,9 +748,10 @@ function notices() {
 function notice($item) {
   extract(u\just('uid daily weekly monthly', $item));
 
+  $now = r\rTime();
   if ($args = r\noticeArgs($uid, 'NOT sent', $weekly, $monthly)) {
     r\notify($uid, 'notices', $args, TRUE);
-    db\q('UPDATE r_notices SET sent=:REQUEST_TIME WHERE uid=:uid AND NOT sent', compact('uid'));
+    db\q('UPDATE r_notices SET sent=:now WHERE uid=:uid AND NOT sent', compact('uid', 'now'));
   }
 }
 
@@ -805,7 +760,7 @@ function notice($item) {
  */
 function END() {
   $lastCron = \variable_get('r_last_cron', []);
-  $elapsed = time() - @$lastCron['day'];
+  $elapsed = r\rTime() - @$lastCron['day'];
 ///  echo "Daily cron done after $elapsed seconds"; // keep
   r\tellStaff("At " . strftime('%I:%M%P') . ", after $elapsed secs, daily cron ended successfully.", '', FALSE);
 }

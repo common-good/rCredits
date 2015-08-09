@@ -86,7 +86,7 @@ function recA($year) {
   $type = pad('B', 2); // B=1099-B
   $amountCodes = pad('7', 16); // amount is entered on this line number on form 1099-B
   $foreign = pad(FALSE, 1); // 1 for foreign
-  $payerName = pad(R_REGION_LEGALNAME, 80);
+  $payerName = pad(r\regionfield('legalName'), 80);
   $isAgent = lpad(0, 1); // 1 if second half of payerName is transfer agent, else 0
   $payerAddr = pad('c/o Common Good Finance, PO Box 21', 40) . pad('Ashfield', 40) . 'MA' . pad('013300021', 9);
   $payerPhone = pad('4136281723', 15); // was 4133765021 (maybe again someday)

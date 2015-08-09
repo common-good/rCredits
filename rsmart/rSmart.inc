@@ -24,14 +24,14 @@ use rCredits\Testing as t;
  *
  * REQUESTS:
  * (see https://docs.google.com/document/d/1fZE_wmEBRTBO9DAZcY4ewQTA70gqwWqeqkUnJSfWMV0/edit)
- * time:	[] => [ok=”1”, time, message]
- * identify:	[member, code] 
+ * time:  [] => [ok=”1”, time, message]
+ * identify:  [member, code] 
  *      => [ok, message, logon="1", name, descriptions[], can, device, default, company, time]
- *   OR	=> [ok, message, logon, name, place, company, balance] where logon is 0 or -1
- * photo:	[member, code] => photo
- * charge:	[member, amount, goods, description, created, force, photoid] 
+ *   OR  => [ok, message, logon, name, place, company, balance] where logon is 0 or -1
+ * photo:  [member, code] => photo
+ * charge:  [member, amount, goods, description, created, force, photoid] 
  *   => [ok, message, txid, created, balance, undo]
- * undo:	[txid, force] => [ok, message, balance]
+ * undo:  [txid, force] => [ok, message, balance]
  *
  * To create json for app demo, do this from PHP window on STAGE server:
    include_once __DIR__ . '/../rcredits/rsmart/rsmart.inc';
@@ -87,7 +87,7 @@ function pos($args = FALSE) {
   if (@$device) { // device was specified, substitute its record id, herein
     if (!$mya) return posErr($agentErr);
     if ($deviceId = getDevice($device, $mya->id)) {
-      $edit = u\ray('id access', $deviceId, REQUEST_TIME);
+      $edit = u\ray('id access', $deviceId, r\rTime());
       db\update('r_boxes', $edit, 'id'); // remember time last accessed so we can drop the deadwood
     } elseif ($op != 'identify') return posErr('unknown device');
   } elseif (@$agent or $op != 'identify') return posErr('missing device');
@@ -128,7 +128,7 @@ function posErr($message, $subs = []) {
 
 /**
  * Get the current server time
- * time:	[] => [ok=”1”, time]
+ * time:  [] => [ok=”1”, time]
  * @return json:
  *   time: the current unixtime
  *   message: something for the app to say or do (if it begins with "!")
@@ -136,7 +136,7 @@ function posErr($message, $subs = []) {
 function getTime($args) {
   if ($err = missingArg($keys = 'version', $args)) return posErr($err); 
   extract(u\just($keys . ' data', $args));
-  $time = time();
+  $time = r\rTime();
   $message = handleAppData(@$data);
   if (((int) $version) < RPOS_VERSION) $message = '!update';
   if (((int) $version) < 211) $message = t("Your app needs updating.\n\nSearch for \"rCredits\" in the Google Play Store, to download the latest version.");
@@ -145,9 +145,9 @@ function getTime($args) {
  
 /**
  * Identify the agent or customer.
- * identify:	[member, code] 
+ * identify:  [member, code] 
  *      => [ok, message, logon=”1”, name, descriptions[], can, device, default, company, time]
- *   OR	=> [ok, message, logon, name, place, company, balance] where logon is 0 or -1
+ *   OR  => [ok, message, logon, name, place, company, balance] where logon is 0 or -1
  * @params assoc $args:
  *   agent: agent ID of current agent -- empty if none yet
  *   device: a unique device ID
@@ -209,7 +209,7 @@ function identify($args) {
     $default = $mya->mainQid;
     $company = $mya->fullName;
 ///    $company .= " can=$can agentCan=$agentCan cans=$cans agentCans=$agentCans mask=" . CO_CANS_MASK; // debug(
-    $time = time();
+    $time = r\rTime();
     
   } else { // identifying customer
     if ($code != $cardCode) return posErr('bad customer');
@@ -230,7 +230,7 @@ function identify($args) {
 
 /*
  * Get an individual's photo.
- * photo:	[member, code] => photo
+ * photo:  [member, code] => photo
  * @param array $args:
  *   member: the qid for the customer (individual or company rep)
  * @return:
@@ -265,7 +265,7 @@ function photoReturn($pic) {
 
 /*
  * Request a charge.
- * charge:	[member, amount, code, goods, description, created, force, photoid]
+ * charge:  [member, amount, code, goods, description, created, force, photoid]
  *   => [ok, message, txid, created, balance, undo]
  * @param array $args:
  *   agent: qid for the seller (company rep)
@@ -312,6 +312,7 @@ function charge($args, $type = 'charge') {
       $created = db\lookup('created', 'r_txs', 'xid=:txid', compact('txid'));
       $message = "Transaction has been reversed.";
     } else {
+      r\tellStaff('reversing tx', compact('xid'));
       list ($msg, $subs) = be\undoTx($xid, 'payee=:myid', u\ray('myid', $mya->id), $force);
       if (!@$subs['success']) return posErr($msg, $subs);
       $txid = $subs['xid'];
@@ -343,7 +344,7 @@ function charge($args, $type = 'charge') {
 
 /*
  * Undo the specified transaction
- * undo:	[txid, force] => [ok, message, balance]
+ * undo:  [txid, force] => [ok, message, balance]
  * @param array $args:
  *   txid: transaction record number
  * @return: json (ok, message, balance)
@@ -403,7 +404,7 @@ function getCustomer($customer, &$err = '') {
 
 /*    if ($account_id != $q_account_id) { // this is a transient id scanned from the other party's smart device
       $transientId = basename(dirname($q_account_id));
-      $recent = REQUEST_TIME - R_TRANSIENCE;
+      $recent = r\rTime() - R_TRANSIENCE;
       if (db\lookup('transientId', 'r_boxes', 'code=:code AND access>=:recent') != $transientId) return be\error('bad transient id');
     } */
 }

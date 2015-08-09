@@ -270,6 +270,7 @@ function agentAsksDeviceToUndoTransaction($agent, $device, $txid) {
     extract($q);
     $member = r\quid($payer, $payerAgent);
     $force = -1;
+    $goods = $goods == R_FOR_GOODS ? 1 : 0;
     $args = compact(u\ray($fields));
   } else {
     $args = u\ray($fields, '.ZZA', round(rand()/100, 2), rand(0, 1), 'whatever', rand(), -1);

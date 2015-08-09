@@ -55,12 +55,12 @@ function callback($title, $args, $perms = '', $func = 'showForm') {
 
 /**
  * Implements hook_menu().
-MENU_CALLBACK	Menu type -- A hidden, internal callback, typically used for API calls.
-MENU_DEFAULT_LOCAL_TASK	Menu type -- The "default" local task, which is initially active.
-MENU_LOCAL_ACTION	Menu type -- An action specific to the parent, usually rendered as a link.
-MENU_LOCAL_TASK	Menu type -- A task specific to the parent item, usually rendered as a tab.
-MENU_NORMAL_ITEM	Menu type -- A "normal" menu item that's shown in menu and breadcrumbs.
-MENU_SUGGESTED_ITEM	Menu type -- A normal menu item, hidden until enabled by an administrator.
+MENU_CALLBACK  Menu type -- A hidden, internal callback, typically used for API calls.
+MENU_DEFAULT_LOCAL_TASK  Menu type -- The "default" local task, which is initially active.
+MENU_LOCAL_ACTION  Menu type -- An action specific to the parent, usually rendered as a link.
+MENU_LOCAL_TASK  Menu type -- A task specific to the parent item, usually rendered as a tab.
+MENU_NORMAL_ITEM  Menu type -- A "normal" menu item that's shown in menu and breadcrumbs.
+MENU_SUGGESTED_ITEM  Menu type -- A normal menu item, hidden until enabled by an administrator.
  */
 function rweb_menu() {
 
@@ -68,7 +68,7 @@ function rweb_menu() {
     'signin' => callback('Sign in', 'Signin', 'anyone'),
 //    'sinx' => callback('Sign in from elsewhere', 'Sinx', 'anyone'),
 
-    'summary' => menuNorm(t('Summary'), 'Summary', 'anyone'),
+    'summary' => menuNorm(t('Summary'), 'Summary', 'read'),
     'history' => menuNorm(t('History'), 'Txs 1', 'read'),
     'history/transactions' => menuLocal(t('Transactions'), '*Txs 1', 'read'),
     'history/invoices-to' => menuLocal(t('Invoices TO You'), 'Invoices to', 'read'),
@@ -93,15 +93,41 @@ function rweb_menu() {
     'fine' => menuNorm(t('Fine'), 'Tx', 'managing_ctty'),
 
     'get' => menuNorm(t('Bank'), 'Get 1', 'manage bank ok'),
-    'directory' => menuNorm(t('Find Co'), 'Directory', 'anyone'),
-    'community' => menuNorm(t('Community'), 'CttyFunds', 'anyone'),
-    'community/funds' => menuLocal(t('Funds'), '*CttyFunds', 'anyone'),
+    'community' => menuNorm(t('Community'), 'FindCo', 'anyone'),
+    'community/find-company' => menuLocal(t('Find Co'), '*FindCo', 'anyone'),
+    'community/invite' => menuLocal(t('Invite'), 'Invite', 'member'),
+    'community/donate' => menuLocal(t('Donate'), 'Donate', 'manage'),
+    'community/funds' => menuLocal(t('Funds'), 'CttyFunds', 'anyone'),
     'community/graphs' => menuLocal(t('Graphs'), 'Reports 1', 'anyone'),
     'community/flags' => menuLocal(t('Flags'), 'Flags 2', 'anyone'),
-    'community/game' => menuLocal(t('Game'), 'Game', 'anyone'),
+//    'community/game' => isGAME ? menuLocal(t('Game'), 'Game', 'anyone') : NULL,
     'community/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
     
-    'invite' => menuNorm(t('Invite'), 'Invite', 'ok'),
+    'account' => menuNorm(t('Settings'), 'Settings', 'manage'),
+//    'account/settings' => menuLocal(t('Settings'), '*Settings', 'manage'),
+    'account/contact' => menuLocal(t('Contact Info'), 'Contact', 'manage'),
+    'account/preferences' => menuLocal(t('Preferences'), 'Options', 'manage'),
+    'account/security' => menuLocal(t('Security'), 'Security 2', 'manage person'),
+    'account/bank' => menuLocal(t('Bank Info'), 'Bank 2', 'manage'),
+    'account/company' => menuLocal(t('Company Info'), 'Company', 'manage co'),
+    'account/relations' => menuLocal(t('Relations'), 'Relations', 'manage'),
+    'account/boxes' => menuLocal(t('Devices'), 'Boxes', 'manage'),
+    'account/proxies' => menuLocal(t('Proxies'), 'Proxies', 'manage person'),
+    'account/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
+
+    'reset' => callback(t('Choose New Password'), 'ResetPassword 1', 'anyone'),
+    'account/password' => callback(t('Request New Password'), 'Pass 2', 'anyone'),
+    'account/change-password' => callback('Change Password', 'ChangePassword', 'manage'),
+    'account/change-pin' => callback('Change PIN', 'ChangePin', 'manage'),
+    'account/photo' => callback('Photo', 'Photo', 'manage'),
+    'account/icon' => callback('Icon', 'Icon', 'read'),
+//    'account/verify-phone' => callback('Verify Phone', 'VerifyPhone', 'manage dw'),
+//    'account/readd-phone' => callback('reAdd Phone', '', 'manage dw', 'addPhone'),
+    'account/basic' => callback('Basic', 'Basic', 'manage'),
+//    'account/kba' => callback('Kba', 'Kba', 'manage dw'),
+//    'account/photo-id' => callback('Kba', 'PhotoId', 'manage'),
+    'account/proxy' => callback('Proxy', 'Proxy 2', 'manage'),
+
     'signout' => menuNorm(t('Sign out'), '', 'anyone', 'signout'),
 
     'handy' => isDEV ? menuNorm(t('Handy'), '', 'dev', 'handyLinks') : NULL,
@@ -114,29 +140,6 @@ function rweb_menu() {
     'request-employee-rcard' => callback(t('Request Employee rCard'), 'RequestRCard 1', 'manage'),
     
     'I' => callback('Scanned QR', 'I', 'anyone'),
-
-    'account' => callback(t('Account Settings'), 'Contact', 'manage'),
-    'account/contact' => menuLocal(t('Contact Info'), '*Contact', 'manage'),
-    'account/preferences' => menuLocal(t('Preferences'), 'Options', 'manage'),
-    'account/security' => menuLocal(t('Security'), 'Security 2', 'manage person'),
-    'account/bank' => menuLocal(t('Bank Info'), 'Bank 2', 'manage'),
-    'account/company' => menuLocal(t('Company Info'), 'Company', 'manage co'),
-    'account/relations' => menuLocal(t('Relations'), 'Relations', 'manage'),
-    'account/boxes' => menuLocal(t('Devices'), 'Boxes', 'manage'),
-    'account/proxies' => menuLocal(t('Proxies'), 'Proxies', 'manage person'),
-    'account/settings' => menuLocal(t('Settings'), 'Settings', 'manage'),
-
-    'reset' => callback(t('Choose New Password'), 'ResetPassword 1', 'anyone'),
-    'account/password' => callback(t('Request New Password'), 'Pass 2', 'anyone'),
-    'account/change-password' => callback('Change Password', 'ChangePassword', 'manage'),
-    'account/change-pin' => callback('Change PIN', 'ChangePin', 'manage'),
-    'account/photo' => callback('Photo', 'Photo', 'manage'),
-//    'account/verify-phone' => callback('Verify Phone', 'VerifyPhone', 'manage dw'),
-//    'account/readd-phone' => callback('reAdd Phone', '', 'manage dw', 'addPhone'),
-    'account/basic' => callback('Basic', 'Basic', 'manage'),
-//    'account/kba' => callback('Kba', 'Kba', 'manage dw'),
-//    'account/photo-id' => callback('Kba', 'PhotoId', 'manage'),
-    'account/proxy' => callback('Proxy', 'Proxy 2', 'manage'),
     
     'another' => callback(t('Open Another Account'), 'Another', 'manage'),
     'handle-invoice' => callback(t('Handle Invoice'), 'HandleInvoice 1', 'anyone'),
@@ -167,7 +170,6 @@ function rweb_menu() {
     'change-account' => callback(t('Change Who'), '1', 'anyone', 'changeWho'),
     'status' => callback('Status', 'Membership 2', 'manage'),
     'agreement' => callback(t('The Agreement'), 'Agreement', 'anyone'),
-    'donate' => callback(t('Donate'), 'Donate', 'manage'),
     'signup' => callback(t('Sign Up For rCredits'), 'Signup', 'anyone'),
     'menu' => callback('Main Menu', 'Menu', 'anyone'),
     'member' => callback('Company Profile', 'Profile', 'anyone'),
@@ -179,7 +181,7 @@ function rweb_menu() {
 
     'accept' => callback('Accept Invitation', 'Accept', 'anyone'), // called from promo site rCredits.org
     'pos' => callback('POS', '', 'anyone', 'rCredits\\Smart\\pos'), // called from the rPOS app
-    'whosin' => callback(t('Who\'s in?'), '', 'anyone', 'whosin'), // called from promo site
+    'whosin' => callback(t('Who\'s in?'), '1', 'anyone', 'whosin'), // called from promo site
     'secret' => callback('Secret', '', 'anyone', 'secrets'),
     'error' => callback('System Error', '1', 'anyone', 'error'),
     
@@ -195,18 +197,15 @@ function rweb_menu_alter(&$items) {
 }
 
 function rweb_form_alter(&$form, &$sta, $form_id) {
-///debug($form);
-///debug($sta);
-///debug($form_id);
-///debug($_SERVER);
+global $base_url;
 //  if ($form_id == 'user_pass_reset') return r\Web\resetAlter($form, $sta);
 //  if ($form_id == 'user_login') {return r\Web\formLogin($form, $sta);} // NEVER CALLED!
   // (has no effect, keep as comment) if ($form_id == 'user_register') {return r\Web\formRegister($form, $sta);}
   $req = basename($_SERVER['REQUEST_URI']);
 ///  debug(compact('req','form_id'));
-  if ($req == 'login' and !user_is_logged_in()) {header('location:' . (isDEV ? 'http://localhost/devcore/signin' : R_SITE_URL . '/signin')); exit();} // nothing else works
-  if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isDEV ? 'http://localhost/devcore' : R_SITE_URL)); exit();} // nothing else works
-  if ($req == 'user' and user_is_logged_in()) r\go('summary'); // summary not ''
+  if ($req == 'login' and !user_is_logged_in()) {header("location:$base_url/" . (isGAME ? 'community/game' : 'signin')); exit();} // nothing else works
+  if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isGAME ? "$base_url/community/game" : (isDEV ? 'http://localhost/devcore' : R_SITE_URL) . '/signin')); exit();} // nothing else works
+  if ($req == 'user' and user_is_logged_in()) r\go(isGAME ? 'community/game' : 'summary'); // summary not ''
 }
 
 //function rweb_form_user_register_form_alter(&$form, &$sta, $form_id) {r\Web\formRegister($form, $sta);}

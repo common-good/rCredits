@@ -42,6 +42,7 @@ function extraSubs(&$subs) {
   $subs['%todayn'] = t\subAgo('%todayn', '%Y%m%d');
   //$subs['%dmy'] = t\subAgo('%todayn', '%d-%b-%Y');
   $subs['%name'] = \user_password(20); // suitable for email address
+  $subs['%regionName'] = @r\acct(t\uid('.ZZA'))->cttyA->fullName;
 }
 
 function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, $info);}
@@ -49,20 +50,18 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
 /**
  * member (ARG) completes form (ARG) with values: (ARG)
  *
- * in: MAKE Bank AMemberTransfersFundsFromTheBank
- *     MAKE Bank AMemberTransfersFundsToTheBank
+ * in: MAKE Bank AMemberMovesCreditToTheBank
+ *     MAKE Bank AMemberDrawsCreditFromTheBankWithZeroFloor
+ *     MAKE Bank AMemberDrawsCreditFromTheBankWithAdequateFloor
+ *     MAKE Bank AMemberMovesTooLittleToTheBank
+ *     MAKE Bank AMemberTriesToCashOutRewardsAndorPendingWithdrawals
+ *     MAKE Bank AMemberMovesTooMuchToTheBank
+ *     MAKE Bank AMemberTriesToGoBelowTheirMinimum
+ *     MAKE Bank AMemberAsksToDoTwoTransfersOutInOneDay
  *     MAKE Exchange AMemberAsksToChargeAnotherMember
  *     MAKE Exchange AMemberAsksToPayAnotherMember
  *     MAKE Exchange AMemberAsksToCashOutTooMuch
  *     MAKE Flow AMemberOverdrawsWithNotEnoughToDrawOn
- *     MAKE Get AMemberMovesCreditToTheBank
- *     MAKE Get AMemberDrawsCreditFromTheBankWithZeroFloor
- *     MAKE Get AMemberDrawsCreditFromTheBankWithAdequateFloor
- *     MAKE Get AMemberMovesTooLittleToTheBank
- *     MAKE Get AMemberTriesToCashOutRewardsAndorPendingWithdrawals
- *     MAKE Get AMemberMovesTooMuchToTheBank
- *     MAKE Get AMemberTriesToGoBelowTheirMinimum
- *     MAKE Get AMemberAsksToDoTwoTransfersOutInOneDay
  *     MAKE Gift AMemberDonates
  *     MAKE Gift AMemberDonatesWithInsufficientFunds
  *     MAKE Joint AJoinedAccountSlaveMemberRequestsANewMinimum
@@ -76,12 +75,9 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Signin AMemberClicksALinkToResetPassword
  *     MAKE Signin AMemberClicksALinkToResetPasswordWithWrongCode
  *     MAKE Signin AMemberClicksALinkToResetPasswordForUnknownAccount
- *     MAKE Transact AMemberAsksToChargeAnotherMember
- *     MAKE Transact AMemberAsksToPayAnotherMember
- *     MAKE Transact AMemberAsksToChargeAnotherMemberBeforeMakingAnRCardPurchase
- *     MAKE Transact AMemberAsksToChargeAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase
- *     MAKE Transact AMemberAsksToPayAnotherMemberBeforeMakingAnRCardPurchase
- *     MAKE Transact AMemberAsksToPayAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase
+ *     MAKE Transact AMemberAsksToChargeAnotherMemberForGoods
+ *     MAKE Transact AMemberAsksToPayAnotherMemberForGoods
+ *     MAKE Transact AMemberAsksToPayAnotherMemberForLoanreimbursement
  */
 function memberCompletesFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values);}
 
@@ -189,7 +185,6 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     MAKE EditTx Setup
  *     MAKE Exchange Setup
  *     MAKE Flow Setup
- *     MAKE Get Setup
  *     MAKE Gift Setup
  *     MAKE Joint Setup
  *     MAKE Membership Setup
@@ -222,11 +217,12 @@ function members($list) {return t\members($list);}
  *     MAKE Community Setup
  *     MAKE Download Setup
  *     MAKE EditTx Setup
+ *     MAKE EditTx ABuyerDisputesACharge
+ *     MAKE EditTx ASellerReversesACharge
  *     MAKE Exchange Setup
  *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
  *     TEST Flow AMemberDraws
  *     TEST Flow AMemberDrawsAgain
- *     MAKE Get Setup
  *     TEST Gift AMemberDonates
  *     MAKE Joint Setup
  *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
@@ -247,19 +243,18 @@ function transactions($list) {return t\transactions($list);}
 /**
  * we say (ARG): (ARG) with subs: (ARG)
  *
- * in: TEST Bank AMemberTransfersFundsFromTheBank
- *     TEST Bank AMemberTransfersFundsToTheBank
+ * in: TEST Bank AMemberMovesCreditToTheBank
+ *     TEST Bank AMemberDrawsCreditFromTheBankWithZeroFloor
+ *     TEST Bank AMemberDrawsCreditFromTheBankWithAdequateFloor
+ *     TEST Bank AMemberTriesToCashOutRewardsAndorPendingWithdrawals
+ *     TEST Bank AMemberMovesTooMuchToTheBank
+ *     TEST Bank AMemberAsksToDoTwoTransfersOutInOneDay
  *     TEST EditTx ABuyerTriesToDecreaseAPaymentAmount
+ *     TEST EditTx ABuyerDisputesACharge
  *     TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
  *     TEST Exchange AMemberAsksToCashOutTooMuch
  *     TEST Flow AMemberOverdrawsWithNotEnoughToDrawOn
- *     TEST Get AMemberMovesCreditToTheBank
- *     TEST Get AMemberDrawsCreditFromTheBankWithZeroFloor
- *     TEST Get AMemberDrawsCreditFromTheBankWithAdequateFloor
- *     TEST Get AMemberTriesToCashOutRewardsAndorPendingWithdrawals
- *     TEST Get AMemberMovesTooMuchToTheBank
- *     TEST Get AMemberAsksToDoTwoTransfersOutInOneDay
  *     TEST Gift AMemberDonates
  *     TEST Gift AMemberDonatesWithInsufficientFunds
  *     TEST Joint AMemberRequestsAJointAccount
@@ -279,8 +274,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Transact AMemberConfirmsRequestToPayTheSameMemberTheSameAmount
  *     TEST Transact AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount
  *     TEST Transact AMemberLeavesGoodsBlank
- *     TEST Transact AMemberAsksToChargeAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase
- *     TEST Transact AMemberAsksToPayAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase
  */
 function weSayWithSubs($type, $index, $subs) {
   global $testOnly;
@@ -313,7 +306,9 @@ function weSayWithSubs($type, $index, $subs) {
 /**
  * we say (ARG): (ARG)
  *
- * in: TEST Company AMemberUpdatesCompanyInfo
+ * in: TEST Bank AMemberMovesTooLittleToTheBank
+ *     TEST Bank AMemberTriesToGoBelowTheirMinimum
+ *     TEST Company AMemberUpdatesCompanyInfo
  *     TEST Contact AMemberUpdatesContactInfo
  *     TEST Contact AMemberGivesABadPhone
  *     TEST Contact AMemberGivesABadEmail
@@ -321,8 +316,6 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST Contact AMemberUpdatesToADifferentName
  *     TEST EditTx ABuyerIncreasesAPaymentAmount
  *     TEST EditTx ABuyerChangesTheGoodsStatus
- *     TEST Get AMemberMovesTooLittleToTheBank
- *     TEST Get AMemberTriesToGoBelowTheirMinimum
  *     TEST Membership AMemberSignsInForTheFirstTime
  *     TEST Membership AMemberDoesItAll
  *     TEST Relations AMemberTriesToAddARelationWithSelf
@@ -340,8 +333,6 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST Signup ANewbieRegistersFromElsewhere
  *     TEST SignupCo AMemberRegistersACompany
  *     TEST Summary MembersAccountIsNotActive
- *     TEST Transact AMemberAsksToChargeAnotherMemberBeforeMakingAnRCardPurchase
- *     TEST Transact AMemberAsksToPayAnotherMemberBeforeMakingAnRCardPurchase
  */
 function weSay($type, $index) {return weSayWithSubs($type, $index, array());}
 
@@ -386,24 +377,30 @@ function weShow($what, $show = TRUE) {return t\weShow($what, $show);}
 /**
  * we show (ARG) with subs: (ARG)
  *
- * in: TEST Exchange AMemberAsksToChargeAnotherMember
+ * in: TEST EditTx ABuyerDisputesACharge
+ *     TEST EditTx ASellerReversesACharge
+ *     TEST Exchange AMemberAsksToChargeAnotherMember
  *     TEST Exchange AMemberAsksToPayAnotherMember
  *     TEST Reimburse AMemberAsksToChargeAnotherMember
  *     TEST Reimburse AMemberAsksToPayAnotherMember
- *     TEST Transact AMemberAsksToChargeAnotherMember
- *     TEST Transact AMemberAsksToPayAnotherMember
+ *     TEST Transact AMemberAsksToChargeAnotherMemberForGoods
+ *     TEST Transact AMemberAsksToPayAnotherMemberForGoods
+ *     TEST Transact AMemberAsksToPayAnotherMemberForLoanreimbursement
  */
 function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
 
 /**
  * we show (ARG) with: (ARG)
  *
- * in: TEST Boxes AMemberVisitsTheDevicesPageWithNoDevicesYet
+ * in: TEST Bank AMemberAsksToDoTwoTransfersOutInOneDay
+ *     TEST Boxes AMemberVisitsTheDevicesPageWithNoDevicesYet
  *     TEST Boxes AMemberHasAllKindsOfDevices
  *     TEST Community CronCalculatesTheStatistics
  *     TEST Company AMemberVisitsTheCompanyInfoPage
  *     TEST Contact AMemberVisitsTheContactInfoPage
- *     TEST Get AMemberAsksToDoTwoTransfersOutInOneDay
+ *     TEST EditTx ABuyerChangesTheTransactionDescription
+ *     TEST EditTx ABuyerDisputesACharge
+ *     TEST EditTx ASellerReversesACharge
  *     TEST Joint AMemberRequestsAJointAccount
  *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     TEST Joint AMemberRequestsTwoJoinsAtOnce
@@ -519,7 +516,11 @@ function relations($relations) {return t\relations($relations);}
 /**
  * balances: (ARG)
  *
- * in: TEST Community Setup
+ * in: TEST Bank Setup
+ *     TEST Bank AMemberMovesCreditToTheBank
+ *     TEST Bank AMemberDrawsCreditFromTheBankWithZeroFloor
+ *     TEST Bank AMemberDrawsCreditFromTheBankWithAdequateFloor
+ *     TEST Community Setup
  *     TEST Download Setup
  *     TEST EditTx Setup
  *     TEST EditTx ABuyerIncreasesAPaymentAmount
@@ -528,10 +529,6 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
  *     MAKE Flow Setup
- *     TEST Get Setup
- *     TEST Get AMemberMovesCreditToTheBank
- *     TEST Get AMemberDrawsCreditFromTheBankWithZeroFloor
- *     TEST Get AMemberDrawsCreditFromTheBankWithAdequateFloor
  *     MAKE Gift Setup
  *     TEST Joint Setup
  *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
@@ -568,6 +565,9 @@ function usd($list) {return t\usd($list);}
  *     MAKE Company AMemberVisitsTheCompanyInfoPage
  *     MAKE Contact AMemberVisitsTheContactInfoPage
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
+ *     MAKE EditTx ABuyerChangesTheTransactionDescription
+ *     MAKE EditTx ABuyerDisputesACharge
+ *     MAKE EditTx ASellerReversesACharge
  *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     MAKE Membership AMemberSignsInForTheFirstTime
  *     MAKE Membership AMemberClicksTheMembershipLink
@@ -845,15 +845,13 @@ function dwollaIsDown() {
 /**
  * usd transfers: (ARG)
  *
- * in: TEST Bank AMemberTransfersFundsFromTheBank
- *     TEST Bank AMemberTransfersFundsToTheBank
+ * in: MAKE Bank Setup
+ *     TEST Bank AMemberMovesCreditToTheBank
+ *     TEST Bank AMemberDrawsCreditFromTheBankWithZeroFloor
+ *     TEST Bank AMemberDrawsCreditFromTheBankWithAdequateFloor
+ *     MAKE Bank AMemberAsksToDoTwoTransfersOutInOneDay
  *     MAKE Community Setup
  *     MAKE Download Setup
- *     MAKE Get Setup
- *     TEST Get AMemberMovesCreditToTheBank
- *     TEST Get AMemberDrawsCreditFromTheBankWithZeroFloor
- *     TEST Get AMemberDrawsCreditFromTheBankWithAdequateFloor
- *     MAKE Get AMemberAsksToDoTwoTransfersOutInOneDay
  *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     MAKE Summary Setup
  *     MAKE Transactions Setup
@@ -1064,7 +1062,8 @@ function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $inf
 /**
  * member (ARG) edits transaction (ARG) with values: (ARG)
  *
- * in: MAKE EditTx ABuyerIncreasesAPaymentAmount
+ * in: MAKE EditTx ABuyerChangesTheTransactionDescription
+ *     MAKE EditTx ABuyerIncreasesAPaymentAmount
  *     MAKE EditTx ABuyerChangesTheGoodsStatus
  *     MAKE EditTx ABuyerTriesToDecreaseAPaymentAmount
  */
@@ -1155,10 +1154,7 @@ function memberCacheIsOk($id) {return r\acct(t\uid($id))->cacheOk();}
 /**
  * member (ARG) has no photo ID recorded
  *
- * in: MAKE Transact AMemberAsksToChargeAnotherMemberBeforeMakingAnRCardPurchase
- *     MAKE Transact AMemberAsksToChargeAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase
- *     MAKE Transact AMemberAsksToPayAnotherMemberBeforeMakingAnRCardPurchase
- *     MAKE Transact AMemberAsksToPayAnotherMemberBeforeTheOtherHasMadeAnRCardPurchase
+ * in: 
  */
 function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
 
@@ -1191,4 +1187,27 @@ function memberHasCompanyInfo($id, $info) {
   extract($signupCo = $a->signupCo ?: []);
   foreach ($info[0] as $k => $v) if ($$k != $v) {debug(compact('id', 'signupCo', 'info')); return FALSE;}
   return TRUE;
+}
+
+/**
+ * member (ARG) clicks (ARG) on transaction (ARG)
+ *
+ * in: MAKE EditTx ABuyerDisputesACharge
+ *     MAKE EditTx ASellerReversesACharge
+ */
+function memberClicksOnTransaction($id, $do, $xid) {
+  global $testPeriod;
+  if ($do == 'X') $do = 'no';
+  return t\memberVisitsPage($id, "history/period=$testPeriod&do=$do&xid=$xid");
+}
+
+/**
+ * member (ARG) confirms (ARG) on transaction (ARG)
+ *
+ * in: MAKE EditTx ABuyerDisputesACharge
+ */
+function memberConfirmsOnTransaction($id, $do, $xid) {
+  global $testPeriod;
+  if ($do == 'X') $do = 'no';
+  return t\completeForm($id, "history/period=$testPeriod&do=$do&xid=$xid", '', TRUE);
 }

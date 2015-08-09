@@ -4,25 +4,15 @@
  * Specialized rCredits settings for this rCredits server
  */
 
-define('R_PILOT', TRUE); // pilot phase
 define('ADMIN_NAME', 'William Spademan');
 define('SIGNATORY', 'William Spademan, President');
-define('R_REGION_NAME', 'rCredits Western Mass');
-define('R_REGION_LEGALNAME', 'rCredits Western Massachusetts Region');
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA B=Boston
-define('R_REGION_SHORTNAME', R_SERVER_ID . '.');
-define('R_REGION_ADDR', 'c/o CGF, PO Box 21, Ashfield, MA 01330');
-define('R_REGION_PHONE', '+1 413 628 1723'); // was 376.5021 (and maybe again someday)
 define('R_TESTER_EMAIL', 'wspademan@gmail.com'); // tester's personal email
-define('R_REGION_EMAIL', strpos($_SERVER['HTTP_HOST'], '.') < 3 ? str_replace('@', '_cgf@', R_TESTER_EMAIL) : (strtolower(R_SERVER_ID) . '@rCredits.org'));
 define('R_REGION_EIN', '46-1821792');
 define('R_SITE_URL', 'https://' . (isPRODUCTION ? PRODUCTION : STAGE));
 
-// (you don't get an ID card unless you are in this geographic area)
-define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that matches this regular expression is in the region
 date_default_timezone_set('America/New_York'); // server handles just one timezone
-//define('DW_LAG', 1 * HOUR_SECS); // no longer used (Dwolla uses greenwich mean time, our PHP adjusts)
 define('R_COUNTRY_ID', US_COUNTRY_ID); // this region's country: United States
 define('R_STATE_ID', 1020); // Massachusetts
 define('R_REBATE', 10); // standard initial rebate percentage
@@ -45,9 +35,8 @@ define('R_DEBT_PERCENT', 1.5); // percentage fee for overdue reserve credit
 define('R_DEBT_DAYS', 30); // how long to pay back reserve credit
 define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars) for monthly and annual statements by mail
 define('R_INFLATION_RATE', .05); // annual USD inflation rate (but never less than zero) (extra big is okay)
-define('R_LAUNCH', strtotime('12/15/2013'));
 define('R_ADMIN_QID', 'NEW.AAA'); // William's account code
 define('R_USDTX_DAYS', 5); // how many days it takes for a transfer to clear from bank to rCredits account
+define('R_USDTX_QUICK', 200); // maximum amount a member can transfer overnight (instead of waiting USDTX days)
 define('ESCROW_ACCOUNT', '1326532739'); // escrow account number
 define('ESCROW_ROUTING', '211070175'); // escrow account routing number
-define('R_MAX_TX_REWARD', 500); // cap on incentive rewards for a single transaction

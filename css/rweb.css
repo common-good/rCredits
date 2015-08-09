@@ -7,7 +7,8 @@
 /* img {width:auto; height:auto;} */
 /* ems for font-size, px for most else */
 .clearfix {clear:both; width:100%;}
-body {background:silver; font-size:100%;}
+body {font-size:14px;}
+#page-wrapper {width:100%; max-width:100; background-color:white;} /* not max-width:961px */
 fieldset {-webkit-margin-start:0; -webkit-margin-end:0; -webkit-padding-before:0; -webkit-padding-start:0; -webkit-padding-end:0; -webkit-padding-after:0;}
 input {-webkit-appearance:none;} /* prevent iPhone and Mac from using their standard non-standard buttons */
 legend {-webkit-padding-start: 2px; -webkit-padding-end: 2px;}
@@ -42,42 +43,66 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
 .goodRisk {color:green;}
 .badRisk {color:orange;}
 .tagged {color:red;}
+.subdue {color:silver;}
+.cgc {color:red;}
 
-#edit-acct-index {display:none; float:left; z-index:2; margin:20px 0 5px 120px;}
-#edit-acct-index a {display:inline-block; color:yellow; padding:0px 7px 0px 7px;}
-#edit-acct-index .index-detail {display:none; position:absolute; left:3px; width:940px; height:310px; background-color:lightgray; border:2px solid darkred; font-size:11px; -webkit-border-radius:3px; border-radius:3px;}
-#edit-acct-index .index-detail div {display:inline-block; width:185px; margin-bottom:15px;}
-#edit-acct-index .index-detail a {color:black; background-color:white; padding:2px 5px; margin:3px 3px; width:173px; display:inline-block;}
-#edit-acct-index .index-detail a small {font-size:70%;}
+/* basic */
+#header {height:50px;}
+.region-content {margin-top:0px;}
+#extras {margin:3px 8px 0 0;}
+#extras .photo {width:34px; height:44px; padding:0;}
+#extras .photo.co {width:57px;}
+#extras img {height:100%; width:100%;}
+.not-logged-in #extras {display:none;}
+
+/* nav */
+ul.tabs.primary  {margin:0px 0 20px 85px; padding:0; font-size:85%;}
+@media (min-width:900px) {
+  ul.tabs.primary {padding:20px 0 0 60px;}
+}
+
+#edit-acct-account {display:none; position:absolute; z-index:5; top:49px; width:100%;}
+#edit-acct-account.collapse.in {display:block;}
+#index {float:right; background-color:silver; padding:3px 0;}
+#index a {display:inline-block; color:darkred; padding:0px 7px 0px 7px;}
+#edit-acct-account .index-detail {display:none; position:absolute; left:0; top:23px; width:100%; height:315px; background-color:lightgray; border:2px solid darkred; font-size:11px;}
+#edit-acct-account .index-detail div {display:inline-block; width:185px; margin-bottom:15px;}
+#edit-acct-account .index-detail a {color:black; background-color:white; padding:2px 5px; margin:3px 3px; width:173px; display:inline-block;}
+#edit-acct-account .index-detail a small {font-size:70%;}
+#edit-acct-account ul {float:right; background-color:green; color:silver; list-style-type:none; padding-right:5px;}
+#edit-acct-account ul a {color:white;}
+#edit-acct-account ul a:hover {text-decoration:none; color:lightblue;}
 
 #advanced {display:none;}
 #edit-showadvanced,
 #edit-showsimple {display:inline-block;}
 
-#messages .stopnot {font-weight:bold; font-size:200%; color:red;}	
+#messages .stopnot {font-weight:bold; font-size:200%; color:red;}  
 #messages .nextstep,
 .page-account #completed,
 .page-status #completed {font-weight:bold; font-size:200%; color:green;}
 
 div#shout {position:absolute; z-level:2; left:300px; top:100px; background-color:yellow; color:darkgreen; font-size:500%;}
 #site-name {visibility:hidden;}
-#page-wrapper {
-  margin:auto; max-width:961px; 
-  background:white; /* Drupal messes this up otherwise, in Bartik theme */
+/*
+#footer {
+  margin:auto;
+  background:white; /* Drupal messes this up otherwise, in Bartik theme *//*
   -webkit-box-shadow: 3px 3px 15px 0 black;
   box-shadow:         3px 3px 15px 0 black;
   -moz-box-shadow:    3px 3px 15px 0 black;
   min-height:0px;
+  width:100%;
 }
-
+*/
 #main-menu-links .menu-undo {display:none;}
 #secondary-menu {display:none; padding-bottom:0;}
 #footer-wrapper {background:white;}
 #footer-wrapper a, #footer-wrapper a:focus {color:lightslategray;}
 #footer-wrapper a:hover {color:black;}
 #sidebar-first {width:0; display:none;}
-.sidebar-first #content {margin-left:0; float:none;}
-.logged-in #content {margin-left:0px; float:left; display:block;} /* keeps autocomplete from getting placed in a wacky position */
+.sidebar-first #content {float:none;}
+.logged-in #content {margin:0; float:left; display:block;} /* keeps autocomplete from getting placed in a wacky position */
 .not-logged-in #content {clear:none; max-width:100%;}
 /*.not-logged-in #sidebar-first {display:inline-block; margin-left:20px; margin-top:0; width:215px; padding-top:5px; border:1px solid darkgreen; clear:none;} */
 .not-logged-in #sidebar-first .section {padding:0px;} */
@@ -93,6 +118,7 @@ div#shout {position:absolute; z-level:2; left:300px; top:100px; background-color
 
 .rweb .form-type-checkbox .box {float:left; width:22px; height:22px; text-align:left; margin-right:10px; background:url(../images/checkbox.gif) no-repeat; background-size:22px;}
 .rweb .form-type-checkbox label div {float:left;}
+.rweb input[type="checkbox"] {display:none;}
 
 .rweb .form-type-checkbox .opt-on .box,
 .form-type-radio label.opt-on  {background-position:left bottom;}
@@ -128,8 +154,8 @@ body.logged-in.one-sidebar #content {width:100%;}
 #secondary-menu li.menu-2 {display:none;} /* Drupal recreates and unhides this if we try to delete it or hide it */
 
 /* Nav */
-body.not-logged-in #main-menu {display:none;}
-ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
+/* body.not-logged-in .navbar-nav {display:none;} */
+/* ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;} */
 #main-menu-links li, ul.tabs.primary li {padding:0;}
 #main-menu-links li a {padding:.5em .8em;}
 .tabs ul.primary li {margin:0;}
@@ -142,7 +168,7 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 /* Accounts Selector */
 #accounts {position:absolute; left:0; top:0; width:100%;}
 #accounts .region-accounts {float:right; margin-right:0px; width:100%;}
-#accounts .content, #accounts .form-item-acct-account {margin:0; padding:0;}
+/* #accounts .content, #accounts .form-item-acct-account {margin:0; padding:0;} */
 #accounts .form-type-textfield, #accounts .form-type-select,
 #accounts #edit-signin {float:right; margin-right:20px;}
 #accounts #edit-signin a {color:white;}
@@ -151,7 +177,7 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 #accounts #edit-acct-settings div {width:20px; height:20px; background-image:url(../images/icons/gear-white.png); background-size:20px 20px; margin:3px 5px 0 5px;}
 #accounts #edit-acct-icon {float:right; margin:0 5px 0 0;} 
 #accounts #edit-acct-icon img {height:24px; border:1px solid white;}
-#accounts #edit-acct-account {float:right; padding:0 2px; width:auto; height:27px; margin:0; font-size:100%; border:0; background-color:white;}
+/*#accounts #edit-acct-account {float:right; padding:0 2px; width:auto; height:27px; margin:0; font-size:100%; border:0; background-color:white;} */
 #rcreditswebformaccounts #edit-acct-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
 #edit-acct-showmenu, #edit-acct-showhelp {display:none;}
 
@@ -223,7 +249,7 @@ form.rweb  .form-no {color:red;}
   form.labeled #edit-subtext {margin-left:125px;}
 
 
-  form.labeled #edit-subtext  {margin-top:-5px;}
+/*  form.labeled #edit-subtext  {margin-top:-5px;} */
   form.labeled .description {font-size:85%}
   form.labeled .labeled-block {display:inline-block;}
   form.labeled .form-textarea-wrapper {display:inline-block;}
@@ -325,8 +351,13 @@ div.password-confirm {float: right; margin-top:1.5em; visibility:hidden; width: 
 
 /* Summary / Member Info / Account Info */
 #rcreditswebformsummary .form-item {margin-bottom:5px;}
-#rcreditswebformsummary #edit-balance, #rcreditswebformsummary #edit-rewards {display:inline-block;}
-#rcreditswebformsummary #edit-floor .description,
+#rcreditswebformsummary #edit-photo {float:right;}
+#rcreditswebformsummary #edit-photo img {max-width:225px;}
+#rcreditswebformsummary .description {clear:left;}
+#rcreditswebformsummary #edit-balance {display:inline-block;}
+#rcreditswebformsummary #edit-rewards,
+#rcreditswebformsummary #edit-creditlimit {display:inline-block; margin-left:10px;}
+#rcreditswebformsummary #edit-creditlimit .description,
 #rcreditswebformsummary #edit-committed .description,
 #rcreditswebformsummary #edit-rewards .description {display:inline-block; margin-left:.25em;}
 #rcreditswebformsummary .form-type-radios {border-bottom:0;} /* yesno looks silly with bottom border */
@@ -357,7 +388,7 @@ div.password-confirm {float: right; margin-top:1.5em; visibility:hidden; width: 
 #rcreditswebformsummary input#edit-floor {width:60px;}
 /*#rcreditswebformsummary #edit-minimum,
 #rcreditswebformsummary #edit-achmin {width:60px;} */
-#rcreditswebformsummary .form-item-floor,
+#rcreditswebformsummary .form-item-creditlimit,
 #rcreditswebformsummary #edit-minimum,
 #rcreditswebformsummary #edit-achmin {display:inline-block; margin-right:0;}
 #rcreditswebformsummary #edit-dwinfo table {width:auto;}
@@ -553,6 +584,7 @@ div.password-confirm {float: right; margin-top:1.5em; visibility:hidden; width: 
 #rcreditswebformflags .form-submit {margin-left:10px; max-width:120px;}
 #rcreditswebformflags .form-item-period label {display:inline-block;}
 #rcreditswebformflags #edit-title, #rcreditswebformflags #edit-subtext {margin-left:0;}
+#rcreditswebformflags fieldset {margin-bottom:10px;}
 
 /* Member List */
 #memberlist {width:auto; cell-spacing:5px;}
@@ -669,7 +701,7 @@ div.password-confirm {float: right; margin-top:1.5em; visibility:hidden; width: 
 /* Transaction Summary Table */
 #txsum, #txsum-title, #txs-title {width:100%; margin:0;} /* outline:2px solid darkgreen;} */
 #txsum-title, #txs-title {text-align:center; margin:0px; padding:0px; font-weight:bold; font-size:150%;}
-#txs-title {margin-top:30px;}
+#txs-title, #txsum-title {margin-top:30px;}
 #txsum td {text-align:right !important; border:0px;}
 #txsum tr#txsum-dates {background:none; line-height:.9; border:0px;}
 #txsum tr#txsum-headers {font-weight:bold; background:none; border-bottom:1px solid black;}
@@ -804,12 +836,13 @@ html.js input.throbbing {background-position:right -2.4em;}
 /* Photo */
 #rcreditswebformphoto .user-picture {display:inline-block; padding:0; margin-right:5px;}
 #rcreditswebformphoto .user-picture img {max-height:300px;}
-#rcreditswebformphoto .form-item-files-picture-upload {display:inline-block; max-width:400px; margin-left:10px;}
-#rcreditswebformphoto #edit-submit {display:block; position:relative; left:330px; top:-60px;}
+#rcreditswebformphoto #edit-currentphoto {float:left;}
+#rcreditswebformphoto .form-item-files-uploadPhoto {float:left; max-width:400px; margin-left:10px;}
+#rcreditswebformphoto #edit-submit {float:left; margin-right:200px;}
 
 /* Profile (member web page) */
 #rcreditswebformprofile {font-family:Arial;}
-#rcreditswebformprofile #member-details {float:left; min-width:200px; max-width:300px; font-weight:normal;}
+#rcreditswebformprofile #member-details {min-width:200px; font-weight:normal;}
 #rcreditswebformprofile .user-picture img {max-height:300px;}
 
 /* Options (Preferences) */
@@ -818,7 +851,7 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformoptions .form-item-statements label div {margin-left:27px; font-weight:normal;}
 /*#rcreditswebformoptions .form-item-toBank {border-bottom:1px solid darkgreen;}
 #rcreditswebformoptions .form-item-toBank .description {margin-bottom:auto;}
-#rcreditswebformoptions .form-item-toBank .description:after {content:"."; display:block;	clear:both; visibility:hidden;	line-height:0; height:0;} */
+#rcreditswebformoptions .form-item-toBank .description:after {content:"."; display:block; clear:both; visibility:hidden; line-height:0; height:0;} */
 #rcreditswebformoptions .form-item-payHow {border-top:1px solid darkgreen; padding-top:5px;}
 #rcreditswebformoptions .form-item-payHow div {border-top:0; padding-top:0;}
 /*#rcreditswebformoptions .form-item-secretBal {margin-top:80px;}*/
@@ -926,13 +959,15 @@ fieldset.popup select {width:36em; overflow:auto;}
 and (min-device-width : 320px)
 and (max-device-width : 480px) { */
 @media only screen and (max-width:640px) {
-  #toolbar {display:none; height:0px;} /* dev toolbar */
+  /*
   body {font-size:100%; height:auto; background:white;}
   #page-wrapper {box-shadow:none; -webkit-box-shadow:none;}
   #header {background-image:none; background-color:dodgerblue; height:38px;}
   #content {min-width:100%; margin-top:40px;}
   #main .section {margin-left:0; padding:0 .4em;}
   #main-wrapper {min-height:0;} /* below the menu */
+  */
+  /*
   #block-system-main .content {margin:0;}
   body.page-account-settings #footer-wrapper, body.page-menu #footer-wrapper {display:none;}
   #logo {height:26px; padding:1px;}
@@ -941,11 +976,11 @@ and (max-device-width : 480px) { */
   #nosignin #logo {width:100%; margin-top:5px;}
   #name-and-slogan {display:none; font-size:.8em; padding-left:.1em; margin-top:4.5em;}
   #site-slogan {width:14em; font-size:1em;}
-
-  #secondary-menu, /* upper right corner menu */
+*/
+  /* #secondary-menu, /* upper right corner menu */
   #main-menu {display:none;}
   #rcreditswebformtx  input#edit-cancel {left:110px;}
-
+/*
   body.page-menu #main-menu {display:block; position:absolute; left:0; top:72px; width:100%; padding:0;}
   #main-menu-links {margin:0; padding:0; width:100%; font-size:110%;}
   #main-menu-links li {margin:1px 0; clear:left; width:100%; height:44px;}
@@ -956,7 +991,7 @@ and (max-device-width : 480px) { */
   body .tabs {display:none;}
   .not-logged-in .tabs ul {margin-left:0;}
   .not-logged-in #sidebar-first {width:200px; margin-left:0;}
-
+*/
   body.page-account-settings .tabs {display:block; position:absolute; left:0; top:32px; width:100%; padding:0;}
   body.page-account-settings .tabs ul {margin:0; padding:0; width:100%; font-size:110%;}
   body.page-account-settings .tabs ul li {margin:1px 0; clear:left; width:100%; height:44px;}
@@ -993,12 +1028,13 @@ and (max-device-width : 480px) { */
 
   #help {top:125px; width:100%;}
   #help-close {display:none;}
-
+/*
   #edit-title, form.labeled #edit-title {display:block; position:absolute; left:0; top:28px; margin:0; padding:6px 0 4px 15px; background:silver; z-index:1; max-height:42px; font-size:22px;}
   #edit-title label, form.rweb #edit-title label {font-size:20px; margin-top:5px;}
-  #rcreditswebformchangepin #edit-title,
+  */
+/*  #rcreditswebformchangepin #edit-title,
   #rcreditswebformchangepin #edit-submit {margin-left:0;}
-  
+  */
   fieldset.popup, fieldset.popup legend {border:0; box-shadow:none; -webkit-box-shadow:none; -moz-box-shadow:none; border-radius:0; -moz-border-radius:0; -webkit-border-radius:0;}
   fieldset.popup, fieldset.popup select, fieldset.popup label, fieldset.popup legend {width:100%; left:0; border:0;}
   /* form.rweb #help-link {display:block; margin-bottom:2em; border:1px solid white;} */
@@ -1023,6 +1059,7 @@ and (max-device-width : 480px) { */
   
   #rcreditswebformbank #edit-checkhint {float:none;}
   
+  /*
   #rcreditswebformtx {width:100%;}
 //  #rcreditswebformtx .form-type-radios {display:inline-block; margin-left:25px; max-width:160px; border:2px solid darkblue;}
 //  #rcreditswebformtx .form-type-radio, {display:block;}
@@ -1052,7 +1089,7 @@ and (max-device-width : 480px) { */
   #calc #calcb {background-color:crimson;}
   
   #rcreditswebformtx.scanned .form-item-who {display:none;}
-  
+  */
   #rcreditswebformmembership #edit-title {display:block;}
   #rcreditswebformphoto #edit-submit {left:0px; top:0px;}
   

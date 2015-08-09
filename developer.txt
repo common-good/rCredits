@@ -2,26 +2,26 @@ rCredits Software
 Notes for developers
 
     UPDATE PROCEDURE (for upgrading software on the production server new.rcredits.org)
-		- Run all tests before upload. No upload if not 100% pass. 
-		  Exceptions: 
-		  . new feature failure, if new feature is disabled.
-		  . admin.inc can normally be uploaded without testing
-		  . temporary debugging statements can be added if they are first tested on ws.rcredits.org
-		  . cut and paste bug fixes on prod server when they are in just one or two clumps of 6 lines or less AND the functions being patched have not otherwise changed (on the DEV system) since the last update
-		- Find and delete all temporary debugging statements:
+    - Run all tests before upload. No upload if not 100% pass. 
+      Exceptions: 
+      . new feature failure, if new feature is disabled.
+      . admin.inc can normally be uploaded without testing
+      . temporary debugging statements can be added if they are first tested on ws.rcredits.org
+      . cut and paste bug fixes on prod server when they are in just one or two clumps of 6 lines or less AND the functions being patched have not otherwise changed (on the DEV system) since the last update
+    - Find and delete all temporary debugging statements:
 ///       . Search for debug(, die(, print_r(, flog( and echo. Such lines should begin with /// or if keepers /**/ 
             Sometime write a macro to do the finding. 
-		  . Make sure debugMode in dwolla.php is FALSE.
-		- Upload first to ws.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works
-		- When updating data directly through phpMyAdmin or the PHP window or other admin tools, back up the database or relevant tables first.
-		- Upload to new.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works.
-		***
+      . Make sure debugMode in dwolla.php is FALSE.
+    - Upload first to ws.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works
+    - When updating data directly through phpMyAdmin or the PHP window or other admin tools, back up the database or relevant tables first.
+    - Upload to new.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works.
+    ***
 
-	MEMBERSHIP PROCEDURE:
-		. wait for READY status (once all steps are done, including Dwolla account and bank connection REQUEST)
-		. make sure the photo is adequate
-		. mark the account as an rTrader (OK) (before printing card)
-		. print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
+  MEMBERSHIP PROCEDURE:
+    . wait for READY status (once all steps are done, including Dwolla account and bank connection REQUEST)
+    . make sure the photo is adequate
+    . mark the account as an rTrader (OK) (before printing card)
+    . print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
 **************************************************
 
@@ -74,86 +74,80 @@ D. rCredits namespaces and how they are abbreviated in calling files. Functions 
    \   Drupal functions are marked with a (technically superfluous) leading backslash
  
 E. Database clues
-   - Download table with latest zipcodes, counties, etc. at unitedstateszipcodes.org/zip-code-database/
-   - get countries/states table from CiviCRM db.
-   - All rCredits tables begin with "r_", except `offsite` and `users`.
-   - Uid fields in every table are bigint (unlike standard Drupal)
-   - users (we use this as a table of accounts, not of users, and added many new fields)
-     . Common Good Communities (CGCs) and regional servers have uid < 0.
-         OLD: -1 to -17576: regional servers (the numeric version plus one of the region's 3-letter qid, negated)
-           the software can treat any or all servers as virtual independent servers, 
-           for example when CT started using rCredits for real before they had their own server, the NEW server gave them all "NEC." qids rather than NEW.
-         OLD: less than -500000: Common Good Communities (leaving room for all 4-character regions)
-         1+0  to 3T: users in (not yet independent) region AAA (admin is technically in region AAA)
-         1+3T to 6T: users in (not yet independent) region AAB etc.
-		 -1-0: the AAA region
-		 -1-1 to -3T: communities in the AAA region
-		 -1-3T: the AAB region etc.
-		 Normally we would have community records only for one region (but each community in the world would have its own ID).
-     . Tests create users with uids starting at 1+xT + 17550 (ZZA, ZZB, etc.)
-     . name is a lowercase, no-punctuation version of fullName, sometimes with a numeric suffix to disambiguate.
+  - Download table with latest zipcodes, counties, etc. at unitedstateszipcodes.org/zip-code-database/
+  - get countries/states table from CiviCRM db.
+  - All rCredits tables begin with "r_", except `offsite` and `users`.
+  - Uid fields in every table are bigint (unlike standard Drupal)
+  - users (we use this as a table of accounts, not of users, and added many new fields)
+    . Common Good Communities (CGCs) and regional servers have uid < 0.
+        the software can treat any or all servers as virtual independent servers, 
+        for example when CT started using rCredits for real before they had their own server, the NEW server gave them all "NEC." qids rather than NEW.
+        1+0  to 3T: users in (not yet independent) region AAA (admin is technically in region AAA)
+        1+3T to 6T: users in (not yet independent) region AAB etc.
+        -1-0: the AAA region
+        -1-1 to -3T: communities in the AAA region
+        -1-3T: the AAB region etc. (leaving room for some 4-character regions)
+     Ultimately we will have community records only for communities in the server region (but each community in the world would have its own ID and be recorded on its own region's server).
+    . Tests create users with uids starting at 1+xT + 17550 (ZZA, ZZB, etc.)
+    . name is a lowercase, no-punctuation version of fullName, sometimes with a numeric suffix to disambiguate.
          Exceptions: 
            admin is admin
            Common Good Finance is cgf (second in the "NEW" region)
            For regions, name is (uppercase) the 3-char start of their qids, followed by "."
-     . pass should be called "password" but Drupal doesn't. So it's confusing. (just a heads-up)
-	 . mail the account's email address, encrypted
-	 . init is not used.
-	 . access: tracks last transaction or login date/time (just major access)
-     . we don't currently use theme, timezone, signature, or signature format.
-	 . picture: used as a temp field for calculating stats
-     . data: We use this to store auxiliary account information in a serialized associative array:
-	     - signupCo: assoc [company, companyPhone, employeeOk, isOwner, contractor] -- these are stored upon registration, if the company does not exist yet (otherwise the info goes in the relations table)
-         - wants: bit collection of nonmember stores the member wants to buy from
-		 - by: who invited the account creator
-		 - calling: the account owner's life calling
-         - newAccount: qid of new account when this account is closed by moving funds elsewhere
-         - oneTimePass: assoc [pass, expires]
-		 - legalName: the account's legal name (usually same as fullName)
-         - website: the company's website
-         - description: the company's description (html)
-         - selling: choices for what the company sells (first line is the default)
-         - coFlags: flag bits for company
-         - verifyBy: UNUSED how to verify the phone number (Voice or SMS)
-		 - stepsDone: assoc of steps done (TRUE) or remaining (FALSE) before account is "member" (see R_STEPS)
-		 - achMin: minimum transfer from bank account or drawn-on account (draw for purchases may override)
-		 - pinThreshold: minimum purchase amount before PIN is required (NYI)
-		 - lastTx: [xid, other-me, amount, created] information about the account's most recent transaction
-		 - tenure: number of months at current address (supplied by user)
-		 - moves: number of moves over the past decade (gleaned from SSN history)
-		 - mediaConx: how many 1st and 2nd-degree connections with the system adminstrator
-		 - jid: acount record ID of joined account, if any
-     . stats: past month statistics for the account (updated daily)
-     . changes: array of important changes made to the record
-     . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community == uid
-     . minimum: the user's preferred minimum balance. Request at least achMin more (and always a multiple of R_ACHMIN) automatically from bank if balance goes under by even one cent.
-     . usdAccount is the USD account number, encrypted with R_WORD (which gets set in settings.php)
-     . secure is a doubly-encrypted (with R_WORD) serialized assoc:
+    . pass should be called "password" but Drupal doesn't. So it's confusing. (just a heads-up)
+    . mail the account's email address, encrypted
+    . init is not used.
+    . access: tracks last transaction or login date/time (just major access)
+    . we don't currently use theme, timezone, signature, or signature format.
+    . picture: used as a temp field for calculating stats
+    . data: We use this to store auxiliary account information in a serialized associative array:
+      - signupCo: assoc [company, companyPhone, employeeOk, isOwner, contractor] -- these are stored upon registration, if the company does not exist yet (otherwise the info goes in the relations table)
+      - wants: bit collection of nonmember stores the member wants to buy from
+      - by: who invited the account creator
+      - calling: the account owner's life calling
+      - newAccount: qid of new account when this account is closed by moving funds elsewhere
+      - oneTimePass: assoc [pass, expires]
+      - legalName: the account's legal name (usually same as fullName)
+      - website: the company's website
+      - description: the company's description (html)
+      - selling: choices for what the company sells (first line is the default)
+      - coFlags: flag bits for company
+      - verifyBy: UNUSED how to verify the phone number (Voice or SMS)
+      - stepsDone: assoc of steps done (TRUE) or remaining (FALSE) before account is "member" (see R_STEPS)
+      - achMin: minimum transfer from bank account or drawn-on account (draw for purchases may override)
+      - pinThreshold: minimum purchase amount before PIN is required (NYI)
+      - lastTx: [xid, other-me, amount, created] information about the account's most recent transaction
+      - tenure: number of months at current address (supplied by user)
+      - moves: number of moves over the past decade (gleaned from SSN history)
+      - mediaConx: how many 1st and 2nd-degree connections with the system adminstrator
+      - jid: acount record ID of joined account, if any
+    . stats: past month statistics for the account (updated daily)
+    . changes: array of important changes made to the record
+    . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community == uid
+    . minimum: the user's preferred minimum balance. Request at least achMin more (and always a multiple of R_ACHMIN) automatically from bank if balance goes under by even one cent.
+    . usdAccount is the USD account number, encrypted with R_WORD (which gets set in settings.php)
+    . secure is a doubly-encrypted (with R_WORD) serialized assoc:
          cardCode: security code for QR code on rCard
          cardCode2: security code for QR codes on person's rCard as an agent for a company
          pin: the member's chosen 4-character PIN
          bankAccount: IBN (or fake IBN for US accounts created from routing number and account number)
-		 federalId: social security number or (for companies) EIN
-   - r_txs
-     . xid: record id
-     . payerTid: Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.
-     . payeeTid: ditto
-     . payer: uid of the account being debited.
-	 . payee: uid of the account being creditd. CANNOT BE A COMMUNITY (uid<0) until getStats() is revised.
-     . amount: the transaction amount
-     . data: non-essential and unusual essential information in a serialized associative array:
-		   undoneBy: xid of the transaction that reversed this one (if it is reversed)
-		   undoes: the transaction id of the undone transaction that this transaction reversed
-		   bonus and rebate: the dollar amounts of any rewards associated with a payment
-		   preapproved: (not in the table, just internally) transaction is preapproved by another server (a payment or an authorized business unilaterally charging a customer)
-		   disputed: TRUE if the payer disputes the transaction (else not set)
-		   force: 1/-1 if transaction was taken offline (-1 if the transaction reverses another transaction)
-		   changes: array of important changes made to the record
+        federalId: social security number or (for companies) EIN
+      - r_txs
+    . xid: record id
+    . payerTid: Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.
+    . payeeTid: ditto
+    . payer: uid of the account being debited.
+    . payee: uid of the account being creditd. CANNOT BE A COMMUNITY (uid<0) until getStats() is revised.
+    . amount: the transaction amount
+    . data: non-essential and unusual essential information in a serialized associative array:
+       undoneBy: xid of the transaction that reversed this one (if it is reversed)
+       undoes: the transaction id of the undone transaction that this transaction reversed
+       bonus and rebate: the dollar amounts of any rewards associated with a payment
+       preapproved: (not in the table, just internally) transaction is preapproved by another server (a payment or an authorized business unilaterally charging a customer)
+       disputed: TRUE if the payer disputes the transaction (else not set)
+       force: 1/-1 if transaction was taken offline (-1 if the transaction reverses another transaction)
+       changes: array of important changes made to the record
    (more to come...)
-   - r_usd: record of transfers to/from a USD bank made/completed/deposited. (payer field should maybe be renamed payee and amount should be negated (not crucial)).
-   - offsite: protected personal identifying information from the NEW region
-     . id: a random id that matches the type and length of the original data
-     . data: the original data, encrypted, len=
          
 F. Notes on some PHP functions and rCredits utilities - often-used or crucial
      compact/extract: typically we compact arguments to a function and the function extracts them
@@ -195,14 +189,14 @@ G. Special rCredits datatypes
   States: AZ  CA  FL  GA  IL  IN  MD  MI  MO  NJ  NY  OH  PA  TN  TX  WI (16)
 
   Regions: 
-  NE:	ME, NH, VT, MA, CT, RI (New England) (6)
-  VR:	VA, WV (Virginias) (2)
-  CL:	NC, SC (Carolinas) (2)
-  NW:	WA, OR (Northwest) (2)
-  RM:	MT, ID, NV, UT, WY, CO, NM (Rocky Mountains plus NM) (7)
-  MW:	ND, SD, NE, KS, MN, IA (Midwest, west of the Mississippi River) (6)
-  US:	DE, KY, AL, MS, LA, AR, OK, DC (southeast continental miscellany) (7+1)
-  UA:	AK, HI + territories (PR, VI, AS, GU, MP, etc) (non-contiguous) (2+5+)
+  NE:  ME, NH, VT, MA, CT, RI (New England) (6)
+  VR:  VA, WV (Virginias) (2)
+  CL:  NC, SC (Carolinas) (2)
+  NW:  WA, OR (Northwest) (2)
+  RM:  MT, ID, NV, UT, WY, CO, NM (Rocky Mountains plus NM) (7)
+  MW:  ND, SD, NE, KS, MN, IA (Midwest, west of the Mississippi River) (6)
+  US:  DE, KY, AL, MS, LA, AR, OK, DC (southeast continental miscellany) (7+1)
+  UA:  AK, HI + territories (PR, VI, AS, GU, MP, etc) (non-contiguous) (2+5+)
 
   Other countries or groups of countries will also have region codes, which will default (for now) to their 2-letter country code.
   US Population maps: http://www.towndesktop.com/images/states/michigan-pop-total.jpg

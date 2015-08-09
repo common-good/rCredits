@@ -77,7 +77,7 @@ function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $opti
  * @return: the row
  */
 function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FALSE, $boxes = FALSE, $url0 = '') {
-  global $base_url, $rUrl;
+  global $rUrl;
   static $xtid; u\setDft($xtid, 1);
   
   $mya = r\acct();

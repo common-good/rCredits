@@ -57,8 +57,8 @@ Scenario: A member clicks the summary tab
   | ID            | .ZZA (personal account) |
   | Balance       | $266 |
   | Rewards       | $256 |
-  | Committed     | $0.60 |
   | Credit limit  | $100 |
+  | Committed     | $0.60 |
   | Your return   | 20.6% |
   | _ever         | 544.1% |
 #  or 541.4% (depends on daylight time?) or 280.9%?!

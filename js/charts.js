@@ -139,10 +139,10 @@ function issuedChart() {
 //    pieStartAngle: 240,
     pieSliceText: 'percentage',
     slices: {0: {offset: 0.1},
-             1: {offset: 0.3},
+             1: {offset: 0.1},
              2: {offset: 0.1},
              3: {offset: 0.1},
-             4: {offset: 0.1},
+             4: {offset: 0.2},
     },    
     is3D: true,
     legend: {position: 'right'}

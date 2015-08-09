@@ -6,14 +6,21 @@ SO I can complete my registration and/or make sure I can be contacted by system 
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | postalCode | country | postalAddr | email | phone | tenure |*
-  | .ZZA | Abe One    |         | Atown | Alaska | 99100      | US      |            | a@    |       |     19 |
+  | id   | fullName | address | city  | state | postalCode | country | postalAddr | email | phone       | tenure |*
+  | .ZZA | Abe One  | 1 A St. | Atown | AL    | 99100      | US      | 1 A, T, AK | a@    | 14132001000 |     19 |
 
 Scenario: A member visits the contact info page
   When member ".ZZA" visits page "account/contact"
   Then we show "Contact Information" with:
-  | Your name |
-  | Abe One   |
+  | Your Name | Abe One   |
+  | Email | a@ |
+  | Phone | +1 413 200 1000 |
+# (fails because list created on the fly)  | County | United States |
+  | Postal Code | 99100 |
+  | Street Address | 1 A St. |
+  | City | Atown |
+# (fails because list created on the fly)  | State | Alaska |
+  | Postal Addr | 1 A, T, AK |
 
 Scenario: A member updates contact info
   When member ".ZZA" confirms form "account/contact" with values:

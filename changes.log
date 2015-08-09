@@ -1,3 +1,41 @@
+2015-08-09
+. when a second bank transfer request, fix the cached r
+. when user chooses "don't connect yet", set minimum to zero (and tell them)
+. alert inviter when invitee is 8 days slow accepting or progressing
+. bug fix: invoice notices were missing the link
+. add all known US regions to users table and use the region name on rcards
+. make a way to export members for import into mailchimp (modified standard admin export)
+. add message on Bank tab for admin: "(no limit for admin)"
+. fixed bug: editing tx description changes the type to disputed (and corrected doubly-serialized tx data fields)
+. alert staff if anyone ever chooses paper statements 
+. admin signin now triggers update of unencrypted bankAccount (including in r_usd). This may eventually require an "encrypt" flag bit.
+. don't require mediaconx unless OK
+. add calling to summary page
+. add photo to Summary, for cAdmin
+. don't update access date for cAdmin access to the account
+. add a "nonmembers" (where do i shop) button on Admin page
+. don't calculate or show stats for inactive communities
+. when complaining about cashing out, suggest choosing goods and services
+. add nosearch field to options tab
+. changed !NEW email to westernmass@rCredits.org
+. fixed: reimbursement/loan/etc. was getting mis-recorded as for-USD
+. channel is now recorded in r_usd, so we can tell which transfers are automatic
+. change "exchange of US Dollars or other currency" to "exchange for US Dollars (or other currency)" without being too long on mobile (and fix tests)
+. created r\regionField() to replace several constants
+. forbid joining until both accounts are activated
+. stop consolidating incoming transfer checks for completed transfers
+. lack of photoID verification now just alerts admin (tx always goes through)
+. tasks
+	DROP TABLE r_regions and re-import
+	f('a.setupBasicAccounts');
+	test change password
+	test photo upload and re-upload
+	test (in WS) displaying foreign rCard (eg NY or VT)
+	test (in WS) admin signin auto-encryption of bank accounts
+. fixed: clicking on 1st or 4th graph gives warning: "Warning: hex2bin(): Hexadecimal input string must have an even length in rCredits\Util\deurlify() (line 354 of .../rcredits-util.inc)."  
+. on promo site: signup include "organizer" bit: "I want to help bring rCredits to my community. I will tell some friends and local business people about it and will meet locally with other interested people to plan. (You will receive an email every time someone else in your 3-digit zipcode area checks this box &mdash; until your community has selected a contact person.)
+. integrated boostrap theme from promo site
+
 2015-04-21
 . version 2.1
 . made data, secure, and vsecure more efficient

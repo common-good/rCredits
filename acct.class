@@ -68,7 +68,7 @@ class acct {
       $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
     u\setDft($community, r\communityUid(@$postalCode)); // defaults to current server
-    u\setDft($created, REQUEST_TIME);
+    u\setDft($created, r\rTime());
     u\setDft($login, $created);
     u\setDft($access, $login);
 
@@ -169,7 +169,7 @@ class acct {
     } else $result = $a->getSpecial($field); // set up caches and get value, if appropriate
 
     if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
-    if ($field == 'photo') return u\decrypt($result);
+    if ($field == 'photo') return $a->co ? file_get_contents(BASE_URL . $a->auxFilename('picture')) : u\decrypt($result);
     if (in_array($field, u\ray(R_VSECURE_FIELDS)) and !is_array($result) and u\starts($result, CRYPT_FLAG)) { // !is_array() is temporary, for ssnData in transition
       if (@r\acct()->admin and $pw2 = @$_COOKIE['pw2']) {
         $result = u\decrypt($result, 0, $pw2);
@@ -230,12 +230,15 @@ class acct {
   
   /**
    * Return the entire account object or just certain fields.
-   * @param string $just: space-delimited list of fields to return
+   * @param string $just: space-delimited list of fields to return (all raw fields, if empty)
    */
   public function account($just = '') {
+    $a = $this;
     $this->reread(); // make sure we have read the record from the db
-    $account = @self::$rs[$this->id];
-    return $just ? (object) u\just($just, $account) : $account;
+    if (!$just) return @self::$rs[$a->id];
+
+    foreach (u\ray($just) as $k) $res[$k] = $a->$k;
+    return (object) $res;
   }
 
   public static function _clear() {self::$perms = self::$rs = [];}
@@ -303,7 +306,7 @@ class acct {
       } elseif (isset(self::$rs[$a->id]->$k)) $changes[$k] = @self::$rs[$a->id]->$k;
     }
     if ($changes) {
-      $changes = serialize([[time(), $changes]] + $a->changes);
+      $changes = serialize([[r\rTime(), $changes]] + $a->changes);
       $info += compact('changes');
     }
   }
@@ -328,11 +331,10 @@ class acct {
    * @return: markup to display the account's picture (with a default image if none)
    * Use $result with DRUPAL_ROOT . $result OR $base_url . $result
    */
-  public function picture($unique = FALSE) {
+  public function photoHtml($unique = FALSE) {
     global $base_url;
-    if ($unique) $unique = '?' . REQUEST_TIME;
-    $picFile = $this->auxFilename('picture');
-    return '<div class="user-picture"><img src="' . "$base_url$picFile$unique" . '" alt="profile picture" /></div>';
+    if ($unique) $unique = '?' . r\rTime();
+    return '<div class="user-picture"><img src="' . "$base_url/account/icon$unique" . '" alt="profile picture" /></div>';
   }
 
   /**
@@ -396,9 +398,9 @@ class acct {
    */
   public static function setDefault($a) {
     global $currentAcct, $channel; 
-    global $user; if (empty($user)) $user = (object) ($a ? $a->account() : array('uid' => 0)); // probably needed only for rWeb login form testing
+    global $user; if (empty($user)) $user = (object) ['uid' => $a ? $a->id : 0]; // probably needed only for rWeb login form testing
     if ($a and @$currentAcct != $a and !$a->cAdmin) { // admin access doesn't count
-      $access = REQUEST_TIME;
+      $access = r\rTime();
       if ($channel == TX_WEB) $login = $access;
       $a->update(compact('login', 'access'));
     }
@@ -423,9 +425,7 @@ class acct {
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
     $avail += $get ? $this->draw($need - $avail) : $this->canDraw(); // get or just asking
-    $shortfall = max(0, $need - $avail);
-
-    return $shortfall; 
+    return max(0, $need - $avail); 
   }
   
   /**
@@ -433,10 +433,10 @@ class acct {
    * @param string $goods: purpose of the potential expenditure: R_FOR_GOODS or R_FOR_USD - see acct::shortfall())
    */
   public function avail($goods) {
-    $floor = $this->j_floor;
-    if (!$this->can(B_DEBT)) $floor = max($floor, 0); // no going into debt without permission
-    if ($goods == R_FOR_USD) $floor = max($floor, $this->j_rewards); // no exchanging rewards for cash
-    return $this->j_r - $this->j_committed - $floor;
+    $a = $this;
+    $floor = $a->can(B_DEBT) ? $a->j_floor : max($a->j_floor, 0); // no going into debt without permission
+    if ($goods == R_FOR_USD) $floor = max($floor, $a->j_rewards); // no exchanging rewards for cash
+    return round($a->j_r - $a->j_committed - $floor, 2);
   }
   
   /**
@@ -640,7 +640,7 @@ EOF;
    */
   public function stampNotes(&$notes) {
     $rep = strtolower(u\initials(r\agent()->legalName) ?: 'WS');
-    $date = str_replace('-', '', u\fmtDate(REQUEST_TIME));
+    $date = str_replace('-', '', u\fmtDate());
     if ($notes != '' and $notes != $this->notes and substr($notes, 5, 2) != substr($date, 5, 2)) $notes = "$date  $rep: $notes"; // check century (will fail gently in 2100)
   }
 
@@ -742,36 +742,38 @@ EOF;
 
   /**
    * Request a transfer of funds to or from a connected bank account.
-   * @param numeric $amount: the amount to transfer TO or (if negative) FROM the bank
+   * @param numeric $amount0: the amount to transfer TO or (if negative) FROM the bank
    * @param int $completed: (also RETURNED) the completion date
    * @param assoc $tx: forced field values, if any
    * @return the transaction number (FALSE if failure)
    */
-  public function bank($amount, &$completed = '', $tx = []) {
+  public function bank($amount0, &$completed = '', $tx = []) {
+    global $channel;
     $a = $this;
     $payer = $a->id;
     $bankAccount = @$a->secure['bankAccount']; // already-encrypted bank account (@ is for testing)
     if ($tx) extract($tx);
     u\setDft($tid, r\getUsdTid($payer));
-    u\setDft($created, REQUEST_TIME);
-    if (!$completed) $completed = ($amount > 0 or -$amount <= -$a->floor) ? $created : 0;
+    u\setDft($created, r\rTime());
+    if (!$completed) $completed = ($amount0 > 0 or -$amount0 <= -$a->floor) ? $created : 0;
 
     $DBTX = \db_transaction();
-    $where = 'payer=:payer AND NOT deposit AND amount' . ($amount < 0 ? '<0' : '>0');
+    $where = 'payer=:payer AND NOT deposit AND amount' . ($amount0 < 0 ? '<0 AND NOT completed' : '>0');
     if ($res = db\lookup('txid,amount', 'r_usd', $where, compact('payer'))) { // found another the same direction
-      extract($res, EXTR_PREFIX_ALL, 't');
-      $amount += $t_amount;
-      $txid = $t_txid;
+      extract($res);
+      $amount += $amount0;
       db\update('r_usd', compact(u\ray('txid amount completed bankAccount')), 'txid');
     } else {
-      $txid = db\insert('r_usd', $tx += compact(u\ray('amount payer created completed tid bankAccount')));
+      $amount = $amount0;
+      if (isGAME) $tx += ['members' => $a->members];
+      $txid = db\insert('r_usd', $tx += compact(u\ray('amount payer created completed tid bankAccount channel')));
       u\EXPECT((bool) $txid, 'saving usd record');
     }
 
-    if ($amount > 0) { // tell staff to transfer the funds using BillPay or check
-      $a->update('r', $a->r - $amount);
-      if ($txid > 0) r\tellStaff(t('outgoing bank transfer request'), compact('amount'));
-    } elseif ($completed) $a->completeUsdTx(0, -$amount, $created);
+    if ($amount0 > 0) { // tell staff to transfer the funds using BillPay or check
+      $a->update('r', $a->r - $amount0);
+      if ($txid > 0) r\tellStaff(t('outgoing bank transfer request'), ['amount' => $amount0]);
+    } elseif ($completed) $a->completeUsdTx(0, -$amount0, TRUE);
 
     unset($DBTX);
     return $txid;
@@ -781,17 +783,15 @@ EOF;
    * Mark a USD transfer complete, update cache, and report.
    * @param int $txid: the transfer record ID (if NULL, no need to mark it complete)
    * @param numeric $amount: transfer amount (positive)
-   * @param int $created: Unixtime record was created
+   * @param bool $automatic: <transfer was created automatically>
    * @return <success>
    */
-  public function completeUsdTx($txid, $amount, $created) {
-    global $channel;
+  public function completeUsdTx($txid, $amount, $automatic) {
     $a = $this;
     
-    if (@$txid and !db\update('r_usd', ['txid'=>$txid, 'completed'=>time()], 'txid')) return FALSE;
+    if (@$txid and !db\update('r_usd', ['txid'=>$txid, 'completed'=>r\rTime()], 'txid')) return FALSE;
     $a->update('r', $a->r + $amount);
-    $hour = strftime('%H', strtotime($created)); // creation hour 
-    $transfer = $channel == TX_CRON ? t('automatic transfer') : t('transfer');
+    $transfer = $automatic ? t('automatic transfer') : t('transfer');
     $amount = u\fmtAmt(abs($amount));
     r\notify($a->id, 'transfer complete', compact('transfer', 'amount'));
     if (!$a->can(B_BONA)) r\message($a->id, 'account funded');
@@ -810,18 +810,17 @@ EOF;
    * @see also r\Web\rdo()
    */
   function makeDo0($op, $v = NULL, $life = WEEK7_SECS, $info = []) {
-    global $base_url;
   //  extract($data = u\rayy(func_get_args()) ?: $data);
     extract($info);
     $info += compact('op');
     if (!is_null($v)) $info += compact('v');
     
     if (@$life) {
-      $data = u\ray('uid expires data', $this->id, time() + $life, serialize($info));
+      $data = u\ray('uid expires data', $this->id, r\rTime() + $life, serialize($info));
       $info = u\ray('op', db\insert('r_do', $data)); // (preliminary) op is r_do record ID
     } else $info += ['mo'=>rdoMonth()]; // remember month, in case we need to know when link was created
 
-    return "$base_url/do/" . r\makeDoCode($info);
+    return BASE_URL . "/do/" . r\makeDoCode($info);
   }
   function makeDo($op, $v = NULL, $life = WEEK7_SECS, $info = []) {
     return 'a href="' . $this->makeDo0($op, $v, $life, $info) . '"';
@@ -918,7 +917,7 @@ EOF;
     if ($bit <= B_MAX) { // ordinary bits
       $can = (bool) ($a->flags & (1 << $bit)); // these are easy. be efficient.
       if (in_array($bit, [B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN])) {
-        if (!$a->proSe) { // admin permissions depend on agent
+        if (!$a->proSe and !isGAME) { // admin permissions depend on agent
           return ($aa = $a->agent) ? $aa->can($bit) : FALSE; // timing errors in _construct can give no agent
         }
         if (!$can and $bit < R_ADMIN_CAN_MANAGE_CTTYS ? B_ADMIN : B_CADMIN) return $a->can($bit + 1); // not this admin bit, maybe the next higher?
@@ -998,27 +997,30 @@ function IA($quid = '', $no_abbrev = TRUE) {
 }
 
 /**
- * Store or retrieve the given offsite data.
- * @param string (bigint) $id: record key of offsite data to retrieve or update (if empty, store the data)
- * @param assoc $data: fields to store or update offsite (if NULL, retrieve the data)
- * @return array: the actual data (if RETRIEVING) or record key (if STORING)
- *//*
-function offsiteData($id, $data = NULL) {
-  if (isset($data)) $data = bin2hex(u\crypt(serialize($data), R_WORD));
-  $result = u\httpRequest(R_SECRET_URL . '/offsite.php', compact('id', 'data'));
-  return isset($data) ? $result : (array) unserialize(u\decrypt(hex2bin($result), R_WORD)); // hex2bin=pack('H*'
-}  */
-
+ * Return an account object for the described account.
+ * call by:
+ *   r\acct()       (returns current account)
+ *   r\acct($uid)
+ *   r\acct($main, $agent)
+ *   r\acct($main, $agent, $error)
+ *   r\acct($email)
+ * @param int $uid: account uid
+ * @param int $main: main account uid
+ * @param int $agent: agent uid
+ * @param string $email: email address for the account
+ * @param string $error: error message, if any
+ * @return the appropriate account object (FALSE if none)
+ */
 function acct($uid = '', $agent = '', &$error = '') {
   global $currentAcct; // use this ONLY in this class file
-  if (!$uid) {
-    if (!$currentAcct) {$error = 'There is no current account.'; return FALSE;}
-    return $currentAcct;
-  }
+  if (!$uid) return $currentAcct ?: (!$error = 'There is no current account.');
   if (strpos($uid, '@')) $uid = db\lookup('uid', 'users', 'mail=:mail', ['mail' => u\cryptN($uid)]);
   if (!acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   if (!acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   return new acct($uid, $agent);
 }
 
+/**
+ * Return an account object for the agent of the given account.
+ */
 function agent($uid = '') {return @acct($uid)->agent;}

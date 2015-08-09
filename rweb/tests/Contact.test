@@ -44,8 +44,8 @@ class rwebContact extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "ASSOC'
-    . '\\| id   | fullName   | address | city  | state  | postalCode | country | postalAddr | email | phone | tenure |'
-    . '\\| .ZZA | Abe One    |         | Atown | Alaska | 99100      | US      |            | a@    |       |     19 |"');
+    . '\\| id   | fullName | address | city  | state | postalCode | country | postalAddr | email | phone       | tenure |'
+    . '\\| .ZZA | Abe One  | 1 A St. | Atown | AL    | 99100      | US      | 1 A, T, AK | a@    | 14132001000 |     19 |"');
     break;
 
 
@@ -57,8 +57,13 @@ class rwebContact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" visits page "account/contact"');
     Then_('we show "Contact Information" with: "ARRAY'
-    . '\\| Your name |'
-    . '\\| Abe One   |"');
+    . '\\| Your Name | Abe One   |'
+    . '\\| Email | a@ |'
+    . '\\| Phone | +1 413 200 1000 |'
+    . '\\| Postal Code | 99100 |'
+    . '\\| Street Address | 1 A St. |'
+    . '\\| City | Atown |'
+    . '\\| Postal Addr | 1 A, T, AK |"');
   }
 
   // Scenario: A member updates contact info

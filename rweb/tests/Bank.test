@@ -1,9 +1,12 @@
 <?php
 //
-// Feature: Bank
+// Feature: Get rCredits/USD
 //   AS a member
-//   I WANT to transfer funds from my bank account to my rCredits account or vice versa
-//   SO I can get money in and out of my rCredits account.
+//   I WANT to transfer credit to my bank account
+//   SO I can pay it to non-members
+//   OR
+//   I WANT to transfer credit from my bank account
+//   SO I can spend it through the rCredits system or hold it in the rCredits system as savings.
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
 require_once __DIR__ . '/../rweb.steps';
@@ -13,7 +16,7 @@ class rwebBank extends DrupalWebTestCase {
   var $sceneName;
   const SHORT_NAME = 'Bank';
   const FEATURE_NAME = 'rweb Test - Bank';
-  const DESCRIPTION = 'Bank';
+  const DESCRIPTION = 'Get rCredits/USD';
   const MODULE = 'rweb';
 
   public function gherkin($statement, $type) {
@@ -44,50 +47,143 @@ class rwebBank extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "ASSOC'
-    . '\\| id   | fullName | flags   | risks   |'
-    . '\\| .ZZA | A Mem    | ok,bona | hasBank |'
-    . '\\| .ZZB | B Mem    | ok,bona |         |'
-    . '\\| .ZZC | C Mem    | ok,bona |         |'
-    . '\\| .ZZD | D Mem    | ok,bona |         |"');
+    . '\\| id   | fullName | floor | minimum | flags   | risks   |'
+    . '\\| .ZZA | Abe One  |   -50 |      10 | ok,bona | hasBank |'
+    . '\\| .ZZB | Bea Two  |     0 |      10 | ok      | hasBank |'
+    . '\\| .ZZC | Our Pub  |     0 |     100 | co,ok   |         |'
+    . '\\| .ZZD | Dee Four |     0 |     100 | ok      | hasBank |"');
     And__('transactions: "ASSOC'
-    . '\\| xid | created   | type     | amount | from | to   | purpose |'
-    . '\\| 1   | %today-7m | signup   |    100 | ctty | .ZZA | signup  |'
-    . '\\| 2   | %today-7m | signup   |    100 | ctty | .ZZB | signup  |'
-    . '\\| 3   | %today-7m | signup   |    100 | ctty | .ZZC | signup  |'
-    . '\\| 4   | %today-7m | signup   |    100 | ctty | .ZZD | signup  |'
-    . '\\| 8   | %today    | transfer |     80 | .ZZD | .ZZA | gift    |"');
+    . '\\| xid | created    | type   | amount | from | to   | purpose |'
+    . '\\| 1   | %today-10d | signup |     20 | ctty | .ZZA | signup  |'
+    . '\\| 2   | %today-10d | grant  |    100 | ctty | .ZZB | grant   |'
+    . '\\| 3   | %today-10d | signup |     10 | ctty | .ZZC | signup  |'
+    . '\\| 4   | %today-10d | signup |     20 | ctty | .ZZD | signup  |"');
+    And__('usd transfers: "ASSOC'
+    . '\\| txid | payer | amount | tid | created   | completed | deposit   |'
+    . '\\| 5001 |  .ZZA |    -99 |   1 | %today-7d | %today-5d | %today-1d |'
+    . '\\| 5002 |  .ZZA |   -100 |   2 | %today-5d |         0 | %today-1d |'
+    . '\\| 5003 |  .ZZA |     13 |   3 | %today-2d | %today-2d | %today-1d |'
+    . '\\| 5004 |  .ZZB |      4 |   1 | %today-2d | %today-2d | %today-1d |'
+    . '\\| 5005 |  .ZZC |    -30 |   1 | %today-2d | %today-2d | %today-1d |'
+    . '\\| 5006 |  .ZZD |   -140 |   1 | %today-2d | %today-2d | %today-1d |"');
+    Then_('balances: "ASSOC'
+    . '\\| id   | r    | rewards |'
+    . '\\| .ZZA |  106 |      20 |'
+    . '\\| .ZZB |   96 |       0 |'
+    . '\\| .ZZC |   40 |      10 |'
+    . '\\| .ZZD |  160 |      20 |"');
     break;
 
 
     }
   }
 
-  // Scenario: A member transfers funds from the bank
-  public function testAMemberTransfersFundsFromTheBank_0() {
+  // Scenario: a member moves credit to the bank
+  public function testAMemberMovesCreditToTheBank_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" completes form "get" with values: "ASSOC'
-    . '\\| amount | op  |'
-    . '\\|     40 | get |"');
-    Then_('we say "status": "banked|bank tx number" with subs: "ASSOC'
-    . '\\| action     | amount | checkNum |'
-    . '\\| draw from  | $40    |        1 |"');
-    And__('usd transfers: "ASSOC'
-    . '\\| txid | payer | amount |'
-    . '\\|    1 | .ZZA  |    -40 |"');
+    . '\\| op  | amount |'
+    . '\\| put |     86 |"');
+    Then_('usd transfers: "ASSOC'
+    . '\\| payer | amount | tid | created   | completed | channel |'
+    . '\\|  .ZZA |     86 |   4 | %today    | %today    | %TX_WEB |"');
+    And__('we say "status": "banked" with subs: "ASSOC'
+    . '\\| action     | amount |'
+    . '\\| deposit to | $86    |"');
+    And__('balances: "ASSOC'
+    . '\\| id   | r  |'
+    . '\\| .ZZA | 20 |"');
   }
 
-  // Scenario: A member transfers funds to the bank
-  public function testAMemberTransfersFundsToTheBank_0() {
+  // Scenario: a member draws credit from the bank with zero floor
+  public function testAMemberDrawsCreditFromTheBankWithZeroFloor_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZB" completes form "get" with values: "ASSOC'
+    . '\\| op  | amount    |'
+    . '\\| get | %R_ACHMIN |"');
+    Then_('usd transfers: "ASSOC'
+    . '\\| txid | payer | amount     | tid | created | completed | channel |'
+    . '\\| 5007 |  .ZZB | -%R_ACHMIN |   2 | %today  |         0 | %TX_WEB |"');
+    And__('balances: "ASSOC'
+    . '\\| id   | r   |'
+    . '\\| .ZZA | 106 |"');
+    And__('we say "status": "banked|bank tx number" with subs: "ASSOC'
+    . '\\| action     | amount     | checkNum |'
+    . '\\| draw from  | $%R_ACHMIN |     5007 |"');
+  }
+
+  // Scenario: a member draws credit from the bank with adequate floor
+  public function testAMemberDrawsCreditFromTheBankWithAdequateFloor_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" completes form "get" with values: "ASSOC'
-    . '\\| amount | op  |'
-    . '\\|     40 | put |"');
-    Then_('we say "status": "banked" with subs: "ASSOC'
-    . '\\| action     | amount |'
-    . '\\| deposit to | $40    |"');
-    And__('usd transfers: "ASSOC'
-    . '\\| payer | amount |'
-    . '\\| .ZZA  |     40 |"');
+    . '\\| op  | amount    |'
+    . '\\| get | %R_ACHMIN |"');
+    Then_('usd transfers: "ASSOC'
+    . '\\| txid | payer | amount     | tid | created | completed | channel |'
+    . '\\| 5007 |  .ZZA | -%R_ACHMIN |   4 | %today  |    %today | %TX_WEB |"');
+    And__('balances: "ASSOC'
+    . '\\| id   | r                |'
+    . '\\| .ZZA | %(106+%R_ACHMIN) |"');
+    And__('we say "status": "banked|bank tx number|available now" with subs: "ASSOC'
+    . '\\| action     | amount     | checkNum |'
+    . '\\| draw from  | $%R_ACHMIN |     5007 |"');
+  }
+
+  // Scenario: a member moves too little to the bank
+  public function testAMemberMovesTooLittleToTheBank_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" completes form "get" with values: "ASSOC'
+    . '\\| op  | amount           |'
+    . '\\| put | %(%R_ACHMIN-.01) |"');
+    Then_('we say "error": "bank too little"');
+  }
+
+  // Scenario: a member tries to cash out rewards and/or pending withdrawals
+  public function testAMemberTriesToCashOutRewardsAndorPendingWithdrawals_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" completes form "get" with values: "ASSOC'
+    . '\\| op  | amount |'
+    . '\\| put |     87 |"');
+    Then_('we say "error": "short put|short cash help" with subs: "ASSOC'
+    . '\\| max |'
+    . '\\| $86 |"');
+  }
+
+  // Scenario: a member moves too much to the bank
+  public function testAMemberMovesTooMuchToTheBank_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZB" completes form "get" with values: "ASSOC'
+    . '\\| op  | amount |'
+    . '\\| put |    200 |"');
+    Then_('we say "error": "short put|short cash help" with subs: "ASSOC'
+    . '\\| max |'
+    . '\\| $96 |"');
+  }
+
+  // Scenario: a member tries to go below their minimum
+  public function testAMemberTriesToGoBelowTheirMinimum_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZD" completes form "get" with values: "ASSOC'
+    . '\\| op  | amount |'
+    . '\\| put |     61 |"');
+    Then_('we say "error": "change min first"');
+  }
+
+  // Scenario: a member asks to do two transfers out in one day
+  public function testAMemberAsksToDoTwoTransfersOutInOneDay_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('usd transfers: "ASSOC'
+    . '\\| payer | amount | tid | created   |'
+    . '\\|  .ZZD |      6 |   0 | %today    |"');
+    When_('member ".ZZD" completes form "get" with values: "ASSOC'
+    . '\\| op  | amount |'
+    . '\\| put |     10 |"');
+    Then_('we show "Bank Transfer" with: "ARRAY'
+    . '\\|_Pending |'
+    . '\\| You have total pending transfer requests of $6 to your bank account. |"');
+    And__('we say "error": "short put|short cash help" with subs: "ASSOC'
+    . '\\| max |'
+    . '\\| $0  |"');
   }
 
 }

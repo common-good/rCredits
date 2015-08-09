@@ -8,13 +8,20 @@ Setup:
   | id   | fullName | email | flags   | access    | floor |*
   | .ZZA | Abe One  | a@    |         | %today-1d |     0 |
   | .ZZB | Bea Two  | b@    |         | %today-2d |     0 |
-  | .ZZD | Dee Four | d@    |         | %today-3d |     0 |
+  | .ZZD | Dee Four | d@    |         | %today-8d |     0 |
   | .ZZE | Eve Five | e@    | ok,bona | %today-3m |     0 |
   | .ZZF | Flo Six  | f@    | ok      | %today-3m |     0 |
 
 Scenario: A newbie has not taken the first step
+  Given invites:
+  | email | inviter | code   | invited   | invitee |*
+  | d@    | .ZZE    | codeD1 | %today-9d | .ZZD    |
+  And member ".ZZD" has done step "contact"
   When cron runs "tickle"
-  Then we notice "do step one|sign in" to member ".ZZA"
+  Then we notice "do step one|sign in" to member ".ZZD"
+  And we notice "invitee slow" to member ".ZZE" with subs:
+  | fullName | elapsed | step |*
+  | Dee Four |       8 | sign |
   
 Scenario: A newbie has taken some steps but not all
   Given member ".ZZA" has done step "sign contact donate proxies prefs photo"
@@ -44,6 +51,9 @@ Scenario: A nonmember has not accepted the invitation
   Then we email "nonmember" to member "zot@example.com" with subs:
   | inviterName | code   | site        | nudge                                      | noFrame |*
   | Abe One     | codeA1 | %R_SITE_URL | We will send you just one more reminder(s) | 1       |
+  And we notice "invite languishing" to member ".ZZA" with subs:
+  | email           | elapsed |*
+  | zot@example.com |       8 |
 
 Scenario: A nonmember has accepted the invitation
   Given invites:
@@ -56,7 +66,7 @@ Scenario: A nonmember has accepted an invitation from someone else instead
   Given invites:
   | email         | inviter | code   | invited   | invitee |*
   | b@example.com | .ZZA    | codeA1 | %today-8d | 0       |
-  | b@example.com | .ZZD    | codeA1 | %today-8d | .ZZB    |
+  | b@example.com | .ZZD    | codeA1 | %today-5d | .ZZB    |
   When cron runs "tickle"
   Then we do not email "nonmember" to member "b@example.com"
 

@@ -55,10 +55,10 @@ Setup:
 
 Scenario: An agent asks to undo a charge
   Given transactions: 
-  | xid | created   | type     | amount | from | to   | purpose      | taking |*
-  | 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | whatever     |      1 |
-  | 5   | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #2 |      0 |
-  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  |      0 |
+  | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
+  | 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | whatever     | %R_FOR_GOODS |      1 |
+  | 5   | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #2 | %R_FOR_USD   |      0 |
+  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  | %R_FOR_USD   |      0 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
   Then we respond ok txid 7 created %now balance 250 rewards 250
   And with message "report undo|report tx|reward" with subs:
@@ -107,13 +107,13 @@ Scenario: An agent asks to undo a refund
 
 Scenario: An agent asks to undo a cash-out charge
   Given transactions: 
-  | xid | created   | type     | amount | from | to   | purpose  | goods | taking |*
-  | 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | cash out |     0 |      1 |
+  | xid | created   | type     | amount | from | to   | purpose  | goods      | taking |*
+  | 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | cash out | %R_FOR_USD |      1 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
   Then we respond ok txid 5 created %now balance 250 rewards 250
   And with message "report undo|report tx" with subs:
   | solution | did      | otherName | amount | why         |*
-  | reversed | credited | Abe One   | $80    | other money |
+  | reversed | credited | Abe One   | $80    | exchange of US Dollars or other currency |
   And with did ""
   And with undo "4"
   And we notice "new payment" to member ".ZZA" with subs:
@@ -122,13 +122,13 @@ Scenario: An agent asks to undo a cash-out charge
 
 Scenario: An agent asks to undo a cash-in payment
   Given transactions: 
-  | xid | created   | type     | amount | from | to   | purpose | goods | taking |*
-  | 4   | %today-1d | transfer |    -80 | .ZZA | .ZZC | cash in |     0 |      1 |
+  | xid | created   | type     | amount | from | to   | purpose | goods      | taking |*
+  | 4   | %today-1d | transfer |    -80 | .ZZA | .ZZC | cash in | %R_FOR_USD |      1 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
   Then we respond ok txid 5 created %now balance 250 rewards 250
   And with message "report undo|report tx" with subs:
   | solution | did        | otherName | amount | why         |*
-  | reversed | re-charged | Abe One   | $80    | other money |
+  | reversed | re-charged | Abe One   | $80    | exchange of US Dollars or other currency |
   And with did ""
   And with undo "4"
   And we notice "new charge" to member ".ZZA" with subs:
@@ -137,11 +137,11 @@ Scenario: An agent asks to undo a cash-in payment
 
 Scenario: An agent asks to undo a charge, with insufficient balance  
   Given transactions: 
-  | xid | created   | type     | amount | from | to   | purpose      | goods | taking |*
-  | 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | whatever     |     2 |      1 |
-  | 5   | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #2 |     0 |      0 |
-  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  |     0 |      0 |
-  | 7   | %today    | transfer |    300 | .ZZC | .ZZB | labor        |     0 |      0 |
+  | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
+  | 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | whatever     | %R_FOR_GOODS |      1 |
+  | 5   | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #2 | %R_FOR_USD   |      0 |
+  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  | %R_FOR_USD   |      0 |
+  | 7   | %today    | transfer |    300 | .ZZC | .ZZB | labor        | %R_FOR_USD   |      0 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
   Then we respond ok txid 8 created %now balance 250 rewards 250
   And with message "report undo|report tx|reward" with subs:
@@ -161,11 +161,11 @@ Scenario: An agent asks to undo a charge, with insufficient balance
 
 Scenario: An agent asks to undo a refund, with insufficient balance  
   Given transactions: 
-  | xid | created   | type     | amount | from | to   | purpose      | goods | taking |*
-  | 4   | %today-1d | transfer |    -80 | .ZZA | .ZZC | refund       |     2 |      1 |
-  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZA | rebate on #2 |     0 |      0 |
-  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  |     0 |      0 |
-  | 7   | %today    | transfer |    300 | .ZZA | .ZZB | labor        |     0 |      0 |
+  | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
+  | 4   | %today-1d | transfer |    -80 | .ZZA | .ZZC | refund       | %R_FOR_GOODS |      1 |
+  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZA | rebate on #2 | %R_FOR_USD   |      0 |
+  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  | %R_FOR_USD   |      0 |
+  | 7   | %today    | transfer |    300 | .ZZA | .ZZB | labor        | %R_FOR_USD   |      0 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
   Then we respond ok txid 8 created %now balance -50 rewards 250
   And with message "report undo|report tx|reward" with subs:
@@ -185,10 +185,10 @@ Scenario: An agent asks to undo a refund, with insufficient balance
 
 Scenario: An agent asks to undo a charge, without permission
   Given transactions: 
-  | xid | created   | type     | amount | from | to   | purpose      | goods | taking |*
-  | 4   | %today-1d | transfer |     80 | .ZZB | .ZZC | whatever     |     2 |      1 |
-  | 5   | %today-1d | rebate   |      4 | ctty | .ZZB | rebate on #2 |     0 |      0 |
-  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  |     0 |      0 |
+  | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
+  | 4   | %today-1d | transfer |     80 | .ZZB | .ZZC | whatever     | %R_FOR_GOODS |      1 |
+  | 5   | %today-1d | rebate   |      4 | ctty | .ZZB | rebate on #2 | %R_FOR_USD   |      0 |
+  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  | %R_FOR_USD   |      0 |
   When agent ":ZZA" asks device "devC" to undo transaction 4
   Then we return error "no perm" with subs:
   | what    |*
@@ -196,10 +196,10 @@ Scenario: An agent asks to undo a charge, without permission
 
 Scenario: An agent asks to undo a refund, without permission
   Given transactions: 
-  | xid | created   | type     | amount | from | to   | purpose      | goods | taking |*
-  | 4   | %today-1d | transfer |    -80 | .ZZB | .ZZC | refund       |     2 |      1 |
-  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZB | rebate on #2 |     0 |      0 |
-  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  |     0 |      0 |
+  | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
+  | 4   | %today-1d | transfer |    -80 | .ZZB | .ZZC | refund       | %R_FOR_GOODS |      1 |
+  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZB | rebate on #2 | %R_FOR_USD   |      0 |
+  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  | %R_FOR_USD   |      0 |
   When agent ":ZZD" asks device "devC" to undo transaction 4
   Then we return error "no perm" with subs:
   | what  |*

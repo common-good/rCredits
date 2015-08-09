@@ -50,6 +50,7 @@ function doThing($info, $type) {
   extract($info);
   if (@$id) $info['uid'] = t\uid($id); unset($info['id']);
   foreach (u\ray('inviter invitee person proxy') as $one) if (@$$one) $info[$one] = t\uid($$one) ?: 0;
+  if (@$email) $info['email'] = t\fixEmail($email);
   $table = 'r_' . strtolower($type) . 's';
   return $testOnly ? verifyRecord($table, $info) : db\insert($table, $info);
 }
@@ -113,7 +114,7 @@ function doAccount($info = []) {
     u\setDft($postalAddr, @$address . ', ' . @$city . ", $state $postalCode");
     u\setDft($photoId, "$state-{$postalCode}999");
 
-    $moneyFields = 'share committed floor r usd rewards'; // not minimum because NULL means not set, in Membership page
+    $moneyFields = 'share committed floor r rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
     if (@$cc) $cardCode = $cc;
     if (@$cc2) $cardCode2 = $cc2;
@@ -181,7 +182,7 @@ function doTx($info, $thing) {
   $inv = ($thing == 'Invoice');
   extract($info);
 
-  u\setDft($created, REQUEST_TIME);
+  u\setDft($created, r\rTime());
   if (@$from) txUid($from, $payer, $fromAgent);
   if (@$to) txUid($to, $payee, $toAgent);
   
@@ -199,8 +200,10 @@ function doTx($info, $thing) {
     if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
     u\setDft($type, TX_TRANSFER);
     foreach (u\ray('type') as $one) if (!is_numeric($$one)) $$one = u\consta('tx', $$one);
-    u\setDft($goods, ($type != TX_TRANSFER or u\forCash(@$for)) ? R_FOR_USD : R_FOR_GOODS);
-    if ($goods == R_FOR_GOODS) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
+    if (!$testOnly) {
+      u\setDft($goods, ($type != TX_TRANSFER or u\forCash(@$for)) ? R_FOR_USD : R_FOR_GOODS);
+      if ($goods == R_FOR_GOODS) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
+    }
     $data = [];
     if (u\in(@$purpose, 'offline')) $data['force'] = 1;
     if (u\in(@$purpose, 'undoneBy:') or u\in(@$purpose, 'undoes:')) {
@@ -353,7 +356,7 @@ function doneStep($uid, $step) {
   return TRUE;
   
   if ($step == 'photo') return t\makePicture('whatever', $a);
-  if ($step == 'sign') return $a->update('signed', REQUEST_TIME);
+  if ($step == 'sign') return $a->update('signed', r\rTime());
   if ($step == 'donate') return db\insert('r_gifts', u\ray('uid amount', $uid, 123));
   if ($step == 'proxies') return db\q('INSERT INTO r_proxies (person, proxy) VALUES (:uid, 2),(:uid, 3)', compact('uid'));
   
@@ -406,8 +409,6 @@ function memberFieldValues($list) {
 
 /**
  * Make the cached balances and other numeric fields be thus and such.
- * "dwolla" is a special field that sets or tests the actual dwolla balance for a test account
- * "dw/usd" means set or test both dwolla and usd
  * "?" in a field means ignore its value when testing
  */
 function doBalance($one) {
@@ -456,68 +457,38 @@ function usdTransferCount($where = '1') {
 }
 
 function usdTransfers($txs) {
-  global $testOnly;
+  global $testOnly, $channel; $channel0 = $channel;
   
-  foreach ($txs as $tx) {
+  foreach ($txs as $tx) { // do not extract $tx, because setDft will fail after the first unless we unset vars
+    if (@$tx['payer']) $tx['payer'] = $payer = t\uid($tx['payer']);
+
     if ($testOnly) {
-      extract(u\just('payer risks', $tx));
-      if (@$payer) $tx['payer'] = t\uid($payer);
-      if (isset($risks)) $tx['risks'] = getRisks($risks, K_TX_RISKS);
+      if (isset($tx['risks'])) $tx['risks'] = getRisks($tx['risks'], K_TX_RISKS);
       if (!verifyRecord('r_usd', $tx)) return FALSE;
     } else {
-      if ($uid = $tx['payer']) {
-        $tx['payer'] = $uid = t\uid($uid);
-        $a = r\acct($uid);
-        $tx['bankAccount'] = @$a->secure['bankAccount'];
-      }
+      $a = r\acct($tx['payer']);
+      $tx['bankAccount'] = @$a->secure['bankAccount'];
       u\setDft($tx['txid'], t\seq());
       u\setDft($tx['risk'], NULL);
       u\setDft($tx['created'], @$tx['completed']);
       if (!db\insert('r_usd', $tx)) return FALSE;
-      extract($tx);
-      $a1 = r\acct($payer);
-      
-/*
-      if (@$payee and $payee != -1) {
-        $a2 = r\acct($payee);
-        $a1->update('usd r', $a1->usd - $amount, $a1->r + $amount);
-        $a2->update('usd r', $a2->usd + $amount, $a2->r - $amount);
-        if ($amount > DW_FEE_THRESHOLD) r\queue('coverFee', compact(u\ray('txid payee')));
-      } else
-      */
-      if (@$completed) $a1->update('r', $a1->r - $amount);
+      if (@$tx['completed']) $a->update('r', $a->r - $tx['amount']);
     }
   }
   return TRUE;
 }
 
 /**
- * Return FALSE if the cached and actual USD balances are not as expected.
- *//*
-function usd($list) {
-  global $testOnly; if (!$testOnly) return t\output('usd cache/actual cannot be made');
-  foreach ($list as $one) {
-    extract(u\just('id cached actual', $one));
-    $us = new r\usd($a = r\acct(t\uid($id)));
-    if (!in_array($a->usdAccount, array(DW_TEST_ACCT))) return t\output('bad account for usd');
-    if (t\badEq('cached usd', $a->usd, $cached, $id)) return FALSE;
-    if (t\badEq('actual usd', $us->bal($err), $actual, $id)) return t\output("Dwolla err: $err");
-  }
-  return TRUE;
-}
-*/
-
-/**
  * Run the op in the background, return TRUE.
-include_once __DIR__ . '/../rcredits/rcredits-testing.inc';
-f('t.cronRuns', 'op');
+   include_once __DIR__ . '/../rcredits/rcredits-testing.inc';
+   f('t.cronRuns', 'op');
  */
 function cronRuns($op) {
   global $testOnly; if(@$testOnly) return FALSE;
   global $cronOp; $cronOp = $op;
   $func = "rCredits\\Cron\\$op";
 
-  $now = REQUEST_TIME;
+  $now = r\rTime();
   \variable_set('r_last_cron', u\ray('day week month', $now, $now, $now)); // normally don't run periodics
 
   if ($op == 'ALL' or strpos(R_DAILY_TASKS, " $op ")) {
@@ -603,13 +574,14 @@ function weTellStaff($topic, $subs = []) {
   foreach ($subs as $one) {
     $index = 'tell-staff';
     $subject = str_replace('{topic}', $topic, $GLOBALS['emailSubjects'][$index]);
-    $find = '%"index":"@index","email":"@R_REGION_EMAIL","subject":"@subject"%';
+    $regEmail = r\regionfield('email');
+    $find = '%"index":"@index","email":"@regEmail","subject":"@subject"%';
     if ($id = @$one['id']) {
       $id = t\uid($id);
       $find .= "(#$id)%";
       unset($one['id']);
     }
-    $find = u\tt($find, compact('index', 'subject'));
+    $find = u\tt($find, compact(u\ray('index subject regEmail')));
     foreach ($one as $k => $value) $find .= "$value%";
     if (!$last = db\lookup('info', 'r_log', "info LIKE '$find' ORDER BY logid DESC")) {
       if (count($subs) > 1) output("tell-staff can't find $find");
@@ -638,6 +610,7 @@ function findEmail($index, $email, $subs) {
 
   $subs = @$subs[0] ?: @$subs;
   t\fixEmail($email);
+  if ($a = r\acct($email)) $subs['quid'] = $a->mainQid;
   foreach ($subs as $k => $v) $esubs['{' . $k . '}'] = $v;
   $message = @$subs['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
   $message = str_replace("\r\n", '', $message);
@@ -704,8 +677,9 @@ function weShowWithSubs($page, $subs) {
     foreach (u\just(R_DATE_FIELDS, $subs) as $k => $v) if (is_numeric($v)) $subs[$k] = u\fmtDate($v);
     $wanted = u\tt($page, $subs);
     t\output("<b>WANTED: </b>$wanted", 'screen');
-/**/ debug(compact('wanted','testConfirmation')); // redundant but very easy
-    return ($wanted == $testConfirmation);
+    $res = ($wanted == $testConfirmation);
+/**/ if (!$res) debug(compact('wanted', 'subs', 'testConfirmation'));
+    return $res;
   }
   $form = strtr(t\strip(r\Web\showForm($page, @$subs['arg1'], @$subs['arg2'])), $subs);
   t\output("<b>WANTED: </b>$form", 'screen');
@@ -769,7 +743,7 @@ function lastMinuteSubs($string) {
     return htmlspecialchars($GLOBALS['share permissions'][$perm - B_RELATED]);
   }
   if ($string == '%chk') return '&#10004;';
-  if ($string == '%ctty') return R_REGION_NAME;
+  if ($string == '%ctty') return r\regionField('fullName');
   return $string;
 }
   
@@ -1058,7 +1032,7 @@ function strip($form) {
   $form = str_replace('&nbsp;', ' ', $form);
   $form = preg_replace('~<fieldset id="help".*?</fieldset>~sm', '', $form); // remove help div
   $form = preg_replace('~<div[^>]*class="invisible.*?</div>~sm', '', $form); // remove invisible divs (not nested)
-  $form = preg_replace('~<option value="[^"]*">.*?</option>~sm', '', $form); // remove unselected options
+  $form = preg_replace('~<option value="[^"]*">.*?</option>~sm', '', $form); // remove unselected options (fails for dropdowns created on the fly, eg state and country)
   $form = preg_replace('~<input type="hidden".*?/>~sm', '', $form); // remove hidden inputs
   $form = preg_replace('/<input[^>]* value=" *(.*?) *".*?>/sm', '$1', $form); // show button labels
   $form = preg_replace('/> *</sm', '> <', $form); // make sure there's exactly one space between things
@@ -1137,24 +1111,16 @@ function clear($ch) {
   global $channel; $channel = $ch;
 
   $cgfUid = r\cgfId();
-  $tables = 'r_ach r_boxes r_do r_gifts r_invites r_invoices r_log r_notices r_proxies r_relations r_stats r_txs r_usd r_user_industries queue offsite';
+  $tables = 'r_boxes r_do r_gifts r_invites r_invoices r_log r_notices r_proxies r_relations r_stats r_txs r_usd r_user_industries queue';
 
-  //db\q('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   db\q('DELETE FROM users WHERE uid>1 or uid<0');
   a\setupBasicAccounts();
 
   foreach (u\ray($tables) as $one) db\q("TRUNCATE $one");
-  db\q('UPDATE users SET floor=0,minimum=NULL,r=0,usd=0,rewards=0,committed=0');
+  db\q('UPDATE users SET floor=0,minimum=NULL,r=0,rewards=0,committed=0');
 
-//  $files = glob(DRUPAL_ROOT . R_PICTURE_DIR . "/*"); // get all picture file names
-//  $dir = DRUPAL_ROOT . R_PICTURE_DIR;
-//  $zza = '' . r\unQuid('.ZZA');
-//  $zza = substr($zza, 0, strlen($zza) - 1); // ignore last digit
-//  shell_exec(str_replace('/', '\\', "DEL \"$dir/small/$zza*\""));
-  ctty('aaa')->setBit(B_MEMBER);
-  ctty('aaa')->setBit(B_OK);
-
-//  t\setupDwAccts();
+  ctty('aaa')->setBit(B_CGC);
+  ctty('aaa')->setBit(B_UP);
 
   t\log('clearing');
   r\acct::_clear(); // empty the acct cache
@@ -1301,6 +1267,7 @@ function seq($table = 'r_usd') {
   $k = $table == 'r_usd' ? 'txid' : '';
   t\log("seq table=$table id=$id");
   u\EXPECT(!db\exists('r_usd', "$k=:id", compact('id')), "duplicate seq: $id in table $table");
+///  print_r(compact('table','testSeq','id','k'));
   return $id;
 }
 

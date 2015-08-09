@@ -13,13 +13,13 @@ define('GAME_SITE', 'game.rcredits.org');
 define('isDEV', (bool) @$_SERVER['WINDIR']); // developing on Windows (unlike production or staging server)
 define('isPRODUCTION', strtolower($_SERVER['HTTP_HOST']) == PRODUCTION);
 define('isSTAGE', strtolower($_SERVER['HTTP_HOST']) == STAGE);
-define('isGAME', (@$_SERVER['HTTP_HOST'] == GAME_SITE));
+define('isGAME', FALSE or (@$_SERVER['HTTP_HOST'] == GAME_SITE));
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
 global $R_POST; $R_POST = $_POST;
 
-$dbs = (array) json_decode(utf8_encode(file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.databases')));
-$db_name = isDEV ? 'new_rcredits' : key($dbs);
-extract((array) $dbs[$db_name], EXTR_PREFIX_ALL, 'db');
+$secrets = (array) json_decode(utf8_encode(file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.databases')));
+$db_name = isDEV ? 'new_rcredits' : key($secrets);
+extract((array) $secrets[$db_name], EXTR_PREFIX_ALL, 'db');
 
 define('R_WORD', hex2bin($db_word)); // hex2bin($db_word));
 //define('DW_API_KEY', isPRODUCTION ? $db_dwollaKey :$db_dwSandKey);
@@ -27,6 +27,7 @@ define('R_WORD', hex2bin($db_word)); // hex2bin($db_word));
 define('R_SSN_USER', @$db_ssnUser);
 define('R_SSN_PASS', @$db_ssnPass);
 define('R_SALTY_PASSWORD', $db_pass); // (Drupal's salt is too long for our encryption algorithm)
+define('POSTMARK_TOKEN', $secrets['postmarkToken']);
 // $db_salt is used further below
 // define('R_STAGE_WORD', @$db_stageWord); // password for staging (UNUSED)
 
@@ -62,8 +63,8 @@ if (isDEV) $uri = str_replace('/devcore/', '/', $uri);
 if (preg_match('~^I/[A-Z]+[\.-]~', $uri)) $_GET['q'] = $_SERVER['REQUEST_URI'] = $uri;
 
 $drupal_hash_salt = $db_salt;
-$protocol = isDEV ? 'http://' : 'https://';
+$protocol = (isDEV or isGAME) ? 'http://' : 'https://';
 $base_url = $protocol . $_SERVER['HTTP_HOST'] . (isDEV ? '/devcore' : ''); // NO trailing slash!
 define('BASE_URL', $base_url);
 define('R_PATH', '/sites/all/modules/rcredits');
-global $rUrl; $rUrl = $base_url . R_PATH;
+global $rUrl; $rUrl = BASE_URL . R_PATH;

@@ -226,7 +226,7 @@ function undoTx($xid, $where = '1', $subs = [], $force = FALSE) {
   $otherUid = $old_otherUid;
   $other = r\acct($otherUid)->fullName;
   $success = TRUE;
-  return array("report undo", compact(u\ray('success old_tid new_tid amount other tofrom solution otherUid')));
+  return ['report undo', compact(u\ray('success old_tid new_tid amount other tofrom solution otherUid'))];
 }
 
 /**
@@ -252,7 +252,7 @@ function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid
   if (@$args['success']) {
     extract(u\just('xid tid otherTid', $args), EXTR_PREFIX_ALL, 'new');
     $old_data['undoneBy'] = $new_xid;
-    $old_data['changes'][] = array(REQUEST_TIME, $mya->agentId, 'undo', $new_xid);
+    $old_data['changes'][] = array(r\rTime(), $mya->agentId, 'undo', $new_xid);
     $old_data = serialize($old_data);
     $myFor = "(reversed by #$new_tid) ";
     $otherFor = str_replace($new_tid, $new_otherTid, $myFor);
@@ -318,7 +318,6 @@ function payInvoice($nvid, &$msg = '') {
  *
  * Do something different, based on these boolean values: 
  *   $taking (charge vs. payment), 
- *   $final (paying or authorized to charge), 
  *   $oked (user confirmed the transaction request),
  *   $goods (the transaction is an exchange for real stuff),
  *   $shortfall (how inadequate the payer's balance is)
@@ -328,7 +327,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
 
   u\EXPECT(in_array($ttype, u\ray('payment,charge,invoice payment')), 'bad transaction type');
   u\setDft($for, u\ray(R_WHYS)[$goods]);
-  u\setDft($created, time());
+  u\setDft($created, r\rTime());
   u\EXPECT(compact(u\ray('a1 a2 goods oked data')), 'acct acct int bool assoc');
 
   $type = TX_TRANSFER;
@@ -337,7 +336,6 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   $erInfo = compact(u\ray('ttype amount goods for force')) + u\ray('a1 a2', $a1->fullName, $a2->fullName);
   $taking = ($ttype == 'charge');
   $reallyTaking = ($taking xor $amount < 0); // not taking if charging a negative amount
-  $final = (!$reallyTaking or @$scanned); // paying OR scanned (and therefor permitted to charge unilaterally)
 
   list ($loserA, $gainerA) = u\order($reallyTaking, $a2, $a1);
   list ($payer, $payee) = u\order($taking, $uid, $myid); // Analyze who's buying or selling
@@ -354,14 +352,15 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
         if (!$a->proSe) r\message($a->agentId, $msg, $erInfo);
       }
       r\tellStaff($msg, $erInfo);
-    } else return r\txRet($err, $erInfo);
+    } else return r\txRet($err[0], $erInfo + $err[1]);
   }
   
   foreach ([$a1, $a2] as $a) if (!$a->co and !($channel == TX_POS ? $a->agent->photoId : $a->photoId)) {
     if ($force) {
       r\tellStaff('forced without photoId', $erInfo); 
-    } elseif ($gainerA->id != r\cgfId()) {
-      return r\txRet($a == $a1 ? 'no photoid' : 'other no photoid', $erInfo + ['who' => $a2->fullName]);
+    } elseif ($gainerA->id != r\cgfId()) { // and !$gainerA->coCan(CO_FAST)
+      r\tellStaff('tx without photoId', $erInfo); 
+//      return r\txRet($a == $a1 ? 'no photoid' : 'other no photoid', $erInfo + ['who' => $a2->fullName]);
     }
   }
   
@@ -369,13 +368,13 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   if ($error = u\badAmount($amount)) return r\txRet($error, $erInfo);
   $need = $amount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
 
-  $shortfall = (!$final or @$data['force'] or $loserA->id < 0) ? 0 : $loserA->shortfall($goods, abs($need), $oked);
+  $shortfall = (@$data['force'] or $loserA->id < 0) ? 0 : $loserA->shortfall($goods, abs($need), $oked);
   if ($shortfall) {
     $short = u\fmtAmt($shortfall);
     $otherName = $a2->fullName;
     $msg = $reallyTaking ? ($a2->can(B_SECRET) ? 'short from vague' : 'short from') : 'short to';
     if ($channel == TX_WEB) {
-      if ($goods != R_FOR_GOODS) $msg .= '|short cash help';
+      if ($goods != R_FOR_GOODS) $msg .= '|short cash help|maybe not cash';
       if (!$loserA->can(B_DEBT) and $loserA->floor < 0) $msg .= '|try debt';
     }
     r\suggestMin($loserA);
@@ -389,7 +388,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   $args = r\txReportArgs($a1, $x->ray, TRUE, $shortfall);
 
   if ($oked) { // notify other party by email about any confirmed transaction
-    $notice = $reallyTaking ? ($final ? 'new charge' : 'new invoice')
+    $notice = $reallyTaking ? 'new charge'
       : (($amount < 0 and $goods == R_FOR_GOODS) ? 'new refund' : 'new payment');
     if ($notice == 'new payment' and $a2->co) { // not "new charge" (the most common)
       $atag = $a2->makeDo('addr', $myid, 0); // add a link to address, so merchant can ship or nonprofit can thank
@@ -430,12 +429,12 @@ function invoice($a1, $a2, $amount, $goods = R_FOR_USD, $purpose = NULL, $oked =
   $subs = u\ray('myName otherName amount why purpose did', $a1->fullName, $a2->fullName, u\fmtAmt($amount), $why, $purpose, t('charged'));
 
   if ($oked) {
-    $created = REQUEST_TIME;
+    $created = r\rTime();
     $info = compact(u\ray('amount payer payee goods purpose created'));
     $nvid = db\insert('r_invoices', $info);
     $a1->update('lastTx', [$nvid, $payer - $payee, round(-$amount, 2), $created, 'inv']);
 
-    $subs['a'] = $a1->makeDo('inv', $nvid); // link to pay/deny
+    $subs['a1'] = $a1->makeDo('inv', $nvid); // link to pay/deny
     //$a2->update(u\ray('lastTx', array($nvid, $payee - $payer, round($amount, 2), $created, 'inv')));
     r\notify($payer, 'new invoice', $subs); // notify other party by email about this invoice
     $msg = 'report tx' . ($amount > 0 ? '|balance unchanged' : '');
@@ -510,7 +509,7 @@ function deleteCell($number) {
 /**
  * Figure out who the user meant.
  *
- * @param string $who: how the user referred to the trader
+ * @param string $who: how the user referred to the trader (name, phone, email, uid, or temporary code)
  * @param string $self_message: index to error message for identifying oneself
  *   If true, the other trader will be created only if specified by email or phone
  * @return one of the following:
@@ -540,21 +539,25 @@ function identify($who, $self_message = 'no self-trading') {
   }
 
   if (($short = u\shortName($who)) === '') $short = '-'; // abbreviations must not be null
-  $mail = strpos($who, '@') ? u\cryptN($who) : '(none)';
+  $cmail = strpos($who, '@') ? u\cryptN($who) : '(none)';
   
   $sql = <<<EOF
-    SELECT DISTINCT u.uid, u.fullName FROM users u LEFT JOIN r_boxes s ON u.uid = s.uid 
-    WHERE (:who=s.code OR INSTR(u.name, :short) OR (:IS_SEARCHY AND (:cphone=u.phone OR :mail=u.mail))) 
+    SELECT DISTINCT u.uid,u.fullName
+    FROM users u LEFT JOIN r_boxes s ON u.uid = s.uid 
+    WHERE (:who=s.code OR INSTR(u.name, :short) OR (!:IS_NOSEARCH AND (:cphone=u.phone OR :cmail=u.mail)))
     AND u.uid>0
     ORDER BY u.fullName
 EOF;
-///  debug(compact('sql', 'who', 'phone', 'short'));
-  $result = db\q($sql, compact(u\ray('who short cphone mail')))->fetchAllKeyed(0, 1);
+
+  $result = db\q($sql, compact(u\ray('who short cphone cmail')))->fetchAllKeyed(0, 1);
   if (count($result) == 1) {
-    return @$result[$myid] ? [$self_message, [], []] : r\acct(key($zot = $result)); // get the one entry (zot resets the pointer)
+    if (@$result[$myid]) return [$self_message, [], []];
+    return r\acct(key($zot = $result)); // get the one entry (zot resets the pointer)
   } else unset($result[$myid]); // self is one of many results, so ignore it
 
-  return [$result ? 'ambiguous other' : 'unknown member', compact('who'), $result];
+  $msg = $result ? 'ambiguous other' 
+  : ('unknown member' . ((u\starts($cphone, CRYPTN_FLAG) or u\starts($cmail, CRYPTN_FLAG)) ? '|no search' : ''));
+  return [$msg, compact('who'), $result];
 }
 
 /**
@@ -562,7 +565,7 @@ EOF;
  * @param assoc $args: options:
  *   uid: uid for the account to return information for (DEFAULTS to myid)
  *   pending: show pending transactions (applicable only to bank transfers)
- *   asof: last date to include (defaults to tomorrow, meaning unrestricted)
+ *   asof: last date to include (defaults to 24 hours from now, meaning unrestricted)
  *   noj: ignore any joined account
  * @return
  *   standard object of credit account information (see $resultKeys, below)
@@ -574,7 +577,7 @@ function creditInfo($args = []) {
   if (!$a = r\acct(@$uid)) return NULL; else $uid = $a->id;
   $jid = @$noj ? 0 : ($a->jid ?: 0);
 
-  u\setDft($asof, REQUEST_TIME + DAY_SECS);
+  u\setDft($asof, r\rTime() + DAY_SECS);
   $subs = compact(u\ray('uid jid asof'));
   $isPayer = 't.payer IN (:uid, :jid)';
   $isPayee = 't.payee IN (:uid, :jid)'; // account can be both payer and payee, if joint account
@@ -619,18 +622,19 @@ EOF;
 }
 
 /**
- * Return a list of account choices for the current user (NOT the current credit account)
+ * Return a list of account choices for the current user (agent of the current account)
  * @return an array of account ids (FALSE if none)
  */
 function accountChoices() {
   if (!$mya = r\acct()) return FALSE;
-  $result = array($aid = $mya->agentId);
+  $result = [$aid = $mya->agentId];
   if ($mya->admin) {
-    $result += @db\q('SELECT uid FROM users WHERE ABS(uid)>1 ORDER BY (uid<0) DESC, fullName')->fetchAllKeyed(0, 0);
+    $q = @db\q('SELECT uid FROM users WHERE ABS(uid)>1 ORDER BY (uid<0) DESC, fullName');
   } elseif ($mya->cAdmin) {
-    $result += @db\q('SELECT uid FROM users WHERE community=:ctty ORDER BY (uid<0) DESC, fullName', u\ray('ctty', $mya->community))->fetchAllKeyed(0, 0);
-  } else $result += @db\q('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'))->fetchAllKeyed(0, 0);
-  return array_values($result);
+    $q = @db\q('SELECT uid FROM users WHERE community=:ctty ORDER BY (uid<0) DESC, fullName', ['ctty' => $mya->community]);
+  } else $q = @db\q('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'));
+//  debug($result + $q->fetchAllKeyed(0, 0));
+  return array_values($result + $q->fetchAllKeyed(0, 0));
 }
 
 /**

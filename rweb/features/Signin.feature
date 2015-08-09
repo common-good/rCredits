@@ -76,14 +76,14 @@ Scenario: A member types the wrong password from rCredits.org
   When a member posts to "signinx" with values:
   | id     | pw |*
   | abeone | a2 |
-  Then we show "Welcome to rCredits"
+  Then we show "Miscellaneous"
   And we say "error": "bad login"
 
 Scenario: A member types an unknown username/ID from rCredits.org
   When a member posts to "signinx" with values:
   | id    | pw |*
   | bogus | a1 |
-  Then we show "Welcome to rCredits"
+  Then we show "Miscellaneous"
   And we say "error": "bad login"
 #.........................................................
 Resume
@@ -161,7 +161,7 @@ Scenario: A member clicks a link to reset password with wrong code
   | a@example.com |
   When member "?" visits page "reset/id=abeone&code=NOTwHatEveR"
   Then we say "error": "bad login"
-  And we show "Welcome to rCredits"
+  And we show "Miscellaneous"
 
 Scenario: A member clicks a link to reset password for unknown account
   Given next random code is "wHatEveR"
@@ -170,4 +170,4 @@ Scenario: A member clicks a link to reset password for unknown account
   | a@example.com |
   When member "?" visits page "reset/id=abeone&code=NOTwHatEveR"
   Then we say "error": "bad login"
-  And we show "Welcome to rCredits"
+  And we show "Miscellaneous"

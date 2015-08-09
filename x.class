@@ -163,7 +163,7 @@ class x {
     u\setDft($for, u\ray(R_WHYS)[$goods]);
     u\setDft($payerAgent, $payer);
     u\setDft($payeeAgent, $payee);
-    u\setDft($created, time());
+    u\setDft($created, r\rTime());
     $data = $this->dataSetup($payer, $payee, $amount, $goods, $for, @$data ?: [], $channel);
     $taking += 0;
     $goods += 0;
@@ -171,6 +171,7 @@ class x {
 
     list ($payerFor, $payeeFor) = is_array($for) ? $for : [$for, $for];
     unset($info['for']);
+    if (isGAME and $payer > 0) $info += ['members' => $a1->members];
 
     return compact(u\ray($fields . ' payerFor payeeFor channel box')) + $info;
   }
@@ -219,7 +220,7 @@ class x {
 
     $a = r\acct($uid);
     $cache = $a->account('r rewards committed lastTx access');
-    $cache->access = REQUEST_TIME; // track last transaction or login (just the major access)
+    $cache->access = r\rTime(); // track last transaction or login (just the major access)
 
     $toMe = $uid == $t_payee ? -1 : 1;
     if ($t_payer > 0) $cache->lastTx = array($t_xid, $toMe * ($t_payee - $t_payer), round($toMe * $t_amount, 2), $t_created);
@@ -277,13 +278,11 @@ class x {
     extract(u\just("$fieldName data payer payee amount goods payeeFor channel", $xray));
     
     $dataRay = unserialize($data);
-    $dataRay['changes'][] = array(REQUEST_TIME, acct()->agentId, $fieldName, $$fieldName);
+    $dataRay['changes'][] = [r\rTime(), acct()->agentId, $fieldName, $$fieldName];
 
     $DBTX = \db_transaction();
     
-    $financial = ($fieldName == 'goods' or $fieldName == 'amount'); // financial info changed
-    
-    if ($financial) {
+    if ($financial = ($fieldName == 'goods' or $fieldName == 'amount')) { // financial info changed
       extract(u\just('rebate bonus xfee', $dataRay));
       $xraysNeg = array(array('amount' => -$amount) + $xray); // negate the transaction amount
 
@@ -301,7 +300,7 @@ class x {
       $xrays = array($xray);
       $x->rewards($xrays); // create new rewards transactions
       $x->cacheBothTotals($xrays); // cache values for the revised transaction
-    } else $data = serialize($dataRay);
+    } else $data = $dataRay;
 
 //    $sql = "UPDATE r_txs SET $fieldName=:newValue,data=:data WHERE $where";
 //    db\q($sql, compact(u\ray('newValue data xid')));

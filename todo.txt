@@ -1,50 +1,87 @@
 rCredits Software
 To Do
 
-- list people waiting to be invited, at bottom of notices
-- "rCredits Accepted Here" window stickers, register stickers (maybe just business card size)
+- investment committee meet again to form support organization
+- form publicity committee (as decided by the board)
+- rCredits gift card (essentially an invitation from another member, but with a printed $50 value (if you use this card for purchases at GFM, Foster's, or the Barn)
+- Help Upinngil get books set up right
+- Use BeenVerified.com routinely
+- Get a security audit
+- Talk to Brendan for business manual
+- Offer new businesses guaranteed bonus (hundreds or thousands) for signing up and trying it. "We're so sure it will benefit you, we will write you a check for $4,000 to give it a try."
+- FAQs for promo site (under Why rCredits)
+- "rCredits Accepted Here" register stickers (4x2")
 - (from mike morton) after we grow, might be nice to do newsletter features on:
         • the person who’s successfully directly invited the most other people
         • ditto, but directly-and-indirectly combined, sort of “most descendants”
         • the longest chain of successful invites (probably not that long, so maybe more than one chain)
 - Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site)
+- Credit PFC invites and Brendan's 2 RPC invites.
 
 . some of Kirsten's contingent compensation has no time limit
-. write to each participating business. Ask them for employee count and annual gross
 . after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
 . video about Admin'ing
+. register sending email on emailreg.org, to prevent blacklisting
+. get listed with Charity Navigator and give.org?
 
 TASKS FOR NEXT UPDATE:
+. charge everybody for the phone(s) and other equipment they have
+. REINSTALL
+. UPDATE r_txs SET goods=IF(goods=2,0,goods+1)
+. change !NEW email to westernmass@rCredits.org
+. a('miw.adg')->update('dob',strtotime('10-May-1982'));
+. update theme, css, js, images, fonts
 
-GAME:
-. day 5, 6, and 7
-. beginning/end of everyday (including creating stats)
-. multiple stats by box in creating them
-
+. put a warning in the code about corporate personhood
+. make sure dups of accepted invitations get marked
+. let members easily re-invite or delete invitation records
+. use "calling" field for company's shortDesc?
+. *** do handle invoice asks for a signin!
+. drawing on an account with less bal than rewards fails
+. give Fuzzy (and other ctty admins) inviter rewards
+. *** flag (and email admin) unusual banks -- keep count of members in r_banks
+. *** unsubscribe link for nonmembers who have been invited AND for people with accounts (more elaborate form, requiring proof of ID -- maybe require signing in)
+. on Summary page, automatically check if business has same SSN as helper
+. change wants to text field
+. cell phones (use http://www.freecarrierlookup.com/)
+. separate emails for separate purposes (with good subject) and settable preferences
+. when we go to promo site from mem site, set a cookie to show "Members Site" instead of Sign In.
+. make a simple place online for companies to get the rInfo they need (how to download, setup, and run app, etc.)
+. on promo site: after signup -- tell a friend, then donate
+. *** do not allow activating accounts outside established regions!
+. add links to relations to Summary (for admin)
+. on proxy screen, allow typing member ID (such as NEW.AAA) or username (such as jdoe@new)
+. allow transactions when short by 0 (sometimes fails).
+. extra signup field: who do you know who is a member? (then we can contact that person for approval) -- no reward for this
+. add members and businesses counts to funds page (for each ctty)
+. don't remind about unfulfilled invites if person joined with a different email address (eg Shel)
+. when a member requests a transfer from the bank, suggest a minimum
+. *** let companies invite (but warn on page and in code about corporate personhood)
+. add extensive instructions to admin online and in a manual, eg: "Require a photo where... If the photo is inadequate, fix it or ask the new member for a better one (before activating the account) (copy and paste from "support BLURBS.txt")
+. when admin clicks request rCard (eg Lesley P), it says "you don't have permission"
+. Jeremy is shown an X, but cannot reverse transactions
+. transactions history table goes too wide when the description is long and has no spaces (eg GFM #2436)
+. list invoices in a reasonable order: created DESC
+. *** make an easy way for admin to change an account's region (and community) [easier than f('r.changeUid', $uid);]
+. on donation page, omit "share" if already donated and say the donation will come from your rC acct when it has funds
+. make sure "edited by you" message does not go, when admin edits a tx
+. allow cAdmins to trade rCredits for cash from other members (even if past the rewards)
 . on relations page, for an individual account showing a relation to a company, isFamily column should be empty (not yes/no)
-. a\showQuery interpret email and phone (decryptN)
-. sometime separate photos into separate table, for efficiency
+. a\showQuery interpret encrypted fields
+. sometime: separate photos into separate table, for efficiency
 . notify people when their invitees start signing up and finish signing up. Also, when a week or a month goes by and they haven't accepted the invitation or finished signing up or verified their bank account
-. *** see if anyone requested paper statements and alert staff if anyone ever chooses that
-. *** when user chooses "don't connect yet", set minimum to zero (and tell them)
-. change "other money" to "exchange for US Dollars (or other currency)" without being too long on mobile (and fix tests)
-
+. 2-factor auth (Fuzzy says From a user perspective, I think Toopher is the best, but Google Authenticator is widespread. An alternative might be to allow login via google account, where users can implement 2fa.)
+. add a field to transactions for not-available-yet
 . withdrawal should disable minimum if necessary to avoid an automatic reversal of the withdrawal
 . is trade figure on MIW pie chart the wrong sign?
 . explain on signup page why we ask for SSN, photo, etc.
 . create a special history/accounting page just for tips on accounting for rCredits (individual and business)
 . revise yearly 1099 report to generate a separate CSV for the state
 . reversing charge on customer history causes crash
-. add photo to Summary, for cAdmin
 . "Sign up" button -> "Next"
 . figure out why Snow's paying Barbara got the "nope!" message, but ABC paying Garth and Jeff doesn't (Barbara can draw on Snow's)
 . disallow choosing proxies until signed and donated (only members can view the local member list)
 . *** sometimes we receive two same-second identical transaction requests from the app -- not forced. ask experts why and figure out a way to prevent it.
-. game page (not for production site, ultimately for game.rcredits.org):
-  - for each player: assign an ID 4-24, say how much USD to start with
-  - Each day, for each player: user says where they moved, any new followers, how much they exchange; page then shows what happens and what everyone's balance & rewards are (and how much is in USD Escrow and how many rCredits have been issued and for what)
-  - Players can also finance new or old companies, in whole or in part. Type company ID (buying price is 10,000 times company ID) and ownership percentage. New companies can even be created in the triangles between other companies. Their ID can be any unused positive decimal number. Their neighbors are the three companies at the points of the triangle.
-  - Players can adjust g() parameters
 . global $g global array, g(varname) gets, g(varname, value) sets. Use this for R_ constants that a community might want to alter.
 . list goods choice first, etc last
 . send note to admin to deactivate account unless member clicks a link once a month (on average -- randomize). 7 days later admin deactivate and call. Members should be expected to read all special announcements (with highlight colors)
@@ -53,7 +90,8 @@ GAME:
 . rename charge "invoice"?
 . in signup, make email verification a step and let user do it in any order
 . *** the wrong transactions require approval on reversal (maybe)
-. *** dispute and deny fail!
+. *** for appData requests, target a specific device (or each device for a particular business) and record the results in r_boxes
+. *** store company card security code in relations table, not cardcode2 (for example, if an agent of multiple companies loses a Company Agent card, we don't want to have to replace all their Company Agent rCards)
 . add notice of statement availability to (first) monthly notices
 . simplify admin log display by suppressing email body
 . simplify admin tx display by suppressing sharing and inflation
@@ -61,18 +99,14 @@ GAME:
 . on 1099-B page show total donations for the year
 . for non-standard date ranges, make sure History still shows advanced options after submit
 . put notice footer data in a table (bal, rew, apr, community bene?)
-. *** for appData requests, target a specific device (or each device for a particular business) and record the results in r_boxes
 . add links to company page
 . Gary P and Betsy C have legalname change listed, with no actual change. that should not happen.
 . when the letsons joined their accounts, the slave got an NYA area relation ID. should be NEW. Test (both email confirmation and relations page confirmation)
 . when admin reverses a reversal of a payment (from the company account) it should not tell the customer they have been invoiced
-. *** store company card security code in relations table, not cardcode2
 . alert staff about unusual format names, cities, addresses, and postalAddrs
 . reversing a reversed transaction should not ask "Okay to dispute this [negative] charge"
 . why does Leigh Rae show as "accepted" (not Member) on Emily M's invited-whom page?
 . remove by from data fields (after feb 1)
-. tighten up security
-. ** create new community for first member in the region (NEV, etc.), but report them as coming from server org on 1099-B (for both the member and the state).
 . when updating relations to give "joint" permission, mention that the other account will receive a confirm email
 . in welcome message, warn newbie they will have to show an ID before first purchase
 . MAYBE for transfer requests over the person's credit limit, if the amount is $20 or more and the credit limit is $10 or more, split the request so some can be credited immediately (but don't do two separate checks? -- not easy)
@@ -107,7 +141,6 @@ GAME:
 . moves is off by one when current county does not appear in ss-search list
 . when admin changes "goods"ness of a transaction, data gets double-serialized (don't. and look for data starting "{{")
 . when admin enters data from paper, remember it was paper (risk bit), present the "Add Another Account" button, ask for inviter (accept an email or name), offer a single checkbox for "signed", etc.
-. when a member draws on another for part of a $167.43 purchase against a $71.94 balance, it says $0 short.
 . make moves and tenure editable fields on Summary
 . force=-1 does not get recorded in the reversing transaction!
 . somehow two identical grocery purchases were recorded for Nancy Hazard, from one POS request (not forced). One was later reversed by the device. Try to detect and prevent that (don't accept two charge requests from a single device within a few seconds of each other? wait a sec?) (handle as well as possible from both ends)
@@ -342,7 +375,7 @@ function salesSql() {
   $fields = 'payee';
   for ($i = 0; $i <= 3; $i++) {
     $nextMonth = @$monthi;
-    $monthi = strtotime("$i months ago", REQUEST_TIME);
+    $monthi = strtotime("$i months ago", r\rTime());
     if ($i > 0) $fields .= ",SUM(IF(created>=$monthi AND created<$nextMonth, amount, 0)) AS sales$i";
   }
   return "SELECT $fields FROM txs WHERE type=:TX_TRANSFER AND goods AND created>=$monthi AND payee=u.uid";
@@ -355,7 +388,7 @@ function salesSql() {
  * @param int $months: how far back to look
  */
 function demandSql($other, $minRepeats, $months) {
-  $earliest = strtotime("$months ago", REQUEST_TIME);
+  $earliest = strtotime("$months ago", r\rTime());
   $me = $other == 'payer' ? 'payee' : 'payer';
   return <<<EOF
   SELECT SUM(GREATEST(0, minimum-r)) AS demand 
@@ -383,7 +416,7 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = []) {
 @todo: store city code (rather than city), with a code for "other" -- store other in data or r_other (same for country/state) MAYBE
 @todo: reporting for a community or server (a form that anyone can use)
 @todo: download transactions in other standard formats
-@todo: Finish separating backend. Front end should have no registered users. This should maybe wait until after launch.
+@todo: Finish separating backend. Front end should have no registered users.
 @todo: use popups for some things
 @todo: make help divs draggable
 @todo: option to suppress current balance in messages (make it a separate message) B_SHOWBAL (default TRUE)

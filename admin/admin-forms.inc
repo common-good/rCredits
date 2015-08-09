@@ -30,7 +30,7 @@ function formAdmin($form, &$sta, $args = '') {
     if (r\up()) $stop = submit(t('STOP')); else $start = submit(t('START'));
     $do1099btest = submit(t('1099B TEST'));
     $do1099b = submit('1099B');
-    $tables .= ' notices boxes do log stats usd';
+    $tables .= ' notices boxes do log stats usd nonmembers';
     $special = submit(t('Special'));
     $askForAppData = submit(t('Ask for App Data'));
     $seeAppData = submit(t('See App Data'));
@@ -42,7 +42,7 @@ function formAdmin($form, &$sta, $args = '') {
   
   $inviteeStatus = submit(t('Invitee Status'));
   $account = textField(t('Account:'), t('Account to do something to'), (auto() ?: []) + dft(svar('adminingAcct')));
-  $make = boxfield(t('Make:'));
+  if ($admin) $make = boxfield(t('Make:'));
   $printId = submit(t('Print ID'));
 //  $connectBank = submit(t('Connect Bank'));
   $seeSecure = submit(t('See Secure'));
@@ -103,7 +103,7 @@ function formAdmin_submit($form, &$sta) {
 /**/ debug($a->appData);
   } elseif ($op == 'seeSecure') {
     if (@$a) {
-      say(u\rayTable(u\ray('fullName phone dob physicalAddr', $a->fullName, substr(@$a->phone, 2), u\fmtDate(@$a->dob), @$a->address . ' ' . $a->postalCode)));
+      say(u\rayTable(u\ray('fullName phone dob physicalAddr', $a->fullName, substr(@$a->phone, 2), $admin ? u\fmtDate(@$a->dob) : '', @$a->address . ' ' . $a->postalCode)));
 //      seeHidden($a);
       seeSecure($a);
     }
@@ -122,7 +122,7 @@ function formAdmin_submit($form, &$sta) {
   
   // handle all other buttons with showQuery()
   if ($op == 'users') {
-    $fields = 'uid, flags, r, rewards, minimum AS min, committed AS comit, share, floor, address, city, postalCode AS zip';
+    $fields = 'uid, flags, r, rewards, minimum AS min, committed AS comit, share, floor, city, postalCode AS zip';
     return say(a\showQuery('users', 1, 'name', $fields));
   }
   
@@ -147,7 +147,7 @@ EOF;
   if ($op == 'proxies') return say(a\showQuery('r_proxies', 1, 'id DESC', 'person, proxy, priority', 'person'));
   if ($op == 'relations') return say(a\showQuery('r_relations', 1, 'main, reid', 'reid,main,other,draw,permission,employee,isOwner', 'main'));
   if ($op == 'usd') return say(a\showQuery('r_usd', 1, 'created DESC'));
-  foreach (u\ray('boxes do stats') as $one) if ($op == $one) return say(a\showQuery("r_$one"));
+  foreach (u\ray('boxes do stats nonmembers') as $one) if ($op == $one) return say(a\showQuery("r_$one"));
 }
 
 /**
@@ -185,7 +185,7 @@ function formTestRecovery($form, &$sta, $doSay = FALSE) {
   if (isDEV and !r\acct()) { // called after testing, in case session got destroyed
     //$uid = \user_authenticate('admin', DEV_ADMIN_PASS);
     $mya = r\acct(1);
-    global $user; $user = $mya->account();
+    global $user; $user = $mya->account('uid pass timezone'); // timezone keeps Drupal happy in bootstrap.inc
     \drupal_session_regenerate();
     if ($msgs = @unserialize(@file_get_contents(T_MSG_FILE))) {
       unlink(T_MSG_FILE);
@@ -210,7 +210,7 @@ function formMakeCtty($form, &$sta) {
   $submit = submit();
   
   $form = compact(u\ray('title subtext zips region')) + nameAndEmail(t('Community'))
-         + ssnFields(FALSE) + contactFields(u\ray('zot', 0), TRUE) // prevent contact fields from defaulting
+         + ssnFields(FALSE) + contactFields(['zot'=>0], TRUE) // prevent contact fields from defaulting
          + compact('postalAddr', 'submit');
   return labeled($form);
 }
@@ -355,7 +355,7 @@ function formDownloadMemberList_submit($form, &$sta) {
   . (@$onlyPeople ? t('-members') : t('-accounts'))
   . '.csv';
   u\csvStart($filename);
-  u\csv($fields = u\ray($fields = 'id first last phone email address city state zip'));
+  u\csv($fields = u\ray($fields = 'id first_name last_name phone email address city state zip member'));
 
   $where = @$allCttys ? '1' : 'community=:cttyId';
   if (@$onlyActive) $where .= ' AND :IS_OK';
@@ -364,13 +364,15 @@ function formDownloadMemberList_submit($form, &$sta) {
   $q = db\q($sql, u\ray('cttyId', $ctty->id));
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    list ($first, $last) = u\parseName($fullName);
+    list ($first_name, $last_name) = u\parseName($fullName);
     $a = r\acct($id);
     $email = $a->email;
     $phone = $a->phone;
     list ($address, $city, $state, $zip) = u\parseAddr($a->postalAddr);
     if (is_numeric($zip)) $zip .= '-'; // prevent this from getting interpreted as a number
     $phone = u\fmtPhone($phone);
+    $member = $a->ok ? 'yes' : '';
+    $id = $a->mainQid;
     u\csv(array_values(compact($fields)));
   }
   exit();
@@ -429,7 +431,7 @@ function depositDetails($args) {
 //  $pdf->setLanguageArray($l); // (eg "page" in footer)
 
   list ($activity, $where) = $in ? [t('DEPOSIT'), 'amount<0'] : [t('CASHOUT'), 'amount>0'];
-  $today = $date == 1 ? t('(Historical)') : u\fmtDate($date ?: time());
+  $today = $date == 1 ? t('(Historical)') : u\fmtDate($date ?: r\rTime());
   $pdf->setupFooter('', "rCredits $activity $today", ['A'.ESCROW_ROUTING.'A '.ESCROW_ACCOUNT.'C', 'GnuMICR 12'], 'Page @PAGE of @PAGES');
   $pdf->AddPage();
 
@@ -480,11 +482,12 @@ EOF;
       $pdf->setX($x + $colW);
       if ($bankInfo = r\acct($uid)->bankInfo) {
         extract($bankInfo, EXTR_PREFIX_ALL, 'b');
+        $b_phone = u\fmtPhone($b_phone);
         $pdf->Cell($x, 0, $b_name, '', 1);
         $pdf->setX($x + $colW);
         $pdf->Cell($x, 0, $b_address, '', 1);
         $pdf->setX($x + $colW);
-        $pdf->Cell($x, 0, "$b_city, $b_state $b_zip", '', 1);
+        $pdf->Cell($x, 0, "$b_city, $b_state $b_zip ($b_phone)", '', 1);
       } else $pdf->Cell($x, 0, 'NO BANK ADDRESS', '', 1);
       $pdf->newLine(); // a blank line between
     }
@@ -527,7 +530,7 @@ function printChecks($args) {
     a\printCheck($ck, $pos, $tx, $mark);
     $count++;
   }
-  $date = strftime('%Y-%m-%d', @$previous ?: time());
+  $date = strftime('%Y-%m-%d', @$previous ?: r\rTime());
   if (u\test()) $ck->Close(); else $ck->Output("rCredits-deposit-checks-$way-$date.pdf", 'I'); //Close and output 
 //  say($count . t(' checks printed'));
 }
@@ -548,18 +551,18 @@ function memberID($id) {
     $acct = r\acct($mya->id, $id);
     if ($acct->agent->co) exit('You may print scan-in cards only for employees.');
   } else */
-  if (!$acct = a($id)) exit('No such account: ' . $id);
+  if (!$a = a($id)) exit('No such account: ' . $id);
   
-  $fullName = $acct->fullName;
-  $qid = $acct->qid;
+  $fullName = $a->fullName;
+  $qid = $a->qid;
   
-  if ($proSe = $acct->proSe) {
+  if ($proSe = $a->proSe) {
     $nameSize = strlen($fullName) > 21 ? '100px' : '120px';
     $fields = array('cardCode', 0, 'member', 'Member');
   } else {
-    if (!@$acct->agent->cardCode2) r\makeCardCode($acct);
-    $acct = $acct->agent; // hereafter it's all about the agent
-    $fullName = "$acct->fullName<br>$fullName"; // agent and company
+    if (!@$a->agent->cardCode2) r\makeCardCode($a);
+    $a = $a->agent; // hereafter it's all about the agent
+    $fullName = "$a->fullName<br>$fullName"; // agent and company
     $nameSize = '72px';
     $fields = array('cardCode2', 5, 'agent', 'Company Agent');
   }
@@ -568,15 +571,15 @@ function memberID($id) {
   list ($region, $tail) = explode($mark, $qid);
   $urlMark = $proSe ? $mark : R_AGENT_URL_MARK;
   $server = isPRODUCTION ? 'RC2.ME' : 'RC4.ME';
-  $qrUrl = "HTTP://$region.$server/$tail$urlMark" . $acct->$cardField; // NOT r\cardCode($qid);
+  $qrUrl = "HTTP://$region.$server/$tail$urlMark" . $a->$cardField; // NOT r\cardCode($qid);
 //  $qrServer = strtoupper('http://' . R_SERVER_ID . '.rC2.me/I/');
-//  $qrUrl = $qrServer . str_replace(R_AGENT_MARK, R_AGENT_URL_MARK, $qid . $mark) . $acct->secure[$cardField];
-  $photo = str_replace(R_DFT_PICTURE, R_NOT_VALID, DRUPAL_ROOT . $acct->auxFilename('picture'));
+//  $qrUrl = $qrServer . str_replace(R_AGENT_MARK, R_AGENT_URL_MARK, $qid . $mark) . $a->secure[$cardField];
+  $photo = str_replace(R_DFT_PICTURE, R_NOT_VALID, DRUPAL_ROOT . $a->auxFilename('picture'));
 
   $info = @getimagesize($photo);
   list ($photoW, $photoH) = is_array($info) ? $info : array(0, 0);
   list ($photoW, $photoH) = $photoW > $photoH ? array(PHOTO_MAX, '') : array('', PHOTO_MAX);
-  $pdf = new r\Statement($acct); // this function should be rewritten to use r\check class instead maybe?
+  $pdf = new r\Statement($a); // this function should be rewritten to use r\check class instead maybe?
   $pdf->setPrintHeader(FALSE);
   $pdf->setPrintFooter(FALSE);
   $pdf->AddPage();
@@ -605,7 +608,7 @@ function memberID($id) {
   if ($proSe) {
     $pdf->Image(__DIR__ . '/../images/idcard/background.jpg', 0, 0, 202, 128, '', '', '', true, 150, '', false, false, 0, false, false, false); // white background for company cards
   } else $pdf->Image(__DIR__ . '/../images/idcard/rlogo.png', 162, 40.5, 28, 42, '', '', '', true, 150, '', false, false, 0, false, false, false);
-  
+
   $pdf->SetLineStyle(array('width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => array(0, 0, 0)));
   if ($proSe) $pdf->RoundedRect(91, 30, 60, 60, 3.50, '1111', 'DF', NULL, array(255, 255, 255)); // x, y, w, h, ?, fill?
   
@@ -613,7 +616,7 @@ function memberID($id) {
   $pdf->Image($photo, 0, 0, $photoW, $photoH, '', './account', '', true, 300, '', false, false, 1, false, false, false);
   $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', 96, 35 + $lower, 50, 50, $style, 'N'); // L,M,Q,H are low-high error-correction
 
-  $html = strtr('<span style="font-size:44px;">@ROLE<br><span style="font-size:76px; color:darkred; font-weight:bold;">@CODE</span><br>@REGION</span>', array('@ROLE' => $roleName, '@CODE' => $qid, '@REGION' => $pdf->regionName));
+  $html = strtr('<span style="font-size:44px;">@ROLE<br><span style="font-size:76px; color:darkred; font-weight:bold;">@CODE</span><br>@REGION</span>', array('@ROLE' => $roleName, '@CODE' => $qid, '@REGION' => r\acct($a->region)->fullName));
   $pdf->writeHTMLCell(100, 30, 94, 3 + $lower, $html); // w, h, x, y
   $pdf->writeHTMLCell(40, 10, 160, 84.5, '<div style="font-size:44px;">rCredits.org</div>');
   $pdf->writeHTMLCell(182, 40, 10, 100, "<div style=\"font-size:$nameSize; text-align:center; color:midnightblue; font-weight:bold;\">$fullName</div>");

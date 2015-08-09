@@ -94,7 +94,7 @@ class rsmartExchange extends DrupalWebTestCase {
     Then_('we respond ok txid 7 created %now balance 150 rewards 150');
     And__('with message "report tx" with subs: "ASSOC'
     . '\\| did     | otherName | amount | why         |'
-    . '\\| charged | Bea Two   | $100   | other money |"');
+    . '\\| charged | Bea Two   | $100   | exchange of US Dollars or other currency |"');
     And__('with did "ASSOC'
     . '\\| did     | amount | forCash  |'
     . '\\| charged | $100   | for cash |"');
@@ -119,7 +119,7 @@ class rsmartExchange extends DrupalWebTestCase {
     Then_('we respond ok txid 7 created %now balance 350 rewards 150');
     And__('with message "report tx" with subs: "ASSOC'
     . '\\| did      | otherName | amount | why         |'
-    . '\\| credited | Bea Two   | $100   | other money |"');
+    . '\\| credited | Bea Two   | $100   | exchange of US Dollars or other currency |"');
     And__('with did "ASSOC'
     . '\\| did      | amount | forCash  |'
     . '\\| credited | $100   | for cash |"');

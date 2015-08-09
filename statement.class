@@ -31,7 +31,7 @@ class Statement extends \TCPDF {
     u\setDft($a, r\acct());
     $ctty = r\acct($a->community);
     list ($this->regionName, $phone) = array($ctty->fullName, u\fmtPhone($ctty->phone));
-    $this->regionInfo = "$ctty->postalAddr<br>$phone &#8226; $ctty->mail";
+    $this->regionInfo = "$ctty->postalAddr<br>$phone &#8226; $ctty->email";
     $this->qid = $a->mainQid;
     $this->month = strftime('%B %Y', $month);
   }

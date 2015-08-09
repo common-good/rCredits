@@ -1,9 +1,9 @@
 Feature: Exchange
 AS a member
-I WANT to trade rCredits for another member's USD or other money
+I WANT to trade rCredits for another member's USD or exchange of US Dollars or other currency
 SO I can buy stuff I can't buy with rCredits.
 
-OR I WANT to trade other money for another member's rCredits
+OR I WANT to trade exchange of US Dollars or other currency for another member's rCredits
 SO I can buy more with rCredits and get incentive rewards.
 
 Setup:
@@ -37,7 +37,7 @@ Scenario: A member asks to charge another member
   | charge | Bea Two | 100    | %R_FOR_USD | cash    |
   Then we show "confirm charge" with subs:
   | amount | otherName | why         |*
-  | $100   | Bea Two   | other money |
+  | $100   | Bea Two   | exchange of US Dollars or other currency |
 
 Scenario: A member confirms request to charge another member
   When member ".ZZA" confirms form "charge" with values:
@@ -45,7 +45,7 @@ Scenario: A member confirms request to charge another member
   | charge | Bea Two | 100    | %R_FOR_USD | paper   |
   Then we say "status": "report tx|balance unchanged" with subs:
   | did     | otherName | amount | why         |*
-  | charged | Bea Two   | $100   | other money |
+  | charged | Bea Two   | $100   | exchange of US Dollars or other currency |
   And we notice "new invoice" to member ".ZZB" with subs:
   | created | fullName | otherName | amount | purpose |*
   | %today  | Bea Two  | Abe One   | $100   | paper   |
@@ -65,7 +65,7 @@ Scenario: A member asks to pay another member
   | pay | Bea Two | 100    | %R_FOR_USD | paper   |
   Then we show "confirm payment" with subs:
   | amount | otherName | why         |*
-  | $100   | Bea Two   | other money |
+  | $100   | Bea Two   | exchange of US Dollars or other currency |
   
 Scenario: A member confirms request to pay another member
   When member ".ZZA" confirms form "pay" with values:
@@ -73,7 +73,7 @@ Scenario: A member confirms request to pay another member
   | pay | Bea Two | 100    | %R_FOR_USD | paper   |
   Then we say "status": "report tx" with subs:
   | did    | otherName | amount | why         |*
-  | paid   | Bea Two   | $100   | other money |
+  | paid   | Bea Two   | $100   | exchange of US Dollars or other currency |
   And we notice "new payment" to member ".ZZB" with subs:
   | created | fullName | otherName | amount | payeePurpose |*
   | %today  | Bea Two  | Abe One   | $100   | paper        |

@@ -43,7 +43,11 @@ function ray($s, $value1 = NULL) {
     : (strpos($s, ';') !== FALSE ? '; *' 
     : (strpos($s, ' ') !== FALSE ? '  *' // strangely ' +' fails but '  *' works
     : FALSE))));
-  $simple = $pattern ? mb_split($pattern, $s) : array($s);
+
+    if (isGAME) {
+    $m = notIn($pattern);
+    $simple = $pattern ? preg_split($m . $pattern . $m . 'u', $s) : array($s);
+  } else $simple = $pattern ? mb_split($pattern, $s) : array($s);
   if (!strpos($pattern, ',') or !strpos($s, ':')) return $simple; // no subargs
 
   $ray = [];
@@ -52,6 +56,20 @@ function ray($s, $value1 = NULL) {
     $ray[$key] = $value;
   }
   return $ray;
+}
+
+/*
+ * Return an ascii character not in the given string (but not null).
+ * (used in game.rcredits.org to simulate mb_split)
+ * @return the character (FALSE if string contains all characters)
+ */
+function notIn($s) {
+  if (strpos($s, '`') === FALSE) return '`';
+  for ($i = 1; $i < 256; $i++) {
+    $c = chr($i);
+    if (strpos($s, $c) === FALSE) return $c;
+  }
+  return FALSE;
 }
 
 function obj() {return (object) call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
@@ -266,7 +284,7 @@ function shortName($fullName, $filler = '') {
   $fullName = str_replace('&', 'and', $fullName);
 
   ini_set('mbstring.substitute_character', 'none'); 
-  $fullName = mb_convert_encoding($fullName, 'UTF-8', 'UTF-8'); // avoid iconv failure (bug in PHP 5.4.3)
+  if (!isGAME) $fullName = mb_convert_encoding($fullName, 'UTF-8', 'UTF-8'); // avoid iconv failure (bug in PHP 5.4.3)
 
   $result = preg_replace('/\W/', $filler, iconv('UTF-8', 'ASCII//TRANSLIT', $fullName));
   return strtolower($result === '' ? u\code() : $result);
@@ -277,7 +295,7 @@ function shortName($fullName, $filler = '') {
  */
 function forCash($for) {
   if (is_array($for)) return forCash($for[0]) or forCash($for[1]);
-  return ($for == '' or preg_match('`^(rCredits/USD|automatic transfer|cash|usd|loan)(\W|$)`i', $for)); // empty or a non-goods word at the beginning
+  return ($for == '' or preg_match('`^(rCredits/USD|automatic transfer|cash|usd)(\W|$)`i', $for)); // empty or a non-goods word at the beginning
 }
 
 /**
@@ -402,18 +420,22 @@ function fmtPhone($phone, $how = '+') {
 }
 
 /**
- * Return the array with its keys prefixed by the given string
+ * Return the array with its keys prefixed by the given string (and maybe suffixed, too)
+ * @param string $prefix: what to prefix each key with
+ * @param assoc $ray: the array
+ * @param bool $noArray: <make sure no element of the result is an array>
+ * @param string $suffix: optional suffix for each key
  */
-function prefixKeys($prefix, $ray) {
+function prefixKeys($prefix, $ray, $noArray = FALSE, $suffix = '') {
   EXPECT(compact('prefix', 'ray'), 'string array');
   if ($prefix == '') return $ray;
   $newRay = [];
-  foreach ($ray as $key => $value) $newRay[$prefix . $key] = $value;
+/**/ foreach ($ray as $k => $v) $newRay[$prefix.$k.$suffix] = ($noArray and is_array($v)) ? print_r($v, 1) : $v;
   return $newRay;
 }
 
 function prefixValues($prefix, $ray) {
-  foreach ($ray as $key => $value) $ray[$key] = $prefix . $value;
+  foreach ($ray as $k => $v) $ray[$k] = $prefix . $v;
   return $ray;
 }
 
@@ -452,6 +474,7 @@ function tt($message, $subs = [], $adhocChannel = '') {
  
   if (!$adhocChannel) $adhocChannel = $channel;
   if (is_array($message)) list ($message, $subs) = $message;
+  u\EXPECT(!is_array($message), 'message array');
   if (!$subs) $subs = []; // accept ''
   $messages = explode('|', $message);
   $channels = ray(TX_CHANNELS);
@@ -465,7 +488,10 @@ function tt($message, $subs = [], $adhocChannel = '') {
     }
     if (@$subs['href']) $model = str_replace('<a>', '<a href="@href">', $model);
 // NO (use raw message instead)   EXPECT(@$model, "missing message '$message'"); 
-    $messages[$i] = SUBS(strtr($model, prefixKeys('@', $subs)), '@');
+//    u\EXPECT(!is_array(@$subs['message']), 'subs message array');
+//    u\EXPECT(!is_array($model), 'model array');
+//    u\EXPECT(!is_array($i), 'i array');
+    $messages[$i] = SUBS(strtr($model, prefixKeys('@', $subs, 'noArray')), '@');
   }
   return join(' ', $messages);
 }
@@ -670,7 +696,7 @@ function loga($type, $info = [], $special = '', $adhocChannel = FALSE) {
   } else $mya = r\acct();
   $myid = @$mya->id;
   $agent = @$mya->agentId;
-  $time = time();
+  $time = r\rTime();
   $date = fmtDate();
   if ($adhocChannel and $adhocChannel != $channel and !$special) $special = "via ch$adhocChannel";
   
@@ -835,6 +861,7 @@ function decrypt($data, $how = 0, $key = R_WORD) {return crypt($data, $how, $key
 
 /** 
  * Encrypt/decrypt using a known iv and hex2bin/bin2hex, so we can search the encrypted field.
+ * EG, to search for email=$email, f('db.lookup', 'id', 'r_invites', 'email=:e', ['e' => f('u.cryptN', $email)]);
  */
 define('CRYPTN_FLAG', '!'); // flag start of cryptN-encrypted data
 
@@ -1191,8 +1218,8 @@ function where($ray) {
  * @return the common speech term for the next business day starting then.
  */
 function nextBusDay($start = 0) {
-  return (strftime('%u', REQUEST_TIME + $start) > 5 and !u\test()) ? t('Monday')
-  : ($start == 0 ? t('today') : ($start == 1 ? t('tomorrow') : strftime('%A', REQUEST_TIME + $start)));
+  return (strftime('%u', r\rTime() + $start) > 5 and !u\test()) ? t('Monday')
+  : ($start == 0 ? t('today') : ($start == 1 ? t('tomorrow') : strftime('%A', r\rTime() + $start)));
 }
 
 define('ENGLISH_ONES', t(' One Two Three Four Five Six Seven Eight Nine Ten Eleven Twelve Thirteen Fourteen Fifteen Sixteen Seventeen Eighteen Nineteen'));
@@ -1250,7 +1277,7 @@ function starts($s, $starts, $noCase = FALSE) {return abbreviates($starts, $s, $
  * strtotime() should do this, but it actually returns March 2nd for strtotime('-1 month', strtotime('3/30/2014'))
  */
 function plusMonths($months, $time = '') {
-  if ($time === '') $time = time();
+  if ($time === '') $time = r\rTime();
   if ($months > 0) $months = '+' . $months;
   $res = strtotime($months . 'months', $time);
   $day = date('d', $res);
@@ -1295,11 +1322,11 @@ function isName($value) {return preg_match('/^[ \\x{00c0}-\\x{01ff}a-zA-Z0-9\,\.
 function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
 function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);}
 function s2t($s) {return strtotime($s) ?: strtotime(str_replace('-', '/', $s));}
-function fmtDate($time = REQUEST_TIME) {return strftime('%d-%b-%Y', $time);}
-function fmtTime($time = REQUEST_TIME) {return strtolower(strftime('%I:%M%p', $time));}
+function fmtDate($time = NULL) {return strftime('%d-%b-%Y', isset($time) ? $time : r\rTime());}
+function fmtTime($time = NULL) {return strtolower(strftime('%I:%M%p', isset($time) ? $time : r\rTime()));}
 function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}
 function digits(&$n) {return $n = preg_replace('/\D/', '', @$n);}
-function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('1%b%Y', $time));}
+function monthDay1($time = NULL) {return strtotime(strftime('1%b%Y', isset($time) ? $time : r\rTime()));}
 function prefix($prefix, &$var) {$var = $prefix . $var;}
 function preray($prefix, &$r0) {u\EXPECT($prefix !== FALSE, 'zot');$r = $prefix + (array) $r0; $r0 = is_object($r0) ? (object) $r : $r;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
