@@ -148,7 +148,7 @@ class rwebExchange extends DrupalWebTestCase {
     When_('member ".ZZA" completes form "pay" with values: "ASSOC'
     . '\\| op  | who     | amount | goods      | purpose |'
     . '\\| pay | Bea Two | 300    | %R_FOR_USD | paper   |"');
-    Then_('we say "error": "short to|short cash help" with subs: "ASSOC'
+    Then_('we say "error": "short to|short cash help|maybe not cash" with subs: "ASSOC'
     . '\\| short |'
     . '\\| $100  |"');
   }

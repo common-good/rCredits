@@ -41,6 +41,7 @@ function formAdmin($form, &$sta, $args = '') {
   }
   
   $inviteeStatus = submit(t('Invitee Status'));
+  $organizerList = submit(t('Organizer List'));
   $account = textField(t('Account:'), t('Account to do something to'), (auto() ?: []) + dft(svar('adminingAcct')));
   if ($admin) $make = boxfield(t('Make:'));
   $printId = submit(t('Print ID'));
@@ -55,7 +56,7 @@ function formAdmin($form, &$sta, $args = '') {
   $form = compact('title');
   if ($mya->cAdmin) {
     foreach (u\ray($tables) as $one) $form[$one] = submit($one);
-    $form += compact(u\ray('inviteeStatus do1099btest do1099b special stop start stopCtty startCtty acctSet'));
+    $form += compact(u\ray('inviteeStatus organizerList do1099btest do1099b special stop start stopCtty startCtty acctSet'));
   }
   return $form;
 }
@@ -118,6 +119,8 @@ function formAdmin_submit($form, &$sta) {
     r\Special\do1099bs($test1099);
   } elseif ($op == 'inviteeStatus') {
     return r\go('invited-whom');
+  } elseif ($op == 'organizerList') {
+    return r\go('sadmin/organizer-list');
   }
   
   // handle all other buttons with showQuery()
@@ -148,6 +151,41 @@ EOF;
   if ($op == 'relations') return say(a\showQuery('r_relations', 1, 'main, reid', 'reid,main,other,draw,permission,employee,isOwner', 'main'));
   if ($op == 'usd') return say(a\showQuery('r_usd', 1, 'created DESC'));
   foreach (u\ray('boxes do stats nonmembers') as $one) if ($op == $one) return say(a\showQuery("r_$one"));
+}
+
+/**
+ * Show people interested in rCredits in particular zipcodes.
+ */
+function formOrganizerList($form, &$sta, $where = '') {
+  $title = item(t('Organizer List'));
+  if ($where) {
+    $where = preg_replace('/[^[0-9 ]/', '', $where); // prevent SQL injection, in case admin is evil
+    $where = "zip LIKE '" . str_replace(' ', "%' or zip LIKE '", $where) . "%'";
+    $q = db\q("SELECT * FROM r_request WHERE $where");
+    while ($row = $q->fetchAssoc()) {
+      extract(u\just('first last phone email zip', $row));
+      $phone = u\fmtPhone(u\decryptN($phone));
+      $email = u\decryptN($email);
+      $list[] = "<tr><td>$first $last</td><td>$phone</td><td>$email</td><td>$zip</td></tr>\n";
+    }
+    $list = join('', $list);
+    $list = item(<<<EOF
+<table id="organizer-list">
+<tr><th>Name</th><th>phone</th><th>email</th><th>zip</th></tr>
+$list
+</table>
+EOF
+  );
+  } else {
+    $subtext = item(t('Enter a list of zipcodes (or partial zipcodes), separated by spaces.'));
+    $zips = textField(t('Zips:'));
+    $submit = submit(t('Go'));
+  }
+  return compact(u\ray('title subtext zips submit list'));
+}
+
+function formOrganizerList_submit($form, &$sta) {
+  r\go('sadmin/organizer-list/' . $sta['input']['zips']);
 }
 
 /**

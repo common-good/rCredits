@@ -1,3 +1,23 @@
+2015-08-17
+. version 2.2 (new style)
+. bug fix: "disputed" shown whenever a tx had been changed
+. when we go to promo site from mem site, set a cookie to show "Members Site" instead of Sign In.
+. don't show "processing..." when clicking photo (add "nospin" class)
+. change second AND FINAL email to invitee to 8 days later
+. let companies invite (but warn on page and in code about corporate personhood)
+. give Fuzzy (and other ctty admins) inviter rewards
+. removed u\tt from help at top of rweb-subs.inc (made reinstall fail)
+. removed NULLs from rcredits-install.inc (made reinstall fail)
+. remove Toolbar module
+. REINSTALL
+. UPDATE r_txs SET goods=IF(goods=2,0,goods+1)
+. update theme, css, js, images, fonts
+. copy vendors\ and composer.*
+. disable secondary menu in rcredits theme
+. change !NEW email to westernmass@rCredits.org
+. a('miw.adg')->update('dob',strtotime('10-May-1982'));
+. search for tx data starting with "s" and unserialize it (none)
+
 2015-08-09
 . when a second bank transfer request, fix the cached r
 . when user chooses "don't connect yet", set minimum to zero (and tell them)

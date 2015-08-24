@@ -121,8 +121,7 @@ EOF
 //  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click the one you want or, if you don\'t see them listed, <a href="@draftLink">Click here to add them</a> to the list or <a id="which-cancel">here to cancel</a>.'),
   'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click the one you want or <a id="which-cancel">here to cancel</a>.'),
 //  'similar found' => t('If you mean @otherName (@phone), <a href="@draftLink">click here for YES</a>. Otherwise, <a href="@cancelLink">click here to cancel</a>.'),
-  'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app <a href="http://rCredits.org/rc.apk">here</a>. The iphone version is in the works (check again in January).'),
-  'no help' => tt('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @regPhone. Or send your question by <a href="mailto:@regEmail?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.', u\ray('regPhone regEmail', u\fmtPhone(r\regionfield('phone')), r\regionfield('email'))),
+  'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app from Google\'s Play Store.'),
   'no account permission' => t('You do not have permission to use that account.'),
   'bad transient id' => t('That QR code is out of date. Try again?'),
   'bad email' => t('That email address is not valid.'),
@@ -1578,7 +1577,8 @@ function helpText($page, $tag = '') {
   include_once __DIR__ . '/rweb-help.inc';
   $page = strtolower($page);
   $help = $page == 'charge' ? strtr(rawHelp('pay', $tag), u\ray('pay', 'charge')) : rawHelp($page, $tag);
-  return u\SUBS(@$help) ?: tt('no help', compact('page'));
+  if ($help) return u\SUBS(@$help);
+  return tt('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @regPhone. Or send your question by <a href="mailto:@regEmail?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.', u\ray('regPhone regEmail page', u\fmtPhone(r\regionfield('phone')), r\regionfield('email'), $page));
 }
 
 /**
@@ -1833,8 +1833,8 @@ function hidfields($ray) {return is_array($ray) ? hidField(serialize($ray)) : un
  * Send an invitation to the email and optionally report it.
  */
 function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
-  $agent = r\agent();
-  if ($admin = $agent->admin) $agent = r\agent(R_ADMIN_QID); // use William for admin invites
+  $mya = r\acct();
+  if ($admin = $mya->admin) $mya = r\acct(R_ADMIN_QID); // use William for admin invites
   
   if (!$dupsOk) { // applies only to community admins
     $cemail = u\cryptN($email);
@@ -1844,18 +1844,18 @@ function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   }
 
   $info = array(
-    'uid' => $agent->id,
+    'uid' => $mya->id,
     'noFrame' => TRUE,
     'subject' => $subject,
     'PERSONAL_NOTE' => str_replace("\n", "<br>\n", $message), 
-    'MEMBER_NAME' => $agent->fullName, 
-    'MEMBER_PHONE' => u\fmtPhone($agent->phone),
-    'DATE' => u\fmtDate($agent->signed),
-    'CODE' => r\invite($email, $agent->id, '', $subject, $message),
+    'MEMBER_NAME' => $mya->fullName, 
+    'MEMBER_PHONE' => u\fmtPhone($mya->phone),
+    'DATE' => u\fmtDate($mya->signed),
+    'CODE' => r\invite($email, $mya->id, '', $subject, $message),
   );
-  r\rMail('invite', $email, $info);
+  r\rMail('invite', $email, $info, $mya);
   say(!$dupsOk ? 'Sent to @email' : 'invite sent|repeat invite', compact('email'));
-  if (!$admin) r\tellStaff('invited', $info + compact('email'), $agent->id);
+  if (!$admin) r\tellStaff('invited', $info + compact('email'), $mya->id);
 }
 
 function focusOn($focusFieldName) {
@@ -1871,6 +1871,8 @@ function webAccess($perms = NULL) {
   if ($perms == 'dev' and isDEV) return TRUE;
   setGlobals(); // remember who we are (the main reason for this function)
   if (!@$perms or !$mya = r\acct()) return FALSE;
+  if ($perms == 'signedIn') return TRUE;
+
   foreach (u\ray($perms) as $perm) {
     $not = (substr($perm, 0, 1) == '-');
     $hasPerm = $mya->can(u\consta('b', $not ? substr($perm, 1) : $perm));

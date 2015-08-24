@@ -8,7 +8,6 @@ Setup:
   | id   | fullName | floor | minimum | flags | achMin | risks   |*
   | .ZZA | Abe One  |     0 |     100 | co,ok | 30     | hasBank |
   | .ZZB | Bea Two  |   -50 |     100 | ok    | 30     |         |
-  | .ZZD | Dee Four |   -50 |     300 | ok    | 30     | hasBank |
   And relations:
   | id | main | agent | draw |*
   | 1  | .ZZA | .ZZB  | 1    |
@@ -92,7 +91,10 @@ Scenario: a member is under minimum but already requested barely enough funds fr
   
 Scenario: a member is under minimum and has requested insufficient funds from the bank
 # This works only if member requests more than R_USDTX_QUICK the first time (hence ZZD, whose minimum is 300)
-  Given balances:
+  Given members:
+  | id   | fullName | floor | minimum | flags | achMin | risks   |*
+  | .ZZD | Dee Four |   -50 |     300 | ok    | 30     | hasBank |
+  And balances:
   | id   | r  | rewards |*
   | .ZZD | 20 |      20 |
   When cron runs "bank"

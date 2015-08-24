@@ -156,7 +156,7 @@ class acct {
     if ($field == 'proSe') return ($a->id == $a->agentId);
     if ($field == 'qid') return $a->proSe ? $a->mainQid : r\quid($a->id, $a->agentId);
     if ($field == 'ctty') return ($a->id < 0);
-    if ($field == 'cttyA') return r\acct($a->community);
+    if ($field == 'cttyA') return r\acct($a->community ?: r\serverUid());
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'bank') return $a->risk('hasBank');

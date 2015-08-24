@@ -633,7 +633,7 @@ function accountChoices() {
   } elseif ($mya->cAdmin) {
     $q = @db\q('SELECT uid FROM users WHERE community=:ctty ORDER BY (uid<0) DESC, fullName', ['ctty' => $mya->community]);
   } else $q = @db\q('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'));
-//  debug($result + $q->fetchAllKeyed(0, 0));
+///  debug($result + $q->fetchAllKeyed(0, 0));
   return array_values($result + $q->fetchAllKeyed(0, 0));
 }
 

@@ -127,6 +127,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'transfer canceled' => t('Your transfer request #@txid has been canceled.'),
   'invite languishing' => t('After @elapsed days, your friend at @email has not accepted your invitation to rCredits. Call maybe? (the invitation may be in their spam folder or lost).'),
   'invitee slow' => t('Your friend @fullName has not finished opening an rCredits account (@elapsed days after accepting your invitation). The next step is: "@step". Call maybe, to offer help?'),
+  'reminder coming' => t('We will send you just one reminder'),
+  'reminder one' => t('This is your one reminder'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),

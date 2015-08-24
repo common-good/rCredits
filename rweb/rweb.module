@@ -128,7 +128,7 @@ function rweb_menu() {
 //    'account/photo-id' => callback('Kba', 'PhotoId', 'manage'),
     'account/proxy' => callback('Proxy', 'Proxy 2', 'manage'),
 
-    'signout' => menuNorm(t('Sign out'), '', 'anyone', 'signout'),
+    'signout' => menuNorm(t('Sign out'), '', 'signedIn', 'signout'),
 
     'handy' => isDEV ? menuNorm(t('Handy'), '', 'dev', 'handyLinks') : NULL,
     'tests' => isDEV ? menuNorm(t('Test'), '1', isDEV ? 'dev' : NULL, 'test') : NULL,
@@ -162,6 +162,7 @@ function rweb_menu() {
     'sadmin/deposit-details' => callback(t('Deposit Details'), '2', 'admin', 'depositDetails'),
     'sadmin/checks' => callback(t('Checks'), '2', 'admin', 'printChecks'),
     'sadmin/changes' => callback(t('See Changes'), 'SeeChanges 2', 'cadmin'),
+    'sadmin/organizer-list' => callback(t('Organizer List'), 'OrganizerList 2', 'admin'),
     'rcredits/util' => callback('Util', '2', 'admin', 'util'),
     'sadmin/recover' => callback(t('Empty'), 'TestRecovery 1', 'dev'), // also go here manually, if needed
     'print-rcard' => callback(t('Print ID Card'), '1 ', 'cadmin', 'memberID'),

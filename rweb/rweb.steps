@@ -954,6 +954,7 @@ function membersHave($list) {return t\membersHave($list);}
 function weRedirectTo($page) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $lastGo;
+  $lastGo = preg_replace('/&tm=[0-9]+/', '', $lastGo); // ignore time, when redirecting to rcredits.org
   return ($lastGo == $page);
 }
 

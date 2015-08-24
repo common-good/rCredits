@@ -57,7 +57,7 @@ EOF
     <p>rCredits are community-created credits issued as incentive rewards in a new community-centered payment system. Get $20 for signing up and 10% back on anything you pay for with your rCard&reg;. Merchants get rewards too &mdash; and save a bundle on credit card fees. rCredits are intended as the basis for a Common Good Economy -- a democratic, community-centered economic system that puts people and planet first.</p>
     <p>We take transparency seriously &mdash; for true democratic control of our local economy we have to be able to see what's going on. Even if you are not a member, you can see what's happening in the rCredits economy graphically on the <a href="@BASE_URL/community">Community page</a>.</p>
     <p>The <a href="@BASE_URL/agreement">rCredits Agreement</a> is at the heart of the rCredits system. It is the promise we make together to accept rCredits that gives them value.</p>
-    <p>Participation in rCredits is by invitation. Ask a friend to invite you or <a href="http://rcredits.org/join-us/rcredits-signup">request an invitation here</a> and we will let you know when the Common Good Economy comes to your community.</p>
+    <p>Participation in rCredits is by invitation. Ask a friend to invite you or <a href="http://rcredits.org/">request an invitation here</a> and we will let you know when the Common Good Economy comes to your community.</p>
     <p>rCredits are a project of Common Good Finance&reg;, a 501(c)(3) Massachusetts-based nonprofit.</p>
 EOF
   , compact('username'));

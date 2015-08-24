@@ -7,7 +7,9 @@
  * Also used by /do.php, for no-sign-in database changes
  */
  
-define('STAGE', 'ws.rcredits.org'); // staging site (for secrets, etc.)
+define('R_VERSION', '2.2'); // software version
+define('STAGE_SUBDOMAIN', 'ws');
+define('STAGE', STAGE_SUBDOMAIN . '.rcredits.org'); // staging site (for secrets, etc.)
 define('PRODUCTION', 'new.rcredits.org'); // production site (used for setting $base_url)
 define('GAME_SITE', 'game.rcredits.org');
 define('isDEV', (bool) @$_SERVER['WINDIR']); // developing on Windows (unlike production or staging server)

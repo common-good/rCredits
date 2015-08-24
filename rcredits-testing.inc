@@ -570,18 +570,22 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = []) {
 
 function weTellStaff($topic, $subs = []) {
   global $testOnly; if (!$testOnly) return FALSE;
+
   if (!@$subs[0]) $subs[0] = [];
+  $regionEmail = r\regionfield('email');
+  return t\findEmail('tell-staff', $regionEmail, $subs[0] + u\ray('topic noFrame message', $topic, TRUE, '?'));
+/*  
   foreach ($subs as $one) {
     $index = 'tell-staff';
     $subject = str_replace('{topic}', $topic, $GLOBALS['emailSubjects'][$index]);
-    $regEmail = r\regionfield('email');
-    $find = '%"index":"@index","email":"@regEmail","subject":"@subject"%';
+    
+    $find = '%"index":"@index","email":"@regionEmail","subject":"@subject"%';
     if ($id = @$one['id']) {
       $id = t\uid($id);
       $find .= "(#$id)%";
       unset($one['id']);
     }
-    $find = u\tt($find, compact(u\ray('index subject regEmail')));
+    $find = u\tt($find, compact(u\ray('index subject regionEmail')));
     foreach ($one as $k => $value) $find .= "$value%";
     if (!$last = db\lookup('info', 'r_log', "info LIKE '$find' ORDER BY logid DESC")) {
       if (count($subs) > 1) output("tell-staff can't find $find");
@@ -589,6 +593,7 @@ function weTellStaff($topic, $subs = []) {
     }
   }
   return TRUE;
+  */
 }
 
 /**
@@ -607,11 +612,16 @@ function noSuchEmail($index, $email) {
 function findEmail($index, $email, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $testEmails; if (!@$testEmails) return FALSE;
+///  debug(u\jsonEncode($testEmails));
 
-  $subs = @$subs[0] ?: @$subs;
+  $subs = is_array(@$subs[0]) ? $subs[0] : @$subs;
   t\fixEmail($email);
   if ($a = r\acct($email)) $subs['quid'] = $a->mainQid;
-  foreach ($subs as $k => $v) $esubs['{' . $k . '}'] = $v;
+  
+  foreach ($subs as $k => $v) {
+    if ($k == 'nudge') $subs[$k] = $v = u\tt($v);
+    $esubs['{' . $k . '}'] = $v;
+  }
   $message = @$subs['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
   $message = str_replace("\r\n", '', $message);
   $messageDpy = t\showSubs($message, $esubs);
@@ -621,24 +631,37 @@ function findEmail($index, $email, $subs) {
   $subject = $GLOBALS['emailSubjects'][$index];
   $subjectDpy = t\showSubs($subject, $esubs);
   $subject = strtr($subject, $esubs);
-  $pattern = '/\{[A-Z]+[A-Z0-9]*\}/i';
-  if (preg_match($pattern, $message. $subject)) return FALSE; // no other subs
 
-  $map = ["\n"=>'', R_BULLET=>'*', '&nbsp;'=>' '];
-  
-  foreach ($subs as $k => $v) $subs[$k] = strtr(strip_tags($v), $map);
-  ksort($subs);
-  
-  foreach ($testEmails as $one) {
-    extract($one, EXTR_PREFIX_ALL, 't');
-    if ($t_index == $index and $t_email == $email) {
-      foreach ($t_subs as $k => $v) $t_subs[$k] = strtr(strip_tags($v), $map);
-      ksort($t_subs);
-      if (u\just(array_keys($subs), $t_subs) == u\just(array_keys($t_subs), $subs)) return TRUE; // has these subs
-/**/  foreach ($subs as $k=>$v) if (isset($t_subs[$k]) and $v != $t_subs[$k]) debug("k=$k v=$v tv=" . @$t_subs[$k]);
-/**/  foreach ($t_subs as $k=>$v) if (isset($subs[$k]) and $v != @$subs[$k]) debug("k=$k tv=$v v=" . @$subs[$k]);
+  $pattern = '/\{[A-Z]+[A-Z0-9]*\}/i';
+  if (preg_match($pattern, $message . $subject)) {
+    t\output("message or subject contains unhandled subs in email \"$index\"");
+  } else {
+    $map = ["\n"=>'', R_BULLET=>'*', '&nbsp;'=>' '];
+    
+    foreach ($subs as $k => $v) {
+      if ($v == '?') {
+        $ignore[] = $k;
+        unset($subs[$k]);
+      } else $subs[$k] = strtr(strip_tags($v), $map);
+    }
+    ksort($subs);
+    
+    foreach ($testEmails as $one) {
+      extract($one, EXTR_PREFIX_ALL, 't'); // t_ means actual values
+      if ($t_index == $index and $t_toEmail == $email) {
+        foreach ($t_subs as $k => $v) if (!is_array($v)) $t_subs[$k] = strtr(strip_tags($v), $map);
+        if (@$ignore) foreach ($ignore as $k) unset($t_subs[$k]);
+        ksort($t_subs);
+        $wantedInActual = u\just(array_keys($subs), $t_subs);
+        $actualInWanted = u\just(array_keys($t_subs), $subs);
+        if ($wantedInActual == $actualInWanted) return TRUE; // actual is exactly what was wanted
+        t\output(compact('wantedInActual', 'actualInWanted'), 'email');
+        foreach ($subs as $k=>$v) if (isset($t_subs[$k]) and $v != $t_subs[$k]) t\output("k=$k v=$v tv=" . @$t_subs[$k], 'email');
+        foreach ($t_subs as $k=>$v) if (isset($subs[$k]) and $v != $subs[$k]) t\output("k=$k tv=$v v=" . @$subs[$k], 'email');
+      }
     }
   }
+  
   output(['EXPECTED (but did not get)'=>''] + compact(u\ray('index email subjectDpy subs messageDpy')), 'email');
   return FALSE;
 }

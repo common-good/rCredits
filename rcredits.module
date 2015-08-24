@@ -87,12 +87,12 @@ function rcredits_exception_handler($e) {
 ///    $trace = str_replace('<!--', '<! --', print_r($trace, 1));
 //    $trace_msg .= "<!--$trace-->"; // source will contain the whole trace
   $msg = '<b>Exception:</b>' . R_SYS_ERR. "<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
-  $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
   if (isPRODUCTION) {
+    $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
     mail(R_TESTER_EMAIL, 'rCredits FATAL ERROR', $message);
     $R_FATAL_ERROR = u\loga('FATAL', compact('message')); // this gets picked up by rcredits_shutdown()
 /**/  die(); // invoke shutdown
-/**/ } else echo 'FATAL ERROR: ' . $msg;
+/**/ } else echo $msg;
 }
 
 /**

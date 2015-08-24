@@ -21,8 +21,8 @@ Setup:
 
 Scenario: A member draws
   When member ".ZZA" confirms form "pay" with values:
-  | op  | who  | amount | goods | purpose |*
-  | pay | .ZZB |     30 |     2 | food    |
+  | op  | who  | amount | goods        | purpose |*
+  | pay | .ZZB |     30 | %R_FOR_GOODS | food    |
   Then transactions:
   | xid | type     | amount | from | to   | purpose      |*
   |   1 | transfer |     10 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |
@@ -32,8 +32,8 @@ Scenario: A member draws
   
 Scenario: A member draws again
   When member ".ZZA" confirms form "pay" with values:
-  | op  | who  | amount | goods | purpose |*
-  | pay | .ZZB |    130 |     2 | food    |
+  | op  | who  | amount | goods        | purpose |*
+  | pay | .ZZB |    130 | %R_FOR_GOODS | food    |
   Then transactions:
   | xid | type     | amount | from | to   | purpose      |*
   |   1 | transfer |    110 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |
@@ -43,8 +43,8 @@ Scenario: A member draws again
 
 Scenario: A member overdraws with not enough to draw on
   When member ".ZZA" completes form "pay" with values:
-  | op  | who  | amount | goods | purpose |*
-  | pay | .ZZB |    200 |     2 | food    |
+  | op  | who  | amount | goods        | purpose |*
+  | pay | .ZZB |    200 | %R_FOR_GOODS | food    |
   Then we say "error": "short to" with subs:
   | short |*
   | $60   |

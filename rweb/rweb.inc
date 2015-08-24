@@ -30,7 +30,7 @@ define('UPLOAD_DIR', dirname($_SERVER['DOCUMENT_ROOT']) . '/public_ftp/incoming'
  * Output a small version of the current account's photo.
  */
 function formIcon() {
-  echo ($a = r\acct() and $photo = $a->photo) ? $photo : file_get_contents(DRUPAL_ROOT . R_PATH . '/images/icons/account.png');
+/**/  echo ($a = r\acct() and $photo = $a->photo) ? $photo : file_get_contents(DRUPAL_ROOT . R_PATH . '/images/icons/account.png');
   exit();
 }
 
@@ -786,6 +786,7 @@ EOF
 
 /**
  * Invite someone to sign up for rCredits (on behalf of the account, not the agent).
+ * NOTE: We allow agents to send invitations on behalf of a company, but be aware that companies are not people and there is a danger in giving companies permission to act like people. On this invitation form, the company is "trusting" whoever it invites -- something usually reserved for humans.
  */
 function formInvite($form, &$sta) {
   global $base_url;
@@ -801,8 +802,10 @@ function formInvite($form, &$sta) {
   $blurb = blurbLink();
   $a1 = "a href=$base_url/waiting";
   $a2 = "a href=$base_url/invited-whom";
-  $where = str_replace('Greenfield', 'Ashfield', r\location($mya->cttyA));
-  $subtext = item(!@$nearly ? tt("We're sorry, you cannot invite someone to sign up until you have signed the <a href=\"@BASE_URL/agreement\">Agreement</a> and made a <a href=\"@BASE_URL/community/donate\">donation</a>.<br><br>Return to the <a href=\"@BASE_URL/status\">Membership Steps</a> page to see where you stand.") : (tt('<p>Get a $@R_HELPER_BONUSr reward for each friend you invite, who signs up! Plus $@R_COUNTED_BONUSr for each employee, if they open a company account. You may need to help or remind the people you invite. <@a1>Here are some people waiting to be invited</a>, near you.</p><p>The invitation will include your contact info and a short @blurb (click the link to see it). Adjust the subject and message, then click "Send". <small>[<@a2>friends you have invited</a>]</small></p><p>For now, invite only people who live, shop, or work near @where.', compact('blurb', 'a1', 'a2', 'where'))));
+  $where = r\location($mya->cttyA);
+  $warning = $mya->co ? t('<p>Note that you are sending an invitation on behalf of a company. Companies are not people and there is a danger in giving companies permission to act like people. On this invitation form, the company is "trusting" whoever you invite -- something usually reserved for humans.</p>') : '';
+  //Plus $@R_COUNTED_BONUSr for each employee, if they open a company account. 
+  $subtext = item(!@$nearly ? tt("We're sorry, you cannot invite someone to sign up until you have signed the <a href=\"@BASE_URL/agreement\">Agreement</a> and made a <a href=\"@BASE_URL/community/donate\">donation</a>.<br><br>Return to the <a href=\"@BASE_URL/status\">Membership Steps</a> page to see where you stand.") : (tt('<p>Get a $@R_HELPER_BONUSr reward for each friend you invite, who signs up! You may need to help or remind the people you invite. For now, invite only people who live, shop, or work near @where. <@a1>Here are some people waiting to be invited</a>, near you.</p><p>The invitation will include your contact info and a short @blurb (click the link to see it). Adjust the subject and message, then click "Send". <small>[<@a2>friends you have invited</a>]</small></p>', compact('blurb', 'a1', 'a2', 'where')) . $warning));
 //  $contact = textField(t('Email or Cell:'), t('An email address or cell number for the person you want to invite'), required());
   $email = formField($cAdmin ? 'textarea' : 'textfield', t('Email:'), $cAdmin ? t('A comma-separated list of email addresses to invite') : t('An email address for the person you want to invite'), required());
   if ($cAdmin) $dupsOk = boolField(t('Dups Okay?'), '', FALSE);
@@ -811,7 +814,7 @@ function formInvite($form, &$sta) {
 
   $default = @$admin ? 
       tt("The rCredits network is growing. Check it out and sign up!\n\nWilliam")
-    : (@$mya->data['inviteBody'] ?: tt("rCredits looks amazing. I signed up. Check it out!\n\n@name", u\ray('name', $mya->fullName)));
+    : (@$mya->data['inviteBody'] ?: tt("rCredits are amazing. I signed up. Check it out!\n\n@name", u\ray('name', $mya->fullName)));
   $messageHelp = tt('Invite them to sign up, and say why. A short @blurb will follow your message, with a signup link.', compact('blurb'));
   $message = formField('textarea', t('Message:'), $messageHelp, required($default));
   $submit = submit(t('Send'));
@@ -2933,7 +2936,7 @@ function formSignin($form, &$sta) {
 
   $title = item(t('Welcome to rCredits!'));
   $signup = isDEV ? "<a href=\"$base_url/signup/code=w\">Signup</a>" : '';
-  $subtext = item(t('<p>Not yet a member? <@a>Check it out</a>!</p>', u\ray('@a', 'a href=http://rCredits.org')) . $signup . tt('<p><b>TIP</b>: Try not to sign in to your financial accounts on a public computer. Or if you do, be careful! Check the address bar at the top of the screen to make sure you have the right website (<b><em>@R_SITE_URL/</em>...</b>). And be sure to sign OUT when you\'re done!</p>'));
+  $subtext = item(t('<p>Not yet a member? <@a>Check it out</a>!</p>', u\ray('@a', 'a href=' . r\promoLink(''))) . $signup . tt('<p><b>TIP</b>: Try not to sign in to your financial accounts on a public computer. Or if you do, be careful! Check the address bar at the top of the screen to make sure you have the right website (<b><em>@R_SITE_URL/</em>...</b>). And be sure to sign OUT when you\'re done!</p>'));
 
   $a = "a tabindex=3 href=$base_url/account/password/" . @$name; // uses $name, so must precede $name = textField
   $passDesc = tt('<@a>Password problems?</a>', compact('a'));
@@ -2970,7 +2973,7 @@ function login_extra_validate($form, &$sta) {
   if (!isGAME and $uid == 1 and !w\passwordOkay($a, $pw2, 'pw2')) return say(t('Admin requires second pass.'), 'pass');
   $sta['uid'] = ((isDEV and $uid == 1) or passwordOkay($a, $pass)) ? $uid : FALSE;
   if ($sta['uid']) noFlood($sta); else return say('login failed', 'name');
-  if ($uid == 1) r\setCook('pw2', $pw2); // store as cookie, so pw2 is never on server
+  if ($uid == 1) r\setCook('pw2', $pw2, 0); // store as cookie, so pw2 is never on server
 }
 
 /**
@@ -3209,7 +3212,6 @@ function formI($form, &$sta, $who = '') {
   
   $qid = "$region$mark$tail";
   if (!$a = r\acct($qid)) return say('bad card', 'ERR'); // not a real code -- just go to home page
-  $co = $a->co;
   
   $mya = r\acct();
   if (!$gotCode = @$a->agent->$field) return say('bad card code', 'ERR');
@@ -3217,7 +3219,7 @@ function formI($form, &$sta, $who = '') {
   list ($otherId, $otherAgent) = array($a->id, $a->agentId);
 
   //  if (!$mya) return $a->proSe ? r\go('user/login?name=' . $a->name) : scanIn($a);
-  return r\go($a->proSe ? 'http://rCredits.org' : "member/$a->name");
+  return r\go($a->co ? "member/$a->name" : r\promoLink(''));
   
   /*
   $shortName = $a->name;
@@ -3605,9 +3607,56 @@ EOF;
   $regName = r\regionfield('legalName');
   $regPhone = str_replace('+1 ', '', u\fmtPhone(r\regionfield('phone')));
   $negatives = $negatives ? t('<p>You also had negative (refund) transactions totaling @NEG. These are not reported to the IRS, so you might include this negative transaction total on line 2 of 1040 Form C.</p>', ['@NEG' => u\fmtAmt($negatives)]) : '';
-  $subtext = item(t('<p>This list includes all your rCredits system income for the past calendar year, for you to report to the IRS.</p><p>You are NOT required to file Form 1099-B itself, just the income total. Your rCredits region (REGNAME) also reports the date, amount, and description of each transaction listed here, as required by the IRS.</p><p>Be careful not to count twice any pay you get that is reported to you on form W2 or another 1099 (MISC, DIV, etc.) &mdash; subtract those amounts from the total reported here before reporting them on your tax forms.</p><p>As for any rCredits income you receive that is <i>not</i> reported elsewhere, including your incentive rewards, the IRS asks that you report it just as you would report income in US Dollars. You might list it on line 21 of Form 1040 ("Other income") as "barter income" or "incentive rewards", respectively. Or you might include it on form 1040 line 7, form 1040A line 7, or form 1040EZ line 1 ("Wages, salaries, tips, etc.").</p>') . $negatives, ['REGNAME' => $regName]);
+ 
+  $subtext = item(t(<<<EOF
+<p>Pay taxes on rCredits income just as you would for US Dollar income, including income, excise, and sales taxes.</p>
+
+<p>This page reports all rCredits payments made to you in the previous calendar year. Each individual income transaction is reported to the IRS (on Forms 1099-B) and to state government, as required by law &mdash; including your incentive rewards and inflation adjustments.</p>
+
+<p><i>You</i> are NOT required to file Form 1099-B itself. Don't worry if some transactions listed are for payments that aren't income (such as reimbursement) and consequently you need to report different totals than appear on this page &mdash; the purpose of 1099-B is to report transactions, not total income.</p>
+
+<p>The chart below suggests some tax form lines you might choose, for reporting your rCredits activity. It also suggests how you might report your monthly tax-deductible "sharing" contributions to Common Good Finance.</p>
+
+<p>If you follow the <@a1>accounting practices recommended</a> by Common Good Finance, your software already includes your rCredits income, properly categorized, in your accounting records and reports, so you can disregard the totals on this page. Tax form lines that should include both rCredits and US Dollar income are shown in <font color="red">red</font> below.</p>
+EOF
+  , ['@a1' => 'a href=http://commongoodfinance.org/files/AccountingTips.pdf']) . $negatives);
+
+  $table = item(<<<EOF
+<table id="taxes">
+<tr><th class="cat">Tax Form:</th><th>1120</th><th>1040</th><th>1040A</th><th>1040 Sched C</th></tr>
+<tr>
+  <td class="cat">Sales</td>
+  <td><b>1a</b></td>
+  <td><b>7</b> or 21 ("barter income")</td>
+  <td><b>7</b></td>
+  <td><b>1</b></td>
+</tr>
+<tr>
+  <td class="cat">Inflation Adjustment</td>
+  <td><b>5</b> or 10</td>
+  <td><b>8a</b> or 21 ("barter income")</td>
+  <td><b>7</b> or <b>8a</b></td>
+  <td><b>6</b></td>
+</tr>
+<tr>
+  <td class="cat">rCredits Incentive Rewards</td>
+  <td>10</td>
+  <td>21</td>
+  <td>7</td>
+  <td>6</td>
+</tr>
+<tr>
+  <td class="cat">"Sharing" Donations</td>
+  <td>19</td>
+  <td>Subtract from Rewards</td>
+  <td>Subtract from Rewards</td>
+  <td>4, 8, 10, 17, or 27a</td>
+</tr>
+</table>
+EOF
+  );
   $posttext = item(tt('<p>This report is provided by @regName (EIN #@R_REGION_EIN). Address: @regAddr (@regPhone, @regEmail).</p><p>You can see this report here until January 1 of next year (when the report for calendar year @thisYear replaces it).</p><p>If you would rather receive reports by US Mail, you can change that setting in your <a href="account/preferences">Preferences</a>.', u\ray('regName regAddr regPhone regEmail thisYear', $regName, r\regionfield('postalAddr'), $regPhone, r\regionfield('email'), date('Y'))));
-  return compact(u\ray('title subtext summary list posttext'));
+  return compact(u\ray('title subtext table summary list posttext'));
 }
 
 /**
@@ -3676,19 +3725,22 @@ EOF
   : ($mya ? '' : '<a href="' . $base_url . '/signin">Sign in</a> |');
 
   $helpType = $mya ? '' : 'other';
+  $siteLink = r\promoLink('');
+  $securityLink = r\promoLink('security.html');
+  $sysEmail = SYS_EMAIL;
   
   $markup =<<<EOF
 <hr>
 $extraLinks
-    <a href="http://rCredits.org">About rCredits</a> |
+    <a href="$siteLink">About rCredits</a> |
     <a href="$base_url/agreement">The Agreement</a> |
     <a href="$base_url/community/graphs">Communities</a> |
-    <a href="http://rCredits.org/security.html">Privacy & Security</a> |
+    <a href="$securityLink">Privacy & Security</a> |
     <a href="$base_url/help/$helpType">Help</a>
 <br><br>
 copyright &copy; $year <a href="http://CommonGoodFinance.org">Common Good Finance&reg;</a>, a 501(c)(3) nonprofit<br/>
 PO Box 21, Ashfield, MA 01330 USA<br/>
-+1 413-628-1723 &nbsp; <a href="mailto:info@rCredits.org" target="_blank">info@rCredits.org</a><br>
++1 413-628-1723 &nbsp; <a href="mailto:$sysEmail" target="_blank">$sysEmail</a><br>
 <div id="saywait"><br><img src="$rUrl/images/saywait.gif" /><br>processing...</div>
 EOF;
 
@@ -3732,6 +3784,6 @@ function whosin($ctty = '') {
     '</td></tr>' => '</div></div>',
   ];
   $list = strtr($list, $map); // temporary fudge
-  echo $list;
+/**/  echo $list;
   exit();
 }

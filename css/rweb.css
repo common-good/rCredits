@@ -1,3 +1,5 @@
+/* CSS specific to rCredits members site */
+
 @font-face {
     font-family: "GnuMICR";
     src: url(http://new.rcredits.org/GnuMICR.ttf) format("truetype");
@@ -606,6 +608,7 @@ div.password-confirm {float: right; margin-top:1.5em; visibility:hidden; width: 
 #rcreditswebform1099b #summary {width:auto;}
 #rcreditswebform1099b #summary td.count {text-align:center;}
 #rcreditswebform1099b #summary .amount {text-align:right;}
+#rcreditswebform1099b #taxes b {color:red;}
 
 /* Invited Whom */
 #invitelist {width:auto; cell-spacing:5px;}

@@ -1,13 +1,11 @@
 rCredits Software
 To Do
 
-- investment committee meet again to form support organization
 - form publicity committee (as decided by the board)
 - rCredits gift card (essentially an invitation from another member, but with a printed $50 value (if you use this card for purchases at GFM, Foster's, or the Barn)
 - Help Upinngil get books set up right
 - Use BeenVerified.com routinely
 - Get a security audit
-- Talk to Brendan for business manual
 - Offer new businesses guaranteed bonus (hundreds or thousands) for signing up and trying it. "We're so sure it will benefit you, we will write you a check for $4,000 to give it a try."
 - FAQs for promo site (under Why rCredits)
 - "rCredits Accepted Here" register stickers (4x2")
@@ -16,39 +14,42 @@ To Do
         • ditto, but directly-and-indirectly combined, sort of “most descendants”
         • the longest chain of successful invites (probably not that long, so maybe more than one chain)
 - Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site)
-- Credit PFC invites and Brendan's 2 RPC invites.
 
 . some of Kirsten's contingent compensation has no time limit
 . after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
 . video about Admin'ing
 . register sending email on emailreg.org, to prevent blacklisting
 . get listed with Charity Navigator and give.org?
+. charge everybody for the phone(s) and other equipment they have
+. have somebody redo "why rcredits" diagram with pictures
 
 TASKS FOR NEXT UPDATE:
-. charge everybody for the phone(s) and other equipment they have
-. REINSTALL
-. UPDATE r_txs SET goods=IF(goods=2,0,goods+1)
-. change !NEW email to westernmass@rCredits.org
-. a('miw.adg')->update('dob',strtotime('10-May-1982'));
-. update theme, css, js, images, fonts
+. Credit PFC invites and Brendan's 2 RPC invites.
+. credit Fuzzy's invites.
 
-. put a warning in the code about corporate personhood
+. ** separate emails for separate purposes (with good subject) and settable preferences
+. *** create CGF retirement account with reward pct "rebate" = 0
+. *** flag (and email admin) unusual banks -- keep count of members in r_banks
+. *** unsubscribe link for nonmembers who have been invited AND for people with accounts (more elaborate form, requiring proof of ID -- maybe require signing in)
+. *** do handle invoice asks for a signin!
+. *** do not allow activating accounts outside established regions!
+. *** make an easy way for admin to change an account's region (and community) [easier than f('r.changeUid', $uid);]
+. *** sometimes we receive two same-second identical transaction requests from the app -- not forced. ask experts why and figure out a way to prevent it.
+. *** the wrong transactions require approval on reversal (maybe)
+. *** for appData requests, target a specific device (or each device for a particular business) and record the results in r_boxes
+. *** store company card security code in relations table, not cardcode2 (for example, if an agent of multiple companies loses a Company Agent card, we don't want to have to replace all their Company Agent rCards)
+. ** any smartphone tx from over 24 hours ago should get put in as yesterday
+. *** B_BOUNCED: disable minimum, warn member, charge fee $20
+. *** txs should not show X (undo) on receipts, for non-buyers
 . make sure dups of accepted invitations get marked
 . let members easily re-invite or delete invitation records
 . use "calling" field for company's shortDesc?
-. *** do handle invoice asks for a signin!
 . drawing on an account with less bal than rewards fails
-. give Fuzzy (and other ctty admins) inviter rewards
-. *** flag (and email admin) unusual banks -- keep count of members in r_banks
-. *** unsubscribe link for nonmembers who have been invited AND for people with accounts (more elaborate form, requiring proof of ID -- maybe require signing in)
 . on Summary page, automatically check if business has same SSN as helper
 . change wants to text field
 . cell phones (use http://www.freecarrierlookup.com/)
-. separate emails for separate purposes (with good subject) and settable preferences
-. when we go to promo site from mem site, set a cookie to show "Members Site" instead of Sign In.
 . make a simple place online for companies to get the rInfo they need (how to download, setup, and run app, etc.)
 . on promo site: after signup -- tell a friend, then donate
-. *** do not allow activating accounts outside established regions!
 . add links to relations to Summary (for admin)
 . on proxy screen, allow typing member ID (such as NEW.AAA) or username (such as jdoe@new)
 . allow transactions when short by 0 (sometimes fails).
@@ -56,13 +57,11 @@ TASKS FOR NEXT UPDATE:
 . add members and businesses counts to funds page (for each ctty)
 . don't remind about unfulfilled invites if person joined with a different email address (eg Shel)
 . when a member requests a transfer from the bank, suggest a minimum
-. *** let companies invite (but warn on page and in code about corporate personhood)
 . add extensive instructions to admin online and in a manual, eg: "Require a photo where... If the photo is inadequate, fix it or ask the new member for a better one (before activating the account) (copy and paste from "support BLURBS.txt")
 . when admin clicks request rCard (eg Lesley P), it says "you don't have permission"
 . Jeremy is shown an X, but cannot reverse transactions
 . transactions history table goes too wide when the description is long and has no spaces (eg GFM #2436)
 . list invoices in a reasonable order: created DESC
-. *** make an easy way for admin to change an account's region (and community) [easier than f('r.changeUid', $uid);]
 . on donation page, omit "share" if already donated and say the donation will come from your rC acct when it has funds
 . make sure "edited by you" message does not go, when admin edits a tx
 . allow cAdmins to trade rCredits for cash from other members (even if past the rewards)
@@ -81,7 +80,6 @@ TASKS FOR NEXT UPDATE:
 . "Sign up" button -> "Next"
 . figure out why Snow's paying Barbara got the "nope!" message, but ABC paying Garth and Jeff doesn't (Barbara can draw on Snow's)
 . disallow choosing proxies until signed and donated (only members can view the local member list)
-. *** sometimes we receive two same-second identical transaction requests from the app -- not forced. ask experts why and figure out a way to prevent it.
 . global $g global array, g(varname) gets, g(varname, value) sets. Use this for R_ constants that a community might want to alter.
 . list goods choice first, etc last
 . send note to admin to deactivate account unless member clicks a link once a month (on average -- randomize). 7 days later admin deactivate and call. Members should be expected to read all special announcements (with highlight colors)
@@ -89,9 +87,6 @@ TASKS FOR NEXT UPDATE:
 . when a bank transfer gets reversed, automatically zero out the account's minimum
 . rename charge "invoice"?
 . in signup, make email verification a step and let user do it in any order
-. *** the wrong transactions require approval on reversal (maybe)
-. *** for appData requests, target a specific device (or each device for a particular business) and record the results in r_boxes
-. *** store company card security code in relations table, not cardcode2 (for example, if an agent of multiple companies loses a Company Agent card, we don't want to have to replace all their Company Agent rCards)
 . add notice of statement availability to (first) monthly notices
 . simplify admin log display by suppressing email body
 . simplify admin tx display by suppressing sharing and inflation
@@ -119,12 +114,10 @@ TASKS FOR NEXT UPDATE:
 . cAdmin2 doesn't get to see floor! fix.
 . show cAdmin the top trusted people (SELECT fullName,trust FROM `users` WHERE community=:ctty ORDER BY trust DESC)
 . let admin edit tx date
-. ** any smartphone tx from over 24 hours ago should get put in as yesterday
 . change language to clarify that incentives are incentives say "rewards" (signup reward, etc) no "bonus" or "rebate". "inflation adjustment" is okay and member should be able to keep that.
 . alert staff on Undo
 . alert staff on prefs change (if B_OK)
 . for staff always show channel and agent
-. *** B_BOUNCED: disable minimum, warn member, charge fee $20
 . cache non-automatic r for pre-CGC cttys
 . download to app 100 one-use cardcodes
 . don't let admin set OK until member is set (either automatically or manually -- two steps). if admin unsets member, unset OK too.
@@ -137,7 +130,6 @@ TASKS FOR NEXT UPDATE:
 . in cron, if any created date in r_txs is more than two days (48 hours) off from its predecessor, tell admin about it (including how far off): get min xid0 in past 3 days, select xid where xid>xid0 but created<now-3days
 . don't make account opener manager if "by" is ADMIN or cadmin (and give account a temp password)
 . * add a Pay button to member company rCredits webpage
-. *** txs should not show X (undo) on receipts, for non-buyers
 . moves is off by one when current county does not appear in ss-search list
 . when admin changes "goods"ness of a transaction, data gets double-serialized (don't. and look for data starting "{{")
 . when admin enters data from paper, remember it was paper (risk bit), present the "Add Another Account" button, ask for inviter (accept an email or name), offer a single checkbox for "signed", etc.

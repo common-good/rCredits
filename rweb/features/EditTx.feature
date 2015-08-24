@@ -30,8 +30,8 @@ Setup:
 
 Scenario: A buyer changes the transaction description
   Given member ".ZZA" edits transaction "4" with values:
-  | amount | goods | purpose |*
-  |     20 |     2 | things  |
+  | amount | goods        | purpose |*
+  |     20 | %R_FOR_GOODS | things  |
   When member ".ZZA" visits page "history/period=5"
   Then we show "Transaction History" with:
   |_tid | Date | Name    | From you | To you | Status | _ | Purpose | Reward/Fee |
@@ -39,8 +39,8 @@ Scenario: A buyer changes the transaction description
 
 Scenario: A buyer increases a payment amount
   When member ".ZZA" edits transaction "4" with values:
-  | amount | goods | purpose |*
-  |     40 |     2 | stuff   |
+  | amount | goods        | purpose |*
+  |     40 | %R_FOR_GOODS | stuff   |
   Then balances:
   | id   | balance | rewards |*
   | ctty |    -756 |         |
@@ -57,8 +57,8 @@ Scenario: A buyer increases a payment amount
 
 Scenario: A buyer changes the goods status
   When member ".ZZA" edits transaction "4" with values:
-  | amount | goods | purpose |*
-  |     20 |     0 | stuff   |
+  | amount | goods      | purpose |*
+  |     20 | %R_FOR_USD | stuff   |
   Then balances:
   | id   | balance | rewards |*
   | ctty |    -750 |         |
@@ -75,8 +75,8 @@ Scenario: A buyer changes the goods status
 
 Scenario: A buyer tries to decrease a payment amount
   When member ".ZZA" edits transaction "4" with values:
-  | amount | goods | purpose |*
-  |     10 |     2 | stuff   |
+  | amount | goods        | purpose |*
+  |     10 | %R_FOR_GOODS | stuff   |
   Then we say "error": "illegal amount change" with subs:
   | amount | action   | a |*
   | $20    | decrease | ? |

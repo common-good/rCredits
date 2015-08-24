@@ -49,8 +49,8 @@ Scenario: A nonmember has not accepted the invitation
   | zot@example.com | .ZZA    | codeA1 | %today-8d |
   When cron runs "tickle"
   Then we email "nonmember" to member "zot@example.com" with subs:
-  | inviterName | code   | site        | nudge                                      | noFrame |*
-  | Abe One     | codeA1 | %R_SITE_URL | We will send you just one more reminder(s) | 1       |
+  | inviterName | code   | site        | nudge        | noFrame |*
+  | Abe One     | codeA1 | %R_SITE_URL | reminder one | 1       |
   And we notice "invite languishing" to member ".ZZA" with subs:
   | email           | elapsed |*
   | zot@example.com |       8 |

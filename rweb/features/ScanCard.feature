@@ -19,7 +19,7 @@ Setup:
 
 Scenario: Someone scans a member card
   When member "?" visits page "I/ZZB.ccB"
-  Then we redirect to "http://rCredits.org"
+  Then we redirect to "http://rcredits.org/"
 
 Scenario: Someone scans a company agent card
   When member "?" visits page "I/ZZB-ccB2"
@@ -31,7 +31,7 @@ Scenario: Someone scans a company agent card
 
 Scenario: Someone scans an old member card
   When member "?" visits page "I/NEW.ZZB-ccB"
-  Then we redirect to "http://rCredits.org"
+  Then we redirect to "http://rcredits.org/"
 
 Scenario: Someone scans an old company agent card
   When member "?" visits page "I/NEW-ZZB-ccB2"

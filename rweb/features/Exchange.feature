@@ -91,6 +91,6 @@ Scenario: A member asks to cash out too much
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
   | pay | Bea Two | 300    | %R_FOR_USD | paper   |
-  Then we say "error": "short to|short cash help" with subs:
+  Then we say "error": "short to|short cash help|maybe not cash" with subs:
   | short |*
   | $100  |

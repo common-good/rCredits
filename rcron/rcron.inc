@@ -135,7 +135,7 @@ function tickle() {
   $timeSince = "(FLOOR(($today-@DATE)/:DAY_SECS)+1)"; // $today works better in tests than :REQUEST_TIME or time()
 
   // Remind invitee to accept
-  $delays = '3,8,21';
+  $delays = '8';
   $elapsed = str_replace('@DATE', 'invited', $timeSince);
   $sql = <<<EOF
     SELECT email, inviter, code, $elapsed AS elapsed FROM r_invites
@@ -182,10 +182,11 @@ EOF;
  */
 function tickleSignup($item) {
   extract(u\just('email inviter code elapsed', $item));
-  if (r\acct($email = u\cryptN($email, FALSE))) return; // invitee already began to open an account
+  if (r\acct($email = u\decryptN($email))) return; // invitee already began to open an account
   $inviterName = r\acct($inviter)->fullName;
-  $count = $elapsed < 7 ? t('two') : ($elapsed < 14 ? t('one') : 0);
-  $nudge = $count ? u\tt("We will send you just @count more reminder(s)", compact('count')) : t('This is your last reminder');
+//  $count = $elapsed < 7 ? t('two') : ($elapsed < 14 ? t('one') : 0);
+//  $nudge = $count ? u\tt("We will send you just @count more reminder(s)", compact('count')) : t('This is your last reminder');
+  $nudge = u\tt($elapsed < 7 ? 'reminder coming' : 'reminder one');
   r\rMail('nonmember', $email, u\ray('inviterName nudge code noFrame', $inviterName, $nudge, $code, TRUE));
   r\notify($inviter, 'invite languishing', compact('email', 'elapsed'));
 }
@@ -700,7 +701,7 @@ function bona1($item) {
   r\membershipEvent($a, 'bona');
   be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
   
-  if (!r\acct($a->helper)->cAdmin) { // helper is not admin
+  if (!r\acct($a->helper)->admin) { // helper is not admin (cAdmin is okay)
     $fullName = $a->fullName;
     be\fund($a->helper, TX_HELPER, R_HELPER_BONUS, u\tt('invite reward', compact('fullName')));
   }

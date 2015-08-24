@@ -14,7 +14,7 @@ use rCredits\Testing as t;
 define('TX_REWARD_FIELDS', 'serial type amount goods payer payee payerAgent payeeAgent for taking created');
  
 class x {
-  var $ray; // an assoc of all the transaction's fields
+  var $ray; // an assoc of all the transaction's fields (including the data field, still serialized)
   
   /**
    * Instantiate (create or retrieve) a transaction record
@@ -121,8 +121,10 @@ class x {
       }
     } elseif ($amount = @$rewards['xfee']) {
       list ($type, $goods, $payerAgent, $payeeAgent, $taking) = array(TX_XFEE, R_FOR_USD, $payer, $payee, TRUE);
-      $for = ($amount == R_XFEE_CHECK and !strpos($payeeFor, '(card)')) ? t('check fee') : t('card fee');
-      if ($xray = $this->save(compact(u\ray(TX_REWARD_FIELDS)))) $xrays[] = $xray; else return FALSE;
+      $for = ($amount == R_XFEE_CHECK and !strpos($payeeFor, BY_CARD)) ? t('check fee') : t('card fee');
+      if ($xray = $this->save($this->setup(compact(u\ray(TX_REWARD_FIELDS))))) {
+        $xrays[] = $xray;
+      } else return FALSE;
     }
     return TRUE;
   }
@@ -164,7 +166,7 @@ class x {
     u\setDft($payerAgent, $payer);
     u\setDft($payeeAgent, $payee);
     u\setDft($created, r\rTime());
-    $data = $this->dataSetup($payer, $payee, $amount, $goods, $for, @$data ?: [], $channel);
+    $data = serialize($this->dataSetup($payer, $payee, $amount, $goods, $for, @$data ?: [], $channel));
     $taking += 0;
     $goods += 0;
     $box = @$boxUser ?: 0;
@@ -180,11 +182,11 @@ class x {
    * Set up and return the data field for a transaction.
    * @param assoc $data: forced values for rebates/bonuses/xfees, if any
    * $param int $channel: passed here in case we are reversing or editing a transaction on a different channel
-   * @return the revised $data, serialized
+   * @return the revised $data, as an array
    */
   private function dataSetup($payer, $payee, $amount, $goods, $for, $data, $channel) {
     u\EXPECT(is_array($data), 'data should be array');
-    if (r\owning($payer, $payee)) return serialize($data); // no rewards or xfees for txs between owner and owned
+    if (r\owning($payer, $payee)) return $data; // no rewards or xfees for txs between owner and owned
 
     if ($goods == R_FOR_GOODS and !isset($data['rebate'])) {
       $rebate = (string) r\rebate($payer, $payee, $amount); // force string, to avoid long serializations
@@ -195,7 +197,7 @@ class x {
     }
     
     unset($data['preapproved']); // don't need these (but keep 'undoes' and original rebate/bonus, if any)
-    return serialize($data);
+    return $data;
   }
   
   /**
@@ -296,15 +298,16 @@ class x {
       }
       $x->cacheBothTotals($xraysNeg); // subtract old values from cache
       $$fieldName = $xray[$fieldName] = $newValue; // revise transaction record and update variable
-      $xray['data'] = $data = $x->dataSetup($payer, $payee, $amount, $goods, $payeeFor, $dataRay, $channel);
+      $dataRay = $x->dataSetup($payer, $payee, $amount, $goods, $payeeFor, $dataRay, $channel);
+      $xray['data'] = serialize($dataRay);
       $xrays = array($xray);
       $x->rewards($xrays); // create new rewards transactions
       $x->cacheBothTotals($xrays); // cache values for the revised transaction
-    } else $data = $dataRay;
+    }
 
 //    $sql = "UPDATE r_txs SET $fieldName=:newValue,data=:data WHERE $where";
 //    db\q($sql, compact(u\ray('newValue data xid')));
-    $x->update("$fieldName data", $newValue, $data);
+    $x->update("$fieldName data", $newValue, $dataRay);
 
     unset($DBTX); // commit
   }

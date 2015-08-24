@@ -76,8 +76,8 @@ class rwebEditTx extends DrupalWebTestCase {
   public function testABuyerChangesTheTransactionDescription_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('member ".ZZA" edits transaction "4" with values: "ASSOC'
-    . '\\| amount | goods | purpose |'
-    . '\\|     20 |     2 | things  |"');
+    . '\\| amount | goods        | purpose |'
+    . '\\|     20 | %R_FOR_GOODS | things  |"');
     When_('member ".ZZA" visits page "history/period=5"');
     Then_('we show "Transaction History" with: "ARRAY'
     . '\\|_tid | Date | Name    | From you | To you | Status | _ | Purpose | Reward/Fee |'
@@ -88,8 +88,8 @@ class rwebEditTx extends DrupalWebTestCase {
   public function testABuyerIncreasesAPaymentAmount_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" edits transaction "4" with values: "ASSOC'
-    . '\\| amount | goods | purpose |'
-    . '\\|     40 |     2 | stuff   |"');
+    . '\\| amount | goods        | purpose |'
+    . '\\|     40 | %R_FOR_GOODS | stuff   |"');
     Then_('balances: "ASSOC'
     . '\\| id   | balance | rewards |'
     . '\\| ctty |    -756 |         |'
@@ -109,8 +109,8 @@ class rwebEditTx extends DrupalWebTestCase {
   public function testABuyerChangesTheGoodsStatus_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" edits transaction "4" with values: "ASSOC'
-    . '\\| amount | goods | purpose |'
-    . '\\|     20 |     0 | stuff   |"');
+    . '\\| amount | goods      | purpose |'
+    . '\\|     20 | %R_FOR_USD | stuff   |"');
     Then_('balances: "ASSOC'
     . '\\| id   | balance | rewards |'
     . '\\| ctty |    -750 |         |'
@@ -130,8 +130,8 @@ class rwebEditTx extends DrupalWebTestCase {
   public function testABuyerTriesToDecreaseAPaymentAmount_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" edits transaction "4" with values: "ASSOC'
-    . '\\| amount | goods | purpose |'
-    . '\\|     10 |     2 | stuff   |"');
+    . '\\| amount | goods        | purpose |'
+    . '\\|     10 | %R_FOR_GOODS | stuff   |"');
     Then_('we say "error": "illegal amount change" with subs: "ASSOC'
     . '\\| amount | action   | a |'
     . '\\| $20    | decrease | ? |"');

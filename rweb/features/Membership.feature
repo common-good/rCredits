@@ -103,7 +103,7 @@ Scenario: A member does it all
   | Abe One  | .ZZA | member |
   When member ".ZZA" visits page "summary"
   Then we say "status": "setup complete"
-  And we say "status": "adjust settings"
+#  And we say "status": "adjust settings"
 
   When member ".ZZA" visits page "status"
   Then we show "Your Account Setup Is Complete"

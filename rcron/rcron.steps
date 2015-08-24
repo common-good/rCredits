@@ -51,6 +51,7 @@ function extraSubs(&$subs) {
  * members: (ARG)
  *
  * in: MAKE Bank Setup
+ *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
  *     MAKE Bona Setup
  *     TEST Bona AMemberGetsMoneyForTheFirstTime
  *     TEST Bona AnEmployeeGetsMoneyForTheFirstTime

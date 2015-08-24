@@ -67,8 +67,8 @@ class rwebFlow extends DrupalWebTestCase {
   public function testAMemberDraws_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" confirms form "pay" with values: "ASSOC'
-    . '\\| op  | who  | amount | goods | purpose |'
-    . '\\| pay | .ZZB |     30 |     2 | food    |"');
+    . '\\| op  | who  | amount | goods        | purpose |'
+    . '\\| pay | .ZZB |     30 | %R_FOR_GOODS | food    |"');
     Then_('transactions: "ASSOC'
     . '\\| xid | type     | amount | from | to   | purpose      |'
     . '\\|   1 | transfer |     10 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |'
@@ -81,8 +81,8 @@ class rwebFlow extends DrupalWebTestCase {
   public function testAMemberDrawsAgain_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" confirms form "pay" with values: "ASSOC'
-    . '\\| op  | who  | amount | goods | purpose |'
-    . '\\| pay | .ZZB |    130 |     2 | food    |"');
+    . '\\| op  | who  | amount | goods        | purpose |'
+    . '\\| pay | .ZZB |    130 | %R_FOR_GOODS | food    |"');
     Then_('transactions: "ASSOC'
     . '\\| xid | type     | amount | from | to   | purpose      |'
     . '\\|   1 | transfer |    110 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |'
@@ -95,8 +95,8 @@ class rwebFlow extends DrupalWebTestCase {
   public function testAMemberOverdrawsWithNotEnoughToDrawOn_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" completes form "pay" with values: "ASSOC'
-    . '\\| op  | who  | amount | goods | purpose |'
-    . '\\| pay | .ZZB |    200 |     2 | food    |"');
+    . '\\| op  | who  | amount | goods        | purpose |'
+    . '\\| pay | .ZZB |    200 | %R_FOR_GOODS | food    |"');
     Then_('we say "error": "short to" with subs: "ASSOC'
     . '\\| short |'
     . '\\| $60   |"');

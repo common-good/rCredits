@@ -44,10 +44,10 @@ define('CGF_POSTALADDR', 'PO Box 21, Ashfield, MA 01330');
 define('CGF_EIN', '205280780');
 define('R_LAUNCH', strtotime('12/15/2013'));
 define('CGF_ID', r\cgfId()); // Common Good Finance record ID
+define('SYS_EMAIL', 'info@rCredits.org');
 
 define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
-define('R_VERSION', '2.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty,Vacant Lot,Land,Cinema,Printing & Office Supply,Car Repair,Health Club/Gym,Restaurant,Hardware & Supply,Grocer,Farm,Food Processing,Department Store,Electric Company,Oil Company,Town Government,Community College,Hospital');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
@@ -65,7 +65,6 @@ define('R_SHARE_MAX', 50); // minimum sharing percentage
 define('R_SHARE_DFT', 50); // default sharing percentage
 define('R_SHARING_MSG', t('sharing rewards with CGF'));
 
-define('R_SECRET_URL', isPRODUCTION ? 'http://rcredits.org' : (isDEV ? 'http://localhost/rcredits-promo' : 'http://' . STAGE)); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
@@ -74,6 +73,8 @@ define('R_STEPS', 'contact sign donate proxies prefs photo connect company relat
 define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret code oneTimeLoginUrl password pass newPass form_build_id form_token form_id'); // don't log these
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts Summary'); // don't log visits to these forms
 define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin Sinx Pass Empty TestRecovery ChangePassword Help Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
+define('BY_CHECK', '(check)'); // app includes this in description, for a purchase of rCredits by check
+define('BY_CARD', '(card)'); // app includes this in description, for a purchase of rCredits by credit card
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
@@ -552,50 +553,63 @@ function rdoMonth($time = NULL) {
 
 /**
  * Wrap all email, so it doesn't go out when testing.
+ * @param string $index: index to email template and subject
+ * @param mixed $to: where to send the message -- uid, account, or email address
+ * @param assoc $subs: substitutions in template
+ * @param mixed $reply: uid, account, or email address to reply to OR 'ctty' (of $to) or NULL (same as from)
+ * NOTE: from is always SYS_EMAIL
  */
-function rMail($index, $email, $subs, $lingo = '') {
+function rMail($index, $to0, $subs, $reply0 = NULL) {
   if (isGAME) return; // no emails from game site
   global $testEmails;
-  $subs['email'] = $email;
-  $testEmails[] = compact(u\ray('index email subs'));
-  if (!isPRODUCTION) if ($email != r\regionField('email') and $email != R_TESTER_EMAIL) $email = 'none@example.com'; // black hole
-//  \drupal_mail('rCredits', $index, $email, '', $subs); // (pre-Postmark)
-
-  $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
-    
-  if ($uid = (int) @$subs['uid']) {
-    $a = r\acct($uid);
-    $subs += (array) $a->account(); // this omits any special fields or special formatting
-    $subs['quid'] = $a->mainQid;
-    $langcode = $a->language->language;
-    $subs['shortName'] = $a->name;
-    $to = "$fullName <$email>";
-  } else $to = $email;
 
   $subs['site'] = R_SITE_URL;
-  $subs['region'] = strtolower(@$a ? $a->region : R_SERVER_ID);
+  
+  if ($toA = is_object($to0) ? $to0 : r\acct($to0)) {
+    $toEmail = $toA->email;
+    $to = "\"$toA->fullName\" <$toEmail>";
+    $subs += (array) $toA->account(); // this omits any special fields or special formatting
+    $subs['quid'] = $toA->mainQid;
+    $subs['shortName'] = $toA->name;
+  } else $to = $toEmail = $to0;
 
-///    foreach ($subs as $k => $v) if (is_object($v) or is_array($v)) mail('wspademan@gmail.com', 'acct obj in _mail', print_r(compact('index','msg_array','subs','uid','k','v'), 1) . print_r(debug_backtrace(), 1));
-    $nolog = u\ray(R_NOLOG); // subs not to log (sensitive data)
-    foreach ($subs as $k0 => $v) if (!is_object($v) and !is_array($v)) {
-      $k = '{' . $k0 . '}';
-      $resubs[$k] = $v;
-      $logSubs[$k] = in_array($k0, $nolog) ? '(?)' : $v; // hide personal info and secrets
-    }
-    $message = @$subs['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
-    $subject = @$subs['subject'] ?: $GLOBALS['emailSubjects'][$index];
-    $subject = strtr($subject, $resubs);
-    $body = strtr($message, $resubs);
+  $testEmails[] = compact(u\ray('index toEmail subs'));
+  if (!isPRODUCTION) if ($toEmail != r\regionField('email') and $toEmail != R_TESTER_EMAIL) $toEmail = 'none@example.com'; // black hole
 
-    // prepare log params
-    $message = str_replace("\r\n", '', strtr($message, $logSubs)); // easier reading for log and tests
-    $fields = compact(u\ray('index email subject message'));
-/**/ t\output('Actual (in hook_mail) ' . print_r($fields, 1), 'email');
-    u\loga('email', $fields, @$a);
+  if ($reply0 == 'region') {
+    $reply = NULL;
+  } else {
+    $replyA = is_object($reply0) ? $reply0 : ($reply0 == 'ctty' ? $toA->cttyA : r\acct($reply0));
+    $reply = $replyA ? "\"$replyA->fullName\" <$replyA->email>" : $reply0;
+    if ($reply == $to) $reply = NULL;
+  }
+
+  $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
+  $message = @$subs['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
+  $subject = @$subs['subject'] ?: $GLOBALS['emailSubjects'][$index];
     
-  require_once __DIR__ . '/vendor/autoload.php';
-  $client = new Postmark\PostmarkClient(POSTMARK_TOKEN); // test token: POSTMARK_API_TEST
-  $res = $client->sendEmail($from, $to, $subject, $body);
+  $nolog = u\ray(R_NOLOG); // subs not to log (sensitive data)
+  foreach ($subs as $k0 => $v) if (!is_object($v) and !is_array($v)) {
+    $k = '{' . $k0 . '}';
+    $resubs[$k] = $v;
+    $logSubs[$k] = in_array($k0, $nolog) ? '(?)' : $v; // hide personal info and secrets
+  }
+
+  $subject = strtr($subject, $resubs);
+  $body = strtr($message, $resubs);
+
+  // log
+  $message = str_replace("\r\n", '', strtr($message, $logSubs)); // easier reading for log and tests
+  $fields = compact(u\ray('index toEmail subject message'));
+/**/ t\output('Actual (in rMail) ' . print_r($fields, 1), 'email');
+  u\loga('email', $fields, @$toA);
+
+  // send
+  require_once DRUPAL_ROOT . '/vendor/autoload.php';
+  if (isDEV) return; // otherwise cURL error 60: SSL certificate problem: unable to get local issuer certificate
+  $client = new \Postmark\PostmarkClient(isDEV ? POSTMARK_API_TEST : POSTMARK_TOKEN);
+  $from = t('rCredits System <@e>', ['@e' => SYS_EMAIL]);
+  $res = $client->sendEmail($from, $to, $subject, $body, NULL, NULL, NULL, $reply);
   if (!is_object($res)) r\tellStaff('email fail', compact('res'));
 }
 
@@ -630,7 +644,7 @@ function notify($uid, $index, $subs = [], $force = FALSE) {
   $warnIndexes = u\ray('new invoice,new offer,charge disputed');
   
   if ($force) {
-    $mailed = r\rMail($index, $a->email, $subs); // no need to pass $a->language
+    $mailed = r\rMail($index, $a, $subs, 'ctty');
   } else { //if ($a->can(B_NOTIFY_EMAIL)) {
     list ($message, $created) = array(u\tt($index, $subs), r\rTime());
     t\output("Notice to $fullName: $message");
@@ -755,21 +769,21 @@ function tellStaff($index, $subs = [], $uid = TRUE) {
   foreach (u\ray('federalId dob answer secure pass') as $k) unset($subs[$k]); // secret stuff
   ksort($subs); // put the keys in a predictable order, for testing and easy reading
   $message = u\tt($index, $subs) . u\seeAssoc($subs);
-  $email = $regEmail = r\regionField('email'); // default (tell sysAdmin)
+  $email = $regionEmail = r\regionField('email'); // default (tell sysAdmin)
   
   if ($uid) {
     if ($mya = r\acct($uid > 1 ? $uid : '')) {
       $message = "$mya->fullName (#$mya->id): $message";
       if ($ca = $mya->cAdminUid()) $email = r\acct($ca)->email; // tell Community Admin
-    } else $uid = 1;
-  } else $uid = 1; // default to sysadmin
+    } else $uid = NULL;
+  } else $uid = NULL; // default to SYS_EMAIL
 
   $noFrame = TRUE;
   $topic = strlen($index) < 20 ? strip_tags($index) : '';
-  r\rMail('tell-staff', $email, compact(u\ray('email message topic noFrame uid')));
-  if ($email != $regEmail and $email != R_TESTER_EMAIL) { // temporary until ctty admins get established
-    $email = $regEmail; // tell regional admin also
-    r\rMail('tell-staff', $email, compact(u\ray('email message topic noFrame uid')));
+  $subs = compact(u\ray('email message topic noFrame uid')) + $subs;
+  r\rMail('tell-staff', $email, $subs, $uid);
+  if ($email != $regionEmail and $email != R_TESTER_EMAIL) { // temporary until ctty admins get established
+    r\rMail('tell-staff', SYS_EMAIL, $subs, $uid); // tell regional admin also
   }
 }
 
@@ -1569,7 +1583,7 @@ EOF;
     
   $sql = <<<EOF
     SELECT $sums 
-    SUM($tmembers * IF(channel=:TX_CRON AND payeeFor=:R_SHARING_MSG, amount, 0)) AS shared,
+    SUM($tmembers * IF(channel=:TX_CRON AND payeeFor=':R_SHARING_MSG', amount, 0)) AS shared,
     SUM($tmembers * IF(goods=:R_FOR_GOODS, amount, 0)) AS purchases, 
     SUM($tmembers * IF(payer>1 AND goods=:R_FOR_USD, amount, 0)) AS forCashs
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
@@ -1814,6 +1828,16 @@ function suggest($a, $index, $subs, $page = 'Preferences') {
 }
 
 /**
+ * Return the url for a page on the promo site, with a way to come back still signed in.
+ * @param string $page: what page on the promo site to visit
+ * @return the full url
+ */
+function promoLink($page = '') {
+  if (r\acct()) $page .= '?region=' . (isSTAGE ? STAGE_SUBDOMAIN : R_SERVER_ID) . '&tm=' . time();
+  return "http://rcredits.org/$page";
+}
+
+/**
  * Start/Stop the system OR return the "up" status.
  * @param bool $up: whether to start (TRUE), stop (FALSE), or query (NULL, the default)
  * @return TRUE if the system is up
@@ -1845,8 +1869,8 @@ function xfee($for, $amount) {
   if (is_array($for)) $for = $for[1];
   if (!r\usdin($for)) return '';
   if (strpos($for, '(cash)')) return 0;
-  if (!strpos($for, '(card)') and !strpos($for, '(check)')) return 0; // for FCCoop until they update their app
-  return '' . round(strpos($for, '(card)') ? -R_XFEE_CARD * $amount : R_XFEE_CHECK, 2);
+//  if (!strpos($for, BY_CARD) and !strpos($for, BY_CHECK)) return 0; // for FCCoop until they update their app
+  return '' . round(strpos($for, BY_CARD) ? -R_XFEE_CARD * $amount : R_XFEE_CHECK, 2);
 }
   
 // Single line functions that need no explanation

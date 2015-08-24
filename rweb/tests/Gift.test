@@ -60,7 +60,7 @@ class rwebGift extends DrupalWebTestCase {
   public function testAMemberDonates_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('next DO code is "whatever"');
-    When_('member ".ZZA" completes form "donate" with values: "ASSOC'
+    When_('member ".ZZA" completes form "community/donate" with values: "ASSOC'
     . '\\| gift | amount | often | honor  | honored | share |'
     . '\\|    0 |     10 |     1 | memory | Jane Do |    10 |"');
     Then_('transactions: "ASSOC'
@@ -88,7 +88,7 @@ class rwebGift extends DrupalWebTestCase {
   // Scenario: A member donates with insufficient funds
   public function testAMemberDonatesWithInsufficientFunds_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" completes form "donate" with values: "ASSOC'
+    When_('member ".ZZA" completes form "community/donate" with values: "ASSOC'
     . '\\| gift | amount | often | honor  | honored | share |'
     . '\\|    0 |    200 |     1 | memory | Jane Do |    10 |"');
     Then_('we say "status": "gift successful|gift transfer later" with subs: "ASSOC'

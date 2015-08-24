@@ -64,7 +64,7 @@ function tableDefs($schema = []) {
     'risks' => setupField('list of risk factors', 'int big', 0, '010'),
     'trust' => setupField('how much this person is trusted by others in the community', 'float medium', 0),
     'stats' => setupField('account statistics', 'text medium'),
-    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
+//    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: []) + $fields;
@@ -221,7 +221,7 @@ function tableDefs($schema = []) {
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'risk' => setupField('suspiciousness rating', 'float medium', NULL),
     'risks' => setupField('list of risk factors', 'int big', 0, '010'),
-    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
+//    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee') + foreignKey('payerAgent') + foreignKey('payeeAgent');
   $indexes = index('payer') + index('payee') + index('created') + index('payerTid') + index('payeeTid'); // also serial/type/taking/goods/payerAgent/payeeAgent/channel/?
@@ -258,7 +258,7 @@ function tableDefs($schema = []) {
     'risk' => setupField('suspiciousness rating', 'float medium', NULL),
     'risks' => setupField('list of risk factors', 'int big', 0, '010'),
     'channel' => setupField('through what medium was the transaction entered', 'int tiny'),
-    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
+//    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
   $foreignKeys = foreignKey('payer');
   $indexes = index('created') + index('payer') + index('deposit');

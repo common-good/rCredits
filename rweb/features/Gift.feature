@@ -14,7 +14,7 @@ Setup:
 
 Scenario: A member donates
   Given next DO code is "whatever"
-  When member ".ZZA" completes form "donate" with values:
+  When member ".ZZA" completes form "community/donate" with values:
   | gift | amount | often | honor  | honored | share |*
   |    0 |     10 |     1 | memory | Jane Do |    10 |
   Then transactions:
@@ -46,7 +46,7 @@ Resume
   # and many other fields
 
 Scenario: A member donates with insufficient funds
-  When member ".ZZA" completes form "donate" with values:
+  When member ".ZZA" completes form "community/donate" with values:
   | gift | amount | often | honor  | honored | share |*
   |    0 |    200 |     1 | memory | Jane Do |    10 |
   Then we say "status": "gift successful|gift transfer later" with subs:
