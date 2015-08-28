@@ -275,11 +275,12 @@ function eachX($func = 'a.changeIt') {
  * And query.js is not patched, it is simply updated to the latest jquery.min.js (currently version 1.11).
  */
 function patch($name) {
+  global $base_url;
   $args = func_get_args();
   
   // common.inc
   if ($name == 'common2682') {
-    if (!r\acct()) $click = ' <a href="signin">' . t('Click here to sign in.') . '</a>'; // r\go('signout') fails
+    if (!r\acct()) $click = " <a href=\"$base_url\signin\">" . t('Click here to sign in.') . '</a>'; // r\go('signout') fails
     return t('You are not authorized to access this page.') . (isDEV ? $args[1] : '') . @$click;
   }
   // user.module
