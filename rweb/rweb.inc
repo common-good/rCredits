@@ -551,7 +551,7 @@ function formMembership($a, &$sta = '', $code = '') {
         : t('<h2>Welcome to rCredits</h2><p>Thanks for joining us. ');
     $message1 .= $co ? t('Before you can begin accepting rCredits payments, you must complete the following steps (in any order).') 
       : t('Before we can send your rCard, and before you can vote on community funding, you must complete the following steps (in any order). This usually takes about 20 minutes.');
-    $message1 .= t(' If you need help, please <a href="mailto:REGEMAIL" target="_blank">send us an email</a>.</p>', ['REGEMAIL' => r\regionField('email')]);
+    $message1 .= tt(' If you need help, please <@a1>send us an email</a>.</p>', ['a1' => 'a href="mailto:' . r\regionField('email') . '" target="_blank"']);
 
     $stepContact = t('Complete your <a>Contact Information</a>.');
     $stepAgree = t('Sign the <a>rCredits Agreement</a>.');
@@ -575,7 +575,7 @@ function formMembership($a, &$sta = '', $code = '') {
     $stepNum = 1;
     $message2 = $ok_contact ? '' : memberStep(0, $ok_contact, $stepContact, 'account/contact');
     $message2 .= memberStep($stepNum++, $ok_sign, $stepAgree, 'agreement')
-              . memberStep($stepNum++, $ok_donate, $stepGift, 'donate');
+              . memberStep($stepNum++, $ok_donate, $stepGift, 'community/donate');
               
     if (!$co) 
     $message2 .= memberStep($stepNum++, $ok_proxies, $stepProxies, 'account/proxies');
@@ -1316,7 +1316,7 @@ function changeWho() {
   $mya = r\acct($acct); // get new current account
 
   svar('myid', $mya->id); // this gets checked ONLY in setGlobals()
-  if (isDEV) $page = str_replace('/devcore', '', @$page);
+  if (isDEV) $page = str_replace(DEV_ROOT, '', @$page);
   r\go(@$page);
 }
 
@@ -2409,7 +2409,7 @@ function formBank($form, &$sta, $args = '') {
       $routingNumber = textField(t('Routing:'), t('Type carefully your bank\'s routing number.'));
     }
     //$bankAccount = textField(t('Account:'), t('Type carefully your checking account number.'));
-    $bankAccount = formField('password', t('Account:'), t('Type carefully your checking account number.'));
+    $bankAccount = formField('password', t('Account:'), t('Type carefully your <b>checking</b> account number. <span>Savings accounts will not work, at this time.</span>'));
     
     $bankAccount2 = formField('password', t('Again:'), t('Type your account number again (we need to be REALLY SURE we don\'t connect to the wrong account).'));
     //$bankAccountType = formField('radios', t('Type:'), '', required($mya->can(B_SAVINGS)), $typeOptions);
@@ -2942,7 +2942,7 @@ function formSignin($form, &$sta) {
   $passDesc = tt('<@a>Password problems?</a>', compact('a'));
   $name = textField(t('Username/ID:'), t('Your account ID, email, or username (the letters of your full name, all lowercase)'), required(@$name));
   $pass = formField('password', t('Password:'), $passDesc, required());
-  $pw2 = hidField(@$pw2 ? $pw2 : ''); // extra password for admins
+  $pw2 = hidField(@$pw2 ?: ''); // extra password for admins
   
   $submit = submit(t('Sign in'));
   $form = compact(u\ray('title name pass pw2 submit subtext')) + $form;
@@ -2969,7 +2969,7 @@ function login_extra_validate($form, &$sta) {
   extract(u\just('name pass pw2', $sta['input']));
   if (flooding($uid = r\loginString($name), $sta)) return FALSE; // getting hammered
   $a = r\acct($uid);
-  $pw2 = @$pw2 ? hex2bin($pw2) : '';
+  $pw2 = isDEV ? DEV_PW2 : (@$pw2 ? hex2bin($pw2) : '');
   if (!isGAME and $uid == 1 and !w\passwordOkay($a, $pw2, 'pw2')) return say(t('Admin requires second pass.'), 'pass');
   $sta['uid'] = ((isDEV and $uid == 1) or passwordOkay($a, $pass)) ? $uid : FALSE;
   if ($sta['uid']) noFlood($sta); else return say('login failed', 'name');

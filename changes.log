@@ -1,3 +1,6 @@
+2015-08-28
+. tweaks to make it easier to collaborate with another programmer
+
 2015-08-17
 . version 2.2 (new style)
 . bug fix: "disputed" shown whenever a tx had been changed

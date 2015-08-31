@@ -13,6 +13,8 @@ define('STAGE', STAGE_SUBDOMAIN . '.rcredits.org'); // staging site (for secrets
 define('PRODUCTION', 'new.rcredits.org'); // production site (used for setting $base_url)
 define('GAME_SITE', 'game.rcredits.org');
 define('isDEV', (bool) @$_SERVER['WINDIR']); // developing on Windows (unlike production or staging server)
+define('DEV_ROOT', '/rMembers'); // path to drupal root on DEV machine
+define('DEV_PW2', 'devpw2'); // second password on DEV machine
 define('isPRODUCTION', strtolower($_SERVER['HTTP_HOST']) == PRODUCTION);
 define('isSTAGE', strtolower($_SERVER['HTTP_HOST']) == STAGE);
 define('isGAME', FALSE or (@$_SERVER['HTTP_HOST'] == GAME_SITE));
@@ -61,12 +63,12 @@ if (isDEV) {
 }
 
 $uri = 'I' . $_SERVER['REQUEST_URI']; // handle scanned rCard URIs
-if (isDEV) $uri = str_replace('/devcore/', '/', $uri);
+if (isDEV) $uri = str_replace(DEV_ROOT . '/', '/', $uri);
 if (preg_match('~^I/[A-Z]+[\.-]~', $uri)) $_GET['q'] = $_SERVER['REQUEST_URI'] = $uri;
 
 $drupal_hash_salt = $db_salt;
 $protocol = (isDEV or isGAME) ? 'http://' : 'https://';
-$base_url = $protocol . $_SERVER['HTTP_HOST'] . (isDEV ? '/devcore' : ''); // NO trailing slash!
+$base_url = $protocol . $_SERVER['HTTP_HOST'] . (isDEV ? DEV_ROOT : ''); // NO trailing slash!
 define('BASE_URL', $base_url);
 define('R_PATH', '/sites/all/modules/rcredits');
 global $rUrl; $rUrl = BASE_URL . R_PATH;

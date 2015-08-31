@@ -205,7 +205,7 @@ global $base_url;
   $req = basename($_SERVER['REQUEST_URI']);
 ///  debug(compact('req','form_id'));
   if ($req == 'login' and !user_is_logged_in()) {header("location:$base_url/" . (isGAME ? 'community/game' : 'signin')); exit();} // nothing else works
-  if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isGAME ? "$base_url/community/game" : (isDEV ? 'http://localhost/devcore' : R_SITE_URL) . '/signin')); exit();} // nothing else works
+  if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isGAME ? "$base_url/community/game" : (isDEV ? 'http://localhost' . DEV_ROOT : R_SITE_URL) . '/signin')); exit();} // nothing else works
   if ($req == 'user' and user_is_logged_in()) r\go(isGAME ? 'community/game' : 'summary'); // summary not ''
 }
 

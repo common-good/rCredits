@@ -887,6 +887,7 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformbank #edit-routingnumber,
 #rcreditswebformbank #edit-bankaccount,
 #rcreditswebformbank #edit-bankaccount2 {width:250px;} 
+#rcreditswebformbank .form-item-bankAccount .description span {background-color:yellow;}
 
 /*#rcreditswebformbank .form-item-deposit1,
 #rcreditswebformbank .form-item-deposit2 {display:inline-block; width:auto;}

@@ -6,9 +6,5 @@
     "user" : "dbusername",
     "pass" : "dbpassword"
   },
-  "_offsiteKeys":{
-    "168.144.87.128" : "24-char.base64.passwd#01 NEW",
-    "168.144.87.129" : "24-char.base64.passwd#02 NEC",
-    "168.144.92.000" : "local24chr.base64.passwd self"
-  }
+  "postmarkToken" : ""  
 }

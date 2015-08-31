@@ -231,7 +231,7 @@ K. Other thoughts:
   - Suppose I live in 413 (NEW), but my cell is 987 (NYC). Person B lives in 222 with cell 333. When I am traveling to AAA I pay person B with SMS, by calling the local rCredits number. The local server contacts NYC to process my side of the transactions, but gets redirected to NEW. Similarly for person B's side. So at most 5 servers are involved (three just redirecting). NEW.rcredits.org and other subdomains act similarly.
   - in dwolla.php: replace "if ($" with "if (@$" and "if (!$" with "if (!@$" (DONE)
 
-To clear cache:   http://localhost/devcore/devel/cache/clear?destination=node
+To clear cache:   http://localhost/rMembers/devel/cache/clear?destination=node
   (or https://new.rcredits.org/devel/cache/clear?destination=node)
 
 To uninstall the rCredits modules manually (export first, since this DESTROYS ALL rCredits DATA except users):

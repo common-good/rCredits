@@ -1,5 +1,5 @@
 <?php
-// localhost/devcore/sites/all/modules/rcredits/test1099.php?t1 tests forms1099b-FY2015(1).bin1 (?1 -> .bin)
+// localhost/rMembers/sites/all/modules/rcredits/test1099.php?t1 tests forms1099b-FY2015(1).bin1 (?1 -> .bin)
 // The "t" means it's a test file
 
 $num = $_SERVER['QUERY_STRING'];

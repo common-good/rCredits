@@ -14,6 +14,7 @@ To Do
         • ditto, but directly-and-indirectly combined, sort of “most descendants”
         • the longest chain of successful invites (probably not that long, so maybe more than one chain)
 - Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site)
+- create CGF retirement account with reward pct "rebate" = 0
 
 . some of Kirsten's contingent compensation has no time limit
 . after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
@@ -27,8 +28,9 @@ TASKS FOR NEXT UPDATE:
 . Credit PFC invites and Brendan's 2 RPC invites.
 . credit Fuzzy's invites.
 
-. ** separate emails for separate purposes (with good subject) and settable preferences
-. *** create CGF retirement account with reward pct "rebate" = 0
+. **** general purpose email link for companies to invite their members or customers to join rCredits (rcredits.org/signup/code=whatever/e=customeremail@example.com -- good for 30 days) Implement same as other invites, but don't check invitee and don't ever mark it used, if accepted with an email address
+. ** create a demo site (demo.rcredits.org) that people can create accounts on, scan demo cards (and sign in as cAdmin?)
+. *** separate emails for separate purposes (with good subject) and settable preferences
 . *** flag (and email admin) unusual banks -- keep count of members in r_banks
 . *** unsubscribe link for nonmembers who have been invited AND for people with accounts (more elaborate form, requiring proof of ID -- maybe require signing in)
 . *** do handle invoice asks for a signin!

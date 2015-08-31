@@ -687,7 +687,7 @@ EOF;
  * @return: the button html
  */
 function goButton($label, $goto, $title) {
-  $gotoHead = isDEV ? '/devcore' : '';
+  $gotoHead = isDEV ? DEV_ROOT : '';
   $name = str_replace('/', '_', $goto);
   return array($name => formField('item', '', '', button($label, "$gotoHead/$goto", $title)));
 }
@@ -1099,7 +1099,7 @@ function passwordOkay($a, $password, $passFieldName = 'pass') {
 function oneTimePass($name) {
 //  $pass = strtolower(u\nonce()); // not a hash, easy to remember and type
   $pass = u\code();
-/**/ if (isDEV) \drupal_set_message('Link: ' . "<a href='http://localhost/devcore/reset/id=$name&code=$pass'>reset</a>");
+/**/ if (isDEV) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
   $expires = r\rTime() + HOUR_SECS * R_SIGNIN_HOURS;
 //  r\setCook('loginto', $name, $expires);
   return compact('pass', 'expires');

@@ -730,7 +730,6 @@ function util($arg) {
     \drupal_set_message(t('Uninstalled and installed: %names.', array('%names' => implode(', ', $modules))));
   }
   if ($arg == 'clear_sessions') db\q('TRUNCATE table SESSIONS');
-  //if ($arg == 'tests') r\go('http://localhost/devcore/rcredits/test?menu=1');
   if ($arg == 'php') r\go('devel/php');
   
   \drupal_set_message("DONE with \"$arg\".");

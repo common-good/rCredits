@@ -44,6 +44,7 @@ function setupBasicAccounts() {
   //$region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
 
   $a1 = r\acct(1); // set up system admin record (uid=1)
+  if (isDEV) $a1->update('pw2', r\passHash(DEV_PW2));
   $flags = $a1->flags;
   foreach (array(B_ADMIN, B_CO) as $bit) u\setBit($flags, $bit);
   $a1->update('fullName flags', t('System Administrator'), $flags);

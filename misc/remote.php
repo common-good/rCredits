@@ -8,7 +8,7 @@ function setAction(form) {
 //  if (dot>0) {
 //    form.action="http://"+i.value.substr(0,dot)+".rcredits.org/signin";
     form.action="http://new.rcredits.org/signin";
-    form.action="http://localhost/devcore/signin";
+    form.action="http://localhost/rMembers/signin";
     return true;
   /*} else {
     alert("You must sign in with your complete username (for example xyz.janedough) or your complete account ID (for example xyz.aaa), where \"xyz\" is your region abbreviation.");
