@@ -37,7 +37,7 @@ EOF
   'photo saved' => t('Your photo was successfully uploaded.'),
   'step completed' => t('<span id="completed"> Step completed!</span>'), // space intended
   'after emailing' => t('After you have sent us an email: '),
-  'return to membership' => t('<a href="/status">Click here to return to the checklist</a>.'),
+  'return to membership' => t('<a href="@BASE_URL/status">Click here to return to the checklist</a>.'),
   'ok to continue' => t('You may now continue what you were originally doing.'),
   'password reset' => t('A link has been emailed to you, to choose a new password.'),
   'changed agent' => t('You successfully changed the agent to @agentName.'),
@@ -46,7 +46,7 @@ EOF
   'downloading' => t('Your download will begin shortly...'),
   'changed account' => t('You are now managing the account for @newAcct.'),
   'lost old changes' => t('Any unsaved changes to account @oldAcct have been discarded.'),
-  'take a step' => t('Your account is <b class="stopnot">not yet activated.</b> <a href="status" class="nextstep">Click here for the next step!</a>.'),
+  'take a step' => t('Your account is <b class="stopnot">not yet activated.</b> <a href="@BASE_URL/status" class="nextstep">Click here for the next step!</a>.'),
   'got token' => t('Your rCredits and US Dollar accounts have been successfully connected!'),
   'company rcard' => t('Send a <a href="@href">company rCard</a> for @otherName to @manager at @address.'),
   'amount rounded' => t('"@amount" was rounded to the nearest integer value.'),
@@ -55,7 +55,7 @@ EOF
   'gift transfer later' => t('Your funds will be transferred when you have money in your account.'),
   'repeat gift' => t('If you wish to make a donation again sometime, click "Membership" in the upper right corner, then on "Donate".'),
   'setup complete' => t('Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Thank you for joining!'),
-  //  Meanwhile, click the "<a href="invite">Invite</a>" tab to invite anyone you know and trust &mdash; you get a $@R_HELPER_BONUSr reward when they make their first purchase.<br><br>
+  //  Meanwhile, click the "<a href="@BASE_URL/community/invite">Invite</a>" tab to invite anyone you know and trust &mdash; you get a $@R_HELPER_BONUSr reward when they make their first purchase.<br><br>
   'ready to charge' => t('<p>You successfully scanned in as "@agentName" to charge customers on behalf of @companyName.</p><p>Now go back to your scanning app, to scan a customer\'s card. Sign out only when your shift ends.</p>'),
   'transaction list truncated' => t('There are too many transactions to show all at once, so only the first @TX_MAX_ROWS are shown (choose a different date range to see the rest).'),
   'address info' => t('<a1>Click here</a> for address information.'),
@@ -82,6 +82,7 @@ EOF
   'ssDesc' => t('Your social security number (for tax reporting)'),
   'einDesc' => t('The company\'s Employer ID Number (EIN)'),
   'to scan another' => t('To scan another card, run the QR Scanner app again.'),
+  'invite links' => t('<p>Here are your links, to include in your own email messages to your friends. Be sure to mention they can visit rCredits.org for more information.</p><p>@links</p>'),
 
   // confirm
   'yes or no' =>  '@yesNo', // to replace with yesNo(url)
@@ -106,7 +107,8 @@ EOF
 //  'bad pin' => t('Your PIN must be exactly 4 digits'),
   'bad federal id' => t('That is not a correct @what. Try again.'),
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
-  'short to' => t('You are @short short for that transaction. <@a>Click here</a> to increase your minimum balance!', ['@a'=>'a href=account/preferences']),
+  'short to' => t('You are @short short for that transaction.'),
+  'increase min' => t('<@a>Click here</a> to increase your minimum balance!', ['@a'=>'a href=' . BASE_URL . '/account/preferences']),
   'no such company' => t('There is no such company.'),
   'op canceled' => t('Operation Canceled.'),
   'demand not yet' => t('You will be notified when there are some rCredits for you to buy with US Dollars.'),
@@ -135,9 +137,9 @@ EOF
   'expired invite' => t('<p>That invitation has expired.</p><p><@a>Click here</a> to ask @inviterName for another invitation.</p>'),
   'min sub floor' => t('Your chosen rCredits minimum cannot be less than your <em>allowed</em> minimum (@floor).'),
   'info not saved' => t('We apologize. Your information could not be saved at this time. Please try again in an hour or so.'),
-  'no page permission' => t('You do not have permission to visit this page. Return to your <@a>Summary</a> page.', array('@a' => 'a href="/"')),
+  'no page permission' => t('You do not have permission to visit this page. Return to your <@a>Summary</a> page.', ['@a' => 'a href=' . BASE_URL]),
   'specific nonpositive' => t('The amount (@amount) must be a positive integer.'),
-  'insufficient relation' => t('You cannot open an account unless you have a close relationship to it. <@a>Invite someone</a> instead.', ['@a' => 'a href=' . @BASE_URL . '/community/invite']),
+  'insufficient relation' => t('You cannot open an account unless you have a close relationship to it. <@a>Invite someone</a> instead.', ['@a' => 'a href=' . BASE_URL . '/community/invite']),
   'bad spoof check' => t('You must confirm (<i>every time</i>) that you are on the real rCredits site.'),
   'not an image' => t('That is not an acceptable image format. You might try converting it to a JPG or PNG image.'),
   'bad commercial aspect' => t('Your company profile picture must be in landscape orientation, with a width-to-height ratio of about @R_COMMERCIAL_ASPECT.'),
@@ -148,7 +150,7 @@ EOF
   'bad state' => t('You must say what state.'),
   'password required' => t('You must supply your current password, to change your email address or password.'),
   'bad account id' => t('That account does not exist. Check your typing?'),
-  'bad login' => t('That account/password combination does not exist. Try again or <!a>ask for a new password</a>.', ['!a' => 'a href="' . url(BASE_URL . "/account/password") . '"']),
+  'bad login' => t('That account/password combination does not exist. Try again or <!a>ask for a new password</a>.', ['!a' => 'a href="' . BASE_URL . '/account/password"']),
   'wrong pass' => t('That is not your correct password.'),
   'multiple spaces' => t('@field cannot have more than one space in a row.'),
   'illegal char' => t('@field contains an illegal character. Try retyping it'),
@@ -165,7 +167,7 @@ EOF
   'missing currency' => t('You must choose rCredits, USD, or both.'),
   'download always both' => t('Note: Downloads always include both rCredits and USD amounts.'),
 //  'sign in to scan' => t('You must <a href="/user/login">sign in</a> (or scan yourself in) BEFORE scanning a customer card.'),
-  'change min first' => t('That request would leave you with less than your minimum balance. <a href="account/preferences">Lower your minimum</a> first.'),
+  'change min first' => t('That request would leave you with less than your minimum balance. <a href="@BASE_URL/account/preferences">Lower your minimum</a> first.'),
   'bad member id' => t('That is not a valid member ID!'),
   'bad card' => t('That is not a valid member ID.'),
   'bad card code' => t('This rCard is not valid.'),
@@ -180,7 +182,7 @@ EOF
   'only us banks' => t('Unfortunately, at this time, we can handle only U.S. banks.'),
 //  'bad deposit cents' => t('Each deposit is a number less than @DW_VERIFY_ROOF.'),
   'no can scan' => t('You do not have permission to scan an individual\'s rCard.'),
-  'must opt' => t('You must not create a limited account for this person without giving him or her the opportunity to open a real rCredits account. <@a>Invite them</a>!', ['@a' => 'a href=' . @BASE_URL . '/community/invite']),
+  'must opt' => t('You must not create a limited account for this person without giving him or her the opportunity to open a real rCredits account. <@a>Invite them</a>!', ['@a' => 'a href=' . BASE_URL . '/community/invite']),
   'must agree' => t('Accept Terms checkbox field is required.'), // drupal shows this
   'redo info' => t('We could not verify your personal information. Please try again, carefully.'),
   'bad ssn or dob' => t('There is a problem verifying your personal information.'),
@@ -204,7 +206,7 @@ EOF
   'yes or no' => t('You must answer Yes or No.'),
   'no local proxy' => t('No other members nearby. <@a>Invite someone</a>!', ['@a'=>'a href=' . @BASE_URL . '/community/invite']),
   'too many joins' => t('You can join to only one other account.'),
-  'short cash help' => t('<@a>Click here</a> for more information about cashing out incentive rewards.', ['@a'=>'a href=' . $GLOBALS['base_url'] . '/help/cashing-out']),
+  'short cash help' => t('<@a>Click here</a> for more information about cashing out incentive rewards.', ['@a'=>'a href=' . BASE_URL . '/help/cashing-out']),
   'maybe not cash' => t('If you are actually reimbursing someone or paying them for goods or services (for example, employee labor), choose a different button under "For".'),
   'link expired' => t('That link has expired.'),
   'login failed' => t('Your attempt to sign in failed. Click the "Password problems" link if you need a new password.'),
@@ -1061,11 +1063,18 @@ EOF;
  *   invitation($code, $invitee) marks the invitation USED by recording the invitee's account id
  * @param string $code: the invitation code
  * @param int $invitee: account id of the invited person
- * @param int $inviter: (returned, if empty) account id of the inviter (always returned, even if error)
- * @param int $err: 
- * @return: email or nothing, as above (FALSE if no such invitation)
+ * @param int $inviter: (returned, if invitee='') account id of the inviter (returned even if error)
+ * @param int $err: (returned) error message, if any
+ * @return:
+ *   (1) encrypted email, if invited specifically with our form
+ *   (2) TRUE if invited with an emailable link or marking invitation USED
+ *   (3) FALSE if no such invitation or marking invitation USED failed
  */
 function invitation($code, $invitee = '', &$inviter = '', &$err = '') {
+  if (!$invitee and preg_match('/([^0-9]+)([0-9]+)/', $code, $m) and $a = r\acct($m[1]) and $code == $a->inviteCode) {
+    $inviter = $a->id;
+    return TRUE;
+  }
   $fields = 'id,email,inviter,invitee,invited';
   if (!$result = db\lookup($fields, 'r_invites', 'code=:code', compact('code'))) return !$err = 'bad invite';
   $id = $result['id']; // don't extract yet
@@ -1194,7 +1203,7 @@ function scanIn($acct) {
 
 function hack($message, $info = []) {
   u\loga('hack', $_SERVER, $message);
-  return r\acct() ? signout() : r\go('');
+  return r\signedIn() ? signout() : r\go('');
 }
 
 function signout() {
@@ -1892,7 +1901,7 @@ function css($sheet, $weight = -99) {
  * @param string $scope: header or footer
  * @param int $weight: low means load sooner (-18 and up, defaults to 0)
  */
-function js($what, $type, $scope, $weight = 0) {
+function js($what, $type = 'inline', $scope = 'footer', $weight = 0) {
   global $rUrl;
   if ($type == 'file') $what = (strpos($what, 'http') !== FALSE or strpos($what, ':')) ? $what : "$rUrl/$what";
   return \drupal_add_js($what, compact('type', 'scope', 'weight'));

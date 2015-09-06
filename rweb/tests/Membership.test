@@ -67,8 +67,8 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| fullName  | email | phone | country | postalCode | federalId | dob | acctType    | code | address | city    | state | tenure | owns | postalAddr                |'
     . '\\| Dee Four  | d@ | 413-253-0000 | US | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 | 1 A St. | Amherst | MA    |     25 |    0 | 1 A St., Amherst, MA 01002 |"');
     Then_('members: "ASSOC'
-    . '\\| id      | fullName | email   | country | postalCode | state | city    | flags | tenure | risks |'
-    . '\\| NEW.AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst |       |     25 | rents |"');
+    . '\\| id      | fullName | email   | country | postalCode | state | city    | flags     | tenure | risks |'
+    . '\\| NEW.AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents |"');
     And__('we say "status": "your account is ready"');
     And__('we email "welcome" to member "d@" with subs: "ASSOC'
     . '\\| fullName | name    | quid    | site        | code  |'

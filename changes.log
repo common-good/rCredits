@@ -1,3 +1,11 @@
+2015-09-06
+. changed invoices to go out immediately
+. link for emailing invitations with later confirmation
+. removed photo upload size restriction
+. fixed invoice confirmation
+. set B_CONFIRMED for all accounts except Caitlin: UPDATE users SET flags=(flags|2)
+. "Click here to increase your minimum balance" needs base_url and should be different when not signed in (confirming invoice)
+
 2015-08-28
 . tweaks to make it easier to collaborate with another programmer
 

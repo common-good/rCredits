@@ -88,6 +88,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'do step one' => t('Remember to sign back in to rCredits, to complete your account setup (you have several steps left to go).'),
   'take another step' => t('Your rCredits account setup is not yet complete!'),
   'sign in' => t('Go to rCredits.org and click "Sign in" in the upper right corner.'),
+  'confirm invite' => t('Your friend @fullName has accepted your invitation to rCredits. <@a1>Click here to confirm</a> you trust this person (for example, if you lent them $250 you would trust them to pay it back).</p><p>The rCredits community is a network built on mutual trust, so it is important that you invite (and confirm) only people you know and trust.</p>'),
   'reward' => t('Your reward is @rewardAmount.'),
   'reward other' => t('Your reward is @otherRewardAmount.'),
   'new charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),

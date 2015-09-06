@@ -77,7 +77,7 @@ function doTask($item) {
   global $channel; $channel = TX_CRON;
   $func = array_shift($item);
   $op = 'rCredits\\Cron\\' . $func;
-  u\log(t('starting cron.') . $func, 'state', $item);
+// (too often)  u\log(t('starting cron.') . $func, 'state', $item);
   $op($item);
 }
 

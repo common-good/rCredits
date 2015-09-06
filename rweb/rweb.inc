@@ -49,7 +49,8 @@ function formIcon() {
  *   min: change minimum to $v
  *   sql: do the database operation in $sql
  *   addr: show an address for account QID $v (for shipping or thank-you card)
- *   pay: pay invoice number $v
+ *   inv: pay invoice number $v
+ *   confirmInvite: confirm an invitation
  * Alternatively, code can be an error message (recognized by having a space in it).
  * @param string $args: urlencoded array of arguments passed from an email (from whence $_POST is not reliably received by Drupal)
  * @see also r\makeDo()
@@ -92,6 +93,12 @@ function rdo($code, $args = '') {
     if ($err = r\badUnpaidInv($v)) return doSay($err);
     return r\go("handle-invoice/nvid=$v&toMe=1&code=$code");
   } 
+  
+  if ($op == 'confirmInvite') {
+    $a = r\acct($v);
+    $a->setBit(B_CONFIRMED);
+    return doSay("Your invitation to $a->fullName is confirmed!", 'status');
+  }
   
   if ($op == 'vote' or $op == 'yesno') { // NOTE: about a third of the time, $_POST comes in empty (even from the same computer)
     $issue = $v;
@@ -800,24 +807,58 @@ function formInvite($form, &$sta) {
   
   $title = item(t('Invite Someone to rCredits'));
   $blurb = blurbLink();
-  $a1 = "a href=$base_url/waiting";
-  $a2 = "a href=$base_url/invited-whom";
+  $a1 = "a href=$base_url/waiting class=\"btn btn-xs btn-primary\" role=button";
+  $a2 = "a href=$base_url/invited-whom class=\"btn btn-xs btn-primary\" role=button";
   $where = r\location($mya->cttyA);
-  $warning = $mya->co ? t('<p>Note that you are sending an invitation on behalf of a company. Companies are not people and there is a danger in giving companies permission to act like people. On this invitation form, the company is "trusting" whoever you invite -- something usually reserved for humans.</p>') : '';
+  $inviteLink = R_SITE_URL . '/signup/code=' . $mya->inviteCode;
+  $warning = $mya->co ? t('<p>Note that you are sending an invitation on behalf of a company. Companies are not people and there is a danger in giving companies permission to act like people. The company is "trusting" whoever you invite -- a sentiment usually reserved for humans.</p>') : '';
   //Plus $@R_COUNTED_BONUSr for each employee, if they open a company account. 
-  $subtext = item(!@$nearly ? tt("We're sorry, you cannot invite someone to sign up until you have signed the <a href=\"@BASE_URL/agreement\">Agreement</a> and made a <a href=\"@BASE_URL/community/donate\">donation</a>.<br><br>Return to the <a href=\"@BASE_URL/status\">Membership Steps</a> page to see where you stand.") : (tt('<p>Get a $@R_HELPER_BONUSr reward for each friend you invite, who signs up! You may need to help or remind the people you invite. For now, invite only people who live, shop, or work near @where. <@a1>Here are some people waiting to be invited</a>, near you.</p><p>The invitation will include your contact info and a short @blurb (click the link to see it). Adjust the subject and message, then click "Send". <small>[<@a2>friends you have invited</a>]</small></p>', compact('blurb', 'a1', 'a2', 'where')) . $warning));
+  $subtext1 = tt("We're sorry, you cannot invite someone to sign up until you have signed the <a href=\"@BASE_URL/agreement\">Agreement</a> and made a <a href=\"@BASE_URL/community/donate\">donation</a>.<br><br>Return to the <a href=\"@BASE_URL/status\">Membership Steps</a> page to see where you stand.");
+  $subtext2 = tt(<<<EOF
+<p>Your friends and neighbors can join rCredits <b>only if you invite them</b>. Get a $@R_HELPER_BONUSr reward for each friend you invite, who signs up! You may need to help or remind the people you invite.</p><p>Invite <b>only people you trust</b> who live, shop, or work in your community. <@a2>Who you have invited</a> <@a1>People waiting to be invited</a></p>
+    <ol>
+      <li>Complete this form to send an invitation NOW or</li>
+      <li>Send your friend(s) this link: <div id=inviteLink>@inviteLink</div> (Later, you will need to confirm you know and trust them.)</li>
+    </ol>
+EOF
+  , compact(u\ray('a1 a2 where inviteLink')));
+  $subtext = item(!@$nearly ? $subtext1 : ($subtext2 . $warning));
 //  $contact = textField(t('Email or Cell:'), t('An email address or cell number for the person you want to invite'), required());
-  $email = formField($cAdmin ? 'textarea' : 'textfield', t('Email:'), $cAdmin ? t('A comma-separated list of email addresses to invite') : t('An email address for the person you want to invite'), required());
+
+  $email = formField('textfield', t('Email:'), t('An email address for the person you want to invite'));
+//  $emails = formField('textarea', t('Email(s):'), t('A comma-separated list of email addresses to invite'));
   if ($cAdmin) $dupsOk = boolField(t('Dups Okay?'), '', FALSE);
-  $trusted = boolField(t('Trusted?'), t('If you lent this person $250, would you trust them to pay it back?'), dft(@$cAdmin ?: NULL));
+  $trusted = boolField(t('Trusted?'), t('If you lent this person (or people) $250, would you trust them to pay it back?'), dft(@$cAdmin ?: NULL));
   $subject = textField(t('Subject:'), t('The subject of your message'), required(($admin ? ADMIN_NAME : $mya->fullName) . t(' invites you to rCredits')));
 
   $default = @$admin ? 
       tt("The rCredits network is growing. Check it out and sign up!\n\nWilliam")
-    : (@$mya->data['inviteBody'] ?: tt("rCredits are amazing. I signed up. Check it out!\n\n@name", u\ray('name', $mya->fullName)));
-  $messageHelp = tt('Invite them to sign up, and say why. A short @blurb will follow your message, with a signup link.', compact('blurb'));
+    : (@$mya->data['inviteBody'] ?: tt("rCredits are great. I signed up. Check it out!\n\n@name", u\ray('name', $mya->fullName)));
+  $messageHelp = tt('Invite them to sign up, and say why. A @blurb will follow your message.', compact('blurb'));
   $message = formField('textarea', t('Message:'), $messageHelp, required($default));
   $submit = submit(t('Send'));
+  $js = <<<EOF
+jQuery('#inviteLink').click(function () {SelectText(this.id);}); // document.execCommand("copy");
+function SelectText(element) { // from http://stackoverflow.com/questions/985272
+    var doc = document
+        , text = doc.getElementById(element)
+        , range, selection
+    ;    
+    if (doc.body.createTextRange) {
+        range = doc.body.createTextRange();
+        range.moveToElementText(text);
+        range.select();
+    } else if (window.getSelection) {
+        selection = window.getSelection();        
+        range = doc.createRange();
+        range.selectNodeContents(text);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+}
+EOF;
+  js($js);
+  
   $form = $nearly ? 
       labeled(compact(u\ray('title subtext email dupsOk trusted subject message submit')))
     : compact(u\ray('title subtext'));
@@ -825,23 +866,33 @@ function formInvite($form, &$sta) {
 }
 
 function formInvite_validate($form, &$sta) {
-  extract(u\just('email trusted', $sta['input']));
-  if (r\acct()->cAdmin) {
-    foreach (u\ray($email) as $one) if (!\valid_email_address(trim($one))) return say("bad email: $one", 'email');
+  extract(u\just('email emails trusted', $sta['input']));
+  if (op($sta) == 'submitN') {
+    if (!$emails) return say('bad email', compact('emails'), 'emails');
+    foreach (u\ray($emails) as $one) if (!\valid_email_address(trim($one))) return say("bad email: $one", 'emails');
   } elseif (!\valid_email_address($email)) return say('bad email', compact('email'), 'email');
   if (!@$trusted) return say('must trust', 'trusted');
 }
 
 function formInvite_submit($form, &$sta) {
-  extract(u\just('email subject message dupsOk', $sta['input']));
-  $email = strtolower($email); // otherwise u\SUBS breaks on cap after @
+  extract(u\just('email emails subject message dupsOk', $sta['input']));
   $mya = r\acct();
-  if ($mya->cAdmin) {
-    foreach (u\ray($email) as $one) sendInvite($one, $subject, $message, $dupsOk, 0);
-  } else sendInvite($email, $subject, $message);
-  
-  $data = u\ray('inviteBody', substr($message, 0, 10000)) + $mya->data;
-  $mya->update(compact('data'));
+
+  if (op($sta) == 'submitN') {
+//    foreach (u\ray($email) as $one) sendInvite($one, $subject, $message, @$dupsOk);
+    $code = ''; // get a random code just once
+    foreach (u\ray($emails) as $email) {
+      $code = r\invite($email, $mya->id, $code, $subject, $message);
+      $links[] = R_SITE_URL . "/signup/code=$code/e=$email";
+    }
+    $links = join('<br>', $links);
+    say('invite links', compact('links'));
+  } else {
+    $email = strtolower($email); // otherwise u\SUBS breaks on cap after @
+    sendInvite($email, $subject, $message, @$dupsOk);
+    $data = u\ray('inviteBody', substr($message, 0, 10000)) + $mya->data;
+    $mya->update(compact('data'));
+  }
 }
 
 function formVideos($form, &$sta) {
@@ -930,16 +981,17 @@ function formSummary_validate($form, &$sta) {
   extract(u\just('uid who legalName creditLimit rTrader helper mediaConx moves adminable', $sta['input']));
   $a = r\acct(@$uid);
   
-  if ($rTrader and !$a->ok) {
-    if (empty($helper)) return say(t('You must specify who gets the helper reward.'), 'helper');
-    if (is_null(@$adminable[B_MEMBER])) return say(t('That account is not READY (not a member).'), 'adminable'); // test "is_null" because 0 is the value when set
-  }
-
   if (@$helper) {
     if (!$h = whois($helper, 'helper', $sta['input'])) return say(t('I don\'t know what helper account you mean.'), 'helper');
     $helper = $h->id;
   } else {unset($helper); unset($sta['input']['helper']);}
-  
+
+  if ($rTrader and !$a->ok and !$a->ctty) {
+    if (!@$helper) return say(t('You must specify who gets the helper reward.'), 'helper');
+    if (is_null(@$adminable[B_MEMBER])) return say(t('That account is not READY (not a member).'), 'adminable'); // test "is_null" because 0 is the value when set
+    if (!$a->can(B_CONFIRMED)) return say(t('Member @helperName has not yet confirmed this invitation.'), ['helperName' => $h->fullName]);
+  }
+
   foreach (u\ray('creditLimit') as $k) {
     if (isset($$k)) {
       if ($err = u\badAmount($$k)) return sayFieldErr($err, $k); 
@@ -1053,7 +1105,7 @@ function formPhoto($form, &$sta) {
   $desc = $mya->co ? 
     tt('<p>Upload a picture to represent your company in rCredits promotions. The picture must be wider than tall (@R_COMMERCIAL_ASPECT ratio is ideal).</p>')
     : tt('<p>Upload a recent color picture of yourself for your photo-ID rCard. It must be taller than wide (@R_PERSONAL_ASPECT ratio is ideal) and must show your full face clearly (no sunglasses), filling most of the frame.</p>');
-  $desc .= tt('<p>File size must be under 3MB. The picture will be cropped and resized to @width x @height pixels.</p><p>Please feel free to <a href="mailto:new@rCredits.org?subject=photo&body=Attached is a photo of me for my rCard. &nbsp; - @fullName">email it to us</a>, if that is easier for you.', u\ray('width height fullName', $width, $height, $mya->fullName));
+  $desc .= tt('<p>The picture will be cropped and resized to @width x @height pixels.</p><p>Please feel free to <a href="mailto:new@rCredits.org?subject=photo&body=Attached is a photo of me for my rCard. &nbsp; - @fullName">email it to us</a>, if that is easier for you.', u\ray('width height fullName', $width, $height, $mya->fullName));
   $uploadPhoto = formField('file', '', $desc);
   
   if ($has and !$mya->co and $mya->ok) {
@@ -1069,7 +1121,7 @@ function formPhoto($form, &$sta) {
 function formPhoto_validate(&$form, &$sta) {
   $validators = array(
     'file_validate_is_image' => [],
-    'file_validate_size' => array(R_MAX_UPLOAD_SIZE * 1024000),
+//    'file_validate_size' => array(R_MAX_UPLOAD_SIZE * 1024000),
   );
 
   $file = \file_save_upload('uploadPhoto', $validators); // Save the file as a temporary file.
@@ -1614,7 +1666,7 @@ function formBuy_submit($form, &$sta) {
 
 /**
  * Pay or deny an invoice, possibly by clicking a link without signing in (from rDo).
- * If no user is signed in, $args must be include the do code (to prevent mischief)
+ * If no user is signed in, $args must include the do code (to prevent mischief)
  * @param mixed $args: array of paramaters (from rDo) or invoice number (if signed in):
  *   int nvid: invoice number
  *   bool toMe: is the invoice for me to pay (or deny)? (FALSE if it is FROM me)
@@ -1629,7 +1681,7 @@ function formHandleInvoice($form, &$sta, $args = '') {
   extract(u\just('nvid amount payer payee purpose created data', $inv));
   if ($mya) {
     if ($payer != $mya->id and $payee != $mya->id) return hack(t('bad person in invoice payment'));
-  } elseif (!$info = r\doCode($code) or $info['id'] != $nvid) return hack(t('fake doCode in handleInvoice'));
+  } elseif (!$info = r\doCode($code)) return hack(t('fake doCode in handleInvoice'));
 
   $subs = u\ray('amount what', u\fmtAmt($amount), $purpose);
   
@@ -1880,7 +1932,7 @@ function formAnother_submit($form, &$sta) {
 function formSignup($form, &$sta, $args = '') {
   if (!$args) $args = basename(t\SERVER('REQUEST_URI')); // because menu_execute_active_handler fails
   extract(u\just('code personal fullName phone helper', $args));
-  if (@$personal and r\acct()) return r\go('', 'must be signed out', 'err');
+  if (@$personal and r\signedIn()) return r\go('', 'must be signed out', 'err');
 
   $sta['no_cache'] = TRUE; // otherwise the javascript-populated dropdowns get lost
   u\setDft($personal, TRUE);
@@ -1897,7 +1949,7 @@ jQuery('#edit-forother a').click(clarify);
 EOF;
   js($js, 'inline', 'footer');
   
-  if (@$code != 'w' and !$email = invitation(@$code, '', $inviter, $err)) {
+  if (!$inviteOk = (@$code == 'w') and !$inviteOk = invitation(@$code, '', $inviter, $err)) {
     if (@$inviter) {
       $ia = r\acct($inviter);
       $inviterEmail = htmlspecialchars($ia->email);
@@ -1907,10 +1959,6 @@ EOF;
     $subtext = item(tt($err, compact('a', 'inviterName')));
     return compact(u\ray('title subtext'));
   } 
-  /* elseif (!@$dwok) {
-    r\setCook('dupPhone', FALSE);
-    return dwollaTerms(); // Dwolla's terms not yet approved
-  } */
 
 //  If you want to use this address <b>for more than one account</b>, include a tag on the local part starting with "+" (for example, myemail<b>+whatever</b>@example.com).');
 
@@ -1947,26 +1995,22 @@ EOF
 
   $submit = submit(t('Sign up'));
   $args = hidField(@$args);
+  $confirmed = hidField(@$inviteOk !== TRUE); // if inviter used form, invitation is already confirmed
   $helper = hidField(@$helper ? r\acct($helper)->id : @$inviter);
   
   $form = compact(u\ray('title forother subtext acctType'))
         + nameAndEmail($personal ? t('Full name') : t('Company'), @$fullName)
         + contactFields(compact('phone'), FALSE) + ssnFields($personal)
-        + compact(u\ray('pin calling companyInfo buysAt submit args helper'));
+        + compact(u\ray('pin calling companyInfo buysAt submit args confirmed helper'));
 //  keep_values($form);
   return labeled($form);
 }
 
 function formSignup_validate($form, &$sta) {
   if (!isset($sta['buttons'])) $sta['buttons'] = []; // for testing (keep Drupal from griping)
-  extract(u\just('agreed args acctType email phone country tenure pin company companyPhon copts fullName legalName postalCode address city state postalAddr', $sta['input']));
+  extract(u\just('confirmed acctType email phone country tenure pin company companyPhon copts fullName legalName postalCode address city state postalAddr', $sta['input']));
 
-  if (op($sta) == 'continue') { // don't require Dwolla checkbox, so we can give a good message
-    return @$agreed ? '' : say('dwolla terms required', 'agreed');
-  }
- 
-  if (@$args) extract(u\just('code', $args));
-  if (!invitation(@$code) and @$code != 'w') return r\go('signup'); // in case user resubmits
+//  if (!$inviteOk) return r\go('signup'); // in case user resubmits
   //and @$code != bin2hex(R_WORD)
 
   if (!emailOkay($email)) return;
@@ -2002,6 +2046,7 @@ function formSignup_validate($form, &$sta) {
 
   $community = r\communityUid($postalCode);
   $flags = $acctType == R_PERSONAL ? 0 : u\bit(B_CO);
+  if ($confirmed) $flags |= u\bit(B_CONFIRMED); // note that companies are always confirmed
   $administer_users = FALSE; // for testing (keep Drupal from griping)
   $status = 1;
   u\preray(compact(u\ray('fullName legalName address city postalAddr email community flags signupCo administer_users status')), $sta['input']);
@@ -2009,7 +2054,7 @@ function formSignup_validate($form, &$sta) {
 
 function formSignup_submit($form, &$sta) {
   $dbFields = 'fullName legalName email community flags phone federalId dob pin country postalCode address city state postalAddr oneTimePass helper wants calling signupCo tenure'; // had verifyBy
-  extract(u\just('acctType args company ats owns ' . $dbFields, $sta['input']));
+  extract(u\just('confirmed acctType args company ats owns ' . $dbFields, $sta['input']));
 //  if (op($sta) == 'continue') return r\go('signup/' . urldecode(u\urlArgs()) . '&dwok=1'); // got agreement, so continue
   if (!emailOkay($email)) return; // I don't know how people create duplicate accounts, but maybe this will prevent it. Nope, apparently not. (ws 1/27/2014)
 
@@ -2051,7 +2096,8 @@ function formSignup_submit($form, &$sta) {
     suCompanyRelation($myid, $signupCo);
     $mya->update(compact('signupCo'));
   }
-  if (@$helper and @$args and !r\acct($helper)->cAdmin) suCreatorRelation($helper, $args, $myid);
+  $h = @$helper ? r\acct($helper) : FALSE;
+  if (@$h and @$args and !$h->cAdmin) suCreatorRelation($helper, $args, $myid);
   
   // report to staff and user
   $quid = $mya->mainQid;
@@ -2061,11 +2107,16 @@ function formSignup_submit($form, &$sta) {
     say('your account is ready');
     $region = strtolower(R_SERVER_ID);
     r\notify($myid, 'welcome', u\ray('name quid code', $name, $quid, $pw1), TRUE); 
+    if (!$confirmed) {
+      u\EXPECT($h, 'unconfirmed with no helper');
+      $a1 = $h->makeDo('confirmInvite', $myid); // link to confirm invitedness
+      r\message($helper, 'confirm invite', compact('a1', 'fullName')); // ask inviter to confirm
+    }
     $goto = 'empty';
   } else { // non-personal company (no independent login)
     say('company is ready', compact('quid'));
     //if (@$helper) $quid = r\quid($helper); // "if" for dev faked code HUH?
-    if (!@$helper) hack('company no helper');
+    if (!@$h) hack('company no helper');
     svar('myid', $mya->id); // this is necessary for company creation, to keep the company selected
     $goto = 'status';
   }

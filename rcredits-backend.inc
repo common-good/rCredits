@@ -374,6 +374,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
     $otherName = $a2->fullName;
     $msg = $reallyTaking ? ($a2->can(B_SECRET) ? 'short from vague' : 'short from') : 'short to';
     if ($channel == TX_WEB) {
+      if ($msg == 'short to' and r\signedIn()) $msg .= '|increase min';
       if ($goods != R_FOR_GOODS) $msg .= '|short cash help|maybe not cash';
       if (!$loserA->can(B_DEBT) and $loserA->floor < 0) $msg .= '|try debt';
     }
@@ -436,7 +437,7 @@ function invoice($a1, $a2, $amount, $goods = R_FOR_USD, $purpose = NULL, $oked =
 
     $subs['a1'] = $a1->makeDo('inv', $nvid); // link to pay/deny
     //$a2->update(u\ray('lastTx', array($nvid, $payee - $payer, round($amount, 2), $created, 'inv')));
-    r\notify($payer, 'new invoice', $subs); // notify other party by email about this invoice
+    r\message($payer, 'new invoice', $subs, TRUE); // tell other party by email about this invoice
     $msg = 'report tx' . ($amount > 0 ? '|balance unchanged' : '');
     return array($msg, $subs + ['success'=>TRUE], FALSE);
   } else return array('charge', $subs, TRUE);

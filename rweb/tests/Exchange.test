@@ -94,9 +94,9 @@ class rwebExchange extends DrupalWebTestCase {
     Then_('we say "status": "report tx|balance unchanged" with subs: "ASSOC'
     . '\\| did     | otherName | amount | why         |'
     . '\\| charged | Bea Two   | $100   | exchange of US Dollars or other currency |"');
-    And__('we notice "new invoice" to member ".ZZB" with subs: "ASSOC'
-    . '\\| created | fullName | otherName | amount | purpose |'
-    . '\\| %today  | Bea Two  | Abe One   | $100   | paper   |"');
+    And__('we message "new invoice" to member ".ZZB" with subs: "ASSOC'
+    . '\\| otherName | amount | purpose |'
+    . '\\| Abe One   | $100   | paper   |"');
     And__('invoices: "ASSOC'
     . '\\| nvid | created | status      | amount | goods      | from | to   | for   |'
     . '\\|    1 | %today  | %TX_PENDING |    100 | %R_FOR_USD | .ZZB | .ZZA | paper |"');
@@ -148,7 +148,7 @@ class rwebExchange extends DrupalWebTestCase {
     When_('member ".ZZA" completes form "pay" with values: "ASSOC'
     . '\\| op  | who     | amount | goods      | purpose |'
     . '\\| pay | Bea Two | 300    | %R_FOR_USD | paper   |"');
-    Then_('we say "error": "short to|short cash help|maybe not cash" with subs: "ASSOC'
+    Then_('we say "error": "short to|increase min|short cash help|maybe not cash" with subs: "ASSOC'
     . '\\| short |'
     . '\\| $100  |"');
   }

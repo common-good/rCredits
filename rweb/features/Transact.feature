@@ -48,9 +48,9 @@ Scenario: A member confirms request to charge another member
   Then we say "status": "report tx|balance unchanged" with subs:
   | did     | otherName | amount | why                |*
   | charged | Bea Two   | $100   | goods and services |
-  And we notice "new invoice" to member ".ZZB" with subs:
-  | created | fullName | otherName | amount | purpose |*
-  | %today  | Bea Two  | Abe One   | $100   | labor   |
+  And we message "new invoice" to member ".ZZB" with subs:
+  | otherName | amount | purpose |*
+  | Abe One   | $100   | labor   |
   And invoices:
   | nvid | created | status      | amount | from | to  | for   |*
   |    1 | %today  | %TX_PENDING |    100 | .ZZB  | .ZZA | labor |

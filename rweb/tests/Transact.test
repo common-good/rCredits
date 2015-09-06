@@ -93,9 +93,9 @@ class rwebTransact extends DrupalWebTestCase {
     Then_('we say "status": "report tx|balance unchanged" with subs: "ASSOC'
     . '\\| did     | otherName | amount | why                |'
     . '\\| charged | Bea Two   | $100   | goods and services |"');
-    And__('we notice "new invoice" to member ".ZZB" with subs: "ASSOC'
-    . '\\| created | fullName | otherName | amount | purpose |'
-    . '\\| %today  | Bea Two  | Abe One   | $100   | labor   |"');
+    And__('we message "new invoice" to member ".ZZB" with subs: "ASSOC'
+    . '\\| otherName | amount | purpose |'
+    . '\\| Abe One   | $100   | labor   |"');
     And__('invoices: "ASSOC'
     . '\\| nvid | created | status      | amount | from | to  | for   |'
     . '\\|    1 | %today  | %TX_PENDING |    100 | .ZZB  | .ZZA | labor |"');

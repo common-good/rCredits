@@ -70,7 +70,7 @@ define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divid
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
 define('R_STEPS', 'contact sign donate proxies prefs photo connect company relations'); // membership steps
-define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret code oneTimeLoginUrl password pass newPass form_build_id form_token form_id'); // don't log these
+define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret code oneTimeLoginUrl password pass newPass form_build_id form_token form_id external_input'); // don't log these (external_input may contain passwords)
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts Summary'); // don't log visits to these forms
 define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin Sinx Pass Empty TestRecovery ChangePassword Help Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
 define('BY_CHECK', '(check)'); // app includes this in description, for a purchase of rCredits by check
@@ -180,7 +180,7 @@ define('CO_CAN_BIT_DESCS', 'charge customers,undo last transaction,give rCredits
 // for documentation of IS_OK etc. see u\SUBS()
 define('B_MEMBER', 0); // fulfilled membership requirements (ready to be approved).
 define('B_CGC', 0); // ctty: is an official CGC (see also B_CTTYACTIVE)
-define('B_u1', 1); // UNUSED
+define('B_CONFIRMED', 1); // invitation has been confirmed
 define('B_OK', 2); // approved to use rCredits for real (set by admin when ready).
 define('B_UP', 2); // ctty: is operational (up) (see also B_CTTYUP)
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
@@ -214,8 +214,8 @@ define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
 define('B_MAX', 31); // maximum bit number
-define('B_ADMINABLE', 'co member bona cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
-define('B_LIST', 'member u1 ok bona counted u5 co u7 u8 nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 u26 regulator cadmin2 cadmin admin closed');
+define('B_ADMINABLE', 'confirmed co member bona cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
+define('B_LIST', 'member confirmed ok bona counted u5 co u7 u8 nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 u26 regulator cadmin2 cadmin admin closed');
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+refunds+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community)
 
@@ -321,7 +321,6 @@ $GLOBALS['emailSubjects'] = array(
   'new-charge' => t('rCredits CHARGE from {otherName}'),
   'charge-disputed' => t('rCredits Charge DISPUTED by {otherName}'),
 
-  'new-invoice' => t('rCredits INVOICE from {otherName}'),
   'invoice-denied' => t('rCredits Invoice DENIED by {otherName}'),
   'invoice-canceled' => t('rCredits Invoice CANCELED by {otherName}'),
 
@@ -337,6 +336,8 @@ $GLOBALS['emailSubjects'] = array(
   'message' => t('rCredits {topic}'),
 );
 $GLOBALS['topics'] = array( // topics for 'message' email
+  'confirm invite' => t('Confirm invitation to @otherName'),
+  'new invoice' => t('INVOICE from @otherName'),
   'account suspended' => t('Account SUSPENDED'),
   'account funded' => t('Account FUNDED'),
   'approved' => t('Account APPROVED!'),
@@ -557,6 +558,7 @@ function rdoMonth($time = NULL) {
  * @param mixed $to: where to send the message -- uid, account, or email address
  * @param assoc $subs: substitutions in template
  * @param mixed $reply: uid, account, or email address to reply to OR 'ctty' (of $to) or NULL (same as from)
+ * @return TRUE if the message got sent (or on dev machine pretending it got sent) else FALSE
  * NOTE: from is always SYS_EMAIL
  */
 function rMail($index, $to0, $subs, $reply0 = NULL) {
@@ -572,9 +574,10 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
     $subs['quid'] = $toA->mainQid;
     $subs['shortName'] = $toA->name;
   } else $to = $toEmail = $to0;
+  
+  if (in_array($to, ['jeannineblossom@wetmeadow.org', 'clairercredits@solarstoreofgreenfield.com', 'cavegrl777@aol.com'])) return FALSE; // invalid or marked us as spam
 
   $testEmails[] = compact(u\ray('index toEmail subs'));
-  if (!isPRODUCTION) if ($toEmail != r\regionField('email') and $toEmail != R_TESTER_EMAIL) $toEmail = 'none@example.com'; // black hole
 
   if ($reply0 == 'region') {
     $reply = NULL;
@@ -606,11 +609,14 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
 
   // send
   require_once DRUPAL_ROOT . '/vendor/autoload.php';
-  if (isDEV) return; // otherwise cURL error 60: SSL certificate problem: unable to get local issuer certificate
+  if (isDEV) return TRUE; // otherwise cURL error 60: SSL certificate problem: unable to get local issuer certificate
   $client = new \Postmark\PostmarkClient(isDEV ? POSTMARK_API_TEST : POSTMARK_TOKEN);
   $from = t('rCredits System <@e>', ['@e' => SYS_EMAIL]);
+
+  if (!isPRODUCTION) if ($toEmail != r\regionField('email') and $toEmail != R_TESTER_EMAIL) return TRUE;
   $res = $client->sendEmail($from, $to, $subject, $body, NULL, NULL, NULL, $reply);
   if (!is_object($res)) r\tellStaff('email fail', compact('res'));
+  return TRUE;
 }
 
 /**
@@ -620,8 +626,12 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
  * @param assoc $subs: message parameters
  */
 function message($uid, $index, $subs = []) {
+  global $testMessages;
+
+  $subs['otherName'] = @$subs['myName']; // messaging someone else about US, if anyone
   $message = u\tt($index, $subs);
-  $topic = @$GLOBALS['topics'][$index] ?: $index; // index should never be used (wrong language) but don't fail
+  $topic = u\tt(@$GLOBALS['topics'][$index], $subs) ?: $index; // index should never be used (wrong language) but don't fail
+  $testMessages[] = compact(u\ray('uid index subs topic'));
 ///  debug(compact('uid','index','subs','message','topic'));
   r\notify($uid, 'message', compact('message', 'topic'), TRUE);
 }
@@ -1833,7 +1843,7 @@ function suggest($a, $index, $subs, $page = 'Preferences') {
  * @return the full url
  */
 function promoLink($page = '') {
-  if (r\acct()) $page .= '?region=' . (isSTAGE ? STAGE_SUBDOMAIN : R_SERVER_ID) . '&tm=' . time();
+  if (r\signedIn()) $page .= '?region=' . (isSTAGE ? STAGE_SUBDOMAIN : R_SERVER_ID) . '&tm=' . time();
   return "http://rcredits.org/$page";
 }
 
@@ -1893,3 +1903,4 @@ function isReward($type) {return in_array($type, u\ray(TX_REWARDS));}
 //function usdin($for) {return u\abbreviates('usd in (', strtolower(is_array($for) ? $for[1] : $for));}
 function usdin($for) {return u\abbreviates(S_USD_IN, is_array($for) ? $for[1] : $for, TRUE);}
 function regionField($fld) {return @r\acct(serverUid())->$fld;}
+function signedIn() {return r\acct() ? TRUE : FALSE;}

@@ -92,9 +92,9 @@ class rwebReimburse extends DrupalWebTestCase {
     Then_('we say "status": "report tx|balance unchanged" with subs: "ASSOC'
     . '\\| did     | otherName | amount | why         |'
     . '\\| charged | Bea Two   | $100   | loan/reimbursement/etc. |"');
-    And__('we notice "new invoice" to member ".ZZB" with subs: "ASSOC'
-    . '\\| created | fullName | otherName | amount | purpose |'
-    . '\\| %today  | Bea Two  | Abe One   | $100   | payback |"');
+    And__('we message "new invoice" to member ".ZZB" with subs: "ASSOC'
+    . '\\| otherName | amount | purpose |'
+    . '\\| Abe One   | $100   | payback |"');
     And__('invoices: "ASSOC'
     . '\\| nvid | created | status      | amount | goods      | from | to   | for   |'
     . '\\|    1 | %today  | %TX_PENDING |    100 | %R_FOR_NONGOODS | .ZZB | .ZZA | payback |"');

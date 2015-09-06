@@ -32,8 +32,8 @@ Scenario: A member registers a company
   | fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhon | companyOptions | address | city    | state | postalAddr                 | tenure | owns |*
   | AAcme Co | aco@ | 413-253-9876 | 01002      | 111-22-0001 | %CO_CORPORATION | | | | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 |
   Then members:
-  | id   | fullName | email | postalCode | phone        | city    | flags | floor |*
-  | .AAC | AAcme Co | aco@  | 01002      | +14132539876 | Amherst | co    |     0 |
+  | id   | fullName | email | postalCode | phone        | city    | flags        | floor |*
+  | .AAC | AAcme Co | aco@  | 01002      | +14132539876 | Amherst | co,confirmed |     0 |
   And relations:
   | id   | main | agent | permission | employee | isOwner | draw |*
   | :AAA | .AAC | .ZZA  | manage     |        1 |       1 |    0 |

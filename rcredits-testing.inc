@@ -1132,6 +1132,7 @@ function clear($ch) {
   global $sms_devel; $sms_devel = TRUE;
   global $testSeq; $testSeq = NULL;
   global $channel; $channel = $ch;
+  global $testMessages; $testMessages = [];
 
   $cgfUid = r\cgfId();
   $tables = 'r_boxes r_do r_gifts r_invites r_invoices r_log r_notices r_proxies r_relations r_stats r_txs r_usd r_user_industries queue';
@@ -1269,6 +1270,26 @@ function weShow($what, $show = TRUE) {
   return t\shownWith(is_array($what) ? $what : array(array($what)), 'text', $show);
 }
 
+function weMessage($index, $id, $subs) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  global $testMessages;
+  
+  $subs = $subs[0];
+  $uid = t\uid($id);
+  
+  foreach ($testMessages as $one) {
+    extract($one, EXTR_PREFIX_ALL, 't');
+    if ($t_uid == $uid and $t_index == $index) {
+      $matching = true;
+      foreach ($subs as $k => $v) if ($v != '?' and @$t_subs[$k] != $v) {
+        $matching = FALSE; break;
+      }
+      if ($matching and !preg_match('/[@\{]/', @$t_topic)) return TRUE;
+    }
+  }
+/**/ return t\output('Expected: ' . print_r(compact(u\ray('index id uid subs')), 1) . '<br>Got: ' . print_r($testMessages, 1));;
+}
+    
 /**
  * Check the linked URL content and any Drupal messages (which don't show up in file_get_contents) against expectations.
  */

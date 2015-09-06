@@ -322,7 +322,7 @@ div.password-confirm {float: right; margin-top:1.5em; visibility:hidden; width: 
 /* #rcreditswebformsignup  #edit-personal,
 #rcreditswebformsignup  #edit-nonpersonal {margin-left:-10px; padding:0; border:0;}
 #rcreditswebformsignup  #edit-nonpersonal {display:none;} /* default (shown only if company) */
-#rcreditswebformsignup  #companyInfo {margin-left:0; border-color:darkgreen; background-color:lightyellow;}
+#rcreditswebformsignup  #companyInfo {top:0; margin:0 0 10px 0; border:1px solid darkgreen; background-color:lightyellow;}
 #rcreditswebformsignup  #edit-company-text label {text-align:left;}
 #rcreditswebformsignup  .form-item-copts-contractor label {width:320px;}
 #rcreditswebformsignup #edit-buysat {display:none;}
@@ -331,6 +331,8 @@ div.password-confirm {float: right; margin-top:1.5em; visibility:hidden; width: 
 #rcreditswebformsignup  #edit-ats {margin:10px 0 0 125px;}
 #rcreditswebformsignup  #edit-buysat .form-type-checkbox label {width:180px;}
 #rcreditswebformsignup .form-item-companyOptions-contractor label {width:auto;}
+#rcreditswebformsignup #edit-companyoptions,
+#rcreditswebformsignup .form-item-copts {margin-bottom:0;}
 #rcreditswebformsignup .form-item-acctType .description {margin-bottom:20px;}
 #rcreditswebformsignup #graphics div {width:360px; margin:0px auto;}
 #rcreditswebformsignup #graphics img {height:50px; margin:10px 20px 10px 0;}
@@ -829,6 +831,9 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebforminvite #edit-subtext {margin-left:0;}
 #rcreditswebforminvite .form-item-trusted {border:0;}
 #rcreditswebforminvite .form-item-subject {margin-top:20px;}
+#rcreditswebforminvite .form-item-emails,
+#rcreditswebforminvite #inviteLink {display:inline; border:1px solid black; background-color:lightgray; padding:4px; font-size:75%;}
+#rcreditswebforminvite li {margin-bottom:6px;}
 
 /* Settings */
 #rcreditswebformsettings #edit-icons .form-item {display:inline-block; height:250px; width:150px; margin:15px;}

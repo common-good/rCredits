@@ -97,7 +97,7 @@ class rwebFlow extends DrupalWebTestCase {
     When_('member ".ZZA" completes form "pay" with values: "ASSOC'
     . '\\| op  | who  | amount | goods        | purpose |'
     . '\\| pay | .ZZB |    200 | %R_FOR_GOODS | food    |"');
-    Then_('we say "error": "short to" with subs: "ASSOC'
+    Then_('we say "error": "short to|increase min" with subs: "ASSOC'
     . '\\| short |'
     . '\\| $60   |"');
   }

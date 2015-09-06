@@ -46,9 +46,9 @@ Scenario: A member confirms request to charge another member
   Then we say "status": "report tx|balance unchanged" with subs:
   | did     | otherName | amount | why         |*
   | charged | Bea Two   | $100   | exchange of US Dollars or other currency |
-  And we notice "new invoice" to member ".ZZB" with subs:
-  | created | fullName | otherName | amount | purpose |*
-  | %today  | Bea Two  | Abe One   | $100   | paper   |
+  And we message "new invoice" to member ".ZZB" with subs:
+  | otherName | amount | purpose |*
+  | Abe One   | $100   | paper   |
   And invoices:
   | nvid | created | status      | amount | goods      | from | to   | for   |*
   |    1 | %today  | %TX_PENDING |    100 | %R_FOR_USD | .ZZB | .ZZA | paper |
@@ -91,6 +91,6 @@ Scenario: A member asks to cash out too much
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
   | pay | Bea Two | 300    | %R_FOR_USD | paper   |
-  Then we say "error": "short to|short cash help|maybe not cash" with subs:
+  Then we say "error": "short to|increase min|short cash help|maybe not cash" with subs:
   | short |*
   | $100  |

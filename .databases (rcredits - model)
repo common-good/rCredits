@@ -1,10 +1,22 @@
 {
-  "dbname" : {
+  "rCredits members db name" : {
     "driver" : "mysql",
     "host" : "localhost",
     "port" : "3306",
-    "user" : "dbusername",
-    "pass" : "dbpassword"
+    "user" : "db username",
+    "pass" : "db password",
+    "salt" : "about 43 almost arbitrary characters",
+    "word" : "32 hex digits",
+   	"ssnUser" : "SSN lookup username (this and ssnPass can be left as-is on development machine)",
+    "ssnPass" : "SSN lookup password"
   },
-  "postmarkToken" : ""  
+  "rCredits promotional db name (for development machines)" : {
+    "driver" : "mysql",
+    "host" : "localhost",
+    "port" : "3306",
+    "user" : "db username",
+    "pass" : "db password"
+  },  
+  "postmarkToken" : "",
+  "_instructions" : "(1) postmarkToken should be left empty on development machine. Otherwise get a token from postmarkapp.com if you use that service on your regional rCredits server. (2) ssnUser and ssnPass are the credentials for SSN verification service (for example nationalpublicdata.com)."
 }

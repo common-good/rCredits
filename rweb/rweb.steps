@@ -108,6 +108,7 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Signin AMemberClicksALinkToResetPassword
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     MAKE Signup ANewbieRegistersInWesternMassachusetts
+ *     MAKE Signup ANewbieRegistersWithAnUnconfirmedInvitation
  *     MAKE Signup ANewbieRegistersWithADifferentLegalName
  *     MAKE Signup ANewbieRegistersElsewhere
  *     MAKE Signup ANewbieRegistersWithNoCase
@@ -194,7 +195,9 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     MAKE ScanCard Setup
  *     MAKE Signin Setup
  *     MAKE Signin AMemberAsksForANewPasswordForACompany
+ *     MAKE Signup Setup
  *     TEST Signup ANewbieRegistersInWesternMassachusetts
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedInvitation
  *     TEST Signup ANewbieRegistersWithADifferentLegalName
  *     TEST Signup ANewbieRegistersElsewhere
  *     TEST Signup ANewbieRegistersWithNoCase
@@ -326,6 +329,7 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST Signin AMemberClicksALinkToResetPasswordWithWrongCode
  *     TEST Signin AMemberClicksALinkToResetPasswordForUnknownAccount
  *     TEST Signup ANewbieRegistersInWesternMassachusetts
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedInvitation
  *     TEST Signup ANewbieRegistersElsewhere
  *     TEST Signup AMemberRegistersBadEmail
  *     TEST Signup AMemberRegistersBadZip
@@ -344,6 +348,7 @@ function weSay($type, $index) {return weSayWithSubs($type, $index, array());}
  *     TEST Signin AMemberAsksForANewPasswordForAccountID
  *     TEST Signin AMemberAsksForANewPasswordForEmail
  *     TEST Signup ANewbieRegistersInWesternMassachusetts
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedInvitation
  *     TEST Signup ANewbieRegistersElsewhere
  *     TEST Signup ANewbieRegistersFromElsewhere
  */
@@ -738,6 +743,7 @@ function memberHasPermission($uid, $permission) {
  * member (ARG) one-time password is set
  *
  * in: TEST Signup ANewbieRegistersInWesternMassachusetts
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedInvitation
  *     TEST Signup ANewbieRegistersElsewhere
  */
 function memberOnetimePasswordIsSet($id) {
@@ -767,13 +773,10 @@ function memberOnetimePasswordIs($id, $pass) {
  *
  * in: TEST EditTx ABuyerIncreasesAPaymentAmount
  *     TEST EditTx ABuyerChangesTheGoodsStatus
- *     TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
  *     TEST Gift AMemberDonates
- *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
  *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
- *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
  */
@@ -1104,6 +1107,7 @@ function memberIsLoggedIn($id) {
  *     MAKE Signin AMemberClicksALinkToResetPasswordWithWrongCode
  *     MAKE Signin AMemberClicksALinkToResetPasswordForUnknownAccount
  *     MAKE Signup ANewbieRegistersInWesternMassachusetts
+ *     MAKE Signup ANewbieRegistersWithAnUnconfirmedInvitation
  *     MAKE Signup ANewbieRegistersElsewhere
  *     MAKE Signup ANewbieRegistersFromElsewhere
  */
@@ -1170,7 +1174,7 @@ function signupArgs($args) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $signupArgs;
   foreach ($args[0] as $k => $v) if (@$signupArgs[$k] != $v) {
-    debug(compact('args', 'signupArgs'));
+    t\output(compact('args', 'signupArgs'));
     return FALSE;
   }
   return TRUE;
@@ -1186,7 +1190,7 @@ function memberHasCompanyInfo($id, $info) {
   $a = r\acct(t\uid($id));
   if (!$testOnly) return $a->update('signupCo', $info[0]);
   extract($signupCo = $a->signupCo ?: []);
-  foreach ($info[0] as $k => $v) if ($$k != $v) {debug(compact('id', 'signupCo', 'info')); return FALSE;}
+  foreach ($info[0] as $k => $v) if ($$k != $v) {t\output(compact('id', 'signupCo', 'info')); return FALSE;}
   return TRUE;
 }
 
@@ -1212,3 +1216,13 @@ function memberConfirmsOnTransaction($id, $do, $xid) {
   if ($do == 'X') $do = 'no';
   return t\completeForm($id, "history/period=$testPeriod&do=$do&xid=$xid", '', TRUE);
 }
+
+/**
+ * we message (ARG) to member (ARG) with subs: (ARG)
+ *
+ * in: TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
+ *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedInvitation
+ *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
+ */
+function weMessageToMemberWithSubs($index, $id, $subs) {return t\weMessage($index, $id, $subs);}

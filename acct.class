@@ -11,12 +11,6 @@ use rCredits\Testing as t;
  * rCredits Account class
  */
 
-define('DW_NO', 0); // no Dwolla account yet
-define('DW_YES', 1); // has a connected Dwolla account (required for all members)
-define('DW_BANK', 2); // has a bank account, not yet verified
-define('DW_VSAVINGS', 3); // verified savings/money market account
-define('DW_VCHECKING', 4); // verified checking account (this or savings required for all human members)
- 
 class acct {
   var $id; // the account's record id
   var $agentId; // record id (in the agent's regional server) of whoever is acting on behalf of the account
@@ -160,6 +154,7 @@ class acct {
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'bank') return $a->risk('hasBank');
+    if ($field == 'inviteCode') return $a->mainQid . substr($a->created, -6, 6); // must be just qid and digits
     if ($field == 'slave') return ($jid = $a->jid and $jid < $a->id); // slave in a joint account
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
       : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
@@ -380,6 +375,7 @@ class acct {
    * @param int $bit: number of bit to set (0 - 31)
    * @param bool $on: whether to set it ON or OFF
    * @return <successful>
+   * @see also self::can()
    */
   public function setBit($bit, $on = TRUE) {
     $res = $this->setBitx($bit, $on, 'flags'); 
