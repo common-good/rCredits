@@ -52,9 +52,7 @@ function extraSubs(&$subs) {
  *
  * in: MAKE Bank Setup
  *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
- *     MAKE Bona Setup
- *     TEST Bona AMemberGetsMoneyForTheFirstTime
- *     TEST Bona AnEmployeeGetsMoneyForTheFirstTime
+ *     MAKE Bank AMemberIsUnderMinimumOnlyBecauseRewardsAreReserved
  *     MAKE Gifts Setup
  *     MAKE Inflation Setup
  *     MAKE Joint Setup
@@ -81,11 +79,10 @@ function members($list) {return t\members($list);}
  *     MAKE Bank AMemberIsWellBelowMinimum
  *     MAKE Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
+ *     MAKE Bank AMemberIsUnderMinimumOnlyBecauseRewardsAreReserved
  *     MAKE Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
- *     TEST Bona AMemberGetsMoneyForTheFirstTime
- *     TEST Bona AnEmployeeGetsMoneyForTheFirstTime
  *     MAKE Gifts Setup
  *     TEST Inflation Setup
  *     TEST Joint Setup
@@ -113,11 +110,10 @@ function balances($list) {return t\balances($list);}
  *     MAKE Bank AMemberIsWellBelowMinimum
  *     MAKE Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
+ *     MAKE Bank AMemberIsUnderMinimumOnlyBecauseRewardsAreReserved
  *     MAKE Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
- *     MAKE Bona AMemberGetsMoneyForTheFirstTime
- *     MAKE Bona AnEmployeeGetsMoneyForTheFirstTime
  *     MAKE Gifts ADonationCanBeCompleted
  *     MAKE Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
  *     MAKE Gifts ARecurringDonationCanBeCompleted
@@ -152,9 +148,8 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     TEST Bank AMemberIsWellBelowMinimum
  *     TEST Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     TEST Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
+ *     TEST Bank AMemberIsUnderMinimumOnlyBecauseRewardsAreReserved
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
- *     TEST Bona AMemberGetsMoneyForTheFirstTime
- *     TEST Bona AnEmployeeGetsMoneyForTheFirstTime
  *     MAKE Inflation Setup
  *     TEST Joint AJointAccountNeedsRefilling
  *     MAKE Risk Setup
@@ -178,7 +173,6 @@ function bankTransferCountIs($count) {return (t\usdTransferCount() == $count);}
  * relations: (ARG)
  *
  * in: MAKE Bank Setup
- *     MAKE Bona Setup
  *     MAKE Joint Setup
  *     MAKE Risk Setup
  */
@@ -189,8 +183,6 @@ function relations($relations) {return t\relations($relations);}
  * transactions: (ARG)
  *
  * in: TEST Bank AnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount
- *     MAKE Bona AMemberGetsMoneyForTheFirstTime
- *     MAKE Bona AnEmployeeGetsMoneyForTheFirstTime
  *     TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
  *     TEST Gifts ARecurringDonationCanBeCompleted
@@ -216,8 +208,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Bank AMemberHasANegativeBalance
  *     TEST Bank AnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount
  *     TEST Bank AMemberIsWellBelowMinimum
- *     TEST Bona AMemberGetsMoneyForTheFirstTime
- *     TEST Bona AnEmployeeGetsMoneyForTheFirstTime
  *     TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ARecurringDonationCanBeCompleted
  *     TEST Joint AJointAccountNeedsRefilling
@@ -394,8 +384,7 @@ function memberTradesUSDToMemberForRCredits($id1, $amount, $id2) {
 /**
  * we message member (ARG) with topic (ARG) and subs: (ARG)
  *
- * in: TEST Bona AMemberGetsMoneyForTheFirstTime
- *     TEST Bona AnEmployeeGetsMoneyForTheFirstTime
+ * in: 
  */
 function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -471,9 +460,7 @@ function proxies($list) {return t\proxies($list);}
 /**
  * member field values: (ARG)
  *
- * in: MAKE Bona AMemberGetsMoneyForTheFirstTime
- *     MAKE Bona AnEmployeeGetsMoneyForTheFirstTime
- *     MAKE Risk Setup
+ * in: MAKE Risk Setup
  */
 function memberFieldValues($list) {return t\memberFieldValues($list);}
 

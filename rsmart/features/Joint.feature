@@ -5,13 +5,13 @@ SO I can make purchases as a financial unit with my account partner.
 
 Setup:
   Given members:
-  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags          | jid  |*
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,bona        | .ZZB |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,bona        | .ZZA |
-  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,bona     |      |
-  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,bona        |      |
-  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,bona,secret |      |
-  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,bona     |      |
+  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags                    | jid  |*
+  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,confirmed,bona        | .ZZB |
+  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,confirmed,bona        | .ZZA |
+  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,confirmed,co,bona     |      |
+  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,confirmed,bona        |      |
+  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,confirmed,bona,secret |      |
+  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,confirmed,co,bona     |      |
   And devices:
   | id   | code |*
   | .ZZC | devC |

@@ -22,7 +22,7 @@ function achify() {
   $purpose = pad(t('rCredits+-'), 10);
   $when = pad(strftime('%b %d'), 6); // descriptive date
   $effective = strftime('%y%m%d'); // requested settlement date
-  $batch = lpad(1, 7); // should this be unique for all our batches ever? or just within the file?
+  $batch = u\lpad(1, 7); // should this be unique for all our batches ever? or just within the file?
   $recs[] = "5$class$coName$extra" . '1' . CGF_EIN . "$code$purpose$when$effective" . "0001$tdRoute$batch"; // co batch header
 
   $longAgo = REQUEST_TIME - DAY_SECS * 10;
@@ -43,7 +43,7 @@ function achify() {
     $acctId = pad(($a->co ? 'EIN #' : 'SSN #') . $a->federalId, 15);
     $name = pad($a->legalName, 22);
     $extra = pad('', 2); // discretionary
-    $trace = $tdRoute . lpad($txid, 7); // 15 chars total
+    $trace = $tdRoute . u\lpad($txid, 7); // 15 chars total
     $recs[] = "6$code$route$account$amount$acctId$name$extra" . "0$trace"; // one ach request
     $count += 1;
     $hash = substr($hash + $route, 10);
@@ -51,18 +51,18 @@ function achify() {
   
   if (!$count) return; // must be separate line from padding
   
-  $count = lpad($count, 6);
-  $hash = lpad($hash, 10);
+  $count = u\lpad($count, 6);
+  $hash = u\lpad($hash, 10);
   $debits = padnum($debits, 12);
   $credits = padnum($credits, 12);
-  $auth = lpad('?', 8) . lpad('', 11); //
+  $auth = u\lpad('?', 8) . u\lpad('', 11); //
   $b6 = pad('', 6);
   $recs[] = "8$class$count$hash$debits$credits" . '1' . CGF_EIN . "$auth$b6$tdRoute$batch";  // batch control
 
-  $batches = lpad(1, 6);
-  $blocks = lpad(ceil((2 + $count + 2) / 10), 6); // how many blocks of 10 lines, rounded up
-  $count = lpad($count, 8);
-  $b39 = lpad('', 39);
+  $batches = u\lpad(1, 6);
+  $blocks = u\lpad(ceil((2 + $count + 2) / 10), 6); // how many blocks of 10 lines, rounded up
+  $count = u\lpad($count, 8);
+  $b39 = u\lpad('', 39);
   $recs[] = "9$batches$blocks$count$hash$debits$credits$b39"; // file control
   
   //foreach ($recs as $line) u\EXPECT(strlen($line) == 94, 'bad ach line len: ' . $line);
@@ -72,6 +72,5 @@ function achify() {
 }
 
 function pad($s, $n) {return substr(str_pad($s, $n), 0, $n);}
-function lpad($s, $n) {return str_pad(substr($s, 0, $n), $n, '0', STR_PAD_LEFT);}
-function padnum($n, $len) {return lpad(str_replace('.', '', abs($n)), $len);}
+function padnum($n, $len) {return u\lpad(str_replace('.', '', abs($n)), $len);}
 /**/ function log($msg) {file_put_contents('cron.log', print_r($msg, 1) . "\n" . @file_get_contents('cron.log'));}

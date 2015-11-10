@@ -14,7 +14,6 @@ use rCredits\Web as w;
  */
 
 define('R_NONE', '<span class="none">--</span>'); // let the tests see null values
-define('R_ON_FILE', t('(on file)'));
 define('R_AGREE_0', -2); // number of the first point in the rCredits Agreement
 define('R_AGREE_9', 6); // number of the last point in the rCredits Agreement
 
@@ -54,7 +53,9 @@ EOF
   'repeat invite' => t('Come back any time, to send more invitations (click "Invite Someone" at the bottom of any page).'),
   'gift transfer later' => t('Your funds will be transferred when you have money in your account.'),
   'repeat gift' => t('If you wish to make a donation again sometime, click "Membership" in the upper right corner, then on "Donate".'),
-  'setup complete' => t('Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Thank you for joining!'),
+  'setup complete' => t('<p>Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Your rCard will arrive by US Mail within a few days. Thank you for joining!</p>'),
+  'use temporary card' => t('<p>While you wait for your rCard to arrive, you can use your invitation card to make purchases at any member business (beginning with your inviter).</p>'),
+  'must be confirmed' => t('An email has been sent to @inviterName. They will need to confirm the invitation before you can use your rCredits account. Or you can make your first rCard purchase from them (or sale to them), as confirmation.'),
   //  Meanwhile, click the "<a href="@BASE_URL/community/invite">Invite</a>" tab to invite anyone you know and trust &mdash; you get a $@R_HELPER_BONUSr reward when they make their first purchase.<br><br>
   'ready to charge' => t('<p>You successfully scanned in as "@agentName" to charge customers on behalf of @companyName.</p><p>Now go back to your scanning app, to scan a customer\'s card. Sign out only when your shift ends.</p>'),
   'transaction list truncated' => t('There are too many transactions to show all at once, so only the first @TX_MAX_ROWS are shown (choose a different date range to see the rest).'),
@@ -63,12 +64,13 @@ EOF
   'agent created' => t('The agent account was successfully created.'),
   'phone verified' => t('Your phone number has been verified.'),
   'id verification pending' => t('Your photo ID has been uploaded successfully. Now we need to wait for our partner organization to verify your identity. Please feel free to email us if you have questions.'),
-//  'adjust settings' => t('<b>TIP:</b> You can adjust your settings by clicking the gear in the upper right corner. '),
+//  'adjust settings' => t('<b>TIP:</b> You can adjust your settings by clicking the Settings button. '),
   'payroll done' => t('Payroll upload was successful. You paid @count employees a total of @total.'),
   'tx edited' => t('Your transaction #@tid was edited by @who.'),
   'new tx goods' => t('It is now for @what.'),
   'new tx amount' => t('The new amount is @amount.'),
   'min zeroed' => t('Your minimum balance has been set to zero, to disable automatic refills of your account (automatic refills are not possible without a connected bank account OR permission to draw on another rCredits account).'),
+  'expired invite converted' => t('Your invitation has expired, so @inviterName will be asked to re-confirm.'),
 
   // prompts
   'note' => '<b class="loud">' . t('NOTE:') . '</b>',
@@ -132,7 +134,7 @@ EOF
   'shortr to' => t('You do not have enough rCredits, for that transaction. <a href="@how">Go here</a> to get more rCredits.'),
   'incomplete agreement' => t('To sign this agreement, you must put a check in each box, meaning that you have read that section and agree to it.'),
   'bad signature' => t('That signature does not match your full legal name ("@fullName").'),
-  'bad invite' => t('To sign up for rCredits, you must be invited. Ask someone you know to send you an invitation!'),
+  'bad invite' => t('That is not a valid Invitation Number or username.'),
   'used invite' => t('<p>That invitation has already been used, to open an rCredits account.</p><p>If you already have an rCredits account set up and want to open an additional account for yourself, your business, or a family member, sign in and use the "Open Another Account" button on the Summary page (for cashier accounts, first select your business from the dropdown in the upper right corner).</p><p>Otherwise ask someone you know to send you a new invitation!'),
   'expired invite' => t('<p>That invitation has expired.</p><p><@a>Click here</a> to ask @inviterName for another invitation.</p>'),
   'min sub floor' => t('Your chosen rCredits minimum cannot be less than your <em>allowed</em> minimum (@floor).'),
@@ -197,7 +199,7 @@ EOF
   'not payroll csv' => t('This is not a payroll CSV. It must say "Payroll Details" in cell A2.'),
   'bad payroll csv' => t('Incorrect payroll CSV format at line @line.'),
   'empty payroll' => t('There are no employees listed as having received an rCredits payroll deduction.'),
-  'bad payroll employee' => t('@employee is not listed as an employee on your Relations page. Click the Settings gear, then click "Relations".'),
+  'bad payroll employee' => t('@employee is not listed as an employee on your Relations page. Click the Settings button, then click "Relations".'),
   'illegal amount change' => t('You cannot @action the original amount (@amount). <@a>Send an invoice</a> instead.'),
   'bad achmin' => t('The minimum transfer amount must be at least $@R_ACHMIN.'),
   'say why not' => t('You must say why you are denying the invoice.'),
@@ -212,6 +214,7 @@ EOF
   'login failed' => t('Your attempt to sign in failed. Click the "Password problems" link if you need a new password.'),
   'file save error' => t('Your file upload did not succeed.'),
   'forced without perm' => t('<p>An unauthorized transaction was made using a Company Agent rCard.</p><ul><li>Date: @date</li><li>Customer</li><li>@a2 (by @agent2)</li><li>Company: @a1 (by @agent1)</li><li>Amount: @amount</li><li>For: @for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
+  'bad invite num' => t('That is not a valid invitation number.'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
 
@@ -338,7 +341,7 @@ function fieldSet($id, $flds, $prompt = '') {return formField('fieldset', $promp
 function shareField() {
   $mya = r\acct();
   $sharePct = round(db\lookup('AVG(share)', 'r_gifts', 'share>=0'), 1);
-  return textField(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the rCredits community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes rCredits and handles administration of your rCredits community until the community can take over that responsibility.</p>', compact('sharePct')), required((($mya->share + 0) ?: R_SHARE_DFT) . '%'));
+  return textField(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the rCredits community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes rCredits and handles administration of your rCredits community until the community can take over that responsibility.</p>', compact('sharePct')), required((is_null($mya->share) ? R_SHARE_DFT : (($mya->share + 0) ?: 0)) . '%'));
 }
 
 /**
@@ -468,7 +471,11 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
         //if (!$mya->cttyUp) say(t('The community is DOWN.'));
       } else $formName = 'rCredits\\Web\\formSystemDown';
     }
-    $form = drupal_build_form($formName, $formSta);
+    
+//require_once __DIR__ . '/rweb.inc';
+//    debug($formName([], $sta));
+
+    $form = \drupal_build_form($formName, $formSta);
     \rweb_form_alter($form, $formSta, $formName);
     
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
@@ -758,28 +765,6 @@ function ssnFields($personal = TRUE) {
   return compact(u\ray('dob federalId'));
 }
 
-function dwollaTerms() {
-  global $rUrl;
-  $title = item(t('Welcome to rCredits!'));
-  $subtext = item(t(<<<EOF
-<p>Your rCredits account will contain both US Dollars and rCredits (incentive rewards issued by your rCredits community).</p>
-
-<p>Our partnership with Dwolla connects you to the mainstream economy. We use the Dwolla network to transfer funds between your rCredits account and your checking account. A few required words about Dwolla:</p>
-<div id="graphics"><div><img src="$rUrl/images/dwolla.jpg" /><img id="veridian-logo" src="$rUrl/images/veridian.jpg" /></div></div>
-<p>Financial institutions play an important role in the Dwolla network.</p>
-
-<p>Dwolla, Inc. is an agent of Veridian Credit Union and all funds associated with your account in the Dwolla network are held in a pooled account at Veridian Credit Union. These funds are not eligible for individual insurance, and may not be eligible for share insurance by the National Credit Union Share Insurance Fund. Dwolla, Inc. is the operator of a software platform that communicates user instructions for funds transfers to Veridian Credit Union.</p>
-EOF
-  ));
-
-  $aTerms = 'a href="https://www.dwolla.com/tos?nolayout=true" target="_blank"';
-  $aPrivacy = 'a href="https://www.dwolla.com/privacy?nolayout=true" target="_blank"';
-
-  $agreed = boxField(t('Accept Terms checkbox'), tt("I accept Dwolla's <@aTerms>Terms of Service</a> and <@aPrivacy>Privacy Policy</a> and I authorize the rCredits system to open and manage a Dwolla account on my behalf.", compact('aTerms', 'aPrivacy')), suffix('&nbsp;'));
-  $continue = submit(t('Continue'));
-  return compact(u\ray('title subtext agreed continue'));
-}
-
 function wants($ats) {  
   $wants = 0; // store a bit for each bought-at company
   if ($ats) foreach ($ats as $one) if (@$one) {
@@ -1059,33 +1044,41 @@ EOF;
 /**
  * Return the recipient of a recent invitation OR mark an invitation USED
  * Call by:
- *   $email = invitation($code, '', $inviter) returned with $inviter=inviter uid
+ *   $email = invitation($code, '', $inviter, $iCode, $err) returned with $inviter=inviter uid
  *   invitation($code, $invitee) marks the invitation USED by recording the invitee's account id
  * @param string $code: the invitation code
  * @param int $invitee: account id of the invited person
- * @param int $inviter: (returned, if invitee='') account id of the inviter (returned even if error)
- * @param int $err: (returned) error message, if any
+ * @param int $inviter: (RETURNED, if invitee='') account id of the inviter (returned even if error)
+ * @param int $iCode: (RETURNED) the invitation sequence number
+ * @param int $err: (RETURNED) error message, if any
  * @return:
  *   (1) encrypted email, if invited specifically with our form
  *   (2) TRUE if invited with an emailable link or marking invitation USED
  *   (3) FALSE if no such invitation or marking invitation USED failed
  */
-function invitation($code, $invitee = '', &$inviter = '', &$err = '') {
-  if (!$invitee and preg_match('/([^0-9]+)([0-9]+)/', $code, $m) and $a = r\acct($m[1]) and $code == $a->inviteCode) {
+function invitation($code, $invitee = '', &$inviter = '', &$iCode = -1, &$err = '') {
+  if (!$invitee and $a = r\iCardAcct($code, $iCode)) {
+    if ($iCode >= IBY_ICARD and db\exists('users', 'helper=:id AND iCode=:iCode', u\ray('id iCode', $a->id, $iCode))) return !$err = 'used invite';
     $inviter = $a->id;
     return TRUE;
+  } else {
+    $fields = 'id,email,inviter,invitee,invited';
+    if (!$result = db\lookup($fields, 'r_invites', 'code=:code', compact('code'))) return !$err = 'bad invite';
+    $id = $result['id']; // don't extract yet
+    if (@$invitee) return db\update('r_invites', compact('id', 'invitee'), 'id'); // mark it used
+    
+    $iCode = IBY_FORM;
+    extract($result); // looking for email and inviter, so get details
+    if ($invitee) return !$err = 'used invite';
+    $lastweek = strtotime((R_INVITE_DAYS + 2) . ' days ago'); // +2 for leniance
+//    if ($invited < $lastweek) return !$err = 'expired invite';
+    if ($invited < $lastweek) {
+      $iCode = IBY_LATE; // convert to "unconfirmed" email invitation
+      $inviterName = r\acct($inviter)->fullName;
+      w\say('expired invite converted', compact('inviterName'));
+    }
+    return u\cryptN($email, FALSE); // $inviter is returned implicitly
   }
-  $fields = 'id,email,inviter,invitee,invited';
-  if (!$result = db\lookup($fields, 'r_invites', 'code=:code', compact('code'))) return !$err = 'bad invite';
-  $id = $result['id']; // don't extract yet
-  if (@$invitee) return db\update('r_invites', compact('id', 'invitee'), 'id'); // mark it used
-  
-  extract($result); // looking for email and inviter, so get details
-  $lastweek = strtotime((R_INVITE_DAYS + 2) . ' days ago'); // +2 for leniance
-  if ($invitee) return !$err = 'used invite';
-  if ($invited < $lastweek) return !$err = 'expired invite';
-  return u\cryptN($email, FALSE); // $inviter is returned implicitly
-
 }
 
 function passwordOkay($a, $password, $passFieldName = 'pass') {
@@ -1580,6 +1573,33 @@ function menu($title, $type, $function, $args, $perms = '') {
 }
 
 /**
+ * Return a submenu page (list) for a given menu item (section).
+ */
+function subMenu($title, $section) {
+  include_once __DIR__ . '/rweb.module';
+  global $base_url;
+  
+  $menu = \rweb_menu($section);
+  $list = '';
+  foreach ($menu as $k => $v) {
+    @list ($type, $head, $args, $perms, $func, $detail, $icon) = $v;
+    if (@$detail) $detail = "<p class=\"list-group-item-text\">$detail</p>";
+    if (w\webAccess($perms) and $type != 'call' and $head != 'zot') $list .= <<<EOF
+  <a href="$base_url/$k" class="list-group-item">
+    <h4 class="list-group-item-heading">
+      <span class="glyphicon glyphicon-$icon"></span>
+      $head
+    </h4>
+    $detail
+  </a>
+EOF;
+  }
+  $title = item("<br>$title");
+  $list = item($list);
+  return compact('title', 'list');
+}
+
+/**
  * Return a help message for the page.
  */
 function helpText($page, $tag = '') {
@@ -1878,6 +1898,7 @@ function focusOn($focusFieldName) {
  */
 function webAccess($perms = NULL) {
   if ($perms == 'dev' and isDEV) return TRUE;
+  if ($perms == 'anyone') return TRUE; // needed for submenus (see w\subMenu())
   setGlobals(); // remember who we are (the main reason for this function)
   if (!@$perms or !$mya = r\acct()) return FALSE;
   if ($perms == 'signedIn') return TRUE;
@@ -1908,10 +1929,10 @@ function js($what, $type = 'inline', $scope = 'footer', $weight = 0) {
 }
 
 function labeled($form) {
-  $form['#attributes']['class'][] = 'labeled';
-  foreach ($form as $key => $value) if (substr($key, 0, 1) != '#') {
+  $form['#attributes']['class'][] = 'labeled'; // 'form-horizontal'; // 'labeled';
+//  foreach ($form as $key => $value) if (substr($key, 0, 1) != '#') {
 //    if (!isset($value['#id'])) $form[$key]['#id'] = "edit-$key"; // is this necessary?
-  }
+//  }
   return $form;
 }
 

@@ -622,22 +622,22 @@ function bank() {
     queueEach('completeUsdTx', $sql, compact('now'));
   }
   
+  $where = 'minimum>0 AND IF(:IS_RESERVE,r-rewards,r)<minimum AND uid>1 AND :IS_OK';
   $sql = <<<EOF
   SELECT uid
   FROM users 
-  WHERE minimum>0 AND r<minimum AND uid>1 AND :IS_OK AND :HAS_BANK
+  WHERE $where AND :HAS_BANK
 EOF;
   queueEach('bank1', $sql); // Note: joint slave r values cannot be negative unless both are (see r\cache)
   
   $sql = <<<EOF
   SELECT uid, r.main as ma
   FROM users u INNER JOIN r_relations r ON r.other=u.uid
-  WHERE minimum>0 AND r<minimum AND uid>1 AND :IS_OK AND NOT :HAS_BANK AND r.draw 
+  WHERE $where AND NOT :HAS_BANK AND r.draw 
   AND r.permission<>:B_JOINT-:B_RELATED
 EOF;
   queueEach('draw1', $sql);
-  
-  
+
   queueNext();
 }
 
@@ -649,7 +649,6 @@ function completeUsdTx($item) {
 function bank1($item) {
   extract(u\just('uid', $item));
   $a = r\acct($uid);
-  if ($a->j_r >= $a->j_minimum) return; // joint account balance is sufficient
   if (!$amount = getHowMuchR($a)) return; // check shortfall here NOT in query, balance may change
   $action = 'draw from';
   if (!$checkNum = $a->bank(-$amount)) return; // may never happen, but if mysql is unavailable just redo next day
@@ -676,7 +675,7 @@ function draw1($item) {
  * @return: the amount to transfer from the connected bank account or drawn for other rCredits accts (0 if none).
  */
 function getHowMuchR($a, $banky = TRUE) {
-  if (!$need = max(0, $a->minimum - $a->j_r)) return 0;
+  if (!$need = max(0, $a->minimum - $a->j_r + ($a->reserve ? $a->j_rewards : 0))) return 0;
   if ($banky) {
     $waiting = -$a->waitingToBank(); // amount already requested (if any)
     $need = round($need - $waiting, 2); // avoid a re-request
@@ -686,9 +685,12 @@ function getHowMuchR($a, $banky = TRUE) {
 
 /**
  * Give signup bonuses.
+ * NOTE: Henceforth do this when activating account, instead.
+ * But keep this function active until all legacy accounts have been given a signup bonus
  */
 function bona() {
-  $sql = 'SELECT DISTINCT u.uid FROM users u LEFT JOIN r_txs t ON t.payer=u.uid WHERE NOT :IS_BONA AND NOT :IS_CO AND t.taking'; // new human member who has completed an rCard purchase
+//  $sql = 'SELECT DISTINCT u.uid FROM users u LEFT JOIN r_txs t ON t.payer=u.uid WHERE NOT :IS_BONA AND NOT :IS_CO AND t.taking'; // new human member who has completed an rCard purchase
+  $sql = 'SELECT DISTINCT u.uid FROM users u WHERE :IS_OK AND NOT :IS_BONA AND NOT :IS_CO'; // new human member who has completed an rCard purchase
   queueEach('bona1', $sql);
   queueNext();
 }
@@ -701,13 +703,13 @@ function bona1($item) {
   r\membershipEvent($a, 'bona');
   be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
   
-  if (!r\acct($a->helper)->admin) { // helper is not admin (cAdmin is okay)
+  if (!$a->helperA->admin) { // helper is not admin (cAdmin is okay)
     $fullName = $a->fullName;
     be\fund($a->helper, TX_HELPER, R_HELPER_BONUS, u\tt('invite reward', compact('fullName')));
   }
   unset($DBTX);
 }
-  
+
 /**
  * For each new employee, reward the inviter of their company (if nobody has been rewarded for that employee yet).
  */

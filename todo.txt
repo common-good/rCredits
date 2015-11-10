@@ -1,6 +1,13 @@
 rCredits Software
 To Do
 
+Software Priorities:
+1. App
+2. Pump
+3. Security
+4. Dump Drupal
+5. Ease of signup, etc.
+
 - form publicity committee (as decided by the board)
 - rCredits gift card (essentially an invitation from another member, but with a printed $50 value (if you use this card for purchases at GFM, Foster's, or the Barn)
 - Help Upinngil get books set up right
@@ -16,6 +23,8 @@ To Do
 - Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site)
 - create CGF retirement account with reward pct "rebate" = 0
 
+. accept a simple spreadsheet for upload to do payroll
+. add a "preferred mode" and "actual preferred mode" field to users (the second is for admins)
 . redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
 . video about Admin'ing
 . register sending email on emailreg.org, to prevent blacklisting
@@ -23,15 +32,71 @@ To Do
 . charge everybody for the phone(s) and other equipment they have
 . have somebody redo "why rcredits" diagram with pictures
 . use open source tools from secureideas.com (they also do penetration testing as a service. based in Florida)
+. add something like this to our customer service messages:
+<hr style=3D=
+=22margin: 1=2E5em 0;=22 />=0D=0A<div id=3D=22section-customer-feedback=22=
+>=0D=0A  <div id=3D=22customer-feedback-question=22 style=3D=22margin: 0 =
+0 =2E75em;=22>How did we do? Let us know in one-click=2E</div>=0D=0A  =0D=
+=0A    <span class=3D=22customer-feedback-rating=22 style=3D=22margin-rig=
+ht: 10px;=22>=0D=0A      <a href=3D=22http://wildbit=2Edesk=2Ecom/custome=
+r/csats/55e8879017c093786b0008f2/rate?customer_feedback=255Brating=255D=3D=
+0=22><img style=3D=22vertical-align:middle;=22 src=3D=22https://cdn=2Edes=
+k=2Ecom/assets/rating_type100_0-f8efcbc89bbd3901f27e6810d1526b95=2Epng=22=
+ alt=3D=22Poor=22 title=3D=22Poor=22></a>=0D=0A    </span>=0D=0A    <span=
+ class=3D=22customer-feedback-rating=22 style=3D=22margin-right: 10px;=22=
+>=0D=0A      <a href=3D=22http://wildbit=2Edesk=2Ecom/customer/csats/55e8=
+879017c093786b0008f2/rate?customer_feedback=255Brating=255D=3D3=22><img s=
+tyle=3D=22vertical-align:middle;=22 src=3D=22https://cdn=2Edesk=2Ecom/ass=
+ets/rating_type100_3-0d68efc2be2b858c786c96897ec6767c=2Epng=22 alt=3D=22G=
+ood=22 title=3D=22Good=22></a>=0D=0A    </span>=0D=0A  =0D=0A  =0D=0A</di=
+v>=0D=0A<span style=3D=27color:=23ffffff=27>=5B=5Baaec4422464e983addd1a5b=
+2f97b1f932a052f5c-521398822=5D=5D</span><img src=3D=22http://ea=2Epstmrk=2E=
+it/open/NF8xNTczNl9fNjQ1YmFjZTEtZWFmYi00Y2I0LTk1M2MtNzZjMTQ0MGQ3ZjAyX3dzc=
+GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
+0=22 />
 
 TASKS FOR NEXT UPDATE:
+. reINSTALL
 . Credit PFC invites and Brendan's 2 RPC invites.
 . credit Fuzzy's invites.
 
+. as discussed with DPearson, when presenting rCard, app should encrypt cardCode with amount and time, using target server's public key. Also record and send amount and time separately? Record proof or evidence of agreement, with every transaction.
+. import payroll spreadsheet (simple 2-column list of employees and amounts. Ask for description line, suggesting labor: date through date -- modeled on previous)
+. say "if your message doesn't need to be secure, you can just send us an email (to info@rCredits.org)."
+. ** when self-signup, don't send "confirm" email to sys admin
+. ** make sure company invite cards can be confirmed only by a transaction with the company.
+. *** create a community page, available to anyone, that redirects to invite page if not signed in OR default to invite page and explain the invitation system to non-members (maybe let them "tell someone")
+. don't give inviter rewards to wws! (and delete them)
+. *** make a way to delete an account AND its transactions (maybe the transactions first) -- use on Phyllis Loomis account
+. don't try to get SSN info after ok
+. adjust messages to allow account approval by tx only when invitation is by icard
+. adjust risk according to: (1) invited by person or company (company is risky, person is unrisky), (2) invited by form, self, email, late, icard (1, -1, .5, .6, 
+. require invite card newbs to buy with rCard from their helper company (if it's a company), NO confirmation required if they are invited by an individual
+. make a clear path for admin to set up and activate a new community: set info in r_regions (including cgc=1), sign out and sign in (as admin) to copy that info to users table (but doesn't work?), set federalID of region, change community field of everyone in that community, change payer in any rewards transactions (eg update r_txs set payer=-17238000000001 where payee between 17238000000001 and 17238000000100 and payer<0)
+. add website links to companies.php on promo site.
+. don't bump people from relations page when adding a person during company setup
+. allow non-public companies and second personal accounts (escrow accounts, etc). don't require photo, don't list in FindCo, etc.
+. avoid double-encryption of bankAccount in r_usd
+. add "works at" line to summary (for admins) based on company info during signup
+. say <name> is now an active member, when admin activates an account
+. separate example image from routing number field in bank info page, so formatting is okay at all screen widths.
+. if member clicks link to increase minimum to the suggested amount, complain with "you must connect a bank account before choosing a minimum balance greater than zero".
+. make account-selection letters stay put when scrolling
+. **** figure out why r_usd txid=6124818 bankAccount is not accepted
+. getting status message "No SSN data available: ". Put this out as an error message -- the whole thing (before trying to interpret it as XML)
+. **** rethink who gets an rCard, how to deactivate them (for offline purchases), how to handle company agents (with various permissions) who are not members -- allow companies to print cardstock cards for inactive accounts, don't require SSN and bdate for non-member company agents (save form but step not complete)
+. **** on relations page, show "request rCard" if and only if the person has permission to make purchases
+. *** change the language on checklist to say "connect to the mainstream economy"
+. ***** make a way for members to contribute rewards back to the system
+. *** "you are not authorized" message should instead show login page if not signed in
+. make a way for cAdmin to delete secure messages (and files) and send reminders to do so
+. *** no way to upload photo on mobile
+. opening a company account as cAdmin should connect the company to the current individual account, when admin clicks "open another account"
+. put the r icon on a square white background and make the member site distinctive (asterisk? "$"?)
+. admin feature: click on button on CGF Summary to pay a community what they are due
+. ** company photos should not be encrypted (so they can be shown without signin)
 . *** don't log email addresses (just qid or '?')
 . * ANY unused subdomain should redirect to new.rcredits.org if scanned
-. **** general purpose email link for companies to invite their members or customers to join rCredits (
-(https://new.rcredits.org/signup/code=whatever/e=customeremail@example.com -- good for 30 days) Implement same as other invites, but don't check invitee and don't ever mark it used, if accepted with an email address
 . ** create a demo site (demo.rcredits.org) that people can create accounts on, scan demo cards (and sign in as cAdmin?)
 . *** separate emails for separate purposes (with good subject) and settable preferences
 . *** flag (and email admin) unusual banks -- keep count of members in r_banks

@@ -355,6 +355,7 @@ function withUndo($subs) {
  *     TEST Transact SellerAgentLacksPermissionToScanAndSell
  *     TEST Transact BuyerAgentLacksPermissionToBuy
  *     TEST Transact SellerTriesToChargeTheCustomerTwice
+ *     TEST Transact ACashierAsksToChargeSomeoneUnconfirmed
  *     TEST Undo AnAgentAsksToUndoAChargeWithoutPermission
  *     TEST Undo AnAgentAsksToUndoARefundWithoutPermission
  */
@@ -497,6 +498,7 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  *     MAKE Transact BuyerAgentLacksPermissionToBuy
  *     MAKE Transact SellerTriesToChargeTheCustomerTwice
  *     MAKE Transact DeviceSendsWrongCardCode
+ *     MAKE Transact ACashierAsksToChargeSomeoneUnconfirmed
  */
 function agentAsksDeviceToChargeForAt($agent, $device, $member, $amount, $goods, $description, $created) {
   return reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $description, $created, 0);

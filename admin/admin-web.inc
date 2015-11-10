@@ -72,7 +72,7 @@ function adminSummary($a, $cAdmin = FALSE) {
   } else { // managing some individual community member account
     if (!$a->ok) $a->nextStep(); // update Dwolla status
     if ($cAdmin) {
-      $photo = item($mya->photoHtml(TRUE));
+      $photo = item($mya->photoHtml(TRUE, TRUE));
       $donations = db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
       if ($donationInfo = db\lookup('often,honor,honored', 'r_gifts', 'uid=:uid', compact('uid'))) {
         extract($donationInfo);
@@ -118,9 +118,10 @@ function adminSummary($a, $cAdmin = FALSE) {
         $helper = "$hA->mainQid   $hA->fullName";
       }
       $helper = textField(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper) + autocomplete());
-    } else $helper = item($a->helper ? r\acct($a->helper)->fullName : t('N/A'), t('Helped by:'));
+    } else $helper = item(@$a->helperA->fullName ?: t('N/A'), t('Helped by:'));
 
     if ($a->member and !$a->co and $admin) $ssnCheck = item(a\ssnCheck($a));
+    if ($admin) $federalId = textfield(t('EIN/SSN:'), '', $a->federalId ? R_ON_FILE : '');
   
     $acctRisks = u\ray(K_ACCT_RISKS);
     $riskBits = array_keys($acctRisks);
@@ -183,7 +184,7 @@ EOF;
   $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
   $uid = hidField($uid);
 
-  return compact(u\ray('photo donations cgfDonations calling tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin legalName risk trust risks2 mediaConx adminable2 rTrader helper notes count submit back uid'));
+  return compact(u\ray('photo federalId donations cgfDonations calling tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin legalName risk trust risks2 mediaConx adminable2 rTrader helper notes count submit back uid'));
 }
 
 /*

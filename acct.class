@@ -14,7 +14,7 @@ use rCredits\Testing as t;
 class acct {
   var $id; // the account's record id
   var $agentId; // record id (in the agent's regional server) of whoever is acting on behalf of the account
-  var $mainQid; // nearly alphabetic representation of id, id, and region for external queries
+//  var $mainQid; // nearly alphabetic representation of id, id, and region for external queries
   private static $perms = []; // permissions for all acct objects, indexed by id and agent
   public static $rs = FALSE; // account records for all acct objects, indexed by id
   
@@ -38,7 +38,6 @@ class acct {
     if (is_array($info = $id)) { // referring to existing db record
       $a->createNew($info); // create new db record
     } else list($a->id, $a->agentId) = acct::viable($id, $agent, $zot, FALSE);
-    $a->mainQid = r\quid($a->id);
   }    
 
   /**
@@ -143,7 +142,7 @@ class acct {
     if (u\abbreviates('j_', $field)) return $a->jGet(substr($field, 2)); // real field name is minus the "j_"
     $a->reread(); // necessary when we pass an acct object to another page
 
-    if (in_array($field, u\ray('ok member co admin cAdmin cAdmin2 cttyActive cttyUp'))) return $a->can(u\consta('b', $field));
+    if ($field == 'mainQid') return r\quid($a->id);
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
     if ($field == 'agent') return acct($a->agentId);
@@ -154,10 +153,13 @@ class acct {
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'bank') return $a->risk('hasBank');
-    if ($field == 'inviteCode') return $a->mainQid . substr($a->created, -6, 6); // must be just qid and digits
+    if ($field == 'lowSecurity') return u\n2aa(substr($a->created, -5, 5), 3); // result is 3 chars long
+    if ($field == 'inviteCode') return str_replace(R_MEMBER_MARK, '*', $a->mainQid) . $a->lowSecurity;
     if ($field == 'slave') return ($jid = $a->jid and $jid < $a->id); // slave in a joint account
+    if ($field == 'helperA') return $a->helper ? r\acct($a->helper) : '';
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
       : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
+    if (in_array($field, u\ray('ok confirmed member co reserve admin cAdmin cAdmin2 cttyActive cttyUp'))) return $a->can(u\consta('b', $field));
 
     if (isset(self::$rs[$a->id]->$field)) {
       $result = @self::$rs[$a->id]->$field; // returns NULL if field not set
@@ -221,6 +223,27 @@ class acct {
     if (!$jid = $a->jid) return $a->$field;
     $j = u\nn(r\acct($jid)->$field, 0); // use 0 if other value is null
     return is_numeric($j) ? round($j + $a->$field, 2) : ($a->$field . " & $j"); // assume $ for numeric fields
+  }
+  
+  /**
+   * Return a printable (scrambled) invitation card code 
+   * @param int $iCode: sequence number (0 to 35^3-1)
+   */
+  public function iCardCode($iCode = 0) {
+    $a = $this;
+    list ($region, $tail) = explode(R_MEMBER_MARK, $a->mainQid);
+
+    $b = u\lpad(decbin(u\a2n($region)), ILEN_REGION);
+///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
+    $b .= u\lpad(decbin(u\a2n($tail)), ILEN_TAIL);
+///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
+    $b .= u\lpad(decbin(u\aa2n($a->lowSecurity)), ILEN_SECURITY);
+///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
+    $b = u\rotateBits($b, ($iCode + 1) * (bindec(substr(R_INVITE_KEY, 0, 31)) % strlen($b)));
+///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
+    $b = u\xorBits($b, substr(R_INVITE_KEY, -strlen($b)));
+///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
+    return u\n2aa(bindec(substr($b, 0, ILEN_DIV)), 5) . u\n2aa(bindec(substr($b, ILEN_DIV)), 5);
   }
   
   /**
@@ -324,12 +347,16 @@ class acct {
    * Return specified account's profile picture, with markup
    * @param bool $unique: should the markup force reloading the image
    * @return: markup to display the account's picture (with a default image if none)
-   * Use $result with DRUPAL_ROOT . $result OR $base_url . $result
+   * Use result with DRUPAL_ROOT . $result OR $base_url . $result
    */
-  public function photoHtml($unique = FALSE) {
+  public function photoHtml($small = FALSE, $unique = FALSE) {
+    $a = $this;
     global $base_url;
     if ($unique) $unique = '?' . r\rTime();
-    return '<div class="user-picture"><img src="' . "$base_url/account/icon$unique" . '" alt="profile picture" /></div>';
+    $thing = $small ? 'icon' : 'photo';
+    $qid = $a->mainQid;
+    if (!$a->co) $qid .= "/$a->cardCode";
+    return '<div class="user-picture"><img src="' . "$base_url/account/member-photo/$qid$unique" . '" alt="profile picture" /></div>';
   }
 
   /**

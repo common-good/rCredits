@@ -1,5 +1,5 @@
 google.load('visualization', '1.0', {'packages':['corechart']});
-var chartWidth = 400;
+var chartWidth = 500;
 var chartHeight = 300;
 
 function allChart() {

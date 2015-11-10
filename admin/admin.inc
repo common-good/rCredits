@@ -53,16 +53,17 @@ function setupBasicAccounts() {
   if ($server == r\serverUid('NEW')) { // no need to set up WWS and CGF unless in Western Mass region
     if (db\exists('users', "name='cgf'")) return; // already done
 
-    $values = array(r\unQuid(R_ADMIN_QID), $server, 'williamspademan', ADMIN_NAME, R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK)));
+    $values = array(r\unQuid(R_ADMIN_QID), $server, 'williamspademan', ADMIN_NAME, R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK]));
     $info = array_combine($keys, $values);
     list ($phone, $address, $city, $state) = array('+14136281021', 'PO Box 305', 'Ashfield', R_STATE_ID);
     $info += compact(u\ray('email phone address city state'));
     $wws = new r\acct($info);
     
-    $values = array(r\unQuid('NEW.AAB'), $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_CO)));
+    $values = array(r\unQuid('NEW.AAB'), $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO]));
     $info = array_combine($keys, $values);
     list ($phone, $address, $city, $state) = array(CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
-    $info += compact(u\ray('email phone address city state'));
+    $helper = $wws->id;
+    $info += compact(u\ray('email phone address city state helper'));
     $cgf = new r\acct($info);
     \variable_set('cgf_uid', $cgf->id);
     $cgf->newRelation($wws->id, r\perm(B_MANAGE));
@@ -95,10 +96,8 @@ function showActivity($a) {
   $count = $a->co ? db\count('r_txs', 'payee=:uid AND created>:when', compact('uid', 'when'))
     : db\count('r_txs', 'payer=:uid AND payee<>:cgf AND created>:when', compact(u\ray('uid cgf when')));
   $ret = t('@count @what', u\ray('@count @what', $count, $a->co ? t('sales') : t('purchases')));
-  $subs = u\ray('@signed @use', u\fmtDate($a->signed ?: $a->created), u\fmtDate($a->ok ? $a->access : $a->login));
-  $ret .= (@$a->signed and $a->signed < $when) 
-    ? t(' in the past 3 months (member since @signed, last use/signin @use)', $subs)
-    : t(' since joining on @signed (last use/signin @use)', $subs);
+  $subs = u\ray('@activated @signed @use', $a->ok ? u\fmtDate($a->activated) : t('NO'), $a->signed ? u\fmtDate($a->signed) : t('NO'), u\fmtDate($a->ok ? $a->access : $a->login));
+  $ret .= t(' in the past 3 months (signed @signed, activated @activated, last use/signin @use)', $subs);
   return $ret;
 }
 
@@ -120,9 +119,11 @@ EOF;
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $permission += B_RELATED; // shift to use bit names
+    $extra = '';
     if ($isOwner and !$iCo and !$uCo) {
       $role = t('related to');
     } elseif ($uid == $main) {
+      $extra = '<small> (' . r\quid($them) . ' / ' . r\quid($main, $them) . ')</small>';
       $role = $isOwner ? t('owned by')
         : ($draw ? t('drawn on by')
         : ($permission >= B_MANAGE ? t('managed by')
@@ -137,7 +138,7 @@ EOF;
         : ($permission >= B_READ ? t('can read')
         : t('can ?')))));
     }
-    $ret .= ($ret ? ', ' : '') . "$role <a href=\"$base_url/sadmin/acct-info/$them\">$who</a>";
+    $ret .= ($ret ? ', ' : '') . "$role <a href=\"$base_url/sadmin/acct-info/$them\">$who</a>$extra";
   }
   return $ret;
 }
@@ -233,6 +234,7 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
 function ssnCheck($a) {
   if (!$ssnData = @$a->ssnData) {
     if (!$ssnData0 = u\ssnLookup($a->federalId)) return w\say(t('No data returned from ssnLookup (probably timed out).'));
+//    if (strpos($ssnData0), 'timeout')
     $xml = simplexml_load_string($ssnData0);
     $json = json_encode($xml);
     $ssnData = json_decode($json, TRUE);
@@ -359,7 +361,6 @@ function pioneerBonus($a) {
 
 /**
  * Re-setup the test cards on the STAGING server, after importing data from the PRODUCTION server.
-  include_once __DIR__ . '/../rcredits/admin/admin.inc';
   f('a.makeTestCards');
  */
 function makeTestCards() {
@@ -590,11 +591,15 @@ EOF;
 function printCheck(&$ck, $pos, $tx, $mark) {
   extract(u\just('txid created payer amount deposit bankAccount', $tx));
   $escrow = 'USkk' . ESCROW_ROUTING . ESCROW_ACCOUNT;
-  $bankAccount = ($pw2 = $_COOKIE['pw2']) ? u\decrypt($bankAccount, 0, $pw2) : '';
   $a = r\acct($payer);
+  $bankAccount = ($pw2 = $_COOKIE['pw2']) ? u\decrypt($bankAccount, 0, $pw2) : '';
+  if (substr($bankAccount, 0, 2) <> 'US' and ($bankAccount = $a->bankAccount) and $pw2) { // bank account got screwed up somehow -- probably double-encrypted (happened before 10/15/2015 at least)
+    db\update('r_usd', u\ray('txid bankAccount', $txid, u\crypt($bankAccount, 0, $pw2)), 'txid');
+    w\say('fixed account');
+  }
   list ($fromName, $addr, $phone, $fromAcct, $toName, $toAcct) = $amount < 0 // which way
     ? [$a->legalName, $a->postalAddr, $a->phone, $bankAccount, 'rCredits', $escrow] // from bank to escrow
-    : ['rCredits (' . CGF_LEGALNAME . ')', CGF_POSTALADDR, CGF_PHONE, $escrow, $a->legalName, $bankAccount];
+    : ['rCredits (' . CGF_LEGALNAME . ')', CGF_POSTALADDR, CGF_PHONE, $escrow, $a->legalName, $bankAccount];//e2b
   $memo = $amount < 0 ? t('for rCredits') : t('for DEPOSIT to account #') . substr($toAcct, 4 + 9);
 
   list ($signature, $belowLine) = $amount < 0 
@@ -632,7 +637,7 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   $ck->say('DATE:', 6.7, $y += .4, '', .25, '8');
   $ck->say(u\fmtDate($deposit ?: r\rTime()), 7.1, '', '', .25);
 
-  $ck->say('Pay to the<br>Order of', $m, $y += .4, '', 2 * $lineH, '8 CAPS');
+  $ck->say('Pay to the<br>Order of', $m, $y += .4, '', 2 * $lineH, '8;CAPS');
   $ck->say("  $toName", $m + .7, $y + $lineH, 5.9, $lineH, '', '', 'BR');
   $ck->say('$ ' . number_format($amount, 2), 7, '');
   
@@ -643,7 +648,7 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   $ck->say("<b>$b_name</b><br><small>$b_address<br>$b_city, $b_state $b_zip</small>", $m + 1, $y += .4, '', '', '9');
   
   $ck->say($signature, $W - $W / 3, $y + .35, $W / 3 - $m, $lineH, 'CAPS', 'C', 'B'); // $y+ not +=
-  $ck->say($belowLine, '', $y + .35 + $lineH, $W / 3 - $m, $lineH, '8 CAPS', 'C');
+  $ck->say($belowLine, '', $y + .35 + $lineH, $W / 3 - $m, $lineH, '8;CAPS', 'C');
 //  if (!$signature) $ck->Image(__DIR__ . '/../images/checksig.png', $W - $W / 3, $y, $W / 3 - $m, 5 * $lineH);
   
   $ck->say('MEMO:', $m, $y += .5, '', $lineH, '8');
@@ -654,7 +659,7 @@ function printCheck(&$ck, $pos, $tx, $mark) {
 //    $ck->say("A{$routing}A {$account}C $txid", $m, $mt - $m + CHECK_HEIGHT - .25 - $lineH * (12 / PDF_FONT_SIZE), '', '', 'GnuMICR 12');
 //  } else 
   $account = str_replace('-', 'D', $account); // show dashes properly
-  $ck->say("C000{$txid}C A{$routing}A {$account}C", $m, $mt - $m + CHECK_HEIGHT - .25 - $lineH * (12 / PDF_FONT_SIZE), '', '', 'GnuMICR 12');
+  $ck->say("C000{$txid}C A{$routing}A {$account}C", $m, $mt - $m + CHECK_HEIGHT - .25 - $lineH * (12 / PDF_FONT_SIZE), '', '', 'GnuMICR;12');
 //  $ck->say('', 0, $mt - $m + CHECK_HEIGHT, $W, 1, '', '', 'T'); // comment this out
   
   if (!$deposit and $mark) db\update('r_usd', u\ray('deposit txid', strtotime('today'), $txid), 'txid');

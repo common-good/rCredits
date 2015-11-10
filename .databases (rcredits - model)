@@ -7,6 +7,7 @@
     "pass" : "db password",
     "salt" : "about 43 almost arbitrary characters",
     "word" : "32 hex digits",
+    "inviteKey" : "arbitrary string of 0s and 1s",
    	"ssnUser" : "SSN lookup username (this and ssnPass can be left as-is on development machine)",
     "ssnPass" : "SSN lookup password"
   },
@@ -18,5 +19,5 @@
     "pass" : "db password"
   },  
   "postmarkToken" : "",
-  "_instructions" : "(1) postmarkToken should be left empty on development machine. Otherwise get a token from postmarkapp.com if you use that service on your regional rCredits server. (2) ssnUser and ssnPass are the credentials for SSN verification service (for example nationalpublicdata.com)."
+  "_instructions" : "(1) inviteKey is a secret bit string that is the same for all rCredits communities. It will be given to you when your regional server has authorization from Common Good Finance or from a council of your neighboring regions (1) postmarkToken should be left empty on your development machine. Get a token from postmarkapp.com if you use that service on your regional rCredits server. (2) ssnUser and ssnPass are the credentials for SSN verification service (for example nationalpublicdata.com)."
 }

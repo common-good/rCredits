@@ -31,6 +31,45 @@ define('T_BALANCE_FIELDS', 'id r usd balance dwolla floor rewards minimum share 
 define('T_BALANCE_FIELDS', 'id r balance floor rewards minimum share committed');
 define('T_MSG_FILE', 'test-messages.txt');
 
+/**
+ * Allow mnemonic and abbreviated data in test scenario columns.
+ * @param assoc $info: field names and values
+ * @param bool $direct: directly to or from db, rather than user input (default FALSE)
+ */
+function fixData(&$info, $direct = FALSE) {
+  global $rUrl;
+  $fields = 'postalCode country state email phone dob federalId idProof';
+  extract(u\just($fields, $info));
+
+  if (@$email) $info['email'] = t\fixEmail($email);
+  if (@$postalCode or @$country or @$state) {
+    u\setDft($country, 'US');
+    if ($country == 'US' or $country == US_COUNTRY_ID) u\setDft($state, 'MA');
+  }
+  if (@$country) $country = db\lookup('id', 'r_countries', ':country IN (name, iso_code)', compact('country'));
+  if (@$state) $state = db\lookup('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country'));
+//  if (@$mail) t\fixEmail($mail);
+  if (@$email) t\fixEmail($email);
+  if (strlen(@$phone) == 1) u\prefix('+1413772000', $phone);
+  if (@$idProof) u\prefix("$rUrl/images/", $idProof);
+  if ($direct) {
+    if (@$federalId) u\digits($federalId);
+    if (@$dob) $dob = strtotime(str_replace('/', '-', $dob));
+  }
+
+  foreach (u\ray('uid inviter invitee person proxy helper') as $k) if (@$info[$k]) $info[$k] = t\uid($info[$k]) ?: 0;
+  $info = compact(u\ray($fields)) + $info;
+}
+
+/**
+ * Allow abbreviated email address like "a@" meaning a@example.com. Also avoid weird characters.
+ */
+function fixEmail(&$email) {
+  $email = str_replace("'", '&#039;', htmlspecialchars($email)); // Drupal does this in user_register()
+  if (substr(@$email, -1, 1) == '@') $email .= 'example.com'; 
+  return $email;
+}
+
 function doRecords($list, $type) {
   global $testOnly;
 /**/    if ($testOnly) t\output("Expect $type: " . print_r($list, 1), 'expect');
@@ -47,11 +86,9 @@ function doRecords($list, $type) {
  */
 function doThing($info, $type) {
   global $testOnly;
-  extract($info);
-  if (@$id) $info['uid'] = t\uid($id); unset($info['id']);
-  foreach (u\ray('inviter invitee person proxy') as $one) if (@$$one) $info[$one] = t\uid($$one) ?: 0;
-  if (@$email) $info['email'] = t\fixEmail($email);
   $table = 'r_' . strtolower($type) . 's';
+  if (@$info['id']) $info['uid'] = t\uid($info['id']); unset($info['id']);
+  fixData($info);
   return $testOnly ? verifyRecord($table, $info) : db\insert($table, $info);
 }
 
@@ -88,13 +125,14 @@ function doBoxe($info = []) {
 function doAccount($info = []) {
   global $testOnly;
 /**/  if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
-  extract($info); // any user table fields, plus dw (dwolla test account number)
+  extract($info); // any user table fields
   u\setDft($id, r\acct::nextId()); // default to first available number
   $uid = t\uid($id); // change .AAB to 1, etc.
 
 //  if (@$email) $mail = $info['mail'] = $email;
   if (@$jid) $jid = t\uid($jid);
-  if (@$helper or !@$testOnly) $helper = t\uid(@$helper ?: '.AAA'); // everyone but .AAA should have a helper
+//  if (@$helper or !@$testOnly) $helper = t\uid(@$helper ?: '.AAA'); // everyone but .AAA should have a helper
+  if (!@$helper) $helper = '.AAA'; // everyone but .AAA should have a helper
 
   if (!$testOnly) { // when making, set many defaults and mods
     u\setDft($fullName, 'doAccount ' . randomString(20, 'word'));
@@ -138,7 +176,7 @@ function doAccount($info = []) {
   
   foreach (u\ray('id acctType dw cc cc2') as $one) unset($info[$one]); // these are not real fields
   u\preray(compact(u\ray('uid jid helper flags risks ' . $fixFields)), $info); // add in changed fields
-  fixValues($info, TRUE);
+  fixData($info, TRUE);
 
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return output("No such uid: $uid");
@@ -380,7 +418,7 @@ function doMemberFields($one) {
 
   $a = r\acct($id = t\uid($one['id']));
   foreach ($balFields as $k => $v) unset($one[$k]); // don't rehandle balance fields, and already got id
-  fixValues($one, TRUE);
+  fixData($one, TRUE);
   if (@$one['jid']) $one['jid'] = t\uid($one['jid']);
 
   if ($testOnly) {
@@ -713,38 +751,6 @@ function weShowWithSubs($page, $subs) {
   return TRUE;
 }
 
-/**
- * Convert country and state names or abbreviations to the corresponding indices, and other tweaks.
- * @param assoc $info: field names and values
- * @param bool $direct: directly to or from db, rather than user input (default FALSE)
- */
-function fixValues(&$info, $direct = FALSE) {
-  global $rUrl;
-  $fields = 'postalCode country state email phone dob federalId idProof';
-  extract(u\just($fields, $info));
-  if (@$postalCode or @$country or @$state) {
-    u\setDft($country, 'US');
-    if ($country == 'US' or $country == US_COUNTRY_ID) u\setDft($state, 'MA');
-  }
-  if (@$country) $country = db\lookup('id', 'r_countries', ':country IN (name, iso_code)', compact('country'));
-  if (@$state) $state = db\lookup('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country'));
-//  if (@$mail) t\fixEmail($mail);
-  if (@$email) t\fixEmail($email);
-  if (strlen(@$phone) == 1) u\prefix('+1413772000', $phone);
-  if (@$idProof) u\prefix("$rUrl/images/", $idProof);
-  if ($direct) {
-    if (@$federalId) u\digits($federalId);
-    if (@$dob) $dob = strtotime(str_replace('/', '-', $dob));
-  }
-  $info = compact(u\ray($fields)) + $info;
-}
-
-function fixEmail(&$email) {
-  $email = str_replace("'", '&#039;', htmlspecialchars($email)); // Drupal does this in user_register()
-  if (substr(@$email, -1, 1) == '@') $email .= 'example.com'; 
-  return $email;
-}
-
 function makePicture($photo, $a) {
 //  $filename = DRUPAL_ROOT . $a->auxFilename('picture2', TRUE);
 //  return (bool) file_put_contents($filename, $picture);
@@ -890,7 +896,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
 /// debug(compact(u\ray('id page values confirmed testOnly')));
 
   $values = @$values[0] ?: [];
-  t\fixValues($values);
+  t\fixData($values);
   if (isset($values['amount']) and !is_numeric($values['amount'])) {
     $a = r\acct(r\fullQid($id));
     list ($values['amount']) = t\parseAmt($values['amount'], $a);
@@ -1319,4 +1325,4 @@ function log($msg) {if (u\test()) u\log($msg, 'debug');}
 function that($thing) {global $thatThing; return $thatThing[$thing];}
 function dosayFilename($type) {return __DIR__ . "/../dosay-$type.txt";}
 function goodsBit($s) {return $s == 'goods' ? "1" : ($s == 'cash' ? "0" : "ERROR");} // no 3rd why for rSmart
-function approxTime($a, $b) {return t\eq($a, $b, 20);}
+function approxTime($a, $b) {return t\eq($a, $b, 40);}

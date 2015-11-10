@@ -119,7 +119,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'drew' => t('A total of @amount has been drawn from your connected account(s).'),
   'payment exchange received' => t('You received from @fullName a payment exchange of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
   'payment exchanges offered' => t('You made payment exchanges to @offers @whom, totaling @total.'),
-  'card ordered' => t('A Company Agent rCard for @otherName will be US mailed to @manager.'),
+  'card ordered' => t('A card for @otherName will be US mailed to @company.'),
   'balances' => t('@toSpend to spend (you can <@a>cash out</a> up to @toCash today).', ['@a' => 'a href=' . $GLOBALS['base_url'] . '/help/cashing-out']),
   'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
   'new floor' => t('Your credit limit has been changed to @limit, based on your average use of rCredits over the past 6 months.'),
@@ -244,6 +244,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'other no photoid' => t('@who must make a purchase in person to verify their identity, before you can pay or charge them.'),
   'duplicate transaction' => t('You already just @op that member that much.'),
   'no search' => t('OR that member has chosen not to be identified by email or phone number.'),
+  'not confirmed' => t('@youName: Your membership must be approved by @inviterName OR you must do a transaction with @inviterName FIRST.'),
 
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',

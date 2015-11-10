@@ -35,8 +35,8 @@ function do1099bs($testMode = FALSE) {
     do1099b($year, $uid, $total);
   }
   
-  $bCount = lpad($bCount, 8);
-  $totals = lpad(0, 6 * 18) . lpad(fmtAmt($total), 18) . lpad(0, 9 * 18);
+  $bCount = u\lpad($bCount, 8);
+  $totals = u\lpad(0, 6 * 18) . u\lpad(fmtAmt($total), 18) . u\lpad(0, 9 * 18);
 
   putRec(recC($bCount, $totals));
   putRec(recK($bCount, $totals));
@@ -68,7 +68,7 @@ function recT($year, $testMode) {
   $foreign = pad(FALSE, 1); // 1 for foreign
   $coName = $transmitterName = pad(CGF_LEGALNAME, 80);
   $coAddr = pad('PO Box 21', 40) . pad('Ashfield', 40) . 'MA' . pad('013300021', 9);
-  $payees = lpad(0, 8); // not possible to know the count yet
+  $payees = u\lpad(0, 8); // not possible to know the count yet
   $contact = pad(ADMIN_NAME, 40) . pad('4136281021', 15) . pad('wspademan@gmail.com', 50);
   $source = pad('I', 1); // V=vendor I=in-house
   $vendor = sp(40) . sp(40) . sp(40) . sp(2) . sp(9);
@@ -87,7 +87,7 @@ function recA($year) {
   $amountCodes = pad('7', 16); // amount is entered on this line number on form 1099-B
   $foreign = pad(FALSE, 1); // 1 for foreign
   $payerName = pad(r\regionfield('legalName'), 80);
-  $isAgent = lpad(0, 1); // 1 if second half of payerName is transfer agent, else 0
+  $isAgent = u\lpad(0, 1); // 1 if second half of payerName is transfer agent, else 0
   $payerAddr = pad('c/o Common Good Finance, PO Box 21', 40) . pad('Ashfield', 40) . 'MA' . pad('013300021', 9);
   $payerPhone = pad('4136281723', 15); // was 4133765021 (maybe again someday)
   
@@ -102,7 +102,7 @@ function recB($year, $a, $completed, $amount, $for) {
   $payeeTIN = pad($a->federalId, 9);
   $accountNum = pad($a->id, 20);
   $payerOffice = pad('', 4);
-  $amt = lpad($amount, 12);
+  $amt = u\lpad($amount, 12);
   $foreignPayee = pad('', 1);
   $payeeName = pad(noBreakAt(preg_replace('/[^A-Z &\-]/i', '', $a->legalName), 40), 2 * 40);
   list ($payeeFirst, $payeeLast) = u\parseName($payeeName);
@@ -113,11 +113,11 @@ function recB($year, $a, $completed, $amount, $for) {
   $payeeAddr = pad($payeeAddr, 40) . sp(40) . pad($a->city, 40) . pad(r\realState($a->state, $a->country), 2) . pad(u\digits($zip), 9);
   $date = strftime('%Y%m%d', $completed);
   $desc = pad($for, 39);
-  $qty = lpad(0, 13);
+  $qty = u\lpad(0, 13);
   $symbol = pad(0, 13);
-  $withheld = lpad(0, 12) . lpad(0, 12);
+  $withheld = u\lpad(0, 12) . u\lpad(0, 12);
   
-  return strtoupper('B' . $year . $corrected . $nameControl . $tinType . $payeeTIN . $accountNum . $payerOffice . sp(10) . lpad(0, 6 * 12) . $amt . lpad(0, 9 * 12) . $foreignPayee . $payeeName . sp(40) . $payeeAddr .  sp(1) . seq() . sp(36) // end of the part that's the same for all kinds of 1099
+  return strtoupper('B' . $year . $corrected . $nameControl . $tinType . $payeeTIN . $accountNum . $payerOffice . sp(10) . u\lpad(0, 6 * 12) . $amt . u\lpad(0, 9 * 12) . $foreignPayee . $payeeName . sp(40) . $payeeAddr .  sp(1) . seq() . sp(36) // end of the part that's the same for all kinds of 1099
 
   . sp(4) . $date . sp(13) . $desc . sp(8) . sp(1) . $qty . $symbol . sp(20) . sp(60) . $withheld . STATE_CODE . EOL); // special part for 1099-B
 }
@@ -127,13 +127,13 @@ function recC($bCount, $totals) {
 }
   
 function recK($bCount, $totals) {
-  $withheld = lpad(0, 18) . lpad(0, 18);
+  $withheld = u\lpad(0, 18) . u\lpad(0, 18);
   
   return 'K' . $bCount . sp(6) . $totals . sp(196) . seq() . sp(199) . $withheld . sp(4) . STATE_CODE . EOL;
 }
 
 function recF($bCount) {
-  return 'F' . lpad(1, 8) . lpad(0, 21) . sp(19) . $bCount . sp(442) . seq() . sp(241) . EOL;
+  return 'F' . u\lpad(1, 8) . u\lpad(0, 21) . sp(19) . $bCount . sp(442) . seq() . sp(241) . EOL;
 }
     
 /**
@@ -185,7 +185,7 @@ function putRec($rec) {
  */
 function seq() {
   global $seq1099;
-  return $seq1099 = lpad(@$seq1099 ? $seq1099 + 1 : 1, 8);
+  return $seq1099 = u\lpad(@$seq1099 ? $seq1099 + 1 : 1, 8);
 }
 
 /**
@@ -199,6 +199,5 @@ function breakup($s, $len = 10) {
 }
 
 function pad($s, $n) {return substr(str_pad($s, $n), 0, $n);}
-function lpad($s, $n) {return str_pad(substr($s, 0, $n), $n, '0', STR_PAD_LEFT);}
 function sp($n) {return pad('', $n);}
 function fmtAmt($n) {return preg_replace('/[\,\.]/', '', number_format($n, 2));}

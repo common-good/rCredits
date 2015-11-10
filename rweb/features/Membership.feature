@@ -17,14 +17,14 @@ Setup:
 
 Scenario: A member signs in for the first time
   Given member is logged out
-  And invitation to email "d@" is "c0D3"
+  And invitation to email "d@" from member ".ZZA" is "c0D3"
   And next random code is "%name"
   When member "?" confirms form "signup/code=c0D3" with values:
   | fullName  | email | phone | country | postalCode | federalId | dob | acctType    | code | address | city    | state | tenure | owns | postalAddr                |*
   | Dee Four  | d@ | 413-253-0000 | US | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 | 1 A St. | Amherst | MA    |     25 |    0 | 1 A St., Amherst, MA 01002 |
   Then members:
-  | id      | fullName | email   | country | postalCode | state | city    | flags     | tenure | risks |*
-  | NEW.AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents |
+  | id   | fullName | email   | country | postalCode | state | city    | flags     | tenure | risks | helper |*
+  | .AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents | .ZZA   |
   And we say "status": "your account is ready"
   And we email "welcome" to member "d@" with subs:
   | fullName | name    | quid    | site        | code  |*
@@ -49,7 +49,7 @@ Scenario: A member clicks the membership link
   | 3 | Choose two people |
   | 4 | Preferences |
   | 5 | Photo |
-  | 6 | Bank Account |
+  | 6 | Connect |
   And with done ""
 
 Scenario: A company agent clicks on the membership link
@@ -59,7 +59,7 @@ Scenario: A company agent clicks on the membership link
   | 2 | Donation |
   | 3 | Preferences |
   | 4 | Photo |
-  | 5 | Bank Account |
+  | 5 | Connect |
   | 6 | Company Info |
   | 7 | Relations |
   And without:
@@ -127,7 +127,7 @@ Scenario: A member opens a business account
   | 2 | Donation |
   | 3 | Preferences |
   | 4 | Photo |
-  | 5 | Bank Account |
+  | 5 | Connect |
   | 6 | Company Info |
   | 7 | Relations |
   And with done ""

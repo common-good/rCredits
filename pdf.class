@@ -10,8 +10,9 @@ use rCredits\Testing as t;
  * Extends the TCPDF class -- for printing checks, statements, deposit details, etc.
  */
 
-require_once(__DIR__ . "/../tcpdf/config/lang/eng.php");
-require_once(__DIR__ . "/../tcpdf/tcpdf.php");
+require_once(__DIR__ . '/../tcpdf/config/lang/eng.php');
+require_once(__DIR__ . '/../tcpdf/tcpdf.php');
+//require_once(__DIR__ . '/../fpdi/fpdi.php');
 
 define('PDF_FONT_SIZE', 12); // points
 define('CHECK_HEIGHT', 3.5); // inch height of checks
@@ -41,7 +42,7 @@ class Pdf extends \TCPDF {
    * @param int $x, $y: position coordinates (negative means from trailing edge, '' for same as previous)
    * @param int $w, $h: box size (defaults to until page edge)
    *   If $h is specified, text is justified to the bottom of the box.
-   * @param string $format: string list of formats: B, I, CAPS, <font-size>, <font-family>
+   * @param string $format: semi-colon-delimited string list of formats: B, I, CAPS, <font-size>, <font-family>
    *   (default normal, Arial, 10-point)
    * @param string $align: horizontal alignment (L, R, C)
    * @param mixed $borders: border width if numeric or "B" for bottom, "R" for right, etc. (default none)
@@ -56,7 +57,8 @@ class Pdf extends \TCPDF {
     if ($w === '') $w = $this->pageW - $x;
     $h0 = $h;
     if ($h === '') $h = $this->pageH - $y;
-    if ($format) foreach (u\ray($format) as $fmt) {
+    if ($format and $fmts = explode(';', $format)) foreach ($fmts as $fmt) {
+      if (strpos($fmt, ':')) {$formats[] = "$fmt;"; continue;}
       if ($fmt == 'B') {$formats[] = 'font-weight:bold;'; continue;}
       if ($fmt == 'I') {$formats[] = 'font-style:italic;'; continue;}
       if ($fmt == 'CAPS') {$text = str_replace('<BR>', '<br>', strtoupper($text)); continue;}

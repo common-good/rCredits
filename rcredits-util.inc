@@ -304,30 +304,39 @@ function forCash($for) {
  * @param int $n: the integer to represent
  * @param int $len: the length of the string to return
  *   <=0 means length >=-$len
- * @param int $base: the radix (defaults to 26).
+ * @param int $base: the radix (defaults to 26). If base is between 27 and 36, digits 1-9 are used next.
  */
 function n2a($n, $len, $base = 26) {
   $result = '';
   for ($i = 0; ($len > 0 ? ($i < $len) : ($n > 0 or $i < -$len)); $i++) {
     $digit = $n % $base;
-    $result = chr(ord("A") + $digit) . $result;
+    $result = ($digit < 26 ? chr(ord("A") + $digit) : ($digit + 1 - 26)) . $result;
     $n = (int) ($n / $base);
   }
   return $result;
 }
 
 /**
- * Return the numeric equivalent of the given alphabetic string.
+ * Return the numeric equivalent of the given alphabetic string. Zeros are understood as Os.
  * @see n2a
  */
 function a2n($string, $base = 26) {
-  $string = strtoupper($string);
+  $string = str_replace('0', 'O', strtoupper($string));
   $result = 0;
   for ($i = 0; $i < strlen($string); $i++) {
-    $result = $result * $base + ord($string[$i]) - ord("A");
+    $n = ord($string[$i]);
+    $result = $result * $base + $n - ($n >= ord("A") ?  ord("A") : ord("1") - 26);
   }
   return $result;
 }
+
+/**
+ * Return a radix-35 version of the number.
+ * @param int $n: the number
+ * @param int $len: length (or minimum length -- see n2a above)
+ */
+function n2aa($n, $len) {return n2a($n, $len, 35);} // for invitation codes
+function aa2n($string) {return a2n($string, 35);}
 
 /**
  * Encode 3 hex digits as 2 legal URL characters: [A-Za-z0-9.-]
@@ -1320,7 +1329,7 @@ function isVarname($value) {return preg_match('/^[a-z_][a-z_\-0-9]*$/i', $value)
 function isName($value) {return preg_match('/^[ \\x{00c0}-\\x{01ff}a-zA-Z0-9\,\.\'\\-]+$/u', $value);}
 ///function isName($value) {return preg_match('/^([ \\p{InCJK_Radicals_Supplement}\\p{InKangxi_Radicals}\\p{InIdeographic_Description_Characters}\\p{InCJK_Symbols_and_Punctuation}\\p{InHiragana}\\p{InKatakana}\\p{InBopomofo}\\p{InHangul_Compatibility_Jamo}\\p{InKanbun}\\p{InBopomofo_Extended}\\p{InKatakana_Phonetic_Extensions}\\p{InEnclosed_CJK_Letters_and_Months}\\p{InCJK_Compatibility}\\p{InCJK_Unified_Ideographs_Extension_A}\\p{InYijing_Hexagram_Symbols}\\p{InCJK_Unified_Ideographs}a-zA-Z\'\\-])+$/', $value);}
 function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
-function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);}
+function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);} // deprecated
 function s2t($s) {return strtotime($s) ?: strtotime(str_replace('-', '/', $s));}
 function fmtDate($time = NULL) {return strftime('%d-%b-%Y', isset($time) ? $time : r\rTime());}
 function fmtTime($time = NULL) {return strtolower(strftime('%I:%M%p', isset($time) ? $time : r\rTime()));}
@@ -1339,6 +1348,7 @@ function redash($s) {return str_replace('—', '&mdash;', $s);}
 function backButton() {return '<button onclick="history.go(-1); return false;">Go Back</button>';}
 function nonish($s) {return in_array(strtolower($s), array('n/a', 'nothing', 'na', 'none')); }
 function padto($s, $n) {return str_pad(substr($s, $n), $n);}
+function lpad($s, $n) {return str_pad(substr($s, 0, $n), $n, '0', STR_PAD_LEFT);}
 function similarEmail($e1, $e2) {return (strtolower(preg_replace('/\+.*@/', '@', $e1)) == strtolower(preg_replace('/\+.*@/', '@', $e1)));}
 //function rayo() {return (object) call_user_func_array('rCredits\\Util\\ray', func_get_args());}
 function rayv($a, $i) {return $a[$i];} // useful when $a is returned from a function
@@ -1350,3 +1360,7 @@ function in($a, $b) {return (strpos($a, $b) !== FALSE);}
 function uc1($s) {return ucwords(substr($s, 0, 1)) . substr($s, 1);}
 function nextAfter($needle, $hay) {return $hay[array_search($needle, $hay) + 1];}
 function caller($depth = 1) {return debug_backtrace()[$depth + 1]['function'];}
+function rotateBits($b, $i) {return ($i = $i % strlen($b)) ? substr($b, $i) . substr($b, 0, $i) : $b;}
+function xorBits($b1, $b2) {$res = ''; for ($i = 0; $i < strlen($b1); $i++) $res .= ($b1[$i] xor $b2[$i]) ? 1 : 0; return $res;}
+function a2b($s) {$b = ''; for ($i = 0; $i < strlen($s); $i++) $b .= lpad(decbin(ord($s[$i])), 8); return $b;}
+function badZip($z, $country = US_COUNTRY_ID) {return ($country == US_COUNTRY_ID and !preg_match('/^\d{5}(\-\d{4})?$/', $z)) ? 'bad zip' : FALSE;}

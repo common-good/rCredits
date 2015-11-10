@@ -1,6 +1,6 @@
 function toggle(field) {
   field = "#" + field;
-  jQuery(field + "-YES, " + field + "-NO").toggle();
+  jQuery(field + "-YES, " + field + "-NO").toggle().toggleClass("visible invisible");
   jQuery(field).val(jQuery(field + "-YES").is(":visible"));
 }
 function toggleMain(me) {

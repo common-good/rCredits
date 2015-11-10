@@ -36,7 +36,7 @@ require_once __DIR__ . '/acct.class';
 require_once __DIR__ . '/x.class';
 
 define('CGF_LEGALNAME', 'Society to Benefit Everyone, Inc.');
-define('CGF_EMAIL', isDEV ? 'wspademan+cgf@gmail.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
+define('CGF_EMAIL', isDEV ? 'cgf@example.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
 define('CGF_PHONE', '+14136281723');
 define('CGF_ADDRESS', '48 Buckland Road');
 define('CGF_CITY', 'Ashfield');
@@ -51,7 +51,7 @@ define('US', '<span class="us">us</span>');
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty,Vacant Lot,Land,Cinema,Printing & Office Supply,Car Repair,Health Club/Gym,Restaurant,Hardware & Supply,Grocer,Farm,Food Processing,Department Store,Electric Company,Oil Company,Town Government,Community College,Hospital');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 'legalName newAccount by calling wants website description shortDesc selling coFlags gross employees verifyBy signupCo stepsDone achMin pinThreshold lastTx tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 'legalName newAccount by calling wants website description shortDesc selling coFlags gross employees verifyBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
 define('R_SECURE_FIELDS', 'pw2 address postalAddr faxetc cardCode cardCode2 pin federalId ssnData dob bankAccount photoId question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
 define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount photoId'); // very secure fields (admin-encrypted)
@@ -72,9 +72,10 @@ define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision ses
 define('R_STEPS', 'contact sign donate proxies prefs photo connect company relations'); // membership steps
 define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret code oneTimeLoginUrl password pass newPass form_build_id form_token form_id external_input'); // don't log these (external_input may contain passwords)
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts Summary'); // don't log visits to these forms
-define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin Sinx Pass Empty TestRecovery ChangePassword Help Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
+define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin PageNotFound Sinx Pass Empty TestRecovery ChangePassword Help Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
 define('BY_CHECK', '(check)'); // app includes this in description, for a purchase of rCredits by check
 define('BY_CARD', '(card)'); // app includes this in description, for a purchase of rCredits by credit card
+define('R_ON_FILE', t('(on file)'));
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
@@ -88,7 +89,21 @@ define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
 define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter easy copying, max 14 for small QR)
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
-define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was '2 weeks')
+
+define('ICARD_EXPIRES', 14); // how many days until invitation card expires, after account is activated
+define('ICARD_CODELEN_MIN', 10); // minimum length for an invitation code
+define('ILEN_REGION', 15); // 3 letters (radix 26-32 -- in other words, 1-6 can be used in region also)
+define('ILEN_TAIL', 19); // 3-4 letters (radix 26)
+define('ILEN_SECURITY', 16); // 3 alphanumerics (radix 35)
+define('ILEN', ILEN_REGION + ILEN_TAIL + ILEN_SECURITY);
+define('ILEN_DIV', 25); // this results in two 5-digit codes (otherwise the integer gets too big)
+
+// codes for iCode field (invitation code)
+define('IBY_FORM', -2); // invited by form (pre-confirmed)
+define('IBY_LATE', -1); // invited by form, but accepted late (needs to be confirmed)
+define('IBY_SELF', 0); // signed up without an invitation/confirmation yet
+define('IBY_EMAIL', 1); // invited by email (this invitation # is re-usable, but needs to be confirmed)
+define('IBY_ICARD', 2); // >=this is invitation number, also needing confirmation
 
 define('R_WHYS', t('goods and services,exchange of US Dollars or other currency,loan/reimbursement/etc.')); // transaction purposes
 define('R_FOR_GOODS', 0); // index into R_WHYS for goods
@@ -180,7 +195,7 @@ define('CO_CAN_BIT_DESCS', 'charge customers,undo last transaction,give rCredits
 // for documentation of IS_OK etc. see u\SUBS()
 define('B_MEMBER', 0); // fulfilled membership requirements (ready to be approved).
 define('B_CGC', 0); // ctty: is an official CGC (see also B_CTTYACTIVE)
-define('B_CONFIRMED', 1); // invitation has been confirmed
+define('B_CONFIRMED', 1); // invitation has been confirmed (in advance by form invite OR explicitly OR implicitly by newb first buying from or selling to the inviter)
 define('B_OK', 2); // approved to use rCredits for real (set by admin when ready).
 define('B_UP', 2); // ctty: is operational (up) (see also B_CTTYUP)
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
@@ -189,7 +204,7 @@ define('B_COUNTED', 4); // someone got a COUNTED reward for this employee signin
 define('B_u5', 5); //
 define('B_CO', 6); // company account
 define('B_u7', 7); //
-define('B_u8', 8); //
+define('B_RESERVE', 8); // hold incentive rewards in reserve
 define('B_NONUDGE', 9); // don't send reminders
 define('B_NOSEARCH', 10); // user wants to be not findable by other members, by phone or email
 define('B_u11', 11); // 
@@ -205,7 +220,7 @@ define('B_DEBT', 20); // member chose to permit sub-zero balances
 define('B_DRAWS', 21); // this account draws on one or more others
 define('B_SAVINGS', 22); // the connected bank account is a savings or money market account
 define('B_JOINED', 23); // account is a joint account
-define('B_u24', 24); // account is the slave in a virtual joint account
+define('B_u24', 24); //
 define('B_u25', 25); // 
 define('B_u26', 26); // 
 define('B_REGULATOR', 27); // is a bank partner or government regulator (read-only admin)
@@ -214,8 +229,8 @@ define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
 define('B_MAX', 31); // maximum bit number
-define('B_ADMINABLE', 'confirmed co member bona cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok bona counted u5 co u7 u8 nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 u26 regulator cadmin2 cadmin admin closed');
+define('B_ADMINABLE', 'confirmed co member bona reserve cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
+define('B_LIST', 'member confirmed ok bona counted u5 co u7 reserve nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 u26 regulator cadmin2 cadmin admin closed');
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+refunds+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community)
 
@@ -223,8 +238,8 @@ define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+refunds+grants
 define('B_RELATED', 100); // has a relationship record
 define('B_NONE', 100); // no access
 define('B_READ', 101); // can view Transaction History
-define('B_SCAN', 102); // can scan rCard (or view -- permissions are cummulative)
-define('B_REFUND', 103); // can undo transactions and make refunds at point of sale
+define('B_SCAN', 102); // can accept rCard payments for goods or cash for rCredits (or view Transaction History -- permissions are cummulative)
+define('B_REFUND', 103); // can undo transactions and make refunds or trade cash at point of sale
 define('B_SELL', 104); // can send invoices (or scan or view)
 define('B_BUY', 105); // can make purchase for the account (or sell or scan or view)
 define('B_MANAGE', 106); // can manage all aspects of the account
@@ -720,7 +735,10 @@ function membershipEvent($a, $status, $do = TRUE) {
   if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
   if ($status == 'ok') {
     u\EXPECT(@r\acct()->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
-    r\message($a->id, 'approved');
+    $msg = 'approved';
+    if (!$a->confirmed) $msg .= '|must be confirmed';
+    if ($a->seq >= IBY_ICARD) $msg .= '|use temporary card';
+    r\message($a->id, $msg, ['inviterName' => @$a->helperA->fullName]);
     $a->update('activated', r\rTime());
   }
   
@@ -841,17 +859,17 @@ function mergeAccounts($oldUid) {
 
 /**
  * Return the rough (physical) location of the entity with the given account (city, state, non-US country).
- * @param acct $acct: the account
+ * @param acct $a: the account
  * @param bool $complete: if TRUE, include the street address
  */
-function location($acct, $complete = FALSE) {
-  $country = realCountry($acct->country);
-  $state = realState($acct->state, $acct->country);
+function location($a, $complete = FALSE) {
+  $country = realCountry($a->country);
+  $state = realState($a->state, $a->country);
   $result = [];
-  if ($complete) $result[] = (string) $acct->address; // (string) in case address is NULL
-  $result[] = $acct->city;
-  $result[] = $state . (($complete and $acct->postalCode) ? ' ' . $acct->postalCode : '');
-  if ($acct->country != R_COUNTRY_ID) $result[] = strtoupper($country);
+  if ($complete) $result[] = (string) $a->address; // (string) in case address is NULL
+  $result[] = $a->city;
+  $result[] = $state . (($complete and $a->postalCode) ? ' ' . $a->postalCode : '');
+  if ($a->country != R_COUNTRY_ID) $result[] = strtoupper($country);
   foreach ($result as $key => $value) if ($value === '') unset($result[$key]);
   return join(', ', $result);
 }
@@ -960,6 +978,33 @@ function cardCode($qid) {
   $tail = substr(strpbrk($qid, R_MARKS), 1);
   $codeLen = R_CARDCODE_LEN - (strlen($tail) - 3); // shorter code when qid tail len > 3
   return u\randomString($codeLen, 'word'); // create an rCard security code
+}
+
+/**
+ * Return the account for the given invitation card code.
+ * @param string $code: the code to interpret
+ * @param int $iCode: (RETURNED) the code sequence number
+ * @return: the account or FALSE if error
+ */
+function iCardAcct($code, &$iCode = NULL) {
+  $code = str_replace(' ', '', $code); // ignore spaces
+  if (!preg_match('/[A-Z0-9]{' . ICARD_CODELEN_MIN . ',}/i', $code)) return FALSE;
+  $iCode = u\aa2n(substr($code, ICARD_CODELEN_MIN)) + 0;
+///  debug("code=$code iCode=$iCode");
+  $code = substr($code, 0, ICARD_CODELEN_MIN); // chop off sequence number
+  $b = u\lpad(decbin(u\aa2n(substr($code, 0, 5))), ILEN_DIV). u\lpad(decbin(u\aa2n(substr($code, 5))), ILEN - ILEN_DIV);
+///  debug("code=$code iCode=$iCode b=$b");
+  $b = u\xorBits($b, substr(R_INVITE_KEY, -strlen($b)), TRUE);
+///  debug("code=$code iCode=$iCode b=$b");
+  $b = u\rotateBits($b, -($iCode + 1) * (bindec(substr(R_INVITE_KEY, 0, 31)) % strlen($b)));
+///  debug("code=$code iCode=$iCode b=$b");
+  $region = u\n2a(bindec(substr($b, 0, ILEN_REGION)), 3);
+  $tail = u\n2a(bindec(substr($b, ILEN_REGION, ILEN_TAIL)), -3);
+  $security = u\n2aa(bindec(substr($b, -ILEN_SECURITY)), 3);
+///  debug("code=$code iCode=$iCode b=$b region=$region tail=$tail security=$security");
+
+  if (!$a = r\acct("$region.$tail")) return FALSE;
+  return ($security == $a->lowSecurity) ? $a : FALSE;
 }
 
 /**
@@ -1746,7 +1791,15 @@ function riskList($risks, $descs) {
  */
 function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
   global $scanned;
-  if (!$a2->ok) return array('non member', u\ray('otherName', $a2->fullName), FALSE);
+  
+  if (!$a2->ok) return array('non member', ['otherName', $a2->fullName], FALSE);
+  u\EXPECT($a1->ok, 'main account inactive tx');
+  foreach ([$a1, $a2] as $a) {
+    $other = $a == $a1 ? $a2 : $a1; // if neither confirmed nor confirming icard by tx with inviter
+    if (!$a->confirmed and !($a->iCode == IBY_ICARD and $a->helper == $other->id)) { 
+      return array('not confirmed', u\ray('youName inviterName', $a->fullName, $a->helperA->fullName));
+    }
+  }
   list ($myAccess, $otherAccess) = u\order($taking xor $neg, B_SELL, B_BUY);
   //list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
   list ($myWhat, $otherWhat) = u\order($taking xor $neg, t('sales'), t('purchases'));

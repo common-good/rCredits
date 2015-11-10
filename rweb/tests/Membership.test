@@ -61,14 +61,14 @@ class rwebMembership extends DrupalWebTestCase {
   public function testAMemberSignsInForTheFirstTime_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('member is logged out');
-    And__('invitation to email "d@" is "c0D3"');
+    And__('invitation to email "d@" from member ".ZZA" is "c0D3"');
     And__('next random code is "%name"');
     When_('member "?" confirms form "signup/code=c0D3" with values: "ASSOC'
     . '\\| fullName  | email | phone | country | postalCode | federalId | dob | acctType    | code | address | city    | state | tenure | owns | postalAddr                |'
     . '\\| Dee Four  | d@ | 413-253-0000 | US | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 | 1 A St. | Amherst | MA    |     25 |    0 | 1 A St., Amherst, MA 01002 |"');
     Then_('members: "ASSOC'
-    . '\\| id      | fullName | email   | country | postalCode | state | city    | flags     | tenure | risks |'
-    . '\\| NEW.AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents |"');
+    . '\\| id   | fullName | email   | country | postalCode | state | city    | flags     | tenure | risks | helper |'
+    . '\\| .AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents | .ZZA   |"');
     And__('we say "status": "your account is ready"');
     And__('we email "welcome" to member "d@" with subs: "ASSOC'
     . '\\| fullName | name    | quid    | site        | code  |'
@@ -93,7 +93,7 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| 3 | Choose two people |'
     . '\\| 4 | Preferences |'
     . '\\| 5 | Photo |'
-    . '\\| 6 | Bank Account |"');
+    . '\\| 6 | Connect |"');
     And__('with done ""');
   }
 
@@ -106,7 +106,7 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| 2 | Donation |'
     . '\\| 3 | Preferences |'
     . '\\| 4 | Photo |'
-    . '\\| 5 | Bank Account |'
+    . '\\| 5 | Connect |'
     . '\\| 6 | Company Info |'
     . '\\| 7 | Relations |"');
     And__('without: "ARRAY'
@@ -170,7 +170,7 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| 2 | Donation |'
     . '\\| 3 | Preferences |'
     . '\\| 4 | Photo |'
-    . '\\| 5 | Bank Account |'
+    . '\\| 5 | Connect |'
     . '\\| 6 | Company Info |'
     . '\\| 7 | Relations |"');
     And__('with done ""');

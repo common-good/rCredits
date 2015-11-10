@@ -108,7 +108,8 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Signin AMemberClicksALinkToResetPassword
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     MAKE Signup ANewbieRegistersInWesternMassachusetts
- *     MAKE Signup ANewbieRegistersWithAnUnconfirmedInvitation
+ *     MAKE Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
+ *     MAKE Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
  *     MAKE Signup ANewbieRegistersWithADifferentLegalName
  *     MAKE Signup ANewbieRegistersElsewhere
  *     MAKE Signup ANewbieRegistersWithNoCase
@@ -197,7 +198,8 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     MAKE Signin AMemberAsksForANewPasswordForACompany
  *     MAKE Signup Setup
  *     TEST Signup ANewbieRegistersInWesternMassachusetts
- *     TEST Signup ANewbieRegistersWithAnUnconfirmedInvitation
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
  *     TEST Signup ANewbieRegistersWithADifferentLegalName
  *     TEST Signup ANewbieRegistersElsewhere
  *     TEST Signup ANewbieRegistersWithNoCase
@@ -267,6 +269,8 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
  *     TEST Relations AMemberAddsARelation
  *     TEST Signin AMemberAsksForANewPasswordForACompany
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
  *     TEST Signup AMemberRegistersBadName
  *     TEST Signup AMemberRegistersAgain
  *     TEST Signup AMemberRegistersWithABadCompany
@@ -328,8 +332,10 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST Signin AMemberAsksForANewPasswordForAnUnknownAccount
  *     TEST Signin AMemberClicksALinkToResetPasswordWithWrongCode
  *     TEST Signin AMemberClicksALinkToResetPasswordForUnknownAccount
+ *     TEST Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     TEST Signup ANewbieRegistersInWesternMassachusetts
- *     TEST Signup ANewbieRegistersWithAnUnconfirmedInvitation
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
  *     TEST Signup ANewbieRegistersElsewhere
  *     TEST Signup AMemberRegistersBadEmail
  *     TEST Signup AMemberRegistersBadZip
@@ -348,7 +354,8 @@ function weSay($type, $index) {return weSayWithSubs($type, $index, array());}
  *     TEST Signin AMemberAsksForANewPasswordForAccountID
  *     TEST Signin AMemberAsksForANewPasswordForEmail
  *     TEST Signup ANewbieRegistersInWesternMassachusetts
- *     TEST Signup ANewbieRegistersWithAnUnconfirmedInvitation
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
  *     TEST Signup ANewbieRegistersElsewhere
  *     TEST Signup ANewbieRegistersFromElsewhere
  */
@@ -376,6 +383,8 @@ function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs)
  *     TEST Signin AMemberClicksALinkToResetPassword
  *     TEST Signin AMemberClicksALinkToResetPasswordWithWrongCode
  *     TEST Signin AMemberClicksALinkToResetPasswordForUnknownAccount
+ *     TEST Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
+ *     TEST Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  */
 function weShow($what, $show = TRUE) {return t\weShow($what, $show);}
 
@@ -427,8 +436,6 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST Signin AMemberVisitsTheMemberSite
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithNoInvite
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithBadInvite
- *     TEST Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
- *     TEST Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     TEST SignupCo AMemberRegistersACompany
  *     TEST Summary AMemberClicksTheSummaryTab
  *     TEST Summary AnAgentClicksTheSummaryTabWithoutPermissionToManage
@@ -626,7 +633,7 @@ function memberIsLoggedOut() {
 }
 
 /**
- * invitation to email (ARG) is (ARG)
+ * invitation to email (ARG) from member (ARG) is (ARG)
  *
  * in: MAKE Membership AMemberSignsInForTheFirstTime
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithNoInvite
@@ -649,12 +656,13 @@ function memberIsLoggedOut() {
  *     MAKE Signup ANewbieRegistersFromElsewhere
  *     MAKE SignupCo AMemberRegistersACompany
  */
-function invitationToEmailIs($email, $code) {
+function invitationToEmailFromMemberIs($email, $id, $code) {
   global $testOnly; if ($testOnly) return FALSE;
   $email = t\fixEmail($email);
-  if ($id = db\lookup('id', 'r_invites', 'email=:email', compact('email'))) {
-    db\q('UPDATE r_invites SET code=:code WHERE id=:id', compact('code', 'id'));
-  } elseif ($code) r\invite($email, 1, $code); // invitation comes (arbitrarily) from uid 1
+  $uid = t\uid($id);
+  if ($iid = db\lookup('id', 'r_invites', 'email=:email AND inviter=:uid', compact('email', 'uid'))) {
+    db\q('UPDATE r_invites SET code=:code WHERE id=:iid', compact('code', 'iid'));
+  } elseif ($code) r\invite($email, $uid, $code);
 //  t\SERVER('REQUEST_URI', "whatever/$code"); // fake the URI
   return TRUE;
 }
@@ -743,7 +751,8 @@ function memberHasPermission($uid, $permission) {
  * member (ARG) one-time password is set
  *
  * in: TEST Signup ANewbieRegistersInWesternMassachusetts
- *     TEST Signup ANewbieRegistersWithAnUnconfirmedInvitation
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
  *     TEST Signup ANewbieRegistersElsewhere
  */
 function memberOnetimePasswordIsSet($id) {
@@ -1107,7 +1116,8 @@ function memberIsLoggedIn($id) {
  *     MAKE Signin AMemberClicksALinkToResetPasswordWithWrongCode
  *     MAKE Signin AMemberClicksALinkToResetPasswordForUnknownAccount
  *     MAKE Signup ANewbieRegistersInWesternMassachusetts
- *     MAKE Signup ANewbieRegistersWithAnUnconfirmedInvitation
+ *     MAKE Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
+ *     MAKE Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
  *     MAKE Signup ANewbieRegistersElsewhere
  *     MAKE Signup ANewbieRegistersFromElsewhere
  */
@@ -1222,7 +1232,19 @@ function memberConfirmsOnTransaction($id, $do, $xid) {
  *
  * in: TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
- *     TEST Signup ANewbieRegistersWithAnUnconfirmedInvitation
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
+ *     TEST Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  */
 function weMessageToMemberWithSubs($index, $id, $subs) {return t\weMessage($index, $id, $subs);}
+
+/**
+ * member (ARG) email invitation code is (ARG)
+ *
+ * in: MAKE Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
+ *     MAKE Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
+ */
+function memberEmailInvitationCodeIs($id, $code) {
+  global $testOnly; // for now, choose the test code according to the creation date (in the tests)
+  return (r\acct(t\uid($id))->iCardCode() == $code);
+}

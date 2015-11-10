@@ -1,5 +1,5 @@
 GoogChart.class.php
+*.test
 doSay.txt
 *.crt
 old/
-test/

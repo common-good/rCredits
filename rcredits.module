@@ -280,8 +280,12 @@ function patch($name) {
   
   // common.inc
   if ($name == 'common2682') {
-    if (!r\acct()) $click = " <a href=\"$base_url\signin\">" . t('Click here to sign in.') . '</a>'; // r\go('signout') fails
-    return t('You are not authorized to access this page.') . (isDEV ? $args[1] : '') . @$click;
+    if (!$mya = r\acct()) return 'signin'; // do not return!
+    if ($mya->cAdmin) return 'sadmin';
+    w\say(t('You do not have permission to visit that page.'), 'err');
+    return 'summary';
+    //$click = " <a href=\"$base_url\signin\">" . t('Click here to sign in.') . '</a>'; // r\go('signout') fails
+    //return t('You are not authorized to access this page.') . (isDEV ? $args[1] : '') . @$click;
   }
   // user.module
   if ($name == 'user_access810') return FALSE;

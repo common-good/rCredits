@@ -285,7 +285,8 @@ function payInvoice($nvid, &$msg = '') {
   
   $DBTX = \db_transaction();
   $purpose .= " (rCredits inv#$nvid)";
-  list ($index, $subs) = be\transfer('payment', r\acct($payer), r\acct($payee), $amount, $goods, $purpose);
+  $data['inv'] = $nvid;
+  list ($index, $subs) = be\transfer('payment', r\acct($payer), r\acct($payee), $amount, $goods, $purpose, NULL, TRUE, $data);
   if ($ok = @$subs['success']) db\q('UPDATE r_invoices SET status=:xid WHERE nvid=:nvid', u\ray('xid nvid', @$subs['xid'], $nvid));
   unset($DBTX);
   
@@ -311,6 +312,7 @@ function payInvoice($nvid, &$msg = '') {
  *   'bonus': the bonus amount (should be negative the original rebate amount) [rebate and bonus are always both set or neither]
  *   'undoes': transaction id of the related transaction (transaction being undone / invoice being paid)
  *   'force': <do the transaction despite any shortfall (1 for original transaction, -1 for forced reversal)>
+ *   'inv': record number of the invoice for which this is payment
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    subs: replacement parameters, specific to the message (in particular, success=TRUE or FALSE)
@@ -341,7 +343,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   list ($payer, $payee) = u\order($taking, $uid, $myid); // Analyze who's buying or selling
   list ($payerAgent, $payeeAgent) = u\order($taking, $a2->agentId, $a1->agentId);
 
-  if (!$force and r\dupTx($uid, $myid, $taking ? $amount : -$amount)) return r\txRet('duplicate transaction', u\ray('op', $taking ? t('charged') : t('paid')));
+  if (!$force and !@$data['inv'] and r\dupTx($uid, $myid, $taking ? $amount : -$amount)) return r\txRet('duplicate transaction', u\ray('op', $taking ? t('charged') : t('paid')));
 
   if ($err = r\txPermErr($a1, $a2, $taking, $amount < 0)) { // Check permissions
     if ($force) {
@@ -388,7 +390,8 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   // Report results
   $args = r\txReportArgs($a1, $x->ray, TRUE, $shortfall);
 
-  if ($oked) { // notify other party by email about any confirmed transaction
+  if ($oked) { // notify other party by email about any completed transaction
+    foreach ([$a1, $a2] as $a) if (!$a->confirmed) $a->setBit(B_CONFIRMED);
     $notice = $reallyTaking ? 'new charge'
       : (($amount < 0 and $goods == R_FOR_GOODS) ? 'new refund' : 'new payment');
     if ($notice == 'new payment' and $a2->co) { // not "new charge" (the most common)
@@ -629,10 +632,11 @@ EOF;
 function accountChoices() {
   if (!$mya = r\acct()) return FALSE;
   $result = [$aid = $mya->agentId];
+  $nameOrder = "IF(MID(fullName, 2, 2)='. ', MID(fullName, 4), IF(MID(fullName, 1, 4)='the ', MID(fullName, 5), fullName))"; // ignore "the " and initialled first name (eg "X. ")
   if ($mya->admin) {
-    $q = @db\q('SELECT uid FROM users WHERE ABS(uid)>1 ORDER BY (uid<0) DESC, fullName');
+    $q = @db\q("SELECT uid FROM users WHERE ABS(uid)>1 ORDER BY (uid<0) DESC, $nameOrder");
   } elseif ($mya->cAdmin) {
-    $q = @db\q('SELECT uid FROM users WHERE community=:ctty ORDER BY (uid<0) DESC, fullName', ['ctty' => $mya->community]);
+    $q = @db\q("SELECT uid FROM users WHERE community=:ctty ORDER BY (uid<0) DESC, $nameOrder", ['ctty' => $mya->community]);
   } else $q = @db\q('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'));
 ///  debug($result + $q->fetchAllKeyed(0, 0));
   return array_values($result + $q->fetchAllKeyed(0, 0));

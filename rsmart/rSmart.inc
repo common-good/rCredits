@@ -61,6 +61,8 @@ $GLOBALS[TX_POS . ' messages'] = array(
   'unknown device' => t('This device is not recognized. You must scan yourself in (at least once) before charging a customer.'),
   'confirm undo' => t('Undo transfer of @amount @tofrom @otherName?'), // no creation date, unlike web and SMS
   'member inactive' => t('That account is not yet activated.'),
+  'bad icard' => t('The customer has not yet activated his or her rCredits account.'),
+  'expired icard' => t('That invitation card has expired. The customer can use their rCard instead.'),
 );
 
 /**
@@ -170,7 +172,7 @@ function identify($args) {
   if ($err = missingArg($keys = 'device member code', $args)) return posErr($err); // no agent on scanin
   extract(u\just($keys . ' agent', $args));
 
-  if (!$a = @$agent ? getCustomer(@$member, $err) : $mya) return posErr($err);
+  if (!$a = @$agent ? getCustomer(@$member, $code, $err) : $mya) return posErr($err);
 
   $logon = '1'; // assume logging in
   if (@$agent) {
@@ -179,14 +181,12 @@ function identify($args) {
     if ($logon == -1 and $mya->coCan(CO_FAST)) $logon = 0; // this company exempt from photoId checks
   }
 
-  $cardCode = $a->cardCode();
-  if (isDEV and $code == 'zot') $cardCode = $code; // for debugging
   if (@$device) $deviceId = getDevice($device, $mya->id);
 
   if (@$logon == '1') { //  identifying agent
 //    if ($a->proSe and (!$a->co or $a->coCan(CO_REQUIRE_CASHIER))) return posErr('scan in first');
     if ($a->proSe and !$a->co) return posErr('scan in first');
-    if ($code != $cardCode) return posErr('bad agent');
+    if ($code != $a->cardCode()) return posErr('bad agent');
     if (!$a->can(B_SCAN)) return posErr('agent cannot scan');
     if (!@$deviceId) {
 /*      if ($device) {
@@ -212,7 +212,6 @@ function identify($args) {
     $time = r\rTime();
     
   } else { // identifying customer
-    if ($code != $cardCode) return posErr('bad customer');
     if (!@$deviceId) return posErr('unknown device'); // tried to scan a customer card before very first agent scan-in
     $agentCans = 0;
     $company = $a->proSe ? "" : $a->fullName;
@@ -241,8 +240,7 @@ function photo($args) {
   extract(u\just($keys, $args));
 
   if (!@$member) return photoReturn('missing member');
-  if (!$a = getCustomer($member, $err)) return photoReturn($err);
-  if ($code != $a->cardCode()) return photoReturn('bad customer');
+  if (!$a = getCustomer($member, $code, $err)) return photoReturn($err);
 //  $picFilename = $a->agent->auxFilename('picture2');
 //  $pic = @file_get_contents(DRUPAL_ROOT . $picFilename);
 //  exit(DRUPAL_ROOT . $picFilename);
@@ -270,8 +268,8 @@ function photoReturn($pic) {
  * @param array $args:
  *   agent: qid for the seller (company rep)
  *   member: qid for the customer (individual or company rep)
+ *   code: card code
  *   amount: numeric dollar amount
- *   code: card code (not required for reversals)
  *   goods: <transaction is for real goods and services>
  *   description: description of goods and services sold
  *   created: transaction creation date
@@ -285,21 +283,22 @@ function charge($args, $type = 'charge') {
   
   $keys = 'agent member amount goods description created';
   if ($err = missingArg($keys, $args)) return posErr($err);
-  extract(u\just($keys . ' force photoid version code', $args));
+  extract(u\just($keys . ' code force photoid version', $args));
 
   if (!@$member) return posErr('missing member');
   if (@$description === '') return posErr('missing description');
-  if (!$a = getCustomer($member, $err)) return posErr($err);
-  
-  if ($mya->id == $a->id) return posErr("shoulda been login");
   if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
 
+  if (!$a = getCustomer($member, $code, $err, @$force != "-1")) return posErr($err);
+  if ($mya->id == $a->id) return posErr("shoulda been login");
   $aa = $a->agent;
   if (@$photoid and !$aa->photoId) $aa->update('photoId', $photoid);
 
   $goods = $goods ? R_FOR_GOODS : R_FOR_USD;
-  $subs = u\ray('created payer payee amount goods payeeFor', $created, $a->id, $mya->id, $amount, $goods, $description);
-  if (@$force and $q = db\lookup('xid,data', 'r_txs', u\where($subs), $subs)) extract($q);
+  if (@$force) {
+    $subs = u\ray('created payer payee amount goods payeeFor', $created, $a->id, $mya->id, $amount, $goods, $description);
+    if ($q = db\lookup('xid,data', 'r_txs', u\where($subs), $subs)) extract($q);
+  }
 
   if (@$force == "1" and @$xid) { // does exist and should (always background)
     $message = $did = $undo = '';
@@ -324,7 +323,6 @@ function charge($args, $type = 'charge') {
     $txid = 0;
     $message = "Transaction has been canceled.";
   } else { // doesn't exist and should (forcing or not)
-    if (((int) $version) >= 214) if (@$code != $a->cardCode()) return posErr('bad customer');
     list ($msg, $subs, $zot) = be\transfer($type, $mya, $a, @$amount, @$goods, @$description, $created, TRUE, compact('force'));
     if (!@$subs['success']) return posErr($msg, $subs);
     $txid = $subs['xid'];
@@ -391,10 +389,20 @@ function getAgent($agent, &$err = '') {
  * Return the customer's acct.
  * @param string $customer: the customer's qid.
  * @param string $err: (returned) error message, if any
+ * @param bool $requireCode: require card code (FALSE when reversing a transaction)
  * @return: the customer's acct object (false if error)
  */
-function getCustomer($customer, &$err = '') {
-  if (!$a = r\acct($customer)) return !$err = 'bad customer';
+function getCustomer($customer, &$code, &$err = '', $requireCode = TRUE) {
+  if (substr($customer, -1, 1) == ':') { // invitation card -- get real account
+    if (!$inviter = r\iCardAcct($code, $seq)) return !$err = 'bad customer';
+    if (!$uid = db\lookup('uid', 'users', 'helper=:inviter AND seq=:seq', compact('inviter', 'seq'))) return !$err = 'bad icard';
+    $a = r\acct($uid);
+    if (time() - $a->activated > ICARD_EXPIRES * DAY_SECS) return !$err = 'expired icard';
+    $code = $a->cardCode; // no need for function here
+  } else {
+    if (!$a = r\acct($customer)) return !$err = 'bad customer';
+    if ($requireCode and $code != $a->cardCode()) return !$err = 'bad customer';
+  }
 //  if (r\foreignServer(r\uidRegion($a->agentId))) return !$err = 'wrong server for customer';
   if (!$a->ok) return !$err = 'member inactive';
 //  if (!$a->can(B_BUY)) return !$err = 'customer cannot buy';

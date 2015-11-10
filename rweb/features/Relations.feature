@@ -38,7 +38,7 @@ Scenario: Member has an employee, unconfirmed
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Other      | My employee? | Family? | Permission  |_requests      |
-  | Dee Four   | Yes          | No      | %can_refund | request rCard |
+  | Dee Four   | Yes          | No      | %can_refund | --       |
 
 Scenario: Member has a relation with a contractor
   Given relations:
@@ -108,18 +108,18 @@ Scenario: Member company has relations
 Scenario: It's complicated
   Given relations:
   | id   | main | agent | permission | employee | isOwner |*
-  | .ZZA | .ZZA | .ZZD  | scan       | 1        | 1       |
+  | .ZZA | .ZZA | .ZZD  | manage     | 1        | 1       |
   | .ZZB | .ZZD | .ZZA  |            | 0        | 0       |
   | .ZZC | .ZZA | .ZZC  | buy        | 0        | 0       |
-  | .ZZD | .ZZC | .ZZA  | manage     | 1        | 0       |
+  | .ZZD | .ZZC | .ZZA  | scan       | 1        | 0       |
   | .ZZE | .ZZA | .ZZB  | sell       | 1        | 1       |
   | .ZZF | .ZZB | .ZZA  |            | 1        | 0       |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employee? | Family? | Permission |_requests      |
-  | Bea Two    | Yes          | Yes     | %can_sell  | request rCard |
-  | Corner Pub | --           | No      | --         | --       |
-  | Dee Four   | Yes          | Yes     | %can_scan  | -- |
+  | Other      | My employee? | Family? | Permission  |_requests      |
+  | Bea Two    | Yes          | Yes     | %can_sell   | -- |
+  | Corner Pub | --           | No      | --          | --       |
+  | Dee Four   | Yes          | Yes     | %can_manage | -- |
   When member ".ZZB" visits page "account/relations"
   Then we show "Relations" with:
   | Other   | My employee? | Family? | Permission |_requests      |
@@ -134,7 +134,7 @@ Scenario: It's complicated
   When member ":ZZD" visits page "account/relations"
   Then we show "Relations" with:
   | Other   | My employee? | Owns | Permission  |_requests      |
-  | Abe One | Yes          | No   | %can_manage | request rCard |
+  | Abe One | Yes          | No   | %can_scan | request Cashier Card |
 
 Scenario: A member adds a relation
   When member ".ZZA" completes relations form with values:

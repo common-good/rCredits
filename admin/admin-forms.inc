@@ -17,9 +17,14 @@ include_once __DIR__ . '/admin.inc';
 include_once __DIR__ . '/admin-web.inc';
 
 /**
+ * Display top level Admin options.
+ */
+function formAdmin($form, &$sta) {return w\subMenu(t('Admin Options'), 'sadmin');}
+  
+/**
  * Make various administrative operations available to the admin and cAdmin.
  */
-function formAdmin($form, &$sta, $args = '') {
+function formAdminPanel($form, &$sta, $args = '') {
   $mya = r\acct();
   $admin = $mya->admin;
   $tables = 'users txs gifts proxies relations invites'; // tables to show
@@ -61,7 +66,7 @@ function formAdmin($form, &$sta, $args = '') {
   return $form;
 }
 
-function formAdmin_submit($form, &$sta) {
+function formAdminPanel_submit($form, &$sta) {
   $mya = r\acct();
   $admin = $mya->admin; // as distinct from merely cadmin
   
@@ -779,7 +784,7 @@ function handyLinks() {
 EOF;
   }
   $result = join(' | ', $result);
-  return "<div class='develw'>\n$result</div>";
+  return "<h2 id=\"edit-title\"><br>Handy Links</h2><div class='develw'>\n$result</div>";
 }
 
 /**

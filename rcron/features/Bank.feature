@@ -109,6 +109,18 @@ Scenario: a member is under minimum and has requested insufficient funds from th
   | payer | amount |*
   | .ZZD  |   -310 |
 
+Scenario: a member is under minimum only because rewards are reserved
+  Given members:
+  | id   | fullName | minimum | flags      | achMin | risks   |*
+  | .ZZD | Dee Four |     100 | ok,reserve | 10     | hasBank |
+  And balances:
+  | id   | r   | rewards |*
+  | .ZZD | 110 |      30 |
+  When cron runs "bank"
+  Then usd transfers:
+  | payer | amount |*
+  | .ZZD  |    -20 |
+  
 Scenario: a member member with zero minimum has balance below minimum
   Given balances:
   | id   | minimum | r   |*

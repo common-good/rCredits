@@ -9,13 +9,13 @@ SO my company can sell stuff and give refunds.
 
 Setup:
   Given members:
-  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags      | *
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,bona    |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,bona    |
-  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,bona |
-  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,bona    |
-  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,bona,secret |
-  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,bona |
+  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags                | helper |*
+  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,confirmed,bona    |        |
+  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,confirmed,bona    |        |
+  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,confirmed,bona | .ZZA   |
+  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,confirmed,bona    |        |
+  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,bona,secret       | .ZZD   |
+  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,confirmed,bona |        |
   And devices:
   | id   | code |*
   | .ZZC | devC |
@@ -36,13 +36,15 @@ Setup:
   | 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |
   | 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  |
   | 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |
-  | 4   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |
+  | 4   | %today-6m | signup |    250 | ctty | .ZZE | signup  |
+  | 5   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |
   Then balances:
   | id   | balance |*
-  | ctty |   -1000 |
+  | ctty |   -1250 |
   | .ZZA |     250 |
   | .ZZB |     250 |
   | .ZZC |     250 |
+  | .ZZE |     250 |
   | .ZZF |     250 |
 
 #Variants: with/without an agent
@@ -52,7 +54,7 @@ Setup:
 Scenario: A cashier asks to charge someone
   When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $100 for "goods": "food" at %now
   # cash exchange would be for "cash": "cash out"
-  Then we respond ok txid 5 created %now balance 160 rewards 260
+  Then we respond ok txid 6 created %now balance 160 rewards 260
   And with message "report tx|reward" with subs:
   | did     | otherName | amount | why                | rewardAmount |*
   | charged | Bea Two   | $100   | goods and services | $5           |
@@ -67,14 +69,14 @@ Scenario: A cashier asks to charge someone
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
   And balances:
   | id   | balance |*
-  | ctty |   -1015 |
+  | ctty |   -1265 |
   | .ZZA |     250 |
   | .ZZB |     160 |
   | .ZZC |     355 |
 
 Scenario: A cashier asks to refund someone
   When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $-100 for "goods": "food" at %now
-  Then we respond ok txid 5 created %now balance 340 rewards 240
+  Then we respond ok txid 6 created %now balance 340 rewards 240
   And with message "report tx|reward" with subs:
   | did      | otherName | amount | why                | rewardAmount |*
   | refunded | Bea Two   | $100   | goods and services | $-5          |
@@ -89,7 +91,7 @@ Scenario: A cashier asks to refund someone
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $-10              |
   And balances:
   | id   | balance |*
-  | ctty |    -985 |
+  | ctty |    -1235 |
   | .ZZA |     250 |
   | .ZZB |     340 |
   | .ZZC |     145 |
@@ -164,3 +166,10 @@ Scenario: Seller tries to charge the customer twice
 Scenario: Device sends wrong card code
   When agent ":ZZA" asks device "devC" to charge ".ZZB-whatever" $100 for "goods": "food" at %now
   Then we return error "bad customer"  
+  
+Scenario: A cashier asks to charge someone unconfirmed
+  When agent ":ZZA" asks device "devC" to charge ".ZZE-ccE" $100 for "goods": "food" at %now
+  # cash exchange would be for "cash": "cash out"
+  Then we return error "not confirmed" with subs:
+  | youName  | inviterName |*
+  | Eve Five | Dee Four    |

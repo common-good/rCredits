@@ -1,3 +1,15 @@
+2015-11-09
+. gave cAdmins access to secure messages from people in their area
+. fixed bug: invoice payment was complaining of duplicate transaction
+. fixed bug: uploading photo for companies gets error "tried to shrink company photo" and no check mark
+. fix javascript on relations page, so clicking yes or no shows the other setting
+. changed not-authorized patch in common.inc to redirect to signin if appropriate
+. added code for invitation cards, including scrambling of code, printing cards, accepting invitation # as a getting started signin/signup identifier, and permitting use of invitation card as a temporary rCard.
+. add federalId field to summary page for admin (entry only -- show "on file" if we have one)
+. ignoring "the" and first initial at start of account name, when selecting from click on account photo
+. elimination of submenus
+. add inviteMask to .databases
+
 2015-09-06
 . changed invoices to go out immediately
 . link for emailing invitations with later confirmation

@@ -46,6 +46,7 @@ function tableDefs($schema = []) {
     'notes' => setupField('miscellaneous notes about the user or the account', 'text big'),
     'activated' => setupField('when was the account activated', 'int 11', 0),
     'helper' => setupField('who invited this person or company', 'int big'),
+    'iCode' => setupField('sequence number of helper invitation', 'int'),
     'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11', 0),
     'signedBy' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
     'rebate' => setupField('current rebate percentage (sales bonus is double)', 'numeric 5,3', R_REBATE),

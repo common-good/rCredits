@@ -12,12 +12,12 @@ define('STAGE_SUBDOMAIN', 'ws');
 define('STAGE', STAGE_SUBDOMAIN . '.rcredits.org'); // staging site (for secrets, etc.)
 define('PRODUCTION', 'new.rcredits.org'); // production site (used for setting $base_url)
 define('GAME_SITE', 'game.rcredits.org');
-define('isDEV', (bool) @$_SERVER['WINDIR']); // developing on Windows (unlike production or staging server)
-define('DEV_ROOT', '/rMembers'); // path to drupal root on DEV machine
-define('DEV_PW2', 'devpw2'); // second password on DEV machine
 define('isPRODUCTION', strtolower($_SERVER['HTTP_HOST']) == PRODUCTION);
 define('isSTAGE', strtolower($_SERVER['HTTP_HOST']) == STAGE);
 define('isGAME', FALSE or (@$_SERVER['HTTP_HOST'] == GAME_SITE));
+define('isDEV', !isPRODUCTION and !isSTAGE and !isGAME); // developing
+define('DEV_ROOT', '/rMembers'); // path to drupal root on DEV machine
+define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
 global $R_POST; $R_POST = $_POST;
 
@@ -25,7 +25,8 @@ $secrets = (array) json_decode(utf8_encode(file_get_contents(dirname($_SERVER['D
 $db_name = isDEV ? 'new_rcredits' : key($secrets);
 extract((array) $secrets[$db_name], EXTR_PREFIX_ALL, 'db');
 
-define('R_WORD', hex2bin($db_word)); // hex2bin($db_word));
+define('R_WORD', hex2bin($db_word));
+define('R_INVITE_KEY', $db_inviteKey); // this value is the same for all rCredits servers (except DEV)
 //define('DW_API_KEY', isPRODUCTION ? $db_dwollaKey :$db_dwSandKey);
 //define('DW_API_SECRET', isPRODUCTION ? $db_dwollaSecret :$db_dwSandSecret);
 define('R_SSN_USER', @$db_ssnUser);

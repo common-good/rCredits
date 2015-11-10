@@ -175,6 +175,21 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| .ZZD  |   -310 |"');
   }
 
+  // Scenario: a member is under minimum only because rewards are reserved
+  public function testAMemberIsUnderMinimumOnlyBecauseRewardsAreReserved_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('members: "ASSOC'
+    . '\\| id   | fullName | minimum | flags      | achMin | risks   |'
+    . '\\| .ZZD | Dee Four |     100 | ok,reserve | 10     | hasBank |"');
+    And__('balances: "ASSOC'
+    . '\\| id   | r   | rewards |'
+    . '\\| .ZZD | 110 |      30 |"');
+    When_('cron runs "bank"');
+    Then_('usd transfers: "ASSOC'
+    . '\\| payer | amount |'
+    . '\\| .ZZD  |    -20 |"');
+  }
+
   // Scenario: a member member with zero minimum has balance below minimum
   public function testAMemberMemberWithZeroMinimumHasBalanceBelowMinimum_0() {
     $this->setUp2(__FUNCTION__, 0);
