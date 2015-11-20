@@ -56,10 +56,27 @@ GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
 0=22 />
 
 TASKS FOR NEXT UPDATE:
-. reINSTALL
+. redo MENUS
+. update theme files: template.php, html.tpl.php, page.tpl.php
+. update form.inc
 . Credit PFC invites and Brendan's 2 RPC invites.
 . credit Fuzzy's invites.
 
+. * make a finder for admin (arbitrary logical search on multiple fields for regular expression values. Loop through accounts). Similar finder for personal transactions, for everyone. But use SQL for that one.
+. always say "cash flow problem" or "cash flow crisis" instead of "cash crunch".
+. drag&drop photo upload (see http://hayageek.com/drag-and-drop-file-upload-jquery/)
+. no PERSONAL account can have a duplicate SSN
+. transactions page default to past 12 months
+. when changing ssn, delete ssnData and unset member bit
+. move handling of account activation from r\membershipEvent to w\formSummary_submit or move handling of BONA the other way.
+. split 'confirm invite' message to (1) accepted invite and (2) named you as a reference
+. does timing of week/month cron get screwed up by daylight time shift? (month cron ran on 11/15/2015)
+. dates no longer show on summary page
+. ***** first transaction with inviter fails!
+. **** why did Ivan not get put as manager of his company? (cAdmin?)
+. **** why did Suzanne get 2 bonuses?
+. *** no account letter index if few enough
+. on options page, set stepdone if already visited (allows admin to reset doneness when adding a feature)
 . as discussed with DPearson, when presenting rCard, app should encrypt cardCode with amount and time, using target server's public key. Also record and send amount and time separately? Record proof or evidence of agreement, with every transaction.
 . import payroll spreadsheet (simple 2-column list of employees and amounts. Ask for description line, suggesting labor: date through date -- modeled on previous)
 . say "if your message doesn't need to be secure, you can just send us an email (to info@rCredits.org)."
@@ -90,7 +107,6 @@ TASKS FOR NEXT UPDATE:
 . ***** make a way for members to contribute rewards back to the system
 . *** "you are not authorized" message should instead show login page if not signed in
 . make a way for cAdmin to delete secure messages (and files) and send reminders to do so
-. *** no way to upload photo on mobile
 . opening a company account as cAdmin should connect the company to the current individual account, when admin clicks "open another account"
 . put the r icon on a square white background and make the member site distinctive (asterisk? "$"?)
 . admin feature: click on button on CGF Summary to pay a community what they are due

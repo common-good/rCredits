@@ -72,7 +72,7 @@ function formTxs($form, &$sta, $args = '') {
 
   $form = compact('title') + $dateRange + compact(u\ray('summary transactions states'));
   if (@$downloaded) js("window.open(\"$url&download=1\", \"download\");", 'inline', 'footer');
-  return labeled($form);
+  return $form;
 }
 
 function formTxs_validate($form, &$sta) {w\dateRangeValidate($sta);}
@@ -310,7 +310,7 @@ function formInvoices($form, &$sta, $toFrom, $args = '') {
   //simple advanced
   $form = compact('title') + $dateRange + compact(u\ray('list toFrom'));
   if (@$downloaded) js("window.open(\"$url&download=1\", \"download\");", 'inline', 'footer');
-  return labeled($form);
+  return $form;
 }
 
 function formInvoices_validate($form, &$sta) {w\dateRangeValidate($sta);}

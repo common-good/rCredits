@@ -233,7 +233,7 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
  */
 function ssnCheck($a) {
   if (!$ssnData = @$a->ssnData) {
-    if (!$ssnData0 = u\ssnLookup($a->federalId)) return w\say(t('No data returned from ssnLookup (probably timed out).'));
+    if (!$ssnData0 = u\ssnLookup($a->federalId)or strpos($ssnData0, 'RequestTimedOutException')) return w\say(t('No data returned from ssnLookup (probably timed out).'));
 //    if (strpos($ssnData0), 'timeout')
     $xml = simplexml_load_string($ssnData0);
     $json = json_encode($xml);
@@ -430,7 +430,8 @@ function getBanks() {
 }
 
 /**
- * Create a smaller photo to send to POS devices.
+ * Create a smaller photo to send to POS devices
+ * CALLED ONLY FROM a\makeTestCards()!
  * @param acct $a: the account whose photo is to be shrunk
  * @param string $err: (RETURNED) the error message, if any
  * @return <success>
@@ -571,7 +572,7 @@ EOF;
 EOF;
     }
   }
-  $deposits = @$deposits ? join("\n", $deposits) : '<tr><td colspan=4>No deposits</td></tr>';
+  $deposits = @$deposits ? join("\n", $deposits) : '<tr><td colspan=5>No deposits</td></tr>';
   $header = '<tr><th>Deposit</th><th></th><th>Count</th><th>Total</th><th></th></tr>';
   return <<<EOF
 <table id="deposits">

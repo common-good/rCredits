@@ -48,7 +48,7 @@ function formAdminPanel($form, &$sta, $args = '') {
   $inviteeStatus = submit(t('Invitee Status'));
   $organizerList = submit(t('Organizer List'));
   $account = textField(t('Account:'), t('Account to do something to'), (auto() ?: []) + dft(svar('adminingAcct')));
-  if ($admin) $make = boxfield(t('Make:'));
+  if ($admin) $make2 = boxfield('make', t('Make:'));
   $printId = submit(t('Print ID'));
 //  $connectBank = submit(t('Connect Bank'));
   $seeSecure = submit(t('See Secure'));
@@ -56,7 +56,7 @@ function formAdminPanel($form, &$sta, $args = '') {
   $seeData = submit(t('See Data'));
   $seeChanges = submit(t('See Changes'));
   $newUsdEmail = submit(t('New USD Email'));
-  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeData seeChanges seeSecure askForAppData seeAppData')));
+  $acctSet = fieldSet('acctSet', compact(u\ray('account make2 printId seeData seeChanges seeSecure askForAppData seeAppData')));
   
   $form = compact('title');
   if ($mya->cAdmin) {
@@ -123,7 +123,7 @@ function formAdminPanel_submit($form, &$sta) {
     include_once __DIR__ . '/../rcredits-yearly.inc';
     r\Special\do1099bs($test1099);
   } elseif ($op == 'inviteeStatus') {
-    return r\go('invited-whom');
+    return r\go('community/invite/invited-whom');
   } elseif ($op == 'organizerList') {
     return r\go('sadmin/organizer-list');
   }
@@ -379,12 +379,12 @@ function formDownloadMemberList($form, &$sta) {
 
   $title = item(t('Download Member List'));
   $subtext = item(t('for ') . $ctty->fullName);
-  if ($ctty->name == 'NEW.') $allCttys = boxField(t('All communities:')); // temporary for CGF oversight
-  $onlyActive = boxField(t('Active only:'), tt('Export only active accounts'));
-  $onlyPeople = boxField(t('People only:'), tt('Export only individual accounts (especially when emailing)'), TRUE);
+  if ($ctty->name == 'NEW.') $allCttys2 = boxField('allCttys', t('All communities:')); // temporary for CGF oversight
+  $onlyActive2 = boxField('onlyActive', t('Active only:'), tt('Export only active accounts'));
+  $onlyPeople2 = boxField('onlyPeople', t('People only:'), tt('Export only individual accounts (especially when emailing)'), TRUE);
   //$onlyCos = boxField(t('Companies only:'), tt('Export only company accounts'), FALSE);
   $submit = submit(t('Download'));
-  return labeled(compact(u\ray('title subtext allCttys onlyActive onlyPeople submit')));
+  return labeled(compact(u\ray('title subtext allCttys2 onlyActive2 onlyPeople2 submit')));
 }
 
 function formDownloadMemberList_submit($form, &$sta) {
@@ -419,6 +419,26 @@ function formDownloadMemberList_submit($form, &$sta) {
     u\csv(array_values(compact($fields)));
   }
   exit();
+}
+
+/**
+ * Generates the execute form.
+ */
+function formPhp() {
+  $code = formField('textarea', '', '', dft(\variable_get('code')));
+  $submit = submit(t('Execute Code'));
+  return compact('code', 'submit');
+}
+
+/**
+ * Process PHP execute form submissions.
+ */
+function formPhp_submit($form, &$sta) {
+  extract(u\just('code', $sta['input']));
+  ob_start();
+  print eval($code);
+  \variable_set('code', $code);
+  dsm(ob_get_clean());
 }
 
 //define('DEPOSIT_DATE1', 1411517529); // first deposit date
@@ -747,16 +767,16 @@ function handyLinks() {
   $test_path = "$base_url/sites/all/modules";
 
   $links = array(
-    'devel/menu/reset?destination=sadmin|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Redo MENUS',
-    'rcredits/util/reinstall|REINSTALL r|',
-    'rcredits/util/clear_sessions|Clear Sessions|',
+    'devel/menu/reset?destination=sadmin|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Redo MENUS|menu-hamburger',
+    'rcredits/util/reinstall|Remove and reinstall all the rCredits modules|REINSTALL r|fast-backward',
+    'rcredits/util/clear_sessions|Empty the sessions table|Clear Sessions|unchecked',
     
-    'devel/settings|Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the block administration page.|Devel settings',
-    'devel/cache/clear?destination=sadmin|Clear the CSS cache and all database cache tables which store page, node, theme and variable caches.|Empty cache',
-    'devel/reference|View a list of currently defined user functions with documentation links.|Functions',
-    'devel/elements|View the active form/render elements for this site.|Elements',
-    'devel/phpinfo|View your server&#039;s PHP configuration|PHPinfo()',
-    'devel/variable?destination=sadmin|Edit and delete site variables.|Variables',
+    'devel/settings|Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the block administration page.|Devel settings|cog',
+    'devel/cache/clear?destination=sadmin|Clear the CSS cache and all database cache tables which store page, node, theme and variable caches.|Empty cache|new-window',
+    'devel/reference|View a list of currently defined user functions with documentation links.|Functions|education',
+    'devel/elements|View the active form/render elements for this site.|Elements|align-center',
+    'devel/phpinfo|View your server&#039;s PHP configuration|PHPinfo()|queen',
+    'devel/variable?destination=sadmin|Edit and delete site variables.|Variables|copy',
 //    "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
 //    'rcredits/test?menu=1|Test Menu|',
 //    'rcredits/util/changeAgent|Change Agent to Bea|',
@@ -774,17 +794,18 @@ function handyLinks() {
 //    'devel/theme/registry|View a list of available theme functions across the whole site.|Theme registry',
   );
 
-  $result = [];
   foreach ($links as $link) {
-    list ($url, $title, $label) = explode('|', $link);
-    if (!$label) $label = $title;
-    if (!u\abbreviates('http://', $url)) $url = $base_path . $url;
-    $result[] = <<<EOF
-<div><a href="$url" title="$title">$label</a></div>
-EOF;
+    list ($url, $detail, $label, $icon) = explode('|', $link);
+    if (!$label) $label = $detail;
+    $handy[$url] = ['', $label, '', 'anyone', '', $detail, @$icon];
+/*    $result[] = <<<EOF
+<div><a href="$url" title="$detail">$label</a></div>
+EOF; */
   }
-  $result = join(' | ', $result);
+  return w\subMenu(t('<h2>Handy Links</h2>'), $handy);
+/*  $result = join(' | ', $result);
   return "<h2 id=\"edit-title\"><br>Handy Links</h2><div class='develw'>\n$result</div>";
+  */
 }
 
 /**

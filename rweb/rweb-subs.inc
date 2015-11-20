@@ -214,7 +214,7 @@ EOF
   'login failed' => t('Your attempt to sign in failed. Click the "Password problems" link if you need a new password.'),
   'file save error' => t('Your file upload did not succeed.'),
   'forced without perm' => t('<p>An unauthorized transaction was made using a Company Agent rCard.</p><ul><li>Date: @date</li><li>Customer</li><li>@a2 (by @agent2)</li><li>Company: @a1 (by @agent1)</li><li>Amount: @amount</li><li>For: @for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
-  'bad invite num' => t('That is not a valid invitation number.'),
+  'bad invite num' => t('That is not a valid username or invitation number.'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
 
@@ -280,47 +280,47 @@ EOF;
       $res .= "<tr><th>$city$state</th><td>";
       $cityX = $city;
     }
-    $class = $weight < PHP_INT_MAX / 4 ? 'choice4'
-    : ($weight == PHP_INT_MAX / 4 ? 'choice3'
-    : ($weight <= PHP_INT_MAX / 2 ? 'choice2'
-    : 'choice1' ));
-    $checked = $dft == $uid ? 'CHECKED' : '';
+    $style = $weight < PHP_INT_MAX / 4 ? 'success'
+    : ($weight == PHP_INT_MAX / 4 ? 'primary'
+    : ($weight <= PHP_INT_MAX / 2 ? 'info'
+    : 'default' ));
+    if ($dft == $uid) $style = 'warning';
 ///    debug(compact('row','city','cityX','friends') + ['max/2-w'=>PHP_INT_MAX / 2 - $weight]);
     $res .= <<<EOF
-<div class="form-type-radio $class">
-  <input type="radio" name="proxyChoice" $checked value="$uid" />
-  <label>$fullName</label>
-</div>
+<button type="submit" name="i-$uid" class="btn btn-xs btn-$style ladda-button" data-style="contract">
+    <span class="ladda-label">$fullName</span></button>    
 EOF;
   }
   if ($res) $res .= '</td></tr>'; // finish last line
-  return "<table>$res</table>";
+  return "<div class=\"well\"><table>$res</table></div>";
 }
 
 /**
  * Return HTML for a button.
  */
-function button($value, $href = '', $title = '', $class = '', $id = '') {
+function button($value, $href = '', $title = NULL, $style = 'success', $size = 'xs') {
   $title = htmlspecialchars($title);
-  $button_type = trim('local form-submit ' . ($class ?: '')); // Drupal prefixes this with 'form-'
-  $markup = array($value => formField($id ? 'submit' : 'button', '', '', compact('value', 'button_type') + attrib(compact('id', 'title'))));
-  $markup = render($markup);
-  if (!$id) $markup = str_replace('"submit"', '"button"', $markup); // compensate for Drupal pigheadedness
-  if ($href) { // href might be http or https or /...
-    if (substr($href, 0, 4) == 'http' or substr($href, 0, 1) == '/') $href = "document.location.href='$href';";
-    $name = 'name="op"';
-    $markup = str_replace($name, ($button_type == 'local' ? '' : "$name ") . "onclick=\"$href\"", $markup);
+//  if ($href) { // href might be http or https or /...
+//    if (substr($href, 0, 4) == 'http' or substr($href, 0, 1) == '/') $href = "document.location.href='$href';";
+//    $name = 'name="op"';
+//    $markup = str_replace($name, ($button_type == 'local' ? '' : "$name ") . "onclick=\"$href\"", $markup);
 //  if ($href) $markup = "<a href=\"$href\" title=\"$title\">$markup</a>";
-  }
-  return $markup;
+//  }
+  $button_type = 'local';
+  $class = ["btn btn-$style btn-$size"];
+  $extra = compact(u\ray('href value button_type class')) + attrib(compact('title'));
+  return @\render(formField('button', '', '', $extra));
+//  $markup = render($markup);
+//  if (!$id) $markup = str_replace('"submit"', '"button"', $markup); // compensate for Drupal pigheadedness
+//  return $markup;
 }
 
 function formField($type, $title = '', $description = '', $other = [], $options = NULL) {
-  if (!is_array($other)) $other = array(($type == 'item' ? 'markup' : 'value') => $other);
+  if (!is_array($other)) $other = [$type == 'item' ? 'markup' : 'value' => $other];
   if ($type == 'select' and !isset($other['default_value'])) $other['default_value'] = $options ? key($options) : ''; // Drupal's select fails without a default
   $title_display = 'before';
 //  if (isset($other['value']) and !isset($other['default_value'])) $other['default_value'] = $other['value'];
-  $field = u\prefixKeys('#', array_merge(compact(u\ray('type title title_display description options')), $other));
+  $field = u\prefixKeys('#', $other + compact(u\ray('type title title_display description options')));
   return $field;
 }
 
@@ -330,10 +330,11 @@ function hidField($value = '', $options = []) {return formField('hidden', '', ''
 function textField($title = '', $description = '', $other = [], $options = NULL) {
   return formField('textfield', $title, $description, $other, $options);
 }
-function boxField($title, $desc = '', $other = NULL) {
-  return formField('checkbox', $title, '<div class="box"></div>' . $desc, $other);
+function boxField($name, $title = '', $desc = '', $dft = NULL) {
+  $fld = formField('checkbox', $desc, '', compact('name') + dft(@$dft));
+  return $title ? item(@\render($fld), $title, '', ['box' => TRUE]) : $fld;
 }
-function fieldSet($id, $flds, $prompt = '') {return formField('fieldset', $prompt, '', compact('id')) + $flds;}
+function fieldSet($id, $flds, $prompt = '', $other = []) {return formField('fieldset', $prompt, '', compact('id') + $other) + $flds;}
 
 /**
  * Return a form field for sharing percentage.
@@ -366,57 +367,34 @@ function badShare(&$share, $required = FALSE) {
  * @param array $labels: labels for the two choices (defaults to [No, Yes])
  */
 function boolField($title = '', $description = '', $dft = NULL, $labels = NULL) {
-  $class = array('yesno');
-  return formField('radios', $title, $description, (is_array($dft) ? $dft : required(@$dft ?: 0)) + attrib(compact('class')), @$labels ?: array(t('No'), t('Yes')));
+  $class = ['yesno'];
+  $inline = TRUE;
+  return formField('radios', $title, $description, (is_array($dft) ? $dft : required(@$dft ?: 0)) + compact('class', 'inline'), @$labels ?: array(t('No'), t('Yes')));
 }
 
 /*
  * Create a rendered checkboxes field
- * Drupal is inconsistent about checkboxes formatting, making our scripts fail.
- * Specifically, when the checkbox inputs have a unique id, radiocheck.js fails to set the value successfully
- * (at least it never appears in $_POST). So we do it here by hand.
- * @param string $tag:
  * @param string $title:
  * @param string $desc:
- * @param array $choices: bit name for each checkbox
- * @param array $aliases: bit name to display for each checkbox (defaults to bit name)
+ * @param array $defaults: simple array of names of already-checked boxes
+ * @param array $choices: name for each checkbox
+ * @param array $aliases: name to display for each checkbox (defaults to choice name)
  */
-function boxesField($tag, $title, $desc, $defaults, $choices, $aliases = NULL) {
+function boxesField($title, $desc, $defaults, $choices, $aliases = NULL) {
   u\setDft($aliases, $choices);
-  $boxes = '';
   if (!@$defaults) $defaults = [];
-  foreach ($choices as $k => $v) {
-    $alias = $aliases[$k];
-    $checked = in_array($v, $defaults) ? ' CHECKED' : '';
-    $boxes .= <<<EOF
-    <div class="form-item form-type-checkbox form-item-$tag-$k">
-       <input type="checkbox" name="{$tag}[$k]" value="$k"$checked class="form-checkbox" />
-       <label class="option" for="edit-$tag-$k"><div class="box"></div><div>$alias</div></label>
-    </div>
-EOF;
-  }
-  
-  return item(<<<EOF
-<div class="form-item form-type-checkboxes form-item-$tag">
-  <label for="edit-$tag">$title</label>
-  <div id="edit-$tag" class="form-checkboxes">
-$boxes
-</div></div>
-<div class="description">$desc</div>
-EOF
-  );
+  return formfield('checkboxes', $title, $desc, compact('choices', 'defaults', 'aliases'), []);
 }
 
 /**
  * Return a set of checkboxes representing bits in a bit array.
- * @param string $fieldName: internal name of field   
  * @param string $label: short prompt for the set of boxes
  * @param int $bitRay: the bit array (current value)
  * @param string $prefix: prefix for defined constants for this bit array field (empty means use $bits index)
  * @param string $bits: array (space or comma-delimited) of names of bits to include (without prefixes)
  * @param assoc $aliases: map of bit names to their display aliases (which may include formatting)
  */
-function bitsField($fieldName, $label, $bitRay, $prefix, $bits, $aliases = []) {
+function bitsField($label, $bitRay, $prefix, $bits, $aliases = []) {
   $bits = u\ray($bits);
   if (!is_numeric(key($bits))) $bits = array_keys($bits); // ignore values (eg weights for risk arrays)
   $defaults = [];
@@ -426,7 +404,7 @@ function bitsField($fieldName, $label, $bitRay, $prefix, $bits, $aliases = []) {
     $bitAliases[$bit] = @$aliases ? strtr($bitName, $aliases) : $bitName;
     if (u\getBit($bitRay, $bit)) $defaults[] = $bitName;
   }
-  return boxesField($fieldName, $label, '', $defaults, $bitNames, $bitAliases);
+  return boxesField($label, '', $defaults, $bitNames, $bitAliases);
 }
 
 /**
@@ -487,14 +465,18 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
         if ($mya and \form_get_errors()) js("print_country($mya->country, $mya->state);", 'inline', 'footer');
       }
       if (u\isIPhone()) css('iphone.css', -100);
+      $tree = explode('/', 'home' . str_replace(DEV_ROOT, '', $_SERVER['REQUEST_URI']));
+      foreach ($tree as $k) if (preg_match('/^[a-z\-]+$/', $k)) $crumbs[ucwords($k)] = $kk = isset($kk) ? "$kk/$k" : '';
+      \drupal_set_breadcrumb($crumbs);
     }
 
     $form['#attributes']['class'][] = 'rweb';
+    if (!in_array('form-horizontal', @$form['#attributes']['class'])) $form['#attributes']['class'][] = 'form-vertical';
     $formArray = $form2 = $form; 
 
     $rent = \render($form2);
 
-    if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-radio')) js('js/radiocheck.js', 'file', 'footer');
+//    if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-radio')) js('js/radiocheck.js', 'file', 'footer');
     
     if ($colgroup = @$form['#colgroup']) {
       unset($form['#colgroup']);
@@ -510,6 +492,18 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   } catch(Exception $e) {r\Web\exception_handler($e);}
 }
 
+/**
+ * Output a photo upload success or error message and exit.
+ * @param string $msg: if error, what to say. if success, url and type of file uploaded.
+ * @param string $status: 'success' or 'error' (the default)
+ */
+function photoRet($msg, $status = 'error') {
+  if ($status == 'success') $url = $msg; else $message = $msg;
+  u\loga('photoRet', compact('status', 'message', 'url'));
+	echo json_encode(compact('status', 'message', 'url'), JSON_UNESCAPED_SLASHES);
+  exit();
+}
+  
 /**
  * Return a unique persistant identifier for the current machine (set randomly, if none yet).
  * @return the box ID string
@@ -754,17 +748,6 @@ function boxOpt($field, $opts, $sta) {
   return @$result ?: [];
 }
 
-/**
- * Return the fields used to verify an individual's SSN (also asked for in signup).
- * The dob field is not used for companies (but remains in the form, unseen), so it cannot be required.
- */
-function ssnFields($personal = TRUE) {
-  $ssTitle = tt($personal ? 'ssTitle' : 'einTitle');
-  if ($personal) $dob = textField(t('Birthdate:'), t('Your date of birth (mm/dd/yyyy)'), required());
-  $federalId = formField('password', "<span class=\"title\">$ssTitle</span>", tt($personal ? 'ssDesc' : 'einDesc'), required()); // textfield so user doesn't have to retype on error
-  return compact(u\ray('dob federalId'));
-}
-
 function wants($ats) {  
   $wants = 0; // store a bit for each bought-at company
   if ($ats) foreach ($ats as $one) if (@$one) {
@@ -898,9 +881,9 @@ function findCompany($company, $companyPhone) {
 function nameAndEmail($what, $fullName = '') {
   $who = $what == t('Company') ? t('The company\'s') : ($what == t('Community') ? t('The community\'s') : t('Your'));
   $onchange = "var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);";
-  $fullName = textField("$what:", tt('usename desc'), required(@$fullName) + attrib(compact('onchange')));
-  $legalName = textField(t('Legal name:'), t('(if different) ') . $who . tt('legalname desc'));
-  $email = textField(t('Email:'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>'), required());
+  $fullName = textField("$what:", ["$who " . t('full name'), tt('usename desc')], required(@$fullName) + attrib(compact('onchange')));
+  $legalName = textField(t('Legal name:'), ["$who " . t('full legal name'), t('(if different) ') . $who . tt('legalname desc')]);
+  $email = textField(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required());
   return compact(u\ray('fullName legalName email'));
 }
 
@@ -931,23 +914,34 @@ function contactFields($defaults = [], $old) {
   $onchange = "zipChange('010 013');";
   $zipAttrib = attrib(compact('onchange'));
   
-  $phone = textField(t('Phone:'), '', required(@$phone ? u\fmtPhone($phone): ''));
+  $phone = textField(t('Phone:'), [t('Your phone number')], required(@$phone ? u\fmtPhone($phone): ''));
 //$mya ? '' : t('Your phone number. This should not be a number already used for another rCredits account &mdash; unless you have no other phone number.')
 //  $dupOk = hidField(0, attrib(u\ray('id', 'edit-dupOk')));
 //  $dupOk = boolField(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
 //  $verifyBy = $mya ? NULL : formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
-  $faxetc = @$faxetc ? textField(t('Fax etc:'), t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.'), dft(@$faxetc)) : NULL;
+  $faxetc = @$faxetc ? textField(t('Fax etc:'), [t('Other contact info'),t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.')], dft(@$faxetc)) : NULL;
   $country = formField('select', t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
-  $postalCode = textField(t('Postal Code:'), t('Postal code for your <em>physical location</em>'), required(@$postalCode) + $zipAttrib);
-  $address = textField(t('Street Address:'), t('Where is your building located (physical address)?'), required(@$address) + $addressAttrib);
-  $city = textField(t('City:'), t(''), required(@$city) + $cityAttrib);
+  $postalCode = textField(t('Postal Code:'), [t('Physical location postal code'), t('Postal code for your <em>physical location</em>')], required(@$postalCode) + $zipAttrib);
+  $address = textField(t('Street Address:'), [t('Physical address'), t('Where is your building located (physical address)?')], required(@$address) + $addressAttrib);
+  $city = textField(t('City:'), [t('City where you live')], required(@$city) + $cityAttrib);
   $state = formField('select', t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
-  $tenure = $old ? NULL : textField(t('How long:'), t('MONTHS at this address.'), required(@$tenure));
+  $tenure = $old ? NULL : textField(t('How long:'), [t('MONTHS at this address.')], required(@$tenure));
   $owns = boolField('', '', $old ? dft((int) $mya->owns) : 0, [t('Rent'), t('Own')]);
-  $postalAddr = textField(t('Postal Addr:'), t('Where does the post office send your mail (usually)?'), required(@$postalAddr));
+  $postalAddr = textField(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
 
   return compact(u\ray($fields));
 }  
+
+/**
+ * Return the fields used to verify an individual's SSN (also asked for in signup).
+ * The dob field is not used for companies (but remains in the form, unseen), so it cannot be required.
+ */
+function ssnFields($personal = TRUE) {
+  $ssTitle = tt($personal ? 'ssTitle' : 'einTitle');
+  if ($personal) $dob = textField(t('Birthdate:'), [t('Your date of birth (mm/dd/yyyy)')], required());
+  $federalId = formField('password', $ssTitle, [tt($personal ? 'ssDesc' : 'einDesc')], required()); // textfield so user doesn't have to retype on error
+  return compact(u\ray('dob federalId'));
+}
 
 /**
  * Say whether the phone number is acceptable.
@@ -1024,8 +1018,8 @@ function toggle($field, $value, $id, $highlight = 'never') {
   $name = $id = "$field-$id";
   $zot = array($id => hidField($value, attrib(compact(u\ray('id name')))));
   $input = \render($zot);
-  $b1 = button(' - ', "toggle('$id');", t('Change to NO'), 'form-no');
-  $b2 = button(' + ', "toggle('$id');", t('Change to YES'), 'form-yes');
+  $b1 = button(' - ', "toggle('$id');", t('Change to NO'), 'danger');
+  $b2 = button(' + ', "toggle('$id');", t('Change to YES'), 'success');
 
   if ('never' != (string) $highlight) {
     list ($visHigh, $invisHigh) = u\order($highlight, ' highlight', '');
@@ -1166,7 +1160,7 @@ EOF;
     $list .= "<li>$item</li>\n";
   }
   
-  $key = $list ? '' : t('There are no such businesses listed.');
+  $key = $list ? '' : t('There are no such rCredits member businesses.');
   if (strpos($list, '<ul>') !== FALSE) $list .= '</ul>';
   return "<ul id=\"key\">$key</ul>$list"; // ul so key gets indented like the rest
 }
@@ -1269,7 +1263,7 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   u\setDft($states, $settings);
   if ($choices) {
     if ($states) foreach (u\ray($states) as $k) $stateDfts[] = $choices[$k];
-    $states2 = boxesField('states', t('Show:'), '', @$stateDfts, $choices);
+    $states2 = boxesField(t('Show:'), '', @$stateDfts, $choices);
   }
   $showAdvJs = 'jQuery(\'#advanced\').show(); jQuery(\'#simple\').hide();';
   if ($states != $settings or (@$ending and $ending != strtotime('tomorrow') - 1)) js($showAdvJs, 'inline', 'footer'); // showing advanced selection
@@ -1481,7 +1475,6 @@ function transfer($op, $info, $confirmed) {
 
   if ($confirm) return @$identifiers . tt('confirm ' . $msg, $args);
   if (!@$args['success']) return say($msg, $args, 'amount');
-
   return say($msg, $args);
 }
 
@@ -1573,13 +1566,16 @@ function menu($title, $type, $function, $args, $perms = '') {
 }
 
 /**
- * Return a submenu page (list) for a given menu item (section).
+ * Return a submenu page (list) for a given menu or named menu section.
+ * @param string $title: header for the menu
+ * @param mixed $menu: menu section name or assoc of menu items
+ * @return the menu as a Drupal form (not yet rendered)
  */
-function subMenu($title, $section) {
+function subMenu($title, $menu) {
   include_once __DIR__ . '/rweb.module';
   global $base_url;
   
-  $menu = \rweb_menu($section);
+  if (!is_array($menu)) $menu = \rweb_menu($menu);
   $list = '';
   foreach ($menu as $k => $v) {
     @list ($type, $head, $args, $perms, $func, $detail, $icon) = $v;
@@ -1587,14 +1583,14 @@ function subMenu($title, $section) {
     if (w\webAccess($perms) and $type != 'call' and $head != 'zot') $list .= <<<EOF
   <a href="$base_url/$k" class="list-group-item">
     <h4 class="list-group-item-heading">
-      <span class="glyphicon glyphicon-$icon"></span>
+      <span class="glyphicon glyphicon-$icon"></span> &nbsp;
       $head
     </h4>
     $detail
   </a>
 EOF;
   }
-  $title = item("<br>$title");
+  $title = item("$title");
   $list = item($list);
   return compact('title', 'list');
 }
@@ -1912,7 +1908,9 @@ function webAccess($perms = NULL) {
 }
 
 function css($sheet, $weight = -99) {
-  \drupal_add_css(R_PATH . "/rweb/$sheet", ['group' => CSS_THEME] + weight($weight));
+  global $rUrl;
+  $options = ['group' => CSS_THEME, 'preprocess' => FALSE, 'external' => TRUE] + weight($weight);
+  \drupal_add_css("$rUrl/$sheet", $options);
 }
 
 /**
@@ -1928,11 +1926,15 @@ function js($what, $type = 'inline', $scope = 'footer', $weight = 0) {
   return \drupal_add_js($what, compact('type', 'scope', 'weight'));
 }
 
-function labeled($form) {
-  $form['#attributes']['class'][] = 'labeled'; // 'form-horizontal'; // 'labeled';
-//  foreach ($form as $key => $value) if (substr($key, 0, 1) != '#') {
-//    if (!isset($value['#id'])) $form[$key]['#id'] = "edit-$key"; // is this necessary?
-//  }
+/**
+ * Add classes to form, so labels will line up next to fields.
+ */
+function labeled($form, $level = 0) {
+  $form['#attributes']['class'][] = $level ? '' : 'form-horizontal'; // 'labeled';
+  foreach ($form as $k => $v) if (substr($k, 0, 1) != '#') {
+    $form[$k]['#tabled'] = TRUE;
+    if (@$form[$k]['#type'] == 'fieldset') $form[$k] = labeled($form[$k], $level + 1);
+  }
   return $form;
 }
 

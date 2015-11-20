@@ -1,4 +1,4 @@
-jQuery(".form-type-checkbox > .description, .form-checkboxes .form-type-checkbox > label").each(function(index) {
+jQuery(".checkbox > .description, .form-checkboxes .checkbox > label").each(function(index) {
   var input=jQuery(this).parent().children("input:first");
   if(input.attr("checked")) jQuery(this).addClass("opt-on");
   jQuery(this).click(function() {
@@ -8,7 +8,7 @@ jQuery(".form-type-checkbox > .description, .form-checkboxes .form-type-checkbox
   });
 });
 
-jQuery(".form-type-radio > label").each(function(index) {
+jQuery(".radio > label").each(function(index) {
   var input=jQuery(this).parent().children("input:first");
   if(input.attr("checked")) jQuery(this).addClass("opt-on");
   jQuery(this).click(function() {

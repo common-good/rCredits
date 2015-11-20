@@ -315,9 +315,10 @@ function patch($name) {
   );
   
   // form.inc
+  $tabled = ['#tabled' => TRUE];
   if ($name == 'form_select_options2741') return $args[1]['#options']; // this accommodation for dynamic javascript dropdowns (set #options = NULL) is inadequate when there is an error on the form (see signup form)
-  if ($name == 'form_process_password_confirm2914') return ['#title' => t('New password:')];
-  if ($name == 'form_process_password_confirm2921') return ['#title' => t('Confirm new password:')];
+  if ($name == 'form_process_password_confirm2914') return $tabled + ['#title' => t('New password:')] + ['#class' => ['password-field password-processed']];
+  if ($name == 'form_process_password_confirm2921') return $tabled + ['#title' => t('Confirm new password:')] + ['#class' => ['password-confirm']];
   
   if ($name == '_update_cron_notify') return; // update.fetch.inc
   if ($name == 'file_munge_filename1174') return; // file.inc

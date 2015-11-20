@@ -206,6 +206,7 @@ function weRespondWithPicture($picture) {
  */
 function memberHasNoPicture($id) {
   global $testOnly; if ($testOnly) return FALSE;
+  debug(strlen(r\acct(t\uid($id))->photo));
   return !r\acct(t\uid($id))->hasAux('picture');
 }
 

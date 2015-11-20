@@ -360,6 +360,27 @@ function a22x3($s) {
 }
 
 /**
+ * Return an HTML attribute string for the given array.
+ * @param assoc $ray: list of attribute names and values (value can be an array)
+ */
+function tribs($ray) {
+  foreach ($ray as $k => $v) $tribs[$k] = "$k=\"" . (is_array($v) ? join(' ', $v) : $v) . '"';
+  return join(' ', @$tribs ?: []);
+}
+
+/**
+ * Return an HTML tag with optional attributes, surrounding optional HTML.
+ * @param string @tag: the tag
+ * @param string @html: (optional) inner HTML
+ * @param assoc @tribs: (optional) keyed-array of attributes
+ * @return the resultant HTML
+ */
+function tag($tag, $html = '', $tribs = []) {
+  $tribs = $tribs ? ' ' . u\tribs($tribs) : '';
+  return "<$tag$tribs>$html</$tag>";
+}
+
+/**
  * URL encode an arbitrary non-empty ascii string compactly
  */
 function urlify($s) {
@@ -713,7 +734,7 @@ function loga($type, $info = [], $special = '', $adhocChannel = FALSE) {
   if (isNonce($special) and @$info['message']) $info['message'] = str_replace(": $special", ': @nonce', $info['message']);
   // don't make code, password, and secret links any more accessible than they are
   foreach (u\ray(R_NOLOG) as $one) if ($one != 'email' and @$info[$one]) $info[$one] = '(?)';
-  $info = u\jsonEncode($info);
+  $info = json_encode($info, JSON_UNESCAPED_SLASHES);
   $channels = ray(TX_CHANNELS); 
   if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
   $record = compact(ray('time channel type myid agent info special'));
@@ -739,7 +760,7 @@ function seeAssoc($info) {
 function ssnLookup($ssn) {
   $xml = file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.ssncheck');
   $xml = strtr($xml, u\ray('[ssnUser] [ssnPass] [ssn]', R_SSN_USER, R_SSN_PASS, $ssn));
-  if (!isPRODUCTION) return file_get_contents('ssnresult.txt'); // testing
+  if (!isPRODUCTION) return @file_get_contents('ssnresult.txt'); // testing
   return @file_get_contents("https://www.nationalpublicdata.com/feeds/FDSFeed.cfm?xml=" . urlencode($xml));
 }
 

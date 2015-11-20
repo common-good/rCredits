@@ -111,7 +111,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     $legalName = textField(t('Legal Name:'), '', required($a->legalName));    
     $rTrader = $a->ctty
     ? boolField(t('Ctty Up?'), '', $a->ok + 0)
-    : boolField(t('rTrader?'), t('Is account approved to use rCredits? -- member, <@a>good photo</a>, ss# checks out, set risks and mediaConx', array('@a' => "a href=$base_url/account/photo")), $a->ok + 0);
+    : boolField(t('rTrader?'), t('Is account approved to use rCredits? -- member, <@a>good photo</a>, ss# checks out, set risks and mediaConx', array('@a' => "a href=$base_url/account/photo?" . rand())), $a->ok + 0);
     if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
       if ($helper = $a->helper ?: ($a->co ? $a->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
         $hA = r\acct($helper);
@@ -134,7 +134,7 @@ function adminSummary($a, $cAdmin = FALSE) {
       if (!isset($risksEditable[$k])) $class .= ' noEdit';
       $aliases[$k] = "<div class=\"$class\">$k</div>";
     }
-    $risks2 = bitsField('risks', t('Risks:'), $a->risks, '', K_ACCT_RISKS, $aliases);
+    $risks = bitsField(t('Risks:'), $a->risks, '', K_ACCT_RISKS, $aliases);
 
     $adminable = u\ray(B_ADMINABLE . ($admin ? ' admin' : ''));
     foreach (u\ray(B_LIST) as $k) if (strpos($k, 'u') !== 0) { // ignore undefined bits ("u" in 0th position)
@@ -144,7 +144,7 @@ function adminSummary($a, $cAdmin = FALSE) {
       if ($k == 'member' and $a->ctty) $k = t('cttyActive');
       $aliases[$k0] = "<div class=\"$class\">$k</div>";
     }
-    $adminable2 = bitsField('adminable', t('Flags:'), $a->flags, 'b', join(' ', $blist), $aliases);
+    $adminable = bitsField(t('Flags:'), $a->flags, 'b', join(' ', $blist), $aliases);
 //    $adminable2 = bitsField('adminable', t('Other bits:'), $a->flags, 'b', B_ADMINABLE . ($admin ? ' admin' : ''), $a->ctty ? array('member' => t('cttyActive')) : NULL);
     
     $who = textField(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
@@ -177,14 +177,14 @@ EOF;
   }
 
   $notes = formField('textarea', t('Notes:'), '', dft($a->notes));
-  $risk = item(round($a->risk) . button(t('Recalculate'), "$base_url/rerisk/acct/$uid/1"), t('Risk Score:'));
+  $risk = item(round($a->risk) . ' ' . button(t('Recalc'), "$base_url/rerisk/acct/$uid/1"), t('Risk Score:'));
   if (!$a->co) $trust = item(number_format($a->trust, 1), t('Trust:'));
   if ($mya->can(B_CADMIN2)) $submit = submit(t('Go'));    
 
   $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
   $uid = hidField($uid);
 
-  return compact(u\ray('photo federalId donations cgfDonations calling tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin legalName risk trust risks2 mediaConx adminable2 rTrader helper notes count submit back uid'));
+  return compact(u\ray('photo donations cgfDonations federalId legalName calling tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
 }
 
 /*

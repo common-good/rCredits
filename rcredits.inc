@@ -72,7 +72,7 @@ define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision ses
 define('R_STEPS', 'contact sign donate proxies prefs photo connect company relations'); // membership steps
 define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret code oneTimeLoginUrl password pass newPass form_build_id form_token form_id external_input'); // don't log these (external_input may contain passwords)
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts Summary'); // don't log visits to these forms
-define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin PageNotFound Sinx Pass Empty TestRecovery ChangePassword Help Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
+define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin PageNotFound Sinx Pass Empty TestRecovery ChangePassword Help Community Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
 define('BY_CHECK', '(check)'); // app includes this in description, for a purchase of rCredits by check
 define('BY_CARD', '(card)'); // app includes this in description, for a purchase of rCredits by credit card
 define('R_ON_FILE', t('(on file)'));
@@ -352,6 +352,7 @@ $GLOBALS['emailSubjects'] = array(
 );
 $GLOBALS['topics'] = array( // topics for 'message' email
   'confirm invite' => t('Confirm invitation to @otherName'),
+  'not confirmed' => t('Your rCredits membership requires confirmation.'),
   'new invoice' => t('INVOICE from @otherName'),
   'account suspended' => t('Account SUSPENDED'),
   'account funded' => t('Account FUNDED'),
@@ -740,6 +741,12 @@ function membershipEvent($a, $status, $do = TRUE) {
     if ($a->seq >= IBY_ICARD) $msg .= '|use temporary card';
     r\message($a->id, $msg, ['inviterName' => @$a->helperA->fullName]);
     $a->update('activated', r\rTime());
+  } elseif ($status == 'bona') {
+    be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
+
+    if ($a->confirmed and !$a->helperA->admin) { // no helper bonus for admin (cAdmin is okay)
+      be\fund($a->helper, TX_HELPER, R_HELPER_BONUS, u\tt('invite reward', compact('fullName')));
+    }
   }
   
   $fullName = $a->fullName;
@@ -1311,12 +1318,14 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
 
 /**
  * Package the return arguments and alert staff on certain errors.
- * @param string $message: the success or error message
+ * @param mixed $message: the success or error message OR an array containing all three params
  * @param assoc $info: (optional) message substitutions and other info about transaction
  *   includes success=TRUE if the transaction was successful
  * @param bool $confirm: <to be confirmed> (default FALSE)
  */
 function txRet($message, $info = [], $confirm = FALSE) {
+  $info0 = $info;
+  if (is_array($message)) {list ($message, $info, $confirm) = $message; $info += $info0;}
   if (!@$info['success']) r\tellStaff('failed transaction', $info + compact('message', 'confirm'));
   return array($message, $info, $confirm);
 }
@@ -1797,7 +1806,7 @@ function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
   foreach ([$a1, $a2] as $a) {
     $other = $a == $a1 ? $a2 : $a1; // if neither confirmed nor confirming icard by tx with inviter
     if (!$a->confirmed and !($a->iCode == IBY_ICARD and $a->helper == $other->id)) { 
-      return array('not confirmed', u\ray('youName inviterName', $a->fullName, $a->helperA->fullName));
+      return ['not confirmed', u\ray('youName inviterName', $a->fullName, $a->helperA->fullName), FALSE];
     }
   }
   list ($myAccess, $otherAccess) = u\order($taking xor $neg, B_SELL, B_BUY);

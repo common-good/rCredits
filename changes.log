@@ -1,3 +1,10 @@
+2015-11-19
+. now using Bootstrap 3 more fully
+. added breadcrumbs
+. jQuery photo upload
+. (no password quality metrics, so this is a stepping-stone unusable update)
+. separated out theme file guts into rcredits folder, so they get tracked
+
 2015-11-09
 . gave cAdmins access to secure messages from people in their area
 . fixed bug: invoice payment was complaining of duplicate transaction

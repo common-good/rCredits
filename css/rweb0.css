@@ -11,8 +11,10 @@
 .clearfix {clear:both; width:100%;}
 body {font-size:14px;}
 #page-wrapper {width:100%; max-width:100; background-color:white;} /* not max-width:961px */
-#main #content,
-#block-system-main {width:100%;}
+.page-community #main #content,
+.page-history #main #content,
+.page-account #main #content,
+.page-sadmin #main #content {width:100%;}
 
 #rcreditswebformcommunity,
 #rcreditswebformhistory,
@@ -227,9 +229,9 @@ form.rweb div {vertical-align:top;}
 form.rweb #edit-title {margin-bottom:20px; font-size:160%; color:darkgreen; text-align:left; width:100%;}
 
 form.rweb .description {display:block; clear:both; margin:.15em 0 0 0;}
-/* form.rweb .form-type-item label {text-align:left;} */
+form.rweb .form-type-item label {text-align:left;}
 form.rweb .form-type-textfield {display:inline-block; margin-right:0;}
-/* form.rweb .form-type-textfield label {display:inline-block;} */
+form.rweb .form-type-textfield label {display:inline-block;}
 form.rweb #edit-subtext label {font-weight:normal; color:darkgreen; width:100%; text-align:left;}
 
 form.rweb input {vertical-align:top;}
@@ -251,11 +253,11 @@ form.rweb  .form-no {color:red;}
   /* Labeled Forms (each field is preceded by a short label and the fields line up)
   /* form.rweb.labeled (this fails for Chrome) */
   form.labeled .form-type-textfield {display:block; margin-right:0;}
-/*  form.labeled label, form.labeled .form-type-item label {display:inline-block; width:122px; text-align:right; margin-right:0;} /* default label width */
+  form.labeled label, form.labeled .form-type-item label {display:inline-block; width:122px; text-align:right; margin-right:0;} /* default label width */
 
   form.labeled #edit-title,
   form.labeled input.form-submit,
-/*  form.labeled #edit-tip label, */
+  form.labeled #edit-tip label,
   form.labeled .description,
   form.labeled #edit-subheader,
   form.labeled #edit-subtext {margin-left:125px;}
@@ -276,7 +278,7 @@ form.rweb  .form-no {color:red;}
 }
 @media (max-width:27.99em) {
   form.labeled .form-type-textfield,
-/*  form.rweb .form-type-textfield label {display:block; margin-right:0;} */
+  form.rweb .form-type-textfield label {display:block; margin-right:0;}
   form.rweb input {display:block;}
   #rcreditswebformtx #calc button {display:inline;}
 }

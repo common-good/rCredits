@@ -249,13 +249,17 @@ function photo($args) {
   return photoReturn($a->agent->photo);
 }
 
+/**
+ * Return the customer's account photo.
+ */
 function photoReturn($pic) {
-  $max = 50;
+  $max = 50; // arbitrary abbreviation length for logging and testing
   $message = strlen($pic) < $max ? $pic : bin2hex(substr($pic, 0, $max)); // identifies pic w/out a big db hit
   u\loga('out', compact('message'));
 
   if (u\test()) {
-    if (!$pic) $message = 'no photo';
+    $filename = DRUPAL_ROOT . R_PICTURE_DIR . '/' . R_DFT_PICTURE; // never a company photo
+    if (u\starts(bin2hex(substr(file_get_contents($filename), 0, $max)), $message)) $message = 'no photo';
     t\output($message); 
     return $message;
   } else exit($pic);

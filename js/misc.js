@@ -33,3 +33,4 @@ jQuery("#index a").mouseover(function() {
   detail.show();
 });
 jQuery(".index-detail").click(function() {jQuery("#edit-acct-index, .index-detail").hide();});
+jQuery(".noEdit").prev().attr("disabled", 1);

@@ -142,6 +142,10 @@ class acct {
     if (u\abbreviates('j_', $field)) return $a->jGet(substr($field, 2)); // real field name is minus the "j_"
     $a->reread(); // necessary when we pass an acct object to another page
 
+    if (substr($field, 0, 3) == 'can') $nickname = lcfirst(substr($field, 3));
+    if (in_array($field, u\ray('ok confirmed member bona co reserve admin cAdmin cAdmin2 cttyActive cttyUp'))) $nickname = $field;
+    if (@$nickname) return $a->can(u\consta('b', $nickname));
+
     if ($field == 'mainQid') return r\quid($a->id);
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
@@ -159,14 +163,13 @@ class acct {
     if ($field == 'helperA') return $a->helper ? r\acct($a->helper) : '';
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
       : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
-    if (in_array($field, u\ray('ok confirmed member co reserve admin cAdmin cAdmin2 cttyActive cttyUp'))) return $a->can(u\consta('b', $field));
-
+      
     if (isset(self::$rs[$a->id]->$field)) {
       $result = @self::$rs[$a->id]->$field; // returns NULL if field not set
     } else $result = $a->getSpecial($field); // set up caches and get value, if appropriate
 
     if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
-    if ($field == 'photo') return $a->co ? file_get_contents(BASE_URL . $a->auxFilename('picture')) : u\decrypt($result);
+    if ($field == 'photo') return ($a->co or !$result) ? file_get_contents(BASE_URL . $a->auxFilename('picture')) : u\decrypt($result);
     if (in_array($field, u\ray(R_VSECURE_FIELDS)) and !is_array($result) and u\starts($result, CRYPT_FLAG)) { // !is_array() is temporary, for ssnData in transition
       if (@r\acct()->admin and $pw2 = @$_COOKIE['pw2']) {
         $result = u\decrypt($result, 0, $pw2);
@@ -356,7 +359,7 @@ class acct {
     $thing = $small ? 'icon' : 'photo';
     $qid = $a->mainQid;
     if (!$a->co) $qid .= "/$a->cardCode";
-    return '<div class="user-picture"><img src="' . "$base_url/account/member-photo/$qid$unique" . '" alt="profile picture" /></div>';
+    return '<div id="user-picture"><img src="' . "$base_url/account/member-photo/$qid$unique" . '" alt="profile picture" /></div>';
   }
 
   /**
