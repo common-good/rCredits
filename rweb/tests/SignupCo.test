@@ -68,7 +68,7 @@ class rwebSignupCo extends DrupalWebTestCase {
     And__('we show "Open a Company Account" with: "ARRAY'
     . '\\|_nameDescription      |'
     . '\\| properly capitalized |"');
-    And__('with options: "ARRAY'
+    And__('with: "ARRAY'
     . '\\|_acctType            |'
     . '\\| partnership         |'
     . '\\| private corporation |"');

@@ -156,13 +156,13 @@ EOF
   ) . $back;
   
   if ($i == 'common-good-community') return tt(<<<EOF
-    <p>The purpose of the rCredits system is to create and fund community-centered participatory democracy. A community that has met the <a href='@BASE_URL/help/common-good-community-requirements'>requirements</a> to become a Common Good Community may apply to Common Good Finance for certification. This certification permits the community to issue rCredits independently -- deciding for itself how many rCredits to issue (within safe limits) and what to fund with them.</p>
+    <p>The purpose of the rCredits system is to create and fund community-centered participatory democracy. A community that has met the <aRequirements>requirements</a> to become a Common Good Community may apply to Common Good Finance for certification. This certification permits the community to issue rCredits independently -- deciding for itself how many rCredits to issue (within safe limits) and what to fund with them.</p>
 
     <p>A Common Good Community is in "good standing" when it is issuing rCredits responsibly, so they accurately represent the potential of its members to produce corresponding goods and services in the short term.  A Common Good Community may lose its good standing if it runs a trade deficit with other Common Good Communities and fails to redeem it in a timely manner. Common Good Finance and the other communities will provide ongoing feedback, to prevent this from happening accidentally.</p>
 EOF
-  ) . $back;
+  , ['!aRequirements' => 'a href="common-good-community-requirements"']) . $back;
   
-  if ($i == 'cash-crunch') return t(<<<EOF
+  if ($i == 'cashflow-crunch') return t(<<<EOF
     <p>Once your geographic area becomes a Common Good Community, you can together decide to spend, grant, lend, and/or invest some of the US Dollars that members have put into their rCredits accounts, that are sitting unused. Of course you want to be careful not to use ALL of the US Dollars. From time to time, members will want to exchange some of their rCredits for US Dollars, to pay companies and individuals not yet participating in the rCredits system. There need to be enough US Dollars in reserve to cover the likely amount of those withdrawals.</p>
 
     <p>If you and your community misjudge and use too much of your US Dollar reserve, you will have a cashflow crunch until more US Dollars come in. There are many ways to handle this situation. For example, you might ask members who can, to add funds to their rCredits account. Or you might get a short-term loan from a traditional bank or credit union. It will be up to you and your community to choose what to do.</p>
@@ -170,18 +170,36 @@ EOF
   ) . $back;
 
   if ($i == 'backing-rcredits') return t(<<<EOF
-    <p>rCredits are backed by all rCredits members together. Backing rCredits means you will accept at least <i>a limited amount</i> of them as payment for your goods and services (or trade US Dollars for them) even if, at that time, you cannot easily spend them or easily exchange them for US Dollars. For example, if your average balance over the past six months is $200, you agree to back rCredits up to $200. Then if your community has a <a href="cash-crunch">cashflow crunch</a>, you have agreed to keep accepting rCredits as payment for your goods and services at least until your balance goes over $200.</p>
+    <p>rCredits are backed by all rCredits members together. Backing rCredits means you will accept at least <i>a limited amount</i> of them as payment for your goods and services (or trade US Dollars for them) even if, at that time, you cannot easily spend them or easily exchange them for US Dollars. For example, if your average balance over the past six months is $200, you agree to back rCredits up to $200. Then if your community has a <!aCrunch>cashflow crunch</a>, you have agreed to keep accepting rCredits as payment for your goods and services at least until your balance goes over $200.</p>
 
     <p>Like the Federal Reserve's backing for US Dollars held as bank deposits, backing for rCredits helps prevent unfounded fears from causing a "run on the bank". Since we all make this agreement together, we can rest assured that even in a crisis rCredits will maintain their value.</p>
 EOF
-  ) . $back;
+  , ['!aCrunch' => 'a href="cashflow-crunch"']) . $back;
 
   if ($i == 'cashing-out') return t(<<<EOF
     <p>rCredits have value and act like money because we agree to accept them as payment for our good and services, so they move from member to member to member as a token of exchange. When someone pays you in rCredits, you can spend those funds &mdash; OR you can "cash them out" by transferring them to your bank account or exchanging them for cash.</p>
     <p>You can cash out rCredits that someone <i>pays</i> you, but any rCredits you <i>receive free</i>, as Incentive Rewards, must continue to circulate within the rCredits system. You cannot cash them out &mdash; you can only spend them.</p>
+    <p>You can help keep the rCredits system healthy by treating your incentive rewards as a <!aReserve>Savings Reserve</a>.</p>
 EOF
-  ) . $back;
+, ['!aReserve' => 'a href="savings-reserve"']) . $back;
 
+  if ($i == 'savings-reserve') return t(<<<EOF
+    <p><b>Background.</b> It is crucial to the success of the rCredits system that most of the rCredits issued as incentive rewards stay in the system and keep circulating in the community. While the system is small, it is a bit frail in that regard, so we need to be extra careful to make sure there is no "<!aCrunch>cashflow crunch</a>" at least until we are ready to handle it as a strong, well-functioning democratic rCredits community.</p>
+
+    <p><b>The Reserve Option.</b> So we encourage you to keep your incentive rewards in the system as a "savings reserve" &mdash; until you need them. This is like a traditional reserve credit line that kicks in whenever you would otherwise overdraw your checking account &mdash; except there are no fees here.</p>
+
+    <p><b>Impact On You.</b> Choosing this option has absolutely no effect on what you can do with your account. It just means your account balance gets reported to you without including the incentive rewards total.</p>
+
+    <p>For example, if you have $300 in your account and $100 of that is incentive rewards that you received (free), then:</p>
+    <ul>
+      <li><em>Without the "Reserve" option</em>, your balance shows as $300, with no savings reserve.</li>
+      <li><em>With the "Reserve" option</em>, your balance will show as $200, with a savings reserve of $100.</li>
+    </ul>
+    
+    <p>No downside for you, but a big upside for the rCredits community -- choosing this option helps keep the system healthy while it grows to become stable and permanent.</p>
+EOF
+  , ['!aCrunch' => 'a href="cashflow-crunch"']) . $back;
+  
   if ($i == 'graceful-failure') return t(<<<EOF
      <p>Common Good Finance has put great care into designing the rCredits system so that it will NOT fail. Paradoxically, one requirement for its success is a detailed plan for a graceful shutdown. In the unlikely event that the whole rCredits system proves unworkable, the rCredits Agreement gives us a way to end without leaving anyone "holding the bag".</p>
      <p>As part of the rCredits Agreement, you promise to give back all the rCredits you received for free &mdash; as signup bonus, purchase rewards, etc. You can do that either</p>
@@ -197,6 +215,22 @@ EOF
 EOF
   ) . $back;
 
+  if ($i == 'enough-revenue') return t(<<<EOF
+     <p>There is no magic formula (yet) for deciding how much revenue is enough to cover the incentive rewards. The important question is: who gets to decide such things?</p>
+     <p>The rCredits system was invented for a single, critically important purpose: to create an opportunity for the community to take responsibility for its own economy. In a <!aCGC>Common Good Community</a> you decide, along with your friends and neighbors, how many rCredits to issue as incentive rewards, and how many as grants, loans, and investments. You decide what to incentivize:</p>
+     <ul>
+       <li>buying local?</li>
+       <li>eating organic food?</li>
+       <li>using renewable energy sources?</li>
+       <li>creating works of art?</li>
+     </ul>
+     <p>Being able to discuss and decide together what to incentivize and what to fund means we decide together what to make happen in our world. The future is ours. Together we can provide a decent life for everyone in our community, offer a hand to people elsewhere, and do our part to rescue ourselves from the brink of climate-change disaster.</p>
+     <p>Having enough revenue to cover the incentive rewards is a small step along that path. Nobody knows yet when we will have a fully-functioning Common Good Community, capable of making that judgment. One of our community organizers predicts it will be when there are about 3,000 rCredits members. Time will tell.</p>
+     <p>In the meantime, you are encouraged to hold your incentive rewards as a <!aReserve>Savings Reserve</a>, so those rCredits can keep circulating among the participants as much as possible, while we grow.</p>
+EOF
+  , ['!aCGC' => 'a href="common-good-community"',
+     '!aReserve' => 'a href="savings-reserve"']) . $back;
+  
   if ($i == 'ethics') return t(<<<EOF
     <p>A Common Good Community relies on its members to show a high level of ethical behavior, as the basis for creating a culture of trust and possibility. Of course it is always possible for someone to "game" the system and we will continue to develop software that brings such misbehavior to the attention of the community.</p>
     <p>Sometimes what looks like unethical behavior is in reality a desperate bid to escape from poverty. It is our responsibility as a community to think well about what our members need and want, and use the funding power of rCredits accordingly, so that such desperation is never necessary.</p>
@@ -323,7 +357,7 @@ EOF
     <p>The rCredits system gives us an easy way to track our economic circles and opportunities for improvement. For now, "local" means within the rCredits system, but we expect the definition to expand as rCredits membership continues to grow.</p>
     <p>This chart shows four types of transactions. For strong economic circles, we should see the volume of person-to-business (<b class='p2b'>p2b</b>) transactions matching the volume of business-to-person (<b class='b2p'>b2p</b>) transactions. More <b class='p2b'>p2b</b> than <b class='b2p'>b2p</b> means business are not paying enough local employees (or other local businesses). More <b class='b2p'>b2p</b> than <b class='p2b'>p2b</b> means people are shopping elsewhere. As you can see, member businesses are just beginning pay their employees in rCredits (see our post on <a href="http://rc4.me/fb">FaceBook</a> about solving the payroll problem).</p>
     <p>The <a href="demand">Monthly Bank Transfers</a> chart also measures how well we are doing as a community, at keeping money in the system.</p>
- EOF
+EOF
   ) . $back;
 
   if ($i == 'your-return') return tt(<<<EOF
@@ -334,14 +368,14 @@ EOF
   if ($i == 'social-return') return tt(<<<EOF
     <p>The community's financial benefit from your participation is very loosely calculated as the sum of:</p>
     <ul>
-      <li>Your gifts to Common Good Finance (including shared rewards).</li>
-      <li>The amount of money you moved into the system, minus the amount you moved out (but not less than zero). By using rCredits in place of those funds, as they circulate among rCredits members, we can free up that much US Dollars for the community to grant, lend, or invest.</li>
-      <li>The amount of your incentive rewards for buying and selling &mdash; reflecting the value the community places on your using rCredits for purchases and sales.</li>
-      <li>Your per-capita share of the funds the community has already granted, loaned, or invested. The continued viability of that funding is supported by your participation. (counted as part of social benefits ever, but not in the past month)</li>
-      <li>A percentage (@R_CC_RATE%) of your purchase and sale amounts &mdash; the typical processing fee that businesses pay for credit card purchases. Together with the other party to the transaction, you kept that much money from leaking out of the community to the big banks.</li>
+      <li><b>Donations.</b> Your gifts to Common Good Finance (including shared rewards).</li>
+      <li><b>Money in.</b> The amount of money you moved into the system, minus the amount you moved out (but not less than zero). By using rCredits in place of those funds, as they circulate among rCredits members, we can free up that much US Dollars for the community to grant, lend, or invest.</li>
+      <li><b>Rewards.</b> The amount of your incentive rewards for buying and selling &mdash; reflecting the value the community places on your using rCredits for purchases and sales.</li>
+      <li><b>Community funding.</b> Your per-capita share of the funds the community has already granted, loaned, or invested. The continued viability of that funding is supported by your participation. (counted as part of social benefits ever, but not in the past month)</li>
+      <li><b>Card fees saved.</b> A percentage (@R_CC_RATE%) of your purchase and sale amounts &mdash; the typical processing fee that businesses pay for credit card purchases. Together with the other party to the transaction, you kept that much money from leaking out of the community to the big banks.</li>
     </ul>
     </p>
-    <p>Of course the community benefits far more from your participation, by having (all of us together) greater control over our local economy, so we can plan and decide together how to use the power of money to make a better life for everyone.</p>
+    <p><b>Control.</b> Of course your participation benefits the community far beyond mere money. The commmunity benefits by all of us together having greater control over our local economy, so we can plan and decide together how to use the power of money to make a better life for everyone.</p>
 EOF
   ) . $back;
   

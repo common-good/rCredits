@@ -36,7 +36,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'other community down' => t('That rCredits community is temporarily on hold.'),
   'account info' => t('Your balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @totalDemand.'),
   'invite reward' => t('inviting and/or assisting new member @fullName'),
-  'employee invite reward' => t('inviting and/or assisting a member\'s manager (at @fullName -- $@R_COUNTED_BONUSr per employee)'),
+//  'employee invite reward' => t('inviting and/or assisting a member\'s manager (at @fullName -- $@R_COUNTED_BONUSr per employee)'),
 //  'account info2' => t("More account info"), // not used yet
 //  'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
   'reward' => t('(reward: @rewardAmountr)'), // @rewardType
@@ -130,6 +130,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'invitee slow' => t('Your friend @fullName has not finished opening an rCredits account (@elapsed days after accepting your invitation). The next step is: "@step". Call maybe, to offer help?'),
   'reminder coming' => t('We will send you just one reminder'),
   'reminder one' => t('This is your one reminder'),
+  'balance notice' => t('@balance, including @rewards incentive rewards to date'),
+  'balance notice reserved' => t('@balance, plus @rewards incentive rewards held as a savings reserve'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),

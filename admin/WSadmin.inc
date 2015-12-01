@@ -233,7 +233,7 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
  */
 function ssnCheck($a) {
   if (!$ssnData = @$a->ssnData) {
-    if (!$ssnData0 = u\ssnLookup($a->federalId)or strpos($ssnData0, 'RequestTimedOutException')) return w\say(t('No data returned from ssnLookup (probably timed out).'));
+    if (!$ssnData0 = u\ssnLookup($a->federalId)) return w\say(t('No data returned from ssnLookup (probably timed out).'));
 //    if (strpos($ssnData0), 'timeout')
     $xml = simplexml_load_string($ssnData0);
     $json = json_encode($xml);
@@ -361,6 +361,7 @@ function pioneerBonus($a) {
 
 /**
  * Re-setup the test cards on the STAGING server, after importing data from the PRODUCTION server.
+  include_once __DIR__ . '/../rcredits/admin/admin.inc';
   f('a.makeTestCards');
  */
 function makeTestCards() {
@@ -430,8 +431,7 @@ function getBanks() {
 }
 
 /**
- * Create a smaller photo to send to POS devices
- * CALLED ONLY FROM a\makeTestCards()!
+ * Create a smaller photo to send to POS devices.
  * @param acct $a: the account whose photo is to be shrunk
  * @param string $err: (RETURNED) the error message, if any
  * @return <success>
@@ -572,7 +572,7 @@ EOF;
 EOF;
     }
   }
-  $deposits = @$deposits ? join("\n", $deposits) : '<tr><td colspan=5>No deposits</td></tr>';
+  $deposits = @$deposits ? join("\n", $deposits) : '<tr><td colspan=4>No deposits</td></tr>';
   $header = '<tr><th>Deposit</th><th></th><th>Count</th><th>Total</th><th></th></tr>';
   return <<<EOF
 <table id="deposits">
@@ -813,49 +813,10 @@ function makeSecure() {
   }
 }
 
-/**
- * Show sluggish accounts
- */
- /*
-function showSlugs() {
-  $q = f('db.q', 'SELECT u.uid, u.fullName, (SELECT created FROM r_txs WHERE payer=u.uid AND payee>0 AND payee<>26742000000002 ORDER BY created DESC LIMIT 1) AS lastUse, u.activated FROM users u WHERE u.uid>0  AND community=-26742000000001 ORDER BY lastUse, u.activated');
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    $a = a($uid);
-    if ($a->ok) {
-      $ray = [$a->fullName, f('u.fmtPhone', $a->phone), $a->email, @$lastUse ? f('u.fmtDate', $lastUse) : t('never'), '(' . f('u.fmtDate', @$activated) . ')'];
-    echo join("\t", $ray) . "\n";
-    }
-  }
-}
-*/
-
-// print iCards for all active members in the greater Greenfield ctty
-// be sure to chmod ...rcredits/temp to 777 before running this.
 function special() {
-  $cgfId = r\cgfId();
-  $ctty = r\serverUid();
-  $accts = [];
-  $addrs[] = 'name~addr1~addr2';
-  $q = db\q("SELECT uid, fullName, (SELECT created FROM r_txs WHERE payer=u.uid AND payee>0 AND payee<>$cgfId ORDER BY created DESC LIMIT 1) AS lastUse FROM users u WHERE uid>0 AND activated<1445890448 AND name NOT IN('mayleaspence','annwalsh','ivanussach','lynnbenander','anniewinkler','mesaverde','johnfeichholz','williamspademan','leelewis','cooppower','cimbriabadenhausen') AND community=$ctty ORDER BY fullName");
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    $a = a($uid);
-    if ($a->ok and $lastUse) {
-      $changes = $a->changes;
-      $ch = $changes[count($changes)-1];
-      $chs[] = "$fullName: " . $ch[1]['lastiCode'];  
-//      $a->update('lastiCode', $a->lastiCode < 15 ? '' : $a->lastiCode - 10);
-      $salvage[] = "$fullName: $a->lastiCode";
-    }
-    if ($a->ok and $lastUse and !@$a->lastiCode) {
-      $accts[] = $a;
-      $addrs[] = "$fullName~" . join('~', explode(', ', $a->postalAddr, 2));
-    }
-  }
-/**/ debug($chs);
-//  file_put_contents(DRUPAL_ROOT . R_PATH . '/temp/merge.txt', join($addrs, "\n"));
-//  w\printInvite($accts);
+  makeSecure();
+  if (isSTAGE) makeTestCards();
+  return '';
 }
 
 /*

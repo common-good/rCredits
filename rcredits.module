@@ -293,7 +293,7 @@ function patch($name) {
   if ($name == 'user_login_final_validate2207') {
     $email = $args[1];
     \watchdog('user', 'Login attempt failed for %user.', array('%user' => $email));
-    $a = 'href=account/password';
+    $a = 'href=settings/password';
     return (\drupal_get_messages('error', FALSE)) ? '' : w\say('bad login', compact('a'), 'name');
   }
   if ($name == '_user_mail_notify3569') {
@@ -302,22 +302,12 @@ function patch($name) {
     $uid = $account->uid;
     return drupal_mail('rCredits', $op, r\acct($uid)->email, $language, compact('uid'));
   }
-  if ($name == 'user_form_process_password_confirm3595') return array(
-    'strengthTitle' => t('strength:'),
-    'makeLonger' => t('Make it longer'),
-    'weak' => t('Weak (not strong enough)'),
-    'fair' => t('Fair (but not strong enough)'),
-    'good' => t('Good (but not strong enough)'),
-    'strong' => t('Strong (but not strong enough)'),
-    'verystrong' => t('Very strong (strong enough)'),
-    'mighty' => t('Mighty (strong enough)'),
-    'paranoid' => t('Paranoid? (plenty strong)'),
-  );
-  
+  if ($name == 'user_form_process_password_confirm3595') return []; // patch no longer used (see w\formReset())
+
   // form.inc
   $tabled = ['#tabled' => TRUE];
   if ($name == 'form_select_options2741') return $args[1]['#options']; // this accommodation for dynamic javascript dropdowns (set #options = NULL) is inadequate when there is an error on the form (see signup form)
-  if ($name == 'form_process_password_confirm2914') return $tabled + ['#title' => t('New password:')] + ['#class' => ['password-field password-processed']];
+  if ($name == 'form_process_password_confirm2914') return $tabled + ['#title' => t('New password:')] + ['#class' => ['password-field']];
   if ($name == 'form_process_password_confirm2921') return $tabled + ['#title' => t('Confirm new password:')] + ['#class' => ['password-confirm']];
   
   if ($name == '_update_cron_notify') return; // update.fetch.inc

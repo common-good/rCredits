@@ -6,9 +6,9 @@ SO I can spend up to my total credit line.
 Setup:
   Given members:
   | id   | fullName   | rebate | flags      |*
-  | .ZZA | Abe One    |      5 | ok,bona    |
-  | .ZZB | Bea Two    |     10 | ok,bona    |
-  | .ZZC | Corner Pub |     10 | ok,co,bona |
+  | .ZZA | Abe One    |      5 | ok,confirmed,bona    |
+  | .ZZB | Bea Two    |     10 | ok,confirmed,bona    |
+  | .ZZC | Corner Pub |     10 | ok,confirmed,co,bona |
   And relations:
   | id      | main | agent | permission | draw |*
   | NEW.ZZA | .ZZC | .ZZA  | manage     |    1 |

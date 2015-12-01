@@ -5,7 +5,6 @@ SO I can be part of the Common Good Economy
 # Note that "member" in the scenarios below means new member (newbie).
 
 Setup:
-Setup:
   Given members:
   | id   | fullName | acctType    | flags      | created  |*
   | .ZZZ | Zeta Zot | personal    | ok,bona    | 99654321 |
@@ -61,9 +60,8 @@ Scenario: A newbie registers in Western Massachusetts
   #And we show "Empty"
 
 Scenario: A newbie registers with an unconfirmed icard invitation
-  Given member ".ZZZ" email invitation code is "BRFWWVZCH3"
   And next random code is "%name"
-  When member "?" confirms form "signup/code=BRFWWVZCH3E" with values:
+  When member "?" confirms form "signup/code=O9C8KP3IECF" with values:
   | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns | helper |*
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ |
   Then members:
@@ -83,7 +81,6 @@ Scenario: A newbie registers with an unconfirmed icard invitation
   #And we show "Empty"
   
 Scenario: A newbie registers with an unconfirmed self-invitation
-# unconfirmed by email is very similar except "B" gets added to the code and the iCode is %IBY_EMAIL (1)
   Given member ".ZZZ" email invitation code is "BRFWWVZCH3"
   And next random code is "%name"
   When member "?" confirms form "signup/code=BRFWWVZCH3" with values:
@@ -171,7 +168,7 @@ Scenario: A member registers again
   | Bea Two  | a@ | 413-253-0002 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL |
   Then we say "error": "duplicate email|forgot password" with subs:
   | who     | emailTagged            | a                                       |*
-  | Abe One | a+whatever@example.com | a href=account/password/a%40example.com |
+  | Abe One | a+whatever@example.com | a href=settings/password/a%40example.com |
 #  And member is logged out
 # That email is taken. Click here to get a new password.
 

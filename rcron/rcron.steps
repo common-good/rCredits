@@ -470,3 +470,11 @@ function memberFieldValues($list) {return t\memberFieldValues($list);}
  * in: MAKE Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
  */
 function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
+
+/**
+ * variable (ARG) is (ARG) with subs: (ARG)
+ *
+ * in: MAKE Notices AMemberGetsSomeNotices
+ *     MAKE Notices AMemberGetsSomeWeeklyNotices
+ */
+function variableIsWithSubs($var, $index, $subs) {return t\varIs($var, $index, $subs);}

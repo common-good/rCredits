@@ -47,7 +47,7 @@ Setup:
   | .ZZC | 3320 |     270 |
 
 Scenario: A member downloads transactions for the past year
-  When member ".ZZA" visits page "history/period=365&download=1"
+  When member ".ZZA" visits page "history/transactions/period=365&download=1"
   Then we download "rcredits%todayn-12m-%todayn.csv" with:
   # For example rcredits20120525-20130524.csv
   | Tx# | Date    | Name    | From bank | From you | To you | Purpose | Reward/Fee | Net  |*

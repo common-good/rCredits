@@ -55,7 +55,7 @@ class rwebContact extends DrupalWebTestCase {
   // Scenario: A member visits the contact info page
   public function testAMemberVisitsTheContactInfoPage_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" visits page "account/contact"');
+    When_('member ".ZZA" visits page "settings/contact"');
     Then_('we show "Contact Information" with: "ARRAY'
     . '\\| Your Name | Abe One   |'
     . '\\| Email | a@ |'
@@ -69,7 +69,7 @@ class rwebContact extends DrupalWebTestCase {
   // Scenario: A member updates contact info
   public function testAMemberUpdatesContactInfo_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" confirms form "account/contact" with values: "ASSOC'
+    When_('member ".ZZA" confirms form "settings/contact" with values: "ASSOC'
     . '\\| fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email | tenure |'
     . '\\| Abe One  | 413-253-0001 | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | a@    |     18 |"');
     Then_('members: "ASSOC'
@@ -81,7 +81,7 @@ class rwebContact extends DrupalWebTestCase {
   // Scenario: A member gives a bad phone
   public function testAMemberGivesABadPhone_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" confirms form "account/contact" with values: "ASSOC'
+    When_('member ".ZZA" confirms form "settings/contact" with values: "ASSOC'
     . '\\| fullName | phone   | country | postalCode | state | city    | address   | postalAddr | email | tenure |'
     . '\\| Abe One  | %random | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | a@    |     18 |"');
     Then_('we say "error": "bad phone"');
@@ -90,7 +90,7 @@ class rwebContact extends DrupalWebTestCase {
   // Scenario: A member gives a bad email
   public function testAMemberGivesABadEmail_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" confirms form "account/contact" with values: "ASSOC'
+    When_('member ".ZZA" confirms form "settings/contact" with values: "ASSOC'
     . '\\| fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email   |'
     . '\\| Abe One  | 413-253-0002 | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | %random |"');
     Then_('we say "error": "bad email"');
@@ -99,7 +99,7 @@ class rwebContact extends DrupalWebTestCase {
   // Scenario: A member updates to a different state
   public function testAMemberUpdatesToADifferentState_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" confirms form "account/contact" with values: "ASSOC'
+    When_('member ".ZZA" confirms form "settings/contact" with values: "ASSOC'
     . '\\| fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email | tenure |'
     . '\\| Abe One  | 413-253-0001 | US      | 01002      | MI    | Amherst | 2 Elm St. | PO Box 1   | a@    |     18 |"');
     Then_('members: "ASSOC'
@@ -111,7 +111,7 @@ class rwebContact extends DrupalWebTestCase {
   // Scenario: A member updates to a different name
   public function testAMemberUpdatesToADifferentName_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" confirms form "account/contact" with values: "ASSOC'
+    When_('member ".ZZA" confirms form "settings/contact" with values: "ASSOC'
     . '\\| fullName  | phone        | country | postalCode | state | city    | address   | postalAddr | email | tenure |'
     . '\\| Abe Other | 413-253-0001 | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | a@    |     18 |"');
     Then_('members: "ASSOC'

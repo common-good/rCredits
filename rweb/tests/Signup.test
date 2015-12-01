@@ -115,9 +115,8 @@ class rwebSignup extends DrupalWebTestCase {
   // Scenario: A newbie registers with an unconfirmed icard invitation
   public function testANewbieRegistersWithAnUnconfirmedIcardInvitation_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('member ".ZZZ" email invitation code is "BRFWWVZCH3"');
     And__('next random code is "%name"');
-    When_('member "?" confirms form "signup/code=BRFWWVZCH3E" with values: "ASSOC'
+    When_('member "?" confirms form "signup/code=O9C8KP3IECF" with values: "ASSOC'
     . '\\| fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns | helper |'
     . '\\| Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ |"');
     Then_('members: "ASSOC'
@@ -246,7 +245,7 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| Bea Two  | a@ | 413-253-0002 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL |"');
     Then_('we say "error": "duplicate email|forgot password" with subs: "ASSOC'
     . '\\| who     | emailTagged            | a                                       |'
-    . '\\| Abe One | a+whatever@example.com | a href=account/password/a%40example.com |"');
+    . '\\| Abe One | a+whatever@example.com | a href=settings/password/a%40example.com |"');
   }
 
   // Scenario: A member registers with an existing company

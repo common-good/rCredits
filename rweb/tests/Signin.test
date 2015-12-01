@@ -115,7 +115,7 @@ class rwebSignin extends DrupalWebTestCase {
   public function testAMemberAsksForANewPasswordForUsername_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('next random code is "wHatEveR"');
-    When_('member "?" completes form "account/password" with values: "ASSOC'
+    When_('member "?" completes form "settings/password" with values: "ASSOC'
     . '\\| name   |'
     . '\\| abeone |"');
     Then_('we email "password-reset" to member "a@example.com" with subs: "ASSOC'
@@ -127,7 +127,7 @@ class rwebSignin extends DrupalWebTestCase {
   public function testAMemberAsksForANewPasswordForAccountID_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('next random code is "wHatEveR"');
-    When_('member "?" completes form "account/password" with values: "ASSOC'
+    When_('member "?" completes form "settings/password" with values: "ASSOC'
     . '\\| name    |'
     . '\\| new.zza |"');
     Then_('we email "password-reset" to member "a@example.com" with subs: "ASSOC'
@@ -139,7 +139,7 @@ class rwebSignin extends DrupalWebTestCase {
   public function testAMemberAsksForANewPasswordForEmail_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('next random code is "wHatEveR"');
-    When_('member "?" completes form "account/password" with values: "ASSOC'
+    When_('member "?" completes form "settings/password" with values: "ASSOC'
     . '\\| name          |'
     . '\\| a@example.com |"');
     Then_('we email "password-reset" to member "a@example.com" with subs: "ASSOC'
@@ -150,7 +150,7 @@ class rwebSignin extends DrupalWebTestCase {
   // Scenario: A member asks for a new password for an unknown account
   public function testAMemberAsksForANewPasswordForAnUnknownAccount_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "?" completes form "account/password" with values: "ASSOC'
+    When_('member "?" completes form "settings/password" with values: "ASSOC'
     . '\\| name  |'
     . '\\| bogus |"');
     Then_('we say "error": "bad account id"');
@@ -162,7 +162,7 @@ class rwebSignin extends DrupalWebTestCase {
     Given('members: "ASSOC'
     . '\\| id   | fullName | pass | email | flags |'
     . '\\| .ZZC | Our Pub  | c1   | c@    | co    |"');
-    When_('member "?" completes form "account/password" with values: "ASSOC'
+    When_('member "?" completes form "settings/password" with values: "ASSOC'
     . '\\| name    |'
     . '\\| new.zzc |"');
     Then_('we say "error": "no co pass" with subs: "ASSOC'
@@ -174,14 +174,14 @@ class rwebSignin extends DrupalWebTestCase {
   public function testAMemberClicksALinkToResetPassword_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('next random code is "wHatEveR"');
-    When_('member "?" completes form "account/password" with values: "ASSOC'
+    When_('member "?" completes form "settings/password" with values: "ASSOC'
     . '\\| name          |'
     . '\\| a@example.com |"');
     And__('member "?" visits page "reset/id=abeone&code=wHatEveR"');
     Then_('we show "Choose a New Password"');
     When_('member "?" confirms form "reset/id=abeone&code=wHatEveR" with values: "ASSOC'
-    . '\\| newPass   | strong |'
-    . '\\| %whatever | 1      |"');
+    . '\\| pass1      | pass2      | strong |'
+    . '\\| %whatever  | %whatever  | 1      |"');
     Then_('member ".ZZA" is logged in');
     And__('we show "Account Summary"');
     Given('member is logged out');
@@ -196,7 +196,7 @@ class rwebSignin extends DrupalWebTestCase {
   public function testAMemberClicksALinkToResetPasswordWithWrongCode_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('next random code is "wHatEveR"');
-    And__('member "?" completes form "account/password" with values: "ASSOC'
+    And__('member "?" completes form "settings/password" with values: "ASSOC'
     . '\\| name          |'
     . '\\| a@example.com |"');
     When_('member "?" visits page "reset/id=abeone&code=NOTwHatEveR"');
@@ -208,7 +208,7 @@ class rwebSignin extends DrupalWebTestCase {
   public function testAMemberClicksALinkToResetPasswordForUnknownAccount_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('next random code is "wHatEveR"');
-    And__('member "?" completes form "account/password" with values: "ASSOC'
+    And__('member "?" completes form "settings/password" with values: "ASSOC'
     . '\\| name          |'
     . '\\| a@example.com |"');
     When_('member "?" visits page "reset/id=abeone&code=NOTwHatEveR"');

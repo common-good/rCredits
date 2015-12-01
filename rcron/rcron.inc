@@ -715,10 +715,11 @@ function bona1($item) {
  */
 function employees() {
   $sql = 'SELECT u.uid, r.main AS company FROM r_relations r INNER JOIN users u ON u.uid=r.other WHERE r.employee AND :IS_BONA AND NOT :IS_COUNTED';
-  queueEach('employee', $sql);
+// DISCONTINUED  queueEach('employee', $sql);
   queueNext();
 }
 
+/*
 function employee($item) {
   extract(u\just('uid company', $item));
   $co = r\acct($company);
@@ -731,6 +732,7 @@ function employee($item) {
     }
   }
 }
+*/
   
 /**
  * Send daily, weekly, or monthly message digests. (Newbies are always daily)

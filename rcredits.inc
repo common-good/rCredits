@@ -62,7 +62,7 @@ define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from 
 define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_CASH', '(r-committed-GREATEST(0, floor, rewards))'); // balance available to cash out
 define('R_SHARE_MAX', 50); // minimum sharing percentage
-define('R_SHARE_DFT', 50); // default sharing percentage
+define('R_SHARE_DFT', 25); // default sharing percentage
 define('R_SHARING_MSG', t('sharing rewards with CGF'));
 
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
@@ -85,7 +85,7 @@ define('R_MAX_PHOTOID_SIZE', 2.5); // Dwolla's limit (MB)
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal FinCEN regulation
 define('R_INVITE_DAYS', 30); // number of days to accept invitation to membership
-define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
+define('R_MINR_DEFAULT', 0); // suggested minimum amount to hold in rCredits
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
 define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter easy copying, max 14 for small QR)
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
@@ -200,7 +200,7 @@ define('B_OK', 2); // approved to use rCredits for real (set by admin when ready
 define('B_UP', 2); // ctty: is operational (up) (see also B_CTTYUP)
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
 define('B_FROZEN', 3); // ctty: is frozen (no member can cash out)
-define('B_COUNTED', 4); // someone got a COUNTED reward for this employee signing up
+define('B_u4', 4); // 
 define('B_u5', 5); //
 define('B_CO', 6); // company account
 define('B_u7', 7); //
@@ -230,7 +230,7 @@ define('B_ADMIN', 30); // is a system administrator -- can manage server, includ
 define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
 define('B_MAX', 31); // maximum bit number
 define('B_ADMINABLE', 'confirmed co member bona reserve cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok bona counted u5 co u7 reserve nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 u26 regulator cadmin2 cadmin admin closed');
+define('B_LIST', 'member confirmed ok bona u4 u5 co u7 reserve nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 u26 regulator cadmin2 cadmin admin closed');
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+refunds+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community)
 
@@ -696,7 +696,7 @@ function notify($uid, $index, $subs = [], $force = FALSE) {
  * @param acct $a: the account that needs a higher minimum
  */
 function suggestMin($a) {
-  $suggested = u\fmtAmt($suggested0 = max(R_ACHMIN, $a->j_rewards, (R_SUGGEST_BUMP * $a->j_minimum) ?: R_MINR_DEFAULT));
+  $suggested = u\fmtAmt($suggested0 = max(R_ACHMIN, $a->j_rewards, (R_SUGGEST_BUMP * $a->j_minimum) ?: 100));
   $a1 = $a->makeDo('min', $suggested0);
   $msg = 'you were short';
   
@@ -1409,10 +1409,12 @@ function noticeArgs($uid, $where, $weekly, $monthly, $at = NULL) {
   $yestertime = u\fmtDate($start = $unit == 'month' ? u\plusMonths(-1, $at) : strtotime("-1 $unit", $at));
   $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
   extract(u\just('return', $a->j_stats()));
-  list ($balance, $rewards, $ourEmail) = array(u\fmtAmt($a->j_r), u\fmtAmt($a->j_rewards), $a->cttyA->email);
+  $balance = u\fmtAmt($a->j_r - ($a->reserve ? $a->j_rewards : 0));
+  list ($rewards, $ourEmail) = array(u\fmtAmt($a->j_rewards), $a->cttyA->email);
+  $balance = u\tt($a->reserve ? 'balance notice reserved' : 'balance notice', compact('balance', 'rewards'));
   $companies = \variable_get('companies');
   $companies = $companies[u\test() ? r\serverUid() : $a->community];
-  return compact(u\ray('messages unit range yestertime balance rewards return ourEmail companies'));
+  return compact(u\ray('messages unit range yestertime balance return ourEmail companies'));
 }
 
 /**
@@ -1805,7 +1807,8 @@ function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
   u\EXPECT($a1->ok, 'main account inactive tx');
   foreach ([$a1, $a2] as $a) {
     $other = $a == $a1 ? $a2 : $a1; // if neither confirmed nor confirming icard by tx with inviter
-    if (!$a->confirmed and !($a->iCode == IBY_ICARD and $a->helper == $other->id)) { 
+//    if (!$a->confirmed and !($a->iCode == IBY_ICARD and $a->helper == $other->id)) { 
+    if (!$a->confirmed and $a->helper != $other->id) { 
       return ['not confirmed', u\ray('youName inviterName', $a->fullName, $a->helperA->fullName), FALSE];
     }
   }

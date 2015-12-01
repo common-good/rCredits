@@ -76,8 +76,8 @@ class rwebMembership extends DrupalWebTestCase {
     When_('member "?" visits page "reset/id=deefour&code=%name"');
     Then_('we show "Choose a New Password"');
     When_('member "?" confirms form "reset/id=deefour&code=%name" with values: "ASSOC'
-    . '\\| newPass   | strong |'
-    . '\\| %whatever | 1      |"');
+    . '\\| pass1     | pass2     | strong |'
+    . '\\| %whatever | %whatever | 1      |"');
     Then_('member ".AAC" is logged in');
     And__('we show "Account Summary"');
     And__('we say "status": "take a step"');
@@ -193,7 +193,7 @@ class rwebMembership extends DrupalWebTestCase {
     When_('member ".ZZC" has done step "company"');
     And__('member ":ZZA" visits page "status"');
     Then_('with done "123456"');
-    When_('member ":ZZA" visits page "account/relations"');
+    When_('member ":ZZA" visits page "settings/relations"');
     And__('member ":ZZA" visits page "status"');
     Then_('we show "Your Account Setup Is Complete"');
     And__('with done ""');

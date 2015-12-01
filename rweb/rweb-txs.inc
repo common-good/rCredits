@@ -38,7 +38,6 @@ function formTxs($form, &$sta, $args = '') {
   extract(u\just('options period starting ending do xid download downloaded', $args)); 
   global $testPeriod; $testPeriod = @$period ?: TX_DEFAULT_PERIOD; // remember for tests
   if (@$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
-
   // Setup option array, including defaults and help
   /*
   $optDefaults = $opts = [];
@@ -49,7 +48,7 @@ function formTxs($form, &$sta, $args = '') {
   }
   */
   
-  extract(u\just('dateRange url starting ending', dateRange($args, 'history')));
+  extract(u\just('dateRange url starting ending', dateRange($args, 'history/transactions')));
 
   $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
   list ($header, $classes, $rows, $totals) = x\getTxRows($starting, $ending, $url, $maxRows, compact(u\ray('download agents channels boxes')));
@@ -64,22 +63,22 @@ function formTxs($form, &$sta, $args = '') {
   $empty = tt('no txs');
   $list = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
   $transactions = item("<div id=\"txs-title\">TRANSACTIONS</div>$list <br>&nbsp;");
-  $summary = formField('markup', '', '', array('markup' => txSummary($starting, $ending)));
+  $summary = fld('markup', '', '', array('markup' => txSummary($starting, $ending)));
 
   $divider = item('<hr>');
   $title = "";
   $title = item(t('Transaction History'));
-
+  $dataRange = '';
   $form = compact('title') + $dateRange + compact(u\ray('summary transactions states'));
   if (@$downloaded) js("window.open(\"$url&download=1\", \"download\");", 'inline', 'footer');
-  return $form;
+  return labeled($form);
 }
 
 function formTxs_validate($form, &$sta) {w\dateRangeValidate($sta);}
 
 function formTxs_submit($form, &$sta) {
   if (confirming_s($sta)) return;
-  dateRangeRedirect('history', $sta);
+  dateRangeRedirect('history/transactions', $sta);
 }
 
 /**
@@ -115,7 +114,7 @@ function txConfirm($do, $xid, &$sta) {
 }
 
 function handleTx($do, $xid, &$sta, $args) {
-  $url = str_replace('&do=', '&did=', "history/$args"); // don't do it again
+  $url = str_replace('&do=', '&did=', "history/transactions/$args"); // don't do it again
 
   if (substr($xid, 0, 1) == 'b') { // reversing bank transfer
     if (!r\acct()->admin) return FALSE; // only admin can do this currently
@@ -168,9 +167,9 @@ function txEdit($xid) {
   $orig = hidField(serialize($details));
   $title = item(t('Edit Transaction'));
   $to = item(r\acct($toMe ? $payer : $payee)->fullName, $toMe ? t('From:') : t('To:'));
-  $amount = textField(t('Amount: $'), '', dft(number_format($amount,2)));
-  $goods = formField('radios', '&nbsp;', '', dft($goods), u\ray(R_WHYS));
-  $purpose = textField(t('For:'), '', dft(u\nonish(@$purpose) ? '' : $purpose));
+  $amount = textFld(t('Amount: $'), '', dft(number_format($amount,2)));
+  $goods = radiosFld('&nbsp;', '', dft($goods), u\ray(R_WHYS));
+  $purpose = textFld(t('For:'), '', dft(u\nonish(@$purpose) ? '' : $purpose));
   $submit = submit(t('Update'));
 
   return labeled($form + compact(u\ray('title to amount goods purpose submit orig')));
@@ -253,6 +252,14 @@ function txSummary($starting, $ending) {
   $p_inProper = $p_outProper = $p_rewards = 0; // temporary until we include unpaid invoice data here
   $p_balance = $p_bank - $p_committed;
   $values += compact(u\ray('p_inProper p_bank p_outProper p_rewards p_committed p_balance'));
+
+  if ($mya->can(B_RESERVE)) {
+    $values['new'] -= $n_rewards;
+    $values['old'] -= $o_rewards;
+    list ($newReserve, $oldReserve) = [txBal($n_rewards), txBal($o_rewards)];
+    $reserveLine = ['id' => 'txsum-reserve', 'data' => u\ray("+ $oldReserve||(Reserve)||||||||||+ $newReserve")];
+  }
+
   foreach ($values as $key => $value) $$key = number_format($value, 2);
  
   $p_balance = txBal($p_balance, '+ '); // add +/-/$ to these, as appropriate
@@ -276,6 +283,7 @@ function txSummary($starting, $ending) {
       'id' => 'txsum-now', 
       'data' => u\ray("$old | + | $bank | - | $out | + | $in | + | $rewards |  |  | = | $new"),
     ),
+    @$reserveLine,
     array(
       'id' => 'txsum-pending',
       'data' => u\ray("<b>$PENDING:</b> | + | $p_bank | - | $p_outProper | + | $p_inProper | + | $p_rewards | - | $p_committed | = | $p_balance"),
@@ -310,7 +318,7 @@ function formInvoices($form, &$sta, $toFrom, $args = '') {
   //simple advanced
   $form = compact('title') + $dateRange + compact(u\ray('list toFrom'));
   if (@$downloaded) js("window.open(\"$url&download=1\", \"download\");", 'inline', 'footer');
-  return $form;
+  return labeled($form);
 }
 
 function formInvoices_validate($form, &$sta) {w\dateRangeValidate($sta);}

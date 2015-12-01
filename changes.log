@@ -1,9 +1,15 @@
-2015-11-19
+2015-11-30
 . now using Bootstrap 3 more fully
 . added breadcrumbs
 . jQuery photo upload
 . (no password quality metrics, so this is a stepping-stone unusable update)
 . separated out theme file guts into rcredits folder, so they get tracked
+. notices now report savings reserve properly
+. fixed bug: invitation confirmation by doing first transaction with inviter now works
+. changed default sharing percentage to 25%
+. bootstrap modal "which" form
+. delete second signup bonus for everyone and set BONA flag properly upon activation. Identified with this duplicates DUP-finder query: SELECT payee, fullName, COUNT(*) c, MAX(t.created) AS dt, MAX(xid) AS xid FROM r_txs t LEFT JOIN users u ON u.uid=t.payee WHERE type=1 GROUP BY payee HAVING c>1 (also type=4 for helper bonus)
+. special admin function for printing invitation cards for old members
 
 2015-11-09
 . gave cAdmins access to secure messages from people in their area
@@ -814,8 +820,8 @@
 
 2013-09-02
 . simplification of options when scanning a card; for example, never any "change acct" button on formI
-. created form account/ssn
-. created form account/kba
+. created form settings/ssn
+. created form settings/kba
 . "Not yet a member? <a>Check it out</a>!" on login
 . members can scan their own card to sign in (just add pword)
 . revised tests and usd class to use Dwolla sandbox effectively for testing

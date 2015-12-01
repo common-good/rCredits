@@ -175,7 +175,6 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  * members: (ARG)
  *
  * in: MAKE Bank Setup
- *     MAKE Boxes Setup
  *     MAKE Community Setup
  *     MAKE Company Setup
  *     TEST Company AMemberUpdatesCompanyInfo
@@ -407,8 +406,6 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  * we show (ARG) with: (ARG)
  *
  * in: TEST Bank AMemberAsksToDoTwoTransfersOutInOneDay
- *     TEST Boxes AMemberVisitsTheDevicesPageWithNoDevicesYet
- *     TEST Boxes AMemberHasAllKindsOfDevices
  *     TEST Community CronCalculatesTheStatistics
  *     TEST Company AMemberVisitsTheCompanyInfoPage
  *     TEST Contact AMemberVisitsTheContactInfoPage
@@ -450,6 +447,7 @@ function weShowWith($title, $content = FALSE, $debug = TRUE) {return t\weShowWit
  *
  * in: TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     TEST Relations ItsComplicated
+ *     TEST SignupCo AMemberRegistersACompany
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
  *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
  */
@@ -475,7 +473,7 @@ function without($content) {
 /**
  * with options: (ARG)
  *
- * in: TEST SignupCo AMemberRegistersACompany
+ * in: 
  */
 function withOptions($options, $debug = TRUE) {return t\shownWith($options, 'options', $debug);}
 
@@ -571,9 +569,7 @@ function usd($list) {return t\usd($list);}
 /**
  * member (ARG) visits page (ARG)
  *
- * in: MAKE Boxes AMemberVisitsTheDevicesPageWithNoDevicesYet
- *     MAKE Boxes AMemberHasAllKindsOfDevices
- *     MAKE Community CronCalculatesTheStatistics
+ * in: MAKE Community CronCalculatesTheStatistics
  *     MAKE Company AMemberVisitsTheCompanyInfoPage
  *     MAKE Contact AMemberVisitsTheContactInfoPage
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
@@ -1033,7 +1029,7 @@ function invitationWasSentOn($code, $dt) {
 /**
  * devices: (ARG)
  *
- * in: MAKE Boxes AMemberHasAllKindsOfDevices
+ * in: 
  */
 function devices($list) {return t\devices($list);}
 
@@ -1081,7 +1077,7 @@ function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $inf
  *     MAKE EditTx ABuyerTriesToDecreaseAPaymentAmount
  */
 function memberEditsTransactionWithValues($id, $xid, $values) {
-  return memberConfirmsFormWithValues($id, "history/xid=$xid&do=edit", $values);
+  return memberConfirmsFormWithValues($id, "history/transactions/xid=$xid&do=edit", $values);
 }
 
 /**
@@ -1155,7 +1151,7 @@ function memberCompletesRelationsFormWithValues($id1, $list) {
       }
     }
   }
-  return t\completeForm($id1, "account/relations", $list);
+  return t\completeForm($id1, "settings/relations", $list, TRUE);
 }
 
 /**
@@ -1213,7 +1209,7 @@ function memberHasCompanyInfo($id, $info) {
 function memberClicksOnTransaction($id, $do, $xid) {
   global $testPeriod;
   if ($do == 'X') $do = 'no';
-  return t\memberVisitsPage($id, "history/period=$testPeriod&do=$do&xid=$xid");
+  return t\memberVisitsPage($id, "history/transactions/period=$testPeriod&do=$do&xid=$xid");
 }
 
 /**
@@ -1224,7 +1220,7 @@ function memberClicksOnTransaction($id, $do, $xid) {
 function memberConfirmsOnTransaction($id, $do, $xid) {
   global $testPeriod;
   if ($do == 'X') $do = 'no';
-  return t\completeForm($id, "history/period=$testPeriod&do=$do&xid=$xid", '', TRUE);
+  return t\completeForm($id, "history/transactions/period=$testPeriod&do=$do&xid=$xid", '', TRUE);
 }
 
 /**
@@ -1241,8 +1237,7 @@ function weMessageToMemberWithSubs($index, $id, $subs) {return t\weMessage($inde
 /**
  * member (ARG) email invitation code is (ARG)
  *
- * in: MAKE Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
- *     MAKE Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
+ * in: MAKE Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
  */
 function memberEmailInvitationCodeIs($id, $code) {
   global $testOnly; // for now, choose the test code according to the creation date (in the tests)

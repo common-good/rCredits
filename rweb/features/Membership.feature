@@ -33,8 +33,8 @@ Scenario: A member signs in for the first time
   When member "?" visits page "reset/id=deefour&code=%name"
   Then we show "Choose a New Password"
   When member "?" confirms form "reset/id=deefour&code=%name" with values:
-  | newPass   | strong |*
-  | %whatever | 1      |
+  | pass1     | pass2     | strong |*
+  | %whatever | %whatever | 1      |
 #  | name    | pass      | pass1  | pass2  | pin  |
 #  | deefour | %whatever | Aa1!.. | Aa1!.. | 1234 |
   Then member ".AAC" is logged in
@@ -157,7 +157,7 @@ Scenario: A member opens a business account
   And member ":ZZA" visits page "status"
   Then with done "123456"
   
-  When member ":ZZA" visits page "account/relations"
+  When member ":ZZA" visits page "settings/relations"
   And member ":ZZA" visits page "status"
   Then we show "Your Account Setup Is Complete"
   And with done ""

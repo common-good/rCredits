@@ -906,7 +906,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   t\logIn($id);
 
   $validate = TRUE;
-  if (u\abbreviates('history/', $page) and $confirmed and !strpos($page, '&do=')) { // re-examine this
+  if (u\starts($page, 'history/') and $confirmed and !strpos($page, '&do=')) { // re-examine this
     $validate = FALSE;
     $formSta['confirm'] = TRUE;
   }
@@ -934,13 +934,6 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   if ($fieldErr) return TRUE; // no submit if field error
   if (@$lastGo == $xlastGo) foreach (t\postProcess($form, $page, 'submit') as $func) $func($form, $sta);
 
-  /*
-  if ($page == '/user/login') { // fudge this test until we can take over the login process from Drupal
-    if (!$id = @$sta['uid'] or $id == '?') return TRUE; // login failed, but test succeeded
-    t\logIn($id);
-    r\Web\loginFollowup('', $sta);
-  }
-*/
   return TRUE;
 }
 
@@ -960,8 +953,9 @@ function pageForm($page, $msg = '', $field = '') {
   $args = basename($page);
   $xlastGo = @$lastGo; // notice whether a goto happens. ignore all but the deepest (last).
 
+/*
   if (u\abbreviates('/user/', $page)) {
-    $login = u\in($page, 'user/login');
+//    $login = u\in($page, 'user/login');
     $sta = @$formSta ?: [];
     list ($form, $function) = FALSE ? array('user_register_form', 'formSignup')
       : ($login ? array('user_login', 'formSignin') : []);
@@ -969,23 +963,23 @@ function pageForm($page, $msg = '', $field = '') {
     // (FAILS for user_login) $form = \drupal_get_form($form, $args);
     $form = $login ? [] : \drupal_get_form($form, $args);
     $function($form, $sta, $args);
-    if ($login and @$form['newPass']) $form['newPass'] = \form_process_password_confirm($form['newPass']);
+//    if ($login and @$form['newPass']) $form['newPass'] = \form_process_password_confirm($form['newPass']);
     $form2 = $form; $rent = \drupal_render($form2);
-    if (@$lastGo == $xlastGo) getFormOut($rent);
+    if (@$lastGo == $xlastGo) setFormOut($rent);
     return $form;
   }
-
+*/
   $result = \menu_execute_active_handler($page, FALSE);
 
   if (is_numeric($result)) {
     $result = $result == MENU_NOT_FOUND ? 'not found' 
       : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
     t\output("page \"$page\": $result in t\\pageForm()");
-  } elseif (@$lastGo == $xlastGo) getFormOut($result);
+  } elseif (@$lastGo == $xlastGo) setFormOut($result);
   return $formArray;
 }
 
-function getFormOut($out) {
+function setFormOut($out) {
   global $formOut;
 
   $formOut = [];
@@ -1044,6 +1038,21 @@ function postLogout($function) {
   );
 //  cache_set('t_messages', $vars); // save the test results so far
   return FALSE;
+}
+
+/**
+ * Assign a name to a variable that can be used in tests using the "%varable" pseudo-Gherkin syntax.
+ * @param string $varName: variable name
+ * @param string $index: a string or a message index
+ * @param assoc $subs: substitutions (if any)
+ * @return TRUE
+ */
+function varIs($varName, $index, $subs = []) {
+  global $testOnly; if ($testOnly) return FALSE;
+  global $sceneTest;
+  $$varName = u\tt($index, $subs[0]);
+  $sceneTest->subs += ["%$varName" => $$varName];
+  return TRUE;
 }
 
 function dropdownOptions($form) {
@@ -1233,6 +1242,7 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $formOut;
   $model = $formOut[$type];
+///  debug(compact('content','type','model','formOut'));
 
   if (!$content) return FALSE; // probably an accidental single-row array with no labels
 /**/  u\EXPECT(is_numeric(key($content[0])), 'shown with should be array, not assoc: ' . print_r($content, 1));

@@ -44,12 +44,13 @@
 $rPath = BASE_URL . R_PATH;
 $version = R_VERSION;
 $styles = preg_replace('~<style.*</style>~ms', '', $styles); // zap all the drupal styles
-$scripts = preg_replace('~misc/jquery.js.*<~', 'sites/all/modules/rcredits/js/jquery.min.js"<', $scripts);
-$scripts = preg_replace('/devel_krumo_path.js|dru7pal.js/ms', 'UNUSED', $scripts);
+$scripts = preg_replace('~misc/jquery.js.*<~', 'sites/all/modules/rcredits/js/jquery.min.js"><', $scripts);
+$scripts = preg_replace('~devel_krumo_path.js|user/user.js|drupal.js~ms', 'UNUSED', $scripts);
+// something here interferes with croppic's $()
 //$scripts = preg_replace('/<script[!<]+<![!<]+<![!<]+jQuery.extend\(Drupal/ms', '', $scripts);
-$scripts = preg_replace('/jQuery.extend.*--/ms', '//--', $scripts);
+//$scripts = preg_replace('/jQuery.extend.*--/ms', '//--', $scripts);
 
-echo <<<EOF
+/**/ echo <<<EOF
 <!DOCTYPE html>
 <html lang="$language->language" dir="$language->dir"
 $rdf_namespaces>

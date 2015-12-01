@@ -72,9 +72,9 @@ class rwebRelations extends DrupalWebTestCase {
     Given('relations: "ASSOC'
     . '\\| id | main | agent | permission   | employee | isOwner | draw |'
     . '\\| 1  | .ZZA | .ZZD  | scan         | 1          | 1       | 0    |"');
-    When_('member ".ZZA" visits page "account/relations"');
+    When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | Draw | My employee? | Family? | Permission |_requests      |'
+    . '\\| other      | Draw | My employee? | Family? | Permission |_requests      |'
     . '\\| Dee Four   | No   | Yes          | Yes     | %can_scan  | -- |"');
   }
 
@@ -84,9 +84,9 @@ class rwebRelations extends DrupalWebTestCase {
     Given('relations: "ASSOC'
     . '\\| id | main | agent | permission | employee | isOwner |'
     . '\\| 1  | .ZZA | .ZZD  | refund     | 1          | 0       |"');
-    When_('member ".ZZA" visits page "account/relations"');
+    When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employee? | Family? | Permission  |_requests      |'
+    . '\\| other      | My employee? | Family? | Permission  |_requests      |'
     . '\\| Dee Four   | Yes          | No      | %can_refund | --       |"');
   }
 
@@ -96,9 +96,9 @@ class rwebRelations extends DrupalWebTestCase {
     Given('relations: "ASSOC'
     . '\\| id | main | agent | permission | employee | isOwner |'
     . '\\| 1  | .ZZA | .ZZB  | buy        | 0          | 0        |"');
-    When_('member ".ZZA" visits page "account/relations"');
+    When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employee? | Family? | Permission |_requests      |'
+    . '\\| other      | My employee? | Family? | Permission |_requests      |'
     . '\\| Bea Two    | No           | No      | %can_buy   | --            |"');
   }
 
@@ -108,9 +108,9 @@ class rwebRelations extends DrupalWebTestCase {
     Given('relations: "ASSOC'
     . '\\| id | main | agent | permission   | employee | isOwner |'
     . '\\| 1  | .ZZA | .ZZD  | sell         | 0          | 0       |"');
-    When_('member ".ZZA" visits page "account/relations"');
+    When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employee? | Family? | Permission |_requests      |'
+    . '\\| other      | My employee? | Family? | Permission |_requests      |'
     . '\\| Dee Four   | No           | No      | %can_sell  | -- |"');
   }
 
@@ -120,9 +120,9 @@ class rwebRelations extends DrupalWebTestCase {
     Given('relations: "ASSOC'
     . '\\| id | main | agent | permission | employee | isOwner |'
     . '\\| 1  | .ZZA | .ZZD  | read       | 1          | 1       |"');
-    When_('member ".ZZA" visits page "account/relations"');
+    When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employee? | Family? | Permission |_requests      |'
+    . '\\| other      | My employee? | Family? | Permission |_requests      |'
     . '\\| Dee Four   | Yes          | Yes     | %can_read  | --       |"');
   }
 
@@ -132,9 +132,9 @@ class rwebRelations extends DrupalWebTestCase {
     Given('relations: "ASSOC'
     . '\\| id | main | agent | permission   | employee | isOwner |'
     . '\\| 1  | .ZZB | .ZZA  | sell         | 1          | 1        |"');
-    When_('member ".ZZA" visits page "account/relations"');
+    When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employee? | Family? | Permission |_requests      |"');
+    . '\\| other      | My employee? | Family? | Permission |_requests      |"');
     And__('without: "ARRAY'
     . '\\| Bea Two |"');
   }
@@ -146,13 +146,13 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| id | main | agent | permission | employee | isOwner |'
     . '\\| 1  | .ZZA | .ZZD  |            | 1          | 1        |'
     . '\\| 2  | .ZZD | .ZZA  | sell       | 0          | 0        |"');
-    When_('member ".ZZA" visits page "account/relations"');
+    When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employee? | Family? | Permission |_requests      |'
+    . '\\| other      | My employee? | Family? | Permission |_requests      |'
     . '\\| Dee Four   | Yes          | Yes     | %can_none  | --            |"');
-    When_('member ".ZZD" visits page "account/relations"');
+    When_('member ".ZZD" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employee? | Family? | Permission |_requests      |'
+    . '\\| other      | My employee? | Family? | Permission |_requests      |'
     . '\\| Abe One    | No           | No      | %can_sell  | -- |"');
   }
 
@@ -162,13 +162,13 @@ class rwebRelations extends DrupalWebTestCase {
     Given('relations: "ASSOC'
     . '\\| id   | main | agent | permission | employee | isOwner |'
     . '\\| :ZZA | .ZZC | .ZZA  | manage     | 1          | 1        |"');
-    When_('member ":ZZA" visits page "account/relations"');
+    When_('member ":ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other   | My employee? | Owns | Permission     |_requests      |'
+    . '\\| other   | My employee? | Owns | Permission     |_requests      |'
     . '\\| Abe One | Yes          | Yes  | manage account | request rCard |"');
-    When_('member ".ZZA" visits page "account/relations"');
+    When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employee? | Family? | Permission   |_requests      |"');
+    . '\\| other      | My employee? | Family? | Permission   |_requests      |"');
     And__('without: "ARRAY'
     . '\\| Corner Pub |"');
   }
@@ -184,26 +184,26 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| .ZZD | .ZZC | .ZZA  | scan       | 1        | 0       |'
     . '\\| .ZZE | .ZZA | .ZZB  | sell       | 1        | 1       |'
     . '\\| .ZZF | .ZZB | .ZZA  |            | 1        | 0       |"');
-    When_('member ".ZZA" visits page "account/relations"');
+    When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other      | My employee? | Family? | Permission  |_requests      |'
+    . '\\| other      | My employee? | Family? | Permission  |_requests      |'
     . '\\| Bea Two    | Yes          | Yes     | %can_sell   | -- |'
     . '\\| Corner Pub | --           | No      | --          | --       |'
     . '\\| Dee Four   | Yes          | Yes     | %can_manage | -- |"');
-    When_('member ".ZZB" visits page "account/relations"');
+    When_('member ".ZZB" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other   | My employee? | Family? | Permission |_requests      |'
+    . '\\| other   | My employee? | Family? | Permission |_requests      |'
     . '\\| Abe One | Yes          | No      | %can_none  | --            |"');
-    When_('member ".ZZD" visits page "account/relations"');
+    When_('member ".ZZD" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other   | My employee? | Family? | Permission |_requests      |'
+    . '\\| other   | My employee? | Family? | Permission |_requests      |'
     . '\\| Abe One | No           | No      | %can_none  | --            |"');
     And__('with: "ARRAY'
     . '\\|_Header  |'
     . '\\| Family? |"');
-    When_('member ":ZZD" visits page "account/relations"');
+    When_('member ":ZZD" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
-    . '\\| Other   | My employee? | Owns | Permission  |_requests      |'
+    . '\\| other   | My employee? | Owns | Permission  |_requests      |'
     . '\\| Abe One | Yes          | No   | %can_scan | request Cashier Card |"');
   }
 
@@ -217,7 +217,7 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| who     |'
     . '\\| Bea Two |"');
     And__('we show "Relations" with: "ARRAY'
-    . '\\| Other      | Draw | My employee? | Family? | Permission |_requests      |'
+    . '\\| other      | Draw | My employee? | Family? | Permission |_requests      |'
     . '\\| Bea Two    | No   | No           | No      | %can_none  | --            |"');
   }
 

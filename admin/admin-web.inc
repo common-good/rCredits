@@ -80,10 +80,10 @@ function adminSummary($a, $cAdmin = FALSE) {
       }
       $donations = item(u\fmtAmt($donations) . ", $donationInfo @$a->share%", t('Donations:'));
 
-//      $creditLimit = textField(t('Credit limit:'), '', dft(u\fmtAmt(-$a->floor)));
+//      $creditLimit = textFld(t('Credit limit:'), '', dft(u\fmtAmt(-$a->floor)));
 //      if ($a->stepsDone['prefs']) { // don't even look at these if newbie hasn't chosen yet
-//        $minimum = textField(t('Minimum:'), '', dft(u\fmtAmt($a->minimum)));
-//        $achMin = textField(t('ACH Min:'), '', dft(u\fmtAmt($a->achMin ?: R_ACHMIN_DEFAULT, 's')));
+//        $minimum = textFld(t('Minimum:'), '', dft(u\fmtAmt($a->minimum)));
+//        $achMin = textFld(t('ACH Min:'), '', dft(u\fmtAmt($a->achMin ?: R_ACHMIN_DEFAULT, 's')));
 //      }
         $minimum = item(u\fmtAmt($a->j_minimum), t('Minimum:'));
         $achMin = item(u\fmtAmt($a->achMin), t('ACH Min:'));
@@ -95,7 +95,7 @@ function adminSummary($a, $cAdmin = FALSE) {
   
     $steps = $a->ok
       ? item(a\showActivity($a), t('Activity:'))
-      : item(a\showSteps($a), t('To do (red):'), t('sign=agreement | contact=contact info | dw:for admin to do | connect=connect bank | verify=verify bank deposits'));
+      : item(a\showSteps($a), t('To do (red):'), t('sign=agreement | prefs=preferences | connect=connect bank (or not) | company=company info'));
 //    $created = item(u\fmtDate($a->created), t('Created:'));
     if ($rels = a\showRelations($a)) $relations = item($rels, t('Relations:'));
     
@@ -108,20 +108,20 @@ function adminSummary($a, $cAdmin = FALSE) {
   if ($cAdmin and !$self) {
     include __DIR__ . '/../rweb/risk-descs.inc';
 
-    $legalName = textField(t('Legal Name:'), '', required($a->legalName));    
+    $legalName = textFld(t('Legal Name:'), '', required($a->legalName));    
     $rTrader = $a->ctty
     ? boolField(t('Ctty Up?'), '', $a->ok + 0)
-    : boolField(t('rTrader?'), t('Is account approved to use rCredits? -- member, <@a>good photo</a>, ss# checks out, set risks and mediaConx', array('@a' => "a href=$base_url/account/photo?" . rand())), $a->ok + 0);
+    : boolField(t('rTrader?'), t('Is account approved to use rCredits? -- member, <@a>good photo</a>, ss# checks out, set risks and mediaConx', array('@a' => "a href=$base_url/settings/security/photo?" . rand())), $a->ok + 0);
     if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
       if ($helper = $a->helper ?: ($a->co ? $a->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
         $hA = r\acct($helper);
         $helper = "$hA->mainQid   $hA->fullName";
       }
-      $helper = textField(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper) + autocomplete());
+      $helper = textFld(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper) + autocomplete());
     } else $helper = item(@$a->helperA->fullName ?: t('N/A'), t('Helped by:'));
 
     if ($a->member and !$a->co and $admin) $ssnCheck = item(a\ssnCheck($a));
-    if ($admin) $federalId = textfield(t('EIN/SSN:'), '', $a->federalId ? R_ON_FILE : '');
+    if ($admin) $federalId = textFld(t('EIN/SSN:'), '', $a->federalId ? R_ON_FILE : '');
   
     $acctRisks = u\ray(K_ACCT_RISKS);
     $riskBits = array_keys($acctRisks);
@@ -147,7 +147,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     $adminable = bitsField(t('Flags:'), $a->flags, 'b', join(' ', $blist), $aliases);
 //    $adminable2 = bitsField('adminable', t('Other bits:'), $a->flags, 'b', B_ADMINABLE . ($admin ? ' admin' : ''), $a->ctty ? array('member' => t('cttyActive')) : NULL);
     
-    $who = textField(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
+    $who = textFld(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
   }      
 
   if ($a->id == r\cgfId()) {
@@ -173,10 +173,10 @@ EOF;
 
   if (!$a->co) {
     $moves = item($a->moves, t('Moves:'), t('(How many times has this person changed counties in the past decade?)'));
-    $mediaConx = textField(t('Media Conx:'), t('(How many 1st or 2nd-degree connections do you have with this person on FaceBook or LinkedIn?)'), dft($a->mediaConx));
+    $mediaConx = textFld(t('Media Conx:'), t('(How many 1st or 2nd-degree connections do you have with this person on FaceBook or LinkedIn?)'), dft($a->mediaConx));
   }
 
-  $notes = formField('textarea', t('Notes:'), '', dft($a->notes));
+  $notes = areaFld(t('Notes:'), '', dft($a->notes));
   $risk = item(round($a->risk) . ' ' . button(t('Recalc'), "$base_url/rerisk/acct/$uid/1"), t('Risk Score:'));
   if (!$a->co) $trust = item(number_format($a->trust, 1), t('Trust:'));
   if ($mya->can(B_CADMIN2)) $submit = submit(t('Go'));    

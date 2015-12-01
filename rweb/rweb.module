@@ -45,7 +45,6 @@ function rweb_block_view($delta = '') {
 function makeMenuItem($parts) {
   $types = ['norm' => MENU_NORMAL_ITEM, 'sub' => MENU_LOCAL_TASK, 'dft' => MENU_DEFAULT_LOCAL_TASK, 'call' => MENU_CALLBACK];
   @list ($type, $title, $args, $perms, $func) = $parts;
-  if (!$type) debug($parts);
   return r\Web\menu($title, $types[$type], $func ?: 'showForm', $args, $perms);
 }
 
@@ -67,7 +66,7 @@ function rweb_menu($submenu = '') {
 
     'summary' => ['norm', t('Summary'), 'Summary', 'read'],
     'history' => ['norm', t('History'), 'History', 'read'],
-    'history/transactions' => ['sub', t('Transactions'), 'Txs 1', 'read', '', t(''), 'list'],
+    'history/transactions' => ['sub', t('Transactions'), 'Txs 2', 'read', '', t(''), 'list'],
     'history/invoices-to' => ['sub', t('Invoices TO You'), 'Invoices to', 'read', '', t(''), 'log-in'],
     'history/invoices-from' => ['sub', t('Invoices FROM You'), 'Invoices from', 'read', '', t(''), 'log-out'],
     'history/statements' => ['sub', t('Statements'), 'Statements 2', 'read', '', t(''), 'list-alt'],
@@ -106,32 +105,32 @@ function rweb_menu($submenu = '') {
     'community/invite/invited-whom' => ['call', 'Invited Whom', 'InvitedWhom', 'manage'],
     'community/invite/waiting' => ['call', 'Waiting', 'Waiting', 'manage'],
     
-    'account' => ['norm', t('Settings'), 'Settings', 'manage'],
-//    'account/settings' => ['dft', t('Settings'), 'Settings', 'manage'],
-    'account/contact' => ['sub', t('Contact Info'), 'Contact', 'manage', '', t(''), 'user'],
-    'account/preferences' => ['sub', t('Preferences'), 'Options', 'manage', '', t(''), 'cog'],
-    'account/security' => ['sub', t('Security'), 'Security 2', 'manage person', '', t(''), 'link'],
-    'account/bank' => ['sub', t('Bank Info'), 'Bank 2', 'manage', '', t(''), 'piggy-bank'],
-    'account/company' => ['sub', t('Company Info'), 'Company', 'manage co', '', t(''), 'calendar'],
-    'account/relations' => ['sub', t('Relations'), 'Relations', 'manage', '', t(''), 'magnet'],
-// DISABLE FOR NOW    'account/boxes' => ['sub', t('Devices'), 'Boxes', 'manage', '', t(''), 'phone'],
-    'account/proxies' => ['sub', t('Proxies'), 'Proxies', 'manage person', '', t(''), 'thumbs-up'],
-    'account/zot' => ['sub', 'zot', '', 'anyone'], // Drupal bug: last choice is omitted
+    'settings' => ['norm', t('Settings'), 'Settings', 'manage'],
+//    'settings/settings' => ['dft', t('Settings'), 'Settings', 'manage'],
+    'settings/contact' => ['sub', t('Contact Info'), 'Contact', 'manage', '', t(''), 'user'],
+    'settings/preferences' => ['sub', t('Preferences'), 'Options', 'manage', '', t(''), 'cog'],
+    'settings/security' => ['sub', t('Security'), 'Security 2', 'manage person', '', t(''), 'link'],
+    'settings/bank' => ['sub', t('Bank Info'), 'Bank 2', 'manage', '', t(''), 'piggy-bank'],
+    'settings/company' => ['sub', t('Company Info'), 'Company', 'manage co', '', t(''), 'calendar'],
+    'settings/relations' => ['sub', t('Relations'), 'Relations', 'manage', '', t(''), 'magnet'],
+// DISABLE FOR NOW    'settings/boxes' => ['sub', t('Devices'), 'Boxes', 'manage', '', t(''), 'phone'],
+    'settings/proxies' => ['sub', t('Proxies'), 'Proxies', 'manage person', '', t(''), 'thumbs-up'],
+    'settings/zot' => ['sub', 'zot', '', 'anyone'], // Drupal bug: last choice is omitted
 
     'reset' => ['call', t('Choose New Password'), 'ResetPassword 1', 'anyone'],
-    'account/password' => ['call', t('Request New Password'), 'Pass 2', 'anyone'],
-    'account/change-password' => ['call', 'Change Password', 'ChangePassword', 'manage'],
-    'account/change-pin' => ['call', 'Change PIN', 'ChangePin', 'manage'],
-    'account/member-photo' => ['call', 'Member Photo', '2 3', 'anyone', 'memberPhoto'],
-    'account/photo' => ['call', 'Photo', 'Photo', 'manage'],
-    'account/photo/upload' => ['call', 'Photo Upload', '3 4', 'anyone', 'photoUpload'],
-    'account/icon' => ['call', 'Icon', 'Icon', 'read'],
-//    'account/verify-phone' => ['call', 'Verify Phone', 'VerifyPhone', 'manage dw'],
-//    'account/readd-phone' => ['call', 'reAdd Phone', '', 'manage dw', 'addPhone'],
-    'account/basic' => ['call', 'Basic', 'Basic', 'manage'],
-//    'account/kba' => ['call', 'Kba', 'Kba', 'manage dw'],
-//    'account/photo-id' => ['call', 'Kba', 'PhotoId', 'manage'],
-    'account/proxy' => ['call', 'Proxy', 'Proxy 2', 'manage'],
+    'settings/password' => ['call', t('Request New Password'), 'Pass 2', 'anyone'],
+    'settings/security/change-password' => ['call', 'Change Password', 'ChangePassword', 'manage'],
+    'settings/security/change-pin' => ['call', 'Change PIN', 'ChangePin', 'manage'],
+    'settings/member-photo' => ['call', 'Member Photo', '2 3', 'anyone', 'memberPhoto'],
+    'settings/security/photo' => ['call', 'Photo', 'Photo', 'manage'],
+    'settings/security/photo/upload' => ['call', 'Photo Upload', '4 5', 'anyone', 'photoUpload'],
+    'settings/icon' => ['call', 'Icon', 'Icon', 'read'],
+//    'settings/verify-phone' => ['call', 'Verify Phone', 'VerifyPhone', 'manage dw'],
+//    'settings/readd-phone' => ['call', 'reAdd Phone', '', 'manage dw', 'addPhone'],
+    'settings/basic' => ['call', 'Basic', 'Basic', 'manage'],
+//    'settings/kba' => ['call', 'Kba', 'Kba', 'manage dw'],
+//    'settings/security/photo-id' => ['call', 'Kba', 'PhotoId', 'manage'],
+    'settings/proxy' => ['call', 'Proxy', 'Proxy 2', 'manage'],
 
     'signout' => ['norm', t('Sign out'), '', 'read', 'signout'],
 
@@ -146,7 +145,7 @@ function rweb_menu($submenu = '') {
     
     'I' => ['call', 'Scanned QR', 'I', 'anyone'],
     
-    'another' => ['call', t('Open Another Account'), 'Another', 'manage'],
+    'another' => ['call', t('Open a Company Account'), 'Another', 'manage'],
     'handle-invoice' => ['call', t('Handle Invoice'), 'HandleInvoice 1', 'anyone'],
     'rerisk' => ['call', t('Recalculate Risk'), 'Rerisk 1 2 3', 'regulator'],
 
@@ -190,7 +189,7 @@ function rweb_menu($submenu = '') {
     
     'pay-with-rcredits' => ['call', 'Pay With rCredits', 'Buy', 'anyone'], // form will require PIN
   );
-// $menu['user/password'] = $menu['account/password']; // duplicates user/password (handles built-in Drupal link)
+// $menu['user/password'] = $menu['settings/password']; // duplicates user/password (handles built-in Drupal link)
 
   if ($submenu) {
     foreach ($items as $k => $v) if (@$v and u\starts($k, "$submenu/")) $menu[$k] = $v;
@@ -205,9 +204,6 @@ function rweb_menu_alter(&$items) {
 
 function rweb_form_alter(&$form, &$sta, $form_id) {
 global $base_url;
-//  if ($form_id == 'user_pass_reset') return r\Web\resetAlter($form, $sta);
-//  if ($form_id == 'user_login') {return r\Web\formLogin($form, $sta);} // NEVER CALLED!
-  // (has no effect, keep as comment) if ($form_id == 'user_register') {return r\Web\formRegister($form, $sta);}
   $req = basename($_SERVER['REQUEST_URI']);
 ///  debug(compact('req','form_id'));
   if ($req == 'login' and !user_is_logged_in()) {header("location:$base_url/" . (isGAME ? 'community/game' : 'signin')); exit();} // nothing else works

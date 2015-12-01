@@ -23,8 +23,6 @@ Software Priorities:
 - Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site)
 - create CGF retirement account with reward pct "rebate" = 0
 
-. accept a simple spreadsheet for upload to do payroll
-. add a "preferred mode" and "actual preferred mode" field to users (the second is for admins)
 . redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
 . video about Admin'ing
 . register sending email on emailreg.org, to prevent blacklisting
@@ -56,12 +54,31 @@ GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
 0=22 />
 
 TASKS FOR NEXT UPDATE:
-. redo MENUS
 . update theme files: template.php, html.tpl.php, page.tpl.php
+. CLEAR CACHE to activate new theme files (/devel/cache/clear?destination=sadmin)
 . update form.inc
+. REINSTALL
 . Credit PFC invites and Brendan's 2 RPC invites.
 . credit Fuzzy's invites.
 
+. **** load all menus with every page, so they can appear immediately
+. confirm fails on DEV. Fix so op() works! (maybe do it differently)
+. **** delete reference to "red" in 1099B page and add column for 990s. Then make it a "Tax Info" page and separate out the 1099B details to a separate page.
+. base our public query system on phpMyAdmin?
+. Do Fuzzy's list of suggestions: https://docs.google.com/document/d/1X8Cftp_e_zEyBrPVvYrUd-yOOnAit2g4RyMW7SNa9mk
+. ** give some businesses exemption from the cash-out restriction if they choose "reserved" and provide rCredits purchase service. (especially Upinngil and GFM and Foster's)
+. italicize phrase in agreement about until the community has sufficient revenue AND make "suffient revenue" a hyperlink
+. use something like https://select2.github.io/ to make a multiple-select into a dropdown of checkboxes (especially on the company page) - Fuzzy (meanwhile say "hold down command (not control)" on Macs)
+. for DIY graph: select start and end dates, then for each line, type a formula, choosing from named variables like "companies" or "employees" or "cashOut", and choose criteria like "isCompany" or "monthlySpending>3000"
+. show admin postalAddr when hoving over photo (to aid in account activation)
+. make sure .htaccess is included in zipped minimal installation
+. give admins a sluggish report (see sluggish() in admin.inc)
+. flood control for POS calls.
+. **** don't die when too long a fullname is put in (limit to 62)
+. **** fix balance/rewards reporting on notices (for savings reserve)
+. accept a simple spreadsheet for upload to do payroll
+. add a "preferred mode" and "actual preferred mode" field to users (the second is for admins)
+. What happens if someone tries to reuse an invitation code? Sooner or later someone is going to print off a bunch of copies of the same invitation cards and hand them out. I suggest handling it seamlessly: Let them sign up, verify the inviter knows them, and let the invitee know that this card has already been used by someone else so they can't use it as a temporary rCard. (Fuzzy)
 . * make a finder for admin (arbitrary logical search on multiple fields for regular expression values. Loop through accounts). Similar finder for personal transactions, for everyone. But use SQL for that one.
 . always say "cash flow problem" or "cash flow crisis" instead of "cash crunch".
 . drag&drop photo upload (see http://hayageek.com/drag-and-drop-file-upload-jquery/)
@@ -107,7 +124,7 @@ TASKS FOR NEXT UPDATE:
 . ***** make a way for members to contribute rewards back to the system
 . *** "you are not authorized" message should instead show login page if not signed in
 . make a way for cAdmin to delete secure messages (and files) and send reminders to do so
-. opening a company account as cAdmin should connect the company to the current individual account, when admin clicks "open another account"
+. opening a company account as cAdmin should connect the company to the current individual account, when admin clicks "Open a Company Account"
 . put the r icon on a square white background and make the member site distinctive (asterisk? "$"?)
 . admin feature: click on button on CGF Summary to pay a community what they are due
 . ** company photos should not be encrypted (so they can be shown without signin)

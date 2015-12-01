@@ -16,9 +16,12 @@ Scenario: a member gets some notices
   | .ZZA | %today  |    0 | You rock.  |
   | .ZZA | %today  |    0 | You stone. |
   When cron runs "notices"
+  Given variable "balance" is "balance notice" with subs:
+  | balance | rewards |*
+  | $0      | $0      |
   Then we email "notices" to member "a@" with subs:
-  | fullName | shortName | unit | range           | yestertime      | region | messages                  | balance | rewards | return | ourEmail |*
-  | Abe One  | abeone    | day  | %fancyYesterday | %fancyYesterday | new    | *You rock.<br>*You stone. | $0 | $0 | 5.0 | %zzxCttyEmail |
+  | fullName | shortName | unit | range           | yestertime      | region | messages                  | balance  | return | ourEmail      |*
+  | Abe One  | abeone    | day  | %fancyYesterday | %fancyYesterday | new    | *You rock.<br>*You stone. | %balance | 5.0    | %zzxCttyEmail |
   And notices:
   | id   | created | sent   | message    |*
   | .ZZA | %today  | %today | You rock.  |
@@ -31,9 +34,12 @@ Scenario: a member gets some weekly notices
   | .ZZB | %today  |    0 | You stone. |
   And it's time for "weekly"
   When cron runs "notices"
+  Given variable "balance" is "balance notice" with subs:
+  | balance | rewards |*
+  | $0      | $0      |
   Then we email "notices" to member "b@" with subs:
-  | fullName | shortName | unit | range                       | yestertime        | region | messages                      | balance | rewards | return | ourEmail        |*
-  | Bea Two  | beatwo    | week | the week of %fancyYesterweek | %fancyYesterweek | new    | %md<x>You rock.<br>%md<x>You stone. | $0      | $0      | 5.0    | %zzxCttyEmail |
+  | fullName | shortName | unit | range                       | yestertime        | region | messages                          | balance  | return | ourEmail      |*
+  | Bea Two  | beatwo    | week | the week of %fancyYesterweek | %fancyYesterweek | new    | %md<x>You rock.<br>%md<x>You stone. | %balance | 5.0    | %zzxCttyEmail |
   And notices:
   | id   | created | sent   | message    |*
   | .ZZB | %today  | %today | You rock.  |

@@ -359,7 +359,7 @@ class acct {
     $thing = $small ? 'icon' : 'photo';
     $qid = $a->mainQid;
     if (!$a->co) $qid .= "/$a->cardCode";
-    return '<div id="user-picture"><img src="' . "$base_url/account/member-photo/$qid$unique" . '" alt="profile picture" /></div>';
+    return '<div id="user-picture"><img src="' . "$base_url/settings/member-photo/$qid$unique" . '" alt="profile picture" /></div>';
   }
 
   /**
@@ -935,7 +935,7 @@ EOF;
   }
   
   /**
-   * Say whether this account/agent has the permission.
+   * Say whether this settings/agent has the permission.
    * @param int $bit: the permission in question (DEFAULT B_READ)
    */
   public function can($bit = B_READ) {

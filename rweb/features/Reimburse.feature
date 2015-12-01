@@ -6,9 +6,9 @@ SO I can be cool and save time by not having to find cash or write a check.
 Setup:
   Given members:
   | id   | fullName | address | city  | state  | postalCode | country | postalAddr | rebate | flags      |*
-  | .ZZA | Abe One  | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK |      5 | ok,bona    |
-  | .ZZB | Bea Two  | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT |     10 | ok,bona    |
-  | .ZZC | Our Pub  | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR |     10 | ok,co,bona |
+  | .ZZA | Abe One  | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK |  5 | ok,confirmed,bona    |
+  | .ZZB | Bea Two  | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT | 10 | ok,confirmed,bona    |
+  | .ZZC | Our Pub  | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR | 10 | ok,confirmed,co,bona |
   And relations:
   | id   | main | agent | permission | draw |*
   | :ZZA | .ZZA | .ZZB  | buy        |    1 |

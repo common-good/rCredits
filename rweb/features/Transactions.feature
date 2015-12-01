@@ -50,7 +50,7 @@ Setup:
   | .ZZC |    2332 |     262 |
 
 Scenario: A member looks at transactions for the past year
-  When member ".ZZA" visits page "history/period=365"
+  When member ".ZZA" visits page "history/transactions/period=365"
   Then we show "Transaction History" with:
   |_Start Date |_End Date |
   | %dmy-12m   | %dmy     |
@@ -73,7 +73,7 @@ Scenario: A member looks at transactions for the past year
   | bonus   |
 
 Scenario: A member looks at transactions for the past few days
-  When member ".ZZA" visits page "history/period=15"
+  When member ".ZZA" visits page "history/transactions/period=15"
   Then we show "Transaction History" with:
   |_Start Date |_End Date |
   | %dmy-15d   | %dmy     |
@@ -111,7 +111,7 @@ Scenario: Transactions with other states show up properly
   | .ZZA |    1942 |
   | .ZZB |    2554 |
   | .ZZC |    2320 |
-  When member ".ZZA" visits page "history/period=5"
+  When member ".ZZA" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
   |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |
   | 15  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X  | cash CL    | --     |
@@ -125,7 +125,7 @@ Scenario: Transactions with other states show up properly
   | never   |
   | rebate  |
   | bonus   |
-  When member ".ZZC" visits page "history/period=5"
+  When member ".ZZC" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
   |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |
   | 10  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK | cash CL    | --     |

@@ -75,7 +75,7 @@ input[type="checkbox"], input[type="radio"] {transform: scale(1);}
 .example-image {width:70%; margin:30px auto 3px auto;}
 .caption {margin:0 auto 20px 0; text-align:center;}
 .center {text-align:center;}
-.control-label {padding:9px 0 0 0; text-align:right;}
+.control-label {padding:9px 0 0 10px; text-align:right; margin-left:0;}
 .help-block {font-size:85%;}
 .wellhole {padding:5px 10px 0 0;} /* for columns containing a well */
 .well {margin:5px 0; padding-right:13px;}

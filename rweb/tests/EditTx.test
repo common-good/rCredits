@@ -45,9 +45,9 @@ class rwebEditTx extends DrupalWebTestCase {
     case(0):
     Given('members: "ASSOC'
     . '\\| id   | fullName   | rebate | flags      |'
-    . '\\| .ZZA | Abe One    |      5 | ok,bona    |'
-    . '\\| .ZZB | Bea Two    |     10 | ok,bona    |'
-    . '\\| .ZZC | Corner Pub |     10 | ok,co,bona |"');
+    . '\\| .ZZA | Abe One    |      5 | ok,confirmed,bona    |'
+    . '\\| .ZZB | Bea Two    |     10 | ok,confirmed,bona    |'
+    . '\\| .ZZC | Corner Pub |     10 | ok,confirmed,co,bona |"');
     And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| :ZZA | .ZZC | .ZZA  | sell       |'
@@ -78,7 +78,7 @@ class rwebEditTx extends DrupalWebTestCase {
     Given('member ".ZZA" edits transaction "4" with values: "ASSOC'
     . '\\| amount | goods        | purpose |'
     . '\\|     20 | %R_FOR_GOODS | things  |"');
-    When_('member ".ZZA" visits page "history/period=5"');
+    When_('member ".ZZA" visits page "history/transactions/period=5"');
     Then_('we show "Transaction History" with: "ARRAY'
     . '\\|_tid | Date | Name    | From you | To you | Status | _ | Purpose | Reward/Fee |'
     . '\\|   2 | %dm  | Bea Two |    20.00 |     -- | %chk   | X | things  |       1.00 |"');
@@ -145,7 +145,7 @@ class rwebEditTx extends DrupalWebTestCase {
     . '\\| 100 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | 1      |'
     . '\\| 101 | %today-5d | rebate   |      4 | ctty | .ZZA | rebate   | 0      |'
     . '\\| 102 | %today-5d | bonus    |      8 | ctty | .ZZC | bonus    | 0      |"');
-    When_('member ".ZZA" visits page "history/period=5"');
+    When_('member ".ZZA" visits page "history/transactions/period=5"');
     Then_('we show "Transaction History" with: "ARRAY'
     . '\\|_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward/Fee |'
     . '\\|   3 | %dm-5d | Corner Pub | 80.00    | --     | %chk   | X | this CF | 4.00       |"');
@@ -170,7 +170,7 @@ class rwebEditTx extends DrupalWebTestCase {
     . '\\| 100 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | 1      |'
     . '\\| 101 | %today-5d | rebate   |      4 | ctty | .ZZA | rebate   | 0      |'
     . '\\| 102 | %today-5d | bonus    |      8 | ctty | .ZZC | bonus    | 0      |"');
-    When_('member ":ZZB" visits page "history/period=5"');
+    When_('member ":ZZB" visits page "history/transactions/period=5"');
     Then_('we show "Transaction History" with: "ARRAY'
     . '\\|_tid | Date   | Name    | From you | To you | Status | _ | Purpose | Reward/Fee |'
     . '\\|   2 | %dm-5d | Abe One | --       | 80.00  | %chk   | X | this CF | 8.00       |"');

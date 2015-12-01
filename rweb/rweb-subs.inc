@@ -16,6 +16,8 @@ use rCredits\Web as w;
 define('R_NONE', '<span class="none">--</span>'); // let the tests see null values
 define('R_AGREE_0', -2); // number of the first point in the rCredits Agreement
 define('R_AGREE_9', 6); // number of the last point in the rCredits Agreement
+define('REQ', '*'); // marks required fields (use this as start of field's label)
+define('BARE', '-'); // marks bare (unwrapped) fields -- no div wrapper around them
 
 $GLOBALS[TX_WEB . ' messages'] = array(
   // reports
@@ -110,7 +112,7 @@ EOF
   'bad federal id' => t('That is not a correct @what. Try again.'),
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
   'short to' => t('You are @short short for that transaction.'),
-  'increase min' => t('<@a>Click here</a> to increase your minimum balance!', ['@a'=>'a href=' . BASE_URL . '/account/preferences']),
+  'increase min' => t('<@a>Click here</a> to increase your minimum balance!', ['@a'=>'a href=' . BASE_URL . '/settings/preferences']),
   'no such company' => t('There is no such company.'),
   'op canceled' => t('Operation Canceled.'),
   'demand not yet' => t('You will be notified when there are some rCredits for you to buy with US Dollars.'),
@@ -123,7 +125,7 @@ EOF
   'undo incomplete' => t('The undo operation is not yet complete.'),
   'unknown member' => t('"@who" has not yet signed up for rCredits.'),
 //  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click the one you want or, if you don\'t see them listed, <a href="@draftLink">Click here to add them</a> to the list or <a id="which-cancel">here to cancel</a>.'),
-  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click the one you want or <a id="which-cancel">here to cancel</a>.'),
+  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click the one you want.'),
 //  'similar found' => t('If you mean @otherName (@phone), <a href="@draftLink">click here for YES</a>. Otherwise, <a href="@cancelLink">click here to cancel</a>.'),
   'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app from Google\'s Play Store.'),
   'no account permission' => t('You do not have permission to use that account.'),
@@ -135,7 +137,7 @@ EOF
   'incomplete agreement' => t('To sign this agreement, you must put a check in each box, meaning that you have read that section and agree to it.'),
   'bad signature' => t('That signature does not match your full legal name ("@fullName").'),
   'bad invite' => t('That is not a valid Invitation Number or username.'),
-  'used invite' => t('<p>That invitation has already been used, to open an rCredits account.</p><p>If you already have an rCredits account set up and want to open an additional account for yourself, your business, or a family member, sign in and use the "Open Another Account" button on the Summary page (for cashier accounts, first select your business from the dropdown in the upper right corner).</p><p>Otherwise ask someone you know to send you a new invitation!'),
+  'used invite' => t('<p>That invitation has already been used, to open an rCredits account.</p><p>If you already have an rCredits account set up and want to open an additional account for yourself, your business, or a family member, sign in and use the "Open a Company Account" button on the Summary page (for cashier accounts, first click your photo in the upper right corner and select your business from the dropdown).</p><p>Otherwise ask someone you know to send you a new invitation!'),
   'expired invite' => t('<p>That invitation has expired.</p><p><@a>Click here</a> to ask @inviterName for another invitation.</p>'),
   'min sub floor' => t('Your chosen rCredits minimum cannot be less than your <em>allowed</em> minimum (@floor).'),
   'info not saved' => t('We apologize. Your information could not be saved at this time. Please try again in an hour or so.'),
@@ -152,12 +154,13 @@ EOF
   'bad state' => t('You must say what state.'),
   'password required' => t('You must supply your current password, to change your email address or password.'),
   'bad account id' => t('That account does not exist. Check your typing?'),
-  'bad login' => t('That account/password combination does not exist. Try again or <!a>ask for a new password</a>.', ['!a' => 'a href="' . BASE_URL . '/account/password"']),
+  'bad login' => t('That account/password combination does not exist. Try again or <!a>ask for a new password</a>.', ['!a' => 'a href="' . BASE_URL . '/settings/password"']),
   'wrong pass' => t('That is not your correct password.'),
   'multiple spaces' => t('@field cannot have more than one space in a row.'),
   'illegal char' => t('@field contains an illegal character. Try retyping it'),
   'too long' => t('@field is too long: it must be @USERNAME_MAX_LENGTH characters or less.'),
   'weak pass' => t('You need to choose a password that is harder to guess.'),
+  'mismatch' => t('You must have mistyped your @thing once. Try again.'),
   'photo upload failed' => t('Your photo upload was not successful.'),
   'pass expired' => t('Your temporary password has expired.'),
   'inhuman proxy' => t('@name is a company. Your proxies must be people.'),
@@ -169,7 +172,7 @@ EOF
   'missing currency' => t('You must choose rCredits, USD, or both.'),
   'download always both' => t('Note: Downloads always include both rCredits and USD amounts.'),
 //  'sign in to scan' => t('You must <a href="/user/login">sign in</a> (or scan yourself in) BEFORE scanning a customer card.'),
-  'change min first' => t('That request would leave you with less than your minimum balance. <a href="@BASE_URL/account/preferences">Lower your minimum</a> first.'),
+  'change min first' => t('That request would leave you with less than your minimum balance. <a href="@BASE_URL/settings/preferences">Lower your minimum</a> first.'),
   'bad member id' => t('That is not a valid member ID!'),
   'bad card' => t('That is not a valid member ID.'),
   'bad card code' => t('This rCard is not valid.'),
@@ -203,7 +206,7 @@ EOF
   'illegal amount change' => t('You cannot @action the original amount (@amount). <@a>Send an invoice</a> instead.'),
   'bad achmin' => t('The minimum transfer amount must be at least $@R_ACHMIN.'),
   'say why not' => t('You must say why you are denying the invoice.'),
-  'no co pass' => t('Company accounts do not have passwords. Sign in to your personal account, then select @company from the dropdown in the upper right corner.'),
+  'no co pass' => t('Company accounts do not have passwords. Sign in to your personal account, then click your photo in the upper right corner and select @company from the dropdown.'),
   'account number mismatch' => t('You must have mistyped your account number once. Try again.'),
   'yes or no' => t('You must answer Yes or No.'),
   'no local proxy' => t('No other members nearby. <@a>Invite someone</a>!', ['@a'=>'a href=' . @BASE_URL . '/community/invite']),
@@ -295,46 +298,218 @@ EOF;
   return "<div class=\"well\"><table>$res</table></div>";
 }
 
-/**
- * Return HTML for a button.
- */
-function button($value, $href = '', $title = NULL, $style = 'success', $size = 'xs') {
-  $title = htmlspecialchars($title);
-//  if ($href) { // href might be http or https or /...
-//    if (substr($href, 0, 4) == 'http' or substr($href, 0, 1) == '/') $href = "document.location.href='$href';";
-//    $name = 'name="op"';
-//    $markup = str_replace($name, ($button_type == 'local' ? '' : "$name ") . "onclick=\"$href\"", $markup);
-//  if ($href) $markup = "<a href=\"$href\" title=\"$title\">$markup</a>";
-//  }
-  $button_type = 'local';
-  $class = ["btn btn-$style btn-$size"];
-  $extra = compact(u\ray('href value button_type class')) + attrib(compact('title'));
-  return @\render(formField('button', '', '', $extra));
-//  $markup = render($markup);
-//  if (!$id) $markup = str_replace('"submit"', '"button"', $markup); // compensate for Drupal pigheadedness
-//  return $markup;
+function htmlItem($name, $id, $value, $class, $other = []) {return $value;}
+
+function htmlText($name, $id, $value, $class, $other = []) {
+  extract(u\just('tribs invisible id prefix suffix inline class box disabled autocomplete_path', $other));
+
+  $class = [@$class];
+  $class[] = 'form-control input-md';
+  if ($extra = rcAuto(@$autocomplete_path, $id)) $class[] = 'form-autocomplete';
+
+  $tribs = u\tribs(compact('type', 'class') + (@$tribs ?: []));
+  return "<input $tribs />" . $extra;
+}
+function htmlPassword($name, $id, $value, $class, $other = []) {
+  return htmlText($name, $id, $value, $class, ['type' => 'password'] + $other);
+}
+function htmlHidden($name, $id, $value) {
+  return htmlText($name, $id, $value, '', ['type' => 'hidden']);
 }
 
-function formField($type, $title = '', $description = '', $other = [], $options = NULL) {
+function htmlSubmit($name, $id, $value, $class, $other = []) {
+  extract(u\just('tribs size style', $other));
+  return <<<EOF
+  <button type="submit" id="$id" name="op" class="btn btn-$style btn-$size ladda-button" data-style="expand-right">
+    <span class="ladda-label">$value</span>
+  </button>
+EOF;
+}
+
+function htmlButton($name, $id, $value, $class, $other = []) {
+  extract(u\just('tribs href class', $other));
+  
+  if (strpos($href, 'http') === FALSE) $onclick = $href;
+  if ($href) list ($tag, $role) = ['a', 'button']; else $tag = 'button';
+  return u\tag($tag, $value, (@$tribs ?: []) + compact(@$onclick ? 'onclick' : 'href', 'class', 'role'));
+}
+
+/**
+ * Create HTML for a form or page element (field).
+ * @param string $type: what type of field
+ * @param string $label: how to label the field
+ *    if label begins with '*' the field is required
+ *    if the first or second character of label is '-', don't wrap the field in a div wrapper
+ * @param array $desc: how to describe the field: [hint, help text, hover text]
+ *    hover text defaults to same as hint
+ * @param mixed $other: assoc of additional settings
+ * @return the HTML
+ */
+//  if (!is_array($other)) $other = ['markup' => $other]; // move this to item
+// * @param mixed $choices: array or assoc of choices // move this to htmlSelect
+//    if (!isset($x_default)) $x_default = $choices ? key($choices) : ''; // Drupal's select fails without this
+
+function NEWfld($type, $label, $desc = '', $other = []) {
+///  debug(compact(u\ray('type label desc other')));
+  if (@$label[0] == REQ) list ($required, $label) = ['yes', substr($label, 1)];
+  if ($bare = (@$label[0] == BARE)) $label = substr($label, 1); // bare? (no div wrapper)
+
+  @list ($placeholder, $help, $title) = is_array($desc) ? $desc : ['', $desc];
+  if (!@$title) $title = $placeholder; // hover text defaults to same as hint
+  foreach (['placeholder', 'title'] as $k) if ($$k) $tribs[$k] = $$k;
+
+  return compact(u\ray('type label required bare help tribs other')); // see rend()
+}
+
+// only barely begun
+function rendForm($form) {
+  $guts = rend($form);
+  return str_replace('rcreditswebform', 'r-', u\tagN('form', $guts, $form['#attributes']));
+} 
+
+function NEWlabeled($form, $labeled = TRUE) {
+  $form['#attributes']['class'][] = $labeled ? 'form-horizontal' : 'form-vertical';
+  foreach ($form as $k => $v) if (substr($k, 0, 1) != '#') {
+//    $form[$k]['#tabled'] = TRUE;
+//    if (@$form[$k]['#type'] == 'fieldset') $form[$k] = labeled($form[$k], $level + 1);
+    $all[$k] = $v;
+    unset($form[$k]);
+  }
+  $form['all'] = oldItem(rend($all));
+  return $form;
+}
+
+function labeled($form, $labeled = TRUE, $level = 0) {
+  $form['#attributes']['class'][] = $labeled ? 'form-horizontal' : 'form-vertical';
+  foreach ($form as $k => $v) if (substr($k, 0, 1) != '#') {
+    $form[$k]['#tabled'] = TRUE;
+    if (@$form[$k]['#type'] == 'fieldset') $form[$k] = labeled($form[$k], $labeled, $level + 1);
+  }
+  return $form;
+}
+
+/**
+ * Drupal render the given fields, with appropriate names.
+ * @param assoc $fields: array of named fields
+ * @return Drupal rendering, with repairs.
+ */
+function rendA($fields) {
+  $rent = '';
+  foreach ($fields as $k => $field) {
+    $rent .= preg_replace('/name="(.*)"/', "name=\"$k\"", rent($field));
+  }
+  return $rent;
+}
+    
+function rend($fields) {
+  $html = '';
+  foreach ($fields as $name => $ray) {
+    extract(u\just('type bare other', $ray)); // see fld()
+    extract(u\just('id value class', $other));
+    u\setDft($id, "edit-$name");
+    $func = 'rCredits\\Web\\html' . ucfirst($type);
+    $fldHtml = $func($name, $id, @$value, @$class, @$other);
+    $html .= $bare ? $fldHtml : wrap($name, $fldHtml, $ray);
+  }
+  return $html;
+}
+
+function wrap($name, $html, $ray) {
+  extract(u\just('type label required bare help other', $ray)); // see fld()
+  extract(u\just('invisible id prefix suffix inline class box disabled', $other));
+  $for = strtr(@$name, ['_'=>'-', '['=>'-', ']'=>'']);
+  if ($for == 'title') $html = "<h3>$html</h3>";
+  $html = @$field_prefix . $html . @$field_suffix;
+
+  $boxy = in_array($type, ['radio', 'checkbox']) ? $type : '';
+
+  $class = [@$class];
+  $class[] = $boxy ? 'option' : 'control-label col-sm-offset-1 col-xs-2';
+  if (@$invisible) $class[] = 'sr-only';
+  $label = u\tag('label', $boxy ? $html . @$label : @$label, compact('for', 'class'));
+    
+  if (@!$bare) {
+    $help = @$help ? "\n      <div class=\"help-block\">$help</div>" : '';
+    $lineup = $type == 'item' ? ' lineup' : '';
+    $core = <<<EOF
+    $label
+    <div class="control-data col-xs-10 col-sm-6$lineup">
+      $html$help
+    </div>
+EOF;
+  } else $core = $boxy ? $label : $label . $html;
+
+  $id = @$lineup ? " id=\"edit-$for\"" : '';
+  $outerClass = "form-group wrap-$for";
+  $outerClass .= ' ' . ($boxy ?: "type-$type");
+  if (@$box) $outerClass .= ' box1';
+  if (@$disabled) $outerClass .= ' disabled';
+  
+  return <<<EOF
+  <div$id class="$outerClass">
+$core
+  </div>
+EOF;
+}
+  
+// old
+function fld($type, $title = '', $help = '', $other = [], $options = NULL) {
+  $label = $title;
+  if (@$label[0] == REQ) list ($required, $label) = ['yes', substr($label, 1)];
+  if ($bare = (@$label[0] == BARE)) $label = substr($label, 1); // bare? (no div wrapper)
+  if (@$other['wrap']) $bare = FALSE;
+  $title = $label;
+
   if (!is_array($other)) $other = [$type == 'item' ? 'markup' : 'value' => $other];
   if ($type == 'select' and !isset($other['default_value'])) $other['default_value'] = $options ? key($options) : ''; // Drupal's select fails without a default
   $title_display = 'before';
 //  if (isset($other['value']) and !isset($other['default_value'])) $other['default_value'] = $other['value'];
-  $field = u\prefixKeys('#', $other + compact(u\ray('type title title_display description options')));
+  $field = u\prefixKeys('#', $other + compact(u\ray('type title title_display required bare help options')));
   return $field;
 }
 
-function submit($title = '', $other = '') {return formField('submit', '', $other, $title ?: t('Save'));}
-function item($markup, $title = '', $desc = '', $other = []) {return formField('item', $title, $desc, compact('markup') + $other);}
-function hidField($value = '', $options = []) {return formField('hidden', '', '', compact('value') + $options);}
-function textField($title = '', $description = '', $other = [], $options = NULL) {
-  return formField('textfield', $title, $description, $other, $options);
+// Plan: move all theme functions here. Output each page as a single item(). Each field type function should have a nogroup option (start label with -) and an easier required option (start label with star)
+function submit($title = '', $style = 'primary', $size = 'md', $other = []) {
+  $other += [
+    'input' => TRUE,
+    'name' => 'op',
+    'button_type' => 'submit',
+    'executes_submit_callback' => TRUE,
+    'limit_validation_errors' => FALSE,
+    'process' => array('ajax_process_form'),
+    'theme_wrappers' => array('button'),
+  ];
+  if (@$title[0] == BARE) list ($bare, $title) = [BARE, substr($title, 1)];
+  return fld('submit', @$bare, '', $other + ['value' => $title ?: t('Save')] + compact('style', 'size'));
 }
-function boxField($name, $title = '', $desc = '', $dft = NULL) {
-  $fld = formField('checkbox', $desc, '', compact('name') + dft(@$dft));
-  return $title ? item(@\render($fld), $title, '', ['box' => TRUE]) : $fld;
+function submi($title = '', $style = 'primary', $size = 'xs', $other = []) {
+  return submit(BARE . $title, $style, $size, $other);
 }
-function fieldSet($id, $flds, $prompt = '', $other = []) {return formField('fieldset', $prompt, '', compact('id') + $other) + $flds;}
+
+function buttonFld($value, $href = '', $title = NULL, $style = 'success', $size = 'xs') {
+  $title = htmlspecialchars($title);
+  $class = "btn btn-$style btn-$size";
+  return NEWfld('button', BARE, ['', '', $title], compact(u\ray('href value class')));
+}
+function button($value, $href = '', $title = NULL, $style = 'success', $size = 'xs') {
+  return rend([buttonFld($value, $href, $title, $style, $size)]);
+}
+
+function NEWitem($value, $title = '', $desc = '', $other = []) {return fld('item', $title, $desc, compact('value') + $other);}
+function item($markup, $title = '', $desc = '', $other = []) {return fld('item', $title, $desc, compact('markup') + $other);}
+function hidField($value = '', $other = []) {return fld('hidden', '', '', compact('value') + $other);}
+function NEWtextFld($label = '', $desc = '', $other = []) {return fld('text', $label, $desc, $other);}
+function textFld($label = '', $desc = '', $other = []) {return fld('textfield', $label, $desc, $other);}
+function passFld($label = '', $desc = '', $other = []) {return fld('password', $label, $desc, $other);}
+function areaFld($label = '', $help = '', $other = []) {return fld('textarea', $label, $help, $other);}
+function radiosFld($label, $help, $other, $options) {return fld('radios', $label, $help, $other, $options);}
+function selectFld($label, $help, $other, $options) {return fld('select', $label, $help, $other, $options);}
+
+function boxFld($name, $label = '', $desc = '', $dft = NULL) {
+  $fld = fld('checkbox', $desc, '', compact('name') + dft(@$dft));
+  return $label ? item(@\render($fld), $label, '', ['box' => TRUE]) : $fld;
+}
+function fieldSet($id, $flds, $label = '', $other = []) {return fld('fieldset', $label, '', compact('id') + $other) + $flds;}
 
 /**
  * Return a form field for sharing percentage.
@@ -342,7 +517,7 @@ function fieldSet($id, $flds, $prompt = '', $other = []) {return formField('fiel
 function shareField() {
   $mya = r\acct();
   $sharePct = round(db\lookup('AVG(share)', 'r_gifts', 'share>=0'), 1);
-  return textField(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the rCredits community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes rCredits and handles administration of your rCredits community until the community can take over that responsibility.</p>', compact('sharePct')), required((is_null($mya->share) ? R_SHARE_DFT : (($mya->share + 0) ?: 0)) . '%'));
+  return textFld(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the rCredits community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes rCredits and handles administration of your rCredits community until the community can take over that responsibility.</p>', compact('sharePct')), required((is_null($mya->share) ? R_SHARE_DFT : (($mya->share + 0) ?: 0)) . '%'));
 }
 
 /**
@@ -362,14 +537,14 @@ function badShare(&$share, $required = FALSE) {
 /**
  * Return a boolean (Yes / No) field.
  * @param string $title: field label
- * @param string $description: helpful description of field
+ * @param string $help: helpful description of field
  * @param mixed $dft: the default value (TRUE or FALSE) or an assoc of attributes
  * @param array $labels: labels for the two choices (defaults to [No, Yes])
  */
-function boolField($title = '', $description = '', $dft = NULL, $labels = NULL) {
+function boolField($title = '', $help = '', $dft = NULL, $labels = NULL) {
   $class = ['yesno'];
   $inline = TRUE;
-  return formField('radios', $title, $description, (is_array($dft) ? $dft : required(@$dft ?: 0)) + compact('class', 'inline'), @$labels ?: array(t('No'), t('Yes')));
+  return radiosFld($title, $help, (is_array($dft) ? $dft : required(@$dft ?: 0)) + compact('class', 'inline'), @$labels ?: array(t('No'), t('Yes')));
 }
 
 /*
@@ -383,7 +558,7 @@ function boolField($title = '', $description = '', $dft = NULL, $labels = NULL) 
 function boxesField($title, $desc, $defaults, $choices, $aliases = NULL) {
   u\setDft($aliases, $choices);
   if (!@$defaults) $defaults = [];
-  return formfield('checkboxes', $title, $desc, compact('choices', 'defaults', 'aliases'), []);
+  return fld('checkboxes', $title, $desc, compact('choices', 'defaults', 'aliases'), []);
 }
 
 /**
@@ -415,7 +590,7 @@ function acctTypeField() {
   unset($coAcctTypes[R_PERSONAL]);
 //  $onclick = "attrClick(this);";
 //  $acctTypeAttrib = attrib(compact('onclick'));  
-  return formField('radios', t('Account type:'), '', required(), $coAcctTypes);
+  return radiosFld(t('Account type:'), '', required(), $coAcctTypes);
 }
 
 /**
@@ -435,24 +610,20 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 
   try {
     $mya = r\acct();
-///    global $zot; $zot = @$zot . ' ' . $function; if (strlen(@$zot) > 50) die($zot);
-    if (!$mya and !in_array($function, u\ray(R_ANON_FORMS))) r\go(isGAME ? 'community/game' : '');
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
-    $specialForm = in_array($function, u\ray('Help Empty footer accounts Admin Login MemberList MemberInfo'));
+    $specialForm = in_array($function, u\ray('Help Empty footer accounts Login'));
+    $adminForm = in_array($function, u\ray('Admin MemberList MemberInfo'));
     $args = func_get_args(); // this and next few lines are from \drupal_get_form()
     array_shift($args); // Remove $function from the arguments.
     $formSta['build_info'] = compact('args');
-    if (!r\up() and !$specialForm) {
+    if (!r\up() and !$specialForm and !$adminForm) {
       if ($mya and $mya->admin) {
         say(t('The system is DOWN.'));
         //if (!$mya->cttyUp) say(t('The community is DOWN.'));
       } else $formName = 'rCredits\\Web\\formSystemDown';
     }
     
-//require_once __DIR__ . '/rweb.inc';
-//    debug($formName([], $sta));
-
     $form = \drupal_build_form($formName, $formSta);
     \rweb_form_alter($form, $formSta, $formName);
     
@@ -464,14 +635,12 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
         js('js/countries.js', 'file', 'header');
         if ($mya and \form_get_errors()) js("print_country($mya->country, $mya->state);", 'inline', 'footer');
       }
-      if (u\isIPhone()) css('iphone.css', -100);
       $tree = explode('/', 'home' . str_replace(DEV_ROOT, '', $_SERVER['REQUEST_URI']));
-      foreach ($tree as $k) if (preg_match('/^[a-z\-]+$/', $k)) $crumbs[ucwords($k)] = $kk = isset($kk) ? "$kk/$k" : '';
+      foreach ($tree as $k) if (preg_match('/^[a-z\-]+(\?|$)/', $k)) $crumbs[ucwords($k)] = $kk = isset($kk) ? "$kk/$k" : '';
       \drupal_set_breadcrumb($crumbs);
     }
 
-    $form['#attributes']['class'][] = 'rweb';
-    if (!in_array('form-horizontal', @$form['#attributes']['class'])) $form['#attributes']['class'][] = 'form-vertical';
+//    if (!in_array('form-horizontal', @$form['#attributes']['class'])) $form['#attributes']['class'][] = 'form-vertical';
     $formArray = $form2 = $form; 
 
     $rent = \render($form2);
@@ -500,8 +669,50 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 function photoRet($msg, $status = 'error') {
   if ($status == 'success') $url = $msg; else $message = $msg;
   u\loga('photoRet', compact('status', 'message', 'url'));
-	echo json_encode(compact('status', 'message', 'url'), JSON_UNESCAPED_SLASHES);
+/**/	echo json_encode(compact('status', 'message', 'url'), JSON_UNESCAPED_SLASHES);
   exit();
+}
+
+/**
+ * Provide the crucial fields and scripts for resetting or changing a password.
+ */
+function pickPassword() {
+  $mya = r\acct();
+  $title = item(t('Choose a New Password'));
+  $pass1 = passFld(REQ . t('New password:'), '', clas('password-field'));
+  $pass2 = passFld(REQ . t('Confirm new password:'), '', clas('password-confirm'));
+  $strong = hidField(0, attrib(['id' => 'edit-strong']));
+  focusOn('pass1');
+  js(BASE_URL . '/modules/user/user.js', 'file', 'footer');
+  
+  $password = [
+    'strengthTitle' => 'Strength:',
+    'makeLonger' => 'Make it longer',
+    'weak' => 'Weak (not strong enough)',
+    'fair' => 'Fair (but not strong enough)',
+    'good' => 'Good (but not strong enough)',
+    'strong' => 'Strong (but not strong enough)',
+    'verystrong' => 'Very strong (strong enough)',
+    'mighty' => 'Mighty (strong enough)',
+    'paranoid' => 'Paranoid? (plenty strong)',
+    'hasWeaknesses' => 'To make your password stronger:',
+    'tooShort' => 'Make it at least 6 characters',
+    'addLowerCase' => 'Add lowercase letters',
+    'addUpperCase' => 'Add uppercase letters',
+    'addNumbers' => 'Add numbers',
+    'addPunctuation' => 'Add punctuation',
+    'sameAsUsername' => 'Make it different from your username',
+    'confirmSuccess' => 'yes',
+    'confirmFailure' => 'no',
+    'confirmTitle' => 'Passwords match:',
+    'username' => $mya ? strtolower($mya->mainQid) : '',
+  ];
+
+  $settings = json_encode(compact('password'));
+  js(BASE_URL . '/misc/drupal.js', 'file', 'footer', -999); // for password strength meter
+  js("jQuery.extend(Drupal.settings, {$settings});");
+
+  return compact(u\ray('title pass1 pass2 strong'));
 }
   
 /**
@@ -608,10 +819,33 @@ function which($choices = '', $resultField = '', $info = '', $question = 'Which 
   
   svar('pop', NULL); // called with no args (#3)
   $onchange = "this.form.elements['$pop_resultField'].value=this.options[this.selectedIndex].text; this.form.submit();";
-  $subtext = item($pop_question);
-  $choice = formField('select', '', '', attrib(compact('onchange') + array('size' => 12)), $pop_choices);
-  $close = popupCloser('which'); // this is needed in mobile layout
-  $popup = fieldSet('which', compact(u\ray('subtext close choice')), t('Which One?'));
+  $choice = selectFld('', '', attrib(compact('onchange') + array('size' => 12)), $pop_choices);
+  $choice = render($choice);
+  $legend = t('Which one?');
+  $popup = item(<<<EOF
+<div id="which" class="modal fade" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <!--button type="button" class="close" data-dismiss="modal">&times;</button-->
+        <button type="button" class="pull-right btn btn-xs btn-default" data-dismiss="modal">Cancel</button>
+        <h4 class="modal-title">$legend</h4>
+        <p>$pop_question</p>
+      </div>
+      <div class="modal-body">
+        $choice
+      </div>
+      <!--div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div-->
+    </div>
+
+  </div>
+</div>
+EOF
+  );
+// <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#which">Open Modal</button>
+  js('$("#which").modal("show");', 'inline', 'footer', 9999);
   return compact('popup');
 }
 
@@ -626,24 +860,25 @@ function keep_values(&$form) {
   }
   return $form; // for convenience we both modify the form and return it
 }
-
+/*
 function popupCloser($idHead) {
   global $rUrl;
   return item('<img src="' . $rUrl . '/images/icons/close.png" border="0">') + array('#id' => "$idHead-close");
 }
-
+*/
 /**
  * Return a help overlay
  * @todo: make it move right when "labeled"
- */
+ */ /* UNUSED
 function help($page, $class = '') {
   include_once __DIR__ . '/rweb-help.inc';
 //  $subtext = item($question);
   $close = popupCloser('help');
-  $text = formField('item', '', '', helpText($page));
-  $help = fieldSet('help', compact(u\ray('close subtext text')), t('Help with this page'));
+  $text = fld('item', '', '', helpText($page));
+  $help = fieldSet('help', compact(u\ray('close subtext text')), BARE . t('Help with this page'));
   return compact('help');
 }
+*/
 
 function memberStep($step, $done, $text, $links = '', $newWindow = FALSE) {
   u\EXPECT('done', 'bool');
@@ -692,7 +927,7 @@ EOF;
 function goButton($label, $goto, $title) {
   $gotoHead = isDEV ? DEV_ROOT : '';
   $name = str_replace('/', '_', $goto);
-  return array($name => formField('item', '', '', button($label, "$gotoHead/$goto", $title)));
+  return array($name => fld('item', '', '', button($label, "$gotoHead/$goto", $title)));
 }
 
 /**
@@ -831,7 +1066,7 @@ function emailOkay(&$email0, $uid = '') {
 function emailDup($email0, $uid) {
   $mail = u\cryptN($email0);
   if (!$who = db\lookup('fullName', 'users', 'mail=:mail and uid<>:uid', compact('mail', 'uid'))) return FALSE;
-  $a = "a href=account/password/$email0";
+  $a = "a href=settings/password/$email0";
   $emailTagged = str_replace('@', '+whatever@', $email0);
   if (!$uid) $forgot = '|forgot password';
   say('duplicate email' . @$forgot, compact(u\ray('emailTagged who a')), 'email');
@@ -881,9 +1116,9 @@ function findCompany($company, $companyPhone) {
 function nameAndEmail($what, $fullName = '') {
   $who = $what == t('Company') ? t('The company\'s') : ($what == t('Community') ? t('The community\'s') : t('Your'));
   $onchange = "var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);";
-  $fullName = textField("$what:", ["$who " . t('full name'), tt('usename desc')], required(@$fullName) + attrib(compact('onchange')));
-  $legalName = textField(t('Legal name:'), ["$who " . t('full legal name'), t('(if different) ') . $who . tt('legalname desc')]);
-  $email = textField(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required());
+  $fullName = textFld("$what:", ["$who " . t('full name'), tt('usename desc')], required(@$fullName) + attrib(compact('onchange')));
+  $legalName = textFld(t('Legal name:'), ["$who " . t('full legal name'), t('(if different) ') . $who . tt('legalname desc')]);
+  $email = textFld(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required());
   return compact(u\ray('fullName legalName email'));
 }
 
@@ -914,20 +1149,20 @@ function contactFields($defaults = [], $old) {
   $onchange = "zipChange('010 013');";
   $zipAttrib = attrib(compact('onchange'));
   
-  $phone = textField(t('Phone:'), [t('Your phone number')], required(@$phone ? u\fmtPhone($phone): ''));
+  $phone = textFld(t('Phone:'), [t('Your phone number')], required(@$phone ? u\fmtPhone($phone): ''));
 //$mya ? '' : t('Your phone number. This should not be a number already used for another rCredits account &mdash; unless you have no other phone number.')
 //  $dupOk = hidField(0, attrib(u\ray('id', 'edit-dupOk')));
 //  $dupOk = boolField(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
-//  $verifyBy = $mya ? NULL : formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
-  $faxetc = @$faxetc ? textField(t('Fax etc:'), [t('Other contact info'),t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.')], dft(@$faxetc)) : NULL;
-  $country = formField('select', t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
-  $postalCode = textField(t('Postal Code:'), [t('Physical location postal code'), t('Postal code for your <em>physical location</em>')], required(@$postalCode) + $zipAttrib);
-  $address = textField(t('Street Address:'), [t('Physical address'), t('Where is your building located (physical address)?')], required(@$address) + $addressAttrib);
-  $city = textField(t('City:'), [t('City where you live')], required(@$city) + $cityAttrib);
-  $state = formField('select', t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
-  $tenure = $old ? NULL : textField(t('How long:'), [t('MONTHS at this address.')], required(@$tenure));
+//  $verifyBy = $mya ? NULL : radiosFld(t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
+  $faxetc = @$faxetc ? textFld(t('Fax etc:'), [t('Other contact info'),t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.')], dft(@$faxetc)) : NULL;
+  $country = selectFld(t('Country:'), t(''), dft(@$country), $countryAttrib); // can't use required() here
+  $postalCode = textFld(t('Postal Code:'), [t('Physical location postal code'), t('Postal code for your <em>physical location</em>')], required(@$postalCode) + $zipAttrib);
+  $address = textFld(t('Street Address:'), [t('Physical address'), t('Where is your building located (physical address)?')], required(@$address) + $addressAttrib);
+  $city = textFld(t('City:'), [t('City where you live')], required(@$city) + $cityAttrib);
+  $state = selectFld(t('State:'), t(''), dft(@$state), $stateAttrib); // can't use required() here
+  $tenure = $old ? NULL : textFld(t('How long:'), [t('MONTHS at this address.')], required(@$tenure));
   $owns = boolField('', '', $old ? dft((int) $mya->owns) : 0, [t('Rent'), t('Own')]);
-  $postalAddr = textField(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
+  $postalAddr = textFld(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
 
   return compact(u\ray($fields));
 }  
@@ -938,8 +1173,8 @@ function contactFields($defaults = [], $old) {
  */
 function ssnFields($personal = TRUE) {
   $ssTitle = tt($personal ? 'ssTitle' : 'einTitle');
-  if ($personal) $dob = textField(t('Birthdate:'), [t('Your date of birth (mm/dd/yyyy)')], required());
-  $federalId = formField('password', $ssTitle, [tt($personal ? 'ssDesc' : 'einDesc')], required()); // textfield so user doesn't have to retype on error
+  if ($personal) $dob = textFld(t('Birthdate:'), [t('Your date of birth (mm/dd/yyyy)')], required());
+  $federalId = passFld($ssTitle, [tt($personal ? 'ssDesc' : 'einDesc')], required()); // textfield so user doesn't have to retype on error
   return compact(u\ray('dob federalId'));
 }
 
@@ -991,7 +1226,7 @@ function show($field, $show = '') {
     } elseif (strpos(R_SECRET_FIELDS . ' usdAccount', $field) !== FALSE) {
       $result = $mya->$field;
     }
-  } else $result = "<a href=\"$base_url/account/security/show=$field\">show</a>";
+  } else $result = "<a href=\"$base_url/settings/security/show=$field\">show</a>";
   return "[$result] ";
 }
 */
@@ -1002,14 +1237,14 @@ function onFile($field, $sta) {
 
 function dropdown($name, $value, $options, $id) {
   $name = "$name-$id";
-  $zot = array('zot' => formField('select', '', '', compact('value') + attrib(compact('name')), $options));
+  $zot = array('zot' => selectFld('', '', compact('value') + attrib(compact('name')), $options));
   return render($zot);
 }
 
 function amountField($name, $value, $id) {
   $name = "$name-$id";
   $class = 'amount'; $class = compact('class');
-  $zot = array('zot' => textField('', '', compact('value') + attrib(compact('name', 'class'))));
+  $zot = array('zot' => textFld('', '', compact('value') + attrib(compact('name', 'class'))));
   return render($zot);
 }
 
@@ -1148,7 +1383,7 @@ EOF;
       $cat = $industry;
       $headed = (@$rows[$i+1]['industry'] == $industry); // header for 2 or more businesses in the same industry
       $headed = TRUE; // always show the category (but keep the option to disable this choice)
-      $list .= $headed ? ($list ? '</ul>' : '') . "<ul><h2>$cat</h2>\n" : '<li>&nbsp;</li>';
+      $list .= $headed ? ($list ? '</ul>' : '') . "<ul><h4>$cat</h4>\n" : '<li>&nbsp;</li>';
     }
     $a = r\acct($uid);
     $pay = $canBuy ? button('pay', "$base_url/pay/who=$short_name") : '';
@@ -1271,19 +1506,25 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   list ($starting, $ending) = rangeDates(@$period, @$starting, @$ending);
   $url = BASE_URL . "/$url/period=$period&starting=$starting&ending=$ending&states=$states";
 
-  $showAdvanced = item('<a class="nospin" href="javascript:void(0);" onclick="javascript:' . $showAdvJs . '">advanced</a>');
-  $period = formField('select', t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
-  $submitPeriod = submit(t('Show ')); // label has to be different from submitDates (see below)
-  if ($downloadable) $downloadPeriod = submit(t('Download '));
-  $simple = fieldSet('simple', compact(u\ray('period submitPeriod downloadPeriod showAdvanced')));
+  $showAdvanced2 = '<a id="showAdvanced" href="javascript:void(0);" onclick="' . $showAdvJs . '">advanced</a>';
+  $submitPeriod = submi(t('Show ')); // label has to be different from submitDates (see below)
+  if ($downloadable) $downloadPeriod = submi(t('Download '));
+///  debug(render($submitPeriod));
+///  debug(rendA(compact('submitPeriod')));
+///  $actions = render($submitPeriod) . render(@$downloadPeriod) . render($showAdvanced);
+  $actions = fieldSet('actionsSimple', compact('submitPeriod', 'downloadPeriod'), '', suffix($showAdvanced2));
+///  $period = selectFld(t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
+  $period = selectFld(t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
+  $simple = fieldSet('simple', compact('period', 'actions'), BARE);
   
   $res = compact(u\ray('url starting ending states')); // the easy parts of the result
-  $starting = textField(t('Starting:'), '', dft(u\fmtDate($starting)));
-  $ending = textField(t('Ending:'), '', dft(u\fmtDate($ending)));
-  $submitDates = submit(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
-  $showSimple = item('<a class="nospin" href="javascript:void(0);" onclick="javascript:jQuery(\'#advanced\').hide(); jQuery(\'#simple\').show();">simpler</a>');
-  if ($downloadable) $downloadDates = submit(t(' Download'));
-  $advanced = fieldSet('advanced', compact(u\ray('states2 starting ending submitDates downloadDates showSimple')));
+  $submitDates = submi(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
+  $showSimple2 = '<a id="showSimple" href="javascript:void(0);" onclick="jQuery(\'#advanced\').hide(); jQuery(\'#simple\').show();">simpler</a>';
+  if ($downloadable) $downloadDates = submi(t(' Download'));
+  $actions = fieldSet('actionsAdvanced', compact('submitDates', 'downloadDates'), '', suffix($showSimple2));
+  $starting = textFld(t('Starting:'), '', dft(u\fmtDate($starting)));
+  $ending = textFld(t('Ending:'), '', dft(u\fmtDate($ending)));
+  $advanced = fieldSet('advanced', compact('starting', 'ending', 'states2', 'actions'), BARE);
   return u\ray('dateRange', compact('simple', 'advanced')) + $res;
 }
 
@@ -1396,21 +1637,21 @@ function sureForm(&$sta, $title = '') {
   if (!@$sta['confirm']) return FALSE;
 //  if (!isset($sta['confirm'])) return FALSE;
   
-  $form = array(
-    'title' => $title ? item($title) : NULL,
-    'question' => item($sta['confirm']),
-    'confirm' => submit(t('Okay')),
-    'cancel' => submit(t('Cancel')),
-  );
+  $title = item($title ?: t('Confirm'));
+  $question = item($sta['confirm']);
+  $confirm = submi(t('Okay'));
+  $cancel = submi(t('Cancel'));
+  $actions = w\fieldSet('actions', compact('confirm', 'cancel'));
+  $form = compact('title', 'question', 'actions');
   $form['#skip_duplicate_check'] = TRUE; // Confirm form fails duplication check, as the form values rarely change -- so skip it.
-  $form['#attributes'] = array('class' => u\ray('rweb confirmation'));
+  $form['#attributes'] = array('class' => u\ray('confirmation'));
 //  $form['#validate'] = 'rCredits\\Web\\sureForm_validate';
 //  $form['#submit'] = 'rCredits\\Web\\sureForm_submit';
 //  $sta['rebuild'] = TRUE;
 
   focusOn('confirm');
 
-  return $form;
+  return labeled($form);
 }
 
 /*
@@ -1590,8 +1831,8 @@ function subMenu($title, $menu) {
   </a>
 EOF;
   }
-  $title = item("$title");
-  $list = item($list);
+  $title = item($title);
+  $list = item($list, BARE);
   return compact('title', 'list');
 }
 
@@ -1927,18 +2168,6 @@ function js($what, $type = 'inline', $scope = 'footer', $weight = 0) {
 }
 
 /**
- * Add classes to form, so labels will line up next to fields.
- */
-function labeled($form, $level = 0) {
-  $form['#attributes']['class'][] = $level ? '' : 'form-horizontal'; // 'labeled';
-  foreach ($form as $k => $v) if (substr($k, 0, 1) != '#') {
-    $form[$k]['#tabled'] = TRUE;
-    if (@$form[$k]['#type'] == 'fieldset') $form[$k] = labeled($form[$k], $level + 1);
-  }
-  return $form;
-}
-
-/**
  * Check the amount, fix it in the input array, return any error.
  */
 function amtErr($field, &$sta, $restriction = '', $fractionLimit = 2) {
@@ -1953,8 +2182,9 @@ function blockView($subject, $content) {return compact(u\ray('subject content'))
 function disabled($value) {return array('value' => $value, 'disabled' => TRUE);}
 function dft($default_value) {return compact('default_value');}
 function weight($weight) {return compact('weight');}
+function clas($class) {return ['class' => [$class]];}
 function attrib($attributes) {return compact('attributes');}
-function suffix($suffix = '') {$suffix .= '<div class="clearfix"></div>'; return compact('suffix');}
+function suffix($field_suffix = '') {return compact('field_suffix');}
 function prefix($prefix) {return compact('prefix');}
 function autocomplete($type = '') {return array('autocomplete_path' => "autocomplete/$type/" . @r\acct()->id);}
 function required($dft = NULL) {return ['required' => TRUE] + (isset($dft) ? dft($dft) : []);}
@@ -1964,3 +2194,4 @@ function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}
 function blurbLink() {global $rUrl; return "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">description of rCredits</a>";}
 function sayFieldErr($err, $field) {return say(strtoupper($field) . ': ' . tt($err), $field);}
 function popHelp($text, $help) {return "<span title=\"$help\">$text</span>";}
+function rent($element) {return \render($element);} // Drupal makes render hard, requires pass by reference

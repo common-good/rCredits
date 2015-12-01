@@ -147,7 +147,7 @@
 
     <?php //print $breadcrumb; ?>
 
-    <div id="content" class="column"><div class="section">
+    <div id="content" class="clearfix column"><div class="section">
       <?php if ($page['highlighted']): ?><div id="highlighted"><?php print render($page['highlighted']); ?></div><?php endif; ?>
       <a id="main-content"></a>
       <?php print render($title_prefix); ?>

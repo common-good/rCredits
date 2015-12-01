@@ -379,6 +379,7 @@ function tag($tag, $html = '', $tribs = []) {
   $tribs = $tribs ? ' ' . u\tribs($tribs) : '';
   return "<$tag$tribs>$html</$tag>";
 }
+function tagN($tag, $html = '', $tribs = []) {return str_replace('#', '', tag($tag, $html, $tribs));}
 
 /**
  * URL encode an arbitrary non-empty ascii string compactly
@@ -1366,7 +1367,7 @@ function consta($prefix, $var) {return constant(strtoupper(str_replace(' ', '_',
 function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}
 function jsonEncode($s) {return json_encode($s) ?: json_encode(u\purify($s));} // , JSON_UNESCAPED_SLASHES
 function redash($s) {return str_replace('—', '&mdash;', $s);}
-function backButton() {return '<button onclick="history.go(-1); return false;">Go Back</button>';}
+function backButton() {return '<button onclick="history.go(-1); return false;" class="btn btn-xs btn-primary"><big>&laquo;</big> Go Back</button>';}
 function nonish($s) {return in_array(strtolower($s), array('n/a', 'nothing', 'na', 'none')); }
 function padto($s, $n) {return str_pad(substr($s, $n), $n);}
 function lpad($s, $n) {return str_pad(substr($s, 0, $n), $n, '0', STR_PAD_LEFT);}

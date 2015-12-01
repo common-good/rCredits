@@ -61,7 +61,7 @@ class adminChanges extends DrupalWebTestCase {
   // Scenario: A member changes some settings
   public function testAMemberChangesSomeSettings_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('member ".ZZA" completes form "account/preferences" with values: "ASSOC'
+    Given('member ".ZZA" completes form "settings/preferences" with values: "ASSOC'
     . '\\| minimum | achMin | smsNotices | notices | statements | debtOk | secretBal | share |'
     . '\\|     100 |     11 |          0 |       1 |          0 |      1 |         0 |    25 |"');
     When_('member ".ZZD" visits page "sadmin/changes/NEW.ZZA"');

@@ -55,7 +55,7 @@ class rwebBoxes extends DrupalWebTestCase {
   // Scenario: A member visits the devices page with no devices yet
   public function testAMemberVisitsTheDevicesPageWithNoDevicesYet_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" visits page "account/boxes"');
+    When_('member ".ZZA" visits page "settings/boxes"');
     Then_('we show "Devices" with: "ARRAY'
     . '\\|_# | Type | Device name | Last used |'
     . '\\| 1 | Web  | Browser #1  | %dmy      |"');
@@ -69,7 +69,7 @@ class rwebBoxes extends DrupalWebTestCase {
     . '\\| .ZZA | pos     | A3           |      3 |           | %today-4w |'
     . '\\| .ZZA | sms     | +12002002000 |      2 |           | %today-2d |'
     . '\\| .ZZA | sms     | +14004004000 |      4 | whatEver  | %today-3w |"');
-    When_('member ".ZZA" visits page "account/boxes"');
+    When_('member ".ZZA" visits page "settings/boxes"');
     Then_('we show "Devices" with: "ARRAY'
     . '\\|_# | Type | Device name     | Last used |'
     . '\\| 2 | SMS  | +1 200 200 2000 | %dmy-2d   |'

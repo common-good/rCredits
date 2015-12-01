@@ -218,7 +218,7 @@ function rcredits_links($variables) {
   <div class="nav2-inner">
     <div id="extras" class="">
       <button type="button" class="accounts-toggle photo$co" data-toggle="collapse" data-target="#edit-acct-account" aria-expanded="false" aria-controls="edit-acct-account">
-        <a title="$acctName" data-toggle="popover" class="nospin"><img src="$base_url/account/icon"/></a>
+        <a title="$acctName" data-toggle="popover" class="nospin"><img src="$base_url/settings/icon"/></a>
       </button>
     </div>
   </div>
@@ -296,8 +296,8 @@ EOF;
  * @ingroup themeable
  */
 function rcredits_form_element($variables) {
-  extract(rcElement($variables, 'name tabled type markup description parents children required title title_display id field_prefix field_suffix inline class box'));
-//debug(compact('tabled', 'variables'));
+  extract(rcElement($variables, 'name tabled type bare markup help parents children required title title_display id field_prefix field_suffix inline class box'));
+///  debug(compact('parents', 'tabled', 'bare'));
   $for = @$name ?: strtr(@$parents[0], [' '=>'-', '_'=>'-', '['=>'-', ']'=>'']);
   if ($for == 'title') $children = "<h3>$children</h3>";
   $children = @$field_prefix . $children . @$field_suffix;
@@ -308,16 +308,17 @@ function rcredits_form_element($variables) {
 
   $class[] = $boxy ? 'option' : 'control-label col-sm-offset-1 col-xs-2';
   if ($title_display == 'invisible') $class[] = 'sr-only';
-  $label = u\tag('label', $boxy ? $children . $title : $title, compact('for', 'class'));
+  $label = u\tag('label', $boxy ? $children . @$title : @$title, compact('for', 'class'));
+  if (@$bare) return $boxy ? $label : $children;
     
   if (@$tabled) {
-    if (is_array(@$description)) $description = @$description[1]; // ignore hint here (see rcredits_textfield)
-    $description = @$description ? "\n      <div class=\"help-block\">$description</div>" : '';
+    if (is_array(@$help)) $help = @$help[1]; // ignore hint here (see rcredits_textfield)
+    $help = @$help ? "\n      <div class=\"help-block\">$help</div>" : '';
     $lineup = is_null(@$markup) ? '' : ' lineup';
     $core = <<<EOF
     $label
     <div class="control-data col-xs-10 col-sm-6$lineup">
-      $children$description
+      $children$help
     </div>
 EOF;
   } else $core = $boxy ? $label : $label . $children;
@@ -337,11 +338,12 @@ EOF;
 
 function rcredits_textfield($variables, $type = 'text') {
   \element_set_attributes($variables['element'], u\ray('id name value size maxlength'));
-  extract(rcElement($variables, 'attributes autocomplete_path required description class'));
+  extract(rcElement($variables, 'attributes autocomplete_path required help class submitButton'));
 
-  if (@$required) $attributes['required'] = 'yes';
+  if (@$submitButton) return rcredits_submit($variables);
+  if (@$required) $attributes['required'] = 'yes'; // don't add this in unless it is yes
   $class[] = 'form-control input-md';
-  if (is_array($ray = @$description)) {
+  if (is_array($ray = @$help)) {
     if (@$ray[0] and !@$ray[2]) $ray[2] = $ray[0]; // hover text defaults to same as hint
     foreach (['placeholder', 'desc', 'title'] as $i => $k) {
       if ($k != 'desc' and $v = $ray[$i]) $attributes[$k] = $v;
@@ -354,18 +356,42 @@ function rcredits_textfield($variables, $type = 'text') {
   return "<input $tribs />" . $extra;
 }
 
+function rcredits_textarea($variables) {
+  \element_set_attributes($variables['element'], array('id', 'name'));
+  extract(rcElement($variables, 'attributes name help class value'));
+
+  $value = \check_plain($value);
+  if (@$required) $attributes['required'] = 'yes';
+  $class[] = 'form-control input-md';
+  if (is_array($ray = @$help)) {
+    if (@$ray[0] and !@$ray[2]) $ray[2] = $ray[0]; // hover text defaults to same as hint
+    foreach (['placeholder', 'desc', 'title'] as $i => $k) {
+      if ($k != 'desc' and $v = $ray[$i]) $attributes[$k] = $v;
+    }
+  }    
+
+  $tribs = u\tribs(compact('class') + $attributes);
+  return "<textarea $tribs />$value</textarea>";
+}
+
 function rcredits_radios($variables) {
   $chn = $variables['element']['#children'];
   return @$variables['element']['#inline'] ? str_replace(' radio">', ' radio-inline">', $chn) : $chn;
 }
 
 function rcredits_submit($variables) {
-  extract(rcElement($variables, 'tabled value title id'));
-  return <<<EOF
-  <button type="submit" id="$id" class="col-xs-offset-2 col-sm-offset-3 btn btn-primary btn-md ladda-button" data-style="expand-right">
+  extract(rcElement($variables, 'tabled bare value title id size style name parents'));
+///  debug($variables);
+  u\setDft($id, strtolower("edit-$value"));
+  u\setDft($size, 'md');
+  u\setDft($style, 'primary');
+//  u\setDft($name, @$parents[0]);
+  $variables['element']['#children'] = $res = <<<EOF
+  <button type="submit" id="$id" name="$name" value="$value" class="btn btn-$style btn-$size ladda-button" data-style="expand-right">
     <span class="ladda-label">$value</span>
   </button>
 EOF;
+  return @$bare ? $res : rcredits_form_element($variables);
 }
 
 function rcredits_button($variables) {
@@ -400,7 +426,7 @@ function rcredits_checkboxes($variables) {
     $value = $k;
     $checked = in_array($v, $defaults);
     $title = $aliases[$k];
-    $chn .= @\render(w\formField('checkbox', '', '', compact($fields)));
+    $chn .= @\render(w\fld('checkbox', '', '', compact($fields)));
   }
   extract(rcElement($variables, 'attributes class'));
   $class[] = 'form-checkboxes';
@@ -416,13 +442,16 @@ function rcredits_select($variables) {
 
 function rcredits_fieldset($variables) {
   \element_set_attributes($variables['element'], array('id'));
-  extract(rcElement($variables, 'attributes class title description value children'));
+  extract(rcElement($variables, 'attributes class legend bare help value children'));
 
   $class[] = 'form-wrapper';
-  if (@$title) $title = u\tag('legend', u\tag('span', $title, ['class'=>'fieldset-legend']));
-  if (@$description) $description = u\tag('div', $description, ['class'=>'fieldset-description']);
-  $wrapper = u\tag('div', @$description . $children . @$value, ['class'=>'fieldset-wrapper']);
-  return u\tag('fieldset', @$title . $wrapper, $attributes + compact('class'));
+  $attributes += compact('class');
+  if (@$legend) $legend = u\tag('legend', u\tag('span', $legend, ['class'=>'fieldset-legend']));
+  if (@$help) $help = u\tag('div', $help, ['class'=>'fieldset-help']);
+  $wrapper = u\tag('div', @$help . $children . @$value, ['class'=>'fieldset-wrapper']);
+//  return u\tag('fieldset', @$title . $wrapper, $attributes + compact('class'));
+  $variables['element']['#children'] = $res = u\tag('fieldset', @$legend . $wrapper, $attributes);
+  return rcredits_form_element($variables);
 }
 
 function rcredits_password($variables) {
@@ -434,8 +463,12 @@ function rcredits_breadcrumb($variables) {
   if ($cnt < 2) return '';
   $map = ['Sadmin' => t('Sys Admin'), 'Account' => t('Settings')];
   $head = '<h2 class="sr-only">' . t('You are here') . '</h2>';
-  foreach ($breadcrumb as $k => $v) $crumbs[] = l(str_replace('-', ' ', strtr($k, $map)), BASE_URL . $v);
-  $crumbs[$cnt - 1] = strtr($k, $map);
+  foreach ($breadcrumb as $k => $v) {
+    $k = ucwords(str_replace('-', ' ', strtr($k, $map)));
+    if ($i = strpos($k, '?')) $k = substr($k, 0, $i);
+    $crumbs[] = l($k, BASE_URL . $v);
+  }
+  $crumbs[$cnt - 1] = $k;
   return $head . '<li>' . join('</li><li>', $crumbs) . '</li>';
 }
 

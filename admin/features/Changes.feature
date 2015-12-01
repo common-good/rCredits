@@ -16,7 +16,7 @@ Setup:
   | .ZZD | Dee Four | 4 D St. | Dton | DE    | 04000      | b@    | ok,admin     |     400 |     40 |    50 |
 
 Scenario: A member changes some settings
-  Given member ".ZZA" completes form "account/preferences" with values:
+  Given member ".ZZA" completes form "settings/preferences" with values:
   | minimum | achMin | smsNotices | notices | statements | debtOk | secretBal | share |*
   |     100 |     11 |          0 |       1 |          0 |      1 |         0 |    25 |
   When member ".ZZD" visits page "sadmin/changes/NEW.ZZA"

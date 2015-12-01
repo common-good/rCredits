@@ -6,9 +6,9 @@ SO I can make it right.
 Setup:
   Given members:
   | id   | fullName   | rebate | flags      |*
-  | .ZZA | Abe One    |      5 | ok,bona    |
-  | .ZZB | Bea Two    |     10 | ok,bona    |
-  | .ZZC | Corner Pub |     10 | ok,co,bona |
+  | .ZZA | Abe One    |      5 | ok,confirmed,bona    |
+  | .ZZB | Bea Two    |     10 | ok,confirmed,bona    |
+  | .ZZC | Corner Pub |     10 | ok,confirmed,co,bona |
   And relations:
   | id   | main | agent | permission |*
   | :ZZA | .ZZC | .ZZA  | sell       |
@@ -32,7 +32,7 @@ Scenario: A buyer changes the transaction description
   Given member ".ZZA" edits transaction "4" with values:
   | amount | goods        | purpose |*
   |     20 | %R_FOR_GOODS | things  |
-  When member ".ZZA" visits page "history/period=5"
+  When member ".ZZA" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
   |_tid | Date | Name    | From you | To you | Status | _ | Purpose | Reward/Fee |
   |   2 | %dm  | Bea Two |    20.00 |     -- | %chk   | X | things  |       1.00 |
@@ -87,7 +87,7 @@ Scenario: A buyer disputes a charge
   | 100 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | 1      |
   | 101 | %today-5d | rebate   |      4 | ctty | .ZZA | rebate   | 0      |
   | 102 | %today-5d | bonus    |      8 | ctty | .ZZC | bonus    | 0      |
-  When member ".ZZA" visits page "history/period=5"
+  When member ".ZZA" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
   |_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward/Fee |
   |   3 | %dm-5d | Corner Pub | 80.00    | --     | %chk   | X | this CF | 4.00       |
@@ -96,7 +96,7 @@ Scenario: A buyer disputes a charge
   | amount | otherName  | otherDid | purpose | created   | txAction            |*
   | $80    | Corner Pub | charged  | this CF | %today-5d | DISPUTE this charge |
   When member ".ZZA" confirms "X" on transaction 100
-#  When member ".ZZA" confirms form "history/period=5&do=no&xid=100" with values: ""
+#  When member ".ZZA" confirms form "history/transactions/period=5&do=no&xid=100" with values: ""
   Then we say "status": "report undo" with subs:
   | solution |*
   | marked ''disputed'' |
@@ -110,7 +110,7 @@ Scenario: A seller reverses a charge
   | 100 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | 1      |
   | 101 | %today-5d | rebate   |      4 | ctty | .ZZA | rebate   | 0      |
   | 102 | %today-5d | bonus    |      8 | ctty | .ZZC | bonus    | 0      |
-  When member ":ZZB" visits page "history/period=5"
+  When member ":ZZB" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
   |_tid | Date   | Name    | From you | To you | Status | _ | Purpose | Reward/Fee |
   |   2 | %dm-5d | Abe One | --       | 80.00  | %chk   | X | this CF | 8.00       |
@@ -127,7 +127,7 @@ Scenario: A member confirms OK
   | 101 | %today-5d | rebate   | pending |      4 | ctty | .ZZA | rebate   | 0      |
   | 102 | %today-5d | bonus    | pending |      8 | ctty | .ZZC | bonus    | 0      |
   And next DO code is "whatever"
-  When member ".ZZA" confirms form "history/period=5&do=ok&xid=100" with values: ""
+  When member ".ZZA" confirms form "history/transactions/period=5&do=ok&xid=100" with values: ""
   Then we say "status": "report tx|reward" with subs:
   | did    | otherName  | amount | why                | rewardAmount |*
   | paid   | Corner Pub | $80    | goods and services | $4           |
@@ -149,7 +149,7 @@ Scenario: A member confirms OK for a disputed transaction
   | 100 | %today-5d | transfer | disputed |     80 | .ZZA | .ZZC | this CF  | 1      |
   | 101 | %today-5d | rebate   | disputed |      4 | ctty | .ZZA | rebate   | 0      |
   | 102 | %today-5d | bonus    | disputed |      8 | ctty | .ZZC | bonus    | 0      |
-  When member ".ZZA" confirms form "history/period=5&do=ok&xid=100" with values: ""
+  When member ".ZZA" confirms form "history/transactions/period=5&do=ok&xid=100" with values: ""
   Then we show "Transaction History" with:
   |_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward |
   | 11  | %dm-5d | Corner Pub | 80.00    | --     | %chk   | X | this CF | 4.00   |

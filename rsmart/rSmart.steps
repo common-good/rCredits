@@ -206,8 +206,9 @@ function weRespondWithPicture($picture) {
  */
 function memberHasNoPicture($id) {
   global $testOnly; if ($testOnly) return FALSE;
-  debug(strlen(r\acct(t\uid($id))->photo));
-  return !r\acct(t\uid($id))->hasAux('picture');
+  if (!$a = r\acct(t\uid($id))) return FALSE;
+  if ($a->hasAux('picture')) unlink(DRUPAL_ROOT . $a->auxFilename('picture', TRUE));
+  return !$a->hasAux('picture');
 }
 
 /**

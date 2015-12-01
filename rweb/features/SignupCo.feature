@@ -23,7 +23,7 @@ Scenario: A member registers a company
   And we show "Open a Company Account" with:
   |_nameDescription      |
   | properly capitalized |
-  And with options:
+  And with:
   |_acctType            |
   | partnership         |
   | private corporation |

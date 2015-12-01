@@ -32,38 +32,39 @@ function formAdminPanel($form, &$sta, $args = '') {
   $title = item(t('System Administration'));
   
   if ($admin) {
-    if (r\up()) $stop = submit(t('STOP')); else $start = submit(t('START'));
-    $do1099btest = submit(t('1099B TEST'));
-    $do1099b = submit('1099B');
+    if (r\up()) $stop = submi(t('STOP')); else $start = submi(t('START'));
+    $do1099btest = submi(t('1099B TEST'));
+    $do1099b = submi('1099B');
     $tables .= ' notices boxes do log stats usd nonmembers';
-    $special = submit(t('Special'));
-    $askForAppData = submit(t('Ask for App Data'));
-    $seeAppData = submit(t('See App Data'));
+    $special = submi(t('Special'));
+    $askForAppData = submi(t('Ask for App Data'));
+    $seeAppData = submi(t('See App Data'));
   }
   if (!$admin and $ctty = $mya->community) {
     $cttyName = @r\acct($ctty)->fullName; // @ for testing
-    if ($mya->cttyUp) $stopCtty = submit(t('STOP ') . $cttyName); else $startCtty = submit(t('START ') . $cttyName);
+    if ($mya->cttyUp) $stopCtty = submi(t('STOP ') . $cttyName); else $startCtty = submi(t('START ') . $cttyName);
   }
   
-  $inviteeStatus = submit(t('Invitee Status'));
-  $organizerList = submit(t('Organizer List'));
-  $account = textField(t('Account:'), t('Account to do something to'), (auto() ?: []) + dft(svar('adminingAcct')));
-  if ($admin) $make2 = boxfield('make', t('Make:'));
-  $printId = submit(t('Print ID'));
-//  $connectBank = submit(t('Connect Bank'));
-  $seeSecure = submit(t('See Secure'));
-//  $seeHidden = submit(t('See Hidden'));
-  $seeData = submit(t('See Data'));
-  $seeChanges = submit(t('See Changes'));
-  $newUsdEmail = submit(t('New USD Email'));
+  $inviteeStatus = submi(t('Invitee Status'));
+  $organizerList = submi(t('Organizer List'));
+  $account = textFld(t('Account:'), t('Account to do something to'), (auto() ?: []) + dft(svar('adminingAcct')));
+  if ($admin) $make2 = boxFld('make', t('Make:'));
+  $printId = submi(t('Print ID'));
+//  $connectBank = submi(t('Connect Bank'));
+  $seeSecure = submi(t('See Secure'));
+//  $seeHidden = submi(t('See Hidden'));
+  $seeData = submi(t('See Data'));
+  $seeChanges = submi(t('See Changes'));
+  $newUsdEmail = submi(t('New USD Email'));
   $acctSet = fieldSet('acctSet', compact(u\ray('account make2 printId seeData seeChanges seeSecure askForAppData seeAppData')));
   
   $form = compact('title');
   if ($mya->cAdmin) {
-    foreach (u\ray($tables) as $one) $form[$one] = submit($one);
-    $form += compact(u\ray('inviteeStatus organizerList do1099btest do1099b special stop start stopCtty startCtty acctSet'));
+    foreach (u\ray($tables) as $one) $do[$one] = submi($one);
+    $do += compact(u\ray('inviteeStatus organizerList do1099btest do1099b special stop start stopCtty startCtty'));
+    $do = fieldSet('do', $do);
   }
-  return $form;
+  return labeled(compact(u\ray('title do acctSet')));
 }
 
 function formAdminPanel_submit($form, &$sta) {
@@ -183,7 +184,7 @@ EOF
   );
   } else {
     $subtext = item(t('Enter a list of zipcodes (or partial zipcodes), separated by spaces.'));
-    $zips = textField(t('Zips:'));
+    $zips = textFld(t('Zips:'));
     $submit = submit(t('Go'));
   }
   return compact(u\ray('title subtext zips submit list'));
@@ -247,9 +248,9 @@ function formTestRecovery($form, &$sta, $doSay = FALSE) {
  */
 function formMakeCtty($form, &$sta) {
   $title = item(t('Make a New Community or Region'));
-  $region = textfield(t('Region Code:'), t('3-letter region code (for communities within a region, leave this blank)'));
-  $zips = textField(t('Zip Regex:'), t('Type a regular expression for all zipcodes to be included in the community or region. For example, ^013|01002 would include all zipcodes starting 013 plus zipcode 01002.'));
-  $postalAddr = textField(t('Postal Address:'), t('Where does the post office send your mail (usually)?'), required(@$postalAddr));
+  $region = textFld(t('Region Code:'), t('3-letter region code (for communities within a region, leave this blank)'));
+  $zips = textFld(t('Zip Regex:'), t('Type a regular expression for all zipcodes to be included in the community or region. For example, ^013|01002 would include all zipcodes starting 013 plus zipcode 01002.'));
+  $postalAddr = textFld(t('Postal Address:'), t('Where does the post office send your mail (usually)?'), required(@$postalAddr));
   $submit = submit();
   
   $form = compact(u\ray('title subtext zips region')) + nameAndEmail(t('Community'))
@@ -379,10 +380,10 @@ function formDownloadMemberList($form, &$sta) {
 
   $title = item(t('Download Member List'));
   $subtext = item(t('for ') . $ctty->fullName);
-  if ($ctty->name == 'NEW.') $allCttys2 = boxField('allCttys', t('All communities:')); // temporary for CGF oversight
-  $onlyActive2 = boxField('onlyActive', t('Active only:'), tt('Export only active accounts'));
-  $onlyPeople2 = boxField('onlyPeople', t('People only:'), tt('Export only individual accounts (especially when emailing)'), TRUE);
-  //$onlyCos = boxField(t('Companies only:'), tt('Export only company accounts'), FALSE);
+  if ($ctty->name == 'NEW.') $allCttys2 = boxFld('allCttys', t('All communities:')); // temporary for CGF oversight
+  $onlyActive2 = boxFld('onlyActive', t('Active only:'), tt('Export only active accounts'));
+  $onlyPeople2 = boxFld('onlyPeople', t('People only:'), tt('Export only individual accounts (especially when emailing)'), TRUE);
+  //$onlyCos = boxFld(t('Companies only:'), tt('Export only company accounts'), FALSE);
   $submit = submit(t('Download'));
   return labeled(compact(u\ray('title subtext allCttys2 onlyActive2 onlyPeople2 submit')));
 }
@@ -425,7 +426,7 @@ function formDownloadMemberList_submit($form, &$sta) {
  * Generates the execute form.
  */
 function formPhp() {
-  $code = formField('textarea', '', '', dft(\variable_get('code')));
+  $code = areaFld('', '', dft(\variable_get('code')));
   $submit = submit(t('Execute Code'));
   return compact('code', 'submit');
 }
@@ -457,11 +458,11 @@ function formDeposits($form, &$sta, $deposit = '') {
     if ($previous == 1) $previous = 0; // handle transition from Dwolla
     $oldCount = $previous ? db\count('r_usd', $where . ' AND deposit=:previous', compact('previous')) : 0;
     $count = item(t('Checks') . " $way: $count");
-//    if ($previous) $reprint = boxField('', t('Include/Reprint ') . $oldCount . t(' checks from ') . strftime('%d-%b', $previous) . '?'); else unset($reprint);
+//    if ($previous) $reprint = boxFld('', t('Include/Reprint ') . $oldCount . t(' checks from ') . strftime('%d-%b', $previous) . '?'); else unset($reprint);
     if ($count or $previous) $submit = submit(t('Print checks ') . $way);
     $previous = hidField($previous);
 ///    echo "\n\n\nway=$way " . print_r(u\prefixKeys($way, compact(u\ray('count reprint submit previous'))), 1) . "\n\n\n";
-    $$way = w\fieldSet("_$way", u\prefixKeys($way, compact(u\ray('count submit previous'))));
+    $$way = w\fieldSet("_$way", u\prefixKeys($way, compact(u\ray('count submit previous'))), BARE);
   }
   
   $deposits = item(a\deposits(), ' ');
@@ -706,8 +707,8 @@ EOF;
 function formSMS($form, &$sta) {
   $title = item(t('Test SMS'));
   $myNumber = svar('lastSMS');
-  $number = textField(t('From (number): '), '', required($myNumber));
-  $message = textField(t('Message: '));
+  $number = textFld(t('From (number): '), '', required($myNumber));
+  $message = textFld(t('Message: '));
   $submit = submit(t('Send it!'));
 
   focusOn('message');

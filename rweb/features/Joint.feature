@@ -6,10 +6,10 @@ SO we can share our finances, as for a typical "joint account" at a bank.
 Setup:
   Given members:
   | id   | fullName   | acctType    | flags      | rebate | minimum | created   |*
-  | .ZZA | Abe One    | personal    | ok,bona    |     10 |     100 | %today-6m |
-  | .ZZB | Bea Two    | personal    | ok,bona    |     10 |      50 | %today-6m |
-  | .ZZC | Corner Pub | corporation | ok,co,bona |      5 |       0 | %today-6m |
-  | .ZZD | Dee Four   | personal    | ok,bona    |     10 |       0 | %today-6m |
+  | .ZZA | Abe One    | personal    | ok,confirmed,bona    |     10 |     100 | %today-6m |
+  | .ZZB | Bea Two    | personal    | ok,confirmed,bona    |     10 |      50 | %today-6m |
+  | .ZZC | Corner Pub | corporation | ok,confirmed,co,bona |      5 |       0 | %today-6m |
+  | .ZZD | Dee Four   | personal    | ok,confirmed,bona    |     10 |       0 | %today-6m |
   And transactions: 
   | xid | created   | type       | amount | from      | to   | purpose | taking |*
   |   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |
@@ -34,7 +34,7 @@ Scenario: A member requests a joint account
   | otherName |*
   | Bea Two   |
   And we show "Relations" with:
-  | Other      | Draw | My employee? | Family? | Permission |_requests      |
+  | other      | Draw | My employee? | Family? | Permission |_requests      |
   | Bea Two    | No   | No           | No      | %can_joint | --            |
   And members have:
   | id   | jid | minimum |*
@@ -56,7 +56,7 @@ Scenario: A joined account slave member requests a new minimum
   | id   | jid  | minimum |*
   | .ZZA | .ZZB |     150 |
   | .ZZB | .ZZA |       0 |
-  When member ".ZZB" completes form "account/preferences" with values:
+  When member ".ZZB" completes form "settings/preferences" with values:
   | minimum | achMin | share |*
   |     200 |    100 |    10 |
   Then members have:
@@ -92,7 +92,7 @@ Scenario: A joined account member looks at transaction history and summary
   | .ZZB | 1400 |
   | .ZZC |  155 |
   | .ZZD |  170 |
-  When member ".ZZB" visits page "history/period=14"
+  When member ".ZZB" visits page "history/transactions/period=14"
   Then we show "Transaction History" with:
   |_Start Date |_End Date |
   | %dmy-2w    | %dmy     |
@@ -162,6 +162,6 @@ Scenario: A member requests two joins at once
   | Bea Two   |
 # (actually does this, but test can't find it. why?)  And we say "error": "too many joins"
   And we show "Relations" with:
-  | Other      | Draw | My employee? | Family? | Permission |_requests      |
+  | other      | Draw | My employee? | Family? | Permission |_requests      |
   | Bea Two    | No   | No           | No      | %can_joint | --            |
   | Dee Four   | No   | No           | No      | %can_none  | --            |

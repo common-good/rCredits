@@ -89,7 +89,7 @@ Scenario: A member types an unknown username/ID from rCredits.org
 Resume
 Scenario: A member asks for a new password for username
   Given next random code is "wHatEveR"
-  When member "?" completes form "account/password" with values:
+  When member "?" completes form "settings/password" with values:
   | name   |*
   | abeone |
   Then we email "password-reset" to member "a@example.com" with subs:
@@ -98,7 +98,7 @@ Scenario: A member asks for a new password for username
   
 Scenario: A member asks for a new password for account ID
   Given next random code is "wHatEveR"
-  When member "?" completes form "account/password" with values:
+  When member "?" completes form "settings/password" with values:
   | name    |*
   | new.zza |
   Then we email "password-reset" to member "a@example.com" with subs:
@@ -107,7 +107,7 @@ Scenario: A member asks for a new password for account ID
   
 Scenario: A member asks for a new password for email
   Given next random code is "wHatEveR"
-  When member "?" completes form "account/password" with values:
+  When member "?" completes form "settings/password" with values:
   | name          |*
   | a@example.com |
   Then we email "password-reset" to member "a@example.com" with subs:
@@ -115,7 +115,7 @@ Scenario: A member asks for a new password for email
   | Abe One  | %R_SITE_URL | abeone | wHatEveR |
 
 Scenario: A member asks for a new password for an unknown account
-  When member "?" completes form "account/password" with values:
+  When member "?" completes form "settings/password" with values:
   | name  |*
   | bogus |
   Then we say "error": "bad account id"
@@ -124,7 +124,7 @@ Scenario: A member asks for a new password for a company
   Given members:
   | id   | fullName | pass | email | flags |*
   | .ZZC | Our Pub  | c1   | c@    | co    |
-  When member "?" completes form "account/password" with values:
+  When member "?" completes form "settings/password" with values:
   | name    |*
   | new.zzc |
   Then we say "error": "no co pass" with subs:
@@ -135,15 +135,15 @@ Scenario: A member asks for a new password for a company
 
 Scenario: A member clicks a link to reset password
   Given next random code is "wHatEveR"
-  When member "?" completes form "account/password" with values:
+  When member "?" completes form "settings/password" with values:
   | name          |*
   | a@example.com |
   And member "?" visits page "reset/id=abeone&code=wHatEveR"
   Then we show "Choose a New Password"
 
   When member "?" confirms form "reset/id=abeone&code=wHatEveR" with values:
-  | newPass   | strong |*
-  | %whatever | 1      |
+  | pass1      | pass2      | strong |*
+  | %whatever  | %whatever  | 1      |
   Then member ".ZZA" is logged in
   And we show "Account Summary"
 
@@ -156,7 +156,7 @@ Scenario: A member clicks a link to reset password
 
 Scenario: A member clicks a link to reset password with wrong code
   Given next random code is "wHatEveR"
-  And member "?" completes form "account/password" with values:
+  And member "?" completes form "settings/password" with values:
   | name          |*
   | a@example.com |
   When member "?" visits page "reset/id=abeone&code=NOTwHatEveR"
@@ -165,7 +165,7 @@ Scenario: A member clicks a link to reset password with wrong code
 
 Scenario: A member clicks a link to reset password for unknown account
   Given next random code is "wHatEveR"
-  And member "?" completes form "account/password" with values:
+  And member "?" completes form "settings/password" with values:
   | name          |*
   | a@example.com |
   When member "?" visits page "reset/id=abeone&code=NOTwHatEveR"

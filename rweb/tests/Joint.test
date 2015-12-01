@@ -45,10 +45,10 @@ class rwebJoint extends DrupalWebTestCase {
     case(0):
     Given('members: "ASSOC'
     . '\\| id   | fullName   | acctType    | flags      | rebate | minimum | created   |'
-    . '\\| .ZZA | Abe One    | personal    | ok,bona    |     10 |     100 | %today-6m |'
-    . '\\| .ZZB | Bea Two    | personal    | ok,bona    |     10 |      50 | %today-6m |'
-    . '\\| .ZZC | Corner Pub | corporation | ok,co,bona |      5 |       0 | %today-6m |'
-    . '\\| .ZZD | Dee Four   | personal    | ok,bona    |     10 |       0 | %today-6m |"');
+    . '\\| .ZZA | Abe One    | personal    | ok,confirmed,bona    |     10 |     100 | %today-6m |'
+    . '\\| .ZZB | Bea Two    | personal    | ok,confirmed,bona    |     10 |      50 | %today-6m |'
+    . '\\| .ZZC | Corner Pub | corporation | ok,confirmed,co,bona |      5 |       0 | %today-6m |'
+    . '\\| .ZZD | Dee Four   | personal    | ok,confirmed,bona    |     10 |       0 | %today-6m |"');
     And__('transactions: "ASSOC'
     . '\\| xid | created   | type       | amount | from      | to   | purpose | taking |'
     . '\\|   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |'
@@ -80,7 +80,7 @@ class rwebJoint extends DrupalWebTestCase {
     . '\\| otherName |'
     . '\\| Bea Two   |"');
     And__('we show "Relations" with: "ARRAY'
-    . '\\| Other      | Draw | My employee? | Family? | Permission |_requests      |'
+    . '\\| other      | Draw | My employee? | Family? | Permission |_requests      |'
     . '\\| Bea Two    | No   | No           | No      | %can_joint | --            |"');
     And__('members have: "ASSOC'
     . '\\| id   | jid | minimum |'
@@ -104,7 +104,7 @@ class rwebJoint extends DrupalWebTestCase {
     . '\\| id   | jid  | minimum |'
     . '\\| .ZZA | .ZZB |     150 |'
     . '\\| .ZZB | .ZZA |       0 |"');
-    When_('member ".ZZB" completes form "account/preferences" with values: "ASSOC'
+    When_('member ".ZZB" completes form "settings/preferences" with values: "ASSOC'
     . '\\| minimum | achMin | share |'
     . '\\|     200 |    100 |    10 |"');
     Then_('members have: "ASSOC'
@@ -143,7 +143,7 @@ class rwebJoint extends DrupalWebTestCase {
     . '\\| .ZZB | 1400 |'
     . '\\| .ZZC |  155 |'
     . '\\| .ZZD |  170 |"');
-    When_('member ".ZZB" visits page "history/period=14"');
+    When_('member ".ZZB" visits page "history/transactions/period=14"');
     Then_('we show "Transaction History" with: "ARRAY'
     . '\\|_Start Date |_End Date |'
     . '\\| %dmy-2w    | %dmy     |"');
@@ -215,7 +215,7 @@ class rwebJoint extends DrupalWebTestCase {
     . '\\| otherName |'
     . '\\| Bea Two   |"');
     And__('we show "Relations" with: "ARRAY'
-    . '\\| Other      | Draw | My employee? | Family? | Permission |_requests      |'
+    . '\\| other      | Draw | My employee? | Family? | Permission |_requests      |'
     . '\\| Bea Two    | No   | No           | No      | %can_joint | --            |'
     . '\\| Dee Four   | No   | No           | No      | %can_none  | --            |"');
   }
