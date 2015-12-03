@@ -9088,3 +9088,10 @@ a.button {
   opacity: 0;
   -webkit-transition-duration: 0s;
   transition-duration: 0s; }
+
+.rc {
+  text-align: center; }
+  .rc .button-block {
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto; }
