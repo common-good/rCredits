@@ -89,10 +89,3 @@ var app = angular.module('starter', ['ionic', 'starter.controllers'])
   // if none of the above states are matched, use this as the fallback
   $urlRouterProvider.otherwise('/app/rlogin');
 });
-
-app.directive("rcLogo", function(){
-  return {
-    require: "E",
-    templateUrl: "templates/logo.html"
-  }
-});
