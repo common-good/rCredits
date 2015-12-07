@@ -5,16 +5,18 @@
 ### Download the Repo
 
 ### Install Packages
-`cd [project]`
-`npm install`
+```
+cd [project]
+npm install
+```
 
-Sometimes needed:
+### Setup Sass
+`ionic setup sass`
+
+### Sometimes Needed
 `npm rebuild`
+
+`gulp sass`
 
 ## Run
 `ionic serve`
-
-## Live Reload
-Currently Sass changes are not loading properly in liveReload. You may need to run this command to see your changes:
-
-`gulp sass`
