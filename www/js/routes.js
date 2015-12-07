@@ -7,7 +7,7 @@ angular.module('routes', [])
     url: '/app',
     abstract: true,
     templateUrl: 'templates/menu.html',
-    controller: 'AppCtrl'
+    controller: 'StarterAppCtrl'
   })
 
   // .state('app.search', {
@@ -41,7 +41,8 @@ angular.module('routes', [])
     url: '/rlogin',
     views: {
       'menuContent': {
-        templateUrl: 'templates/rlogin.html'
+        templateUrl: 'templates/rlogin.html',
+        controller: 'LoginCtrl'
       }
     }
   });
