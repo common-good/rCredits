@@ -1,4 +1,4 @@
-app.controller('UserCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService, UserService) {
+app.controller('UserSessionCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService, UserService) {
   var loggedIn = false;
 
   var messages = {
