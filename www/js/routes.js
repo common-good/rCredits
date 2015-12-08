@@ -23,8 +23,7 @@ angular.module('routes', [])
     url: '/rlogin',
     views: {
       'menuContent': {
-        templateUrl: 'templates/rlogin.html',
-        controller: 'LoginCtrl'
+        templateUrl: 'templates/rlogin.html'
       }
     }
   });
