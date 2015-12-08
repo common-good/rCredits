@@ -10,24 +10,6 @@ angular.module('routes', [])
     controller: 'StarterAppCtrl'
   })
 
-  // .state('app.search', {
-  //   url: '/search',
-  //   views: {
-  //     'menuContent': {
-  //       templateUrl: 'templates/search.html'
-  //     }
-  //   }
-  // })
-
-  // .state('app.browse', {
-  //   url: '/browse',
-  //   views: {
-  //     'menuContent': {
-  //       templateUrl: 'templates/browse.html'
-  //     }
-  //   }
-  // })
-
   .state('app.home', {
     url: '/home',
     views: {

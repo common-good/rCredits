@@ -50,7 +50,7 @@ angular.module('controllers', [])
 
     // TODO: replace below with call to scan service
     // If login is successful, should redirect home
-    setTimeout(function(){$scope.redirectHome(); }, 1000);
+    setTimeout(function(){$scope.redirectHome(); }, 2000);
   };
 
   $scope.redirectHome = function(){
@@ -58,4 +58,8 @@ angular.module('controllers', [])
     $ionicLoading.hide();
     $state.go("app.home");
   };
+
+  $scope.rLogout = function(){
+    $state.go("app.rlogin");
+  }
 });
