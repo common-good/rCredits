@@ -8,6 +8,8 @@ app.controller('UserSessionCtrl', function($scope, $state, $ionicLoading, $ionic
     "logoutFailure": "Logout was unsuccessful. Please try again."
   }
 
+  // Scanner Login
+
   $scope.openScanner = function(){
     $ionicLoading.show();
 
@@ -34,28 +36,17 @@ app.controller('UserSessionCtrl', function($scope, $state, $ionicLoading, $ionic
   $scope.logout = function(){
     $ionicLoading.show();
 
-    setTimeout(function(){
-
-      // Set to true or false to simulate logout success/failure
-      loggedIn = false;
-
-      if (loggedIn){
-        $scope.logoutError();
-      } else {
-        $scope.logoutSuccess();
-      }
-
-    }, 1000);
+    UserService.logout()
+    .then(function(str){
+      $scope.redirectToLogin();
+    })
+    .catch(function(errorMsg){
+      $scope.showAlert(errorMsg);
+    })
+    .finally(function(){
+      $ionicLoading.hide();
+    });
   };
-
-  $scope.logoutSuccess = function(){
-    $scope.redirectToLogin();
-    $ionicLoading.hide();
-  };
-
-  $scope.logoutError = function(){
-    $scope.showAlert(messages.logoutFailure);
-  }
 
   // Redirects
 
