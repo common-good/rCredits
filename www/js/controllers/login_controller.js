@@ -94,7 +94,7 @@ app.controller('UserCtrl', function($scope, $state, $ionicLoading, $ionicPopup, 
 
   $scope.showAlert = function(message) {
     $ionicLoading.hide();
-    var alertPopup = $ionicPopup.alert({
+    $ionicPopup.alert({
       template: message
     });
   };
