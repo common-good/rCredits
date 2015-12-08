@@ -1,4 +1,4 @@
-app.controller('UserSessionCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService, UserService) {
+app.controller('UserSessionCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService, UserService, $ionicHistory) {
   var loggedIn = false;
 
   var messages = {
@@ -21,12 +21,13 @@ app.controller('UserSessionCtrl', function($scope, $state, $ionicLoading, $ionic
       })
       .catch(function(errorMsg){
         $scope.showAlert(errorMsg);
+      })
+      .finally(function(){
+        $ionicLoading.hide();
       });
     })
     .catch(function(errorMsg){
       $scope.showAlert(errorMsg);
-    })
-    .finally(function(){
       $ionicLoading.hide();
     });
   };
