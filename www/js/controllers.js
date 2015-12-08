@@ -42,18 +42,20 @@ angular.module('controllers', [])
 })
 
 .controller('LoginCtrl', function($scope, $state, $ionicLoading) {
-  console.log("This is the login controller");
+  // console.log("This is the login controller");
 
-  $scope.firstAction = function(){
-    console.log("You clicked on the scan button");
+  $scope.openScanner = function(){
+    // console.log("You clicked on the scan button");
     $ionicLoading.show();
-    setTimeout(function(){$scope.secondAction(); }, 1000);
+
+    // TODO: replace below with call to scan service
+    // If login is successful, should redirect home
+    setTimeout(function(){$scope.redirectHome(); }, 1000);
   };
 
-  $scope.secondAction = function(){
-    console.log("Second action");
+  $scope.redirectHome = function(){
+    // console.log("Redirect home");
     $ionicLoading.hide();
     $state.go("app.home");
   };
-
 });
