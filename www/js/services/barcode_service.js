@@ -9,7 +9,7 @@ app.service('BarcodeService', function ($q) {
   // Returns a promise that resolves with the scanned data when scanning is complete.
   BarcodeService.prototype.scan = function() {
     // Simulates scanning. Resolves the promise if SUCCEED is true, rejects with an error if false.
-    var SUCCEED = false;
+    var SUCCEED = true;
 
     return $q(function(resolve, reject) {
       setTimeout(function() {

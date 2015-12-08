@@ -1,4 +1,4 @@
-app.controller('UserCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService) {
+app.controller('UserCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService, UserService) {
   var loggedIn = false;
 
   var messages = {
@@ -13,15 +13,20 @@ app.controller('UserCtrl', function($scope, $state, $ionicLoading, $ionicPopup, 
 
     BarcodeService.scan()
     .then(function(str){
-      $scope.redirectHome();
+      UserService.loginWithRCard(str)
+      .then(function(){
+        $scope.loginSuccess();
+      })
+      .catch(function(errorMsg){
+        $scope.showAlert(errorMsg);
+      });
     })
     .catch(function(errorMsg){
       $scope.showAlert(errorMsg);
     })
     .finally(function(){
       $ionicLoading.hide();
-    })
-    //$scope.login();
+    });
   };
 
   // Login
@@ -45,7 +50,7 @@ app.controller('UserCtrl', function($scope, $state, $ionicLoading, $ionicPopup, 
 
   $scope.loginSuccess = function(){
     $scope.redirectHome();
-    $ionicLoading.hide();
+    // $ionicLoading.hide();
   };
 
   $scope.loginError = function(){

@@ -1,6 +1,6 @@
 // rCredits Register
 
-var app = angular.module('rcredits', ['ionic', 'controllers', 'routes'])
+var app = angular.module('rcredits', ['ionic', 'routes'])
 
 .run(function($ionicPlatform) {
   $ionicPlatform.ready(function() {
