@@ -1,6 +1,4 @@
-app.controller('UserCtrl', function($scope, $state, $ionicLoading) {
-  // console.log("This is the login controller");
-
+app.controller('UserCtrl', function($scope, $state, $ionicLoading, $ionicPopup) {
   var loggedIn = false;
 
   var messages = {
@@ -21,6 +19,7 @@ app.controller('UserCtrl', function($scope, $state, $ionicLoading) {
 
     setTimeout(function(){
 
+      // Set to true or false to simulate login success/failure
       loggedIn = true;
 
       if (loggedIn) {
@@ -34,11 +33,11 @@ app.controller('UserCtrl', function($scope, $state, $ionicLoading) {
 
   $scope.loginSuccess = function(){
     $scope.redirectHome();
-    $scope.showMessage(messages.loginSuccess);
+    $ionicLoading.hide();
   };
 
   $scope.loginError = function(){
-    $scope.showMessage(messages.loginFailure);
+    $scope.showAlert(messages.loginFailure);
   }
 
   // Logout
@@ -48,6 +47,7 @@ app.controller('UserCtrl', function($scope, $state, $ionicLoading) {
 
     setTimeout(function(){
 
+      // Set to true or false to simulate logout success/failure
       loggedIn = false;
 
       if (loggedIn){
@@ -61,11 +61,11 @@ app.controller('UserCtrl', function($scope, $state, $ionicLoading) {
 
   $scope.logoutSuccess = function(){
     $scope.redirectToLogin();
-    $scope.showMessage(messages.logoutSuccess);
+    $ionicLoading.hide();
   };
 
   $scope.logoutError = function(){
-    $scope.showMessage(messages.logoutFailure);
+    $scope.showAlert(messages.logoutFailure);
   }
 
   // Redirects
@@ -78,14 +78,12 @@ app.controller('UserCtrl', function($scope, $state, $ionicLoading) {
     $state.go("app.rlogin");
   };
 
-  // Show Messages
+  // Alert
 
-  $scope.showMessage = function(message){
+  $scope.showAlert = function(message) {
     $ionicLoading.hide();
-    console.log(message);
-  };
-
-  $scope.showUserModal = function(text){
-    $ionicLoading.hide();
+    var alertPopup = $ionicPopup.alert({
+      template: message
+    });
   };
 });
