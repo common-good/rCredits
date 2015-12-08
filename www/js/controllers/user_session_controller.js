@@ -15,7 +15,7 @@ app.controller('UserSessionCtrl', function($scope, $state, $ionicLoading, $ionic
     .then(function(str){
       UserService.loginWithRCard(str)
       .then(function(){
-        $scope.loginSuccess();
+        $scope.redirectHome();
       })
       .catch(function(errorMsg){
         $scope.showAlert(errorMsg);
@@ -28,34 +28,6 @@ app.controller('UserSessionCtrl', function($scope, $state, $ionicLoading, $ionic
       $ionicLoading.hide();
     });
   };
-
-  // Login
-
-  $scope.login = function(){
-    $ionicLoading.show();
-
-    setTimeout(function(){
-
-      // Set to true or false to simulate login success/failure
-      loggedIn = true;
-
-      if (loggedIn) {
-        $scope.loginSuccess();
-      } else {
-        $scope.loginError();
-      }
-
-    }, 2000);
-  };
-
-  $scope.loginSuccess = function(){
-    $scope.redirectHome();
-    // $ionicLoading.hide();
-  };
-
-  $scope.loginError = function(){
-    $scope.showAlert(messages.loginFailure);
-  }
 
   // Logout
 
