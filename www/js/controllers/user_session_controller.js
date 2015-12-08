@@ -56,7 +56,7 @@ app.controller('UserSessionCtrl', function($scope, $state, $ionicLoading, $ionic
   };
 
   $scope.redirectToLogin = function(){
-    $state.go("app.rlogin");
+    $state.go("app.login");
   };
 
   // Alert

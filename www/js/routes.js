@@ -19,15 +19,15 @@ angular.module('routes', [])
     }
   })
 
-  .state('app.rlogin', {
-    url: '/rlogin',
+  .state('app.login', {
+    url: '/login',
     views: {
       'menuContent': {
-        templateUrl: 'templates/rlogin.html'
+        templateUrl: 'templates/login.html'
       }
     }
   });
 
   // if none of the above states are matched, use this as the fallback
-  $urlRouterProvider.otherwise('/app/rlogin');
+  $urlRouterProvider.otherwise('/app/login');
 });
