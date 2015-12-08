@@ -41,16 +41,19 @@ angular.module('controllers', [])
   };
 })
 
-.controller('LoginCtrl', function($scope, $ionicLoading) {
+.controller('LoginCtrl', function($scope, $state, $ionicLoading) {
   console.log("This is the login controller");
 
   $scope.firstAction = function(){
     console.log("You clicked on the scan button");
     $ionicLoading.show();
+    setTimeout(function(){$scope.secondAction(); }, 1000);
   };
 
   $scope.secondAction = function(){
     console.log("Second action");
+    $ionicLoading.hide();
+    $state.go("app.home");
   };
 
 });
