@@ -1,4 +1,4 @@
-app.controller('UserCtrl', function($scope, $state, $ionicLoading, $ionicPopup) {
+app.controller('UserCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService) {
   var loggedIn = false;
 
   var messages = {
@@ -9,7 +9,19 @@ app.controller('UserCtrl', function($scope, $state, $ionicLoading, $ionicPopup) 
   }
 
   $scope.openScanner = function(){
-    $scope.login();
+    $ionicLoading.show();
+
+    BarcodeService.scan()
+    .then(function(str){
+      $scope.redirectHome();
+    })
+    .catch(function(errorMsg){
+      $scope.showAlert(errorMsg);
+    })
+    .finally(function(){
+      $ionicLoading.hide();
+    })
+    //$scope.login();
   };
 
   // Login

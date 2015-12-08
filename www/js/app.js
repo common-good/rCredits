@@ -1,6 +1,6 @@
 // rCredits Register
 
-var app = angular.module('starter', ['ionic', 'controllers', 'routes'])
+var app = angular.module('rcredits', ['ionic', 'controllers', 'routes'])
 
 // Can this be moved into a separate module?
 .run(function($ionicPlatform) {
