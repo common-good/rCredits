@@ -5,8 +5,11 @@ app.service('UserService', function ($q) {
     this.user = null;
   };
 
-  // Logs user in with the given rCard number.
+  // Logs user in given the scanned info from an rCard.
   // Returns a promise that resolves when login is complete.
+  // If this is the first login, the promise will resolve with {firstLogin: true}
+  // The app should then give notice to the user that the device is associated with the
+  // user.
   UserService.prototype.loginWithRCard = function(str) {
     // Simulates a login. Resolves the promise if SUCCEED is true, rejects if false.
     var SUCCEED = true;
@@ -14,7 +17,11 @@ app.service('UserService', function ($q) {
     return $q(function(resolve, reject) {
       setTimeout(function() {
         if (SUCCEED) {
-          resolve();
+          if (window.localStorage.getItem('notfirstlogin'));
+            resolve();
+          else
+            resolve({firstLogin: true});
+          window.localStorage.setItem('notfirstlogin', true);
         } else {
           reject('Login failed.');
         }
