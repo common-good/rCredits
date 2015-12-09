@@ -29,6 +29,31 @@ app.service('UserService', function ($q) {
     });
   };
 
+  // Gets customer info and photo given the scanned info from an rCard.
+  // Returns a promise that resolves with the following arguments:
+  // 1. user - The User object
+  // 2. flags - A hash with the following elements:
+  //      firstPurchase - Whether this is the user's first rCredits purchase. If so, the
+  //        app should notify the seller to request photo ID.
+  UserService.prototype.identifyCustomer = function(str) {
+    // Simulates a login. Resolves the promise if SUCCEED is true, rejects if false.
+    var SUCCEED = true;
+
+    return $q(function(resolve, reject) {
+      setTimeout(function() {
+        if (SUCCEED) {
+          resolve(
+            {place: "Ann Arbor, MI", balance: 110.23, balanceSecret: false, rewards: 8.72,
+              photo: "img/sample-customer.png"},
+            {firstPurchase: true}
+          );
+        } else {
+          reject('User lookup failed.');
+        }
+      }, 1000);
+    });
+  };
+
   // Logs the user out on the remote server.
   // Returns a promise that resolves when logout is complete, or rejects with error of fail.
   UserService.prototype.logout = function() {
