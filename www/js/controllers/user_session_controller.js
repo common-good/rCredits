@@ -17,6 +17,10 @@ app.controller('UserSessionCtrl', function($scope, $state, $ionicLoading, $ionic
     .then(function(str){
       UserService.loginWithRCard(str)
       .then(function(){
+        $ionicHistory.nextViewOptions({
+          disableBack: true
+        });
+
         $scope.redirectHome();
       })
       .catch(function(errorMsg){
