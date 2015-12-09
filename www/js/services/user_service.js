@@ -5,6 +5,12 @@ app.service('UserService', function ($q) {
     this.user = null;
   };
 
+  // Gets the current user. Returns the user object,
+  // or null if there is no current user.
+  UserService.prototype.currentUser = function() {
+    return {name: "Andrea Green", company: "Tasty Soaps, Inc."}
+  };
+
   // Logs user in given the scanned info from an rCard.
   // Returns a promise that resolves when login is complete.
   // If this is the first login, the promise will resolve with {firstLogin: true}
@@ -43,8 +49,8 @@ app.service('UserService', function ($q) {
       setTimeout(function() {
         if (SUCCEED) {
           resolve(
-            {place: "Ann Arbor, MI", balance: 110.23, balanceSecret: false, rewards: 8.72,
-              photo: "img/sample-customer.png"},
+            {name: "Phillip Blivers", place: "Ann Arbor, MI", balance: 110.23,
+              balanceSecret: false, rewards: 8.72, photo: "img/sample-customer.png"},
             {firstPurchase: true}
           );
         } else {
