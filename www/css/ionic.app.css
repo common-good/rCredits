@@ -9108,3 +9108,7 @@ a.button {
   height: 5em; }
   .company-home .rc-logo img {
     height: 100%; }
+
+.company-home .scan-customer {
+  padding: 1.5em;
+  width: 80%; }
