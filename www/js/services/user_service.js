@@ -23,10 +23,11 @@ app.service('UserService', function ($q) {
     return $q(function(resolve, reject) {
       setTimeout(function() {
         if (SUCCEED) {
-          if (window.localStorage.getItem('notfirstlogin'));
+          if (window.localStorage.getItem('notfirstlogin')) {
             resolve();
-          else
+          } else {
             resolve({firstLogin: true});
+          }
           window.localStorage.setItem('notfirstlogin', true);
         } else {
           reject('Login failed.');
