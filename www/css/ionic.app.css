@@ -9090,8 +9090,21 @@ a.button {
   transition-duration: 0s; }
 
 .rc {
-  text-align: center; }
+  text-align: center;
+  margin: 1.5em; }
   .rc .button-block {
     width: 90%;
     margin-left: auto;
     margin-right: auto; }
+
+.company-home .company {
+  font-size: 1.5em; }
+
+.company-home .user {
+  font-size: 1em; }
+
+.company-home .rc-logo {
+  margin: 3em 0;
+  height: 5em; }
+  .company-home .rc-logo img {
+    height: 100%; }
