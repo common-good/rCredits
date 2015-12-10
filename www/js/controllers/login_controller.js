@@ -1,12 +1,4 @@
-app.controller('UserSessionCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService, UserService, $ionicHistory) {
-  var loggedIn = false;
-
-  var messages = {
-    "loginSuccess": "You successfully logged in.",
-    "loginFailure": "You were not logged in.",
-    "logoutSuccess": "You were successfully logged out.",
-    "logoutFailure": "Logout was unsuccessful. Please try again."
-  }
+app.controller('LoginCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService, UserService, $ionicHistory) {
 
   // Scanner Login
 
@@ -32,23 +24,6 @@ app.controller('UserSessionCtrl', function($scope, $state, $ionicLoading, $ionic
     })
     .catch(function(errorMsg){
       $scope.showAlert(errorMsg);
-      $ionicLoading.hide();
-    });
-  };
-
-  // Logout
-
-  $scope.logout = function(){
-    $ionicLoading.show();
-
-    UserService.logout()
-    .then(function(str){
-      $scope.redirectToLogin();
-    })
-    .catch(function(errorMsg){
-      $scope.showAlert(errorMsg);
-    })
-    .finally(function(){
       $ionicLoading.hide();
     });
   };

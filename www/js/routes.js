@@ -7,7 +7,7 @@ angular.module('routes', [])
     url: '/app',
     abstract: true,
     templateUrl: 'templates/menu.html',
-    controller: 'StarterAppCtrl'
+    controller: 'MenuCtrl'
   })
 
   .state('app.home', {
