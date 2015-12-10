@@ -1,6 +1,15 @@
 <ion-view ng-controller="CompanyHomeCtrl">
   <ion-content>
     <div class="rc">
+
+      <h1>{{current_user.company}}</h1>
+
+      <h4>
+        Signed in as:<br>
+        {{current_user.name}}
+      </h4>
+
+
       <div ng-include="'templates/logo.html'"></div>
 
       <button class="button button-block button-positive">

@@ -6,11 +6,13 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, $ionic
     'company': userObject.company
   };
 
+  $scope.current_user = current_user;
+
   if (!window.localStorage.getItem('notfirstlogin')) {
     $ionicPopup.alert({
       // templateUrl: 'templates/store-first-login.html'
       title: "This device is now associated with " + current_user.company + ".",
-      template: "To set your preferences, please touch the gear icon."
+      template: "To set your preferences, please see the main menu."
     });
   }
 });
