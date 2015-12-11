@@ -33,13 +33,4 @@ app.controller('LoginCtrl', function($scope, $state, $ionicLoading, $ionicPopup,
   $scope.redirectHome = function(){
     $state.go("app.home");
   };
-
-  // Alert
-
-  $scope.showAlert = function(message) {
-    $ionicLoading.hide();
-    $ionicPopup.alert({
-      template: message
-    });
-  };
 });
