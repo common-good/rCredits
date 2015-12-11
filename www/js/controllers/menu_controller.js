@@ -19,10 +19,6 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, $ionicPopup, 
 
   // Redirects
 
-  $scope.redirectHome = function(){
-    $state.go("app.home");
-  };
-
   $scope.redirectToLogin = function(){
     $state.go("app.login");
   };

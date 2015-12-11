@@ -34,10 +34,6 @@ app.controller('LoginCtrl', function($scope, $state, $ionicLoading, $ionicPopup,
     $state.go("app.home");
   };
 
-  $scope.redirectToLogin = function(){
-    $state.go("app.login");
-  };
-
   // Alert
 
   $scope.showAlert = function(message) {
