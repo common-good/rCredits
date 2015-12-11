@@ -1,16 +1,6 @@
-app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService, UserService, $ionicHistory) {
+app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, $ionicPopup, UserService, $ionicHistory) {
 
-  UserService.identifyCustomer()
-  .then(function(str){
-    $scope.customer = str;
-  })
-  .catch(function(errorMsg){
-    $state.go("app.home");
-    $scope.showAlert(errorMsg);
-  })
-  .finally(function(){
-    $ionicLoading.hide();
-  });
+  $scope.customer = UserService.currentCustomer();
 
   $scope.showBalance = function() {
     if ($scope.customer) {
@@ -26,4 +16,14 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, $ioni
       }
     }
   };
+
+  $scope.hideLoading = function() {
+    $ionicLoading.hide();
+    // console.log("Loading icon hidden");
+  };
+
+  $scope.$on("$destroy", function(){
+    $scope.customer = null;
+    // console.log("Customer Menu Controller scope destroyed");
+  });
 });

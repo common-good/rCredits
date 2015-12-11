@@ -23,6 +23,10 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, $ionicPopup, 
     $state.go("app.login");
   };
 
+  $scope.redirectHome = function(){
+    $state.go("app.home");
+  };
+
   // Alert
 
   $scope.showAlert = function(message) {

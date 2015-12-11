@@ -13,14 +13,19 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, $ionic
   $scope.scanCustomer = function(){
     $ionicLoading.show();
 
-    UserService.identifyCustomer()
+    BarcodeService.scan()
     .then(function(str){
-      $state.go("app.customer");
+      UserService.identifyCustomer()
+      .then(function(str){
+        $state.go("app.customer");
+      })
+      .catch(function(errorMsg){
+        $scope.showAlert(errorMsg);
+        $ionicLoading.hide();
+      });
     })
     .catch(function(errorMsg){
       $scope.showAlert(errorMsg);
-    })
-    .finally(function(){
       $ionicLoading.hide();
     });
   };

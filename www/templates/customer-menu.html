@@ -7,7 +7,7 @@
 
   <ion-content>
     <div class="rc">
-      <img ng-src="{{customer.photo}}" class="customer-img" />
+      <img ng-src="{{customer.photo}}" class="customer-img" sf-load="hideLoading()" />
       <p class="customer-name">{{customer.name}}</p>
 
       <button class="button button-block">Charge</button>

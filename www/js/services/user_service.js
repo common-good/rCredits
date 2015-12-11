@@ -11,6 +11,13 @@ app.service('UserService', function ($q) {
     return {name: "Andrea Green", company: "Tasty Soaps, Inc."}
   };
 
+  // Gets the current customer. Returns an object
+  // or null if there is no current customer.
+  UserService.prototype.currentCustomer = function() {
+    return {name: "Phillip Blivers", place: "Ann Arbor, MI", balance: 110.23,
+      balanceSecret: true, rewards: 8.72, photo: "img/sample-customer.png"}
+  };
+
   // Logs user in given the scanned info from an rCard.
   // Returns a promise that resolves when login is complete.
   // If this is the first login, the promise will resolve with {firstLogin: true}

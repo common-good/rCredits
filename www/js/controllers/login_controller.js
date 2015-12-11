@@ -27,10 +27,4 @@ app.controller('LoginCtrl', function($scope, $state, $ionicLoading, $ionicPopup,
       $ionicLoading.hide();
     });
   };
-
-  // Redirects
-
-  $scope.redirectHome = function(){
-    $state.go("app.home");
-  };
 });
