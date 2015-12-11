@@ -9092,10 +9092,6 @@ a.button {
 .rc {
   text-align: center;
   margin: 1.5em; }
-  .rc .button-block {
-    width: 90%;
-    margin-left: auto;
-    margin-right: auto; }
 
 .company-home .company {
   font-size: 1.5em; }
@@ -9105,10 +9101,24 @@ a.button {
 
 .company-home .rc-logo {
   margin: 3em 0;
-  height: 5em; }
+  height: 10em; }
   .company-home .rc-logo img {
     height: 100%; }
 
 .company-home .scan-customer {
   padding: 1.5em;
   width: 80%; }
+
+.customer-menu .customer-img {
+  height: 10em; }
+
+.customer-menu .customer-name {
+  font-size: 1.3em; }
+
+.rc .button-block, .rc .button-bar {
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto; }
+  @media screen and (min-width: 600px) {
+    .rc .button-block, .rc .button-bar {
+      width: 50%; } }

@@ -1,12 +1,15 @@
 <ion-view ng-controller="CustomerMenuCtrl" class="customer-menu">
   <ion-content>
     <div class="rc">
-      <img ng-src="{{customer.photo}}" />
-      <p>{{customer.name}}</p>
+      <img ng-src="{{customer.photo}}" class="customer-img" />
+      <p class="customer-name">{{customer.name}}</p>
 
-      <button>Charge</button>
-      <button>Refund</button>
-      <button>Exchange</button>
+      <button class="button button-block">Charge</button>
+
+      <div class="button-bar">
+        <a class="button">Refund</a>
+        <a class="button">Exchange</a>
+      </div>
     </div>
   </ion-content>
 </ion-view>
