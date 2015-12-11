@@ -1,3 +1,21 @@
+2015-12-
+. bug fix: sort field was causing crash on bad data in transaction history
+. bug fix: opening company failed (form.inc updated on production site)
+. instant submenus on hover
+. give some businesses exemption from the cash-out restriction if they choose "reserved" and provide rCredits purchase service. (especially Upinngil and GFM and Foster's)
+. delete reference to "red" in 1099B page and add column for 990s. Then make it a "Tax Info" page and separate out the 1099B details to a separate page.
+. italicize phrase in agreement about until the community has sufficient revenue AND make "suffient revenue" a hyperlink
+. fix balance/rewards reporting on notices (for savings reserve)
+. BONA bit now gets set upon account activation
+. fixed bug (finally!) that kept country and state from sticking on signup form error
+. fixed checkbox problem on signup form
+. "which" form gave errors on ambiguous reference
+. eliminated required() from most radio groups, because it made ladda buttons stop spinning
+. change bit 31 to 26: UPDATE users SET flags = (flags | (1<<26)) - (1<<31) WHERE (flags & (1<<31))
+. fix payroll upload page formatting and accept vanilla CSV spreadsheet upload (just names and amounts), asking for dates separately, defaulting to next after previous upload
+. clean up footer and misc.js and combine them in misc.js on every page (not called from showForm)
+. set emailCode for every non-company account: eachA(function ($a) {if (!$a->co) $a->update('emailCode', f('r.cardCode', $a->mainQid));});
+
 2015-11-30
 . now using Bootstrap 3 more fully
 . added breadcrumbs

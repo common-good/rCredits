@@ -293,7 +293,7 @@ function patch($name) {
   if ($name == 'user_login_final_validate2207') {
     $email = $args[1];
     \watchdog('user', 'Login attempt failed for %user.', array('%user' => $email));
-    $a = 'href=settings/password';
+    $a = 'href=$base_url/settings/password';
     return (\drupal_get_messages('error', FALSE)) ? '' : w\say('bad login', compact('a'), 'name');
   }
   if ($name == '_user_mail_notify3569') {

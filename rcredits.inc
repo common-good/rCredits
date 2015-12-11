@@ -51,9 +51,10 @@ define('US', '<span class="us">us</span>');
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty,Vacant Lot,Land,Cinema,Printing & Office Supply,Car Repair,Health Club/Gym,Restaurant,Hardware & Supply,Grocer,Farm,Food Processing,Department Store,Electric Company,Oil Company,Town Government,Community College,Hospital');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 'legalName newAccount by calling wants website description shortDesc selling coFlags gross employees verifyBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
+// isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 
+define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd verifyBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
-define('R_SECURE_FIELDS', 'pw2 address postalAddr faxetc cardCode cardCode2 pin federalId ssnData dob bankAccount photoId question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
+define('R_SECURE_FIELDS', 'pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin federalId ssnData dob bankAccount photoId question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
 define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount photoId'); // very secure fields (admin-encrypted)
 //define('R_SECURE_FIELDS', 'cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
 //define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData photoId pin bankAccount'); // personal identifying information
@@ -169,6 +170,12 @@ define('CO_WORKER_COOP', 5);
 define('CO_CONSUMER_COOP', 6);
 define('CO_GOVERNMENT', 7);
 define('CO_PUBLICLY_TRADED', 8);
+define('CO_U9', 9); //
+define('CO_U10', 10); //
+define('CO_U11', 11); //
+define('CO_U12', 12); //
+define('CO_U13', 13); //
+define('CO_U14', 14); //
 
 define('CO_CANS', 15); // company permission bits when signed OUT: bits 15-21
 define('CO_CHARGE', 0);
@@ -185,7 +192,7 @@ define('CO_CANS_MASK', pow(2, CO_CANS_BITS + 1) - 1); // the CANS bits -- signed
 
 define('CO_FAST', 29); // fast checkout -- never ask for photoId (set by cAdmin)
 define('CO_TIP', 30); // ask customer what percent tip to add
-define('CO_U31', 31); //
+define('CO_ATM', 31); // can trade rCredits for cash, even if balance is less than rewards
 
 define('CO_CAN_BITS', 'charge undo r4usd usd4r refund buy');
 define('CO_CAN_BIT_DESCS', 'charge customers,undo last transaction,give rCredits for USD,give USD for rCredits,refund any amount,make payments');
@@ -204,7 +211,7 @@ define('B_u4', 4); //
 define('B_u5', 5); //
 define('B_CO', 6); // company account
 define('B_u7', 7); //
-define('B_RESERVE', 8); // hold incentive rewards in reserve
+define('B_u8', 8); // hold incentive rewards in reserve
 define('B_NONUDGE', 9); // don't send reminders
 define('B_NOSEARCH', 10); // user wants to be not findable by other members, by phone or email
 define('B_u11', 11); // 
@@ -222,15 +229,14 @@ define('B_SAVINGS', 22); // the connected bank account is a savings or money mar
 define('B_JOINED', 23); // account is a joint account
 define('B_u24', 24); //
 define('B_u25', 25); // 
-define('B_u26', 26); // 
+define('B_CLOSED', 26); // account is closed (data[newAccount] has new qid)
 define('B_REGULATOR', 27); // is a bank partner or government regulator (read-only admin)
 define('B_CADMIN2', 28); // is a community sub-administrator
 define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
-define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
-define('B_MAX', 31); // maximum bit number
-define('B_ADMINABLE', 'confirmed co member bona reserve cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok bona u4 u5 co u7 reserve nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 u26 regulator cadmin2 cadmin admin closed');
+define('B_MAX', 30); // maximum bit number on testing machine
+define('B_ADMINABLE', 'confirmed co member bona cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
+define('B_LIST', 'member confirmed ok bona u4 u5 co u7 u8 nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 closed regulator cadmin2 cadmin admin');
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+refunds+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community)
 
@@ -521,7 +527,7 @@ function worksForUs($name, $us = NULL) {
   $pattern = join(' ', $words);
   
   $sql = <<<EOF
-    SELECT u.uid, u.data FROM r_relations r
+    SELECT u.uid, u.fullName FROM r_relations r
     INNER JOIN users u ON u.uid=r.other
     WHERE r.main=:us AND r.employee
     ORDER BY (u.fullName LIKE :pattern) DESC
@@ -529,8 +535,8 @@ EOF;
   $q = db\q($sql, compact('us', 'pattern'));
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    $data = unserialize($data);
-    $legalWords = explode(' ', u\roughName($data['legalName']));
+//    $data = unserialize($data);
+    $legalWords = explode(' ', u\roughName($fullName)); // not $data['legalName']
     if (count($words) != count($legalWords)) continue;
     for ($i = 0, $match = TRUE; $i < count($words) and $match; $i++) {
       if (!u\abbreviates(str_replace('%', '', $words[$i]), $legalWords[$i])) $match = FALSE;
@@ -808,7 +814,7 @@ function tellStaff($index, $subs = [], $uid = TRUE) {
   
   if ($uid) {
     if ($mya = r\acct($uid > 1 ? $uid : '')) {
-      $message = "$mya->fullName (#$mya->id): $message";
+      $message = "$mya->fullName ($mya->mainQid): $message";
       if ($ca = $mya->cAdminUid()) $email = r\acct($ca)->email; // tell Community Admin
     } else $uid = NULL;
   } else $uid = NULL; // default to SYS_EMAIL
@@ -993,13 +999,13 @@ function cardCode($qid) {
  * @param int $iCode: (RETURNED) the code sequence number
  * @return: the account or FALSE if error
  */
-function iCardAcct($code, &$iCode = NULL) {
-  $code = str_replace(' ', '', $code); // ignore spaces
+function iCardAcct($code0, &$iCode = NULL) {
+  $code = str_replace(' ', '', $code0); // ignore spaces
   if (!preg_match('/[A-Z0-9]{' . ICARD_CODELEN_MIN . ',}/i', $code)) return FALSE;
-  $iCode = u\aa2n(substr($code, ICARD_CODELEN_MIN)) + 0;
+  $iCode = u\ai2n(substr($code, ICARD_CODELEN_MIN)) + 0;
 ///  debug("code=$code iCode=$iCode");
   $code = substr($code, 0, ICARD_CODELEN_MIN); // chop off sequence number
-  $b = u\lpad(decbin(u\aa2n(substr($code, 0, 5))), ILEN_DIV). u\lpad(decbin(u\aa2n(substr($code, 5))), ILEN - ILEN_DIV);
+  $b = u\lpad(decbin(u\ai2n(substr($code, 0, 5))), ILEN_DIV). u\lpad(decbin(u\ai2n(substr($code, 5))), ILEN - ILEN_DIV);
 ///  debug("code=$code iCode=$iCode b=$b");
   $b = u\xorBits($b, substr(R_INVITE_KEY, -strlen($b)), TRUE);
 ///  debug("code=$code iCode=$iCode b=$b");
@@ -1007,12 +1013,46 @@ function iCardAcct($code, &$iCode = NULL) {
 ///  debug("code=$code iCode=$iCode b=$b");
   $region = u\n2a(bindec(substr($b, 0, ILEN_REGION)), 3);
   $tail = u\n2a(bindec(substr($b, ILEN_REGION, ILEN_TAIL)), -3);
-  $security = u\n2aa(bindec(substr($b, -ILEN_SECURITY)), 3);
+  $security = u\n2ai(bindec(substr($b, -ILEN_SECURITY)), 3);
 ///  debug("code=$code iCode=$iCode b=$b region=$region tail=$tail security=$security");
 
-  if (!$a = r\acct("$region.$tail")) return FALSE;
-  return ($security == $a->lowSecurity) ? $a : FALSE;
+  if (!$a = r\acct("$region.$tail")) { 
+  // temporarily allow '1' for 'I' (until June 2016 or so) -- not forever because we now use Verdana
+    return strpos($code, '1') === FALSE ? FALSE : iCardAcct(str_replace('1', 'I', $code0, $iCode));
+  } else return ($security == $a->lowSecurity) ? $a : FALSE;
 }
+
+/**
+ * Return the account for the given low-security code.
+ * @param string $code: the code to interpret
+ * @param int $seq: (RETURNED) the code sequence number
+ * @param string $type: i=invitation code, e=email code
+ * @return: the account or FALSE if error
+ *//*
+function lowSecAcct($code0, &$seq = NULL, $type = 'i') {
+  $code = str_replace(' ', '', $code0); // ignore spaces
+  list ($ax2n, $n2ax, $xlen, $xlenMin, $xlenDiv, $xlenRegion, $xlenTail, $xlenSecurity
+  if (!preg_match('/[A-Z0-9]{' . ICARD_CODELEN_MIN . ',}/i', $code)) return FALSE;
+  $seq = u\ai2n(substr($code, ICARD_CODELEN_MIN)) + 0;
+///  debug("code=$code seq=$seq");
+  $code = substr($code, 0, ICARD_CODELEN_MIN); // chop off sequence number
+  $b = u\lpad(decbin(u\ai2n(substr($code, 0, 5))), ILEN_DIV). u\lpad(decbin(u\ai2n(substr($code, 5))), ILEN - ILEN_DIV);
+///  debug("code=$code seq=$seq b=$b");
+  $b = u\xorBits($b, substr(R_INVITE_KEY, -strlen($b)), TRUE);
+///  debug("code=$code seq=$seq b=$b");
+  $b = u\rotateBits($b, -($seq + 1) * (bindec(substr(R_INVITE_KEY, 0, 31)) % strlen($b)));
+///  debug("code=$code seq=$seq b=$b");
+  $region = u\n2a(bindec(substr($b, 0, ILEN_REGION)), 3);
+  $tail = u\n2a(bindec(substr($b, ILEN_REGION, ILEN_TAIL)), -3);
+  $security = u\n2ai(bindec(substr($b, -ILEN_SECURITY)), 3);
+///  debug("code=$code seq=$seq b=$b region=$region tail=$tail security=$security");
+
+  if (!$a = r\acct("$region.$tail")) { 
+  // temporarily allow '1' for 'I' (until June 2016 or so) -- not forever because we now use Verdana
+    return strpos($code, '1') === FALSE ? FALSE : iCardAcct(str_replace('1', 'I', $code0, $seq));
+  } else return ($security == $a->lowSecurity) ? $a : FALSE;
+}
+*/
 
 /**
  * Set a cookie
@@ -1409,9 +1449,10 @@ function noticeArgs($uid, $where, $weekly, $monthly, $at = NULL) {
   $yestertime = u\fmtDate($start = $unit == 'month' ? u\plusMonths(-1, $at) : strtotime("-1 $unit", $at));
   $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
   extract(u\just('return', $a->j_stats()));
-  $balance = u\fmtAmt($a->j_r - ($a->reserve ? $a->j_rewards : 0));
+  $balance = u\fmtAmt($a->j_r - ($a->hasReserve ? $a->j_rewards : 0));
+  if ($a->hasReserve) $savings = u\fmtAmt($a->j_savings);
   list ($rewards, $ourEmail) = array(u\fmtAmt($a->j_rewards), $a->cttyA->email);
-  $balance = u\tt($a->reserve ? 'balance notice reserved' : 'balance notice', compact('balance', 'rewards'));
+  $balance = u\tt($a->hasReserve ? 'balance notice reserved' : 'balance notice', compact('balance', 'savings', 'rewards'));
   $companies = \variable_get('companies');
   $companies = $companies[u\test() ? r\serverUid() : $a->community];
   return compact(u\ray('messages unit range yestertime balance return ourEmail companies'));

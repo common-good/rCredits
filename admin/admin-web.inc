@@ -110,8 +110,8 @@ function adminSummary($a, $cAdmin = FALSE) {
 
     $legalName = textFld(t('Legal Name:'), '', required($a->legalName));    
     $rTrader = $a->ctty
-    ? boolField(t('Ctty Up?'), '', $a->ok + 0)
-    : boolField(t('rTrader?'), t('Is account approved to use rCredits? -- member, <@a>good photo</a>, ss# checks out, set risks and mediaConx', array('@a' => "a href=$base_url/settings/security/photo?" . rand())), $a->ok + 0);
+    ? boolFld(t('Ctty Up?'), '', $a->ok)
+    : boolFld(t('rTrader?'), t('Is account approved to use rCredits? -- member, <@a>good photo</a>, ss# checks out, set risks and mediaConx', array('@a' => "a href=$base_url/settings/security/photo?" . rand())), $a->ok);
     if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
       if ($helper = $a->helper ?: ($a->co ? $a->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
         $hA = r\acct($helper);
@@ -134,7 +134,7 @@ function adminSummary($a, $cAdmin = FALSE) {
       if (!isset($risksEditable[$k])) $class .= ' noEdit';
       $aliases[$k] = "<div class=\"$class\">$k</div>";
     }
-    $risks = bitsField(t('Risks:'), $a->risks, '', K_ACCT_RISKS, $aliases);
+    $risks = bitsFld(t('Risks:'), $a->risks, '', K_ACCT_RISKS, $aliases);
 
     $adminable = u\ray(B_ADMINABLE . ($admin ? ' admin' : ''));
     foreach (u\ray(B_LIST) as $k) if (strpos($k, 'u') !== 0) { // ignore undefined bits ("u" in 0th position)
@@ -144,8 +144,8 @@ function adminSummary($a, $cAdmin = FALSE) {
       if ($k == 'member' and $a->ctty) $k = t('cttyActive');
       $aliases[$k0] = "<div class=\"$class\">$k</div>";
     }
-    $adminable = bitsField(t('Flags:'), $a->flags, 'b', join(' ', $blist), $aliases);
-//    $adminable2 = bitsField('adminable', t('Other bits:'), $a->flags, 'b', B_ADMINABLE . ($admin ? ' admin' : ''), $a->ctty ? array('member' => t('cttyActive')) : NULL);
+    $adminable = bitsFld(t('Flags:'), $a->flags, 'b', join(' ', $blist), $aliases);
+//    $adminable2 = bitsFld('adminable', t('Other bits:'), $a->flags, 'b', B_ADMINABLE . ($admin ? ' admin' : ''), $a->ctty ? array('member' => t('cttyActive')) : NULL);
     
     $who = textFld(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
   }      
@@ -172,7 +172,7 @@ EOF;
   $tenure = item($a->tenure . t(' month(s)'), t('Tenure:'), t('(How long had this person or company been at this address before opening an rCredits account?)'));
 
   if (!$a->co) {
-    $moves = item($a->moves, t('Moves:'), t('(How many times has this person changed counties in the past decade?)'));
+    $moves = item($a->moves === '' ? '?' : $a->moves, t('Moves:'), t('(How many times has this person changed counties in the past decade?)'));
     $mediaConx = textFld(t('Media Conx:'), t('(How many 1st or 2nd-degree connections do you have with this person on FaceBook or LinkedIn?)'), dft($a->mediaConx));
   }
 
@@ -182,7 +182,7 @@ EOF;
   if ($mya->can(B_CADMIN2)) $submit = submit(t('Go'));    
 
   $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
-  $uid = hidField($uid);
+  $uid = hidFld($uid);
 
   return compact(u\ray('photo donations cgfDonations federalId legalName calling tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
 }
@@ -236,7 +236,7 @@ function txInfo($xid) {
   $riskDesc = $risk < K_RED ? t('low') : ($risk < 2 * K_RED ? t('moderate') : t('high'));
   $risks = r\riskList($risks0 = $risks, K_TX_RISKS); 
   $risk = item(round($risk) . button(t('Recalculate'), "$base_url/rerisk/tx/$xid/1") . " ($riskDesc): $risks", t('Risk:'));
-  $adminOk = boolField(t('Risk Ok?'), '', '', $risks0 & 1);
+  $adminOk = boolFld(t('Risk Ok?'), '', $risks0 & 1);
   $submit = submit();
   return labeled(compact(u\ray('title when amountDesc from to for1 for2 by where risk $adminOk related submit')));
 }

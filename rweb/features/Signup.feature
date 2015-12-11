@@ -178,7 +178,7 @@ Scenario: A member registers with an existing company
   | .AAD | Aacme Co | myco@ | 01330      | +14136280000 | Ashfield | co,confirmed |
   And invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" confirms form "signup/code=c0D3" with values:
-  | fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | copts                    | address | city    | state | postalAddr                 | tenure | owns | helper |*
+  | fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | companyOptions           | address | city    | state | postalAddr                 | tenure | owns | helper |*
   | Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | Aacme Co | (413)628-0000 | isOwner=>1,contractor=>1 | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 | .ZZZ   |
   Then members:
   | id   | fullName | email | postalCode | state | city    | flags     | helper |*
@@ -190,7 +190,7 @@ Scenario: A member registers with an existing company
 Scenario: A member registers with an unknown company
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" confirms form "signup/code=c0D3" with values:
-  | fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | copts          | address | city    | state | postalAddr                 | tenure | owns | helper |*
+  | fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | companyOptions | address | city    | state | postalAddr                 | tenure | owns | helper |*
   | Abe One  | a@    | 413-253-9876 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | Aacme Co | (413)628-0000 | employeeOk=>1  | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 | .ZZZ   |
   Then members:
   | id   | legalName | email | postalCode | phone        | city    | flags     | helper |*

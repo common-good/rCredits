@@ -370,7 +370,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   if ($error = u\badAmount($amount)) return r\txRet($error, $erInfo);
   $need = $amount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
 
-  $shortfall = (@$data['force'] or $loserA->id < 0) ? 0 : $loserA->shortfall($goods, abs($need), $oked);
+  $shortfall = (@$data['force'] or $loserA->id < 0) ? 0 : $loserA->shortfall($goods, abs($need), $oked, $a1);
   if ($shortfall) {
     $short = u\fmtAmt($shortfall);
     $otherName = $a2->fullName;

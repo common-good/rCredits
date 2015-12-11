@@ -10,7 +10,6 @@ Software Priorities:
 
 - form publicity committee (as decided by the board)
 - rCredits gift card (essentially an invitation from another member, but with a printed $50 value (if you use this card for purchases at GFM, Foster's, or the Barn)
-- Help Upinngil get books set up right
 - Use BeenVerified.com routinely
 - Get a security audit
 - Offer new businesses guaranteed bonus (hundreds or thousands) for signing up and trying it. "We're so sure it will benefit you, we will write you a check for $4,000 to give it a try."
@@ -54,20 +53,28 @@ GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
 0=22 />
 
 TASKS FOR NEXT UPDATE:
-. update theme files: template.php, html.tpl.php, page.tpl.php
-. CLEAR CACHE to activate new theme files (/devel/cache/clear?destination=sadmin)
-. update form.inc
-. REINSTALL
 . Credit PFC invites and Brendan's 2 RPC invites.
 . credit Fuzzy's invites.
 
-. **** load all menus with every page, so they can appear immediately
-. confirm fails on DEV. Fix so op() works! (maybe do it differently)
-. **** delete reference to "red" in 1099B page and add column for 990s. Then make it a "Tax Info" page and separate out the 1099B details to a separate page.
+. add extra optional column to payroll upload: description (and use it if specified) -- generalize to Bulk Upload
+. give people an option that keeps their browser from filling in username and password automatically (Sherry's showed her dob and PIN)
+. set phpMyAdmin to show a logout button:
+   change this line on config.inc.php to 'cookie' instead of 'config':
+   $cfg['Servers'][$i]['auth_type'] = 'config';
+. make autocomplete work again on charge/pay pages (and relations page)
+. when setting up a community: UPDATE users SET community=:ctty WHERE LEFT(uid, 7)=MID(:ctty, 2, 7) or uid=:ctty
+. ***** update the general help page!
+. *** implement Content Security Policy
+. *** editing wws tx#292 to change to cash gives system error at line 207 in rweb-txs.inc
+. ** look for Fuzzy's 11/30 rounding error on ws.
+. ***** warn admin about accounts that are in the "wrong" community (like M. Goode)
+. *** allow negative payments (requested refunds) and negative charges (refunds)
+. **** fix HTML option formatting on Company page and make the rCredits webpage link a button.
+. *** don't count cron transactions as activity (don't update "access" field)
+. when admin opens an account for an individual, send a duplicate "verify email" email to the admin. Keep track of which cAdmin it is and don't allow them to open an account outside their area.
+. revise account-opening as follows: leave email verification for last, make first page shorter (separate out the contact info), require email verification before spending over $20, require proxy choices before 10th purchase (and before voting), require donation before 10th purchase, hide most options as "advanced".
 . base our public query system on phpMyAdmin?
 . Do Fuzzy's list of suggestions: https://docs.google.com/document/d/1X8Cftp_e_zEyBrPVvYrUd-yOOnAit2g4RyMW7SNa9mk
-. ** give some businesses exemption from the cash-out restriction if they choose "reserved" and provide rCredits purchase service. (especially Upinngil and GFM and Foster's)
-. italicize phrase in agreement about until the community has sufficient revenue AND make "suffient revenue" a hyperlink
 . use something like https://select2.github.io/ to make a multiple-select into a dropdown of checkboxes (especially on the company page) - Fuzzy (meanwhile say "hold down command (not control)" on Macs)
 . for DIY graph: select start and end dates, then for each line, type a formula, choosing from named variables like "companies" or "employees" or "cashOut", and choose criteria like "isCompany" or "monthlySpending>3000"
 . show admin postalAddr when hoving over photo (to aid in account activation)
@@ -75,7 +82,6 @@ TASKS FOR NEXT UPDATE:
 . give admins a sluggish report (see sluggish() in admin.inc)
 . flood control for POS calls.
 . **** don't die when too long a fullname is put in (limit to 62)
-. **** fix balance/rewards reporting on notices (for savings reserve)
 . accept a simple spreadsheet for upload to do payroll
 . add a "preferred mode" and "actual preferred mode" field to users (the second is for admins)
 . What happens if someone tries to reuse an invitation code? Sooner or later someone is going to print off a bunch of copies of the same invitation cards and hand them out. I suggest handling it seamlessly: Let them sign up, verify the inviter knows them, and let the invitee know that this card has already been used by someone else so they can't use it as a temporary rCard. (Fuzzy)
@@ -89,9 +95,7 @@ TASKS FOR NEXT UPDATE:
 . split 'confirm invite' message to (1) accepted invite and (2) named you as a reference
 . does timing of week/month cron get screwed up by daylight time shift? (month cron ran on 11/15/2015)
 . dates no longer show on summary page
-. ***** first transaction with inviter fails!
 . **** why did Ivan not get put as manager of his company? (cAdmin?)
-. **** why did Suzanne get 2 bonuses?
 . *** no account letter index if few enough
 . on options page, set stepdone if already visited (allows admin to reset doneness when adding a feature)
 . as discussed with DPearson, when presenting rCard, app should encrypt cardCode with amount and time, using target server's public key. Also record and send amount and time separately? Record proof or evidence of agreement, with every transaction.
@@ -121,13 +125,11 @@ TASKS FOR NEXT UPDATE:
 . **** rethink who gets an rCard, how to deactivate them (for offline purchases), how to handle company agents (with various permissions) who are not members -- allow companies to print cardstock cards for inactive accounts, don't require SSN and bdate for non-member company agents (save form but step not complete)
 . **** on relations page, show "request rCard" if and only if the person has permission to make purchases
 . *** change the language on checklist to say "connect to the mainstream economy"
-. ***** make a way for members to contribute rewards back to the system
 . *** "you are not authorized" message should instead show login page if not signed in
 . make a way for cAdmin to delete secure messages (and files) and send reminders to do so
 . opening a company account as cAdmin should connect the company to the current individual account, when admin clicks "Open a Company Account"
 . put the r icon on a square white background and make the member site distinctive (asterisk? "$"?)
 . admin feature: click on button on CGF Summary to pay a community what they are due
-. ** company photos should not be encrypted (so they can be shown without signin)
 . *** don't log email addresses (just qid or '?')
 . * ANY unused subdomain should redirect to new.rcredits.org if scanned
 . ** create a demo site (demo.rcredits.org) that people can create accounts on, scan demo cards (and sign in as cAdmin?)

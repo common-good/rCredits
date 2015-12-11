@@ -123,7 +123,8 @@ EOF;
     if ($isOwner and !$iCo and !$uCo) {
       $role = t('related to');
     } elseif ($uid == $main) {
-      $extra = '<small> (' . r\quid($them) . ' / ' . r\quid($main, $them) . ')</small>';
+      $rel = r\quid($main, $them);
+      $extra = '<small> (' . r\quid($them) . ' / ' . spinLink("$base_url/sadmin/panel/qid=$rel", $rel, '', 'primary', 'xs') . ')</small>';
       $role = $isOwner ? t('owned by')
         : ($draw ? t('drawn on by')
         : ($permission >= B_MANAGE ? t('managed by')
@@ -232,6 +233,7 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
  * Updates the moves field, if it isn't set yet.
  */
 function ssnCheck($a) {
+  if (isDEV) return t('no SSN data');
   if (!$ssnData = @$a->ssnData) {
     if (!$ssnData0 = u\ssnLookup($a->federalId)or strpos($ssnData0, 'RequestTimedOutException')) return w\say(t('No data returned from ssnLookup (probably timed out).'));
 //    if (strpos($ssnData0), 'timeout')
@@ -368,33 +370,28 @@ function makeTestCards() {
 
   $a = a('aab');
   $selling = "groceries\ngifts\nsundries\ndeli\nbaked goods";
-  $a->update(u\ray('fullName selling', 'Corner Store', $selling));
+  $a->update('name fullName selling', 'cornerstore', 'Corner Store', $selling);
 //  $a->setBitx(CO_REQUIRE_CASHIER, FALSE, 'coFlags');
 
   $a = a('aaa');
-  $a->update('fullName', 'Bob Bossman');
-  $a->update('cardCode2', 'WeHlioM5JZv1O9G');
+  $a->update('name fullName cardCode2', 'bobbossman', 'Bob Bossman', 'WeHlioM5JZv1O9G');
   a\shrinkPhoto($a);
   
   $a = a('aad');
-  $a->update('fullName', 'Cathy Cashier');
-  $a->update('cardCode2', 'ME04nW44DHzxVDg');
+  $a->update('name fullName cardCode2', 'cathycashier', 'Cathy Cashier', 'ME04nW44DHzxVDg');
   a\shrinkPhoto($a);
   
   $a = a('aaq');
-  $a->update('fullName', 'Helga\'s Hardware');
+  $a->update('name fullName', 'helgas', 'Helga\'s Hardware');
 //  $a->setBitx(CO_REQUIRE_CASHIER, TRUE, 'coFlags');
   a\shrinkPhoto($a);
   
   $a = a('aak');
-  $a->update('fullName', 'Curt Customer');
-  $a->update('cardCode', 'NyCBBlUF1qWNZ2k');
-  $a->update('cardCode2', 'utbYceW3KLLCcaw');
+  $a->update('name fullName cardCode cardCode2', 'curtcustomer', 'Curt Customer', 'NyCBBlUF1qWNZ2k', 'utbYceW3KLLCcaw');
   a\shrinkPhoto($a);
   
   $a = a('abb');
-  $a->update('fullName', 'Susan Shopper');
-  $a->update('cardCode', 'ZzhWMCq0zcBowqw');
+  $a->update('name fullName cardCode', 'susanshopper', 'Susan Shopper', 'ZzhWMCq0zcBowqw');
   a\shrinkPhoto($a);
 }
 
@@ -834,28 +831,22 @@ function showSlugs() {
 // be sure to chmod ...rcredits/temp to 777 before running this.
 function special() {
   $cgfId = r\cgfId();
-  $ctty = r\serverUid();
+  $ctty = a('!MIW')->id;
   $accts = [];
   $addrs[] = 'name~addr1~addr2';
-  $q = db\q("SELECT uid, fullName, (SELECT created FROM r_txs WHERE payer=u.uid AND payee>0 AND payee<>$cgfId ORDER BY created DESC LIMIT 1) AS lastUse FROM users u WHERE uid>0 AND activated<1445890448 AND name NOT IN('mayleaspence','annwalsh','ivanussach','lynnbenander','anniewinkler','mesaverde','johnfeichholz','williamspademan','leelewis','cooppower','cimbriabadenhausen') AND community=$ctty ORDER BY fullName");
+  $q = db\q("SELECT uid, fullName, (SELECT created FROM r_txs WHERE payer=u.uid AND payee>0 AND payee<>$cgfId ORDER BY created DESC LIMIT 1) AS lastUse FROM users u WHERE uid>0 AND community=$ctty ORDER BY fullName");
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $a = a($uid);
-    if ($a->ok and $lastUse) {
-      $changes = $a->changes;
-      $ch = $changes[count($changes)-1];
-      $chs[] = "$fullName: " . $ch[1]['lastiCode'];  
-//      $a->update('lastiCode', $a->lastiCode < 15 ? '' : $a->lastiCode - 10);
-      $salvage[] = "$fullName: $a->lastiCode";
-    }
-    if ($a->ok and $lastUse and !@$a->lastiCode) {
+    $salvage[] = "$fullName: $a->lastiCode";
+    if ($a->ok and ($ctty == r\serverUid() ? $lastUse : TRUE) and !@$a->lastiCode) {
       $accts[] = $a;
       $addrs[] = "$fullName~" . join('~', explode(', ', $a->postalAddr, 2));
     }
   }
-/**/ debug($chs);
-//  file_put_contents(DRUPAL_ROOT . R_PATH . '/temp/merge.txt', join($addrs, "\n"));
-//  w\printInvite($accts);
+/**/  debug(compact('salvage','addrs'));
+  file_put_contents(DRUPAL_ROOT . R_PATH . '/temp/merge.txt', join($addrs, "\n"));
+  w\printInvite($accts);
 }
 
 /*

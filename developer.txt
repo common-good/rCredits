@@ -108,6 +108,8 @@ E. Database clues
       - newAccount: qid of new account when this account is closed by moving funds elsewhere
       - oneTimePass: assoc [pass, expires]
       - legalName: the account's legal name (usually same as fullName)
+      - shortName: an optional shorter version of the account's name, for iCards and rCards and elsewhere maybe
+      - lastiCode: number of last invitation card printed (normally empty or 1 mod 10)
       - website: the company's website
       - description: the company's description (html)
       - selling: choices for what the company sells (first line is the default)

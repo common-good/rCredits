@@ -4849,8 +4849,7 @@ function zipChange(z3s) {
       }
     );
 
-  var z3=$('#edit-postalcode').val().substr(0, 3);
-  if (z3s.indexOf(z3) >= 0) $('#edit-buysat').show();
+//  var z3=$('#edit-postalcode').val().substr(0, 3);
+//  if (z3s.indexOf(z3) >= 0) $('#edit-buysat').show();
   setPostalAddr();
 }
-

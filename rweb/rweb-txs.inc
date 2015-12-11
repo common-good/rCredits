@@ -78,7 +78,7 @@ function formTxs_validate($form, &$sta) {w\dateRangeValidate($sta);}
 
 function formTxs_submit($form, &$sta) {
   if (confirming_s($sta)) return;
-  dateRangeRedirect('history/transactions', $sta);
+  w\dateRangeRedirect('history/transactions', $sta);
 }
 
 /**
@@ -164,7 +164,7 @@ function txEdit($xid) {
   );
 
   $purpose = $toMe ? $payeeFor : $payerFor;
-  $orig = hidField(serialize($details));
+  $orig = hidFld(serialize($details));
   $title = item(t('Edit Transaction'));
   $to = item(r\acct($toMe ? $payer : $payee)->fullName, $toMe ? t('From:') : t('To:'));
   $amount = textFld(t('Amount: $'), '', dft(number_format($amount,2)));
@@ -253,7 +253,7 @@ function txSummary($starting, $ending) {
   $p_balance = $p_bank - $p_committed;
   $values += compact(u\ray('p_inProper p_bank p_outProper p_rewards p_committed p_balance'));
 
-  if ($mya->can(B_RESERVE)) {
+  if ($mya->hasReserve) {
     $values['new'] -= $n_rewards;
     $values['old'] -= $o_rewards;
     list ($newReserve, $oldReserve) = [txBal($n_rewards), txBal($o_rewards)];
@@ -313,7 +313,7 @@ function formInvoices($form, &$sta, $toFrom, $args = '') {
   $list = item(invoiceList($toMe, $starting, $ending, $states, $url, @$download)); // must precede starting & ending
 
   $title = item(t('Invoices ') . ($toMe ? t('TO You') : t('FROM You')));
-  $toFrom = hidField($toFrom);
+  $toFrom = hidFld($toFrom);
 
   //simple advanced
   $form = compact('title') + $dateRange + compact(u\ray('list toFrom'));
@@ -351,10 +351,12 @@ function invoiceList($toMe, $starting, $ending, $states, $url, $download) {
   $rows = [];
   list ($yu, $me) = u\order($toMe, 'payee', 'payer');
   $where = ":uid=i.$me AND i.created BETWEEN :starting AND :ending";
+  /*
+  This is broken anyway
   if (strpos($states, '0') === FALSE) $where .= ' AND i.status<>:TX_PENDING';
   if (strpos($states, '1') === FALSE) $where .= ' AND i.status<=0';
   if (strpos($states, '2') === FALSE) $where .= ' AND i.status<>:TX_DENIED';
-  
+  */
   $sql = <<<EOF
     SELECT nvid, i.created, u.fullName AS other, i.purpose, i.amount, i.status, t.{$me}Tid AS tid
     FROM r_invoices i 
@@ -364,7 +366,9 @@ function invoiceList($toMe, $starting, $ending, $states, $url, $download) {
     ORDER BY i.status=:TX_PENDING, nvid DESC
 EOF;
 
-  $q = db\q($sql, u\ray('uid starting ending', r\acct()->id, $starting, $ending));
+  $mya = r\acct();
+  $q = db\q($sql, u\ray('uid starting ending', $mya->id, $starting, $ending));
+///   debug(compact('sql','starting','ending', 'mya'));
   while (count($rows) < $maxRows and $tx = $q->fetchAssoc()) {
     extract($tx);
     if (!@$download) $amount = number_format($amount, 2);

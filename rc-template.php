@@ -166,44 +166,39 @@ function rcredits_field__taxonomy_term_reference($variables) {
 
 function rcredits_links($variables) {
 //  global $called; if (@$called) {die('you must disable secondary menu in theme settings');} else $called = TRUE;
-  global $rUrl, $base_url, $rMenu;
+  global $rUrl, $base_url;
   $links = $variables['links'];
   $attributes = $variables['attributes'];
   $attributes['class'][] = 'nav navbar-nav'; // cgf
-  global $language_url;
   $menuLinks = '';
   $num_links = count($links);
   $i = 1;
 
-  foreach ($links as $key => $link) {
-    $class = 'menu-' . preg_replace('/[^a-z\-]+/', '', strtolower(str_replace(' ', '-', $link['title'])));
-    $class = array($class); // cgf (with previous line) -- NOTE: this bizarrely has no effect on submenus
+  foreach ($links as $key => $item) { // for each top-level menu item
+    extract($item, EXTR_PREFIX_ALL, 'm'); // get title and href
 
-    if ($i == 1) $class[] = 'first';
-    if ($i == $num_links) $class[] = 'last';
-    if (isset($link['href']) && ($link['href'] == $_GET['q'] || ($link['href'] == '<front>' && drupal_is_front_page())) && (empty($link['language']) || $link['language']->language == $language_url->language)) {
-      $class[] = 'active';
-    }
-    $menuLinks .= '<li' . drupal_attributes(array('class' => $class)) . '>';
+    $id = "menu-$m_href";
+    $class = 'topmenu';
+    if ($i == 1) $class .= ' first';
+    if ($i == $num_links) $class .= ' last';
+    if ($m_href == $_GET['q'] or ($m_href == '<front>' && \drupal_is_front_page())) $class .= ' active';
+    
+    if (in_array($m_href, ['history', 'settings', 'community', 'sadmin'])) {
+      $class .= ' submenu';
+//      $menu = w\modal($id, $m_title, '', w\subMenuHtml($m_href), 'X');
+      $menu = w\subMenuHtml($m_href);
+//      $menu = htmlspecialchars("<div class=\"popmenu\">$menu</div>");
+//       <div id="hidden-$id" class="element-invisible">$menu</div>
+//      <a href="#" onclick="jQuery('#block-system-main .content').html(jQuery('#hidden-$id').html()); jQuery('#navbar').hide();">$m_title</a>
+//      <a href="#" data-toggle="popover" data-html="true" data-content="$menu" data-placement="bottom" 
+      $link = <<<EOF
+      <div class="popmenu">$menu</div>
+      <a href="#" data-toggle="popover" data-html="true" data-trigger="manual" data-animation="false" onclick="jQuery('.submenu a').not(jQuery(this)).popover('hide'); jQuery(this).popover('toggle');">$m_title</a>
+EOF;
+    } else $link = spinLink("$base_url/$m_href", $m_title, $id);
 
-    if (isset($link['href'])) {
-      // Pass in $link as $options, they share the same keys.
-      $menuLinks .= l($link['title'], $link['href'], $link);
-    }
-    elseif (!empty($link['title'])) {
-      // Some links are actually not links, but we wrap these in <span> for adding title and class attributes.
-      if (empty($link['html'])) {
-        $link['title'] = check_plain($link['title']);
-      }
-      $span_attributes = '';
-      if (isset($link['attributes'])) {
-        $span_attributes = drupal_attributes($link['attributes']);
-      }
-      $menuLinks .= '<span' . $span_attributes . '>' . $link['title'] . '</span>';
-    }
-
+    $menuLinks .= "<li id=\"$id\" class=\"$class\">$link</li>\n";
     $i++;
-    $menuLinks .= "</li>\n";
   }
 
   if ($mya = r\acct()) {
@@ -218,7 +213,7 @@ function rcredits_links($variables) {
   <div class="nav2-inner">
     <div id="extras" class="">
       <button type="button" class="accounts-toggle photo$co" data-toggle="collapse" data-target="#edit-acct-account" aria-expanded="false" aria-controls="edit-acct-account">
-        <a title="$acctName" data-toggle="popover" class="nospin"><img src="$base_url/settings/icon"/></a>
+        <a title="$acctName" data-toggle="popover" data-placement="left"><img src="$base_url/settings/icon"/></a>
       </button>
     </div>
   </div>
@@ -326,11 +321,12 @@ EOF;
   $id = @$markup ? " id=\"edit-$for\"" : '';
   $outerClass = "form-group form-item-$for";
   $outerClass .= ' ' . ($boxy ?: "form-type-$type");
+  $required = @$required ? ' required="yes"' : '';
   if (@$box) $outerClass .= ' box1';
   if (@$attributes['disabled']) $outerClass .= ' disabled';
   
   return <<<EOF
-  <div$id class="$outerClass">
+  <div$id class="$outerClass"$required>
 $core
   </div>
 EOF;
@@ -376,21 +372,28 @@ function rcredits_textarea($variables) {
 
 function rcredits_radios($variables) {
   $chn = $variables['element']['#children'];
-  return @$variables['element']['#inline'] ? str_replace(' radio">', ' radio-inline">', $chn) : $chn;
+  extract(rcElement($variables, 'required inline'));
+  if (@$inline) $chn = str_replace(' radio">', ' radio-inline">', $chn);
+  if (@$required) $chn = str_replace('type="radio"', 'type="radio" required="yes"', $chn);
+  return $chn;
 }
 
 function rcredits_submit($variables) {
   extract(rcElement($variables, 'tabled bare value title id size style name parents'));
 ///  debug($variables);
-  u\setDft($id, strtolower("edit-$value"));
+  if (!@$id) $id = 'edit-' . strtolower(strtr($value, [' '=>'-', '_'=>'-', '['=>'-', ']'=>'']));
+//  u\setDft($id, strtolower("edit-$value"));
   u\setDft($size, 'md');
   u\setDft($style, 'primary');
 //  u\setDft($name, @$parents[0]);
-  $variables['element']['#children'] = $res = <<<EOF
+  $variables['element']['#children'] = $res = spinLink('submit', $value, $id, $style, $size);
+/*
+  <<<EOF
   <button type="submit" id="$id" name="$name" value="$value" class="btn btn-$style btn-$size ladda-button" data-style="expand-right">
     <span class="ladda-label">$value</span>
   </button>
 EOF;
+*/
   return @$bare ? $res : rcredits_form_element($variables);
 }
 
@@ -472,6 +475,14 @@ function rcredits_breadcrumb($variables) {
   return $head . '<li>' . join('</li><li>', $crumbs) . '</li>';
 }
 
+function rcredits_hidden($variables) {
+  \element_set_attributes($variables['element'], array('name', 'value'));
+  $type = 'hidden';
+  extract(rcElement($variables, 'attributes id'));
+  $tribs = u\tribs(compact(u\ray('type id value')) + $attributes);
+  return "<input $tribs />\n";
+}
+
 /**
  * Return assoc of element parameters, plainly named.
  */
@@ -497,4 +508,27 @@ function rcAuto($path, $id) {
   $class = 'autocomplete';
   $tribs = u\tribs(compact(u\ray('type id value disabled class')));
   return "<input $tribs />";
+}
+
+/**
+ * Return HTML for a button-like link with a spinner.
+ */
+function spinLink($href, $text, $id = '', $style = '', $size = '', $other = []) {
+  $dataStyles = u\ray('zoom-in zoom-out slide-left slide-right'); // slide-up slide-down don't work well on menus
+  $dataStyle = $dataStyles[rand(0, count($dataStyles) - 1)];
+  list ($tag, $class, $attrs) = ['a', "btn btn-$style btn-$size", 'href id']; // default tag, class, and attribs
+  if (!$id) unset($id);
+  
+  if ($href == 'submit') { // submit button
+    list ($type, $name, $value, $tag) = ['submit', 'op', $text, 'button'];
+    $attrs = 'type id name value';
+  } elseif (!$size) $class = $style; // menu (or list) -type link (not a button)
+
+  $attrs = \drupal_attributes($other + compact(u\ray($attrs)));
+
+    return <<<EOF
+    <$tag $attrs class="$class ladda-button" data-style="$dataStyle">
+      <span class="ladda-label">$text</span>
+    </$tag>
+EOF;
 }

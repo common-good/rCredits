@@ -622,7 +622,7 @@ function bank() {
     queueEach('completeUsdTx', $sql, compact('now'));
   }
   
-  $where = 'minimum>0 AND IF(:IS_RESERVE,r-rewards,r)<minimum AND uid>1 AND :IS_OK';
+  $where = 'minimum>0 AND r-IFNULL(savings, 0)<minimum AND uid>1 AND :IS_OK';
   $sql = <<<EOF
   SELECT uid
   FROM users 
@@ -675,7 +675,7 @@ function draw1($item) {
  * @return: the amount to transfer from the connected bank account or drawn for other rCredits accts (0 if none).
  */
 function getHowMuchR($a, $banky = TRUE) {
-  if (!$need = max(0, $a->minimum - $a->j_r + ($a->reserve ? $a->j_rewards : 0))) return 0;
+  if (!$need = max(0, $a->minimum - $a->j_r + ($a->hasReserve ? $a->j_rewards : 0))) return 0;
   if ($banky) {
     $waiting = -$a->waitingToBank(); // amount already requested (if any)
     $need = round($need - $waiting, 2); // avoid a re-request

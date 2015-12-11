@@ -23,8 +23,10 @@ function formAdmin($form, &$sta) {return w\subMenu(t('Admin Options'), 'sadmin')
   
 /**
  * Make various administrative operations available to the admin and cAdmin.
+'wrong community' => 'SELECT * FROM `users` WHERE uid>0 AND MID(community, 2, 7)<>MID(uid, 1, 7)',
  */
 function formAdminPanel($form, &$sta, $args = '') {
+  extract(u\just('qid', $args));
   $mya = r\acct();
   $admin = $mya->admin;
   $tables = 'users txs gifts proxies relations invites'; // tables to show
@@ -47,7 +49,7 @@ function formAdminPanel($form, &$sta, $args = '') {
   
   $inviteeStatus = submi(t('Invitee Status'));
   $organizerList = submi(t('Organizer List'));
-  $account = textFld(t('Account:'), t('Account to do something to'), (auto() ?: []) + dft(svar('adminingAcct')));
+  $account = textFld(t('Account:'), t('Account to do something to'), (auto() ?: []) + dft(@$qid ?: svar('adminingAcct')));
   if ($admin) $make2 = boxFld('make', t('Make:'));
   $printId = submi(t('Print ID'));
 //  $connectBank = submi(t('Connect Bank'));
@@ -254,7 +256,7 @@ function formMakeCtty($form, &$sta) {
   $submit = submit();
   
   $form = compact(u\ray('title subtext zips region')) + nameAndEmail(t('Community'))
-         + ssnFields(FALSE) + contactFields(['zot'=>0], TRUE) // prevent contact fields from defaulting
+         + ssnFields(FALSE) + contactFields(['zot'=>0], FALSE) // prevent contact fields from defaulting
          + compact('postalAddr', 'submit');
   return labeled($form);
 }
@@ -379,7 +381,7 @@ function formDownloadMemberList($form, &$sta) {
   $ctty = r\acct($mya->community);
 
   $title = item(t('Download Member List'));
-  $subtext = item(t('for ') . $ctty->fullName);
+  $subtext = item(t('for ') . $ctty->fullName . t('<br>Link is do/op~qid~ecode~expMo. Current Month #') . r\rdoMonth());
   if ($ctty->name == 'NEW.') $allCttys2 = boxFld('allCttys', t('All communities:')); // temporary for CGF oversight
   $onlyActive2 = boxFld('onlyActive', t('Active only:'), tt('Export only active accounts'));
   $onlyPeople2 = boxFld('onlyPeople', t('People only:'), tt('Export only individual accounts (especially when emailing)'), TRUE);
@@ -399,7 +401,7 @@ function formDownloadMemberList_submit($form, &$sta) {
   . (@$onlyPeople ? t('-members') : t('-accounts'))
   . '.csv';
   u\csvStart($filename);
-  u\csv($fields = u\ray($fields = 'id first_name last_name phone email address city state zip member'));
+  u\csv($fields = u\ray($fields = 'id first_name last_name phone email address city state zip member ecode'));
 
   $where = @$allCttys ? '1' : 'community=:cttyId';
   if (@$onlyActive) $where .= ' AND :IS_OK';
@@ -417,6 +419,7 @@ function formDownloadMemberList_submit($form, &$sta) {
     $phone = u\fmtPhone($phone);
     $member = $a->ok ? 'yes' : '';
     $id = $a->mainQid;
+    $ecode = "$a->emailCode";
     u\csv(array_values(compact($fields)));
   }
   exit();
@@ -460,7 +463,7 @@ function formDeposits($form, &$sta, $deposit = '') {
     $count = item(t('Checks') . " $way: $count");
 //    if ($previous) $reprint = boxFld('', t('Include/Reprint ') . $oldCount . t(' checks from ') . strftime('%d-%b', $previous) . '?'); else unset($reprint);
     if ($count or $previous) $submit = submit(t('Print checks ') . $way);
-    $previous = hidField($previous);
+    $previous = hidFld($previous);
 ///    echo "\n\n\nway=$way " . print_r(u\prefixKeys($way, compact(u\ray('count reprint submit previous'))), 1) . "\n\n\n";
     $$way = w\fieldSet("_$way", u\prefixKeys($way, compact(u\ray('count submit previous'))), BARE);
   }

@@ -65,17 +65,6 @@ function rweb_menu($submenu = '') {
 //    'sinx' => ['call', 'Sign in from elsewhere', 'Sinx', 'anyone'],
 
     'summary' => ['norm', t('Summary'), 'Summary', 'read'],
-    'history' => ['norm', t('History'), 'History', 'read'],
-    'history/transactions' => ['sub', t('Transactions'), 'Txs 2', 'read', '', t(''), 'list'],
-    'history/invoices-to' => ['sub', t('Invoices TO You'), 'Invoices to', 'read', '', t(''), 'log-in'],
-    'history/invoices-from' => ['sub', t('Invoices FROM You'), 'Invoices from', 'read', '', t(''), 'log-out'],
-    'history/statements' => ['sub', t('Statements'), 'Statements 2', 'read', '', t(''), 'list-alt'],
-    'history/notices' => ['sub', t('Notices'), 'Notices 2', 'read', '', t(''), 'envelope'],
-    'history/1099-B' => ['sub', t('1099-B Forms'), '1099b', 'read', '', t(''), 'pawn'],
-    'history/changes' => ['sub', t('See Changes'), 'SeeChanges', 'cadmin', '', t(''), 'refresh'],
-    'history/zot' => ['sub', 'zot', '', 'anyone'], // Drupal bug: last choice is omitted
-    'history/statement' => ['call', t('Statement'), '2', 'read', 'statement'],
-//    'history/notice' => ['call', t('Notice'), 'Notice 2', 'read'],
 
     'charge' => ['norm', t('Charge'), 'Tx 1', 'sell ok'],
     'pay' => ['norm', t('Pay'), 'Tx 1', 'buy ok confirmed'],
@@ -90,14 +79,26 @@ function rweb_menu($submenu = '') {
 
     'get' => ['norm', t('Bank'), 'Get 1', 'manage bank ok'],
 
+    'history' => ['norm', t('History'), 'History', 'read'],
+    'history/transactions' => ['sub', t('Transactions'), 'Txs 2', 'read', '', t(''), 'list'],
+    'history/invoices-to' => ['sub', t('Invoices TO You'), 'Invoices to', 'read', '', t(''), 'log-in'],
+    'history/invoices-from' => ['sub', t('Invoices FROM You'), 'Invoices from', 'read', '', t(''), 'log-out'],
+    'history/statements' => ['sub', t('Statements'), 'Statements 2', 'read', '', t(''), 'list-alt'],
+    'history/notices' => ['sub', t('Notices'), 'Notices 2', 'read', '', t(''), 'envelope'],
+    'history/tax-info' => ['sub', t('Tax Info'), 'TaxInfo', 'read', '', t(''), 'pawn'],
+    'history/changes' => ['sub', t('See Changes'), 'SeeChanges', 'cadmin', '', t(''), 'refresh'],
+    'history/zot' => ['sub', 'zot', '', 'anyone'], // Drupal bug: last choice is omitted
+    'history/statement' => ['call', t('Statement'), '2', 'read', 'statement'],
+//    'history/notice' => ['call', t('Notice'), 'Notice 2', 'read'],
+    
 //    'community' => ['norm', t('Community'), 'FindCo', 'anyone'],
     'community' => ['norm', t('Community'), 'Community', 'anyone'],
     'community/agreement' => ['sub', t('The Agreement'), 'Agreement', 'anyone', '', t(''), 'globe'],
-    'community/invite' => ['sub', t('Invite Someone'), 'Invite', 'member', '', t(''), 'share-alt'],
+    'community/invite' => ['sub', t('Invite Someone'), 'Invite', 'member manage', '', t(''), 'share-alt'],
     'community/find-company' => ['sub', t('Find a Company'), 'FindCo', 'anyone', '', t(''), 'search'],
     'community/donate' => ['sub', t('Donate'), 'Donate', 'manage', '', t(''), 'thumbs-up'],
     'community/funds' => ['sub', t('Funds in Each Community'), 'CttyFunds', 'anyone', '', t(''), 'usd'],
-    'community/graphs' => ['sub', t('rCredits Economy Graphs'), 'Reports 1', 'anyone', '', t(''), 'stats'],
+    'community/graphs' => ['sub', t('rCredits Economy Graphs'), 'Graphs 1', 'anyone', '', t(''), 'stats'],
     'community/flags' => ['sub', t('Risk Flags'), 'Flags 2', 'anyone', '', t(''), 'flag'],
 //    'community/game' => isGAME ? ['sub', t('Game'), 'Game', 'anyone') : NULL,
     'community/zot' => ['sub', 'zot', '', 'anyone'], // Drupal bug: last choice is omitted
@@ -108,7 +109,7 @@ function rweb_menu($submenu = '') {
     'settings' => ['norm', t('Settings'), 'Settings', 'manage'],
 //    'settings/settings' => ['dft', t('Settings'), 'Settings', 'manage'],
     'settings/contact' => ['sub', t('Contact Info'), 'Contact', 'manage', '', t(''), 'user'],
-    'settings/preferences' => ['sub', t('Preferences'), 'Options', 'manage', '', t(''), 'cog'],
+    'settings/preferences' => ['sub', t('Preferences'), 'Preferences', 'manage', '', t(''), 'cog'],
     'settings/security' => ['sub', t('Security'), 'Security 2', 'manage person', '', t(''), 'link'],
     'settings/bank' => ['sub', t('Bank Info'), 'Bank 2', 'manage', '', t(''), 'piggy-bank'],
     'settings/company' => ['sub', t('Company Info'), 'Company', 'manage co', '', t(''), 'calendar'],
@@ -132,8 +133,6 @@ function rweb_menu($submenu = '') {
 //    'settings/security/photo-id' => ['call', 'Kba', 'PhotoId', 'manage'],
     'settings/proxy' => ['call', 'Proxy', 'Proxy 2', 'manage'],
 
-    'signout' => ['norm', t('Sign out'), '', 'read', 'signout'],
-
 //    'handy' => isDEV ? ['norm', t('Handy'), '', 'dev', 'handyLinks'] : NULL,
     'tests' => isDEV ? ['norm', t('Test'), '1', isDEV ? 'dev' : NULL, 'test'] : NULL,
     'php' => isDEV ? ['norm', t('PHP'), 'Php', 'dev'] : NULL,
@@ -145,16 +144,16 @@ function rweb_menu($submenu = '') {
     
     'I' => ['call', 'Scanned QR', 'I', 'anyone'],
     
-    'another' => ['call', t('Open a Company Account'), 'Another', 'manage'],
+    'signup-company' => ['call', t('Open a Company Account'), 'SignupCompany', 'manage'],
     'handle-invoice' => ['call', t('Handle Invoice'), 'HandleInvoice 1', 'anyone'],
     'rerisk' => ['call', t('Recalculate Risk'), 'Rerisk 1 2 3', 'regulator'],
 
     'sadmin' => ['norm', t('Admin'), 'Admin', 'cadmin2'],
-    'sadmin/panel' => ['sub', t('Panel'), 'AdminPanel', 'cadmin'],
+    'sadmin/panel' => ['sub', t('Panel'), 'AdminPanel 2', 'cadmin'],
     'sadmin/member-list' => ['sub', t('Member List'), 'MemberList', 'cadmin2'],
     'sadmin/export-list' => ['sub', t('Export'), 'DownloadMemberList', 'cadmin2'],
     'sadmin/deposits' => ['sub', t('Deposits'), 'Deposits', 'admin'],
-    'sadmin/another' => ['sub', t('New Account'), 'Another', 'cadmin'],
+    'sadmin/new-member' => ['sub', t('New Member'), 'Signup code=(admin)', 'cadmin'],
     'sadmin/make-community' => ['sub', t('Make Ctty'), 'MakeCtty', 'admin'],
     'sadmin/sms' => ['sub', t('Test SMS'), 'SMS', 'admin'],
     'sadmin/handy' => ['sub', t('Handy'), '', 'dev', 'handyLinks'],
@@ -170,6 +169,8 @@ function rweb_menu($submenu = '') {
     'sadmin/recover' => ['call', t('Empty'), 'TestRecovery 1', 'dev'], // also go here manually, if needed
     'print-rcard' => ['call', t('Print ID Card'), '1 ', 'cadmin', 'memberID'],
 
+    'signout' => ['norm', t('Sign out'), '', 'read', 'signout'],
+    
     'help' => ['call', t('Help'), 'Help 1', 'anyone'],
     'change-account' => ['call', t('Change Who'), '1', 'anyone', 'changeWho'],
     'status' => ['call', 'Status', 'Membership 2', 'manage'],
@@ -180,6 +181,7 @@ function rweb_menu($submenu = '') {
     'do' => ['call', 'Do', '1 2', 'anyone', 'rdo'],
     'coup' => ['call', t('Disable account'), '1', 'anyone', 'coup'],
 
+    'savings' => ['call', t('Savings'), 'ChooseSavings', 'anyone'], // temporary until 12/15/2015
     'accept' => ['call', 'Accept Invitation', 'Accept 1', 'anyone'], // called from promo site rCredits.org
     'pos' => ['call', 'POS', '', 'anyone', 'rCredits\\Smart\\pos'], // called from the rPOS app
     'whosin' => ['call', t('Who\'s in?'), '1', 'anyone', 'whosin'], // called from promo site

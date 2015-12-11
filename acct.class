@@ -72,18 +72,20 @@ class acct {
     
     $DBTX = db_transaction();
     $uid = r\regionalInsert('users', 'uid', $record, @$region);
-    if (!($flags & u\bit(B_CO))) u\setDft($cardCode, r\cardCode(r\quid($uid))); // must postcede $uid =
-
+    if (!($flags & u\bit(B_CO))) { // must postcede $uid =
+      u\setDft($cardCode, r\cardCode(r\quid($uid)));
+      u\setDft($emailCode, r\cardCode(r\quid($uid)));
+    }
+    
     if (isset($number)) {
       $success = SMS\create($number, $uid);
-      u\EXPECT($success, 'Unable to create SMS record.');
       unset($info['number']);
     }
 
     list($this->id, $this->agentId) = array($uid, $uid); // finish creating the object
     self::$rs[$this->id] = (object) $record;
 
-    u\preray(compact(u\ray('phone status email pass fullName legalName flags rebate state community created login access cardCode')), $info); // things we may have added or changed
+    u\preray(compact(u\ray('phone status email pass fullName legalName flags rebate state community created login access emailCode cardCode')), $info); // things we may have added or changed
     $this->update($info); // this is a lot easier to do after saving the record
     unset($DBTX); // commit
   }
@@ -143,10 +145,11 @@ class acct {
     $a->reread(); // necessary when we pass an acct object to another page
 
     if (substr($field, 0, 3) == 'can') $nickname = lcfirst(substr($field, 3));
-    if (in_array($field, u\ray('ok confirmed member bona co reserve admin cAdmin cAdmin2 cttyActive cttyUp'))) $nickname = $field;
+    if (in_array($field, u\ray('ok confirmed member bona co admin cAdmin cAdmin2 cttyActive cttyUp closed'))) $nickname = $field;
     if (@$nickname) return $a->can(u\consta('b', $nickname));
 
     if ($field == 'mainQid') return r\quid($a->id);
+    if ($field == 'hasReserve') return (!is_null($a->savings));
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
     if ($field == 'agent') return acct($a->agentId);
@@ -157,7 +160,7 @@ class acct {
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'bank') return $a->risk('hasBank');
-    if ($field == 'lowSecurity') return u\n2aa(substr($a->created, -5, 5), 3); // result is 3 chars long
+    if ($field == 'lowSecurity') return u\n2ai(substr($a->created, -5, 5), 3); // result is 3 chars long
     if ($field == 'inviteCode') return str_replace(R_MEMBER_MARK, '*', $a->mainQid) . $a->lowSecurity;
     if ($field == 'slave') return ($jid = $a->jid and $jid < $a->id); // slave in a joint account
     if ($field == 'helperA') return $a->helper ? r\acct($a->helper) : '';
@@ -240,13 +243,13 @@ class acct {
 ///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
     $b .= u\lpad(decbin(u\a2n($tail)), ILEN_TAIL);
 ///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
-    $b .= u\lpad(decbin(u\aa2n($a->lowSecurity)), ILEN_SECURITY);
+    $b .= u\lpad(decbin(u\ai2n($a->lowSecurity)), ILEN_SECURITY);
 ///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
     $b = u\rotateBits($b, ($iCode + 1) * (bindec(substr(R_INVITE_KEY, 0, 31)) % strlen($b)));
 ///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
     $b = u\xorBits($b, substr(R_INVITE_KEY, -strlen($b)));
 ///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
-    return u\n2aa(bindec(substr($b, 0, ILEN_DIV)), 5) . u\n2aa(bindec(substr($b, ILEN_DIV)), 5);
+    return u\n2ai(bindec(substr($b, 0, ILEN_DIV)), 5) . u\n2ai(bindec(substr($b, ILEN_DIV)), 5);
   }
   
   /**
@@ -436,6 +439,7 @@ class acct {
   /**
    * Return the amount not available, including draws from related accounts, depending on the purpose.
    * If there are fees for drawing from a related account, they are added to the amount needed.
+   * If the account has permission to cash out while serving as an ATM their rewards amount will not limit them.
    * @param string $goods: (does not default, to make sure we know what we're doing)
    *   R_FOR_GOODS or R_FOR_NONGOODS: the amount of credit available for a purchase 
    *     (including credit lines)
@@ -443,14 +447,18 @@ class acct {
    *     (not including credit lines and rewards)
    * @param float $need: the amount needed
    * @param bool $get: draw from other accounts as needed, then say whether there is enough
+   * @param acct $actor: account of the individual or company initiating the transaction
    * @param bool $retrying: UNUSED recursed after updating cache usd amount
-   * @return how much short of what's needed is this account
+   * @return how much short this account is, of what's needed
    */
-  public function shortfall($goods, $need = 0, $get = FALSE) {
-    $avail = $this->avail($goods);
+  public function shortfall($goods, $need = 0, $get = FALSE, $actor = NULL) {
+    global $channel;
+    $a = $this;
+    if ($channel == TX_POS and @$actor == $a and $a->coCan(CO_ATM)) $goods = R_FOR_GOODS;
+    $avail = $a->avail($goods);
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
-    $avail += $get ? $this->draw($need - $avail) : $this->canDraw(); // get or just asking
+    $avail += $get ? $a->draw($need - $avail) : $a->canDraw(); // get or just asking
     return max(0, $need - $avail); 
   }
   
@@ -678,14 +686,15 @@ EOF;
    * @return the next step (FALSE if none)
    */
   function stepDone($step, $details = [], $done = TRUE) {
-    $stepsDone = $this->stepsDone ?: r\stepsDone0();
+    $a = $this;
+    $stepsDone = $a->stepsDone ?: r\stepsDone0();
     if (!$stepsDone[$step]) { // unless already done
       $stepsDone[$step] = $done;
-      $this->update(compact('stepsDone'));
-      if ($done) r\tellStaff('Step completed: ' . strtoupper($step), $details, $this->id);
-    }
-    
-    if (!$nextStep = $this->nextStep()) r\membershipEvent($this, 'member');
+      $a->update(compact('stepsDone'));
+      if ($done) r\tellStaff(t('Step completed: ') . strtoupper($step), $details, $a->id);
+    } else r\tellStaff(t('Settings changed: ') . strtoupper($step), $details, $a->id);
+   
+    if (!$nextStep = $a->nextStep()) r\membershipEvent($a, 'member');
     return $nextStep;
   }
   
@@ -946,7 +955,7 @@ EOF;
         if (!$a->proSe and !isGAME) { // admin permissions depend on agent
           return ($aa = $a->agent) ? $aa->can($bit) : FALSE; // timing errors in _construct can give no agent
         }
-        if (!$can and $bit < R_ADMIN_CAN_MANAGE_CTTYS ? B_ADMIN : B_CADMIN) return $a->can($bit + 1); // not this admin bit, maybe the next higher?
+        if (!$can and $bit < (R_ADMIN_CAN_MANAGE_CTTYS ? B_ADMIN : B_CADMIN)) return $a->can($bit + 1); // not this admin bit, maybe the next higher?
       }
       return $can;
     }
@@ -975,9 +984,10 @@ EOF;
  
     $can[B_PERSON] = !$can[B_CO];
 
-    $perm = $a->proSe ? B_MANAGE
-      : ($can[B_CADMIN] and $a->community == $a->agent->community) ? B_MANAGE 
-      : (B_RELATED + relation('permission', $id, $a->agentId));
+    $perm = $a->closed ? B_READ
+      : ($a->proSe ? B_MANAGE
+      : (($can[B_CADMIN] and $a->community == $a->agent->community) ? B_MANAGE 
+      : (B_RELATED + relation('permission', $id, $a->agentId))));
     for ($i = B_RELATED; $i <= B_MANAGE; $i++) $can[$i] = ($i <= $perm); // set all, even the false ones
 
     // (NO! this should never happen) if ($can[B_OK]) $can[B_MEMBER] = TRUE;

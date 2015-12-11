@@ -131,7 +131,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'reminder coming' => t('We will send you just one reminder'),
   'reminder one' => t('This is your one reminder'),
   'balance notice' => t('@balance, including @rewards incentive rewards to date'),
-  'balance notice reserved' => t('@balance, plus @rewards incentive rewards held as a savings reserve'),
+  'balance notice reserved' => t('@balance, plus @savings held as a savings reserve (including @rewards incentive rewards received to date)'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -244,9 +244,10 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'share too big' => t('You are not allowed to donate more than half your transaction rewards. Here\'s why: The rCredits system aligns your personal financial benefit with benefit to the community, so you can do what is best for the community just by doing what is best for you. If your personal benefit percentage is too small, you lose that convenient compass.'),
   'no photoid' => t('You must make a purchase in person using your rCard and show your driver\'s license or state ID, before any other transaction.'),
   'other no photoid' => t('@who must make a purchase in person to verify their identity, before you can pay or charge them.'),
-  'duplicate transaction' => t('You already just @op that member that much.'),
+  'duplicate transaction' => t('You already just @op that member that much. Wait a few minutes or type a different amount.'),
   'no search' => t('OR that member has chosen not to be identified by email or phone number.'),
   'not confirmed' => t('@youName: Your membership must be approved by @inviterName OR you must do a transaction with @inviterName FIRST.'),
+  'savings too low' => t('Until your rCredits community declares itself a stable and permanent Common Good Community, your savings amount must be at least as much as the incentive rewards you have received (@rewards to date)'),
 
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',

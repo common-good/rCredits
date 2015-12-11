@@ -378,6 +378,30 @@ EOF
     <p><b>Control.</b> Of course your participation benefits the community far beyond mere money. The commmunity benefits by all of us together having greater control over our local economy, so we can plan and decide together how to use the power of money to make a better life for everyone.</p>
 EOF
   ) . $back;
+
+  if ($i == 'taxes') {
+    $taxhead = u\ray('Tax Form:;1120;990;990EZ;990-A;1040;1040A;1040 Sched C');
+    $taxline[] = u\ray('Sales / Other Income,1a,varies,varies,varies,7 or 21 ("barter"),7,1');
+    $taxline[] = u\ray('Inflation Adjustment,5 or 10,VIII(3)D,I(4),II(B)8,8a or 21,7 or 8a,6');
+    $taxline[] = u\ray('rCredits Incentive Rewards,10,VIII(3)D,I(4),II(B)8,21,7,6');
+    $taxline[] = u\ray('"Sharing" Donations,19,IX(1),I(10),N/A,,Subtract from Rewards,4; 8; 10; 17; or 27a');
+    $taxes = '<tr><th class="cat">' . join('</th><th>', $taxhead) . "</th></tr>\n";
+    foreach ($taxline as $line) $taxes .= '<tr><td class="cat">' . join('</td><td>', $line) . "</td></tr>\n";
+    $taxes = strtr($taxes, ['<td></td><td>' => '<td colspan="2">', ';' => ',']);
+    
+    return t(<<<EOF
+  <p>Pay taxes on rCredits income just as you would for US Dollar income, including income, excise, and sales taxes.</p>
+
+  <p>The chart below suggests some tax form lines you might choose, for reporting your rCredits activity. It also suggests how you might report your monthly tax-deductible "sharing" contributions to Common Good Finance.</p>
+
+  <p>If you follow the <@a1>accounting practices recommended</a> by Common Good Finance, your software already includes your rCredits income, properly categorized, in your accounting records and reports.</p>
+
+      <table id="taxes">
+$taxes
+      </table>
+EOF
+    , ['@a1' => 'a href=http://commongoodfinance.org/files/rCreditsAccountingTips.pdf target=_blank']);
+  }
   
   if ($i == 'flags') {
     include_once __DIR__ . '/risk-descs.inc';

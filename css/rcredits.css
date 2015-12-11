@@ -82,7 +82,6 @@ input[type="checkbox"], input[type="radio"] {transform: scale(1);}
 .well img, .well iframe {width:100%;}
 .help-block b {color:darkred;}
 .tight {padding:0;}
-.odd img {width:30px; height:30px;}
 .full.center img {display:inline-block;}
 hr .narrow {width:50%;}
 .control-label.selectable {padding-top:0;} /* for selectable label in form */

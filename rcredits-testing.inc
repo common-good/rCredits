@@ -28,7 +28,7 @@ define('DW_TEST_AUTHS',
 );
 define('T_BALANCE_FIELDS', 'id r usd balance dwolla floor rewards minimum share committed');
 */
-define('T_BALANCE_FIELDS', 'id r balance floor rewards minimum share committed');
+define('T_BALANCE_FIELDS', 'id r balance floor rewards savings minimum share committed');
 define('T_MSG_FILE', 'test-messages.txt');
 
 /**

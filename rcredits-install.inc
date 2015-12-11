@@ -49,9 +49,10 @@ function tableDefs($schema = []) {
     'iCode' => setupField('sequence number of helper invitation', 'int'),
     'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11', 0),
     'signedBy' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
-    'rebate' => setupField('current rebate percentage (sales bonus is double)', 'numeric 5,3', R_REBATE),
+    'rebate' => setupField('current rebate percentage (sales bonus is proportionate)', 'numeric 5,3', R_REBATE),
+    'savings' => setupField('chosen amount to hold as savings', 'numeric 11,2', NULL),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
-    'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL), // NULL means preferences not set yet
+    'minimum' => setupField('chosen minimum balance (for automatic refills)', 'numeric 11,2', NULL), // NULL means preferences not set yet
 //    'chunk' => setupField('granularity of transfers from bank account', 'numeric 11,2', R_BANK_CHUNK),
 //    'maximum' => setupField('maximum rCredits balance (send excess to bank), 0=none)', 'numeric 11,2', -1), // -1 means no limit
     'share' => setupField('percentage of rebates/bonuses to donate to CGF', 'numeric 6,3', NULL),
@@ -643,8 +644,8 @@ function zipChange(z3s) {
       }
     );
 
-  var z3=$('#edit-postalcode').val().substr(0, 3);
-  if (z3s.indexOf(z3) >= 0) $('#edit-buysat').show();
+//  var z3=$('#edit-postalcode').val().substr(0, 3);
+//  if (z3s.indexOf(z3) >= 0) $('#edit-buysat').show();
   setPostalAddr();
 }
 EOF

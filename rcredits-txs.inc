@@ -13,7 +13,8 @@ use rCredits\Web as w;
  * Auxiliary functions for listing transactions
  */
 
-define('TX_TID_MAX', 10000); // zero-filler
+define('DT_MAX', 100000000000); // bigger than any date
+define('TX_TID_MAX', 100000000); // zero-filler
  
 /**
  * Get a formatted list of transaction records.
@@ -55,7 +56,6 @@ function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $opti
       foreach ($totPending as $key => $value) if ($totDone[$key] !== FALSE) $totDone[$key] += $value;
     } elseif ($states == STATES_PENDING) $totDone = $totPending;
     */
-    
     u\splice($totDone, 'state', 2); // don't download status or buttons
     u\splice($totDone, 'fromyou', 0, u\ray('frombank', 0));
     $totDone['date'] = '';
@@ -78,7 +78,6 @@ function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $opti
  */
 function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FALSE, $boxes = FALSE, $url0 = '') {
   global $rUrl;
-  static $xtid; u\setDft($xtid, 1);
   
   $mya = r\acct();
   $myid = $mya->id;
@@ -131,6 +130,7 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
   $button1 = ''; //(!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', '', $toMe, $byMe)) : '';
   $button2 = (((!$isExtra and !$banking) or $mya->cAdmin) and !@$data['undoneBy']) ? r\Web\button(' X ', "$url&do=no", txAct('no', '', $toMe, $byMe)) : '';
   $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$isExtra and !$banking) ? "<a href='$url&do=edit' title='Edit Transaction'><img src='$rUrl/images/icons/edit.png' width=20 height=20 border=0 /></a>" : '';
+  if (!$mya->can(B_MANAGE)) $button1 = $button2 = $button3 = '';
   $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
 //    $row = array($tid, strftime('%d-%b', $tx_created), @$tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $buttons, $tx_purpose, $reward, $net);
   $row = array($tid, strftime($csv ? '%Y-%m-%d' : '%d-%b', $tx_created), @$tx_name, $fromYou, $toYou, $state, $buttons, $tx_purpose, $reward, $net);
@@ -144,9 +144,8 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
   if ($csv) return u\csv($csvRow); // not STDOUT
 //  finishCsvRow($csv, array_combine($classes, $row), $tx, $tot);
   
-  if ($banking) $tid = substr($tid, 1); // remove "-", for sorting
-  $sort = substr(TX_TID_MAX + ($xtid = $tid ?: $xtid - 1), 1) . ($banking ? '5' : '0'); // 0 and 5 for determinism
-  array_unshift($row, $tx_created . $sort); // sort by date (fails around the year 2260), then by tid
+  $sort = (DT_MAX + $tx_created) . (TX_TID_MAX + $tid) . ($banking ? 5 : 0) . u\randomFloat(.0001, .9999); // make it a string so as not to lose precision
+  array_unshift($row, $sort); // sort by date (fails around the year 2260), then by tid
   
   return $row;
 }

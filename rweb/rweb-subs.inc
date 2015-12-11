@@ -79,7 +79,7 @@ EOF
   'ach warning' => t('If there are insufficient funds in your bank account when you request an exchange for rCredits (either explicitly, or automatically by choosing a "minimum"), your bank will charge you a $20-35 fee, just like for a bounced check. If this happens more than once, the rCredits system will <i>also</i> charge you $@fee, to cover <i>its</i> bank fee. So make sure you have enough in your bank account to cover your transfers.', ['@fee'=>R_DEPOSIT_RETURN_FEE]),
   // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
 //  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
-  'legalname desc' => t(' full legal name, properly capitalized, as on your government-issued ID.'),
+  'legalname desc' => t(' full legal name, properly capitalized (for tax reporting).'),
   'usename desc' => t('This should be the name you use in formal letters, at work, on your checks and credit cards, etc.'),
   'ssTitle' => t('Soc Sec #:'),
   'einTitle' => t('Federal ID:'),
@@ -101,7 +101,7 @@ EOF
   'no relations' => t('There are not yet any relations for this account.'),
   'no devices' => t('Surprisingly, this account has no related devices.'),
   'required field' => t('@field must not be blank.'),
-  'duplicate email' => t('"@who" is already using that email address. If you want to use the same email address for this account, add a tag to the local part, for example "@emailTagged".'), // used in user.module
+  'duplicate email' => t('"@who" is already using that email address. If you want to use the same email address for this account, add a plus sign (+) and tag to the local part, for example "@emailTagged".'), // used in user.module
   'forgot password' => t('If you just forgot the password to the other account, <@a>click here</a> to request a new password.'), // used in user.module
   'bad name' => t('That is not a plausible name.'),
   'bad phone' => t('That is not a proper phone number.'),
@@ -202,7 +202,7 @@ EOF
   'not payroll csv' => t('This is not a payroll CSV. It must say "Payroll Details" in cell A2.'),
   'bad payroll csv' => t('Incorrect payroll CSV format at line @line.'),
   'empty payroll' => t('There are no employees listed as having received an rCredits payroll deduction.'),
-  'bad payroll employee' => t('@employee is not listed as an employee on your Relations page. Click the Settings button, then click "Relations".'),
+  'bad payroll employee' => t('@employee is mispelled, does not have an active rCredits account, or is not listed as an employee on your Relations page. Click Settings, then Relations.'),
   'illegal amount change' => t('You cannot @action the original amount (@amount). <@a>Send an invoice</a> instead.'),
   'bad achmin' => t('The minimum transfer amount must be at least $@R_ACHMIN.'),
   'say why not' => t('You must say why you are denying the invoice.'),
@@ -290,7 +290,7 @@ EOF;
     if ($dft == $uid) $style = 'warning';
 ///    debug(compact('row','city','cityX','friends') + ['max/2-w'=>PHP_INT_MAX / 2 - $weight]);
     $res .= <<<EOF
-<button type="submit" name="i-$uid" class="btn btn-xs btn-$style ladda-button" data-style="contract">
+<button type="submit" name="i-$uid" class="btn btn-xs btn-$style ladda-button" data-style="zoom-out">
     <span class="ladda-label">$fullName</span></button>    
 EOF;
   }
@@ -497,13 +497,13 @@ function button($value, $href = '', $title = NULL, $style = 'success', $size = '
 
 function NEWitem($value, $title = '', $desc = '', $other = []) {return fld('item', $title, $desc, compact('value') + $other);}
 function item($markup, $title = '', $desc = '', $other = []) {return fld('item', $title, $desc, compact('markup') + $other);}
-function hidField($value = '', $other = []) {return fld('hidden', '', '', compact('value') + $other);}
+function hidFld($value = '', $other = []) {return fld('hidden', '', '', compact('value') + $other);}
 function NEWtextFld($label = '', $desc = '', $other = []) {return fld('text', $label, $desc, $other);}
 function textFld($label = '', $desc = '', $other = []) {return fld('textfield', $label, $desc, $other);}
 function passFld($label = '', $desc = '', $other = []) {return fld('password', $label, $desc, $other);}
 function areaFld($label = '', $help = '', $other = []) {return fld('textarea', $label, $help, $other);}
 function radiosFld($label, $help, $other, $options) {return fld('radios', $label, $help, $other, $options);}
-function selectFld($label, $help, $other, $options) {return fld('select', $label, $help, $other, $options);}
+function selectFld($label, $help, $other, $options = []) {return fld('select', $label, $help, $other, $options);}
 
 function boxFld($name, $label = '', $desc = '', $dft = NULL) {
   $fld = fld('checkbox', $desc, '', compact('name') + dft(@$dft));
@@ -514,7 +514,7 @@ function fieldSet($id, $flds, $label = '', $other = []) {return fld('fieldset', 
 /**
  * Return a form field for sharing percentage.
  */
-function shareField() {
+function shareFld() {
   $mya = r\acct();
   $sharePct = round(db\lookup('AVG(share)', 'r_gifts', 'share>=0'), 1);
   return textFld(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the rCredits community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes rCredits and handles administration of your rCredits community until the community can take over that responsibility.</p>', compact('sharePct')), required((is_null($mya->share) ? R_SHARE_DFT : (($mya->share + 0) ?: 0)) . '%'));
@@ -541,10 +541,11 @@ function badShare(&$share, $required = FALSE) {
  * @param mixed $dft: the default value (TRUE or FALSE) or an assoc of attributes
  * @param array $labels: labels for the two choices (defaults to [No, Yes])
  */
-function boolField($title = '', $help = '', $dft = NULL, $labels = NULL) {
+function boolFld($title = '', $help = '', $dft = NULL, $labels = NULL) {
   $class = ['yesno'];
   $inline = TRUE;
-  return radiosFld($title, $help, (is_array($dft) ? $dft : required(@$dft ?: 0)) + compact('class', 'inline'), @$labels ?: array(t('No'), t('Yes')));
+  $dft = is_null($dft) ? [] : (is_array($dft) ? $dft : dft((@$dft + 0) ?: 0));
+  return radiosFld($title, $help, $dft + compact('class', 'inline'), @$labels ?: array(t('No'), t('Yes')));
 }
 
 /*
@@ -555,7 +556,7 @@ function boolField($title = '', $help = '', $dft = NULL, $labels = NULL) {
  * @param array $choices: name for each checkbox
  * @param array $aliases: name to display for each checkbox (defaults to choice name)
  */
-function boxesField($title, $desc, $defaults, $choices, $aliases = NULL) {
+function boxesFld($title, $desc, $defaults, $choices, $aliases = NULL) {
   u\setDft($aliases, $choices);
   if (!@$defaults) $defaults = [];
   return fld('checkboxes', $title, $desc, compact('choices', 'defaults', 'aliases'), []);
@@ -569,7 +570,7 @@ function boxesField($title, $desc, $defaults, $choices, $aliases = NULL) {
  * @param string $bits: array (space or comma-delimited) of names of bits to include (without prefixes)
  * @param assoc $aliases: map of bit names to their display aliases (which may include formatting)
  */
-function bitsField($label, $bitRay, $prefix, $bits, $aliases = []) {
+function bitsFld($label, $bitRay, $prefix, $bits, $aliases = []) {
   $bits = u\ray($bits);
   if (!is_numeric(key($bits))) $bits = array_keys($bits); // ignore values (eg weights for risk arrays)
   $defaults = [];
@@ -579,7 +580,7 @@ function bitsField($label, $bitRay, $prefix, $bits, $aliases = []) {
     $bitAliases[$bit] = @$aliases ? strtr($bitName, $aliases) : $bitName;
     if (u\getBit($bitRay, $bit)) $defaults[] = $bitName;
   }
-  return boxesField($label, '', $defaults, $bitNames, $bitAliases);
+  return boxesFld($label, '', $defaults, $bitNames, $bitAliases);
 }
 
 /**
@@ -628,13 +629,12 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     \rweb_form_alter($form, $formSta, $formName);
     
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
-    js('js/misc.js', 'file', 'footer'); // used to be just for specialForms
     if (!$specialForm) {
       js('jQuery(".messages").dblclick(function() {jQuery(this).hide();});', 'inline', 'header');
-      if (@$form['country']) {
+/*      if (@$form['country']) {
         js('js/countries.js', 'file', 'header');
-        if ($mya and \form_get_errors()) js("print_country($mya->country, $mya->state);", 'inline', 'footer');
-      }
+//        if ($mya and \form_get_errors()) js("print_country($mya->country, $mya->state);", 'inline', 'footer');
+      }*/
       $tree = explode('/', 'home' . str_replace(DEV_ROOT, '', $_SERVER['REQUEST_URI']));
       foreach ($tree as $k) if (preg_match('/^[a-z\-]+(\?|$)/', $k)) $crumbs[ucwords($k)] = $kk = isset($kk) ? "$kk/$k" : '';
       \drupal_set_breadcrumb($crumbs);
@@ -681,7 +681,7 @@ function pickPassword() {
   $title = item(t('Choose a New Password'));
   $pass1 = passFld(REQ . t('New password:'), '', clas('password-field'));
   $pass2 = passFld(REQ . t('Confirm new password:'), '', clas('password-confirm'));
-  $strong = hidField(0, attrib(['id' => 'edit-strong']));
+  $strong = hidFld(0, attrib(['id' => 'edit-strong']));
   focusOn('pass1');
   js(BASE_URL . '/modules/user/user.js', 'file', 'footer');
   
@@ -822,18 +822,34 @@ function which($choices = '', $resultField = '', $info = '', $question = 'Which 
   $choice = selectFld('', '', attrib(compact('onchange') + array('size' => 12)), $pop_choices);
   $choice = render($choice);
   $legend = t('Which one?');
-  $popup = item(<<<EOF
-<div id="which" class="modal fade" role="dialog">
+  $popup = item(w\modal('which', $legend, $pop_question, $choice, t('Cancel')));
+  js('$("#which").modal("show");', 'inline', 'footer', 9999);
+  return compact('popup');
+}
+
+/**
+ * Create a modal dialog
+ * @param string $id: the dialog id
+ * @param string $legend: header
+ * @param string $prompt: what to say under the header
+ * @param string $body: what to put in the body of the dialog
+ * @param string $closer: what to show in the upper right corner, to close the dialog (default empty)
+ * call with <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#$id">Go</button>
+ * @return HTML for the modal dialog
+ */
+function modal($id, $legend, $prompt, $body, $closer = '') {
+  if ($closer == 'X') $closer = '&times;'; // a better X (normally with class "close" alone)
+  return <<<EOF
+<div id="$id" class="modal fade" role="dialog">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <!--button type="button" class="close" data-dismiss="modal">&times;</button-->
-        <button type="button" class="pull-right btn btn-xs btn-default" data-dismiss="modal">Cancel</button>
+        <button type="button" class="pull-right btn btn-xs btn-default" data-dismiss="modal">$closer</button>
         <h4 class="modal-title">$legend</h4>
-        <p>$pop_question</p>
+        <p>$prompt</p>
       </div>
       <div class="modal-body">
-        $choice
+        $body
       </div>
       <!--div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
@@ -842,11 +858,40 @@ function which($choices = '', $resultField = '', $info = '', $question = 'Which 
 
   </div>
 </div>
-EOF
-  );
-// <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#which">Open Modal</button>
-  js('$("#which").modal("show");', 'inline', 'footer', 9999);
-  return compact('popup');
+EOF;
+}
+
+/**
+ * Return a submenu page (list) for a given menu or named menu section.
+ * @param string $title: header for the menu
+ * @param mixed $menu: menu section name or assoc of menu items
+ * @return the menu as a Drupal form (not yet rendered)
+ */
+function subMenu($title, $menu) {
+  $title = item($title);
+  $list = item(subMenuHtml($menu), BARE);
+  return compact('title', 'list');
+}
+
+function subMenuHtml($menu) {
+  global $base_url;
+  if (!is_array($menu)) $menu = \rweb_menu($menu);
+  $list = '';
+  foreach ($menu as $k => $v) {
+    @list ($type, $head, $args, $perms, $func, $detail, $icon) = $v;
+    if ($type == 'call' or $head == 'zot' or !w\webAccess($perms)) continue;
+    if (@$detail) $detail = "<p class=\"list-group-item-text\">$detail</p>";
+    $text = <<<EOF
+    <h4 class="list-group-item-heading">
+      <span class="glyphicon glyphicon-$icon"></span> &nbsp;
+      $head
+    </h4>
+    $detail
+EOF;
+    $onclick = "jQuery(this).find('.glyphicon').css('color', 'darkblue');"; // glyph looks funny when ladda-spinning
+    $list .= spinLink("$base_url/$k", $text, '', 'list-group-item', '', compact('onclick'));
+  }
+  return $list;
 }
 
 function keep_values(&$form) {
@@ -978,7 +1023,7 @@ function remainder() {
 */
 
 function boxOpt($field, $opts, $sta) {
-///debug(compact('field','opts','sta'));
+///   debug(compact('field','opts','sta'));
   foreach ((@$sta['input'][$field] ?: []) as $key => $value) $result[] = $opts[$key]; // note that key==value
   return @$result ?: [];
 }
@@ -1064,9 +1109,10 @@ function emailOkay(&$email0, $uid = '') {
  * @return <email is a dup>
  */
 function emailDup($email0, $uid) {
+  global $base_url;
   $mail = u\cryptN($email0);
   if (!$who = db\lookup('fullName', 'users', 'mail=:mail and uid<>:uid', compact('mail', 'uid'))) return FALSE;
-  $a = "a href=settings/password/$email0";
+  $a = "a href=$base_url/settings/password/$email0";
   $emailTagged = str_replace('@', '+whatever@', $email0);
   if (!$uid) $forgot = '|forgot password';
   say('duplicate email' . @$forgot, compact(u\ray('emailTagged who a')), 'email');
@@ -1125,46 +1171,59 @@ function nameAndEmail($what, $fullName = '') {
 /**
  * Return the part of the form that is (mostly) common to formContact and formSignup
  * @param assoc $defaults: initial field values (defaults to current values) - see list at "$fields ="...
- * @param bool $old: <show contact fields for an established account (on Contact form)>
+ * @param acct $a: account for which to show existing contact field values (empty if new account)
  */
-function contactFields($defaults = [], $old) {
-  $country = $state = ''; // make sure these are not NULL
+function contactFields($defaults = [], $a = '') {
+//  $country = $state = ''; // make sure these are not NULL
   $fields = 'phone faxetc country postalCode address city state tenure owns postalAddr'; // had verifyBy
-  if ($old) {
-    $mya = r\acct();
-    extract($defaults ?: ($mya ? (array) $mya->account($fields) : []));
-  }
-//  $dupPhone = @$defaults['dupPhone'];
+  extract($defaults ?: ($a ? (array) $a->account($fields) : []));
+  $country = @$country + 0;
+  $state = @$state + 0;
+  //  $dupPhone = @$defaults['dupPhone'];
 
 //  js('http://ziplookup.googlecode.com/git/public/ziplookup/zipLookup.min.js', 'file', 'header');
-  js('js/zipLookup.js', 'file', 'header');
-  js("print_country(\"$country\", \"$state\");", 'inline', 'footer');
+  js('js/countries.js', 'file', 'footer');
+  js('js/zipLookup.js', 'file', 'footer');
+  $js = <<<EOF
+  print_country($country, $state);
+  $('#rcreditswebformsignup').submit(function() {
+    $('#edit-hidcountry').val($('#edit-country').val());
+    $('#edit-hidstate').val($('#edit-state').val());
+  });
+EOF;
+//  print_country("$country", "$state");
+//  if ("$state" == '') zipChange('010 013');
+//EOF;
+  js($js, 'inline', 'footer');
 
   $onchange = "print_state(this.options[this.selectedIndex].value,'');";
   $countryAttrib = attrib(compact('onchange'));
   
   $onchange = $onblur = 'setPostalAddr();';
   $addressAttrib = $cityAttrib = attrib(compact('onchange'));
+
   $stateAttrib = attrib(compact('onblur'));
   $onchange = "zipChange('010 013');";
   $zipAttrib = attrib(compact('onchange'));
+  $hidCountry = hidFld($country); // remember this when Drupal forgets it on error
+  $hidState = hidFld($state); // remember this when Drupal forgets it on error
   
   $phone = textFld(t('Phone:'), [t('Your phone number')], required(@$phone ? u\fmtPhone($phone): ''));
-//$mya ? '' : t('Your phone number. This should not be a number already used for another rCredits account &mdash; unless you have no other phone number.')
-//  $dupOk = hidField(0, attrib(u\ray('id', 'edit-dupOk')));
-//  $dupOk = boolField(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
-//  $verifyBy = $mya ? NULL : radiosFld(t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
+//$a ? '' : t('Your phone number. This should not be a number already used for another rCredits account &mdash; unless you have no other phone number.')
+//  $dupOk = hidFld(0, attrib(u\ray('id', 'edit-dupOk')));
+//  $dupOk = boolFld(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
+//  $verifyBy = $a ? NULL : radiosFld(t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$a->verifyBy ? (int) ($a->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
   $faxetc = @$faxetc ? textFld(t('Fax etc:'), [t('Other contact info'),t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.')], dft(@$faxetc)) : NULL;
-  $country = selectFld(t('Country:'), t(''), dft(@$country), $countryAttrib); // can't use required() here
+  $country = selectFld(t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
   $postalCode = textFld(t('Postal Code:'), [t('Physical location postal code'), t('Postal code for your <em>physical location</em>')], required(@$postalCode) + $zipAttrib);
   $address = textFld(t('Street Address:'), [t('Physical address'), t('Where is your building located (physical address)?')], required(@$address) + $addressAttrib);
   $city = textFld(t('City:'), [t('City where you live')], required(@$city) + $cityAttrib);
-  $state = selectFld(t('State:'), t(''), dft(@$state), $stateAttrib); // can't use required() here
-  $tenure = $old ? NULL : textFld(t('How long:'), [t('MONTHS at this address.')], required(@$tenure));
-  $owns = boolField('', '', $old ? dft((int) $mya->owns) : 0, [t('Rent'), t('Own')]);
+  $state = selectFld(t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
+  $tenure = $a ? NULL : textFld(t('How long:'), [t('MONTHS at this address.')], required(@$tenure));
+  $owns = boolFld('', '', $a ? $a->owns : 0, [t('Rent'), t('Own')]);
   $postalAddr = textFld(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
 
-  return compact(u\ray($fields));
+  return compact(u\ray($fields . ' hidCountry hidState'));
 }  
 
 /**
@@ -1251,7 +1310,7 @@ function amountField($name, $value, $id) {
 function toggle($field, $value, $id, $highlight = 'never') {
   $path = current_path();
   $name = $id = "$field-$id";
-  $zot = array($id => hidField($value, attrib(compact(u\ray('id name')))));
+  $zot = array($id => hidFld($value, attrib(compact(u\ray('id name')))));
   $input = \render($zot);
   $b1 = button(' - ', "toggle('$id');", t('Change to NO'), 'danger');
   $b2 = button(' + ', "toggle('$id');", t('Change to YES'), 'success');
@@ -1330,7 +1389,9 @@ function passwordOkay($a, $password, $passFieldName = 'pass') {
 function oneTimePass($name) {
 //  $pass = strtolower(u\nonce()); // not a hash, easy to remember and type
   $pass = u\code();
-/**/ if (isDEV) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
+/// oops! don't let people reset passwords on test server. if (!isPRODUCTION and !in_array($name, u\ray('cornerstore bobbossman cathycashier helgas curtcustomer susanshopper'))) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
+/**/ if (isDEV or (!isPRODUCTION and time() - db\lookup('created', 'users', 'name=:name', compact('name')) < HOUR_SECS)) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
+/// if (isDEV) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
   $expires = r\rTime() + HOUR_SECS * R_SIGNIN_HOURS;
 //  r\setCook('loginto', $name, $expires);
   return compact('pass', 'expires');
@@ -1425,12 +1486,14 @@ function scanIn($acct) {
 
 function hack($message, $info = []) {
   u\loga('hack', $_SERVER, $message);
+  say(t('That operation is not permitted.'), 'err');
   return r\signedIn() ? signout() : r\go('');
 }
 
 function signout() {
   @\session_destroy();
-  return r\go('signin');
+//  return r\go(isDEV ? 'http://rPromo/_sites?region=x' : 'http://rCredits.org/control.html?region=x');
+  return r\go(isDEV ? 'signin' : 'http://rCredits.org/control.html?region=x');
 }
 
 /*function changeAccount($quid = '') {
@@ -1496,9 +1559,10 @@ EOF;
 function dateRange($args, $url, $choices = [], $settings = '', $downloadable = TRUE) {
   extract(u\just('period starting ending states', $args));
   u\setDft($states, $settings);
+///  debug($states);
   if ($choices) {
     if ($states) foreach (u\ray($states) as $k) $stateDfts[] = $choices[$k];
-    $states2 = boxesField(t('Show:'), '', @$stateDfts, $choices);
+    $states2 = boxesFld(t('Show:'), '', @$stateDfts, $choices);
   }
   $showAdvJs = 'jQuery(\'#advanced\').show(); jQuery(\'#simple\').hide();';
   if ($states != $settings or (@$ending and $ending != strtotime('tomorrow') - 1)) js($showAdvJs, 'inline', 'footer'); // showing advanced selection
@@ -1507,8 +1571,8 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   $url = BASE_URL . "/$url/period=$period&starting=$starting&ending=$ending&states=$states";
 
   $showAdvanced2 = '<a id="showAdvanced" href="javascript:void(0);" onclick="' . $showAdvJs . '">advanced</a>';
-  $submitPeriod = submi(t('Show ')); // label has to be different from submitDates (see below)
-  if ($downloadable) $downloadPeriod = submi(t('Download '));
+  $submitPeriod = submi(t('Show')); // label has to be different from submitDates (see below)
+  if ($downloadable) $downloadPeriod = submi(t('Download'));
 ///  debug(render($submitPeriod));
 ///  debug(rendA(compact('submitPeriod')));
 ///  $actions = render($submitPeriod) . render(@$downloadPeriod) . render($showAdvanced);
@@ -1518,9 +1582,9 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   $simple = fieldSet('simple', compact('period', 'actions'), BARE);
   
   $res = compact(u\ray('url starting ending states')); // the easy parts of the result
-  $submitDates = submi(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
+  $submitDates = submi(t('show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
   $showSimple2 = '<a id="showSimple" href="javascript:void(0);" onclick="jQuery(\'#advanced\').hide(); jQuery(\'#simple\').show();">simpler</a>';
-  if ($downloadable) $downloadDates = submi(t(' Download'));
+  if ($downloadable) $downloadDates = submi(t('download')); // must be lowercase
   $actions = fieldSet('actionsAdvanced', compact('submitDates', 'downloadDates'), '', suffix($showSimple2));
   $starting = textFld(t('Starting:'), '', dft(u\fmtDate($starting)));
   $ending = textFld(t('Ending:'), '', dft(u\fmtDate($ending)));
@@ -1541,7 +1605,7 @@ function dateRangeRedirect($page, &$sta) {
   $sta['input']['states'] = @join(',', @$sta['input']['states'] ?: []);
   $url = "$page/" . http_build_query(u\just('states period starting ending', $sta['input']));
 
-  if (u\abbreviates('download', op($sta))) {
+  if (u\starts(op($sta), 'download')) {
     say('downloading');
     $url .= '&downloaded=1';    
   }
@@ -1807,36 +1871,6 @@ function menu($title, $type, $function, $args, $perms = '') {
 }
 
 /**
- * Return a submenu page (list) for a given menu or named menu section.
- * @param string $title: header for the menu
- * @param mixed $menu: menu section name or assoc of menu items
- * @return the menu as a Drupal form (not yet rendered)
- */
-function subMenu($title, $menu) {
-  include_once __DIR__ . '/rweb.module';
-  global $base_url;
-  
-  if (!is_array($menu)) $menu = \rweb_menu($menu);
-  $list = '';
-  foreach ($menu as $k => $v) {
-    @list ($type, $head, $args, $perms, $func, $detail, $icon) = $v;
-    if (@$detail) $detail = "<p class=\"list-group-item-text\">$detail</p>";
-    if (w\webAccess($perms) and $type != 'call' and $head != 'zot') $list .= <<<EOF
-  <a href="$base_url/$k" class="list-group-item">
-    <h4 class="list-group-item-heading">
-      <span class="glyphicon glyphicon-$icon"></span> &nbsp;
-      $head
-    </h4>
-    $detail
-  </a>
-EOF;
-  }
-  $title = item($title);
-  $list = item($list, BARE);
-  return compact('title', 'list');
-}
-
-/**
  * Return a help message for the page.
  */
 function helpText($page, $tag = '') {
@@ -2093,7 +2127,7 @@ function userMenuItem($router_path, $link_title) {
 /**
  * Consolidate or extract hidden fields.
  */
-function hidfields($ray) {return is_array($ray) ? hidField(serialize($ray)) : unserialize($ray);}
+function hidFlds($ray) {return is_array($ray) ? hidFld(serialize($ray)) : unserialize($ray);}
 
 /**
  * Send an invitation to the email and optionally report it.
@@ -2179,7 +2213,7 @@ function tt($message, $subs = []) {return u\tt($message, $subs);}
 //function block_def($info, $extra = []) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
 function blockView($subject, $content) {return compact(u\ray('subject content'));}
 
-function disabled($value) {return array('value' => $value, 'disabled' => TRUE);}
+function disabled($value = NULL, $disabled = TRUE) {return attrib(compact('disabled')) + (is_null($value) ? compact('value') : []);}
 function dft($default_value) {return compact('default_value');}
 function weight($weight) {return compact('weight');}
 function clas($class) {return ['class' => [$class]];}

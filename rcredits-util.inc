@@ -304,39 +304,53 @@ function forCash($for) {
  * @param int $n: the integer to represent
  * @param int $len: the length of the string to return
  *   <=0 means length >=-$len
- * @param int $base: the radix (defaults to 26). If base is between 27 and 36, digits 1-9 are used next.
+ * @param int $base: the radix (defaults to 26). If base is between 27 and 35, digits 1-9 are used next (no zero)
  */
 function n2a($n, $len, $base = 26) {
   $result = '';
   for ($i = 0; ($len > 0 ? ($i < $len) : ($n > 0 or $i < -$len)); $i++) {
     $digit = $n % $base;
-    $result = ($digit < 26 ? chr(ord("A") + $digit) : ($digit + 1 - 26)) . $result;
+    $result = ($digit < 26 ? chr(ord("A") + $digit)
+    : ($digit < 36 ? ($digit + ($base < 36 ? 1 : 0) - 26)
+    : chr(ord("a") + $digit)))
+    . $result;
     $n = (int) ($n / $base);
   }
   return $result;
 }
 
 /**
- * Return the numeric equivalent of the given alphabetic string. Zeros are understood as Os.
+ * Return the numeric equivalent of the given alphabetic string. 
+ * In base 27 to 35, zeros are understood as Os (so "1" comes after "Z").
  * @see n2a
  */
 function a2n($string, $base = 26) {
-  $string = str_replace('0', 'O', strtoupper($string));
+  if ($base < 36) $string = str_replace('0', 'O', strtoupper($string));
   $result = 0;
   for ($i = 0; $i < strlen($string); $i++) {
     $n = ord($string[$i]);
-    $result = $result * $base + $n - ($n >= ord("A") ?  ord("A") : ord("1") - 26);
+    $result = $result * $base + $n - 
+      ($n >= ord("a") ? ord("a") - 36
+       : ($n >= ord("A") ?  ord("A") 
+       : ord($base < 36 ? "1" : "0") - 26)
+      );
   }
   return $result;
 }
 
 /**
- * Return a radix-35 version of the number.
+ * Return a radix-35 version of the number (and vice versa) for invitation codes.
  * @param int $n: the number
  * @param int $len: length (or minimum length -- see n2a above)
  */
-function n2aa($n, $len) {return n2a($n, $len, 35);} // for invitation codes
-function aa2n($string) {return a2n($string, 35);}
+function n2ai($n, $len) {return n2a($n, $len, 35);}
+function ai2n($string) {return a2n($string, 35);}
+
+/**
+ * Return a radix-62 version of the number (and vice versa) for emailed URL codes.
+ */
+function n2ae($n, $len) {return n2a($n, $len, 62);}
+function ae2n($string) {return a2n($string, 62);}
 
 /**
  * Encode 3 hex digits as 2 legal URL characters: [A-Za-z0-9.-]
@@ -1001,7 +1015,7 @@ function badName($name) {
  * @return FALSE if date is okay, else an error index
  */
 function badDate(&$s, $min = '', $max = '') {
-  if (!$dt = u\s2t(@$s)) return 'bad date';
+  if (!$dt = u\s2t(str_replace('-', '/', @$s))) return 'bad date'; // slashes makes it mdy (else dmy assumed)
   if ($min !== '' and ($dt < $min or $dt > $max)) {
     $err = $dt < $min ? 'date too early' : 'date too late';
     if (!is_numeric(@substr($s, -3, 1))) $err .= '|year is 4 digits';
@@ -1353,7 +1367,7 @@ function isName($value) {return preg_match('/^[ \\x{00c0}-\\x{01ff}a-zA-Z0-9\,\.
 function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
 function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);} // deprecated
 function s2t($s) {return strtotime($s) ?: strtotime(str_replace('-', '/', $s));}
-function fmtDate($time = NULL) {return strftime('%d-%b-%Y', isset($time) ? $time : r\rTime());}
+function fmtDate($time = NULL, $numeric = FALSE) {return strftime($numeric ? '%m-%d-%Y' : '%d-%b-%Y', isset($time) ? $time : r\rTime());}
 function fmtTime($time = NULL) {return strtolower(strftime('%I:%M%p', isset($time) ? $time : r\rTime()));}
 function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}
 function digits(&$n) {return $n = preg_replace('/\D/', '', @$n);}
@@ -1386,3 +1400,4 @@ function rotateBits($b, $i) {return ($i = $i % strlen($b)) ? substr($b, $i) . su
 function xorBits($b1, $b2) {$res = ''; for ($i = 0; $i < strlen($b1); $i++) $res .= ($b1[$i] xor $b2[$i]) ? 1 : 0; return $res;}
 function a2b($s) {$b = ''; for ($i = 0; $i < strlen($s); $i++) $b .= lpad(decbin(ord($s[$i])), 8); return $b;}
 function badZip($z, $country = US_COUNTRY_ID) {return ($country == US_COUNTRY_ID and !preg_match('/^\d{5}(\-\d{4})?$/', $z)) ? 'bad zip' : FALSE;}
+function randomFloat($min = 0, $max = 1) {return $min + mt_rand() / mt_getrandmax() * ($max - $min);}
