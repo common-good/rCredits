@@ -26,6 +26,15 @@ angular.module('routes', [])
         templateUrl: 'templates/login.html'
       }
     }
+  })
+
+  .state('app.customer', {
+    url: '/customer',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/customer-menu.html'
+      }
+    }
   });
 
   // if none of the above states are matched, use this as the fallback

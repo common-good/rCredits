@@ -9,4 +9,19 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, $ionic
       template: "To set your preferences, please see the main menu."
     });
   }
+
+  $scope.scanCustomer = function(){
+    $ionicLoading.show();
+
+    UserService.identifyCustomer()
+    .then(function(str){
+      $state.go("app.customer");
+    })
+    .catch(function(errorMsg){
+      $scope.showAlert(errorMsg);
+    })
+    .finally(function(){
+      $ionicLoading.hide();
+    });
+  };
 });
