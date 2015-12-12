@@ -1,0 +1,28 @@
+// Application colors
+$darkgray:    rgb(48,48,48);
+$mediumgray:  rgb(160,160,160);
+$lightgray:   rgb(230,230,230);
+$white:       rgb(255,255,255);
+
+$darkgreen:   rgb(30,93,13);
+$mediumgreen: rgb(45,140,20);
+$lightgreen:  rgb(98,179,77);
+
+$darkblue:    rgb(25,77,116);
+$mediumblue:  rgb(41,126,191);
+$lightblue:   rgb(108,181,235);
+
+// Set ionic app colors
+
+$light:       $white !default;
+$stable:      $lightgray !default;
+$positive:    $lightgreen !default;
+$calm:        $lightblue !default;
+$balanced:    $mediumblue !default;
+$energized:   $mediumgreen !default;
+$assertive:   $darkgreen !default;
+$royal:       $darkblue !default;
+$dark:        $darkgray !default;
+
+
+
