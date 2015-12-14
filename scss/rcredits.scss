@@ -8,26 +8,6 @@
   max-height: 10em;
 }
 
-.rc-logo {
-  margin: 3em auto;
-  padding: 20px;
-  height: 10em;
-  width: 200px;
-  height: 200px;
-  background: $white;
-
-  img {
-    height: 100%;
-  }
-
-  border-radius: 100px;
-  border: 3px solid $darkblue;
-}
-
-body {
-  color: $darkgray;
-}
-
 h1, h2, h3, h4, h5, h6 {
   font-weight: bold;
 }
@@ -39,3 +19,8 @@ h1, h3, h5 {
 h2, h4, h6 {
   color: $darkgreen;
 }
+
+@import "logo";
+@import "button";
+@import "company_home";
+@import "customer_menu";

@@ -15,7 +15,8 @@ $royal:                           #886aea !default;
 $dark:                            #444 !default;
 */
 
-@import "colors";
+// Override ionic variables
+@import "variables";
 
 // The path for our ionicons font files, relative to the built CSS in www/css
 $ionicons-font-path: "../lib/ionic/fonts" !default;
@@ -25,6 +26,3 @@ $ionicons-font-path: "../lib/ionic/fonts" !default;
 
 // Application Styles
 @import "rcredits";
-@import "company_home";
-@import "customer_menu";
-@import "button";
