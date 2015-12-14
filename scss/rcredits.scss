@@ -1,3 +1,7 @@
+body {
+  background: $lightgray !important;
+}
+
 .rc {
   text-align: center;
   margin: 1.5em;
@@ -14,6 +18,7 @@
   height: 10em;
   width: 200px;
   height: 200px;
+  background: $white;
 
   img {
     height: 100%;
