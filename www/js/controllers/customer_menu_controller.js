@@ -5,7 +5,7 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, $ioni
   $scope.showBalance = function() {
     if ($scope.customer) {
       if ($scope.customer.balanceSecret) {
-        $scope.showAlert("This customer's balance is secret");
+        $scope.showAlert("This customer's balance is secret.");
       } else {
         $ionicPopup.alert({
           title: "Balance for",

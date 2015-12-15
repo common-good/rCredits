@@ -15,7 +15,7 @@ app.service('UserService', function ($q) {
   // or null if there is no current customer.
   UserService.prototype.currentCustomer = function() {
     return {name: "Phillip Blivers", place: "Ann Arbor, MI", balance: 110.23,
-      balanceSecret: true, rewards: 8.72, photo: "img/sample-customer.png", firstPurchase: true};
+      balanceSecret: false, rewards: 8.72, photo: "img/sample-customer.png", firstPurchase: true};
   };
 
   // Logs user in given the scanned info from an rCard.
