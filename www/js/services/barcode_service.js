@@ -3,7 +3,6 @@
 
   var WebScanner = function () {
     this.scan = function (success, fail) {
-      //success('89317593q4oaosjo182yo4wi');
       success(WebScanner.DEFAULT_WEB_SCAN);
     }
   };
