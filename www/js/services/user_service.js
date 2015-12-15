@@ -8,14 +8,14 @@ app.service('UserService', function ($q) {
   // Gets the current user. Returns the user object,
   // or null if there is no current user.
   UserService.prototype.currentUser = function() {
-    return {name: "Andrea Green", company: "Tasty Soaps, Inc."}
+    return {name: "Andrea Green", company: "Tasty Soaps, Inc.", firstLogin: true};
   };
 
   // Gets the current customer. Returns an object
   // or null if there is no current customer.
   UserService.prototype.currentCustomer = function() {
     return {name: "Phillip Blivers", place: "Ann Arbor, MI", balance: 110.23,
-      balanceSecret: true, rewards: 8.72, photo: "img/sample-customer.png"}
+      balanceSecret: true, rewards: 8.72, photo: "img/sample-customer.png", firstPurchase: true};
   };
 
   // Logs user in given the scanned info from an rCard.
@@ -30,12 +30,7 @@ app.service('UserService', function ($q) {
     return $q(function(resolve, reject) {
       setTimeout(function() {
         if (SUCCEED) {
-          if (window.localStorage.getItem('notfirstlogin')) {
-            resolve();
-          } else {
-            resolve({firstLogin: true});
-          }
-          window.localStorage.setItem('notfirstlogin', true);
+          resolve();
         } else {
           reject('Login failed.');
         }
@@ -56,11 +51,7 @@ app.service('UserService', function ($q) {
     return $q(function(resolve, reject) {
       setTimeout(function() {
         if (SUCCEED) {
-          resolve(
-            {name: "Phillip Blivers", place: "Ann Arbor, MI", balance: 110.23,
-              balanceSecret: false, rewards: 8.72, photo: "img/sample-customer.png"},
-            {firstPurchase: true}
-          );
+          resolve();
         } else {
           reject('User lookup failed.');
         }
