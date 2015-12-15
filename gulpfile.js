@@ -1,11 +1,12 @@
-var gulp = require('gulp');
-var gutil = require('gulp-util');
-var bower = require('bower');
-var concat = require('gulp-concat');
-var sass = require('gulp-sass');
-var minifyCss = require('gulp-minify-css');
-var rename = require('gulp-rename');
-var sh = require('shelljs');
+var gulp = require ('gulp');
+var gutil = require ('gulp-util');
+var bower = require ('bower');
+var concat = require ('gulp-concat');
+var sass = require ('gulp-sass');
+var minifyCss = require ('gulp-minify-css');
+var rename = require ('gulp-rename');
+var sh = require ('shelljs');
+var preprocess = require ('gulp-preprocess');
 
 var paths = {
   sass: ['./scss/**/*.scss']
@@ -15,13 +16,13 @@ gulp.task('default', ['sass']);
 
 gulp.task('sass', function(done) {
   gulp.src('./scss/ionic.app.scss')
-    .pipe(sass())
+    .pipe(sass ())
     .on('error', sass.logError)
     .pipe(gulp.dest('./www/css/'))
-    .pipe(minifyCss({
+    .pipe(minifyCss ({
       keepSpecialComments: 0
     }))
-    .pipe(rename({ extname: '.min.css' }))
+    .pipe(rename ({extname: '.min.css'}))
     .pipe(gulp.dest('./www/css/'))
     .on('end', done);
 });
@@ -47,5 +48,15 @@ gulp.task('git-check', function(done) {
     );
     process.exit(1);
   }
-  done();
+  done ();
+});
+
+gulp.task('config', function() {
+  var build_target = process.env.BUILD_TARGET;
+  if (!build_target) {
+    build_target = 'development';
+  }
+  gulp.src(['config.js'])
+    .pipe(preprocess ({context: {BUILD_TARGET: build_target}}))
+    .pipe(gulp.dest('./www/js/'))
 });

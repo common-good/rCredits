@@ -3,17 +3,28 @@
   "version": "1.1.1",
   "description": "rCreditsMobile: An Ionic project",
   "dependencies": {
+    "angular": "^1.4.8",
     "gulp": "^3.5.6",
-    "gulp-sass": "^2.0.4",
     "gulp-concat": "^2.2.0",
     "gulp-minify-css": "^0.3.0",
-    "gulp-rename": "^1.2.0"
+    "gulp-rename": "^1.2.0",
+    "gulp-sass": "^2.0.4"
   },
   "devDependencies": {
+    "angular-mocks": "^1.4.8",
     "bower": "^1.3.3",
     "gulp": "^3.9.0",
+    "gulp-preprocess": "^2.0.0",
     "gulp-sass": "^2.1.0",
     "gulp-util": "^2.2.14",
+    "jasmine-core": "^2.4.1",
+    "karma": "^0.13.15",
+    "karma-chrome-launcher": "^0.2.2",
+    "karma-html-reporter": "^0.2.7",
+    "karma-jasmine": "^0.3.6",
+    "karma-junit-reporter": "^0.3.8",
+    "karma-mocha-reporter": "^1.1.3",
+    "karma-ng-html2js-preprocessor": "^0.2.0",
     "shelljs": "^0.3.0"
   },
   "cordovaPlugins": [
@@ -22,7 +33,8 @@
     "cordova-plugin-whitelist",
     "cordova-plugin-splashscreen",
     "cordova-plugin-statusbar",
-    "ionic-plugin-keyboard"
+    "ionic-plugin-keyboard",
+    "phonegap-plugin-barcodescanner"
   ],
   "cordovaPlatforms": [
     "ios",
