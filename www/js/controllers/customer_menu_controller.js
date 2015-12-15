@@ -19,11 +19,9 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, $ioni
 
   $scope.hideLoading = function() {
     $ionicLoading.hide();
-    // console.log("Loading icon hidden");
   };
 
-  $scope.$on("$destroy", function(){
+  $scope.$on("$destroy", function() {
     $scope.customer = null;
-    // console.log("Customer Menu Controller scope destroyed");
   });
 });

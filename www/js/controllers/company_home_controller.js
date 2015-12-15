@@ -1,34 +1,34 @@
 app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService, UserService, $ionicHistory) {
 
-  var currentUser = UserService.currentUser();
-  $scope.currentUser = currentUser;
+  $scope.currentUser = UserService.currentUser();
 
-  if (!window.localStorage.getItem('notfirstlogin')) {
+  if ($scope.currentUser.firstLogin) {
     $ionicPopup.alert({
-      title: "This device is now associated with " + currentUser.company + ".",
+      title: "This device is now associated with " + $scope.currentUser.company + ".",
       template: "To set your preferences, please see the main menu."
     });
   }
 
-  $scope.scanCustomer = function(){
+  $scope.scanCustomer = function() {
     $ionicLoading.show();
 
     BarcodeService.scan()
-    .then(function(id){
+    .then(function(id) {
       UserService.identifyCustomer(id)
-      .then(function(){
-        customer = UserService.currentCustomer();
-        $scope.customer = customer;
+      .then(function() {
+        $scope.customer = UserService.currentCustomer();
 
-        if (customer.firstPurchase) {
+        if ($scope.customer.firstPurchase) {
           $ionicPopup.confirm({
             templateUrl: "templates/first-purchase.html",
             scope: $scope,
             okText: "Confirm"
           })
-          .then(function(confirmed){
+          .then(function(confirmed) {
             if (confirmed) {
+              $ionicLoading.show();
               $state.go("app.customer");
+              $ionicLoading.hide();
             }
           });
           $ionicLoading.hide();
@@ -36,12 +36,12 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, $ionic
           $state.go("app.customer");
         };
       })
-      .catch(function(errorMsg){
+      .catch(function(errorMsg) {
         $scope.showAlert(errorMsg);
         $ionicLoading.hide();
       });
     })
-    .catch(function(errorMsg){
+    .catch(function(errorMsg) {
       $scope.showAlert(errorMsg);
       $ionicLoading.hide();
     });
