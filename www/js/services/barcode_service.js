@@ -1,26 +1,65 @@
-app.service('BarcodeService', function ($q) {
+(function (app) {
+  'use strict';
 
-  var BarcodeService = function () {
-    self = this;
-    this.user = null;
+  var WebScanner = function () {
+    this.scan = function (success, fail) {
+      //success('89317593q4oaosjo182yo4wi');
+      success(WebScanner.DEFAULT_WEB_SCAN);
+    }
   };
+  WebScanner.DEFAULT_WEB_SCAN = {text: "HTTP://NEW.RC4.ME/AAK.NyCBBlUF1qWNZ2k", format: "QR_CODE", cancelled: false};
 
-  // Fetches a barcode.
-  // Returns a promise that resolves with the scanned data when scanning is complete.
-  BarcodeService.prototype.scan = function() {
-    // Simulates scanning. Resolves the promise if SUCCEED is true, rejects with an error if false.
-    var SUCCEED = true;
+  app.service('BarcodeService', function ($q, $ionicPlatform) {
 
-    return $q(function(resolve, reject) {
-      setTimeout(function() {
-        if (SUCCEED) {
-          resolve('89317593q4oaosjo182yo4wi');
-        } else {
-          reject('Scanning failed for some reason.');
-        }
-      }, 1000);
-    });
-  };
+    var self;
+    var BarcodeService = function () {
+      self = this;
+      this.configure_();
+    };
 
-  return new BarcodeService();
-});
+    BarcodeService.WebScanner = WebScanner;
+
+    BarcodeService.prototype.configure_ = function () {
+      if (ionic.Platform.isWebView()) {
+        $ionicPlatform.ready(function () {
+          self.scanner = cordova.plugins.barcodeScanner;
+        });
+      } else {
+        this.scanner = new WebScanner();
+      }
+    };
+
+    // Fetches a barcode.
+    // Returns a promise that resolves with the scanned data when scanning is complete.
+    BarcodeService.prototype.scan = function () {
+      return $q(function (resolve, reject) {
+        self.scanner.scan(function (scanResult) {
+            self.scanSuccess_(resolve, reject, new BarcodeResult(scanResult));
+          },
+          _.partial(self.scanFail_, reject).bind(self));
+      });
+    };
+
+    BarcodeService.prototype.scanSuccess_ = function (sucessFn, rejectFn, barCodeResult) {
+      console.log("Scan result: ", barCodeResult);
+
+      if (barCodeResult.wasCancelled()) {
+        rejectFn('Scan was Cancelled');
+      }
+
+      if (!barCodeResult.isQRCode()) {
+        rejectFn('Scan must be a QR CODE');
+      } else {
+        sucessFn(barCodeResult.text);
+      }
+    };
+
+    BarcodeService.prototype.scanFail_ = function (rejectFn, scanError) {
+      console.error("Scan failed: ", scanError);
+      rejectFn(scanError);
+    };
+
+    return new BarcodeService();
+  });
+
+})(app);
