@@ -14,10 +14,29 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, $ionic
     $ionicLoading.show();
 
     BarcodeService.scan()
-    .then(function(str){
-      UserService.identifyCustomer()
-      .then(function(str){
-        $state.go("app.customer");
+    .then(function(id){
+      UserService.identifyCustomer(id)
+      .then(function(){
+        // UserService.currentCustomer()
+        // .then(function(customer){
+          customer = UserService.currentCustomer();
+          $scope.customer = customer;
+
+          if (customer.firstPurchase) {
+            $ionicPopup.alert({
+              templateUrl: "templates/first-purchase.html",
+              scope: $scope
+            });
+            $ionicLoading.hide();
+          } else {
+            $state.go("app.customer");
+          };
+
+        // })
+        // .catch(function(errorMsg){
+        //   $scope.showAlert(errorMsg);
+        //   $ionicLoading.hide();
+        // });
       })
       .catch(function(errorMsg){
         $scope.showAlert(errorMsg);
