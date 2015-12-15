@@ -33,8 +33,7 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
               $ionicLoading.hide();
             } else {
               $state.go("app.customer");
-            }
-            ;
+            };
           })
           .catch(function(errorMsg) {
             NotificationService.showAlert(errorMsg);

@@ -1,8 +1,8 @@
 <div>
-  <h3>First Purchase</h3>
-
   <p>Please verify {{customer.name}}'s photo id matches the image displayed below.</p>
 
-  <img ng-src="{{customer.photo}}" class="customer-img small-img" sf-load="hideLoading()" />
-  <p class="customer-name">{{customer.name}}</p>
+  <div class="centered-box">
+    <img ng-src="{{customer.photo}}" class="customer-img small-img" sf-load="hideLoading()" />
+    <p class="customer-name">{{customer.name}}</p>
+  </div>
 </div>
