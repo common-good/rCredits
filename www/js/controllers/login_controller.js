@@ -2,13 +2,13 @@ app.controller('LoginCtrl', function($scope, $state, $ionicLoading, $ionicPopup,
 
   // Scanner Login
 
-  $scope.openScanner = function(){
+  $scope.openScanner = function() {
     $ionicLoading.show();
 
     BarcodeService.scan()
-    .then(function(str){
+    .then(function(str) {
       UserService.loginWithRCard(str)
-      .then(function(){
+      .then(function() {
         $ionicHistory.nextViewOptions({
           disableBack: true
         });
@@ -18,11 +18,11 @@ app.controller('LoginCtrl', function($scope, $state, $ionicLoading, $ionicPopup,
       .catch(function(errorMsg){
         $scope.showAlert(errorMsg);
       })
-      .finally(function(){
+      .finally(function() {
         $ionicLoading.hide();
       });
     })
-    .catch(function(errorMsg){
+    .catch(function(errorMsg) {
       $scope.showAlert(errorMsg);
       $ionicLoading.hide();
     });

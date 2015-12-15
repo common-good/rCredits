@@ -2,28 +2,28 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, $ionicPopup, 
 
   // Logout
 
-  $scope.logout = function(){
+  $scope.logout = function() {
     $ionicLoading.show();
 
     UserService.logout()
-    .then(function(str){
+    .then(function(str) {
       $scope.redirectToLogin();
     })
-    .catch(function(errorMsg){
+    .catch(function(errorMsg) {
       $scope.showAlert(errorMsg);
     })
-    .finally(function(){
+    .finally(function() {
       $ionicLoading.hide();
     });
   };
 
   // Redirects
 
-  $scope.redirectToLogin = function(){
+  $scope.redirectToLogin = function() {
     $state.go("app.login");
   };
 
-  $scope.redirectHome = function(){
+  $scope.redirectHome = function() {
     $state.go("app.home");
   };
 
