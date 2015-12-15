@@ -20,3 +20,11 @@ npm install
 
 ## Run
 `ionic serve`
+
+### Run Unit tests
+`karma start`
+
+## Configuration
+
+1. Edit config.js
+2. Run BUILD_TARGET=development gulp config
