@@ -14,7 +14,8 @@ angular.module('routes', [])
     url: '/home',
     views: {
       'menuContent': {
-        templateUrl: 'templates/home.html'
+        templateUrl: 'templates/home.html',
+        controller: "CompanyHomeCtrl"
       }
     }
   })
@@ -23,7 +24,8 @@ angular.module('routes', [])
     url: '/login',
     views: {
       'menuContent': {
-        templateUrl: 'templates/login.html'
+        templateUrl: 'templates/login.html',
+        controller: "LoginCtrl"
       }
     }
   })
@@ -32,7 +34,8 @@ angular.module('routes', [])
     url: '/customer',
     views: {
       'menuContent': {
-        templateUrl: 'templates/customer-menu.html'
+        templateUrl: 'templates/customer-menu.html',
+        controller: "CustomerMenuCtrl"
       }
     }
   })
@@ -51,10 +54,10 @@ angular.module('routes', [])
     url: '/keypad',
     views: {
       'menuContent': {
-        templateUrl: 'templates/keypad.html'
+        templateUrl: 'templates/keypad.html',
+        controller: "KeyPadCtrl"
       }
-    },
-    controller: "KeyPadCtrl"
+    }
   });
 
   // if none of the above states are matched, use this as the fallback
