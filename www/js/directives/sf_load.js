@@ -1,3 +1,5 @@
+// Adds an sf-load attribute that runs the given code on the load event.
+// Useful for images.
 app.directive('sfLoad', ['$parse', function ($parse) {
   return {
     restrict: 'A',
