@@ -4,5 +4,6 @@ rCredits = {
   // @endif
 
 
-  version: 3.0
+  version: '3.0',
+  build: 100
 };
