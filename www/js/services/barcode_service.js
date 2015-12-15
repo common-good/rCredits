@@ -6,6 +6,8 @@
       success(WebScanner.DEFAULT_WEB_SCAN);
     }
   };
+
+  // This the read from the 'Member' Curt Customer
   WebScanner.DEFAULT_WEB_SCAN = {text: "HTTP://NEW.RC4.ME/AAK.NyCBBlUF1qWNZ2k", format: "QR_CODE", cancelled: false};
 
   app.service('BarcodeService', function ($q, $ionicPlatform) {
