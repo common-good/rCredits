@@ -17,26 +17,24 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, $ionic
     .then(function(id){
       UserService.identifyCustomer(id)
       .then(function(){
-        // UserService.currentCustomer()
-        // .then(function(customer){
-          customer = UserService.currentCustomer();
-          $scope.customer = customer;
+        customer = UserService.currentCustomer();
+        $scope.customer = customer;
 
-          if (customer.firstPurchase) {
-            $ionicPopup.alert({
-              templateUrl: "templates/first-purchase.html",
-              scope: $scope
-            });
-            $ionicLoading.hide();
-          } else {
-            $state.go("app.customer");
-          };
-
-        // })
-        // .catch(function(errorMsg){
-        //   $scope.showAlert(errorMsg);
-        //   $ionicLoading.hide();
-        // });
+        if (customer.firstPurchase) {
+          $ionicPopup.confirm({
+            templateUrl: "templates/first-purchase.html",
+            scope: $scope,
+            okText: "Confirm"
+          })
+          .then(function(confirmed){
+            if (confirmed) {
+              $state.go("app.customer");
+            }
+          });
+          $ionicLoading.hide();
+        } else {
+          $state.go("app.customer");
+        };
       })
       .catch(function(errorMsg){
         $scope.showAlert(errorMsg);
