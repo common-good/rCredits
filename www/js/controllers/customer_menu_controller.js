@@ -7,8 +7,7 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
       NotificationService.showAlert('balanceIsSecret');
     } else {
       NotificationService.alert({
-        title: "Balance for",
-        subTitle: $scope.customer.name,
+        title: "Customer Balance",
         templateUrl: "templates/customer-balance.html",
         scope: $scope
       });
