@@ -6,7 +6,7 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, $ionicPopup, 
     $ionicLoading.show();
 
     UserService.logout()
-    .then(function(str) {
+    .then(function() {
       $scope.redirectToLogin();
     })
     .catch(function(errorMsg) {

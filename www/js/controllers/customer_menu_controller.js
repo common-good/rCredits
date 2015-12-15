@@ -3,17 +3,15 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, $ioni
   $scope.customer = UserService.currentCustomer();
 
   $scope.showBalance = function() {
-    if ($scope.customer) {
-      if ($scope.customer.balanceSecret) {
-        $scope.showAlert("This customer's balance is secret.");
-      } else {
-        $ionicPopup.alert({
-          title: "Balance for",
-          subTitle: $scope.customer.name,
-          templateUrl: "templates/customer-balance.html",
-          scope: $scope
-        });
-      }
+    if ($scope.customer.balanceSecret) {
+      $scope.showAlert("This customer's balance is secret.");
+    } else {
+      $ionicPopup.alert({
+        title: "Balance for",
+        subTitle: $scope.customer.name,
+        templateUrl: "templates/customer-balance.html",
+        scope: $scope
+      });
     }
   };
 

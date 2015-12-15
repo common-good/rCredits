@@ -28,7 +28,6 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, $ionic
             if (confirmed) {
               $ionicLoading.show();
               $state.go("app.customer");
-              $ionicLoading.hide();
             }
           });
           $ionicLoading.hide();
