@@ -45,6 +45,16 @@ angular.module('routes', [])
         templateUrl: 'templates/template.html'
       }
     }
+  })
+
+  .state('app.keypad', {
+    url: '/keypad',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/keypad.html'
+      }
+    },
+    controller: "KeyPadCtrl"
   });
 
   // if none of the above states are matched, use this as the fallback
