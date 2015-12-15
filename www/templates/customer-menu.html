@@ -1,0 +1,21 @@
+<ion-view ng-controller="CustomerMenuCtrl" class="customer-menu">
+  <ion-nav-buttons side="secondary">
+    <button class="button" ng-click="showBalance()">
+      Balance
+    </button>
+  </ion-nav-buttons>
+
+  <ion-content>
+    <div class="rc">
+      <img ng-src="{{customer.photo}}" class="customer-img" sf-load="hideLoading()" />
+      <p class="customer-name">{{customer.name}}</p>
+
+      <button class="button button-block">Charge</button>
+
+      <div class="button-bar">
+        <a class="button">Refund</a>
+        <a class="button">Exchange</a>
+      </div>
+    </div>
+  </ion-content>
+</ion-view>

@@ -1,9 +1,17 @@
-<ion-view>
+<ion-view ng-controller="CompanyHomeCtrl" class="company-home">
   <ion-content>
     <div class="rc">
-      <div ng-include="'templates/logo.html'"></div>
 
-      <button class="button button-block button-positive">
+      <h1 class="company">{{currentUser.company}}</h1>
+
+      <p class="user">
+        Signed in as:<br>
+        {{currentUser.name}}
+      </p>
+
+      <div class="rc-logo" ng-include="'templates/logo.html'"></div>
+
+      <button class="button button-block button-positive scan-customer" ng-click="scanCustomer()">
         Scan rCard
       </button>
     </div>

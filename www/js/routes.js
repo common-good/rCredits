@@ -7,7 +7,7 @@ angular.module('routes', [])
     url: '/app',
     abstract: true,
     templateUrl: 'templates/menu.html',
-    controller: 'StarterAppCtrl'
+    controller: 'MenuCtrl'
   })
 
   .state('app.home', {
@@ -24,6 +24,15 @@ angular.module('routes', [])
     views: {
       'menuContent': {
         templateUrl: 'templates/login.html'
+      }
+    }
+  })
+
+  .state('app.customer', {
+    url: '/customer',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/customer-menu.html'
       }
     }
   });
