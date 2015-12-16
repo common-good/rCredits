@@ -4,7 +4,7 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
 
   $scope.showBalance = function() {
     if ($scope.customer.balanceSecret) {
-      NotificationService.showAlert("This customer's balance is secret.");
+      NotificationService.showAlert('balanceIsSecret');
     } else {
       NotificationService.alert({
         title: "Balance for",
