@@ -32,7 +32,7 @@ app.service('UserService', function ($q) {
         if (SUCCEED) {
           resolve();
         } else {
-          reject('Login failed.');
+          reject("loginFailure");
         }
       }, 1000);
     });
@@ -53,7 +53,7 @@ app.service('UserService', function ($q) {
         if (SUCCEED) {
           resolve();
         } else {
-          reject('User lookup failed.');
+          reject("userLookupFailure");
         }
       }, 1000);
     });
@@ -70,7 +70,7 @@ app.service('UserService', function ($q) {
         if (SUCCEED) {
           resolve();
         } else {
-          reject('Logout failed.');
+          reject("logoutFailure");
         }
       }, 1000);
     });
