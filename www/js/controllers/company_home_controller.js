@@ -5,8 +5,7 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
   if ($scope.currentUser.firstLogin) {
     NotificationService.showAlert({
       scope: $scope,
-      title: "deviceAssociated", // Need to pass scope into this
-      template: "toSetPreferences"
+      templateUrl: "templates/company-association.html"
     });
   }
 

@@ -5,7 +5,7 @@
   "colon": ":",
   "confirm": "Confirm",
   "customerBalance": "Customer Balance",
-  "deviceAssociated": "This device is now associated with {{currentUser.company}}",
+  "deviceAssociated": "This device is now associated with {{company}}",
   "exchange": "Exchange",
   "firstPurchase": "First Purchase",
   "home": "Home",

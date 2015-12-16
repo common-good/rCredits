@@ -7,9 +7,9 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
       NotificationService.showAlert('balanceIsSecret');
     } else {
       NotificationService.showAlert({
+        scope: $scope,
         title: "customerBalance",
-        templateUrl: "templates/customer-balance.html",
-        scope: $scope
+        templateUrl: "templates/customer-balance.html"
       });
     }
   };
