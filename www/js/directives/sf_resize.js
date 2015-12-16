@@ -10,7 +10,7 @@ app.directive('sfResize', function ($window) {
 
     // Set on load
     scope.$watch(scope.getWinHeight, function (newValue, oldValue) {
-      setNavHeight(scope.getWinHeight() - 44);
+      element.css('height', (scope.getWinHeight() - 44) + 'px');
     }, true);
 
     // Set on resize
