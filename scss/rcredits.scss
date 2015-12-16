@@ -26,33 +26,4 @@ h2, h4, h6 {
   position: relative;
 }
 
-.section-1 {
-  height: 20%;
-}
-
-.section-2 {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 80%;
-}
-
-.tabulator {
-  .button {
-    min-height: 0;
-    padding: 0;
-    margin: 0;
-  }
-
-  .calc-row {
-    height: 20%;
-    min-height: 0;
-    padding: 0;
-    margin: 0;
-
-    .button {
-      height: 100%;
-    }
-  }
-}
+@import "keypad";
