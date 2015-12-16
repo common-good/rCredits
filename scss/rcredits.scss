@@ -36,10 +36,12 @@ h2, h4, h6 {
 
 .section-2 {
   height: auto;
-  // position: absolute;
-  // bottom: 10px;
 }
 
-.keys {
-
+.tabulator {
+  .button {
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+  }
 }
