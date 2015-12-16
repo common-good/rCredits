@@ -18,6 +18,8 @@
   "rewards": "Rewards",
   "rCard": "rCard",
   "scan": "Scan",
+  "scanCancelled": "Scan was Cancelled",
+  "scanQRCode": "Scan must be a QR CODE",
   "signInAs": "Signed in as",
   "signOut": "Sign Out",
   "toSignIn": "to sign in",

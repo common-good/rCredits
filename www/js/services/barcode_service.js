@@ -45,11 +45,11 @@
       console.log("Scan result: ", barCodeResult);
 
       if (barCodeResult.wasCancelled()) {
-        rejectFn ('Scan was Cancelled');
+        rejectFn ('scanCancelled');
       }
 
       if (!barCodeResult.isQRCode()) {
-        rejectFn ('Scan must be a QR CODE');
+        rejectFn ('scanQRCode');
       } else {
         sucessFn (barCodeResult.text);
       }
