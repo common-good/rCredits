@@ -21,3 +21,25 @@ h2, h4, h6 {
 @import "general";
 @import "company_home";
 @import "customer_menu";
+
+.tabulator {
+  position: relative;
+}
+
+.section-1 {
+  height: 20%;
+}
+
+.section-3 {
+  height: 10%;
+}
+
+.section-2 {
+  height: auto;
+  // position: absolute;
+  // bottom: 10px;
+}
+
+.keys {
+
+}
