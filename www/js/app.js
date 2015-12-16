@@ -1,19 +1,33 @@
 // rCredits Register
 
-var app = angular.module('rcredits', ['ionic', 'routes'])
+var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate'])
 
-.run(function($ionicPlatform) {
-  $ionicPlatform.ready(function() {
-    // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
-    // for form inputs)
-    if (window.cordova && window.cordova.plugins.Keyboard) {
-      cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
-      cordova.plugins.Keyboard.disableScroll(true);
+  .config(['$translateProvider',
+    function($translateProvider) {
 
-    }
-    if (window.StatusBar) {
-      // org.apache.cordova.statusbar required
-      StatusBar.styleDefault();
-    }
+      $translateProvider
+        .useMissingTranslationHandlerLog()
+        .useStaticFilesLoader({
+          prefix: 'js/languages/definitions/',
+          suffix: '.json'
+        })
+        .preferredLanguage(Language.DEFAULT_LANGUAGE)
+        .fallbackLanguage(Language.DEFAULT_LANGUAGE)
+        .useSanitizeValueStrategy('sanitizeParameters');
+    }])
+
+  .run(function($ionicPlatform) {
+    $ionicPlatform.ready(function() {
+      // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
+      // for form inputs)
+      if (window.cordova && window.cordova.plugins.Keyboard) {
+        cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
+        cordova.plugins.Keyboard.disableScroll(true);
+
+      }
+      if (window.StatusBar) {
+        // org.apache.cordova.statusbar required
+        StatusBar.styleDefault();
+      }
+    });
   });
-});
