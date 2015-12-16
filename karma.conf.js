@@ -16,6 +16,9 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
       'www/lib/ionic/js/ionic.bundle.js',
+      'www/lib/angular-translate/angular-translate.min.js',
+      'www/lib/angular-translate-loader-static-files/angular-translate-loader-static-files.min.js',
+      'www/lib/angular-translate-handler-log/angular-translate-handler-log.min.js',
       'www/lib/underscore/underscore-min.js',
       'node_modules/angular-mocks/angular-mocks.js',
       'www/js/**/*.js',
