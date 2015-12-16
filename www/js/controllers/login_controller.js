@@ -1,4 +1,4 @@
-app.controller('LoginCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService, UserService, $ionicHistory) {
+app.controller('LoginCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService) {
 
   // Scanner Login
 
@@ -6,25 +6,25 @@ app.controller('LoginCtrl', function($scope, $state, $ionicLoading, $ionicPopup,
     $ionicLoading.show();
 
     BarcodeService.scan()
-    .then(function(str) {
-      UserService.loginWithRCard(str)
-      .then(function() {
-        $ionicHistory.nextViewOptions({
-          disableBack: true
-        });
+      .then(function(str) {
+        UserService.loginWithRCard(str)
+          .then(function() {
+            $ionicHistory.nextViewOptions({
+              disableBack: true
+            });
 
-        $scope.redirectHome();
+            $scope.redirectHome();
+          })
+          .catch(function(errorMsg) {
+            NotificationService.showAlert(errorMsg);
+          })
+          .finally(function() {
+            $ionicLoading.hide();
+          });
       })
-      .catch(function(errorMsg){
-        $scope.showAlert(errorMsg);
-      })
-      .finally(function() {
+      .catch(function(errorMsg) {
+        NotificationService.showAlert(errorMsg);
         $ionicLoading.hide();
       });
-    })
-    .catch(function(errorMsg) {
-      $scope.showAlert(errorMsg);
-      $ionicLoading.hide();
-    });
   };
 });

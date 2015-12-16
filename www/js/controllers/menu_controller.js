@@ -1,4 +1,4 @@
-app.controller('MenuCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService, UserService, $ionicHistory) {
+app.controller('MenuCtrl', function($scope, $state, $ionicLoading, $ionicPopup, BarcodeService, UserService, $ionicHistory, NotificationService) {
 
   // Logout
 
@@ -6,15 +6,15 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, $ionicPopup, 
     $ionicLoading.show();
 
     UserService.logout()
-    .then(function() {
-      $scope.redirectToLogin();
-    })
-    .catch(function(errorMsg) {
-      $scope.showAlert(errorMsg);
-    })
-    .finally(function() {
-      $ionicLoading.hide();
-    });
+      .then(function() {
+        $scope.redirectToLogin();
+      })
+      .catch(function(errorMsg) {
+        NotificationService.showAlert(errorMsg);
+      })
+      .finally(function() {
+        $ionicLoading.hide();
+      });
   };
 
   // Redirects
@@ -27,12 +27,4 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, $ionicPopup, 
     $state.go("app.home");
   };
 
-  // Alert
-
-  $scope.showAlert = function(message) {
-    $ionicLoading.hide();
-    $ionicPopup.alert({
-      template: message
-    });
-  };
 });
