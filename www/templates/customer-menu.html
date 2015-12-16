@@ -10,7 +10,7 @@
       <img ng-src="{{customer.photo}}" class="customer-img" sf-load="hideLoading()" />
       <p class="customer-name">{{customer.name}}</p>
 
-      <button class="button button-block button-positive main-action">
+      <button class="button button-block button-positive main-action ng-click="openKeypad()>
         {{ 'charge' | translate }}
       </button>
 

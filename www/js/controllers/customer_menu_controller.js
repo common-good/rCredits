@@ -21,4 +21,8 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
   $scope.$on("$destroy", function() {
     $scope.customer = null;
   });
+
+  $scope.openKeypad = function() {
+    $state.go("app.keypad");
+  };
 });
