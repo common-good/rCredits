@@ -1,16 +1,3 @@
-
-.section-1 {
-  height: 30%;
-}
-
-.section-2 {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 70%;
-}
-
 .tabulator {
   .button {
     min-height: 0;
@@ -28,23 +15,35 @@
       height: 100%;
     }
   }
+
+  .section-1 {
+    height: 30%;
+  }
+
+  .section-2 {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70%;
+  }
+
+  select {
+    width: 98%;
+    padding: 0.5em;
+    margin: .5% 1%;
+    border-radius: 5px;
+    border: 1px solid $stable;
+    font-size: 1em;
+  }
 }
 
 .calc-component {
-  height: 50%;
   display: block;
+  height: 50%;
 }
 
 .number-display {
   text-align: right;
   font-size: 2em;
-}
-
-select {
-  font-size: 1em;
-  padding: 0.5em;
-  margin: .5% 1%;
-  width: 98%;
-  border-radius: 5px;
-  border: 1px solid $stable;
 }
