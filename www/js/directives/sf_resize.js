@@ -4,10 +4,6 @@ app.directive('sfResize', function ($window) {
       return $window.innerHeight;
     }
 
-    var setNavHeight = function(newHeight) {
-      element.css('height', newHeight + 'px');
-    }
-
     // Set on load
     scope.$watch(scope.getWinHeight, function (newValue, oldValue) {
       element.css('height', (scope.getWinHeight() - 44) + 'px');
