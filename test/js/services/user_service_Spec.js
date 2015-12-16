@@ -13,6 +13,9 @@ describe ('User Service', function() {
   }));
 
 
+  it ('Should send correct member and code values based on input URL', function() {
+
+  });
 
 
 });

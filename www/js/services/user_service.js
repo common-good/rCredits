@@ -1,6 +1,6 @@
-app.service('UserService', function ($q) {
+app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder) {
 
-  var UserService = function () {
+  var UserService = function() {
     self = this;
     this.user = null;
   };
@@ -14,8 +14,10 @@ app.service('UserService', function ($q) {
   // Gets the current customer. Returns an object
   // or null if there is no current customer.
   UserService.prototype.currentCustomer = function() {
-    return {name: "Phillip Blivers", place: "Ann Arbor, MI", balance: 110.23,
-      balanceSecret: false, rewards: 8.72, photo: "img/sample-customer.png", firstPurchase: true};
+    return {
+      name: "Phillip Blivers", place: "Ann Arbor, MI", balance: 110.23,
+      balanceSecret: false, rewards: 8.72, photo: "img/sample-customer.png", firstPurchase: true
+    };
   };
 
   // Logs user in given the scanned info from an rCard.
@@ -24,17 +26,17 @@ app.service('UserService', function ($q) {
   // The app should then give notice to the user that the device is associated with the
   // user.
   UserService.prototype.loginWithRCard = function(str) {
-    // Simulates a login. Resolves the promise if SUCCEED is true, rejects if false.
-    var SUCCEED = true;
+    var qrcodeParser = new QRCodeParser ();
+    qrcodeParser.setUrl(str);
+    var params = new RequestParameterBuilder (qrcodeParser.parse()).setOperationId('identify').getParams();
 
-    return $q(function(resolve, reject) {
-      setTimeout(function() {
-        if (SUCCEED) {
-          resolve();
-        } else {
-          reject('Login failed.');
-        }
-      }, 1000);
+    return $http ({
+      method: 'POST',
+      url: rCreditsConfig.serverUrl,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      data: $httpParamSerializer (params)
     });
   };
 
@@ -48,12 +50,12 @@ app.service('UserService', function ($q) {
     // Simulates a login. Resolves the promise if SUCCEED is true, rejects if false.
     var SUCCEED = true;
 
-    return $q(function(resolve, reject) {
-      setTimeout(function() {
+    return $q (function(resolve, reject) {
+      setTimeout (function() {
         if (SUCCEED) {
-          resolve();
+          resolve ();
         } else {
-          reject('User lookup failed.');
+          reject ('User lookup failed.');
         }
       }, 1000);
     });
@@ -65,16 +67,16 @@ app.service('UserService', function ($q) {
     // Simulates logout. Resolves the promise if SUCCEED is true, rejects if false.
     var SUCCEED = true;
 
-    return $q(function(resolve, reject) {
-      setTimeout(function() {
+    return $q (function(resolve, reject) {
+      setTimeout (function() {
         if (SUCCEED) {
-          resolve();
+          resolve ();
         } else {
-          reject('Logout failed.');
+          reject ('Logout failed.');
         }
       }, 1000);
     });
   }
 
-  return new UserService();
+  return new UserService ();
 });

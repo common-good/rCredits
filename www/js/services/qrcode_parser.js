@@ -15,6 +15,7 @@
     this.parseAccountType_();
     this.parseAccountCode_();
     this.parseSecurityCode_();
+    return this.parsedInfo;
   };
 
   QRCodeParser.prototype.getParsedInfo = function() {

@@ -1,6 +1,12 @@
 {
   "name": "rCreditsMobile",
   "app_id": "",
+   "proxies": [
+      {
+        "path": "/pos",
+        "proxyUrl": "https://ws.rcredits.org/pos"
+      }
+    ],
   "gulpStartupTasks": [
     "sass",
     "watch"

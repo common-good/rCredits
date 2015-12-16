@@ -8,6 +8,7 @@
     "underscore": "~1.8.3",
     "angular-translate-handler-log": "~2.8.1",
     "angular-translate": "~2.8.1",
-    "angular-translate-loader-static-files": "~2.8.1"
+    "angular-translate-loader-static-files": "~2.8.1",
+    "angular-local-storage": "~0.2.3"
   }
 }
