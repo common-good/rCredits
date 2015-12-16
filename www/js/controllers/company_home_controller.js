@@ -4,8 +4,8 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
 
   if ($scope.currentUser.firstLogin) {
     NotificationService.showAlert({
-      title: "This device is now associated with " + $scope.currentUser.company + ".",
-      template: "To set your preferences, please see the main menu."
+      title: "deviceAssociated", // Needs work
+      template: "toSetPreferences"
     });
   }
 
@@ -22,7 +22,7 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
               NotificationService.showConfirm({
                   templateUrl: "templates/first-purchase.html",
                   scope: $scope,
-                  okText: "Confirm"
+                  okText: "confirm"
                 })
                 .then(function(confirmed) {
                   if (confirmed) {

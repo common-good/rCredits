@@ -1,4 +1,10 @@
 <div>
-  <p>Balance: {{customer.balance | currency}} </p>
-  <p>Rewards: {{customer.rewards | currency}} </p>
+  <p>
+    {{ "balance" | translate }}{{ "colon" | translate }}
+    {{ customer.balance | currency }}
+  </p>
+  <p>
+    {{ "rewards" | translate }}{{ "colon" | translate }}
+    {{ customer.rewards | currency }}
+  </p>
 </div>

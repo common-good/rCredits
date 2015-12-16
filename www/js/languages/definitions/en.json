@@ -1,9 +1,16 @@
 {
-  "messages": {
-    "loginSuccess": "You successfully logged in.",
-    "loginFailure": "You were not logged in.",
-    "logoutSuccess": "You were successfully logged out.",
-    "logoutFailure": "Logout was unsuccessful. Please try again."
-  },
-  "balanceIsSecret": "This customer's balance is secret."
+  "balanceIsSecret": "This customer's balance is secret.",
+  "balance": "Balance",
+  "colon": ":",
+  "confirm": "Confirm",
+  "customerBalance": "Customer Balance",
+  "deviceAssociated": "This device is now associated with {{currentUser.company}}",
+  "firstPurchase": "First Purchase",
+  "loginFailure": "You were not logged in.",
+  "loginSuccess": "You successfully logged in.",
+  "logoutFailure": "Logout was unsuccessful. Please try again.",
+  "logoutSuccess": "You were successfully logged out.",
+  "rewards": "Rewards",
+  "toSetPreferences": "To set your preferences, please see the main menu.",
+  "verifyCustomer": "Please verify {{name}}'s photo id matches the image displayed below."
 }

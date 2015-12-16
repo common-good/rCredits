@@ -1,5 +1,6 @@
 <div>
-  <p>Please verify {{customer.name}}'s photo ID matches the image displayed below.</p>
+  <h3>{{ 'firstPurchase' | translate }}</h3>
+  <p>{{ 'verifyCustomer' | translate:customer }}</p>
 
   <div class="centered-box">
     <img ng-src="{{customer.photo}}" class="customer-img small-img" sf-load="hideLoading()" />
