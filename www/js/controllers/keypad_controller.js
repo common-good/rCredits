@@ -1,4 +1,6 @@
 app.controller('KeyPadCtrl', function($scope, $state, $ionicLoading) {
+  $scope.amount = 0;
+
   $scope.keyPress = function(key) {
     console.log(key);
 
