@@ -1,6 +1,6 @@
 
 .section-1 {
-  height: 20%;
+  height: 30%;
 }
 
 .section-2 {
@@ -8,7 +8,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 80%;
+  height: 70%;
 }
 
 .tabulator {
@@ -28,4 +28,23 @@
       height: 100%;
     }
   }
+}
+
+.calc-component {
+  height: 50%;
+  display: block;
+}
+
+.number-display {
+  text-align: right;
+  font-size: 2em;
+}
+
+select {
+  font-size: 1em;
+  padding: 0.5em;
+  margin: .5% 1%;
+  width: 98%;
+  border-radius: 5px;
+  border: 1px solid $stable;
 }
