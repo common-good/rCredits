@@ -25,4 +25,8 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
   $scope.charge = function() {
     $state.go("app.charge");
   };
+
+  $scope.refund = function() {
+    $state.go("app.refund");
+  };
 });
