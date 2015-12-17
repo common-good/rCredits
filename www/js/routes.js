@@ -50,21 +50,11 @@ angular.module('routes', [])
     }
   })
 
-  .state('app.charge', {
-    url: '/charge',
+  .state('app.transaction', {
+    url: '/transaction/:transactionType',
     views: {
       'menuContent': {
-        templateUrl: 'templates/charge.html',
-        controller: "TransactionsCtrl"
-      }
-    }
-  })
-
-  .state('app.refund', {
-    url: '/refund',
-    views: {
-      'menuContent': {
-        templateUrl: 'templates/refund.html',
+        templateUrl: 'templates/transaction.html',
         controller: "TransactionsCtrl"
       }
     }

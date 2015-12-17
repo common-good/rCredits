@@ -23,10 +23,10 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
   });
 
   $scope.charge = function() {
-    $state.go("app.charge");
+    $state.go("app.transaction", {'transactionType': 'charge'});
   };
 
   $scope.refund = function() {
-    $state.go("app.refund");
+    $state.go("app.transaction", {'transactionType': 'refund'});
   };
 });
