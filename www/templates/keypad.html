@@ -1,54 +1,20 @@
-<ion-view>
-  <ion-content>
-    <div class="tabulator" sf-resize>
-      <div class="section-1">
-        <div class="calc-component">
-          <div class="list">
-            <label class="item item-input item-select">
-              <div class="input-label">
-                Select Category
-              </div>
-              <select>
-                <option>None</option>
-                <option selected>Groceries</option>
-                <option>Website</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div class="calc-component">
-          <div class="number-display">
-            <span class="number">{{amount | currency}}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="section-2">
-        <div class="calc-row button-bar bar-stable">
-          <div class="button" ng-click="keyPress(1)">1</div>
-          <div class="button" ng-click="keyPress(2)">2</div>
-          <div class="button" ng-click="keyPress(3)">3</div>
-        </div>
-        <div class="calc-row button-bar bar-light">
-          <div class="button" ng-click="keyPress(4)">4</div>
-          <div class="button" ng-click="keyPress(5)">5</div>
-          <div class="button" ng-click="keyPress(6)">6</div>
-        </div>
-        <div class="calc-row button-bar bar-stable">
-          <div class="button" ng-click="keyPress(7)">7</div>
-          <div class="button" ng-click="keyPress(8)">8</div>
-          <div class="button" ng-click="keyPress(9)">9</div>
-        </div>
-        <div class="calc-row button-bar bar-light">
-          <div class="button" ng-click="clearEntry()">c</div>
-          <div class="button" ng-click="keyPress(0)">0</div>
-          <div class="button" ng-click="addHundred()">00</div>
-        </div>
-        <div class="calc-row button button-full button-positive">
-          Charge
-        </div>
-      </div>
-    </div>
-  </ion-content>
-</ion-view>
+<div class="calc-row button-bar bar-stable">
+  <div class="button" ng-click="keyPress(1)">1</div>
+  <div class="button" ng-click="keyPress(2)">2</div>
+  <div class="button" ng-click="keyPress(3)">3</div>
+</div>
+<div class="calc-row button-bar bar-light">
+  <div class="button" ng-click="keyPress(4)">4</div>
+  <div class="button" ng-click="keyPress(5)">5</div>
+  <div class="button" ng-click="keyPress(6)">6</div>
+</div>
+<div class="calc-row button-bar bar-stable">
+  <div class="button" ng-click="keyPress(7)">7</div>
+  <div class="button" ng-click="keyPress(8)">8</div>
+  <div class="button" ng-click="keyPress(9)">9</div>
+</div>
+<div class="calc-row button-bar bar-light">
+  <div class="button" ng-click="clearEntry()">c</div>
+  <div class="button" ng-click="keyPress(0)">0</div>
+  <div class="button" ng-click="addHundred()">00</div>
+</div>

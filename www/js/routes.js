@@ -50,11 +50,11 @@ angular.module('routes', [])
     }
   })
 
-  .state('app.keypad', {
-    url: '/keypad',
+  .state('app.charge', {
+    url: '/charge',
     views: {
       'menuContent': {
-        templateUrl: 'templates/keypad.html',
+        templateUrl: 'templates/charge.html',
         controller: "KeyPadCtrl"
       }
     }

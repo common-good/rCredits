@@ -22,7 +22,7 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
     $scope.customer = null;
   });
 
-  $scope.openKeypad = function() {
-    $state.go("app.keypad");
+  $scope.charge = function() {
+    $state.go("app.charge");
   };
 });
