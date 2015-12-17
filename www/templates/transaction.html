@@ -1,7 +1,8 @@
 <ion-view>
   <ion-content>
     <div class="tabulator" sf-resize  ng-controller="KeyPadCtrl">
-      <div class="section-1">
+
+      <section class="section-1">
         <div class="calc-component">
           <div class="list">
             <label class="item item-input item-select">
@@ -15,20 +16,16 @@
             </label>
           </div>
         </div>
+      </section>
 
-        <div class="calc-component">
-          <div class="number-display">
-            <span class="number">{{amount | currency}}</span>
-          </div>
-        </div>
-      </div>
+      <section class="section-2" ng-include="'templates/keypad.html'">
+      </section>
 
-      <div class="section-2">
-        <ng-include src="'templates/keypad.html'"></ng-include>
+      <section class="section-3">
         <div class="main-action button button-full button-positive">
           {{ transactionType | translate }}
         </div>
-      </div>
+      </section>
     </div>
   </ion-content>
 </ion-view>

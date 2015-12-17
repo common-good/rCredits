@@ -5,14 +5,10 @@
     min-height: 0;
     padding: 0;
     margin: 0;
-
-    &.main-action {
-      height: 30%;
-    }
   }
 
   .calc-row {
-    height: 17.5%;
+    height: 25%;
     min-height: 0;
     padding: 0;
     margin: 0;
@@ -23,25 +19,33 @@
     }
   }
 
+  $keypad-header-height: 3.5em;
+  $main-action-height: 5.5em;
+
   .section-1 {
-    height: 40%;
+    height: $keypad-header-height;
   }
 
   .section-2 {
+    height: calc(100% - 9em);
+  }
+
+  .section-3 {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 60%;
+    height: $main-action-height;
   }
-}
-
-.calc-component {
-  display: block;
-  height: 50%;
 }
 
 .number-display {
   text-align: right;
   font-size: 2em;
+  line-height: 2em;
+  height: 2em;
+}
+
+.keypad {
+  height: calc(100% - 4em);
 }

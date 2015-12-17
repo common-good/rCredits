@@ -1,20 +1,27 @@
-<div class="calc-row button-bar bar-stable">
-  <div class="button" ng-click="addNumber(1)">1</div>
-  <div class="button" ng-click="addNumber(2)">2</div>
-  <div class="button" ng-click="addNumber(3)">3</div>
+<div class="number-display">
+  <span class="number">{{amount | currency}}</span>
 </div>
-<div class="calc-row button-bar bar-light">
-  <div class="button" ng-click="addNumber(4)">4</div>
-  <div class="button" ng-click="addNumber(5)">5</div>
-  <div class="button" ng-click="addNumber(6)">6</div>
+
+<div class="keypad">
+  <div class="calc-row button-bar bar-stable">
+    <div class="button" ng-click="addNumber(1)">1</div>
+    <div class="button" ng-click="addNumber(2)">2</div>
+    <div class="button" ng-click="addNumber(3)">3</div>
+  </div>
+  <div class="calc-row button-bar bar-light">
+    <div class="button" ng-click="addNumber(4)">4</div>
+    <div class="button" ng-click="addNumber(5)">5</div>
+    <div class="button" ng-click="addNumber(6)">6</div>
+  </div>
+  <div class="calc-row button-bar bar-stable">
+    <div class="button" ng-click="addNumber(7)">7</div>
+    <div class="button" ng-click="addNumber(8)">8</div>
+    <div class="button" ng-click="addNumber(9)">9</div>
+  </div>
+  <div class="calc-row button-bar bar-light">
+    <div class="button" ng-click="clearEntry()">c</div>
+    <div class="button" ng-click="addNumber(0)">0</div>
+    <div class="button" ng-click="addHundred()">00</div>
+  </div>
 </div>
-<div class="calc-row button-bar bar-stable">
-  <div class="button" ng-click="addNumber(7)">7</div>
-  <div class="button" ng-click="addNumber(8)">8</div>
-  <div class="button" ng-click="addNumber(9)">9</div>
-</div>
-<div class="calc-row button-bar bar-light">
-  <div class="button" ng-click="clearEntry()">c</div>
-  <div class="button" ng-click="addNumber(0)">0</div>
-  <div class="button" ng-click="addHundred()">00</div>
-</div>
+
