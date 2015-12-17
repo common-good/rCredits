@@ -8,8 +8,8 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
     } else {
       NotificationService.showAlert({
         scope: $scope,
-        title: "customerBalance",
-        templateUrl: "templates/customer-balance.html"
+        title: 'customerBalance',
+        templateUrl: 'templates/customer-balance.html'
       });
     }
   };
@@ -18,15 +18,15 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
     $ionicLoading.hide();
   };
 
-  $scope.$on("$destroy", function() {
+  $scope.$on('$destroy', function() {
     $scope.customer = null;
   });
 
   $scope.charge = function() {
-    $state.go("app.transaction", {'transactionType': 'charge'});
+    $state.go('app.transaction', {'transactionType': 'charge'});
   };
 
   $scope.refund = function() {
-    $state.go("app.transaction", {'transactionType': 'refund'});
+    $state.go('app.transaction', {'transactionType': 'refund'});
   };
 });
