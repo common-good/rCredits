@@ -5,16 +5,21 @@
     min-height: 0;
     padding: 0;
     margin: 0;
+
+    &.main-action {
+      height: 30%;
+    }
   }
 
   .calc-row {
-    height: 20%;
+    height: 17.5%;
     min-height: 0;
     padding: 0;
     margin: 0;
 
     .button {
       height: 100%;
+      line-height: 1;
     }
   }
 
