@@ -15,7 +15,10 @@
 
     .button {
       height: 100%;
-      line-height: 1;
+
+      @media screen and (max-height: 400px) {
+        line-height: 1;
+      }
     }
   }
 
