@@ -54,8 +54,7 @@ angular.module('routes', [])
     url: '/charge',
     views: {
       'menuContent': {
-        templateUrl: 'templates/charge.html',
-        controller: "KeyPadCtrl"
+        templateUrl: 'templates/charge.html'
       }
     }
   });
