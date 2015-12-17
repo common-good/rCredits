@@ -1,4 +1,9 @@
-app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder) {
+app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, localStorageService) {
+
+  var LOGIN_FAILED = '0';
+  var LOGIN_BY_AGENT = '1';
+  var LOGIN_BY_CUSTOMER = '0';
+  var FIRST_LOGIN = '-1';
 
   var UserService = function() {
     self = this;
@@ -28,7 +33,8 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   UserService.prototype.loginWithRCard = function(str) {
     var qrcodeParser = new QRCodeParser ();
     qrcodeParser.setUrl(str);
-    var params = new RequestParameterBuilder (qrcodeParser.parse()).setOperationId('identify').getParams();
+    this.qrcodeInfo = qrcodeParser.parse();
+    var params = new RequestParameterBuilder (this.qrcodeInfo).setOperationId('identify').getParams();
 
     return $http ({
       method: 'POST',
@@ -37,7 +43,36 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       data: $httpParamSerializer (params)
+    }).then(function(res) {
+      console.log("RESPONSE ", res);
+
+      var responseData = res.data;
+
+      if (responseData.ok === LOGIN_FAILED) {
+        throw responseData.message;
+      }
+
+      if (responseData.logon === LOGIN_BY_AGENT) {
+        return self.createSeller(responseData);
+      }
     });
+  };
+
+  UserService.prototype.createSeller = function(sellerInfo) {
+    var props = ['can', 'descriptions', 'company', 'default', 'time'];
+    var seller = new Seller (sellerInfo.name);
+
+    _.each(props, function(p) {
+      seller[p] = sellerInfo[p];
+    });
+
+    if (!_.isUndefined(sellerInfo.device)) {
+      seller.device = sellerInfo.device;
+      localStorageService.set('deviceID', seller.device);
+    } else {
+      seller.firstLogin = true;
+    }
+    return seller;
   };
 
   // Gets customer info and photo given the scanned info from an rCard.
@@ -76,7 +111,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         }
       }, 1000);
     });
-  }
+  };
 
   return new UserService ();
 });

@@ -9,7 +9,7 @@
         device: this.getDeviceId() || '',
         code: qrCodeParsedInfo.securityCode,
         member: qrCodeParsedInfo.accountType,
-        version: rCreditsConfig.version
+        version: rCreditsConfig.build
       };
     };
 

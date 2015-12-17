@@ -2,22 +2,22 @@ rCreditsConfig = {
 
   // @if BUILD_TARGET='development'
   serverproxyUrl:'http://localhost:8100/pos',
-  serverUrl:'https://ws.rcredits.org/pos?23',
+  serverUrl:'https://ws.rcredits.org/pos',
   version: '3.0',
-  build: 100
+  build: 300
   // @endif
 
   // @if BUILD_TARGET='staging'
   serverproxyUrl:'http://localhost:8100/pos',
-  serverUrl:'https://ws.rcredits.org/pos?23',
+  serverUrl:'https://ws.rcredits.org/pos',
   version: '3.0',
-  build: 100
+  build: 300
   // @endif
 
   // @if BUILD_TARGET='production'
-  serverUrl:'',
+  serverUrl:'https://xxx.rcredits.org/pos',
   version: '3.0',
-  build: 100
+  build: 300
   // @endif
 
 

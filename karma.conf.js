@@ -20,10 +20,13 @@ module.exports = function(config) {
       'www/lib/angular-translate-loader-static-files/angular-translate-loader-static-files.min.js',
       'www/lib/angular-translate-handler-log/angular-translate-handler-log.min.js',
       'www/lib/angular-local-storage/dist/angular-local-storage.min.js',
+      'www/lib/prototypejs/dist/prototype.min.js',
       'www/lib/underscore/underscore-min.js',
       'node_modules/angular-mocks/angular-mocks.js',
+      'www/js/models/user.js',
       'www/js/**/*.js',
-      'test/**/*Spec.js'
+      'test/**/*Spec.js',
+      'www/templates/**/*.html'
     ],
 
 
@@ -34,7 +37,6 @@ module.exports = function(config) {
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {},
-
 
     // test results reporter to use
     // possible values: 'dots', 'progress'
