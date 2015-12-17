@@ -1,10 +1,8 @@
 <div>
   <p>
-    {{ 'balance' | translate }}{{ 'colon' | translate }}
-    {{ customer.balance | currency }}
+    {{ 'balanceLabel' | translate }} {{ customer.balance | currency }}
   </p>
   <p class="no-gap">
-    {{ 'rewards' | translate }}{{ 'colon' | translate }}
-    {{ customer.rewards | currency }}
+    {{ 'rewardsLabel' | translate }} {{ customer.rewards | currency }}
   </p>
 </div>
