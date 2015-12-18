@@ -20,7 +20,7 @@ app.controller('TransactionResultCtrl', function($scope, $state, $stateParams, $
 
   $scope.transactionInfo = {
     amount: $filter('currency')(0),
-    customerName: $scope.customer.name,
     company: $scope.user.company,
+    customerName: $scope.customer.name,
   }
 });
