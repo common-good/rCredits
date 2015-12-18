@@ -27,5 +27,5 @@
   "signOut": "Sign Out",
   "toSetPreferences": "To set your preferences, please see the main menu.",
   "userLookupFailure": "User lookup failed.",
-  "verifyCustomer": "Please verify {{name}}'s photo id matches the image displayed below."
+  "verifyCustomer": "This is {{name}}'s first purchase. <b>Please ask to see a photo id</b>, and check that it matches the image and name displayed below."
 }
