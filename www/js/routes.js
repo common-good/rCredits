@@ -58,6 +58,16 @@ angular.module('routes', [])
         controller: "TransactionsCtrl"
       }
     }
+  })
+
+  .state('app.transaction_result', {
+    url: '/transaction-result/:transactionStatus',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/transaction-result.html',
+        controller: "TransactionResultCtrl"
+      }
+    }
   });
 
   // if none of the above states are matched, use this as the fallback
