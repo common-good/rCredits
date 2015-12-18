@@ -1,4 +1,11 @@
 <ion-view>
+  <ion-nav-buttons side="secondary">
+    <button class="button button-stable"
+      ng-controller="CustomerMenuCtrl" ng-click="showBalance()">
+      {{ 'balance' | translate }}
+    </button>
+  </ion-nav-buttons>
+
   <ion-content>
     <div class="rc">
       <h1>
