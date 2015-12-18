@@ -6,7 +6,7 @@ app.controller('TransactionResultCtrl', function($scope, $state, $stateParams, $
 
   // TODO: Strip ':' from keys and capitalize first letter
   // New key gets used to in transactionInfo for translation
-  if ($scope.transactionStatus == ':success') {
+  if ($scope.transactionStatus == 'success') {
     statusKey = 'Success';
     $scope.success = true;
   } else {
