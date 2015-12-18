@@ -1,4 +1,10 @@
 <ion-view>
+  <ion-nav-buttons side="primary">
+    <button class="button button-stable">
+      {{ 'undo' | translate }}
+    </button>
+  </ion-nav-buttons>
+
   <ion-nav-buttons side="secondary">
     <button class="button button-stable"
       ng-controller="CustomerMenuCtrl" ng-click="showBalance()">
@@ -6,25 +12,30 @@
     </button>
   </ion-nav-buttons>
 
-  <ion-nav-buttons side="primary">
-    <button class="button button-stable">
-      {{ 'undo' | translate }}
-    </button>
-  </ion-nav-buttons>
-
   <ion-content>
-    <div class="rc">
-      <h1>
-        {{ heading | translate }}
-      </h1>
+    <div class="rc" sf-resize>
+      <div class="message">
+        <i class="icon ion-checkmark-circled large-icon" ng-show="success">
+        </i>
 
-      <p>
-        {{ note | translate:transactionInfo }}
-      </p>
+        <h1>
+          {{ heading | translate }}
+        </h1>
 
-      <button class="main-action button button-block button-positive">
-        {{ 'home' | translate }}
-      </button>
+        <p>
+          {{ note | translate:transactionInfo }}
+        </p>
+      </div>
+
+      <div class="actions">
+        <button class="button button-block button-positive"
+          ng-hide="success">
+          Retry
+        </button>
+        <button class="button button-block button-positive" ng-click="redirectHome()">
+          {{ 'home' | translate }}
+        </button>
+      </div>
     </div>
   </ion-content>
 </ion-view>
