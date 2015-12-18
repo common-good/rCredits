@@ -19,8 +19,14 @@ npm install
 `ionic setup sass`
 
 ### Sometimes Needed
-`npm rebuild`
-`gulp sass`
+You may need to try these commands individually.
+
+```
+npm rebuild
+gulp sass
+npm install
+bower install
+```
 
 ### Run Unit tests
 `karma start`
