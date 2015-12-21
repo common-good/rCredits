@@ -65,7 +65,7 @@ angular.module('routes', [])
     views: {
       'menuContent': {
         templateUrl: 'templates/transaction-result.html',
-        controller: "TransactionCtrl"
+        controller: "TransactionResultCtrl"
       }
     }
   });
