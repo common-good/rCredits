@@ -61,8 +61,7 @@ describe ('User Service', function() {
     httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(LOGIN_WITH_RCARD_ERROR_RESPONSE);
     userService.loginWithRCard(SCAN_RESULT.text)
       .catch(function(err) {
-        console.log("VARIABLE: ", userService.LOGIN_SELLER_ERROR_MESSAGE);
-        expect (err).toBe(userService.LOGIN_SELLER_ERROR_MESSAGE);
+        expect (err).toBe(LOGIN_WITH_RCARD_ERROR_RESPONSE.message);
       });
 
     httpBackend.flush();
@@ -74,6 +73,18 @@ describe ('User Service', function() {
     userService.loginWithRCard(SCAN_RESULT.text).then(function(seller) {
       expect (seller.firstLogin).toBe(true);
     });
+
+    httpBackend.flush();
+  });
+
+  it ("Seller login error", function() {
+    SCAN_RESULT.logon = 0;
+    httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(LOGIN_WITH_RCARD_SUCESS_RESPONSE);
+
+    userService.loginWithRCard(SCAN_RESULT.text)
+      .catch(function(err) {
+        expect (err).toBe(userService.LOGIN_SELLER_ERROR_MESSAGE);
+      });
 
     httpBackend.flush();
   });

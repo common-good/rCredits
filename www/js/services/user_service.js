@@ -51,12 +51,17 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       var responseData = res.data;
 
       if (responseData.ok === LOGIN_FAILED) {
-        throw self.LOGIN_SELLER_ERROR_MESSAGE;
+        throw responseData.message;
       }
 
       if (responseData.logon === LOGIN_BY_AGENT) {
         return self.createSeller(responseData);
       }
+
+      if (responseData.logon === LOGIN_BY_CUSTOMER) {
+        throw self.LOGIN_SELLER_ERROR_MESSAGE;
+      }
+
     });
   };
 
