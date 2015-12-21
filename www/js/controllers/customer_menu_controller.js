@@ -22,11 +22,11 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
     $scope.customer = null;
   });
 
-  $scope.charge = function() {
+  $scope.openCharge = function() {
     $state.go('app.transaction', {'transactionType': 'charge'});
   };
 
-  $scope.refund = function() {
+  $scope.openRefund = function() {
     $state.go('app.transaction', {'transactionType': 'refund'});
   };
 });

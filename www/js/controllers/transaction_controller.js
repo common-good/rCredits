@@ -1,10 +1,18 @@
-app.controller('TransactionResultCtrl', function($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService) {
+app.controller('TransactionCtrl', function($scope, $state, $stateParams,
+  $ionicLoading, $filter, NotificationService, UserService) {
+
+  $scope.transactionType = $stateParams.transactionType;
   $scope.transactionStatus = $stateParams.transactionStatus;
+
+  $scope.charge = function(amount) {
+  };
+
+  $scope.refund = function(amount) {
+  };
 
   var statusKey;
   $scope.success = false;
 
-  // TODO: Strip ':' from keys and capitalize first letter
   // New key gets used to in transactionInfo for translation
   if ($scope.transactionStatus == 'success') {
     statusKey = 'Success';

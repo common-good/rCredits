@@ -51,21 +51,21 @@ angular.module('routes', [])
   })
 
   .state('app.transaction', {
-    url: '/transaction/:transactionType',
+    url: '/transaction/{transactionType}',
     views: {
       'menuContent': {
         templateUrl: 'templates/transaction.html',
-        controller: "TransactionsCtrl"
+        controller: "TransactionCtrl"
       }
     }
   })
 
   .state('app.transaction_result', {
-    url: '/transaction-result/:transactionStatus',
+    url: '/transaction-result/{transactionStatus}',
     views: {
       'menuContent': {
         templateUrl: 'templates/transaction-result.html',
-        controller: "TransactionResultCtrl"
+        controller: "TransactionCtrl"
       }
     }
   });
