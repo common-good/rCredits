@@ -14,37 +14,37 @@ describe ('QRCode Parser', function() {
   it ('Account type must be Company', function() {
     qrcodeParser.setUrl(COMPANY_ACCOUNT);
     qrcodeParser.parse();
-    expect (qrcodeParser.getParsedInfo().isCompanyAccount()).toBe(true);
+    expect (qrcodeParser.getAccountInfo().isCompanyAccount()).toBe(true);
   });
 
   it ('Account type must be Personal', function() {
     qrcodeParser.setUrl(INDIVIDUAL_ACCOUNT);
     qrcodeParser.parse();
-    expect (qrcodeParser.getParsedInfo().isPersonalAccount()).toBe(true);
+    expect (qrcodeParser.getAccountInfo().isPersonalAccount()).toBe(true);
   });
 
   it ('Parse Company Account ID', function() {
     qrcodeParser.setUrl(COMPANY_ACCOUNT);
     qrcodeParser.parse();
-    expect (qrcodeParser.getParsedInfo().accountId).toEqual('NEW:AAB');
+    expect (qrcodeParser.getAccountInfo().accountId).toEqual('NEW:AAB');
   });
 
   it ('Parse Individual Account ID', function() {
     qrcodeParser.setUrl(INDIVIDUAL_ACCOUNT);
     qrcodeParser.parse();
-    expect (qrcodeParser.getParsedInfo().accountId).toEqual('NEW.ABB');
+    expect (qrcodeParser.getAccountInfo().accountId).toEqual('NEW.ABB');
   });
 
   it ('Parse Company Security Code', function() {
     qrcodeParser.setUrl(COMPANY_ACCOUNT);
     qrcodeParser.parse();
-    expect (qrcodeParser.getParsedInfo().securityCode).toEqual('WeHlioM5JZv1O9G');
+    expect (qrcodeParser.getAccountInfo().securityCode).toEqual('WeHlioM5JZv1O9G');
   });
 
   it ('Parse Individual Security Code', function() {
     qrcodeParser.setUrl(INDIVIDUAL_ACCOUNT);
     qrcodeParser.parse();
-    expect (qrcodeParser.getParsedInfo().securityCode).toEqual('ZzhWMCq0zcBowqw');
+    expect (qrcodeParser.getAccountInfo().securityCode).toEqual('ZzhWMCq0zcBowqw');
   });
 
 

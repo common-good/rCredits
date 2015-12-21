@@ -12,22 +12,22 @@
   };
 
   QRCodeParser.prototype.parse = function() {
-    this.parsedInfo = new ParsedInfo ();
+    this.accountInfo = new AccountInfo ();
     this.parseAccountType_();
     this.parseAccountCode_();
     this.parseSecurityCode_();
-    return this.parsedInfo;
+    return this.accountInfo;
   };
 
-  QRCodeParser.prototype.getParsedInfo = function() {
-    return this.parsedInfo;
+  QRCodeParser.prototype.getAccountInfo = function() {
+    return this.accountInfo;
   };
 
   QRCodeParser.prototype.parseAccountType_ = function() {
     if (this.url.pathname.indexOf(COMPANY_INDICATOR) !== -1) {
-      this.parsedInfo.isCompany = true;
+      this.accountInfo.isCompany = true;
     } else if (this.url.pathname.indexOf(PERSONAL_INDICATOR) !== -1) {
-      this.parsedInfo.isPersonal = true;
+      this.accountInfo.isPersonal = true;
     } else {
       throw 'Unable to detect Account type: ' + this.url.href;
     }
@@ -37,16 +37,16 @@
     var xxx = this.url.hostname.toUpperCase().split('.')[0];
     var yyy = this.url.pathname.substring(1, 4);
     var separator;
-    if (this.parsedInfo.isPersonalAccount()) {
+    if (this.accountInfo.isPersonalAccount()) {
       separator = PERSONAL_INDICATOR;
     } else {
       separator = COMPANY_INDICATOR_URL;
     }
-    this.parsedInfo.accountId = xxx + separator + yyy;
+    this.accountInfo.accountId = xxx + separator + yyy;
   };
 
   QRCodeParser.prototype.parseSecurityCode_ = function() {
-    this.parsedInfo.securityCode = this.url.pathname.substr(5, this.url.pathname.length - 1);
+    this.accountInfo.securityCode = this.url.pathname.substr(5, this.url.pathname.length - 1);
   };
 
 

@@ -1,4 +1,4 @@
-app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, localStorageService) {
+app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller) {
 
   var LOGIN_FAILED = '0';
   var LOGIN_BY_AGENT = '1';
@@ -73,12 +73,14 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       seller[p] = sellerInfo[p];
     });
 
-    if (!_.isUndefined(sellerInfo.device)) {
-      seller.device = sellerInfo.device;
-      localStorageService.set('deviceID', seller.device);
-    } else {
-      seller.firstLogin = true;
+    if (!seller.hasDevice()) {
+      if (seller.isValidDeviceId(sellerInfo.device)) {
+        seller.setDeviceId(sellerInfo.device);
+      } else {
+        seller.firstLogin = true;
+      }
     }
+
     return seller;
   };
 

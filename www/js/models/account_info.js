@@ -1,21 +1,21 @@
 (function(window) {
 
-  var ParsedInfo = function() {
+  var AccountInfo = function() {
     this.isPersonal = false;
     this.isCompany = false;
     this.accountId = '';
     this.securityCode = '';
   };
 
-  ParsedInfo.prototype.isPersonalAccount = function() {
+  AccountInfo.prototype.isPersonalAccount = function() {
     return this.isPersonal;
   };
 
-  ParsedInfo.prototype.isCompanyAccount = function() {
+  AccountInfo.prototype.isCompanyAccount = function() {
     return this.isCompany;
   };
 
 
-  window.ParsedInfo = ParsedInfo;
+  window.AccountInfo = AccountInfo;
 
 }) (window);
