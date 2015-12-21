@@ -2,13 +2,15 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
   $ionicLoading, $filter, NotificationService, UserService) {
 
   $scope.transactionType = $stateParams.transactionType;
-  $scope.transactionStatus = $stateParams.transactionStatus;
 
   $scope.charge = function(amount) {
   };
 
   $scope.refund = function(amount) {
   };
+
+
+  $scope.transactionStatus = $stateParams.transactionStatus;
 
   var statusKey;
   $scope.success = false;
@@ -18,7 +20,6 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
     statusKey = 'Success';
     $scope.success = true;
   } else {
-    $state.go('app.home');
   }
 
   $scope.customer = UserService.currentCustomer();
