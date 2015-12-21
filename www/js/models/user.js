@@ -4,6 +4,8 @@
 
     initialize: function(name) {
       this.name = name;
+      this.can = 0;
+      this.company = '';
     },
 
     default: '',

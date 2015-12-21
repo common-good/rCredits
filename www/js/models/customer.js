@@ -5,9 +5,13 @@
     var Customer = Class.create(User, {
 
       balance: 0,
-      reward: null
+      rewards: null,
 
+      setRewards: function(rewards) {
+        this.rewards = parseFloat (rewards);
+      }
     });
+
 
     window.Customer = Customer;
 

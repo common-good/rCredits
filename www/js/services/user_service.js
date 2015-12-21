@@ -1,13 +1,16 @@
-app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller) {
+app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer) {
+
+  'use strict';
 
   var LOGIN_FAILED = '0';
   var LOGIN_BY_AGENT = '1';
   var LOGIN_BY_CUSTOMER = '0';
   var FIRST_PURCHASE = '-1';
 
+  var self;
   var UserService = function() {
     self = this;
-    this.user = null;
+    this.seller = null;
     this.LOGIN_SELLER_ERROR_MESSAGE = 'Not a valid rCard for seller login';
   };
 
@@ -15,7 +18,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   // Gets the current user. Returns the user object,
   // or null if there is no current user.
   UserService.prototype.currentUser = function() {
-    return self.user;
+    return this.seller;
   };
 
   // Gets the current customer. Returns an object
@@ -27,12 +30,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     };
   };
 
-  UserService.prototype.loginWithRCard_ = function(str) {
-    var qrcodeParser = new QRCodeParser ();
-    qrcodeParser.setUrl(str);
-    this.qrcodeInfo = qrcodeParser.parse();
-    var params = new RequestParameterBuilder (this.qrcodeInfo).setOperationId('identify').getParams();
-
+  UserService.prototype.loginWithRCard_ = function(params) {
     return $http ({
       method: 'POST',
       url: rCreditsConfig.serverUrl,
@@ -57,11 +55,20 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   // The app should then give notice to the user that the device is associated with the
   // user.
   UserService.prototype.loginWithRCard = function(str) {
-    return this.loginWithRCard_(str)
+    var qrcodeParser = new QRCodeParser ();
+    qrcodeParser.setUrl(str);
+    var accountInfo = qrcodeParser.parse();
+    var params = new RequestParameterBuilder ()
+      .setOperationId('identify')
+      .setSecurityCode(accountInfo.securityCode)
+      .setMember(accountInfo.accountId)
+      .getParams();
+
+    return this.loginWithRCard_(params)
       .then(function(responseData) {
         if (responseData.logon === LOGIN_BY_AGENT) {
-          self.user = self.createSeller(responseData);
-          return self.user;
+          self.seller = self.createSeller(responseData);
+          return self.seller;
         }
 
         if (responseData.logon === LOGIN_BY_CUSTOMER) {
@@ -92,7 +99,15 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   };
 
   UserService.prototype.createCustomer = function(customerInfo) {
-    var customer = new Customer ();
+    var props = ['balance', 'can', 'company', 'place'];
+    var customer = new Customer (customerInfo.name);
+    customer.setRewards(customerInfo.rewards);
+
+    _.each(props, function(p) {
+      customer[p] = customerInfo[p];
+    });
+
+    return customer;
   };
 
   // Gets customer info and photo given the scanned info from an rCard.
@@ -102,10 +117,26 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   //      firstPurchase - Whether this is the user's first rCredits purchase. If so, the
   //        app should notify the seller to request photo ID.
   UserService.prototype.identifyCustomer = function(str) {
-    return this.loginWithRCard_(str)
+    var qrcodeParser = new QRCodeParser ();
+    qrcodeParser.setUrl(str);
+    var accountInfo = qrcodeParser.parse();
+    var params = new RequestParameterBuilder ()
+      .setOperationId('identify')
+      .setAgent(this.seller.default)
+      .setMember(accountInfo.accountId)
+      .setSecurityCode(accountInfo.securityCode)
+      .getParams();
+
+    return this.loginWithRCard_(params)
       .then(function(responseData) {
         if (responseData.logon === LOGIN_BY_CUSTOMER) {
-          return self.createCustomer(responseData);
+          self.customer = self.createCustomer(responseData);
+          return self.customer;
+        }
+        FIRST_PURCHASE
+        if (responseData.logon === FIRST_PURCHASE) {
+          self.customer = self.createCustomer(responseData);
+          return self.customer;
         }
 
         if (responseData.logon === LOGIN_BY_AGENT) {
