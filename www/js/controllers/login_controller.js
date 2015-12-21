@@ -12,8 +12,7 @@ app.controller('LoginCtrl', function($scope, $state, $ionicLoading, BarcodeServi
             $ionicHistory.nextViewOptions({
               disableBack: true
             });
-
-            $scope.redirectHome();
+            $state.go("app.home");
           })
           .catch(function(errorMsg) {
             NotificationService.showAlert(errorMsg);

@@ -2,6 +2,11 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
 
   $scope.currentUser = UserService.currentUser();
 
+  if (!$scope.currentUser) {
+    $state.go("app.login");
+    return;
+  }
+
   if ($scope.currentUser.firstLogin) {
     NotificationService.showAlert({
       scope: $scope,
