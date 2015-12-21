@@ -12,7 +12,6 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   };
 
 
-
   // Gets the current user. Returns the user object,
   // or null if there is no current user.
   UserService.prototype.currentUser = function() {
@@ -106,13 +105,11 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     var SUCCEED = true;
 
     return $q (function(resolve, reject) {
-      setTimeout (function() {
-        if (SUCCEED) {
-          resolve ();
-        } else {
-          reject ('Logout failed.');
-        }
-      }, 1000);
+      if (SUCCEED) {
+        resolve ();
+      } else {
+        reject ('Logout failed.');
+      }
     });
   };
 
