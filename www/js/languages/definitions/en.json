@@ -1,9 +1,31 @@
 {
-  "messages": {
-    "loginSuccess": "You successfully logged in.",
-    "loginFailure": "You were not logged in.",
-    "logoutSuccess": "You were successfully logged out.",
-    "logoutFailure": "Logout was unsuccessful. Please try again."
-  },
-  "balanceIsSecret": "This customer's balance is secret."
+  "balanceIsSecret": "This customer's balance is secret.",
+  "balance": "Balance",
+  "balanceLabel": "Balance:",
+  "charge": "Charge",
+  "confirm": "Confirm",
+  "customerBalance": "Customer Balance",
+  "deviceAssociated": "This device is now associated with {{company}}",
+  "exchange": "Exchange",
+  "firstPurchase": "First Purchase",
+  "home": "Home",
+  "loginFailure": "You were not logged in.",
+  "loginSuccess": "You successfully logged in.",
+  "logoutFailure": "Logout was unsuccessful. Please try again.",
+  "logoutSuccess": "You were successfully logged out.",
+  "mainMenu": "Main Menu",
+  "refund": "Refund",
+  "rewards": "Rewards",
+  "rewardsLabel": "Rewards:",
+  "rCard": "rCard",
+  "scan": "Scan",
+  "scanCancelled": "Scan was Cancelled",
+  "scanQRCode": "Scan must be a QR CODE",
+  "scanRCard": "Scan rCard",
+  "scanToSignIn": "Scan to sign in",
+  "signInAs": "Signed in as",
+  "signOut": "Sign Out",
+  "toSetPreferences": "To set your preferences, please see the main menu.",
+  "userLookupFailure": "User lookup failed.",
+  "verifyCustomer": "This is {{name}}'s first purchase. <b>Please ask to see a photo id</b>, and check that it matches the image and name displayed below."
 }

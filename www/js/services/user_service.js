@@ -99,7 +99,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         if (SUCCEED) {
           resolve ();
         } else {
-          reject ('User lookup failed.');
+          reject("userLookupFailure");
         }
       }, 1000);
     });
@@ -110,13 +110,12 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   UserService.prototype.logout = function() {
     // Simulates logout. Resolves the promise if SUCCEED is true, rejects if false.
     var SUCCEED = true;
-
-    return $q (function(resolve, reject) {
-      if (SUCCEED) {
-        resolve ();
-      } else {
-        reject ('Logout failed.');
-      }
+    return $q(function(resolve, reject) {
+        if (SUCCEED) {
+          resolve();
+        } else {
+          reject("logoutFailure");
+        }
     });
   };
 

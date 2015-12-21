@@ -1,10 +1,10 @@
 <ion-view ng-controller="LoginCtrl" hide-nav-bar="true">
   <ion-content>
     <div class="rc">
-      <div ng-include="'templates/logo.html'"></div>
+      <div class="rc-logo" ng-include="'templates/logo.html'"></div>
 
       <button class="button button-block button-positive" id="scan-to-login" ng-click="openScanner()">
-        Scan to Sign In
+        {{ 'scanToSignIn' | translate }}
       </button>
     </div>
   </ion-content>

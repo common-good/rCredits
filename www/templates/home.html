@@ -5,14 +5,14 @@
       <h1 class="company">{{currentUser.company}}</h1>
 
       <p class="user">
-        Signed in as:<br>
+        {{ 'signInAs' | translate }}{{ 'colon' | translate }}<br>
         {{currentUser.name}}
       </p>
 
       <div class="rc-logo" ng-include="'templates/logo.html'"></div>
 
-      <button class="button button-block button-positive scan-customer" ng-click="scanCustomer()">
-        Scan rCard
+      <button class="button button-block button-positive scan-customer main-action" ng-click="scanCustomer()">
+        {{ 'scanRCard' | translate }}
       </button>
     </div>
   </ion-content>

@@ -9,3 +9,9 @@
     }
   }
 }
+
+.button {
+  &.main-action {
+    height: 88px;
+  }
+}

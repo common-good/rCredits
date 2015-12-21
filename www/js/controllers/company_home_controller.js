@@ -4,8 +4,12 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
 
   if ($scope.currentUser.firstLogin) {
     NotificationService.showAlert({
-      title: "This device is now associated with " + $scope.currentUser.company + ".",
-      template: "To set your preferences, please see the main menu."
+      scope: $scope,
+      title: 'deviceAssociated',
+      template: 'toSetPreferences'
+    },
+    {
+      company: $scope.currentUser.company
     });
   }
 
@@ -20,9 +24,10 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
 
             if ($scope.customer.firstPurchase) {
               NotificationService.showConfirm({
+                  title: 'firstPurchase',
                   templateUrl: "templates/first-purchase.html",
                   scope: $scope,
-                  okText: "Confirm"
+                  okText: "confirm"
                 })
                 .then(function(confirmed) {
                   if (confirmed) {
@@ -33,8 +38,7 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
               $ionicLoading.hide();
             } else {
               $state.go("app.customer");
-            }
-            ;
+            };
           })
           .catch(function(errorMsg) {
             NotificationService.showAlert(errorMsg);

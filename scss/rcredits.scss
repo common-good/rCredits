@@ -3,7 +3,21 @@
   margin: 1.5em;
 }
 
-.small-img {
-  max-width: 100%;
-  max-height: 10em;
+h1, h2, h3, h4, h5, h6 {
+  font-weight: bold;
 }
+
+h1, h3, h5 {
+  color: $rCreditsBlue;
+}
+
+h2, h4, h6 {
+  color: $rCreditsGreen;
+}
+
+@import "popup";
+@import "logo";
+@import "button";
+@import "general";
+@import "company_home";
+@import "customer_menu";

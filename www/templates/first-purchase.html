@@ -1,8 +1,6 @@
-<div>
-  <h3>First Purchase</h3>
+<span translate="{{ 'verifyCustomer' | translate:customer }}"></span>
 
-  <p>Please verify {{customer.name}}'s photo id matches the image displayed below.</p>
-
-  <img ng-src="{{customer.photo}}" class="customer-img small-img" sf-load="hideLoading()" />
-  <p class="customer-name">{{customer.name}}</p>
+<div class="centered-box first-purchase">
+  <img ng-src="{{ customer.photo }}" class="customer-img small-img" sf-load="hideLoading()" />
+  <span class="customer-name">{{ customer.name }}</span>
 </div>

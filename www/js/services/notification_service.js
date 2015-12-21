@@ -9,14 +9,14 @@
       self = this;
     };
 
-    NotificationService.prototype.showAlert = function(options) {
+    NotificationService.prototype.showAlert = function(options, params) {
       if (!_.isObject(options)) {
         options = {
           template: options
         }
       }
 
-      return $translate ([options.title, options.subTitle, options.template]).then(function(translations) {
+      return $translate([options.title, options.subTitle, options.template], params).then(function(translations) {
         options.title = translations[options.title];
         options.subTitle = translations[options.subTitle];
         options.template = translations[options.template];
@@ -24,8 +24,9 @@
       });
     };
 
-    NotificationService.prototype.showConfirm = function(options) {
-      return $translate ([options.title, options.subTitle, options.template, options.okText, options.cancelText]).then(function(translations) {
+    NotificationService.prototype.showConfirm = function(options, params) {
+      return $translate([options.title, options.subTitle, options.template, options.okText, options.cancelText], params).
+        then(function(translations) {
         options.title = translations[options.title];
         options.subTitle = translations[options.subTitle];
         options.template = translations[options.template];
