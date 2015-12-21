@@ -3,7 +3,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   var LOGIN_FAILED = '0';
   var LOGIN_BY_AGENT = '1';
   var LOGIN_BY_CUSTOMER = '0';
-  var FIRST_LOGIN = '-1';
+  var FIRST_PURCHASE = '-1';
 
   var UserService = function() {
     self = this;

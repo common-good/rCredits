@@ -9,7 +9,7 @@ describe ('User Service', function() {
     });
   });
 
-  var userService, rootScope, httpBackend;
+  var userService, rootScope, httpBackend, localStorageService;
   var SCAN_RESULT = {text: "HTTP://NEW.RC4.ME/AAK.NyCBBlUF1qWNZ2k", format: "QR_CODE", cancelled: false};
 
   var LOGIN_WITH_RCARD_ERROR_RESPONSE = {"ok": "0", "message": "bad agent NEW:AABs"};
@@ -24,10 +24,11 @@ describe ('User Service', function() {
     "time": 1450364516
   };
 
-  beforeEach (inject (function(UserService, $rootScope, $httpBackend) {
+  beforeEach (inject (function(UserService, $rootScope, $httpBackend, _localStorageService_) {
     userService = UserService;
     httpBackend = $httpBackend;
     rootScope = $rootScope;
+    localStorageService = _localStorageService_;
 
     $httpBackend.whenGET(/templates\/*/).respond(function(method, url, data, headers) {
       return [200, '<div></div>'];
@@ -67,7 +68,8 @@ describe ('User Service', function() {
     httpBackend.flush();
   });
 
-  it ("Should also set firstLogin: true on seller object if deviceid was not sent", function() {
+  it ("Should also set firstLogin: true on seller object if deviceId was not sent", function() {
+    localStorageService.remove('deviceID');
     httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(LOGIN_WITH_RCARD_SUCESS_RESPONSE);
 
     userService.loginWithRCard(SCAN_RESULT.text).then(function(seller) {
