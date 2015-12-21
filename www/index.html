@@ -5,6 +5,10 @@
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
     <title></title>
 
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src *; media-src *; img-src *; style-src * 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*  https://*.rcredits.org/">
+
+
     <!-- compiled css output -->
     <link href="css/ionic.app.css" rel="stylesheet">
 
@@ -13,9 +17,13 @@
     <script src="lib/angular-translate/angular-translate.min.js"></script>
     <script src="lib/angular-translate-loader-static-files/angular-translate-loader-static-files.min.js"></script>
     <script src="lib/angular-translate-handler-log/angular-translate-handler-log.min.js"></script>
+    <script src="lib/angular-local-storage/dist/angular-local-storage.min.js"></script>
+    <script src="lib/prototypejs/dist/prototype.min.js"></script>
 
     <!-- cordova script (this will be a 404 during development) -->
     <script src="cordova.js"></script>
+
+
 
     <!-- your app's js -->
     <script src="js/config.js"></script>
@@ -37,6 +45,14 @@
     <script src="js/services/barcode_result.js"></script>
     <script src="js/services/user_service.js"></script>
     <script src="js/services/notification_service.js"></script>
+    <script src="js/services/request_parameter_builder.js"></script>
+    <script src="js/services/qrcode_parser.js"></script>
+
+    <!-- models -->
+    <script src="js/models/user.js"></script>
+    <script src="js/models/seller.js"></script>
+    <script src="js/models/account_info.js"></script>
+
   </head>
 
   <body ng-app="rcredits">
