@@ -59,6 +59,8 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         throw self.LOGIN_SELLER_ERROR_MESSAGE;
       }
 
+    }, function(res) {
+      throw res.statusText;
     });
   };
 

@@ -46,12 +46,12 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
             };
           })
           .catch(function(errorMsg) {
-            NotificationService.showAlert(errorMsg);
+            NotificationService.showAlert({title: "error", template: errorMsg});
             $ionicLoading.hide();
           });
       })
       .catch(function(errorMsg) {
-        NotificationService.showAlert(errorMsg);
+        NotificationService.showAlert({title: "error", template: errorMsg});
         $ionicLoading.hide();
       });
   };

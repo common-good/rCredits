@@ -10,7 +10,7 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
         $state.go("app.login");
       })
       .catch(function(errorMsg) {
-        NotificationService.showAlert(errorMsg);
+        NotificationService.showAlert({title: "error", template: errorMsg});
       })
       .finally(function() {
         $ionicLoading.hide();
