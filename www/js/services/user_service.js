@@ -15,7 +15,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   // Gets the current user. Returns the user object,
   // or null if there is no current user.
   UserService.prototype.currentUser = function() {
-    return {name: "Andrea Green", company: "Tasty Soaps, Inc.", firstLogin: true};
+    return self.user;
   };
 
   // Gets the current customer. Returns an object
@@ -60,12 +60,15 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     return this.loginWithRCard_(str)
       .then(function(responseData) {
         if (responseData.logon === LOGIN_BY_AGENT) {
-          return self.createSeller(responseData);
+          self.user = self.createSeller(responseData);
+          return self.user;
         }
 
         if (responseData.logon === LOGIN_BY_CUSTOMER) {
           throw self.LOGIN_SELLER_ERROR_MESSAGE;
         }
+      }, function(res) {
+        throw res.statusText;
       });
   };
 

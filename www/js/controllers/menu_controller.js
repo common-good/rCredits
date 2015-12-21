@@ -7,24 +7,13 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
 
     UserService.logout()
       .then(function() {
-        $scope.redirectToLogin();
+        $state.go("app.login");
       })
       .catch(function(errorMsg) {
-        NotificationService.showAlert(errorMsg);
+        NotificationService.showAlert({title: "error", template: errorMsg});
       })
       .finally(function() {
         $ionicLoading.hide();
       });
   };
-
-  // Redirects
-
-  $scope.redirectToLogin = function() {
-    $state.go("app.login");
-  };
-
-  $scope.redirectHome = function() {
-    $state.go("app.home");
-  };
-
 });
