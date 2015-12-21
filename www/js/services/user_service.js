@@ -129,15 +129,16 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
 
     return this.loginWithRCard_(params)
       .then(function(responseData) {
-        if (responseData.logon === LOGIN_BY_CUSTOMER) {
+        if (responseData.logon === LOGIN_BY_CUSTOMER || responseData.logon === FIRST_PURCHASE) {
           self.customer = self.createCustomer(responseData);
+
+          if (responseData.logon === FIRST_PURCHASE) {
+            self.customer.firstPurchase = true;
+          }
+
           return self.customer;
         }
-        FIRST_PURCHASE
-        if (responseData.logon === FIRST_PURCHASE) {
-          self.customer = self.createCustomer(responseData);
-          return self.customer;
-        }
+
 
         if (responseData.logon === LOGIN_BY_AGENT) {
           throw self.LOGIN_SELLER_ERROR_MESSAGE;
