@@ -27,3 +27,7 @@ npm install
 
 ### Run
 `ionic serve`
+
+### Run on Device
+1. `ionic state restore # Only if plugins or platforms may have changed`
+1. `ionic run <android|ios>`
