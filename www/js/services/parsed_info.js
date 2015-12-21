@@ -3,7 +3,7 @@
   var ParsedInfo = function() {
     this.isPersonal = false;
     this.isCompany = false;
-    this.accountType = '';
+    this.accountId = '';
     this.securityCode = '';
   };
 

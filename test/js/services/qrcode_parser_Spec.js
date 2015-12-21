@@ -23,16 +23,16 @@ describe ('QRCode Parser', function() {
     expect (qrcodeParser.getParsedInfo().isPersonalAccount()).toBe(true);
   });
 
-  it ('Parse Company Account Type', function() {
+  it ('Parse Company Account ID', function() {
     qrcodeParser.setUrl(COMPANY_ACCOUNT);
     qrcodeParser.parse();
-    expect (qrcodeParser.getParsedInfo().accountType).toEqual('NEW-AAB');
+    expect (qrcodeParser.getParsedInfo().accountId).toEqual('NEW:AAB');
   });
 
-  it ('Parse Individual Account Type', function() {
+  it ('Parse Individual Account ID', function() {
     qrcodeParser.setUrl(INDIVIDUAL_ACCOUNT);
     qrcodeParser.parse();
-    expect (qrcodeParser.getParsedInfo().accountType).toEqual('NEW.ABB');
+    expect (qrcodeParser.getParsedInfo().accountId).toEqual('NEW.ABB');
   });
 
   it ('Parse Company Security Code', function() {

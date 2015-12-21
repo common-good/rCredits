@@ -8,7 +8,7 @@
         op: '',
         device: this.getDeviceId() || '',
         code: qrCodeParsedInfo.securityCode,
-        member: qrCodeParsedInfo.accountType,
+        member: qrCodeParsedInfo.accountId,
         version: rCreditsConfig.build
       };
     };

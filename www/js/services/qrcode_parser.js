@@ -1,6 +1,7 @@
 (function(window) {
 
   var COMPANY_INDICATOR = '-';
+  var COMPANY_INDICATOR_URL = ':';
   var PERSONAL_INDICATOR = '.';
 
   var QRCodeParser = function(url) {
@@ -39,9 +40,9 @@
     if (this.parsedInfo.isPersonalAccount()) {
       separator = PERSONAL_INDICATOR;
     } else {
-      separator = COMPANY_INDICATOR;
+      separator = COMPANY_INDICATOR_URL;
     }
-    this.parsedInfo.accountType = xxx + separator + yyy;
+    this.parsedInfo.accountId = xxx + separator + yyy;
   };
 
   QRCodeParser.prototype.parseSecurityCode_ = function() {
