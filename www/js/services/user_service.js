@@ -8,7 +8,10 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   var UserService = function() {
     self = this;
     this.user = null;
+    this.LOGIN_SELLER_ERROR_MESSAGE = 'Not a valid rCard for seller login';
   };
+
+
 
   // Gets the current user. Returns the user object,
   // or null if there is no current user.
@@ -49,7 +52,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       var responseData = res.data;
 
       if (responseData.ok === LOGIN_FAILED) {
-        throw responseData.message;
+        throw self.LOGIN_SELLER_ERROR_MESSAGE;
       }
 
       if (responseData.logon === LOGIN_BY_AGENT) {

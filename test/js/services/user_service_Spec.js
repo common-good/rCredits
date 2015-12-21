@@ -61,7 +61,8 @@ describe ('User Service', function() {
     httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(LOGIN_WITH_RCARD_ERROR_RESPONSE);
     userService.loginWithRCard(SCAN_RESULT.text)
       .catch(function(err) {
-        expect (err).toBe(LOGIN_WITH_RCARD_ERROR_RESPONSE.message);
+        console.log("VARIABLE: ", userService.LOGIN_SELLER_ERROR_MESSAGE);
+        expect (err).toBe(userService.LOGIN_SELLER_ERROR_MESSAGE);
       });
 
     httpBackend.flush();
