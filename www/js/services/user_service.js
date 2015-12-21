@@ -15,7 +15,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   // Gets the current user. Returns the user object,
   // or null if there is no current user.
   UserService.prototype.currentUser = function() {
-    return {name: "Andrea Green", company: "Tasty Soaps, Inc.", firstLogin: true};
+    return self.user;
   };
 
   // Gets the current customer. Returns an object
@@ -29,9 +29,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
 
   // Logs user in given the scanned info from an rCard.
   // Returns a promise that resolves when login is complete.
-  // If this is the first login, the promise will resolve with {firstLogin: true}
-  // The app should then give notice to the user that the device is associated with the
-  // user.
+  // Current user should be retrieved using currentUser function above.
   UserService.prototype.loginWithRCard = function(str) {
     var qrcodeParser = new QRCodeParser ();
     qrcodeParser.setUrl(str);
@@ -46,8 +44,6 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       },
       data: $httpParamSerializer (params)
     }).then(function(res) {
-      console.log("RESPONSE ", res);
-
       var responseData = res.data;
 
       if (responseData.ok === LOGIN_FAILED) {
@@ -55,7 +51,8 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       }
 
       if (responseData.logon === LOGIN_BY_AGENT) {
-        return self.createSeller(responseData);
+        self.user = self.createSeller(responseData);
+        return self.user;
       }
 
       if (responseData.logon === LOGIN_BY_CUSTOMER) {
