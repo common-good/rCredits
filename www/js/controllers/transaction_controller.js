@@ -3,12 +3,38 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
 
   $scope.transactionType = $stateParams.transactionType;
 
-  $scope.charge = function(amount) {
+  $scope.charge = function() {
+    // TransactionService.charge($scope.amount)
+    // .then(function(result) {
+    //   console.log('Transaction success');
+    //   console.log(result);
+
+    //   $state.go('app.transaction_result',
+    //     {'transactionStatus': 'success', 'amount': result.amount});
+
+    //   console.log(result.amount);
+    //   // Transaction Service or Transaction Controller makes call to User Service
+    //   // User Service has updated rewards and balance values
+
+    //   // Show success screen
+    //   // Call user service to show updated balance
+    // })
+    // .catch(function(result) {
+    //   console.log('Transaction fail');
+    //   // Show failure screen
+    // });
   };
 
   $scope.refund = function(amount) {
   };
 
+  $scope.initiateTransaction = function() {
+    if ($scope.transactionType == 'charge') {
+      $scope.charge();
+    } else {
+      scope.refund();
+    }
+  }
 
   $scope.transactionStatus = $stateParams.transactionStatus;
 

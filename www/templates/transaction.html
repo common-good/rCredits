@@ -22,7 +22,9 @@
       </section>
 
       <section class="section-3">
-        <div class="main-action button button-full button-positive">
+        <div class="main-action button button-full button-positive"
+          ng-click='initiateTransaction()'>
+          <!-- Disabled if amount is 0 -->
           {{ transactionType | translate }}
         </div>
       </section>
