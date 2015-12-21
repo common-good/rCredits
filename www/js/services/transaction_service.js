@@ -4,7 +4,7 @@ app.service('TransactionService', function($q) {
     self = this;
   };
 
-  TransactionService.prototype.charge = function(amount) {
+  TransactionService.prototype.charge = function(amount, description) {
     // Simulates a charge. Resolves the promise if SUCCEED is true, rejects if false.
     var SUCCEED = false;
 
