@@ -61,7 +61,7 @@ angular.module('routes', [])
   })
 
   .state('app.transaction_result', {
-    url: '/transaction-result/{transactionStatus}',
+    url: '/transaction-result/{transactionStatus}{transactionAmount}',
     views: {
       'menuContent': {
         templateUrl: 'templates/transaction-result.html',

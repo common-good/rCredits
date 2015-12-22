@@ -3,17 +3,21 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
   TransactionService) {
 
   $scope.transactionType = $stateParams.transactionType;
+  $scope.amount = 0;
+
+  // $scope.emptyAmount = function() {
+  //   if ($scope.amount === 0 || $this.amount === 0){
+  //     return true;
+  //   };
+  // }
 
   $scope.charge = function() {
     TransactionService.charge($scope.amount)
     .then(function(result) {
-      console.log('Transaction success');
-      console.log(result);
-
+      var transactionAmount = $scope.amount;
       $state.go('app.transaction_result',
-        {'transactionStatus': 'success', 'amount': result.amount});
+        {'transactionStatus': 'success', 'transactionAmount': transactionAmount});
 
-      console.log(result.amount);
       // Transaction Service or Transaction Controller makes call to User Service
       // User Service has updated rewards and balance values
 
