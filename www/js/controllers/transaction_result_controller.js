@@ -12,7 +12,8 @@ app.controller('TransactionResultCtrl', function($scope, $state,
   if ($scope.transactionStatus === 'success') {
     statusKey = 'Success';
     $scope.success = true;
-  } else {
+  } else if ($scope.transactionStatus == 'failure') {
+    statusKey = 'LowFunds';
   }
 
   $scope.customer = UserService.currentCustomer();
