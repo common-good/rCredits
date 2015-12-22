@@ -5,11 +5,11 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
   $scope.transactionType = $stateParams.transactionType;
   $scope.amount = 0;
 
-  // $scope.emptyAmount = function() {
-  //   if ($scope.amount === 0 || $this.amount === 0){
-  //     return true;
-  //   };
-  // }
+  $scope.disableTransaction = function() {
+    if ($scope.amount === 0){
+      return true;
+    }
+  }
 
   $scope.charge = function() {
     TransactionService.charge($scope.amount)

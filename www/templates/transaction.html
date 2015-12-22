@@ -22,10 +22,10 @@
       </section>
 
       <section class="section-3">
-        <input type="hidden" ng-value='amount' ng-model='$scope.currentAmount'></input>
+        <input type="hidden" ng-value='amount'></input>
         <div class="main-action button button-full button-positive"
-          ng-click='initiateTransaction()' ng-disabled='emptyAmount'>
-          <!-- Disabled if amount is 0 -->
+          ng-click='initiateTransaction()'
+          ng-disabled='disableTransaction()'>
           {{ transactionType | translate }}
         </div>
       </section>
