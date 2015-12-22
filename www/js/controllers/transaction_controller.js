@@ -12,9 +12,10 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
   }
 
   $scope.charge = function() {
-    TransactionService.charge($scope.amount)
+    var transactionAmount = $scope.amount;
+
+    TransactionService.charge(transactionAmount)
     .then(function(result) {
-      var transactionAmount = $scope.amount;
       $state.go('app.transaction_result',
         {'transactionStatus': 'success', 'transactionAmount': transactionAmount});
 
@@ -25,8 +26,8 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
       // Call user service to show updated balance
     })
     .catch(function(result) {
-      console.log('Transaction fail');
-      // Show failure screen
+      $state.go('app.transaction_result',
+        {'transactionStatus': 'failure', 'transactionAmount': transactionAmount});
     });
   };
 
