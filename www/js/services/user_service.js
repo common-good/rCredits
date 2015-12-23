@@ -101,18 +101,6 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     return seller;
   };
 
-  UserService.prototype.createCustomer = function(customerInfo) {
-    var props = ['balance', 'can', 'company', 'place'];
-    var customer = new Customer (customerInfo.name);
-    customer.setRewards(customerInfo.rewards);
-
-    _.each(props, function(p) {
-      customer[p] = customerInfo[p];
-    });
-
-    return customer;
-  };
-
   // Gets customer info and photo given the scanned info from an rCard.
   // Returns a promise that resolves with the following arguments:
   // 1. user - The User object
@@ -146,6 +134,18 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
           throw self.LOGIN_SELLER_ERROR_MESSAGE;
         }
       });
+  };
+
+  UserService.prototype.createCustomer = function(customerInfo) {
+    var props = ['balance', 'can', 'company', 'place'];
+    var customer = new Customer (customerInfo.name);
+    customer.setRewards(customerInfo.rewards);
+
+    _.each(props, function(p) {
+      customer[p] = customerInfo[p];
+    });
+
+    return customer;
   };
 
   // Logs the user out on the remote server.
