@@ -113,37 +113,28 @@ describe ('User Service', function() {
 
     it ('Customer login', function() {
 
-      httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(SELLER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
-      userService.loginWithRCard(SELLER_SCAN_RESULT.text).then(function(seller) {
+      userService.seller = userService.createSeller(SELLER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
 
-        httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
-        userService.identifyCustomer(CUSTOMER_SCAN_RESULT.text).then(function(customer) {
-          expect (customer.name).toBe(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE.name);
-          expect (customer.company).toBe(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE.company);
-          expect (customer.can).toBe(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE.can);
-        });
-        httpBackend.flush();
-
+      httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
+      userService.identifyCustomer(CUSTOMER_SCAN_RESULT.text).then(function(customer) {
+        expect (customer.name).toBe(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE.name);
+        expect (customer.company).toBe(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE.company);
+        expect (customer.can).toBe(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE.can);
+        expect (customer.rewards).toBe(parseFloat (CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE.rewards));
       });
       httpBackend.flush();
-
     });
 
     it ('Customer login with FIRST PURCHASE', function() {
 
-      httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(SELLER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
-      userService.loginWithRCard(SELLER_SCAN_RESULT.text).then(function(seller) {
+      userService.seller = userService.createSeller(SELLER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
 
-        CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE.logon = 1;
-        httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
-        userService.identifyCustomer(CUSTOMER_SCAN_RESULT.text).then(function(customer) {
-          expect (customer.firstPurchase).toBe(true);
-        });
-        httpBackend.flush();
-
+      CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE.logon = '-1';
+      httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
+      userService.identifyCustomer(CUSTOMER_SCAN_RESULT.text).then(function(customer) {
+        expect (customer.firstPurchase).toBe(true);
       });
       httpBackend.flush();
-
     });
 
   });
