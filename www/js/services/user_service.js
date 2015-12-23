@@ -39,14 +39,19 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       },
       data: $httpParamSerializer (params)
     }).then(function(res) {
-      console.log("RESPONSE ", res);
-      var responseData = res.data;
+        var responseData = res.data;
 
-      if (responseData.ok === LOGIN_FAILED) {
-        throw responseData.message;
-      }
-      return responseData;
-    });
+        if (responseData.ok === LOGIN_FAILED) {
+          throw responseData.message;
+        }
+        return responseData;
+      })
+      .catch(function(err) {
+        if (_.isString(err)) {
+          throw err
+        }
+        throw err.statusText;
+      });
   };
 
   // Logs user in given the scanned info from an rCard.
@@ -74,8 +79,6 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         if (responseData.logon === LOGIN_BY_CUSTOMER) {
           throw self.LOGIN_SELLER_ERROR_MESSAGE;
         }
-      }, function(res) {
-        throw res.statusText;
       });
   };
 
@@ -138,7 +141,6 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
 
           return self.customer;
         }
-
 
         if (responseData.logon === LOGIN_BY_AGENT) {
           throw self.LOGIN_SELLER_ERROR_MESSAGE;
