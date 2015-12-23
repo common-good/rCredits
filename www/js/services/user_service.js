@@ -14,7 +14,6 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     this.LOGIN_SELLER_ERROR_MESSAGE = 'Not a valid rCard for seller login';
   };
 
-
   // Gets the current user. Returns the user object,
   // or null if there is no current user.
   UserService.prototype.currentUser = function() {
@@ -24,13 +23,10 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   // Gets the current customer. Returns an object
   // or null if there is no current customer.
   UserService.prototype.currentCustomer = function() {
-    return {
-      name: "Phillip Blivers", place: "Ann Arbor, MI", balance: 110.23,
-      balanceSecret: false, rewards: 8.72, photo: "img/sample-customer.png", firstPurchase: true
-    };
+    return self.customer;
   };
 
-  UserService.prototype.loginWithRCard_ = function(params) {
+  UserService.prototype.makeRequest_ = function(params) {
     return $http ({
       method: 'POST',
       url: rCreditsConfig.serverUrl,
@@ -38,7 +34,11 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       data: $httpParamSerializer (params)
-    }).then(function(res) {
+    });
+  };
+
+  UserService.prototype.loginWithRCard_ = function(params) {
+    return this.makeRequest_(params).then(function(res) {
         var responseData = res.data;
 
         if (responseData.ok === LOGIN_FAILED) {
@@ -117,7 +117,6 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       .setMember(accountInfo.accountId)
       .setSecurityCode(accountInfo.securityCode)
       .getParams();
-
     return this.loginWithRCard_(params)
       .then(function(responseData) {
         if (responseData.logon === LOGIN_BY_CUSTOMER || responseData.logon === FIRST_PURCHASE) {
@@ -133,7 +132,13 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         if (responseData.logon === LOGIN_BY_AGENT) {
           throw self.LOGIN_SELLER_ERROR_MESSAGE;
         }
-      });
+      })
+      //.then(function(customer) {
+      //  return self.getProfilePicture(accountInfo.accountId, accountInfo.securityCode);
+      //})
+      //.then(function(binaryImage){
+      //  self.customer.photo = binaryImage;
+      //})
   };
 
   UserService.prototype.createCustomer = function(customerInfo) {
@@ -148,6 +153,25 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     return customer;
   };
 
+  UserService.prototype.getProfilePicture = function(member, securityCode) {
+    var params = new RequestParameterBuilder ()
+      .setOperationId('photo')
+      .setAgent(this.seller.default)
+      .setMember(member)
+      .setSecurityCode(securityCode)
+      .getParams();
+
+    return this.makeRequest_(params)
+      .then(function(res) {
+        console.log(res);
+        return res.data
+      })
+      .catch(function(err) {
+        console.error(err);
+        throw err;
+      })
+  };
+
   // Logs the user out on the remote server.
   // Returns a promise that resolves when logout is complete, or rejects with error of fail.
   UserService.prototype.logout = function() {
@@ -155,6 +179,8 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     var SUCCEED = true;
     return $q (function(resolve, reject) {
       if (SUCCEED) {
+        self.customer = null;
+        self.seller = null;
         resolve ();
       } else {
         reject ("logoutFailure");

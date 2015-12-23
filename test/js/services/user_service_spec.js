@@ -112,9 +112,7 @@ describe ('User Service', function() {
   describe ('Identify Customer', function() {
 
     it ('Customer login', function() {
-
       userService.seller = userService.createSeller(SELLER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
-
       httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
       userService.identifyCustomer(CUSTOMER_SCAN_RESULT.text).then(function(customer) {
         expect (customer.name).toBe(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE.name);
@@ -126,9 +124,7 @@ describe ('User Service', function() {
     });
 
     it ('Customer login with FIRST PURCHASE', function() {
-
       userService.seller = userService.createSeller(SELLER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
-
       CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE.logon = '-1';
       httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
       userService.identifyCustomer(CUSTOMER_SCAN_RESULT.text).then(function(customer) {
