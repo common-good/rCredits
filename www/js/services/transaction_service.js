@@ -1,12 +1,14 @@
 app.service('TransactionService', function($q) {
 
+  var self;
+
   var TransactionService = function () {
     self = this;
   };
 
   TransactionService.prototype.charge = function(amount, description) {
     // Simulates a charge. Resolves the promise if SUCCEED is true, rejects if false.
-    var SUCCEED = false;
+    var SUCCEED = true;
 
     return $q(function(resolve, reject) {
       setTimeout(function() {
