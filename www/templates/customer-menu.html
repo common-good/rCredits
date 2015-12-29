@@ -7,7 +7,9 @@
 
   <ion-content>
     <div class="rc">
-      <img id="ItemPreview" src=""  class="customer-img" sf-load="hideLoading()" />
+
+      <!--<img id="ItemPreview" src=""  class="customer-img" sf-load="hideLoading()" />-->
+      <img id="ItemPreview"  ng-src="{{customer.photo}}"  class="customer-img" sf-load="hideLoading()" />
       <p class="customer-name">{{customer.name}}</p>
 
       <button class="button button-block button-positive main-action">
