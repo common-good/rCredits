@@ -42,6 +42,7 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
                 });
               $ionicLoading.hide();
             } else {
+              $ionicLoading.hide();
               $state.go("app.customer");
             };
           })

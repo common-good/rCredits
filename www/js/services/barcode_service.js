@@ -2,13 +2,17 @@
   'use strict';
 
   var WebScanner = function() {
+    this.id = 0;
     this.scan = function(success, fail) {
-      success (WebScanner.DEFAULT_WEB_SCAN);
+      success (WebScanner.SCANS[this.id++]);
     }
   };
 
   // This the read from Bob Bossman: NEW:AAB, WeHlioM5JZv1O9G
-  WebScanner.DEFAULT_WEB_SCAN = {text: "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G", format: "QR_CODE", cancelled: false}
+  WebScanner.SCANS = [
+    {text: "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G", format: "QR_CODE", cancelled: false}, // Seller
+    {text: "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw", format: "QR_CODE", cancelled: false}  // Customer
+  ];
 
   app.service('BarcodeService', function($q, $ionicPlatform) {
 

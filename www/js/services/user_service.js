@@ -1,4 +1,6 @@
-app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller) {
+app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer) {
+
+  'use strict';
 
   var self;
 
@@ -7,37 +9,26 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   var LOGIN_BY_CUSTOMER = '0';
   var FIRST_PURCHASE = '-1';
 
+  var self;
   var UserService = function() {
     self = this;
-    this.user = null;
+    this.seller = null;
     this.LOGIN_SELLER_ERROR_MESSAGE = 'Not a valid rCard for seller login';
   };
-
 
   // Gets the current user. Returns the user object,
   // or null if there is no current user.
   UserService.prototype.currentUser = function() {
-    return self.user;
+    return this.seller;
   };
 
   // Gets the current customer. Returns an object
   // or null if there is no current customer.
   UserService.prototype.currentCustomer = function() {
-    return {
-      name: "Phillip Blivers", place: "Ann Arbor, MI", balance: 110.23,
-      balanceSecret: false, rewards: 8.72, photo: "img/sample-customer.png", firstPurchase: true
-    };
+    return self.customer;
   };
 
-  // Logs user in given the scanned info from an rCard.
-  // Returns a promise that resolves when login is complete.
-  // Current user should be retrieved using currentUser function above.
-  UserService.prototype.loginWithRCard = function(str) {
-    var qrcodeParser = new QRCodeParser ();
-    qrcodeParser.setUrl(str);
-    this.qrcodeInfo = qrcodeParser.parse();
-    var params = new RequestParameterBuilder (this.qrcodeInfo).setOperationId('identify').getParams();
-
+  UserService.prototype.makeRequest_ = function(params) {
     return $http ({
       method: 'POST',
       url: rCreditsConfig.serverUrl,
@@ -45,25 +36,52 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       data: $httpParamSerializer (params)
-    }).then(function(res) {
-      var responseData = res.data;
-
-      if (responseData.ok === LOGIN_FAILED) {
-        throw responseData.message;
-      }
-
-      if (responseData.logon === LOGIN_BY_AGENT) {
-        self.user = self.createSeller(responseData);
-        return self.user;
-      }
-
-      if (responseData.logon === LOGIN_BY_CUSTOMER) {
-        throw self.LOGIN_SELLER_ERROR_MESSAGE;
-      }
-
-    }, function(res) {
-      throw res.statusText;
     });
+  };
+
+  UserService.prototype.loginWithRCard_ = function(params) {
+    return this.makeRequest_(params).then(function(res) {
+        var responseData = res.data;
+
+        if (responseData.ok === LOGIN_FAILED) {
+          throw responseData.message;
+        }
+        return responseData;
+      })
+      .catch(function(err) {
+        if (_.isString(err)) {
+          throw err
+        }
+        throw err.statusText;
+      });
+  };
+
+  // Logs user in given the scanned info from an rCard.
+  // Returns a promise that resolves when login is complete.
+  // If this is the first login, the promise will resolve with {firstLogin: true}
+  // The app should then give notice to the user that the device is associated with the
+  // user.
+  UserService.prototype.loginWithRCard = function(str) {
+    var qrcodeParser = new QRCodeParser ();
+    qrcodeParser.setUrl(str);
+    var accountInfo = qrcodeParser.parse();
+    var params = new RequestParameterBuilder ()
+      .setOperationId('identify')
+      .setSecurityCode(accountInfo.securityCode)
+      .setMember(accountInfo.accountId)
+      .getParams();
+
+    return this.loginWithRCard_(params)
+      .then(function(responseData) {
+        if (responseData.logon === LOGIN_BY_AGENT) {
+          self.seller = self.createSeller(responseData);
+          return self.seller;
+        }
+
+        if (responseData.logon === LOGIN_BY_CUSTOMER) {
+          throw self.LOGIN_SELLER_ERROR_MESSAGE;
+        }
+      });
   };
 
   UserService.prototype.createSeller = function(sellerInfo) {
@@ -92,18 +110,68 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   //      firstPurchase - Whether this is the user's first rCredits purchase. If so, the
   //        app should notify the seller to request photo ID.
   UserService.prototype.identifyCustomer = function(str) {
-    // Simulates a login. Resolves the promise if SUCCEED is true, rejects if false.
-    var SUCCEED = true;
+    var qrcodeParser = new QRCodeParser ();
+    qrcodeParser.setUrl(str);
+    var accountInfo = qrcodeParser.parse();
+    var params = new RequestParameterBuilder ()
+      .setOperationId('identify')
+      .setAgent(this.seller.default)
+      .setMember(accountInfo.accountId)
+      .setSecurityCode(accountInfo.securityCode)
+      .getParams();
+    return this.loginWithRCard_(params)
+      .then(function(responseData) {
+        if (responseData.logon === LOGIN_BY_CUSTOMER || responseData.logon === FIRST_PURCHASE) {
+          self.customer = self.createCustomer(responseData);
 
-    return $q (function(resolve, reject) {
-      setTimeout (function() {
-        if (SUCCEED) {
-          resolve ();
-        } else {
-          reject("userLookupFailure");
+          if (responseData.logon === FIRST_PURCHASE) {
+            self.customer.firstPurchase = true;
+          }
+
+          return self.customer;
         }
-      }, 1000);
+
+        if (responseData.logon === LOGIN_BY_AGENT) {
+          throw self.LOGIN_SELLER_ERROR_MESSAGE;
+        }
+      })
+      //.then(function(customer) {
+      //  return self.getProfilePicture(accountInfo.accountId, accountInfo.securityCode);
+      //})
+      //.then(function(binaryImage){
+      //  self.customer.photo = binaryImage;
+      //})
+  };
+
+  UserService.prototype.createCustomer = function(customerInfo) {
+    var props = ['balance', 'can', 'company', 'place'];
+    var customer = new Customer (customerInfo.name);
+    customer.setRewards(customerInfo.rewards);
+
+    _.each(props, function(p) {
+      customer[p] = customerInfo[p];
     });
+
+    return customer;
+  };
+
+  UserService.prototype.getProfilePicture = function(member, securityCode) {
+    var params = new RequestParameterBuilder ()
+      .setOperationId('photo')
+      .setAgent(this.seller.default)
+      .setMember(member)
+      .setSecurityCode(securityCode)
+      .getParams();
+
+    return this.makeRequest_(params)
+      .then(function(res) {
+        console.log(res);
+        return res.data
+      })
+      .catch(function(err) {
+        console.error(err);
+        throw err;
+      })
   };
 
   // Logs the user out on the remote server.
@@ -111,12 +179,14 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   UserService.prototype.logout = function() {
     // Simulates logout. Resolves the promise if SUCCEED is true, rejects if false.
     var SUCCEED = true;
-    return $q(function(resolve, reject) {
-        if (SUCCEED) {
-          resolve();
-        } else {
-          reject("logoutFailure");
-        }
+    return $q (function(resolve, reject) {
+      if (SUCCEED) {
+        self.customer = null;
+        self.seller = null;
+        resolve ();
+      } else {
+        reject ("logoutFailure");
+      }
     });
   };
 
