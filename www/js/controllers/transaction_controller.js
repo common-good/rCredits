@@ -12,22 +12,22 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
   }
 
   $scope.charge = function() {
+    $ionicLoading.show();
+
     var transactionAmount = $scope.amount;
 
     TransactionService.charge(transactionAmount)
-    .then(function(result) {
+    .then(function (result) {
       $state.go('app.transaction_result',
         {'transactionStatus': 'success', 'transactionAmount': transactionAmount});
-
-      // Transaction Service or Transaction Controller makes call to User Service
-      // User Service has updated rewards and balance values
-
-      // Show success screen
-      // Call user service to show updated balance
-    })
-    .catch(function(result) {
+      $ionicLoading.hide();
+    }, function (errorMsg) {
       $state.go('app.transaction_result',
         {'transactionStatus': 'failure', 'transactionAmount': transactionAmount});
+      $ionicLoading.hide();
+    })
+    .catch(function(errorMsg) {
+      NotificationService.showAlert({title: "error", template: errorMsg});
     });
   };
 
