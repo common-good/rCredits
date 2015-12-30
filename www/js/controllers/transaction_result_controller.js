@@ -19,7 +19,6 @@ app.controller('TransactionResultCtrl', function($scope, $state,
   $scope.customer = UserService.currentCustomer();
   $scope.user = UserService.currentUser();
 
-
   // Keys for Translation
   $scope.heading = 'transaction' + statusKey + 'Heading';
   $scope.note = 'transaction' + statusKey + 'Note';

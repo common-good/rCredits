@@ -15,7 +15,7 @@ angular.module('routes', [])
     views: {
       'menuContent': {
         templateUrl: 'templates/home.html',
-        controller: "CompanyHomeCtrl"
+        controller: 'CompanyHomeCtrl'
       }
     }
   })
@@ -25,7 +25,7 @@ angular.module('routes', [])
     views: {
       'menuContent': {
         templateUrl: 'templates/login.html',
-        controller: "LoginCtrl"
+        controller: 'LoginCtrl'
       }
     }
   })
@@ -35,7 +35,7 @@ angular.module('routes', [])
     views: {
       'menuContent': {
         templateUrl: 'templates/customer-menu.html',
-        controller: "CustomerMenuCtrl"
+        controller: 'CustomerMenuCtrl'
       }
     }
   })
@@ -55,7 +55,7 @@ angular.module('routes', [])
     views: {
       'menuContent': {
         templateUrl: 'templates/transaction.html',
-        controller: "TransactionCtrl"
+        controller: 'TransactionCtrl'
       }
     }
   })
@@ -65,7 +65,7 @@ angular.module('routes', [])
     views: {
       'menuContent': {
         templateUrl: 'templates/transaction-result.html',
-        controller: "TransactionResultCtrl"
+        controller: 'TransactionResultCtrl'
       }
     }
   });
