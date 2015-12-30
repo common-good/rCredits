@@ -10,6 +10,16 @@ angular.module('routes', [])
     controller: 'MenuCtrl'
   })
 
+  .state('app.customer', {
+    url: '/customer',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/customer-menu.html',
+        controller: 'CustomerMenuCtrl'
+      }
+    }
+  })
+
   .state('app.home', {
     url: '/home',
     views: {
@@ -30,12 +40,11 @@ angular.module('routes', [])
     }
   })
 
-  .state('app.customer', {
-    url: '/customer',
+  .state('app.preferences', {
+    url: '/preferences',
     views: {
       'menuContent': {
-        templateUrl: 'templates/customer-menu.html',
-        controller: 'CustomerMenuCtrl'
+        templateUrl: 'templates/preferences.html'
       }
     }
   })

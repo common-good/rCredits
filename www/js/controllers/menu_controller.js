@@ -26,4 +26,8 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
   $scope.redirectHome = function() {
     $state.go("app.home");
   };
+
+  $scope.redirectPreferences = function() {
+    $state.go("app.preferences");
+  };
 });

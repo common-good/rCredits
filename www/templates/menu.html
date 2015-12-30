@@ -19,12 +19,17 @@
     </ion-header-bar>
     <ion-content>
       <ion-list>
+        <ion-item menu-close ng-click="redirectHome()">
+          {{ 'home' | translate }}
+        </ion-item>
         <ion-item menu-close ng-click="logout()">
           {{ 'signOut' | translate }}
         </ion-item>
+
         <ion-item>&nbsp;</ion-item>
-        <ion-item menu-close ng-click="redirectHome()">
-          {{ 'home' | translate }}
+
+        <ion-item menu-close ng-click="redirectPreferences()">
+          Preferences
         </ion-item>
       </ion-list>
     </ion-content>
