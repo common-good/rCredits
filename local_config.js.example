@@ -1,0 +1,5 @@
+// Use this file for config that is specific to the current machine only and should not be checked
+// into the repository.
+
+// Uncomment this line to override the default serverUrl.
+// rCreditsConfig.serverUrl = 'https://foo.rcredits.org/pos';
