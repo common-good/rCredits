@@ -2,54 +2,54 @@
   <ion-content>
     <div class="list">
       <li class="item item-toggle">
-         Stay Signed In
-         <label class="toggle toggle-positive">
-           <input type="checkbox">
-           <div class="track">
-             <div class="handle"></div>
-           </div>
-         </label>
+        {{ 'staySignedIn' | translate }}
+        <label class="toggle toggle-positive">
+          <input type="checkbox">
+          <div class="track">
+            <div class="handle"></div>
+          </div>
+        </label>
       </li>
 
       <li class="item item-toggle">
-         Offline Mode
-         <label class="toggle toggle-positive">
-           <input type="checkbox">
-           <div class="track">
-             <div class="handle"></div>
-           </div>
-         </label>
+        {{ 'offlineMode' | translate }}
+        <label class="toggle toggle-positive">
+          <input type="checkbox">
+          <div class="track">
+            <div class="handle"></div>
+          </div>
+        </label>
       </li>
 
       <li class="item item-toggle">
-         Self-Service Mode
-         <label class="toggle toggle-positive">
-           <input type="checkbox">
-           <div class="track">
-             <div class="handle"></div>
-           </div>
-         </label>
+        {{ 'selfServiceMode' | translate }}
+        <label class="toggle toggle-positive">
+          <input type="checkbox">
+          <div class="track">
+            <div class="handle"></div>
+          </div>
+        </label>
       </li>
 
       <li class="item item-toggle">
-         Enable Cashier Mode
-         <label class="toggle toggle-positive">
-           <input type="checkbox">
-           <div class="track">
-             <div class="handle"></div>
-           </div>
-         </label>
+        {{ 'enableCashierMode' | translate }}
+        <label class="toggle toggle-positive">
+          <input type="checkbox">
+          <div class="track">
+            <div class="handle"></div>
+          </div>
+        </label>
       </li>
 
       <li class="item">
-        When not signed in cashier can:
+        {{ 'cashierCan' | translate }}
       </li>
 
       <ion-list>
-        <ion-checkbox>Charge</ion-checkbox>
-        <ion-checkbox>Refund</ion-checkbox>
-        <ion-checkbox>Trade rCredits for USD</ion-checkbox>
-        <ion-checkbox>Trade USD for rCredits</ion-checkbox>
+        <ion-checkbox>{{ 'charge' | translate }}</ion-checkbox>
+        <ion-checkbox>{{ 'refund' | translate }}</ion-checkbox>
+        <ion-checkbox>{{ 'tradeRCreditsUSD' | translate }}</ion-checkbox>
+        <ion-checkbox>{{ 'tradeUSDRCredits' | translate }}</ion-checkbox>
       </ion-list>
 
     </div>
