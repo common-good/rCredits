@@ -26,10 +26,12 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
     return self.customer;
   };
 
-  UserService.prototype.makeRequest_ = function(params) {
+  UserService.prototype.makeRequest_ = function(params, accountInfo) {
+    var urlConf = new UrlConfigurator();
+    var x =  urlConf.getServerUrl(accountInfo.getMemberId());
     return $http ({
       method: 'POST',
-      url: rCreditsConfig.serverUrl,
+      url: urlConf.getServerUrl(accountInfo.getMemberId()),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
@@ -37,8 +39,8 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
     });
   };
 
-  UserService.prototype.loginWithRCard_ = function(params) {
-    return this.makeRequest_ (params).then (function(res) {
+  UserService.prototype.loginWithRCard_ = function(params, accountInfo) {
+    return this.makeRequest_ (params, accountInfo).then (function(res) {
         var responseData = res.data;
 
         if (responseData.ok === LOGIN_FAILED) {
@@ -69,7 +71,7 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
       .setMember (accountInfo.accountId)
       .getParams ();
 
-    return this.loginWithRCard_ (params)
+    return this.loginWithRCard_ (params, accountInfo)
       .then (function(responseData) {
         if (responseData.logon === LOGIN_BY_AGENT) {
           self.seller = self.createSeller (responseData);
@@ -117,7 +119,7 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
       .setMember (accountInfo.accountId)
       .setSecurityCode (accountInfo.securityCode)
       .getParams ();
-    return this.loginWithRCard_ (params)
+    return this.loginWithRCard_ (params, accountInfo)
       .then (function(responseData) {
         if (responseData.logon === LOGIN_BY_CUSTOMER || responseData.logon === FIRST_PURCHASE) {
           self.customer = self.createCustomer (responseData);
@@ -137,7 +139,8 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
         return self.getProfilePicture (accountInfo.accountId, accountInfo.securityCode);
       })
       .then (function(blobPhotoUrl) {
-        return self.customer.photo = blobPhotoUrl;
+        self.customer.photo = blobPhotoUrl;
+        return self.customer
       })
   };
 
