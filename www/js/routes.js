@@ -14,7 +14,8 @@ angular.module('routes', [])
     url: '/home',
     views: {
       'menuContent': {
-        templateUrl: 'templates/home.html'
+        templateUrl: 'templates/home.html',
+        controller: 'CompanyHomeCtrl'
       }
     }
   })
@@ -23,7 +24,8 @@ angular.module('routes', [])
     url: '/login',
     views: {
       'menuContent': {
-        templateUrl: 'templates/login.html'
+        templateUrl: 'templates/login.html',
+        controller: 'LoginCtrl'
       }
     }
   })
@@ -32,7 +34,8 @@ angular.module('routes', [])
     url: '/customer',
     views: {
       'menuContent': {
-        templateUrl: 'templates/customer-menu.html'
+        templateUrl: 'templates/customer-menu.html',
+        controller: 'CustomerMenuCtrl'
       }
     }
   })
@@ -43,6 +46,26 @@ angular.module('routes', [])
     views: {
       'menuContent': {
         templateUrl: 'templates/template.html'
+      }
+    }
+  })
+
+  .state('app.transaction', {
+    url: '/transaction/{transactionType}',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/transaction.html',
+        controller: 'TransactionCtrl'
+      }
+    }
+  })
+
+  .state('app.transaction_result', {
+    url: '/transaction-result/{transactionStatus}/{transactionAmount}',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/transaction-result.html',
+        controller: 'TransactionResultCtrl'
       }
     }
   });

@@ -1,0 +1,34 @@
+<ion-view>
+  <ion-content>
+    <div class="tabulator" sf-resize  ng-controller="KeyPadCtrl">
+
+      <section class="section-1">
+        <div class="calc-component">
+          <div class="list">
+            <label class="item item-input item-select">
+              <div class="input-label">
+                {{ 'selectCategory' | translate }}
+              </div>
+              <select>
+                <option>{{ 'none' | translate }}</option>
+                <option selected>{{ 'grocery' | translate }}</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-2" ng-include="'templates/keypad.html'">
+      </section>
+
+      <section class="section-3">
+        <input type="hidden" ng-value='amount'></input>
+        <div class="main-action button button-full button-positive"
+          ng-click='initiateTransaction()'
+          ng-disabled='disableTransaction()'>
+          {{ transactionType | translate }}
+        </div>
+      </section>
+    </div>
+  </ion-content>
+</ion-view>

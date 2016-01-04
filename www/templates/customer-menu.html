@@ -1,4 +1,4 @@
-<ion-view ng-controller="CustomerMenuCtrl" class="customer-menu">
+<ion-view class="customer-menu">
   <ion-nav-buttons side="secondary">
     <button class="button button-stable" ng-click="showBalance()">
       {{ 'balance' | translate }}
@@ -12,19 +12,19 @@
       <img id="ItemPreview"  ng-src="{{customer.photo}}"  class="customer-img" sf-load="hideLoading()" />
       <p class="customer-name">{{customer.name}}</p>
 
-      <button class="button button-block button-positive main-action">
+      <button class="button button-block button-positive main-action"
+        ng-click="openCharge()">
         {{ 'charge' | translate }}
       </button>
 
       <div class="button-bar bar-stable">
-        <a class="button">
+        <a class="button" ng-click="openRefund()">
           {{ 'refund' | translate }}
         </a>
         <a class="button">
           {{ 'exchange' | translate }}
         </a>
       </div>
-
     </div>
   </ion-content>
 </ion-view>

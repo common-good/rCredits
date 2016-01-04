@@ -2,6 +2,8 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
 
   'use strict';
 
+  var self;
+
   var LOGIN_FAILED = '0';
   var LOGIN_BY_AGENT = '1';
   var LOGIN_BY_CUSTOMER = '0';

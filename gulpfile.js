@@ -56,7 +56,8 @@ gulp.task('config', function() {
   if (!build_target) {
     build_target = 'development';
   }
-  gulp.src(['config.js'])
+  gulp.src(['config.js', 'local_config.js'])
     .pipe(preprocess ({context: {BUILD_TARGET: build_target}}))
-    .pipe(gulp.dest('./www/js/'))
+    .pipe(concat('config.js'))
+    .pipe(gulp.dest('./www/js/'));
 });

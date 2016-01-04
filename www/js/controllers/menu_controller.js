@@ -16,4 +16,14 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
         $ionicLoading.hide();
       });
   };
+
+  // Redirects
+
+  $scope.redirectToLogin = function() {
+    $state.go("app.login");
+  };
+
+  $scope.redirectHome = function() {
+    $state.go("app.home");
+  };
 });

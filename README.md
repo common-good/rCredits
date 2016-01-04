@@ -1,29 +1,49 @@
 # rCredits App
 
-## Environment Setup
+## Environment Setup & Refresh
 
-### Download the Repo
+### After Initial Repo Checkout
 
-### Install Packages
 ```
-cd [project]
+ionic setup sass
+```
+
+### After Pulling a New Branch or Commit
+
+Update packages:
+
+```
 npm install
+bower install
 ```
 
-## Configuration
+Then to update the app config, run:
 
-1. Edit config.js
-1. Run BUILD_TARGET=development gulp config
+```
+BUILD_TARGET=xxx gulp config
+```
 
-### Setup Sass
-`ionic setup sass`
+where `xxx` is one of `development`, `staging`, or `production`. This command copies config from the `/config.js` and `/local_config.js` files. Only config matching the given build target (or lying outside an @if block) is copied.
 
-### Sometimes Needed
+### If Packages Get Screwed Up
+
 `npm rebuild`
+
+### If SCSS/CSS Gets Screwed Up
+
 `gulp sass`
 
-### Run Unit tests
+### To Run Unit Tests
+
 `karma start`
 
-### Run
+### To Run in Browser
+
 `ionic serve`
+
+### To Run on Device
+
+```
+ionic state restore # Only if plugins or platforms may have changed
+ionic run <android|ios>
+```
