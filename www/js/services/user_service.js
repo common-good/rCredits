@@ -1,4 +1,4 @@
-app.service ('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer) {
+app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer) {
 
   'use strict';
 
@@ -30,19 +30,19 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
 
   UserService.prototype.makeRequest_ = function(params, accountInfo) {
     var urlConf = new UrlConfigurator();
-    var x =  urlConf.getServerUrl(accountInfo.getMemberId());
-    return $http ({
+    var x = urlConf.getServerUrl(accountInfo.getMemberId());
+    return $http({
       method: 'POST',
       url: urlConf.getServerUrl(accountInfo.getMemberId()),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      data: $httpParamSerializer (params)
+      data: $httpParamSerializer(params)
     });
   };
 
   UserService.prototype.loginWithRCard_ = function(params, accountInfo) {
-    return this.makeRequest_ (params, accountInfo).then (function(res) {
+    return this.makeRequest_(params, accountInfo).then(function(res) {
         var responseData = res.data;
 
         if (responseData.ok === LOGIN_FAILED) {
@@ -50,8 +50,8 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
         }
         return responseData;
       })
-      .catch (function(err) {
-        if (_.isString (err)) {
+      .catch(function(err) {
+        if (_.isString(err)) {
           throw err
         }
         throw err.statusText;
@@ -64,19 +64,19 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
   // The app should then give notice to the user that the device is associated with the
   // user.
   UserService.prototype.loginWithRCard = function(str) {
-    var qrcodeParser = new QRCodeParser ();
-    qrcodeParser.setUrl (str);
-    var accountInfo = qrcodeParser.parse ();
-    var params = new RequestParameterBuilder ()
-      .setOperationId ('identify')
-      .setSecurityCode (accountInfo.securityCode)
-      .setMember (accountInfo.accountId)
-      .getParams ();
+    var qrcodeParser = new QRCodeParser();
+    qrcodeParser.setUrl(str);
+    var accountInfo = qrcodeParser.parse();
+    var params = new RequestParameterBuilder()
+      .setOperationId('identify')
+      .setSecurityCode(accountInfo.securityCode)
+      .setMember(accountInfo.accountId)
+      .getParams();
 
-    return this.loginWithRCard_ (params, accountInfo)
-      .then (function(responseData) {
+    return this.loginWithRCard_(params, accountInfo)
+      .then(function(responseData) {
         if (responseData.logon === LOGIN_BY_AGENT) {
-          self.seller = self.createSeller (responseData);
+          self.seller = self.createSeller(responseData);
           return self.seller;
         }
 
@@ -88,15 +88,15 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
 
   UserService.prototype.createSeller = function(sellerInfo) {
     var props = ['can', 'descriptions', 'company', 'default', 'time'];
-    var seller = new Seller (sellerInfo.name);
+    var seller = new Seller(sellerInfo.name);
 
-    _.each (props, function(p) {
+    _.each(props, function(p) {
       seller[p] = sellerInfo[p];
     });
 
-    if (!seller.hasDevice ()) {
-      if (seller.isValidDeviceId (sellerInfo.device)) {
-        seller.setDeviceId (sellerInfo.device);
+    if (!seller.hasDevice()) {
+      if (seller.isValidDeviceId(sellerInfo.device)) {
+        seller.setDeviceId(sellerInfo.device);
       } else {
         seller.firstLogin = true;
       }
@@ -112,19 +112,19 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
   //      firstPurchase - Whether this is the user's first rCredits purchase. If so, the
   //        app should notify the seller to request photo ID.
   UserService.prototype.identifyCustomer = function(str) {
-    var qrcodeParser = new QRCodeParser ();
-    qrcodeParser.setUrl (str);
-    var accountInfo = qrcodeParser.parse ();
-    var params = new RequestParameterBuilder ()
-      .setOperationId ('identify')
-      .setAgent (this.seller.default)
-      .setMember (accountInfo.accountId)
-      .setSecurityCode (accountInfo.securityCode)
-      .getParams ();
-    return this.loginWithRCard_ (params, accountInfo)
-      .then (function(responseData) {
+    var qrcodeParser = new QRCodeParser();
+    qrcodeParser.setUrl(str);
+    var accountInfo = qrcodeParser.parse();
+    var params = new RequestParameterBuilder()
+      .setOperationId('identify')
+      .setAgent(this.seller.default)
+      .setMember(accountInfo.accountId)
+      .setSecurityCode(accountInfo.securityCode)
+      .getParams();
+    return this.loginWithRCard_(params, accountInfo)
+      .then(function(responseData) {
         if (responseData.logon === LOGIN_BY_CUSTOMER || responseData.logon === FIRST_PURCHASE) {
-          self.customer = self.createCustomer (responseData);
+          self.customer = self.createCustomer(responseData);
 
           if (responseData.logon === FIRST_PURCHASE) {
             self.customer.firstPurchase = true;
@@ -137,10 +137,10 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
           throw self.LOGIN_SELLER_ERROR_MESSAGE;
         }
       })
-      .then (function(customer) {
-        return self.getProfilePicture (accountInfo.accountId, accountInfo.securityCode);
+      .then(function(customer) {
+        return self.getProfilePicture(accountInfo.accountId, accountInfo.securityCode);
       })
-      .then (function(blobPhotoUrl) {
+      .then(function(blobPhotoUrl) {
         self.customer.photo = blobPhotoUrl;
         return self.customer
       })
@@ -148,10 +148,10 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
 
   UserService.prototype.createCustomer = function(customerInfo) {
     var props = ['balance', 'can', 'company', 'place'];
-    var customer = new Customer (customerInfo.name);
-    customer.setRewards (customerInfo.rewards);
+    var customer = new Customer(customerInfo.name);
+    customer.setRewards(customerInfo.rewards);
 
-    _.each (props, function(p) {
+    _.each(props, function(p) {
       customer[p] = customerInfo[p];
     });
 
@@ -159,30 +159,30 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
   };
 
   UserService.prototype.getProfilePicture = function(member, securityCode) {
-    var params = new RequestParameterBuilder ()
-      .setOperationId ('photo')
-      .setAgent (this.seller.default)
-      .setMember (member)
-      .setSecurityCode (securityCode)
-      .getParams ();
+    var params = new RequestParameterBuilder()
+      .setOperationId('photo')
+      .setAgent(this.seller.default)
+      .setMember(member)
+      .setSecurityCode(securityCode)
+      .getParams();
 
-    return $http ({
+    return $http({
       method: 'POST',
       url: rCreditsConfig.serverUrl,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      data: $httpParamSerializer (params),
+      data: $httpParamSerializer(params),
       responseType: "arraybuffer"
     })
-      .then (function(res) {
-        var arrayBufferView = new Uint8Array (res.data);
-        var blob = new Blob ([arrayBufferView], {type: "image/jpeg"});
+      .then(function(res) {
+        var arrayBufferView = new Uint8Array(res.data);
+        var blob = new Blob([arrayBufferView], {type: "image/jpeg"});
         var urlCreator = window.URL || window.webkitURL;
-        return urlCreator.createObjectURL (blob);
+        return urlCreator.createObjectURL(blob);
       })
-      .catch (function(err) {
-        console.error (err);
+      .catch(function(err) {
+        console.error(err);
         throw err;
       })
   };
@@ -192,16 +192,16 @@ app.service ('UserService', function($q, $http, $httpParamSerializer, RequestPar
   UserService.prototype.logout = function() {
     // Simulates logout. Resolves the promise if SUCCEED is true, rejects if false.
     var SUCCEED = true;
-    return $q (function(resolve, reject) {
+    return $q(function(resolve, reject) {
       if (SUCCEED) {
         self.customer = null;
         self.seller = null;
-        resolve ();
+        resolve();
       } else {
-        reject ("logoutFailure");
+        reject("logoutFailure");
       }
     });
   };
 
-  return new UserService ();
+  return new UserService();
 });
