@@ -40,7 +40,12 @@
       return this;
     };
 
+    RequestParameterBuilder.prototype.setField = function(field, value) {
+      this.result[field] = value;
+      return this;
+    };
+
     return RequestParameterBuilder;
   });
 
-}) (app);
+})(app);

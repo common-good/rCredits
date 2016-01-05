@@ -9,9 +9,7 @@
               <div class="input-label">
                 {{ 'selectCategory' | translate }}
               </div>
-              <select>
-                <option>{{ 'none' | translate }}</option>
-                <option selected>{{ 'grocery' | translate }}</option>
+              <select ng-model="selectedCategory.value" ng-options="c | translate for c in categories">
               </select>
             </label>
           </div>
@@ -22,7 +20,7 @@
       </section>
 
       <section class="section-3">
-        <input type="hidden" ng-value='amount'></input>
+        <input type="hidden" ng-value='amount'>
         <div class="main-action button button-full button-positive"
           ng-click='initiateTransaction()'
           ng-disabled='disableTransaction()'>

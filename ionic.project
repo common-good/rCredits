@@ -4,7 +4,7 @@
   "proxies": [
     {
       "path": "/pos",
-      "proxyUrl": "https://stage-new.rcredits.org/pos"
+      "proxyUrl": "https://stage-NEW.rcredits.org/pos"
     }
   ],
   "gulpStartupTasks": [

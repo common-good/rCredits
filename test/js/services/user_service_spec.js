@@ -12,7 +12,7 @@ describe ('User Service', function() {
   var userService, rootScope, httpBackend, localStorageService;
   var LOGIN_WITH_RCARD_ERROR_RESPONSE = {"ok": "0", "message": "bad agent NEW:AABs"};
 
-  var SELLER_SCAN_RESULT = {text: "HTTP://NEW.RC4.ME/AAK.NyCBBlUF1qWNZ2k", format: "QR_CODE", cancelled: false};
+  var SELLER_SCAN_RESULT =   {text: "HTTP://NEW.RC4.ME/AAK.NyCBBlUF1qWNZ2k", format: "QR_CODE", cancelled: false};
   var CUSTOMER_SCAN_RESULT = {text: "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw", format: "QR_CODE", cancelled: false};
 
   var SELLER_LOGIN_WITH_RCARD_SUCESS_RESPONSE = {
