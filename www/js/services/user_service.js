@@ -138,7 +138,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         }
       })
       .then(function(customer) {
-        return self.getProfilePicture(accountInfo.accountId, accountInfo.securityCode);
+        return self.getProfilePicture(accountInfo, accountInfo);
       })
       .then(function(blobPhotoUrl) {
         self.customer.photo = blobPhotoUrl;
@@ -158,17 +158,18 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     return customer;
   };
 
-  UserService.prototype.getProfilePicture = function(member, securityCode) {
+  UserService.prototype.getProfilePicture = function(accountInfo) {
     var params = new RequestParameterBuilder()
       .setOperationId('photo')
       .setAgent(this.seller.default)
-      .setMember(member)
-      .setSecurityCode(securityCode)
+      .setMember(accountInfo.accountId)
+      .setSecurityCode(accountInfo.securityCode)
       .getParams();
 
+    var urlConf = new UrlConfigurator();
     return $http({
       method: 'POST',
-      url: rCreditsConfig.serverUrl,
+      url: urlConf.getServerUrl(accountInfo.getMemberId()),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
