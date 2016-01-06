@@ -10,8 +10,8 @@
 
   // This the read from Bob Bossman: NEW:AAB, WeHlioM5JZv1O9G
   WebScanner.SCANS = [
-    {text: "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G", format: "QR_CODE", cancelled: false}, // Seller
-    {text: "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw", format: "QR_CODE", cancelled: false}  // Customer
+    {text: "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G", format: "QR_CODE", cancelled: false}, // Seller Bob Bossman
+    {text: "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw", format: "QR_CODE", cancelled: false}  // Customer Susan Shopper
   ];
 
   app.service('BarcodeService', function($q, $ionicPlatform) {

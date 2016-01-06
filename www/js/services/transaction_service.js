@@ -34,7 +34,7 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
     var accountInfo = UserService.currentUser().accountInfo,
       params = new RequestParameterBuilder()
         .setOperationId('charge')
-        .setSecurityCode(accountInfo.securityCode)
+        .setSecurityCode(customer.accountInfo.securityCode)
         .setAgent(accountInfo.accountId)
         .setMember(customer.accountInfo.accountId)
         .setField('amount', amount)
