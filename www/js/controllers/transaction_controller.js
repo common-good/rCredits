@@ -18,12 +18,14 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
   $scope.categories = fillCategories();
 
   $scope.disableTransaction = function() {
-    if ($scope.amount === 0) {
+    if ($scope.amount === 0 || !$scope.selectedCategory.value) {
       return true;
     }
   };
 
   $scope.charge = function() {
+
+
     $ionicLoading.show();
 
     var transactionAmount = $scope.amount;
@@ -38,9 +40,9 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
           {'transactionStatus': 'failure', 'transactionAmount': transactionAmount});
         $ionicLoading.hide();
       });
-      //.catch(function(errorMsg) {
-      //  NotificationService.showAlert({title: "error", template: errorMsg});
-      //});
+    //.catch(function(errorMsg) {
+    //  NotificationService.showAlert({title: "error", template: errorMsg});
+    //});
   };
 
   $scope.refund = function(amount) {
