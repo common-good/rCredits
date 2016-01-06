@@ -98,6 +98,18 @@ describe('Transaction Service', function() {
       expect(transaction.undo).toBe(TRANSACTION_RESPONSE_OK.undo);
     });
 
+    it('Should charge and return a Transaction Object', function() {
+      request.respond(TRANSACTION_RESPONSE_OK);
+      transactionService.charge(0.12, 'description', customer).then(function(transaction) {
+        expect(transaction.getId()).toBe(TRANSACTION_RESPONSE_OK.txid);
+        expect(transaction.created).toBe(TRANSACTION_RESPONSE_OK.created);
+        expect(transaction.did).toBe(TRANSACTION_RESPONSE_OK.did);
+        expect(transaction.undo).toBe(TRANSACTION_RESPONSE_OK.undo);
+      });
+
+      httpBackend.flush();
+    });
+
 
   });
 

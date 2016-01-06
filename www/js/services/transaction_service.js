@@ -22,17 +22,15 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
 
   TransactionService.prototype.parseTransaction_ = function(transactionInfo) {
     var transaction = new Transaction();
-
     _.keys(transaction).forEach(function(k) {
       if (transactionInfo.hasOwnProperty(k)) {
         transaction[k] = transactionInfo[k];
       }
     });
-
     return transaction;
   };
 
-  TransactionService.prototype.charge = function(amount, description, customer) {
+  TransactionService.prototype.charge_ = function(amount, description, customer) {
     var accountInfo = UserService.currentUser().accountInfo,
       params = new RequestParameterBuilder()
         .setOperationId('charge')
@@ -47,16 +45,23 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
         .setField('photoid', 0)
         .getParams();
 
-    return this.makeRequest_(params, accountInfo)
-      .then(function(res) {
-        var data = res.data;
-        console.log("Transcation Result: ", data);
+    return this.makeRequest_(params, accountInfo).then(function(res) {
+      return res.data;
+    });
+  };
 
-        if (data.ok === TRANSACTION_OK) {
-          return self.parseTransaction_(data);
+  TransactionService.prototype.charge = function(amount, description, customer) {
+    return this.charge_(amount, description, customer)
+      .then(function(transactionResult) {
+        console.log("Transcation Result: ", transactionResult);
+
+        if (transactionResult.ok === TRANSACTION_OK) {
+          var transaction = self.parseTransaction_(transactionResult);
+
+          return transaction;
         }
 
-        throw data;
+        throw transactionResult;
       });
 
 
