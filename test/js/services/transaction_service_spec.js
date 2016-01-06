@@ -50,6 +50,11 @@ describe('Transaction Service', function() {
     "undo": "Undo transfer of $0.05 from Susan Shopper?"
   };
 
+  var TRANSACTION_RESPONSE_ERROR = {
+    "ok": "0",
+    "message": "You already just charged that member that much. Wait a few minutes or type a different amount."
+  };
+
   beforeEach(inject(function(UserService, $rootScope, $httpBackend, _TransactionService_) {
     userService = UserService;
     httpBackend = $httpBackend;
@@ -116,6 +121,15 @@ describe('Transaction Service', function() {
       transactionService.charge(0.12, 'description', customer).then(function(transaction) {
         expect(customer.rewards).toBe(TRANSACTION_RESPONSE_OK.rewards);
         expect(customer.balance).toBe(TRANSACTION_RESPONSE_OK.balance);
+      });
+
+      httpBackend.flush();
+    });
+
+    it('Charge transaction should fail', function() {
+      request.respond(TRANSACTION_RESPONSE_ERROR);
+      transactionService.charge(0.12, 'description', customer).catch(function(err) {
+        expect(err.message).toBe(TRANSACTION_RESPONSE_ERROR.message);
       });
 
       httpBackend.flush();

@@ -29,4 +29,4 @@ app.controller('TransactionResultCtrl', function($scope, $state,
     customerName: $scope.customer.name,
   }
 });
-// "You already just charged that member that much. Wait a few minutes or type a different amount."
+//
