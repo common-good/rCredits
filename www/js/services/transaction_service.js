@@ -2,6 +2,8 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
 
   var self;
 
+  var TRANSACTION_OK = "1";
+
   var TransactionService = function() {
     self = this;
   };
@@ -21,7 +23,7 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
   TransactionService.prototype.parseTransaction_ = function(transactionInfo) {
     var transaction = new Transaction();
 
-    _.key(transaction).forEach(function(k) {
+    _.keys(transaction).forEach(function(k) {
       if (transactionInfo.hasOwnProperty(k)) {
         transaction[k] = transactionInfo[k];
       }
@@ -50,24 +52,11 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
         var data = res.data;
         console.log("Transcation Result: ", data);
 
-        if (data.ok === 1) {
+        if (data.ok === TRANSACTION_OK) {
           return self.parseTransaction_(data);
         }
 
-        throw {
-          ok: 0,
-          message: "Error XXX",
-        };
-        return {
-          ok: 1,
-          message: "",
-          balance: Math.round((110.23 - amount) * 100) / 100,
-          rewards: Math.round((8.72 + amount / 10) * 100) / 100,
-          txid: 123,
-          created: 1450485351,
-          did: amount + " transferred from Phillip Blivers to Tasty Soaps, Inc.",
-          undo: "(Undo message)"
-        };
+        throw data;
       });
 
 

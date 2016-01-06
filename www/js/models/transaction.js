@@ -7,6 +7,10 @@
     this.undo = null;
   };
 
+  Transaction.prototype.getId = function() {
+    return this.txid;
+  };
+
 
   window.Transaction = Transaction;
 
