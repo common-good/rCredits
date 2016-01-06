@@ -17,7 +17,6 @@ app.controller('KeyPadCtrl', function($scope, $state, $stateParams, $filter) {
   var setEntry = function(num) {
     if (num < 1000000) {
       $scope.$parent.$parent.amount = parseFloat($filter('currency')(num, '', 2));
-      console.log("Amount = ", $scope.$parent.$parent.amount);
     }
   };
 
