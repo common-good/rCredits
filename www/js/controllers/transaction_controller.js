@@ -18,12 +18,12 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
     return seller.descriptions;
   };
 
+  $scope.categories = fillCategories();
+
   $scope.selectedCategory = {
-    selected: null,
+    selected: $scope.categories[0],
     custom: null
   };
-
-  $scope.categories = fillCategories();
 
   $scope.disableTransaction = function() {
     if ($scope.amount === 0 || !$scope.selectedCategory.selected) {
