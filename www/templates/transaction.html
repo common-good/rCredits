@@ -9,7 +9,7 @@
               <div class="input-label">
                 {{ 'selectCategory' | translate }}
               </div>
-              <select ng-model="selectedCategory.value" ng-options="c | translate for c in categories">
+              <select ng-change="onSelectCategory()" ng-model="selectedCategory.selected" ng-options="c | translate for c in categories">
               </select>
             </label>
           </div>
