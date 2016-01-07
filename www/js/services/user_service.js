@@ -1,8 +1,5 @@
 app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer) {
-
   'use strict';
-
-  var self;
 
   var LOGIN_FAILED = '0';
   var LOGIN_BY_AGENT = '1';
@@ -19,18 +16,40 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   // Gets the current user. Returns the user object,
   // or null if there is no current user.
   UserService.prototype.currentUser = function() {
+    //return {
+    //  can: 6019,
+    //  company: "Corner Store",
+    //  default: "NEW.AAB",
+    //  descriptions: [
+    //    "groceries",
+    //    "gifts",
+    //    "sundries",
+    //    "deli",
+    //    "baked goods"],
+    //  device: "KcoRmTAqgK5F2cSW5kV8",
+    //  name: "Bob Bossman",
+    //  time: 1452018841
+    //}
     return this.seller;
   };
 
   // Gets the current customer. Returns an object
   // or null if there is no current customer.
   UserService.prototype.currentCustomer = function() {
-    return self.customer;
+    //return {
+    //  balance: "1451.15",
+    //  can: 131,
+    //  company: "",
+    //  name: "Susan Shopper",
+    //  photo: "blob:http%3A//localhost%3A8100/0f69de79-5f05-496a-a0e2-0e464de6b20e",
+    //  place: "Montague, MA",
+    //  rewards: 1020.77
+    //};
+    return this.customer;
   };
 
   UserService.prototype.makeRequest_ = function(params, accountInfo) {
     var urlConf = new UrlConfigurator();
-    var x = urlConf.getServerUrl(accountInfo.getMemberId());
     return $http({
       method: 'POST',
       url: urlConf.getServerUrl(accountInfo.getMemberId()),
@@ -77,6 +96,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       .then(function(responseData) {
         if (responseData.logon === LOGIN_BY_AGENT) {
           self.seller = self.createSeller(responseData);
+          self.seller.accountInfo = accountInfo;
           return self.seller;
         }
 
@@ -130,6 +150,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
             self.customer.firstPurchase = true;
           }
 
+          self.customer.accountInfo = accountInfo;
           return self.customer;
         }
 
@@ -138,7 +159,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         }
       })
       .then(function(customer) {
-        return self.getProfilePicture(accountInfo.accountId, accountInfo.securityCode);
+        return self.getProfilePicture(accountInfo, accountInfo);
       })
       .then(function(blobPhotoUrl) {
         self.customer.photo = blobPhotoUrl;
@@ -158,17 +179,18 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     return customer;
   };
 
-  UserService.prototype.getProfilePicture = function(member, securityCode) {
+  UserService.prototype.getProfilePicture = function(accountInfo) {
     var params = new RequestParameterBuilder()
       .setOperationId('photo')
       .setAgent(this.seller.default)
-      .setMember(member)
-      .setSecurityCode(securityCode)
+      .setMember(accountInfo.accountId)
+      .setSecurityCode(accountInfo.securityCode)
       .getParams();
 
+    var urlConf = new UrlConfigurator();
     return $http({
       method: 'POST',
-      url: rCreditsConfig.serverUrl,
+      url: urlConf.getServerUrl(accountInfo.getMemberId()),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },

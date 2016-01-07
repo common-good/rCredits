@@ -29,3 +29,4 @@ app.controller('TransactionResultCtrl', function($scope, $state,
     customerName: $scope.customer.name,
   }
 });
+//

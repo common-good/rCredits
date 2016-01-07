@@ -3,10 +3,8 @@
   var AccountInfo = function() {
     this.isPersonal = false;
     this.isCompany = false;
-
-    // member
+    this.memberId = '';
     this.accountId = '';
-
     this.securityCode = '';
   };
 
@@ -19,10 +17,10 @@
   };
 
   AccountInfo.prototype.getMemberId = function() {
-    return this.accountId;
+    return this.memberId;
   };
 
 
   window.AccountInfo = AccountInfo;
 
-}) (window);
+})(window);

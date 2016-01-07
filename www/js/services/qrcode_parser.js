@@ -34,7 +34,7 @@
   };
 
   QRCodeParser.prototype.parseAccountCode_ = function() {
-    var xxx = this.url.hostname.toUpperCase().split('.')[0];
+    var memberId = this.url.hostname.toUpperCase().split('.')[0];
     var yyy = this.url.pathname.substring(1, 4);
     var separator;
     if (this.accountInfo.isPersonalAccount()) {
@@ -42,7 +42,8 @@
     } else {
       separator = COMPANY_INDICATOR_URL;
     }
-    this.accountInfo.accountId = xxx + separator + yyy;
+    this.accountInfo.memberId = memberId;
+    this.accountInfo.accountId = memberId + separator + yyy;
   };
 
   QRCodeParser.prototype.parseSecurityCode_ = function() {

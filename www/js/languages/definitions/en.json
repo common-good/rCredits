@@ -36,5 +36,7 @@
   "transactionLowFundsNote": "The account you are trying to charge does not have enough rCredits to cover this transaction.",
   "undo": "Undo",
   "userLookupFailure": "User lookup failed.",
-  "verifyCustomer": "This is {{name}}'s first purchase. <b>Please ask to see a photo ID</b>, and check that it matches the image and name displayed below."
+  "verifyCustomer": "This is {{name}}'s first purchase. <b>Please ask to see a photo ID</b>, and check that it matches the image and name displayed below.",
+  "enterNewCategory": "Enter New Category"
 }
+

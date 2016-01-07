@@ -1,12 +1,12 @@
 {
   "name": "rCreditsMobile",
   "app_id": "",
-   "proxies": [
-      {
-        "path": "/pos",
-        "proxyUrl": "https://stage-new.rcredits.org/pos"
-      }
-    ],
+  "proxies": [
+    {
+      "path": "/pos",
+      "proxyUrl": "https://stage-NEW.rcredits.org/pos"
+    }
+  ],
   "gulpStartupTasks": [
     "sass",
     "watch"
@@ -14,5 +14,12 @@
   "watchPatterns": [
     "www/**/*",
     "!www/lib/**/*"
+  ],
+  "browsers": [
+    {
+      "platform": "android",
+      "browser": "crosswalk",
+      "version": "12.41.296.5"
+    }
   ]
 }
