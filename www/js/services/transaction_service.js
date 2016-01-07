@@ -30,13 +30,14 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
     return transaction;
   };
 
-  TransactionService.prototype.charge_ = function(amount, description, customer) {
-    var accountInfo = UserService.currentUser().accountInfo,
+  TransactionService.prototype.charge_ = function(amount, description) {
+    var sellerAccountInfo = UserService.currentUser().accountInfo,
+      customerAccountInfo = UserService.currentCustomer().accountInfo,
       params = new RequestParameterBuilder()
         .setOperationId('charge')
-        .setSecurityCode(customer.accountInfo.securityCode)
-        .setAgent(accountInfo.accountId)
-        .setMember(customer.accountInfo.accountId)
+        .setSecurityCode(customerAccountInfo.securityCode)
+        .setAgent(sellerAccountInfo.accountId)
+        .setMember(customerAccountInfo.accountId)
         .setField('amount', amount)
         .setField('description', description)
         .setField('created', moment().unix())
@@ -45,19 +46,19 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
         .setField('photoid', 0)
         .getParams();
 
-    return this.makeRequest_(params, accountInfo).then(function(res) {
+    return this.makeRequest_(params, sellerAccountInfo).then(function(res) {
       return res.data;
     });
   };
 
-  TransactionService.prototype.charge = function(amount, description, customer) {
-    return this.charge_(amount, description, customer)
+  TransactionService.prototype.charge = function(amount, description) {
+    return this.charge_(amount, description)
       .then(function(transactionResult) {
         console.log("Transcation Result: ", transactionResult);
 
         if (transactionResult.ok === TRANSACTION_OK) {
           var transaction = self.parseTransaction_(transactionResult);
-
+          var customer = UserService.currentCustomer();
           customer.balance = transactionResult.balance;
           customer.rewards = transactionResult.rewards;
           return transaction;
@@ -65,38 +66,11 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
 
         throw transactionResult;
       });
-
-
-    // Simulates a charge. Resolves the promise if SUCCEED is true, rejects if false.
-    //var SUCCEED = true;
-    //return $q(function(resolve, reject) {
-    //  setTimeout(function() {
-    //    if (SUCCEED) {
-    //      resolve({
-    //        ok: 1,
-    //        message: "",
-    //        balance: Math.round((110.23 - amount) * 100) / 100,
-    //        rewards: Math.round((8.72 + amount / 10) * 100) / 100,
-    //        txid: 123,
-    //        created: 1450485351,
-    //        did: amount + " transferred from Phillip Blivers to Tasty Soaps, Inc.",
-    //        undo: "(Undo message)"
-    //      });
-    //    } else {
-    //      reject({
-    //        ok: 0,
-    //        message: "(Failure message)",
-    //        balance: 110.23,
-    //        rewards: 8.72
-    //      });
-    //    }
-    //  }, 1000);
-    //});
   };
 
-  TransactionService.prototype.refund = function(amount) {
-    return self.charge(amount * -1);
-  }
+  TransactionService.prototype.refund = function(amount, description) {
+    return this.charge(amount * -1, description);
+  };
 
   return new TransactionService();
 });

@@ -106,7 +106,7 @@ describe('Transaction Service', function() {
 
     it('Should charge and return a Transaction Object', function() {
       request.respond(TRANSACTION_RESPONSE_OK);
-      transactionService.charge(0.12, 'description', customer).then(function(transaction) {
+      transactionService.charge(0.12, 'description').then(function(transaction) {
         expect(transaction.getId()).toBe(TRANSACTION_RESPONSE_OK.txid);
         expect(transaction.created).toBe(TRANSACTION_RESPONSE_OK.created);
         expect(transaction.did).toBe(TRANSACTION_RESPONSE_OK.did);
@@ -118,7 +118,7 @@ describe('Transaction Service', function() {
 
     it('Should charge and update customer reward and balance', function() {
       request.respond(TRANSACTION_RESPONSE_OK);
-      transactionService.charge(0.12, 'description', customer).then(function(transaction) {
+      transactionService.charge(0.12, 'description').then(function(transaction) {
         expect(customer.rewards).toBe(TRANSACTION_RESPONSE_OK.rewards);
         expect(customer.balance).toBe(TRANSACTION_RESPONSE_OK.balance);
       });
@@ -128,13 +128,27 @@ describe('Transaction Service', function() {
 
     it('Charge transaction should fail', function() {
       request.respond(TRANSACTION_RESPONSE_ERROR);
-      transactionService.charge(0.12, 'description', customer).catch(function(err) {
+      transactionService.charge(0.12, 'description').catch(function(err) {
         expect(err.message).toBe(TRANSACTION_RESPONSE_ERROR.message);
       });
 
       httpBackend.flush();
     });
 
+  });
+
+  describe('Refund', function() {
+    it('Should charge and return a Transaction Object', function() {
+      request.respond(TRANSACTION_RESPONSE_OK);
+      transactionService.refund(0.12, 'description').then(function(transaction) {
+        expect(transaction.getId()).toBe(TRANSACTION_RESPONSE_OK.txid);
+        expect(transaction.created).toBe(TRANSACTION_RESPONSE_OK.created);
+        expect(transaction.did).toBe(TRANSACTION_RESPONSE_OK.did);
+        expect(transaction.undo).toBe(TRANSACTION_RESPONSE_OK.undo);
+      });
+
+      httpBackend.flush();
+    });
 
   });
 

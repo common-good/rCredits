@@ -32,31 +32,32 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
   };
 
   $scope.charge = function() {
-    $ionicLoading.show();
-
-    var transactionAmount = $scope.amount;
-
-    TransactionService.charge(transactionAmount, $scope.selectedCategory.selected, customer)
-      .then(function(result) {
-        $state.go('app.transaction_result',
-          {'transactionStatus': 'success', 'transactionAmount': transactionAmount});
-        $ionicLoading.hide();
-      }, function(errorMsg) {
-        $state.go('app.transaction_result',
-          {'transactionStatus': 'failure', 'transactionAmount': transactionAmount});
-        $ionicLoading.hide();
-      });
+    return TransactionService.charge($scope.amount, $scope.selectedCategory.selected);
   };
 
   $scope.refund = function(amount) {
+    return TransactionService.refund($scope.amount, $scope.selectedCategory.selected);
   };
 
   $scope.initiateTransaction = function() {
+    $ionicLoading.show();
+    var transactionAmount = $scope.amount;
+    var transactionPromise;
     if (isTransactionTypeCharge()) {
-      $scope.charge();
+      transactionPromise = $scope.charge();
     } else {
-      $scope.refund();
+      transactionPromise = $scope.refund();
     }
+
+    transactionPromise.then(function(result) {
+      $state.go('app.transaction_result',
+        {'transactionStatus': 'success', 'transactionAmount': transactionAmount});
+      $ionicLoading.hide();
+    }, function(errorMsg) {
+      $state.go('app.transaction_result',
+        {'transactionStatus': 'failure', 'transactionAmount': transactionAmount});
+      $ionicLoading.hide();
+    });
   };
 
   $scope.onSelectCategory = function() {
