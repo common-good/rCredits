@@ -30,10 +30,14 @@ app.controller('TransactionResultCtrl', function($scope, $state,
   };
 
   $scope.undoTransaction = function() {
+    $ionicLoading.show();
     TransactionService.undoTransaction(TransactionService.lastTransaction)
-      .then(function(res) {
+      .then(function(transactionResult) {
         console.log("Undo transaction: ", res);
-      });
+      })
+      .finally(function() {
+        $ionicLoading.hide();
+      })
   };
 
 });
