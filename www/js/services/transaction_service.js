@@ -90,9 +90,19 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
         .setField('goods', transaction.goods)
         .getParams();
 
-    return this.makeRequest_(params, sellerAccountInfo).then(function(res) {
-      return res.data;
-    });
+    return this.makeRequest_(params, sellerAccountInfo)
+      .then(function(res) {
+        return res.data;
+      })
+      .then(function(transactionResult) {
+        if (transactionResult.ok === TRANSACTION_OK) {
+          var customer = UserService.currentCustomer();
+          customer.rewards = transactionResult.rewards;
+          customer.balance = transactionResult.balance;
+          return transactionResult;
+        }
+        throw transactionResult;
+      });
   };
 
   return new TransactionService();
