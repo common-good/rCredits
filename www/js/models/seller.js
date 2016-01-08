@@ -11,7 +11,7 @@
       firstLogin: false,
 
       initialize: function($super, name) {
-        $super (name);
+        $super(name);
         this.configureDeviceId_();
       },
 
@@ -28,7 +28,7 @@
 
       setDeviceId: function(device) {
         if (!this.isValidDeviceId(device)) {
-          throw new Error ('Invalid deviceID: ' + device);
+          throw new Error('Invalid deviceID: ' + device);
         }
         this.device = device;
         localStorageService.set(DEVICE_ID_KEY, device);
@@ -38,10 +38,14 @@
         return !_.isEmpty(this.device);
       },
 
+      isFirstLogin: function() {
+        return this.firstLogin;
+      }
+
     });
 
     window.Seller = Seller;
 
     return Seller;
   });
-}) (window, app);
+})(window, app);

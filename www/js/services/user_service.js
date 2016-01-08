@@ -16,35 +16,12 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   // Gets the current user. Returns the user object,
   // or null if there is no current user.
   UserService.prototype.currentUser = function() {
-    //return {
-    //  can: 6019,
-    //  company: "Corner Store",
-    //  default: "NEW.AAB",
-    //  descriptions: [
-    //    "groceries",
-    //    "gifts",
-    //    "sundries",
-    //    "deli",
-    //    "baked goods"],
-    //  device: "KcoRmTAqgK5F2cSW5kV8",
-    //  name: "Bob Bossman",
-    //  time: 1452018841
-    //}
     return this.seller;
   };
 
   // Gets the current customer. Returns an object
   // or null if there is no current customer.
   UserService.prototype.currentCustomer = function() {
-    //return {
-    //  balance: "1451.15",
-    //  can: 131,
-    //  company: "",
-    //  name: "Susan Shopper",
-    //  photo: "blob:http%3A//localhost%3A8100/0f69de79-5f05-496a-a0e2-0e464de6b20e",
-    //  place: "Montague, MA",
-    //  rewards: 1020.77
-    //};
     return this.customer;
   };
 
@@ -117,7 +94,6 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     if (!seller.hasDevice()) {
       if (seller.isValidDeviceId(sellerInfo.device)) {
         seller.setDeviceId(sellerInfo.device);
-      } else {
         seller.firstLogin = true;
       }
     }
