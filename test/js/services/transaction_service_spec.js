@@ -55,6 +55,17 @@ describe('Transaction Service', function() {
     "message": "You already just charged that member that much. Wait a few minutes or type a different amount."
   };
 
+  var UNDO_TRANSACTION_RESPONSE_OK = {
+    "ok": "1",
+    "message": "Transaction has been reversed. You refunded Susan Shopper $0.02 for goods and services. Your reward is $0.",
+    "txid": "35091",
+    "created": 1452275416,
+    "balance": "1416.34",
+    "rewards": "1024.63",
+    "did": "",
+    "undo": "35090"
+  };
+
   beforeEach(inject(function(UserService, $rootScope, $httpBackend, _TransactionService_) {
     userService = UserService;
     httpBackend = $httpBackend;
@@ -111,6 +122,10 @@ describe('Transaction Service', function() {
         expect(transaction.created).toBe(TRANSACTION_RESPONSE_OK.created);
         expect(transaction.did).toBe(TRANSACTION_RESPONSE_OK.did);
         expect(transaction.undo).toBe(TRANSACTION_RESPONSE_OK.undo);
+
+        expect(transaction.description).toBe('description');
+        expect(transaction.amount).toBe(0.12);
+        expect(transaction.goods).toBe(1);
       });
 
       httpBackend.flush();
@@ -138,6 +153,7 @@ describe('Transaction Service', function() {
   });
 
   describe('Refund', function() {
+
     it('Should charge and return a Transaction Object', function() {
       request.respond(TRANSACTION_RESPONSE_OK);
       transactionService.refund(0.12, 'description').then(function(transaction) {
@@ -145,6 +161,23 @@ describe('Transaction Service', function() {
         expect(transaction.created).toBe(TRANSACTION_RESPONSE_OK.created);
         expect(transaction.did).toBe(TRANSACTION_RESPONSE_OK.did);
         expect(transaction.undo).toBe(TRANSACTION_RESPONSE_OK.undo);
+      });
+
+      httpBackend.flush();
+    });
+
+  });
+
+  describe('Undo Transaction', function() {
+
+    it('Should undo a Transaction', function() {
+      request.respond(TRANSACTION_RESPONSE_OK);
+      transactionService.charge(0.12, 'description').then(function(transaction) {
+        request.respond(UNDO_TRANSACTION_RESPONSE_OK);
+        transactionService.undoTransaction(transaction).then(function(transaction) {
+          expect(customer.rewards).toBe(UNDO_TRANSACTION_RESPONSE_OK.rewards);
+          expect(customer.balance).toBe(UNDO_TRANSACTION_RESPONSE_OK.balance);
+        });
       });
 
       httpBackend.flush();

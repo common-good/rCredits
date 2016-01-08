@@ -34,6 +34,7 @@
   "transactionSuccessNote": "{{amount}} transferred from {{customerName}} to {{company}}.",
   "transactionLowFundsHeading": "Error: Insufficient Funds",
   "transactionLowFundsNote": "The account you are trying to charge does not have enough rCredits to cover this transaction.",
+  "transactionUndoSuccessNote":"Transaction has been reversed. You refunded Susan Shopper {{amount}} for goods and services.",
   "undo": "Undo",
   "userLookupFailure": "User lookup failed.",
   "verifyCustomer": "This is {{name}}'s first purchase. <b>Please ask to see a photo ID</b>, and check that it matches the image and name displayed below.",
