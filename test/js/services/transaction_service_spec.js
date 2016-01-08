@@ -111,6 +111,10 @@ describe('Transaction Service', function() {
         expect(transaction.created).toBe(TRANSACTION_RESPONSE_OK.created);
         expect(transaction.did).toBe(TRANSACTION_RESPONSE_OK.did);
         expect(transaction.undo).toBe(TRANSACTION_RESPONSE_OK.undo);
+
+        expect(transaction.description).toBe('description');
+        expect(transaction.amount).toBe(0.12);
+        expect(transaction.goods).toBe(1);
       });
 
       httpBackend.flush();

@@ -35,7 +35,7 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
     return TransactionService.charge($scope.amount, $scope.selectedCategory.selected);
   };
 
-  $scope.refund = function(amount) {
+  $scope.refund = function() {
     return TransactionService.refund($scope.amount, $scope.selectedCategory.selected);
   };
 
@@ -49,7 +49,8 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
       transactionPromise = $scope.refund();
     }
 
-    transactionPromise.then(function(result) {
+    transactionPromise.then(function(transaction) {
+      TransactionService.lastTransaction = transaction;
       $state.go('app.transaction_result',
         {'transactionStatus': 'success', 'transactionAmount': transactionAmount});
       $ionicLoading.hide();

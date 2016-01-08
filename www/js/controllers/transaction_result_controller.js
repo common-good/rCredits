@@ -1,6 +1,6 @@
 app.controller('TransactionResultCtrl', function($scope, $state,
-  $stateParams, $ionicLoading, $filter, NotificationService, UserService,
-  TransactionService) {
+                                                 $stateParams, $ionicLoading, $filter, NotificationService, UserService,
+                                                 TransactionService) {
 
   $scope.transactionStatus = $stateParams.transactionStatus;
   $scope.transactionAmount = $stateParams.transactionAmount;
@@ -26,7 +26,14 @@ app.controller('TransactionResultCtrl', function($scope, $state,
   $scope.transactionInfo = {
     amount: $filter('currency')($scope.transactionAmount),
     company: $scope.user.company,
-    customerName: $scope.customer.name,
-  }
+    customerName: $scope.customer.name
+  };
+
+  $scope.undoTransaction = function() {
+    TransactionService.undoTransaction(TransactionService.lastTransaction)
+      .then(function(res) {
+        console.log("Undo transaction: ", res);
+      });
+  };
+
 });
-//

@@ -6,6 +6,7 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
 
   var TransactionService = function() {
     self = this;
+    this.lastTransaction = null;
   };
 
   TransactionService.prototype.makeRequest_ = function(params, accountInfo) {
@@ -61,6 +62,9 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
           var customer = UserService.currentCustomer();
           customer.balance = transactionResult.balance;
           customer.rewards = transactionResult.rewards;
+          transaction.amount = amount;
+          transaction.description = description;
+          transaction.goods = 1;
           return transaction;
         }
 
@@ -70,6 +74,25 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
 
   TransactionService.prototype.refund = function(amount, description) {
     return this.charge(amount * -1, description);
+  };
+
+  TransactionService.prototype.undoTransaction = function(transaction) {
+    var sellerAccountInfo = UserService.currentUser().accountInfo,
+      customerAccountInfo = UserService.currentCustomer().accountInfo,
+      params = new RequestParameterBuilder()
+        .setOperationId('charge')
+        .setAgent(sellerAccountInfo.accountId)
+        .setMember(customerAccountInfo.accountId)
+        .setField('amount', transaction.amount)
+        .setField('description', transaction.description)
+        .setField('created', transaction.created)
+        .setField('force', -1)
+        .setField('goods', transaction.goods)
+        .getParams();
+
+    return this.makeRequest_(params, sellerAccountInfo).then(function(res) {
+      return res.data;
+    });
   };
 
   return new TransactionService();
