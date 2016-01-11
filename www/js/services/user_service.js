@@ -25,6 +25,20 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     return this.customer;
   };
 
+  UserService.prototype.loadSeller = function() {
+    try {
+      var seller = new Seller();
+      seller.fillFromStorage();
+      if (!seller.hasDevice()) {
+        throw "Seller does not have deviceID";
+      }
+      this.seller = seller;
+      return seller;
+    } catch (e) {
+      console.log(e.message);
+    }
+  };
+
   UserService.prototype.makeRequest_ = function(params, accountInfo) {
     var urlConf = new UrlConfigurator();
     return $http({
@@ -74,6 +88,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         if (responseData.logon === LOGIN_BY_AGENT) {
           self.seller = self.createSeller(responseData);
           self.seller.accountInfo = accountInfo;
+          self.seller.saveInStorage();
           return self.seller;
         }
 
