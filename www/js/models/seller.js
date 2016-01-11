@@ -40,6 +40,11 @@
         return !_.isEmpty(this.device);
       },
 
+      removeDevice: function() {
+        this.device = '';
+        localStorageService.remove(DEVICE_ID_KEY);
+      },
+
       isFirstLogin: function() {
         return this.firstLogin;
       },
@@ -58,6 +63,10 @@
         }
 
         throw new Error("Unable to load user from Storage");
+      },
+
+      removeFromStorage: function() {
+        localStorageService.remove(SELLER_KEY);
       }
 
     });

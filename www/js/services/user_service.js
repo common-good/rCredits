@@ -1,4 +1,4 @@
-app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer) {
+app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer, $rootScope) {
   'use strict';
 
   var LOGIN_FAILED = '0';
@@ -33,6 +33,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         throw "Seller does not have deviceID";
       }
       this.seller = seller;
+      $rootScope.$emit('sellerLogin');
       return seller;
     } catch (e) {
       console.log(e.message);
@@ -207,7 +208,9 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     var SUCCEED = true;
     return $q(function(resolve, reject) {
       if (SUCCEED) {
+        $rootScope.$emit('sellerLogout');
         self.customer = null;
+        self.seller.removeFromStorage();
         self.seller = null;
         resolve();
       } else {

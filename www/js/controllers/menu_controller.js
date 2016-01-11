@@ -26,4 +26,10 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
   $scope.redirectHome = function() {
     $state.go("app.home");
   };
+
+  $scope.changeCompany = function() {
+    var seller = UserService.currentUser();
+    seller.removeDevice();
+    $scope.logout();
+  }
 });
