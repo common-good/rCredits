@@ -29,7 +29,19 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
 
   $scope.changeCompany = function() {
     var seller = UserService.currentUser();
-    seller.removeDevice();
-    $scope.logout();
+
+    NotificationService.showConfirm({
+      title: 'disassociate_company',
+      subTitle: "haveToSignInAgain",
+      okText: "confirm",
+      cancelText: "cancel"
+    }, {
+      company: seller.company
+    }).then(function(res) {
+      if (res) {
+        seller.removeDevice();
+        $scope.logout();
+      }
+    });
   }
 });
