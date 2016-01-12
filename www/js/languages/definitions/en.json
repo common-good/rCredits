@@ -38,6 +38,9 @@
   "undo": "Undo",
   "userLookupFailure": "User lookup failed.",
   "verifyCustomer": "This is {{name}}'s first purchase. <b>Please ask to see a photo ID</b>, and check that it matches the image and name displayed below.",
-  "enterNewCategory": "Enter New Category"
+  "enterNewCategory": "Enter New Category",
+  "change_company": "Change company",
+  "disassociate_company": "This will disassociate this device from {{company}}",
+  "haveToSignInAgain": "You will have to sign in again",
+  "cancel": "Cancel"
 }
-

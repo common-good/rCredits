@@ -32,7 +32,7 @@
         options.template = translations[options.template];
         options.okText = translations[options.okText];
         options.cancelText = translations[options.cancelText];
-        return $ionicPopup.show(options);
+        return $ionicPopup.confirm(options);
       });
     };
 

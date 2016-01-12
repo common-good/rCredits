@@ -84,8 +84,20 @@ describe ('User Service', function() {
       httpBackend.flush();
     });
 
-    it ("Should also set firstLogin: true on seller object if deviceId was not sent", function() {
+    it ("Should also set firstLogin: FALSE on seller object if deviceId was not sent", function() {
       localStorageService.remove('deviceID');
+      httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(SELLER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
+
+      userService.loginWithRCard(SELLER_SCAN_RESULT.text).then(function(seller) {
+        expect (seller.firstLogin).toBe(false);
+      });
+
+      httpBackend.flush();
+    });
+
+    it ("Should also set firstLogin: TRUE on seller object if deviceId was sent and it's not on localStorage", function() {
+      localStorageService.remove('deviceID');
+      SELLER_LOGIN_WITH_RCARD_SUCESS_RESPONSE.device = "xyz";
       httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(SELLER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
 
       userService.loginWithRCard(SELLER_SCAN_RESULT.text).then(function(seller) {
