@@ -3,12 +3,11 @@
 
   app.service('RequestParameterBuilder', function(localStorageService) {
 
-    var RequestParameterBuilder = function(qrCodeParsedInfo) {
+    var RequestParameterBuilder = function() {
       this.result = {
         op: '',
         device: this.getDeviceId() || '',
-        code: qrCodeParsedInfo.securityCode,
-        member: qrCodeParsedInfo.accountId,
+        agent: null,
         version: rCreditsConfig.build
       };
     };
@@ -26,7 +25,27 @@
       return this.result;
     };
 
+    RequestParameterBuilder.prototype.setMember = function(member) {
+      this.result.member = member;
+      return this;
+    };
+
+    RequestParameterBuilder.prototype.setSecurityCode = function(securityCode) {
+      this.result.code = securityCode;
+      return this;
+    };
+
+    RequestParameterBuilder.prototype.setAgent = function(agent) {
+      this.result.agent = agent;
+      return this;
+    };
+
+    RequestParameterBuilder.prototype.setField = function(field, value) {
+      this.result[field] = value;
+      return this;
+    };
+
     return RequestParameterBuilder;
   });
 
-}) (app);
+})(app);

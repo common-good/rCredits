@@ -3,17 +3,16 @@
   app.service('Seller', function(localStorageService) {
 
     var DEVICE_ID_KEY = 'deviceID';
+    var SELLER_KEY = 'seller';
 
     var Seller = Class.create(User, {
 
-      can: 0,
       descriptions: [],
-      company: '',
       device: '',
       firstLogin: false,
 
       initialize: function($super, name) {
-        $super (name);
+        $super(name);
         this.configureDeviceId_();
       },
 
@@ -22,6 +21,7 @@
       },
 
       configureDeviceId_: function() {
+        this.device = '';
         var localDeviceId = localStorageService.get(DEVICE_ID_KEY);
         if (this.isValidDeviceId(localDeviceId)) {
           this.device = localDeviceId;
@@ -30,7 +30,7 @@
 
       setDeviceId: function(device) {
         if (!this.isValidDeviceId(device)) {
-          throw new Error ('Invalid deviceID: ' + device);
+          throw new Error('Invalid deviceID: ' + device);
         }
         this.device = device;
         localStorageService.set(DEVICE_ID_KEY, device);
@@ -40,10 +40,39 @@
         return !_.isEmpty(this.device);
       },
 
+      removeDevice: function() {
+        this.device = '';
+        localStorageService.remove(DEVICE_ID_KEY);
+      },
+
+      isFirstLogin: function() {
+        return this.firstLogin;
+      },
+
+      saveInStorage: function() {
+        localStorageService.set(SELLER_KEY, JSON.stringify(this));
+      },
+
+      fillFromStorage: function() {
+        var sellerData = localStorageService.get(SELLER_KEY);
+        if (sellerData) {
+          _.extendOwn(this, JSON.parse(sellerData));
+          this.accountInfo = _.extendOwn(new AccountInfo(), this.accountInfo);
+          this.configureDeviceId_();
+          return this;
+        }
+
+        throw new Error("Unable to load user from Storage");
+      },
+
+      removeFromStorage: function() {
+        localStorageService.remove(SELLER_KEY);
+      }
+
     });
 
     window.Seller = Seller;
 
     return Seller;
   });
-}) (window, app);
+})(window, app);

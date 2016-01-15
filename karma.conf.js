@@ -22,6 +22,7 @@ module.exports = function(config) {
       'www/lib/angular-local-storage/dist/angular-local-storage.min.js',
       'www/lib/prototypejs/dist/prototype.min.js',
       'www/lib/underscore/underscore-min.js',
+      'www/lib/moment/moment.js',
       'node_modules/angular-mocks/angular-mocks.js',
       'www/js/models/user.js',
       'www/js/**/*.js',
