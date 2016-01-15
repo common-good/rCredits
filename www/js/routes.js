@@ -44,7 +44,8 @@ angular.module('routes', [])
     url: '/preferences',
     views: {
       'menuContent': {
-        templateUrl: 'templates/preferences.html'
+        templateUrl: 'templates/preferences.html',
+        controller: 'PreferencesCtrl'
       }
     }
   })

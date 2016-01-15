@@ -2,8 +2,8 @@
 
 var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate', 'LocalStorageModule'])
 
-  .config(['$translateProvider',
-    function($translateProvider) {
+  .config(['$translateProvider', 'localStorageServiceProvider',
+    function($translateProvider, localStorageServiceProvider) {
 
       $translateProvider
         .useMissingTranslationHandlerLog()
@@ -14,6 +14,9 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
         .preferredLanguage(Language.DEFAULT_LANGUAGE)
         .fallbackLanguage(Language.DEFAULT_LANGUAGE)
         .useSanitizeValueStrategy('sanitizeParameters');
+
+      localStorageServiceProvider
+        .setPrefix('rcredits');
     }])
 
   .run(function($ionicPlatform) {

@@ -1,56 +1,28 @@
 <ion-view class="preferences">
   <ion-content>
     <div class="list">
-      <li class="item item-toggle">
-        {{ 'staySignedIn' | translate }}
+
+      <li ng-repeat="pref in ::preferences" class="item item-toggle" ng-if="pref.isToggle()">
+        {{ pref.name | translate }}
         <label class="toggle toggle-positive">
-          <input type="checkbox">
+          <input type="checkbox" ng-model="pref.value" ng-change="saveItems()">
           <div class="track">
             <div class="handle"></div>
           </div>
         </label>
       </li>
 
-      <li class="item item-toggle">
-        {{ 'offlineMode' | translate }}
-        <label class="toggle toggle-positive">
-          <input type="checkbox">
-          <div class="track">
-            <div class="handle"></div>
-          </div>
-        </label>
-      </li>
+      <div ng-repeat="pref in ::preferences" ng-if="pref.isCheckbox()">
+        <li class="item">
+          {{ pref.name | translate }}
+        </li>
 
-      <li class="item item-toggle">
-        {{ 'selfServiceMode' | translate }}
-        <label class="toggle toggle-positive">
-          <input type="checkbox">
-          <div class="track">
-            <div class="handle"></div>
-          </div>
-        </label>
-      </li>
-
-      <li class="item item-toggle">
-        {{ 'enableCashierMode' | translate }}
-        <label class="toggle toggle-positive">
-          <input type="checkbox">
-          <div class="track">
-            <div class="handle"></div>
-          </div>
-        </label>
-      </li>
-
-      <li class="item">
-        {{ 'cashierCan' | translate }}
-      </li>
-
-      <ion-list>
-        <ion-checkbox>{{ 'charge' | translate }}</ion-checkbox>
-        <ion-checkbox>{{ 'refund' | translate }}</ion-checkbox>
-        <ion-checkbox>{{ 'tradeRCreditsUSD' | translate }}</ion-checkbox>
-        <ion-checkbox>{{ 'tradeUSDRCredits' | translate }}</ion-checkbox>
-      </ion-list>
+        <ion-list ng-if="pref.hasOptions()">
+          <ion-checkbox ng-model="option.value" ng-change="saveItems()"
+                        ng-repeat="option in pref.options">{{ option.name | translate }}
+          </ion-checkbox>
+        </ion-list>
+      </div>
 
     </div>
   </ion-content>
