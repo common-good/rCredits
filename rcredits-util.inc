@@ -808,6 +808,41 @@ function firstUnusedId($key, $table, $starting = 1, $before = PHP_INT_MAX, $wher
 }
  
 /**
+ * Alter an image by resizing, cropping, translation, and/or rotation.
+ * @param image $img0: the image to change
+ * @param int ($w, $h): new width and height
+ * @param int ($x1, $y1): where to begin cropping
+ * @param int ($cropW, $cropH): how big an image to end up with
+ * @param int $angle: how far to rotate the image (in degrees)
+ * @return the modified image
+ */
+function alterImg($img0, $w, $h, $x1 = 0, $y1 = 0, $cropW = 0, $cropH = 0, $angle = 0) {
+  list ($w0, $h0) = [imagesx($img0), imagesy($img0)];
+  
+  if ($w0 != $w or $h0 != $h) {
+    $img1 = imagecreatetruecolor($w, $h); // resize the original image to size of editor
+	  imagecopyresampled($img1, $img0, 0, 0, 0, 0, $w, $h, $w0, $h0);
+  } else $img1 = $img0;
+  
+  if ($angle) {  
+    $img1 = imagerotate($img1, -$angle, 0); // rotate the rezized image
+    list ($dx, $dy) = [imagesx($img1) - $w, imagesy($img1) - $h]; // diff between rotated & original sizes
+      
+    $img2 = imagecreatetruecolor($w, $h); // crop rotated image to fit into original rezized rectangle
+    imagecolortransparent($img2, imagecolorallocate($img2, 0, 0, 0));
+    imagecopyresampled($img2, $img1, 0, 0, $dx / 2, $dy / 2, $w, $h, $w, $h);
+  } else $img2 = $img1;
+	
+  if ($cropW or $cropH) {
+	  $img3 = imagecreatetruecolor($cropW, $cropH); // crop image into selected area
+	  imagecolortransparent($img3, imagecolorallocate($img3, 0, 0, 0));
+	  imagecopyresampled($img3, $img2, 0, 0, $x1, $y1, $cropW, $cropH, $cropW, $cropH);
+  } else $img3 = $img2;
+  
+  return $img3;
+}
+
+/**
  * Normalize an image file to the given aspect
  * @param string $filename: path of file to normalize (file will be replaced)
  * @param string $aspect: the desired width:height ratio
@@ -816,7 +851,7 @@ function firstUnusedId($key, $table, $starting = 1, $before = PHP_INT_MAX, $wher
  * @param string $error: (returned) the error message, if any
  * @return if modifying file: TRUE for success, else FALSE; if not modifying file: return the image else ''
  * @todo: handle webp and xpm images?
- */
+ */ /*
 function fixPicture($filename, $aspect, $factor, $modify = TRUE, &$error = '') {
   $acceptableImages = IMAGETYPE_GIF | IMAGETYPE_JPEG | IMAGETYPE_PNG | IMAGETYPE_WBMP | IMAGETYPE_XBM;
   if (!$info = @getimagesize($filename)) return (!$error = 'not an image');
@@ -845,8 +880,8 @@ function fixPicture($filename, $aspect, $factor, $modify = TRUE, &$error = '') {
     imagejpeg($img);
     return ob_get_clean();   
   }
-}
-
+}*/
+/*
 function cropImage(&$img, $x, $y, $w, $h) {  
   $canvas = imagecreatetruecolor($w, $h); // crop
   $result = imagecopy($canvas, $img, 0, 0, $x, $y, $w, $h);
@@ -860,7 +895,7 @@ function resizeImage(&$img, $w, $h) {
   $result = imagecopyresampled($canvas, $img, 0, 0, 0, 0, $w, $h, imagesx($img), imagesy($img));
   $img = $canvas;
   return $result;
-}
+}*/
 
 /**
  * Quicker encryption for often-used fields.
@@ -1015,7 +1050,7 @@ function badName($name) {
  * @return FALSE if date is okay, else an error index
  */
 function badDate(&$s, $min = '', $max = '') {
-  if (!$dt = u\s2t(str_replace('-', '/', @$s))) return 'bad date'; // slashes makes it mdy (else dmy assumed)
+  if (!$dt = u\s2t(@$s)) return 'bad date'; // slashes makes it mdy (else dmy assumed)
   if ($min !== '' and ($dt < $min or $dt > $max)) {
     $err = $dt < $min ? 'date too early' : 'date too late';
     if (!is_numeric(@substr($s, -3, 1))) $err .= '|year is 4 digits';
@@ -1245,7 +1280,7 @@ function purify($s) {
   if (is_array($s)) {
     foreach ($s as $key => $value) $s[$key] = purify($value);
     return $s;
-  } return preg_replace('/( [\x00-\x7F] | [\xC0-\xDF][\x80-\xBF] | [\xE0-\xEF][\x80-\xBF]{2} | [\xF0-\xF7][\x80-\xBF]{3} ) | ./x', '$1', $s);
+  } else return preg_replace('/( [\x00-\x7F] | [\xC0-\xDF][\x80-\xBF] | [\xE0-\xEF][\x80-\xBF]{2} | [\xF0-\xF7][\x80-\xBF]{3} ) | ./x', '$1', $s);
 }
 
 /**
@@ -1366,8 +1401,8 @@ function isName($value) {return preg_match('/^[ \\x{00c0}-\\x{01ff}a-zA-Z0-9\,\.
 ///function isName($value) {return preg_match('/^([ \\p{InCJK_Radicals_Supplement}\\p{InKangxi_Radicals}\\p{InIdeographic_Description_Characters}\\p{InCJK_Symbols_and_Punctuation}\\p{InHiragana}\\p{InKatakana}\\p{InBopomofo}\\p{InHangul_Compatibility_Jamo}\\p{InKanbun}\\p{InBopomofo_Extended}\\p{InKatakana_Phonetic_Extensions}\\p{InEnclosed_CJK_Letters_and_Months}\\p{InCJK_Compatibility}\\p{InCJK_Unified_Ideographs_Extension_A}\\p{InYijing_Hexagram_Symbols}\\p{InCJK_Unified_Ideographs}a-zA-Z\'\\-])+$/', $value);}
 function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
 function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);} // deprecated
-function s2t($s) {return strtotime($s) ?: strtotime(str_replace('-', '/', $s));}
-function fmtDate($time = NULL, $numeric = FALSE) {return strftime($numeric ? '%m-%d-%Y' : '%d-%b-%Y', isset($time) ? $time : r\rTime());}
+function s2t($s) {return strtotime(preg_match('/[A-Z]/i', $s) ? $s : str_replace('-', '/', $s));}
+function fmtDate($time = NULL, $numeric = FALSE) {return strftime($numeric ? '%m/%d/%Y' : '%d-%b-%Y', isset($time) ? $time : r\rTime());}
 function fmtTime($time = NULL) {return strtolower(strftime('%I:%M%p', isset($time) ? $time : r\rTime()));}
 function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}
 function digits(&$n) {return $n = preg_replace('/\D/', '', @$n);}

@@ -9,7 +9,7 @@ global $riskHelp; $riskHelp = array(
   'trusted' => t('Has access to, was invited by, or is proxy to, other account(s) in good standing'),
   'socialConx' => t('Has 1st or 2nd-degree social media connections to an rCredits community administrator'),
   'hasBank' => t('Has a connected bank account'),
-  'geography' => t('Resides in an HIDTA'),
+  'geography' => t('Resides in a High Intensity Drug Trafficking Area'),
   'cashCo' => t('Is a type of business that has been identified by regulators as high risk (flag set by administrator)'),
   'new' => t('Recently moved to current address (before opening an rCredits account)'),
   'moves' => t('Has changed counties several times in the past decade'),
@@ -54,9 +54,11 @@ global $riskHelp; $riskHelp = array(
   'origins' => t('Receipts by this payer over the past year are suspicious in aggregate'),
   'suspectOut' => t('A suspicious account trades rCredits for US Dollars'),
 );
+/*
 $helpDescs = join('|', array_values($riskHelp));
 $js = <<<EOF
 var a = "$helpDescs".split('|');
 for (i = 0; i < a.length; i++) jQuery('.riskHelp' + i).prop('title', a[i]);
 EOF;
 \rCredits\Web\js($js, 'inline', 'footer');
+*/

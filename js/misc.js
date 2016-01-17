@@ -24,6 +24,8 @@ jQuery("#index a").mouseover(function() {
 jQuery(".index-detail").click(function() {jQuery("#edit-acct-index, .index-detail").hide();});
 jQuery(".noEdit").prev().attr("disabled", 1);
 
+jQuery('[data-toggle="popover"][data-trigger="hover"]').popover(); 
+
 var mobile = jQuery('.navbar-toggle').is(':visible');
 jQuery('.submenu [data-toggle="popover"]').each(function(index) {
   jQuery(this).popover({
@@ -43,6 +45,17 @@ if (!mobile) jQuery('.navbar-nav > li > a').hover(function() {
   jQuery('.submenu > a').not(jQuery(this)).popover('hide');
 });
 if (!mobile) jQuery('form div').hover(function() {jQuery('* [data-toggle="popover"]').popover('hide');});
+
+/**
+ * get data from the server
+ * @param string op: what to get
+ * @param object data: parameters for the get
+ * @param function success(jsonObject): what to do upon success (do nothing on failure)
+ */
+function get(op, data, success) {
+  data = {op:op, sid:ajaxSid, data:data};
+  $.get(ajaxUrl, data, success);
+}
 
 var _gaq = _gaq || [];
 _gaq.push(['_setAccount', 'UA-30262912-1']);

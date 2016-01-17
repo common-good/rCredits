@@ -17,8 +17,8 @@ Scenario: a member gets some notices
   | .ZZA | %today  |    0 | You stone. |
   When cron runs "notices"
   Given variable "balance" is "balance notice" with subs:
-  | balance | rewards |*
-  | $0      | $0      |
+  | balance | savings | rewards |*
+  | $0      | $0      | $0      |
   Then we email "notices" to member "a@" with subs:
   | fullName | shortName | unit | range           | yestertime      | region | messages                  | balance  | return | ourEmail      |*
   | Abe One  | abeone    | day  | %fancyYesterday | %fancyYesterday | new    | *You rock.<br>*You stone. | %balance | 5.0    | %zzxCttyEmail |
@@ -35,8 +35,8 @@ Scenario: a member gets some weekly notices
   And it's time for "weekly"
   When cron runs "notices"
   Given variable "balance" is "balance notice" with subs:
-  | balance | rewards |*
-  | $0      | $0      |
+  | balance | savings | rewards |*
+  | $0      | $0      | $0      |
   Then we email "notices" to member "b@" with subs:
   | fullName | shortName | unit | range                       | yestertime        | region | messages                          | balance  | return | ourEmail      |*
   | Bea Two  | beatwo    | week | the week of %fancyYesterweek | %fancyYesterweek | new    | %md<x>You rock.<br>%md<x>You stone. | %balance | 5.0    | %zzxCttyEmail |

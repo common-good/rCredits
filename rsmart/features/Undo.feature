@@ -41,7 +41,7 @@ Setup:
   | 2   | %today-6m | signup   |    250 | ctty | .ZZB | signup       |      0 |
   | 3   | %today-6m | signup   |    250 | ctty | .ZZC | signup       |      0 |
   Then balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |    -750 |
   | .ZZA |     250 |
   | .ZZB |     250 |
@@ -153,7 +153,7 @@ Scenario: An agent asks to undo a charge, with insufficient balance
   | created | otherName  | amount | payerPurpose | otherRewardAmount |*
   | %today  | Corner Pub | $80    | reverses #2  | $-4               |
   And balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |    -750 |
   | .ZZA |     250 |
   | .ZZB |     550 |
@@ -177,7 +177,7 @@ Scenario: An agent asks to undo a refund, with insufficient balance
   | created | otherName  | amount | payerPurpose | otherRewardAmount |*
   | %today  | Corner Pub | $80    | reverses #2  | $4                     |
   And balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |    -750 |
   | .ZZA |     -50 |
   | .ZZB |     550 |
@@ -229,7 +229,7 @@ Scenario: A cashier reverses a transaction with insufficient funds
   | created | fullName | otherName  | amount | payerPurpose |*
   | %today  | Bea Two  | Corner Pub | $100   | reverses #2  |
   And balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |    -850 |
   | .ZZA |     249 |
   | .ZZB |     251 |

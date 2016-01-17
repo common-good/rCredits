@@ -75,7 +75,7 @@ class rsmartExchange extends DrupalWebTestCase {
     . '\\| 5   | %today-5m | transfer |    200 | .ZZA | .ZZC | cash    |'
     . '\\| 6   | %today-4m | grant    |    250 | ctty | .ZZF | stuff   |"');
     Then_('balances: "ASSOC'
-    . '\\| id   | balance | rewards |'
+    . '\\| id   |       r | rewards |'
     . '\\| ctty |   -1000 |         |'
     . '\\| .ZZA |     150 |     350 |'
     . '\\| .ZZB |     250 |     150 |'
@@ -105,7 +105,7 @@ class rsmartExchange extends DrupalWebTestCase {
     . '\\| created | fullName | otherName  | amount | payerPurpose |'
     . '\\| %today  | Bea Two  | Corner Pub | $100   | cash out     |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |   -1000 |'
     . '\\| .ZZA |     150 |'
     . '\\| .ZZB |     150 |'
@@ -130,7 +130,7 @@ class rsmartExchange extends DrupalWebTestCase {
     . '\\| created | fullName | otherName  | amount | payeePurpose |'
     . '\\| %today  | Bea Two  | Corner Pub | $100   | cash in      |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |   -1000 |'
     . '\\| .ZZA |     150 |'
     . '\\| .ZZB |     350 |'

@@ -55,7 +55,7 @@ Scenario: A newbie registers in Western Massachusetts
   And we say "status": "your account is ready"
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NEW.AAC | %R_SITE_URL | %name |
+  | Abe One  | abeone | NEW.AAC | %BASE_URL | %name |
   And member ".AAC" one-time password is set
   #And we show "Empty"
 
@@ -73,7 +73,7 @@ Scenario: A newbie registers with an unconfirmed icard invitation
   | Zeta Zot    |
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NEW.AAC | %R_SITE_URL | %name |
+  | Abe One  | abeone | NEW.AAC | %BASE_URL | %name |
   And member ".AAC" one-time password is set
   And we message "confirm invite" to member ".ZZZ" with subs:
   | fullName | a1 |*
@@ -95,7 +95,7 @@ Scenario: A newbie registers with an unconfirmed self-invitation
   | Zeta Zot    |
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NEW.AAC | %R_SITE_URL | %name |
+  | Abe One  | abeone | NEW.AAC | %BASE_URL | %name |
   And member ".AAC" one-time password is set
   And we message "confirm invite" to member ".ZZZ" with subs:
   | fullName | a1 |*
@@ -123,7 +123,7 @@ Scenario: A newbie registers elsewhere
   And we say "status": "your account is ready"
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NYA.AAA | %R_SITE_URL | %name |
+  | Abe One  | abeone | NYA.AAA | %BASE_URL | %name |
   And member "NYA.AAA" one-time password is set
 
 Scenario: A newbie registers with no case
@@ -253,5 +253,5 @@ Scenario: A newbie registers from elsewhere
   And we say "status": "your account is ready"
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NEN.AAA | %R_SITE_URL | %name |
+  | Abe One  | abeone | NEN.AAA | %BASE_URL | %name |
   # And we show "Empty"

@@ -94,7 +94,7 @@ Scenario: A member asks for a new password for username
   | abeone |
   Then we email "password-reset" to member "a@example.com" with subs:
   | fullName | site        | name   | code     |*
-  | Abe One  | %R_SITE_URL | abeone | wHatEveR |
+  | Abe One  | %BASE_URL | abeone | wHatEveR |
   
 Scenario: A member asks for a new password for account ID
   Given next random code is "wHatEveR"
@@ -103,7 +103,7 @@ Scenario: A member asks for a new password for account ID
   | new.zza |
   Then we email "password-reset" to member "a@example.com" with subs:
   | fullName | site        | name   | code     |*
-  | Abe One  | %R_SITE_URL | abeone | wHatEveR |
+  | Abe One  | %BASE_URL | abeone | wHatEveR |
   
 Scenario: A member asks for a new password for email
   Given next random code is "wHatEveR"
@@ -112,7 +112,7 @@ Scenario: A member asks for a new password for email
   | a@example.com |
   Then we email "password-reset" to member "a@example.com" with subs:
   | fullName | site        | name   | code     |*
-  | Abe One  | %R_SITE_URL | abeone | wHatEveR |
+  | Abe One  | %BASE_URL | abeone | wHatEveR |
 
 Scenario: A member asks for a new password for an unknown account
   When member "?" completes form "settings/password" with values:

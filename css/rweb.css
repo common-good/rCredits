@@ -1,5 +1,10 @@
 /* CSS specific to rCredits members site */
 
+@keyframes puff {
+    from {font-size:0%;}
+    to {font-size:100%;}
+}
+
 @font-face {
     font-family: "GnuMICR";
     src: url(http://new.rcredits.org/GnuMICR.ttf) format("truetype");
@@ -51,6 +56,19 @@ nav.navbar.navbar-inverse .container {max-height:50px;}
   .nav {padding-top:0;}
   .submenu .popover .arrow:after {border-left-color:#044687; border-bottom-color:transparent;}
 }
+
+[data-trigger="hover"] +div.popover, /* tooltip */
+.ui-dialog {
+  min-width:250px;
+  box-shadow: 0px 4px 4px rgba(0,0,0,0.7);
+  -webkit-box-shadow: 0 4px 4px rgba(0,0,0,0.7);
+  -moz-box-shadow: 0 4px 4px rgba(0,0,0,0.7);
+}
+
+[data-trigger="hover"] +div.popover .popover-title,
+.ui-widget-header {background:darkgreen; color:white;}
+
+[data-trigger="hover"] +div.popover .popover-content {color:black;}
 
 #page-wrapper {width:100%; max-width:100; background-color:white;} /* not max-width:961px */
 #header {height:60px;}
@@ -134,6 +152,7 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
 #extras {margin:3px 8px 0 0;}
 #extras .photo {width:34px; height:44px; padding:0;}
 #extras .photo.co {width:57px;}
+#extras button {-webkit-appearance:none; border:1px solid silver;} /* keep Safari from making it oval & squeezed */
 #extras img {height:100%; width:100%;}
 .not-logged-in #extras {display:none;}
 
@@ -162,11 +181,16 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
 #actionsSimple,
 #actionsAdvanced {display:inline-block;}
 
-#messages {display:inline-block; padding:0px 0 5px 0; margin:20px auto 0 auto;}
-#messages .messages {display:inline-block; margin:8px 15px; background-position:8px; background-repeat:no-repeat; border:1px solid; padding:10px 10px 10px 50px;
+#messages {
+  display:inline-block; padding:0px 0 5px 0; width:100%; text-align:center;
+  -webkit-animation: puff .5s linear; /* Chrome, Safari, Opera */
+  animation: puff .5s linear;  
+}
+#messages .messages {display:inline-block; text-align:left; margin:28px auto; background-position:8px; background-repeat:no-repeat; border:1px solid; padding:10px 10px 10px 50px;
   border-radius:8px; -moz-border-radius:8px; -webkit-border-radius:8px;
   box-shadow: 0px 4px 4px rgba(0,0,0,0.7); -webkit-box-shadow: 0 4px 4px rgba(0,0,0,0.7); -moz-box-shadow: 0 4px 4px rgba(0,0,0,0.7);
 }
+
 #messages .error {background-color:#fef5f1; color:#8c2e0b; border-color:#ed541d; background-image:url(../images/icons/message-24-error.png);}
 #messages .status {background-color:#f8fff0; color:#234600; border-color:#be7; background-image:url(../images/icons/message-24-ok.png);}
 #messages .stopnot {font-weight:bold; font-size:200%; color:red;}  
@@ -231,6 +255,14 @@ body.logged-in.one-sidebar #content {width:100%;}
 
 /* Invite */
 #inviteLink {border:1px solid silver; background-color:lightyellow; color:silver;}
+
+/* Flags (AML Risks) */
+#rcreditswebformflags .risky {font-weight:bold; color:red;}
+#rcreditswebformflags .safe {font-weight:bold; color:green;}
+#rcreditswebformflags th, #rcreditswebformflags td {text-align:center;}
+#rcreditswebformflags .k-risks {text-align:left;}
+#rcreditswebformflags .k-amount, #rcreditswebformflags .k-score {text-align:right;}
+#rcreditswebformflags .k-created {min-width:60px;}
 
 /* Help */
 #rcreditswebformhelp em {font-style:normal; font-weight:bold; color:dimgray;}
@@ -301,7 +333,7 @@ body.logged-in.one-sidebar #content {width:100%;}
 
 /* Options (Preferences) */
 /* #rcreditswebformoptions .form-item-payHow {border-top:1px solid darkgreen; padding-top:5px;} */
-#rcreditswebformoptions #edit-posttext  {font-size:80%;}
+#rcreditswebformpreferences #edit-posttext {font-size:80%;}
 
 /* Proxy */
 /*#rcreditswebformproxy button {display:none;}*/
@@ -399,7 +431,7 @@ body.logged-in.one-sidebar #content {width:100%;}
 .photoUp_imgUploadForm {display:none;}
 .cropControlsUpload {display:none;}
 #photoUp {width:300px; height:400px;}
-#photoUp.co {width:400px; height:300px;}
+#photoUp.co {width:400px; height:300px; background-image:url(../images/icons/placeholder-co.png);}
 #choosePhotoWrap {width:300px; text-align:center;}
 #choosePhotoWrap .co {width:400px;}
 #choosePhoto {margin:0 auto;}
@@ -410,8 +442,8 @@ body.logged-in.one-sidebar #content {width:100%;}
 .form-no {color:red;}
 
 /* Admin */
-.page-sadmin #messages .status {background-image:none; margin:4px; padding:0px;}
-.page-sadmin #messages .status > ul {padding:0;}
+.page-sadmin-panel #messages .status {background-image:none; margin:4px; padding:0px;}
+.page-sadmin-panel #messages .status > ul {padding:0;}
 
 /* Admin Deposits */
 #edit-deposits .control-label {width:50px;}
@@ -508,10 +540,10 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td {display:none;} /* col 10 */
 
 /* Transaction Summary Table */
-#txsum, #txsum-title, #txs-title, #txlist {width:100%; margin:0;} /* outline:2px solid darkgreen;} */
-#txsum-title, #txs-title {text-align:center; margin:0px; padding:0px; font-weight:bold; font-size:150%;}
+#txsum, #txsum-title, #txs-title {width:100%; max-width:500px; margin:0 auto;} /* outline:2px solid darkgreen;} */
+#txsum-title, #txs-title {text-align:center; padding:0px; font-weight:bold; font-size:150%;}
 #txs-title, #txsum-title {margin-top:30px;}
-#txsum td {text-align:right !important; border:0px;}
+/* #txsum td {text-align:right !important; border:0px;} */
 #txsum tr#txsum-dates {background:none; line-height:.9; border:0px;}
 #txsum tr#txsum-headers {font-weight:bold; background:none; border-bottom:1px solid black;}
 #rcreditswebformtxs #txsum th, #rcreditswebformtxs #txsum td {display:table-cell;}
@@ -519,6 +551,15 @@ div.password-confirm .error {font-weight:bold; color:red;}
 /* .txsum-one, .txsum-balance {width:120px;} */
 .txsum-banksign, .txsum-tosign, .txsum-fromsign, .txsum-feessign, .txsum-rewardssign, .txsum-sharesign, .txsum-balancesign {min-width:1em;}
 .txsum-bank, .txsum-toyou, .txsum-fromyou, .txsum-fees, .txsum-share, .txsum-rewards {min-width:7em;}
+
+#txsum {border:2px solid midnightblue; width:auto;}
+#txsum tr:first-child {font-weight:bold;}
+#txsum tr:first-child +tr+tr+tr+tr+tr td:first-child +td+td,
+#txsum tr:first-child +tr+tr+tr+tr+tr td:first-child +td+td+td+td {border-bottom:1px solid black;}
+#rcreditswebformtxs #txsum tr td {text-align:right; border-left:1px solid silver;}
+#rcreditswebformtxs #txsum tr td:first-child {text-align:left; font-weight:bold; background-color:#757575; color:white;}
+#rcreditswebformtxs #txsum tr td:last-child {text-align:left;}
+
 
 /* Invoices */
 #rcreditswebforminvoices .form-item-states2 {display:none;} /* disabled until invoices are more used */
@@ -546,37 +587,37 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #cttyFunds td:first-child {text-align:left;}
 
 /* Reports (Community Statistics/Graphs) */
-#rcreditswebformreports {clear:both;}
-#rcreditswebformreports .control-label {display:none;}
-#rcreditswebformreports .form-type-item {margin-top:15px; margin-bottom:0;}
-#rcreditswebformreports .description {clear:none;}
-#rcreditswebformreports #edit-charts div {float:left;}
-#rcreditswebformreports #edit-title {margin-bottom:0; font-weight:bold;}
-#rcreditswebformreports #edit-subheader {margin-top:0px; margin-bottom:35px; font-size:110%;} 
-#rcreditswebformreports #edit-subtext {margin-left:0;} 
-#rcreditswebformreports #edit-subtext em {font-weight:bold; font-style:normal; color:darkred;}
+#rcreditswebformgraphs {clear:both;}
+#rcreditswebformgraphs .control-label {display:none;}
+#rcreditswebformgraphs .form-type-item {margin-top:15px; margin-bottom:0;}
+#rcreditswebformgraphs .description {clear:none;}
+#rcreditswebformgraphs #edit-charts div {float:left;}
+#rcreditswebformgraphs #edit-title {margin-bottom:0; font-weight:bold;}
+#rcreditswebformgraphs #edit-subheader {margin-top:0px; margin-bottom:35px; font-size:110%;} 
+#rcreditswebformgraphs #edit-subtext {margin-left:0;} 
+#rcreditswebformgraphs #edit-subtext em {font-weight:bold; font-style:normal; color:darkred;}
 
-#rcreditswebformreports .form-type-checkboxes {margin-bottom:0;}
-#rcreditswebformreports .form-type-checkbox {width:110px;}
-#rcreditswebformreports .form-type-radios {border:0;}
-#rcreditswebformreports .form-type-radio {display:inline-block;}
+#rcreditswebformgraphs .form-type-checkboxes {margin-bottom:0;}
+#rcreditswebformgraphs .form-type-checkbox {width:110px;}
+#rcreditswebformgraphs .form-type-radios {border:0;}
+#rcreditswebformgraphs .form-type-radio {display:inline-block;}
 
-#rcreditswebformreports .form-item-period {display:inline-block;}
-#rcreditswebformreports .form-item-ending {display:inline-block;}
-#rcreditswebformreports .form-item-starting {margin-bottom:0;}
-#rcreditswebformreports .form-submit {margin-left:10px; max-width:120px;}
-#rcreditswebformreports input {max-width:110px;}
-#rcreditswebformreports .form-item-states,
-#rcreditswebformreports .form-item-states label {margin-top:15px;}
-#rcreditswebformreports  label {color:darkblue;}
-#rcreditswebformreports #edit-p2p,
-#rcreditswebformreports #edit-p2b,
-#rcreditswebformreports #edit-b2b,
-#rcreditswebformreports #edit-b2p {font-size:85%; margin:0 0 0 32px;}
-#rcreditswebformreports #edit-p2p label,
-#rcreditswebformreports #edit-p2b label,
-#rcreditswebformreports #edit-b2b label,
-#rcreditswebformreports #edit-b2p label {color:darkgray;}
+#rcreditswebformgraphs .form-item-period {display:inline-block;}
+#rcreditswebformgraphs .form-item-ending {display:inline-block;}
+#rcreditswebformgraphs .form-item-starting {margin-bottom:0;}
+#rcreditswebformgraphs .form-submit {margin-left:10px; max-width:120px;}
+#rcreditswebformgraphs input {max-width:110px;}
+#rcreditswebformgraphs .form-item-states,
+#rcreditswebformgraphs .form-item-states label {margin-top:15px;}
+#rcreditswebformgraphs  label {color:darkblue;}
+#rcreditswebformgraphs #edit-p2p,
+#rcreditswebformgraphs #edit-p2b,
+#rcreditswebformgraphs #edit-b2b,
+#rcreditswebformgraphs #edit-b2p {font-size:85%; margin:0 0 0 32px;}
+#rcreditswebformgraphs #edit-p2p label,
+#rcreditswebformgraphs #edit-p2b label,
+#rcreditswebformgraphs #edit-b2b label,
+#rcreditswebformgraphs #edit-b2p label {color:darkgray;}
 
 /* Relation form */
 /*#rcreditswebformrelations #edit-subtext label {width:450px;}*/

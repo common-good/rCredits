@@ -1,4 +1,39 @@
-2015-12-
+2016-01-16
+. add extra optional column to payroll upload: description (and use it if specified)
+. rename field savings to savingsAdd
+. split everyone's balance into primary and savings reserve, emailed warning message, set minimum to zero if their current balance became negative:
+    eachA(function($a) {
+      $topic = 'balance now split (important notice)';
+      $a->update('savings', max($a->rewards, $a->savingsAdd)); $a->setBit(B_u8, FALSE);
+      $args = f('r.noticeArgs', $a->id);
+      $balMsg = f('u.tt', '<p>Your new balance is @balance.</p>', f('u.just', 'balance', $args));
+      $msg = '';
+      if ($a->minimum > 0 and $a->j_rewards > $a->j_r) {
+        $msg = f('r.suggestMin', $a, $a->minimum, "new savings balance|$balMsg|minimum zeroed", TRUE);
+        $a->update('minimum', 0);
+      } elseif ($a->j_rewards > 0) $msg = "new savings balance|$balMsg";
+/**/  if ($msg) debug("Sent " . (strpos($msg, 'zero') ? 'zeroed' : 'normal') . " msg to $a->fullName ($a->mainQid) : $balMsg");
+      if ($msg) f('r.message', $a->id, $msg, [], $topic);
+    });
+. photo is oval and squeezed horizontally on the iPad (might have fixed this)
+. don't count cron transactions as activity (don't update "access" field)
+. added a timeout to croppic.js to handle attempts to upload a non-image file
+. handle transactons summary when member changes savings amount: Add a line for Rewards and do it like the statements, but vertically.
+. fixed rounding error on bank page.
+. changed username and password field html to flout browser autofill.
+. added file size check to croppic, to keep php from crashing on out-of-memory creating image
+. fixed bug that kept company "ATM" bit from working
+. cron now considers an automatic transfer for a joined account whether or not it has a low balance (no way to tell whether it's time with SQL alone)
+. set B_JOINED on joining
+. changes field is now encrypted if it contains any secure field (former) values (changed field type to longblob)
+. fees are now included in calculation of r on ctty funds page
+. updated the general help page
+. added a don't list option for companies (CO_PRIVATE)
+. added an anonymous export option for data analysis
+. added total balance to balance line on Summary page
+. centered messages, with "puff" transition
+
+2015-12-11
 . bug fix: sort field was causing crash on bad data in transaction history
 . bug fix: opening company failed (form.inc updated on production site)
 . instant submenus on hover

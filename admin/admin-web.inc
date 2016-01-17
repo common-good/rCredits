@@ -11,6 +11,7 @@ use rCredits\Backend as be;
 use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Admin as a;
+use rCredits\Web as w;
 
 function seeSecure($a) {
   $mya = r\acct();
@@ -100,7 +101,8 @@ function adminSummary($a, $cAdmin = FALSE) {
     if ($rels = a\showRelations($a)) $relations = item($rels, t('Relations:'));
     
     $invited = item(db\count('r_invites', 'inviter=:uid', compact('uid')), t('Invited:'));
-    $invitedBy = item(db\lst('fullName', 'r_invites i LEFT JOIN users u ON u.uid=i.inviter', 'invitee=:uid', compact('uid')), t('Invited by:'));
+    $invitedBy = $a->helper ? ($a->helperA->fullName . "#$a->iCode (" . r\iCodeDesc($a->iCode) . ') + ') : '';
+    $invitedBy = item($invitedBy . db\lst('fullName', 'r_invites i LEFT JOIN users u ON u.uid=i.inviter', 'invitee=:uid', compact('uid')), t('Invited by:'));
     $proxies = item(db\lst('fullName', 'r_proxies p LEFT JOIN users u ON u.uid=p.proxy', 'p.person=:uid ORDER BY priority', compact('uid')), t('Proxies:'));
     $proxyFor = item(db\count('r_proxies', 'proxy=:uid', compact('uid')), t('Proxy for:'));
   }
@@ -125,14 +127,15 @@ function adminSummary($a, $cAdmin = FALSE) {
   
     $acctRisks = u\ray(K_ACCT_RISKS);
     $riskBits = array_keys($acctRisks);
-    $riskHelpKeys = array_flip(array_keys($riskHelp));
+//    $riskHelpKeys = array_flip(array_keys($riskHelp));
     $risksEditable = array_flip(u\ray(K_ACCT_RISKS_EDITABLE));
     foreach ($riskBits as $k) {
       $class = $acctRisks[$k] < 0 ? 'goodRisk' : 'badRisk';
-      $helpIndex = $riskHelpKeys[$k];
-      $class .= " riskHelp$helpIndex";
+//      $helpIndex = $riskHelpKeys[$k];
+      //$class .= " riskHelp$helpIndex";
       if (!isset($risksEditable[$k])) $class .= ' noEdit';
-      $aliases[$k] = "<div class=\"$class\">$k</div>";
+      $dpy = w\popHelp($k, $riskHelp[$k]);
+      $aliases[$k] = "<div class=\"$class\">$dpy</div>";
     }
     $risks = bitsFld(t('Risks:'), $a->risks, '', K_ACCT_RISKS, $aliases);
 
@@ -185,6 +188,64 @@ EOF;
   $uid = hidFld($uid);
 
   return compact(u\ray('photo donations cgfDonations federalId legalName calling tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
+}
+
+/**
+ * Download the member list for the current community
+ */
+define('EXPORT_PARAMS', 'do allCttys onlyActive onlyPeople anonymous');
+
+function export($params) {
+  extract(u\just(EXPORT_PARAMS, $params));
+  $mya = r\acct();
+  $ctty = r\acct($mya->community);
+
+  $filename = t('rCredits-')
+  . str_replace('.', '', $ctty->name)
+  . (@$onlyActive ? t('-active') : '')
+  . (@$onlyPeople ? t('-members') : t('-accounts'))
+  . '.csv';
+  u\csvStart($filename);
+  $fields = @$anonymous ?
+    'uid city state zip member'
+      . ' created activated signed helper iCode balance rewards savingsAdd minimum share risk trust'
+      . ' cttyName co gross employees achMin pinThreshold lastiCode tenure moves mediaConx jid'
+      . ' owns bankName slave closed notices secret'
+  : 'id first_name last_name phone email address city state zip member ecode';
+  u\csv($fields = u\ray($fields));
+
+  $where = @$allCttys ? '1' : 'community=:cttyId';
+  if (@$onlyActive) $where .= ' AND :IS_OK';
+  if (@$onlyPeople) $where .= ' AND NOT :IS_CO';
+  $sql = "SELECT uid AS id, fullName FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND $where ORDER BY :IS_OK, -signed, -created";
+  $q = db\q($sql, u\ray('cttyId', $ctty->id));
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $a = r\acct($id);
+    $member = $a->ok ? 'yes' : '';
+    if (@$anonymous) {
+      foreach ($fields as $k) $$k = $a->$k; // do this first. some will be null.
+      $cttyName = $ctty->fullName;
+      $zip = $a->postalCode;
+      foreach (u\ray('weekly monthly secret') as $k) $$k = $a->can(u\consta('b', $k));
+      $notices = $monthly ? t('monthly') : ($weekly ? t('weekly') : t('daily'));
+      $state = r\realstate($state);
+      if ($routing = substr($a->bankAccount, 4, 9)) {
+        $bankName = db\lookup('name', 'r_banks', 'route=:routing', compact('routing'));
+      } else $bankName = '';
+    } else {
+      list ($first_name, $last_name) = u\parseName($fullName);
+      $email = $a->email;
+      $phone = $a->phone;
+      list ($address, $city, $state, $zip) = u\parseAddr($a->postalAddr);
+      $phone = u\fmtPhone($phone);
+      $id = $a->mainQid;
+      $ecode = "$a->emailCode";
+    }
+    if (is_numeric($zip)) $zip .= '-'; // prevent this from getting interpreted as a number
+    u\csv(array_values(compact($fields)));
+  }
+  exit();
 }
 
 /*

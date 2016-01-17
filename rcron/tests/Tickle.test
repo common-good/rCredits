@@ -87,7 +87,7 @@ class rcronTickle extends DrupalWebTestCase {
     When_('cron runs "tickle"');
     Then_('we email "nonmember" to member "zot@example.com" with subs: "ASSOC'
     . '\\| inviterName | code   | site        | nudge        | noFrame |'
-    . '\\| Abe One     | codeA1 | %R_SITE_URL | reminder one | 1       |"');
+    . '\\| Abe One     | codeA1 | %BASE_URL | reminder one | 1       |"');
     And__('we notice "invite languishing" to member ".ZZA" with subs: "ASSOC'
     . '\\| email           | elapsed |'
     . '\\| zot@example.com |       8 |"');
@@ -127,9 +127,6 @@ class rcronTickle extends DrupalWebTestCase {
     Then_('members have: "ASSOC'
     . '\\| id   | floor |'
     . '\\| .ZZE |   -50 |"');
-    And__('we notice "new floor|no floor effect" to member ".ZZE" with subs: "ASSOC'
-    . '\\| limit |'
-    . '\\|  $50 |"');
   }
 
   // Scenario: A member gets a bigger credit line after several months
@@ -146,9 +143,6 @@ class rcronTickle extends DrupalWebTestCase {
     Then_('members have: "ASSOC'
     . '\\| id   | floor |'
     . '\\| .ZZE |  -300 |"');
-    And__('we notice "new floor|no floor effect" to member ".ZZE" with subs: "ASSOC'
-    . '\\| limit |'
-    . '\\| $300 |"');
   }
 
   // Scenario: A member gets no new credit line because it's the wrong day

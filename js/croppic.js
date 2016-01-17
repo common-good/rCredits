@@ -94,6 +94,7 @@
 		init: function () {
 			var that = this;
 			
+      that.err = null; // cgf BEGIN END
 			that.objW = that.obj.width();
 			that.objH = that.obj.height();
 			
@@ -185,13 +186,18 @@
 			that.form.find('input[type="file"]').change(function(){
 				
 				if (that.options.onBeforeImgUpload) that.options.onBeforeImgUpload.call(that);
+        if (that.err != null) { // cgf BEGIN
+          if (that.options.onError) that.options.onError.call(that, that.err);
+					that.reset();
+          return;
+        } // cgf END
 				
 				that.showLoader();
 				that.imgUploadControl.hide();
 				
 				if(that.options.processInline){			
 					// Checking Browser Support for FileReader API
-				    if (typeof FileReader == "undefined"){
+				  if (typeof FileReader == "undefined"){
 						if (that.options.onError) that.options.onError.call(that,"processInline is not supported by your Browser");
 						that.reset();
 					}else{					
@@ -199,13 +205,17 @@
 						reader.onload = function (e) {
 							var image = new Image();
 							image.src = e.target.result;
+              var badImg = setTimeout(function(){ // cgf BEGIN
+                if (that.options.onError) that.options.onError.call(that,"That is not a usable image file. Try again.");
+                that.reset();
+              }, 2000);
 							image.onload = function(){
+                clearTimeout(badImg); // cgf END
 								that.imgInitW = that.imgW = image.width;
 								that.imgInitH = that.imgH = image.height;
 
 								if(that.options.modal){	that.createModal(); }
 								if( !$.isEmptyObject(that.croppedImg)){ that.croppedImg.remove(); }
-								
 								that.imgUrl=image.src;
 								
 								that.obj.append('<img src="'+image.src+'">');
@@ -320,7 +330,6 @@
             }
 
             if (response.status == 'error') {
-			    alert(response.message);
                 if (that.options.onError) that.options.onError.call(that,response.message);
 				that.hideLoader();
 				setTimeout( function(){ that.reset(); },2000)	

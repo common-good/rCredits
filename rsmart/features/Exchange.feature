@@ -40,7 +40,7 @@ Setup:
   | 5   | %today-5m | transfer |    200 | .ZZA | .ZZC | cash    |
   | 6   | %today-4m | grant    |    250 | ctty | .ZZF | stuff   |
   Then balances:
-  | id   | balance | rewards |*
+  | id   |       r | rewards |*
   | ctty |   -1000 |         |
   | .ZZA |     150 |     350 |
   | .ZZB |     250 |     150 |
@@ -67,7 +67,7 @@ Scenario: A cashier asks to charge someone for cash
   | created | fullName | otherName  | amount | payerPurpose |*
   | %today  | Bea Two  | Corner Pub | $100   | cash out     |
   And balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |   -1000 |
   | .ZZA |     150 |
   | .ZZB |     150 |
@@ -89,7 +89,7 @@ Scenario: A cashier asks to refund someone
   | created | fullName | otherName  | amount | payeePurpose |*
   | %today  | Bea Two  | Corner Pub | $100   | cash in      |
   And balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |   -1000 |
   | .ZZA |     150 |
   | .ZZB |     350 |

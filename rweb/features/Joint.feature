@@ -57,8 +57,8 @@ Scenario: A joined account slave member requests a new minimum
   | .ZZA | .ZZB |     150 |
   | .ZZB | .ZZA |       0 |
   When member ".ZZB" completes form "settings/preferences" with values:
-  | minimum | achMin | share |*
-  |     200 |    100 |    10 |
+  | minimum | achMin | savings |share |*
+  |     200 |    100 |     250 |   10 |
   Then members have:
   | id   | minimum | achMin | share |*
   | .ZZA |     200 |    100 |     0 |
@@ -97,9 +97,12 @@ Scenario: A joined account member looks at transaction history and summary
   |_Start Date |_End Date |
   | %dmy-2w    | %dmy     |
   And with:
-  | Start     | From Bank | From You | To You | Rewards | To CGF | End       |
-  | $1,320.00 |  1,000.00 |   500.00 | 650.00 |   10.00 |        | $2,480.00 |
-  | PENDING   |   -100.00 |     0.00 |   0.00 |    0.00 |   0.00 | - $100.00 |
+  | Start     |   |   800.00 | + | 520.00 | %dmy-2w |
+  | From Bank | + | 1,000.00 |   |        | -100.00 Pending |
+  | Received  | + |   650.00 | + |        |         |
+  | Out       | - |   500.00 |   |        |         |
+  | Rewards   |   |          | + |  10.00 |         |
+  | End       |   | 1,950.00 | + | 530.00 | %dmy    |
   And with:
   |_tid | Date   | Name       | From you | To you | Status  |_do   | Purpose   | Reward/Fee | Agent |
   | 5   | %dm-1d | Corner Pub | --       | 100.00 | %chk    | X    | labor     | 10.00      | .ZZA  |
@@ -112,8 +115,9 @@ Scenario: A joined account member looks at transaction history and summary
   Then we show "Account Summary" with:
   | Name          | Bea Two & Abe One (beatwo & abeone) |
   | ID            | .ZZB (joint account) |
-  | Balance       | $2,480 |
-  | Rewards       | $530 |
+  | Balance       | $1,950 |
+  | Savings       | $530 |
+  | _rewards      | $530 |
 #  | Committed     | $0.60 |
 #  | Your return   | 21.9% | (sometimes is 20.2%)
 #  | _ever         | 136.7% | or 137.1% (depends on daylight time?) or 68.0%?!

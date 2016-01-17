@@ -75,7 +75,7 @@ class rsmartOffline extends DrupalWebTestCase {
     . '\\| 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |'
     . '\\| 4   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |"');
     Then_('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |   -1000 |'
     . '\\| .ZZA |     250 |'
     . '\\| .ZZB |     250 |'
@@ -96,7 +96,7 @@ class rsmartOffline extends DrupalWebTestCase {
     . '\\| created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
     . '\\| %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |   -1015 |'
     . '\\| .ZZA |     250 |'
     . '\\| .ZZB |     160 |'
@@ -115,7 +115,7 @@ class rsmartOffline extends DrupalWebTestCase {
     . '\\| created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
     . '\\| %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |   -1015 |'
     . '\\| .ZZA |     450 |'
     . '\\| .ZZB |     -40 |'
@@ -129,7 +129,7 @@ class rsmartOffline extends DrupalWebTestCase {
     When_('reconciling ":ZZA" on "devC" charging ".ZZB-ccB" $100 for "goods": "food" at "%now-1hour" force 1');
     Then_('we respond ok txid 5 created "%now-1hour" balance 160 rewards 260');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |   -1015 |'
     . '\\| .ZZA |     250 |'
     . '\\| .ZZB |     160 |'
@@ -142,7 +142,7 @@ class rsmartOffline extends DrupalWebTestCase {
     When_('reconciling ":ZZA" on "devC" charging ".ZZB-ccB" $100 for "goods": "food" at "%now-1hour" force -1');
     Then_('we respond ok txid 0 created "" balance 250 rewards 250');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |   -1000 |'
     . '\\| .ZZA |     250 |'
     . '\\| .ZZB |     250 |'
@@ -163,7 +163,7 @@ class rsmartOffline extends DrupalWebTestCase {
     . '\\| created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
     . '\\| %today  | Bea Two  | Corner Pub | $100   | reverses #2  | reward          | $-10              |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |   -1000 |'
     . '\\| .ZZA |     250 |'
     . '\\| .ZZB |     250 |'
@@ -187,7 +187,7 @@ class rsmartOffline extends DrupalWebTestCase {
     . '\\| created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
     . '\\| %today  | Bea Two  | Corner Pub | $100   | reverses #2  | reward          | $10               |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |   -1000 |'
     . '\\| .ZZA |     550 |'
     . '\\| .ZZB |     -50 |'

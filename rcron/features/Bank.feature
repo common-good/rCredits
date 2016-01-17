@@ -14,8 +14,8 @@ Setup:
   
 Scenario: a member is barely below minimum
   Given balances:
-  | id   | r     | rewards |*
-  | .ZZA | 99.99 |      20 |
+  | id   | rewards | savings | balance |*
+  | .ZZA |      20 |      20 | 99.99   |
   When cron runs "bank"
   Then usd transfers:
   | txid | payer | amount | channel  |*
@@ -26,8 +26,8 @@ Scenario: a member is barely below minimum
 
 Scenario: a member has a negative balance
   Given balances:
-  | id   | r   | rewards |*
-  | .ZZA | -50 |      20 |
+  | id   | rewards | savings | balance |*
+  | .ZZA |      20 |      20 | -50     |
   When cron runs "bank"
   Then usd transfers:
   | txid | payer | amount | channel  |*
@@ -59,15 +59,15 @@ Scenario: an unbanked member barely below minimum cannot draw on another account
 
 Scenario: a member is at minimum
   Given balances:
-  | id   | r   | rewards |*
-  | .ZZA | 100 |      20 |
+  | id   | rewards | savings | balance |*
+  | .ZZA |      20 |      20 |     100 |
   When cron runs "bank"
   Then bank transfer count is 0
   
 Scenario: a member is well below minimum
   Given balances:
-  | id   | r  | rewards | minimum |*
-  | .ZZA | 50 | 25      | 151     |
+  | id   | rewards | savings | balance | minimum |*
+  | .ZZA |      25 |      25 |      50 |     151 |
   When cron runs "bank"
   Then usd transfers:
   | txid | payer | amount              | channel  |*
@@ -78,9 +78,9 @@ Scenario: a member is well below minimum
 
 Scenario: a member is under minimum but already requested barely enough funds from the bank
   Given balances:
-  | id   | r   | rewards |*
-  | .ZZA | 20  |      20 |
-  | .ZZB | 100 |      20 |
+  | id   | rewards | savings | balance |*
+  | .ZZA |      20 |      20 |      20 |
+  | .ZZB |      20 |      20 |     100 |
   When cron runs "bank"
   Then usd transfers:
   | payer | amount | channel  |*
@@ -95,15 +95,15 @@ Scenario: a member is under minimum and has requested insufficient funds from th
   | id   | fullName | floor | minimum | flags | achMin | risks   |*
   | .ZZD | Dee Four |   -50 |     300 | ok    | 30     | hasBank |
   And balances:
-  | id   | r  | rewards |*
-  | .ZZD | 20 |      20 |
+  | id   | rewards | savings | balance |*
+  | .ZZD |      20 |      20 |      20 |
   When cron runs "bank"
   Then usd transfers:
   | payer | amount |*
   | .ZZD  |   -280 |
   Given balances:
-  | id   | r     | rewards |*
-  | .ZZD | 19.99 |      20 |
+  | id   | rewards | savings | balance |*
+  | .ZZD |      20 |      20 |   19.99 |
   When cron runs "bank"
   Then usd transfers:
   | payer | amount |*

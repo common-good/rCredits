@@ -221,10 +221,12 @@ function txEdit_submit($form, &$sta) {
   return r\go('history', 'info saved');
 }
 
+/*
 function txBal($bal, $plus = '', $minus = '- ') {
   $bal = str_replace(',', '', $bal);
   return ($bal < 0 ? $minus : $plus) . '$' . number_format(abs($bal), 2);
 }
+*/
 
 /**
  * Return the transaction summary table
@@ -234,6 +236,8 @@ function txBal($bal, $plus = '', $minus = '- ') {
 function txSummary($starting, $ending) {
   $mya = r\acct();
   $myid = $mya->id;
+  
+  $endingNow = ($ending > r\rTime());
   $previous_ending = $starting - 1;
   extract($nowInfo = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'n');
   extract($pendingInfo = (array) be\creditInfo(u\ray('pending asof', TRUE, $ending)), EXTR_PREFIX_ALL, 'p');
@@ -241,9 +245,13 @@ function txSummary($starting, $ending) {
 ///  debug(compact('nowInfo','oldInfo'));
 
   $dif = [];
-  foreach (u\ray('inProper outProper rewards bank') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
+  foreach (u\ray('inProper outProper rewards bank savings') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
   extract($dif, EXTR_PREFIX_ALL, 'd');
   $p_committed = $mya->committed; // this will include all pending commitments
+  $d_savings -= $d_rewards;
+  list ($toSavings, $fromSavings) = u\order($d_savings >= 0, abs($d_savings), 0);
+  $d_outProper += $toSavings;
+  $d_inProper += $fromSavings;
   
   $fields = 'old bank in out rewards new';
   $values = array($o_balance, $d_bank, $d_inProper, $d_outProper, $d_rewards, $n_balance); // both
@@ -251,48 +259,65 @@ function txSummary($starting, $ending) {
 
   $p_inProper = $p_outProper = $p_rewards = 0; // temporary until we include unpaid invoice data here
   $p_balance = $p_bank - $p_committed;
-  $values += compact(u\ray('p_inProper p_bank p_outProper p_rewards p_committed p_balance'));
-
-  if ($mya->hasReserve) {
-    $values['new'] -= $n_rewards;
-    $values['old'] -= $o_rewards;
-    list ($newReserve, $oldReserve) = [txBal($n_rewards), txBal($o_rewards)];
-    $reserveLine = ['id' => 'txsum-reserve', 'data' => u\ray("+ $oldReserve||(Reserve)||||||||||+ $newReserve")];
-  }
+  $values += compact(u\ray('p_inProper p_bank p_outProper p_rewards p_committed p_balance n_savings o_savings fromSavings toSavings'));
 
   foreach ($values as $key => $value) $$key = number_format($value, 2);
- 
-  $p_balance = txBal($p_balance, '+ '); // add +/-/$ to these, as appropriate
-  $new = txBal($new);
-  $old = txBal($old);
 
   $starting = u\fmtDate($starting);
   $ending = u\fmtDate($ending);
   $summary_title = "<div id='txsum-title'>SUMMARY</div>";
   
-  $classes = u\prefixValues('txsum-', u\ray('one banksign bank fromsign fromyou tosign toyou rewardssign rewards sharesign share balancesign balance'));
-  $heads = u\ray(t('Starting balance,,From Bank,,From You,,To You,,Rewards,,To CGF,,Ending balance'));
-  $headHelp = u\ray(t('Your account balance at the start of this time period||How much was transferred from your bank account to your rCredits account||How much you spent||How much you received||How much incentive rewards did you receive||Amount of rewards you committed to share with Common Good Finance||Your account balance at the end of this time period'));
+//  $classes = u\prefixValues('txsum-', u\ray('one banksign bank fromsign fromyou tosign toyou sharesign share balancesign balance'));
+  $classes = u\prefixValues('txsum-', u\ray('label sign1 amount sign2 savings other'));
+/*
+  $heads = u\ray(t('Starting balance,,From Bank,,From You,,To You,,To CGF,,Ending balance'));
+  $headHelp = u\ray(t('Your account balance at the start of this time period||How much was transferred from your bank account to your rCredits account||How much you spent||How much you received||Amount of rewards you committed to share with Common Good Finance||Your account balance at the end of this time period'));
   foreach ($heads as $key => $value) if ($value) $heads[$key] = w\popHelp($value, $headHelp[$key]);
-  $PENDING = w\popHelp(t('PENDING'), t('Pending transfers, transaction requests, and commitments as of ') . $ending);
+  */
   
+  $PRIMARY = w\popHelp(t('Primary'), t('Your primary balance is what you use for spending and for receiving payments.'));
+  $STARTING = w\popHelp(t('Starting Balance'), t('Your rCredits account balance at the start of this time period'));
+  $BANK = w\popHelp(t('From Bank'), t('How much was transferred from your bank account to your rCredits account'));
+  $IN = w\popHelp(t('Funds Received'), t('How many rCredits you received, in this period'));
+  $OUT = w\popHelp(t('Funds Paid Out'), t('How many rCredits you paid out, in this period'));
+  $REWARDS = w\popHelp(t('Rewards'), t('Incentive rewards you received, in this period (rewards go automatically into your Savings Reserve)'));
+  $ENDING = w\popHelp(t('Ending Balance'), t('Your rCredits account balance at the end of this time period'));
+  $SAVINGS = w\popHelp(t('Savings'), t('Amount in your Savings Reserve, to spend later or in a pinch'));
+  $PENDING = w\popHelp(t('pending'), t('Pending transfers from your bank account to your rCredits account'));
+  if ($p_bank) $p_bank = $endingNow ? "+ $p_bank $PENDING" : '';
+  
+  $p_balance = u\starts($p_balance, '-') ? '- ' . substr($p_balance, 1) : "+ $p_balance";
+/*  
   $rows = array(
-    array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,,,,,$ending")),
+    array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,,,$ending")),
     array('id' => 'txsum-headers', 'data' => $heads),
     array(
       'id' => 'txsum-now', 
-      'data' => u\ray("$old | + | $bank | - | $out | + | $in | + | $rewards |  |  | = | $new"),
+      'data' => u\ray("$$old | + | $bank | - | $out | + | $in |  |  | = | $$new"),
     ),
-    @$reserveLine,
+    ['id' => 'txsum-savings', 'data' => u\ray("<b>$SAVINGS:</b> + $o_savings||||| + | $rewards |($REWARDS)|||+ $n_savings")],
     array(
       'id' => 'txsum-pending',
-      'data' => u\ray("<b>$PENDING:</b> | + | $p_bank | - | $p_outProper | + | $p_inProper | + | $p_rewards | - | $p_committed | = | $p_balance"),
+      'data' => u\ray("<b>$PENDING:</b> || $p_bank || || | - | $p_committed || $p_balance"),
     ),
   );
+  */
+
+  $rows = [  
+    u\ray("||$PRIMARY||$SAVINGS|"),
+    u\ray("$STARTING||$old|+|$o_savings|$starting"),
+    u\ray("$BANK|+|$bank|||$p_bank"),
+    u\ray("$IN|+|$in|+|$toSavings|"),
+    u\ray("$OUT|-|$out|-|$fromSavings|"),
+    u\ray("$REWARDS|||+|$rewards|"),
+    u\ray("$ENDING||$new|+|$n_savings|$ending"),
+  ];
+  
   $attributes = array('id' => 'txsum');
   $header = $cols = [];
   foreach ($classes as $class) $cols[] = compact('class');
-  $colgroups = array($cols);
+//  $colgroups = array($cols);
+  $colgroups = [];
   $caption = $sticky = $empty = '';
   return $summary_title . theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
 }

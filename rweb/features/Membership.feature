@@ -28,7 +28,7 @@ Scenario: A member signs in for the first time
   And we say "status": "your account is ready"
   And we email "welcome" to member "d@" with subs:
   | fullName | name    | quid    | site        | code  |*
-  | Dee Four | deefour | NEW.AAC | %R_SITE_URL | %name |
+  | Dee Four | deefour | NEW.AAC | %BASE_URL | %name |
 
   When member "?" visits page "reset/id=deefour&code=%name"
   Then we show "Choose a New Password"

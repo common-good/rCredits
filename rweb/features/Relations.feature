@@ -16,11 +16,11 @@ Setup:
   |   2 | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |
   |   3 | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |
   Then balances:
-  | id        | balance |*
-  | community |    -750 |
-  | .ZZA      |     250 |
-  | .ZZB      |     250 |
-  | .ZZC      |     250 |
+  | id        |    r |*
+  | community | -750 |
+  | .ZZA      |  250 |
+  | .ZZB      |  250 |
+  | .ZZC      |  250 |
 
 Scenario: Member has an employee, confirmed
   Given relations:

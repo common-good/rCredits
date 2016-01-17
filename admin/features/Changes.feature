@@ -17,11 +17,14 @@ Setup:
 
 Scenario: A member changes some settings
   Given member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | achMin | smsNotices | notices | statements | debtOk | secretBal | share |*
-  |     100 |     11 |          0 |       1 |          0 |      1 |         0 |    25 |
+#  | minimum | achMin | savings | smsNotices | notices | statements | debtOk | secretBal | share |*
+#  |     100 |     11 |       0 |          0 |       1 |          0 |      1 |         0 |    25 |
+  | minimum | achMin | savings | smsNotices | notices | statements | secretBal | share |*
+  |     100 |     11 |       0 |          0 |       1 |          0 |         0 |    25 |
   When member ".ZZD" visits page "sadmin/changes/NEW.ZZA"
   Then we show "Account Changes for Abe One" with:
   | Date | Field   | Old Value      | New Value                  |
   | %dmy | achMin  | 10             | 11                         |
   | %dmy | share   | 20             | 25                         |
-  | %dmy | flags   | member ok bona | member ok bona weekly debt |
+#  | %dmy | flags   | member ok bona | member ok bona weekly debt |
+  | %dmy | flags   | member ok bona | member ok bona weekly      |

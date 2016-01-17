@@ -41,11 +41,13 @@
  * @see template_process()
  */
 
+
+$unused = join('|', ['sites/all/modules/devel/devel_krumo_path.js', 'misc/drupal.js']); // also modules/user/user.js?
 $rPath = BASE_URL . R_PATH;
 $version = R_VERSION;
 $styles = preg_replace('~<style.*</style>~ms', '', $styles); // zap all the drupal styles
 $scripts = preg_replace('~misc/jquery.js.*<~', 'sites/all/modules/rcredits/js/jquery.min.js"><', $scripts);
-$scripts = preg_replace('~devel_krumo_path.js|user/user.js|drupal.js~ms', 'UNUSED', $scripts);
+$scripts = preg_replace('~<script type="text/javascript" src="' . BASE_URL . "/($unused)" . '\?[a-z0-9]+"></script>~ms', '', $scripts);
 // something here interferes with croppic's $()
 //$scripts = preg_replace('/<script[!<]+<![!<]+<![!<]+jQuery.extend\(Drupal/ms', '', $scripts);
 //$scripts = preg_replace('/jQuery.extend.*--/ms', '//--', $scripts);
@@ -56,14 +58,14 @@ $scripts = preg_replace('~devel_krumo_path.js|user/user.js|drupal.js~ms', 'UNUSE
 $rdf_namespaces>
 
 <head profile="$grddl_profile">
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- The above 3 meta tags *must* come first in the head -->
   $head
-    <meta name="MobileOptimized" content="width" />
-    <meta name="HandheldFriendly" content="true" />
-    <meta http-equiv="cleartype" content="on" />
+  <meta name="MobileOptimized" content="width" />
+  <meta name="HandheldFriendly" content="true" />
+  <meta http-equiv="cleartype" content="on" />
   <title>$head_title</title>
   <meta name="description" content="">
   <meta name="author" content="William Spademan -- for Society to Benefit Everyone, Inc.">

@@ -75,7 +75,7 @@ class rsmartJoint extends DrupalWebTestCase {
     . '\\| 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |'
     . '\\| 4   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |"');
     Then_('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |   -1000 |'
     . '\\| .ZZA |     250 |'
     . '\\| .ZZB |     250 |'
@@ -105,7 +105,7 @@ class rsmartJoint extends DrupalWebTestCase {
     . '\\| created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
     . '\\| %today  | Bea Two  | Corner Pub | $400   | food         | reward          | $40               |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |   -1060 |'
     . '\\| .ZZA |     100 |'
     . '\\| .ZZB |      40 |'

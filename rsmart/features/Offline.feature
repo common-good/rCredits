@@ -37,7 +37,7 @@ Setup:
   | 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |
   | 4   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |
   Then balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |   -1000 |
   | .ZZA |     250 |
   | .ZZB |     250 |
@@ -51,7 +51,7 @@ Scenario: A cashier charged someone offline
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
   And balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |   -1015 |
   | .ZZA |     250 |
   | .ZZB |     160 |
@@ -67,7 +67,7 @@ Scenario: A cashier charged someone offline and they have insufficient balance
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
   And balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |   -1015 |
   | .ZZA |     450 |
   | .ZZB |     -40 |
@@ -79,7 +79,7 @@ Scenario: A cashier charged someone offline but it actually went through
   Then we respond ok txid 5 created "%now-1hour" balance 160 rewards 260
   #And we notice nothing
   And balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |   -1015 |
   | .ZZA |     250 |
   | .ZZB |     160 |
@@ -90,7 +90,7 @@ Scenario: A cashier declined to charge someone offline and it didn't go through
   Then we respond ok txid 0 created "" balance 250 rewards 250
   #And we notice nothing
   And balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |   -1000 |
   | .ZZA |     250 |
   | .ZZB |     250 |
@@ -108,7 +108,7 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | reverses #2  | reward          | $-10              |
   And balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |   -1000 |
   | .ZZA |     250 |
   | .ZZB |     250 |
@@ -129,7 +129,7 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | reverses #2  | reward          | $10               |
   And balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |   -1000 |
   | .ZZA |     550 |
   | .ZZB |     -50 |

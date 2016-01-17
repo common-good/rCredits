@@ -143,7 +143,7 @@ function rcredits_mail($index, &$msg_array, $info) {
       $info['shortName'] = $acct->name;
     }
 // NOT USED (by policy)  $info['oneTimeLoginUrl'] = \user_pass_reset_url($acct->account());
-    $info['site'] = R_SITE_URL;
+    $info['site'] = BASE_URL;
     $info['region'] = strtolower(R_SERVER_ID);
 
     $email = $info['email'];
@@ -164,7 +164,7 @@ function rcredits_mail($index, &$msg_array, $info) {
     $message = str_replace("\r\n", '', strtr($message, $logSubs)); // easier reading for log and tests
     $fields = compact(u\ray('index email subject message'));
 /**/ t\output('Actual (in hook_mail) ' . print_r($fields, 1), 'email');
-    u\loga('email', $fields, @$acct);
+    if (!in_array($index, ['notices', 'tell-staff'])) u\loga('email', $fields, @$acct);
 }
 
 /**
@@ -206,16 +206,19 @@ function g($varName) {
 
 }
 
-/**/ function bs($n, $list = B_LIST) {include __DIR__ . '\admin\admin.inc'; debug(a\flagsDesc($n, $list));}
-/**/ function tm($n) {debug($result = is_numeric($n) ? date('m-d-Y H:i:s a', $n) : strtotime($n)); return $result;}
-function a($id) {global $lastA; return $lastA = r\acct(r\fullQid(strlen($id) == 3 ? '.' . $id : $id));}
-function x($xid) {r\x($xid);}
-//function us($a = '') {global $lastA; return new r\usd($a ? (is_object($a) ? $a : a($a)) : $lastA);}
+/** Miscellaneous functions for debugging
+ *
+ */
+/**/ function bs($n, $list = B_LIST) {debug(a\flagsDesc($n, $list));} // show bit numbers/names
+/**/ function tm($n) {debug($result = is_numeric($n) ? date('m-d-Y H:i:s a', $n) : strtotime($n)); return $result;} // convert and display unixtime or string time
+function a($id) {global $lastA; return $lastA = r\acct(r\fullQid(strlen($id) == 3 ? '.' . $id : $id));} // return an account object
+function x($xid) {r\x($xid);} // return a transaction object
 /**/ function da($idfield) {list ($id, $field) = u\ray($idfield); debug(a($id)->$field);}
 /**/ function step($a) {debug(us($a)->step());}
 function ctty($id) {return a(a($id)->community);}
 function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
-/**/ function flog($s) {file_put_contents('flog.txt', print_r($s, 1) . "\n", FILE_APPEND);}
+/**/ function flog($s) {file_put_contents('flog.txt', print_r($s, 1) . "\n", FILE_APPEND);} // log to file
+/**/ function who($s) {$a = a($s); debug("$a->fullName ($a->mainQid)"); return $a;} // show whose account
 
 /**
  * Return a function result, for a nicknamed namespace function.

@@ -214,8 +214,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Sharing MembersShareTheirTransactionRewards
  *     TEST Tickle ANewbieHasNotTakenTheFirstStep
  *     TEST Tickle ANonmemberHasNotAcceptedTheInvitation
- *     TEST Tickle AMemberGetsACreditLine
- *     TEST Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 

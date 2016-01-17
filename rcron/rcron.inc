@@ -228,7 +228,7 @@ function tickleActive($item) {
   if ($ratio > 1.1 or $ratio < .9) { // big change (or any change in sign)
     $a->update('floor', round(-$monthly, 2));
     $msg = 'new floor' . ($a->can(B_DEBT) ? '' : '|no floor effect');
-    r\notify($uid, $msg, ['limit' => u\fmtAmt($monthly)]);
+// DISABLED FOR NOW    r\notify($uid, $msg, ['limit' => u\fmtAmt($monthly)]);
   }
 }
  
@@ -622,7 +622,7 @@ function bank() {
     queueEach('completeUsdTx', $sql, compact('now'));
   }
   
-  $where = 'minimum>0 AND r-IFNULL(savings, 0)<minimum AND uid>1 AND :IS_OK';
+  $where = 'minimum>0 AND (:IS_JOINED OR r-rewards-IFNULL(savingsAdd, 0)<minimum) AND uid>1 AND :IS_OK';
   $sql = <<<EOF
   SELECT uid
   FROM users 
@@ -649,6 +649,7 @@ function completeUsdTx($item) {
 function bank1($item) {
   extract(u\just('uid', $item));
   $a = r\acct($uid);
+  if ($a->slave) return; // slaves don't have automatic refills
   if (!$amount = getHowMuchR($a)) return; // check shortfall here NOT in query, balance may change
   $action = 'draw from';
   if (!$checkNum = $a->bank(-$amount)) return; // may never happen, but if mysql is unavailable just redo next day
@@ -675,12 +676,12 @@ function draw1($item) {
  * @return: the amount to transfer from the connected bank account or drawn for other rCredits accts (0 if none).
  */
 function getHowMuchR($a, $banky = TRUE) {
-  if (!$need = max(0, $a->minimum - $a->j_r + ($a->hasReserve ? $a->j_rewards : 0))) return 0;
+  if (!$need = max(0, $a->minimum - $a->j_balance)) return 0;
   if ($banky) {
     $waiting = -$a->waitingToBank(); // amount already requested (if any)
     $need = round($need - $waiting, 2); // avoid a re-request
   }
-  return $need <=0 ? 0 : max($a->achMin, round(R_ACHMIN * ceil($need / R_ACHMIN)), 2);
+  return $need <=0 ? 0 : max($a->achMin, round(R_ACHMIN * ceil($need / R_ACHMIN)));
 }
 
 /**

@@ -14,7 +14,7 @@ Setup:
   | :ZZA | .ZZC | .ZZA  | manage     |
 
 Scenario: A member registers a company
-  When member ".ZZA" confirms form "another" with values:
+  When member ".ZZA" confirms form "signup-company" with values:
   | relation | flow |*
   |        0 |    0 |
   Then signup args:
@@ -43,7 +43,7 @@ Scenario: A member registers a company
   And we say "status": "company is ready"
 
 Scenario: A member registers a company while managing another account
-  When member ":ZZA" confirms form "another" with values:
+  When member ":ZZA" confirms form "signup-company" with values:
   | relation | flow |*
   |        0 |    0 |
   Then signup args:
@@ -54,7 +54,7 @@ Scenario: A member registers a company, having given company info
   Given member ".ZZA" has company info:
   | company | companyPhone | isOwner | employeeOk |*
   | Acme Co | +14132222222 |       1 |          0 |
-  When member ".ZZA" confirms form "another" with values:
+  When member ".ZZA" confirms form "signup-company" with values:
   | relation | flow |*
   |        1 |    0 |
   Then signup args:

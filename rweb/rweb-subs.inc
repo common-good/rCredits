@@ -49,6 +49,7 @@ EOF
   'lost old changes' => t('Any unsaved changes to account @oldAcct have been discarded.'),
   'take a step' => t('Your account is <b class="stopnot">not yet activated.</b> <a href="@BASE_URL/status" class="nextstep">Click here for the next step!</a>.'),
   'got token' => t('Your rCredits and US Dollar accounts have been successfully connected!'),
+  'got photo' => t('Your photo was successfully uploaded.'),
   'company rcard' => t('Send a <a href="@href">company rCard</a> for @otherName to @manager at @address.'),
   'amount rounded' => t('"@amount" was rounded to the nearest integer value.'),
   'invite sent' => t('Your invitation has been sent.'),
@@ -67,13 +68,15 @@ EOF
   'phone verified' => t('Your phone number has been verified.'),
   'id verification pending' => t('Your photo ID has been uploaded successfully. Now we need to wait for our partner organization to verify your identity. Please feel free to email us if you have questions.'),
 //  'adjust settings' => t('<b>TIP:</b> You can adjust your settings by clicking the Settings button. '),
-  'payroll done' => t('Payroll upload was successful. You paid @count employees a total of @total.'),
+  'payroll done' => t('<br>Payroll upload was successful. You paid @count employees a total of @total.'),
   'tx edited' => t('Your transaction #@tid was edited by @who.'),
   'new tx goods' => t('It is now for @what.'),
   'new tx amount' => t('The new amount is @amount.'),
   'min zeroed' => t('Your minimum balance has been set to zero, to disable automatic refills of your account (automatic refills are not possible without a connected bank account OR permission to draw on another rCredits account).'),
   'expired invite converted' => t('Your invitation has expired, so @inviterName will be asked to re-confirm.'),
-
+  'new savings balance' => t('<p>IMPORTANT! Your rCredits balance has been split to include a Savings Reserve containing your incentive rewards. Read <@a>last week\'s rCredits newsletter</a> for details.</p>', ['@a' => 'a href=http://us9.campaign-archive1.com/?u=b1d89f860859e1d9b906fa0b0&id=f1f54edd80&e=']),
+  'minimum zeroed' => t('<p>Your rCredits "minimum" has been set to zero, to prevent any unintended transfer from your bank account. To choose a new minimum balance or transfer funds manually, sign in to your account at rCredits.org OR <@a1>click here</a> to set your minimum back to @suggested.</p>'),
+  
   // prompts
   'note' => '<b class="loud">' . t('NOTE:') . '</b>',
   'ach warning' => t('If there are insufficient funds in your bank account when you request an exchange for rCredits (either explicitly, or automatically by choosing a "minimum"), your bank will charge you a $20-35 fee, just like for a bounced check. If this happens more than once, the rCredits system will <i>also</i> charge you $@fee, to cover <i>its</i> bank fee. So make sure you have enough in your bank account to cover your transfers.', ['@fee'=>R_DEPOSIT_RETURN_FEE]),
@@ -606,7 +609,10 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     if ($logs = $_POST) {
       foreach (u\just(R_NOLOG, $logs) as $k => $zot) $logs[$k] = '?';
       u\loga('in', $logs);
-    } elseif ($formName = str_replace(base_path(), '', $_SERVER['REQUEST_URI'])) u\loga('form', array($formName));
+    } else {
+      $formName = str_replace(base_path(), '', $_SERVER['REQUEST_URI']);
+      u\loga('form', [$formName]);
+    }
   }
 
   try {
@@ -679,8 +685,8 @@ function photoRet($msg, $status = 'error') {
 function pickPassword() {
   $mya = r\acct();
   $title = item(t('Choose a New Password'));
-  $pass1 = passFld(REQ . t('New password:'), '', clas('password-field'));
-  $pass2 = passFld(REQ . t('Confirm new password:'), '', clas('password-confirm'));
+  $pass1 = passFld(REQ . t('New password:'), '', clas('password-field') + autofill('off'));
+  $pass2 = passFld(REQ . t('Confirm new password:'), '', clas('password-confirm') + autofill('off'));
   $strong = hidFld(0, attrib(['id' => 'edit-strong']));
   focusOn('pass1');
   js(BASE_URL . '/modules/user/user.js', 'file', 'footer');
@@ -946,20 +952,26 @@ function memberStep($step, $done, $text, $links = '', $newWindow = FALSE) {
 EOF;
 }
 
+// NOT USED
 function divButton($href, $title) {
   if (strpos($href, 'http') === FALSE) $href = BASE_URL . "/$href";
+  return w\popHelp('', $title, $href);
+  /*
   return  <<<EOF
 <a href="$href" title="$title"><div></div></a>
 EOF;
+*/
 }
 
+// NOT USED
 function imageButton($href, $title, $src) {
   global $rUrl;
   if (strpos($href, 'http') === FALSE) $href = BASE_URL . "/$href";
   if (strpos($src, 'http') === FALSE) $src = "$rUrl/images/icons/$src";
-  return  <<<EOF
+  return w\popHelp("<img src=\"$src\" />", $title, $href);
+/*  return  <<<EOF
 <a href="$href" title="$title"><img src="$src" border="0" /></a>
-EOF;
+EOF; */
 }
 
 /**
@@ -1232,8 +1244,8 @@ EOF;
  */
 function ssnFields($personal = TRUE) {
   $ssTitle = tt($personal ? 'ssTitle' : 'einTitle');
-  if ($personal) $dob = textFld(t('Birthdate:'), [t('Your date of birth (mm/dd/yyyy)')], required());
-  $federalId = passFld($ssTitle, [tt($personal ? 'ssDesc' : 'einDesc')], required()); // textfield so user doesn't have to retype on error
+  if ($personal) $dob = textFld(t('Birthdate:'), [t('Your date of birth (mm/dd/yyyy)')], required() + autofill('off'));
+  $federalId = passFld($ssTitle, [tt($personal ? 'ssDesc' : 'einDesc')], required() + autofill('off')); // textfield so user doesn't have to retype on error
   return compact(u\ray('dob federalId'));
 }
 
@@ -1275,7 +1287,7 @@ function show($field, $show = '') {
   
   if ($field == $show) {
     if ($field == 'idProof') { // display the proof image alone (then user clicks on Back)
-      $proofFilename = DRUPAL_ROOT . $mya->auxFilename('proof');
+      $proofFilename = DRUPAL_ROOT . $mya->photoFilename('proof');
       $imgString = u\decode(file_get_contents($proofFilename), hex2bin($mya->idProof));
       header("Content-Type: image/jpeg");
       imagejpeg(imagecreatefromstring($imgString));
@@ -1438,6 +1450,9 @@ EOF;
   $cat = $headed = $list = '';
   for ($i = 0; $i < count($rows); $i++) {
     extract($rows[$i]); // uid, industry, short_name, fullName, data
+    $a = r\acct($uid);
+    if ($a->coCan(CO_PRIVATE)) continue;
+
     $data = unserialize($data);
     $website = @$data['website'];
     if ($industry != $cat) { // new category
@@ -1446,7 +1461,6 @@ EOF;
       $headed = TRUE; // always show the category (but keep the option to disable this choice)
       $list .= $headed ? ($list ? '</ul>' : '') . "<ul><h4>$cat</h4>\n" : '<li>&nbsp;</li>';
     }
-    $a = r\acct($uid);
     $pay = $canBuy ? button('pay', "$base_url/pay/who=$short_name") : '';
     $chg = $canSell ? button('chg', "$base_url/charge/who=$short_name") : '';
     $fullName = "<a href='$base_url/member/$short_name'>$fullName</a>";
@@ -2046,7 +2060,7 @@ function fundStats($stats, $includeRaw = FALSE, $format = 's$') {
 //  list ($r0, $usd0) = array($r, $usd);
   $trade = $tradeIn + $tradeOut; // tradeIn is negative
   $spent = $cttyBuys + $cttyIncomes; // cttyIncomes is negative
-  $txRewards = $rebates + $bonuss + $fines; // $fines is negative
+  $txRewards = $rebates + $bonuss;
   $usd = $bankIn - $bankOut;
 
 //  foreach (u\ray('bankInPerMo bankOutPerMo r usd total signups inflations helpers txRewards grants loans fines') as $one) {
@@ -2202,6 +2216,16 @@ function js($what, $type = 'inline', $scope = 'footer', $weight = 0) {
 }
 
 /**
+ * Return the text with a help popover and optional link.
+ */
+function popHelp($text, $help, $href = '', $class = '') {
+  list ($href, $tag) = $href ? [" href=\"$href\"", 'a'] : ['', 'span'];
+  if ($class) $class = " class=\"$class\"";
+  $text = ucfirst($text);
+  return "<$tag$href$class data-toggle=\"popover\" data-trigger=\"hover\" title=\"$text\" data-content=\"$help\">$text</$tag>";
+}
+
+/**
  * Check the amount, fix it in the input array, return any error.
  */
 function amtErr($field, &$sta, $restriction = '', $fractionLimit = 2) {
@@ -2221,11 +2245,11 @@ function attrib($attributes) {return compact('attributes');}
 function suffix($field_suffix = '') {return compact('field_suffix');}
 function prefix($prefix) {return compact('prefix');}
 function autocomplete($type = '') {return array('autocomplete_path' => "autocomplete/$type/" . @r\acct()->id);}
+function autofill($settings = 'on') {return attrib(['autocomplete' => $settings]);}
 function required($dft = NULL) {return ['required' => TRUE] + (isset($dft) ? dft($dft) : []);}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
 function op($sta) {global $testOp; return u\test() ? $testOp : (svar('button') ?: @$sta['clicked_button']['#parents'][0]);}
 function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}
 function blurbLink() {global $rUrl; return "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">description of rCredits</a>";}
 function sayFieldErr($err, $field) {return say(strtoupper($field) . ': ' . tt($err), $field);}
-function popHelp($text, $help) {return "<span title=\"$help\">$text</span>";}
 function rent($element) {return \render($element);} // Drupal makes render hard, requires pass by reference

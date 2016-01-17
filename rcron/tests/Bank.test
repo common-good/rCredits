@@ -60,8 +60,8 @@ class rcronBank extends DrupalWebTestCase {
   public function testAMemberIsBarelyBelowMinimum_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "ASSOC'
-    . '\\| id   | r     | rewards |'
-    . '\\| .ZZA | 99.99 |      20 |"');
+    . '\\| id   | rewards | savings | balance |'
+    . '\\| .ZZA |      20 |      20 | 99.99   |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
     . '\\| txid | payer | amount | channel  |'
@@ -75,8 +75,8 @@ class rcronBank extends DrupalWebTestCase {
   public function testAMemberHasANegativeBalance_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "ASSOC'
-    . '\\| id   | r   | rewards |'
-    . '\\| .ZZA | -50 |      20 |"');
+    . '\\| id   | rewards | savings | balance |'
+    . '\\| .ZZA |      20 |      20 | -50     |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
     . '\\| txid | payer | amount | channel  |'
@@ -117,8 +117,8 @@ class rcronBank extends DrupalWebTestCase {
   public function testAMemberIsAtMinimum_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "ASSOC'
-    . '\\| id   | r   | rewards |'
-    . '\\| .ZZA | 100 |      20 |"');
+    . '\\| id   | rewards | savings | balance |'
+    . '\\| .ZZA |      20 |      20 |     100 |"');
     When_('cron runs "bank"');
     Then_('bank transfer count is 0');
   }
@@ -127,8 +127,8 @@ class rcronBank extends DrupalWebTestCase {
   public function testAMemberIsWellBelowMinimum_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "ASSOC'
-    . '\\| id   | r  | rewards | minimum |'
-    . '\\| .ZZA | 50 | 25      | 151     |"');
+    . '\\| id   | rewards | savings | balance | minimum |'
+    . '\\| .ZZA |      25 |      25 |      50 |     151 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
     . '\\| txid | payer | amount              | channel  |'
@@ -142,9 +142,9 @@ class rcronBank extends DrupalWebTestCase {
   public function testAMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "ASSOC'
-    . '\\| id   | r   | rewards |'
-    . '\\| .ZZA | 20  |      20 |'
-    . '\\| .ZZB | 100 |      20 |"');
+    . '\\| id   | rewards | savings | balance |'
+    . '\\| .ZZA |      20 |      20 |      20 |'
+    . '\\| .ZZB |      20 |      20 |     100 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
     . '\\| payer | amount | channel  |'
@@ -160,15 +160,15 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| id   | fullName | floor | minimum | flags | achMin | risks   |'
     . '\\| .ZZD | Dee Four |   -50 |     300 | ok    | 30     | hasBank |"');
     And__('balances: "ASSOC'
-    . '\\| id   | r  | rewards |'
-    . '\\| .ZZD | 20 |      20 |"');
+    . '\\| id   | rewards | savings | balance |'
+    . '\\| .ZZD |      20 |      20 |      20 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
     . '\\| payer | amount |'
     . '\\| .ZZD  |   -280 |"');
     Given('balances: "ASSOC'
-    . '\\| id   | r     | rewards |'
-    . '\\| .ZZD | 19.99 |      20 |"');
+    . '\\| id   | rewards | savings | balance |'
+    . '\\| .ZZD |      20 |      20 |   19.99 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
     . '\\| payer | amount |'

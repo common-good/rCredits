@@ -10,7 +10,6 @@ define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New Englan
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA B=Boston
 define('R_TESTER_EMAIL', 'wspademan@gmail.com'); // tester's personal email
 define('R_REGION_EIN', '46-1821792');
-define('R_SITE_URL', 'https://' . (isPRODUCTION ? PRODUCTION : STAGE));
 
 date_default_timezone_set('America/New_York'); // server handles just one timezone
 define('R_COUNTRY_ID', US_COUNTRY_ID); // this region's country: United States

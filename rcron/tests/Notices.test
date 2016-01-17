@@ -63,8 +63,8 @@ class rcronNotices extends DrupalWebTestCase {
     . '\\| .ZZA | %today  |    0 | You stone. |"');
     When_('cron runs "notices"');
     Given('variable "balance" is "balance notice" with subs: "ASSOC'
-    . '\\| balance | rewards |'
-    . '\\| $0      | $0      |"');
+    . '\\| balance | savings | rewards |'
+    . '\\| $0      | $0      | $0      |"');
     Then_('we email "notices" to member "a@" with subs: "ASSOC'
     . '\\| fullName | shortName | unit | range           | yestertime      | region | messages                  | balance  | return | ourEmail      |'
     . '\\| Abe One  | abeone    | day  | %fancyYesterday | %fancyYesterday | new    | *You rock.<br>*You stone. | %balance | 5.0    | %zzxCttyEmail |"');
@@ -84,8 +84,8 @@ class rcronNotices extends DrupalWebTestCase {
     And__('it\'s time for "weekly"');
     When_('cron runs "notices"');
     Given('variable "balance" is "balance notice" with subs: "ASSOC'
-    . '\\| balance | rewards |'
-    . '\\| $0      | $0      |"');
+    . '\\| balance | savings | rewards |'
+    . '\\| $0      | $0      | $0      |"');
     Then_('we email "notices" to member "b@" with subs: "ASSOC'
     . '\\| fullName | shortName | unit | range                       | yestertime        | region | messages                          | balance  | return | ourEmail      |'
     . '\\| Bea Two  | beatwo    | week | the week of %fancyYesterweek | %fancyYesterweek | new    | %md<x>You rock.<br>%md<x>You stone. | %balance | 5.0    | %zzxCttyEmail |"');

@@ -133,23 +133,23 @@ class acct {
   /**
    * Return the value of the specified field that is not a simple property of the acct class.
    * This function reads the account record from the database if it hasn't been read yet.
-   * Special fields:
-   *   agent: returns an account object for agentId
-   *   language: returns what Drupal would
+   * Many of these fields are slightly tweaked fields from the users table (for example, unserialized or decrypted).
    * @param string $field: name of field value to get
    * @return the value if it exists, else NULL
    */
   public function __get($field) {
     $a = $this;
-    if (u\abbreviates('j_', $field)) return $a->jGet(substr($field, 2)); // real field name is minus the "j_"
+    if (u\starts($field, 'j_')) return $a->jGet(substr($field, 2)); // real field name is minus the "j_"
     $a->reread(); // necessary when we pass an acct object to another page
 
-    if (substr($field, 0, 3) == 'can') $nickname = lcfirst(substr($field, 3));
-    if (in_array($field, u\ray('ok confirmed member bona co admin cAdmin cAdmin2 cttyActive cttyUp closed'))) $nickname = $field;
-    if (@$nickname) return $a->can(u\consta('b', $nickname));
-
+    $nick = substr($field, 0, 3); // possibly meaningful prefix
+    if (in_array($nick, ['can', 'raw']) and $field != 'rawChanges') $field = lcfirst(substr($field, 3));
+    if (in_array($field, u\ray('ok confirmed member bona co admin cAdmin cAdmin2 cttyActive cttyUp closed'))) $nick = 'can';
+    if ($nick == 'can') return $a->can(u\consta('b', $field));
+    
     if ($field == 'mainQid') return r\quid($a->id);
-    if ($field == 'hasReserve') return (!is_null($a->savings));
+    if ($field == 'balance') return $a->r - $a->savings;
+    if ($field == 'savings') return ($a->rewards + ($a->savingsAdd ?: 0));
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
     if ($field == 'agent') return acct($a->agentId);
@@ -159,7 +159,7 @@ class acct {
     if ($field == 'cttyA') return r\acct($a->community ?: r\serverUid());
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'owns') return !$a->risk('rents');
-    if ($field == 'bank') return $a->risk('hasBank');
+    if ($field == 'hasBank') return $a->risk('hasBank');
     if ($field == 'lowSecurity') return u\n2ai(substr($a->created, -5, 5), 3); // result is 3 chars long
     if ($field == 'inviteCode') return str_replace(R_MEMBER_MARK, '*', $a->mainQid) . $a->lowSecurity;
     if ($field == 'slave') return ($jid = $a->jid and $jid < $a->id); // slave in a joint account
@@ -170,9 +170,12 @@ class acct {
     if (isset(self::$rs[$a->id]->$field)) {
       $result = @self::$rs[$a->id]->$field; // returns NULL if field not set
     } else $result = $a->getSpecial($field); // set up caches and get value, if appropriate
+    
+    if ($field == 'raw') return $result;
 
     if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
-    if ($field == 'photo') return ($a->co or !$result) ? file_get_contents(BASE_URL . $a->auxFilename('picture')) : u\decrypt($result);
+    if ($field == 'hasPhoto') return $this->photo or file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE));
+    if ($field == 'photo') return u\decrypt($result);
     if (in_array($field, u\ray(R_VSECURE_FIELDS)) and !is_array($result) and u\starts($result, CRYPT_FLAG)) { // !is_array() is temporary, for ssnData in transition
       if (@r\acct()->admin and $pw2 = @$_COOKIE['pw2']) {
         $result = u\decrypt($result, 0, $pw2);
@@ -183,7 +186,11 @@ class acct {
 
     if (in_array($field, u\ray('data changes secure')) and !is_array($result)) { // special not yet arrayed
       if (!$result) return [];
-      if ($field == 'secure') $result = u\starts($result, CRYPT_FLAG) ? u\decrypt(u\decrypt($result, 1), 0) : u\OLDdecrypt($result);
+      if ($field == 'secure') $result = u\decrypt(u\decrypt($result, 1), 0);
+      if ($field == 'changes' and u\starts($result, CRYPT_FLAG)) {
+        self::$rs[$a->id]->rawChanges = $result;
+        $result = u\decrypt(u\decrypt($result, 1), 0);
+      }
       return (self::$rs[$a->id]->$field = unserialize($result));
     }
 
@@ -249,7 +256,7 @@ class acct {
 ///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
     $b = u\xorBits($b, substr(R_INVITE_KEY, -strlen($b)));
 ///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
-    return u\n2ai(bindec(substr($b, 0, ILEN_DIV)), 5) . u\n2ai(bindec(substr($b, ILEN_DIV)), 5);
+    return u\n2ai(bindec(substr($b, 0, ILEN_DIV)), 5) . u\n2ai(bindec(substr($b, ILEN_DIV)), 5) . u\n2ai($iCode, -1);
   }
   
   /**
@@ -289,6 +296,16 @@ class acct {
   public function update($info) {
     $a = $this;
     if (!is_array($info)) return $a->update(u\rayy(func_get_args())); // second syntax
+    
+    $ourRewards = (@$info['rewards'] ?: $a->rewards);
+    if (isset($info['savings'])) {
+      $info['savingsAdd'] = $info['savings'] - $ourRewards; // may be negative in official CGCs
+      unset($info['savings']);
+    }
+    if (isset($info['balance'])) {
+      $info['r'] = $info['balance'] + $ourRewards + (isset($info['savingsAdd']) ? $info['savingsAdd'] : $a->savingsAdd);
+      unset($info['balance']);
+    }
     if ($a->ok and !isGAME) $a->recordChanges($info); // record changes if member is active
 
     if (isset($info['photo'])) $info['photo'] = u\crypt($info['photo']);
@@ -323,18 +340,38 @@ class acct {
    */
   private function recordChanges(&$info) {
     $a = $this;
-    $changes = u\justNot(R_HIDE_CHANGES, $info); // see if there are any changes to remember
-    foreach ($changes as $k => $v) { // don't record if no change
-      if ($v == $a->$k) {
-        unset($changes[$k]);
-      } elseif (isset(self::$rs[$a->id]->$k)) $changes[$k] = @self::$rs[$a->id]->$k;
+    $newChanges = u\justNot(R_HIDE_CHANGES, $info); // see if there are any changes to remember
+    foreach ($newChanges as $k => $v) { // don't record if no change
+       if ($v == $a->$k) {
+        unset($newChanges[$k]);
+      } elseif (isset(self::$rs[$a->id]->$k)) $newChanges[$k] = @self::$rs[$a->id]->$k;
     }
-    if ($changes) {
-      $changes = serialize([[r\rTime(), $changes]] + $a->changes);
-      $info += compact('changes');
-    }
+    
+    if (!$newChanges) return;
+  
+    $changes = $a->changes; // must precede ->rawChanges
+    $encrypted = u\starts($a->rawChanges, CRYPT_FLAG);
+//      $a->restructureChanges($changes); // temporary
+    for ($k = r\rTime(); @$changes[$k]; $k++);
+    u\preray([$k => $newChanges], $changes); // put the new change first
+    $changes = serialize($changes);
+    if ($encrypted or u\just(R_SECURE_FIELDS, $newChanges)) $changes = u\crypt(u\crypt($changes, 0), 1);
+    $info += compact('changes');
   }
   
+  /**
+   * Temporary one-time function to change the structure of the changes field
+   * from [0 => [time, [key/value pairs]], 1 => etc.] to [time => [key/value pairs], etc.]
+   *//*
+  public function restructureChanges(&$changes) {
+    if (!$changes) return;
+    foreach ($changes as $k => $one) {
+      list ($dt, $info) = $k < 9999 ? $one : [$k, $one];
+      $new[$dt] = $info;
+    }
+    $changes = $new;
+  }
+  */
   public function isNonprofit() {return (bool) ($this->coFlags & u\bit(CO_NONPROFIT));}
   
   /**
@@ -454,7 +491,7 @@ class acct {
   public function shortfall($goods, $need = 0, $get = FALSE, $actor = NULL) {
     global $channel;
     $a = $this;
-    if ($channel == TX_POS and @$actor == $a and $a->coCan(CO_ATM)) $goods = R_FOR_GOODS;
+    if (@$actor == $a and $a->coCan(CO_ATM)) $goods = R_FOR_GOODS;
     $avail = $a->avail($goods);
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
@@ -592,8 +629,15 @@ EOF;
 
     $DBTX = \db_transaction();
     $minimum = $a->minimum + $b->minimum;
-    $a->update('jid minimum', $b->id, $a->id < $b->id ? $minimum : 0);
-    $b->update('jid minimum', $a->id, $b->id < $a->id ? $minimum : 0);
+    foreach ([$a, $b] as $i => $ai) {
+      $aj = $i == 0 ? $b : $a; // the other account
+      $ai->update('jid minimum', $aj->id, $ai->id < $aj->id ? $minimum : 0); // set slave minimum to zero
+      if (!$ai->hasBank and $aj->hasBank) {
+        $ai->update('bankAccount', $aj->bankAccount);
+        $ai->setRisk('hasBank');
+      }
+      $ai->setBit(B_JOINED);
+    }
     unset($DBTX);
   }
   
@@ -612,6 +656,7 @@ EOF;
       foreach ([$a, $b] as $ai) {
         $ai->update('jid minimum', '', max($a->minimum, $b->minimum));
         $ai->cacheOk(); // make sure each account is left with its proper cached amounts
+        $ai->setBit(B_JOINED, FALSE);
       }
       list ($a1, $a2) = u\order($b->r > $a->r, $b, $a);
       $amount = round(($a1->r - $a2->r) / 2, 2);
@@ -639,22 +684,26 @@ EOF;
   }
   
   /**
+   * Return the appropriate photo for the account (a "no photo available" image, if none).
+   * ($this->photo without parens is empty for companies and empty if there is no photo)
+   */
+  public function photo() {
+    return $this->photo ?: @file_get_contents(BASE_URL . $this->photoFilename());
+  }
+  
+  /**
    * Return an auxiliary filename for the account.
    * @param string $type: picture, picture2, or proof
    * @param bool $ideal: return the ideal normal name, even if the file does not exist (default FALSE)
-   * @param bool $old: use the old filename structure and location
    * @return: the relative file path (relative to Drupal)
    */
-  public function auxFilename($type = 'picture', $ideal = FALSE, $old = FALSE) {
-    $dir = $type == 'picture' ? R_PICTURE_DIR : ($type == 'picture2' ? R_PICTURE_DIR . '/small' : R_PROOF_DIR);
+  public function photoFilename($ideal = FALSE) {
     $cardCode = @$this->cardCode; // @ for testing
-    $file = "$this->id-$cardCode";
-    if (u\abbreviates('picture', $type)) $file .= '.jpg';
-    if (!$ideal and !$this->hasAux($type)) $file = $this->co ? R_DFT_PICTURE_WIDE : R_DFT_PICTURE;
-    return "$dir/$file";
+    if (!$ideal and !$this->hasPhoto) {
+      $file = $this->co ? R_DFT_PICTURE_WIDE : R_DFT_PICTURE;
+    } else $file = "$this->id-$cardCode.jpg";
+    return R_PICTURE_DIR . $file;
   }
-  
-  public function hasAux($type = 'picture') {return file_exists(DRUPAL_ROOT . $this->auxFilename($type, TRUE));}
   
   public function cardCode() {
     $field = $this->proSe ? 'cardCode' : 'cardCode2';
@@ -863,11 +912,13 @@ EOF;
   
   /**
    * Set the bit in the given integer bit collection field to the given value.
-   * @param int $bit: number of bit to set (0 - 31)
+   * If the requested bit is too high, "2" (or more) gets appended to the collection name
+   * @param int $bit: number of bit to set (0 - 30)
    * @param bool $on: whether to set it ON or OFF
    * @return <successful>
    */
   public function setBitx($bit, $on = TRUE, $field = 'flags') {
+    if ($bit > B_MAX) $field .= 1 + floor($bit / (B_MAX + 1));
     $n = $this->$field;
     u\setBit($n, $bit, $on);
     return $this->update($field, $n);
@@ -894,13 +945,13 @@ EOF;
     return is_numeric($bit = @$acctRiskBits[$bitName]) ? $bit : $txRiskBits[$bitName];
   }
 
-  public function coCan($bit = NULL) {return u\getbit($this->coFlags, $bit);}
+  public function coCan($bit = NULL) {return u\getbit($bit <= B_MAX ? $this->coFlags : $this->coFlags2, $bit);}
   public function setCoBit($bit, $on = TRUE) {$this->setBitx($bit, $on, 'coFlags');}
   
   public function setCoCans($can) {
     $coFlags = $this->coFlags;
-    for ($i = 0; $i < 2 * CO_CANS_BITS; $i++) {
-      $bit = u\bit(CO_CANS + $i);
+    for ($i = 0; $i < 2 * APP_CAN_BITS; $i++) {
+      $bit = u\bit(APP_CANS + $i);
       $coFlags = isset($can[$i]) ? ($coFlags | $bit) : ($coFlags & ~$bit);
     }
     $this->update(compact('coFlags'));

@@ -204,11 +204,11 @@ function identify($args) {
          | ($mya->can(B_REFUND) ? u\bit(CO_UNDO) | u\bit(CO_REFUND) | u\bit(CO_USD4R) : 0)
          | ($mya->can(B_BUY) ? u\bit(CO_BUY) : 0)
          | ($mya->can(B_MANAGE) ? u\bit(CO_MANAGE) : 0);
-    $agentCans = ($mya->coFlags >> CO_AGENT_CANS) & CO_CANS_MASK & $agentCan; // limit standard perms by agent
+    $agentCans = ($mya->coFlags >> APP_AGENT_CANS) & APP_CAN_MASK & $agentCan; // limit standard perms by agent
 //    $default = $mya->coCan(CO_REQUIRE_CASHIER) ? '' : $mya->mainQid;
     $default = $mya->mainQid;
     $company = $mya->fullName;
-///    $company .= " can=$can agentCan=$agentCan cans=$cans agentCans=$agentCans mask=" . CO_CANS_MASK; // debug(
+///    $company .= " can=$can agentCan=$agentCan cans=$cans agentCans=$agentCans mask=" . APP_CAN_MASK; // debug(
     $time = r\rTime();
     
   } else { // identifying customer
@@ -221,8 +221,8 @@ function identify($args) {
   }
 
   $name = $a->agent->fullName;
-  $can = ($mya->coFlags >> CO_CANS) & CO_CANS_MASK;
-  $can |= $agentCans << (CO_CANS_BITS + 1); // extra bit is for "manage" permission
+  $can = ($mya->coFlags >> APP_CANS) & APP_CAN_MASK;
+  $can |= $agentCans << (APP_CAN_BITS + 1); // extra bit is for "manage" permission
   
   return ok(compact(u\ray('logon device name place company balance rewards descriptions can default time')));
 }
@@ -241,12 +241,12 @@ function photo($args) {
 
   if (!@$member) return photoReturn('missing member');
   if (!$a = getCustomer($member, $code, $err)) return photoReturn($err);
-//  $picFilename = $a->agent->auxFilename('picture2');
+//  $picFilename = $a->agent->photoFilename('picture2');
 //  $pic = @file_get_contents(DRUPAL_ROOT . $picFilename);
 //  exit(DRUPAL_ROOT . $picFilename);
 //  exit(file_exists(DRUPAL_ROOT . $picFilename));
 //  exit(strlen($pic));
-  return photoReturn($a->agent->photo);
+  return photoReturn($a->agent->photo());
 }
 
 /**
@@ -254,15 +254,18 @@ function photo($args) {
  */
 function photoReturn($pic) {
   $max = 50; // arbitrary abbreviation length for logging and testing
-  $message = strlen($pic) < $max ? $pic : bin2hex(substr($pic, 0, $max)); // identifies pic w/out a big db hit
+  $message = strlen($pic) <= $max ? $pic : bin2hex(substr($pic, 0, $max)); // identifies pic w/out a big db hit
   u\loga('out', compact('message'));
 
   if (u\test()) {
-    $filename = DRUPAL_ROOT . R_PICTURE_DIR . '/' . R_DFT_PICTURE; // never a company photo
+    $filename = DRUPAL_ROOT . R_PICTURE_DIR . R_DFT_PICTURE; // never a company photo
     if (u\starts(bin2hex(substr(file_get_contents($filename), 0, $max)), $message)) $message = 'no photo';
     t\output($message); 
     return $message;
-  } else exit($pic);
+  }
+
+  if (strlen($pic) > $max) header("Content-type: image/jpeg");
+  exit($pic);
 }
 
 /*
@@ -381,7 +384,7 @@ function missingArg($expected, $args) {
  * @return: the agent's company acct object (false if error)
  */
 function getAgent($agent, &$err = '') {
-  if (!$mya = r\acct($agent)) return !$err = 'bad agent'.$agent;
+  if (!$mya = r\acct($agent)) return !$err = 'bad agent' . " $agent";
 //  if (r\foreignServer(r\uidRegion($mya->agentId))) return !$err = 'wrong server for agent';
   if (!$mya->ok) return !$err = 'company inactive';
 //  if (!$mya->can(B_SELL)) return !$err = 'agent cannot sell';

@@ -36,7 +36,7 @@ Setup:
   | 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |
   | 4   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |
   Then balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |   -1000 |
   | .ZZA |     250 |
   | .ZZB |     250 |
@@ -59,7 +59,7 @@ Scenario: A cashier asks to charge someone
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $400   | food         | reward          | $40               |
   And balances:
-  | id   | balance |*
+  | id   |       r |*
   | ctty |   -1060 |
   | .ZZA |     100 |
   | .ZZB |      40 |

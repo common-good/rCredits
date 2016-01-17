@@ -1241,5 +1241,6 @@ function weMessageToMemberWithSubs($index, $id, $subs) {return t\weMessage($inde
  */
 function memberEmailInvitationCodeIs($id, $code) {
   global $testOnly; // for now, choose the test code according to the creation date (in the tests)
-  return (r\acct(t\uid($id))->iCardCode() == $code);
+  $code0 = r\acct(t\uid($id))->iCardCode(IBY_SELF);
+  return ($code0 == $code or $code0 == $code . 'A');
 }

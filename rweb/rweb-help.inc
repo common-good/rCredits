@@ -18,7 +18,7 @@ use rCredits\Util as u;
 function rawHelp($i, $tag = '') {
   global $rUrl;
   
-  $site = str_replace('https://', '', R_SITE_URL);
+  $site = str_replace('https://', '', BASE_URL);
   $mya = r\acct();
   $company = @$mya->co;
   $username = @$mya->name; // @ is for SMS testing (when not signed in)
@@ -31,22 +31,18 @@ EOF
   //Help is also available for the <a href="@BASE_URL/help/sms">Text Messaging Interface</a>.
   $back = '<p>' . u\backButton() . '</p>';
   if ($i == 'general') return tt(<<<EOF
-    <p>Use the tabs above and the icons at the top right, to try all the features of the rCredits system. Here's an overview of what's where:</p>
-    <h2>Tabs:</h2>
+    <p>Here's what to click, to find what you want:</p>
     <ul>
-      <li><b>Summary</b>: an overview of your account.</li>
-      <li><b>History</b>: shows your recent transactions, invoices, notices, monthly statements, and annual tax forms (Form 1099-B).</li>
+      <li><b>Summary</b>: See an overview of your account or open an rCredits account for your company.</li>
       <li><b>Charge</b>: Invoice another participant (to be paid in rCredits and/or US Dollars). Both buyer and seller get an incentive reward for purchases of goods and services.</li>
-      <li><b>Pay</b>: Transfer your rCredits to another participant. Both buyer and seller get an incentive reward for purchases of goods and services.</li>
+      <li><b>Pay</b>: Transfer rCredits to another participant. Both buyer and seller get an incentive reward for purchases of goods and services.</li>
       <li><b>Bank</b> Transfer money to or from your bank account.</li>
-      <li><b>Find Co</b>. Find out who takes rCredits in your area.</li>
-      <li><b>Community</b>. See how the rCredits economy is doing in your community.</li>
-      <li><b>Invite</b>. Invite a friend to open an rCredits account and get incentive rewards!</li>
+      <li><b>History</b>: See a list of your recent transactions, invoices, notices, monthly statements, and annual tax forms (Form 1099-B).</li>
+      <li><b>Community</b>. See how the rCredits economy is doing in your community. Review the rCredits Agreement, signed by all rCredits members. Find a participating company. Help the rCredits community grow by making a financial contribution or by inviting someone.</li>
+      <li><b>Settings</b>. Change your account settings, including contact information, general preferences, security settings, bank account connection, relations with other accounts, and proxy choices.</li>
+      <li><b>Photo (Choose an Account to Manage)</b>: Click your photo in the upper right corner, to select an account to manage, if you have more than one.</li>
     </ul>
-    <h2>Settings (Gear icon, upper right):</h2>
-    <p>Change your account settings, including contact information, general preferences, security settings, bank account connection, relations with other accounts, and proxy choices.</p>
-
-    <p>If you need help and can't find the answer here, please feel free to <a href="mailto:@regEmail?subject=help with rCredits" target="_blank">email us</a> or use this form to send us a secure encrypted message.</p>
+    <p>If you don't see the help you need here, please <a href="mailto:@regEmail?subject=help with rCredits" target="_blank">email us</a> or use this form to send a secure encrypted message (if your message is secret).</p>
 EOF
   , compact('regEmail'));
 
@@ -179,24 +175,18 @@ EOF
   if ($i == 'cashing-out') return t(<<<EOF
     <p>rCredits have value and act like money because we agree to accept them as payment for our good and services, so they move from member to member to member as a token of exchange. When someone pays you in rCredits, you can spend those funds &mdash; OR you can "cash them out" by transferring them to your bank account or exchanging them for cash.</p>
     <p>You can cash out rCredits that someone <i>pays</i> you, but any rCredits you <i>receive free</i>, as Incentive Rewards, must continue to circulate within the rCredits system. You cannot cash them out &mdash; you can only spend them.</p>
-    <p>You can help keep the rCredits system healthy by treating your incentive rewards as a <!aReserve>Savings Reserve</a>.</p>
+    <p>You can help keep the rCredits system healthy by maintaining a positive Primary Balance (most of the time) and treating your incentive rewards as a <!aReserve>Savings Reserve</a>.</p>
 EOF
 , ['!aReserve' => 'a href="savings-reserve"']) . $back;
 
   if ($i == 'savings-reserve') return t(<<<EOF
     <p><b>Background.</b> It is crucial to the success of the rCredits system that most of the rCredits issued as incentive rewards stay in the system and keep circulating in the community. While the system is small, it is a bit frail in that regard, so we need to be extra careful to make sure there is no "<!aCrunch>cashflow crunch</a>" at least until we are ready to handle it as a strong, well-functioning democratic rCredits community.</p>
 
-    <p><b>The Reserve Option.</b> So we encourage you to keep your incentive rewards in the system as a "savings reserve" &mdash; until you need them. This is like a traditional reserve credit line that kicks in whenever you would otherwise overdraw your checking account &mdash; except there are no fees here.</p>
+    <p><b>Your Savings Reserve.</b> So we divide your account into two pieces: your Primary Balance and your Savings Reserve. Your incentive rewards go into the Savings Reserve automatically, to encourage you to keep them in the system until you need them. This is like a traditional reserve credit line that kicks in whenever you would otherwise overdraw your checking account &mdash; except there are no fees here. You can spend those reserved funds any time, simply by letting your Primary Balance go negative.</p>
 
-    <p><b>Impact On You.</b> Choosing this option has absolutely no effect on what you can do with your account. It just means your account balance gets reported to you without including the incentive rewards total.</p>
-
-    <p>For example, if you have $300 in your account and $100 of that is incentive rewards that you received (free), then:</p>
-    <ul>
-      <li><em>Without the "Reserve" option</em>, your balance shows as $300, with no savings reserve.</li>
-      <li><em>With the "Reserve" option</em>, your balance will show as $200, with a savings reserve of $100.</li>
-    </ul>
+    <p>For example, if you have $300 in your account and $100 of that is incentive rewards that you received (free), then your balance will show as $200, with a savings reserve of $100.</p>
     
-    <p>No downside for you, but a big upside for the rCredits community -- choosing this option helps keep the system healthy while it grows to become stable and permanent.</p>
+    <p>Remember, we issue rCredits together as a commmunity, so it is up to all of us to protect their value. Most people choose to keep a positive Primary Balance, by setting a Minimum on the Preferences settings page. Keeping most of the rCredits we issue in the system, this helps keep the system healthy while it grows to become stable and permanent.</p>
 EOF
   , ['!aCrunch' => 'a href="cashflow-crunch"']) . $back;
   
@@ -226,7 +216,7 @@ EOF
      </ul>
      <p>Being able to discuss and decide together what to incentivize and what to fund means we decide together what to make happen in our world. The future is ours. Together we can provide a decent life for everyone in our community, offer a hand to people elsewhere, and do our part to rescue ourselves from the brink of climate-change disaster.</p>
      <p>Having enough revenue to cover the incentive rewards is a small step along that path. Nobody knows yet when we will have a fully-functioning Common Good Community, capable of making that judgment. One of our community organizers predicts it will be when there are about 3,000 rCredits members. Time will tell.</p>
-     <p>In the meantime, you are encouraged to hold your incentive rewards as a <!aReserve>Savings Reserve</a>, so those rCredits can keep circulating among the participants as much as possible, while we grow.</p>
+     <p>In the meantime, you are encouraged to maintain a positive Primary Balance, treating your incentive rewards as a <!aReserve>Savings Reserve</a>, so those rCredits can keep circulating among the participants as much as possible, while we grow.</p>
 EOF
   , ['!aCGC' => 'a href="common-good-community"',
      '!aReserve' => 'a href="savings-reserve"']) . $back;

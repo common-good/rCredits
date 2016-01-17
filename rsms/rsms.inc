@@ -130,8 +130,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'invitee slow' => t('Your friend @fullName has not finished opening an rCredits account (@elapsed days after accepting your invitation). The next step is: "@step". Call maybe, to offer help?'),
   'reminder coming' => t('We will send you just one reminder'),
   'reminder one' => t('This is your one reminder'),
-  'balance notice' => t('@balance, including @rewards incentive rewards to date'),
-  'balance notice reserved' => t('@balance, plus @savings held as a savings reserve (including @rewards incentive rewards received to date)'),
+  //=> t('@balance, including @rewards incentive rewards to date'),
+  'balance notice' => t('@balance, plus @savings held as a savings reserve (including @rewards incentive rewards received to date)'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),

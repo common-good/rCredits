@@ -54,11 +54,9 @@ define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed 
 // isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 
 define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd verifyBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
-define('R_SECURE_FIELDS', 'pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin federalId ssnData dob bankAccount photoId question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
 define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount photoId'); // very secure fields (admin-encrypted)
-//define('R_SECURE_FIELDS', 'cardCode cardCode2 question'); // non-personal encrypted fields (must be complete list)
-//define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData photoId pin bankAccount'); // personal identifying information
-define('R_HIDE_CHANGES', R_SECURE_FIELDS . ' changes init r rewards committed floor login access activated data secure stepsDone lastTx pass notes picture photo trust risk risks stats getAppData appData'); // do not record changes to these fields (generally anything secret, or often-changed -- perhaps automatically)
+define('R_SECURE_FIELDS', R_VSECURE_FIELDS . ' pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
+define('R_HIDE_CHANGES', 'changes init r rewards committed floor login access activated data secure stepsDone lastTx lastiCode pass notes picture photo trust risk risks stats getAppData appData'); // do not record changes to these fields: anything often-changed (automatically or not)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
 define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_CASH', '(r-committed-GREATEST(0, floor, rewards))'); // balance available to cash out
@@ -72,7 +70,7 @@ define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might 
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
 define('R_STEPS', 'contact sign donate proxies prefs photo connect company relations'); // membership steps
 define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret code oneTimeLoginUrl password pass newPass form_build_id form_token form_id external_input'); // don't log these (external_input may contain passwords)
-define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts Summary'); // don't log visits to these forms
+define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts history settings settings/icon community Summary'); // don't log visits to these forms
 define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin PageNotFound Sinx Pass Empty TestRecovery ChangePassword Help Community Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
 define('BY_CHECK', '(check)'); // app includes this in description, for a purchase of rCredits by check
 define('BY_CARD', '(card)'); // app includes this in description, for a purchase of rCredits by credit card
@@ -100,11 +98,13 @@ define('ILEN', ILEN_REGION + ILEN_TAIL + ILEN_SECURITY);
 define('ILEN_DIV', 25); // this results in two 5-digit codes (otherwise the integer gets too big)
 
 // codes for iCode field (invitation code)
+define('IBY0', -2); // lowest IBY number
 define('IBY_FORM', -2); // invited by form (pre-confirmed)
 define('IBY_LATE', -1); // invited by form, but accepted late (needs to be confirmed)
 define('IBY_SELF', 0); // signed up without an invitation/confirmation yet
 define('IBY_EMAIL', 1); // invited by email (this invitation # is re-usable, but needs to be confirmed)
 define('IBY_ICARD', 2); // >=this is invitation number, also needing confirmation
+define('IBYS', 'form late self email icard');
 
 define('R_WHYS', t('goods and services,exchange of US Dollars or other currency,loan/reimbursement/etc.')); // transaction purposes
 define('R_FOR_GOODS', 0); // index into R_WHYS for goods
@@ -120,6 +120,8 @@ define('R_SUGGEST_BUMP', 1.25); // suggested minimum multiplier, so as not to un
 define('R_VPAYMENT_MIN', 0.05); // minimum payment exchange (where bonus rounds to .01)
 define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial profile picture
 define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
+define('R_PHOTO_WIDTH', 300); // rCard photo width, in pixels
+define('R_PHOTO_HEIGHT', 400);
 define('R_PIXEL_FACTOR', 200); // what to multiply the aspect ratio components by, to get pixel dimensions
 define('R_GET_AUTH_URI', 'usd-get-auth'); // where Dwolla calls us back for getting auth code
 define('R_INDIVIDUAL_GIFT', 50); // suggested donation for individuals
@@ -148,20 +150,17 @@ define('R_USPS_WEB_TOOLS_ID', '921COMMO5331'); // USPS API credentials
 define('R_TEMPLATE_DIR', '/templates');
 define('R_EMAIL_FRAME', 'email-frame');
 
-define('R_PICTURE_DIR_OLD', '/sites/default/files/pictures');
-define('R_PROOF_DIR_OLD', '/sites/default/files/proofs');
-
-define('R_PICTURE_DIR', '/photos'); // precede this by DRUPAL_ROOT (file) or $base_url (url)
-define('R_PROOF_DIR', '/proofs');
+define('R_PICTURE_DIR', '/photos/'); // precede this by DRUPAL_ROOT (file) or $base_url (url)
+define('R_PROOF_DIR', '/proofs/');
 define('R_DFT_PICTURE', 'no-photo-available.jpg'); // default profile picture
 define('R_DFT_PICTURE_WIDE', 'no-photo-available-wide.jpg'); // default profile picture
 define('R_NOT_VALID', 'not-valid.png'); // says rcard is not valid for purchases
 
 // account type bits
-define('R_PERSONAL', 0);
-$GLOBALS['account types'] = array(t('personal'), t('sole proprietor'), t('partnership'), t('private corporation'), t('nonprofit or government'), t('publicly-traded corporation'));
+$GLOBALS['account types'] = array(t('personal'), t('sole proprietor'), t('partnership'), t('private corporation or LLC'), t('nonprofit or government'), t('publicly-traded corporation'), t('co-operative, association, or club'));
 
-// Commercial Account flags (bits)
+// Company Account flags (bits)
+define('R_PERSONAL', 0);
 define('CO_SOLE_PROPRIETOR', 1);
 define('CO_PARTNERSHIP', 2);
 define('CO_CORPORATION', 3);
@@ -170,14 +169,14 @@ define('CO_WORKER_COOP', 5);
 define('CO_CONSUMER_COOP', 6);
 define('CO_GOVERNMENT', 7);
 define('CO_PUBLICLY_TRADED', 8);
-define('CO_U9', 9); //
+define('CO_COOP', 9);
 define('CO_U10', 10); //
 define('CO_U11', 11); //
 define('CO_U12', 12); //
-define('CO_U13', 13); //
-define('CO_U14', 14); //
+define('CO_PRIVATE', 13); // company should not be listed (
+define('CO_ATM', 14); // can trade rCredits for cash, even if balance is less than rewards
 
-define('CO_CANS', 15); // company permission bits when signed OUT: bits 15-21
+define('APP_CANS', 15); // company permission bits when signed OUT: bits 15-21
 define('CO_CHARGE', 0);
 define('CO_UNDO', 1);
 define('CO_R4USD', 2);
@@ -186,16 +185,15 @@ define('CO_REFUND', 4);
 define('CO_BUY', 5);
 define('CO_u21', 6); // unused
 define('CO_MANAGE', 7); // this bit is not actually stored here, but pass B_MANAGE to the app in this position
-define('CO_CANS_BITS', 7); // number of bits for permissions (each: signed in and out)
-define('CO_AGENT_CANS', CO_CANS + CO_CANS_BITS); // company permission bits when signed IN (limited by agent)
-define('CO_CANS_MASK', pow(2, CO_CANS_BITS + 1) - 1); // the CANS bits -- signed-IN permission bits are 22-28
+define('APP_CAN_BITS', 7); // number of bits for permissions (each: signed in and out)
+define('APP_AGENT_CANS', APP_CANS + APP_CAN_BITS); // company permission bits when signed IN (limited by agent)
+define('APP_CAN_MASK', pow(2, APP_CAN_BITS + 1) - 1); // the CANS bits -- signed-IN permission bits are 22-28
 
 define('CO_FAST', 29); // fast checkout -- never ask for photoId (set by cAdmin)
 define('CO_TIP', 30); // ask customer what percent tip to add
-define('CO_ATM', 31); // can trade rCredits for cash, even if balance is less than rewards
 
-define('CO_CAN_BITS', 'charge undo r4usd usd4r refund buy');
-define('CO_CAN_BIT_DESCS', 'charge customers,undo last transaction,give rCredits for USD,give USD for rCredits,refund any amount,make payments');
+//define('APP_CAN_BIT_NAMES', 'charge undo r4usd usd4r refund buy');
+define('APP_CAN_BIT_DESCS', 'charge customers,undo last transaction,give rCredits for USD,give USD for rCredits,refund any amount,make payments');
 
 // Permissions, options, and flags (flags field in account record)
 // If we need more bits, create a flags2 field and make the B_ defs negative or 32-63 for setBit
@@ -516,20 +514,22 @@ function dupTx($uid, $other, $amount) {
  * Say whether the named employee works for the account owner.
  * @param string $name: the employee's name
  * @param int $us: the employer's account ID (defaults to current account ID)
+ * @param bool $loose: <the employee need not be formally an employee>
  * @return int: the person's account ID if s/he does work for us, otherwise FALSE
  */
-function worksForUs($name, $us = NULL) {
+function worksForUs($name, $us = NULL, $loose = TRUE) {
   u\setDft($us, r\acct()->id);
   $words = explode(' ', u\roughName($name)); // abbreviate middle names
   if (strlen($words[0]) > 1) { // unless first name is already abbreviated
     for ($i = 1; $i < count($words) - 1; $i++) $words[$i] = substr($words[$i], 0, 1) . '%';
   }
   $pattern = join(' ', $words);
+  $where = 'r.main=:us' . ($loose ? '' : ' AND r.employee');
   
   $sql = <<<EOF
     SELECT u.uid, u.fullName FROM r_relations r
     INNER JOIN users u ON u.uid=r.other
-    WHERE r.main=:us AND r.employee
+    WHERE $where
     ORDER BY (u.fullName LIKE :pattern) DESC
 EOF;
   $q = db\q($sql, compact('us', 'pattern'));
@@ -587,7 +587,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   if (isGAME) return; // no emails from game site
   global $testEmails;
 
-  $subs['site'] = R_SITE_URL;
+  $subs['site'] = BASE_URL;
   
   if ($toA = is_object($to0) ? $to0 : r\acct($to0)) {
     $toEmail = $toA->email;
@@ -646,13 +646,14 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
  * @param int $uid: account record ID
  * @param string $index: index to arbitrary HTML message body (between salutation & closing) or the HTML itself
  * @param assoc $subs: message parameters
+ * @param string $topic: optional specific topic (otherwise look in $GLOBALS['topics'])
  */
-function message($uid, $index, $subs = []) {
+function message($uid, $index, $subs = [], $topic = '') {
   global $testMessages;
 
   $subs['otherName'] = @$subs['myName']; // messaging someone else about US, if anyone
   $message = u\tt($index, $subs);
-  $topic = u\tt(@$GLOBALS['topics'][$index], $subs) ?: $index; // index should never be used (wrong language) but don't fail
+  $topic = $topic ?: (u\tt(@$GLOBALS['topics'][$index], $subs) ?: $index); // index should never be used (wrong language) but don't fail
   $testMessages[] = compact(u\ray('uid index subs topic'));
 ///  debug(compact('uid','index','subs','message','topic'));
   r\notify($uid, 'message', compact('message', 'topic'), TRUE);
@@ -700,22 +701,28 @@ function notify($uid, $index, $subs = [], $force = FALSE) {
 /**
  * Suggest a higher minimum (because of a failed purchase).
  * @param acct $a: the account that needs a higher minimum
+ * @param int $default: the default minimum, if special
+ * @param string $dftMst: default message, if any
+ * @param bool $get: <just return the message>
  */
-function suggestMin($a) {
-  $suggested = u\fmtAmt($suggested0 = max(R_ACHMIN, $a->j_rewards, (R_SUGGEST_BUMP * $a->j_minimum) ?: 100));
+function suggestMin($a, $default = '', $dftMsg = '', $get = FALSE) {
+  $suggested0 = $default ?: max(R_ACHMIN, (R_SUGGEST_BUMP * $a->j_minimum) ?: 100);
+  $suggested = u\fmtAmt($suggested0);
+
   $a1 = $a->makeDo('min', $suggested0);
-  $msg = 'you were short';
+  $msg = $dftMsg ?: 'you were short';
   
   if ($a->can(B_SECRET)) {
     $a2 = $a->makeDo('nosecret');
     $msg .= '|be not secretive';
   }
-  if (!$a->can(B_DEBT) and $a->floor < 0) {
+/* DISABLE FOR NOW  if (!$a->can(B_DEBT) and $a->floor < 0) {
     $a3 = $a->makeDo('debtok');
     $msg .= '|try debt';
-  }
+  } */
   
-  r\notify($a->id, $msg, compact(u\ray('suggested a1 a2 a3')));
+  $args = compact(u\ray('suggested a1 a2 a3'));
+  if ($get) return u\tt($msg, $args); else r\notify($a->id, $msg, $args);
 }
 
 /**
@@ -877,7 +884,7 @@ function mergeAccounts($oldUid) {
  */
 function location($a, $complete = FALSE) {
   $country = realCountry($a->country);
-  $state = realState($a->state, $a->country);
+  $state = r\realState($a->state, $a->country);
   $result = [];
   if ($complete) $result[] = (string) $a->address; // (string) in case address is NULL
   $result[] = $a->city;
@@ -1331,11 +1338,9 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'users:community',
   );
   foreach (u\ray(DRUPAL_UID_TABLES) as $one) $subs[] = "$one:uid";
-  foreach (u\ray('picture picture2 proof') as $one) { // file ops can't be rolled back, so must follow db ops
-    $oldFilename = DRUPAL_ROOT . $a->auxFilename($one, TRUE); // get old name while account exists
-    $newFilename = str_replace("/$oldUid-", "/$newUid-", $oldFilename);
-    $files[$oldFilename] = $newFilename;
-  }
+  $oldFilename = DRUPAL_ROOT . $a->photoFilename(TRUE); // get old name while account exists
+  $newFilename = str_replace("/$oldUid-", "/$newUid-", $oldFilename);
+  $files[$oldFilename] = $newFilename;
 
   $DBTX = \db_transaction();
   foreach ($subs as $one) {
@@ -1434,25 +1439,28 @@ function go($page, $msg = '', $field = '') {
  * @param int $at: time of reporting
  * @return assoc of all parameters in the notices template (FALSE if none)
  */
-function noticeArgs($uid, $where, $weekly, $monthly, $at = NULL) {
+function noticeArgs($uid, $where = '0', $weekly = FALSE, $monthly = FALSE, $at = NULL) {
   u\setDft($at, r\rTime());
   $a = r\acct($uid);
-  $q = db\q("SELECT message, created FROM r_notices WHERE uid=:uid AND ($where)", compact('uid'));
+  
+  if ($where) {
+    $q = db\q("SELECT message, created FROM r_notices WHERE uid=:uid AND ($where)", compact('uid'));
 
-  while ($row = $q->fetch()) {
-    $date = ($weekly or $monthly) ? (strftime('%b&nbsp;%d', $row->created)) : R_BULLET;
-    $messages[] = "<tr><td class=\"notice-date\" style=\"vertical-align:top; margin-right:5px;\">$date</td><td>$row->message</td></tr>";
+    while ($row = $q->fetch()) {
+      $date = ($weekly or $monthly) ? (strftime('%b&nbsp;%d', $row->created)) : R_BULLET;
+      $messages[] = "<tr><td class=\"notice-date\" style=\"vertical-align:top; margin-right:5px;\">$date</td><td>$row->message</td></tr>";
+    }
+    if (@$messages) $messages = join("\n", $messages); else return FALSE;
   }
-
-  if (@$messages) $messages = join("\n", $messages); else return FALSE;
+  
   $unit = $weekly ? 'week' : ($monthly ? 'month' : 'day');
   $yestertime = u\fmtDate($start = $unit == 'month' ? u\plusMonths(-1, $at) : strtotime("-1 $unit", $at));
   $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
   extract(u\just('return', $a->j_stats()));
-  $balance = u\fmtAmt($a->j_r - ($a->hasReserve ? $a->j_rewards : 0));
-  if ($a->hasReserve) $savings = u\fmtAmt($a->j_savings);
+  $balance = u\fmtAmt($a->j_balance);
+  $savings = u\fmtAmt($a->j_savings);
   list ($rewards, $ourEmail) = array(u\fmtAmt($a->j_rewards), $a->cttyA->email);
-  $balance = u\tt($a->hasReserve ? 'balance notice reserved' : 'balance notice', compact('balance', 'savings', 'rewards'));
+  $balance = u\tt('balance notice', compact('balance', 'savings', 'rewards'));
   $companies = \variable_get('companies');
   $companies = $companies[u\test() ? r\serverUid() : $a->community];
   return compact(u\ray('messages unit range yestertime balance return ourEmail companies'));
@@ -1471,7 +1479,7 @@ function companies($ctty, $export = FALSE) {
   $q = db\q('SELECT uid FROM users WHERE :IS_CO AND :IS_OK AND uid>1 AND community=:ctty ORDER BY fullName', compact('ctty'));
   while ($row = $q->fetchAssoc()) {
     $a = r\acct($row['uid']);
-    $res .= strtr($model, ['NAME' => $a->fullName, 'DESC' => $a->shortDesc]) . "\n";
+    if (!$a->coCan(CO_PRIVATE)) $res .= strtr($model, ['NAME' => $a->fullName, 'DESC' => $a->shortDesc]) . "\n";
   }
   return $res;
 }
@@ -1633,12 +1641,13 @@ function getStats($ctty, $created = NULL) {
   
   list ($members, $tmembers) = isGAME ? ['members', 't.members'] : [1, 1];
   
-  // get pAccts, bAccts, newbs, savings
+  // get pAccts, bAccts, newbs, savings, savingsIntent
   $sql = <<<EOF
     SELECT SUM($members * IF(activated AND activated<=:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
       SUM(IF(activated AND activated<=:created AND :IS_CO, 1, 0)) AS bAccts,
       SUM($members * IF(created<=:created AND (NOT activated OR activated>:created), 1, 0)) AS newbs,
-      SUM(picture)/100 AS savings
+      SUM(picture)/100 AS savings,
+      SUM(savingsAdd) AS savingsIntent
     FROM users
     WHERE uid>1 AND $cttyCrit AND created<=:created 
 EOF;
@@ -1755,20 +1764,20 @@ EOF;
 }
 
 /**
- * Return the average balance for the given account (possibly joint) and given period.
+ * Return the average combined balance for the given account (possibly joint) and given period.
  * @param int $uid: account id (can be a community or region too)
  * @param int $start: starting date (should be 0 hours) -- first full day to include in the period
  * @param int $end: ending date (should be 0 hours) -- last full day to include in the period
  * @param bool $noj: ignore any joined account
- * @param float $min: minimum end-of-day balance in the period
+ * @param float $min: minimum end-of-day combined balance in the period
  * @param float $days: (RETURNED) (UNUSED) number of days from start to end, inclusive
- * @return float: the average balance for that period (possibly with fractional cents)
+ * @return float: the average combined balance for that period (possibly with fractional cents)
  */
 function averageBalance($uid, $start, $end = NULL, $noj = FALSE, &$min = '', &$days = '') {
   //u\EXPECT($uid > 1, 'bad uid for avg');
   u\setDft($end, r\rTime());
   if (!$days = round(($end + 1 - $start) / DAY_SECS)) return 0; // rounding is for daylight savings time changes
-  $min = $bal = be\creditInfo(u\ray('uid asof', $uid, $start))->balance;
+  $min = $bal = be\creditInfo(u\ray('uid asof', $uid, $start))->r;
   $jid = @$noj ? 0 : (r\acct($uid)->jid ?: 0);
   $isPayer = 't.payer IN (:uid, :jid)';
   $isPayee = 't.payee IN (:uid, :jid)'; // account can be both payer and payee, if joint account
@@ -1811,7 +1820,7 @@ function rTime() {
   if (isGAME) {
     extract(w\gameVars());
     return mktime(0, 0, 0, $week, 4 * $day, date('Y'));
-  } else return time();
+  } else return u\test() ? REQUEST_TIME : time();
 }
 
 /**
@@ -1827,7 +1836,8 @@ function riskList($risks, $descs) {
     if (u\getBit($risks, $bit)) {
       $class = $descs[$bitName] < 0 ? 'goodRisk' : 'badRisk';
       $helpIndex = @$riskHelp ? array_search($bitName, array_keys($riskHelp)) : -1;
-      $why[] = "<a href=\"$base_url/help/flags@$bitName\" class=\"$class riskHelp$helpIndex\">$bitName</a>";
+      $why[] = w\popHelp($bitName, $riskHelp[$bitName], "$base_url/help/flags@$bitName", $class);
+//      $why[] = "<a href=\"$base_url/help/flags@$bitName\" class=\"$class riskHelp$helpIndex\">$bitName</a>";
     }
   }
   return @$why ? join(', ', $why) : '';
@@ -1949,7 +1959,7 @@ function suggest($a, $index, $subs, $page = 'Preferences') {
  * @return the full url
  */
 function promoLink($page = '') {
-  if (r\signedIn()) $page .= '?region=' . (isSTAGE ? STAGE_SUBDOMAIN : R_SERVER_ID) . '&tm=' . time();
+  if (r\signedIn()) $page .= '?region=' . (isSTAGE ? STAGE_SUBDOMAIN : R_SERVER_ID) . '&tm=' . r\rTime();
   return "http://rcredits.org/$page";
 }
 
@@ -2010,3 +2020,4 @@ function isReward($type) {return in_array($type, u\ray(TX_REWARDS));}
 function usdin($for) {return u\abbreviates(S_USD_IN, is_array($for) ? $for[1] : $for, TRUE);}
 function regionField($fld) {return @r\acct(serverUid())->$fld;}
 function signedIn() {return r\acct() ? TRUE : FALSE;}
+function iCodeDesc($iCode) {$iCodeDescs = u\ray(IBYS); return $iCodeDescs[min($iCode, IBY_ICARD) - IBY0];}

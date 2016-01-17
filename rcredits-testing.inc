@@ -752,14 +752,14 @@ function weShowWithSubs($page, $subs) {
 }
 
 function makePicture($photo, $a) {
-//  $filename = DRUPAL_ROOT . $a->auxFilename('picture2', TRUE);
+//  $filename = DRUPAL_ROOT . $a->photoFilename('picture2', TRUE);
 //  return (bool) file_put_contents($filename, $picture);
   return $a->update(compact('photo'));
 }
 
 // UNUSED
 function getPicture($picture) {
-  return file_get_contents(DRUPAL_ROOT . R_PICTURE_DIR . "/small/$picture.jpg");
+  return file_get_contents(DRUPAL_ROOT . R_PICTURE_DIR . "small/$picture.jpg");
 }
 
 function lastMinuteSubs($string) {
@@ -1335,4 +1335,4 @@ function log($msg) {if (u\test()) u\log($msg, 'debug');}
 function that($thing) {global $thatThing; return $thatThing[$thing];}
 function dosayFilename($type) {return __DIR__ . "/../dosay-$type.txt";}
 function goodsBit($s) {return $s == 'goods' ? "1" : ($s == 'cash' ? "0" : "ERROR");} // no 3rd why for rSmart
-function approxTime($a, $b) {return t\eq($a, $b, 40);}
+function approxTime($a, $b) {return t\eq($a, $b, 10000);}

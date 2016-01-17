@@ -438,12 +438,13 @@ function getBanks() {
  */
 function shrinkPhoto($a, &$err = '') {
   if ($a->co) return !$err = 'tried to shrink a company photo';
-//  if ($a->hasAux('picture2')) return !$err = 'POS photo already exists';
+//  if ($a->hasPhoto('picture2')) return !$err = 'POS photo already exists';
   if (@$a->photo) $err = 'POS photo already exists'; // not really an error
-  $photoPath = DRUPAL_ROOT . $a->auxFilename('picture', TRUE);
-//  $smallPath = DRUPAL_ROOT . $a->auxFilename('picture2', TRUE);
+  $photoPath = DRUPAL_ROOT . $a->photoFilename(TRUE);
+//  $smallPath = DRUPAL_ROOT . $a->photoFilename('picture2', TRUE);
 //  if (!$success = copy($photoPath, $smallPath)) return !$err = 'copy failed';
-  if (!$photo = u\fixPicture($photoPath, R_PERSONAL_ASPECT, R_PIXEL_FACTOR / 2, FALSE, $err)) return FALSE;
+  $photo = u\alterImg(file_get_contents($photoPath, R_PHOTO_WIDTH, R_PHOTO_HEIGHT));
+  //if (!$photo = u\fixPicture($photoPath, R_PERSONAL_ASPECT, R_PIXEL_FACTOR / 2, FALSE, $err)) return FALSE;
   return $a->update(compact('photo'));
 }
 
@@ -530,6 +531,7 @@ function fixRelations() {
  */
 function flagsDesc($n, $list) {
   $bits = u\ray($list);
+  if (!is_numeric(key($bits))) $bits = array_keys($bits);
   for ($i = 0; $i < 32; $i++) if (!@$bits[$i]) $bits[$i] = $i; // show bit number if no name
   $res = '';
   for ($i=0; $i <= B_MAX; $i++) if ($n & u\bit($i)) {$res .= $bits[$i] . ' ';}
@@ -763,53 +765,6 @@ function secureVery($a = '') {
   }
 }
 
-function makeSecure() {
-  if (!r\acct()->admin or !$_COOKIE['pw2']) return; // don't bother if not admin
-  $q = db\q('SELECT uid, address, postalAddr, faxetc FROM users WHERE uid<>0 AND init IS NOT NULL');
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    $a = r\acct($uid);
-/**/  debug($a->fullName);
-
-    $secure = $a->secure; 
-    unset($secure['email']); 
-    $secure['address'] = $address;
-    $secure['postalAddr'] = $postalAddr;
-    $secure['faxetc'] = $faxetc;
-    $a->update('secure', $secure);
-
-    $a->update('photo', $a->photo);
-    if (strpos($a->mail, '@')) $a->update('email', strtolower($a->mail));
-    if ($a->phone and strpos($a->phone, '+') !== FALSE) $a->update('phone', $a->phone);
-    secureVery($a);
-    $a->update('init', NULL);
-  }
-
-  $q = db\q('SELECT txid, payer FROM r_usd WHERE bankAccount IS NULL');
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    $a = r\acct($payer);
-    db\update('r_usd', u\ray('txid bankAccount', $txid, $a->secure['bankAccount']), 'txid');
-  }
-  $b = db\lookup('bankAccount', 'r_usd');
-/**/  debug(u\decrypt($b, 0, $_COOKIE['pw2']));
-
-  $q = db\q('SELECT listid, email, phone FROM r_request');
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    $email = $email ? u\cryptN($email) : '';
-    $phone = $phone ? u\cryptN($phone) : '';
-    db\update('r_request', compact('listid', 'email', 'phone'), 'listid');
-  }
-  
-  $q = db\q('SELECT id, email FROM r_invites');
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    $email = u\cryptN($email);
-    db\update('r_invites', compact('id', 'email'), 'id');
-  }
-}
-
 /**
  * Show sluggish accounts
  */
@@ -821,7 +776,7 @@ function showSlugs() {
     $a = a($uid);
     if ($a->ok) {
       $ray = [$a->fullName, f('u.fmtPhone', $a->phone), $a->email, @$lastUse ? f('u.fmtDate', $lastUse) : t('never'), '(' . f('u.fmtDate', @$activated) . ')'];
-    echo join("\t", $ray) . "\n";
+/** /    echo join("\t", $ray) . "\n";
     }
   }
 }

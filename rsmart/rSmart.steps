@@ -40,7 +40,7 @@ function extraSetup($feature) {
  */
 function extraSubs(&$subs) {
 //  $subs['%replace_this'] = 'with this';
-  $subs['%now'] = time();
+  $subs['%now'] = REQUEST_TIME;
   $subs['%now-1min'] = $subs['%now'] - 1 * 60;
   $subs['%now-1hour'] = $subs['%now'] - 1 * 60 * 60;
 }
@@ -148,7 +148,7 @@ function weRespondWith($args) {
     if ($key == 'descriptions') $value = u\ray($value);
     if ($key == 'can') {
       $flags = 0;
-      if ($value) foreach (u\ray($value) as $one) $flags |= (u\bit(u\consta('co', $one)) >> CO_CANS);
+      if ($value) foreach (u\ray($value) as $one) $flags |= (u\bit(u\consta('co', $one)) >> APP_CANS);
       $value = $flags;
     }
     if ($key == 'device' and $value == '?' and $rposResult[$key]) continue; // any value will do for new dev
@@ -207,8 +207,9 @@ function weRespondWithPicture($picture) {
 function memberHasNoPicture($id) {
   global $testOnly; if ($testOnly) return FALSE;
   if (!$a = r\acct(t\uid($id))) return FALSE;
-  if ($a->hasAux('picture')) unlink(DRUPAL_ROOT . $a->auxFilename('picture', TRUE));
-  return !$a->hasAux('picture');
+  $a->update('photo', '');
+  if ($a->hasPhoto) unlink(DRUPAL_ROOT . $a->photoFilename(TRUE));
+  return !$a->hasPhoto;
 }
 
 /**

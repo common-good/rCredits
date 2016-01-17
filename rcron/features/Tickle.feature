@@ -50,7 +50,7 @@ Scenario: A nonmember has not accepted the invitation
   When cron runs "tickle"
   Then we email "nonmember" to member "zot@example.com" with subs:
   | inviterName | code   | site        | nudge        | noFrame |*
-  | Abe One     | codeA1 | %R_SITE_URL | reminder one | 1       |
+  | Abe One     | codeA1 | %BASE_URL | reminder one | 1       |
   And we notice "invite languishing" to member ".ZZA" with subs:
   | email           | elapsed |*
   | zot@example.com |       8 |
@@ -81,9 +81,10 @@ Scenario: A member gets a credit line
   Then members have:
   | id   | floor |*
   | .ZZE |   -50 |
-  And we notice "new floor|no floor effect" to member ".ZZE" with subs:
-  | limit |*
-  |  $50 |
+#  And we notice "new floor|no floor effect" to member ".ZZE" with subs:
+#  | limit |*
+#  |  $50 |
+# (feature temporarily disabled)
 
 Scenario: A member gets a bigger credit line after several months
   Given balances:
@@ -97,9 +98,10 @@ Scenario: A member gets a bigger credit line after several months
   Then members have:
   | id   | floor |*
   | .ZZE |  -300 |
-  And we notice "new floor|no floor effect" to member ".ZZE" with subs:
-  | limit |*
-  | $300 |
+#  And we notice "new floor|no floor effect" to member ".ZZE" with subs:
+#  | limit |*
+#  | $300 |
+# (feature temporarily disabled)
 
 Scenario: A member gets no new credit line because it's the wrong day
   Given balances:

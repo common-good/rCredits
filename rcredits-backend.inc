@@ -378,7 +378,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
     if ($channel == TX_WEB) {
       if ($msg == 'short to' and r\signedIn()) $msg .= '|increase min';
       if ($goods != R_FOR_GOODS) $msg .= '|short cash help|maybe not cash';
-      if (!$loserA->can(B_DEBT) and $loserA->floor < 0) $msg .= '|try debt';
+// disabled for now      if (!$loserA->can(B_DEBT) and $loserA->floor < 0) $msg .= '|try debt';
     }
     r\suggestMin($loserA);
     return r\txRet($msg, compact(u\ray('otherName short how')));
@@ -581,7 +581,7 @@ function creditInfo($args = []) {
   if (!$a = r\acct(@$uid)) return NULL; else $uid = $a->id;
   $jid = @$noj ? 0 : ($a->jid ?: 0);
 
-  u\setDft($asof, r\rTime() + DAY_SECS);
+  u\setDft($asof, $asof0 = r\rTime() + DAY_SECS);
   $subs = compact(u\ray('uid jid asof'));
   $isPayer = 't.payer IN (:uid, :jid)';
   $isPayee = 't.payee IN (:uid, :jid)'; // account can be both payer and payee, if joint account
@@ -607,12 +607,25 @@ EOF;
   extract($sums);
 
   $bank = -$bank; // make it "from bank" instead of "to bank"
-  $balance = $r = ($in - $out) + $bank;
+  $r = ($in - $out) + $bank;
   $in -= $xin; $out -= $xin;
   $outProper = $out;
   $inProper = $in - $rewards;
+  
+  // figure savings
+  if ($asof == $asof0) {
+    $savings = $a->j_savings;
+  } else {
+    $savings = $rewards; // tentative savings before additions ( = oldSavings - oldSavingsAdd)
+    foreach ($jid ? [$a, r\acct($jid)] : [$a] as $ai) if ($chs = $ai->changes) {
+      $addOLD = $ai->savingsAdd; // start with present
+      foreach ($chs as $dt => $info) if ($dt > $asof) $addOLD = @$info['savingsAdd']; else break;
+      $savings += $addOLD;
+    }
+  }
+  $balance = $r - $savings;
 
-  $resultKeys = 'in out rewards refunds fees xfees xin inProper outProper balance r bank';
+  $resultKeys = 'in out rewards refunds fees xfees xin inProper outProper balance r savings bank';
   $result = compact(u\ray($resultKeys));
   
   $fancy = [];

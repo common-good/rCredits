@@ -120,7 +120,7 @@ class rwebSignin extends DrupalWebTestCase {
     . '\\| abeone |"');
     Then_('we email "password-reset" to member "a@example.com" with subs: "ASSOC'
     . '\\| fullName | site        | name   | code     |'
-    . '\\| Abe One  | %R_SITE_URL | abeone | wHatEveR |"');
+    . '\\| Abe One  | %BASE_URL | abeone | wHatEveR |"');
   }
 
   // Scenario: A member asks for a new password for account ID
@@ -132,7 +132,7 @@ class rwebSignin extends DrupalWebTestCase {
     . '\\| new.zza |"');
     Then_('we email "password-reset" to member "a@example.com" with subs: "ASSOC'
     . '\\| fullName | site        | name   | code     |'
-    . '\\| Abe One  | %R_SITE_URL | abeone | wHatEveR |"');
+    . '\\| Abe One  | %BASE_URL | abeone | wHatEveR |"');
   }
 
   // Scenario: A member asks for a new password for email
@@ -144,7 +144,7 @@ class rwebSignin extends DrupalWebTestCase {
     . '\\| a@example.com |"');
     Then_('we email "password-reset" to member "a@example.com" with subs: "ASSOC'
     . '\\| fullName | site        | name   | code     |'
-    . '\\| Abe One  | %R_SITE_URL | abeone | wHatEveR |"');
+    . '\\| Abe One  | %BASE_URL | abeone | wHatEveR |"');
   }
 
   // Scenario: A member asks for a new password for an unknown account

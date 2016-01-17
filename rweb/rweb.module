@@ -112,7 +112,7 @@ function rweb_menu($submenu = '') {
     'settings/preferences' => ['sub', t('Preferences'), 'Preferences', 'manage', '', t(''), 'cog'],
     'settings/security' => ['sub', t('Security'), 'Security 2', 'manage person', '', t(''), 'link'],
     'settings/bank' => ['sub', t('Bank Info'), 'Bank 2', 'manage', '', t(''), 'piggy-bank'],
-    'settings/company' => ['sub', t('Company Info'), 'Company', 'manage co', '', t(''), 'calendar'],
+    'settings/company' => ['sub', t('Company Info'), 'Company 2', 'manage co', '', t(''), 'calendar'],
     'settings/relations' => ['sub', t('Relations'), 'Relations', 'manage', '', t(''), 'magnet'],
 // DISABLE FOR NOW    'settings/boxes' => ['sub', t('Devices'), 'Boxes', 'manage', '', t(''), 'phone'],
     'settings/proxies' => ['sub', t('Proxies'), 'Proxies', 'manage person', '', t(''), 'thumbs-up'],
@@ -123,7 +123,7 @@ function rweb_menu($submenu = '') {
     'settings/security/change-password' => ['call', 'Change Password', 'ChangePassword', 'manage'],
     'settings/security/change-pin' => ['call', 'Change PIN', 'ChangePin', 'manage'],
     'settings/member-photo' => ['call', 'Member Photo', '2 3', 'anyone', 'memberPhoto'],
-    'settings/security/photo' => ['call', 'Photo', 'Photo', 'manage'],
+    'settings/security/photo' => ['call', 'Photo', 'Photo 3', 'manage'],
     'settings/security/photo/upload' => ['call', 'Photo Upload', '4 5', 'anyone', 'photoUpload'],
     'settings/icon' => ['call', 'Icon', 'Icon', 'read'],
 //    'settings/verify-phone' => ['call', 'Verify Phone', 'VerifyPhone', 'manage dw'],
@@ -144,14 +144,14 @@ function rweb_menu($submenu = '') {
     
     'I' => ['call', 'Scanned QR', 'I', 'anyone'],
     
-    'signup-company' => ['call', t('Open a Company Account'), 'SignupCompany', 'manage'],
+    'signup-company' => ['call', t('Open a Company Account'), 'SignupCo', 'manage'],
     'handle-invoice' => ['call', t('Handle Invoice'), 'HandleInvoice 1', 'anyone'],
     'rerisk' => ['call', t('Recalculate Risk'), 'Rerisk 1 2 3', 'regulator'],
 
     'sadmin' => ['norm', t('Admin'), 'Admin', 'cadmin2'],
     'sadmin/panel' => ['sub', t('Panel'), 'AdminPanel 2', 'cadmin'],
     'sadmin/member-list' => ['sub', t('Member List'), 'MemberList', 'cadmin2'],
-    'sadmin/export-list' => ['sub', t('Export'), 'DownloadMemberList', 'cadmin2'],
+    'sadmin/export-list' => ['sub', t('Export'), 'DownloadMemberList 2', 'cadmin2'],
     'sadmin/deposits' => ['sub', t('Deposits'), 'Deposits', 'admin'],
     'sadmin/new-member' => ['sub', t('New Member'), 'Signup code=(admin)', 'cadmin'],
     'sadmin/make-community' => ['sub', t('Make Ctty'), 'MakeCtty', 'admin'],
@@ -173,7 +173,7 @@ function rweb_menu($submenu = '') {
     
     'help' => ['call', t('Help'), 'Help 1', 'anyone'],
     'change-account' => ['call', t('Change Who'), '1', 'anyone', 'changeWho'],
-    'status' => ['call', 'Status', 'Membership 2', 'manage'],
+    'status' => ['call', 'Status', 'Membership 1', 'manage'],
     'signup' => ['call', t('Sign Up For rCredits'), 'Signup', 'anyone'],
     'menu' => ['call', 'Main Menu', 'Menu', 'anyone'],
     'member' => ['call', 'Company Profile', 'Profile', 'anyone'],
@@ -181,9 +181,10 @@ function rweb_menu($submenu = '') {
     'do' => ['call', 'Do', '1 2', 'anyone', 'rdo'],
     'coup' => ['call', t('Disable account'), '1', 'anyone', 'coup'],
 
-    'savings' => ['call', t('Savings'), 'ChooseSavings', 'anyone'], // temporary until 12/15/2015
+    'savings' => ['call', t('Savings'), 'ChooseSavings', 'anyone'], // temporary until 12/15/2015 or so
     'accept' => ['call', 'Accept Invitation', 'Accept 1', 'anyone'], // called from promo site rCredits.org
     'pos' => ['call', 'POS', '', 'anyone', 'rCredits\\Smart\\pos'], // called from the rPOS app
+    'ajax' => ['call', 'AJAX', '1', 'anyone', 'ajax'], // called from the rPOS app
     'whosin' => ['call', t('Who\'s in?'), '1', 'anyone', 'whosin'], // called from promo site
     'secret' => ['call', 'Secret', '', 'anyone', 'secrets'],
     'error' => ['call', 'System Error', '1', 'anyone', 'error'],
@@ -205,11 +206,16 @@ function rweb_menu_alter(&$items) {
 }
 
 function rweb_form_alter(&$form, &$sta, $form_id) {
-global $base_url;
+  global $base_url;
   $req = basename($_SERVER['REQUEST_URI']);
 ///  debug(compact('req','form_id'));
-  if ($req == 'login' and !user_is_logged_in()) {header("location:$base_url/" . (isGAME ? 'community/game' : 'signin')); exit();} // nothing else works
-  if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isGAME ? "$base_url/community/game" : (isDEV ? 'http://localhost' . DEV_ROOT : R_SITE_URL) . '/signin')); exit();} // nothing else works
+  if (!\user_is_logged_in() and in_array($req, ['login', 'logout'])) {
+    $home = isGAME ? 'community/game' : 'signin';
+    header("location:$base_url/$home"); // nothing else works
+    exit();
+  }
+/*  if ($req == 'login' and !user_is_logged_in()) {header("location:$base_url/" . (isGAME ? 'community/game' : 'signin')); exit();} // nothing else works
+  if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isGAME ? "$base_url/community/game" : (isDEV ? 'http://localhost' . DEV_ROOT : BASE_URL) . '/signin')); exit();} // nothing else works */
   if ($req == 'user' and user_is_logged_in()) r\go(isGAME ? 'community/game' : 'summary'); // summary not ''
 }
 

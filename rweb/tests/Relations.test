@@ -55,11 +55,11 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\|   2 | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |'
     . '\\|   3 | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |"');
     Then_('balances: "ASSOC'
-    . '\\| id        | balance |'
-    . '\\| community |    -750 |'
-    . '\\| .ZZA      |     250 |'
-    . '\\| .ZZB      |     250 |'
-    . '\\| .ZZC      |     250 |"');
+    . '\\| id        |    r |'
+    . '\\| community | -750 |'
+    . '\\| .ZZA      |  250 |'
+    . '\\| .ZZB      |  250 |'
+    . '\\| .ZZC      |  250 |"');
     break;
 
 

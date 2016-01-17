@@ -59,7 +59,7 @@ class rwebSignupCo extends DrupalWebTestCase {
   // Scenario: A member registers a company
   public function testAMemberRegistersACompany_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" confirms form "another" with values: "ASSOC'
+    When_('member ".ZZA" confirms form "signup-company" with values: "ASSOC'
     . '\\| relation | flow |'
     . '\\|        0 |    0 |"');
     Then_('signup args: "ASSOC'
@@ -91,7 +91,7 @@ class rwebSignupCo extends DrupalWebTestCase {
   // Scenario: A member registers a company while managing another account
   public function testAMemberRegistersACompanyWhileManagingAnotherAccount_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ":ZZA" confirms form "another" with values: "ASSOC'
+    When_('member ":ZZA" confirms form "signup-company" with values: "ASSOC'
     . '\\| relation | flow |'
     . '\\|        0 |    0 |"');
     Then_('signup args: "ASSOC'
@@ -105,7 +105,7 @@ class rwebSignupCo extends DrupalWebTestCase {
     Given('member ".ZZA" has company info: "ASSOC'
     . '\\| company | companyPhone | isOwner | employeeOk |'
     . '\\| Acme Co | +14132222222 |       1 |          0 |"');
-    When_('member ".ZZA" confirms form "another" with values: "ASSOC'
+    When_('member ".ZZA" confirms form "signup-company" with values: "ASSOC'
     . '\\| relation | flow |'
     . '\\|        1 |    0 |"');
     Then_('signup args: "ASSOC'

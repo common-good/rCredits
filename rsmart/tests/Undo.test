@@ -79,7 +79,7 @@ class rsmartUndo extends DrupalWebTestCase {
     . '\\| 2   | %today-6m | signup   |    250 | ctty | .ZZB | signup       |      0 |'
     . '\\| 3   | %today-6m | signup   |    250 | ctty | .ZZC | signup       |      0 |"');
     Then_('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |    -750 |'
     . '\\| .ZZA |     250 |'
     . '\\| .ZZB |     250 |'
@@ -207,7 +207,7 @@ class rsmartUndo extends DrupalWebTestCase {
     . '\\| created | otherName  | amount | payerPurpose | otherRewardAmount |'
     . '\\| %today  | Corner Pub | $80    | reverses #2  | $-4               |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |    -750 |'
     . '\\| .ZZA |     250 |'
     . '\\| .ZZB |     550 |'
@@ -234,7 +234,7 @@ class rsmartUndo extends DrupalWebTestCase {
     . '\\| created | otherName  | amount | payerPurpose | otherRewardAmount |'
     . '\\| %today  | Corner Pub | $80    | reverses #2  | $4                     |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |    -750 |'
     . '\\| .ZZA |     -50 |'
     . '\\| .ZZB |     550 |'
@@ -298,7 +298,7 @@ class rsmartUndo extends DrupalWebTestCase {
     . '\\| created | fullName | otherName  | amount | payerPurpose |'
     . '\\| %today  | Bea Two  | Corner Pub | $100   | reverses #2  |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |       r |'
     . '\\| ctty |    -850 |'
     . '\\| .ZZA |     249 |'
     . '\\| .ZZB |     251 |'

@@ -216,13 +216,14 @@ class x {
    * @return <success>
    */
   private function cacheTotals($uid, $xrays) {
+    global $channel;
     extract(u\just('amount type xid payer payee created', $xrays[0]), EXTR_PREFIX_ALL, 't');
   //  if ($t_state < TX_DONE) return; // don't change totals if transaction doesn't count (yet)
     if ($uid <= 1) return TRUE; // cache only usd for community and region
 
     $a = r\acct($uid);
     $cache = $a->account('r rewards committed lastTx access');
-    $cache->access = r\rTime(); // track last transaction or login (just the major access)
+    if ($channel != TX_CRON) $cache->access = r\rTime(); // track last transaction or login (just major access)
 
     $toMe = $uid == $t_payee ? -1 : 1;
     if ($t_payer > 0) $cache->lastTx = array($t_xid, $toMe * ($t_payee - $t_payer), round($toMe * $t_amount, 2), $t_created);

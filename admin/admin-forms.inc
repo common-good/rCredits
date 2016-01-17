@@ -97,9 +97,9 @@ function formAdminPanel_submit($form, &$sta) {
     if ($a->co and $a->proSe) return say(t('A company cannot have an rCard (only its agents have rCards).'));
     if (@$make) {
 //      seeSecure($a);
-      $oldFile = DRUPAL_ROOT . $a->auxFilename('picture', TRUE);
+      $oldFile = DRUPAL_ROOT . $a->photoFilename(TRUE);
       r\makeCardCode($a);
-      $newFile = DRUPAL_ROOT . $a->auxFilename('picture', TRUE);
+      $newFile = DRUPAL_ROOT . $a->photoFilename(TRUE);
       rename($oldFile, $newFile);
 //      seeSecure($a);
     }
@@ -133,7 +133,7 @@ function formAdminPanel_submit($form, &$sta) {
   
   // handle all other buttons with showQuery()
   if ($op == 'users') {
-    $fields = 'uid, flags, r, rewards, minimum AS min, committed AS comit, share, floor, city, postalCode AS zip';
+    $fields = 'uid, flags, r, rewards, savingsAdd AS saveAdd, minimum AS min, committed AS comit, share, floor, city, postalCode AS zip';
     return say(a\showQuery('users', 1, 'name', $fields));
   }
   
@@ -207,9 +207,8 @@ function formSeeChanges($form, &$sta, $qid = '') {
   $rec = []; // track historical field values
 
   if ($a->changes) {
-    foreach ($a->changes as $one) {
-      list ($date, $info) = $one;
-      $date = u\fmtDate($date);
+    foreach ($a->changes as $dt => $info) {
+      $date = u\fmtDate($dt);
       foreach ($info as $k => $v) {
         $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, $a->$k);
         $rec[$k] = $oldValue = a\formatField($k, $v);
@@ -376,7 +375,18 @@ EOF;
 /**
  * Download the member list for the current community
  */
-function formDownloadMemberList($form, &$sta) {
+
+function formDownloadMemberList($form, &$sta, $args = '') {
+  global $base_url;
+  extract($params = u\just(EXPORT_PARAMS, $args));
+  if (@$do == 'export') return w\export($params);
+
+  if (@$do == 'done') {
+    $do = 'export';
+    $params = http_build_query(compact(u\ray(EXPORT_PARAMS)));
+    $download = item("<iframe class=\"hidden\" src=\"$base_url/sadmin/export-list/$params\"></iframe>");
+  }
+  
   $mya = r\acct();
   $ctty = r\acct($mya->community);
 
@@ -385,44 +395,16 @@ function formDownloadMemberList($form, &$sta) {
   if ($ctty->name == 'NEW.') $allCttys2 = boxFld('allCttys', t('All communities:')); // temporary for CGF oversight
   $onlyActive2 = boxFld('onlyActive', t('Active only:'), tt('Export only active accounts'));
   $onlyPeople2 = boxFld('onlyPeople', t('People only:'), tt('Export only individual accounts (especially when emailing)'), TRUE);
+  $anonymous = boxFld('anonymous', t('Anonymous:'), tt('Export only non-identifying information (for data-mapping and analysis)'), FALSE);
   //$onlyCos = boxFld(t('Companies only:'), tt('Export only company accounts'), FALSE);
   $submit = submit(t('Download'));
-  return labeled(compact(u\ray('title subtext allCttys2 onlyActive2 onlyPeople2 submit')));
+  return labeled(compact(u\ray('title subtext allCttys2 onlyActive2 onlyPeople2 anonymous submit download')));
 }
 
 function formDownloadMemberList_submit($form, &$sta) {
-  $mya = r\acct();
-  $ctty = r\acct($mya->community);
-  extract(u\just('allCttys onlyActive onlyPeople', $sta['input']));
-
-  $filename = t('rCredits-')
-  . str_replace('.', '', $ctty->name)
-  . (@$onlyActive ? t('-active') : '')
-  . (@$onlyPeople ? t('-members') : t('-accounts'))
-  . '.csv';
-  u\csvStart($filename);
-  u\csv($fields = u\ray($fields = 'id first_name last_name phone email address city state zip member ecode'));
-
-  $where = @$allCttys ? '1' : 'community=:cttyId';
-  if (@$onlyActive) $where .= ' AND :IS_OK';
-  if (@$onlyPeople) $where .= ' AND NOT :IS_CO';
-  $sql = "SELECT uid AS id, fullName FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND $where ORDER BY :IS_OK, -signed, -created";
-  $q = db\q($sql, u\ray('cttyId', $ctty->id));
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    list ($first_name, $last_name) = u\parseName($fullName);
-    $a = r\acct($id);
-    $email = $a->email;
-    $phone = $a->phone;
-    list ($address, $city, $state, $zip) = u\parseAddr($a->postalAddr);
-    if (is_numeric($zip)) $zip .= '-'; // prevent this from getting interpreted as a number
-    $phone = u\fmtPhone($phone);
-    $member = $a->ok ? 'yes' : '';
-    $id = $a->mainQid;
-    $ecode = "$a->emailCode";
-    u\csv(array_values(compact($fields)));
-  }
-  exit();
+  extract(u\just(EXPORT_PARAMS, $sta['input']));
+  $do = 'done';
+  return r\go('sadmin/export-list/' . http_build_query(compact(u\ray(EXPORT_PARAMS))), t('Download initiated.'));
 }
 
 /**
@@ -499,7 +481,7 @@ function depositDetails($args) {
 
   list ($activity, $where) = $in ? [t('DEPOSIT'), 'amount<0'] : [t('CASHOUT'), 'amount>0'];
   $today = $date == 1 ? t('(Historical)') : u\fmtDate($date ?: r\rTime());
-  $pdf->setupFooter('', "rCredits $activity $today", ['A'.ESCROW_ROUTING.'A '.ESCROW_ACCOUNT.'C', 'GnuMICR 12'], 'Page @PAGE of @PAGES');
+  $pdf->setupFooter('', "rCredits $activity $today", ['A'.ESCROW_ROUTING.'A '.ESCROW_ACCOUNT.'C', 'GnuMICR;12'], 'Page @PAGE of @PAGES');
   $pdf->AddPage();
 
   $phone = u\fmtPhone(CGF_PHONE);
@@ -641,11 +623,12 @@ function memberID($id) {
   $qrUrl = "HTTP://$region.$server/$tail$urlMark" . $a->$cardField; // NOT r\cardCode($qid);
 //  $qrServer = strtoupper('http://' . R_SERVER_ID . '.rC2.me/I/');
 //  $qrUrl = $qrServer . str_replace(R_AGENT_MARK, R_AGENT_URL_MARK, $qid . $mark) . $a->secure[$cardField];
-  $photo = str_replace(R_DFT_PICTURE, R_NOT_VALID, DRUPAL_ROOT . $a->auxFilename('picture'));
+  $photo = $a->photo ? "@$a->photo" : str_replace(R_DFT_PICTURE, R_NOT_VALID, DRUPAL_ROOT . $a->photoFilename());
 
-  $info = @getimagesize($photo);
-  list ($photoW, $photoH) = is_array($info) ? $info : array(0, 0);
-  list ($photoW, $photoH) = $photoW > $photoH ? array(PHOTO_MAX, '') : array('', PHOTO_MAX);
+//  $info = @getimagesize($photo);
+//  list ($photoW, $photoH) = is_array($info) ? $info : array(0, 0);
+//  list ($photoW, $photoH) = $photoW > $photoH ? array(PHOTO_MAX, '') : array('', PHOTO_MAX);
+  list ($photoW, $photoH) = ['', PHOTO_MAX];
   $pdf = new r\Statement($a); // this function should be rewritten to use r\check class instead maybe?
   $pdf->setPrintHeader(FALSE);
   $pdf->setPrintFooter(FALSE);

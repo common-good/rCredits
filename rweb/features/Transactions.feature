@@ -52,22 +52,21 @@ Setup:
 Scenario: A member looks at transactions for the past year
   When member ".ZZA" visits page "history/transactions/period=365"
   Then we show "Transaction History" with:
-  |_Start Date |_End Date |
-  | %dmy-12m   | %dmy     |
+  | Start    |   | 1,000.00 |   |   0.00 | %dmy-12m |
+  | Received | + | 1,110.00 |   |        |          |
+  | Out      | - |   460.00 |   |        |          |
+  | Rewards  | + |          |   | 268.00 |          |
+  | End      |   | 1,650.00 |   | 268.00 | %dmy     |
   And with:
-  | Start     | From Bank | From You | To You   | Rewards | End       |
-  | $1,000.00 |      0.00 |   460.00 | 1,110.00 |  268.00 | $1,918.00 |
-  | PENDING   |    -44.00 |     0.00 |     0.00 |    0.00 |  - $44.00 |
-  And with:
-  |_tid | Date   | Name       | From you | To you | Status  |_do   | Purpose    | Reward/Fee |
+  |_tid | Date   | Name       | From you | To you   | Status  |_do   | Purpose    | Reward/Fee |
 # | b4  | %dm-5d |            |  22.00   | --     | pending |      | to bank    | --     |
 # | b3  | %dm-5d |            |  33.00   | --     | pending |      | to bank    | --     |
-  | 6   | %dm-6d | Bea Two    | 100.00   | --     | %chk    | X    | cash V     | --     |
-  | 5   | %dm-1w | Corner Pub | 120.00   | --     | %chk    | X    | this Q     | 6.00   |
-  | 4   | %dm-3m | Bea Two    | 240.00   | --     | %chk    | X    | what G     | 12.00  |
-  | 3   | %dm-4m | Corner Pub | --       | 100.00 | %chk    | X    | usd F      | --     |
-  | 2   | %dm-5m | Bea Two    | --       | 10.00  | %chk    | X    | cash E     | --     |
-  | 1   | %dm-7m | %ctty      | --       | --     | %chk    |      | signup     | 250.00 |
+  | 6   | %dm-6d | Bea Two    | 100.00   |   --     | %chk    | X    | cash V     | --     |
+  | 5   | %dm-1w | Corner Pub | 120.00   |   --     | %chk    | X    | this Q     | 6.00   |
+  | 4   | %dm-3m | Bea Two    | 240.00   |   --     | %chk    | X    | what G     | 12.00  |
+  | 3   | %dm-4m | Corner Pub | --       | 1,100.00 | %chk    | X    | usd F      | --     |
+  | 2   | %dm-5m | Bea Two    | --       |    10.00 | %chk    | X    | cash E     | --     |
+  | 1   | %dm-7m | %ctty      | --       |   --     | %chk    |      | signup     | 250.00 |
   And without:
   | rebate  |
   | bonus   |
@@ -75,12 +74,12 @@ Scenario: A member looks at transactions for the past year
 Scenario: A member looks at transactions for the past few days
   When member ".ZZA" visits page "history/transactions/period=15"
   Then we show "Transaction History" with:
-  |_Start Date |_End Date |
-  | %dmy-15d   | %dmy     |
-  And with:
-  | Start     | From Bank | From You | To You | Rewards | End       |
-  | $2,132.00 |      0.00 |   220.00 |   0.00 |    6.00 | $1,918.00 |
-  | PENDING   |    -44.00 |     0.00 |   0.00 |    0.00 |  - $44.00 |
+  | Start     |   | 1,870.00 | + | 262.00 | %dmy-15d |
+  | From Bank | + |     0.00 |   |        | -44.00 Pending |
+  | Received  | + |     0.00 | + |        |          |
+  | Out       | - |   220.00 |   |        |          |
+  | Rewards   | + |          |   |   6.00 |          |
+  | End       |   | 1,650.00 | + | 268.00 | %dmy     |
   And with:
   |_tid | Date   | Name       | From you | To you | Status  | _    | Purpose    | Reward/Fee |
   | 6   | %dm-6d | Bea Two    | 100.00   | --     | %chk    | X    | cash V     | --     |
@@ -107,10 +106,10 @@ Scenario: Transactions with other states show up properly
   | .AACH | %today-5d | transfer | deleted  |    200 | .ZZA | .ZZC | never    | 1      |
   | .AACK | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |
   Then balances:
-  | id   | balance |*
-  | .ZZA |    1942 |
-  | .ZZB |    2554 |
-  | .ZZC |    2320 |
+  | id   |    r |*
+  | .ZZA | 1942 |
+  | .ZZB | 2554 |
+  | .ZZC | 2320 |
   When member ".ZZA" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
   |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |

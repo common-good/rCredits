@@ -108,7 +108,7 @@ class rwebSignup extends DrupalWebTestCase {
     And__('we say "status": "your account is ready"');
     And__('we email "welcome" to member "a@" with subs: "ASSOC'
     . '\\| fullName | name   | quid    | site        | code  |'
-    . '\\| Abe One  | abeone | NEW.AAC | %R_SITE_URL | %name |"');
+    . '\\| Abe One  | abeone | NEW.AAC | %BASE_URL | %name |"');
     And__('member ".AAC" one-time password is set');
   }
 
@@ -128,7 +128,7 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| Zeta Zot    |"');
     And__('we email "welcome" to member "a@" with subs: "ASSOC'
     . '\\| fullName | name   | quid    | site        | code  |'
-    . '\\| Abe One  | abeone | NEW.AAC | %R_SITE_URL | %name |"');
+    . '\\| Abe One  | abeone | NEW.AAC | %BASE_URL | %name |"');
     And__('member ".AAC" one-time password is set');
     And__('we message "confirm invite" to member ".ZZZ" with subs: "ASSOC'
     . '\\| fullName | a1 |'
@@ -152,7 +152,7 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| Zeta Zot    |"');
     And__('we email "welcome" to member "a@" with subs: "ASSOC'
     . '\\| fullName | name   | quid    | site        | code  |'
-    . '\\| Abe One  | abeone | NEW.AAC | %R_SITE_URL | %name |"');
+    . '\\| Abe One  | abeone | NEW.AAC | %BASE_URL | %name |"');
     And__('member ".AAC" one-time password is set');
     And__('we message "confirm invite" to member ".ZZZ" with subs: "ASSOC'
     . '\\| fullName | a1 |'
@@ -185,7 +185,7 @@ class rwebSignup extends DrupalWebTestCase {
     And__('we say "status": "your account is ready"');
     And__('we email "welcome" to member "a@" with subs: "ASSOC'
     . '\\| fullName | name   | quid    | site        | code  |'
-    . '\\| Abe One  | abeone | NYA.AAA | %R_SITE_URL | %name |"');
+    . '\\| Abe One  | abeone | NYA.AAA | %BASE_URL | %name |"');
     And__('member "NYA.AAA" one-time password is set');
   }
 
@@ -328,7 +328,7 @@ class rwebSignup extends DrupalWebTestCase {
     And__('we say "status": "your account is ready"');
     And__('we email "welcome" to member "a@" with subs: "ASSOC'
     . '\\| fullName | name   | quid    | site        | code  |'
-    . '\\| Abe One  | abeone | NEN.AAA | %R_SITE_URL | %name |"');
+    . '\\| Abe One  | abeone | NEN.AAA | %BASE_URL | %name |"');
   }
 
 }

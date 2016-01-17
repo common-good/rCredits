@@ -62,7 +62,7 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\|   2 | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |'
     . '\\|   3 | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |"');
     Then_('balances: "ASSOC'
-    . '\\| id   | balance |'
+    . '\\| id   |    r |'
     . '\\| ctty | -750 |'
     . '\\| .ZZA |  250 |'
     . '\\| .ZZB |  250 |'
@@ -100,11 +100,11 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| nvid | created | status      | amount | from | to  | for   |'
     . '\\|    1 | %today  | %TX_PENDING |    100 | .ZZB  | .ZZA | labor |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
-    . '\\| ctty |    -750 |'
-    . '\\| .ZZA |     250 |'
-    . '\\| .ZZB |     250 |'
-    . '\\| .ZZC |     250 |"');
+    . '\\| id   |    r |'
+    . '\\| ctty | -750 |'
+    . '\\| .ZZA |  250 |'
+    . '\\| .ZZB |  250 |'
+    . '\\| .ZZC |  250 |"');
   }
 
   // Scenario: A member asks to pay another member for goods
@@ -147,11 +147,11 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\|   5 | %today  | rebate   |      5 | ctty  | .ZZA | rebate on #2 | 0      |'
     . '\\|   6 | %today  | bonus    |     10 | ctty  | .ZZB | bonus on #2  | 0      |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
-    . '\\| ctty |    -765 |'
-    . '\\| .ZZA |     155 |'
-    . '\\| .ZZB |     360 |'
-    . '\\| .ZZC |     250 |"');
+    . '\\| id   |    r |'
+    . '\\| ctty | -765 |'
+    . '\\| .ZZA |  155 |'
+    . '\\| .ZZB |  360 |'
+    . '\\| .ZZC |  250 |"');
   }
 
   // Scenario: A member confirms request to pay another member a lot
@@ -189,11 +189,11 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\|   5 | %today  | rebate   |      5 | ctty  | .ZZA | rebate on #2 | 0      |'
     . '\\|   6 | %today  | bonus    |     10 | ctty  | .ZZC | bonus on #2  | 0      |"');
     And__('balances: "ASSOC'
-    . '\\| id   | balance |'
-    . '\\| ctty |    -765 |'
-    . '\\| .ZZA |     155 |'
-    . '\\| .ZZB |     250 |'
-    . '\\| .ZZC |     360 |"');
+    . '\\| id   |    r |'
+    . '\\| ctty | -765 |'
+    . '\\| .ZZA |  155 |'
+    . '\\| .ZZB |  250 |'
+    . '\\| .ZZC |  360 |"');
   }
 
   // Scenario: A member confirms request to pay the same member the same amount

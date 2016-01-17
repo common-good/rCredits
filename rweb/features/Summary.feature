@@ -55,9 +55,10 @@ Scenario: A member clicks the summary tab
   | Name          | Abe One (abeone) |
   | _Address      | 1 A St., Atown, AK 01000 |
   | ID            | .ZZA (personal account) |
-  | Balance       | $266 |
-  | Rewards       | $256 |
-  | Credit limit  | $100 |
+  | Balance       | $10 |
+  | Savings       | $256 |
+  | _rewards      | $256 |
+#  | Credit limit  | $100 |
   | Committed     | $0.60 |
   | Your return   | 20.6% |
   | _ever         | 544.1% |

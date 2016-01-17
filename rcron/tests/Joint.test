@@ -56,10 +56,10 @@ class rcronJoint extends DrupalWebTestCase {
     . '\\| 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |'
     . '\\| 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  |"');
     Then_('balances: "ASSOC'
-    . '\\| id   | balance |'
-    . '\\| ctty |    -500 |'
-    . '\\| .ZZA |     250 |'
-    . '\\| .ZZB |     250 |"');
+    . '\\| id   |    r |'
+    . '\\| ctty | -500 |'
+    . '\\| .ZZA |  250 |'
+    . '\\| .ZZB |  250 |"');
     break;
 
 
@@ -70,9 +70,9 @@ class rcronJoint extends DrupalWebTestCase {
   public function testAJointAccountNeedsRefilling_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "ASSOC'
-    . '\\| id   | r      | rewards |'
-    . '\\| .ZZA |  50.00 |     250 |'
-    . '\\| .ZZB |  49.99 |     250 |"');
+    . '\\| id   | balance | rewards |'
+    . '\\| .ZZA |   50.00 |     250 |'
+    . '\\| .ZZB |   49.99 |     250 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
     . '\\| txid | payer | amount |'
@@ -86,9 +86,9 @@ class rcronJoint extends DrupalWebTestCase {
   public function testAJointAccountDoesNotNeedRefilling_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "ASSOC'
-    . '\\| id   | r      | rewards |'
-    . '\\| .ZZA |  50.01 |      20 |'
-    . '\\| .ZZB |  49.99 |      20 |"');
+    . '\\| id   | balance | rewards |'
+    . '\\| .ZZA |   50.01 |      20 |'
+    . '\\| .ZZB |   49.99 |      20 |"');
     When_('cron runs "bank"');
     Then_('bank transfer count is 0');
   }

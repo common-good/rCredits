@@ -72,7 +72,7 @@ class rwebMembership extends DrupalWebTestCase {
     And__('we say "status": "your account is ready"');
     And__('we email "welcome" to member "d@" with subs: "ASSOC'
     . '\\| fullName | name    | quid    | site        | code  |'
-    . '\\| Dee Four | deefour | NEW.AAC | %R_SITE_URL | %name |"');
+    . '\\| Dee Four | deefour | NEW.AAC | %BASE_URL | %name |"');
     When_('member "?" visits page "reset/id=deefour&code=%name"');
     Then_('we show "Choose a New Password"');
     When_('member "?" confirms form "reset/id=deefour&code=%name" with values: "ASSOC'

@@ -25,7 +25,7 @@ Setup:
   |   3 | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |
   |   4 | %today-6m | grant  |    200 | ctty | .ZZA | heroism | 0      |
   Then balances:
-  | id   | balance |*
+  | id   |    r |*
   | ctty | -950 |
   | .ZZA |  450 |
   | .ZZB |  250 |
@@ -53,11 +53,11 @@ Scenario: A member confirms request to charge another member
   | nvid | created | status      | amount | goods      | from | to   | for   |*
   |    1 | %today  | %TX_PENDING |    100 | %R_FOR_USD | .ZZB | .ZZA | paper |
   And balances:
-  | id   | balance |*
-  | ctty |    -950 |
-  | .ZZA |     450 |
-  | .ZZB |     250 |
-  | .ZZC |     250 |
+  | id   |    r |*
+  | ctty | -950 |
+  | .ZZA |  450 |
+  | .ZZB |  250 |
+  | .ZZC |  250 |
 
 Scenario: A member asks to pay another member
   When member ".ZZA" completes form "pay" with values:
@@ -81,11 +81,11 @@ Scenario: A member confirms request to pay another member
   | xid | created | type     | amount | from  | to   | goods      | purpose      | taking |*
   |   5 | %today  | transfer |    100 | .ZZA  | .ZZB | %R_FOR_USD | paper        | 0      |
   And balances:
-  | id   | balance |*
-  | ctty |    -950 |
-  | .ZZA |     350 |
-  | .ZZB |     350 |
-  | .ZZC |     250 |
+  | id   |    r |*
+  | ctty | -950 |
+  | .ZZA |  350 |
+  | .ZZB |  350 |
+  | .ZZC |  250 |
 
 Scenario: A member asks to cash out too much
   When member ".ZZA" completes form "pay" with values:

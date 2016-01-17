@@ -2,12 +2,15 @@ rCredits Software
 To Do
 
 Software Priorities:
-1. App
-2. Pump
-3. Security
-4. Dump Drupal
-5. Ease of signup, etc.
+1. App (in process)
+2. Ease of signup, etc.
+3. Dump Drupal
+4. Pump
+5. Greater Security (and security audit)
 
+NON_SOFTWARE TO_DOs
+- short tagline (see Richard Tillberg's ideas), like "rCredits, the Money Co-op"
+- ask Steve Alves to make a movie about rCredits
 - form publicity committee (as decided by the board)
 - rCredits gift card (essentially an invitation from another member, but with a printed $50 value (if you use this card for purchases at GFM, Foster's, or the Barn)
 - Use BeenVerified.com routinely
@@ -19,8 +22,7 @@ Software Priorities:
         • the person who’s successfully directly invited the most other people
         • ditto, but directly-and-indirectly combined, sort of “most descendants”
         • the longest chain of successful invites (probably not that long, so maybe more than one chain)
-- Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site)
-- create CGF retirement account with reward pct "rebate" = 0
+- Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site). Also Catholic Charities.
 
 . redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org(?)
 . video about Admin'ing
@@ -51,26 +53,35 @@ v>=0D=0A<span style=3D=27color:=23ffffff=27>=5B=5Baaec4422464e983addd1a5b=
 it/open/NF8xNTczNl9fNjQ1YmFjZTEtZWFmYi00Y2I0LTk1M2MtNzZjMTQ0MGQ3ZjAyX3dzc=
 GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
 0=22 />
-
-TASKS FOR NEXT UPDATE:
-. Credit PFC invites and Brendan's 2 RPC invites.
-. credit Fuzzy's invites.
-
-. add extra optional column to payroll upload: description (and use it if specified) -- generalize to Bulk Upload
-. give people an option that keeps their browser from filling in username and password automatically (Sherry's showed her dob and PIN)
 . set phpMyAdmin to show a logout button:
    change this line on config.inc.php to 'cookie' instead of 'config':
    $cfg['Servers'][$i]['auth_type'] = 'config';
+
+TASKS FOR NEXT UPDATE:
+. 
+
+. for multiple accounts, show current account name under photo (make sure it works on mobile)
+. flag first withdrawal request after a new bank account
+. flag unusual GPS
+. notify staff of repeated bad password (including the mistype)
+. add 'Or tell your friends "To sign up for rCredits, go to rCredits.org and sign in with this invitation code: IW5SXO3Q66B"' to the invitation page.
+. **** disallow +whatever except for gmail (and other services where we know it works)
+. add total balance to Summary page (parenthetically in primary balance line?)
+. * in smart.inc, if cardCode is wrong, see if it changed AFTER the tx date and was correct as of the tx date
+. move achmin to an advanced settings page (default to $30)
+. ** suggestion from Sherry Maher: I assume I have to go to the rCredits site to "pay" employees what they take as payroll deduction, but I would have expected QuickBooks to have hit the rCredit account with that deduction when I ran payroll.
+. move APP_CANS to two separate fields: agentCan and managerCan?
+. on ScanCard tests, Given "signed out".
+. LATER move vSecure decryption and IRS (yearly) report entirely to my computer, so decryption happens offline and pw2 never is sent to the server at all (no cookie). Use a PGP pair with the private key stored only offline.
+. LATER generalize payroll page language to Bulk Payment Upload
+. give people an option that keeps their browser from filling in username and password automatically (Sherry's showed her dob and PIN)
 . make autocomplete work again on charge/pay pages (and relations page)
 . when setting up a community: UPDATE users SET community=:ctty WHERE LEFT(uid, 7)=MID(:ctty, 2, 7) or uid=:ctty
-. ***** update the general help page!
 . *** implement Content Security Policy
 . *** editing wws tx#292 to change to cash gives system error at line 207 in rweb-txs.inc
-. ** look for Fuzzy's 11/30 rounding error on ws.
 . ***** warn admin about accounts that are in the "wrong" community (like M. Goode)
 . *** allow negative payments (requested refunds) and negative charges (refunds)
 . **** fix HTML option formatting on Company page and make the rCredits webpage link a button.
-. *** don't count cron transactions as activity (don't update "access" field)
 . when admin opens an account for an individual, send a duplicate "verify email" email to the admin. Keep track of which cAdmin it is and don't allow them to open an account outside their area.
 . revise account-opening as follows: leave email verification for last, make first page shorter (separate out the contact info), require email verification before spending over $20, require proxy choices before 10th purchase (and before voting), require donation before 10th purchase, hide most options as "advanced".
 . base our public query system on phpMyAdmin?
@@ -141,7 +152,6 @@ TASKS FOR NEXT UPDATE:
 . *** sometimes we receive two same-second identical transaction requests from the app -- not forced. ask experts why and figure out a way to prevent it.
 . *** the wrong transactions require approval on reversal (maybe)
 . *** for appData requests, target a specific device (or each device for a particular business) and record the results in r_boxes
-. *** store company card security code in relations table, not cardcode2 (for example, if an agent of multiple companies loses a Company Agent card, we don't want to have to replace all their Company Agent rCards)
 . ** any smartphone tx from over 24 hours ago should get put in as yesterday
 . *** B_BOUNCED: disable minimum, warn member, charge fee $20
 . *** txs should not show X (undo) on receipts, for non-buyers

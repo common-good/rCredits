@@ -23,7 +23,7 @@ Setup:
   |   2 | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |
   |   3 | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |
   Then balances:
-  | id   | balance |*
+  | id   |    r |*
   | ctty | -750 |
   | .ZZA |  250 |
   | .ZZB |  250 |
@@ -55,11 +55,11 @@ Scenario: A member confirms request to charge another member
   | nvid | created | status      | amount | from | to  | for   |*
   |    1 | %today  | %TX_PENDING |    100 | .ZZB  | .ZZA | labor |
   And balances:
-  | id   | balance |*
-  | ctty |    -750 |
-  | .ZZA |     250 |
-  | .ZZB |     250 |
-  | .ZZC |     250 |
+  | id   |    r |*
+  | ctty | -750 |
+  | .ZZA |  250 |
+  | .ZZB |  250 |
+  | .ZZC |  250 |
 
 Scenario: A member asks to pay another member for goods
   When member ".ZZA" completes form "pay" with values:
@@ -93,11 +93,11 @@ Scenario: A member confirms request to pay another member
   |   5 | %today  | rebate   |      5 | ctty  | .ZZA | rebate on #2 | 0      |
   |   6 | %today  | bonus    |     10 | ctty  | .ZZB | bonus on #2  | 0      |
   And balances:
-  | id   | balance |*
-  | ctty |    -765 |
-  | .ZZA |     155 |
-  | .ZZB |     360 |
-  | .ZZC |     250 |
+  | id   |    r |*
+  | ctty | -765 |
+  | .ZZA |  155 |
+  | .ZZB |  360 |
+  | .ZZC |  250 |
   
 Scenario: A member confirms request to pay another member a lot
   Given balances:
@@ -135,11 +135,11 @@ Resume
   |   5 | %today  | rebate   |      5 | ctty  | .ZZA | rebate on #2 | 0      |
   |   6 | %today  | bonus    |     10 | ctty  | .ZZC | bonus on #2  | 0      |
   And balances:
-  | id   | balance |*
-  | ctty |    -765 |
-  | .ZZA |     155 |
-  | .ZZB |     250 |
-  | .ZZC |     360 |
+  | id   |    r |*
+  | ctty | -765 |
+  | .ZZA |  155 |
+  | .ZZB |  250 |
+  | .ZZC |  360 |
 
 Scenario: A member confirms request to pay the same member the same amount
   Given member ".ZZA" confirms form "pay" with values:

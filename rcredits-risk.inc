@@ -29,7 +29,7 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
   // criminal
   setRisk('cashCo', $a); // high-risk company type according to regs
   $tenure = $a->tenure / 12 + (r\rTime() - $a->created) / YEAR_SECS; // years of residence ($a->tenure is in months)
-  setRisk('new', .5 / ($tenure * $tenure), $tenure < 1); // half a year is the standard
+  setRisk('new', $tenure ? .5 / ($tenure * $tenure) : 99999, $tenure < 1); // half a year is the standard
   setRisk('moves', $a->moves, $a->moves > 0); // moves over past decade
   setRisk('rents', $a);
   
@@ -237,7 +237,8 @@ function setBigRisk($uid, $ago, $threshold, $bitName) {
 EOF;
   if (!$res = db\q($mySql, compact(u\ray('uid since now')))->fetchAssoc()) return;
   extract($res);
-  if (max($in, $out) > $threshold * max(1, r\acct($uid)->employees)) setRisk($bitName);
+  $a = r\acct($uid);
+  if (max($in, $out) > $threshold * max(1, $a->employees)) setRisk($bitName);
   if ($ago == YEAR_SECS) list ($bigYearIn, $bigYearOut) = array($in, $out);
   if ($ago == WEEK7_SECS) {
     $firstTxDate = db\lookup('MIN(created)', 'r_txs', ':uid IN (payer, payee)', compact('uid')) ?: $now;

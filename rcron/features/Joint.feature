@@ -17,16 +17,16 @@ Setup:
   | 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |
   | 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  |
   Then balances:
-  | id   | balance |*
-  | ctty |    -500 |
-  | .ZZA |     250 |
-  | .ZZB |     250 |
+  | id   |    r |*
+  | ctty | -500 |
+  | .ZZA |  250 |
+  | .ZZB |  250 |
 
 Scenario: a joint account needs refilling
   Given balances:
-  | id   | r      | rewards |*
-  | .ZZA |  50.00 |     250 |
-  | .ZZB |  49.99 |     250 |
+  | id   | balance | rewards |*
+  | .ZZA |   50.00 |     250 |
+  | .ZZB |   49.99 |     250 |
   When cron runs "bank"
   Then usd transfers:
   | txid | payer | amount |*
@@ -37,8 +37,8 @@ Scenario: a joint account needs refilling
 
 Scenario: a joint account does not need refilling
   Given balances:
-  | id   | r      | rewards |*
-  | .ZZA |  50.01 |      20 |
-  | .ZZB |  49.99 |      20 |
+  | id   | balance | rewards |*
+  | .ZZA |   50.01 |      20 |
+  | .ZZB |   49.99 |      20 |
   When cron runs "bank"
   Then bank transfer count is 0
