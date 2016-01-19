@@ -69,6 +69,9 @@
     return this.options && this.options.length;
   };
 
+  Preference.prototype.isEnabled = function() {
+    return this.value === true;
+  };
 
   window.Preference = Preference;
 

@@ -1,4 +1,4 @@
-app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService) {
+app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService) {
 
   // Logout
 
@@ -30,6 +30,11 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
   $scope.redirectPreferences = function() {
     $state.go("app.preferences");
   };
+
+  $scope.isCashierModeEnabled = function() {
+    return CashierModeService.isEnabled();
+  };
+
   $scope.changeCompany = function() {
     var seller = UserService.currentUser();
 

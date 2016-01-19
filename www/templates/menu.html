@@ -29,7 +29,7 @@
 
         <ion-item>&nbsp;</ion-item>
 
-        <ion-item menu-close ng-click="redirectPreferences()">
+        <ion-item menu-close ng-click="redirectPreferences()" ng-show="!isCashierModeEnabled()">
           {{'preferences' | translate}}
         </ion-item>
 

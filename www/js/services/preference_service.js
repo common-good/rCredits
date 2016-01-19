@@ -1,17 +1,21 @@
 (function(app) {
   'use strict';
 
-
   app.service('PreferenceService', function(localStorageService) {
 
     var self;
     var PreferenceService = function() {
       self = this;
+      this.preferences = [];
     };
 
     PreferenceService.PREFERENCES_KEY = 'seller_preferences';
 
     PreferenceService.prototype.getAll = function() {
+      if (this.preferences.length) {
+        return this.preferences;
+      }
+
       var savedPreferences = this.loadSavedPreferences_();
       var prefsDefinition = Preference.getDefinitions();
 
@@ -48,6 +52,15 @@
       localStorageService.set(PreferenceService.PREFERENCES_KEY, _.map(preferences, window.angular.toJson));
     };
 
+    PreferenceService.prototype.getCashierModePref = function() {
+      return _.find(this.getAll(), function(p) {
+        return p.id == 'enable_cashier';
+      });
+    };
+
+    PreferenceService.prototype.isCashierModeEnabled = function() {
+      return this.getCashierModePref().isEnabled();
+    };
 
     return new PreferenceService();
   });

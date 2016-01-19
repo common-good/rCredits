@@ -1,4 +1,4 @@
-app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope) {
+app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope, CashierModeService) {
 
   var onSellerLoginEvent = $rootScope.$on('sellerLogin', function() {
     $scope.currentUser = UserService.currentUser();
@@ -20,6 +20,10 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
         company: $scope.currentUser.company
       });
   }
+
+  $scope.isCashierMode = function() {
+    return CashierModeService.isEnabled();
+  };
 
   $scope.scanCustomer = function() {
     $ionicLoading.show();

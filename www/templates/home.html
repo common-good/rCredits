@@ -4,9 +4,12 @@
 
       <h1 class="company">{{currentUser.company}}</h1>
 
-      <p class="user">
+      <p class="user" ng-if="!isCashierMode()">
         {{ 'signInAs' | translate }}<br>
         {{currentUser.name}}
+      </p>
+      <p class="user" ng-if="isCashierMode()">
+        {{ 'cashier_mode' | translate }}<br>
       </p>
 
       <div class="rc-logo" ng-include="'templates/logo.html'"></div>

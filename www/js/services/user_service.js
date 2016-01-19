@@ -1,4 +1,5 @@
-app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer, $rootScope, $timeout) {
+app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer, $rootScope, $timeout,
+                                    PreferenceService, CashierModeService, $state) {
   'use strict';
 
   var LOGIN_FAILED = '0';
@@ -203,7 +204,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       .catch(function(err) {
         console.error(err);
         throw err;
-      })
+      });
   };
 
   // Logs the user out on the remote server.
@@ -213,6 +214,12 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     var SUCCEED = true;
     return $q(function(resolve, reject) {
       if (SUCCEED) {
+        if (PreferenceService.isCashierModeEnabled()) {
+          CashierModeService.activateCashierMode();
+          resolve();
+          $state.go('app.home');
+          return;
+        }
         $rootScope.$emit('sellerLogout');
         self.customer = null;
         self.seller.removeFromStorage();
