@@ -32,11 +32,12 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       if (!seller.hasDevice()) {
         throw "Seller does not have deviceID";
       }
+
       this.seller = seller;
 
       $timeout(function() {
         $rootScope.$emit('sellerLogin');
-      },1000);
+      });
 
       return seller;
     } catch (e) {

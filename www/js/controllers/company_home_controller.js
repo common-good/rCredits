@@ -1,18 +1,16 @@
 app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope) {
 
-  $scope.currentUser = UserService.currentUser();
-debugger
-  if (!$scope.currentUser) {
-    $state.go("app.login");
-    return;
-  }
-
-  $rootScope.$on('sellerLogin', function() {
-    debugger
+  var onSellerLoginEvent = $rootScope.$on('sellerLogin', function() {
     $scope.currentUser = UserService.currentUser();
   });
 
-  if ($scope.currentUser.firstLogin) {
+  $scope.currentUser = UserService.currentUser();
+  if (!$scope.currentUser) {
+    $state.go("app.login");
+  }
+
+
+  if ($scope.currentUser && $scope.currentUser.firstLogin) {
     NotificationService.showAlert({
         scope: $scope,
         title: 'deviceAssociated',
@@ -61,5 +59,12 @@ debugger
         NotificationService.showAlert({title: "error", template: errorMsg});
         $ionicLoading.hide();
       });
+
+    $scope.$on('$destroy', function() {
+      if (onSellerLoginEvent) {
+        onSellerLoginEvent();
+      }
+    })
+
   };
 });
