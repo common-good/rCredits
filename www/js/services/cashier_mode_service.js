@@ -18,11 +18,29 @@
       return this.isActivated && PreferenceService.isCashierModeEnabled();
     };
 
+    CashierModeService.prototype.disable = function() {
+      this.isActivated = false;
+    };
+
     CashierModeService.prototype.activateCashierMode = function() {
       if (!PreferenceService.isCashierModeEnabled()) {
         throw new Error("Unable to activate Cashier Mode because it's not enable on Preferences.")
       }
       this.isActivated = true;
+    };
+
+    CashierModeService.prototype.canCharge = function() {
+      if (!this.isActivated) {
+        return true;
+      }
+      return PreferenceService.getCashierCanPref().isChargeEnabled();
+    };
+
+    CashierModeService.prototype.canRefund = function() {
+      if (!this.isActivated) {
+        return true;
+      }
+      return PreferenceService.getCashierCanPref().isRefundEnabled();
     };
 
 

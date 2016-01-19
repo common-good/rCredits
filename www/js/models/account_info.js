@@ -6,6 +6,7 @@
     this.memberId = '';
     this.accountId = '';
     this.securityCode = '';
+    this.url = '';
   };
 
   AccountInfo.prototype.isPersonalAccount = function() {

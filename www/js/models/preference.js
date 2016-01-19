@@ -1,7 +1,8 @@
 (function(window) {
 
-  var Preference = function() {
-  };
+  var Preference = Class.create({
+
+  });
 
   Preference.getDefinitions = function() {
     var preferences = [
@@ -54,6 +55,10 @@
   };
 
   Preference.parse = function(jsonPreference) {
+    if (jsonPreference.id == 'cashier_can') {
+      return _.extendOwn(new CashierMode(), jsonPreference);
+    }
+
     return _.extendOwn(new Preference(), jsonPreference);
   };
 
@@ -72,6 +77,7 @@
   Preference.prototype.isEnabled = function() {
     return this.value === true;
   };
+
 
   window.Preference = Preference;
 

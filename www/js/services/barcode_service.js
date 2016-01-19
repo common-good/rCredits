@@ -24,6 +24,13 @@
 
     BarcodeService.WebScanner = WebScanner;
 
+    /**
+     * Only used on web app. not on mobile
+     */
+    BarcodeService.prototype.setScanForCustomer = function() {
+      self.scanner.id = 0;
+    };
+
     BarcodeService.prototype.configure_ = function() {
       if (ionic.Platform.isWebView()) {
         $ionicPlatform.ready(function() {
@@ -37,7 +44,7 @@
         });
 
         $rootScope.$on('sellerLogout', function() {
-          self.scanner.id = 0;
+          self.setScanForCustomer();
         });
       }
     };

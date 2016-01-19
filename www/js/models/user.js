@@ -8,9 +8,15 @@
       this.company = '';
     },
 
+    isFromUrl: function(strUrl) {
+      console.log("AccountUrl: ", this.accountInfo.url);
+      console.log("ScannedUrl: ", strUrl);
+      return this.accountInfo && this.accountInfo.url === strUrl;
+    },
+
     default: '',
   });
 
   window.User = User;
 
-}) (window);
+})(window);

@@ -207,6 +207,13 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       });
   };
 
+  UserService.prototype.authorize = function() {
+    var SUCCEED = true;
+    return $q(function(resolve, reject) {
+      resolve(SUCCEED)
+    });
+  };
+
   // Logs the user out on the remote server.
   // Returns a promise that resolves when logout is complete, or rejects with error of fail.
   UserService.prototype.logout = function() {
@@ -224,6 +231,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         self.customer = null;
         self.seller.removeFromStorage();
         self.seller = null;
+        CashierModeService.disable();
         resolve();
       } else {
         reject("logoutFailure");
