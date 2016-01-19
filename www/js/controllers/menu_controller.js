@@ -27,6 +27,9 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
     $state.go("app.home");
   };
 
+  $scope.redirectPreferences = function() {
+    $state.go("app.preferences");
+  };
   $scope.changeCompany = function() {
     var seller = UserService.currentUser();
 

@@ -31,7 +31,6 @@ angular.module('routes', [])
         resolve: {
           seller: function($q, $timeout, UserService, $state) {
             var deferred = $q.defer();
-
             $timeout(function() {
               var seller = UserService.loadSeller();
               if (seller) {
@@ -43,6 +42,16 @@ angular.module('routes', [])
             });
 
             return deferred.promise;
+          }
+        }
+      })
+
+      .state('app.preferences', {
+        url: '/preferences',
+        views: {
+          'menuContent': {
+            templateUrl: 'templates/preferences.html',
+            controller: 'PreferencesCtrl'
           }
         }
       })

@@ -1,21 +1,24 @@
-app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService) {
+app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope) {
+
+  var onSellerLoginEvent = $rootScope.$on('sellerLogin', function() {
+    $scope.currentUser = UserService.currentUser();
+  });
 
   $scope.currentUser = UserService.currentUser();
-
   if (!$scope.currentUser) {
     $state.go("app.login");
-    return;
   }
 
-  if ($scope.currentUser.firstLogin) {
+
+  if ($scope.currentUser && $scope.currentUser.firstLogin) {
     NotificationService.showAlert({
-      scope: $scope,
-      title: 'deviceAssociated',
-      template: 'toSetPreferences'
-    },
-    {
-      company: $scope.currentUser.company
-    });
+        scope: $scope,
+        title: 'deviceAssociated',
+        template: 'toSetPreferences'
+      },
+      {
+        company: $scope.currentUser.company
+      });
   }
 
   $scope.scanCustomer = function() {
@@ -44,7 +47,8 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
             } else {
               $ionicLoading.hide();
               $state.go("app.customer");
-            };
+            }
+            ;
           })
           .catch(function(errorMsg) {
             NotificationService.showAlert({title: "error", template: errorMsg});
@@ -55,5 +59,12 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
         NotificationService.showAlert({title: "error", template: errorMsg});
         $ionicLoading.hide();
       });
+
+    $scope.$on('$destroy', function() {
+      if (onSellerLoginEvent) {
+        onSellerLoginEvent();
+      }
+    })
+
   };
 });

@@ -1,0 +1,29 @@
+<ion-view class="preferences">
+  <ion-content>
+    <div class="list">
+
+      <li ng-repeat="pref in ::preferences" class="item item-toggle" ng-if="pref.isToggle()">
+        {{ pref.name | translate }}
+        <label class="toggle toggle-positive">
+          <input type="checkbox" ng-model="pref.value" ng-change="saveItems()">
+          <div class="track">
+            <div class="handle"></div>
+          </div>
+        </label>
+      </li>
+
+      <div ng-repeat="pref in ::preferences" ng-if="pref.isCheckbox()">
+        <li class="item">
+          {{ pref.name | translate }}
+        </li>
+
+        <ion-list ng-if="pref.hasOptions()">
+          <ion-checkbox ng-model="option.value" ng-change="saveItems()"
+                        ng-repeat="option in pref.options">{{ option.name | translate }}
+          </ion-checkbox>
+        </ion-list>
+      </div>
+
+    </div>
+  </ion-content>
+</ion-view>

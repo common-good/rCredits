@@ -1,4 +1,4 @@
-app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer, $rootScope) {
+app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer, $rootScope, $timeout) {
   'use strict';
 
   var LOGIN_FAILED = '0';
@@ -32,8 +32,13 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       if (!seller.hasDevice()) {
         throw "Seller does not have deviceID";
       }
+
       this.seller = seller;
-      $rootScope.$emit('sellerLogin');
+
+      $timeout(function() {
+        $rootScope.$emit('sellerLogin');
+      });
+
       return seller;
     } catch (e) {
       console.log(e.message);

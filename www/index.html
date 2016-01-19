@@ -1,71 +1,72 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
-    <title></title>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+  <title></title>
 
-    <meta http-equiv="Content-Security-Policy"
-          content="default-src *; media-src *; img-src * blob:; style-src * 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*  https://*.rcredits.org/">
-
-
-    <!-- compiled css output -->
-    <link href="css/ionic.app.css" rel="stylesheet">
-
-    <script src="lib/ionic/js/ionic.bundle.js"></script>
-    <script src="lib/underscore/underscore-min.js"></script>
-    <script src="lib/angular-translate/angular-translate.min.js"></script>
-    <script src="lib/angular-translate-loader-static-files/angular-translate-loader-static-files.min.js"></script>
-    <script src="lib/angular-translate-handler-log/angular-translate-handler-log.min.js"></script>
-    <script src="lib/angular-local-storage/dist/angular-local-storage.min.js"></script>
-    <script src="lib/prototypejs/dist/prototype.min.js"></script>
-    <script src="lib/moment/moment.js"></script>
-
-    <!-- cordova script (this will be a 404 during development) -->
-    <script src="cordova.js"></script>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src *; media-src *; img-src * blob:; style-src * 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*  https://*.rcredits.org/">
 
 
+  <!-- compiled css output -->
+  <link href="css/ionic.app.css" rel="stylesheet">
 
-    <!-- your app's js -->
-    <script src="js/config.js"></script>
-    <script src="js/app.js"></script>
-    <script src="js/routes.js"></script>
-    <script src="js/languages/language.js"></script>
+  <script src="lib/ionic/js/ionic.bundle.js"></script>
+  <script src="lib/underscore/underscore-min.js"></script>
+  <script src="lib/angular-translate/angular-translate.min.js"></script>
+  <script src="lib/angular-translate-loader-static-files/angular-translate-loader-static-files.min.js"></script>
+  <script src="lib/angular-translate-handler-log/angular-translate-handler-log.min.js"></script>
+  <script src="lib/angular-local-storage/dist/angular-local-storage.min.js"></script>
+  <script src="lib/prototypejs/dist/prototype.min.js"></script>
+  <script src="lib/moment/moment.js"></script>
 
-    <!-- controllers -->
-    <script src="js/controllers/login_controller.js"></script>
-    <script src="js/controllers/menu_controller.js"></script>
-    <script src="js/controllers/company_home_controller.js"></script>
-    <script src="js/controllers/customer_menu_controller.js"></script>
-    <script src="js/controllers/keypad_controller.js"></script>
-    <script src="js/controllers/transaction_controller.js"></script>
-    <script src="js/controllers/transaction_result_controller.js">
-    </script>
+  <!-- cordova script (this will be a 404 during development) -->
+  <script src="cordova.js"></script>
 
-    <!-- directives -->
-    <script src="js/directives/sf_load.js"></script>
-    <script src="js/directives/sf_resize.js"></script>
 
-    <!-- services -->
-    <script src="js/services/barcode_service.js"></script>
-    <script src="js/services/barcode_result.js"></script>
-    <script src="js/services/user_service.js"></script>
-    <script src="js/services/notification_service.js"></script>
-    <script src="js/services/request_parameter_builder.js"></script>
-    <script src="js/services/qrcode_parser.js"></script>
-    <script src="js/services/transaction_service.js"></script>
+  <!-- your app's js -->
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/routes.js"></script>
+  <script src="js/languages/language.js"></script>
 
-    <!-- models -->
-    <script src="js/models/user.js"></script>
-    <script src="js/models/seller.js"></script>
-    <script src="js/models/customer.js"></script>
-    <script src="js/models/account_info.js"></script>
-    <script src="js/models/url_configurator.js"></script>
-    <script src="js/models/transaction.js"></script>
+  <!-- controllers -->
+  <script src="js/controllers/login_controller.js"></script>
+  <script src="js/controllers/menu_controller.js"></script>
+  <script src="js/controllers/company_home_controller.js"></script>
+  <script src="js/controllers/customer_menu_controller.js"></script>
+  <script src="js/controllers/keypad_controller.js"></script>
+  <script src="js/controllers/transaction_controller.js"></script>
+  <script src="js/controllers/transaction_result_controller.js"></script>
+  <script src="js/controllers/preferences_controller.js"></script>
 
-  </head>
+  <!-- directives -->
+  <script src="js/directives/sf_load.js"></script>
+  <script src="js/directives/sf_resize.js"></script>
 
-  <body ng-app="rcredits">
-    <ion-nav-view></ion-nav-view>
-  </body>
+  <!-- services -->
+  <script src="js/services/barcode_service.js"></script>
+  <script src="js/services/barcode_result.js"></script>
+  <script src="js/services/user_service.js"></script>
+  <script src="js/services/notification_service.js"></script>
+  <script src="js/services/request_parameter_builder.js"></script>
+  <script src="js/services/qrcode_parser.js"></script>
+  <script src="js/services/transaction_service.js"></script>
+  <script src="js/services/preference_service.js"></script>
+
+  <!-- models -->
+  <script src="js/models/user.js"></script>
+  <script src="js/models/seller.js"></script>
+  <script src="js/models/customer.js"></script>
+  <script src="js/models/account_info.js"></script>
+  <script src="js/models/preference.js"></script>
+  <script src="js/models/url_configurator.js"></script>
+  <script src="js/models/transaction.js"></script>
+
+</head>
+
+<body ng-app="rcredits">
+<ion-nav-view></ion-nav-view>
+</body>
 </html>
