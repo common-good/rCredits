@@ -63,7 +63,6 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
               NotificationService.showAlert({title: 'cashier_permission_rejected'});
               return;
             }
-            //$state.go('app.transaction', {'transactionType': 'charge'});
             fn();
           });
       }
