@@ -12,17 +12,12 @@
         </label>
       </li>
 
-      <div ng-repeat="pref in ::preferences" ng-if="pref.isCheckbox()">
-        <li class="item">
-          {{ pref.name | translate }}
-        </li>
 
-        <ion-list ng-if="pref.hasOptions()">
-          <ion-checkbox ng-model="option.value" ng-change="saveItems()"
-                        ng-repeat="option in pref.options">{{ option.name | translate }}
-          </ion-checkbox>
-        </ion-list>
-      </div>
+      <ion-list  ng-if="cashierModePref.isEnabled()">
+        <ion-checkbox ng-model="option.value" ng-change="saveItems()"
+                      ng-repeat="option in cashierCanModePref.options">{{ option.name | translate }}
+        </ion-checkbox>
+      </ion-list>
 
     </div>
   </ion-content>

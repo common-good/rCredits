@@ -4,15 +4,17 @@
   var COMPANY_INDICATOR_URL = ':';
   var PERSONAL_INDICATOR = '.';
 
-  var QRCodeParser = function(url) {
+  var QRCodeParser = function() {
   };
 
   QRCodeParser.prototype.setUrl = function(url) {
-    this.url = new URL (url);
+    this.plainUrl = url;
+    this.url = new URL(url);
   };
 
   QRCodeParser.prototype.parse = function() {
-    this.accountInfo = new AccountInfo ();
+    this.accountInfo = new AccountInfo();
+    this.accountInfo.url = this.plainUrl;
     this.parseAccountType_();
     this.parseAccountCode_();
     this.parseSecurityCode_();
@@ -53,4 +55,4 @@
 
   window.QRCodeParser = QRCodeParser;
 
-}) (window);
+})(window);

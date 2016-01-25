@@ -1,4 +1,5 @@
-app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer, $rootScope, $timeout) {
+app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer, $rootScope, $timeout,
+                                    PreferenceService, CashierModeService, $state) {
   'use strict';
 
   var LOGIN_FAILED = '0';
@@ -203,24 +204,34 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       .catch(function(err) {
         console.error(err);
         throw err;
-      })
+      });
+  };
+
+  UserService.prototype.authorize = function() {
+    var SUCCEED = true;
+    return $q(function(resolve, reject) {
+      resolve(SUCCEED)
+    });
   };
 
   // Logs the user out on the remote server.
   // Returns a promise that resolves when logout is complete, or rejects with error of fail.
   UserService.prototype.logout = function() {
-    // Simulates logout. Resolves the promise if SUCCEED is true, rejects if false.
-    var SUCCEED = true;
     return $q(function(resolve, reject) {
-      if (SUCCEED) {
-        $rootScope.$emit('sellerLogout');
-        self.customer = null;
-        self.seller.removeFromStorage();
-        self.seller = null;
+      if (PreferenceService.isCashierModeEnabled() && !CashierModeService.isEnabled()) {
+        CashierModeService.activateCashierMode();
         resolve();
-      } else {
-        reject("logoutFailure");
+        $state.go('app.home');
+        return;
       }
+
+      $rootScope.$emit('sellerLogout');
+      self.customer = null;
+      self.seller.removeFromStorage();
+      self.seller = null;
+      CashierModeService.disable();
+      resolve();
+
     });
   };
 

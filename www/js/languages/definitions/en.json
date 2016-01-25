@@ -3,6 +3,7 @@
   "balance": "Balance",
   "balanceLabel": "Balance:",
   "cashierCan": "When not signed in, cashier can:",
+  "cashier_mode": "Cashier Mode",
   "charge": "Charge",
   "confirm": "Confirm",
   "customerBalance": "Customer Balance",
@@ -32,6 +33,7 @@
   "selectCategory": "Select Category",
   "selfServiceMode": "Self-Service Mode",
   "signInAs": "Signed in as:",
+  "signIn": "Sign in",
   "signOut": "Sign Out",
   "staySignedIn": "Stay Signed In",
   "preferences": "Preferences",
@@ -50,5 +52,7 @@
   "change_company": "Change company",
   "disassociate_company": "This will disassociate this device from {{company}}",
   "haveToSignInAgain": "You will have to sign in again",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "cashier_permission":"Manager permission is required to perform this action",
+  "cashier_permission_rejected":"Unable to authorise action"
 }

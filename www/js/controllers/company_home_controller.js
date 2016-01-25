@@ -1,4 +1,4 @@
-app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope) {
+app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope, CashierModeService) {
 
   var onSellerLoginEvent = $rootScope.$on('sellerLogin', function() {
     $scope.currentUser = UserService.currentUser();
@@ -10,7 +10,7 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
   }
 
 
-  if ($scope.currentUser && $scope.currentUser.firstLogin) {
+  if ($scope.currentUser && $scope.currentUser.isFirstLogin()) {
     NotificationService.showAlert({
         scope: $scope,
         title: 'deviceAssociated',
@@ -18,8 +18,15 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
       },
       {
         company: $scope.currentUser.company
+      })
+      .then(function() {
+        $scope.currentUser.setFirstLoginNotified();
       });
   }
+
+  $scope.isCashierMode = function() {
+    return CashierModeService.isEnabled();
+  };
 
   $scope.scanCustomer = function() {
     $ionicLoading.show();
