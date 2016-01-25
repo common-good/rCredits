@@ -217,25 +217,21 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   // Logs the user out on the remote server.
   // Returns a promise that resolves when logout is complete, or rejects with error of fail.
   UserService.prototype.logout = function() {
-    // Simulates logout. Resolves the promise if SUCCEED is true, rejects if false.
-    var SUCCEED = true;
     return $q(function(resolve, reject) {
-      if (SUCCEED) {
-        if (PreferenceService.isCashierModeEnabled()) {
-          CashierModeService.activateCashierMode();
-          resolve();
-          $state.go('app.home');
-          return;
-        }
-        $rootScope.$emit('sellerLogout');
-        self.customer = null;
-        self.seller.removeFromStorage();
-        self.seller = null;
-        CashierModeService.disable();
+      if (PreferenceService.isCashierModeEnabled() && !CashierModeService.isEnabled()) {
+        CashierModeService.activateCashierMode();
         resolve();
-      } else {
-        reject("logoutFailure");
+        $state.go('app.home');
+        return;
       }
+
+      $rootScope.$emit('sellerLogout');
+      self.customer = null;
+      self.seller.removeFromStorage();
+      self.seller = null;
+      CashierModeService.disable();
+      resolve();
+
     });
   };
 

@@ -23,8 +23,12 @@
           {{ 'home' | translate }}
         </ion-item>
 
-        <ion-item menu-close ng-click="logout()">
+        <ion-item menu-close ng-click="logout()" ng-show="!isCashierModeEnabled()">
           {{ 'signOut' | translate }}
+        </ion-item>
+
+        <ion-item menu-close ng-click="logout()" ng-show="isCashierModeEnabled()">
+          {{ 'signIn' | translate }}
         </ion-item>
 
         <ion-item>&nbsp;</ion-item>
