@@ -6,7 +6,10 @@ app.controller('PreferencesCtrl', function($scope, $state, UserService, Preferen
 
   $scope.saveItems = function() {
     PreferenceService.savePreferences(preferences);
-  }
+  };
+
+  $scope.cashierModePref = PreferenceService.getCashierModePref();
+  $scope.cashierCanModePref = PreferenceService.getCashierCanPref();
 
 
 });
