@@ -36,7 +36,6 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
 
 
   $scope.openRefund = function() {
-    //$state.go('app.transaction', {'transactionType': 'refund'});
     var refundFn = function() {
       $state.go('app.transaction', {'transactionType': 'refund'});
     };
