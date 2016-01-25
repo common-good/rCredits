@@ -49,6 +49,11 @@
         return this.firstLogin;
       },
 
+      setFirstLoginNotified: function() {
+        this.firstLogin = false;
+        this.saveInStorage();
+      },
+
       saveInStorage: function() {
         localStorageService.set(SELLER_KEY, JSON.stringify(this));
       },

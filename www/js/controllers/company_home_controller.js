@@ -10,7 +10,7 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
   }
 
 
-  if ($scope.currentUser && $scope.currentUser.firstLogin) {
+  if ($scope.currentUser && $scope.currentUser.isFirstLogin()) {
     NotificationService.showAlert({
         scope: $scope,
         title: 'deviceAssociated',
@@ -18,6 +18,9 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
       },
       {
         company: $scope.currentUser.company
+      })
+      .then(function() {
+        $scope.currentUser.setFirstLoginNotified();
       });
   }
 
