@@ -19,7 +19,7 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
         .setPrefix('rcredits');
     }])
 
-  .run(function($ionicPlatform) {
+  .run(function($ionicPlatform, SQLiteService) {
     $ionicPlatform.ready(function() {
 
       // This only for web development to enable proxy
@@ -38,5 +38,8 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
         // org.apache.cordova.statusbar required
         StatusBar.styleDefault();
       }
+
+      SQLiteService.init();
+
     });
   });
