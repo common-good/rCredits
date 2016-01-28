@@ -1,6 +1,6 @@
 (function(window, app) {
 
-  app.service('Customer', function(QueryBuilderService, SQLiteService) {
+  app.service('Customer', function() {
 
     var Customer = Class.create(User, {
 
@@ -11,9 +11,18 @@
         this.rewards = parseFloat(rewards);
       },
 
-      saveInSQLite: function() {
-        return QueryBuilderService.buildCustomerQuery(this).then(SQLiteService.executeQuery.bind(SQLiteService));
+      getPlace: function() {
+        return this.place;
+      },
+
+      getBalance: function() {
+        return this.balance;
+      },
+
+      getRewards: function() {
+        return this.rewards;
       }
+
     });
 
 

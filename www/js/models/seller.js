@@ -1,6 +1,6 @@
 (function(window, app) {
 
-  app.service('Seller', function(localStorageService, QueryBuilderService, SQLiteService) {
+  app.service('Seller', function(localStorageService) {
 
     var DEVICE_ID_KEY = 'deviceID';
     var SELLER_KEY = 'seller';
@@ -57,10 +57,6 @@
       save: function() {
         this.saveInStorage();
         this.saveInSQLite();
-      },
-
-      saveInSQLite: function() {
-        return QueryBuilderService.buildSellerQuery(this).then(SQLiteService.executeQuery.bind(SQLiteService));
       },
 
       saveInStorage: function() {

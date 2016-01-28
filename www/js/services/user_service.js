@@ -1,4 +1,4 @@
-app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer, $rootScope, $timeout,
+app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, User, Seller, Customer, $rootScope, $timeout,
                                     PreferenceService, CashierModeService, $state) {
   'use strict';
 
