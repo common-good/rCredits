@@ -61,7 +61,7 @@
 
       saveInSQLite: function() {
         var sqlQuery = QueryBuilderService.buildSellerQuery(this);
-        SQLiteService.executeQuery(sqlQuery);
+        return SQLiteService.executeQuery(sqlQuery);
       },
 
       saveInStorage: function() {
