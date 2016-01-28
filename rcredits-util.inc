@@ -193,10 +193,10 @@ function badAmount(&$amount, $restriction = '', $fractionLimit = 2, $max = NULL)
      or "0000" in the last four positions of the numbers.
      Additionally, prior to June 25, 2011, we had never assigned a Social Security number with the first three digits of: 000, 666, 772 - 799, 800 - 899, 900 - 999.
  */
-function badSsn(&$ssn, $dob) {
+function badSsn(&$ssn, $dob = '') {
 //  if (in_array($ssn, u\ray('5551234567 777777777 888888888 999999999'))) return FALSE; // test numbers
   if (strlen(u\digits($ssn)) != 9) $bad = TRUE; // zap all but the digits (call by ref)
-  if (FALSE AND @$dob) { // ssn (not ein) -- We got an SSN that violated these rules. Better to let it go a step more.
+  if (FALSE AND @$dob) { // ssn (not ein) -- We once got a valid SSN that violated these rules, so skip this.
     $c1 = substr($ssn, 0, 1);
     $s1 = substr($ssn, 0, 3);
     $s2 = substr($ssn, 3, 2);
@@ -794,17 +794,20 @@ function parseBankAccount($bankAccount) {
  * Return the first unused id.
  * @param string $key: name of field to search
  * @param string $table: table name
- * @param int $starting: lowest id to use (defaults to 1)
- * @param int $before: first id not to use (if any)
+ * @param int $start: first id to use (defaults to 1)
+ * @param int $end: last id to use (if any)
  * @param string $where: other criteria
  * @param assoc $subs: substitutions for the other criteria
  * @return: the id (null if none available)
  */
-function firstUnusedId($key, $table, $starting = 1, $before = PHP_INT_MAX, $where0 = '1', $subs = []) {
-  if (!db\exists("$table t1", "$where0 AND t1.$key=$starting", $subs)) return $starting;
-  $where = "$where0 AND t1.$key>=$starting AND t1.$key<$before-1 AND t2.$key IS NULL ORDER BY t1.$key";
-  $prev = db\lookup("t1.$key", "$table t1 LEFT JOIN $table t2 ON t2.$key=(t1.$key+1)", $where, $subs);
-  return $prev ? ($prev + 1) : NULL;
+function firstUnusedId($key, $table, $start = 1, $end = 0, $where0 = '1', $subs = []) {
+  if (!$end) $end = PHP_INT_MAX - 1;
+  if (!db\exists("$table t1", "$where0 AND t1.$key=$start", $subs)) return $start;
+  list ($DESC, $le, $offset) = $start > $end ? ['DESC', '>=', -1] : ['', '<=', 1];    
+  $where = "$where0 AND $start $le t1.$key AND t1.$key $le $end AND t2.$key IS NULL ORDER BY t1.$key $DESC";
+  $beyond = $DESC ? "-1+" : "1+";
+  $prev = db\lookup("t1.$key", "$table t1 LEFT JOIN $table t2 ON t2.$key=(t1.$key + $offset)", $where, $subs);
+  return $prev ? ($prev + $offset) : NULL;
 }
  
 /**
@@ -937,7 +940,17 @@ function crypt($data, $how = 0, $key = R_WORD, $encrypt = TRUE, $noIV = FALSE) {
   return $encrypt ? ($noIV ? $data : CRYPT_FLAG . "$how$iv$data") : rtrim($data, "\0");
 } 
 
-function decrypt($data, $how = 0, $key = R_WORD) {return crypt($data, $how, $key, FALSE);}
+/**
+ * Decrypt data
+ * @param string $data: encrypted data
+ * @param int $how: encryption method number (0 or 1). Defaults to "figure out which method".
+ * @param string $key: encryption key
+ */  
+function decrypt($data, $how = NULL, $key = R_WORD) {
+  if (!u\starts($data, CRYPT_FLAG)) return FALSE;
+  u\setDft($how, substr($data, strlen(CRYPT_FLAG), 1));
+  return crypt($data, $how, $key, FALSE);
+}
 
 /** 
  * Encrypt/decrypt using a known iv and hex2bin/bin2hex, so we can search the encrypted field.
@@ -1038,7 +1051,7 @@ function randomString($len = 16, $choices = '') {
 function badName($name) {
   if (strpos($name, '  ') !== FALSE) return 'multiple spaces';
   if (!ctype_print($name)) return 'illegal char';
-  if (\drupal_strlen(u\shortName($name)) > USERNAME_MAX_LENGTH) return 'too long';
+  if (strlen(u\shortName($name)) > USERNAME_MAX_LENGTH) return 'too long';
   return FALSE;
 }
 
@@ -1086,12 +1099,12 @@ function parseName($name) {
  */
 function parseAddr($address) {
   $parts = explode(',', $address);
-  if (!$p = count($parts)) return array('ERROR', '', '', '');
+  if (!$p = count($parts)) return ['ERROR', '', '', ''];
   list ($state, $zip) = explode(' ', strtoupper(@trim(array_pop($parts))) . ' ');
   if (!preg_match('/^[A-Z][A-Z]$/', $state)) $state = 'ER';
   $city = trim(array_pop($parts));
   $address = join(', ', $parts);
-  return array($address, $city, $state, $zip);
+  return [$address, $city, $state, $zip];
 }
 
 /**

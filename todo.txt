@@ -9,6 +9,7 @@ Software Priorities:
 5. Greater Security (and security audit)
 
 NON_SOFTWARE TO_DOs
+- send Business Name Change requests for rCredits Western Mass Region to IRS-Stop 343G, Cincinnati, OH 45999.
 - short tagline (see Richard Tillberg's ideas), like "rCredits, the Money Co-op"
 - ask Steve Alves to make a movie about rCredits
 - form publicity committee (as decided by the board)
@@ -58,13 +59,17 @@ GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
    $cfg['Servers'][$i]['auth_type'] = 'config';
 
 TASKS FOR NEXT UPDATE:
-. 
 
+. photo on Summary page is wrong when coming from Member List
+. CGF can do business with any community (even non-CGCs, even seedpacks)
+. if we get a transaction request for a non-existent user in a different region, contact that region to confirm
+. app take video of phone thief (front mounted camera) and report GPS coods. Send list of stolen cards to app. Back-mounted-camera of merchant phone take video of card thief.
+. **** detect change of bank account followed by withdrawal (security flag)
+. *** bank transfers should not be on transaction list if they fall off the first page of 100
 . for multiple accounts, show current account name under photo (make sure it works on mobile)
 . flag first withdrawal request after a new bank account
 . flag unusual GPS
 . notify staff of repeated bad password (including the mistype)
-. add 'Or tell your friends "To sign up for rCredits, go to rCredits.org and sign in with this invitation code: IW5SXO3Q66B"' to the invitation page.
 . **** disallow +whatever except for gmail (and other services where we know it works)
 . add total balance to Summary page (parenthetically in primary balance line?)
 . * in smart.inc, if cardCode is wrong, see if it changed AFTER the tx date and was correct as of the tx date

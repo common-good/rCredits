@@ -35,12 +35,13 @@ require_once __DIR__ . '/rcredits-db.inc';
 require_once __DIR__ . '/acct.class';
 require_once __DIR__ . '/x.class';
 
+// Common Good Finance email and other data
 define('CGF_LEGALNAME', 'Society to Benefit Everyone, Inc.');
-define('CGF_EMAIL', isDEV ? 'cgf@example.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
+define('CGF_EMAIL', isDEV ? 'cgf@example.com' : 'info@CommonGoodFinance.org');
 define('CGF_PHONE', '+14136281723');
 define('CGF_ADDRESS', '48 Buckland Road');
 define('CGF_CITY', 'Ashfield');
-define('CGF_POSTALADDR', 'PO Box 21, Ashfield, MA 01330');
+define('CGF_POSTALADDR', 'PO Box 21, Ashfield, MA 013300021');
 define('CGF_EIN', '205280780');
 define('R_LAUNCH', strtotime('12/15/2013'));
 define('CGF_ID', r\cgfId()); // Common Good Finance record ID
@@ -50,13 +51,14 @@ define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty,Vacant Lot,Land,Cinema,Printing & Office Supply,Car Repair,Health Club/Gym,Restaurant,Hardware & Supply,Grocer,Farm,Food Processing,Department Store,Electric Company,Oil Company,Town Government,Community College,Hospital');
+define('R_REGION_FIELDS', 'region,fullName,st,postalCode,federalId,hasServer');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
 // isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 
 define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd verifyBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
 define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount photoId'); // very secure fields (admin-encrypted)
 define('R_SECURE_FIELDS', R_VSECURE_FIELDS . ' pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
-define('R_HIDE_CHANGES', 'changes init r rewards committed floor login access activated data secure stepsDone lastTx lastiCode pass notes picture photo trust risk risks stats getAppData appData'); // do not record changes to these fields: anything often-changed (automatically or not)
+define('R_HIDE_CHANGES', 'ssnData changes init r rewards committed floor login access activated data secure stepsDone lastTx lastiCode pass notes picture photo trust risk risks stats getAppData appData'); // do not record changes to these fields: anything often-changed (automatically or not)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
 define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_CASH', '(r-committed-GREATEST(0, floor, rewards))'); // balance available to cash out
@@ -199,7 +201,7 @@ define('APP_CAN_BIT_DESCS', 'charge customers,undo last transaction,give rCredit
 // If we need more bits, create a flags2 field and make the B_ defs negative or 32-63 for setBit
 // for documentation of IS_OK etc. see u\SUBS()
 define('B_MEMBER', 0); // fulfilled membership requirements (ready to be approved).
-define('B_CGC', 0); // ctty: is an official CGC (see also B_CTTYACTIVE)
+define('B_CGC', 0); // ctty: is an official CGC (otherwise cannot do business with other communities)
 define('B_CONFIRMED', 1); // invitation has been confirmed (in advance by form invite OR explicitly OR implicitly by newb first buying from or selling to the inviter)
 define('B_OK', 2); // approved to use rCredits for real (set by admin when ready).
 define('B_UP', 2); // ctty: is operational (up) (see also B_CTTYUP)
@@ -254,7 +256,7 @@ $GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t(
 define('B_MANAGING_CTTY', 120); // cadmin is actually managing a qualified account
 define('B_PERSON', 121); // personal account (!co)
 define('B_DEV', 122); // isDEV or is admin
-define('B_CTTYACTIVE', 123); // account's community is approved to operate (see also B_CGC)
+define('B_u123', 123); //
 define('B_CTTYUP', 124); // account's community is operating (see also B_UP)
 define('B_BANK', 125); // account has a connected bank account
 define('B_SHOW_ALL', 999); // special signal to acct::can() to return all permissions
@@ -370,15 +372,18 @@ $GLOBALS['topics'] = array( // topics for 'message' email
  * @param string $table: table to save in (users or r_relations)
  * @param string $idField: name of record ID field (uid or reid)
  * @param assoc $record: the record to save (possibly with record ID already chosen)
- * @param int $region: uid of the region in which to create a new record (defaults to server region)
+ * @param int $region: uid of the region in which to create a new record (defaults to server region, negated)
+ *   if the region is negated (>0), an individual or company account will be inserted -- otherwise a community
  * @return record ID of the inserted record
  */
 function regionalInsert($table, $idField, $record, $region = NULL) {
   if (@$record[$idField]) return db\insert($table, $record); // predestined id (probably for testing)
-  if (!@$region) $region = r\serverUid();
-  
+  if (!@$region) $region = -r\serverUid();
+  $end = $region + ($region < 0 ? -(R_REGION_MAX - 1) : (R_REGION_MAX - 1));
+  $start = $region < 0 ? $region - 1 : $region; // -1: do not use the uid of the region itself
+
   for ($try = 0; $try < 20; $try++) { // limit the retries
-    $id = $record[$idField] = u\firstUnusedId($idField, $table, -$region, -$region + R_REGION_MAX);
+    if (!$id = $record[$idField] = u\firstUnusedId($idField, $table, $start, $end)) break;
     try {
       if (db\insert($table, $record)) return $id;
     } catch (Exception $e) { // BIG MYSTERY: why does this happen sometimes with no collision?
@@ -576,9 +581,14 @@ function rdoMonth($time = NULL) {
 
 /**
  * Wrap all email, so it doesn't go out when testing.
- * @param string $index: index to email template and subject
+ * @param string $index: index to email template and subject (empty if supplying explicit body and subject)
  * @param mixed $to: where to send the message -- uid, account, or email address
- * @param assoc $subs: substitutions in template
+ * @param assoc $subs: substitutions in template. may also include:
+ *   noFrame:  don't show salutation and closing and footer
+ *   subject:  specific subject
+ *   body:     specific message
+ * ... the following special substitions are always available:
+ *   site, quid, shortName, and every cached field for the account
  * @param mixed $reply: uid, account, or email address to reply to OR 'ctty' (of $to) or NULL (same as from)
  * @return TRUE if the message got sent (or on dev machine pretending it got sent) else FALSE
  * NOTE: from is always SYS_EMAIL
@@ -597,7 +607,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
     $subs['shortName'] = $toA->name;
   } else $to = $toEmail = $to0;
   
-  if (in_array($to, ['jeannineblossom@wetmeadow.org', 'clairercredits@solarstoreofgreenfield.com', 'cavegrl777@aol.com'])) return FALSE; // invalid or marked us as spam
+  if (in_array($to, ['jeannine+blossom@wetmeadow.org'])) return FALSE; // invalid or marked us as spam
 
   $testEmails[] = compact(u\ray('index toEmail subs'));
 
@@ -610,7 +620,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   }
 
   $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
-  $message = @$subs['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
+  $message = @$subs['body'] ?: (@$subs['noFrame'] ? r\emailTemplate($index) : r\emailBody($index));
   $subject = @$subs['subject'] ?: $GLOBALS['emailSubjects'][$index];
     
   $nolog = u\ray(R_NOLOG); // subs not to log (sensitive data)
@@ -635,7 +645,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   $client = new \Postmark\PostmarkClient(isDEV ? POSTMARK_API_TEST : POSTMARK_TOKEN);
   $from = t('rCredits System <@e>', ['@e' => SYS_EMAIL]);
 
-  if (!isPRODUCTION) if ($toEmail != r\regionField('email') and $toEmail != R_TESTER_EMAIL) return TRUE;
+  if (!isPRODUCTION) if ($toEmail != r\regionField('email') and $toEmail != R_ADMIN_EMAIL) return TRUE;
   $res = $client->sendEmail($from, $to, $subject, $body, NULL, NULL, NULL, $reply);
   if (!is_object($res)) r\tellStaff('email fail', compact('res'));
   return TRUE;
@@ -758,7 +768,7 @@ function membershipEvent($a, $status, $do = TRUE) {
     be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
 
     if ($a->confirmed and !$a->helperA->admin) { // no helper bonus for admin (cAdmin is okay)
-      be\fund($a->helper, TX_HELPER, R_HELPER_BONUS, u\tt('invite reward', compact('fullName')));
+      be\fund($a->helper, TX_HELPER, R_HELPER_BONUS, u\tt('invite reward', ['fullName' => $a->fullName]));
     }
   }
   
@@ -830,7 +840,7 @@ function tellStaff($index, $subs = [], $uid = TRUE) {
   $topic = strlen($index) < 20 ? strip_tags($index) : '';
   $subs = compact(u\ray('email message topic noFrame uid')) + $subs;
   r\rMail('tell-staff', $email, $subs, $uid);
-  if ($email != $regionEmail and $email != R_TESTER_EMAIL) { // temporary until ctty admins get established
+  if ($email != $regionEmail and $email != R_ADMIN_EMAIL) { // temporary until ctty admins get established
     r\rMail('tell-staff', SYS_EMAIL, $subs, $uid); // tell regional admin also
   }
 }
@@ -1093,9 +1103,11 @@ function uidRegion($uid) {
  */
 function region($country = '', $state = '', $zip = '', &$raw = '') {
   if (!$state) $state =  R_STATE_ID;
-  $where = ":zip RLIKE r.zips OR (r.zips='' AND s.country_id=:country AND s.id=:state) ORDER BY (r.zips='')";
-  $region = db\lookup('region', 'r_regions r INNER JOIN r_states s ON r.state=s.abbreviation', $where, compact('state', 'zip', 'country'));
-  if (!$region) $region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
+  $where = ":zip RLIKE postalCode OR (postalCode='' AND country_id=:country AND s.id=:state) ORDER BY (postalCode='')";
+  $table = 'r_regions r LEFT JOIN r_states s ON s.abbreviation=r.st';
+  if (!$region = db\lookup('region', $table, $where, compact('state', 'zip', 'country'))) {
+    $region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
+  }
   return -r\unQuid(($raw = $region ?: 'ZZZ') . '.AAA');
 }
 
@@ -1169,8 +1181,8 @@ function isEmployee($uid, $company = '') {
  */
 function communityUid($postalCode = '', $defaultZero = FALSE) {
   if (!$postalCode) return serverUid();
-  $where = "country=':R_COUNTRY_ID' AND :postalCode RLIKE postalCode AND uid=community";
-  return db\lookup('uid', 'users', $where, compact(u\ray('postalCode'))) ?: ($defaultZero ? 0 : serverUid());
+  $where = "country=:R_COUNTRY_ID AND :postalCode RLIKE postalCode AND uid<1";
+  return db\lookup('uid', 'users', $where, compact('postalCode')) ?: ($defaultZero ? 0 : serverUid());
 }
 
 /**
@@ -1245,7 +1257,7 @@ function passSalt($acct = '') {
  * @param int $base: lowest uid to use (first slot in a region)
  * @return: the uid
  */
-function newUid($base) {return u\firstUnusedId('uid', 'users', $base, $base + R_REGION_MAX);}
+function newUid($base) {return u\firstUnusedId('uid', 'users', $base, $base + R_REGION_MAX - 1);}
 
 /*  $where = 'u.uid>=:base and u.uid <:base+:R_REGION_MAX AND u2.uid IS NULL ORDER BY u.uid';
   $previous = db\lookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where, compact('base'));
@@ -1268,7 +1280,7 @@ function makeDevice($uid, $code = '', $ch = NULL) {
   if ($ch == TX_WEB and $mya and $mya->admin) return 0; // don't create spurious devices as admin
 /*  if ($boxName === '0') {
     $where = "t1.boxName REGEXP '^[0-9]+$' AND t1.uid=:uid";
-    $boxName = u\firstUnusedId('boxName', 'r_boxes', 1, PHP_INT_MAX, $where, compact('uid'));
+    $boxName = u\firstUnusedId('boxName', 'r_boxes', 1, PHP_INT_MAX-1, $where, compact('uid'));
   } else */
   //if (!$boxName) $boxName = $code; // code serves as boxName for dumb cell phones
   $created = $access = r\rTime();
@@ -1854,7 +1866,7 @@ function riskList($risks, $descs) {
 function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
   global $scanned;
   
-  if (!$a2->ok) return array('non member', ['otherName', $a2->fullName], FALSE);
+  if (!$a2->ok) return array('non member', ['otherName' => $a2->fullName], FALSE);
   u\EXPECT($a1->ok, 'main account inactive tx');
   foreach ([$a1, $a2] as $a) {
     $other = $a == $a1 ? $a2 : $a1; // if neither confirmed nor confirming icard by tx with inviter
@@ -1873,10 +1885,12 @@ function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
 //  if (!$a1->can($myAccess)) return array("no $myAccessErr", [], FALSE);
 //  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", u\ray('otherName', $a2->agent->fullName), FALSE);
 
+/*
   if ($a1->id > 0 and $a2->id != r\cgfId()) { // allow rewards and donations in not-yet-active communities
     if (!$a1->cttyActive) return array('community not active', u\ray('whose', t('Your')), FALSE);
     if (!$a2->cttyActive) return array('community not active', u\ray('whose', t('That account\'s')), FALSE);
   }
+  */
   if (!$a1->cttyUp) return array('your community down', u\ray('contact', $a1->cAdminContact()), FALSE);
   if (!$a2->cttyUp) return array('other community down', [], FALSE);
   if ($a1->id == $a2->id) return array('no self-trading', [], FALSE);

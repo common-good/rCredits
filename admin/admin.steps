@@ -46,7 +46,9 @@ function extraSubs(&$subs) {
 /**
  * members: (ARG)
  *
- * in: MAKE Changes Setup
+ * in: MAKE Activate Setup
+ *     TEST Activate AdminActivatesAnAccount
+ *     MAKE Changes Setup
  *     MAKE Checks Setup
  */
 function members($list) {return t\members($list);}
@@ -54,7 +56,8 @@ function members($list) {return t\members($list);}
 /**
  * transactions: (ARG)
  *
- * in: MAKE Checks Setup
+ * in: TEST Activate AdminActivatesAnAccount
+ *     MAKE Checks Setup
  */
 function transactions($list) {return t\transactions($list);}
 
@@ -86,7 +89,8 @@ function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
 /**
  * member (ARG) completes form (ARG) with values: (ARG)
  *
- * in: MAKE Changes AMemberChangesSomeSettings
+ * in: MAKE Activate AdminActivatesAnAccount
+ *     MAKE Changes AMemberChangesSomeSettings
  */
 function memberCompletesFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values);}
 
@@ -112,6 +116,21 @@ function weShowPdfWith($list) {
 /**
  * balances: (ARG)
  *
- * in: TEST Checks AdminPrintsChecks
+ * in: TEST Activate AdminActivatesAnAccount
+ *     TEST Checks AdminPrintsChecks
  */
 function balances($list) {return t\balances($list);}
+
+/**
+ * relations: (ARG)
+ *
+ * in: MAKE Activate Setup
+ */
+function relations($relations) {return t\relations($relations);}
+
+/**
+ * we notice (ARG) to member (ARG) with subs: (ARG)
+ *
+ * in: TEST Activate AdminActivatesAnAccount
+ */
+function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}

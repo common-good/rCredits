@@ -14,6 +14,7 @@ function commafy(n) {
 //$(function() { // the DOM is ready enough (this being in the footer)
 jQuery("#which, #help").addClass("popup");
 
+var yesSubmit = false; // set true when user confirms submission (or makes a choice)
 var indexZ = 2;
 jQuery("#index a").mouseover(function() {
   var detail = jQuery("#" + this.id + "-detail");
@@ -47,7 +48,7 @@ if (!mobile) jQuery('.navbar-nav > li > a').hover(function() {
 if (!mobile) jQuery('form div').hover(function() {jQuery('* [data-toggle="popover"]').popover('hide');});
 
 /**
- * get data from the server
+ * post or get data to/from the server
  * @param string op: what to get
  * @param object data: parameters for the get
  * @param function success(jsonObject): what to do upon success (do nothing on failure)
@@ -55,6 +56,55 @@ if (!mobile) jQuery('form div').hover(function() {jQuery('* [data-toggle="popove
 function get(op, data, success) {
   data = {op:op, sid:ajaxSid, data:data};
   $.get(ajaxUrl, data, success);
+}
+
+function post(op, data, success) {
+  data = {op:op, sid:ajaxSid, data:data};
+  $.post(ajaxUrl, data, success);
+}
+
+function yesno(question, yes, no) {
+  if (typeof no === 'undefined') no = (function() {});
+  $.confirm({title: 'Yes or No', text: question, confirm: yes, cancel: no, confirmButton: 'Yes', cancelButton: 'No'});
+}
+
+function which(question, choices, choose, cancel) {
+  $("#which").modal("show");
+}
+
+function noSubmit(button) {
+  $('#edit-submit').removeAttr('disabled').removeAttr('data-loading');
+  $('#messages').hide();
+}
+
+function who(form, id) {
+  var jForm = $(form);
+  if (yesSubmit) return true;
+  get('who', {who:$(id).val()}, function(j) {
+    if (j.ok) {
+      if (j.who) {
+        $(id).val(j.who);
+        yesno(j.confirm, function() {yesSubmit = true; jForm.submit();}, noSubmit);
+      } else which(jForm, id, j.title, j.which);
+    } else $.alert(j.message);
+  });
+  return false;
+}
+
+function which(jForm, id, title, body) {
+  $('<div id="which">' + body + '</div>').dialog({
+    title: title,
+    modal: true,
+    closeText: '&times;', // fails
+    dialogClass: 'which'
+  });
+  $('.ui-dialog-titlebar-close').html('&times;');
+  $('.ui-dialog-titlebar-close').click(function() {noSubmit();});
+  $('#which option').click(function() {
+    yesSubmit = true;
+    $(id).val($(this).val());
+    jForm.submit();
+  });
 }
 
 var _gaq = _gaq || [];

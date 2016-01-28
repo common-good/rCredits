@@ -2,6 +2,7 @@
 /**
  * @file
  * Functions that get run just once a year.
+ * Assume that Common Good Finance is the report transmitter.
  */
 
 namespace rCredits\Special; // typically abbreviated as "special"
@@ -67,9 +68,10 @@ function recT($year, $testMode) {
   $testing = pad($testMode ? 'T' : ' ', 1);
   $foreign = pad(FALSE, 1); // 1 for foreign
   $coName = $transmitterName = pad(CGF_LEGALNAME, 80);
-  $coAddr = pad('PO Box 21', 40) . pad('Ashfield', 40) . 'MA' . pad('013300021', 9);
+  list ($address, $city, $st, $zip) = u\parseAddr(CGF_POSTALADDR);
+  $coAddr = pad($address, 40) . pad($city, 40) . $st . pad($zip, 9);
   $payees = u\lpad(0, 8); // not possible to know the count yet
-  $contact = pad(ADMIN_NAME, 40) . pad('4136281021', 15) . pad('wspademan@gmail.com', 50);
+  $contact = pad(ADMIN_NAME, 40) . pad(u\fmtPhone(R_ADMIN_PHONE,'n'), 15) . pad(R_ADMIN_EMAIL, 50);
   $source = pad('I', 1); // V=vendor I=in-house
   $vendor = sp(40) . sp(40) . sp(40) . sp(2) . sp(9);
   $vendorContact = sp(40) . sp(15);
@@ -107,10 +109,9 @@ function recB($year, $a, $completed, $amount, $for) {
   $payeeName = pad(noBreakAt(preg_replace('/[^A-Z &\-]/i', '', $a->legalName), 40), 2 * 40);
   list ($payeeFirst, $payeeLast) = u\parseName($payeeName);
   $nameControl = pad(preg_replace('/[^A-Z]/i', '', $payeeLast), 4);
-  $payeeAddr = $a->postalAddr;
-  $zip = $a->postalCode; // for call by reference
-  if ($i = strpos($payeeAddr, ',')) $payeeAddr = substr($payeeAddr, 0, $i);
-  $payeeAddr = pad($payeeAddr, 40) . sp(40) . pad($a->city, 40) . pad(r\realState($a->state, $a->country), 2) . pad(u\digits($zip), 9);
+  list ($address, $city, $st, $zip) = u\parseAddr($mya->postalAddr);
+  if ($st == 'ER' or !$zip or !$city) return err1099(t('Bad postalAddr for ') . $payeeName);
+  $payeeAddr = pad($address, 40) . sp(40) . pad($city, 40) . pad($st, 2) . pad(u\digits($zip), 9);
   $date = strftime('%Y%m%d', $completed);
   $desc = pad($for, 39);
   $qty = u\lpad(0, 13);
@@ -164,11 +165,14 @@ function lenCheck($rec) {
   $type = substr($rec, 0, 1);
   $reclen = strlen($rec);
   $ideal = 750;
-  if (strlen($rec) != $ideal) {
-/**/ debug("ERROR: $type record #$seq1099 is $reclen chars -- should be $ideal:\n" . breakup($rec));
-    $err1099 = TRUE;
-  }
+  if (strlen($rec) != $ideal) return err1099("ERROR: $type record #$seq1099 is $reclen chars -- should be $ideal:\n" . breakup($rec));
   return $rec;
+}
+
+function err1099($msg) {
+  \drupal_set_message($msg);
+  $err1099 = TRUE;
+  return '';
 }
 
 /**

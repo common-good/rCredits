@@ -51,12 +51,12 @@ Scenario: A newbie registers in Western Massachusetts
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ   |
   Then members:
   | id   | fullName | legalName | email | phone     | postalCode | country | state | city   | flags     | floor | address | postalAddr                | tenure | owns | helper |*
-  | .AAC | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam | confirmed | 0     |    1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ  |
+  | .AAA | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam | confirmed | 0     |    1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ  |
   And we say "status": "your account is ready"
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NEW.AAC | %BASE_URL | %name |
-  And member ".AAC" one-time password is set
+  | Abe One  | abeone | NEW.AAA | %BASE_URL | %name |
+  And member ".AAA" one-time password is set
   #And we show "Empty"
 
 Scenario: A newbie registers with an unconfirmed icard invitation
@@ -66,15 +66,15 @@ Scenario: A newbie registers with an unconfirmed icard invitation
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ |
   Then members:
   | id   | fullName | legalName | email | phone     | postalCode | country | state | city   | flags | floor | address | postalAddr              | tenure | owns | iCode | helper |*
-  | .AAC | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam |       | 0     |   1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 |     5 | .ZZZ   |
+  | .AAA | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam |       | 0     |   1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 |     5 | .ZZZ   |
   And we say "status": "your account is ready"
   And we say "status": "must be confirmed" with subs:
   | inviterName |*
   | Zeta Zot    |
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NEW.AAC | %BASE_URL | %name |
-  And member ".AAC" one-time password is set
+  | Abe One  | abeone | NEW.AAA | %BASE_URL | %name |
+  And member ".AAA" one-time password is set
   And we message "confirm invite" to member ".ZZZ" with subs:
   | fullName | a1 |*
   | Abe One  | ?  |
@@ -88,15 +88,15 @@ Scenario: A newbie registers with an unconfirmed self-invitation
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ   |
   Then members:
   | id   | fullName | legalName | email | phone     | postalCode | country | state | city   | flags | floor | address | postalAddr              | tenure | owns | iCode      | helper |*
-  | .AAC | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam |       | 0     |   1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 | %IBY_SELF | .ZZZ   |
+  | .AAA | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam |       | 0     |   1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 | %IBY_SELF | .ZZZ   |
   And we say "status": "your account is ready"
   And we say "status": "must be confirmed" with subs:
   | inviterName |*
   | Zeta Zot    |
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NEW.AAC | %BASE_URL | %name |
-  And member ".AAC" one-time password is set
+  | Abe One  | abeone | NEW.AAA | %BASE_URL | %name |
+  And member ".AAA" one-time password is set
   And we message "confirm invite" to member ".ZZZ" with subs:
   | fullName | a1 |*
   | Abe One  | ?  |
@@ -109,7 +109,7 @@ Scenario: A newbie registers with a different legal name
   | Abe One   | Abey One | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St., Agawam, MA 01001 |     18 |    1 | .ZZZ   |
   Then members:
   | id   | fullName | legalName | email | phone     | postalCode | country | state | city   | flags     | name    | helper |*
-  | .AAC | Abey One | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam | confirmed | abeyone | .ZZZ   |
+  | .AAA | Abey One | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam | confirmed | abeyone | .ZZZ   |
 
 Scenario: A newbie registers elsewhere
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
@@ -133,7 +133,7 @@ Scenario: A newbie registers with no case
   | abe one  | a@ | 413-253-0000 | 01002      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 | .ZZZ   |
   Then members:
   | id   | fullName | email | phone     | postalCode | state | city    | flags     | floor | postalAddr | helper |*
-  | .AAC | Abe One  | a@ | +14132530000 | 01002      | MA    | Amherst | confirmed | 0     | 1 A ST., Amherst, MA 01001 | .ZZZ   |
+  | .AAA | Abe One  | a@ | +14132530000 | 01002      | MA    | Amherst | confirmed | 0     | 1 A ST., Amherst, MA 01001 | .ZZZ   |
 
 Scenario: A member registers bad email
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
@@ -175,36 +175,36 @@ Scenario: A member registers again
 Scenario: A member registers with an existing company
   Given members:
   | id   | fullName | email | postalCode | phone        | city     | flags        |*
-  | .AAD | Aacme Co | myco@ | 01330      | +14136280000 | Ashfield | co,confirmed |
+  | .AAD | AAAme Co | myco@ | 01330      | +14136280000 | Ashfield | co,confirmed |
   And invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" confirms form "signup/code=c0D3" with values:
   | fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | companyOptions           | address | city    | state | postalAddr                 | tenure | owns | helper |*
-  | Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | Aacme Co | (413)628-0000 | isOwner=>1,contractor=>1 | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 | .ZZZ   |
+  | Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 | isOwner=>1,contractor=>1 | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 | .ZZZ   |
   Then members:
   | id   | fullName | email | postalCode | state | city    | flags     | helper |*
-  | .AAC | Abe One  | a@    | 01002      | MA    | Amherst | confirmed | .ZZZ   |
+  | .AAA | Abe One  | a@    | 01002      | MA    | Amherst | confirmed | .ZZZ   |
   And relations:
   | id   | main | agent | permission | employee | isOwner | draw |*
-  | :AAA | .AAD | .AAC  |            |        0 |       1 |    0 |
+  | :AAA | .AAD | .AAA  |            |        0 |       1 |    0 |
 
 Scenario: A member registers with an unknown company
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" confirms form "signup/code=c0D3" with values:
   | fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | companyOptions | address | city    | state | postalAddr                 | tenure | owns | helper |*
-  | Abe One  | a@    | 413-253-9876 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | Aacme Co | (413)628-0000 | employeeOk=>1  | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 | .ZZZ   |
+  | Abe One  | a@    | 413-253-9876 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 | employeeOk=>1  | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 | .ZZZ   |
   Then members:
   | id   | legalName | email | postalCode | phone        | city    | flags     | helper |*
-  | .AAC | Abe One   | a@    | 01002      | +14132539876 | Amherst | confirmed | .ZZZ   |
+  | .AAA | Abe One   | a@    | 01002      | +14132539876 | Amherst | confirmed | .ZZZ   |
   And no relation:
   | main | agent |*
-  | .AAD | .AAC  |
-  And signup company info for account ".AAC" is remembered
+  | .AAD | .AAA  |
+  And signup company info for account ".AAA" is remembered
 
 Scenario: A member registers with a company with no relation
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" confirms form "signup/code=c0D3" with values:
   | fullName | email | phone        | postalCode | federalId  | dob  | acctType    | company  | companyPhon  | companyOptions | tenure | owns | helper |*
-  | Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | Aacme Co | (413)628-0000 |               |     18 |    1 | .ZZZ   |
+  | Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 |               |     18 |    1 | .ZZZ   |
   Then we say "error": "what relation"
 Skip (requirement relaxed)
 Scenario: A member registers with a missing company
@@ -220,7 +220,7 @@ Scenario: A member registers with a missing company phone
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" confirms form "signup/code=c0D3" with values:
   | fullName | email | phone     | postalCode | federalId   | dob      | acctType    | company  | companyPhon | companyOptions | tenure | owns | helper |*
-  | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | Aacme Co |             | isOwner=>1     |     18 |    1 | .ZZZ   |
+  | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co |             | isOwner=>1     |     18 |    1 | .ZZZ   |
   Then we say "error": "missing field" with subs:
   | field   |*
   | companyPhon |
@@ -238,7 +238,7 @@ Scenario: A member registers with a bad company phone
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" confirms form "signup/code=c0D3" with values:
   | fullName | email  | phone    | postalCode | federalId   | dob      | acctType    | company  | companyPhon | companyOptions | tenure | owns | helper |*
-  | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | Aacme Co | %random      | isOwner=>1    |     18 |    1 | .ZZZ   |
+  | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | %random      | isOwner=>1    |     18 |    1 | .ZZZ   |
   Then we say "error": "bad company phone" with subs: ""
 
 Scenario: A newbie registers from elsewhere

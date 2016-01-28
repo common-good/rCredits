@@ -1,3 +1,41 @@
+2016-01-27
+. version 2.30
+. fixed bug that kept payinvoice from working (needed urlencode)
+. fixed bug that sent "rCredits 1" as the subject for invoices
+. set "apple-mobile-web-app-capable" to no (for now) to prevent 404 errors
+. rewrote Add Community form
+. add 'Or tell your friends "To sign up for rCredits, go to rCredits.org and sign in with this invitation code: WHATEVER2ABC"' to the invitation page.
+. delete all but digits in community EIN
+. hide rTrader bit from cAdmin
+. created community dropdown on Summary page for admin
+. radically revised the way regions and communities are handled (see developer.txt) and changed data on server
+. restricted Whois choices to same community
+. new Send Message page for member-to-member communication
+. implemented ajax confirmation and choices forms for Send Message page
+. replace r_regions
+. delete all region accounts in users except NEW: DELETE FROM users where uid<0 AND name<>'NEW.'
+. create greenfield CGC, sevt, goshen, and a2 CGCs:
+  - rCredits Goshen: 615 College Ave, Goshen, IN 46526  574-202-6977  475318822  ^46|^47 goshen@in.rcredits.org (goshen@rcredits.org)
+  - Better Economics for Neighbors Everywhere: 16 N River Rd, Walpole NH 03608  6172330545  47-4965856 ^05(1|3) bene@vt.rcredits.org (vermont@)
+  - Greenfield Area rCredits / Greenfield Massachusetts rCredits: c/o Common Good Finance, PO Box 21, Ashfield, MA 013300021 413-628-1723  ^013|^010 811209155 (westernmass@)
+  - rCredits Washtenaw County: c/o A. Konner, 1005 Packard St., Ann Arbor, MI 48104  734-726-4264  465193894 ^492|^48 (later ^48(103|104|105|107|108|109|113|115|130|158|175|176|190|191|197|198) washtenaw@mi.rcredits.org (washtenaw@)
+. change accounts: NEW community to greenfield, MIW to a2, INA to goshen, NEV to sevt, and all others to seedpack
+  (in users, r_txs, and r_stats)
+  $cttys = '-26742000000001,-25026000000001,-17238000000001,-26739000000001';
+  $ctty0 = -26742000000001;
+  $map = 'r_stats:ctty,users:community,r_txs:payer,r_txs :payee,r_txs  :payerAgent,r_txs   :payeeAgent,r_boxes:uid,r_log:myid,r_log :agent,r_notices:uid,r_request:ctty';
+  foreach (ray($map) as $table=>$fld) {
+    q("UPDATE $table SET $fld=IF($fld IN ($cttys), $fld-1, $ctty0) WHERE $fld<0");
+  }
+. see who is in the "wrong" community and fix them by hand:
+  eachA(function($a) {
+    $shouldbe = f('r.communityUid', $a->postalCode);
+    if ($shouldbe == $a->community) return;
+    if ($a->ok) {
+      debug ("$a->fullName: ctty=$a->community should be $shouldbe (zip $a->postalCode)");
+    } else $a->update('community', $shouldbe);
+  });
+  
 2016-01-16
 . add extra optional column to payroll upload: description (and use it if specified)
 . rename field savings to savingsAdd

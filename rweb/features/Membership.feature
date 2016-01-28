@@ -24,11 +24,11 @@ Scenario: A member signs in for the first time
   | Dee Four  | d@ | 413-253-0000 | US | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 | 1 A St. | Amherst | MA    |     25 |    0 | 1 A St., Amherst, MA 01002 |
   Then members:
   | id   | fullName | email   | country | postalCode | state | city    | flags     | tenure | risks | helper |*
-  | .AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents | .ZZA   |
+  | .AAA | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents | .ZZA   |
   And we say "status": "your account is ready"
   And we email "welcome" to member "d@" with subs:
   | fullName | name    | quid    | site        | code  |*
-  | Dee Four | deefour | NEW.AAC | %BASE_URL | %name |
+  | Dee Four | deefour | NEW.AAA | %BASE_URL | %name |
 
   When member "?" visits page "reset/id=deefour&code=%name"
   Then we show "Choose a New Password"
@@ -37,7 +37,7 @@ Scenario: A member signs in for the first time
   | %whatever | %whatever | 1      |
 #  | name    | pass      | pass1  | pass2  | pin  |
 #  | deefour | %whatever | Aa1!.. | Aa1!.. | 1234 |
-  Then member ".AAC" is logged in
+  Then member ".AAA" is logged in
   And we show "Account Summary"
   And we say "status": "take a step"
 

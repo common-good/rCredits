@@ -38,9 +38,14 @@ define('T_MSG_FILE', 'test-messages.txt');
  */
 function fixData(&$info, $direct = FALSE) {
   global $rUrl;
-  $fields = 'postalCode country state email phone dob federalId idProof';
+  $fields = 'postalCode country state email phone dob federalId idProof flags adminable';
   extract(u\just($fields, $info));
 
+  foreach (['flags', 'adminable'] as $k) if (isset($$k)) $$k = t\fixFlags($$k);
+  if (isset($adminable)) {
+    for ($i = 0; $i < B_MAX; $i++) if (u\getbit($adminable, $i)) $adminable2[$i] = TRUE;
+    $adminable = @$adminable2 ?: [];
+  }
   if (@$email) $info['email'] = t\fixEmail($email);
   if (@$postalCode or @$country or @$state) {
     u\setDft($country, 'US');
@@ -57,7 +62,9 @@ function fixData(&$info, $direct = FALSE) {
     if (@$dob) $dob = strtotime(str_replace('/', '-', $dob));
   }
 
-  foreach (u\ray('uid inviter invitee person proxy helper') as $k) if (@$info[$k]) $info[$k] = t\uid($info[$k]) ?: 0;
+  foreach (u\just('uid inviter invitee person proxy helper', $info) as $k => $v) {
+    if (strpos($v, '.') !== FALSE or strpos($v, ':') !== FALSE) $info[$k] = t\uid($v) ?: 0;
+  }
   $info = compact(u\ray($fields)) + $info;
 }
 
@@ -160,17 +167,7 @@ function doAccount($info = []) {
     $fixFields = 'rebate fullName legalName name pass email secure community postalCode country postalAddr cardCode cardCode2 photoId ' . $moneyFields;
   } else $fixFields = '';
 
-  if (isset($flags)) {
-    $flags0 = @$flags;
-    $flags = 0;
-    if (@$flags0) foreach (u\ray($flags0) as $one) $flags |= u\bit(u\consta('b', $one));
-    if (!$testOnly) {
-      if ($flags & u\bit(B_OK)) $flags |= u\bit(B_MEMBER);
-//      if ($flags & u\bit(B_DW)) $flags |= u\bit(B_BANK);
-    }
-    
-    if (isset($acctType)) $flags |= (($acctType === R_PERSONAL or $acctType == 'personal') ? 0 : u\bit(B_CO)); // === required
-  }
+  if (isset($flags) and isset($acctType) and $acctType !== R_PERSONAL and $acctType != 'personal') $flags .= ',co';
 
   if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
   
@@ -197,6 +194,18 @@ function doAccount($info = []) {
 
   return $uid;
 }
+
+/**
+ * Interpret flag names
+ */
+function fixFlags($flags) {
+  global $testOnly;
+  
+  $res = 0;
+  if (@$flags) foreach (u\ray($flags) as $one) $res |= u\bit(u\consta('b', $one));
+  if (!$testOnly) if ($res & u\bit(B_OK)) $res |= u\bit(B_MEMBER);
+  return $res;
+}    
 
 /**
  * Fabricate a bogus invoice.
@@ -1138,7 +1147,7 @@ function output($msg, $color = 'error') {
  * Clear out all possible data, so as to start the test fresh
  * @param int $ch: the channel (web, sms, etc.)
  */
-function clear($ch) {
+function clear($ch = 0) {
   include_once __DIR__ . '/admin/admin.inc';
   global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation;
   global $sms_devel; $sms_devel = TRUE;
@@ -1158,8 +1167,8 @@ function clear($ch) {
   foreach (u\ray($tables) as $one) db\q("TRUNCATE $one");
   db\q('UPDATE users SET floor=0,minimum=NULL,r=0,rewards=0,committed=0');
 
-  ctty('aaa')->setBit(B_CGC);
-  ctty('aaa')->setBit(B_UP);
+  ctty('aab')->setBit(B_CGC);
+  ctty('aab')->setBit(B_UP);
 
   t\log('clearing');
   r\acct::_clear(); // empty the acct cache

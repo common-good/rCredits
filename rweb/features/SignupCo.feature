@@ -30,16 +30,16 @@ Scenario: A member registers a company
   Given invitation to email "a@" from member ".ZZC" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&helper=NEW.ZZA&flow=0&isOwner=1&employeeOk=1" with values:
   | fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhon | companyOptions | address | city    | state | postalAddr                 | tenure | owns |*
-  | AAcme Co | aco@ | 413-253-9876 | 01002      | 111-22-0001 | %CO_CORPORATION | | | | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 |
+  | AAAme Co | aco@ | 413-253-9876 | 01002      | 111-22-0001 | %CO_CORPORATION | | | | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 |
   Then members:
   | id   | fullName | email | postalCode | phone        | city    | flags        | floor | helper |*
-  | .AAC | AAcme Co | aco@  | 01002      | +14132539876 | Amherst | co,confirmed |     0 | .ZZA   |
+  | .AAA | AAAme Co | aco@  | 01002      | +14132539876 | Amherst | co,confirmed |     0 | .ZZA   |
   And relations:
   | id   | main | agent | permission | employee | isOwner | draw |*
-  | :AAA | .AAC | .ZZA  | manage     |        1 |       1 |    0 |
+  | :AAA | .AAA | .ZZA  | manage     |        1 |       1 |    0 |
   And balances:
   | id   | r | usd | rewards |*
-  | .AAC | 0 |   0 |       0 |
+  | .AAA | 0 |   0 |       0 |
   And we say "status": "company is ready"
 
 Scenario: A member registers a company while managing another account

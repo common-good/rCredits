@@ -284,7 +284,7 @@ class call {
     } else $where = '(payee=:myid OR payer=:myid)';
 
     if (isset($my_who)) {
-      if (!u\isAcct($acct = be\identify($my_who))) return tt($acct); // return if error
+      if (!u\isAcct($acct = be\identify($my_who, $myid))) return tt($acct); // return if error
       $otherUid = $acct->id;
       $where .= " AND ";
       if (isset($my_tofrom)) {
@@ -330,7 +330,7 @@ class call {
     $where = 'status=:TX_PENDING ORDER BY nvid DESC';
     $fields = 'nvid,amount,payee,created';
     if (isset($who)) {
-      if (!u\isAcct($a = be\identify($who))) return tt($a); // return if error
+      if (!u\isAcct($a = be\identify($who, $myid))) return tt($a); // return if error
       $payee = $a->id;
       $res = db\lookup($fields, 'r_invoices', "payee=:payee AND $where", compact('payee'));
     } else $res = db\lookup($fields, 'r_invoices', $where);
@@ -351,10 +351,11 @@ class call {
   function do_transfer($type) {
     extract(u\just('amount who what', $this->parms));
 
-    $a = be\identify($who);
+    $mya = r\acct();
+
+    $a = be\identify($who, $mya->id);
     if ($a != 'ALL' and !u\isAcct($a)) return tt($a); // return the array if error
 
-    $mya = r\acct();
     $goods = u\forCash($what) ? R_FOR_USD : R_FOR_GOODS;
     
     list ($msg, $args, $confirm) = 

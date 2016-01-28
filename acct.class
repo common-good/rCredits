@@ -67,7 +67,8 @@ class acct {
 
     $stepsDone = r\stepsDone0();
 
-    if (!@$uid) $region = @$postalCode ? r\region(@$country, @$state, @$postalCode) : r\uidRegion($community);
+    if (!@$uid and !@$region) $region = @$postalCode ? -r\region(@$country, @$state, @$postalCode) : -r\uidRegion($community);
+
     $record = compact('uid', 'name');
     
     $DBTX = db_transaction();
@@ -77,14 +78,12 @@ class acct {
       u\setDft($emailCode, r\cardCode(r\quid($uid)));
     }
     
-    if (isset($number)) {
-      $success = SMS\create($number, $uid);
-      unset($info['number']);
-    }
+    if (isset($number)) $success = SMS\create($number, $uid);
 
     list($this->id, $this->agentId) = array($uid, $uid); // finish creating the object
     self::$rs[$this->id] = (object) $record;
 
+    foreach (u\ray('number region') as $k) unset($info[$k]);
     u\preray(compact(u\ray('phone status email pass fullName legalName flags rebate state community created login access emailCode cardCode')), $info); // things we may have added or changed
     $this->update($info); // this is a lot easier to do after saving the record
     unset($DBTX); // commit
@@ -155,7 +154,9 @@ class acct {
     if ($field == 'agent') return acct($a->agentId);
     if ($field == 'proSe') return ($a->id == $a->agentId);
     if ($field == 'qid') return $a->proSe ? $a->mainQid : r\quid($a->id, $a->agentId);
-    if ($field == 'ctty') return ($a->id < 0);
+    if ($field == 'isCtty') return ($a->id < 0); // or ($a->id == $a->community);
+    if ($field == 'isRegion') return (substr($a->name, -1, 1) == '.');
+    if ($field == 'isNormal') return ($a->id > 0);
     if ($field == 'cttyA') return r\acct($a->community ?: r\serverUid());
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'owns') return !$a->risk('rents');
@@ -330,8 +331,7 @@ class acct {
 
     u\preray($info, self::$rs[$a->id]); // cache the new field values
     $info = u\justNot(R_SECURE_FIELDS . ' email ' . R_DATA_FIELDS, $info); // don't pass these
-    $info['uid'] = $a->id; // make sure db\update gets this
-    return db\update('users', $info, 'uid');
+    return db\update('users', $info + ['uid' => $a->id], 'uid');
   }
 
   /**
@@ -383,7 +383,7 @@ class acct {
   function newRelation($other, $permission = 0, $employee = 0, $isOwner = 0, $draw = 0, $reid = NULL) {
     $info = compact('reid') + u\ray('main other permission employee isOwner draw',
       $this->id, $other, $permission, (int) $employee, (int) $isOwner, (int) $draw);
-    return r\regionalInsert('r_relations', 'reid', $info, $this->region);
+    return r\regionalInsert('r_relations', 'reid', $info, -$this->region);
   }
   
   /**
@@ -993,6 +993,24 @@ EOF;
     while ($row = $q->fetchAssoc()) if (r\acct($row['uid'])->address = $address) return TRUE;
     return FALSE;      
   }
+
+  /**
+   * Change the account's community.
+   * @param int $newCtty: the new community uid
+   * @param bool $retro: <change rewards transactions retroactively>
+   * @param string $err: (RETURNED) the error message, if any
+   * @return <success>
+   */   
+  public function changeCtty($newCtty, $retro = FALSE, &$err = '') {
+    $a = $this;
+    if (!db\exists('users', 'uid<1 AND uid=:newCtty', compact('newCtty'))) return !$err = 'bad ctty';
+    
+    $DBTX = \db_transaction();
+    $a->update('community', $newCtty);
+    if ($retro) db\q('UPDATE r_txs SET payer=:newCtty WHERE payee=:myid AND type IN (:TX_REWARDS)', u\ray('newCtty myid', $newCtty, $a->id));
+    unset($DBTX);
+    return TRUE;
+  }
   
   /**
    * Say whether this settings/agent has the permission.
@@ -1011,12 +1029,13 @@ EOF;
       return $can;
     }
 
-    if ($bit == B_CTTYACTIVE or $bit == B_CTTYUP) {
-      if ($a->id < 0) $a = r\acct($a->community);
-      return $a->can($bit == B_CTTYACTIVE ? B_MEMBER : B_OK);
+    if ($bit == B_CTTYUP) {
+      if (!$a->community) return FALSE;
+      $ctty = $a->isCtty ? $a : r\acct($a->community);
+      return $ctty->ok;
     }    
 
-    if ($bit == B_BANK) return $a->risk(K_HASBANK); // might get set after getCan() is called
+    if ($bit == B_BANK) return $a->hasBank; // might get set after getCan() is called
     $can = @self::$perms[$a->id][$a->agentId] ?: $a->getCan();
     return $can[$bit];
   }
@@ -1031,7 +1050,7 @@ EOF;
     
     // collect efficient bits, for reference within this function
     for ($bit = 0; $bit <= B_MAX; $bit++) $can[$bit] = $a->can($bit);
-    foreach ([B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN] as $bit) $can[$bit] = $a->can($bit);
+//    foreach ([B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN] as $bit) $can[$bit] = $a->can($bit);
  
     $can[B_PERSON] = !$can[B_CO];
 

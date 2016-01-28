@@ -68,17 +68,17 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| Dee Four  | d@ | 413-253-0000 | US | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 | 1 A St. | Amherst | MA    |     25 |    0 | 1 A St., Amherst, MA 01002 |"');
     Then_('members: "ASSOC'
     . '\\| id   | fullName | email   | country | postalCode | state | city    | flags     | tenure | risks | helper |'
-    . '\\| .AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents | .ZZA   |"');
+    . '\\| .AAA | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents | .ZZA   |"');
     And__('we say "status": "your account is ready"');
     And__('we email "welcome" to member "d@" with subs: "ASSOC'
     . '\\| fullName | name    | quid    | site        | code  |'
-    . '\\| Dee Four | deefour | NEW.AAC | %BASE_URL | %name |"');
+    . '\\| Dee Four | deefour | NEW.AAA | %BASE_URL | %name |"');
     When_('member "?" visits page "reset/id=deefour&code=%name"');
     Then_('we show "Choose a New Password"');
     When_('member "?" confirms form "reset/id=deefour&code=%name" with values: "ASSOC'
     . '\\| pass1     | pass2     | strong |'
     . '\\| %whatever | %whatever | 1      |"');
-    Then_('member ".AAC" is logged in');
+    Then_('member ".AAA" is logged in');
     And__('we show "Account Summary"');
     And__('we say "status": "take a step"');
   }

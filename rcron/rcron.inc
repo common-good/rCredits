@@ -510,7 +510,7 @@ EOF;
  */
 function cttyStats() {
   r\getStats(0); // for all our communities at once
-  queueEach('cttyStats1', 'SELECT DISTINCT uid AS ctty FROM users WHERE UID<0 AND :IS_CGC');
+  queueEach('cttyStats1', 'SELECT DISTINCT uid AS ctty FROM users WHERE UID<0');
   queueNext();
 }
 

@@ -161,12 +161,12 @@ EOF
   if ($i == 'cashflow-crunch') return t(<<<EOF
     <p>Once your geographic area becomes a Common Good Community, you can together decide to spend, grant, lend, and/or invest some of the US Dollars that members have put into their rCredits accounts, that are sitting unused. Of course you want to be careful not to use ALL of the US Dollars. From time to time, members will want to exchange some of their rCredits for US Dollars, to pay companies and individuals not yet participating in the rCredits system. There need to be enough US Dollars in reserve to cover the likely amount of those withdrawals.</p>
 
-    <p>If you and your community misjudge and use too much of your US Dollar reserve, you will have a cashflow crunch until more US Dollars come in. There are many ways to handle this situation. For example, you might ask members who can, to add funds to their rCredits account. Or you might get a short-term loan from a traditional bank or credit union. It will be up to you and your community to choose what to do.</p>
+    <p>If you and your community misjudge and use too much of your US Dollar reserve, you will have a cash flow crunch until more US Dollars come in. There are many ways to handle this situation. For example, you might ask members who can, to add funds to their rCredits account. Or you might get a short-term loan from a traditional bank or credit union. It will be up to you and your community to choose what to do.</p>
 EOF
   ) . $back;
 
   if ($i == 'backing-rcredits') return t(<<<EOF
-    <p>rCredits are backed by all rCredits members together. Backing rCredits means you will accept at least <i>a limited amount</i> of them as payment for your goods and services (or trade US Dollars for them) even if, at that time, you cannot easily spend them or easily exchange them for US Dollars. For example, if your average balance over the past six months is $200, you agree to back rCredits up to $200. Then if your community has a <!aCrunch>cashflow crunch</a>, you have agreed to keep accepting rCredits as payment for your goods and services at least until your balance goes over $200.</p>
+    <p>rCredits are backed by all rCredits members together. Backing rCredits means you will accept at least <i>a limited amount</i> of them as payment for your goods and services (or trade US Dollars for them) even if, at that time, you cannot easily spend them or easily exchange them for US Dollars. For example, if your average balance over the past six months is $200, you agree to back rCredits up to $200. Then if your community has a <!aCrunch>cash flow crunch</a>, you have agreed to keep accepting rCredits as payment for your goods and services at least until your balance goes over $200.</p>
 
     <p>Like the Federal Reserve's backing for US Dollars held as bank deposits, backing for rCredits helps prevent unfounded fears from causing a "run on the bank". Since we all make this agreement together, we can rest assured that even in a crisis rCredits will maintain their value.</p>
 EOF
@@ -180,7 +180,7 @@ EOF
 , ['!aReserve' => 'a href="savings-reserve"']) . $back;
 
   if ($i == 'savings-reserve') return t(<<<EOF
-    <p><b>Background.</b> It is crucial to the success of the rCredits system that most of the rCredits issued as incentive rewards stay in the system and keep circulating in the community. While the system is small, it is a bit frail in that regard, so we need to be extra careful to make sure there is no "<!aCrunch>cashflow crunch</a>" at least until we are ready to handle it as a strong, well-functioning democratic rCredits community.</p>
+    <p><b>Background.</b> It is crucial to the success of the rCredits system that most of the rCredits issued as incentive rewards stay in the system and keep circulating in the community. While the system is small, it is a bit frail in that regard, so we need to be extra careful to make sure there is no "<!aCrunch>cash flow crunch</a>" at least until we are ready to handle it as a strong, well-functioning democratic rCredits community.</p>
 
     <p><b>Your Savings Reserve.</b> So we divide your account into two pieces: your Primary Balance and your Savings Reserve. Your incentive rewards go into the Savings Reserve automatically, to encourage you to keep them in the system until you need them. This is like a traditional reserve credit line that kicks in whenever you would otherwise overdraw your checking account &mdash; except there are no fees here. You can spend those reserved funds any time, simply by letting your Primary Balance go negative.</p>
 
@@ -329,7 +329,7 @@ EOF
     </ol>
     <p>The total funds in the rCredits system (the total under our control as a community) is the Sum of the rCredits (circulating or sitting) and the US Dollars.</p>
     <p>* The distinction between "savings" and rCredits that are actually being used is important. The value of rCredits, like any currency, is what you can get for them. When you save your rCredits funds for spending a month or more in the future, it probably means you are confident (1) that you will be able to spend them within the rCredits system OR (2) that you will be able to trade them for US Dollars because other members can spend them within the system. So savings are a <em>speculative</em> <a href="@BASE_URL/help/demand">demand</a> for rCredits, rather than a demand based in current reality. The speculation may indeed be accurate, but <a href='velocity'>circulation velocity</a> and <a href='demand'>net monthly influx of US Dollars</a> are stronger measures of the system's capacity for additional rCredits.</p>
-    <p>** <b style='color:white; background-color:darkred;'>Top 5</b>. Balanced participation among many members maximizes the system's predictability and protects against a cashflow crunch. Expect the "Top 5" line to level off as the system grows.</p>
+    <p>** <b style='color:white; background-color:darkred;'>Top 5</b>. Balanced participation among many members maximizes the system's predictability and protects against a cash flow crunch. Expect the "Top 5" line to level off as the system grows.</p>
 EOF
   ) . $back;
 

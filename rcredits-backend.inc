@@ -440,7 +440,7 @@ function invoice($a1, $a2, $amount, $goods = R_FOR_USD, $purpose = NULL, $oked =
 
     $subs['a1'] = $a1->makeDo('inv', $nvid); // link to pay/deny
     //$a2->update(u\ray('lastTx', array($nvid, $payee - $payer, round($amount, 2), $created, 'inv')));
-    r\message($payer, 'new invoice', $subs, TRUE); // tell other party by email about this invoice
+    r\message($payer, 'new invoice', $subs); // tell other party by email about this invoice
     $msg = 'report tx' . ($amount > 0 ? '|balance unchanged' : '');
     return array($msg, $subs + ['success'=>TRUE], FALSE);
   } else return array('charge', $subs, TRUE);
@@ -511,7 +511,7 @@ function deleteCell($number) {
 }
 
 /**
- * Figure out who the user meant.
+ * Figure out who the user meant. Only OK people in the user's community are eligible (except admin sees all).
  *
  * @param string $who: how the user referred to the trader (name, phone, email, uid, or temporary code)
  * @param string $self_message: index to error message for identifying oneself
@@ -519,16 +519,15 @@ function deleteCell($number) {
  * @return one of the following:
  *   the other trader's acct
  *   array(error index, array of substitutions, array of possible fullNames (0 or more) indexed by uid)
- *   (the caller can test which type of return, with "if (isAcct($returned_value))
  */
-function identify($who, $self_message = 'no self-trading') {
+function identify($who, $myid, $self_message = 'no self-trading') {
   $create = FALSE; // not currently used
   $who = trim($who);
-  $myid = r\acct()->id;
+  if (!$mya = r\acct($myid)) return ['search forbidden', [], []];
 
   if ($phone = u\fmtPhone($who, '+n')) {
     $who = $phone; $cphone = u\cryptN($phone);
-  } else $cphone = '(none)';
+  } else $cphone = '-';
   
   $quid = strtoupper($who); // in case this is a quid (abbreviated or not)
   if (preg_match('/^([A-Z]{3})?[\.\:=][A-Z]{3,4}( |$)/i', $quid, $match)) { // allow quids or abbrevs within this region
@@ -542,26 +541,27 @@ function identify($who, $self_message = 'no self-trading') {
     return $acct; // qids are easy
   }
 
-  if (($short = u\shortName($who)) === '') $short = '-'; // abbreviations must not be null
-  $cmail = strpos($who, '@') ? u\cryptN($who) : '(none)';
+  if (!$short = u\shortName($who)) $short = '-'; // abbreviations must not be null or zeroes
+  $cmail = strpos($who, '@') ? u\cryptN($who) : '-';
+
+  $cttyCrit = $mya->admin ? '' : "AND community=$mya->community";
   
   $sql = <<<EOF
-    SELECT DISTINCT u.uid,u.fullName
-    FROM users u LEFT JOIN r_boxes s ON u.uid = s.uid 
-    WHERE (:who=s.code OR INSTR(u.name, :short) OR (!:IS_NOSEARCH AND (:cphone=u.phone OR :cmail=u.mail)))
-    AND u.uid>0
-    ORDER BY u.fullName
+    SELECT DISTINCT uid,fullName
+    FROM users 
+    WHERE (INSTR(name, :short) OR (!:IS_NOSEARCH AND (:cphone=phone OR :cmail=mail)))
+    AND uid>1 AND :IS_OK $cttyCrit
+    ORDER BY fullName
 EOF;
 
-  $result = db\q($sql, compact(u\ray('who short cphone cmail')))->fetchAllKeyed(0, 1);
-  if (count($result) == 1) {
-    if (@$result[$myid]) return [$self_message, [], []];
-    return r\acct(key($zot = $result)); // get the one entry (zot resets the pointer)
-  } else unset($result[$myid]); // self is one of many results, so ignore it
+// LEFT JOIN r_boxes s ON u.uid = s.uid ... OR :who=s.code (search for cell not allowed if it isn't the account's primary phone)
 
-  $msg = $result ? 'ambiguous other' 
-  : ('unknown member' . ((u\starts($cphone, CRYPTN_FLAG) or u\starts($cmail, CRYPTN_FLAG)) ? '|no search' : ''));
-  return [$msg, compact('who'), $result];
+  $result = db\q($sql, compact(u\ray('short cphone cmail')))->fetchAllKeyed(0, 1);
+  if (count($result) == 1 and @$result[$myid]) return [$self_message, [], []];
+  unset($result[$myid]); // self is one of many results, so ignore it
+  if (count($result) == 1) return r\acct(key($zot = $result)); // get the one entry (zot resets the pointer)
+  if (!$result) return 'unknown member' . ("$cphone$cmail" == '--' ? '' : '|no search');
+  return ['ambiguous other', compact('who'), $result];
 }
 
 /**

@@ -211,6 +211,7 @@ function formSeeChanges($form, &$sta, $qid = '') {
       $date = u\fmtDate($dt);
       foreach ($info as $k => $v) {
         $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, $a->$k);
+        while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
         $rec[$k] = $oldValue = a\formatField($k, $v);
         $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";
       }
@@ -248,23 +249,29 @@ function formTestRecovery($form, &$sta, $doSay = FALSE) {
  * Create a new community or region.
  */
 function formMakeCtty($form, &$sta) {
-  $title = item(t('Make a New Community or Region'));
-  $region = textFld(t('Region Code:'), t('3-letter region code (for communities within a region, leave this blank)'));
-  $zips = textFld(t('Zip Regex:'), t('Type a regular expression for all zipcodes to be included in the community or region. For example, ^013|01002 would include all zipcodes starting 013 plus zipcode 01002.'));
-  $postalAddr = textFld(t('Postal Address:'), t('Where does the post office send your mail (usually)?'), required(@$postalAddr));
+  $title = item(t('Make a New Community'));
+  $subtext = item(t('<p>Typically the name of an rCredits community is the place name followed by "rCredits"; for example, "<b>Greenfield Area rCredits</b>". Legal names should include the state (for disambiguation), spelled out; for example, "Greenfield Massachusetts rCredits".</p><p>By contrast, region names begin with "rCredits"; for example, "<b>rCredits Western Mass</b>".</p><p>Email should reflect the legal name, for example "<b>greenfield@westernmass.rcredits.org</b>".</p>'));
+  $region = textFld(t('Region:'), [t('Region code'), t('3-letter code of community\'s region')]);
+  $zips = textFld(t('Zip Regex:'), [t('Zipcodes to include'), t('Type a regular expression for all zipcodes to be included (by default) in the community. For example, ^013|01002 would include all zipcodes starting 013 plus zipcode 01002. Individual members can also be moved manually in or out of this community.')]);
+
+  // from w\contactFields
+  $phone = textFld(t('Phone:'), [t('Contact phone number')], required(@$phone ? u\fmtPhone($phone): ''));
+  $postalAddr = textFld(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
+
   $submit = submit();
   
-  $form = compact(u\ray('title subtext zips region')) + nameAndEmail(t('Community'))
-         + ssnFields(FALSE) + contactFields(['zot'=>0], FALSE) // prevent contact fields from defaulting
-         + compact('postalAddr', 'submit');
+  $form = compact('title', 'subtext') + nameAndEmail(t('Community')) + ssnFields(FALSE)
+    + compact(u\ray('phone postalAddr region zips submit'));
+//         + ssnFields(FALSE) + contactFields(['zot'=>0], FALSE) // prevent contact fields from defaulting
+//  foreach (u\ray('tenure owns') as $k) unset($form[$k]);
   return labeled($form);
 }
 
 function formMakeCtty_validate($form, &$sta) {
   $mya = r\acct();
   $myid = $mya->id;
-  extract(u\normalizeCase(u\just($normals = 'fullName legalName city address postalAddr', $sta['input'])));
-  extract(u\just('zips region email phone country state postalCode', $sta['input']));
+  extract(u\normalizeCase(u\just($normals = 'fullName legalName postalAddr', $sta['input'])));
+  extract(u\just('zips region email phone federalId', $sta['input']));
 
   if (preg_match("~$zips~", null) === false) return say(t('bad Zips REGEX'), 'zips');
   if ($region and !preg_match('/[A-Z]{3}/i', $region)) return say(t('bad region code'), 'region');
@@ -273,48 +280,38 @@ function formMakeCtty_validate($form, &$sta) {
   foreach (u\ray('fullName legalName') as $field) {
     if ($err = u\badName($$field)) return say($err, compact('field'), $field);
   }
-
   if (!emailOkay($email, $mya->id)) return; 
-  if (!phoneOk($phone, $country, FALSE, 'makectty')) return;
-  if (stripos(@$address, ' box ') or stripos(@$address, 'pob ') !== FALSE) say('po in location', 'address');
+  if (!phoneOk($phone)) return;
+//  $name = strtolower(substr($email, 0, strpos($email, '@')));
+  $name = u\shortName($fullName);
+  if ($otherName = db\lookup('fullName', 'users', 'name=:name', compact('name'))) return say('shortname taken', compact('otherName'), 'fullName');
+//  $name = r\uniqueName($fullName);
 
-  if ($region) {
-    $region = strtoupper($region);
-    $stateAbbrev = r\realState($state, $country);
-    if (!u\abbreviates($stateAbbrev, $region)) return say(t('Region code should start with state abbreviation (@state).', u\ray('@state', $stateAbbrev)), 'region');
-    if (db\exists('r_regions', 'region=:region', compact('region'))) return say(t('That region already exists.'), 'region');
-    $uid = r\region($country, $state, $postalCode);
-    $name = $region . '.';
-  } else {
-    $uid = db\lookup('MIN(uid)-1', 'users');
-    $name = u\shortName($fullName);
-  }
-  if (db\exists('users', 'name=:name', compact('name'))) return say('shortname taken', u\ray('otherName', $name), 'fullName');
+  if ($err = u\badSsn($federalId)) return say($err, ['what' => 'federalId'], 'federalId');
   
-  u\preray(compact(u\ray($normals . ' email phone uid name region')), $sta['input']); // fix formatting
+  $region = strtoupper($region);
+  if (!db\exists('r_regions', 'region=:region', compact('region'))) return say(t('That region does not exist.'), 'region');
+
+  u\preray(compact(u\ray($normals . ' name email phone region federalId')), $sta['input']); // fix formatting
 }
 
 function formMakeCtty_submit($form, &$sta) {
-  $dbFields = 'uid name fullName legalName email flags phone faxetc federalId address country state city postalCode postalAddr'; // had verifyBy
-  extract(u\just('zips region ' . $dbFields, $sta['input']));
+  $fields = 'name fullName legalName email phone federalId postalAddr';
+  extract(u\just('zips region ' . $fields, $sta['input']));
 
+  $postalCode = $zips; // store the regex defining the region or community
   $flags = u\bit(B_CO) | u\bit(B_OK);
-  $administer_users = FALSE; // for testing (keep Drupal from griping)
-  $status = 1;
+  $rebate = 0;
+  $country = R_COUNTRY_ID;
+  $region = -r\unQuid($region . '.AAA');
+  $fields .= ' postalCode flags rebate region country';
 
   $DBTX = \db_transaction();
-
-  $stateAbbrev = r\realState($state, $country);
-  if ($region) db\insert('r_regions', u\ray('region state zips', $region, $stateAbbrev, $zips));
-
-//  $verifyBy = verifyBy(@$verifyBy);
-  $postalCode = $zips; // store the regex defining the region or community
+  $info = compact(u\ray($fields)) + acctType(CO_PARTNERSHIP);
   
-  $info = compact(u\ray($dbFields)) + acctType(CO_PARTNERSHIP) + u\ray('community rebate', $uid, 0);
-  $info = u\normalizeCase(u\just('fullName city address', $info)) + $info;
-
   if (!$a = new r\acct($info)) return say('cannot create account', 'zot');
-
+  $a->update('community', $a->id);
+  
   unset($DBTX); // commit
   say('info saved');
 }

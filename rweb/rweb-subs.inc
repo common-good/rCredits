@@ -76,6 +76,7 @@ EOF
   'expired invite converted' => t('Your invitation has expired, so @inviterName will be asked to re-confirm.'),
   'new savings balance' => t('<p>IMPORTANT! Your rCredits balance has been split to include a Savings Reserve containing your incentive rewards. Read <@a>last week\'s rCredits newsletter</a> for details.</p>', ['@a' => 'a href=http://us9.campaign-archive1.com/?u=b1d89f860859e1d9b906fa0b0&id=f1f54edd80&e=']),
   'minimum zeroed' => t('<p>Your rCredits "minimum" has been set to zero, to prevent any unintended transfer from your bank account. To choose a new minimum balance or transfer funds manually, sign in to your account at rCredits.org OR <@a1>click here</a> to set your minimum back to @suggested.</p>'),
+  'sent message' => t('Your message has been sent to @fullName.'),
   
   // prompts
   'note' => '<b class="loud">' . t('NOTE:') . '</b>',
@@ -370,11 +371,11 @@ function rendForm($form) {
   return str_replace('rcreditswebform', 'r-', u\tagN('form', $guts, $form['#attributes']));
 } 
 
-function NEWlabeled($form, $labeled = TRUE) {
+function NEWlabeled($form, $onSubmit = '', $labeled = TRUE) {
   $form['#attributes']['class'][] = $labeled ? 'form-horizontal' : 'form-vertical';
   foreach ($form as $k => $v) if (substr($k, 0, 1) != '#') {
 //    $form[$k]['#tabled'] = TRUE;
-//    if (@$form[$k]['#type'] == 'fieldset') $form[$k] = labeled($form[$k], $level + 1);
+//    if (@$form[$k]['#type'] == 'fieldset') $form[$k] = labeled($form[$k], $onSubmit, $level + 1);
     $all[$k] = $v;
     unset($form[$k]);
   }
@@ -382,7 +383,8 @@ function NEWlabeled($form, $labeled = TRUE) {
   return $form;
 }
 
-function labeled($form, $labeled = TRUE, $level = 0) {
+function labeled($form, $onSubmit = '', $labeled = TRUE, $level = 0) {
+  if ($onSubmit) $form['#attributes']['onsubmit'] = $onSubmit; // eg ' return func();';
   $form['#attributes']['class'][] = $labeled ? 'form-horizontal' : 'form-vertical';
   foreach ($form as $k => $v) if (substr($k, 0, 1) != '#') {
     $form[$k]['#tabled'] = TRUE;
@@ -1256,7 +1258,7 @@ function ssnFields($personal = TRUE) {
  * @param string $form: the current form name, all lowercase, without "form" (in case of duplicate phone).
  * @return TRUE if the phone number is acceptable
  */
-function phoneOk(&$phone, $country, $form = '') {
+function phoneOk(&$phone, $country = US_COUNTRY_ID, $form = '') {
   $myid = @r\acct()->id ?: 0;
   if (!$phone = u\fmtPhone($phone, '+n')) return say('bad phone', 'phone');
   if ($country == US_COUNTRY_ID and strlen($phone) != 12) return say('bad phone', 'phone');
@@ -1756,7 +1758,7 @@ function detour($detour_via, $detour_args, $whence = '', $modal = TRUE) {
  *   no return (refreshes page) if ambiguous
  */
 function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
-  if (u\isAcct($result = be\identify($who, $selfMsg))) return $result;
+  if (u\isAcct($result = be\identify($who, r\acct()->id, $selfMsg))) return $result;
 
   list ($msg, $args, $choices) = $result;
   foreach (u\ray('form_build_id form_token form_id op') as $one) unset($info[$one]); // just for neatness
@@ -2064,7 +2066,10 @@ function fundStats($stats, $includeRaw = FALSE, $format = 's$') {
   $usd = $bankIn - $bankOut;
 
 //  foreach (u\ray('bankInPerMo bankOutPerMo r usd total signups inflations helpers txRewards grants loans fines') as $one) {
-  $res['ctty'] = $ctty ? trim(strtr(r\acct($ctty)->fullName, [t('Region')=>'', t('rCredits')=>''])) : t('TOTAL');
+  if ($ctty) { // a community
+    $cttyA = r\acct($ctty);
+    $res['ctty'] = $ctty == r\serverUid() ? t('Seedpack (Outliers)') : trim(strtr($cttyA->fullName, [t('Region')=>'', t('rCredits')=>'']));
+  } else $res['ctty'] = t('TOTAL');
   foreach (u\ray('r usd trade signups txRewards helpers inflations spent grants loans invests fines') as $one) {
     if ($includeRaw) $res[$one . '0'] = $$one;
     $res[$one] = u\fmtAmt($$one, $format);
@@ -2141,14 +2146,15 @@ function userMenuItem($router_path, $link_title) {
 /**
  * Consolidate or extract hidden fields.
  */
-function hidFlds($ray) {return is_array($ray) ? hidFld(serialize($ray)) : unserialize($ray);}
+function hidFlds($ray) {return is_array($ray) ? hidFld(urlencode(serialize($ray))) : unserialize(urldecode($ray));}
 
 /**
  * Send an invitation to the email and optionally report it.
  */
 function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   $mya = r\acct();
-  if ($admin = $mya->admin) $mya = r\acct(R_ADMIN_QID); // use William for admin invites
+  $admin = $mya->admin;
+//  if ($admin = $mya->admin) $mya = r\acct(R_ADMIN_QID); // use William for admin invites
   
   if (!$dupsOk) { // applies only to community admins
     $cemail = u\cryptN($email);

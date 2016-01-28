@@ -1,8 +1,8 @@
 /* CSS specific to rCredits members site */
 
 @keyframes puff {
-    from {font-size:0%;}
-    to {font-size:100%;}
+    from {opacity:0; font-size:0%;}
+    to {opacity:1; font-size:100%;}
 }
 
 @font-face {
@@ -17,6 +17,11 @@
   -ms-transform: translateY(-50%);
   transform: translateY(-50%);
 }
+
+.modal-dialog {margin-top:60px;}
+.modal-dialog .modal-body {background-color:darkgreen; color:white;}
+.ui-dialog-titlebar-close {display:none;}
+.which .ui-dialog-titlebar-close {display:block; color:darkgray; font-size:125%; padding-left:0; line-height:0;}
 
 /* .element p {
   @include vertical-align();
@@ -89,7 +94,7 @@ textarea.form-control {height:100px;}
 .form-vertical .control-data {width:100%;}
 .form-vertical .ladda-button {margin-left:0;}
 
-@media (max-width:640px) {
+@media (max-width:768px) {
   .control-label {width:100%; padding-left:15px; text-align:left;}
   .control-data {width:100%; padding-top:0 !important;}
   .ladda-button {margin-left:0;}
@@ -99,8 +104,6 @@ textarea.form-control {height:100px;}
   #rcreditswebformhelp .control-data {width:100% !important;}
 }
 
-/* #which {display:block; visibility:visible;} */
-#which {z-index:99999;}
 #which option:hover {background-color:#7CC6F0;}
 .modal-body {background-color:midnightblue; padding:5px 30px;}
 .ladda-spinner:focus {} /* dunno why this has a rounded blue border when it has the focus */
@@ -110,9 +113,9 @@ textarea.form-control {height:100px;}
 .form-horizontal .radio, .form-horizontal .radio-inline {margin-left:0; margin-right:15px;}
 
 table {font-size:85%;}
-table tr th {background: #757575; color:white; border-bottom-style: none;}
-table tbody tr th {vertical-align: top;}
-tr td, tr th {padding: 4px 9px; border: 1px solid #fff; text-align: left;}
+th {background: #757575; color:white; border-bottom-style: none;}
+tbody th {vertical-align: top;}
+td, th {padding: 4px 9px; border: 1px solid #fff; text-align: left;}
 tr, tr.even {background: #e8f0f0;}
 tr.odd {background: #e4e4e4;}
 
@@ -305,6 +308,7 @@ body.logged-in.one-sidebar #content {width:100%;}
 #rcreditswebformsummary  label[for="edit-risks"],
 #rcreditswebformsummary  label[for="edit-adminable"] {display:inline-block;}
 #rcreditswebformsummary .noEdit {margin-left:-7px; padding-left:7px; background-color:#e0e0ff;}
+#rcreditswebformsummary #edit-clickPhoto .control-data {font-size:78%; background-color:lightcyan; width:auto; border-radius:15px;}
 
 /* Pay/Charge/Tx */
 
@@ -331,6 +335,17 @@ body.logged-in.one-sidebar #content {width:100%;}
 /* Bank (Get) */
 #rcreditswebformget #edit-get {margin-right:70px;}
 
+/* TaxInfo 1099-B */
+#f1099b td:first-child {width:60px;} /* date */
+#f1099b td:first-child +td {min-width:75px;} /* amount */
+#f1099b td:first-child +td+td {min-width:200px;} /* account */
+#f1099b .num {text-align:right;}
+#rcreditswebformtaxinfo #edit-posttext p {font-size:80%;}
+#rcreditswebformtaxinfo #summary {width:auto;}
+#rcreditswebformtaxinfo #summary .count {text-align:center;}
+#rcreditswebformtaxinfo #summary .amount {text-align:right;}
+#rcreditswebformtaxinfo #taxes b {color:red;}
+
 /* Options (Preferences) */
 /* #rcreditswebformoptions .form-item-payHow {border-top:1px solid darkgreen; padding-top:5px;} */
 #rcreditswebformpreferences #edit-posttext {font-size:80%;}
@@ -347,17 +362,18 @@ body.logged-in.one-sidebar #content {width:100%;}
 
 /* Company Info */
 #rcreditswebformcompany fieldset#edit-help-block-format {background-color:lightblue; max-width:45em;}
-#rcreditswebformcompany.labeled fieldset#edit-description-format {margin-left:8em;}
-#rcreditswebformcompany fieldset#edit-description-format .fieldset-wrapper {margin:0;}
-#rcreditswebformcompany textarea {border-color:lightblue; max-width:45em;}
 #rcreditswebformcompany #permissions {display:inline-block;}
 #rcreditswebformcompany #permissions table {width:auto;}
 #rcreditswebformcompany #permissions td {text-align:center;}
 #rcreditswebformcompany #permissions #perm-head td {background-color:white;}
+#rcreditswebformcompany .form-item-description label {margin-right:15px;}
 .filter-wrapper {
-  margin:-15px auto 20px auto;
+  /*margin:-15px auto 20px auto;*/
+  max-width:500px; width:500px;
   top: 0;
   padding:0 10px;
+  background-color:lightyellow;
+  border:1px solid darkgreen;
   -moz-border-radius-topright: 0;
   -moz-border-radius-topleft: 0;
   border-top-left-radius: 0;
@@ -365,7 +381,11 @@ body.logged-in.one-sidebar #content {width:100%;}
 }
 .filter-wrapper a {float:right; font-size:90%;}
 .filter-wrapper li {font-size:90%; margin-left:-10px;}
-.filter-wrapper .control-label {padding:0 12px 0 0;}
+.filter-wrapper .control-label {min-width:112px; padding:0 12px 0;}
+@media (max-width:768px) {
+  #rcreditswebformcompany .filter-wrapper {margin-left:15px;}
+ .filter-wrapper .control-label {min-width:auto; width:auto;}
+}
 
 /* Profile (member web page) */
 #rcreditswebformprofile {font-family:Arial;}

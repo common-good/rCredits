@@ -95,6 +95,7 @@ function rweb_menu($submenu = '') {
     'community' => ['norm', t('Community'), 'Community', 'anyone'],
     'community/agreement' => ['sub', t('The Agreement'), 'Agreement', 'anyone', '', t(''), 'globe'],
     'community/invite' => ['sub', t('Invite Someone'), 'Invite', 'member manage', '', t(''), 'share-alt'],
+    'community/message' => ['sub', t('Message a Member'), 'Message', 'member manage', '', t(''), 'envelope'],
     'community/find-company' => ['sub', t('Find a Company'), 'FindCo', 'anyone', '', t(''), 'search'],
     'community/donate' => ['sub', t('Donate'), 'Donate', 'manage', '', t(''), 'thumbs-up'],
     'community/funds' => ['sub', t('Funds in Each Community'), 'CttyFunds', 'anyone', '', t(''), 'usd'],
@@ -106,16 +107,16 @@ function rweb_menu($submenu = '') {
     'community/invite/invited-whom' => ['call', 'Invited Whom', 'InvitedWhom', 'manage'],
     'community/invite/waiting' => ['call', 'Waiting', 'Waiting', 'manage'],
     
-    'settings' => ['norm', t('Settings'), 'Settings', 'manage'],
+    'settings' => ['norm', t('Settings'), 'Settings', 'manage -closed'],
 //    'settings/settings' => ['dft', t('Settings'), 'Settings', 'manage'],
     'settings/contact' => ['sub', t('Contact Info'), 'Contact', 'manage', '', t(''), 'user'],
     'settings/preferences' => ['sub', t('Preferences'), 'Preferences', 'manage', '', t(''), 'cog'],
-    'settings/security' => ['sub', t('Security'), 'Security 2', 'manage person', '', t(''), 'link'],
+    'settings/security' => ['sub', t('Security'), 'Security 2', 'manage -co', '', t(''), 'link'],
     'settings/bank' => ['sub', t('Bank Info'), 'Bank 2', 'manage', '', t(''), 'piggy-bank'],
     'settings/company' => ['sub', t('Company Info'), 'Company 2', 'manage co', '', t(''), 'calendar'],
     'settings/relations' => ['sub', t('Relations'), 'Relations', 'manage', '', t(''), 'magnet'],
 // DISABLE FOR NOW    'settings/boxes' => ['sub', t('Devices'), 'Boxes', 'manage', '', t(''), 'phone'],
-    'settings/proxies' => ['sub', t('Proxies'), 'Proxies', 'manage person', '', t(''), 'thumbs-up'],
+    'settings/proxies' => ['sub', t('Proxies'), 'Proxies', 'manage -co', '', t(''), 'thumbs-up'],
     'settings/zot' => ['sub', 'zot', '', 'anyone'], // Drupal bug: last choice is omitted
 
     'reset' => ['call', t('Choose New Password'), 'ResetPassword 1', 'anyone'],

@@ -66,14 +66,18 @@ function adminSummary($a, $cAdmin = FALSE) {
 
   $uid = $a->id;
   $self = ($uid == $mya->agent->id);
+  $ctty = $a->community;
   
-  if ($a->ctty) { // managing the community itself
-    $ctty = $a->community;
-    $count = item(db\count('users', 'community=:ctty AND uid<>:ctty', compact('ctty')), t('Members:'));
-  } else { // managing some individual community member account
+  if ($a->isNormal) { // managing some individual community member account
     if (!$a->ok) $a->nextStep(); // update Dwolla status
     if ($cAdmin) {
       $photo = item($mya->photoHtml(TRUE, TRUE));
+      if ($admin) {
+        $cttys = a\cttys($a->region);
+//        if (!@$cttys[$ctty]) u\preray([$ctty => $a->cttyA->fullName . t(' (outside the region)')], $cttys);
+        $cttys[r\serverUid()] .= t(' (outside any rCredits community)');
+        $community = selectFld(t('Community:'), '', dft($ctty), $cttys);
+      }
       $donations = db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
       if ($donationInfo = db\lookup('often,honor,honored', 'r_gifts', 'uid=:uid', compact('uid'))) {
         extract($donationInfo);
@@ -105,13 +109,15 @@ function adminSummary($a, $cAdmin = FALSE) {
     $invitedBy = item($invitedBy . db\lst('fullName', 'r_invites i LEFT JOIN users u ON u.uid=i.inviter', 'invitee=:uid', compact('uid')), t('Invited by:'));
     $proxies = item(db\lst('fullName', 'r_proxies p LEFT JOIN users u ON u.uid=p.proxy', 'p.person=:uid ORDER BY priority', compact('uid')), t('Proxies:'));
     $proxyFor = item(db\count('r_proxies', 'proxy=:uid', compact('uid')), t('Proxy for:'));
+  } else { // managing the community itself
+    $count = item(db\count('users', 'community=:ctty AND uid<>:ctty', compact('ctty')), t('Members:'));
   }
-
+  
   if ($cAdmin and !$self) {
     include __DIR__ . '/../rweb/risk-descs.inc';
 
     $legalName = textFld(t('Legal Name:'), '', required($a->legalName));    
-    $rTrader = $a->ctty
+    if ($admin) $rTrader = ($a->isCtty)
     ? boolFld(t('Ctty Up?'), '', $a->ok)
     : boolFld(t('rTrader?'), t('Is account approved to use rCredits? -- member, <@a>good photo</a>, ss# checks out, set risks and mediaConx', array('@a' => "a href=$base_url/settings/security/photo?" . rand())), $a->ok);
     if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
@@ -144,12 +150,10 @@ function adminSummary($a, $cAdmin = FALSE) {
       $blist[] = $k0 = $k;
       // $helpIndex = $helpKeys[$k];
       $class = in_array($k, $adminable) ? '' : 'noEdit';
-      if ($k == 'member' and $a->ctty) $k = t('cttyActive');
       $aliases[$k0] = "<div class=\"$class\">$k</div>";
     }
     $adminable = bitsFld(t('Flags:'), $a->flags, 'b', join(' ', $blist), $aliases);
-//    $adminable2 = bitsFld('adminable', t('Other bits:'), $a->flags, 'b', B_ADMINABLE . ($admin ? ' admin' : ''), $a->ctty ? array('member' => t('cttyActive')) : NULL);
-    
+
     $who = textFld(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
   }      
 
@@ -185,9 +189,29 @@ EOF;
   if ($mya->can(B_CADMIN2)) $submit = submit(t('Go'));    
 
   $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
-  $uid = hidFld($uid);
 
-  return compact(u\ray('photo donations cgfDonations federalId legalName calling tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
+  $js = <<<EOF
+$('#edit-community').on('change', function() {
+  var newCtty = this.value;
+  yesno('Change rewards transactions retroactively?', 
+    function() {changeCtty(newCtty, true);},
+    function() {changeCtty(newCtty, false);}
+  );
+});
+
+function changeCtty(newCtty, retro) {
+  post('changeCtty', {uid:$uid, newCtty:newCtty, retro:retro}, function(j) {
+//    var jo = JSON.parse(j);
+    if (!j.ok) $.alert(j.message, 'Error');
+    //JSON.stringify(j, null, 2)
+  });
+}
+EOF;
+  js($js);
+
+  $uid = hidFld($uid); // must postcede js (which uses uid)
+  
+  return compact(u\ray('community photo donations cgfDonations federalId legalName calling tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
 }
 
 /**

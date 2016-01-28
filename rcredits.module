@@ -48,14 +48,6 @@ use rCredits\Admin as a;
 define('R_SYS_ERR', "The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again.<br>\n");
 define('ONE_CRON_OP', 'one cron op'); // flags a call of f('cr. in PHP window, to prevent side-effects
 
-class rCreditsMailSystem extends DefaultMailSystem {
-  public function format(array $message) {
-    $message['body'] = drupal_wrap_mail(join("\n\n", $message['body']));
-    return $message;
-  }
-}
-
-
 /**
  * Top level exception handler (not a hook)
  * Log the error and follow up according to channel.
@@ -89,7 +81,7 @@ function rcredits_exception_handler($e) {
   $msg = '<b>Exception:</b>' . R_SYS_ERR. "<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   if (isPRODUCTION) {
     $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
-    mail(R_TESTER_EMAIL, 'rCredits FATAL ERROR', $message);
+    mail(R_ADMIN_EMAIL, 'rCredits FATAL ERROR', $message);
     $R_FATAL_ERROR = u\loga('FATAL', compact('message')); // this gets picked up by rcredits_shutdown()
 /**/  die(); // invoke shutdown
 /**/ } else echo $msg;
@@ -120,52 +112,6 @@ function rcredits_im_send($index, &$message, $subs) {
   $message['send'] = FALSE; // disable emailing, since we sent it by IM instead
   return TRUE;
 } 
-
-/**
- * Implements hook_mail().
- * @param string $index: filename of email template and index into subjects array
- * @param assoc $msg_array: standard drupal message components: [subject, body, headers]
- * @param assoc $info: substitutions for message body and subject
- * @see also: r\notify() and _user_mail_notify
- */
-function rcredits_mail($index, &$msg_array, $info) {
-//    $data['user'] = r\acct()->account();
-//    user_mail_tokens($variables, $data, compact('language')); // adds links for password reset and account cancelation
-    $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
-//    if (rcredits_im_send($index, $msg_array, $info)) return; // If we can send by instant-message, do not send by email.
-    
-    if ($uid = (int) @$info['uid']) {
-      //u\EXPECT($uid, 'bad uid in mail');
-      $acct = r\acct($uid);
-      $info += (array) $acct->account(); // this omits any special fields or special formatting
-      $info['quid'] = $acct->mainQid;
-      $langcode = $acct->language->language; // instead of $language = $msg_array['language']; 
-      $info['shortName'] = $acct->name;
-    }
-// NOT USED (by policy)  $info['oneTimeLoginUrl'] = \user_pass_reset_url($acct->account());
-    $info['site'] = BASE_URL;
-    $info['region'] = strtolower(R_SERVER_ID);
-
-    $email = $info['email'];
-///    foreach ($info as $k => $v) if (is_object($v) or is_array($v)) mail('wspademan@gmail.com', 'acct obj in _mail', print_r(compact('index','msg_array','info','uid','k','v'), 1) . print_r(debug_backtrace(), 1));
-    $nolog = u\ray(R_NOLOG);
-    foreach ($info as $k0 => $v) if (!is_object($v) and !is_array($v)) {
-      $k = '{' . $k0 . '}';
-      $subs[$k] = $v;
-      $logSubs[$k] = in_array($k0, $nolog) ? '(?)' : $v; // hide personal info and secrets
-    }
-    $msg_array['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
-    $message = @$info['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
-    $subject = @$info['subject'] ?: $GLOBALS['emailSubjects'][$index];
-    $subject = $msg_array['subject'] = strtr($subject, $subs);
-    $msg_array['body'][] = strtr($message, $subs);
-
-    // prepare log params
-    $message = str_replace("\r\n", '', strtr($message, $logSubs)); // easier reading for log and tests
-    $fields = compact(u\ray('index email subject message'));
-/**/ t\output('Actual (in hook_mail) ' . print_r($fields, 1), 'email');
-    if (!in_array($index, ['notices', 'tell-staff'])) u\loga('email', $fields, @$acct);
-}
 
 /**
  * Implements hook_page_alter().
@@ -219,6 +165,7 @@ function ctty($id) {return a(a($id)->community);}
 function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
 /**/ function flog($s) {file_put_contents('flog.txt', print_r($s, 1) . "\n", FILE_APPEND);} // log to file
 /**/ function who($s) {$a = a($s); debug("$a->fullName ($a->mainQid)"); return $a;} // show whose account
+function q($sql, $subs = [], $log = FALSE) {f('db.q', $sql, $subs, $log);}
 
 /**
  * Return a function result, for a nicknamed namespace function.
@@ -261,7 +208,7 @@ function eachA($func = 'a.changeIt') {
 /**
  * Utility to do something to each existing transaction
  * call: eachX();
- * or    eachAcct(function($x) {...});
+ * or    eachX(function($x) {...});
  */
 function eachX($func = 'a.changeIt') {
   $result = db\q('SELECT xid FROM r_txs');
@@ -299,11 +246,11 @@ function patch($name) {
     $a = 'href=$base_url/settings/password';
     return (\drupal_get_messages('error', FALSE)) ? '' : w\say('bad login', compact('a'), 'name');
   }
-  if ($name == '_user_mail_notify3569') {
-    list ($op, $account, $language) = $args;
-    $language = @$language ?: \user_preferred_language($account);
+  if ($name == '_user_mail_notify3569') { // UNUSED
+    list ($index, $account, $language) = $args;
+//    $language = @$language ?: \user_preferred_language($account);
     $uid = $account->uid;
-    return drupal_mail('rCredits', $op, r\acct($uid)->email, $language, compact('uid'));
+    return r\rMail($index, r\acct($uid)->email, compact('uid'));
   }
   if ($name == 'user_form_process_password_confirm3595') return []; // patch no longer used (see w\formReset())
 

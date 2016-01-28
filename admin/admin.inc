@@ -24,20 +24,22 @@ use rCredits\Web as w;
 function setupBasicAccounts() {
   $keys = u\ray('uid community name fullName email postalCode country minimum rebate flags');
 
-  $q = db\q('SELECT region,name,legalName,state AS st,zips AS postalCode,email,phone,postalAddr,cgc FROM r_regions');
+  $q = db\q('SELECT :R_REGION_FIELDS FROM r_regions');
   while ($row = $q->fetchAssoc()) { // create or update all regions
     extract($row);
-    if (isDEV and $region != R_SERVER_ID) continue; // don't slow the tests down so much
-    $fullName = $name ?: ('rCredits ' . db\lookup('name', 'r_states', 'abbreviation=:st', compact('st')));
+    if (!$hasServer) continue;
+//    if (isDEV and !in_array($region, [R_SERVER_ID])) continue; // don't slow the tests down
     if ($uid = db\lookup('uid', 'users', "name=CONCAT(:region, '.')", compact('region'))) {
-      r\acct($uid)->update(compact(u\ray('fullName email postalCode')));
+      r\acct($uid)->update(compact(u\ray('postalCode federalId')));
     } else {
+      $fullName = $fullName ?: db\lookup('name', 'r_states', 'abbreviation=:st', compact('st'));
+      $email = u\shortName($fullName) . "@rCredits.org";
+      $fullName = 'rCredits ' . $fullName;
       $uid = r\serverUid($region);
-      if (!$email) $email = u\shortName(preg_replace('/ ?rCredits ?/i', '', $name)) . "@rCredits.org";
       $state = db\lookup('id', 'r_states', 'abbreviation=:st', compact('st'));
-      $values = array($uid, $uid, $region . '.', $fullName, $email, $postalCode, R_COUNTRY_ID, 0, 0, u\bit($cgc ? [B_OK, B_CO] : B_CO));
+      $values = array($uid, $uid, $region . '.', $fullName, $email, $postalCode, R_COUNTRY_ID, 0, 0, u\bit(B_CO) | u\bit(B_OK));
       $info = array_combine($keys, $values);
-      $info += u\ray('legalName postalAddr state', $legalName ?: $fullName, $postalAddr, $state);
+      $info += compact(u\ray('postalAddr state federalId'));
       new r\acct($info);
     }
   }
@@ -50,24 +52,34 @@ function setupBasicAccounts() {
   $a1->update('fullName flags', t('System Administrator'), $flags);
 
   $server = r\serverUid();
-  if ($server == r\serverUid('NEW')) { // no need to set up WWS and CGF unless in Western Mass region
+  if ($server == r\serverUid('NEW')) { // no need to set up WWS and CGF unless in Western Mass (or testing)
     if (db\exists('users', "name='cgf'")) return; // already done
 
-    $values = array(r\unQuid(R_ADMIN_QID), $server, 'williamspademan', ADMIN_NAME, R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK]));
+/*    
+    $values = array(r\unQuid(R_ADMIN_QID), $server, u\shortName(ADMIN_NAME), ADMIN_NAME, R_ADMIN_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK]));
     $info = array_combine($keys, $values);
     list ($phone, $address, $city, $state) = array('+14136281021', 'PO Box 305', 'Ashfield', R_STATE_ID);
     $info += compact(u\ray('email phone address city state'));
     $wws = new r\acct($info);
-    
+*/    
     $values = array(r\unQuid('NEW.AAB'), $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO]));
     $info = array_combine($keys, $values);
     list ($phone, $address, $city, $state) = array(CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
-    $helper = $wws->id;
+    $helper = 1; //$wws->id;
     $info += compact(u\ray('email phone address city state helper'));
     $cgf = new r\acct($info);
     \variable_set('cgf_uid', $cgf->id);
-    $cgf->newRelation($wws->id, r\perm(B_MANAGE));
+//    $cgf->newRelation($wws->id, r\perm(B_MANAGE));
   }
+}
+
+/**
+ * Return an array of communities (just in the given region?).
+ */
+function cttys($region) {
+  $where = 'uid<0'; // uid BETWEEN :region-(:R_REGION_MAX-1) AND :region-1
+  $sql = "SELECT uid,fullName FROM users WHERE $where ORDER BY fullName";
+  return db\q($sql, compact('region'))->fetchAllKeyed();
 }
 
 /**

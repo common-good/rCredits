@@ -203,32 +203,64 @@ G. Special rCredits datatypes
   Other countries or groups of countries will also have region codes, which will default (for now) to their 2-letter country code.
   US Population maps: http://www.towndesktop.com/images/states/michigan-pop-total.jpg
  
-H. Notes on transaction record system:
+H. Division of rCredits system responsibilities
+
+  Common Good Finance
+  - manage the first region until it exists and can stand on its own
+  
+  Region
+  - identified by name LIKE '%.'
+  - every account is in a region (active or not yet active)
+  - every rCredits Community is in a region (active or not yet active)
+
+  Region - not yet active
+  - no record in users table
+  - does not have its own server yet (hosted on some other region's server)
+  - has no responsibilities and need not have any legal or substantive existence
+  
+  Region - active
+  - has a record in the users table (with no communities in the region's number space)
+  - fullName = legalName = rCredits regionPlace Region (for example rCredits Western Mass Region)
+  - email is region@regionPlace.rcredits.org (use a 2-char abbreviation instead of regionPlace if it is a state)
+  - is also an rCredits Community:
+    . on its own server the region account is the Seedpack community (anyone in the region who is too far away from an organized rCredits Community). The NEW Seedpack includes anyone not covered by another region.
+    . on other servers, the region account represents all accounts in that region (tracking the trade balance)
+  - coordinate rCredits communities within the geographic region
+  - manage an rCredits server (and a backup server) on behalf of its communities
+  - register with FinCEN as an MSB
+  - submit forms 1099-B to the IRS and state government
+  - has its own EIN and contact info
+  
+  rCredits Community (always active unless closed)
+  - identified by uid<1
+  - every account is in an rCredits community
+  - fullName is anything. legalName is Placename State rCredits (with state spelled out)
+  - email is placename@regionPlace.rcredits.org
+  - accounts in the same rCredits community can be in different regions
+  - any account outside an organized area is in the Seedpack community
+  - issue rCredits for the common good (only tentative automatic rewards until declared a Common Good Community)
+  - Common Good Communities (CGCs) transact with, collaborate with, and oversee other communities in the region
+  - accounts in not-yet CGCs cannot do business with accounts in other communities
+  - uids are negative numbers within their region's number space (eg CGC !AAA.AAB is in region !AAA.AAA)
+    Sometimes a new community uid may need to be assigned to many people, if a community or region is subdivided.
+  - must have its own EIN and contact info
+
+I. Notes on transaction record system:
   - "rewards" are defined as signup bonuses, tx rebates, tx bonuses, inflation adjustment, and fee reimbursement. Transfers, grants, loans, and fines are not rewards.
   - uids contain the region info, so no need for recording "foreign" info in the data field
-    Specifically: when we on the AAA regional server receive a transaction request using a qid, the first 3 characters are the "region" -- they tell us what database to hit. For example, if AAA.AAAA pays ZZZ.AAAC, we record a payment from AAA.AAAA's uid (1)
-  - We send the request to ZZZ's server and expect a confirmation 
-    (if no confirmation, roll back the transaction and give an error message OR queue the request).
-
-  - On the other side of things, when we receive a request from some other community for a transaction with one of our accounts -- for example if we are the "ZZZ" community, receiving a request from the "ABC" community, for ABC.AAAAA to pay ZZZ.BBBBB -- we record the transaction as our own and send confirmation to the ZZZ server.
-
+    Specifically: when we on the AAA regional server receive a transaction request from one qid to another, the first 3 characters are the "region" -- they tell us what database to hit. For example, if AAA.AAAB pays ZZZ.AAAC, we record the payment from AAA.AAAB's uid (2) to ZZZ.AAAC's uid and send the request to ZZZ's server and expect a confirmation (if no confirmation, roll back the transaction and give an error message OR queue the request).
+  - On the other side of things, when we receive a request from some other community for a transaction with one of our accounts -- for example if we are the "ZZZ" community, receiving a request from the "ABC" community, for ABC.AAAAA to pay ZZZ.BBBBB -- we record the transaction and send confirmation to the ABC server. The ABC server in turn sends confirmation back to ZZZ that the transaction is done. The transaction is tentative on the ZZZ server until it can see that the ABC server received (or did not receive) its confirmation.
   - Thus every inter-community transaction is stored in both communities. Both communities know their trade balance, which should be public through a RESTful query. Intra-community transactions should also be stored twice -- ideally in member's devices. Smartphones and desktop computers running an app should store all their own transactions. Encrypted backups of everything to the cloud too.
 
-I. Cron ops
+J. Cron ops
   - ACHs almost always take 3 days (5 if there is a weekend in there). sometimes an extra day.
   - 
 
-J. Handling USD
-  - General Strategy: Keep about half the total USD in the community account, trying to leave each active member account with an equal share of the other half, but no more than R_MAX_DAILY_EXCHANGE===1000 (so we can take it all away quickly, at need).
-  - Cron homogenize: daily transfer up to $10us from each account that has too much to each account that has too little
-  - Cron pool: daily transfer $10us to the community, from each member account with more than its share -- until community has its target proportion of the total USD in the system.
-  - Before payment: if payer does not have enough rCredits, just transfer it as part rCredits (as much as the payer has), part USD (DONE!). Don't go into gyrations to do every transaction entirely in rCredits. Just issue enough rCredits that most transactions happen that way.
-  - Before cashing out: if account does not have enough USD, get it from other members (DONE, but limit the account to one withdrawal per day, limited to the amount we can currently get in $10 chunks without hitting anyone twice).
-  - Common Good Finance is not a "money transmitter" (and therefore exempt from FinCEN regulation as an MSB) because "The term “money transmitter” shall not include a person that only: (A) Provides the delivery, communication, or network access services used by a money transmitter to support money transmission services;"
-  - Each rCredits region is not a "money transmitter" because "The term “money transmitter” shall not include a person that only: (B) Acts as a payment processor to facilitate the purchase of, or payment of a bill for, a good or service through a clearance and settlement system by agreement with the creditor or seller;"
-  - FinCEN's $1,000 limit therefore does not apply to purchases, but it may apply to exchanges. FinCEN is only explicit about currencies of "other countries", but to be (somewhat) safe, we should not allow the regional server to exchange more than $1,000 of rCredits for USD (or vice versa) with any one member in one day. It will also help to have more than one community per server, since the server itself could not be seen as belonging to a single community.
+K. Handling USD
+  - As a "money transmitter", Common Good Finance is a Money Services Business (MSB) -- a non-bank financial institution, reporting to FinCEN (a branch of the U.S. Treasury Department)
+  - Each rCredits region is not a "money transmitter" because it is an agent of CGF
 
-K. Other thoughts:
+X. Other thoughts:
   - Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
   - Suppose I live in 413 (NEW), but my cell is 987 (NYC). Person B lives in 222 with cell 333. When I am traveling to AAA I pay person B with SMS, by calling the local rCredits number. The local server contacts NYC to process my side of the transactions, but gets redirected to NEW. Similarly for person B's side. So at most 5 servers are involved (three just redirecting). NEW.rcredits.org and other subdomains act similarly.
   - in dwolla.php: replace "if ($" with "if (@$" and "if (!$" with "if (!@$" (DONE)

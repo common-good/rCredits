@@ -65,7 +65,7 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
   $calc = $risk;
   $risk *= K_RED; // normalize
 ///  u\deb(compact('risk','risks'));
-  if ($a->mainQid == R_ADMIN_QID) $risk = 0; // otherwise sketchy invites skew all the calculations
+//  if ($a->mainQid == R_ADMIN_QID) $risk = 0; // otherwise sketchy invites skew all the calculations
   $a->update(compact('risk','risks'));
 }
 

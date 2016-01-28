@@ -104,12 +104,12 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ   |"');
     Then_('members: "ASSOC'
     . '\\| id   | fullName | legalName | email | phone     | postalCode | country | state | city   | flags     | floor | address | postalAddr                | tenure | owns | helper |'
-    . '\\| .AAC | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam | confirmed | 0     |    1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ  |"');
+    . '\\| .AAA | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam | confirmed | 0     |    1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ  |"');
     And__('we say "status": "your account is ready"');
     And__('we email "welcome" to member "a@" with subs: "ASSOC'
     . '\\| fullName | name   | quid    | site        | code  |'
-    . '\\| Abe One  | abeone | NEW.AAC | %BASE_URL | %name |"');
-    And__('member ".AAC" one-time password is set');
+    . '\\| Abe One  | abeone | NEW.AAA | %BASE_URL | %name |"');
+    And__('member ".AAA" one-time password is set');
   }
 
   // Scenario: A newbie registers with an unconfirmed icard invitation
@@ -121,15 +121,15 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ |"');
     Then_('members: "ASSOC'
     . '\\| id   | fullName | legalName | email | phone     | postalCode | country | state | city   | flags | floor | address | postalAddr              | tenure | owns | iCode | helper |'
-    . '\\| .AAC | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam |       | 0     |   1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 |     5 | .ZZZ   |"');
+    . '\\| .AAA | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam |       | 0     |   1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 |     5 | .ZZZ   |"');
     And__('we say "status": "your account is ready"');
     And__('we say "status": "must be confirmed" with subs: "ASSOC'
     . '\\| inviterName |'
     . '\\| Zeta Zot    |"');
     And__('we email "welcome" to member "a@" with subs: "ASSOC'
     . '\\| fullName | name   | quid    | site        | code  |'
-    . '\\| Abe One  | abeone | NEW.AAC | %BASE_URL | %name |"');
-    And__('member ".AAC" one-time password is set');
+    . '\\| Abe One  | abeone | NEW.AAA | %BASE_URL | %name |"');
+    And__('member ".AAA" one-time password is set');
     And__('we message "confirm invite" to member ".ZZZ" with subs: "ASSOC'
     . '\\| fullName | a1 |'
     . '\\| Abe One  | ?  |"');
@@ -145,15 +145,15 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ   |"');
     Then_('members: "ASSOC'
     . '\\| id   | fullName | legalName | email | phone     | postalCode | country | state | city   | flags | floor | address | postalAddr              | tenure | owns | iCode      | helper |'
-    . '\\| .AAC | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam |       | 0     |   1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 | %IBY_SELF | .ZZZ   |"');
+    . '\\| .AAA | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam |       | 0     |   1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 | %IBY_SELF | .ZZZ   |"');
     And__('we say "status": "your account is ready"');
     And__('we say "status": "must be confirmed" with subs: "ASSOC'
     . '\\| inviterName |'
     . '\\| Zeta Zot    |"');
     And__('we email "welcome" to member "a@" with subs: "ASSOC'
     . '\\| fullName | name   | quid    | site        | code  |'
-    . '\\| Abe One  | abeone | NEW.AAC | %BASE_URL | %name |"');
-    And__('member ".AAC" one-time password is set');
+    . '\\| Abe One  | abeone | NEW.AAA | %BASE_URL | %name |"');
+    And__('member ".AAA" one-time password is set');
     And__('we message "confirm invite" to member ".ZZZ" with subs: "ASSOC'
     . '\\| fullName | a1 |'
     . '\\| Abe One  | ?  |"');
@@ -168,7 +168,7 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| Abe One   | Abey One | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St., Agawam, MA 01001 |     18 |    1 | .ZZZ   |"');
     Then_('members: "ASSOC'
     . '\\| id   | fullName | legalName | email | phone     | postalCode | country | state | city   | flags     | name    | helper |'
-    . '\\| .AAC | Abey One | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam | confirmed | abeyone | .ZZZ   |"');
+    . '\\| .AAA | Abey One | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam | confirmed | abeyone | .ZZZ   |"');
   }
 
   // Scenario: A newbie registers elsewhere
@@ -198,7 +198,7 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| abe one  | a@ | 413-253-0000 | 01002      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 | .ZZZ   |"');
     Then_('members: "ASSOC'
     . '\\| id   | fullName | email | phone     | postalCode | state | city    | flags     | floor | postalAddr | helper |'
-    . '\\| .AAC | Abe One  | a@ | +14132530000 | 01002      | MA    | Amherst | confirmed | 0     | 1 A ST., Amherst, MA 01001 | .ZZZ   |"');
+    . '\\| .AAA | Abe One  | a@ | +14132530000 | 01002      | MA    | Amherst | confirmed | 0     | 1 A ST., Amherst, MA 01001 | .ZZZ   |"');
   }
 
   // Scenario: A member registers bad email
@@ -253,17 +253,17 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('members: "ASSOC'
     . '\\| id   | fullName | email | postalCode | phone        | city     | flags        |'
-    . '\\| .AAD | Aacme Co | myco@ | 01330      | +14136280000 | Ashfield | co,confirmed |"');
+    . '\\| .AAD | AAAme Co | myco@ | 01330      | +14136280000 | Ashfield | co,confirmed |"');
     And__('invitation to email "a@" from member ".ZZZ" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3" with values: "ASSOC'
     . '\\| fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | companyOptions           | address | city    | state | postalAddr                 | tenure | owns | helper |'
-    . '\\| Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | Aacme Co | (413)628-0000 | isOwner=>1,contractor=>1 | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 | .ZZZ   |"');
+    . '\\| Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 | isOwner=>1,contractor=>1 | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 | .ZZZ   |"');
     Then_('members: "ASSOC'
     . '\\| id   | fullName | email | postalCode | state | city    | flags     | helper |'
-    . '\\| .AAC | Abe One  | a@    | 01002      | MA    | Amherst | confirmed | .ZZZ   |"');
+    . '\\| .AAA | Abe One  | a@    | 01002      | MA    | Amherst | confirmed | .ZZZ   |"');
     And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission | employee | isOwner | draw |'
-    . '\\| :AAA | .AAD | .AAC  |            |        0 |       1 |    0 |"');
+    . '\\| :AAA | .AAD | .AAA  |            |        0 |       1 |    0 |"');
   }
 
   // Scenario: A member registers with an unknown company
@@ -272,14 +272,14 @@ class rwebSignup extends DrupalWebTestCase {
     Given('invitation to email "a@" from member ".ZZZ" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3" with values: "ASSOC'
     . '\\| fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | companyOptions | address | city    | state | postalAddr                 | tenure | owns | helper |'
-    . '\\| Abe One  | a@    | 413-253-9876 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | Aacme Co | (413)628-0000 | employeeOk=>1  | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 | .ZZZ   |"');
+    . '\\| Abe One  | a@    | 413-253-9876 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 | employeeOk=>1  | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 | .ZZZ   |"');
     Then_('members: "ASSOC'
     . '\\| id   | legalName | email | postalCode | phone        | city    | flags     | helper |'
-    . '\\| .AAC | Abe One   | a@    | 01002      | +14132539876 | Amherst | confirmed | .ZZZ   |"');
+    . '\\| .AAA | Abe One   | a@    | 01002      | +14132539876 | Amherst | confirmed | .ZZZ   |"');
     And__('no relation: "ASSOC'
     . '\\| main | agent |'
-    . '\\| .AAD | .AAC  |"');
-    And__('signup company info for account ".AAC" is remembered');
+    . '\\| .AAD | .AAA  |"');
+    And__('signup company info for account ".AAA" is remembered');
   }
 
   // Scenario: A member registers with a company with no relation
@@ -288,7 +288,7 @@ class rwebSignup extends DrupalWebTestCase {
     Given('invitation to email "a@" from member ".ZZZ" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3" with values: "ASSOC'
     . '\\| fullName | email | phone        | postalCode | federalId  | dob  | acctType    | company  | companyPhon  | companyOptions | tenure | owns | helper |'
-    . '\\| Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | Aacme Co | (413)628-0000 |               |     18 |    1 | .ZZZ   |"');
+    . '\\| Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 |               |     18 |    1 | .ZZZ   |"');
     Then_('we say "error": "what relation"');
   }
 
@@ -310,7 +310,7 @@ class rwebSignup extends DrupalWebTestCase {
     Given('invitation to email "a@" from member ".ZZZ" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3" with values: "ASSOC'
     . '\\| fullName | email  | phone    | postalCode | federalId   | dob      | acctType    | company  | companyPhon | companyOptions | tenure | owns | helper |'
-    . '\\| Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | Aacme Co | %random      | isOwner=>1    |     18 |    1 | .ZZZ   |"');
+    . '\\| Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | %random      | isOwner=>1    |     18 |    1 | .ZZZ   |"');
     Then_('we say "error": "bad company phone" with subs: ""');
   }
 

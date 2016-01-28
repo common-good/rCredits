@@ -65,6 +65,7 @@ $rdf_namespaces>
   $head
   <meta name="MobileOptimized" content="width" />
   <meta name="HandheldFriendly" content="true" />
+  <meta name="apple-mobile-web-app-capable" content="no"><!-- (not yet) -->
   <meta http-equiv="cleartype" content="on" />
   <title>$head_title</title>
   <meta name="description" content="">
