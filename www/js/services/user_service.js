@@ -161,11 +161,8 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       })
       .then(function(blobPhotoUrl) {
         self.customer.photo = blobPhotoUrl;
-        return self.customer.saveInSQLite();
-      })
-      .then(function() {
         return self.customer;
-      })
+      });
   };
 
   UserService.prototype.createCustomer = function(customerInfo) {
