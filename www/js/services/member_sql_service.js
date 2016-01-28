@@ -1,10 +1,10 @@
 (function(app) {
 
-  app.service('QueryBuilderService', function($q, SqlQuery, SQLiteService) {
+  app.service('MemberSqlService', function($q, SqlQuery, SQLiteService) {
 
     var self;
 
-    var QueryBuilderService = function() {
+    var MemberSqlService = function() {
       self = this;
     };
 
@@ -17,7 +17,7 @@
     //"lastTx INTEGER," + // unixtime of last reconciled transaction / -1 for managers
     //"photo BLOB);" // lo-res B&
 
-    QueryBuilderService.prototype.saveMember = function(user) {
+    MemberSqlService.prototype.saveMember = function(user) {
       var sqlQuery = new SqlQuery();
 
       return this.existMember(user.accountInfo.accountId)
@@ -55,7 +55,7 @@
         });
     };
 
-    QueryBuilderService.prototype.existMember = function(qId) {
+    MemberSqlService.prototype.existMember = function(qId) {
       var sqlQuery = new SqlQuery();
       sqlQuery.setQueryString("SELECT * FROM members WHERE qid = ?");
       sqlQuery.setQueryData(qId);
@@ -69,7 +69,7 @@
       });
     };
 
-    return new QueryBuilderService();
+    return new MemberSqlService();
   });
 
 })(app);

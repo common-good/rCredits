@@ -1,7 +1,7 @@
 (function(window, app) {
   'use strict';
 
-  app.service('User', function(QueryBuilderService) {
+  app.service('User', function(MemberSqlService) {
 
     var User = Class.create({
 
@@ -51,7 +51,7 @@
       },
 
       saveInSQLite: function() {
-        return QueryBuilderService.saveMember(this);
+        return MemberSqlService.saveMember(this);
       },
 
       default: '',
