@@ -6,6 +6,7 @@
 
       balance: 0,
       rewards: null,
+      lastTx: null,
 
       setRewards: function(rewards) {
         this.rewards = parseFloat(rewards);
@@ -21,6 +22,14 @@
 
       getRewards: function() {
         return this.rewards;
+      },
+
+      setLastTx: function(transaction) {
+        this.lastTx = transaction;
+      },
+
+      getLastTx: function() {
+        return this.lastTx.getId();
       }
 
     });
