@@ -12,7 +12,11 @@
     };
 
     SqlQuery.prototype.setQueryData = function(data) {
-      this.queryData = data;
+      var sqlData = data;
+      if (!_.isArray(data)) {
+        sqlData = [data];
+      }
+      this.queryData = sqlData;
     };
 
     SqlQuery.prototype.getQueryString = function() {

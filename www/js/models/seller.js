@@ -60,8 +60,7 @@
       },
 
       saveInSQLite: function() {
-        var sqlQuery = QueryBuilderService.buildSellerQuery(this);
-        return SQLiteService.executeQuery(sqlQuery);
+        return QueryBuilderService.buildSellerQuery(this).then(SQLiteService.executeQuery.bind(SQLiteService));
       },
 
       saveInStorage: function() {

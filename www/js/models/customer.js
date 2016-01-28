@@ -12,8 +12,7 @@
       },
 
       saveInSQLite: function() {
-        var sqlQuery = QueryBuilderService.buildCustomerQuery(this);
-        return SQLiteService.executeQuery(sqlQuery);
+        return QueryBuilderService.buildCustomerQuery(this).then(SQLiteService.executeQuery.bind(SQLiteService));
       }
     });
 

@@ -37,7 +37,7 @@
       }, function() {
         console.log('transaction ok');
       });
-      return txPromise;
+      return txPromise.promise;
     };
 
     SQLiteService.prototype.executeQuery = function(sqlQuery) {
