@@ -95,7 +95,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         if (responseData.logon === LOGIN_BY_AGENT) {
           self.seller = self.createSeller(responseData);
           self.seller.accountInfo = accountInfo;
-          self.seller.saveInStorage();
+          self.seller.save();
           return self.seller;
         }
 
@@ -198,6 +198,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       .then(function(res) {
         var arrayBufferView = new Uint8Array(res.data);
         var blob = new Blob([arrayBufferView], {type: "image/jpeg"});
+        accountInfo.blobImage = blob;
         var urlCreator = window.URL || window.webkitURL;
         return urlCreator.createObjectURL(blob);
       })

@@ -1,6 +1,6 @@
 (function(window, app) {
 
-  app.service('Seller', function(localStorageService) {
+  app.service('Seller', function(localStorageService, QueryBuilderService, SQLiteService) {
 
     var DEVICE_ID_KEY = 'deviceID';
     var SELLER_KEY = 'seller';
@@ -51,7 +51,17 @@
 
       setFirstLoginNotified: function() {
         this.firstLogin = false;
+        this.save();
+      },
+
+      save: function() {
         this.saveInStorage();
+        this.saveInSQLite();
+      },
+
+      saveInSQLite: function() {
+        var sqlQuery = QueryBuilderService.buildSellerQuery(this);
+        SQLiteService.executeQuery(sqlQuery);
       },
 
       saveInStorage: function() {

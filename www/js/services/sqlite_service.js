@@ -21,19 +21,27 @@
         window.rCreditsConfig.SQLiteDatabase.description, -1);
     };
 
-    SQLiteService.prototype.executeQuery_ = function(query) {
+    SQLiteService.prototype.executeQuery_ = function(query, params) {
       var txPromise = $q.defer();
       this.db.transaction(function(tx) {
-        tx.executeSql(query, function(tx, res) {
-          console.log("Transaction OK: ", tx);
-          console.log("Transaction RES: ", res);
+        tx.executeSql(query, params, function(tx, res) {
+          console.log("executeSql OK: ", tx);
+          console.log("executeSql RES: ", res);
           txPromise.resolve(res);
-        }, function(e) {
-          console.error("Transaction ERROR: " + e.message);
+        }, function(tx, e) {
+          console.error("executeSql ERROR: " + e.message);
           txPromise.reject(e.message);
         });
+      }, function(error) {
+        console.log('transaction error: ' + error.message);
+      }, function() {
+        console.log('transaction ok');
       });
       return txPromise;
+    };
+
+    SQLiteService.prototype.executeQuery = function(sqlQuery) {
+      return this.executeQuery_(sqlQuery.getQueryString(), sqlQuery.getQueryData());
     };
 
     SQLiteService.prototype.createSchema = function() {
