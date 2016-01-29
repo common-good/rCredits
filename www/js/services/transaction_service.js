@@ -136,7 +136,12 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
       customer.getId(),
       transaction.amount,
       transaction.goods,
-      customer.getId() + transaction.amount + transaction.created + seller.getCompany(),
+      JSON.stringify({
+        customerId: customer.getId(),
+        amount: transaction.amount,
+        created: transaction.created,
+        sellerId: seller.getId()
+      }),
       transaction.description
     ]);
 
