@@ -126,7 +126,7 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
     var sqlQuery = new SqlQuery();
     sqlQuery.setQueryString('INSERT INTO txs (me, txid, status, created, agent, member, amount, goods, proof, description) VALUES (?,?,?,?,?,?,?,?,?,?)');
     sqlQuery.setQueryData([
-      seller.getCompany(),
+      seller.getId(),
       transaction.getId(),
       Transaction.Status.DONE,
       transaction.created,
@@ -135,7 +135,7 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
       transaction.amount,
       transaction.goods,
       customer.getId() + transaction.amount + transaction.created + seller.getCompany(),
-      'Description'
+      transaction.description
     ]);
 
     return SQLiteService.executeQuery(sqlQuery);
