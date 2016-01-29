@@ -66,8 +66,10 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
           transaction.description = description;
           transaction.goods = 1;
           customer.setLastTx(transaction);
-          customer.saveInSQLite();
-          self.saveTransaction(transaction);
+          customer.saveInSQLite().then(function() {
+            self.saveTransaction(transaction);
+          });
+
           return transaction;
         }
 
