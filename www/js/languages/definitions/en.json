@@ -32,6 +32,7 @@
   "scanToSignIn": "Scan to sign in",
   "selectCategory": "Select Category",
   "selfServiceMode": "Self-Service Mode",
+  "manager_sign_in": "Manager sign in",
   "signInAs": "Signed in as:",
   "signIn": "Sign in",
   "signOut": "Sign Out",
@@ -53,6 +54,6 @@
   "disassociate_company": "This will disassociate this device from {{company}}",
   "haveToSignInAgain": "You will have to sign in again",
   "cancel": "Cancel",
-  "cashier_permission":"Manager permission is required to perform this action",
-  "cashier_permission_rejected":"Unable to authorise action"
+  "cashier_permission": "Manager permission is required to perform this action",
+  "cashier_permission_rejected": "Unable to authorise action"
 }

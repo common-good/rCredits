@@ -20,14 +20,22 @@
         window.rCreditsConfig.SQLiteDatabase.version,
         window.rCreditsConfig.SQLiteDatabase.description, -1);
     };
+    SQLiteService.prototype.ex = function() {
+      var txPromise = $q.defer();
+      txPromise.resolve(true);
+      return txPromise.promise;
+    };
 
     SQLiteService.prototype.executeQuery_ = function(query, params) {
       var txPromise = $q.defer();
+      var result;
+
       this.db.transaction(function(tx) {
         tx.executeSql(query, params, function(tx, res) {
           console.log("executeSql OK: ", tx);
           console.log("executeSql RES: ", res);
-          txPromise.resolve(res);
+          result = res;
+          //txPromise.resolve(res);
         }, function(tx, e) {
           console.error("executeSql ERROR: " + e.message);
           txPromise.reject(e.message);
@@ -35,6 +43,10 @@
       }, function(error) {
         console.log('transaction error: ' + error.message);
       }, function() {
+        //if(query.indexOf("Delete") !== -1){
+        //  debugger
+        //}
+        txPromise.resolve(result);
         console.log('transaction ok');
       });
       return txPromise.promise;
