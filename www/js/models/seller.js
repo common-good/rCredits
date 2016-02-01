@@ -1,6 +1,6 @@
 (function(window, app) {
 
-  app.service('Seller', function(localStorageService) {
+  app.service('Seller', function(localStorageService, User) {
 
     var DEVICE_ID_KEY = 'deviceID';
     var SELLER_KEY = 'seller';

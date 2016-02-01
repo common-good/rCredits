@@ -1,6 +1,6 @@
 (function(window, app) {
 
-  app.service('Customer', function() {
+  app.service('Customer', function(User) {
 
     var Customer = Class.create(User, {
 
