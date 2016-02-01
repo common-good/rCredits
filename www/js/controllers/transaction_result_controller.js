@@ -36,14 +36,24 @@ app.controller('TransactionResultCtrl', function($scope, $state,
   };
 
   $scope.undoTransaction = function() {
-    $ionicLoading.show();
-    TransactionService.undoTransaction(TransactionService.lastTransaction)
-      .then(function(transactionResult) {
-        $scope.note = 'transactionUndoSuccessNote';
-      })
-      .finally(function() {
-        $ionicLoading.hide();
-      })
+    NotificationService.showConfirm({
+      title: 'confirm_undo_transaction',
+      subTitle: "",
+      okText: "yes",
+      cancelText: "no"
+    }).then(function(res) {
+      if (res == true) {
+        $ionicLoading.show();
+        TransactionService.undoTransaction(TransactionService.lastTransaction)
+          .then(function(transactionResult) {
+            $scope.note = 'transactionUndoSuccessNote';
+          })
+          .finally(function() {
+            $ionicLoading.hide();
+          });
+      }
+    });
+
   };
 
 });
