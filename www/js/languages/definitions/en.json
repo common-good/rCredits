@@ -43,6 +43,7 @@
   "tradeUSDRCredits": "Trade USD for rCredits",
   "transactionSuccessHeading": "Success!",
   "transactionSuccessNote": "{{amount}} transferred from {{customerName}} to {{company}}.",
+  "transactionRefundSuccessNote": "{{amount}} transferred from {{company}} to {{customerName}}.",
   "transactionLowFundsHeading": "Error: Insufficient Funds",
   "transactionLowFundsNote": "The account you are trying to charge does not have enough rCredits to cover this transaction.",
   "transactionUndoSuccessNote": "Transaction has been reversed. You refunded Susan Shopper {{amount}} for goods and services.",

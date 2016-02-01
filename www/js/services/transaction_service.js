@@ -59,6 +59,7 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
 
         if (transactionResult.ok === TRANSACTION_OK) {
           var transaction = self.parseTransaction_(transactionResult);
+          transaction.configureType(amount);
           var customer = UserService.currentCustomer();
           customer.balance = transactionResult.balance;
           customer.rewards = transactionResult.rewards;
