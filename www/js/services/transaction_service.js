@@ -1,4 +1,4 @@
-app.service('TransactionService', function($q, UserService, RequestParameterBuilder, $http, $httpParamSerializer) {
+app.service('TransactionService', function($q, UserService, RequestParameterBuilder, $http, $httpParamSerializer, SQLiteService, SqlQuery) {
 
   var self;
 
@@ -59,12 +59,18 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
 
         if (transactionResult.ok === TRANSACTION_OK) {
           var transaction = self.parseTransaction_(transactionResult);
+          transaction.configureType(amount);
           var customer = UserService.currentCustomer();
           customer.balance = transactionResult.balance;
           customer.rewards = transactionResult.rewards;
           transaction.amount = amount;
           transaction.description = description;
           transaction.goods = 1;
+          customer.setLastTx(transaction);
+          customer.saveInSQLite().then(function() {
+            self.saveTransaction(transaction);
+          });
+
           return transaction;
         }
 
@@ -103,6 +109,44 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
         }
         throw transactionResult;
       });
+  };
+
+  TransactionService.prototype.saveTransaction = function(transaction) {
+    //"me TEXT," + // company (or device-owner) account code (qid)
+    //"txid INTEGER DEFAULT 0," + // transaction id (xid) on the server (for offline backup only -- not used by the app) / temporary storage of customer cardCode pending tx upload
+    //"status INTEGER," + // see A.TX_... constants
+    //"created INTEGER," + // transaction creation datetime (unixtime)
+    //"agent TEXT," + // qid for company and agent (if any) using the device
+    //"member TEXT," + // customer account code (qid)
+    //"amount REAL," +
+    //"goods INTEGER," + // <transaction is for real goods and services>
+    //"proof TEXT," + // hash of cardCode, amount, created, and me (as proof of agreement)
+    //"description TEXT);" // always "reverses..", if this tx undoes a previous one (previous by date)
+
+    var seller = UserService.currentUser(),
+      customer = UserService.currentCustomer();
+
+    var sqlQuery = new SqlQuery();
+    sqlQuery.setQueryString('INSERT INTO txs (me, txid, status, created, agent, member, amount, goods, proof, description) VALUES (?,?,?,?,?,?,?,?,?,?)');
+    sqlQuery.setQueryData([
+      seller.getId(),
+      transaction.getId(),
+      Transaction.Status.DONE,
+      transaction.created,
+      seller.getId(),
+      customer.getId(),
+      transaction.amount,
+      transaction.goods,
+      JSON.stringify({
+        customerId: customer.getId(),
+        amount: transaction.amount,
+        created: transaction.created,
+        sellerId: seller.getId()
+      }),
+      transaction.description
+    ]);
+
+    return SQLiteService.executeQuery(sqlQuery);
   };
 
   return new TransactionService();

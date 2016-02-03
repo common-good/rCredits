@@ -1,4 +1,4 @@
-app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, Seller, Customer, $rootScope, $timeout,
+app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, User, Seller, Customer, $rootScope, $timeout,
                                     PreferenceService, CashierModeService, $state) {
   'use strict';
 
@@ -95,7 +95,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         if (responseData.logon === LOGIN_BY_AGENT) {
           self.seller = self.createSeller(responseData);
           self.seller.accountInfo = accountInfo;
-          self.seller.saveInStorage();
+          self.seller.save();
           return self.seller;
         }
 
@@ -161,8 +161,8 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       })
       .then(function(blobPhotoUrl) {
         self.customer.photo = blobPhotoUrl;
-        return self.customer
-      })
+        return self.customer;
+      });
   };
 
   UserService.prototype.createCustomer = function(customerInfo) {
@@ -198,6 +198,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       .then(function(res) {
         var arrayBufferView = new Uint8Array(res.data);
         var blob = new Blob([arrayBufferView], {type: "image/jpeg"});
+        accountInfo.blobImage = blob;
         var urlCreator = window.URL || window.webkitURL;
         return urlCreator.createObjectURL(blob);
       })

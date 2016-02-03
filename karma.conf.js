@@ -25,8 +25,8 @@ module.exports = function(config) {
       'www/lib/moment/moment.js',
       'node_modules/angular-mocks/angular-mocks.js',
       'www/js/models/preference.js',
-      'www/js/models/user.js',
       'www/js/**/*.js',
+      'www/js/models/user.js',
       'test/**/*_spec.js',
       'www/templates/**/*.html'
     ],

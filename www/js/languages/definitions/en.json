@@ -1,4 +1,6 @@
 {
+  "yes": "Yes",
+  "no": "No",
   "balanceIsSecret": "This customer's balance is secret.",
   "balance": "Balance",
   "balanceLabel": "Balance:",
@@ -32,6 +34,7 @@
   "scanToSignIn": "Scan to sign in",
   "selectCategory": "Select Category",
   "selfServiceMode": "Self-Service Mode",
+  "manager_sign_in": "Manager sign in",
   "signInAs": "Signed in as:",
   "signIn": "Sign in",
   "signOut": "Sign Out",
@@ -42,6 +45,7 @@
   "tradeUSDRCredits": "Trade USD for rCredits",
   "transactionSuccessHeading": "Success!",
   "transactionSuccessNote": "{{amount}} transferred from {{customerName}} to {{company}}.",
+  "transactionRefundSuccessNote": "{{amount}} transferred from {{company}} to {{customerName}}.",
   "transactionLowFundsHeading": "Error: Insufficient Funds",
   "transactionLowFundsNote": "The account you are trying to charge does not have enough rCredits to cover this transaction.",
   "transactionUndoSuccessNote": "Transaction has been reversed. You refunded Susan Shopper {{amount}} for goods and services.",
@@ -53,6 +57,7 @@
   "disassociate_company": "This will disassociate this device from {{company}}",
   "haveToSignInAgain": "You will have to sign in again",
   "cancel": "Cancel",
-  "cashier_permission":"Manager permission is required to perform this action",
-  "cashier_permission_rejected":"Unable to authorise action"
+  "cashier_permission": "Manager permission is required to perform this action",
+  "cashier_permission_rejected": "Unable to authorise action",
+  "confirm_undo_transaction": "Are you sure you want to undo this transaction?"
 }

@@ -21,7 +21,13 @@ app.controller('TransactionResultCtrl', function($scope, $state,
 
   // Keys for Translation
   $scope.heading = 'transaction' + statusKey + 'Heading';
-  $scope.note = 'transaction' + statusKey + 'Note';
+
+  if (TransactionService.lastTransaction.isRefund()) {
+    $scope.note = 'transactionRefund' + statusKey + 'Note';
+  } else {
+    $scope.note = 'transaction' + statusKey + 'Note';
+  }
+
 
   $scope.transactionInfo = {
     amount: $filter('currency')($scope.transactionAmount),
@@ -30,14 +36,24 @@ app.controller('TransactionResultCtrl', function($scope, $state,
   };
 
   $scope.undoTransaction = function() {
-    $ionicLoading.show();
-    TransactionService.undoTransaction(TransactionService.lastTransaction)
-      .then(function(transactionResult) {
-        $scope.note = 'transactionUndoSuccessNote';
-      })
-      .finally(function() {
-        $ionicLoading.hide();
-      })
+    NotificationService.showConfirm({
+      title: 'confirm_undo_transaction',
+      subTitle: "",
+      okText: "yes",
+      cancelText: "no"
+    }).then(function(res) {
+      if (res == true) {
+        $ionicLoading.show();
+        TransactionService.undoTransaction(TransactionService.lastTransaction)
+          .then(function(transactionResult) {
+            $scope.note = 'transactionUndoSuccessNote';
+          })
+          .finally(function() {
+            $ionicLoading.hide();
+          });
+      }
+    });
+
   };
 
 });

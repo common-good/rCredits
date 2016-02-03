@@ -1,4 +1,4 @@
-app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService) {
+app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService, PreferenceService, $ionicHistory) {
 
   // Logout
 
@@ -24,7 +24,13 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
   };
 
   $scope.redirectHome = function() {
-    $state.go("app.home");
+    $ionicHistory.clearHistory();
+    $ionicHistory.nextViewOptions({
+      disableBack: true
+    });
+    $ionicHistory.clearCache().then(function() {
+      $state.go("app.home");
+    });
   };
 
   $scope.redirectPreferences = function() {
@@ -33,6 +39,10 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
 
   $scope.isCashierModeEnabled = function() {
     return CashierModeService.isEnabled();
+  };
+
+  $scope.isCashierModeAvailable = function() {
+    return PreferenceService.getCashierModePref().isEnabled();
   };
 
   $scope.changeCompany = function() {
