@@ -2,7 +2,7 @@ describe('Transaction Service', function() {
 
   'use strict';
 
-  jasmine.DEFAULT_TIMEOUT_INTERVAL  = 5000;
+  jasmine.DEFAULT_TIMEOUT_INTERVAL = 5000;
 
   beforeEach(module('rcredits'));
   beforeEach(function() {
@@ -31,6 +31,7 @@ describe('Transaction Service', function() {
 
   }));
 
+
   // Logs in the Seller and the Customer
   beforeEach(function(done) {
     var deleteQuery = new SqlQuery();
@@ -46,13 +47,17 @@ describe('Transaction Service', function() {
     rootScope.$apply();
   });
 
-
   describe('Managing DB', function() {
 
     it('Should create Members table', function(done) {
 
+      setTimeout(function() {
+        expect(true).toBe(true);
+        done()
+      }, 2000);
+
       rootScope.$apply();
-      done()
+
     });
 
   });

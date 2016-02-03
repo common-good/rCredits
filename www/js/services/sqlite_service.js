@@ -1,6 +1,6 @@
 (function(app) {
 
-  app.service('SQLiteService', function($q) {
+  app.service('SQLiteService', function($q, $timeout) {
 
     var self;
 
@@ -28,14 +28,9 @@
 
     SQLiteService.prototype.executeQuery_ = function(query, params) {
       var txPromise = $q.defer();
-      var result;
-
       this.db.transaction(function(tx) {
         tx.executeSql(query, params, function(tx, res) {
-          console.log("executeSql OK: ", tx);
-          console.log("executeSql RES: ", res);
-          result = res;
-          //txPromise.resolve(res);
+          txPromise.resolve(res);
         }, function(tx, e) {
           console.error("executeSql ERROR: " + e.message);
           txPromise.reject(e.message);
@@ -43,11 +38,7 @@
       }, function(error) {
         console.log('transaction error: ' + error.message);
       }, function() {
-        //if(query.indexOf("Delete") !== -1){
-        //  debugger
-        //}
-        txPromise.resolve(result);
-        console.log('transaction ok');
+        //console.log('transaction ok');
       });
       return txPromise.promise;
     };
