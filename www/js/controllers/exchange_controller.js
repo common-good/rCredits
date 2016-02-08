@@ -11,7 +11,6 @@
       this.moneySwitch.out = inMoney;
     };
 
-
     this.init = function() {
       this.moneySwitch = {
         'in': moneyTypes[0],

@@ -62,5 +62,7 @@
   "cashier_permission_rejected": "Unable to authorize action",
   "confirm_undo_transaction": "Are you sure you want to undo this transaction?",
   "scanIn": "Scan in",
-  "switch": "Switch"
+  "switch": "Switch",
+  "exchange_in": "In",
+  "exchange_out": "Out"
 }
