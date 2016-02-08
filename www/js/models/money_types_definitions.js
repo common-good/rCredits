@@ -1,6 +1,6 @@
 (function(window) {
 
-  window.moneyTypesDefinition = [
+  window.moneyTypesDefinitions = [
     {
       name: 'USD'
     },

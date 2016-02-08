@@ -18,6 +18,10 @@
       };
     };
 
+    this.goNextPage = function() {
+
+    };
+
 
     this.init();
 

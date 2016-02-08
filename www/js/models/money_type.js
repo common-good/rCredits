@@ -17,7 +17,7 @@
     });
 
     MoneyType.parseMoneyType = function(jsonMoney) {
-      return _.extendOwn(new MoneyType, jsonMoney);
+      return _.extendOwn(new MoneyType(), jsonMoney);
     };
 
 

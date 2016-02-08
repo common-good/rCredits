@@ -28,9 +28,28 @@
 
       </div>
 
-
     </section>
+
+    <div class="list">
+
+      <label class="item item-input item-select">
+        <div class="input-label">
+          Lightsaber
+        </div>
+        <select>
+          <option>Blue</option>
+          <option selected>Green</option>
+          <option>Red</option>
+        </select>
+      </label>
+
+    </div>
+
+
 
 
   </ion-content>
+  <button class="button button-full button-positive next-btn" ng-click="exCtrl.goNextPage()">
+    {{::('next' | translate)}}
+  </button>
 </ion-view>
