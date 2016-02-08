@@ -9,7 +9,7 @@
             In
           </div>
           <div class="type">
-            USD
+            {{exCtrl.moneySwitch.in.getName()}}
           </div>
         </div>
 
@@ -19,11 +19,11 @@
             Out
           </div>
           <div class="type">
-            rCredits
+            {{exCtrl.moneySwitch.out.getName()}}
           </div>
         </div>
 
-        <button class="button button-full button-positive switch-btn">
+        <button class="button button-full button-positive switch-btn" ng-click="exCtrl.switchTypes()">
           {{::('switch' | translate)}}
         </button>
 
