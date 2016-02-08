@@ -23,12 +23,20 @@
           {{ 'home' | translate }}
         </ion-item>
 
-        <ion-item menu-close ng-click="logout()" ng-show="!isCashierModeEnabled()">
+
+        <!-- Manager Mode && Cashier Mode Not Available of Prefs-->
+        <ion-item menu-close ng-click="logout()" ng-show="!isCashierModeAvailable() && !isCashierModeEnabled()">
           {{ 'signOut' | translate }}
         </ion-item>
 
+        <ion-item menu-close ng-click="logout()" ng-show="isCashierModeAvailable() && !isCashierModeEnabled()">
+          {{ 'enter_cashier_mode' | translate }}
+        </ion-item>
+
+
+        <!-- Cashier Mode-->
         <ion-item menu-close ng-click="logout()" ng-show="isCashierModeEnabled()">
-          {{ 'signIn' | translate }}
+          {{ 'manager_sign_in' | translate }}
         </ion-item>
 
         <ion-item>&nbsp;</ion-item>

@@ -52,7 +52,7 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
     NotificationService.showConfirm({
       title: 'cashier_permission',
       subTitle: "",
-      okText: "confirm",
+      okText: "scanIn",
       cancelText: "cancel"
     }, {}).then(function(res) {
       if (res) {
