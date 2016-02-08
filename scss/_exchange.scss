@@ -28,3 +28,19 @@
 .payment-type-select {
   color: #ffffff !important;
 }
+
+.fee-legend {
+  text-align: center;
+}
+
+.exchange-keypad {
+
+  .number-display {
+    display: none;
+  }
+
+  position: absolute;
+  bottom: -21px;
+  right: 0;
+  left: 0;
+}

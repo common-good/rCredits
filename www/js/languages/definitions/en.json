@@ -66,5 +66,6 @@
   "exchange_in": "In",
   "exchange_out": "Out",
   "exchange_selected_payment_advice": "Tell customer: There is a {{feeValue}} {{paymentName}} fee.",
+  "exchange_includes_fee": "Includes {{feeValue}} {{paymentName}} fee",
   "next": "Next"
 }
