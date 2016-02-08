@@ -47,6 +47,10 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
     }
   };
 
+  $scope.openExchange = function() {
+    $state.go('app.transaction_exchange')
+  };
+
 
   var executeAction = function(fn) {
     NotificationService.showConfirm({
