@@ -35,6 +35,7 @@
     };
 
     this.goNextPage = function() {
+      ExchangeService.setMoneySwitch(this.moneySwitch);
       $state.go('app.transaction_exchange');
     };
 

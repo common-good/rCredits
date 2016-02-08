@@ -34,6 +34,17 @@
     };
 
 
+    ExchangeService.prototype.removeMoneySwitch = function() {
+      this.moneySwitch = null;
+    };
+
+    ExchangeService.prototype.setMoneySwitch = function(moneySwitch) {
+      this.moneySwitch = moneySwitch;
+    };
+
+    ExchangeService.prototype.getMoneySwitch = function() {
+      return this.moneySwitch;
+    };
 
     return new ExchangeService();
   });
