@@ -61,5 +61,6 @@
   "cashier_permission": "Manager permission is required to perform this action",
   "cashier_permission_rejected": "Unable to authorize action",
   "confirm_undo_transaction": "Are you sure you want to undo this transaction?",
-  "scanIn": "Scan in"
+  "scanIn": "Scan in",
+  "switch": "Switch"
 }
