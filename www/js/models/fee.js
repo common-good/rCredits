@@ -12,7 +12,7 @@
       initialize: function($super) {
       },
 
-      getName: function() {
+      getTitle: function() {
         return this.title;
       }
 

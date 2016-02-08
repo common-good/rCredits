@@ -13,6 +13,10 @@
 
       getName: function() {
         return this.name;
+      },
+
+      getFee: function() {
+        return this.fee;
       }
 
     });

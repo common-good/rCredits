@@ -4,7 +4,7 @@
     {
       name: 'Cash',
       fee: {
-        title: '',
+        title: 'zero',
         value: 0,
         unit: 'cash'
       }
@@ -20,7 +20,7 @@
     {
       name: 'Check',
       fee: {
-        title: '3$',
+        title: '$3',
         value: 3,
         unit: 'cash'
       }

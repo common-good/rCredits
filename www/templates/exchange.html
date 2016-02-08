@@ -33,19 +33,17 @@
     <div class="list">
 
       <label class="item item-input item-select">
-        <div class="input-label">
-          Lightsaber
+        <div class="input-label" ng-bind="exCtrl.selectedPayment.getName()">
         </div>
-        <select>
-          <option>Blue</option>
-          <option selected>Green</option>
-          <option>Red</option>
-        </select>
+        <select class="payment-type-select" ng-options="item as item.name for item in ::exCtrl.paymentTypes"
+                ng-model="exCtrl.selectedPayment" ng-change="exCtrl.onPaymentChange()"></select>
       </label>
 
+
+      <div class="item payment-fee-advice" ng-bind="exCtrl.paymentAdvice">
+      </div>
+
     </div>
-
-
 
 
   </ion-content>
