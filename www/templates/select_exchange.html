@@ -1,0 +1,53 @@
+<ion-view view-title="{{::('exchange' | translate)}}">
+  <ion-content>
+
+    <section class="section-1">
+      <div class="list">
+
+        <div class="item exchange-types">
+          <div class="operation">
+            {{::'exchange_in' | translate}}
+          </div>
+          <div class="type">
+            {{selExCtrl.moneySwitch.in.getName()}}
+          </div>
+        </div>
+
+        <div class="item exchange-types">
+          <div class="operation">
+            {{::'exchange_out' | translate}}
+          </div>
+          <div class="type">
+            {{selExCtrl.moneySwitch.out.getName()}}
+          </div>
+        </div>
+
+        <button class="button button-full button-positive switch-btn" ng-click="selExCtrl.switchTypes()">
+          {{::('switch' | translate)}}
+        </button>
+
+      </div>
+
+    </section>
+
+    <div class="list">
+
+      <label class="item item-input item-select">
+        <div class="input-label" ng-bind="selExCtrl.selectedPayment.getName()">
+        </div>
+        <select class="payment-type-select" ng-options="item as item.name for item in ::selExCtrl.paymentTypes"
+                ng-model="selExCtrl.selectedPayment" ng-change="selExCtrl.onPaymentChange()"></select>
+      </label>
+
+
+      <div class="item payment-fee-advice" ng-bind="selExCtrl.paymentAdvice">
+      </div>
+
+    </div>
+
+
+  </ion-content>
+  <button class="button button-full button-positive next-btn" ng-click="selExCtrl.goNextPage()">
+    {{::('next' | translate)}}
+  </button>
+</ion-view>

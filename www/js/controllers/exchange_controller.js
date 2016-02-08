@@ -2,44 +2,8 @@
 
   'use strict';
 
-  app.controller('ExchangeCtrl', function(ExchangeService, $translate) {
-    var self = this,
-      moneyTypes = ExchangeService.getMoneyTypes(),
-      paymentTypes = ExchangeService.getPaymentTypes();
-
-    this.switchTypes = function() {
-      var inMoney = this.moneySwitch.in;
-      this.moneySwitch.in = this.moneySwitch.out;
-      this.moneySwitch.out = inMoney;
-    };
-
-    this.init = function() {
-      this.moneySwitch = {
-        'in': moneyTypes[0],
-        'out': moneyTypes[1]
-      };
-
-      this.paymentTypes = paymentTypes;
-      this.selectedPayment = this.paymentTypes[0];
-      this.paymentAdvice = '';
-      this.onPaymentChange();
-    };
-
-    this.onPaymentChange = function() {
-      $translate('exchange_selected_payment_advice', {
-        feeValue: this.selectedPayment.getFee().getTitle(),
-        paymentName: this.selectedPayment.getName()
-      }).then(function(msg) {
-        self.paymentAdvice = msg;
-      })
-    };
-
-    this.goNextPage = function() {
-
-    };
-
-
-    this.init();
+  app.controller('ExchangeCtrl', function(ExchangeService) {
+    var self = this;
 
 
   });
