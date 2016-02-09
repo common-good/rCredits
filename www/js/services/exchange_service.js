@@ -8,6 +8,7 @@
       self = this;
       this.Currencies = [];
       this.paymentTypes = [];
+      this.exchange = null;
 
       this.init();
     };
@@ -33,16 +34,16 @@
       return _.map(this.paymentTypes, _.clone);
     };
 
-    ExchangeService.prototype.removeMoneySwitch = function() {
-      this.moneySwitch = null;
+    ExchangeService.prototype.removeExchange = function() {
+      this.exchange = null;
     };
 
-    ExchangeService.prototype.setMoneySwitch = function(moneySwitch) {
-      this.moneySwitch = moneySwitch;
+    ExchangeService.prototype.setExchange = function(exchange) {
+      this.exchange = exchange;
     };
 
-    ExchangeService.prototype.getMoneySwitch = function() {
-      return this.moneySwitch;
+    ExchangeService.prototype.getExchange = function() {
+      return this.exchange;
     };
 
     return new ExchangeService();

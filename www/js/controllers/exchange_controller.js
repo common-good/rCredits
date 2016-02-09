@@ -8,11 +8,19 @@
     $scope.amount = 0;
 
     this.init = function() {
-      $translate('exchange_includes_fee').then(function(msg) {
+      this.exchange = ExchangeService.getExchange();
+      this.paymentMethod = this.exchange.getPaymentMethod();
+
+      $translate('exchange_includes_fee', {
+        feeValue: this.paymentMethod.getFee().getTitle(),
+        paymentName: this.paymentMethod.getName()
+      }).then(function(msg) {
         self.paymentFeeTitle = msg;
       });
+    };
 
-      this.moneySwitch = ExchangeService.getMoneySwitch();
+    this.calculateOutAmount = function() {
+      return this.paymentMethod.applyFeeTo($scope.amount);
     };
 
     this.doExchange = function() {

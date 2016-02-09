@@ -29,11 +29,11 @@ describe('Exchange Service', function() {
   describe('Create Money Types', function() {
 
     it('Should create Money Types when instantiated', function() {
-      expect(exchangeService.getMoneyTypes()).not.toBe(undefined);
+      expect(exchangeService.getCurrencies()).not.toBe(undefined);
     });
 
     it('Should return cloned Money Instances', function() {
-      expect(exchangeService.getMoneyTypes()).not.toBe(exchangeService.moneyTypes);
+      expect(exchangeService.getCurrencies()).not.toBe(exchangeService.currencies);
     });
 
   });
@@ -41,7 +41,7 @@ describe('Exchange Service', function() {
   describe('Create Payment Types', function() {
 
     it('Should create Payment Types when instantiated', function() {
-      expect(exchangeService.getMoneyTypes()).not.toBe(undefined);
+      expect(exchangeService.getPaymentTypes()).not.toBe(undefined);
     });
 
     it('Should return cloned Payment Instances', function() {

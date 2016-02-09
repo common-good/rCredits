@@ -17,6 +17,10 @@
 
       getFee: function() {
         return this.fee;
+      },
+
+      applyFeeTo: function(amount) {
+        return this.fee.apply(amount);
       }
 
     });

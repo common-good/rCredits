@@ -2,22 +2,21 @@
 
   'use strict';
 
-  app.controller('SelectExchangeCtrl', function(ExchangeService, $translate, $state) {
+  app.controller('SelectExchangeCtrl', function(ExchangeService, $translate, $state, Exchange) {
     var self = this,
       currencies = ExchangeService.getCurrencies(),
       paymentTypes = ExchangeService.getPaymentTypes();
 
     this.switchTypes = function() {
-      var inMoney = this.moneySwitch.in;
-      this.moneySwitch.in = this.moneySwitch.out;
-      this.moneySwitch.out = inMoney;
+      var inMoney = this.exchange.getCurrencyFrom();
+      this.exchange.setCurrencyFrom(this.exchange.getCurrencyTo());
+      this.exchange.setCurrencyTo(inMoney);
     };
 
     this.init = function() {
-      this.moneySwitch = {
-        'in': currencies[0],
-        'out': currencies[1]
-      };
+      this.exchange = new Exchange();
+      this.exchange.setCurrencyFrom(currencies[0]);
+      this.exchange.setCurrencyTo(currencies[1]);
 
       this.paymentTypes = paymentTypes;
       this.selectedPayment = this.paymentTypes[0];
@@ -26,6 +25,7 @@
     };
 
     this.onPaymentChange = function() {
+      this.exchange.setPaymentMethod(this.selectedPayment);
       $translate('exchange_selected_payment_advice', {
         feeValue: this.selectedPayment.getFee().getTitle(),
         paymentName: this.selectedPayment.getName()
@@ -35,13 +35,11 @@
     };
 
     this.goNextPage = function() {
-      ExchangeService.setMoneySwitch(this.moneySwitch);
+      ExchangeService.setExchange(this.exchange);
       $state.go('app.transaction_exchange');
     };
 
-
     this.init();
-
 
   });
 

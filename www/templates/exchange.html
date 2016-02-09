@@ -10,7 +10,8 @@
                 {{::'exchange_in' | translate}}
               </div>
               <div class="type">
-                {{::exCtrl.moneySwitch.in.getSign()}} {{amount}} {{::exCtrl.moneySwitch.in.getName()}}
+                {{::exCtrl.exchange.getCurrencyFrom().getSign()}} {{amount}}
+                {{::exCtrl.exchange.getCurrencyFrom().getName()}}
               </div>
             </div>
 
@@ -19,7 +20,8 @@
                 {{::'exchange_out' | translate}}
               </div>
               <div class="type">
-                {{::exCtrl.moneySwitch.out.getSign()}} {{::exCtrl.moneySwitch.out.getName()}}
+                {{::exCtrl.exchange.getCurrencyTo().getSign()}} {{exCtrl.calculateOutAmount()}}
+                {{::exCtrl.exchange.getCurrencyTo().getName()}}
               </div>
             </div>
 
