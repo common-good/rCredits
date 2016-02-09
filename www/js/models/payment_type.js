@@ -5,10 +5,15 @@
 
     var PaymentType = Class.create({
 
+      id: '',
       name: '',
       fee: null,
 
       initialize: function($super) {
+      },
+
+      getId: function() {
+        return this.id;
       },
 
       getName: function() {

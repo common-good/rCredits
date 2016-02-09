@@ -3,11 +3,13 @@
   window.CurrenciesDefinitions = [
     {
       name: 'USD',
-      sign: '$'
+      sign: '$',
+      type: 'usd'
     },
     {
       name: 'rCredits',
-      sign: ''
+      sign: '',
+      type: 'rcredit'
     }
   ]
 

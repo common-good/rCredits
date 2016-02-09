@@ -7,6 +7,7 @@
 
       name: '',
       sign: '',
+      type: '',
 
       initialize: function($super) {
       },
@@ -18,6 +19,10 @@
       getSign: function() {
         return this.sign;
       },
+
+      isUSD: function() {
+        return this.type === 'usd';
+      }
 
     });
 

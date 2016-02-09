@@ -3,6 +3,7 @@
   window.paymentTypesDefinitions = [
     {
       name: 'Cash',
+      id: 'cash',
       fee: {
         title: 'zero',
         value: 0,
@@ -11,6 +12,7 @@
     },
     {
       name: 'Credit card',
+      id: 'card',
       fee: {
         title: '3%',
         value: 3,
@@ -19,6 +21,7 @@
     },
     {
       name: 'Check',
+      id: 'check',
       fee: {
         title: '$3',
         value: 3,

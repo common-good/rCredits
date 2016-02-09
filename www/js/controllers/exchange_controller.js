@@ -2,7 +2,7 @@
 
   'use strict';
 
-  app.controller('ExchangeCtrl', function($scope, ExchangeService, $translate) {
+  app.controller('ExchangeCtrl', function($scope, ExchangeService, $translate, TransactionService, $ionicLoading) {
     var self = this;
 
     $scope.amount = 0;
@@ -24,6 +24,14 @@
     };
 
     this.doExchange = function() {
+      $ionicLoading.show();
+      TransactionService.exchange($scope.amount, this.exchange.getCurrencyFrom(), this.paymentMethod)
+        .then(function() {
+
+        })
+        .finally(function() {
+          $ionicLoading.hide();
+        })
     };
 
     this.init();

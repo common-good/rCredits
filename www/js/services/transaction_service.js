@@ -82,6 +82,16 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
     return this.charge(amount * -1, description);
   };
 
+  TransactionService.prototype.exchange = function(amount, currency, paymentMethod) {
+    var exchangeType = 'USD in';
+    if (!currency.isUSD()) {
+      exchangeType = 'USD out';
+    }
+    var description = exchangeType + '(' + paymentMethod.getId() + ')';
+    console.log("DESCRIPTOPN: ", description);
+    return this.charge_(amount, description);
+  };
+
   TransactionService.prototype.undoTransaction = function(transaction) {
     var sellerAccountInfo = UserService.currentUser().accountInfo,
       customerAccountInfo = UserService.currentCustomer().accountInfo,

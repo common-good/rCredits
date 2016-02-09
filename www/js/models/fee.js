@@ -24,7 +24,6 @@
         } else if (this.unit === 'percent') {
           amountWithFee = amount - (amount * (this.value / 100));
         }
-        console.log("Amount with formatting: ", amountWithFee);
 
         if (amountWithFee <= 0) {
           return Fee.format(0);
