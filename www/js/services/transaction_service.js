@@ -31,7 +31,7 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
     return transaction;
   };
 
-  TransactionService.prototype.charge_ = function(amount, description) {
+  TransactionService.prototype.makeTransactionRequest = function(amount, description) {
     var sellerAccountInfo = UserService.currentUser().accountInfo,
       customerAccountInfo = UserService.currentCustomer().accountInfo,
       params = new RequestParameterBuilder()
@@ -53,7 +53,7 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
   };
 
   TransactionService.prototype.charge = function(amount, description) {
-    return this.charge_(amount, description)
+    return this.makeTransactionRequest(amount, description)
       .then(function(transactionResult) {
         console.log("Transcation Result: ", transactionResult);
 
@@ -71,6 +71,7 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
             self.saveTransaction(transaction);
           });
 
+          self.lastTransaction = transaction;
           return transaction;
         }
 
@@ -89,7 +90,7 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
     }
     var description = exchangeType + '(' + paymentMethod.getId() + ')';
     console.log("DESCRIPTOPN: ", description);
-    return this.charge_(amount, description);
+    return this.charge(amount, description);
   };
 
   TransactionService.prototype.undoTransaction = function(transaction) {

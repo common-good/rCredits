@@ -2,7 +2,7 @@
 
   'use strict';
 
-  app.controller('ExchangeCtrl', function($scope, ExchangeService, $translate, TransactionService, $ionicLoading) {
+  app.controller('ExchangeCtrl', function($scope, ExchangeService, $translate, TransactionService, $ionicLoading, $state) {
     var self = this;
 
     $scope.amount = 0;
@@ -26,8 +26,9 @@
     this.doExchange = function() {
       $ionicLoading.show();
       TransactionService.exchange($scope.amount, this.exchange.getCurrencyFrom(), this.paymentMethod)
-        .then(function() {
-
+        .then(function(transaction) {
+          $state.go('app.transaction_result',
+            {'transactionStatus': 'success', 'transactionAmount': transaction.amount});
         })
         .finally(function() {
           $ionicLoading.hide();
