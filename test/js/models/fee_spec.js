@@ -43,6 +43,16 @@ describe('Fee', function() {
       expect(fee.apply(amount)).toBe(97);
     });
 
+    it('Apply fee for Zero amount', function() {
+      fee = Fee.parseFee(FeeDef.cash);
+      expect(fee.apply(0)).toBe(0);
+    });
+
+    it('Apply fee for Negative amount', function() {
+      fee = Fee.parseFee(FeeDef.cash);
+      expect(fee.apply(-1)).toBe(0);
+    });
+
   });
 
 });
