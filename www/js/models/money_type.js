@@ -6,13 +6,18 @@
     var MoneyType = Class.create({
 
       name: '',
+      sign: '',
 
       initialize: function($super) {
       },
 
       getName: function() {
         return this.name;
-      }
+      },
+
+      getSign: function() {
+        return this.sign;
+      },
 
     });
 

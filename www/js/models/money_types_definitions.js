@@ -2,10 +2,12 @@
 
   window.moneyTypesDefinitions = [
     {
-      name: 'USD'
+      name: 'USD',
+      sign: '$'
     },
     {
-      name: 'rCredits'
+      name: 'rCredits',
+      sign: ''
     }
   ]
 

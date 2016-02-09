@@ -10,7 +10,7 @@
                 {{::'exchange_in' | translate}}
               </div>
               <div class="type">
-                {{amount}} {{exCtrl.moneySwitch.in.getName()}}
+                {{::exCtrl.moneySwitch.in.getSign()}} {{amount}} {{::exCtrl.moneySwitch.in.getName()}}
               </div>
             </div>
 
@@ -19,11 +19,12 @@
                 {{::'exchange_out' | translate}}
               </div>
               <div class="type">
-                {{exCtrl.moneySwitch.out.getName()}}
+                {{::exCtrl.moneySwitch.out.getSign()}} {{::exCtrl.moneySwitch.out.getName()}}
               </div>
             </div>
 
-            <div class="item fee-legend" ng-bind="exCtrl.paymentFeeTitle">
+            <div class="item fee-legend">
+              {{::exCtrl.paymentFeeTitle}}
             </div>
           </div>
         </div>

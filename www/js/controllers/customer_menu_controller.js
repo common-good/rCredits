@@ -48,7 +48,7 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
   };
 
   $scope.openExchange = function() {
-    $state.go('app.transaction_exchange')
+    $state.go('app.transaction_select_exchange')
   };
 
 

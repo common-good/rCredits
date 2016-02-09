@@ -33,7 +33,6 @@
       return _.map(this.paymentTypes, _.clone);
     };
 
-
     ExchangeService.prototype.removeMoneySwitch = function() {
       this.moneySwitch = null;
     };
