@@ -1,9 +1,9 @@
 (function(window, app) {
 
   var _ = window._;
-  app.service('MoneyType', function() {
+  app.service('Currency', function() {
 
-    var MoneyType = Class.create({
+    var Currency = Class.create({
 
       name: '',
       sign: '',
@@ -21,11 +21,11 @@
 
     });
 
-    MoneyType.parseMoneyType = function(jsonMoney) {
-      return _.extendOwn(new MoneyType(), jsonMoney);
+    Currency.parseCurrency = function(jsonMoney) {
+      return _.extendOwn(new Currency(), jsonMoney);
     };
 
 
-    return MoneyType;
+    return Currency;
   });
 })(window, app);

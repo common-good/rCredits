@@ -1,32 +1,32 @@
 (function(app) {
   'use strict';
 
-  app.service('ExchangeService', function(MoneyType, PaymentType) {
+  app.service('ExchangeService', function(Currency, PaymentType) {
 
     var self;
     var ExchangeService = function() {
       self = this;
-      this.moneyTypes = [];
+      this.Currencies = [];
       this.paymentTypes = [];
 
       this.init();
     };
 
     ExchangeService.prototype.init = function() {
-      this.createMoneyTypes_();
+      this.createCurrencies_();
       this.createPaymentTypes_();
     };
 
-    ExchangeService.prototype.createMoneyTypes_ = function() {
-      this.moneyTypes = _.map(window.moneyTypesDefinitions, MoneyType.parseMoneyType);
+    ExchangeService.prototype.createCurrencies_ = function() {
+      this.Currencies = _.map(window.CurrenciesDefinitions, Currency.parseCurrency);
     };
 
     ExchangeService.prototype.createPaymentTypes_ = function() {
       this.paymentTypes = _.map(window.paymentTypesDefinitions, PaymentType.parsePaymentType);
     };
 
-    ExchangeService.prototype.getMoneyTypes = function() {
-      return _.map(this.moneyTypes, _.clone);
+    ExchangeService.prototype.getCurrencies = function() {
+      return _.map(this.Currencies, _.clone);
     };
 
     ExchangeService.prototype.getPaymentTypes = function() {

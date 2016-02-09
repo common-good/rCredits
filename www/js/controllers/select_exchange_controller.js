@@ -4,7 +4,7 @@
 
   app.controller('SelectExchangeCtrl', function(ExchangeService, $translate, $state) {
     var self = this,
-      moneyTypes = ExchangeService.getMoneyTypes(),
+      currencies = ExchangeService.getCurrencies(),
       paymentTypes = ExchangeService.getPaymentTypes();
 
     this.switchTypes = function() {
@@ -15,8 +15,8 @@
 
     this.init = function() {
       this.moneySwitch = {
-        'in': moneyTypes[0],
-        'out': moneyTypes[1]
+        'in': currencies[0],
+        'out': currencies[1]
       };
 
       this.paymentTypes = paymentTypes;
