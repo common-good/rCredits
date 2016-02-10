@@ -43,6 +43,13 @@
       return PreferenceService.getCashierCanPref().isRefundEnabled();
     };
 
+    CashierModeService.prototype.canExchange = function() {
+      if (!this.isActivated) {
+        return true;
+      }
+      return PreferenceService.getCashierCanPref().isRefundEnabled();
+    };
+
 
     return new CashierModeService();
   });

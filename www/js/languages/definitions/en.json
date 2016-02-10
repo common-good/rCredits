@@ -67,5 +67,6 @@
   "exchange_out": "Out",
   "exchange_selected_payment_advice": "Tell customer: There is a {{feeValue}} {{paymentName}} fee.",
   "exchange_includes_fee": "Includes {{feeValue}} {{paymentName}} fee",
-  "next": "Next"
+  "next": "Next",
+  "login_your_self": "You can't buy or sell with yourself"
 }

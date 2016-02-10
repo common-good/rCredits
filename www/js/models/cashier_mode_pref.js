@@ -15,6 +15,10 @@
 
     isRefundEnabled: function() {
       return this.isOptionEnabled('refund');
+    },
+
+    isExchangeEnabled: function() {
+      return this.isOptionEnabled('refund');
     }
 
 

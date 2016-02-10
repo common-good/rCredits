@@ -11,7 +11,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   var UserService = function() {
     self = this;
     this.seller = null;
-    this.LOGIN_SELLER_ERROR_MESSAGE = 'Not a valid rCard for seller login';
+    this.LOGIN_SELLER_ERROR_MESSAGE = 'login_your_self';
   };
 
   // Gets the current user. Returns the user object,
