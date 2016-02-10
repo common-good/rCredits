@@ -1,12 +1,22 @@
 (function(app) {
   'use strict';
 
-  app.service('CashierModeService', function(PreferenceService) {
+  app.service('CashierModeService', function(PreferenceService, localStorageService) {
 
+    var CASHIER_MODE_KEY = 'cashier_mode';
     var self;
     var CashierModeService = function() {
       self = this;
       this.isActivated = false;
+    };
+
+    CashierModeService.prototype.init = function() {
+      if (PreferenceService.isCashierModeEnabled()) {
+        var cashierMode = localStorageService.get(CASHIER_MODE_KEY);
+        if (cashierMode == true) {
+          this.activateCashierMode();
+        }
+      }
     };
 
     /**
@@ -20,6 +30,7 @@
 
     CashierModeService.prototype.disable = function() {
       this.isActivated = false;
+      localStorageService.remove(CASHIER_MODE_KEY);
     };
 
     CashierModeService.prototype.activateCashierMode = function() {
@@ -27,6 +38,7 @@
         throw new Error("Unable to activate Cashier Mode because it's not enable on Preferences.")
       }
       this.isActivated = true;
+      localStorageService.set(CASHIER_MODE_KEY, true);
     };
 
     CashierModeService.prototype.canCharge = function() {

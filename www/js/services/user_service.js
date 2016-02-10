@@ -35,6 +35,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       }
 
       this.seller = seller;
+      CashierModeService.init();
 
       $timeout(function() {
         $rootScope.$emit('sellerLogin');
