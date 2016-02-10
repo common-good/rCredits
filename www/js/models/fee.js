@@ -26,15 +26,11 @@
         }
 
         if (amountWithFee <= 0) {
-          return Fee.format(0);
+          return 0
         }
-        return Fee.format(amountWithFee);
+        return amountWithFee;
       }
     });
-
-    Fee.format = function(amount) {
-      return parseFloat($filter('currency')(amount, '', 2));
-    };
 
     Fee.parseFee = function(jsonFee) {
       return _.extendOwn(new Fee(), jsonFee);
