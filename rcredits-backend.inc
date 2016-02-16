@@ -87,6 +87,16 @@ EOF;
 }
 
 /**
+ * Return an array of member names.
+ * POLICY QUESTION: Restrict to member's community? (yes for now)
+ */
+function memberRay($myid) {
+  if (!$a = r\acct($myid)) return [];
+  $where = $a->admin ? '1' : "community=$a->community";
+  return db\q("SELECT fullName FROM users WHERE :IS_OK AND $where ORDER BY fullName")->fetchCol();
+}
+
+/**
  * Return the next relevant transaction for form 1099b, for an account.
  * @param int $payee: the account record ID
  * @return the next relevant row (NULL if no more)
@@ -95,7 +105,7 @@ EOF;
  *   even if the account is joint.
  */
 function get1099b($payee) {
-  global $q1099;
+  global $q1099, $ignore1099;
   
   if (!@$q1099) {
     $tome = ':payee=payee';
@@ -108,7 +118,7 @@ function get1099b($payee) {
         IF($tome, payeeFor, payerFor) AS `for` ,
         $tome AS tome
       FROM r_txs WHERE :payee IN (payer, payee) AND created BETWEEN $start AND $end 
-      AND (goods=:R_FOR_GOODS OR type<>:TX_TRANSFER)
+      AND (goods=:FOR_GOODS OR type<>:TX_TRANSFER)
       ORDER BY created
 EOF;
 //      AND (goods OR (type NOT IN (:TX_TRANSFER, :TX_REFUND)))
@@ -118,11 +128,10 @@ EOF;
   while ($row = $q1099->fetchAssoc()) {
     extract(u\just('data serial tome', $row));
     $data = unserialize($data);
-    if (@$data['undoneBy'] or @$data['undoes'] or $serial == @$ignore) {
-      $ignore = $serial; // ignore undone txs and their rewards
-      continue;
-    }
-    if ($tome) return $row; // have to look at expenses, in case there's a reversed rebate, but don't return em
+    if (@$data['undoneBy']) { // look at expenses, in case there's a reversed rebate, but don't return em
+      $ignore1099[] = $serial; // ignore undone txs and their rewards
+    } elseif (@$data['undoes'] or in_array($serial, @$ignore1099 ?: [])) { // (do nothing)
+    } elseif ($tome) return $row;
   }
 
   return $q1099 = NULL;
@@ -309,10 +318,11 @@ function payInvoice($nvid, &$msg = '') {
  * @param array $data: associative array of info about the transaction this request is reversing (if any), 
  *   indexed by any of:
  *   'rebate': the rebate amount for this request (should be negative the original bonus amount)
- *   'bonus': the bonus amount (should be negative the original rebate amount) [rebate and bonus are always both set or neither]
+ *   'bonus': the bonus amount (should be negative the original rebate amount)
  *   'undoes': transaction id of the related transaction (transaction being undone / invoice being paid)
  *   'force': <do the transaction despite any shortfall (1 for original transaction, -1 for forced reversal)>
  *   'inv': record number of the invoice for which this is payment
+ *   'isGift': <the payment is a gift to a community or nonprofit>
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    subs: replacement parameters, specific to the message (in particular, success=TRUE or FALSE)
@@ -377,7 +387,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
     $msg = $reallyTaking ? ($a2->can(B_SECRET) ? 'short from vague' : 'short from') : 'short to';
     if ($channel == TX_WEB) {
       if ($msg == 'short to' and r\signedIn()) $msg .= '|increase min';
-      if ($goods != R_FOR_GOODS) $msg .= '|short cash help|maybe not cash';
+      if ($goods != FOR_GOODS) $msg .= '|short cash help|maybe not cash';
 // disabled for now      if (!$loserA->can(B_DEBT) and $loserA->floor < 0) $msg .= '|try debt';
     }
     r\suggestMin($loserA);
@@ -393,14 +403,14 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   if ($oked) { // notify other party by email about any completed transaction
     foreach ([$a1, $a2] as $a) if (!$a->confirmed) $a->setBit(B_CONFIRMED);
     $notice = $reallyTaking ? 'new charge'
-      : (($amount < 0 and $goods == R_FOR_GOODS) ? 'new refund' : 'new payment');
+      : (($amount < 0 and $goods == FOR_GOODS) ? 'new refund' : 'new payment');
     if ($notice == 'new payment' and $a2->co) { // not "new charge" (the most common)
       $atag = $a2->makeDo('addr', $myid, 0); // add a link to address, so merchant can ship or nonprofit can thank
       $args['myName'] = "<$atag>$args[myName]</a>";
     }
     if (@$args['otherRewardAmount']) $notice .= '|reward other';
     r\notify($uid, $notice, $args);
-    $message = 'report tx' . ($goods == R_FOR_GOODS ? '|reward' : '');
+    $message = 'report tx' . ($goods == FOR_GOODS ? '|reward' : '');
   } else $message = $ttype;
 
   return r\txRet($message, $args, !$oked);
@@ -420,7 +430,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
  *    subs: replacement parameters, specific to the message (in particular, success=TRUE or FALSE)
  *    confirm: boolean "this needs to be confirmed"
  */
-function invoice($a1, $a2, $amount, $goods = R_FOR_USD, $purpose = NULL, $oked = TRUE) {
+function invoice($a1, $a2, $amount, $goods = FOR_USD, $purpose = NULL, $oked = TRUE) {
   if ($err = u\badAmount($amount, '>0')) return r\txRet($err);
   u\EXPECT(compact(u\ray('a1 a2 amount goods purpose oked')), 'acct acct float int string bool');
   u\setDft($purpose, $why = u\ray(R_WHYS)[$goods]);
@@ -523,6 +533,7 @@ function deleteCell($number) {
 function identify($who, $myid, $self_message = 'no self-trading') {
   $create = FALSE; // not currently used
   $who = trim($who);
+  $subs = compact('who');
   if (!$mya = r\acct($myid)) return ['search forbidden', [], []];
 
   if ($phone = u\fmtPhone($who, '+n')) {
@@ -534,23 +545,21 @@ function identify($who, $myid, $self_message = 'no self-trading') {
     $pre = $match[1] ? '' : R_SERVER_ID; // region name was omitted
     list($quid) = explode(' ', "$pre$quid ", 2); // take just the first word, in case this is from a list showing QUID and fullName
   }
-
   if (u\isQid($quid)) {
-    if (!$acct = r\acct($quid)) return array('unknown member', compact('who'), []);
+    if (!$acct = r\acct($quid)) return array('unknown member', $subs, []);
     if ($acct->id == $myid) return array($self_message, [], []);
     return $acct; // qids are easy
   }
-
-  if (!$short = u\shortName($who)) $short = '-'; // abbreviations must not be null or zeroes
+  if (!$short = u\shortName(" $who ", '%')) $short = '-'; // abbreviations must not be null or zeroes
   $cmail = strpos($who, '@') ? u\cryptN($who) : '-';
 
-  $cttyCrit = $mya->admin ? '' : "AND community=$mya->community";
+  $cttyCrit = (TRUE or $mya->admin) ? '' : "AND community=$mya->community"; // no restrictions on lookup, for now
   
   $sql = <<<EOF
     SELECT DISTINCT uid,fullName
     FROM users 
-    WHERE (INSTR(name, :short) OR (!:IS_NOSEARCH AND (:cphone=phone OR :cmail=mail)))
-    AND uid>1 AND :IS_OK $cttyCrit
+    WHERE (fullName LIKE :short OR (!:IS_NOSEARCH AND (:cphone=phone OR :cmail=mail)))
+    AND :IS_OK $cttyCrit
     ORDER BY fullName
 EOF;
 
@@ -559,9 +568,9 @@ EOF;
   $result = db\q($sql, compact(u\ray('short cphone cmail')))->fetchAllKeyed(0, 1);
   if (count($result) == 1 and @$result[$myid]) return [$self_message, [], []];
   unset($result[$myid]); // self is one of many results, so ignore it
+  if (!$result) return ['unknown member' . ("$cphone$cmail" == '--' ? '' : '|no search'), $subs, []];
   if (count($result) == 1) return r\acct(key($zot = $result)); // get the one entry (zot resets the pointer)
-  if (!$result) return 'unknown member' . ("$cphone$cmail" == '--' ? '' : '|no search');
-  return ['ambiguous other', compact('who'), $result];
+  return ['ambiguous other', $subs, $result];
 }
 
 /**

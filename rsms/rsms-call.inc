@@ -356,7 +356,7 @@ class call {
     $a = be\identify($who, $mya->id);
     if ($a != 'ALL' and !u\isAcct($a)) return tt($a); // return the array if error
 
-    $goods = u\forCash($what) ? R_FOR_USD : R_FOR_GOODS;
+    $goods = u\forCash($what) ? FOR_USD : FOR_GOODS;
     
     list ($msg, $args, $confirm) = 
       $type == 'payment' ? be\transfer($type, $mya, $a, $amount, $goods, $what, NULL, $this->confirmed)

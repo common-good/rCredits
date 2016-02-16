@@ -115,13 +115,16 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   | .ZZC |     250 |
 
 Scenario: A cashier canceled offline a supposedly offline charge that actually went through, but customer is broke
-  Given agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $-100 for "goods": "refund" at "%now-1hour"
+  Given transactions: 
+  | xid | created | type     | amount | from | to   | purpose |*
+  | 5   | %today  | grant    |    500 | ctty | .ZZC | growth  |
+  And agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $-100 for "goods": "refund" at "%now-1hour"
   And transactions: 
   | xid | created | type     | amount | from | to   | purpose |*
-  | 8   | %today  | transfer |    300 | .ZZB | .ZZA | cash    |
+  | 9   | %today  | transfer |    300 | .ZZB | .ZZA | cash    |
   When reconciling ":ZZA" on "devC" charging ".ZZB-ccB" $-100 for "goods": "refund" at "%now-1hour" force -1
-  Then we respond ok txid 9 created %now balance -50 rewards 250
-  And with undo "5"
+  Then we respond ok txid 10 created %now balance -50 rewards 250
+  And with undo "6"
   And we notice "new refund|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | refund       | reward          | $-10              |
@@ -130,7 +133,7 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   | %today  | Bea Two  | Corner Pub | $100   | reverses #2  | reward          | $10               |
   And balances:
   | id   |       r |*
-  | ctty |   -1000 |
+  | ctty |   -1500 |
   | .ZZA |     550 |
   | .ZZB |     -50 |
-  | .ZZC |     250 |
+  | .ZZC |     750 |

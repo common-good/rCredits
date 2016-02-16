@@ -7,7 +7,7 @@
  * Also used by /do.php, for no-sign-in database changes
  */
  
-define('R_VERSION', '2.30'); // software version
+define('R_VERSION', '2.33'); // software version
 define('STAGE_SUBDOMAIN', 'ws');
 define('STAGE', STAGE_SUBDOMAIN . '.rcredits.org'); // staging site (for secrets, etc.)
 define('PRODUCTION', 'new.rcredits.org'); // production site (used for setting $base_url)
@@ -59,6 +59,12 @@ $databases = array (
 
 ini_set('error_reporting', isDEV ? E_ALL : (E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT));
 ini_set('max_execution_time', isDEV ? 0 : 240); // don't ever timeout when developing
+ini_set('session.gc_probability', 1); // garbage collection this fraction of the time on startup (numerator)
+ini_set('session.gc_divisor', 100); // (denominator)
+define('SESSION_LIFE', 1440); // 1440 = 24 minutes (the standard)
+ini_set('session.gc_maxlifetime', SESSION_LIFE); // session timeout (and garbage collection happens)
+ini_set('session.cookie_lifetime', SESSION_LIFE);
+
 $conf['cron_safe_threshold'] = 0; // disable poorman's cron
 if (isDEV) {
   error_reporting(E_ALL);

@@ -4,17 +4,10 @@ function toggle(field) {
   jQuery(field).val(jQuery(field + "-YES").is(":visible"));
 }
 
-function commafy(n) {
-  if(isNaN(n)) return '0.00';
-  n=parseFloat(n).toFixed(2).split(".");
-  n[0] = n[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return n.join(".");
-}
+function commafy(n) {return isNaN(n) ? '0.00' : n.toLocaleString();}
 
-//$(function() { // the DOM is ready enough (this being in the footer)
 jQuery("#which, #help").addClass("popup");
 
-var yesSubmit = false; // set true when user confirms submission (or makes a choice)
 var indexZ = 2;
 jQuery("#index a").mouseover(function() {
   var detail = jQuery("#" + this.id + "-detail");
@@ -72,21 +65,33 @@ function which(question, choices, choose, cancel) {
   $("#which").modal("show");
 }
 
-function noSubmit(button) {
-  $('#edit-submit').removeAttr('disabled').removeAttr('data-loading');
+var yesSubmit = false; // set true when user confirms submission (or makes a choice)
+var jForm; // jquery form object
+
+function noSubmit() {
+  $('.ladda-button').removeAttr('disabled').removeAttr('data-loading');
   $('#messages').hide();
 }
+function yesSubmit() {}
 
-function who(form, id) {
-  var jForm = $(form);
+function who(form, id, question, amount, askGift) {
+  jForm = $(form);
   if (yesSubmit) return true;
-  get('who', {who:$(id).val()}, function(j) {
+  get('who', {who:$(id).val(), question:question, amount:amount}, function(j) {
     if (j.ok) {
       if (j.who) {
         $(id).val(j.who);
-        yesno(j.confirm, function() {yesSubmit = true; jForm.submit();}, noSubmit);
+        yesno(j.confirm, function() {
+          if (askGift && j.isNonprofit) {
+            $('.confirmation-modal').remove();
+            yesno('Is this a donation?', 
+              function() {$('#edit-isgift').val(1); yesSubmit = true; jForm.submit();},
+              function() {yesSubmit = true; jForm.submit();}  
+            );
+          } else {yesSubmit = true; jForm.submit();}
+        }, noSubmit);
       } else which(jForm, id, j.title, j.which);
-    } else $.alert(j.message);
+    } else {noSubmit(); $.alert(j.message);}
   });
   return false;
 }
@@ -105,6 +110,56 @@ function which(jForm, id, title, body) {
     $(id).val($(this).val());
     jForm.submit();
   });
+}
+
+function suggestWho(sel) {
+  var members = new Bloodhound({
+  //  datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
+    datumTokenizer: Bloodhound.tokenizers.whitespace,
+    queryTokenizer: Bloodhound.tokenizers.whitespace,
+    prefetch: {
+      url: ajaxUrl + '?op=typeWho&data=&sid=' + ajaxSid,
+      cache: false
+    }
+  /*  remote: {
+      url: ajaxUrl + '?op=typeWho&data=%QUERY&sid=' + ajaxSid,
+      wildcard: '%QUERY'
+    } */
+  });
+
+  $(sel).wrap('<div></div>').typeahead(
+    {
+      minLength: 3,
+      highlight: true
+    },
+    {
+      name: 'rMembers',
+  //    display: 'value',
+      source: members
+    }
+  );
+  /*$(sel).bind('typeahead:select', function(ev, suggestion) {
+    console.log('Selection: ' + suggestion);
+  }); */
+}
+
+var signoutWarning = 'You still there? (otherwise we\'ll sign you out, to protect your account)';
+
+function sessionTimeout() {
+  return setTimeout(function() {
+    $.confirm({
+      title:'Long Time No Click',
+      text:signoutWarning,
+      confirmButton:'Yes',
+      cancelButtonClass:'hidden',
+      confirm:function() {
+        clearTimeout(sTimeout); // don't sign out
+        $.get(ajaxUrl, {op:'refresh'}); // reset PHP garbage collection timer
+        sTimeout = sessionTimeout(); // restart warning timer
+      }
+    });
+    sTimeout = setTimeout(function() {location.href = signoutUrl;}, Math.max(1, signoutWarningAdvance - 10));
+  }, sessionLife - signoutWarningAdvance);
 }
 
 var _gaq = _gaq || [];

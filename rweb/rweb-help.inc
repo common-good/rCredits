@@ -87,7 +87,7 @@ EOF
     <p><b>Amount:</b> The amount of the transaction, measured in dollars, to be paid in rCredits.</p>
     <p><b>Purpose:</b> If this is a purely financial transaction, click "@forMoney" or "@forNongoods". Otherwise, a description is required (for purchases and sales of real goods and services). Donations to nonprofit organizations count as purchases of real services &mdash; services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank &mdash; your statements will call the purpose "cash".</p>
 EOF
-  , ['@forMoney'=>$whys[R_FOR_USD], '@forNongoods'=>$whys[R_FOR_NONGOODS]]);
+  , ['@forMoney'=>$whys[FOR_USD], '@forNongoods'=>$whys[FOR_NONGOODS]]);
 
   if ($i == 'directory') return t(<<<EOF
     <p>This is where you can find out who takes rCredits for what you want. click a business name to see its rCredits webpage.</p>
@@ -317,21 +317,39 @@ EOF
 EOF
   ) . $back;
 
-  if ($i == 'funds') return showCharts('funds') . tt(<<<EOF
+  if ($i == 'funds') return showCharts('funds') . t(<<<EOF
     <p>There are two kinds of funds in the rCredits system:</p>
-    <ol>
-      <li><b style='color:white; background-color:darkgreen;'>rCredits</b>. These are the funds that we issue together as a community, by agreeing to accept them as payment for our goods and services. The chart distinguishes between two categories of rCredits*:
-      <ul>
-        <li><b style='color:black; background-color:yellow;'>rCredits that sit</b>. You keep some rCredits in your account, unspent for now. Maybe you plan to spend them next month. Or maybe you are holding them in your rCredits account as a hedge against inflation. Either way, we call funds that are unused for a month or more "savings". The accounts with the 5 highest savings amounts are totaled and shown separately as well**.</li>
-        <li><b>rCredits that circulate</b> (green above the yellow line). Members use the remaining rCredits every month, to make purchases from other members (check the <a href="@BASE_URL/help/velocity">Velocity graph</a>, to see what fraction of the rCredits are used each month).</li>
-      </ul></li>
-      <li><b style='color:white; background-color:darkblue;'>US Dollars</b> (which currently just sit). When you transfer funds from bank account to your rCredits account or when you trade US Dollars for rCredits at a member business, that money goes into the community's US Dollar bank account. The system issues you an equivalent amount of rCredits to spend or hold in your account. For now, the US Dollars just accumulate, unused. Once we have enough active participation to establish a Common Good Community, we can decide together how best to use that money &mdash; for grants, zero-interest loans, and equity investments for sustainability and the common good.</li>
-    </ol>
+    <ul>
+      <li><b style='color:white; background-color:darkgreen;'>Rewards</b>. These are the funds that we issue together as a community, by agreeing to accept them as payment for our goods and services.</li>
+      <li><p><b style='color:white; background-color:darkblue;'>US Dollars</b>. When you transfer funds from bank account to your rCredits account, that money goes into the community's US Dollar bank account, the "rCredits Escrow". The system issues you an equal amount of rCredits to spend or hold in your account. Then when a business gets paid in rCredits, if they don't have enough places to spend them yet, they trade some of their rCredits for US Dollars from the rCredits Escrow.</p>
+      
+      <p>The rCredits Escrow accumulates more and more US Dollars, as the system grows, and those Dollars just sit there, unused. Once we have enough active participation to establish a Common Good Community, we can decide together how best to use that money &mdash; for strategic incentives, grants, zero-interest loans, and equity investments for sustainability and the common good.</p></li>
+    </ul>
     <p>The total funds in the rCredits system (the total under our control as a community) is the Sum of the rCredits (circulating or sitting) and the US Dollars.</p>
+    
+    <p>The chart also shows three measures of the community's risk of having a <@aCrunch>cash flow crunch</a>:</p>
+    <ul>
+      <li><b style='color:white; background-color:orange;'>In Use</b>. The orange line shows how much money is being used each month. Money in consistent use tends to stay in the system.</li>
+      <li><p><b style='color:black; background-color:yellow;'>Runny Rewards</b>. Incentive rewards always go into your Savings Reserve. If they stay there while the system grows to become stable and permanent, there is no risk of someone cashing them out, shrinking the rCredits Escrow. Maybe you plan to spend them next month. Or maybe you are holding them in your rCredits account as a hedge against inflation. But the system can't guess that. Unless you use the auto-refill feature, the system assumes you might spend your rewards at any moment (resulting in a negative Primary Balance). We call those funds that might be spent at any moment "runny".</p>
+      <p>On the other hand, if you DO use the auto-refill feature, you have chosen to keep a certain minimum Primary Balance in your rCredits account. That minimum partially offsets the runny rewards in other accounts, making a cash flow crunch even less likely. The yellow line shows the total of runny rewards minus the estimated total Primary Balances in accounts that use auto-refill (conservatively assuming each person's average balance is half their chosen minimum). The formula looks something like this:</p>
+      
+      <blockquote>Total Runniness = SUM(runny rewards) - SUM(auto-refill levels / 2)</blockquote>
+      </li>
+              
+      <li><b style='color:white; background-color:darkred;'>Top 5</b>. For accounts with the most runny rewards (the top 5 or top 5%, whichever is higher), reward amounts are totaled and shown as a red line. It is unlikely that more than 5% of the accounts would decide to spend all their rewards at the same time.</li>
+
+      <li><b style='color:white; background-color:magenta;'>Runny Balance</b>. The violet line shows the actual total combined balance in runny accounts (Primary Balance plus Savings Reserve). They <i>could</i> spend all their rewards, but this is what they actually have done so far.</li>
+    </ul>
+EOF
+  , ['@aCrunch' => 'a href=cashflow-crunch']) . $back;
+  
+/*
+      <li><b style='color:white; background-color:magenta;'>Runny Debt</b>. The violet line shows how much of their incentive rewards the runny accounts have already spent. This total has already reduced the rCredits Escrow, so you can think of it as mitigating the yellow line (subtract it from the yellow line).</li>
+      */
+/*
     <p>* The distinction between "savings" and rCredits that are actually being used is important. The value of rCredits, like any currency, is what you can get for them. When you save your rCredits funds for spending a month or more in the future, it probably means you are confident (1) that you will be able to spend them within the rCredits system OR (2) that you will be able to trade them for US Dollars because other members can spend them within the system. So savings are a <em>speculative</em> <a href="@BASE_URL/help/demand">demand</a> for rCredits, rather than a demand based in current reality. The speculation may indeed be accurate, but <a href='velocity'>circulation velocity</a> and <a href='demand'>net monthly influx of US Dollars</a> are stronger measures of the system's capacity for additional rCredits.</p>
     <p>** <b style='color:white; background-color:darkred;'>Top 5</b>. Balanced participation among many members maximizes the system's predictability and protects against a cash flow crunch. Expect the "Top 5" line to level off as the system grows.</p>
-EOF
-  ) . $back;
+*/    
 
   if ($i == 'velocity') return showCharts('velocity') . t(<<<EOF
     <p>In our society at large, how fast the money moves is an indicator of the health of our economy. Faster velocity implies more people spending more money per month.</p>

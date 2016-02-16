@@ -115,7 +115,7 @@ function acctHourly($item) {
   return; // nothing to do, currently
   extract(u\just('uid', $item));
   $a = r\acct($uid);
-//  $a->shortfall(R_FOR_GOODS, PHP_INT_MAX); // notice recent deposits, if any
+//  $a->shortfall(FOR_GOODS, PHP_INT_MAX); // notice recent deposits, if any
 }
 
 function everyDay() {
@@ -124,6 +124,13 @@ function everyDay() {
   $time = r\rTime() - 7 * DAY_SECS;
   db\q('DELETE FROM r_log WHERE time<:time', compact('time')); // zap log except for the past few days
   db\q('DELETE FROM r_do WHERE completed<0 AND :now>-completed', ['now'=>r\rTime()]); // completed<0 is -expiry time
+
+  $cttys = db\q('SELECT uid AS ctty FROM users WHERE uid<0')->fetchCol();
+  foreach ($cttys as $ctty) {
+    $companies = \variable_get('companies', []);
+    $companies[$ctty] = r\companies($ctty);
+    \variable_set('companies', $companies);
+  }  
 }
 
 /**
@@ -290,37 +297,6 @@ function everyMonth() {
 function everyYear() {
   r\tellStaff('generate 1099-B forms for IRS and states');
 }
-
-//************
-// Ad hoc (soon, as needed) tasks
-
-/**
- * Reimburse the Dwolla fee (if any) of a recent transaction.
- * @param assoc $item:
- *   txid: payer's USD transaction id (payee's txid is one less)
- *   payee: uid of recipient
- */ /*
-function coverFee($item) {
-  extract(u\just('txid payee', $item));
-  $usA = new r\usd($a = r\acct($payee));
-  if (u\test()) $txid = t\seq() - 2; else $txid--; // get the payee's txid
-  if (!$fee = $usA->fee($txid)) return;
-  if ($fee == '?') {
-    r\tellStaff('no Dwolla for coverFee', $item);
-    sleep(60); // wait a minute, so we don't tie up our server or Dwolla's
-    return r\queue('coverFee', $item); // Dwolla is down -- keep trying
-  }
-  $for = t('Dwolla fee');
-  $keys = 'payer payee type amount for taking';
-  
-  r\usd::beginAtom();
-  new r\x(u\ray($keys, $a->community, $payee, TX_REFUND, $fee, $for, 0));
-  r\usd::addToAtom($txid + 2, $fee, $payee, -1, r\rTime()); // -1 to distinguish from bank transfers
-  $a->actualUsd(-$fee);
-  r\usd::commit();
-}
-*/
-//****************************************************
 
 /**
  * Calculate and credit inflation adjustment to each member account.
@@ -509,18 +485,40 @@ EOF;
  * Update system-wide and community-wide stats
  */
 function cttyStats() {
-  r\getStats(0); // for all our communities at once
-  queueEach('cttyStats1', 'SELECT DISTINCT uid AS ctty FROM users WHERE UID<0');
+  if (db\exists('r_stats')) {
+    r\getStats(0); // for all our communities at once
+    queueEach('cttyStats1', 'SELECT DISTINCT uid AS ctty FROM users WHERE uid<0');
+  } else {
+    $blockAgo = strtotime(-STATS_GRAIN, strtotime('today'));
+  
+    $sql = <<<EOF
+      SELECT community AS ctty, MIN(t.created) AS start
+      FROM users u LEFT JOIN r_txs t ON t.payee=u.uid 
+      WHERE uid>1 AND (t.created>=:R_LAUNCH OR t.created IS NULL) GROUP BY community ORDER BY -community
+EOF;
+    $cttys = db\q($sql)->fetchAllKeyed();
+    u\preray([0 => min($cttys)], $cttys); // show all dates overall
+
+    $now = r\rTime();
+    $start0 = @$cttys[0] ?: $now;
+    $created = strtotime('today', $start0); // use first moment of the day
+    
+    while ($created <= $now) {
+      foreach ($cttys as $ctty => $start) if ($created >= $start) {
+        r\queue('cttyStats1', compact('ctty', 'created'));
+      }
+      $delta = $created < $blockAgo ? STATS_GRAIN : 1;
+      $created = strtotime("+$delta days", $created);
+    }
+  }
+
   queueNext();
 }
 
 function cttyStats1($item) {
-  extract(u\just('ctty', $item));
-  r\getStats($ctty); // record stats for one community on the regional server
-
-  $companies = \variable_get('companies', []);
-  $companies[$ctty] = r\companies($ctty);
-  \variable_set('companies', $companies);
+  extract(u\just('ctty created', $item));
+  r\getStats($ctty, @$created); // record stats for one community on the regional server, for the given date
+  // this fails on cross-community txs!  if ($ctty != 0) if ($err = badStats($ctty, $created)) return 
 }
 
 /**

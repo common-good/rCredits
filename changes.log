@@ -1,3 +1,21 @@
+2016-02-
+. version 2.33
+. added bootstrap typeahead (replacing Drupal's autocomplete) to Message and Tx forms
+. changed savings to runny and recreated all stats
+. keep stats on total rewards in manual accounts (that don't refill automatically) that haven't promised to keep a positive primary balance. Also top max(5/5%) total.
+. made a clear path for admin to set up and activate a new community: create with New Ctty form, change community of everyone in that community (don't change payer in their rewards transactions unless updating statistics) 
+. f('db.q', 'TRUNCATE r_stats'); f('cron.cttyStats');
+. reworked community bits
+. added organizer grant form
+. made a way to give rewards back to the community (TX_GIVEBACK = 2). when user pays community or any nonprofit, ask if it's a gift. Record in tx's data field. For donations to the community, redo payer/payee etc so it is a negative reward tx from donor to ctty.
+. sessions now time out, with option to keep alive
+. do not require separate email address for companies! (they can't sign in anyway)
+. tell admin who is eligible for a grant
+. disallow +whatever except for gmail (and other services where we know it works)
+. outgoing deposit slip list legalName
+. photo on Summary page is wrong when coming from Member List
+. moved all remaining settings to boot.inc and made setting.php a mere forwarder
+
 2016-01-27
 . version 2.30
 . fixed bug that kept payinvoice from working (needed urlencode)

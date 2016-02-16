@@ -17,8 +17,6 @@ require_once __DIR__ . '/../rcredits-util.inc';
 
 ini_set('session.cookie_lifetime', 0); // browser cookie deletion on browser close (this fails)
 ini_set('session.gc_maxlifetime', 600); // "600" = 10 minutes
-ini_set('session.gc_probability', 1); // these two lines
-ini_set('session.gc_divisor', 100); // together will make garbage collection run on 1% of the requests
 
 // Statuses
 define('SMS_NO', 0); // not verified (maybe lost?)
@@ -223,7 +221,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'cannot contact' => t('We are unable to contact @fullName by email or text message. You may want follow up directly.'),
   'no usd account' => t('To exchange rCredits for US Dollars (or vice versa), you must first connect your rCredits account to Dwolla (online).'),
   'no last customer' => t('The system does not know who your last customer was.'),
-  'max daily usd' => t('The amount you can transfer or exchange in one day is limited to $@R_MAX_DAILY_EXCHANGE'),
+  'max exchange' => t('The amount you can transfer or exchange in @period is limited to @amount.'),
   'beyond today' => t('The date cannot be any later than today.'),
   'must trust' => t('Do not invite someone unless you trust their integrity.'),
   'payment exchange error' => t('An unknown technical problem prevented your payment exchange @way @other.'),
@@ -248,6 +246,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no search' => t('OR that member has chosen not to be identified by email or phone number.'),
   'not confirmed' => t('@youName: Your membership must be approved by @inviterName OR you must do a transaction with @inviterName FIRST.'),
   'savings too low' => t('Until your rCredits community declares itself a stable and permanent Common Good Community, your savings amount must be at least as much as the incentive rewards you have received (@rewards to date)'),
+  'organizer grant' => t('You have recruited @ORGANIZER_GRANT_MIN new rCredits members. You are probably eligible for an rCredits organizer grant of up to @ORGANIZER_GRANT_MAX! <@a>Click here</a> to apply.'),
 
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',

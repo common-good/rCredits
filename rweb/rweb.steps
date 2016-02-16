@@ -982,17 +982,6 @@ function memberIsOnStepWithinSeconds($id, $step, $secs) {
 }
 
 /**
- * member (ARG) chose to verify phone by (ARG)
- *
- * in: 
- */
-function memberChoseToVerifyPhoneBy($id, $verifyBy) {
-  global $testOnly; if ($testOnly) return FALSE;
-  $a = r\acct(t\uid($id));
-  return $a->update(compact('verifyBy'));
-}
-
-/**
  * account (ARG) was set up by member (ARG)
  *
  * in: MAKE Membership AMemberOpensABusinessAccount

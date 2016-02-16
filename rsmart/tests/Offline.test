@@ -173,13 +173,16 @@ class rsmartOffline extends DrupalWebTestCase {
   // Scenario: A cashier canceled offline a supposedly offline charge that actually went through, but customer is broke
   public function testACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $-100 for "goods": "refund" at "%now-1hour"');
+    Given('transactions: "ASSOC'
+    . '\\| xid | created | type     | amount | from | to   | purpose |'
+    . '\\| 5   | %today  | grant    |    500 | ctty | .ZZC | growth  |"');
+    And__('agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $-100 for "goods": "refund" at "%now-1hour"');
     And__('transactions: "ASSOC'
     . '\\| xid | created | type     | amount | from | to   | purpose |'
-    . '\\| 8   | %today  | transfer |    300 | .ZZB | .ZZA | cash    |"');
+    . '\\| 9   | %today  | transfer |    300 | .ZZB | .ZZA | cash    |"');
     When_('reconciling ":ZZA" on "devC" charging ".ZZB-ccB" $-100 for "goods": "refund" at "%now-1hour" force -1');
-    Then_('we respond ok txid 9 created %now balance -50 rewards 250');
-    And__('with undo "5"');
+    Then_('we respond ok txid 10 created %now balance -50 rewards 250');
+    And__('with undo "6"');
     And__('we notice "new refund|reward other" to member ".ZZB" with subs: "ASSOC'
     . '\\| created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
     . '\\| %today  | Bea Two  | Corner Pub | $100   | refund       | reward          | $-10              |"');
@@ -188,10 +191,10 @@ class rsmartOffline extends DrupalWebTestCase {
     . '\\| %today  | Bea Two  | Corner Pub | $100   | reverses #2  | reward          | $10               |"');
     And__('balances: "ASSOC'
     . '\\| id   |       r |'
-    . '\\| ctty |   -1000 |'
+    . '\\| ctty |   -1500 |'
     . '\\| .ZZA |     550 |'
     . '\\| .ZZB |     -50 |'
-    . '\\| .ZZC |     250 |"');
+    . '\\| .ZZC |     750 |"');
   }
 
 }

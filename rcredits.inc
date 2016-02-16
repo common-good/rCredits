@@ -54,7 +54,7 @@ define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty
 define('R_REGION_FIELDS', 'region,fullName,st,postalCode,federalId,hasServer');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
 // isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 
-define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd verifyBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
 define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount photoId'); // very secure fields (admin-encrypted)
 define('R_SECURE_FIELDS', R_VSECURE_FIELDS . ' pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
@@ -84,12 +84,14 @@ define('R_MAX_PHOTO_WIDTH', 1024);
 define('R_MAX_UPLOAD_SIZE', 3); // maximum upload size in MB
 define('R_MAX_PHOTOID_SIZE', 2.5); // Dwolla's limit (MB)
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
-define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal FinCEN regulation
+define('R_EXCHANGE_LIMITS', '1:5000,7:10000,49:20000,365:50000');
 define('R_INVITE_DAYS', 30); // number of days to accept invitation to membership
 define('R_MINR_DEFAULT', 0); // suggested minimum amount to hold in rCredits
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
 define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter easy copying, max 14 for small QR)
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
+define('ORGANIZER_GRANT_MIN', 10); // minimum number of individuals to recruit, to be eligible for a grant
+define('ORGANIZER_GRANT_MAX', '$5,000'); // maximum organizer grant amount
 
 define('ICARD_EXPIRES', 14); // how many days until invitation card expires, after account is activated
 define('ICARD_CODELEN_MIN', 10); // minimum length for an invitation code
@@ -101,17 +103,33 @@ define('ILEN_DIV', 25); // this results in two 5-digit codes (otherwise the inte
 
 // codes for iCode field (invitation code)
 define('IBY0', -2); // lowest IBY number
-define('IBY_FORM', -2); // invited by form (pre-confirmed)
+define('IBY_FORM', -2); // invited by form (including companies) (the ONLY pre-confirmed signup)
 define('IBY_LATE', -1); // invited by form, but accepted late (needs to be confirmed)
 define('IBY_SELF', 0); // signed up without an invitation/confirmation yet
 define('IBY_EMAIL', 1); // invited by email (this invitation # is re-usable, but needs to be confirmed)
 define('IBY_ICARD', 2); // >=this is invitation number, also needing confirmation
 define('IBYS', 'form late self email icard');
 
+// notification preferences
+$GLOBALS['notifyWhens'] = t('N:Never,I:Immediately,D:Daily,W:Weekly,M:Monthly');
+$GLOBALS['notifyNowBys'] = t('E:Email,T:Text message,B:Both'); // how to send immediate messages
+define('N_DEFAULTS', 'MMNIIMDIDWD');
+define('N_EXPLICIT_OUT', 0); // manual payment or transfer out
+define('N_AUTO_OUT', 1); // automatic payment made
+define('N_AUTO_IN', 2); // auto-refill initiated
+define('N_IN_DONE', 3); // transfer from bank account complete
+define('N_INCOME', 4); // payment received
+define('N_INFLATION', 5); // inflation adjustment received
+define('N_REWARD', 6); // other incentive reward received
+define('N_OTHER_IN', 7); // fine, grant, loan, or investment received
+define('N_CHANGED', 8); // transaction/invoice edited, canceled, or disputed
+define('N_NUDGE', 9); // your invitee needs a nudge
+define('N_SUGGESTION', 10); // suggestion from the system
+
 define('R_WHYS', t('goods and services,exchange of US Dollars or other currency,loan/reimbursement/etc.')); // transaction purposes
-define('R_FOR_GOODS', 0); // index into R_WHYS for goods
-define('R_FOR_USD', 1); // index into R_WHYS for USD exchange
-define('R_FOR_NONGOODS', 2); // index into R_WHYS for loan, etc.
+define('FOR_GOODS', 0); // index into R_WHYS for goods
+define('FOR_USD', 1); // index into R_WHYS for USD exchange
+define('FOR_NONGOODS', 2); // index into R_WHYS for loan, etc.
 
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_ACHMIN', 10); // minimum granularity of withdrawals from bank account
@@ -201,12 +219,11 @@ define('APP_CAN_BIT_DESCS', 'charge customers,undo last transaction,give rCredit
 // If we need more bits, create a flags2 field and make the B_ defs negative or 32-63 for setBit
 // for documentation of IS_OK etc. see u\SUBS()
 define('B_MEMBER', 0); // fulfilled membership requirements (ready to be approved).
-define('B_CGC', 0); // ctty: is an official CGC (otherwise cannot do business with other communities)
-define('B_CONFIRMED', 1); // invitation has been confirmed (in advance by form invite OR explicitly OR implicitly by newb first buying from or selling to the inviter)
-define('B_OK', 2); // approved to use rCredits for real (set by admin when ready).
-define('B_UP', 2); // ctty: is operational (up) (see also B_CTTYUP)
+define('B_CGC', 0); // NYI ctty: is an official CGC (otherwise cannot do business with other communities)
+define('B_CONFIRMED', 1); // invitation has been confirmed (in advance by form invite OR explicitly OR implicitly by newb first buying from the inviter in person)
+define('B_UP', 1); // ctty: is operational (up) (see also B_CTTYUP)
+define('B_OK', 2); // can use rCredits for real (set by admin when ready). Set FALSE to freeze ctty funds (NYI)
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
-define('B_FROZEN', 3); // ctty: is frozen (no member can cash out)
 define('B_u4', 4); // 
 define('B_u5', 5); //
 define('B_CO', 6); // company account
@@ -236,9 +253,10 @@ define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
 define('B_ADMINABLE', 'confirmed co member bona cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
+define('B_ADMIN_BITS', 'member:cgc,confirmed:up');
 define('B_LIST', 'member confirmed ok bona u4 u5 co u7 u8 nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 closed regulator cadmin2 cadmin admin');
 
-define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+refunds+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community)
+define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+givebacks+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community (fines and givebacks are negative)
 
 // Relationship permissions used in calls to acct::can() -- stored (less B_RELATED) in r_relations
 define('B_RELATED', 100); // has a relationship record
@@ -314,16 +332,15 @@ define('TX_CHANNELS', t('System SMS Web App Tone Cron Link'));
 
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits) -- negative types generally not shown
 define('TX_BANK', -9); // used only internally, to mark bank transfers
-define('TX_XFEE', -4); // exchange fee (for buying rCredits with a credit/debit card or check)
-define('TX_REFUND', -3); // UNUSED refund of fees (Dwolla)
 define('TX_BONUS', -2); // sales bonus (negative reward types are invisible on transaction history)
 define('TX_REBATE', -1); // sales rebate
 define('TX_TRANSFER', 0); // normal fund transfer (usually for actual goods and services) -- not creating rC
 define('TX_SIGNUP', 1); // signup incentive reward
-define('TX_u2', 2); // UNUSED pioneer reward (special early-stage rewards) -- might change later to TX_OTHER
+define('TX_GIVEBACK', 2); // gift to the community
 define('TX_INFLATION', 3); // reward to conpensate for inflation
 define('TX_HELPER', 4); // reward for inviting and assisting with account opening
-define('TX_REWARDS', '-3,-2,-1,1,3,4'); // only these count as rewards
+define('TX_XFEE', 5); // exchange fee (for buying rCredits with a credit/debit card or check)
+define('TX_REWARDS', '-2,-1,1,2,3,4'); // only these count as rewards
 
 define('TX_GRANT', 5);
 define('TX_LOAN', 6);
@@ -335,7 +352,7 @@ define('TX_TYPES', 'payment signup u2 inflation helper grant loan investment u8 
 define('TX_DEFAULT_PERIOD', 30); // number of days to show in transaction history, by default
 define('TX_MAX_ROWS', 100); // maximum number of transactions to show on one screen
 define('TX_DOWNLOAD_MONEY_FIELDS', 'frombank fromyou toyou reward net');
-define('TX_DATA_FIELDS', 'rebate bonus undoneBy undoes disputed force changes'); // serialized pseudo-fields in the data field of a transaction record
+define('TX_DATA_FIELDS', 'rebate bonus undoneBy undoes disputed force changes isGift'); // serialized pseudo-fields in the data field of a transaction record
 
 $GLOBALS['emailSubjects'] = array(
 /*  'new-payment' => t('rCredits PAYMENT from {otherName}'),
@@ -394,21 +411,32 @@ function regionalInsert($table, $idField, $record, $region = NULL) {
 }
 
 /**
+ * Say whether a given payment is giving back rewards to the community.
+ * @param int $payer: record id of who is maybe giving back
+ * @param int $payee: record id of payee
+ * @param assoc $data: data record from transaction
+ * @return <yes, giving back rewards>
+ */
+function isGiveback($payer, $payee, $data) {
+  return ($payee == r\acct($payer)->community and @$data['isGift']);
+}
+
+/**
  * Format and return args for reporting a transaction (old or new) to the current account.
  * Not all returned args are used for any particular type of transaction.
  * Note that templates and tests depend on the names of some of these fields
- * @param acct $acct: the account to report to (usually the current account)
+ * @param acct $a: the account to report to (usually the current account)
  * @param array $tx: the transaction array (including xid)
  * @param int $getBalance: 0=don't get any balances, 1=get my balance and tid, 2=get other party's balance and tid also
  * @param float $shortfall: how much short my balance is, for a transaction (if any)
  * @return assoc array of args
  */
-function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
+function txReportArgs($a1, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   global $channel;
   extract($tx); // any or all standard transaction fields
   if ($data) if ($data = unserialize($data)) extract(u\just('rebate bonus', $data));
 
-  $toMe = ($payee == $acct->id);
+  $toMe = ($payee == $a1->id);
   $reverses = isset($data['undoes']);
   $role = $toMe ? 'payee' : 'payer';
   u\both($tx, 'purpose', $toMe, $payeeFor, $payerFor);
@@ -416,6 +444,7 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   list ($payerPurpose, $payeePurpose) = array($payerFor, $payeeFor); // clearer names, for substitutions
   $tofrom = $toMe ? t('from') : t('to');
   $uid = $otherUid = ($toMe ? $payer : $payee);
+  $a2 = r\acct($otherUid);
   $confirmAction = $toMe ? t('charge') : ($channel == TX_POS ? t('credit') : t('pay'));
   $why = u\ray(R_WHYS)[$goods];
 
@@ -423,7 +452,8 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
     $amount = -$amount; // rephrase as positive
     $tofrom = t('to');
     $confirmAction = $toMe ? t('credit') : t('charge');
-    u\both($tx, 'did', $toMe, $goods == R_FOR_GOODS ?  t('refunded') : t('credited'), t('charged'));
+    u\both($tx, 'did', $toMe, $goods == FOR_GOODS ?  t('refunded') : t('credited'), t('charged'));
+    if (r\isGiveback($payee, $payer, $data)) list ($tx['did'], $a2, $why) = [t('gave'), $a1, t('returning rewards to the community')];
   } else u\both($tx, 'did', $toMe, $reverses ? t('re-charged') : t('charged'), ($channel == TX_POS ? t('credited') : t('paid')));
 
 ///  debug(compact('tx','toMe','amount','reverses','goods'));
@@ -431,16 +461,16 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   $amount = u\fmtAmt($amount);
   $short = u\fmtAmt($shortfall);
   if ($getMyBalance) {
-    if ($acct->can(B_BUY)) $balance = u\fmtAmt($acct->avail(R_FOR_GOODS));
+    if ($a1->can(B_BUY)) $balance = u\fmtAmt($a1->avail(FOR_GOODS));
   }
   
-  if ($goods == R_FOR_GOODS) {
+  if ($goods == FOR_GOODS) {
 //    u\both($tx, 'rewardType', $toMe, t('bonus'), t('rebate'));
     u\both($tx, 'rewardType', $toMe, t('reward'), t('reward'));
     u\both($tx, 'rewardAmount', $toMe, u\fmtAmt(@$bonus + 0), u\fmtAmt(@$rebate + 0));
   }
-  $myName = $acct->fullName;
-  $otherName = r\acct($otherUid)->fullName;
+  $myName = $a1->fullName;
+  $otherName = $a2->fullName;
   $created = u\fmtDate($created0 = $created);
 
   $success = TRUE;
@@ -473,32 +503,6 @@ function xid2tid($xid, $uid) {
   $max = "MAX(GREATEST(IF(payee$isIt, payeeTid, 0), IF(payer$isIt, payerTid, 0)))";
   return db\lookup($max, 'r_txs', $where, compact('uid', 'xid', 'jid')) + 1;
 }
-
-/**
- * Trade r in one account for USD in another
- * @param float $amount: the amount to trade (limited to R_MAX_DAILY_EXCHANGE)
- * @param int $uid1: uid of account with r to trade
- * @param int $uid2: uid of account with USD to trade
- * @param string $err: (RETURNED) an error message on failure
- * @return string $txid: USD transaction ID (from Dwolla) or FALSE on failure
- * Caller is responsible for determining whether the accounts have enough r and USD for the trade.
- * NOTE: This function can go away once all Dwolla funds have been pooled into the community account.
- *//*
-function tradeR($amount, $uid1, $uid2, &$err = '') {
-  if ($amount > R_MAX_DAILY_EXCHANGE) {$err = 'rTrade amount over max'; return FALSE;}
-  $us1 = new r\usd($a1 = r\acct($uid1));
-  $us2 = new r\usd($a2 = r\acct($uid2));
-  u\EXPECT($a1->can(B_DW) and $a2->can(B_DW), 'no dw');
-
-  r\usd::beginAtom();
-  if (!$txid = $us2->send($amount, $us1, R_DEFAULT_PURPOSE, $err)) {
-    r\usd::rollback(); // pretend nothing ever happened
-    return FALSE;
-  }
-  r\usd::commit();
-  return $txid;
-}
-*/
 
 /**
  * Say whether an account's proposed transaction duplicates the last recent one.
@@ -598,6 +602,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   global $testEmails;
 
   $subs['site'] = BASE_URL;
+  extract(u\just('subject body noFrame sms', $subs));
   
   if ($toA = is_object($to0) ? $to0 : r\acct($to0)) {
     $toEmail = $toA->email;
@@ -619,10 +624,6 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
     if ($reply == $to) $reply = NULL;
   }
 
-  $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
-  $message = @$subs['body'] ?: (@$subs['noFrame'] ? r\emailTemplate($index) : r\emailBody($index));
-  $subject = @$subs['subject'] ?: $GLOBALS['emailSubjects'][$index];
-    
   $nolog = u\ray(R_NOLOG); // subs not to log (sensitive data)
   foreach ($subs as $k0 => $v) if (!is_object($v) and !is_array($v)) {
     $k = '{' . $k0 . '}';
@@ -630,25 +631,33 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
     $logSubs[$k] = in_array($k0, $nolog) ? '(?)' : $v; // hide personal info and secrets
   }
 
-  $subject = strtr($subject, $resubs);
-  $body = strtr($message, $resubs);
+  $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
+  $subject = strtr(@$subject ?: $GLOBALS['emailSubjects'][$index], $resubs);
+  $body = strtr(@$body ?: (@$noFrame ? r\emailTemplate($index) : r\emailBody($index)), $resubs);
 
   // log
-  $message = str_replace("\r\n", '', strtr($message, $logSubs)); // easier reading for log and tests
-  $fields = compact(u\ray('index toEmail subject message'));
-/**/ t\output('Actual (in rMail) ' . print_r($fields, 1), 'email');
-  u\loga('email', $fields, @$toA);
-
-  // send
-  require_once DRUPAL_ROOT . '/vendor/autoload.php';
-  if (isDEV) return TRUE; // otherwise cURL error 60: SSL certificate problem: unable to get local issuer certificate
-  $client = new \Postmark\PostmarkClient(isDEV ? POSTMARK_API_TEST : POSTMARK_TOKEN);
-  $from = t('rCredits System <@e>', ['@e' => SYS_EMAIL]);
+  $message = str_replace("\r\n", '', strtr($body, $logSubs)); // easier reading for log and tests
+  $erInfo = compact(u\ray('index toEmail subject message'));
+/**/ t\output('Actual (in rMail) ' . print_r($erInfo, 1), 'email');
+  u\loga('email', $erInfo, @$toA);
 
   if (!isPRODUCTION) if ($toEmail != r\regionField('email') and $toEmail != R_ADMIN_EMAIL) return TRUE;
-  $res = $client->sendEmail($from, $to, $subject, $body, NULL, NULL, NULL, $reply);
-  if (!is_object($res)) r\tellStaff('email fail', compact('res'));
-  return TRUE;
+  if (isDEV) return TRUE; // otherwise cURL error 60: SSL certificate problem: unable to get local issuer certificate
+  $from = t('rCredits System <@e>', ['@e' => SYS_EMAIL]);
+  
+  if (@$sms) { // send as text message
+    $success = mail($toEmail, '', $body, "From: $from");
+  } elseif (in_array($toEmail, [R_ADMIN_EMAIL, SYS_EMAIL])) { // send as normal email
+    $success = mail($to, $subject, $body, "Content-Type: text/html; charset=ISO-8859-1\nFrom: $from" . ($reply ? "\nReply-To: $reply" : ''));
+  } else { // send as more likely-to-be-delivered email
+    require_once DRUPAL_ROOT . '/vendor/autoload.php';
+    $client = new \Postmark\PostmarkClient(isDEV ? POSTMARK_API_TEST : POSTMARK_TOKEN);
+    try {
+      $success = is_object($res = $client->sendEmail($from, $to, $subject, $body, NULL, NULL, NULL, $reply));
+/**/  $erInfo += ['error1' => print_r(@$res, 1)];
+    } catch(Exception $e) {$erInfo += ['error' => $e->getMessage()];}
+  }
+  return @$success ?: r\tellStaff('email fail', $erInfo);
 }
 
 /**
@@ -768,13 +777,17 @@ function membershipEvent($a, $status, $do = TRUE) {
     be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
 
     if ($a->confirmed and !$a->helperA->admin) { // no helper bonus for admin (cAdmin is okay)
-      be\fund($a->helper, TX_HELPER, R_HELPER_BONUS, u\tt('invite reward', ['fullName' => $a->fullName]));
+      be\fund($hId = $a->helper, TX_HELPER, R_HELPER_BONUS, u\tt('invite reward', ['fullName' => $a->fullName]));
+      if (db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) == ORGANIZER_GRANT_MIN) {
+        r\message($a->id, 'organizer grant', ['a' => 'a href="' . BASE_URL . '"/community/grant']);
+        r\tellStaff('eligible for grant', ['name' => $a->helperA->fullName], $a->helper);
+      }
     }
   }
   
   $fullName = $a->fullName;
   $quid = $a->mainQid;
-  tellStaff('event', compact(u\ray('fullName quid status')), $a->id);
+  tellStaff('event - ' . $status, compact(u\ray('fullName quid status')), $a->id);
   return TRUE;
 }
 
@@ -786,8 +799,8 @@ function membershipEvent($a, $status, $do = TRUE) {
 function acceptGift($info) {
   extract(u\just('donid uid giftDate amount often honor', $info));
   $a = r\acct($uid);
-  if ($a->shortfall(R_FOR_GOODS, $amount)) return FALSE; // wait until tomorrow, if not enough
-  if ($a->shortfall(R_FOR_GOODS, $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
+  if ($a->shortfall(FOR_GOODS, $amount)) return FALSE; // wait until tomorrow, if not enough
+  if ($a->shortfall(FOR_GOODS, $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
   $cgf = r\acct(r\cgfId());
 
 //  r\usd::beginAtom();
@@ -799,7 +812,7 @@ function acceptGift($info) {
   }
 
   $purpose = @$honor == 'share' ? R_SHARING_MSG : (t('donation') . @$recurring);
-  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, R_FOR_GOODS, $purpose);
+  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, FOR_GOODS, $purpose);
   if (@$args['success']) {
     $completed = r\rTime();
     db\update('r_gifts', compact('donid', 'completed'), 'donid');
@@ -821,6 +834,7 @@ function acceptGift($info) {
  * @param string $index: the message or message index
  * @param assoc $subs: substitutions for the message and/or data to show (show both)
  * @param bool/int $uid: related account record id (defaults to current account), none if FALSE
+ * @return FALSE;
  */
 function tellStaff($index, $subs = [], $uid = TRUE) {
   if (empty($subs)) $subs = []; // accept ''
@@ -843,6 +857,7 @@ function tellStaff($index, $subs = [], $uid = TRUE) {
   if ($email != $regionEmail and $email != R_ADMIN_EMAIL) { // temporary until ctty admins get established
     r\rMail('tell-staff', SYS_EMAIL, $subs, $uid); // tell regional admin also
   }
+  return FALSE;
 }
 
 /**
@@ -1633,7 +1648,8 @@ function stats($ctty = 0, $when = NULL) {
  * Return the amount the community has ever paid out
  */
 function cttyPaidEver($ctty = 0) {
-  return db\lookup(R_CTTY_BENE, 'r_stats', 'created=' . strtotime('today'));
+  $dt = db\max('created', 'r_stats', 'ctty=:ctty', compact('ctty')) ?: 0;
+  return db\lookup(R_CTTY_BENE, 'r_stats', 'ctty=:ctty AND created=:dt', compact('ctty', 'dt'));
 }
   
 /**
@@ -1652,24 +1668,42 @@ function getStats($ctty, $created = NULL) {
   : ['1', 'payer<1', 'payee<1', '1'];
   
   list ($members, $tmembers) = isGAME ? ['members', 't.members'] : [1, 1];
+  $runny = 'IF(:HAS_BANK AND minimum>0, -minimum/2, IF(:IS_CO, 0, tin.rewards))'; // spendable, leading to a run on the bank
+  $payins = '(SELECT payee, SUM(amount) AS received, SUM(IF(type IN (:TX_REWARDS), amount, 0)) AS rewards FROM r_txs WHERE created<=:created GROUP BY payee)';
+  $payouts = '(SELECT payer, SUM(amount) AS paid FROM r_txs WHERE created<=:created GROUP BY payer)';
+  $exchanges = '(SELECT payer, SUM(-amount) AS deposited FROM r_usd WHERE created<=:created GROUP BY payer)';
   
   // get pAccts, bAccts, newbs, savings, savingsIntent
   $sql = <<<EOF
     SELECT SUM($members * IF(activated AND activated<=:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
       SUM(IF(activated AND activated<=:created AND :IS_CO, 1, 0)) AS bAccts,
       SUM($members * IF(created<=:created AND (NOT activated OR activated>:created), 1, 0)) AS newbs,
-      SUM(picture)/100 AS savings,
-      SUM(savingsAdd) AS savingsIntent
-    FROM users
-    WHERE uid>1 AND $cttyCrit AND created<=:created 
+      SUM($runny) AS runny,
+      SUM(IF($runny>0, 1, 0)) AS runnyCount,
+      SUM(IF($runny>0, tin.received - tout.paid + tus.deposited, 0)) AS runnyBal,
+      SUM(savingsAdd) AS savings
+    FROM users u 
+    LEFT JOIN $payins tin ON tin.payee=u.uid
+    LEFT JOIN $payouts tout ON tout.payer=u.uid
+    LEFT JOIN $exchanges tus ON tus.payer=u.uid
+    WHERE u.uid>1 AND $cttyCrit AND created<=:created
 EOF;
   $res = db\q($sql, $subs)->fetchAssoc() ?: [];
+  $topN = max(5, round(.05 * $res['runnyCount']));
+  unset($res['runnyCount']);
 
-  // get top5
-  $sql = <<<EOF
+  /*  SUM(picture)/100 AS savings,
     SELECT SUM(picture)/100 AS top5
     FROM (SELECT picture FROM users WHERE uid>1 AND $cttyCrit AND created<=:created
       ORDER BY picture DESC LIMIT 5) u0
+*/
+
+  // get top5
+  $sql = <<<EOF
+    SELECT SUM(runny) AS top5
+    FROM (SELECT $runny AS runny FROM users u LEFT JOIN $payins tin ON tin.payee=u.uid 
+      WHERE u.uid>1 AND $cttyCrit AND created<=:created
+      ORDER BY $runny DESC LIMIT $topN) u0
 EOF;
   $res += db\q($sql, $subs)->fetchAssoc() ?: [];
   
@@ -1685,8 +1719,8 @@ EOF;
   
   // get buyers, sellers
   // (@todo?)
-  $sums = '';
-  foreach (u\ray('signup xfee rebate bonus inflation helper refund grant loan invest fine') as $one) { // fine<=0
+  $sums = ''; // fine and giveback are negative
+  foreach (u\ray('signup xfee rebate bonus inflation helper giveback grant loan invest fine') as $one) {
 //    $type = $one == 'cttyBuy' ? TX_TRANSFER : u\consta('tx', $one);
     $type = u\consta('tx', $one);
 /*    if ($type == TX_TRANSFER) $type .= " AND $payerCrit AND amount<>0";
@@ -1712,8 +1746,8 @@ EOF;
   $sql = <<<EOF
     SELECT $sums 
     SUM($tmembers * IF(channel=:TX_CRON AND payeeFor=':R_SHARING_MSG', amount, 0)) AS shared,
-    SUM($tmembers * IF(goods=:R_FOR_GOODS, amount, 0)) AS purchases, 
-    SUM($tmembers * IF(payer>1 AND goods=:R_FOR_USD, amount, 0)) AS forCashs
+    SUM($tmembers * IF(goods=:FOR_GOODS, amount, 0)) AS purchases, 
+    SUM($tmembers * IF(payer>1 AND goods=:FOR_USD, amount, 0)) AS forCashs
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
     WHERE $cttysCrit AND t.created<=:created
 EOF;
@@ -1740,17 +1774,17 @@ EOF;
 
   $sql = <<<EOF
     SELECT 
-    SUM($tmembers * IF(goods=:R_FOR_GOODS, amount, 0)) AS perMo,
-    SUM($tmembers * IF(goods=:R_FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, amount, 0)) AS p2bPerMo,
-    SUM($tmembers * IF(goods=:R_FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, amount, 0)) AS b2bPerMo,
-    SUM($tmembers * IF(goods=:R_FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, amount, 0)) AS b2pPerMo,
-    SUM($tmembers * IF(goods=:R_FOR_GOODS, 0, amount)) AS cashPerMo,
+    SUM($tmembers * IF(goods=:FOR_GOODS, amount, 0)) AS perMo,
+    SUM($tmembers * IF(goods=:FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, amount, 0)) AS p2bPerMo,
+    SUM($tmembers * IF(goods=:FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, amount, 0)) AS b2bPerMo,
+    SUM($tmembers * IF(goods=:FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, amount, 0)) AS b2pPerMo,
+    SUM($tmembers * IF(goods=:FOR_GOODS, 0, amount)) AS cashPerMo,
 
-    SUM($tmembers * IF(goods=:R_FOR_GOODS, 1, 0)) AS txsPerMo,
-    SUM($tmembers * IF(goods=:R_FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, 1, 0)) AS p2bTxsPerMo,
-    SUM($tmembers * IF(goods=:R_FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, 1, 0)) AS b2bTxsPerMo,
-    SUM($tmembers * IF(goods=:R_FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, 1, 0)) AS b2pTxsPerMo,
-    SUM($tmembers * IF(goods=:R_FOR_GOODS, 0, 1)) AS cashTxsPerMo
+    SUM($tmembers * IF(goods=:FOR_GOODS, 1, 0)) AS txsPerMo,
+    SUM($tmembers * IF(goods=:FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, 1, 0)) AS p2bTxsPerMo,
+    SUM($tmembers * IF(goods=:FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, 1, 0)) AS b2bTxsPerMo,
+    SUM($tmembers * IF(goods=:FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, 1, 0)) AS b2pTxsPerMo,
+    SUM($tmembers * IF(goods=:FOR_GOODS, 0, 1)) AS cashTxsPerMo
 
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
     WHERE $cttysCrit AND t.created>:monthAgo AND t.created<=:created

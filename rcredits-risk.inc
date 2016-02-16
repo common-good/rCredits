@@ -91,7 +91,7 @@ function txRisk1($tx, &$risk = 0, &$calc = 0) {
   }
   
   if (!$cttyPayer) { // most transfers to/from the community should be ignored
-    if ($goods != R_FOR_GOODS) {
+    if ($goods != FOR_GOODS) {
       if ($neg ? $a1->co : $a2->co) {
         setRisk((!$neg and $channel == TX_POS and r\usdin($payeeFor)) ? (@$xfee ? 'bankIn' : 'cashIn') : 'cashOut');
       } else setRisk('exchange');

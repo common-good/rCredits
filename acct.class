@@ -143,7 +143,7 @@ class acct {
 
     $nick = substr($field, 0, 3); // possibly meaningful prefix
     if (in_array($nick, ['can', 'raw']) and $field != 'rawChanges') $field = lcfirst(substr($field, 3));
-    if (in_array($field, u\ray('ok confirmed member bona co admin cAdmin cAdmin2 cttyActive cttyUp closed'))) $nick = 'can';
+    if (in_array($field, u\ray('ok confirmed up member cgc bona co admin cAdmin cAdmin2 cttyActive cttyUp closed'))) $nick = 'can';
     if ($nick == 'can') return $a->can(u\consta('b', $field));
     
     if ($field == 'mainQid') return r\quid($a->id);
@@ -157,7 +157,7 @@ class acct {
     if ($field == 'isCtty') return ($a->id < 0); // or ($a->id == $a->community);
     if ($field == 'isRegion') return (substr($a->name, -1, 1) == '.');
     if ($field == 'isNormal') return ($a->id > 0);
-    if ($field == 'cttyA') return r\acct($a->community ?: r\serverUid());
+    if ($field == 'cttyA') return r\acct($a->community);
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'hasBank') return $a->risk('hasBank');
@@ -259,7 +259,7 @@ class acct {
 ///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
     return u\n2ai(bindec(substr($b, 0, ILEN_DIV)), 5) . u\n2ai(bindec(substr($b, ILEN_DIV)), 5) . u\n2ai($iCode, -1);
   }
-  
+
   /**
    * Return the entire account object or just certain fields.
    * @param string $just: space-delimited list of fields to return (all raw fields, if empty)
@@ -478,9 +478,9 @@ class acct {
    * If there are fees for drawing from a related account, they are added to the amount needed.
    * If the account has permission to cash out while serving as an ATM their rewards amount will not limit them.
    * @param string $goods: (does not default, to make sure we know what we're doing)
-   *   R_FOR_GOODS or R_FOR_NONGOODS: the amount of credit available for a purchase 
+   *   FOR_GOODS or FOR_NONGOODS: the amount of credit available for a purchase 
    *     (including credit lines)
-   *   R_FOR_USD: the amount of credit available to trade for cash or US Dollars
+   *   FOR_USD: the amount of credit available to trade for cash or US Dollars
    *     (not including credit lines and rewards)
    * @param float $need: the amount needed
    * @param bool $get: draw from other accounts as needed, then say whether there is enough
@@ -491,7 +491,8 @@ class acct {
   public function shortfall($goods, $need = 0, $get = FALSE, $actor = NULL) {
     global $channel;
     $a = $this;
-    if (@$actor == $a and $a->coCan(CO_ATM)) $goods = R_FOR_GOODS;
+    // don't allow companies to spend rewards unless they have ATM permission and are exchanging r for USD
+    if ($a->co) $goods = (@$actor == $a and $a->coCan(CO_ATM) and $goods == FOR_USD) ? FOR_GOODS : FOR_USD;
     $avail = $a->avail($goods);
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
@@ -501,12 +502,12 @@ class acct {
   
   /**
    * Return how much is available in this account for the given operation, without drawing on other accounts.
-   * @param string $goods: purpose of the potential expenditure: R_FOR_GOODS or R_FOR_USD - see acct::shortfall())
+   * @param string $goods: purpose of the potential expenditure: FOR_GOODS or FOR_USD - see acct::shortfall())
    */
   public function avail($goods) {
     $a = $this;
     $floor = $a->can(B_DEBT) ? $a->j_floor : max($a->j_floor, 0); // no going into debt without permission
-    if ($goods == R_FOR_USD) $floor = max($floor, $a->j_rewards); // no exchanging rewards for cash
+    if ($goods == FOR_USD) $floor = max($floor, $a->j_rewards); // no exchanging rewards for cash
     return round($a->j_r - $a->j_committed - $floor, 2);
   }
   
@@ -554,7 +555,7 @@ EOF;
         list ($fromQuid, $toQuid) = array(r\quid($uid), $this->mainQid);
         list ($payer, $payee) = array($uid, $this->id);
         $for = array($auto . $to . $toQuid, $auto . $from . $fromQuid);
-        $goods = R_FOR_NONGOODS;
+        $goods = FOR_NONGOODS;
         if (new r\x(compact(u\ray('amount payer payee goods for')))) $left -= $amount;
         if ($left <= 0) break;
       }
@@ -660,7 +661,7 @@ EOF;
       }
       list ($a1, $a2) = u\order($b->r > $a->r, $b, $a);
       $amount = round(($a1->r - $a2->r) / 2, 2);
-      if ($amount > 0) be\transfer('payment', $a1, $a2, $amount, R_FOR_USD, t('joint account settlement'));
+      if ($amount > 0) be\transfer('payment', $a1, $a2, $amount, FOR_USD, t('joint account settlement'));
     } elseif ($b) {
       $sql .= ' AND other=:other';
       $subs += ['other'=>$b->id];
@@ -1029,11 +1030,7 @@ EOF;
       return $can;
     }
 
-    if ($bit == B_CTTYUP) {
-      if (!$a->community) return FALSE;
-      $ctty = $a->isCtty ? $a : r\acct($a->community);
-      return $ctty->ok;
-    }    
+    if ($bit == B_CTTYUP) return $a->cttyA->up;
 
     if ($bit == B_BANK) return $a->hasBank; // might get set after getCan() is called
     $can = @self::$perms[$a->id][$a->agentId] ?: $a->getCan();

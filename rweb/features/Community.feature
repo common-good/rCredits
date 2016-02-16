@@ -31,26 +31,26 @@ Setup:
   | .ZZC |  3000 |
   Given transactions: 
   | xid | created   | type      | amount | from | to   | purpose | goods      |*
-  |   1 | %today-4m | signup    |    250 | ctty | .ZZA | signup  | %R_FOR_USD |
-  |   2 | %today-4m | signup    |    250 | ctty | .ZZB | signup  | %R_FOR_USD |
-  |   3 | %today-4m | signup    |    250 | ctty | .ZZC | signup  | %R_FOR_USD |
-  |   4 | %today-3m | transfer  |     10 | .ZZB | .ZZA | cash E  | %R_FOR_USD |
-  |   5 | %today-3m | transfer  |    100 | .ZZC | .ZZA | usd F   | %R_FOR_USD |
-  |   6 | %today-3m | transfer  |    240 | .ZZA | .ZZB | what G  | %R_FOR_GOODS |
+  |   1 | %today-4m | signup    |    250 | ctty | .ZZA | signup  | %FOR_USD |
+  |   2 | %today-4m | signup    |    250 | ctty | .ZZB | signup  | %FOR_USD |
+  |   3 | %today-4m | signup    |    250 | ctty | .ZZC | signup  | %FOR_USD |
+  |   4 | %today-3m | transfer  |     10 | .ZZB | .ZZA | cash E  | %FOR_USD |
+  |   5 | %today-3m | transfer  |    100 | .ZZC | .ZZA | usd F   | %FOR_USD |
+  |   6 | %today-3m | transfer  |    240 | .ZZA | .ZZB | what G  | %FOR_GOODS |
   And statistics get set "%tomorrow-1m"
   And transactions: 
   | xid | created   | type      | amount | from | to   | purpose | goods      | channel  |*
-  |  15 | %today-2w | transfer  |     50 | .ZZB | .ZZC | p2b     | %R_FOR_GOODS | %TX_WEB  |
-  |  18 | %today-1w | transfer  |    120 | .ZZA | .ZZC | this Q  | %R_FOR_GOODS | %TX_WEB  |
-  |  23 | %today-6d | transfer  |    100 | .ZZA | .ZZB | cash V  | %R_FOR_USD | %TX_WEB  |
-  |  24 | %today-2d | inflation |      1 | ctty | .ZZA | inflate | %R_FOR_USD | %TX_WEB  |
-  |  25 | %today-2d | inflation |      2 | ctty | .ZZB | inflate | %R_FOR_USD | %TX_WEB  |
-  |  26 | %today-2d | inflation |      3 | ctty | .ZZC | inflate | %R_FOR_USD | %TX_WEB  |
-  |  27 | %today-2d | grant     |      4 | ctty | .ZZA | grant   | %R_FOR_USD | %TX_WEB  |
-  |  28 | %today-2d | loan      |      5 | ctty | .ZZB | loan    | %R_FOR_USD | %TX_WEB  |
-  |  29 | %today-2d | fine      |     -6 | ctty | .ZZC | fine    | %R_FOR_USD | %TX_WEB  |
-  |  30 | %today-1d | transfer  |    100 | .ZZC | .ZZA | payroll | %R_FOR_GOODS | %TX_WEB  |
-  |  33 | %today-1d | transfer  |      1 | .ZZC | .AAB | sharing rewards with CGF | %R_FOR_GOODS | %TX_CRON |
+  |  15 | %today-2w | transfer  |     50 | .ZZB | .ZZC | p2b     | %FOR_GOODS | %TX_WEB  |
+  |  18 | %today-1w | transfer  |    120 | .ZZA | .ZZC | this Q  | %FOR_GOODS | %TX_WEB  |
+  |  23 | %today-6d | transfer  |    100 | .ZZA | .ZZB | cash V  | %FOR_USD | %TX_WEB  |
+  |  24 | %today-2d | inflation |      1 | ctty | .ZZA | inflate | %FOR_USD | %TX_WEB  |
+  |  25 | %today-2d | inflation |      2 | ctty | .ZZB | inflate | %FOR_USD | %TX_WEB  |
+  |  26 | %today-2d | inflation |      3 | ctty | .ZZC | inflate | %FOR_USD | %TX_WEB  |
+  |  27 | %today-2d | grant     |      4 | ctty | .ZZA | grant   | %FOR_USD | %TX_WEB  |
+  |  28 | %today-2d | loan      |      5 | ctty | .ZZB | loan    | %FOR_USD | %TX_WEB  |
+  |  29 | %today-2d | fine      |     -6 | ctty | .ZZC | fine    | %FOR_USD | %TX_WEB  |
+  |  30 | %today-1d | transfer  |    100 | .ZZC | .ZZA | payroll | %FOR_GOODS | %TX_WEB  |
+  |  33 | %today-1d | transfer  |      1 | .ZZC | .AAB | sharing rewards with CGF | %FOR_GOODS | %TX_CRON |
   Then balances:
   | id   | r       | rewards | committed |*
   | ctty | -823.70 |    0.00 |         0 |

@@ -346,7 +346,7 @@ function rcredits_textfield($variables, $type = 'text') {
     }
   }    
 
-  if ($extra = rcAuto(@$autocomplete_path, $attributes['id'])) $class[] = 'form-autocomplete';
+  if ($extra = rcAuto(@$autocomplete_path, @$attributes['id'])) $class[] = 'form-autocomplete';
 
   $tribs = u\tribs(compact('type', 'class') + $attributes);
   return "<input $tribs />" . $extra;

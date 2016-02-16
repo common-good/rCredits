@@ -10,6 +10,17 @@
     src: url(http://new.rcredits.org/GnuMICR.ttf) format("truetype");
 }
 
+.vertical{
+/*    writing-mode:tb-rl; */
+    -webkit-transform:rotate(-90deg);
+    -moz-transform:rotate(-90deg);
+    -o-transform: rotate(-90deg);
+    -ms-transform:rotate(-90deg);
+    transform: rotate(-90deg);
+    white-space:nowrap;
+    display:block;
+}
+
 @mixin vcenter($position: relative) {
   position: $position;
   top: 50%;
@@ -19,9 +30,11 @@
 }
 
 .modal-dialog {margin-top:60px;}
-.modal-dialog .modal-body {background-color:darkgreen; color:white;}
+.modal-dialog .modal-header {background-color:darkgreen;}
+.modal-dialog .modal-title {color:white;}
 .ui-dialog-titlebar-close {display:none;}
 .which .ui-dialog-titlebar-close {display:block; color:darkgray; font-size:125%; padding-left:0; line-height:0;}
+/*.modal-body {background-color:midnightblue; padding:5px 30px;} */
 
 /* .element p {
   @include vertical-align();
@@ -105,7 +118,6 @@ textarea.form-control {height:100px;}
 }
 
 #which option:hover {background-color:#7CC6F0;}
-.modal-body {background-color:midnightblue; padding:5px 30px;}
 .ladda-spinner:focus {} /* dunno why this has a rounded blue border when it has the focus */
 
 .element-invisible {display:none;}
@@ -116,8 +128,8 @@ table {font-size:85%;}
 th {background: #757575; color:white; border-bottom-style: none;}
 tbody th {vertical-align: top;}
 td, th {padding: 4px 9px; border: 1px solid #fff; text-align: left;}
-tr, tr.even {background: #e8f0f0;}
-tr.odd {background: #e4e4e4;}
+.even {background: #e6ffe6;}
+.odd {background: #ccffcc;}
 
 .form-checkboxes div, .form-checkboxes {display:inline-block;}
 /*.form-horizontal  .form-checkboxes input { */
@@ -185,14 +197,16 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
 #actionsAdvanced {display:inline-block;}
 
 #messages {
-  display:inline-block; padding:0px 0 5px 0; width:100%; text-align:center;
+  display:inline-block; padding:0px 0 5px 0; width:100%; margin:0 5px; text-align:center;
   -webkit-animation: puff .5s linear; /* Chrome, Safari, Opera */
   animation: puff .5s linear;  
 }
-#messages .messages {display:inline-block; text-align:left; margin:28px auto; background-position:8px; background-repeat:no-repeat; border:1px solid; padding:10px 10px 10px 50px;
+.page-sadmin #messages {margin:0;}
+#messages .messages {display:inline-block; max-width:800px; text-align:left; margin:28px auto; background-position:8px; background-repeat:no-repeat; border:1px solid; padding:10px 10px 10px 50px;
   border-radius:8px; -moz-border-radius:8px; -webkit-border-radius:8px;
   box-shadow: 0px 4px 4px rgba(0,0,0,0.7); -webkit-box-shadow: 0 4px 4px rgba(0,0,0,0.7); -moz-box-shadow: 0 4px 4px rgba(0,0,0,0.7);
 }
+.page-sadmin #messages .messages {max-width:100%;}
 
 #messages .error {background-color:#fef5f1; color:#8c2e0b; border-color:#ed541d; background-image:url(../images/icons/message-24-error.png);}
 #messages .status {background-color:#f8fff0; color:#234600; border-color:#be7; background-image:url(../images/icons/message-24-ok.png);}
@@ -256,6 +270,13 @@ body.logged-in.one-sidebar #content {width:100%;}
 /* Security */
 #rcreditswebformsecurity #edit-change a {margin-right:10px;}
 
+/* Grant */
+#rcreditswebformgrant li {margin-bottom:10px;}
+#rcreditswebformgrant .inline {display:inline; max-width:100px;}
+#rcreditswebformgrant #edit-getPartners {max-width:250px;}
+#rcreditswebformgrant #edit-getOther {max-width:500px;}
+#rcreditswebformgrant #edit-sayWhat {max-width:300px;}
+
 /* Invite */
 #inviteLink {border:1px solid silver; background-color:lightyellow; color:silver;}
 
@@ -266,6 +287,13 @@ body.logged-in.one-sidebar #content {width:100%;}
 #rcreditswebformflags .k-risks {text-align:left;}
 #rcreditswebformflags .k-amount, #rcreditswebformflags .k-score {text-align:right;}
 #rcreditswebformflags .k-created {min-width:60px;}
+
+/* Notifications */
+#rcreditswebformnotifications .header .vertical {font-weight:bold; margin:35px 0 20px -10px;}
+
+/* Member List */
+#memberlist .name a {font-weight:bold;}
+#memberlist .co a {color:darkred;}
 
 /* Help */
 #rcreditswebformhelp em {font-style:normal; font-weight:bold; color:dimgray;}
@@ -664,48 +692,51 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebformrelations .rel-link {width:auto;}
 #rcreditswebformrelations .highlight input {background-image:url(../images/icons/buttons-highlight.png);}
 
-/* Autocomplete */
-input.form-autocomplete.throbbing {margin:0px; padding:0px; width:400px;}
-#autocomplete {border: 1px solid; overflow: hidden; position: absolute; z-index: 100;}
-#autocomplete ul {list-style:none; list-style-image:none; margin:0; padding:0; clear:none; display:inline;}
-#autocomplete li {background-color:lightyellow; color: #000; cursor: default; white-space: pre; zoom: 1; font-size:.7em; margin:0px; padding:0px; line-height:140%;}
-#autocomplete li.selected {background: #0072b9; color: #fff;}
-input.form-autocomplete {
-  background-image: url(../../misc/throbber-inactive.png);
-  background-position: 100% center; /* LTR */
-  background-repeat: no-repeat;
+/* typeahead */
+.twitter-typeahead {width:100%;}
+.tt-query {
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+     -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
 }
-input.throbbing {
-  background-image: url(../../misc/throbber-active.gif);
-  background-position: 100% center; /* LTR */
-}
-input.form-autocomplete {background-size:1.8em; background-position:right top;}
-input.throbbing {background-position:right -2.4em;}
 
-/*
-.ui-autocomplete {
-    position: absolute;
-    z-index: 1000;
-    cursor: default;
-    padding: 0;
-    margin-top: 2px;
-    list-style: none;
-    background-color: #ffffff;
-    border: 1px solid #ccc
-    -webkit-border-radius: 5px;
-       -moz-border-radius: 5px;
-            border-radius: 5px;
-    -webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-       -moz-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+.tt-hint {
+  color: #999
 }
-.ui-autocomplete > li {
+
+.tt-menu {
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px 0;
+  background-color: #e5ffe5;
+  border: 1px solid #ccc;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  -webkit-border-radius: 8px;
+     -moz-border-radius: 8px;
+          border-radius: 8px;
+  -webkit-box-shadow: 0 5px 10px rgba(0,0,0,.2);
+     -moz-box-shadow: 0 5px 10px rgba(0,0,0,.2);
+          box-shadow: 0 5px 10px rgba(0,0,0,.2);
+}
+
+.tt-suggestion {
   padding: 3px 20px;
+  font-size: 18px;
+  line-height: 24px;
 }
-.ui-autocomplete > li.ui-state-focus {
-  background-color: #DDD;
+
+.tt-suggestion:hover {
+  cursor: pointer;
+  color: #fff;
+  background-color: #0097cf;
 }
-.ui-helper-hidden-accessible {
-  display: none;
+
+.tt-suggestion.tt-cursor {
+  color: #fff;
+  background-color: #0097cf;
+
 }
-*/
+
+.tt-suggestion p {
+  margin: 0;
+}

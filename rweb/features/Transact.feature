@@ -36,7 +36,7 @@ Setup:
 Scenario: A member asks to charge another member for goods
   When member ".ZZA" completes form "charge" with values:
   | op     | who     | amount | goods | purpose |*
-  | charge | Bea Two | 100    | %R_FOR_GOODS     | labor   |
+  | charge | Bea Two | 100    | %FOR_GOODS     | labor   |
   Then we show "confirm charge" with subs:
   | amount | otherName | why                |*
   | $100   | Bea Two   | goods and services |
@@ -44,7 +44,7 @@ Scenario: A member asks to charge another member for goods
 Scenario: A member confirms request to charge another member
   When member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods | purpose |*
-  | charge | Bea Two | 100    | %R_FOR_GOODS     | labor   |
+  | charge | Bea Two | 100    | %FOR_GOODS     | labor   |
   Then we say "status": "report tx|balance unchanged" with subs:
   | did     | otherName | amount | why                |*
   | charged | Bea Two   | $100   | goods and services |
@@ -64,7 +64,7 @@ Scenario: A member confirms request to charge another member
 Scenario: A member asks to pay another member for goods
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | %R_FOR_GOODS     | labor   |
+  | pay | Bea Two | 100    | %FOR_GOODS     | labor   |
   Then we show "confirm payment" with subs:
   | amount | otherName | why                |*
   | $100   | Bea Two   | goods and services |
@@ -72,7 +72,7 @@ Scenario: A member asks to pay another member for goods
 Scenario: A member asks to pay another member for loan/reimbursement
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | %R_FOR_NONGOODS | loan    |
+  | pay | Bea Two | 100    | %FOR_NONGOODS | loan    |
   Then we show "confirm payment" with subs:
   | amount | otherName | why                     |*
   | $100   | Bea Two   | loan/reimbursement/etc. |
@@ -80,7 +80,7 @@ Scenario: A member asks to pay another member for loan/reimbursement
 Scenario: A member confirms request to pay another member
   When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | %R_FOR_GOODS     | labor   |
+  | pay | Bea Two | 100    | %FOR_GOODS     | labor   |
   Then we say "status": "report tx|reward" with subs:
   | did    | otherName | amount | why                | rewardAmount |*
   | paid   | Bea Two   | $100   | goods and services | $5           |
@@ -105,7 +105,7 @@ Scenario: A member confirms request to pay another member a lot
   | .ZZB | %R_MAX_AMOUNT |
   When member ".ZZB" confirms form "pay" with values:
   | op  | who     | amount        | goods | purpose |*
-  | pay | Our Pub | %R_MAX_AMOUNT | %R_FOR_GOODS     | food    |
+  | pay | Our Pub | %R_MAX_AMOUNT | %FOR_GOODS     | food    |
   Then transactions:
   | xid | created | type     | amount        | from  | to   | purpose      | taking |*
   |   4 | %today  | transfer | %R_MAX_AMOUNT | .ZZB  | .ZZC | food         | 0      |
@@ -116,7 +116,7 @@ Scenario: A member confirms request to pay a member company
   Given next DO code is "whatever"
   When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |*
-  | pay | Our Pub | 100    | %R_FOR_GOODS     | stuff   |
+  | pay | Our Pub | 100    | %FOR_GOODS     | stuff   |
   Then we say "status": "report tx|reward" with subs:
   | did    | otherName | amount | why                | rewardAmount |*
   | paid   | Our Pub   | $100   | goods and services | $5           |
@@ -144,10 +144,10 @@ Resume
 Scenario: A member confirms request to pay the same member the same amount
   Given member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | %R_FOR_GOODS     | labor   |  
+  | pay | Bea Two | 100    | %FOR_GOODS     | labor   |  
   When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | %R_FOR_GOODS     | labor   |
+  | pay | Bea Two | 100    | %FOR_GOODS     | labor   |
   Then we say "error": "duplicate transaction" with subs:
   | op   |*
   | paid |
@@ -155,10 +155,10 @@ Scenario: A member confirms request to pay the same member the same amount
 Scenario: A member confirms request to charge the same member the same amount
   Given member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods | purpose |*
-  | charge | Bea Two | 100    | %R_FOR_GOODS     | labor   |  
+  | charge | Bea Two | 100    | %FOR_GOODS     | labor   |  
   When member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods | purpose |*
-  | charge | Bea Two | 100    | %R_FOR_GOODS     | labor   |
+  | charge | Bea Two | 100    | %FOR_GOODS     | labor   |
   Then we say "error": "duplicate transaction" with subs:
   | op      |*
   | charged |
@@ -176,14 +176,14 @@ Scenario: A member asks to charge another member before making an rCard purchase
   Given member ".ZZA" has no photo ID recorded
   When member ".ZZA" completes form "charge" with values:
   | op     | who     | amount | goods | purpose |*
-  | charge | Bea Two | 100    | %R_FOR_GOODS     | labor   |
+  | charge | Bea Two | 100    | %FOR_GOODS     | labor   |
   Then we say "error": "no photoid"
 
 Scenario: A member asks to charge another member before the other has made an rCard purchase
   Given member ".ZZB" has no photo ID recorded
   When member ".ZZA" completes form "charge" with values:
   | op     | who     | amount | goods | purpose |*
-  | charge | Bea Two | 100    | %R_FOR_GOODS     | labor   |
+  | charge | Bea Two | 100    | %FOR_GOODS     | labor   |
   Then we say "error": "other no photoid" with subs:
   | who     |*
   | Bea Two |
@@ -193,14 +193,14 @@ Scenario: A member asks to pay another member before making an rCard purchase
   Given member ".ZZA" has no photo ID recorded
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | %R_FOR_GOODS     | labor   |
+  | pay | Bea Two | 100    | %FOR_GOODS     | labor   |
   Then we say "error": "no photoid"
   
 Scenario: A member asks to pay another member before the other has made an rCard purchase
   Given member ".ZZB" has no photo ID recorded
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | %R_FOR_GOODS     | labor   |
+  | pay | Bea Two | 100    | %FOR_GOODS     | labor   |
   Then we say "error": "other no photoid" with subs:
   | who     |*
   | Bea Two |

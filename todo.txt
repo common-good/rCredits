@@ -9,6 +9,9 @@ Software Priorities:
 5. Greater Security (and security audit)
 
 NON_SOFTWARE TO_DOs
+- get David Greenberg or David Kulp to help Ivan send from Gmail
+- survey Fosters employees: 5 checkboxes and one blank (where shop?)
+- contact Lorien Pratt (recommended by Barry) This is Lorien's pitch on Decision Analysis: http://www.lorienpratt.com/how-can-i-help-you/decision-intelligence-analysis-modeling-training-and-systems/
 - send Business Name Change requests for rCredits Western Mass Region to IRS-Stop 343G, Cincinnati, OH 45999.
 - short tagline (see Richard Tillberg's ideas), like "rCredits, the Money Co-op"
 - ask Steve Alves to make a movie about rCredits
@@ -59,8 +62,21 @@ GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
    $cfg['Servers'][$i]['auth_type'] = 'config';
 
 TASKS FOR NEXT UPDATE:
+update settings.php
+REINSTALL (for notices field)
+change Blossom preschool's email addr to Jeannine's
 
-. photo on Summary page is wrong when coming from Member List
+. prevent any automated or repetitive use of the system
+. set session.save_path in settings.php (for better server security)
+. ** show pending transfers on community's summary page
+. ** add a crawl back out of debt feature (increase min by $20 a month until positive). Don't let recache set min above zero.
+. **** how did Jesse's flags show up as not set, then show up as already set in changes??! (related to ajax ctty?)
+. *** allow different year end date on Tax Info page
+. why is the suggest() function never called? use it for suggesting new min bal at least?
+. ** put a "show password" button on signin page
+. SELECT fullName, COUNT(t.xid) FROM users u LEFT JOIN r_txs T ON t.payee=u.uid WHERE t.payer<>u.community GROUP BY u.uid ORDER BY fullName (incentive rewards from wrong community -- easily fixable by changing community twice on Summary page)
+. *** tweak language of "your account is activated" so it is clear it needs confirmation still
+. ask confirmer (except for companies): how many shared "friends" you have on social media OR (better) estimate how many ways are you connected in the real world (for example as a friend, relative, colleague, member of an organization, extreme sports enthusiast, etc.)
 . CGF can do business with any community (even non-CGCs, even seedpacks)
 . if we get a transaction request for a non-existent user in a different region, contact that region to confirm
 . app take video of phone thief (front mounted camera) and report GPS coods. Send list of stolen cards to app. Back-mounted-camera of merchant phone take video of card thief.
@@ -70,7 +86,6 @@ TASKS FOR NEXT UPDATE:
 . flag first withdrawal request after a new bank account
 . flag unusual GPS
 . notify staff of repeated bad password (including the mistype)
-. **** disallow +whatever except for gmail (and other services where we know it works)
 . add total balance to Summary page (parenthetically in primary balance line?)
 . * in smart.inc, if cardCode is wrong, see if it changed AFTER the tx date and was correct as of the tx date
 . move achmin to an advanced settings page (default to $30)
@@ -126,7 +141,6 @@ TASKS FOR NEXT UPDATE:
 . adjust messages to allow account approval by tx only when invitation is by icard
 . adjust risk according to: (1) invited by person or company (company is risky, person is unrisky), (2) invited by form, self, email, late, icard (1, -1, .5, .6, 
 . require invite card newbs to buy with rCard from their helper company (if it's a company), NO confirmation required if they are invited by an individual
-. make a clear path for admin to set up and activate a new community: set info in r_regions (including cgc=1), sign out and sign in (as admin) to copy that info to users table (but doesn't work?), set federalID of region, change community field of everyone in that community, change payer in any rewards transactions (eg update r_txs set payer=-17238000000001 where payee between 17238000000001 and 17238000000100 and payer<0)
 . add website links to companies.php on promo site.
 . don't bump people from relations page when adding a person during company setup
 . allow non-public companies and second personal accounts (escrow accounts, etc). don't require photo, don't list in FindCo, etc.

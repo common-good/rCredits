@@ -126,7 +126,6 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
   txNeatAmounts($amount, $reward, $isExtra);
   list ($toYou, $fromYou) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
   if ($toMe and @$fromMe) $toYou = $fromYou = "<span class=\"virtual\">$amount</span>"; // make old draws clear
-//  if ($tx_type == TX_REFUND) list ($reward, $toYou) = array($toYou, R_NONE);
   $button1 = ''; //(!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', '', $toMe, $byMe)) : '';
   $button2 = (((!$isExtra and !$banking) or $mya->cAdmin) and !@$data['undoneBy']) ? r\Web\button(' X ', "$url&do=no", txAct('no', '', $toMe, $byMe)) : '';
   $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$isExtra and !$banking) ? "<a href='$url&do=edit' title='Edit Transaction'><img src='$rUrl/images/icons/edit.png' width=20 height=20 border=0 /></a>" : '';

@@ -140,7 +140,7 @@ Scenario: A member adds a relation
 # This test fails (but works fine). Dunno why.
   When member ".ZZA" completes relations form with values:
   | newPerson |*
-  | beatwo    |
+  | Bea Two   |
   Then we say "status": "report new relation" with subs:
   | who     |*
   | Bea Two |
@@ -151,7 +151,7 @@ Scenario: A member adds a relation
 Scenario: A member tries to add a relation with self
   When member ".ZZA" completes relations form with values:
   | newPerson |*
-  | abeone    |
+  | Abe One   |
   Then we say "error": "no self-relation"
 
 Scenario: A member tries to add a relation again
@@ -160,6 +160,6 @@ Scenario: A member tries to add a relation again
   | 1  | .ZZA | .ZZB  | scan       | 1        | 1       |
   When member ".ZZA" completes relations form with values:
   | newPerson |*
-  | beatwo    |
+  | Bea Two   |
   Then we say "error": "already related"
   

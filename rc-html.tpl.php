@@ -46,7 +46,7 @@ $unused = join('|', ['sites/all/modules/devel/devel_krumo_path.js', 'misc/drupal
 $rPath = BASE_URL . R_PATH;
 $version = R_VERSION;
 $styles = preg_replace('~<style.*</style>~ms', '', $styles); // zap all the drupal styles
-$scripts = preg_replace('~misc/jquery.js.*<~', 'sites/all/modules/rcredits/js/jquery.min.js"><', $scripts);
+$scripts = preg_replace('~misc/jquery.js.*<~', "sites/all/modules/rcredits/js/jquery.min.js?$version\"><", $scripts);
 $scripts = preg_replace('~<script type="text/javascript" src="' . BASE_URL . "/($unused)" . '\?[a-z0-9]+"></script>~ms', '', $scripts);
 // something here interferes with croppic's $()
 //$scripts = preg_replace('/<script[!<]+<![!<]+<![!<]+jQuery.extend\(Drupal/ms', '', $scripts);
@@ -70,9 +70,9 @@ $rdf_namespaces>
   <title>$head_title</title>
   <meta name="description" content="">
   <meta name="author" content="William Spademan -- for Society to Benefit Everyone, Inc.">
-  <link rel="stylesheet" href="$rPath/css/bootstrap.min.css" />
-  <link rel="stylesheet" href="$rPath/css/jquery-ui.css">
-  <link rel="stylesheet" href="$rPath/css/ladda-themeless.min.css">
+  <link rel="stylesheet" href="$rPath/css/bootstrap.min.css?$version" />
+  <link rel="stylesheet" href="$rPath/css/jquery-ui.css?$version">
+  <link rel="stylesheet" href="$rPath/css/ladda-themeless.min.css?$version">
   $styles
   <link rel="stylesheet" href="$rPath/css/rcredits.css?$version" type="text/css" />
   <link rel="stylesheet" href="$rPath/css/rweb.css?$version" type="text/css" />

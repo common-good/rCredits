@@ -44,7 +44,7 @@ Scenario: an unbanked member barely below minimum draws on another account
   When cron runs "bank"
   Then transactions:
   | xid | type     | amount | from | to   | goods           | purpose      |*
-  |   1 | transfer |     30 | .ZZA | .ZZB | %R_FOR_NONGOODS | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |
+  |   1 | transfer |     30 | .ZZA | .ZZB | %FOR_NONGOODS | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |
   And we notice "under min|drew" to member ".ZZB" with subs:
   | amount |*
   | $30    |

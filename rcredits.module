@@ -165,7 +165,7 @@ function ctty($id) {return a(a($id)->community);}
 function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
 /**/ function flog($s) {file_put_contents('flog.txt', print_r($s, 1) . "\n", FILE_APPEND);} // log to file
 /**/ function who($s) {$a = a($s); debug("$a->fullName ($a->mainQid)"); return $a;} // show whose account
-function q($sql, $subs = [], $log = FALSE) {f('db.q', $sql, $subs, $log);}
+function q($sql, $subs = [], $log = FALSE) {return f('db.q', $sql, $subs, $log);}
 
 /**
  * Return a function result, for a nicknamed namespace function.
@@ -239,7 +239,7 @@ function patch($name) {
   }
   // user.module
   if ($name == 'user_access810') return FALSE;
-  if ($name == 'user_account_form_validate1250') return w\emailDup($args[1], $args[2]); // does this get called?
+//  if ($name == 'user_account_form_validate1250') return w\emailDup($args[1], $args[2]); // does this get called?
   if ($name == 'user_login_final_validate2207') {
     $email = $args[1];
     \watchdog('user', 'Login attempt failed for %user.', array('%user' => $email));

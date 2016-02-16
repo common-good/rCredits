@@ -35,7 +35,7 @@ Setup:
   | xid | created   | type   | amount | from | to   | purpose |*
   | 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |
   | 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  |
-  | 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |
+  | 3   | %today-6m | grant  |    250 | ctty | .ZZC | growth  |
   | 4   | %today-6m | signup |    250 | ctty | .ZZE | signup  |
   | 5   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |
   Then balances:

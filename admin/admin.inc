@@ -302,7 +302,7 @@ include_once __DIR__ . '/../rcredits/admin/admin.inc';
 f('a.fixStats');
  */
 function fixStats($keepUpto = 0) {
-  include_once __DIR__ . '/../rcron/rcron.inc';
+//  include_once __DIR__ . '/../rcron/rcron.inc';
   $blockAgo = strtotime(-STATS_GRAIN, strtotime('today'));
   
   $sql = <<<EOF
@@ -319,9 +319,11 @@ EOF;
   $created = strtotime('today', $start0); // use first moment of the day
   
   while ($created <= $now) {
+  /*
     $acctQ = db\q('SELECT uid FROM users WHERE uid>1');
     db\q('UPDATE users SET picture=0'); // clear temp field  
     while ($row = $acctQ->fetchAssoc()) r\Cron\acctStats1($row, $created); // set individual account stats
+    */
     foreach ($cttys as $ctty => $start) if ($created >= $start) {
       r\getStats($ctty, $created); // set community stats
 /// this fails on cross-community txs!  if ($ctty != 0) if ($err = badStats($ctty, $created)) return debug($err); // verify
@@ -605,9 +607,9 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   $escrow = 'USkk' . ESCROW_ROUTING . ESCROW_ACCOUNT;
   $a = r\acct($payer);
   $bankAccount = ($pw2 = $_COOKIE['pw2']) ? u\decrypt($bankAccount, 0, $pw2) : '';
-  if (substr($bankAccount, 0, 2) <> 'US' and ($bankAccount = $a->bankAccount) and $pw2) { // bank account got screwed up somehow -- probably double-encrypted (happened before 10/15/2015 at least)
+  if (substr($bankAccount, 0, 2) <> 'US' and ($bankAccount = $a->bankAccount) and $pw2) { // bank account got screwed up somehow -- probably double-encrypted (happened again on 2/10/2016)
     db\update('r_usd', u\ray('txid bankAccount', $txid, u\crypt($bankAccount, 0, $pw2)), 'txid');
-    w\say('fixed account');
+    w\say('fixed bankAccount for ' . $a->fullName);
   }
   list ($fromName, $addr, $phone, $fromAcct, $toName, $toAcct) = $amount < 0 // which way
     ? [$a->legalName, $a->postalAddr, $a->phone, $bankAccount, 'rCredits', $escrow] // from bank to escrow

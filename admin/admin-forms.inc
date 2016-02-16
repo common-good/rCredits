@@ -280,7 +280,7 @@ function formMakeCtty_validate($form, &$sta) {
   foreach (u\ray('fullName legalName') as $field) {
     if ($err = u\badName($$field)) return say($err, compact('field'), $field);
   }
-  if (!emailOkay($email, $mya->id)) return; 
+  if (!emailOkay($email, $mya)) return; 
   if (!phoneOk($phone)) return;
 //  $name = strtolower(substr($email, 0, strpos($email, '@')));
   $name = u\shortName($fullName);
@@ -300,7 +300,7 @@ function formMakeCtty_submit($form, &$sta) {
   extract(u\just('zips region ' . $fields, $sta['input']));
 
   $postalCode = $zips; // store the regex defining the region or community
-  $flags = u\bit(B_CO) | u\bit(B_OK);
+  $flags = u\bit(B_CO) | u\bit(B_OK) | u\bit(B_UP);
   $rebate = 0;
   $country = R_COUNTRY_ID;
   $region = -r\unQuid($region . '.AAA');
@@ -385,11 +385,11 @@ function formDownloadMemberList($form, &$sta, $args = '') {
   }
   
   $mya = r\acct();
-  $ctty = r\acct($mya->community);
+  $cttyA = $mya->cttyA;
 
   $title = item(t('Download Member List'));
-  $subtext = item(t('for ') . $ctty->fullName . t('<br>Link is do/op~qid~ecode~expMo. Current Month #') . r\rdoMonth());
-  if ($ctty->name == 'NEW.') $allCttys2 = boxFld('allCttys', t('All communities:')); // temporary for CGF oversight
+  $subtext = item(t('for ') . $cttyA->fullName . t('<br>Link is do/op~qid~ecode~expMo. Current Month #') . r\rdoMonth());
+  if ($cttyA->name == 'greenfieldarearcredits') $allCttys2 = boxFld('allCttys', t('All communities:')); // temporary for CGF oversight
   $onlyActive2 = boxFld('onlyActive', t('Active only:'), tt('Export only active accounts'));
   $onlyPeople2 = boxFld('onlyPeople', t('People only:'), tt('Export only individual accounts (especially when emailing)'), TRUE);
   $anonymous = boxFld('anonymous', t('Anonymous:'), tt('Export only non-identifying information (for data-mapping and analysis)'), FALSE);
@@ -520,11 +520,12 @@ EOF;
   while ($row = $q->fetchAssoc()) {
     extract($row);
 // (needs htmlcell instead of cell)   if (!$in) $name = r\acct($uid)->bankInfoLink();
+    if (!$in) $name = r\acct($uid)->legalName;
     $pdf->setX($x);
     $pdf->Cell(1, 0, u\fmtAmt($amount, ''), '', 0, 'R');
     $pdf->setX($x + $colW);
     $pdf->Cell($x - $colW, 0, "(# $txid) $name", '', 1);
-    if (!$in) { // for outgoing checks, show bank address
+    if (!$in) { // for outgoing checks, show bank address and member's legal name
       $pdf->setX($x + $colW);
       if ($bankInfo = r\acct($uid)->bankInfo) {
         extract($bankInfo, EXTR_PREFIX_ALL, 'b');

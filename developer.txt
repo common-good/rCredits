@@ -114,7 +114,7 @@ E. Database clues
       - description: the company's description (html)
       - selling: choices for what the company sells (first line is the default)
       - coFlags: flag bits for company
-      - verifyBy: UNUSED how to verify the phone number (Voice or SMS)
+      - notifyNowBy: how to notify the member when notification is immediate (E=email, T=text, or ET=both)
       - stepsDone: assoc of steps done (TRUE) or remaining (FALSE) before account is "member" (see R_STEPS)
       - achMin: minimum transfer from bank account or drawn-on account (draw for purchases may override)
       - pinThreshold: minimum purchase amount before PIN is required (NYI)

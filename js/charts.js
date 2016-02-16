@@ -1,6 +1,6 @@
 google.load('visualization', '1.0', {'packages':['corechart']});
-var chartWidth = 500;
-var chartHeight = 300;
+var chartWidth = 600;
+var chartHeight = 400;
 
 function allChart() {
   acctsChart();
@@ -39,22 +39,26 @@ function acctsChart() {
 function fundsChart() {
   var data = new google.visualization.DataTable();
   data.addColumn('date', 'Date');
-  data.addColumn('number', 'r');
+  data.addColumn('number', 'Rewards');
   data.addColumn('number', 'USD');
-  data.addColumn('number', 'Savings');
+  data.addColumn('number', 'Runny');
   data.addColumn('number', 'Top 5');
+  data.addColumn('number', 'Runny Balance');
+  data.addColumn('number', 'In Use');
   data.addRows(fundsData);
 
   var options = {
-    title: 'Funds in the rCredits System: ' + funds,
+    title: 'Total Funds in the System: ' + r,
     width: chartWidth, height: chartHeight,
-    colors: ['green', 'blue', 'yellow', 'red'],
+    colors: ['green', 'blue', 'yellow', 'red', 'magenta', 'orange'],
     series: {
       2: {areaOpacity: 0},
-      3: {areaOpacity: 0}
+      3: {areaOpacity: 0},
+      4: {areaOpacity: 0},
+      5: {areaOpacity: 0}
     },
     hAxis: {format: 'MMM d', gridlines: {count: 5}, title: '', titleTextStyle: {color: 'darkgray'}},
-    legend: {position: 'bottom'}
+    legend: {position: 'right'}
   };
 
   var chart = new google.visualization.AreaChart(document.getElementById('fundsChart'));
@@ -135,7 +139,7 @@ function issuedChart() {
 
   var options = {
     title: 'rCredits Issued To-Date: ' + issued,
-    width: 500, height: 300,
+    width: chartWidth, height: chartHeight,
 //    pieStartAngle: 240,
     pieSliceText: 'percentage',
     slices: {0: {offset: 0.1},

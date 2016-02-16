@@ -98,7 +98,7 @@ Scenario: A member does it all
   Then with done "12345"
 
   When member ".ZZA" has done step "connect"
-  Then we tell staff "event" with subs:
+  Then we tell staff "event - member" with subs:
   | fullName | quid | status |
   | Abe One  | .ZZA | member |
   When member ".ZZA" visits page "summary"
@@ -161,7 +161,7 @@ Scenario: A member opens a business account
   And member ":ZZA" visits page "status"
   Then we show "Your Account Setup Is Complete"
   And with done ""
-  And we tell staff "event" with subs:
+  And we tell staff "event - member" with subs:
   | fullName | quid | status |*
   | Our Pub  | .ZZC | member |
 

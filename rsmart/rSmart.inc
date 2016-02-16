@@ -39,7 +39,7 @@ use rCredits\Testing as t;
    //$args = rCredits\Util\ray('op device agent version member code', 'identify', '3i2ifsapEjwev3CwBCV7', '', RPOS_VERSION, 'NEW:AAB', 'WeHlioM5JZv1O9G'); // agent login
    //$args = rCredits\Util\ray('op device agent version member amount goods description', 'charge', '3i2ifsapEjwev3CwBCV7', 'NEW:AAB', RPOS_VERSION, 'NEW.ABB', AMOUNT, 1, 'zot');
    //$args = rCredits\Util\ray('op device agent version txid', 'undo', '3i2ifsapEjwev3CwBCV7', 'NEW:AAB', RPOS_VERSION, '4069');
-///debug(rCredits\Smart\pos($args));
+///     debug(rCredits\Smart\pos($args));
  */
 
 define('RPOS_VERSION', 213); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first (and make sure it is available in Google Play Store), before bumping the number up here.)
@@ -301,7 +301,7 @@ function charge($args, $type = 'charge') {
   $aa = $a->agent;
   if (@$photoid and !$aa->photoId) $aa->update('photoId', $photoid);
 
-  $goods = $goods ? R_FOR_GOODS : R_FOR_USD;
+  $goods = $goods ? FOR_GOODS : FOR_USD;
   if (@$force) {
     $subs = u\ray('created payer payee amount goods payeeFor', $created, $a->id, $mya->id, $amount, $goods, $description);
     if ($q = db\lookup('xid,data', 'r_txs', u\where($subs), $subs)) extract($q);
@@ -334,7 +334,7 @@ function charge($args, $type = 'charge') {
     if (!@$subs['success']) return posErr($msg, $subs);
     $txid = $subs['xid'];
     $message = u\tt($msg, $subs);
-    $forCash = $goods == R_FOR_GOODS ? '' : t('for cash');
+    $forCash = $goods == FOR_GOODS ? '' : t('for cash');
     $did = u\tt('just did', $subs + compact('forCash'));
     $undo = u\tt('confirm undo', $subs);
   }

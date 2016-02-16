@@ -181,7 +181,7 @@ function txEdit_validate($form, &$sta) {
   extract(u\just('amount goods purpose orig', $sta['input']));
   extract($orig = unserialize($orig), EXTR_PREFIX_ALL, 'x');
   
-  if ($goods == R_FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
+  if ($goods == FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
 ///debug(compact('x_toMe','amount','x_amount'));
   if (!$mya->cAdmin and ($x_toMe ? ($amount > $x_amount) : ($amount < $x_amount))) {

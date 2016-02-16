@@ -31,7 +31,7 @@ Setup:
 Scenario: A member asks to charge another member
   When member ".ZZA" completes form "charge" with values:
   | op     | who     | amount | goods           | purpose |*
-  | charge | Bea Two | 100    | %R_FOR_NONGOODS | payback |
+  | charge | Bea Two | 100    | %FOR_NONGOODS | payback |
   Then we show "confirm charge" with subs:
   | amount | otherName | why         |*
   | $100   | Bea Two   | loan/reimbursement/etc. |
@@ -39,7 +39,7 @@ Scenario: A member asks to charge another member
 Scenario: A member confirms request to charge another member
   When member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods      | purpose |*
-  | charge | Bea Two | 100    | %R_FOR_NONGOODS | payback |
+  | charge | Bea Two | 100    | %FOR_NONGOODS | payback |
   Then we say "status": "report tx|balance unchanged" with subs:
   | did     | otherName | amount | why         |*
   | charged | Bea Two   | $100   | loan/reimbursement/etc. |
@@ -48,7 +48,7 @@ Scenario: A member confirms request to charge another member
   | Abe One   | $100   | payback |
   And invoices:
   | nvid | created | status      | amount | goods      | from | to   | for   |*
-  |    1 | %today  | %TX_PENDING |    100 | %R_FOR_NONGOODS | .ZZB | .ZZA | payback |
+  |    1 | %today  | %TX_PENDING |    100 | %FOR_NONGOODS | .ZZB | .ZZA | payback |
   And balances:
   | id   |    r |*
   | ctty | -950 |
@@ -59,7 +59,7 @@ Scenario: A member confirms request to charge another member
 Scenario: A member asks to pay another member
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
-  | pay | Bea Two | 300    | %R_FOR_NONGOODS | payback |
+  | pay | Bea Two | 300    | %FOR_NONGOODS | payback |
   Then we show "confirm payment" with subs:
   | amount | otherName | why         |*
   | $300   | Bea Two   | loan/reimbursement/etc. |
@@ -67,7 +67,7 @@ Scenario: A member asks to pay another member
 Scenario: A member confirms request to pay another member
   When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
-  | pay | Bea Two | 300    | %R_FOR_NONGOODS | payback |
+  | pay | Bea Two | 300    | %FOR_NONGOODS | payback |
   Then we say "status": "report tx" with subs:
   | did    | otherName | amount | why         |*
   | paid   | Bea Two   | $300   | loan/reimbursement/etc. |
@@ -76,7 +76,7 @@ Scenario: A member confirms request to pay another member
   | %today  | Bea Two  | Abe One   | $300   | payback      |
   And transactions:
   | xid | created | type     | amount | from  | to   | goods           | purpose      | taking |*
-  |   5 | %today  | transfer |    300 | .ZZA  | .ZZB | %R_FOR_NONGOODS | payback      | 0      |
+  |   5 | %today  | transfer |    300 | .ZZA  | .ZZB | %FOR_NONGOODS | payback      | 0      |
   And balances:
   | id   |    r |*
   | ctty | -950 |
@@ -87,7 +87,7 @@ Scenario: A member confirms request to pay another member
 Scenario: A member repays someone, drawing from another account
   When member ".ZZB" confirms form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
-  | pay | Our Pub | 300    | %R_FOR_NONGOODS | payback |
+  | pay | Our Pub | 300    | %FOR_NONGOODS | payback |
   Then we say "status": "report tx" with subs:
   | did    | otherName | amount | why         |*
   | paid   | Our Pub   | $300   | loan/reimbursement/etc. |
@@ -96,8 +96,8 @@ Scenario: A member repays someone, drawing from another account
   | %today  | Our Pub  | Bea Two   | $300   | payback      |
   And transactions:
   | xid | created | type     | amount | from  | to   | goods           | purpose |*
-  |   5 | %today  | transfer |     50 | .ZZA  | .ZZB | %R_FOR_NONGOODS | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |
-  |   6 | %today  | transfer |    300 | .ZZB  | .ZZC | %R_FOR_NONGOODS | payback |
+  |   5 | %today  | transfer |     50 | .ZZA  | .ZZB | %FOR_NONGOODS | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |
+  |   6 | %today  | transfer |    300 | .ZZB  | .ZZC | %FOR_NONGOODS | payback |
   And balances:
   | id   |    r |*
   | ctty | -950 |

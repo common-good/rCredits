@@ -98,6 +98,7 @@ function rweb_menu($submenu = '') {
     'community/message' => ['sub', t('Message a Member'), 'Message', 'member manage', '', t(''), 'envelope'],
     'community/find-company' => ['sub', t('Find a Company'), 'FindCo', 'anyone', '', t(''), 'search'],
     'community/donate' => ['sub', t('Donate'), 'Donate', 'manage', '', t(''), 'thumbs-up'],
+    'community/grant' => ['sub', t('Get Paid to Organize'), 'Grant', 'anyone', '', t(''), 'apple'],
     'community/funds' => ['sub', t('Funds in Each Community'), 'CttyFunds', 'anyone', '', t(''), 'usd'],
     'community/graphs' => ['sub', t('rCredits Economy Graphs'), 'Graphs 1', 'anyone', '', t(''), 'stats'],
     'community/flags' => ['sub', t('Risk Flags'), 'Flags 2', 'anyone', '', t(''), 'flag'],
@@ -120,6 +121,7 @@ function rweb_menu($submenu = '') {
     'settings/zot' => ['sub', 'zot', '', 'anyone'], // Drupal bug: last choice is omitted
 
     'reset' => ['call', t('Choose New Password'), 'ResetPassword 1', 'anyone'],
+    'settings/notifications' => ['call', t('Notifications'), 'Notifications', 'manage'],
     'settings/password' => ['call', t('Request New Password'), 'Pass 2', 'anyone'],
     'settings/security/change-password' => ['call', 'Change Password', 'ChangePassword', 'manage'],
     'settings/security/change-pin' => ['call', 'Change PIN', 'ChangePin', 'manage'],
@@ -154,7 +156,7 @@ function rweb_menu($submenu = '') {
     'sadmin/member-list' => ['sub', t('Member List'), 'MemberList', 'cadmin2'],
     'sadmin/export-list' => ['sub', t('Export'), 'DownloadMemberList 2', 'cadmin2'],
     'sadmin/deposits' => ['sub', t('Deposits'), 'Deposits', 'admin'],
-    'sadmin/new-member' => ['sub', t('New Member'), 'Signup code=(admin)', 'cadmin'],
+    'sadmin/new-member' => ['sub', t('New Member'), 'Signup code=.(admin)', 'cadmin'],
     'sadmin/make-community' => ['sub', t('Make Ctty'), 'MakeCtty', 'admin'],
     'sadmin/sms' => ['sub', t('Test SMS'), 'SMS', 'admin'],
     'sadmin/handy' => ['sub', t('Handy'), '', 'dev', 'handyLinks'],
@@ -170,7 +172,7 @@ function rweb_menu($submenu = '') {
     'sadmin/recover' => ['call', t('Empty'), 'TestRecovery 1', 'dev'], // also go here manually, if needed
     'print-rcard' => ['call', t('Print ID Card'), '1 ', 'cadmin', 'memberID'],
 
-    'signout' => ['norm', t('Sign out'), '', 'read', 'signout'],
+    'signout' => ['norm', t('Sign out'), '1', 'anyone', 'signout'],
     
     'help' => ['call', t('Help'), 'Help 1', 'anyone'],
     'change-account' => ['call', t('Change Who'), '1', 'anyone', 'changeWho'],

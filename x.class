@@ -106,7 +106,7 @@ class x {
     if ($type != TX_TRANSFER) return TRUE;
     $rewards = unserialize($data);
     
-    if ($goods == R_FOR_GOODS) {
+    if ($goods == FOR_GOODS) {
       foreach (array('rebate', 'bonus') as $type) {
       // u\EXPECT(isset($rewards[$type]), 'nope!'); NO! pay to owners, for example, has no reward
         $amount = @$rewards[$type]; // @ for empty rewards to owners, for example
@@ -120,7 +120,7 @@ class x {
         }
       }
     } elseif ($amount = @$rewards['xfee']) {
-      list ($type, $goods, $payerAgent, $payeeAgent, $taking) = array(TX_XFEE, R_FOR_USD, $payer, $payee, TRUE);
+      list ($type, $goods, $payerAgent, $payeeAgent, $taking) = array(TX_XFEE, FOR_USD, $payer, $payee, TRUE);
       $for = ($amount == R_XFEE_CHECK and !strpos($payeeFor, BY_CARD)) ? t('check fee') : t('card fee');
       if ($xray = $this->save($this->setup(compact(u\ray(TX_REWARD_FIELDS))))) {
         $xrays[] = $xray;
@@ -134,7 +134,7 @@ class x {
     $payer = $payerAgent = r\acct($payee)->community;
     $payeeAgent = $payee;
     $taking = FALSE;
-    $goods = R_FOR_USD; // not actually for USD, but certainly not for goods or non-goods, since not an exchange
+    $goods = FOR_USD; // not actually for USD, but certainly not for goods or non-goods, since not an exchange
 
     return $this->setup(compact(u\ray(TX_REWARD_FIELDS)));
   }
@@ -161,11 +161,13 @@ class x {
     
     u\setDft($type, TX_TRANSFER);
     u\setDft($taking, FALSE);
-    u\setDft($goods, R_FOR_USD);
+    u\setDft($goods, FOR_USD);
     u\setDft($for, u\ray(R_WHYS)[$goods]);
     u\setDft($payerAgent, $payer);
     u\setDft($payeeAgent, $payee);
     u\setDft($created, r\rTime());
+    
+    if (r\isGiveback($payee, $payer, @$data)) $type = TX_GIVEBACK;
     $data = serialize($this->dataSetup($payer, $payee, $amount, $goods, $for, @$data ?: [], $channel));
     $taking += 0;
     $goods += 0;
@@ -188,11 +190,11 @@ class x {
     u\EXPECT(is_array($data), 'data should be array');
     if (r\owning($payer, $payee)) return $data; // no rewards or xfees for txs between owner and owned
 
-    if ($goods == R_FOR_GOODS and !isset($data['rebate'])) {
+    if ($goods == FOR_GOODS and !isset($data['rebate'])) {
       $rebate = (string) r\rebate($payer, $payee, $amount); // force string, to avoid long serializations
-      $bonus = (string) ($goods == R_FOR_GOODS ? r\bonus($payee, $payer, $amount) : 0);
+      $bonus = (string) ($goods == FOR_GOODS ? r\bonus($payee, $payer, $amount) : 0);
       $data += compact('rebate', 'bonus');
-    } elseif ($goods == R_FOR_NONGOODS and !isset($data['xfee']) and $channel == TX_POS) {
+    } elseif ($goods == FOR_NONGOODS and !isset($data['xfee']) and $channel == TX_POS) {
       if (($xfee = r\xfee($for, $amount)) !== '') $data += compact('xfee'); // record even when xfee=0 (cash xchg)
     }
     
@@ -217,9 +219,9 @@ class x {
    */
   private function cacheTotals($uid, $xrays) {
     global $channel;
-    extract(u\just('amount type xid payer payee created', $xrays[0]), EXTR_PREFIX_ALL, 't');
+    extract(u\just('amount type xid payer payee created data', $xrays[0]), EXTR_PREFIX_ALL, 't');
   //  if ($t_state < TX_DONE) return; // don't change totals if transaction doesn't count (yet)
-    if ($uid <= 1) return TRUE; // cache only usd for community and region
+    if ($uid <= 0) return TRUE; // cache only usd for community and region
 
     $a = r\acct($uid);
     $cache = $a->account('r rewards committed lastTx access');
@@ -232,6 +234,8 @@ class x {
       extract(u\just('payer payee amount type', $xray));
       if ($payer == $uid or $payee == $uid) $a->recache3($payee == $uid ? $amount : -$amount, $type, $cache);
     }
+    // handle special case of paying the community to "give back" rewards [see also w\transfer()]
+//    if (r\isGiveback($uid, $t_payer, @$t_data)) $cache->rewards += $amount; // amount<0
 
     if (!$a->update((array) $cache)) return FALSE;
 // NO    if ($t_type == TX_TRANSFER and $t_amount > 0) r\membershipEvent($a, 'bona', TRUE);

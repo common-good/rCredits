@@ -34,7 +34,7 @@ Setup:
 Scenario: A member asks to charge another member
   When member ".ZZA" completes form "charge" with values:
   | op     | who     | amount | goods      | purpose |*
-  | charge | Bea Two | 100    | %R_FOR_USD | cash    |
+  | charge | Bea Two | 100    | %FOR_USD | cash    |
   Then we show "confirm charge" with subs:
   | amount | otherName | why         |*
   | $100   | Bea Two   | exchange of US Dollars or other currency |
@@ -42,7 +42,7 @@ Scenario: A member asks to charge another member
 Scenario: A member confirms request to charge another member
   When member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods      | purpose |*
-  | charge | Bea Two | 100    | %R_FOR_USD | paper   |
+  | charge | Bea Two | 100    | %FOR_USD | paper   |
   Then we say "status": "report tx|balance unchanged" with subs:
   | did     | otherName | amount | why         |*
   | charged | Bea Two   | $100   | exchange of US Dollars or other currency |
@@ -51,7 +51,7 @@ Scenario: A member confirms request to charge another member
   | Abe One   | $100   | paper   |
   And invoices:
   | nvid | created | status      | amount | goods      | from | to   | for   |*
-  |    1 | %today  | %TX_PENDING |    100 | %R_FOR_USD | .ZZB | .ZZA | paper |
+  |    1 | %today  | %TX_PENDING |    100 | %FOR_USD | .ZZB | .ZZA | paper |
   And balances:
   | id   |    r |*
   | ctty | -950 |
@@ -62,7 +62,7 @@ Scenario: A member confirms request to charge another member
 Scenario: A member asks to pay another member
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
-  | pay | Bea Two | 100    | %R_FOR_USD | paper   |
+  | pay | Bea Two | 100    | %FOR_USD | paper   |
   Then we show "confirm payment" with subs:
   | amount | otherName | why         |*
   | $100   | Bea Two   | exchange of US Dollars or other currency |
@@ -70,7 +70,7 @@ Scenario: A member asks to pay another member
 Scenario: A member confirms request to pay another member
   When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
-  | pay | Bea Two | 100    | %R_FOR_USD | paper   |
+  | pay | Bea Two | 100    | %FOR_USD | paper   |
   Then we say "status": "report tx" with subs:
   | did    | otherName | amount | why         |*
   | paid   | Bea Two   | $100   | exchange of US Dollars or other currency |
@@ -79,7 +79,7 @@ Scenario: A member confirms request to pay another member
   | %today  | Bea Two  | Abe One   | $100   | paper        |
   And transactions:
   | xid | created | type     | amount | from  | to   | goods      | purpose      | taking |*
-  |   5 | %today  | transfer |    100 | .ZZA  | .ZZB | %R_FOR_USD | paper        | 0      |
+  |   5 | %today  | transfer |    100 | .ZZA  | .ZZB | %FOR_USD | paper        | 0      |
   And balances:
   | id   |    r |*
   | ctty | -950 |
@@ -90,7 +90,7 @@ Scenario: A member confirms request to pay another member
 Scenario: A member asks to cash out too much
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
-  | pay | Bea Two | 300    | %R_FOR_USD | paper   |
+  | pay | Bea Two | 300    | %FOR_USD | paper   |
   Then we say "error": "short to|increase min|short cash help|maybe not cash" with subs:
   | short |*
   | $100  |

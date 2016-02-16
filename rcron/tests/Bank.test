@@ -96,7 +96,7 @@ class rcronBank extends DrupalWebTestCase {
     When_('cron runs "bank"');
     Then_('transactions: "ASSOC'
     . '\\| xid | type     | amount | from | to   | goods           | purpose      |'
-    . '\\|   1 | transfer |     30 | .ZZA | .ZZB | %R_FOR_NONGOODS | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |"');
+    . '\\|   1 | transfer |     30 | .ZZA | .ZZB | %FOR_NONGOODS | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |"');
     And__('we notice "under min|drew" to member ".ZZB" with subs: "ASSOC'
     . '\\| amount |'
     . '\\| $30    |"');

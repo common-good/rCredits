@@ -66,6 +66,7 @@ function tableDefs($schema = []) {
     'risks' => setupField('list of risk factors', 'int big', 0, '010'),
     'trust' => setupField('how much this person is trusted by others in the community', 'float medium', 0),
     'stats' => setupField('account statistics', 'text medium'),
+    'notices' => setupField('when to send what kind of notice', 'text tiny'),
 //    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
   // need foreign keys here
@@ -73,17 +74,6 @@ function tableDefs($schema = []) {
   $schema['users']['fields']['uid'] = setupField('Unique user ID', 'int big'); // not unsigned
   $schema['users']['fields']['data'] = setupField('serialized array of miscellaneous data', 'text big');
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
-
-// 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
-//    'demand' => setupField('waiting to trade this much USD for rCredits (or vice-versa)', 'numeric 11,2', 0),
-//    'demand_date' => setupField('date/time of request for rCredits (or USD)', 'int 11'),
-//    'counts' => setupField('counts of command use, etc.', 'int big', 0),
-/*  MOVE THESE TO offsite field:
-    'federalId' => setupField('social security number or employer id number, for reporting', 'int 9'), // secret
-    'dob' => setupField('date of birth, founding, or incorporation', 'int 11'), // secret
-    'idProof' => setupField('proof of identity encryption key', 'varchar ' . R_SECRET_ID_LEN), // secret
-    'answer' => setupField('answer to security question', 'varchar ' . R_SECRET_ID_LEN), // secret
-  */
 
   // table r_stats
   $fields = array(
@@ -103,7 +93,7 @@ function tableDefs($schema = []) {
     'signups' => setupField('amount of signup bonuses ever', 'numeric 11,2', 0),
     'inflations' => setupField('amount of inflation adjustments ever', 'numeric 11,2', 0),
     'helpers' => setupField('amount of helper rewards ever', 'numeric 11,2', 0),
-//    'refunds' => setupField('amount of Dwolla fee reimbursements ever', 'numeric 11,2', 0),
+    'givebacks' => setupField('amount of rewards donated back to the community', 'numeric 11,2', 0),
     'xfees' => setupField('amount of exchange fees', 'numeric 11,2', 0),
     'rebates' => setupField('amount of rebate rewards ever', 'numeric 11,2', 0),
     'bonuss' => setupField('amount of transaction bonus rewards ever', 'numeric 11,2', 0),
@@ -115,9 +105,11 @@ function tableDefs($schema = []) {
     'pAccts' => setupField('number of personal accounts', 'int medium', 0),
     'bAccts' => setupField('number of company accounts', 'int medium', 0),
     'newbs' => setupField('number of not-yet-active accounts', 'int medium', 0),
-    'savings' => setupField('funds held for 30 days or more', 'numeric 11,2', 0),
-    'top5' => setupField('savings held in top 5 accounts', 'numeric 11,2', 0),
-    'savingsIntent' => setupField('amounts members have chosen to hold as savings', 'numeric 11,2', 0),
+    'runny' => setupField('rewards at risk of being spent (not a co, no auto-refill)', 'numeric 11,2', 0),
+    'runnyBal' => setupField('total balances in runny accounts', 'numeric 11,2', 0),
+    'top5' => setupField('runny funds in top 5 or 5% of runny accounts', 'numeric 11,2', 0),
+//    'savings' => setupField('funds held for 30 days or more', 'numeric 11,2', 0),
+    'savings' => setupField('amounts members have chosen to hold as savings', 'numeric 11,2', 0),
     'bankInPerMo' => setupField('amount transferred into the system in the past month', 'numeric 11,2', 0),
     'bankOutPerMo' => setupField('amount transferred out of the system in the past month', 'numeric 11,2', 0),
     'xchPerMo' => setupField('exchange volume within system in the past month', 'numeric 11,2', 0),

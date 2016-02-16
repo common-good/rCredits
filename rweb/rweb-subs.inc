@@ -91,6 +91,7 @@ EOF
   'einDesc' => t('The company\'s Employer ID Number (EIN)'),
   'to scan another' => t('To scan another card, run the QR Scanner app again.'),
   'invite links' => t('<p>Here are your links, to include in your own email messages to your friends. Be sure to mention they can visit rCredits.org for more information.</p><p>@links</p>'),
+  'timed out' => t('You were automatically signed out, to protect your account(s).'),
 
   // confirm
   'yes or no' =>  '@yesNo', // to replace with yesNo(url)
@@ -105,7 +106,8 @@ EOF
   'no relations' => t('There are not yet any relations for this account.'),
   'no devices' => t('Surprisingly, this account has no related devices.'),
   'required field' => t('@field must not be blank.'),
-  'duplicate email' => t('"@who" is already using that email address. If you want to use the same email address for this account, add a plus sign (+) and tag to the local part, for example "@emailTagged".'), // used in user.module
+  'duplicate email' => t('"@who" is already using that email address.'),
+  'email plus' => t('If you want to use the same email address for this account, add a plus sign (+) and an arbitrary tag to the local part, for example "@emailTagged".'), // used in user.module
   'forgot password' => t('If you just forgot the password to the other account, <@a>click here</a> to request a new password.'), // used in user.module
   'bad name' => t('That is not a plausible name.'),
   'bad phone' => t('That is not a proper phone number.'),
@@ -384,7 +386,12 @@ function NEWlabeled($form, $onSubmit = '', $labeled = TRUE) {
 }
 
 function labeled($form, $onSubmit = '', $labeled = TRUE, $level = 0) {
-  if ($onSubmit) $form['#attributes']['onsubmit'] = $onSubmit; // eg ' return func();';
+  if ($onSubmit) {
+    list ($zot1, $zot2, $caller) = explode('\\', u\caller());
+    $formId = 'rcreditsweb' . strtolower($caller);
+    w\js("$('#$formId').submit(function() { $onSubmit });", 'inline'); // spaces are required around $onSubmit
+    // (Drupal kills the quotes) $form['#attributes']['onsubmit'] = $onSubmit; // eg ' return func();'; 
+  }
   $form['#attributes']['class'][] = $labeled ? 'form-horizontal' : 'form-vertical';
   foreach ($form as $k => $v) if (substr($k, 0, 1) != '#') {
     $form[$k]['#tabled'] = TRUE;
@@ -394,16 +401,14 @@ function labeled($form, $onSubmit = '', $labeled = TRUE, $level = 0) {
 }
 
 /**
- * Drupal render the given fields, with appropriate names.
- * @param assoc $fields: array of named fields
+ * Drupal render the given field, with the given name.
+ * @param string $name: field name
+ * @param assoc $field: a Drupal field description array
  * @return Drupal rendering, with repairs.
  */
-function rendA($fields) {
-  $rent = '';
-  foreach ($fields as $k => $field) {
-    $rent .= preg_replace('/name="(.*)"/', "name=\"$k\"", rent($field));
-  }
-  return $rent;
+function rendA($name, $field) {
+//    $rent .= preg_replace('/name="(.*)"/', "name=\"$k\"", rent($field));
+  return str_replace('<input ', "<input id=\"edit-$name\" name=\"$name\" ", rent($field));
 }
     
 function rend($fields) {
@@ -510,8 +515,8 @@ function areaFld($label = '', $help = '', $other = []) {return fld('textarea', $
 function radiosFld($label, $help, $other, $options) {return fld('radios', $label, $help, $other, $options);}
 function selectFld($label, $help, $other, $options = []) {return fld('select', $label, $help, $other, $options);}
 
-function boxFld($name, $label = '', $desc = '', $dft = NULL) {
-  $fld = fld('checkbox', $desc, '', compact('name') + dft(@$dft));
+function boxFld($name, $label = '', $desc = '', $dft = NULL, $other = []) {
+  $fld = fld('checkbox', $desc, '', compact('name') + dft(@$dft) + $other);
   return $label ? item(@\render($fld), $label, '', ['box' => TRUE]) : $fld;
 }
 function fieldSet($id, $flds, $label = '', $other = []) {return fld('fieldset', $label, '', compact('id') + $other) + $flds;}
@@ -600,6 +605,23 @@ function acctTypeField() {
 }
 
 /**
+ * Return onSubmit script for a typeahead member account field (and include needed script files).
+ * @param string $field: the field name
+ * @param string $question: what to ask for confirmation or disambiguation
+ * @param string $amount: optional amount substitution for question (include quotes or formula, if not a number)
+ * @param bool $askGift: <ask if this form submission is a payment that is a gift> (defaults to no, don't ask)
+ * @return complete script without leading "return ".
+ */
+function whoFldSubmit($field, $question, $amount = '0', $askGift = '0') {
+  $id = '#edit-' . $field;
+  $question = addslashes($question);
+
+  js('js/typeahead.bundle.min.js', 'file');
+  js("suggestWho('$id');", 'inline', 'footer');
+  return "who(this, '$id', '$question', $amount, $askGift);"; // amount might be 'this.amount.value'
+}
+
+/**
  * Retrieve the specified form, called with the args, and return it rendered.
  * Also sets up $formArray and $formSta, for testing.
  */
@@ -638,7 +660,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
     if (!$specialForm) {
-      js('jQuery(".messages").dblclick(function() {jQuery(this).hide();});', 'inline', 'header');
+      js("jQuery('.messages').dblclick(function() {jQuery(this).hide();});", 'inline', 'header');
 /*      if (@$form['country']) {
         js('js/countries.js', 'file', 'header');
 //        if ($mya and \form_get_errors()) js("print_country($mya->country, $mya->state);", 'inline', 'footer');
@@ -1108,28 +1130,31 @@ function suCreatorRelation($helper, $args, $myid) {
  * @param int $uid: account record id (optional), if changing email address rather than creating new account
  * @return: TRUE if email is okay to use, else FALSE
  */
-function emailOkay(&$email0, $uid = '') {
+function emailOkay(&$email0, $a = FALSE) {
   $email = strtolower(str_replace("'", '&#039;', $email0));
   if ($error = \user_validate_mail($email)) return say('bad email', compact('email'), 'email');
-  if (emailDup($email, $uid)) return FALSE;
+  if (!$a ?: !$a->co) if (emailDup($email, $a ? $a->id : 0)) return FALSE;
   $email0 = $email;
   return TRUE;
 }
 
 /**
  * Say whether the email is a duplicate and complain if it is.
+ * NOTE: Companies with duplicate email addresses are okay, so don't call this for companies.
  * @param string $email: the email address to test
- * @param int $uid: the account it is for (empty if the account is not created yet)
+ * @param int $uid: the account it is for (0 if the account is not created yet)
  * @return <email is a dup>
  */
 function emailDup($email0, $uid) {
   global $base_url;
   $mail = u\cryptN($email0);
-  if (!$who = db\lookup('fullName', 'users', 'mail=:mail and uid<>:uid', compact('mail', 'uid'))) return FALSE;
+  if (!$who = db\lookup('fullName', 'users', 'mail=:mail and uid<>:uid AND NOT :IS_CO', compact('mail', 'uid'))) return FALSE;
   $a = "a href=$base_url/settings/password/$email0";
   $emailTagged = str_replace('@', '+whatever@', $email0);
+  $dupMsg = 'duplicate email';
+  if (stripos($email0, '@gmail.com')) $dupMsg .= '|email plus';
   if (!$uid) $forgot = '|forgot password';
-  say('duplicate email' . @$forgot, compact(u\ray('emailTagged who a')), 'email');
+  say($dupMsg . @$forgot, compact(u\ray('emailTagged who a')), 'email');
   return TRUE;
 }
 
@@ -1189,7 +1214,7 @@ function nameAndEmail($what, $fullName = '') {
  */
 function contactFields($defaults = [], $a = '') {
 //  $country = $state = ''; // make sure these are not NULL
-  $fields = 'phone faxetc country postalCode address city state tenure owns postalAddr'; // had verifyBy
+  $fields = 'phone faxetc country postalCode address city state tenure owns postalAddr';
   extract($defaults ?: ($a ? (array) $a->account($fields) : []));
   $country = @$country + 0;
   $state = @$state + 0;
@@ -1226,7 +1251,7 @@ EOF;
 //$a ? '' : t('Your phone number. This should not be a number already used for another rCredits account &mdash; unless you have no other phone number.')
 //  $dupOk = hidFld(0, attrib(u\ray('id', 'edit-dupOk')));
 //  $dupOk = boolFld(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
-//  $verifyBy = $a ? NULL : radiosFld(t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$a->verifyBy ? (int) ($a->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
+
   $faxetc = @$faxetc ? textFld(t('Fax etc:'), [t('Other contact info'),t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.')], dft(@$faxetc)) : NULL;
   $country = selectFld(t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
   $postalCode = textFld(t('Postal Code:'), [t('Physical location postal code'), t('Postal code for your <em>physical location</em>')], required(@$postalCode) + $zipAttrib);
@@ -1506,10 +1531,11 @@ function hack($message, $info = []) {
   return r\signedIn() ? signout() : r\go('');
 }
 
-function signout() {
+function signout($arg = '') {
+  $msg = $arg == 'timedout' ? 'timed out' : '';
   @\session_destroy();
 //  return r\go(isDEV ? 'http://rPromo/_sites?region=x' : 'http://rCredits.org/control.html?region=x');
-  return r\go(isDEV ? 'signin' : 'http://rCredits.org/control.html?region=x');
+  return r\go(isDEV ? 'signin' : 'http://rCredits.org/control.html?region=x', $msg);
 }
 
 /*function changeAccount($quid = '') {
@@ -1778,19 +1804,25 @@ function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
 function transfer($op, $info, $confirmed) {
   $mya = r\acct();
   $myid = $mya->id;
-  extract($params = u\just('who amount goods purpose', $info));
+  extract($params = u\just('who amount goods purpose isGift', $info));
   if (!isset($goods) or $goods === '') return say('required field', ['field'=>'"For"'], 'ERR'); // '' is for test
-  u\EXPECT($params, 'string string int|empty string');
-///NO!  if (!in_array($op, ['pay', 'charge'])) $goods = R_FOR_USD; // make sure this is set, for blank_field check
+  u\EXPECT($params, 'string string int|empty string bool');
+///NO!  if (!in_array($op, ['pay', 'charge'])) $goods = FOR_USD; // make sure this is set, for blank_field check
   $txType = $op == 'pay' ? 'payment' : strtolower($op);
 //  if (blank_field($params)) return FALSE;
   if (!$a = w\whois($who, 'who', $info)) return FALSE;
-//  if ($goods == R_FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
+//  if ($goods == FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($error = u\badAmount($amount, '>0')) return say($error, 'amount');
 //  $op = $op == 'pay' ? t('paid') : ($op == 'charge' ? 'charged' : $op . 'ed'); // for possible error message
-//  if (u\forCash($purpose)) $goods = R_FOR_USD;
+//  if (u\forCash($purpose)) $goods = FOR_USD;
+
+  if (@$isGift) { // tag gifts to nonprofits and handle special case of "giving back" rewards to the community
+    $data = compact('isGift');
+    if (r\isGiveback($myid, $a->id, $data)) list ($mya, $a, $amount, $goods) = [$a,$mya,-$amount,FOR_NONGOODS];
+  } else $data = [];
+
   list ($msg, $args, $confirm) = 
-     $txType == 'payment' ? be\transfer($txType, $mya, $a, $amount, $goods, $purpose, NULL, $confirmed)
+     $txType == 'payment' ? be\transfer($txType, $mya, $a, $amount, $goods, $purpose, NULL, $confirmed, $data)
      : ($txType == 'charge' ? be\invoice($mya, $a, $amount, $goods, $purpose, $confirmed)
      : communityTransfer($txType, $a, $amount, $purpose, $confirmed));
 
@@ -1952,6 +1984,7 @@ function showCharts($whichChart) {
   list ($in, $out, $fees, $net, $personal, $companies) = array(t('in'), t('out'), t('fees'), t('net'), t('personal'), t('companies'));
   extract($stats = r\stats($myCtty)); // careful with this (don't overwrite local vars)
   extract(w\fundStats($stats, TRUE)); // get the formatted versions, with originals in {var}0
+  $trade = u\fmtAmt($trade0 = $tradeOut0 + $tradeIn0); // tradeIn is negative
   foreach (['txRewards0', 'spent0', 'trade0'] as $k) $$k = max(0, $$k); // don't display negative values
  
   $issuedData = array(
@@ -1967,7 +2000,8 @@ function showCharts($whichChart) {
 //   "['fees',{v:$usd0,f:'$usd'}$fines]" think of a way to handle negatives (separate pie?)
     "['trade (net)',{v:$trade0,f:'$trade'}]",
   );
-  $superTotal = u\fmtAmt($r0 + $usd0);
+  $totalR = u\fmtAmt($r0); // was u\fmtAmt($r0 + $usd0);
+  $totalUsd = u\fmtAmt($usd0);
 
   $txTypes = u\ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly by rCard)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
 
@@ -1977,7 +2011,7 @@ function showCharts($whichChart) {
   $now = r\rTime();
   $created0 = db\lookup('MIN(created)', 'r_stats'); // show every n days since beginning + daily past n days
   $sql = <<<EOF
-    SELECT created, IF(r=0, 0, perMo/r) AS rate, r AS funds, bankIn-bankOut AS usd, savings,
+    SELECT created, IF(r=0, 0, perMo/r) AS rate, r AS funds, bankIn-bankOut AS usd, savings, runny, runnyBal,
       pAccts, bAccts, pAccts+bAccts AS accts, newbs, top5,
       bankInPerMo, bankOutPerMo,
       perMo, p2bPerMo, b2bPerMo, b2pPerMo,
@@ -1991,7 +2025,7 @@ EOF;
   $charts = u\ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-rcredits');
   if ($whichChart != 'all') $charts = u\just($whichChart, $charts);
   foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, []);
-  $moneyFields = u\ray('funds savings top5 usd bankInPerMo bankOutPerMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo');
+  $moneyFields = u\ray('funds savings runny runnyBal top5 usd bankInPerMo bankOutPerMo perMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo');
 
   while ($row = $q->fetchAssoc()) {
     extract($row);
@@ -2000,12 +2034,17 @@ EOF;
     $date = "new Date($y,$m,$d)";
     $p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
     $p2pTxsPerMo = $txsPerMo - $p2bTxsPerMo - $b2bTxsPerMo - $b2pTxsPerMo;
+    $funds -= $usd;
+//    $runnyBal = -$runnyBal; // for now, show runny DEBT instead of runny BAL
 //    $actives = abs($pAccts - $newbs); // active members
-    foreach ($moneyFields as $k) ${$k . '2'} = u\fmtAmt($$k);
+    foreach ($moneyFields as $k) {
+      $$k = max(0, $$k);
+      ${$k . '2'} = u\fmtAmt($$k);
+    }
     $rate2 = number_format(100 * $rate, 1) . '%';
 
     $acctsData[] = "[$date,$pAccts,$newbs,$bAccts]";
-    $fundsData[] = "[$date,{v:$funds,f:'$funds2'},{v:$usd,f:'$usd2'},{v:$savings,f:'$savings2'},{v:$top5,f:'$top52'}]";
+    $fundsData[] = "[$date,{v:$funds,f:'$funds2'},{v:$usd,f:'$usd2'},{v:$runny,f:'$runny2'},{v:$top5,f:'$top52'},{v:$runnyBal,f:'$runnyBal2'},{v:$perMo,f:'$perMo2'}]";
     $velocityData[] = "[$date,{v:$rate,f:'$rate2'}]";
     $bankingData[] = "[$date,{v:$bankInPerMo,f:'$bankInPerMo2'},{v:$bankOutPerMo,f:'$bankOutPerMo2'}]";
 
@@ -2021,13 +2060,14 @@ EOF;
   }
 
 //  $accts = "{$pAccts} members + {$bAccts} co = " . ($pAccts + $bAccts);
-  $accts = "{$pAccts} members + {$bAccts} co";
+  $accts = "{$pAccts} members + {$bAccts} companies";
   $netUsdIn = u\fmtAmt($bankInPerMo - $bankOutPerMo) . t(' (net)');
   $velocity = number_format(($r0+0) ? 100 * $perMo / $r0 : 0, 1) . t('% per mo.');
   
   $js = <<<EOF
   var accts = '$accts';
-  var funds = '$superTotal';
+  var r = '$totalR';
+  var usd = '$totalUsd';
   var velocity = '$velocity';
   var netUsdIn = '$netUsdIn';
   var issued = '$r';
@@ -2042,8 +2082,8 @@ EOF;
   }
 
   js('https://www.google.com/jsapi', 'external', 'header');
-  js('js/charts.js', 'file', 'header', 8);
-  js($js, 'inline', 'header', 9);
+  js('js/charts.js', 'file', 'footer', 8);
+  js($js, 'inline', 'footer', 9);
 
   foreach($charts as $k => $help) {
     $one = "<div id=\"{$k}Chart\" class=\"onechart\"></div>";
@@ -2070,7 +2110,7 @@ function fundStats($stats, $includeRaw = FALSE, $format = 's$') {
     $cttyA = r\acct($ctty);
     $res['ctty'] = $ctty == r\serverUid() ? t('Seedpack (Outliers)') : trim(strtr($cttyA->fullName, [t('Region')=>'', t('rCredits')=>'']));
   } else $res['ctty'] = t('TOTAL');
-  foreach (u\ray('r usd trade signups txRewards helpers inflations spent grants loans invests fines') as $one) {
+  foreach (u\ray('r usd tradeIn tradeOut signups txRewards helpers inflations spent grants loans invests fines') as $one) {
     if ($includeRaw) $res[$one . '0'] = $$one;
     $res[$one] = u\fmtAmt($$one, $format);
   }
@@ -2215,7 +2255,7 @@ function css($sheet, $weight = -99) {
  * @param string $scope: header or footer
  * @param int $weight: low means load sooner (-18 and up, defaults to 0)
  */
-function js($what, $type = 'inline', $scope = 'footer', $weight = 0) {
+function js($what, $type = 'inline', $scope = 'footer', $weight = 99) {
   global $rUrl;
   if ($type == 'file') $what = (strpos($what, 'http') !== FALSE or strpos($what, ':')) ? $what : "$rUrl/$what";
   return \drupal_add_js($what, compact('type', 'scope', 'weight'));

@@ -71,7 +71,7 @@ function adminSummary($a, $cAdmin = FALSE) {
   if ($a->isNormal) { // managing some individual community member account
     if (!$a->ok) $a->nextStep(); // update Dwolla status
     if ($cAdmin) {
-      $photo = item($mya->photoHtml(TRUE, TRUE));
+      $photo = item($a->photoHtml(TRUE, TRUE));
       if ($admin) {
         $cttys = a\cttys($a->region);
 //        if (!@$cttys[$ctty]) u\preray([$ctty => $a->cttyA->fullName . t(' (outside the region)')], $cttys);
@@ -109,8 +109,17 @@ function adminSummary($a, $cAdmin = FALSE) {
     $invitedBy = item($invitedBy . db\lst('fullName', 'r_invites i LEFT JOIN users u ON u.uid=i.inviter', 'invitee=:uid', compact('uid')), t('Invited by:'));
     $proxies = item(db\lst('fullName', 'r_proxies p LEFT JOIN users u ON u.uid=p.proxy', 'p.person=:uid ORDER BY priority', compact('uid')), t('Proxies:'));
     $proxyFor = item(db\count('r_proxies', 'proxy=:uid', compact('uid')), t('Proxy for:'));
-  } else { // managing the community itself
+  } else { // managing a community itself
     $count = item(db\count('users', 'community=:ctty AND uid<>:ctty', compact('ctty')), t('Members:'));
+    $cInfo = be\creditInfo();
+    foreach ($fields = u\ray('in rewards out r') as $k) {
+      $v = $cInfo->$k;
+      if ($k == 'out') $v -= $cInfo->rewards;
+      if ($k == 'r') $v += $cInfo->rewards;
+      $$k = u\fmtAmt($v + 0, 'r');
+    }
+    
+    $balance = item(tt('@r = @in in - @out out (Rewards issued: @rewards)', compact($fields)), t('Funds:'));
   }
   
   if ($cAdmin and !$self) {
@@ -118,7 +127,7 @@ function adminSummary($a, $cAdmin = FALSE) {
 
     $legalName = textFld(t('Legal Name:'), '', required($a->legalName));    
     if ($admin) $rTrader = ($a->isCtty)
-    ? boolFld(t('Ctty Up?'), '', $a->ok)
+    ? boolFld(t('rTrader?'), '', $a->ok)
     : boolFld(t('rTrader?'), t('Is account approved to use rCredits? -- member, <@a>good photo</a>, ss# checks out, set risks and mediaConx', array('@a' => "a href=$base_url/settings/security/photo?" . rand())), $a->ok);
     if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
       if ($helper = $a->helper ?: ($a->co ? $a->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
@@ -133,12 +142,9 @@ function adminSummary($a, $cAdmin = FALSE) {
   
     $acctRisks = u\ray(K_ACCT_RISKS);
     $riskBits = array_keys($acctRisks);
-//    $riskHelpKeys = array_flip(array_keys($riskHelp));
     $risksEditable = array_flip(u\ray(K_ACCT_RISKS_EDITABLE));
     foreach ($riskBits as $k) {
       $class = $acctRisks[$k] < 0 ? 'goodRisk' : 'badRisk';
-//      $helpIndex = $riskHelpKeys[$k];
-      //$class .= " riskHelp$helpIndex";
       if (!isset($risksEditable[$k])) $class .= ' noEdit';
       $dpy = w\popHelp($k, $riskHelp[$k]);
       $aliases[$k] = "<div class=\"$class\">$dpy</div>";
@@ -148,8 +154,8 @@ function adminSummary($a, $cAdmin = FALSE) {
     $adminable = u\ray(B_ADMINABLE . ($admin ? ' admin' : ''));
     foreach (u\ray(B_LIST) as $k) if (strpos($k, 'u') !== 0) { // ignore undefined bits ("u" in 0th position)
       $blist[] = $k0 = $k;
-      // $helpIndex = $helpKeys[$k];
       $class = in_array($k, $adminable) ? '' : 'noEdit';
+      if ($a->isCtty) $k = strtr($k, u\ray(B_ADMIN_BITS));
       $aliases[$k0] = "<div class=\"$class\">$k</div>";
     }
     $adminable = bitsFld(t('Flags:'), $a->flags, 'b', join(' ', $blist), $aliases);
@@ -211,7 +217,7 @@ EOF;
 
   $uid = hidFld($uid); // must postcede js (which uses uid)
   
-  return compact(u\ray('community photo donations cgfDonations federalId legalName calling tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
+  return compact(u\ray('community photo balance donations cgfDonations federalId legalName calling tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
 }
 
 /**

@@ -139,7 +139,7 @@ function doAccount($info = []) {
 //  if (@$email) $mail = $info['mail'] = $email;
   if (@$jid) $jid = t\uid($jid);
 //  if (@$helper or !@$testOnly) $helper = t\uid(@$helper ?: '.AAA'); // everyone but .AAA should have a helper
-  if (!@$helper) $helper = '.AAA'; // everyone but .AAA should have a helper
+  if (!@$helper) $helper = '.AAB'; // everyone but .AAB should have a helper
 
   if (!$testOnly) { // when making, set many defaults and mods
     u\setDft($fullName, 'doAccount ' . randomString(20, 'word'));
@@ -241,15 +241,15 @@ function doTx($info, $thing) {
   if (isset($risks)) $risks = getRisks($risks, K_TX_RISKS);
 
   if ($inv) {
-    u\setDft($goods, u\forCash(@$for) ? R_FOR_USD : R_FOR_GOODS);
+    u\setDft($goods, u\forCash(@$for) ? FOR_USD : FOR_GOODS);
   } else {
     if (!$testOnly) u\setDft($risk, NULL); // indicates that risk has not been calculated yet
     if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
     u\setDft($type, TX_TRANSFER);
     foreach (u\ray('type') as $one) if (!is_numeric($$one)) $$one = u\consta('tx', $$one);
     if (!$testOnly) {
-      u\setDft($goods, ($type != TX_TRANSFER or u\forCash(@$for)) ? R_FOR_USD : R_FOR_GOODS);
-      if ($goods == R_FOR_GOODS) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
+      u\setDft($goods, ($type != TX_TRANSFER or u\forCash(@$for)) ? FOR_USD : FOR_GOODS);
+      if ($goods == FOR_GOODS) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
     }
     $data = [];
     if (u\in(@$purpose, 'offline')) $data['force'] = 1;
@@ -1167,7 +1167,7 @@ function clear($ch = 0) {
   foreach (u\ray($tables) as $one) db\q("TRUNCATE $one");
   db\q('UPDATE users SET floor=0,minimum=NULL,r=0,rewards=0,committed=0');
 
-  ctty('aab')->setBit(B_CGC);
+  ctty('aab')->setBit(B_OK);
   ctty('aab')->setBit(B_UP);
 
   t\log('clearing');
