@@ -40,7 +40,8 @@
     {
       "locator": "https://github.com/brodysoft/Cordova-SQLitePlugin.git",
       "id": "cordova-sqlite-storage"
-    }
+    },
+    "cordova-plugin-network-information"
   ],
   "cordovaPlatforms": [
     "ios",
