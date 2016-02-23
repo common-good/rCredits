@@ -41,7 +41,7 @@
 
         $scope.$on('$destroy', function() {
           if ($scope.ionContent) {
-            $scope.ionContent.removeClassName('has-subheader');
+            //$scope.ionContent.removeClassName('has-subheader');
           }
         });
       }
