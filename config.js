@@ -14,6 +14,7 @@ rCreditsConfig = {
   serverUrl: 'https://stage-xxx.rcredits.org/pos',
   version: '3.0',
   build: 300,
+  transaction_max_amount_offline: 300
 
   // @endif
 
@@ -21,13 +22,15 @@ rCreditsConfig = {
   serverproxyUrl: 'http://localhost:8100/pos',
   serverUrl: 'https://stage-xxx.rcredits.org/pos',
   version: '3.0',
-  build: 300
+  build: 300,
+  transaction_max_amount_offline: 300
   // @endif
 
   // @if BUILD_TARGET='production'
   serverUrl: 'https://xxx.rcredits.org/pos',
   version: '3.0',
-  build: 300
+  build: 300,
+  transaction_max_amount_offline: 300
   // @endif
 
 

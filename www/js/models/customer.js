@@ -12,6 +12,11 @@
         this.rewards = parseFloat(rewards);
       },
 
+      setBalance: function(balance) {
+        this.balance = balance;
+        return this;
+      },
+
       getPlace: function() {
         return this.place;
       },

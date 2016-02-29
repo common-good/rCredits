@@ -22,12 +22,13 @@ app.controller('TransactionResultCtrl', function($scope, $state,
   // Keys for Translation
   $scope.heading = 'transaction' + statusKey + 'Heading';
 
-  if (TransactionService.lastTransaction.isRefund()) {
-    $scope.note = 'transactionRefund' + statusKey + 'Note';
-  } else {
-    $scope.note = 'transaction' + statusKey + 'Note';
+  if (TransactionService.lastTransaction) {
+    if (TransactionService.lastTransaction.isRefund()) {
+      $scope.note = 'transactionRefund' + statusKey + 'Note';
+    } else {
+      $scope.note = 'transaction' + statusKey + 'Note';
+    }
   }
-
 
   $scope.transactionInfo = {
     amount: $filter('currency')($scope.transactionAmount),
