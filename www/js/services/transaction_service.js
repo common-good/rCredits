@@ -1,4 +1,4 @@
-app.service('TransactionService', function($q, UserService, RequestParameterBuilder, $http, $httpParamSerializer, SQLiteService, SqlQuery, NetworkService, MemberSqlService, NotificationService) {
+app.service('TransactionService', function($q, UserService, RequestParameterBuilder, $http, $httpParamSerializer, SQLiteService, SqlQuery, NetworkService, MemberSqlService, NotificationService, $ionicLoading) {
 
   var self;
 
@@ -226,6 +226,7 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
   };
 
   var askConfirmation = function() {
+    $ionicLoading.hide();
     return NotificationService.showConfirm({
         title: 'cashier_permission',
         subTitle: "",
@@ -233,6 +234,7 @@ app.service('TransactionService', function($q, UserService, RequestParameterBuil
         cancelText: "cancel"
       })
       .then(function(confirmed) {
+        $ionicLoading.show();
         if (confirmed) {
           return true;
         } else {
