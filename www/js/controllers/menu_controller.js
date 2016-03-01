@@ -26,7 +26,8 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
   $scope.redirectHome = function() {
     $ionicHistory.clearHistory();
     $ionicHistory.nextViewOptions({
-      disableBack: true
+      disableBack: true,
+      disableAnimate: true
     });
     $ionicHistory.clearCache().then(function() {
       $state.go("app.home");

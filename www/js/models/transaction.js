@@ -9,6 +9,7 @@
     this.amount = null;
     this.description = null;
     this.goods = null;
+    this.status = null;
   };
 
   Transaction.Types = {

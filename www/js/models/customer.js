@@ -7,9 +7,15 @@
       balance: 0,
       rewards: null,
       lastTx: null,
+      unregistered: false, // Customer logs in Offline mode for first time and not have any data
 
       setRewards: function(rewards) {
         this.rewards = parseFloat(rewards);
+      },
+
+      setBalance: function(balance) {
+        this.balance = balance;
+        return this;
       },
 
       getPlace: function() {
@@ -34,6 +40,17 @@
 
     });
 
+    Customer.parseFromDb = function(customerJson) {
+      var customer = new Customer(customerJson.name);
+      customer.setBalance(customerJson.balance);
+      customer.setRewards((customerJson.rewards));
+      customer.setLastTx(customerJson.lastTx);
+      customer.place = customerJson.place;
+      customer.company = customerJson.company;
+      customer.accountInfo.accountId = customerJson.qid;
+      customer.photo = customerJson.photo;
+      return customer;
+    };
 
     window.Customer = Customer;
 

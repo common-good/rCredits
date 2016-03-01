@@ -1,23 +1,25 @@
 app.controller('KeyPadCtrl', function($scope, $state, $stateParams, $filter) {
 
+  var convertToNumber = function(amount) {
+    return Number(amount);
+  };
+
   $scope.addHundred = function(num) {
-    setEntry($scope.$parent.$parent.amount * 100);
+    setEntry(convertToNumber($scope.$parent.$parent.amount) * 100);
   };
 
   $scope.addNumber = function(num) {
-    var x = (num / 100);
-    var y = ($scope.$parent.$parent.amount * 10);
-    setEntry(($scope.$parent.$parent.amount * 10) + (num / 100));
+    var x = convertToNumber($scope.$parent.$parent.amount) * 10;
+    var y = convertToNumber(num) / 100;
+    setEntry(x + y);
   };
 
   $scope.clearEntry = function() {
-    $scope.$parent.$parent.amount = 0;
+    setEntry(0);
   };
 
   var setEntry = function(num) {
-    if (num < 1000000) {
-      $scope.$parent.$parent.amount = parseFloat($filter('currency')(num, '', 2));
-    }
+    $scope.$parent.$parent.amount = num;
   };
 
 });

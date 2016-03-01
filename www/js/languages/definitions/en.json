@@ -61,5 +61,13 @@
   "cashier_permission": "Manager permission is required to perform this action",
   "cashier_permission_rejected": "Unable to authorize action",
   "confirm_undo_transaction": "Are you sure you want to undo this transaction?",
-  "scanIn": "Scan in"
+  "scanIn": "Scan in",
+  "switch": "Switch",
+  "exchange_in": "In",
+  "exchange_out": "Out",
+  "exchange_selected_payment_advice": "Tell customer: There is a {{feeValue}} {{paymentName}} fee.",
+  "exchange_includes_fee": "Includes {{feeValue}} {{paymentName}} fee",
+  "next": "Next",
+  "login_your_self": "You can't buy or sell with yourself",
+  "you_are_offline": "You are offline"
 }

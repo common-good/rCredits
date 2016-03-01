@@ -1,0 +1,44 @@
+<ion-view>
+  <offline-header></offline-header>
+  <ion-content>
+    <div class="tabulator" sf-resize>
+      <section class="section-1">
+        <div class="calc-component">
+          <div class="list">
+
+            <div class="item exchange-types">
+              <div class="operation">
+                {{::'exchange_in' | translate}}
+              </div>
+              <div class="type">
+                {{::exCtrl.exchange.getCurrencyFrom().getSign()}} {{amount | currency: "":2}}
+                {{::exCtrl.exchange.getCurrencyFrom().getName()}}
+              </div>
+            </div>
+
+            <div class="item exchange-types">
+              <div class="operation">
+                {{::'exchange_out' | translate}}
+              </div>
+              <div class="type">
+                {{::exCtrl.exchange.getCurrencyTo().getSign()}} {{exCtrl.calculateOutAmount() | currency: "":2}}
+                {{::exCtrl.exchange.getCurrencyTo().getName()}}
+              </div>
+            </div>
+
+            <div class="item fee-legend">
+              {{::exCtrl.paymentFeeTitle}}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-2 exchange-keypad" ng-controller="KeyPadCtrl" ng-include="'templates/keypad.html'">
+      </section>
+
+    </div>
+  </ion-content>
+  <button class="button button-full button-positive next-btn" ng-click="exCtrl.doExchange()">
+    {{::('exchange' | translate)}}
+  </button>
+</ion-view>

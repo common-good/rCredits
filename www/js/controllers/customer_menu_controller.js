@@ -47,6 +47,19 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
     }
   };
 
+  $scope.openExchange = function() {
+    var exchangeFn = function() {
+      $state.go('app.transaction_select_exchange')
+    };
+
+    if (CashierModeService.canRefund()) {
+      exchangeFn();
+    } else {
+      executeAction(exchangeFn);
+    }
+
+  };
+
 
   var executeAction = function(fn) {
     NotificationService.showConfirm({

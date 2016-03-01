@@ -1,72 +1,82 @@
-describe ('Barcode Scanner Service', function() {
+describe('Barcode Scanner Service', function() {
 
   'use strict';
 
-  beforeEach (module ('rcredits'));
+  beforeEach(module('rcredits'));
 
-  var barcodeScannerService, rootScope;
+  var barcodeScannerService, rootScope, $httpBackend;
   var SCAN_RESULT = {text: "HTTP://NEW.RC4.ME/AAK.NyCBBlUF1qWNZ2k", format: "QR_CODE", cancelled: false};
 
-  beforeEach (inject (function(BarcodeService, $rootScope) {
+  beforeEach(inject(function(BarcodeService, $rootScope, _$httpBackend_) {
     barcodeScannerService = BarcodeService;
     rootScope = $rootScope;
+    $httpBackend = _$httpBackend_;
+
+    $httpBackend.whenGET(/templates\/*/).respond(function(method, url, data, headers) {
+      return [200, '<div></div>'];
+    });
+
+    $httpBackend.whenGET(/js\/languages\/definitions\//).respond(function(method, url, data, headers) {
+      return [200, {}];
+    });
+
   }));
 
   var createScanSpy = function(returnValue) {
     barcodeScannerService.scanner.scan = jasmine.createSpy('scan()')
       .and.callFake(function(sucessFn) {
-        sucessFn (returnValue);
+        sucessFn(returnValue);
       });
   };
 
-  describe ('Scan a code', function() {
+  describe('Scan a code', function() {
 
-    it ('Scan is a QR CODE', function(done) {
-      createScanSpy (_.clone(SCAN_RESULT));
+    it('Scan is a QR CODE', function(done) {
+      createScanSpy(_.clone(SCAN_RESULT));
 
       barcodeScannerService.scan()
         .then(function(scanResult) {
-          done ();
+          done();
         });
 
       rootScope.$apply();
     });
 
-    it ('Scan is NOT a QR CODE', function(done) {
+    it('Scan is NOT a QR CODE', function(done) {
       var scanResponse = _.clone(SCAN_RESULT);
       scanResponse.format = 'DATA_MATRIX';
-      createScanSpy (scanResponse);
+      createScanSpy(scanResponse);
 
       barcodeScannerService.scan()
         .catch(function(scanResultError) {
-          done ();
+          done();
         });
 
       rootScope.$apply();
     });
 
-    it ('Scan Was Cancelled', function(done) {
+    it('Scan Was Cancelled', function(done) {
       var scanResponse = _.clone(SCAN_RESULT);
       scanResponse.cancelled = true;
-      createScanSpy (scanResponse);
+      createScanSpy(scanResponse);
 
       barcodeScannerService.scan()
         .catch(function(scanResultError) {
-          done ();
+          done();
         });
 
       rootScope.$apply();
     });
 
-    it ('Scan Failed', function(done) {
+    it('Scan Failed', function(done) {
       barcodeScannerService.scanner.scan = jasmine.createSpy('scan()')
         .and.callFake(function(sucessFn, failedFn) {
-          failedFn ("Scan failed");
+          failedFn("Scan failed");
         });
 
       barcodeScannerService.scan()
         .catch(function(scanResultError) {
-          done ();
+          done();
         });
 
       rootScope.$apply();

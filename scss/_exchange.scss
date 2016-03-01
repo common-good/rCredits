@@ -1,0 +1,51 @@
+.exchange-types {
+  font-size: 20px;
+
+  .operation {
+    float: left;
+    font-weight: 400;
+  }
+  .type {
+    float: right;
+    color: gray;
+  }
+}
+
+.switch-btn {
+  margin-top: 0px !important;
+}
+
+.next-btn {
+  position: absolute;
+  bottom: 0;
+  margin-bottom: 0px !important;
+}
+
+.payment-fee-advice {
+  min-height: 100px;
+}
+
+.payment-type-select {
+  color: #ffffff !important;
+}
+
+.fee-legend {
+  text-align: center;
+}
+
+.exchange-keypad {
+
+  .number-display {
+    display: none;
+  }
+
+  position: absolute;
+  bottom: -21px;
+  right: 0;
+  left: 0;
+}
+
+.item.payment-fee-advice{
+  text-overflow: initial;
+  white-space: normal;
+}

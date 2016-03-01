@@ -6,7 +6,7 @@
   <title></title>
 
   <meta http-equiv="Content-Security-Policy"
-        content="default-src *; media-src *; img-src * blob:; style-src * 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*  https://*.rcredits.org/">
+        content="default-src *; media-src *; img-src * blob: data:; style-src * 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*  https://*.rcredits.org/">
 
 
   <!-- compiled css output -->
@@ -40,10 +40,13 @@
   <script src="js/controllers/transaction_controller.js"></script>
   <script src="js/controllers/transaction_result_controller.js"></script>
   <script src="js/controllers/preferences_controller.js"></script>
+  <script src="js/controllers/select_exchange_controller.js"></script>
+  <script src="js/controllers/exchange_controller.js"></script>
 
   <!-- directives -->
   <script src="js/directives/sf_load.js"></script>
   <script src="js/directives/sf_resize.js"></script>
+  <script src="js/directives/offline_header.js"></script>
 
   <!-- services -->
   <script src="js/services/barcode_service.js"></script>
@@ -58,6 +61,8 @@
   <script src="js/services/permission_service.js"></script>
   <script src="js/services/sqlite_service.js"></script>
   <script src="js/services/member_sql_service.js"></script>
+  <script src="js/services/exchange_service.js"></script>
+  <script src="js/services/network_service.js"></script>
 
   <!-- models -->
   <script src="js/models/user.js"></script>
@@ -69,6 +74,12 @@
   <script src="js/models/url_configurator.js"></script>
   <script src="js/models/transaction.js"></script>
   <script src="js/models/sql_query.js"></script>
+  <script src="js/models/currency.js"></script>
+  <script src="js/models/payment_type.js"></script>
+  <script src="js/models/fee.js"></script>
+  <script src="js/models/currencies_definitions.js"></script>
+  <script src="js/models/payment_types_definitions.js"></script>
+  <script src="js/models/exchange.js"></script>
 
 </head>
 

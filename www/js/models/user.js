@@ -1,7 +1,7 @@
 (function(window, app) {
   'use strict';
 
-  app.service('User', function(MemberSqlService) {
+  app.service('User', function(MemberSqlService, $q) {
 
     var User = Class.create({
 
@@ -47,10 +47,15 @@
       },
 
       getBlobImage: function() {
-        return this.accountInfo.blobImage;
+        return this.photo;
       },
 
       saveInSQLite: function() {
+        if (this.unregistered) {
+          var p = $q.defer();
+          p.resolve();
+          return p.promise;
+        }
         return MemberSqlService.saveMember(this);
       },
 

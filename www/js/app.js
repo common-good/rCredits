@@ -2,8 +2,10 @@
 
 var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate', 'LocalStorageModule'])
 
-  .config(['$translateProvider', 'localStorageServiceProvider',
-    function($translateProvider, localStorageServiceProvider) {
+  .config(['$translateProvider', 'localStorageServiceProvider', '$ionicConfigProvider',
+    function($translateProvider, localStorageServiceProvider, $ionicConfigProvider) {
+
+      $ionicConfigProvider.views.maxCache(0);
 
       $translateProvider
         .useMissingTranslationHandlerLog()
@@ -19,7 +21,7 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
         .setPrefix('rcredits');
     }])
 
-  .run(function($ionicPlatform, SQLiteService) {
+  .run(function($ionicPlatform, SQLiteService, NetworkService, $rootScope) {
     $ionicPlatform.ready(function() {
 
       // This only for web development to enable proxy

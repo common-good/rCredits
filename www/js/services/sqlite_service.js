@@ -57,7 +57,7 @@
         "balance REAL," + // current balance (as of lastTx) / manager's rCard security code
         "rewards REAL," + // rewards to date (as of lastTx) / manager's permissions / photo ID (!rewards.matches(NUMERIC))
         "lastTx INTEGER," + // unixtime of last reconciled transaction / -1 for managers
-        "photo BLOB);" // lo-res B&W photo of customer (normally under 4k) / full res photo for manager
+        "photo TEXT);" // lo-res B&W photo of customer (normally under 4k) / full res photo for manager
       );
 
       this.executeQuery_(

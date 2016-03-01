@@ -76,6 +76,26 @@ angular.module('routes', [])
         }
       })
 
+      .state('app.transaction_select_exchange', {
+        url: '/transaction/select/exchange',
+        views: {
+          'menuContent': {
+            templateUrl: 'templates/select_exchange.html',
+            controller: 'SelectExchangeCtrl as selExCtrl'
+          }
+        }
+      })
+
+      .state('app.transaction_exchange', {
+        url: '/transaction/exchange',
+        views: {
+          'menuContent': {
+            templateUrl: 'templates/exchange.html',
+            controller: 'ExchangeCtrl as exCtrl'
+          }
+        }
+      })
+
       .state('app.transaction', {
         url: '/transaction/{transactionType}',
         views: {
