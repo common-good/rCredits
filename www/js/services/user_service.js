@@ -1,5 +1,5 @@
 app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, User, Seller, Customer, $rootScope, $timeout,
-                                    PreferenceService, CashierModeService, $state) {
+                                    PreferenceService, CashierModeService, $state, NetworkService, MemberSqlService) {
   'use strict';
 
   var LOGIN_FAILED = '0';
@@ -140,6 +140,25 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       .setMember(accountInfo.accountId)
       .setSecurityCode(accountInfo.securityCode)
       .getParams();
+
+
+    if (NetworkService.isOffline()) {
+
+      return MemberSqlService.existMember(accountInfo.accountId)
+        .then(function(member) {
+          self.customer = Customer.parseFromDb(member);
+          return self.customer;
+        })
+        .catch(function(err) {
+          return self.identifyOfflineCustomer().then(function(customerResponse) {
+            self.customer = self.createCustomer(customerResponse);
+            self.customer.unregistered = true;
+            return self.customer;
+          });
+        });
+    }
+
+    //is Online
     return this.loginWithRCard_(params, accountInfo)
       .then(function(responseData) {
         if (responseData.logon === LOGIN_BY_CUSTOMER || responseData.logon === FIRST_PURCHASE) {
@@ -161,9 +180,26 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         return self.getProfilePicture(accountInfo, accountInfo);
       })
       .then(function(blobPhotoUrl) {
-        self.customer.photo = blobPhotoUrl;
+        //self.customer.photo = blobPhotoUrl;
         return self.customer;
       });
+  };
+
+  UserService.prototype.identifyOfflineCustomer = function() {
+    var customerLoginResponse = {
+      "ok": "1",
+      "logon": "0",
+      "name": "",
+      "place": "",
+      "company": "",
+      "balance": "0",
+      "rewards": "0",
+      "can": 131
+    };
+
+    var identifyPromise = $q.defer();
+    identifyPromise.resolve(customerLoginResponse);
+    return identifyPromise.promise;
   };
 
   UserService.prototype.createCustomer = function(customerInfo) {
@@ -177,6 +213,24 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
 
     return customer;
   };
+
+  function convertImgToDataURLviaCanvas(url, callback, outputFormat) {
+    var img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = function() {
+      var canvas = document.createElement('CANVAS');
+      var ctx = canvas.getContext('2d');
+      var dataURL;
+      canvas.height = this.height;
+      canvas.width = this.width;
+      ctx.drawImage(this, 0, 0);
+      dataURL = canvas.toDataURL(outputFormat);
+      callback(dataURL);
+      canvas = null;
+    };
+    img.src = url;
+  }
+
 
   UserService.prototype.getProfilePicture = function(accountInfo) {
     var params = new RequestParameterBuilder()
@@ -199,9 +253,16 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       .then(function(res) {
         var arrayBufferView = new Uint8Array(res.data);
         var blob = new Blob([arrayBufferView], {type: "image/jpeg"});
-        accountInfo.blobImage = blob;
         var urlCreator = window.URL || window.webkitURL;
-        return urlCreator.createObjectURL(blob);
+        var imgUrl = urlCreator.createObjectURL(blob);
+
+        var imageConvert = $q.defer();
+        convertImgToDataURLviaCanvas(imgUrl, function(base64Img) {
+          self.customer.photo = base64Img;
+          imageConvert.resolve(self.customer.photo);
+        });
+
+        return imageConvert.promise;
       })
       .catch(function(err) {
         console.error(err);

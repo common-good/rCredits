@@ -30,11 +30,11 @@
     };
 
     NetworkService.prototype.isOffline = function() {
-      return !this.connectionOnline;
+      return true;// !this.connectionOnline;
     };
 
     NetworkService.prototype.isOnline = function() {
-      return this.connectionOnline;
+      return false;//this.connectionOnline;
     };
 
 
