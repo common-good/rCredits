@@ -5,6 +5,7 @@ app.service('TransactionSyncService',
     var self;
     var TransactionSyncService = function() {
       self = this;
+      this.exludedTxs = [];
     };
 
     var send = function(sqlTransaction) {
@@ -34,7 +35,7 @@ app.service('TransactionSyncService',
 
       var sqlTransaction;
 
-      TransactionSql.getOfflineTransaction()
+      TransactionSql.getOfflineTransaction(self.exludedTxs)
         .then(function(sqlTransac) {
           sqlTransaction = sqlTransac;
           console.log("sqlTransaction: ", sqlTransaction);
@@ -44,7 +45,7 @@ app.service('TransactionSyncService',
         .then(function(response) {
           if (response.ok == 0) { // Error;
             console.log("Error syncing transaction: ", response);
-            return;
+            throw response;
           }
           return TransactionSql.setTransactionSynced(sqlTransaction);
         })
@@ -53,6 +54,13 @@ app.service('TransactionSyncService',
           $timeout(self.syncOfflineTransactions.bind(self), 1000);
         })
         .catch(function(err) {
+          if (sqlTransaction) {
+            self.exludedTxs.push(sqlTransaction.created);
+            $timeout(self.syncOfflineTransactions.bind(self), 1000);
+          } else {
+            self.exludedTxs = [];
+          }
+
           // err no transactions
           console.error(err);
         })

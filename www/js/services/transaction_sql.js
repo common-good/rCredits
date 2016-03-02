@@ -8,9 +8,14 @@
       self = this;
     };
 
-    TransactionSql.prototype.getOfflineTransaction = function() {
+    TransactionSql.prototype.getOfflineTransaction = function(exludeTxs) {
+      var filter = '';
+      if (exludeTxs) {
+        filter = ' and created not in (' + exludeTxs.join(',') + ' ) ';
+      }
+
       var sqlQuery = new SqlQuery();
-      sqlQuery.setQueryString("SELECT * FROM txs where STATUS = " + Transaction.Status.OFFLINE + " order by rowid asc limit 1");
+      sqlQuery.setQueryString("SELECT * FROM txs where STATUS = " + Transaction.Status.OFFLINE + filter + " order by rowid asc limit 1");
       return SQLiteService.executeQuery(sqlQuery).then(function(SQLResultSet) {
         console.log("Offline transaction: ", SQLResultSet);
         if (SQLResultSet.rows.length > 0) {
