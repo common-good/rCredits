@@ -22,11 +22,13 @@
     NetworkService.prototype.onOffline = function() {
       this.connectionOnline = false;
       $rootScope.$apply();
+      $rootScope.$emit('onOffline');
     };
 
     NetworkService.prototype.onOnline = function() {
       this.connectionOnline = true;
       $rootScope.$apply();
+      $rootScope.$emit('onOnline');
     };
 
     NetworkService.prototype.isOffline = function() {
@@ -36,7 +38,6 @@
     NetworkService.prototype.isOnline = function() {
       return this.connectionOnline;
     };
-
 
     return new NetworkService();
   });
