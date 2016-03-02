@@ -21,7 +21,9 @@ app.service('TransactionSyncService',
         .setField('photoid', 0)
         .getParams();
 
-      return TransactionService.makeRequest_(params, sqlTransaction.agent);
+      return TransactionService.makeRequest_(params, sqlTransaction.agent).then(function(res) {
+        return res.data;
+      });
     };
 
     TransactionSyncService.prototype.syncOfflineTransactions = function() {
@@ -38,9 +40,6 @@ app.service('TransactionSyncService',
           console.log("sqlTransaction: ", sqlTransaction);
           // send to server
           return send(sqlTransac);
-        })
-        .then(function(res) {
-          return res.data;
         })
         .then(function(response) {
           if (response.ok == 0) { // Error;
