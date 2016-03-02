@@ -153,6 +153,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
           return self.identifyOfflineCustomer().then(function(customerResponse) {
             self.customer = self.createCustomer(customerResponse);
             self.customer.unregistered = true;
+            self.customer.accountInfo = accountInfo;
             return self.customer;
           });
         });

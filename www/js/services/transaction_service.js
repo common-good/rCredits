@@ -11,11 +11,11 @@ app.service('TransactionService',
       this.lastTransaction = null;
     };
 
-    TransactionService.prototype.makeRequest_ = function(params, accountInfo) {
+    TransactionService.prototype.makeRequest_ = function(params, memberId) {
       var urlConf = new UrlConfigurator();
       return $http({
         method: 'POST',
-        url: urlConf.getServerUrl(accountInfo.getMemberId()),
+        url: urlConf.getServerUrl(memberId),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         },
@@ -57,7 +57,7 @@ app.service('TransactionService',
           .setField('photoid', 0)
           .getParams();
 
-        return this.makeRequest_(params, sellerAccountInfo).then(function(res) {
+        return this.makeRequest_(params, sellerAccountInfo.getMemberId()).then(function(res) {
           return res.data;
         });
       } else {
@@ -121,7 +121,7 @@ app.service('TransactionService',
           .setField('goods', transaction.goods)
           .getParams();
 
-      return this.makeRequest_(params, sellerAccountInfo)
+      return this.makeRequest_(params, sellerAccountInfo.getMemberId())
         .then(function(res) {
           return res.data;
         })
@@ -151,6 +151,7 @@ app.service('TransactionService',
       var seller = UserService.currentUser(),
         customer = UserService.currentCustomer();
 
+      debugger
       var sqlQuery = new SqlQuery();
       sqlQuery.setQueryString('INSERT INTO txs (me, txid, status, created, agent, member, amount, goods, proof, description) VALUES (?,?,?,?,?,?,?,?,?,?)');
       sqlQuery.setQueryData([
@@ -163,6 +164,7 @@ app.service('TransactionService',
         transaction.amount,
         transaction.goods,
         JSON.stringify({
+          sc: customer.accountInfo.securityCode,
           customerId: customer.getId(),
           amount: transaction.amount,
           created: transaction.created,
@@ -204,7 +206,6 @@ app.service('TransactionService',
 
       MemberSqlService.existMember(customer.getId())
         .then(function(customerDbInfo) {
-          debugger
           // do transaction
           return q.resolve(transactionResponseOk);
         })
