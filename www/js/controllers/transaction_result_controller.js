@@ -1,9 +1,11 @@
 app.controller('TransactionResultCtrl', function($scope, $state,
                                                  $stateParams, $ionicLoading, $filter, NotificationService, UserService,
-                                                 TransactionService) {
+                                                 TransactionService, BackButtonService) {
 
   $scope.transactionStatus = $stateParams.transactionStatus;
   $scope.transactionAmount = $stateParams.transactionAmount;
+
+  BackButtonService.disable();
 
   var statusKey;
   $scope.success = false;
@@ -54,7 +56,10 @@ app.controller('TransactionResultCtrl', function($scope, $state,
           });
       }
     });
-
   };
+
+  $scope.$on('$destroy', function() {
+    BackButtonService.enable();
+  });
 
 });
