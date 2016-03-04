@@ -26,10 +26,15 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     return this.customer;
   };
 
-  UserService.prototype.loadSeller = function() {
+  UserService.prototype.loadSeller = function(sellerId) {
     try {
       var seller = new Seller();
       seller.fillFromStorage();
+
+      if (sellerId && sellerId != seller.getId()) {
+        throw "Seller not found";
+      }
+
       if (!seller.hasDevice()) {
         throw "Seller does not have deviceID";
       }
@@ -44,6 +49,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       return seller;
     } catch (e) {
       console.log(e.message);
+      return null;
     }
   };
 
@@ -76,6 +82,17 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       });
   };
 
+  UserService.prototype.loginWithRCardOffline = function(accountInfo) {
+    var loadSellerPromise = $q.defer();
+    var seller = this.loadSeller(accountInfo.accountId);
+    if (seller) {
+      loadSellerPromise.resolve(seller);
+    } else {
+      loadSellerPromise.reject("Seller not found");
+    }
+    return loadSellerPromise.promise;
+  };
+
   // Logs user in given the scanned info from an rCard.
   // Returns a promise that resolves when login is complete.
   // If this is the first login, the promise will resolve with {firstLogin: true}
@@ -90,6 +107,11 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       .setSecurityCode(accountInfo.securityCode)
       .setMember(accountInfo.accountId)
       .getParams();
+
+    if (NetworkService.isOffline()) {
+      return this.loginWithRCardOffline(accountInfo);
+    }
+
 
     return this.loginWithRCard_(params, accountInfo)
       .then(function(responseData) {
@@ -296,6 +318,18 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       CashierModeService.disable();
       resolve();
 
+    });
+  };
+
+  UserService.prototype.softLogout = function() {
+    return $q(function(resolve, reject) {
+
+      self.customer = null;
+      self.seller = null;
+      CashierModeService.disable();
+      $state.go('app.login', {disableLoadSeller: true});
+      $rootScope.$emit('sellerLogout');
+      resolve();
     });
   };
 

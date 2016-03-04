@@ -7,7 +7,7 @@
     var NetworkService = function() {
       self = this;
       this.connectionOnline = true;
-      //this.init_();
+      this.init_();
     };
 
     NetworkService.prototype.init_ = function() {

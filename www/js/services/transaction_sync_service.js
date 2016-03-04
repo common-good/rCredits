@@ -1,11 +1,15 @@
 app.service('TransactionSyncService',
-  function($q, TransactionService, RequestParameterBuilder, SQLiteService, SqlQuery, NetworkService, TransactionSql, $timeout) {
+  function($q, TransactionService, RequestParameterBuilder, SQLiteService, SqlQuery, NetworkService, TransactionSql, $timeout, $rootScope) {
 
     'use strict';
     var self;
     var TransactionSyncService = function() {
       self = this;
       this.exludedTxs = [];
+
+      $rootScope.$on('onOnline', function() {
+        self.syncOfflineTransactions();
+      });
     };
 
     var send = function(sqlTransaction) {
@@ -61,7 +65,7 @@ app.service('TransactionSyncService',
             self.exludedTxs = [];
           }
 
-          // err no transactions
+          // err no transactions || error ocurred
           console.error(err);
         })
 

@@ -17,6 +17,10 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
       });
   };
 
+  $scope.softLogout = function() {
+    return UserService.softLogout();
+  };
+
   // Redirects
 
   $scope.redirectToLogin = function() {
