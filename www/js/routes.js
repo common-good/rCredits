@@ -28,19 +28,25 @@ angular.module('routes', [])
             controller: 'LoginCtrl'
           }
         },
+        params: {
+          disableLoadSeller: false
+        },
         resolve: {
-          seller: function($q, $timeout, UserService, $state) {
+          seller: function($q, $timeout, UserService, $state, $stateParams) {
             var deferred = $q.defer();
-            $timeout(function() {
-              var seller = UserService.loadSeller();
-              if (seller) {
-                $state.go("app.home");
-                deferred.reject();
-              } else {
-                deferred.resolve();
-              }
-            });
-
+            if ($stateParams.disableLoadSeller) {
+              deferred.resolve();
+            } else {
+              $timeout(function() {
+                var seller = UserService.loadSeller();
+                if (seller) {
+                  $state.go("app.home");
+                  deferred.reject();
+                } else {
+                  deferred.resolve();
+                }
+              });
+            }
             return deferred.promise;
           }
         }

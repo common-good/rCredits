@@ -2,6 +2,7 @@ app.controller('LoginCtrl', function($scope, $state, $ionicLoading, BarcodeServi
 
   // Scanner Login
 
+  $ionicHistory.clearHistory();
   $scope.openScanner = function() {
     $ionicLoading.show();
 
