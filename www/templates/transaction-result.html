@@ -8,7 +8,7 @@
 
   <ion-nav-buttons side="secondary">
     <button class="button button-stable"
-      ng-controller="CustomerMenuCtrl" ng-click="showBalance()">
+            ng-controller="CustomerMenuCtrl" ng-if="isOnline()" ng-click="showBalance()">
       {{ 'balance' | translate }}
     </button>
   </ion-nav-buttons>
@@ -17,10 +17,10 @@
     <div class="rc" sf-resize>
       <div class="message">
         <i class="icon ion-checkmark-circled large-icon"
-          ng-show="success">
+           ng-show="success">
         </i>
         <i class="icon ion-android-alert large-icon"
-          ng-hide="success">
+           ng-hide="success">
         </i>
 
         <h1>
@@ -34,11 +34,11 @@
 
       <div class="actions">
         <button class="button button-block button-positive"
-          ng-hide="success">
+                ng-hide="success">
           Retry
         </button>
         <button class="button button-block button-positive"
-          ng-click="redirectHome()">
+                ng-click="redirectHome()">
           {{ 'home' | translate }}
         </button>
       </div>
