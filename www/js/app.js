@@ -21,7 +21,7 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
         .setPrefix('rcredits');
     }])
 
-  .run(function($ionicPlatform, SQLiteService, NetworkService, $rootScope, TransactionSyncService) {
+  .run(function($ionicPlatform, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService) {
     $ionicPlatform.ready(function() {
 
       // This only for web development to enable proxy
@@ -42,6 +42,8 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
       }
 
       SQLiteService.init();
+
+      BackButtonService.init();
 
     });
   });
