@@ -326,7 +326,6 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
 
       self.customer = null;
       self.seller = null;
-      CashierModeService.disable();
       $state.go('app.login', {disableLoadSeller: true});
       $rootScope.$emit('sellerLogout');
       resolve();

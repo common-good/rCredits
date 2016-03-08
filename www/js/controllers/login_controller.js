@@ -1,4 +1,4 @@
-app.controller('LoginCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService) {
+app.controller('LoginCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService) {
 
   // Scanner Login
 
@@ -27,4 +27,9 @@ app.controller('LoginCtrl', function($scope, $state, $ionicLoading, BarcodeServi
         $ionicLoading.hide();
       });
   };
+
+  if (CashierModeService.isEnabled()) {
+    $scope.openScanner();
+  }
+
 });
