@@ -1,6 +1,6 @@
 app.controller('TransactionResultCtrl', function($scope, $state,
                                                  $stateParams, $ionicLoading, $filter, NotificationService, UserService,
-                                                 TransactionService, BackButtonService) {
+                                                 TransactionService, BackButtonService, $timeout) {
 
   $scope.transactionStatus = $stateParams.transactionStatus;
   $scope.transactionAmount = $stateParams.transactionAmount;
@@ -9,6 +9,12 @@ app.controller('TransactionResultCtrl', function($scope, $state,
 
   var statusKey;
   $scope.success = false;
+  $scope.timeCan = true;
+
+  // Enable UNDO btn for 1 min
+  $timeout(function() {
+    $scope.timeCan = false;
+  }, 60 * 1000);
 
   // New key gets used in transactionInfo for translation
   if ($scope.transactionStatus === 'success') {
