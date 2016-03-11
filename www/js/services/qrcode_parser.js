@@ -18,6 +18,7 @@
     this.parseAccountType_();
     this.parseAccountCode_();
     this.parseSecurityCode_();
+    this.parseServerType_();
     return this.accountInfo;
   };
 
@@ -46,6 +47,11 @@
     }
     this.accountInfo.memberId = memberId;
     this.accountInfo.accountId = memberId + separator + yyy;
+  };
+
+  QRCodeParser.prototype.parseServerType_ = function() {
+    var lastPoint = this.url.host.lastIndexOf('.');
+    this.accountInfo.serverType = this.url.host.substring(4, lastPoint).toLowerCase();
   };
 
   QRCodeParser.prototype.parseSecurityCode_ = function() {

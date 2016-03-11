@@ -1,10 +1,10 @@
 (function(app) {
 
   'use strict';
-  app.directive('offlineHeader', function($timeout, NetworkService) {
+  app.directive('subheader', function($timeout, NetworkService, UserService) {
     return {
       restrict: 'E',
-      templateUrl: 'templates/offline_header.html',
+      templateUrl: 'templates/subheader.html',
       bindToController: true,
       controllerAs: 'offlCtrl',
       link: function(scope) {
@@ -14,7 +14,7 @@
           ionContent = document.getElementsByTagName("ion-content")[0];
           scope.ionContent = ionContent;
           scope.$watch(function() {
-            return NetworkService.isOffline()
+            return NetworkService.isOffline() || scope.offlCtrl.isDemoMode();
           }, function(newValue, oldValue) {
             if (newValue) {
               $timeout(function() {
@@ -31,12 +31,17 @@
 
         $timeout(function() {
           init();
-        },1000);
+        }, 1000);
       },
       controller: function($scope) {
 
         this.isOffline = function() {
           return NetworkService.isOffline();
+        };
+
+        this.isDemoMode = function() {
+          var user = UserService.currentUser();
+          return user && user.isDemo();
         };
 
         $scope.$on('$destroy', function() {

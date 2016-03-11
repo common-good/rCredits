@@ -69,5 +69,6 @@
   "exchange_includes_fee": "Includes {{feeValue}} {{paymentName}} fee",
   "next": "Next",
   "login_your_self": "You can't buy or sell with yourself",
-  "you_are_offline": "You are offline"
+  "you_are_offline": "You are offline",
+  "demo_mode": "Demo mode"
 }

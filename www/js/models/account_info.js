@@ -7,7 +7,10 @@
     this.accountId = '';
     this.securityCode = '';
     this.url = '';
+    this.serverType = '';
   };
+
+  AccountInfo.IS_DEMO = 'rc4';
 
   AccountInfo.prototype.isPersonalAccount = function() {
     return this.isPersonal;
@@ -19,6 +22,10 @@
 
   AccountInfo.prototype.getMemberId = function() {
     return this.memberId;
+  };
+
+  AccountInfo.prototype.isDemo = function() {
+    return this.serverType == AccountInfo.IS_DEMO;
   };
 
 
