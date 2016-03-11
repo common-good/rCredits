@@ -28,7 +28,6 @@
           });
         };
 
-
         $timeout(function() {
           init();
         }, 1000);

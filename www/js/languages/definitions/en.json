@@ -70,5 +70,7 @@
   "next": "Next",
   "login_your_self": "You can't buy or sell with yourself",
   "you_are_offline": "You are offline",
-  "demo_mode": "Demo mode"
+  "demo_mode": "Demo mode",
+  "can_not_use_real_card": "You cannot use a real card with a demo company. Click \"Forget Company\" in the menu to exit demo mode",
+  "can_not_use_demo_card": "You cannot use a demo card with a real company."
 }
