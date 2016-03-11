@@ -1,0 +1,33 @@
+<?php
+namespace rCredits\Vote;
+use rCredits\DB as db;
+
+class optTotals {
+	public $id; // what option is this for?
+	public $opttext; // option text (short)
+	public $weight = 0; // how many votes were cast on this option
+	public $grade = 0;
+	public $vetos = 0;
+	public $veto_texts = array();
+	public $canceled_vetotexts = array();
+
+// M
+	public $prefs = array(); // preferences of this option over each other option
+	public $prefdifs = array(); // pairwise comparisons with other options
+	public $minprefdif = -999; // worst pairwise comparison
+	public $sumprefdif = -999; // total of pairwise comparisons
+
+// B
+	public $raw = -999; // grade before recursing
+	public $minimum = -999;
+	public $maximum = -999;
+	public $mandatory;
+	public $result; // funded, vetoed, or not funded
+	public $funds = -999; // amount funded
+
+	public function __construct($thisid, $opts) {
+		foreach($opts as $optid) $this->prefs[$optid] = 0;
+		list ($this->id, $this->opttext, $this->minimum, $this->maximum, $this->mandatory) 
+			= array_values(db\lookup('id, text, minimum, maximum, mandatory', 'r_options', 'id=:thisid', compact('thisid')));
+	}
+}

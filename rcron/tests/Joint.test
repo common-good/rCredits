@@ -44,9 +44,9 @@ class rcronJoint extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "ASSOC'
-    . '\\| id   | fullName | floor | minimum | flags | achMin | risks   | jid  |'
-    . '\\| .ZZA | Abe One  |     0 |     100 | co,ok | 30     | hasBank | .ZZB |'
-    . '\\| .ZZB | Bea Two  |     0 |       0 | ok    | 10     |         | .ZZA |"');
+    . '\\| id   | fullName | floor | minimum | flags     | achMin | risks   | jid  |'
+    . '\\| .ZZA | Abe One  |     0 |     100 | ok,joined | 30     | hasBank | .ZZB |'
+    . '\\| .ZZB | Bea Two  |     0 |       0 | ok,joined | 10     |         | .ZZA |"');
     And__('relations: "ASSOC'
     . '\\| id | main | agent | permission |'
     . '\\| 1  | .ZZA | .ZZB  | joint      |'

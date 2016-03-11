@@ -243,11 +243,9 @@ function tickleActive($item) {
  * Do periodic activities where the period is longer than a day.
  */
 function lessOften() {
-  often('week', 'A', R_WEEKLY_DAY, 7 * DAY_SECS);
-  often('month', 'd', R_MONTHLY_DAY, 30 * DAY_SECS);
-  often('year', 'm', '01', 365 * DAY_SECS);  
-//  if (strftime('%A') == R_WEEKLY_DAY) everyWeek();
-//  if (strftime('%d') == R_MONTHLY_DAY) everyMonth();
+  often('week', 'A', R_WEEKLY_DAY);
+  often('month', 'd', R_MONTHLY_DAY);
+  often('year', 'm', '01');  
   queueNext();
 }
 
@@ -258,19 +256,19 @@ function lessOften() {
  *   (it has been at least half a period and we're at no later a point than last time)
  * @param string $period: the period
  * @param string $code: the strftime code for the smaller period to match or exceed
- * @param string $value: the value to match or exceed
- * @param int $periodLen: approximate length of the period, in seconds
+ * @param string $chosen: the chosen value to match or exceed
  */
-function often($period, $code, $value, $periodLen) {
+function often($period, $code, $chosen) {
+  $periodLen = r\rTime() - strtotime("-1 $period");
   $lastCron = \variable_get('r_last_cron', []);
   $lastTime = @$lastCron[$period];
   $elapsed = r\rTime() - $lastTime;
   list ($point, $lastPoint) = array(strftime("%$code", r\rTime()), strftime("%$code", $lastTime));
-  if ($point >= $value and ($elapsed > $periodLen or ($elapsed > $periodLen / 2 and $point <= $lastPoint))) {
+  if ($point >= $chosen and ($elapsed > $periodLen or ($elapsed > $periodLen / 2 and $point <= $lastPoint))) {
     $lastCron[$period] = r\rTime();
     \variable_set('r_last_cron', $lastCron); // remember that this periodic activity has been done
     $function = 'rCredits\\Cron\\every' . ucwords($period);
-    if ($period != 'hour' and $period != 'day') r\tellStaff("Running cron for $period at " . strftime('%I:%M%P', r\rTime()));
+    if ($period != 'hour' and $period != 'day') r\tellStaff("Running cron for the $period", ['time' => strftime('%I:%M%P', r\rTime())]);
     $function(); // do it
   }
 }
@@ -279,6 +277,9 @@ function often($period, $code, $value, $periodLen) {
  * Do weekly tasks.
  */
 function everyWeek() {
+  // help members increase their overall savings (or crawl out of primary account debt)
+  db\q('UPDATE users SET minimum=IF(minimum=-saveWeekly, .01, minimum+saveWeekly) WHERE :IS_OK AND :HAS_BANK AND minimum<GREATEST(0, floor) AND saveWeekly>0'); // crawl out of debt
+  db\q('UPDATE users SET savingsAdd=GREATEST(0, savingsAdd+saveWeekly) WHERE :IS_OK AND :HAS_BANK AND saveWeekly<>0'); // save or unsave
 }
 
 /**
@@ -487,9 +488,10 @@ EOF;
 function cttyStats() {
   if (db\exists('r_stats')) {
     r\getStats(0); // for all our communities at once
-    queueEach('cttyStats1', 'SELECT DISTINCT uid AS ctty FROM users WHERE uid<0');
-  } else {
-    $blockAgo = strtotime(-STATS_GRAIN, strtotime('today'));
+    queueEach('cttyStats1', 'SELECT DISTINCT uid AS ctty FROM users WHERE uid<0'); // and one at a time
+  } else { // recreate stats data from the beginning of time
+    $grain = 1; // HAVE data for every day, not just every STATS_GRAIN days
+    $blockAgo = strtotime(-$grain, strtotime('today'));
   
     $sql = <<<EOF
       SELECT community AS ctty, MIN(t.created) AS start
@@ -507,7 +509,7 @@ EOF;
       foreach ($cttys as $ctty => $start) if ($created >= $start) {
         r\queue('cttyStats1', compact('ctty', 'created'));
       }
-      $delta = $created < $blockAgo ? STATS_GRAIN : 1;
+      $delta = $created < $blockAgo ? $grain : 1;
       $created = strtotime("+$delta days", $created);
     }
   }
@@ -620,7 +622,7 @@ function bank() {
     queueEach('completeUsdTx', $sql, compact('now'));
   }
   
-  $where = 'minimum>0 AND (:IS_JOINED OR r-rewards-IFNULL(savingsAdd, 0)<minimum) AND uid>1 AND :IS_OK';
+  $where = 'minimum<>0 AND (:IS_JOINED OR r-rewards-savingsAdd<minimum) AND uid>1 AND :IS_OK';
   $sql = <<<EOF
   SELECT uid
   FROM users 
@@ -641,6 +643,8 @@ EOF;
 
 function completeUsdTx($item) {
   extract(u\just('txid payer amount channel', $item));
+  $realAmt = r\x($txid)->amount;
+  if ($amount != $realAmt) r\tellStaff('bad completeUsdTx amount in cron', $item + compact('realAmt'));
   r\acct($payer)->completeUsdTx($txid, -$amount, @$channel == TX_CRON);
 }
 
@@ -671,15 +675,15 @@ function draw1($item) {
  * Given an account's shortfall, return how much to actually transfer from wherever to the rCredits account.
  * @param acct $a: which account
  * @param bool $banky: the account has a connected bank account
- * @return: the amount to transfer from the connected bank account or drawn for other rCredits accts (0 if none).
+ * @return: amount to transfer from the connected bank account or draw from other rCredits accounts (0 if none).
  */
 function getHowMuchR($a, $banky = TRUE) {
   if (!$need = max(0, $a->minimum - $a->j_balance)) return 0;
   if ($banky) {
-    $waiting = -$a->waitingToBank(); // amount already requested (if any)
+    $waiting = -$a->waitingToBank($combinable); // amount already requested (if any)
     $need = round($need - $waiting, 2); // avoid a re-request
   }
-  return $need <=0 ? 0 : max($a->achMin, round(R_ACHMIN * ceil($need / R_ACHMIN)));
+  return ($need <= 0 ? 0 : max(@$combinable + 0 < 0 ? 0 : $a->achMin, round(R_ACHMIN * ceil($need / R_ACHMIN))));
 }
 
 /**

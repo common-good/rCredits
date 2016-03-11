@@ -96,12 +96,12 @@ function formAdminPanel_submit($form, &$sta) {
   if (@$a and $op == 'printId') {
     if ($a->co and $a->proSe) return say(t('A company cannot have an rCard (only its agents have rCards).'));
     if (@$make) {
-//      seeSecure($a);
       $oldFile = DRUPAL_ROOT . $a->photoFilename(TRUE);
-      r\makeCardCode($a);
-      $newFile = DRUPAL_ROOT . $a->photoFilename(TRUE);
-      rename($oldFile, $newFile);
-//      seeSecure($a);
+      r\makeCardCode($a); // this changes photo filename
+      if (file_exists($oldFile)) {
+        $newFile = DRUPAL_ROOT . $a->photoFilename(TRUE);
+        rename($oldFile, $newFile);
+      }
     }
     return r\go('/print-rcard/' . $a->qid);
   } elseif ($op == 'askForAppData') {
@@ -109,7 +109,7 @@ function formAdminPanel_submit($form, &$sta) {
     $a->update('getAppData appData', $gets[0], []);
     say(t('Request for app data sent to ') . $a->fullName);
   } elseif ($op == 'seeAppData') {
-/**/ debug($a->appData);
+/**/  debug($a->appData);
   } elseif ($op == 'seeSecure') {
     if (@$a) {
       say(u\rayTable(u\ray('fullName phone dob physicalAddr', $a->fullName, substr(@$a->phone, 2), $admin ? u\fmtDate(@$a->dob) : '', @$a->address . ' ' . $a->postalCode)));
@@ -211,7 +211,8 @@ function formSeeChanges($form, &$sta, $qid = '') {
       $date = u\fmtDate($dt);
       foreach ($info as $k => $v) {
         $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, $a->$k);
-        while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
+        if (is_array($v)) $v = print_r($v, 1);
+//        while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
         $rec[$k] = $oldValue = a\formatField($k, $v);
         $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";
       }
@@ -280,7 +281,7 @@ function formMakeCtty_validate($form, &$sta) {
   foreach (u\ray('fullName legalName') as $field) {
     if ($err = u\badName($$field)) return say($err, compact('field'), $field);
   }
-  if (!emailOkay($email, $mya)) return; 
+  if (!emailOkay($email, $mya->co, $mya)) return; 
   if (!phoneOk($phone)) return;
 //  $name = strtolower(substr($email, 0, strpos($email, '@')));
   $name = u\shortName($fullName);
@@ -478,7 +479,7 @@ function depositDetails($args) {
 
   list ($activity, $where) = $in ? [t('DEPOSIT'), 'amount<0'] : [t('CASHOUT'), 'amount>0'];
   $today = $date == 1 ? t('(Historical)') : u\fmtDate($date ?: r\rTime());
-  $pdf->setupFooter('', "rCredits $activity $today", ['A'.ESCROW_ROUTING.'A '.ESCROW_ACCOUNT.'C', 'GnuMICR;12'], 'Page @PAGE of @PAGES');
+  $pdf->setupFooter('', "rCredits $activity $today", ['A5990D1155A '.ESCROW_ACCOUNT.'C', 'GnuMICR;12'], 'Page @PAGE of @PAGES');
   $pdf->AddPage();
 
   $phone = u\fmtPhone(CGF_PHONE);
@@ -600,7 +601,7 @@ function memberID($id) {
   } else */
   if (!$a = a($id)) exit('No such account: ' . $id);
   
-  $fullName = $a->fullName;
+  $fullName = $a->shortName ?: $a->fullName;
   $qid = $a->qid;
   
   if ($proSe = $a->proSe) {

@@ -54,7 +54,7 @@ EOF
   'amount rounded' => t('"@amount" was rounded to the nearest integer value.'),
   'invite sent' => t('Your invitation has been sent.'),
   'repeat invite' => t('Come back any time, to send more invitations (click "Invite Someone" at the bottom of any page).'),
-  'gift transfer later' => t('Your funds will be transferred when you have money in your account.'),
+  'gift transfer later' => t('<br><br>Funds will be transferred when you have money in your account.'),
   'repeat gift' => t('If you wish to make a donation again sometime, click "Membership" in the upper right corner, then on "Donate".'),
   'setup complete' => t('<p>Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Your rCard will arrive by US Mail within a few days. Thank you for joining!</p>'),
   'use temporary card' => t('<p>While you wait for your rCard to arrive, you can use your invitation card to make purchases at any member business (beginning with your inviter).</p>'),
@@ -145,7 +145,7 @@ EOF
   'bad invite' => t('That is not a valid Invitation Number or username.'),
   'used invite' => t('<p>That invitation has already been used, to open an rCredits account.</p><p>If you already have an rCredits account set up and want to open an additional account for yourself, your business, or a family member, sign in and use the "Open a Company Account" button on the Summary page (for cashier accounts, first click your photo in the upper right corner and select your business from the dropdown).</p><p>Otherwise ask someone you know to send you a new invitation!'),
   'expired invite' => t('<p>That invitation has expired.</p><p><@a>Click here</a> to ask @inviterName for another invitation.</p>'),
-  'min sub floor' => t('Your chosen rCredits minimum cannot be less than your <em>allowed</em> minimum (@floor).'),
+  'min sub floor' => t('You cannot choose a Minimum Primary Balance less than @floor.'),
   'info not saved' => t('We apologize. Your information could not be saved at this time. Please try again in an hour or so.'),
   'no page permission' => t('You do not have permission to visit this page. Return to your <@a>Summary</a> page.', ['@a' => 'a href=' . BASE_URL]),
   'specific nonpositive' => t('The amount (@amount) must be a positive integer.'),
@@ -224,6 +224,8 @@ EOF
   'file save error' => t('Your file upload did not succeed.'),
   'forced without perm' => t('<p>An unauthorized transaction was made using a Company Agent rCard.</p><ul><li>Date: @date</li><li>Customer</li><li>@a2 (by @agent2)</li><li>Company: @a1 (by @agent1)</li><li>Amount: @amount</li><li>For: @for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
   'bad invite num' => t('That is not a valid username or invitation number.'),
+  'negative saveWeekly' => t('Your discretionary savings are already at their minimum, so your weekly savings addition cannot be negative.'),
+  'saveWeekly too low' => t('With a negative "minimum", your weekly savings addition must be at least @min.'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
 
@@ -527,7 +529,8 @@ function fieldSet($id, $flds, $label = '', $other = []) {return fld('fieldset', 
 function shareFld() {
   $mya = r\acct();
   $sharePct = round(db\lookup('AVG(share)', 'r_gifts', 'share>=0'), 1);
-  return textFld(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the rCredits community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes rCredits and handles administration of your rCredits community until the community can take over that responsibility.</p>', compact('sharePct')), required((is_null($mya->share) ? R_SHARE_DFT : (($mya->share + 0) ?: 0)) . '%'));
+  $shareDft = $mya->prefsSet ? (($mya->share + 0) ?: 0) : R_SHARE_DFT;
+  return textFld(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the rCredits community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes rCredits and handles administration of your rCredits community until the community can take over that responsibility.</p>', compact('sharePct')), required($shareDft . '%'));
 }
 
 /**
@@ -750,8 +753,7 @@ function pickPassword() {
  * @return the box ID string
  */
 function box() {
-  if (strlen($box = @$_COOKIE['box']) == R_CODE_LEN) return $box; // old codes were shorter
-  //\variable_set('r_box', $box = \variable_get('r_box', 0) + 1); // this is prone to timing collisions
+  if ($box = @$_COOKIE['box']) return $box;
   return r\setCook('box', $box = u\code(R_CODE_LEN));
 }
 
@@ -764,7 +766,7 @@ function boxUser($code, $uid) {
   if ($id = db\lookup('id', 'r_boxes', 'code=:code AND uid=:uid', compact(u\ray('code uid')))) {
     db\update('r_boxes', u\ray('id access', $id, r\rTime()), 'id');
   } else $id = r\makeDevice($uid, $code, TX_WEB);
-  return r\setCook($cookid, $id, strtotime('tomorrow'));
+  return r\setCook($cookid, $id, r\rTime() + SESSION_LIFE);
 }
 
 /**
@@ -935,25 +937,6 @@ function keep_values(&$form) {
   }
   return $form; // for convenience we both modify the form and return it
 }
-/*
-function popupCloser($idHead) {
-  global $rUrl;
-  return item('<img src="' . $rUrl . '/images/icons/close.png" border="0">') + array('#id' => "$idHead-close");
-}
-*/
-/**
- * Return a help overlay
- * @todo: make it move right when "labeled"
- */ /* UNUSED
-function help($page, $class = '') {
-  include_once __DIR__ . '/rweb-help.inc';
-//  $subtext = item($question);
-  $close = popupCloser('help');
-  $text = fld('item', '', '', helpText($page));
-  $help = fieldSet('help', compact(u\ray('close subtext text')), BARE . t('Help with this page'));
-  return compact('help');
-}
-*/
 
 function memberStep($step, $done, $text, $links = '', $newWindow = FALSE) {
   u\EXPECT('done', 'bool');
@@ -1022,41 +1005,6 @@ function goButtonIf($perms, $label, $goto, $title) {
   foreach ($perms as $perm) if (!$mya->can($perm)) return [];
   return goButton($label, $goto, $title);
 }
-
-/**
- * Undo the last transaction.
- *//*
-function undo($confirmed = FALSE) {
-  if (!$xid = svar('lastXid')) u\EXPECT(!$confirmed, 'missing last xid');
-  
-  if ($confirmed) {
-    list ($message, $args) = be\undoTx($xid);
-    say($message, $args);
-    if (@$args['success'] and svar('lastXid') == $xid) svar('lastXid', FALSE);
-  } elseif ($confirmed === '0') {
-    say('nothing undone');
-  } else {
-    $tx = $xid ? be\lastTx('xid=:xid', compact('xid')) : be\lastTx('box=:box', u\ray('box', box()));
-    $tx['yesNo'] = yesNo('undo/1', 'undo/0');
-    if ($tx) say('confirm undo|yes or no', r\txReportArgs(r\acct(), $tx));
-  }
-  r\go('empty'); // blank backdrop for result message
-}
-*/
-
-/**
- * Show remaining customer balance. (smartphone)
- *//*
-function remainder() {
-  if ($uid = svar('lastCustomer')) {
-    $a = r\acct($uid);
-    $otherName = $a->fullName;
-    $balance = be\creditInfo(compact('uid'))->fancy['balance'];
-    say('customer balance', compact('otherName', 'balance'));
-  } else say('no last customer', 'ERR');
-  r\go('empty');
-}
-*/
 
 function boxOpt($field, $opts, $sta) {
 ///   debug(compact('field','opts','sta'));
@@ -1127,13 +1075,14 @@ function suCreatorRelation($helper, $args, $myid) {
 /**
  * Check email format and duplication and complain if appropriate.
  * @param string $email0: the email address to check (also returned with improvements)
- * @param int $uid: account record id (optional), if changing email address rather than creating new account
+ * @param bool $dupsOk: <allow duplication of another account's email address>
+ * @param acct $a: current account if any
  * @return: TRUE if email is okay to use, else FALSE
  */
-function emailOkay(&$email0, $a = FALSE) {
+function emailOkay(&$email0, $dupsOk, $a = FALSE) {
   $email = strtolower(str_replace("'", '&#039;', $email0));
   if ($error = \user_validate_mail($email)) return say('bad email', compact('email'), 'email');
-  if (!$a ?: !$a->co) if (emailDup($email, $a ? $a->id : 0)) return FALSE;
+  if (!$dupsOk and emailDup($email, $a ? $a->id : 0)) return FALSE;
   $email0 = $email;
   return TRUE;
 }
@@ -1302,33 +1251,6 @@ function adminField($label) {
   return ($mya->cAdmin and $mya->federalId) ? item(R_ON_FILE, $label) : NULL;
 }
 
-/**
- * Return a "SHOW" link for the field or a display of the field's value, for community admins only.
- * @param string $field: the field in question
- * @param string $show: the field to display, if any (default none)
- * @return the appropriate markup
- *//*
-function show($field, $show = '') {
-  global $base_url;
-  $mya = r\acct();
-  
-  if ($field == $show) {
-    if ($field == 'idProof') { // display the proof image alone (then user clicks on Back)
-      $proofFilename = DRUPAL_ROOT . $mya->photoFilename('proof');
-      $imgString = u\decode(file_get_contents($proofFilename), hex2bin($mya->idProof));
-      header("Content-Type: image/jpeg");
-      imagejpeg(imagecreatefromstring($imgString));
-      exit();
-    } elseif ($field == 'dob') {
-      $result = u\fmtDate($mya->$field);
-    } elseif (strpos(R_SECRET_FIELDS . ' usdAccount', $field) !== FALSE) {
-      $result = $mya->$field;
-    }
-  } else $result = "<a href=\"$base_url/settings/security/show=$field\">show</a>";
-  return "[$result] ";
-}
-*/
-
 function onFile($field, $sta) {
   return (@$sta['complete form'][$field]['#value'] == R_ON_FILE and @$sta['input'][$field] == R_ON_FILE);
 }
@@ -1486,7 +1408,7 @@ EOF;
       $cat = $industry;
       $headed = (@$rows[$i+1]['industry'] == $industry); // header for 2 or more businesses in the same industry
       $headed = TRUE; // always show the category (but keep the option to disable this choice)
-      $list .= $headed ? ($list ? '</ul>' : '') . "<ul><h4>$cat</h4>\n" : '<li>&nbsp;</li>';
+      $list .= $headed ? ($list ? '</ul>' : '') . "<h4>$cat</h4>\n<ul>\n" : '<li>&nbsp;</li>';
     }
     $pay = $canBuy ? button('pay', "$base_url/pay/who=$short_name") : '';
     $chg = $canSell ? button('chg', "$base_url/charge/who=$short_name") : '';
@@ -1497,33 +1419,8 @@ EOF;
     $list .= "<li>$item</li>\n";
   }
   
-  $key = $list ? '' : t('There are no such rCredits member businesses.');
-  if (strpos($list, '<ul>') !== FALSE) $list .= '</ul>';
-  return "<ul id=\"key\">$key</ul>$list"; // ul so key gets indented like the rest
+  return $list ? "<ul>$list</ul>" : t('There are no such rCredits member businesses.');
 }
-
-/**
- * Sign the user in by their scanning their own company card
- *//*
-function scanIn($acct) {
-  $mya = $acct;
-  svar('myid', $mya->id);
-
-  // Tell Drupal who is now logged in
-  global $user; $user = $mya->agent->account();
-  $user->roles = [];
-  $user->uid = $mya->agent->id;
-  drupal_session_regenerate();
-
-  setGlobals();
-  svar('scanned_in', TRUE);
-  $agentName = $mya->agent->fullName;
-  $companyName = $mya->fullName;
-  $subs = compact('agentName', 'companyName');
-  u\loga('login', $subs, $mya->agentId);
-  return r\go('empty', 'ready to charge', $subs);
-}
-*/
 
 function hack($message, $info = []) {
   u\loga('hack', $_SERVER, $message);
@@ -1535,18 +1432,9 @@ function signout($arg = '') {
   $msg = $arg == 'timedout' ? 'timed out' : '';
   @\session_destroy();
 //  return r\go(isDEV ? 'http://rPromo/_sites?region=x' : 'http://rCredits.org/control.html?region=x');
-  return r\go(isDEV ? 'signin' : 'http://rCredits.org/control.html?region=x', $msg);
+  if (isDEV) r\go('signin', $msg);
+  r\go('http://rCredits.org/control.html?region=x' . ($arg ? "&a=$arg" : ''));
 }
-
-/*function changeAccount($quid = '') {
-  setGlobals();
-  if (!$mya = r\acct()) return r\go('');
-  if ((!$acct = r\acct($quid, $mya->id)) or !$acct->can()) return hack('i'); // hacker. so leave.
-  svar('myid', $acct->id);
-  $newAcct = $acct->fullName;
-  say('changed account', compact('newAcct'));
-  return r\go('');
-}*/
 
 function fundRpt($now, $then, $type = '') {
   //$up = $then ? number_format(abs($now / $then - 1) * 100, 1) : '100';
@@ -1759,16 +1647,6 @@ function sureForm(&$sta, $title = '') {
 
   return labeled($form);
 }
-
-/*
-function detour($detour_via, $detour_args, $whence = '', $modal = TRUE) {
-  svar('detour_via', $detour_via);
-  svar('detour_args', $args);
-  svar('whence', $whence ?: current_path());
-//  drupal_goto($modal ? $whence : $detour_via); // modal forms pop up over the reloaded current form
-  drupal_goto($detour_via); // no modal forms yet
-}
-*/
 
 /**
  * Figure out who the user means, offering choices to disambiguate
@@ -2116,23 +1994,6 @@ function fundStats($stats, $includeRaw = FALSE, $format = 's$') {
   }
   return $res;
 }
-
-/**
- * Connect a bank account to the given rCredits account.
- *//*
-function connectBank($a) {
-  $secure = $a->secure;
-  if (!$bankAccount = @$secure['bankAccount']) return say(t('Member has not yet entered bank info.'), 'zot');
-  if ($a->country == US_COUNTRY_ID) {
-    $routingNumber = substr(@$bankAccount, 4, 9); // chop of USkk
-    $bankAccount = substr(@$bankAccount, 4 + 9); // everything after the routing number
-  }
-  if (!@$secure['auth']) return say(t('You must first set up the Dwolla account for this member.'), 'zot');
-  $us = new r\usd($a);
-  if (!$us->addBank($bankAccount, @$routingNumber, $secure['bankAccountType'], $err)) return say($err, 'zot');
-  say('info saved');
-}
-*/
 
 /**
  * Return a form showing month choices.

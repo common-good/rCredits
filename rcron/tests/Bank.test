@@ -164,15 +164,15 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| .ZZD |      20 |      20 |      20 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
-    . '\\| payer | amount |'
-    . '\\| .ZZD  |   -280 |"');
+    . '\\| payer | amount | deposit |'
+    . '\\| .ZZD  |   -280 |       0 |"');
     Given('balances: "ASSOC'
     . '\\| id   | rewards | savings | balance |'
     . '\\| .ZZD |      20 |      20 |   19.99 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "ASSOC'
     . '\\| payer | amount |'
-    . '\\| .ZZD  |   -310 |"');
+    . '\\| .ZZD  | %(-280-R_ACHMIN) |"');
   }
 
   // Scenario: a member is under minimum only because rewards are reserved

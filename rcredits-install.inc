@@ -27,13 +27,13 @@ function tableDefs($schema = []) {
   
   // table user (additions to Drupal standard)
   $fields = array( // additional/changed users fields
-    'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
+    'flags' => setupField('boolean permissions and state flags', 'int big', 0, TRUE),
     'changes' => setupField('changes made to the account', 'blob big'),
     'community' => setupField("uid of this account's Common Good Community", 'int big'),
 //    'question' => setupField('security question', 'varchar 255'),
 //    'usdAccount' => setupField('USD (Dwolla) account number (hex of encrypted)', 'varchar 255'), // searchable
-    'secure' => setupField('encrypted data', 'blob normal'), 
-//    'offsite' => setupField('index to encrypted data stored off-site', 'int big', NULL, '010'),
+    'secure' => setupField('encrypted data', 'blob'), 
+//    'offsite' => setupField('index to encrypted data stored off-site', 'int big', NULL, TRUE),
     'fullName' => setupField('full name of the individual or entity', 'varchar 255'),
     'phone' => setupField('contact phone (no country code, no punctuation)', 'varchar 255'), // encrypt/searchable
 //    'faxetc' => setupField('other contact details', 'varchar 255'),
@@ -50,21 +50,22 @@ function tableDefs($schema = []) {
     'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11', 0),
     'signedBy' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
     'rebate' => setupField('current rebate percentage (sales bonus is proportionate)', 'numeric 5,3', R_REBATE),
-    'savingsAdd' => setupField('chosen amount to hold as savings, beyond rewards', 'numeric 11,2', NULL),
+    'savingsAdd' => setupField('chosen amount to hold as savings, beyond rewards', 'numeric 11,2', 0),
+    'saveWeekly' => setupField('chosen amount to increase savingsAdd by, weekly', 'numeric 11,2', 0),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
     'minimum' => setupField('chosen minimum balance (for automatic refills)', 'numeric 11,2', NULL), // NULL means preferences not set yet
 //    'chunk' => setupField('granularity of transfers from bank account', 'numeric 11,2', R_BANK_CHUNK),
 //    'maximum' => setupField('maximum rCredits balance (send excess to bank), 0=none)', 'numeric 11,2', -1), // -1 means no limit
-    'share' => setupField('percentage of rebates/bonuses to donate to CGF', 'numeric 6,3', NULL),
+    'share' => setupField('percentage of rebates/bonuses to donate to CGF', 'numeric 6,3', 0),
     'r' => setupField('rCredits balance, including rewards (cached)', 'numeric 11,2', 0),
 //    'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2', 0),
     'committed' => setupField('amount committed (for donations to CGF)', 'numeric 11,2', 0),
 //    'frozen' => setupField('amount of rCredits currently unavailable until specific dates or indefinitely', 'text medium'),
     'photo' => setupField('member photo', 'blob big'), // encrypted
-    'risk' => setupField('today\'s suspiciousness rating', 'float medium', NULL),
-    'risks' => setupField('list of risk factors', 'int big', 0, '010'),
-    'trust' => setupField('how much this person is trusted by others in the community', 'float medium', 0),
+    'risk' => setupField('today\'s suspiciousness rating', 'float medium', NULL), // NULL means never set yet
+    'risks' => setupField('list of risk factors', 'int big', 0, TRUE),
+    'trust' => setupField('how much this person is trusted by others in the community', 'float medium', NULL),
     'stats' => setupField('account statistics', 'text medium'),
     'notices' => setupField('when to send what kind of notice', 'text tiny'),
 //    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
@@ -148,18 +149,10 @@ function tableDefs($schema = []) {
   $foreignKeys = foreignKey('uid');
   $indexes = index('uid') + index('boxnum');
   $schema['r_boxes'] = setupTable('Devices info1', $fields, 'id', $foreignKeys, $indexes);
-  
-  // table offsite
-  $fields = array(
-    'id' => setupField('key to secret data', 'int big', 0, '010'),
-    'data' => setupField('true value of some secret data field on some other server (encrypted)', 'text medium'), // blob for encrypted data (up to 255*255 chars)
-  );
-//  $indexes = index('data');
-  $schema['offsite'] = setupTable('secret data on some other server', $fields, 'id', NULL, NULL);
 
   // table r_do
   $fields = array(
-    'doid' => setupField('record id', 'serial 11'),
+    'doid' => setupField('record id', 'serial'),
     'expires' => setupField('Unixtime expiration', 'int 11', 0), // 0 means never expires
     'data' => setupField('serialized array of parameters', 'text medium'),
     'uid' => setupField('related account record ID', 'int big', 0), // needed only for changeUid
@@ -170,7 +163,7 @@ function tableDefs($schema = []) {
     
   // table r_proxies
   $fields = array(
-    'id' => setupField('record id', 'serial 11'),
+    'id' => setupField('record id', 'serial'),
     'person' => setupField('account record id', 'int big'),
     'proxy' => setupField('account record id of proxy', 'int big'),
     'priority' => setupField('precedence of this proxy (1=top priority)', 'int tiny'),
@@ -178,19 +171,6 @@ function tableDefs($schema = []) {
   $foreignKeys = foreignKey('person') + foreignKey('proxy');
   $indexes = index('person');
   $schema['r_proxies'] = setupTable('Who represents whom', $fields, 'id', $foreignKeys, $indexes);
-  
-  /* table r_sms 
-  $fields = array(
-    'number' => setupField('international phone number (eg +12223334444)', 'varchar 16'),
-    'uid' => setupField('uid of cell phone owner (one owner per number)', 'int big'),
-    'status' => setupField('phone status', 'int tiny'),
-    'todo' => setupField('waiting for confirmation to complete this operation', 'text medium'),
-    'nonce' => setupField('waiting for this nonce, for confirmation', 'varchar 10'),
-  );
-  $foreignKeys = foreignKey('uid');
-  $indexes = index('uid');
-  $schema['r_sms'] = setupTable('SMS cell numbers corresponding to user accounts', $fields, 'number', $foreignKeys, $indexes);
-  */
   
   // table r_txs
   $fields = array(
@@ -214,8 +194,8 @@ function tableDefs($schema = []) {
     'channel' => setupField('through what medium was the transaction entered', 'int tiny'),
     'box' => setupField('on what machine was the transaction entered', 'int 11', 0), // 0 = none
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
-    'risk' => setupField('suspiciousness rating', 'float medium', NULL),
-    'risks' => setupField('list of risk factors', 'int big', 0, '010'),
+    'risk' => setupField('suspiciousness rating', 'float medium', NULL), // NULL means never set yet
+    'risks' => setupField('list of risk factors', 'int big', 0, TRUE),
 //    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee') + foreignKey('payerAgent') + foreignKey('payeeAgent');
@@ -249,9 +229,9 @@ function tableDefs($schema = []) {
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'completed' => setupField('Unixtime transaction was completed', 'int 11', 0), // for deposits / withdrawals
     'deposit' => setupField('Unixtime transfer check was printed and deposited', 'int 11', 0),
-    'bankAccount' => setupField('Bank account for the transfer', 'blob normal'), // "blob tiny" does not exist
-    'risk' => setupField('suspiciousness rating', 'float medium', NULL),
-    'risks' => setupField('list of risk factors', 'int big', 0, '010'),
+    'bankAccount' => setupField('Bank account for the transfer', 'blob'), // "blob tiny" does not exist
+    'risk' => setupField('suspiciousness rating', 'float medium', NULL), // NULL means never set yet
+    'risks' => setupField('list of risk factors', 'int big', 0, TRUE),
     'channel' => setupField('through what medium was the transaction entered', 'int tiny'),
 //    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
@@ -282,7 +262,7 @@ function tableDefs($schema = []) {
             
   // table r_gifts
   $fields = array(
-    'donid' => setupField('gift record id', 'serial 11'),
+    'donid' => setupField('gift record id', 'serial'),
     'giftDate' => setupField('date/time of gift', 'int 11', 0),
     'completed' => setupField('Unixtime donation was completed', 'int 11', 0),
     'uid' => setupField('uid of account that made the gift', 'int big'),
@@ -298,7 +278,7 @@ function tableDefs($schema = []) {
 
   // table r_user_industries
   $fields = array(
-    'id' => setupField('user industry record id', 'serial 11'),
+    'id' => setupField('user industry record id', 'serial'),
     'iid' => setupField('industry id', 'int 11', 0),
     'uid' => setupField('industry id', 'int big', 0),
   );
@@ -308,7 +288,7 @@ function tableDefs($schema = []) {
   
   // table r_log
   $fields = array(
-    'logid' => setupField('log record id', 'serial 11'),
+    'logid' => setupField('log record id', 'serial'),
     'time' => setupField('date/time logged', 'int 11', 0),
     'channel' => setupField('logged from what interface module', 'int tiny'),
     'type' => setupField('what type of log entry', 'varchar 60'),
@@ -340,7 +320,7 @@ function tableDefs($schema = []) {
   // table r_candidates (almost same as r_relations, but with extra fields -- used for candidates in rcredits-circles.inc)
   /*
   $fields = array(
-    'uid' => setupField('candidate record id', 'serial 11'),
+    'uid' => setupField('candidate record id', 'serial'),
     'isCompany' => setupField('is this a company', 'int tiny', 0),
     'ignor' => setupField('temporarily omit this record from consideration', 'int tiny', 0), // IGNORE is reserved in MySQL
     'score' => setupField('how good is this candidate', 'int 11', 0),
@@ -384,7 +364,7 @@ function tableDefs($schema = []) {
     'phone' => setupField('contact phone (no punctuation)', 'varchar 255'), // encrypted/searchable
     'email' => setupField('email of invitee', 'varchar 255'), // encrypted/searchable
     'zip' => setupField('postal code (no punctuation)', 'varchar 60'),
-    'ctty' => setupField('uid of this requester\'s Common Good Community', 'int big'), // gleaned from zip
+    'ctty' => setupField('uid of this requester\'s rCredits community', 'int big'), // gleaned from zip
     'done' => setupField('are we done with this request', 'int tiny', 0), 
   );
   $foreignKeys = foreignKey('ctty');
@@ -393,7 +373,7 @@ function tableDefs($schema = []) {
       
   // table r_notices
   $fields = array(
-    'msgid' => setupField('notice record id', 'serial 11'),
+    'msgid' => setupField('notice record id', 'serial'),
     'uid' => setupField('account record ID of member notified', 'int big'),
     'created' => setupField('date of notice', 'int 11', 0),
     'sent' => setupField('date sent (0 if not sent yet)', 'int 11', 0),
@@ -424,9 +404,10 @@ function tableDefs($schema = []) {
   $indexes = [];
   $schema['r_near'] = setupTable('How members are connected', $fields, ['uid1', 'uid2'], $foreignKeys, $indexes);
 
+  /*
   // table r_votes
   $fields = [
-    'vid' => setupField('vote record id', 'serial 11'),
+    'vid' => setupField('vote record id', 'serial'),
     'uid' => setupField('account record ID', 'int big'),
     'issue' => setupField('name of the question being voted on', 'varchar 255'),
     'vote' => setupField('how the account voted on this issue', 'int medium'),
@@ -434,21 +415,123 @@ function tableDefs($schema = []) {
   $foreignKeys = foreignKey('uid');
   $indexes = index('uid');
   $schema['r_votes'] = setupTable('How members voted on issues', $fields, 'vid', $foreignKeys, $indexes);
+*/
 
   // table r_tous (messages to us)
   $fields = [
-    'id' => setupField('vote record id', 'serial 11'),
+    'id' => setupField('vote record id', 'serial'),
     'uid' => setupField('account record ID', 'int big'),
     'time' => setupField('date/time of message', 'int 11', 0),
-    'message' => setupField('the message', 'blob normal'),
+    'message' => setupField('the message', 'blob'),
   ];
   $foreignKeys = foreignKey('uid');
   $indexes = index('uid');
   $schema['r_tous'] = setupTable('Secure messages sent from member to us.', $fields, 'id', $foreignKeys, $indexes);
-    
+
+  // VOTING
+
+  // table r_questions
+  $fields = [
+    'id' => setupField('question record id', 'serial big'),
+    'ctty' => setupField('community or region record id', 'int big'),
+//	`phase` CHAR(1) DEFAULT 'I', // current phase: I=ideas P=proposals, [D=discussion], V=voting, R=results
+    'repeats' => setupField('pointer to question that this is a revote on (0=none)', 'int big', 0),
+    'repeatedBy' => setupField('pointer to question that is a revote of this one (0=none))', 'int big', 0),
+    'endIdeas' => setupField('when does the Ideas phase end', 'int 11', 0),
+    'endProposals' => setupField('when does the Proposals phase end', 'int 11', 0),
+    'endVoting' => setupField('when does the Voting phase end', 'int 11', 0),
+    'text' => setupField('text of the question', 'text tiny'),
+    'detail' => setupField('additional detail about the question', 'text medium'),
+    'linkIdeas' => setupField('where to brainstorm ideas (and see the list)', 'text tiny'),
+    'linkProposals' => setupField('where to propose options (and see the discussion)', 'text tiny'),
+//    'linkDiscussion' => setupField('discussion of final opts, before & during vote - normally same as above', 'text tiny'),
+    'type' => setupField('vote type M=multiple choice, B=budget (penny vote)', 'char 1', 'M'),
+    'units' => setupField('budget units (defaults to money, measured in the community\'s national currency)', 'varchar 255'),
+    'budget' => setupField('how much (money) is to be budgeted', 'numeric 11,0', 0),
+    'minVeto' => setupField('minimum veto fraction of vote, to force reconsideration', 'numeric 5,3'), // set by ctty, here for history (no effect on M results)
+    'optOrder' => setupField('option order', 'char 1', 'S'), // S=shuffle (randomize), Z=reverse sometimes, N=no change (static)
+    'voteCount' => setupField('total number of votes', 'int 11', 0),
+    'modified' => setupField('date/time last modified', 'int 11', 0),
+    'created' => setupField('date/time created', 'int 11', 0),
+  ];
+  $foreignKeys = foreignKey('ctty');
+  $indexes = index('ctty');
+  $schema['r_questions'] = setupTable('Questions to be voted on', $fields, 'id', $foreignKeys, $indexes);
+
+  // table r_options
+  $fields = [
+    'id' => setupField('option record id', 'serial big'),
+    'question' => setupField('question for which this is an option', 'int big', 0),
+    'text' => setupField('text of the option', 'text tiny'),
+    'detail' => setupField('additional detail about the option', 'text medium'),
+    'displayOrder' => setupField('where to display this option in the order', 'int tiny', 0),
+    'minimum' => setupField('the least (money) to budget for this option', 'int big', 0),
+    'maximum' => setupField('the most (money) to budget for this option', 'int big', 0), // (0=no maximum) */
+	  'mandatory' => setupField('is the minimum required?', 'int tiny', 0),
+	  'averagegrade' => setupField('average grade (in a penny vote, the fraction of all votes)', 'numeric 5,3', 0),
+    'vetoes' => setupField('number of vetoes for this option', 'int', 0),
+    'modified' => setupField('date/time last modified', 'int 11', 0),
+    'created' => setupField('date/time created', 'int 11', 0),
+  ];
+  $foreignKeys = foreignKey('question', 'id', 'r_questions');
+  $indexes = index('question');
+  $schema['r_options'] = setupTable('Options for a question to be voted on', $fields, 'id', $foreignKeys, $indexes);
+
+  // table r_pairs
+  $fields = [
+    'id' => setupField('pairs record id', 'serial big'),
+    'option1' => setupField('record id of one option', 'int big', 0),
+    'option2' => setupField('record id of the other option', 'int big', 0),
+    'prefer1' => setupField('how many voters prefer the option1', 'int 11', 0),
+    'prefer2' => setupField('how many voters prefer the option2', 'int 11', 0),
+    'nopreference' => setupField('how many voters had no preference between the two options', 'int 11', 0),
+    'raw' => setupField('true if this record is calculated without counting proxies', 'int tiny', 0),
+	  'created' => setupField('date/time created', 'int 11', 0), // normally created just once, when election is over (except for demos)
+  ];
+  $foreignKeys = foreignKey('option1', 'id', 'r_options') + foreignKey('option2', 'id', 'r_options');
+  $indexes = index('option1') + index('option2');
+  $schema['r_pairs'] = setupTable('Counts of preferences of one option over another', $fields, 'id', $foreignKeys, $indexes);
+
+  // table r_ballots
+  $fields = [
+    'id' => setupField('ballot record id', 'serial big'),
+    'question' => setupField('question voted on by a particular voter', 'int big', 0),
+    'voter' => setupField('record id of voter whose ballot this is', 'int big', 0),
+    'proxy' => setupField('record id of voter who actually voted on behalf of the voter', 'int big', 0),
+    'modified' => setupField('date/time last modified', 'int 11', 0),
+    'created' => setupField('date/time created', 'int 11', 0),
+  ];
+  $foreignKeys = foreignKey('question', 'id', 'r_questions') + foreignKey('voter') + foreignKey('proxy');
+  $indexes = index('question') + index('voter') + index('proxy');
+  $schema['r_ballots'] = setupTable('A votable question addressed by a particular voter', $fields, 'id', $foreignKeys, $indexes);
+
+  // table r_votes
+  $fields = [
+    'id' => setupField('vote record id', 'serial big'),
+    'ballot' => setupField('ballot on which this option is being graded', 'int big', 0),
+    'option' => setupField('option being graded', 'int big', 0),
+    'grade' => setupField('grade given by a particular voter for this option', 'int', -1), // In a B vote, this is 10 * the pct (ddd.d) else 3*letter (-1=blank -2=veto)
+    'displayorder' => setupField('(unknown what this is for)', 'int tiny', 0), // 0 is first
+    'modified' => setupField('date/time last modified', 'int 11', 0),
+  ];
+  $foreignKeys = foreignKey('ballot', 'id', 'r_ballots') + foreignKey('option', 'id', 'r_options');
+  $indexes = index('ballot') + index('option');
+  $schema['r_votes'] = setupTable('What grade a particular voter gave a particular option (for a particular question) on a particular question ballot', $fields, 'id', $foreignKeys, $indexes);
+
+  // table r_vetoes
+  $fields = [
+    'id' => setupField('veto record id', 'serial big'),
+    'vote' => setupField('what option (on a particular ballot) did the voter veto', 'int big', 0),
+    'text' => setupField('what was voter\'s moral objection to this option', 'text tiny'),
+    'modified' => setupField('date/time last modified', 'int 11', 0),
+  ];
+  $foreignKeys = foreignKey('vote', 'id', 'r_votes');
+  $indexes = index('vote');
+  $schema['r_vetoes'] = setupTable('Details about a voter\'s veto of a particular option', $fields, 'id', $foreignKeys, $indexes);
+  
   // table r_nonmembers (use -make instead)
 /*  $fields = array(
-    'id' => setupField('non-member company record id', 'serial 11'),
+    'id' => setupField('non-member company record id', 'serial'),
     'company' => setupField('company name', 'varchar 60'),
     'potential' => setupField('number of members who shop there', 'int 6', 0),
   );
@@ -489,24 +572,53 @@ function tableDefs($schema = []) {
 /**
  * Make Fields
  *
- * Make (or unmake) database fields, according to the schema
- * @param boolean $unmake: whether to unmake, rather than make
- * @param array $extras: associative array of table_name (only for unmaking)
+ * Make database fields, according to the schema
  */
-function make_fields($unmake = FALSE, $extras = []) {
+function makeFields() {
+  global $db_name;
   $schema = [];
   \rcredits_schema_alter($schema); // get the fields to add (or drop)
-  foreach ($schema as $table_name => $one) {
-    if ($unmake and isset($extras[$table_name])) $one += $extras[$table_name];
-    foreach ($one['fields'] as $field_name => $spec) {
-      if (\db_field_exists($table_name, $field_name)) {
-        if ($unmake) \db_drop_field($table_name, $field_name);
-        if (!$unmake) \db_change_field($table_name, $field_name, $field_name, $spec);
-      } else {
-        if (!$unmake) \db_add_field($table_name, $field_name, $spec);
-      }
+  foreach ($schema as $table => $one) {
+    $previous = '';
+    foreach ($one['fields'] as $field => $spec) {
+  //      if (\db_field_exists($table, $field)) {
+  //      if (db\exists('INFORMATION_SCHEMA.COLUMNS', "TABLE_SCHEMA='$db_name' aND TABLE_NAME='$table' AND COLUMN_NAME='$field'")) {
+      $spec = specString($spec);
+  //echo " . . . <b>$table/$field:</b> $spec2<br><br>\n\n";  
+      if (db\exists('INFORMATION_SCHEMA.COLUMNS', 'TABLE_SCHEMA=:db_name AND TABLE_NAME=:table AND COLUMN_NAME=:field', compact('db_name', 'table', 'field'))) {
+  //      \db_change_field($table, $field, $field, $spec);
+        db\q("ALTER TABLE $table CHANGE `$field` `$field` $spec");
+      } else db\q("ALTER TABLE $table ADD `$field` $spec " . ($previous ? "AFTER `$previous`" : 'FIRST'));
+      //\db_add_field($table, $field, $spec);
+      $previous = $field;
     }
   }
+}
+
+/**
+ * Interpret the Drupal field specification array as a MySQL field specification string.
+ * @param assoc $spec: the filed specification array
+ * @return the MySQL field specification string
+ */
+function specString($spec) {
+  extract($spec);
+  
+  if ($type == 'numeric') {
+    $type = "decimal($precision,$scale)";
+  } elseif ($type == 'text' or $type == 'blob') {
+    $type = (@$size == 'big' ? 'long' : @$size) . $type;
+  } elseif ($type == 'float' or $type == 'double') { // no change
+  } elseif ($type == 'serial') {
+    $type = @$size . 'int AUTO_INCREMENT';
+  } else {
+    $type = (@$size ?: '') . $type . (@$length ? "($length)" : '');
+  }
+
+  $description = str_replace("'", "''", $description);
+  return $type
+  . (@$unsigned ? ' UNSIGNED' : '')
+  . (isset($default) ? " NOT NULL DEFAULT '$default'" : '') // default is NULL by default
+  . " COMMENT '$description'";
 }
 
 function setupTable($description, $fields, $primary_key, $foreignKeys = [], $indexes = []) {
@@ -522,35 +634,30 @@ function foreignKey($local, $foreign = 'uid', $table = 'users') {
 function index($field) {return array($field => array($field));}
 
 /**
- * Setup a schema field
+ * Setup a field specification
  *
- * @param string $type: data_type and size, separated by a space (a numeric size is interpreted as a string's maximum length)
- * @param string of boolean $SUN: $serialize, $unsigned, $notnull (one binary digit for each)
- * @param string $precision: precision and scale, separated by a comma
- *
- * @return array: the field's schema (UNUSED?)
+ * @param string $description: description of the field
+ * @param string $type: data type and optional size, separated by a space
+ *   a numeric size is interpreted as a string's maximum length
+ *   a size consisting of two numbers separated by a comma is interpreted as precision and scale
+ * @param string $default: the field's default value, if any
+ * @param bool $unsigned: <field is an unsigned number>
+ * @return array: the field's specification array
  */
-function setupField($description = '', $type = 'varchar 255', $default = '', $SUN = '000') {
+function setupField($description = '', $type = 'varchar 255', $default = NULL, $unsigned = FALSE) {
   $size = '';
   $precision = ',';
 
   if (strpos($type, ' ')) list ($type, $size) = explode(' ', $type);
   if ($type == 'numeric') {
-    $precision = $size;
-    $size = '';
-  } elseif (is_numeric($size)) {
-    $length = $size;
-    $size = '';
-  }
-  list ($serialize, $unsigned, $notnull) = str_split($SUN);
+    list ($precision, $size) = [$size, ''];
+  } elseif (is_numeric($size)) list ($length, $size) = [$size, ''];
   list ($precision, $scale) = explode(',', $precision); // don't use u\ray here
   
-  $scheme = compact(explode(' ', 'description type size length precision default scale serialize unsigned')); // don't use u\ray
-  foreach ($scheme as $key => $value) if ($value === '') unset($scheme[$key]);
+  $spec = compact(explode(' ', 'description type size length precision default scale unsigned')); // don't use u\ray
+  foreach ($spec as $k => $v) if ($v === '') unset($spec[$k]);
 
-  $scheme['not null'] = $notnull;
-//  ['fields'][$field_name] = $scheme;
-  return $scheme;
+  return $spec;
 }
 
 /**

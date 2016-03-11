@@ -65,6 +65,13 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Gift AMemberDonates
  *     MAKE Gift AMemberDonatesWithInsufficientFunds
  *     MAKE Joint AJoinedAccountSlaveMemberRequestsANewMinimum
+ *     MAKE Preferences AMemberChangesPreferences
+ *     MAKE Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
+ *     MAKE Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
+ *     MAKE Preferences AMemberChoosesTooLowASavingsReserve
+ *     MAKE Preferences AMemberChoosesTooLowAWeeklySavingsAmount
+ *     MAKE Preferences AMemberChoosesNegativeWeeklySavingsWithoutAnySavings
+ *     MAKE Preferences AMemberChoosesTooLowAnACHMinimum
  *     MAKE Reimburse AMemberAsksToChargeAnotherMember
  *     MAKE Reimburse AMemberAsksToPayAnotherMember
  *     MAKE Signin AMemberAsksForANewPasswordForUsername
@@ -190,6 +197,8 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     MAKE Joint Setup
  *     MAKE Membership Setup
  *     TEST Membership AMemberSignsInForTheFirstTime
+ *     MAKE Preferences Setup
+ *     TEST Preferences AMemberChangesPreferences
  *     MAKE Reimburse Setup
  *     MAKE Relations Setup
  *     MAKE ScanCard Setup
@@ -231,6 +240,10 @@ function members($list) {return t\members($list);}
  *     MAKE Joint Setup
  *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     MAKE Joint AJoinedAccountMemberUnjoinsTheAccount
+ *     MAKE Preferences Setup
+ *     MAKE Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
+ *     MAKE Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
+ *     MAKE Preferences AMemberChoosesTooLowAWeeklySavingsAmount
  *     MAKE Reimburse Setup
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
  *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
@@ -263,6 +276,10 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Gift AMemberDonatesWithInsufficientFunds
  *     TEST Joint AMemberRequestsAJointAccount
  *     TEST Joint AMemberRequestsTwoJoinsAtOnce
+ *     TEST Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
+ *     TEST Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
+ *     TEST Preferences AMemberChoosesTooLowASavingsReserve
+ *     TEST Preferences AMemberChoosesTooLowAWeeklySavingsAmount
  *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
  *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
@@ -324,6 +341,8 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST EditTx ABuyerChangesTheGoodsStatus
  *     TEST Membership AMemberSignsInForTheFirstTime
  *     TEST Membership AMemberDoesItAll
+ *     TEST Preferences AMemberChoosesNegativeWeeklySavingsWithoutAnySavings
+ *     TEST Preferences AMemberChoosesTooLowAnACHMinimum
  *     TEST Relations AMemberTriesToAddARelationWithSelf
  *     TEST Relations AMemberTriesToAddARelationAgain
  *     TEST Signin AMemberTypesTheWrongPassword
@@ -418,6 +437,8 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST Membership AMemberClicksTheMembershipLink
  *     TEST Membership ACompanyAgentClicksOnTheMembershipLink
  *     TEST Membership AMemberOpensABusinessAccount
+ *     TEST Preferences AMemberVisitsThePreferencesPage
+ *     TEST Preferences AnotherMemberVisitsThePreferencesPage
  *     TEST Relations MemberHasAnEmployeeConfirmed
  *     TEST Relations MemberHasAnEmployeeUnconfirmed
  *     TEST Relations MemberHasARelationWithAContractor
@@ -543,6 +564,9 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Joint Setup
  *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     TEST Joint AJoinedAccountMemberUnjoinsTheAccount
+ *     TEST Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
+ *     TEST Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
+ *     TEST Preferences AMemberChoosesTooLowAWeeklySavingsAmount
  *     TEST Reimburse Setup
  *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
@@ -582,6 +606,8 @@ function usd($list) {return t\usd($list);}
  *     MAKE Membership ACompanyAgentClicksOnTheMembershipLink
  *     MAKE Membership AMemberDoesItAll
  *     MAKE Membership AMemberOpensABusinessAccount
+ *     MAKE Preferences AMemberVisitsThePreferencesPage
+ *     MAKE Preferences AnotherMemberVisitsThePreferencesPage
  *     MAKE Relations MemberHasAnEmployeeConfirmed
  *     MAKE Relations MemberHasAnEmployeeUnconfirmed
  *     MAKE Relations MemberHasARelationWithAContractor
@@ -810,7 +836,7 @@ function weDownloadWith($name, $rows) {
   $headers = array_shift($testCSV2);
   if ($headers[0] == '#') $headers[0] = 't#';
   foreach ($testCSV2 as $csvRow) {
-/// debug(compact('headers', 'csvRow'));
+///  debug(compact('headers', 'csvRow'));
     $csvRow = array_combine($headers, $csvRow); // add keys
 /**/ if (!$row = array_shift($rows)) return t\output('extra row in CSV: ' . print_r($csvRow, 1));
     foreach ($row as $key => $value) {
@@ -1232,4 +1258,43 @@ function memberEmailInvitationCodeIs($id, $code) {
   global $testOnly; // for now, choose the test code according to the creation date (in the tests)
   $code0 = r\acct(t\uid($id))->iCardCode(IBY_SELF);
   return ($code0 == $code or $code0 == $code . 'A');
+}
+
+/**
+ * we show checked: (ARG)
+ *
+ * in: TEST Preferences AMemberVisitsThePreferencesPage
+ *     TEST Preferences AnotherMemberVisitsThePreferencesPage
+ */
+function weShowChecked($what, $wantSet = TRUE) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  global $tChecked;
+  $checks = join('|', @$tChecked ?: []);
+  $checked = $wantSet ? 'checked' : 'unchecked';
+  
+  foreach ($what as $one) {
+    list ($k, $v) = $one;
+    if (!weShow($k)) {t\output("Missing \"$k\"."); return FALSE;}
+    $set = (strpos($checks, $v) !== FALSE);
+    if ($set != $wantSet) {t\output("Missing $checked \"$v\"."); return FALSE;}
+  }
+  return TRUE;
+}
+
+/**
+ * we show unchecked: (ARG)
+ *
+ * in: TEST Preferences AMemberVisitsThePreferencesPage
+ *     TEST Preferences AnotherMemberVisitsThePreferencesPage
+ */
+function weShowUnchecked($what) {return weShowChecked($what, FALSE);}
+
+/**
+ * we redirect to %BASE_URL
+ *
+ * in: 
+ */
+function weRedirectToURL() {
+  global $testOnly;
+  todo;
 }

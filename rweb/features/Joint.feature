@@ -57,12 +57,12 @@ Scenario: A joined account slave member requests a new minimum
   | .ZZA | .ZZB |     150 |
   | .ZZB | .ZZA |       0 |
   When member ".ZZB" completes form "settings/preferences" with values:
-  | minimum | achMin | savings |share |*
-  |     200 |    100 |     250 |   10 |
+  | minimum | achMin | savings | saveWeekly | share |*
+  |     200 |    100 |     500 |          0 |    10 |
   Then members have:
-  | id   | minimum | achMin | share |*
-  | .ZZA |     200 |    100 |     0 |
-  | .ZZB |       0 |    100 |    10 |
+  | id   | minimum | savings | achMin | share |*
+  | .ZZA |     200 |     250 |    100 |     0 |
+  | .ZZB |       0 |     250 |    100 |    10 |
 
 Scenario: A joined account member looks at transaction history and summary
   Given members have:

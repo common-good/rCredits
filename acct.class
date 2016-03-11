@@ -165,6 +165,7 @@ class acct {
     if ($field == 'inviteCode') return str_replace(R_MEMBER_MARK, '*', $a->mainQid) . $a->lowSecurity;
     if ($field == 'slave') return ($jid = $a->jid and $jid < $a->id); // slave in a joint account
     if ($field == 'helperA') return $a->helper ? r\acct($a->helper) : '';
+    if ($field == 'prefsSet') return !is_null($a->minimum); // preferences have been set at least once
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
       : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
       
@@ -342,7 +343,7 @@ class acct {
     $a = $this;
     $newChanges = u\justNot(R_HIDE_CHANGES, $info); // see if there are any changes to remember
     foreach ($newChanges as $k => $v) { // don't record if no change
-       if ($v == $a->$k) {
+       if ($v == $a->$k or (is_numeric($v) and is_numeric($a->$k) and $v + 0 == $a->$k + 0)) {
         unset($newChanges[$k]);
       } elseif (isset(self::$rs[$a->id]->$k)) $newChanges[$k] = @self::$rs[$a->id]->$k;
     }
@@ -713,10 +714,12 @@ EOF;
   
   /**
    * Return the total waiting to be credited as a transfer TO or (if negative result) FROM the member's bank.
+   * @param numeric $combinable: (RETURNED) how much is waiting and checks haven't been printed yet
    */
-  public function waitingToBank() {
+  public function waitingToBank(&$combinable = 0) {
     $id = ($jid = $this->jid) ? "$this->id,$jid" : $this->id;
-    return db\lookup('SUM(amount)', 'r_usd', "payer IN ($id) AND NOT completed") + 0;
+    extract(db\q("SELECT SUM(amount) AS amt, SUM(IF(deposit, 0, amount)) AS combinable FROM r_usd WHERE payer IN ($id) AND NOT completed")->fetchAssoc());
+    return $amt;
   }
 
   /**
@@ -742,7 +745,7 @@ EOF;
       $stepsDone[$step] = $done;
       $a->update(compact('stepsDone'));
       if ($done) r\tellStaff(t('Step completed: ') . strtoupper($step), $details, $a->id);
-    } else r\tellStaff(t('Settings changed: ') . strtoupper($step), $details, $a->id);
+    } elseif (!$a->admin) r\tellStaff(t('Settings changed: ') . strtoupper($step), $details, $a->id);
    
     if (!$nextStep = $a->nextStep()) r\membershipEvent($a, 'member');
     return $nextStep;
@@ -874,8 +877,14 @@ EOF;
   public function completeUsdTx($txid, $amount, $automatic) {
     $a = $this;
     
+    $realAmt = db\lookup('amount', 'r_usd', 'txid=:txid', compact('txid'));
+    if ($amount != $realAmt) r\tellStaff('bad completeUsdTx amt in acct', compact(u\ray('txid amount realAmt automatic')));
+
+    $DBTX = \db_transaction();
     if (@$txid and !db\update('r_usd', ['txid'=>$txid, 'completed'=>r\rTime()], 'txid')) return FALSE;
     $a->update('r', $a->r + $amount);
+    unset($DBTX);
+    
     $transfer = $automatic ? t('automatic transfer') : t('transfer');
     $amount = u\fmtAmt(abs($amount));
     r\notify($a->id, 'transfer complete', compact('transfer', 'amount'));

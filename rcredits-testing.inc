@@ -38,7 +38,7 @@ define('T_MSG_FILE', 'test-messages.txt');
  */
 function fixData(&$info, $direct = FALSE) {
   global $rUrl;
-  $fields = 'postalCode country state email phone dob federalId idProof flags adminable';
+  $fields = 'postalCode country state email phone dob federalId idProof flags adminable notices statements';
   extract(u\just($fields, $info));
 
   foreach (['flags', 'adminable'] as $k) if (isset($$k)) $$k = t\fixFlags($$k);
@@ -46,6 +46,8 @@ function fixData(&$info, $direct = FALSE) {
     for ($i = 0; $i < B_MAX; $i++) if (u\getbit($adminable, $i)) $adminable2[$i] = TRUE;
     $adminable = @$adminable2 ?: [];
   }
+  if (@$notices) $notices = array_search($notices, u\ray('daily weekly monthly'), TRUE);
+  if (@$statements) $statements = array_search($statements, u\ray('electronic paper'), TRUE);
   if (@$email) $info['email'] = t\fixEmail($email);
   if (@$postalCode or @$country or @$state) {
     u\setDft($country, 'US');
@@ -142,7 +144,8 @@ function doAccount($info = []) {
   if (!@$helper) $helper = '.AAB'; // everyone but .AAB should have a helper
 
   if (!$testOnly) { // when making, set many defaults and mods
-    u\setDft($fullName, 'doAccount ' . randomString(20, 'word'));
+    $nmMap = u\ray('ZZA:Abe One,ZZB:Bea Two,ZZC:Cat Pub,ZZD:Dee Four,ZZE:Eve Five,ZZF:Fin Corp,ZZG:Glo Seven');
+    u\setDft($fullName, substr($id, 0, 2) == 'ZZ' ? strtr($nmMap) : 'doAccount ' . randomString(20, 'word'));
     $name = u\shortName($fullName);
     u\setDft($legalName, $fullName);
   //  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
@@ -463,6 +466,7 @@ function doBalance($one) {
 
   extract(u\just(T_BALANCE_FIELDS, $one));
   if (!$a = r\acct($id = t\uid($id0 = $id))) return t\output("account $id0 does not exist");
+  $a->reread(TRUE); // otherwise db updates are invisible
 /// print_r(compact('a','id','id0'));
 /// print_r(' unQuid=' . r\unQuid($id0));
   if (!$testOnly) { // setting the values
@@ -474,7 +478,8 @@ function doBalance($one) {
   $calc = t\uidCredit($id);
   foreach (u\ray('r balance rewards') as $k) {
     if (isset($$k) and $$k != '?') {
-      $cachedVal = $k == 'balance' ? $a->r : $a->$k;
+//      $cachedVal = $k == 'balance' ? $a->r : $a->$k;
+      $cachedVal = $a->$k;
       if (($id > 0) and t\badEq("cached $k", $cachedVal, $$k, $id)) return FALSE;
       if ($id > 0 or $k != 'rewards') if (!$a->jid) if (t\badEq("calc $k", $calc->$k, $$k, $id)) return FALSE;
     }
@@ -797,7 +802,7 @@ function subAgo($string, $fmt) {
   $bPreC = substr($b, 0, strlen($b) - 1);
   $periods = array('d' => 'days', 'w' => 'weeks', 'm' => 'months', 'y' => 'years');
   $period = $periods[$lastC];
-/// debug(compact(u\ray('string fmt lastC a b bPreC period')));
+///  debug(compact(u\ray('string fmt lastC a b bPreC period')));
   return (strftime($fmt, $period == 'months' ? u\plusMonths(-$bPreC) : strtotime("$bPreC $period ago")));
 }
 
@@ -862,7 +867,7 @@ function logIn($id) {
  *   return verifyRecord('r_relations', $info);
  */
 function verifyRecord($table, $info) {
-///debug(compact('table','info'));
+///  debug(compact('table','info'));
 /**/  if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1)); // keep
   
   unset($info['data']);
@@ -902,7 +907,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   global $testConfirmation; // confirmation message output, if any
   global $formSta, $lastGo;
   $xlastGo = @$lastGo; // notice whether a goto happens, so we can skip post-processing
-/// debug(compact(u\ray('id page values confirmed testOnly')));
+///  debug(compact(u\ray('id page values confirmed testOnly')));
 
   $values = @$values[0] ?: [];
   t\fixData($values);
@@ -1069,6 +1074,8 @@ function dropdownOptions($form) {
   return strip_tags(join(PHP_EOL, $matches[0]));
 }
 
+function setChecked($name) {global $tChecked; $tChecked[] = $name;}
+
 function radioOptions($form) {
   if (!preg_match_all('~<label class="option" [^>]*>.*? </label>~sm', $form, $matches)) return '';
   return strip_tags(join(PHP_EOL, $matches[0]));
@@ -1149,10 +1156,10 @@ function output($msg, $color = 'error') {
  */
 function clear($ch = 0) {
   include_once __DIR__ . '/admin/admin.inc';
-  global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation;
+  global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation, $tChecked;
   global $sms_devel; $sms_devel = TRUE;
     
-  $lastGo = $formOut = $formArray = $formSta = $testOp = $testConfirmation = NULL;
+  $lastGo = $formOut = $formArray = $formSta = $testOp = $testConfirmation = $tChecked = NULL;
   global $sms_devel; $sms_devel = TRUE;
   global $testSeq; $testSeq = NULL;
   global $channel; $channel = $ch;

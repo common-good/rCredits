@@ -92,7 +92,7 @@ EOF;
  */
 function memberRay($myid) {
   if (!$a = r\acct($myid)) return [];
-  $where = $a->admin ? '1' : "community=$a->community";
+  $where = r\acct()->admin ? '1' : "community=$a->community OR :IS_CO";
   return db\q("SELECT fullName FROM users WHERE :IS_OK AND $where ORDER BY fullName")->fetchCol();
 }
 
@@ -643,7 +643,7 @@ EOF;
     $fancy[$k] = u\fmtAmt($v);
   }
   $result['fancy'] = $fancy;
-///debug($result);
+///  debug($result);
   return (object) $result;
 }
 

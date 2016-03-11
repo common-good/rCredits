@@ -22,7 +22,7 @@ function q($sql, $subs = [], $log = FALSE) {
   global $channel;
 //  \db_query("SET NAMES 'utf8'"); // only needed once per connection, but hey
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
-  if (strpos($sql, 'INSERT INTO') !== FALSE) $return = \Database::RETURN_INSERT_ID;
+  if (strpos($sql, 'INSERT INTO') !== FALSE and strpos($sql, ' VALUES (')) $return = \Database::RETURN_INSERT_ID;
   if ($log and !strpos($sql, 'r_log') and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs, $sql);
   try {
     return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));

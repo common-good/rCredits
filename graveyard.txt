@@ -1,0 +1,843 @@
+/**
+ * @file
+ * Graveyard established 3/3/2016. Bury old code here.
+ */
+
+--------------------------------------------------------------------------------------------------------
+ 
+  /* from formI
+  $shortName = $a->name;
+  $txArgs = "/who=$shortName&scanned=1";
+  if ($mya->proSe and !$co) return r\go("pay$txArgs");
+  
+  list ($myid, $myAgent) = array($mya->id, $mya->agentId);
+  if ($otherId == @$myid) return r\go('', 'no self-trading');
+
+  if ($co) $site = goButton(t('Show Webpage'), $goSite = "member/$shortName", t("See this company's rCredits webpage"));
+  if ($mya->can(B_SCAN)) $charge = goButton(t('Charge'), "charge$txArgs", t('Charge someone'));
+  if ($mya->can(B_BUY)) $pay = goButton(t('Pay'), "pay$txArgs", t('Pay someone'));
+//    if (r\acct($myid, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Use this button when your shift begins'));
+//  if (r\acct($otherId, $myAgent)->can()) $changeAccount = goButton(t('Change Acct'), "change-settings/who=" . $a->mainQid, t('Manage a different account'));
+  $theId = hidFld($otherId);
+  $theAgent = hidFld($otherAgent);
+
+  if (!@$charge) return $co ? r\go($goSite) : r\go('empty', 'no can scan');
+
+  $zot = compact(u\ray('charge pay site'));
+  $all = identifiers($a) . render($zot);
+  svar('lastCustomer', $a->id);
+  $all = fld('item', '', '', $all);
+  return compact('all'); */
+
+--------------------------------------------------------------------------------------------------------
+
+/* from printInvite1 
+    $style4 = array('L' => 0,
+                'T' => array('width' => 0.25, 'cap' => 'butt', 'join' => 'miter', 'dash' => '2,1', 'phase' => 10, 'color' => array(100, 100, 255)),
+                'R' => array('width' => 0.50, 'cap' => 'round', 'join' => 'miter', 'dash' => 0, 'color' => array(50, 50, 127)),
+                'B' => array('width' => 0.75, 'cap' => 'square', 'join' => 'miter', 'dash' => '3,1,.5,1'));    
+                */
+//    $white = ['color' => [255,255,255]];
+    //['T'=>$white, 'R'=>$white, 'B'=>[], 'L'=>[]]
+//    $pdf->Rect($x+2, $y, 1.5, 1.64, 'DF', '', [255,255,255]); // x, y, w, h, style, border_style, fill_color
+
+/* Importing a (back) page fails. dunno why. debug? build the source with Acrobat? Forget it and add it here!
+  global $rUrl;
+  $pageCount = $pdf->setSourceFile("$rUrl/InviteCards.pdf");
+  $tpl = $pdf->importPage(1, '/MediaBox');
+
+  $pdf->addPage();
+  $pdf->useTemplate($tpl, 10, 10, 90);  
+  */
+
+/**
+ * Print a sheet of invitation cards for one member.
+ * @param acct $a: the account for which to print invitation cards
+ * @param object $pdf: the pdf object in process
+ */ /*
+function printInvite1OLD($a, &$pdf) {
+  if ($a->co) return printInviteCo($a, $pdf);
+  require_once __DIR__ . '/../pdf.class';
+  
+  list ($mT, $mR, $mB, $mL) = [.5, .75, .5, .75]; // margins
+  list ($wCard, $hCard) = [3.5, 2]; // card dimensions
+  list ($wPage, $hPage) = [8.5, 11]; // page dimensions
+  $gLen = .1; // cutting guide length from card corner (for pluses in each corner of each card)
+  $gStyle = ['color' => [192,192,192]];
+
+  $fullName = $a->shortName ?: $a->fullName;
+  $qid = $a->qid;
+  
+  $nameSize = strlen($fullName) > 21 ? '100px' : '120px';
+  list ($region, $zot) = explode(R_MEMBER_MARK, $a->mainQid);
+  $server = isPRODUCTION ? 'RC2.ME' : 'RC4.ME';
+  $qrUrl0 = "HTTP://$region.$server/-"; // the - (with nothing before it) indicates invitation
+  
+  $qrStyle = array( // set style for QR code
+    'border' => 0,
+    'vpadding' => '0',
+    'hpadding' => '0',
+    'fgcolor' => array(0,0,0),
+    'bgcolor' => false, //array(255,255,255)
+    'module_width' => 1, // width of a single module in points
+    'module_height' => 1, // height of a single module in points
+  );
+
+  $iCode = $a->lastiCode ? $a->lastiCode + 1 : IBY_ICARD;
+  
+  $pdf->AddPage();
+  
+  for ($y = $mT; $y < $hPage - $mB; $y += $hCard) for ($x = $mL; $x < $wPage - $mR; $x += $wCard) { // each card
+/ *  // cutting guides
+    foreach ([0, $hCard] as $dy) foreach ([0, $wCard] as $dx) { // for each corner
+      $pdf->Line($x+$dx-$gLen, $y+$dy, $x+$dx+$gLen, $y+$dy, $gStyle); // horizontal
+      $pdf->Line($x+$dx, $y+$dy-$gLen, $x+$dx, $y+$dy+$gLen, $gStyle); // vertical
+    } * /
+    
+    $pdf->say($fullName, $x, $y+.125, 2, '', '10', 'C');
+    $pdf->say('invites you to <span style="font-weight:bold; color:darkblue">rCredits<sup>&reg;</sup></span>', $x, $y+.3, 2, '', '10', 'C');
+    $pdf->say('the currency of a better future', $x, $y+.475, 2, '', '8;I', 'C');
+    $pdf->say('This card good for', $x, $y+.73, 2, '', '6.8', 'C');
+    $pdf->say('<sup style="color:silver; font-size:50%; font-weight:normal;">$</sup>' . R_HELPER_BONUS . ' &nbsp;', $x, $y+.78, 2, '', '44;B;color:brown', 'C');
+    $pdf->Image(__DIR__ . '/../images/idcard/rlogo.png', $x+1.27, $y+1.1, .21, .28, '', '', '', true); // file, x, y, w, h, type, link, align, resize
+    $pdf->say('at any member business when you join.', $x, $y+1.5, 2, '', '6.8', 'C');
+    $pdf->say('Activate your membership at <span style="font-weight:bold; color:darkgreen;">rCredits.org</span>. It\'s free!', $x, $y+1.71, 3.5, '', '10', 'C');
+
+    $style4 = array('L' => 0,
+                'T' => array('width' => 0.25, 'cap' => 'butt', 'join' => 'miter', 'dash' => '2,1', 'phase' => 10, 'color' => array(100, 100, 255)),
+                'R' => array('width' => 0.50, 'cap' => 'round', 'join' => 'miter', 'dash' => 0, 'color' => array(50, 50, 127)),
+                'B' => array('width' => 0.75, 'cap' => 'square', 'join' => 'miter', 'dash' => '3,1,.5,1'));    
+    $white = ['color' => [255,255,255]];
+    //['T'=>$white, 'R'=>$white, 'B'=>[], 'L'=>[]]
+//    $pdf->Rect($x+2, $y, 1.5, 1.64, 'DF', '', [255,255,255]); // x, y, w, h, style, border_style, fill_color
+    $pdf->say('Invitation #', $x+2, $y+.125, 1.5, '', '8', 'C'); // text, x, y, w, h, format, align, borders
+    $code = $a->iCardCode($iCode);
+    $pdf->write2DBarcode($qrUrl0 . $code, 'QRCODE,M', $x+2.21, $y+.53, 1.05, 1.05, $qrStyle = ''); // code, type, x, y, w, h, $style (L,M,Q,H are low-high error-correction)
+    $code = substr($code, 0, 4) . ' &nbsp;' . substr($code, 4, 4) . ' &nbsp;' . substr($code, 8);
+    $pdf->say($code, $x+2, $y+.26, 1.5, '', '9;color:darkred;Verdana', 'C'); // text, x, y, w, h, fmt, align, borders
+    $iCode++;
+  }
+  
+  $pdf->say('<span style="font-weight:bold; color:darkgreen;">rCredits<sup>&reg;</sup></span> Invitation Cards <span style="font-size:80%;">(print each unique sheet only once)</span>', .8, .2, '', '', '10');
+  $pdf->say('Cards are 2"x3.5". Cut off 1/2" at top and bottom, 3/4" at sides, as marked.', .8+3.5, .25, '', '', '7');
+  $a->update('lastiCode', $iCode - 1);
+}
+*/
+
+---------------------------------------------------
+
+/* from formPass
+  /*$form['name']['#title'] = t('Account:');
+  $form['name']['#description'] = t('Username, Email, or Account ID');
+  $form['name']['#default_value'] = u\neq($id, 'password', '');*/
+//  $form['#validate'] = array('rCredits\\Web\\formPass_validate');
+//  $form['#submit'] = array('rCredits\\Web\\formPass_submit');
+//  $form['#attributes']['class'] = array('rweb', 'labeled');
+//  t\snapShot($form);
+
+----------------------------------------------------
+
+/**
+ * Get the member's photo ID, as part of Dwolla's registration process.
+ *//*
+function formPhotoId($form, &$sta) {
+  $mya = r\acct();
+  $person = !$mya->co;
+
+  say('after emailing|return to membership');
+  $mya->setBit(B_PHOTOID, TRUE); // allow the member to continue completing steps
+  
+  $proofType = $person ? t("driver's license or other official ID such as birth certificate or passport, showing your social security number (or the equivalent)") : t('EIN documentation from the IRS or proof of registration with state or local government');
+
+  //  -- This could also be a letter from an officer or owner of the organization (who is an rCredits member), on the organization's letterhead, authorizing opening this rCredits account.");
+  
+  $title = item(t('Photo ID Verification'));
+  $subtext = item(tt('<p>We are having trouble confirming your information. We want to be absolutely sure that YOU are creating this account, not someone else using your name.</p><p>Please upload either a PDF or an image file of your @proofType.', compact('proofType')));
+  $name = urlencode($mya->fullName);
+  $subtext = item(tt('<p>We are having trouble confirming your information. We want to be absolutely sure that YOU are creating this account, not someone else using your name.</p><p>Please <a href="mailto:new@rCredits.org?subject=Photo ID from @name&body=Dear rCredits Team, My photo ID file is attached. - @name">email us (click here)</a> a PDF or image file of your @proofType.', compact('proofType', 'name')));
+//  $idProof = fld('file', t('Photo ID:'), t('maximum') . tt(' @R_MAX_PHOTOID_SIZE MB'), attrib(u\ray('enctype', "multipart/form-data")));
+//  $submit = submit('Upload');
+
+  $form = compact(u\ray('title subtext idProof submit'));
+  return $form;
+  return labeled($form);
+}
+
+function formPhotoId_validate($form, &$sta) {
+  if (@$_FILES['files']['name']['idProof']) {
+    $validators = array('file_validate_size' => array(R_MAX_PHOTOID_SIZE * 1024000));
+    if (!$file = \file_save_upload('idProof', $validators, '', FILE_EXISTS_REPLACE)) return say('Try again.', 'idProof');
+    if (!u\abbreviates('image/', @$file->filemime) and @$file->filemime != 'application/pdf') return say('bad file type', 'idProof');
+    $sta['input']['filename'] = $filePath = file_directory_temp() . '/' . $file->filename;
+    $mya = r\acct();
+    if (FALSE and $mya->can(B_DW)) { // Dwolla API bug (skip it)
+      $us = new r\usd($mya);
+      if (!$us->sendPhotoId($filePath, $err)) return say($err, 'idProof');
+    } else {
+      $proofFilename = DRUPAL_ROOT . $mya->photoFilename('proof', TRUE);
+      if (!$key = $sta['input']['idProof'] = bin2hex(u\encryptFile($filePath, $proofFilename, r\passSalt()))) return say('encryption failure', 'idProof');
+    }
+  } return say('upload required', 'idProof');
+}
+
+function formPhotoId_submit($form, &$sta) {
+  unlink($sta['input']['filename']);
+  say('id verification pending');
+  return r\go('status');
+}
+*/
+
+----------------------------------------------------
+
+/* from formSecurity
+
+/*  if (!onFile('usdAccount', $sta)) {
+    $usdAccount = $sta['input']['usdAccount'] = u\digits($usdAccount);
+    if (!preg_match('/^[0-9]{10}$/', $usdAccount)) return say('bad account number', 'usdAccount');
+  } */
+/*  if (!onFile('pin', $sta)) {
+    $pin = $sta['input']['pin'] = u\digits($pin);
+    if (!preg_match('/^[0-9]{4}$/', $pin)) return say('bad pin', 'pin');
+  } */
+/*  if (!onFile('dob', $sta)) { // 12/14/1901 is the earliest
+    if (!$dob = $sta['input']['dob'] = u\s2t($dob) or $dob > r\rTime()) return say('bad date', 'dob');
+  }
+  if (!onFile('federalId', $sta)) {
+    $federalId = $sta['input']['federalId'] = u\digits($federalId);
+    $what = !r\acct()->co ? 'social security number' : 'federal ID';
+    if (!preg_match('/^[0-9]{9}$/', $federalId)) return say('bad federal id', compact('what'), 'federalId');
+  } */
+  
+/*  $proofFilename = DRUPAL_ROOT . $mya->photoFilename('proof', TRUE);
+
+  if (@$_FILES['files']['name']['idProof']) {
+    $validators = array('file_validate_size' => array(R_MAX_PHOTOID_SIZE * 1024000));
+    if (!$file = \file_save_upload('idProof', $validators, '', FILE_EXISTS_REPLACE)) return say('Try again.', 'idProof');
+    if (!u\abbreviates('image/', @$file->filemime) and @$file->filemime != 'application/pdf') return say('bad file type', 'idProof');
+    $tempfile = file_directory_temp() . '/' . $file->filename;
+    if (!$key = $sta['input']['idProof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, r\passSalt()))) return say('encryption failure', 'idProof');
+    \file_delete($file);
+  } elseif ($mya->hasPhoto('proof')) {
+    $sta['input']['idProof'] = R_ON_FILE; // flag for no change
+  } // not required! elseif (!$mya->co) return say('upload required', 'idProof'); */
+  
+----------------------------------------------------
+
+/**
+ * Ask for the 5-digit phone verification code that Dwolla sent.
+ *//*
+function formVerifyPhone($form, &$sta) {
+  $mya = r\acct();
+  $title = item(t('Verify Phone'));
+  $subtext = item(t('<p>A verification code has been sent to your phone (@phone). Please enter it here.</p><p>Or, if you need to use a different telephone, <@a>click here to return to the Contact Information page</a>.</p>', u\ray('@phone @a', u\fmtPhone($mya->phone), 'a href=contact')));
+  $code = textFld(t('Code:'), t('<@a>Send it again?</a>', u\ray('@a', 'a href=readd-phone')));
+  $submit = submit(t('Continue'));
+  return labeled(compact(u\ray('title subtext code submit')));
+}
+
+function formVerifyPhone_validate($form, &$sta) {
+  if (strlen($code = u\digits($sta['input']['code'])) != 5) return say('bad phone code', 'code');
+  $us = new r\usd($mya = r\acct());
+  if (!$us->verifyPhone(svar('phoneId'), $code, $err) and $us->step() == 'Phone') return say($err, 'code');
+}
+
+function formVerifyPhone_submit($form, &$sta) {
+  return r\go('status', 'phone verified');
+}
+*/
+
+----------------------------------------------------
+
+/**
+ * Create a pseudo-account (with no personal data and no money)
+ */ /*
+function formAgent($form, &$sta) {
+  $mya = r\acct();
+  if (!@$mya or !$mya->co) r\go(''); // no error message, in case user changed accounts
+  $title = item(t('Open an rPOS Sign-in Account'));
+  $subtext = item(t('Use this form only for cashiers who do not wish to participate in the rCredits system as individuals.'));
+  $optedOut = boolFld(t('Opted out:'), t('Was this agent invited to open a personal rCredits account? And did this agent decide not to?'));
+  $fullName = textFld(t('Name:'), t('The person\'s full name'), required());
+  //$permissions = radiosFld(t('Permissions:'), '', required(), u\ray('read only,charge customers'));
+//  $employee = boolFld(t('Employee?'), t('Is this person an employee of the company?'));
+//  $pay = textFld(t('Pay:'), t('How much is this agent paid by the company each month (on average)?'), required());
+  $submit = submit(t('Create Account'));
+  return labeled(compact(u\ray('title subtext optedOut fullName submit')));
+}
+
+function formAgent_validate($form, &$sta) {
+  extract(u\just('optedOut fullName', $sta['input']));
+  if (!$optedOut) return say('must opt', 'optedOut');
+  if (u\badName($fullName)) return say('bad name', 'fullName');
+//  if (u\badAmount($pay)) return say('bad amount', 'pay');
+}
+
+function formAgent_submit($form, &$sta) {
+  extract(u\just('fullName permissions', $sta['input']));
+  $a = new r\acct(compact('fullName'));
+//  $perms = ($permissions ? B_SCAN : B_READ) - B_RELATED;
+  $info = u\ray('main other permission', r\acct()->id, $a->id, B_SCAN - B_RELATED);
+  if (db\insert('r_relations', $info)) return r\go('', 'agent created');
+}
+*/
+
+----------------------------------------------------
+
+/* (with icons)
+function formSettings($form, &$sta) {
+  $mya = r\acct();
+  $tabs = u\ray('contact preferences security bank company relations boxes proxies');
+  $captions = u\ray(t('Contact,Preferences,Security,Bank Info,Company,Relations,Devices,Proxies'));
+  $title = item('Settings');
+  foreach(array_combine($tabs, $captions) as $tab => $caption) {
+    $img = imageButton("settings/$tab", $caption, "$tab.png");
+    $icons[$tab] = item("<div class=\"img\">$img</div><div class=\"caption\">$caption</div>");
+  }
+//  $icons['photo'] = str_replace('.png', rand(0, 1) ? '-f.png' : '-m.png', $icons['photo']);
+  if ($mya->co) {
+    unset($icons['security']);
+    unset($icons['proxies']);
+  }
+  if (!$mya->co) unset($icons['company']);
+  $icons = item(\drupal_render($icons));
+  return compact(u\ray('title icons'));
+}
+*/
+
+----------------------------------------------------
+
+/// old quickbooks exported report import
+/*  
+  $coName = u\roughName($rows[0][0]);
+  if ($coName != u\roughName($mya->legalName) and $coName != u\roughName($mya->fullName)) return say('wrong payroll co', u\ray('coName', $mya->fullName == $mya->legalName ? $mya->fullName : "$mya->legalName or $mya->fullName"), 'payroll');
+  if (@$rows[1][0] != 'Payroll Details') return say('not payroll csv', 'payroll');
+  $total = 0;
+
+  foreach ($rows as $i => $row) {
+    $v0 = $row[0];
+    if ($v0 == 'Total') break;
+    $line = $i + 1;
+    $subs = compact('line');
+    
+    if (!@$deductionsCol) {
+      if ($v0 == 'Employee' and !$deductionsCol = array_search('Deductions', $row)) return say('bad payroll csv', $subs, 'payroll'); else continue;
+    }
+    if ($v0 and substr($v0, 0, 1) != ' ') { // all first cells except for employee name begin with space
+      if (!strpos($period = trim(@$rows[$i + 4][0]), '-')) return say('bad payroll csv', u\ray('line', $line + 4), 'payroll');
+      $employee = $v0;
+    }
+    if ($row[$deductionsCol] == 'rCredits') {
+      $amt = $row[$deductionsCol + 1];
+      if ($err = u\badAmount($amt, '>0')) return say('bad payroll csv|' . $err, $subs, 'payroll');
+      if (!@$employee) return say('bad payroll csv|' . t('Missing employee name.'), $subs, 'payroll');
+      if (!$uid = r\worksForUs($employee)) return say('bad payroll employee', $subs + u\ray('employee', $employee), 'payroll');
+      $toPay[] = array($uid, $amt, $period);
+      $total += $amt;
+      $employee = $amt = $period = '';
+    }
+  }
+  if (!@$deductionsCol) return say('bad payroll csv', u\ray('line', t('0 -- missing headers')), 'payroll');
+*/
+
+----------------------------------------------------
+
+/* from formAccounts
+    $chunks = explode('/', $page);
+    if (isDEV) array_shift($chunks); // site is in a subfolder on the dev server
+    $function = @$chunks[1]; // normally just one part of URI is the page (but sometimes two)
+    foreach (u\ray('account user') as $one) {
+      if (in_array($one, $chunks) and @$chunks[2]) $function .= '/' . $chunks[2];
+    }
+*/
+    //$functionName = ucwords($function);
+//    $help = imageButton("help/$function", "Help for $functionName", 'qmark-white.png');
+//    $menu = imageButton('menu', 'Show Menu', 'menu.png');
+    
+  //  $showMenu = fld('item', '', '', button('Menu', '', 'Show the menu'));
+  //  $showHelp = fld('item', '', '', button('Help', '', 'Help for ' . ucwords($function)));
+    //$showMenu = item($menu);
+    //$showHelp = item($help);
+  //  $version = item(t('v 0.1d'));
+  //  $form = u\prefixKeys('acct_', compact(u\ray('settings account icon showMenu showHelp submit index')));
+  }
+//  $menu = formMenu($function);
+
+  //$help = help($function);
+  //$form += $help; // + $menu;
+
+----------------------------------------------------
+
+/*
+$helper = 25026000000025; // PFC
+$a = a(25026000000116); // taylor
+        $h = f('r.acct',$helper); // not $a->helper
+        $fullName = $a->fullName;
+        
+        if (!$a->confirmed) { // helper has not confirmed yet
+          $a1 = $h->makeDo('confirmInvite', $a->id); // link to confirm invitedness (
+          f('r.message',$helper, 'confirm invite', compact('a1', 'fullName')); // ask inviter to confirm
+        }
+*/
+
+----------------------------------------------------
+
+/**
+ * Normalize an image file to the given aspect
+ * @param string $filename: path of file to normalize (file will be replaced)
+ * @param string $aspect: the desired width:height ratio
+ * @param int $factor: normalized size is the aspect times $factor.
+ * @param bool $modify: modify the file (default TRUE, otherwise return the fixed image)
+ * @param string $error: (returned) the error message, if any
+ * @return if modifying file: TRUE for success, else FALSE; if not modifying file: return the image else ''
+ * @todo: handle webp and xpm images?
+ */ /*
+function fixPicture($filename, $aspect, $factor, $modify = TRUE, &$error = '') {
+  $acceptableImages = IMAGETYPE_GIF | IMAGETYPE_JPEG | IMAGETYPE_PNG | IMAGETYPE_WBMP | IMAGETYPE_XBM;
+  if (!$info = @getimagesize($filename)) return (!$error = 'not an image');
+  list ($w, $h, $type, $attr) = $info;
+  $ext = image_type_to_extension($type, FALSE);
+  if (!(imagetypes() & $type)) return (!$error = 'not an image');
+  if (!($acceptableImages & $type)) return (!$error = 'not an image');
+  list ($w0, $h0) = explode(':', $aspect);
+  $off = $w/$h - $w0/$h0; // how much is the aspect off by?
+///  debug(compact(u\ray('w h w0 h0 off aspect factor')));
+  if (abs($off) > .35) return (!$error = 'aspect');
+  $k = 1 - $off * $h / $w; // wFactor, if we need to correct width
+  list ($wFactor, $hFactor) = $off > 0 ? array($k, 1) : array(1, 1 / $k);
+  
+  $function = 'imagecreatefrom' . ($ext == 'bmp' ? 'wbmp' : $ext);
+  if (!$img = $function($filename)) return (!$error = 'file save error');
+  
+  cropImage($img, ($w-$w*$wFactor)/2, ($h-$h*$hFactor)/2, $w*$wFactor, $h*$hFactor); // narrow or shorten
+  resizeImage($img, $w0 * $factor, $h0 * $factor);
+
+  if ($modify) {
+    if (!imagejpeg($img, $filename, 100)) return (!$error = 'file save error');
+    return TRUE;
+  } else {
+    ob_start();
+    imagejpeg($img);
+    return ob_get_clean();   
+  }
+}*/
+/*
+function cropImage(&$img, $x, $y, $w, $h) {  
+  $canvas = imagecreatetruecolor($w, $h); // crop
+  $result = imagecopy($canvas, $img, 0, 0, $x, $y, $w, $h);
+  // NO! imagedestroy($canvas);
+  $img = $canvas;
+  return $result;
+}
+
+function resizeImage(&$img, $w, $h) {
+  $canvas = imagecreatetruecolor($w,$h);
+  $result = imagecopyresampled($canvas, $img, 0, 0, 0, 0, $w, $h, imagesx($img), imagesy($img));
+  $img = $canvas;
+  return $result;
+}*/
+
+----------------------------------------------------
+
+/**
+ * Replace some common unprintable characters with their HTML equivalent
+ * (dash, magic quotes, )
+ *
+function wentities($s) {
+  return strtr($s, u\ray('— ‘ ’ “ ”'', '&mdash;', 
+  */
+  
+----------------------------------------------------
+
+/**
+ * Connect a bank account to the given rCredits account.
+ *//*
+function connectBank($a) {
+  $secure = $a->secure;
+  if (!$bankAccount = @$secure['bankAccount']) return say(t('Member has not yet entered bank info.'), 'zot');
+  if ($a->country == US_COUNTRY_ID) {
+    $routingNumber = substr(@$bankAccount, 4, 9); // chop of USkk
+    $bankAccount = substr(@$bankAccount, 4 + 9); // everything after the routing number
+  }
+  if (!@$secure['auth']) return say(t('You must first set up the Dwolla account for this member.'), 'zot');
+  $us = new r\usd($a);
+  if (!$us->addBank($bankAccount, @$routingNumber, $secure['bankAccountType'], $err)) return say($err, 'zot');
+  say('info saved');
+}
+*/
+
+----------------------------------------------------
+
+/*
+function detour($detour_via, $detour_args, $whence = '', $modal = TRUE) {
+  svar('detour_via', $detour_via);
+  svar('detour_args', $args);
+  svar('whence', $whence ?: current_path());
+//  drupal_goto($modal ? $whence : $detour_via); // modal forms pop up over the reloaded current form
+  drupal_goto($detour_via); // no modal forms yet
+}
+*/
+
+----------------------------------------------------
+
+/*function changeAccount($quid = '') {
+  setGlobals();
+  if (!$mya = r\acct()) return r\go('');
+  if ((!$acct = r\acct($quid, $mya->id)) or !$acct->can()) return hack('i'); // hacker. so leave.
+  svar('myid', $acct->id);
+  $newAcct = $acct->fullName;
+  say('changed account', compact('newAcct'));
+  return r\go('');
+}*/
+
+----------------------------------------------------
+
+/**
+ * Sign the user in by their scanning their own company card
+ *//*
+function scanIn($acct) {
+  $mya = $acct;
+  svar('myid', $mya->id);
+
+  // Tell Drupal who is now logged in
+  global $user; $user = $mya->agent->account();
+  $user->roles = [];
+  $user->uid = $mya->agent->id;
+  drupal_session_regenerate();
+
+  setGlobals();
+  svar('scanned_in', TRUE);
+  $agentName = $mya->agent->fullName;
+  $companyName = $mya->fullName;
+  $subs = compact('agentName', 'companyName');
+  u\loga('login', $subs, $mya->agentId);
+  return r\go('empty', 'ready to charge', $subs);
+}
+*/
+
+----------------------------------------------------
+
+/**
+ * Return a "SHOW" link for the field or a display of the field's value, for community admins only.
+ * @param string $field: the field in question
+ * @param string $show: the field to display, if any (default none)
+ * @return the appropriate markup
+ *//*
+function show($field, $show = '') {
+  global $base_url;
+  $mya = r\acct();
+  
+  if ($field == $show) {
+    if ($field == 'idProof') { // display the proof image alone (then user clicks on Back)
+      $proofFilename = DRUPAL_ROOT . $mya->photoFilename('proof');
+      $imgString = u\decode(file_get_contents($proofFilename), hex2bin($mya->idProof));
+      header("Content-Type: image/jpeg");
+      imagejpeg(imagecreatefromstring($imgString));
+      exit();
+    } elseif ($field == 'dob') {
+      $result = u\fmtDate($mya->$field);
+    } elseif (strpos(R_SECRET_FIELDS . ' usdAccount', $field) !== FALSE) {
+      $result = $mya->$field;
+    }
+  } else $result = "<a href=\"$base_url/settings/security/show=$field\">show</a>";
+  return "[$result] ";
+}
+*/
+
+----------------------------------------------------
+
+/**
+ * Undo the last transaction.
+ *//*
+function undo($confirmed = FALSE) {
+  if (!$xid = svar('lastXid')) u\EXPECT(!$confirmed, 'missing last xid');
+  
+  if ($confirmed) {
+    list ($message, $args) = be\undoTx($xid);
+    say($message, $args);
+    if (@$args['success'] and svar('lastXid') == $xid) svar('lastXid', FALSE);
+  } elseif ($confirmed === '0') {
+    say('nothing undone');
+  } else {
+    $tx = $xid ? be\lastTx('xid=:xid', compact('xid')) : be\lastTx('box=:box', u\ray('box', box()));
+    $tx['yesNo'] = yesNo('undo/1', 'undo/0');
+    if ($tx) say('confirm undo|yes or no', r\txReportArgs(r\acct(), $tx));
+  }
+  r\go('empty'); // blank backdrop for result message
+}
+*/
+
+/**
+ * Show remaining customer balance. (smartphone)
+ *//*
+function remainder() {
+  if ($uid = svar('lastCustomer')) {
+    $a = r\acct($uid);
+    $otherName = $a->fullName;
+    $balance = be\creditInfo(compact('uid'))->fancy['balance'];
+    say('customer balance', compact('otherName', 'balance'));
+  } else say('no last customer', 'ERR');
+  r\go('empty');
+}
+*/
+
+----------------------------------------------------
+
+/*
+function popupCloser($idHead) {
+  global $rUrl;
+  return item('<img src="' . $rUrl . '/images/icons/close.png" border="0">') + array('#id' => "$idHead-close");
+}
+*/
+/**
+ * Return a help overlay
+ * @todo: make it move right when "labeled"
+ */ /* UNUSED
+function help($page, $class = '') {
+  include_once __DIR__ . '/rweb-help.inc';
+//  $subtext = item($question);
+  $close = popupCloser('help');
+  $text = fld('item', '', '', helpText($page));
+  $help = fieldSet('help', compact(u\ray('close subtext text')), BARE . t('Help with this page'));
+  return compact('help');
+}
+*/
+
+----------------------------------------------------
+
+/**
+ * Process a transfer of USD from a bank into the Dwolla/rCredits account or vice versa.
+ * @param assoc $tx: the Dwolla transaction
+ * @return TRUE if the transfer has been successfully processed.
+ *//*
+function usdTransferDone($tx) {
+  extract(u\just('Id Amount Date Type DestinationId SourceId ClearingDate Status', $tx));
+  if ($Status != 'processed') return FALSE; // pending
+  $Amount = $Type == 'deposit' ? -abs($Amount) : abs($Amount); // don't count on Dwolla's sign
+  $omit = u\test() ? (r\cgfId() - 1) : NULL; // ignore tester's account
+  if (!$payer = r\whoseUsd($Type == 'deposit' ? $DestinationId : $SourceId, $omit)) return FALSE; // tester
+  $info = u\ray('txid amount completed', $Id, $Amount, strtotime($ClearingDate));
+
+  $old = db\lookup('completed', 'r_usd', 'txid=:txid', u\ray('txid', $Id)); // existing completion date
+  if (is_null($old)) { // no record: system crashed before it got recorded
+    $info += u\ray('created payer payee', strtotime($Date), $payer, 0); // create whole record
+  } elseif ($old == $info['completed']) return TRUE; // already recorded and correctly dated complete
+
+  $DBTX = \db_transaction();
+  db\update('r_usd', $info, 'txid', TRUE); // update or (if crash) insert
+  
+  if ($Type == 'deposit') {
+    $a = r\acct($payer);
+    if (!$old) $a->actualUsd(-$Amount); // adjust cache up (double minus) now that money finally came in
+    $hour = strftime('%H', strtotime($date)); // creation hour
+    $auto = $hour == R_DAILY_HOUR ? t(' automatic') : ''; // (space is intentional)
+    $amount = u\fmtAmt(abs($Amount));
+    r\notify($a->id, 'transfer complete', compact('auto', 'amount'));
+    r\membershipEvent($a, 'bona', $a->usd > 0); // this works for testing too
+  }
+  unset($DBTX); // if system crashes in the middle of that, user might get duplicate emails -- no biggie
+  return TRUE;
+}
+*/
+
+----------------------------------------------------
+
+/**
+ * Trade some rCredits for USD, from somebody. 
+ * @param float $request: how much to try to get
+ * @param acct $acct: rCredits account that is trading rCredits to third parties
+ * @return how much USD we actually delivered
+ *//*
+function getUsd($request, $acct) {
+  $need = $request;
+  r\usd::beginAtom();
+  while ($need > 0) {
+    $part = $need;
+    if (!$acct3 = nextRBuyer($part, $acct->id)) break; // asks for what we need, returns the part we got in $part
+    u\EXPECT($part > 0, 'got nothing');
+    if ($txid = r\tradeR($part, $acct->id, $acct3->id)) $need = round($need - $part, 2);
+  }
+  $got = round($request - $need, 2);
+  r\usd::commit($got); // accept partial success
+  return $got;
+}
+*/
+
+/**
+ * Return the uid of the next account in line wanting/willing and able to trade enough US Dollars for rCredits.
+ * If you trade rCredits for USD or vice versa, you go to the end of the line.
+ * @param float $amount: the amount we're looking for. Returned with the amount actually available from the returned account. The amount sought depends on the $amount passed as follows:
+ *   $amount < R_CHUNK*1.5 -- seek $amount
+ *   otherwise -- seek R_CHUNK (leaving R_CHUNK/2 or more for other buyers
+ * return: the best account to handle the trade (there may be none that wants so many rCredits)
+ *    if no account wants to buy any, return FALSE (this would be really bad and should never ever happen)
+ *    NOTE that CGF is the buyer of last resort.    
+ *//*
+function nextRBuyer(&$amount, $except) {
+  if ($amount > R_CHUNK) $amount = R_CHUNK; // keep it cheap
+  $sql = <<<EOF
+    SELECT u.uid, u.usd AS got, u.name,
+    (SELECT MAX(completed) FROM r_usd WHERE payer=u.uid and payee<>0) AS last
+    FROM users u
+    WHERE u.usd>0 AND u.uid<>:except AND :IS_OK AND :IS_DW
+    ORDER BY last DESC, u.usd DESC, u.uid LIMIT 1
+EOF;
+
+  if (!$row = db\q($sql, compact('except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
+    r\tellStaff('no buyers', compact('amount')); // this is a really bad thing (nobody wants any at all)
+    return FALSE;
+  }
+  extract($row); // uid, got, and name
+  if ($name =='cgf') r\tellStaff('cgf sole buyer', compact('amount'));
+  $amount = min($amount, round($got, 2)); // take what we could get
+  return r\acct($uid);
+}
+*/
+
+/**
+ * Return a system-wide or community-wide total.
+ * As of the last daily cron, unless testing. For each community, and overall, the totals include:
+ *    demand: the total unmet demand for rCredits
+ *    r: rCredits in the system
+ *    usd: USD in play (approximate)
+ *    signup: rCredits issued as signup reward
+ *    inflation: rCredits issued to offset inflation
+ *    rebates: rCredits issued as rebates (including on USD transactions)
+ *    bonuses: rCredits issued as sales bonuses
+ * @param int $ctty: the community account id for which to return totals (default ALL)
+ *//*
+function totals($ctty = 'ALL', $calculate = FALSE) {
+  $totals = \variable_get('r_totals');
+  if ($calculate or !@$totals or !@$totals[$ctty]) {
+    $totals[$ctty] = getTotals($ctty == 'ALL' ? NULL : $ctty);
+    \variable_set('r_totals', $totals);
+  }
+  foreach ($totals[$ctty] as $key => $value) {
+    $value = @$value + 0;
+    $fancy[$key] = $value >= 1000000 ? ('$' . number_format(($value - 9999) / 1000000, 2) . ' million') : u\fmtAmt($value);
+  }
+  
+  return (object) ($totals[$ctty] + compact('fancy'));
+
+  /*
+  $result = db\lookup('SUM(minimum)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty')); // minima
+  $result -= -r\balance($ctty); // less how many rCredits are in circulation
+  $result -= r\totalUSD($ctty); // less how much official currency is in play
+  *//*
+}
+*/
+
+/**
+ * Return totals for the given community
+ * @param int $ctty: the community account id (NULL means all communities)
+ * @return assoc (ctty or system-wide totals of):
+ *   r floor rewards usd minimum excess
+ *   signup rebate bonus inflation grant loan fine maxRebate
+ *   balance (-r) demand (minimum - r)
+ *//*
+function getTotals($ctty) {
+  $subs = @$ctty ? compact('ctty') : [];
+  $where = (@$ctty ? "community=:ctty" : 1) . ' AND uid>0 AND :IS_OK';
+  $fields = u\sumAs('r floor rewards usd minimum committed');
+  //$max = 'GREATEST(0, maximum)';
+  $sql = "SELECT $fields, SUM(:R_DEMAND) AS demand, SUM(:R_CAPACITY) AS capacity FROM users u WHERE $where";
+  $result1 = db\q($sql, $subs)->fetchAssoc();
+
+  $where = @$ctty ? '(payer=:ctty OR payee=:ctty)' : 1;
+  $sums = '';
+  foreach (u\ray('signup rebate bonus inflation grant loan fine') as $one) {
+    $ONE = strtoupper($one);
+    $sums .= "SUM(IF(type=:TX_$ONE, amount, 0)) AS `$one`, ";
+    $sums .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
+  }
+  $sql = "SELECT $sums MAX(IF(type=:TX_REBATE, amount, 0)) AS maxRebate FROM r_txs WHERE $where";
+  $result2 = db\q($sql, $subs)->fetchAssoc();
+  $balance = -$result1['r'];
+  return $result1 + $result2 + compact(u\ray('balance'));
+}
+*/
+
+----------------------------------------------------
+
+/**
+ * Create or update a reverse relation record for the given main and other
+ *   if any of the given fields is positive
+ * @param int $other: the main (switching to agent)
+ * @param int $main: the other (switching to main)
+ * @param assoc $data: (byRef) array of field values
+ *   Returned with all fields listed in $fields unset (if any of those fields has a positive value)
+ * @param string $fields: space-delimited list of fields to check
+ * @return (none)
+ *//*
+function reverseRelations($other, $main, &$data, $fields) {
+  foreach (u\ray($fields) as $field) if (@$data[$field]) $stay = TRUE;
+  if (!@$stay and !isset($data['employeeOk'])) return; // this function also UNsets employeeOk
+  
+  $subs = compact('main', 'other') + u\just($fields, $data);
+  if ($reid = relation('reid', $main, $other)) {
+    $subs += compact('reid');
+    db\update('r_relations', $subs, 'reid');
+  } else db\insert('r_relations', $subs);
+
+  foreach (u\ray($fields) as $field) unset($data[$field]); // don't get these fields mixed in with the reverse record
+}*/
+
+----------------------------------------------------
+
+/**
+ * Return the account for the given low-security code.
+ * @param string $code: the code to interpret
+ * @param int $seq: (RETURNED) the code sequence number
+ * @param string $type: i=invitation code, e=email code
+ * @return: the account or FALSE if error
+ *//*
+function lowSecAcct($code0, &$seq = NULL, $type = 'i') {
+  $code = str_replace(' ', '', $code0); // ignore spaces
+  list ($ax2n, $n2ax, $xlen, $xlenMin, $xlenDiv, $xlenRegion, $xlenTail, $xlenSecurity
+  if (!preg_match('/[A-Z0-9]{' . ICARD_CODELEN_MIN . ',}/i', $code)) return FALSE;
+  $seq = u\ai2n(substr($code, ICARD_CODELEN_MIN)) + 0;
+///  debug("code=$code seq=$seq");
+  $code = substr($code, 0, ICARD_CODELEN_MIN); // chop off sequence number
+  $b = u\lpad(decbin(u\ai2n(substr($code, 0, 5))), ILEN_DIV). u\lpad(decbin(u\ai2n(substr($code, 5))), ILEN - ILEN_DIV);
+///  debug("code=$code seq=$seq b=$b");
+  $b = u\xorBits($b, substr(R_INVITE_KEY, -strlen($b)), TRUE);
+///  debug("code=$code seq=$seq b=$b");
+  $b = u\rotateBits($b, -($seq + 1) * (bindec(substr(R_INVITE_KEY, 0, 31)) % strlen($b)));
+///  debug("code=$code seq=$seq b=$b");
+  $region = u\n2a(bindec(substr($b, 0, ILEN_REGION)), 3);
+  $tail = u\n2a(bindec(substr($b, ILEN_REGION, ILEN_TAIL)), -3);
+  $security = u\n2ai(bindec(substr($b, -ILEN_SECURITY)), 3);
+///  debug("code=$code seq=$seq b=$b region=$region tail=$tail security=$security");
+
+  if (!$a = r\acct("$region.$tail")) { 
+  // temporarily allow '1' for 'I' (until June 2016 or so) -- not forever because we now use Verdana
+    return strpos($code, '1') === FALSE ? FALSE : iCardAcct(str_replace('1', 'I', $code0, $seq));
+  } else return ($security == $a->lowSecurity) ? $a : FALSE;
+}
+*/
+
+----------------------------------------------------
+
+/**
+ * Merge a temporary ("old") account into the current account (a permanent ("new") account).
+ * @return 1 (for counting how many were merged)
+ */ /*
+function mergeAccounts($oldUid) {
+  $newUid = acct()->id;
+  if (!be\isTempAccount($oldUid)) return; // don't merge non-temp account
+//  u\EXPECT(be\access('manage account'), "unauthorized mergeAccounts: $newUid into $oldUid");
+///  if (!isTempName(userField('name', $oldUid))) die('merging non-temp account');
+  // there are no other records for temporary accounts, than those below
+
+  $new = acct($newUid);
+  $old = acct($oldUid);
+  $update = [];
+  foreach (u\ray('phone faxetc website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
+  acct()->update($update);
+  newMemberId($oldUid, $newUid, TRUE);
+  db\q('DELETE FROM users WHERE uid=:oldUid', compact('oldUid')); // must be last, for referential integrity
+  return 1;
+//  db\q("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:oldUid", compact('oldUid'));
+}
+*/
+
+----------------------------------------------------

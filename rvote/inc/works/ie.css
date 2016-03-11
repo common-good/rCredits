@@ -1,0 +1,7 @@
+#ballot div.vetonotediv { width:380px; }
+#ballot div.vetonotediv textarea  { width:365px; }
+#ballot div.gradeheader td.gAplus  { text-indent:5px; }
+
+*.carpe-slider-panel { height: 23px; }
+*.orientation-horizontal *.carpe-slider-slit { top: -11px; }
+*.orientation-horizontal *.carpe-slider-knob { width: 10px;	height: 12px;	top: -0px; }

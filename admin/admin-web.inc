@@ -72,12 +72,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     if (!$a->ok) $a->nextStep(); // update Dwolla status
     if ($cAdmin) {
       $photo = item($a->photoHtml(TRUE, TRUE));
-      if ($admin) {
-        $cttys = a\cttys($a->region);
-//        if (!@$cttys[$ctty]) u\preray([$ctty => $a->cttyA->fullName . t(' (outside the region)')], $cttys);
-        $cttys[r\serverUid()] .= t(' (outside any rCredits community)');
-        $community = selectFld(t('Community:'), '', dft($ctty), $cttys);
-      }
+      if ($admin) $cttys = r\cttys($a->region, TRUE);
       $donations = db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
       if ($donationInfo = db\lookup('often,honor,honored', 'r_gifts', 'uid=:uid', compact('uid'))) {
         extract($donationInfo);
@@ -104,7 +99,7 @@ function adminSummary($a, $cAdmin = FALSE) {
 //    $created = item(u\fmtDate($a->created), t('Created:'));
     if ($rels = a\showRelations($a)) $relations = item($rels, t('Relations:'));
     
-    $invited = item(db\count('r_invites', 'inviter=:uid', compact('uid')), t('Invited:'));
+//    $invited = item(db\count('r_invites', 'inviter=:uid', compact('uid')), t('Invited:'));
     $invitedBy = $a->helper ? ($a->helperA->fullName . "#$a->iCode (" . r\iCodeDesc($a->iCode) . ') + ') : '';
     $invitedBy = item($invitedBy . db\lst('fullName', 'r_invites i LEFT JOIN users u ON u.uid=i.inviter', 'invitee=:uid', compact('uid')), t('Invited by:'));
     $proxies = item(db\lst('fullName', 'r_proxies p LEFT JOIN users u ON u.uid=p.proxy', 'p.person=:uid ORDER BY priority', compact('uid')), t('Proxies:'));

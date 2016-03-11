@@ -7,7 +7,7 @@
  * Also used by /do.php, for no-sign-in database changes
  */
  
-define('R_VERSION', '2.33'); // software version
+define('R_VERSION', '2.37'); // software version
 define('STAGE_SUBDOMAIN', 'ws');
 define('STAGE', STAGE_SUBDOMAIN . '.rcredits.org'); // staging site (for secrets, etc.)
 define('PRODUCTION', 'new.rcredits.org'); // production site (used for setting $base_url)
@@ -22,9 +22,20 @@ define('isDEV', !isPRODUCTION and !isSTAGE and !isGAME); // developing
 define('DEV_ROOT', '/rMembers'); // path to drupal root on DEV machine
 define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
+
+// time periods are defined here because this script uses them
+define('MIN_SECS', 60);
+define('HOUR_SECS', 60 * MIN_SECS);
+define('DAY_SECS', 24 * HOUR_SECS);
+define('WEEK_SECS', 7 * DAY_SECS);
+define('WEEK7_SECS', 52 * DAY_SECS);
+define('MONTH_DAYS', 30.4368);
+define('YEAR_SECS', round(12 * MONTH_DAYS * DAY_SECS));
+
 global $R_POST; $R_POST = $_POST;
 
 $secrets = (array) json_decode(utf8_encode(file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.databases')));
+global $db_name;
 $db_name = isDEV ? 'new_rcredits' : key($secrets);
 extract((array) $secrets[$db_name], EXTR_PREFIX_ALL, 'db');
 
@@ -61,9 +72,9 @@ ini_set('error_reporting', isDEV ? E_ALL : (E_ALL & ~E_NOTICE & ~E_DEPRECATED & 
 ini_set('max_execution_time', isDEV ? 0 : 240); // don't ever timeout when developing
 ini_set('session.gc_probability', 1); // garbage collection this fraction of the time on startup (numerator)
 ini_set('session.gc_divisor', 100); // (denominator)
-define('SESSION_LIFE', 1440); // 1440 = 24 minutes (the standard)
+define('SESSION_LIFE', @$_COOKIE['pw2'] ? 12 * HOUR_SECS : 24 * MIN_SECS); // standard 24 mins (more for admin)
 ini_set('session.gc_maxlifetime', SESSION_LIFE); // session timeout (and garbage collection happens)
-ini_set('session.cookie_lifetime', SESSION_LIFE);
+ini_set('session.cookie_lifetime', 0); // SESSION_LIFE); // (drupal doesn't refresh the cookie)
 
 $conf['cron_safe_threshold'] = 0; // disable poorman's cron
 if (isDEV) {
@@ -80,5 +91,6 @@ $drupal_hash_salt = $db_salt;
 $protocol = (isDEV or isGAME) ? 'http://' : 'https://';
 $base_url = $protocol . $_SERVER['HTTP_HOST'] . (isDEV ? DEV_ROOT : ''); // NO trailing slash!
 define('BASE_URL', $base_url);
+define('PROMO_URL', isDEV ? 'http://localhost/rPromo/_sites' : 'http://rcredits.org');
 define('R_PATH', '/sites/all/modules/rcredits');
 global $rUrl; $rUrl = BASE_URL . R_PATH;

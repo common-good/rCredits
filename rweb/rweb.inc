@@ -4,11 +4,12 @@ use rCredits as r;
 use rCredits\Backend as be;
 use rCredits\Util as u;
 use rCredits\Testing as t;
-use rCredits\db as db;
+use rCredits\Db as db;
 use rCredits\Txs as x;
 use rCredits\Admin as a;
 use rCredits\Risk as k;
 use rCredits\Web as w;
+use rCredits\Vote as v;
 
 /**
  * @file
@@ -171,7 +172,7 @@ function rdo($code, $args = '') {
     $info = compact(u\ray('uid issue vote'));
     $vid = db\lookup('vid', 'r_votes', 'uid=:uid AND issue=:issue', compact('uid', 'issue'));
 //    $vid = 0;
-///debug(compact(u\ray('op args issue yes no vote info vid')));
+///  debug(compact(u\ray('op args issue yes no vote info vid')));
     if ($vid) db\update('r_votes', $info + compact('vid'), 'vid'); else db\insert('r_votes', $info);
     $say = t('Thank you for your RSVP! ');
     if (@$no) $say .= t('We will miss you. ');
@@ -463,39 +464,29 @@ function printInvite($accts = '') {
 }
 
 /**
- * Print a sheet of invitation cards for one member.
+ * Print a sheet of invitation cards for one member company.
  * @param acct $a: the account for which to print invitation cards
  * @param object $pdf: the pdf object in process
  */
 function printInvite1($a, &$pdf) {
   require_once __DIR__ . '/../pdf.class';
+
+  $co = $a->co;
+  $name = $a->shortName ?: $a->fullName;
+  $iCode = $a->iCardCode(IBY_EMAIL);
+  $iCode = substr($iCode, 0, 4) . ' &nbsp;' . substr($iCode, 4, 4) . ' &nbsp;' . substr($iCode, 8);
   
-  list ($mT, $mR, $mB, $mL) = [.5, .75, .5, .75]; // margins
-  list ($wCard, $hCard) = [3.5, 2]; // card dimensions
+  list ($mT, $mR, $mB, $mL) = $co ? [0, 0, 0, 0] : [.5, .75, .5, .75]; // margins
+  list ($y0, $dy, $wInvite, $wCode, $codeSize) = $co ? [.2, .18, 2.5, 1.9, 10] : [.125, .175, 2, 1.5, 9];
+  list ($dxInvite, $dyLine, $dxLine, $dyGoodFor) = $co ? [.25, .84, .25, .95] : [.08, .69, .125, .74];
+  if (strlen($name) < 30) $wInvite = 2; // center near the left if possible
+  list ($dxPic, $dyPic, $hPic, $dySite, $siteSize) = $co ? [.5, 1.2, 1.1, 2.35, 12] : [.62, .95, .8, 1.75, 10];
+  list ($wCard, $hCard) = $co ? [4.25, 2.75] : [3.5, 2]; // card dimensions
+  list ($goodFor) = $co ? [t('This card good for')] : [t('Get')];
   list ($wPage, $hPage) = [8.5, 11]; // page dimensions
-  $gLen = .1; // cutting guide length from card corner (for pluses in each corner of each card)
+//  $gLen = .1; // cutting guide length from card corner (for pluses in each corner of each card)
   $gStyle = ['color' => [192,192,192]];
 
-  $fullName = $a->shortName ?: $a->fullName;
-  $qid = $a->qid;
-  
-  $nameSize = strlen($fullName) > 21 ? '100px' : '120px';
-  list ($region, $zot) = explode(R_MEMBER_MARK, $a->mainQid);
-  $server = isPRODUCTION ? 'RC2.ME' : 'RC4.ME';
-  $qrUrl0 = "HTTP://$region.$server/-"; // the - (with nothing before it) indicates invitation
-  
-  $qrStyle = array( // set style for QR code
-    'border' => 0,
-    'vpadding' => '0',
-    'hpadding' => '0',
-    'fgcolor' => array(0,0,0),
-    'bgcolor' => false, //array(255,255,255)
-    'module_width' => 1, // width of a single module in points
-    'module_height' => 1, // height of a single module in points
-  );
-
-  $iCode = $a->lastiCode ? $a->lastiCode + 1 : IBY_ICARD;
-  
   $pdf->AddPage();
   
   for ($y = $mT; $y < $hPage - $mB; $y += $hCard) for ($x = $mL; $x < $wPage - $mR; $x += $wCard) { // each card
@@ -505,41 +496,18 @@ function printInvite1($a, &$pdf) {
       $pdf->Line($x+$dx, $y+$dy-$gLen, $x+$dx, $y+$dy+$gLen, $gStyle); // vertical
     } */
     
-    $pdf->say($fullName, $x, $y+.125, 2, '', '10', 'C');
-    $pdf->say('invites you to <span style="font-weight:bold; color:darkblue">rCredits<sup>&reg;</sup></span>', $x, $y+.3, 2, '', '10', 'C');
-    $pdf->say('the currency of a better future', $x, $y+.475, 2, '', '8;I', 'C');
-    $pdf->say('This card good for', $x, $y+.73, 2, '', '6.8', 'C');
-    $pdf->say('<sup style="color:silver; font-size:50%; font-weight:normal;">$</sup>' . R_HELPER_BONUS . ' &nbsp;', $x, $y+.78, 2, '', '44;B;color:brown', 'C');
-    $pdf->Image(__DIR__ . '/../images/idcard/rlogo.png', $x+1.27, $y+1.1, .21, .28, '', '', '', true); // file, x, y, w, h, type, link, align, resize
-    $pdf->say('at any member business when you join.', $x, $y+1.5, 2, '', '6.8', 'C');
-    $pdf->say('Activate your membership at <span style="font-weight:bold; color:darkgreen;">rCredits.org</span>. It\'s free!', $x, $y+1.71, 3.5, '', '10', 'C');
+    $pdf->say($name, $x+$dxInvite, $y+$y0, $wInvite, '', '10', 'C');
+    $pdf->say(t('invites you to') . ' <span style="font-weight:bold; color:darkblue">rCredits<sup>&reg;</sup></span>', $x+$dxInvite, $y+$y0+$dy, $wInvite, '', '10', 'C');
+    $pdf->say(t('the currency of a better future'), $x+$dxInvite, $y+$y0+2*$dy, $wInvite, '', '9;I;color:darkgreen;', 'C');
+    $pdf->Line($x+$dxLine, $y+$dyLine, $x+$wCard-$dxLine, $y+$dyLine, $gStyle); // x1, y1, x2, y2, style
+    $pdf->say(" $goodFor" . ' <span style="font-size:90%;"><sup>$</sup></span><span style="color:black;">' . R_SIGNUP_BONUS . '</span><span style="color:darkgreen;">r</span> ' . t('and 10% rewards at all member businesses.'), $x, $y+$dyGoodFor, $wCard, '', '9;color:darkgray', 'C');
+//    $pdf->say('<sup style="color:silver; font-size:50%; font-weight:normal;">$</sup>' . R_HELPER_BONUS . ' &nbsp;', $x, $y+.78, 2, '', '44;B;color:brown', 'C');
+    $pdf->Image(__DIR__ . '/../images/r=heart+$.png', $x+$dxPic, $y+$dyPic, 2.83*$hPic, $hPic, '', '', '', true); // file, x, y, w, h, type, link, align, resize
+    $pdf->say('Activate your membership at <span style="font-weight:bold; color:darkgreen;">rCredits.org</span>. It\'s free!', $x, $y+$dySite, $wCard, '', $siteSize, 'C');
 
-    $style4 = array('L' => 0,
-                'T' => array('width' => 0.25, 'cap' => 'butt', 'join' => 'miter', 'dash' => '2,1', 'phase' => 10, 'color' => array(100, 100, 255)),
-                'R' => array('width' => 0.50, 'cap' => 'round', 'join' => 'miter', 'dash' => 0, 'color' => array(50, 50, 127)),
-                'B' => array('width' => 0.75, 'cap' => 'square', 'join' => 'miter', 'dash' => '3,1,.5,1'));    
-    $white = ['color' => [255,255,255]];
-    //['T'=>$white, 'R'=>$white, 'B'=>[], 'L'=>[]]
-//    $pdf->Rect($x+2, $y, 1.5, 1.64, 'DF', '', [255,255,255]); // x, y, w, h, style, border_style, fill_color
-    $pdf->say('Invitation #', $x+2, $y+.125, 1.5, '', '8', 'C'); // text, x, y, w, h, format, align, borders
-    $code = $a->iCardCode($iCode);
-    $pdf->write2DBarcode($qrUrl0 . $code, 'QRCODE,M', $x+2.21, $y+.53, 1.05, 1.05, $qrStyle = ''); // code, type, x, y, w, h, $style (L,M,Q,H are low-high error-correction)
-    $code = substr($code, 0, 4) . ' &nbsp;' . substr($code, 4, 4) . ' &nbsp;' . substr($code, 8);
-    $pdf->say($code, $x+2, $y+.26, 1.5, '', '9;color:darkred;Verdana', 'C'); // text, x, y, w, h, fmt, align, borders
-    $iCode++;
+    $pdf->say('Invitation #', $x+$wCard-$wCode, $y+$y0+$dy-.02, $wCode, '', $codeSize, 'C'); // text, x, y, w, h, format, align, borders
+    $pdf->say($iCode, $x+$wCard-$wCode, $y+$y0+2*$dy-.02, $wCode, '', $codeSize . ';color:darkred;Verdana', 'C'); // text, x, y, w, h, fmt, align, borders
   }
-  
-  $pdf->say('<span style="font-weight:bold; color:darkgreen;">rCredits<sup>&reg;</sup></span> Invitation Cards <span style="font-size:80%;">(print each unique sheet only once)</span>', .8, .2, '', '', '10');
-  $pdf->say('Cards are 2"x3.5". Cut off 1/2" at top and bottom, 3/4" at sides, as marked.', .8+3.5, .25, '', '', '7');
-/* fails. dunno why. debug? build the source with Acrobat?
-  global $rUrl;
-  $pageCount = $pdf->setSourceFile("$rUrl/InviteCards.pdf");
-  $tpl = $pdf->importPage(1, '/MediaBox');
-
-  $pdf->addPage();
-  $pdf->useTemplate($tpl, 10, 10, 90);  
-  */
-  $a->update('lastiCode', $iCode - 1);
 }
 
 /**
@@ -652,7 +620,7 @@ function statement($month) {
   foreach (['fields', 'fields2'] as $f) {
     foreach ($$f as $one) {
       list ($head, $fldName, $width, $align) = explode('/', $one);
-      $pdf->Cell($width, 0, $fldName ? $$fldName : '', '', $fldName[strlen($fldName) - 1] == '9' ? 1 : 0, $align);
+      $pdf->Cell($width, 0, $fldName ? $$fldName : '', '', @$fldName[strlen($fldName) - 1] == '9' ? 1 : 0, $align);
     }
   }
   
@@ -727,7 +695,8 @@ define('R_GIFT_SHOWHIDE', "var other = jQuery('.form-item-amount'); if(jQuery('#
 
 function formDonate($form, &$sta) {
   $mya = r\acct();
-  $donated = $mya->share ? (t('<p>You have already made a donation. Thank you! Please feel free to donate again. Whatever "share" percentage you choose this time will replace your previous choice') . " ($mya->share%).</p>") : '';
+  $donated = $mya->share ? t('<p>You have already made a donation. Thank you! Please feel free to donate again.</p>') : '';
+  //  Whatever "share" percentage you choose this time will replace your previous choice') . " ($mya->share%).
   $giftLevels = array(
   // 10000 => t('Marble .. $10,000'),
   // 5000 => t('Granite ... 5,000'),
@@ -747,10 +716,10 @@ function formDonate($form, &$sta) {
   $onchange = str_replace('show()', "show(); jQuery('#edit-amount').focus()", R_GIFT_SHOWHIDE);
   $giftAttrib = attrib(compact('onchange'));
    
-  $delay = $mya->ok ? '' : t(' The amount you choose will come from your account once it is activated and has enough funds.</p>');
+  $inSetup = $mya->ok ? '' : t(' The amount you choose will come from your account once it is activated and has enough funds.</p><p>Also choose a percentage of your ongoing incentive rewards to share with Common Good Finance.');
   $form = array(
     'title' => item(t('Donate to Common Good Finance')),
-    'subtext' => item($donated . t('<p>Make a gift of any size, to help support the rCredits system. Buy a BRICK or some other piece of the Common Good Economy, as a tax-deductible donation (one-time, monthly, or quarterly). <b class="loud">NOTE: This is a donation, not a deposit.</b>') . "$delay</p><p>" . t('Also choose a percentage of your ongoing incentive rewards to share with Common Good Finance.') . t('</p><p>Thank you for your support!</p>')),
+    'subtext' => item($donated . '<p>' . t('Make a gift of any size, to help support the rCredits system. Buy a BRICK or some other piece of the Common Good Economy, as a tax-deductible donation (one-time, monthly, or quarterly). <b class="loud">NOTE: This is a donation, not a deposit.</b>') . $inSetup . t('<p>Thank you for your support!</p>')),
     'gift' => selectFld(t('Donation:'), '', required($mya->co ? R_COMPANY_GIFT : R_INDIVIDUAL_GIFT) + $giftAttrib, $giftLevels),
     'amount' => textFld(t('Other amount $'), ''),
     'often' => selectFld(t('When:'), '', required(), $oftens),
@@ -765,12 +734,13 @@ function formDonate($form, &$sta) {
 }
 
 function formDonate_validate($form, &$sta) {
+  $mya = r\acct();
   js(R_GIFT_SHOWHIDE, 'inline', 'footer');
   extract(u\just('gift amount share often', $sta['input']));
   if (!$amount = $gift ?: $amount) return say('missing field', array('field' => 'amount'), 'amount');
   if (!$often) return say('missing field', array('field' => 'when'), 'often');
   if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
-  if ($err = w\badShare($share)) return say($err, 'share');
+  if (!$mya->ok and $err = w\badShare($share)) return say($err, 'share');
 //  $share = min($share, 999.999); // any bigger kills PDO
   $sta['input'] = compact(u\ray('amount share')) + $sta['input'];
 }
@@ -784,7 +754,7 @@ function formDonate_submit($form, &$sta) {
   $giftDate = r\rTime();
   $info += compact('uid', 'giftDate');
   $donid = db\insert('r_gifts', $info);
-  $mya->update(u\just('share', $info));
+  if (!$mya->ok) $mya->update(u\just('share', $info));
   $msg = 'gift successful';
   if (!r\acceptGift($info + compact('donid'))) $msg .= '|gift transfer later';
 
@@ -1158,24 +1128,27 @@ function formInvite($form, &$sta) {
   //      <li>Order @orderCount sheets of 10 invitation cards by mail (free!). @orderSubmit</li>
 //      <li><b>OR</b> Print @printCount sheets of 10 invitation cards. @printFront @printBack</li>
 
-  $aFront = "a href=$base_url/community/invite/print target=_blank class=.nospin";
-  $aBack = 'a href=http://commongoodfinance.org/files/promo/invitation-back.pdf target=_blank';
+  $aSheet = "a href=$base_url/community/invite/print target=_blank class=.nospin";
+//  $aBack = 'a href=http://commongoodfinance.org/files/promo/invitation-back.pdf target=_blank';
   list ($region, $zot) = explode(R_MEMBER_MARK, $mya0->mainQid);
   foreach (u\ray('NEW MIW') as $k) if ($region == $k) {
     list ($nm, $zot) = explode('@', $mya0->cttyA->email);
-    $aBack = str_replace('-back', '-back-' . $nm, $aBack);
+//    $aBack = str_replace('-back', '-back-' . $nm, $aBack);
   }
+  $friend = $mya->co ? t('customer, employee, or supplier') : t('friend');
+  $size = $mya->co ? '4.25" &times; 2.75"' : '3.5" &times; 2"';
+  
   $subtext2 = tt(<<<EOF
-<p>Your friends and neighbors can join rCredits <b>only if you invite them</b>. Get a $@R_HELPER_BONUSr reward for each friend you invite, who signs up! You may need to help or remind the people you invite.</p><p>Invite <b>only people you trust</b> who live, shop, or work in your community. <@a2>Who you have invited</a> <@a1>People waiting to be invited</a></p>
+<p>Your friends and business associates can join rCredits <b>only if you invite them</b>. Get a $@R_HELPER_BONUSr reward for each $friend you invite, who signs up! You may need to help or remind the people you invite.</p><p>Invite <b>only people you trust</b> who live, shop, or work in your community. <@a2>Who you have invited</a> <@a1>People waiting to be invited</a></p>
   <br>
-  <p>There are three different ways to invite someone:</p>
+  <p>Here are three different ways to invite someone:</p>
     <ul>
-      <li><b>BEST: Print a sheet</b> of 10 invitation cards (on card stock). [<@aFront>front</a>] [<@aBack>back</a>]<br>(or <a href="mailto:info@rCredits.org?subject=rCredits Invitation Card request&body=Please send me 10 more rCredits invitation cards. Thanks! -- $mya->fullName (account #$mya->mainQid)" target="_blank">ask to have some mailed to you</a> at no charge)</li>
-      <li><b>Tell your friend(s)</b> to sign in at rCredits.org with invitation # @inviteCode<br>or send them this link: <div id=inviteLink>@inviteLink</div></li>
+      <li><b>BEST: <@aSheet>Print</a> a sheet</b> of invitation cards ($size, on card stock).<br>(or <a href="mailto:info@rCredits.org?subject=rCredits Invitation Card request&body=Please send me some more rCredits invitation cards. Thanks! -- $mya->fullName (account #$mya->mainQid)" target="_blank">ask to have some mailed to you</a> at no charge)</li>
+      <li><b>Tell your $friend</b> to sign in at rCredits.org with invitation #&nbsp;@inviteCode or send them this link: <div id=inviteLink>@inviteLink</div></li>
       <li><b>Complete this form</b> to send an invitation NOW:</li>
     </ul>
 EOF
-  , compact(u\ray('a1 a2 where aFront aBack inviteLink inviteCode')));
+  , compact(u\ray('a1 a2 where aSheet inviteLink inviteCode')));
 //  (Later, you will need to confirm you know and trust them.)
   $subtext = item(!@$nearly ? $subtext1 : ($subtext2 . $warning));
 //  $contact = textFld(t('Email or Cell:'), t('An email address or cell number for the person you want to invite'), required());
@@ -1332,6 +1305,8 @@ function formSummary($form, &$sta, $qid = '') {
   global $base_url;
   if (!$mya = r\acct()) return r\go(isGAME ? 'community/game' : 'signin'); // this cannot be '' (infinite redirect)
   if ($mya->closed) say(t('Your account is closed, but you can still see your account history.'));
+  $myid = $mya->id;
+  
   if ($mya->can(B_REGULATOR)) { // some kind of admin (regulator, cAdmin2, cAdmin, or admin
     include_once __DIR__ . '/../admin/admin-web.inc';  
     if (!$a = r\acct($qid)) return r\go('/sadmin/member-list', t('Unrecognized Account Code: ') . $qid, 'ERR');
@@ -1347,7 +1322,7 @@ function formSummary($form, &$sta, $qid = '') {
 
     if ($mem = formMembership($a)) { // all steps complete
       if (u\test() and $mem !== TRUE) return $mem; // redirected to another page
-      if (!$a->ok and !$a->closed) say('setup complete');
+      if (!$a->ok and !$a->closed) say('setup complete' . ($a->confirmed ? '' : '|must be confirmed'));
     } else say('take a step');
     
     if ($a->legalName != $a->fullName) $legalName = item($a->legalName, t('Legal Name:'));    
@@ -1356,7 +1331,8 @@ function formSummary($form, &$sta, $qid = '') {
     $returnMo = item("$returnMo% APR " . t('over the past month'), t('Your return:'));
     $return = item("$return% APR " . t('overall (ever)'), ' ', t('Your effective rate of return on your average balance [<@a>details</a>]', u\ray('@a', 'a href=help/your-return')));
     $cttyBeneMo = item("$cttyBeneMo " . t('over the past month'), t('Social return:'));
-    $cttyBene = item("$cttyBene " . t('overall (ever)'), ' ', t('How much your participation has benefited the community financially [<@a>details</a>]', u\ray('@a', 'a href=help/social-return')));    
+    $cttyBene = item("$cttyBene " . t('overall (ever)'), ' ', t('How much your participation has benefited the community financially [<@a>details</a>]', u\ray('@a', 'a href=help/social-return')));  
+    
     $form = compact(u\ray('legalName returnMo return cttyBeneMo cttyBene'));
   }
   
@@ -1378,6 +1354,10 @@ function formSummary($form, &$sta, $qid = '') {
     $balance = item($balance . "<small>$balanceDesc</small>", t('Balance:'));
     $savings = item(u\fmtAmt($a->j_savings) . t('<small> (including @rewards in rewards to date)</small>', ['@rewards' => u\fmtAmt($a->j_rewards)]), t('Savings:'), t('funds set aside for later') . ($a->co ? '' : t(' or as needed')));
     $committed = item(u\fmtAmt(max(0, $a->j_committed)), t('Committed:'), t('reserved for donation to Common Good Finance'));
+
+    $invites = db\count('r_invites', 'inviter=:myid', compact('myid'));
+    $successes = db\count('users', 'helper=:myid AND (:IS_OK OR :IS_CLOSED)', compact('myid'));
+    $invites = item(t('You have invited @invites people (@successes are now members).', ['@invites' => $invites, '@successes' => $successes]), t('Invitations:'));    
 /* disable for now    $floorDesc = t('If you choose "Debt Okay", your combined balance (account balance plus savings reserve) can go this far below zero.')
     . ($a->j_floor < 0 ? t(' for up to 30 days with no charge') : '')
     . '. ' . t('See "Debt Okay" in') . " <a href=\"$base_url/settings/preferences\">Preferences</a>.";
@@ -1395,7 +1375,7 @@ function formSummary($form, &$sta, $qid = '') {
   } else $extra = '';
   $accountId = fld('item', t('ID:'), '', ($a->mainQid ?: 'N/A') . ' (' . $acctType . ')' . $extra);
 
-  $fields = 'title clickPhoto openCompany photo accountName accountId community balance savings creditLimit committed';
+  $fields = 'title clickPhoto openCompany photo accountName accountId community balance savings creditLimit committed invites';
   return labeled(compact(u\ray($fields)) + $form);
 }
 
@@ -1433,73 +1413,66 @@ function formSummary_validate($form, &$sta) {
   u\preray(compact(u\ray('helper who creditLimit')), $sta['input']);
 }
 
-/*
-$helper = 25026000000025; // PFC
-$a = a(25026000000116); // taylor
-        $h = f('r.acct',$helper); // not $a->helper
-        $fullName = $a->fullName;
-        
-        if (!$a->confirmed) { // helper has not confirmed yet
-          $a1 = $h->makeDo('confirmInvite', $a->id); // link to confirm invitedness (
-          f('r.message',$helper, 'confirm invite', compact('a1', 'fullName')); // ask inviter to confirm
-        }
-*/
-
 function formSummary_submit($form, &$sta) {
   include_once __DIR__ . '/../admin/admin.inc';
   
+  $mya = r\acct();
   if (op($sta) == 'openCompany') return r\go('signup-company');
-  if (!r\acct()->cAdmin) return; // hack attempt
+  if (!$mya->cAdmin) return; // hack attempt
 
   extract(u\just('uid who legalName federalId creditLimit notes helper mediaConx moves rTrader risks adminable', $sta['input']));
   $a = r\acct(@$uid);
-  $aa = $a->agent;
 
   $a->stampNotes($notes);
-  if (@$who and ($who->community == $aa->community or $aa->id == 1)) {
-    svar('myid', $who->id); // make it the new current account
-    list ($newAcct, $oldAcct) = array($who->fullName, $a->fullName);
-    return say('changed account|lost old changes', compact('newAcct', 'oldAcct'));
-  } 
   
-  $DBTX = \db_transaction();
+  if ($mya->admin) { // most of this is for regional admin only
+    $aa = $a->agent;
+    if (@$who and ($who->community == $aa->community or $aa->id == 1)) {
+      svar('myid', $who->id); // make it the new current account
+      list ($newAcct, $oldAcct) = array($who->fullName, $a->fullName);
+      return say('changed account|lost old changes', compact('newAcct', 'oldAcct'));
+    } 
+    
+    $DBTX = \db_transaction();
 
-  if ($a->isNormal) {
-    $fullName = $a->fullName;
-    if (!$a->confirmed and @$helper and @$helper != $a->helper) { // helper has not confirmed yet (must be self-signup)
-      $a1 = r\acct($helper)->makeDo('confirmInvite', $a->id); // link to confirm invitedness
-      r\message($helper, 'confirm invite', compact('a1', 'fullName')); // ask inviter to confirm
+    if ($a->isNormal) {
+      $fullName = $a->fullName;
+      if (!$a->confirmed and @$helper and @$helper != $a->helper) { // helper has not confirmed yet (must be self-signup)
+        $a1 = r\acct($helper)->makeDo('confirmInvite', $a->id); // link to confirm invitedness
+        r\message($helper, 'confirm invite', compact('a1', 'fullName')); // ask inviter to confirm
+      }
+
+      if ($rTrader and !$a->ok) { // activating the account
+        $DBTX2 = \db_transaction();
+        u\EXPECT($helper, 'no helper!');
+        $a->update(compact('helper')); // this must happen before activating account (on next line)
+        r\membershipEvent($a, 'ok', $rTrader);
+        a\secureVery($a);
+        if (!$a->co) {
+  //        if (!a\shrinkPhoto($a, $err)) return say($err, 'ERR');
+          r\membershipEvent($a, 'bona');
+          $adminable[B_BONA] = B_BONA; // otherwise gets unset
+        }
+        unset($DBTX2); 
+      } elseif (@$federalId and $federalId != $a->federalId) $a->update('ssnData', '');
     }
 
-    if ($rTrader and !$a->ok) { // activating the account
-      $DBTX2 = \db_transaction();
-      u\EXPECT($helper, 'no helper!');
-      $a->update(compact('helper')); // this must happen before activating account (on next line)
-      r\membershipEvent($a, 'ok', $rTrader);
-      a\secureVery($a);
-      if (!$a->co) {
-//        if (!a\shrinkPhoto($a, $err)) return say($err, 'ERR');
-        r\membershipEvent($a, 'bona');
-        $adminable[B_BONA] = B_BONA; // otherwise gets unset
-      }
-      unset($DBTX2); 
-    } elseif (@$federalId and $federalId != $a->federalId) $a->update('ssnData', '');
-  }
+    $a->setBit(B_OK, $rTrader, TRUE);
+    $risks0 = $a->risks;
+    $a->setRisks(@$risks);
+    if ($a->risks != $risks0) {
+      include_once __DIR__ . '/../rcredits-risk.inc';
+      k\acctRisk1($uid);
+    }
 
-  $a->setBit(B_OK, $rTrader, TRUE);
-  $risks0 = $a->risks;
-  $a->setRisks(@$risks);
-  if ($a->risks != $risks0) {
-    include_once __DIR__ . '/../rcredits-risk.inc';
-    k\acctRisk1($uid);
-  }
-
-  $a->setBits(@$adminable);
-  if ($a->helper and ($a->ok or !@$helper)) unset($helper); // don't overwrite if too late or empty
-//  $floor = -$creditLimit;
-  $a->update(compact(u\ray('legalName federalId floor notes helper mediaConx moves')));
+    $a->setBits(@$adminable);
+    if ($a->helper and ($a->ok or !@$helper)) unset($helper); // don't overwrite if too late or empty
+  //  $floor = -$creditLimit;
+    $a->update(compact(u\ray('legalName federalId floor notes helper mediaConx moves')));
+    
+    unset($DBTX);
+  } else $a->update(compact('notes')); // community admin
   
-  unset($DBTX);
   say('info saved');
 }
 
@@ -1786,29 +1759,8 @@ function formAccounts($form, &$sta) {
       $links .= "<li>$one</li>\n";
     }
     $account = item("<ul>$links</ul>");
-    /*
-    $chunks = explode('/', $page);
-    if (isDEV) array_shift($chunks); // site is in a subfolder on the dev server
-    $function = @$chunks[1]; // normally just one part of URI is the page (but sometimes two)
-    foreach (u\ray('account user') as $one) {
-      if (in_array($one, $chunks) and @$chunks[2]) $function .= '/' . $chunks[2];
-    }
-*/
-    //$functionName = ucwords($function);
-//    $help = imageButton("help/$function", "Help for $functionName", 'qmark-white.png');
-//    $menu = imageButton('menu', 'Show Menu', 'menu.png');
-    
-  //  $showMenu = fld('item', '', '', button('Menu', '', 'Show the menu'));
-  //  $showHelp = fld('item', '', '', button('Help', '', 'Help for ' . ucwords($function)));
-    //$showMenu = item($menu);
-    //$showHelp = item($help);
-  //  $version = item(t('v 0.1d'));
-  //  $form = u\prefixKeys('acct_', compact(u\ray('settings account icon showMenu showHelp submit index')));
   }
-//  $menu = formMenu($function);
-
-  //$help = help($function);
-  //$form += $help; // + $menu;
+  
   $form = u\prefixKeys('acct_', compact(u\ray('account')));
   
   return $form;
@@ -1818,6 +1770,59 @@ function formAccounts_submit($form, &$sta) {
   extract(u\just('op acct_account', $sta['input']));
   $op = op($sta);
   if ($op == 'Menu') return r\go('menu'); 
+}
+
+/**
+ * Provide infrastructure for members to discuss and vote.
+ */
+function formDemocracy($form, &$sta, $args = '') {
+  global $base_url;
+  include_once __DIR__ . '/../rvote/rvote.inc';
+  include_once __DIR__ . '/../rvote/rvote-ballot.inc';
+  
+  extract(u\just('question do', $args));
+
+  $mya = r\acct();
+  $cttyA = $mya->cttyA;
+  $title = w\item(t('Community: ') . $cttyA->fullName);
+
+  if (!@$do or $do == 'options' or $do == 'results') {  
+    list($questionList, $voting) = v\questionList($cttyA, @$question, @$do);
+
+    $votebutton = !$voting ? '' : <<<EOF
+    <div id='votenow'>
+    <div><input type='button' onclick="$base_url/community/democracy/do=ballot" value='Vote Now!'></div>
+    <div class='halfdown'>Polls close at midnight on $voting.</div>
+    </div votenow>
+EOF;
+    $middle = $votebutton . $questionList;
+  } elseif ($do == 'ballot') {
+    $middle = v\ballot($extraFields, @$question);
+//    debug(compact('middle', 'extraFields')); $middle = $extraFields = '';
+  } elseif ($do == 'done') {
+    $middle = v\done();
+  } else $middle = t('Invalid democracy parameter(s)');
+  
+  $middle = w\item(@$middle);
+
+  js('js/rvote/ballot.js', 'file', 'footer');
+  css('css/rvote.css');
+  
+  return labeled(compact(u\ray('title middle')) + (@$extraFields ?: []));
+}
+
+function formDemocracy_submit($form, &$sta) {
+  extract(u\just('question', $sta['input']));
+  $mya = r\acct();
+  
+  list($quids, $qutypes) = v\getQuestions($mya->community); 
+  v\processvote($sta['input'], $qutypes[$question]); // any errors are handled by javaScript (only the user suffers if no JS)
+  $qnum = array_search($question, $quids); // this works even if the number of elections/questions changes during voting
+  if (w\op($sta) == 'submit') $qnum++; else $qnum--;
+
+  if ($qnum < 0) return say(t('Previous question has been deleted.')); // stay on current question
+  $args = $qnum < count($quids) ? 'do=ballot&question=' . $quids[$qnum] : 'do=done';
+  return r\go('community/democracy/' . $args); 
 }
 
 /**
@@ -2019,39 +2024,6 @@ function formPayroll_submit($form, &$sta) {
   }
 }
 
-/// old quickbooks exported report import
-/*  
-  $coName = u\roughName($rows[0][0]);
-  if ($coName != u\roughName($mya->legalName) and $coName != u\roughName($mya->fullName)) return say('wrong payroll co', u\ray('coName', $mya->fullName == $mya->legalName ? $mya->fullName : "$mya->legalName or $mya->fullName"), 'payroll');
-  if (@$rows[1][0] != 'Payroll Details') return say('not payroll csv', 'payroll');
-  $total = 0;
-
-  foreach ($rows as $i => $row) {
-    $v0 = $row[0];
-    if ($v0 == 'Total') break;
-    $line = $i + 1;
-    $subs = compact('line');
-    
-    if (!@$deductionsCol) {
-      if ($v0 == 'Employee' and !$deductionsCol = array_search('Deductions', $row)) return say('bad payroll csv', $subs, 'payroll'); else continue;
-    }
-    if ($v0 and substr($v0, 0, 1) != ' ') { // all first cells except for employee name begin with space
-      if (!strpos($period = trim(@$rows[$i + 4][0]), '-')) return say('bad payroll csv', u\ray('line', $line + 4), 'payroll');
-      $employee = $v0;
-    }
-    if ($row[$deductionsCol] == 'rCredits') {
-      $amt = $row[$deductionsCol + 1];
-      if ($err = u\badAmount($amt, '>0')) return say('bad payroll csv|' . $err, $subs, 'payroll');
-      if (!@$employee) return say('bad payroll csv|' . t('Missing employee name.'), $subs, 'payroll');
-      if (!$uid = r\worksForUs($employee)) return say('bad payroll employee', $subs + u\ray('employee', $employee), 'payroll');
-      $toPay[] = array($uid, $amt, $period);
-      $total += $amt;
-      $employee = $amt = $period = '';
-    }
-  }
-  if (!@$deductionsCol) return say('bad payroll csv', u\ray('line', t('0 -- missing headers')), 'payroll');
-*/
-
 function formMenu($form, &$sta) {return array('title' => item('Menu'));}
 
 /**
@@ -2066,27 +2038,6 @@ function formEmpty($form, &$sta = '', $doSay = FALSE) {
 /// FAILS :(  if ($doSay == 'test') $testMessages = item(print_r(\drupal_get_messages(), 1));
   return labeled(compact(u\ray('title testMessages subtext')));
 }
-
-/*
-function formSettings($form, &$sta) {
-  $mya = r\acct();
-  $tabs = u\ray('contact preferences security bank company relations boxes proxies');
-  $captions = u\ray(t('Contact,Preferences,Security,Bank Info,Company,Relations,Devices,Proxies'));
-  $title = item('Settings');
-  foreach(array_combine($tabs, $captions) as $tab => $caption) {
-    $img = imageButton("settings/$tab", $caption, "$tab.png");
-    $icons[$tab] = item("<div class=\"img\">$img</div><div class=\"caption\">$caption</div>");
-  }
-//  $icons['photo'] = str_replace('.png', rand(0, 1) ? '-f.png' : '-m.png', $icons['photo']);
-  if ($mya->co) {
-    unset($icons['security']);
-    unset($icons['proxies']);
-  }
-  if (!$mya->co) unset($icons['company']);
-  $icons = item(\drupal_render($icons));
-  return compact(u\ray('title icons'));
-}
-*/
 
 /**
  * Pay with rCredits, arriving from some other site or from rDo().
@@ -2240,7 +2191,7 @@ function formGet($form, &$sta, $args = '') {
   $title = item(t('Bank Transfer'));
   $subtext = item(t('<p>Transfer funds to or from your connected bank account. Transfers may take 3-5 business days.</p><p>To refill your rCredits account automatically (or not), as needed, adjust your "minimum" setting on the <@a>Preferences</a> page.</p>', ['@a' => "a href=$base_url/settings/preferences"]) . tt('note|ach warning'));
 
-//  $minimum = textFld(t('Minimum:'), tt('prompt min'), dft(u\fmtAmt($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
+//  $minimum = textFld(t('Minimum:'), tt('prompt min'), dft(u\fmtAmt(!$mya->prefsSet ? $mya->minimum : R_MINR_DEFAULT, 's')));
   $toSpend = u\fmtAmt($mya->avail(FOR_GOODS));
   $waiting0 = $mya->waitingToBank();
 
@@ -2269,11 +2220,11 @@ function formGet($form, &$sta, $args = '') {
   $balance = item(tt('balances', compact('toSpend', 'toCash')), t('Available:'));
   $amount = textFld(t('Amount $'), t('Transfer how much?') . ($mya->admin ? t(' (no limit for admin)') : ''));
   $get = submit(BARE . t('From Bank'));
-//  $fromBank = fld('checkbox', t('Automate:'), t('(recommended) Refill my rCredits account from my bank account automatically, as needed.'), dft($isSetUp ? $mya->can(B_FROM_BANK) : TRUE));
+//  $fromBank = fld('checkbox', t('Automate:'), t('(recommended) Refill my rCredits account from my bank account automatically, as needed.'), dft(!$mya->prefsSet ? $mya->can(B_FROM_BANK) : TRUE));
   
-//  $maximum = textFld(t('Maximum:'), tt('prompt max'), dft(u\fmtAmt($isSetUp ? $mya->maximum : R_MAXR_DEFAULT, 's')));
+//  $maximum = textFld(t('Maximum:'), tt('prompt max'), dft(u\fmtAmt(!$mya->prefsSet ? $mya->maximum : R_MAXR_DEFAULT, 's')));
 //  $excess = textFld(t('Excess'), '', dft(u\fmtAmt($mya->overMax(), 's')));
-//  $toBank = fld('checkbox', t('Automate:'), t('Transfer any excess to my bank account automatically every few days.'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
+//  $toBank = fld('checkbox', t('Automate:'), t('Transfer any excess to my bank account automatically every few days.'), dft(!$mya->prefsSet ? $mya->can(B_TO_BANK) : TRUE));
   $put = submit(BARE . t('To Bank'));
   $actions = fieldSet('actions', compact('get', 'put'));
 
@@ -2315,39 +2266,6 @@ function formGet_submit($form, &$sta) {
   r\tellStaff('banked' . $extra, $subs);
 //  } else return say('cannot bank', compact('action', 'error'), 'amount'); // delete this when we ditch Dwolla
 }
-
-/**
- * Create a pseudo-account (with no personal data and no money)
- */ /*
-function formAgent($form, &$sta) {
-  $mya = r\acct();
-  if (!@$mya or !$mya->co) r\go(''); // no error message, in case user changed accounts
-  $title = item(t('Open an rPOS Sign-in Account'));
-  $subtext = item(t('Use this form only for cashiers who do not wish to participate in the rCredits system as individuals.'));
-  $optedOut = boolFld(t('Opted out:'), t('Was this agent invited to open a personal rCredits account? And did this agent decide not to?'));
-  $fullName = textFld(t('Name:'), t('The person\'s full name'), required());
-  //$permissions = radiosFld(t('Permissions:'), '', required(), u\ray('read only,charge customers'));
-//  $employee = boolFld(t('Employee?'), t('Is this person an employee of the company?'));
-//  $pay = textFld(t('Pay:'), t('How much is this agent paid by the company each month (on average)?'), required());
-  $submit = submit(t('Create Account'));
-  return labeled(compact(u\ray('title subtext optedOut fullName submit')));
-}
-
-function formAgent_validate($form, &$sta) {
-  extract(u\just('optedOut fullName', $sta['input']));
-  if (!$optedOut) return say('must opt', 'optedOut');
-  if (u\badName($fullName)) return say('bad name', 'fullName');
-//  if (u\badAmount($pay)) return say('bad amount', 'pay');
-}
-
-function formAgent_submit($form, &$sta) {
-  extract(u\just('fullName permissions', $sta['input']));
-  $a = new r\acct(compact('fullName'));
-//  $perms = ($permissions ? B_SCAN : B_READ) - B_RELATED;
-  $info = u\ray('main other permission', r\acct()->id, $a->id, B_SCAN - B_RELATED);
-  if (db\insert('r_relations', $info)) return r\go('', 'agent created');
-}
-*/
 
 /**
  * Prepare to open a company account.
@@ -2513,7 +2431,7 @@ function formSignup_validate($form, &$sta) {
   //and @$code != bin2hex(R_WORD)
 
   \variable_set('signupData', u\ray('time phone state companyOptions', time(), @$phone, @$state, @$companyOptions));
-  if (!emailOkay($email)) return;
+  if (!emailOkay($email, $acctType != R_PERSONAL)) return;
   if (!phoneOk($phone, $country)) return;
   if ($err = u\badZip($postalCode)) say($err, 'postalCode');
   if (!@$state) return say('bad state', 'state');
@@ -2587,7 +2505,7 @@ function formSignup_submit($form, &$sta) {
   if (@$iCode < 0) w\invitation($code, $myid); // mark the invitation used
   $email = u\cryptN($email);
   db\q('UPDATE r_invites SET invitee=:myid WHERE email=:email', compact('myid', 'email')); // and all such
-  if (!$owns) $mya->setRisk('rents');
+  if (!@$owns) $mya->setRisk('rents');
   
   if (@$signupCo) {
     suCompanyRelation($myid, $signupCo);
@@ -2668,7 +2586,7 @@ function formContact_validate($form, &$sta) {
     if ($otherName) return say('shortname taken', compact('otherName'), 'fullName');
   }
 
-  if (!emailOkay($email, $mya)) return; // say('bad email', u\ray('email', $email), 'email');
+  if (!emailOkay($email, $mya->co, $mya)) return; // say('bad email', u\ray('email', $email), 'email');
   if (!$mya->admin and $email != $mya->email and $pin != $mya->agent->pin) return say('bad pin', 'pin');
   if (!phoneOk($phone, $country)) return;
   if (stripos(@$address, ' box ') or stripos(@$address, 'pob ') !== FALSE) return say('po in location', 'address');
@@ -2752,29 +2670,6 @@ EOF;
   return compact(u\ray('title subtext list'));
 }
 
-/**
- * Ask for the 5-digit phone verification code that Dwolla sent.
- *//*
-function formVerifyPhone($form, &$sta) {
-  $mya = r\acct();
-  $title = item(t('Verify Phone'));
-  $subtext = item(t('<p>A verification code has been sent to your phone (@phone). Please enter it here.</p><p>Or, if you need to use a different telephone, <@a>click here to return to the Contact Information page</a>.</p>', u\ray('@phone @a', u\fmtPhone($mya->phone), 'a href=contact')));
-  $code = textFld(t('Code:'), t('<@a>Send it again?</a>', u\ray('@a', 'a href=readd-phone')));
-  $submit = submit(t('Continue'));
-  return labeled(compact(u\ray('title subtext code submit')));
-}
-
-function formVerifyPhone_validate($form, &$sta) {
-  if (strlen($code = u\digits($sta['input']['code'])) != 5) return say('bad phone code', 'code');
-  $us = new r\usd($mya = r\acct());
-  if (!$us->verifyPhone(svar('phoneId'), $code, $err) and $us->step() == 'Phone') return say($err, 'code');
-}
-
-function formVerifyPhone_submit($form, &$sta) {
-  return r\go('status', 'phone verified');
-}
-*/
-
 define('R_BASIC_FIELDS', 'first last org federalId dob');
 
 /**
@@ -2828,8 +2723,7 @@ function formBank($form, &$sta, $args = '') {
 
   $title = item(t('Bank Information'));
   
-  if ($hasBank = $mya->risk('hasBank')) {
-    $bankAccount = $mya->bankAccount;
+  if ($hasBank = $mya->risk('hasBank') and $bankAccount = $mya->bankAccount) {
     if ($usa) list ($route, $bankAccount) = u\parseBankAccount(@$bankAccount);
     $bankAccount = str_repeat('x', strlen($bankAccount) - 4) . substr($bankAccount, -4, 4);
     $bankAccount = item($bankAccount, t('Account:'));
@@ -2839,7 +2733,7 @@ function formBank($form, &$sta, $args = '') {
     $doConnect = (int) !@$mya->stepsDone['connect'];
     $securityLink = r\promoLink('security.html');
     $reassurance = $mya->minimum ? '' : t('<p><b>NOTE:</b> Funds will be taken from your bank account ONLY when you explicitly request a transfer or when you choose an rCredits minimum balance greater than zero.</p>');
-    $subtext = item(t('<p>Choose how you want to get money into your rCredits account. Most people find it convenient to connect a checking account. Connecting lets you use your rCard like a debit card. Otherwise you can trade US Dollars for rCredits at a participating business.</p><p>Complete this form to connect your checking account and authorize funds to be taken from your checking account in exchange for any rCredits you request, in amounts not to exceed $1,000 per day. Funds may be transferred either by Remotely-Created Check (RCC) or by Automated Clearing House (ACH) direct debit. See our <@a>Privacy and Security Policy</a> for details on how your information is protected.</p>', ['@a' => "a href=$securityLink target=_blank"]) . $reassurance . t('<p>Do you want to connect your checking account at this time?</p>'));
+    $subtext = item(t('<p>Choose how you want to get money in and out of your rCredits account. Most people find it convenient to connect a checking account. Connecting lets you use your rCard like a debit card. Otherwise you can trade US Dollars for rCredits at a participating business.</p><p>Complete this form to connect your checking account and authorize funds to be taken from your checking account in exchange for any rCredits you request. Funds may be transferred either by Remotely-Created Check (RCC) or by Automated Clearing House (ACH) direct debit. See our <@a>Privacy and Security Policy</a> for details on how your information is protected.</p>', ['@a' => "a href=$securityLink target=_blank"]) . $reassurance . t('<p>Do you want to connect your checking account at this time?</p>'));
     $connect = boolFld(t('Connect:'), t('Connecting lets you use your rCard like a debit card. Otherwise you can trade US Dollars for rCredits at a participating business.'), $doConnect);
 
     if ($usa) {
@@ -2892,7 +2786,7 @@ function formBank_submit($form, &$sta) {
       $mya->update(compact('bankAccount'));
     }
     $mya->setRisk('hasBank', $connect);
-    $mya->stepDone('connect');
+    $mya->stepDone('connect', compact('connect'));
     say('info saved|return to membership');
   } elseif ($op == 'remove') {
     $mya->setRisk('hasBank', $connect = FALSE);
@@ -2904,56 +2798,6 @@ function formBank_submit($form, &$sta) {
     say('min zeroed');
   }
 }
-
-/**
- * Get the member's photo ID, as part of Dwolla's registration process.
- *//*
-function formPhotoId($form, &$sta) {
-  $mya = r\acct();
-  $person = !$mya->co;
-
-  say('after emailing|return to membership');
-  $mya->setBit(B_PHOTOID, TRUE); // allow the member to continue completing steps
-  
-  $proofType = $person ? t("driver's license or other official ID such as birth certificate or passport, showing your social security number (or the equivalent)") : t('EIN documentation from the IRS or proof of registration with state or local government');
-
-  //  -- This could also be a letter from an officer or owner of the organization (who is an rCredits member), on the organization's letterhead, authorizing opening this rCredits account.");
-  
-  $title = item(t('Photo ID Verification'));
-  $subtext = item(tt('<p>We are having trouble confirming your information. We want to be absolutely sure that YOU are creating this account, not someone else using your name.</p><p>Please upload either a PDF or an image file of your @proofType.', compact('proofType')));
-  $name = urlencode($mya->fullName);
-  $subtext = item(tt('<p>We are having trouble confirming your information. We want to be absolutely sure that YOU are creating this account, not someone else using your name.</p><p>Please <a href="mailto:new@rCredits.org?subject=Photo ID from @name&body=Dear rCredits Team, My photo ID file is attached. - @name">email us (click here)</a> a PDF or image file of your @proofType.', compact('proofType', 'name')));
-//  $idProof = fld('file', t('Photo ID:'), t('maximum') . tt(' @R_MAX_PHOTOID_SIZE MB'), attrib(u\ray('enctype', "multipart/form-data")));
-//  $submit = submit('Upload');
-
-  $form = compact(u\ray('title subtext idProof submit'));
-  return $form;
-  return labeled($form);
-}
-
-function formPhotoId_validate($form, &$sta) {
-  if (@$_FILES['files']['name']['idProof']) {
-    $validators = array('file_validate_size' => array(R_MAX_PHOTOID_SIZE * 1024000));
-    if (!$file = \file_save_upload('idProof', $validators, '', FILE_EXISTS_REPLACE)) return say('Try again.', 'idProof');
-    if (!u\abbreviates('image/', @$file->filemime) and @$file->filemime != 'application/pdf') return say('bad file type', 'idProof');
-    $sta['input']['filename'] = $filePath = file_directory_temp() . '/' . $file->filename;
-    $mya = r\acct();
-    if (FALSE and $mya->can(B_DW)) { // Dwolla API bug (skip it)
-      $us = new r\usd($mya);
-      if (!$us->sendPhotoId($filePath, $err)) return say($err, 'idProof');
-    } else {
-      $proofFilename = DRUPAL_ROOT . $mya->photoFilename('proof', TRUE);
-      if (!$key = $sta['input']['idProof'] = bin2hex(u\encryptFile($filePath, $proofFilename, r\passSalt()))) return say('encryption failure', 'idProof');
-    }
-  } return say('upload required', 'idProof');
-}
-
-function formPhotoId_submit($form, &$sta) {
-  unlink($sta['input']['filename']);
-  say('id verification pending');
-  return r\go('status');
-}
-*/
 
 /**
  * Get the member's security info.
@@ -3006,35 +2850,6 @@ Please upload a copy of your EIN documentation or Non-Profit Status documentatio
 function formSecurity_validate($form, &$sta) {
   $mya = r\acct();
   extract(u\just('pin federalId dob', $sta['input']));
-/*  if (!onFile('usdAccount', $sta)) {
-    $usdAccount = $sta['input']['usdAccount'] = u\digits($usdAccount);
-    if (!preg_match('/^[0-9]{10}$/', $usdAccount)) return say('bad account number', 'usdAccount');
-  } */
-/*  if (!onFile('pin', $sta)) {
-    $pin = $sta['input']['pin'] = u\digits($pin);
-    if (!preg_match('/^[0-9]{4}$/', $pin)) return say('bad pin', 'pin');
-  } */
-/*  if (!onFile('dob', $sta)) { // 12/14/1901 is the earliest
-    if (!$dob = $sta['input']['dob'] = u\s2t($dob) or $dob > r\rTime()) return say('bad date', 'dob');
-  }
-  if (!onFile('federalId', $sta)) {
-    $federalId = $sta['input']['federalId'] = u\digits($federalId);
-    $what = !r\acct()->co ? 'social security number' : 'federal ID';
-    if (!preg_match('/^[0-9]{9}$/', $federalId)) return say('bad federal id', compact('what'), 'federalId');
-  } */
-  
-/*  $proofFilename = DRUPAL_ROOT . $mya->photoFilename('proof', TRUE);
-
-  if (@$_FILES['files']['name']['idProof']) {
-    $validators = array('file_validate_size' => array(R_MAX_PHOTOID_SIZE * 1024000));
-    if (!$file = \file_save_upload('idProof', $validators, '', FILE_EXISTS_REPLACE)) return say('Try again.', 'idProof');
-    if (!u\abbreviates('image/', @$file->filemime) and @$file->filemime != 'application/pdf') return say('bad file type', 'idProof');
-    $tempfile = file_directory_temp() . '/' . $file->filename;
-    if (!$key = $sta['input']['idProof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, r\passSalt()))) return say('encryption failure', 'idProof');
-    \file_delete($file);
-  } elseif ($mya->hasPhoto('proof')) {
-    $sta['input']['idProof'] = R_ON_FILE; // flag for no change
-  } // not required! elseif (!$mya->co) return say('upload required', 'idProof'); */
 }
 
 function formSecurity_submit($form, &$sta) {
@@ -3444,7 +3259,7 @@ function formSignin($form, &$sta) {
 
   $a = "a tabindex=3 href=$base_url/settings/password/" . @$name; // uses $name, so must precede $name = textField
   $passDesc = tt('<@a>Password problems?</a>', compact('a'));
-  $name = textFld(t('Username/ID:'), t('Your account ID, email, or username (the letters of your full name, all lowercase)'), required(@$name) + w\autofill('section-rSignin rAccount'));
+  $name = textFld(t('Account ID:'), t('Your account ID, email, or username (the letters of your full name, all lowercase)'), required(@$name) + w\autofill('section-rSignin rAccount'));
   $pass = passFld(t('Password:'), $passDesc, required() + w\autofill('section-rSignin rPass'));
   $pw2 = hidFld(@$pw2 ?: ''); // extra password for admins
   
@@ -3473,7 +3288,7 @@ function formSignin_validate($form, &$sta) {
     $pw2 = @$pw2 ? hex2bin($pw2) : (isDEV ? DEV_PW2 : '');
     if ($pw2 and !$a->pw2) a(1)->update('pw2', r\passHash($pw2)); // first ever admin signin sets pw2
     if (!isGAME and !w\passwordOkay($a, $pw2, 'pw2')) return say(t('Admin requires second pass.'), 'pass');
-    r\setCook('pw2', $pw2, 0); // store as cookie, so pw2 is never on server
+    r\setCook('pw2', $pw2, r\rTime() + SESSION_LIFE); // store as cookie, so pw2 is never on server
   }
   $sta['uid'] = ((isDEV and $uid == 1) or passwordOkay($a, $pass)) ? $uid : FALSE; // ignore pass on dev machine
   if ($sta['uid']) noFlood($sta); else return say('login failed', 'name');
@@ -3544,13 +3359,7 @@ function formPass($form, $sta, $id = '') {
   $title = item(t('Request New Password'));
   $name = textFld(t('Account:'), t('Username (the letters of your full name, all lowercase), Email, or Account ID'), required(u\neq($id, 'password', '')));
   $submit = submit(t('Request'));
-  /*$form['name']['#title'] = t('Account:');
-  $form['name']['#description'] = t('Username, Email, or Account ID');
-  $form['name']['#default_value'] = u\neq($id, 'password', '');*/
-//  $form['#validate'] = array('rCredits\\Web\\formPass_validate');
-//  $form['#submit'] = array('rCredits\\Web\\formPass_submit');
-//  $form['#attributes']['class'] = array('rweb', 'labeled');
-//  t\snapShot($form);
+
   $form = compact(u\ray('title name submit'));
   focusOn('name');
   return labeled($form);
@@ -3585,7 +3394,7 @@ function formFindCo($form, &$sta) {
   $which = svar('which_companies') ?: '';
   $region = svar('region') ?: '';
 
-  $list = directoryList($which, $region ?: @$mya->community);
+  $list = w\directoryList($which, $region ?: @$mya->community);
   
   $form = array(
     'title' => item(t('Find companies in your region')), // should be 'Find member businesses in your region'
@@ -3664,7 +3473,7 @@ EOF;
   $shortDesc = textFld(t('Short Desc:'), [t('Short description'), t('Short description of your company\'s products and services. Maximum 35 characters.')], attrib(['maxlength'=>35]) + required($mya->shortDesc));
   $employees = textFld(t('Employees:'), [t('Employee count'), t('How many employees do you have?')], required($mya->employees));
   $gross = textFld(t('Annual Gross:'), [t('Approximate annual gross income')], required($mya->gross));
-  $tips = boolFld(t('Show tip %s:'), t('After each rCard sale, ask customer to choose a tip percentage (or no tip)'), $mya->coCan(CO_TIP) ?: 0);
+  $tips = boolFld(t('Tips:'), t('After each rCard sale, ask customer to choose a tip percentage (or no tip)'), $mya->coCan(CO_TIP) ?: 0);
   if ($mya->cAdmin) {
     $fast = boolFld(t('No ID Chk:'), t('Never ask customer for photo ID (set by admin)'), $mya->coCan(CO_FAST) ?: 0);
     $atm = boolFld(t('ATM service:'), t('Allow company to trade rCredits for cash even if their balance is less than their rewards (in-person only).'), $mya->coCan(CO_ATM) ?: 0);
@@ -3760,47 +3569,30 @@ function formI($form, &$sta, $who = '') {
 
   //  if (!$mya) return $a->proSe ? r\go('user/login?name=' . $a->name) : scanIn($a);
   return r\go($a->co ? "member/$a->name" : $promo);
-  
-  /*
-  $shortName = $a->name;
-  $txArgs = "/who=$shortName&scanned=1";
-  if ($mya->proSe and !$co) return r\go("pay$txArgs");
-  
-  list ($myid, $myAgent) = array($mya->id, $mya->agentId);
-  if ($otherId == @$myid) return r\go('', 'no self-trading');
-
-  if ($co) $site = goButton(t('Show Webpage'), $goSite = "member/$shortName", t("See this company's rCredits webpage"));
-  if ($mya->can(B_SCAN)) $charge = goButton(t('Charge'), "charge$txArgs", t('Charge someone'));
-  if ($mya->can(B_BUY)) $pay = goButton(t('Pay'), "pay$txArgs", t('Pay someone'));
-//    if (r\acct($myid, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Use this button when your shift begins'));
-//  if (r\acct($otherId, $myAgent)->can()) $changeAccount = goButton(t('Change Acct'), "change-settings/who=" . $a->mainQid, t('Manage a different account'));
-  $theId = hidFld($otherId);
-  $theAgent = hidFld($otherAgent);
-
-  if (!@$charge) return $co ? r\go($goSite) : r\go('empty', 'no can scan');
-
-  $zot = compact(u\ray('charge pay site'));
-  $all = identifiers($a) . render($zot);
-  svar('lastCustomer', $a->id);
-  $all = fld('item', '', '', $all);
-  return compact('all'); */
 }
 
 function formPreferences($form, &$sta) {
   global $base_url;
   $mya = r\acct();
-  $isSetUp = !is_null($mya->minimum); // user has already saved some options
   $title = item(t('Account Preferences'));
 //  $virtualMaxMessage = $mya->co ? t(' If you choose to enable payment exchanges, this setting is moot (irrelevant and unused).') : '';
 //  $subtext = item(t('The suggested settings are best for most people. You can change your choices at any time.'));
-  $minimum = textFld(t('Minimum:'), [t('Your preferred "normal" Primary balance'), '<p>' . t('How much to keep in your rCredits account, for purchases. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days. Choose zero (no automatic transfers) if you tend to bounce checks, live close to the wire, or prefer not to use automatic refills.') . '</p><p>' . tt('note|ach warning') . '</p>'], required(u\fmtAmt($isSetUp ? $mya->j_minimum : R_MINR_DEFAULT, 's$')));
+  $minDesc = t('How much to keep in your rCredits account, for purchases. When your primary balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days. Choose zero (no automatic transfers) if you tend to bounce checks, live close to the wire, or prefer not to use automatic refills.');
+  $minDescNegative = $mya->j_balance < 0 ? t(' <b>If you choose a negative amount</b>, it will be increased by @bump a week until it is greater than zero.', ['@bump' => u\fmtAmt(MIN_WEEKLY_BUMP)]) : '';
+  $minWarning = tt('note|ach warning');
+  $minDefault = u\fmtAmt($mya->prefsSet ? $mya->j_minimum : 0, 's$');
+  $minimum = textFld(t('Minimum:'), [htmlspecialchars(t('Your preferred "normal" primary balance')), "<p>$minDesc$minDescNegative</p><p>$minWarning</p>"], required($minDefault));
+  $savings = textFld(t('Savings Reserve:'), [t('Savings amount'), t('How much to hold as a savings reserve, for later or as needed. Your Savings Reserve works like a traditional reserve savings account that kicks in whenever you would otherwise overdraw your primary account -- except there are no fees. This also helps the community by keeping more funds in the system. Your incentive rewards go into savings automatically. You get a monthly inflation adjustment on any funds you hold in the rCredits system (at @inflate% APR).', ['@inflate' => R_INFLATION_RATE * 100])], required($mya->prefsSet ? u\fmtAmt($mya->j_savings) : ''));
+  $saveWeekly = textFld(t('Save Weekly:'), [t('Additional amount to add weekly to savings'), t('Putting money away as savings can be a challenge. This may help: choose a small additional amount to be added automatically to your @what every week.', ['@what' => $mya->j_balance < 0 ? t('Minimum') : t('Savings Reserve')])], dft($mya->prefsSet ? u\fmtAmt($mya->j_saveWeekly) : ''));
+  $showAdvancet = item(t('<a>Show advanced options</a>'), ' '); // different name from showAdvanced (for CSS)
+
+  // Advanced settings
   $achMin = textFld(t('Min Transfer:'), [t('Minimum bank transfer amount'), t('Choose a multiple of $@dft. This much (or more, if necessary) will be transferred from your bank account to your rCredits account when your balance goes below the minumum you chose, above.', ['@dft'=>R_ACHMIN])], required(u\fmtAmt($mya->achMin ?: R_ACHMIN_DEFAULT, 's$')));
-  $savings = textFld(t('Savings Reserve:'), [t('Savings amount'), t('How much to hold as a savings reserve, for later or as needed. Your Savings Reserve works like a traditional reserve savings account that kicks in whenever you would otherwise overdraw your primary account -- except there are no fees. This also helps the community by keeping more funds in the system. Your incentive rewards go into savings automatically. You get a monthly inflation adjustment on any funds you hold in the rCredits system (at @inflate% APR).', ['@inflate' => R_INFLATION_RATE * 100])], required(u\fmtAmt($isSetUp ? $mya->savings : round($mya->rewards + 4.999, -1))));
   if ($mya->ok) $share = w\shareFld($mya); // don't show this during signup (it's on the donation page)
 
   $noticeRadios = array(t('daily'), t('weekly'), t('monthly'));
   $dft = $mya->can(B_WEEKLY) ? 1 : ($mya->can(B_MONTHLY) ? 2 : 0);
-  $notices = radiosFld(t('Email notices:'), t('How often, at most, do you want an email digest of your rCredits messages? (No email if no messages.)'), dft($dft), $noticeRadios);
+  $notices = radiosFld(t('Email Notices:'), t('How often, at most, do you want an email digest of your rCredits messages? (No email if no messages.)'), dft($dft), $noticeRadios);
 //  $smsNotices2 = boxFld('smsNotices', t('SMS notices:'), tt('Send me a text message when I receive a payment, charge, or invoice (requires a <a href="' . $base_url . '/settings/boxes">connected cell phone</a>).'), $mya->can(B_BYSMS)); // (currently disabled)
   $mediumRadios = array(
     t('I will accept electronic statements**.'), 
@@ -3812,7 +3604,6 @@ function formPreferences($form, &$sta) {
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $nosearch2 = boxFld('nosearch', t('No Search:'), tt("Require other members to identify my account by name or account number only &mdash; not by phone or email."), $mya->can(B_NOSEARCH));
 //  $debtOk2 = boxFld('debtOk', t('Debt Okay:'), tt('Let me use my rCard as a <i>credit</i> card, allowing my account balance to go negative, limited by my current credit limit (currently @limit &mdash; based on my account activity). I understand there will be a fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', ['limit' => u\fmtAmt(-$mya->j_floor)]), $mya->can(B_DEBT));
-  $submit = submit(t('Update Preferences'));
   $posttext = item(tt(<<<EOF
 <h4>** Disclaimers required by the IRS:</h4>
 <p>Your choice of how to receive statements applies to all statements you receive from now on. You can change your preference at any time by returning to this Preferences page (using the Settings button) or by notifying the regional administrator by mail: @regName, @regAddr. Any change will be confirmed in writing (electronically if you accept electronic statements, otherwise by US Mail).</p>
@@ -3820,31 +3611,50 @@ function formPreferences($form, &$sta) {
 <p>Your annual tax statements will be accessible online from January through December.</p>
 EOF
   , u\ray('regName regAddr', r\regionfield('legalName'), r\regionfield('postalAddr'))));
+
+  $advancedFields = 'achMin share smsNotices2 notices statements secretBal2 nosearch2 debtOk2 posttext';
   
-  $form = compact(u\ray('title subtext minimum achMin savings share smsNotices2 notices statements secretBal2 nosearch2 debtOk2 submit posttext'));
+  $submit = submit(t('Update Preferences'));
+  
+  $js = <<<EOF
+toggleFields('$advancedFields', false);
+$('#edit-showAdvancet').click(function() { $(this).hide(); toggleFields('$advancedFields', true); });
+EOF;
+  js($js, 'inline', 'footer');
+  $form = compact(u\ray('title subtext minimum savings saveWeekly showAdvancet ' . $advancedFields . ' submit'));
   return labeled($form);
 }
 
 function formPreferences_validate($form, &$sta) {
   $mya = r\acct();
-  $floor = u\fmtAmt($mya->j_floor);
-  foreach (u\ray('minimum achMin savings') as $k) {
+  if (!$sta['input']['saveWeekly']) $sta['input']['saveWeekly'] = 0;
+  foreach (u\ray($fields = 'minimum achMin savings saveWeekly') as $k) {
     if ($err = amtErr($k, $sta)) return say($err, $k);
     $$k = $sta['input'][$k];
   }
-  if ($savings < $mya->rewards) return say('savings too low', ['rewards' => u\fmtAmt($mya->rewards)], 'savings');
-  if ($mya->ok and $err = w\badShare($sta['input']['share'], TRUE)) return say($err, 'share');
 
-  extract(u\just('minimum achMin', $sta['input'])); // after amtErr checks
-  if ($minimum < $mya->j_floor) return say('min sub floor', compact('floor'), 'minimum');
+  extract(u\just($fields, $sta['input'])); // after amtErr checks
+
+  $floor = min($mya->j_balance, max(0, $mya->j_floor)); // can't go deeper in debt
+  if ($minimum < $floor) return say('min sub floor', ['floor' => u\fmtAmt($floor)], 'minimum');
+
+  if ($savings < $mya->j_rewards) return say('savings too low', ['rewards' => u\fmtAmt($mya->j_rewards)], 'savings');
+  $savingsMax = max($mya->j_savings, $mya->j_rewards, $mya->j_r);
+  if ($savings > $savingsMax) return say('savings too high', ['max' => u\fmtAmt($savingsMax)], 'savings');
+  if ($minimum < 0 and $saveWeekly < MIN_WEEKLY_BUMP) return say('saveWeekly too low', ['min' => u\fmtAmt(MIN_WEEKLY_BUMP)], 'saveWeekly');
+  if ($saveWeekly < 0 and $mya->j_savingsAdd == 0) return say('negative saveWeekly', 'saveWeekly');
+  if ($mya->ok and $err = w\badShare($sta['input']['share'], TRUE)) return say($err, 'share');
   if ($achMin < R_ACHMIN) return say('bad achmin', 'achMin');
 }
 
 function formPreferences_submit($form, $sta) {
+  include_once __DIR__ . '/../admin/admin.inc';
   $mya = r\acct();
-  extract($info = u\just('minimum achMin savings share smsNotices notices statements nosearch debtOk secretBal', $sta['input']));
+  $fields = 'minimum achMin savings saveWeekly share flags';
+  extract($info = u\just($fields . ' smsNotices notices statements nosearch debtOk secretBal', $sta['input']));
 //  $mya->setBit(B_NOTIFY_EMAIL, $notifyBy & 1, FALSE);
   $flags = $mya->flags;
+  $old = ['flags' => a\formatField('flags', $flags)] + (array) $mya->account($fields);
 //  u\setBit($flags, B_BYSMS, @$smsNotices);
   u\setBit($flags, B_WEEKLY, @$notices == 1);
   u\setBit($flags, B_MONTHLY, @$notices == 2);
@@ -3854,13 +3664,16 @@ function formPreferences_submit($form, $sta) {
   u\setBit($flags, B_NOSEARCH, @$nosearch);
   
   if (@$statements) r\tellStaff($mya->mainQid . ' wants paper statements');
+  if ($saveWeekly < 0) say(t('@amount will be moved every week from your Savings Reserve to your Primary Account, until your Savings Reserve reaches its minimum.', ['@amount' => u\fmtAmt($saveWeekly)]));
   
-  if ($jid = $mya->jid and $mya->slave) { // slave setting minimum and/or achMin
-    r\acct($jid)->update(compact('minimum', 'achMin')); // set it only on master
-    $minimum = 0;
+  if ($jid = $mya->jid and $mya->slave) { // slave setting minimum etc.
+    $savings -= $mya->rewards; // reserve minimal savings on slave
+    r\acct($jid)->update(compact(u\ray('minimum achMin savings saveWeekly'))); // set these only on master
+    $minimum = $saveWeekly = 0; // let achMin be set on slave also
+    $savings = $mya->rewards;
   }
-  $mya->update(compact(u\ray('minimum achMin savings share flags')));
-  $mya->stepDone('prefs', $info);
+  $mya->update(compact(u\ray($fields)));
+  $mya->stepDone('prefs', compact('old') + ['flags' => a\formatField('flags', $flags)] + $info);
   return $mya->ok ? say('options saved') : r\go('status', 'options saved|step completed');
 }
 
@@ -4093,7 +3906,7 @@ function formAccept_validate($form, &$sta) {
 function formAccept_submit($form, &$sta) {
   extract(u\just('invitation friend postalCode', $sta['input']));
 //  $email = u\cryptN($email);
-//  if (!$code = db\lookup('code', 'r_invites', 'email=:email ORDER BY (invitee IS NULL) DESC, invited DESC', compact('email'))) return say('bad invite', 'email');
+//  if (!$code = db\lookup('code', 'r_invites', 'email=:email ORDER BY (invitee=0) DESC, invited DESC', compact('email'))) return say('bad invite', 'email');
   say(t('Hurray! You qualify to open an rCredits account.'));
   $code = @$invitation ?: "$friend ($postalCode)";
   return r\go("signup/code=$code");

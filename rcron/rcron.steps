@@ -64,6 +64,9 @@ function extraSubs(&$subs) {
  *     MAKE Tickle Setup
  *     MAKE Trust Setup
  *     TEST Trust WeCalculateTrust
+ *     MAKE Weekly AMemberCrawlsOutOfDebt
+ *     MAKE Weekly AMemberBuildsUpSavings
+ *     MAKE Weekly AMemberDrawsDownSavingsBitByBit
  */
 function members($list) {return t\members($list);}
 
@@ -96,6 +99,9 @@ function members($list) {return t\members($list);}
  *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
+ *     TEST Weekly AMemberCrawlsOutOfDebt
+ *     TEST Weekly AMemberBuildsUpSavings
+ *     TEST Weekly AMemberDrawsDownSavingsBitByBit
  */
 function balances($list) {return t\balances($list);}
 
@@ -137,6 +143,9 @@ function balances($list) {return t\balances($list);}
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     MAKE Trust WeCalculateTrust
+ *     MAKE Weekly AMemberCrawlsOutOfDebt
+ *     MAKE Weekly AMemberBuildsUpSavings
+ *     MAKE Weekly AMemberDrawsDownSavingsBitByBit
  */
 function cronRuns($op) {return t\cronRuns($op);}
 

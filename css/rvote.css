@@ -1,0 +1,170 @@
+#rcreditswebformdemocracy #edit-middle .control-data {width:100%; padding:9px 0 0 0;}
+#rcreditswebformdemocracy #edit-title .control-data {width:100%;}
+
+body, th, td {font-family:Arial;}
+div.clearer { clear:both; }
+
+.clearfix:after { /* thanks to www.positioniseverything.net/easyclearing.html */
+	content: ".";
+	display: block;
+	height: 0;
+	clear: both;
+	visibility: hidden;
+}
+
+/* div#bodywrap { text-align:left; margin-left:auto; margin-right:auto; width:658px; } */
+.loud { color:red; font-weight:bold;}
+div#error, .error { color:red; background-color:#FFFF99;}
+
+h3 { margin-bottom:0px; }
+
+/* div.ballot { padding:3px; border:1px solid black; width:650px; } */
+.ballot table { border-collapse:collapse; }
+.ballot td { border:0px; }
+
+.ballot div.ballotheader { padding:5px; margin-bottom:5px; font-size:12px; color:white; background-color:darkgreen; }
+.ballot div.electiontitle { float:left; }
+.ballot div.questioncount { float:right; }
+
+.ballot div.question { font-size:18px; padding-bottom:5px; }
+.ballot div.questiondetail { font-size:16px; padding-bottom:10px; }
+.ballot div.discussionlink { font-size:13px; text-align:right; float:right; }
+.ballot div.discussionlink a { font-weight:bold; color:darkgreen; text-decoration:none; }
+.ballot div.discussionlink a:hover { color:green; text-decoration:underline; }
+
+.ballot div.optRow { clear:both; text-align:left; vertical-align:top; border-top:1px solid silver; overflow:hidden; display:block; width:100%; }
+.ballot .row1 { background-color: #ECFFFF; }
+.ballot .row2 { background-color: #ECFFEC; }
+.ballot div.rowwrapper { background-color:inherit; }
+
+.ballot div.optionheader div { font-size:12px; color:darkblue; font-weight:bold; padding-top:0px; }
+.ballot div#submitline { text-align:left; padding:15px; border-top:1px solid silver; }
+.ballot div.backlink { width:150px; float:left; }
+.ballot div.backlink a { text-decoration:none; color:darkgreen; font-weight:bold; }
+.ballot div.backlink a:hover { color:darkblue; }
+
+.ballot .item { float:left; text-align:left; width:360px; padding-left:20px; padding-top:3px; background-color:inherit; }
+.ballot .optionheader .item {padding-left:40px;}
+
+.ballot div.veto { float:right; width:35px; text-align:right; padding-top:3px; clear:right; background-color:inherit; }
+.ballot div.vetonotediv { float:right; width:377px; height:180px; display:none; overflow:hidden; margin-bottom:10px; padding-left:10px; color:red; background-color:inherit; }
+.ballot div.vetonotediv textarea  { width:375px; height:140px; }
+.ballot div.vetonoteheader { display:inline; padding:5px; padding-bottom:0px; background-color:darkred; color:white; font-weight:bold; }
+
+.ballot div.optdetail { clear:left; overflow:hidden; display:none; text-align:left; background-color:inherit; }
+.ballot div.optdetailheader { display:inline; padding:5px; padding-bottom:0px; margin:0 5px 0 10px; background-color:black; color:white; font-weight:bold; }
+.ballot div.optdetailtext { display:block; padding-top:5px; max-height:150px; overflow:-moz-scrollbars-vertical; overflow:scroll; overflow-x:hidden; background-color:inherit; }
+
+/* Sliders and Percentage */
+.ballot div.sliderandpct { float:left; width:285px; height:35px; background-color:inherit; }
+.ballot div.slider { float:left; width:225px; text-align:center; background-color:inherit; }
+.ballot div.pct { float:left; width:60px; text-align:right; font-family:Arial; font-size:14px; background-color:inherit; }
+.ballot div.pct input { width:40px; text-align:right; font-family:Arial; font-size:14px; border:0px; margin-top:4px; }
+
+/* Grade formatting and positioning */
+.ballot div.grades { float:left; width:125px; height:45px; background-color:inherit; }
+.ballot div.optionheader div.grades { text-align:center; height:20px; }
+.ballot div.gradeheader, .ballot div.gradeinputs { display:block; }
+.ballot div.gradeheader table { width:125px; background-color:inherit; }
+.ballot div.gradeheader td { width:25px; height:20px; text-align:center; vertical-align:bottom; font-size:12px; color:black; font-weight:bold; padding:0px; margin:0px; }
+.ballot div.gradeinputs div { float:left; width:25px; height:20px; text-align:center; background-color:inherit; }
+.ballot div.gradeheader td.gAplus  { text-indent:5px; color:silver; }
+
+.ballot div.optionnum { padding:2px; padding-left:5px; padding-right:5px; text-align:center; vertical-align:middle; background-color:black; color:white; float:left; font-size:12px; font-weight:bold; } /* unused */
+
+/* slider customization */
+*.CGslider-panel {
+	background-color: silver;
+	color: #333;
+	margin: 0;
+	height: 12px;
+	border: 2px solid;
+	border-color: #ddd #999 #999 #ddd;
+	top: 0px;
+	opacity: 1;
+}
+*.CGslider-panel:focus {
+	background-color: darkgreen;
+}
+*.CGslider-panel:hover, *.CGslider-panel:focus :hover {
+	background-color: green;
+}
+*.orientation-horizontal {
+	width: 120px;
+	padding: 4px 3px 4px 4px;
+}
+/* The Slider Slit */
+*.CGslider-slit {
+	background-color: #333;
+	border: 1px solid;
+	border-color: #999 #ddd #ddd #999;
+}
+*.CGslider-panel:focus *.CGslider-slit {
+	background-color: black; /* Blue color of slit in focused slider. */
+/*	border-color:green;
+	border-color-bottom:lightgreen; */
+}
+*.orientation-horizontal *.CGslider-slit {
+	height: 2px;
+	margin: 4px 2px 2px 2px;
+	top: -15px;
+}
+/* The Slider Knob */
+*.CGslider-knob {
+	background-color: white;
+	border: 3px solid;
+	border-color: #999 #333 #333 #999;
+}
+*.CGslider-knob:hover {
+	background-color: #777;
+}
+*.orientation-horizontal *.CGslider-knob {
+	width: 8px;
+	margin: 0;
+	height: 10px;
+	top: -2px;
+}
+
+#votenow div { margin:20px; margin-right:0px; margin-bottom:15px; float:left; }
+#votenow input { font-size:24px; color:red; font-weight:bold; }
+.halfdown { padding-top:12px; }
+
+#questionlist div.qline { width:650px; height:auto; border:1px solid silver; }
+#questionlist div.hdr { background-color:darkgreen; padding-top:4px; padding-bottom:4px; color:white; font-weight:bold; border:1px solid darkgreen; }
+#questionlist div.qline div { float:left; }
+#questionlist div.id { width:50px; }
+#questionlist div.details { width:auto; padding-top:4px; padding-bottom:4px; }
+#questionlist div.details:hover { background-color:lightblue; }
+#questionlist div.phase { width:100px; padding-top:4px; padding-bottom:4px; }
+#questionlist div.hdr div.phase { margin-left:20px; padding:0px; width:80px; }
+#questionlist div.text { width:400px; }
+#questionlist div.date { width:98px; }
+#questionlist div.phase div { width:15px; text-align:center; vertical-align:middle; color:silver; }
+#questionlist div.phase div.active { margin-top:-3px; font-weight:bold; font-size:120%; background-color:red; color:yellow; }
+#questionlist div.phase  a  { color:blue; font-weight:bold; }
+#questionlist div.phase  div.active a  { color:yellow; }
+#questionlist div.phase a div:hover, #questionlist div.phase a:hover  { background-color:lightblue; color:black; }
+#questionlist div.phase  a { text-decoration:none; }
+#questionlist div.phase div.repeat.inactive { background-color:white; }
+
+div.qdetails { width:638px; display:none; margin-top:25px; border:3px solid darkblue; border-top:0px; border-right:0px; padding:5px; }
+div.qdetails a { text-decoration:none; color:blue; }
+div.qdetails a:hover { background-color:lightblue; color:black; }
+div.qdetails div.question { width:100%; font-size:18px; color:darkblue; padding-bottom:5px; border-bottom:1px solid darkblue; margin-bottom:5px; }
+div.qdetails div.see { float:left; padding-right:200px; }
+div.qdetails div.date { float:left; }
+div.qdetails div.detail { clear:both; text-align:left; margin-top:40px; }
+.ballot div.qdetails div.optdetailtext { margin-left:30px; }
+.ballot div.qdetails div.optdetailheader { font-size:12px; padding:2px; padding-left:5px; padding-right:5px; margin-right:5px; }
+.ballot div.qdetails div.item  { padding-left:0px; }
+
+div.results { text-align:center; background-color:white; }
+table.resultstable { border-collapse:collapse; margin:0 auto;}
+table.resultstable td, table.resultstable th, .ballot table.resultstable td { 
+	text-align:right; padding-right:10px; padding-left:10px; background-color:silver; border:1px solid white; 
+}
+table.resultstable th { text-align:center; background-color:darkgreen; color:white; border:0px; }
+table.resultstable td.optlinehdr { text-align:left; padding-top:2px; padding-bottom:2px; }
+.resultstable .resultOption { text-align:left; border-right:1px solid white; }
+.resultstable .resultAverage,
+.resultstable .resultVote { border-left:1px solid white; }

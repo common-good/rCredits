@@ -1,3 +1,12 @@
+function deleteCookie(name) {
+  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+}
+
+
+function toggleFields(fields, show) {
+  fields.split(' ').forEach(function(e) {$('.form-item-' + e).toggle(show); });
+}
+
 function toggle(field) {
   field = "#" + field;
   jQuery(field + "-YES, " + field + "-NO").toggle().toggleClass("visible invisible");

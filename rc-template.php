@@ -2,10 +2,12 @@
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Web as w;
+use rCredits\Testing as t;
 
 /**
  * @file
  * rCredits template functions, called from the rCredits theme's template.php stub
+ * (run Handy|Empty Cache to activate a new function here)
  */
  
 function rcredits_preprocess_html(&$variables) {
@@ -356,7 +358,7 @@ function rcredits_textarea($variables) {
   \element_set_attributes($variables['element'], array('id', 'name'));
   extract(rcElement($variables, 'attributes name help class value'));
 
-  $value = \check_plain($value);
+  $value = \check_plain(@$value);
   if (@$required) $attributes['required'] = 'yes';
   $class[] = 'form-control input-md';
   if (is_array($ray = @$help)) {
@@ -365,8 +367,7 @@ function rcredits_textarea($variables) {
       if ($k != 'desc' and $v = $ray[$i]) $attributes[$k] = $v;
     }
   }    
-
-  $tribs = u\tribs(compact('class') + $attributes);
+  $tribs = u\tribs(compact('class') + (@$attributes ?: []));
   return "<textarea $tribs />$value</textarea>";
 }
 
@@ -376,6 +377,19 @@ function rcredits_radios($variables) {
   if (@$inline) $chn = str_replace(' radio">', ' radio-inline">', $chn);
   if (@$required) $chn = str_replace('type="radio"', 'type="radio" required="yes"', $chn);
   return $chn;
+}
+
+function rcredits_radio($variables) {
+  \element_set_attributes($variables['element'], array('id', 'name', '#return_value' => 'value'));
+  extract(rcElement($variables, 'title attributes class return_value value'));
+  
+  if (isset($return_value) and $value === $return_value) $checked = 'checked';
+  $type = 'radio';
+  $class[] = 'form-radio';
+  $tribs = u\tribs(compact(u\ray('type class checked')) + $attributes);
+  if (@$checked) t\setChecked($title);
+
+  return "<input $tribs />";
 }
 
 function rcredits_submit($variables) {
@@ -407,10 +421,11 @@ function rcredits_button($variables) {
 
 function rcredits_checkbox($variables) {
   \element_set_attributes($variables['element'], array('id', 'name', 'value'));
-  extract(rcElement($variables, 'attributes checked class default_value'));
+  extract(rcElement($variables, 'title attributes checked class default_value'));
 
   $type = 'checkbox';
   if (@$checked or @$default_value) $checked = 'checked'; else unset($checked);
+  if (@$checked) t\setChecked($title);
   $tribs = u\tribs(compact('type', 'checked', 'class') + $attributes);
   return "<input $tribs />";
 }

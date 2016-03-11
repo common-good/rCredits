@@ -109,7 +109,7 @@ function recB($year, $a, $completed, $amount, $for) {
   $payeeName = pad(noBreakAt(preg_replace('/[^A-Z &\-]/i', '', $a->legalName), 40), 2 * 40);
   list ($payeeFirst, $payeeLast) = u\parseName($payeeName);
   $nameControl = pad(preg_replace('/[^A-Z]/i', '', $payeeLast), 4);
-  list ($address, $city, $st, $zip) = u\parseAddr($mya->postalAddr);
+  list ($address, $city, $st, $zip) = u\parseAddr($a->postalAddr);
   if ($st == 'ER' or !$zip or !$city) return err1099(t('Bad postalAddr for ') . $payeeName);
   $payeeAddr = pad($address, 40) . sp(40) . pad($city, 40) . pad($st, 2) . pad(u\digits($zip), 9);
   $date = strftime('%Y%m%d', $completed);

@@ -27,7 +27,7 @@ class Statement extends \TCPDF {
    */
 	public function __construct($a = NULL, $month = REQUEST_TIME) {
 //    parent::__construct('P', 'in', 'LETTER');
-    parent::__construct('P');
+    parent::__construct('P', 'mm', 'LETTER');
     u\setDft($a, r\acct());
     $ctty = r\acct($a->community);
     list ($this->regionName, $phone) = array($ctty->fullName, u\fmtPhone($ctty->phone));

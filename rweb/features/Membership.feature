@@ -102,7 +102,7 @@ Scenario: A member does it all
   | fullName | quid | status |
   | Abe One  | .ZZA | member |
   When member ".ZZA" visits page "summary"
-  Then we say "status": "setup complete"
+  Then we say "status": "setup complete|must be confirmed"
 #  And we say "status": "adjust settings"
 
   When member ".ZZA" visits page "status"

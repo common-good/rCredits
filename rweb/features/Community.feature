@@ -53,10 +53,9 @@ Setup:
   |  33 | %today-1d | transfer  |      1 | .ZZC | .AAB | sharing rewards with CGF | %FOR_GOODS | %TX_CRON |
   Then balances:
   | id   | r       | rewards | committed |*
-  | ctty | -823.70 |    0.00 |         0 |
   | .ZZA | 1028.00 |  274.00 |      2.30 |
   | .ZZB | 2551.50 |  266.50 |      2.90 |
-  | .ZZC | 3243.10 |  280.10 |      8.13 |
+  | .ZZC | 3243.10 |  274.10 |      8.13 |
   | .AAB |    1.10 |    0.10 |         0 |
   # total rewards < total r, because we made a grant, a loan, and a fine.
   
@@ -67,7 +66,7 @@ Scenario: cron calculates the statistics
   Then we show "Statistics" with:
   | | for %regionName |
   |_rCredits Accounts: | 2 members + 1 co |
-  |_Funds in the rCredits System: | $12,823.70 |
+  |_Funds in the rCredits System: | $6,823.70 |
   |_rCredits Circulation Velocity: | 4.0% per mo. |
   |_Monthly Bank Transfers | $6,000 (net) |
   |_rCredits Issued To-Date | $6,823.70 |

@@ -10,6 +10,8 @@
     src: url(http://new.rcredits.org/GnuMICR.ttf) format("truetype");
 }
 
+.invisible, .element-invisible {display:none;}
+
 .vertical{
 /*    writing-mode:tb-rl; */
     -webkit-transform:rotate(-90deg);
@@ -28,13 +30,6 @@
   -ms-transform: translateY(-50%);
   transform: translateY(-50%);
 }
-
-.modal-dialog {margin-top:60px;}
-.modal-dialog .modal-header {background-color:darkgreen;}
-.modal-dialog .modal-title {color:white;}
-.ui-dialog-titlebar-close {display:none;}
-.which .ui-dialog-titlebar-close {display:block; color:darkgray; font-size:125%; padding-left:0; line-height:0;}
-/*.modal-body {background-color:midnightblue; padding:5px 30px;} */
 
 /* .element p {
   @include vertical-align();
@@ -75,19 +70,6 @@ nav.navbar.navbar-inverse .container {max-height:50px;}
   .submenu .popover .arrow:after {border-left-color:#044687; border-bottom-color:transparent;}
 }
 
-[data-trigger="hover"] +div.popover, /* tooltip */
-.ui-dialog {
-  min-width:250px;
-  box-shadow: 0px 4px 4px rgba(0,0,0,0.7);
-  -webkit-box-shadow: 0 4px 4px rgba(0,0,0,0.7);
-  -moz-box-shadow: 0 4px 4px rgba(0,0,0,0.7);
-}
-
-[data-trigger="hover"] +div.popover .popover-title,
-.ui-widget-header {background:darkgreen; color:white;}
-
-[data-trigger="hover"] +div.popover .popover-content {color:black;}
-
 #page-wrapper {width:100%; max-width:100; background-color:white;} /* not max-width:961px */
 #header {height:60px;}
 #main #content {width:100%; float:none; margin:0;}
@@ -96,8 +78,8 @@ textarea.form-control {height:100px;}
 #rcreditswebformphp .form-type-textarea { margin-top:40px;}
 #rcreditswebformphp textarea {height:500px;}
 
-.form-horizontal .control-label {min-width:184px;}
-.form-horizontal  .control-data {max-width:650px;}
+.control-label {min-width:184px;}
+.control-data {max-width:650px;}
 #rcreditswebformcontact .control-data,
 #rcreditswebformtx .control-data,
 #rcreditswebformdonate .control-data {max-width:450px;}
@@ -120,9 +102,7 @@ textarea.form-control {height:100px;}
 #which option:hover {background-color:#7CC6F0;}
 .ladda-spinner:focus {} /* dunno why this has a rounded blue border when it has the focus */
 
-.element-invisible {display:none;}
 .lineup {padding-top:9px;}
-.form-horizontal .radio, .form-horizontal .radio-inline {margin-left:0; margin-right:15px;}
 
 table {font-size:85%;}
 th {background: #757575; color:white; border-bottom-style: none;}
@@ -133,7 +113,9 @@ td, th {padding: 4px 9px; border: 1px solid #fff; text-align: left;}
 
 .form-checkboxes div, .form-checkboxes {display:inline-block;}
 /*.form-horizontal  .form-checkboxes input { */
-.form-horizontal .box1 .checkbox {padding-top:0;}
+/* .form-horizontal .box1 .checkbox {padding-top:0;} */
+.box1 .checkbox {padding-top:0;}
+.form-horizontal .radio, .form-horizontal .radio-inline {margin-left:0; margin-right:15px;}
 
 #rcreditswebformcommunity,
 #rcreditswebformhistory,
@@ -192,7 +174,8 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
 #simple select, #advanced input {font-size:80%; height:50%;}
 #simple .control-label, #advanced .control-label {width:105px; min-width:105px;}
 #edit-show, #edit-download, #showSimple, #showAdvanced {margin:0 0 0 5px;}
-.form-horizontal .form-item-period {display:inline-block; clear:none; margin-right:0;}
+/* .form-horizontal .form-item-period {display:inline-block; clear:none; margin-right:0;} */
+.form-item-period {display:inline-block; clear:none; margin-right:0;}
 #actionsSimple,
 #actionsAdvanced {display:inline-block;}
 
@@ -202,8 +185,9 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
   animation: puff .5s linear;  
 }
 .page-sadmin #messages {margin:0;}
-#messages .messages {display:inline-block; max-width:800px; text-align:left; margin:28px auto; background-position:8px; background-repeat:no-repeat; border:1px solid; padding:10px 10px 10px 50px;
-  border-radius:8px; -moz-border-radius:8px; -webkit-border-radius:8px;
+#messages .messages {display:inline-block; max-width:800px; text-align:left; margin:28px auto; background-position:8px; background-repeat:no-repeat; border:1px solid; padding:10px 10px 10px 40px;
+  border-radius:8px; -moz-border-
+  :8px; -webkit-border-radius:8px;
   box-shadow: 0px 4px 4px rgba(0,0,0,0.7); -webkit-box-shadow: 0 4px 4px rgba(0,0,0,0.7); -moz-box-shadow: 0 4px 4px rgba(0,0,0,0.7);
 }
 .page-sadmin #messages .messages {max-width:100%;}
@@ -494,6 +478,7 @@ body.logged-in.one-sidebar #content {width:100%;}
 .page-sadmin-panel #messages .status > ul {padding:0;}
 
 /* Admin Deposits */
+#rcreditswebformdeposits .control-label {min-width:150px;} /* can't be more than 153px (dunno why) */
 #edit-deposits .control-label {width:50px;}
 
 /* Change Password / Reset (first time or resetting password) (beginning with stuff from user.css) */
@@ -679,7 +664,6 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebformrelations .form-type-select {margin:0;}
 #rcreditswebformrelations select {padding:0; height:24px; font-size:12px;}
 #rcreditswebformrelations .form-type-select label,
-#rcreditswebformrelations .invisible {display:none;}
 .form-yes a, .form-no a {transform:scale(.7);}
 #rcreditswebformrelations #account-label {font-weight:bold;}
 #rcreditswebformrelations .amount {width:50px;}

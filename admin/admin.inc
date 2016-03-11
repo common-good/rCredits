@@ -74,15 +74,6 @@ function setupBasicAccounts() {
 }
 
 /**
- * Return an array of communities (just in the given region?).
- */
-function cttys($region) {
-  $where = 'uid<0'; // uid BETWEEN :region-(:R_REGION_MAX-1) AND :region-1
-  $sql = "SELECT uid,fullName FROM users WHERE $where ORDER BY fullName";
-  return db\q($sql, compact('region'))->fetchAllKeyed();
-}
-
-/**
  * Return a display of steps done and steps remaining (to open an account).
  */
 function showSteps($a) {
@@ -201,6 +192,8 @@ function showRecords($ray) {
  * Return the given field, formatted for viewing.
  */
 function formatField($k, $v) {
+  if ($k == 'bankAccount' and u\starts($v, '~')) $v = 'c' . $v; // FUDGE to repair broken crypt flag (?)
+  while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
   if ($v and in_array($k, u\ray(ID_KEYS)) and strlen($v) >= strlen(r\cgfId())) {
     if ($a = r\acct($v)) $v = $a->name; else $v .= t(' (missing)'); // eg, when uid is changed
   } // member ID. Don't include agent/payerAgent/etc. here
@@ -371,7 +364,7 @@ function badStats($ctty, $asof) {
 function pioneerBonus($a) {
   if (!$a->ok or !$a->can(B_BONA) or $a->co) return;
   if (db\exists('r_txs', "payee=:uid AND payer=-8915 AND amount=100", u\ray('uid', $a->id))) return;
-/**/debug("Pioneer bonus to $a->fullName");
+/**/  debug("Pioneer bonus to $a->fullName");
   be\fund($a->id, TX_SIGNUP, 100, 'pioneer bonus');
 }
 

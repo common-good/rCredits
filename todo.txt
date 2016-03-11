@@ -9,6 +9,8 @@ Software Priorities:
 5. Greater Security (and security audit)
 
 NON_SOFTWARE TO_DOs
+- poster at colleges for PHP programmer/social activist (local preferred)
+- paper form for signing up a company
 - get David Greenberg or David Kulp to help Ivan send from Gmail
 - survey Fosters employees: 5 checkboxes and one blank (where shop?)
 - contact Lorien Pratt (recommended by Barry) This is Lorien's pitch on Decision Analysis: http://www.lorienpratt.com/how-can-i-help-you/decision-intelligence-analysis-modeling-training-and-systems/
@@ -62,20 +64,35 @@ GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
    $cfg['Servers'][$i]['auth_type'] = 'config';
 
 TASKS FOR NEXT UPDATE:
-update settings.php
-REINSTALL (for notices field)
-change Blossom preschool's email addr to Jeannine's
+. REDO MENUS
 
+. *** let cAdmin print QRs (but no make)
+. *** don't show checks with negative txid (show details in separate column - "details checks reversed")
+. **** ditch the "rebate" language (say "reward for" instead of "rebate on")
+. why doesn't Fuzzy get Invitation Requests directly?
+. Fuzzy says: two factor auth: From a user perspective, I think Toopher is the best, but Google Authenticator is widespread. 
+. relations page save doesn't report all steps are done (just dumps user back on status page) and maybe sends no email
+. *** change company email asks for PIN (use personal PIN instead)
+. add "Same as Owner SSN?" AJAX button to EIN field on Summary page for companies
+. **** Fuzzy says: I'm trying to import the CSV downloaded from the history page, and it's a pain: 
+      First and foremost, it would be very helpful if the rewards in that download were separate transactions, as you recommend they be treated. 
+      The totals line messes up the import in both QB (with a blank screen) and Wave (with a cryptic message about date formats).
+      Both QB and Wave expect a single amount column, though QB has the ability to handle a credit column and a debit column. Currently, however, there are four—from you, to you, from bank, reward.
+      Both QB and Wave restrict the description to a single column. Maybe it would be good to have a separate download format for this purpose that joins tx#, name, and purpose with dashes or something. 
+. *** flip "No ID Chk" question (and default yes) but keep the bit the same meaning
+. ** make another bit = NONUDGE for active accounts: don't send external email (mailchimp or whatever)
+. ** community resources page (links forum, social media, educational sites, old newsletters)
+. *** check postalAddr with parseAddr on input
+. if I go to the members site after timeout, then switch accounts, it hangs until I delete sessions record uid=0
+. timeout fails if user is not on the site (cookie doesn't expire properly!)
 . prevent any automated or repetitive use of the system
 . set session.save_path in settings.php (for better server security)
 . ** show pending transfers on community's summary page
-. ** add a crawl back out of debt feature (increase min by $20 a month until positive). Don't let recache set min above zero.
 . **** how did Jesse's flags show up as not set, then show up as already set in changes??! (related to ajax ctty?)
 . *** allow different year end date on Tax Info page
 . why is the suggest() function never called? use it for suggesting new min bal at least?
-. ** put a "show password" button on signin page
+. ** put a "show password" button on signin page and password reset page
 . SELECT fullName, COUNT(t.xid) FROM users u LEFT JOIN r_txs T ON t.payee=u.uid WHERE t.payer<>u.community GROUP BY u.uid ORDER BY fullName (incentive rewards from wrong community -- easily fixable by changing community twice on Summary page)
-. *** tweak language of "your account is activated" so it is clear it needs confirmation still
 . ask confirmer (except for companies): how many shared "friends" you have on social media OR (better) estimate how many ways are you connected in the real world (for example as a friend, relative, colleague, member of an organization, extreme sports enthusiast, etc.)
 . CGF can do business with any community (even non-CGCs, even seedpacks)
 . if we get a transaction request for a non-existent user in a different region, contact that region to confirm

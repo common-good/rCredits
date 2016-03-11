@@ -22,7 +22,7 @@ function rcredits_install() {
   include_once __DIR__ . '/admin/admin.inc'; // for setupBasicAccounts()
   $oldVersion = substr(variable_get('site_slogan'), 8);
   r\oldVersion($oldVersion, 'before');
-  r\make_fields();
+  r\makeFields();
   a\setupBasicAccounts();
 
   variable_set('date_default_timezone', 'America/New_York');
@@ -93,19 +93,3 @@ function rcredits_schema_alter(&$schema) {
   $schema = r\tableDefs($schema);
 }
  
-/**
- * Implements hook_uninstall().
- * Best not to use anything much here from other files.
- */
-function rcredits_uninstall() {
-  $oldVersion = substr(variable_get('site_slogan'), 8);
-  r\oldVersion($oldVersion, 'uninstall');
-
-//  require_once 'rcredits.inc'; // Drupal bug. Uninstall needs this explicit.
-//  require_once 'rcredits-util.inc';
-
-//  r\make_fields('UNMAKE', $old_fields);
-// (DON'T DELETE record!)  db\q('DELETE FROM users WHERE uid=:ctty', compact('ctty' => r\communityUid()));
-
-// (DON'T DELETE TABLES!) db_query('DROP TABLE IF EXISTS ' . R_TABLES);
-}

@@ -99,15 +99,15 @@ Scenario: a member is under minimum and has requested insufficient funds from th
   | .ZZD |      20 |      20 |      20 |
   When cron runs "bank"
   Then usd transfers:
-  | payer | amount |*
-  | .ZZD  |   -280 |
+  | payer | amount | deposit |*
+  | .ZZD  |   -280 |       0 |
   Given balances:
   | id   | rewards | savings | balance |*
   | .ZZD |      20 |      20 |   19.99 |
   When cron runs "bank"
   Then usd transfers:
   | payer | amount |*
-  | .ZZD  |   -310 |
+  | .ZZD  | %(-280-R_ACHMIN) |
 
 Scenario: a member is under minimum only because rewards are reserved
   Given members:
@@ -147,6 +147,4 @@ Scenario: a member has a deposited but not completed transfer
   # -9 in case the test takes a while (elapsed time is slightly more than R_USDTX_DAYS days)
   When cron runs "bank"
   Then bank transfer count is 1
-  
-
 

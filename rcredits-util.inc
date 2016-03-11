@@ -638,14 +638,6 @@ function SUBS($string, $prefix = ':', $flagField = 'flags') {
 }
 
 /**
- * Replace some common unprintable characters with their HTML equivalent
- * (dash, magic quotes, )
- *
-function wentities($s) {
-  return strtr($s, u\ray('— ‘ ’ “ ”'', '&mdash;', 
-  */
-
-/**
  * Assert an expectation or check parameters for validity
  * Throw an Exception if the expectation is not met.
  * call by:
@@ -844,61 +836,6 @@ function alterImg($img0, $w, $h, $x1 = 0, $y1 = 0, $cropW = 0, $cropH = 0, $angl
   
   return $img3;
 }
-
-/**
- * Normalize an image file to the given aspect
- * @param string $filename: path of file to normalize (file will be replaced)
- * @param string $aspect: the desired width:height ratio
- * @param int $factor: normalized size is the aspect times $factor.
- * @param bool $modify: modify the file (default TRUE, otherwise return the fixed image)
- * @param string $error: (returned) the error message, if any
- * @return if modifying file: TRUE for success, else FALSE; if not modifying file: return the image else ''
- * @todo: handle webp and xpm images?
- */ /*
-function fixPicture($filename, $aspect, $factor, $modify = TRUE, &$error = '') {
-  $acceptableImages = IMAGETYPE_GIF | IMAGETYPE_JPEG | IMAGETYPE_PNG | IMAGETYPE_WBMP | IMAGETYPE_XBM;
-  if (!$info = @getimagesize($filename)) return (!$error = 'not an image');
-  list ($w, $h, $type, $attr) = $info;
-  $ext = image_type_to_extension($type, FALSE);
-  if (!(imagetypes() & $type)) return (!$error = 'not an image');
-  if (!($acceptableImages & $type)) return (!$error = 'not an image');
-  list ($w0, $h0) = explode(':', $aspect);
-  $off = $w/$h - $w0/$h0; // how much is the aspect off by?
-///  debug(compact(u\ray('w h w0 h0 off aspect factor')));
-  if (abs($off) > .35) return (!$error = 'aspect');
-  $k = 1 - $off * $h / $w; // wFactor, if we need to correct width
-  list ($wFactor, $hFactor) = $off > 0 ? array($k, 1) : array(1, 1 / $k);
-  
-  $function = 'imagecreatefrom' . ($ext == 'bmp' ? 'wbmp' : $ext);
-  if (!$img = $function($filename)) return (!$error = 'file save error');
-  
-  cropImage($img, ($w-$w*$wFactor)/2, ($h-$h*$hFactor)/2, $w*$wFactor, $h*$hFactor); // narrow or shorten
-  resizeImage($img, $w0 * $factor, $h0 * $factor);
-
-  if ($modify) {
-    if (!imagejpeg($img, $filename, 100)) return (!$error = 'file save error');
-    return TRUE;
-  } else {
-    ob_start();
-    imagejpeg($img);
-    return ob_get_clean();   
-  }
-}*/
-/*
-function cropImage(&$img, $x, $y, $w, $h) {  
-  $canvas = imagecreatetruecolor($w, $h); // crop
-  $result = imagecopy($canvas, $img, 0, 0, $x, $y, $w, $h);
-  // NO! imagedestroy($canvas);
-  $img = $canvas;
-  return $result;
-}
-
-function resizeImage(&$img, $w, $h) {
-  $canvas = imagecreatetruecolor($w,$h);
-  $result = imagecopyresampled($canvas, $img, 0, 0, 0, 0, $w, $h, imagesx($img), imagesy($img));
-  $img = $canvas;
-  return $result;
-}*/
 
 /**
  * Quicker encryption for often-used fields.

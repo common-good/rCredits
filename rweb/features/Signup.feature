@@ -167,8 +167,11 @@ Scenario: A member registers again
   | fullName | email | phone      | postalCode | federalId   | dob      | acctType    |*
   | Bea Two  | a@ | 413-253-0002 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL |
   Then we say "error": "duplicate email|forgot password" with subs:
-  | who     | emailTagged            | a                                       |*
-  | Abe One | a+whatever@example.com | a href=settings/password/a%40example.com |
+  | who     | a                                        |*
+  | Abe One | a href=settings/password/a%40example.com |
+#  Then we say "error": "duplicate email|forgot password" with subs:
+#  | who     | emailTagged            | a                                       |*
+#  | Abe One | a+whatever@example.com | a href=settings/password/a%40example.com |
 #  And member is logged out
 # That email is taken. Click here to get a new password.
 

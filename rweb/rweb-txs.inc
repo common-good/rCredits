@@ -183,7 +183,7 @@ function txEdit_validate($form, &$sta) {
   
   if ($goods == FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
-///debug(compact('x_toMe','amount','x_amount'));
+///  debug(compact('x_toMe','amount','x_amount'));
   if (!$mya->cAdmin and ($x_toMe ? ($amount > $x_amount) : ($amount < $x_amount))) {
     $who = r\acct($x_toMe ? $x_payer : $x_payee)->name;
     $dif = abs($amount - $x_amount);

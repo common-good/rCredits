@@ -1,0 +1,48 @@
+/* Slider Panel */
+*.CGslider-panel {
+	background-color: #aaa;
+	box-sizing: content-box;
+	color: #333;
+	margin: 0;
+	display: block;
+	line-height: 0px;
+	height: 12px;
+	font-size: 0px;
+	text-align: left;
+	float: none;
+	border: 2px solid;
+	border-color: #ddd #999 #999 #ddd;
+	position: relative;
+	top: 0px;
+	overflow: hidden;
+	opacity: 1;
+	cursor: default;
+}
+*.CGslider-panel:hover {	background-color: #bbb; }
+*.CGslider-panel:focus {	background-color: #bbb; }
+*.orientation-horizontal {	width: 120px;	padding: 4px 3px 4px 4px;}
+/* Slider Slit */
+*.CGslider-slit {
+	background-color: #333;
+	position: relative;
+	line-height: 0px;
+	border: 1px solid;
+	border-color: #999 #ddd #ddd #999;
+	font-size: 0;
+	cursor: default;
+}
+*.CGslider-panel:focus *.CGslider-slit {	background-color: #35e; } /* blue slit in focused slider. */
+*.orientation-horizontal *.CGslider-slit {	height: 2px;	margin: 4px 2px 2px 2px; top: -12px; }
+/* Slider Knob */
+*.CGslider-knob {
+	background-color: #666;
+	position: relative;
+	z-index: 2;
+	line-height: 0px;
+	font-size: 0px;
+	border: 2px solid;
+	border-color: #999 #333 #333 #999;
+}
+*.CGslider-knob:hover {	background-color: #777;}
+*.orientation-horizontal *.CGslider-knob {	width: 16px; margin: 0; height: 8px; cursor: e-resize;}
+

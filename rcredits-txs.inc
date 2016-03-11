@@ -127,7 +127,7 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
   list ($toYou, $fromYou) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
   if ($toMe and @$fromMe) $toYou = $fromYou = "<span class=\"virtual\">$amount</span>"; // make old draws clear
   $button1 = ''; //(!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', '', $toMe, $byMe)) : '';
-  $button2 = (((!$isExtra and !$banking) or $mya->cAdmin) and !@$data['undoneBy']) ? r\Web\button(' X ', "$url&do=no", txAct('no', '', $toMe, $byMe)) : '';
+  $button2 = (((!$isExtra and !$banking) or $mya->admin) and !@$data['undoneBy']) ? r\Web\button(' X ', "$url&do=no", txAct('no', '', $toMe, $byMe)) : ''; // (admin not cAdmin)
   $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$isExtra and !$banking) ? "<a href='$url&do=edit' title='Edit Transaction'><img src='$rUrl/images/icons/edit.png' width=20 height=20 border=0 /></a>" : '';
   if (!$mya->can(B_MANAGE)) $button1 = $button2 = $button3 = '';
   $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";

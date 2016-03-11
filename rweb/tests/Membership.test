@@ -145,7 +145,7 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| fullName | quid | status |'
     . '\\| Abe One  | .ZZA | member |"');
     When_('member ".ZZA" visits page "summary"');
-    Then_('we say "status": "setup complete"');
+    Then_('we say "status": "setup complete|must be confirmed"');
     When_('member ".ZZA" visits page "status"');
     Then_('we show "Your Account Setup Is Complete"');
     And__('with done ""');

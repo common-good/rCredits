@@ -26,6 +26,7 @@ define('R_SIGNUP_BONUS', 20); // how much people start with at this time
 define('R_HELPER_BONUS', 20); // how much you get for inviting and assisting someone with account opening
 define('R_COUNTED_BONUS', 10); // UNUSED how much you get for each member employee of a company you invite/assist
 define('R_FLOOR', 0); // how low can user's combined balance go, by default
+define('MIN_WEEKLY_BUMP', 1); // automatic weekly increase in negative minimum balance
 define('R_DAILY_HOUR', isDEV ? '00' : '01'); // what time (2-digit 24-hour clock hour) to start intensive daily maintenance tasks
 define('R_WEEKLY_DAY', 'Sunday'); // what day of the week to do weekly tasks
 define('R_MONTHLY_DAY', '01'); // what day of the month to do monthly tasks (2-digits)

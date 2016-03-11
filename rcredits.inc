@@ -18,13 +18,6 @@ use rCredits\Backend as be;
 use rCredits\Web as w; // use only in rTime (for the game)
 
 // definitions used in settings file
-define('MIN_SECS', 60);
-define('HOUR_SECS', 60 * MIN_SECS);
-define('DAY_SECS', 24 * HOUR_SECS);
-define('WEEK_SECS', 7 * DAY_SECS);
-define('WEEK7_SECS', 52 * DAY_SECS);
-define('MONTH_DAYS', 30.4368);
-define('YEAR_SECS', round(12 * MONTH_DAYS * DAY_SECS));
 define('US_COUNTRY_ID', 1228); // United States
 define('R_BULLET', '&#8226;'); // bullet in emails (where CSS is difficult)
 define('STATS_GRAIN', isGAME ? 1 : 10); // granularity of statistics, in days
@@ -58,7 +51,7 @@ define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
 define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount photoId'); // very secure fields (admin-encrypted)
 define('R_SECURE_FIELDS', R_VSECURE_FIELDS . ' pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
-define('R_HIDE_CHANGES', 'ssnData changes init r rewards committed floor login access activated data secure stepsDone lastTx lastiCode pass notes picture photo trust risk risks stats getAppData appData'); // do not record changes to these fields: anything often-changed (automatically or not)
+define('R_HIDE_CHANGES', 'pw2 ssnData changes init r rewards committed floor login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData'); // do not record changes to these fields: anything often-changed (automatically or not)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
 define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_CASH', '(r-committed-GREATEST(0, floor, rewards))'); // balance available to cash out
@@ -86,7 +79,7 @@ define('R_MAX_PHOTOID_SIZE', 2.5); // Dwolla's limit (MB)
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_EXCHANGE_LIMITS', '1:5000,7:10000,49:20000,365:50000');
 define('R_INVITE_DAYS', 30); // number of days to accept invitation to membership
-define('R_MINR_DEFAULT', 0); // suggested minimum amount to hold in rCredits
+//define('R_MINR_DEFAULT', 0); // suggested minimum amount to hold in rCredits
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
 define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter easy copying, max 14 for small QR)
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
@@ -254,7 +247,7 @@ define('B_ADMIN', 30); // is a system administrator -- can manage server, includ
 define('B_MAX', 30); // maximum bit number on testing machine
 define('B_ADMINABLE', 'confirmed co member bona cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
 define('B_ADMIN_BITS', 'member:cgc,confirmed:up');
-define('B_LIST', 'member confirmed ok bona u4 u5 co u7 u8 nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joint u24 u25 closed regulator cadmin2 cadmin admin');
+define('B_LIST', 'member confirmed ok bona u4 u5 co u7 u8 nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 closed regulator cadmin2 cadmin admin');
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+givebacks+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community (fines and givebacks are negative)
 
@@ -339,15 +332,14 @@ define('TX_SIGNUP', 1); // signup incentive reward
 define('TX_GIVEBACK', 2); // gift to the community
 define('TX_INFLATION', 3); // reward to conpensate for inflation
 define('TX_HELPER', 4); // reward for inviting and assisting with account opening
-define('TX_XFEE', 5); // exchange fee (for buying rCredits with a credit/debit card or check)
-define('TX_REWARDS', '-2,-1,1,2,3,4'); // only these count as rewards
+define('TX_FINE', 9); // destroys rCredits (this is essentially a negative reward)
+define('TX_REWARDS', '-2,-1,1,2,3,4,9'); // only these count as rewards
 
-define('TX_GRANT', 5);
-define('TX_LOAN', 6);
-define('TX_INVEST', 7); // equity investment (community purchase are TX_TRANSFER)
-define('TX_u8', 8);
-define('TX_FINE', 9); // destroys rCredits (this is essentially a negative grant)
-define('TX_TYPES', 'payment signup u2 inflation helper grant loan investment u8 fine'); // this might need tweaks
+define('TX_XFEE', 10); // exchange fee (for buying rCredits with a credit/debit card or check)
+define('TX_GRANT', 11);
+define('TX_LOAN', 12);
+define('TX_INVEST', 13); // equity investment (community purchase are TX_TRANSFER)
+define('TX_TYPES', 'payment signup giveback inflation helper u5 u6 u7 u8 fine xfee grant loan investment');
 
 define('TX_DEFAULT_PERIOD', 30); // number of days to show in transaction history, by default
 define('TX_MAX_ROWS', 100); // maximum number of transactions to show on one screen
@@ -581,6 +573,22 @@ function setJoin($reid, $join) {
 function rdoMonth($time = NULL) {
   u\setDft($time, r\rTime());
   return round(($time - strtotime('12/1/2014')) / (MONTH_DAYS * DAY_SECS));
+}
+
+/**
+ * Return an array of communities (just in the given region?).
+ * @param int $region: current region uid
+ * @param bool $input: <return a dropdown input field>
+ */
+function cttys($region, $input = FALSE) {
+  $where = 'uid<0'; // uid BETWEEN :region-(:R_REGION_MAX-1) AND :region-1
+  $sql = "SELECT uid,fullName FROM users WHERE $where ORDER BY fullName";
+  $ray = db\q($sql, compact('region'))->fetchAllKeyed();
+  if ($input) {
+//    if (!@$cttys[$ctty]) u\preray([$ctty => $a->cttyA->fullName . t(' (outside the region)')], $cttys);
+    $cttys[r\serverUid()] .= t(' (outside any rCredits community)');
+    return selectFld(t('Community:'), '', dft($ctty), $cttys);
+  } else return $ray;
 }
 
 /**
@@ -851,7 +859,7 @@ function tellStaff($index, $subs = [], $uid = TRUE) {
   } else $uid = NULL; // default to SYS_EMAIL
 
   $noFrame = TRUE;
-  $topic = strlen($index) < 20 ? strip_tags($index) : '';
+  $topic = strlen($index) < 30 ? strip_tags($index) : '';
   $subs = compact(u\ray('email message topic noFrame uid')) + $subs;
   r\rMail('tell-staff', $email, $subs, $uid);
   if ($email != $regionEmail and $email != R_ADMIN_EMAIL) { // temporary until ctty admins get established
@@ -878,29 +886,6 @@ function tempName($info) {
 // NO  if (isset($my_website)) return R_TEMP_NAME_PREFIX . str_replace('.', ' DOT ', str_replace('/', ' SLASH ', $my_website));
   return R_TEMP_NAME_PREFIX . substr(md5('zot' . strval(r\rTime())), 0, 10); // pseudo random
 }
-
-/**
- * Merge a temporary ("old") account into the current account (a permanent ("new") account).
- * @return 1 (for counting how many were merged)
- */ /*
-function mergeAccounts($oldUid) {
-  $newUid = acct()->id;
-  if (!be\isTempAccount($oldUid)) return; // don't merge non-temp account
-//  u\EXPECT(be\access('manage account'), "unauthorized mergeAccounts: $newUid into $oldUid");
-///  if (!isTempName(userField('name', $oldUid))) die('merging non-temp account');
-  // there are no other records for temporary accounts, than those below
-
-  $new = acct($newUid);
-  $old = acct($oldUid);
-  $update = [];
-  foreach (u\ray('phone faxetc website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
-  acct()->update($update);
-  newMemberId($oldUid, $newUid, TRUE);
-  db\q('DELETE FROM users WHERE uid=:oldUid', compact('oldUid')); // must be last, for referential integrity
-  return 1;
-//  db\q("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:oldUid", compact('oldUid'));
-}
-*/
 
 /**
  * Return the rough (physical) location of the entity with the given account (city, state, non-US country).
@@ -1055,38 +1040,6 @@ function iCardAcct($code0, &$iCode = NULL) {
 }
 
 /**
- * Return the account for the given low-security code.
- * @param string $code: the code to interpret
- * @param int $seq: (RETURNED) the code sequence number
- * @param string $type: i=invitation code, e=email code
- * @return: the account or FALSE if error
- *//*
-function lowSecAcct($code0, &$seq = NULL, $type = 'i') {
-  $code = str_replace(' ', '', $code0); // ignore spaces
-  list ($ax2n, $n2ax, $xlen, $xlenMin, $xlenDiv, $xlenRegion, $xlenTail, $xlenSecurity
-  if (!preg_match('/[A-Z0-9]{' . ICARD_CODELEN_MIN . ',}/i', $code)) return FALSE;
-  $seq = u\ai2n(substr($code, ICARD_CODELEN_MIN)) + 0;
-///  debug("code=$code seq=$seq");
-  $code = substr($code, 0, ICARD_CODELEN_MIN); // chop off sequence number
-  $b = u\lpad(decbin(u\ai2n(substr($code, 0, 5))), ILEN_DIV). u\lpad(decbin(u\ai2n(substr($code, 5))), ILEN - ILEN_DIV);
-///  debug("code=$code seq=$seq b=$b");
-  $b = u\xorBits($b, substr(R_INVITE_KEY, -strlen($b)), TRUE);
-///  debug("code=$code seq=$seq b=$b");
-  $b = u\rotateBits($b, -($seq + 1) * (bindec(substr(R_INVITE_KEY, 0, 31)) % strlen($b)));
-///  debug("code=$code seq=$seq b=$b");
-  $region = u\n2a(bindec(substr($b, 0, ILEN_REGION)), 3);
-  $tail = u\n2a(bindec(substr($b, ILEN_REGION, ILEN_TAIL)), -3);
-  $security = u\n2ai(bindec(substr($b, -ILEN_SECURITY)), 3);
-///  debug("code=$code seq=$seq b=$b region=$region tail=$tail security=$security");
-
-  if (!$a = r\acct("$region.$tail")) { 
-  // temporarily allow '1' for 'I' (until June 2016 or so) -- not forever because we now use Verdana
-    return strpos($code, '1') === FALSE ? FALSE : iCardAcct(str_replace('1', 'I', $code0, $seq));
-  } else return ($security == $a->lowSecurity) ? $a : FALSE;
-}
-*/
-
-/**
  * Set a cookie
  * @param string $key: name of cookie
  * @param string $value: value of cookie
@@ -1149,29 +1102,6 @@ function nonoUndo($oldRecord, &$subs = []) {
 
   return FALSE;
 }
-
-/**
- * Create or update a reverse relation record for the given main and other
- *   if any of the given fields is positive
- * @param int $other: the main (switching to agent)
- * @param int $main: the other (switching to main)
- * @param assoc $data: (byRef) array of field values
- *   Returned with all fields listed in $fields unset (if any of those fields has a positive value)
- * @param string $fields: space-delimited list of fields to check
- * @return (none)
- *//*
-function reverseRelations($other, $main, &$data, $fields) {
-  foreach (u\ray($fields) as $field) if (@$data[$field]) $stay = TRUE;
-  if (!@$stay and !isset($data['employeeOk'])) return; // this function also UNsets employeeOk
-  
-  $subs = compact('main', 'other') + u\just($fields, $data);
-  if ($reid = relation('reid', $main, $other)) {
-    $subs += compact('reid');
-    db\update('r_relations', $subs, 'reid');
-  } else db\insert('r_relations', $subs);
-
-  foreach (u\ray($fields) as $field) unset($data[$field]); // don't get these fields mixed in with the reverse record
-}*/
 
 /**
  * Say whether one of the accounts owns the other (or can draw from it).
@@ -1512,121 +1442,6 @@ function companies($ctty, $export = FALSE) {
 }
 
 /**
- * Trade some rCredits for USD, from somebody. 
- * @param float $request: how much to try to get
- * @param acct $acct: rCredits account that is trading rCredits to third parties
- * @return how much USD we actually delivered
- *//*
-function getUsd($request, $acct) {
-  $need = $request;
-  r\usd::beginAtom();
-  while ($need > 0) {
-    $part = $need;
-    if (!$acct3 = nextRBuyer($part, $acct->id)) break; // asks for what we need, returns the part we got in $part
-    u\EXPECT($part > 0, 'got nothing');
-    if ($txid = r\tradeR($part, $acct->id, $acct3->id)) $need = round($need - $part, 2);
-  }
-  $got = round($request - $need, 2);
-  r\usd::commit($got); // accept partial success
-  return $got;
-}
-*/
-
-/**
- * Return the uid of the next account in line wanting/willing and able to trade enough US Dollars for rCredits.
- * If you trade rCredits for USD or vice versa, you go to the end of the line.
- * @param float $amount: the amount we're looking for. Returned with the amount actually available from the returned account. The amount sought depends on the $amount passed as follows:
- *   $amount < R_CHUNK*1.5 -- seek $amount
- *   otherwise -- seek R_CHUNK (leaving R_CHUNK/2 or more for other buyers
- * return: the best account to handle the trade (there may be none that wants so many rCredits)
- *    if no account wants to buy any, return FALSE (this would be really bad and should never ever happen)
- *    NOTE that CGF is the buyer of last resort.    
- *//*
-function nextRBuyer(&$amount, $except) {
-  if ($amount > R_CHUNK) $amount = R_CHUNK; // keep it cheap
-  $sql = <<<EOF
-    SELECT u.uid, u.usd AS got, u.name,
-    (SELECT MAX(completed) FROM r_usd WHERE payer=u.uid and payee<>0) AS last
-    FROM users u
-    WHERE u.usd>0 AND u.uid<>:except AND :IS_OK AND :IS_DW
-    ORDER BY last DESC, u.usd DESC, u.uid LIMIT 1
-EOF;
-
-  if (!$row = db\q($sql, compact('except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
-    r\tellStaff('no buyers', compact('amount')); // this is a really bad thing (nobody wants any at all)
-    return FALSE;
-  }
-  extract($row); // uid, got, and name
-  if ($name =='cgf') r\tellStaff('cgf sole buyer', compact('amount'));
-  $amount = min($amount, round($got, 2)); // take what we could get
-  return r\acct($uid);
-}
-*/
-
-/**
- * Return a system-wide or community-wide total.
- * As of the last daily cron, unless testing. For each community, and overall, the totals include:
- *    demand: the total unmet demand for rCredits
- *    r: rCredits in the system
- *    usd: USD in play (approximate)
- *    signup: rCredits issued as signup reward
- *    inflation: rCredits issued to offset inflation
- *    rebates: rCredits issued as rebates (including on USD transactions)
- *    bonuses: rCredits issued as sales bonuses
- * @param int $ctty: the community account id for which to return totals (default ALL)
- *//*
-function totals($ctty = 'ALL', $calculate = FALSE) {
-  $totals = \variable_get('r_totals');
-  if ($calculate or !@$totals or !@$totals[$ctty]) {
-    $totals[$ctty] = getTotals($ctty == 'ALL' ? NULL : $ctty);
-    \variable_set('r_totals', $totals);
-  }
-  foreach ($totals[$ctty] as $key => $value) {
-    $value = @$value + 0;
-    $fancy[$key] = $value >= 1000000 ? ('$' . number_format(($value - 9999) / 1000000, 2) . ' million') : u\fmtAmt($value);
-  }
-  
-  return (object) ($totals[$ctty] + compact('fancy'));
-
-  /*
-  $result = db\lookup('SUM(minimum)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty')); // minima
-  $result -= -r\balance($ctty); // less how many rCredits are in circulation
-  $result -= r\totalUSD($ctty); // less how much official currency is in play
-  *//*
-}
-*/
-
-/**
- * Return totals for the given community
- * @param int $ctty: the community account id (NULL means all communities)
- * @return assoc (ctty or system-wide totals of):
- *   r floor rewards usd minimum excess
- *   signup rebate bonus inflation grant loan fine maxRebate
- *   balance (-r) demand (minimum - r)
- *//*
-function getTotals($ctty) {
-  $subs = @$ctty ? compact('ctty') : [];
-  $where = (@$ctty ? "community=:ctty" : 1) . ' AND uid>0 AND :IS_OK';
-  $fields = u\sumAs('r floor rewards usd minimum committed');
-  //$max = 'GREATEST(0, maximum)';
-  $sql = "SELECT $fields, SUM(:R_DEMAND) AS demand, SUM(:R_CAPACITY) AS capacity FROM users u WHERE $where";
-  $result1 = db\q($sql, $subs)->fetchAssoc();
-
-  $where = @$ctty ? '(payer=:ctty OR payee=:ctty)' : 1;
-  $sums = '';
-  foreach (u\ray('signup rebate bonus inflation grant loan fine') as $one) {
-    $ONE = strtoupper($one);
-    $sums .= "SUM(IF(type=:TX_$ONE, amount, 0)) AS `$one`, ";
-    $sums .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
-  }
-  $sql = "SELECT $sums MAX(IF(type=:TX_REBATE, amount, 0)) AS maxRebate FROM r_txs WHERE $where";
-  $result2 = db\q($sql, $subs)->fetchAssoc();
-  $balance = -$result1['r'];
-  return $result1 + $result2 + compact(u\ray('balance'));
-}
-*/
-
-/**
  * Return system-wide or community-wide statistics.
  * @param int $ctty: uid of community or region (0 means ALL)
  * @param int $when: latest desired statistics (defaults to now)
@@ -1719,28 +1534,23 @@ EOF;
   
   // get buyers, sellers
   // (@todo?)
-  $sums = ''; // fine and giveback are negative
-  foreach (u\ray('signup xfee rebate bonus inflation helper giveback grant loan invest fine') as $one) {
-//    $type = $one == 'cttyBuy' ? TX_TRANSFER : u\consta('tx', $one);
+
+
+  // get purchases, rewards (of all types), xfees, grants, loans, investments, community trade, shared, forcash
+  $sums = ''; // fine and giveback are negative rewards
+  foreach (u\ray('signup rebate bonus giveback inflation helper fine xfee grant loan invest') as $one) {
     $type = u\consta('tx', $one);
-/*    if ($type == TX_TRANSFER) $type .= " AND $payerCrit AND amount<>0";
-    $value = $type == TX_TRANSFER ? 
-        "IF(type=$type AND $payerCrit, amount, 0)" // rCredits issued as ctty purchases
-      : "IF(type=$type, amount, 0)";
-*/
     $sums .= "SUM($tmembers * IF(type=$type AND $payerCrit, amount, 0)) AS `{$one}s`, ";
   }
 
-  // get cttyBuys, cttyIncomes  
   $sums .= <<<EOF
     SUM($tmembers * IF(type=:TX_TRANSFER AND ($payerCrit OR ($payeeCrit AND amount<0)), ABS(amount), 0)) AS cttyBuys,
     SUM($tmembers * IF(type=:TX_TRANSFER AND $payeeCrit AND amount>0, -amount, 0)) AS cttyIncomes,
 EOF;
 
-  // get purchases, signups, xfees, rebates, bonuss, inflations, helpers, refunds, grants, loans, investments, fines, shared
   $sums .= $ctty == 0 ? '' : <<<EOF
-    SUM($tmembers * IF(u.community<>:ctty AND u2.community=:ctty, -amount, 0)) AS tradeIn,
-    SUM($tmembers * IF(u2.community<>:ctty AND u.community=:ctty, amount, 0)) AS tradeOut,
+    SUM($tmembers * IF(u.community<>:ctty AND u2.community=:ctty, amount, 0)) AS tradeOut,
+    SUM($tmembers * IF(u2.community<>:ctty AND u.community=:ctty, -amount, 0)) AS tradeIn,
 EOF;
     
   $sql = <<<EOF
@@ -1754,7 +1564,7 @@ EOF;
   $res2 = db\q($sql, $subs)->fetchAssoc() ?: [];
 
   // get r
-  $res2['r'] = array_sum($res2) - $res2['shared'] - $res2['purchases'] - $res2['forCashs'];
+  $res2['r'] = array_sum($res2) - $res2['shared'] - $res2['purchases'] - $res2['forCashs'] - $res2['xfees'];
   $res2['r'] += $res['bankIn'] - $res['bankOut']; // include r provided in exchange for USD
   $res += $res2;
 
@@ -1931,41 +1741,6 @@ function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
   return FALSE;
 }
 
-/**
- * Process a transfer of USD from a bank into the Dwolla/rCredits account or vice versa.
- * @param assoc $tx: the Dwolla transaction
- * @return TRUE if the transfer has been successfully processed.
- *//*
-function usdTransferDone($tx) {
-  extract(u\just('Id Amount Date Type DestinationId SourceId ClearingDate Status', $tx));
-  if ($Status != 'processed') return FALSE; // pending
-  $Amount = $Type == 'deposit' ? -abs($Amount) : abs($Amount); // don't count on Dwolla's sign
-  $omit = u\test() ? (r\cgfId() - 1) : NULL; // ignore tester's account
-  if (!$payer = r\whoseUsd($Type == 'deposit' ? $DestinationId : $SourceId, $omit)) return FALSE; // tester
-  $info = u\ray('txid amount completed', $Id, $Amount, strtotime($ClearingDate));
-
-  $old = db\lookup('completed', 'r_usd', 'txid=:txid', u\ray('txid', $Id)); // existing completion date
-  if (is_null($old)) { // no record: system crashed before it got recorded
-    $info += u\ray('created payer payee', strtotime($Date), $payer, 0); // create whole record
-  } elseif ($old == $info['completed']) return TRUE; // already recorded and correctly dated complete
-
-  $DBTX = \db_transaction();
-  db\update('r_usd', $info, 'txid', TRUE); // update or (if crash) insert
-  
-  if ($Type == 'deposit') {
-    $a = r\acct($payer);
-    if (!$old) $a->actualUsd(-$Amount); // adjust cache up (double minus) now that money finally came in
-    $hour = strftime('%H', strtotime($date)); // creation hour
-    $auto = $hour == R_DAILY_HOUR ? t(' automatic') : ''; // (space is intentional)
-    $amount = u\fmtAmt(abs($Amount));
-    r\notify($a->id, 'transfer complete', compact('auto', 'amount'));
-    r\membershipEvent($a, 'bona', $a->usd > 0); // this works for testing too
-  }
-  unset($DBTX); // if system crashes in the middle of that, user might get duplicate emails -- no biggie
-  return TRUE;
-}
-*/
-
 function passHash($pass) {
   u\EXPECT(is_string($pass) and $pass !== '', 'bad pass to hash');
   require_once DRUPAL_ROOT . '/includes/password.inc';
@@ -2008,7 +1783,7 @@ function suggest($a, $index, $subs, $page = 'Preferences') {
  */
 function promoLink($page = '') {
   if (r\signedIn()) $page .= '?region=' . (isSTAGE ? STAGE_SUBDOMAIN : R_SERVER_ID) . '&tm=' . r\rTime();
-  return "http://rcredits.org/$page";
+  return PROMO_URL . "/$page";
 }
 
 /**

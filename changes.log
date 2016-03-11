@@ -1,10 +1,20 @@
-2016-02-
+2016-03-
+. typahead any company in any region. no typeahead for nonlocal individuals, but allow paying by name
+. DROP TABLE r_votes and create tables for CG Democracy
+. added saveWeekly field (for getting slowly out of debt or building up savings)
+. added invitation stats to Summary page
+. rewrote makeTables() in rcredits-install.inc, to bypass a Drupal bug
+. unset bit B_u4
+. put a limit on savings amount
+. fixed bug in statements that left page too long to print
+
+2016-02-16
 . version 2.33
 . added bootstrap typeahead (replacing Drupal's autocomplete) to Message and Tx forms
 . changed savings to runny and recreated all stats
+  f('db.q', 'TRUNCATE r_stats'); f('cr.cttyStats');
 . keep stats on total rewards in manual accounts (that don't refill automatically) that haven't promised to keep a positive primary balance. Also top max(5/5%) total.
 . made a clear path for admin to set up and activate a new community: create with New Ctty form, change community of everyone in that community (don't change payer in their rewards transactions unless updating statistics) 
-. f('db.q', 'TRUNCATE r_stats'); f('cron.cttyStats');
 . reworked community bits
 . added organizer grant form
 . made a way to give rewards back to the community (TX_GIVEBACK = 2). when user pays community or any nonprofit, ask if it's a gift. Record in tx's data field. For donations to the community, redo payer/payee etc so it is a negative reward tx from donor to ctty.

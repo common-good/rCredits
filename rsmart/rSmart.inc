@@ -172,7 +172,11 @@ function identify($args) {
   if ($err = missingArg($keys = 'device member code', $args)) return posErr($err); // no agent on scanin
   extract(u\just($keys . ' agent', $args));
 
-  if (!$a = @$agent ? getCustomer(@$member, $code, $err) : $mya) return posErr($err);
+  if (!$a = @$agent ? getCustomer(@$member, $code, $err) : $mya) {
+//    if (in_array(@$member, u\ray('MIW.ACI NEW.ACH NEW.ACY'))) $a = r\acct($member); else // orphan
+    if (in_array(@$member, u\ray('NEW.ACH NEW.ACY'))) $a = r\acct($member); else // orphan
+    return posErr($err);
+  }
 
   $logon = '1'; // assume logging in
   if (@$agent) {
@@ -240,7 +244,11 @@ function photo($args) {
   extract(u\just($keys, $args));
 
   if (!@$member) return photoReturn('missing member');
-  if (!$a = getCustomer($member, $code, $err)) return photoReturn($err);
+  if (!$a = getCustomer($member, $code, $err)) {
+//    if (in_array($member, u\ray('MIW.ACI NEW.ACH NEW.ACY'))) $a = r\acct($member); else // orphan
+    if (in_array($member, u\ray('NEW.ACH NEW.ACY'))) $a = r\acct($member); else // orphan
+    return photoReturn($err);
+  }
 //  $picFilename = $a->agent->photoFilename('picture2');
 //  $pic = @file_get_contents(DRUPAL_ROOT . $picFilename);
 //  exit(DRUPAL_ROOT . $picFilename);
@@ -296,7 +304,15 @@ function charge($args, $type = 'charge') {
   if (@$description === '') return posErr('missing description');
   if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
 
-  if (!$a = getCustomer($member, $code, $err, @$force != "-1")) return posErr($err);
+  if (!$a = getCustomer($member, $code, $err, @$force != "-1")) {
+//    if (in_array($member, u\ray('MIW.ACI NEW.ACH NEW.ACY')) and $force == 1) { // pre-2016 orphaned tx (3)
+    if (in_array($member, u\ray('NEW.ACH NEW.ACY')) and $force == 1) { // pre-2016 orphaned tx (3)
+      r\tellStaff('orphaned tx permitted (yay!)', compact(u\ray($keys . ' code force')));
+      $a = r\acct($member);
+      return ok(u\ray('message txid created balance rewards did undo', 'msg', 999, $created, $a->r, $a->rewards, 'charged', 'undo msg')); // pretend the tx went through, to make the app stop trying
+    }
+    return posErr($err);
+  }
   if ($mya->id == $a->id) return posErr("shoulda been login");
   $aa = $a->agent;
   if (@$photoid and !$aa->photoId) $aa->update('photoId', $photoid);
