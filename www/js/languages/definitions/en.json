@@ -72,5 +72,6 @@
   "you_are_offline": "You are offline",
   "demo_mode": "Demo mode",
   "can_not_use_real_card": "You cannot use a real card with a demo company. Click \"Forget Company\" in the menu to exit demo mode",
-  "can_not_use_demo_card": "You cannot use a demo card with a real company."
+  "can_not_use_demo_card": "You cannot use a demo card with a real company.",
+  "offline_old_transactions": "There are transaction more than 24hs old."
 }
