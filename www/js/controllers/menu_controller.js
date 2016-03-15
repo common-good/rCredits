@@ -68,6 +68,10 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
     });
   };
 
+  $scope.enterCashierMode = function() {
+    return UserService.enterCashierMode();
+  };
+
   $scope.isOnline = function() {
     return NetworkService.isOnline();
   }

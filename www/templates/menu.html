@@ -29,7 +29,7 @@
           {{ 'signOut' | translate }}
         </ion-item>
 
-        <ion-item menu-close ng-click="logout()" ng-show="isCashierModeAvailable() && !isCashierModeEnabled()">
+        <ion-item menu-close ng-click="enterCashierMode()" ng-show="isCashierModeAvailable() && !isCashierModeEnabled()">
           {{ 'enter_cashier_mode' | translate }}
         </ion-item>
 
