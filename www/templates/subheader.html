@@ -1,0 +1,7 @@
+<div class="bar bar-subheader" ng-if="offlCtrl.isOffline() || offlCtrl.isDemoMode()">
+  <h2 class="title">
+    <span ng-if="offlCtrl.isOffline()">{{'you_are_offline' | translate}}</span>
+    <span ng-if="offlCtrl.isOffline() && offlCtrl.isDemoMode()"> - </span>
+    <span ng-if="offlCtrl.isDemoMode()">{{'demo_mode' | translate}}</span>
+  </h2>
+</div>

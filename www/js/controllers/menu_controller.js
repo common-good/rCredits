@@ -1,4 +1,4 @@
-app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService, PreferenceService, $ionicHistory) {
+app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService, PreferenceService, NetworkService) {
 
   // Logout
 
@@ -66,5 +66,14 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
         $scope.logout();
       }
     });
+  };
+
+  $scope.enterCashierMode = function() {
+    return UserService.enterCashierMode();
+  };
+
+  $scope.isOnline = function() {
+    return NetworkService.isOnline();
   }
+
 });

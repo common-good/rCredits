@@ -35,6 +35,16 @@
       return SQLiteService.executeQuery(sqlQuery);
     };
 
+    TransactionSql.prototype.exist24HsTransactions = function() {
+      var yesterday = moment().subtract(1, 'day').unix();
+      var sqlQuery = new SqlQuery();
+      sqlQuery.setQueryString("SELECT * from txs where created < " + yesterday + " and  STATUS = " + Transaction.Status.OFFLINE);
+      console.log(sqlQuery.getQueryString());
+      return SQLiteService.executeQuery(sqlQuery).then(function(SQLResultSet) {
+        return SQLResultSet.rows.length > 0;
+      });
+    };
+
     return new TransactionSql();
 
   });

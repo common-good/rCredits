@@ -6,7 +6,8 @@
 
     var SQLiteService = function() {
       self = this;
-      this.sqlPlugin = window.sqlitePlugin || window;
+      //this.sqlPlugin = window.sqlitePlugin || window;
+      this.sqlPlugin = window;
       this.db = null;
     };
 
@@ -15,10 +16,15 @@
     };
 
     SQLiteService.prototype.createDatabase = function() {
+      var openPromise = $q.defer();
       this.db = this.sqlPlugin.openDatabase(
         window.rCreditsConfig.SQLiteDatabase.name,
         window.rCreditsConfig.SQLiteDatabase.version,
-        window.rCreditsConfig.SQLiteDatabase.description, -1);
+        window.rCreditsConfig.SQLiteDatabase.description, 100000);
+      $timeout(function() {
+        openPromise.resolve();
+      }, 1000);
+      return openPromise.promise;
     };
     SQLiteService.prototype.ex = function() {
       var txPromise = $q.defer();
@@ -58,31 +64,30 @@
         "rewards REAL," + // rewards to date (as of lastTx) / manager's permissions / photo ID (!rewards.matches(NUMERIC))
         "lastTx INTEGER," + // unixtime of last reconciled transaction / -1 for managers
         "photo TEXT);" // lo-res B&W photo of customer (normally under 4k) / full res photo for manager
-      );
-
-      this.executeQuery_(
-        "CREATE TABLE IF NOT EXISTS txs (" +
-        "me TEXT," + // company (or device-owner) account code (qid)
-        "txid INTEGER DEFAULT 0," + // transaction id (xid) on the server (for offline backup only -- not used by the app) / temporary storage of customer cardCode pending tx upload
-        "status INTEGER," + // see A.TX_... constants
-        "created INTEGER," + // transaction creation datetime (unixtime)
-        "agent TEXT," + // qid for company and agent (if any) using the device
-        "member TEXT," + // customer account code (qid)
-        "amount REAL," +
-        "goods INTEGER," + // <transaction is for real goods and services>
-        "proof TEXT," + // hash of cardCode, amount, created, and me (as proof of agreement)
-        "description TEXT);" // always "reverses..", if this tx undoes a previous one (previous by date)
-      );
-
-      this.executeQuery_("CREATE INDEX IF NOT EXISTS custQid ON members(qid)");
+      ).then(function() {
+        return self.executeQuery_(
+          "CREATE TABLE IF NOT EXISTS txs (" +
+          "me TEXT," + // company (or device-owner) account code (qid)
+          "txid INTEGER DEFAULT 0," + // transaction id (xid) on the server (for offline backup only -- not used by the app) / temporary storage of customer cardCode pending tx upload
+          "status INTEGER," + // see A.TX_... constants
+          "created INTEGER," + // transaction creation datetime (unixtime)
+          "agent TEXT," + // qid for company and agent (if any) using the device
+          "member TEXT," + // customer account code (qid)
+          "amount REAL," +
+          "goods INTEGER," + // <transaction is for real goods and services>
+          "proof TEXT," + // hash of cardCode, amount, created, and me (as proof of agreement)
+          "description TEXT);" // always "reverses..", if this tx undoes a previous one (previous by date)
+        );
+      }).then(function() {
+        self.executeQuery_("CREATE INDEX IF NOT EXISTS custQid ON members(qid)");
+      });
     };
 
     SQLiteService.prototype.init = function() {
       if (!this.isDbEnable()) {
         console.warn("SQLite is not enable");
       }
-      this.createDatabase();
-      this.createSchema();
+      this.createDatabase().then(this.createSchema.bind(this));
     };
 
     return new SQLiteService();

@@ -62,7 +62,10 @@ app.service('TransactionService',
         });
       } else {
         // Offline
-        return this.doOfflineTransaction(amount, description, goods);
+        return this.doOfflineTransaction(amount, description, goods).then(function(result) {
+          self.warnOfflineTransactions();
+          return result;
+        });
       }
     };
 
@@ -243,6 +246,14 @@ app.service('TransactionService',
             throw false;
           }
         });
+    };
+
+    TransactionService.prototype.warnOfflineTransactions = function() {
+      TransactionSql.exist24HsTransactions().then(function(exists) {
+        if (exists) {
+          NotificationService.showAlert('offline_old_transactions');
+        }
+      })
     };
 
     return new TransactionService();

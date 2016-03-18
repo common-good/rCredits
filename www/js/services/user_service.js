@@ -1,5 +1,5 @@
 app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, User, Seller, Customer, $rootScope, $timeout,
-                                    PreferenceService, CashierModeService, $state, NetworkService, MemberSqlService) {
+                                    PreferenceService, CashierModeService, $state, NetworkService, MemberSqlService, NotificationService) {
   'use strict';
 
   var LOGIN_FAILED = '0';
@@ -65,6 +65,18 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     });
   };
 
+  UserService.prototype.validateDemoMode = function(accountInfo) {
+    if (!this.currentUser()) {
+      return;
+    }
+
+    if (this.currentUser().isDemo() && !accountInfo.isDemo()) {
+      throw "can_not_use_real_card"
+    } else if (!this.currentUser().isDemo() && accountInfo.isDemo()) {
+      throw "can_not_use_demo_card"
+    }
+  };
+
   UserService.prototype.loginWithRCard_ = function(params, accountInfo) {
     return this.makeRequest_(params, accountInfo).then(function(res) {
         var responseData = res.data;
@@ -102,6 +114,9 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     var qrcodeParser = new QRCodeParser();
     qrcodeParser.setUrl(str);
     var accountInfo = qrcodeParser.parse();
+
+    this.validateDemoMode(accountInfo);
+
     var params = new RequestParameterBuilder()
       .setOperationId('identify')
       .setSecurityCode(accountInfo.securityCode)
@@ -156,6 +171,9 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     var qrcodeParser = new QRCodeParser();
     qrcodeParser.setUrl(str);
     var accountInfo = qrcodeParser.parse();
+
+    this.validateDemoMode(accountInfo);
+
     var params = new RequestParameterBuilder()
       .setOperationId('identify')
       .setAgent(this.seller.default)
@@ -300,24 +318,21 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     });
   };
 
+  UserService.prototype.enterCashierMode = function() {
+    CashierModeService.activateCashierMode();
+    $state.go('app.home');
+  };
+
   // Logs the user out on the remote server.
   // Returns a promise that resolves when logout is complete, or rejects with error of fail.
   UserService.prototype.logout = function() {
     return $q(function(resolve, reject) {
-      if (PreferenceService.isCashierModeEnabled() && !CashierModeService.isEnabled()) {
-        CashierModeService.activateCashierMode();
-        resolve();
-        $state.go('app.home');
-        return;
-      }
-
       $rootScope.$emit('sellerLogout');
       self.customer = null;
       self.seller.removeFromStorage();
       self.seller = null;
       CashierModeService.disable();
       resolve();
-
     });
   };
 
@@ -326,7 +341,6 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
 
       self.customer = null;
       self.seller = null;
-      CashierModeService.disable();
       $state.go('app.login', {disableLoadSeller: true});
       $rootScope.$emit('sellerLogout');
       resolve();

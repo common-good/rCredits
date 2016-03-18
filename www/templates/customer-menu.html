@@ -1,10 +1,10 @@
 <ion-view class="customer-menu">
   <ion-nav-buttons side="secondary">
-    <button class="button button-stable" ng-click="showBalance()">
+    <button class="button button-stable" ng-if="isOnline()" ng-click="showBalance()">
       {{ 'balance' | translate }}
     </button>
   </ion-nav-buttons>
-  <offline-header></offline-header>
+  <subheader></subheader>
   <ion-content>
     <div class="rc">
 

@@ -1,7 +1,7 @@
 (function(app) {
   'use strict';
 
-  app.service('NetworkService', function($rootScope) {
+  app.service('NetworkService', function($rootScope, $timeout) {
 
     var self;
     var NetworkService = function() {
@@ -17,6 +17,14 @@
       if (navigator && navigator.connection) {
         this.connectionOnline = navigator.connection.type !== 'none';
       }
+
+      $timeout(function() {
+        if (self.isOnline()) {
+          self.onOnline();
+        } else {
+          self.onOffline();
+        }
+      }, 5000);
     };
 
     NetworkService.prototype.onOffline = function() {

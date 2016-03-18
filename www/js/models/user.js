@@ -59,6 +59,10 @@
         return MemberSqlService.saveMember(this);
       },
 
+      isDemo: function() {
+        return this.accountInfo.isDemo();
+      },
+
       default: '',
     });
 
