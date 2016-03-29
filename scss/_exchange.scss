@@ -13,6 +13,11 @@
 
 .switch-btn {
   margin-top: 0px !important;
+  .arrow {
+    display: inline-block;
+    transform: rotate(90deg);
+    -webkit-transform: rotate(90deg);
+  }
 }
 
 .next-btn {
@@ -31,6 +36,9 @@
 
 .fee-legend {
   text-align: center;
+  font-size: 12px;
+  padding: 2px;
+  background-color: #FFF5A5;
 }
 
 .exchange-keypad {

@@ -11,18 +11,18 @@
       <img id="ItemPreview" ng-src="{{customer.photo}}" class="customer-img" sf-load="hideLoading()"/>
       <p class="customer-name">{{customer.name}}</p>
 
-      <button class="button button-block button-positive main-action"
+      <button class="button button-block button-positive primary"
               ng-click="openCharge()">
         {{ 'charge' | translate }}
       </button>
 
       <div class="button-bar bar-stable">
-        <a class="button" ng-click="openRefund()">
+        <button class="button refund secondary" ng-click="openRefund()">
           {{ 'refund' | translate }}
-        </a>
-        <a class="button" ng-click="openExchange()">
+        </button>
+        <button class="button exchange secondary" ng-click="openExchange()">
           {{ 'exchange' | translate }}
-        </a>
+        </button>
       </div>
     </div>
   </ion-content>

@@ -24,22 +24,14 @@
         </ion-item>
 
 
-        <!-- Manager Mode && Cashier Mode Not Available of Prefs-->
-        <ion-item menu-close ng-click="logout()" ng-show="!isCashierModeAvailable() && !isCashierModeEnabled()">
-          {{ 'signOut' | translate }}
-        </ion-item>
-
         <ion-item menu-close ng-click="enterCashierMode()" ng-show="isCashierModeAvailable() && !isCashierModeEnabled()">
           {{ 'enter_cashier_mode' | translate }}
         </ion-item>
-
 
         <!-- Cashier Mode-->
         <ion-item menu-close ng-click="softLogout()" ng-show="isCashierModeEnabled()">
           {{ 'manager_sign_in' | translate }}
         </ion-item>
-
-        <ion-item>&nbsp;</ion-item>
 
         <ion-item menu-close ng-click="redirectPreferences()" ng-show="!isCashierModeEnabled()">
           {{'preferences' | translate}}
@@ -47,6 +39,11 @@
 
         <ion-item menu-close ng-click="changeCompany()">
           {{ 'change_company' | translate }}
+        </ion-item>
+
+        <!-- Manager Mode && Cashier Mode Not Available of Prefs-->
+        <ion-item menu-close ng-click="logout()" ng-show="!isCashierModeAvailable() && !isCashierModeEnabled()">
+          {{ 'signOut' | translate }}
         </ion-item>
       </ion-list>
     </ion-content>

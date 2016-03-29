@@ -23,15 +23,16 @@
           </div>
         </div>
 
-        <button class="button button-full button-positive switch-btn" ng-click="selExCtrl.switchTypes()">
+        <button class="button button-full secondary switch-btn" ng-click="selExCtrl.switchTypes()">
+          <div class="arrow"><i class="ion-arrow-swap"></i></div>
           {{::('switch' | translate)}}
         </button>
 
       </div>
 
     </section>
-
-    <div class="list">
+  {{hide_currency}}
+    <div class="list" ng-show="hide_payment">
 
       <label class="item item-input item-select">
         <div class="input-label" ng-bind="selExCtrl.selectedPayment.getName()">
@@ -40,7 +41,6 @@
                 ng-model="selExCtrl.selectedPayment" ng-change="selExCtrl.onPaymentChange()"></select>
       </label>
 
-
       <div class="item payment-fee-advice" ng-bind="selExCtrl.paymentAdvice">
       </div>
 
@@ -48,7 +48,7 @@
 
 
   </ion-content>
-  <button class="button button-full button-positive next-btn" ng-click="selExCtrl.goNextPage()">
+  <button class="button primary button-full button-positive next-btn" ng-click="selExCtrl.goNextPage()">
     {{::('next' | translate)}}
   </button>
 </ion-view>

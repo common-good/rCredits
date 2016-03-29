@@ -1,13 +1,13 @@
 <ion-view class="company-home" cache-view="false">
   <subheader></subheader>
   <ion-content>
-    <div class="rc">
+    <div class="rc home">
 
       <h1 class="company">{{currentUser.company}}</h1>
 
       <p class="user" ng-if="!isCashierMode()">
         {{ 'signInAs' | translate }}<br>
-        {{currentUser.name}}
+        <strong>{{currentUser.name}}</strong>
       </p>
       <p class="user" ng-if="isCashierMode()">
         {{ 'cashier_mode' | translate }}<br>
@@ -16,7 +16,7 @@
       <div class="rc-logo" ng-include="'templates/logo.html'"></div>
 
       <button ng-click="scanCustomer()"
-        class="scan-customer main-action button button-block button-positive " >
+        class="scan-customer primary button button-block button-positive " >
         {{ 'scanRCard' | translate }}
       </button>
     </div>
