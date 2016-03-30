@@ -56,6 +56,7 @@ app.controller('TransactionResultCtrl', function($scope, $state,
         TransactionService.undoTransaction(TransactionService.lastTransaction)
           .then(function(transactionResult) {
             $scope.note = 'transactionUndoSuccessNote';
+            $scope.undo = true;
           })
           .finally(function() {
             $ionicLoading.hide();

@@ -1,0 +1,31 @@
+.customer-menu {
+  .customer-img {
+    height: 13em;
+  }
+
+  .customer-name {
+    display: block;
+    font-weight: bold;
+    font-size: 20px;
+  }
+
+  .first-purchase {
+    padding-top: 20px;
+  }
+
+  button.main-action {
+    margin-top: 20px;
+  }
+
+  button.secondary {
+    height: 60px;
+  }
+
+  button.refund {
+    margin-right: 5px;
+  }
+
+  button.exchange {
+    margin-left: 5px;
+  }
+}

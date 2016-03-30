@@ -2,15 +2,18 @@
 
   'use strict';
 
-  app.controller('SelectExchangeCtrl', function(ExchangeService, $translate, $state, Exchange) {
+  app.controller('SelectExchangeCtrl', function($scope, ExchangeService, $translate, $state, Exchange) {
     var self = this,
       currencies = ExchangeService.getCurrencies(),
       paymentTypes = ExchangeService.getPaymentTypes();
+
+    $scope.hide_payment = true;
 
     this.switchTypes = function() {
       var inMoney = this.exchange.getCurrencyFrom();
       this.exchange.setCurrencyFrom(this.exchange.getCurrencyTo());
       this.exchange.setCurrencyTo(inMoney);
+      $scope.hide_payment = !$scope.hide_payment;
     };
 
     this.init = function() {

@@ -1,7 +1,11 @@
 app.controller('LoginCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService) {
 
-  // Scanner Login
+  $scope.$on('$ionicView.loaded', function() {
+  ionic.Platform.ready( function() {
+    if(navigator && navigator.splashscreen) navigator.splashscreen.hide(); });
+  });
 
+  // Scanner Login
   $ionicHistory.clearHistory();
   $scope.openScanner = function() {
     $ionicLoading.show();

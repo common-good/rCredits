@@ -5,13 +5,16 @@
     margin-right: auto;
 
     @media screen and (min-width:600px) {
-      width: 50%;
+      width: 90%;
     }
   }
 }
 
-.button {
-  &.main-action {
-    height: 88px;
-  }
+button.primary {
+  font-size: 25px;
+  height: 5.5rem;
+}
+
+button.secondary {
+  font-size: 18px;
 }

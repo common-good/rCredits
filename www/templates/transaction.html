@@ -21,11 +21,11 @@
 
       <section class="section-3">
         <input type="hidden" ng-value='amount'>
-        <div class="main-action button button-full button-positive"
+        <button class="primary button button-full button-positive"
           ng-click='initiateTransaction()'
           ng-disabled='disableTransaction()'>
           {{ transactionType | translate }}
-        </div>
+        </button>
       </section>
     </div>
   </ion-content>
