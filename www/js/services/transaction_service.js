@@ -1,6 +1,6 @@
 app.service('TransactionService',
   function($q, UserService, RequestParameterBuilder, $http, $httpParamSerializer, SQLiteService,
-           SqlQuery, NetworkService, MemberSqlService, NotificationService, $ionicLoading, TransactionSql) {
+           SqlQuery, NetworkService, MemberSqlService, NotificationService, $ionicLoading, TransactionSql, $rootScope) {
 
     var self;
 
@@ -93,6 +93,9 @@ app.service('TransactionService',
           }
 
           throw transactionResult;
+        })
+        .finally(function() {
+          $rootScope.$emit("TransactionDone");
         });
     };
 
