@@ -116,7 +116,7 @@ Scenario: Device gives no member id
   Then we return error "missing member"
   
 Scenario: Device gives bad account id
-  When agent ":ZZA" asks device "devC" to charge %whatever $300 for "cash": "cash out" at %now
+  When agent ":ZZA" asks device "devC" to charge "whatever-ccB" $300 for "cash": "cash out" at %now
   Then we return error "bad customer"
 
 Scenario: Device gives no amount

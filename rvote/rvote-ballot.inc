@@ -22,7 +22,7 @@ function ballot(&$extras, $question) {
 
   list($quids, $qutypes) = getQuestions($mya->community); 
   $qcount = count($quids);
-  if(!$qcount) die("There is no vote in progress for your community.");
+/**/  if(!$qcount) die("There is no vote in progress for your community.");
 
   // set up question to display
   $qnum = array_search($question, $quids); // this works even if the number of elections/questions changes during voting
@@ -141,7 +141,6 @@ function setupVote(&$extras, $voter, $question, $optOrder, &$ballot) {
 	}
 
 	$opts = setupOptions($question, $optOrder);
-  debug($opts);
 
 	for($i = 0; $i<count($opts); $i++) {
 		setdbfield("option$i", BLANKGRADE);
@@ -258,7 +257,6 @@ function gradeInputs($opti, $defaults) {
 function optStart($opti, $rowclass, $type) {
 	$vetov = "veto$opti";	
 //input($vetov, 'b', '', "onclick='vetoclick$type($opti);'"); $vetovv = vv("input_$vetov");
-//echo "v=$vetov vi=$vetovi vv=$vetovv<br>\n";
   $onclick = "vetoclick$type($opti);";
   $vetovv = w\rendA($vetov, w\boxFld($vetov, '', '', '', w\attrib(compact('onclick'))));
 	return <<<EOF

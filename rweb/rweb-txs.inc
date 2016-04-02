@@ -49,7 +49,6 @@ function formTxs($form, &$sta, $args = '') {
   */
   
   extract(u\just('dateRange url starting ending', dateRange($args, 'history/transactions')));
-
   $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
   list ($header, $classes, $rows, $totals) = x\getTxRows($starting, $ending, $url, $maxRows, compact(u\ray('download agents channels boxes')));
   
@@ -164,7 +163,7 @@ function txEdit($xid) {
   );
 
   $purpose = $toMe ? $payeeFor : $payerFor;
-  $orig = hidFld(serialize($details));
+  $orig = hidFld(htmlspecialchars(serialize($details)));
   $title = item(t('Edit Transaction'));
   $to = item(r\acct($toMe ? $payer : $payee)->fullName, $toMe ? t('From:') : t('To:'));
   $amount = textFld(t('Amount: $'), '', dft(number_format($amount,2)));
@@ -179,7 +178,7 @@ function txEdit_validate($form, &$sta) {
   global $base_url;
   $mya = r\acct();
   extract(u\just('amount goods purpose orig', $sta['input']));
-  extract($orig = unserialize($orig), EXTR_PREFIX_ALL, 'x');
+  extract($orig = unserialize(htmlspecialchars_decode($orig)), EXTR_PREFIX_ALL, 'x');
   
   if ($goods == FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
@@ -200,8 +199,9 @@ function txEdit_validate($form, &$sta) {
 
 function txEdit_submit($form, &$sta) {
   extract(u\just('amount goods purpose orig', $sta['input']));
-  extract($orig = unserialize($orig), EXTR_PREFIX_ALL, 'x');
+  extract($orig = unserialize(htmlspecialchars_decode($orig)), EXTR_PREFIX_ALL, 'x');
   $x = r\x($x_xid);
+  u\EXPECT($x, 'submitted non-tx!');
 
   $forField = $x_toMe ? 'payeeFor' : 'payerFor';
   if ($purpose != $orig[$forField]) $x->setField($forField, $purpose);
@@ -213,7 +213,7 @@ function txEdit_submit($form, &$sta) {
     $what = u\ray(R_WHYS)[$goods];
     $amount = u\fmtAmt($amount);
 
-    foreach (array($x_payer => $x_payerTid, $x_payee => $x_payeeTid) as $uid => $tid) {
+    foreach ([$x_payer => $x_payerTid, $x_payee => $x_payeeTid] as $uid => $tid) {
       $who = $uid == $agent->id ? t('you') : $agent->fullName;
       r\notify($uid, $msg, compact(u\ray('who tid amount what')));
     }

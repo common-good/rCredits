@@ -906,6 +906,15 @@ function cryptN($data, $encrypt = TRUE) {
 }
 function decryptN($data) {return cryptN($data, FALSE);}
 
+function pgpCrypt($data) {return openssl_public_encrypt($data, $res, u\pgp()) ? $res : FALSE;}
+function pgpDecrypt($data) {return openssl_private_decrypt($data, $res, u\pgp(TRUE)) ? $res : FALSE;}
+
+/**
+ * Return the appropriate pgp key.
+ * @param bool $private: <return the private key> (else return the public key)
+ */
+function pgp($private = FALSE) {return file_get_contents($private ? PRIVATE_KEY : PUBLIC_KEY);}
+
 function OLDencrypt($data, $encrypt = TRUE) {
   if (empty($data)) return FALSE;
   u\EXPECT(compact('data'), 'string');
@@ -1311,7 +1320,7 @@ function plusMonths($months, $time = '') {
   if ($months > 0) $months = '+' . $months;
   $res = strtotime($months . 'months', $time);
   $day = date('d', $res);
-  return $day == date('d', $time) ? $res : strtotime("-$day", $res); // use last day of month if same day fails
+  return $day == date('d', $time) ? $res : strtotime(-$day, $res); // use last day of month if same day fails
 }
 
 /**

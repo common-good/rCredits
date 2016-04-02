@@ -52,16 +52,9 @@ function setupBasicAccounts() {
   $a1->update('fullName flags', t('System Administrator'), $flags);
 
   $server = r\serverUid();
-  if ($server == r\serverUid('NEW')) { // no need to set up WWS and CGF unless in Western Mass (or testing)
+  if ($server == r\serverUid('NEW')) { // no need to set up CGF unless in Western Mass (or testing)
     if (db\exists('users', "name='cgf'")) return; // already done
 
-/*    
-    $values = array(r\unQuid(R_ADMIN_QID), $server, u\shortName(ADMIN_NAME), ADMIN_NAME, R_ADMIN_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK]));
-    $info = array_combine($keys, $values);
-    list ($phone, $address, $city, $state) = array('+14136281021', 'PO Box 305', 'Ashfield', R_STATE_ID);
-    $info += compact(u\ray('email phone address city state'));
-    $wws = new r\acct($info);
-*/    
     $values = array(r\unQuid('NEW.AAB'), $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO]));
     $info = array_combine($keys, $values);
     list ($phone, $address, $city, $state) = array(CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
@@ -71,6 +64,40 @@ function setupBasicAccounts() {
     \variable_set('cgf_uid', $cgf->id);
 //    $cgf->newRelation($wws->id, r\perm(B_MANAGE));
   }
+}
+
+/**
+ * Re-setup the test cards on the STAGING server, after importing data from the PRODUCTION server.
+  f('a.makeTestCards');
+ */
+function makeTestCards() {
+  if (isPRODUCTION) return;
+
+  $a = a('aab');
+  $selling = "groceries\ngifts\nsundries\ndeli\nbaked goods";
+  $a->update('name fullName selling', 'cornerstore', 'Corner Store', $selling);
+//  $a->setBitx(CO_REQUIRE_CASHIER, FALSE, 'coFlags');
+
+  $a = a('aaa');
+  $a->update('name fullName cardCode2 pin', 'bobbossman', 'Bob Bossman', 'WeHlioM5JZv1O9G', '1234');
+  a\shrinkPhoto($a);
+  
+  $a = a('aad');
+  $a->update('name fullName cardCode2 pin', 'cathycashier', 'Cathy Cashier', 'ME04nW44DHzxVDg', '1234');
+  a\shrinkPhoto($a);
+  
+  $a = a('aaq');
+  $a->update('name fullName', 'helgas', 'Helga\'s Hardware');
+//  $a->setBitx(CO_REQUIRE_CASHIER, TRUE, 'coFlags');
+  a\shrinkPhoto($a);
+  
+  $a = a('aak');
+  $a->update('name fullName cardCode cardCode2 pin', 'curtcustomer', 'Curt Customer', 'NyCBBlUF1qWNZ2k', 'utbYceW3KLLCcaw', '1234');
+  a\shrinkPhoto($a);
+  
+  $a = a('abb');
+  $a->update('name fullName cardCode pin', 'susanshopper', 'Susan Shopper', 'ZzhWMCq0zcBowqw', '1234');
+  a\shrinkPhoto($a);
 }
 
 /**
@@ -368,39 +395,6 @@ function pioneerBonus($a) {
   be\fund($a->id, TX_SIGNUP, 100, 'pioneer bonus');
 }
 
-/**
- * Re-setup the test cards on the STAGING server, after importing data from the PRODUCTION server.
-  f('a.makeTestCards');
- */
-function makeTestCards() {
-  if (isPRODUCTION) return;
-
-  $a = a('aab');
-  $selling = "groceries\ngifts\nsundries\ndeli\nbaked goods";
-  $a->update('name fullName selling', 'cornerstore', 'Corner Store', $selling);
-//  $a->setBitx(CO_REQUIRE_CASHIER, FALSE, 'coFlags');
-
-  $a = a('aaa');
-  $a->update('name fullName cardCode2', 'bobbossman', 'Bob Bossman', 'WeHlioM5JZv1O9G');
-  a\shrinkPhoto($a);
-  
-  $a = a('aad');
-  $a->update('name fullName cardCode2', 'cathycashier', 'Cathy Cashier', 'ME04nW44DHzxVDg');
-  a\shrinkPhoto($a);
-  
-  $a = a('aaq');
-  $a->update('name fullName', 'helgas', 'Helga\'s Hardware');
-//  $a->setBitx(CO_REQUIRE_CASHIER, TRUE, 'coFlags');
-  a\shrinkPhoto($a);
-  
-  $a = a('aak');
-  $a->update('name fullName cardCode cardCode2', 'curtcustomer', 'Curt Customer', 'NyCBBlUF1qWNZ2k', 'utbYceW3KLLCcaw');
-  a\shrinkPhoto($a);
-  
-  $a = a('abb');
-  $a->update('name fullName cardCode', 'susanshopper', 'Susan Shopper', 'ZzhWMCq0zcBowqw');
-  a\shrinkPhoto($a);
-}
 
 // MEMBER LIST: SELECT fullName, city FROM users WHERE (postalCode LIKE '010%' OR postalCode LIKE '013%') AND NOT (flags&(1<<6)) AND NOT (flags&(1<<9)) ORDER BY city, fullName
 
@@ -448,9 +442,10 @@ function shrinkPhoto($a, &$err = '') {
 //  if ($a->hasPhoto('picture2')) return !$err = 'POS photo already exists';
   if (@$a->photo) $err = 'POS photo already exists'; // not really an error
   $photoPath = DRUPAL_ROOT . $a->photoFilename(TRUE);
-//  $smallPath = DRUPAL_ROOT . $a->photoFilename('picture2', TRUE);
-//  if (!$success = copy($photoPath, $smallPath)) return !$err = 'copy failed';
-  $photo = u\alterImg(file_get_contents($photoPath, R_PHOTO_WIDTH, R_PHOTO_HEIGHT));
+  $img = u\alterImg(imagecreatefromjpeg($photoPath), R_PHOTO_WIDTH, R_PHOTO_HEIGHT);
+  ob_start();
+  imagejpeg($img, NULL, 50);
+  $photo = ob_get_clean();
   //if (!$photo = u\fixPicture($photoPath, R_PERSONAL_ASPECT, R_PIXEL_FACTOR / 2, FALSE, $err)) return FALSE;
   return $a->update(compact('photo'));
 }
@@ -599,7 +594,7 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   extract(u\just('txid created payer amount deposit bankAccount', $tx));
   $escrow = 'USkk' . ESCROW_ROUTING . ESCROW_ACCOUNT;
   $a = r\acct($payer);
-  $bankAccount = ($pw2 = $_COOKIE['pw2']) ? u\decrypt($bankAccount, 0, $pw2) : '';
+  $bankAccount = ($pw2 = @$_COOKIE['pw2']) ? u\decrypt($bankAccount, 0, $pw2) : '';
   if (substr($bankAccount, 0, 2) <> 'US' and ($bankAccount = $a->bankAccount) and $pw2) { // bank account got screwed up somehow -- probably double-encrypted (happened again on 2/10/2016)
     db\update('r_usd', u\ray('txid bankAccount', $txid, u\crypt($bankAccount, 0, $pw2)), 'txid');
     w\say('fixed bankAccount for ' . $a->fullName);

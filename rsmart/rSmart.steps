@@ -107,6 +107,7 @@ function transactions($list) {return t\transactions($list);}
  *     MAKE Identify AManagerSignsIn
  *     MAKE Identify ACashierScansACustomerCard
  *     MAKE Identify TheDefaultCashierScansACustomerCard
+ *     MAKE Identify TheDefaultCashierScansADeactivatedCard
  *     MAKE Identify AnUnauthorizedCashierScansIn
  *     MAKE Identify ACashierScansACustomerCardBeforeSigningIn
  *     MAKE Identify ACashierAsksUsToIdentifyTheCashiersOwnCard
@@ -118,10 +119,7 @@ function transactions($list) {return t\transactions($list);}
  *     MAKE Time ACashierSignsIn
  */
 function agentAsksDeviceToIdentify($agent, $device, $qr) {
-  global $testOnly; if ($testOnly) return FALSE;
-  list ($member, $code) = t\parseQr($qr);
-  $agent = $agent == '' ? '' : r\fullQid($agent);
-  return t\hitServer('identify', compact(u\ray('member code')), $agent, $device);
+  return agentAsksDeviceToIdentifyWithPIN($agent, $device, $qr);
 }
 
 /**
@@ -133,6 +131,7 @@ function agentAsksDeviceToIdentify($agent, $device, $qr) {
  *     TEST Identify AManagerSignsIn
  *     TEST Identify ACashierScansACustomerCard
  *     TEST Identify TheDefaultCashierScansACustomerCard
+ *     TEST Identify ACustomerScansTheirOwnCardForSelfservice
  *     TEST Identify ACashierScansACustomerCardWhoseBalanceIsSecret
  *     TEST Identify ACashierScansACompanyCustomerCard
  *     TEST Identify AMemberMakesAPurchaseForTheFirstTime
@@ -143,20 +142,22 @@ function agentAsksDeviceToIdentify($agent, $device, $qr) {
 function weRespondWith($args) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $rposResult;
+
 /**/ t\output('expecting: ' . print_r($args[0], 1));
-  foreach ($args[0] as $key => $value) {
-    if ($key == 'descriptions') $value = u\ray($value);
-    if ($key == 'can') {
+  foreach ($args[0] as $k => $v) {
+    if ($k == 'descriptions') $v = u\ray($v);
+    if ($k == 'can') { // currently tests only signed-out permissions
       $flags = 0;
-      if ($value) foreach (u\ray($value) as $one) $flags |= (u\bit(u\consta('co', $one)) >> APP_CANS);
-      $value = $flags;
+      if ($v) foreach (u\ray($v) as $one) $flags |= u\bit(u\consta('co', $one));
+      $v = $flags & APP_CAN_MASK;
+      if (@$rposResult[$k] & (u\bit(CO_MANAGE) << (APP_CAN_BITS + 1))) $v |= (u\bit(CO_MANAGE) << (APP_CAN_BITS + 1)); // make manage bit go away, since it applies to agent
     }
-    if ($key == 'device' and $value == '?' and $rposResult[$key]) continue; // any value will do for new dev
-    if ($key == 'time' and t\approxTime($value, $rposResult["time"])) continue; // %now time is approximate
+    if ($k == 'device' and $v == '?' and $rposResult[$k]) continue; // any value will do for new dev
+    if ($k == 'time' and t\approxTime($v, $rposResult["time"])) continue; // %now time is approximate
     
-    if ($value != @$rposResult[$key]) {
-/**/  $value = print_r(@$value, 1);
-/**/  t\output("Expected $key=$value, got:" . print_r(@$rposResult[$key], 1));
+    if ($v != @$rposResult[$k]) {
+/**/  $v = print_r(@$v, 1);
+/**/  t\output("Expected $k=$v, got:" . print_r(@$rposResult[$k], 1));
       return FALSE;
     }
   }
@@ -252,7 +253,7 @@ function devices($list) {return t\devices($list);}
 function balances($list) {return t\balances($list);}
 
 /**
- * agent (ARG) asks device (ARG) to undo transaction (ARG)
+ * agent (ARG) asks device (ARG) to undo transaction (ARG) code (ARG)
  *
  * in: MAKE Undo AnAgentAsksToUndoACharge
  *     MAKE Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
@@ -265,18 +266,22 @@ function balances($list) {return t\balances($list);}
  *     MAKE Undo AnAgentAsksToUndoARefundWithoutPermission
  *     MAKE Undo AnAgentAsksToUndoANonexistentTransaction
  */
-function agentAsksDeviceToUndoTransaction($agent, $device, $txid) {
+function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
   global $testOnly; if ($testOnly) return FALSE;
   
-  $fields = 'member amount goods description created force';
+  $fields = 'member amount goods description created force code proof';
   if ($q = db\lookup('payer, payerAgent, amount, goods, payeeFor AS description, created', 'r_txs', 'xid=:txid', compact('txid'))) {
     extract($q);
     $member = r\quid($payer, $payerAgent);
     $force = -1;
     $goods = $goods == FOR_GOODS ? 1 : 0;
+    if (!$code) {
+      $proof = u\pgpCrypt("$agent $amount $created $member " . r\acct($member)->cardCode());
+      unset($code);
+    }
     $args = compact(u\ray($fields));
   } else {
-    $args = u\ray($fields, '.ZZA', round(rand()/100, 2), rand(0, 1), 'whatever', rand(), -1);
+    $args = u\ray($fields, R_SERVER_ID . '.ZZA', round(rand()/100, 2), rand(0, 1), 'whatever', rand(), -1, $code, '');
   }
   return t\hitServer('charge', $args, $agent, $device);
 }
@@ -382,6 +387,8 @@ function weReturnErrorWithSubs($msg, $subs) {
  *     TEST Exchange DeviceGivesNoPurposeForGoodsAndServices
  *     TEST Exchange DeviceSendsWrongCardCode
  *     TEST Identify DeviceShouldHaveAnIdentifier
+ *     TEST Identify ACustomerScansTheirOwnCardForSelfserviceWithWrongPIN
+ *     TEST Identify TheDefaultCashierScansADeactivatedCard
  *     TEST Identify AnUnauthorizedCashierScansIn
  *     TEST Identify ACashierScansACustomerCardBeforeSigningIn
  *     TEST Identify ACashierAsksUsToIdentifyTheCashiersOwnCard
@@ -528,9 +535,15 @@ function agentAsksDeviceToChargeForAtForce($agent, $device, $member, $amount, $g
  */
 function reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $description, $created, $force) {
   global $testOnly; if ($testOnly) return FALSE;
+  global $testModule;
+  
   $goods = t\goodsBit($goods);
   list ($member, $code) = explode('-', $member . '-'); // code is empty if omitted
-  return t\hitServer('charge', compact(u\ray('member code amount goods description created force')), $agent, $device);
+  if ($force or $testModule == 'Offline') {
+    $proof = u\pgpCrypt("$agent $amount $created $member $code");
+    unset($code);
+  }
+  return t\hitServer('charge', compact(u\ray('member code proof amount goods description created force')), $agent, $device);
 }
 
 /**
@@ -644,3 +657,53 @@ function agentOnDeviceAsksForTheTime($agent, $device) {
  *     MAKE Identify AMemberMakesAPurchaseForTheFirstTimeFromAnExemptCompany
  */
 function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
+
+/**
+ * members have: (ARG)
+ *
+ * in: MAKE Identify ACustomerScansTheirOwnCardForSelfservice
+ *     MAKE Identify ACustomerScansTheirOwnCardForSelfserviceWithWrongPIN
+ */
+function membersHave($list) {return t\membersHave($list);}
+
+/**
+ * agent (ARG) asks device (ARG) to identify (ARG) with PIN (ARG)
+ *
+ * in: MAKE Identify ACustomerScansTheirOwnCardForSelfservice
+ *     MAKE Identify ACustomerScansTheirOwnCardForSelfserviceWithWrongPIN
+ */
+function agentAsksDeviceToIdentifyWithPIN($agent, $device, $qr, $pin = NULL) {
+  global $testOnly; if ($testOnly) return FALSE;
+  list ($member, $code) = t\parseQr($qr);
+  $agent = $agent == '' ? '' : r\fullQid($agent);
+  return t\hitServer('identify', compact(u\ray('member code pin')), $agent, $device);
+}
+
+/**
+ * bad codes (ARG)
+ *
+ * in: MAKE Identify TheDefaultCashierScansADeactivatedCard
+ */
+function badCodes($bad) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return db\insert('r_bad', u\ray('code created', $bad, time()));
+}
+
+/**
+ * with proof of agent (ARG) amount (ARG) created (ARG) member (ARG) code (ARG)
+ *
+ * in: TEST Offline ACashierChargedSomeoneOffline
+ *     TEST Undo ACashierReversesATransactionWithInsufficientFunds
+ */
+function withProofOfAgentAmountCreatedMemberCode($agent, $amount, $created, $member, $code) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  global $rposResult;
+  
+  require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
+  foreach (['agent', 'member'] as $k) $$k = R_SERVER_ID . $$k;
+  $proof = "$agent $amount $created $member $code";
+  $hash = \_password_crypt('sha512', $proof, $rposResult['proof']);
+
+  return ($rposResult['proof'] == $hash);
+}
+

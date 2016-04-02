@@ -38,8 +38,9 @@ function extraSetup($feature) {
  */
 function extraSubs(&$subs) {
 //  $subs['%replace_this'] = 'with this';
-  $subs['%todayn-12m'] = t\subAgo('%todayn-365d', '%Y%m%d');
   $subs['%todayn'] = t\subAgo('%todayn', '%Y%m%d');
+  $subs['%todayn-12m'] = t\subAgo('%todayn-12m', '%Y%m%d');
+  $subs['%todayn-365d'] = t\subAgo('%todayn-365d', '%Y%m%d');
   //$subs['%dmy'] = t\subAgo('%todayn', '%d-%b-%Y');
   $subs['%name'] = \user_password(20); // suitable for email address
   $subs['%regionName'] = @r\acct(t\uid('.ZZA'))->cttyA->fullName;
@@ -241,6 +242,7 @@ function members($list) {return t\members($list);}
  *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     MAKE Joint AJoinedAccountMemberUnjoinsTheAccount
  *     MAKE Preferences Setup
+ *     MAKE Preferences AMemberChangesPreferences
  *     MAKE Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
  *     MAKE Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
  *     MAKE Preferences AMemberChoosesTooLowAWeeklySavingsAmount
@@ -943,18 +945,6 @@ function agentCardCodeIs($id, $cardCode2) {
  *     MAKE Summary Setup
  */
 function cronRuns($op) {return t\cronRuns($op);}
-
-/**
- * member (ARG) has a dwolla account, step (ARG)
- *
- * in: 
- */
-function memberHasADwollaAccountStep($id, $step) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  $a = r\acct(r\fullQid($id));
-  $us = new rCredits\usd($a);
-  return ($us->step() == $step);
-}
 
 /**
  * statistics get set (ARG)

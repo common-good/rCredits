@@ -35,5 +35,5 @@ Scenario: The device asks for the time
 Scenario: a cashier signs in
   When agent "" asks device "devC" to identify "ZZB-ccB2"
   Then we respond with:
-  | ok | name    | logon | descriptions    | can | default | company    | time |*
-  | 1  | Bea Two | 1     | this,that,other |     | NEW.ZZC | Corner Pub | %now |
+  | ok | name    | logon | descriptions    | can          | default | company    | time |*
+  | 1  | Bea Two | 1     | this,that,other | refund,r4usd | NEW.ZZC | Corner Pub | %now |

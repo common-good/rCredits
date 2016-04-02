@@ -27,8 +27,7 @@ function showResult($question, $withheader=false) {
 	$votes_direct = count($voters);
 	$votesAll = array_sum($voters); // total weights. not necessarily equal to total weight used, since vetos reduce effective weight
 	$newtot = tallyResults($voters, $qu['type'], $qu['budget'], $qu['minveto'], $opts);
-//  debug($newtot);
-//print_r($newtot);
+
 	return getResult(qid($question), $qu['text'], $qu['type'], $qu['budget'], $newtot, $votes_direct, $votesAll, $withheader); // show result of one question, with links to audit info
 }
 
@@ -136,9 +135,6 @@ function tallyResults($voters, $qtype, $qbudget, $qminveto, $opts, $skipoptid=''
 	}
 	$score = score($tot, $qtype, $qbudget, $qminveto);
 	$newtot = array();
-//echo 'tot:';print_r($tot);
-//echo 'score:';print_r($score);
-// debug($tot); // no problem yet
 
   $newI = 0;
 	foreach ($score as $optid => $onescore) {
@@ -148,12 +144,8 @@ function tallyResults($voters, $qtype, $qbudget, $qminveto, $opts, $skipoptid=''
     $newI++;
 	}
 	$badtot = $tot[$optid]; // worst option
-// debug($newtot); no problem yet
-// debug($badtot);
 
 	if($qtype == 'B') {
-//echo "<p><p>count=".count($opts)." qbduget=$qbudget badtot="; print_r($badtot);
-//echo "<p><p>newtot="; print_r($newtot);
 		if ($onescore < 0) { // a bad worst score means redo (mark as vetoed or underfunded/overfunded)
 			if(substr($badtot->result, 0, strlen(FUNDED)) != FUNDED) $badtot->funds = 0; // vetoed or underfunded
 			if(count($opts) > 1) {
@@ -163,7 +155,6 @@ function tallyResults($voters, $qtype, $qbudget, $qminveto, $opts, $skipoptid=''
 			}
 		} elseif (!$badtot->funds) $badtot->result = 'unfunded';
 	} else {
-//  debug($newtot);
 		foreach($newtot as $k => $one) {
       $one->prefs = $one->prefs ? array_combine($newKeys, $one->prefs) : array_fill(0, $newI, 0);
       $newtot[$k] = $one;
@@ -199,7 +190,6 @@ function score($tot, $qtype, $qbudget, $qminveto) {
 		? scoreM($tot, $i)
 		: scoreB($tot[$i], $qbudget, $qminveto, count($tot), $totalGrades);
 	}
-//debug($tot);
 	arsort($score);
 	return $score; // sorted array of option ids: best first
 }

@@ -35,6 +35,7 @@ class rsmartTime extends DrupalWebTestCase {
   
   public function setUp2($sceneName, $variant = '') {
     global $sceneTest; $sceneTest = $this;
+    global $testModule; $testModule = self::MODULE;
     parent::setUp(self::MODULE);
 
     $this->subs = usualSubs();
@@ -83,8 +84,8 @@ class rsmartTime extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent "" asks device "devC" to identify "ZZB-ccB2"');
     Then_('we respond with: "ASSOC'
-    . '\\| ok | name    | logon | descriptions    | can | default | company    | time |'
-    . '\\| 1  | Bea Two | 1     | this,that,other |     | NEW.ZZC | Corner Pub | %now |"');
+    . '\\| ok | name    | logon | descriptions    | can          | default | company    | time |'
+    . '\\| 1  | Bea Two | 1     | this,that,other | refund,r4usd | NEW.ZZC | Corner Pub | %now |"');
   }
 
 }

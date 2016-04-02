@@ -841,3 +841,15 @@ function mergeAccounts($oldUid) {
 */
 
 ----------------------------------------------------
+
+/**
+ * member (ARG) has a dwolla account, step (ARG)
+ *
+ * in: 
+ */
+function memberHasADwollaAccountStep($id, $step) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  $a = r\acct(r\fullQid($id));
+  $us = new rCredits\usd($a);
+  return ($us->step() == $step);
+}

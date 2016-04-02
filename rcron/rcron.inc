@@ -643,7 +643,7 @@ EOF;
 
 function completeUsdTx($item) {
   extract(u\just('txid payer amount channel', $item));
-  $realAmt = r\x($txid)->amount;
+  $realAmt = db\lookup('amount', 'r_usd', 'txid=:txid', compact('txid'));
   if ($amount != $realAmt) r\tellStaff('bad completeUsdTx amount in cron', $item + compact('realAmt'));
   r\acct($payer)->completeUsdTx($txid, -$amount, @$channel == TX_CRON);
 }

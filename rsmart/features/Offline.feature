@@ -4,7 +4,7 @@ I WANT to accept transactions offline
 SO my company can sell stuff, give refunds, and trade USD for rCredits even when no internet is available
 
 and I WANT those transactions to be reconciled when an internet connection becomes available again
-So my company's online account records are not incorrect for long.
+SO my company's online account records are not incorrect for long.
 
 Setup:
   Given members:
@@ -47,6 +47,7 @@ Setup:
 Scenario: A cashier charged someone offline
   When reconciling ":ZZA" on "devC" charging ".ZZB-ccB" $100 for "goods": "food" at "%now-1hour" force 1
   Then we respond ok txid 5 created "%now-1hour" balance 160 rewards 260
+  And with proof of agent ":ZZA" amount 100.00 created "%now-1hour" member ".ZZB" code "ccB"
   And we notice "new charge|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |

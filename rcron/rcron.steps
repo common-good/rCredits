@@ -97,7 +97,6 @@ function members($list) {return t\members($list);}
  *     TEST Sharing MembersShareTheirTransactionRewards
  *     MAKE Tickle AMemberGetsACreditLine
  *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
- *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     TEST Weekly AMemberCrawlsOutOfDebt
  *     TEST Weekly AMemberBuildsUpSavings
@@ -140,7 +139,6 @@ function balances($list) {return t\balances($list);}
  *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
  *     MAKE Tickle AMemberGetsACreditLine
  *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
- *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     MAKE Trust WeCalculateTrust
  *     MAKE Weekly AMemberCrawlsOutOfDebt
@@ -205,7 +203,6 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Sharing MembersShareTheirTransactionRewards
  *     MAKE Tickle AMemberGetsACreditLine
  *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
- *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  */
 function transactions($list) {return t\transactions($list);}
@@ -407,7 +404,6 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
  *
  * in: TEST Tickle AMemberGetsACreditLine
  *     TEST Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
- *     TEST Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
  *     BOTH Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  */
 function membersHave($list) {return t\membersHave($list);}

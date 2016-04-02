@@ -1,11 +1,10 @@
 Feature: Transact
 AS a company agent
 I WANT to transfer rCredits to or from another member
-SO my company can sell stuff and give refunds.
+SO my company can sell stuff, give refunds, and trade rCredits for US Dollars.
 
 # We will eventually need variants or separate feature files for neighbor (member of different community within the region) to member, etc. and foreigner (member on a different server) to member, etc.
 # cc means cardCode
-# while testing, bonus is artificially set at twice the rebate amount
 
 Setup:
   Given members:
@@ -129,7 +128,7 @@ Scenario: Device gives bad amount
   Then we return error "bad amount"
   
 Scenario: Device gives too big an amount
-  When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $10,000,000 for "goods": "food" at %now
+  When agent ":ZZA" asks device "devC" to charge ".ZZB-ccB" $10000000 for "goods": "food" at %now
   Then we return error "amount too big" with subs:
   | max           |*
   | %R_MAX_AMOUNT |

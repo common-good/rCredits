@@ -1,4 +1,9 @@
-2016-03-
+2016-04-01
+. fixed bug that crashed editTx (always): needed htmlspecialchars of hidden field
+. for companies, say "Connect to Mainstream Economy (or choose not to)"
+. revised POS interface
+
+2016-03-11
 . typahead any company in any region. no typeahead for nonlocal individuals, but allow paying by name
 . DROP TABLE r_votes and create tables for CG Democracy
 . added saveWeekly field (for getting slowly out of debt or building up savings)
@@ -7,6 +12,7 @@
 . unset bit B_u4
 . put a limit on savings amount
 . fixed bug in statements that left page too long to print
+. multiple choice voting demo works
 
 2016-02-16
 . version 2.33

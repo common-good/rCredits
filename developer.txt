@@ -221,10 +221,10 @@ H. Division of rCredits system responsibilities
   Region - active
   - has a record in the users table (with no communities in the region's number space)
   - fullName = legalName = rCredits regionPlace Region (for example rCredits Western Mass Region)
-  - email is region@regionPlace.rcredits.org (use a 2-char abbreviation instead of regionPlace if it is a state)
+  - email is regionPlace@rcredits.org OR region@regionPlace.rcredits.org (use a 2-char abbreviation instead of regionPlace if it is a state)
   - is also an rCredits Community:
     . on its own server the region account is the Seedpack community (anyone in the region who is too far away from an organized rCredits Community). The NEW Seedpack includes anyone not covered by another region.
-    . on other servers, the region account represents all accounts in that region (tracking the trade balance)
+    . on other servers, a region account represents all communities in that region (tracking the trade balance)
   - coordinate rCredits communities within the geographic region
   - manage an rCredits server (and a backup server) on behalf of its communities
   - register with FinCEN as an MSB

@@ -64,8 +64,21 @@ GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
    $cfg['Servers'][$i]['auth_type'] = 'config';
 
 TASKS FOR NEXT UPDATE:
-. REDO MENUS
+. REINSTALL
+. call A VanAssche and others to suggest a negative minimum
+. upload private key
 
+. *** suggest using EIN for company account, for sole proprietor
+. *** completing relations on account setup does not return to status checklist!
+. when you set up a company account, it doesn't list you on relations!
+. button label on connect page does not get changed properly by JS
+. add voting stats to r_stats
+. *** clarify that rCredits is always changing but we guarantee you won't lose money (potential benefits are big, but still merely probable -- not certain)
+. ** redo db namespace as class (extends PDO), next() instead of fetchAssoc(); (see http://wiki.hashphp.org/PDO_Tutorial_for_MySQL_Developers#Transactions for transaction handling)
+. remove namespace from function acct(); move IA( to rcredits.inc
+. *** replace old autoexec findco selection with newer dropdown (and delete autoexec function)
+. * JS type checking for ballots
+. * create numFld and phoneFld (for HTML5)
 . *** let cAdmin print QRs (but no make)
 . *** don't show checks with negative txid (show details in separate column - "details checks reversed")
 . **** ditch the "rebate" language (say "reward for" instead of "rebate on")

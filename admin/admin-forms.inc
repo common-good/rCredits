@@ -211,7 +211,7 @@ function formSeeChanges($form, &$sta, $qid = '') {
       $date = u\fmtDate($dt);
       foreach ($info as $k => $v) {
         $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, $a->$k);
-        if (is_array($v)) $v = print_r($v, 1);
+///        if (is_array($v)) $v = print_r($v, 1);
 //        while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
         $rec[$k] = $oldValue = a\formatField($k, $v);
         $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";

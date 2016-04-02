@@ -12,9 +12,9 @@ Setup:
 Scenario: A member visits the member site
   When member "?" visits page "signin"
   Then we show "Welcome to rCredits" with:
-  | Username/ID | account ID, email, or username |
-  | Password    | Password problems? |
-  |_promo       | Not yet a member? |
+  | Account ID | account ID, email, or username |
+  | Password   | Password problems? |
+  |_promo      | Not yet a member? |
 
 Scenario: A member signs in with username on the member site
   When member "?" confirms form "signin" with values:

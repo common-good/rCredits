@@ -40,6 +40,9 @@ Scenario: Another member visits the preferences page
   | No Search | by name or account number only |
   
 Scenario: A member changes preferences
+  Given transactions: 
+  | xid | created   | type   | amount | from | to   | purpose |*
+  |   3 | %today-1m | grant  |    250 | ctty | .ZZA | grant   |
   When member ".ZZA" completes form "settings/preferences" with values:
   | minimum | savings | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
   |     200 |     300 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
@@ -100,11 +103,11 @@ Scenario: A member chooses too low a weekly savings amount
 Scenario: A member chooses negative weekly savings without any savings
   When member ".ZZA" completes form "settings/preferences" with values:
   | minimum | savings | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |     200 |     300 |        -20 |     10 |    25 | monthly | electronic |        0 |         1 |
+  |     200 |     250 |        -20 |     10 |    25 | monthly | electronic |        0 |         1 |
   Then we say "error": "negative saveWeekly"
 
 Scenario: A member chooses too low an ACH minimum
   When member ".ZZA" completes form "settings/preferences" with values:
   | minimum | savings | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |     200 |     300 |         20 |      1 |    25 | monthly | electronic |        0 |         1 |
+  |     200 |     250 |         20 |      1 |    25 | monthly | electronic |        0 |         1 |
   Then we say "error": "bad achmin"

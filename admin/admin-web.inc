@@ -72,7 +72,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     if (!$a->ok) $a->nextStep(); // update Dwolla status
     if ($cAdmin) {
       $photo = item($a->photoHtml(TRUE, TRUE));
-      if ($admin) $cttys = r\cttys($a->region, TRUE);
+      if ($admin) $community = r\cttys($a->region, $ctty);
       $donations = db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
       if ($donationInfo = db\lookup('often,honor,honored', 'r_gifts', 'uid=:uid', compact('uid'))) {
         extract($donationInfo);
@@ -98,6 +98,7 @@ function adminSummary($a, $cAdmin = FALSE) {
       : item(a\showSteps($a), t('To do (red):'), t('sign=agreement | prefs=preferences | connect=connect bank (or not) | company=company info'));
 //    $created = item(u\fmtDate($a->created), t('Created:'));
     if ($rels = a\showRelations($a)) $relations = item($rels, t('Relations:'));
+    if ($a->signupCo) $signupCo = item($a->signupCo['company'] . ' (' . $a->signupCo['companyPhone'] . ') ' . (@$a->signupCo['isOwner'] ?: '') . (@$a->signupCo['isEmployee'] ?: ''), t('Signup Co:'));
     
 //    $invited = item(db\count('r_invites', 'inviter=:uid', compact('uid')), t('Invited:'));
     $invitedBy = $a->helper ? ($a->helperA->fullName . "#$a->iCode (" . r\iCodeDesc($a->iCode) . ') + ') : '';
@@ -212,7 +213,7 @@ EOF;
 
   $uid = hidFld($uid); // must postcede js (which uses uid)
   
-  return compact(u\ray('community photo balance donations cgfDonations federalId legalName calling tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
+  return compact(u\ray('community photo balance donations cgfDonations federalId legalName calling signupCo tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
 }
 
 /**

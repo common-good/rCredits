@@ -15,14 +15,16 @@ use rCredits\Util as u;
  *   These can be keys supplied in $subs OR constants (all uppercase and underscores)
  * @param assoc $subs: array of substitutions to make in $sql
  *   Each key, with a colon tacked on the front, is replaced (in $sql) with its value
- * @param bool $log: whether to log the operation
+ * @param bool $retId: <return and inserted record ID rather than a recordset>
+ * @param bool $log: <log the operation>
  * @return: if inserting, then the id of the inserted record, else the query object (FALSE if failure)
  */
-function q($sql, $subs = [], $log = FALSE) {
+function q($sql, $subs = [], $retId = FALSE, $log = FALSE) {
   global $channel;
 //  \db_query("SET NAMES 'utf8'"); // only needed once per connection, but hey
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
-  if (strpos($sql, 'INSERT INTO') !== FALSE and strpos($sql, ' VALUES (')) $return = \Database::RETURN_INSERT_ID;
+//  if (strpos($sql, 'INSERT INTO') !== FALSE and strpos($sql, ' VALUES (')) $return = \Database::RETURN_INSERT_ID;
+  if ($retId) $return = \Database::RETURN_INSERT_ID;
   if ($log and !strpos($sql, 'r_log') and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs, $sql);
   try {
     return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
@@ -72,7 +74,7 @@ function update($table, $info, $key, $either = FALSE) {
   $sql = "$command $table SET " . substr($sql, 1) . ($key ? " WHERE `$key`=:$key" : '');
 ///  if ($table=='r_do') {print_r(compact(u\ray('table info key either command sql'))); die('dbU');}
   try {
-    $result = db\q($sql, $info);
+    $result = db\q($sql, $info, !$key);
     if ($command != 'INSERT INTO') return TRUE;
     if ($result) return $result; // if there is no serial field, result will be false, so check
 

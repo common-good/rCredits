@@ -5,7 +5,7 @@
 //   I WANT to accept transactions offline
 //   SO my company can sell stuff, give refunds, and trade USD for rCredits even when no internet is available
 //   and I WANT those transactions to be reconciled when an internet connection becomes available again
-//   So my company's online account records are not incorrect for long.
+//   SO my company's online account records are not incorrect for long.
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
 require_once __DIR__ . '/../rsmart.steps';
@@ -35,6 +35,7 @@ class rsmartOffline extends DrupalWebTestCase {
   
   public function setUp2($sceneName, $variant = '') {
     global $sceneTest; $sceneTest = $this;
+    global $testModule; $testModule = self::MODULE;
     parent::setUp(self::MODULE);
 
     $this->subs = usualSubs();
@@ -92,6 +93,7 @@ class rsmartOffline extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('reconciling ":ZZA" on "devC" charging ".ZZB-ccB" $100 for "goods": "food" at "%now-1hour" force 1');
     Then_('we respond ok txid 5 created "%now-1hour" balance 160 rewards 260');
+    And__('with proof of agent ":ZZA" amount 100.00 created "%now-1hour" member ".ZZB" code "ccB"');
     And__('we notice "new charge|reward other" to member ".ZZB" with subs: "ASSOC'
     . '\\| created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
     . '\\| %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |"');

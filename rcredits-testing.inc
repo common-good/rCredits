@@ -186,6 +186,7 @@ function doAccount($info = []) {
       $actual = ($key == 'trust' or $key == 'risk') ? round($acct->$key, 2) : $acct->$key;
       if (!eq($actual, $want)) {
         if ($key == 'pass' and (!isset($pass) or r\Web\passwordOkay($acct, @$pass))) continue;
+        if ($key == 'flags') list ($want, $actual) = [u\bits($want, B_LIST), u\bits($actual, B_LIST)];
         return output("uid $uid -- Wrong value for $key. Expected:$want Got:$actual");
       }
     }
@@ -348,7 +349,12 @@ function doCompanyFlags($info) {
   global $testOnly;
   extract(u\just('id flags', $info));
   $coFlags = 0;
-  if ($flags) foreach (u\ray($flags) as $one) $coFlags |= u\bit(u\consta('co', $one));
+  $canBitNames = u\ray(APP_CAN_BIT_NAMES);
+  if ($flags) foreach (u\ray($flags) as $one) {
+    $flag = u\bit(u\consta('co', $one));
+    if (in_array($one, $canBitNames)) $flag <<= APP_CANS;
+    $coFlags |= $flag;
+  }
   return r\acct(t\uid($id))->update(compact('coFlags'));
 }
 
@@ -926,7 +932,9 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   }
 
   t\POST($values);
+
   if (!$form = t\pageForm(t\fixPageArgs($page), FALSE)) return FALSE; // probably access error
+
   $sta = $formSta; $formSta = NULL; // don't let $formSta influence other forms that get invoked
   
   if ($page == 'pay' or $page == 'charge') {
@@ -1117,7 +1125,7 @@ function SERVER($key, $value = NULL) {
 function POST($value = NULL) {
   if (!u\test()) return $_POST;
   global $T_POST;
-  if (isset($value)) $T_POST = $value; else return $T_POST;
+  return isset($value) ? $T_POST = $value + ($T_POST ?: []) : $T_POST;
 }
 
 /**
@@ -1145,8 +1153,8 @@ function color($msg, $color = 'normal') {
  * Return FALSE (meaning error in returns from callers) unless a color is specified.
  */
 function output($msg, $color = 'error') {
-  global $testModule;
-  if (u\test() and !@$testModule) \drupal_set_message(color($msg, $color));
+  global $wholeModule;
+  if (u\test() and !@$wholeModule) \drupal_set_message(color($msg, $color));
   return $color == 'error' ? FALSE : TRUE;
 }
 
@@ -1166,7 +1174,7 @@ function clear($ch = 0) {
   global $testMessages; $testMessages = [];
 
   $cgfUid = r\cgfId();
-  $tables = 'r_boxes r_do r_gifts r_invites r_invoices r_log r_notices r_proxies r_relations r_stats r_txs r_usd r_user_industries queue';
+  $tables = 'r_bad r_boxes r_do r_gifts r_invites r_invoices r_log r_notices r_proxies r_relations r_stats r_txs r_usd r_user_industries queue';
 
   db\q('DELETE FROM users WHERE uid>1 or uid<0');
   a\setupBasicAccounts();

@@ -39,6 +39,8 @@ define('CGF_EIN', '205280780');
 define('R_LAUNCH', strtotime('12/15/2013'));
 define('CGF_ID', r\cgfId()); // Common Good Finance record ID
 define('SYS_EMAIL', 'info@rCredits.org');
+define('PUBLIC_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.publicKey');
+define('PRIVATE_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.privateKey');
 
 define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
@@ -205,7 +207,7 @@ define('APP_CAN_MASK', pow(2, APP_CAN_BITS + 1) - 1); // the CANS bits -- signed
 define('CO_FAST', 29); // fast checkout -- never ask for photoId (set by cAdmin)
 define('CO_TIP', 30); // ask customer what percent tip to add
 
-//define('APP_CAN_BIT_NAMES', 'charge undo r4usd usd4r refund buy');
+define('APP_CAN_BIT_NAMES', 'charge undo r4usd usd4r refund buy');
 define('APP_CAN_BIT_DESCS', 'charge customers,undo last transaction,give rCredits for USD,give USD for rCredits,refund any amount,make payments');
 
 // Permissions, options, and flags (flags field in account record)
@@ -576,18 +578,19 @@ function rdoMonth($time = NULL) {
 }
 
 /**
- * Return an array of communities (just in the given region?).
+ * Return an array or dropdown of communities (just in the given region?).
  * @param int $region: current region uid
- * @param bool $input: <return a dropdown input field>
+ * @param int $ctty: current community (if any, return a dropdown input field)
+ * @return array of communities if $ctty is FALSE, otherwise a dropdown
  */
-function cttys($region, $input = FALSE) {
+function cttys($region, $ctty = FALSE) {
   $where = 'uid<0'; // uid BETWEEN :region-(:R_REGION_MAX-1) AND :region-1
   $sql = "SELECT uid,fullName FROM users WHERE $where ORDER BY fullName";
   $ray = db\q($sql, compact('region'))->fetchAllKeyed();
-  if ($input) {
+  if ($ctty) {
 //    if (!@$cttys[$ctty]) u\preray([$ctty => $a->cttyA->fullName . t(' (outside the region)')], $cttys);
-    $cttys[r\serverUid()] .= t(' (outside any rCredits community)');
-    return selectFld(t('Community:'), '', dft($ctty), $cttys);
+    $ray[r\serverUid()] .= t(' (outside any rCredits community)');
+    return w\selectFld(t('Community:'), '', w\dft($ctty), $ray);
   } else return $ray;
 }
 
@@ -1247,8 +1250,9 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
   $a = r\acct($oldUid);
   if ($delete) {
     if (db\exists($table = 'r_txs', 'payer=:oldUid OR payee=:oldUid', compact('oldUid'))
+      or db\exists($table = 'r_ballots', ':oldUid IN (voter, proxy)', compact('oldUid'))
       or db\exists($table = 'r_usd', 'payer=:oldUid', compact('oldUid'))) {
-      return r\Web\say('Account "@name" has transactions in @table, so it cannot be deleted.', u\ray('name table', $a->fullName, $table), 'ERR');
+      return r\Web\say('Account "@name" has records in table @table, so it cannot be deleted.', u\ray('name table', $a->fullName, $table), 'ERR');
     }
   } elseif (!$newUid) {
     $region = @$a->postalCode ? r\region(@$a->country, @$a->state, $a->postalCode) : r\communityUid();
@@ -1256,6 +1260,9 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
   }
   $subs = array( // all tables are listed, to be sure we don't leave any out
   // r_areas
+  // r_bad
+    'r_ballots:voter',
+    'r_ballots:proxy',
   // r_banks
     'r_boxes:uid:D',
   // r_countries
@@ -1273,8 +1280,11 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
   // r_nonces
   // r_nonmembers
     'r_notices:uid:D',
+  // r_options
+  // r_pairs
     'r_proxies:person:D',
     'r_proxies:proxy:D',
+  // r_questions
   // r_regions
     'r_relations:main:D',
     'r_relations:other:D',
@@ -1289,7 +1299,8 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_txs:payeeAgent',
     'r_usd:payer',
     'r_user_industries:uid:D',
-    'r_votes:uid:D',
+  // r_vetoes
+  // r_votes
     'users:uid:D',
     'users:helper',
     'users:community',

@@ -364,7 +364,7 @@ body.logged-in.one-sidebar #content {width:100%;}
 
 /* Proxy */
 /*#rcreditswebformproxy button {display:none;}*/
-#rcreditswebformproxy .btn {margin:0 2px; font-size:85%;}
+#rcreditswebformproxy .btn {margin:0px 2px 3px; font-size:85%;}
 #rcreditswebformproxy tr {background-color:#dddddd;}
 #rcreditswebformproxy #edit-subtext {padding-left:0; text-align:left;}
 

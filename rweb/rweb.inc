@@ -47,7 +47,7 @@ function formPageNotFound($form, &$sta, $arg = '') {
  * @todo: maybe all zero uid for some ops (by looking up two fields in sessions?)
  */
 function ajax() {
-  extract(u\just('op sid data', $_POST ?: $_GET));
+  extract(u\just('op sid data', t\POST() ?: $_GET));
   header('Content-Type: application/json');
 
   if (!@$sid or !$res = db\lookup('uid,session', 'sessions', 'sid=:sid', compact('sid'))) ajaxErr('bad sid');
@@ -258,7 +258,7 @@ EOF;
   } else $selection = 'uid, fullName AS display FROM users WHERE name LIKE :string';
   $sql = "SELECT DISTINCT HIGH_PRIORITY $selection AND uid>1 ORDER BY display LIMIT 10"; // omit communities and regions
 //return drupal_json_output(array('zot' => "role=$role myid=$myid string=$string sql=$selection"));
-///return drupal_json_output(array('zot' => "subs=" . print_r(compact(u\ray('string myid')), 1)));
+///   return drupal_json_output(array('zot' => "subs=" . print_r(compact(u\ray('string myid')), 1)));
 
   $result = db\q($sql, compact(u\ray($params)));
   $matches = [];
@@ -598,7 +598,7 @@ function statement($month) {
 
   list ($bal9, $rewardsEver) = array($info->balance, $info->rewards);
 //  u\EXPECT($bal9 == round($bal0 + @$frombank - @$fromyou + @$toyou + @$reward, 2), 'balance mismatch');
-///**/  if (round($bal9, 2) != round($bal0 + @$frombank - @$fromyou + @$toyou, 2)) return r\go('empty', 'balance mismatch: ' . print_r(compact('tot', 'bal0', 'bal9'), 1));
+///**/    if (round($bal9, 2) != round($bal0 + @$frombank - @$fromyou + @$toyou, 2)) return r\go('empty', 'balance mismatch: ' . print_r(compact('tot', 'bal0', 'bal9'), 1));
   
   $pdf->barHead('SUMMARY');
   $fields = explode('; ', '//15/; Starting Bal/bal0/28/R; /plus/7/R; From Bank/frombank/23/C; /minus/7/C; FROM You/fromyou/23/R; /plus/7/R; TO You/toyou/23/R; /plus/7/R/; Rewards//23/C; /equals/7/R; Ending Bal/bal9/28/R');
@@ -880,7 +880,7 @@ function formMembership($a, &$sta = '', $code = '') {
       . ($co ? t('your Charter, Articles of Organization, or similar document.')
         : t('a photo of your driver\'s license or other official ID.'))
       . ($gotSecurity ? t(' <span class="pending">(DONE, pending approval)</span>') : ''); */
-    $stepBank = t('<a>Connect</a> to the mainstream economy.');
+    $stepBank = t('<a>Connect</a> to the mainstream economy (or choose not to, yet).');
 /*
     $stepProof = t('<a>Prove your identity.</a> Upload ')
       . ($co ? t('your Charter, Articles of Organization, or similar document.')
@@ -1044,7 +1044,7 @@ function formProxy($form, &$sta, $priority = '') {
 
   $title = $priority == 1 ? t('Your #1 Proxy') : t('Your Alternate Proxy');
   $title = item($title . t(' (choose one)'));
-  $subtext = item(t('Choose and click someone you know and trust. Top suggestions for you are highlighted in green.'));
+  $subtext = item(t('Choose and click someone you know and trust. Top suggestions for you are highlighted.'));
   $list = item($choices);
   $priority = hidFld($priority);
   return compact(u\ray('title subtext list priority'));
@@ -1551,7 +1551,8 @@ function photoUpload($uid = '', $sid = '') {
   global $base_url;
   $f0 = u\ray('imgUrl imgInitW imgInitH imgW imgH imgY1 imgX1 cropH cropW rotation uid sid');
   $f = u\ray('url w0 h0 w h y1 x1 cropH cropW angle uid sid');
-  foreach (array_combine($f0, $f) as $k0 => $k) $$k = $_POST[$k0];
+  $params = t\POST();
+  foreach (array_combine($f0, $f) as $k0 => $k) $$k = $params[$k0];
 
   if (!@$uid or !@$sid or !db\exists('sessions', 'sid=:sid', compact('sid'))) return w\photoRet(t('bad sid'));
   $mya = r\acct($uid);
@@ -1798,7 +1799,6 @@ EOF;
     $middle = $votebutton . $questionList;
   } elseif ($do == 'ballot') {
     $middle = v\ballot($extraFields, @$question);
-//    debug(compact('middle', 'extraFields')); $middle = $extraFields = '';
   } elseif ($do == 'done') {
     $middle = v\done();
   } else $middle = t('Invalid democracy parameter(s)');
@@ -2035,7 +2035,7 @@ function formEmpty($form, &$sta = '', $doSay = FALSE) {
   if ($form and !is_array($form)) w\say($form);
   $title = item(t('Miscellaneous')); // this is suppressed with CSS
   if ($doSay) $subtext = item(t('To protect your account, <span class="loud">no sign-in was required</span> for this action. To sign in safely, always go to rCredits.org.'));
-/// FAILS :(  if ($doSay == 'test') $testMessages = item(print_r(\drupal_get_messages(), 1));
+///   FAILS :(  if ($doSay == 'test') $testMessages = item(print_r(\drupal_get_messages(), 1));
   return labeled(compact(u\ray('title testMessages subtext')));
 }
 
@@ -2323,7 +2323,7 @@ function formSignupCo_submit($form, &$sta) {
 
 /**
  * Modify the user registration form.
- * @param string $args: if not empty, a urlencoded assoc (from an email invitation or the "Create Another Account" button):
+ * @param string $args: if not empty, a urlencoded assoc (from an email invitation or the "Create a Company Account" button):
  *   code: the invitation code 
  *   personal: opening a personal account (default TRUE)
  *   fullName: the likely name of the account to create
@@ -2346,7 +2346,7 @@ function formSignup($form, &$sta, $args = '') {
   
   if (!@$helper) { // no need to clarify if user clicked the "Open a Company Account" button
     $clarify = $personal ? t('To open a company account, use the "Open a Company Account" button after your personal account is approved.') : t('To open another personal account, send an Invitation (click the Invite tab).');
-    $onclick = $onmouseover = 
+//    $onclick = $onmouseover = 
     $forother = $personal ? t('open a company account instead') : t('open a personal account instead');
     $forother = item("[<a class=\"nospin\">$forother</a>]");
     $js = <<<EOF
@@ -2378,7 +2378,8 @@ EOF;
 
 //  If you want to use this address <b>for more than one account</b>, include a tag on the local part starting with "+" (for example, myemail<b>+whatever</b>@example.com).');
 
-  if ($iCode != IBY_FORM) say(tt('NOTE: @inviterName will need to affirm trust in you OR your first transaction will need to be a purchase from @inviterName with your rCard.', compact('inviterName')));
+  if (!@$inviterName) r\tellStaff('no inviterName', compact(u\ray('code inviter iCode inviteOk personal fullName phone helper'))); // debug (this happened to Fuzzy)
+  if ($iCode != IBY_FORM) say(tt('@inviterName will need to confirm that they trust you before your account can be activated. Or you can make a purchase from @inviterName using your rCard, as your first transaction.', compact('inviterName')));
   $subtext = item(t(<<<EOF
 Opening an rCredits account is very much like opening an online bank account. It takes about that much time. After this signup page there are <b class="loud">@count more short steps</b> we will guide you through. Opening your account is the hard part &mdash; after that it gets much easier. If you need help, please don't hesitate to ask (<a href="mailto:info@rCredits.org?subject=signup help">click here to send us an email</a>).
 EOF
@@ -2396,7 +2397,7 @@ EOF
     $copts = boxOpt('companyOptions', $companyOptions, $sta);
 
     $companyInfo = array(
-      'company_text' => item(t('Are you an owner and/or employee of a local company, or of any rCredits member company? Otherwise leave this part blank.')),
+      'company_text' => item(t('Are you an owner and/or employee of a local company, or of any rCredits member company (or virtual community)? Otherwise leave this part blank.')),
       'company' => textFld(t('Company: '), [t('Your company')], autocomplete('company')),
       'companyPhon' => textFld(t('Company Ph<span>&nbsp;</span>one:'), [t('Company phone number')]), // Google Chrome bug require obfuscation of "phone"
       'companyOptions' => boxesFld('', '', @$copts, $companyOptions), 
@@ -2976,10 +2977,15 @@ function formRelations_validate($form, &$sta) {
     } else
     */
     if ($keya == 'permission') {
-      if ($value == r\perm(B_MANAGE)) $managers++;
+      if ($value == r\perm(B_MANAGE)) {
+        $managers++;
+      } else {
+        $other = r\relation('other', $reid);
+        if ($other == $mya->id) return say('need a manager', 'permission');
+      }
     }
   }
-  if ($mya->co and !$managers and !$mya->admin) return say('need a manager', 'permission');
+//  if ($mya->co and !$managers and !$mya->cAdmin) return say('need a manager', 'permission');
 }
 
 function formRelations_submit($form, &$sta) {

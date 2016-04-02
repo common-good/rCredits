@@ -150,6 +150,15 @@ function tableDefs($schema = []) {
   $indexes = index('uid') + index('boxnum');
   $schema['r_boxes'] = setupTable('Devices info1', $fields, 'id', $foreignKeys, $indexes);
 
+  // table r_bad
+  $fields = array(
+    'code' => setupField('rCard code with "HTTP://" and "RC4.ME/" deleted', 'varchar 255'),
+    'created' => setupField('Unixtime record was created', 'int 11', 0),
+  );
+  $foreignKeys = [];
+  $indexes = index('created');
+  $schema['r_bad'] = setupTable('lost, stolen, or faked rCard codes', $fields, 'code', $foreignKeys, $indexes);
+  
   // table r_do
   $fields = array(
     'doid' => setupField('record id', 'serial'),
@@ -193,13 +202,14 @@ function tableDefs($schema = []) {
     'data' => setupField('miscellaneous non-searchable data (serialized array)', 'text big'), 
     'channel' => setupField('through what medium was the transaction entered', 'int tiny'),
     'box' => setupField('on what machine was the transaction entered', 'int 11', 0), // 0 = none
+//    'proof' => setupField('code, amount, created, member -- concatenated and encrypted', 'varchar 255'), 
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'risk' => setupField('suspiciousness rating', 'float medium', NULL), // NULL means never set yet
     'risks' => setupField('list of risk factors', 'int big', 0, TRUE),
 //    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee') + foreignKey('payerAgent') + foreignKey('payeeAgent');
-  $indexes = index('payer') + index('payee') + index('created') + index('payerTid') + index('payeeTid'); // also serial/type/taking/goods/payerAgent/payeeAgent/channel/?
+  $indexes = index('payer') + index('payee') + index('created') + index('payerTid') + index('payeeTid') + index('proof'); // also serial/type/taking/goods/payerAgent/payeeAgent/channel/?
   $schema['r_txs'] = setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreignKeys, $indexes);
 
   // table r_invoices
@@ -584,7 +594,6 @@ function makeFields() {
   //      if (\db_field_exists($table, $field)) {
   //      if (db\exists('INFORMATION_SCHEMA.COLUMNS', "TABLE_SCHEMA='$db_name' aND TABLE_NAME='$table' AND COLUMN_NAME='$field'")) {
       $spec = specString($spec);
-  //echo " . . . <b>$table/$field:</b> $spec2<br><br>\n\n";  
       if (db\exists('INFORMATION_SCHEMA.COLUMNS', 'TABLE_SCHEMA=:db_name AND TABLE_NAME=:table AND COLUMN_NAME=:field', compact('db_name', 'table', 'field'))) {
   //      \db_change_field($table, $field, $field, $spec);
         db\q("ALTER TABLE $table CHANGE `$field` `$field` $spec");

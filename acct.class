@@ -10,7 +10,7 @@ use rCredits\Testing as t;
  * @file
  * rCredits Account class
  */
-
+ 
 class acct {
   var $id; // the account's record id
   var $agentId; // record id (in the agent's regional server) of whoever is acting on behalf of the account
@@ -80,7 +80,8 @@ class acct {
     
     if (isset($number)) $success = SMS\create($number, $uid);
 
-    list($this->id, $this->agentId) = array($uid, $uid); // finish creating the object
+    list ($this->id, $this->agentId) = array($uid, $uid); // finish creating the object
+
     self::$rs[$this->id] = (object) $record;
 
     foreach (u\ray('number region') as $k) unset($info[$k]);
@@ -1004,6 +1005,17 @@ EOF;
     return FALSE;      
   }
 
+  /**
+   * Add a deactivated or fabricated (and used) card code to the "bad" list.
+   * @param string $code: the bad card code
+   */
+  public function makeBad($code) {
+    $a = $this;
+    $qid = str_replace(R_AGENT_MARK, '.', $a->qid);
+    $mark = $a->proSe ? R_MEMBER_MARK : R_AGENT_URL_MARK;
+    db\update('r_bad', u\ray('code created', "$qid$mark$code", time()), 'code', TRUE);
+  }
+  
   /**
    * Change the account's community.
    * @param int $newCtty: the new community uid

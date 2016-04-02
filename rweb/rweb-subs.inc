@@ -28,8 +28,8 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'company is ready' => t(<<<EOF
     <p></p><p>After you finish setting up this account, to manage it in the future:</p>
     <ol>
-      <li>Sign in to your personal account</li>
-      <li>Choose your company account from the account-selection dropdown box in the upper right corner of the screen.</li>
+      <li>Sign in to your personal account at rCredits.org</li>
+      <li>Click on your photo in the upper right corner. Choose your company account from dropdown there.</li>
     </ol>
 EOF
   ),
@@ -396,8 +396,10 @@ function labeled($form, $onSubmit = '', $labeled = TRUE, $level = 0) {
   }
   $form['#attributes']['class'][] = $labeled ? 'form-horizontal' : 'form-vertical';
   foreach ($form as $k => $v) if (substr($k, 0, 1) != '#') {
-    $form[$k]['#tabled'] = TRUE;
-    if (@$form[$k]['#type'] == 'fieldset') $form[$k] = labeled($form[$k], $labeled, $level + 1);
+    $type = @$v['#type'];
+    if ($type == 'hidden') t\POST([$k => $v['#value']]); // fake post for tests
+    if ($type == 'fieldset') $form[$k] = labeled($form[$k], $labeled, $level + 1);
+    $form[$k]['#tabled'] = TRUE; // remember that form is laid out in a table (labels in left column)
   }
   return $form;
 }
@@ -633,7 +635,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   
   setGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
   if (!@$formSta['confirm'] and !in_array($function, u\ray(R_NOLOG_FORMS))) {
-    if ($logs = $_POST) {
+    if ($logs = t\POST()) {
       foreach (u\just(R_NOLOG, $logs) as $k => $zot) $logs[$k] = '?';
       u\loga('in', $logs);
     } else {
@@ -1337,7 +1339,7 @@ function passwordOkay($a, $password, $passFieldName = 'pass') {
     if ($password == @$pass) return ($a->admin or r\rTime() < @$expires) ? TRUE : say('pass expired', $passFieldName);
   }
   $hash = \_password_crypt('sha512', $password, $a->$passFieldName);
-  return ($hash and $a->$passFieldName == $hash) ? TRUE : say('bad login', $passFieldName);
+  return ($hash and $a->$passFieldName == $hash) ?: say('bad login', $passFieldName);
 }
 
 /**
@@ -1557,7 +1559,9 @@ function rangeDates($period, $starting = '', $ending = '') {
 
   $period = (int) @$starting ? ($ending - $starting) / DAY_SECS : (@$period ?: TX_DEFAULT_PERIOD);
   $ago = $period == '1' ? '1 day' : (@$GLOBALS['TX_DAYS'][$period] ?: ($period . ' days'));
-  if (!@$starting) $starting = strtotime($period == '-1' ? '1jan' : ($period == '-2' ? '1/1/2013' : "$ago ago"));
+  if (!@$starting) $starting = strpos($ago, 'month') ?
+    u\plusMonths(-$ago)
+  : strtotime($period == '-1' ? '1jan' : ($period == '-2' ? '1/1/2013' : "$ago ago"));
   return array(strtotime('today', $starting), strtotime('tomorrow', $ending) - 1, $period);
 }  
 
