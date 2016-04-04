@@ -124,7 +124,9 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       .getParams();
 
     if (NetworkService.isOffline()) {
-      return this.loginWithRCardOffline(accountInfo);
+      return this.loginWithRCardOffline(accountInfo).then(function() {
+        PreferenceService.parsePreferencesNumber(self.currentUser().getCan());
+      });
     }
 
 
@@ -140,6 +142,9 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
         if (responseData.logon === LOGIN_BY_CUSTOMER) {
           throw self.LOGIN_SELLER_ERROR_MESSAGE;
         }
+      })
+      .then(function() {
+        PreferenceService.parsePreferencesNumber(self.currentUser().getCan());
       });
   };
 

@@ -63,6 +63,10 @@
         return this.accountInfo.isDemo();
       },
 
+      getCan: function() {
+        return this.can;
+      },
+
       default: '',
     });
 

@@ -1,6 +1,6 @@
 (function(window, app) {
 
-  app.service('Seller', function(localStorageService, User) {
+  app.service('Seller', function(localStorageService, User, PreferenceService) {
 
     var DEVICE_ID_KEY = 'deviceID';
     var SELLER_KEY = 'seller';
@@ -69,6 +69,7 @@
           _.extendOwn(this, JSON.parse(sellerData));
           this.accountInfo = _.extendOwn(new AccountInfo(), this.accountInfo);
           this.configureDeviceId_();
+          PreferenceService.parsePreferencesNumber(this.getCan());
           return this;
         }
 

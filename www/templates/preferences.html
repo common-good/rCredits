@@ -13,10 +13,12 @@
       </li>
 
 
-      <ion-list  ng-if="cashierModePref.isEnabled()">
-        <ion-checkbox ng-model="option.value" ng-change="saveItems()"
-                      ng-repeat="option in cashierCanModePref.options">{{ option.name | translate }}
-        </ion-checkbox>
+      <ion-list>
+        <ion-item ng-model="option.value" class="cashier-pref" ng-class="{'cashier-pref-selected': option.value}"
+                  ng-repeat="option in cashierCanModePref.options">
+          <i class="icon ion-ios-checkmark"> </i>
+          <span>{{ option.name | translate }}</span>
+        </ion-item>
       </ion-list>
 
     </div>

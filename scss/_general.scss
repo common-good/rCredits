@@ -15,3 +15,22 @@
   font-size: 8em;
   color: $lightgreen;
 }
+
+.cashier-pref {
+  i {
+    font-size: 26px;
+    margin-right: 10px;
+    color: $mediumgray;
+  }
+}
+
+.cashier-pref-selected {
+  i {
+    color: $mediumgreen;
+  }
+}
+
+.iii {
+
+  display: inline-block;
+}

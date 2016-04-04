@@ -88,6 +88,29 @@
       return this.getPrefById('self_service_mode').isEnabled();
     };
 
+    var parseBool = function(strBit) {
+      return strBit == true;
+    };
+
+    PreferenceService.prototype.parsePreferencesNumber = function(number) {
+      console.log("Parsing Prefs Number: ", number);
+      var bitsStr = Number(number).toString(2);
+      console.log("Bits Number: ", bitsStr);
+
+      var prefsSignedIn = bitsStr.substring(8, 15);
+      console.log("prefsSignedIn => ", prefsSignedIn);
+
+      this.setCashierModePrefs(prefsSignedIn);
+    };
+
+    PreferenceService.prototype.setCashierModePrefs = function(strBits) {
+      var cashierPref = this.getCashierCanPref();
+      cashierPref.setCanCharge(parseBool(strBits[0]));
+      cashierPref.setCanRefund(parseBool(strBits[4]));
+      cashierPref.setCanTradeRcreditsForUSD(parseBool(strBits[2]));
+      cashierPref.setCanTradeUSDforRcredits(parseBool(strBits[3]));
+    };
+
     return new PreferenceService();
   });
 
