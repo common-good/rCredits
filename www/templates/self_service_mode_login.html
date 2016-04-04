@@ -3,10 +3,19 @@
   <ion-content>
     <div class="rc home">
 
-      <button ng-click="scanCustomer()"
-              class="scan-customer primary button button-block button-positive ">
-        {{ 'scanRCard' | translate }}
-      </button>
+      <form>
+        <label class="item item-input">
+          <span class="input-label"></span>
+          <input  numbers-only placeholder="{{('enter_pin'| translate)}}" type="number" class="show-as-pwd" ng-model="pin.value">
+        </label>
+
+
+        <button ng-click="identify()"
+                class="scan-customer primary button button-block button-positive ">
+          {{ 'scanRCard' | translate }}
+        </button>
+      </form>
+
     </div>
   </ion-content>
 </ion-view>

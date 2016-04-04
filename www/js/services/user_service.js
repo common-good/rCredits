@@ -167,7 +167,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   // 2. flags - A hash with the following elements:
   //      firstPurchase - Whether this is the user's first rCredits purchase. If so, the
   //        app should notify the seller to request photo ID.
-  UserService.prototype.identifyCustomer = function(str) {
+  UserService.prototype.identifyCustomer = function(str, pin) {
     var qrcodeParser = new QRCodeParser();
     qrcodeParser.setUrl(str);
     var accountInfo = qrcodeParser.parse();
@@ -178,9 +178,12 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       .setOperationId('identify')
       .setAgent(this.seller.default)
       .setMember(accountInfo.accountId)
-      .setSecurityCode(accountInfo.securityCode)
-      .getParams();
+      .setSecurityCode(accountInfo.securityCode);
+    if (pin) {
+      params.setPIN(pin);
+    }
 
+    params = params.getParams();
 
     if (NetworkService.isOffline()) {
 

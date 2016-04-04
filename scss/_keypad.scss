@@ -62,3 +62,7 @@
 .keypad {
   height: calc(100% - 4em);
 }
+
+.show-as-pwd {
+  -webkit-text-security: disc;
+}
