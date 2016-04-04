@@ -1,6 +1,7 @@
 {
   "yes": "Yes",
   "no": "No",
+  "ok": "ok",
   "balanceIsSecret": "This customer's balance is secret.",
   "balance": "Balance",
   "balanceLabel": "Balance:",
@@ -35,6 +36,8 @@
   "scanToSignIn": "Scan to sign in",
   "selectCategory": "Description",
   "selfServiceMode": "Self-Service Mode",
+  "confirm_self_service_mode": "Are you sure you want to enable self service mode?",
+  "enter_pin": "Enter Pin",
   "manager_sign_in": "Manager sign in",
   "signInAs": "Signed in as:",
   "signIn": "Sign in",

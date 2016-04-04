@@ -1,0 +1,19 @@
+<ion-view class="company-home" cache-view="false">
+  <subheader></subheader>
+  <ion-content>
+    <div class="rc home">
+
+      <form>
+        <input numbers-only placeholder="{{('enter_pin'| translate)}}" type="number" class="input-pin show-as-pwd pin"
+               ng-model="pin.value">
+
+
+        <button ng-click="identify()" ng-disabled="!hasValidPin()"
+                class="scan-customer primary button button-block button-positive ">
+          {{ 'ok' | translate }}
+        </button>
+      </form>
+
+    </div>
+  </ion-content>
+</ion-view>

@@ -80,9 +80,12 @@
       return this.getPrefById('cashier_can');
     };
 
-
     PreferenceService.prototype.isCashierModeEnabled = function() {
       return this.getCashierModePref().isEnabled();
+    };
+
+    PreferenceService.prototype.isSelfServiceEnabled = function() {
+      return this.getPrefById('self_service_mode').isEnabled();
     };
 
     return new PreferenceService();

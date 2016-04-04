@@ -45,6 +45,10 @@
       return this;
     };
 
+    RequestParameterBuilder.prototype.setPIN = function(pinNumber) {
+      this.result['pin'] = parseInt(pinNumber);
+    };
+
     return RequestParameterBuilder;
   });
 

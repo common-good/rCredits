@@ -120,6 +120,17 @@ angular.module('routes', [])
             controller: 'TransactionResultCtrl'
           }
         }
+      })
+
+
+      .state('app.self_service_mode', {
+        url: '/self_service_mode',
+        views: {
+          'menuContent': {
+            templateUrl: 'templates/self_service_mode_login.html',
+            controller: 'SelfServiceModeController'
+          }
+        }
       });
 
     // if none of the above states are matched, use this as the fallback

@@ -62,3 +62,17 @@
 .keypad {
   height: calc(100% - 4em);
 }
+
+.show-as-pwd {
+  -webkit-text-security: disc;
+}
+
+.pin {
+  text-align: center;
+}
+
+.input-pin {
+  margin-right: auto;
+  margin-left: auto;
+  width: 90%;
+}

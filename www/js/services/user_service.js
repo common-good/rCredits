@@ -1,5 +1,5 @@
 app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, User, Seller, Customer, $rootScope, $timeout,
-                                    PreferenceService, CashierModeService, $state, NetworkService, MemberSqlService, NotificationService) {
+                                    PreferenceService, CashierModeService, $state, NetworkService, MemberSqlService, NotificationService, SelfServiceMode) {
   'use strict';
 
   var LOGIN_FAILED = '0';
@@ -167,7 +167,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   // 2. flags - A hash with the following elements:
   //      firstPurchase - Whether this is the user's first rCredits purchase. If so, the
   //        app should notify the seller to request photo ID.
-  UserService.prototype.identifyCustomer = function(str) {
+  UserService.prototype.identifyCustomer = function(str, pin) {
     var qrcodeParser = new QRCodeParser();
     qrcodeParser.setUrl(str);
     var accountInfo = qrcodeParser.parse();
@@ -178,9 +178,12 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
       .setOperationId('identify')
       .setAgent(this.seller.default)
       .setMember(accountInfo.accountId)
-      .setSecurityCode(accountInfo.securityCode)
-      .getParams();
+      .setSecurityCode(accountInfo.securityCode);
+    if (pin) {
+      params.setPIN(pin);
+    }
 
+    params = params.getParams();
 
     if (NetworkService.isOffline()) {
 
@@ -327,6 +330,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   // Returns a promise that resolves when logout is complete, or rejects with error of fail.
   UserService.prototype.logout = function() {
     return $q(function(resolve, reject) {
+      SelfServiceMode.disable();
       $rootScope.$emit('sellerLogout');
       self.customer = null;
       self.seller.removeFromStorage();
@@ -338,7 +342,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
 
   UserService.prototype.softLogout = function() {
     return $q(function(resolve, reject) {
-
+      SelfServiceMode.disable();
       self.customer = null;
       self.seller = null;
       $state.go('app.login', {disableLoadSeller: true});

@@ -46,6 +46,10 @@
         $rootScope.$on('sellerLogout', function() {
           self.setScanForCustomer();
         });
+
+        $rootScope.$on("TransactionDone", function(){
+          self.scanner.id = 1;
+        });
       }
     };
 

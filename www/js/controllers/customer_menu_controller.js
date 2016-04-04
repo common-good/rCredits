@@ -1,4 +1,4 @@
-app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserService, $ionicHistory, NotificationService, CashierModeService, PermissionService) {
+app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserService, $ionicHistory, NotificationService, CashierModeService, PermissionService, SelfServiceMode) {
 
   $scope.customer = UserService.currentCustomer();
 
@@ -34,7 +34,6 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
     }
   };
 
-
   $scope.openRefund = function() {
     var refundFn = function() {
       $state.go('app.transaction', {'transactionType': 'refund'});
@@ -57,9 +56,7 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
     } else {
       executeAction(exchangeFn);
     }
-
   };
-
 
   var executeAction = function(fn) {
     NotificationService.showConfirm({
@@ -81,5 +78,8 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
     });
   };
 
+  $scope.isSelfServiceEnabled = function() {
+    return SelfServiceMode.isActive();
+  };
 
 });
