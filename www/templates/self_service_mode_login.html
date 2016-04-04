@@ -8,9 +8,9 @@
                ng-model="pin.value">
 
 
-        <button ng-click="identify()"
+        <button ng-click="identify()" ng-disabled="!hasValidPin()"
                 class="scan-customer primary button button-block button-positive ">
-          {{ 'scanRCard' | translate }}
+          {{ 'ok' | translate }}
         </button>
       </form>
 

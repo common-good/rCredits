@@ -36,15 +36,6 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
 
     if ($scope.isSelfServiceEnabled()) {
       $state.go('app.self_service_mode');
-      //BarcodeService.scan()
-      //  .then(function(barCodeResult) {
-      //    console.log("RESULT: ", barCodeResult);
-      //    //$state.go()
-      //  })
-      //  .catch(function(errorMsg) {
-      //    NotificationService.showAlert({title: "error", template: errorMsg});
-      //    $ionicLoading.hide();
-      //  });
       return;
     }
 

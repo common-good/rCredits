@@ -1,6 +1,7 @@
 {
   "yes": "Yes",
   "no": "No",
+  "ok": "ok",
   "balanceIsSecret": "This customer's balance is secret.",
   "balance": "Balance",
   "balanceLabel": "Balance:",
