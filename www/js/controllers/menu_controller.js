@@ -78,8 +78,8 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
 
   $scope.changeToSelfServiceMode = function() {
     NotificationService.showConfirm({
-      title: '',
-      subTitle: "confirm_self_service_mode",
+      subtitle: '',
+      title: "confirm_self_service_mode",
       okText: "confirm",
       cancelText: "cancel"
     }).then(function(res) {
@@ -91,6 +91,10 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
 
   $scope.isSelfServiceEnabled = function() {
     return PreferenceService.isSelfServiceEnabled();
+  };
+
+  $scope.isSelfServiceActive = function() {
+    return SelfServiceMode.isActive();
   };
 
 });

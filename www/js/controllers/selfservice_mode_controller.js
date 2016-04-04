@@ -5,7 +5,6 @@ app.controller('SelfServiceModeController', function($scope, $state, $ionicLoadi
   };
 
   $scope.init = function() {
-
     BarcodeService.scan()
       .then(function(scanUrl) {
         $scope.scanUrl = scanUrl;

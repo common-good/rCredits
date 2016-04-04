@@ -19,34 +19,39 @@
     </ion-header-bar>
     <ion-content>
       <ion-list>
-        <ion-item menu-close ng-click="redirectHome()">
-          {{ 'home' | translate }}
+        <ion-item menu-close ng-click="redirectHome()" ng-show="!isSelfServiceActive()"
+        ">
+        {{ 'home' | translate }}
         </ion-item>
 
 
-        <ion-item menu-close ng-click="enterCashierMode()" ng-show="isCashierModeAvailable() && !isCashierModeEnabled()">
+        <ion-item menu-close ng-click="enterCashierMode()"
+                  ng-show="isCashierModeAvailable() && !isCashierModeEnabled() && !isSelfServiceActive()">
           {{ 'enter_cashier_mode' | translate }}
         </ion-item>
 
         <!-- Cashier Mode-->
-        <ion-item menu-close ng-click="softLogout()" ng-show="isCashierModeEnabled()">
+        <ion-item menu-close ng-click="softLogout()" ng-show="isCashierModeEnabled() || isSelfServiceActive()">
           {{ 'manager_sign_in' | translate }}
         </ion-item>
 
-        <ion-item menu-close ng-click="redirectPreferences()" ng-show="!isCashierModeEnabled()">
+        <ion-item menu-close ng-click="redirectPreferences()"
+                  ng-show="!isCashierModeEnabled() && !isSelfServiceActive()">
           {{'preferences' | translate}}
         </ion-item>
 
-        <ion-item menu-close ng-click="changeToSelfServiceMode()" ng-show="isSelfServiceEnabled()">
+        <ion-item menu-close ng-click="changeToSelfServiceMode()"
+                  ng-show="isSelfServiceEnabled() && !isSelfServiceActive()">
           {{ 'selfServiceMode' | translate }}
         </ion-item>
 
-        <ion-item menu-close ng-click="changeCompany()">
+        <ion-item menu-close ng-click="changeCompany()" ng-show="!isSelfServiceActive()">
           {{ 'change_company' | translate }}
         </ion-item>
 
         <!-- Manager Mode && Cashier Mode Not Available of Prefs-->
-        <ion-item menu-close ng-click="logout()" ng-show="!isCashierModeAvailable() && !isCashierModeEnabled()">
+        <ion-item menu-close ng-click="logout()"
+                  ng-show="!isCashierModeAvailable() && !isCashierModeEnabled() && !isSelfServiceActive()">
           {{ 'signOut' | translate }}
         </ion-item>
 
