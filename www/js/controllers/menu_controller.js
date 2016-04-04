@@ -1,4 +1,4 @@
-app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService, PreferenceService, NetworkService) {
+app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService, PreferenceService, NetworkService, SelfServiceMode) {
 
   // Logout
 
@@ -76,8 +76,8 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
     return NetworkService.isOnline();
   };
 
-  $scope.changeToSelfServiceMoce = function() {
-
+  $scope.changeToSelfServiceMode = function() {
+    SelfServiceMode.active();
   };
 
   $scope.isSelfServiceEnabled = function() {

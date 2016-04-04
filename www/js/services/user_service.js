@@ -1,5 +1,5 @@
 app.service('UserService', function($q, $http, $httpParamSerializer, RequestParameterBuilder, User, Seller, Customer, $rootScope, $timeout,
-                                    PreferenceService, CashierModeService, $state, NetworkService, MemberSqlService, NotificationService) {
+                                    PreferenceService, CashierModeService, $state, NetworkService, MemberSqlService, NotificationService, SelfServiceMode) {
   'use strict';
 
   var LOGIN_FAILED = '0';
@@ -327,6 +327,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   // Returns a promise that resolves when logout is complete, or rejects with error of fail.
   UserService.prototype.logout = function() {
     return $q(function(resolve, reject) {
+      SelfServiceMode.disable();
       $rootScope.$emit('sellerLogout');
       self.customer = null;
       self.seller.removeFromStorage();
@@ -338,7 +339,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
 
   UserService.prototype.softLogout = function() {
     return $q(function(resolve, reject) {
-
+      SelfServiceMode.disable();
       self.customer = null;
       self.seller = null;
       $state.go('app.login', {disableLoadSeller: true});

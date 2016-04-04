@@ -1,4 +1,4 @@
-app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope, CashierModeService) {
+app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope, CashierModeService, SelfServiceMode) {
 
   var onSellerLoginEvent = $rootScope.$on('sellerLogin', function() {
     $scope.currentUser = UserService.currentUser();
@@ -28,7 +28,26 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
     return CashierModeService.isEnabled();
   };
 
+  $scope.isSelfServiceEnabled = function() {
+    return SelfServiceMode.isActive();
+  };
+
   $scope.scanCustomer = function() {
+
+    if ($scope.isSelfServiceEnabled()) {
+      $state.go('app.self_service_mode');
+      //BarcodeService.scan()
+      //  .then(function(barCodeResult) {
+      //    console.log("RESULT: ", barCodeResult);
+      //    //$state.go()
+      //  })
+      //  .catch(function(errorMsg) {
+      //    NotificationService.showAlert({title: "error", template: errorMsg});
+      //    $ionicLoading.hide();
+      //  });
+      return;
+    }
+
     $ionicLoading.show();
 
     BarcodeService.scan()
