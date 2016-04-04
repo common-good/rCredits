@@ -19,11 +19,9 @@
     </ion-header-bar>
     <ion-content>
       <ion-list>
-        <ion-item menu-close ng-click="redirectHome()" ng-show="!isSelfServiceActive()"
-        ">
-        {{ 'home' | translate }}
+        <ion-item menu-close ng-click="redirectHome()" ng-show="!isSelfServiceActive()">
+          {{ 'home' | translate }}
         </ion-item>
-
 
         <ion-item menu-close ng-click="enterCashierMode()"
                   ng-show="isCashierModeAvailable() && !isCashierModeEnabled() && !isSelfServiceActive()">
@@ -41,7 +39,7 @@
         </ion-item>
 
         <ion-item menu-close ng-click="changeToSelfServiceMode()"
-                  ng-show="isSelfServiceEnabled() && !isSelfServiceActive()">
+                  ng-show="isSelfServiceEnabled() && !isSelfServiceActive() && !isCashierModeEnabled()">
           {{ 'selfServiceMode' | translate }}
         </ion-item>
 
