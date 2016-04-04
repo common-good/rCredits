@@ -4,10 +4,8 @@
     <div class="rc home">
 
       <form>
-        <label class="item item-input">
-          <span class="input-label"></span>
-          <input  numbers-only placeholder="{{('enter_pin'| translate)}}" type="number" class="show-as-pwd" ng-model="pin.value">
-        </label>
+        <input numbers-only placeholder="{{('enter_pin'| translate)}}" type="number" class="input-pin show-as-pwd pin"
+               ng-model="pin.value">
 
 
         <button ng-click="identify()"

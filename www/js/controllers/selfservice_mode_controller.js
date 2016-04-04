@@ -16,15 +16,25 @@ app.controller('SelfServiceModeController', function($scope, $state, $ionicLoadi
   };
 
   $scope.identify = function() {
+    $ionicLoading.show();
     console.log("SelfService SCAN: ", $scope.scanUrl);
     console.log("PIN: ", $scope.pin.value);
     UserService.identifyCustomer($scope.scanUrl, $scope.pin.value)
       .then(function() {
         $scope.customer = UserService.currentCustomer();
         console.log("Identified Customer: ", $scope.customer);
+        $ionicLoading.hide();
+        $ionicHistory.nextViewOptions({
+          disableBack: true
+        });
+        $state.go("app.customer");
       })
       .catch(function(err) {
         console.error(err);
+        NotificationService.showAlert({title: "error", template: err});
+      })
+      .finally(function() {
+        $ionicLoading.hide();
       });
   };
 

@@ -1,6 +1,6 @@
 app.controller('TransactionResultCtrl', function($scope, $state,
                                                  $stateParams, $ionicLoading, $filter, NotificationService, UserService,
-                                                 TransactionService, BackButtonService, $timeout) {
+                                                 TransactionService, BackButtonService, $timeout, SelfServiceMode) {
 
   $scope.transactionStatus = $stateParams.transactionStatus;
   $scope.transactionAmount = $stateParams.transactionAmount;
@@ -68,5 +68,9 @@ app.controller('TransactionResultCtrl', function($scope, $state,
   $scope.$on('$destroy', function() {
     BackButtonService.enable();
   });
+
+  $scope.isSelfServiceEnabled = function() {
+    return SelfServiceMode.isActive();
+  };
 
 });

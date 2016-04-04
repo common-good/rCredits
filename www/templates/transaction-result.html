@@ -1,14 +1,15 @@
 <ion-view hide-back-button="success">
   <subheader></subheader>
   <ion-nav-buttons side="primary">
-    <button class="button button-stable" ng-show="success && timeCan && !undo" ng-click="undoTransaction()">
+    <button class="button button-stable" ng-show="success && timeCan && !undo && !isSelfServiceEnabled()"
+            ng-click="undoTransaction()">
       {{ 'undo' | translate }}
     </button>
   </ion-nav-buttons>
 
   <ion-nav-buttons side="secondary">
     <button class="button button-stable"
-            ng-controller="CustomerMenuCtrl" ng-if="isOnline()" ng-click="showBalance()">
+            ng-controller="CustomerMenuCtrl" ng-if="isOnline() && !isSelfServiceEnabled()" ng-click="showBalance()">
       {{ 'balance' | translate }}
     </button>
   </ion-nav-buttons>

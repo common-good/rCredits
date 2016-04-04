@@ -1,4 +1,4 @@
-app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserService, $ionicHistory, NotificationService, CashierModeService, PermissionService) {
+app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserService, $ionicHistory, NotificationService, CashierModeService, PermissionService, SelfServiceMode) {
 
   $scope.customer = UserService.currentCustomer();
 
@@ -76,6 +76,10 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
           });
       }
     });
+  };
+
+  $scope.isSelfServiceEnabled = function() {
+    return SelfServiceMode.isActive();
   };
 
 });

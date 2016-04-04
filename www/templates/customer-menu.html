@@ -1,6 +1,6 @@
 <ion-view class="customer-menu">
   <ion-nav-buttons side="secondary">
-    <button class="button button-stable" ng-if="isOnline()" ng-click="showBalance()">
+    <button class="button button-stable" ng-if="isOnline()&& !isSelfServiceEnabled()" ng-click="showBalance()">
       {{ 'balance' | translate }}
     </button>
   </ion-nav-buttons>
@@ -16,11 +16,11 @@
         {{ 'charge' | translate }}
       </button>
 
-      <div class="button-bar bar-stable">
+      <div class="button-bar bar-stable" ng-if="!isSelfServiceEnabled()">
         <button class="button refund secondary" ng-click="openRefund()">
           {{ 'refund' | translate }}
         </button>
-        <button class="button exchange secondary" ng-click="openExchange()">
+        <button class="button exchange secondary" ng-click="openExchange()" ng-if="!isSelfServiceEnabled()">
           {{ 'exchange' | translate }}
         </button>
       </div>
