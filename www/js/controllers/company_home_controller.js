@@ -55,7 +55,6 @@ app.controller('CompanyHomeCtrl', function($scope, $state, $ionicLoading, Barcod
               $ionicLoading.hide();
               $state.go("app.customer");
             }
-            ;
           })
           .catch(function(errorMsg) {
             NotificationService.showAlert({title: "error", template: errorMsg});

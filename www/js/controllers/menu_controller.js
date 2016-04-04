@@ -74,6 +74,14 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
 
   $scope.isOnline = function() {
     return NetworkService.isOnline();
-  }
+  };
+
+  $scope.changeToSelfServiceMoce = function() {
+
+  };
+
+  $scope.isSelfServiceEnabled = function() {
+    return PreferenceService.isSelfServiceEnabled();
+  };
 
 });

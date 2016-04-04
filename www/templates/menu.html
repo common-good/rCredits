@@ -37,6 +37,10 @@
           {{'preferences' | translate}}
         </ion-item>
 
+        <ion-item menu-close ng-click="changeToSelfServiceMoce()" ng-show="isSelfServiceEnabled()">
+          {{ 'selfServiceMode' | translate }}
+        </ion-item>
+
         <ion-item menu-close ng-click="changeCompany()">
           {{ 'change_company' | translate }}
         </ion-item>
@@ -45,6 +49,8 @@
         <ion-item menu-close ng-click="logout()" ng-show="!isCashierModeAvailable() && !isCashierModeEnabled()">
           {{ 'signOut' | translate }}
         </ion-item>
+
+
       </ion-list>
     </ion-content>
   </ion-side-menu>
