@@ -20,7 +20,6 @@
       var preferences = Preference.getDefinitions();
 
       _.each(savedPreferences, _.partial(this.updatePref_, preferences).bind(this));
-      console.log("Prefs => ", preferences);
       return preferences;
     };
 
@@ -54,7 +53,7 @@
 
     PreferenceService.prototype.savePreferences = function(preferences) {
       if (!_.isArray(preferences)) {
-        console.log("Preferences must be an Array");
+        console.error("Preferences must be an Array");
         return;
       }
 
@@ -81,11 +80,29 @@
     };
 
     PreferenceService.prototype.isCashierModeEnabled = function() {
-      return this.getCashierModePref().isEnabled();
+      return true;
     };
 
     PreferenceService.prototype.isSelfServiceEnabled = function() {
-      return this.getPrefById('self_service_mode').isEnabled();
+      return true;
+    };
+
+    var parseBool = function(strBit) {
+      return strBit == true;
+    };
+
+    PreferenceService.prototype.parsePreferencesNumber = function(number) {
+      var bitsStr = Number(number).toString(2);
+      var prefsSignedIn = bitsStr.substring(8, 15);
+      this.setCashierModePrefs(prefsSignedIn);
+    };
+
+    PreferenceService.prototype.setCashierModePrefs = function(strBits) {
+      var cashierPref = this.getCashierCanPref();
+      cashierPref.setCanCharge(parseBool(strBits[0]));
+      cashierPref.setCanRefund(parseBool(strBits[4]));
+      cashierPref.setCanTradeRcreditsForUSD(parseBool(strBits[2]));
+      cashierPref.setCanTradeUSDforRcredits(parseBool(strBits[3]));
     };
 
     return new PreferenceService();

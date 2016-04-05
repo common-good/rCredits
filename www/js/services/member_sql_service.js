@@ -22,7 +22,6 @@
 
       return this.existMember(user.accountInfo.accountId)
         .then(function(sqlMemeber) {
-          console.log("SQL Member: ", sqlMemeber);
           sqlQuery.setQueryString("UPDATE members SET " +
             "name = '" + user.getName() + "'," +
             "company = '" + user.getCompany() + "'," +
@@ -60,7 +59,6 @@
       sqlQuery.setQueryString("SELECT * FROM members WHERE qid = ?");
       sqlQuery.setQueryData(qId);
       return SQLiteService.executeQuery(sqlQuery).then(function(SQLResultSet) {
-        console.log("Exist Member Id: " + qId + ' :', SQLResultSet);
         if (SQLResultSet.rows.length > 0) {
           return SQLResultSet.rows[0];
         } else {

@@ -13,8 +13,6 @@
       },
 
       isFromUrl: function(strUrl) {
-        console.log("AccountUrl: ", this.accountInfo.url);
-        console.log("ScannedUrl: ", strUrl);
         return this.accountInfo && this.accountInfo.url === strUrl;
       },
 
@@ -61,6 +59,10 @@
 
       isDemo: function() {
         return this.accountInfo.isDemo();
+      },
+
+      getCan: function() {
+        return this.can;
       },
 
       default: '',

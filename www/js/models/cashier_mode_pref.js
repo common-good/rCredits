@@ -19,8 +19,33 @@
 
     isExchangeEnabled: function() {
       return this.isOptionEnabled('refund');
-    }
+    },
 
+    getPref_: function(id) {
+      return _.find(this.options, function(o) {
+        return o.id == id;
+      });
+    },
+
+    setPropertyValue: function(id, boolCan) {
+      this.getPref_(id).value = boolCan;
+    },
+
+    setCanCharge: function(boolCan) {
+      this.setPropertyValue('charge', boolCan);
+    },
+
+    setCanRefund: function(boolCan) {
+      this.setPropertyValue('refund', boolCan);
+    },
+
+    setCanTradeRcreditsForUSD: function(boolCan) {
+      this.setPropertyValue('trade_rcredits_for_usd', boolCan);
+    },
+
+    setCanTradeUSDforRcredits: function(boolCan) {
+      this.setPropertyValue('trade_usd_for_rcredtis', boolCan);
+    },
 
   });
 

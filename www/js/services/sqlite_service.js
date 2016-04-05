@@ -42,9 +42,8 @@
           txPromise.reject(e.message);
         });
       }, function(error) {
-        console.log('transaction error: ' + error.message);
+        console.error('transaction error: ' + error.message);
       }, function() {
-        //console.log('transaction ok');
       });
       return txPromise.promise;
     };

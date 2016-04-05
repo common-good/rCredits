@@ -1,4 +1,4 @@
-app.controller('PreferencesCtrl', function($scope, $state, UserService, PreferenceService) {
+app.controller('PreferencesCtrl', function($scope, $state, UserService, PreferenceService, $ionicLoading, NotificationService) {
 
 
   var preferences = PreferenceService.getAll();
@@ -11,5 +11,22 @@ app.controller('PreferencesCtrl', function($scope, $state, UserService, Preferen
   $scope.cashierModePref = PreferenceService.getCashierModePref();
   $scope.cashierCanModePref = PreferenceService.getCashierCanPref();
 
+
+  $scope.doAction = function(pref) {
+    if (pref.id === 'forget_company') {
+      $ionicLoading.show();
+
+      UserService.logout()
+        .then(function() {
+          $state.go("app.login");
+        })
+        .catch(function(errorMsg) {
+          NotificationService.showAlert({title: "error", template: errorMsg});
+        })
+        .finally(function() {
+          $ionicLoading.hide();
+        });
+    }
+  };
 
 });

@@ -65,8 +65,6 @@
     };
 
     BarcodeService.prototype.scanSuccess_ = function(sucessFn, rejectFn, barCodeResult) {
-      console.log("Scan result: ", barCodeResult);
-
       if (barCodeResult.wasCancelled()) {
         rejectFn('scanCancelled');
       }

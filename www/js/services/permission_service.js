@@ -12,7 +12,6 @@ app.service('PermissionService', function($q, UserService, BarcodeService, UserS
     }
 
     return BarcodeService.scan().then(function(scannedUrl) {
-        console.log("authorizeSeller.Scanned URL => ", scannedUrl);
         return UserService.currentUser().isFromUrl(scannedUrl);
       })
       .catch(function() {
