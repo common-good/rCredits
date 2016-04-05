@@ -7,16 +7,6 @@
   Preference.getDefinitions = function() {
     var preferences = [
       {
-        id: 'stay_signed_in',
-        type: 'toggle',
-        name: 'staySignedIn'
-      },
-      {
-        id: 'offline_mode',
-        type: 'toggle',
-        name: 'offlineMode'
-      },
-      {
         id: 'self_service_mode',
         type: 'toggle',
         name: 'selfServiceMode'
