@@ -81,11 +81,11 @@
     };
 
     PreferenceService.prototype.isCashierModeEnabled = function() {
-      return this.getCashierModePref().isEnabled();
+      return true;
     };
 
     PreferenceService.prototype.isSelfServiceEnabled = function() {
-      return this.getPrefById('self_service_mode').isEnabled();
+      return true;
     };
 
     var parseBool = function(strBit) {

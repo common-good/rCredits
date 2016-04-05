@@ -1,26 +1,29 @@
 <ion-view class="preferences">
   <ion-content>
-    <div class="list">
+    <ion-list>
 
-      <li ng-repeat="pref in ::preferences" class="item item-toggle" ng-if="pref.isToggle()">
-        {{ pref.name | translate }}
-        <label class="toggle toggle-positive">
-          <input type="checkbox" ng-model="pref.value" ng-change="saveItems()">
-          <div class="track">
-            <div class="handle"></div>
-          </div>
-        </label>
-      </li>
+      <!--<li ng-repeat="pref in ::preferences" class="item item-toggle">-->
+      <!--{{ pref.name | translate }}-->
+      <!--<label class="">-->
+      <!--<input type="text" ng-model="pref.value" ng-change="saveItems()">-->
+      <!--<div class="track">-->
+      <!--<div class="handle"></div>-->
+      <!--</div>-->
+      <!--</label>-->
+      <!--</li>-->
 
+      <ion-item ng-repeat="pref in ::preferences" ng-if="pref.display" ng-click="doAction(pref)">
+        <div>{{ pref.name | translate }}</div>
+        <span class="pref-subtitle" ng-if="pref.subtitle">{{ pref.subtitle | translate }}</span>
+      </ion-item>
 
-      <ion-list>
-        <ion-item ng-model="option.value" class="cashier-pref" ng-class="{'cashier-pref-selected': option.value}"
-                  ng-repeat="option in cashierCanModePref.options">
-          <i class="icon ion-ios-checkmark"> </i>
-          <span>{{ option.name | translate }}</span>
-        </ion-item>
-      </ion-list>
+      <ion-item ng-model="option.value" class="cashier-pref" ng-class="{'cashier-pref-selected': option.value}"
+                ng-repeat="option in cashierCanModePref.options">
+        <i class="icon ion-ios-checkmark"> </i>
+        <span>{{ option.name | translate }}</span>
 
-    </div>
+      </ion-item>
+    </ion-list>
+
   </ion-content>
 </ion-view>
