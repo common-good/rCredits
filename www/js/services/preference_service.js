@@ -20,7 +20,6 @@
       var preferences = Preference.getDefinitions();
 
       _.each(savedPreferences, _.partial(this.updatePref_, preferences).bind(this));
-      console.log("Prefs => ", preferences);
       return preferences;
     };
 
@@ -54,7 +53,7 @@
 
     PreferenceService.prototype.savePreferences = function(preferences) {
       if (!_.isArray(preferences)) {
-        console.log("Preferences must be an Array");
+        console.error("Preferences must be an Array");
         return;
       }
 
@@ -93,13 +92,8 @@
     };
 
     PreferenceService.prototype.parsePreferencesNumber = function(number) {
-      console.log("Parsing Prefs Number: ", number);
       var bitsStr = Number(number).toString(2);
-      console.log("Bits Number: ", bitsStr);
-
       var prefsSignedIn = bitsStr.substring(8, 15);
-      console.log("prefsSignedIn => ", prefsSignedIn);
-
       this.setCashierModePrefs(prefsSignedIn);
     };
 

@@ -13,8 +13,6 @@
       $ionicPlatform.registerBackButtonAction(function(event) {
         if (self.isEnable()) {
           navigator.app.exitApp();
-        } else {
-          console.log("BACK BUTTON is DISABLE", event);
         }
       }, 100);
     };

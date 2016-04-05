@@ -42,13 +42,12 @@ app.service('TransactionSyncService',
       TransactionSql.getOfflineTransaction(self.exludedTxs)
         .then(function(sqlTransac) {
           sqlTransaction = sqlTransac;
-          console.log("sqlTransaction: ", sqlTransaction);
           // send to server
           return send(sqlTransac);
         })
         .then(function(response) {
           if (response.ok == 0) { // Error;
-            console.log("Error syncing transaction: ", response);
+            console.error("Error syncing transaction: ", response);
             throw response;
           }
           return TransactionSql.setTransactionSynced(sqlTransaction);

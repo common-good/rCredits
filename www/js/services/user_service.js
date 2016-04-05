@@ -48,7 +48,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
 
       return seller;
     } catch (e) {
-      console.log(e.message);
+      console.error(e.message);
       return null;
     }
   };

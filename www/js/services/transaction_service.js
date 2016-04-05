@@ -72,8 +72,6 @@ app.service('TransactionService',
     TransactionService.prototype.charge = function(amount, description, goods) {
       return this.makeTransactionRequest(amount, description, goods)
         .then(function(transactionResult) {
-          console.log("Transaction Result: ", transactionResult);
-
           if (transactionResult.ok === TRANSACTION_OK) {
             var transaction = self.parseTransaction_(transactionResult);
             transaction.configureType(amount);
@@ -109,7 +107,6 @@ app.service('TransactionService',
         exchangeType = 'USD out';
       }
       var description = exchangeType + '(' + paymentMethod.getId() + ')';
-      console.log("DESCRIPTION: ", description);
       return this.charge(amount, description, 0);
     };
 
