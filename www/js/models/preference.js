@@ -75,7 +75,6 @@
     return this.value === true;
   };
 
-
   window.Preference = Preference;
 
 })(window);

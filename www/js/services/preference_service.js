@@ -1,7 +1,7 @@
 (function(app) {
   'use strict';
 
-  app.service('PreferenceService', function(localStorageService) {
+  app.service('PreferenceService', function(localStorageService, $injector) {
 
     var self;
     var PreferenceService = function() {
@@ -92,17 +92,23 @@
     };
 
     PreferenceService.prototype.parsePreferencesNumber = function(number) {
-      var bitsStr = Number(number).toString(2);
-      var prefsSignedIn = bitsStr.substring(8, 15);
-      this.setCashierModePrefs(prefsSignedIn);
+      var cashierService = $injector.get('CashierModeService');
+      if (cashierService.isEnabled()) {
+        this.getCashierCanPref().disableAll();
+        var bitsStr = Number(number).toString(2);
+        this.setCashierModePrefs(bitsStr);
+      } else {
+        this.getCashierCanPref().enableAll();
+      }
     };
 
     PreferenceService.prototype.setCashierModePrefs = function(strBits) {
       var cashierPref = this.getCashierCanPref();
-      cashierPref.setCanCharge(parseBool(strBits[0]));
-      cashierPref.setCanRefund(parseBool(strBits[4]));
-      cashierPref.setCanTradeRcreditsForUSD(parseBool(strBits[2]));
-      cashierPref.setCanTradeUSDforRcredits(parseBool(strBits[3]));
+      var l = strBits.length;
+      cashierPref.setCanCharge(parseBool(strBits[l - 1]));
+      cashierPref.setCanRefund(parseBool(strBits[l - 2]));
+      cashierPref.setCanTradeRcreditsForUSD(false);
+      cashierPref.setCanTradeUSDforRcredits(false);
     };
 
     return new PreferenceService();

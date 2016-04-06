@@ -47,6 +47,18 @@
       this.setPropertyValue('trade_usd_for_rcredtis', boolCan);
     },
 
+    enableAll: function() {
+      _.each(this.options, function(o) {
+        o.value = true;
+      });
+    },
+
+    disableAll: function() {
+      _.each(this.options, function(o) {
+        o.value = false;
+      });
+    }
+
   });
 
 
