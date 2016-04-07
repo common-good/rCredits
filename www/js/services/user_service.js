@@ -348,9 +348,10 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
   UserService.prototype.softLogout = function() {
     return $q(function(resolve, reject) {
       SelfServiceMode.disable();
+      CashierModeService.disable();
       self.customer = null;
       self.seller = null;
-      $state.go('app.login', {disableLoadSeller: true});
+      $state.go('app.login', {disableLoadSeller: true, openScanner: true});
       $rootScope.$emit('sellerLogout');
       resolve();
     });
@@ -358,3 +359,5 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
 
   return new UserService();
 });
+
+
