@@ -92,14 +92,8 @@
     };
 
     PreferenceService.prototype.parsePreferencesNumber = function(number) {
-      var cashierService = $injector.get('CashierModeService');
-      if (cashierService.isEnabled()) {
-        this.getCashierCanPref().disableAll();
-        var bitsStr = Number(number).toString(2);
-        this.setCashierModePrefs(bitsStr);
-      } else {
-        this.getCashierCanPref().enableAll();
-      }
+      var bitsStr = Number(number).toString(2);
+      this.setCashierModePrefs(bitsStr);
     };
 
     PreferenceService.prototype.setCashierModePrefs = function(strBits) {
