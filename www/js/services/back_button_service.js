@@ -4,25 +4,31 @@
   app.service('BackButtonService', function($ionicPlatform) {
 
     var self = this;
+    var desregisterBackButton;
     var BackButtonService = function() {
       self = this;
       this.enableBackButton = true;
     };
 
     BackButtonService.prototype.init = function() {
-      $ionicPlatform.registerBackButtonAction(function(event) {
-        if (self.isEnable()) {
-          navigator.app.exitApp();
+    };
+
+    BackButtonService.prototype.disable = function() {
+      this.enableBackButton = true;
+      desregisterBackButton = $ionicPlatform.registerBackButtonAction(function(event) {
+        if (!self.isEnable()) {
+          event.preventDefault();
+          event.stopPropagation();
         }
       }, 100);
     };
 
     BackButtonService.prototype.enable = function() {
-      this.enableBackButton = true;
-    };
-
-    BackButtonService.prototype.disable = function() {
       this.enableBackButton = false;
+      if (desregisterBackButton) {
+        desregisterBackButton();
+        desregisterBackButton = null;
+      }
     };
 
     BackButtonService.prototype.isEnable = function() {

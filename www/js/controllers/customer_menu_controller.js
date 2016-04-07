@@ -51,7 +51,7 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
       $state.go('app.transaction_select_exchange')
     };
 
-    if (CashierModeService.canRefund()) {
+    if (CashierModeService.canExchange()) {
       exchangeFn();
     } else {
       executeAction(exchangeFn);

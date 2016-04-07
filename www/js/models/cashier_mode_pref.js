@@ -18,7 +18,7 @@
     },
 
     isExchangeEnabled: function() {
-      return this.isOptionEnabled('refund');
+      return this.isOptionEnabled('trade_rcredits_for_usd') && this.isOptionEnabled('trade_usd_for_rcredtis');
     },
 
     getPref_: function(id) {
