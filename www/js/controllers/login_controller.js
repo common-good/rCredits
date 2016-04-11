@@ -1,8 +1,9 @@
-app.controller('LoginCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService) {
+app.controller('LoginCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService, $stateParams) {
 
   $scope.$on('$ionicView.loaded', function() {
-  ionic.Platform.ready( function() {
-    if(navigator && navigator.splashscreen) navigator.splashscreen.hide(); });
+    ionic.Platform.ready(function() {
+      if (navigator && navigator.splashscreen) navigator.splashscreen.hide();
+    });
   });
 
   // Scanner Login
@@ -32,7 +33,7 @@ app.controller('LoginCtrl', function($scope, $state, $ionicLoading, BarcodeServi
       });
   };
 
-  if (CashierModeService.isEnabled()) {
+  if (CashierModeService.isEnabled() || $stateParams.openScanner) {
     $scope.openScanner();
   }
 

@@ -29,7 +29,8 @@ angular.module('routes', [])
           }
         },
         params: {
-          disableLoadSeller: false
+          disableLoadSeller: false,
+          openScanner: false
         },
         resolve: {
           seller: function($q, $timeout, UserService, $state, $stateParams) {

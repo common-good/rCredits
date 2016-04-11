@@ -59,7 +59,7 @@
       if (!this.isActivated) {
         return true;
       }
-      return PreferenceService.getCashierCanPref().isRefundEnabled();
+      return PreferenceService.getCashierCanPref().isExchangeEnabled();
     };
 
 
