@@ -103,11 +103,14 @@ app.service('TransactionService',
 
     TransactionService.prototype.exchange = function(amount, currency, paymentMethod) {
       var exchangeType = 'USD in';
+      var amountToSend = amount;
       if (!currency.isUSD()) {
         exchangeType = 'USD out';
+      } else {
+        amountToSend = amount * (-1);
       }
       var description = exchangeType + '(' + paymentMethod.getId() + ')';
-      return this.charge(amount, description, 0);
+      return this.charge(amountToSend, description, 0);
     };
 
     TransactionService.prototype.undoTransaction = function(transaction) {

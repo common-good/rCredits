@@ -1,7 +1,7 @@
 app.controller('KeyPadCtrl', function($scope, $state, $stateParams, $filter) {
 
   var convertToNumber = function(amount) {
-    return Number(amount);
+    return parseFloat(Number(amount).toFixed(2));
   };
 
   $scope.addHundred = function(num) {
