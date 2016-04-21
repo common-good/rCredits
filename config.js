@@ -27,6 +27,7 @@ rCreditsConfig = {
   // @endif
 
   // @if BUILD_TARGET='production'
+  serverproxyUrl: 'http://localhost:8100/pos',
   serverUrl: 'https://xxx.rcredits.org/pos',
   version: '3.0',
   build: 300,
