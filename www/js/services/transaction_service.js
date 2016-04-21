@@ -118,6 +118,7 @@ app.service('TransactionService',
         customerAccountInfo = UserService.currentCustomer().accountInfo,
         params = new RequestParameterBuilder()
           .setOperationId('charge')
+          .setSecurityCode(customerAccountInfo.securityCode)
           .setAgent(sellerAccountInfo.accountId)
           .setMember(customerAccountInfo.accountId)
           .setField('amount', transaction.amount)
