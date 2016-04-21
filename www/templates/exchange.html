@@ -33,12 +33,12 @@
         </div>
       </section>
 
-      <section class="section-2 exchange-keypad" ng-controller="KeyPadCtrl" ng-include="'templates/keypad.html'">
+      <section class="section-2 exchange-keypad" ng-class="{'rcredits-in': exCtrl.rCreditsIsCurrencyFrom}" ng-controller="KeyPadCtrl" ng-include="'templates/keypad.html'">
       </section>
 
     </div>
   </ion-content>
-  <button class="button button-full button-positive next-btn" ng-click="exCtrl.doExchange()">
+  <button class="button primary button-full button-positive next-btn" ng-click="exCtrl.doExchange()">
     {{::('exchange' | translate)}}
   </button>
 </ion-view>
