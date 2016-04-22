@@ -20,24 +20,20 @@ class acct {
   
   /**
    * Instantiate (create or retrieve) a member account for transactions and/or contact
-   * Call by:
-   *   new acct(info) OR
-   *   acct(uid, agent) (see the acct() function below)
-   * @param assoc $info: initial field values for the account, to be created and saved in the database, including at least one of the following:
-   *   'uid' the record id
-   *   'phone' is contact phone (in standard +ddddddddddd format) OR
-   *   'number' is cell phone (in standard +ddddddddddd format -- use for phone also) OR
-   *   'email' is email address
-   *   UNUSED (because it's hard to verify): 'website' is website address
-   *   (This function assumes that the info is not sufficient to identify an existing user)
-   * @param id/qid $id: the account's record id (can this be a community?) (DEFAULT to myid)
-   * @param id/qid $agent: the agent's record id on this server OR the foreign agent's qid (DEFAULT to same as $id)
+   * @param mixed $info (either assoc or array):
+   *   (1) an assoc: initial field values for the account, to be created in the database, including at least one of the following:
+   *     'uid' the record id
+   *     'phone' is contact phone (in standard +ddddddddddd format) OR
+   *     'number' is cell phone (in standard +ddddddddddd format -- use for phone also) OR
+   *     'email' is email address
+   *     (This function assumes that the field values not sufficient to identify an existing user)
+   *   (2) a flat array of user table IDs: [uid, agent] where uid is the main account and agent is the agent's id
    */
-  function __construct($id = [], $agent = '') {
+  function __construct($info = []) {
     $a = $this;
-    if (is_array($info = $id)) { // referring to existing db record
+    if (u\isAssoc($info)) { // specifying field values
       $a->createNew($info); // create new db record
-    } else list($a->id, $a->agentId) = acct::viable($id, $agent, $zot, FALSE);
+    } else list($a->id, $a->agentId) = $info; // called from r\acct()
   }    
 
   /**
@@ -92,13 +88,18 @@ class acct {
 
   /**
    * Setup acct variables, returning FALSE on error.
+   * @param id/qid $id: the account's record id or qid (DEFAULT to myid)
+   * @param id/qid $agent: the agent's record id or qid (DEFAULT to same as $id)
+   * @param string $error: (RETURNED) the error message, if any
+   * @param bool $test: <this is only a test, do not die on error>
+   * @return [$id, $agent] where id and agent are actual record IDs
    */
   public static function viable($id0, $agent0='', &$error='', $test = TRUE) {
-    if (is_numeric($id0) and is_numeric($agent0)) return array($id0, $agent0);
+    if (is_numeric($id0) and is_numeric($agent0)) return [$id0, $agent0];
     if ($error = u\EXPECT(compact(u\ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
     if ($error = u\EXPECT((bool) $id0, 'null uid in new acct()', $test)) return FALSE;
     if ($error = u\EXPECT(!(strpos($id0, R_AGENT_MARK) and $agent0), 'agent already specified in qid', $test)) return FALSE;
-    list ($id, $agent) = u\isZid($id0) ? array($id0, $agent0 ?: $id0) : IA($id0); // handle
+    list ($id, $agent) = u\isZid($id0) ? [$id0, $agent0 ?: $id0] : IA($id0); // handle
     if (u\isQid($agent0)) {
       list ($agent, $zot) = IA($agent0);
       if ($error = u\EXPECT($agent == $zot, 'agent agent not allowed', $test)) return FALSE;
@@ -107,7 +108,7 @@ class acct {
     $got = (bool) self::getRecord($id); // read the record into cache
     if ($error = u\EXPECT($got, 'That account does not exist.', $test)) return FALSE; // don't use tt() here (many calls)
     u\EXPECT($id and $agent, "Missing acct property: [$id, $agent]");
-    return array($id, $agent);
+    return [$id, $agent];
   }
   
   private static function getRecord($id, $reread = FALSE) {
@@ -509,7 +510,7 @@ class acct {
   public function avail($goods) {
     $a = $this;
     $floor = $a->can(B_DEBT) ? $a->j_floor : max($a->j_floor, 0); // no going into debt without permission
-    if ($goods == FOR_USD) $floor = max($floor, $a->j_rewards); // no exchanging rewards for cash
+    if ($goods == FOR_USD or (COMPANY_FREEZE and $a->co)) $floor = max($floor, $a->j_rewards); // no exchanging rewards for cash (and companies temporarily can't spend rewards)
     return round($a->j_r - $a->j_committed - $floor, 2);
   }
   
@@ -869,8 +870,8 @@ EOF;
   }
 
   /**
-   * Mark a USD transfer complete, update cache, and report.
-   * @param int $txid: the transfer record ID (if NULL, no need to mark it complete)
+   * Mark an incoming USD transfer complete, update cache, and report.
+   * @param int $txid: the transfer record ID (if empty, no need to mark it complete)
    * @param numeric $amount: transfer amount (positive)
    * @param bool $automatic: <transfer was created automatically>
    * @return <success>
@@ -878,16 +879,19 @@ EOF;
   public function completeUsdTx($txid, $amount, $automatic) {
     $a = $this;
     
-    $realAmt = db\lookup('amount', 'r_usd', 'txid=:txid', compact('txid'));
-    if ($amount != $realAmt) r\tellStaff('bad completeUsdTx amt in acct', compact(u\ray('txid amount realAmt automatic')));
-
     $DBTX = \db_transaction();
-    if (@$txid and !db\update('r_usd', ['txid'=>$txid, 'completed'=>r\rTime()], 'txid')) return FALSE;
+
+    if ($txid) { // unless transfer is already marked complete
+      $realAmt = db\lookup('-amount', 'r_usd', 'txid=:txid', compact('txid'));
+      if ($amount != $realAmt) r\tellStaff('bad completeUsdTx amt in acct', compact(u\ray('txid amount realAmt automatic')));
+      if (!db\update('r_usd', ['txid'=>$txid, 'completed'=>r\rTime()], 'txid')) return FALSE;
+    }
+    
     $a->update('r', $a->r + $amount);
     unset($DBTX);
     
     $transfer = $automatic ? t('automatic transfer') : t('transfer');
-    $amount = u\fmtAmt(abs($amount));
+    $amount = u\fmtAmt($amount);
     r\notify($a->id, 'transfer complete', compact('transfer', 'amount'));
     if (!$a->can(B_BONA)) r\message($a->id, 'account funded');
     return TRUE;
@@ -1139,9 +1143,8 @@ function acct($uid = '', $agent = '', &$error = '') {
   global $currentAcct; // use this ONLY in this class file
   if (!$uid) return $currentAcct ?: (!$error = 'There is no current account.');
   if (strpos($uid, '@')) $uid = db\lookup('uid', 'users', 'mail=:mail', ['mail' => u\cryptN($uid)]);
-  if (!acct::viable($uid, $agent, $error, TRUE)) return FALSE;
-  if (!acct::viable($uid, $agent, $error, TRUE)) return FALSE;
-  return new acct($uid, $agent);
+  if (!$ua = acct::viable($uid, $agent, $error, TRUE)) return FALSE;
+  return new acct($ua); // the only place we call new acct() with a flat array (meaning an existing account)
 }
 
 /**

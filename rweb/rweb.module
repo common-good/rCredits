@@ -93,7 +93,7 @@ function rweb_menu($submenu = '') {
     
 //    'community' => ['norm', t('Community'), 'FindCo', 'anyone'],
     'community' => ['norm', t('Community'), 'Community', 'anyone'],
-    'community/democracy' => ['sub', t('Discussion & Voting'), 'Democracy 2', '-co', '', t(''), 'bell'],
+    'community/democracy' => isDEV ? ['sub', t('Discussion & Voting'), 'Democracy 2', '-co', '', t(''), 'bell'] : NULL,
     'community/agreement' => ['sub', t('The Agreement'), 'Agreement', 'anyone', '', t(''), 'globe'],
     'community/invite' => ['sub', t('Invite Someone'), 'Invite', 'member manage', '', t(''), 'share-alt'],
     'community/message' => ['sub', t('Message a Member'), 'Message', 'member manage', '', t(''), 'envelope'],

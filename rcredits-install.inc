@@ -82,13 +82,13 @@ function tableDefs($schema = []) {
     'ctty' => setupField('community or region record id', 'int big'),
     'created' => setupField('Unixtime record was created', 'int 11', 0),
     'r' => setupField('amount of rCredits issued to date', 'numeric 11,2', 0), // including stand-ins for USD
-    'bankIn' => setupField('amount of US Dollars brought in the system', 'numeric 11,2', 0),
-    'bankOut' => setupField('amount of US Dollars taken out of the system', 'numeric 11,2', 0),
+    'bankIn' => setupField('amount of US Dollars brought in the system ever', 'numeric 11,2', 0),
+    'bankOut' => setupField('amount of US Dollars taken out of the system ever', 'numeric 11,2', 0),
 //    'usd' => setupField('amount of US Dollars in the system', 'numeric 11,2', 0),
     'purchases' => setupField('amount of purchases ever', 'numeric 11,2', 0),
     'forCashs' => setupField('amount of exchanges for cash ever', 'numeric 11,2', 0),
-    'tradeIn' =>setupField('amount of transfers to this community from elsewhere', 'numeric 11,2', 0),
-    'tradeOut' =>setupField('amount of transfers from this community to elsewhere', 'numeric 11,2', 0),
+    'tradeIn' =>setupField('amount of transfers to this community from elsewhere ever', 'numeric 11,2', 0),
+    'tradeOut' =>setupField('amount of transfers from this community to elsewhere ever', 'numeric 11,2', 0),
     'cttyBuys' => setupField('amount of community purchases ever', 'numeric 11,2', 0),
     'cttyIncomes' => setupField('amount of community income ever', 'numeric 11,2', 0),
     'signups' => setupField('amount of signup bonuses ever', 'numeric 11,2', 0),
@@ -111,6 +111,8 @@ function tableDefs($schema = []) {
     'top5' => setupField('runny funds in top 5 or 5% of runny accounts', 'numeric 11,2', 0),
 //    'savings' => setupField('funds held for 30 days or more', 'numeric 11,2', 0),
     'savings' => setupField('amounts members have chosen to hold as savings', 'numeric 11,2', 0),
+    'tradeInPerMo' => setupField('transfers to this community in the past month', 'numeric 11,2', 0),
+    'tradeOutPerMo' => setupField('transfers from this community in the past month', 'numeric 11,2', 0),
     'bankInPerMo' => setupField('amount transferred into the system in the past month', 'numeric 11,2', 0),
     'bankOutPerMo' => setupField('amount transferred out of the system in the past month', 'numeric 11,2', 0),
     'xchPerMo' => setupField('exchange volume within system in the past month', 'numeric 11,2', 0),
@@ -185,12 +187,10 @@ function tableDefs($schema = []) {
   $fields = array(
     'xid' => setupField('the unique transaction ID', 'serial big'), 
     'serial' => setupField('serial number of related transactions (=xid of first transaction in the group)', 'int 11'), 
-//    'usdXid' => setupField('the unique transaction ID for USD part', 'varchar 255'), 
     'type' => setupField('transaction type (transfer, rebate, etc.)', 'int tiny'),
     'taking' => setupField('was the transaction initiated by the payee', 'int tiny'), 
     'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny', 0), 
-    'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
-//    'r' => setupField('amount in rCredits', 'numeric 11,2'), 
+    'amount' => setupField('amount transferred', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int big'), 
     'payee' => setupField('user id of the payee', 'int big'), 
     'payerAgent' => setupField("user id of payer's agent (who approved this transaction for the payer)", 'int big'), 
@@ -202,14 +202,13 @@ function tableDefs($schema = []) {
     'data' => setupField('miscellaneous non-searchable data (serialized array)', 'text big'), 
     'channel' => setupField('through what medium was the transaction entered', 'int tiny'),
     'box' => setupField('on what machine was the transaction entered', 'int 11', 0), // 0 = none
-//    'proof' => setupField('code, amount, created, member -- concatenated and encrypted', 'varchar 255'), 
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'risk' => setupField('suspiciousness rating', 'float medium', NULL), // NULL means never set yet
     'risks' => setupField('list of risk factors', 'int big', 0, TRUE),
 //    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee') + foreignKey('payerAgent') + foreignKey('payeeAgent');
-  $indexes = index('payer') + index('payee') + index('created') + index('payerTid') + index('payeeTid') + index('proof'); // also serial/type/taking/goods/payerAgent/payeeAgent/channel/?
+  $indexes = index('payer') + index('payee') + index('created') + index('payerTid') + index('payeeTid'); // also serial/type/taking/goods/payerAgent/payeeAgent/channel/?
   $schema['r_txs'] = setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreignKeys, $indexes);
 
   // table r_invoices
@@ -227,8 +226,21 @@ function tableDefs($schema = []) {
   $foreignKeys = foreignKey('payer') + foreignKey('payee');
   $indexes = index('payer') + index('payee') + index('created') + index('status');
   $schema['r_invoices'] = setupTable('Record of all rCredits invoices in the region', $fields, 'nvid', $foreignKeys, $indexes);
-
+  
 //  foreach (u\ray('type taking goods payerAgent payeeAgent payerFor payeeFor') as $one) unset($fields[$one]);
+
+  // table r_auth
+  $fields = array(
+    'id' => setupField('authorization id', 'serial big'), 
+    'payer' => setupField('user id of the payer', 'int big'), 
+    'payee' => setupField('user id of the payee', 'int big'), 
+    'amount' => setupField('maximum amount authorized', 'numeric 11,2'), 
+    'box' => setupField('on what machine was the auth request entered', 'int 11', 0), // 0 = none
+    'created' => setupField('Unixtime auth request was created', 'int 11', 0),
+  );
+  $foreignKeys = foreignKey('payer') + foreignKey('payee');
+  $indexes = index('payer') + index('payee') + index('created');
+  $schema['r_auth'] = setupTable('Record of authorized but unconsummated transactions', $fields, 'id', $foreignKeys, $indexes);
 
   // table r_usd
   $fields = array(

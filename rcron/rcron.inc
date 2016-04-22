@@ -490,7 +490,7 @@ function cttyStats() {
     r\getStats(0); // for all our communities at once
     queueEach('cttyStats1', 'SELECT DISTINCT uid AS ctty FROM users WHERE uid<0'); // and one at a time
   } else { // recreate stats data from the beginning of time
-    $grain = 1; // HAVE data for every day, not just every STATS_GRAIN days
+    $grain = isDEV ? 20 : 1; // HAVE data for every day, not just every STATS_GRAIN days
     $blockAgo = strtotime(-$grain, strtotime('today'));
   
     $sql = <<<EOF

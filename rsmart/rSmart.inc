@@ -77,14 +77,12 @@ $GLOBALS[TX_POS . ' messages'] = array(
 function pos($args = FALSE) {
   global $channel; $channel = TX_POS;
   global $scanned; $scanned = true;
-  global $posVersion;
   global $mya;
   
   if (!r\up()) exit('system down'); // app does not (and should not) distinguish this from system failure
   if (!$args) $args = t\POST(); else t\POST($args);
   u\loga('in', $args);
   extract(u\just('op device agent member version', $args));
-  $posVersion = @(@$version + 0);
   
   if (!$op or !in_array($op, u\ray('time identify photo charge payment undo'))) return posErr('bad op');
   
@@ -178,7 +176,6 @@ function identify($args) {
 
   if (!$a = @$agent ? getCustomer(@$member, $code, $err) : $mya) {
 //    if (in_array(@$member, u\ray('MIW.ACI NEW.ACH NEW.ACY'))) $a = r\acct($member); else // orphan
-    if (in_array(@$member, u\ray('NEW.ACH NEW.ACY'))) $a = r\acct($member); else // orphan
     return posErr($err);
   }
 
@@ -248,7 +245,7 @@ function photo($args) {
 
   if (!@$member) return photoReturn('missing member');
   if (!@$code and !@$proof) return posErr(missingArg('proof', []));
-  if (!$a = getCustomer($member, @$proof ?: $code)) return photoReturn($err);
+  if (!$a = getCustomer($member, @$proof ?: $code, $err)) return photoReturn($err);
   return photoReturn($a->agent->photo());
 }
 
@@ -297,13 +294,13 @@ function charge($args, $type = 'charge') {
   extract(u\just($keys . ' code force photoid version proof', $args));
 
   if (!@$member) return posErr('missing member');
-  if (!@$code and !@$proof) return posErr(missingArg('proof', [])); // code is old way
+  if ($version >= 215 and !@$code and !@$proof) return posErr(missingArg('proof', [])); // code is old way
   if (@$description === '') return posErr('missing description');
   if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
   $amount = number_format($amount, 2);
 
   $proofStart = "$agent $amount $created $member ";
-  if (!$a = getCustomer($member, @$proof ?: $code, $err, $proofStart, $posVersion >= 215 or @$force != "-1")) return posErr($err);
+  if (!$a = getCustomer($member, @$proof ?: $code, $err, $proofStart, $version >= 215 or @$force != "-1")) return posErr($err);
   if ($mya->id == $a->id) return posErr("shoulda been login");
   $aa = $a->agent;
   if (@$photoid and !$aa->photoId) $aa->update('photoId', $photoid);
@@ -410,7 +407,6 @@ function getAgent($agent, &$err = '') {
  * @return: the customer's acct object (false if error)
  */
 function getCustomer($customer, $code, &$err = '', $proofStart = '', $requireCode = TRUE) {
-  global $posVersion;
 /*  if (substr($customer, -1, 1) == ':') { // invitation card -- get real account
     if (!$inviter = r\iCardAcct($code, $seq)) return !$err = 'bad customer';
     if (!$uid = db\lookup('uid', 'users', 'helper=:inviter AND seq=:seq', compact('inviter', 'seq'))) return !$err = 'bad icard';

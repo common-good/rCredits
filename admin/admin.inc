@@ -54,6 +54,7 @@ function setupBasicAccounts() {
   $server = r\serverUid();
   if ($server == r\serverUid('NEW')) { // no need to set up CGF unless in Western Mass (or testing)
     if (db\exists('users', "name='cgf'")) return; // already done
+    if (!isPRODUCTION and db\exists('users', "name='cornerstore'")) return; // already done
 
     $values = array(r\unQuid('NEW.AAB'), $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO]));
     $info = array_combine($keys, $values);

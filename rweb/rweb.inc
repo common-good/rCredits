@@ -479,7 +479,7 @@ function printInvite1($a, &$pdf) {
   list ($mT, $mR, $mB, $mL) = $co ? [0, 0, 0, 0] : [.5, .75, .5, .75]; // margins
   list ($y0, $dy, $wInvite, $wCode, $codeSize) = $co ? [.2, .18, 2.5, 1.9, 10] : [.125, .175, 2, 1.5, 9];
   list ($dxInvite, $dyLine, $dxLine, $dyGoodFor) = $co ? [.25, .84, .25, .95] : [.08, .69, .125, .74];
-  if (strlen($name) < 30) $wInvite = 2; // center near the left if possible
+  if (strlen($name) < 29) $wInvite = 2; // center near the left if possible
   list ($dxPic, $dyPic, $hPic, $dySite, $siteSize) = $co ? [.5, 1.2, 1.1, 2.35, 12] : [.62, .95, .8, 1.75, 10];
   list ($wCard, $hCard) = $co ? [4.25, 2.75] : [3.5, 2]; // card dimensions
   list ($goodFor) = $co ? [t('This card good for')] : [t('Get')];
@@ -601,27 +601,28 @@ function statement($month) {
 ///**/    if (round($bal9, 2) != round($bal0 + @$frombank - @$fromyou + @$toyou, 2)) return r\go('empty', 'balance mismatch: ' . print_r(compact('tot', 'bal0', 'bal9'), 1));
   
   $pdf->barHead('SUMMARY');
-  $fields = explode('; ', '//15/; Starting Bal/bal0/28/R; /plus/7/R; From Bank/frombank/23/C; /minus/7/C; FROM You/fromyou/23/R; /plus/7/R; TO You/toyou/23/R; /plus/7/R/; Rewards//23/C; /equals/7/R; Ending Bal/bal9/28/R');
-  $pdf->colHeads($fields);
-  $fields2 = explode('; ', '/savingsTitle/15/; /savings0/28/R; //7/R; //23/C; /minus/7/C; /fromSavings/23/R; /plus/7/R; /toSavings/23/R; /plus/7/R/; /reward/23/C; //7/R; /savings9/28/R');
+  $fields[1] = explode('; ', '//15/; Starting Bal/bal0/28/R; /plus/7/R; From Bank/frombank/23/C; /minus/7/C; FROM You/fromyou/23/R; /plus/7/R; TO You/toyou/23/R; /plus/7/R/; Rewards//23/C; /equals/7/R; Ending Bal/bal9/28/R');
+  $pdf->colHeads($fields[1]);
+  $fields[2] = explode('; ', '/savingsTitle/15/; /savings0/28/R; //7/R; //23/C; /minus/7/C; /fromSavings/23/R; /plus/7/R; /toSavings/23/R; /plus/7/R/; /reward/23/C; //7/R; /savings9/28/R');
+  $fields[3] = explode('; ', '//15; //28; //7; //23; //7; //23; //7; //23; //7; //23; //7; /underline9/28/R');
+  $fields[4] = explode('; ', '//15; //28; //7; //23; //7; //23; //7; //23; //7; //23; //7; /total9/28/R');
   
   list ($plus, $minus, $equals, $space) = array('+', '-', '=', ' ');
+  list ($underline9, $total9) = [str_repeat('-', 20), $bal9 + $savings9];
   $committed = $mya->j_committed;
   $avg = r\averageBalance($mya->id, $mya->created, $end, TRUE);
   if ($jid = $mya->jid and $j = r\acct($jid)) $avg += r\averageBalance($j->id, $j->created, $end, TRUE);
   
   $yield = number_format($avg ? 100 * $rewardsEver / $avg : 0, 1) . '%';
-  $numFields = 'bal0 frombank fromyou toyou reward bal9 rewardsEver committed savings0 savings9 fromSavings toSavings';
+  $numFields = 'bal0 frombank fromyou toyou reward bal9 rewardsEver committed savings0 savings9 fromSavings toSavings total9';
   foreach (u\ray($numFields) as $one) $$one = number_format(@$$one, 2);
   u\prefix('+ ', $savings0);
   u\prefix('+ ', $savings9);
   
   $pdf->setFontSize(.9 * $size);
-  foreach (['fields', 'fields2'] as $f) {
-    foreach ($$f as $one) {
-      list ($head, $fldName, $width, $align) = explode('/', $one);
-      $pdf->Cell($width, 0, $fldName ? $$fldName : '', '', @$fldName[strlen($fldName) - 1] == '9' ? 1 : 0, $align);
-    }
+  for ($i = 1; $i <= 4; $i++) foreach ($fields[$i] as $one) {
+    list ($head, $fldName, $width, $align) = explode('/', $one);
+    $pdf->Cell($width, 0, $fldName ? $$fldName : '', '', @$fldName[strlen($fldName) - 1] == '9' ? 1 : 0, $align);
   }
   
   list ($labelWidth, $numWidth) = array(45, 25);
@@ -695,7 +696,7 @@ define('R_GIFT_SHOWHIDE', "var other = jQuery('.form-item-amount'); if(jQuery('#
 
 function formDonate($form, &$sta) {
   $mya = r\acct();
-  $donated = $mya->share ? t('<p>You have already made a donation. Thank you! Please feel free to donate again.</p>') : '';
+  $donated = @$mya->stepsDone['donate'] ? t('<p>You have already made a donation. Thank you! Please feel free to donate again.</p>') : '';
   //  Whatever "share" percentage you choose this time will replace your previous choice') . " ($mya->share%).
   $giftLevels = array(
   // 10000 => t('Marble .. $10,000'),
@@ -1907,7 +1908,7 @@ function formTx($form, &$sta, $args = '') {
   $who = textFld($whoLabel, [t('name, id, email, or phone')], dft(@$who));
 
   $amount = textFld('Amount:', [t('amount to ') . $type], dft(@$amount));
-  $goods = $incentive ? hidFld(FALSE) : radiosFld(t('For:'), '', dft(@$goods), u\ray(R_WHYS)); // required() fails here
+  $goods = $incentive ? hidFld(FALSE) : radiosFld(t('For:'), '', dft((int) @$goods), u\ray(R_WHYS)); // required() fails here
   $purpose = textFld(' ', [t('purpose or description of goods and services')], required(@$purpose));
 // (keep this for a while)  $calc = item(u\calculator('amount'));
   $scanClass = 'not-scanned';
@@ -3294,7 +3295,7 @@ function formSignin_validate($form, &$sta) {
     $pw2 = @$pw2 ? hex2bin($pw2) : (isDEV ? DEV_PW2 : '');
     if ($pw2 and !$a->pw2) a(1)->update('pw2', r\passHash($pw2)); // first ever admin signin sets pw2
     if (!isGAME and !w\passwordOkay($a, $pw2, 'pw2')) return say(t('Admin requires second pass.'), 'pass');
-    r\setCook('pw2', $pw2, r\rTime() + SESSION_LIFE); // store as cookie, so pw2 is never on server
+    r\setCook('pw2', $pw2, 0); // store as cookie, so pw2 is never on server
   }
   $sta['uid'] = ((isDEV and $uid == 1) or passwordOkay($a, $pass)) ? $uid : FALSE; // ignore pass on dev machine
   if ($sta['uid']) noFlood($sta); else return say('login failed', 'name');

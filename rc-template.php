@@ -203,7 +203,7 @@ EOF;
     $i++;
   }
 
-  if ($mya = r\acct()) {
+  if (function_exists('\\rCredits\\acct') and $mya = r\acct()) {
     $acctName = "$mya->fullName ($mya->mainQid)";
     $co = $mya->co ? ' co' : '';
   } else $acctName = $co = '';

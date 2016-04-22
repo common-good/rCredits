@@ -90,19 +90,23 @@ function velocityChart() {
 function bankingChart() {
   var data = new google.visualization.DataTable();
   data.addColumn('date', 'Date');
-  data.addColumn('number', 'USD In');
-  data.addColumn('number', 'USD Out');
+  data.addColumn('number', 'FROM Bank');
+  data.addColumn('number', 'TO Bank');
+  data.addColumn('number', 'Trade OUT');
+  data.addColumn('number', 'Trade IN');
   data.addRows(bankingData);
 
   var options = {
-    title: 'Monthly Bank Transfers: ' + netUsdIn,
+    title: 'Monthly USD Transfers: ' + netUsdIn,
     width: chartWidth, height: chartHeight,
-    colors: ['green', 'orange'],
+    colors: ['blue', 'yellow', 'green', 'orange'],
     series: {
-      1: {areaOpacity: 0.5}
+      1: {areaOpacity: 1},
+      2: {areaOpacity: 0},
+      3: {areaOpacity: 0}
     },
     hAxis: {format: 'MMM d', gridlines: {count: 5}, title: '', titleTextStyle: {color: 'darkgray'}},
-    legend: {position: 'bottom'}
+    legend: {position: 'right'}
   };
 
   var chart = new google.visualization.AreaChart(document.getElementById('bankingChart'));

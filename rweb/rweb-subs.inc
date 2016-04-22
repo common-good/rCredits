@@ -1897,7 +1897,7 @@ function showCharts($whichChart) {
       pAccts, bAccts, pAccts+bAccts AS accts, newbs, top5,
       bankInPerMo, bankOutPerMo,
       perMo, p2bPerMo, b2bPerMo, b2pPerMo,
-      txsPerMo, p2bTxsPerMo, b2bTxsPerMo, b2pTxsPerMo
+      txsPerMo, p2bTxsPerMo, b2bTxsPerMo, b2pTxsPerMo, tradeIn, tradeOut, tradeInPerMo, tradeOutPerMo
     FROM r_stats WHERE ctty=$myCtty
     AND (DATEDIFF(FROM_UNIXTIME(:now), FROM_UNIXTIME(created))<:STATS_GRAIN OR DATEDIFF(FROM_UNIXTIME(created), FROM_UNIXTIME(:created0))%:STATS_GRAIN=0)
     AND created>:R_LAUNCH ORDER BY created
@@ -1907,7 +1907,7 @@ EOF;
   $charts = u\ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-rcredits');
   if ($whichChart != 'all') $charts = u\just($whichChart, $charts);
   foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, []);
-  $moneyFields = u\ray('funds savings runny runnyBal top5 usd bankInPerMo bankOutPerMo perMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo');
+  $moneyFields = u\ray('funds savings runny runnyBal top5 usd bankInPerMo bankOutPerMo perMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo tradeInPerMo tradeOutPerMo');
 
   while ($row = $q->fetchAssoc()) {
     extract($row);
@@ -1917,10 +1917,12 @@ EOF;
     $p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
     $p2pTxsPerMo = $txsPerMo - $p2bTxsPerMo - $b2bTxsPerMo - $b2pTxsPerMo;
     $funds -= $usd;
+    $usd += $tradeOut + $tradeIn; // tradeIn is negative
+    $bankOutPerMo = - $bankOutPerMo; // show as negative
 //    $runnyBal = -$runnyBal; // for now, show runny DEBT instead of runny BAL
 //    $actives = abs($pAccts - $newbs); // active members
     foreach ($moneyFields as $k) {
-      $$k = max(0, $$k);
+      if (!in_array($k, u\ray('bankOutPerMo tradeIn tradeInPerMo'))) $$k = max(0, $$k); // most can't be negative
       ${$k . '2'} = u\fmtAmt($$k);
     }
     $rate2 = number_format(100 * $rate, 1) . '%';
@@ -1928,7 +1930,7 @@ EOF;
     $acctsData[] = "[$date,$pAccts,$newbs,$bAccts]";
     $fundsData[] = "[$date,{v:$funds,f:'$funds2'},{v:$usd,f:'$usd2'},{v:$runny,f:'$runny2'},{v:$top5,f:'$top52'},{v:$runnyBal,f:'$runnyBal2'},{v:$perMo,f:'$perMo2'}]";
     $velocityData[] = "[$date,{v:$rate,f:'$rate2'}]";
-    $bankingData[] = "[$date,{v:$bankInPerMo,f:'$bankInPerMo2'},{v:$bankOutPerMo,f:'$bankOutPerMo2'}]";
+    $bankingData[] = "[$date,{v:$bankInPerMo,f:'$bankInPerMo2'},{v:$bankOutPerMo,f:'$bankOutPerMo2'},{v:$tradeOutPerMo,f:'$tradeOutPerMo2'},{v:$tradeInPerMo,f:'$tradeInPerMo2'}]";
 
     $x2x = [];
     foreach ($txTypes as $k => $desc) {
@@ -1943,7 +1945,7 @@ EOF;
 
 //  $accts = "{$pAccts} members + {$bAccts} co = " . ($pAccts + $bAccts);
   $accts = "{$pAccts} members + {$bAccts} companies";
-  $netUsdIn = u\fmtAmt($bankInPerMo - $bankOutPerMo) . t(' (net)');
+  $netUsdIn = u\fmtAmt($bankInPerMo + $bankOutPerMo + $tradeOutPerMo + $tradeInPerMo) . t(' (net)');
   $velocity = number_format(($r0+0) ? 100 * $perMo / $r0 : 0, 1) . t('% per mo.');
   
   $js = <<<EOF

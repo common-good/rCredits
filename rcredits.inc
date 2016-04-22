@@ -42,6 +42,7 @@ define('SYS_EMAIL', 'info@rCredits.org');
 define('PUBLIC_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.publicKey');
 define('PRIVATE_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.privateKey');
 
+define('COMPANY_FREEZE', TRUE); // companies cannot spend rewards yet
 define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
@@ -1489,11 +1490,14 @@ function cttyPaidEver($ctty = 0) {
 function getStats($ctty, $created = NULL) {
   u\setDft($created, u\test() ? REQUEST_TIME : r\rTime());
   $subs = compact('created', $ctty ? 'ctty' : '');
+  list ($members, $tmembers) = isGAME ? ['members', 't.members'] : [1, 1];
   list ($cttyCrit, $payerCrit, $payeeCrit, $cttysCrit) = $ctty ? 
     ['community=:ctty', 'payer=:ctty', 'payee=:ctty', '(u.community=:ctty OR u2.community=:ctty)']
   : ['1', 'payer<1', 'payee<1', '1'];
+  list ($tradeOutSum, $tradeInSum) = $ctty == 0 ? [0, 0]
+  : ["SUM($tmembers * IF(u.community<>:ctty AND u2.community=:ctty, amount, 0))",
+     "SUM($tmembers * IF(u2.community<>:ctty AND u.community=:ctty, -amount, 0))"];
   
-  list ($members, $tmembers) = isGAME ? ['members', 't.members'] : [1, 1];
   $runny = 'IF(:HAS_BANK AND minimum>0, -minimum/2, IF(:IS_CO, 0, tin.rewards))'; // spendable, leading to a run on the bank
   $payins = '(SELECT payee, SUM(amount) AS received, SUM(IF(type IN (:TX_REWARDS), amount, 0)) AS rewards FROM r_txs WHERE created<=:created GROUP BY payee)';
   $payouts = '(SELECT payer, SUM(amount) AS paid FROM r_txs WHERE created<=:created GROUP BY payer)';
@@ -1554,26 +1558,21 @@ EOF;
     $sums .= "SUM($tmembers * IF(type=$type AND $payerCrit, amount, 0)) AS `{$one}s`, ";
   }
 
-  $sums .= <<<EOF
-    SUM($tmembers * IF(type=:TX_TRANSFER AND ($payerCrit OR ($payeeCrit AND amount<0)), ABS(amount), 0)) AS cttyBuys,
-    SUM($tmembers * IF(type=:TX_TRANSFER AND $payeeCrit AND amount>0, -amount, 0)) AS cttyIncomes,
-EOF;
-
-  $sums .= $ctty == 0 ? '' : <<<EOF
-    SUM($tmembers * IF(u.community<>:ctty AND u2.community=:ctty, amount, 0)) AS tradeOut,
-    SUM($tmembers * IF(u2.community<>:ctty AND u.community=:ctty, -amount, 0)) AS tradeIn,
-EOF;
-    
   $sql = <<<EOF
     SELECT $sums 
+    SUM($tmembers * IF(type=:TX_TRANSFER AND ($payerCrit OR ($payeeCrit AND amount<0)), ABS(amount), 0)) AS cttyBuys,
+    SUM($tmembers * IF(type=:TX_TRANSFER AND $payeeCrit AND amount>0, -amount, 0)) AS cttyIncomes,
+    $tradeOutSum AS tradeOut, 
+    $tradeInSum AS tradeIn,    
     SUM($tmembers * IF(channel=:TX_CRON AND payeeFor=':R_SHARING_MSG', amount, 0)) AS shared,
     SUM($tmembers * IF(goods=:FOR_GOODS, amount, 0)) AS purchases, 
     SUM($tmembers * IF(payer>1 AND goods=:FOR_USD, amount, 0)) AS forCashs
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
     WHERE $cttysCrit AND t.created<=:created
 EOF;
+// if ($ctty==0) flog("sql1573=$sql\n");
   $res2 = db\q($sql, $subs)->fetchAssoc() ?: [];
-
+// if ($ctty==0) flog($res2);
   // get r
   $res2['r'] = array_sum($res2) - $res2['shared'] - $res2['purchases'] - $res2['forCashs'] - $res2['xfees'];
   $res2['r'] += $res['bankIn'] - $res['bankOut']; // include r provided in exchange for USD
@@ -1600,6 +1599,8 @@ EOF;
     SUM($tmembers * IF(goods=:FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, amount, 0)) AS b2bPerMo,
     SUM($tmembers * IF(goods=:FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, amount, 0)) AS b2pPerMo,
     SUM($tmembers * IF(goods=:FOR_GOODS, 0, amount)) AS cashPerMo,
+    $tradeOutSum AS tradeOutPerMo,
+    $tradeInSum AS tradeInPerMo,
 
     SUM($tmembers * IF(goods=:FOR_GOODS, 1, 0)) AS txsPerMo,
     SUM($tmembers * IF(goods=:FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, 1, 0)) AS p2bTxsPerMo,

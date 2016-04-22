@@ -64,10 +64,13 @@ GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
    $cfg['Servers'][$i]['auth_type'] = 'config';
 
 TASKS FOR NEXT UPDATE:
-. REINSTALL
-. call A VanAssche and others to suggest a negative minimum
-. upload private key
-
+. **** company agent qids should be the company's qid plus one character (the agent number). Record in r_relations just as we do now, plus a field for agent number. App should not permit manager signin with wrong company (must share all but last character with company ID, when "." is changed to ":" in company ID). Also app should catch any attempt to do a transaction with an agent of the current company.
+. lower graphic (and whole page) a few pixels on member company web page
+. ** show last four digits of bank account number to account holder (it's encrypted, so will have to be a separate field)
+. *********!!! a community's usd amount should have trade net added to it in reports!
+. ** edit tx fields are too short and type doesn't get populated (and admin has no way to change date)
+. *** make sure floor allows immediate auto refill when appropriate (like for ad hoc transfers)
+. **** why doesn't Fuzzy get Invitation Requests directly?
 . *** suggest using EIN for company account, for sole proprietor
 . *** completing relations on account setup does not return to status checklist!
 . when you set up a company account, it doesn't list you on relations!
@@ -82,7 +85,6 @@ TASKS FOR NEXT UPDATE:
 . *** let cAdmin print QRs (but no make)
 . *** don't show checks with negative txid (show details in separate column - "details checks reversed")
 . **** ditch the "rebate" language (say "reward for" instead of "rebate on")
-. why doesn't Fuzzy get Invitation Requests directly?
 . Fuzzy says: two factor auth: From a user perspective, I think Toopher is the best, but Google Authenticator is widespread. 
 . relations page save doesn't report all steps are done (just dumps user back on status page) and maybe sends no email
 . *** change company email asks for PIN (use personal PIN instead)

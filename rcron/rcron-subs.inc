@@ -19,7 +19,10 @@ use rCredits\Cron as cron;
  */
 function queueNext($task = NULL) {
   global $cronOp; 
-  if ($cronOp == ONE_CRON_OP) return; // doing just one, so do nothing more
+  if ($cronOp == ONE_CRON_OP) {
+    if (isDEV) while (db\exists('queue')) \drupal_cron_run();
+    return; // doing just one, so do nothing more
+  }
 
   u\setDft($task, str_replace(__NAMESPACE__ . '\\', '', u\caller()));
 

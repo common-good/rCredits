@@ -230,6 +230,7 @@ function patch($name) {
   
   // common.inc
   if ($name == 'common2682') {
+    db\q('DELETE FROM sessions WHERE uid=0'); // added 4/22/2016 (else loops when Drupal sets uid=0 on timeout)
     if (!$mya = r\acct()) return 'signin'; // do not return!
     if ($mya->cAdmin) return 'sadmin';
     w\say(t('You do not have permission to visit that page.'), 'err');

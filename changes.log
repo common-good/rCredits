@@ -1,7 +1,12 @@
+2016-04-22
+. fixed bug that crashed on tx edit (because goods was '0' instead of 0)
+. trade deficit is now subtracted from a community's USD
+. added external trade activity to banking chart
+
 2016-04-01
 . fixed bug that crashed editTx (always): needed htmlspecialchars of hidden field
 . for companies, say "Connect to Mainstream Economy (or choose not to)"
-. revised POS interface
+. revised POS interface (including use of transaction proof based on public/private key pair)
 
 2016-03-11
 . typahead any company in any region. no typeahead for nonlocal individuals, but allow paying by name

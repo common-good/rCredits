@@ -167,7 +167,7 @@ function txEdit($xid) {
   $title = item(t('Edit Transaction'));
   $to = item(r\acct($toMe ? $payer : $payee)->fullName, $toMe ? t('From:') : t('To:'));
   $amount = textFld(t('Amount: $'), '', dft(number_format($amount,2)));
-  $goods = radiosFld('&nbsp;', '', dft($goods), u\ray(R_WHYS));
+  $goods = radiosFld('&nbsp;', '', dft((int) $goods), u\ray(R_WHYS));
   $purpose = textFld(t('For:'), '', dft(u\nonish(@$purpose) ? '' : $purpose));
   $submit = submit(t('Update'));
 
