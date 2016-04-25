@@ -57,7 +57,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     var urlConf = new UrlConfigurator();
     return $http({
       method: 'POST',
-      url: urlConf.getServerUrl(accountInfo.getMemberId()),
+      url: urlConf.getServerUrl(accountInfo),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
@@ -292,7 +292,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     var urlConf = new UrlConfigurator();
     return $http({
       method: 'POST',
-      url: urlConf.getServerUrl(accountInfo.getMemberId()),
+      url: urlConf.getServerUrl(accountInfo),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },

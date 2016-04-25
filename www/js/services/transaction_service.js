@@ -57,7 +57,7 @@ app.service('TransactionService',
           .setField('photoid', 0)
           .getParams();
 
-        return this.makeRequest_(params, sellerAccountInfo.getMemberId()).then(function(res) {
+        return this.makeRequest_(params, sellerAccountInfo).then(function(res) {
           return res.data;
         });
       } else {
@@ -128,7 +128,7 @@ app.service('TransactionService',
           .setField('goods', transaction.goods)
           .getParams();
 
-      return this.makeRequest_(params, sellerAccountInfo.getMemberId())
+      return this.makeRequest_(params, sellerAccountInfo)
         .then(function(res) {
           return res.data;
         })
