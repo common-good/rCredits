@@ -11,6 +11,8 @@
       this.exchange = ExchangeService.getExchange();
       this.paymentMethod = this.exchange.getPaymentMethod();
 
+      self.rCreditsIsCurrencyFrom = self.exchange.getCurrencyFrom().getType() === 'rcredit';
+
       $translate('exchange_includes_fee', {
         feeValue: this.paymentMethod.getFee().getTitle(),
         paymentName: this.paymentMethod.getName()

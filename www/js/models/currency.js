@@ -22,6 +22,10 @@
 
       isUSD: function() {
         return this.type === 'usd';
+      },
+
+      getType: function() {
+        return this.type;
       }
 
     });

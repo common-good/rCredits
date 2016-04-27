@@ -11,7 +11,6 @@
       sign: '',
       type: 'rcredit'
     }
-  ]
-
+  ];
 
 })(window);
