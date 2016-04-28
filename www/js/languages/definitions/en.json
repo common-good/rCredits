@@ -79,5 +79,6 @@
   "can_not_use_demo_card": "You cannot use a demo card with a real company.",
   "offline_old_transactions": "Warning: There are offline transactions that are more than 24 hours old. Please connect your device to the internet.",
   "other": "Other",
-  "forget_company": "Forget Company"
+  "forget_company": "Forget Company",
+  "advanced": "Advanced"
 }

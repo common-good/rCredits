@@ -23,11 +23,6 @@
           {{ 'home' | translate }}
         </ion-item>
 
-        <ion-item menu-close ng-click="redirectPreferences()"
-                  ng-show="!isCashierModeEnabled() && !isSelfServiceActive()">
-          {{'preferences' | translate}}
-        </ion-item>
-
         <ion-item menu-close ng-click="enterCashierMode()"
                   ng-show="isCashierModeAvailable() && !isCashierModeEnabled() && !isSelfServiceActive()">
           {{ 'enter_cashier_mode' | translate }}
@@ -43,15 +38,11 @@
           {{ 'manager_sign_in' | translate }}
         </ion-item>
 
-        <ion-item menu-close ng-click="changeCompany()" ng-show="!isSelfServiceActive()">
-          {{ 'change_company' | translate }}
+        <ion-item menu-close ng-click="redirectPreferences()"
+                  ng-show="!isCashierModeEnabled() && !isSelfServiceActive()">
+          {{'advanced' | translate}}
         </ion-item>
 
-        <!-- Manager Mode && Cashier Mode Not Available of Prefs-->
-        <ion-item menu-close ng-click="logout()"
-                  ng-show="!isCashierModeAvailable() && !isCashierModeEnabled() && !isSelfServiceActive()">
-          {{ 'signOut' | translate }}
-        </ion-item>
 
 
       </ion-list>

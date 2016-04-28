@@ -29,4 +29,8 @@ app.controller('PreferencesCtrl', function($scope, $state, UserService, Preferen
     }
   };
 
+  $scope.openLink = function(url) {
+    window.open(encodeURI(url), '_system');
+  };
+
 });
