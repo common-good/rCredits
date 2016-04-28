@@ -1,31 +1,24 @@
 .tabulator {
   background: $white;
 
-  .button {
+  td.button {
     min-height: 0;
     padding: 0;
     margin: 0;
     border-radius: 0px !important;
-  }
-
-  div.number {
-    padding-top: 5%;
-    border: 1px #D2CFCF solid;
+    font-size: 2em;
+    display: table-cell;
+    border: 1px solid #B7B7B7;
+    vertical-align: middle;
   }
 
   .calc-row {
-    height: 23%;
+    height: 1%;
     min-height: 0;
     padding: 0;
     margin: 0;
-
-    .button {
-      height: 100%;
-
-      @media screen and (max-height: 400px) {
-        line-height: 1;
-      }
-    }
+    display: table-row;
+    width: 100%;
 
     .clear {
       color: red;
@@ -40,15 +33,11 @@
   }
 
   .section-2 {
-    height: calc(100% - 6.8em);
+    height: 77%;
   }
 
   .section-3 {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: $main-action-height;
+    margin-top: -8%;
   }
 }
 
@@ -57,10 +46,12 @@
   font-size: 2em;
   line-height: 2em;
   height: 2em;
+  margin-right: 20px;
 }
 
 .keypad {
-  height: calc(100% - 4em);
+  height: calc(100% - 6em);
+  width: 100%;
 }
 
 .show-as-pwd {

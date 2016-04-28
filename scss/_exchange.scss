@@ -1,67 +1,67 @@
-.exchange-types {
-  font-size: 20px;
+  .exchange-types {
+    font-size: 20px;
 
-  .operation {
-    float: left;
-    font-weight: 400;
-  }
-  .type {
-    float: right;
-    color: gray;
-  }
-}
-
-.switch-btn {
-  margin-top: 0px !important;
-  .arrow {
-    display: inline-block;
-    transform: rotate(90deg);
-    -webkit-transform: rotate(90deg);
-  }
-}
-
-.next-btn {
-  position: absolute;
-  bottom: 0;
-  margin-bottom: 0px !important;
-}
-
-.payment-fee-advice {
-  min-height: 100px;
-}
-
-.payment-type-select {
-  color: #ffffff !important;
-}
-
-.fee-legend {
-  text-align: center;
-  font-size: 12px;
-  padding: 2px;
-  background-color: #FFF5A5;
-}
-
-.exchange-keypad {
-
-  .number-display {
-    display: none;
+    .operation {
+      float: left;
+      font-weight: 400;
+    }
+    .type {
+      float: right;
+      color: gray;
+    }
   }
 
-  position: absolute;
-  bottom: -21px;
-  right: 0;
-  left: 0;
-}
+  .switch-btn {
+    margin-top: 0px !important;
+    .arrow {
+      display: inline-block;
+      transform: rotate(90deg);
+      -webkit-transform: rotate(90deg);
+    }
+  }
 
-.exchange-keypad.rcredits-in {
-  bottom: -16px;
-}
+  .next-btn {
+    position: absolute;
+    bottom: 0;
+    margin-bottom: 0px !important;
+  }
 
-.tabulator .section-2 {
-  height: calc(100% - 5.8em);
-}
+  .payment-fee-advice {
+    min-height: 100px;
+  }
 
-.item.payment-fee-advice {
-  text-overflow: initial;
-  white-space: normal;
-}
+  .payment-type-select {
+    color: #ffffff !important;
+  }
+
+  .fee-legend {
+    text-align: center;
+    font-size: 12px;
+    padding: 2px;
+    background-color: #FFF5A5;
+  }
+
+  .exchange-keypad {
+
+    .number-display {
+      display: none;
+    }
+
+    position: absolute;
+    bottom: -21px;
+    right: 0;
+    left: 0;
+  }
+
+  .exchange-keypad.rcredits-in {
+    bottom: -16px;
+  }
+
+  .exchange.tabulator .section-2 {
+    height: calc(100% - 5.8em);
+  }
+
+  .item.payment-fee-advice {
+    text-overflow: initial;
+    white-space: normal;
+  }
