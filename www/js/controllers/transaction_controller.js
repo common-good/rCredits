@@ -13,7 +13,9 @@ app.controller('TransactionCtrl', function($scope, $state, $stateParams,
 
   var fillCategories = function() {
     if (isTransactionTypeCharge()) {
-      return _.union(seller.descriptions, ['other', 'none']);
+      // You can put in other and none for the future here
+      //return _.union(seller.descriptions, ['other', 'none']);
+      return seller.descriptions;
     }
     return seller.descriptions;
   };
