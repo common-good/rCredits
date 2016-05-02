@@ -35,13 +35,18 @@ app.service('TransactionService',
       return transaction;
     };
 
-    TransactionService.prototype.makeTransactionRequest = function(amount, description, goods) {
+    TransactionService.prototype.makeTransactionRequest = function(amount, description, goods, force) {
       var sellerAccountInfo = UserService.currentUser().accountInfo,
         customerAccountInfo = UserService.currentCustomer().accountInfo;
 
       if (_.isUndefined(goods) || _.isNull(goods)) {
         goods = 1;
       }
+
+      if (_.isUndefined(force) || _.isNull(force)) {
+        force = -1;
+      }
+
 
       if (NetworkService.isOnline()) {
         var params = new RequestParameterBuilder()
@@ -52,7 +57,7 @@ app.service('TransactionService',
           .setField('amount', amount.toString())
           .setField('description', description)
           .setField('created', moment().unix())
-          .setField('force', 0)
+          .setField('force', force)
           .setField('goods', goods)
           .setField('photoid', 0)
           .getParams();
@@ -69,8 +74,8 @@ app.service('TransactionService',
       }
     };
 
-    TransactionService.prototype.charge = function(amount, description, goods) {
-      return this.makeTransactionRequest(amount, description, goods)
+    TransactionService.prototype.charge = function(amount, description, goods, force) {
+      return this.makeTransactionRequest(amount, description, goods, force)
         .then(function(transactionResult) {
           if (transactionResult.ok === TRANSACTION_OK) {
             var transaction = self.parseTransaction_(transactionResult);
@@ -114,33 +119,7 @@ app.service('TransactionService',
     };
 
     TransactionService.prototype.undoTransaction = function(transaction) {
-      var sellerAccountInfo = UserService.currentUser().accountInfo,
-        customerAccountInfo = UserService.currentCustomer().accountInfo,
-        params = new RequestParameterBuilder()
-          .setOperationId('charge')
-          .setSecurityCode(customerAccountInfo.securityCode)
-          .setAgent(sellerAccountInfo.accountId)
-          .setMember(customerAccountInfo.accountId)
-          .setField('amount', transaction.amount)
-          .setField('description', transaction.description)
-          .setField('created', transaction.created)
-          .setField('force', -1)
-          .setField('goods', transaction.goods)
-          .getParams();
-
-      return this.makeRequest_(params, sellerAccountInfo.getMemberId())
-        .then(function(res) {
-          return res.data;
-        })
-        .then(function(transactionResult) {
-          if (transactionResult.ok === TRANSACTION_OK) {
-            var customer = UserService.currentCustomer();
-            customer.rewards = transactionResult.rewards;
-            customer.balance = transactionResult.balance;
-            return transactionResult;
-          }
-          throw transactionResult;
-        });
+      return this.charge(transaction.amount, transaction.description, transaction.goods, -1);
     };
 
     TransactionService.prototype.saveTransaction = function(transaction) {
