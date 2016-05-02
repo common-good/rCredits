@@ -19,7 +19,7 @@ app.controller('KeyPadCtrl', function($scope, $state, $stateParams, $filter) {
   };
 
   var setEntry = function(num) {
-    $scope.$parent.$parent.amount = num;
+    $scope.$parent.$parent.amount = convertToNumber(num);
   };
 
 });
