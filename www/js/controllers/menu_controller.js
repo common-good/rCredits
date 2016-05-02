@@ -1,4 +1,8 @@
-app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService, PreferenceService, NetworkService, SelfServiceMode) {
+app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory,
+                                    NotificationService, CashierModeService, PreferenceService, NetworkService,
+                                    SelfServiceMode, $ionicSideMenuDelegate, $timeout) {
+
+
 
   // Logout
 
@@ -96,5 +100,16 @@ app.controller('MenuCtrl', function($scope, $state, $ionicLoading, BarcodeServic
   $scope.isSelfServiceActive = function() {
     return SelfServiceMode.isActive();
   };
+
+  $scope.$watch(function() {
+    return !!UserService.currentUser();
+  }, function(newValue, oldValue) {
+
+    if (!newValue) {
+      $timeout(function() {
+        $ionicSideMenuDelegate.canDragContent(false);
+      });
+    }
+  });
 
 });
