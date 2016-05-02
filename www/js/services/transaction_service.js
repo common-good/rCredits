@@ -49,7 +49,7 @@ app.service('TransactionService',
           .setSecurityCode(customerAccountInfo.securityCode)
           .setAgent(sellerAccountInfo.accountId)
           .setMember(customerAccountInfo.accountId)
-          .setField('amount', amount)
+          .setField('amount', amount.toString())
           .setField('description', description)
           .setField('created', moment().unix())
           .setField('force', 0)
