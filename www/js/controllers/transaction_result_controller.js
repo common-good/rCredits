@@ -28,10 +28,6 @@ app.controller('TransactionResultCtrl', function($scope, $state,
   $scope.customer = UserService.currentCustomer();
   $scope.user = UserService.currentUser();
 
-  // Keys for Translation
-  $scope.heading = 'transaction' + statusKey + 'Heading';
-
-  debugger
   $scope.setMessages(TransactionService.lastTransaction);
 
   $scope.transactionInfo = {
@@ -51,7 +47,6 @@ app.controller('TransactionResultCtrl', function($scope, $state,
         $ionicLoading.show();
         TransactionService.undoTransaction(TransactionService.lastTransaction)
           .then(function(transactionResult) {
-            debugger
             $scope.setMessages(transactionResult);
             $scope.undo = true;
           })
