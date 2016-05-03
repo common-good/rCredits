@@ -9,6 +9,9 @@ rCreditsConfig = {
     estimatedSize: 20 * 1024 * 1024 // kb
   },
 
+  // For Demo Cards
+  stagingServerUrl: 'https://stage-xxx.rcredits.org/pos',
+
   // @if BUILD_TARGET='development'
   serverproxyUrl: 'http://localhost:8100/pos',
   serverUrl: 'https://stage-xxx.rcredits.org/pos',
@@ -27,6 +30,7 @@ rCreditsConfig = {
   // @endif
 
   // @if BUILD_TARGET='production'
+  serverproxyUrl: 'http://localhost:8100/pos',
   serverUrl: 'https://xxx.rcredits.org/pos',
   version: '3.0',
   build: 300,

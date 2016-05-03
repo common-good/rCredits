@@ -11,11 +11,11 @@ app.service('TransactionService',
       this.lastTransaction = null;
     };
 
-    TransactionService.prototype.makeRequest_ = function(params, memberId) {
+    TransactionService.prototype.makeRequest_ = function(params, account) {
       var urlConf = new UrlConfigurator();
       return $http({
         method: 'POST',
-        url: urlConf.getServerUrl(memberId),
+        url: urlConf.getServerUrl(account),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         },
@@ -62,7 +62,7 @@ app.service('TransactionService',
           .setField('photoid', 0)
           .getParams();
 
-        return this.makeRequest_(params, sellerAccountInfo.getMemberId()).then(function(res) {
+        return this.makeRequest_(params, sellerAccountInfo).then(function(res) {
           return res.data;
         });
       } else {
@@ -149,6 +149,7 @@ app.service('TransactionService',
         transaction.amount,
         transaction.goods,
         JSON.stringify({
+          account: JSON.stringify(customer.accountInfo),
           sc: customer.accountInfo.securityCode,
           customerId: customer.getId(),
           amount: transaction.amount,
