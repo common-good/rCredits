@@ -42,7 +42,7 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
     if (CashierModeService.canRefund()) {
       refundFn();
     } else {
-      executeAction(refundFn);
+      NotificationService.showAlert({title: 'action_not_enabled'});
     }
   };
 
@@ -54,7 +54,7 @@ app.controller('CustomerMenuCtrl', function($scope, $state, $ionicLoading, UserS
     if (CashierModeService.canExchange()) {
       exchangeFn();
     } else {
-      executeAction(exchangeFn);
+      NotificationService.showAlert({title: 'action_not_enabled'});
     }
   };
 

@@ -80,5 +80,6 @@
   "offline_old_transactions": "Warning: There are offline transactions that are more than 24 hours old. Please connect your device to the internet.",
   "other": "Other",
   "forget_company": "Forget Company",
-  "advanced": "Advanced"
+  "advanced": "Advanced",
+  "action_not_enabled": "This feature is disabled. A manager can enable it online at rcredits.org."
 }
