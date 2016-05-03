@@ -44,7 +44,7 @@ app.service('TransactionService',
       }
 
       if (_.isUndefined(force) || _.isNull(force)) {
-        force = -1;
+        force = 0;
       }
 
 
@@ -95,6 +95,7 @@ app.service('TransactionService',
             return transaction;
           }
 
+          self.lastTransaction = transactionResult;
           throw transactionResult;
         })
         .finally(function() {

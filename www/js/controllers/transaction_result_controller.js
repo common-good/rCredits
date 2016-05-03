@@ -16,13 +16,14 @@ app.controller('TransactionResultCtrl', function($scope, $state,
     $scope.timeCan = false;
   }, 60 * 1000);
 
-  // New key gets used in transactionInfo for translation
-  if ($scope.transactionStatus === 'success') {
-    statusKey = 'Success';
-    $scope.success = true;
-  } else if ($scope.transactionStatus == 'failure') {
-    statusKey = 'LowFunds';
-  }
+  $scope.setMessages = function(transactionResult) {
+    $scope.note = transactionResult.message;
+    if (transactionResult.txid) {
+      $scope.heading = 'Successful';
+    } else {
+      $scope.heading = 'Unsuccessful';
+    }
+  };
 
   $scope.customer = UserService.currentCustomer();
   $scope.user = UserService.currentUser();
@@ -30,13 +31,8 @@ app.controller('TransactionResultCtrl', function($scope, $state,
   // Keys for Translation
   $scope.heading = 'transaction' + statusKey + 'Heading';
 
-  if (TransactionService.lastTransaction) {
-    if (TransactionService.lastTransaction.isRefund()) {
-      $scope.note = 'transactionRefund' + statusKey + 'Note';
-    } else {
-      $scope.note = 'transaction' + statusKey + 'Note';
-    }
-  }
+  debugger
+  $scope.setMessages(TransactionService.lastTransaction);
 
   $scope.transactionInfo = {
     amount: $filter('currency')($scope.transactionAmount),
@@ -55,7 +51,8 @@ app.controller('TransactionResultCtrl', function($scope, $state,
         $ionicLoading.show();
         TransactionService.undoTransaction(TransactionService.lastTransaction)
           .then(function(transactionResult) {
-            $scope.note = 'transactionUndoSuccessNote';
+            debugger
+            $scope.setMessages(transactionResult);
             $scope.undo = true;
           })
           .finally(function() {
