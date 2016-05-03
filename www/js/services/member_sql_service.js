@@ -29,6 +29,7 @@
             "balance = '" + user.getBalance() + "'," +
             "rewards = '" + user.getRewards() + "'," +
             "lastTx = '" + user.getLastTx() + "'," +
+            "proof = '" + JSON.stringify({sc: user.accountInfo.securityCode}) + "'," +
             "photo = '" + user.getBlobImage() + "' " +
             " WHERE qid = '" + user.getId() + "'"
           );
@@ -36,7 +37,7 @@
         })
         .catch(function(errorMessage) {
           console.log(errorMessage);
-          sqlQuery.setQueryString('INSERT INTO members (qid, name, company, place, balance, rewards, lastTx, photo) VALUES (?,?,?,?,?,?,?,?)');
+          sqlQuery.setQueryString('INSERT INTO members (qid, name, company, place, balance, rewards, lastTx, proof, photo) VALUES (?,?,?,?,?,?,?,?,?)');
           sqlQuery.setQueryData([
             user.getId(),
             user.getName(),
@@ -45,6 +46,7 @@
             user.getBalance(),
             user.getRewards(),
             user.getLastTx(),
+            JSON.stringify({sc: user.accountInfo.securityCode}),
             user.getBlobImage()
           ]);
           return sqlQuery;

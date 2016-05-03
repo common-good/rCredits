@@ -42,12 +42,14 @@
 
     Customer.parseFromDb = function(customerJson) {
       var customer = new Customer(customerJson.name);
+      var proof = JSON.parse(customerJson.proof);
       customer.setBalance(customerJson.balance);
       customer.setRewards((customerJson.rewards));
       customer.setLastTx(customerJson.lastTx);
       customer.place = customerJson.place;
       customer.company = customerJson.company;
       customer.accountInfo.accountId = customerJson.qid;
+      customer.accountInfo.securityCode = proof.sc;
       customer.photo = customerJson.photo;
       return customer;
     };

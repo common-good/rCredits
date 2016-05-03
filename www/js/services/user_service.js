@@ -198,6 +198,8 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
           return self.customer;
         })
         .catch(function(err) {
+          console.log("Err", err);
+          console.log("Customer accountInfo => ", accountInfo);
           return self.identifyOfflineCustomer().then(function(customerResponse) {
             self.customer = self.createCustomer(customerResponse);
             self.customer.unregistered = true;
@@ -251,7 +253,7 @@ app.service('UserService', function($q, $http, $httpParamSerializer, RequestPara
     return identifyPromise.promise;
   };
 
-  UserService.prototype.createCustomer = function(customerInfo) {
+  UserService.prototype.createCustomer = function(customerInfo, customerAccountInfo) {
     var props = ['balance', 'can', 'company', 'place'];
     var customer = new Customer(customerInfo.name);
     customer.setRewards(customerInfo.rewards);

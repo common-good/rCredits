@@ -136,7 +136,6 @@ app.service('TransactionService',
 
       var seller = UserService.currentUser(),
         customer = UserService.currentCustomer();
-
       var sqlQuery = new SqlQuery();
       sqlQuery.setQueryString('INSERT INTO txs (me, txid, status, created, agent, member, amount, goods, proof, description) VALUES (?,?,?,?,?,?,?,?,?,?)');
       sqlQuery.setQueryData([

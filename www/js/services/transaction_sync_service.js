@@ -13,6 +13,7 @@ app.service('TransactionSyncService',
     };
 
     var send = function(sqlTransaction) {
+      console.log("TRANSACTION TO SEND: ", sqlTransaction);
       var params = new RequestParameterBuilder()
         .setOperationId('charge')
         .setSecurityCode(sqlTransaction.proof.sc)
