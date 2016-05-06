@@ -1,29 +1,34 @@
 # rCredits App
 
-## Environment Setup & Refresh
+## Initial Setup
 
-### After Initial Repo Checkout
-
-```
-ionic setup sass
-```
-
-### After Pulling a New Branch or Commit
-
-Update packages:
-
-```
-npm install
-bower install
-```
-
-Then to update the app config, run:
-
-```
-BUILD_TARGET=xxx gulp config
-```
-
+1. `npm install -g bower`
+1. `npm install`
+1. `ionic state restore`
+1. `bower install`
+1. `ionic setup sass`
+1. `BUILD_TARGET=development gulp config`
 where `xxx` is one of `development`, `staging`, or `production`. This command copies config from the `/config.js` and `/local_config.js` files. Only config matching the given build target (or lying outside an @if block) is copied.
+
+## To run the app in your default browser:
+
+1. `ionic serve`
+
+### To Run on Device
+
+```
+ionic state restore # Only if plugins or platforms may have changed
+ionic run <android|ios>
+```
+
+## Adding a Plugin
+
+1. Always use `ionic plugin add`, not `cordova plugin add`
+1. Ensure the version is specified in the package.json.
+  1. For regular plugins, add @version to the end of the command, e.g. `ionic plugin add cordova-plugin-audio-recorder-api@0.0.6`.
+  1. For git repos, use `#` instead.
+  1. If you don't know the version, you can add without version, check it with `ionic plugin list`, remove, and then add versioned.
+
 
 ### If Packages Get Screwed Up
 
@@ -41,9 +46,3 @@ where `xxx` is one of `development`, `staging`, or `production`. This command co
 
 `ionic serve`
 
-### To Run on Device
-
-```
-ionic state restore # Only if plugins or platforms may have changed
-ionic run <android|ios>
-```
