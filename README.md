@@ -14,7 +14,7 @@ where `xxx` is one of `development`, `staging`, or `production`. This command co
 
 1. `ionic serve`
 
-### To Run on Device
+## To Run on Device
 
 ```
 ionic state restore # Only if plugins or platforms may have changed
