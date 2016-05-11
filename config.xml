@@ -68,4 +68,8 @@
 	</platform>
 	<icon src="resources/android/icon/drawable-xhdpi-icon.png"/>
 	<plugin name="cordova-plugin-crosswalk-webview" spec="~1.6.1"/>
+	<allow-navigation href="https://*"/>
+	<allow-navigation href="http://*"/>
+	<allow-intent href="http://*/*"/>
+	<allow-intent href="https://*/*"/>
 </widget>
