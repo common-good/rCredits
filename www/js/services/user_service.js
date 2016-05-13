@@ -49,7 +49,10 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			url: urlConf.getServerUrl(accountInfo),
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
-				'Access-Control-Allow-Origin': urlConf.getServerUrl(accountInfo)
+//				'Access-Control-Allow-Origin': '*'  //urlConf.getServerUrl(accountInfo)
+//				,
+//				'Access-Control-Request-Method': 'POST',
+//				'Access-Control-Request-Headers': 'X-PINGOTHER, Content-Type'
 			},
 			data: $httpParamSerializer(params)
 		});
@@ -106,7 +109,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			.setSecurityCode(accountInfo.securityCode)
 			.setMember(accountInfo.accountId)
 			.getParams();
-
+		
 		if (NetworkService.isOffline()) {
 			return this.loginWithRCardOffline(accountInfo).then(function () {
 				PreferenceService.parsePreferencesNumber(self.currentUser().getCan());
@@ -258,7 +261,10 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			url: urlConf.getServerUrl(accountInfo),
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
-				'Access-Control-Allow-Origin': urlConf.getServerUrl(accountInfo)
+//				'Access-Control-Allow-Origin': '*'  //urlConf.getServerUrl(accountInfo)
+//				,
+//				'Access-Control-Request-Method': 'POST',
+//				'Access-Control-Request-Headers': 'X-PINGOTHER, Content-Type'
 			},
 			data: $httpParamSerializer(params),
 			responseType: "arraybuffer"
