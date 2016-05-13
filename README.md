@@ -2,7 +2,7 @@
 
 ## Initial Setup
 
-1. In the root 'index.html' file, change 'http://192.168.2.2:*' to your own local url 
+1. In the root 'index.html' file, in ' <meta http-equiv="Content-Security-Policy" ' change 'http://192.168.2.2:*' to your own local url
 1. `npm install -g bower`
 1. `npm install`
 1. `ionic state restore`
