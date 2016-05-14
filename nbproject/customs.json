@@ -1,6 +1,11 @@
 {
 	"elements": {
-		"ion-content": {},
+		"subheader": {},
+		"ion-content": {
+			"attributes": {
+				"class": {}
+			}
+		},
 		"ion-view": {
 			"attributes": {
 				"class": {}
