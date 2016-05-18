@@ -1,29 +1,29 @@
 <ion-view class="company-home" cache-view="false">
-  <subheader></subheader>
-  <ion-content class="has-subheader">
-    <div class="rc home">
+	<subheader></subheader>
+	<ion-content class="has-subheader">
+		<div class="rc home">
 
-      <h1 class="company">{{currentUser.company}}</h1>
+			<h1 class="company">{{currentUser.company}}</h1>
 
-      <div ng-if="!isSelfServiceEnabled()">
-        <p class="user" ng-if="!isCashierMode()">
-          {{ 'signInAs' | translate }}<br>
-          <strong>{{currentUser.name}}</strong>
-        </p>
-        <p class="user" ng-if="isCashierMode()">
-          {{ 'cashier_mode' | translate }}<br>
-        </p>
-      </div>
-      <div ng-if="isSelfServiceEnabled()">
-        {{ 'selfServiceMode' | translate }}<br>
-      </div>
+			<div ng-if="!isSelfServiceEnabled()">
+				<p class="user" ng-if="!isCashierMode()">
+					{{ 'signInAs' | translate }}<br>
+					<strong>{{currentUser.name}}</strong>
+				</p>
+				<p class="user" ng-if="isCashierMode()">
+					{{ 'cashier_mode' | translate }}<br>
+				</p>
+			</div>
+			<div ng-if="isSelfServiceEnabled()">
+				{{ 'selfServiceMode' | translate }}<br>
+			</div>
 
-      <div class="rc-logo" ng-include="'templates/logo.html'"></div>
+			<div class="rc-logo" ng-include="'templates/logo.html'"></div>
 
-      <button ng-click="scanCustomer()"
-              class="scan-customer primary button button-block button-positive ">
-        {{ 'scanRCard' | translate }}
-      </button>
-    </div>
-  </ion-content>
+			<button ng-click="scanCustomer()"
+					class="scan-customer primary button button-block button-positive ">
+				{{ 'scanRCard' | translate }}
+			</button>
+		</div>
+	</ion-content>
 </ion-view>

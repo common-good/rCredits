@@ -105,7 +105,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			.setSecurityCode(accountInfo.securityCode)
 			.setMember(accountInfo.accountId)
 			.getParams();
-		
+
 		if (NetworkService.isOffline()) {
 			return this.loginWithRCardOffline(accountInfo).then(function () {
 				PreferenceService.parsePreferencesNumber(self.currentUser().getCan());
@@ -237,8 +237,8 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			var dataURL;
 			canvas.height = 208;
 			canvas.width = 156;
-			ctx.drawImage(this, 0, 0,156,208);
-			dataURL = canvas.toDataURL(outputFormat,.1);
+			ctx.drawImage(this, 0, 0, 156, 208);
+			dataURL = canvas.toDataURL(outputFormat, .1);
 			callback(dataURL);
 			canvas = null;
 		};
@@ -260,21 +260,18 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			},
 			data: $httpParamSerializer(params),
 			responseType: "arraybuffer"
+		}).then(function (res) {
+			var arrayBufferView = new Uint8Array(res.data);
+			var blob = new Blob([arrayBufferView], {type: "image/jpeg"});
+			var urlCreator = window.URL || window.webkitURL;
+			var imgUrl = urlCreator.createObjectURL(blob);
+			var imageConvert = $q.defer();
+			convertImgToDataURLviaCanvas(imgUrl, function (base64Img) {
+				self.customer.photo = base64Img;
+				imageConvert.resolve(self.customer.photo);
+			});
+			return imageConvert.promise;
 		})
-			.then(function (res) {
-				var arrayBufferView = new Uint8Array(res.data);
-				var blob = new Blob([arrayBufferView], {type: "image/jpeg"});
-				var urlCreator = window.URL || window.webkitURL;
-				var imgUrl = urlCreator.createObjectURL(blob);
-
-				var imageConvert = $q.defer();
-				convertImgToDataURLviaCanvas(imgUrl, function (base64Img) {
-					self.customer.photo = base64Img;
-					imageConvert.resolve(self.customer.photo);
-				});
-
-				return imageConvert.promise;
-			})
 			.catch(function (err) {
 				console.error(err);
 				throw err;
@@ -316,5 +313,3 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	};
 	return new UserService();
 });
-
-
