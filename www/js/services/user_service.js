@@ -48,11 +48,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			method: 'POST',
 			url: urlConf.getServerUrl(accountInfo),
 			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
-//				'Access-Control-Allow-Origin': '*'  //urlConf.getServerUrl(accountInfo)
-//				,
-//				'Access-Control-Request-Method': 'POST',
-//				'Access-Control-Request-Headers': 'X-PINGOTHER, Content-Type'
+				'Content-Type': 'application/x-www-form-urlencoded'
 			},
 			data: $httpParamSerializer(params)
 		});
@@ -239,10 +235,10 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			var canvas = document.createElement('CANVAS');
 			var ctx = canvas.getContext('2d');
 			var dataURL;
-			canvas.height = this.height;
-			canvas.width = this.width;
-			ctx.drawImage(this, 0, 0);
-			dataURL = canvas.toDataURL(outputFormat);
+			canvas.height = 208;
+			canvas.width = 156;
+			ctx.drawImage(this, 0, 0,156,208);
+			dataURL = canvas.toDataURL(outputFormat,.1);
 			callback(dataURL);
 			canvas = null;
 		};
@@ -260,11 +256,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			method: 'POST',
 			url: urlConf.getServerUrl(accountInfo),
 			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
-//				'Access-Control-Allow-Origin': '*'  //urlConf.getServerUrl(accountInfo)
-//				,
-//				'Access-Control-Request-Method': 'POST',
-//				'Access-Control-Request-Headers': 'X-PINGOTHER, Content-Type'
+				'Content-Type': 'application/x-www-form-urlencoded'
 			},
 			data: $httpParamSerializer(params),
 			responseType: "arraybuffer"

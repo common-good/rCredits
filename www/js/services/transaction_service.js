@@ -17,7 +17,8 @@ app.service('TransactionService',
 				method: 'POST',
 				url: urlConf.getServerUrl(account),
 				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded'
+					'Content-Type': 'application/x-www-form-urlencoded',
+					'Access-Control-Allow-Origin': urlConf.getServerUrl(accountInfo)
 				},
 				data: $httpParamSerializer(params)
 			});
