@@ -1,3 +1,4 @@
+/* global expect */
 describe('Fee', function () {
 	'use strict';
 	beforeEach(module('rcredits'));
