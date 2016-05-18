@@ -238,7 +238,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			canvas.height = 208;
 			canvas.width = 156;
 			ctx.drawImage(this, 0, 0, 156, 208);
-			dataURL = canvas.toDataURL(outputFormat, .1);
+			dataURL = canvas.toDataURL("image/jpeg", .1);
 			callback(dataURL);
 			canvas = null;
 		};
