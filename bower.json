@@ -12,6 +12,7 @@
     "angular-local-storage": "~0.2.3",
     "prototypejs": "~1.7.1",
     "moment": "~2.11.0",
-    "pica": "2.0.2"
+    "pica": "2.0.2",
+    "jquery": "2.2.4"
   }
 }
