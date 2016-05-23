@@ -1,3 +1,4 @@
+/* global _, app */
 (function (window, app) {
 	app.service('Seller', function (localStorageService, User, PreferenceService) {
 		var DEVICE_ID_KEY = 'deviceID';
