@@ -1,3 +1,4 @@
+/* global _ */
 describe('Barcode Scanner Service', function () {
 	'use strict';
 	beforeEach(module('rcredits'));
@@ -62,4 +63,3 @@ describe('Barcode Scanner Service', function () {
 		});
 	});
 });
-
