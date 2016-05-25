@@ -1,11 +1,11 @@
-Feature: Transaction Service
-	Handle the various types of transactions possible
+Feature: User Service
+	Handle the various User and customer scenarios
 
-	Scenario: Should create a Transaction given a transaction response
-	  Given: A TRANSACTION_RESPONSE_OK, it Should create a Transaction 
-		When: A TRANSACTION_RESPONSE_OK is parsed from transactionService
-		Then: Expect "transaction.getId" to be "TRANSACTION_RESPONSE_OK.txid"
-		Then: Expect "transaction.created" to be "TRANSACTION_RESPONSE_OK.created"
+	Scenario: Seller login with an rCard and gets a correct member and code values based on input URL
+	  Given: Seller login with rCard 
+		When: Correct "member" and code values are given
+		Then: Expect "seller.name" to be "TRANSACTION_RESPONSE_OK.txid"
+		Then: Expect "seller.created" to be "TRANSACTION_RESPONSE_OK.created"
 		Then: Expect "transaction.created" to be "TRANSACTION_RESPONSE_OK.did"
 		Then: Expect "transaction.undo" to be "TRANSACTION_RESPONSE_OK.undo"
 		Then: Expect "transaction.message" to be "TRANSACTION_RESPONSE_OK.message"
@@ -21,15 +21,45 @@ Feature: Transaction Service
 		Then: Expect "transaction.description" to be "description"
 		Then: Expect "transaction.amount" to be <charged>
 		Then: Expect "transaction.goods" to be "goods"
-
+		
   Examples:
-		|charged|
-		| 0.12  |
-		| 1.15  |
-		| 0     |
-		| 5     |
-		| 1     |
-		| asd   |
+		|charged|goods  |
+		| 0.12  | 1     |
+		| 1.15  | 1     |
+		| 0     | 1     |
+		| 5     | 1     |
+		| 1     | 1     |
+		| asd   | 1     |
+		| 0.12  | 0.12  |
+		| 1.15  | 0.12  |
+		| 0     | 0.12  |
+		| 5     | 0.12  |
+		| 1     | 0.12  |
+		| asd   | 0.12  |
+		| 0.12  | 1.15  |
+		| 1.15  | 1.15  |
+		| 0     | 1.15  |
+		| 5     | 1.15  |
+		| 1     | 1.15  |
+		| asd   | 1.15  |
+		| 0.12  | asd   |
+		| 1.15  | asd   |
+		| 0     | asd   |
+		| 5     | asd   |
+		| 1     | asd   |
+		| asd   | asd   |
+		| 0.12  | 0     |
+		| 1.15  | 0     |
+		| 0     | 0     |
+		| 5     | 0     |
+		| 1     | 0     |
+		| asd   | 0     |
+		| 0.12  | 5     |
+		| 1.15  | 5     |
+		| 0     | 5     |
+		| 5     | 5     |
+		| 1     | 5     |
+		| asd   | 5     |
 
 	Scenario: Should charge and update customer reward and balance
 	  Given: A Transaction object is returned when something is charged

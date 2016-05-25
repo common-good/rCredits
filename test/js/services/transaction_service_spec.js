@@ -61,15 +61,12 @@ describe('Transaction Service', function () {
 		httpBackend = $httpBackend;
 		rootScope = $rootScope;
 		transactionService = _TransactionService_;
-
 		$httpBackend.whenGET(/templates\/*/).respond(function (method, url, data, headers) {
 			return [200, '<div></div>'];
 		});
-
 		$httpBackend.whenGET(/js\/languages\/definitions\//).respond(function (method, url, data, headers) {
 			return [200, {}];
 		});
-
 	}));
 	afterEach(function () {
 		httpBackend.verifyNoOutstandingExpectation();
@@ -78,17 +75,14 @@ describe('Transaction Service', function () {
 	// Logs in the Seller and the Customer
 	beforeEach(function () {
 		request = httpBackend.whenPOST(rCreditsConfig.serverUrl).respond(SELLER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
-
 		userService.loginWithRCard(SELLER_SCAN_RESULT.text).then(function (sellerResponse) {
 			seller = sellerResponse;
-
 			request.respond(CUSTOMER_LOGIN_WITH_RCARD_SUCESS_RESPONSE);
 			userService.identifyCustomer(CUSTOMER_SCAN_RESULT.text)
 				.then(function (customerResponse) {
 					customer = customerResponse;
 				});
 		});
-
 		httpBackend.flush();
 	});
 	describe('Charge', function () {
@@ -107,12 +101,10 @@ describe('Transaction Service', function () {
 				expect(transaction.created).toBe(TRANSACTION_RESPONSE_OK.created);
 				expect(transaction.did).toBe(TRANSACTION_RESPONSE_OK.did);
 				expect(transaction.undo).toBe(TRANSACTION_RESPONSE_OK.undo);
-
 				expect(transaction.description).toBe('description');
 				expect(transaction.amount).toBe(0.12);
 				expect(transaction.goods).toBe(1);
 			});
-
 			httpBackend.flush();
 		});
 		it('Should charge and update customer reward and balance', function () {
