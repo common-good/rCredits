@@ -1,16 +1,12 @@
 app.service('TransactionService',
 	function ($q, UserService, RequestParameterBuilder, $http, $httpParamSerializer, SQLiteService,
 		SqlQuery, NetworkService, MemberSqlService, NotificationService, $ionicLoading, TransactionSql, $rootScope) {
-
 		var self;
-
 		var TRANSACTION_OK = "1";
-
 		var TransactionService = function () {
 			self = this;
 			this.lastTransaction = null;
 		};
-
 		TransactionService.prototype.makeRequest_ = function (params, account) {
 			var urlConf = new UrlConfigurator();
 			return $http({
@@ -22,7 +18,6 @@ app.service('TransactionService',
 				data: $httpParamSerializer(params)
 			});
 		};
-
 		TransactionService.prototype.parseTransaction_ = function (transactionInfo) {
 			var transaction = new Transaction();
 			_.keys(transaction).forEach(function (k) {
@@ -30,24 +25,18 @@ app.service('TransactionService',
 					transaction[k] = transactionInfo[k];
 				}
 			});
-
 			transaction.status = transactionInfo.transaction_status || Transaction.Status.DONE;
 			return transaction;
 		};
-
 		TransactionService.prototype.makeTransactionRequest = function (amount, description, goods, force) {
 			var sellerAccountInfo = UserService.currentUser().accountInfo,
 				customerAccountInfo = UserService.currentCustomer().accountInfo;
-
 			if (_.isUndefined(goods) || _.isNull(goods)) {
 				goods = 1;
 			}
-
 			if (_.isUndefined(force) || _.isNull(force)) {
 				force = 0;
 			}
-
-
 			if (NetworkService.isOnline()) {
 				var params = new RequestParameterBuilder()
 					.setOperationId('charge')
@@ -61,7 +50,6 @@ app.service('TransactionService',
 					.setField('goods', goods)
 					.setField('photoid', 0)
 					.getParams();
-
 				return this.makeRequest_(params, sellerAccountInfo).then(function (res) {
 					return res.data;
 				});
@@ -73,7 +61,6 @@ app.service('TransactionService',
 				});
 			}
 		};
-
 		TransactionService.prototype.charge = function (amount, description, goods, force) {
 			return this.makeTransactionRequest(amount, description, goods, force)
 				.then(function (transactionResult) {
@@ -94,7 +81,6 @@ app.service('TransactionService',
 						self.lastTransaction = transaction;
 						return transaction;
 					}
-
 					self.lastTransaction = transactionResult;
 					throw transactionResult;
 				})
@@ -102,11 +88,9 @@ app.service('TransactionService',
 					$rootScope.$emit("TransactionDone");
 				});
 		};
-
 		TransactionService.prototype.refund = function (amount, description) {
 			return this.charge(amount * -1, description);
 		};
-
 		TransactionService.prototype.exchange = function (amount, currency, paymentMethod) {
 			var exchangeType = 'USD in';
 			var amountToSend = amount;
@@ -118,11 +102,9 @@ app.service('TransactionService',
 			var description = exchangeType + '(' + paymentMethod.getId() + ')';
 			return this.charge(amountToSend, description, 0);
 		};
-
 		TransactionService.prototype.undoTransaction = function (transaction) {
 			return this.charge(transaction.amount, transaction.description, transaction.goods, -1);
 		};
-
 		TransactionService.prototype.saveTransaction = function (transaction) {
 			//"me TEXT," + // company (or device-owner) account code (qid)
 			//"txid INTEGER DEFAULT 0," + // transaction id (xid) on the server (for offline backup only -- not used by the app) / temporary storage of customer cardCode pending tx upload
@@ -134,7 +116,6 @@ app.service('TransactionService',
 			//"goods INTEGER," + // <transaction is for real goods and services>
 			//"proof TEXT," + // hash of cardCode, amount, created, and me (as proof of agreement)
 			//"description TEXT);" // always "reverses..", if this tx undoes a previous one (previous by date)
-
 			var seller = UserService.currentUser(),
 				customer = UserService.currentCustomer();
 			var sqlQuery = new SqlQuery();
@@ -158,14 +139,11 @@ app.service('TransactionService',
 				}),
 				transaction.description
 			]);
-
 			return SQLiteService.executeQuery(sqlQuery);
 		};
-
 		TransactionService.prototype.doOfflineTransaction = function (amount, description, goods) {
 			var customer = UserService.currentCustomer();
 			var q = $q.defer();
-
 			var transactionResponseOk = {
 				"ok": "1",
 				"message": "",
@@ -177,26 +155,21 @@ app.service('TransactionService',
 				"undo": "",
 				"transaction_status": Transaction.Status.OFFLINE
 			};
-
 			var transactionResponseError = {
 				"ok": "0",
 				"message": ""
 			};
-
 			if (amount > rCreditsConfig.transaction_max_amount_offline) {
-
 				transactionResponseError.message = "Limit $" + rCreditsConfig.transaction_max_amount_offline + " exceeded";
 				q.reject(transactionResponseError);
 				return q.promise;
 			}
-
 			MemberSqlService.existMember(customer.getId())
 				.then(function (customerDbInfo) {
 					// do transaction
 					return q.resolve(transactionResponseOk);
 				})
 				.catch(function (msg) {
-
 					askConfirmation()
 						.then(function () {
 							// do transaction
@@ -207,13 +180,9 @@ app.service('TransactionService',
 							transactionResponseError.message = "Not Authorized";
 							return q.reject(transactionResponseError);
 						});
-
 				});
-
 			return q.promise;
-
 		};
-
 		var askConfirmation = function () {
 			$ionicLoading.hide();
 			return NotificationService.showConfirm({
@@ -231,7 +200,6 @@ app.service('TransactionService',
 					}
 				});
 		};
-
 		TransactionService.prototype.warnOfflineTransactions = function () {
 			TransactionSql.exist24HsTransactions().then(function (exists) {
 				if (exists) {
@@ -239,6 +207,5 @@ app.service('TransactionService',
 				}
 			})
 		};
-
 		return new TransactionService();
 	});
