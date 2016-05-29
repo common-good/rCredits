@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<testsuite name="Firefox 48.0.0 (Windows 10 0.0.0)" package="" timestamp="2016-05-26T12:16:34" id="0" hostname="AaronEJs-Laptop" tests="0" errors="1" failures="0" time="0">
+  <properties>
+    <property name="browser.fullName" value="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:48.0) Gecko/20100101 Firefox/48.0"/>
+  </properties>
+  <system-out>
+    <![CDATA[Chrome 50.0.2661 (Windows 10 0.0.0) ERROR
+  Uncaught ReferenceError: require is not defined
+  at E:/xampp/htdocs/cgf/rcredits-mobile/www/lib/angular-animate/index.js:1
+
+]]>
+  </system-out>
+  <system-err/>
+</testsuite>

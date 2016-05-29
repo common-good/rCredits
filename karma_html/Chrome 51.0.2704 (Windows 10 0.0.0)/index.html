@@ -1,0 +1,501 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Chrome 51.0.2704 (Windows 10 0.0.0)</title>
+<style>
+body { background-color: #eeeeee; padding: 0; margin: 5px; overflow-y: scroll; }
+#HTMLReporter h1 { font-size: 12px; font-weight: normal; text-align: right; margin: 10px 0 10px 0 !important; }
+#HTMLReporter { font-size: 11px; font-family: Monaco, "Lucida Console", monospace; line-height: 14px; color: #333333; }
+#HTMLReporter a { text-decoration: none; }
+#HTMLReporter a:hover { text-decoration: underline; }
+#HTMLReporter p, #HTMLReporter h1, #HTMLReporter h2, #HTMLReporter h3, #HTMLReporter h4, #HTMLReporter h5, #HTMLReporter h6 { margin: 0; line-height: 14px; }
+#HTMLReporter .banner, #HTMLReporter .symbolSummary, #HTMLReporter .summary, #HTMLReporter .resultMessage, #HTMLReporter .specDetail .description, #HTMLReporter .alert .bar, #HTMLReporter .stackTrace { padding-left: 9px; padding-right: 9px; }
+
+#HTMLReporter #jasmine_content { position: fixed; right: 100%; }
+#HTMLReporter .version { color: #aaaaaa; }
+#HTMLReporter .banner { margin-top: 14px; }
+#HTMLReporter .duration { color: #aaaaaa; float: right; }
+#HTMLReporter .exceptions { color: #fff; float: right; margin-top: 5px; margin-right: 5px; }
+#HTMLReporter .bar { line-height: 28px; font-size: 14px; display: block; color: #eee; }
+#HTMLReporter .runningAlert { background-color: #666666; }
+#HTMLReporter .skippedAlert { background-color: #aaaaaa; }
+#HTMLReporter .skippedAlert:first-child { background-color: #333333; }
+#HTMLReporter .skippedAlert:hover { text-decoration: none; color: white; text-decoration: underline; }
+#HTMLReporter .passingAlert { background-color: #a6b779; }
+#HTMLReporter .passingAlert:first-child { background-color: #5e7d00; }
+#HTMLReporter .failingAlert { background-color: #cf867e; }
+#HTMLReporter .failingAlert:first-child { background-color: #b03911; }
+#HTMLReporter .results { margin-top: 14px; }
+#HTMLReporter #details { display: none; }
+#HTMLReporter .resultsMenu { color: #999; background-color: #fff; }
+
+#HTMLReporter .summaryMenuItem { font-weight: normal; text-decoration: none; margin-right: 5px; color: #333; }
+#HTMLReporter .detailsMenuItem { font-weight: normal; text-decoration: none; margin-left: 5px; color: #999; }
+
+#HTMLReporter.showDetails .summaryMenuItem { color: #999; }
+#HTMLReporter.showDetails .detailsMenuItem { color: #333; }
+#HTMLReporter.showDetails .summaryMenuItem:hover { text-decoration: underline; }
+#HTMLReporter             .detailsMenuItem:hover { text-decoration: underline; }
+
+
+#HTMLReporter.showDetails .summary { display: none; }
+#HTMLReporter.showDetails #details { display: block; }
+#HTMLReporter .summary { margin-top: 14px; margin-bottom: 40px; }
+#HTMLReporter .summary .suite .suite, #HTMLReporter .summary .specSummary { margin-left: 14px; }
+#HTMLReporter .summary .specSummary.passed { color: #5e7d00; }
+#HTMLReporter .summary .specSummary.failed { color: #b03911; }
+#HTMLReporter .summary .specSummary.skipped { color: #ba9d37; }
+#HTMLReporter .description + .suite { margin-top: 0; }
+#HTMLReporter .suite { margin-top: 14px; }
+#HTMLReporter .suite a { color: #333333; }
+#HTMLReporter #details .specDetail { margin-bottom: 28px; }
+#HTMLReporter #details .specDetail .description { display: block; color: white; background-color: #b03911; }
+#HTMLReporter .resultMessage { padding-top: 14px; color: #333333; }
+#HTMLReporter .resultMessage span.result { display: block; }
+#HTMLReporter .stackTrace { margin: 5px 0 0 0; max-height: 224px; overflow: auto; 
+    line-height: 18px; color: #666666; border: 1px solid #ddd; background: white; white-space: pre; }
+
+
+.fold-buttons { float: right; }
+.fold-buttons a { color: #fff; font-size: 12px; }
+.fold-buttons { display: none } 
+#HTMLReporter .br { margin-top: 8px; }
+#HTMLReporter .section-starter { font-size: 14px; line-height: 18px }
+#HTMLReporter .summary-section { 
+  cursor: -webkit-zoom-out; cursor: -moz-zoom-out; cursor: zoom-out; 
+  background: #fafafa; 
+  padding: 10px; 
+  border-bottom: #eaeaea 1px solid; }
+#HTMLReporter .summary-section.folded { 
+  cursor: -webkit-zoom-in; cursor: -moz-zoom-in; cursor: zoom-in; 
+  padding-bottom: 8px;
+}
+#HTMLReporter .summary-section.folded div { display: none }
+#HTMLReporter .summary-section.folded div.section-starter { display: block }
+/*#HTMLReporter .summary-section:hover { background: #e9e9e9; }*/
+#HTMLReporter .summary-section:hover { background: #f5f5f5; }
+#HTMLReporter .summary-section-totals { 
+  font-size: 11px;
+  display: none; 
+  margin-left: 11px; 
+  overflow: hidden; 
+  position: relative;
+  top: -1px; 
+}
+#HTMLReporter .summary-section.folded .summary-section-totals { display: inline; }
+#HTMLReporter .summary-section-total { color: #fff; vertical-align: baseline; padding: 1px 8px; }
+#HTMLReporter .summary-section-total.passed { background: #5e7d00;  }
+#HTMLReporter .summary-section-total.failed { background: #b03911;  }
+#HTMLReporter .summary-section-total.skipped { background: #ba9d37;  }
+
+#HTMLReporter { font-size: 12px; line-height: 18px; } /*larget font-size*/
+
+</style>
+</head>
+
+<body id="HTMLReporter" class="html-reporter showDetails">
+<h1>Tested in Chrome 51.0.2704 (Windows 10 0.0.0) on Fri May 27 2016</h1>
+
+<div class="alert">
+
+
+<!-- <span class="failingAlert bar">Failed 10 specs</span> -->
+<span class="failingAlert bar"><span class="fold-buttons"><a href="#" onclick="fold();">Fold</a> | 
+  <a href="#" onclick="unfold();">Unfold</a></span>39 specs, 10 failed, 0 pending</span>
+<span class="resultsMenu bar">
+<a class="summaryMenuItem" onclick="showSummary();" href="#">Spec List<a>|<a 
+   class="detailsMenuItem" onclick="showFailures();" href="#">Failures</a>
+</span>
+
+
+
+</div>
+<div class="results">
+  <div class="summary">
+  
+  
+  
+  
+  
+    <div class="suite passed">
+      <span class="description">Fee Should apply fee</span>
+    
+      <div class="specSummary passed">
+      <span class="description">Apply fee of Cash</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Apply fee of Percent</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Apply fee for Zero amount</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Apply fee for Negative amount</span>
+      </div>
+    
+    </div>
+  
+    <div class="suite passed">
+      <span class="description">Payment Type Should apply fee</span>
+    
+      <div class="specSummary passed">
+      <span class="description">Apply fee</span>
+      </div>
+    
+    </div>
+  
+    <div class="suite passed">
+      <span class="description">Seller Model</span>
+    
+      <div class="specSummary passed">
+      <span class="description">Should set Name</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Should have localStorage device</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Should not have Device ID</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Should have custom Device ID</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Not valid device ID</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Throw exception when setting invalid Device ID</span>
+      </div>
+    
+    </div>
+  
+    <div class="suite failed">
+      <span class="description">Url Configurator</span>
+    
+      <div class="specSummary failed">
+      <span class="description">Should create url replace the member ID</span>
+      </div>
+    
+    </div>
+  
+    <div class="suite passed">
+      <span class="description">Barcode Scanner Service Scan a code</span>
+    
+      <div class="specSummary passed">
+      <span class="description">Scan is a QR CODE</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Scan is NOT a QR CODE</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Scan Was Cancelled</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Scan Failed</span>
+      </div>
+    
+    </div>
+  
+    <div class="suite passed">
+      <span class="description">Exchange Service Create Money Types</span>
+    
+      <div class="specSummary passed">
+      <span class="description">Should create Money Types when instantiated</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Should return cloned Money Instances</span>
+      </div>
+    
+    </div>
+  
+    <div class="suite passed">
+      <span class="description">Exchange Service Create Payment Types</span>
+    
+      <div class="specSummary passed">
+      <span class="description">Should create Payment Types when instantiated</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Should return cloned Payment Instances</span>
+      </div>
+    
+    </div>
+  
+    <div class="suite passed">
+      <span class="description">QRCode Parser</span>
+    
+      <div class="specSummary passed">
+      <span class="description">Account type must be Company</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Account type must be Personal</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Parse Company Account ID</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Parse Individual Account ID</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Parse Company Security Code</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Parse Individual Security Code</span>
+      </div>
+    
+    </div>
+  
+    <div class="suite failed">
+      <span class="description">Transaction Service Charge</span>
+    
+      <div class="specSummary passed">
+      <span class="description">Should create a Transaction given a transaction response</span>
+      </div>
+    
+      <div class="specSummary failed">
+      <span class="description">Should charge and return a Transaction Object</span>
+      </div>
+    
+      <div class="specSummary failed">
+      <span class="description">Should charge and update customer reward and balance</span>
+      </div>
+    
+      <div class="specSummary failed">
+      <span class="description">Charge transaction should fail</span>
+      </div>
+    
+    </div>
+  
+    <div class="suite failed">
+      <span class="description">Transaction Service Refund</span>
+    
+      <div class="specSummary failed">
+      <span class="description">Should charge and return a Transaction Object</span>
+      </div>
+    
+    </div>
+  
+    <div class="suite failed">
+      <span class="description">Transaction Service Undo Transaction</span>
+    
+      <div class="specSummary failed">
+      <span class="description">Should undo a Transaction</span>
+      </div>
+    
+    </div>
+  
+    <div class="suite failed">
+      <span class="description">User Service Seller login withRcard</span>
+    
+      <div class="specSummary passed">
+      <span class="description">Should send correct member and code values based on input URL</span>
+      </div>
+    
+      <div class="specSummary failed">
+      <span class="description">Should handle error (i.e. ok = 0)</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Should also set firstLogin: FALSE on seller object if deviceId was not sent</span>
+      </div>
+    
+      <div class="specSummary passed">
+      <span class="description">Should also set firstLogin: TRUE on seller object if deviceId was sent and it's not on localStorage</span>
+      </div>
+    
+      <div class="specSummary failed">
+      <span class="description">Seller login error</span>
+      </div>
+    
+    </div>
+  
+    <div class="suite failed">
+      <span class="description">User Service Identify Customer</span>
+    
+      <div class="specSummary failed">
+      <span class="description">Customer login</span>
+      </div>
+    
+      <div class="specSummary failed">
+      <span class="description">Customer login with FIRST PURCHASE</span>
+      </div>
+    
+    </div>
+  
+  
+</div>
+
+<div id="details">
+  
+  
+  <div class="specDetail failed">
+    <span class="description">Url Configurator Should create url replace the member ID</span>
+    <div class="stackTrace">
+      <div class="resultMessage">TypeError: account.isDemo is not a function
+    at UrlConfigurator.getServerUrl (http://localhost:9876/base/www/js/models/url_configurator.js?09ddff1098b16eb06a535e48dc54e34b9fa7f78f:7:15)
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/js/models/url_configurator_spec.js?7db84e3c7e989f6d53b774e07c1b5bcbf5b3370e:9:61)</div>
+    </div>
+  </div>
+  
+  
+  
+  <div class="specDetail failed">
+    <span class="description">Transaction Service Charge Should charge and return a Transaction Object</span>
+    <div class="stackTrace">
+      <div class="resultMessage">TypeError: Cannot read property 'accountInfo' of null
+    at TransactionService.makeTransactionRequest (http://localhost:9876/base/www/js/services/transaction_service.js?e673ecc4d727eb43b4ee5c231279e6be4374d1a2:32:53)
+    at TransactionService.charge (http://localhost:9876/base/www/js/services/transaction_service.js?e673ecc4d727eb43b4ee5c231279e6be4374d1a2:65:16)
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/js/services/transaction_service_spec.js?0a4ce91c025c13ea7abb6554252c9cfaed127245:99:23)</div>
+    </div>
+  </div>
+  
+  <div class="specDetail failed">
+    <span class="description">Transaction Service Charge Should charge and update customer reward and balance</span>
+    <div class="stackTrace">
+      <div class="resultMessage">TypeError: Cannot read property 'accountInfo' of null
+    at TransactionService.makeTransactionRequest (http://localhost:9876/base/www/js/services/transaction_service.js?e673ecc4d727eb43b4ee5c231279e6be4374d1a2:32:53)
+    at TransactionService.charge (http://localhost:9876/base/www/js/services/transaction_service.js?e673ecc4d727eb43b4ee5c231279e6be4374d1a2:65:16)
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/js/services/transaction_service_spec.js?0a4ce91c025c13ea7abb6554252c9cfaed127245:112:23)</div>
+    </div>
+  </div>
+  
+  <div class="specDetail failed">
+    <span class="description">Transaction Service Charge Charge transaction should fail</span>
+    <div class="stackTrace">
+      <div class="resultMessage">TypeError: Cannot read property 'accountInfo' of null
+    at TransactionService.makeTransactionRequest (http://localhost:9876/base/www/js/services/transaction_service.js?e673ecc4d727eb43b4ee5c231279e6be4374d1a2:32:53)
+    at TransactionService.charge (http://localhost:9876/base/www/js/services/transaction_service.js?e673ecc4d727eb43b4ee5c231279e6be4374d1a2:65:16)
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/js/services/transaction_service_spec.js?0a4ce91c025c13ea7abb6554252c9cfaed127245:120:23)</div>
+    </div>
+  </div>
+  
+  
+  
+  <div class="specDetail failed">
+    <span class="description">Transaction Service Refund Should charge and return a Transaction Object</span>
+    <div class="stackTrace">
+      <div class="resultMessage">TypeError: Cannot read property 'accountInfo' of null
+    at TransactionService.makeTransactionRequest (http://localhost:9876/base/www/js/services/transaction_service.js?e673ecc4d727eb43b4ee5c231279e6be4374d1a2:32:53)
+    at TransactionService.charge (http://localhost:9876/base/www/js/services/transaction_service.js?e673ecc4d727eb43b4ee5c231279e6be4374d1a2:65:16)
+    at TransactionService.refund (http://localhost:9876/base/www/js/services/transaction_service.js?e673ecc4d727eb43b4ee5c231279e6be4374d1a2:92:16)
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/js/services/transaction_service_spec.js?0a4ce91c025c13ea7abb6554252c9cfaed127245:129:23)</div>
+    </div>
+  </div>
+  
+  
+  
+  <div class="specDetail failed">
+    <span class="description">Transaction Service Undo Transaction Should undo a Transaction</span>
+    <div class="stackTrace">
+      <div class="resultMessage">TypeError: Cannot read property 'accountInfo' of null
+    at TransactionService.makeTransactionRequest (http://localhost:9876/base/www/js/services/transaction_service.js?e673ecc4d727eb43b4ee5c231279e6be4374d1a2:32:53)
+    at TransactionService.charge (http://localhost:9876/base/www/js/services/transaction_service.js?e673ecc4d727eb43b4ee5c231279e6be4374d1a2:65:16)
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/js/services/transaction_service_spec.js?0a4ce91c025c13ea7abb6554252c9cfaed127245:141:23)</div>
+    </div>
+  </div>
+  
+  
+  
+  <div class="specDetail failed">
+    <span class="description">User Service Seller login withRcard Should handle error (i.e. ok = 0)</span>
+    <div class="stackTrace">
+      <div class="resultMessage">Expected undefined to be 'bad agent NEW:AABs'.
+    at http://localhost:9876/base/test/js/services/user_service_spec.js?8d66c9c9dede7aeff2b2e050c2eba199f7a0c752:81:24
+    at processQueue (http://localhost:9876/base/www/lib/ionic/js/ionic.bundle.js?7e026eec520b18f45197663d21984f006ee47e91:27879:28)
+    at http://localhost:9876/base/www/lib/ionic/js/ionic.bundle.js?7e026eec520b18f45197663d21984f006ee47e91:27895:27
+    at Scope.$eval (http://localhost:9876/base/www/lib/ionic/js/ionic.bundle.js?7e026eec520b18f45197663d21984f006ee47e91:29158:28)</div>
+    </div>
+  </div>
+  
+  <div class="specDetail failed">
+    <span class="description">User Service Seller login withRcard Seller login error</span>
+    <div class="stackTrace">
+      <div class="resultMessage">Expected undefined to be 'login_your_self'.
+    at http://localhost:9876/base/test/js/services/user_service_spec.js?8d66c9c9dede7aeff2b2e050c2eba199f7a0c752:116:24
+    at processQueue (http://localhost:9876/base/www/lib/ionic/js/ionic.bundle.js?7e026eec520b18f45197663d21984f006ee47e91:27879:28)
+    at http://localhost:9876/base/www/lib/ionic/js/ionic.bundle.js?7e026eec520b18f45197663d21984f006ee47e91:27895:27
+    at Scope.$eval (http://localhost:9876/base/www/lib/ionic/js/ionic.bundle.js?7e026eec520b18f45197663d21984f006ee47e91:29158:28)</div>
+    </div>
+  </div>
+  
+  
+  
+  <div class="specDetail failed">
+    <span class="description">User Service Identify Customer Customer login</span>
+    <div class="stackTrace">
+      <div class="resultMessage">can_not_use_demo_card thrown,Error: Unflushed requests: 5
+    at Function.$httpBackend.verifyNoOutstandingRequest (http://localhost:9876/base/node_modules/angular-mocks/angular-mocks.js?41fb2d656d9a871440ee139e6491d0e2b124ebc8:1597:13)
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/js/services/user_service_spec.js?8d66c9c9dede7aeff2b2e050c2eba199f7a0c752:58:17)</div>
+    </div>
+  </div>
+  
+  <div class="specDetail failed">
+    <span class="description">User Service Identify Customer Customer login with FIRST PURCHASE</span>
+    <div class="stackTrace">
+      <div class="resultMessage">can_not_use_demo_card thrown,Error: Unflushed requests: 5
+    at Function.$httpBackend.verifyNoOutstandingRequest (http://localhost:9876/base/node_modules/angular-mocks/angular-mocks.js?41fb2d656d9a871440ee139e6491d0e2b124ebc8:1597:13)
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/js/services/user_service_spec.js?8d66c9c9dede7aeff2b2e050c2eba199f7a0c752:58:17)</div>
+    </div>
+  </div>
+  
+  
+</div>
+
+<script>
+
+var folded = false;
+
+document.body.onkeypress = function (e) {
+  if (!e || !e.keyCode) return;
+  switch (e.keyCode) {
+    case 102: toggleFold(); break;
+    case 49: showSummary(); break;
+    case 50: showFailures(); break;case 50: showFailures(); break;case 50: showFailures(); break;case 50: showFailures(); break;case 50: showFailures(); break;case 50: showFailures(); break;
+  }
+};
+
+function showSummary() { document.body.className = "html-reporter showSummary"; }
+function showFailures() { document.body.className = "html-reporter showDetails"; }
+
+function toggleSection(el) {
+  el.className = el.className === 'summary-section' ? 'summary-section folded' : 'summary-section';
+}
+
+function toggleFold() { (folded) ? unfold() : fold(); }
+function fold() {
+  var els = document.querySelectorAll('.summary-section');
+  for (var i = 0; i < els.length; i++) {
+    els[i].className = 'summary-section folded';
+  }
+  folded = true;
+}
+function unfold() {
+  var els = document.querySelectorAll('.summary-section');
+  for (var i = 0; i < els.length; i++) {
+    els[i].className = 'summary-section';
+  }
+  folded = false;
+}
+
+</script>
+
+
+</body>
+</html>
+

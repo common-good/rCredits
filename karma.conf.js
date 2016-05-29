@@ -22,8 +22,7 @@ module.exports = function (config) {
 			'www/js/**/*.js',
 			'www/js/models/user.js',
 			'test/**/*_spec.js',
-			'www/templates/**/*.html',
-			'www/lib/**/*.js'
+			'www/templates/**/*.html'
 		],
 		// list of files to exclude
 		exclude: [],

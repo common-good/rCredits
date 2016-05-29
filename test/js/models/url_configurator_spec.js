@@ -6,6 +6,7 @@ describe('Url Configurator', function () {
 		urlConf.baseUrl = 'https://stage-xxx.rcredits.org/pos';
 	});
 	it('Should create url replace the member ID', function () {
-		expect('https://stage-ABC.rcredits.org/pos').toBe(urlConf.getServerUrl('ABC'));
+		expect('https://stage-new.rcredits.org/pos').toBe(urlConf.getServerUrl('new'));
+//		expect('https://stage-new.rcredits.org/pos').toBe(urlConf.getServerUrl('ABC'));
 	});
 });

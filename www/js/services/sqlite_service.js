@@ -9,6 +9,7 @@
 			this.db = null;
 		};
 		SQLiteService.prototype.isDbEnable = function () {
+//			console.log(!!this.sqlPlugin);
 			return !!this.sqlPlugin;
 		};
 		SQLiteService.prototype.createDatabase = function () {
