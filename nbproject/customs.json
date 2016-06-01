@@ -1,6 +1,11 @@
 {
 	"elements": {
 		"subheader": {},
+		"ion-nav-buttons": {
+			"attributes": {
+				"side": {}
+			}
+		},
 		"ion-content": {
 			"attributes": {
 				"class": {}
@@ -8,9 +13,15 @@
 		},
 		"ion-view": {
 			"attributes": {
+				"hide-back-button": {},
+				"cache-view": {},
 				"class": {}
 			}
 		}
 	},
-	"attributes": {}
+	"attributes": {
+		"sf-resize": {
+			"context": "div"
+		}
+	}
 }

@@ -47,3 +47,4 @@ ionic run <android|ios>
 
 `ionic serve`
 
+### Note: Currently the desktop app only works with Chrome due to different implementations of local databases
