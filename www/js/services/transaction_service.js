@@ -89,7 +89,7 @@ app.service('TransactionService',
 				});
 		};
 		TransactionService.prototype.refund = function (amount, description) {
-			return this.charge(amount * -1, description);
+			return this.charge(((amount * -1).toFixed(2)).toString(), description);
 		};
 		TransactionService.prototype.exchange = function (amount, currency, paymentMethod) {
 			var exchangeType = 'USD in';

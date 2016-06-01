@@ -21,7 +21,7 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 		$ionicPlatform.ready(function () {
 			// This only for web development to enable proxy
 			if (!ionic.Platform.isWebView()) {
-				console.log('web view');
+//				console.log('web view');
 				rCreditsConfig.serverUrl = rCreditsConfig.serverproxyUrl;
 			}
 			// Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
