@@ -1,6 +1,4 @@
-app.controller('TransactionCtrl', function ($scope, $state, $stateParams,
-	$ionicLoading, $filter, NotificationService, UserService,
-	TransactionService) {
+app.controller('TransactionCtrl', function ($scope, $state, $stateParams,$ionicLoading, $filter, NotificationService, UserService,	TransactionService) {
 	$scope.transactionType = $stateParams.transactionType;
 	$scope.amount = 0;
 	var seller = UserService.currentUser();

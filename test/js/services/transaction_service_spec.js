@@ -81,10 +81,23 @@ describe('Transaction Service', function () {
 			userService.identifyCustomer(CUSTOMER_SCAN_RESULT.text)
 				.then(function (customerResponse) {
 					customer = customerResponse;
+//					console.log(transactionService);
 				});
 		});
 		httpBackend.flush();
 	});
+	beforeEach(inject(function (UserService, $rootScope, $httpBackend, _TransactionService_) {
+		userService = UserService;
+		httpBackend = $httpBackend;
+		rootScope = $rootScope;
+		transactionService = _TransactionService_;
+		$httpBackend.whenGET(/templates\/*/).respond(function (method, url, data, headers) {
+			return [200, '<div></div>'];
+		});
+		$httpBackend.whenGET(/js\/languages\/definitions\//).respond(function (method, url, data, headers) {
+			return [200, {}];
+		});
+	}));
 	describe('Charge', function () {
 		it('Should create a Transaction given a transaction response', function () {
 			var transaction = transactionService.parseTransaction_(TRANSACTION_RESPONSE_OK);

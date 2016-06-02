@@ -1,3 +1,4 @@
+/* global Transaction */
 (function (app) {
 	app.service('TransactionSql', function ($q, SqlQuery, SQLiteService) {
 		var self;
