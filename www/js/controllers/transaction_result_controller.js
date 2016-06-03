@@ -20,8 +20,10 @@ app.controller('TransactionResultCtrl', function ($scope, $state,
 		$scope.note = transactionResult.message;
 		if (transactionResult.txid) {
 			$scope.heading = 'Successful';
+			$scope.success = true;
 		} else {
 			$scope.heading = 'Unsuccessful';
+			$scope.success = false;
 		}
 	};
 

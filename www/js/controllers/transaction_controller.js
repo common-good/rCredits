@@ -41,8 +41,7 @@ app.controller('TransactionCtrl', function ($scope, $state, $stateParams,$ionicL
 		}
 		transactionPromise.then(function (transaction) {
 			//TransactionService.lastTransaction = transaction;
-			$state.go('app.transaction_result',
-				{'transactionStatus': 'success', 'transactionAmount': transactionAmount});
+			$state.go('app.transaction_result',	{'transactionStatus': 'success', 'transactionAmount': transactionAmount});
 			$ionicLoading.hide();
 		}, function (errorMsg) {
 			$state.go('app.transaction_result',

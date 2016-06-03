@@ -56,7 +56,7 @@ app.service('TransactionService',
 				});
 			} else {
 				// Offline
-				return this.doOfflineTransaction(amount, description, goods).then(function (result) {
+				return this.doOfflineTransaction(amount, description, goods, force).then(function (result) {
 					self.warnOfflineTransactions();
 					return result;
 				});
@@ -144,23 +144,31 @@ app.service('TransactionService',
 			]);
 			return SQLiteService.executeQuery(sqlQuery);
 		};
-		TransactionService.prototype.doOfflineTransaction = function (amount, description, goods) {
+		TransactionService.prototype.doOfflineTransaction = function (amount, description, goods,force) {
 			var customer = UserService.currentCustomer();
 			var q = $q.defer();
+			var message;
+			if(force===-1){
+				message="The transaction has been canceled"
+			}else{
+				message='You charged '+customer.name+' $'+amount.toFixed(2).toString()+' for goods and services.  Your reward is $'+(customer.getBalance() * 0.9).toFixed(2).toString()
+			}
 			var transactionResponseOk = {
 				"ok": "1",
-				"message": "",
+				"message": message,
 				"txid": customer.getId(),
 				"created": moment().unix(),
-				"balance": customer.setBalance(customer.getBalance() - amount).getBalance(),
-				"rewards": customer.getBalance() * 0.9,
+				"balance": (customer.setBalance(customer.getBalance() - ((amount).toFixed(2))).getBalance()).toString(),
+				"rewards": (customer.getBalance() * 0.9).toFixed(2).toString(),
 				"did": "",
 				"undo": "",
-				"transaction_status": Transaction.Status.OFFLINE
+				"transaction_status": Transaction.Status.OFFLINE,
+				"description":description,
+				"goods":goods
 			};
 			var transactionResponseError = {
 				"ok": "0",
-				"message": ""
+				"message": "There has been an Error, that is all that is known"
 			};
 			if (amount > rCreditsConfig.transaction_max_amount_offline) {
 				transactionResponseError.message = "Limit $" + rCreditsConfig.transaction_max_amount_offline + " exceeded";
