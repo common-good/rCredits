@@ -90,7 +90,6 @@ app.service('TransactionService',
 				});
 		};
 		TransactionService.prototype.refund = function (amount, description) {
-			console.log(amount, description);
 			return this.charge(((amount * -1).toFixed(2)).toString(), description);
 		};
 		TransactionService.prototype.exchange = function (amount, currency, paymentMethod) {
@@ -105,7 +104,6 @@ app.service('TransactionService',
 			return this.charge(amountToSend, description, 0);
 		};
 		TransactionService.prototype.undoTransaction = function (transaction) {
-			console.log(transaction.amount, transaction.description, transaction.goods);
 			return this.charge(transaction.amount, transaction.description, transaction.goods, -1);
 		};
 		TransactionService.prototype.saveTransaction = function (transaction) {
