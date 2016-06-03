@@ -19,7 +19,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	// Gets the current customer. Returns an object
 	// or null if there is no current customer.
 	UserService.prototype.currentCustomer = function () {
-		console.log(this.customer.accountInfo);
+//		console.log(this.customer.accountInfo);
 		return this.customer;
 	};
 	UserService.prototype.loadSeller = function (sellerId) {

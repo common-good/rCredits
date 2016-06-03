@@ -29,7 +29,6 @@ app.service('TransactionService',
 			return transaction;
 		};
 		TransactionService.prototype.makeTransactionRequest = function (amount, description, goods, force) {
-			console.log(UserService);
 			var sellerAccountInfo = UserService.currentUser().accountInfo,
 				customerAccountInfo = UserService.currentCustomer().accountInfo;
 			if (_.isUndefined(goods) || _.isNull(goods)) {
@@ -65,6 +64,7 @@ app.service('TransactionService',
 		TransactionService.prototype.charge = function (amount, description, goods, force) {
 			return this.makeTransactionRequest(amount, description, goods, force)
 				.then(function (transactionResult) {
+					console.log(transactionResult.ok);
 					if (transactionResult.ok === TRANSACTION_OK) {
 						var transaction = self.parseTransaction_(transactionResult);
 						transaction.configureType(amount);
@@ -78,10 +78,10 @@ app.service('TransactionService',
 						customer.saveInSQLite().then(function () {
 							self.saveTransaction(transaction);
 						});
-
 						self.lastTransaction = transaction;
 						return transaction;
 					}
+					console.log(transactionResult.message);
 					self.lastTransaction = transactionResult;
 					throw transactionResult;
 				})
@@ -142,14 +142,14 @@ app.service('TransactionService',
 			]);
 			return SQLiteService.executeQuery(sqlQuery);
 		};
-		TransactionService.prototype.doOfflineTransaction = function (amount, description, goods,force) {
+		TransactionService.prototype.doOfflineTransaction = function (amount, description, goods, force) {
 			var customer = UserService.currentCustomer();
 			var q = $q.defer();
 			var message;
-			if(force===-1){
-				message="The transaction has been canceled"
-			}else{
-				message='You charged '+customer.name+' $'+amount.toFixed(2).toString()+' for goods and services.  Your reward is $'+(customer.getBalance() * 0.9).toFixed(2).toString()
+			if (force === -1) {
+				message = "The transaction has been canceled"
+			} else {
+				message = 'You charged ' + customer.name + ' $' + amount.toFixed(2).toString() + ' for goods and services'
 			}
 			var transactionResponseOk = {
 				"ok": "1",
@@ -161,12 +161,12 @@ app.service('TransactionService',
 				"did": "",
 				"undo": "",
 				"transaction_status": Transaction.Status.OFFLINE,
-				"description":description,
-				"goods":goods
+				"description": description,
+				"goods": goods
 			};
 			var transactionResponseError = {
 				"ok": "0",
-				"message": "There has been an Error, that is all that is known"
+				"message": "An error occurred"
 			};
 			if (amount > rCreditsConfig.transaction_max_amount_offline) {
 				transactionResponseError.message = "Limit $" + rCreditsConfig.transaction_max_amount_offline + " exceeded";
@@ -190,6 +190,7 @@ app.service('TransactionService',
 							return q.reject(transactionResponseError);
 						});
 				});
+			console.log(transactionResponseOk.message);
 			return q.promise;
 		};
 		var askConfirmation = function () {
