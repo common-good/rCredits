@@ -85,7 +85,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		if (seller) {
 			loadSellerPromise.resolve(seller);
 		} else {
-			loadSellerPromise.reject("Seller not found");
+			loadSellerPromise.reject("No internet connection is available.");
 		}
 		return loadSellerPromise.promise;
 	};
