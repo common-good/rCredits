@@ -1,3 +1,5 @@
+/* global rCreditsConfig, Transaction */
+
 app.service('TransactionService',
 	function ($q, UserService, RequestParameterBuilder, $http, $httpParamSerializer, SQLiteService,
 		SqlQuery, NetworkService, MemberSqlService, NotificationService, $ionicLoading, TransactionSql, $rootScope) {
@@ -56,6 +58,7 @@ app.service('TransactionService',
 			} else {
 				// Offline
 				return this.doOfflineTransaction(amount, description, goods, force).then(function (result) {
+					console.log(result.message);
 					self.warnOfflineTransactions();
 					return result;
 				});
@@ -64,7 +67,6 @@ app.service('TransactionService',
 		TransactionService.prototype.charge = function (amount, description, goods, force) {
 			return this.makeTransactionRequest(amount, description, goods, force)
 				.then(function (transactionResult) {
-					console.log(transactionResult.ok);
 					if (transactionResult.ok === TRANSACTION_OK) {
 						var transaction = self.parseTransaction_(transactionResult);
 						transaction.configureType(amount);
@@ -79,9 +81,10 @@ app.service('TransactionService',
 							self.saveTransaction(transaction);
 						});
 						self.lastTransaction = transaction;
+						console.log(self.lastTransaction.txid);
 						return transaction;
 					}
-					console.log(transactionResult.message);
+					console.log(self.lastTransaction.txid);
 					self.lastTransaction = transactionResult;
 					throw transactionResult;
 				})
@@ -147,9 +150,9 @@ app.service('TransactionService',
 			var q = $q.defer();
 			var message;
 			if (force === -1) {
-				message = "The transaction has been canceled"
+				message = "The transaction has been canceled";
 			} else {
-				message = 'You charged ' + customer.name + ' $' + amount.toFixed(2).toString() + ' for goods and services'
+				message = 'You charged ' + customer.name + ' $' + amount.toFixed(2).toString() + ' for goods and services';
 			}
 			var transactionResponseOk = {
 				"ok": "1",
@@ -166,7 +169,7 @@ app.service('TransactionService',
 			};
 			var transactionResponseError = {
 				"ok": "0",
-				"message": "An error occurred"
+				"message": ""
 			};
 			if (amount > rCreditsConfig.transaction_max_amount_offline) {
 				transactionResponseError.message = "Limit $" + rCreditsConfig.transaction_max_amount_offline + " exceeded";
@@ -179,7 +182,7 @@ app.service('TransactionService',
 					return q.resolve(transactionResponseOk);
 				})
 				.catch(function (msg) {
-					askConfirmation()
+					askConfirmation('cashier_permission', '', 'ok', 'cancel')
 						.then(function () {
 							// do transaction
 							return q.resolve(transactionResponseOk);
@@ -193,16 +196,17 @@ app.service('TransactionService',
 			console.log(transactionResponseOk.message);
 			return q.promise;
 		};
-		var askConfirmation = function () {
+		var askConfirmation = function (title, subTitle, okText, cancelText) {
 			$ionicLoading.hide();
 			return NotificationService.showConfirm({
-				title: 'cashier_permission',
-				subTitle: "",
-				okText: "ok",
-				cancelText: "cancel"
+				title: title,
+				subTitle: subTitle,
+				okText: okText,
+				cancelText: cancelText
 			})
 				.then(function (confirmed) {
 					$ionicLoading.show();
+					console.log(title, subTitle, okText, cancelText);
 					if (confirmed) {
 						return true;
 					} else {
@@ -214,8 +218,9 @@ app.service('TransactionService',
 			TransactionSql.exist24HsTransactions().then(function (exists) {
 				if (exists) {
 					NotificationService.showAlert('offline_old_transactions');
+					//					askConfirmation('offline_old_transactions','','OK','Cancel');
 				}
-			})
+			});
 		};
 		return new TransactionService();
 	});

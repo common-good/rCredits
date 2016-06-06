@@ -17,10 +17,16 @@ app.controller('TransactionResultCtrl', function ($scope, $state,
 	}, 60 * 1000);
 
 	$scope.setMessages = function (transactionResult) {
+//		console.log('transaction_results' + transactionResult.ok);
 		$scope.note = transactionResult.message;
 		if (transactionResult.txid) {
-			$scope.heading = 'Successful';
-			$scope.success = true;
+			if (transactionResult.message.indexOf("ransaction has been canceled") > -1) {
+				$scope.heading = 'Canceled';
+				$scope.success = false;
+			} else {
+				$scope.heading = 'Successful';
+				$scope.success = true;
+			}
 		} else {
 			$scope.heading = 'Unsuccessful';
 			$scope.success = false;

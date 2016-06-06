@@ -44,13 +44,14 @@ app.controller('TransactionCtrl', function ($scope, $state, $stateParams,$ionicL
 			$state.go('app.transaction_result',	{'transactionStatus': 'success', 'transactionAmount': transactionAmount});
 			$ionicLoading.hide();
 		}, function (errorMsg) {
+			console.log(errorMsg);
 			$state.go('app.transaction_result',
 				{'transactionStatus': 'failure', 'transactionAmount': transactionAmount});
 			$ionicLoading.hide();
 		});
 	};
 	$scope.onSelectCategory = function () {
-		if (!isTransactionTypeCharge() || $scope.selectedCategory.selected != 'other') {
+		if (!isTransactionTypeCharge() || $scope.selectedCategory.selected !== 'other') {
 			return;
 		}
 		$scope.selectedCategory.custom = null;
