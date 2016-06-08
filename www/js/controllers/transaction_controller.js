@@ -40,20 +40,10 @@ app.controller('TransactionCtrl', function ($scope, $state, $stateParams, $ionic
 			transactionPromise = $scope.refund();
 		}
 		transactionPromise.then(function (transaction) {
-			//TransactionService.lastTransaction = transaction;
-			console.log('t');
-			for (var t in transaction) {
-				console.log(t);
-				console.log(transaction[t]);
-			}
 			$state.go('app.transaction_result', {'transactionStatus': 'success', 'transactionAmount': transactionAmount});
 			$ionicLoading.hide();
 		}, function (errorMsg) {
-			console.log(errorMsg.message);
-			for (var e in errorMsg) {
-				console.log(e);
-				console.log(errorMsg[e]);
-			}
+			TransactionService.lastTransaction=errorMsg;
 			$state.go('app.transaction_result', {'transactionStatus': 'failure', 'transactionAmount': transactionAmount,'transactionMessage':errorMsg.message});
 			$ionicLoading.hide();
 		});

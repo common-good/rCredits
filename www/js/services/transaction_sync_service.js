@@ -58,7 +58,6 @@ app.service('TransactionSyncService',
 					} else {
 						self.exludedTxs = [];
 					}
-
 					// err no transactions || error ocurred
 					console.error(err);
 				});

@@ -81,10 +81,8 @@ app.service('TransactionService',
 							self.saveTransaction(transaction);
 						});
 						self.lastTransaction = transaction;
-						console.log(self.lastTransaction.txid);
 						return transaction;
 					}
-					console.log(self.lastTransaction.txid);
 					self.lastTransaction = transactionResult;
 					throw transactionResult;
 				})

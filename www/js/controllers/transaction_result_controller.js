@@ -4,8 +4,8 @@ app.controller('TransactionResultCtrl', function ($scope, $state,
 
 	$scope.transactionStatus = $stateParams.transactionStatus;
 	$scope.transactionAmount = $stateParams.transactionAmount;
-	$scope.transactionMessage=$stateParams.transactionMessage;
-	
+//	$scope.transactionMessage = $stateParams.transactionMessage;
+
 	BackButtonService.disable();
 
 	var statusKey;
@@ -38,28 +38,25 @@ app.controller('TransactionResultCtrl', function ($scope, $state,
 	$scope.user = UserService.currentUser();
 
 
-	if ($scope.transactionStatus !== 'failure') {
+	if ($scope.transactionStatus === 'failure') {
+//		for (var t in TransactionService) {
+//			console.log(t);
+//			console.log(TransactionService[t]);
+//		}
+//		console.log($stateParams.transactionMessage);
+//		console.log($stateParams.transactionMessage);
+//		console.log($stateParams.transactionMessage);
+//		$scope.setMessages($scope.transactionMessage);
+		$scope.setMessages(TransactionService.lastTransaction);
+	} else {
 		$scope.setMessages(TransactionService.lastTransaction);
 		$scope.transactionInfo = {
 			amount: $filter('currency')($scope.transactionAmount),
 			company: $scope.user.company,
 			customerName: $scope.customer.name
 		};
-	} else {
-//		for (var t in TransactionService) {
-//			console.log(t);
-//			console.log(TransactionService[t]);
-//		}
-		console.log($scope.transactionMessage);
-		console.log($scope.transactionAmount);
-		console.log($scope.transactionStatus);
-		$scope.setMessages($scope.transactionMessage);
-		$scope.transactionInfo = {
-			amount: $scope.setMessages(TransactionService.message),
-			company: $scope.setMessages(TransactionService.message),
-			customerName: $scope.setMessages(TransactionService.message)
-		};
 	}
+
 	$scope.undoTransaction = function () {
 		NotificationService.showConfirm({
 			title: 'confirm_undo_transaction',
