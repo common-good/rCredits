@@ -1,7 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?><widget xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0" id="com.ionicframework.rcreditsmobile621273" version="0.0.1">
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0" id="com.ionicframework.rcreditsmobile621273" version="0.0.1">
   <name>rCredits</name>
   <description>
-		Community-Created Credits for the Common
+		Community-Created Credits for the Common Good
 	</description>
   <author email="info@rCredits.org" href="http://rcredits.org/">
 		rCredits Team
@@ -27,13 +28,6 @@
     <param name="ios-package" onload="true" value="CDVStatusBar"/>
   </feature>
   <platform name="ios">
-    <splash height="1136" src="resources/ios/splash/Default-568h@2x~iphone.png" width="640"/>
-    <splash height="1334" src="resources/ios/splash/Default-667h.png" width="750"/>
-    <splash height="2208" src="resources/ios/splash/Default-736h.png" width="1242"/>
-    <splash height="2048" src="resources/ios/splash/Default-Portrait@2x~ipad.png" width="1536"/>
-    <splash height="1024" src="resources/ios/splash/Default-Portrait~ipad.png" width="768"/>
-    <splash height="960" src="resources/ios/splash/Default@2x~iphone.png" width="640"/>
-    <splash height="480" src="resources/ios/splash/Default~iphone.png" width="320"/>
     <icon height="57" src="resources/ios/icon/icon.png" width="57"/>
     <icon height="114" src="resources/ios/icon/icon@2x.png" width="114"/>
     <icon height="40" src="resources/ios/icon/icon-40.png" width="40"/>
@@ -50,20 +44,27 @@
     <icon height="29" src="resources/ios/icon/icon-small.png" width="29"/>
     <icon height="58" src="resources/ios/icon/icon-small@2x.png" width="58"/>
     <icon height="87" src="resources/ios/icon/icon-small@3x.png" width="87"/>
+    <splash src="resources\ios\splash\Default-568h@2x~iphone.png" width="640" height="1136"/>
+    <splash src="resources\ios\splash\Default-667h.png" width="750" height="1334"/>
+    <splash src="resources\ios\splash\Default-736h.png" width="1242" height="2208"/>
+    <splash src="resources\ios\splash\Default-Portrait@2x~ipad.png" width="1536" height="2048"/>
+    <splash src="resources\ios\splash\Default-Portrait~ipad.png" width="768" height="1024"/>
+    <splash src="resources\ios\splash\Default@2x~iphone.png" width="640" height="960"/>
+    <splash src="resources\ios\splash\Default~iphone.png" width="320" height="480"/>
   </platform>
   <platform name="android">
-    <splash density="port-ldpi" src="resources/android/splash/drawable-port-ldpi-screen.png"/>
-    <splash density="port-mdpi" src="resources/android/splash/drawable-port-mdpi-screen.png"/>
-    <splash density="port-hdpi" src="resources/android/splash/drawable-port-hdpi-screen.png"/>
-    <splash density="port-xhdpi" src="resources/android/splash/drawable-port-xhdpi-screen.png"/>
-    <splash density="port-xxhdpi" src="resources/android/splash/drawable-port-xxhdpi-screen.png"/>
-    <splash density="port-xxxhdpi" src="resources/android/splash/drawable-port-xxxhdpi-screen.png"/>
     <icon density="ldpi" src="resources/android/icon/drawable-ldpi-icon.png"/>
     <icon density="mdpi" src="resources/android/icon/drawable-mdpi-icon.png"/>
     <icon density="hdpi" src="resources/android/icon/drawable-hdpi-icon.png"/>
     <icon density="xhdpi" src="resources/android/icon/drawable-xhdpi-icon.png"/>
     <icon density="xxhdpi" src="resources/android/icon/drawable-xxhdpi-icon.png"/>
     <icon density="xxxhdpi" src="resources/android/icon/drawable-xxxhdpi-icon.png"/>
+    <splash src="resources\android\splash\drawable-port-ldpi-screen.png" density="port-ldpi"/>
+    <splash src="resources\android\splash\drawable-port-mdpi-screen.png" density="port-mdpi"/>
+    <splash src="resources\android\splash\drawable-port-hdpi-screen.png" density="port-hdpi"/>
+    <splash src="resources\android\splash\drawable-port-xhdpi-screen.png" density="port-xhdpi"/>
+    <splash src="resources\android\splash\drawable-port-xxhdpi-screen.png" density="port-xxhdpi"/>
+    <splash src="resources\android\splash\drawable-port-xxxhdpi-screen.png" density="port-xxxhdpi"/>
   </platform>
   <icon src="resources/android/icon/drawable-xhdpi-icon.png"/>
   <plugin name="cordova-plugin-crosswalk-webview" spec="~1.6.1"/>
