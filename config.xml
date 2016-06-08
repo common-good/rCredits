@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <widget xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0" id="com.ionicframework.rcreditsmobile621273" version="0.0.1">
   <name>rCredits</name>
-  <description>
-		Community-Created Credits for the Common Good
+  <description>&#xD;
+		Community-Created Credits for the Common Good&#xD;
 	</description>
-  <author email="info@rCredits.org" href="http://rcredits.org/">
-		rCredits Team
+  <author email="info@rCredits.org" href="http://rcredits.org/">&#xD;
+		rCredits Team&#xD;
 	</author>
   <content src="index.html"/>
   <access origin="*"/>
