@@ -1,4 +1,4 @@
-app.controller('TransactionCtrl', function ($scope, $state, $stateParams,$ionicLoading, $filter, NotificationService, UserService,	TransactionService) {
+app.controller('TransactionCtrl', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService) {
 	$scope.transactionType = $stateParams.transactionType;
 	$scope.amount = 0;
 	var seller = UserService.currentUser();
@@ -41,12 +41,20 @@ app.controller('TransactionCtrl', function ($scope, $state, $stateParams,$ionicL
 		}
 		transactionPromise.then(function (transaction) {
 			//TransactionService.lastTransaction = transaction;
-			$state.go('app.transaction_result',	{'transactionStatus': 'success', 'transactionAmount': transactionAmount});
+			console.log('t');
+			for (var t in transaction) {
+				console.log(t);
+				console.log(transaction[t]);
+			}
+			$state.go('app.transaction_result', {'transactionStatus': 'success', 'transactionAmount': transactionAmount});
 			$ionicLoading.hide();
 		}, function (errorMsg) {
-			console.log(errorMsg);
-			$state.go('app.transaction_result',
-				{'transactionStatus': 'failure', 'transactionAmount': transactionAmount});
+			console.log(errorMsg.message);
+			for (var e in errorMsg) {
+				console.log(e);
+				console.log(errorMsg[e]);
+			}
+			$state.go('app.transaction_result', {'transactionStatus': 'failure', 'transactionAmount': transactionAmount,'transactionMessage':errorMsg.message});
 			$ionicLoading.hide();
 		});
 	};
