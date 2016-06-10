@@ -1,10 +1,11 @@
+/* global app */
 app.controller('TransactionCtrl', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService) {
 	$scope.transactionType = $stateParams.transactionType;
 	$scope.amount = 0;
 	var seller = UserService.currentUser();
 	var customer = UserService.currentCustomer();
 	var isTransactionTypeCharge = function () {
-		return $scope.transactionType == 'charge'
+		return $scope.transactionType === 'charge';
 	};
 	var fillCategories = function () {
 		if (isTransactionTypeCharge()) {
@@ -13,6 +14,13 @@ app.controller('TransactionCtrl', function ($scope, $state, $stateParams, $ionic
 			return seller.descriptions;
 		}
 		return seller.descriptions;
+	};
+	$scope.moreThan1Category=function (){
+		if(seller.descriptions.length>1){
+			return true;
+		}else{
+			return false;
+		}
 	};
 	$scope.categories = fillCategories();
 	$scope.selectedCategory = {
@@ -43,12 +51,13 @@ app.controller('TransactionCtrl', function ($scope, $state, $stateParams, $ionic
 			$state.go('app.transaction_result', {'transactionStatus': 'success', 'transactionAmount': transactionAmount});
 			$ionicLoading.hide();
 		}, function (errorMsg) {
-			TransactionService.lastTransaction=errorMsg;
-			$state.go('app.transaction_result', {'transactionStatus': 'failure', 'transactionAmount': transactionAmount,'transactionMessage':errorMsg.message});
+			TransactionService.lastTransaction = errorMsg;
+			$state.go('app.transaction_result', {'transactionStatus': 'failure', 'transactionAmount': transactionAmount, 'transactionMessage': errorMsg.message});
 			$ionicLoading.hide();
 		});
 	};
 	$scope.onSelectCategory = function () {
+		console.log(seller.descriptions);
 		if (!isTransactionTypeCharge() || $scope.selectedCategory.selected !== 'other') {
 			return;
 		}
@@ -65,7 +74,7 @@ app.controller('TransactionCtrl', function ($scope, $state, $stateParams, $ionic
 					type: 'button-positive',
 					onTap: function (e) {
 						if (!$scope.selectedCategory.custom) {
-							//don't allow the user to close unless he enters wifi password
+							//don't allow a user to close unless they enter a wifi password
 							e.preventDefault();
 						} else {
 							return $scope.selectedCategory.custom;
@@ -80,5 +89,5 @@ app.controller('TransactionCtrl', function ($scope, $state, $stateParams, $ionic
 				$scope.selectedCategory.selected = res;
 			}
 		});
-	}
+	};
 });

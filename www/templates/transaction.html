@@ -1,32 +1,35 @@
 <ion-view view-title="">
-  <ion-content>
-    <div class="tabulator" sf-resize  ng-controller="KeyPadCtrl">
-
-      <section class="section-1">
-        <div class="calc-component">
-          <div class="list">
-            <label class="item item-input item-select">
-              <div class="input-label">
-                {{ 'selectCategory' | translate }}
-              </div>
-              <select ng-change="onSelectCategory()" ng-model="selectedCategory.selected" ng-options="c | translate for c in categories">
-              </select>
-            </label>
-          </div>
-        </div>
-      </section>
-
-      <section class="section-2" ng-include="'templates/keypad.html'">
-      </section>
-
-      <section class="section-3">
-        <input type="hidden" ng-value='amount'>
-        <button class="primary button button-full button-positive"
-          ng-click='initiateTransaction()'
-          ng-disabled='disableTransaction()'>
-          {{ transactionType | translate }}
-        </button>
-      </section>
-    </div>
-  </ion-content>
+	<ion-content>
+		<div class="tabulator" sf-resize  ng-controller="KeyPadCtrl">
+			<section class="section-1">
+				<div class="calc-component">
+					<div class="list">
+						<label ng-if="moreThan1Category()" class="item item-input item-select">
+							<div class="input-label">
+								{{ 'selectCategory' | translate }}
+							</div>
+							<select ng-change="onSelectCategory()" ng-model="selectedCategory.selected" ng-options="c |  translate for c in categories">
+							</select>
+						</label>
+						<label ng-if="!moreThan1Category()" class="item item-input">
+							<div class="input-label">
+								{{ 'selectCategory' | translate }}
+							</div>
+							<div class="transaction-description-menu">{{categories[0]}}</div>
+						</label>
+					</div>
+				</div>
+			</section>
+			<section class="section-2" ng-include="'templates/keypad.html'">
+			</section>
+			<section class="section-3">
+				<input type="hidden" ng-value='amount'>
+				<button class="primary button button-full button-positive"
+						ng-click='initiateTransaction()'
+						ng-disabled='disableTransaction()'>
+					{{ transactionType | translate }}
+				</button>
+			</section>
+		</div>
+	</ion-content>
 </ion-view>

@@ -14,6 +14,7 @@
 		"ion-view": {
 			"attributes": {
 				"hide-back-button": {},
+				"view-title": {},
 				"cache-view": {},
 				"class": {}
 			}
