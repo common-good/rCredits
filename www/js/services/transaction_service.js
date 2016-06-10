@@ -1,4 +1,4 @@
-/* global rCreditsConfig, Transaction */
+/* global rCreditsConfig, Transaction, _, app */
 
 app.service('TransactionService',
 	function ($q, UserService, RequestParameterBuilder, $http, $httpParamSerializer, SQLiteService,
