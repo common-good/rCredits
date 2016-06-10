@@ -171,7 +171,7 @@ function rweb_menu($submenu = '') {
     'sadmin/organizer-list' => ['call', t('Organizer List'), 'OrganizerList 2', 'admin'],
     'rcredits/util' => ['call', 'Util', '2', 'admin', 'util'],
     'sadmin/recover' => ['call', t('Empty'), 'TestRecovery 1', 'dev'], // also go here manually, if needed
-    'print-rcard' => ['call', t('Print ID Card'), '1 ', 'cadmin', 'memberID'],
+    'print-rcard' => ['call', t('Print ID Card'), '1 2', 'cadmin', 'memberID'],
 
     'signout' => ['norm', t('Sign out'), '1', 'anyone', 'signout'],
     
@@ -185,7 +185,7 @@ function rweb_menu($submenu = '') {
     'do' => ['call', 'Do', '1 2', 'anyone', 'rdo'],
     'coup' => ['call', t('Disable account'), '1', 'anyone', 'coup'],
 
-    'savings' => ['call', t('Savings'), 'ChooseSavings', 'anyone'], // temporary until 12/15/2015 or so
+//    'savings' => ['call', t('Savings'), 'ChooseSavings', 'anyone'], // temporary until 12/15/2015 or so
     'accept' => ['call', 'Accept Invitation', 'Accept 1', 'anyone'], // called from promo site rCredits.org
     'pos' => ['call', 'POS', '', 'anyone', 'rCredits\\Smart\\pos'], // called from the rPOS app
     'ajax' => ['call', 'AJAX', '1', 'anyone', 'ajax'], // called from the rPOS app

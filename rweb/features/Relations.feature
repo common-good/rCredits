@@ -24,8 +24,8 @@ Setup:
 
 Scenario: Member has an employee, confirmed
   Given relations:
-  | id | main | agent | permission   | employee | isOwner | draw |*
-  | 1  | .ZZA | .ZZD  | scan         | 1          | 1       | 0    |
+  | main | agent | permission   | employee | isOwner | draw |*
+  | .ZZA | .ZZD  | scan         | 1          | 1       | 0    |
   When member ".ZZA" visits page "settings/relations"
   Then we show "Relations" with:
   | other      | Draw | My employee? | Family? | Permission |_requests      |
@@ -33,8 +33,8 @@ Scenario: Member has an employee, confirmed
 
 Scenario: Member has an employee, unconfirmed
   Given relations:
-  | id | main | agent | permission | employee | isOwner |*
-  | 1  | .ZZA | .ZZD  | refund     | 1          | 0       |
+  | main | agent | permission | employee | isOwner |*
+  | .ZZA | .ZZD  | refund     | 1          | 0       |
   When member ".ZZA" visits page "settings/relations"
   Then we show "Relations" with:
   | other      | My employee? | Family? | Permission  |_requests      |
@@ -42,8 +42,8 @@ Scenario: Member has an employee, unconfirmed
 
 Scenario: Member has a relation with a contractor
   Given relations:
-  | id | main | agent | permission | employee | isOwner |*
-  | 1  | .ZZA | .ZZB  | buy        | 0          | 0        |
+  | main | agent | permission | employee | isOwner |*
+  | .ZZA | .ZZB  | buy        | 0          | 0        |
   When member ".ZZA" visits page "settings/relations"
   Then we show "Relations" with:
   | other      | My employee? | Family? | Permission |_requests      |
@@ -51,8 +51,8 @@ Scenario: Member has a relation with a contractor
   
 Scenario: Member has an employee, claimed
   Given relations:
-  | id | main | agent | permission   | employee | isOwner |*
-  | 1  | .ZZA | .ZZD  | sell         | 0          | 0       |
+  | main | agent | permission   | employee | isOwner |*
+  | .ZZA | .ZZD  | sell         | 0          | 0       |
   When member ".ZZA" visits page "settings/relations"
   Then we show "Relations" with:
   | other      | My employee? | Family? | Permission |_requests      |
@@ -60,8 +60,8 @@ Scenario: Member has an employee, claimed
   
 Scenario: Employee can only read
   Given relations:
-  | id | main | agent | permission | employee | isOwner |*
-  | 1  | .ZZA | .ZZD  | read       | 1          | 1       |
+  | main | agent | permission | employee | isOwner |*
+  | .ZZA | .ZZD  | read       | 1          | 1       |
   When member ".ZZA" visits page "settings/relations"
   Then we show "Relations" with:
   | other      | My employee? | Family? | Permission |_requests      |
@@ -69,8 +69,8 @@ Scenario: Employee can only read
   
 Scenario: Member has an employer
   Given relations:
-  | id | main | agent | permission   | employee | isOwner |*
-  | 1  | .ZZB | .ZZA  | sell         | 1          | 1        |
+  | main | agent | permission   | employee | isOwner |*
+  | .ZZB | .ZZA  | sell         | 1          | 1        |
   When member ".ZZA" visits page "settings/relations"
   Then we show "Relations" with:
   | other      | My employee? | Family? | Permission |_requests      |
@@ -79,9 +79,9 @@ Scenario: Member has an employer
   
 Scenario: Member has access to employee account
   Given relations:
-  | id | main | agent | permission | employee | isOwner |*
-  | 1  | .ZZA | .ZZD  |            | 1          | 1        |
-  | 2  | .ZZD | .ZZA  | sell       | 0          | 0        |
+  | main | agent | permission | employee | isOwner |*
+  | .ZZA | .ZZD  |            | 1          | 1        |
+  | .ZZD | .ZZA  | sell       | 0          | 0        |
   When member ".ZZA" visits page "settings/relations"
   Then we show "Relations" with:
   | other      | My employee? | Family? | Permission |_requests      |
@@ -93,9 +93,9 @@ Scenario: Member has access to employee account
 
 Scenario: Member company has relations
   Given relations:
-  | id   | main | agent | permission | employee | isOwner |*
-  | :ZZA | .ZZC | .ZZA  | manage     | 1          | 1        |
-  When member ":ZZA" visits page "settings/relations"
+  | main | agent | num | permission | employee | isOwner |*
+  | .ZZC | .ZZA  |   1 | manage     | 1          | 1        |
+  When member "C:A" visits page "settings/relations"
   Then we show "Relations" with:
   | other   | My employee? | Owns | Permission     |_requests      |
   | Abe One | Yes          | Yes  | manage account | request rCard |
@@ -107,13 +107,13 @@ Scenario: Member company has relations
 
 Scenario: It's complicated
   Given relations:
-  | id   | main | agent | permission | employee | isOwner |*
-  | .ZZA | .ZZA | .ZZD  | manage     | 1        | 1       |
-  | .ZZB | .ZZD | .ZZA  |            | 0        | 0       |
-  | .ZZC | .ZZA | .ZZC  | buy        | 0        | 0       |
-  | .ZZD | .ZZC | .ZZA  | scan       | 1        | 0       |
-  | .ZZE | .ZZA | .ZZB  | sell       | 1        | 1       |
-  | .ZZF | .ZZB | .ZZA  |            | 1        | 0       |
+  | main | agent | num | permission | employee | isOwner |*
+  | .ZZA | .ZZD  |   0 | manage     | 1        | 1       |
+  | .ZZD | .ZZA  |   0 |            | 0        | 0       |
+  | .ZZA | .ZZC  |   0 | buy        | 0        | 0       |
+  | .ZZC | .ZZA  |   1 | scan       | 1        | 0       |
+  | .ZZA | .ZZB  |   0 | sell       | 1        | 1       |
+  | .ZZB | .ZZA  |   0 |            | 1        | 0       |
   When member ".ZZA" visits page "settings/relations"
   Then we show "Relations" with:
   | other      | My employee? | Family? | Permission  |_requests      |
@@ -131,7 +131,7 @@ Scenario: It's complicated
   And with:
   |_Header  |
   | Family? |
-  When member ":ZZD" visits page "settings/relations"
+  When member "C:A" visits page "settings/relations"
   Then we show "Relations" with:
   | other   | My employee? | Owns | Permission  |_requests      |
   | Abe One | Yes          | No   | %can_scan | request Cashier Card |
@@ -156,8 +156,8 @@ Scenario: A member tries to add a relation with self
 
 Scenario: A member tries to add a relation again
   Given relations:
-  | id | main | agent | permission | employee | isOwner |*
-  | 1  | .ZZA | .ZZB  | scan       | 1        | 1       |
+  | main | agent | permission | employee | isOwner |*
+  | .ZZA | .ZZB  | scan       | 1        | 1       |
   When member ".ZZA" completes relations form with values:
   | newPerson |*
   | Bea Two   |

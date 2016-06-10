@@ -14,25 +14,25 @@ Setup:
   | id   | code |*
   | .ZZC | devC |
   And relations:
-  | id   | main | agent | permission |*
-  | :ZZA | .ZZC | .ZZA  | buy        |
-  | :ZZB | .ZZC | .ZZB  | scan       |
-  | :ZZE | .ZZF | .ZZA  | scan       |
+  | main | agent | num | permission |*
+  | .ZZC | .ZZA  |   1 | buy        |
+  | .ZZC | .ZZB  |   2 | scan       |
+  | .ZZF | .ZZA  |   1 | scan       |
 
 Scenario: Device requests a bad op
-  When agent ":ZZA" asks device "devC" for op %random with: ""
+  When agent "C:A" asks device "devC" for op %random with: ""
   Then we return error "bad op"
 
 Scenario: Device should have an identifier
-  When agent ":ZZA" asks device "" for op "charge" with:
+  When agent "C:A" asks device "" for op "charge" with:
   | member | code |*
   | .ZZB   | ccB  |
   Then we return error "missing device"
   
 Scenario: Device gives a bad code
-  When agent ":ZZA" asks device %random for op "time" with: ""
+  When agent "C:A" asks device %random for op "time" with: ""
   Then we return error "unknown device"
 
 Scenario: An Agent for an inactive company tries an op
-  When agent ":ZZE" asks device "devC" for op "charge" with: ""
+  When agent "F:A" asks device "devC" for op "charge" with: ""
   Then we return error "company inactive"

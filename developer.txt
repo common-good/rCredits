@@ -159,28 +159,32 @@ F. Notes on some PHP functions and rCredits utilities - often-used or crucial
      EXPECT: a costly but easy-to-use constistency checker
      ret<X>: A collection of functions to return the argument when it passes a certain test.
      is<X>: A collection of functions to return TRUE when the argument passes a certain test, otherwise FALSE.
-     r\acct(): interface to the acct object -- representing an account (including region), combined with the current agent for the account. Note that r\acct($uid) is very different from new r\acct($uid).
+     r\acct(): interface to the acct object -- representing an account (including region), combined with the current agent for the account. Note that r\acct($uid) is very different from new r\Acct($uid).
     
 G. Special rCredits datatypes
   assoc: an associative array (not really special, but we call it "assoc" rather than "array" in the function headers)
    acct: an account (including the region), together with the agent currently representing that account
 
-  zid: a signed id (non-zero) -- the meaning of a negative value varies, depending on usage (ie a qxid or quid)
+  zid: a signed id (non-zero) -- the meaning of a negative value varies, depending on usage (ie a qxid or qid)
  reid: a relation id
   uid: an account id
   xid: a transaction id
 
-  qid: a mostly-alphabetic representation of a zid, eg "XXX.YYYY...", used externally for REST and SMS queries.
-    XXX (3 letters) represents the region's uid, YYYY... (some number of letters) represents a record ID
-    the separator can be a colon instead of period, giving YYYY... a different meaning
-      There are also two accepted alternatives to a colon: .. OR =
+  qid: a mostly-alphabetic representation of a zid, eg XXXYYY or XXX.YYY, used externally for REST and SMS queries. There are two versions of qids:
+    OLD STYLE (deprecated and being phased out, but all cards created before 6/2016 use this style)
+      XXX (3 letters) represents the region's uid, YYYY... (some number of letters) represents a record ID
+      the separator can be a colon instead of period, giving YYYY... a different meaning
+        There are also two accepted alternatives to a colon: .. OR =
+    NEW STYLE
+      - proSe qids: XXXYYY, XXXYYYY, or XXXXYYYY
+      - relational qids: the proSe qid of the company followed by -W (or -WW or -WWW), for example XXXYYY-W
+        The Ws represent the agent number. No number is given to an agent except when issuing a company rCard
+        
     The region (XXX) can be omitted in SMS identifiers (eg "200 to .ABCDE for pie")
     For each region that exists, we have a user record with uid < 0, with name = the region name followed by a period (eg ABC.)
-    (Communities within the region have negative uids descending from their region's uid, and do not need qids,
-    but could have a qid with a hyphen, like AAA-AAB, if needed.)
+    Communities within the region have negative uids descending from their region's uid. The qid for a negative region is an exclamation point followed by the qid for the corresponding positive number.
   
- qxid: a qid (8 characters or more) representing an xid (currently used only in rSmart)
- quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
+ qid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
 
   The first two characters of a qid are a code for the country or region of population 5.7 million+. They could be unused most of the time, when doing business locally. 
 
@@ -261,6 +265,10 @@ K. Handling USD
   - Each rCredits region is not a "money transmitter" because it is an agent of CGF
 
 X. Other thoughts:
+  - The test server must have the following in its .htaccess file (and the production server must NOT!):
+    <IfModule mod_headers.c>
+      Header set Access-Control-Allow-Origin: http://localhost:8100
+    </IfModule>
   - Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
   - Suppose I live in 413 (NEW), but my cell is 987 (NYC). Person B lives in 222 with cell 333. When I am traveling to AAA I pay person B with SMS, by calling the local rCredits number. The local server contacts NYC to process my side of the transactions, but gets redirected to NEW. Similarly for person B's side. So at most 5 servers are involved (three just redirecting). NEW.rcredits.org and other subdomains act similarly.
   - in dwolla.php: replace "if ($" with "if (@$" and "if (!$" with "if (!@$" (DONE)

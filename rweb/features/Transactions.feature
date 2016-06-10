@@ -10,11 +10,11 @@ Setup:
   | .ZZB | Bea Two    | -200  | personal    | ok,co,bona | %today-15m |     10 |
   | .ZZC | Corner Pub | -300  | corporation | ok,co,bona | %today-15m |     10 |
   And relations:
-  | id   | main | agent | permission |*
-  | .ZZA | .ZZA | .ZZB  | buy        |
-  | .ZZB | .ZZB | .ZZA  | read       |
-  | .ZZC | .ZZC | .ZZB  | buy        |
-  | .ZZD | .ZZC | .ZZA  | sell       |
+  | main | agent | permission |*
+  | .ZZA | .ZZB  | buy        |
+  | .ZZB | .ZZA  | read       |
+  | .ZZC | .ZZB  | buy        |
+  | .ZZC | .ZZA  | sell       |
   And usd transfers:
   | payer | amount | tid | created    | completed  |*
   |  .ZZA |  -1000 |   1 | %today-13m | %today-13m |

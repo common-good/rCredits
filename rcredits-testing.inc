@@ -28,7 +28,8 @@ define('DW_TEST_AUTHS',
 );
 define('T_BALANCE_FIELDS', 'id r usd balance dwolla floor rewards minimum share committed');
 */
-define('T_BALANCE_FIELDS', 'id r balance floor rewards savings minimum share committed');
+define('T_BALANCE_FIELDS', 'id r balance floor rewards savingsAdd minimum share committed');
+define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to');
 define('T_MSG_FILE', 'test-messages.txt');
 
 /**
@@ -38,9 +39,10 @@ define('T_MSG_FILE', 'test-messages.txt');
  */
 function fixData(&$info, $direct = FALSE) {
   global $rUrl;
-  $fields = 'postalCode country state email phone dob federalId idProof flags adminable notices statements';
+  $fields = 'postalCode country state email phone dob federalId idProof flags adminable notices statements who';
   extract(u\just($fields, $info));
 
+  if (@$who) $who = t\fullQid($who);
   foreach (['flags', 'adminable'] as $k) if (isset($$k)) $$k = t\fixFlags($$k);
   if (isset($adminable)) {
     for ($i = 0; $i < B_MAX; $i++) if (u\getbit($adminable, $i)) $adminable2[$i] = TRUE;
@@ -64,9 +66,10 @@ function fixData(&$info, $direct = FALSE) {
     if (@$dob) $dob = strtotime(str_replace('/', '-', $dob));
   }
 
-  foreach (u\just('uid inviter invitee person proxy helper', $info) as $k => $v) {
-    if (strpos($v, '.') !== FALSE or strpos($v, ':') !== FALSE) $info[$k] = t\uid($v) ?: 0;
+  foreach (u\just(T_ID_FIELDS, $info) as $k => $v) {
+    if (strpos($v, '.') !== FALSE) $info[$k] = t\uid($v) ?: 0;
   }
+  
   $info = compact(u\ray($fields)) + $info;
 }
 
@@ -96,8 +99,8 @@ function doRecords($list, $type) {
 function doThing($info, $type) {
   global $testOnly;
   $table = 'r_' . strtolower($type) . 's';
-  if (@$info['id']) $info['uid'] = t\uid($info['id']); unset($info['id']);
   fixData($info);
+  if (@$info['id']) {$info['uid'] = $info['id']; unset($info['id']);}
   return $testOnly ? verifyRecord($table, $info) : db\insert($table, $info);
 }
 
@@ -135,7 +138,7 @@ function doAccount($info = []) {
   global $testOnly;
 /**/  if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
   extract($info); // any user table fields
-  u\setDft($id, r\acct::nextId()); // default to first available number
+  u\setDft($id, r\Acct::nextId()); // default to first available number
   $uid = t\uid($id); // change .AAB to 1, etc.
 
 //  if (@$email) $mail = $info['mail'] = $email;
@@ -151,7 +154,7 @@ function doAccount($info = []) {
   //  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
     if (trim(@$pass) === '') $pass = '123';
 
-    $zza = r\unQuid('.ZZA');
+    $zza = r\qo('.ZZA')->id;
     $mailDft = ($zza <= $uid and $uid < $zza + 26) ? chr(ord('a') + $uid - $zza) : \user_password(10);
     u\setDft($email, $mailDft . '@example.com'); // a@example.com, etc.
 
@@ -192,7 +195,7 @@ function doAccount($info = []) {
     }
     return TRUE;
   }
-  if (!$a = new r\acct($info)) return FALSE;
+  if (!$a = new r\Acct($info)) return FALSE;
 
   if (@$picture) if (!makePicture($picture, $a)) return FALSE;
 
@@ -261,8 +264,8 @@ function doTx($info, $thing) {
       list ($k, $v) = explode(':', @$purpose);
       $data += array($k => $v);
     }
-    if (@$fromAgent or @$from) $payerAgent = uid(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
-    if (@$toAgent or @$to) $payeeAgent = uid(@$toAgent ?: $to );
+    if (@$fromAgent or @$from) $payerAgent = t\agent(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
+    if (@$toAgent or @$to) $payeeAgent = t\agent(@$toAgent ?: $to );
     u\setDft($taking, 0);
     unset($info['purpose']);
   }
@@ -282,52 +285,53 @@ function doTx($info, $thing) {
   if ($inv) {
     return db\insert('r_invoices', $info);
   } else {
-    $x = new r\x($info + compact('for'));
-    return $x->id;
+    $x = new r\X($info + compact('for'));
+    return $x->xid;
   }
 }
 
 /**
  * Interpret an id in a transaction or invoice.
- * @param string $id: quid or partial quid (eg NEW.AAA or .AAA or NEW:AAA or :AAA)
+ * @param string $id: qid or partial qid (eg NEWAAA or .AAA or C:A or NEWZZC-A)
  * @param int $main: (RETURNED) the payer or payee
  * @param int $other: (RETURNED) the payerAgent or payeeAgent
  */
 function txUid($id, &$main, &$other) {
-  if (strpos($id, R_AGENT_MARK) !== FALSE) {
+  list ($main, $other) = [t\uid($id), t\agent($id)];
+/*  if (strpos($id, R_AGENT_MARK) !== FALSE) {
     $reid = t\uid(str_replace(R_AGENT_MARK, R_MEMBER_MARK, $id));
     extract(r\relation('main,other', $reid));
-  } else $main = $other = t\uid($id);
+  } else $main = $other = t\uid($id); */
 }
 
 /**
  * Fabricate bogus relations.
- * Minimum parameters: main, agent (both are quids -- at least one must be local)
+ * Minimum parameters: main, agent (both are qids -- at least one must be local)
  */
 function doRelation($info) {
   include_once __DIR__ . '/admin/admin-forms.inc';
   global $testOnly;
   extract($info);
   
-  if (@$id) $reid = t\uid(str_replace(R_AGENT_MARK, R_MEMBER_MARK, $id));
+  if (@$id) $reid = t\uid(str_replace(R_AGENT_MARK, R_MEMBER_MARK, $id)); // deprecated
 //  u\num($id, u\a2n(substr($id, -3)));
   if (!$mainAcct = r\acct(t\uid($main))) return output("main:$main is not an id");
   if (!$agtAcct = r\acct(t\uid($agent))) return output("agent:$agent is not an id");
   //u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
   u\EXPECT($mainAcct->proSe and $agtAcct->proSe);
-  list ($main, $other) = array($mainAcct->id, $agtAcct->id);
+  list ($main, $other, $otherNum) = array($mainAcct->id, $agtAcct->id, @$num);
   $info['permission'] = @$permission ? u\consta('b', $permission) - B_RELATED : 0;
   if (@$draw) $agtAcct->setBit(B_DRAWS);
   
-  foreach (u\ray('id main agent rCard') as $one) unset($info[$one]);
-  $info += compact(u\ray('reid main other'));
+  foreach (u\ray('id main agent num rCard') as $k) unset($info[$k]);
+  $info += compact(u\ray('reid main other otherNum'));
   
   if ($testOnly) {
     return verifyRecord('r_relations', $info);
   } else {
 //    db\insert('r_relations', $info);
-    r\acct($main)->newRelation($other, $info['permission'], @$employee, @$isOwner, @$draw, @$reid);
-    if (@$rCard == 'yes') r\Web\memberId($id); // make a Company Agent rCard
+    r\acct($main)->newRelation($info);
+    if (@$rCard == 'yes') r\Web\memberId($main, $other); // make a Company Agent rCard
     return TRUE;
   }
 }
@@ -418,7 +422,7 @@ function doneStep($uid, $step) {
   
   if ($step == 'contact') return $a->update('postalAddr', 'The World');
   if ($step == 'connect') return $a->update('bankAccount', 'USkk123456789whatever');
-  if ($step == 'prefs') return $a->update('minimum', 0);
+  if ($step == 'prefs') return $a->update1('minimum', 0);
   //if ($step == 'invite') return db\insert('r_invites', u\ray('inviter email code', $uid, 'any@example.com', 'whatever'));
   if ($step == 'company') return $a->update('selling', 'stuff');
   // if ($step == 'relations') ?
@@ -429,22 +433,21 @@ function doneStep($uid, $step) {
  * Make the member fields be thus and such OR test to see if they ARE thus and such.
  * "?" in a field means ignore its value when testing
  */
-function doMemberFields($one) {
+function doMemberFields($info) {
   global $testOnly;
-  $balFields = u\just(T_BALANCE_FIELDS, $one);
+  $balFields = u\just(T_BALANCE_FIELDS, $info);
   if (!doBalance($balFields, $testOnly)) return;
 
-  $a = r\acct($id = t\uid($one['id']));
-  foreach ($balFields as $k => $v) unset($one[$k]); // don't rehandle balance fields, and already got id
-  fixData($one, TRUE);
-  if (@$one['jid']) $one['jid'] = t\uid($one['jid']);
+  $a = r\acct($id = t\uid($info['id']));
+  foreach ($balFields as $k => $v) unset($info[$k]); // don't rehandle balance fields, and already got id
+  fixData($info, TRUE);
 
   if ($testOnly) {
-    foreach ($one as $key => $value) if ($value != '?') {
+    foreach ($info as $key => $value) if ($value != '?') {
       if (t\badEq("db $key", $a->$key, $value, $id)) return FALSE;
     }
     return TRUE;
-  } else return ($one ? $a->update($one) : TRUE); // handle no fields other than balFields
+  } else return ($info ? $a->update1($info) : TRUE); // handle no fields other than balFields
 }
 
 /**
@@ -458,7 +461,7 @@ function memberFieldValues($list) {
     if ($field == 'helper' or $field == 'community') $value = t\uid($value);
     if ($testOnly) {
       if (t\badEq('fieldValue wanted/actual:', $value, $a->$field, $id)) return FALSE;
-    } else $a->update($field, $value);
+    } else $a->update1($field, $value);
   }
   return TRUE;
 }
@@ -467,17 +470,17 @@ function memberFieldValues($list) {
  * Make the cached balances and other numeric fields be thus and such.
  * "?" in a field means ignore its value when testing
  */
-function doBalance($one) {
+function doBalance($info) {
   global $testOnly;
 
-  extract(u\just(T_BALANCE_FIELDS, $one));
+  extract(u\just(T_BALANCE_FIELDS, $info));
   if (!$a = r\acct($id = t\uid($id0 = $id))) return t\output("account $id0 does not exist");
   $a->reread(TRUE); // otherwise db updates are invisible
+  t\fixData($info);
 /// print_r(compact('a','id','id0'));
-/// print_r(' unQuid=' . r\unQuid($id0));
   if (!$testOnly) { // setting the values
-    unset($one['id']);
-    return ($one ? $a->update($one) : TRUE); // handle only id being passed
+    unset($info['id']);
+    return ($info ? $a->update($info) : TRUE); // handle only id being passed
   }
 
   // verify
@@ -582,14 +585,22 @@ function uidCredit($uid) {
 }
 
 /**
- * Interpret the given identifier (int, full quid, or local quid) as an account ID.
+ * Accept abbreviations of alphabetic ids for accounts, transactions, and relations
+ * @param string $q: the possibly-abbreviated id
+ * @return: the full id (if $q is numeric or an already-full alphabetic id, return it unchanged)
  */
-function uid($id) {
-  return is_numeric($id) ? $id
-    : (($id == 'community' or $id == 'ctty') ? r\serverUid() 
-    : ($id == 'cgf' ? r\cgfId()
-    : r\unQuid($id)));
+function fullQid($q) {return substr($q, 0, 1) == '.' ? r\qo($q)->qid : $q;}
+
+/**
+ * Interpret the given identifier (int, full qid, or local qid) as an account ID.
+ */
+function uid($id, $field = 'id') {
+  if (is_numeric($id)) return $id;
+  if ($id == 'community' or $id == 'ctty') return r\serverUid();
+  if ($id == 'cgf') return r\cgfId();
+  return r\qo(t\fullQid2($id))->$field;
 }
+function agent($id) {return t\uid($id, 'agent');}
 
 function getErrors() {
   $errors = \drupal_get_messages('error', FALSE);
@@ -674,7 +685,7 @@ function findEmail($index, $email, $subs) {
 
   $subs = is_array(@$subs[0]) ? $subs[0] : @$subs;
   t\fixEmail($email);
-  if ($a = r\acct($email)) $subs['quid'] = $a->mainQid;
+  if ($a = r\acct($email)) $subs['qid'] = $a->mainQid;
   
   foreach ($subs as $k => $v) {
     if ($k == 'nudge') $subs[$k] = $v = u\tt($v);
@@ -817,8 +828,9 @@ function subAgo($string, $fmt) {
  */
 function hitServer($op, $extra = [], $agent, $device = '', $version = '999') {
   global $rposResult;
-  $agent = r\fullQid($agent);
-  if (@$extra['member']) $extra['member'] = r\fullQid($extra['member']);
+  if ($agent) $agent = t\fullQid2($agent);
+
+  if (@$extra['member']) $extra['member'] = t\fullQid2($extra['member']);
   $input = compact(u\ray('op agent device version')) + $extra;
 /**/ t\output('request: ' . print_r($input, 1), 'input'); // keep this
   $rposResult = r\Smart\pos($input);
@@ -827,10 +839,30 @@ function hitServer($op, $extra = [], $agent, $device = '', $version = '999') {
   return TRUE;
 }
 
+/**
+ * Allow member or agent code to be abbreviated (without the region) as .YYY or x:y,
+ * where ZZx is the company abbreviation and ZZy is the agent
+ */
+function fullQid2($agent) {
+  if (strlen($agent) > 7) return $agent;
+  if (strpos($agent, ':')) { // company:agent
+    list ($cpy, $agt) = explode(':', $agent);
+    $cpy = t\fullQid('.ZZ' . $cpy);
+    $agt = t\fullQid('.ZZ' . $agt);
+    return r\qid($cpy, $agt);
+  } elseif (strpos($agent, '#')) { // company#agentNum (deprecated)
+    list ($cpy, $agt) = explode('#', $agent);
+    $cpy = t\fullQid('.ZZ' . $cpy);
+    if (is_numeric($agt)) $agt = u\n2a($agt, 1, 36);
+    return "$cpy-$agt";
+  } else return t\fullQid($agent);
+}
+
 function parseQr($qr) {
-  list ($member, $m, $code) = preg_split('/([\.-])/', $qr, 0, PREG_SPLIT_DELIM_CAPTURE);
-  $member = R_SERVER_ID . ($m == '-' ? ':' : $m) . $member;
-  return array($member, $code);
+  list ($member, $code) = explode(',', $qr . ',');
+  return [t\fullQid2($member), $code];
+//  list ($member, $m, $code) = preg_split('/([\.-])/', $qr, 0, PREG_SPLIT_DELIM_CAPTURE);
+//  $member = R_SERVER_ID . ($m == '-' ? ':' : $m) . $member;
 }
 
 function snapShot(&$form) { // (additional sta values have no effect at this stage)
@@ -852,13 +884,14 @@ function addAttribs(&$thing) {
 
 /**
  * Log the given id in.
- * @param string $id: full or partial quid or '?' (meaning anonymous user, so don't log in)
+ * @param string $id: full or partial qid or '?' (meaning anonymous user, so don't log in)
  * @return: successful (always successful for anonymous)
  */
 function logIn($id) {
   global $boxUser;
   if ($id != '?') {
-    r\acct::setDefault($a = r\acct(r\fullQid($id))); // fullQid not uid
+    r\Acct::setDefault($a = r\acct(t\fullQid2($id))); // fullQid not uid
+    u\EXPECT(u\isAcct($a), 'id not account:' . $id);
     $boxUser = r\Web\boxUser(r\Web\box(), $a->id);
   }
   return TRUE;
@@ -897,7 +930,7 @@ function verifyRecord($table, $info) {
 
 /**
  * Simulate completion (and possible confirmation) of a form.
- * @param string $id: quid for the user (or company agent) completing the form
+ * @param string $id: qid for the user (or company agent) completing the form
  * @param string $page: path to form from drupal root
  * @param array $values: array of assoc of field names/values (or empty)
  * @param bool $confirmed: whether the user has confirmed the values (default FALSE)
@@ -918,7 +951,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   $values = @$values[0] ?: [];
   t\fixData($values);
   if (isset($values['amount']) and !is_numeric($values['amount'])) {
-    $a = r\acct(r\fullQid($id));
+    $a = r\acct(t\fullQid($id));
     list ($values['amount']) = t\parseAmt($values['amount'], $a);
   }
 //  if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
@@ -1186,7 +1219,7 @@ function clear($ch = 0) {
   ctty('aab')->setBit(B_UP);
 
   t\log('clearing');
-  r\acct::_clear(); // empty the acct cache
+  r\Acct::_clear(); // empty the acct cache
   \drupal_static_reset(); // clear out drupal central storage
 }
 

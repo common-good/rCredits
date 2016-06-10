@@ -1,59 +1,65 @@
-function findslider(i) {
-	for(var si in cgsliders) if(cgsliders[si].id == 'input_slider' + i) return si;
+/**
+ * Construct an option for a Budget-type question.
+ * @param int i: the (internal) option number
+ * @param DOM element: jQuery input element for BootstrapSlider slider (or null)
+ */
+function Opt(i, slider) {
+  this.i = i;
+  this.veto = $('#edit-veto' + i);
+	this.votenotediv = $('#votenotediv' + i);
+  this.votenote = $('#votenotediv' + i + ' textarea');
+  this.optdetail = $('#optdetail' + i);
+  this.input = $('#edit-option' + i);
+
+  if (slider != null) {
+    this.slider = slider.bootstrapSlider({
+      formatter: function(v) {return v + '%';},
+      tooltip: 'always'
+    });
+    this.slider.on('slideStop', function(slideEvt) {
+      opts[i].input.val(slideEvt.value); // "this" fails here
+    });
+  }
+  
+  this.vetoClick = function() {
+    var doVeto = this.veto.prop('checked');
+    this.optdetail.toggle(doVeto);
+    this.votenotediv.toggle(doVeto);
+    if (doVeto) {
+      if (slider != null) this.slider.bootstrapSlider('setValue', 0);
+      this.input.val(0);
+      this.votenote.focus();
+    }
+  }
+  this.vetoClick();
 }
 
-function findslidernum(id) {
-	return parseInt(id.replace('input_slider', ''));
-}
+/**
+ * Toggle between grades: X, X+, and X-.
+ * @param DOMelement me: the DOM input element of the current option
+ * @param int opti: the option number
+ */
+function nudgegrade(me, opti) {
+  var prevValue = $('#grades0').find('input:checked').val();
+  if (prevValue == null) return; // no previous value, nothing to nudge
 
-function vetoclickB(i) {
-	var veto = document.getElementById('input_veto' + i);
-	var sliderdiv = document.getElementById('sliderdiv' + i);
-	var vetonotediv = document.getElementById('vetonotediv' + i);
-	var si = findslider(i);
-	if(veto.checked) {
-		cgsliders[si].setValue(0, true);
-		cgsliders[si].target.value = '';
-		expand(-i);
+	var oneletter;
+	var letters = 'EDCBA';
+	var basevalue = Math.round(me.value);
+	var oldsign = (Math.round(prevValue) == basevalue) ? me.value - basevalue : -.333; // pretend X- if new letter
+	var baseletter = letters.substr(basevalue, 1);
+	var letter = $('#g' + baseletter + opti);
+
+	for(i=0; i<letters.length; i++) { // reset all the letters before fixing this one
+		$('#edit-option' + opti + '_' + i).val(i); // restore start value
+		oneletter = letters.substr(i, 1);
+		$('#g' + oneletter + opti).html(oneletter);
 	}
-	vetonotediv.style.display = veto.checked ? 'block' : 'none';
-	sliderdiv.style.visibility = veto.checked ? 'hidden' : 'visible';
-	cgsliders[si].active = !veto.checked;
-	if(veto.checked) cgReactText('');
+	newsign = (oldsign < 0 ? 0 : (oldsign == 0 ? .333 : (basevalue == 0 ? 0 : -.333))); // toggle sign (no E-)
+	me.value = basevalue + newsign;
+	letter.html(baseletter + (newsign < 0 ? '<sup><b>&ndash;</b></sup>' : (newsign == 0 ? '' : '<sup>+</sup>')));
 }
 
-function changepct(i) {
-	var si = findslider(i);
-	var newvalue = cgsliders[si].target.value;
-	newvalue = Math.max(0,Math.min(100,parseFloat(newvalue.replace(/[^\d\.]/g, '')))); // remove all but digits and decimal points
-	cgsliders[si].setValue(newvalue, true);
-	cgsliders[si].sticky = true;
-	cgReactText(si);
-	cgsliders[si].target.value = newvalue.toFixed(1);
+function loadM(optcount) {
+	for (var i=0; i<optcount; i++) vetoclickM(i); // show veto notes if appropriate
 }
-
-function handleEnter(e) {
-//alert('top');
-	if(!e) e = window.event;
-	var code = ((e.charCode) && (e.keyCode==0)) ? e.charCode : e.keyCode;
-	var isCR = (code == 13);
-//alert('code='+code);
-	var it = document.activeElement;
-//alert('it.id='+it.id);
-	var i = it.id.replace('input_option', ''); // was input_sliderdpy
-//alert('i='+i);
-	var t = it.id.replace('input_vetonote', '');
-//alert('t='+t);
-	if(t != it.id) return true; // must be a textarea
-	if(!isCR) return true;
-	if(i != it.id) changepct(i); // must be a pct
-//alert('here');
-	return (it.id == 'submitvote');
-}
-
-function loadB(optcount) {
-	document.onkeypress = handleEnter;
-	setupSliders();
-	for(var i=0; i<optcount; i++) vetoclick(i); // show veto notes if appropriate
-}
-

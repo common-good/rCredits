@@ -29,7 +29,7 @@ require_once __DIR__ . '/../rcredits-testing.inc';
 function extraSetup($feature) {
   t\clear(rand(0, count(TX_CHANNELS) - 1); // unit tests should work for any channel
   if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
-    $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
+    $line = str_replace('%last_qid', r\qid(r\Acct::nextId() - 1), $line);
   }}
 }
 

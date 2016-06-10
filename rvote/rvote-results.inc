@@ -24,11 +24,11 @@ function showResult($question, $withheader=false) {
 	$opts = optList($question);
 	$voters = getVoters($question);
 //	global $proxiesForThisVoter; if(ISDEMO) if($thisvoter) $voters[$thisvoter] = $proxiesForThisVoter;
-	$votes_direct = count($voters);
+	$votesDirect = count($voters);
 	$votesAll = array_sum($voters); // total weights. not necessarily equal to total weight used, since vetos reduce effective weight
 	$newtot = tallyResults($voters, $qu['type'], $qu['budget'], $qu['minveto'], $opts);
 
-	return getResult(qid($question), $qu['text'], $qu['type'], $qu['budget'], $newtot, $votes_direct, $votesAll, $withheader); // show result of one question, with links to audit info
+	return getResult($question, $qu['text'], $qu['type'], $qu['budget'], $newtot, $votesDirect, $votesAll, $withheader); // show result of one question, with links to audit info
 }
 
 function optList($question) {
@@ -38,7 +38,7 @@ function optList($question) {
 	return @$opts ?: [];
 }
 
-function getResult($qid, $question_text, $question_type, $budget, $tot, $votes_direct, $votesAll, $withheader) {
+function getResult($question, $quText, $quType, $budget, $tot, $votesDirect, $votesAll, $withheader) {
 	$optCount = count($tot);
 
 	for($i=0, $optTextMaxLen=0; $i < $optCount; $i++) {
@@ -48,50 +48,65 @@ function getResult($qid, $question_text, $question_type, $budget, $tot, $votes_d
 	$separateOptTexts = ($optTextMaxLen + $optCount * 7 > 100); // keep lines short by separating out the descriptions
   $separateOptTexts = TRUE; // FAILS otherwise
   
-	if($question_type == 'M') {
-		$prefheader1 = "<th colspan='$optCount'>Preferred Over:</th>";
-		$prefheader2 = '';
-	} else {
-		$prefheader1 = "<th></th><th></th><th>Percent</th><th colspan='2'>Budget</th>";
-		$prefheader2 = "<th>Result</th><th>Amount</th><th>of total</th><th>Min</th><th>Max</th>";
-	}
+  $prefHeads[1] = [
+  'M' => "<th class='resultOption'></th><th colspan='$optCount'>Preferred Over:</th><th class='resultAverage'>Average</th><th></th>",
+  'B' => "<th class='resultOption'></th><th></th><th></th><th>Percent</th><th colspan='2'>Budget</th><th class='resultAverage'>Average</th><th></th>",
+  'R' => "<th colspan='2'>Range</th><th colspan='2'>Result</th><th></th><th>Average</th><th>Average</th><th>Maximum</th>",
+  'E' => "",
+  ];
+  
+  $prefHeads[2] = [
+  'M' => "<th class='resultOption'>Option</th>",
+  'B' => "<th class='resultOption'>Option</th><th>Result</th><th>Amount</th><th>of total</th><th>Min</th><th>Max</th><th class='resultVote'>Vote</th><th>Vetos</th>",
+  'R' => "<th>Min</th><th>Max</th><th>Min</th><th>Max</th><th>Acceptance</th><th>Min Chosen</th><th>Max Chosen</th><th>Unvetoed by 5%</th>",
+  'E' => "",
+  ];
+
+  foreach ([1, 2] as $i) $prefHead[$i] = $prefHeads[$i][$quType];
 
 	for ($i = 0, $optTexts = $middle = ''; $i < $optCount; $i++) {
 		$inum = $i+1; // option number for display
 		$toti = $tot[$i];
 		$otx = $toti->opttext;
 		$optlinehdr = "<b>#$inum</b>";
-		$vetos = number_format($toti->vetos, 1);
-		if($separateOptTexts) $optTexts .= "<b>Option #$inum:</b> $otx<br>\n"; else $optlinehdr .= ": $otx";
+		$vetos = number_format($toti->vetos, $quType == 'M' ? 0 : 1);
+		if($separateOptTexts) $optTexts .= "<b>$inum:</b> $otx<br>\n"; else $optlinehdr .= ": $otx";
+    $budgetdpy = '';
 
-		if($question_type == 'M') {
-			$prefheader2 .= "<th>#$inum</th>";
+		if ($quType == 'M') {
+			$prefHead[2] .= "<th>#$inum</th>";
 			$mid = result_midM($toti, $i);
-			$budgetdpy = '';
-		} else {
+  		$middle .= "<tr><td class='optlinehdr'>$optlinehdr</td>$mid<td>$vetos</td></tr>\n";
+		} elseif ($quType == 'B') {
 			$min = $toti->minimum ? (number_format($toti->minimum, 0) . ($toti->mandatory ? '!' : '&nbsp;')) : '- &nbsp;';
 			$max = $toti->maximum ? number_format($toti->maximum, 0) : '- &nbsp;';
 			$funds = $budget ? number_format($toti->funds, 0) : '? &nbsp;';
 			$grade = number_format($toti->raw/BPCT2INT, 1) . '%'; // $toti->grade is irrelevant if we recursed
 			$pct = $budget ? (number_format(100*$toti->funds/$budget, 1) . '%') : $grade;
 			$mid = "<td>$toti->result</td><td>$funds</td><td>$pct</td><td>$min</td><td>$max</td><td>$grade</td>";
-			$budgetdpy = '; &nbsp; total budget: $' . number_format($budget, 0);
-		}
-		$middle .= "<tr><td class='optlinehdr'>$optlinehdr</td>$mid<td>$vetos</td></tr>\n";
+			$budgetdpy = ' (total budget: $' . number_format($budget, 0) . ')';
+  		$middle .= "<tr><td class='optlinehdr'>$optlinehdr</td>$mid<td>$vetos</td></tr>\n";
+		} elseif ($quType == 'R') {
+      $middle .= "<br><td>$toti->minimum</td><td>$toti->maximum</td></tr>\n";
+      debug($toti);
+    }
 	}
+  
+  if ($quType == 'M') $prefHead[2] .= "<th class='resultVote'>Vote</th><th>Vetos</th>";
 
   $optTexts = $optTexts ? "<blockquote>$optTexts</blockquote>" : '<br>';
-	$hdr = $withheader ? "<h4>Question $qid: \"$question_text\"</h4>" : '<br><b>RESULTS:</b><br>';
+	$hdr = $withheader ? "<h4>Question $question: $quText</h4>" : '<br><b>RESULTS:</b><br>';
+  $votesIndirect = $votesAll - $votesDirect;
 
 	return <<<EOF
 <div class="well">
 $hdr
-$votesAll voters ($votes_direct direct)$budgetdpy<br>
+$votesAll voters: $votesDirect voted directly, $votesIndirect by proxy $budgetdpy<br>
 $optTexts
 
 <table class="resultstable">
-<tr><th class="resultOption"></th>$prefheader1<th class="resultAverage">Average</th><th></th></tr>
-<tr><th class="resultOption">Option</th>$prefheader2<th class="resultVote">Vote</th><th>Vetos</th>
+<tr>$prefHead[1]</tr>
+<tr>$prefHead[2]</tr>
 $middle
 </table>
 </div>
@@ -101,7 +116,7 @@ EOF;
 
 function result_midM($toti, $i) {
 	for ($j = 0, $eachpref = ''; $j < count($toti->prefs); $j++) {
-		$prefij = ($i == $j) ? '- &nbsp;' : number_format(@$toti->prefs[$j], 1);
+		$prefij = ($i == $j) ? '- &nbsp;' : number_format(@$toti->prefs[$j], 0);
 		$eachpref .= "<td>$prefij</td>";
 	}
 
@@ -145,7 +160,7 @@ function tallyResults($voters, $qtype, $qbudget, $qminveto, $opts, $skipoptid=''
 	}
 	$badtot = $tot[$optid]; // worst option
 
-	if($qtype == 'B') {
+	if ($qtype == 'B') {
 		if ($onescore < 0) { // a bad worst score means redo (mark as vetoed or underfunded/overfunded)
 			if(substr($badtot->result, 0, strlen(FUNDED)) != FUNDED) $badtot->funds = 0; // vetoed or underfunded
 			if(count($opts) > 1) {
@@ -154,12 +169,14 @@ function tallyResults($voters, $qtype, $qbudget, $qminveto, $opts, $skipoptid=''
 				$newtot[] = $badtot; // tack the handled option back on (last)
 			}
 		} elseif (!$badtot->funds) $badtot->result = 'unfunded';
-	} else {
+	} elseif ($qtype == 'M') {
 		foreach($newtot as $k => $one) {
       $one->prefs = $one->prefs ? array_combine($newKeys, $one->prefs) : array_fill(0, $newI, 0);
       $newtot[$k] = $one;
     }
-	}
+	} elseif ($qtype == 'R') {
+    
+  }
 
 	return $newtot;
 }
@@ -208,20 +225,24 @@ function scoreM(&$tot, $i) {
 function scoreB(&$toti, $budget, $minveto, $optCount, $totalGrades) {
 	global $votesAll;
 
-	$score = ($optCount == 1) ? 1 : $toti->grade/$totalGrades;
+	$score = ($optCount == 1) ? 1 : ($totalGrades ? $toti->grade/$totalGrades : 0);
 	$toti->funds = $funds = $score * $budget; // how much funding did this get? (score negative the special cases)
 	$toti->result = FUNDED;
 
 	if($toti->vetos and ($toti->vetos >= $votesAll*$minveto/100)) { // first flag vetos
-		$toti->result = 'vetoed'; return -4;
+		$toti->result = 'vetoed'; 
+    return -4;
 	} elseif($toti->maximum and ($funds > $toti->maximum)) { // next flag too much funding (redistribute in any order)
 		$toti->result .= '!'; // indicate full funding (not sure about this)
-		$toti->funds = $toti->maximum; return -3; 
+		$toti->funds = $toti->maximum; 
+    return -3; 
 	} elseif($funds < $toti->minimum) {
 		if($toti->mandatory) { // flag underfunded mandatories (any order)
-			$toti->funds = $toti->minimum; return -2;
+			$toti->funds = $toti->minimum; 
+      return -2;
 		} else { // and last flag the most insufficient funding
-			$toti->result = 'not&nbsp;enough'; return $funds / $toti->minimum - 1;
+			$toti->result = 'not&nbsp;enough'; 
+      return $toti->minimum ? $funds / $toti->minimum - 1 : 0;
 		}
 	} else return $score;
 }
@@ -260,14 +281,16 @@ EOF;
 	return @$voters ?: [];
 }
 
-function tallyVoter(&$tot, $voter, $question_type, $optlist, $weight) {
+function tallyVoter(&$tot, $voter, $quType, $optlist, $weight) {
 	$voterGrades = array();
 	$tnm = 'r_votes v LEFT JOIN r_ballots b ON b.id=v.ballot';
 //	$crit = "voter='$voter' AND question='$question'";
 	$crit = "b.voter=:voter AND v.option IN($optlist)";
   $sql = <<<EOF
-    SELECT v.option, v.grade, x.text 
-    FROM ($tnm) LEFT JOIN r_vetoes x ON x.vote=v.id 
+    SELECT v.option, v.grade, v.displayOrder AS gradeMax, x.text 
+    FROM ($tnm) 
+    LEFT JOIN r_votenotes x ON x.vote=v.id 
+    LEFT JOIN r_vetoes 
     WHERE $crit ORDER BY v.option
 EOF;
 	$q = db\q($sql, compact('voter'));
@@ -277,20 +300,20 @@ EOF;
   } else $vetoWeight = 0;
   
 	while ($row = $q->fetchAssoc()) {
-    extract($row);
-    tallyVote($tot, $question_type, $option, $grade, $text, $weight, $vetoWeight, $voterGrades);
+    tallyVote($tot, $quType, $row, $weight, $vetoWeight, $voterGrades);
   }
 }
 
 /**
  * Tally each option as voted
  */
-function tallyVote(&$tot, $question_type, $option, $grade, $text, $weight, $vetoWeight, &$voterGrades) {
-	if(($question_type == 'B') or ($grade != BLANKGRADE)) { // don't count ungraded opts; but blank B option means 0%, so count it
+function tallyVote(&$tot, $quType, $info, $weight, $vetoWeight, &$voterGrades) {
+  extract(u\just('option grade gradeMax text', $info));
+	if(($quType == 'B') or ($grade != BLANKGRADE)) { // don't count ungraded opts; but blank B option means 0%, so count it
 		$tot[$option]->weight += $weight;
 		if($grade == VETOGRADE) $tot[$option]->vetos += $vetoWeight; else $tot[$option]->grade += $weight * $grade;
 	}
-	if($question_type == 'M') foreach($voterGrades as $otheropt => $othergrade) { // for each other option already tallied
+	if($quType == 'M') foreach($voterGrades as $otheropt => $othergrade) { // for each other option already tallied
 		if($othergrade != $grade) {
 			list ($i, $j) = u\order($grade < $othergrade, $otheropt, $option); // i is preferred to j
 			if ($grade != BLANKGRADE and $othergrade != BLANKGRADE) {
@@ -299,6 +322,7 @@ function tallyVote(&$tot, $question_type, $option, $grade, $text, $weight, $veto
 		}
 	}
 	$voterGrades[$option] = $grade;
+  if ($quType == 'R') $voterGrades['max'] = $gradeMax;
 	if($text) {
 		if($grade == VETOGRADE) $tot[$option]->veto_texts[] = $text; else $tot[$option]->canceled_vetotexts[] = $text;
 	}

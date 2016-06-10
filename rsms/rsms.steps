@@ -31,11 +31,11 @@ function extraSetup($feature) {
   t\clear(TX_SMS);
   
   if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
-    $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
+    $line = str_replace('%last_qid', r\qid(r\Acct::nextId() - 1), $line);
   }
 }
 
-r\acct::_clear(); // empty the acct cache
+r\Acct::_clear(); // empty the acct cache
 }
 
 /**
@@ -98,7 +98,7 @@ function phoneHasAnAccount($number) {
   global $testOnly;
   if (!phoneHasNoAccount($number)) return TRUE;
   if ($testOnly) return FALSE;
-  return (bool) new r\acct(compact('number'));
+  return (bool) new r\Acct(compact('number'));
 }
 
 /**
@@ -397,6 +397,7 @@ function isNotAnAccountId($id) {
  */
 function theTotalDemandForRCreditsIs($amount) {
   global $testOnly;
+  return FALSE; // needs rewrite
   
   $amount = str_replace(',', '', $amount);
   $old = r\totals('ALL', TRUE)->demand;

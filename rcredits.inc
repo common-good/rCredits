@@ -27,6 +27,7 @@ require_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this com
 require_once __DIR__ . '/rcredits-db.inc';
 require_once __DIR__ . '/acct.class';
 require_once __DIR__ . '/x.class';
+require_once __DIR__ . '/qo.class';
 
 // Common Good Finance email and other data
 define('CGF_LEGALNAME', 'Society to Benefit Everyone, Inc.');
@@ -149,6 +150,7 @@ define('R_DW_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // (credits CGF for
 define('R_SIGNIN_HOURS', 24); // window for signing in after registering or resetting password
 define('R_MEMBER_MARK', '.'); // divides region from specific identifier in member IDs
 define('R_AGENT_MARK', ':'); // divides region from specific identifier in relational IDs
+define('AGT_MARK', '-'); // divides main QID from agent code
 define('R_AGENT_URL_MARK', '-'); // use this as a substitute for R_AGENT_MARK in URLs (else domain forwarding fails)
 define('R_MARKS', '[\\' . R_MEMBER_MARK . '\\' . R_AGENT_MARK . '\\' . R_AGENT_URL_MARK . ']'); // any of those
 define('R_ANCIENT_EFT', 10); // how long, at most, an EFT might take (transferring funds to/from bank)
@@ -254,7 +256,7 @@ define('B_LIST', 'member confirmed ok bona u4 u5 co u7 u8 nonudge nosearch u11 p
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+givebacks+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community (fines and givebacks are negative)
 
-// Relationship permissions used in calls to acct::can() -- stored (less B_RELATED) in r_relations
+// Relationship permissions used in calls to r\Acct::can() -- stored (less B_RELATED) in r_relations
 define('B_RELATED', 100); // has a relationship record
 define('B_NONE', 100); // no access
 define('B_READ', 101); // can view Transaction History
@@ -266,14 +268,14 @@ define('B_MANAGE', 106); // can manage all aspects of the account
 define('B_JOINT', 107); // make this a joint account (subsuming the other, with permission) -- no companies!
 $GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept rCard payments'), t('give refunds & give USD for rCredits'), t('send invoices'), t('make purchases'), t('manage account'), t('joint account'));
 
-// Other special pseudo-bit values for acct::can() and rweb.module menus
+// Other special pseudo-bit values for r\Acct::can() and rweb.module menus
 define('B_MANAGING_CTTY', 120); // cadmin is actually managing a qualified account
 define('B_PERSON', 121); // personal account (!co)
 define('B_DEV', 122); // isDEV or is admin
 define('B_u123', 123); //
 define('B_CTTYUP', 124); // account's community is operating (see also B_UP)
 define('B_BANK', 125); // account has a connected bank account
-define('B_SHOW_ALL', 999); // special signal to acct::can() to return all permissions
+define('B_SHOW_ALL', 999); // special signal to r\Acct::can() to return all permissions
 $GLOBALS['permissions'] = 'related read sell buy manage - company charge - member partner steward - rtrader - - managing_ctty cadmin - admin';
 
 // Canonic strings
@@ -417,63 +419,6 @@ function isGiveback($payer, $payee, $data) {
 }
 
 /**
- * Format and return args for reporting a transaction (old or new) to the current account.
- * Not all returned args are used for any particular type of transaction.
- * Note that templates and tests depend on the names of some of these fields
- * @param acct $a: the account to report to (usually the current account)
- * @param array $tx: the transaction array (including xid)
- * @param int $getBalance: 0=don't get any balances, 1=get my balance and tid, 2=get other party's balance and tid also
- * @param float $shortfall: how much short my balance is, for a transaction (if any)
- * @return assoc array of args
- */
-function txReportArgs($a1, $tx, $getMyBalance = FALSE, $shortfall = 0) {
-  global $channel;
-  extract($tx); // any or all standard transaction fields
-  if ($data) if ($data = unserialize($data)) extract(u\just('rebate bonus', $data));
-
-  $toMe = ($payee == $a1->id);
-  $reverses = isset($data['undoes']);
-  $role = $toMe ? 'payee' : 'payer';
-  u\both($tx, 'purpose', $toMe, $payeeFor, $payerFor);
-  u\both($tx, 'tid', $toMe, @$payeeTid, @$payerTid); // no tid if unconfirmed
-  list ($payerPurpose, $payeePurpose) = array($payerFor, $payeeFor); // clearer names, for substitutions
-  $tofrom = $toMe ? t('from') : t('to');
-  $uid = $otherUid = ($toMe ? $payer : $payee);
-  $a2 = r\acct($otherUid);
-  $confirmAction = $toMe ? t('charge') : ($channel == TX_POS ? t('credit') : t('pay'));
-  $why = u\ray(R_WHYS)[$goods];
-
-  If ($amount < 0) { // for POS
-    $amount = -$amount; // rephrase as positive
-    $tofrom = t('to');
-    $confirmAction = $toMe ? t('credit') : t('charge');
-    u\both($tx, 'did', $toMe, $goods == FOR_GOODS ?  t('refunded') : t('credited'), t('charged'));
-    if (r\isGiveback($payee, $payer, $data)) list ($tx['did'], $a2, $why) = [t('gave'), $a1, t('returning rewards to the community')];
-  } else u\both($tx, 'did', $toMe, $reverses ? t('re-charged') : t('charged'), ($channel == TX_POS ? t('credited') : t('paid')));
-
-///  debug(compact('tx','toMe','amount','reverses','goods'));
-
-  $amount = u\fmtAmt($amount);
-  $short = u\fmtAmt($shortfall);
-  if ($getMyBalance) {
-    if ($a1->can(B_BUY)) $balance = u\fmtAmt($a1->avail(FOR_GOODS));
-  }
-  
-  if ($goods == FOR_GOODS) {
-//    u\both($tx, 'rewardType', $toMe, t('bonus'), t('rebate'));
-    u\both($tx, 'rewardType', $toMe, t('reward'), t('reward'));
-    u\both($tx, 'rewardAmount', $toMe, u\fmtAmt(@$bonus + 0), u\fmtAmt(@$rebate + 0));
-  }
-  $myName = $a1->fullName;
-  $otherName = $a2->fullName;
-  $created = u\fmtDate($created0 = $created);
-
-  $success = TRUE;
-  foreach (u\ray('r payer payee') as $one) unset($tx[$one]); // else preempts all subs that start thus
-  return compact(u\ray('created created0 xid role why payerPurpose payeePurpose toMe confirmAction amount tofrom balance otherUid myName otherName short success')) + $tx;
-}
-
-/**
  * Return an error message if the given invoice is already paid or doesn't exist.
  * @param int $nvid: record ID of invoice
  * @param assoc $inv: (RETURNED) the invoice record
@@ -505,7 +450,7 @@ function xid2tid($xid, $uid) {
  * @param int $other: the other account record ID
  * @param float $amount: the amount proposed to transfer from the account to the other account (can be negative)
  * @return TRUE if the proposed transaction duplicates the last one.
- * @see also x::cacheTotals(), where the transaction data is recorded
+ * @see also X::cacheTotals(), where the transaction data is recorded
  */
 function dupTx($uid, $other, $amount) {
   if (!$lastTx = r\acct($uid)->lastTx) return FALSE;
@@ -604,7 +549,7 @@ function cttys($region, $ctty = FALSE) {
  *   subject:  specific subject
  *   body:     specific message
  * ... the following special substitions are always available:
- *   site, quid, shortName, and every cached field for the account
+ *   site, qid, shortName, and every cached field for the account
  * @param mixed $reply: uid, account, or email address to reply to OR 'ctty' (of $to) or NULL (same as from)
  * @return TRUE if the message got sent (or on dev machine pretending it got sent) else FALSE
  * NOTE: from is always SYS_EMAIL
@@ -620,7 +565,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
     $toEmail = $toA->email;
     $to = "\"$toA->fullName\" <$toEmail>";
     $subs += (array) $toA->account(); // this omits any special fields or special formatting
-    $subs['quid'] = $toA->mainQid;
+    $subs['qid'] = $toA->mainQid;
     $subs['shortName'] = $toA->name;
   } else $to = $toEmail = $to0;
   
@@ -761,6 +706,7 @@ function suggestMin($a, $default = '', $dftMsg = '', $get = FALSE) {
  * @param acct $a: the account
  */
 function makeCardCode($a) {
+  u\EXPECT($a->agent);
   $field = $a->proSe ? 'cardCode' : 'cardCode2';
   $a->agent->update($field, r\cardCode($a->qid)); // resave the secure fields
 }
@@ -777,7 +723,10 @@ function membershipEvent($a, $status, $do = TRUE) {
   $bit = @u\consta('b', $status); // get the appropriate bit, if any
   if (!$do or ($bit !== FALSE and $a->can($bit))) return FALSE; // do nothing or bit already set
 
+  $DBTX = \db_transaction();
   if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
+  $fullName = $a->fullName;
+
   if ($status == 'ok') {
     u\EXPECT(@r\acct()->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
     $msg = 'approved';
@@ -788,18 +737,19 @@ function membershipEvent($a, $status, $do = TRUE) {
   } elseif ($status == 'bona') {
     be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
 
-    if ($a->confirmed and !$a->helperA->admin) { // no helper bonus for admin (cAdmin is okay)
-      be\fund($hId = $a->helper, TX_HELPER, R_HELPER_BONUS, u\tt('invite reward', ['fullName' => $a->fullName]));
-      if (db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) == ORGANIZER_GRANT_MIN) {
+    if (!$a->helperA->admin) { // no helper bonus for admin (cAdmin is okay) [don't require $a->confirmed]
+      be\fund($hId = $a->helper, TX_HELPER, R_HELPER_BONUS, u\tt('invite reward', compact('fullName')));
+      $helped = db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) + 0;
+      if ($helped == ORGANIZER_GRANT_MIN) {
         r\message($a->id, 'organizer grant', ['a' => 'a href="' . BASE_URL . '"/community/grant']);
         r\tellStaff('eligible for grant', ['name' => $a->helperA->fullName], $a->helper);
       }
     }
   }
+  unset($DBTX);
   
-  $fullName = $a->fullName;
-  $quid = $a->mainQid;
-  tellStaff('event - ' . $status, compact(u\ray('fullName quid status')), $a->id);
+  $qid = $a->mainQid;
+  tellStaff('event - ' . $status, compact(u\ray('fullName qid status')), $a->id);
   return TRUE;
 }
 
@@ -909,101 +859,14 @@ function location($a, $complete = FALSE) {
 }
 
 /**
- * Return a qid for the zid
- * @param $zid: a zid
- * @param string $regionId: the 3-character regional server uid (defaults to this server)
- * @param int $min_len: minimum length of the part of the qid after the R_MEMBER_MARK or R_AGENT_MARK
- * @return the qid, FALSE if wrong format
- */
-function qid($zid = '', $regionId = R_SERVER_ID, $min_len = 1) {
-  if (!u\isZid($zid)) return FALSE;
-  return $regionId . ($zid < 0 ? (R_AGENT_MARK . u\n2a(-$zid, -$min_len)) : (R_MEMBER_MARK . u\n2a($zid, -$min_len)));
-}
-
-/**
  * Return the short qid and full name of the specified account.
  * For example, return ".ZZA Abe One".
  */
 function definiteName($uid) {
   if ($uid <= 0) return '';
-  $acct = acct($uid);
-  return r\quid($uid) . ' ' . $acct->fullName;
+  $acct = r\acct($uid);
+  return r\qid($uid) . ' ' . $acct->fullName;
 }
-
-/**
- * Return a zid and region for the qid
- * @param string $qid: a qid of any length or type (the region part defaults to the server region)
- * @return [zid, regionUid, $isRel] (FALSE on failure) where
- *   zid is the record ID
- *   regionUid is the region account ID
- *   isRel is <this qid represents a relation between two accounts>
- */
-function unQid($qid) {
-  if (!u\isQid($qid)) {
-    $qid = R_SERVER_ID . $qid; // if local, complete it
-    if (!u\isQid($qid)) return FALSE;
-  }
-  list ($regionId, $type, $iid) = preg_split('/(' . R_MARKS . ')/U', $qid, 0, PREG_SPLIT_DELIM_CAPTURE);
-  $id = u\a2n($iid);
-  return array($id, serverUid($regionId), $type != R_MEMBER_MARK);
-}
-  
-/**
- * Convert uid to quid
- * Call by:
- *   quid(uid)
- *   quid(uid, agentId)
- * @param int uid: record id of the account
- * @param int agentId: uid of agent (defaults to uid)
- * @return the corresponding quid
- */
-function quid($uid, $agentId = '') {
-  if (!$agentId or $agentId == $uid) { // proSe
-    if ($uid < 0) return '!' . quid(-$uid);
-    $region = uidRegion($uid);
-    $regionNum = (-$region - 1) / R_REGION_MAX;
-    return u\n2a($regionNum, -3) . R_MEMBER_MARK . u\n2a($uid - -$region, -3);
-  } else {
-    $reid = r\relation('reid', $uid, $agentId); // compound quid
-    return str_replace(R_MEMBER_MARK, R_AGENT_MARK, quid($reid));
-  }
-}
-
-/**
- * Return the record ID for a quid (local or complete, pro se or not).
- * call by:
- *   unQuid(quid) OR
- *   unQuid('', zid, region, isRel)
- * @param string quid: an account record ID such as NEW.AAA, .AAA, NEW:AAA, :AAA, !NEW, or !NEW.AAA
- * @param int $zid: offset within a region
- * @param int $region: region ID
- * @param bool isRel: <this qid represents a relation between two accounts>
- */
-function unQuid($quid, $zid = NULL, $region = NULL, $isRel = FALSE) {
-  if (substr($quid, 0, 1) == '!') {
-    if (!strpos($quid, '.')) $quid .= '.AAA';
-    return -unQuid(substr($quid, 1));
-  }
-  if (is_null($zid)) list ($zid, $region, $isRel) = r\unQid($quid); // break it down
-  return $isRel ? NULL : (-$region + $zid);
-}
-
-/**
- * Return a "local version" pro se quid without the region but with a leading dot.
- */
-function quid2($uid) {return strstr(quid($uid), R_MEMBER_MARK);}
-
-/**
- * Accept abbreviations of alphabetic ids for accounts, transactions, and relations
- * @param string $q: the possibly-abbreviated id
- * @return: the full id (if $q is numeric or an already-full alphabetic id, return it unchanged)
- */
-function fullQid($q) {
-  $c1 = substr($q, 0, 1);
-  return strtoupper(($c1 == R_MEMBER_MARK or $c1 == R_AGENT_MARK) ? (R_SERVER_ID . $q) : $q);
-}
-
-function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SERVER_ID, 4);} // Convert xid to qxid
 
 /**
  * Return an rCard security code for the specified qid.
@@ -1080,7 +943,7 @@ function region($country = '', $state = '', $zip = '', &$raw = '') {
   if (!$region = db\lookup('region', $table, $where, compact('state', 'zip', 'country'))) {
     $region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
   }
-  return -r\unQuid(($raw = $region ?: 'ZZZ') . '.AAA');
+  return r\qo('!' . ($raw = $region ?: 'ZZZ') . 'AAA')->id;
 }
 
 /**
@@ -1091,7 +954,7 @@ function region($country = '', $state = '', $zip = '', &$raw = '') {
  */
 function nonoUndo($oldRecord, &$subs = []) {
   if (!@$oldRecord) return 'undo no match';
-  $mya = acct();
+  $mya = r\acct();
   extract(u\just('amount toMe data payer payee payerTid payeeTid taking', $oldRecord));
   $data = unserialize($data);
   if (@$data['undoneBy']) {
@@ -1120,7 +983,7 @@ function owning($uid1, $uid2) {
  * @param int $company: defaults to current uid
  */
 function isEmployee($uid, $company = '') {
-  return relation(1, $company ?: acct()->id, $uid, 'employee');
+  return relation(1, $company ?: r\acct()->id, $uid, 'employee');
 }
 
 /**
@@ -1151,7 +1014,7 @@ function uniqueName($fullName) {
  * @return the uid (FALSE if unsuccessful)
  */
 function loginString($id) {
-  if (u\isQid($id = trim(strtoupper($id))) and $acct = acct($id)) return $acct->id; // try to interpret as a qid
+  if (u\isQid($id = trim(strtoupper($id))) and $acct = r\acct($id)) return $acct->id; // try to interpret as a qid
   $mail = u\cryptN(strtolower($id));
   return db\lookup('uid', 'users', 'name=:id OR mail=:mail', compact('id', 'mail'));
 }
@@ -1170,19 +1033,26 @@ function employees() {
  *   relation(field, main, other, where, subs) OR
  *   relation(field, where, subs)
  *   relation(field, reid)
+ *   relation(field, qid)
  * @param string $field: what field value(s) to return (see varieties at db\lookup())
  * @param int $main: uid of main account
  * @param int $other: uid of other (agent) account
  * @param string $where: SQL criteria
  * @param assoc $subs: criteria parameters
  * @param int $reid: relations record id
+ * @param string $qid: 
  */
 function relation($field, $main, $other = [], $where = 'TRUE', $subs = []) {
   if (is_numeric($main)) {
     if (empty($other)) {
-      $reid = $main;
-      $where = "reid=:reid";
-      $subs += compact('reid');
+      if (is_numeric($reid = $main)) {
+        $where = "reid=:reid";
+        $subs += compact('reid');
+      } else {
+        list ($main, $otherNum) = explode('-', $main);
+        list ($main, $otherNum) = [r\qo($main)->id, u\a2n($otherNum)];
+        list ($where, $subs) = ['main=:main AND otherNum=:otherNum', compact('main', 'otherNum')];
+      }
     } else {
       $where = "main=:main AND other=:other AND ($where)";
       $subs += compact('main', 'other');
@@ -1257,7 +1127,7 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     }
   } elseif (!$newUid) {
     $region = @$a->postalCode ? r\region(@$a->country, @$a->state, $a->postalCode) : r\communityUid();
-    $newUid = r\acct::nextId($region);
+    $newUid = r\Acct::nextId($region);
   }
   $subs = array( // all tables are listed, to be sure we don't leave any out
   // r_areas
@@ -1300,7 +1170,7 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_txs:payeeAgent',
     'r_usd:payer',
     'r_user_industries:uid:D',
-  // r_vetoes
+  // r_votenotes
   // r_votes
     'users:uid:D',
     'users:helper',
@@ -1318,9 +1188,9 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
       db\q("DELETE FROM $table WHERE $field=:oldUid", compact('oldUid'));
     } else db\q("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
   }
-  $oldQuid = r\quid($oldUid);
+  $oldQid = r\qid($oldUid);
   if ($unusable and !$delete) {
-    list ($uid, $name, $email) = array($oldUid, "unusable-$oldQuid", "unusable$oldQuid@rcredits.org");
+    list ($uid, $name, $email) = array($oldUid, "unusable-$oldQid", "unusable$oldQid@rcredits.org");
     db\insert('users', compact(u\ray('uid name email'))); // mark old uid unusable
   }
   foreach ($files as $old => $new) if (file_exists($old)) {
@@ -1570,9 +1440,8 @@ EOF;
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
     WHERE $cttysCrit AND t.created<=:created
 EOF;
-// if ($ctty==0) flog("sql1573=$sql\n");
   $res2 = db\q($sql, $subs)->fetchAssoc() ?: [];
-// if ($ctty==0) flog($res2);
+
   // get r
   $res2['r'] = array_sum($res2) - $res2['shared'] - $res2['purchases'] - $res2['forCashs'] - $res2['xfees'];
   $res2['r'] += $res['bankIn'] - $res['bankOut']; // include r provided in exchange for USD

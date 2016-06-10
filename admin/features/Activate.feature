@@ -10,12 +10,12 @@ Setup:
   | .ZZB | Bea Two  | 2 B St. | Bton | MA    | 02000      | b@    | ok,bona          |     200 | 222222222 |
   | .ZZD | Dee Four | 4 D St. | Dton | MA    | 04000      | d@    | member,confirmed |     400 | 444444444 |
   And relations:
-  | id   | main | agent | permission |*
-  | :ZZA | .ZZD | .ZZA  | manage     |
+  | main | agent | num | permission |*
+  | .ZZD | .ZZA  |   1 | manage     |
 # relationship is here only so we can identify which account admin is managing
 
 Scenario: Admin activates an account
-  Given member ":ZZA" completes form "summary" with values:
+  Given member "D:A" completes form "summary" with values:
   | mediaConx | rTrader | helper  | federalId  | adminable        |*
   |         1 |       1 | Bea Two | %R_ON_FILE | member,confirmed |
   Then we notice "got funding" to member ".ZZD" with subs:

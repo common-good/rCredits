@@ -29,7 +29,7 @@ require_once __DIR__ . '/../rcredits-testing.inc';
 function extraSetup($feature) {
   t\clear(TX_WEB);
   if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
-    $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
+    $line = str_replace('%last_qid', r\qid(r\Acct::nextId() - 1), $line);
   }}
 }
 
@@ -70,7 +70,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
  *     MAKE Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
  *     MAKE Preferences AMemberChoosesTooLowASavingsReserve
- *     MAKE Preferences AMemberChoosesTooLowAWeeklySavingsAmount
  *     MAKE Preferences AMemberChoosesNegativeWeeklySavingsWithoutAnySavings
  *     MAKE Preferences AMemberChoosesTooLowAnACHMinimum
  *     MAKE Reimburse AMemberAsksToChargeAnotherMember
@@ -245,7 +244,6 @@ function members($list) {return t\members($list);}
  *     MAKE Preferences AMemberChangesPreferences
  *     MAKE Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
  *     MAKE Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
- *     MAKE Preferences AMemberChoosesTooLowAWeeklySavingsAmount
  *     MAKE Reimburse Setup
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
  *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
@@ -281,7 +279,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
  *     TEST Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
  *     TEST Preferences AMemberChoosesTooLowASavingsReserve
- *     TEST Preferences AMemberChoosesTooLowAWeeklySavingsAmount
  *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
  *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
@@ -568,7 +565,6 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Joint AJoinedAccountMemberUnjoinsTheAccount
  *     TEST Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
  *     TEST Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
- *     TEST Preferences AMemberChoosesTooLowAWeeklySavingsAmount
  *     TEST Reimburse Setup
  *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
@@ -652,7 +648,7 @@ function memberIsLoggedOut() {
   global $testOnly;
   //u\deb('memberIsLoggedOut top loggedin=' . \user_is_logged_in());
   if ($testOnly) return !\user_is_logged_in();
-  r\acct::setDefault(NULL);
+  r\Acct::setDefault(NULL);
   return TRUE; // never actually log out
 }
 
@@ -720,7 +716,7 @@ function memberSignsInTheFirstTime($uid) {
  */
 function memberAccountIsNotActive($id) {
   global $testOnly; if ($testOnly) return FALSE;
-  list ($uid, $agent) = r\IA(r\fullQid($id)); // not unQuid
+  $uid = r\qo($id)->id;
   if (!$uid) return FALSE;
   r\acct($uid)->setBit(B_OK, FALSE);
   return TRUE;
@@ -845,7 +841,7 @@ function weDownloadWith($name, $rows) {
 ///    debug(compact('row','csvRow'));
       if (strpos($value, '%') !== FALSE) $value = t\lastMinuteSubs($value);
 ///      if (!isset($csvRow[$key])) debug(compact('key', 'csvRow', 'value'));
-/**/  if (!t\eq($csvValue = $csvRow[$key], $value)) return t\output("key=$key csvValue<>expected value: $csvValue<>$value csvRow:" . print_r($csvRow, 1));
+/**/  if (!t\eq($csvValue = $csvRow[$key], $value)) return t\output("key=$key csvValue<>expected value ($csvValue<>$value) csvRow:" . print_r($csvRow, 1));
     }
   }
   return TRUE;
@@ -920,7 +916,7 @@ function memberScansMemberCard($id1, $id2) {
  */
 function memberCardCodeIs($id, $cardCode) {
   global $testOnly; if ($testOnly) return FALSE;
-  $a = r\acct(r\fullQid($id));
+  $a = r\acct(t\fullQid($id));
   $secure = compact('cardCode') + ($a->secure ?: array());
   return $a->update(compact('secure'));
 }
@@ -932,7 +928,7 @@ function memberCardCodeIs($id, $cardCode) {
  */
 function agentCardCodeIs($id, $cardCode2) {
   global $testOnly; if ($testOnly) return FALSE;
-  $a = r\acct(r\fullQid($id));
+  $a = r\acct(t\fullQid($id));
   $secure = compact('cardCode2') + ($a->secure ?: array());
   return $a->update(compact('secure'));
 }
@@ -1147,7 +1143,7 @@ function weSayErrorInField($field, $index) {
 function memberCompletesRelationsFormWithValues($id1, $list) {
   foreach ($list as $i => $rec) {
     if (isset($rec['other'])) {
-      $reid = r\relation('reid', t\uid($id1), t\uid($rec['other'])); // compound quid
+      $reid = r\relation('reid', t\uid($id1), t\uid($rec['other'])); // compound qid
       u\EXPECT($reid, "missing relation record for $id1,".$rec['other']);
       unset($list[$i]['other']);
       foreach (u\ray('draw permission employee isOwner') as $k) if (isset($rec[$k])) {

@@ -74,12 +74,12 @@ class call {
     $myid = $this->uid = uid($number);
     if (!$myid) {
       return tt('you must setup');
-      //$mya = new r\acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
+      //$mya = new r\Acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
       //$myid = $mya->id;
     } else $mya = r\acct($myid);
 ///    print_r(compact('number','myid','mya')); die();
     u\EXPECT($mya, 'failed to get acct');
-    r\acct::setDefault($mya);
+    r\Acct::setDefault($mya);
     
     $todo = @be\todo($number)->todo;
     /*
@@ -90,8 +90,8 @@ class call {
       }
       $fullName = setup_name($mya, $this->message);
       be\todo($number, 'setup email', '');
-      $quid = r\quid($mya->id, $mya->agentId, $mya->regionId); //$mya->credit_id;
-      return tt("what's your email?", compact('quid', 'fullName'));
+      $qid = r\qid($mya->id, $mya->agentId, $mya->regionId); //$mya->credit_id;
+      return tt("what's your email?", compact('qid', 'fullName'));
     } elseif ($todo == 'setup email' and !$mya->mail) {
       setup_email($mya, $this->message);
       be\todo($number, '', '');
@@ -232,12 +232,12 @@ class call {
   function do_information() {
 //    be\todo($this->number, 'account info2', ''); // queue up more info (not used yet)
     $mya = r\acct();
-    $quid = $mya->mainQid;
+    $qid = $mya->mainQid;
     $stats = r\stats(); // show system-wide demand. later maybe just $mya->community
     $totalDemand = u\fmtAmt($stats['usd']);
 //    $totalDemand = r\totals()->fancy['demand'];
     list ($balance, $rewards) = array(u\fmtAmt($mya->j_r), u\fmtAmt($mya->j_rewards));
-    return tt('account info', compact(u\ray('quid balance rewards totalDemand')));
+    return tt('account info', compact(u\ray('qid balance rewards totalDemand')));
   }
 
   /**
@@ -292,10 +292,11 @@ class call {
       } else $where .= '(payee=:otherUid OR payer=:otherUid)';
     }
 
-    $oldRecord = be\lastTx($where, compact(u\ray('myid otherUid')));
-    if ($error = r\nonoUndo($oldRecord, $subs)) return array($error, $subs);
-    $this->parms['xid'] = $oldRecord['xid'];
-    return $this->confirm('undo', r\txReportArgs($mya, $oldRecord, FALSE));
+    $tx = be\lastTx($where, compact(u\ray('myid otherUid')));
+    if ($error = r\nonoUndo($tx, $subs)) return array($error, $subs);
+    $this->parms['xid'] = $tx['xid'];
+    $myx = r\x($tx, $mya);
+    return $this->confirm('undo', $myx->reportArgs());
   }
 
   /**

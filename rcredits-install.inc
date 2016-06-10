@@ -328,6 +328,7 @@ function tableDefs($schema = []) {
     'reid' => setupField('relationship record id', 'serial big'),
     'main' => setupField('uid of the account to which others are related', 'int big'),
     'other' => setupField('uid of a user related to that account', 'int big'), // eg owner, agent, employee, supplier
+    'otherNum' => setupField('sequence number of other (starts with 1)', 'int'),
 //    'amount' => setupField('average monthly amount paid to other', 'numeric 11,2', 0), // typically to employee or supplier
     'draw' => setupField('whether credit can flow from main to agent', 'int tiny', 0),
     'permission' => setupField('what type of permission the agent has on the main account', 'int tiny', 0),
@@ -490,7 +491,8 @@ function tableDefs($schema = []) {
     'minimum' => setupField('the least (money) to budget for this option', 'int big', 0),
     'maximum' => setupField('the most (money) to budget for this option', 'int big', 0), // (0=no maximum) */
 	  'mandatory' => setupField('is the minimum required?', 'int tiny', 0),
-	  'averagegrade' => setupField('average grade (in a penny vote, the fraction of all votes)', 'numeric 5,3', 0),
+	  'averageGrade' => setupField('average grade (in a penny vote, the fraction of all votes)', 'numeric 5,3', 0),
+	  'averageMax' => setupField('average maximum grade (for range votes)', 'numeric 5,3', 0),
     'vetoes' => setupField('number of vetoes for this option', 'int', 0),
     'modified' => setupField('date/time last modified', 'int 11', 0),
     'created' => setupField('date/time created', 'int 11', 0),
@@ -532,24 +534,25 @@ function tableDefs($schema = []) {
     'id' => setupField('vote record id', 'serial big'),
     'ballot' => setupField('ballot on which this option is being graded', 'int big', 0),
     'option' => setupField('option being graded', 'int big', 0),
-    'grade' => setupField('grade given by a particular voter for this option', 'int', -1), // In a B vote, this is 10 * the pct (ddd.d) else 3*letter (-1=blank -2=veto)
-    'displayorder' => setupField('(unknown what this is for)', 'int tiny', 0), // 0 is first
+    'grade' => setupField('grade given by a particular voter for this option', 'int', -2), // In a B vote, this is 10 * the pct (ddd.d) else 3*letter (-2=blank -3=veto); in range-type vote this is the voter's chosen min
+    'displayOrder' => setupField('what order options were shown in to this voter', 'int', 0), // 0 is first; range-type votes this is the voter's chosen max
     'modified' => setupField('date/time last modified', 'int 11', 0),
   ];
   $foreignKeys = foreignKey('ballot', 'id', 'r_ballots') + foreignKey('option', 'id', 'r_options');
   $indexes = index('ballot') + index('option');
   $schema['r_votes'] = setupTable('What grade a particular voter gave a particular option (for a particular question) on a particular question ballot', $fields, 'id', $foreignKeys, $indexes);
 
-  // table r_vetoes
+  // table r_votenotes
   $fields = [
     'id' => setupField('veto record id', 'serial big'),
-    'vote' => setupField('what option (on a particular ballot) did the voter veto', 'int big', 0),
-    'text' => setupField('what was voter\'s moral objection to this option', 'text tiny'),
+    'vote' => setupField('what option (on a particular ballot) did the voter veto or comment on', 'int big', 0),
+    'text' => setupField('what was voter\'s comment or moral objection to this option', 'text tiny'),
+    'isVeto' => setupField('this is a veto (not a canceled veto or mere comment)', 'int tiny', 0),
     'modified' => setupField('date/time last modified', 'int 11', 0),
   ];
   $foreignKeys = foreignKey('vote', 'id', 'r_votes');
   $indexes = index('vote');
-  $schema['r_vetoes'] = setupTable('Details about a voter\'s veto of a particular option', $fields, 'id', $foreignKeys, $indexes);
+  $schema['r_votenotes'] = setupTable('Details about a voter\'s veto of a particular option', $fields, 'id', $foreignKeys, $indexes);
   
   // table r_nonmembers (use -make instead)
 /*  $fields = array(

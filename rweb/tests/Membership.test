@@ -50,8 +50,8 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| .ZZB | Bea Two |     2 | b@    | Btown | UT    | 02000      |  -200 | member | |'
     . '\\| .ZZC | Our Pub |     3 | c@    | Ctown | CA    | 03000      |     0 | co     | |"');
     And__('relations: "ASSOC'
-    . '\\| id   | main | agent | permission |'
-    . '\\| .ZZA | .ZZC | .ZZA  | manage     |"');
+    . '\\| main | agent | num | permission |'
+    . '\\| .ZZC | .ZZA  |   1 | manage     |"');
     break;
 
 
@@ -72,8 +72,8 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| .AAA | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents | .ZZA   |"');
     And__('we say "status": "your account is ready"');
     And__('we email "welcome" to member "d@" with subs: "ASSOC'
-    . '\\| fullName | name    | quid    | site        | code  |'
-    . '\\| Dee Four | deefour | NEW.AAA | %BASE_URL | %name |"');
+    . '\\| fullName | name    | qid    | site        | code  |'
+    . '\\| Dee Four | deefour | NEWAAA | %BASE_URL | %name |"');
     When_('member "?" visits page "reset/id=deefour&code=%name"');
     Then_('we show "Choose a New Password"');
     When_('member "?" confirms form "reset/id=deefour&code=%name" with values: "ASSOC'
@@ -101,7 +101,7 @@ class rwebMembership extends DrupalWebTestCase {
   // Scenario: A company agent clicks on the membership link
   public function testACompanyAgentClicksOnTheMembershipLink_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ":ZZA" visits page "status"');
+    When_('member "C:A" visits page "status"');
     Then_('we show "Membership Steps" with: "ARRAY'
     . '\\| 1 | Agreement |'
     . '\\| 2 | Donation |'
@@ -165,7 +165,7 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| .ZZA | 001-01-0001 | 1/1/1990 |'
     . '\\| .ZZC | 01-0000001  |          |"');
     And__('member ".ZZC" has done step "contact"');
-    When_('member ":ZZA" visits page "status"');
+    When_('member "C:A" visits page "status"');
     Then_('we show "Membership Steps" with: "ARRAY'
     . '\\| 1 | Agreement |'
     . '\\| 2 | Donation |'
@@ -176,33 +176,33 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| 7 | Relations |"');
     And__('with done ""');
     When_('member ".ZZC" has done step "sign"');
-    And__('member ":ZZA" visits page "status"');
+    And__('member "C:A" visits page "status"');
     Then_('we show "You\'re getting there"');
     And__('with done "1"');
     When_('member ".ZZC" has done step "donate"');
-    And__('member ":ZZA" visits page "status"');
+    And__('member "C:A" visits page "status"');
     Then_('with done "12"');
     When_('member ".ZZC" has done step "photo"');
-    And__('member ":ZZA" visits page "status"');
+    And__('member "C:A" visits page "status"');
     Then_('with done "124"');
     When_('member ".ZZC" has done step "prefs"');
-    And__('member ":ZZA" visits page "status"');
+    And__('member "C:A" visits page "status"');
     Then_('with done "1234"');
     When_('member ".ZZC" has done step "connect"');
-    And__('member ":ZZA" visits page "status"');
+    And__('member "C:A" visits page "status"');
     Then_('with done "12345"');
     When_('member ".ZZC" has done step "company"');
-    And__('member ":ZZA" visits page "status"');
+    And__('member "C:A" visits page "status"');
     Then_('with done "123456"');
-    When_('member ":ZZA" visits page "settings/relations"');
-    And__('member ":ZZA" visits page "status"');
+    When_('member "C:A" visits page "settings/relations"');
+    And__('member "C:A" visits page "status"');
     Then_('we show "Your Account Setup Is Complete"');
     And__('with done ""');
     And__('we tell staff "event - member" with subs: "ASSOC'
     . '\\| fullName | quid | status |'
     . '\\| Our Pub  | .ZZC | member |"');
     When_('member ".ZZC" has permission "ok"');
-    And__('member ":ZZA" visits page "status"');
+    And__('member "C:A" visits page "status"');
     Then_('we show "Your account is Activated"');
     And__('with done ""');
   }

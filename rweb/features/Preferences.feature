@@ -86,20 +86,6 @@ Scenario: A member chooses too low a savings reserve
   | rewards |*
   | $250    |
   
-Scenario: A member chooses too low a weekly savings amount
-  Given transactions:
-  | xid | created | type     | amount | from | to   | purpose |*
-  |   3 | %today  | transfer |    400 | .ZZB | .ZZA | stuff   |
-  Then balances:
-  | id   | balance |*
-  | .ZZB |    -410 |
-  When member ".ZZB" completes form "settings/preferences" with values:
-  | minimum | savings | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |     -10 |     300 |          0 |     10 |    25 | monthly | electronic |        0 |         1 |
-  Then we say "error": "saveWeekly too low" with subs:
-  | min               |*
-  | $%MIN_WEEKLY_BUMP |
-
 Scenario: A member chooses negative weekly savings without any savings
   When member ".ZZA" completes form "settings/preferences" with values:
   | minimum | savings | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*

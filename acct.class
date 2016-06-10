@@ -11,10 +11,12 @@ use rCredits\Testing as t;
  * rCredits Account class
  */
  
-class acct {
-  var $id; // the account's record id
-  var $agentId; // record id (in the agent's regional server) of whoever is acting on behalf of the account
+class Acct {
+  public $id; // the account's record id
+  public $agentId; // record id (in the agent's regional server) of whoever is acting on behalf of the account
 //  var $mainQid; // nearly alphabetic representation of id, id, and region for external queries
+  public $qo; // qid object
+  
   private static $perms = []; // permissions for all acct objects, indexed by id and agent
   public static $rs = FALSE; // account records for all acct objects, indexed by id
   
@@ -31,9 +33,10 @@ class acct {
    */
   function __construct($info = []) {
     $a = $this;
-    if (u\isAssoc($info)) { // specifying field values
+    if (!is_numeric(key($info))) { // u\isAssoc($info)) { // specifying field values
       $a->createNew($info); // create new db record
     } else list($a->id, $a->agentId) = $info; // called from r\acct()
+    $a->qo = r\qo($a->id, $a->proSe ? '' : $a->agentId);
   }    
 
   /**
@@ -70,8 +73,8 @@ class acct {
     $DBTX = db_transaction();
     $uid = r\regionalInsert('users', 'uid', $record, @$region);
     if (!($flags & u\bit(B_CO))) { // must postcede $uid =
-      u\setDft($cardCode, r\cardCode(r\quid($uid)));
-      u\setDft($emailCode, r\cardCode(r\quid($uid)));
+      u\setDft($cardCode, r\cardCode(r\qid($uid)));
+      u\setDft($emailCode, r\cardCode(r\qid($uid)));
     }
     
     if (isset($number)) $success = SMS\create($number, $uid);
@@ -97,17 +100,18 @@ class acct {
   public static function viable($id0, $agent0='', &$error='', $test = TRUE) {
     if (is_numeric($id0) and is_numeric($agent0)) return [$id0, $agent0];
     if ($error = u\EXPECT(compact(u\ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
-    if ($error = u\EXPECT((bool) $id0, 'null uid in new acct()', $test)) return FALSE;
+    if ($error = u\EXPECT((bool) $id0, 'null uid in new r\Acct()', $test)) return FALSE;
     if ($error = u\EXPECT(!(strpos($id0, R_AGENT_MARK) and $agent0), 'agent already specified in qid', $test)) return FALSE;
-    list ($id, $agent) = u\isZid($id0) ? [$id0, $agent0 ?: $id0] : IA($id0); // handle
+    list ($id, $agent) = u\isZid($id0) ? [$id0, $agent0 ?: $id0] : r\qo($id0)->ia; // handle
+
     if (u\isQid($agent0)) {
-      list ($agent, $zot) = IA($agent0);
+      list ($agent, $zot) = r\qo($agent0)->ia;
       if ($error = u\EXPECT($agent == $zot, 'agent agent not allowed', $test)) return FALSE;
     }
 
     $got = (bool) self::getRecord($id); // read the record into cache
     if ($error = u\EXPECT($got, 'That account does not exist.', $test)) return FALSE; // don't use tt() here (many calls)
-    u\EXPECT($id and $agent, "Missing acct property: [$id, $agent]");
+    if ($error = u\EXPECT($id and $agent, "Missing acct property: [$id, $agent]", $test)) return FALSE;
     return [$id, $agent];
   }
   
@@ -148,19 +152,20 @@ class acct {
     if (in_array($field, u\ray('ok confirmed up member cgc bona co admin cAdmin cAdmin2 cttyActive cttyUp closed'))) $nick = 'can';
     if ($nick == 'can') return $a->can(u\consta('b', $field));
     
-    if ($field == 'mainQid') return r\quid($a->id);
+    if ($field == 'mainQid') return $a->qo->mainQid;
     if ($field == 'balance') return $a->r - $a->savings;
     if ($field == 'savings') return ($a->rewards + ($a->savingsAdd ?: 0));
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
-    if ($field == 'agent') return acct($a->agentId);
+    if ($field == 'agent') return r\acct($a->agentId);
     if ($field == 'proSe') return ($a->id == $a->agentId);
-    if ($field == 'qid') return $a->proSe ? $a->mainQid : r\quid($a->id, $a->agentId);
+    if ($field == 'qid') return $a->qo->qid;
     if ($field == 'isCtty') return ($a->id < 0); // or ($a->id == $a->community);
     if ($field == 'isRegion') return (substr($a->name, -1, 1) == '.');
     if ($field == 'isNormal') return ($a->id > 0);
     if ($field == 'cttyA') return r\acct($a->community);
     if ($field == 'region') return r\uidRegion($a->id);
+    if ($field == 'regionName') return @r\acct($a->region)->fullName ?: (t('rCredits ') . db\lookup('name', 'r_regions r INNER JOIN r_states s ON s.abbreviation=r.st', 's.country_id=:US_COUNTRY_ID AND r.region=:reg', ['reg' => $a->qo->region]));
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'hasBank') return $a->risk('hasBank');
     if ($field == 'lowSecurity') return u\n2ai(substr($a->created, -5, 5), 3); // result is 3 chars long
@@ -248,7 +253,7 @@ class acct {
    */
   public function iCardCode($iCode = 0) {
     $a = $this;
-    list ($region, $tail) = explode(R_MEMBER_MARK, $a->mainQid);
+    list ($region, $tail) = $a->qo->parse();
 
     $b = u\lpad(decbin(u\a2n($region)), ILEN_REGION);
 ///  debug("b=$b region=$region tail=$tail security=$a->lowSecurity iCode=$iCode");
@@ -287,27 +292,53 @@ class acct {
   }
   
   /**
-   * Update the saved record in the database with the given data.
+   * Update the saved record in the database with the given data. For joint accounts, update partner too.
    * Call by:
    *   update($info); OR
    *   update($fields, $value1, ...)
    * @param assoc $info: data to update
    * @param string $fields: space-delimited list of field names
    * @param mixed $value1 (etc): new values for those fields
-   *   The flags field will always be included.
    * @return: TRUE if update succeeds, FALSE if update fails
    */
   public function update($info) {
     $a = $this;
-    if (!is_array($info)) return $a->update(u\rayy(func_get_args())); // second syntax
+    if (!is_array($info)) $info = u\rayy(func_get_args());
     
-    $ourRewards = (@$info['rewards'] ?: $a->rewards);
+    if ($jid = $a->jid and $jInfo = u\just($jFields = 'achMin minimum savings savingsAdd saveWeekly', $info)) {
+      list ($a2, $a1) = u\order($a->slave, $a, r\acct($jid)); // set $a1 master, $a2 slave
+      $a2->update1('achMin minimum savingsAdd saveWeekly', @$jInfo['achMin'] ?: $a1->achMin, 0, 0, 0); // not much for slave
+      $a->updateSavings($jInfo, $a1 == $a ? $a2->rewards : $a1->rewards); // update savings in master
+      $a1->update1($jInfo);
+      if (!$info = u\justNot($jFields, $info)) return TRUE; // fall through if something else to update
+    } else $a->updateSavings($info, 0); // update savings in proSe account
+
+    return $a->update1($info);
+  }
+
+  /**
+   * Interpret requested update of savings as a change to the savingsAdd field.
+   * @param assoc $info: (MODIFIED) fields and values to update
+   * @param numeric $slaveRewards: rewards in slave account, if any
+   */
+  private function updateSavings(&$info, $slaveRewards) {
     if (isset($info['savings'])) {
-      $info['savingsAdd'] = $info['savings'] - $ourRewards; // may be negative in official CGCs
+      $rewards = (@$info['rewards'] ?: $this->rewards) + $slaveRewards;
+      $info['savingsAdd'] = $info['savings'] - $rewards; // may be negative in official CGCs
       unset($info['savings']);
     }
+  }
+  
+  /**
+   * Update the account record in the database (with no special treatment of joint accounts).
+   */
+  public function update1($info) { // public only for testing
+    $a = $this;
+    if (!is_array($info)) $info = u\rayy(func_get_args());
+
     if (isset($info['balance'])) {
-      $info['r'] = $info['balance'] + $ourRewards + (isset($info['savingsAdd']) ? $info['savingsAdd'] : $a->savingsAdd);
+      $info['r'] = $info['balance'];
+      foreach (['rewards', 'savingsAdd'] as $k) $info['r'] += isset($info[$k]) ? $info[$k] : $a->$k;
       unset($info['balance']);
     }
     if ($a->ok and !isGAME) $a->recordChanges($info); // record changes if member is active
@@ -379,16 +410,33 @@ class acct {
   
   /**
    * Create a new relationship record.
-   * @param int $other: account ID of the account to relate to this (all other params are optional)
-   * @param int $reid: relationship record ID (for testing)
+   * NOTE: Assume no other company agent for this company is trying to create a relation at the same time.
+   * @param assoc $info: field values
    * @return: the record ID of the new relationship record
    */
-  function newRelation($other, $permission = 0, $employee = 0, $isOwner = 0, $draw = 0, $reid = NULL) {
-    $info = compact('reid') + u\ray('main other permission employee isOwner draw',
-      $this->id, $other, $permission, (int) $employee, (int) $isOwner, (int) $draw);
-    return r\regionalInsert('r_relations', 'reid', $info, -$this->region);
+  function newRelation($info) {
+//  function newRelation($other, $permission = 0, $employee = 0, $isOwner = 0, $draw = 0, $reid = NULL) {
+//   * @param int $other: account ID of the account to relate to this (all other params are optional)
+//   * @param int $reid: relationship record ID (for testing only)
+//    $info = compact('reid') + u\ray('main other permission employee isOwner draw',
+//      $this->id, $other, $permission, (int) $employee, (int) $isOwner, (int) $draw);
+    //return db\insert('r_relations', $info);
+    u\EXPECT($info['other'], 'missing other in new relation');
+    foreach (['employee', 'isOwner', 'draw'] as $k) $info[$k] = (int) @$info[$k];
+    return r\regionalInsert('r_relations', 'reid', $info + ['main' => $this->id], -$this->region);
   }
-  
+
+  /**
+   * Create an agent number for the account's relation, if it's a relational account and doesn't have one yet.
+   */
+  public function setAgentNum() {
+    $a = $this;
+    if ($a->proSe or r\qo($a->qid)->agentCode) return;
+    $otherNum = db\max('otherNum', 'r_relations', 'main=:main', ['main' => $a->id]) + 1;
+    $reid = r\relation('reid', $a->id, $a->agentId);
+    db\update('r_relations', compact('otherNum', 'reid'), 'reid');
+  }
+    
   /**
    * Return specified account's profile picture, with markup
    * @param bool $unique: should the markup force reloading the image
@@ -505,7 +553,7 @@ class acct {
   
   /**
    * Return how much is available in this account for the given operation, without drawing on other accounts.
-   * @param string $goods: purpose of the potential expenditure: FOR_GOODS or FOR_USD - see acct::shortfall())
+   * @param string $goods: purpose of the potential expenditure: FOR_GOODS or FOR_USD - see r\Acct::shortfall())
    */
   public function avail($goods) {
     $a = $this;
@@ -555,11 +603,11 @@ EOF;
       $amount = round(min($left, $avail), 2);
 ///      debug(compact('row','avail','amount','left','need','id'));
       if ($amount > 0) {
-        list ($fromQuid, $toQuid) = array(r\quid($uid), $this->mainQid);
-        list ($payer, $payee) = array($uid, $this->id);
-        $for = array($auto . $to . $toQuid, $auto . $from . $fromQuid);
+        list ($fromQid, $toQid) = [r\qid($uid), $this->mainQid];
+        list ($payer, $payee) = [$uid, $this->id];
+        $for = [$auto . $to . $toQid, $auto . $from . $fromQid];
         $goods = FOR_NONGOODS;
-        if (new r\x(compact(u\ray('amount payer payee goods for')))) $left -= $amount;
+        if (new r\X(compact(u\ray('amount payer payee goods for')))) $left -= $amount;
         if ($left <= 0) break;
       }
       
@@ -632,16 +680,16 @@ EOF;
     $a = $this;
 
     $DBTX = \db_transaction();
-    $minimum = $a->minimum + $b->minimum;
     foreach ([$a, $b] as $i => $ai) {
       $aj = $i == 0 ? $b : $a; // the other account
-      $ai->update('jid minimum', $aj->id, $ai->id < $aj->id ? $minimum : 0); // set slave minimum to zero
+      $ai->update('jid', $aj->id);
       if (!$ai->hasBank and $aj->hasBank) {
         $ai->update('bankAccount', $aj->bankAccount);
         $ai->setRisk('hasBank');
       }
       $ai->setBit(B_JOINED);
     }
+    $a->update('minimum achMin savingsAdd saveWeekly', $a->j_minimum, max($a->achMin, $b->achMin), $a->j_savingsAdd, $a->j_saveWeekly); // this sets master fields to the sums, slave fields to zero
     unset($DBTX);
   }
   
@@ -658,7 +706,7 @@ EOF;
     if ($jid = $a->jid) { // unravel a consummated join
       $b = r\acct($jid); // ignore param (actual joined account will be unjoined and any join requests zapped)
       foreach ([$a, $b] as $ai) {
-        $ai->update('jid minimum', '', max($a->minimum, $b->minimum));
+        $ai->update1('jid minimum', '', max($a->minimum, $b->minimum));
         $ai->cacheOk(); // make sure each account is left with its proper cached amounts
         $ai->setBit(B_JOINED, FALSE);
       }
@@ -1102,29 +1150,6 @@ EOF;
 } // end of class
 
 /**
- * Convert quid to [id, agent]
- * @param quid $quid: the quid to convert (DEFAULT current acount and agent's quid)
- * @return the corresponding UAR = [uid, agent] (FALSE if wrong format)
- */
-
-function IA($quid = '', $no_abbrev = TRUE) {
-  if (!$quid) return array(acct()->id, acct()->agentId, serverUid());
-  if (substr($quid, 0, 1) == '!') return ($id = r\unQuid($quid)) ? [$id, $id] : FALSE;
-  if (!u\isQid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
-  if (!u\isQid($quid)) return FALSE;
-
-  list ($zid, $regionUid, $isRel) = r\unQid($quid); // unQid not unQuid
-  if ($isRel) { // company agent
-    $reid = -$regionUid + $zid;
-    if (!$record = relation('main,other', 'reid=:reid', compact('reid'))) return FALSE;
-    return array_values($record);
-  } else {
-    $id = r\unQuid('', $zid, $regionUid); // unQuid not unQid
-    return array($id, $id); // pro Se
-  }
-}
-
-/**
  * Return an account object for the described account.
  * call by:
  *   r\acct()       (returns current account)
@@ -1143,11 +1168,11 @@ function acct($uid = '', $agent = '', &$error = '') {
   global $currentAcct; // use this ONLY in this class file
   if (!$uid) return $currentAcct ?: (!$error = 'There is no current account.');
   if (strpos($uid, '@')) $uid = db\lookup('uid', 'users', 'mail=:mail', ['mail' => u\cryptN($uid)]);
-  if (!$ua = acct::viable($uid, $agent, $error, TRUE)) return FALSE;
-  return new acct($ua); // the only place we call new acct() with a flat array (meaning an existing account)
+  if (!$ua = r\Acct::viable($uid, $agent, $error, TRUE)) return FALSE;
+  return new r\Acct($ua); // the only place we call new r\Acct() with a flat array (meaning an existing account)
 }
 
 /**
  * Return an account object for the agent of the given account.
  */
-function agent($uid = '') {return @acct($uid)->agent;}
+function agent($uid = '') {return @r\acct($uid)->agent;}

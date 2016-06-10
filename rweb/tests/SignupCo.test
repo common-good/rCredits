@@ -49,8 +49,8 @@ class rwebSignupCo extends DrupalWebTestCase {
     . '\\| .ZZA | Abe One  | a@    | 01330      | 111-22-0001 | +14136280000 | ok    |'
     . '\\| .ZZC | Our Pub  | c@    | 01301      | 111-22-3334 | +14136280003 | ok    |"');
     And__('relations: "ASSOC'
-    . '\\| id   | main | agent | permission |'
-    . '\\| :ZZA | .ZZC | .ZZA  | manage     |"');
+    . '\\| main | agent | num | permission |'
+    . '\\| .ZZC | .ZZA  |   1 | manage     |"');
     break;
 
 
@@ -65,7 +65,7 @@ class rwebSignupCo extends DrupalWebTestCase {
     . '\\|        0 |    0 |"');
     Then_('signup args: "ASSOC'
     . '\\| personal | isOwner | employeeOk | flow | helper  | fullName | phone |'
-    . '\\|        0 |       1 |          1 |    0 | NEW.ZZA |          |       |"');
+    . '\\|        0 |       1 |          1 |    0 | NEWZZA |          |       |"');
     And__('we show "Open a Company Account" with: "ARRAY'
     . '\\|_nameDescription      |'
     . '\\| properly capitalized |"');
@@ -74,15 +74,15 @@ class rwebSignupCo extends DrupalWebTestCase {
     . '\\| partnership         |'
     . '\\| private corporation |"');
     Given('invitation to email "a@" from member ".ZZC" is "c0D3"');
-    When_('member "?" confirms form "signup/code=c0D3&helper=NEW.ZZA&flow=0&isOwner=1&employeeOk=1" with values: "ASSOC'
+    When_('member "?" confirms form "signup/code=c0D3&helper=NEWZZA&flow=0&isOwner=1&employeeOk=1" with values: "ASSOC'
     . '\\| fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhon | companyOptions | address | city    | state | postalAddr                 | tenure | owns |'
     . '\\| AAAme Co | aco@ | 413-253-9876 | 01002      | 111-22-0001 | %CO_CORPORATION | | | | 1 A ST. | amherst | MA    | 1 A ST., Amherst, MA 01001 |     18 |    1 |"');
     Then_('members: "ASSOC'
     . '\\| id   | fullName | email | postalCode | phone        | city    | flags        | floor | helper |'
     . '\\| .AAA | AAAme Co | aco@  | 01002      | +14132539876 | Amherst | co,confirmed |     0 | .ZZA   |"');
     And__('relations: "ASSOC'
-    . '\\| id   | main | agent | permission | employee | isOwner | draw |'
-    . '\\| :AAA | .AAA | .ZZA  | manage     |        1 |       1 |    0 |"');
+    . '\\| main | agent | permission | employee | isOwner | draw |'
+    . '\\| .AAA | .ZZA  | manage     |        1 |       1 |    0 |"');
     And__('balances: "ASSOC'
     . '\\| id   | r | usd | rewards |'
     . '\\| .AAA | 0 |   0 |       0 |"');
@@ -92,12 +92,12 @@ class rwebSignupCo extends DrupalWebTestCase {
   // Scenario: A member registers a company while managing another account
   public function testAMemberRegistersACompanyWhileManagingAnotherAccount_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ":ZZA" confirms form "signup-company" with values: "ASSOC'
+    When_('member "C:A" confirms form "signup-company" with values: "ASSOC'
     . '\\| relation | flow |'
     . '\\|        0 |    0 |"');
     Then_('signup args: "ASSOC'
     . '\\| personal | isOwner | employeeOk | flow | helper  | fullName | phone |'
-    . '\\|        0 |       1 |          1 |    0 | NEW.ZZA |          |       |"');
+    . '\\|        0 |       1 |          1 |    0 | NEWZZA |          |       |"');
   }
 
   // Scenario: A member registers a company, having given company info
@@ -111,7 +111,7 @@ class rwebSignupCo extends DrupalWebTestCase {
     . '\\|        1 |    0 |"');
     Then_('signup args: "ASSOC'
     . '\\| personal | isOwner | employeeOk | flow | helper  | fullName | phone        |'
-    . '\\|        0 |       0 |          0 |    0 | NEW.ZZA | Acme Co  | +14132222222 |"');
+    . '\\|        0 |       0 |          0 |    0 | NEWZZA | Acme Co  | +14132222222 |"');
   }
 
 }

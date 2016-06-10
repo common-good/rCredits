@@ -29,7 +29,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'system down' => t('The rCredits system is under maintenance. Please try again in a few minutes?'),
   'your community down' => t('Your rCredits community is temporarily on hold. Contact your rCredits Community Admin for details: @contact'),
   'other community down' => t('That rCredits community is temporarily on hold.'),
-  'account info' => t('Your balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @totalDemand.'),
+  'account info' => t('Your balance for account @qid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @totalDemand.'),
   'invite reward' => t('inviting and/or assisting new member @fullName'),
 //  'employee invite reward' => t('inviting and/or assisting a member\'s manager (at @fullName -- $@R_COUNTED_BONUSr per employee)'),
 //  'account info2' => t("More account info"), // not used yet
@@ -66,13 +66,17 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'signup bonus' => t('-- and you got your signup bonus!'), // keep this short, cause it's an add-on
   'nothing done' => t('Nothing was done.'),
   'nothing undone' => t('Nothing undone.'),
-  'event' => t('Account @fullName (@quid) is now @status.'),
+  'event' => t('Account @fullName (@qid) is now @status.'),
   'approved' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
   'got funding' => t('You have received a @thing of @amountr from your rCredits community for @purpose.'),
   'got fine' => t('Your rCredits community charged you a fee of @amountr for @purpose.'),
   'inflation details' => t('Inflation adjustment is set at 5% APR pending a reliable measure of the true inflation rate.'),
   'gift sent' => t('Your chosen gift of @amount to Common Good Finance has gone through. Your rebate is @rewardAmount.'),
-  'tx summary' => t('@otherName @otherDid you @amount for "@purpose" on @created.'),
+  'tx desc passive' => t('@otherName @otherDid you @amount'),
+  'tx desc active' => t('You @did @otherName @amount'),
+  'when' => t('on @created'),
+  'purpose' => t('for @purpose'),
+  'confirm tx action' => t('Okay to @txAction?'),
   'share gift' => t('Your chosen ongoing gift of @share% of your rewards has been initiated for this month.'),
   'account suspended' => t('Your account has been temporarily suspended @why'),
   'to protect data integrity.' => t('to protect data integrity.'),
@@ -131,7 +135,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
   "what's your name really?" => t("Hmm. I don't know if I believe that. What's your name really?"),
-  "what's your email?" => t("Welcome to rCredits, @fullName (account ID @quid). Last question: What's your email address?"),
+  "what's your email?" => t("Welcome to rCredits, @fullName (account ID @qid). Last question: What's your email address?"),
   "what's your email really?" => t("Please type carefully. What is your email address?"),
   
   // confirmations
@@ -146,7 +150,6 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'confirm funding' => t('@confirmAction @amount to @otherName?'),
   'please confirm' => t('To confirm, type: @nonce'),
   'verification code' => t('Your verification code for using rCredits online is: @nonce'), // used in rWeb
-  'confirm tx action' => t('Okay to @txAction?'),
   
   // error messages
   'syntax' => t('Wrong syntax!'),
@@ -185,7 +188,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'short from' => t('@otherName is @short short for this request.'),
   'short from vague' => t('@otherName does not have enough funds for this request.'),
   'min too low' => t('Your minimum is set too low, causing conflicting deposits and withdrawals from your bank account. To increase your minimum to @suggestion, visit the @page page (under Settings).'),
-  'you were short' => t('You tried to make a purchase but did not have enough funds in your account. A higher "minimum" setting might keep this from happening again. To increase your minimum to the recommended setting of @suggested, <@a1>click here</a>.'),
+//  'you were short' => t('You tried to make a purchase but did not have enough funds in your account. A higher "minimum" setting might keep this from happening again. To increase your minimum to the recommended setting of @suggested, <@a1>click here</a>.'), // Arghh! some email programs apparently click this link automatically
+  'you were short' => t('You tried to make a purchase but did not have enough funds in your account. A higher "minimum" setting might keep this from happening again. To increase your minimum, sign in at rCredits.org and click "Preferences" on the Settings menu.'),
   'be not secretive' => t('Also, you have chosen to keep your balance secret. <@a2>Click here to change that</a> and let the cashier tell you how much you are short next it happens.'),
   'try debt' => t('You might also want to select "Debt Okay" in your Preferences (there is no charge for using reserve credit as long as you bring your balance back up within 30 days). <@a3>Click here to select "Debt Okay".</a> '),
   'join accounts' => t('You are invited to create a joint account with @name. To accept that invitation, <@atag>click here</a>. Once your accounts are joined, you sign in to either account to view your combined transactions. Both rCards will remain valid.'),
@@ -242,7 +246,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'duplicate transaction' => t('You already just @op that member that much. Wait a few minutes or type a different amount.'),
   'no search' => t('OR that member has chosen not to be identified by email or phone number.'),
   'not confirmed' => t('@youName: membership must be approved by @inviterName OR you must do a transaction with @inviterName FIRST.'),
-  'savings too low' => t('Until your rCredits community declares itself a stable and permanent Common Good Community, your savings amount must be at least as much as the incentive rewards you have received (@rewards to date)'),
+  'savings too low' => t('Until your rCredits community declares itself a stable Common Good Community, your savings amount must be at least as much as the incentive rewards you have received (@rewards to date)'),
   'savings too high' => t('You can increase your savings amount only by what you have in your primary account. Your maximum savings amount at this time is @max.'),
   'organizer grant' => t('You have recruited @ORGANIZER_GRANT_MIN new rCredits members. You are probably eligible for an rCredits organizer grant of up to @ORGANIZER_GRANT_MAX! <@a>Click here</a> to apply.'),
 

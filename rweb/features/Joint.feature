@@ -60,9 +60,9 @@ Scenario: A joined account slave member requests a new minimum
   | minimum | achMin | savings | saveWeekly | share |*
   |     200 |    100 |     500 |          0 |    10 |
   Then members have:
-  | id   | minimum | savings | achMin | share |*
-  | .ZZA |     200 |     250 |    100 |     0 |
-  | .ZZB |       0 |     250 |    100 |    10 |
+  | id   | minimum | savingsAdd | achMin | share |*
+  | .ZZA |     200 |        250 |    100 |     0 |
+  | .ZZB |       0 |          0 |    100 |    10 |
 
 Scenario: A joined account member looks at transaction history and summary
   Given members have:
@@ -105,16 +105,16 @@ Scenario: A joined account member looks at transaction history and summary
   | End       |   | 1,950.00 | + | 530.00 | %dmy    |
   And with:
   |_tid | Date   | Name       | From you | To you | Status  |_do   | Purpose   | Reward/Fee | Agent |
-  | 5   | %dm-1d | Corner Pub | --       | 100.00 | %chk    | X    | labor     | 10.00      | .ZZA  |
-  | 4   | %dm-2d | Dee Four   | --       |  50.00 | %chk    | X    | cash      | --         | .ZZB  |
-  | 3   | %dm-1w | Abe One    | 500.00   | 500.00 | %chk    | X    | usd       | --         | .ZZB  |
-  | 602 | %dm-2w |            | --       | 400.00 |         |      | from bank | --         | .ZZA  |
-  | 601 | %dm-2w |            | --       | 600.00 |         |      | from bank | --         | .ZZB  |
+  | 5   | %dm-1d | Corner Pub | --       | 100.00 | %chk    | X    | labor     | 10.00      | ZZA  |
+  | 4   | %dm-2d | Dee Four   | --       |  50.00 | %chk    | X    | cash      | --         | ZZB  |
+  | 3   | %dm-1w | Abe One    | 500.00   | 500.00 | %chk    | X    | usd       | --         | ZZB  |
+  | 602 | %dm-2w |            | --       | 400.00 |         |      | from bank | --         | ZZA  |
+  | 601 | %dm-2w |            | --       | 600.00 |         |      | from bank | --         | ZZB  |
   Given cron runs "acctStats"
   When member ".ZZB" visits page "summary"
   Then we show "Account Summary" with:
   | Name          | Bea Two & Abe One (beatwo & abeone) |
-  | ID            | .ZZB (joint account) |
+  | ID            | ZZB (joint account) |
   | Balance       | $1,950 |
   | Savings       | $530 |
   | _rewards      | $530 |

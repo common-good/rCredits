@@ -356,8 +356,9 @@ function rcredits_textfield($variables, $type = 'text') {
 
 function rcredits_textarea($variables) {
   \element_set_attributes($variables['element'], array('id', 'name'));
-  extract(rcElement($variables, 'attributes name help class value'));
+  extract(rcElement($variables, 'attributes name help class default_value value'));
 
+  u\setDft($value, @$default_value); // allow either val or dft(val) in w\areaFld()
   $value = \check_plain(@$value);
   if (@$required) $attributes['required'] = 'yes';
   $class[] = 'form-control input-md';

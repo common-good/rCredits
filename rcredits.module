@@ -156,15 +156,15 @@ function g($varName) {
  *
  */
 /**/ function bs($n, $list = B_LIST) {debug(a\flagsDesc($n, $list));} // show bit numbers/names
-/**/ function tm($n) {debug($result = is_numeric($n) ? date('m-d-Y H:i:s a', $n) : strtotime($n)); return $result;} // convert and display unixtime or string time
-function a($id) {global $lastA; return $lastA = r\acct(r\fullQid(strlen($id) == 3 ? '.' . $id : $id));} // return an account object
-function x($xid) {r\x($xid);} // return a transaction object
+/**/ function tm($n = '') {debug($result = $n ? (is_numeric($n) ? date('m-d-Y H:i:s a', $n) : strtotime($n)) : time()); return $result;} // convert and display unixtime or string time
+function a($id) {global $lastA; return $lastA = r\acct(t\fullQid(strtoupper(strlen($id) == 3 ? '.' . $id : $id)));} // return an account object
+function x($xid, $mya = '') {r\x($xid, $mya);} // return a transaction object
 /**/ function da($idfield) {list ($id, $field) = u\ray($idfield); debug(a($id)->$field);}
 /**/ function step($a) {debug(us($a)->step());}
 function ctty($id) {return a(a($id)->community);}
 function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
 /**/ function flog($s) {file_put_contents('flog.txt', print_r($s, 1) . "\n", FILE_APPEND);} // log to file
-/**/ function who($s) {$a = a($s); debug("$a->fullName ($a->mainQid)"); return $a;} // show whose account
+/**/ function who($s) {$a = a($s); debug("$a->fullName ($a->mainQid $a->id)"); return $a;} // show whose account
 function q($sql, $subs = [], $log = FALSE) {return f('db.q', $sql, $subs, $log);}
 
 /**
@@ -213,7 +213,7 @@ function eachA($func = 'a.changeIt') {
 function eachX($func = 'a.changeIt') {
   $result = db\q('SELECT xid FROM r_txs');
   if (!is_callable($func)) $func = funcNickname($func);
-  foreach ($result as $one) $func(r\x($one));
+  foreach ($result as $xid) $func(r\x($xid));
 }
 
 /**

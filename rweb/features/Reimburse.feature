@@ -10,11 +10,11 @@ Setup:
   | .ZZB | Bea Two  | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT | 10 | ok,confirmed,bona    |
   | .ZZC | Our Pub  | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR | 10 | ok,confirmed,co,bona |
   And relations:
-  | id   | main | agent | permission | draw |*
-  | :ZZA | .ZZA | .ZZB  | buy        |    1 |
-  | :ZZB | .ZZB | .ZZA  | read       |    0 |
-  | :ZZC | .ZZC | .ZZB  | buy        |    0 |
-  | :ZZD | .ZZC | .ZZA  | sell       |    0 |
+  | main | agent | permission | draw |*
+  | .ZZA | .ZZB  | buy        |    1 |
+  | .ZZB | .ZZA  | read       |    0 |
+  | .ZZC | .ZZB  | buy        |    0 |
+  | .ZZC | .ZZA  | sell       |    0 |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose | taking |*
   |   1 | %today-6m | signup |    250 | ctty | .ZZA | signup  | 0      |
@@ -96,7 +96,7 @@ Scenario: A member repays someone, drawing from another account
   | %today  | Our Pub  | Bea Two   | $300   | payback      |
   And transactions:
   | xid | created | type     | amount | from  | to   | goods           | purpose |*
-  |   5 | %today  | transfer |     50 | .ZZA  | .ZZB | %FOR_NONGOODS | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |
+  |   5 | %today  | transfer |     50 | .ZZA  | .ZZB | %FOR_NONGOODS | automatic transfer to NEWZZB,automatic transfer from NEWZZA |
   |   6 | %today  | transfer |    300 | .ZZB  | .ZZC | %FOR_NONGOODS | payback |
   And balances:
   | id   |    r |*

@@ -10,9 +10,9 @@ Setup:
   | .ZZB | Bea Two    |     10 | ok,confirmed,bona    |
   | .ZZC | Corner Pub |     10 | ok,confirmed,co,bona |
   And relations:
-  | id      | main | agent | permission | draw |*
-  | NEW.ZZA | .ZZC | .ZZA  | manage     |    1 |
-  | NEW.ZZB | .ZZC | .ZZB  | sell       |    0 |
+  | main | agent | permission | draw |*
+  | .ZZC | .ZZA  | manage     |    1 |
+  | .ZZC | .ZZB  | sell       |    0 |
   And balances:
   | id   | r   | rewards |*
   | .ZZA |  20 |      20 |
@@ -25,7 +25,7 @@ Scenario: A member draws
   | pay | .ZZB |     30 | %FOR_GOODS | food    |
   Then transactions:
   | xid | type     | amount | from | to   | purpose      |*
-  |   1 | transfer |     10 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |
+  |   1 | transfer |     10 | .ZZC | .ZZA | automatic transfer to NEWZZA,automatic transfer from NEWZZC |
   |   2 | transfer |     30 | .ZZA | .ZZB | food         |
   |   3 | rebate   |   1.50 | ctty | .ZZA | rebate on #2 |
   |   4 | bonus    |   3.00 | ctty | .ZZB | bonus on #1  |
@@ -36,7 +36,7 @@ Scenario: A member draws again
   | pay | .ZZB |    130 | %FOR_GOODS | food    |
   Then transactions:
   | xid | type     | amount | from | to   | purpose      |*
-  |   1 | transfer |    110 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |
+  |   1 | transfer |    110 | .ZZC | .ZZA | automatic transfer to NEWZZA,automatic transfer from NEWZZC |
   |   2 | transfer |    130 | .ZZA | .ZZB | food         |
   |   3 | rebate   |   6.50 | ctty | .ZZA | rebate on #2 |
   |   4 | bonus    |  13.00 | ctty | .ZZB | bonus on #1  |

@@ -35,11 +35,11 @@ function bankTransfers($starting, $ending, $uid, $jid = 0) {
   if ($uid == 'ctty') { // community or region
     $uid = $mya->community;
     $sql = <<<EOF
-      SELECT $fields, '' AS purpose
+      SELECT $fields, '' AS purpose, 0 AS payee
       FROM r_usd t LEFT JOIN users u ON u.uid=t.payer
       WHERE u.community=:uid AND :jid=0 AND $where
 EOF;
-  } else $sql = "SELECT $fields FROM r_usd t WHERE payer IN (:uid, :jid) AND $where"; // normal account
+  } else $sql = "SELECT $fields, 0 AS payee FROM r_usd t WHERE payer IN (:uid, :jid) AND $where"; // normal account
 
   return db\q($sql, compact(u\ray('starting ending uid jid'))); 
 }
@@ -75,8 +75,7 @@ EOF;
 
     $sql = <<<EOF
       SELECT t.*,
-      (SELECT fullName FROM users WHERE uid=IF($isPayer, t.payee, t.payer)) AS name,
-      IF($isPayer, t.payerFor, t.payeeFor) AS purpose
+      (SELECT fullName FROM users WHERE uid=IF($isPayer, t.payee, t.payer)) AS name
       FROM r_txs t 
       WHERE ($isPayer OR t.payee IN (:uid, :jid))
       AND $where
@@ -200,42 +199,28 @@ function updateRelations($updates) {
  */
 function undoTx($xid, $where = '1', $subs = [], $force = FALSE) {
   $mya = r\acct();
-  $oldRecord = lastTx("xid=:xid AND $where", compact('xid') + $subs);
-///  debug(compact('xid','where','subs','oldRecord'));
-  if ($error = r\nonoUndo($oldRecord, $subs)) return array($error, $subs); // check nono before confirm AND here
+  $tx = lastTx("xid=:xid AND $where", compact('xid') + $subs);
+///  debug(compact('xid','where','subs','tx'));
+  if ($error = r\nonoUndo($tx, $subs)) return array($error, $subs); // check nono before confirm AND here
 
-  extract($oldRecord, EXTR_PREFIX_ALL, 'old');
-  $data = unserialize($old_data);
+  $myx = r\x($tx, $mya);
+  $data = $myx->data;
 
-/* function undo_invoice($xid, $oldRecord, $old_otherUid, $byMe) // return $solution
-
-    if ($old_byMe) {
-      list ($new_state, $solution) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
-      r\notify($old_otherUid, $old_toMe ? 'invoice canceled' : 'offer canceled', r\txReportArgs($mya, $oldRecord));
-    } else {
-      list ($new_state, $solution) = array(TX_DENIED, t('marked "denied"'));
-      r\notify($old_otherUid, $old_toMe ? 'offer refused' : 'invoice denied', r\txReportArgs($mya, $oldRecord));
-    }
-    r\setTxState($new_state, $xid);
-    */
-  if (!$old_toMe and !$old_byMe) { // someone charged (either unilaterally or I approved it)
-// function dispute($xid, $oldRecord, $old_otherUid)
+  if (!$myx->toMe and !$myx->byMe) { // someone charged (either unilaterally or I approved it)
     r\disputeTx($xid); // mark it disputed
     $solution = t('marked "disputed"');
-    r\notify($old_otherUid, 'charge disputed', r\txReportArgs($mya, $oldRecord));
+    r\notify($myx->them, 'charge disputed', $myx->reportArgs());
   } else {
-    $otherAcct = $old_toMe ? r\acct($old_payer, $old_payerAgent) : r\acct($old_payee, $old_payeeAgent);
-    $type = $old_toMe ? 'charge' : 'payment';
-    $otherTid = $old_toMe ? $old_payerTid : $old_payeeTid;
-    return reverse($xid, $old_amount, $otherAcct, $data, $old_goods, $old_tid, $type, $otherTid, $force); // create an offsetting transaction
+    $type = $myx->toMe ? 'charge' : 'payment';
+    return reverse($xid, $myx->amount, $myx->a2, $data, $myx->goods, $myx->tid, $type, $myx->tid2, $force); // create an offsetting transaction
   }
 
-  $amount = u\fmtAmt($old_amount);
-  $tofrom = !$old_toMe ? t('to') : t('from');
-  $otherUid = $old_otherUid;
+  $amount = u\fmtAmt($myx->amount);
+  $tofrom = !$myx->toMe ? t('to') : t('from');
+  $otherUid = $myx->otherUid;
   $other = r\acct($otherUid)->fullName;
   $success = TRUE;
-  return ['report undo', compact(u\ray('success old_tid new_tid amount other tofrom solution otherUid'))];
+  return ['report undo', compact(u\ray('success amount other tofrom solution otherUid'))];
 }
 
 /**
@@ -356,15 +341,14 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   if (!$force and !@$data['inv'] and r\dupTx($uid, $myid, $taking ? $amount : -$amount)) return r\txRet('duplicate transaction', u\ray('op', $taking ? t('charged') : t('paid')));
 
   if ($err = r\txPermErr($a1, $a2, $taking, $amount < 0)) { // Check permissions
+    list ($erMsg, $erSubs) = $err;
     if ($force) {
       $msg = 'forced without perm';
+      $erInfo += ['date' => u\fmtDate($created)];
       foreach (['agent1'=>$a1, 'agent2'=>$a2] as $k => $a) $erInfo += [$k => $a->proSe ? t('self') : $a->fullName];
-      foreach ([$a1, $a2] as $a) {
-        r\message($a->id, $msg, $erInfo);
-        if (!$a->proSe) r\message($a->agentId, $msg, $erInfo);
-      }
-      r\tellStaff($msg, $erInfo);
-    } else return r\txRet($err[0], $erInfo + $err[1]);
+      foreach ([$a1, $a2] as $a) if (!$a->proSe) r\message($a->id, $msg, $erInfo);
+      r\tellStaff($msg . ' ' . u\tt($erMsg, $erSubs), $erInfo + $erSubs);
+    } else return r\txRet($erMsg, $erInfo + $erSubs);
   }
   
   foreach ([$a1, $a2] as $a) if (!$a->co and !($channel == TX_POS ? $a->agent->photoId : $a->photoId)) {
@@ -395,10 +379,10 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   }
   
   $info = compact(u\ray('type created amount payer payee payerAgent payeeAgent for data taking goods'));
-  if (!$x = new r\x($info, $oked)) return r\txRet('tx save err', $erInfo);
+  if (!$myx = new r\MyX($info, $a1, $oked)) return r\txRet('tx save err', $erInfo);
   
   // Report results
-  $args = r\txReportArgs($a1, $x->ray, TRUE, $shortfall);
+  $args = $myx->reportArgs(TRUE, $shortfall);
 
   if ($oked) { // notify other party by email about any completed transaction
     foreach ([$a1, $a2] as $a) if (!$a->confirmed) $a->setBit(B_CONFIRMED);
@@ -417,7 +401,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
 }
 
 /**
- * Create an ivoice
+ * Create an invoice
  * call by: list ($msg, $args, $confirm) = be\invoice(...);
  * @param acct $a1: acct object for first party (usually current user)
  * @param acct $a2: acct object for the other party
@@ -475,7 +459,7 @@ function fund($uid, $type, $amount, $for, $oked = TRUE) {
   
   $payer = r\acct($payee)->community;
   $payerAgent = (@$mya and $mya->id < 0) ? $mya->agentId : $payer; // take note if funded by community admin
-  if (!new r\x(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')))) return FALSE;
+  if (!new r\X(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')))) return FALSE;
   $types = u\ray(TX_TYPES);
   $thing = $isReward ? t('reward') : $types[$type];
   $subs = u\ray('amount purpose thing', u\fmtAmt(abs($amount)), $for, $thing);
@@ -540,16 +524,6 @@ function identify($who, $myid, $self_message = 'no self-trading') {
     $who = $phone; $cphone = u\cryptN($phone);
   } else $cphone = '-';
   
-  $quid = strtoupper($who); // in case this is a quid (abbreviated or not)
-  if (preg_match('/^([A-Z]{3})?[\.\:=][A-Z]{3,4}( |$)/i', $quid, $match)) { // allow quids or abbrevs within this region
-    $pre = $match[1] ? '' : R_SERVER_ID; // region name was omitted
-    list($quid) = explode(' ', "$pre$quid ", 2); // take just the first word, in case this is from a list showing QUID and fullName
-  }
-  if (u\isQid($quid)) {
-    if (!$acct = r\acct($quid)) return array('unknown member', $subs, []);
-    if ($acct->id == $myid) return array($self_message, [], []);
-    return $acct; // qids are easy
-  }
   if (!$short = u\shortName(" $who ", '%')) $short = '-'; // abbreviations must not be null or zeroes
   $cmail = strpos($who, '@') ? u\cryptN($who) : '-';
 
@@ -566,6 +540,11 @@ EOF;
 // LEFT JOIN r_boxes s ON u.uid = s.uid ... OR :who=s.code (search for cell not allowed if it isn't the account's primary phone)
 
   $result = db\q($sql, compact(u\ray('short cphone cmail')))->fetchAllKeyed(0, 1);
+  
+  // QID? if not, maybe first word is a QID if this is from a list showing QID and fullName
+  $qid = ($i = strpos($who, ':')) ? substr($who, 0, $i) : strtoupper($who);
+  if ($a = r\acct($qid)) $result[$a->id] = $a->fullName;
+
   if (count($result) == 1 and @$result[$myid]) return [$self_message, [], []];
   unset($result[$myid]); // self is one of many results, so ignore it
   if (!$result) return ['unknown member' . ("$cphone$cmail" == '--' ? '' : '|no search'), $subs, []];
@@ -649,19 +628,26 @@ EOF;
 
 /**
  * Return a list of account choices for the current user (agent of the current account)
- * @return an array of account ids (FALSE if none)
+ * @return an assoc of names keyed by account ids (FALSE if none)
  */
 function accountChoices() {
   if (!$mya = r\acct()) return FALSE;
-  $result = [$aid = $mya->agentId];
+  $result[$aid = $mya->agentId] = $mya->fullName;
   $nameOrder = "IF(MID(fullName, 2, 2)='. ', MID(fullName, 4), IF(MID(fullName, 1, 4)='the ', MID(fullName, 5), fullName))"; // ignore "the " and initialled first name (eg "X. ")
+  $sqlNormal = 'SELECT r.main AS id, u.fullname FROM r_relations r LEFT JOIN users u ON u.uid=r.main WHERE r.other=:aid AND r.permission>0'; // normal selection SQL
+  
   if ($mya->admin) {
-    $q = @db\q("SELECT uid FROM users WHERE ABS(uid)>1 ORDER BY (uid<0) DESC, $nameOrder");
+    $q = @db\q("SELECT uid AS id, fullName FROM users WHERE ABS(uid)>1 ORDER BY (uid<0) DESC, $nameOrder");
   } elseif ($mya->cAdmin) {
-    $q = @db\q("SELECT uid FROM users WHERE community=:ctty ORDER BY (uid<0) DESC, $nameOrder", ['ctty' => $mya->community]);
-  } else $q = @db\q('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'));
-///  debug($result + $q->fetchAllKeyed(0, 0));
-  return array_values($result + $q->fetchAllKeyed(0, 0));
+    $sql = <<<EOF
+SELECT DISTINCT id, fullName FROM
+  (SELECT uid AS id, fullName FROM users WHERE community=:ctty UNION $sqlNormal) w
+ORDER BY (id<0) DESC, $nameOrder
+EOF;
+    $q = @db\q($sql, u\ray('ctty aid', $mya->community, $aid));
+  } else $q = @db\q("$sqlNormal ORDER BY $nameOrder", compact('aid')); // the usual case
+
+  return $result + $q->fetchAllKeyed();
 }
 
 /**

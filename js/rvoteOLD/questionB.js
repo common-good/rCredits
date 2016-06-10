@@ -6,7 +6,7 @@ function findslidernum(id) {
 	return parseInt(id.replace('input_slider', ''));
 }
 
-function vetoclick(i) {
+function vetoclickB(i) {
 	var veto = document.getElementById('input_veto' + i);
 	var sliderdiv = document.getElementById('sliderdiv' + i);
 	var vetonotediv = document.getElementById('vetonotediv' + i);
@@ -27,8 +27,9 @@ function changepct(i) {
 	var newvalue = cgsliders[si].target.value;
 	newvalue = Math.max(0,Math.min(100,parseFloat(newvalue.replace(/[^\d\.]/g, '')))); // remove all but digits and decimal points
 	cgsliders[si].setValue(newvalue, true);
+	cgsliders[si].sticky = true;
 	cgReactText(si);
-	cgsliders[si].target.value = newvalue.toFixed(1) + '%';
+	cgsliders[si].target.value = newvalue.toFixed(1);
 }
 
 function handleEnter(e) {
@@ -50,9 +51,9 @@ function handleEnter(e) {
 	return (it.id == 'submitvote');
 }
 
-function load(optcount) {
+function loadB(optcount) {
 	document.onkeypress = handleEnter;
-	CARPE.Sliders.init();
+	setupSliders();
 	for(var i=0; i<optcount; i++) vetoclick(i); // show veto notes if appropriate
 }
 

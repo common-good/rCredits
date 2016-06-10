@@ -9,13 +9,13 @@ Setup:
   | .ZZA | Abe One  |     0 |     100 | co,ok | 30     | hasBank |
   | .ZZB | Bea Two  |   -50 |     100 | ok    | 30     |         |
   And relations:
-  | id | main | agent | draw |*
-  | 1  | .ZZA | .ZZB  | 1    |
+  | main | agent | draw |*
+  |.ZZA | .ZZB  | 1    |
   
 Scenario: a member is barely below minimum
   Given balances:
-  | id   | rewards | savings | balance |*
-  | .ZZA |      20 |      20 | 99.99   |
+  | id   | rewards | savingsAdd | balance |*
+  | .ZZA |      20 |          0 | 99.99   |
   When cron runs "bank"
   Then usd transfers:
   | txid | payer | amount | channel  |*
@@ -26,8 +26,8 @@ Scenario: a member is barely below minimum
 
 Scenario: a member has a negative balance
   Given balances:
-  | id   | rewards | savings | balance |*
-  | .ZZA |      20 |      20 | -50     |
+  | id   | rewards | savingsAdd | balance |*
+  | .ZZA |      20 |          0 | -50     |
   When cron runs "bank"
   Then usd transfers:
   | txid | payer | amount | channel  |*
@@ -44,7 +44,7 @@ Scenario: an unbanked member barely below minimum draws on another account
   When cron runs "bank"
   Then transactions:
   | xid | type     | amount | from | to   | goods           | purpose      |*
-  |   1 | transfer |     30 | .ZZA | .ZZB | %FOR_NONGOODS | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |
+  |   1 | transfer |     30 | .ZZA | .ZZB | %FOR_NONGOODS | automatic transfer to NEWZZB,automatic transfer from NEWZZA |
   And we notice "under min|drew" to member ".ZZB" with subs:
   | amount |*
   | $30    |
@@ -59,15 +59,15 @@ Scenario: an unbanked member barely below minimum cannot draw on another account
 
 Scenario: a member is at minimum
   Given balances:
-  | id   | rewards | savings | balance |*
-  | .ZZA |      20 |      20 |     100 |
+  | id   | rewards | savingsAdd | balance |*
+  | .ZZA |      20 |          0 |     100 |
   When cron runs "bank"
   Then bank transfer count is 0
   
 Scenario: a member is well below minimum
   Given balances:
-  | id   | rewards | savings | balance | minimum |*
-  | .ZZA |      25 |      25 |      50 |     151 |
+  | id   | rewards | savingsAdd | balance | minimum |*
+  | .ZZA |      25 |          0 |      50 |     151 |
   When cron runs "bank"
   Then usd transfers:
   | txid | payer | amount              | channel  |*
@@ -78,9 +78,9 @@ Scenario: a member is well below minimum
 
 Scenario: a member is under minimum but already requested barely enough funds from the bank
   Given balances:
-  | id   | rewards | savings | balance |*
-  | .ZZA |      20 |      20 |      20 |
-  | .ZZB |      20 |      20 |     100 |
+  | id   | rewards | savingsAdd | balance |*
+  | .ZZA |      20 |          0 |      20 |
+  | .ZZB |      20 |          0 |     100 |
   When cron runs "bank"
   Then usd transfers:
   | payer | amount | channel  |*
@@ -95,15 +95,15 @@ Scenario: a member is under minimum and has requested insufficient funds from th
   | id   | fullName | floor | minimum | flags | achMin | risks   |*
   | .ZZD | Dee Four |   -50 |     300 | ok    | 30     | hasBank |
   And balances:
-  | id   | rewards | savings | balance |*
-  | .ZZD |      20 |      20 |      20 |
+  | id   | rewards | savingsAdd | balance |*
+  | .ZZD |      20 |          0 |      20 |
   When cron runs "bank"
   Then usd transfers:
   | payer | amount | deposit |*
   | .ZZD  |   -280 |       0 |
   Given balances:
-  | id   | rewards | savings | balance |*
-  | .ZZD |      20 |      20 |   19.99 |
+  | id   | rewards | savingsAdd | balance |*
+  | .ZZD |      20 |          0 |   19.99 |
   When cron runs "bank"
   Then usd transfers:
   | payer | amount |*
@@ -114,8 +114,8 @@ Scenario: a member is under minimum only because rewards are reserved
   | id   | fullName | minimum | flags | achMin | risks   |*
   | .ZZD | Dee Four |     100 | ok    | 10     | hasBank |
   And balances:
-  | id   | r   | rewards | savings |*
-  | .ZZD | 110 |      30 |      30 |
+  | id   | r   | rewards | savingsAdd |*
+  | .ZZD | 110 |      30 |          0 |
   When cron runs "bank"
   Then usd transfers:
   | payer | amount |*

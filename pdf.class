@@ -146,6 +146,7 @@ class Pdf extends \TCPDF {
 
   /**
    * Close and output PDF document  
+   * @param string $dest: I=inline (to browser) D=download F=to file,...
    */
   function output($filename = 'doc.pdf', $dest = 'I') { // must be same args and defaults as in TCPDF
     if (u\test()) $this->Close(); else parent::Output($filename, $dest);

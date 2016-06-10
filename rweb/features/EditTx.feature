@@ -10,9 +10,9 @@ Setup:
   | .ZZB | Bea Two    |     10 | ok,confirmed,bona    |
   | .ZZC | Corner Pub |     10 | ok,confirmed,co,bona |
   And relations:
-  | id   | main | agent | permission |*
-  | :ZZA | .ZZC | .ZZA  | sell       |
-  | :ZZB | .ZZC | .ZZB  | manage     |
+  | main | agent | num | permission |*
+  | .ZZC | .ZZA  |   1 | sell       |
+  | .ZZC | .ZZB  |   2 | manage     |
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose      |*
   |   1 | %today-6m | signup   |    250 | ctty | .ZZA | signup       |
@@ -92,9 +92,9 @@ Scenario: A buyer disputes a charge
   |_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward/Fee |
   |   3 | %dm-5d | Corner Pub | 80.00    | --     | %chk   | X | this CF | 4.00       |
   When member ".ZZA" clicks "X" on transaction 100
-  Then we show "tx summary|confirm tx action" with subs:
-  | amount | otherName  | otherDid | purpose | created   | txAction            |*
-  | $80    | Corner Pub | charged  | this CF | %today-5d | DISPUTE this charge |
+  Then we show "tx desc passive|purpose|when|.|confirm tx action" with subs:
+  | amount | otherName  | otherDid | purpose     | created   | txAction                        |*
+  | $80    | Corner Pub | charged  | ''this CF'' | %today-5d | request a refund of this charge |
   When member ".ZZA" confirms "X" on transaction 100
 #  When member ".ZZA" confirms form "history/transactions/period=5&do=no&xid=100" with values: ""
   Then we say "status": "report undo" with subs:
@@ -110,14 +110,14 @@ Scenario: A seller reverses a charge
   | 100 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | 1      |
   | 101 | %today-5d | rebate   |      4 | ctty | .ZZA | rebate   | 0      |
   | 102 | %today-5d | bonus    |      8 | ctty | .ZZC | bonus    | 0      |
-  When member ":ZZB" visits page "history/transactions/period=5"
+  When member "C:B" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
   |_tid | Date   | Name    | From you | To you | Status | _ | Purpose | Reward/Fee |
   |   2 | %dm-5d | Abe One | --       | 80.00  | %chk   | X | this CF | 8.00       |
-  When member ":ZZB" clicks "X" on transaction 100
-  Then we show "tx summary|confirm tx action" with subs:
-  | amount | otherName | otherDid | purpose | created   | txAction            |*
-  | $80    | Abe One   | paid     | this CF | %today-5d | REVERSE this charge |
+  When member "C:B" clicks "X" on transaction 100
+  Then we show "tx desc active|purpose|when|.|confirm tx action" with subs:
+  | amount | otherName | did     | purpose     | created   | txAction            |*
+  | $80    | Abe One   | charged | ''this CF'' | %today-5d | reverse this charge |
   
 Skip
 Scenario: A member confirms OK

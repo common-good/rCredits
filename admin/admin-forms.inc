@@ -103,7 +103,7 @@ function formAdminPanel_submit($form, &$sta) {
         rename($oldFile, $newFile);
       }
     }
-    return r\go('/print-rcard/' . $a->qid);
+    return r\go('/print-rcard/' . $a->id);
   } elseif ($op == 'askForAppData') {
     $gets = u\ray(R_APP_DATA_GETS);
     $a->update('getAppData appData', $gets[0], []);
@@ -304,13 +304,13 @@ function formMakeCtty_submit($form, &$sta) {
   $flags = u\bit(B_CO) | u\bit(B_OK) | u\bit(B_UP);
   $rebate = 0;
   $country = R_COUNTRY_ID;
-  $region = -r\unQuid($region . '.AAA');
+  $region = r\qo("!$region")->id;
   $fields .= ' postalCode flags rebate region country';
 
   $DBTX = \db_transaction();
   $info = compact(u\ray($fields)) + acctType(CO_PARTNERSHIP);
   
-  if (!$a = new r\acct($info)) return say('cannot create account', 'zot');
+  if (!$a = new r\Acct($info)) return say('cannot create account', 'zot');
   $a->update('community', $a->id);
   
   unset($DBTX); // commit
@@ -442,6 +442,7 @@ function formDeposits($form, &$sta, $deposit = '') {
     $oldCount = $previous ? db\count('r_usd', $where . ' AND deposit=:previous', compact('previous')) : 0;
     $count = item(t('Checks') . " $way: $count");
 //    if ($previous) $reprint = boxFld('', t('Include/Reprint ') . $oldCount . t(' checks from ') . strftime('%d-%b', $previous) . '?'); else unset($reprint);
+// fails    if ($count or $previous) $submit = submit(t('Print checks ' . $way), 'primary', 'md', ['target' => '_blank']);
     if ($count or $previous) $submit = submit(t('Print checks ') . $way);
     $previous = hidFld($previous);
 ///    echo "\n\n\nway=$way " . print_r(u\prefixKeys($way, compact(u\ray('count reprint submit previous'))), 1) . "\n\n\n";
@@ -587,9 +588,10 @@ define('PHOTO_MAX', 90); // maximum height and width of photo
 
 /**
  * Print an ID card
- * @param mixed $id: quid or uid of account to make a card for
+ * @param mixed $id: qid or uid of account to make a card for
+ * @param mixed $agent: qid or uid of agent
  */
-function memberID($id) {
+function memberID($id, $agent = '') {
   require_once __DIR__ . '/../statement.class';
 
 // causes test to fail  if (!$mya = r\acct()) exit('You must first sign in.');
@@ -599,29 +601,33 @@ function memberID($id) {
     $acct = r\acct($mya->id, $id);
     if ($acct->agent->co) exit('You may print scan-in cards only for employees.');
   } else */
-  if (!$a = a($id)) exit('No such account: ' . $id);
+
+  if (!$a = r\acct($id, $agent)) exit('No such account ia: ' . $id . ':' . $agent);
   
   $fullName = $a->shortName ?: $a->fullName;
-  $qid = $a->qid;
+  $a->setAgentNum(); // assign an agentCode, if appropriate (and not yet done)
+  $qid = $a->qid; // get this before setting $a to agent (below)
+  list ($fmt, $region, $tail, $agentCode) = $a->qo->qr();
+  $tail = $fmt . $tail . $agentCode;
+  if (TRUE) { // old style
+    list ($region, $tail, $agentCode) = $a->qo->parse();
+    if ($a->proSe) $tail .= '.'; else $tail = substr(r\qid(r\relation('reid', $a->id, $a->agentId)), 3) . '-';
+  }
   
   if ($proSe = $a->proSe) {
     $nameSize = strlen($fullName) > 21 ? '100px' : '120px';
-    $fields = array('cardCode', 0, 'member', 'Member');
+    $fields = array('cardCode', 0, 'Personal rCard #:');
   } else {
-    if (!@$a->agent->cardCode2) r\makeCardCode($a);
+    if (!@$a->agent->cardCode2) r\makeCardCode($a); // NOT r\cardCode($a->qid);
     $a = $a->agent; // hereafter it's all about the agent
     $fullName = "$a->fullName<br>$fullName"; // agent and company
     $nameSize = '72px';
-    $fields = array('cardCode2', 5, 'agent', 'Company Agent');
+    
+    $fields = array('cardCode2', 5, 'Company rCard #:');
   }
-  list ($cardField, $lower, $role, $roleName) = $fields;
-  $mark = u\consta("r_$role", 'mark');
-  list ($region, $tail) = explode($mark, $qid);
-  $urlMark = $proSe ? $mark : R_AGENT_URL_MARK;
+  list ($cardField, $lower, $roleName) = $fields;
   $server = isPRODUCTION ? 'RC2.ME' : 'RC4.ME';
-  $qrUrl = "HTTP://$region.$server/$tail$urlMark" . $a->$cardField; // NOT r\cardCode($qid);
-//  $qrServer = strtoupper('http://' . R_SERVER_ID . '.rC2.me/I/');
-//  $qrUrl = $qrServer . str_replace(R_AGENT_MARK, R_AGENT_URL_MARK, $qid . $mark) . $a->secure[$cardField];
+  $qrUrl = "HTTP://$region.$server/$tail" . $a->$cardField;
   $photo = $a->photo ? "@$a->photo" : str_replace(R_DFT_PICTURE, R_NOT_VALID, DRUPAL_ROOT . $a->photoFilename());
 
 //  $info = @getimagesize($photo);
@@ -665,7 +671,7 @@ function memberID($id) {
   $pdf->Image($photo, 0, 0, $photoW, $photoH, '', './account', '', true, 300, '', false, false, 1, false, false, false);
   $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', 96, 35 + $lower, 50, 50, $style, 'N'); // L,M,Q,H are low-high error-correction
 
-  $html = strtr('<span style="font-size:44px;">@ROLE<br><span style="font-size:76px; color:darkred; font-weight:bold;">@CODE</span><br>@REGION</span>', array('@ROLE' => $roleName, '@CODE' => $qid, '@REGION' => r\acct($a->region)->fullName));
+  $html = strtr('<span style="font-size:44px;">@ROLE<br><span style="font-size:76px; color:darkred; font-weight:bold;">@CODE</span><br>@REGION</span>', ['@ROLE' => $roleName, '@CODE' => $qid, '@REGION' => $a->regionName]);
   $pdf->writeHTMLCell(100, 30, 94, 3 + $lower, $html); // w, h, x, y
   $pdf->writeHTMLCell(40, 10, 160, 84.5, '<div style="font-size:44px;">rCredits.org</div>');
   $pdf->writeHTMLCell(182, 40, 10, 100, "<div style=\"font-size:$nameSize; text-align:center; color:midnightblue; font-weight:bold;\">$fullName</div>");

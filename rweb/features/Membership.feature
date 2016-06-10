@@ -12,8 +12,8 @@ Setup:
   | .ZZB | Bea Two |     2 | b@    | Btown | UT    | 02000      |  -200 | member | |
   | .ZZC | Our Pub |     3 | c@    | Ctown | CA    | 03000      |     0 | co     | |
   And relations:
-  | id   | main | agent | permission |*
-  | .ZZA | .ZZC | .ZZA  | manage     |
+  | main | agent | num | permission |*
+  | .ZZC | .ZZA  |   1 | manage     |
 
 Scenario: A member signs in for the first time
   Given member is logged out
@@ -27,8 +27,8 @@ Scenario: A member signs in for the first time
   | .AAA | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents | .ZZA   |
   And we say "status": "your account is ready"
   And we email "welcome" to member "d@" with subs:
-  | fullName | name    | quid    | site        | code  |*
-  | Dee Four | deefour | NEW.AAA | %BASE_URL | %name |
+  | fullName | name    | qid    | site        | code  |*
+  | Dee Four | deefour | NEWAAA | %BASE_URL | %name |
 
   When member "?" visits page "reset/id=deefour&code=%name"
   Then we show "Choose a New Password"
@@ -53,7 +53,7 @@ Scenario: A member clicks the membership link
   And with done ""
 
 Scenario: A company agent clicks on the membership link
-  When member ":ZZA" visits page "status"
+  When member "C:A" visits page "status"
   Then we show "Membership Steps" with:
   | 1 | Agreement |
   | 2 | Donation |
@@ -121,7 +121,7 @@ Scenario: A member opens a business account
   | .ZZA | 001-01-0001 | 1/1/1990 |
   | .ZZC | 01-0000001  |          |
   And member ".ZZC" has done step "contact"
-  When member ":ZZA" visits page "status"
+  When member "C:A" visits page "status"
   Then we show "Membership Steps" with:
   | 1 | Agreement |
   | 2 | Donation |
@@ -133,32 +133,32 @@ Scenario: A member opens a business account
   And with done ""
 
   When member ".ZZC" has done step "sign"
-  And member ":ZZA" visits page "status"
+  And member "C:A" visits page "status"
   Then we show "You're getting there"
   And with done "1"
 
   When member ".ZZC" has done step "donate"
-  And member ":ZZA" visits page "status"
+  And member "C:A" visits page "status"
   Then with done "12"
 
   When member ".ZZC" has done step "photo"
-  And member ":ZZA" visits page "status"
+  And member "C:A" visits page "status"
   Then with done "124"
 
   When member ".ZZC" has done step "prefs"
-  And member ":ZZA" visits page "status"
+  And member "C:A" visits page "status"
   Then with done "1234"
   
   When member ".ZZC" has done step "connect"
-  And member ":ZZA" visits page "status"
+  And member "C:A" visits page "status"
   Then with done "12345"
 
   When member ".ZZC" has done step "company"
-  And member ":ZZA" visits page "status"
+  And member "C:A" visits page "status"
   Then with done "123456"
   
-  When member ":ZZA" visits page "settings/relations"
-  And member ":ZZA" visits page "status"
+  When member "C:A" visits page "settings/relations"
+  And member "C:A" visits page "status"
   Then we show "Your Account Setup Is Complete"
   And with done ""
   And we tell staff "event - member" with subs:
@@ -166,6 +166,6 @@ Scenario: A member opens a business account
   | Our Pub  | .ZZC | member |
 
   When member ".ZZC" has permission "ok"
-  And member ":ZZA" visits page "status"
+  And member "C:A" visits page "status"
   Then we show "Your account is Activated"
   And with done ""

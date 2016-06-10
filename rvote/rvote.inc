@@ -10,8 +10,8 @@ use rCredits\Vote as v;
 
 define('ISDEMO', TRUE);
 define('GRADELTRS', 'EDCBA');
-define('VETOGRADE', -2);
-define('BLANKGRADE', -1); // means voter did nothing with this option (so don't count it)
+define('VETOGRADE', -3);
+define('BLANKGRADE', -2); // means voter did nothing with this option (so don't count it)
 define('BPCT2INT', 10); // what to multiply budget pct field by, to get an integer (how many decimal places in the percentage)
 define('FUNDED', 'funded');
 
@@ -41,7 +41,7 @@ function questionList($cttyA, $question='', $doWhat='') {
   global $base_url;
 	global $voting;
 
-	$q = db\q("SELECT id, (CASE WHEN :now>endVoting THEN 'R' WHEN :now>endProposals THEN 'V' WHEN :now>endIdeas THEN 'P' ELSE 'I' END) AS phase, repeats, repeatedBy, text, detail,  linkIdeas, linkProposals, created, (CASE WHEN endVoting=0 THEN 0 WHEN :now>endVoting THEN endVoting-:now WHEN :now>endProposals THEN endVoting WHEN :now>endIdeas THEN endProposals ELSE endIdeas END) AS endDate, budget, units FROM r_questions WHERE ctty=:ctty ORDER BY endDate, id", u\ray('ctty now', $cttyA->id, $now = time()));
+	$q = db\q("SELECT id, (CASE WHEN :now>endVoting THEN 'R' WHEN :now>endProposals THEN 'V' WHEN :now>endIdeas THEN 'P' ELSE 'I' END) AS phase, repeats, repeatedBy, text, detail,  linkIdeas, linkProposals, created, (CASE WHEN endVoting=0 THEN 0 WHEN :now>endVoting THEN endVoting-:now WHEN :now>endProposals THEN endVoting WHEN :now>endIdeas THEN endProposals ELSE endIdeas END) AS endDate, budget, units FROM r_questions WHERE ctty=:ctty AND endIdeas<>0 ORDER BY endDate, id", u\ray('ctty now', $cttyA->id, $now = time()));
 
 	$voting = false;
 	$qdivs = $list = '';
@@ -54,13 +54,12 @@ function questionList($cttyA, $question='', $doWhat='') {
 
 		$budget = $budget ? (' (total budget: ' . ($units ? '' : '$') . number_format($budget, 0) . ($units ? " $units)" : ')')) : '';
 		$phaselist = phaseDpy($id, $phase, $repeats, $repeatedBy, $linkIdeas, $linkProposals);
-		$iddpy = qid($id); // zero-fill
 
 		$list .= <<<EOF
 <div class="qline clearfix">
 <div class="phase">$phaselist</div phase>
 <div class="details" onclick="$('#qdetails' + $id).toggle();">
-	<div class="id">$iddpy</div id>
+	<div class="id">$id</div id>
 	<div class="text">$text$budget</div text>
 	<div class="date">$endDatedpy</div date>
 </div details>
@@ -82,7 +81,7 @@ EOF;
 //<div class='ballot' style='border:0;'>
 	$qdivs .= <<<EOF
 <div id='qdetails$id' class='ballot qdetails'$qstyle>
-<div class='question'><b>Question $iddpy:</b> $text$budget</div question>
+<div class='question'><b>Question #$id:</b> $text$budget</div question>
 <div class='see'><b>See:</b> $see</div see>
 <div class='date'><b>Ending date:</b> $endDatedpy</div date>
 <div class='detail'><b>DETAILS:</b> $detail</div detail>
@@ -130,13 +129,14 @@ function getOpt($opti, $opttext, $optdetail) {
   global $rUrl;
   
 	$expandimgstyle = $optdetail ? '' : " style='visibility:hidden;'";
-	$rowclass = ($opti&1) ? 'odd' : 'even';
-
+	$rowclass = ($opti & 1) ? 'odd' : 'even';
+//  $iDpy = $opti + 1;
+  
 	return <<<EOF
 <div class="optRow $rowclass">
 <div class="rowwrapper">
 <div class="item"><img id="expand$opti" src="$rUrl/images/rvote/expand.gif" alt="show detail" title="show detail" width="13" height="13" onclick="expand($opti);"$expandimgstyle />&nbsp;
-<b>Option #$opti:</b> $opttext</div item>
+<b>Option:</b> $opttext</div item>
 <div id="optdetail$opti" class="optdetail">
 <div id="optdetailtext$opti" class="optdetailtext"><div class="optdetailheader">DETAIL:</div optdetailheader>$optdetail<br>&nbsp;</div optdetailtext$opti>
 </div optdetail$opti>
@@ -213,7 +213,7 @@ function letterGrade($value) {
   $integer = round($value);
   $fraction = $value - $integer;
   $grade = substr(GRADELTRS, $integer, 1);
-  $sign = $fraction >= .167 ? '+' : ($fraction <= -.167 ? '-' : '');
+  $sign = $fraction >= .167 ? '+' : ($fraction <= -.167 ? '-' : '&nbsp;&nbsp;');
 	return $grade . $sign . ' (' . number_format($value, 2) . ')';
 }
 
@@ -237,6 +237,7 @@ function getQuestions($ctty) {
   $now = time();
   $crit = 'ctty=:ctty AND :now>endProposals AND (:now<endVoting OR endVoting=0)';
 	$q = db\q('SELECT id AS question, type FROM r_questions WHERE ' . $crit, compact('ctty', 'now'));
+//  debug(compact('ctty','crit','now'));
 
 	while($row = $q->fetchAssoc()) {
 		extract($row);
@@ -247,9 +248,10 @@ function getQuestions($ctty) {
 	return [@$qIds, @$qTypes];
 }
 
+/*
 function qid($qid) {
 	return substr($qid + 10000, 1);
-}
+}*/
 
 function goDemocracy() {
   return <<<EOF

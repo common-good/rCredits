@@ -49,8 +49,8 @@ class rwebCompany extends DrupalWebTestCase {
     . '\\| .ZZA | Abe One  |       |'
     . '\\| .ZZC | Our Pub  | co,ok |"');
     And__('relations: "ASSOC'
-    . '\\| id   | main | agent | permission |'
-    . '\\| :ZZA | .ZZC | .ZZA  | manage     |"');
+    . '\\| main | agent | num | permission |'
+    . '\\| .ZZC | .ZZA  |   1 | manage     |"');
     break;
 
 
@@ -60,7 +60,7 @@ class rwebCompany extends DrupalWebTestCase {
   // Scenario: A member visits the company info page
   public function testAMemberVisitsTheCompanyInfoPage_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ":ZZA" visits page "settings/company"');
+    When_('member "C:A" visits page "settings/company"');
     Then_('we show "Company Information" with: "ARRAY'
     . '\\|_rCredits page | rCredits web page |'
     . '\\| Company name  | Our Pub |"');
@@ -69,7 +69,7 @@ class rwebCompany extends DrupalWebTestCase {
   // Scenario: A member updates company info
   public function testAMemberUpdatesCompanyInfo_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ":ZZA" confirms form "settings/company" with values: "ASSOC'
+    When_('member "C:A" confirms form "settings/company" with values: "ASSOC'
     . '\\| private | selling | website     | description   | employees | gross | tips |'
     . '\\|         | stuff   | www.pub.com | we do vittles |         2 |   100 |    1 |"');
     Then_('members: "ASSOC'
@@ -81,7 +81,7 @@ class rwebCompany extends DrupalWebTestCase {
   // Scenario: A member gives a bad employee count
   public function testAMemberGivesABadEmployeeCount_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ":ZZA" confirms form "settings/company" with values: "ASSOC'
+    When_('member "C:A" confirms form "settings/company" with values: "ASSOC'
     . '\\| selling | website     | description   | employees | gross |'
     . '\\| stuff   | www.pub.com | we do vittles |        -2 |   100 |"');
     Then_('we say error in field "employees": "negative amount"');
@@ -90,7 +90,7 @@ class rwebCompany extends DrupalWebTestCase {
   // Scenario: A member gives a bad gross
   public function testAMemberGivesABadGross_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ":ZZA" confirms form "settings/company" with values: "ASSOC'
+    When_('member "C:A" confirms form "settings/company" with values: "ASSOC'
     . '\\| selling | website     | description   | employees | gross |'
     . '\\| stuff   | www.pub.com | we do vittles |         2 |  junk |"');
     Then_('we say error in field "gross": "bad amount"');

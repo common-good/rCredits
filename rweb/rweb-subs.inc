@@ -222,10 +222,10 @@ EOF
   'link expired' => t('That link has expired.'),
   'login failed' => t('Your attempt to sign in failed. Click the "Password problems" link if you need a new password.'),
   'file save error' => t('Your file upload did not succeed.'),
-  'forced without perm' => t('<p>An unauthorized transaction was made using a Company Agent rCard.</p><ul><li>Date: @date</li><li>Customer</li><li>@a2 (by @agent2)</li><li>Company: @a1 (by @agent1)</li><li>Amount: @amount</li><li>For: @for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
+  'forced without perm' => t('<p>An unauthorized transaction was made using a Company Agent rCard.</p><ul><li>Date: @date</li><li>Customer: @a2 (by @agent2)</li><li>Company: @a1 (by @agent1)</li><li>Amount: @amount</li><li>For: @for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
   'bad invite num' => t('That is not a valid username or invitation number.'),
   'negative saveWeekly' => t('Your discretionary savings are already at their minimum, so your weekly savings addition cannot be negative.'),
-  'saveWeekly too low' => t('With a negative "minimum", your weekly savings addition must be at least @min.'),
+//  'saveWeekly too low' => t('With a negative "minimum", your weekly savings addition must be at least @min.'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
 
@@ -249,8 +249,7 @@ EOF;
  * Return a list of proxy choices for the current account.
  * @param int $dft: the current proxy choice, if any
  */
-function proxyChoices($dft) {
-  $a = r\acct();
+function proxyChoices($a, $dft) {
   $uid = $a->id;
   $table = <<<EOF
     (SELECT DISTINCT IF(inviter=:uid, invitee, inviter) AS uid FROM r_invites 
@@ -412,7 +411,7 @@ function labeled($form, $onSubmit = '', $labeled = TRUE, $level = 0) {
  */
 function rendA($name, $field) {
 //    $rent .= preg_replace('/name="(.*)"/', "name=\"$k\"", rent($field));
-  return str_replace('<input ', "<input id=\"edit-$name\" name=\"$name\" ", rent($field));
+  return preg_replace('/<(input|textarea|select) /', "<$1 id=\"edit-$name\" name=\"$name\" ", rent($field));
 }
     
 function rend($fields) {
@@ -809,7 +808,7 @@ function setGlobals($agent = '', $force = FALSE) {
   if (!$agent) $agent = @$user->uid; // register_submit supplies agent (no one else does)
   $myid = svar('myid') ?: $agent;
   $mya = r\acct($myid, $agent);
-  r\acct::setDefault($mya); // set default for r\acct()
+  r\Acct::setDefault($mya); // set default for r\acct()
   $channel = TX_WEB;
   if ($myid) $boxUser = boxUser(box(), $myid); // so far used only when recording transactions
 }
@@ -1047,11 +1046,8 @@ function acctType($acctType) {
  */
 function suCompanyRelation($other, $data) {
   extract(u\just('company companyPhone isOwner employeeOk contractor', $data));
-//  $isOwner = (int) @$isOwner; // POSTed as "isOwner" when TRUE
-//  $employee = (int) (@$employeeOk or @$contractor);
   if ($main = findCompany($company, @$companyPhone)) { // company account exists
-//    return db\insert('r_relations', compact(u\ray('main other employeeOk isOwner')));
-    return r\acct($main)->newRelation($other, 0, @$employeeOk, @$isOwner); // no permissions/draw (for security)
+    return r\acct($main)->newRelation(u\ray('other employee isOwner', $other, @$employeeOk, @$isOwner)); // no permissions/draw (for security)
   } else return FALSE;
 }
 
@@ -1062,16 +1058,10 @@ function suCreatorRelation($helper, $args, $myid) {
   extract($params = u\just('isOwner employeeOk flow', $args));
   if (!@$isOwner and !@$employeeOk and !@$flow) return; // no useful relation (for example by true invitation)
 
-  if (!$error = u\EXPECT($params, 'int int int', TRUE)) { // if not a hack attempt
-//    list ($main, $other, $employee, $permission) = array($myid, $helper, $employeeOk, r\perm(B_MANAGE));
-    $draw = ($flow & 2) ? 1 : 0;
-//    db\insert('r_relations', compact(u\ray('main other employee isOwner draw permission')));
-    r\acct($myid)->newRelation($helper, r\perm(B_MANAGE), $employeeOk, $isOwner, $draw);
-    if ($flow & 1) r\acct($helper)->newRelation($myid, 0, 0, 0, TRUE);
-//      list ($main, $other, $draw) = array($other, $main, TRUE);
-//      db\insert('r_relations', compact(u\ray('main other draw')));
-//    }
-  } else r\tellStaff("bad params in formSignup: $error -- ", $params);
+  $draw = ($flow & 2) ? 1 : 0;
+  r\acct($myid)->newRelation(u\ray('other permission employee isOwner draw', $helper, r\perm(B_MANAGE), $employeeOk, $isOwner, $draw));
+  if ($flow & 1) r\acct($helper)->newRelation(u\ray('other draw', $myid, TRUE));
+//  } else r\tellStaff("bad params in formSignup: $error -- ", $params);
 } 
 
 /**
@@ -1667,12 +1657,11 @@ function sureForm(&$sta, $title = '') {
  */
 function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
   if (u\isAcct($result = be\identify($who, r\acct()->id, $selfMsg))) return $result;
-
   list ($msg, $args, $choices) = $result;
   foreach (u\ray('form_build_id form_token form_id op') as $one) unset($info[$one]); // just for neatness
   if (u\abbreviates('who=', $last = basename($return = \current_path()))) $return = dirname($return);
   $info['return'] = urlencode(str_replace('/', R_URL_SLASH, $return)); // even urlencoded slashes confuse Drupal
-  foreach ($choices as $uid => $fullName) $choices[$uid] = r\quid($uid) . ' ' . $fullName;
+  foreach ($choices as $uid => $fullName) $choices[$uid] = r\qid($uid) . ' ' . $fullName;
   if (empty($choices)) return say($msg, $args, $field_name); else which($choices, $field_name, $info, tt($msg, $args));
 }
   

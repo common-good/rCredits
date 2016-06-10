@@ -4,6 +4,241 @@
  */
 
 --------------------------------------------------------------------------------------------------------
+
+/**
+ * Reword a Dwolla error message.
+ * @param string $msg: the original message
+ * @return string: the revised message
+ */
+function redw($msg) {
+  $lame = t(' Some operations will be unavailable.');
+  $map = array(
+    'Access token is empty.' => t('Your account is not complete.' . $lame),
+    'Request failed. Server responded with: 0' => t('Our US Dollars module is temporarily offline.' . $lame),
+    'Unexpected error has occurred.' => t('Part of your current operation may not have completed. Try again?'),
+    'User must be verified.' => t('You have run into a temporary roadblock, due to a recent change in rCredits signup automation. An administrator will make the necessary adjustment and will send you an email when you can proceed with connecting your bank account &mdash; probably within a few hours. We apologize for the delay.'),
+  );
+  return strtr($msg, $map);
+}
+
+//      $qo->mainQid = substr($main, 0, $i);
+//      if (strlen($agt = substr($main, $i + 1)) > 3) $qo->agentQid = $agt; else $qo->agentCode = $agt;
+      //$qo->agentCode = $agt;
+//      print_r(u\ray('main agent i agt mainQid agentQid agentCode', $main, $agent, $i, $agt, $qo->mainQid, $qo->agentQid, $qo->agentCode));
+
+
+/*    if ($states == STATES_BOTH) { // get proper totals in $totDone
+      foreach ($totPending as $key => $value) if ($totDone[$key] !== FALSE) $totDone[$key] += $value;
+    } elseif ($states == STATES_PENDING) $totDone = $totPending;
+    */
+    
+// [member, amount, goods, description] => [ok, message, txid, balance, undo]
+//function payment($args) {return charge($args, 'payment');}
+
+/*
+ * Undo the specified transaction
+ * undo:  [txid, force] => [ok, message, balance]
+ * @param array $args:
+ *   txid: transaction record number
+ * @return: json (ok, message, balance)
+ *//*
+function undo($args) {
+  global $mya; $myid = $mya->id;
+  if ($err = missingArg($keys = 'txid', $args)) return posErr($err);
+  extract(u\just($keys, $args));
+  
+  list ($msg, $subs) = be\undoTx($txid, ':myid IN (payer, payee)', compact('myid'));
+  if (!@$subs['success']) return posErr($msg, $subs);
+  
+  $id = db\lookup('IF(payer=:myid, payee, payer)', 'r_txs', 'xid=:txid', compact('myid', 'txid'));
+  $a = r\acct($id);
+  extract(balrew($a));
+  $message = u\tt($msg, $subs);
+/// (no undo of an undo)  $undo = u\tt('confirm undo', $subs);
+  return ok(compact(u\ray('message balance rewards')));
+}*/
+
+/* function undo_invoice($xid, $oldRecord, $old_otherUid, $byMe) // return $solution
+
+    if ($old_byMe) {
+      list ($new_state, $solution) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
+      r\notify($old_otherUid, $old_toMe ? 'invoice canceled' : 'offer canceled', r\txReportArgs($mya, $oldRecord));
+    } else {
+      list ($new_state, $solution) = array(TX_DENIED, t('marked "denied"'));
+      r\notify($old_otherUid, $old_toMe ? 'offer refused' : 'invoice denied', r\txReportArgs($mya, $oldRecord));
+    }
+    r\setTxState($new_state, $xid);
+    */
+    
+  /*
+    $rows = db\records('r_txs', 'serial=:xid AND xid<>:xid', compact('xid'), 'xid,type,amount');
+    foreach ($rows as $row) {
+      extract((array) $row, EXTR_PREFIX_ALL, 'x');
+      $x_amount = u\fmtAmt($x_amount);
+      $desc = $x_type == TX_REBATE ? t('rebate')
+            : ($x_type == TX_BONUS ? t('bonus')
+            : ($x_type == TX_XFEE ? t('fee') : t('other')));
+      $rel[] = "$x_xid ($x_amount $desc)";
+    }
+  } */
+  
+  /*
+//  $r = round(@$tx_r, 2);
+//  $usd = number_format($amount - $r, 2);
+//  $rpct = $amount == 0 ? R_NONE : number_format(100 * $r / $amount, 1);
+//  if ($rpct == '100.0') $rpct = '100'; // keep the field narrow (4 chars max)
+//  $rpct = sprintf('<span title="$%sr + $%sus">%s</span>', $r, $usd, $rpct);
+//  $amount = $currency == RUSD_R ? $r : ($currency == RUSD_USD ? $usd : $total);  if ($report) { // community transaction history
+    $reward = $banking ? 0 : (@$data['bonus'] + @$data['rebate']);
+    $tid = $xid; // for community use the actual transaction numbers
+    $payeeName = $banking ? '' : r\acct($tx_payee)->fullName;
+    txNeatAmounts($amount, $reward, $isExtra);
+    $row = array($tid, strftime('%d-%b-%Y', $tx_created), r\acct($tx_payer)->fullName, $payeeName, $total, $rpct, $amount, $usd, $state, $tx_purpose, $reward);
+  } else { // individual account transaction history
+  */
+  
+  $subs = r\txReportArgs($mya, $details);
+//  $summary = u\tt('tx summary', $subs);
+  extract(u\just('toMe byMe', $subs));
+  $x = r\x($xid, FALSE);
+  $txAction = $x->msg($myid, 'reverse');
+  $summary = $x->msg($myid, $byMe ? 'youDid' : 'theyDid');
+//  $summary = $byMe ? 'tx desc active' : 'tx desc passive';
+  confirm(u\tt($summary . '|confirm tx action', $subs + compact('txAction')), $sta); // sets 'confirm'
+
+/**
+ * Return the action option for a transaction
+ * (This has to match what be\undoTx() actually does.)
+ * @param bool $toMe: user is the payee
+ * @param bool $byMe: user originated the transaction
+ * @param numeric $amount: the transaction amount
+ * @return string: how to describe the ok or no
+ */
+function txAct($toMe, $byMe, $amount) {
+  if ($toMe) {
+    return $amount < 0 ? t('REVERSE this refund') : t('REVERSE this charge'); // let the customer win
+  } else return $byMe ? t('REVERSE this payment') : t('DISPUTE this charge');
+}
+
+
+/**
+ * Temporary savings amount-setter until 12/15/2015
+ */
+function formChooseSavings($form, &$sta, $args = '') {
+  extract(u\just('qid ecode', $args));
+  if (!@$qid or !@$mya = r\acct($qid) or @$ecode != $mya->emailCode) w\hack('choosing savings', $args);
+  $title = item(t('Choose Your Savings Reserve Amount'));
+//  $subtitle = item(t(''));
+  $savings = textFld(t('Savings Reserve:'), [t('Savings amount'), t('How much to hold as a savings reserve, for later or as needed. Your Savings Reserve works like a traditional reserve account that kicks in whenever you would otherwise overdraw your primary account -- except there are no fees, you don\'t have to open a second account, and you don\'t have to put any money in it because your incentive rewards go in it automatically. This amount is not counted as part of your account balance.')], required(u\fmtAmt($mya->savings ?: round($mya->rewards + 4.999, -1))));
+  if (u\starts($qid, 'NEW.')) {
+    $btw = item(t('<big class="loud">By the way</big>, this new feature means we are ready to begin discussion in Greater Greenfield on how to use our rCredits Escrow funds for incentives, grants, loans, and local investments. We hope you will be part of that discussion, beginning with a meeting in January.'));
+    $discuss = boxFld('discuss', t('Participate?'), t('Yes! Count me in.'));
+  }
+  $qid = hidFld($qid);
+  $submit = submit();
+  return labeled(compact(u\ray('title subtitle savings btw discuss qid submit')));
+}
+
+function formChooseSavings_validate($form, &$sta) {
+  extract(u\just('qid savings', $sta['input']));
+  $mya = r\acct($qid);
+  if ($err = amtErr('savings', $sta)) return say($err, 'savings');
+  $savings = $sta['input']['savings'];
+  if ($savings < $mya->rewards) return say('savings too low', ['rewards' => u\fmtAmt($mya->rewards)], 'savings');
+}
+
+function formChooseSavings_submit($form, &$sta) {
+  extract($info = u\just('qid savings discuss', $sta['input']));
+  $mya = r\acct($qid);
+  $mya->update(compact('savings'));
+  r\tellStaff("$mya->fullName chose savings=$savings (rewards=$mya->rewards)" . ($mya->community == r\serverUid() ? (@$discuss ? ' Participant!' : '') : ''), $info);
+  doSay(t('Success! Thank you for setting your Savings Reserve amount.'), '');
+}
+--------------------
+  public function quid2($uid) {return strstr(r\qid($uid), R_MEMBER_MARK);} // Return a "local version" pro se quid without the region but with a leading dot.
+  
+/*  
+  if (substr($quid, 0, 1) == '!') return ($id = r\unQuid($quid)) ? [$id, $id] : FALSE;
+  if (!u\isQid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
+  if (!u\isQid($quid)) {
+    if ($no_abbrev) return FALSE;
+    if (!u\isQid(
+  }
+
+  list ($zid, $regionUid, $isRel) = r\unQid($quid); // unQid not unQuid
+  if ($isRel) { // company agent
+    $reid = -$regionUid + $zid;
+    if (!$record = relation('main,other', 'reid=:reid', compact('reid'))) return FALSE;
+    return array_values($record);
+  } else {
+    $id = r\unQuid('', $zid, $regionUid); // unQuid not unQid
+    return array($id, $id); // pro Se
+  }
+  */
+}
+
+/**
+ * Return a zid and region for the qid
+ * @param string $qid: a qid of any length or type (the region part defaults to the server region)
+ * @return [zid, regionUid, $isRel] (FALSE on failure) where
+ *   zid is the record ID
+ *   regionUid is the region account ID
+ *   isRel is <this qid represents a relation between two accounts>
+ *//*
+function unQid($qid) {
+  $c1 = substr($qid, 0, 1); // check for abbreviations used in testing and ad hoc admin
+  if ($c1 == '.' or $c1 == ':') return [R_SERVER_ID, u\a2n(substr($qid, 1)), $c1 == '.'];
+  
+  if (preg_match('/^[A-Z]' . R_MARKS . '/', $qid)) { // old style (deprecated, phase out after 2016)
+    list ($regionId, $type, $iid) = preg_split('/(' . R_MARKS . ')/U', $qid, 0, PREG_SPLIT_DELIM_CAPTURE);
+    $id = u\a2n($iid);
+    return [$id, serverUid($regionId), $type != R_MEMBER_MARK];
+  }
+  
+  if ($i = strpos($qid, '-')) {
+  
+  return FALSE;
+}
+*/
+
+/**
+ * Return the record ID for a quid (local or complete, pro se or not).
+ * call by:
+ *   unQuid(quid) OR
+ *   unQuid('', zid, region, isRel)
+ * @param string quid: an account record ID such as NEWAAA, .AAA, NEW:AAA, :AAA, !NEW, or !NEWAAA
+ * @param int $zid: offset within a region
+ * @param int $region: region ID
+ * @param bool isRel: <this qid represents a relation between two accounts>
+ *//*
+function unQuid($quid, $zid = NULL, $region = NULL, $isRel = FALSE) {
+  if (substr($quid, 0, 1) == '!') {
+//    if (!strpos($quid, '.')) $quid .= '.AAA';
+    if (strlen($quid) < 6) $quid .= 'AAA';
+    return -unQuid(substr($quid, 1));
+  }
+  if (is_null($zid)) list ($zid, $region, $isRel) = r\unQid($quid); // break it down
+  return $isRel ? NULL : (-$region + $zid);
+}*/
+
+/* from t\fullQid()
+  $c1 = substr($q, 0, 1);
+  return strtoupper(($c1 == R_MEMBER_MARK or $c1 == R_AGENT_MARK) ? (R_SERVER_ID . $q) : $q);
+
+/**
+ * Return a qid for the zid
+ * @param $zid: a zid
+ * @param string $regionId: the 3-character regional server uid (defaults to this server)
+ * @param int $min_len: minimum length of the part of the qid after the R_MEMBER_MARK or R_AGENT_MARK
+ * @return the qid, FALSE if wrong format
+ */
+function qid($zid = '', $regionId = R_SERVER_ID, $min_len = 1) {
+  if (!u\isZid($zid)) return FALSE;
+  return $regionId . ($zid < 0 ? (R_AGENT_MARK . u\n2a(-$zid, -$min_len)) : (R_MEMBER_MARK . u\n2a($zid, -$min_len)));
+}
+
+// qxid: a qid (8 characters or more) representing an xid (currently unused)
+function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SERVER_ID, 4);} // Convert xid to qxid
  
   /* from formI
   $shortName = $a->name;
@@ -790,7 +1025,7 @@ function reverseRelations($other, $main, &$data, $fields) {
  * @param string $type: i=invitation code, e=email code
  * @return: the account or FALSE if error
  *//*
-function lowSecAcct($code0, &$seq = NULL, $type = 'i') {
+function lowSecr\acct($code0, &$seq = NULL, $type = 'i') {
   $code = str_replace(' ', '', $code0); // ignore spaces
   list ($ax2n, $n2ax, $xlen, $xlenMin, $xlenDiv, $xlenRegion, $xlenTail, $xlenSecurity
   if (!preg_match('/[A-Z0-9]{' . ICARD_CODELEN_MIN . ',}/i', $code)) return FALSE;
@@ -810,7 +1045,7 @@ function lowSecAcct($code0, &$seq = NULL, $type = 'i') {
 
   if (!$a = r\acct("$region.$tail")) { 
   // temporarily allow '1' for 'I' (until June 2016 or so) -- not forever because we now use Verdana
-    return strpos($code, '1') === FALSE ? FALSE : iCardAcct(str_replace('1', 'I', $code0, $seq));
+    return strpos($code, '1') === FALSE ? FALSE : iCardr\acct(str_replace('1', 'I', $code0, $seq));
   } else return ($security == $a->lowSecurity) ? $a : FALSE;
 }
 */
@@ -822,17 +1057,17 @@ function lowSecAcct($code0, &$seq = NULL, $type = 'i') {
  * @return 1 (for counting how many were merged)
  */ /*
 function mergeAccounts($oldUid) {
-  $newUid = acct()->id;
+  $newUid = r\acct()->id;
   if (!be\isTempAccount($oldUid)) return; // don't merge non-temp account
 //  u\EXPECT(be\access('manage account'), "unauthorized mergeAccounts: $newUid into $oldUid");
 ///  if (!isTempName(userField('name', $oldUid))) die('merging non-temp account');
   // there are no other records for temporary accounts, than those below
 
-  $new = acct($newUid);
-  $old = acct($oldUid);
+  $new = r\acct($newUid);
+  $old = r\acct($oldUid);
   $update = [];
   foreach (u\ray('phone faxetc website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
-  acct()->update($update);
+  r\acct()->update($update);
   newMemberId($oldUid, $newUid, TRUE);
   db\q('DELETE FROM users WHERE uid=:oldUid', compact('oldUid')); // must be last, for referential integrity
   return 1;

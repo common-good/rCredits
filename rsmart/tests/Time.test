@@ -61,9 +61,9 @@ class rsmartTime extends DrupalWebTestCase {
     . '\\| id   | flags        |'
     . '\\| .ZZC | refund,r4usd |"');
     And__('relations: "ASSOC'
-    . '\\| id   | main | agent | permission | rCard |'
-    . '\\| :ZZA | .ZZC | .ZZA  | scan       |       |'
-    . '\\| :ZZB | .ZZC | .ZZB  | scan       | yes   |"');
+    . '\\| main | agent | num | permission | rCard |'
+    . '\\| .ZZC | .ZZA  |   1 | scan       |       |'
+    . '\\| .ZZC | .ZZB  |   2 | scan       | yes   |"');
     break;
 
 
@@ -82,10 +82,10 @@ class rsmartTime extends DrupalWebTestCase {
   // Scenario: a cashier signs in
   public function testACashierSignsIn_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('agent "" asks device "devC" to identify "ZZB-ccB2"');
+    When_('agent "" asks device "devC" to identify "C:B,ccB2"');
     Then_('we respond with: "ASSOC'
     . '\\| ok | name    | logon | descriptions    | can          | default | company    | time |'
-    . '\\| 1  | Bea Two | 1     | this,that,other | refund,r4usd | NEW.ZZC | Corner Pub | %now |"');
+    . '\\| 1  | Bea Two | 1     | this,that,other | refund,r4usd | NEW.ZZC  | Corner Pub | %now |"');
   }
 
 }

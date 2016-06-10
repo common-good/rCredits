@@ -186,7 +186,7 @@ EOF
 
     <p>For example, if you have $300 in your account and $100 of that is incentive rewards that you received (free), then your balance will show as $200, with a savings reserve of $100.</p>
     
-    <p>Remember, we issue rCredits together as a commmunity, so it is up to all of us to protect their value. Most people choose to keep a positive Primary Balance, by setting a Minimum on the Preferences settings page. Keeping most of the rCredits we issue in the system, this helps keep the system healthy while it grows to become stable and permanent.</p>
+    <p>Remember, we issue rCredits together as a commmunity, so it is up to all of us to protect their value. Most people choose to keep a positive Primary Balance, by setting a Minimum on the Preferences settings page. Keeping most of the rCredits we issue in the system, this helps keep the system healthy while it grows to become stable.</p>
 EOF
   , ['!aCrunch' => 'a href="cashflow-crunch"']) . $back;
   
@@ -330,7 +330,7 @@ EOF
     <p>The chart also shows three measures of the community's risk of having a <@aCrunch>cash flow crunch</a>:</p>
     <ul>
       <li><b style='color:white; background-color:orange;'>In Use</b>. The orange line shows how much money is being used each month. Money in consistent use tends to stay in the system.</li>
-      <li><p><b style='color:black; background-color:yellow;'>Runny Rewards</b>. Incentive rewards always go into your Savings Reserve. If they stay there while the system grows to become stable and permanent, there is no risk of someone cashing them out, shrinking the rCredits Escrow. Maybe you plan to spend them next month. Or maybe you are holding them in your rCredits account as a hedge against inflation. But the system can't guess that. Unless you use the auto-refill feature, the system assumes you might spend your rewards at any moment (resulting in a negative Primary Balance). We call those funds that might be spent at any moment "runny".</p>
+      <li><p><b style='color:black; background-color:yellow;'>Runny Rewards</b>. Incentive rewards always go into your Savings Reserve. If they stay there while the system grows to become stable, there is no risk of someone cashing them out, shrinking the rCredits Escrow. Maybe you plan to spend them next month. Or maybe you are holding them in your rCredits account as a hedge against inflation. But the system can't guess that. Unless you use the auto-refill feature, the system assumes you might spend your rewards at any moment (resulting in a negative Primary Balance). We call those funds that might be spent at any moment "runny".</p>
       <p>On the other hand, if you DO use the auto-refill feature, you have chosen to keep a certain minimum Primary Balance in your rCredits account. That minimum partially offsets the runny rewards in other accounts, making a cash flow crunch even less likely. The yellow line shows the total of runny rewards minus the estimated total Primary Balances in accounts that use auto-refill (conservatively assuming each person's average balance is half their chosen minimum). The formula looks something like this:</p>
       
       <blockquote>Total Runniness = SUM(runny rewards) - SUM(auto-refill levels / 2)</blockquote>

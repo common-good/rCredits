@@ -100,15 +100,14 @@ function formStatements($form, $sta, $month = '') {
  */
 function txConfirm($do, $xid, &$sta) {
   $mya = r\acct();
-  $myid = $mya->id;
   if (u\test() and @$sta['confirm']) return FALSE;
   if (confirming_v($sta)) return FALSE;
   if (!$details = be\lastTx('xid=:xid', compact('xid'), TRUE)) return 'bad tx id'; // bail on hack attempt
-  $subs = r\txReportArgs($mya, $details);
-  $summary = u\tt('tx summary', $subs);
-  extract(u\just('toMe byMe', $subs));
-  $txAction = x\txAct($do, '', $toMe, $byMe);
-  confirm(u\tt('tx summary|confirm tx action', $subs + compact('txAction')), $sta); // sets 'confirm'
+  $myx = r\x($xid, $mya);
+  $txAction = $myx->msg('reverse');
+  $summary = $myx->msg('actor', 'full', TRUE);
+//  $summary = $byMe ? 'tx desc active' : 'tx desc passive';
+  confirm("$summary. " . t('Okay to') . " $txAction?", $sta); // sets 'confirm'
   return sureForm($sta);
 }
 

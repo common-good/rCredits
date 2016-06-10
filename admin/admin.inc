@@ -40,7 +40,7 @@ function setupBasicAccounts() {
       $values = array($uid, $uid, $region . '.', $fullName, $email, $postalCode, R_COUNTRY_ID, 0, 0, u\bit(B_CO) | u\bit(B_OK));
       $info = array_combine($keys, $values);
       $info += compact(u\ray('postalAddr state federalId'));
-      new r\acct($info);
+      new r\Acct($info);
     }
   }
   //$region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
@@ -56,12 +56,12 @@ function setupBasicAccounts() {
     if (db\exists('users', "name='cgf'")) return; // already done
     if (!isPRODUCTION and db\exists('users', "name='cornerstore'")) return; // already done
 
-    $values = array(r\unQuid('NEW.AAB'), $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO]));
+    $values = array(r\qo('NEWAAB')->id, $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO]));
     $info = array_combine($keys, $values);
     list ($phone, $address, $city, $state) = array(CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
     $helper = 1; //$wws->id;
     $info += compact(u\ray('email phone address city state helper'));
-    $cgf = new r\acct($info);
+    $cgf = new r\Acct($info);
     \variable_set('cgf_uid', $cgf->id);
 //    $cgf->newRelation($wws->id, r\perm(B_MANAGE));
   }
@@ -154,8 +154,8 @@ EOF;
     if ($isOwner and !$iCo and !$uCo) {
       $role = t('related to');
     } elseif ($uid == $main) {
-      $rel = r\quid($main, $them);
-      $extra = '<small> (' . r\quid($them) . ' / ' . spinLink("$base_url/sadmin/panel/qid=$rel", $rel, '', 'primary', 'xs') . ')</small>';
+      $qo = r\qo($main, $them);
+      $extra = '<small> (' . r\qid($them) . ' / ' . spinLink("$base_url/print-rcard/$main/$them", t('card'), '', 'primary', 'xs', ['target' => '_blank']) . ')</small>';
       $role = $isOwner ? t('owned by')
         : ($draw ? t('drawn on by')
         : ($permission >= B_MANAGE ? t('managed by')
@@ -226,7 +226,7 @@ function formatField($k, $v) {
     if ($a = r\acct($v)) $v = $a->name; else $v .= t(' (missing)'); // eg, when uid is changed
   } // member ID. Don't include agent/payerAgent/etc. here
   if ($v and $k == 'channel') $v = u\rayv(u\ray(TX_CHANNELS), $v);
-  if ($k == 'reid') $v = str_replace(R_MEMBER_MARK, R_AGENT_MARK, r\quid($v));
+  if ($k == 'reid') $v = str_replace(R_MEMBER_MARK, R_AGENT_MARK, r\qid($v));
   if ($v and in_array($k, u\ray(R_DATE_FIELDS))) $v = '<div style="line-height:65%;">' . strftime('%d%b', $v) . '<span style="font-size:50%;">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
   if ($k == 'flags') $v = "<div style='text-transform:none; font-size:7px; line-height:11px;'>" . a\flagsDesc($v, B_LIST) . '</div>';
   return $v;
@@ -343,7 +343,7 @@ EOF;
   /*
     $acctQ = db\q('SELECT uid FROM users WHERE uid>1');
     db\q('UPDATE users SET picture=0'); // clear temp field  
-    while ($row = $acctQ->fetchAssoc()) r\Cron\acctStats1($row, $created); // set individual account stats
+    while ($row = $acctQ->fetchAssoc()) r\Cronr\acctStats1($row, $created); // set individual account stats
     */
     foreach ($cttys as $ctty => $start) if ($created >= $start) {
       r\getStats($ctty, $created); // set community stats
@@ -518,7 +518,7 @@ function fixRelations() {
         $newReid = -$region + $reid;
         db\q('UPDATE r_relations SET reid=:newReid WHERE reid=:reid', compact('reid', 'newReid'));
       } else { // foreign region
-        $newReid = r\acct($main)->newRelation($other, $permission, $employee, $isOwner, $draw);
+        $newReid = r\acct($main)->newRelation(compact(u\ray('other permission employee isOwner draw')));
         db\q('DELETE FROM r_relations WHERE reid=:reid', compact('reid'));
       }
 /**/  debug("Record MOVED: $reid to $newReid ($mainName -- $otherName)");
@@ -560,8 +560,8 @@ EOF;
     foreach (['In', 'Out'] as $way) {
       list ($total, $count) = [u\fmtAmt(${"amount$way"}, ''), number_format(${"count$way"})];
       if (!$count) continue;
-      $details = t('<@a>details</a>', ['@a'=>"a href=deposit-details/way=$way&date=$deposit&total=$total&count=$count"]);
-      $checks = t('<@a>checks</a>', ['@a'=>"a href=checks/way=$way&date=$deposit&mark=0"]);
+      $details = t('<@a>details</a>', ['@a'=>"a href=deposit-details/way=$way&date=$deposit&total=$total&count=$count target=_blank"]);
+      $checks = t('<@a>checks</a>', ['@a'=>"a href=checks/way=$way&date=$deposit&mark=0 target=_blank"]);
       $wayDesc = $way == 'In' ? t('IN') : t('OUT');
       $deposits[] =<<<EOF
 <tr>

@@ -9,9 +9,9 @@ Setup:
   | .ZZA | Abe One  |     0 |     100 | ok,joined | 30     | hasBank | .ZZB |
   | .ZZB | Bea Two  |     0 |       0 | ok,joined | 10     |         | .ZZA |
   And relations:
-  | id | main | agent | permission |*
-  | 1  | .ZZA | .ZZB  | joint      |
-  | 2  | .ZZB | .ZZA  | joint      |
+  | main | agent | permission |*
+  | .ZZA | .ZZB  | joint      |
+  | .ZZB | .ZZA  | joint      |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose |*
   | 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |

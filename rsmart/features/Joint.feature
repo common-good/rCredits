@@ -22,13 +22,13 @@ Setup:
   | id   | flags        |*
   | .ZZC | refund,r4usd |
   And relations:
-  | id   | main | agent | permission |*
-  | :ZZA | .ZZC | .ZZA  | buy        |
-  | :ZZB | .ZZC | .ZZB  | scan       |
-  | :ZZD | .ZZC | .ZZD  | read       |
-  | :ZZE | .ZZC | .ZZE  | sell       |
-  | :ZZF | .ZZA | .ZZB  | joint      |
-  | :ZZG | .ZZB | .ZZA  | joint      |
+  | main | agent | permission | rCard |*
+  | .ZZC | .ZZA  | buy        |       |
+  | .ZZC | .ZZB  | scan       |       |
+  | .ZZC | .ZZD  | read       |       |
+  | .ZZC | .ZZE  | sell       | yes   |
+  | .ZZA | .ZZB  | joint      |       |
+  | .ZZB | .ZZA  | joint      |       |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose |*
   | 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |
@@ -44,7 +44,7 @@ Setup:
   | .ZZF |     250 |
   
 Scenario: A cashier asks to charge someone
-  When agent ":ZZE" asks device "devC" to charge ".ZZB-ccB" $400 for "goods": "food" at %now
+  When agent "C:E" asks device "devC" to charge ".ZZB,ccB" $400 for "goods": "food" at %now
   Then we respond ok txid 5 created %now balance 140 rewards 540
   And with message "report tx|reward" with subs:
   | did     | otherName | amount | why                | rewardAmount |*

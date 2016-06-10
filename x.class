@@ -8,18 +8,18 @@ use rCredits\Testing as t;
 
 /**
  * @file
- * rCredits Transaction class
+ * rCredits Transaction class (and extension MyX, which looks at the transaction from one party's view)
  */
 
 define('TX_REWARD_FIELDS', 'serial type amount goods payer payee payerAgent payeeAgent for taking created');
  
-class x {
+class X {
   var $ray; // an assoc of all the transaction's fields (including the data field, still serialized)
   
   /**
    * Instantiate (create or retrieve) a transaction record
    * Call by:
-   *   new x(info) or new x(info, save) OR
+   *   new X(info) [saves a new transaction] OR
    *   x(xid) (see the x() function below)
    * @param int xid: the record ID
    * @param assoc $info: initial field values for the transaction, to be created and saved in the database
@@ -37,7 +37,6 @@ class x {
    * @return the value if it exists, else NULL
    */
   public function __get($field) {
-    if ($field == 'id') $field = 'xid';
     $res = @$this->ray[$field];
     if ($field == 'data') return $res ? unserialize($res) : [];
     return $res;
@@ -55,10 +54,9 @@ class x {
    */
   private function createNew($info, $save) {
     extract($info);
-    if ($data2 = u\just(TX_DATA_FIELDS, $info)) {
-      foreach ($data2 as $key => $value) unset($info[$key]);
-      $info['data'] = $data2 + ($data ?: []);
-    }
+    if (@$data and !is_array($data)) $data = unserialize($data);
+    if ($data2 = u\just(TX_DATA_FIELDS, $info)) foreach ($data2 as $key => $value) unset($info[$key]);
+    $info['data'] = (@$data ?: []) + (@$data2 ?: []);
     $xray = $this->setup($info);
     if (!$save) return $xray;
     
@@ -150,34 +148,38 @@ class x {
    */
   private function setup($info) {
     global $channel, $boxUser; // through what medium was the transaction requested (web, SMS, etc.), what machine
-    $fields = 'type data taking goods amount payer payee payerAgent payeeAgent created';
+    $fields = 'type data taking goods amount payer payee payerFor payerAgent payeeAgent created';
     extract(u\just($fields . ' for', $info));
+    u\setDft($type, TX_TRANSFER);
 
     $specs = " -- payer=$payer payee=$payee";
-    u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid');
-    u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading' . $specs);
+    u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid|empty');
+    if ($type != TX_BANK) u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading' . $specs);
     list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
-    u\EXPECT($a1->ok and $a2->ok, 'non-member in tx' . $specs);
+//    u\EXPECT($a1->ok and $a2->ok, 'non-member in tx' . $specs);
     
-    u\setDft($type, TX_TRANSFER);
     u\setDft($taking, FALSE);
     u\setDft($goods, FOR_USD);
-    u\setDft($for, u\ray(R_WHYS)[$goods]);
     u\setDft($payerAgent, $payer);
     u\setDft($payeeAgent, $payee);
     u\setDft($created, r\rTime());
+
+    if ($type != TX_BANK and !isset($payerFor)) {
+      u\setDft($for, u\ray(R_WHYS)[$goods]);
+      list ($payerFor, $payeeFor) = is_array($for) ? $for : [$for, $for];
+      unset($info['for']);
+    }
     
-    if (r\isGiveback($payee, $payer, @$data)) $type = TX_GIVEBACK;
-    $data = serialize($this->dataSetup($payer, $payee, $amount, $goods, $for, @$data ?: [], $channel));
     $taking += 0;
     $goods += 0;
     $box = @$boxUser ?: 0;
+    if (r\isGiveback($payee, $payer, @$data)) $type = TX_GIVEBACK;
+    
+    $data = serialize($this->dataSetup($payer, $payee, $amount, $goods, @$payerFor, @$data ?: [], $channel));
 
-    list ($payerFor, $payeeFor) = is_array($for) ? $for : [$for, $for];
-    unset($info['for']);
-    if (isGAME and $payer > 0) $info += ['members' => $a1->members];
+//    if (isGAME and $payer > 0) $info += ['members' => $a1->members];
 
-    return compact(u\ray($fields . ' payerFor payeeFor channel box')) + $info;
+    return compact(u\ray($fields . ' payeeFor channel box')) + $info;
   }
 
   /**
@@ -254,18 +256,19 @@ class x {
    * @return: TRUE if update succeeds, FALSE if update fails
    */
   public function update($info, $just = NULL) {
+    $x = $this;
     if (!is_array($info)) { // second syntax
       $args = func_get_args();
       $keys = u\ray(array_shift($args));
       u\EXPECT(count($keys) == count($args), 'assoc arg count mismatch');
-      return $this->update(array_combine($keys, $args));
+      return $x->update(array_combine($keys, $args));
     }
     if (isset($just)) $info = u\just($just, $info);
     if ($data = @$info['data']) {
       $info['data'] = serialize($data);
-    } elseif ($data = u\just(TX_DATA_FIELDS, $info)) $info['data'] = serialize($data + ($this->data ?: []));
+    } elseif ($data = u\just(TX_DATA_FIELDS, $info)) $info['data'] = serialize($data + ($x->data ?: []));
 
-    $info['xid'] = $this->id; // make sure db\update gets this
+    $info['xid'] = $x->xid; // make sure db\update gets this
     return db\update('r_txs', $info, 'xid');
   }
 
@@ -278,14 +281,14 @@ class x {
    *     (prefixes added to the payerFor or payeeFor fields when changing state will not be included in changes)
    */
   public function setField($fieldName, $newValue) {
-    $x = $this; $xid = $x->id; $xray = $x->ray;
+    $x = $this; $xid = $x->xid; $xray = $x->ray;
     $mya = r\acct(); $myid = $mya->id;
     u\EXPECT($mya->cAdmin or $x->payer == $myid or $x->payee == $myid, "not our xid:$xid myid=$myid");
     
     extract(u\just("$fieldName data payer payee amount goods payeeFor channel", $xray));
     
     $dataRay = unserialize($data);
-    $dataRay['changes'][] = [r\rTime(), acct()->agentId, $fieldName, $$fieldName];
+    $dataRay['changes'][] = [r\rTime(), r\acct()->agentId, $fieldName, $$fieldName];
 
     $DBTX = \db_transaction();
     
@@ -333,15 +336,151 @@ class x {
 
 } // end of class x
 
+class MyX extends x {
+  var $a;
+  
+  function __construct($xid = [], $a = 0, $save = TRUE) {
+    parent::__construct($xid, $save);
+    $this->a = $a;
+  }    
+
+  public function __get($f) {
+    $x = $this;
+    foreach (u\ray('a xid banking toMe amount') as $k) $$k = @$x->$k;
+    foreach (['amount', 'xid'] as $k) $$k += 0;
+    if (substr($f, -1, 1) == '2' and $f = str_replace('2', '', $f)) return $banking ? '' : $x->themX->$f;
+    if (strpos($f, 'Purpose') and $f = str_replace('Purpose', 'For', $f)) return $x->$f;
+    if ($f == 'banking') return ($x->type == TX_BANK);
+    if ($f == 'toMe') return $banking ? ($amount < 0 xor $xid < 0) : $a->isMe($x->payee);
+    if ($f == 'fromMe') return $banking ? !$toMe : $a->isMe($x->payer);
+    if ($f == 'byMe') return $banking ?: ($x->taking xor !$toMe);
+    if ($f == 'reallyToMe') return ($toMe xor $amount < 0);
+    if ($f == 'name') return $a->fullName;
+    if ($f == 'for' or $f == 'purpose') return $banking // ?
+    ? ($xid < 0 ? t('bank transfer failed') : ($amount < 0 ? t('from bank') : t('to bank')))
+    : ($toMe ? $x->payeeFor : $x->payerFor);
+    if ($f == 'agent') return $banking // ?
+    ? ($a->co ? '' : $x->payer)
+    : ($toMe ? $x->payeeAgent : $x->payerAgent);
+    if ($f == 'tid') return ($banking or $a->id < 0) ? $xid : ($toMe ? $x->payeeTid : $x->payerTid);
+    if ($f == 'them') return $banking ? 0 : ($toMe ? $x->payer : $x->payee);
+    if ($f == 'themAgent') return $banking ? 0 : ($toMe ? $x->payerAgent : $x->payeeAgent);
+    if ($f == 'themX') return r\x($x->ray, r\acct($x->them, $x->themAgent));
+    return parent::__get($f);
+  }
+  
+  /**
+   * Return an appropriate message about the transaction
+   * @param string $type: what type of message to return (actor, youDid, theyDid, or reverse)
+   * @param string $desc: how much of the description to include: none (''), vague, or full
+   * @param bool $withDate: <include the transaction date in the message>
+   * @return the message
+   */
+  public function msg($type, $desc = '', $withDate = FALSE) {
+    $x = $this;
+    $uid = $x->a->id;
+    $youDid = t('paid,received from,received from,repaid,paid,took back from,charged,refunded');
+    $theyDid = t('charged,refunded,paid,took back from,received from,repaid,paid,received from');
+    $reverse = t('request a refund of this charge,reverse this refund,refund this payment,request a reversal of this charge,request a refund of this payment,reverse this refund charge,reverse this charge,request a reversal of this refund');
+    
+    $toMe = (int) ($x->payee == $uid);
+    $byMe = (int) ($toMe xor !$x->taking);
+    $neg = (int) ($x->amount < 0);
+    $index = 4 * $byMe + 2 * $toMe + $neg;
+
+    if ($type == 'actor') $type = $byMe ? 'youDid' : 'theyDid';
+    $types = explode(',', $$type);
+    $action = $types[$index];
+    $goods = $x->goods;
+
+    if ($type == 'reverse') {
+      if ($x->goods == FOR_USD) {
+        return in_array($index, [0,3,4,7]) ? t('request a reversal of this charge') : t('reverse this exchange');
+      } else return $action;
+    } 
+    
+    $them = r\acct($toMe ? $x->payer : $x->payee)->fullName;
+    $msg = $type == 'youDid' ? t('You') . ' @action @them' : ('@them @action ' . t('you'));
+    $msg .= ' ' . u\fmtAmt($x->amount);
+    if ($desc) {
+      if ($desc == 'full') $desc = '"' . ($toMe ? $x->payeeFor : $x->payerFor) . '"';
+      if ($desc == 'vague') $desc = u\obj(R_WHYS)->$goods;
+      $msg .= '|purpose';
+    }
+    if ($withDate) $msg .= '|when';
+    return u\tt($msg, u\ray('action them amount purpose created', $action, $them, $x->amount, $desc, u\fmtDate($x->created)));
+  }
+
+  /**
+   * Format and return args for reporting a transaction (old or new) to the current account.
+   * Not all returned args are used for any particular type of transaction.
+   * Note that templates and tests depend on the names of some of these fields
+   * @param acct $a: the account to report to (usually the current account)
+   * @param array $tx: the transaction array (including xid)
+   * @param int $getBalance: 0=don't get any balances, 1=get my balance and tid, 2=get other party's balance and tid also
+   * @param float $shortfall: how much short my balance is, for a transaction (if any)
+   * @return assoc array of args
+   */
+  public function reportArgs($getMyBalance = FALSE, $shortfall = 0) {
+    global $channel;
+    $x1 = $this;
+    $a1 = $x1->a;
+    $x2 = $x1->themX;
+    $a2 = r\acct($otherUid = $x1->them);
+    $tx = $x1->ray;
+    foreach (u\ray('data amount goods payer payee toMe payerPurpose payeePurpose payerTid payeeTid created') as $k) $$k = $x1->$k;
+    extract(u\just('rebate bonus', $data));
+
+    $reverses = isset($data['undoes']);
+    $role = $toMe ? 'payee' : 'payer';
+    u\both($tx, 'purpose', $toMe, $payeePurpose, $payerPurpose);
+    u\both($tx, 'tid', $toMe, @$payeeTid, @$payerTid); // no tid if unconfirmed
+    $tofrom = $toMe ? t('from') : t('to');
+  //  $confirmAction = $toMe ? t('charge') : ($channel == TX_POS ? t('credit') : t('pay'));
+    $why = u\ray(R_WHYS)[$goods];
+
+    If ($amount < 0) { // for POS
+      $amount = -$amount; // rephrase as positive
+      $tofrom = t('to');
+  //    $confirmAction = $toMe ? t('credit') : t('charge');
+      u\both($tx, 'did', $toMe, $goods == FOR_GOODS ?  t('refunded') : t('credited'), t('charged'));
+      if (r\isGiveback($payee, $payer, $data)) list ($tx['did'], $a2, $why) = [t('gave'), $a1, t('returning rewards to the community')];
+    } else u\both($tx, 'did', $toMe, $reverses ? t('re-charged') : t('charged'), ($channel == TX_POS ? t('credited') : t('paid')));
+
+  ///  debug(compact('tx','toMe','amount','reverses','goods'));
+
+    $amount = u\fmtAmt($amount);
+    $short = u\fmtAmt($shortfall);
+    if ($getMyBalance) {
+      if ($a1->can(B_BUY)) $balance = u\fmtAmt($a1->avail(FOR_GOODS));
+    }
+    
+    if ($goods == FOR_GOODS) {
+  //    u\both($tx, 'rewardType', $toMe, t('bonus'), t('rebate'));
+      u\both($tx, 'rewardType', $toMe, t('reward'), t('reward'));
+      u\both($tx, 'rewardAmount', $toMe, u\fmtAmt(@$bonus + 0), u\fmtAmt(@$rebate + 0));
+    }
+    $myName = $a1->fullName;
+    $otherName = $a2->fullName;
+    $created = u\fmtDate($created0 = $created);
+
+    $success = TRUE;
+    foreach (u\ray('r payer payee') as $one) unset($tx[$one]); // else preempts all subs that start thus
+    return compact(u\ray('created created0 xid role why payerPurpose payeePurpose toMe amount tofrom balance otherUid myName otherName short success')) + $tx;
+  }
+
+}
+
 /**
- * Return an existing transaction object.
+ * Return an existing transaction object or MyX.
  * Call by:
- *   new x(info) OR
- *   x(xid) (see the x() function below)
- * @param int xid: the record ID
+ *   x(info, a) OR x(xid, a) [returns a MyX object] OR
+ *   x(info) OR x(xid)
+ * @param int $xid: transaction record ID
+ * @param int $a: associated account
  * @param assoc $info: initial field values for the transaction, to be created and saved in the database
  */
-function x($xid) {
-  $x = new x($xid);
+function x($xid, $a = '') {
+  $x = $a ? new MyX($xid, $a, FALSE) : new X($xid, FALSE);
   return @$x->ray ? $x : FALSE;
 }

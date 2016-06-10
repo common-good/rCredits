@@ -31,7 +31,7 @@ require_once __DIR__ . '/../rsmart/rsmart.inc';
 function extraSetup($feature) {
   t\clear(TX_POS);
   if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
-    $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
+    $line = str_replace('%last_qid', r\qid(r\Acct::nextId() - 1), $line);
   }}
 }
 
@@ -255,8 +255,7 @@ function balances($list) {return t\balances($list);}
 /**
  * agent (ARG) asks device (ARG) to undo transaction (ARG) code (ARG)
  *
- * in: MAKE Undo AnAgentAsksToUndoACharge
- *     MAKE Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
+ * in: MAKE Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
  *     MAKE Undo AnAgentAsksToUndoARefund
  *     MAKE Undo AnAgentAsksToUndoACashoutCharge
  *     MAKE Undo AnAgentAsksToUndoACashinPayment
@@ -264,7 +263,6 @@ function balances($list) {return t\balances($list);}
  *     MAKE Undo AnAgentAsksToUndoARefundWithInsufficientBalance
  *     MAKE Undo AnAgentAsksToUndoAChargeWithoutPermission
  *     MAKE Undo AnAgentAsksToUndoARefundWithoutPermission
- *     MAKE Undo AnAgentAsksToUndoANonexistentTransaction
  */
 function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -272,10 +270,11 @@ function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
   $fields = 'member amount goods description created force code proof';
   if ($q = db\lookup('payer, payerAgent, amount, goods, payeeFor AS description, created', 'r_txs', 'xid=:txid', compact('txid'))) {
     extract($q);
-    $member = r\quid($payer, $payerAgent);
+    $member = r\qid($payer, $payerAgent);
     $force = -1;
     $goods = $goods == FOR_GOODS ? 1 : 0;
     if (!$code) {
+      $amount = number_format($amount, 2);
       $proof = u\pgpCrypt("$agent $amount $created $member " . r\acct($member)->cardCode());
       unset($code);
     }
@@ -284,6 +283,19 @@ function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
     $args = u\ray($fields, R_SERVER_ID . '.ZZA', round(rand()/100, 2), rand(0, 1), 'whatever', rand(), -1, $code, '');
   }
   return t\hitServer('charge', $args, $agent, $device);
+}
+
+/**
+ * agent (ARG) asks device (ARG) to undo transaction with subs: (ARG)
+ *
+ * in: MAKE Undo AnAgentAsksToUndoACharge
+ *     MAKE Undo AnAgentAsksToUndoANonexistentTransaction
+ */
+function agentAsksDeviceToUndoTransactionWithSubs($agent, $device, $subs) {
+  global $testOnly; if ($testOnly) return FALSE;
+  $subs = $subs[0];
+  $subs['force'] = -1;
+  return t\hitServer('charge', $subs, $agent, $device);
 }
 
 /**
@@ -538,8 +550,11 @@ function reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goo
   global $testModule;
   
   $goods = t\goodsBit($goods);
-  list ($member, $code) = explode('-', $member . '-'); // code is empty if omitted
+//  list ($member, $code) = explode('-', $member . '-'); // code is empty if omitted
+  list ($member, $code) = t\parseQr($member);
   if ($force or $testModule == 'Offline') {
+    $agent = t\fullQid2($agent);
+    $amount = number_format($amount, 2);
     $proof = u\pgpCrypt("$agent $amount $created $member $code");
     unset($code);
   }
@@ -675,7 +690,6 @@ function membersHave($list) {return t\membersHave($list);}
 function agentAsksDeviceToIdentifyWithPIN($agent, $device, $qr, $pin = NULL) {
   global $testOnly; if ($testOnly) return FALSE;
   list ($member, $code) = t\parseQr($qr);
-  $agent = $agent == '' ? '' : r\fullQid($agent);
   return t\hitServer('identify', compact(u\ray('member code pin')), $agent, $device);
 }
 
@@ -700,10 +714,9 @@ function withProofOfAgentAmountCreatedMemberCode($agent, $amount, $created, $mem
   global $rposResult;
   
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
-  foreach (['agent', 'member'] as $k) $$k = R_SERVER_ID . $$k;
+  foreach (['agent', 'member'] as $k) $$k = t\fullQid2($$k);
+  $amount = number_format($amount, 2);
   $proof = "$agent $amount $created $member $code";
-  $hash = \_password_crypt('sha512', $proof, $rposResult['proof']);
-
-  return ($rposResult['proof'] == $hash);
+  $hash = \_password_crypt('sha512', $proof, @$rposResult['proof']);
+  return (@$rposResult['proof'] == $hash);
 }
-

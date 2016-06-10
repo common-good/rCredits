@@ -22,9 +22,9 @@ Setup:
   | id   | flags        |*
   | .ZZC | refund,r4usd |
   And relations:
-  | id   | main | agent | permission | rCard |*
-  | :ZZA | .ZZC | .ZZA  | scan       |       |
-  | :ZZB | .ZZC | .ZZB  | scan       | yes   |
+  | main | agent | num | permission | rCard |*
+  | .ZZC | .ZZA  |   1 | scan       |       |
+  | .ZZC | .ZZB  |   2 | scan       | yes   |
 
 Scenario: The device asks for the time
   When agent ".ZZC" on device "devC" asks for the time
@@ -33,7 +33,7 @@ Scenario: The device asks for the time
   | 1  | %now |
 
 Scenario: a cashier signs in
-  When agent "" asks device "devC" to identify "ZZB-ccB2"
+  When agent "" asks device "devC" to identify "C:B,ccB2"
   Then we respond with:
   | ok | name    | logon | descriptions    | can          | default | company    | time |*
-  | 1  | Bea Two | 1     | this,that,other | refund,r4usd | NEW.ZZC | Corner Pub | %now |
+  | 1  | Bea Two | 1     | this,that,other | refund,r4usd | NEW.ZZC  | Corner Pub | %now |

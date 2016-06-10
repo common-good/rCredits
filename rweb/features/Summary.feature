@@ -23,11 +23,11 @@ Setup:
   | .ZZB  | -200   | %today-6w |
   | .ZZC  | -300   | %today-6w |
   And relations:
-  | id   | main | agent | permission |*
-  | :ZZA | .ZZA | .ZZB  | buy        |
-  | :ZZB | .ZZB | .ZZA  | read       |
-  | :ZZC | .ZZC | .ZZB  | buy        |
-  | :ZZD | .ZZC | .ZZA  | sell       |
+  | main | agent | num | permission |*
+  | .ZZA | .ZZB  |   1 | buy        |
+  | .ZZB | .ZZA  |   1 | read       |
+  | .ZZC | .ZZB  |   1 | buy        |
+  | .ZZC | .ZZA  |   2 | sell       |
   And transactions: 
   | xid   | created   | type     | amount | from | to   | purpose      |*
   | .AAAB | %today-7w | signup   |    250 | ctty | .ZZA | signup       |
@@ -54,7 +54,7 @@ Scenario: A member clicks the summary tab
   Then we show "Account Summary" with:
   | Name          | Abe One (abeone) |
   | _Address      | 1 A St., Atown, AK 01000 |
-  | ID            | .ZZA (personal account) |
+  | ID            | ZZA (personal account) |
   | Balance       | $10 |
   | Savings       | $256 |
   | _rewards      | $256 |
@@ -67,19 +67,19 @@ Scenario: A member clicks the summary tab
   | _ever         | $9 |
 
 Scenario: An agent clicks the summary tab without permission to manage
-  When member ":ZZA" visits page "summary"
+  When member "A:B" visits page "summary"
   Then we show "Account Summary" with:
   | Name | Abe One (abeone)   |
-  | ID   | NEW.ZZA (personal account) |
+  | ID   | NEWZZA (personal account) |
   And without:
   | Balance | Rewards | Floor  |
 
 Scenario: A company agent clicks the summary tab
-  When member ":ZZD" visits page "summary"
+  When member "C:A" visits page "summary"
   Then we show "Account Summary" with:
   | Name         | Corner Pub (cornerpub) |
   | _Address     | 3 C St., Ctown, Cher, FRANCE |
-  | ID           | .ZZC (company account) |
+  | ID           | ZZC (company account) |
 
 Scenario: Member's account is not active
   Given member ".ZZA" account is not active

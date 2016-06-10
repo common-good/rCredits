@@ -8,8 +8,8 @@ class optTotals {
 	public $weight = 0; // how many votes were cast on this option
 	public $grade = 0;
 	public $vetos = 0;
-	public $veto_texts = array();
-	public $canceled_vetotexts = array();
+	public $veto_texts = [];
+	public $canceled_vetotexts = [];
 
 // M
 	public $prefs = array(); // preferences of this option over each other option

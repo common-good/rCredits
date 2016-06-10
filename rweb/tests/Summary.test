@@ -61,11 +61,11 @@ class rwebSummary extends DrupalWebTestCase {
     . '\\| .ZZB  | -200   | %today-6w |'
     . '\\| .ZZC  | -300   | %today-6w |"');
     And__('relations: "ASSOC'
-    . '\\| id   | main | agent | permission |'
-    . '\\| :ZZA | .ZZA | .ZZB  | buy        |'
-    . '\\| :ZZB | .ZZB | .ZZA  | read       |'
-    . '\\| :ZZC | .ZZC | .ZZB  | buy        |'
-    . '\\| :ZZD | .ZZC | .ZZA  | sell       |"');
+    . '\\| main | agent | num | permission |'
+    . '\\| .ZZA | .ZZB  |   1 | buy        |'
+    . '\\| .ZZB | .ZZA  |   1 | read       |'
+    . '\\| .ZZC | .ZZB  |   1 | buy        |'
+    . '\\| .ZZC | .ZZA  |   2 | sell       |"');
     And__('transactions: "ASSOC'
     . '\\| xid   | created   | type     | amount | from | to   | purpose      |'
     . '\\| .AAAB | %today-7w | signup   |    250 | ctty | .ZZA | signup       |'
@@ -99,7 +99,7 @@ class rwebSummary extends DrupalWebTestCase {
     Then_('we show "Account Summary" with: "ARRAY'
     . '\\| Name          | Abe One (abeone) |'
     . '\\| _Address      | 1 A St., Atown, AK 01000 |'
-    . '\\| ID            | .ZZA (personal account) |'
+    . '\\| ID            | ZZA (personal account) |'
     . '\\| Balance       | $10 |'
     . '\\| Savings       | $256 |'
     . '\\| _rewards      | $256 |'
@@ -113,10 +113,10 @@ class rwebSummary extends DrupalWebTestCase {
   // Scenario: An agent clicks the summary tab without permission to manage
   public function testAnAgentClicksTheSummaryTabWithoutPermissionToManage_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ":ZZA" visits page "summary"');
+    When_('member "A:B" visits page "summary"');
     Then_('we show "Account Summary" with: "ARRAY'
     . '\\| Name | Abe One (abeone)   |'
-    . '\\| ID   | NEW.ZZA (personal account) |"');
+    . '\\| ID   | NEWZZA (personal account) |"');
     And__('without: "ARRAY'
     . '\\| Balance | Rewards | Floor  |"');
   }
@@ -124,11 +124,11 @@ class rwebSummary extends DrupalWebTestCase {
   // Scenario: A company agent clicks the summary tab
   public function testACompanyAgentClicksTheSummaryTab_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ":ZZD" visits page "summary"');
+    When_('member "C:A" visits page "summary"');
     Then_('we show "Account Summary" with: "ARRAY'
     . '\\| Name         | Corner Pub (cornerpub) |'
     . '\\| _Address     | 3 C St., Ctown, Cher, FRANCE |'
-    . '\\| ID           | .ZZC (company account) |"');
+    . '\\| ID           | ZZC (company account) |"');
   }
 
   // Scenario: Member's account is not active

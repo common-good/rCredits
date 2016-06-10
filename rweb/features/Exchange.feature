@@ -13,11 +13,11 @@ Setup:
   | .ZZB | Bea Two    | 2 B St. | Btown | UT | 02000   | US      | 2 B, B, UT |     10 | ok,confirmed,bona    |
   | .ZZC | Corner Pub | 3 C St. | Ctown | Cher |       | France  | 3 C, C, FR |     10 | ok,confirmed,co,bona |
   And relations:
-  | id   | main | agent | permission |*
-  | :ZZA | .ZZA | .ZZB  | buy        |
-  | :ZZB | .ZZB | .ZZA  | read       |
-  | :ZZC | .ZZC | .ZZB  | buy        |
-  | :ZZD | .ZZC | .ZZA  | sell       |
+  | main | agent | permission |*
+  | .ZZA | .ZZB  | buy        |
+  | .ZZB | .ZZA  | read       |
+  | .ZZC | .ZZB  | buy        |
+  | .ZZC | .ZZA  | sell       |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose | taking |*
   |   1 | %today-6m | signup |    250 | ctty | .ZZA | signup  | 0      |

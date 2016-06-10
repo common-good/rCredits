@@ -310,10 +310,14 @@ function n2a($n, $len, $base = 26) {
   $result = '';
   for ($i = 0; ($len > 0 ? ($i < $len) : ($n > 0 or $i < -$len)); $i++) {
     $digit = $n % $base;
-    $result = ($digit < 26 ? chr(ord("A") + $digit)
+
+    if ($base == 36 or $base == 16) { // special case for hex or alpha+digits (start with digits)
+      $result = ($digit < 10 ? $digit : chr(ord("A") + $digit - 10)) . $result;
+    } else $result = ($digit < 26 ? chr(ord("A") + $digit)
     : ($digit < 36 ? ($digit + ($base < 36 ? 1 : 0) - 26)
     : chr(ord("a") + $digit)))
     . $result;
+    
     $n = (int) ($n / $base);
   }
   return $result;
@@ -325,11 +329,13 @@ function n2a($n, $len, $base = 26) {
  * @see n2a
  */
 function a2n($string, $base = 26) {
-  if ($base < 36) $string = str_replace('0', 'O', strtoupper($string));
+  if (26 < $base and $base < 36) $string = str_replace('0', 'O', strtoupper($string));
   $result = 0;
   for ($i = 0; $i < strlen($string); $i++) {
     $n = ord($string[$i]);
-    $result = $result * $base + $n - 
+    if ($base == 36 or $base == 16) {
+      $result = $result * $base + $n - ($n >= ord("A") ? ord("A") - 10 : ord("0"));
+    } else $result = $result * $base + $n - 
       ($n >= ord("a") ? ord("a") - 36
        : ($n >= ord("A") ?  ord("A") 
        : ord($base < 36 ? "1" : "0") - 26)
@@ -527,7 +533,7 @@ function tt($message, $subs = [], $adhocChannel = '') {
   foreach ($messages as $i => $message) {
     $ch1 = $adhocChannel ?: (count($channels) - 1);
     for ($ch = $ch1; $ch > 0; $ch--) if ($model = @$GLOBALS["$ch messages"][$message]) break;
-    if (!@$model) $model = u\redw($message);
+    if (!@$model) $model = $message;
     if($p = strpos($model, '. Type ')) {
       if ($channel != TX_SMS and $adhocChannel != TX_SMS) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
     }
@@ -538,7 +544,7 @@ function tt($message, $subs = [], $adhocChannel = '') {
 //    u\EXPECT(!is_array($i), 'i array');
     $messages[$i] = SUBS(strtr($model, prefixKeys('@', $subs, 'noArray')), '@');
   }
-  return join(' ', $messages);
+  return str_replace(' .', '.', join(' ', $messages));
 }
 
 /**
@@ -703,7 +709,7 @@ function expect1($arg, $value, $type, $ret) {
     case 'qid': return EXPECT(isQid($value), $msg, $ret);
     case 'string': return EXPECT(is_string($value), $msg, $ret);
     case 'zid': return EXPECT(isZid($value), $msg, $ret);
-    default: return EXPECT(is_object($value) and get_class($value) == "rCredits\\$type", $msg, $ret);
+    default: return EXPECT(is_object($value) and strtolower(get_class($value)) == "rcredits\\$type", $msg, $ret);
   }
   throw new \Exception("bad type \"$type\" ($msg)");
 }
@@ -951,22 +957,6 @@ function csv($a) {
   global $csvFile, $testCSV;
   fputcsv($csvFile, $a);
   $testCSV[] = $a;
-}
-
-/**
- * Reword a Dwolla error message.
- * @param string $msg: the original message
- * @return string: the revised message
- */
-function redw($msg) {
-  $lame = t(' Some operations will be unavailable.');
-  $map = array(
-    'Access token is empty.' => t('Your account is not complete.' . $lame),
-    'Request failed. Server responded with: 0' => t('Our US Dollars module is temporarily offline.' . $lame),
-    'Unexpected error has occurred.' => t('Part of your current operation may not have completed. Try again?'),
-    'User must be verified.' => t('You have run into a temporary roadblock, due to a recent change in rCredits signup automation. An administrator will make the necessary adjustment and will send you an email when you can proceed with connecting your bank account &mdash; probably within a few hours. We apologize for the delay.'),
-  );
-  return strtr($msg, $map);
 }
 
 /**
@@ -1351,14 +1341,13 @@ function wargs($s, $args, $prefix = '') {return strtr($s, prefixKeys($prefix, $a
 function myInt($n) {return (is_numeric($n) and $n == (int) $n);}
 function myFloat($n) {return (is_numeric($n) and $n == (float) $n);}
 function isId($id) {return (myInt($id) and $id > 0);}
-//function is_ruid($ruid) {return (is_array($ruid) and array_keys($ruid) == array(0, 1, 2) and isZid($ruid[0]) and isZid($ruid[1]) and isZid($ruid[2]));}
-function isQid($qid) {return preg_match('/(^[A-Z]{3}' . R_MARKS . '[A-Z]{3,}$)|(^![A-Z]{3}(\.[A-Z]{3,})?$)/', $qid);}
+function isQid($qid) {return preg_match('/(^[A-Z]{6,8}(-[A-Z]{1,8})?$)|(^[A-Z]{3}' . R_MARKS . '[A-Z]{3,}$)|(^![A-Z]{3}(\.?[A-Z]{3,})?$)/', $qid);} // middle choice is deprecated (gone after 2016)
 function isZid($zid) {return (myInt($zid) and $zid !== 0);}
 function isNonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
 function isVarname($value) {return preg_match('/^[a-z_][a-z_\-0-9]*$/i', $value);}
 function isName($value) {return preg_match('/^[ \\x{00c0}-\\x{01ff}a-zA-Z0-9\,\.\'\\-]+$/u', $value);}
 ///function isName($value) {return preg_match('/^([ \\p{InCJK_Radicals_Supplement}\\p{InKangxi_Radicals}\\p{InIdeographic_Description_Characters}\\p{InCJK_Symbols_and_Punctuation}\\p{InHiragana}\\p{InKatakana}\\p{InBopomofo}\\p{InHangul_Compatibility_Jamo}\\p{InKanbun}\\p{InBopomofo_Extended}\\p{InKatakana_Phonetic_Extensions}\\p{InEnclosed_CJK_Letters_and_Months}\\p{InCJK_Compatibility}\\p{InCJK_Unified_Ideographs_Extension_A}\\p{InYijing_Hexagram_Symbols}\\p{InCJK_Unified_Ideographs}a-zA-Z\'\\-])+$/', $value);}
-function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
+function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\\Acct');}
 function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);} // deprecated
 function s2t($s) {return strtotime(preg_match('/[A-Z]/i', $s) ? $s : str_replace('-', '/', $s));}
 function fmtDate($time = NULL, $numeric = FALSE) {return strftime($numeric ? '%m/%d/%Y' : '%d-%b-%Y', isset($time) ? $time : r\rTime());}

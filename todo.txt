@@ -9,10 +9,10 @@ Software Priorities:
 5. Greater Security (and security audit)
 
 NON_SOFTWARE TO_DOs
-- poster at colleges for PHP programmer/social activist (local preferred)
-- paper form for signing up a company
+- Fuzzy: what's up with Stacey Matlen (248 763 1903)? Bad email, no rCard use. 
+- What's up Janice Sorenson 26742000000180 (bad email?)
 - get David Greenberg or David Kulp to help Ivan send from Gmail
-- survey Fosters employees: 5 checkboxes and one blank (where shop?)
+- survey Fosters employees: 5 checkboxes and one blank (where shop?): Gfld Games? The Barn? Foster's? Other mkt?
 - contact Lorien Pratt (recommended by Barry) This is Lorien's pitch on Decision Analysis: http://www.lorienpratt.com/how-can-i-help-you/decision-intelligence-analysis-modeling-training-and-systems/
 - send Business Name Change requests for rCredits Western Mass Region to IRS-Stop 343G, Cincinnati, OH 45999.
 - short tagline (see Richard Tillberg's ideas), like "rCredits, the Money Co-op"
@@ -64,13 +64,22 @@ GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
    $cfg['Servers'][$i]['auth_type'] = 'config';
 
 TASKS FOR NEXT UPDATE:
-. **** company agent qids should be the company's qid plus one character (the agent number). Record in r_relations just as we do now, plus a field for agent number. App should not permit manager signin with wrong company (must share all but last character with company ID, when "." is changed to ":" in company ID). Also app should catch any attempt to do a transaction with an agent of the current company.
+. REINSTALL
+
+. let cAdmin set some bits (like cAdmin, cAdmin2,...)
+. *** let any member display their card (put a "Show Card" button at the end of the "ID:" line)
+. **** handle monthly and bimonthly pay periods on upload payroll page
+. ** invoicing requires previous photoID verification of both parties
+. NEWAAA fails on relations page
+. put better links on Summary page for card activation, including ID verification only on click.
+. admin panel should accept XXX:YYY format for relations (for printing company cards)
+. target a new page for checks
+. App should not permit manager signin with wrong company. Also app should catch any attempt to do a transaction with an agent of the current company.
 . lower graphic (and whole page) a few pixels on member company web page
 . ** show last four digits of bank account number to account holder (it's encrypted, so will have to be a separate field)
 . *********!!! a community's usd amount should have trade net added to it in reports!
 . ** edit tx fields are too short and type doesn't get populated (and admin has no way to change date)
 . *** make sure floor allows immediate auto refill when appropriate (like for ad hoc transfers)
-. **** why doesn't Fuzzy get Invitation Requests directly?
 . *** suggest using EIN for company account, for sole proprietor
 . *** completing relations on account setup does not return to status checklist!
 . when you set up a company account, it doesn't list you on relations!
@@ -78,7 +87,7 @@ TASKS FOR NEXT UPDATE:
 . add voting stats to r_stats
 . *** clarify that rCredits is always changing but we guarantee you won't lose money (potential benefits are big, but still merely probable -- not certain)
 . ** redo db namespace as class (extends PDO), next() instead of fetchAssoc(); (see http://wiki.hashphp.org/PDO_Tutorial_for_MySQL_Developers#Transactions for transaction handling)
-. remove namespace from function acct(); move IA( to rcredits.inc
+. remove namespace from function r\acct()
 . *** replace old autoexec findco selection with newer dropdown (and delete autoexec function)
 . * JS type checking for ballots
 . * create numFld and phoneFld (for HTML5)
@@ -434,7 +443,7 @@ TASKS FOR NEXT UPDATE:
 - trans history: default today on starting/ending and/or pass true defaults properly for period
 - no rebate / bonus for manager of company with no (other) employees (set bit?)
 - add a login field to relations and record last login time of agent/company pair
-- return error from u\httpRequest() (instead of u\EXPECT), throw hiddenData error in acct::offsiteData(). Catch it on Summary screen at least (display gentle Warning message).
+- return error from u\httpRequest() (instead of u\EXPECT), throw hiddenData error in r\Acct::offsiteData(). Catch it on Summary screen at least (display gentle Warning message).
 - account checks: auto-deposit or minimum>0 but not connected to checking account yet: notice to user
 - block repeated 404s
 - pagination for trans history

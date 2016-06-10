@@ -55,7 +55,7 @@ class rwebScanCard extends DrupalWebTestCase {
     . '\\| .ZZC | Corner Pub | ok,co,bona |     |      | 3 C St. | Cton | +12000000003 |"');
     And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
-    . '\\| :ZZB | .ZZC | .ZZB  | read       |"');
+    . '\\| .ZZB | .ZZC | .ZZB  | read       |"');
     break;
 
 

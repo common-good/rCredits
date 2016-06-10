@@ -117,6 +117,7 @@ function ok($args, $ok = "1") {
   if (@$args['op'] != 'time') u\loga('out', $args); // avoid filling the log with time requests
   //{t\output($args, 'output'); 
   if (u\test()) return $result;
+  header('Access-Control-Allow-Origin: *'); // allow access from web browsers
   exit($result);
 }
 
@@ -200,7 +201,7 @@ function identify($args) {
       if (!$device) $device = u\code(R_CODE_LEN);
       r\makeDevice($a->id, $device, TX_POS); // card is legit, so use device's code, if any
     }
-    $default = $mya->mainQid;
+    $default = $mya->qo->region . R_MEMBER_MARK . $mya->qo->tail; // $mya->mainQid;
     $company = $mya->fullName;
     $time = r\rTime();
     
@@ -349,32 +350,6 @@ function charge($args, $type = 'charge') {
   return ok(compact(u\ray('message txid created balance rewards did undo proof')));
 }
 
-// [member, amount, goods, description] => [ok, message, txid, balance, undo]
-//function payment($args) {return charge($args, 'payment');}
-
-/*
- * Undo the specified transaction
- * undo:  [txid, force] => [ok, message, balance]
- * @param array $args:
- *   txid: transaction record number
- * @return: json (ok, message, balance)
- *//*
-function undo($args) {
-  global $mya; $myid = $mya->id;
-  if ($err = missingArg($keys = 'txid', $args)) return posErr($err);
-  extract(u\just($keys, $args));
-  
-  list ($msg, $subs) = be\undoTx($txid, ':myid IN (payer, payee)', compact('myid'));
-  if (!@$subs['success']) return posErr($msg, $subs);
-  
-  $id = db\lookup('IF(payer=:myid, payee, payer)', 'r_txs', 'xid=:txid', compact('myid', 'txid'));
-  $a = r\acct($id);
-  extract(balrew($a));
-  $message = u\tt($msg, $subs);
-/// (no undo of an undo)  $undo = u\tt('confirm undo', $subs);
-  return ok(compact(u\ray('message balance rewards')));
-}*/
-
 /**
  * Report if an argument is missing.
  */
@@ -393,7 +368,7 @@ function getAgent($agent, &$err = '') {
 //  if (r\foreignServer(r\uidRegion($mya->agentId))) return !$err = 'wrong server for agent';
   if (!$mya->ok) return !$err = 'company inactive';
 //  if (!$mya->can(B_SELL)) return !$err = 'agent cannot sell';
-  r\acct::setDefault($mya);
+  r\Acct::setDefault($mya);
   return $mya;
 }
 
@@ -422,6 +397,7 @@ function getCustomer($customer, $code, &$err = '', $proofStart = '', $requireCod
         if (!$ok) { // let the transaction go through, but alert everyone
           r\tellStaff(t('bad proof (reverse?)'), t\POST() + compact('proof') + $_SERVER);
           $a->makeBad(substr($proof, strlen($proofStart)));
+          return !$err = 'bad customer';
         }
       } elseif ($code != $a->cardCode()) return !$err = 'bad customer';
     }

@@ -278,7 +278,8 @@ function often($period, $code, $chosen) {
  */
 function everyWeek() {
   // help members increase their overall savings (or crawl out of primary account debt)
-  db\q('UPDATE users SET minimum=IF(minimum=-saveWeekly, .01, minimum+saveWeekly) WHERE :IS_OK AND :HAS_BANK AND minimum<GREATEST(0, floor) AND saveWeekly>0'); // crawl out of debt
+  $newMin = "(minimum+GREATEST(saveWeekly, :MIN_WEEKLY_BUMP))"; // crawl out of debt by at least $1 a week
+  db\q("UPDATE users SET minimum=IF(ABS($newMin)<.01, .01, $newMin) WHERE :IS_OK AND :HAS_BANK AND minimum<GREATEST(0, floor)"); // crawl out of debt
   db\q('UPDATE users SET savingsAdd=GREATEST(0, savingsAdd+saveWeekly) WHERE :IS_OK AND :HAS_BANK AND saveWeekly<>0'); // save or unsave
 }
 
@@ -443,7 +444,7 @@ function acctStats() {
 }
 
 /**
- * Update stats for one account (joint accounts are aggregated in acct::j_stats(), not here)
+ * Update stats for one account (joint accounts are aggregated in r\Acct::j_stats(), not here)
  * stats will be an assoc: [avgBalPastMo, avgBalEver, minPastMo, etc.]
  * picture (an otherwise unused field) will be minPastMo in cents (ready for r\stats to SUM)
  */
@@ -693,7 +694,7 @@ function getHowMuchR($a, $banky = TRUE) {
  */
 function bona() {
 //  $sql = 'SELECT DISTINCT u.uid FROM users u LEFT JOIN r_txs t ON t.payer=u.uid WHERE NOT :IS_BONA AND NOT :IS_CO AND t.taking'; // new human member who has completed an rCard purchase
-  $sql = 'SELECT DISTINCT u.uid FROM users u WHERE :IS_OK AND NOT :IS_BONA AND NOT :IS_CO'; // new human member who has completed an rCard purchase
+  $sql = 'SELECT DISTINCT u.uid FROM users u WHERE :IS_OK AND NOT :IS_BONA AND NOT :IS_CO'; // new human member
   queueEach('bona1', $sql);
   queueNext();
 }
@@ -701,16 +702,7 @@ function bona() {
 function bona1($item) {
   extract(u\just('uid', $item));
   $a = r\acct($uid);
-  
-  $DBTX = \db_transaction();
   r\membershipEvent($a, 'bona');
-  be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
-  
-  if (!$a->helperA->admin) { // helper is not admin (cAdmin is okay)
-    $fullName = $a->fullName;
-    be\fund($a->helper, TX_HELPER, R_HELPER_BONUS, u\tt('invite reward', compact('fullName')));
-  }
-  unset($DBTX);
 }
 
 /**

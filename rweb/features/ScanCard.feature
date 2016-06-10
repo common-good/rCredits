@@ -15,7 +15,7 @@ Setup:
   | .ZZC | Corner Pub | ok,co,bona |     |      | 3 C St. | Cton | +12000000003 |
   And relations:
   | id   | main | agent | permission |*
-  | :ZZB | .ZZC | .ZZB  | read       |
+  | .ZZB | .ZZC | .ZZB  | read       |
 
 Scenario: Someone scans a member card
   When member "?" visits page "I/ZZB.ccB"

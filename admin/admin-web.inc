@@ -128,13 +128,16 @@ function adminSummary($a, $cAdmin = FALSE) {
     if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
       if ($helper = $a->helper ?: ($a->co ? $a->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
         $hA = r\acct($helper);
-        $helper = "$hA->mainQid   $hA->fullName";
+        $helper = "$hA->mainQid: $hA->fullName";
       }
       $helper = textFld(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper) + autocomplete());
     } else $helper = item(@$a->helperA->fullName ?: t('N/A'), t('Helped by:'));
 
     if ($a->member and !$a->co and $admin) $ssnCheck = item(a\ssnCheck($a));
-    if ($admin) $federalId = textFld(t('EIN/SSN:'), '', $a->federalId ? R_ON_FILE : '');
+    if ($admin) {
+      $dba = ($a->co and $owner = r\relation('other', 'main=:uid', compact('uid')) and r\acct($owner)->federalId == $a->federalId);
+      $federalId = textFld(t('EIN/SSN:'), '', $a->federalId ? ($dba ? t('SSN') : R_ON_FILE) : '');
+    }
   
     $acctRisks = u\ray(K_ACCT_RISKS);
     $riskBits = array_keys($acctRisks);
@@ -237,7 +240,7 @@ function export($params) {
       . ' created activated signed helper iCode balance rewards savingsAdd minimum share risk trust'
       . ' cttyName co gross employees achMin pinThreshold lastiCode tenure moves mediaConx jid'
       . ' owns bankName slave closed notices secret'
-  : 'id first_name last_name phone email address city state zip member ecode';
+  : 'id first_name last_name phone email address city state zip cttyName member ecode';
   u\csv($fields = u\ray($fields));
 
   $where = @$allCttys ? '1' : 'community=:cttyId';
@@ -251,7 +254,6 @@ function export($params) {
     $member = $a->ok ? 'yes' : '';
     if (@$anonymous) {
       foreach ($fields as $k) $$k = $a->$k; // do this first. some will be null.
-      $cttyName = $ctty->fullName;
       $zip = $a->postalCode;
       foreach (u\ray('weekly monthly secret') as $k) $$k = $a->can(u\consta('b', $k));
       $notices = $monthly ? t('monthly') : ($weekly ? t('weekly') : t('daily'));
@@ -268,7 +270,9 @@ function export($params) {
       $id = $a->mainQid;
       $ecode = "$a->emailCode";
     }
+    $cttyName = $ctty->fullName;
     if (is_numeric($zip)) $zip .= '-'; // prevent this from getting interpreted as a number
+
     u\csv(array_values(compact($fields)));
   }
   exit();
@@ -308,17 +312,7 @@ function txInfo($xid) {
   foreach (u\ray('rebate bonus xfee') as $k) {
     if (isset($$k)) $rel[] = u\fmtAmt($$k) . ' ' . $k;
   }
-  /*
-    $rows = db\records('r_txs', 'serial=:xid AND xid<>:xid', compact('xid'), 'xid,type,amount');
-    foreach ($rows as $row) {
-      extract((array) $row, EXTR_PREFIX_ALL, 'x');
-      $x_amount = u\fmtAmt($x_amount);
-      $desc = $x_type == TX_REBATE ? t('rebate')
-            : ($x_type == TX_BONUS ? t('bonus')
-            : ($x_type == TX_XFEE ? t('fee') : t('other')));
-      $rel[] = "$x_xid ($x_amount $desc)";
-    }
-  } */
+
   if (@$rel) $related = item(join(', ', $rel), t('Related Txs:'));
   $riskDesc = $risk < K_RED ? t('low') : ($risk < 2 * K_RED ? t('moderate') : t('high'));
   $risks = r\riskList($risks0 = $risks, K_TX_RISKS); 

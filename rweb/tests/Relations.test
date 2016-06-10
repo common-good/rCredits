@@ -71,8 +71,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasAnEmployeeConfirmed_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "ASSOC'
-    . '\\| id | main | agent | permission   | employee | isOwner | draw |'
-    . '\\| 1  | .ZZA | .ZZD  | scan         | 1          | 1       | 0    |"');
+    . '\\| main | agent | permission   | employee | isOwner | draw |'
+    . '\\| .ZZA | .ZZD  | scan         | 1          | 1       | 0    |"');
     When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
     . '\\| other      | Draw | My employee? | Family? | Permission |_requests      |'
@@ -83,8 +83,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasAnEmployeeUnconfirmed_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "ASSOC'
-    . '\\| id | main | agent | permission | employee | isOwner |'
-    . '\\| 1  | .ZZA | .ZZD  | refund     | 1          | 0       |"');
+    . '\\| main | agent | permission | employee | isOwner |'
+    . '\\| .ZZA | .ZZD  | refund     | 1          | 0       |"');
     When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
     . '\\| other      | My employee? | Family? | Permission  |_requests      |'
@@ -95,8 +95,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasARelationWithAContractor_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "ASSOC'
-    . '\\| id | main | agent | permission | employee | isOwner |'
-    . '\\| 1  | .ZZA | .ZZB  | buy        | 0          | 0        |"');
+    . '\\| main | agent | permission | employee | isOwner |'
+    . '\\| .ZZA | .ZZB  | buy        | 0          | 0        |"');
     When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
     . '\\| other      | My employee? | Family? | Permission |_requests      |'
@@ -107,8 +107,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasAnEmployeeClaimed_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "ASSOC'
-    . '\\| id | main | agent | permission   | employee | isOwner |'
-    . '\\| 1  | .ZZA | .ZZD  | sell         | 0          | 0       |"');
+    . '\\| main | agent | permission   | employee | isOwner |'
+    . '\\| .ZZA | .ZZD  | sell         | 0          | 0       |"');
     When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
     . '\\| other      | My employee? | Family? | Permission |_requests      |'
@@ -119,8 +119,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testEmployeeCanOnlyRead_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "ASSOC'
-    . '\\| id | main | agent | permission | employee | isOwner |'
-    . '\\| 1  | .ZZA | .ZZD  | read       | 1          | 1       |"');
+    . '\\| main | agent | permission | employee | isOwner |'
+    . '\\| .ZZA | .ZZD  | read       | 1          | 1       |"');
     When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
     . '\\| other      | My employee? | Family? | Permission |_requests      |'
@@ -131,8 +131,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasAnEmployer_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "ASSOC'
-    . '\\| id | main | agent | permission   | employee | isOwner |'
-    . '\\| 1  | .ZZB | .ZZA  | sell         | 1          | 1        |"');
+    . '\\| main | agent | permission   | employee | isOwner |'
+    . '\\| .ZZB | .ZZA  | sell         | 1          | 1        |"');
     When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
     . '\\| other      | My employee? | Family? | Permission |_requests      |"');
@@ -144,9 +144,9 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasAccessToEmployeeAccount_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "ASSOC'
-    . '\\| id | main | agent | permission | employee | isOwner |'
-    . '\\| 1  | .ZZA | .ZZD  |            | 1          | 1        |'
-    . '\\| 2  | .ZZD | .ZZA  | sell       | 0          | 0        |"');
+    . '\\| main | agent | permission | employee | isOwner |'
+    . '\\| .ZZA | .ZZD  |            | 1          | 1        |'
+    . '\\| .ZZD | .ZZA  | sell       | 0          | 0        |"');
     When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
     . '\\| other      | My employee? | Family? | Permission |_requests      |'
@@ -161,9 +161,9 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberCompanyHasRelations_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "ASSOC'
-    . '\\| id   | main | agent | permission | employee | isOwner |'
-    . '\\| :ZZA | .ZZC | .ZZA  | manage     | 1          | 1        |"');
-    When_('member ":ZZA" visits page "settings/relations"');
+    . '\\| main | agent | num | permission | employee | isOwner |'
+    . '\\| .ZZC | .ZZA  |   1 | manage     | 1          | 1        |"');
+    When_('member "C:A" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
     . '\\| other   | My employee? | Owns | Permission     |_requests      |'
     . '\\| Abe One | Yes          | Yes  | manage account | request rCard |"');
@@ -178,13 +178,13 @@ class rwebRelations extends DrupalWebTestCase {
   public function testItsComplicated_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "ASSOC'
-    . '\\| id   | main | agent | permission | employee | isOwner |'
-    . '\\| .ZZA | .ZZA | .ZZD  | manage     | 1        | 1       |'
-    . '\\| .ZZB | .ZZD | .ZZA  |            | 0        | 0       |'
-    . '\\| .ZZC | .ZZA | .ZZC  | buy        | 0        | 0       |'
-    . '\\| .ZZD | .ZZC | .ZZA  | scan       | 1        | 0       |'
-    . '\\| .ZZE | .ZZA | .ZZB  | sell       | 1        | 1       |'
-    . '\\| .ZZF | .ZZB | .ZZA  |            | 1        | 0       |"');
+    . '\\| main | agent | num | permission | employee | isOwner |'
+    . '\\| .ZZA | .ZZD  |   0 | manage     | 1        | 1       |'
+    . '\\| .ZZD | .ZZA  |   0 |            | 0        | 0       |'
+    . '\\| .ZZA | .ZZC  |   0 | buy        | 0        | 0       |'
+    . '\\| .ZZC | .ZZA  |   1 | scan       | 1        | 0       |'
+    . '\\| .ZZA | .ZZB  |   0 | sell       | 1        | 1       |'
+    . '\\| .ZZB | .ZZA  |   0 |            | 1        | 0       |"');
     When_('member ".ZZA" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
     . '\\| other      | My employee? | Family? | Permission  |_requests      |'
@@ -202,7 +202,7 @@ class rwebRelations extends DrupalWebTestCase {
     And__('with: "ARRAY'
     . '\\|_Header  |'
     . '\\| Family? |"');
-    When_('member ":ZZD" visits page "settings/relations"');
+    When_('member "C:A" visits page "settings/relations"');
     Then_('we show "Relations" with: "ARRAY'
     . '\\| other   | My employee? | Owns | Permission  |_requests      |'
     . '\\| Abe One | Yes          | No   | %can_scan | request Cashier Card |"');
@@ -235,8 +235,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testAMemberTriesToAddARelationAgain_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "ASSOC'
-    . '\\| id | main | agent | permission | employee | isOwner |'
-    . '\\| 1  | .ZZA | .ZZB  | scan       | 1        | 1       |"');
+    . '\\| main | agent | permission | employee | isOwner |'
+    . '\\| .ZZA | .ZZB  | scan       | 1        | 1       |"');
     When_('member ".ZZA" completes relations form with values: "ASSOC'
     . '\\| newPerson |'
     . '\\| Bea Two   |"');

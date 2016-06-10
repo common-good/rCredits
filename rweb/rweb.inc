@@ -55,7 +55,8 @@ function ajax() {
   list ($sess) = @explode(';', strstr($res['session'], 'rcredits_myid|')) ?: ['|'];
   list ($var, $myid) = @explode('|', $sess) ?: ['', ''];
 ///  flog(compact(u\ray('op sid data res')));
-  if ($var != 'rcredits_myid' or !$myid = @unserialize($myid)) ajaxErr('not signed in');
+///  $extra = print_r(compact(u\ray('op sid data aid var myid')), 1);
+  if ($var != 'rcredits_myid' or !$myid = @unserialize($myid . ';')) ajaxErr('not signed in');
 //  $mya = r\acct($uid);
   
   if ($op == 'typeWho') {
@@ -75,7 +76,7 @@ function ajax() {
     $message = u\tt($msg, $args);
     if (empty($choices)) ajaxErr($message);
     foreach ($choices as $uid => $fullName) {
-      $choices[$qid = r\quid($uid)] = "$qid $fullName";
+      $choices[$qid = r\qid($uid)] = "$qid $fullName";
       unset($choices[$uid]);
     }
 
@@ -93,7 +94,8 @@ function ajaxMsg($msg, $ok = 1) {ajaxRet(['message' => $msg], $ok);}
 function ajaxRet($data, $ok = 1) {exit(json_encode($data + compact('ok')));}
 
 /**
- * Complete a "no signin required" request (made by the user clicking a link we sent).
+ * Complete a "no signin required" request
+ *   called when the user clicks a link like new.rcredits.org/do/do~NEWAAA~23lkjlk6j~2~$16.
  * @param string code: an encoded serialized array of parameters, possibly including:
  *   op: what to do (REQUIRED)
  *   v: an amount or identifier
@@ -109,6 +111,7 @@ function ajaxRet($data, $ok = 1) {exit(json_encode($data + compact('ok')));}
  *   addr: show an address for account QID $v (for shipping or thank-you card)
  *   inv: pay invoice number $v
  *   confirmInvite: confirm an invitation
+ *   do<form>: allow member to visit one specific page
  * Alternatively, code can be an error message (recognized by having a space in it).
  * @param string $args: urlencoded array of arguments passed from an email (from whence $_POST is not reliably received by Drupal)
  * @see also r\makeDo()
@@ -135,10 +138,10 @@ function rdo($code, $args = '') {
   $channel = TX_LINK;
   $DBTX = \db_transaction();
   
-  if ($op == 'min') {
-    if ($jid = $a->jid and $a->slave) $a = r\acct($jid); // for joint accounts, update on the master
-    $res = $a->update('minimum', $v);
+  if (u\starts($op, 'do') and $formName = substr($op, 2)) {
+    return w\showform($formName, $v, $a->mainQid);
   }
+//  if ($op == 'min') $res = $a->update('minimum', $v); // not used (rewrite as a confirmation form)
   if ($op == 'nosecret') $res = $a->setBit(B_SECRET, FALSE);
   if ($op == 'debtok') $res = $a->setBit(B_DEBT, TRUE);
   if ($op == 'rsv') {return r\go("savings/qid=$qid&ecode=$ecode");}
@@ -264,7 +267,7 @@ EOF;
   $matches = [];
   while ($row = $result->fetchAssoc()) {
     extract($row); // ($uid), $display
-    if (@$uid) $display = r\quid($uid) . '   ' . $display;
+    if (@$uid) $display = r\qid($uid) . '   ' . $display;
 // (never show email) $display .= @$email ? " ($email)" : '';
     $matches[$display] = check_plain($display);
 //    return drupal_json_output(array('zot' => "display=$display"));
@@ -708,8 +711,8 @@ function formDonate($form, &$sta) {
      100 => t('Two Bricks . $100'),
       50 => t('One Brick ... $50'),
       25 => t('Half Brick .. $25'),
-      10 => t('Tile ........ $10'),
-       5 => t('Cloth ........ $5'),
+//      10 => t('Tile ........ $10'),
+//       5 => t('Cloth ........ $5'),
        0 => t('Water ... (other)'),
   );
   $oftens = array(0 => 'when?', 'M' => 'Monthly', 'Q' => 'Quarterly', 1 => 'Just Now (maybe more later)');
@@ -1037,48 +1040,57 @@ function formAgreement_submit($form, &$sta) {
  * @param int $priority: 1 for proxy, 2 for alternate
  * uid is not passed, for security.
  */
-function formProxy($form, &$sta, $priority = '') {
+function formProxy($form, &$sta, $priority = '', $qid = '') {
 //  if ($priority != 1 and $priority != 2) w\hack('bad proxy priority');
-  if ($priority != 1 and $priority != 2) ;
-  $dft = r\acct()->proxy($priority);
-  if (!$choices = w\proxyChoices($dft)) r\go('settings/proxies', 'no local proxy');
+  extract(u\just('priority', $sta)); // in case continuing from rdo/doProxy submit
+  $mya = r\acct($qid); // defaults to current account
+  $dft = $mya->proxy($priority);
+  if (!$choices = w\proxyChoices($mya, $dft)) r\go('settings/proxies', 'no local proxy');
 
   $title = $priority == 1 ? t('Your #1 Proxy') : t('Your Alternate Proxy');
   $title = item($title . t(' (choose one)'));
-  $subtext = item(t('Choose and click someone you know and trust. Top suggestions for you are highlighted.'));
+  $subtext = item(t('Choose and click someone you know and trust. Top suggestions for you are highlighted.') . ($dft ? t(' Your current selection, if any, is highlighted orange.') : ''));
   $list = item($choices);
   $priority = hidFld($priority);
-  return compact(u\ray('title subtext list priority'));
+  $qid = hidFld($mya->mainQid);
+  return compact(u\ray('title subtext list priority qid'));
 }
 
 function formProxy_validate($form, &$sta) {
-  extract(u\just('priority proxyChoice', $sta['input']));
+  extract(u\just('priority proxyChoice qid', $sta['input']));
+  $mya = r\acct($qid);
   $choice = key($sta['input']);
   u\EXPECT(substr($choice, 0, 2) == 'i-', 'missing proxy choice');
   $proxyChoice = substr($choice, 2);
-  if (@$proxyChoice == r\acct()->proxy(1+2 - $priority)) r\go('settings/proxies', 'doubled proxy', 'err'); // can't just return say() because js gets deactivated (drupal bug?)
+  if (@$proxyChoice == $mya->proxy(1+2 - $priority)) {
+    return $qid ? w\say('doubled proxy', 'err') : r\go('settings/proxies', 'doubled proxy', 'err'); // can't just return say() because js gets deactivated (drupal bug?)
+  }
   $sta['input'] += compact('proxyChoice');
   return formProxy_submit($form, $sta); // oddly, _submit never gets called otherwise
 }
 
 function formProxy_submit($form, &$sta) {
-  $mya = r\acct();
-  extract(u\just('priority proxyChoice', $sta['input']));
+  extract(u\just('priority proxyChoice qid', $sta['input']));
+  $mya = r\acct($qid);
 
   $mya->proxy($priority, $proxyChoice);
+//  if (@$qid) return $priority == 1 ? w\showForm('Proxy', 2, $qid) : w\doSay(t('Success!'), 'status');
+//  if (@$qid) return w\doSay(t('Success!'), 'status');
+  if (@$qid) return $priority == 1 ? ($sta['priority'] = 2) : w\doSay(t('Success!'), 'status');
+
   if ($mya->proxy(1+2 - $priority)) { // do we already have the other proxy?
     $mya->stepDone('proxies');
     r\go($mya->ok ? 'settings/proxies' : 'status', 'info saved');
   } else say('proxy to go');
 
-  r\go('settings/proxies', 'info saved');
+  return r\go('settings/proxies', 'info saved');
 }
 
 /**
  * Choose default proxies.
  */
-function formProxies($form, &$sta) {
-  $mya = r\acct();
+function formProxies($form, &$sta, $empty = '', $qid = '') {
+  $mya = r\acct($qid); // defaults to current account
   $title = item(t('Proxies'));
   $afterOk = $mya->ok ? '' : ', once your account is approved,';
   $subtext = item(tt(<<<EOF
@@ -1089,14 +1101,14 @@ function formProxies($form, &$sta) {
 EOF
   ));
 
-  $mya = r\acct();
   foreach ([1, 2] as $priority) {
     if ($p = $mya->proxy($priority)) $p = r\acct($p)->fullName; else $p = t('(none chosen)');
     $proxy[$priority] = $p . t(' [<@a>show choices</a>]', ['@a'=>"a href=proxy/$priority"]);
   }
   $proxy1 = item($proxy[1], t('Proxy:'), t('Who will vote on your behalf, when you don\'t vote directly? (You can change your choices at any time.)'));
   $proxy2 = item($proxy[2], t('Alternate:'), t('Who will vote on your behalf, if your Proxy doesn\'t vote either? (even before resorting to your Proxy\'s Proxy)'));
-  $form = compact(u\ray('title subtext proxy1 proxy2'));
+  $qid = w\hidFld($mya->mainQid);
+  $form = compact(u\ray('title subtext proxy1 proxy2 qid'));
   return labeled($form);
 }
 
@@ -1146,7 +1158,7 @@ function formInvite($form, &$sta) {
     <ul>
       <li><b>BEST: <@aSheet>Print</a> a sheet</b> of invitation cards ($size, on card stock).<br>(or <a href="mailto:info@rCredits.org?subject=rCredits Invitation Card request&body=Please send me some more rCredits invitation cards. Thanks! -- $mya->fullName (account #$mya->mainQid)" target="_blank">ask to have some mailed to you</a> at no charge)</li>
       <li><b>Tell your $friend</b> to sign in at rCredits.org with invitation #&nbsp;@inviteCode or send them this link: <div id=inviteLink>@inviteLink</div></li>
-      <li><b>Complete this form</b> to send an invitation NOW:</li>
+      <li><b>Complete the form below</b> to send an invitation NOW:</li>
     </ul>
 EOF
   , compact(u\ray('a1 a2 where aSheet inviteLink inviteCode')));
@@ -1264,40 +1276,6 @@ function formVideos($form, &$sta) {
 function formUser($form, &$sta) {return \user_login($form, $sta);} // called from r\go() in Summary
 
 /**
- * Temporary savings amount-setter until 12/15/2015
- */
-function formChooseSavings($form, &$sta, $args = '') {
-  extract(u\just('qid ecode', $args));
-  if (!@$qid or !@$mya = r\acct($qid) or @$ecode != $mya->emailCode) w\hack('choosing savings', $args);
-  $title = item(t('Choose Your Savings Reserve Amount'));
-//  $subtitle = item(t(''));
-  $savings = textFld(t('Savings Reserve:'), [t('Savings amount'), t('How much to hold as a savings reserve, for later or as needed. Your Savings Reserve works like a traditional reserve account that kicks in whenever you would otherwise overdraw your primary account -- except there are no fees, you don\'t have to open a second account, and you don\'t have to put any money in it because your incentive rewards go in it automatically. This amount is not counted as part of your account balance.')], required(u\fmtAmt($mya->savings ?: round($mya->rewards + 4.999, -1))));
-  if (u\starts($qid, 'NEW.')) {
-    $btw = item(t('<big class="loud">By the way</big>, this new feature means we are ready to begin discussion in Greater Greenfield on how to use our rCredits Escrow funds for incentives, grants, loans, and local investments. We hope you will be part of that discussion, beginning with a meeting in January.'));
-    $discuss = boxFld('discuss', t('Participate?'), t('Yes! Count me in.'));
-  }
-  $qid = hidFld($qid);
-  $submit = submit();
-  return labeled(compact(u\ray('title subtitle savings btw discuss qid submit')));
-}
-
-function formChooseSavings_validate($form, &$sta) {
-  extract(u\just('qid savings', $sta['input']));
-  $mya = r\acct($qid);
-  if ($err = amtErr('savings', $sta)) return say($err, 'savings');
-  $savings = $sta['input']['savings'];
-  if ($savings < $mya->rewards) return say('savings too low', ['rewards' => u\fmtAmt($mya->rewards)], 'savings');
-}
-
-function formChooseSavings_submit($form, &$sta) {
-  extract($info = u\just('qid savings discuss', $sta['input']));
-  $mya = r\acct($qid);
-  $mya->update(compact('savings'));
-  r\tellStaff("$mya->fullName chose savings=$savings (rewards=$mya->rewards)" . ($mya->community == r\serverUid() ? (@$discuss ? ' Participant!' : '') : ''), $info);
-  doSay(t('Success! Thank you for setting your Savings Reserve amount.'), '');
-}
-   
-/**
  * Show a summary of the current account.
  * This function uses jQuery code defined in misc.js
  * @param string $qid: (optional) qid of the account to summarize and manage (for cAdmin)
@@ -1315,7 +1293,7 @@ function formSummary($form, &$sta, $qid = '') {
     foreach (u\ray('photo community') as $k) if (@$form[$k]) $$k = $form[$k]; // move these up (see return line)
 
     $extras = '<br>' . u\fmtPhone($a->phone) . " ($a->faxetc)<br>$a->email";
-    $idLink = 'href="' . $base_url . '/print-rcard/' . $a->mainQid . '" target="_blank"';
+    $idLink = 'href="' . $base_url . '/print-rcard/' . $a->id . '" target="_blank"';
     if (!$a->co and $a->isNormal and $mya->cAdmin) $extras .= " <a $idLink>" . t('Print ID Card') . '</a>';
   } else { // normal
     $a = $mya; // non-cAdmin (or cAdmin managing own account)
@@ -1387,7 +1365,7 @@ function formSummary_validate($form, &$sta) {
   extract(u\just('uid who legalName federalId creditLimit rTrader helper mediaConx moves adminable', $sta['input']));
   $a = r\acct(@$uid);
   
-  if ($federalId == R_ON_FILE) {
+  if ($federalId == R_ON_FILE or $federalId == t('SSN')) {
     unset($sta['input']['federalId']);
   } elseif (@$federalId and $err = u\badSsn($federalId, $a->dob)) return say($err, ['what' => 'federalId'], 'federalId');
 
@@ -1396,7 +1374,7 @@ function formSummary_validate($form, &$sta) {
     $helper = $h->id;
   } else {unset($helper); unset($sta['input']['helper']);}
 
-  if ($rTrader and !$a->ok and $a->isNormal) {
+  if (@$rTrader and !$a->ok and $a->isNormal) {
     if (!@$helper or $helper == 1) return say(t('You must specify who gets the helper reward.'), 'helper');
     if (is_null(@$adminable[B_MEMBER])) return say(t('That account is not READY (not a member).'), 'adminable'); // test "is_null" because 0 is the value when set
     if (!$a->confirmed) say(t('NOTE: Member @helperName has not yet confirmed this invitation.'), ['helperName' => $h->fullName]);
@@ -1408,7 +1386,7 @@ function formSummary_validate($form, &$sta) {
       $$k = u\cleanAmount($$k);
     }
   }
-  if ($rTrader and isset($mediaConx) and $err = u\badAmount($mediaConx, '>=0', 0)) return sayFieldErr($err, 'mediaConx');
+  if (@$rTrader and isset($mediaConx) and $err = u\badAmount($mediaConx, '>=0', 0)) return sayFieldErr($err, 'mediaConx');
   if (isset($moves) and $err = u\badAmount($moves, '>=0', 0)) return sayFieldErr($err, 'moves');
   if (@$who and !$who = whois($who, 'who', $sta['input'])) return say(t('I don\'t know what account you mean to go to.'), 'who');
   u\preray(compact(u\ray('helper who creditLimit')), $sta['input']);
@@ -1443,7 +1421,7 @@ function formSummary_submit($form, &$sta) {
         r\message($helper, 'confirm invite', compact('a1', 'fullName')); // ask inviter to confirm
       }
 
-      if ($rTrader and !$a->ok) { // activating the account
+      if (@$rTrader and !$a->ok) { // activating the account
         $DBTX2 = \db_transaction();
         u\EXPECT($helper, 'no helper!');
         $a->update(compact('helper')); // this must happen before activating account (on next line)
@@ -1458,7 +1436,7 @@ function formSummary_submit($form, &$sta) {
       } elseif (@$federalId and $federalId != $a->federalId) $a->update('ssnData', '');
     }
 
-    $a->setBit(B_OK, $rTrader, TRUE);
+    $a->setBit(B_OK, @$rTrader, TRUE);
     $risks0 = $a->risks;
     $a->setRisks(@$risks);
     if ($a->risks != $risks0) {
@@ -1709,16 +1687,16 @@ function formAccounts($form, &$sta) {
 
   $myid = @$mya->id; // may be a non-existent account if tests are run while looking at .ZZA, for example
   if (!$accounts = be\accountChoices()) return FALSE;
-  if (!in_array($myid, @$accounts) and $mya->can()) array_splice($accounts, 1, 0, $myid); // admin or cadmin
+//  if (!in_array($myid, @$accounts) and $mya->can()) array_splice($accounts, 1, 0, $myid); // admin or cadmin
   $choices = $ltrs = [];
-  foreach ($accounts as $uid) {
+
+  foreach ($accounts as $uid => $choice) {
     $a = r\acct($uid);
     if (!$a and isDEV) continue; // ignore this if testing -- "current" account has been undermined is all
-    $choice = $a->fullName;
     if ($mya->cAdmin) {
       if ($a->isCtty) { // show communities in a separate category
 //        $class = $a->id < 0 ? 'cgc' : '';
-        $ltrs['_'][$uid] = trim(str_replace('rCredits', '', "<small>$a->mainQid</small> $a->fullName"));
+        $ltrs['_'][$uid] = trim(str_replace('rCredits', '', "<small>$a->mainQid</small> $choice"));
         continue; // omit regions from dropdown
       }
       $pos = substr($choice, 1, 2) == '. ' ? 3 : (strtoupper(substr($choice, 0, 4)) == 'THE ' ? 4 : 0);
@@ -1757,7 +1735,7 @@ function formAccounts($form, &$sta) {
   //  $account = selectFld('', '', dft($myid) + attrib(compact('onchange')), $choices);
     $links = '';
     foreach ($choices as $k => $v) {
-      $one = $k == $mya->id ? $v : "<a href=\"change-account?acct=$k&page=$page\">$v</a>";
+      $one = $k == $mya->id ? $v : "<a href=\"$base_url/change-account?acct=$k&page=$page\">$v</a>";
       $links .= "<li>$one</li>\n";
     }
     $account = item("<ul>$links</ul>");
@@ -1786,18 +1764,18 @@ function formDemocracy($form, &$sta, $args = '') {
 
   $mya = r\acct();
   $cttyA = $mya->cttyA;
-  $title = w\item(t('Community: ') . $cttyA->fullName);
+  $title = w\item(t('Community Vote: ') . $cttyA->fullName);
 
   if (!@$do or $do == 'options' or $do == 'results') {  
     list($questionList, $voting) = v\questionList($cttyA, @$question, @$do);
 
     $votebutton = !$voting ? '' : <<<EOF
-    <div id='votenow'>
-    <div><input type='button' onclick="$base_url/community/democracy/do=ballot" value='Vote Now!'></div>
+    <div id='votenow' class='row'>
+    <div><a href="$base_url/community/democracy/do=ballot" class="btn btn-success btn-lg" role="button">Vote Now!</a></div>
     <div class='halfdown'>Polls close at midnight on $voting.</div>
     </div votenow>
 EOF;
-    $middle = $votebutton . $questionList;
+    $middle = $votebutton ?: $questionList;
   } elseif ($do == 'ballot') {
     $middle = v\ballot($extraFields, @$question);
   } elseif ($do == 'done') {
@@ -2498,7 +2476,7 @@ function formSignup_submit($form, &$sta) {
   }
   
   $info = compact(u\ray('name ' . $dbFields)) + $where + acctType($acctType);
-  if (!$mya = new r\acct($info)) return say('cannot create account', 'zot');
+  if (!$mya = new r\Acct($info)) return say('cannot create account', 'zot');
   
   $myid = $mya->id;
   u\EXPECT($myid > 0, 'registration failure');
@@ -2517,13 +2495,13 @@ function formSignup_submit($form, &$sta) {
   if ($h = $mya->helperA and @$args and !$h->cAdmin) suCreatorRelation($helper, $args, $myid);
   
   // report to staff and user
-  $quid = $mya->mainQid;
-  tellStaffNewMember($info + compact('acctType', 'quid'));
+  $qid = $mya->mainQid;
+  tellStaffNewMember($info + compact('acctType', 'qid'));
 
   if ($acctType == R_PERSONAL) {
     say('your account is ready');
     $region = strtolower(R_SERVER_ID);
-    r\notify($myid, 'welcome', u\ray('name quid code', $name, $quid, $pw1), TRUE); 
+    r\notify($myid, 'welcome', u\ray('name qid code', $name, $qid, $pw1), TRUE); 
     if (!@$confirmed) {
       u\EXPECT($h, 'unconfirmed with no helper');
       if ($helper != 1) { // sysadmin helper means the potential inviter is named in the notes field
@@ -2534,8 +2512,8 @@ function formSignup_submit($form, &$sta) {
     }
     $goto = 'empty';
   } else { // non-personal company (no independent login)
-    say('company is ready', compact('quid'));
-    //if (@$helper) $quid = r\quid($helper); // "if" for dev faked code HUH?
+    say('company is ready', compact('qid'));
+    //if (@$helper) $qid = r\qid($helper); // "if" for dev faked code HUH?
     if (!@$h) hack('company no helper');
     svar('myid', $mya->id); // this is necessary for company creation, to keep the company selected
     $goto = 'status';
@@ -2994,7 +2972,7 @@ function formRelations_submit($form, &$sta) {
   $mya = r\acct();
 
   if ($other = @$sta['input']['newPerson']) { // adding a new relation
-    $mya->newRelation($other);
+    $mya->newRelation(compact('other'));
     $who = r\acct($other)->fullName;
     say('report new relation', compact('who'));
   }
@@ -3589,8 +3567,8 @@ function formPreferences($form, &$sta) {
   $minWarning = tt('note|ach warning');
   $minDefault = u\fmtAmt($mya->prefsSet ? $mya->j_minimum : 0, 's$');
   $minimum = textFld(t('Minimum:'), [htmlspecialchars(t('Your preferred "normal" primary balance')), "<p>$minDesc$minDescNegative</p><p>$minWarning</p>"], required($minDefault));
-  $savings = textFld(t('Savings Reserve:'), [t('Savings amount'), t('How much to hold as a savings reserve, for later or as needed. Your Savings Reserve works like a traditional reserve savings account that kicks in whenever you would otherwise overdraw your primary account -- except there are no fees. This also helps the community by keeping more funds in the system. Your incentive rewards go into savings automatically. You get a monthly inflation adjustment on any funds you hold in the rCredits system (at @inflate% APR).', ['@inflate' => R_INFLATION_RATE * 100])], required($mya->prefsSet ? u\fmtAmt($mya->j_savings) : ''));
-  $saveWeekly = textFld(t('Save Weekly:'), [t('Additional amount to add weekly to savings'), t('Putting money away as savings can be a challenge. This may help: choose a small additional amount to be added automatically to your @what every week.', ['@what' => $mya->j_balance < 0 ? t('Minimum') : t('Savings Reserve')])], dft($mya->prefsSet ? u\fmtAmt($mya->j_saveWeekly) : ''));
+  $savings = textFld(t('Savings Reserve:'), [t('Savings amount'), t('How much to hold as a savings reserve, for later or as needed. Your Savings Reserve works like a traditional reserve savings account that kicks in whenever you would otherwise overdraw your primary account -- except there are no fees. This also helps the community by keeping more funds in the system. Your incentive rewards go into savings automatically. You get a monthly inflation adjustment on any funds you hold in the rCredits system (at @inflate% APR).', ['@inflate' => R_INFLATION_RATE * 100])], required(u\fmtAmt($mya->j_savings)));
+  $saveWeekly = textFld(t('Save Weekly:'), [t('Additional amount to add weekly to savings'), t('Putting money away as savings can be a challenge. This may help: choose a small additional amount to be added automatically to your @what every week.', ['@what' => $mya->j_balance < 0 ? t('Minimum') : t('Savings Reserve')])], dft(u\fmtAmt($mya->j_saveWeekly)));
   $showAdvancet = item(t('<a>Show advanced options</a>'), ' '); // different name from showAdvanced (for CSS)
 
   // Advanced settings
@@ -3648,7 +3626,7 @@ function formPreferences_validate($form, &$sta) {
   if ($savings < $mya->j_rewards) return say('savings too low', ['rewards' => u\fmtAmt($mya->j_rewards)], 'savings');
   $savingsMax = max($mya->j_savings, $mya->j_rewards, $mya->j_r);
   if ($savings > $savingsMax) return say('savings too high', ['max' => u\fmtAmt($savingsMax)], 'savings');
-  if ($minimum < 0 and $saveWeekly < MIN_WEEKLY_BUMP) return say('saveWeekly too low', ['min' => u\fmtAmt(MIN_WEEKLY_BUMP)], 'saveWeekly');
+// NO! if ($minimum < 0 and $saveWeekly < MIN_WEEKLY_BUMP) return say('saveWeekly too low', ['min' => u\fmtAmt(MIN_WEEKLY_BUMP)], 'saveWeekly');
   if ($saveWeekly < 0 and $mya->j_savingsAdd == 0) return say('negative saveWeekly', 'saveWeekly');
   if ($mya->ok and $err = w\badShare($sta['input']['share'], TRUE)) return say($err, 'share');
   if ($achMin < R_ACHMIN) return say('bad achmin', 'achMin');
@@ -3673,12 +3651,6 @@ function formPreferences_submit($form, $sta) {
   if (@$statements) r\tellStaff($mya->mainQid . ' wants paper statements');
   if ($saveWeekly < 0) say(t('@amount will be moved every week from your Savings Reserve to your Primary Account, until your Savings Reserve reaches its minimum.', ['@amount' => u\fmtAmt($saveWeekly)]));
   
-  if ($jid = $mya->jid and $mya->slave) { // slave setting minimum etc.
-    $savings -= $mya->rewards; // reserve minimal savings on slave
-    r\acct($jid)->update(compact(u\ray('minimum achMin savings saveWeekly'))); // set these only on master
-    $minimum = $saveWeekly = 0; // let achMin be set on slave also
-    $savings = $mya->rewards;
-  }
   $mya->update(compact(u\ray($fields)));
   $mya->stepDone('prefs', compact('old') + ['flags' => a\formatField('flags', $flags)] + $info);
   return $mya->ok ? say('options saved') : r\go('status', 'options saved|step completed');
@@ -3851,7 +3823,7 @@ function riskLine($q, $descs, &$red = '') {
   $row['score'] = $score;
   
   foreach (u\just('uid payer payee', $row) as $k => $v) {
-    list ($region, $local) = explode('.', $qid = r\quid($v));
+    list ($region, $local) = explode('.', $qid = r\qid($v));
 //    $row[$k] = "<span>$region.</span>$local";
     $a = r\acct($v);
     if ($v < 0) {
@@ -4029,13 +4001,13 @@ function formRequestRCard_submit($form, &$sta) {
   extract(u\just('other', $sta['input']));
   if (op($sta) == 'request') {
     $mya = r\acct();
-    $reid = r\relation('reid', $main = $mya->id, @$other);
-    $quid = r\quid($main, $other);
+//    $reid = r\relation('reid', $main = $mya->id, @$other);
+    $qo = r\qid($main, $other);
     $company = $mya->fullName;
     $otherName = r\acct($other)->fullName;
     $address = $mya->postalAddr; // was r\location($mya, TRUE);
-    $href = "$base_url/print-rcard/$quid";
-    r\tellStaff($mya->can(B_BUY) ? 'company rcard' : 'cashier card', compact(u\ray('main other reid quid href manager otherName address')));
+    $href = "$base_url/print-rcard/$qo->main/$qo->agent";
+    r\tellStaff($mya->can(B_BUY) ? 'company rcard' : 'cashier card', compact(u\ray('main other href manager otherName address')));
     say('card ordered', compact('otherName', 'company'));
   } else say('no card ordered');
   return r\go('settings/relations');
@@ -4071,6 +4043,7 @@ $extraLinks
 copyright &copy; $year <a href="http://CommonGoodFinance.org">Common Good Finance<sup>&reg;</sup></a>, a 501(c)(3) nonprofit<br/>
 PO Box 21, Ashfield, MA 01330 USA<br/>
 +1 413-628-1723 &nbsp; <a href="mailto:$sysEmail" target="_blank">$sysEmail</a><br>
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>&nbsp;
 EOF;
 
   $footerText = item($markup); // unique name for this page
@@ -4104,7 +4077,7 @@ EOF;
  */
 function whosin($ctty = '') {
 //  if (!$uid = db\lookup('uid', 'users', 'name=:ctty', ['ctty' => "$ctty."])) return '';
-  if (!$uid = r\unQuid("!$ctty") or !$list = r\companies($uid, TRUE)) return '';
+  if (!$uid = r\qo("!$ctty")->id or !$list = r\companies($uid, TRUE)) return '';
   $map = [
     '<tr><td width="200">' => '<div class="row"><div class="cmpy-name">',
     '</td><td style="margin-left:10px;">' => '</div><div class="cmpy-does">',

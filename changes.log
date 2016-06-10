@@ -1,3 +1,15 @@
+2016-06-09
+. don't activate the signup button on rCredits.org until something is typed in the account field (make it a required field!)
+. refactored QID handling as a qo (QID object) class
+. no explicit weekly savings is required, for negative minimum
+. replaced references to "stable and permanent" with just "stable"
+. added an "otherNum" field to relations table, so relations identifiers can include main account identifier and still be pretty short
+. created a new rCard format: no punctuation in printed account code, QR format is X.RC4.ME/WYZV, where X is the region, W is a format character, Y is the account code without region, Z is the company agent number (otherNum) if any, and V is the card security code. W, Y, and Z are coded with radix 36 (digits first, then capital letters). This higher density code is also used on the magnetic stripe. X will remain coded (for now) as radix 26, because it is visible in the URL. The smart API and qo class recognize both old and new formats. Code for generating rCards in the new format is temporarily deactivated until the new ionic app is used by all current rCredits companies.
+. fixed bug that kept A2 cAdmin from receiving invitation requests
+. refactored transaction handling as a new class MyX that looks at a transaction from one party's viewpoint
+. print QIDs with no spaces! (a 6-character company name will eventually cause ambiguity -- include QID results in choice list!)
+. extensive improvements to community democracy, including range-type voting
+
 2016-04-22
 . fixed bug that crashed on tx edit (because goods was '0' instead of 0)
 . trade deficit is now subtracted from a community's USD
@@ -632,7 +644,7 @@
 2014-04-04
 . added date/initial stamp to notes on Summary page and Member Info page
 . revised changeUid function to accommodate account deletion
-. fixed bug: member bit not getting set in acct::stepDone()
+. fixed bug: member bit not getting set in r\Acct::stepDone()
 . don't alert staff when admin invites someone
 . community admin gets an email when community's new members achieve milestones in their account opening
 . fixed $/acct for p2p on Community page
@@ -792,8 +804,8 @@
   - UPDATE  `r_usd` SET  `completed` =  '1389923856' WHERE  `r_usd`.`txid` =  '4418303';
   - UPDATE  `users` SET  `usd` =  '50.00' WHERE  `users`.`uid` =26742000000040;
   - remove r and usdXid fields from r_txs
-  - eachAcct(); : renumbered bank transfers (tid field)
-  - eachAcct() : $a->setBit(B_DW);
+  - eachr\acct(); : renumbered bank transfers (tid field)
+  - eachr\acct() : $a->setBit(B_DW);
 . added visible URL to invite email, so text-only recipients can see it.
 . we can now give invitees simple verbal instructions to accept their invite without a link.
 . changed invite time to 30 days
@@ -804,7 +816,7 @@
 
 2014-01-08
 . devices are now handled consistently and elegantly on Devices page
-. firstUnusedId is used only for new users and works in all cases (r\acct::nextId() works fine)
+. firstUnusedId is used only for new users and works in all cases (r\Acct::nextId() works fine)
 . removed the "Create Agent Account" feature. 
 . released held emails 
 . invites are now allowed
