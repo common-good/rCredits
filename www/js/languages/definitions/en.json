@@ -15,7 +15,7 @@
   "deviceAssociated": "This device is now associated with {{company}}",
   "enableCashierMode": "Cashier Mode Permissions",
   "error": "Error",
-  "exchange": "Exchange",
+  "exchange": "Trade USD",
   "firstPurchase": "First Purchase",
   "grocery": "Grocery",
   "home": "Home",
@@ -58,7 +58,7 @@
   "userLookupFailure": "User lookup failed.",
   "verifyCustomer": "This is {{name}}'s first purchase. <b>Please ask to see a photo ID</b>, and check that it matches the image and name displayed below.",
   "enterNewCategory": "Enter description",
-  "change_company": "Sign Out",
+  "change_company": "Change Company",
   "disassociate_company": "This will disassociate this device from {{company}}",
   "haveToSignInAgain": "You will have to sign in again",
   "cancel": "Cancel",
@@ -80,6 +80,6 @@
   "offline_old_transactions": "Warning: There are offline transactions that are more than 24 hours old. Please connect your device to the internet.",
   "other": "Other",
   "forget_company": "Forget Company",
-  "advanced": "Advanced",
+  "advanced": "Advanced Settings",
   "action_not_enabled": "This feature is disabled. A manager can enable it online at rcredits.org."
 }

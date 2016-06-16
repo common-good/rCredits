@@ -39,6 +39,7 @@
 				});
 			}, function (error) {
 				console.error('transaction error: ' + error.message);
+//				txPromise.reject(error.message);
 			}, function () {
 			});
 			return txPromise.promise;

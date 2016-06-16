@@ -22,11 +22,14 @@
 	};
 	QRCodeParser.prototype.parseAccountType_ = function () {
 		if (this.url.pathname.indexOf(COMPANY_INDICATOR) !== -1) {
+			console.log(this.url.pathname);
 			this.accountInfo.isCompany = true;
 		} else if (this.url.pathname.indexOf(PERSONAL_INDICATOR) !== -1) {
+			console.log(this.url.pathname);
 			this.accountInfo.isPersonal = true;
 		} else {
-			throw 'Unable to detect Account type: ' + this.url.href;
+			console.log('That is not a valid rCard. ');
+			throw 'That is not a valid rCard. ';
 		}
 	};
 	QRCodeParser.prototype.parseAccountCode_ = function () {

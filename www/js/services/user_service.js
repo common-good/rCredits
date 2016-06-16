@@ -1,3 +1,5 @@
+/* global _ */
+
 app.service('UserService', function ($q, $http, $httpParamSerializer, RequestParameterBuilder, User, Seller, Customer, $rootScope, $timeout,
 	PreferenceService, CashierModeService, $state, NetworkService, MemberSqlService, NotificationService, SelfServiceMode) {
 	'use strict';
@@ -72,7 +74,11 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			}
 			return responseData;
 		}).catch(function (err) {
-			console.error(err);
+			for (var er in err) {
+				for (var e in er) {
+					console.error(e);
+				}
+			}
 			if (_.isString(err)) {
 				throw err;
 			}
