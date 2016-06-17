@@ -70,17 +70,28 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		return this.makeRequest_(params, accountInfo).then(function (res) {
 			var responseData = res.data;
 			if (responseData.ok === LOGIN_FAILED) {
+				console.log(responseData.message);
 				throw responseData.message;
 			}
 			return responseData;
 		}).catch(function (err) {
-			for (var er in err) {
-				for (var e in er) {
-					console.error(e);
-				}
-			}
-			if (_.isString(err)) {
+			console.log(err.statusText);
+			if (_.isString(err) && err !== '') {
+				console.error(err);
 				throw err;
+			} else if (err.statusText === '') {
+				err.statusText='That is not a valid rCard.';
+			} else {
+				for (var er in err) {
+					if (_.isString(err)) {
+						console.error(err);
+						throw err;
+					} else {
+						for (var e in er) {
+							console.error(e);
+						}
+					}
+				}
 			}
 			throw err.statusText;
 		});
