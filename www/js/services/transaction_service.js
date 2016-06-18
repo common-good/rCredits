@@ -149,6 +149,7 @@ app.service('TransactionService',
 			var message;
 			if (force === -1) {
 				message = "The transaction has been canceled";
+				return q.reject();
 			} else {
 				message = 'You charged ' + customer.name + ' $' + amount.toFixed(2).toString() + ' for goods and services';
 			}

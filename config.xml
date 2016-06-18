@@ -24,6 +24,7 @@
   <preference name="xwalkCommandLine" value="--disable-pull-to-refresh-effect"/>
   <preference name="xwalkMode" value="embedded"/>
   <preference name="xwalkMultipleApk" value="true"/>
+  <preference name="AndroidPersistentFileLocation" value="Compatibility" />
   <feature name="StatusBar">
     <param name="ios-package" onload="true" value="CDVStatusBar"/>
   </feature>

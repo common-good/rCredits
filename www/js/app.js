@@ -1,3 +1,4 @@
+/* global Language, rCreditsConfig, StatusBar */
 // rCredits Register
 var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate', 'LocalStorageModule'])
 	.config(['$translateProvider', 'localStorageServiceProvider', '$ionicConfigProvider',
@@ -19,6 +20,7 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 		}])
 	.run(function ($ionicPlatform, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService) {
 		$ionicPlatform.ready(function () {
+			
 			// This only for web development to enable proxy
 			if (!ionic.Platform.isWebView()) {
 //				console.log('web view');

@@ -8,6 +8,8 @@
 			this.sqlPlugin = window;
 			this.db = null;
 		};
+		
+
 		SQLiteService.prototype.isDbEnable = function () {
 			console.log(!!this.sqlPlugin);
 			return !!this.sqlPlugin;

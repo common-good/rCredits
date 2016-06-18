@@ -59,7 +59,7 @@ app.service('TransactionSyncService',
 						self.exludedTxs = [];
 					}
 					// err no transactions || error ocurred
-					console.error(err);
+					console.error(err.message);
 				});
 		};
 		var t = new TransactionSyncService();
