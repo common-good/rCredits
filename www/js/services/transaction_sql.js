@@ -2,13 +2,13 @@
 (function (app) {
 	app.service('TransactionSql', function ($q, SqlQuery, SQLiteService) {
 		var self;
-		var enoughSpace = new EnoughSpace();
+		var enoughTransactionSpace = new EnoughSpace();
 		var storageWarning = "Not enough space remains on this disk to store the transaction";
 		var TransactionSql = function () {
 			self = this;
 		};
 		TransactionSql.prototype.getOfflineTransaction = function (exludeTxs) {
-			if (enoughSpace.enoughSpace()) {
+			if (enoughTransactionSpace.enoughSpace()) {
 				var filter = '';
 				if (exludeTxs) {
 					filter = ' and created not in (' + exludeTxs.join(',') + ' ) ';
@@ -29,7 +29,7 @@
 			}
 		};
 		TransactionSql.prototype.setTransactionSynced = function (sqlTransaction) {
-			if (enoughSpace.enoughSpace()) {
+			if (enoughTransactionSpace.enoughSpace()) {
 				var sqlQuery = new SqlQuery();
 				sqlQuery.setQueryString("UPDATE txs SET status = '" + Transaction.Status.DONE + "' where created = " + sqlTransaction.created);
 				return SQLiteService.executeQuery(sqlQuery);
@@ -38,7 +38,7 @@
 			}
 		};
 		TransactionSql.prototype.exist24HsTransactions = function () {
-			if (enoughSpace.enoughSpace()) {
+			if (enoughTransactionSpace.enoughSpace()) {
 				var yesterday = moment().subtract(1, 'day').unix();
 				var sqlQuery = new SqlQuery();
 				sqlQuery.setQueryString("SELECT * from txs where created < " + yesterday + " and  STATUS = " + Transaction.Status.OFFLINE);
@@ -49,7 +49,7 @@
 				throw storageWarning;
 			}
 		};
-		if (enoughSpace.enoughSpace()) {
+		if (enoughTransactionSpace.enoughSpace()) {
 			return new TransactionSql();
 		} else {
 			throw storageWarning;

@@ -2,25 +2,7 @@
 (function (app) {
 	app.service('SQLiteService', function ($q, $timeout) {
 		var self;
-		var enoughSpace =new EnoughSpace();
-		
-//			function () {
-//			cordova.exec(function (result) {
-//				console.log("Free Disk Space: " + result);
-//				if (result <= 999999999999) {
-//					console.log('fail');
-//					return false;
-//				} else {
-//					console.log('succeed');
-//					return true;
-//				}
-//			}, function (error) {
-//				console.log("Error: " + error);
-//				return error;
-//			}, "File", "getFreeDiskSpace", []);
-//		};
-//		var enoughSpace = EnoughSpace();
-//		enoughSpace=enoughSpace.enoughSpace();
+		var enoughSpace = new EnoughSpace();
 		var storageWarning = "Not enough space remains on this disk to store the transaction";
 		var SQLiteService = function () {
 			self = this;
@@ -33,8 +15,8 @@
 			return !!this.sqlPlugin;
 		};
 		SQLiteService.prototype.createDatabase = function () {
-			var openPromise = $q.defer();
 			if (enoughSpace.enoughSpace()) {
+				var openPromise = $q.defer();
 				this.db = this.sqlPlugin.openDatabase(
 					window.rCreditsConfig.SQLiteDatabase.name,
 					window.rCreditsConfig.SQLiteDatabase.version,
@@ -42,20 +24,25 @@
 				$timeout(function () {
 					openPromise.resolve();
 				}, 1000);
+				return openPromise.promise;
 			} else {
 				console.log('fail');
-				openPromise.reject(storageWarning);
+				throw storageWarning;
 			}
-			return openPromise.promise;
 		};
 		SQLiteService.prototype.ex = function () {
-			var txPromise = $q.defer();
-			txPromise.resolve(true);
-			return txPromise.promise;
+			if (enoughSpace.enoughSpace()) {
+				var txPromise = $q.defer();
+				txPromise.resolve(true);
+				return txPromise.promise;
+			} else {
+				console.log('fail');
+				throw storageWarning;
+			}
 		};
 		SQLiteService.prototype.executeQuery_ = function (query, params) {
-			var txPromise = $q.defer();
 			if (enoughSpace.enoughSpace()) {
+				var txPromise = $q.defer();
 				this.db.transaction(function (tx) {
 					tx.executeSql(query, params, function (tx, res) {
 						txPromise.resolve(res);
@@ -68,10 +55,11 @@
 //				txPromise.reject(error.message);
 				}, function () {
 				});
+				return txPromise.promise;
 			} else {
-				txPromise.reject(storageWarning);
+				console.log('fail');
+				throw storageWarning;
 			}
-			return txPromise.promise;
 		};
 		SQLiteService.prototype.executeQuery = function (sqlQuery) {
 			if (enoughSpace.enoughSpace()) {
@@ -125,6 +113,11 @@
 				throw storageWarning;
 			}
 		};
-		return new SQLiteService();
+		if (enoughSpace.enoughSpace()) {
+			return new SQLiteService();
+		} else {
+			console.log('fail');
+			throw storageWarning;
+		}
 	});
 })(app);
