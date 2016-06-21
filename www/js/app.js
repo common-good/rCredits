@@ -15,8 +15,16 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 				.useSanitizeValueStrategy('sanitizeParameters');
 			localStorageServiceProvider.setPrefix('rcredits');
 		}])
-	.run(function ($ionicPlatform, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService) {
-		$ionicPlatform.ready(function () {			
+	.run(function ($ionicPlatform, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService, UserService, $timeout, EnoughSpace) {
+		$ionicPlatform.ready(function () {
+			$timeout(function () {
+				if (!EnoughSpace.enoughSpace) {
+//					UserService.logout();
+					console.log("Oh no, there isn't enough space!");
+				} else {
+					console.log("Yay, there's enough space!");
+				}
+			}, 1000);
 			// This only for web development to enable proxy
 			if (!ionic.Platform.isWebView()) {
 //				console.log('web view');
