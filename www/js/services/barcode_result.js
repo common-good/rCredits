@@ -1,3 +1,4 @@
+/* global _ */
 (function (window) {
 	'use strict';
 	var BarcodeResult = function (scanReult) {
@@ -12,4 +13,4 @@
 		return this.hasOwnProperty('format') && this.format === 'QR_CODE';
 	};
 	window.BarcodeResult = BarcodeResult;
-})(window)
+})(window);

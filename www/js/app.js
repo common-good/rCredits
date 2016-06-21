@@ -4,7 +4,6 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 	.config(['$translateProvider', 'localStorageServiceProvider', '$ionicConfigProvider',
 		function ($translateProvider, localStorageServiceProvider, $ionicConfigProvider) {
 			$ionicConfigProvider.views.maxCache(0);
-
 			$translateProvider
 				.useMissingTranslationHandlerLog()
 				.useStaticFilesLoader({
@@ -14,13 +13,10 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 				.preferredLanguage(Language.DEFAULT_LANGUAGE)
 				.fallbackLanguage(Language.DEFAULT_LANGUAGE)
 				.useSanitizeValueStrategy('sanitizeParameters');
-
-			localStorageServiceProvider
-				.setPrefix('rcredits');
+			localStorageServiceProvider.setPrefix('rcredits');
 		}])
 	.run(function ($ionicPlatform, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService) {
-		$ionicPlatform.ready(function () {
-			
+		$ionicPlatform.ready(function () {			
 			// This only for web development to enable proxy
 			if (!ionic.Platform.isWebView()) {
 //				console.log('web view');

@@ -1,8 +1,26 @@
 /* global app */
 (function (app) {
-	app.service('SQLiteService', function ($q, $timeout, EnoughSpaceService) {
+	app.service('SQLiteService', function ($q, $timeout) {
 		var self;
-		var enoughSpace=new EnoughSpaceService.enoughSpace();
+		var enoughSpace =new EnoughSpace();
+		
+//			function () {
+//			cordova.exec(function (result) {
+//				console.log("Free Disk Space: " + result);
+//				if (result <= 999999999999) {
+//					console.log('fail');
+//					return false;
+//				} else {
+//					console.log('succeed');
+//					return true;
+//				}
+//			}, function (error) {
+//				console.log("Error: " + error);
+//				return error;
+//			}, "File", "getFreeDiskSpace", []);
+//		};
+//		var enoughSpace = EnoughSpace();
+//		enoughSpace=enoughSpace.enoughSpace();
 		var storageWarning = "Not enough space remains on this disk to store the transaction";
 		var SQLiteService = function () {
 			self = this;
@@ -16,7 +34,7 @@
 		};
 		SQLiteService.prototype.createDatabase = function () {
 			var openPromise = $q.defer();
-			if (enoughSpace()) {
+			if (enoughSpace.enoughSpace()) {
 				this.db = this.sqlPlugin.openDatabase(
 					window.rCreditsConfig.SQLiteDatabase.name,
 					window.rCreditsConfig.SQLiteDatabase.version,
@@ -25,6 +43,7 @@
 					openPromise.resolve();
 				}, 1000);
 			} else {
+				console.log('fail');
 				openPromise.reject(storageWarning);
 			}
 			return openPromise.promise;
@@ -36,7 +55,7 @@
 		};
 		SQLiteService.prototype.executeQuery_ = function (query, params) {
 			var txPromise = $q.defer();
-			if (enoughSpace()) {
+			if (enoughSpace.enoughSpace()) {
 				this.db.transaction(function (tx) {
 					tx.executeSql(query, params, function (tx, res) {
 						txPromise.resolve(res);
@@ -55,14 +74,14 @@
 			return txPromise.promise;
 		};
 		SQLiteService.prototype.executeQuery = function (sqlQuery) {
-			if (enoughSpace()) {
+			if (enoughSpace.enoughSpace()) {
 				return this.executeQuery_(sqlQuery.getQueryString(), sqlQuery.getQueryData());
 			} else {
 				throw storageWarning;
 			}
 		};
 		SQLiteService.prototype.createSchema = function () {
-			if (enoughSpace()) {
+			if (enoughSpace.enoughSpace()) {
 				this.executeQuery_(
 					"CREATE TABLE IF NOT EXISTS members (" + // record of customers (and managers)
 					"qid TEXT," + // customer or manager account code (like NEW.AAA or NEW:AAA)
@@ -99,7 +118,7 @@
 			if (!this.isDbEnable()) {
 				console.warn("SQLite is not enable");
 			}
-			if (enoughSpace()) {
+			if (enoughSpace.enoughSpace()) {
 				this.createDatabase().then(this.createSchema.bind(this));
 			} else {
 				console.log(storageWarning);
