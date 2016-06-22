@@ -14,17 +14,10 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 				.fallbackLanguage(Language.DEFAULT_LANGUAGE)
 				.useSanitizeValueStrategy('sanitizeParameters');
 			localStorageServiceProvider.setPrefix('rcredits');
+			var storageQuota = false;
 		}])
-	.run(function ($ionicPlatform, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService, UserService, $timeout, EnoughSpace) {
+	.run(function ($ionicPlatform, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService, UserService, NotificationService) {
 		$ionicPlatform.ready(function () {
-			$timeout(function () {
-				if (!EnoughSpace.enoughSpace) {
-//					UserService.logout();
-					console.log("Oh no, there isn't enough space!");
-				} else {
-					console.log("Yay, there's enough space!");
-				}
-			}, 1000);
 			// This only for web development to enable proxy
 			if (!ionic.Platform.isWebView()) {
 //				console.log('web view');
@@ -40,6 +33,36 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 			if (window.StatusBar) {
 				// org.apache.cordova.statusbar required
 				StatusBar.styleDefault();
+			}
+			if (window.cordova) {
+				var spaceCheck = window.setInterval(checkSpace, 1000);
+				function checkSpace() {
+					cordova.exec(function (result) {
+						if (result < 7775328) {
+							UserService.storageOverQuota();
+							console.log("Low Disk Space: " + result);
+							clearInterval(spaceCheck);
+							var alertPopup = NotificationService.showAlert({
+								title: "error",
+								template: "Low Disk Space: " + result + ", Please Free Up Some More Space and Try Again",
+								buttons: [
+									{
+										text: 'Exit',
+										type: 'button-positive',
+										onTap: function (e) {
+											ionic.Platform.exitApp();
+										}
+									}
+								]
+							});
+						} else {
+							console.log("Plenty of Disk Space: " + result);
+						}
+					}, function (error) {
+						console.log("Error!... The details follow: " + error);
+						return error;
+					}, "File", "getFreeDiskSpace", []);
+				}
 			}
 			SQLiteService.init();
 			BackButtonService.init();

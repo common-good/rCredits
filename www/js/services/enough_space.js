@@ -5,9 +5,9 @@
 		};
 		EnoughSpace.prototype.enoughSpace = function () {
 			cordova.exec(function (result) {
-				if (result <= 99999999) {
+				if (result <= 999999999999999) {
 					console.log("Low Disk Space: " + result);
-					throw false;
+					return false;
 				} else {
 					console.log("Plenty of Disk Space: " + result);
 					return true;
@@ -16,8 +16,7 @@
 				console.log("Error!... The details follow: " + error);
 				return error;
 			}, "File", "getFreeDiskSpace", []);
-			return true;
 		};
-		return new EnoughSpace;
+//		return EnoughSpace.enoughSpace();
 	});
 })(app);

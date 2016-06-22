@@ -48,7 +48,6 @@ angular.module('routes', [])
 					}
 				}
 			})
-
 			.state('app.preferences', {
 				url: '/preferences',
 				views: {

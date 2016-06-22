@@ -1,6 +1,7 @@
 {
 	"elements": {
 		"subheader": {},
+		"ion-nav-view": {},
 		"ion-nav-buttons": {
 			"attributes": {
 				"side": {}

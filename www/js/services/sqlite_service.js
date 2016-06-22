@@ -1,6 +1,6 @@
 /* global app */
 (function (app) {
-	app.service('SQLiteService', function ($q, $timeout) {
+	app.service('SQLiteService', function ($q, $timeout, NotificationService) {
 		var self;
 		var SQLiteService = function () {
 			self = this;
@@ -8,8 +8,6 @@
 			this.sqlPlugin = window;
 			this.db = null;
 		};
-		
-
 		SQLiteService.prototype.isDbEnable = function () {
 			console.log(!!this.sqlPlugin);
 			return !!this.sqlPlugin;
@@ -37,11 +35,14 @@
 					txPromise.resolve(res);
 				}, function (tx, e) {
 					console.error("executeSql ERROR: " + e.message);
+					var alertPopup = NotificationService.showAlert({
+						title: "error",
+						template: "There was an error: " + e.message
+					});
 					txPromise.reject(e.message);
 				});
 			}, function (error) {
 				console.error('transaction error: ' + error.message);
-//				txPromise.reject(error.message);
 			}, function () {
 			});
 			return txPromise.promise;

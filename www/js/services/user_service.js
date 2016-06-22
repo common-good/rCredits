@@ -1,5 +1,4 @@
-/* global _ */
-
+/* global _, app */
 app.service('UserService', function ($q, $http, $httpParamSerializer, RequestParameterBuilder, User, Seller, Customer, $rootScope, $timeout,
 	PreferenceService, CashierModeService, $state, NetworkService, MemberSqlService, NotificationService, SelfServiceMode) {
 	'use strict';
@@ -326,6 +325,16 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			self.seller = null;
 			$state.go('app.login', {disableLoadSeller: true, openScanner: true});
 			$rootScope.$emit('sellerLogout');
+			resolve();
+		});
+	};
+	UserService.prototype.storageOverQuota = function () {
+		return $q(function (resolve, reject) {
+			SelfServiceMode.disable();
+			$rootScope.$emit('sellerLogout');
+			self.customer = null;
+			self.seller = null;
+			CashierModeService.disable();
 			resolve();
 		});
 	};
