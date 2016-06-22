@@ -34,11 +34,12 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 				// org.apache.cordova.statusbar required
 				StatusBar.styleDefault();
 			}
+			//Check to make sure there is still space on the device
 			if (window.cordova) {
 				var spaceCheck = window.setInterval(checkSpace, 1000);
 				function checkSpace() {
 					cordova.exec(function (result) {
-						if (result < 7775328) {
+						if (result < 512) {
 							UserService.storageOverQuota();
 							console.log("Low Disk Space: " + result);
 							clearInterval(spaceCheck);
