@@ -26,6 +26,9 @@ app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, Barco
 	$scope.isSelfServiceEnabled = function () {
 		return SelfServiceMode.isActive();
 	};
+	$scope.testPopup = function () {
+		NotificationService.showAlert({title: "Error", template: "test"});
+	};
 	$scope.scanCustomer = function () {
 		if ($scope.isSelfServiceEnabled()) {
 			$state.go('app.self_service_mode');
@@ -61,9 +64,9 @@ app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, Barco
 //						for (var prop in $scope.currentUser) {
 //						}
 						if (errorMsg === 'login_your_self') {
-							NotificationService.showAlert({title: "error", template: "You are already signed in as: " + $scope.currentUser.name});
+							NotificationService.showAlert({title: "Error", template: "You are already signed in as: " + $scope.currentUser.name});
 						} else {
-							NotificationService.showAlert({title: "error", template: errorMsg});
+							NotificationService.showAlert({title: "Error", template: errorMsg});
 						}
 						$ionicLoading.hide();
 					});

@@ -14,7 +14,11 @@
 					};
 				}
 				return $translate([options.title, options.subTitle, options.template], params).then(function (translations) {
-					options.title = translations[options.title];
+					if (options.title === 'error' || options.title === 'Error') {
+						options.title = '<span class="errorPopupTitle">'+translations[options.title]+'</span>';
+					} else {
+						options.title = translations[options.title];
+					}
 					options.subTitle = translations[options.subTitle];
 					options.template = translations[options.template];
 					return $ionicPopup.alert(options);
