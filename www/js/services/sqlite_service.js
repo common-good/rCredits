@@ -34,11 +34,11 @@
 				tx.executeSql(query, params, function (tx, res) {
 					txPromise.resolve(res);
 				}, function (tx, e) {
-					console.error("executeSql ERROR: " + e.message);
-					var alertPopup = NotificationService.showAlert({
-						title: "error",
-						template: "There was an error: " + e.message
-					});
+					console.error(tx + " -- executeSql ERROR: -- " + e.message);
+//					var alertPopup = NotificationService.showAlert({
+//						title: "error",
+//						template: "There was an error: " + e.message
+//					});
 					txPromise.reject(e.message);
 				});
 			}, function (error) {

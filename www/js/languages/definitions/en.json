@@ -72,7 +72,7 @@
   "exchange_selected_payment_advice": "Tell customer: There is a {{feeValue}} {{paymentName}} fee.",
   "exchange_includes_fee": "Includes {{feeValue}} {{paymentName}} fee",
   "next": "Next",
-  "login_your_self": "You can't buy or sell with yourself.",
+  "login_your_self": "You are already signed in as ",
   "you_are_offline": "You are offline",
   "demo_mode": "Demo mode",
   "can_not_use_real_card": "You cannot use a real card with a demo company. To exit demo mode, choose \"Sign Out\" in the menu or \"Forget Company\" in preferences",

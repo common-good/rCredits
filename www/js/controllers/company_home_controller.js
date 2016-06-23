@@ -1,4 +1,5 @@
-app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope, CashierModeService, SelfServiceMode) {
+/* global app */
+app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope, CashierModeService, SelfServiceMode, $translate) {
 	var onSellerLoginEvent = $rootScope.$on('sellerLogin', function () {
 		$scope.currentUser = UserService.currentUser();
 	});
@@ -56,7 +57,14 @@ app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, Barco
 						}
 					})
 					.catch(function (errorMsg) {
-						NotificationService.showAlert({title: "error", template: errorMsg});
+						console.log($scope.currentUser.name);
+//						for (var prop in $scope.currentUser) {
+//						}
+						if (errorMsg === 'login_your_self') {
+							NotificationService.showAlert({title: "error", template: "You are already signed in as: " + $scope.currentUser.name});
+						} else {
+							NotificationService.showAlert({title: "error", template: errorMsg});
+						}
 						$ionicLoading.hide();
 					});
 			})
