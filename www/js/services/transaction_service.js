@@ -1,5 +1,4 @@
 /* global rCreditsConfig, Transaction, _, app */
-
 app.service('TransactionService',
 	function ($q, UserService, RequestParameterBuilder, $http, $httpParamSerializer, SQLiteService,
 		SqlQuery, NetworkService, MemberSqlService, NotificationService, $ionicLoading, TransactionSql, $rootScope) {
@@ -31,37 +30,45 @@ app.service('TransactionService',
 			return transaction;
 		};
 		TransactionService.prototype.makeTransactionRequest = function (amount, description, goods, force) {
-			var sellerAccountInfo = UserService.currentUser().accountInfo,
-				customerAccountInfo = UserService.currentCustomer().accountInfo;
-			if (_.isUndefined(goods) || _.isNull(goods)) {
-				goods = 1;
-			}
-			if (_.isUndefined(force) || _.isNull(force)) {
-				force = 0;
-			}
-			if (NetworkService.isOnline()) {
-				var params = new RequestParameterBuilder()
-					.setOperationId('charge')
-					.setSecurityCode(customerAccountInfo.securityCode)
-					.setAgent(sellerAccountInfo.accountId)
-					.setMember(customerAccountInfo.accountId)
-					.setField('amount', amount.toString())
-					.setField('description', description)
-					.setField('created', moment().unix())
-					.setField('force', force)
-					.setField('goods', goods)
-					.setField('photoid', 0)
-					.getParams();
-				return this.makeRequest_(params, sellerAccountInfo).then(function (res) {
-					return res.data;
-				});
+			if (UserService.currentUser().accountInfo && NetworkService.isOnline()) {
+				var sellerAccountInfo = UserService.currentUser().accountInfo,
+					customerAccountInfo = UserService.currentCustomer().accountInfo;
+				if (_.isUndefined(goods) || _.isNull(goods)) {
+					goods = 1;
+				}
+				if (_.isUndefined(force) || _.isNull(force)) {
+					force = 0;
+				}
+				if (NetworkService.isOnline()) {
+					try {
+						var params = new RequestParameterBuilder()
+							.setOperationId('charge')
+							.setSecurityCode(customerAccountInfo.securityCode)
+							.setAgent(sellerAccountInfo.accountId)
+							.setMember(customerAccountInfo.accountId)
+							.setField('amount', amount.toString())
+							.setField('description', description)
+							.setField('created', moment().unix())
+							.setField('force', force)
+							.setField('goods', goods)
+							.setField('photoid', 0)
+							.getParams();
+						return this.makeRequest_(params, sellerAccountInfo).then(function (res) {
+							return res.data;
+						});
+					} catch (e) {
+						console.log(e);
+					}
+				} else {
+					// Offline
+					return this.doOfflineTransaction(amount, description, goods, force).then(function (result) {
+						console.log(result.message);
+						self.warnOfflineTransactions();
+						return result;
+					});
+				}
 			} else {
-				// Offline
-				return this.doOfflineTransaction(amount, description, goods, force).then(function (result) {
-					console.log(result.message);
-					self.warnOfflineTransactions();
-					return result;
-				});
+				NotificationService.showAlert({title: 'error', template: 'Please scan the card again; we were unable to find your account'});
 			}
 		};
 		TransactionService.prototype.charge = function (amount, description, goods, force) {
@@ -82,6 +89,11 @@ app.service('TransactionService',
 						});
 						self.lastTransaction = transaction;
 						return transaction;
+					} else {
+						console.log(transactionResult.ok);
+						for (var v in transactionResult) {
+						}
+						NotificationService.showAlert({title: 'error', template: transactionResult.ok});
 					}
 					self.lastTransaction = transactionResult;
 					throw transactionResult;

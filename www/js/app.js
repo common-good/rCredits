@@ -5,7 +5,7 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 		function ($translateProvider, localStorageServiceProvider, $ionicConfigProvider) {
 			$ionicConfigProvider.views.maxCache(0);
 			$translateProvider
-				.useMissingTranslationHandlerLog()
+//				.useMissingTranslationHandlerLog()
 				.useStaticFilesLoader({
 					prefix: 'js/languages/definitions/',
 					suffix: '.json'

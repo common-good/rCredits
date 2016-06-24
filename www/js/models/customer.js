@@ -38,7 +38,12 @@
 			customer.company = customerJson.company;
 			customer.accountInfo.accountId = customerJson.qid;
 			customer.accountInfo.securityCode = proof.sc;
-			customer.photo = customerJson.photo;
+			if (customerJson.photo) {
+				console.log(customerJson.photo);
+				customer.photo = customerJson.photo;
+			} else {
+				customer.photo = '/img/New-rCredits-Customer.png';
+			}
 			return customer;
 		};
 		window.Customer = Customer;

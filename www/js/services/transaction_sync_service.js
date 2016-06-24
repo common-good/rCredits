@@ -1,5 +1,5 @@
 app.service('TransactionSyncService',
-	function ($q, TransactionService, RequestParameterBuilder, SQLiteService, SqlQuery, NetworkService, TransactionSql, $timeout, $rootScope) {
+	function ($q, TransactionService, RequestParameterBuilder, SQLiteService, SqlQuery, NetworkService, TransactionSql, $timeout, $rootScope, NotificationService) {
 		'use strict';
 		var self;
 		var TransactionSyncService = function () {
@@ -59,6 +59,10 @@ app.service('TransactionSyncService',
 						self.exludedTxs = [];
 					}
 					// err no transactions || error ocurred
+//					NotificationService.showAlert({
+//								title: "error",
+//								template: "There has been an Error: "+err.message
+//							});
 					console.error(err.message);
 				});
 		};

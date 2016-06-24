@@ -1,3 +1,4 @@
+/* global app */
 (function () {
 	'use strict';
 	app.controller('ExchangeCtrl', function ($scope, ExchangeService, $translate, TransactionService, $ionicLoading, $state) {
