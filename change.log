@@ -1,0 +1,4 @@
+2016-06-28 (ws)
+. rewrote QR Scan test in Gherkin (and included tests for new QR format)
+. revised karma.conf.js to accommodate Gherkin tests
+. renamed old test and features folders OLDtest and OLDfeatures
