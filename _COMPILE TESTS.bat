@@ -1,0 +1,1 @@
+php "C:\Documents\www\rMembers\sites\all\modules\gherkin\compile.php" JS "C:\Documents\www\r2"
