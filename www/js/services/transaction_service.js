@@ -30,16 +30,16 @@ app.service('TransactionService',
 			return transaction;
 		};
 		TransactionService.prototype.makeTransactionRequest = function (amount, description, goods, force) {
-			if (UserService.currentUser().accountInfo && NetworkService.isOnline()) {
-				var sellerAccountInfo = UserService.currentUser().accountInfo,
-					customerAccountInfo = UserService.currentCustomer().accountInfo;
-				if (_.isUndefined(goods) || _.isNull(goods)) {
-					goods = 1;
-				}
-				if (_.isUndefined(force) || _.isNull(force)) {
-					force = 0;
-				}
+			if (UserService.currentUser().accountInfo) {
 				if (NetworkService.isOnline()) {
+					var sellerAccountInfo = UserService.currentUser().accountInfo,
+						customerAccountInfo = UserService.currentCustomer().accountInfo;
+					if (_.isUndefined(goods) || _.isNull(goods)) {
+						goods = 1;
+					}
+					if (_.isUndefined(force) || _.isNull(force)) {
+						force = 0;
+					}
 					try {
 						var params = new RequestParameterBuilder()
 							.setOperationId('charge')
@@ -57,6 +57,7 @@ app.service('TransactionService',
 							return res.data;
 						});
 					} catch (e) {
+						console.log('catch');
 						console.log(e);
 					}
 				} else {
@@ -90,10 +91,10 @@ app.service('TransactionService',
 						self.lastTransaction = transaction;
 						return transaction;
 					} else {
-						console.log(transactionResult.ok);
 						for (var v in transactionResult) {
+							console.log(v, transactionResult[v]);
 						}
-						NotificationService.showAlert({title: 'error', template: transactionResult.ok});
+						NotificationService.showAlert({title: 'error', template: transactionResult.message});
 					}
 					self.lastTransaction = transactionResult;
 					throw transactionResult;
@@ -180,7 +181,7 @@ app.service('TransactionService',
 			};
 			var transactionResponseError = {
 				"ok": "0",
-				"message": ""
+				"message": "There has been an error in the transaction, please rescan the card"
 			};
 			if (amount > rCreditsConfig.transaction_max_amount_offline) {
 				transactionResponseError.message = "Limit $" + rCreditsConfig.transaction_max_amount_offline + " exceeded";

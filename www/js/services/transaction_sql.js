@@ -1,6 +1,6 @@
 /* global Transaction, app */
 (function (app) {
-	app.service('TransactionSql', function ($q, SqlQuery, SQLiteService) {
+	app.service('TransactionSql', function ($q, SqlQuery, SQLiteService,NotificationService) {
 		var self;
 		var TransactionSql = function () {
 			self = this;

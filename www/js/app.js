@@ -57,7 +57,7 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 								]
 							});
 						} else {
-							console.log("Plenty of Disk Space: " + result);
+//							console.log("Plenty of Disk Space: " + result);
 						}
 					}, function (error) {
 						console.log("Error!... The details follow: " + error);

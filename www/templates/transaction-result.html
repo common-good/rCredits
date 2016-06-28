@@ -1,7 +1,6 @@
 <ion-view hide-back-button="success">
 	<subheader></subheader>
 	<ion-nav-buttons side="primary">
-		<!--This button does not show up in developer mode, I am assuming because the transaction is not really successful?-->
 		<button class="button button-stable" ng-show="success && timeCan && !undo && !isSelfServiceEnabled()"
 				ng-click="undoTransaction()">
 			{{ 'undo' | translate }}
