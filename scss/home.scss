@@ -1,11 +1,16 @@
 .rc.home {
   .company {
-    font-size: 30px;
+    font-size: 500%;
   }
-
+  .user{
+	  font-size: 2em;
+  }
   .rc-logo {
     margin: 10% auto;
     width: 150px;
     height: 150px;
+  }
+  .scan-customer{
+	  font-size: 2.4em;
   }
 }

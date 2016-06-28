@@ -1,3 +1,4 @@
+/* global _, app */
 app.service('TransactionSyncService',
 	function ($q, TransactionService, RequestParameterBuilder, SQLiteService, SqlQuery, NetworkService, TransactionSql, $timeout, $rootScope, NotificationService) {
 		'use strict';

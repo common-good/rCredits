@@ -7,7 +7,7 @@
 
 			<div ng-if="!isSelfServiceEnabled()">
 				<p class="user" ng-if="!isCashierMode()">
-					{{ 'signInAs' | translate }}<br>
+					{{ 'signInAs' | translate }}<br><br>
 					<strong>{{currentUser.name}}</strong>
 				</p>
 				<p class="user" ng-if="isCashierMode()">
