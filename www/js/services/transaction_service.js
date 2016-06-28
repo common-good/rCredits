@@ -181,7 +181,7 @@ app.service('TransactionService',
 			};
 			var transactionResponseError = {
 				"ok": "0",
-				"message": "There has been an error in the transaction, please rescan the card"
+				"message": "There has been an error"
 			};
 			if (amount > rCreditsConfig.transaction_max_amount_offline) {
 				transactionResponseError.message = "Limit $" + rCreditsConfig.transaction_max_amount_offline + " exceeded";
