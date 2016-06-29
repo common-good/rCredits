@@ -1,24 +1,49 @@
 .rc {
-  text-align: center;
-  margin: 1.5em;
+	text-align: center;
+	margin: 1.5em;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-weight: bold;
+	font-weight: bold;
 }
 
 h1, h3, h5 {
-  color: $rCreditsBlue;
+	color: $rCreditsBlue;
 }
 
 h2, h4, h6 {
-  color: $rCreditsGreen;
+	color: $rCreditsGreen;
 }
 
 subheader {
-  height: 44px;
+	height: 44px;
 }
-
+.customerDemo{
+	display: inline-block;
+	float: right;
+	top: 0;
+	right:0;
+	position: absolute;
+	height: 38px;
+	padding: 0;
+	border-bottom: 1;
+	border-left: 0;
+	border-top: 0;
+	border-right: 0;
+	width: 17em;
+	margin: 0;
+}
+.demo-title{
+	top: 0;
+	display: inline-block;
+}
+.detailsMenuItem{
+	padding: 0; 
+	margin-right: 0em;
+	z-index: 0;
+	display: list-item;
+	overflow: hidden;
+}
 @import "popup";
 @import "logo";
 @import "button";

@@ -67,6 +67,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	};
 	UserService.prototype.loginWithRCard_ = function (params, accountInfo) {
 		return this.makeRequest_(params, accountInfo).then(function (res) {
+			console.log(params, accountInfo);
 			var responseData = res.data;
 			if (responseData.ok === LOGIN_FAILED) {
 				console.log(responseData.message);
