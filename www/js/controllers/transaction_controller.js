@@ -11,14 +11,16 @@ app.controller('TransactionCtrl', function ($scope, $state, $stateParams, $ionic
 		if (isTransactionTypeCharge()) {
 			// You can put in other and none for the future here
 			//return _.union(seller.descriptions, ['other', 'none']);
+			console.log(seller.descriptions);
 			return seller.descriptions;
 		}
+		console.log(seller.descriptions);
 		return seller.descriptions;
 	};
-	$scope.moreThan1Category=function (){
-		if(seller.descriptions.length>1){
+	$scope.moreThan1Category = function () {
+		if (seller.descriptions.length > 1) {
 			return true;
-		}else{
+		} else {
 			return false;
 		}
 	};

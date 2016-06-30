@@ -7,11 +7,8 @@
 		</div>
 	</h2>
 	<div ng-if="offlCtrl.isDemoMode()" class="list ">
-		<label ng-controller="selectDemoCustomer" class="item item-input item-select customerDemo">
-			<select  ng-change="onSelectCustomer()" ng-model="selectedCategory.selected" >
-				<option class="infoBarDropdown" >Susan Shopper</option>
-				<option class="infoBarDropdown" >Susan Shopper</option>
-				<option class="infoBarDropdown" >Susan Shopper</option>
+		<label ng-controller="SelectDemoCust" class="item item-input item-select customerDemo">
+			<select  ng-change="onSelectCustomer()" ng-model="selectedCustomer.selected" ng-options="c.name for c in customer">
 			</select>
 		</label>
 	</div>

@@ -39,6 +39,7 @@ app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, Barco
 			.then(function (id) {
 				UserService.identifyCustomer(id)
 					.then(function () {
+						console.log(id);
 						$scope.customer = UserService.currentCustomer();
 						if ($scope.customer.firstPurchase) {
 							NotificationService.showConfirm({

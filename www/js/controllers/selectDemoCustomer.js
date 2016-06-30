@@ -1,12 +1,50 @@
+/* global app */
 app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService) {
-	$scope.selectedCategory = {
-		selected: $scope.categories[0]
+	var populateDemoCustomers = [
+		{name: 'Susan Shopper', url: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'},
+		{name: 'Curt Customer', url: 'HTTP://NEW.RC4.ME/AAK.NyCBBlUF1qWNZ2k'},
+		{name: "Curt from Helga's Hardware", url: 'HTTP://NEW.RC4.ME/AAD-utbYceW3KLLCcaw'},
+		{name: 'Bob Bossman', url: 'HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G'}
+	];
+	$scope.customer = populateDemoCustomers;
+	$scope.selectedCustomer = {
+		selected: $scope.customer[0]
 	};
 	$scope.onSelectCustomer = function () {
-		var selected = $scope.selectedCategory.selected;
+		var selected = $scope.selectedCustomer.selected;
 		console.log(selected);
-		if (selected === 'Susan Shopper') {
-			UserService.loginWithRCard({op: "identify", device: "F83swEagSJA9jnDGD5dh", agent: "NEW.AAB", version: 300, member: "NEW.ABB", code: "ZzhWMCq0zcBowqw"}, {isPersonal: true, isCompany: false, memberId: "NEW", accountId: "NEW.ABB", securityCode: "ZzhWMCq0zcBowqw", url: "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBow…", serverType: "rc4"});
-		}
+		UserService.identifyCustomer(selected.url)
+			.then(function () {
+				$scope.customer = UserService.currentCustomer();
+				if ($scope.customer.firstPurchase) {
+					NotificationService.showConfirm({
+						title: 'firstPurchase',
+						templateUrl: "templates/first-purchase.html",
+						scope: $scope,
+						okText: "confirm"
+					})
+						.then(function (confirmed) {
+							if (confirmed) {
+								$ionicLoading.show();
+								$state.go("app.customer");
+							}
+						});
+					$ionicLoading.hide();
+				} else {
+					$ionicLoading.hide();
+					$state.go("app.customer");
+				}
+			})
+			.catch(function (errorMsg) {
+				console.log($scope.currentUser.name);
+//						for (var prop in $scope.currentUser) {
+//						}
+				if (errorMsg === 'login_your_self') {
+					NotificationService.showAlert({title: "Error", template: "You are already signed in as: " + $scope.currentUser.name});
+				} else {
+					NotificationService.showAlert({title: "Error", template: errorMsg});
+				}
+				$ionicLoading.hide();
+			});
 	};
 });
