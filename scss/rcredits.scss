@@ -30,12 +30,21 @@ subheader {
 	border-left: 0;
 	border-top: 0;
 	border-right: 0;
-	width: 17em;
+	width: 65%;
 	margin: 0;
+	background: none;
 }
 .demo-title{
 	top: 0;
 	display: inline-block;
+	z-index: 999999;
+	left: 0;
+}
+@media screen and (min-width: 550px) {
+	.title, demo-title{
+		text-align: !important left;
+		color: red;
+	}
 }
 .detailsMenuItem{
 	padding: 0; 
