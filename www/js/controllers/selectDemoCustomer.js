@@ -1,5 +1,5 @@
 /* global app */
-app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService) {
+app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService, $location) {
 	var populateDemoCustomers = [
 		{name: "Curt-Helga's Hardware", url: 'HTTP://NEW.RC4.ME/AAD-utbYceW3KLLCcaw'},
 		{name: 'Susan Shopper', url: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'},
@@ -8,11 +8,14 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 	];
 	$scope.customer = populateDemoCustomers;
 	$scope.selectedCustomer = {
-		selected: $scope.customer[0]
+		selected: $scope.customer[0],
+	};
+	$scope.location=$location.url().indexOf('app/home');
+	$scope.notHome=function (){
+		return window.location.hash.indexOf('app/home');
 	};
 	$scope.onSelectCustomer = function () {
 		var selected = $scope.selectedCustomer.selected;
-		console.log(selected);
 		UserService.identifyCustomer(selected.url)
 			.then(function () {
 				$scope.customer = UserService.currentCustomer();

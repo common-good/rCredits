@@ -1,13 +1,14 @@
-<div class="bar bar-subheader" ng-if="offlCtrl.isOffline() || offlCtrl.isDemoMode()">
+<div ng-controller="SelectDemoCust"  class="bar bar-subheader" ng-if="offlCtrl.isOffline() || offlCtrl.isDemoMode()">
 	<h2 class="title">
 		<span ng-if="offlCtrl.isOffline()">{{'you_are_offline'| translate}}</span>
 		<span ng-if="offlCtrl.isOffline() && offlCtrl.isDemoMode()"> - </span>
 		<div ng-if="offlCtrl.isDemoMode()">
-			<span class="demo-title" style="text-align: !important left;">{{'demo_mode'| translate}}</span>
+			<span class="demo-title">{{'demo_mode'| translate}}</span>
 		</div>
 	</h2>
-	<div ng-if="offlCtrl.isDemoMode()" class="list ">
-		<label ng-controller="SelectDemoCust" class="item item-input item-select customerDemo">
+	<span>{{notHome}};</span>
+	<div ng-if="offlCtrl.isDemoMode() && notHome" class="list ">
+		<label class="item item-input item-select customerDemo">
 			<select  ng-change="onSelectCustomer()" ng-model="selectedCustomer.selected" ng-options="c.name for c in customer">
 			</select>
 		</label>

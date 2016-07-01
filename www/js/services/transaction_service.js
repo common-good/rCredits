@@ -69,7 +69,7 @@ app.service('TransactionService',
 					});
 				}
 			} else {
-				NotificationService.showAlert({title: 'error', template: 'Please scan the card again; we were unable to find your account'});
+				NotificationService.showAlert({title: 'error', template: 'We were unable to find your account'});
 			}
 		};
 		TransactionService.prototype.charge = function (amount, description, goods, force) {
