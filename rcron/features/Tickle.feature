@@ -15,7 +15,7 @@ Setup:
 Scenario: A newbie has not taken the first step
   Given invites:
   | email | inviter | code   | invited   | invitee |*
-  | d@    | .ZZE    | codeD1 | %today-9d | .ZZD    |
+  | d@    | .ZZE    | codeD1 | %today-8d | .ZZD    |
   And member ".ZZD" has done step "contact"
   When cron runs "tickle"
   Then we notice "do step one|sign in" to member ".ZZD"

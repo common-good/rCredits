@@ -24,7 +24,7 @@ class Qo {
     $qo = $this;
     if (is_numeric($main)) return list ($qo->main, $qo->agent) = [$main, $agent]; // agent may be empty
 
-    if (substr($main, 0, 1) == '.') $main = R_SERVER_ID . substr($main, 1); // abbreviated
+    if (substr($main, 0, 1) == '.') return $qo->mainQid = R_SERVER_ID . substr($main, 1); // abbreviated
 
     if (strpos($main, '.')) return $qo->mainQid = str_replace('.', '', $main); // old style proSe
     if (strpos($main, ':') !== FALSE) { // old style relation
@@ -70,10 +70,7 @@ class Qo {
     if (substr($qid, 0, 1) == '!') {
       if (strlen($qid) < 6) $qid .= 'AAA';
       return $qo->main = -qo(substr($qid, 1))->id;
-//    } else return $qo->main = -r\serverUid($qo->region) + u\a2n($qo->tail);
-    }
-
-    return $qo->main = -r\serverUid($qo->region) + u\a2n($qo->tail);
+    } else return $qo->main = -r\serverUid($qo->region) + u\a2n($qo->tail);
   }
 
   private function agent() {
@@ -130,17 +127,12 @@ class Qo {
    * @return the corresponding qid
    */
   public static function uid2($uid, $agent = '') {
-    if (!$agent or $agent == $uid) { // proSe
+    if (is_numeric($uid) and (!$agent or $agent == $uid)) { // proSe uid
       if ($uid < 0) return '!' . qid(-$uid);
       $region = r\uidRegion($uid);
       $regionNum = (-$region - 1) / R_REGION_MAX;
       return u\n2a($regionNum, -3) . u\n2a($uid - -$region, -3);
-  //    return u\n2a($regionNum, -3) . R_MEMBER_MARK . u\n2a($uid - -$region, -3);
-    } else return qo($uid, $agent)->qid;
-      // $otherNum = r\relation('otherNum', $uid, $agent); // compound quid
-      // return qid($uid) . '-' . u\n2a($otherNum, -1);
-  //    $reid = r\relation('reid', $uid, $agent); // compound quid
-  //    return str_replace(R_MEMBER_MARK, R_AGENT_MARK, quid($reid));
+    } else return qo($uid, $agent)->qid; // more complicated
   }
 
   public function parse() {return [$this->region, $this->tail, $this->agentCode];}

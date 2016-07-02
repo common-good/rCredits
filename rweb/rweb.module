@@ -93,7 +93,7 @@ function rweb_menu($submenu = '') {
     
 //    'community' => ['norm', t('Community'), 'FindCo', 'anyone'],
     'community' => ['norm', t('Community'), 'Community', 'anyone'],
-    'community/democracy' => isDEV ? ['sub', t('Discussion & Voting'), 'Democracy 2', '-co', '', t(''), 'bell'] : NULL,
+    'community/democracy' => ['sub', t('Discussion & Voting'), 'Democracy 2', 'ok manage', '', t(''), 'bell'],
     'community/agreement' => ['sub', t('The Agreement'), 'Agreement', 'anyone', '', t(''), 'globe'],
     'community/invite' => ['sub', t('Invite Someone'), 'Invite', 'member manage', '', t(''), 'share-alt'],
     'community/message' => ['sub', t('Message a Member'), 'Message', 'member manage', '', t(''), 'envelope'],
@@ -101,7 +101,7 @@ function rweb_menu($submenu = '') {
     'community/donate' => ['sub', t('Donate'), 'Donate', 'manage', '', t(''), 'thumbs-up'],
     'community/grant' => ['sub', t('Get Paid to Organize'), 'Grant', 'anyone', '', t(''), 'apple'],
     'community/funds' => ['sub', t('Funds in Each Community'), 'CttyFunds', 'anyone', '', t(''), 'usd'],
-    'community/graphs' => ['sub', t('rCredits Economy Graphs'), 'Graphs 1', 'anyone', '', t(''), 'stats'],
+    'community/graphs' => ['sub', t('rCredits Economy Graphs'), 'Graphs 2', 'anyone', '', t(''), 'stats'],
     'community/flags' => ['sub', t('Risk Flags'), 'Flags 2', 'anyone', '', t(''), 'flag'],
 //    'community/game' => isGAME ? ['sub', t('Game'), 'Game', 'anyone') : NULL,
     'community/zot' => ['sub', 'zot', '', 'anyone'], // Drupal bug: last choice is omitted
@@ -143,6 +143,7 @@ function rweb_menu($submenu = '') {
     
     'menu' => ['call', t('Menu'), 'Menu', 'anyone'],
     'empty' => ['call', t('Empty'), 'Empty 1', 'anyone'],
+    'prox' => ['call', t('Prox'), 'Prox 1 2', 'anyone'], // proxy form called from rdo()
 
     'request-employee-rcard' => ['call', t('Request Employee rCard'), 'RequestRCard 1', 'manage'],
     
@@ -175,7 +176,7 @@ function rweb_menu($submenu = '') {
 
     'signout' => ['norm', t('Sign out'), '1', 'anyone', 'signout'],
     
-    'help' => ['call', t('Help'), 'Help 1', 'anyone'],
+    'help' => ['call', t('Help'), 'Help 1 2', 'anyone'],
     'change-account' => ['call', t('Change Who'), '1', 'anyone', 'changeWho'],
     'status' => ['call', 'Status', 'Membership 1', 'manage'],
     'signup' => ['call', t('Sign Up For rCredits'), 'Signup', 'anyone'],

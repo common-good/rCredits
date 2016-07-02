@@ -457,7 +457,8 @@ function formDeposits_submit($form, &$sta) {
   $op = w\op($sta);
   $way = str_replace('submit', '', $op); // cute. INsubmit or OUTsubmit -> IN or OUT
   $previous = @$sta['input'][$way . 'previous'];
-  r\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1");
+//  r\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1");
+  r\go("sadmin/checks/way=$way&date=0&mark=1");
 //  foreach (['reprint', 'previous'] as $k) $$k = @$sta['input'][$way . $k];
 //  r\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1&reprint=" . @$reprint);
 }

@@ -246,8 +246,9 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'duplicate transaction' => t('You already just @op that member that much. Wait a few minutes or type a different amount.'),
   'no search' => t('OR that member has chosen not to be identified by email or phone number.'),
   'not confirmed' => t('@youName: membership must be approved by @inviterName OR you must do a transaction with @inviterName FIRST.'),
-  'savings too low' => t('Until your rCredits community declares itself a stable Common Good Community, your savings amount must be at least as much as the incentive rewards you have received (@rewards to date)'),
-  'savings too high' => t('You can increase your savings amount only by what you have in your primary account. Your maximum savings amount at this time is @max.'),
+//  'savings too low' => t('Until your rCredits community declares itself a stable Common Good Community, your savings amount must be at least as much as the incentive rewards you have received (@rewards to date)'),
+  'savings too low' => t('Your additional savings amount cannot be less than zero.'),
+  'savings too high' => t('You can increase your savings amount only by what you have in your primary account. Your maximum additional savings amount at this time is @max.'),
   'organizer grant' => t('You have recruited @ORGANIZER_GRANT_MIN new rCredits members. You are probably eligible for an rCredits organizer grant of up to @ORGANIZER_GRANT_MAX! <@a>Click here</a> to apply.'),
 
   // notices to staff

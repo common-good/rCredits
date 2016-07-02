@@ -9,19 +9,24 @@
 namespace rCredits\Web;
 use rCredits as r;
 use rCredits\Util as u;
+use rCredits\Web as w;
 
 /**
  * Return the appropriate raw help text.
  * @param string $i: identifier for the appropriate help text.
  * @param string $tag: (optional) item to highlight)
+ * @param string $args: other URL arguments
  */
-function rawHelp($i, $tag = '') {
+function rawHelp($i, $tag = '', $args = '') {
   global $rUrl;
   
-  $site = str_replace('https://', '', BASE_URL);
-  $mya = r\acct();
+  $mya = w\eLinkAcct($args, 'any');
+  $ctty = @$mya->community ?: 0;
   $company = @$mya->co;
   $username = @$mya->name; // @ is for SMS testing (when not signed in)
+  $cttyName = @$mya->cttyA->fullName;
+  
+  $site = str_replace('https://', '', BASE_URL);
   $regEmail = r\regionField('email');
   $companyAccount = $company ? '' : tt(<<<EOF
   <p>For companies, upload a picture to represent your business. This picture will appear on your automatic rCredits webpage: <a target="_blank" href="@BASE_URL/member/@username">@site/member/@username</a> &mdash; so choose wisely. See also the <a href="@BASE_URL/account/company">Company Info</a> form.</p>
@@ -73,7 +78,7 @@ EOF
   <p><b>Rewards</b> are the total of your signup bonus, adjustments for inflation, purchase rewards, and any other bonuses ever.</p>
   <p><b>Credit limit</b> increases a little at a time, based on your rCredits history.</p>
 EOF
-  , ['@regName' => $mya->cttyA->fullName]);
+  , ['@regName' => $cttyName]);
 
   if ($i == 'txs') return t(<<<EOF
     <p>Select the period you want to see transactions for. Both the Summary and Transactions sections will reflect just the transactions in that period. However, the "Pending" line will reflect all your not-yet-accepted invoices and offers EVER. The Ending balance in the Summary is always your current balance.</p>
@@ -139,7 +144,7 @@ EOF
 EOF
     );
 
-  if ($i == 'issuing-rcredits') return showCharts('issued') . t(<<<EOF
+  if ($i == 'issuing-rcredits') return showCharts('issued', $ctty) . t(<<<EOF
     <p>rCredits are a type of credit. Like any medium of exchange, they represent value. They make it possible for us to trade goods and services with each other in our community, without having to trade something directly with whoever has what we want, and without having to give them something of precisely the same value ("barter"). The medium of exchange lets us give any amount of our goods or services to any participant in the economy, then receive the same value of goods or services from some other participant(s). If everyone both buys and sells, the credits move through the community in interconnected circles of exchange.</p>
     <p>Issuing rCredits is a community responsibility. This is the key to creating a Common Good Economy. We must issue as much credit as we need, to enable our exchanges of goods and services -- but no more than the value we as a community are capable of producing.</p>
     <p>Once rCredits become well-established and popular in a community, we can issue them together, with careful planning, as grants, zero-interest loans, and equity investments. Together we can fund whatever enterprises and activities we decide would be best -- for our community, for communities elsewhere, and for the world.</p>
@@ -293,7 +298,7 @@ EOF
 EOF
   );
 
-  if ($i == 'demand') return showCharts('banking') . tt(<<<EOF
+  if ($i == 'demand') return showCharts('banking', $ctty) . tt(<<<EOF
     <p>The "demand" for rCredits is the net amount of US Dollars people want to trade for rCredits. As long as people have plenty of places to spend within the rCredits system, they will generally keep moving money in. So the demand gives us a pretty reliable measure of the system's soundness.</p>
     <p>We can keep issuing rCredits as long as there is a net inflow of US Dollars (more <b class="in">green</b> than <b class="out">orange</b> on the chart &mdash; an increasing demand). If members need to make more purchases outside the rCredits network and are taking more US Dollars <b class="out">out</b> of the system than they are putting <b class="in">in</b> (a decreasing demand), then we must temporarily stop <i>issuing</i> rCredits. Of course, we can keep <i>using</i> the rCredits already in circulation.</p>
     <p>Once people have more places to spend within the system (typically because more people and businesses have signed up) and they start moving money <b class="in">in</b> again, then we can begin again to issue additional rCredits.</p>
@@ -303,7 +308,7 @@ EOF
 EOF
   ) . $back;
 
-  if ($i == 'growth') return showCharts('accts') . tt(<<<EOF
+  if ($i == 'growth') return showCharts('accts', $ctty) . tt(<<<EOF
     <p>The real power and purpose of the rCredits system is in our gathering as a community to decide what our funding priorities should be &mdash;</p>
     <ul>
       <li>for sustainable agriculture and energy systems,</li>
@@ -317,7 +322,7 @@ EOF
 EOF
   ) . $back;
 
-  if ($i == 'funds') return showCharts('funds') . t(<<<EOF
+  if ($i == 'funds') return showCharts('funds', $ctty) . t(<<<EOF
     <p>There are two kinds of funds in the rCredits system:</p>
     <ul>
       <li><b style='color:white; background-color:darkgreen;'>Rewards</b>. These are the funds that we issue together as a community, by agreeing to accept them as payment for our goods and services.</li>
@@ -351,7 +356,7 @@ EOF
     <p>** <b style='color:white; background-color:darkred;'>Top 5</b>. Balanced participation among many members maximizes the system's predictability and protects against a cash flow crunch. Expect the "Top 5" line to level off as the system grows.</p>
 */    
 
-  if ($i == 'velocity') return showCharts('velocity') . t(<<<EOF
+  if ($i == 'velocity') return showCharts('velocity', $ctty) . t(<<<EOF
     <p>In our society at large, how fast the money moves is an indicator of the health of our economy. Faster velocity implies more people spending more money per month.</p>
     <p>More spending is not necessarily a good thing, if we all already have what we need. But when there are unmet needs, increased economic activity can be a sign of things getting better. In the rCredits system, economic activity means people are finding the rCredits system useful, which is always a good thing.</p>
     <p>Notice that the faster money circulates, the less money we need, to buy the same stuff. Velocity is a money-stretcher! For example, suppose there are $1 million worth of rCredits in circulation. Let's say the velocity is 1 in April (the whole million gets spent) and 2 in May (the whole million gets spent twice). In May we used the same amount of money to buy twice as much.</p>
@@ -359,7 +364,7 @@ EOF
 EOF
   ) . $back;
 
-  if ($i == 'economic-circles') return showCharts('tx') . t(<<<EOF
+  if ($i == 'economic-circles') return showCharts('tx', $ctty) . t(<<<EOF
     <p>Economic circles are crucial to a healthy regional economy. The more we can keep money circulating locally, the richer we are. Why? Because we can use that money over and over &mdash; in effect turning each dollar into millions.</p>
     <p>In a typical economic circle, you buy something from a local store or pay for local services. That business then pays its local suppliers and its local employees. Those employees in turn become consumers like you &mdash; they buy something from a local store, etc. When at any point in this circle we lose the "local" and pay someone or some company outside our region, that money is gone. It has leaked out of our community and we are that much poorer.</p>
     <p>The rCredits system gives us an easy way to track our economic circles and opportunities for improvement. For now, "local" means within the rCredits system, but we expect the definition to expand as rCredits membership continues to grow.</p>

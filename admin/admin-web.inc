@@ -71,7 +71,8 @@ function adminSummary($a, $cAdmin = FALSE) {
   if ($a->isNormal) { // managing some individual community member account
     if (!$a->ok) $a->nextStep(); // update Dwolla status
     if ($cAdmin) {
-      $photo = item($a->photoHtml(TRUE, TRUE));
+      $html = $a->photoHtml(TRUE, TRUE);
+      $photo = item("<a href=$base_url/settings/security/photo>$html</a>");
       if ($admin) $community = r\cttys($a->region, $ctty);
       $donations = db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
       if ($donationInfo = db\lookup('often,honor,honored', 'r_gifts', 'uid=:uid', compact('uid'))) {
@@ -240,7 +241,7 @@ function export($params) {
       . ' created activated signed helper iCode balance rewards savingsAdd minimum share risk trust'
       . ' cttyName co gross employees achMin pinThreshold lastiCode tenure moves mediaConx jid'
       . ' owns bankName slave closed notices secret'
-  : 'id first_name last_name phone email address city state zip cttyName member ecode';
+  : 'id first_name last_name phone email address city state zip cttyName member ecode modified created special';
   u\csv($fields = u\ray($fields));
 
   $where = @$allCttys ? '1' : 'community=:cttyId';
@@ -269,8 +270,11 @@ function export($params) {
       $phone = u\fmtPhone($phone);
       $id = $a->mainQid;
       $ecode = "$a->emailCode";
+      $modified = u\fmtDate(time());
+      $special = $a->special;
     }
     $cttyName = $ctty->fullName;
+    $created = u\fmtDate($a->created);
     if (is_numeric($zip)) $zip .= '-'; // prevent this from getting interpreted as a number
 
     u\csv(array_values(compact($fields)));

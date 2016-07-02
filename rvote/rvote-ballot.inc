@@ -16,22 +16,19 @@ A comment explaining the rationale for the veto is required. Each voter gets onl
 // Election can be verified with a list of voters (without ballot number) and a list of ballots (without voter id).
 // List of ballots includes the ballot id, voted grade for each option and each question, and proxy ballot id if not direct.
 
-function ballot(&$extras, $question) {
+function ballot($mya, &$extras, $question) {
   global $quids;
   
-  $mya = r\acct();
-
   list($quids, $qutypes) = getQuestions($mya->community); 
-  $qcount = count($quids);
-  u\EXPECT($qcount, 'no questions');
-///  if(!$qcount) die("There is no vote in progress for your community.");
+  if (!$qcount = count($quids)) return t('There is no vote in progress for your community.');
   u\setDft($question, $quids[0]);
 
   // set up question to display
   $qnum = array_search($question, $quids); // this works even if the number of elections/questions changes during voting
   $qndpy = $qnum + 1; // $qnum starts at 0
   $extras['question'] = w\hidFld($question);
-  $extras['submit'] = w\submit(t('Done With Question #') . $qndpy);
+  $submit = w\submit(BARE . t('Done With Question #') . $qndpy, 'primary', 'md', w\clas('pull-right'));
+  $extras['prev'] = w\submit('&laquo; ' . t('Previous'), 'primary', 'md', w\suffix(w\rendA('submit', $submit)));
 
   $qu = db\lookup('id AS question, text, detail, linkProposals, type, budget, minVeto, optOrder, endProposals, endVoting', 'r_questions', 'id=:question', compact('question'));
   $tableHeader = tableHeader($qu['type']);
@@ -81,21 +78,18 @@ function processvote($args, $type) {
 	if (!$optionCount = $args['optionCount']) return;
 
 	for($opti = 0; $opti < $optionCount; $opti++) {
-		$isVeto = @$args["veto$opti"] ? 1 : 0;
+    $isVeto = @$args["veto$opti"] ? 1 : 0;
+    if ($type != 'E') {
 
-		$grade = ($isVeto and $type != 'R') ? VETOGRADE : @$args["option$opti"];
-		if($type == 'B') {
-			$grade *= BPCT2INT; // convert penny grade (pct) to integer
-		} elseif($type == 'M' and !$isVeto) $grade = round($grade * 3); // multiply letter grades by 3 to keep +/-
-    if ($type == 'R') $displayOrder = @$args['max'];
-    
-    list ($id, $modified) = [$vote = $args["vote$opti"], time()];
-    db\update('r_votes', compact(u\ray('id grade displayOrder modified')), 'id');
-
-		if($id = $args["note$opti"] or $isVeto) { // create or update note (but veto note persists on unveto)
-      $info = u\ray('vote text isVeto modified', $vote, @$args["votenote$opti"], $isVeto, time());
-      if ($id) db\update('r_votenotes', $info + compact('id'), 'id'); else db\insert('r_votenotes', $info);
-		}
+      $grade = ($isVeto and $type != 'R') ? VETOGRADE : @$args["option$opti"];
+      if($type == 'B') {
+        $grade *= BPCT2INT; // convert penny grade (pct) to integer
+      } elseif($type == 'M' and !$isVeto) $grade = round($grade * 3); // multiply letter grades by 3 to keep +/-
+      if ($type == 'R') $gradeMax = @$args['max'];
+    }
+      
+    list ($id, $text, $modified) = [$args["vote$opti"], @$args["votenote$opti"], time()];
+    db\update('r_votes', compact(u\ray('id grade gradeMax text isVeto modified')), 'id');
 	}
 	$ballot = $args['ballot'];
   $voter = db\lookup('voter', 'r_ballots', 'id=:ballot', compact('ballot'));
@@ -120,7 +114,11 @@ function getCurrentVote(&$extras, $voter, $question, $type, $optOrder) {
     $ballot = db\insert('r_ballots', compact(u\ray('question voter created')));
   }
   
-  $sql = 'SELECT v.id AS vote, v.option, v.grade, v.displayOrder AS gradeMax, o.minimum AS min, o.maximum AS max, n.id AS note, n.isVeto, n.text FROM ((r_ballots b LEFT JOIN r_votes v ON v.ballot=b.id) LEFT JOIN r_options o ON v.option=o.id) LEFT JOIN r_votenotes n ON n.vote=v.id WHERE b.voter=:voter AND o.question=:question ORDER BY v.displayOrder';
+  $sql = <<<EOF
+    SELECT v.id AS vote, v.option, v.grade, v.gradeMax, o.minimum AS min, o.maximum AS max, v.isVeto, v.text
+    FROM r_ballots b LEFT JOIN r_votes v ON v.ballot=b.id LEFT JOIN r_options o ON v.option=o.id 
+    WHERE b.voter=:voter AND o.question=:question ORDER BY v.displayOrder
+EOF;
 	$q = db\q($sql, $subs = compact('voter', 'question'));
 
   $rowCount = $q->rowCount();
@@ -138,15 +136,19 @@ function getCurrentVote(&$extras, $voter, $question, $type, $optOrder) {
     if ($type == 'R') { // only one option record for range-type votes
       foreach (['min', 'max'] as $k) $res[$k] = (int) $$k;
       $res['minDft'] = $grade;
-      $res['maxDft'] = $gradeMax;
-    } elseif(!$isVeto) $grade /= ($type == 'M' ? 3 : BPCT2INT);
+      $res['maxDft'] = $gradeMax == BLANKGRADE ? $max : $gradeMax;
+    } elseif ($type == 'M') {
+      if (!$isVeto) $grade /= 3;
+    } elseif ($type == 'B') {
+      if (!$isVeto) $grade = ($grade == BLANKGRADE) ? 100 / $optCount : ($grade / BPCT2INT);
+    }
 
     $res["option$i"] = $grade;
     $res["veto$i"] = $isVeto;
     $res["votenote$i"] = $text;
     
     $extras["vote$i"] = w\hidFld($vote);
-    $extras["note$i"] = w\hidFld($note);
+//    $extras["note$i"] = w\hidFld($note);
 	}
 	$extras['ballot'] = w\hidFld($ballot);
 
@@ -164,10 +166,11 @@ function setupVote(&$extras, $voter, $question, $optOrder, &$ballot) {
 		setdbfield("votenote$i", '');
 		$option = $opts[$i];
 		$grade = BLANKGRADE;
+    $gradeMax = BLANKGRADE;
     $displayOrder = $i;
-    $vote = db\insert('r_votes', compact(u\ray('ballot option grade displayOrder')));
+    $vote = db\insert('r_votes', compact(u\ray('ballot option grade gradeMax displayOrder')));
     $extras["vote$i"] = w\hidFld($vote);
-    $extras["note$i"] = w\hidFld('');
+//    $extras["note$i"] = w\hidFld('');
 	}
 }
 
@@ -199,11 +202,11 @@ function getOptsX($voter, $question, $type, $defaults) {
 function getOptsB($opti, $rowclass, $opttext, $optdetail, $defaults) {
 	$slider = "slider$opti";
 	$option = "option$opti";
-  $onchange = 'changepct($opti);';
+//  $onchange = 'changepct($opti);';
 
   $dft = @$defaults[$option];
   $sliderHtml = <<<EOF
-<input id="$slider" data-slider-id='$slider' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="$dft"/>
+<input id="$slider" data-slider-id='$slider' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="$dft" data-slider-handle="triangle" />
 EOF;
   $optionHtml = w\rendA($option, w\hidFld($dft));
 
@@ -214,7 +217,7 @@ EOF;
 $optStart
 <div class='sliderandpct'>
 <div class='gliss'>
-	<div id='sliderdiv$opti' style='float:left;'>$sliderHtml</div>
+	<div id='sliderdiv$opti' class='sliderN'>$sliderHtml</div>
 </div gliss>
 <div class='pct'>$optionHtml</div pct>
 <nothing />
@@ -233,7 +236,7 @@ function getOptsR($opti, $rowclass, $opttext, $optdetail, $defaults) {
 
   extract(u\just('min max minDft maxDft', $defaults));
   $sliderHtml = <<<EOF
-<input id="$slider" data-slider-id='$slider' type="text" data-slider-min="$min" data-slider-max="$max" data-slider-step="1" data-slider-value="[$minDft, $maxDft]" />
+<input id="$slider" data-slider-id='$slider' type="text" data-slider-min="$min" data-slider-max="$max" data-slider-step="1" data-slider-value="[$minDft, $maxDft]" data-slider-handle="triangle" />
 EOF;
   $optionHtml = w\rendA($option, w\hidFld($minDft))
               . w\rendA('max', w\hidFld($maxDft));
@@ -245,12 +248,26 @@ EOF;
 $optStart
 <div class='sliderandpct'>
 <div class='gliss'>
-	<div id='sliderdiv$opti' style='float:left;'>$sliderHtml</div>
+	<div id='sliderdiv$opti' class='sliderN'>$sliderHtml</div>
 </div gliss>
 <div class='pct'>$optionHtml</div pct>
 <nothing />
 </div sliderandpct>
 $optEnd
+EOF;
+}
+
+/**
+ * Return HTML for an "essay" type question.
+ */
+function getOptsE($opti, $rowclass, $opttext, $optdetail, $defaults) {
+	$votenote = "votenote$opti";	
+  $votenoteHtml = w\rendA($votenote, w\areaFld(BARE, '', @$defaults[$votenote]));
+
+	return <<<EOF
+<div class="optdetailE">
+<div id="votenotediv$opti">$votenoteHtml</div votenotediv$opti>
+</div><!--optdetailE-->
 EOF;
 }
 
@@ -288,7 +305,7 @@ function gradeInputs($opti, $defaults) {
     $onclick = "opts[$opti].nudgeGrade(this);";
     $vv = "<input type=\"radio\" name=\"$v\" onmousedown=\"$onclick\" value=\"$grade\" />";
 //		input($v, 'r', '', "onclick=\"nudgeGrade(this,$opti);\"", $grade); $vv = vv("input_$v");
-		if (round($oldval) == $grade) {  // this works even for E (0)
+		if (round($oldval) == $grade and $oldval >= 0) {  // this works even for E (0)
 			$val = $oldval;
 			$checked = ' CHECKED';
 			if ($sign = $val - $grade) $dpy .= '<sup>' . ($sign > 0 ? '+' : '<b>&ndash;</b>') . '</sup>';
@@ -304,17 +321,16 @@ function gradeInputs($opti, $defaults) {
 }
 
 function optStart($opti, $rowclass, $type, $defaults) {
-	$vetov = "veto$opti";	
-  $dft = @$defaults[$vetov];
-//input($vetov, 'b', '', "onclick='vetoclick$type($opti);'"); $vetovv = vv("input_$vetov");
-//  $onclick = "vetoclick$type($opti);";
-  $onclick = "opts[$opti].vetoClick();";
-  $vetovv = w\rendA($vetov, w\boxFld($vetov, '', '', $dft, w\attrib(compact('onclick'))));
+  $html = '';
+  foreach (['note', 'veto'] as $k) {
+    $v = "$k$opti";
+    $label = $k == 'note' ? t('Comment') : t('Veto');
+    $html .= w\rendA($v, w\boxFld($v, '', "<b>$label</b>", @$defaults[$v], w\onchange("opts[$opti].noteClick();")));
+  }
 	return <<<EOF
-<div id="#optRow$opti" class="optRow $rowclass"><div class='rowwrapper'>
-<div class='veto'>$vetovv</div veto>
+<div id="#optRow$opti" class="optRow $rowclass">
+<div class='veto'>$html</div veto>
 EOF;
-//<div class='veto'><input type="checkbox" id="veto$opti" name="veto$opti" onclick="vetoclick($opti);" /></div>
 }
 
 function optEnd($opti, $rowclass, $opttext, $optdetail, $defaults) {
@@ -326,14 +342,15 @@ function optEnd($opti, $rowclass, $opttext, $optdetail, $defaults) {
 <div class="item">
   <div class="optImgWrap">
     <img id="expand$opti" class="optImg" src="$rUrl/images/rvote/expand.gif" alt="show detail" title="show detail" width="13" height="13" onclick="expand($opti);" />
-  </div optImgWrap>
-$opttext</div item>
-<div id="optdetail$opti" class="optdetail">
-<div id="votenotediv$opti" class="votenotediv"><div class="votenoteheader">Reason for Veto*:</div votenoteheader>$votenoteHtml<br><span class="vetofootnote">* How is this option evil, immoral or unethical?</span></div votenotediv$opti>
-<div class="optdetailheader">OPTION DETAIL:</div optdetailheader><div id="optdetailtext$opti" class="optdetailtext">$optdetail<br>&nbsp;</div optdetailtext$opti>
-</div optdetail$opti>
+  </div><!--optImgWrap-->
+$opttext</div><!--item-->
 
-</div rowwrapper></div optRow $rowclass>\n\n
+<div id="optdetail$opti" class="optdetail">
+  <div id="votenotediv$opti" class="votenotediv">$votenoteHtml</div><!--votenotediv$opti-->
+  <div class="optdetailheader">OPTION DETAIL:</div><!--optdetailheader--><div id="optdetailtext$opti" class="optdetailtext">$optdetail<br>&nbsp;</div><!--optdetailtext$opti-->
+</div><!--optdetail$opti-->
+
+</div><!--optRow$opti-->\n\n
 EOF;
 }
 
@@ -342,16 +359,10 @@ function tableHeader($type) {
 	$leftarrow = "<img src='$rUrl/images/rvote/arrow-left.gif' alt='' />";
 	$rightarrow = "<img src='$rUrl/images/rvote/arrow-right.gif' alt='' />";
 
-	return $type == 'M' 
-	? "<div class='veto'>Veto</div>
-		 <div class='grades'>$leftarrow Bad | Good $rightarrow</div>
-		 <div class='item'>Options</div>"
-	: "<div class='veto'>Veto</div>";
-  
-/*		 <div class='slider'>$leftarrow Less | More $rightarrow</div>
-		 <div class='pct'>Percent</div>
-		 <div class='item'>Funding Option</div>
-*/  
+	if ($type == 'M') return <<<EOF
+<div class='grades'>$leftarrow Bad | Good $rightarrow</div>
+EOF;
+  return '';
 }
 
 /*
@@ -367,14 +378,11 @@ function specialhdrs($question_type) {
 }
 */
 
-function done() {
+function done($mya) {
   global $proxiesForThisVoter;
   include_once __DIR__ . '/rvote-results.inc';
 
-	$goform = goDemocracy();
-
 	if(ISDEMO) {
-    $mya = r\acct();
     $proxyCount = db\lookup('COUNT (DISTINCT voter)', 'r_ballots', 'proxy=:myid', ['myid' => $mya->id]) - 1;
     
 		$bodymiddle = <<<EOF
@@ -389,12 +397,107 @@ function done() {
 <h2>RESULTS</h2>
 EOF;
 
-		return $bodymiddle . showResults() . $goform; // show all results
+		return $bodymiddle . showResults($mya->community); // show all results
 	}
 
 	$bodymiddle = <<<EOF
 <h2>Thank You for Voting!</h2>
-$goform
+<p>Results will be announced here when the polls close. In the meantime, you may feel free to change any of your votes (simply sign in and select "Discussion & Voting" again on the Community menu).</p>
 EOF;
 	return $bodymiddle;
 }
+
+/**
+ * Show (to admin) a list of who voted and how they voted.
+ * This helps analyze flaws in the voting system (including question language).
+ * @param int $ctty: community record ID
+ * @param mixed $byVoter: boolean <order first by voter (not by question)> OR int single voter's record ID
+ * @param string $proxies: whether to include direct votes and proxy votes (direct, proxy, or both)
+ * @return the viewable list of votes
+ *
+ * @todo: For nonvoters maybe return <br>(You did not vote yet and neither did your proxy or alternate proxy, because they are not members of Greenfield rCredits.) 
+ */
+function showVotes($ctty, $byVoter = TRUE, $proxies = 'both') {
+  $subs = compact('ctty');
+  $crit = $proxies == 'direct' ? ' AND b.proxy=b.voter' : ($proxies == 'proxy' ? ' AND b.proxy<>b.voter' : '');
+  if ($byVoter > 1) { // specifying a single voter
+    $crit .= ' AND b.voter=:byVoter';
+    $subs += compact('byVoter');
+  } else v\showResults($ctty); // refigure results if showing more than one
+  
+  $order = $byVoter ? 'u.fullName,q.id' : 'q.id,u.fullName';
+//  $ballots = $byVoter > 1 ? '(SELECT b2.id, b1.voter, b2.question FROM r_ballots b1 INNER JOIN r_ballots b2 ON (b2.voter=b1.proxy AND b2.question=b1.question))' : 'r_ballots';
+
+  $sql = <<<EOF
+    SELECT DISTINCT q.id AS qId, b.id AS bId, b.voter, b.proxy, q.type AS qType, u.fullName, u.trust, b.question
+    FROM r_questions q 
+    INNER JOIN r_ballots b ON b.question=q.id 
+    INNER JOIN users u ON u.uid=b.voter
+    WHERE ctty=:ctty$crit ORDER BY $order
+EOF;
+
+  $qvQ = db\q($sql, $subs);
+  while ($qvRow = $qvQ->fetchAssoc()) {
+    extract($qvRow); // qId, bId, voter, qType, fullName, trust, question
+    if ($voter != $proxy) $bId = db\lookup('id', 'r_ballots', 'voter=:proxy AND question=:question', compact('proxy', 'question')); // this could be incorporated into query for efficiency
+    if (!@$qId1) $qId1 = $qId; // remember first question number
+    $grade = $gradeMax = $text = $isVeto = [];
+    $sql = <<<EOF
+      SELECT v.grade, v.gradeMax, v.text, v.isVeto 
+      FROM r_votes v INNER JOIN r_options o ON v.option=o.id 
+      WHERE v.ballot=:bId ORDER BY o.id
+EOF;
+    $vQ = db\q($sql, compact('bId'));
+    while ($vRow = $vQ->fetchAssoc()) {
+      $grade[] = $vRow['grade'];
+      $gradeMax[] = $vRow['gradeMax'];
+      $text[] = $vRow['text'];
+      $isVeto[] = $vRow['isVeto'];
+/*      foreach ($vRow as $k => $v) {
+        ; // $$k[] = $v not allowed, $$k[$i] = $v fails
+        $i++;
+      } */
+    }
+    $line = $texts = '';
+    for ($i = 0; $i < count($grade); $i++) {
+      if ($isVeto[$i] or $grade[$i] == BLANKGRADE) {
+        list ($char, $color) = $isVeto[$i] ? ['V', 'red'] : ['x', 'green'];
+        $line .= "<b style=\"color:$color;\">$char</b> &nbsp;";
+      } else {
+        if ($qType == 'M') $line .= v\letterGrade($grade[$i] / 3, FALSE) . ' ';
+        if ($qType == 'B') $line .= number_format($grade[$i] / BPCT2INT) . '&nbsp;.&nbsp;';
+      }
+      
+      if ($qType == 'R') $line .= ($grade[$i] == BLANKGRADE ? '' : number_format($grade[$i])) . ' - ' . number_format($gradeMax[$i]);
+      if ($text[$i]) $texts .= '--- ' . $text[$i] . '<br>';
+    }
+    if (strpos($line, '>V')) $line .= ' (V=veto)';
+    if (strpos($line, '>x')) $line .= ' (x=left blank)';
+    $line = $byVoter > 1 ? ($qType == 'E' ? '' : "$qId: $line<br>") : ("$qId: $fullName ($trust) -- $line<br>" . $texts);
+    $lines[] = $qId == $qId1 ? "<br>$line" : $line;
+  }
+  return join('', @$lines ?: []);
+}
+
+/**
+ * Return a list of members who haven't voted yet.
+ */
+function showNonVoters($ctty, $direct = TRUE) {
+  $subs = compact('ctty');
+  $voterFromBallots = $direct ? 'b.voter FROM r_ballots b' : 'b2.voter FROM r_ballots b2 INNER JOIN r_ballots b ON b.voter=b2.proxy';
+  $sql = <<<EOF
+    SELECT DISTINCT u.uid, trust FROM users u
+    LEFT JOIN (
+      SELECT $voterFromBallots INNER JOIN r_votes v ON v.ballot=b.id WHERE v.grade<>:BLANKGRADE
+    ) bv ON bv.voter=u.uid
+    WHERE u.community=:ctty AND bv.voter IS NULL AND !:IS_CO AND :IS_OK ORDER BY u.trust DESC
+EOF;
+
+  $q = db\q($sql, $subs);
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $a = r\acct($uid);
+    $lines[] = u\fmtPhone($a->phone) . ": $a->fullName<br>\n";
+  }
+  return join('', @$lines ?: []);
+}    

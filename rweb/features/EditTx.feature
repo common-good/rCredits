@@ -94,12 +94,12 @@ Scenario: A buyer disputes a charge
   When member ".ZZA" clicks "X" on transaction 100
   Then we show "tx desc passive|purpose|when|.|confirm tx action" with subs:
   | amount | otherName  | otherDid | purpose     | created   | txAction                        |*
-  | $80    | Corner Pub | charged  | ''this CF'' | %today-5d | request a refund of this charge |
+  | $80    | Corner Pub | charged  | "this CF" | %today-5d | request a refund of this charge |
   When member ".ZZA" confirms "X" on transaction 100
 #  When member ".ZZA" confirms form "history/transactions/period=5&do=no&xid=100" with values: ""
   Then we say "status": "report undo" with subs:
   | solution |*
-  | marked ''disputed'' |
+  | marked "disputed" |
   And we show "Transaction History" with:
   |_tid | Date   | Name       | From you | To you | Status   | _ | Purpose | Reward/Fee |
   |   3 | %dm-5d | Corner Pub | 80.00    | --     | disputed |   | this CF | 4.00       |
@@ -116,8 +116,8 @@ Scenario: A seller reverses a charge
   |   2 | %dm-5d | Abe One | --       | 80.00  | %chk   | X | this CF | 8.00       |
   When member "C:B" clicks "X" on transaction 100
   Then we show "tx desc active|purpose|when|.|confirm tx action" with subs:
-  | amount | otherName | did     | purpose     | created   | txAction            |*
-  | $80    | Abe One   | charged | ''this CF'' | %today-5d | reverse this charge |
+  | amount | otherName | did     | purpose   | created   | txAction            |*
+  | $80    | Abe One   | charged | "this CF" | %today-5d | reverse this charge |
   
 Skip
 Scenario: A member confirms OK

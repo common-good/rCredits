@@ -8,21 +8,23 @@ use rCredits\Testing as t;
 use rCredits\Web as w;
 use rCredits\Vote as v;
 
-function showResults() { // called from ballot if ISDEMO
-  $mya = r\acct();
-  list($quids, $qutypes) = getQuestions($mya->community); 
+function showResults($ctty, $noProxies = FALSE) { // called from ballot if ISDEMO
+  list($quids, $qutypes) = getQuestions($ctty); 
 
 	$ans = '';
-	foreach($quids as $one) $ans .= showResult($one, true) . '<hr>';
+	foreach($quids as $one) $ans .= showResult($one, $noProxies, TRUE);
 	return $ans;
 }
 
-function showResult($question, $withheader=false) {
+function showResult($question, $noProxies, $withheader = TRUE) {
 	global $thisvoter; // only if ISDEMO
 
 	$qu = db\lookup('type, text, budget, minveto', 'r_questions', 'id=:question', compact('question'));
+  if ($qu['type'] == 'E') return ''; // don't show essay results (and don't create ballots for them)
+  
 	$opts = optList($question);
-	$voters = getVoters($question);
+	$voters = getVoters($question, $noProxies); // create proxy ballots, get voters and their weights
+
 //	global $proxiesForThisVoter; if(ISDEMO) if($thisvoter) $voters[$thisvoter] = $proxiesForThisVoter;
 	$votesDirect = count($voters);
 	$votesAll = array_sum($voters); // total weights. not necessarily equal to total weight used, since vetos reduce effective weight
@@ -32,7 +34,7 @@ function showResult($question, $withheader=false) {
 }
 
 function optList($question) {
-	$q = db\q('SELECT id FROM r_options WHERE question=:question ORDER BY displayorder', compact('question'));
+	$q = db\q('SELECT id FROM r_options WHERE question=:question ORDER BY displayOrder', compact('question'));
 	while($row = $q->fetchAssoc()) $opts[] = $row['id'];
 
 	return @$opts ?: [];
@@ -51,14 +53,14 @@ function getResult($question, $quText, $quType, $budget, $tot, $votesDirect, $vo
   $prefHeads[1] = [
   'M' => "<th class='resultOption'></th><th colspan='$optCount'>Preferred Over:</th><th class='resultAverage'>Average</th><th></th>",
   'B' => "<th class='resultOption'></th><th></th><th></th><th>Percent</th><th colspan='2'>Budget</th><th class='resultAverage'>Average</th><th></th>",
-  'R' => "<th colspan='2'>Range</th><th colspan='2'>Result</th><th></th><th>Average</th><th>Average</th><th>Maximum</th>",
+  'R' => "<th colspan='2'>Range</th><th></th><th></th><th>Average</th><th>Average</th><th colspan='2'>Vetoed by 5%</th>",
   'E' => "",
   ];
   
   $prefHeads[2] = [
   'M' => "<th class='resultOption'>Option</th>",
   'B' => "<th class='resultOption'>Option</th><th>Result</th><th>Amount</th><th>of total</th><th>Min</th><th>Max</th><th class='resultVote'>Vote</th><th>Vetos</th>",
-  'R' => "<th>Min</th><th>Max</th><th>Min</th><th>Max</th><th>Acceptance</th><th>Min Chosen</th><th>Max Chosen</th><th>Unvetoed by 5%</th>",
+  'R' => "<th>Min</th><th>Max</th><th>Result</th><th>Acceptance</th><th>Min Chosen</th><th>Max Chosen</th><th>Min</th><th>Max</th>",
   'E' => "",
   ];
 
@@ -75,7 +77,7 @@ function getResult($question, $quText, $quType, $budget, $tot, $votesDirect, $vo
 
 		if ($quType == 'M') {
 			$prefHead[2] .= "<th>#$inum</th>";
-			$mid = result_midM($toti, $i);
+			$mid = result_midM($toti, $inum);
   		$middle .= "<tr><td class='optlinehdr'>$optlinehdr</td>$mid<td>$vetos</td></tr>\n";
 		} elseif ($quType == 'B') {
 			$min = $toti->minimum ? (number_format($toti->minimum, 0) . ($toti->mandatory ? '!' : '&nbsp;')) : '- &nbsp;';
@@ -87,8 +89,15 @@ function getResult($question, $quText, $quType, $budget, $tot, $votesDirect, $vo
 			$budgetdpy = ' (total budget: $' . number_format($budget, 0) . ')';
   		$middle .= "<tr><td class='optlinehdr'>$optlinehdr</td>$mid<td>$vetos</td></tr>\n";
 		} elseif ($quType == 'R') {
-      $middle .= "<br><td>$toti->minimum</td><td>$toti->maximum</td></tr>\n";
-      debug($toti);
+      $fields = u\ray('minimum maximum result acceptance lowAvg highAvg lowVeto highVeto');
+      foreach ($fields as $k) {
+        $v = $toti->$k === '' ? '-' : number_format($toti->$k, 0);
+//        if ($k == 'result' and $toti->acceptance+0 < (1 - $toti->qminveto)) $v = t('none');
+        if ($k == 'acceptance') $v = number_format($toti->$k * 100, 1) . '%';
+        $middle .= "<td>$v</td>";
+      }
+      $middle = "<tr>$middle</tr>\n";
+      $optTexts = '';
     }
 	}
   
@@ -115,8 +124,10 @@ EOF;
 }
 
 function result_midM($toti, $i) {
-	for ($j = 0, $eachpref = ''; $j < count($toti->prefs); $j++) {
+//  ksort($toti->prefs);
+	for ($j = 1, $eachpref = ''; $j <= count($toti->prefs); $j++) {
 		$prefij = ($i == $j) ? '- &nbsp;' : number_format(@$toti->prefs[$j], 0);
+//		$prefij = ($i == $j) ? '- &nbsp;' : number_format($v, 0);
 		$eachpref .= "<td>$prefij</td>";
 	}
 
@@ -170,12 +181,56 @@ function tallyResults($voters, $qtype, $qbudget, $qminveto, $opts, $skipoptid=''
 			}
 		} elseif (!$badtot->funds) $badtot->result = 'unfunded';
 	} elseif ($qtype == 'M') {
-		foreach($newtot as $k => $one) {
-      $one->prefs = $one->prefs ? array_combine($newKeys, $one->prefs) : array_fill(0, $newI, 0);
-      $newtot[$k] = $one;
+		foreach ($newtot as $k => $one) {
+      foreach ($newKeys as $index => $i) $newPrefs[$index + 1] = @$one->prefs[$i];
+      $newtot[$k]->prefs = $newPrefs;
     }
 	} elseif ($qtype == 'R') {
+    if ($voters) {
+      $hilo = <<<EOF
+        SELECT v.grade AS low, v.gradeMax AS high,
+          (SELECT COUNT(*) FROM r_votes WHERE grade<=v.grade AND `option` IN($optlist)) AS highOk,
+          (SELECT COUNT(*) FROM r_votes WHERE gradeMax>=v.gradeMax AND `option` IN($optlist)) AS lowOk
+        FROM r_votes v WHERE v.option IN($optlist)
+EOF;
+      $sql = <<<EOF
+        SELECT low, high, lowOk, highOk, IF(highOk < lowOk, low, high) AS result, LEAST(highOk, lowOk) AS accepted
+        FROM ($hilo) x ORDER BY LEAST(highOk, lowOk) DESC LIMIT 1
+EOF;
+      $res = db\q($sql)->fetchAssoc();
+      extract($res);
+      $acceptance = $accepted / count($voters);
+    } else $result = $acceptance = 0;
+
+    $sql = <<<EOF
+      SELECT AVG(grade) AS lowAvg, AVG(gradeMax) AS highAvg
+      FROM r_votes WHERE `option` IN($optlist)
+EOF;
+    $res = db\q($sql)->fetchAssoc();
+    extract($res);
     
+    $vetoLimit = count($voters) * $qminveto; // must have fewer voters than this vetoing the min and max
+    $vetoCount = <<<EOF
+      SELECT COUNT(*) FROM r_votes v2 
+      WHERE v2.isVeto AND v2.gradeMax <= v.gradeMax AND v2.option IN($optlist)
+EOF;
+    $sql = <<<EOF
+      SELECT gradeMax AS highVeto FROM r_votes v 
+      WHERE v.isVeto AND ($vetoCount) >= $vetoLimit AND v.option IN($optlist)
+EOF;
+    if ($res = db\q($sql)->fetchAssoc()) extract($res); else $highVeto = '';
+
+    $vetoCount = <<<EOF
+      SELECT COUNT(*) FROM r_votes v2 
+      WHERE v2.isVeto AND v2.grade >= v.grade AND v2.option IN($optlist)
+EOF;
+    $sql = <<<EOF
+      SELECT grade AS lowVeto FROM r_votes v 
+      WHERE v.isVeto AND ($vetoCount) >= $vetoLimit AND v.option IN($optlist)
+EOF;
+    if ($res = db\q($sql)->fetchAssoc()) extract($res); else $lowVeto = '';
+    
+    u\preray(compact(u\ray('result acceptance lowAvg highAvg lowVeto highVeto qminveto')), $newtot[0]);
   }
 
 	return $newtot;
@@ -247,32 +302,42 @@ function scoreB(&$toti, $budget, $minveto, $optCount, $totalGrades) {
 	} else return $score;
 }
 
-function getVoters($question) {
+function getVoters($question, $noProxies = FALSE) {
   global $proxiesForThisVoter, $thisvoter;
 
+  db\q('DELETE FROM r_ballots WHERE proxy<>voter AND question=:question', compact('question'));
+  db\q("DELETE r_votes FROM r_votes LEFT JOIN r_ballots ON ballot=r_ballots.id WHERE grade=:BLANKGRADE AND (text='' OR text IS NULL) AND question=:question", compact('question'));
   // Create ballots for all nonvoters whose proxy has voted (first level proxy first, if both proxies have voted)
   $proxiesTable = <<<EOF
     SELECT p2.person, p2.proxy, u.community FROM r_proxies p2 
     INNER JOIN users u ON u.uid=p2.person 
-    WHERE u.:IS_MEMBER
-    ORDER BY p2.priority
+    WHERE u.:IS_MEMBER AND p2.priority=:priority
 EOF;
 
   $sql = <<<EOF
     INSERT INTO r_ballots (question, voter, proxy, created)
     SELECT DISTINCT :question, p.person, b.proxy, :now
     FROM ($proxiesTable) p
-    INNER JOIN r_ballots b ON b.id=p.proxy
-    INNER JOIN r_questions q ON q.id=b.question
-    LEFT JOIN r_ballots b0 ON b0.id=p.person
-    WHERE b.question=:question AND p.community=q.ctty AND b0.id IS NULL
+    INNER JOIN r_ballots b ON (b.voter=p.proxy AND b.created<>:justCreated AND b.question=:question)
+    INNER JOIN r_questions q ON (q.id=b.question AND q.ctty=p.community)
+    LEFT JOIN r_ballots b0 ON (b0.voter=p.person AND b0.question=q.id)
+    WHERE b0.id IS NULL
 EOF;
 
+  $priority = 1; // start with first choice
+  $failsInARow = 0;
   do {
-    $q = db\q($sql, u\ray('question now', $question, time()));
-  } while ($q->rowCount());
+    $justCreated = ($priority == 1) ? time() + 999 : $now; // "now" is time of previous query
+    $now = time();
+    $q = db\q($sql, $subs = compact(u\ray('question now justCreated priority')));
+    $priority = 3 - $priority; // toggle 1 or 2
+    if ($failsInARow = $q->rowCount() ? 0 : ($failsInARow + 1)) sleep(1); // let the creation time progress
+///    debug(compact('sql', 'subs', 'failsInARow', 'question'));
+///    debug($q->rowCount());
+  } while ($failsInARow < 2);
   
-	$q = db\q('SELECT proxy AS voter, COUNT(id) AS weight FROM r_ballots WHERE question=:question GROUP BY proxy', compact('question'));
+  $fld = $noProxies ? 'voter' : 'proxy';
+	$q = db\q("SELECT $fld AS voter, COUNT(id) AS weight FROM r_ballots WHERE question=:question GROUP BY $fld", compact('question'));
 	while($row = $q->fetchAssoc()) { // for each voter
 		extract($row); 
 //		if(ISDEMO) $weight = $voter == $thisvoter ? $proxiesForThisVoter : rand(1, 20);
@@ -287,14 +352,11 @@ function tallyVoter(&$tot, $voter, $quType, $optlist, $weight) {
 //	$crit = "voter='$voter' AND question='$question'";
 	$crit = "b.voter=:voter AND v.option IN($optlist)";
   $sql = <<<EOF
-    SELECT v.option, v.grade, v.displayOrder AS gradeMax, x.text 
-    FROM ($tnm) 
-    LEFT JOIN r_votenotes x ON x.vote=v.id 
-    LEFT JOIN r_vetoes 
-    WHERE $crit ORDER BY v.option
+    SELECT v.option, v.grade, v.gradeMax, v.text, v.isVeto
+    FROM ($tnm) WHERE $crit ORDER BY v.option
 EOF;
 	$q = db\q($sql, compact('voter'));
-	if ($vetoCount = db\count($tnm, "$crit AND v.grade=:grade", u\ray('voter grade', $voter, VETOGRADE))) {
+	if ($vetoCount = db\count($tnm, "$crit AND v.isVeto", compact('voter'))) {
 	  $vetoWeight = $weight / $vetoCount; // split one veto among the vetoed options
 	  $weight -= $weight * ($vetoCount / $q->rowCount()); // reduce weight proportionately for each veto
   } else $vetoWeight = 0;
@@ -308,22 +370,22 @@ EOF;
  * Tally each option as voted
  */
 function tallyVote(&$tot, $quType, $info, $weight, $vetoWeight, &$voterGrades) {
-  extract(u\just('option grade gradeMax text', $info));
+  extract(u\just('option grade gradeMax text isVeto', $info));
 	if(($quType == 'B') or ($grade != BLANKGRADE)) { // don't count ungraded opts; but blank B option means 0%, so count it
 		$tot[$option]->weight += $weight;
-		if($grade == VETOGRADE) $tot[$option]->vetos += $vetoWeight; else $tot[$option]->grade += $weight * $grade;
+		if (@$isVeto) $tot[$option]->vetos += $vetoWeight; else $tot[$option]->grade += $weight * $grade;
 	}
 	if($quType == 'M') foreach($voterGrades as $otheropt => $othergrade) { // for each other option already tallied
 		if($othergrade != $grade) {
 			list ($i, $j) = u\order($grade < $othergrade, $otheropt, $option); // i is preferred to j
-			if ($grade != BLANKGRADE and $othergrade != BLANKGRADE) {
-        $tot[$i]->prefs[$j] = @$tot[$i]->prefs[$j] + $weight; // ignore blanks
+			if ($grade != BLANKGRADE and $othergrade != BLANKGRADE) { // ignore blanks
+        $tot[$i]->prefs[$j] = @$tot[$i]->prefs[$j] + $weight;
       }
 		}
 	}
 	$voterGrades[$option] = $grade;
   if ($quType == 'R') $voterGrades['max'] = $gradeMax;
-	if($text) {
-		if($grade == VETOGRADE) $tot[$option]->veto_texts[] = $text; else $tot[$option]->canceled_vetotexts[] = $text;
+	if(@$text) {
+		if(@$isVeto) $tot[$option]->veto_texts[] = $text; else $tot[$option]->canceled_vetotexts[] = $text;
 	}
 }

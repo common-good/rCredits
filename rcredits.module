@@ -176,6 +176,11 @@ function f($func) {
   global $cronOp; $cronOp = ONE_CRON_OP; // just in case we use cr.
   if (substr($func, 0, 2) == 'a.') include_once __DIR__ . '/admin/admin.inc';
   if (substr($func, 0, 2) == 'y.') include_once __DIR__ . '/rcredits-yearly.inc';
+  if (substr($func, 0, 2) == 'v.') {
+    include_once __DIR__ . '/rvote/rvote.inc';
+    include_once __DIR__ . '/rvote/rvote-ballot.inc';
+    include_once __DIR__ . '/rvote/rvote-results.inc';
+  }
   $args = func_get_args();
   if (strpos($func, ' ') and count($args) == 1) $args = u\ray($args[0]);
   $func = array_shift($args);
@@ -190,7 +195,7 @@ function f($func) {
  */
 function funcNickname($func) {
   list ($n, $func) = explode('.', $func);
-  $funcs = u\ray('r w s u be db t p a cr y', '', 'Web', 'Smart', 'Util', 'Backend', 'DB', 'Testing', 'SMS', 'Admin', 'Cron', 'Special');
+  $funcs = array_combine(u\ray('r w s u be db t p a cr y v'), u\ray(' Web Smart Util Backend DB Testing SMS Admin Cron Special Vote'));
   return 'rCredits\\' . ($funcs[$n] ? $funcs[$n] . '\\' : '') . $func;
 }
 

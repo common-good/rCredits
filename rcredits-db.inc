@@ -124,11 +124,13 @@ function records($table, $where = '1', $subs = [], $fields = '*') {
 }
 
 /**
- * Return a list of matching data.
+ * Return an array of matching data.
  */
+function col($field, $table, $where = '1', $subs = []) {
+  return db\q("SELECT $field FROM $table WHERE $where", $subs)->fetchCol();
+}
 function lst($field, $table, $where = '1', $subs = []) { // lst because "list" is a reserved word
-  $ray = db\q("SELECT $field FROM $table WHERE $where", $subs)->fetchCol();
-  return join(', ', $ray);
+  return join(', ', db\col($field, $table, $where, $subs));
 }
 
 /**
@@ -153,4 +155,3 @@ function setData($table, $id, $values) {
 
 function count($table, $where = '1', $subs = []) {return db\lookup('COUNT(*)', $table, $where, $subs);}
 function max($field, $table, $where = '1', $subs = []) {return db\lookup("MAX($field)", $table, $where, $subs);}
-

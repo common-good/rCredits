@@ -10,8 +10,10 @@
  * when you run the compiler again. This @file description will not be affected,
  * but all of the function header comments are (re)generated automatically.
  *
- * Be assured however, that no functions will be deleted and the compiler will
- * never delete or alter code within a function.
+ * Be assured that no functions will be deleted and the compiler will
+ * not alter code within a function unless you make it look like a function header.
+ *
+ * You may also add statements just below this header (for example "use" and "require_once").
  */
 
 use rCredits as r;
@@ -20,29 +22,19 @@ use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
-require_once __DIR__ . '/../rcredits.inc';
-require_once __DIR__ . '/../rcredits-testing.inc';
-require_once __DIR__ . '/../rsmart/rsmart.inc';
+require_once __DIR__ . '/../defs.inc';
 
-/**
- * Add additional setup for any or all features or tests
- * The feature object contains information about the current feature and test, etc.
- */
-function extraSetup($feature) {
-  t\clear(TX_POS);
-  if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
-    $line = str_replace('%last_qid', r\qid(r\Acct::nextId() - 1), $line);
-  }}
+if (basename($_SERVER['SCRIPT_FILENAME']) != 'compile.php') {
+  require_once __DIR__ . '/../rcredits.inc';
+  require_once __DIR__ . '/../rcredits-testing.inc';
+  require_once __DIR__ . '/../rsmart/rsmart.inc';
 }
 
 /**
- * Modify the standard list of magic substitutions (the %parameters)
+ * Add additional setup for any or all features or tests
  */
-function extraSubs(&$subs) {
-//  $subs['%replace_this'] = 'with this';
-  $subs['%now'] = REQUEST_TIME;
-  $subs['%now-1min'] = $subs['%now'] - 1 * 60;
-  $subs['%now-1hour'] = $subs['%now'] - 1 * 60 * 60;
+function extraSetup() {
+  t\clear(TX_POS);
 }
 
 /**
@@ -184,7 +176,8 @@ function agentAsksDeviceForAPictureOfMemberWithCardCode($agent, $device, $member
  */
 function memberHasPicture($id, $picture) {
   global $testOnly; if ($testOnly) return FALSE;
-  return t\makePicture($picture, r\acct(t\uid($id)));
+  if (!$a = r\acct(t\uid($id))) return t\output("Not an account: $id");
+  return t\makePicture($picture, $a);
 }
 
 /**
@@ -351,7 +344,7 @@ function withUndo($subs) {
   
   if (is_array($subs)) {
     if ($got) $subs = $subs[0]; else return !$subs;
-    $subs['created'] = t\lastMinuteSubs($subs['created']);
+//    $subs['created'] = t\lastMinuteSubs($subs['created']);
     $undo = u\tt('confirm undo', $subs);
   } else $undo = $subs;
 /**/  t\output("Expecting undo: $undo\nGot: $got");

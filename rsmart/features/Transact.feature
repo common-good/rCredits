@@ -9,12 +9,12 @@ SO my company can sell stuff, give refunds, and trade rCredits for US Dollars.
 Setup:
   Given members:
   | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags                | helper |*
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,confirmed,bona    |        |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,confirmed,bona    |        |
+  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,confirmed,bona    | 0      |
+  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,confirmed,bona    | 0      |
   | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,confirmed,bona | .ZZA   |
-  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,confirmed,bona    |        |
+  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,confirmed,bona    | 0      |
   | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,bona,secret       | .ZZD   |
-  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,confirmed,bona |        |
+  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,confirmed,bona | 0      |
   And devices:
   | id   | code |*
   | .ZZC | devC |

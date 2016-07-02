@@ -1,9 +1,11 @@
 var letters = 'EDCBA';
 var optTypes = 'BMR';
+var opti;
 var opts = [];
 $('.optRow').each(function() {
-  opt = opti($(this).attr('id'));
-  opts[opt] = new Opt(opt, $(this).find('.gliss input'));
+  opti = optI($(this).attr('id'));
+  opts[opti] = new Opt(opti, $(this).find('.gliss input'));
+  if (opts[opti].slider != null) opts[opti].slider.bootstrapSlider('refresh'); // rerun slider formatter
 });
 
 /**
@@ -14,6 +16,7 @@ $('.optRow').each(function() {
 function Opt(i, slider) {
   this.i = i;
   this.veto = $('#edit-veto' + i);
+  this.note = $('#edit-note' + i);
 	this.votenotediv = $('#votenotediv' + i);
   this.votenote = $('#votenotediv' + i + ' textarea');
   this.optdetail = $('#optdetail' + i);
@@ -61,26 +64,28 @@ function Opt(i, slider) {
     }
   }
 
-  this.vetoClick = function() {
-    this.lastMod = now();
+  this.noteClick = function() {
     var doVeto = this.veto.prop('checked');
-    this.optdetail.toggle(doVeto);
-    this.votenotediv.toggle(doVeto);
+    if (!doVeto && this.votenote.val() != '') this.note.prop('checked', true);
+    var show = doVeto || this.note.prop('checked');
+    this.optdetail.toggle(show);
+    this.votenotediv.toggle(show);
     this.votenote.prop('required', doVeto);
     if (doVeto) {
       if (this.grades.length > 0) {
         this.grades.find('input:checked').prop('checked', false);
         this.resetGrades();
       }
-      if (this.type == 'B') this.setSlider(0);
-      this.votenote.focus();
-    }
+      if (this.type == 'B') this.setSlider(0); else this.lastMod = now();
+      this.votenote.prop('placeholder', 'Reason for Veto: How is this option evil, immoral or unethical?');
+    } else this.votenote.prop('placeholder', 'Comments / Suggestions for improvement');
+    if (show) this.votenote.focus();
   }
 
   this.clearVeto = function() {
     if (this.veto.prop('checked')) {
       this.veto.prop('checked', false);
-      this.vetoClick();
+      this.noteClick();
     }
   }
 
@@ -91,68 +96,67 @@ function Opt(i, slider) {
       tooltip: 'always',
       tooltip_split: this.type == 'R',
       formatter: function(v) {
-        var me = opts[opti(this.id)]; // "this" is the slider, not the Opt object
-        var pct = me == null ? this.percent : me.percent; // slider formats while constructing
-        if (pct) v += '%'; else v = '$' + v.toLocaleString(); // maybe use accounting.js here
+        var me = opts[optI(this.id)]; // "this" is the slider, not the Opt object
+        v = roundTo(v, 2);
+        if (me != null && me.type == 'B') v += '%'; else v = '$' + v.toLocaleString(); // maybe use accounting.js here
         return v;
       }
     });
-
-    this.percent = (slider.bootstrapSlider('getAttribute', 'max') == 100);
     
     /**
      * Set a slider to a value (type == 'B' only)
      */
-    this.setSlider = function(v) {
-      v = Math.round(Math.max(0, Math.min(100, v)));
+    this.setSlider = function(v0, setTime) {
+      v = Math.round(Math.max(0, Math.min(100, v0)));
       this.slider.bootstrapSlider('setValue', v);
       this.input.val(v);
-      this.lastMod = now();
+      if (setTime == null || setTime || v != v0) this.lastMod = now();
+
+      var over, oldestI;
+      if (over = optsTotal() - 100) {
+        oldestI = oldestOpt(this.i, over);
+        if (oldestI >= 0) opts[oldestI].setSlider(opts[oldestI].input.val() - over, false);
+      }
     }
 
     /**
      * Handle a change in a slider setting.
      */
     this.slider.on('slideStop', function(slideEvt) {
-      var me = opts[opti(this.id)]; // "this" is the slider, not the Opt object
+      var me = opts[optI(this.id)]; // "this" is the slider, not the Opt object
       me.lastMod = now();
       me.clearVeto(); // clear veto, if grading
       var v = slideEvt.value;
       if (Array.isArray(v)) { // me.type == 'R'
         me.max.val(v[1]);
         me.input.val(v[0]);
-      } else { // me.type == 'B'
-        me.input.val(v);
-        var over, oldest;
-        while (over = optsTotal() - 100) {
-          oldest = oldestOpt();
-          if (oldest == null) break;
-          oldest.setSlider(oldest.input.val() - over);
-        }
-      }
+      } else me.setSlider(v); // me.type == 'B'
     });
 
   } //else this.type = this.grades.length > 0 ? 'M' : '?';
 
-  this.vetoClick();
+  this.noteClick();
   this.lastMod = 0;
 }
 
-function opti(s) {return s.replace(/^\D+/g, '');}
+function optI(s) {return s.replace(/^\D+/g, '');}
 
 function now() {return (new Date()).getTime();}
 
 /**
- * Return the last opt modified (null if not all have been set)
+ * Return the last eligible opt modified (null if not all have been set)
+ * @param Opt myI: index to an Opt to disqualify from being oldest (the current one)
+ * @param int over: by how much we need to reduce something
  */
-function oldestOpt() {
-  var i, oldest;
+function oldestOpt(myI, over) {
+  var i, oldest, v;
   var oldness = now();
   for (i = 0; i < opts.length; i++) {
-    if (opts[i].lastMod < oldness) {
-      if (opts[i].lastMod == 0) return null;
-      oldest = opts[i];
-      oldness = oldest.lastMod;
+    v = opts[i].input.val();
+    if (i != myI && opts[i].lastMod < oldness && (over < 0 ? (v < 100) : (v > 0))) {
+//      if (opts[i].lastMod == 0) return -1;
+      oldest = i;
+      oldness = opts[oldest].lastMod;
     }
   }
   return oldest;
@@ -189,51 +193,17 @@ function expand(i) { // if i<0 expand only
 	img.title = img.alt;
 }
 
-function goback(optcount, qtype) {
-	var goback = byid('goback'); 
-	if(!checkform(goback.form, optcount, qtype)) return false;
-	goback.value = 1; 
-alert(goback.value);
-alert(goback.id);
-	goback.form.submit();
-}
+function roundTo(num, n) {
+  if (num == 0) return 0;
 
-function checkform(form, optcount, qtype) {
-	var vetoi, vetonotei, gradei, checked;
+  var absNum = num < 0 ? -num: num;
+  var d = Math.ceil(Math.log(absNum)/Math.log(10)); // MSIE 11 does not support Math.log10()
+  var power = n - d;
 
-	for(var opti=0, blanks=0, vetos=0; opti<optcount; opti++) {
-		vetoi = byid('input_veto' + opti);
-		vetonotei = byid('input_vetonote' + opti);
-		if(vetoi.checked && (vetonotei.value.length < 2)) return formerr(vetonotei, 'If you veto an option, you have to say why.');
-
-		if(qtype == 'M') {
-			gradei = form.elements['option' + opti]; // can't use byid because this is a radio button set
-			for(var gi=0, isblank=true; gi<gradei.length; gi++) if(gradei[gi].checked) isblank = false;
-		} else {
-			gradei = byid('input_option' + opti);
-			isblank = (gradei == 0);
-		}
-		if(vetoi.checked) vetos++; else if(isblank) blanks++;
-	}
-	if(blanks) {
-		var blankmsg = 'You left %d options ungraded. Okay?';
-		blankmsg = blankmsg.replace('%d', blanks);
-		if(qtype == 'B') blankmsg = blankmsg.replace('ungraded', 'unfunded');
-		if(!confirm(blankmsg)) return false;
-	}
-	if(optcount - vetos < 0) { // this restriction is UNUSED
-		var vetomsg = 'Too many vetos. We will count them as "E" instead. Okay?';
-		if(!confirm(vetomsg)) return false;
-	}
-	return true;
-}
-
-function formerr(fld, msg) {
-	alert(msg);
-	fld.focus();
-	return false;
+  var magnitude = Math.pow(10, power);
+  var shifted = Math.round(num * magnitude);
+  return shifted / magnitude;
 }
 
 function byid(s) {return document.getElementById(s);}
-
 function fmtAmt(n) {return n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,');}

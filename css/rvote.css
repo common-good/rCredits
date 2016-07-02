@@ -35,7 +35,7 @@ h3 { margin-bottom:0px; }
 .ballot div.optRow { clear:both; text-align:left; vertical-align:top; border-top:1px solid silver; overflow:hidden; display:block; width:100%; }
 .ballot .row1 { background-color: #ECFFFF; }
 .ballot .row2 { background-color: #ECFFEC; }
-.ballot div.rowwrapper { background-color:inherit; }
+/* .ballot div.rowwrapper { background-color:inherit; } */
 
 .ballot div.optionheader div { font-size:12px; color:darkblue; font-weight:bold; padding-top:0px; }
 .ballot div#submitline { text-align:left; padding:15px; border-top:1px solid silver; }
@@ -43,28 +43,35 @@ h3 { margin-bottom:0px; }
 .ballot div.backlink a { text-decoration:none; color:darkgreen; font-weight:bold; }
 .ballot div.backlink a:hover { color:darkblue; }
 
-.ballot .item { float:left; text-align:left; width:450px; padding: 3px 0 10px 20px; background-color:inherit; }
+.ballot .item { float:left; text-align:left; width:100%; padding: 3px 20px 10px 5px; background-color:inherit; }
 .ballot .item .optImgWrap { float:left; width:20px; min-height:25px; }
 .ballot .item .optImg { visibility:hidden; }
 .ballot .optionheader .item {padding-left:40px;}
 
-.ballot div.veto { float:right; width:35px; text-align:right; padding-top:3px; clear:right; background-color:inherit; }
-.ballot div.votenotediv { float:right; width:377px; height:200px; display:none; overflow:hidden; margin-bottom:10px; padding-left:10px; color:red; background-color:inherit; }
-.ballot div.votenotediv textarea  { width:375px; height:140px; }
+.ballot div.veto { float:right; width:auto; text-align:right; padding-top:3px; clear:right; background-color:inherit; font-weight:bold; }
+.ballot div.veto .checkbox { display:inline-block; margin-right:15px; margin-left:15px; }
+.ballot div.votenotediv { float:right; width:100%; height:160px; display:none; overflow:hidden; margin-bottom:10px; padding-left:10px; color:red; background-color:inherit; padding:0 25px 0 25px; }
+.ballot div.votenotediv textarea  { width:375px; height:140px; width:100%;}
 .ballot div.votenoteheader { display:inline; padding:5px; padding-bottom:0px; background-color:darkred; color:white; font-weight:bold; }
 
-.ballot div.optdetail { clear:left; overflow:hidden; display:none; text-align:left; background-color:inherit; }
+.ballot div.optdetail { clear:left; overflow:visible; display:none; text-align:left; background-color:inherit; }
+.ballot div.optdetailE { margin:0 20px 0 15px; }
 .ballot div.optdetailheader { display:inline; padding:5px; padding-bottom:0px; margin:0 5px 0 10px; background-color:black; color:white; font-weight:bold; }
 .ballot div.optdetailtext { display:block; padding-top:5px; max-height:150px; overflow:-moz-scrollbars-vertical; overflow:scroll; overflow-x:hidden; background-color:inherit; }
 
 /* Sliders and Percentage */
-.ballot div.sliderandpct { float:left; width:285px; height:35px; background-color:inherit; }
-.ballot div.slider { float:left; width:525px; text-align:center; background-color:inherit; }
+.ballot .sliderandpct { float:left; width:100%; padding-right:30px; height:60px; background-color:inherit; }
+.ballot .gliss {width:100%;}
+.ballot .slider { float:left; width:100%; text-align:center; background-color:inherit; }
+.slider.slider-horizontal .slider-track {height:20px;}
+.slider-handle {width:60px; height:60px; margin-left:-25px; margin-top:-10px;}
+.slider.slider-horizontal .slider-handle.triangle {border-width: 0 30px 30px 30px; margin-left:-30px;}
+.ballot .sliderN {width:100%;}
 .ballot div.pct { float:left; width:60px; text-align:right; font-family:Arial; font-size:14px; background-color:inherit; }
 .ballot div.pct input { width:40px; text-align:right; font-family:Arial; font-size:14px; border:0px; margin-top:4px; }
 
 /* Grade formatting and positioning */
-.ballot div.grades { float:left; width:125px; height:45px; background-color:inherit; }
+.ballot div.grades { float:left; width:125px; height:45px; margin-left:10px; background-color:inherit; }
 .ballot div.optionheader div.grades { text-align:center; height:20px; }
 .ballot div.gradeheader, .ballot div.gradeinputs { display:block; }
 .ballot div.gradeheader table { width:125px; background-color:inherit; }

@@ -69,6 +69,7 @@ function tableDefs($schema = []) {
     'stats' => setupField('account statistics', 'text medium'),
     'notices' => setupField('when to send what kind of notice', 'text tiny'),
 //    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
+    'special' => setupField('special transient data', 'text big'),
   );
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: []) + $fields;
@@ -366,7 +367,7 @@ function tableDefs($schema = []) {
   // table r_invites
   $fields = array(
     'id' => setupField('record id', 'serial big'),
-    'code' => setupField('secret invitation code', 'varchar 20'),
+    'code' => setupField('secret invitation code', 'varchar 64'),
     'email' => setupField('email of invitee', 'varchar 255'), // encrypted/searchable
     'inviter' => setupField('uid of inviting member', 'int big', 0),
     'invitee' => setupField('uid of invited new member', 'int big', 0), // 0 if not accepted yet
@@ -501,7 +502,7 @@ function tableDefs($schema = []) {
   $indexes = index('question');
   $schema['r_options'] = setupTable('Options for a question to be voted on', $fields, 'id', $foreignKeys, $indexes);
 
-  // table r_pairs
+  // table r_pairs (not currently used)
   $fields = [
     'id' => setupField('pairs record id', 'serial big'),
     'option1' => setupField('record id of one option', 'int big', 0),
@@ -534,8 +535,11 @@ function tableDefs($schema = []) {
     'id' => setupField('vote record id', 'serial big'),
     'ballot' => setupField('ballot on which this option is being graded', 'int big', 0),
     'option' => setupField('option being graded', 'int big', 0),
-    'grade' => setupField('grade given by a particular voter for this option', 'int', -2), // In a B vote, this is 10 * the pct (ddd.d) else 3*letter (-2=blank -3=veto); in range-type vote this is the voter's chosen min
-    'displayOrder' => setupField('what order options were shown in to this voter', 'int', 0), // 0 is first; range-type votes this is the voter's chosen max
+    'grade' => setupField('grade given by a particular voter for this option', 'int', -1), // In a B vote, this is 10 * the pct (ddd.d) else 3*letter (-1=blank -2=veto); in range-type vote this is the voter's chosen min
+    'gradeMax' => setupField('maximum grade given by a particular voter for this range-type option', 'int', -1),
+    'displayOrder' => setupField('what order options were shown in to this voter', 'int', 0), // 0 is first
+    'text' => setupField('what was voter\'s comment or moral objection to this option', 'text big'),
+    'isVeto' => setupField('this is a veto (not a canceled veto or mere comment)', 'int tiny', 0),
     'modified' => setupField('date/time last modified', 'int 11', 0),
   ];
   $foreignKeys = foreignKey('ballot', 'id', 'r_ballots') + foreignKey('option', 'id', 'r_options');
@@ -543,16 +547,16 @@ function tableDefs($schema = []) {
   $schema['r_votes'] = setupTable('What grade a particular voter gave a particular option (for a particular question) on a particular question ballot', $fields, 'id', $foreignKeys, $indexes);
 
   // table r_votenotes
+  /*
   $fields = [
     'id' => setupField('veto record id', 'serial big'),
     'vote' => setupField('what option (on a particular ballot) did the voter veto or comment on', 'int big', 0),
-    'text' => setupField('what was voter\'s comment or moral objection to this option', 'text tiny'),
-    'isVeto' => setupField('this is a veto (not a canceled veto or mere comment)', 'int tiny', 0),
     'modified' => setupField('date/time last modified', 'int 11', 0),
   ];
   $foreignKeys = foreignKey('vote', 'id', 'r_votes');
   $indexes = index('vote');
   $schema['r_votenotes'] = setupTable('Details about a voter\'s veto of a particular option', $fields, 'id', $foreignKeys, $indexes);
+  */
   
   // table r_nonmembers (use -make instead)
 /*  $fields = array(

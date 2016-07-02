@@ -225,7 +225,7 @@ class X {
   //  if ($t_state < TX_DONE) return; // don't change totals if transaction doesn't count (yet)
     if ($uid <= 0) return TRUE; // cache only usd for community and region
 
-    $a = r\acct($uid);
+    if (!$a = r\acct($uid)) return FALSE;
     $cache = $a->account('r rewards committed lastTx access');
     if ($channel != TX_CRON) $cache->access = r\rTime(); // track last transaction or login (just major access)
 

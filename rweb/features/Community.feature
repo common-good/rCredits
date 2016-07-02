@@ -60,11 +60,14 @@ Setup:
   # total rewards < total r, because we made a grant, a loan, and a fine.
   
 Scenario: cron calculates the statistics
-  Given cron runs "acctStats"
+  Given members have:
+  | id   | fullName           |*
+  | ctty | rCredits ZZ Region |
+  When cron runs "acctStats"
   And cron runs "cttyStats"
-  When member ".ZZA" visits page "community/graphs"
+  And member ".ZZA" visits page "community/graphs"
   Then we show "Statistics" with:
-  | | for %regionName |
+  | Community: | rCredits ZZ Region |
   |_rCredits Accounts: | 2 members + 1 co |
   |_Funds in the rCredits System: | $6,823.70 |
   |_rCredits Circulation Velocity: | 4.0% per mo. |

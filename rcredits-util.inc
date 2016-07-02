@@ -1300,15 +1300,15 @@ function starts($s, $starts, $noCase = FALSE) {return abbreviates($starts, $s, $
 
 /**
  * Return the time with some number of months added (or subtracted)
- * @param int $months: how many months to add (may be negative)
+ * @param int $n: how many months to add (may be negative)
  * @param int $time: starting time (defaults to current time)
  * @return int: the resulting time, same day of month if possible, otherwise last day of month.
  * strtotime() should do this, but it actually returns March 2nd for strtotime('-1 month', strtotime('3/30/2014'))
  */
-function plusMonths($months, $time = '') {
-  if ($time === '') $time = r\rTime();
-  if ($months > 0) $months = '+' . $months;
-  $res = strtotime($months . 'months', $time);
+function plusMonths($n, $time = '') {
+  if ($time === '') $time = time();
+  if ($n > 0) $n = '+' . $n;
+  $res = strtotime($n . ' months', $time);
   $day = date('d', $res);
   return $day == date('d', $time) ? $res : strtotime(-$day, $res); // use last day of month if same day fails
 }

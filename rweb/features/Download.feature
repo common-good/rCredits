@@ -47,6 +47,9 @@ Setup:
   | .ZZC | 3320 |     270 |
 
 Scenario: A member downloads transactions for the past year
+  Given members have:
+  | id   | fullName |*
+  | ctty | ZZrCred  |
   When member ".ZZA" visits page "history/transactions/period=365&download=1"
   Then we download "rcredits%todayn-12m-%todayn.csv" with:
   # For example rcredits20120525-20130524.csv
@@ -59,7 +62,7 @@ Scenario: A member downloads transactions for the past year
   | 4   | %ymd-3m | Bea Two |           |      240 |        | what G     |     12 | -228 |
   | 3   | %ymd-4m | Our Pub |           |          |    100 | usd F      |        |  100 |
   | 2   | %ymd-5m | Bea Two |           |          |     10 | cash E     |        |   10 |
-  | 1   | %ymd-7m | %ctty   |           |          |        | signup     |    250 |  250 |
+  | 1   | %ymd-7m | ZZrCred |           |          |        | signup     |    250 |  250 |
   |     |         | TOTALS  |      1000 |      540 |    210 |            |    272 |  942 |
   And with download columns:
   | column |*

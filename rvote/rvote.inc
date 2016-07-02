@@ -8,10 +8,10 @@ use rCredits\Testing as t;
 use rCredits\Web as w;
 use rCredits\Vote as v;
 
-define('ISDEMO', TRUE);
+define('ISDEMO', FALSE);
 define('GRADELTRS', 'EDCBA');
-define('VETOGRADE', -3);
-define('BLANKGRADE', -2); // means voter did nothing with this option (so don't count it)
+define('VETOGRADE', -2);
+define('BLANKGRADE', -1); // means voter did nothing with this option (so don't count it)
 define('BPCT2INT', 10); // what to multiply budget pct field by, to get an integer (how many decimal places in the percentage)
 define('FUNDED', 'funded');
 
@@ -109,7 +109,7 @@ EOF;
  * Return a list of options for the given question.
  */
 function getOpts($question) {
-	$q = db\q('SELECT text, detail FROM r_options WHERE question=:question ORDER BY displayorder', compact('question'));
+	$q = db\q('SELECT text, detail FROM r_options WHERE question=:question ORDER BY displayOrder', compact('question'));
 
 	$opts = "<br><b>OPTIONS:</b><br>\n";
   $opti = 0;
@@ -205,7 +205,7 @@ function formatdate($dt='') {
 	return $dt ? date($fmt, $dt) : date($fmt);
 }
 
-function letterGrade($value) {
+function letterGrade($value, $full = TRUE) {
 // value
 // RETURN    letter grade representation of the value, eg "C+" (0.42)
 
@@ -214,7 +214,7 @@ function letterGrade($value) {
   $fraction = $value - $integer;
   $grade = substr(GRADELTRS, $integer, 1);
   $sign = $fraction >= .167 ? '+' : ($fraction <= -.167 ? '-' : '&nbsp;&nbsp;');
-	return $grade . $sign . ' (' . number_format($value, 2) . ')';
+	return $grade . $sign . ($full ? ' (' . number_format($value, 2) . ')' : '');
 }
 
 function formatQuestionDates($dt1, $dt2, $startplusdays=0) {
@@ -237,7 +237,6 @@ function getQuestions($ctty) {
   $now = time();
   $crit = 'ctty=:ctty AND :now>endProposals AND (:now<endVoting OR endVoting=0)';
 	$q = db\q('SELECT id AS question, type FROM r_questions WHERE ' . $crit, compact('ctty', 'now'));
-//  debug(compact('ctty','crit','now'));
 
 	while($row = $q->fetchAssoc()) {
 		extract($row);

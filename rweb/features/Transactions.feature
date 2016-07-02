@@ -50,6 +50,9 @@ Setup:
   | .ZZC |    2332 |     262 |
 
 Scenario: A member looks at transactions for the past year
+  Given members have:
+  | id   | fullName |*
+  | ctty | ZZrCred  |
   When member ".ZZA" visits page "history/transactions/period=365"
   Then we show "Transaction History" with:
   | Start    |   | 1,000.00 |   |   0.00 | %dmy-12m |
@@ -66,7 +69,7 @@ Scenario: A member looks at transactions for the past year
   | 4   | %dm-3m | Bea Two    | 240.00   |   --     | %chk    | X    | what G     | 12.00  |
   | 3   | %dm-4m | Corner Pub | --       | 1,100.00 | %chk    | X    | usd F      | --     |
   | 2   | %dm-5m | Bea Two    | --       |    10.00 | %chk    | X    | cash E     | --     |
-  | 1   | %dm-7m | %ctty      | --       |   --     | %chk    |      | signup     | 250.00 |
+  | 1   | %dm-7m | ZZrCred    | --       |   --     | %chk    |      | signup     | 250.00 |
   And without:
   | rebate  |
   | bonus   |

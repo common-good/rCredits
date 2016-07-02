@@ -1,4 +1,4 @@
-Feature: Deposits
+Feature: Checks and Deposits
 AS an administrator
 I WANT to print checks from members to rCredits
 SO we can accept their US Dollars in exchange for rCredits
@@ -6,8 +6,8 @@ SO we can accept their US Dollars in exchange for rCredits
 AND I WANT to print checks from rCredits to members
 So we can accommodate members' requests to cash out
 
-AND I WANT to display deposit statements for current and past deposits
-SO I can make deposits easily and review past deposits if necessary
+AND I WANT to display deposit statements and individual checks for current and past deposits
+SO I can make deposits easily and review past deposits as necessary
 
 Setup:
   Given members:
@@ -15,6 +15,7 @@ Setup:
   | .ZZA | Abe One  | -500  | ok,bona          | 1 A, Aton, MA 01001 |     1 | USkk21187028101 |
   | .ZZB | Bea Two  | -500  | ok,co,bona,admin | 2 B, Bton, MA 01002 |     2 | USkk21187028102 |
   | .ZZC | Cor Pub  |    0  | ok,co,bona       | 3 C, Cton, MA 01003 |     3 | USkk21187028103 |
+  
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose |*
   |   1 | %today-2m | signup   |    100 | ctty | .ZZA | signup  |

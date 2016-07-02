@@ -543,7 +543,7 @@ class Acct {
     global $channel;
     $a = $this;
     // don't allow companies to spend rewards unless they have ATM permission and are exchanging r for USD
-    if ($a->co) $goods = (@$actor == $a and $a->coCan(CO_ATM) and $goods == FOR_USD) ? FOR_GOODS : FOR_USD;
+    if ($a->co and COMPANY_FREEZE) $goods = (@$actor == $a and $a->coCan(CO_ATM) and $goods == FOR_USD) ? FOR_GOODS : FOR_USD;
     $avail = $a->avail($goods);
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
@@ -559,7 +559,8 @@ class Acct {
     $a = $this;
     $floor = $a->can(B_DEBT) ? $a->j_floor : max($a->j_floor, 0); // no going into debt without permission
     if ($goods == FOR_USD or (COMPANY_FREEZE and $a->co)) $floor = max($floor, $a->j_rewards); // no exchanging rewards for cash (and companies temporarily can't spend rewards)
-    return round($a->j_r - $a->j_committed - $floor, 2);
+    return round($a->j_r - $floor, 2);
+//    return round($a->j_r - $a->j_committed - $floor, 2);
   }
   
   /**
@@ -794,7 +795,7 @@ EOF;
     if (!$stepsDone[$step]) { // unless already done
       $stepsDone[$step] = $done;
       $a->update(compact('stepsDone'));
-      if ($done) r\tellStaff(t('Step completed: ') . strtoupper($step), $details, $a->id);
+//      if ($done) r\tellStaff(t('Step completed: ') . strtoupper($step), $details, $a->id);
     } elseif (!$a->admin) r\tellStaff(t('Settings changed: ') . strtoupper($step), $details, $a->id);
    
     if (!$nextStep = $a->nextStep()) r\membershipEvent($a, 'member');
@@ -836,6 +837,7 @@ EOF;
   public function j_stats() {
     $a = $this;
     $stats = ($stats = $a->stats) ? unserialize($stats) : [];
+
     if ($jid = $a->jid) {
       $j = r\acct($jid);
       $jstats = ($jstats = $j->stats) ? unserialize($jstats) : [];
@@ -857,7 +859,7 @@ EOF;
       : (@$beneEver + @$extraEver > 0 ? '&infin;' : number_format(100 * R_INFLATION_RATE, 1));
     $cttyBeneMo = u\fmtAmt(@$giftsPastMo + max(0, @$bankedPastMo) + @$benePastMo * (1 + R_CC_RATE / $a->rebate));
     $cttyBene = u\fmtAmt(@$giftsEver + max(0, @$bankedEver) + @$beneEver * (1 + R_CC_RATE / $a->rebate) + r\cttyPaidEver($a->community) / (@$pAccts ?: 1));
-/// debug(compact(u\ray('cttyBeneMo giftsPastMo bankedPastMo benePastMo cttyBeneMo giftsEver bankedEver beneEver')));
+/// debug(compact(u\ray('years returnMo extraPastMo benePastMo avgBalPastMo avgBalEver extraEver cttyBeneMo giftsPastMo bankedPastMo benePastMo cttyBeneMo giftsEver bankedEver beneEver')));
     return compact(u\ray('returnMo return cttyBeneMo cttyBene'));
   }
 

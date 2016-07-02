@@ -225,6 +225,7 @@ EOF
   'forced without perm' => t('<p>An unauthorized transaction was made using a Company Agent rCard.</p><ul><li>Date: @date</li><li>Customer: @a2 (by @agent2)</li><li>Company: @a1 (by @agent1)</li><li>Amount: @amount</li><li>For: @for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
   'bad invite num' => t('That is not a valid username or invitation number.'),
   'negative saveWeekly' => t('Your discretionary savings are already at their minimum, so your weekly savings addition cannot be negative.'),
+  'requires signin' => t('You must be signed in, to use that page.'),
 //  'saveWeekly too low' => t('With a negative "minimum", your weekly savings addition must be at least @min.'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
@@ -290,10 +291,10 @@ EOF;
       $res .= "<tr><th>$city$state</th><td>";
       $cityX = $city;
     }
-    $style = $weight < PHP_INT_MAX / 4 ? 'success'
-    : ($weight == PHP_INT_MAX / 4 ? 'primary'
-    : ($weight <= PHP_INT_MAX / 2 ? 'info'
-    : 'default' ));
+    $style = $weight < PHP_INT_MAX / 4 ? 'default'
+    : ($weight == PHP_INT_MAX / 4 ? 'slight'
+    : ($weight <= PHP_INT_MAX / 2 ? 'primary'
+    : 'success' ));
     if ($dft == $uid) $style = 'warning';
 ///    debug(compact('row','city','cityX','friends') + ['max/2-w'=>PHP_INT_MAX / 2 - $weight]);
     $res .= <<<EOF
@@ -617,7 +618,7 @@ function acctTypeField() {
  * @return complete script without leading "return ".
  */
 function whoFldSubmit($field, $question, $amount = '0', $askGift = '0') {
-  $id = '#edit-' . $field;
+  $id = '#edit-' . strtolower($field);
   $question = addslashes($question);
 
   js('js/typeahead.bundle.min.js', 'file');
@@ -851,8 +852,9 @@ function which($choices = '', $resultField = '', $info = '', $question = 'Which 
   if ($choices) return [];
   
   svar('pop', NULL); // called with no args (#3)
-  $onchange = "this.form.elements['$pop_resultField'].value=this.options[this.selectedIndex].text; this.form.submit();";
-  $choice = selectFld('', '', attrib(compact('onchange') + array('size' => 12)), $pop_choices);
+  $tribs['onchange'] = "this.form.elements['$pop_resultField'].value=this.options[this.selectedIndex].text; this.form.submit();";
+  $tribs['size'] = 12;
+  $choice = selectFld('', '', w\attr($tribs), $pop_choices);
   $choice = render($choice);
   $legend = t('Which one?');
   $popup = item(w\modal('which', $legend, $pop_question, $choice, t('Cancel')));
@@ -1141,8 +1143,8 @@ function findCompany($company, $companyPhone) {
  */
 function nameAndEmail($what, $fullName = '') {
   $who = $what == t('Company') ? t('The company\'s') : ($what == t('Community') ? t('The community\'s') : t('Your'));
-  $onchange = "var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);";
-  $fullName = textFld("$what:", ["$who " . t('full name'), tt('usename desc')], required(@$fullName) + attrib(compact('onchange')));
+  $onchange = w\onchange("var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);");
+  $fullName = textFld("$what:", ["$who " . t('full name'), tt('usename desc')], required(@$fullName) + $onchange);
   $legalName = textFld(t('Legal name:'), ["$who " . t('full legal name'), t('(if different) ') . $who . tt('legalname desc')]);
   $email = textFld(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required());
   return compact(u\ray('fullName legalName email'));
@@ -1176,15 +1178,11 @@ EOF;
 //EOF;
   js($js, 'inline', 'footer');
 
-  $onchange = "print_state(this.options[this.selectedIndex].value,'');";
-  $countryAttrib = attrib(compact('onchange'));
-  
-  $onchange = $onblur = 'setPostalAddr();';
-  $addressAttrib = $cityAttrib = attrib(compact('onchange'));
-
+  $countryAttrib = w\onchange("print_state(this.options[this.selectedIndex].value,'');");
+  $onblur = 'setPostalAddr();';
   $stateAttrib = attrib(compact('onblur'));
-  $onchange = "zipChange('010 013');";
-  $zipAttrib = attrib(compact('onchange'));
+  $addressAttrib = $cityAttrib = w\onchange($onblur);
+  $zipAttrib = w\onchange("zipChange('010 013');");
   $hidCountry = hidFld($country); // remember this when Drupal forgets it on error
   $hidState = hidFld($state); // remember this when Drupal forgets it on error
   
@@ -1414,9 +1412,29 @@ EOF;
   return $list ? "<ul>$list</ul>" : t('There are no such rCredits member businesses.');
 }
 
+/**
+ * Check if form was called with a QID (typically from an email link). Return the appropriate account.
+ * Communities are allowed, but not other companies.
+ * @param string $args: parameters from URL
+ *   (RETURNED) just the qid and ecode part of URL parameters
+ * @param string $allow: what not-signed-in accounts to allow: only individual (the default), any
+ * @return the account (defaults to current account)
+ */
+function eLinkAcct(&$args, $allow = 'individual') {
+  extract(u\just('qid ecode', $args));
+  $a = r\acct(@$qid);
+  if (@$qid and @$ecode != $a->emailCode) return w\hack('bad ecode');
+  $args = is_null(@$qid) ? '' : ("qid=$qid&ecode=" . @$ecode); // eg formGraphs doesn't use ecode
+  if ($allow != 'any') {
+    if (!$a) return r\go('', 'requires signin');
+    if ($allow == 'individual' and $a->co) return r\go('', t('That page is for individual accounts only.'));
+  }
+  return $a;
+}
+
 function hack($message, $info = []) {
   u\loga('hack', $_SERVER, $message);
-  say(t('That operation is not permitted.'), 'err');
+  r\tellStaff($message, $info);
   return r\signedIn() ? signout() : r\go('');
 }
 
@@ -1550,7 +1568,7 @@ function rangeDates($period, $starting = '', $ending = '') {
   $period = (int) @$starting ? ($ending - $starting) / DAY_SECS : (@$period ?: TX_DEFAULT_PERIOD);
   $ago = $period == '1' ? '1 day' : (@$GLOBALS['TX_DAYS'][$period] ?: ($period . ' days'));
   if (!@$starting) $starting = strpos($ago, 'month') ?
-    u\plusMonths(-$ago)
+    u\plusMonths(-preg_replace('/ ?months?/', '', $ago))
   : strtotime($period == '-1' ? '1jan' : ($period == '-2' ? '1/1/2013' : "$ago ago"));
   return array(strtotime('today', $starting), strtotime('tomorrow', $ending) - 1, $period);
 }  
@@ -1792,10 +1810,10 @@ function menu($title, $type, $function, $args, $perms = '') {
 /**
  * Return a help message for the page.
  */
-function helpText($page, $tag = '') {
+function helpText($page, $tag = '', $args = '') {
   include_once __DIR__ . '/rweb-help.inc';
   $page = strtolower($page);
-  $help = $page == 'charge' ? strtr(rawHelp('pay', $tag), u\ray('pay', 'charge')) : rawHelp($page, $tag);
+  $help = $page == 'charge' ? strtr(rawHelp('pay', $tag, $args), u\ray('pay', 'charge')) : rawHelp($page, $tag, $args);
   if ($help) return u\SUBS(@$help);
   return tt('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @regPhone. Or send your question by <a href="mailto:@regEmail?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.', u\ray('regPhone regEmail page', u\fmtPhone(r\regionfield('phone')), r\regionfield('email'), $page));
 }
@@ -1844,16 +1862,14 @@ function say($index, $args = [], $errField = '') {
 /**
  * Display charts representing the condition of the rCredits system in the given community.
  * @param string $whichChart: which chart or set of charts to display
+ * @param int $ctty: account ID of community to show graphs for (defaults to all communities)
  * @return: html of the relevant charts, in their proper divs
  */
-function showCharts($whichChart) {
+function showCharts($whichChart, $ctty = 0) {
   global $base_url;
-  if ($mya = r\acct()) {
-    $myCtty = $mya->community ?: 0;
-  } else $myCtty = 0;
 
   list ($in, $out, $fees, $net, $personal, $companies) = array(t('in'), t('out'), t('fees'), t('net'), t('personal'), t('companies'));
-  extract($stats = r\stats($myCtty)); // careful with this (don't overwrite local vars)
+  extract($stats = r\stats($ctty)); // careful with this (don't overwrite local vars)
   extract(w\fundStats($stats, TRUE)); // get the formatted versions, with originals in {var}0
   $trade = u\fmtAmt($trade0 = $tradeOut0 + $tradeIn0); // tradeIn is negative
   foreach (['txRewards0', 'spent0', 'trade0'] as $k) $$k = max(0, $$k); // don't display negative values
@@ -1887,11 +1903,11 @@ function showCharts($whichChart) {
       bankInPerMo, bankOutPerMo,
       perMo, p2bPerMo, b2bPerMo, b2pPerMo,
       txsPerMo, p2bTxsPerMo, b2bTxsPerMo, b2pTxsPerMo, tradeIn, tradeOut, tradeInPerMo, tradeOutPerMo
-    FROM r_stats WHERE ctty=$myCtty
+    FROM r_stats WHERE ctty=:ctty
     AND (DATEDIFF(FROM_UNIXTIME(:now), FROM_UNIXTIME(created))<:STATS_GRAIN OR DATEDIFF(FROM_UNIXTIME(created), FROM_UNIXTIME(:created0))%:STATS_GRAIN=0)
     AND created>:R_LAUNCH ORDER BY created
 EOF;
-  $q = db\q($sql, compact('created0', 'now'));
+  $q = db\q($sql, compact('created0', 'now', 'ctty'));
 
   $charts = u\ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-rcredits');
   if ($whichChart != 'all') $charts = u\just($whichChart, $charts);
@@ -1960,7 +1976,7 @@ EOF;
 
   foreach($charts as $k => $help) {
     $one = "<div id=\"{$k}Chart\" class=\"onechart\"></div>";
-    if (count($charts) > 1) $one = "<a href=\"$base_url/help/$help\">$one</a>";
+    if (count($charts) > 1) $one = "<a href=\"$base_url/help/$help/qid=$ctty\">$one</a>";
     $charts[$k] = "<div>$one</div>";
   }
   return u\test() ? $js : join('', $charts);
@@ -1981,8 +1997,8 @@ function fundStats($stats, $includeRaw = FALSE, $format = 's$') {
 //  foreach (u\ray('bankInPerMo bankOutPerMo r usd total signups inflations helpers txRewards grants loans fines') as $one) {
   if ($ctty) { // a community
     $cttyA = r\acct($ctty);
-    $res['ctty'] = $ctty == r\serverUid() ? t('Seedpack (Outliers)') : trim(strtr($cttyA->fullName, [t('Region')=>'', t('rCredits')=>'']));
-  } else $res['ctty'] = t('TOTAL');
+    $res['cttyName'] = $ctty == r\serverUid() ? t('Seedpack (Outliers)') : trim(strtr($cttyA->fullName, [t('Region')=>'', t('rCredits')=>'']));
+  } else $res['cttyName'] = t('TOTAL');
   foreach (u\ray('r usd tradeIn tradeOut signups txRewards helpers inflations spent grants loans invests fines') as $one) {
     if ($includeRaw) $res[$one . '0'] = $$one;
     $res[$one] = u\fmtAmt($$one, $format);
@@ -2140,6 +2156,7 @@ function tt($message, $subs = []) {return u\tt($message, $subs);}
 function blockView($subject, $content) {return compact(u\ray('subject content'));}
 
 function disabled($value = NULL, $disabled = TRUE) {return attrib(compact('disabled')) + (is_null($value) ? compact('value') : []);}
+function onchange($onchange) {return w\attrib(compact('onchange'));}
 function dft($default_value) {return compact('default_value');}
 function weight($weight) {return compact('weight');}
 function clas($class) {return ['class' => [$class]];}

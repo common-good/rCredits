@@ -10,8 +10,10 @@
  * when you run the compiler again. This @file description will not be affected,
  * but all of the function header comments are (re)generated automatically.
  *
- * Be assured however, that no functions will be deleted and the compiler will
- * never delete or alter code within a function.
+ * Be assured that no functions will be deleted and the compiler will
+ * not alter code within a function unless you make it look like a function header.
+ *
+ * You may also add statements just below this header (for example "use" and "require_once").
  */
 use rCredits as r;
 use rCredits\DB as db;
@@ -19,31 +21,19 @@ use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
-require_once __DIR__ . '/../rcredits.inc';
-require_once __DIR__ . '/../rcredits-testing.inc';
+require_once __DIR__ . '/../defs.inc';
+
+if (basename($_SERVER['SCRIPT_FILENAME']) != 'compile.php') {
+  require_once __DIR__ . '/../rcredits.inc';
+  require_once __DIR__ . '/../rcredits-testing.inc';
+}
 
 /**
  * Add additional setup for any or all features or tests
  * The feature object contains information about the current feature and test, etc.
  */
-function extraSetup($feature) {
+function extraSetup() {
   t\clear(TX_WEB);
-  if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
-    $line = str_replace('%last_qid', r\qid(r\Acct::nextId() - 1), $line);
-  }}
-}
-
-/**
- * Modify the standard list of magic substitutions (the %parameters)
- */
-function extraSubs(&$subs) {
-//  $subs['%replace_this'] = 'with this';
-  $subs['%todayn'] = t\subAgo('%todayn', '%Y%m%d');
-  $subs['%todayn-12m'] = t\subAgo('%todayn-12m', '%Y%m%d');
-  $subs['%todayn-365d'] = t\subAgo('%todayn-365d', '%Y%m%d');
-  //$subs['%dmy'] = t\subAgo('%todayn', '%d-%b-%Y');
-  $subs['%name'] = \user_password(20); // suitable for email address
-  $subs['%regionName'] = @r\acct(t\uid('.ZZA'))->cttyA->fullName;
 }
 
 function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, $info);}
@@ -955,13 +945,16 @@ function statisticsGetSet($time) {
 /**
  * members have: (ARG)
  *
- * in: TEST Joint AMemberRequestsAJointAccount
+ * in: MAKE Community CronCalculatesTheStatistics
+ *     MAKE Download AMemberDownloadsTransactionsForThePastYear
+ *     TEST Joint AMemberRequestsAJointAccount
  *     BOTH Joint AJoinedAccountSlaveMemberRequestsANewMinimum
  *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     BOTH Joint AJoinedAccountMemberUnjoinsTheAccount
  *     MAKE Membership AMemberDoesItAll
  *     MAKE Membership AMemberOpensABusinessAccount
  *     MAKE Summary Setup
+ *     MAKE Transactions AMemberLooksAtTransactionsForThePastYear
  */
 function membersHave($list) {return t\membersHave($list);}
 
@@ -1274,13 +1267,3 @@ function weShowChecked($what, $wantSet = TRUE) {
  *     TEST Preferences AnotherMemberVisitsThePreferencesPage
  */
 function weShowUnchecked($what) {return weShowChecked($what, FALSE);}
-
-/**
- * we redirect to %BASE_URL
- *
- * in: 
- */
-function weRedirectToURL() {
-  global $testOnly;
-  todo;
-}

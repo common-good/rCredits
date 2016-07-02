@@ -1,3 +1,20 @@
+2016-07-02
+. Bank page shows wrong amount spendable (see Ivan's email)
+. REINSTALL
+. f('db.q', 'DROP TABLE r_vetoes');
+. upload r_questions and r_options
+. copy js\rvote, css\rvote, and images\rvote
+. created prox form (and eLinkAcct() function) for no-signin links from emails
+. added "special" field to users table (for arbitrary exports)
+. radically revised Gherkin compiler, which required reworking steps files, testing functions, and some features.
+. debugged voting process and added "range" and "essay" type votes
+. added some administrative tools for voting
+. f('v.showResults', a('aaa')->community);
+. eachA(function($a) {$a->update('special', f('v.showVotes', $a->community, $a->id, 'proxy'));});
+. changed invitation cards to say "+ rewards whenever you buy or sell with rCredits." (no "10% at member bizs")
+. unfroze companies, so they can spend their rewards as needed
+. revised preferences page to show (and modify) savingsAdd rather than savings total
+
 2016-06-09
 . don't activate the signup button on rCredits.org until something is typed in the account field (make it a required field!)
 . refactored QID handling as a qo (QID object) class

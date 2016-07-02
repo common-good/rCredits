@@ -64,13 +64,16 @@ GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
    $cfg['Servers'][$i]['auth_type'] = 'config';
 
 TASKS FOR NEXT UPDATE:
-. REINSTALL
 
+. staff alert for cashier card has ineffective link
+. share just part of committed amount, if less is available (see everyMonth())
+. ** Check all ' : ' to find assignments from ? : phrases. Parenthesize as needed.
+. iPhones apparently rotate sideways pictures automatically so they get mis-cropped. Special case them.
+. * make txs page load faster
 . let cAdmin set some bits (like cAdmin, cAdmin2,...)
 . *** let any member display their card (put a "Show Card" button at the end of the "ID:" line)
 . **** handle monthly and bimonthly pay periods on upload payroll page
 . ** invoicing requires previous photoID verification of both parties
-. NEWAAA fails on relations page
 . put better links on Summary page for card activation, including ID verification only on click.
 . admin panel should accept XXX:YYY format for relations (for printing company cards)
 . target a new page for checks

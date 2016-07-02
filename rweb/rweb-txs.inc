@@ -36,6 +36,7 @@ function formTxs($form, &$sta, $args = '') {
   $mya = r\acct();
   
   extract(u\just('options period starting ending do xid download downloaded', $args)); 
+  
   global $testPeriod; $testPeriod = @$period ?: TX_DEFAULT_PERIOD; // remember for tests
   if (@$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
   // Setup option array, including defaults and help

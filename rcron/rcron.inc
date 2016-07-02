@@ -139,7 +139,7 @@ function everyDay() {
 function tickle() {
 //  $delays = '1,2,3,5,8,13,21,34,55,89,144'; // Fibonacci progression of delays
   $today = strtotime('today');
-  $timeSince = "(FLOOR(($today-@DATE)/:DAY_SECS)+1)"; // $today works better in tests than :REQUEST_TIME or time()
+  $timeSince = "(FLOOR(($today-@DATE)/:DAY_SECS))"; // $today works better in tests than :REQUEST_TIME or time()
 
   // Remind invitee to accept
   $delays = '8';
@@ -148,6 +148,7 @@ function tickle() {
     SELECT email, inviter, code, $elapsed AS elapsed FROM r_invites
     WHERE $elapsed IN ($delays) AND invitee=0
 EOF;
+
   queueEach('tickleSignup', $sql);
 /*    SELECT i.email, inviter, code, $elapsed AS elapsed FROM r_invites i
     LEFT JOIN users u ON u.email=i.email
@@ -456,6 +457,7 @@ function acctStats1($item, $asof = NULL) {
   $monthAgo = u\plusMonths(-1, $asof);
   $avgBalPastMo = r\averageBalance($uid, $monthAgo, $asof, TRUE, $minPastMo);
   $avgBalEver = r\averageBalance($uid, strtotime('today', $a->created), $asof, TRUE);
+///  debug(compact('avgBalEver','uid','asof') + ['created' => $a->created]);
   $subs = compact('uid', 'monthAgo', 'asof');
   
   $sql = <<<EOF
@@ -679,7 +681,7 @@ function draw1($item) {
  * @return: amount to transfer from the connected bank account or draw from other rCredits accounts (0 if none).
  */
 function getHowMuchR($a, $banky = TRUE) {
-  if (!$need = max(0, $a->minimum - $a->j_balance)) return 0;
+  if (!$need = max(0, $a->minimum + $a->j_committed - $a->j_balance)) return 0;
   if ($banky) {
     $waiting = -$a->waitingToBank($combinable); // amount already requested (if any)
     $need = round($need - $waiting, 2); // avoid a re-request

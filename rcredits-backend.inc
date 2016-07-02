@@ -632,7 +632,7 @@ EOF;
  */
 function accountChoices() {
   if (!$mya = r\acct()) return FALSE;
-  $result[$aid = $mya->agentId] = $mya->fullName;
+  $result[$aid = $mya->agentId] = $mya->agent->fullName;
   $nameOrder = "IF(MID(fullName, 2, 2)='. ', MID(fullName, 4), IF(MID(fullName, 1, 4)='the ', MID(fullName, 5), fullName))"; // ignore "the " and initialled first name (eg "X. ")
   $sqlNormal = 'SELECT r.main AS id, u.fullname FROM r_relations r LEFT JOIN users u ON u.uid=r.main WHERE r.other=:aid AND r.permission>0'; // normal selection SQL
   

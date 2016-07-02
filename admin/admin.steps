@@ -11,7 +11,7 @@
  * but all of the function header comments are (re)generated automatically.
  *
  * Be assured that no functions will be deleted and the compiler will
- * never alter code within a function.
+ * not alter code within a function unless you make it look like a function header.
  *
  * You may also add statements just below this header (for example "use" and "require_once").
  */
@@ -21,27 +21,19 @@ use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
-require_once __DIR__ . '/../rcredits.inc';
-require_once __DIR__ . '/../rcredits-testing.inc';
+require_once __DIR__ . '/../defs.inc';
+
+if (basename($_SERVER['SCRIPT_FILENAME']) != 'compile.php') {
+  require_once __DIR__ . '/../rcredits.inc';
+  require_once __DIR__ . '/../rcredits-testing.inc';
+}
 
 /**
  * Add additional setup for any or all features or tests
- * The feature object contains information about the current feature and test, etc.
  */
-function extraSetup($feature) {
+function extraSetup() {
   t\clear(TX_WEB);
 }
-
-/**
- * Modify the standard list of magic substitutions (the %parameters)
- */
-function extraSubs(&$subs) {
-  $subs['%dmy-2w'] = t\subAgo('%today-2w', '%d-%b-%Y');
-  $subs['%dm-2w'] = t\subAgo('%today-2w', '%d-%b');
-  $subs['%dmy'] = t\subAgo('%today', '%d-%b-%Y');
-//  $subs['%replace_this'] = 'with this';
-}
-
 
 /**
  * members: (ARG)

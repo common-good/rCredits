@@ -26,7 +26,6 @@ define('DW_TEST_AUTHS',
 . 'W6J/pu0Gu3aLD7htZ+2AKBjvi7dnHYXeU0VKHu0SRFoOZB3T7G '
 . 'v8bSxiLSb58y42i1lBeH7x1zxUrnygEnpe3AKFSy7HCjhTsC7V '
 );
-define('T_BALANCE_FIELDS', 'id r usd balance dwolla floor rewards minimum share committed');
 */
 define('T_BALANCE_FIELDS', 'id r balance floor rewards savingsAdd minimum share committed');
 define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to');
@@ -38,8 +37,11 @@ define('T_MSG_FILE', 'test-messages.txt');
  * @param bool $direct: directly to or from db, rather than user input (default FALSE)
  */
 function fixData(&$info, $direct = FALSE) {
-  global $rUrl;
-  $fields = 'postalCode country state email phone dob federalId idProof flags adminable notices statements who';
+  global $rUrl, $testVars;
+  $fields = 'postalCode country state email phone dob federalId idProof flags adminable notices statements who rewards';
+  if (@$testVars) foreach ($info as $k => $v) if (strpos($v, '@') !== FALSE) {
+    foreach ($testVars as $varName => $var) $info[$k] = str_replace("@$varName", $var, $v);
+  }
   extract(u\just($fields, $info));
 
   if (@$who) $who = t\fullQid($who);
@@ -48,6 +50,7 @@ function fixData(&$info, $direct = FALSE) {
     for ($i = 0; $i < B_MAX; $i++) if (u\getbit($adminable, $i)) $adminable2[$i] = TRUE;
     $adminable = @$adminable2 ?: [];
   }
+  foreach (['rewards'] as $k) if (isset($$k)) $$k += 0; // make sure numeric fields are numeric.
   if (@$notices) $notices = array_search($notices, u\ray('daily weekly monthly'), TRUE);
   if (@$statements) $statements = array_search($statements, u\ray('electronic paper'), TRUE);
   if (@$email) $info['email'] = t\fixEmail($email);
@@ -84,6 +87,8 @@ function fixEmail(&$email) {
 
 function doRecords($list, $type) {
   global $testOnly;
+//  $list = array_values((array) json_decode($list));
+//  foreach ($list as $k => $v) if (is_object($v)) $list[$k] = (array) $v;
 /**/    if ($testOnly) t\output("Expect $type: " . print_r($list, 1), 'expect');
 /**/  u\EXPECT(!is_numeric(key($list[0])), 'doThing should be an assoc: ' . print_r($list, 1));
 
@@ -136,19 +141,17 @@ function doBoxe($info = []) {
  */
 function doAccount($info = []) {
   global $testOnly;
-/**/  if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
+
+/**/  if (!is_array($info)) {echo 'not array'; print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
   extract($info); // any user table fields
   u\setDft($id, r\Acct::nextId()); // default to first available number
   $uid = t\uid($id); // change .AAB to 1, etc.
 
-//  if (@$email) $mail = $info['mail'] = $email;
   if (@$jid) $jid = t\uid($jid);
-//  if (@$helper or !@$testOnly) $helper = t\uid(@$helper ?: '.AAA'); // everyone but .AAA should have a helper
-  if (!@$helper) $helper = '.AAB'; // everyone but .AAB should have a helper
 
   if (!$testOnly) { // when making, set many defaults and mods
     $nmMap = u\ray('ZZA:Abe One,ZZB:Bea Two,ZZC:Cat Pub,ZZD:Dee Four,ZZE:Eve Five,ZZF:Fin Corp,ZZG:Glo Seven');
-    u\setDft($fullName, substr($id, 0, 2) == 'ZZ' ? strtr($nmMap) : 'doAccount ' . randomString(20, 'word'));
+    u\setDft($fullName, substr($id, 0, 2) == 'ZZ' ? strtr($nmMap) : 'doAccount ' . u\randomString(20, 'word'));
     $name = u\shortName($fullName);
     u\setDft($legalName, $fullName);
   //  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
@@ -164,6 +167,8 @@ function doAccount($info = []) {
     $state = r\realState(@$state, $country);
     u\setDft($postalAddr, @$address . ', ' . @$city . ", $state $postalCode");
     u\setDft($photoId, "$state-{$postalCode}999");
+    u\setDft($helper, '.AAB'); // everyone but .AAB should have a helper
+    if ($helper === '') die(print_r(debug_backtrace(), 1)); // set helper to zero if none, never blank
 
     $moneyFields = 'share committed floor r rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
@@ -188,6 +193,8 @@ function doAccount($info = []) {
       if ($key == 'uid') $key = 'id';
       $actual = ($key == 'trust' or $key == 'risk') ? round($acct->$key, 2) : $acct->$key;
       if (!eq($actual, $want)) {
+      debug(compact('uid','info','key','want','actual','acct'));
+      debug($acct->risks);
         if ($key == 'pass' and (!isset($pass) or r\Web\passwordOkay($acct, @$pass))) continue;
         if ($key == 'flags') list ($want, $actual) = [u\bits($want, B_LIST), u\bits($actual, B_LIST)];
         return output("uid $uid -- Wrong value for $key. Expected:$want Got:$actual");
@@ -195,8 +202,8 @@ function doAccount($info = []) {
     }
     return TRUE;
   }
-  if (!$a = new r\Acct($info)) return FALSE;
 
+/**/ if (!$a = new r\Acct($info)) return t\output('Cannot create account: ' . print_r($info, 1));
   if (@$picture) if (!makePicture($picture, $a)) return FALSE;
 
   return $uid;
@@ -343,7 +350,8 @@ function doSelling($info) {
   global $testOnly;
   extract(u\just('id selling', $info));
   $selling = str_replace(',', "\n", $selling);
-  return r\acct(t\uid($id))->update(compact('selling'));
+  if (!$a = r\acct(t\uid($id))) return t\output("Not an account: $id");
+  return $a->update(compact('selling'));
 }
 
 /**
@@ -359,7 +367,8 @@ function doCompanyFlags($info) {
     if (in_array($one, $canBitNames)) $flag <<= APP_CANS;
     $coFlags |= $flag;
   }
-  return r\acct(t\uid($id))->update(compact('coFlags'));
+  if (!$a = r\acct(t\uid($id))) return t\output("Not an account: $id");
+  return $a->update(compact('coFlags'));
 }
 
 /**
@@ -404,17 +413,17 @@ function notice($notice, $id, $subs = []) {
 /**
  * Pretend the account has complete the given steps.
  */ 
-function doneStep($uid, $step) {
+function doneStep($id, $step) {
   global $testOnly; if ($testOnly) return FALSE;
   if (strpos($step, ' ')) {
-    foreach (u\ray($step) as $one) if (!doneStep($uid, $one)) return FALSE;
+    foreach (u\ray($step) as $one) if (!doneStep($id, $one)) return FALSE;
     return TRUE;
   }
-  
-  $a = r\acct($uid = t\uid($uid));
+
+  if (!$a = r\acct(t\uid($id))) return t\output("Not an account: $id");
   @$a->stepDone($step); // might have to do the steps below also
   return TRUE;
-  
+  /*
   if ($step == 'photo') return t\makePicture('whatever', $a);
   if ($step == 'sign') return $a->update('signed', r\rTime());
   if ($step == 'donate') return db\insert('r_gifts', u\ray('uid amount', $uid, 123));
@@ -427,6 +436,7 @@ function doneStep($uid, $step) {
   if ($step == 'company') return $a->update('selling', 'stuff');
   // if ($step == 'relations') ?
   return FALSE;
+  */
 }
 
 /**
@@ -519,15 +529,15 @@ function usdTransferCount($where = '1') {
 
 function usdTransfers($txs) {
   global $testOnly, $channel; $channel0 = $channel;
-  
+
   foreach ($txs as $tx) { // do not extract $tx, because setDft will fail after the first unless we unset vars
-    if (@$tx['payer']) $tx['payer'] = $payer = t\uid($tx['payer']);
+    if (@$tx['payer']) $tx['payer'] = t\uid($tx['payer']);
 
     if ($testOnly) {
       if (isset($tx['risks'])) $tx['risks'] = getRisks($tx['risks'], K_TX_RISKS);
       if (!verifyRecord('r_usd', $tx)) return FALSE;
     } else {
-      $a = r\acct($tx['payer']);
+      if (!$a = r\acct(@$tx['payer'])) return t\output('Bad payer: ' . @$tx['payer']);
       $tx['bankAccount'] = @$a->secure['bankAccount'];
       u\setDft($tx['txid'], t\seq());
       u\setDft($tx['risk'], NULL);
@@ -598,6 +608,7 @@ function uid($id, $field = 'id') {
   if (is_numeric($id)) return $id;
   if ($id == 'community' or $id == 'ctty') return r\serverUid();
   if ($id == 'cgf') return r\cgfId();
+//  return r\qo($id)->$field; FAILS
   return r\qo(t\fullQid2($id))->$field;
 }
 function agent($id) {return t\uid($id, 'agent');}
@@ -685,6 +696,7 @@ function findEmail($index, $email, $subs) {
 
   $subs = is_array(@$subs[0]) ? $subs[0] : @$subs;
   t\fixEmail($email);
+  t\fixData($subs);
   if ($a = r\acct($email)) $subs['qid'] = $a->mainQid;
   
   foreach ($subs as $k => $v) {
@@ -793,36 +805,6 @@ function getPicture($picture) {
   return file_get_contents(DRUPAL_ROOT . R_PICTURE_DIR . "small/$picture.jpg");
 }
 
-function lastMinuteSubs($string) {
-  if (u\abbreviates('%ymd', $string)) return subAgo($string, '%Y-%m-%d');
-  if (u\abbreviates('%dmy', $string)) return subAgo($string, '%d-%b-%Y');
-  if (u\abbreviates('%dm', $string)) return subAgo($string, '%d-%b');
-  if (u\abbreviates('%md', $string)) return subAgo($string, '%b %d');
-  if (u\abbreviates('%can_', $string)) {
-    $perm = u\consta('b', substr($string, 5));
-    return htmlspecialchars($GLOBALS['share permissions'][$perm - B_RELATED]);
-  }
-  if ($string == '%chk') return '&#10004;';
-  if ($string == '%ctty') return r\regionField('fullName');
-  return $string;
-}
-  
-/**
- * Return the date, formatted as desired.
- * @param string $string: a named date format, dash, how long ago (eg %dmy-3d means 3 days ago "dmy" format)
- * @param string $fmt: what strftime format to use
- */ 
-function subAgo($string, $fmt) {
-  if (!strpos($string, '-')) $string .= '-0d';
-  $lastC = substr($string, strlen($string) - 1);
-  list ($a, $b) = explode('-', $string); // $a is ignored
-  $bPreC = substr($b, 0, strlen($b) - 1);
-  $periods = array('d' => 'days', 'w' => 'weeks', 'm' => 'months', 'y' => 'years');
-  $period = $periods[$lastC];
-///  debug(compact(u\ray('string fmt lastC a b bPreC period')));
-  return (strftime($fmt, $period == 'months' ? u\plusMonths(-$bPreC) : strtotime("$bPreC $period ago")));
-}
-
 /**
  * Send an RPC API request to the server, for rPOS.
  */
@@ -891,7 +873,7 @@ function logIn($id) {
   global $boxUser;
   if ($id != '?') {
     r\Acct::setDefault($a = r\acct(t\fullQid2($id))); // fullQid not uid
-    u\EXPECT(u\isAcct($a), 'id not account:' . $id);
+    if (!u\isAcct($a)) return t\output("id not account: $id (" . t\fullQid2($id) . ')');
     $boxUser = r\Web\boxUser(r\Web\box(), $a->id);
   }
   return TRUE;
@@ -1025,6 +1007,7 @@ function pageForm($page, $msg = '', $field = '') {
   }
 */
   $result = \menu_execute_active_handler($page, FALSE);
+//  if (!strpos($page, 'c0D3')) die(print_r(compact('page','result'), 1));
 
   if (is_numeric($result)) {
     $result = $result == MENU_NOT_FOUND ? 'not found' 
@@ -1104,9 +1087,9 @@ function postLogout($function) {
  */
 function varIs($varName, $index, $subs = []) {
   global $testOnly; if ($testOnly) return FALSE;
-  global $sceneTest;
-  $$varName = u\tt($index, $subs[0]);
-  $sceneTest->subs += ["%$varName" => $$varName];
+  global $testVars;
+  $testVars[$varName] = u\tt($index, $subs[0]);
+//  $sceneTest->subs += ["%$varName" => $$varName];
   return TRUE;
 }
 
@@ -1299,15 +1282,14 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $formOut;
   $model = $formOut[$type];
-///  debug(compact('content','type','model','formOut'));
 
   if (!$content) return FALSE; // probably an accidental single-row array with no labels
 /**/  u\EXPECT(is_numeric(key($content[0])), 'shown with should be array, not assoc: ' . print_r($content, 1));
-  $A = call_user_func_array('array_merge', $content);
+  $ray = call_user_func_array('array_merge', $content);
   $xi = $i = 0;
-  foreach ($A as $one) {
+  foreach ($ray as $one) {
     if ($one === '' or substr($one, 0, 1) == '_') continue; // ignore _labels
-    if (u\in($one, '%')) $one = t\lastMinuteSubs(htmlspecialchars($one));
+//    if (u\in($one, '%')) $one = t\lastMinuteSubs(htmlspecialchars($one));
     if ($showDebugs) t\output("EXPECT page with " . u\purify($one, ''));
     if (($one = u\redash($one)) !== '') $i = strpos($model, $one, $xi = $i);
     if ($showDebugs) t\output(compact('xi','i','one'));
@@ -1333,7 +1315,7 @@ function constants($list) {
  */
 function noPhotoId($id) {
   global $testOnly;
-  $a = r\acct(t\uid($id));
+  if (!$a = r\acct(t\uid($id))) return t\output("Not an account: $id");
   return $testOnly ? !$a->photoId : $a->update('photoId', '');
 }
 

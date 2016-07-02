@@ -10,8 +10,10 @@
  * when you run the compiler again. This @file description will not be affected,
  * but all of the function header comments are (re)generated automatically.
  *
- * Be assured however, that no functions will be deleted and the compiler will
- * never delete or alter code within a function.
+ * Be assured that no functions will be deleted and the compiler will
+ * not alter code within a function unless you make it look like a function header.
+ *
+ * You may also add statements just below this header (for example "use" and "require_once").
  */
 use rCredits as r;
 use rCredits\DB as db;
@@ -19,33 +21,18 @@ use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
-require_once __DIR__ . '/../rcredits.inc';
-require_once __DIR__ . '/../rcredits-testing.inc';
+require_once __DIR__ . '/../defs.inc';
 
-/**
- * Add additional setup for any or all features or tests
- * The feature object contains information about the current feature and test, etc.
- */
-function extraSetup($feature) {
-  t\clear(TX_CRON);
-  if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
-    $line = str_replace('%last_qid', r\qid(r\Acct::nextId() - 1), $line);
-  }}
+if (basename($_SERVER['SCRIPT_FILENAME']) != 'compile.php') {
+  require_once __DIR__ . '/../rcredits.inc';
+  require_once __DIR__ . '/../rcredits-testing.inc';
 }
 
 /**
- * Modify the standard list of magic substitutions (the %parameters)
+ * Add additional setup for any or all features or tests
  */
-function extraSubs(&$subs) {
-
-//  $subs += u\prefixKeys('%', compact(u\ray('chunk chunk2 chunk3 fancyYesterday')));
-  $subs['%fancyYesterday'] = u\fmtDate(strtotime('yesterday'));
-  $subs['%fancyYesterweek'] = u\fmtDate(strtotime('-1 week'));
-  $subs['%chunk'] = R_CHUNK;
-  for ($i = 2; $i <= 5; $i++) $subs["%chunk$i"] = R_CHUNK * $i;
-  for ($i = 1; $i <= 3; $i++) $subs["%id$i"] = mt_rand(r\cgfId() + R_REGION_MAX, PHP_INT_MAX);
-  $subs['%md'] = strftime('%b %d'); // strangely, lastMinuteSubs fails for this in Notices multifield
-  $subs['%zzxCttyEmail'] = @r\acct(t\uid('.ZZA'))->cttyA->email;
+function extraSetup($feature) {
+  t\clear(TX_CRON);
 }
 
 /**
@@ -423,7 +410,7 @@ function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $inf
  * in: MAKE Tickle ANewbieHasNotTakenTheFirstStep
  *     MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
  */
-function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
+function memberHasDoneStep($id, $step) {return t\doneStep($id, $step);}
 
 /**
  * invites: (ARG)
@@ -482,3 +469,13 @@ function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
  *     MAKE Notices AMemberGetsSomeWeeklyNotices
  */
 function variableIsWithSubs($var, $index, $subs) {return t\varIs($var, $index, $subs);}
+
+/**
+ * community email for member (ARG) is (ARG)
+ *
+ * in: MAKE Notices Setup
+ */
+function communityEmailForMemberIs($id, $email) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return r\acct(t\uid($id))->cttyA->update('email', $email);
+}

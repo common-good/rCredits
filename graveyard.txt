@@ -5,6 +5,26 @@
 
 --------------------------------------------------------------------------------------------------------
 
+// optEnd
+	return <<<EOF
+<div class="item">
+  <div class="optImgWrap">
+    <img id="expand$opti" class="optImg" src="$rUrl/images/rvote/expand.gif" alt="show detail" title="show detail" width="13" height="13" onclick="expand($opti);" />
+  </div optImgWrap>
+$opttext</div item>
+<div id="optdetail$opti" class="optdetail">
+<div id="votenotediv$opti" class="votenotediv"><div class="votenoteheader">Reason for Veto*:</div votenoteheader>$votenoteHtml<br><span class="vetofootnote">* How is this option evil, immoral or unethical?</span></div votenotediv$opti>
+<div class="optdetailheader">OPTION DETAIL:</div optdetailheader><div id="optdetailtext$opti" class="optdetailtext">$optdetail<br>&nbsp;</div optdetailtext$opti>
+</div optdetail$opti>
+
+</div rowwrapper></div optRow$opti>\n\n
+EOF;
+-------------
+    <div id='votenow' class='row'>
+    <div><a href="$base_url/community/democracy/do=ballot" class="btn btn-success btn-lg" role="button">Vote Now!</a></div>
+    <div class='halfdown'>Polls close at midnight on $voting.</div>
+    </div votenow>
+
 /**
  * Reword a Dwolla error message.
  * @param string $msg: the original message

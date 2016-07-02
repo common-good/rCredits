@@ -394,14 +394,14 @@ function rcredits_radio($variables) {
 }
 
 function rcredits_submit($variables) {
-  extract(rcElement($variables, 'tabled bare value title id size style name parents'));
+  extract(rcElement($variables, 'tabled bare value title id size style name parents class'));
 ///  debug($variables);
   if (!@$id) $id = 'edit-' . strtolower(strtr($value, [' '=>'-', '_'=>'-', '['=>'-', ']'=>'']));
 //  u\setDft($id, strtolower("edit-$value"));
   u\setDft($size, 'md');
   u\setDft($style, 'primary');
 //  u\setDft($name, @$parents[0]);
-  $variables['element']['#children'] = $res = spinLink('submit', $value, $id, $style, $size);
+  $variables['element']['#children'] = $res = spinLink('submit', $value, $id, $style, $size, compact('class'));
 /*
   <<<EOF
   <button type="submit" id="$id" name="$name" value="$value" class="btn btn-$style btn-$size ladda-button" data-style="expand-right">
@@ -539,6 +539,8 @@ function spinLink($href, $text, $id = '', $style = '', $size = '', $other = []) 
     list ($type, $name, $value, $tag) = ['submit', 'op', $text, 'button'];
     $attrs = 'type id name value';
   } elseif (!$size) $class = $style; // menu (or list) -type link (not a button)
+
+  if ($class2 = @$other['class']) {$class .= ' ' . join(' ', $class2); unset($other['class']);}
 
   $attrs = \drupal_attributes($other + compact(u\ray($attrs)));
 

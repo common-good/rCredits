@@ -7,9 +7,10 @@
 
 @font-face {
     font-family: "GnuMICR";
-    src: url(http://new.rcredits.org/GnuMICR.ttf) format("truetype");
+    src: url(https://new.rcredits.org/GnuMICR.ttf) format("truetype");
 }
 
+.btn-slight {background-color:wheat;}
 .invisible, .element-invisible {display:none;}
 
 .vertical{
@@ -167,6 +168,8 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
 #edit-acct-account ul {float:right; background-color:green; color:silver; list-style-type:none; padding:0 5px;}
 #edit-acct-account ul a {color:white;}
 #edit-acct-account ul a:hover {text-decoration:none; color:lightblue;}
+#edit-acct-account a.ok {background-color:lightgreen;}
+#edit-acct-account a.co {background-color:yellow;}
 
 #advanced {display:none;}
 #simple, #advanced {width:600px;}
@@ -213,7 +216,7 @@ div#shout {position:absolute; z-level:2; left:300px; top:100px; background-color
 #nosignin .messages #subtext {margin:10px 0 0 0; font-size:80%; color:darkgray;}
 #nosignin div.status {margin:20px; padding:10px; background-image:none;} 
 
-#main {margin:0 0 12px 0;}
+#main {margin:10px 0 12px 0;}
 body.logged-in.one-sidebar #content {width:100%;}
 #main .section {margin-left:10px; padding:0 12px;}
 #page-title {display: none;}
@@ -364,9 +367,10 @@ body.logged-in.one-sidebar #content {width:100%;}
 
 /* Proxy */
 /*#rcreditswebformproxy button {display:none;}*/
-#rcreditswebformproxy .btn {margin:0px 2px 3px; font-size:85%;}
-#rcreditswebformproxy tr {background-color:#dddddd;}
-#rcreditswebformproxy #edit-subtext {padding-left:0; text-align:left;}
+#rcreditswebformproxy .btn,
+#rcreditswebformprox #edit-list .btn {margin:0px 2px 3px;}
+#rcreditswebformproxy tr,
+#rcreditswebformprox #edit-list tr {background-color:#dddddd;}
 
 /* Login (Signin) */
 #rcreditswebformsignin #edit-tip label {font-weight:normal; width:100%; text-align:left;}
@@ -626,9 +630,11 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebformgraphs .description {clear:none;}
 #rcreditswebformgraphs #edit-charts div {float:left;}
 #rcreditswebformgraphs #edit-title {margin-bottom:0; font-weight:bold;}
-#rcreditswebformgraphs #edit-subheader {margin-top:0px; margin-bottom:35px; font-size:110%;} 
+/* #rcreditswebformgraphs #edit-subheader {margin-top:0px; margin-bottom:35px; font-size:110%;}  */
 #rcreditswebformgraphs #edit-subtext {margin-left:0;} 
 #rcreditswebformgraphs #edit-subtext em {font-weight:bold; font-style:normal; color:darkred;}
+#rcreditswebformgraphs .form-item-ctty .control-label {display:inline-block; min-width:0; width:auto; padding-left:0; padding-right:5px;}
+#rcreditswebformgraphs #edit-ctty {width:auto;}
 
 #rcreditswebformgraphs .form-type-checkboxes {margin-bottom:0;}
 #rcreditswebformgraphs .form-type-checkbox {width:110px;}

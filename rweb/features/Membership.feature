@@ -18,7 +18,7 @@ Setup:
 Scenario: A member signs in for the first time
   Given member is logged out
   And invitation to email "d@" from member ".ZZA" is "c0D3"
-  And next random code is "%name"
+  And next random code is "%whatever"
   When member "?" confirms form "signup/code=c0D3" with values:
   | fullName  | email | phone | country | postalCode | federalId | dob | acctType    | code | address | city    | state | tenure | owns | postalAddr                |*
   | Dee Four  | d@ | 413-253-0000 | US | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 | 1 A St. | Amherst | MA    |     25 |    0 | 1 A St., Amherst, MA 01002 |
@@ -27,14 +27,14 @@ Scenario: A member signs in for the first time
   | .AAA | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents | .ZZA   |
   And we say "status": "your account is ready"
   And we email "welcome" to member "d@" with subs:
-  | fullName | name    | qid    | site        | code  |*
-  | Dee Four | deefour | NEWAAA | %BASE_URL | %name |
+  | fullName | name    | qid    | site      | code      |*
+  | Dee Four | deefour | NEWAAA | %BASE_URL | %whatever |
 
-  When member "?" visits page "reset/id=deefour&code=%name"
+  When member "?" visits page "reset/id=deefour&code=%whatever"
   Then we show "Choose a New Password"
-  When member "?" confirms form "reset/id=deefour&code=%name" with values:
-  | pass1     | pass2     | strong |*
-  | %whatever | %whatever | 1      |
+  When member "?" confirms form "reset/id=deefour&code=%whatever" with values:
+  | pass1      | pass2      | strong |*
+  | %whatever2 | %whatever2 | 1      |
 #  | name    | pass      | pass1  | pass2  | pin  |
 #  | deefour | %whatever | Aa1!.. | Aa1!.. | 1234 |
   Then member ".AAA" is logged in

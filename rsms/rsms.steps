@@ -10,8 +10,10 @@
  * when you run the compiler again. This @file description will not be affected,
  * but all of the function header comments are (re)generated automatically.
  *
- * Be assured however, that no functions will be deleted and the compiler will
- * never delete or alter code within a function.
+ * Be assured that no functions will be deleted and the compiler will
+ * not alter code within a function unless you make it look like a function header.
+ *
+ * You may also add statements just below this header (for example "use" and "require_once").
  */
 use rCredits as r;
 use rCredits\DB as db;
@@ -24,26 +26,13 @@ require_once __DIR__ . '/../rcredits-testing.inc';
 
 /**
  * Add additional setup for any or all features or tests
- * The feature object contains information about the current feature and test, etc.
  */
-function extraSetup($feature) {
+function extraSetup() {
   global $sms_devel; $sms_devel = TRUE;
   t\clear(TX_SMS);
-  
-  if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
-    $line = str_replace('%last_qid', r\qid(r\Acct::nextId() - 1), $line);
-  }
+  r\Acct::_clear(); // empty the acct cache
 }
 
-r\Acct::_clear(); // empty the acct cache
-}
-
-/**
- * Modify the standard list of magic substitutions (the %parameters)
- */
-function extraSubs(&$subs) {
-//  $subs['%replace_this'] = 'with this';
-}
 
 /**
  * phone (ARG) has no account
@@ -371,7 +360,7 @@ function theExpectedNonceForPhoneIs($number, $nonce) {
   if ($testOnly or $same) return $same;
   
   if ($nonce and !$old->nonce) {
-    phoneIsAMember($number2 = randomPhone(), 'Firstname2 theExpectedNonceForPhoneIs');
+    phoneIsAMember($number2 = randomString(9, '9'), 'Firstname2 theExpectedNonceForPhoneIs');
     phoneSays($number, "10 to $number2");
     $old = be\todo($number);
   }

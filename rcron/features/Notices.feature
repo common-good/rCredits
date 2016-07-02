@@ -9,6 +9,7 @@ Setup:
   | .ZZA | Abe One    | ok        | a@    |
   | .ZZB | Bea Two    | member,ok,weekly | b@    |
   | .ZZC | Corner Pub | co,ok     | c@    |
+  And community email for member ".ZZA" is "%whatever@rCredits.org"
 
 Scenario: a member gets some notices
   Given notices:
@@ -20,8 +21,8 @@ Scenario: a member gets some notices
   | balance | savings | rewards |*
   | $0      | $0      | $0      |
   Then we email "notices" to member "a@" with subs:
-  | fullName | shortName | unit | range           | yestertime      | region | messages                  | balance  | return | ourEmail      |*
-  | Abe One  | abeone    | day  | %fancyYesterday | %fancyYesterday | new    | *You rock.<br>*You stone. | %balance | 5.0    | %zzxCttyEmail |
+  | fullName | shortName | unit | range   | yestertime | region | messages                  | balance  | return | ourEmail      |*
+  | Abe One  | abeone    | day  | %dmy-1d | %dmy-1d    | new    | *You rock.<br>*You stone. | @balance | 5.0    | %whatever@rCredits.org |
   And notices:
   | id   | created | sent   | message    |*
   | .ZZA | %today  | %today | You rock.  |
@@ -38,8 +39,8 @@ Scenario: a member gets some weekly notices
   | balance | savings | rewards |*
   | $0      | $0      | $0      |
   Then we email "notices" to member "b@" with subs:
-  | fullName | shortName | unit | range                       | yestertime        | region | messages                          | balance  | return | ourEmail      |*
-  | Bea Two  | beatwo    | week | the week of %fancyYesterweek | %fancyYesterweek | new    | %md<x>You rock.<br>%md<x>You stone. | %balance | 5.0    | %zzxCttyEmail |
+  | fullName | shortName | unit | range               | yestertime | region | messages                          | balance  | return | ourEmail      |*
+  | Bea Two  | beatwo    | week | the week of %dmy-1w | %dmy-1w    | new    | %md<x>You rock.<br>%md<x>You stone. | @balance | 5.0    | %whatever@rCredits.org |
   And notices:
   | id   | created | sent   | message    |*
   | .ZZB | %today  | %today | You rock.  |

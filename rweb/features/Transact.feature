@@ -168,8 +168,8 @@ Scenario: A member leaves goods blank
   | op  | who     | amount | goods | purpose |*
   | pay | Bea Two | 100    |       | labor   |  
   Then we say "error": "required field" with subs:
-  | field   |*
-  | ''For'' |
+  | field |*
+  | "For" |
 
 Skip  
 Scenario: A member asks to charge another member before making an rCard purchase
