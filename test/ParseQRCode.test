@@ -1,0 +1,60 @@
+//
+// Feature: Parse QR Code
+//   AS a cashier
+//   I WANT the customer's QR code to be interpreted correctly
+//   SO we know who we're dealing with.
+
+describe('r2% -- FEATURE_NAME', function () {
+	'use strict';
+  var steps = new R2_steps();
+
+  beforeEach(function () { // Setup
+    steps.extraSetup();
+  });
+
+  it('Scenario: We scan a valid old personal card.', function () {
+    steps.testOnly = 0;
+    expect(steps.weScanQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw')).toBe(true);
+    steps.testOnly = 1;
+    expect(steps.accountIsPersonal()).toBe(true);
+    steps.testOnly = 1;
+    expect(steps.accountIDIs('NEW.ABB')).toBe(true);
+    steps.testOnly = 1;
+    expect(steps.securityCodeIs('ZzhWMCq0zcBowqw')).toBe(true);
+  });
+
+  it('Scenario: We scan a valid old company card.', function () {
+    steps.testOnly = 0;
+    expect(steps.weScanQR('HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G')).toBe(true);
+    steps.testOnly = 1;
+    expect(steps.accountIsCompany()).toBe(true);
+    steps.testOnly = 1;
+    expect(steps.accountIDIs('NEW:AAB')).toBe(true);
+    steps.testOnly = 1;
+    expect(steps.securityCodeIs('WeHlioM5JZv1O9G')).toBe(true);
+  });
+
+  it('Scenario: We scan a valid personal card.', function () {
+    steps.testOnly = 0;
+    expect(steps.weScanQR('HTTP://NEW.RC4.ME/GORZzhWMCq0zcBowqw')).toBe(true);
+    steps.testOnly = 1;
+    expect(steps.accountIsPersonal()).toBe(true);
+    steps.testOnly = 1;
+    expect(steps.accountIDIs('GNEWOR')).toBe(true);
+    steps.testOnly = 1;
+    expect(steps.securityCodeIs('ZzhWMCq0zcBowqw')).toBe(true);
+  });
+
+  it('Scenario: We scan a valid company card.', function () {
+    steps.testOnly = 0;
+    expect(steps.weScanQR('HTTP://NEW.RC4.ME/H010WeHlioM5JZv1O9G')).toBe(true);
+    steps.testOnly = 1;
+    expect(steps.accountIsCompany()).toBe(true);
+    steps.testOnly = 1;
+    expect(steps.accountIDIs('HNEW010')).toBe(true);
+    steps.testOnly = 1;
+    expect(steps.securityCodeIs('WeHlioM5JZv1O9G')).toBe(true);
+  });
+
+});
+  
