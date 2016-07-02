@@ -8,13 +8,18 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 	];
 	$scope.customer = populateDemoCustomers;
 	$scope.selectedCustomer = {
-		selected: $scope.customer[0],
+		selected: $scope.customer[0]
 	};
-	$scope.location=$location.url().indexOf('app/home');
+	$scope.manager = populateDemoCustomers;
+	$scope.selectedManager = {
+		selected: $scope.customer[0]
+	};
+	$scope.location=$location.url();
 	$scope.notHome=function (){
-		return window.location.hash.indexOf('app/home');
+		return $location.url().indexOf('app/home');
 	};
 	$scope.onSelectCustomer = function () {
+		console.log($scope.location, $scope.notHome());
 		var selected = $scope.selectedCustomer.selected;
 		UserService.identifyCustomer(selected.url)
 			.then(function () {
