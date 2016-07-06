@@ -1,5 +1,5 @@
-<div ng-controller="SelectDemoCust"  class="bar bar-subheader" ng-if="offlCtrl.isOffline() || offlCtrl.isDemoMode() || ionic.Platform.isWebView()">
-	<div ng-if="offlCtrl.isDemoMode() && notHome() === 1" class="list ">
+<div ng-controller="SelectDemoCust"  class="bar bar-subheader" ng-if="offlCtrl.isOffline() || offlCtrl.isDemoMode() || ionic.Platform.platform()==='win64' || ionic.Platform.platform()==='Macintosh'||ionic.Platform.platform().indexOf('Mac')===1">
+	<div ng-if="(offlCtrl.isDemoMode() ||offlCtrl.isDemoMode() || ionic.Platform.platform()==='win64' || ionic.Platform.platform().indexOf('Mac')===1)&& whereAmI().indexOf('app/login') === 1" class="list ">
 		<label class="item item-input item-select managerDemo">
 			<select  ng-change="onSelectManager()" ng-model="selectedManager.selected" ng-options="m.name for m in manager">
 			</select>
@@ -12,7 +12,7 @@
 			<span class="demo-title">{{'demo_mode'| translate}}</span>
 		</div>
 	</h2>
-	<div ng-if="offlCtrl.isDemoMode() && notHome() === 1" class="list ">
+	<div ng-if="offlCtrl.isDemoMode() && whereAmI().indexOf('app/home') === 1" class="list ">
 		<label class="item item-input item-select customerDemo">
 			<select  ng-change="onSelectCustomer()" ng-model="selectedCustomer.selected" ng-options="c.name for c in customer">
 			</select>

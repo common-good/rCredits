@@ -6,17 +6,23 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 		{name: 'Curt Customer', url: 'HTTP://NEW.RC4.ME/AAK.NyCBBlUF1qWNZ2k'},
 		{name: 'Bob Bossman', url: 'HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G'}
 	];
+	var populateDemoManager = [
+		{name: "Curt-Helga's Hardware", url: 'HTTP://NEW.RC4.ME/AAD-utbYceW3KLLCcaw'},
+		{name: 'Bob Bossman', url: 'HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G'}
+	];
+	console.log(ionic.Platform.isWebView());
+	$scope.iswebview = ionic.Platform.platform();
 	$scope.customer = populateDemoCustomers;
 	$scope.selectedCustomer = {
 		selected: $scope.customer[0]
 	};
-	$scope.manager = populateDemoCustomers;
+	$scope.manager = populateDemoManager;
 	$scope.selectedManager = {
-		selected: $scope.customer[0]
+		selected: $scope.manager[0]
 	};
-	$scope.location=$location.url();
-	$scope.notHome=function (){
-		return $location.url().indexOf('app/home');
+	$scope.location = $location.url();
+	$scope.whereAmI = function () {
+		return $location.url();
 	};
 	$scope.onSelectCustomer = function () {
 		console.log($scope.location, $scope.notHome());
