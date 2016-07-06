@@ -22,15 +22,50 @@ subheader {
 	display: inline-block;
 	float: right;
 	top: 0;
-	right:0;
+	right: 0;
 	position: absolute;
 	height: 38px;
 	padding: 0;
-	border-bottom: 1;
+	width: 55%;
+	margin: 0;
+	background: none;
+}
+.managerDemo{
+	display: inline-block;
+	float: left;
+	top: 0;
+	position: absolute;
+	height: 38px;
+	padding: 0;
+	width: 33%;
+	margin: 0;
+	background: none;
+}
+.leftMenue{
+	left: .5em;
+	right: inherit;
+}
+.rightMenu{
+	right: 0em;
+}
+.rightMenu::after{
+	right: 10.5em !important;
+}
+.item-select::after{
+	right: inherit;
+	z-index: 0;
+}
+.item-select select {
+	padding: 0;
+	max-width: inherit;
+}
+.submenuText{
+	text-align: left;
+	padding: 21px 0;
+	border-bottom: 1px;
 	border-left: 0;
 	border-top: 0;
 	border-right: 0;
-	width: 65%;
 	margin: 0;
 	background: none;
 }
