@@ -46,6 +46,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	};
 	UserService.prototype.makeRequest_ = function (params, accountInfo) {
 		var urlConf = new UrlConfigurator();
+		console.log(urlConf.getServerUrl(accountInfo),$httpParamSerializer(params));
 		return $http({
 			method: 'POST',
 			url: urlConf.getServerUrl(accountInfo),
@@ -67,8 +68,8 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	};
 	UserService.prototype.loginWithRCard_ = function (params, accountInfo) {
 		return this.makeRequest_(params, accountInfo).then(function (res) {
-			console.log(params, accountInfo);
 			var responseData = res.data;
+			console.log(params, accountInfo,res);
 			if (responseData.ok === LOGIN_FAILED) {
 				console.log(responseData.message);
 				throw responseData.message;
@@ -112,6 +113,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	// The app should then give notice to the user that the device is associated with the
 	// user.
 	UserService.prototype.loginWithRCard = function (str) {
+		console.log(str);
 		var qrcodeParser = new QRCodeParser();
 		qrcodeParser.setUrl(str);
 		var accountInfo = qrcodeParser.parse();
@@ -263,6 +265,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		img.src = url;
 	}
 	UserService.prototype.getProfilePicture = function (accountInfo) {
+		console.log(self);
 		var params = new RequestParameterBuilder()
 			.setOperationId('photo')
 			.setAgent(this.seller.default)

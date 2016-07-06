@@ -1,5 +1,4 @@
-/* global app */
-app.controller('LoginCtrl', function ($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService, $stateParams, $translate){
+app.controller('LoginCtrl', function ($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService, $stateParams) {
 	$scope.$on('$ionicView.loaded', function () {
 		ionic.Platform.ready(function () {
 			if (navigator && navigator.splashscreen)
