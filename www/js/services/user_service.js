@@ -177,7 +177,8 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			.setOperationId('identify')
 			.setAgent(this.seller.default)
 			.setMember(accountInfo.accountId)
-			.setSecurityCode(accountInfo.securityCode);
+			.setSecurityCode(accountInfo.securityCode)
+			.setSignin(accountInfo.signin);
 		if (pin) {
 			params.setPIN(pin);
 		}

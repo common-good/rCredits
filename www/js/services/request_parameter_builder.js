@@ -7,7 +7,8 @@
 				op: '',
 				device: this.getDeviceId() || '',
 				agent: null,
-				version: rCreditsConfig.build
+				version: rCreditsConfig.build,
+				signin: ''
 			};
 		};
 		RequestParameterBuilder.prototype.setOperationId = function (op) {
@@ -22,6 +23,10 @@
 		};
 		RequestParameterBuilder.prototype.setMember = function (member) {
 			this.result.member = member;
+			return this;
+		};
+		RequestParameterBuilder.prototype.setSignin = function (signin) {
+			this.result.signin = signin;
 			return this;
 		};
 		RequestParameterBuilder.prototype.setSecurityCode = function (securityCode) {

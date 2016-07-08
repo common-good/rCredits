@@ -7,6 +7,7 @@
 		this.securityCode = '';
 		this.url = '';
 		this.serverType = '';
+		this.signin = '';
 	};
 	AccountInfo.IS_DEMO = 'rc4';
 	AccountInfo.prototype.isPersonalAccount = function () {
