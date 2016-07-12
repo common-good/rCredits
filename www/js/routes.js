@@ -119,6 +119,15 @@ angular.module('routes', [])
 						controller: 'SelfServiceModeController'
 					}
 				}
+			})
+			.state('app.demo', {
+				url: '/demo-people',
+				views: {
+					'menuContent': {
+						templateUrl: 'templates/demo-people.html',
+						controller: 'SelectDemoCust'
+					}
+				}
 			});
 		// if none of the above states are matched, use this as the fallback
 		$urlRouterProvider.otherwise('/app/login');

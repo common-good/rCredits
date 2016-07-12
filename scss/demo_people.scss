@@ -1,0 +1,37 @@
+.aTable{
+	height: 100%;
+	width: 100%;
+	position: relative;
+	display: block;
+	margin: auto;
+	padding: 0;
+	float: left;
+}
+.leftColumn{
+	right: 0;
+	position: relative;
+	display: block;
+	margin: auto;
+	padding: 0;
+	float: right;
+}
+.rightColumn{
+	left: 0;
+	position: relative;
+	display: block;
+	margin: auto;
+	padding: 0;
+	float: right;
+}
+.aRow{
+	top: 0;
+	width: inherit;
+	position: relative;
+	display: inline-block;
+	margin:auto;
+	padding: 0;
+}
+.demoImages{
+	width: 70%;
+	height: auto;
+}

@@ -1,11 +1,11 @@
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>TODO supply a title</title>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	</head>
-	<body>
-		<div>TODO write content</div>
-	</body>
-</html>
+<ion-view hide-nav-bar="true" ng-controller="SelectDemoCust as demo">
+	<ion-content>
+		<div class="aTable">
+			<div ng-class-odd="'leftColumn'" ng-class-even="'rightColumn'" ng-repeat="person in customer">
+				<div class="aRow">
+					<a href="javascript:void(0)" ng-click="onSelectManager()" ng-model="selectedCustomer.selected"><img src="{{person.img}}" title="Demo User" class="demoImages"></a>
+				</div>
+			</div>
+		</div>
+	</ion-content>
+</ion-view>

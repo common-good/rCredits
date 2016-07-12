@@ -46,7 +46,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	};
 	UserService.prototype.makeRequest_ = function (params, accountInfo) {
 		var urlConf = new UrlConfigurator();
-		console.log(urlConf.getServerUrl(accountInfo),$httpParamSerializer(params));
+		console.log(urlConf.getServerUrl(accountInfo), $httpParamSerializer(params));
 		return $http({
 			method: 'POST',
 			url: urlConf.getServerUrl(accountInfo),
@@ -69,19 +69,20 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	UserService.prototype.loginWithRCard_ = function (params, accountInfo) {
 		return this.makeRequest_(params, accountInfo).then(function (res) {
 			var responseData = res.data;
-			console.log(params, accountInfo,res);
+			console.log(params, accountInfo, res);
 			if (responseData.ok === LOGIN_FAILED) {
 				console.log(responseData.message);
 				throw responseData.message;
 			}
 			return responseData;
 		}).catch(function (err) {
+			console.log(params, accountInfo, res);
 			console.log(err.statusText);
 			if (_.isString(err) && err !== '') {
 				console.error(err);
 				throw err;
 			} else if (err.statusText === '') {
-				err.statusText='That is not a valid rCard.';
+				err.statusText = 'That is not a valid rCard.';
 			} else {
 				for (var er in err) {
 					if (_.isString(err)) {
@@ -115,7 +116,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	UserService.prototype.loginWithRCard = function (str) {
 		console.log(str);
 		var qrcodeParser = new QRCodeParser();
-		qrcodeParser.setUrl(str);
+		qrcodeParser.setUrl(str.url);
 		var accountInfo = qrcodeParser.parse();
 
 		this.validateDemoMode(accountInfo);
@@ -124,6 +125,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			.setOperationId('identify')
 			.setSecurityCode(accountInfo.securityCode)
 			.setMember(accountInfo.accountId)
+			.setSignin(accountInfo.signin)
 			.getParams();
 
 		if (NetworkService.isOffline()) {

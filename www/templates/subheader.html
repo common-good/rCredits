@@ -1,10 +1,10 @@
 <div ng-controller="SelectDemoCust"  class="bar bar-subheader" ng-if="offlCtrl.isOffline() || offlCtrl.isDemoMode()">
-	<div ng-if="offlCtrl.isDemoMode() && whereAmI().indexOf('app/home') === 1" class="list managerDemo">
+<!--	<div ng-if="offlCtrl.isDemoMode() && whereAmI().indexOf('app/home') === 1" class="list managerDemo">
 		<label class="item item-input item-select submenuText">
 			<select  ng-change="onSelectManager()" ng-model="selectedManager.selected" ng-options="m.name for m in manager" class="leftMenue">
 			</select>
 		</label>
-	</div>
+	</div>-->
 	<h2 class="title">
 		<span ng-if="offlCtrl.isOffline()">{{'you_are_offline'| translate}}</span>
 		<span ng-if="offlCtrl.isOffline() && offlCtrl.isDemoMode()"> - </span>
@@ -12,10 +12,10 @@
 			<span class="demo-title">{{'demo_mode'| translate}}</span>
 		</div>
 	</h2>
-	<div ng-if="offlCtrl.isDemoMode() && whereAmI().indexOf('app/home') === 1" class="list customerDemo">
+<!--	<div ng-if="offlCtrl.isDemoMode() && whereAmI().indexOf('app/home') === 1" class="list customerDemo">
 		<label class="item item-input item-select submenuText rightMenu">
 			<select  ng-change="onSelectCustomer()" ng-model="selectedCustomer.selected" ng-options="c.name for c in customer" class="rightMenuArrow">
 			</select>
 		</label>
-	</div>
+	</div>-->
 </div>

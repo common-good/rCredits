@@ -16,6 +16,7 @@
 			"attributes": {
 				"hide-back-button": {},
 				"view-title": {},
+				"ng-controller": {},
 				"hide-nav-bar": {},
 				"cache-view": {},
 				"class": {}
