@@ -1,5 +1,5 @@
 /* global app */
-app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope, CashierModeService, SelfServiceMode, $translate) {
+app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope, CashierModeService, SelfServiceMode, $translate, $ionicPlatform) {
 	var onSellerLoginEvent = $rootScope.$on('sellerLogin', function () {
 		$scope.currentUser = UserService.currentUser();
 	});
@@ -35,51 +35,51 @@ app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, Barco
 			return;
 		}
 		$ionicLoading.show();
-		BarcodeService.scan()
-			.then(function (id) {
-				UserService.identifyCustomer(id)
-					.then(function () {
-						console.log(id);
-						$scope.customer = UserService.currentCustomer();
-						if ($scope.customer.firstPurchase) {
-							NotificationService.showConfirm({
-								title: 'firstPurchase',
-								templateUrl: "templates/first-purchase.html",
-								scope: $scope,
-								okText: "confirm"
-							})
-								.then(function (confirmed) {
-									if (confirmed) {
-										$ionicLoading.show();
-										$state.go("app.customer");
-									}
-								});
+		$ionicPlatform.ready(function () {
+			BarcodeService.scan('app.home')
+				.then(function (id) {
+					UserService.identifyCustomer(id)
+						.then(function () {
+							console.log(id);
+							$scope.customer = UserService.currentCustomer();
+							if ($scope.customer.firstPurchase) {
+								NotificationService.showConfirm({
+									title: 'firstPurchase',
+									templateUrl: "templates/first-purchase.html",
+									scope: $scope,
+									okText: "confirm"
+								})
+									.then(function (confirmed) {
+										if (confirmed) {
+											$ionicLoading.show();
+											$state.go("app.customer");
+										}
+									});
+								$ionicLoading.hide();
+							} else {
+								$ionicLoading.hide();
+								$state.go("app.customer");
+							}
+						})
+						.catch(function (errorMsg) {
+							console.log($scope.currentUser.name);
+							if (errorMsg === 'login_your_self') {
+								NotificationService.showAlert({title: "Error", template: "You are already signed in as: " + $scope.currentUser.name});
+							} else {
+								NotificationService.showAlert({title: "Error", template: errorMsg});
+							}
 							$ionicLoading.hide();
-						} else {
-							$ionicLoading.hide();
-							$state.go("app.customer");
-						}
-					})
-					.catch(function (errorMsg) {
-						console.log($scope.currentUser.name);
-//						for (var prop in $scope.currentUser) {
-//						}
-						if (errorMsg === 'login_your_self') {
-							NotificationService.showAlert({title: "Error", template: "You are already signed in as: " + $scope.currentUser.name});
-						} else {
-							NotificationService.showAlert({title: "Error", template: errorMsg});
-						}
-						$ionicLoading.hide();
-					});
-			})
-			.catch(function (errorMsg) {
-				NotificationService.showAlert({title: "error", template: errorMsg});
-				$ionicLoading.hide();
+						});
+				})
+				.catch(function (errorMsg) {
+					NotificationService.showAlert({title: "error", template: errorMsg});
+					$ionicLoading.hide();
+				});
+			$scope.$on('$destroy', function () {
+				if (onSellerLoginEvent) {
+					onSellerLoginEvent();
+				}
 			});
-		$scope.$on('$destroy', function () {
-			if (onSellerLoginEvent) {
-				onSellerLoginEvent();
-			}
 		});
 	};
 });

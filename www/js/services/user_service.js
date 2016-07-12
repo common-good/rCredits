@@ -69,7 +69,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	UserService.prototype.loginWithRCard_ = function (params, accountInfo) {
 		return this.makeRequest_(params, accountInfo).then(function (res) {
 			var responseData = res.data;
-			console.log(params, accountInfo, res);
+//			console.log(params, accountInfo, res);
 			if (responseData.ok === LOGIN_FAILED) {
 				console.log(responseData.message);
 				throw responseData.message;
@@ -114,20 +114,17 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	// The app should then give notice to the user that the device is associated with the
 	// user.
 	UserService.prototype.loginWithRCard = function (str) {
-		console.log(str);
 		var qrcodeParser = new QRCodeParser();
 		qrcodeParser.setUrl(str.url);
 		var accountInfo = qrcodeParser.parse();
-
 		this.validateDemoMode(accountInfo);
-
 		var params = new RequestParameterBuilder()
 			.setOperationId('identify')
 			.setSecurityCode(accountInfo.securityCode)
 			.setMember(accountInfo.accountId)
 			.setSignin(accountInfo.signin)
 			.getParams();
-
+		console.log(accountInfo);
 		if (NetworkService.isOffline()) {
 			return this.loginWithRCardOffline(accountInfo).then(function () {
 				PreferenceService.parsePreferencesNumber(self.currentUser().getCan());
@@ -141,7 +138,6 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 					self.seller.save();
 					return self.seller;
 				}
-
 				if (responseData.logon === LOGIN_BY_CUSTOMER) {
 					throw self.LOGIN_SELLER_ERROR_MESSAGE;
 				}

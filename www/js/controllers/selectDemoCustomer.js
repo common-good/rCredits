@@ -11,20 +11,17 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 	$scope.customer = populateDemoCustomers;
 	console.log($scope.customer[1].img);
 	$scope.selectedCustomer = {
-		selected: $scope.customer[0]
+		selected: $scope.customer
 	};
 	$scope.manager = populateDemoCustomers;
 	$scope.selectedManager = {
-		selected: $scope.manager[0]
+		selected: $scope.manager
 	};
-	$scope.location = $location.url();
-	$scope.whereAmI = function () {
-		return $location.url();
-	};
+	$scope.whereWasI = $stateParams.whereAmI;
 	$scope.onSelectCustomer = function () {
-		console.log($scope.location, $scope.whereAmI());
+		console.log($scope.location, $scope.whereWasI);
 		var selected = $scope.selectedCustomer.selected;
-		UserService.identifyCustomer(selected.url)
+		UserService.identifyCustomer(selected)
 			.then(function () {
 				$scope.customer = UserService.currentCustomer();
 				if ($scope.customer.firstPurchase) {
@@ -58,10 +55,10 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 				$ionicLoading.hide();
 			});
 	};
-	$scope.onSelectManager = function () {
-		console.log($scope.location, $scope.whereAmI());
-		var selected = $scope.selectedManager.selected;
-		UserService.loginWithRCard(selected.url)
+	$scope.onSelectManager = function (person) {
+		console.log(selected, $scope.whereWasI);
+		var selected = person;
+		UserService.loginWithRCard(selected)
 			.then(function () {
 				$ionicHistory.nextViewOptions({
 					disableBack: true
@@ -69,18 +66,15 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 				$state.go("app.home");
 			})
 			.catch(function (errorMsg) {
-				NotificationService.showAlert({title: "error", template: errorMsg});
-			})
-			.finally(function () {
-				$ionicLoading.hide();
-			})
-			.catch(function (errorMsg) {
-				console.log($scope.currentUser.name);
+				console.log(selected);
 				if (errorMsg === 'login_your_self') {
-					NotificationService.showAlert({title: "Error", template: "You are already signed in as: " + $scope.currentUser.name});
+					NotificationService.showAlert({title: "Error", template: "You are already signed in as: " + selected.name});
 				} else {
 					NotificationService.showAlert({title: "Error", template: errorMsg});
 				}
+				$ionicLoading.hide();
+			})
+			.finally(function () {
 				$ionicLoading.hide();
 			});
 	};

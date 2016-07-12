@@ -1,4 +1,4 @@
-app.controller('LoginCtrl', function ($scope, $state, $ionicLoading, $ionicPlatform, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService, $stateParams) {
+app.controller('LoginCtrl', function ($scope, $ionicLoading, $state, $ionicPlatform, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService, $stateParams) {
 	$scope.$on('$ionicView.loaded', function () {
 		ionic.Platform.ready(function () {
 			if (navigator && navigator.splashscreen)
@@ -10,32 +10,26 @@ app.controller('LoginCtrl', function ($scope, $state, $ionicLoading, $ionicPlatf
 	$scope.openScanner = function () {
 		$ionicLoading.show();
 		$ionicPlatform.ready(function () {
-			if (ionic.Platform.platform() === 'win64') {
-				$state.go("app.demo");
-				$ionicLoading.hide();
-			} else {
-				BarcodeService.scan()
-					.then(function (str) {
-						UserService.loginWithRCard(str)
-							.then(function () {
-								$ionicHistory.nextViewOptions({
-									disableBack: true
-								});
-								$state.go("app.home");
-							})
-							.catch(function (errorMsg) {
-								NotificationService.showAlert({title: "error", template: errorMsg});
-							})
-							.finally(function () {
-								$ionicLoading.hide();
+			BarcodeService.scan('app.login')
+				.then(function (str) {
+					UserService.loginWithRCard(str)
+						.then(function () {
+							$ionicHistory.nextViewOptions({
+								disableBack: true
 							});
-					})
-					.catch(function (errorMsg) {
-						NotificationService.showAlert({title: "error", template: errorMsg});
-						$ionicLoading.hide();
-					})
-			}
-			;
+							$state.go("app.home");
+						})
+						.catch(function (errorMsg) {
+							NotificationService.showAlert({title: "error", template: errorMsg});
+						})
+						.finally(function () {
+							$ionicLoading.hide();
+						});
+				})
+				.catch(function (errorMsg) {
+					NotificationService.showAlert({title: "error", template: errorMsg});
+					$ionicLoading.hide();
+				})
 		});
 	};
 	if (CashierModeService.isEnabled() || $stateParams.openScanner) {

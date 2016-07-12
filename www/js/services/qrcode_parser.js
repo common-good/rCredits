@@ -23,8 +23,10 @@
 	QRCodeParser.prototype.parseAccountType_ = function () {
 		if (this.url.pathname.indexOf(COMPANY_INDICATOR) !== -1) {
 			this.accountInfo.isCompany = true;
+			this.accountInfo.signin=1;
 		} else if (this.url.pathname.indexOf(PERSONAL_INDICATOR) !== -1) {
 			this.accountInfo.isPersonal = true;
+			this.accountInfo.signin=0;
 		} else {
 			console.log('That is not a valid rCard.');
 			throw 'That is not a valid rCard.';

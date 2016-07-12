@@ -127,6 +127,37 @@ angular.module('routes', [])
 						templateUrl: 'templates/demo-people.html',
 						controller: 'SelectDemoCust'
 					}
+				},
+				params: {
+					whereAmI: false
+				},
+				resolve: {
+					person: function ($q, $timeout, UserService, $state, $stateParams) {
+						var deferred = $q.defer();
+						if ($stateParams.whereAmI === 'app.home') {
+							$timeout(function () {
+								var seller = UserService.loadSeller();
+								if (seller) {
+									$state.go("app.customer", {whereAmI: $stateParams.whereAmI});
+									deferred.reject();
+								} else {
+									deferred.resolve();
+								}
+							});
+							return deferred.promise;
+						} else if ($stateParams.whereAmI === 'app.login') {
+							$timeout(function () {
+								var seller = UserService.loadSeller();
+								if (seller) {
+									$state.go("app.home", {whereAmI: $stateParams.whereAmI});
+									deferred.reject();
+								} else {
+									deferred.resolve();
+								}
+							});
+							return deferred.promise;
+						}
+					}
 				}
 			});
 		// if none of the above states are matched, use this as the fallback
