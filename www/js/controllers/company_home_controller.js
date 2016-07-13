@@ -1,5 +1,5 @@
 /* global app */
-app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope, CashierModeService, SelfServiceMode, $translate, $ionicPlatform) {
+app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope, CashierModeService, SelfServiceMode, $translate, $ionicPlatform, $location) {
 	var onSellerLoginEvent = $rootScope.$on('sellerLogin', function () {
 		$scope.currentUser = UserService.currentUser();
 	});
@@ -37,8 +37,8 @@ app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, Barco
 		$ionicLoading.show();
 		$ionicPlatform.ready(function () {
 			if (ionic.Platform.platform() === 'win64') {
-				console.log(ionic.Platform.platform());
-				$state.go("app.demo", {whereWasI: 'app.home'});
+				$rootScope.whereWasI = location.hash;
+				$state.go("app.demo");
 				$ionicLoading.hide();
 			} else {
 				BarcodeService.scan('app.home')

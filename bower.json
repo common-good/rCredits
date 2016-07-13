@@ -4,7 +4,7 @@
   "devDependencies": {
     "ionic": "driftyco/ionic-bower#1.2.4"
   },
-  "dependencies": {
+  "dependencies": {"angular-ui-router": "0.3.1",
     "underscore": "~1.8.3",
     "angular-translate-handler-log": "~2.8.1",
     "angular-translate": "~2.8.1",

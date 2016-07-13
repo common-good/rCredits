@@ -1,6 +1,6 @@
 /* global Language, rCreditsConfig, StatusBar */
 // rCredits Register
-var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate', 'LocalStorageModule'])
+var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate', 'LocalStorageModule', 'ui.router'])
 	.config(['$translateProvider', 'localStorageServiceProvider', '$ionicConfigProvider',
 		function ($translateProvider, localStorageServiceProvider, $ionicConfigProvider) {
 			$ionicConfigProvider.views.maxCache(0);
@@ -16,9 +16,10 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 			localStorageServiceProvider.setPrefix('rcredits');
 			var storageQuota = false;
 		}])
-	.run(function ($ionicPlatform, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService, UserService, NotificationService) {
+	.run(function ($ionicPlatform, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService, UserService, NotificationService, $rootScope) {
 		$ionicPlatform.ready(function () {
 			// This only for web development to enable proxy
+			$rootScope.whereWasI=location.hash;
 			if (!ionic.Platform.isWebView()) {
 //				console.log('web view');
 				rCreditsConfig.serverUrl = rCreditsConfig.serverproxyUrl;

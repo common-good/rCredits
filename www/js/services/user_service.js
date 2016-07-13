@@ -76,7 +76,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			}
 			return responseData;
 		}).catch(function (err) {
-			console.log(params, accountInfo, res);
+			console.log(params, accountInfo, err);
 			console.log(err.statusText);
 			if (_.isString(err) && err !== '') {
 				console.error(err);
@@ -135,6 +135,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 				if (responseData.logon === LOGIN_BY_AGENT) {
 					self.seller = self.createSeller(responseData);
 					self.seller.accountInfo = accountInfo;
+					console.log(self.seller);
 					self.seller.save();
 					return self.seller;
 				}

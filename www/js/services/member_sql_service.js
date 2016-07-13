@@ -53,6 +53,7 @@
 			var sqlQuery = new SqlQuery();
 			sqlQuery.setQueryString("SELECT * FROM members WHERE qid = ?");
 			sqlQuery.setQueryData(qId);
+			console.log(sqlQuery);
 			return SQLiteService.executeQuery(sqlQuery).then(function (SQLResultSet) {
 				if (SQLResultSet.rows.length > 0) {
 					return SQLResultSet.rows[0];

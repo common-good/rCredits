@@ -1,5 +1,5 @@
 /* global app */
-app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService, $location) {
+app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService, $location, $rootScope) {
 	var populateDemoCustomers = [
 		{name: 'Cathy Cashier', url: 'HTTP://NEW.RC4.ME/ABJ-ME04nW44DHzxVDg', signin: '1', img: '/img/CathyCashier.jpg'},
 		{name: 'Bob Bossman', url: 'HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G', signin: '1', img: '/img/BobBossman.jpg'},
@@ -9,7 +9,6 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 	];
 	$scope.iswebview = ionic.Platform.platform();
 	$scope.customer = populateDemoCustomers;
-	console.log($scope.customer[1].img);
 	$scope.selectedCustomer = {
 		selected: $scope.customer
 	};
@@ -17,9 +16,10 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 	$scope.selectedManager = {
 		selected: $scope.manager
 	};
-	$scope.whereWasI = $stateParams.whereWasI;
+	$scope.whereWasI = $rootScope.whereWasI;
+	console.log($scope.whereWasI);
 	$scope.onSelectCustomer = function () {
-		console.log($scope.location, $scope.whereWasI);
+		console.log($location.state(), $scope.whereWasI);
 		var selected = $scope.selectedCustomer.selected;
 		UserService.identifyCustomer(selected)
 			.then(function () {
@@ -66,13 +66,15 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 				$state.go("app.home");
 			})
 			.catch(function (errorMsg) {
-				console.log(selected);
+				console.log(errorMsg);
 				if (errorMsg === 'login_your_self') {
 					NotificationService.showAlert({title: "Error", template: "You are already signed in as: " + selected.name});
+				} else if (errorMsg === 'TypeError: this.db is null') {
 				} else {
 					NotificationService.showAlert({title: "Error", template: errorMsg});
 				}
 				$ionicLoading.hide();
+				$state.go("app.home");
 			})
 			.finally(function () {
 				$ionicLoading.hide();
