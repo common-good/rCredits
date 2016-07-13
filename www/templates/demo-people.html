@@ -3,8 +3,8 @@
 		<div class="aTable">
 			<div ng-class-odd="'leftColumn'" ng-class-even="'rightColumn'" ng-repeat="person in customer">
 				<div class="aRow">
-					<a ng-if="whereAmI().indexOf('app/login') === 1" href="javascript:void(0)" ng-click="onSelectManager(person)" ng-model="selectedCustomer.selected"><img src="{{person.img}}" title="Demo User" class="demoImages"></a>
-					<a ng-if="whereAmI().indexOf('app/home') === 1" href="javascript:void(0)" ng-click="onSelectCustomer(person)" ng-model="selectedCustomer.selected"><img src="{{person.img}}" title="Demo User" class="demoImages"></a>
+					<a ng-if="whereWasI().indexOf('app/login') === 1" href="javascript:void(0)" ng-click="onSelectManager(person)" ng-model="selectedCustomer.selected"><img src="{{person.img}}" title="Demo User" class="demoImages"></a>
+					<a ng-if="whereWasI().indexOf('app/home') === 1" href="javascript:void(0)" ng-click="onSelectCustomer(person)" ng-model="selectedCustomer.selected"><img src="{{person.img}}" title="Demo User" class="demoImages"></a>
 				</div>
 			</div>
 		</div>

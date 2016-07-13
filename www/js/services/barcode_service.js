@@ -47,18 +47,13 @@
 		};
 		// Fetches a barcode.
 		// Returns a promise that resolves with the scanned data when scanning is complete.
-		BarcodeService.prototype.scan = function (whereWasI, $ionicLoading, $state, $ionicPlatform) {
-			if (ionic.Platform.platform() === 'win64') {
-				$state.go("app.demo", {whereWasI: whereWasI});
-				$ionicLoading.hide();
-			} else {
-				return $q(function (resolve, reject) {
-					self.scanner.scan(function (scanResult) {
-						self.scanSuccess_(resolve, reject, new BarcodeResult(scanResult));
-					},
-						_.partial(self.scanFail_, reject).bind(self));
-				});
-			}
+		BarcodeService.prototype.scan = function () {
+			return $q(function (resolve, reject) {
+				self.scanner.scan(function (scanResult) {
+					self.scanSuccess_(resolve, reject, new BarcodeResult(scanResult));
+				},
+					_.partial(self.scanFail_, reject).bind(self));
+			});
 		};
 		BarcodeService.prototype.scanSuccess_ = function (sucessFn, rejectFn, barCodeResult) {
 			if (barCodeResult.wasCancelled()) {

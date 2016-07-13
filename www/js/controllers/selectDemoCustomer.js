@@ -17,7 +17,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 	$scope.selectedManager = {
 		selected: $scope.manager
 	};
-	$scope.whereWasI = $stateParams.whereAmI;
+	$scope.whereWasI = $stateParams.whereWasI;
 	$scope.onSelectCustomer = function () {
 		console.log($scope.location, $scope.whereWasI);
 		var selected = $scope.selectedCustomer.selected;
