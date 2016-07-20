@@ -46,7 +46,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	};
 	UserService.prototype.makeRequest_ = function (params, accountInfo) {
 		var urlConf = new UrlConfigurator();
-		console.log(urlConf.getServerUrl(accountInfo), $httpParamSerializer(params));
+//		console.log(urlConf.getServerUrl(accountInfo), $httpParamSerializer(params));
 		return $http({
 			method: 'POST',
 			url: urlConf.getServerUrl(accountInfo),
@@ -69,7 +69,10 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	UserService.prototype.loginWithRCard_ = function (params, accountInfo) {
 		return this.makeRequest_(params, accountInfo).then(function (res) {
 			var responseData = res.data;
-//			console.log(params, accountInfo, res);
+			console.log(params.agent, accountInfo.accountId, params, accountInfo, res.logon);
+			if (params.agent.substr(-3) === accountInfo.accountId.substr(-3)) {
+				throw 'You cannot use yourself as a customer while you are an agent';
+			}
 			if (responseData.ok === LOGIN_FAILED) {
 				console.log(responseData.message);
 				throw responseData.message;
@@ -169,7 +172,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	//        app should notify the seller to request photo ID.
 	UserService.prototype.identifyCustomer = function (str, pin) {
 		var qrcodeParser = new QRCodeParser();
-		qrcodeParser.setUrl(str);
+		qrcodeParser.setUrl(str.url);
 		var accountInfo = qrcodeParser.parse();
 		this.validateDemoMode(accountInfo);
 		var params = new RequestParameterBuilder()
@@ -182,6 +185,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			params.setPIN(pin);
 		}
 		params = params.getParams();
+		console.log(accountInfo);
 		if (NetworkService.isOffline()) {
 			return MemberSqlService.existMember(accountInfo.accountId)
 				.then(function (member) {
@@ -202,17 +206,19 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		//is Online
 		return this.loginWithRCard_(params, accountInfo)
 			.then(function (responseData) {
-				if (responseData.logon === LOGIN_BY_CUSTOMER || responseData.logon === FIRST_PURCHASE) {
-					self.customer = self.createCustomer(responseData);
-					if (responseData.logon === FIRST_PURCHASE) {
-						self.customer.firstPurchase = true;
-					}
-					self.customer.accountInfo = accountInfo;
-					return self.customer;
+				console.log(responseData);
+//				if (responseData.logon === LOGIN_BY_CUSTOMER || responseData.logon === FIRST_PURCHASE) {
+				self.customer = self.createCustomer(responseData);
+				if (responseData.logon === FIRST_PURCHASE) {
+					self.customer.firstPurchase = true;
 				}
-				if (responseData.logon === LOGIN_BY_AGENT) {
-					throw self.LOGIN_SELLER_ERROR_MESSAGE;
-				}
+				self.customer.accountInfo = accountInfo;
+				return self.customer;
+//				}
+//				if (responseData.logon === LOGIN_BY_AGENT) {
+//					throw self.LOGIN_SELLER_ERROR_MESSAGE;
+//				}
+				console.log(self);
 			})
 			.then(function (customer) {
 				return self.getProfilePicture(accountInfo, accountInfo);
@@ -245,7 +251,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		_.each(props, function (p) {
 			customer[p] = customerInfo[p];
 		});
-
+		console.log(customer);
 		return customer;
 	};
 	function convertImgToDataURLviaCanvas(url, callback, outputFormat) {

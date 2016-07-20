@@ -5,6 +5,7 @@
 	var QRCodeParser = function () {
 	};
 	QRCodeParser.prototype.setUrl = function (url) {
+		console.log(url);
 		this.plainUrl = url;
 		this.url = new URL(url);
 	};

@@ -1,4 +1,4 @@
-/* global app */
+/* global app, $ionicHistory */
 app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService, $location, $rootScope) {
 	var populateDemoCustomers = [
 		{name: 'Cathy Cashier', url: 'HTTP://NEW.RC4.ME/ABJ-ME04nW44DHzxVDg', signin: '1', img: '/img/CathyCashier.jpg'},
@@ -18,9 +18,9 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 	};
 	$scope.whereWasI = $rootScope.whereWasI;
 	console.log($scope.whereWasI);
-	$scope.onSelectCustomer = function () {
-		console.log($location.state(), $scope.whereWasI);
-		var selected = $scope.selectedCustomer.selected;
+	$scope.onSelectCustomer = function (person) {
+		var selected = person;
+		console.log(selected, $location.state(), $scope.whereWasI);
 		UserService.identifyCustomer(selected)
 			.then(function () {
 				$scope.customer = UserService.currentCustomer();
@@ -44,10 +44,11 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 				}
 			})
 			.catch(function (errorMsg) {
-				console.log($scope.currentUser.name);
-//						for (var prop in $scope.currentUser) {
-//						}
+				for (var prop in $scope.currentUser) {
+				}
 				if (errorMsg === 'login_your_self') {
+					NotificationService.showAlert({title: "Error", template: "You cannot use yourself as a customer while you are an agent"});
+				} else if (errorMsg === 'login_your_self') {
 					NotificationService.showAlert({title: "Error", template: "You are already signed in as: " + $scope.currentUser.name});
 				} else {
 					NotificationService.showAlert({title: "Error", template: errorMsg});
