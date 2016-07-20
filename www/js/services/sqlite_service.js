@@ -14,13 +14,17 @@
 		};
 		SQLiteService.prototype.createDatabase = function () {
 			var openPromise = $q.defer();
-			this.db = this.sqlPlugin.openDatabase(
-				window.rCreditsConfig.SQLiteDatabase.name,
-				window.rCreditsConfig.SQLiteDatabase.version,
-				window.rCreditsConfig.SQLiteDatabase.description, 100000);
-			$timeout(function () {
-				openPromise.resolve();
-			}, 1000);
+			if (window.cordova) {
+				this.db = $cordovaSQLite.openDB({name: "rcredits.db"}); //device
+			} else {
+				this.db = this.sqlPlugin.openDatabase(
+					window.rCreditsConfig.SQLiteDatabase.name,
+					window.rCreditsConfig.SQLiteDatabase.version,
+					window.rCreditsConfig.SQLiteDatabase.description, 100000);
+				$timeout(function () {
+					openPromise.resolve();
+				}, 1000);
+			}
 			return openPromise.promise;
 		};
 		SQLiteService.prototype.ex = function () {
@@ -30,6 +34,7 @@
 		};
 		SQLiteService.prototype.executeQuery_ = function (query, params) {
 			var txPromise = $q.defer();
+			console.log(query, params);
 			this.db.transaction(function (tx) {
 				tx.executeSql(query, params, function (tx, res) {
 					txPromise.resolve(res);
@@ -85,6 +90,7 @@
 				console.warn("SQLite is not enable");
 			}
 			this.createDatabase().then(this.createSchema.bind(this));
+			console.log(this);
 		};
 		return new SQLiteService();
 	});

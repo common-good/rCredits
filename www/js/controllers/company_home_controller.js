@@ -36,7 +36,7 @@ app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, Barco
 		}
 		$ionicLoading.show();
 		$ionicPlatform.ready(function () {
-			if (ionic.Platform.platform() === 'win64') {
+			if (ionic.Platform.platform() === 'win64'||ionic.Platform.platform() === 'win32') {
 				$rootScope.whereWasI = location.hash;
 				$state.go("app.demo");
 				$ionicLoading.hide();
