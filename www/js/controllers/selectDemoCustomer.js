@@ -1,5 +1,5 @@
 /* global app, $ionicHistory */
-app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService, $location, $rootScope) {
+app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService, $location, $rootScope, NetworkService) {
 	var populateDemoCustomers = [
 		{name: 'Cathy Cashier', url: 'HTTP://NEW.RC4.ME/ABJ-ME04nW44DHzxVDg', signin: '1', img: '/img/CathyCashier.jpg'},
 		{name: 'Bob Bossman', url: 'HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G', signin: '1', img: '/img/BobBossman.jpg'},
@@ -80,5 +80,16 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 			.finally(function () {
 				$ionicLoading.hide();
 			});
+	};
+	$scope.wifi = false;
+	$scope.toggleWiFi = {
+		checked: $scope.wifi
+	};
+	$scope.toggleWiFiAction = function () {
+		if ($scope.wifi) {
+			NetworkService.onOffline();
+		}else{
+			NetworkService.onOnline();
+		}
 	};
 });
