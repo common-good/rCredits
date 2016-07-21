@@ -172,7 +172,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	//        app should notify the seller to request photo ID.
 	UserService.prototype.identifyCustomer = function (str, pin) {
 		var qrcodeParser = new QRCodeParser();
-		qrcodeParser.setUrl(str.url);
+		qrcodeParser.setUrl(str);
 		var accountInfo = qrcodeParser.parse();
 		this.validateDemoMode(accountInfo);
 		var params = new RequestParameterBuilder()

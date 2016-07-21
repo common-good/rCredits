@@ -21,7 +21,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 	$scope.onSelectCustomer = function (person) {
 		var selected = person;
 		console.log(selected, $location.state(), $scope.whereWasI);
-		UserService.identifyCustomer(selected)
+		UserService.identifyCustomer(selected.url)
 			.then(function () {
 				$scope.customer = UserService.currentCustomer();
 				if ($scope.customer.firstPurchase) {
@@ -83,13 +83,6 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 	};
 	$scope.wifi = false;
 	$scope.toggleWiFi = {
-		checked: $scope.wifi
-	};
-	$scope.toggleWiFiAction = function () {
-		if ($scope.wifi) {
-			NetworkService.onOffline();
-		}else{
-			NetworkService.onOnline();
-		}
+		checked: !NetworkService.connectionOnline
 	};
 });

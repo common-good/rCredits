@@ -12,10 +12,10 @@
 			<span class="demo-title">{{'demo_mode'| translate}}</span>
 		</div>
 	</h2>
-<!--	<div ng-if="offlCtrl.isDemoMode() && whereAmI().indexOf('app/home') === 1" class="list customerDemo">
-		<label class="item item-input item-select submenuText rightMenu">
-			<select  ng-change="onSelectCustomer()" ng-model="selectedCustomer.selected" ng-options="c.name for c in customer" class="rightMenuArrow">
-			</select>
+	<div ng-if="offlCtrl.isDemoMode()" class="customerDemo">
+		<label class="rightMenu">
+			<ion-toggle  ng-change="toggleWiFiAction()" ng-model="toggleWiFi.checked" checked="false" id="toggleWiFi" class="rightMenuArrow">
+			</ion-toggle>
 		</label>
-	</div>-->
+	</div>
 </div>

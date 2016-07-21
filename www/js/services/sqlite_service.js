@@ -14,9 +14,9 @@
 		};
 		SQLiteService.prototype.createDatabase = function () {
 			var openPromise = $q.defer();
-			if (window.cordova) {
-				this.db = $cordovaSQLite.openDB({name: "rcredits.db"}); //device
-			} else {
+//			if (window.cordova) {
+//				this.db = $cordovaSQLite.openDB({name: "rcredits.db"}); //device
+//			} else {
 				this.db = this.sqlPlugin.openDatabase(
 					window.rCreditsConfig.SQLiteDatabase.name,
 					window.rCreditsConfig.SQLiteDatabase.version,
@@ -24,7 +24,7 @@
 				$timeout(function () {
 					openPromise.resolve();
 				}, 1000);
-			}
+//			}
 			return openPromise.promise;
 		};
 		SQLiteService.prototype.ex = function () {

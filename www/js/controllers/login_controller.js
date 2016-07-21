@@ -17,6 +17,7 @@ app.controller('LoginCtrl', function ($scope, $ionicLoading, $state, $ionicPlatf
 			$ionicPlatform.ready(function () {
 				BarcodeService.scan('app.login')
 					.then(function (str) {
+						console.log(str);
 						UserService.loginWithRCard(str)
 							.then(function () {
 								$ionicHistory.nextViewOptions({
