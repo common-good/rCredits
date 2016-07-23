@@ -20,6 +20,7 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 		$ionicPlatform.ready(function () {
 			// This only for web development to enable proxy
 			$rootScope.whereWasI=location.hash;
+			$rootScope.amIOnline=NetworkService.isOffline();
 			if (!ionic.Platform.isWebView()) {
 //				console.log('web view');
 				rCreditsConfig.serverUrl = rCreditsConfig.serverproxyUrl;
