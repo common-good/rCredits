@@ -6,6 +6,7 @@
 		var NetworkService = function () {
 			self = this;
 			this.connectionOnline = true;
+			this.fakeIt=false;
 			this.init_();
 		};
 		NetworkService.prototype.init_ = function () {
@@ -15,9 +16,9 @@
 				this.connectionOnline = navigator.connection.type !== 'none';
 			}
 			$timeout(function () {
-				if (self.isOnline()) {
+				if (self.isOnline()&&!self.fakeIt) {
 					self.onOnline();
-				} else {
+				} else if(!self.fakeIt){
 					self.onOffline();
 				}
 			}, 5000);
@@ -37,6 +38,13 @@
 		};
 		NetworkService.prototype.isOnline = function () {
 			return this.connectionOnline;
+		};
+		NetworkService.prototype.fakingIt = function (areYou) {
+			 this.fakeIt=areYou;
+			 return this.connectionOnline=!areYou;
+		};
+		NetworkService.prototype.areYouFakingIt = function () {
+			return this.fakeIt;
 		};
 		return new NetworkService();
 	});

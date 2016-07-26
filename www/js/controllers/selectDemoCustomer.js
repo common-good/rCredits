@@ -17,10 +17,10 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 		selected: $scope.manager
 	};
 	$scope.whereWasI = $rootScope.whereWasI;
-	console.log($scope.whereWasI);
+//	console.log($scope.whereWasI);
 	$scope.onSelectCustomer = function (person) {
 		var selected = person;
-		console.log(selected, $location.state(), $scope.whereWasI);
+//		console.log(selected, $location.state(), $scope.whereWasI);
 		UserService.identifyCustomer(selected.url)
 			.then(function () {
 				$scope.customer = UserService.currentCustomer();
@@ -57,7 +57,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 			});
 	};
 	$scope.onSelectManager = function (person) {
-		console.log(selected, $scope.whereWasI);
+//		console.log(selected, $scope.whereWasI);
 		var selected = person;
 		UserService.loginWithRCard(selected)
 			.then(function () {
@@ -67,7 +67,6 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 				$state.go("app.home");
 			})
 			.catch(function (errorMsg) {
-				console.log(errorMsg);
 				if (errorMsg === 'login_your_self') {
 					NotificationService.showAlert({title: "Error", template: "You are already signed in as: " + selected.name});
 				} else if (errorMsg === 'TypeError: this.db is null') {
@@ -81,8 +80,15 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 				$ionicLoading.hide();
 			});
 	};
-	$scope.wifi = NetworkService.isOffline();
-	$scope.toggleWiFi = function(){
-		this.checked
+	$scope.wifi = { checked: !NetworkService.isOnline() };
+	$scope.toggleWiFi = function () {
+		console.log($scope.wifi.checked);
+		if (!$scope.wifi.checked) {
+			NetworkService.fakingIt(false);
+			console.log(NetworkService.areYouFakingIt());
+		} else {
+			NetworkService.fakingIt(true);
+			console.log(NetworkService.areYouFakingIt());
+		}
 	};
 });

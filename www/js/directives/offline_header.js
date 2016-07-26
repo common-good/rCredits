@@ -32,6 +32,7 @@
 			},
 			controller: function ($scope) {
 				this.isOffline = function () {
+//					console.log($scope.wifi);
 					return NetworkService.isOffline();
 				};
 				this.isDemoMode = function () {
