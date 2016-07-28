@@ -1,5 +1,5 @@
 /* global app, $ionicHistory */
-app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService, $location, $rootScope, NetworkService) {
+app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService, $location, $rootScope, NetworkService,$ionicHistory) {
 	var populateDemoCustomers = [
 		{name: 'Cathy Cashier', url: 'HTTP://NEW.RC4.ME/ABJ-ME04nW44DHzxVDg', signin: '1', img: 'img/CathyCashier.jpg'},
 		{name: 'Bob Bossman', url: 'HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G', signin: '1', img: 'img/BobBossman.jpg'},
@@ -61,9 +61,9 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 		var selected = person;
 		UserService.loginWithRCard(selected)
 			.then(function () {
-//				$ionicHistory.nextViewOptions({
-//					disableBack: true
-//				});
+				$ionicHistory.nextViewOptions({
+					disableBack: true
+				});
 				$state.go("app.home");
 			})
 			.catch(function (errorMsg) {
@@ -80,7 +80,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 				$ionicLoading.hide();
 			});
 	};
-	$scope.wifi = { checked: !NetworkService.isOnline() };
+	$scope.wifi = {checked: !NetworkService.isOnline()};
 	$scope.toggleWiFi = function () {
 		console.log($scope.wifi.checked);
 		if (!$scope.wifi.checked) {

@@ -1,4 +1,4 @@
-app.controller('LoginCtrl', function ($scope, $ionicLoading, $state, $ionicPlatform, BarcodeService, UserService, $ionicHistory, NotificationService, CashierModeService, $stateParams, $rootScope) {
+app.controller('LoginCtrl', function ($scope, $ionicLoading, $state, $ionicPlatform, BarcodeService, BackButtonService, UserService, $ionicHistory, NotificationService, CashierModeService, $stateParams, $rootScope) {
 	$scope.$on('$ionicView.loaded', function () {
 		ionic.Platform.ready(function () {
 			if (navigator && navigator.splashscreen)
@@ -8,7 +8,7 @@ app.controller('LoginCtrl', function ($scope, $ionicLoading, $state, $ionicPlatf
 	// Scanner Login
 	$ionicHistory.clearHistory();
 	$scope.openScanner = function () {
-		if (ionic.Platform.platform() === 'win64'||ionic.Platform.platform() === 'win32') {
+		if (ionic.Platform.platform() === 'win64' || ionic.Platform.platform() === 'win32') {
 			$rootScope.whereWasI = location.hash;
 			$state.go("app.demo");
 			$ionicLoading.hide();
