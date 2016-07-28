@@ -28,6 +28,7 @@ subheader {
 	padding: 0;
 	margin: 0;
 	background: none;
+	border: none;
 }
 .managerDemo{
 	display: inline-block;
@@ -86,6 +87,9 @@ subheader {
 	z-index: 0;
 	display: list-item;
 	overflow: hidden;
+}
+.item{
+	border: none;
 }
 @import "popup";
 @import "logo";

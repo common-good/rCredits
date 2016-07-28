@@ -61,9 +61,9 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 		var selected = person;
 		UserService.loginWithRCard(selected)
 			.then(function () {
-				$ionicHistory.nextViewOptions({
-					disableBack: true
-				});
+//				$ionicHistory.nextViewOptions({
+//					disableBack: true
+//				});
 				$state.go("app.home");
 			})
 			.catch(function (errorMsg) {

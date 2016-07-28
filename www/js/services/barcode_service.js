@@ -8,9 +8,10 @@
 		};
 	};
 	// This is the read from Bob Bossman: NEW:AAB, WeHlioM5JZv1O9G
+//	{text: "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G", format: "QR_CODE", cancelled: false}, // Seller Bob Bossman
+//		{text: "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw", format: "QR_CODE", cancelled: false}  // Customer Susan Shopper
 	WebScanner.SCANS = [
-		{text: "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G", format: "QR_CODE", cancelled: false}, // Seller Bob Bossman
-		{text: "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw", format: "QR_CODE", cancelled: false}  // Customer Susan Shopper
+		
 	];
 	app.service('BarcodeService', function ($q, $ionicPlatform, $rootScope) {
 		var self;

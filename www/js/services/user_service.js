@@ -175,6 +175,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		qrcodeParser.setUrl(str);
 		var accountInfo = qrcodeParser.parse();
 		this.validateDemoMode(accountInfo);
+		console.log(accountInfo);
 		var params = new RequestParameterBuilder()
 			.setOperationId('identify')
 			.setAgent(this.seller.default)
@@ -331,9 +332,11 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		return $q(function (resolve, reject) {
 			SelfServiceMode.disable();
 			CashierModeService.disable();
+			$rootScope.$emit('sellerLogout');
 			self.customer = null;
+			self.seller.removeFromStorage();
 			self.seller = null;
-			$state.go('app.login', {disableLoadSeller: true, openScanner: true});
+			$state.go('app.login', {disableLoadSeller: true, openScanner: false});
 			$rootScope.$emit('sellerLogout');
 			resolve();
 		});
