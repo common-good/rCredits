@@ -6,10 +6,12 @@
 			currencies = ExchangeService.getCurrencies(),
 			paymentTypes = ExchangeService.getPaymentTypes();
 		$scope.hide_payment = true;
-		this.switchTypes = function () {
-			var inMoney = this.exchange.getCurrencyFrom();
-			this.exchange.setCurrencyFrom(this.exchange.getCurrencyTo());
-			this.exchange.setCurrencyTo(inMoney);
+		console.log(currencies);
+		this.switchTypes = function (type) {
+//			var inMoney = this.exchange.getCurrencyFrom();
+			this.exchange.setCurrencyFrom(currencies[!type]);
+			this.exchange.setCurrencyTo(currencies[type]);
+			console.log(this.exchange.setCurrencyFrom, this.exchange.getCurrencyTo());
 			$scope.hide_payment = !$scope.hide_payment;
 		};
 		this.init = function () {

@@ -4,17 +4,17 @@
 		<section class="section-1">
 			<div class="list">
 				<div class="item exchange-types">
-					<ion-radio class="operation" ng-value="true">
-						{{::'exchange_in'| translate}}
-					</ion-radio>
+					<div class="operation" >
+						{{::'exchange_in'| translate}}<input id="currencyIn" name="currency" type="radio" ng-model="currency" ng-change="switchTypes('USD')">
+					</div>
 					<div class="type">
 						{{selExCtrl.exchange.getCurrencyFrom().getName()}}
 					</div>
 				</div>
 				<div class="item exchange-types">
-					<ion-radio class="operation">
-						{{::'exchange_out'| translate}}
-					</ion-radio>
+					<div class="operation" >
+						{{::'exchange_out'| translate}}<input id="currencyOut" name="currency" type="radio" ng-model="currency" ng-change="switchTypes('rCredits')">
+					</div>
 					<div class="type">
 						{{selExCtrl.exchange.getCurrencyTo().getName()}}
 					</div>
