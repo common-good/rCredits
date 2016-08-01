@@ -5,7 +5,6 @@
 			<section class="section-1">
 				<div class="calc-component">
 					<div class="list">
-
 						<div class="item exchange-types">
 							<div class="operation">
 								{{::'exchange_in'| translate}}
@@ -15,7 +14,6 @@
 								{{::exCtrl.exchange.getCurrencyFrom().getName()}}
 							</div>
 						</div>
-
 						<div class="item exchange-types">
 							<div class="operation">
 								{{::'exchange_out'| translate}}
@@ -25,17 +23,14 @@
 								{{::exCtrl.exchange.getCurrencyTo().getName()}}
 							</div>
 						</div>
-
 						<div class="item fee-legend" ng-if="!exCtrl.rCreditsIsCurrencyFrom">
 							{{::exCtrl.paymentFeeTitle}}
 						</div>
 					</div>
 				</div>
 			</section>
-
 			<section class="section-2 exchange-keypad" ng-class="{'rcredits-in': exCtrl.rCreditsIsCurrencyFrom}" ng-controller="KeyPadCtrl" ng-include="'templates/keypad.html'">
 			</section>
-
 		</div>
 	</ion-content>
 	<button class="button primary button-full button-positive next-btn" ng-click="exCtrl.doExchange()">
