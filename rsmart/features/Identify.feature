@@ -153,13 +153,14 @@ Scenario: A member makes a purchase for the first time
   Then we respond with:
   | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
   | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | -1    | 250     | 250     |
-  
-Scenario: A member makes a purchase for the first time from an exempt company
-  Given member ".ZZD" has no photo ID recorded
-  And company flags:
-  | id   | flags             |*
-  | .ZZC | refund,r4usd,fast |
-  When agent ".ZZC" asks device "devC" to identify ".ZZD,ccD"
-  Then we respond with:
-  | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
-  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 250     | 250     |
+
+# disabled because "fast" bit is no longer used  
+#Scenario: A member makes a purchase for the first time from an exempt company
+#  Given member ".ZZD" has no photo ID recorded
+#  And company flags:
+#  | id   | flags             |*
+#  | .ZZC | refund,r4usd,fast |
+#  When agent ".ZZC" asks device "devC" to identify ".ZZD,ccD"
+#  Then we respond with:
+#  | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
+#  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 250     | 250     |

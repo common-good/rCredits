@@ -9,6 +9,8 @@ Software Priorities:
 5. Greater Security (and security audit)
 
 NON_SOFTWARE TO_DOs
+- create rc2.me on rcredits.org WHM, add pointers on myhosting.com as for rc4.me, copy rc4.me's .htaccess (modified), and change ServerAlias www.rc2.me to *.rc2.me
+- Once all companies are using app v. 2.16 or later, start issuing rCards in new format and replace all company rCards using ":" in the QR
 - Fuzzy: what's up with Stacey Matlen (248 763 1903)? Bad email, no rCard use. 
 - What's up Janice Sorenson 26742000000180 (bad email?)
 - get David Greenberg or David Kulp to help Ivan send from Gmail
@@ -63,8 +65,14 @@ GFkZW1hbkBnbWFpbC5jb20=3D=22 width=3D=221=22 height=3D=221=22 border=3D=22=
    change this line on config.inc.php to 'cookie' instead of 'config':
    $cfg['Servers'][$i]['auth_type'] = 'config';
 
+. ***** use original design for moderating incentive rewards: tx incentives only with economic growth
+
 TASKS FOR NEXT UPDATE:
 
+. *** When changing bank account number it shouldn't give a link to return to checklist.
+. **** On the page with security question, I added text to the security question text-box (it had been blank), but no text-box was displayed for the Answer, and I was unable to enter one.  So I thought maybe I needed to click on the Save button before it would allow me to enter an Answer. So I clicked Save, but still no text-box for the Answer.  This was using Firefox 47.0 . Same experience with Chrome 51.0.2704.103 m
+. let cAdmins change account flags
+. **** in whoFldSubmit, allow blank who in all but relations form; restrict results to current community
 . staff alert for cashier card has ineffective link
 . share just part of committed amount, if less is available (see everyMonth())
 . ** Check all ' : ' to find assignments from ? : phrases. Parenthesize as needed.
@@ -79,7 +87,7 @@ TASKS FOR NEXT UPDATE:
 . target a new page for checks
 . App should not permit manager signin with wrong company. Also app should catch any attempt to do a transaction with an agent of the current company.
 . lower graphic (and whole page) a few pixels on member company web page
-. ** show last four digits of bank account number to account holder (it's encrypted, so will have to be a separate field)
+. ** show last four digits of bank account number to account holder (it's super encrypted, so will have to be a separate field -- secure but not vsecure)
 . *********!!! a community's usd amount should have trade net added to it in reports!
 . ** edit tx fields are too short and type doesn't get populated (and admin has no way to change date)
 . *** make sure floor allows immediate auto refill when appropriate (like for ad hoc transfers)

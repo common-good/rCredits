@@ -517,8 +517,7 @@ function definiteName($uid) {
  * Return an rCard security code for the specified qid.
  */
 function cardCode($qid) { 
-  $tail = substr(strpbrk($qid, R_MARKS), 1);
-  $codeLen = R_CARDCODE_LEN - (strlen($tail) - 3); // shorter code when qid tail len > 3
+  $codeLen = R_CARDCODE_LEN - (strlen($qid) - 6); // shorter code when qid len > 6
   return u\randomString($codeLen, 'word'); // create an rCard security code
 }
 

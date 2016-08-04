@@ -433,7 +433,7 @@ function showVotes($ctty, $byVoter = TRUE, $proxies = 'both') {
     FROM r_questions q 
     INNER JOIN r_ballots b ON b.question=q.id 
     INNER JOIN users u ON u.uid=b.voter
-    WHERE ctty=:ctty$crit ORDER BY $order
+    WHERE ctty IN (:ctty, 0)$crit ORDER BY $order
 EOF;
 
   $qvQ = db\q($sql, $subs);
@@ -490,7 +490,7 @@ function showNonVoters($ctty, $direct = TRUE) {
     LEFT JOIN (
       SELECT $voterFromBallots INNER JOIN r_votes v ON v.ballot=b.id WHERE v.grade<>:BLANKGRADE
     ) bv ON bv.voter=u.uid
-    WHERE u.community=:ctty AND bv.voter IS NULL AND !:IS_CO AND :IS_OK ORDER BY u.trust DESC
+    WHERE u.community IN (:ctty, 0) AND bv.voter IS NULL AND !:IS_CO AND :IS_OK ORDER BY u.trust DESC
 EOF;
 
   $q = db\q($sql, $subs);

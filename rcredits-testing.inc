@@ -168,7 +168,7 @@ function doAccount($info = []) {
     u\setDft($postalAddr, @$address . ', ' . @$city . ", $state $postalCode");
     u\setDft($photoId, "$state-{$postalCode}999");
     u\setDft($helper, '.AAB'); // everyone but .AAB should have a helper
-    if ($helper === '') die(print_r(debug_backtrace(), 1)); // set helper to zero if none, never blank
+/**/  if ($helper === '') die(print_r(debug_backtrace(), 1)); // set helper to zero if none, never blank
 
     $moneyFields = 'share committed floor r rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
@@ -193,8 +193,6 @@ function doAccount($info = []) {
       if ($key == 'uid') $key = 'id';
       $actual = ($key == 'trust' or $key == 'risk') ? round($acct->$key, 2) : $acct->$key;
       if (!eq($actual, $want)) {
-      debug(compact('uid','info','key','want','actual','acct'));
-      debug($acct->risks);
         if ($key == 'pass' and (!isset($pass) or r\Web\passwordOkay($acct, @$pass))) continue;
         if ($key == 'flags') list ($want, $actual) = [u\bits($want, B_LIST), u\bits($actual, B_LIST)];
         return output("uid $uid -- Wrong value for $key. Expected:$want Got:$actual");
@@ -598,8 +596,15 @@ function uidCredit($uid) {
  * Accept abbreviations of alphabetic ids for accounts, transactions, and relations
  * @param string $q: the possibly-abbreviated id
  * @return: the full id (if $q is numeric or an already-full alphabetic id, return it unchanged)
+ * For rSmart tests, the qid always has a dot.
  */
-function fullQid($q) {return substr($q, 0, 1) == '.' ? r\qo($q)->qid : $q;}
+function fullQid($q) {
+  global $channel;
+  if (is_numeric($q) or !$q) return $q;
+  if (substr($q, 0, 1) == '.') $q = r\qo($q)->qid;
+
+  return ($channel == TX_POS and !strpos($q, '.')) ? substr($q, 0, 3) . '.' . substr($q, 3) : $q;
+}
 
 /**
  * Interpret the given identifier (int, full qid, or local qid) as an account ID.
@@ -826,12 +831,12 @@ function hitServer($op, $extra = [], $agent, $device = '', $version = '999') {
  * where ZZx is the company abbreviation and ZZy is the agent
  */
 function fullQid2($agent) {
-  if (strlen($agent) > 7) return $agent;
+// FAILS if (strlen($agent) > 7) return $agent;
   if (strpos($agent, ':')) { // company:agent
     list ($cpy, $agt) = explode(':', $agent);
     $cpy = t\fullQid('.ZZ' . $cpy);
     $agt = t\fullQid('.ZZ' . $agt);
-    return r\qid($cpy, $agt);
+    return t\fullQid(r\qid($cpy, $agt));
   } elseif (strpos($agent, '#')) { // company#agentNum (deprecated)
     list ($cpy, $agt) = explode('#', $agent);
     $cpy = t\fullQid('.ZZ' . $cpy);
@@ -1007,7 +1012,6 @@ function pageForm($page, $msg = '', $field = '') {
   }
 */
   $result = \menu_execute_active_handler($page, FALSE);
-//  if (!strpos($page, 'c0D3')) die(print_r(compact('page','result'), 1));
 
   if (is_numeric($result)) {
     $result = $result == MENU_NOT_FOUND ? 'not found' 
@@ -1106,7 +1110,6 @@ function radioOptions($form) {
 }
 
 function strip($form) {
-
   $form = str_replace('&nbsp;', ' ', $form);
   $form = preg_replace('~<fieldset id="help".*?</fieldset>~sm', '', $form); // remove help div
   $form = preg_replace('~<div[^>]*class="invisible.*?</div>~sm', '', $form); // remove invisible divs (not nested)
@@ -1114,7 +1117,9 @@ function strip($form) {
   $form = preg_replace('~<input type="hidden".*?/>~sm', '', $form); // remove hidden inputs
   $form = preg_replace('/<input[^>]* value=" *(.*?) *".*?>/sm', '$1', $form); // show button labels
   $form = preg_replace('/> *</sm', '> <', $form); // make sure there's exactly one space between things
-  return preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($form));
+  $form = preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($form));
+///     if (strpos($form, '<html') !== FALSE) die($form);
+  return $form;
 }
 
 function eq($a, $b, $offBy = .0001) {
@@ -1190,12 +1195,12 @@ function clear($ch = 0) {
   global $testMessages; $testMessages = [];
 
   $cgfUid = r\cgfId();
-  $tables = 'r_bad r_boxes r_do r_gifts r_invites r_invoices r_log r_notices r_proxies r_relations r_stats r_txs r_usd r_user_industries queue';
+  $tables = 'r_auth r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_log r_near r_notices r_options r_pairs r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
+  foreach (u\ray('block bootstrap field filter form menu page path update') as $k) $tables .= " cache_$k";
+  foreach (u\ray($tables) as $table) if (db\exists($table)) db\q("TRUNCATE $table");
 
-  db\q('DELETE FROM users WHERE uid>1 or uid<0');
   a\setupBasicAccounts();
 
-  foreach (u\ray($tables) as $one) db\q("TRUNCATE $one");
   db\q('UPDATE users SET floor=0,minimum=NULL,r=0,rewards=0,committed=0');
 
   ctty('aab')->setBit(B_OK);
@@ -1281,7 +1286,7 @@ function badEq($type, $v1, $v2, $id) {
 function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $formOut;
-  $model = $formOut[$type];
+  $model = t\strip($formOut[$type]);
 
   if (!$content) return FALSE; // probably an accidental single-row array with no labels
 /**/  u\EXPECT(is_numeric(key($content[0])), 'shown with should be array, not assoc: ' . print_r($content, 1));
@@ -1372,6 +1377,6 @@ function seq($table = 'r_usd') {
 
 function log($msg) {if (u\test()) u\log($msg, 'debug');}
 function that($thing) {global $thatThing; return $thatThing[$thing];}
-function dosayFilename($type) {return __DIR__ . "/../dosay-$type.txt";}
+function dosayFilename($type) {return DRUPAL_ROOT . R_PATH . "/dosay-$type.txt";}
 function goodsBit($s) {return $s == 'goods' ? "1" : ($s == 'cash' ? "0" : "ERROR");} // no 3rd why for rSmart
 function approxTime($a, $b) {return t\eq($a, $b, 10000);}

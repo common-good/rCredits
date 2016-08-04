@@ -1209,7 +1209,7 @@ function showCaller($skip = 0) {
 function bits($n, $descs = '') {
   $res = '';
   if ($descs) $descs = u\ray($descs);
-  for($i = 0; $i < 33; $i++) if ($n & (1 << $i)) $res .= ' ' . ($descs ? $descs[$i] : $i);
+  for($i = 0; $i < 32; $i++) if ($n & (1 << $i)) $res .= ' ' . ($descs ? $descs[$i] : $i);
   return $res;
 }
 

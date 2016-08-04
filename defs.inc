@@ -40,7 +40,7 @@ define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
 define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount photoId'); // very secure fields (admin-encrypted)
 define('R_SECURE_FIELDS', R_VSECURE_FIELDS . ' pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
-define('R_HIDE_CHANGES', 'pw2 ssnData changes init r rewards committed floor login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData'); // do not record changes to these fields: anything often-changed (automatically or not)
+define('R_HIDE_CHANGES', 'pw2 ssnData changes init r rewards committed floor login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special'); // do not record changes to these fields: anything often-changed (automatically or not)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
 //define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_BUY', '(r-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
@@ -68,7 +68,7 @@ define('R_MAX_PHOTO_WIDTH', 1024);
 define('R_MAX_UPLOAD_SIZE', 3); // maximum upload size in MB
 define('R_MAX_PHOTOID_SIZE', 2.5); // Dwolla's limit (MB)
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
-define('R_EXCHANGE_LIMITS', '1:5000,7:10000,49:20000,365:50000');
+define('R_EXCHANGE_LIMITS', '1:5000,7:10000,49:20000,365:50000'); // per day, week, 7-week, year
 define('R_INVITE_DAYS', 30); // number of days to accept invitation to membership
 //define('R_MINR_DEFAULT', 0); // suggested minimum amount to hold in rCredits
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)

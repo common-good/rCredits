@@ -99,6 +99,8 @@ class Acct {
    */
   public static function viable($id0, $agent0='', &$error='', $test = TRUE) {
     if (is_numeric($id0) and is_numeric($agent0)) return [$id0, $agent0];
+    if (strpos($id0, '-')) list ($id0, $agentCode) = explode(AGT_MARK, $id0); // new company qid format
+
     if ($error = u\EXPECT(compact(u\ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
     if ($error = u\EXPECT((bool) $id0, 'null uid in new r\Acct()', $test)) return FALSE;
     if ($error = u\EXPECT(!(strpos($id0, R_AGENT_MARK) and $agent0), 'agent already specified in qid', $test)) return FALSE;
@@ -111,6 +113,9 @@ class Acct {
 
     $got = (bool) self::getRecord($id); // read the record into cache
     if ($error = u\EXPECT($got, 'That account does not exist.', $test)) return FALSE; // don't use tt() here (many calls)
+
+    if (isset($agentCode)) $agent = r\qo($id0 . AGT_MARK . $agentCode)->agent; // new company qid format
+
     if ($error = u\EXPECT($id and $agent, "Missing acct property: [$id, $agent]", $test)) return FALSE;
     return [$id, $agent];
   }
@@ -153,6 +158,7 @@ class Acct {
     if ($nick == 'can') return $a->can(u\consta('b', $field));
     
     if ($field == 'mainQid') return $a->qo->mainQid;
+    if ($field == 'regulator') return (bool) ($a->flags & B_REGULATOR); // not ->can() which includes cAdmin...
     if ($field == 'balance') return $a->r - $a->savings;
     if ($field == 'savings') return ($a->rewards + ($a->savingsAdd ?: 0));
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
@@ -557,7 +563,7 @@ class Acct {
    */
   public function avail($goods) {
     $a = $this;
-    $floor = $a->can(B_DEBT) ? $a->j_floor : max($a->j_floor, 0); // no going into debt without permission
+    $floor = ($a->can(B_DEBT) and $goods != FOR_USD) ? $a->j_floor : max($a->j_floor, 0); // no going into debt without permission
     if ($goods == FOR_USD or (COMPANY_FREEZE and $a->co)) $floor = max($floor, $a->j_rewards); // no exchanging rewards for cash (and companies temporarily can't spend rewards)
     return round($a->j_r - $floor, 2);
 //    return round($a->j_r - $a->j_committed - $floor, 2);

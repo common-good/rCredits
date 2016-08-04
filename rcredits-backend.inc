@@ -636,7 +636,7 @@ function accountChoices() {
   $nameOrder = "IF(MID(fullName, 2, 2)='. ', MID(fullName, 4), IF(MID(fullName, 1, 4)='the ', MID(fullName, 5), fullName))"; // ignore "the " and initialled first name (eg "X. ")
   $sqlNormal = 'SELECT r.main AS id, u.fullname FROM r_relations r LEFT JOIN users u ON u.uid=r.main WHERE r.other=:aid AND r.permission>0'; // normal selection SQL
   
-  if ($mya->admin) {
+  if ($mya->admin or $mya->regulator) {
     $q = @db\q("SELECT uid AS id, fullName FROM users WHERE ABS(uid)>1 ORDER BY (uid<0) DESC, $nameOrder");
   } elseif ($mya->cAdmin) {
     $sql = <<<EOF

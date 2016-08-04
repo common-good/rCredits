@@ -41,7 +41,7 @@ function questionList($cttyA, $question='', $doWhat='') {
   global $base_url;
 	global $voting;
 
-	$q = db\q("SELECT id, (CASE WHEN :now>endVoting THEN 'R' WHEN :now>endProposals THEN 'V' WHEN :now>endIdeas THEN 'P' ELSE 'I' END) AS phase, repeats, repeatedBy, text, detail,  linkIdeas, linkProposals, created, (CASE WHEN endVoting=0 THEN 0 WHEN :now>endVoting THEN endVoting-:now WHEN :now>endProposals THEN endVoting WHEN :now>endIdeas THEN endProposals ELSE endIdeas END) AS endDate, budget, units FROM r_questions WHERE ctty=:ctty AND endIdeas<>0 ORDER BY endDate, id", u\ray('ctty now', $cttyA->id, $now = time()));
+	$q = db\q("SELECT id, (CASE WHEN :now>endVoting THEN 'R' WHEN :now>endProposals THEN 'V' WHEN :now>endIdeas THEN 'P' ELSE 'I' END) AS phase, repeats, repeatedBy, text, detail,  linkIdeas, linkProposals, created, (CASE WHEN endVoting=0 THEN 0 WHEN :now>endVoting THEN endVoting-:now WHEN :now>endProposals THEN endVoting WHEN :now>endIdeas THEN endProposals ELSE endIdeas END) AS endDate, budget, units FROM r_questions WHERE ctty IN (:ctty, 0) AND endIdeas<>0 ORDER BY endDate, id", u\ray('ctty now', $cttyA->id, $now = time()));
 
 	$voting = false;
 	$qdivs = $list = '';
@@ -235,7 +235,7 @@ function getQuestions($ctty) {
 	// note that if a ballot is kept open beyond the election end time, the following query will disallow it
 //	if(!$crit) $crit = 'NOW() BETWEEN question_startdate AND question_enddate';
   $now = time();
-  $crit = 'ctty=:ctty AND :now>endProposals AND (:now<endVoting OR endVoting=0)';
+  $crit = 'ctty IN (:ctty, 0) AND :now>endProposals AND (:now<endVoting OR endVoting=0)';
 	$q = db\q('SELECT id AS question, type FROM r_questions WHERE ' . $crit, compact('ctty', 'now'));
 
 	while($row = $q->fetchAssoc()) {

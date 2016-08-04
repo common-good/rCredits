@@ -610,14 +610,16 @@ function memberID($id, $agent = '') {
   $qid = $a->qid; // get this before setting $a to agent (below)
   list ($fmt, $region, $tail, $agentCode) = $a->qo->qr();
   $tail = $fmt . $tail . $agentCode;
-  if (TRUE) { // old style
+  /*
+  if (!isSTAGE) { // old style
     list ($region, $tail, $agentCode) = $a->qo->parse();
     if ($a->proSe) $tail .= '.'; else $tail = substr(r\qid(r\relation('reid', $a->id, $a->agentId)), 3) . '-';
   }
+  */
   
   if ($proSe = $a->proSe) {
     $nameSize = strlen($fullName) > 21 ? '100px' : '120px';
-    $fields = array('cardCode', 0, 'Personal rCard #:');
+    $fields = array('cardCode', 0, 'Personal rCard');
   } else {
     if (!@$a->agent->cardCode2) r\makeCardCode($a); // NOT r\cardCode($a->qid);
     $a = $a->agent; // hereafter it's all about the agent

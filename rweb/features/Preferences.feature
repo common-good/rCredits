@@ -17,7 +17,7 @@ Scenario: A member visits the preferences page
   When member ".ZZA" visits page "settings/preferences"
   Then we show "Account Preferences" with:
   | Minimum |  100 |
-  | Savings |  250 |
+  | Savings |    0 |
   | Save Weekly | 1 |
   | Min Transfer | 20 |
   | Share | 30% |
@@ -44,8 +44,8 @@ Scenario: A member changes preferences
   | xid | created   | type   | amount | from | to   | purpose |*
   |   3 | %today-1m | grant  |    250 | ctty | .ZZA | grant   |
   When member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | savings | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |     200 |     300 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
+  | minimum | savingsAdd | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
+  |     200 |         50 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
   Then members:
   | id   | share | minimum | savingsAdd | saveWeekly | achMin | flags   |*
   | .ZZA |    25 |     200 |         50 |         20 |  10 | member,ok,confirmed,bona,monthly,secret |
@@ -58,8 +58,8 @@ Scenario: A member chooses too low a minimum, with a positive balance
   | id   | balance |*
   | .ZZA |     400 |
   When member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | savings | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |       5 |     300 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
+  | minimum | savingsAdd | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
+  |       5 |         50 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
   Then we say "error": "min sub floor" with subs:
   | floor |*
   | $10   |
@@ -72,28 +72,26 @@ Scenario: A member chooses too low a minimum, with a negative balance
   | id   | balance |*
   | .ZZA |    -400 |
   When member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | savings | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |    -401 |     250 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
+  | minimum | savingsAdd | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
+  |    -401 |          0 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
   Then we say "error": "min sub floor" with subs:
   | floor |*
   | $-400 |
   
 Scenario: A member chooses too low a savings reserve
   When member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | savings | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |     200 |     249 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
-  Then we say "error": "savings too low" with subs:
-  | rewards |*
-  | $250    |
+  | minimum | savingsAdd | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
+  |     200 |         -1 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
+  Then we say "error": "savings too low"
   
 Scenario: A member chooses negative weekly savings without any savings
   When member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | savings | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |     200 |     250 |        -20 |     10 |    25 | monthly | electronic |        0 |         1 |
+  | minimum | savingsAdd | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
+  |     200 |          0 |        -20 |     10 |    25 | monthly | electronic |        0 |         1 |
   Then we say "error": "negative saveWeekly"
 
 Scenario: A member chooses too low an ACH minimum
   When member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | savings | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |     200 |     250 |         20 |      1 |    25 | monthly | electronic |        0 |         1 |
+  | minimum | savingsAdd | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
+  |     200 |          0 |         20 |      1 |    25 | monthly | electronic |        0 |         1 |
   Then we say "error": "bad achmin"

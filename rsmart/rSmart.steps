@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * rWeb Steps
+ * rPos Steps
  *
  * Provide step functions for functional testing.
  * This file is created automatically by the Gherkin compiler.
@@ -107,7 +107,6 @@ function transactions($list) {return t\transactions($list);}
  *     MAKE Identify ACashierScansACompanyCustomerCard
  *     MAKE Identify ANonyetactiveMemberCardIsScanned
  *     MAKE Identify AMemberMakesAPurchaseForTheFirstTime
- *     MAKE Identify AMemberMakesAPurchaseForTheFirstTimeFromAnExemptCompany
  *     MAKE Time ACashierSignsIn
  */
 function agentAsksDeviceToIdentify($agent, $device, $qr) {
@@ -127,7 +126,6 @@ function agentAsksDeviceToIdentify($agent, $device, $qr) {
  *     TEST Identify ACashierScansACustomerCardWhoseBalanceIsSecret
  *     TEST Identify ACashierScansACompanyCustomerCard
  *     TEST Identify AMemberMakesAPurchaseForTheFirstTime
- *     TEST Identify AMemberMakesAPurchaseForTheFirstTimeFromAnExemptCompany
  *     TEST Time TheDeviceAsksForTheTime
  *     TEST Time ACashierSignsIn
  */
@@ -429,7 +427,6 @@ function selling($selling) {return t\selling($selling);}
  *
  * in: MAKE Exchange Setup
  *     MAKE Identify Setup
- *     MAKE Identify AMemberMakesAPurchaseForTheFirstTimeFromAnExemptCompany
  *     MAKE Joint Setup
  *     MAKE Offline Setup
  *     MAKE Time Setup
@@ -662,7 +659,6 @@ function agentOnDeviceAsksForTheTime($agent, $device) {
  * member (ARG) has no photo ID recorded
  *
  * in: MAKE Identify AMemberMakesAPurchaseForTheFirstTime
- *     MAKE Identify AMemberMakesAPurchaseForTheFirstTimeFromAnExemptCompany
  */
 function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
 

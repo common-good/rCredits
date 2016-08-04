@@ -119,19 +119,21 @@ function ajaxRet($data, $ok = 1) {exit(json_encode($data + compact('ok')));}
 function rdo($code, $args = '') {
   global $channel;
   if (strpos($code, ' ')) return doSay($code);
-  if (strpos($code, '~') < 15) { // mailChimp-type action
+  if ($i = strpos($code, '~') and $i < 15) { // mailChimp-type action
     @list ($op, $qid, $ecode, $mo, $v) = explode('~', $code . '~~~~~~');
     if (!@$op or !@$qid or !@$a = r\acct($qid) or @$ecode != $a->emailCode) return doSay(t('That is not a valid link.'));
-  } elseif (!$info = r\doCode($code)) return doSay(t('That link is archaic.'));
-///  print_r($info);
-  if ($once = is_numeric($doid = @$info['op'])) {
-    if (!$row = db\lookup('uid,data,expires', 'r_do', 'doid=:doid', compact('doid'))) return doSay(t('That link is no longer valid.')); // already used OR deleted because it expired
-    extract($row);
-    $info = unserialize($data) + $row; // get new op, etc.
-    $a = r\acct($uid);
+  } else {
+    if (!$info = r\doCode($code)) return doSay(t('That link is archaic.'));
+  ///  print_r($info);
+    if ($once = is_numeric($doid = @$info['op'])) {
+      if (!$row = db\lookup('uid,data,expires', 'r_do', 'doid=:doid', compact('doid'))) return doSay(t('That link is no longer valid.')); // already used OR deleted because it expired
+      extract($row);
+      $info = unserialize($data) + $row; // get new op, etc.
+      $a = r\acct($uid);
+    }
     extract(u\just('op v mo expires sql subs', $info));
   }
-
+  
   if (@$mo) $expires = (r\rdoMonth() > $mo + 3) ? 1 : FALSE; // finagle expiration if link is older than 3 months
   if (@$expires and r\rTime() >= $expires) return doSay('link expired');
 
@@ -929,8 +931,8 @@ function formMembership($a, &$sta = '', $code = '') {
     $message1 = t('<h2>You have completed all membership steps.</h2><p>Within 24 hours, you should receive an email saying your account is approved and you can expect your rCard in the mail within a day or two. Hurray!</p>'); // UNUSED
   } else {
     $bonusMsg = ($a->can(B_BONA) or ($a->hasBank and $a->j_minimum > 0)) ? '' : t('<p>To receive your $@BONUS signup bonus, you must have a way to get money into your account. Ask someone to pay you with rCredits, or <@a>transfer funds from your bank account</a>, or trade US Dollars for rCredits at a participating business. As soon as you get some money in, your signup bonus will arrive.</p>', ['@BONUS'=>R_SIGNUP_BONUS, '@a'=>"a href=$base_url/get"]);
-    $personMsg = !$a->co ? t(' You are also responsible for guiding your local economy, together with hundreds of other rCredits members -- setting investment and grant-making priorities, electing local directors for your Common Good Community, planning a sustainable local prosperity for all residents, and offering help to communities elsewhere.</p>') . $bonusMsg : '</p>';
-    $message1 = t('<h2>Congratulations! Your account is Activated.</h2><p>You are authorized to use rCredits to buy and sell with other members.') . $personMsg;
+    $personMsg = !$a->co ? t('<p>You are also responsible for guiding your local economy, together with hundreds of other rCredits members -- setting investment and grant-making priorities, electing local directors for your Common Good Community, planning a sustainable local prosperity for all residents, and offering help to communities elsewhere.</p>') . $bonusMsg : '</p>';
+    $message1 = t('<h2>Congratulations! Your account is Activated.</h2><p>You are authorized to use rCredits to buy and sell with other members.</p>') . $personMsg;
   }
   $message = $message1 . "<table width=\"100%\">$message2</table>";
   
@@ -1379,7 +1381,10 @@ function formSummary($form, &$sta, $qid = '') {
   $accountId = fld('item', t('ID:'), '', ($a->mainQid ?: 'N/A') . ' (' . $acctType . ')' . $extra);
 
   $fields = 'title clickPhoto openCompany photo accountName accountId community balance savings creditLimit committed invites';
-  return labeled(compact(u\ray($fields)) + $form);
+  
+  if ($mya->admin) $onSubmit = 'return ' . w\whoFldSubmit('who', t('Who invited this person?'));
+
+  return labeled(compact(u\ray($fields)) + $form, @$onSubmit);
 }
 
 function formSummary_validate($form, &$sta) {
@@ -1717,7 +1722,7 @@ function formAccounts($form, &$sta) {
   foreach ($accounts as $uid => $choice) {
     $a = r\acct($uid);
     if (!$a and isDEV) continue; // ignore this if testing -- "current" account has been undermined is all
-    if ($mya->cAdmin) {
+    if ($mya->cAdmin or $mya->regulator) {
       if ($a->isCtty) { // show communities in a separate category
 //        $class = $a->id < 0 ? 'cgc' : '';
         $ltrs['_'][$uid] = trim(str_replace('rCredits', '', "<small>$a->mainQid</small> $choice"));
@@ -1726,12 +1731,12 @@ function formAccounts($form, &$sta) {
       $pos = substr($choice, 1, 2) == '. ' ? 3 : (strtoupper(substr($choice, 0, 4)) == 'THE ' ? 4 : 0);
       $ltr = strtoupper(substr($choice, $pos, 1));
       $ltrs[$ltr][$uid] = "<small>$a->mainQid</small> $choice";
-      $choice = ($mya->admin ? $a->mainQid : substr($a->mainQid, -3, 2)) . ' ' . $choice;
+      $choice = (($mya->admin or $mya->regulator) ? $a->mainQid : substr($a->mainQid, -3, 2)) . ' ' . $choice;
     }
     $choices[$uid] = $choice;
   }
 
-  if ($mya->cAdmin) {
+  if ($mya->cAdmin or $mya->regulator) {
     ksort($ltrs);
     $index = $details = '';
     foreach ($ltrs as $ltr => $accts) {
@@ -1814,7 +1819,7 @@ EOF
       $showVotes = submit(t('Show votes'));
       $noVote = submit(t('Didn\'t vote yet'));
       $noDirect = submit(t('Didn\'t vote directly'));
-      $results = $results ? item(v\showResults($mya->community, $noProxies)) : submit(t('Results'));
+      $results = @$results ? item(v\showResults($mya->community, $noProxies)) : submit(t('Results'));
       $resultsNoProx = submit(t('Results (no proxies)'));
       $agree = w\hidFld(TRUE);
     } else {
@@ -1825,11 +1830,11 @@ EOF
     return w\labeled(compact(u\ray('title showVotes noVote noDirect results resultsNoProx subtext agree submit args')));
   } 
   
-  if ($do == 'options' or $do == 'results') {
+  if (@$do == 'options' or @$do == 'results') {
     $middle = $questionlist;
-  } elseif ($do == 'ballot') {
+  } elseif (@$do == 'ballot') {
     $middle = v\ballot($mya, $extraFields, @$question);
-  } elseif ($do == 'done') {
+  } elseif (@$do == 'done') {
     $notes = db\col('DISTINCT text', 'r_votes v INNER JOIN r_ballots b ON v.ballot=b.id', "b.voter=:uid AND v.text<>''", ['uid' => $mya->id]);
     r\tellStaff($mya->fullName . t(' has voted. '), $notes);
     $middle = v\done($mya);
@@ -1880,7 +1885,7 @@ function changeWho() {
   if (@$acct == 'signout') return signout();
   setGlobals();
   $mya = r\acct(); // get old current account
-  if (!@$mya->admin and !r\acct($acct, $mya->agentId)->can()) hack('accts');
+  if (!@$mya->admin and !@$mya->regulator and !r\acct($acct, $mya->agentId)->can()) hack('accts');
   $mya = r\acct($acct); // get new current account
 
   svar('myid', $mya->id); // this gets checked ONLY in setGlobals()
@@ -1950,9 +1955,9 @@ function formTx($form, &$sta, $args = '') {
   if ($mya->co and $type == 'pay') $subtext = item('<small>[<a href="' . BASE_URL . '/pay/payroll">Upload Payroll</a>]</small>');
   $whoLabel = ($type == 'loan' ? t('Lend to') : ucwords($type)) . t(' whom:');
   $question = ($type == 'loan' ? t('Lend') : ucwords($type)) . t(' @amount to @name?'); 
-  $who = textFld($whoLabel, [t('name, id, email, or phone')], dft(@$who));
+  $who = textFld($whoLabel, [t('name, id, email, or phone')], required(@$who));
 
-  $amount = textFld('Amount:', [t('amount to ') . $type], dft(@$amount));
+  $amount = textFld('Amount:', [t('amount to ') . $type], required(@$amount));
   $goods = $incentive ? hidFld(FALSE) : radiosFld(t('For:'), '', dft((int) @$goods), u\ray(R_WHYS)); // required() fails here
   $purpose = textFld(' ', [t('purpose or description of goods and services')], required(@$purpose));
 // (keep this for a while)  $calc = item(u\calculator('amount'));
@@ -2249,8 +2254,6 @@ function formGet($form, &$sta, $args = '') {
       $sofar = $days == 1 ? 0 : db\lookup('SUM(amount)', 'r_usd', 'payer=:myid AND amount>0 AND created>:date', u\ray('myid date', $myid, strtotime("-$days days")));
       $avail = min($avail, $limit - $sofar);
     }
-//    $avail = db\lookup('SUM(LEAST(usd, :DW_FEE_THRESHOLD))', 'users', 'community=:ctty and uid<>:myid', u\ray('ctty myid', $mya->community, $myid)); // remove this one-day limit if people complain?
-//    $avail = min($myAvail, $mya->usd + $avail); // what i have or what USD is available, whichever is less
   } else $avail = 0;
 
   $toCash = u\fmtAmt(max(0, $avail));

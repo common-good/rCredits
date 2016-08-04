@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- *  Steps
+ * Admin Steps
  *
  * Provide step functions for functional testing.
  * This file is created automatically by the Gherkin compiler.

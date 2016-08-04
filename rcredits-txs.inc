@@ -79,7 +79,7 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
   $myx = r\x($tx, $mya);
   foreach (u\ray('xid amount byMe toMe fromMe reallyToMe agent data banking tid') as $k) $$k = $myx->$k;
 
-  if ($banking and $amount < 0) $amount = -$amount;
+  if ($banking and ($amount < 0 or $xid < 0)) $amount = -$amount; // show as positive unless reversing
   $isExtra = ($myx->type != TX_TRANSFER and !$banking);
   $state = txColoredState($data);
   

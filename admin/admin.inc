@@ -24,6 +24,8 @@ use rCredits\Web as w;
 function setupBasicAccounts() {
   $keys = u\ray('uid community name fullName email postalCode country minimum rebate flags');
 
+  db\q('DELETE FROM users WHERE uid<>0');
+
   $q = db\q('SELECT :R_REGION_FIELDS FROM r_regions');
   while ($row = $q->fetchAssoc()) { // create or update all regions
     extract($row);
@@ -45,11 +47,13 @@ function setupBasicAccounts() {
   }
   //$region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
 
-  $a1 = r\acct(1); // set up system admin record (uid=1)
+  $values = array(1, 0, 'admin', t('System Administrator'), r\regionField('email'), '', 0, 0, 0, u\bit([B_ADMIN, B_CO]));
+  $info = array_combine($keys, $values);
+  $a1 = new r\Acct($info); // set up system admin record (uid=1)
   if (isDEV) $a1->update('pw2', r\passHash(DEV_PW2));
-  $flags = $a1->flags;
-  foreach (array(B_ADMIN, B_CO) as $bit) u\setBit($flags, $bit);
-  $a1->update('fullName flags', t('System Administrator'), $flags);
+//  $flags = $a1->flags;
+//  foreach (array(B_ADMIN, B_CO) as $bit) u\setBit($flags, $bit);
+//  $a1->update('fullName flags', t('System Administrator'), $flags);
 
   $server = r\serverUid();
   if ($server == r\serverUid('NEW')) { // no need to set up CGF unless in Western Mass (or testing)
@@ -807,6 +811,29 @@ function special() {
   w\printInvite($accts);
 }
 
+function showRequests() {
+$cutoff = strtotime('-1 year');
+$q = f('db.q','SELECT * FROM r_request WHERE created>:cutoff ORDER BY listid DESC', compact('cutoff'));
+  $list[] = "id\tfirst name\tlast name\tphone\temail\tcreated";
+  while ($row = $q->fetchAssoc()) {
+    extract($row); // listid created first last phone email
+    foreach (['phone', 'email'] as $k) $$k = f('u.decryptN',$$k);
+    $list[] = "req$listid\t$first\t$last\t$phone\t$email\t$created";
+  }
+  debug(join("\n", $list));
+}
+
+function showInactive() {
+  $ctty = a('aaa')->community;
+  $q = f('db.q', 'select uid from users where community=:ctty order by access', compact('ctty'));
+  while ($row = $q->fetchAssoc()) {
+    $a = a($row['uid']);
+    if ($a->slave) continue;
+    $dt = f('u.fmtDate', $a->access);
+    $ok = $a->ok ? '(member)' : '';
+    echo "$a->phone\t$a->fullName\t$dt\t$ok\n";
+  }
+}
 /*
 function retro() {
   $q=f('db.q','Select uid from users WHERE NOT :IS_CO AND uid>1 AND :IS_BONA');

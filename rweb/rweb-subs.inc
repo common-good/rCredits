@@ -623,7 +623,7 @@ function whoFldSubmit($field, $question, $amount = '0', $askGift = '0') {
 
   js('js/typeahead.bundle.min.js', 'file');
   js("suggestWho('$id');", 'inline', 'footer');
-  return "who(this, '$id', '$question', $amount, $askGift);"; // amount might be 'this.amount.value'
+  return "$('$id').val() == '' ? true : who(this, '$id', '$question', $amount, $askGift);"; // amount might be 'this.amount.value'
 }
 
 /**
@@ -854,7 +854,7 @@ function which($choices = '', $resultField = '', $info = '', $question = 'Which 
   svar('pop', NULL); // called with no args (#3)
   $tribs['onchange'] = "this.form.elements['$pop_resultField'].value=this.options[this.selectedIndex].text; this.form.submit();";
   $tribs['size'] = 12;
-  $choice = selectFld('', '', w\attr($tribs), $pop_choices);
+  $choice = selectFld('', '', w\attrib($tribs), $pop_choices);
   $choice = render($choice);
   $legend = t('Which one?');
   $popup = item(w\modal('which', $legend, $pop_question, $choice, t('Cancel')));
@@ -1747,7 +1747,7 @@ function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
  * @param string $msg: the message or message index
  */
 function doSay($msg, $type = 'error') {
-  if (u\test()) file_put_contents(t\dosayFilename($type), $msg); // in case called from a test
+  file_put_contents(t\dosayFilename($type), $msg); // in case called from a test (no way to know)
   return r\go('empty/1', $msg, $type == 'error');
 }
 

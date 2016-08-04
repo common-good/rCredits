@@ -10,6 +10,8 @@ use rCredits\Util as u;
  * Strategy: Store only whatever is easiest. Figure out the rest as needed.
  */
 
+define('QR_FMTS', '1/2 1/3 2/2 2/3 3/2 3/3 3/4 4/4 4/5');
+
 class Qo {
   private $main; // mainQid or main may be empty, but not both
   private $mainQid;
@@ -26,7 +28,6 @@ class Qo {
 
     if (substr($main, 0, 1) == '.') return $qo->mainQid = R_SERVER_ID . substr($main, 1); // abbreviated
 
-    if (strpos($main, '.')) return $qo->mainQid = str_replace('.', '', $main); // old style proSe
     if (strpos($main, ':') !== FALSE) { // old style relation
       if (substr($main, 0, 1) == ':') $main = R_SERVER_ID . $main; // unabbreviate
       $reid = qo(str_replace(':', '', $main))->id;
@@ -34,6 +35,8 @@ class Qo {
       u\EXPECT((bool) $res, 'non-existent old-style relation qid: ' . $main);
       return list ($qo->main, $qo->agent) = [$res['main'], $res['other']];
     }
+
+    $main = str_replace('.', '', $main); // old style proSe (sent by old app, for example)
 
     if ($i = strpos($main, AGT_MARK)) {
       u\EXPECT(!$agent, 'agent specified with compound main QID');
@@ -135,6 +138,26 @@ class Qo {
     } else return qo($uid, $agent)->qid; // more complicated
   }
 
+  /**
+   * Convert qr to qid
+   * @param string qr: qr-style account code
+   * @return the corresponding qid (FALSE if none)
+   */
+  public static function qr2($qr) {
+    $fmt = substr($qr, 0, 1);
+    $c = u\a2n($fmt, 36);
+    $fmts = u\ray(QR_FMTS);
+    list ($regionLen, $acctLen) = explode('/', $fmts[$c / 4]);
+    $agentLen = $c % 4;
+//    debug(compact(u\ray('qr fmt c fmts regionLen acctLen agentLen')) + ['thefmt' => $fmts[$c / 4]]);
+    if (strlen($qr) != 1 + $regionLen + $acctLen + $agentLen) return FALSE;
+    $region = u\n2a(u\a2n(substr($qr, 1, $regionLen), 36), -3);
+    $acct = u\n2a(u\a2n(substr($qr, 1 + $regionLen, $acctLen), 36), -3);
+    $agent = $agentLen ? '-' . u\n2a(u\a2n(substr($qr, -$agentLen), 36), -1) : '';
+///    debug(compact(u\ray('qr fmt c regionLen acctLen agentLen region acct agent')));
+    return $region . $acct . $agent;
+  }
+  
   public function parse() {return [$this->region, $this->tail, $this->agentCode];}
 //  public function fmt() {return substr($this->qid, 0, 3) . ' ' . substr($this->qid, 3);}
   public function fmt() {return $this->qid;} // no spaces or punc

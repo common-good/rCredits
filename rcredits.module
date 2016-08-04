@@ -163,7 +163,7 @@ function x($xid, $mya = '') {r\x($xid, $mya);} // return a transaction object
 /**/ function step($a) {debug(us($a)->step());}
 function ctty($id) {return a(a($id)->community);}
 function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
-/**/ function flog($s) {file_put_contents('flog.txt', print_r($s, 1) . "\n", FILE_APPEND);} // log to file
+/**/ function flog($s) {file_put_contents(isSTAGE ? 'photos/flog.txt' : 'flog.txt', print_r($s, 1) . "\n", FILE_APPEND);} // log to file
 /**/ function who($s) {$a = a($s); debug("$a->fullName ($a->mainQid $a->id)"); return $a;} // show whose account
 function q($sql, $subs = [], $log = FALSE) {return f('db.q', $sql, $subs, $log);}
 
@@ -181,6 +181,8 @@ function f($func) {
     include_once __DIR__ . '/rvote/rvote-ballot.inc';
     include_once __DIR__ . '/rvote/rvote-results.inc';
   }
+  if (substr($func, 0, 2) == 's.') include_once __DIR__ . '/rsmart/rsmart.inc';
+  
   $args = func_get_args();
   if (strpos($func, ' ') and count($args) == 1) $args = u\ray($args[0]);
   $func = array_shift($args);

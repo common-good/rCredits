@@ -179,6 +179,23 @@ G. Special rCredits datatypes
       - proSe qids: XXXYYY, XXXYYYY, or XXXXYYYY
       - relational qids: the proSe qid of the company followed by -W (or -WW or -WWW), for example XXXYYY-W
         The Ws represent the agent number. No number is given to an agent except when issuing a company rCard
+    NEW STYLE COMPRESSED (only in QR Code and magnetic stripe)
+    . one char "c" to specify the QID format (character lengths of region, account within region, agent number):
+      0-3: 1/2/n, n=c (where c is a radix-36 digit)
+      4-7: 1/3/n, n=c-4
+      8-B: 2/2/n, n=c-8
+      C-F: 2/3/n, n=c-C (meaning c minus twelve)
+      G-J: 3/2/n, n=c-G (meaning c minus sixteen), etc.
+      K-N: 3/3/n, (n is always c mod 4)
+      O-R: 3/4/n
+      S-V: 4/4/n
+      W-Z: 4/5/n
+    . the region (radix 36: 0-9 A-Z) -- 999,999 < 1,679,616
+    . the account within that region (radix 36) -- 9,999,999 < 60,466,176
+    . agent number, if any (radix 36) -- 9,999 < 46,656 agents per company
+    . in QR code, the region is omitted because it occurs earlier in the URL. For example:
+         HTTP://XXX.RC4.ME/HYYWZZZZZZZZZZZZZZ represents code HXXXYYW, where H means 3 chars for the region (XXX),
+         2 chars for the account (YY) and 1 char for the agent (W), with security code ZZZZZZZZZZZZZZ
         
     The region (XXX) can be omitted in SMS identifiers (eg "200 to .ABCDE for pie")
     For each region that exists, we have a user record with uid < 0, with name = the region name followed by a period (eg ABC.)

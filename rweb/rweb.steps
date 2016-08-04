@@ -268,7 +268,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Joint AMemberRequestsTwoJoinsAtOnce
  *     TEST Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
  *     TEST Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
- *     TEST Preferences AMemberChoosesTooLowASavingsReserve
  *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
  *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
@@ -330,6 +329,7 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST EditTx ABuyerChangesTheGoodsStatus
  *     TEST Membership AMemberSignsInForTheFirstTime
  *     TEST Membership AMemberDoesItAll
+ *     TEST Preferences AMemberChoosesTooLowASavingsReserve
  *     TEST Preferences AMemberChoosesNegativeWeeklySavingsWithoutAnySavings
  *     TEST Preferences AMemberChoosesTooLowAnACHMinimum
  *     TEST Relations AMemberTriesToAddARelationWithSelf
