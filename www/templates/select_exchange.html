@@ -6,7 +6,7 @@
 				<!--<form name="selectTransactionType" id="selectTransactionType" ng-model="currency" > ng-model="currency.value"-->
 					<div class="item exchange-types">
 						<div class="operation" >
-							{{::'exchange_in'| translate}}<input id="currencyIn" checked name="currencyIn" value="USD" type="radio" ng-model="currency" ng-checked="selExCtrl.switchTypes(true)">
+							<ion-radio class="currencySelect" id="currencyIn" name="currencyIn" value="USD" type="radio" ng-model="currency" ng-change="selExCtrl.switchTypes(1)">{{::'exchange_in'| translate}}</ion-radio>
 						</div>
 						<div class="type">
 							{{selExCtrl.exchange.getCurrencyFrom().getName()}}
@@ -14,7 +14,7 @@
 					</div>
 					<div class="item exchange-types">
 						<div class="operation" >
-							{{::'exchange_out'| translate}}<input id="currencyOut" name="currencyOut" value="rCredits" type="radio" ng-model="currency" ng-checked="selExCtrl.switchTypes(false)">
+							<ion-radio class="currencySelect" id="currencyOut" name="currencyOut" value="rCredits" type="radio" ng-model="currency" ng-change="selExCtrl.switchTypes(2)">{{::'exchange_out'| translate}}</ion-radio>
 						</div>
 						<div class="type">
 							{{selExCtrl.exchange.getCurrencyTo().getName()}}

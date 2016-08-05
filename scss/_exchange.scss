@@ -1,70 +1,70 @@
-  .exchange-types {
+.exchange-types {
     font-size: 20px;
 
     .operation {
-      float: left;
-      font-weight: 400;
+		float: left;
+		font-weight: 400;
     }
     .type {
-      float: right;
-      color: gray;
+		float: right;
+		color: gray;
     }
-  }
+}
 
-  .switch-btn {
+.switch-btn {
     margin-top: 0px !important;
     .arrow {
-      display: inline-block;
-      transform: rotate(90deg);
-      -webkit-transform: rotate(90deg);
+		display: inline-block;
+		transform: rotate(90deg);
+		-webkit-transform: rotate(90deg);
     }
-  }
+}
 
-  .next-btn {
+.next-btn {
     position: absolute;
     bottom: 0;
     margin-bottom: 0px !important;
-  }
+}
 
-  .payment-fee-advice {
+.payment-fee-advice {
     min-height: 100px;
-  }
+}
 
-  .payment-type-select {
+.payment-type-select {
     margin-right: 1em;
-  }
+}
 
-  .fee-legend {
+.fee-legend {
     text-align: center;
     font-size: 12px;
     padding: 2px;
     background-color: #FFF5A5;
-  }
+}
 
-  .exchange-keypad {
+.exchange-keypad {
 
     .number-display {
-      display: none;
+		display: none;
     }
 
     position: absolute;
     bottom: -21px;
     right: 0;
     left: 0;
-  }
+}
 
-  .exchange-keypad.rcredits-in {
+.exchange-keypad.rcredits-in {
     bottom: -16px;
-  }
+}
 
-  .exchange.tabulator .section-2 {
+.exchange.tabulator .section-2 {
     height: calc(100% - 5.8em);
-  }
+}
 
-  .item.payment-fee-advice {
+.item.payment-fee-advice {
     text-overflow: initial;
     white-space: normal;
-  }
-  .item-select::after{
-	  right:5em;
-  }
+}
+.item-select::after{
+	right:7em;
+}

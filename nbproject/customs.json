@@ -12,7 +12,13 @@
 			"attributes": {
 				"ng-model": {},
 				"ng-change": {},
-				"class": {}
+				"onclick": {},
+				"name": {},
+				"ng-checked": {},
+				"id": {},
+				"type": {},
+				"class": {},
+				"value": {}
 			}
 		},
 		"ion-content": {

@@ -7,17 +7,16 @@
 			paymentTypes = ExchangeService.getPaymentTypes();
 		$scope.hide_payment = true;
 		$scope.currency = 'USD';
-		console.log($scope.currency);
-		this.switchTypes = function (type) {
-			if (type === 'USD') {
-				this.exchange.setCurrencyFrom('USD');
-				this.exchange.setCurrencyTo('rCredits');
-			} else if (type === 'rCredits') {
-				this.exchange.setCurrencyFrom('rCredits');
-				this.exchange.setCurrencyTo('USD');
-			}
-//			console.log($scope.currency);
+		console.log(true % 2);
+		this.switchTypes = function (selected) {
+			var inMoney = this.exchange.getCurrencyFrom();
+			this.exchange.setCurrencyFrom(this.exchange.getCurrencyTo());
+			this.exchange.setCurrencyTo(inMoney);
+//			document.getElementsByClassName('currencySelect')[selected-1].style.color = 'black';
+//			document.getElementsByClassName('currencySelect')[selected % 2].style.color = 'lightgray';
+			console.log(document.getElementsByClassName('currencySelect')[selected-1].style.color );
 			$scope.hide_payment = !$scope.hide_payment;
+//			return type.valueOf();
 		};
 		this.init = function () {
 			this.exchange = new Exchange();
