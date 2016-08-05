@@ -91,6 +91,12 @@ subheader {
 .item{
 	border: none;
 }
+/*.item-radio input:checked + .radio-content .item-content {
+	color: black;
+}
+.currencySelect {
+	color: lightgray;
+}*/
 @import "popup";
 @import "logo";
 @import "button";

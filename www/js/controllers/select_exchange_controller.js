@@ -12,8 +12,8 @@
 			var inMoney = this.exchange.getCurrencyFrom();
 			this.exchange.setCurrencyFrom(this.exchange.getCurrencyTo());
 			this.exchange.setCurrencyTo(inMoney);
-//			document.getElementsByClassName('currencySelect')[selected-1].style.color = 'black';
-//			document.getElementsByClassName('currencySelect')[selected % 2].style.color = 'lightgray';
+			document.getElementsByClassName('currencySelect')[selected-1].style.color = 'black';
+			document.getElementsByClassName('currencySelect')[selected % 2].style.color = 'lightgray';
 			console.log(document.getElementsByClassName('currencySelect')[selected-1].style.color );
 			$scope.hide_payment = !$scope.hide_payment;
 //			return type.valueOf();
