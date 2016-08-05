@@ -3,7 +3,6 @@
 	<ion-content class="has-subheader">
 		<section class="section-1">
 			<div class="list">
-				<!--<form name="selectTransactionType" id="selectTransactionType" ng-model="currency" > ng-model="currency.value"-->
 				<div class="item exchange-types">
 					<div class="operation" >
 						<ion-radio class="currencySelect" id="currencyIn" name="currencyIn" value="USD" type="radio" ng-model="currency" ng-change="selExCtrl.switchTypes(1)">{{::'exchange_in'| translate}}</ion-radio>
@@ -20,7 +19,6 @@
 						{{selExCtrl.exchange.getCurrencyTo().getName()}}
 					</div>
 				</div>
-				<!--</form>-->
 				<!--				{{currency}}-->
 				<!--				<div class="button button-full button-small secondary switch-btn">
 				
