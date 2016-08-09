@@ -8,17 +8,7 @@ app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, Barco
 		$state.go("app.login");
 	}
 	if ($scope.currentUser && $scope.currentUser.isFirstLogin()) {
-		NotificationService.showAlert({
-			scope: $scope,
-			title: 'deviceAssociated',
-			template: 'toSetPreferences'
-		},
-			{
-				company: $scope.currentUser.company
-			})
-			.then(function () {
-				$scope.currentUser.setFirstLoginNotified();
-			});
+		$scope.currentUser.setFirstLoginNotified();
 	}
 	$scope.isCashierMode = function () {
 		return CashierModeService.isEnabled();
@@ -36,7 +26,7 @@ app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, Barco
 		}
 		$ionicLoading.show();
 		$ionicPlatform.ready(function () {
-			if (ionic.Platform.platform() === 'win64'||ionic.Platform.platform() === 'win32') {
+			if (ionic.Platform.platform() === 'win64' || ionic.Platform.platform() === 'win32') {
 				$rootScope.whereWasI = location.hash;
 				$state.go("app.demo");
 				$ionicLoading.hide();

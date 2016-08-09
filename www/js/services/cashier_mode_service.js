@@ -39,6 +39,7 @@
 			if (!this.isActivated) {
 				return true;
 			}
+			console.log(PreferenceService.getCashierCanPref().isChargeEnabled());
 			return PreferenceService.getCashierCanPref().isChargeEnabled();
 		};
 		CashierModeService.prototype.canRefund = function () {
