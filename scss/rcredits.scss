@@ -52,7 +52,7 @@ subheader {
 	right: 10.5em !important;
 }
 .item-select::after{
-	right: inherit;
+	right: 8.5em !important;
 	z-index: 0;
 }
 .item-select select {
@@ -108,6 +108,7 @@ subheader {
 .exchangeText2, .exchangeText2 > option, .item-select select{
 	font-size: 1.3em;
 }
+
 /*.item-radio input:checked + .radio-content .item-content {
 	color: black;
 }
