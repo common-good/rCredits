@@ -91,6 +91,23 @@ subheader {
 .item{
 	border: none;
 }
+.preferencesItems{
+	font-size: 1.5em;
+}
+.linkerizer{
+	color: blue;
+	text-decoration: underline;
+}
+.menuItems{
+	font-size: 1.5em;
+	font-weight: 200;
+}
+.exchangeText{
+	font-size: 1em;
+}
+.exchangeText2, .exchangeText2 > option, .item-select select{
+	font-size: 1.3em;
+}
 /*.item-radio input:checked + .radio-content .item-content {
 	color: black;
 }

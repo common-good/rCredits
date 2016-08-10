@@ -6,7 +6,7 @@
 				<div class="calc-component">
 					<div class="list">
 						<div class="item exchange-types">
-							<div class="operation">
+							<div class="exchangeText operation">
 								{{::'exchange_in'| translate}}
 							</div>
 							<div class="type">
@@ -15,15 +15,15 @@
 							</div>
 						</div>
 						<div class="item exchange-types">
-							<div class="operation">
+							<div class="exchangeText operation">
 								{{::'exchange_out'| translate}}
 							</div>
-							<div class="type">
+							<div class="exchangeText type">
 								{{::exCtrl.exchange.getCurrencyTo().getSign()}} {{exCtrl.calculateOutAmount() | currency: "":2}}
 								{{::exCtrl.exchange.getCurrencyTo().getName()}}
 							</div>
 						</div>
-						<div class="item fee-legend" ng-if="!exCtrl.rCreditsIsCurrencyFrom">
+						<div class="exchangeText item fee-legend" ng-if="!exCtrl.rCreditsIsCurrencyFrom">
 							{{::exCtrl.paymentFeeTitle}}
 						</div>
 					</div>

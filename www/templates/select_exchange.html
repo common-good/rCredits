@@ -5,17 +5,17 @@
 			<div class="list">
 				<div class="item exchange-types">
 					<div class="operation" >
-						<ion-radio class="currencySelect" id="currencyIn" name="currencyIn" value="USD" type="radio" ng-model="currency" ng-change="selExCtrl.switchTypes(1)">{{::'exchange_in'| translate}}</ion-radio>
+						<ion-radio class="exchangeText currencySelect" id="currencyIn" name="currencyIn" value="USD" type="radio" ng-model="currency" ng-change="selExCtrl.switchTypes(1)">{{::'exchange_in'| translate}}</ion-radio>
 					</div>
-					<div class="type">
+					<div class="exchangeText type">
 						{{selExCtrl.exchange.getCurrencyFrom().getName()}}
 					</div>
 				</div>
 				<div class="item exchange-types">
-					<div class="operation" >
-						<ion-radio class="currencySelect" id="currencyOut" name="currencyOut" value="rCredits" type="radio" ng-model="currency" ng-change="selExCtrl.switchTypes(2)">{{::'exchange_out'| translate}}</ion-radio>
+					<div class=" operation" >
+						<ion-radio class="exchangeText currencySelect" id="currencyOut" name="currencyOut" value="rCredits" type="radio" ng-model="currency" ng-change="selExCtrl.switchTypes(2)">{{::'exchange_out'| translate}}</ion-radio>
 					</div>
-					<div class="type">
+					<div class="exchangeText type">
 						{{selExCtrl.exchange.getCurrencyTo().getName()}}
 					</div>
 				</div>
@@ -29,12 +29,12 @@
 		{{hide_currency}}
 		<div class="list" ng-show="hide_payment">
 			<label class="item item-input item-select">
-				<div class="input-label" ng-bind="selExCtrl.selectedPayment.getName()">
+				<div class="exchangeText2 input-label" ng-bind="selExCtrl.selectedPayment.getName()">
 				</div>
-				<select class="payment-type-select" ng-options="item as item.name for item in ::selExCtrl.paymentTypes"
+				<select class="exchangeText2 payment-type-select" ng-options="item as item.name for item in ::selExCtrl.paymentTypes"
 						ng-model="selExCtrl.selectedPayment" ng-change="selExCtrl.onPaymentChange()"></select>
 			</label>
-			<div class="item payment-fee-advice" ng-bind="selExCtrl.paymentAdvice">
+			<div class="exchangeText2 item payment-fee-advice" ng-bind="selExCtrl.paymentAdvice">
 			</div>
 		</div>
 	</ion-content>

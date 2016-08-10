@@ -18,23 +18,23 @@
     </ion-header-bar>
     <ion-content>
       <ion-list>
-        <ion-item menu-close ng-click="redirectHome()" ng-show="!isSelfServiceActive()">
+        <ion-item menu-close ng-click="redirectHome()" ng-show="!isSelfServiceActive()" class='menuItems'>
           {{ 'home' | translate }}
         </ion-item>
         <ion-item menu-close ng-click="enterCashierMode()"
-                  ng-show="isCashierModeAvailable() && !isCashierModeEnabled() && !isSelfServiceActive()">
+                  ng-show="isCashierModeAvailable() && !isCashierModeEnabled() && !isSelfServiceActive()" class='menuItems'>
           {{ 'enter_cashier_mode' | translate }}
         </ion-item>
         <ion-item menu-close ng-click="changeToSelfServiceMode()"
-                  ng-show="isSelfServiceEnabled() && !isSelfServiceActive() && !isCashierModeEnabled()">
+                  ng-show="isSelfServiceEnabled() && !isSelfServiceActive() && !isCashierModeEnabled()" class='menuItems'>
           {{ 'selfServiceMode' | translate }}
         </ion-item>
         <!-- Cashier Mode-->
-        <ion-item menu-close ng-click="softLogout()" ng-show="isCashierModeEnabled() || isSelfServiceActive()">
+        <ion-item menu-close ng-click="softLogout()" ng-show="isCashierModeEnabled() || isSelfServiceActive()" class='menuItems'>
           {{ 'manager_sign_in' | translate }}
         </ion-item>
         <ion-item menu-close ng-click="redirectPreferences()"
-                  ng-show="!isCashierModeEnabled() && !isSelfServiceActive()">
+                  ng-show="!isCashierModeEnabled() && !isSelfServiceActive()" class='menuItems'>
           {{'advanced' | translate}}
         </ion-item>
       </ion-list>
