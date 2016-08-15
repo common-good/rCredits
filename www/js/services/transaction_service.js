@@ -90,6 +90,7 @@ app.service('TransactionService',
 							self.saveTransaction(transaction);
 						});
 						self.lastTransaction = transaction;
+						console.log(transaction);
 						return transaction;
 					} else {
 						for (var v in transactionResult) {
