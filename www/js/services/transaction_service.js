@@ -10,6 +10,7 @@ app.service('TransactionService',
 		};
 		TransactionService.prototype.makeRequest_ = function (params, account) {
 			var urlConf = new UrlConfigurator();
+			console.log(params, account);
 			return $http({
 				method: 'POST',
 				url: urlConf.getServerUrl(account),

@@ -1,5 +1,4 @@
 /* global app, _ */
-
 (function (app) {
 	'use strict';
 	app.factory('NotificationService', ['$translate', '$ionicPopup', function ($translate, $ionicPopup) {
