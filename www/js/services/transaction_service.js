@@ -1,4 +1,4 @@
-/* global rCreditsConfig, Transaction, _, app */
+/* global rCreditsConfig, Transaction, _, app, Sha256 */
 app.service('TransactionService',
 	function ($q, UserService, RequestParameterBuilder, $http, $httpParamSerializer, SQLiteService,
 		SqlQuery, NetworkService, MemberSqlService, NotificationService, $ionicLoading, TransactionSql, $rootScope) {
@@ -10,7 +10,7 @@ app.service('TransactionService',
 		};
 		TransactionService.prototype.makeRequest_ = function (params, account) {
 			var urlConf = new UrlConfigurator();
-			console.log(params, account);
+			console.log(params);
 			return $http({
 				method: 'POST',
 				url: urlConf.getServerUrl(account),
@@ -54,6 +54,9 @@ app.service('TransactionService',
 							.setField('goods', goods)
 							.setField('photoid', 0)
 							.getParams();
+						var proof = Sha256.hash((params.agent + params.amount + params.member + customerAccountInfo.unencryptedCode + params.created).toString());
+						params['proof'] = proof;
+						console.log(proof, customerAccountInfo.unencryptedCode);
 						return this.makeRequest_(params, sellerAccountInfo).then(function (res) {
 							return res.data;
 						});

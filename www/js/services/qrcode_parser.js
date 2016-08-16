@@ -53,7 +53,8 @@
 	};
 	QRCodeParser.prototype.parseSecurityCode_ = function () {
 		console.log(this.url.pathname.substr(5, this.url.pathname.length - 1));
-		this.accountInfo.securityCode = Sha256.hash(this.url.pathname.substr(5, this.url.pathname.length - 1));
+		this.accountInfo.securityCode = Sha256.hash(this.url.pathname.substr(5, this.url.pathname.length - 1));//
+		this.accountInfo.unencryptedCode = this.url.pathname.substr(5, this.url.pathname.length - 1);
 		console.log(this.accountInfo.securityCode);
 	};
 	window.QRCodeParser = QRCodeParser;
