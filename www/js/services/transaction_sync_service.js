@@ -24,7 +24,7 @@ app.service('TransactionSyncService',
 				.setField('goods', sqlTransaction.goods)
 				.setField('photoid', 0)
 				.getParams();
-
+			
 			var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.proof.account));
 			return TransactionService.makeRequest_(params, account).then(function (res) {
 				return res.data;

@@ -15,6 +15,7 @@
 			var savedPreferences = this.loadSavedPreferences_();
 			var preferences = Preference.getDefinitions();
 			_.each(savedPreferences, _.partial(this.updatePref_, preferences).bind(this));
+			console.log(preferences);
 			return preferences;
 		};
 		/**
@@ -71,20 +72,30 @@
 			return true;
 		};
 		var parseBool = function (strBit) {
-			return strBit === true;
+			return strBit === "1";
 		};
 		PreferenceService.prototype.parsePreferencesNumber = function (number) {
 			var bitsStr = Number(number).toString(2);
+//			console.log(bitStr);
 			this.setCashierModePrefs(bitsStr);
 		};
 		PreferenceService.prototype.setCashierModePrefs = function (strBits) {
 			var cashierPref = this.getCashierCanPref();
-			var l = strBits.length;
-			cashierPref.setCanCharge(parseBool(strBits[l - 1]));
-			cashierPref.setCanRefund(parseBool(strBits[l - 2]));
-			cashierPref.setCanTradeRcreditsForUSD(false);
-			cashierPref.setCanTradeUSDforRcredits(false);
+			var prefs=pad0s(strBits.toString(2));
+			var l = prefs.length;
+			cashierPref.setCanCharge(parseBool(prefs[l - 1]));
+			cashierPref.setCanRefund(parseBool(prefs[l - 2]));
+			cashierPref.setCanTradeRcreditsForUSD(parseBool(prefs[l - 3]));
+			cashierPref.setCanTradeUSDforRcredits(parseBool(prefs[l - 4]));
+			console.log(prefs.length,prefs[l - 1],prefs,cashierPref);
 		};
+		function pad0s(prefBool) {
+			for(var i=0;prefBool.length <=15;i++){
+				prefBool='0'+prefBool;
+				console.log(prefBool.length);
+			}
+			return prefBool.toString();
+		}
 		return new PreferenceService();
 	});
 })(app);

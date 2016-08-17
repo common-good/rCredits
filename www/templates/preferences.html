@@ -1,34 +1,28 @@
 <ion-view class="preferences">
-  <ion-content>
-    <ion-list>
-
-      <!--<li ng-repeat="pref in ::preferences" class="item item-toggle">-->
-      <!--{{ pref.name | translate }}-->
-      <!--<label class="">-->
-      <!--<input type="text" ng-model="pref.value" ng-change="saveItems()">-->
-      <!--<div class="track">-->
-      <!--<div class="handle"></div>-->
-      <!--</div>-->
-      <!--</label>-->
-      <!--</li>-->
-      <ion-item> &nbsp;</ion-item>
-
-      <ion-item ng-click="openLink('https://new.rcredits.org/signin')">
-		  <div class="h2">Cashier Mode Permissions</div>
-		  <span class="pref-subtitle">To change permissions, click here to login to <span class="linkerizer">rcredits.org</span></span>
-      </ion-item>
-
-      <ion-item ng-model="option.value" class="cashier-pref" ng-class="{'cashier-pref-selected': option.value}"
-                ng-repeat="option in cashierCanModePref.options">
-        <i class="icon ion-ios-checkmark"> </i>
-        <span class="preferencesItems" >{{ option.name | translate }}</span>
-
-      </ion-item>
-
-      <ion-item ng-click="changeCompany()">
-        <div class="h2">Change Company</div>
-      </ion-item>
-    </ion-list>
-
-  </ion-content>
+	<ion-content>
+		<ion-list>
+			<!--<li ng-repeat="pref in ::preferences" class="item item-toggle">-->
+			<!--{{ pref.name | translate }}-->
+			<!--<label class="">-->
+			<!--<input type="text" ng-model="pref.value" ng-change="saveItems()">-->
+			<!--<div class="track">-->
+			<!--<div class="handle"></div>-->
+			<!--</div>-->
+			<!--</label>-->
+			<!--</li>-->
+			<ion-item> &nbsp;</ion-item>
+			<ion-item ng-click="openLink('https://new.rcredits.org/signin')">
+				<div class="h2">Cashier Mode Permissions</div>
+				<span class="pref-subtitle">To change permissions, click here to login to <span class="linkerizer">rcredits.org</span></span>
+			</ion-item>
+			<ion-item ng-model="option.value" class="cashier-pref" ng-class="{'cashier-pref-selected': option.value}"
+					  ng-repeat="option in cashierCanModePref.options">
+				<i class="icon ion-ios-checkmark"> </i>
+				<span class="preferencesItems" >{{ option.name | translate }}</span>
+			</ion-item>
+			<ion-item ng-click="changeCompany()">
+				<div class="h2">Change Company</div>
+			</ion-item>
+		</ion-list>
+	</ion-content>
 </ion-view>

@@ -56,13 +56,13 @@
 					this.accountInfo = _.extendOwn(new AccountInfo(), this.accountInfo);
 					this.configureDeviceId_();
 					PreferenceService.parsePreferencesNumber(this.getCan());
+					console.log(this.getCan());
 					return this;
 				}
-
 				throw new Error("Unable to load user from Storage");
 			},
 			removeFromStorage: function () {
-				localStorageService.remove(SELLER_KEY);
+				localStorageService.remove(SELLER_KEY); 
 			}
 		});
 		window.Seller = Seller;
