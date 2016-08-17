@@ -230,7 +230,7 @@ Scenario: A cashier reverses a transaction with insufficient funds
   | 6   | %today  | transfer |      1 | .ZZA | .ZZB | cash    |
   When agent "C:B" asks device "devC" to charge ".ZZA,ccA" $-100 for "cash": "cash in" at "%now-1h" force -1
   Then we respond ok txid 7 created %now balance 249 rewards 250
-  And with proof of agent "C:B" amount -100.00 created "%now-1h" member ".ZZA" code "ccA"
+#  And with proof of agent "C:B" amount -100.00 created "%now-1h" member ".ZZA" code "ccA"
   And with undo "5"
   And we notice "new charge" to member ".ZZA" with subs:
   | created | fullName | otherName  | amount | payerPurpose |*

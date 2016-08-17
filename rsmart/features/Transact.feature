@@ -162,9 +162,9 @@ Scenario: Seller tries to charge the customer twice
   | op      |*
   | charged |
 
-Scenario: Device sends wrong card code
+Scenario: Device sends wrong proof
   When agent "C:A" asks device "devC" to charge ".ZZB,whatever" $100 for "goods": "food" at %now
-  Then we return error "bad customer"  
+  Then we return error "bad proof"  
   
 Scenario: A cashier asks to charge someone unconfirmed
   When agent "C:A" asks device "devC" to charge ".ZZE,ccE" $100 for "goods": "food" at %now

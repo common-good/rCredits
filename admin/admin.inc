@@ -820,7 +820,7 @@ $q = f('db.q','SELECT * FROM r_request WHERE created>:cutoff ORDER BY listid DES
     foreach (['phone', 'email'] as $k) $$k = f('u.decryptN',$$k);
     $list[] = "req$listid\t$first\t$last\t$phone\t$email\t$created";
   }
-  debug(join("\n", $list));
+  w\say(join("\n", $list));
 }
 
 function showInactive() {
@@ -831,7 +831,7 @@ function showInactive() {
     if ($a->slave) continue;
     $dt = f('u.fmtDate', $a->access);
     $ok = $a->ok ? '(member)' : '';
-    echo "$a->phone\t$a->fullName\t$dt\t$ok\n";
+/**/ echo "$a->phone\t$a->fullName\t$dt\t$ok\n";
   }
 }
 /*

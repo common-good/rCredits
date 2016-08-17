@@ -124,7 +124,7 @@ function rdo($code, $args = '') {
     if (!@$op or !@$qid or !@$a = r\acct($qid) or @$ecode != $a->emailCode) return doSay(t('That is not a valid link.'));
   } else {
     if (!$info = r\doCode($code)) return doSay(t('That link is archaic.'));
-  ///  print_r($info);
+///  print_r($info);
     if ($once = is_numeric($doid = @$info['op'])) {
       if (!$row = db\lookup('uid,data,expires', 'r_do', 'doid=:doid', compact('doid'))) return doSay(t('That link is no longer valid.')); // already used OR deleted because it expired
       extract($row);

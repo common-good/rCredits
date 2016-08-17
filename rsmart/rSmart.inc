@@ -42,11 +42,12 @@ use rCredits\Testing as t;
 ///     debug(rCredits\Smart\pos($args));
  */
 
-define('RPOS_VERSION', 216); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first (and make sure it is available in Google Play Store), before bumping the number up here.)
+define('RPOS_VERSION', 217); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first (and make sure it is available in Google Play Store), before bumping the number up here.)
 define('R_QR_HEADER', 'HTTP://RC2.ME/I/'); // for transient QR IDs
 define('R_TRANSIENCE', 60); // number of seconds for device's transient QR to be valid
 
 $GLOBALS[TX_POS . ' messages'] = array(
+  'bad proof' => t('That transaction is not valid.'),
   'bad customer' => t('That rCard is not valid.'),
 //  'card deactivated' => t('The rCard has been de-activated.'),
   'bad agent' => t('That is not a valid agent rCard.'),
@@ -163,6 +164,7 @@ function getTime($args) {
  *   agent: agent ID of current agent -- empty if none yet
  *   device: a unique device ID
  *   member: account ID of customer or new agent
+ *   code: rCard security code (possibly encrypted with itself as the key)
  * @return json:
  *   logon: 1 if the app's operator is scanning himself or herself in, else 0 (normal) or -1 (first-time)
  *   device: a unique device identifier (if none passed)
@@ -212,7 +214,7 @@ function identify($args) {
 
   if (@$logon == '1') { //  identifying agent
 //    if ($a->proSe and (!$a->co or $a->coCan(CO_REQUIRE_CASHIER))) return posErr('scan in first');
-    if ($code != $a->cardCode()) return posErr('bad agent'); // . "=$agent (cardCode) id=$a->id myid=$mya->id agentId=$a->agentId qid=$a->qid code=$code acode=" . $a->cardCode());
+    if ($code != $a->cardCode() and $code != $a->codeHash()) return posErr('bad agent'); // . substr(bin2hex($code), 0, 20) . ' <> ' . substr(bin2hex($a->codeHash()), 0, 20) . ' <> ' . substr($code, 0, 20)); // . "=$agent (cardCode) id=$a->id myid=$mya->id agentId=$a->agentId qid=$a->qid code=$code acode=" . $a->cardCode());
     if (!$a->can(B_SCAN)) return posErr('agent cannot scan');
     if (!@$deviceId) {
 /*      if ($device) {
@@ -221,7 +223,7 @@ function identify($args) {
       if (!$device) $device = u\code(R_CODE_LEN);
       r\makeDevice($a->id, $device, TX_POS); // card is legit, so use device's code, if any
     }
-    $default = $mya->qo->region . R_MEMBER_MARK . $mya->qo->tail; // $mya->mainQid;
+    $default = $mya->mainQid;
     $company = $mya->fullName;
     $time = r\rTime();
     
@@ -242,21 +244,20 @@ function identify($args) {
 
 /**
  * Get an individual's photo.
- * photo:  [member, code OR proof] => photo
+ * photo:  [member, code] => photo
  * @param array $args:
  *   member: the qid for the customer (individual or company rep)
  *   code: card code
- *   proof: hash of code, amount (of a particular tx), created (date of that tx), member
  * @return:
  *   just the photo data (no json) or a short error message (50 characters or less)
  */
 function photo($args) {
   if ($err = missingArg($keys = 'member', $args)) return photoReturn($err);
-  extract(u\just($keys . ' code proof', $args));
+  extract(u\just($keys . ' code', $args));
 
   if (!@$member) return photoReturn('missing member');
-  if (!@$code and !@$proof) return posErr(missingArg('proof', []));
-  if (!$a = getCustomer($member, @$proof ?: $code, $err)) return photoReturn($err);
+  if (!@$code) return posErr(missingArg('code', []));
+  if (!$a = getCustomer($member, $code, $err)) return photoReturn($err);
   return photoReturn($a->agent->photo());
 }
 
@@ -285,13 +286,13 @@ function photoReturn($pic) {
  *   => [ok, message, txid, created, balance, undo]
  * @param array $args:
  *   agent: qid for the seller (company rep)
- *   member: qid for the customer (individual or company rep)
- *   proof: hash of code, amount, created, member (encrypted with server's public key)
- *   code: card code (phase out in new app 4/1/2016)
  *   amount: numeric dollar amount
+ *   member: qid for the customer (individual or company rep)
+ *   code: card code (phase out in new app 4/1/2016)
  *   goods: <transaction is for real goods and services>
  *   description: description of goods and services sold
  *   created: transaction creation date
+ *   proof: hash of agent + amount + member + code + created (proof of card-present tx on or before created date)
  *   force: 0=nothing special, 1=do transaction even if insufficient funds, -1=force reversal of transaction
  *   photoid: the state and digits of the payer's drivers license or state ID
  * @param string $type: charge or pay (refund)
@@ -302,26 +303,27 @@ function charge($args, $type = 'charge') {
   
   $keys = 'agent member amount goods description created';
   if ($err = missingArg($keys, $args)) return posErr($err);
-  extract(u\just($keys . ' code force photoid version proof', $args));
+  extract(u\just($keys . ' proof force photoid version', $args));
 
-  if (!@$member) return posErr('missing member');
-  if ($version > 216 and !@$code and !@$proof) return posErr(missingArg('proof', [])); // code is old way
+  if (!@$member) return posErr('missing member'); // handle empty string (versus missing param)
+  if ($version > 216 and !@$proof) return posErr(missingArg('proof', []));
   if (@$description === '') return posErr('missing description');
   if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
-  $amount = number_format($amount, 2);
 
-  $proofStart = "$agent $amount $created $member ";
-  if (!$a = getCustomer($member, @$proof ?: $code, $err, $proofStart, $version > 216 or @$force != "-1")) return posErr($err);
-  if ($mya->id == $a->id) return posErr("shoulda been login");
-  $aa = $a->agent;
-  if (@$photoid and !$aa->photoId) $aa->update('photoId', $photoid);
+  if (!$a = getCustomer($member, '', $err, FALSE)) return posErr($err);
+  if ($mya->id == $a->id) return posErr('shoulda been login');
 
   $goods = $goods ? FOR_GOODS : FOR_USD;
   if (@$force) {
     $subs = u\ray('created payer payee amount goods payeeFor', $created, $a->id, $mya->id, $amount, $goods, $description);
-    if ($q = db\lookup('xid,data', 'r_txs', u\where($subs), $subs)) extract($q);
-    if (@$proof) $proof = r\passHash("$agent $amount $created $member " . $a->cardCode()); // return simpler
+    if ($q = db\lookup('xid,data', 'r_txs', $subs)) extract($q);
+//    if (@$proof) $proof = r\passHash($proofStart . $a->cardCode()); // return simpler
   }
+  
+  $amount = str_replace(',', '', number_format($amount, 2)); // make sure both cents digits are included
+  $code = $a->cardCode();
+  if ($version > 216) if ($proof != u\hash("$agent$amount$member$code$created")) if ($force != "-1" or $proof != u\hash("$mya->mainQid$amount$member$code$created")) return posErr('bad proof'); // : ' . "$agent$amount$member$code$created $force " . $mya->mainQid);
+  if (@$photoid and $aa = $a->agent and !$aa->photoId) $aa->update('photoId', $photoid);
 
   if (@$force == "1" and @$xid) { // does exist and should (always background)
     $message = $did = $undo = '';
@@ -357,7 +359,7 @@ function charge($args, $type = 'charge') {
 
   extract(balrew($a));
 
-  return ok(compact(u\ray('message txid created balance rewards did undo proof')));
+  return ok(compact(u\ray('message txid created balance rewards did undo')));
 }
 
 /**
@@ -403,13 +405,12 @@ function getAgent($agent, &$err = '') {
 /**
  * Return the customer's acct.
  * @param string $customer: the customer's qid.
- * @param string $code: (a) the customer's card code OR (b) proof of a particular transaction
+ * @param string $code: hash of the customer's card code (formerly the card code itself)
  * @param string $err: (returned) error message, if any
- * @param string $proofStart: all of what should be in the proof, except the card code (which should be last)
- * @param bool $requireCode: require card code (FALSE when reversing a transaction)
+ * @param bool $requireCode: require card code (FALSE for transactions)
  * @return: the customer's acct object (false if error)
  */
-function getCustomer($customer, $code, &$err = '', $proofStart = '', $requireCode = TRUE) {
+function getCustomer($customer, $code, &$err = '', $requireCode = TRUE) {
 /*  if (substr($customer, -1, 1) == ':') { // invitation card -- get real account
     if (!$inviter = r\iCardAcct($code, $seq)) return !$err = 'bad customer';
     if (!$uid = db\lookup('uid', 'users', 'helper=:inviter AND seq=:seq', compact('inviter', 'seq'))) return !$err = 'bad icard';
@@ -421,15 +422,7 @@ function getCustomer($customer, $code, &$err = '', $proofStart = '', $requireCod
 
     if (!$a = r\acct($customer)) return !$err = 'bad customer';
     if ($requireCode) {
-      if (strlen($code) > R_CARDCODE_LEN + 5) { // encrypted proof ("2" is for archaic codes)
-        $proof = u\pgpDecrypt($code);
-        $ok = $proofStart ? ($proof == $proofStart . $a->cardCode()) : strpos($proof, $a->cardCode());
-        if (!$ok) { // let the transaction go through, but alert everyone
-          r\tellStaff(t('bad proof (reverse?)'), t\POST() + compact('proof') + $_SERVER);
-          $a->makeBad(substr($proof, strlen($proofStart)));
-          return !$err = 'bad customer';
-        }
-      } elseif ($code != $a->cardCode()) return !$err = 'bad customer'; //. "=$customer id=$a->id agentId=$a->agentId code=$code acode=" . $a->cardCode();
+      if ($code != $a->cardCode() and $code != $a->codeHash()) return !$err = 'bad customer'; //. "=$customer id=$a->id agentId=$a->agentId code=$code acode=" . $a->cardCode();
     }
 //  }
 //  if (r\foreignServer(r\uidRegion($a->agentId))) return !$err = 'wrong server for customer';

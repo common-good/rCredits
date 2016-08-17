@@ -5,6 +5,18 @@
 
 --------------------------------------------------------------------------------------------------------
 
+      if (strlen($code) > R_CARDCODE_LEN + 5) { // encrypted proof ("5" is for archaic codes)
+        $proof = u\pgpDecrypt($code);
+        $ok = $proofStart ? ($proof == $proofStart . $a->cardCode()) : strpos($proof, $a->cardCode());
+        if (!$ok) { // let the transaction go through, but alert everyone
+          r\tellStaff(t('bad proof (reverse?)'), t\POST() + compact('proof') + $_SERVER);
+          $a->makeBad(substr($proof, strlen($proofStart)));
+          return !$err = 'bad customer';
+        }
+      } else
+      
+=======================
+      
 // optEnd
 	return <<<EOF
 <div class="item">

@@ -1154,6 +1154,7 @@ EOF;
   }
 
   public function isMe($uid) {return ($uid == $this->id or $uid == $this->jid);}
+  public function codeHash() {return u\hash($this->cardCode());}
   
 } // end of class
 

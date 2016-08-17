@@ -280,6 +280,17 @@ J. Cron ops
 K. Handling USD
   - As a "money transmitter", Common Good Finance is a Money Services Business (MSB) -- a non-bank financial institution, reporting to FinCEN (a branch of the U.S. Treasury Department)
   - Each rCredits region is not a "money transmitter" because it is an agent of CGF
+  
+L. Setting up a development environment
+  0. Install Apache, MySQL, and PHP (perhaps using XAMPP).
+  1. Download rc4.me/rMembersDrupal.zip and extract the files into a "rMembers" folder in your webroot.
+  2. Clone github.com/CommonGoodFinance/rCredits into webroot/rMembers/sites/all/modules/rcredits
+  3. Create a database and populate it with "webroot/rMembers/sites/all/modules/rcredits/rMembers db.sql"
+  4. Create a database user (and password) with all permissions.
+  5. Copy "webroot/rMembers/sites/all/modules/rcredits/.databases (rcredits - model)" to webroot/../
+  6. Rename it .databases
+  7. Edit it: supply proper database name/user/password and arbitrary salt, word, and inviteKey.
+  8. Test by browsing to http://localhost/rMembers and signing in with username admin -- any non-empty password will do.
 
 X. Other thoughts:
   - The test server must have the following in its .htaccess file (and the production server must NOT!):
@@ -288,35 +299,8 @@ X. Other thoughts:
     </IfModule>
   - Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
   - Suppose I live in 413 (NEW), but my cell is 987 (NYC). Person B lives in 222 with cell 333. When I am traveling to AAA I pay person B with SMS, by calling the local rCredits number. The local server contacts NYC to process my side of the transactions, but gets redirected to NEW. Similarly for person B's side. So at most 5 servers are involved (three just redirecting). NEW.rcredits.org and other subdomains act similarly.
-  - in dwolla.php: replace "if ($" with "if (@$" and "if (!$" with "if (!@$" (DONE)
 
-To clear cache:   http://localhost/rMembers/devel/cache/clear?destination=node
-  (or https://new.rcredits.org/devel/cache/clear?destination=node)
-
-To uninstall the rCredits modules manually (export first, since this DESTROYS ALL rCredits DATA except users):
-  DELETE FROM system WHERE filename LIKE 'sites/all/modules/rcredits/%' OR name='rcredits';
-  DELETE FROM block WHERE theme='rcredits';
-  DELETE FROM menu_links WHERE menu_name='main-menu' OR (menu_name='user-menu' AND mlid>20) OR link_title='rCredits';
-  DELETE FROM menu_router WHERE access_callback LIKE 'rCredits%' or page_callback LIKE 'rCredits%' OR path LIKE '%rcredits';
-  DELETE FROM registry WHERE module IN ('rcredits','rweb','rsmart','rsms');
-  DELETE FROM registry_file WHERE filename LIKE 'sites/all/modules/rcredits/%';
-  DELETE FROM variable WHERE name LIKE 'rcredits%';
-  DROP TABLE IF EXISTS r_areas, r_boxes, r_candidates, r_industries, r_log, r_nonces, r_regions, r_relations, r_scores, r_txs;
-  TRUNCATE cache;
-  TRUNCATE cache_block;
-  TRUNCATE cache_bootstrap;
-  TRUNCATE cache_field;
-  TRUNCATE cache_filter;
-  TRUNCATE cache_form;
-  TRUNCATE cache_menu;
-  TRUNCATE cache_page;
-  TRUNCATE cache_path;
-  TRUNCATE cache_update;  
-  TRUNCATE sessions;
-
-To exit maintenance mode:
-  UPDATE variable SET value='0' WHERE name = 'maintenance_mode'
-  Then clear caches (see above)
+  
   
 LINKS:
 http://stackoverflow.com/questions/548892/tips-for-optimizing-a-website-for-androids-browser

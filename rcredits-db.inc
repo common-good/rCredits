@@ -38,13 +38,15 @@ function q($sql, $subs = [], $retId = FALSE, $log = FALSE) {
  * @param string $fieldName: field name, function, or list of field names (* for all)
  *   A list of field names cannot contain a function or a left paren
  * @param string $table: table to look in
- * @param string $where: criteria (defaults to ALL)
+ * @param mixed $where: criteria (defaults to ALL) -- can be an assoc of required field values
  * @param assoc $subs: optional substitutions -- keys will be prefixed by ':'
  * @return: the value of what was looked up -- an assoc of values if a list of fields was requested
  *   FALSE if none
  */
 function lookup($fieldName, $table, $where = '1', $subs = []) {
   u\EXPECT(compact(u\ray('fieldName table where subs')), 'notempty notempty notempty assoc');
+  
+  if (is_array($where)) list ($where, $subs) = [u\where($where), $where];
   if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
   $sql = "SELECT $fieldName FROM $table WHERE $where";
 /// debug(compact('sql','subs'));

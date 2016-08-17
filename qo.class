@@ -149,7 +149,7 @@ class Qo {
     $fmts = u\ray(QR_FMTS);
     list ($regionLen, $acctLen) = explode('/', $fmts[$c / 4]);
     $agentLen = $c % 4;
-//    debug(compact(u\ray('qr fmt c fmts regionLen acctLen agentLen')) + ['thefmt' => $fmts[$c / 4]]);
+///    debug(compact(u\ray('qr fmt c fmts regionLen acctLen agentLen')) + ['thefmt' => $fmts[$c / 4]]);
     if (strlen($qr) != 1 + $regionLen + $acctLen + $agentLen) return FALSE;
     $region = u\n2a(u\a2n(substr($qr, 1, $regionLen), 36), -3);
     $acct = u\n2a(u\a2n(substr($qr, 1 + $regionLen, $acctLen), 36), -3);

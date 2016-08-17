@@ -262,13 +262,7 @@ function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
   if ($q = db\lookup('payer, payerAgent, amount, goods, payeeFor AS description, created', 'r_txs', 'xid=:txid', compact('txid'))) {
     extract($q);
     $member = r\qid($payer, $payerAgent);
-    $force = -1;
-    $goods = $goods == FOR_GOODS ? 1 : 0;
-    if (!$code) {
-      $amount = number_format($amount, 2);
-      $proof = u\pgpCrypt("$agent $amount $created $member " . r\acct($member)->cardCode());
-      unset($code);
-    }
+    list ($goods, $force, $proof) = [$goods == FOR_GOODS, -1, 'calc'];
     $args = compact(u\ray($fields));
   } else {
     $args = u\ray($fields, R_SERVER_ID . '.ZZA', round(rand()/100, 2), rand(0, 1), 'whatever', rand(), -1, $code, '');
@@ -284,8 +278,7 @@ function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
  */
 function agentAsksDeviceToUndoTransactionWithSubs($agent, $device, $subs) {
   global $testOnly; if ($testOnly) return FALSE;
-  $subs = $subs[0];
-  $subs['force'] = -1;
+  $subs = $subs[0] + u\ray('force proof', -1, 'calc');;
   return t\hitServer('charge', $subs, $agent, $device);
 }
 
@@ -388,7 +381,7 @@ function weReturnErrorWithSubs($msg, $subs) {
  *     TEST Exchange DeviceGivesNoAmount
  *     TEST Exchange DeviceGivesBadAmount
  *     TEST Exchange DeviceGivesNoPurposeForGoodsAndServices
- *     TEST Exchange DeviceSendsWrongCardCode
+ *     TEST Exchange DeviceSendsWrongProof
  *     TEST Identify DeviceShouldHaveAnIdentifier
  *     TEST Identify ACustomerScansTheirOwnCardForSelfserviceWithWrongPIN
  *     TEST Identify TheDefaultCashierScansADeactivatedCard
@@ -405,7 +398,7 @@ function weReturnErrorWithSubs($msg, $subs) {
  *     TEST Transact DeviceGivesNoAmount
  *     TEST Transact DeviceGivesBadAmount
  *     TEST Transact DeviceGivesNoPurposeForGoodsAndServices
- *     TEST Transact DeviceSendsWrongCardCode
+ *     TEST Transact DeviceSendsWrongProof
  */
 function weReturnError($msg) {return weReturnErrorWithSubs($msg, array());}
 
@@ -489,7 +482,7 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  *     MAKE Exchange SellerAgentLacksPermissionToBuy
  *     MAKE Exchange SellerAgentLacksPermissionToScanAndSell
  *     MAKE Exchange BuyerAgentLacksPermissionToBuy
- *     MAKE Exchange DeviceSendsWrongCardCode
+ *     MAKE Exchange DeviceSendsWrongProof
  *     MAKE Joint ACashierAsksToChargeSomeone
  *     MAKE Offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
  *     MAKE Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
@@ -509,7 +502,7 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  *     MAKE Transact SellerAgentLacksPermissionToScanAndSell
  *     MAKE Transact BuyerAgentLacksPermissionToBuy
  *     MAKE Transact SellerTriesToChargeTheCustomerTwice
- *     MAKE Transact DeviceSendsWrongCardCode
+ *     MAKE Transact DeviceSendsWrongProof
  *     MAKE Transact ACashierAsksToChargeSomeoneUnconfirmed
  */
 function agentAsksDeviceToChargeForAt($agent, $device, $member, $amount, $goods, $description, $created) {
@@ -537,17 +530,9 @@ function agentAsksDeviceToChargeForAtForce($agent, $device, $member, $amount, $g
  */
 function reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $description, $created, $force) {
   global $testOnly; if ($testOnly) return FALSE;
-  global $testModule;
   
-  $goods = t\goodsBit($goods);
-//  list ($member, $code) = explode('-', $member . '-'); // code is empty if omitted
-  list ($member, $code) = t\parseQr($member);
-  if ($force or $testModule == 'Offline') {
-    $agent = t\fullQid2($agent);
-    $amount = number_format($amount, 2);
-    $proof = u\pgpCrypt("$agent $amount $created $member $code");
-    unset($code);
-  }
+  list ($member, $code) = t\parseQr($member); // ignore code, if any
+  $proof = 'calc'; // tell hitServer() to send correct proof param
   return t\hitServer('charge', compact(u\ray('member code proof amount goods description created force')), $agent, $device);
 }
 
@@ -695,17 +680,15 @@ function badCodes($bad) {
 /**
  * with proof of agent (ARG) amount (ARG) created (ARG) member (ARG) code (ARG)
  *
- * in: TEST Offline ACashierChargedSomeoneOffline
- *     TEST Undo ACashierReversesATransactionWithInsufficientFunds
+ * in: 
  */
 function withProofOfAgentAmountCreatedMemberCode($agent, $amount, $created, $member, $code) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $rposResult;
   
-  require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
   foreach (['agent', 'member'] as $k) $$k = t\fullQid2($$k);
   $amount = number_format($amount, 2);
-  $proof = "$agent $amount $created $member $code";
-  $hash = \_password_crypt('sha512', $proof, @$rposResult['proof']);
-  return (@$rposResult['proof'] == $hash);
+  $proof = "$agent$amount$member$code$created";
+//  $hash = \_password_crypt('sha512', $proof, @$rposResult['proof']);
+  return (@$rposResult['proof'] == u\hash($proof));
 }

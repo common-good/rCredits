@@ -47,7 +47,7 @@ Setup:
 Scenario: A cashier charged someone offline
   When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now-1h" force 1
   Then we respond ok txid 5 created "%now-1h" balance 160 rewards 260
-  And with proof of agent "C:A" amount 100.00 created "%now-1h" member ".ZZB" code "ccB"
+# NOPE  And with proof of agent "C:A" amount 100.00 created "%now-1h" member ".ZZB" code "ccB"
   And we notice "new charge|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |

@@ -45,13 +45,13 @@ Scenario: a cashier signs in
   When agent "" asks device "devC" to identify "C:B,ccB2"
   Then we respond with:
   | ok | name    | logon | descriptions    | can          | bad | default | company    | time |*
-  | 1  | Bea Two | 1     | this,that,other | refund,r4usd |     | NEW.ZZC  | Corner Pub | %now |
+  | 1  | Bea Two | 1     | this,that,other | refund,r4usd |     | NEWZZC  | Corner Pub | %now |
 
 Scenario: Device has no identifier yet
   When agent "" asks device "" to identify "C:B,ccB2"
   Then we respond with:
   | ok | name    | logon | descriptions    | can          | bad | device | default | company    | time |*
-  | 1  | Bea Two | 1     | this,that,other | refund,r4usd |     | ?      | NEW.ZZC  | Corner Pub | %now |
+  | 1  | Bea Two | 1     | this,that,other | refund,r4usd |     | ?      | NEWZZC  | Corner Pub | %now |
 
 Scenario: Device should have an identifier
   When agent "C:A" asks device "" to identify "C:B,ccB2"
@@ -61,13 +61,13 @@ Scenario: a cashier signs in, signing another cashier out
   When agent "C:A" asks device "devC" to identify "C:B,ccB2"
   Then we respond with:
   | ok | name    | logon | descriptions    | can          | bad | default | company    | time |*
-  | 1  | Bea Two | 1     | this,that,other | refund,r4usd |     | NEW.ZZC  | Corner Pub | %now |
+  | 1  | Bea Two | 1     | this,that,other | refund,r4usd |     | NEWZZC  | Corner Pub | %now |
 
 Scenario: a manager signs in
   When agent "" asks device "devC" to identify "C:A,ccA2"
   Then we respond with:
   | ok | name    | logon | descriptions    | can          | bad | default | company    | time |*
-  | 1  | Abe One | 1     | this,that,other | refund,r4usd |     | NEW.ZZC  | Corner Pub | %now |
+  | 1  | Abe One | 1     | this,that,other | refund,r4usd |     | NEWZZC  | Corner Pub | %now |
 
 Scenario: a cashier scans a customer card
   When agent "C:B" asks device "devC" to identify ".ZZD,ccD"

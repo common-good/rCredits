@@ -155,7 +155,7 @@ Scenario: Buyer agent lacks permission to buy
   | otherName | what      |*
   | Eve Five  | purchases |
   
-Scenario: Device sends wrong card code
+Scenario: Device sends wrong proof
   When agent "C:A" asks device "devC" to charge ".ZZB,whatever" $100 for "cash": "cash out" at %now
-  Then we return error "bad customer"
+  Then we return error "bad proof"
   

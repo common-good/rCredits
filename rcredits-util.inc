@@ -1366,7 +1366,7 @@ function jsonEncode($s) {return json_encode($s) ?: json_encode(u\purify($s));} /
 function redash($s) {return str_replace('—', '&mdash;', $s);}
 function backButton() {return '<button onclick="history.go(-1); return false;" class="btn btn-xs btn-primary"><big>&laquo;</big> Go Back</button>';}
 function nonish($s) {return in_array(strtolower($s), array('n/a', 'nothing', 'na', 'none')); }
-function padto($s, $n) {return str_pad(substr($s, $n), $n);}
+function padto($s, $n) {return str_pad(substr($s, 0, $n), $n);}
 function lpad($s, $n) {return str_pad(substr($s, 0, $n), $n, '0', STR_PAD_LEFT);}
 function similarEmail($e1, $e2) {return (strtolower(preg_replace('/\+.*@/', '@', $e1)) == strtolower(preg_replace('/\+.*@/', '@', $e1)));}
 //function rayo() {return (object) call_user_func_array('rCredits\\Util\\ray', func_get_args());}
@@ -1384,3 +1384,4 @@ function xorBits($b1, $b2) {$res = ''; for ($i = 0; $i < strlen($b1); $i++) $res
 function a2b($s) {$b = ''; for ($i = 0; $i < strlen($s); $i++) $b .= lpad(decbin(ord($s[$i])), 8); return $b;}
 function badZip($z, $country = US_COUNTRY_ID) {return ($country == US_COUNTRY_ID and !preg_match('/^\d{5}(\-\d{4})?$/', $z)) ? 'bad zip' : FALSE;}
 function randomFloat($min = 0, $max = 1) {return $min + mt_rand() / mt_getrandmax() * ($max - $min);}
+function hash($s) {return \hash('sha256', $s, false);}

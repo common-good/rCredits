@@ -812,13 +812,24 @@ function getPicture($picture) {
 
 /**
  * Send an RPC API request to the server, for rPOS.
+ * @todo: after everyone is up to version 217, add penultimate param: $proof = 'calc'
  */
-function hitServer($op, $extra = [], $agent, $device = '', $version = '999') {
+function hitServer($op, $extra = [], $agent, $device = '', $version = 216) {
   global $rposResult;
   if ($agent) $agent = t\fullQid2($agent);
+  extract(u\just('amount member code created proof goods', $extra));
+  if (is_numeric(@$amount)) $amount = number_format($amount, 2);
+  if (@$member) $member = t\fullQid2($member);
+  if ($version >= 217) foreach (['agent', 'member'] as $k) if (@$$k) $$k = str_replace('.', '', $$k); 
+  if (@$proof == 'calc' and @$member) {
+    if ($a = r\acct($member)) u\setDft($code, $a->cardCode());
+    $proof = u\hash("$agent$amount$member$code$created");
+    t\output("proof is hash of $agent$amount$member$code$created", 'normal');
+    unset($extra['code']);
+  }
+  if (@$goods) $goods = t\goodsBit($goods);
 
-  if (@$extra['member']) $extra['member'] = t\fullQid2($extra['member']);
-  $input = compact(u\ray('op agent device version')) + $extra;
+  $input = compact(u\ray('op agent device version amount member proof goods')) + $extra;
 /**/ t\output('request: ' . print_r($input, 1), 'input'); // keep this
   $rposResult = r\Smart\pos($input);
   if ($op != 'photo') $rposResult = (array) json_decode($rposResult);
@@ -1193,6 +1204,7 @@ function clear($ch = 0) {
   global $testSeq; $testSeq = NULL;
   global $channel; $channel = $ch;
   global $testMessages; $testMessages = [];
+/**/  global $sceneTest; echo "scene: $sceneTest->sceneName<br>\n"; // helpful when test dies
 
   $cgfUid = r\cgfId();
   $tables = 'r_auth r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_log r_near r_notices r_options r_pairs r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
