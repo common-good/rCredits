@@ -131,7 +131,7 @@ function adminSummary($a, $cAdmin = FALSE) {
         $hA = r\acct($helper);
         $helper = "$hA->mainQid: $hA->fullName";
       }
-      $helper = textFld(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper) + autocomplete());
+      $helper = textFld(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper)); //  + autocomplete()
     } else $helper = item(@$a->helperA->fullName ?: t('N/A'), t('Helped by:'));
 
     if ($a->member and !$a->co and $admin) $ssnCheck = item(a\ssnCheck($a));
@@ -160,7 +160,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     }
     $adminable = bitsFld(t('Flags:'), $a->flags, 'b', join(' ', $blist), $aliases);
 
-    $who = textFld(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
+//    $who = textFld(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
   }      
 
   if ($a->id == r\cgfId()) {

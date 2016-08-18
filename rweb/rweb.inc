@@ -1382,7 +1382,7 @@ function formSummary($form, &$sta, $qid = '') {
 
   $fields = 'title clickPhoto openCompany photo accountName accountId community balance savings creditLimit committed invites';
   
-  if ($mya->admin) $onSubmit = 'return ' . w\whoFldSubmit('who', t('Who invited this person?'));
+  if ($mya->admin and !$mya->ok) $onSubmit = 'return ' . w\whoFldSubmit('helper', t('This person was invited by @name, yes?'));
 
   return labeled(compact(u\ray($fields)) + $form, @$onSubmit);
 }
@@ -1391,7 +1391,7 @@ function formSummary_validate($form, &$sta) {
 //  if (!r\acct()->cAdmin2) return hack('non-admin submitted summary form');
   if (op($sta) == 'openCompany') return;
 
-  extract(u\just('uid who legalName federalId creditLimit rTrader helper mediaConx moves adminable', $sta['input']));
+  extract(u\just('uid legalName federalId creditLimit rTrader helper mediaConx moves adminable', $sta['input']));
   $a = r\acct(@$uid);
   
   if ($federalId == R_ON_FILE or $federalId == t('SSN')) {
@@ -1417,7 +1417,7 @@ function formSummary_validate($form, &$sta) {
   }
   if (@$rTrader and isset($mediaConx) and $err = u\badAmount($mediaConx, '>=0', 0)) return sayFieldErr($err, 'mediaConx');
   if (isset($moves) and $err = u\badAmount($moves, '>=0', 0)) return sayFieldErr($err, 'moves');
-  if (@$who and !$who = whois($who, 'who', $sta['input'])) return say(t('I don\'t know what account you mean to go to.'), 'who');
+//  if (@$who and !$who = whois($who, 'who', $sta['input'])) return say(t('I don\'t know what account you mean to go to.'), 'who');
   u\preray(compact(u\ray('helper who creditLimit')), $sta['input']);
 }
 
@@ -2994,7 +2994,7 @@ EOF;
   $caption = $sticky = '';
   $empty = tt('no relations');
   $list = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
-  $onSubmit = 'return ' . w\whoFldSubmit('newperson', t('Create a new relation with what member?'));
+  $onSubmit = 'return ' . w\whoFldSubmit('newperson', t('Create a new relation with what @name?'));
 
   
   $form = array(

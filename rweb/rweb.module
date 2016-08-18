@@ -12,6 +12,7 @@
 use rCredits as r;
 use rCredits\Backend as be;
 use rCredits\Util as u;
+use rCredits\Web as w;
 
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/rweb.inc';
@@ -222,6 +223,7 @@ function rweb_form_alter(&$form, &$sta, $form_id) {
 /*  if ($req == 'login' and !user_is_logged_in()) {header("location:$base_url/" . (isGAME ? 'community/game' : 'signin')); exit();} // nothing else works
   if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isGAME ? "$base_url/community/game" : (isDEV ? 'http://localhost' . DEV_ROOT : BASE_URL) . '/signin')); exit();} // nothing else works */
   if ($req == 'user' and user_is_logged_in()) r\go(isGAME ? 'community/game' : 'summary'); // summary not ''
+  $form['opid'] = w\hidFld('none', ['name' => 'opid']);
 }
 
 //function rweb_form_user_register_form_alter(&$form, &$sta, $form_id) {r\Web\formRegister($form, $sta);}

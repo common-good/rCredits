@@ -16,6 +16,10 @@ function toggle(field) {
 function commafy(n) {return isNaN(n) ? '0.00' : n.toLocaleString();}
 
 jQuery("#which, #help").addClass("popup");
+jQuery('button[type="submit"]').click(function() {
+  this.form.opid.value = this.id;
+//  $('<input type="hidden" name="opid" />').appendTo(this.form).val(this.form.id);
+});
 
 var indexZ = 2;
 jQuery("#index a").mouseover(function() {

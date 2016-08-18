@@ -612,7 +612,7 @@ function acctTypeField() {
 /**
  * Return onSubmit script for a typeahead member account field (and include needed script files).
  * @param string $field: the field name
- * @param string $question: what to ask for confirmation or disambiguation
+ * @param string $question: what to ask for confirmation or disambiguation (with params @amount and @name)
  * @param string $amount: optional amount substitution for question (include quotes or formula, if not a number)
  * @param bool $askGift: <ask if this form submission is a payment that is a gift> (defaults to no, don't ask)
  * @return complete script without leading "return ".
@@ -1747,7 +1747,7 @@ function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
  * @param string $msg: the message or message index
  */
 function doSay($msg, $type = 'error') {
-  file_put_contents(t\dosayFilename($type), $msg); // in case called from a test (no way to know)
+  @file_put_contents(t\dosayFilename($type), $msg); // in case called from a test (no way to know)
   return r\go('empty/1', $msg, $type == 'error');
 }
 
@@ -2167,7 +2167,7 @@ function autocomplete($type = '') {return array('autocomplete_path' => "autocomp
 function autofill($settings = 'on') {return attrib(['autocomplete' => $settings]);}
 function required($dft = NULL) {return ['required' => TRUE] + (isset($dft) ? dft($dft) : []);}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
-function op($sta) {global $testOp; return u\test() ? $testOp : (svar('button') ?: @$sta['clicked_button']['#parents'][0]);}
+function op($sta) {global $testOp; return u\test() ? $testOp : str_replace('edit-', '', @$sta['input']['opid']);}
 function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}
 function blurbLink() {global $rUrl; return "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">description of rCredits</a>";}
 function sayFieldErr($err, $field) {return say(strtoupper($field) . ': ' . tt($err), $field);}

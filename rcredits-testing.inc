@@ -814,7 +814,7 @@ function getPicture($picture) {
  * Send an RPC API request to the server, for rPOS.
  * @todo: after everyone is up to version 217, add penultimate param: $proof = 'calc'
  */
-function hitServer($op, $extra = [], $agent, $device = '', $version = 216) {
+function hitServer($op, $extra = [], $agent, $device = '', $version = 217) {
   global $rposResult;
   if ($agent) $agent = t\fullQid2($agent);
   extract(u\just('amount member code created proof goods', $extra));

@@ -394,9 +394,10 @@ function rcredits_radio($variables) {
 }
 
 function rcredits_submit($variables) {
-  extract(rcElement($variables, 'tabled bare value title id size style name parents class'));
-///  debug($variables);
-  if (!@$id) $id = 'edit-' . strtolower(strtr($value, [' '=>'-', '_'=>'-', '['=>'-', ']'=>'']));
+  extract(rcElement($variables, 'tabled bare value title id size style parents class'));
+//  if (!@$id) $id = 'edit-' . strtolower(strtr($value, [' '=>'-', '_'=>'-', '['=>'-', ']'=>'']));
+  $id = 'edit-' . $parents[0]; // whether or not id is set (assures mixed case when appropriate
+  if ($id == 'edit-opencompany') die(print_r(compact('parents','id'), 1));
 //  u\setDft($id, strtolower("edit-$value"));
   u\setDft($size, 'md');
   u\setDft($style, 'primary');
@@ -536,8 +537,8 @@ function spinLink($href, $text, $id = '', $style = '', $size = '', $other = []) 
   if (!$id) unset($id);
   
   if ($href == 'submit') { // submit button
-    list ($type, $name, $value, $tag) = ['submit', 'op', $text, 'button'];
-    $attrs = 'type id name value';
+    list ($type, $value, $name, $tag) = ['submit', $text, 'op', 'button']; // name must be "op" for Drupal
+    $attrs = 'type name id value';
   } elseif (!$size) $class = $style; // menu (or list) -type link (not a button)
 
   if ($class2 = @$other['class']) {$class .= ' ' . join(' ', $class2); unset($other['class']);}
