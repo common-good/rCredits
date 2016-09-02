@@ -66,6 +66,7 @@ app.service('TransactionService',
 					}
 				} else {
 					// Offline
+					console.log(amount, description, goods, force, this);
 					return this.doOfflineTransaction(amount, description, goods, force).then(function (result) {
 						console.log(result.message);
 						self.warnOfflineTransactions();
@@ -109,7 +110,7 @@ app.service('TransactionService',
 				});
 		};
 		TransactionService.prototype.refund = function (amount, description) {
-			return this.charge(((amount * -1).toFixed(2)).toString(), description);
+			return this.charge(((parseFloat(amount * -1)).toFixed(2)).toString(), description);
 		};
 		TransactionService.prototype.exchange = function (amount, currency, paymentMethod) {
 			var exchangeType = 'USD in';
@@ -123,6 +124,7 @@ app.service('TransactionService',
 			return this.charge(amountToSend, description, 0);
 		};
 		TransactionService.prototype.undoTransaction = function (transaction) {
+			console.log(transaction);
 			return this.charge(transaction.amount, transaction.description, transaction.goods, -1);
 		};
 		TransactionService.prototype.saveTransaction = function (transaction) {
@@ -165,25 +167,27 @@ app.service('TransactionService',
 			var customer = UserService.currentCustomer();
 			var q = $q.defer();
 			var message;
+			amount = parseFloat((parseFloat(amount)).toFixed(2));
 			if (force === -1) {
 				message = "The transaction has been canceled";
 				return q.reject();
 			} else {
-				message = 'You charged ' + customer.name + ' $' + amount.toFixed(2).toString() + ' for goods and services';
+				message = 'You charged ' + customer.name + ' $' + amount + ' for goods and services';
 			}
 			var transactionResponseOk = {
 				"ok": "1",
 				"message": message,
 				"txid": customer.getId(),
 				"created": moment().unix(),
-				"balance": (customer.setBalance(customer.getBalance() - ((amount).toFixed(2))).getBalance()).toString(),
-				"rewards": (customer.getBalance() * 0.9).toFixed(2).toString(),
+				"balance": (customer.setBalance(customer.getBalance() - amount).getBalance()).toFixed(2),
+				"rewards": (customer.getBalance() * 0.9).toFixed(2),
 				"did": "",
 				"undo": "",
 				"transaction_status": Transaction.Status.OFFLINE,
 				"description": description,
 				"goods": goods
 			};
+			console.log(customer, amount, description, goods, force);
 			var transactionResponseError = {
 				"ok": "0",
 				"message": "There has been an error"
