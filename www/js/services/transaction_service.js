@@ -10,7 +10,7 @@ app.service('TransactionService',
 		};
 		TransactionService.prototype.makeRequest_ = function (params, account) {
 			var urlConf = new UrlConfigurator();
-			console.log(params);
+			console.log(params, account);
 			return $http({
 				method: 'POST',
 				url: urlConf.getServerUrl(account),
@@ -126,7 +126,7 @@ app.service('TransactionService',
 		};
 		TransactionService.prototype.undoTransaction = function (transaction) {
 			console.log(transaction);
-			return this.charge(parseFloat(transaction.amount*-1), transaction.description, transaction.goods, -1);
+			return this.charge(parseFloat(transaction.amount*-1), transaction.description, transaction.goods, 0);
 		};
 		TransactionService.prototype.saveTransaction = function (transaction) {
 			//"me TEXT," + // company (or device-owner) account code (qid)
@@ -168,10 +168,12 @@ app.service('TransactionService',
 			var customer = UserService.currentCustomer();
 			var q = $q.defer();
 			var message;
-			amount = parseFloat(amount.toFixed(2));
+			console.log(amount);
+			amount = parseFloat(parseFloat(amount).toFixed(2));
 			console.log(customer, amount, description, goods, force);
 			if (force === -1) {
 				message = "The transaction has been canceled";
+				console.log(message);
 			} else {
 				message = 'You charged ' + customer.name + ' $' + amount + ' for goods and services';
 			}
