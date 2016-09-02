@@ -82,6 +82,7 @@ app.service('TransactionService',
 				.then(function (transactionResult) {
 					if (transactionResult.ok === TRANSACTION_OK) {
 						var transaction = self.parseTransaction_(transactionResult);
+						console.log(transaction);
 						transaction.configureType(amount);
 						var customer = UserService.currentCustomer();
 						customer.balance = transactionResult.balance;
@@ -110,7 +111,7 @@ app.service('TransactionService',
 				});
 		};
 		TransactionService.prototype.refund = function (amount, description) {
-			return this.charge(((parseFloat(amount * -1)).toFixed(2)).toString(), description);
+			return this.charge(((parseFloat(amount * -1)).toFixed(2)), description);
 		};
 		TransactionService.prototype.exchange = function (amount, currency, paymentMethod) {
 			var exchangeType = 'USD in';
@@ -125,7 +126,7 @@ app.service('TransactionService',
 		};
 		TransactionService.prototype.undoTransaction = function (transaction) {
 			console.log(transaction);
-			return this.charge(transaction.amount, transaction.description, transaction.goods, -1);
+			return this.charge(parseFloat(transaction.amount*-1), transaction.description, transaction.goods, -1);
 		};
 		TransactionService.prototype.saveTransaction = function (transaction) {
 			//"me TEXT," + // company (or device-owner) account code (qid)
@@ -167,10 +168,10 @@ app.service('TransactionService',
 			var customer = UserService.currentCustomer();
 			var q = $q.defer();
 			var message;
-			amount = parseFloat((parseFloat(amount)).toFixed(2));
+			amount = parseFloat(amount.toFixed(2));
+			console.log(customer, amount, description, goods, force);
 			if (force === -1) {
 				message = "The transaction has been canceled";
-				return q.reject();
 			} else {
 				message = 'You charged ' + customer.name + ' $' + amount + ' for goods and services';
 			}
@@ -179,7 +180,7 @@ app.service('TransactionService',
 				"message": message,
 				"txid": customer.getId(),
 				"created": moment().unix(),
-				"balance": (customer.setBalance(customer.getBalance() - amount).getBalance()).toFixed(2),
+				"balance": ((customer.setBalance(customer.getBalance() - amount)).getBalance()).toFixed(2),
 				"rewards": (customer.getBalance() * 0.9).toFixed(2),
 				"did": "",
 				"undo": "",
@@ -192,6 +193,9 @@ app.service('TransactionService',
 				"ok": "0",
 				"message": "There has been an error"
 			};
+//			if (force === -1) {
+//				return q.reject();
+//			}
 			if (amount > rCreditsConfig.transaction_max_amount_offline) {
 				transactionResponseError.message = "Limit $" + rCreditsConfig.transaction_max_amount_offline + " exceeded";
 				q.reject(transactionResponseError);
