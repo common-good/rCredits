@@ -68,6 +68,8 @@ app.controller('TransactionResultCtrl', function ($scope, $state,
 				$ionicLoading.show();
 				TransactionService.undoTransaction(TransactionService.lastTransaction)
 					.then(function (transactionResult) {
+						console.log(transactionResult, res);
+					transactionResult.message="Charge was canceled";
 						$scope.setMessages(transactionResult);
 						$scope.undo = true;
 					})

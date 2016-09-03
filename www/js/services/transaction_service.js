@@ -126,7 +126,7 @@ app.service('TransactionService',
 		};
 		TransactionService.prototype.undoTransaction = function (transaction) {
 			console.log(transaction);
-			return this.charge(parseFloat(transaction.amount*-1), transaction.description, transaction.goods, 0);
+			return this.charge(parseFloat(transaction.amount * -1), transaction.description, transaction.goods, 0);
 		};
 		TransactionService.prototype.saveTransaction = function (transaction) {
 			//"me TEXT," + // company (or device-owner) account code (qid)
@@ -171,7 +171,7 @@ app.service('TransactionService',
 			console.log(amount);
 			amount = parseFloat(parseFloat(amount).toFixed(2));
 			console.log(customer, amount, description, goods, force);
-			if (force === -1) {
+			if (force === 0) {
 				message = "The transaction has been canceled";
 				console.log(message);
 			} else {
