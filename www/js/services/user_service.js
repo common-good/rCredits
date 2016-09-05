@@ -119,7 +119,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	UserService.prototype.loginWithRCard = function (str) {
 		console.log(str);
 		var qrcodeParser = new QRCodeParser();
-		qrcodeParser.setUrl(str.url);
+		qrcodeParser.setUrl(str);
 		var accountInfo = qrcodeParser.parse();
 		this.validateDemoMode(accountInfo);
 		var params = new RequestParameterBuilder()

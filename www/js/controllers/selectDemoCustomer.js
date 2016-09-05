@@ -20,7 +20,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 //	console.log($scope.whereWasI);
 	$scope.onSelectCustomer = function (person) {
 		var selected = person;
-//		console.log(selected, $location.state(), $scope.whereWasI);
+		console.log(selected, $location.state(), $scope.whereWasI);
 		UserService.identifyCustomer(selected.url)
 			.then(function () {
 				$scope.customer = UserService.currentCustomer();
@@ -57,8 +57,8 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 			});
 	};
 	$scope.onSelectManager = function (person) {
-//		console.log(selected, $scope.whereWasI);
-		var selected = person;
+		var selected = person.url;
+		console.log(selected, $scope.whereWasI);
 		UserService.loginWithRCard(selected)
 			.then(function () {
 				$ionicHistory.nextViewOptions({
