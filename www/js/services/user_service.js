@@ -104,6 +104,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	UserService.prototype.loginWithRCardOffline = function (accountInfo) {
 		var loadSellerPromise = $q.defer();
 		var seller = this.loadSeller(accountInfo.accountId);
+		console.log(seller);
 		if (seller) {
 			loadSellerPromise.resolve(seller);
 		} else {
@@ -175,6 +176,10 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		qrcodeParser.setUrl(str);
 		var accountInfo = qrcodeParser.parse();
 		this.validateDemoMode(accountInfo);
+		if (accountInfo.isPersonal === false) {
+			NotificationService.showAlert({title: 'error', template: 'must_be_customer'});
+			throw 'must_be_customer';
+		}
 		console.log(accountInfo);
 		var params = new RequestParameterBuilder()
 			.setOperationId('identify')

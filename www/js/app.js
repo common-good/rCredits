@@ -5,7 +5,6 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 		function ($translateProvider, localStorageServiceProvider, $ionicConfigProvider) {
 			$ionicConfigProvider.views.maxCache(0);
 			$translateProvider
-//				.useMissingTranslationHandlerLog()
 				.useStaticFilesLoader({
 					prefix: 'js/languages/definitions/',
 					suffix: '.json'
@@ -22,7 +21,6 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 			$rootScope.whereWasI=location.hash;
 			$rootScope.amIOnline=NetworkService.isOffline();
 			if (!ionic.Platform.isWebView()) {
-//				console.log('web view');
 				rCreditsConfig.serverUrl = rCreditsConfig.serverproxyUrl;
 			}
 			// Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
@@ -59,7 +57,6 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 								]
 							});
 						} else {
-//							console.log("Plenty of Disk Space: " + result);
 						}
 					}, function (error) {
 						console.log("Error!... The details follow: " + error);

@@ -79,6 +79,7 @@
   "can_not_use_real_card": "You cannot use a real card with a demo company. To exit demo mode, choose \"Sign Out\" in the menu or \"Forget Company\" in preferences",
   "can_not_use_demo_card": "You cannot use a demo card with a real company.",
   "offline_old_transactions": "Warning: There are offline transactions that are more than 24 hours old. Please connect your device to the internet.",
+  "must_be_customer":"You must use your customer Account to do a transaction",
   "other": "Other",
   "forget_company": "Forget Company",
   "advanced": "Advanced Settings",

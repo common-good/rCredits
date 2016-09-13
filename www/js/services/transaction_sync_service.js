@@ -50,12 +50,13 @@ app.service('TransactionSyncService',
 				})
 				//.then(self.syncOfflineTransactions.bind(self))
 				.then(function () {
-					$timeout(self.syncOfflineTransactions.bind(self), 1000);
+					console.log(self);
+					$timeout(self.syncOfflineTransactions.bind(self), 10);
 				})
 				.catch(function (err) {
 					if (sqlTransaction) {
 						self.exludedTxs.push(sqlTransaction.created);
-						$timeout(self.syncOfflineTransactions.bind(self), 1000);
+						$timeout(self.syncOfflineTransactions.bind(self), 500);
 					} else {
 						self.exludedTxs = [];
 					}

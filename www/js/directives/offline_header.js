@@ -13,11 +13,13 @@
 					ionContent = document.getElementsByTagName("ion-content")[0];
 					scope.ionContent = ionContent;
 					scope.$watch(function () {
+//						console.log(NetworkService.isOffline(), scope.offlCtrl.isDemoMode());
 						return NetworkService.isOffline() || scope.offlCtrl.isDemoMode();
 					}, function (newValue, oldValue) {
 						if (newValue) {
 							$timeout(function () {
 								ionContent.addClassName('has-subheader');
+//								document.getElementById('undoButton').remove();
 							});
 						} else {
 							$timeout(function () {

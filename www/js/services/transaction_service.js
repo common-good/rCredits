@@ -99,7 +99,7 @@ app.service('TransactionService',
 						return transaction;
 					} else {
 						for (var v in transactionResult) {
-							console.log(v, transactionResult[v]);
+							console.log(transactionResult.ok, transactionResult[v]);
 						}
 						NotificationService.showAlert({title: 'error', template: transactionResult.message});
 					}
@@ -195,9 +195,10 @@ app.service('TransactionService',
 				"ok": "0",
 				"message": "There has been an error"
 			};
-//			if (force === -1) {
-//				return q.reject();
-//			}
+			if (customer.isPersonal===false) {
+				console.log(customer);
+				return q.reject();
+			}
 			if (amount > rCreditsConfig.transaction_max_amount_offline) {
 				transactionResponseError.message = "Limit $" + rCreditsConfig.transaction_max_amount_offline + " exceeded";
 				q.reject(transactionResponseError);
