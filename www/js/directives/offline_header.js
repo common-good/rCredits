@@ -1,7 +1,7 @@
 /* global app */
 (function (app) {
 	'use strict';
-	app.directive('subheader', function ($timeout, NetworkService, UserService) {
+	app.directive('subheader', function ($timeout, NetworkService, UserService,TransactionSyncService) {
 		return {
 			restrict: 'E',
 			templateUrl: 'templates/subheader.html',
@@ -19,10 +19,14 @@
 						if (newValue) {
 							$timeout(function () {
 								ionContent.addClassName('has-subheader');
+								TransactionSyncService.syncOfflineTransactions();
+								console.log(newValue);
 //								document.getElementById('undoButton').remove();
 							});
 						} else {
 							$timeout(function () {
+								TransactionSyncService.syncOfflineTransactions();
+								console.log(newValue);
 								ionContent.removeClassName('has-subheader');
 							});
 						}

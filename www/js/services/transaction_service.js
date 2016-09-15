@@ -195,7 +195,7 @@ app.service('TransactionService',
 				"ok": "0",
 				"message": "There has been an error"
 			};
-			if (customer.isPersonal===false) {
+			if (customer.isPersonal === false) {
 				console.log(customer);
 				return q.reject();
 			}

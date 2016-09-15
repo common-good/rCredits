@@ -22,7 +22,7 @@ app.controller('TransactionResultCtrl', function ($scope, $state, NetworkService
 	}, 60 * 1000);
 	function onoroff() {
 		$timeout(function () {
-			console.log(NetworkService.isOnline());
+//			console.log(NetworkService.isOnline());
 			if (NetworkService.isOnline() !== oldOnline) {
 				$scope.timeCan = false;
 			} else {

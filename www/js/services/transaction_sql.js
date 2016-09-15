@@ -12,6 +12,7 @@
 			}
 			var sqlQuery = new SqlQuery();
 			sqlQuery.setQueryString("SELECT * FROM txs where STATUS = " + Transaction.Status.OFFLINE + filter + " order by rowid asc limit 1");
+			console.log(exludeTxs,sqlQuery);
 			return SQLiteService.executeQuery(sqlQuery).then(function (SQLResultSet) {
 				if (SQLResultSet.rows.length > 0) {
 					var sqlT = SQLResultSet.rows[0];
