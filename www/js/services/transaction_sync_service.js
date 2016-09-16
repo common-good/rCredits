@@ -1,6 +1,6 @@
 /* global _, app */
 app.service('TransactionSyncService',
-	function ($q, TransactionService, RequestParameterBuilder, SQLiteService, SqlQuery, NetworkService, TransactionSql, $timeout, $rootScope, NotificationService) {
+	function ($q, TransactionService, RequestParameterBuilder, SQLiteService, SqlQuery, NetworkService, TransactionSql, $timeout, $rootScope, NotificationService, UserService) {
 		'use strict';
 		var self;
 		var TransactionSyncService = function () {
@@ -12,25 +12,38 @@ app.service('TransactionSyncService',
 		};
 		var send = function (sqlTransaction) {
 			console.log("TRANSACTION TO SEND: ", sqlTransaction);
-			var params = new RequestParameterBuilder()
-				.setOperationId('charge')
-				.setSecurityCode(sqlTransaction.proof.sc)
-				.setAgent(sqlTransaction.agent)
-				.setMember(sqlTransaction.member)
-				.setField('amount', sqlTransaction.amount)
-				.setField('description', sqlTransaction.description)
-				.setField('created', sqlTransaction.created)
-				.setField('force', sqlTransaction.force)
-				.setField('goods', sqlTransaction.goods)
-				.setField('photoid', 0)
-				.getParams();
-			var proof = Sha256.hash((params.agent + params.amount + params.member + sqlTransaction.unencryptedCode + params.created).toString());
-			params['proof'] = proof;
-			var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.proof.account));
-			return TransactionService.makeRequest_(params, account).then(function (res) {
-				console.log(res);
-				return res.data;
-			});
+			var sellerAccountInfo = sqlTransaction.accountInfo,
+				customerAccountInfo = sqlTransaction.accountInfo;
+			if (_.isUndefined(sqlTransaction.goods) || _.isNull(sqlTransaction.goods)) {
+				sqlTransaction.goods = 1;
+			}
+			if (_.isUndefined(sqlTransaction.force) || _.isNull(sqlTransaction.force)) {
+				sqlTransaction.force = 0;
+			}
+			try {
+				var params = new RequestParameterBuilder()
+					.setOperationId('charge')
+					.setSecurityCode(customerAccountInfo.securityCode)
+					.setAgent(sellerAccountInfo.accountId)
+					.setMember(customerAccountInfo.accountId)
+					.setField('amount', sqlTransaction.amount.toString())
+					.setField('description', sqlTransaction.description)
+					.setField('created', sqlTransaction.moment().unix())
+					.setField('force', sqlTransaction.force)
+					.setField('goods', sqlTransaction.goods)
+					.setField('photoid', 0)
+					.getParams();
+				var proof = Sha256.hash((params.agent + params.amount + params.member + customerAccountInfo.unencryptedCode + params.created).toString());
+				params['proof'] = proof;
+				console.log(proof, customerAccountInfo.unencryptedCode);
+				var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.proof.account));
+				return TransactionService.makeRequest_(params, account).then(function (res) {
+					console.log(res);
+					return res.data;
+				});
+			} catch (err) {
+				console.log(err);
+			}
 		};
 		TransactionSyncService.prototype.syncOfflineTransactions = function () {
 			if (NetworkService.isOffline()) {
