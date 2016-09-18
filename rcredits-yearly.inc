@@ -5,7 +5,7 @@
  * Assume that Common Good Finance is the report transmitter.
  */
 
-namespace rCredits\Special; // typically abbreviated as "special"
+namespace rCredits\Special; // typically abbreviated as "y"
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Util as u;
@@ -20,30 +20,44 @@ define('STATE_CODE', '25'); // Massachusetts code, for combined Federal/State fi
  * Log in at fire.irs.gov (or fire.test.irs.gov)
  * @param mixed $testMode: must be set non-FALSE for a successful test. If >1, it is a single uid to test.
  */
-function do1099bs($testMode = FALSE) {
-  
-  $year = date('Y') - 1;
+function do1099bs($testMode = FALSE, $badNames = [], $badTINs = [], $year = NULL) {
+  global $err1099;
+  u\setDft($year, date('Y') - 1);
   u\beginDownload("forms1099b-FY$year.bin$testMode"); // binary file extension: discourage automatic changes during FTP
   putRec(recT($year, $testMode));
+  
+  $uids = array_keys($badNames + $badTINs);
+  $where = ($uids = join(',', $uids ?: [])) ? "WHERE uid IN ($uids)" : ''; // making :uids a parameter fails 
+  $sql = "SELECT uid FROM users $where ORDER BY uid";
+
+  if ($uids) { // show bad old data first if correcting
+    doPayer($year, $sql, $totals, 'G', $badNames, $badTINs);
+    $bCount = doPayer($year, $sql, $totals, 'C'); // corrected data
+  } else $bCount = doPayer($year, $sql, $totals);
+  
+  $aCount = $uids ? 2 : 1;
+  putRec(recK($bCount * $aCount, $totals));
+  putRec(recF($bCount * $aCount, $aCount));
+  flush();
+  if (!@$err1099) exit(); // shouldn't we exit in any case?
+}
+
+/**
+ * Handle all appropriate payees for the payer (that is the rCredits regional server).
+ * @return the number of payee ("B") records.
+ */
+function doPayer($year, $sql, &$totals, $mod = '', $badNames = [], $badTINs = []) {
   putRec(recA($year));
   $bCount = 0; // IRS instructions pub 1220 call this "number of payees", but say it means "number of B records"
   $total = 0;
-  
-  $q = ($uid = $testMode and $uid > 1) ? db\q('SELECT uid FROM users WHERE uid=:uid', compact('uid'))
-  : db\q('SELECT uid FROM users ORDER BY uid');
+  $q = db\q($sql);
   while ($row = $q->fetchAssoc()) {
     extract($row); // uid
-    do1099b($year, $uid, $total);
+    $bCount += do1099b($year, $uid, $total, $mod, $badNames, $badTINs);
   }
-  
-  $bCount = u\lpad($bCount, 8);
   $totals = u\lpad(0, 6 * 18) . u\lpad(fmtAmt($total), 18) . u\lpad(0, 9 * 18);
-
   putRec(recC($bCount, $totals));
-  putRec(recK($bCount, $totals));
-  putRec(recF($bCount));
-  flush();
-  if (!@$err1099) exit(); // shouldn't we exit in any case?
+  return $bCount;
 }
 
 /**
@@ -51,19 +65,28 @@ function do1099bs($testMode = FALSE) {
  * @param int $year: the relevant fiscal year
  * @param int $payee: payee's account ID
  * @param float $total: running total amount for all B forms so far
+ * @param string $mod: normally ''. C=show corrected info. G=show incorrect name and/or TIN (as submitted before)
+ * @param assoc $badNames: list of incorrectly reported names, indexed by uid
+ * @param assoc $badTINs: list of incorrectly reported TINs, indexed by uid
+ * @return number of B records created
  */
-function do1099b($year, $payee, &$total) {
-  while ($row = be\get1099b($payee)) {
+function do1099b($year, $payee, &$total, $mod = '', $badNames = [], $badTINs = []) {
+  $bCount = 0;
+  while ($row = be\get1099b($payee, $year)) {
     extract(u\just('created amount for', $row));
     if ($amount <= 0) continue; // IRS says do NOT report non-positive transactions
+    if ($mod == 'G') $amount = 0; // IRS says zero out amount when showing the bad old data
     $total += $amount;
-    putRec(recB($year, r\acct($payee), $created, fmtAmt($amount), $for));
+    $bCount++;
+    $a = r\acct($payee); $id = $a->id;
+    putRec(recB($year, $a, $created, fmtAmt($amount), $for, $mod, @$badNames[$id], @$badTINs[$id]));
   }
+  return $bCount;
 }
 
 function recT($year, $testMode) {
   //$region = r\acct(r\serverUid());
-  $prior = pad('', 1); // P for prior year data, else ' '
+  $prior = pad(($year < date('Y') - 1) ? 'P' : '', 1); // P for prior year data, else ' '
   $TCC = '08C20';
   $testing = pad($testMode ? 'T' : ' ', 1);
   $foreign = pad(FALSE, 1); // 1 for foreign
@@ -96,21 +119,28 @@ function recA($year) {
   return 'A' . $year . $combo . sp(5) . $regionTIN . $nameControl . $lastEver . $type . $amountCodes . sp(8) . $foreign . $payerName . $isAgent . $payerAddr . $payerPhone . sp(260) . seq() . sp(241) . EOL;
 }
 
-function recB($year, $a, $completed, $amount, $for) {
-  global $bCount;  
-
-  $corrected = pad('', 1); // G=first corrected tx of a group C=subsequent corrected tx of a group ' '=original
+/**
+ * Return a payee ("B") record for the given year, account, amount, and purpose.
+ * @param string $mod: normally ''. C=show corrected info. G=show incorrect name and/or TIN (as submitted before)
+ */
+function recB($year, $a, $completed, $amount, $for, $mod = '', $badName = '', $badTIN = '') {
+  $who = "$a->legalName ($a->mainQid)";
+  if (!$badName and !$badTIN) {
+    if ($mod == 'G') return err1099(t('Original B Record has no error to be corrected: ') . $who);
+  } elseif ($mod != 'G') if ($badName or $badTIN) return err1099(u\tt('Spurious badName (@badName) or badTIN (@badTIN) for payee @who.', compact('badName', '$badTIN', 'who')));
+  $corrected = pad($mod, 1);
   $tinType = pad($a->co ? 1 : 2, 1);
-  $payeeTIN = pad($a->federalId, 9);
+  $payeeTIN = pad($badTIN ?: $a->federalId, 9);
   $accountNum = pad($a->id, 20);
   $payerOffice = pad('', 4);
   $amt = u\lpad($amount, 12);
   $foreignPayee = pad('', 1);
-  $payeeName = pad(noBreakAt(preg_replace('/[^A-Z &\-]/i', '', $a->legalName), 40), 2 * 40);
+  $payeeName = pad(noBreakAt(preg_replace('/[^A-Z &\-]/i', '', $badName ?: $a->legalName), 40), 2 * 40);
   list ($payeeFirst, $payeeLast) = u\parseName($payeeName);
-  $nameControl = pad(preg_replace('/[^A-Z]/i', '', $payeeLast), 4);
+//  $nameControl = pad(preg_replace('/[^A-Z]/i', '', $a->co ? $payeeName : $payeeLast), 4);
+  $nameControl = pad(preg_replace('/[^A-Z]/i', '', ($a->co and $mod != 'G') ? $payeeName : $payeeLast), 4); // temporary for TY2014,2015
   list ($address, $city, $st, $zip) = u\parseAddr($a->postalAddr);
-  if ($st == 'ER' or !$zip or !$city) return err1099(t('Bad postalAddr for ') . $payeeName);
+  if ($st == 'ER' or !$zip or !$city) return err1099(t('Bad postalAddr for ') . $who);
   $payeeAddr = pad($address, 40) . sp(40) . pad($city, 40) . pad($st, 2) . pad(u\digits($zip), 9);
   $date = strftime('%Y%m%d', $completed);
   $desc = pad($for, 39);
@@ -124,17 +154,17 @@ function recB($year, $a, $completed, $amount, $for) {
 }
 
 function recC($bCount, $totals) { 
-  return 'C' . $bCount . sp(6) . $totals . sp(196) . seq() . sp(241) . EOL;
+  return 'C' . u\lpad($bCount, 8) . sp(6) . $totals . sp(196) . seq() . sp(241) . EOL;
 }
   
 function recK($bCount, $totals) {
   $withheld = u\lpad(0, 18) . u\lpad(0, 18);
   
-  return 'K' . $bCount . sp(6) . $totals . sp(196) . seq() . sp(199) . $withheld . sp(4) . STATE_CODE . EOL;
+  return 'K' . u\lpad($bCount, 8) . sp(6) . $totals . sp(196) . seq() . sp(199) . $withheld . sp(4) . STATE_CODE . EOL;
 }
 
-function recF($bCount) {
-  return 'F' . u\lpad(1, 8) . u\lpad(0, 21) . sp(19) . $bCount . sp(442) . seq() . sp(241) . EOL;
+function recF($bCount, $aCount) {
+  return 'F' . u\lpad($aCount, 8) . u\lpad(0, 21) . sp(19) . u\lpad($bCount, 8) . sp(442) . seq() . sp(241) . EOL;
 }
     
 /**

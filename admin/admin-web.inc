@@ -182,7 +182,7 @@ EOF;
     $cgfDonations = item("<table id=\"cgf-donations\">$lines</table>");
   }
   $calling = item($a->calling, t('Calling:'));
-  $tenure = item($a->tenure . t(' month(s)'), t('Tenure:'), t('(How long had this person or company been at this address before opening an rCredits account?)'));
+  $tenure = item($a->tenure . t(' month(s)'), t('Tenure:'), t('How long had this person or company been at this address before opening an rCredits account?'));
 
   if (!$a->co) {
     $moves = item($a->moves === '' ? '?' : $a->moves, t('Moves:'), t('(How many times has this person changed counties in the past decade?)'));

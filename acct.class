@@ -154,13 +154,13 @@ class Acct {
 
     $nick = substr($field, 0, 3); // possibly meaningful prefix
     if (in_array($nick, ['can', 'raw']) and $field != 'rawChanges') $field = lcfirst(substr($field, 3));
-    if (in_array($field, u\ray('ok confirmed up member cgc bona co admin cAdmin cAdmin2 cttyActive cttyUp closed'))) $nick = 'can';
+    if (in_array($field, u\ray(B_LIST . ' up cgc cttyActive cttyUp'))) $nick = 'can';
     if ($nick == 'can') return $a->can(u\consta('b', $field));
     
     if ($field == 'mainQid') return $a->qo->mainQid;
-    if ($field == 'regulator') return (bool) ($a->flags & B_REGULATOR); // not ->can() which includes cAdmin...
-    if ($field == 'balance') return $a->r - $a->savings;
-    if ($field == 'savings') return ($a->rewards + ($a->savingsAdd ?: 0));
+    if ($field == 'isRegulator') return (bool) ($a->flags & u\bit(B_REGULATOR)); // not ->can() included by cAdmin etc.
+    if ($field == 'balance') return $a->r - $a->rewards; // $a->r - $a->savings;
+    u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
     if ($field == 'agent') return r\acct($a->agentId);
@@ -175,7 +175,7 @@ class Acct {
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'hasBank') return $a->risk('hasBank');
     if ($field == 'lowSecurity') return u\n2ai(substr($a->created, -5, 5), 3); // result is 3 chars long
-    if ($field == 'inviteCode') return str_replace(R_MEMBER_MARK, '*', $a->mainQid) . $a->lowSecurity;
+    if ($field == 'inviteCode') return $a->mainQid . $a->lowSecurity;
     if ($field == 'slave') return ($jid = $a->jid and $jid < $a->id); // slave in a joint account
     if ($field == 'helperA') return $a->helper ? r\acct($a->helper) : '';
     if ($field == 'prefsSet') return !is_null($a->minimum); // preferences have been set at least once
@@ -311,29 +311,34 @@ class Acct {
     $a = $this;
     if (!is_array($info)) $info = u\rayy(func_get_args());
     
-    if ($jid = $a->jid and $jInfo = u\just($jFields = 'achMin minimum savings savingsAdd saveWeekly', $info)) {
+    $jFields = 'hasBank bankAccount last4bank refill achMin minimum savingsAdd saveWeekly';
+    u\EXPECT(!isset($info['savings']), 'archaic savings field');
+//    if ($jid = $a->jid and $jInfo = u\just($jFields . ' savings', $info)) {
+    if ($jid = $a->jid and $jInfo = u\just($jFields, $info)) {
       list ($a2, $a1) = u\order($a->slave, $a, r\acct($jid)); // set $a1 master, $a2 slave
-      $a2->update1('achMin minimum savingsAdd saveWeekly', @$jInfo['achMin'] ?: $a1->achMin, 0, 0, 0); // not much for slave
-      $a->updateSavings($jInfo, $a1 == $a ? $a2->rewards : $a1->rewards); // update savings in master
+      $a2->update1($jFields, FALSE, '', '', FALSE, @$jInfo['achMin'] ?: $a1->achMin, 0, 0, 0); // not much for slave
+//      $a->updateSavings($jInfo, $a1 == $a ? $a2->rewards : $a1->rewards); // update savings in master
       $a1->update1($jInfo);
+//      if (!$info = u\justNot($jFields . ' savings', $info)) return TRUE; // fall through if something else to update
       if (!$info = u\justNot($jFields, $info)) return TRUE; // fall through if something else to update
-    } else $a->updateSavings($info, 0); // update savings in proSe account
+    }
+//    } else $a->updateSavings($info, 0); // update savings in proSe account
 
     return $a->update1($info);
   }
 
   /**
-   * Interpret requested update of savings as a change to the savingsAdd field.
+   * Interpret requested update of savings as a change to the savingsAdd field (for testing).
    * @param assoc $info: (MODIFIED) fields and values to update
    * @param numeric $slaveRewards: rewards in slave account, if any
-   */
+   *//*
   private function updateSavings(&$info, $slaveRewards) {
     if (isset($info['savings'])) {
       $rewards = (@$info['rewards'] ?: $this->rewards) + $slaveRewards;
       $info['savingsAdd'] = $info['savings'] - $rewards; // may be negative in official CGCs
       unset($info['savings']);
     }
-  }
+  }*/
   
   /**
    * Update the account record in the database (with no special treatment of joint accounts).
@@ -345,9 +350,13 @@ class Acct {
     if (isset($info['balance'])) {
       $info['r'] = $info['balance'];
       foreach (['rewards', 'savingsAdd'] as $k) $info['r'] += isset($info[$k]) ? $info[$k] : $a->$k;
+      $info['r'] = round($info['r'], 2);
       unset($info['balance']);
     }
-    if ($a->ok and !isGAME) $a->recordChanges($info); // record changes if member is active
+
+    foreach ($bits = u\just(B_LIST, $info) as $k => $v) {$a->setBit($k, $v); unset($info[$k]);}
+    if ($a->ok and !isGAME) $info += $a->recordChanges(u\justNot(B_LIST, $info)); // record changes if member is active
+    foreach (u\just('hasBank', $info) as $k => $v) {$a->setRisk($k, $v); unset($info[$k]);}
 
     if (isset($info['photo'])) $info['photo'] = u\crypt($info['photo']);
     if (isset($info['email'])) $info['mail'] = u\cryptN($info['email']);
@@ -371,47 +380,37 @@ class Acct {
 
     u\preray($info, self::$rs[$a->id]); // cache the new field values
     $info = u\justNot(R_SECURE_FIELDS . ' email ' . R_DATA_FIELDS, $info); // don't pass these
-    return db\update('users', $info + ['uid' => $a->id], 'uid');
+    return $info ? db\update('users', $info + ['uid' => $a->id], 'uid') : TRUE;
   }
 
   /**
    * Record memorable changes being made to an account record.
-   * @param assoc $info: (MODIFIED) all changes being made (returned with changes field added)
+   * @param assoc $info: all changes being made
+   * @return the changes
    */
-  private function recordChanges(&$info) {
+  private function recordChanges($info) {
     $a = $this;
     $newChanges = u\justNot(R_HIDE_CHANGES, $info); // see if there are any changes to remember
     foreach ($newChanges as $k => $v) { // don't record if no change
-       if ($v == $a->$k or (is_numeric($v) and is_numeric($a->$k) and $v + 0 == $a->$k + 0)) {
+      if ($v == $a->$k or (is_numeric($v) and is_numeric($a->$k) and $v + 0 == $a->$k + 0)) {
         unset($newChanges[$k]);
-      } elseif (isset(self::$rs[$a->id]->$k)) $newChanges[$k] = @self::$rs[$a->id]->$k;
+      } else $newChanges[$k] = $a->$k; // @self::$rs[$a->id]->$k;
     }
     
-    if (!$newChanges) return;
+    if (!$newChanges) return [];
   
     $changes = $a->changes; // must precede ->rawChanges
     $encrypted = u\starts($a->rawChanges, CRYPT_FLAG);
-//      $a->restructureChanges($changes); // temporary
-    for ($k = r\rTime(); @$changes[$k]; $k++);
-    u\preray([$k => $newChanges], $changes); // put the new change first
+//    for ($k = r\rTime(); isset($changes[$k]); $k++);
+    $time = r\rTime();
+    if (isset($changes[$time])) {
+      $changes[$time] += $newChanges;
+    } else u\preray([$time => $newChanges], $changes); // put the new changes first
     $changes = serialize($changes);
     if ($encrypted or u\just(R_SECURE_FIELDS, $newChanges)) $changes = u\crypt(u\crypt($changes, 0), 1);
-    $info += compact('changes');
+    return compact('changes');
   }
   
-  /**
-   * Temporary one-time function to change the structure of the changes field
-   * from [0 => [time, [key/value pairs]], 1 => etc.] to [time => [key/value pairs], etc.]
-   *//*
-  public function restructureChanges(&$changes) {
-    if (!$changes) return;
-    foreach ($changes as $k => $one) {
-      list ($dt, $info) = $k < 9999 ? $one : [$k, $one];
-      $new[$dt] = $info;
-    }
-    $changes = $new;
-  }
-  */
   public function isNonprofit() {return (bool) ($this->coFlags & u\bit(CO_NONPROFIT));}
   
   /**
@@ -505,9 +504,11 @@ class Acct {
    * @see also self::can()
    */
   public function setBit($bit, $on = TRUE) {
-    $res = $this->setBitx($bit, $on, 'flags'); 
-    if (@self::$perms[$id][$this->agentId]) {
-      self::$perms[$id][$this->agentId][$bit] = $on;
+    $a = $this;
+    if (!is_numeric($bit)) $bit = u\consta('b', $bit);
+    $res = $a->setBitx($bit, $on, 'flags'); 
+    if (@self::$perms[$id][$a->agentId]) {
+      self::$perms[$id][$a->agentId][$bit] = $on;
     } // else can gets refreshed automatically next time can() is called
     return $res;
   }
@@ -691,8 +692,9 @@ EOF;
       $aj = $i == 0 ? $b : $a; // the other account
       $ai->update('jid', $aj->id);
       if (!$ai->hasBank and $aj->hasBank) {
-        $ai->update('bankAccount', $aj->bankAccount);
+        $ai->update('bankAccount last4bank', $aj->bankAccount, $aj->last4bank);
         $ai->setRisk('hasBank');
+        $ai->setBit(B_REFILL, $aj->refill);
       }
       $ai->setBit(B_JOINED);
     }
@@ -1015,7 +1017,8 @@ EOF;
     $txRiskBits = array_flip(array_keys(u\ray(K_TX_RISKS)));
     return is_numeric($bit = @$acctRiskBits[$bitName]) ? $bit : $txRiskBits[$bitName];
   }
-
+  
+//  private static function flagBit($bit) {return is_numeric($bit) ? $bit : u\consta('b', $bit);}
   public function coCan($bit = NULL) {return u\getbit($bit <= B_MAX ? $this->coFlags : $this->coFlags2, $bit);}
   public function setCoBit($bit, $on = TRUE) {$this->setBitx($bit, $on, 'coFlags');}
   
@@ -1071,9 +1074,9 @@ EOF;
    */
   public function makeBad($code) {
     $a = $this;
-    $qid = str_replace(R_AGENT_MARK, '.', $a->qid);
-    $mark = $a->proSe ? R_MEMBER_MARK : R_AGENT_URL_MARK;
-    db\update('r_bad', u\ray('code created', "$qid$mark$code", time()), 'code', TRUE);
+//    $qid = str_replace(R_AGENT_MARK, '.', $a->qid);
+//    $mark = $a->proSe ? R_MEMBER_MARK : R_AGENT_URL_MARK;
+    db\update('r_bad', u\ray('code created', "$a->qid$code", time()), 'code', TRUE);
   }
   
   /**
@@ -1103,9 +1106,7 @@ EOF;
     if ($bit <= B_MAX) { // ordinary bits
       $can = (bool) ($a->flags & (1 << $bit)); // these are easy. be efficient.
       if (in_array($bit, [B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN])) {
-        if (!$a->proSe and !isGAME) { // admin permissions depend on agent
-          return ($aa = $a->agent) ? $aa->can($bit) : FALSE; // timing errors in _construct can give no agent
-        }
+        if (!$a->proSe) return ($aa = $a->agent and $aa->can($bit)); // admin permissions are for agent instead
         if (!$can and $bit < (R_ADMIN_CAN_MANAGE_CTTYS ? B_ADMIN : B_CADMIN)) return $a->can($bit + 1); // not this admin bit, maybe the next higher?
       }
       return $can;
@@ -1128,7 +1129,7 @@ EOF;
     
     // collect efficient bits, for reference within this function
     for ($bit = 0; $bit <= B_MAX; $bit++) $can[$bit] = $a->can($bit);
-//    foreach ([B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN] as $bit) $can[$bit] = $a->can($bit);
+    foreach ([B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN] as $bit) $can[$bit] = $a->agent->can($bit);
  
     $can[B_PERSON] = !$can[B_CO];
 

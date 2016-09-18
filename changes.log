@@ -1,3 +1,22 @@
+2016-09-15 version 2.47
+. changed Drupal cache to version cache in rc-html.tpl page template (to assure js refresh on version change)
+. added "do" parameter to time function in app
+. added boxesFld function
+. fixed bug: photoId was not getting updated since app version 2.16
+. change photoId field to a flag bit (and not a secure field or any field at all)
+. eachA(function($a) {
+    $a->setBit(B_REFILL, $a->hasBank and $a->minimum+0!=0);
+    if ($a->savingsAdd) $a->update('savingsAdd', 0);
+    if ($bank = $a->bankAccount) $a->update('last4bank', substr($bank, -4, 4));
+  });
+. changed "Savings Reserve" to "Credit Reserve" and related changes
+. moved refill settings to Bank Info page
+. expanded acct::update to handle flag bits and hasBank
+. added last4bank field
+. changed saveWeekly to apply to minimum, not savingsAdd (savingsAdd is temporarily not used); only one member was actively using saveWeekly, so we increased zir target bal by zir savingsAdd before zeroing savingsAdd
+. fixed recordChanges
+. added correction capability to forms1099b()
+
 2016-08-17 version 2.45
 . fixed op() bug by setting an opid parameter in every form
 
@@ -589,7 +608,7 @@
 . fixed bug: "reverses #" was giving wrong tid for cust/co 
 . fixed bug: rcron now handles negative balances right, when bringing accounts up to minimum.
 . make note of all company bits and restore them after the update
-. create small pictures in photos/small ( use f('a.eachAcct', 'shrinkPhoto'); )
+. create small pictures in photos/small ( use f('a.eachAcct', 'photoFromFile'); )
 . set helper for each ok account (use   f('a.eachAcct'); )
 
 2014-06-25

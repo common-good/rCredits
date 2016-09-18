@@ -5,11 +5,11 @@ SO we can share our finances, as for a typical "joint account" at a bank.
 
 Setup:
   Given members:
-  | id   | fullName   | acctType    | flags      | rebate | minimum | created   |*
-  | .ZZA | Abe One    | personal    | ok,confirmed,bona    |     10 |     100 | %today-6m |
-  | .ZZB | Bea Two    | personal    | ok,confirmed,bona    |     10 |      50 | %today-6m |
-  | .ZZC | Corner Pub | corporation | ok,confirmed,co,bona |      5 |       0 | %today-6m |
-  | .ZZD | Dee Four   | personal    | ok,confirmed,bona    |     10 |       0 | %today-6m |
+  | id   | fullName   | acctType    | flags                     | rebate | minimum | created   |*
+  | .ZZA | Abe One    | personal    | ok,confirmed,ided,bona    |     10 |     100 | %today-6m |
+  | .ZZB | Bea Two    | personal    | ok,confirmed,ided,bona    |     10 |      50 | %today-6m |
+  | .ZZC | Corner Pub | corporation | ok,confirmed,ided,co,bona |      5 |       0 | %today-6m |
+  | .ZZD | Dee Four   | personal    | ok,confirmed,ided,bona    |     10 |       0 | %today-6m |
   And transactions: 
   | xid | created   | type       | amount | from      | to   | purpose | taking |*
   |   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |
@@ -56,13 +56,21 @@ Scenario: A joined account slave member requests a new minimum
   | id   | jid  | minimum |*
   | .ZZA | .ZZB |     150 |
   | .ZZB | .ZZA |       0 |
-  When member ".ZZB" completes form "settings/preferences" with values:
-  | minimum | achMin | savingsAdd | saveWeekly | share |*
-  |     200 |    100 |        250 |          0 |    10 |
+  When member ".ZZB" completes form "settings/bank" with values:
+  | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
+  |       1 |     053000196 |         123 |          123 |       1 |    200 |    100 |          0 |
   Then members have:
-  | id   | minimum | savingsAdd | achMin | share |*
-  | .ZZA |     200 |        250 |    100 |     0 |
-  | .ZZB |       0 |          0 |    100 |    10 |
+  | id   | bankAccount      | last4bank | minimum |*
+  | .ZZA | USkk053000196123 |      6123 |     200 |
+  | .ZZB |                  |           |       0 |
+
+#  When member ".ZZB" completes form "settings/preferences" with values:
+#  | minimum | achMin | savingsAdd | saveWeekly | share |*
+#  |     200 |    100 |        250 |          0 |    10 |
+#  Then members have:
+#  | id   | minimum | savingsAdd | achMin | share |*
+#  | .ZZA |     200 |        250 |    100 |     0 |
+#  | .ZZB |       0 |          0 |    100 |    10 |
 
 Scenario: A joined account member looks at transaction history and summary
   Given members have:
@@ -116,7 +124,7 @@ Scenario: A joined account member looks at transaction history and summary
   | Name          | Bea Two & Abe One (beatwo & abeone) |
   | ID            | ZZB (joint account) |
   | Balance       | $1,950 |
-  | Savings       | $530 |
+#  | Savings       | $530 |
   | _rewards      | $530 |
 #  | Committed     | $0.60 |
 #  | Your return   | 21.9% | (sometimes is 20.2%)

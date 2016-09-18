@@ -5,9 +5,9 @@ SO I can spend it with my rCard.
 
 Setup:
   Given members:
-  | id   | fullName | floor | minimum | flags | achMin | risks   |*
-  | .ZZA | Abe One  |     0 |     100 | co,ok | 30     | hasBank |
-  | .ZZB | Bea Two  |   -50 |     100 | ok    | 30     |         |
+  | id   | fullName | floor | minimum | flags        | achMin | risks   |*
+  | .ZZA | Abe One  |     0 |     100 | co,ok,refill | 30     | hasBank |
+  | .ZZB | Bea Two  |   -50 |     100 | ok,refill    | 30     |         |
   And relations:
   | main | agent | draw |*
   |.ZZA | .ZZB  | 1    |
@@ -92,8 +92,8 @@ Scenario: a member is under minimum but already requested barely enough funds fr
 Scenario: a member is under minimum and has requested insufficient funds from the bank
 # This works only if member requests more than R_USDTX_QUICK the first time (hence ZZD, whose minimum is 300)
   Given members:
-  | id   | fullName | floor | minimum | flags | achMin | risks   |*
-  | .ZZD | Dee Four |   -50 |     300 | ok    | 30     | hasBank |
+  | id   | fullName | floor | minimum | flags     | achMin | risks   |*
+  | .ZZD | Dee Four |   -50 |     300 | ok,refill | 30     | hasBank |
   And balances:
   | id   | rewards | savingsAdd | balance |*
   | .ZZD |      20 |          0 |      20 |
@@ -111,8 +111,8 @@ Scenario: a member is under minimum and has requested insufficient funds from th
 
 Scenario: a member is under minimum only because rewards are reserved
   Given members:
-  | id   | fullName | minimum | flags | achMin | risks   |*
-  | .ZZD | Dee Four |     100 | ok    | 10     | hasBank |
+  | id   | fullName | minimum | flags     | achMin | risks   |*
+  | .ZZD | Dee Four |     100 | ok,refill | 10     | hasBank |
   And balances:
   | id   | r   | rewards | savingsAdd |*
   | .ZZD | 110 |      30 |          0 |
@@ -126,7 +126,9 @@ Scenario: a member member with zero minimum has balance below minimum
   | id   | minimum | r   |*
   | .ZZA |       0 | -10 |
   When cron runs "bank"
-  Then bank transfer count is 0
+  Then usd transfers:
+  | payer | amount |*
+  | .ZZA  |    -30 |
   
 Scenario: an unbanked member with zero minimum has balance below minimum
   Given balances:
@@ -148,3 +150,13 @@ Scenario: a member has a deposited but not completed transfer
   When cron runs "bank"
   Then bank transfer count is 1
 
+Scenario: an account has a minimum but no refills
+  Given members have:
+  | id   | flags |*
+  | .ZZB | ok    |
+  And balances:
+  | id   | rewards | balance |*
+  | .ZZA |       0 |     100 |
+  | .ZZB |      20 |     -50 |
+  When cron runs "bank"
+  Then bank transfer count is 0

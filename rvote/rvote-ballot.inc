@@ -501,3 +501,33 @@ EOF;
   }
   return join('', @$lines ?: []);
 }    
+
+/**
+ * Return the welcome page for voting.
+ */
+function votingWelcome() {
+  include_once __DIR__ . '/../rvote/rvote-results.inc';
+  $mya = r\acct();
+  $subtext = w\item(t(<<<EOF
+  Welcome to the FIRST EVER rCredits Community vote.<br><br>
+  
+  Before you vote, please make sure you are happy with your <@a>proxy choices</a> and adjust them as needed.<br><br>
+  
+  Please keep in mind that you are acting on behalf of the community. You have a responsibility to vote according to what best serves the greater good. In most cases, your interests will be aligned with those of the community. But if there is a conflict, the community comes first.
+EOF
+  , ['@a' => "a href=$base_url/settings/proxies"]));
+  
+  if ($mya->admin) {
+    $showVotes = submit(t('Show votes'));
+    $noVote = submit(t('Didn\'t vote yet'));
+    $noDirect = submit(t('Didn\'t vote directly'));
+    $results = @$results ? item(v\showResults($mya->community, $noProxies)) : submit(t('Results'));
+    $resultsNoProx = submit(t('Results (no proxies)'));
+    $agree = w\hidFld(TRUE);
+  } else {
+    $agree = w\boxFld('agree', '', t('I agree.'), '', required());
+    $agree = w\item(str_replace('<input ', '<input required="required" ', w\rendA('agree', $agree)));
+  }
+  $submit = w\submit(t('Vote Now'), 'success', 'lg', w\suffix(' &nbsp; ' . t('Polls close at midnight on @date.', ['@date' => $voting])));
+  return w\labeled(compact(u\ray('title showVotes noVote noDirect results resultsNoProx subtext agree submit args')));
+} 

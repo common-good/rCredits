@@ -51,6 +51,7 @@ $scripts = preg_replace('~<script type="text/javascript" src="' . BASE_URL . "/(
 // something here interferes with croppic's $()
 //$scripts = preg_replace('/<script[!<]+<![!<]+<![!<]+jQuery.extend\(Drupal/ms', '', $scripts);
 //$scripts = preg_replace('/jQuery.extend.*--/ms', '//--', $scripts);
+$page_bottom = str_replace('?' . \variable_get('css_js_query_string', 'un like ly'), "?$version", $page_bottom);
 
 /**/ echo <<<EOF
 <!DOCTYPE html>

@@ -164,7 +164,7 @@ function x($xid, $mya = '') {r\x($xid, $mya);} // return a transaction object
 function ctty($id) {return a(a($id)->community);}
 function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
 /**/ function flog($s) {file_put_contents(isSTAGE ? 'photos/flog.txt' : 'flog.txt', print_r($s, 1) . "\n", FILE_APPEND);} // log to file
-/**/ function who($s) {$a = a($s); debug("$a->fullName ($a->mainQid $a->id)"); return $a;} // show whose account
+/**/ function who($s = '') {$a = a($s); debug("$a->fullName ($a->mainQid $a->id)"); return $a;} // show whose account
 function q($sql, $subs = [], $log = FALSE) {return f('db.q', $sql, $subs, $log);}
 
 /**

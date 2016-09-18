@@ -275,14 +275,14 @@ function txSummary($starting, $ending) {
   foreach ($heads as $key => $value) if ($value) $heads[$key] = w\popHelp($value, $headHelp[$key]);
   */
   
-  $PRIMARY = w\popHelp(t('Primary'), t('Your primary balance is what you use for spending and for receiving payments.'));
+  $PRIMARY = w\popHelp(t('Balance'), t('Your balance is what you use for spending and for receiving payments.'));
   $STARTING = w\popHelp(t('Starting Balance'), t('Your rCredits account balance at the start of this time period'));
   $BANK = w\popHelp(t('From Bank'), t('How much was transferred from your bank account to your rCredits account'));
   $IN = w\popHelp(t('Funds Received'), t('How many rCredits you received, in this period'));
   $OUT = w\popHelp(t('Funds Paid Out'), t('How many rCredits you paid out, in this period'));
-  $REWARDS = w\popHelp(t('Rewards'), t('Incentive rewards you received, in this period (rewards go automatically into your Savings Reserve)'));
+  $REWARDS = w\popHelp(t('Rewards'), t('Incentive rewards you received, in this period (rewards go automatically into your Credit Reserve)'));
   $ENDING = w\popHelp(t('Ending Balance'), t('Your rCredits account balance at the end of this time period'));
-  $SAVINGS = w\popHelp(t('Savings'), t('Amount in your Savings Reserve, to spend later or in a pinch'));
+  $SAVINGS = w\popHelp(t('Credit Reserve'), t('Amount in your Credit Reserve, to spend in a pinch (once your rCredits community declares itself a success, this additional amount is yours to keep)'));
   $PENDING = w\popHelp(t('pending'), t('Pending transfers from your bank account to your rCredits account'));
   if ($p_bank) $p_bank = $endingNow ? "+ $p_bank $PENDING" : '';
   

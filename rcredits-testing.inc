@@ -27,7 +27,7 @@ define('DW_TEST_AUTHS',
 . 'v8bSxiLSb58y42i1lBeH7x1zxUrnygEnpe3AKFSy7HCjhTsC7V '
 );
 */
-define('T_BALANCE_FIELDS', 'id r balance floor rewards savingsAdd minimum share committed');
+define('T_BALANCE_FIELDS', 'id r balance floor rewards savingsAdd saveWeekly minimum share committed');
 define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to');
 define('T_MSG_FILE', 'test-messages.txt');
 
@@ -144,6 +144,7 @@ function doAccount($info = []) {
 
 /**/  if (!is_array($info)) {echo 'not array'; print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
   extract($info); // any user table fields
+  $id0 = @$id;
   u\setDft($id, r\Acct::nextId()); // default to first available number
   $uid = t\uid($id); // change .AAB to 1, etc.
 
@@ -166,16 +167,17 @@ function doAccount($info = []) {
     u\setDft($country, 'US');
     $state = r\realState(@$state, $country);
     u\setDft($postalAddr, @$address . ', ' . @$city . ", $state $postalCode");
-    u\setDft($photoId, "$state-{$postalCode}999");
+//    u\setDft($photoId, "$state-{$postalCode}999");
     u\setDft($helper, '.AAB'); // everyone but .AAB should have a helper
 /**/  if ($helper === '') die(print_r(debug_backtrace(), 1)); // set helper to zero if none, never blank
+    u\setDft($last4bank, @substr(@$bankAccount, -4, 4));
 
     $moneyFields = 'share committed floor r rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
     if (@$cc) $cardCode = $cc;
     if (@$cc2) $cardCode2 = $cc2;
 
-    $fixFields = 'rebate fullName legalName name pass email secure community postalCode country postalAddr cardCode cardCode2 photoId ' . $moneyFields;
+    $fixFields = 'rebate fullName legalName name pass email secure community postalCode country postalAddr cardCode cardCode2 ' . $moneyFields;
   } else $fixFields = '';
 
   if (isset($flags) and isset($acctType) and $acctType !== R_PERSONAL and $acctType != 'personal') $flags .= ',co';
@@ -183,7 +185,7 @@ function doAccount($info = []) {
   if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
   
   foreach (u\ray('id acctType dw cc cc2') as $one) unset($info[$one]); // these are not real fields
-  u\preray(compact(u\ray('uid jid helper flags risks ' . $fixFields)), $info); // add in changed fields
+  u\preray(compact(u\ray('uid jid helper flags risks last4bank ' . $fixFields)), $info); // add in changed fields
   fixData($info, TRUE);
 
   if ($testOnly) {
@@ -203,6 +205,7 @@ function doAccount($info = []) {
 
 /**/ if (!$a = new r\Acct($info)) return t\output('Cannot create account: ' . print_r($info, 1));
   if (@$picture) if (!makePicture($picture, $a)) return FALSE;
+  if ($id0 == $id) $a->setBit(B_IDED); // assume we have a photoId for givens unless a step says otherwise
 
   return $uid;
 }
@@ -443,11 +446,12 @@ function doneStep($id, $step) {
  */
 function doMemberFields($info) {
   global $testOnly;
+
   $balFields = u\just(T_BALANCE_FIELDS, $info);
   if (!doBalance($balFields, $testOnly)) return;
 
   $a = r\acct($id = t\uid($info['id']));
-  foreach ($balFields as $k => $v) unset($info[$k]); // don't rehandle balance fields, and already got id
+  $info = u\justNot(T_BALANCE_FIELDS, $info); // don't rehandle balance fields, and already got id
   fixData($info, TRUE);
 
   if ($testOnly) {
@@ -481,9 +485,12 @@ function memberFieldValues($list) {
 function doBalance($info) {
   global $testOnly;
 
-  extract(u\just(T_BALANCE_FIELDS, $info));
-  if (!$a = r\acct($id = t\uid($id0 = $id))) return t\output("account $id0 does not exist");
+/**/  if ($info != u\just(T_BALANCE_FIELDS, $info)) return t\output("spurious field in balances: " . print_r($info, 1));
+  $id = t\uid($id0 = $info['id']);
+
+  if (!$a = r\acct($id)) return t\output("account $id0 does not exist");
   $a->reread(TRUE); // otherwise db updates are invisible
+
   t\fixData($info);
 /// print_r(compact('a','id','id0'));
   if (!$testOnly) { // setting the values
@@ -493,16 +500,15 @@ function doBalance($info) {
 
   // verify
   $calc = t\uidCredit($id);
-  foreach (u\ray('r balance rewards') as $k) {
+  foreach (u\ray($cashies = 'r balance rewards') as $k) {
     if (isset($$k) and $$k != '?') {
-//      $cachedVal = $k == 'balance' ? $a->r : $a->$k;
       $cachedVal = $a->$k;
       if (($id > 0) and t\badEq("cached $k", $cachedVal, $$k, $id)) return FALSE;
       if ($id > 0 or $k != 'rewards') if (!$a->jid) if (t\badEq("calc $k", $calc->$k, $$k, $id)) return FALSE;
     }
   }
-  foreach (u\ray('floor minimum share committed') as $k) {
-    if (isset($$k) and $$k != '?' and $id > 0) if (t\badEq("db $k", $a->$k, $$k, $id)) return FALSE;
+  foreach ($not = u\justNot($cashies, $info) as $k => $v) {
+    if ($v != '?' and $id > 0) if (t\badEq("db $k", $a->$k, $v, $id)) return FALSE;
   }
   return TRUE;
 }
@@ -610,6 +616,7 @@ function fullQid($q) {
  * Interpret the given identifier (int, full qid, or local qid) as an account ID.
  */
 function uid($id, $field = 'id') {
+  u\EXPECT($id, 'empty id'); // otherwise site loops (?)
   if (is_numeric($id)) return $id;
   if ($id == 'community' or $id == 'ctty') return r\serverUid();
   if ($id == 'cgf') return r\cgfId();
@@ -697,7 +704,7 @@ function noSuchEmail($index, $email) {
 function findEmail($index, $email, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $testEmails; if (!@$testEmails) return FALSE;
-///  debug(u\jsonEncode($testEmails));
+///  debug(u\jsonEncode(compact(u\ray('index email subs testEmails'))));
 
   $subs = is_array(@$subs[0]) ? $subs[0] : @$subs;
   t\fixEmail($email);
@@ -1114,6 +1121,7 @@ function dropdownOptions($form) {
 }
 
 function setChecked($name) {global $tChecked; $tChecked[] = $name;}
+function setRadio($name, $title) {global $tRadios; $tRadios[$name] = $title;}
 
 function radioOptions($form) {
   if (!preg_match_all('~<label class="option" [^>]*>.*? </label>~sm', $form, $matches)) return '';
@@ -1196,10 +1204,10 @@ function output($msg, $color = 'error') {
  */
 function clear($ch = 0) {
   include_once __DIR__ . '/admin/admin.inc';
-  global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation, $tChecked;
+  global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation, $tChecked, $tRadios;
   global $sms_devel; $sms_devel = TRUE;
     
-  $lastGo = $formOut = $formArray = $formSta = $testOp = $testConfirmation = $tChecked = NULL;
+  $lastGo = $formOut = $formArray = $formSta = $testOp = $testConfirmation = $tChecked = $tRadios = NULL;
   global $sms_devel; $sms_devel = TRUE;
   global $testSeq; $testSeq = NULL;
   global $channel; $channel = $ch;
@@ -1207,10 +1215,11 @@ function clear($ch = 0) {
 /**/  global $sceneTest; echo "scene: $sceneTest->sceneName<br>\n"; // helpful when test dies
 
   $cgfUid = r\cgfId();
-  $tables = 'r_auth r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_log r_near r_notices r_options r_pairs r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
+  $tables = 'r_auth r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_log r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
   foreach (u\ray('block bootstrap field filter form menu page path update') as $k) $tables .= " cache_$k";
   foreach (u\ray($tables) as $table) if (db\exists($table)) db\q("TRUNCATE $table");
 
+  db\q('DELETE FROM users WHERE uid<>0');
   a\setupBasicAccounts();
 
   db\q('UPDATE users SET floor=0,minimum=NULL,r=0,rewards=0,committed=0');
@@ -1333,7 +1342,7 @@ function constants($list) {
 function noPhotoId($id) {
   global $testOnly;
   if (!$a = r\acct(t\uid($id))) return t\output("Not an account: $id");
-  return $testOnly ? !$a->photoId : $a->update('photoId', '');
+  return $testOnly ? !$a->ided : $a->setBit(B_IDED, FALSE);
 }
 
 function weShow($what, $show = TRUE) {

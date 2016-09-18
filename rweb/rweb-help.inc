@@ -20,7 +20,7 @@ use rCredits\Web as w;
 function rawHelp($i, $tag = '', $args = '') {
   global $rUrl;
   
-  $mya = w\eLinkAcct($args, 'any');
+  $mya = w\eLinkAcct($zot, $args, 'any');
   $ctty = @$mya->community ?: 0;
   $company = @$mya->co;
   $username = @$mya->name; // @ is for SMS testing (when not signed in)
@@ -138,7 +138,7 @@ EOF
   if ($i == 'account/preferences') return t(<<<EOF
     <p>These settings start out as what most people prefer. Feel free to adjust them as you like. You can always come back and change them again later.</p>
     <ul>
-      <li><b>Minimum.</b> You will want to keep enough in your account to cover the total amount you expect to spend at rCredits member businesses in a typical 3-day period. Add to this however much you want to hold as inflation-protected savings (the inflation adjustment is a monthly credit to your account).</li>
+      <li><b>Target.</b> You will want to keep enough in your account to cover the total amount you expect to spend at rCredits member businesses in a typical 3-day period. Add to this however much you want to hold as inflation-protected savings (the inflation adjustment is a monthly credit to your account).</li>
       <li><b>Email notices.</b> We suggest you begin with daily notices, until you feel comfortable with the system. You will receive a "daily" notice only when there is something new that you will want to know about (such as a credit to your account).</li>
     </ul>
 EOF
@@ -151,17 +151,18 @@ EOF
     <p>In the meantime, until then, rCredits are issued automatically:</p>
     <ol>
       <li>as a stand-in for US Dollars, which are held unused in a separate account, and</li>
-      <li>as incentives for doing what will strengthen and grow the system (signup bonuses, purchase rewards, inviter/helper rewards, and inflation offset).</li>
+      <li>as incentive rewards for doing what makes the system stronger (signup bonuses, purchase rewards, inviter/helper rewards, and inflation offset).</li>
     </ol>
+    <p>Any incentive rewards you receive are yours to keep once your rCredits community declares itself a success. Meanwhile you can borrow them interest-free.</p>
 EOF
   ) . $back;
   
-  if ($i == 'common-good-community') return tt(<<<EOF
-    <p>The purpose of the rCredits system is to create and fund community-centered participatory democracy. A community that has met the <aRequirements>requirements</a> to become a Common Good Community may apply to Common Good Finance for certification. This certification permits the community to issue rCredits independently -- deciding for itself how many rCredits to issue (within safe limits) and what to fund with them.</p>
+  if ($i == 'common-good-community') return t(<<<EOF
+    <p>The purpose of the rCredits system is to create and fund community-centered participatory democracy. A community that has met the <!aRequirements>requirements</a> to become a Common Good Community may apply to Common Good Finance for certification. This certification permits the community to issue rCredits independently -- deciding for itself how many rCredits to issue (within safe limits) and what to fund with them.</p>
 
     <p>A Common Good Community is in "good standing" when it is issuing rCredits responsibly, so they accurately represent the potential of its members to produce corresponding goods and services in the short term.  A Common Good Community may lose its good standing if it runs a trade deficit with other Common Good Communities and fails to redeem it in a timely manner. Common Good Finance and the other communities will provide ongoing feedback, to prevent this from happening accidentally.</p>
 EOF
-  , ['!aRequirements' => 'a href="common-good-community-requirements"']) . $back;
+  , ['!aRequirements' => 'a href="http://rc4.me/doc/becoming.pdf"']) . $back;
   
   if ($i == 'cashflow-crunch') return t(<<<EOF
     <p>Once your geographic area becomes a Common Good Community, you can together decide to spend, grant, lend, and/or invest some of the US Dollars that members have put into their rCredits accounts, that are sitting unused. Of course you want to be careful not to use ALL of the US Dollars. From time to time, members will want to exchange some of their rCredits for US Dollars, to pay companies and individuals not yet participating in the rCredits system. There need to be enough US Dollars in reserve to cover the likely amount of those withdrawals.</p>
@@ -180,33 +181,35 @@ EOF
   if ($i == 'cashing-out') return t(<<<EOF
     <p>rCredits have value and act like money because we agree to accept them as payment for our good and services, so they move from member to member to member as a token of exchange. When someone pays you in rCredits, you can spend those funds &mdash; OR you can "cash them out" by transferring them to your bank account or exchanging them for cash.</p>
     <p>You can cash out rCredits that someone <i>pays</i> you, but any rCredits you <i>receive free</i>, as Incentive Rewards, must continue to circulate within the rCredits system. You cannot cash them out &mdash; you can only spend them.</p>
-    <p>You can help keep the rCredits system healthy by maintaining a positive Primary Balance (most of the time) and treating your incentive rewards as a <!aReserve>Savings Reserve</a>.</p>
+    <p>You can help keep the rCredits system healthy by maintaining a positive Balance (most of the time) and treating your incentive rewards as a <!aReserve>Credit Reserve</a>.</p>
 EOF
-, ['!aReserve' => 'a href="savings-reserve"']) . $back;
+, ['!aReserve' => 'a href="credit-reserve"']) . $back;
 
-  if ($i == 'savings-reserve') return t(<<<EOF
+  if ($i == 'credit-reserve') return t(<<<EOF
     <p><b>Background.</b> It is crucial to the success of the rCredits system that most of the rCredits issued as incentive rewards stay in the system and keep circulating in the community. While the system is small, it is a bit frail in that regard, so we need to be extra careful to make sure there is no "<!aCrunch>cash flow crunch</a>" at least until we are ready to handle it as a strong, well-functioning democratic rCredits community.</p>
 
-    <p><b>Your Savings Reserve.</b> So we divide your account into two pieces: your Primary Balance and your Savings Reserve. Your incentive rewards go into the Savings Reserve automatically, to encourage you to keep them in the system until you need them. This is like a traditional reserve credit line that kicks in whenever you would otherwise overdraw your checking account &mdash; except there are no fees here. You can spend those reserved funds any time, simply by letting your Primary Balance go negative.</p>
+    <p><b>Your Credit Reserve.</b> So we divide your account into two pieces: your Balance and your Credit Reserve. Your incentive rewards go into the Credit Reserve, to encourage you to keep them in the system until you need them. This is like a traditional reserve credit line that kicks in whenever you would otherwise overdraw your checking account &mdash; except there are no fees here. You can spend those reserved funds any time, simply by letting your Balance go negative.</p>
 
-    <p>For example, if you have $300 in your account and $100 of that is incentive rewards that you received (free), then your balance will show as $200, with a savings reserve of $100.</p>
+    <p>For example, if you have $300 in your account and $100 of that is incentive rewards that you received (free), then your balance will show as $200, with a Credit Reserve of $100.</p>
     
-    <p>Remember, we issue rCredits together as a commmunity, so it is up to all of us to protect their value. Most people choose to keep a positive Primary Balance, by setting a Minimum on the Preferences settings page. Keeping most of the rCredits we issue in the system, this helps keep the system healthy while it grows to become stable.</p>
+    <p>Remember, we issue rCredits together as a commmunity, so it is up to all of us to protect their value. Most people choose to keep a positive Balance, by setting a Target Balance on the Preferences settings page. Keeping most of the rCredits we issue in the system, this helps keep the system healthy while it grows to become stable.</p>
 EOF
   , ['!aCrunch' => 'a href="cashflow-crunch"']) . $back;
   
   if ($i == 'graceful-failure') return t(<<<EOF
      <p>Common Good Finance has put great care into designing the rCredits system so that it will NOT fail. Paradoxically, one requirement for its success is a detailed plan for a graceful shutdown. In the unlikely event that the whole rCredits system proves unworkable, the rCredits Agreement gives us a way to end without leaving anyone "holding the bag".</p>
-     <p>As part of the rCredits Agreement, you promise to give back all the rCredits you received for free &mdash; as signup bonus, purchase rewards, etc. You can do that either</p>
-     <ul><li>by continuing to accept rCredits until your balance is equal to your total incentive rewards (then returning them to the community) OR</li>
-         <li>by substituting US Dollars for any missing rCredits.</li>
+     <p>As part of the rCredits Agreement, you promise to give back all the rCredits you received for free &mdash; as signup bonus, purchase rewards, etc. This means if you have a negative balance, you agree to bring it up to zero or more. You can either</p>
+     <ul><li>continue to accept rCredits until you are square OR</li>
+         <li>trade US Dollars to another member in exchange for rCredits OR</li>
+         <li>transfer US Dollars from your bank account.</li>
      </ul>
      <p>Complementarily, if you have more rCredits than you received as incentive rewards, you will be able to</p>
      <ul><li>continue to make purchases with them for a limited time OR</li>
-         <li>trade them for other members' US Dollars that <i>they</i> returned to the community.</li>
+         <li>trade them to another member in exchange for US Dollars OR</li>
+         <li>transfer them to your bank account.</li>
      </ul>
      <p>We ALL make this agreement so if the system fails, everyone is protected and no one is loses what they put in.</p>
-      <p>Once a Common Good Community has ongoing revenue to cover its expenses and any incentive rewards, it is no longer in any danger of ending abruptly. The system has been running successfully for many months now, to everyone's increasing benefit. So the long-term success of our pioneering Common Good Community in Greenfield, Massachusetts is looking more and more certain.</p>
+      <p>Once a Common Good Community has ongoing revenue to cover its expenses and any incentive rewards, it is no longer in any danger of ending abruptly. The system has been running successfully for several years now, to everyone's increasing benefit. So the long-term success of our pioneering rCredits Common Good Economy is looking more and more certain.</p>
 EOF
   ) . $back;
 
@@ -221,10 +224,10 @@ EOF
      </ul>
      <p>Being able to discuss and decide together what to incentivize and what to fund means we decide together what to make happen in our world. The future is ours. Together we can provide a decent life for everyone in our community, offer a hand to people elsewhere, and do our part to rescue ourselves from the brink of climate-change disaster.</p>
      <p>Having enough revenue to cover the incentive rewards is a small step along that path. Nobody knows yet when we will have a fully-functioning Common Good Community, capable of making that judgment. One of our community organizers predicts it will be when there are about 3,000 rCredits members. Time will tell.</p>
-     <p>In the meantime, you are encouraged to maintain a positive Primary Balance, treating your incentive rewards as a <!aReserve>Savings Reserve</a>, so those rCredits can keep circulating among the participants as much as possible, while we grow.</p>
+     <p>In the meantime, you are encouraged to maintain a positive Balance, treating your incentive rewards as a <!aReserve>Credit Reserve</a>, so those rCredits can keep circulating among the participants as much as possible, while we grow.</p>
 EOF
   , ['!aCGC' => 'a href="common-good-community"',
-     '!aReserve' => 'a href="savings-reserve"']) . $back;
+     '!aReserve' => 'a href="credit-reserve"']) . $back;
   
   if ($i == 'ethics') return t(<<<EOF
     <p>A Common Good Community relies on its members to show a high level of ethical behavior, as the basis for creating a culture of trust and possibility. Of course it is always possible for someone to "game" the system and we will continue to develop software that brings such misbehavior to the attention of the community.</p>
@@ -335,15 +338,15 @@ EOF
     <p>The chart also shows three measures of the community's risk of having a <@aCrunch>cash flow crunch</a>:</p>
     <ul>
       <li><b style='color:white; background-color:orange;'>In Use</b>. The orange line shows how much money is being used each month. Money in consistent use tends to stay in the system.</li>
-      <li><p><b style='color:black; background-color:yellow;'>Runny Rewards</b>. Incentive rewards always go into your Savings Reserve. If they stay there while the system grows to become stable, there is no risk of someone cashing them out, shrinking the rCredits Escrow. Maybe you plan to spend them next month. Or maybe you are holding them in your rCredits account as a hedge against inflation. But the system can't guess that. Unless you use the auto-refill feature, the system assumes you might spend your rewards at any moment (resulting in a negative Primary Balance). We call those funds that might be spent at any moment "runny".</p>
-      <p>On the other hand, if you DO use the auto-refill feature, you have chosen to keep a certain minimum Primary Balance in your rCredits account. That minimum partially offsets the runny rewards in other accounts, making a cash flow crunch even less likely. The yellow line shows the total of runny rewards minus the estimated total Primary Balances in accounts that use auto-refill (conservatively assuming each person's average balance is half their chosen minimum). The formula looks something like this:</p>
+      <li><p><b style='color:black; background-color:yellow;'>Runny Rewards</b>. Incentive rewards simply increase your Credit Reserve. If you keep a positive balance while the system grows to become stable, then no one can cash out those rewards, shrinking the rCredits Escrow. Maybe you plan to spend them next month. Or maybe you are holding them in your rCredits account as a hedge against inflation. But the system can't guess that. Unless you use the auto-refill feature, the system assumes you might spend your rewards at any moment (resulting in a negative Balance). We call those funds that might be spent at any moment "runny".</p>
+      <p>On the other hand, if you DO use the auto-refill feature, you have chosen to keep a certain Target Balance in your rCredits account. That target partially offsets the runny rewards in other accounts, making a cash flow crunch even less likely. The yellow line shows the total of runny rewards minus the estimated total balances in accounts that use auto-refill (conservatively assuming each person's average balance is half their chosen target). The formula looks something like this:</p>
       
       <blockquote>Total Runniness = SUM(runny rewards) - SUM(auto-refill levels / 2)</blockquote>
       </li>
               
       <li><b style='color:white; background-color:darkred;'>Top 5</b>. For accounts with the most runny rewards (the top 5 or top 5%, whichever is higher), reward amounts are totaled and shown as a red line. It is unlikely that more than 5% of the accounts would decide to spend all their rewards at the same time.</li>
 
-      <li><b style='color:white; background-color:magenta;'>Runny Balance</b>. The violet line shows the actual total combined balance in runny accounts (Primary Balance plus Savings Reserve). They <i>could</i> spend all their rewards, but this is what they actually have done so far.</li>
+      <li><b style='color:white; background-color:magenta;'>Runny Balance</b>. The violet line shows the actual total combined balance in runny accounts (Balance plus Credit Reserve). They <i>could</i> spend all their rewards, but this is what they actually have done so far.</li>
     </ul>
 EOF
   , ['@aCrunch' => 'a href=cashflow-crunch']) . $back;

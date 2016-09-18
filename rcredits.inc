@@ -812,9 +812,10 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_notices:uid:D',
   // r_options
   // r_pairs
+    'r_proposals:ctty',
     'r_proxies:person:D',
     'r_proxies:proxy:D',
-  // r_questions
+    'r_questions:ctty',
   // r_regions
     'r_relations:main:D',
     'r_relations:other:D',
@@ -955,7 +956,8 @@ function noticeArgs($uid, $where = '0', $weekly = FALSE, $monthly = FALSE, $at =
   $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
   extract(u\just('return', $a->j_stats()));
   $balance = u\fmtAmt($a->j_balance);
-  $savings = u\fmtAmt($a->j_savings);
+//  $savings = u\fmtAmt($a->j_savings);
+  $savings = u\fmtAmt($a->j_rewards);
   list ($rewards, $ourEmail) = array(u\fmtAmt($a->j_rewards), $a->cttyA->email);
   $balance = u\tt('balance notice', compact('balance', 'savings', 'rewards'));
   $companies = \variable_get('companies');
@@ -1026,7 +1028,7 @@ function getStats($ctty, $created = NULL) {
   : ["SUM($tmembers * IF(u.community<>:ctty AND u2.community=:ctty, amount, 0))",
      "SUM($tmembers * IF(u2.community<>:ctty AND u.community=:ctty, -amount, 0))"];
   
-  $runny = 'IF(:HAS_BANK AND minimum>0, -minimum/2, IF(:IS_CO, 0, tin.rewards))'; // spendable, leading to a run on the bank
+  $runny = 'IF(:HAS_BANK AND :IS_REFILL AND minimum>0, -minimum/2, IF(:IS_CO, 0, tin.rewards))'; // spendable, leading to a run on the bank
   $payins = '(SELECT payee, SUM(amount) AS received, SUM(IF(type IN (:TX_REWARDS), amount, 0)) AS rewards FROM r_txs WHERE created<=:created GROUP BY payee)';
   $payouts = '(SELECT payer, SUM(amount) AS paid FROM r_txs WHERE created<=:created GROUP BY payer)';
   $exchanges = '(SELECT payer, SUM(-amount) AS deposited FROM r_usd WHERE created<=:created GROUP BY payer)';
@@ -1159,20 +1161,22 @@ EOF;
 }
 
 /**
- * Return the average combined balance for the given account (possibly joint) and given period.
+ * Return the average balance (not including rewards) for the given account (possibly joint) and given period.
  * @param int $uid: account id (can be a community or region too)
  * @param int $start: starting date (should be 0 hours) -- first full day to include in the period
  * @param int $end: ending date (should be 0 hours) -- last full day to include in the period
  * @param bool $noj: ignore any joined account
- * @param float $min: minimum end-of-day combined balance in the period
+ * @param float $min: minimum end-of-day balance in the period
  * @param float $days: (RETURNED) (UNUSED) number of days from start to end, inclusive
- * @return float: the average combined balance for that period (possibly with fractional cents)
+ * @return float: the average balance for that period (possibly with fractional cents)
  */
 function averageBalance($uid, $start, $end = NULL, $noj = FALSE, &$min = '', &$days = '') {
   //u\EXPECT($uid > 1, 'bad uid for avg');
   u\setDft($end, r\rTime());
   if (!$days = round(($end + 1 - $start) / DAY_SECS)) return 0; // rounding is for daylight savings time changes
-  $min = $bal = be\creditInfo(u\ray('uid asof', $uid, $start - 1))->r;
+  $info = be\creditInfo(u\ray('uid asof', $uid, $start - 1));
+//  $min = $bal = $info->r;
+  $min = $bal = $info->balance;
   $jid = @$noj ? 0 : (r\acct($uid)->jid ?: 0);
   $isPayer = 't.payer IN (:uid, :jid)';
   $isPayee = 't.payee IN (:uid, :jid)'; // account can be both payer and payee, if joint account

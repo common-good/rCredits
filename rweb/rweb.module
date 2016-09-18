@@ -93,6 +93,7 @@ function rweb_menu($submenu = '') {
 //    'history/notice' => ['call', t('Notice'), 'Notice 2', 'read'],
     
 //    'community' => ['norm', t('Community'), 'FindCo', 'anyone'],
+    'proposal' => ['call', t('Funding Proposal'), 'Proposal', 'anyone'], // keep the url short, for outsiders
     'community' => ['norm', t('Community'), 'Community', 'anyone'],
     'community/democracy' => ['sub', t('Discussion & Voting'), 'Democracy 2', 'ok manage', '', t(''), 'bell'],
     'community/agreement' => ['sub', t('The Agreement'), 'Agreement', 'anyone', '', t(''), 'globe'],
@@ -115,7 +116,7 @@ function rweb_menu($submenu = '') {
     'settings/contact' => ['sub', t('Contact Info'), 'Contact', 'manage', '', t(''), 'user'],
     'settings/preferences' => ['sub', t('Preferences'), 'Preferences', 'manage', '', t(''), 'cog'],
     'settings/security' => ['sub', t('Security'), 'Security 2', 'manage -co', '', t(''), 'link'],
-    'settings/bank' => ['sub', t('Bank Info'), 'Bank 2', 'manage', '', t(''), 'piggy-bank'],
+    'settings/bank' => ['sub', t('Bank Info'), 'BankInfo 2', 'manage', '', t(''), 'piggy-bank'],
     'settings/company' => ['sub', t('Company Info'), 'Company 2', 'manage co', '', t(''), 'calendar'],
     'settings/relations' => ['sub', t('Relations'), 'Relations', 'manage', '', t(''), 'magnet'],
 // DISABLE FOR NOW    'settings/boxes' => ['sub', t('Devices'), 'Boxes', 'manage', '', t(''), 'phone'],
@@ -124,6 +125,7 @@ function rweb_menu($submenu = '') {
 
     'reset' => ['call', t('Choose New Password'), 'ResetPassword 1', 'anyone'],
     'settings/notifications' => ['call', t('Notifications'), 'Notifications', 'manage'],
+    'settings/ssn' => ['call', t('Correct SSN'), 'Ssn 2', 'manage'],
     'settings/password' => ['call', t('Request New Password'), 'Pass 2', 'anyone'],
     'settings/security/change-password' => ['call', 'Change Password', 'ChangePassword', 'manage'],
     'settings/security/change-pin' => ['call', 'Change PIN', 'ChangePin', 'manage'],

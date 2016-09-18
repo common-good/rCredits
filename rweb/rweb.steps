@@ -49,6 +49,17 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Bank AMemberMovesTooMuchToTheBank
  *     MAKE Bank AMemberTriesToGoBelowTheirMinimum
  *     MAKE Bank AMemberAsksToDoTwoTransfersOutInOneDay
+ *     MAKE BankInfo AMemberConnectsABankAccount
+ *     MAKE BankInfo AMemberChoosesAutomaticRefills
+ *     MAKE BankInfo AMemberDisconnectsABankAccount
+ *     MAKE BankInfo AMemberGivesABadRoutingNumber
+ *     MAKE BankInfo AMemberGivesABadAccountNumber
+ *     MAKE BankInfo AMemberGivesMismatchedAccountNumbers
+ *     MAKE BankInfo AMemberGivesABadTargetAmount
+ *     MAKE BankInfo AMemberGivesABadMinimumTransferAmount
+ *     MAKE BankInfo AMemberChoosesTooLowATargetWithAPositiveBalance
+ *     MAKE BankInfo AMemberChoosesTooLowATargetWithANegativeBalance
+ *     MAKE BankInfo AMemberChoosesTooLowAnACHMinimum
  *     MAKE Exchange AMemberAsksToChargeAnotherMember
  *     MAKE Exchange AMemberAsksToPayAnotherMember
  *     MAKE Exchange AMemberAsksToCashOutTooMuch
@@ -57,11 +68,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Gift AMemberDonatesWithInsufficientFunds
  *     MAKE Joint AJoinedAccountSlaveMemberRequestsANewMinimum
  *     MAKE Preferences AMemberChangesPreferences
- *     MAKE Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
- *     MAKE Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
- *     MAKE Preferences AMemberChoosesTooLowASavingsReserve
- *     MAKE Preferences AMemberChoosesNegativeWeeklySavingsWithoutAnySavings
- *     MAKE Preferences AMemberChoosesTooLowAnACHMinimum
  *     MAKE Reimburse AMemberAsksToChargeAnotherMember
  *     MAKE Reimburse AMemberAsksToPayAnotherMember
  *     MAKE Signin AMemberAsksForANewPasswordForUsername
@@ -172,6 +178,8 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  * members: (ARG)
  *
  * in: MAKE Bank Setup
+ *     MAKE BankInfo Setup
+ *     TEST BankInfo AMemberConnectsABankAccount
  *     MAKE Community Setup
  *     MAKE Company Setup
  *     TEST Company AMemberUpdatesCompanyInfo
@@ -217,6 +225,9 @@ function members($list) {return t\members($list);}
  * transactions: (ARG)
  *
  * in: MAKE Bank Setup
+ *     MAKE BankInfo Setup
+ *     MAKE BankInfo AMemberChoosesTooLowATargetWithAPositiveBalance
+ *     MAKE BankInfo AMemberChoosesTooLowATargetWithANegativeBalance
  *     MAKE Community Setup
  *     MAKE Download Setup
  *     MAKE EditTx Setup
@@ -232,8 +243,6 @@ function members($list) {return t\members($list);}
  *     MAKE Joint AJoinedAccountMemberUnjoinsTheAccount
  *     MAKE Preferences Setup
  *     MAKE Preferences AMemberChangesPreferences
- *     MAKE Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
- *     MAKE Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
  *     MAKE Reimburse Setup
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
  *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
@@ -256,6 +265,9 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Bank AMemberTriesToCashOutRewardsAndorPendingWithdrawals
  *     TEST Bank AMemberMovesTooMuchToTheBank
  *     TEST Bank AMemberAsksToDoTwoTransfersOutInOneDay
+ *     TEST BankInfo AMemberGivesMismatchedAccountNumbers
+ *     TEST BankInfo AMemberChoosesTooLowATargetWithAPositiveBalance
+ *     TEST BankInfo AMemberChoosesTooLowATargetWithANegativeBalance
  *     TEST EditTx ABuyerTriesToDecreaseAPaymentAmount
  *     TEST EditTx ABuyerDisputesACharge
  *     TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
@@ -266,8 +278,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Gift AMemberDonatesWithInsufficientFunds
  *     TEST Joint AMemberRequestsAJointAccount
  *     TEST Joint AMemberRequestsTwoJoinsAtOnce
- *     TEST Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
- *     TEST Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
  *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
  *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
@@ -319,6 +329,11 @@ function weSayWithSubs($type, $index, $subs) {
  *
  * in: TEST Bank AMemberMovesTooLittleToTheBank
  *     TEST Bank AMemberTriesToGoBelowTheirMinimum
+ *     TEST BankInfo AMemberGivesABadRoutingNumber
+ *     TEST BankInfo AMemberGivesABadAccountNumber
+ *     TEST BankInfo AMemberGivesABadTargetAmount
+ *     TEST BankInfo AMemberGivesABadMinimumTransferAmount
+ *     TEST BankInfo AMemberChoosesTooLowAnACHMinimum
  *     TEST Company AMemberUpdatesCompanyInfo
  *     TEST Contact AMemberUpdatesContactInfo
  *     TEST Contact AMemberGivesABadPhone
@@ -328,10 +343,6 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST EditTx ABuyerIncreasesAPaymentAmount
  *     TEST EditTx ABuyerChangesTheGoodsStatus
  *     TEST Membership AMemberSignsInForTheFirstTime
- *     TEST Membership AMemberDoesItAll
- *     TEST Preferences AMemberChoosesTooLowASavingsReserve
- *     TEST Preferences AMemberChoosesNegativeWeeklySavingsWithoutAnySavings
- *     TEST Preferences AMemberChoosesTooLowAnACHMinimum
  *     TEST Relations AMemberTriesToAddARelationWithSelf
  *     TEST Relations AMemberTriesToAddARelationAgain
  *     TEST Signin AMemberTypesTheWrongPassword
@@ -374,16 +385,18 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
  * in: TEST Gift AMemberDonates
  *     TEST Gift AMemberDonatesWithInsufficientFunds
  *     TEST Membership AMemberDoesItAll
- *     TEST Membership AMemberOpensABusinessAccount
  */
 function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
 /**
  * we show (ARG)
  *
- * in: TEST Membership AMemberSignsInForTheFirstTime
+ * in: TEST BankInfo AMemberVisitsTheBankInfoPageBeforeConnecting
+ *     TEST BankInfo AMemberConnectsABankAccount
+ *     TEST BankInfo AMemberChoosesAutomaticRefills
+ *     TEST BankInfo AMemberDisconnectsABankAccount
+ *     TEST Membership AMemberSignsInForTheFirstTime
  *     TEST Membership AMemberDoesItAll
- *     TEST Membership AMemberOpensABusinessAccount
  *     TEST Signin AMemberSignsInWithUsernameOnTheMemberSite
  *     TEST Signin AMemberSignsInWithAccountIDOnTheMemberSite
  *     TEST Signin AMemberSignsInWithEmailOnTheMemberSite
@@ -414,6 +427,7 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  * we show (ARG) with: (ARG)
  *
  * in: TEST Bank AMemberAsksToDoTwoTransfersOutInOneDay
+ *     TEST BankInfo AMemberVisitsTheBankInfoPageAfterConnecting
  *     TEST Community CronCalculatesTheStatistics
  *     TEST Company AMemberVisitsTheCompanyInfoPage
  *     TEST Contact AMemberVisitsTheContactInfoPage
@@ -425,7 +439,6 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST Joint AMemberRequestsTwoJoinsAtOnce
  *     TEST Membership AMemberClicksTheMembershipLink
  *     TEST Membership ACompanyAgentClicksOnTheMembershipLink
- *     TEST Membership AMemberOpensABusinessAccount
  *     TEST Preferences AMemberVisitsThePreferencesPage
  *     TEST Preferences AnotherMemberVisitsThePreferencesPage
  *     TEST Relations MemberHasAnEmployeeConfirmed
@@ -540,6 +553,8 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Bank AMemberMovesCreditToTheBank
  *     TEST Bank AMemberDrawsCreditFromTheBankWithZeroFloor
  *     TEST Bank AMemberDrawsCreditFromTheBankWithAdequateFloor
+ *     TEST BankInfo AMemberChoosesTooLowATargetWithAPositiveBalance
+ *     TEST BankInfo AMemberChoosesTooLowATargetWithANegativeBalance
  *     TEST Community Setup
  *     TEST Download Setup
  *     TEST EditTx Setup
@@ -553,8 +568,6 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Joint Setup
  *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     TEST Joint AJoinedAccountMemberUnjoinsTheAccount
- *     TEST Preferences AMemberChoosesTooLowAMinimumWithAPositiveBalance
- *     TEST Preferences AMemberChoosesTooLowAMinimumWithANegativeBalance
  *     TEST Reimburse Setup
  *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
@@ -581,7 +594,10 @@ function usd($list) {return t\usd($list);}
 /**
  * member (ARG) visits page (ARG)
  *
- * in: MAKE Community CronCalculatesTheStatistics
+ * in: MAKE BankInfo AMemberVisitsTheBankInfoPageBeforeConnecting
+ *     MAKE BankInfo AMemberVisitsTheBankInfoPageAfterConnecting
+ *     MAKE BankInfo AMemberDisconnectsABankAccount
+ *     MAKE Community CronCalculatesTheStatistics
  *     MAKE Company AMemberVisitsTheCompanyInfoPage
  *     MAKE Contact AMemberVisitsTheContactInfoPage
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
@@ -593,7 +609,6 @@ function usd($list) {return t\usd($list);}
  *     MAKE Membership AMemberClicksTheMembershipLink
  *     MAKE Membership ACompanyAgentClicksOnTheMembershipLink
  *     MAKE Membership AMemberDoesItAll
- *     MAKE Membership AMemberOpensABusinessAccount
  *     MAKE Preferences AMemberVisitsThePreferencesPage
  *     MAKE Preferences AnotherMemberVisitsThePreferencesPage
  *     MAKE Relations MemberHasAnEmployeeConfirmed
@@ -718,7 +733,6 @@ function memberAccountIsNotActive($id) {
  * in: TEST Membership AMemberClicksTheMembershipLink
  *     TEST Membership ACompanyAgentClicksOnTheMembershipLink
  *     TEST Membership AMemberDoesItAll
- *     TEST Membership AMemberOpensABusinessAccount
  */
 function withDone($steps) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -730,7 +744,6 @@ function withDone($steps) {
  * member (ARG) has done step (ARG)
  *
  * in: MAKE Membership AMemberDoesItAll
- *     MAKE Membership AMemberOpensABusinessAccount
  */
 function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
 
@@ -748,8 +761,7 @@ function memberSupplies($uid, $field, $value) {
 /**
  * member (ARG) has permission (ARG)
  *
- * in: MAKE Membership AMemberDoesItAll
- *     MAKE Membership AMemberOpensABusinessAccount
+ * in: 
  */
 function memberHasPermission($uid, $permission) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -945,14 +957,14 @@ function statisticsGetSet($time) {
 /**
  * members have: (ARG)
  *
- * in: MAKE Community CronCalculatesTheStatistics
+ * in: TEST BankInfo AMemberChoosesAutomaticRefills
+ *     TEST BankInfo AMemberDisconnectsABankAccount
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
  *     TEST Joint AMemberRequestsAJointAccount
  *     BOTH Joint AJoinedAccountSlaveMemberRequestsANewMinimum
  *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     BOTH Joint AJoinedAccountMemberUnjoinsTheAccount
  *     MAKE Membership AMemberDoesItAll
- *     MAKE Membership AMemberOpensABusinessAccount
  *     MAKE Summary Setup
  *     MAKE Transactions AMemberLooksAtTransactionsForThePastYear
  */
@@ -989,7 +1001,7 @@ function memberIsOnStepWithinSeconds($id, $step, $secs) {
 /**
  * account (ARG) was set up by member (ARG)
  *
- * in: MAKE Membership AMemberOpensABusinessAccount
+ * in: 
  */
 function accountWasSetUpByMember($coId, $id) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -1159,7 +1171,7 @@ function memberCacheIsOk($id) {return r\acct(t\uid($id))->cacheOk();}
 /**
  * member (ARG) has no photo ID recorded
  *
- * in: 
+ * in: MAKE Preferences AMemberChangesPreferences
  */
 function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
 
@@ -1248,6 +1260,7 @@ function memberEmailInvitationCodeIs($id, $code) {
 function weShowChecked($what, $wantSet = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $tChecked;
+
   $checks = join('|', @$tChecked ?: []);
   $checked = $wantSet ? 'checked' : 'unchecked';
   
@@ -1267,3 +1280,19 @@ function weShowChecked($what, $wantSet = TRUE) {
  *     TEST Preferences AnotherMemberVisitsThePreferencesPage
  */
 function weShowUnchecked($what) {return weShowChecked($what, FALSE);}
+
+/**
+ * radio (ARG) is (ARG)
+ *
+ * in: TEST BankInfo AMemberVisitsTheBankInfoPageBeforeConnecting
+ *     TEST BankInfo AMemberVisitsTheBankInfoPageAfterConnecting
+ *     TEST BankInfo AMemberDisconnectsABankAccount
+ *     TEST Preferences AMemberVisitsThePreferencesPage
+ *     TEST Preferences AnotherMemberVisitsThePreferencesPage
+ */
+function radioIs($k, $v) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  global $tRadios;
+
+  return (strpos(@$tRadios[$k], $v) !== FALSE);  
+}

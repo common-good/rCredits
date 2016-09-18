@@ -16,26 +16,22 @@ Setup:
 Scenario: A member visits the preferences page
   When member ".ZZA" visits page "settings/preferences"
   Then we show "Account Preferences" with:
-  | Minimum |  100 |
-  | Savings |    0 |
-  | Save Weekly | 1 |
-  | Min Transfer | 20 |
   | Share | 30% |
+  And radio "statements" is "printed statements"
+  And radio "notices" is "daily"
   And we show checked:
-  | Email Notices | daily |
   | No Search | by name or account number only |
   And we show unchecked:
-  | Statements | I will accept electronic |
   | Secret Balance | Don't let merchants |
 
 Scenario: Another member visits the preferences page
   When member ".ZZB" visits page "settings/preferences"
   Then we show "Account Preferences" with:
-  | Minimum | -10 |
+  | Share | 20% |
+  And radio "statements" is "accept electronic"
+  And radio "notices" is "weekly"
   And we show checked:
-  | Email Notices | weekly |
   | Secret Balance | Don't let merchants |
-  | Statements | I will accept electronic |
   And we show unchecked:
   | No Search | by name or account number only |
   
@@ -43,55 +39,10 @@ Scenario: A member changes preferences
   Given transactions: 
   | xid | created   | type   | amount | from | to   | purpose |*
   |   3 | %today-1m | grant  |    250 | ctty | .ZZA | grant   |
+  And member ".ZZA" has no photo ID recorded
   When member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | savingsAdd | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |     200 |         50 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
+  | share | notices | statements | nosearch | secretBal |*
+  |    25 | monthly | electronic |        0 |         1 |
   Then members:
-  | id   | share | minimum | savingsAdd | saveWeekly | achMin | flags   |*
-  | .ZZA |    25 |     200 |         50 |         20 |  10 | member,ok,confirmed,bona,monthly,secret |
-
-Scenario: A member chooses too low a minimum, with a positive balance
-  Given transactions:
-  | xid | created | type     | amount | from | to   | purpose |*
-  |   3 | %today  | transfer |    400 | .ZZB | .ZZA | stuff   |
-  Then balances:
-  | id   | balance |*
-  | .ZZA |     400 |
-  When member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | savingsAdd | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |       5 |         50 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
-  Then we say "error": "min sub floor" with subs:
-  | floor |*
-  | $10   |
-  
-Scenario: A member chooses too low a minimum, with a negative balance
-  Given transactions:
-  | xid | created | type     | amount | from | to   | purpose |*
-  |   3 | %today  | transfer |    400 | .ZZA | .ZZB | stuff   |
-  Then balances:
-  | id   | balance |*
-  | .ZZA |    -400 |
-  When member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | savingsAdd | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |    -401 |          0 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
-  Then we say "error": "min sub floor" with subs:
-  | floor |*
-  | $-400 |
-  
-Scenario: A member chooses too low a savings reserve
-  When member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | savingsAdd | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |     200 |         -1 |         20 |     10 |    25 | monthly | electronic |        0 |         1 |
-  Then we say "error": "savings too low"
-  
-Scenario: A member chooses negative weekly savings without any savings
-  When member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | savingsAdd | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |     200 |          0 |        -20 |     10 |    25 | monthly | electronic |        0 |         1 |
-  Then we say "error": "negative saveWeekly"
-
-Scenario: A member chooses too low an ACH minimum
-  When member ".ZZA" completes form "settings/preferences" with values:
-  | minimum | savingsAdd | saveWeekly | achMin | share | notices | statements | nosearch | secretBal |*
-  |     200 |          0 |         20 |      1 |    25 | monthly | electronic |        0 |         1 |
-  Then we say "error": "bad achmin"
+  | id   | share |  flags   |*
+  | .ZZA |    25 | member,ok,confirmed,bona,monthly,secret |

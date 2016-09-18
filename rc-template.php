@@ -187,12 +187,7 @@ function rcredits_links($variables) {
     
     if (in_array($m_href, ['history', 'settings', 'community', 'sadmin'])) {
       $class .= ' submenu';
-//      $menu = w\modal($id, $m_title, '', w\subMenuHtml($m_href), 'X');
       $menu = w\subMenuHtml($m_href);
-//      $menu = htmlspecialchars("<div class=\"popmenu\">$menu</div>");
-//       <div id="hidden-$id" class="element-invisible">$menu</div>
-//      <a href="#" onclick="jQuery('#block-system-main .content').html(jQuery('#hidden-$id').html()); jQuery('#navbar').hide();">$m_title</a>
-//      <a href="#" data-toggle="popover" data-html="true" data-content="$menu" data-placement="bottom" 
       $link = <<<EOF
       <div class="popmenu">$menu</div>
       <a href="#" data-toggle="popover" data-html="true" data-trigger="manual" data-animation="false" onclick="jQuery('.submenu a').not(jQuery(this)).popover('hide'); jQuery(this).popover('toggle');">$m_title</a>
@@ -295,6 +290,7 @@ EOF;
 function rcredits_form_element($variables) {
   extract(rcElement($variables, 'name tabled type bare markup help parents children required title title_display id field_prefix field_suffix inline class box'));
 ///  debug(compact('parents', 'tabled', 'bare'));
+
   $for = @$name ?: strtr(@$parents[0], [' '=>'-', '_'=>'-', '['=>'-', ']'=>'']);
   if ($for == 'title') $children = "<h3>$children</h3>";
   $children = @$field_prefix . $children . @$field_suffix;
@@ -324,7 +320,7 @@ EOF;
   $outerClass = "form-group form-item-$for";
   $outerClass .= ' ' . ($boxy ?: "form-type-$type");
   $required = @$required ? ' required="yes"' : '';
-  if (@$box) $outerClass .= ' box1';
+  if (@$class[0] == 'boxes') $outerClass .= ' boxes';
   if (@$attributes['disabled']) $outerClass .= ' disabled';
   
   return <<<EOF
@@ -382,13 +378,13 @@ function rcredits_radios($variables) {
 
 function rcredits_radio($variables) {
   \element_set_attributes($variables['element'], array('id', 'name', '#return_value' => 'value'));
-  extract(rcElement($variables, 'title attributes class return_value value'));
+  extract(rcElement($variables, 'title attributes class return_value value parents'));
   
   if (isset($return_value) and $value === $return_value) $checked = 'checked';
   $type = 'radio';
   $class[] = 'form-radio';
   $tribs = u\tribs(compact(u\ray('type class checked')) + $attributes);
-  if (@$checked) t\setChecked($title);
+  if (@$checked) t\setRadio($parents[0], $title);
 
   return "<input $tribs />";
 }

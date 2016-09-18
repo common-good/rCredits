@@ -18,7 +18,7 @@ Setup:
 Scenario: A member signs in for the first time
   Given member is logged out
   And invitation to email "d@" from member ".ZZA" is "c0D3"
-  And next random code is "%whatever"
+  And next random code is "%whatever2"
   When member "?" confirms form "signup/code=c0D3" with values:
   | fullName  | email | phone | country | postalCode | federalId | dob | acctType    | code | address | city    | state | tenure | owns | postalAddr                |*
   | Dee Four  | d@ | 413-253-0000 | US | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 | 1 A St. | Amherst | MA    |     25 |    0 | 1 A St., Amherst, MA 01002 |
@@ -27,16 +27,14 @@ Scenario: A member signs in for the first time
   | .AAA | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents | .ZZA   |
   And we say "status": "your account is ready"
   And we email "welcome" to member "d@" with subs:
-  | fullName | name    | qid    | site      | code      |*
-  | Dee Four | deefour | NEWAAA | %BASE_URL | %whatever |
+  | fullName | name    | qid    | site      | code       |*
+  | Dee Four | deefour | NEWAAA | %BASE_URL | %whatever2 |
 
-  When member "?" visits page "reset/id=deefour&code=%whatever"
+  When member "?" visits page "reset/id=deefour&code=%whatever2"
   Then we show "Choose a New Password"
-  When member "?" confirms form "reset/id=deefour&code=%whatever" with values:
+  When member "?" confirms form "reset/id=deefour&code=%whatever2" with values:
   | pass1      | pass2      | strong |*
-  | %whatever2 | %whatever2 | 1      |
-#  | name    | pass      | pass1  | pass2  | pin  |
-#  | deefour | %whatever | Aa1!.. | Aa1!.. | 1234 |
+  | %whatever3 | %whatever3 | 1      |
   Then member ".AAA" is logged in
   And we show "Account Summary"
   And we say "status": "take a step"
@@ -99,8 +97,9 @@ Scenario: A member does it all
 
   When member ".ZZA" has done step "connect"
   Then we tell staff "event - member" with subs:
-  | fullName | quid | status |
+  | fullName | quid | status |*
   | Abe One  | .ZZA | member |
+  Skip
   When member ".ZZA" visits page "summary"
   Then we say "status": "setup complete|must be confirmed"
 #  And we say "status": "adjust settings"

@@ -15,7 +15,8 @@ Setup:
 # relationship is here only so we can identify which account admin is managing
 
 Scenario: Admin activates an account
-  Given member "D:A" completes form "summary" with values:
+  Given member ".ZZD" has no photo ID recorded
+  When member "D:A" completes form "summary" with values:
   | mediaConx | rTrader | helper  | federalId  | adminable        |*
   |         1 |       1 | Bea Two | %R_ON_FILE | member,confirmed |
   Then we notice "got funding" to member ".ZZD" with subs:

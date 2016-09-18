@@ -24,8 +24,6 @@ use rCredits\Web as w;
 function setupBasicAccounts() {
   $keys = u\ray('uid community name fullName email postalCode country minimum rebate flags');
 
-  db\q('DELETE FROM users WHERE uid<>0');
-
   $q = db\q('SELECT :R_REGION_FIELDS FROM r_regions');
   while ($row = $q->fetchAssoc()) { // create or update all regions
     extract($row);
@@ -46,7 +44,8 @@ function setupBasicAccounts() {
     }
   }
   //$region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
-
+  if (!isDEV) return; // don't mess with existing members on stage or production server
+  
   $values = array(1, 0, 'admin', t('System Administrator'), r\regionField('email'), '', 0, 0, 0, u\bit([B_ADMIN, B_CO]));
   $info = array_combine($keys, $values);
   $a1 = new r\Acct($info); // set up system admin record (uid=1)
@@ -85,24 +84,24 @@ function makeTestCards() {
 
   $a = a('aaa');
   $a->update('name fullName cardCode2 pin', 'bobbossman', 'Bob Bossman', 'WeHlioM5JZv1O9G', '1234');
-  a\shrinkPhoto($a);
+  a\photoFromFile($a);
   
   $a = a('aad');
   $a->update('name fullName cardCode2 pin', 'cathycashier', 'Cathy Cashier', 'ME04nW44DHzxVDg', '1234');
-  a\shrinkPhoto($a);
+  a\photoFromFile($a);
   
   $a = a('aaq');
   $a->update('name fullName', 'helgas', 'Helga\'s Hardware');
 //  $a->setBitx(CO_REQUIRE_CASHIER, TRUE, 'coFlags');
-  a\shrinkPhoto($a);
+  a\photoFromFile($a);
   
   $a = a('aak');
   $a->update('name fullName cardCode cardCode2 pin', 'curtcustomer', 'Curt Customer', 'NyCBBlUF1qWNZ2k', 'utbYceW3KLLCcaw', '1234');
-  a\shrinkPhoto($a);
+  a\photoFromFile($a);
   
   $a = a('abb');
   $a->update('name fullName cardCode pin', 'susanshopper', 'Susan Shopper', 'ZzhWMCq0zcBowqw', '1234');
-  a\shrinkPhoto($a);
+  a\photoFromFile($a);
 }
 
 /**
@@ -224,6 +223,7 @@ function showRecords($ray) {
  * Return the given field, formatted for viewing.
  */
 function formatField($k, $v) {
+  $v = $v . ''; // convert to string
   if ($k == 'bankAccount' and u\starts($v, '~')) $v = 'c' . $v; // FUDGE to repair broken crypt flag (?)
   while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
   if ($v and in_array($k, u\ray(ID_KEYS)) and strlen($v) >= strlen(r\cgfId())) {
@@ -436,17 +436,20 @@ function getBanks() {
  * Create a smaller photo to send to POS devices
  * CALLED ONLY FROM a\makeTestCards()!
  * @param acct $a: the account whose photo is to be shrunk
+ * @param string $filename: the photo filename (defaults to account's shortname)
  * @param string $err: (RETURNED) the error message, if any
  * @return <success>
   include_once __DIR__ . '/../rcredits/admin/admin.inc';
-  debug (f('a.shrinkPhoto', a('aaa'), $err));
+  debug (f('a.photoFromFile', a('aaa'), $err));
   debug ($err);
+  currently called only from a.makeTestCards()
  */
-function shrinkPhoto($a, &$err = '') {
+function photoFromFile($a, $filename = '', &$err = '') {
   if ($a->co) return !$err = 'tried to shrink a company photo';
 //  if ($a->hasPhoto('picture2')) return !$err = 'POS photo already exists';
   if (@$a->photo) $err = 'POS photo already exists'; // not really an error
-  $photoPath = DRUPAL_ROOT . $a->photoFilename(TRUE);
+  $photoPath = DRUPAL_ROOT . R_PICTURE_DIR . ($filename ?: "$a->name.jpg");
+//  $a->photoFilename(TRUE));
   $img = u\alterImg(imagecreatefromjpeg($photoPath), R_PHOTO_WIDTH, R_PHOTO_HEIGHT);
   ob_start();
   imagejpeg($img, NULL, 50);
@@ -792,23 +795,17 @@ function showSlugs() {
 // print iCards for all active members in the greater Greenfield ctty
 // be sure to chmod ...rcredits/temp to 777 before running this.
 function special() {
-  $cgfId = r\cgfId();
-  $ctty = a('!MIW')->id;
-  $accts = [];
-  $addrs[] = 'name~addr1~addr2';
-  $q = db\q("SELECT uid, fullName, (SELECT created FROM r_txs WHERE payer=u.uid AND payee>0 AND payee<>$cgfId ORDER BY created DESC LIMIT 1) AS lastUse FROM users u WHERE uid>0 AND community=$ctty ORDER BY fullName");
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    $a = a($uid);
-    $salvage[] = "$fullName: $a->lastiCode";
-    if ($a->ok and ($ctty == r\serverUid() ? $lastUse : TRUE) and !@$a->lastiCode) {
-      $accts[] = $a;
-      $addrs[] = "$fullName~" . join('~', explode(', ', $a->postalAddr, 2));
+  eachA(function ($a) {
+    if ($a->ided) return;
+    if ($a->photoId) {
+      $a->setBit(B_IDED);
+/**/      debug("OLD $a->fullName"); return;
     }
-  }
-/**/  debug(compact('salvage','addrs'));
-  file_put_contents(DRUPAL_ROOT . R_PATH . '/temp/merge.txt', join($addrs, "\n"));
-  w\printInvite($accts);
+    if (f('db.exists', 'r_txs t LEFT JOIN users u ON u.uid=t.payer', 'payer=:id AND NOT :IS_CO AND t.created>:date AND channel=:TX_POS AND t.data LIKE \'%"force";s:1:"0"%\'', ['id' => $a->id, 'date' => strtotime('-3 months')])) {
+/**/      debug("NEW $a->fullName");
+      $a->setBit(B_IDED); 
+    }
+  });
 }
 
 function showRequests() {

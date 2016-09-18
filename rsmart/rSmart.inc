@@ -29,7 +29,7 @@ use rCredits\Testing as t;
  *      => [ok, message, logon="1", name, descriptions[], can, device, default, company, time]
  *   OR  => [ok, message, logon, name, place, company, balance] where logon is 0 or -1
  * photo:  [member, code] => photo
- * charge:  [member, amount, goods, description, created, force, photoid] 
+ * charge:  [member, amount, goods, description, created, force] 
  *   => [ok, message, txid, created, balance, undo]
  * undo:  [txid, force] => [ok, message, balance]
  *
@@ -137,7 +137,9 @@ function posErr($message, $subs = []) {
 
 /**
  * Get the current server time
- * time:  [] => [ok=”1”, time, message]
+ * time:  [do, data] => [ok=”1”, time, message]
+ * @param string do: optional instruction from app
+ * @param string $data: message string or json-encoded data we requested from the app
  * @return json:
  *   time: the current unixtime
  *   message: something for the app to say or do (if it begins with "!")
@@ -145,12 +147,13 @@ function posErr($message, $subs = []) {
 function getTime($args) {
   global $mya;
   if ($err = missingArg($keys = 'version', $args)) return posErr($err); 
-  extract(u\just($keys . ' data', $args));
+  extract(u\just($keys . ' do data', $args));
   $time = r\rTime();
   
-  $message = handleAppData(@$data);
 //  if ($version < RPOS_VERSION) $message = '!update';
   if ($version < RPOS_VERSION) $message = t("Your app needs updating.\n\nSearch for \"rCredits\" in the Google Play Store, to download the latest version."); // was "< 211"
+  if (@$do or @$data) $message = handleAppMsg(@$do, @$data);
+
   return ok(compact(u\ray('time message')));
 }
  
@@ -183,27 +186,26 @@ function identify($args) {
   if ($err = missingArg($keys = 'device member code version', $args)) return posErr($err); // no agent on scanin
   extract(u\just($keys . ' agent pin signin', $args));
 
-  if (!$a = @$agent ? getCustomer(@$member, $code, $err) : $mya) { // get customer or agent
-//    if (in_array(@$member, u\ray('MIW.ACI NEW.ACH NEW.ACY'))) $a = r\acct($member); else // orphan
+  if (!$a = @$agent ? getCustomer(@$member, $code, $err, TRUE) : $mya) { // get customer or agent
     return posErr($err);
   }
 
-  if ($version >= 301 and !u\test()) {
+  if ($version >= 300 and !u\test()) {
     if (@$signin) {
       if (@$agent) {
         if ($a == $mya) return posErr('already scanned in');
-        if ($a->id != $mya->id) posErr('wrong company');
+        if ($a->id != $mya->id) return posErr('wrong company');
       }
       $logon = '1';
     } else {
       if (!@$agent) return posErr('scan in first');
-      $first = $a->agent->photoId ? '0' : '1'; // regular or first-time transaction 
+      $first = $a->agent->ided ? '0' : '1'; // regular or first-time transaction 
     }
   } else {
     $logon = '1'; // assume logging in
     if (@$agent) {
       if ($agent == $member) return posErr('already scanned in');
-      if ($a->id != $mya->id) $logon = $a->agent->photoId ? '0' : '-1'; // regular or first-time transaction for customer
+      if ($a->id != $mya->id) $logon = $a->agent->ided ? '0' : '-1'; // regular or first-time transaction for customer
   //    if ($logon == '-1' and $mya->coCan(CO_FAST)) $logon = '0'; // this company exempt from photoId checks
       $first = $logon == '-1' ? '1' : '0';
     }
@@ -214,7 +216,10 @@ function identify($args) {
 
   if (@$logon == '1') { //  identifying agent
 //    if ($a->proSe and (!$a->co or $a->coCan(CO_REQUIRE_CASHIER))) return posErr('scan in first');
-    if ($code != $a->cardCode() and $code != $a->codeHash()) return posErr('bad agent'); // . substr(bin2hex($code), 0, 20) . ' <> ' . substr(bin2hex($a->codeHash()), 0, 20) . ' <> ' . substr($code, 0, 20)); // . "=$agent (cardCode) id=$a->id myid=$mya->id agentId=$a->agentId qid=$a->qid code=$code acode=" . $a->cardCode());
+    if ($code != $a->cardCode() and $code != $a->codeHash()) {
+      if (u\test() or $version >= 300) return posErr('bad agent'); // . substr(bin2hex($code), 0, 20) . ' <> ' . substr(bin2hex($a->codeHash()), 0, 20) . ' <> ' . substr($code, 0, 20)); // . "=$agent (cardCode) id=$a->id myid=$mya->id agentId=$a->agentId qid=$a->qid code=$code acode=" . $a->cardCode());
+      r\tellStaff('bad code in identify op: ' . $err, compact(u\ray('member code')));
+    }
     if (!$a->can(B_SCAN)) return posErr('agent cannot scan');
     if (!@$deviceId) {
 /*      if ($device) {
@@ -256,8 +261,13 @@ function photo($args) {
   extract(u\just($keys . ' code', $args));
 
   if (!@$member) return photoReturn('missing member');
-  if (!@$code) return posErr(missingArg('code', []));
-  if (!$a = getCustomer($member, $code, $err)) return photoReturn($err);
+// FAILS in background in version 217  if (!@$code) return posErr(missingArg('code', []));
+// FAILS in background in version 217    if (!$a = getCustomer($member, $code, $err)) return photoReturn($err);
+  if (!@$code) r\tellStaff('missing code in photo op', compact(u\ray('member code')));
+  if (!$a = getCustomer($member, $code, $err, TRUE)) {
+    r\tellStaff('bad code in photo op: ' . $err, compact(u\ray('member code')));
+    if (u\test() or !$a = getCustomer($member, $code, $err, FALSE)) return photoReturn($err);
+  }
   return photoReturn($a->agent->photo());
 }
 
@@ -282,7 +292,7 @@ function photoReturn($pic) {
 
 /*
  * Request a charge.
- * charge:  [member, amount, code, goods, description, created, force, photoid]
+ * charge:  [member, amount, code, goods, description, created, force]
  *   => [ok, message, txid, created, balance, undo]
  * @param array $args:
  *   agent: qid for the seller (company rep)
@@ -294,7 +304,6 @@ function photoReturn($pic) {
  *   created: transaction creation date
  *   proof: hash of agent + amount + member + code + created (proof of card-present tx on or before created date)
  *   force: 0=nothing special, 1=do transaction even if insufficient funds, -1=force reversal of transaction
- *   photoid: the state and digits of the payer's drivers license or state ID
  * @param string $type: charge or pay (refund)
  * @return: json (ok, message, txid, created, balance, undo)
  */
@@ -303,14 +312,14 @@ function charge($args, $type = 'charge') {
   
   $keys = 'agent member amount goods description created';
   if ($err = missingArg($keys, $args)) return posErr($err);
-  extract(u\just($keys . ' proof force photoid version', $args));
+  extract(u\just($keys . ' proof force version', $args));
 
   if (!@$member) return posErr('missing member'); // handle empty string (versus missing param)
   if ($version > 216 and !@$proof) return posErr(missingArg('proof', []));
   if (@$description === '') return posErr('missing description');
   if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
 
-  if (!$a = getCustomer($member, '', $err, FALSE)) return posErr($err);
+  if (!$a = getCustomer($member, '', $err, FALSE)) return posErr($err); // proof is proof enough
   if ($mya->id == $a->id) return posErr('shoulda been login');
 
   $goods = $goods ? FOR_GOODS : FOR_USD;
@@ -322,8 +331,10 @@ function charge($args, $type = 'charge') {
   
   $amount = str_replace(',', '', number_format($amount, 2)); // make sure both cents digits are included
   $code = $a->cardCode();
-  if ($version > 216) if ($proof != u\hash("$agent$amount$member$code$created")) if ($force != "-1" or $proof != u\hash("$mya->mainQid$amount$member$code$created")) return posErr('bad proof'); // : ' . "$agent$amount$member$code$created $force " . $mya->mainQid);
-  if (@$photoid and $aa = $a->agent and !$aa->photoId) $aa->update('photoId', $photoid);
+  if ($version >= 217) if ($proof != u\hash("$agent$amount$member$code$created")) if ($force != "-1" or $proof != u\hash("$mya->mainQid$amount$member$code$created")) {
+    if (u\test() or $version >= 300) return posErr('bad proof'); // : ' . "$agent$amount$member$code$created $force " . $mya->mainQid);
+    r\tellStaff('bad proof', compact(u\ray('proof agent amount member code created force')));
+  }
 
   if (@$force == "1" and @$xid) { // does exist and should (always background)
     $message = $did = $undo = '';
@@ -350,6 +361,7 @@ function charge($args, $type = 'charge') {
   } else { // doesn't exist and should (forcing or not)
     list ($msg, $subs, $zot) = be\transfer($type, $mya, $a, @$amount, @$goods, @$description, $created, TRUE, compact('force'));
     if (!@$subs['success']) return posErr($msg, $subs);
+    if (!@$force and $aa = $a->agent and !$aa->ided) $aa->setBit(B_IDED);
     $txid = $subs['xid'];
     $message = u\tt($msg, $subs);
     $forCash = $goods == FOR_GOODS ? '' : t('for cash');
@@ -484,12 +496,19 @@ function getDevice($code, $uid) {
 
 /**
  * Handle the data requested and sent from the rPOS app on an account's device.
- * @param string $data: json-encoded data that we requested from the app
+ * @param string do: optional instruction from app
+ * @param string $data: json-encoded data we requested from the app
  * @return string $message: what to respond to the app's "time" request: another request for data or ''
  */
-function handleAppData($data0) {
+function handleAppMsg($do, $data0) {
   global $mya;
   if (!$mya) return '';
+  
+  if ($do == 'alert') {
+    return r\tellStaff(t('from app'), (array) json_decode($data0), $mya->id);
+  }
+  
+  // do is empty or do=='dump <table>'
   if (!$get = $mya->getAppData) return '';
   
   $appData = $mya->appData ?: [];

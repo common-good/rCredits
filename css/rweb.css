@@ -12,6 +12,9 @@
 
 .btn-slight {background-color:wheat;}
 .invisible, .element-invisible {display:none;}
+.table {display:table;}
+.boxes .row > div {display:table-cell; padding:0 0 5px 17px; vertical-align:top;}
+label.submenu {display:none;}
 
 .vertical{
 /*    writing-mode:tb-rl; */
@@ -115,7 +118,7 @@ td, th {padding: 4px 9px; border: 1px solid #fff; text-align: left;}
 .form-checkboxes div, .form-checkboxes {display:inline-block;}
 /*.form-horizontal  .form-checkboxes input { */
 /* .form-horizontal .box1 .checkbox {padding-top:0;} */
-.box1 .checkbox {padding-top:0;}
+.box1 .checkbox, .form-horizontal .checkbox {padding-top:0;}
 .form-horizontal .radio, .form-horizontal .radio-inline {margin-left:0; margin-right:15px;}
 
 #rcreditswebformcommunity,
@@ -267,6 +270,15 @@ body.logged-in.one-sidebar #content {width:100%;}
 /* Invite */
 #inviteLink {border:1px solid silver; background-color:lightyellow; color:silver;}
 
+/* Funding Proposal */
+#rcreditswebformproposal #edit-subtitle .table {margin-left:25px;}
+#rcreditswebformproposal #edit-subtitle .row {display:table-row; margin:0;}
+#rcreditswebformproposal #edit-subtitle .row div {display:table-cell; width:230px;}
+
+#critChart  .row {margin:10px;}
+#critChart .row div {display:table-cell}
+#critChart .row div:first-child {width:50px; font-weight:bold; text-align:center;}
+
 /* Flags (AML Risks) */
 #rcreditswebformflags .risky {font-weight:bold; color:red;}
 #rcreditswebformflags .safe {font-weight:bold; color:green;}
@@ -335,17 +347,20 @@ body.logged-in.one-sidebar #content {width:100%;}
 #rcreditswebformagreement #edit-agreement .control-data {max-width:900px; width:80%;}
 #rcreditswebformagreement #agreement ul,
 #rcreditswebformagreement #agreement ol {margin-left:25px;}
+#rcreditswebformagreement #agreement li {margin-top:10px;}
+#rcreditswebformagreement.form-horizontal .checkbox {min-height:0;}
 
 /* Bank Info */
-#rcreditswebformbank #connectFields2 {margin:20px 0; background:silver; padding:10px;}
-#rcreditswebformbank #connectFields2 .fieldset-wrapper {background:url(../images/check-hint.png) no-repeat right top; background-size:25%;}
-#rcreditswebformbank #edit-checkHint {position:absolute; left:850px;}
-#rcreditswebformbank #edit-checkHint img {width:300px;}
-#rcreditswebformbank #connectFields2 .help-block {display:inline-block; color:black;}
-#rcreditswebformbank #edit-routingnumber,
-#rcreditswebformbank #edit-bankaccount,
-#rcreditswebformbank #edit-bankaccount2 {width:250px;} 
-#rcreditswebformbank .form-item-bankAccount .help-block span {background-color:yellow;}
+#rcreditswebformbankinfo #connectFields2 {margin:20px 0; background:silver; padding:10px;}
+#rcreditswebformbankinfo #connectFields2 .fieldset-wrapper {background:url(../images/check-hint.png) no-repeat right top; background-size:25%;}
+#rcreditswebformbankinfo #edit-checkHint {position:absolute; left:850px;}
+#rcreditswebformbankinfo #edit-checkHint img {width:300px;}
+#rcreditswebformbankinfo #connectFields2 .help-block {display:inline-block; color:black;}
+#rcreditswebformbankinfo #edit-routingnumber,
+#rcreditswebformbankinfo input#edit-bankAccount,
+#rcreditswebformbankinfo input#edit-bankAccount2 {width:250px;} 
+#rcreditswebformbankinfo .form-item-bankAccount .help-block span {background-color:yellow;}
+#rcreditswebformbankinfo #edit-remove {margin-left:10px;}
 
 /* Bank (Get) */
 #rcreditswebformget #edit-get {margin-right:70px;}

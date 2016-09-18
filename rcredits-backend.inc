@@ -103,13 +103,14 @@ function memberRay($myid) {
  * Also note that this report is always for just one account (and for just one SSN or EIN) 
  *   even if the account is joint.
  */
-function get1099b($payee) {
+function get1099b($payee, $year = NULL) {
   global $q1099, $ignore1099;
   
   if (!@$q1099) {
     $tome = ':payee=payee';
-    $end = strtotime('january 1') - 1;
-    $start = strtotime('-1 year', $end) + 1;
+    u\setDft($year, date('Y') - 1);
+    $start = strtotime("january 1, $year");
+    $end = strtotime('+1 year', $start) - 1;
     $sql = <<<EOF
       SELECT created, data, serial,
         IF($tome, amount, -amount) AS amount, 
@@ -351,7 +352,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
     } else return r\txRet($erMsg, $erInfo + $erSubs);
   }
   
-  foreach ([$a1, $a2] as $a) if (!$a->co and !($channel == TX_POS ? $a->agent->photoId : $a->photoId)) {
+  foreach ([$a1, $a2] as $a) if (!$a->co and !($channel == TX_POS ? $a->agent->ided : $a->ided)) {
     if ($force) {
       r\tellStaff('forced without photoId', $erInfo); 
     } elseif ($gainerA->id != r\cgfId()) { // and !$gainerA->coCan(CO_FAST)
@@ -421,8 +422,8 @@ function invoice($a1, $a2, $amount, $goods = FOR_USD, $purpose = NULL, $oked = T
   list ($payee, $payer) = array($a1->id, $a2->id);
   if ($err = r\txPermErr($a1, $a2, TRUE)) return r\txRet($err);
   if (r\dupTx($payee, $payer, -$amount)) return r\txRet('duplicate transaction', ['op' => t('charged')]);
-  if (!$a1->co and !$a1->photoId) return r\txRet('no photoid');
-  if (!$a2->co and !$a2->photoId) return r\txRet('other no photoid', ['who' => $a2->fullName]);
+//  if (!$a1->co and !$a1->photoId) return r\txRet('no photoid');
+//  if (!$a2->co and !$a2->photoId) return r\txRet('other no photoid', ['who' => $a2->fullName]);
   
   $subs = u\ray('myName otherName amount why purpose did', $a1->fullName, $a2->fullName, u\fmtAmt($amount), $why, $purpose, t('charged'));
 
@@ -602,18 +603,20 @@ EOF;
   
   // figure savings
   if ($asof == $asof0) {
-    $savings = $a->j_savings;
+//    $savings = $a->j_savings;
   } else {
-    $savings = $rewards; // tentative savings before additions ( = oldSavings - oldSavingsAdd)
+//    $savings = $rewards; // tentative savings before additions ( = oldSavings - oldSavingsAdd)
     foreach ($jid ? [$a, r\acct($jid)] : [$a] as $ai) if ($chs = $ai->changes) {
       $addOLD = $ai->savingsAdd; // start with present
       foreach ($chs as $dt => $info) if ($dt > $asof) $addOLD = @$info['savingsAdd']; else break;
-      $savings += $addOLD;
+//      $savings += $addOLD;
     }
   }
-  $balance = $r - $savings;
-
-  $resultKeys = 'in out rewards refunds fees xfees xin inProper outProper balance r savings bank';
+//  $balance = $r - $savings;
+  $balance = $r - $rewards;
+  $savings = $rewards; // tentative savings before additions ( = oldSavings - oldSavingsAdd)
+  
+  $resultKeys = 'in out rewards refunds fees xfees xin inProper outProper balance r bank savings';
   $result = compact(u\ray($resultKeys));
   
   $fancy = [];
@@ -633,10 +636,10 @@ EOF;
 function accountChoices() {
   if (!$mya = r\acct()) return FALSE;
   $result[$aid = $mya->agentId] = $mya->agent->fullName;
-  $nameOrder = "IF(MID(fullName, 2, 2)='. ', MID(fullName, 4), IF(MID(fullName, 1, 4)='the ', MID(fullName, 5), fullName))"; // ignore "the " and initialled first name (eg "X. ")
+  $nameOrder = "IF(MID(fullName, 2, 2)='. ', MID(fullName, 4), IF(MID(fullName, 2, 1)=' ', MID(fullName, 3), IF(MID(fullName, 1, 4)='the ', MID(fullName, 5), fullName)))"; // ignore "the ", "a ", and initialled first name (eg "X." or "X")
   $sqlNormal = 'SELECT r.main AS id, u.fullname FROM r_relations r LEFT JOIN users u ON u.uid=r.main WHERE r.other=:aid AND r.permission>0'; // normal selection SQL
   
-  if ($mya->admin or $mya->regulator) {
+  if ($mya->admin or $mya->isRegulator) {
     $q = @db\q("SELECT uid AS id, fullName FROM users WHERE ABS(uid)>1 ORDER BY (uid<0) DESC, $nameOrder");
   } elseif ($mya->cAdmin) {
     $sql = <<<EOF

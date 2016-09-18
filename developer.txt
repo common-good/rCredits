@@ -312,3 +312,5 @@ QUESTIONS:
 
 useful SQL queries:
 SELECT SUM(-amount)/10 AS weeklyAmt, AVG(-amount) AS avgAmt, COUNT(amount)/10 AS weeklyACHs FROM r_usd WHERE created>UNIX_TIMESTAMP()-10*7*24*3600 AND amount<0 (ACHs over past 10 weeks)
+
+to shrink db dump for import into test server, replace all /(.?26742000000...), 0x[0-9a-f]+,/ with '\1, 0,'

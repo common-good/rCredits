@@ -117,7 +117,9 @@ function just($these, $info) {
     parse_str(strpos($info, urlencode('=')) ? urldecode($info) : $info, $ray);
   } else $ray = (array) $info; // in case it was an object
   if (!is_array($these)) $these = u\ray($these);
-  foreach ($these as $one) if (isset($ray[$one])) $result[$one] = is_string($ray[$one]) ? trim($ray[$one]) : $ray[$one];
+  $keys = array_keys($ray); // eschew isset, to include null values in result
+//  foreach ($these as $k) if (isset($ray[$k])) $result[$k] = is_string($ray[$k]) ? trim($ray[$k]) : $ray[$k];
+  foreach ($these as $k) if (in_array($k, $keys)) $result[$k] = is_string($v = @$ray[$k]) ? trim($v) : $v;
   return $result;
 }
 
@@ -226,7 +228,7 @@ function fmtAmt($amount, $opt = 's$') {
   $amount = cleanAmount(nn($amount, 0));
 //  if (!is_numeric($amount)) $amount = -999999;
   u\EXPECT(compact('amount'), 'float', 'bad num');
-  $amount = number_format($amount, strpos($opt, '1') ? 0 : 2);
+  $amount = number_format($amount + 0, strpos($opt, '1') ? 0 : 2);
   if ($amount == '-0.00') $amount = strpos($opt, '1') ? '0' : '0.00'; // this happens, for small negative amounts
   if (strpos($opt, '$')) $amount = '$' . $amount;
   if (strpos($opt, 's')) $amount = str_replace('.00', '', $amount);
@@ -517,10 +519,11 @@ function diff($a, $b) {
  *   name of the message (index into $GLOBALS[channel# . ' messages'])
  *   or a list of such message indices, separated by "|"
  *   or a two-element array: array(message, subs)
- * @param array $subs (optional). '@' will be prepended to the keys.
+ * @param assoc $subs: (optional) parameter values keyed by name
+ * @param string $mark: parameter mark (normally '@') will be prepended to the keys.
  * @todo get the r\'s out of this utilities file OR stop trying to separate u\ from r\
  */   
-function tt($message, $subs = [], $adhocChannel = '') {
+function tt($message, $subs = [], $adhocChannel = '', $mark = '@') {
   global $channel;
  
   if (!$adhocChannel) $adhocChannel = $channel;
@@ -542,7 +545,7 @@ function tt($message, $subs = [], $adhocChannel = '') {
 //    u\EXPECT(!is_array(@$subs['message']), 'subs message array');
 //    u\EXPECT(!is_array($model), 'model array');
 //    u\EXPECT(!is_array($i), 'i array');
-    $messages[$i] = SUBS(strtr($model, prefixKeys('@', $subs, 'noArray')), '@');
+    $messages[$i] = SUBS(strtr($model, prefixKeys($mark, $subs, 'noArray')), $mark);
   }
   return str_replace(' .', '.', join(' ', $messages));
 }
@@ -998,7 +1001,7 @@ function badName($name) {
  * @param int $max: maximum date (if any)
  * @return FALSE if date is okay, else an error index
  */
-function badDate(&$s, $min = '', $max = '') {
+function badDate(&$s, $min = '', $max = PHP_INT_MAX) {
   if (!$dt = u\s2t(@$s)) return 'bad date'; // slashes makes it mdy (else dmy assumed)
   if ($min !== '' and ($dt < $min or $dt > $max)) {
     $err = $dt < $min ? 'date too early' : 'date too late';
@@ -1206,7 +1209,7 @@ function showCaller($skip = 0) {
  * @param string $descs: string array of bit names (default: use bit numbers)
  * @return: a list of the bits set n the integer
  */ 
-function bits($n, $descs = '') {
+function bits($n, $descs = B_LIST) {
   $res = '';
   if ($descs) $descs = u\ray($descs);
   for($i = 0; $i < 32; $i++) if ($n & (1 << $i)) $res .= ' ' . ($descs ? $descs[$i] : $i);

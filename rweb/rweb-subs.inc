@@ -74,13 +74,13 @@ EOF
   'new tx amount' => t('The new amount is @amount.'),
   'min zeroed' => t('Your minimum balance has been set to zero, to disable automatic refills of your account (automatic refills are not possible without a connected bank account OR permission to draw on another rCredits account).'),
   'expired invite converted' => t('Your invitation has expired, so @inviterName will be asked to re-confirm.'),
-  'new savings balance' => t('<p>IMPORTANT! Your rCredits balance has been split to include a Savings Reserve containing your incentive rewards. Read <@a>last week\'s rCredits newsletter</a> for details.</p>', ['@a' => 'a href=http://us9.campaign-archive1.com/?u=b1d89f860859e1d9b906fa0b0&id=f1f54edd80&e=']),
+  'new savings balance' => t('<p>IMPORTANT! Your rCredits balance has been split to include a Credit Reserve containing your incentive rewards. Read <@a>last week\'s rCredits newsletter</a> for details.</p>', ['@a' => 'a href=http://us9.campaign-archive1.com/?u=b1d89f860859e1d9b906fa0b0&id=f1f54edd80&e=']),
   'minimum zeroed' => t('<p>Your rCredits "minimum" has been set to zero, to prevent any unintended transfer from your bank account. To choose a new minimum balance or transfer funds manually, sign in to your account at rCredits.org OR <@a1>click here</a> to set your minimum back to @suggested.</p>'),
   'sent message' => t('Your message has been sent to @fullName.'),
   
   // prompts
   'note' => '<b class="loud">' . t('NOTE:') . '</b>',
-  'ach warning' => t('If there are insufficient funds in your bank account when you request an exchange for rCredits (either explicitly, or automatically by choosing a "minimum"), your bank will charge you a $20-35 fee, just like for a bounced check. If this happens more than once, the rCredits system will <i>also</i> charge you $@fee, to cover <i>its</i> bank fee. So make sure you have enough in your bank account to cover your transfers.', ['@fee'=>R_DEPOSIT_RETURN_FEE]),
+  'ach warning' => t('If there are insufficient funds in your bank account when you request a transfer to your rCredits account (either explicitly, or by automatic refills), your bank will charge you a $20-35 fee, just like for a bounced check. If this happens more than once, the rCredits system will <i>also</i> charge you $@fee, to cover <i>its</i> bank fee. So make sure you have enough in your bank account to cover your transfers.', ['@fee'=>R_DEPOSIT_RETURN_FEE]),
   // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
 //  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
   'legalname desc' => t(' full legal name, properly capitalized (for tax reporting).'),
@@ -145,7 +145,7 @@ EOF
   'bad invite' => t('That is not a valid Invitation Number or username.'),
   'used invite' => t('<p>That invitation has already been used, to open an rCredits account.</p><p>If you already have an rCredits account set up and want to open an additional account for yourself, your business, or a family member, sign in and use the "Open a Company Account" button on the Summary page (for cashier accounts, first click your photo in the upper right corner and select your business from the dropdown).</p><p>Otherwise ask someone you know to send you a new invitation!'),
   'expired invite' => t('<p>That invitation has expired.</p><p><@a>Click here</a> to ask @inviterName for another invitation.</p>'),
-  'min sub floor' => t('You cannot choose a Minimum Primary Balance less than @floor.'),
+  'min sub floor' => t('You cannot choose a Target Balance less than @floor.'),
   'info not saved' => t('We apologize. Your information could not be saved at this time. Please try again in an hour or so.'),
   'no page permission' => t('You do not have permission to visit this page. Return to your <@a>Summary</a> page.', ['@a' => 'a href=' . BASE_URL]),
   'specific nonpositive' => t('The amount (@amount) must be a positive integer.'),
@@ -483,7 +483,9 @@ function fld($type, $title = '', $help = '', $other = [], $options = NULL) {
 }
 
 // Plan: move all theme functions here. Output each page as a single item(). Each field type function should have a nogroup option (start label with -) and an easier required option (start label with star)
-function submit($title = '', $style = 'primary', $size = 'md', $other = []) {
+function submit($title = '', $style = '', $size = '', $other = []) {
+  if (!$style) $style = 'primary';
+  if (!$size) $size = 'md';
   $other += [
     'input' => TRUE,
     'name' => 'op',
@@ -496,7 +498,7 @@ function submit($title = '', $style = 'primary', $size = 'md', $other = []) {
   if (@$title[0] == BARE) list ($bare, $title) = [BARE, substr($title, 1)];
   return fld('submit', @$bare, '', $other + ['value' => $title ?: t('Save')] + compact('style', 'size'));
 }
-function submi($title = '', $style = 'primary', $size = 'xs', $other = []) {
+function submi($title = '', $style = '', $size = 'xs', $other = []) {
   return submit(BARE . $title, $style, $size, $other);
 }
 
@@ -518,11 +520,31 @@ function passFld($label = '', $desc = '', $other = []) {return fld('password', $
 function areaFld($label = '', $help = '', $other = []) {return fld('textarea', $label, $help, $other);}
 function radiosFld($label, $help, $other, $options) {return fld('radios', $label, $help, $other, $options);}
 function selectFld($label, $help, $other, $options = []) {return fld('select', $label, $help, $other, $options);}
+function htmlFld($label = '', $help = '', $dft = '', $other = []) {return fld('text_format', $label, $help, ['format' => 'filtered_html'] + dft(strtr($dft, ["\r" => '', "\n" => '', '<br>' => PHP_EOL, "\0" => ''])) + $other);}
 
 function boxFld($name, $label = '', $desc = '', $dft = NULL, $other = []) {
   $fld = fld('checkbox', $desc, '', compact('name') + dft(@$dft) + $other);
   return $label ? item(@\render($fld), $label, '', ['box' => TRUE]) : $fld;
 }
+
+/**
+ *
+ * @see also boxesFld()
+ */ 
+function boxFlds($group, $label, $question, $options, $other = []) {
+  $question = $question ? "<p>$question</p>\n" : '';
+  $list = '';
+  foreach ($options as $k => $v) {
+    $list .= <<<EOF
+<div class="row">
+<div><input type="checkbox" id="edit-$group-$k" name="{$group}[$k]" /></div>
+<div>$v</div>
+</div>
+EOF;
+  }
+  return item($question . $list, $label, '', ['class' => ['boxes']] + $other);
+}
+
 function fieldSet($id, $flds, $label = '', $other = []) {return fld('fieldset', $label, '', compact('id') + $other) + $flds;}
 
 /**
@@ -570,6 +592,7 @@ function boolFld($title = '', $help = '', $dft = NULL, $labels = NULL) {
  * @param array $defaults: simple array of names of already-checked boxes
  * @param array $choices: name for each checkbox
  * @param array $aliases: name to display for each checkbox (defaults to choice name)
+ * @see also boxFlds()
  */
 function boxesFld($title, $desc, $defaults, $choices, $aliases = NULL) {
   u\setDft($aliases, $choices);
@@ -903,7 +926,7 @@ EOF;
  * @return the menu as a Drupal form (not yet rendered)
  */
 function subMenu($title, $menu) {
-  $title = item($title);
+  $title = item($title, '', '', clas('submenu'));
   $list = item(subMenuHtml($menu), BARE);
   return compact('title', 'list');
 }
@@ -1219,10 +1242,9 @@ function ssnFields($personal = TRUE) {
  * Say whether the phone number is acceptable.
  * @param string $phone: phone number in any format
  * @param int $country: country code
- * @param string $form: the current form name, all lowercase, without "form" (in case of duplicate phone).
  * @return TRUE if the phone number is acceptable
  */
-function phoneOk(&$phone, $country = US_COUNTRY_ID, $form = '') {
+function phoneOk(&$phone, $country = US_COUNTRY_ID) {
   $myid = @r\acct()->id ?: 0;
   if (!$phone = u\fmtPhone($phone, '+n')) return say('bad phone', 'phone');
   if ($country == US_COUNTRY_ID and strlen($phone) != 12) return say('bad phone', 'phone');
@@ -1414,21 +1436,21 @@ EOF;
 
 /**
  * Check if form was called with a QID (typically from an email link). Return the appropriate account.
- * Communities are allowed, but not other companies.
- * @param string $args: parameters from URL
- *   (RETURNED) just the qid and ecode part of URL parameters
- * @param string $allow: what not-signed-in accounts to allow: only individual (the default), any
+ * @param assoc $sta: the form's status parameter, possibly with an eLink parameter (for verify and submit)
+ *   (RETURNED) with $sta['eLink'] equal to just the qid and ecode part of eLink, plus the allow param
+ * @param string $eLink: parameters from URL
+ *   (RETURNED) same as $sta['eLink']
+ * @param string $allow: what not-signed-in accounts to allow: individual (the default), 'acct', or 'any'
  * @return the account (defaults to current account)
  */
-function eLinkAcct(&$args, $allow = 'individual') {
-  extract(u\just('qid ecode', $args));
-  $a = r\acct(@$qid);
-  if (@$qid and @$ecode != $a->emailCode) return w\hack('bad ecode');
-  $args = is_null(@$qid) ? '' : ("qid=$qid&ecode=" . @$ecode); // eg formGraphs doesn't use ecode
-  if ($allow != 'any') {
-    if (!$a) return r\go('', 'requires signin');
-    if ($allow == 'individual' and $a->co) return r\go('', t('That page is for individual accounts only.'));
-  }
+function eLinkAcct(&$sta, &$eLink = '', $allow = 'individual') {
+  if (!$eLink) extract(u\just('eLink', $sta)); // verifying or submitting; get stored eLink args
+  extract(u\just('qid ecode allow', $eLink));
+  $a = r\acct(@$qid); // current or specified account
+  if (!$a and $allow != 'any') return r\go('', 'requires signin');
+  if ($allow == 'individual' and $a->co) return r\go('', t('That page is for individual accounts only.'));
+  if (@$qid === '' and @$ecode != $a->emailCode) return w\hack('bad ecode');
+  $eLink = $sta['eLink'] = "allow=$allow&qid=$qid&ecode=" . @$ecode; // remember it (cttys don't use ecode)
   return $a;
 }
 
@@ -1746,9 +1768,10 @@ function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
  * Output the No-signin result message and terminate.
  * @param string $msg: the message or message index
  */
-function doSay($msg, $type = 'error') {
+function doSay($msg, $ok = FALSE) {
+  $type = $ok ? 'status' : 'error';
   @file_put_contents(t\dosayFilename($type), $msg); // in case called from a test (no way to know)
-  return r\go('empty/1', $msg, $type == 'error');
+  return r\go('empty/1', $msg, !$ok);
 }
 
 /**
@@ -1784,9 +1807,11 @@ function menu($title, $type, $function, $args, $perms = '') {
   if (strpos($function, '\\') === FALSE) $function = "rCredits\\Web\\$function";
   $smart = strpos($function, '\\Smart\\');
   $admin = ($perms == 'dev' or stripos($perms, 'admin') !== FALSE);
+  foreach (u\ray('Democracy Proposal') as $k) if (strpos($args, $k) !== FALSE) $dem = TRUE;
   $file = $smart ? '../rsmart/rsmart.inc' 
   : ($admin ? '../admin/admin-forms.inc' 
-  : 'rweb.inc');
+  : (@$dem ? '../rvote/rvote-web.inc'
+  : 'rweb.inc'));
   
   if ($perms == 'anyone') $perms = FALSE;
   foreach ($args = u\ray($args) as $k => $value) if (is_numeric($value)) $args[$k] = (int) $value;

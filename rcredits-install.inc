@@ -546,6 +546,37 @@ function tableDefs($schema = []) {
   $indexes = index('ballot') + index('option');
   $schema['r_votes'] = setupTable('What grade a particular voter gave a particular option (for a particular question) on a particular question ballot', $fields, 'id', $foreignKeys, $indexes);
 
+  // table r_proposals
+  $fields = [
+    'id' => setupField('proposal record id', 'serial big'),
+    'project' => setupField('project title', 'varchar 255'),
+    'ctty' => setupField('community or region record id', 'int big'),
+    'categories' => setupField('funding categories (space-separated list)', 'text tiny'),
+    'overview' => setupField('project overview', 'text medium'),
+    'purpose' => setupField('why the project is needed', 'text medium'),
+    'where' => setupField('zipcode where the project will take place', 'text tiny'),
+    'when' => setupField('project start date', 'int 11'),
+    'until' => setupField('project end date', 'int 11'),
+    'how' => setupField('how the project will be accomplished', 'text medium'),
+    'amount' => setupField('amount of funding requested', 'numeric 11,2'),
+    'type' => setupField('type of funding', 'int tiny'), // 0=investment 1=loan 2=incentive 3=grant 4=other
+    'budgetTotal' => setupField('total expense budget', 'numeric 11,2'),
+    'budget' => setupField('detailed project budget', 'text medium'),
+    'contingency' => setupField('how the project organizers will cope with less funding than requested', 'text medium'),
+    'qualifications' => setupField('qualifications of project staff', 'text medium'),
+    'evaluation' => setupField('how the success of the project will be evaluated', 'text medium'),
+    'name' => setupField('individual or organization making the proposal', 'varchar 255'),
+    'contact' => setupField('contact person (or "self")', 'varchar 255'),
+    'phone' => setupField('contact phone', 'varchar 255'),
+    'email' => setupField('contact email', 'varchar 255'),
+    'sponsor' => setupField('rCredits member(s) sponsoring the project proposal', 'text tiny'),
+  ];
+  $foreignKeys = foreignKey('ctty');
+  $indexes = index('ctty') + index('name');
+  $schema['r_proposals'] = setupTable('rCredits funding proposals', $fields, 'id', $foreignKeys, $indexes);
+  
+
+  
   // table r_votenotes
   /*
   $fields = [

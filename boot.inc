@@ -7,7 +7,7 @@
  * Also used by /do.php, for no-sign-in database changes
  */
  
-define('R_VERSION', '2.45'); // software version
+define('R_VERSION', '2.47'); // software version
 define('STAGE_SUBDOMAIN', 'ws');
 define('STAGE', STAGE_SUBDOMAIN . '.rcredits.org'); // staging site (for secrets, etc.)
 define('PRODUCTION', 'new.rcredits.org'); // production site (used for setting $base_url)
@@ -36,7 +36,7 @@ global $R_POST; $R_POST = $_POST;
 
 $secrets = (array) json_decode(utf8_encode(file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.databases')));
 global $db_name;
-$db_name = isDEV ? 'new_rcredits' : key($secrets);
+$db_name = key($secrets); // rCredits members db must be the first db name in the file
 extract((array) $secrets[$db_name], EXTR_PREFIX_ALL, 'db');
 
 define('R_WORD', hex2bin($db_word));
@@ -91,6 +91,6 @@ $drupal_hash_salt = $db_salt;
 $protocol = (isDEV or isGAME) ? 'http://' : 'https://';
 $base_url = $protocol . $_SERVER['HTTP_HOST'] . (isDEV ? DEV_ROOT : ''); // NO trailing slash!
 define('BASE_URL', $base_url);
-define('PROMO_URL', isDEV ? 'http://localhost/rPromo/_sites' : 'http://rcredits.org');
+define('PROMO_URL', isDEV ? 'http://localhost/rPromo/_site' : 'http://rcredits.org');
 define('R_PATH', '/sites/all/modules/rcredits');
 global $rUrl; $rUrl = BASE_URL . R_PATH;

@@ -5,9 +5,9 @@ SO BOTH OF US can make purchases with those funds.
 
 Setup:
   Given members:
-  | id   | fullName | floor | minimum | flags     | achMin | risks   | jid  |*
-  | .ZZA | Abe One  |     0 |     100 | ok,joined | 30     | hasBank | .ZZB |
-  | .ZZB | Bea Two  |     0 |       0 | ok,joined | 10     |         | .ZZA |
+  | id   | fullName | floor | minimum | flags            | achMin | risks   | jid  |*
+  | .ZZA | Abe One  |     0 |     100 | ok,joined,refill | 30     | hasBank | .ZZB |
+  | .ZZB | Bea Two  |     0 |       0 | ok,joined        | 10     |         | .ZZA |
   And relations:
   | main | agent | permission |*
   | .ZZA | .ZZB  | joint      |

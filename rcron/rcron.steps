@@ -52,9 +52,7 @@ function extraSetup($feature) {
  *     MAKE Tickle Setup
  *     MAKE Trust Setup
  *     TEST Trust WeCalculateTrust
- *     MAKE Weekly AMemberCrawlsOutOfDebt
- *     MAKE Weekly AMemberBuildsUpSavings
- *     MAKE Weekly AMemberDrawsDownSavingsBitByBit
+ *     MAKE Weekly Setup
  */
 function members($list) {return t\members($list);}
 
@@ -74,6 +72,7 @@ function members($list) {return t\members($list);}
  *     MAKE Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
+ *     MAKE Bank AnAccountHasAMinimumButNoRefills
  *     MAKE Gifts Setup
  *     TEST Inflation Setup
  *     TEST Joint Setup
@@ -88,7 +87,6 @@ function members($list) {return t\members($list);}
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     TEST Weekly AMemberCrawlsOutOfDebt
  *     TEST Weekly AMemberBuildsUpSavings
- *     TEST Weekly AMemberDrawsDownSavingsBitByBit
  */
 function balances($list) {return t\balances($list);}
 
@@ -107,6 +105,7 @@ function balances($list) {return t\balances($list);}
  *     MAKE Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
+ *     MAKE Bank AnAccountHasAMinimumButNoRefills
  *     MAKE Gifts ADonationCanBeCompleted
  *     MAKE Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
  *     MAKE Gifts ARecurringDonationCanBeCompleted
@@ -131,7 +130,6 @@ function balances($list) {return t\balances($list);}
  *     MAKE Trust WeCalculateTrust
  *     MAKE Weekly AMemberCrawlsOutOfDebt
  *     MAKE Weekly AMemberBuildsUpSavings
- *     MAKE Weekly AMemberDrawsDownSavingsBitByBit
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
@@ -144,6 +142,7 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     TEST Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     TEST Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
  *     TEST Bank AMemberIsUnderMinimumOnlyBecauseRewardsAreReserved
+ *     TEST Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
  *     MAKE Inflation Setup
  *     TEST Joint AJointAccountNeedsRefilling
@@ -157,9 +156,9 @@ function usdTransfers($tx) {return t\usdTransfers($tx);}
  *
  * in: TEST Bank AMemberIsAtMinimum
  *     TEST Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
- *     TEST Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
  *     TEST Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  *     TEST Bank AMemberHasADepositedButNotCompletedTransfer
+ *     TEST Bank AnAccountHasAMinimumButNoRefills
  *     TEST Joint AJointAccountDoesNotNeedRefilling
  */
 function bankTransferCountIs($count) {return (t\usdTransferCount() == $count);}
@@ -390,9 +389,11 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
 /**
  * members have: (ARG)
  *
- * in: TEST Tickle AMemberGetsACreditLine
+ * in: MAKE Bank AnAccountHasAMinimumButNoRefills
+ *     TEST Tickle AMemberGetsACreditLine
  *     TEST Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     BOTH Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
+ *     MAKE Weekly AMemberBuildsUpSavings
  */
 function membersHave($list) {return t\membersHave($list);}
 

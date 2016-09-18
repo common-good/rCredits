@@ -57,8 +57,8 @@ function formAdminPanel($form, &$sta, $args = '') {
 //  $seeHidden = submi(t('See Hidden'));
   $seeData = submi(t('See Data'));
   $seeChanges = submi(t('See Changes'));
-  $newUsdEmail = submi(t('New USD Email'));
-  $acctSet = fieldSet('acctSet', compact(u\ray('account make2 printId seeData seeChanges seeSecure askForAppData seeAppData')));
+  $ssnLink = submi(t('SSN Link'));
+  $acctSet = fieldSet('acctSet', compact(u\ray('account make2 printId seeData seeChanges ssnLink seeSecure askForAppData seeAppData')));
   
   $form = compact('title');
   if ($mya->cAdmin) {
@@ -122,9 +122,11 @@ function formAdminPanel_submit($form, &$sta) {
     r\Web\connectBank($a); */
   } elseif ($op == 'seeChanges') {
     r\go("sadmin/changes/$a->mainQid");
+  } elseif ($op == 'ssnLink') {
+    w\say("http://new.rcredits.org/do/doSsn~$a->mainQid~$a->emailCode");
   } elseif ($op == 'do1099b' or $test1099 = ($op == 'do1099btest')) {
     include_once __DIR__ . '/../rcredits-yearly.inc';
-    r\Special\do1099bs($test1099);
+    r\Special\do1099bs(@$test1099);
   } elseif ($op == 'inviteeStatus') {
     return r\go('community/invite/invited-whom');
   } elseif ($op == 'organizerList') {
@@ -318,7 +320,7 @@ function formMakeCtty_submit($form, &$sta) {
 }
 
 /**
- * Show a list of members in the member's community (all members, for admin)
+ * Show a list of members in the current account's community
  */
 function formMemberList($form, &$sta) {
   global $base_url;
@@ -328,7 +330,7 @@ function formMemberList($form, &$sta) {
   $ctty = r\acct($mya->community);
 
   $title = item((($cAdmin and $ctty) ? $ctty->fullName : '') . t(' Member List'));
-  $sql = 'SELECT uid, login, access, fullName, notes, :IS_CO AS co FROM users WHERE uid>1 AND community=:cttyId ORDER BY :IS_OK, IF(:IS_OK, fullName, 2000000000-login)'; // -login fails because it gets treated as a string
+  $sql = 'SELECT uid, login, access, fullName, notes, :IS_CO AS co FROM users WHERE uid>1 AND community=:cttyId AND NOT :IS_NONUDGE ORDER BY :IS_OK, IF(:IS_OK, fullName, 0-login)'; // -login fails because it gets treated as a string
   $q = db\q($sql, u\ray('cttyId', $ctty->id));
   $list = "<table id='memberlist'>\n";
   $emails = '';

@@ -279,9 +279,11 @@ function often($period, $code, $chosen) {
  */
 function everyWeek() {
   // help members increase their overall savings (or crawl out of primary account debt)
+  $refillable = ':IS_OK AND :HAS_BANK AND :IS_REFILL';
   $newMin = "(minimum+GREATEST(saveWeekly, :MIN_WEEKLY_BUMP))"; // crawl out of debt by at least $1 a week
-  db\q("UPDATE users SET minimum=IF(ABS($newMin)<.01, .01, $newMin) WHERE :IS_OK AND :HAS_BANK AND minimum<GREATEST(0, floor)"); // crawl out of debt
-  db\q('UPDATE users SET savingsAdd=GREATEST(0, savingsAdd+saveWeekly) WHERE :IS_OK AND :HAS_BANK AND saveWeekly<>0'); // save or unsave
+  db\q("UPDATE users SET minimum=IF(ABS($newMin)<.01, .01, $newMin) WHERE $refillable AND minimum<GREATEST(0, floor)"); // crawl out of debt
+  db\q("UPDATE users SET minimum=minimum+saveWeekly WHERE $refillable AND saveWeekly>0 AND minimum>=GREATEST(0, floor)"); // build up savings
+//  db\q('UPDATE users SET savingsAdd=GREATEST(0, savingsAdd+saveWeekly) WHERE :IS_OK AND :HAS_BANK AND saveWeekly<>0'); // save or unsave
 }
 
 /**
@@ -625,12 +627,14 @@ function bank() {
     queueEach('completeUsdTx', $sql, compact('now'));
   }
   
-  $where = 'minimum<>0 AND (:IS_JOINED OR r-rewards-savingsAdd<minimum) AND uid>1 AND :IS_OK';
+//  $where = ':IS_REFILL AND (:IS_JOINED OR r-rewards-savingsAdd<minimum) AND uid>1 AND :IS_OK';
+  $where = ':IS_REFILL AND (:IS_JOINED OR r-rewards<minimum) AND uid>1 AND :IS_OK';
   $sql = <<<EOF
   SELECT uid
   FROM users 
   WHERE $where AND :HAS_BANK
 EOF;
+
   queueEach('bank1', $sql); // Note: joint slave r values cannot be negative unless both are (see r\cache)
   
   $sql = <<<EOF

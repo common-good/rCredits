@@ -38,9 +38,9 @@ define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed 
 // isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 
 define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
-define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount photoId'); // very secure fields (admin-encrypted)
-define('R_SECURE_FIELDS', R_VSECURE_FIELDS . ' pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass'); // non-personal encrypted fields (must be complete list)
-define('R_HIDE_CHANGES', 'pw2 ssnData changes init r rewards committed floor login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special'); // do not record changes to these fields: anything often-changed (automatically or not)
+define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount'); // very secure fields (admin-encrypted)
+define('R_SECURE_FIELDS', R_VSECURE_FIELDS . ' pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass last4bank'); // non-personal encrypted fields (must be complete list)
+define('R_HIDE_CHANGES', 'pw2 ssnData changes init r rewards committed floor login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank'); // do not record changes to these fields: anything often-changed (automatically or not)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
 //define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_BUY', '(r-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
@@ -66,11 +66,9 @@ define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
 define('R_MAX_PHOTO_WIDTH', 1024);
 define('R_MAX_UPLOAD_SIZE', 3); // maximum upload size in MB
-define('R_MAX_PHOTOID_SIZE', 2.5); // Dwolla's limit (MB)
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_EXCHANGE_LIMITS', '1:5000,7:10000,49:20000,365:50000'); // per day, week, 7-week, year
 define('R_INVITE_DAYS', 30); // number of days to accept invitation to membership
-//define('R_MINR_DEFAULT', 0); // suggested minimum amount to hold in rCredits
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
 define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter easy copying, max 14 for small QR)
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
@@ -116,6 +114,7 @@ define('FOR_USD', 1); // index into R_WHYS for USD exchange
 define('FOR_NONGOODS', 2); // index into R_WHYS for loan, etc.
 
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
+define('R_MIN_DEFAULT', 100); // suggested minimum amount to hold in rCredits
 define('R_ACHMIN', 10); // minimum granularity of withdrawals from bank account
 define('R_ACHMIN_DEFAULT', 50); // suggested achMin
 define('R_ACH_TRIES', 3); // how many times to retry an ACH
@@ -194,7 +193,7 @@ define('APP_CAN_BITS', 7); // number of bits for permissions (each: signed in an
 define('APP_AGENT_CANS', APP_CANS + APP_CAN_BITS); // company permission bits when signed IN (limited by agent)
 define('APP_CAN_MASK', pow(2, APP_CAN_BITS + 1) - 1); // the CANS bits -- signed-IN permission bits are 22-28
 
-define('CO_FAST', 29); // fast checkout -- never ask for photoId (set by cAdmin)
+define('CO_FAST', 29); // (deprecated as of app v 2.16) fast checkout -- never ask for photo Id (set by cAdmin)
 define('CO_TIP', 30); // ask customer what percent tip to add
 
 define('APP_CAN_BIT_NAMES', 'charge undo r4usd usd4r refund buy');
@@ -209,8 +208,8 @@ define('B_CONFIRMED', 1); // invitation has been confirmed (in advance by form i
 define('B_UP', 1); // ctty: is operational (up) (see also B_CTTYUP)
 define('B_OK', 2); // can use rCredits for real (set by admin when ready). Set FALSE to freeze ctty funds (NYI)
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
-define('B_u4', 4); // 
-define('B_u5', 5); //
+define('B_IDED', 4); // a cashier has verified the member's government-issued photo ID
+define('B_REFILL', 5); //
 define('B_CO', 6); // company account
 define('B_u7', 7); //
 define('B_u8', 8); // hold incentive rewards in reserve
@@ -237,9 +236,9 @@ define('B_CADMIN2', 28); // is a community sub-administrator
 define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
-define('B_ADMINABLE', 'confirmed co member bona cadmin cadmin2 regulator nonudge closed'); // for cAdmin to set
+define('B_ADMINABLE', 'confirmed co member bona cAdmin cAdmin2 regulator nonudge closed'); // for cAdmin to set
 define('B_ADMIN_BITS', 'member:cgc,confirmed:up');
-define('B_LIST', 'member confirmed ok bona u4 u5 co u7 u8 nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 closed regulator cadmin2 cadmin admin');
+define('B_LIST', 'member confirmed ok bona ided refill co u7 u8 nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 closed regulator cAdmin2 cAdmin admin');
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+givebacks+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community (fines and givebacks are negative)
 

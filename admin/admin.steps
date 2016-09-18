@@ -126,3 +126,11 @@ function relations($relations) {return t\relations($relations);}
  * in: TEST Activate AdminActivatesAnAccount
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
+
+/**
+ * member (ARG) has no photo ID recorded
+ *
+ * in: MAKE Activate AdminActivatesAnAccount
+ */
+function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
+

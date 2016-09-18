@@ -56,12 +56,13 @@ Scenario: A member clicks the summary tab
   | _Address      | 1 A St., Atown, AK 01000 |
   | ID            | ZZA (personal account) |
   | Balance       | $10 |
-  | Savings       | $256 |
+#  | Savings       | $256 |
   | _rewards      | $256 |
 #  | Credit limit  | $100 |
   | Committed     | $0.60 |
-  | Your return   | 20.6% |
-  | _ever         | 544.1% |
+# (including savings in balance)  | Your return   | 20.6% |
+#  | Your return   | 72.1% |
+#  | _ever         | 544.1% |
 #  or 541.4% (depends on daylight time?) or 280.9%?!
   | Social return | $9 |
   | _ever         | $9 |
