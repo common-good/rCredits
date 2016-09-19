@@ -56,8 +56,9 @@ app.service('TransactionService',
 							.getParams();
 						var proof = Sha256.hash((params.agent + params.amount + params.member + customerAccountInfo.unencryptedCode + params.created).toString());
 						params['proof'] = proof;
-						console.log(proof, customerAccountInfo.unencryptedCode);
+//						console.log(proof, customerAccountInfo.unencryptedCode);
 						return this.makeRequest_(params, sellerAccountInfo).then(function (res) {
+							console.log(res);
 							return res.data;
 						});
 					} catch (e) {
@@ -165,12 +166,13 @@ app.service('TransactionService',
 			return SQLiteService.executeQuery(sqlQuery);
 		};
 		TransactionService.prototype.doOfflineTransaction = function (amount, description, goods, force) {
-			var customer = UserService.currentCustomer();
+			var seller = UserService.currentUser(),
+				customer = UserService.currentCustomer();
 			var q = $q.defer();
 			var message;
 			console.log(amount);
 			amount = parseFloat(parseFloat(amount).toFixed(2));
-			console.log(customer, amount, description, goods, force);
+			console.log(customer, amount, description, goods, force, customer.unencryptedCode);
 			if (force === 0) {
 				message = "The transaction has been canceled";
 				console.log(message);
@@ -179,6 +181,8 @@ app.service('TransactionService',
 			}
 			var transactionResponseOk = {
 				"ok": "1",
+				"agent":seller,
+				"member":customer,
 				"message": message,
 				"txid": customer.getId(),
 				"created": moment().unix(),
@@ -186,6 +190,7 @@ app.service('TransactionService',
 				"rewards": (customer.getBalance() * 0.9).toFixed(2),
 				"did": "",
 				"undo": "",
+				"unencryptedCode":customer.unencryptedCode,
 				"transaction_status": Transaction.Status.OFFLINE,
 				"description": description,
 				"goods": goods

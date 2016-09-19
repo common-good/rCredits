@@ -12,8 +12,9 @@ app.service('TransactionSyncService',
 		};
 		var send = function (sqlTransaction) {
 			console.log("TRANSACTION TO SEND: ", sqlTransaction);
-			var sellerAccountInfo = sqlTransaction.accountInfo,
-				customerAccountInfo = sqlTransaction.accountInfo;
+			console.log(sqlTransaction.proof.sc);
+			var sellerAccountInfo = sqlTransaction,
+				customerAccountInfo = sqlTransaction;
 			if (_.isUndefined(sqlTransaction.goods) || _.isNull(sqlTransaction.goods)) {
 				sqlTransaction.goods = 1;
 			}
@@ -23,19 +24,20 @@ app.service('TransactionSyncService',
 			try {
 				var params = new RequestParameterBuilder()
 					.setOperationId('charge')
-					.setSecurityCode(customerAccountInfo.securityCode)
-					.setAgent(sellerAccountInfo.accountId)
-					.setMember(customerAccountInfo.accountId)
+					.setSecurityCode(sqlTransaction.proof.sc)
+					.setAgent(sellerAccountInfo.agent)
+					.setMember(customerAccountInfo.member)
 					.setField('amount', sqlTransaction.amount.toString())
 					.setField('description', sqlTransaction.description)
-					.setField('created', sqlTransaction.moment().unix())
+					.setField('created', sqlTransaction.created)
 					.setField('force', sqlTransaction.force)
 					.setField('goods', sqlTransaction.goods)
+					.setField('unencryptedCode', sqlTransaction.unencryptedCode)
 					.setField('photoid', 0)
 					.getParams();
-				var proof = Sha256.hash((params.agent + params.amount + params.member + customerAccountInfo.unencryptedCode + params.created).toString());
+				var proof = Sha256.hash((params.agent + params.amount + params.member + sqlTransaction.proof.sc + params.created).toString());
 				params['proof'] = proof;
-				console.log(proof, customerAccountInfo.unencryptedCode);
+				console.log(params.agent + params.amount + params.member + sqlTransaction.proof.sc + params.created);
 				var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.proof.account));
 				return TransactionService.makeRequest_(params, account).then(function (res) {
 					console.log(res);
@@ -43,6 +45,7 @@ app.service('TransactionSyncService',
 				});
 			} catch (err) {
 				console.log(err);
+				return err;
 			}
 		};
 		TransactionSyncService.prototype.syncOfflineTransactions = function () {

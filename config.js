@@ -13,7 +13,7 @@ rCreditsConfig = {
   stagingServerUrl: 'https://stage-xxx.rcredits.org/pos',
 
   // @if BUILD_TARGET='development'
-  serverproxyUrl: 'http://localhost:8100/pos',
+  serverproxyUrl: 'https://stage-xxx.rcredits.org/pos',
   serverUrl: 'https://stage-xxx.rcredits.org/pos',
   version: '3.0',
   build: 301,
