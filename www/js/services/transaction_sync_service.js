@@ -37,7 +37,7 @@ app.service('TransactionSyncService',
 					.getParams();
 				var proof = Sha256.hash((params.agent + params.amount + params.member + sqlTransaction.proof.sc + params.created).toString());
 				params['proof'] = proof;
-				console.log(params.agent + params.amount + params.member + sqlTransaction.proof.sc + params.created);
+				console.log(params.agent + ' '+ params.amount + ' '+ params.member + ' '+sqlTransaction.proof.sc +  ' '+params.created);
 				var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.proof.account));
 				return TransactionService.makeRequest_(params, account).then(function (res) {
 					console.log(res);

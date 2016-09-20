@@ -190,7 +190,7 @@ app.service('TransactionService',
 				"rewards": (customer.getBalance() * 0.9).toFixed(2),
 				"did": "",
 				"undo": "",
-				"unencryptedCode":customer.unencryptedCode,
+				"unencryptedCode":customer.accountInfo.unencryptedCode,
 				"transaction_status": Transaction.Status.OFFLINE,
 				"description": description,
 				"goods": goods
