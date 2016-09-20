@@ -22,7 +22,7 @@ rCreditsConfig = {
   // @endif
 
   // @if BUILD_TARGET='staging'
-  serverproxyUrl: 'http://localhost:8100/pos',
+  serverproxyUrl: 'https://stage-xxx.rcredits.org/pos',
   serverUrl: 'https://stage-xxx.rcredits.org/pos',
   version: '3.0',
   build: 301,
@@ -30,7 +30,7 @@ rCreditsConfig = {
   // @endif
 
   // @if BUILD_TARGET='production'
-  serverproxyUrl: 'http://localhost:8100/pos',
+  serverproxyUrl: 'https://stage-xxx.rcredits.org/pos',
   serverUrl: 'https://xxx.rcredits.org/pos',
   version: '3.0',
   build: 301,
