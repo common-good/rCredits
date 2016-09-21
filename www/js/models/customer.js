@@ -26,6 +26,9 @@
 			},
 			getLastTx: function () {
 				return this.lastTx.getId();
+			},
+			getId: function () {
+				return this.accountInfo.accountId;
 			}
 		});
 		Customer.parseFromDb = function (customerJson) {

@@ -33,7 +33,7 @@ app.controller('TransactionResultCtrl', function ($scope, $state, NetworkService
 	}
 	onoroff();
 	$scope.setMessages = function (transactionResult) {
-//		console.log('transaction_results' + transactionResult.ok);
+		console.log(transactionResult);
 		$scope.note = transactionResult.message;
 		if (transactionResult.txid) {
 			if (transactionResult.message.indexOf("ransaction has been canceled") > -1) {
@@ -56,7 +56,7 @@ app.controller('TransactionResultCtrl', function ($scope, $state, NetworkService
 	if ($scope.transactionStatus === 'failure') {
 //		for (var t in TransactionService) {
 //			console.log(t);
-//			console.log(TransactionService[t]);
+			console.log(TransactionService);
 //		}
 //		console.log($stateParams.transactionMessage);
 //		console.log($stateParams.transactionMessage);

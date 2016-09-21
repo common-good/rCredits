@@ -33,21 +33,19 @@ app.service('TransactionService',
 		TransactionService.prototype.makeTransactionRequest = function (amount, description, goods, force) {
 			if (UserService.currentUser().accountInfo) {
 				var sellerAccountInfo = UserService.currentUser().accountInfo,
-					customerAccountInfo = UserService.currentCustomer().accountInfo;
+					customerAccountInfo = UserService.currentCustomer();
 				if (_.isUndefined(goods) || _.isNull(goods)) {
 					goods = 1;
 				}
-//				if (NetworkService.isOnline()) {
 				if (_.isUndefined(force) || _.isNull(force)) {
 					force = 0;
 				}
-//				}
 				try {
 					var params = new RequestParameterBuilder()
 						.setOperationId('charge')
-						.setSecurityCode(customerAccountInfo.securityCode)
+						.setSecurityCode(customerAccountInfo.accountInfo.securityCode)
 						.setAgent(sellerAccountInfo.accountId)
-						.setMember(customerAccountInfo.accountId)
+						.setMember(customerAccountInfo.accountInfo.accountId)
 						.setField('amount', parseFloat(parseFloat(amount).toFixed(2)))
 						.setField('description', description)
 						.setField('created', moment().unix())
@@ -55,24 +53,26 @@ app.service('TransactionService',
 						.setField('goods', goods)
 						.setField('photoid', 0)
 						.getParams();
-					var proof = Sha256.hash((params.agent + params.amount + params.member + customerAccountInfo.unencryptedCode + params.created).toString());
+					var proof = Sha256.hash((params.agent + params.amount + params.member + customerAccountInfo.accountInfo.unencryptedCode + params.created).toString());
 					params['proof'] = proof;
+					params['seller'] = sellerAccountInfo;
 				} catch (e) {
 					console.log('catch');
 					console.log(e);
 				}
 				if (NetworkService.isOnline()) {
-//						console.log(proof, customerAccountInfo.unencryptedCode);
+					console.log(params, customerAccountInfo, sellerAccountInfo);
 					return this.makeRequest_(params, sellerAccountInfo).then(function (res) {
 						console.log(res);
 						return res;
 					});
 				} else {
 					// Offline
-					console.log(amount, description, goods, force, this);
-					return this.doOfflineTransaction(params, UserService.currentCustomer()).then(function (result) {
+					console.log(params, customerAccountInfo, sellerAccountInfo);
+					return this.doOfflineTransaction(params, customerAccountInfo).then(function (result) {
 						console.log(result);
 						self.warnOfflineTransactions();
+						result.data.txid='Offline';
 						return result;
 					});
 				}
@@ -84,7 +84,7 @@ app.service('TransactionService',
 			return this.makeTransactionRequest(amount, description, goods, force)
 				.then(function (transactionResult) {
 					if (transactionResult.data.ok === TRANSACTION_OK) {
-						transactionResult=transactionResult.data;
+						transactionResult = transactionResult.data;
 						var transaction = self.parseTransaction_(transactionResult);
 						console.log(transaction);
 						transaction.configureType(amount);
@@ -171,21 +171,11 @@ app.service('TransactionService',
 		TransactionService.prototype.doOfflineTransaction = function (params, customer) {
 			var q = $q.defer();
 			var transactionResponseOk = params;
-			transactionResponseOk.data = {
-				"ok": "1",
-				"message": "",
-				"txid": customer.getId(),
-				"created": moment().unix(),
-				"balance": customer.setBalance(customer.getBalance() - amount).getBalance(),
-				"rewards": customer.getBalance() * 0.9,
-				"did": "",
-				"undo": "",
-				"transaction_status": Transaction.Status.OFFLINE
-			};
 			var transactionResponseError = {
 				"ok": "0",
 				"message": "There has been an error"
 			};
+			console.log(transactionResponseOk, customer);
 			if (customer.isPersonal === false) {
 				return q.reject();
 			}
@@ -198,6 +188,7 @@ app.service('TransactionService',
 				.then(function (customerDbInfo) {
 					// do transaction
 					transactionResponseOk.ok = 1;
+					console.log(transactionResponseOk);
 					return q.resolve(transactionResponseOk);
 				})
 				.catch(function (msg) {
@@ -205,6 +196,7 @@ app.service('TransactionService',
 						.then(function () {
 							// do transaction
 							transactionResponseOk.ok = 1;
+							console.log(transactionResponseOk);
 							return q.resolve(transactionResponseOk);
 						})
 						.catch(function () {

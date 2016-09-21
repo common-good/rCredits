@@ -12,7 +12,7 @@ app.service('TransactionSyncService',
 		};
 		var send = function (sqlTransaction) {
 			console.log("TRANSACTION TO SEND: ", sqlTransaction);
-			console.log(sqlTransaction.proof.sc);
+			console.log(sqlTransaction.proof);
 			var sellerAccountInfo = sqlTransaction,
 				customerAccountInfo = sqlTransaction;
 			if (_.isUndefined(sqlTransaction.goods) || _.isNull(sqlTransaction.goods)) {
@@ -22,20 +22,8 @@ app.service('TransactionSyncService',
 				sqlTransaction.force = 0;
 			}
 			try {
-				var params = new RequestParameterBuilder()
-					.setOperationId('charge')
-					.setSecurityCode(sqlTransaction.securityCode)
-					.setAgent(sellerAccountInfo.agent)
-					.setMember(customerAccountInfo.member)
-					.setField('amount', sqlTransaction.amount.toString())
-					.setField('description', sqlTransaction.description)
-					.setField('created', sqlTransaction.created)
-					.setField('force', sqlTransaction.force)
-					.setField('goods', sqlTransaction.goods)
-					.setField('proof', sqlTransaction.proof)
-					.setField('photoid', 0)
-					.getParams();
-				var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.proof.account));
+				var params = sqlTransaction;
+				var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.seller));
 				return TransactionService.makeRequest_(params, account).then(function (res) {
 					console.log(res);
 					return res.data;

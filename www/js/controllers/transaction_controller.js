@@ -50,9 +50,11 @@ app.controller('TransactionCtrl', function ($scope, $state, $stateParams, $ionic
 			transactionPromise = $scope.refund();
 		}
 		transactionPromise.then(function (transaction) {
+			console.log(transaction);
 			$state.go('app.transaction_result', {'transactionStatus': 'success', 'transactionAmount': transactionAmount});
 			$ionicLoading.hide();
 		}, function (errorMsg) {
+			console.log(transaction);
 			TransactionService.lastTransaction = errorMsg;
 			$state.go('app.transaction_result', {'transactionStatus': 'failure', 'transactionAmount': transactionAmount, 'transactionMessage': errorMsg.message});
 			$ionicLoading.hide();
