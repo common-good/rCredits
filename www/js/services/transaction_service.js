@@ -72,7 +72,6 @@ app.service('TransactionService',
 					return this.doOfflineTransaction(params, customerAccountInfo).then(function (result) {
 						console.log(result);
 						self.warnOfflineTransactions();
-						result.data.txid='Offline';
 						return result;
 					});
 				}
@@ -82,11 +81,11 @@ app.service('TransactionService',
 		};
 		TransactionService.prototype.charge = function (amount, description, goods, force) {
 			return this.makeTransactionRequest(amount, description, goods, force)
-				.then(function (transactionResult) {
-					if (transactionResult.data.ok === TRANSACTION_OK) {
-						transactionResult = transactionResult.data;
+				.then(function (transactionResultFull) {
+					if (transactionResultFull.data.ok === TRANSACTION_OK) {
+						console.log(transactionResultFull);
+						transactionResult = transactionResultFull.data;
 						var transaction = self.parseTransaction_(transactionResult);
-						console.log(transaction);
 						transaction.configureType(amount);
 						var customer = UserService.currentCustomer();
 						customer.balance = transactionResult.balance;
@@ -100,6 +99,10 @@ app.service('TransactionService',
 						});
 						self.lastTransaction = transaction;
 						console.log(transaction);
+//						if (NetworkService.isOffline()) {
+//							transaction.txid = 'Offline';
+//							transaction.message = 'Offline';
+//						}
 						return transaction;
 					} else {
 						for (var v in transactionResult) {
@@ -171,6 +174,17 @@ app.service('TransactionService',
 		TransactionService.prototype.doOfflineTransaction = function (params, customer) {
 			var q = $q.defer();
 			var transactionResponseOk = params;
+			transactionResponseOk.data = {
+				"ok": "1",
+				"message": "",
+				"txid": customer.getId(),
+				"created": moment().unix(),
+				"balance": '',
+				"rewards": '',
+				"did": "",
+				"undo": "",
+				"transaction_status": Transaction.Status.OFFLINE
+			};
 			var transactionResponseError = {
 				"ok": "0",
 				"message": "There has been an error"
@@ -187,7 +201,7 @@ app.service('TransactionService',
 			MemberSqlService.existMember(customer.getId())
 				.then(function (customerDbInfo) {
 					// do transaction
-					transactionResponseOk.ok = 1;
+					transactionResponseOk.ok = '1';
 					console.log(transactionResponseOk);
 					return q.resolve(transactionResponseOk);
 				})
@@ -195,7 +209,7 @@ app.service('TransactionService',
 					askConfirmation('cashier_permission', '', 'ok', 'cancel')
 						.then(function () {
 							// do transaction
-							transactionResponseOk.ok = 1;
+							transactionResponseOk.ok = '1';
 							console.log(transactionResponseOk);
 							return q.resolve(transactionResponseOk);
 						})

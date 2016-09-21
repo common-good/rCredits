@@ -13,25 +13,16 @@ app.service('TransactionSyncService',
 		var send = function (sqlTransaction) {
 			console.log("TRANSACTION TO SEND: ", sqlTransaction);
 			console.log(sqlTransaction.proof);
-			var sellerAccountInfo = sqlTransaction,
-				customerAccountInfo = sqlTransaction;
-			if (_.isUndefined(sqlTransaction.goods) || _.isNull(sqlTransaction.goods)) {
-				sqlTransaction.goods = 1;
-			}
-			if (_.isUndefined(sqlTransaction.force) || _.isNull(sqlTransaction.force)) {
-				sqlTransaction.force = 0;
-			}
-			try {
-				var params = sqlTransaction;
-				var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.seller));
-				return TransactionService.makeRequest_(params, account).then(function (res) {
+			console.log(sqlTransaction.seller);
+//				var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.seller));
+				return TransactionService.makeRequest_(sqlTransaction, sqlTransaction.seller).then(function (res) {
 					console.log(res);
 					return res.data;
 				});
-			} catch (err) {
-				console.log(err);
-				return err;
-			}
+//			} catch (err) {
+//				console.log(err);
+//				return err;
+//			}
 		};
 		TransactionSyncService.prototype.syncOfflineTransactions = function () {
 			if (NetworkService.isOffline()) {

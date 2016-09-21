@@ -4,7 +4,7 @@
 		this.demoUrl = rCreditsConfig.stagingServerUrl;
 	};
 	UrlConfigurator.prototype.getServerUrl = function (account) {
-//		console.log(account);
+		console.log(account);
 		if (account.isDemo()) {
 			var x = this.demoUrl.replace('xxx', account.getMemberId());
 //      debugger
