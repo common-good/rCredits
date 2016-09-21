@@ -32,44 +32,46 @@ app.service('TransactionService',
 		};
 		TransactionService.prototype.makeTransactionRequest = function (amount, description, goods, force) {
 			if (UserService.currentUser().accountInfo) {
+				var sellerAccountInfo = UserService.currentUser().accountInfo,
+					customerAccountInfo = UserService.currentCustomer().accountInfo;
+				if (_.isUndefined(goods) || _.isNull(goods)) {
+					goods = 1;
+				}
+//				if (NetworkService.isOnline()) {
+				if (_.isUndefined(force) || _.isNull(force)) {
+					force = 0;
+				}
+//				}
+				try {
+					var params = new RequestParameterBuilder()
+						.setOperationId('charge')
+						.setSecurityCode(customerAccountInfo.securityCode)
+						.setAgent(sellerAccountInfo.accountId)
+						.setMember(customerAccountInfo.accountId)
+						.setField('amount', parseFloat(parseFloat(amount).toFixed(2)))
+						.setField('description', description)
+						.setField('created', moment().unix())
+						.setField('force', force)
+						.setField('goods', goods)
+						.setField('photoid', 0)
+						.getParams();
+					var proof = Sha256.hash((params.agent + params.amount + params.member + customerAccountInfo.unencryptedCode + params.created).toString());
+					params['proof'] = proof;
+				} catch (e) {
+					console.log('catch');
+					console.log(e);
+				}
 				if (NetworkService.isOnline()) {
-					var sellerAccountInfo = UserService.currentUser().accountInfo,
-						customerAccountInfo = UserService.currentCustomer().accountInfo;
-					if (_.isUndefined(goods) || _.isNull(goods)) {
-						goods = 1;
-					}
-					if (_.isUndefined(force) || _.isNull(force)) {
-						force = 0;
-					}
-					try {
-						var params = new RequestParameterBuilder()
-							.setOperationId('charge')
-							.setSecurityCode(customerAccountInfo.securityCode)
-							.setAgent(sellerAccountInfo.accountId)
-							.setMember(customerAccountInfo.accountId)
-							.setField('amount', amount.toString())
-							.setField('description', description)
-							.setField('created', moment().unix())
-							.setField('force', force)
-							.setField('goods', goods)
-							.setField('photoid', 0)
-							.getParams();
-						var proof = Sha256.hash((params.agent + params.amount + params.member + customerAccountInfo.unencryptedCode + params.created).toString());
-						params['proof'] = proof;
 //						console.log(proof, customerAccountInfo.unencryptedCode);
-						return this.makeRequest_(params, sellerAccountInfo).then(function (res) {
-							console.log(res);
-							return res.data;
-						});
-					} catch (e) {
-						console.log('catch');
-						console.log(e);
-					}
+					return this.makeRequest_(params, sellerAccountInfo).then(function (res) {
+						console.log(res);
+						return res;
+					});
 				} else {
 					// Offline
 					console.log(amount, description, goods, force, this);
-					return this.doOfflineTransaction(amount, description, goods, force).then(function (result) {
-						console.log(result.message);
+					return this.doOfflineTransaction(params, UserService.currentCustomer()).then(function (result) {
+						console.log(result);
 						self.warnOfflineTransactions();
 						return result;
 					});
@@ -81,7 +83,8 @@ app.service('TransactionService',
 		TransactionService.prototype.charge = function (amount, description, goods, force) {
 			return this.makeTransactionRequest(amount, description, goods, force)
 				.then(function (transactionResult) {
-					if (transactionResult.ok === TRANSACTION_OK) {
+					if (transactionResult.data.ok === TRANSACTION_OK) {
+						transactionResult=transactionResult.data;
 						var transaction = self.parseTransaction_(transactionResult);
 						console.log(transaction);
 						transaction.configureType(amount);
@@ -165,46 +168,28 @@ app.service('TransactionService',
 			]);
 			return SQLiteService.executeQuery(sqlQuery);
 		};
-		TransactionService.prototype.doOfflineTransaction = function (amount, description, goods, force) {
-			var seller = UserService.currentUser(),
-				customer = UserService.currentCustomer();
+		TransactionService.prototype.doOfflineTransaction = function (params, customer) {
 			var q = $q.defer();
-			var message;
-			console.log(amount);
-			amount = parseFloat(parseFloat(amount).toFixed(2));
-			console.log(customer, amount, description, goods, force, customer.unencryptedCode);
-			if (force === 0) {
-				message = "The transaction has been canceled";
-				console.log(message);
-			} else {
-				message = 'You charged ' + customer.name + ' $' + amount + ' for goods and services';
-			}
-			var transactionResponseOk = {
+			var transactionResponseOk = params;
+			transactionResponseOk.data = {
 				"ok": "1",
-				"agent":seller,
-				"member":customer,
-				"message": message,
+				"message": "",
 				"txid": customer.getId(),
 				"created": moment().unix(),
-				"balance": ((customer.setBalance(customer.getBalance() - amount)).getBalance()).toFixed(2),
-				"rewards": (customer.getBalance() * 0.9).toFixed(2),
+				"balance": customer.setBalance(customer.getBalance() - amount).getBalance(),
+				"rewards": customer.getBalance() * 0.9,
 				"did": "",
 				"undo": "",
-				"unencryptedCode":customer.accountInfo.unencryptedCode,
-				"transaction_status": Transaction.Status.OFFLINE,
-				"description": description,
-				"goods": goods
+				"transaction_status": Transaction.Status.OFFLINE
 			};
-			console.log(customer, amount, description, goods, force);
 			var transactionResponseError = {
 				"ok": "0",
 				"message": "There has been an error"
 			};
 			if (customer.isPersonal === false) {
-				console.log(customer);
 				return q.reject();
 			}
-			if (amount > rCreditsConfig.transaction_max_amount_offline) {
+			if (params.amount > rCreditsConfig.transaction_max_amount_offline) {
 				transactionResponseError.message = "Limit $" + rCreditsConfig.transaction_max_amount_offline + " exceeded";
 				q.reject(transactionResponseError);
 				return q.promise;
@@ -212,12 +197,14 @@ app.service('TransactionService',
 			MemberSqlService.existMember(customer.getId())
 				.then(function (customerDbInfo) {
 					// do transaction
+					transactionResponseOk.ok = 1;
 					return q.resolve(transactionResponseOk);
 				})
 				.catch(function (msg) {
 					askConfirmation('cashier_permission', '', 'ok', 'cancel')
 						.then(function () {
 							// do transaction
+							transactionResponseOk.ok = 1;
 							return q.resolve(transactionResponseOk);
 						})
 						.catch(function () {
@@ -226,7 +213,6 @@ app.service('TransactionService',
 							return q.reject(transactionResponseError);
 						});
 				});
-			console.log(transactionResponseOk.message);
 			return q.promise;
 		};
 		var askConfirmation = function (title, subTitle, okText, cancelText) {

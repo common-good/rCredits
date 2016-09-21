@@ -24,7 +24,7 @@ app.service('TransactionSyncService',
 			try {
 				var params = new RequestParameterBuilder()
 					.setOperationId('charge')
-					.setSecurityCode(sqlTransaction.proof.sc)
+					.setSecurityCode(sqlTransaction.securityCode)
 					.setAgent(sellerAccountInfo.agent)
 					.setMember(customerAccountInfo.member)
 					.setField('amount', sqlTransaction.amount.toString())
@@ -32,12 +32,9 @@ app.service('TransactionSyncService',
 					.setField('created', sqlTransaction.created)
 					.setField('force', sqlTransaction.force)
 					.setField('goods', sqlTransaction.goods)
-					.setField('unencryptedCode', sqlTransaction.unencryptedCode)
+					.setField('proof', sqlTransaction.proof)
 					.setField('photoid', 0)
 					.getParams();
-				var proof = Sha256.hash((params.agent + params.amount + params.member + sqlTransaction.proof.sc + params.created).toString());
-				params['proof'] = proof;
-				console.log(params.agent + ' '+ params.amount + ' '+ params.member + ' '+params['proof'] +  ' '+params.created);
 				var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.proof.account));
 				return TransactionService.makeRequest_(params, account).then(function (res) {
 					console.log(res);
