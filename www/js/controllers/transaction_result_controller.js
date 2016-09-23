@@ -33,22 +33,38 @@ app.controller('TransactionResultCtrl', function ($scope, $state, NetworkService
 	}
 	onoroff();
 	$scope.setMessages = function (transactionResult) {
-		console.log(transactionResult);
-		$scope.note = transactionResult.message;
-		if (transactionResult.txid) {
-			if (transactionResult.message.indexOf("ransaction has been canceled") > -1) {
-				$scope.heading = 'Canceled';
-				$scope.success = false;
+		if (NetworkService.isOnline()) {
+			console.log(transactionResult.lastTransaction.data.txid);
+			$scope.note = transactionResult.lastTransaction.data.message;
+			if (transactionResult.lastTransaction.data.txid) {
+				if ($scope.note.indexOf("ransaction has been canceled") > -1) {
+					$scope.heading = 'Canceled';
+					$scope.success = false;
+				} else {
+					$scope.heading = 'Successful';
+					$scope.success = true;
+				}
 			} else {
-				$scope.heading = 'Successful';
-				$scope.success = true;
+				$scope.heading = 'Unsuccessful';
+				$scope.success = false;
 			}
 		} else {
-			$scope.heading = 'Unsuccessful';
-			$scope.success = false;
+			console.log(transactionResult);
+			$scope.note = transactionResult.message;
+			if (transactionResult.txid) {
+				if ($scope.note.indexOf("ransaction has been canceled") > -1) {
+					$scope.heading = 'Canceled';
+					$scope.success = false;
+				} else {
+					$scope.heading = 'Successful';
+					$scope.success = true;
+				}
+			} else {
+				$scope.heading = 'Unsuccessful';
+				$scope.success = false;
+			}
 		}
 	};
-
 	$scope.customer = UserService.currentCustomer();
 	$scope.user = UserService.currentUser();
 
@@ -56,7 +72,7 @@ app.controller('TransactionResultCtrl', function ($scope, $state, NetworkService
 	if ($scope.transactionStatus === 'failure') {
 //		for (var t in TransactionService) {
 //			console.log(t);
-			console.log(TransactionService);
+		console.log(TransactionService);
 //		}
 //		console.log($stateParams.transactionMessage);
 //		console.log($stateParams.transactionMessage);

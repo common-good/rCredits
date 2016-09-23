@@ -14,11 +14,11 @@ app.service('TransactionSyncService',
 			console.log("TRANSACTION TO SEND: ", sqlTransaction);
 			console.log(sqlTransaction.proof);
 			console.log(sqlTransaction.seller);
-//				var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.seller));
-				return TransactionService.makeRequest_(sqlTransaction, sqlTransaction.seller).then(function (res) {
-					console.log(res);
-					return res.data;
-				});
+			var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.account));
+			return TransactionService.makeRequest_(sqlTransaction, account).then(function (res) {
+				console.log(res);
+				return res.data;
+			});
 //			} catch (err) {
 //				console.log(err);
 //				return err;

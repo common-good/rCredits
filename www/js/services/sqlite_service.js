@@ -39,7 +39,7 @@
 				tx.executeSql(query, params, function (tx, res) {
 					txPromise.resolve(res);
 				}, function (tx, e) {
-					console.error(tx + " -- executeSql ERROR: -- " + e.message);
+					console.error(tx, e);
 //					var alertPopup = NotificationService.showAlert({
 //						title: "error",
 //						template: "There was an error: " + e.message
@@ -79,6 +79,7 @@
 					"amount REAL," +
 					"goods INTEGER," + // <transaction is for real goods and services>
 					"proof TEXT," + // hash of cardCode, amount, created, and me (as proof of agreement)
+					"account TEXT," + //account particulars
 					"description TEXT);" // always "reverses..", if this tx undoes a previous one (previous by date)
 					);
 			}).then(function () {

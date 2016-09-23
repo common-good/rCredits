@@ -196,8 +196,8 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			return MemberSqlService.existMember(accountInfo.accountId)
 				.then(function (member) {
 					self.customer = Customer.parseFromDb(member);
-					console.log(self.customer);
-					self.customer.accountInfo = accountInfo;
+//					console.log(self.customer);
+//					self.customer.accountInfo = accountInfo;
 					return self.customer;
 				})
 				.catch(function (err) {

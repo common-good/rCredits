@@ -16,7 +16,8 @@
 			return SQLiteService.executeQuery(sqlQuery).then(function (SQLResultSet) {
 				if (SQLResultSet.rows.length > 0) {
 					var sqlT = SQLResultSet.rows[0];
-					sqlT.proof = JSON.parse(sqlT.proof);
+					console.log(sqlT.proof);
+//					sqlT.proof = JSON.parse(sqlT.proof);
 					return sqlT;
 				} else {
 					throw "No offline transactions";

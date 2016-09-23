@@ -9,8 +9,9 @@ app.service('TransactionService',
 			this.lastTransaction = null;
 		};
 		TransactionService.prototype.makeRequest_ = function (params, account) {
-			var urlConf = new UrlConfigurator();
 			console.log(params, account);
+			params.amount=parseFloat(params.amount.toFixed(2).toString());
+			var urlConf = new UrlConfigurator();
 			return $http({
 				method: 'POST',
 				url: urlConf.getServerUrl(account),
@@ -40,7 +41,7 @@ app.service('TransactionService',
 				if (_.isUndefined(force) || _.isNull(force)) {
 					force = 0;
 				}
-				try {
+//				try {
 					var params = new RequestParameterBuilder()
 						.setOperationId('charge')
 						.setSecurityCode(customerAccountInfo.accountInfo.securityCode)
@@ -55,11 +56,11 @@ app.service('TransactionService',
 						.getParams();
 					var proof = Sha256.hash((params.agent + params.amount + params.member + customerAccountInfo.accountInfo.unencryptedCode + params.created).toString());
 					params['proof'] = proof;
-					params['seller'] = sellerAccountInfo;
-				} catch (e) {
-					console.log('catch');
-					console.log(e);
-				}
+//					params['seller'] = sellerAccountInfo;
+//				} catch (e) {
+//					console.log('catch');
+//					console.log(e);
+//				}
 				if (NetworkService.isOnline()) {
 					console.log(params, customerAccountInfo, sellerAccountInfo);
 					return this.makeRequest_(params, sellerAccountInfo).then(function (res) {
@@ -68,7 +69,7 @@ app.service('TransactionService',
 					});
 				} else {
 					// Offline
-					console.log(params, customerAccountInfo, sellerAccountInfo);
+					console.log(params.proof, customerAccountInfo, sellerAccountInfo);
 					return this.doOfflineTransaction(params, customerAccountInfo).then(function (result) {
 						console.log(result);
 						self.warnOfflineTransactions();
@@ -81,10 +82,8 @@ app.service('TransactionService',
 		};
 		TransactionService.prototype.charge = function (amount, description, goods, force) {
 			return this.makeTransactionRequest(amount, description, goods, force)
-				.then(function (transactionResultFull) {
-					if (transactionResultFull.data.ok === TRANSACTION_OK) {
-						console.log(transactionResultFull);
-						transactionResult = transactionResultFull.data;
+				.then(function (transactionResult) {
+					if (transactionResult.ok === TRANSACTION_OK) {
 						var transaction = self.parseTransaction_(transactionResult);
 						transaction.configureType(amount);
 						var customer = UserService.currentCustomer();
@@ -93,7 +92,9 @@ app.service('TransactionService',
 						transaction.amount = amount;
 						transaction.description = description;
 						transaction.goods = 1;
+						transaction.proof=transactionResult.data.proof;
 						customer.setLastTx(transaction);
+						console.log(transactionResult.data.proof);
 						customer.saveInSQLite().then(function () {
 							self.saveTransaction(transaction);
 						});
@@ -106,9 +107,9 @@ app.service('TransactionService',
 						return transaction;
 					} else {
 						for (var v in transactionResult) {
-							console.log(transactionResult.ok, transactionResult[v]);
 						}
-						NotificationService.showAlert({title: 'error', template: transactionResult.message});
+							console.log(transactionResult.ok, transactionResult);
+//						NotificationService.showAlert({title: 'error', template: transactionResult.message});
 					}
 					self.lastTransaction = transactionResult;
 					throw transactionResult;
@@ -146,10 +147,11 @@ app.service('TransactionService',
 			//"goods INTEGER," + // <transaction is for real goods and services>
 			//"proof TEXT," + // hash of cardCode, amount, created, and me (as proof of agreement)
 			//"description TEXT);" // always "reverses..", if this tx undoes a previous one (previous by date)
+			console.log(transaction.proof);
 			var seller = UserService.currentUser(),
 				customer = UserService.currentCustomer();
 			var sqlQuery = new SqlQuery();
-			sqlQuery.setQueryString('INSERT INTO txs (me, txid, status, created, agent, member, amount, goods, proof, description) VALUES (?,?,?,?,?,?,?,?,?,?)');
+			sqlQuery.setQueryString('INSERT INTO txs (me, txid, status, created, agent, member, amount, goods, proof,account, description) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
 			sqlQuery.setQueryData([
 				seller.getId(),
 				transaction.getId(),
@@ -159,6 +161,7 @@ app.service('TransactionService',
 				customer.getId(),
 				transaction.amount,
 				transaction.goods,
+				transaction.proof,
 				JSON.stringify({
 					account: JSON.stringify(customer.accountInfo),
 					sc: customer.accountInfo.securityCode,
@@ -168,13 +171,13 @@ app.service('TransactionService',
 					sellerId: seller.getId()
 				}),
 				transaction.description
+				
 			]);
 			return SQLiteService.executeQuery(sqlQuery);
 		};
 		TransactionService.prototype.doOfflineTransaction = function (params, customer) {
 			var q = $q.defer();
-			var transactionResponseOk = params;
-			transactionResponseOk.data = {
+			var transactionResponseOk= {
 				"ok": "1",
 				"message": "",
 				"txid": customer.getId(),
@@ -183,13 +186,14 @@ app.service('TransactionService',
 				"rewards": '',
 				"did": "",
 				"undo": "",
-				"transaction_status": Transaction.Status.OFFLINE
+				"transaction_status": Transaction.Status.OFFLINE,
+				"data":params
 			};
 			var transactionResponseError = {
 				"ok": "0",
 				"message": "There has been an error"
 			};
-			console.log(transactionResponseOk, customer);
+			console.log(customer);
 			if (customer.isPersonal === false) {
 				return q.reject();
 			}

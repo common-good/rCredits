@@ -26,14 +26,16 @@
 			},
 			getLastTx: function () {
 				return this.lastTx.getId();
-			},
-			getId: function () {
-				return this.accountInfo.accountId;
 			}
+//			,
+//			getId: function () {
+//				return this.accountInfo.accountId;
+//			}
 		});
 		Customer.parseFromDb = function (customerJson) {
 			var customer = new Customer(customerJson.name);
 			var proof = JSON.parse(customerJson.proof);
+			
 			customer.setBalance(customerJson.balance);
 			customer.setRewards((customerJson.rewards));
 			customer.setLastTx(customerJson.lastTx);
