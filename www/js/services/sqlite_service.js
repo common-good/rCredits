@@ -78,7 +78,7 @@
 					"member TEXT," + // customer account code (qid)
 					"amount REAL," +
 					"goods INTEGER," + // <transaction is for real goods and services>
-					"proof TEXT," + // hash of cardCode, amount, created, and me (as proof of agreement)
+					"data TEXT," + // hash of cardCode, amount, created, and me (as proof of agreement)
 					"account TEXT," + //account particulars
 					"description TEXT);" // always "reverses..", if this tx undoes a previous one (previous by date)
 					);

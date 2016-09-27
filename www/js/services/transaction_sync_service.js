@@ -12,10 +12,10 @@ app.service('TransactionSyncService',
 		};
 		var send = function (sqlTransaction) {
 			console.log("TRANSACTION TO SEND: ", sqlTransaction);
-			console.log(sqlTransaction.proof);
-			console.log(sqlTransaction.seller);
-			var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.account));
-			return TransactionService.makeRequest_(sqlTransaction, account).then(function (res) {
+			console.log(sqlTransaction.data);
+//			console.log(JSON.parse(sqlTransaction.data));
+			var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.account).account);
+			return TransactionService.makeRequest_(JSON.parse(sqlTransaction.data), account).then(function (res) {
 				console.log(res);
 				return res.data;
 			});

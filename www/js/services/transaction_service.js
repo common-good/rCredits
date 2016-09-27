@@ -10,7 +10,7 @@ app.service('TransactionService',
 		};
 		TransactionService.prototype.makeRequest_ = function (params, account) {
 			console.log(params, account);
-			params.amount=parseFloat(params.amount.toFixed(2).toString());
+//			params.amount=parseFloat(params.amount.toFixed(2).toString());
 			var urlConf = new UrlConfigurator();
 			return $http({
 				method: 'POST',
@@ -92,7 +92,7 @@ app.service('TransactionService',
 						transaction.amount = amount;
 						transaction.description = description;
 						transaction.goods = 1;
-						transaction.proof=transactionResult.data.proof;
+						transaction.data=transactionResult.data;
 						customer.setLastTx(transaction);
 						console.log(transactionResult.data.proof);
 						customer.saveInSQLite().then(function () {
@@ -147,11 +147,11 @@ app.service('TransactionService',
 			//"goods INTEGER," + // <transaction is for real goods and services>
 			//"proof TEXT," + // hash of cardCode, amount, created, and me (as proof of agreement)
 			//"description TEXT);" // always "reverses..", if this tx undoes a previous one (previous by date)
-			console.log(transaction.proof);
+			console.log(transaction);
 			var seller = UserService.currentUser(),
 				customer = UserService.currentCustomer();
 			var sqlQuery = new SqlQuery();
-			sqlQuery.setQueryString('INSERT INTO txs (me, txid, status, created, agent, member, amount, goods, proof,account, description) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+			sqlQuery.setQueryString('INSERT INTO txs (me, txid, status, created, agent, member, amount, goods, data, account, description) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
 			sqlQuery.setQueryData([
 				seller.getId(),
 				transaction.getId(),
@@ -161,9 +161,9 @@ app.service('TransactionService',
 				customer.getId(),
 				transaction.amount,
 				transaction.goods,
-				transaction.proof,
+				JSON.stringify(transaction.data),
 				JSON.stringify({
-					account: JSON.stringify(customer.accountInfo),
+					account: customer.accountInfo,
 					sc: customer.accountInfo.securityCode,
 					customerId: customer.getId(),
 					amount: transaction.amount,
