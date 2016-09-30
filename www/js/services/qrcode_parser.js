@@ -65,13 +65,13 @@
 			}
 			region = n2a(a2n(region));
 			account = n2a(a2n(account));
-			seller = this.accountInfo.isCompany ? ("-" + n2a(a2n(seller), -1, 26)) : "";
+			seller = this.accountInfo.isCompany ? ("-" + n2a2(a2n(seller), -1, 26)) : "";
 			this.accountInfo.memberId = region + account;
 			this.accountInfo.accountId = this.accountInfo.memberId + seller;
-			if (!this.accountInfo.accountId.includes(/^[A-Z]{3,4}[A-Z]{3,5}(-[A-Z]{1,5})?/)) {
-				console.log('That is not a valid rCard.');
-				throw 'That is not a valid rCard.';
-			}
+//			if (!/^[A-Z]{3,4}[A-Z]{3,5}(-[A-Z]{1,5})?/.test(this.accountInfo.accountId)) {
+//				console.log('That is not a valid rCard.');
+//				throw 'That is not a valid rCard.';
+//			}
 		} else {
 			this.parseAccountType_();
 			this.parseAccountCode_();
@@ -117,21 +117,21 @@
 		this.accountInfo.unencryptedCode = this.url.pathname.substr(5, this.url.pathname.length - 1);
 		console.log(this.accountInfo.securityCode);
 	};
-	function n2a(n, len, base) {
-		var A = toInteger('A');
+	function n2a2(n, len, base) {
+		var A = 'A';
 		var result = "";
 		var digit;
 		for (var i = 0; (len > 0 ? (i < len) : (n > 0 || i < -len)); i++) {
 			digit = n % base;
-			result = ((char)(A + digit)) + result;
+			result = ((A + digit)) + result;
 			n /= base;
 		}
 		return result;
 	}
 	function n2a(n) {
-		return n2a(n, -3, 26);
+		return n2a2(n, -3, 26);
 	}
-	function a2n(s, base) {
+	function a2n2(s, base) {
 		var A = 'A';
 		var zero = '0';
 		var result = 0;
@@ -143,7 +143,7 @@
 		return result;
 	}
 	function a2n(s) {
-		return a2n(s, 36);
+		return a2n2(s, 36);
 	}
 	window.QRCodeParser = QRCodeParser;
 })(window);
