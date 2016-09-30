@@ -4,7 +4,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 		{name: 'Cathy Cashier', url: 'HTTP://NEW.RC4.ME/ABJ-ME04nW44DHzxVDg', signin: '1', img: 'img/CathyCashier.jpg'},
 		{name: 'Bob Bossman', url: 'HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G', signin: '1', img: 'img/BobBossman.jpg'},
 		{name: 'Curt Customer', url: 'HTTP://NEW.RC4.ME/AAK.NyCBBlUF1qWNZ2k', signin: '0', img: 'img/CurtCustomerMember.jpg'},
-		{name: 'Susan Shopper', url: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw', signin: '0', img: 'img/SusanShopper.jpg'},
+		{name: 'Susan Shopper', url: 'HTTP://6VM.RC4.ME/H021ME04nW44DHzxVDg', signin: '0', img: 'img/SusanShopper.jpg'},
 		{name: "Curt-Helga's Hardware", url: 'HTTP://NEW.RC4.ME/AAD-utbYceW3KLLCcaw', signin: '1', img: 'img/CurtCustomerAgent.jpg'}
 	];
 	$scope.iswebview = ionic.Platform.platform();
@@ -57,9 +57,9 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 			});
 	};
 	$scope.onSelectManager = function (person) {
-		var selected = person.url;
+		var selected = person;
 		console.log(selected, $scope.whereWasI);
-		UserService.loginWithRCard(selected)
+		UserService.loginWithRCard(selected.url)
 			.then(function () {
 				$ionicHistory.nextViewOptions({
 					disableBack: true

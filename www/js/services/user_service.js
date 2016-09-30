@@ -69,7 +69,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	UserService.prototype.loginWithRCard_ = function (params, accountInfo) {
 		return this.makeRequest_(params, accountInfo).then(function (res) {
 			var responseData = res.data;
-			console.log(params.agent, accountInfo.accountId, params, accountInfo, res.logon);
+			console.log(params, accountInfo, res);
 			if (params.agent && params.agent.substr(-3) === accountInfo.accountId.substr(-3)) {
 				throw 'You cannot use yourself as a customer while you are an agent';
 			}
@@ -118,7 +118,6 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	// The app should then give notice to the user that the device is associated with the
 	// user.
 	UserService.prototype.loginWithRCard = function (str) {
-		console.log(str);
 		var qrcodeParser = new QRCodeParser();
 		qrcodeParser.setUrl(str);
 		var accountInfo = qrcodeParser.parse();
@@ -129,6 +128,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			.setMember(accountInfo.accountId)
 			.setSignin(accountInfo.signin)
 			.getParams();
+		console.log(accountInfo, params);
 		if (NetworkService.isOffline()) {
 			return this.loginWithRCardOffline(accountInfo).then(function () {
 				PreferenceService.parsePreferencesNumber(self.currentUser().getCan());
@@ -136,14 +136,14 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		}
 		return this.loginWithRCard_(params, accountInfo)
 			.then(function (responseData) {
-				if (responseData.logon === LOGIN_BY_AGENT) {
+					console.log(responseData);
+				if (responseData.can) {
 					self.seller = self.createSeller(responseData);
 					self.seller.accountInfo = accountInfo;
 					console.log(self.seller);
 					self.seller.save();
 					return self.seller;
-				}
-				if (responseData.logon === LOGIN_BY_CUSTOMER) {
+				}else if (responseData.ok === 1) {
 					throw self.LOGIN_SELLER_ERROR_MESSAGE;
 				}
 			})
@@ -154,6 +154,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	UserService.prototype.createSeller = function (sellerInfo) {
 		var props = ['can', 'descriptions', 'company', 'default', 'time'];
 		var seller = new Seller(sellerInfo.name);
+		console.log(sellerInfo);
 		_.each(props, function (p) {
 			seller[p] = sellerInfo[p];
 		});

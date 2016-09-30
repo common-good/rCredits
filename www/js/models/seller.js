@@ -55,8 +55,8 @@
 					_.extendOwn(this, JSON.parse(sellerData));
 					this.accountInfo = _.extendOwn(new AccountInfo(), this.accountInfo);
 					this.configureDeviceId_();
-					PreferenceService.parsePreferencesNumber(this.getCan());
 					console.log(this.getCan());
+					PreferenceService.parsePreferencesNumber(this.getCan());
 					return this;
 				}
 				throw new Error("Unable to load user from Storage");
