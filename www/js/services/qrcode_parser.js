@@ -68,6 +68,7 @@
 			seller = this.accountInfo.isCompany ? ("-" + n2a2(a2n(seller), -1, 26)) : "";
 			this.accountInfo.memberId = region + account;
 			this.accountInfo.accountId = this.accountInfo.memberId + seller;
+			console.log(this.accountInfo,agentLen,region,account);
 //			if (!/^[A-Z]{3,4}[A-Z]{3,5}(-[A-Z]{1,5})?/.test(this.accountInfo.accountId)) {
 //				console.log('That is not a valid rCard.');
 //				throw 'That is not a valid rCard.';
