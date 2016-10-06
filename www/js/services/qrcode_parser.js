@@ -1,4 +1,4 @@
-/* global Sha256 */
+/* global Sha256, parseInt */
 
 (function (window) {
 	var COMPANY_INDICATOR = '-';
@@ -16,15 +16,7 @@
 		this.accountInfo.url = this.plainUrl;
 		this.parts = this.accountInfo.url.split(/[/\\.-]/);
 		this.count = this.parts.length;
-		console.log(this.count,this.parts);
-//		this.isPersonal = false;
-//		this.isCompany = false;
-//		this.memberId = '';
-//		this.accountId = '';
-//		this.securityCode = '';
-//		this.url = '';
-//		this.serverType = '';
-//		this.signin = '';
+		console.log(this.count, this.parts);
 //isCompany:true
 //isPersonal:false
 //memberId:"NEW"
@@ -37,22 +29,22 @@
 		if (this.count === 6) {
 			var region = this.parts[2];
 			var tail = this.parts[5];
-			var fmt = tail.charAt(0);
-			var fmts = ["", "", "012389ABGHIJ", "4567CDEFKLMN", "OPQRSTUV", "WXYZ"];
-			var acctLen;
-			var i = 0;
-			for (acctLen = 2; acctLen < 6; acctLen++) {
-				i = fmts[acctLen].indexOf(fmt);
-				if (i !== -1) {
-					break;
-				}
-			}
+			var fmt = r36ToR26(tail.substring(0, 1));
+			var acctLen = '';
+			var regionLens = '112233344';
+			var acctLens = '232323445';
+			var i = parseInt(fmt, 36);
 			var agentLen = i % 4;
-			if (acctLen === 6 || tail.length < 1 + acctLen + agentLen) {
+			i = Math.floor(i / 4);
+			var regionLen = parseInt(regionLens.charAt(i));
+			var acctLen = parseInt(acctLens.charAt(i));
+			var account = r36ToR26(tail.substring(1, 1 + acctLen));
+			console.log(tail,i, fmt, acctLen, agentLen, account,acctLens.charAt(i));
+			if (acctLen >= 6 || tail.length < 1 + acctLen + agentLen) {
 				console.log('That is not a valid rCard.');
 				throw 'That is not a valid rCard.';
 			}
-			var account = tail.substring(1, 1 + acctLen);
+//			var account = tail.substring(1, 1 + acctLen);
 			var seller = tail.substring(1 + acctLen, 1 + acctLen + agentLen);
 			this.accountInfo.unencryptedCode = tail.substring(1 + acctLen + agentLen);
 			this.accountInfo.securityCode = Sha256.hash(this.accountInfo.unencryptedCode);
@@ -63,16 +55,12 @@
 			} else {
 				this.accountInfo.signin = 0;
 			}
-			region = n2a(a2n(region));
-			account = n2a(a2n(account));
-			seller = this.accountInfo.isCompany ? ("-" + n2a2(a2n(seller), -1, 26)) : "";
-			this.accountInfo.memberId = region + account;
+			region = r36ToR26(region);
+//			account = r36ToR26(account);
+			seller = this.accountInfo.isCompany ? ("-" + r36ToR26(seller)) : "";
+			this.accountInfo.memberId = account;
 			this.accountInfo.accountId = this.accountInfo.memberId + seller;
-			console.log(this.accountInfo,agentLen,region,account);
-//			if (!/^[A-Z]{3,4}[A-Z]{3,5}(-[A-Z]{1,5})?/.test(this.accountInfo.accountId)) {
-//				console.log('That is not a valid rCard.');
-//				throw 'That is not a valid rCard.';
-//			}
+			console.log(this.accountInfo, agentLen, region, account, fmt);
 		} else {
 			this.parseAccountType_();
 			this.parseAccountCode_();
@@ -118,33 +106,17 @@
 		this.accountInfo.unencryptedCode = this.url.pathname.substr(5, this.url.pathname.length - 1);
 		console.log(this.accountInfo.securityCode);
 	};
-	function n2a2(n, len, base) {
-		var A = 'A';
-		var result = "";
-		var digit;
-		for (var i = 0; (len > 0 ? (i < len) : (n > 0 || i < -len)); i++) {
-			digit = n % base;
-			result = ((A + digit)) + result;
-			n /= base;
-		}
-		return result;
-	}
-	function n2a(n) {
-		return n2a2(n, -3, 26);
-	}
-	function a2n2(s, base) {
-		var A = 'A';
-		var zero = '0';
-		var result = 0;
-		var n;
+	function r36ToR26(part) {
+		console.log(part);
+		var std = '0123456789abcdefghijklmnop';
+		var ours = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		var s = parseInt(part, 36).toString(26); // d4m
+		var s2 = '';
 		for (var i = 0; i < s.length; i++) {
-			n = s.charAt(i);
-			result = result * base + n - (n >= A ? A - 10 : zero);
+			s2 += ours.charAt(std.indexOf(s.charAt(i)));
 		}
-		return result;
-	}
-	function a2n(s) {
-		return a2n2(s, 36);
+		console.log(s2);
+		return s2;
 	}
 	window.QRCodeParser = QRCodeParser;
 })(window);
