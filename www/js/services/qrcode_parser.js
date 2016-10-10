@@ -29,37 +29,42 @@
 		if (this.count === 6) {
 			var region = this.parts[2];
 			var tail = this.parts[5];
-			var fmt = r36ToR26(tail.substring(0, 1));
+			var fmt = tail.substring(0, 1);
 			var acctLen = '';
 			var regionLens = '112233344';
 			var acctLens = '232323445';
 			var i = parseInt(fmt, 36);
 			var agentLen = i % 4;
+			console.log(i % 4);
 			i = Math.floor(i / 4);
 			var regionLen = parseInt(regionLens.charAt(i));
 			var acctLen = parseInt(acctLens.charAt(i));
-			var account = r36ToR26(tail.substring(1, 1 + acctLen));
-			console.log(tail,i, fmt, acctLen, agentLen, account,acctLens.charAt(i));
+			var account = r36ToR26(tail.substring(1, 1 + acctLen), acctLen);
+			var memberId = '';
+			console.log(tail, i, fmt, acctLen, agentLen, account, acctLens.charAt(i), regionLen);
 			if (acctLen >= 6 || tail.length < 1 + acctLen + agentLen) {
 				console.log('That is not a valid rCard.');
 				throw 'That is not a valid rCard.';
 			}
 //			var account = tail.substring(1, 1 + acctLen);
-			var seller = tail.substring(1 + acctLen, 1 + acctLen + agentLen);
+//			var seller = tail.substring(1 + acctLen, 1 + acctLen + agentLen);
 			this.accountInfo.unencryptedCode = tail.substring(1 + acctLen + agentLen);
 			this.accountInfo.securityCode = Sha256.hash(this.accountInfo.unencryptedCode);
 			this.accountInfo.isCompany = (agentLen > 0);
 			this.accountInfo.isPersonal = !this.accountInfo.isCompany;
+
+			region = r36ToR26(region, regionLen);
+//			account = r36ToR26(account);
 			if (this.accountInfo.isCompany) {
 				this.accountInfo.signin = 1;
+				memberId = region + ':' + account;
+				this.accountInfo.accountId = memberId;
 			} else {
+				memberId = region + '.' + account;
 				this.accountInfo.signin = 0;
 			}
-			region = r36ToR26(region);
-//			account = r36ToR26(account);
-			seller = this.accountInfo.isCompany ? ("-" + r36ToR26(seller)) : "";
-			this.accountInfo.memberId = account;
-			this.accountInfo.accountId = this.accountInfo.memberId + seller;
+//			seller = this.accountInfo.isCompany ? ("-" + r36ToR26(seller, acctLen + agentLen)) : "";
+			this.accountInfo.memberId = memberId;
 			console.log(this.accountInfo, agentLen, region, account, fmt);
 		} else {
 			this.parseAccountType_();
@@ -106,14 +111,18 @@
 		this.accountInfo.unencryptedCode = this.url.pathname.substr(5, this.url.pathname.length - 1);
 		console.log(this.accountInfo.securityCode);
 	};
-	function r36ToR26(part) {
+	function r36ToR26(part, s2Len) {
 		console.log(part);
 		var std = '0123456789abcdefghijklmnop';
 		var ours = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		var s = parseInt(part, 36).toString(26); // d4m
 		var s2 = '';
-		for (var i = 0; i < s.length; i++) {
+		for (var i = 0; i <= s.length; i++) {
 			s2 += ours.charAt(std.indexOf(s.charAt(i)));
+		}
+		console.log(s2.length);
+		if (s2.length < s2Len&&s2Len>0) {
+			s2 = 'A' + s2;
 		}
 		console.log(s2);
 		return s2;
