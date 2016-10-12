@@ -46,7 +46,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	};
 	UserService.prototype.makeRequest_ = function (params, accountInfo) {
 		var urlConf = new UrlConfigurator();
-		console.log(urlConf.getServerUrl(accountInfo), $httpParamSerializer(params));
+		console.log(urlConf.getServerUrl(accountInfo),accountInfo, $httpParamSerializer(params));
 		return $http({
 			method: 'POST',
 			url: urlConf.getServerUrl(accountInfo),

@@ -35,8 +35,8 @@
 			var acctLens = '232323445';
 			var i = parseInt(fmt, 36);
 			var agentLen = i % 4;
-			console.log(i % 4);
 			i = Math.floor(i / 4);
+			console.log(i);
 			var regionLen = parseInt(regionLens.charAt(i));
 			var acctLen = parseInt(acctLens.charAt(i));
 			var account = r36ToR26(tail.substring(1, 1 + acctLen), acctLen);
@@ -57,12 +57,12 @@
 //			account = r36ToR26(account);
 			if (this.accountInfo.isCompany) {
 				this.accountInfo.signin = 1;
-				memberId = region + ':' + account;
-				this.accountInfo.accountId = memberId;
+				this.accountInfo.accountId = region + ':' + account;
 			} else {
-				memberId = region + '.' + account;
+				this.accountInfo.accountId = region + '.' + account;
 				this.accountInfo.signin = 0;
 			}
+			memberId = region;
 //			seller = this.accountInfo.isCompany ? ("-" + r36ToR26(seller, acctLen + agentLen)) : "";
 			this.accountInfo.memberId = memberId;
 			console.log(this.accountInfo, agentLen, region, account, fmt);
@@ -117,11 +117,11 @@
 		var ours = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		var s = parseInt(part, 36).toString(26); // d4m
 		var s2 = '';
-		for (var i = 0; i <= s.length; i++) {
+		for (var i = 0; i < s.length; i++) {
 			s2 += ours.charAt(std.indexOf(s.charAt(i)));
 		}
-		console.log(s2.length);
-		if (s2.length < s2Len&&s2Len>0) {
+		console.log(s2.length, s2Len,s2,s);
+		while ((s2.length < s2Len)||(s2.length<3)) {
 			s2 = 'A' + s2;
 		}
 		console.log(s2);
