@@ -1,5 +1,4 @@
 /* global Sha256, parseInt */
-
 (function (window) {
 	var COMPANY_INDICATOR = '-';
 	var COMPANY_INDICATOR_URL = ':';
@@ -46,15 +45,12 @@
 				console.log('That is not a valid rCard.');
 				throw 'That is not a valid rCard.';
 			}
-//			var account = tail.substring(1, 1 + acctLen);
-//			var seller = tail.substring(1 + acctLen, 1 + acctLen + agentLen);
 			this.accountInfo.unencryptedCode = tail.substring(1 + acctLen + agentLen);
 			this.accountInfo.securityCode = Sha256.hash(this.accountInfo.unencryptedCode);
 			this.accountInfo.isCompany = (agentLen > 0);
 			this.accountInfo.isPersonal = !this.accountInfo.isCompany;
 
 			region = r36ToR26(region, regionLen);
-//			account = r36ToR26(account);
 			if (this.accountInfo.isCompany) {
 				this.accountInfo.signin = 1;
 				this.accountInfo.accountId = region + ':' + account;
@@ -63,7 +59,6 @@
 				this.accountInfo.signin = 0;
 			}
 			memberId = region;
-//			seller = this.accountInfo.isCompany ? ("-" + r36ToR26(seller, acctLen + agentLen)) : "";
 			this.accountInfo.memberId = memberId;
 			console.log(this.accountInfo, agentLen, region, account, fmt);
 		} else {

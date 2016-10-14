@@ -17,7 +17,6 @@
 				if (SQLResultSet.rows.length > 0) {
 					var sqlT = SQLResultSet.rows[0];
 					console.log(sqlT.proof);
-//					sqlT.proof = JSON.parse(sqlT.proof);
 					return sqlT;
 				} else {
 					throw "No offline transactions";

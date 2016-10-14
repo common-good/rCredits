@@ -13,16 +13,16 @@ app.service('TransactionSyncService',
 		var send = function (sqlTransaction) {
 			console.log("TRANSACTION TO SEND: ", sqlTransaction);
 			console.log(sqlTransaction.data);
-//			console.log(JSON.parse(sqlTransaction.data));
-			var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.account).account);
-			return TransactionService.makeRequest_(JSON.parse(sqlTransaction.data), account).then(function (res) {
-				console.log(res);
-				return res.data;
-			});
-//			} catch (err) {
-//				console.log(err);
-//				return err;
-//			}
+			try {
+				var account = _.extendOwn(new AccountInfo(), JSON.parse(sqlTransaction.account).account);
+				return TransactionService.makeRequest_(JSON.parse(sqlTransaction.data), account).then(function (res) {
+					console.log(res);
+					return res.data;
+				});
+			} catch (err) {
+				console.log(err);
+				return err;
+			}
 		};
 		TransactionSyncService.prototype.syncOfflineTransactions = function () {
 			if (NetworkService.isOffline()) {
@@ -44,7 +44,6 @@ app.service('TransactionSyncService',
 					}
 					return TransactionSql.setTransactionSynced(sqlTransaction);
 				})
-				//.then(self.syncOfflineTransactions.bind(self))
 				.then(function () {
 					console.log(self);
 					$timeout(self.syncOfflineTransactions.bind(self), 500);
@@ -57,11 +56,6 @@ app.service('TransactionSyncService',
 					} else {
 						self.exludedTxs = [];
 					}
-					// err no transactions || error ocurred
-//					NotificationService.showAlert({
-//						title: "error",
-//						template: "There has been an Error: " + err.message
-//					});
 				});
 		};
 		var t = new TransactionSyncService();

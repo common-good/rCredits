@@ -198,7 +198,6 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 				.then(function (member) {
 					self.customer = Customer.parseFromDb(member);
 //					console.log(self.customer);
-//					self.customer.accountInfo = accountInfo;
 					return self.customer;
 				})
 				.catch(function (err) {
@@ -217,17 +216,12 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		return this.loginWithRCard_(params, accountInfo)
 			.then(function (responseData) {
 				console.log(responseData);
-//				if (responseData.logon === LOGIN_BY_CUSTOMER || responseData.logon === FIRST_PURCHASE) {
 				self.customer = self.createCustomer(responseData);
 				if (responseData.logon === FIRST_PURCHASE) {
 					self.customer.firstPurchase = true;
 				}
 				self.customer.accountInfo = accountInfo;
 				return self.customer;
-//				}
-//				if (responseData.logon === LOGIN_BY_AGENT) {
-//					throw self.LOGIN_SELLER_ERROR_MESSAGE;
-//				}
 				console.log(self);
 			})
 			.then(function (customer) {
@@ -257,7 +251,6 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		var props = ['balance', 'can', 'company', 'place'];
 		var customer = new Customer(customerInfo.name);
 		customer.setRewards(customerInfo.rewards);
-
 		_.each(props, function (p) {
 			customer[p] = customerInfo[p];
 		});

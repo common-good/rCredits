@@ -41,7 +41,7 @@ app.service('TransactionService',
 				if (_.isUndefined(force) || _.isNull(force)) {
 					force = 0;
 				}
-//				try {
+				try {
 					var params = new RequestParameterBuilder()
 						.setOperationId('charge')
 						.setSecurityCode(customerAccountInfo.accountInfo.securityCode)
@@ -56,11 +56,11 @@ app.service('TransactionService',
 						.getParams();
 					var proof = Sha256.hash((params.agent + params.amount + params.member + customerAccountInfo.accountInfo.unencryptedCode + params.created).toString());
 					params['proof'] = proof;
-//					params['seller'] = sellerAccountInfo;
-//				} catch (e) {
-//					console.log('catch');
-//					console.log(e);
-//				}
+					params['seller'] = sellerAccountInfo;
+				} catch (e) {
+					console.log('catch');
+					NotificationService.showAlert({title: 'error', template: e});
+				}
 				if (NetworkService.isOnline()) {
 					console.log(params, customerAccountInfo, sellerAccountInfo);
 					return this.makeRequest_(params, sellerAccountInfo).then(function (res) {
@@ -100,16 +100,11 @@ app.service('TransactionService',
 						});
 						self.lastTransaction = transaction;
 						console.log(transaction);
-//						if (NetworkService.isOffline()) {
-//							transaction.txid = 'Offline';
-//							transaction.message = 'Offline';
-//						}
 						return transaction;
 					} else {
 						for (var v in transactionResult) {
 						}
 							console.log(transactionResult.ok, transactionResult);
-//						NotificationService.showAlert({title: 'error', template: transactionResult.message});
 					}
 					self.lastTransaction = transactionResult;
 					throw transactionResult;
@@ -247,7 +242,6 @@ app.service('TransactionService',
 			TransactionSql.exist24HsTransactions().then(function (exists) {
 				if (exists) {
 					NotificationService.showAlert('offline_old_transactions');
-					//					askConfirmation('offline_old_transactions','','OK','Cancel');
 				}
 			});
 		};
