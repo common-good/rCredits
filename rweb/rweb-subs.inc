@@ -63,19 +63,15 @@ EOF
   'ready to charge' => t('<p>You successfully scanned in as "@agentName" to charge customers on behalf of @companyName.</p><p>Now go back to your scanning app, to scan a customer\'s card. Sign out only when your shift ends.</p>'),
   'transaction list truncated' => t('There are too many transactions to show all at once, so only the first @TX_MAX_ROWS are shown (choose a different date range to see the rest).'),
   'address info' => t('<a1>Click here</a> for address information.'),
-  'open dwolla' => t('Our partner organization, Dwolla, sent you a link in an email. Click the link, sign in with your phone number and temporary password "@usdPass", then come back here once you have confirmed your phone number. (We are working to eliminate this step, but in the meantime, there is no way around it.)'),
   'agent created' => t('The agent account was successfully created.'),
   'phone verified' => t('Your phone number has been verified.'),
-  'id verification pending' => t('Your photo ID has been uploaded successfully. Now we need to wait for our partner organization to verify your identity. Please feel free to email us if you have questions.'),
-//  'adjust settings' => t('<b>TIP:</b> You can adjust your settings by clicking the Settings button. '),
   'payroll done' => t('<br>Payroll upload was successful. You paid @count employees a total of @total.'),
   'tx edited' => t('Your transaction #@tid was edited by @who.'),
   'new tx goods' => t('It is now for @what.'),
   'new tx amount' => t('The new amount is @amount.'),
-  'min zeroed' => t('Your minimum balance has been set to zero, to disable automatic refills of your account (automatic refills are not possible without a connected bank account OR permission to draw on another rCredits account).'),
   'expired invite converted' => t('Your invitation has expired, so @inviterName will be asked to re-confirm.'),
   'new savings balance' => t('<p>IMPORTANT! Your rCredits balance has been split to include a Credit Reserve containing your incentive rewards. Read <@a>last week\'s rCredits newsletter</a> for details.</p>', ['@a' => 'a href=http://us9.campaign-archive1.com/?u=b1d89f860859e1d9b906fa0b0&id=f1f54edd80&e=']),
-  'minimum zeroed' => t('<p>Your rCredits "minimum" has been set to zero, to prevent any unintended transfer from your bank account. To choose a new minimum balance or transfer funds manually, sign in to your account at rCredits.org OR <@a1>click here</a> to set your minimum back to @suggested.</p>'),
+  'minimum zeroed' => t('<p>Your rCredits "automatic refills" have been turned off, to prevent any unintended transfer from your bank account. To turn them back on or transfer funds manually, sign in to your account at rCredits.org OR <@a1>click here</a>.</p>'),
   'sent message' => t('Your message has been sent to @fullName.'),
   
   // prompts
@@ -1446,10 +1442,10 @@ EOF;
 function eLinkAcct(&$sta, &$eLink = '', $allow = 'individual') {
   if (!$eLink) extract(u\just('eLink', $sta)); // verifying or submitting; get stored eLink args
   extract(u\just('qid ecode allow', $eLink));
-  $a = r\acct(@$qid); // current or specified account
+  $a = r\acct($qid = @$qid); // current or specified account
   if (!$a and $allow != 'any') return r\go('', 'requires signin');
   if ($allow == 'individual' and $a->co) return r\go('', t('That page is for individual accounts only.'));
-  if (@$qid === '' and @$ecode != $a->emailCode) return w\hack('bad ecode');
+  if ($qid and @$ecode != $a->emailCode) return w\hack('bad ecode');
   $eLink = $sta['eLink'] = "allow=$allow&qid=$qid&ecode=" . @$ecode; // remember it (cttys don't use ecode)
   return $a;
 }
@@ -1489,15 +1485,15 @@ function txsRpt($amt, $count, $accts, $type) {
 /**
  * Return markup to identify the agent of the given account.
  */
-function identifiers($acct) {
+function identifiers($a) {
   $mya = r\acct();
-  list ($agent, $company) = $acct->proSe ? array($acct, '') : array(r\acct($acct->agentId), $acct->fullName);
-  $location = r\location($acct);
-  $pic = ($mya and $mya->co) ? $acct->agent->photoHtml() : ''; // let companies see the picture
+  list ($agentA, $company) = $a->proSe ? array($a, '') : array(r\acct($a->agentId), $a->fullName);
+  $location = r\location($a);
+  $pic = ($mya and $mya->co) ? $a->agentA->photoHtml() : ''; // let companies see the picture
   return <<<EOF
     $pic
     <div id="id-other">
-      <div id="id-name">$agent->fullName</div>
+      <div id="id-name">$agentA->fullName</div>
       <div id="id-company">$company</div>
       <div id="id-location">$location</div>
     </div id-other>

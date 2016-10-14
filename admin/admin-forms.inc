@@ -29,7 +29,7 @@ function formAdminPanel($form, &$sta, $args = '') {
   extract(u\just('qid', $args));
   $mya = r\acct();
   $admin = $mya->admin;
-  $tables = 'users txs gifts proxies relations invites'; // tables to show
+  $tables = 'users txs usd log gifts proxies relations invites'; // tables to show
   
   $title = item(t('System Administration'));
   
@@ -37,7 +37,7 @@ function formAdminPanel($form, &$sta, $args = '') {
     if (r\up()) $stop = submi(t('STOP')); else $start = submi(t('START'));
     $do1099btest = submi(t('1099B TEST'));
     $do1099b = submi('1099B');
-    $tables .= ' notices boxes do log stats usd nonmembers';
+    $tables .= ' notices boxes do stats usd nonmembers';
     $special = submi(t('Special'));
     $askForAppData = submi(t('Ask for App Data'));
     $seeAppData = submi(t('See App Data'));
@@ -70,6 +70,7 @@ function formAdminPanel($form, &$sta, $args = '') {
 }
 
 function formAdminPanel_submit($form, &$sta) {
+  global $base_url;
   $mya = r\acct();
   $admin = $mya->admin; // as distinct from merely cadmin
   
@@ -96,8 +97,8 @@ function formAdminPanel_submit($form, &$sta) {
   if (@$a and $op == 'printId') {
     if ($a->co and $a->proSe) return say(t('A company cannot have an rCard (only its agents have rCards).'));
     if (@$make) {
-      $oldFile = DRUPAL_ROOT . $a->photoFilename(TRUE);
-      r\makeCardCode($a); // this changes photo filename
+      $oldFile = DRUPAL_ROOT . $a->photoFilename(TRUE); // get this before makeCardCode
+      $a->makeCardCode(); // this changes photo filename
       if (file_exists($oldFile)) {
         $newFile = DRUPAL_ROOT . $a->photoFilename(TRUE);
         rename($oldFile, $newFile);
@@ -123,7 +124,7 @@ function formAdminPanel_submit($form, &$sta) {
   } elseif ($op == 'seeChanges') {
     r\go("sadmin/changes/$a->mainQid");
   } elseif ($op == 'ssnLink') {
-    w\say("http://new.rcredits.org/do/doSsn~$a->mainQid~$a->emailCode");
+    w\say(" &nbsp; $base_url/do/doSsn~$a->mainQid~$a->emailCode &nbsp; ");
   } elseif ($op == 'do1099b' or $test1099 = ($op == 'do1099btest')) {
     include_once __DIR__ . '/../rcredits-yearly.inc';
     r\Special\do1099bs(@$test1099);
@@ -158,7 +159,7 @@ EOF;
   if ($op == 'invites') return say(a\showQuery('r_invites', 1, 'invited DESC', 'invited, inviter, invitee, email', 'inviter'));
   if ($op == 'notices') return say(a\showQuery('r_notices', 1, 'msgid DESC'));
   if ($op == 'proxies') return say(a\showQuery('r_proxies', 1, 'id DESC', 'person, proxy, priority', 'person'));
-  if ($op == 'relations') return say(a\showQuery('r_relations', 1, 'main, reid', 'reid,main,other,draw,permission,employee,isOwner', 'main'));
+  if ($op == 'relations') return say(a\showQuery('r_relations', 1, 'main, reid', 'reid,main,other,otherNum,draw,permission,employee,isOwner', 'main'));
   if ($op == 'usd') return say(a\showQuery('r_usd', 1, 'created DESC'));
   foreach (u\ray('boxes do stats nonmembers') as $one) if ($op == $one) return say(a\showQuery("r_$one"));
 }
@@ -392,13 +393,14 @@ function formDownloadMemberList($form, &$sta, $args = '') {
 
   $title = item(t('Download Member List'));
   $subtext = item(t('for ') . $cttyA->fullName . t('<br>Link is do/op~qid~ecode~expMo. Current Month #') . r\rdoMonth());
-  if ($cttyA->name == 'greenfieldarearcredits') $allCttys2 = boxFld('allCttys', t('All communities:')); // temporary for CGF oversight
-  $onlyActive2 = boxFld('onlyActive', t('Active only:'), tt('Export only active accounts'));
-  $onlyPeople2 = boxFld('onlyPeople', t('People only:'), tt('Export only individual accounts (especially when emailing)'), TRUE);
-  $anonymous = boxFld('anonymous', t('Anonymous:'), tt('Export only non-identifying information (for data-mapping and analysis)'), FALSE);
+  if ($mya->admin) $allCttys2 = boxFld('allCttys', t('All communities:')); // temporary for CGF oversight
+  $requests2 = boxFld('requests', t('Include requests:'), t('Include non-members who have requested an invitation 2016 or later.'));
+  $onlyActive2 = boxFld('onlyActive', t('Active only:'), t('Export only active accounts'));
+  $onlyPeople2 = boxFld('onlyPeople', t('People only:'), t('Export only individual accounts (especially when emailing)'), TRUE);
+  $anonymous = boxFld('anonymous', t('Anonymous:'), t('Export only non-identifying information (for data-mapping and analysis)'), FALSE);
   //$onlyCos = boxFld(t('Companies only:'), tt('Export only company accounts'), FALSE);
   $submit = submit(t('Download'));
-  return labeled(compact(u\ray('title subtext allCttys2 onlyActive2 onlyPeople2 anonymous submit download')));
+  return labeled(compact(u\ray('title subtext requests2 allCttys2 onlyActive2 onlyPeople2 anonymous submit download')));
 }
 
 function formDownloadMemberList_submit($form, &$sta) {
@@ -602,7 +604,7 @@ function memberID($id, $agent = '') {
     $perm = r\relation('permission', $mya->id, $id);
     if ($perm < r\perm(B_SCAN)) exit('That is not an employee with scan permission.');
     $acct = r\acct($mya->id, $id);
-    if ($acct->agent->co) exit('You may print scan-in cards only for employees.');
+    if ($acct->agentA->co) exit('You may print scan-in cards only for employees.');
   } else */
 
   if (!$a = r\acct($id, $agent)) exit('No such account ia: ' . $id . ':' . $agent);
@@ -623,8 +625,8 @@ function memberID($id, $agent = '') {
     $nameSize = strlen($fullName) > 21 ? '100px' : '120px';
     $fields = array('cardCode', 0, 'Personal rCard');
   } else {
-    if (!@$a->agent->cardCode2) r\makeCardCode($a); // NOT r\cardCode($a->qid);
-    $a = $a->agent; // hereafter it's all about the agent
+    if (!@$a->agentA->cardCode2) $a->makeCardCode(); // NOT r\cardCode($a->qid);
+    $a = $a->agentA; // hereafter it's all about the agent
     $fullName = "$a->fullName<br>$fullName"; // agent and company
     $nameSize = '72px';
     

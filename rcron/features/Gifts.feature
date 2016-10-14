@@ -28,7 +28,6 @@ Scenario: A donation can be completed
   And we notice "new payment|reward other" to member "cgf" with subs:
   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*
   | Abe One   | $10    | donation | reward          | $1                |
-#Skip messages don't show up in get_file_contents simulation and I haven't figured out how to test this yet
   And that "notice" has link results:
   | _name | Abe One |
   | _postalAddr | 1 A, A, AK |
@@ -71,7 +70,6 @@ Scenario: A recurring donation can be completed
   And we notice "new payment|reward other" to member "cgf" with subs:
   | otherName | amount | payeePurpose                 | otherRewardType | otherRewardAmount |*
   | Abe One   | $10    | donation (quarterly gift #1) | reward          | $1                |
-#Skip messages don't show up in get_file_contents simulation and I haven't figured out how to test this yet
   And that "notice" has link results:
   | _name | Abe One |
   | _postalAddr | 1 A, A, AK |

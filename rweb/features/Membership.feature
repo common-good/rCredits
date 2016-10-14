@@ -99,7 +99,6 @@ Scenario: A member does it all
   Then we tell staff "event - member" with subs:
   | fullName | quid | status |*
   | Abe One  | .ZZA | member |
-  Skip
   When member ".ZZA" visits page "summary"
   Then we say "status": "setup complete|must be confirmed"
 #  And we say "status": "adjust settings"

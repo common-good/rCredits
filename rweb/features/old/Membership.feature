@@ -14,7 +14,7 @@ Setup:
   And relations:
   | id   | main | agent | permission |*
   | .ZZA | .ZZC | .ZZA  | manage     |
-Skip
+
 Scenario: A member signs in for the first time
   Given member is logged out
   And invitation to email "d@" is "c0D3"
@@ -190,7 +190,7 @@ Scenario: A member opens a business account
   And member ":ZZA" visits page "status"
   Then we show "Your account is Activated"
   And with done ""
-Skip (until we use recordscheck.net)
+
 Scenario: A member types the wrong account info (name, ssn, or dob)
   Given members have:
   | id   | federalId | dob      |*
@@ -211,7 +211,7 @@ Scenario: A member types the wrong account info (name, ssn, or dob)
   | Abe   | One  | 001-01-0001 | 1/1/1990 |
   Then we show "You're getting there"
   And with done "2"
-Skip (this will be handled manually offline for now)
+
 Scenario: A member company types the wrong account info (name, ein, or business structure)
   Given members have:
   | id   | federalId |*
@@ -243,7 +243,7 @@ Scenario: A member company types the wrong account info (name, ein, or business 
   | Corner Store | 001-01-0001 | CO_PARTNERSHIP |
   Then we show "You're getting there"
   And with done "2"
-Skip
+
 Scenario: A member has to submit a photo ID
   Given members have:
   | id   | federalId | dob      | state |*

@@ -196,7 +196,14 @@ G. Special rCredits datatypes
     . in QR code, the region is omitted because it occurs earlier in the URL. For example:
          HTTP://XXX.RC4.ME/HYYWZZZZZZZZZZZZZZ represents code HXXXYYW, where H means 3 chars for the region (XXX),
          2 chars for the account (YY) and 1 char for the agent (W), with security code ZZZZZZZZZZZZZZ
-        
+-------------------------------------------------
+    ABOUT THE QID FORMATS IN THE APP SOFTWARE:
+
+    The account codes sent to the server are the same as are printed on the rCards: radix 26 (6 or more capital letters -- followed by a dash and one or more additional letters if it is a company card). The new QR codes are parsed in base 36, then each piece (region, account, agent) is converted briefly to an integer, then converted to base 26 for use within the program, for storage in the device's database, and for sending to the server. So yes, the same thing gets sent to the server as for the old-format codes, except the "." is optional (and deprecated) between the region and account part AND colons are never sent -- always send the new-format company card codes (same as member code, plus dash and agent code).
+
+    The security code, which has lower case as well as uppercase and digits is the same printed and in the QR and for use in the program. However it is hashed before storage (except for device owner(s)) on the device and can be passed hashed to the server when identifying a member.
+-------------------------------------------------
+         
     The region (XXX) can be omitted in SMS identifiers (eg "200 to .ABCDE for pie")
     For each region that exists, we have a user record with uid < 0, with name = the region name followed by a period (eg ABC.)
     Communities within the region have negative uids descending from their region's uid. The qid for a negative region is an exclamation point followed by the qid for the corresponding positive number.

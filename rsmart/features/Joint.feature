@@ -45,10 +45,9 @@ Setup:
   
 Scenario: A cashier asks to charge someone
   When agent "C:E" asks device "devC" to charge ".ZZB,ccB" $400 for "goods": "food" at %now
-  Then we respond ok txid 5 created %now balance 140 rewards 540
-  And with message "report tx|reward" with subs:
-  | did     | otherName | amount | why                | rewardAmount |*
-  | charged | Bea Two   | $400   | goods and services | $20          |
+  Then we respond ok txid 5 created %now balance -400 rewards 540 saying:
+  | did     | otherName | amount | why   | reward |*
+  | charged | Bea Two   | $400   | goods | $40    |
   And with did
   | did     | amount | forCash |*
   | charged | $400   |         |

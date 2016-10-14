@@ -25,7 +25,8 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
   $idSub = u\ray('id', $a->id);
   
   setrisk('adminOk', $a); // administrator blessed this account
-  if ($a->community <> r\serverUid()) setRisk('geography'); // HIDTA (Washtenaw cty, MI)
+//  if ($a->community <> r\serverUid()) setRisk('geography'); // HIDTA (Washtenaw cty, MI)
+  if (!$a->cttyA or $a->cttyA->risk('geography')) setRisk('geography'); // HIDTA (eg Washtenaw cty, MI) (!$a->cttyA is for tests)
   // criminal
   setRisk('cashCo', $a); // high-risk company type according to regs
   $tenure = $a->tenure / 12 + (r\rTime() - $a->created) / YEAR_SECS; // years of residence ($a->tenure is in months)

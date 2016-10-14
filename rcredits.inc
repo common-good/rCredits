@@ -263,6 +263,18 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
 }
 
 /**
+ * Add a deactivated or phony (and used) card code to the "bad" list.
+ * @param string $qid: the account code
+ * @param string $code: the bad card code
+ * @param string $msg: type of error
+ */
+function badCard($qid, $code, $msg) {
+  $created = time();
+  db\update('r_bad', $info = compact(u\ray('qid code created')), 'created', TRUE);
+  r\tellStaff('card marked bad', $info + compact('msg'));
+}
+
+/**
  * Email an arbitrary message to the member, NOW (otherwise use notify).
  * @param int $uid: account record ID
  * @param string $index: index to arbitrary HTML message body (between salutation & closing) or the HTML itself
@@ -274,7 +286,7 @@ function message($uid, $index, $subs = [], $topic = '') {
 
   $subs['otherName'] = @$subs['myName']; // messaging someone else about US, if anyone
   $message = u\tt($index, $subs);
-  $topic = $topic ?: (u\tt(@$GLOBALS['topics'][$index], $subs) ?: $index); // index should never be used (wrong language) but don't fail
+  $topic = $topic ?: (u\tt(@$GLOBALS['topics'][$index], $subs) ?: $index); // index should never be used literally (wrong language) but more importantly never fail
   $testMessages[] = compact(u\ray('uid index subs topic'));
 ///  debug(compact('uid','index','subs','message','topic'));
   r\notify($uid, 'message', compact('message', 'topic'), TRUE);
@@ -344,16 +356,6 @@ function suggestMin($a, $default = '', $dftMsg = '', $get = FALSE) {
   
   $args = compact(u\ray('suggested a1 a2 a3'));
   if ($get) return u\tt($msg, $args); else r\notify($a->id, $msg, $args);
-}
-
-/**
- * Create an rCard security code for the given account (either for an individual or a company agent).
- * @param acct $a: the account
- */
-function makeCardCode($a) {
-  u\EXPECT($a->agent);
-  $field = $a->proSe ? 'cardCode' : 'cardCode2';
-  $a->agent->update($field, r\cardCode($a->qid)); // resave the secure fields
 }
 
 /**
@@ -959,10 +961,9 @@ function noticeArgs($uid, $where = '0', $weekly = FALSE, $monthly = FALSE, $at =
 //  $savings = u\fmtAmt($a->j_savings);
   $savings = u\fmtAmt($a->j_rewards);
   list ($rewards, $ourEmail) = array(u\fmtAmt($a->j_rewards), $a->cttyA->email);
-  $balance = u\tt('balance notice', compact('balance', 'savings', 'rewards'));
   $companies = \variable_get('companies');
   $companies = $companies[u\test() ? r\serverUid() : $a->community];
-  return compact(u\ray('messages unit range yestertime balance return ourEmail companies'));
+  return compact(u\ray('messages unit range yestertime balance savings return ourEmail companies'));
 }
 
 /**
@@ -1268,9 +1269,9 @@ function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
   if ($scanned and $taking) list ($myAccess, $myWhat) = $neg ? array(B_REFUND, t('refunds')) : array(B_SCAN, t('sales'));
 ///  debug(compact(u\ray('taking neg scanned myAccess otherAccess myWhat otherWhat')));
   if (!$a1->can($myAccess)) return array("no perm", u\ray('what', $myWhat), FALSE);
-  if (!$a2->can($otherAccess)) return array("other no perm", u\ray('otherName what', $a2->agent->fullName, $otherWhat), FALSE);
+  if (!$a2->can($otherAccess)) return array("other no perm", u\ray('otherName what', $a2->agentA->fullName, $otherWhat), FALSE);
 //  if (!$a1->can($myAccess)) return array("no $myAccessErr", [], FALSE);
-//  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", u\ray('otherName', $a2->agent->fullName), FALSE);
+//  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", u\ray('otherName', $a2->agentA->fullName), FALSE);
 
 /*
   if ($a1->id > 0 and $a2->id != r\cgfId()) { // allow rewards and donations in not-yet-active communities
@@ -1343,6 +1344,11 @@ function up($up = NULL) {
 /**
  * Return the rebate on the given amount for the given account.
  * @todo? or manager of company with no (other) employees (set bit?)
+ * NEW: Figure the rebate based on R = the payer's total rewards ever and A = the transaction amount,
+ *   such that the rebate percentage p tapers linearly from Rmax to 0
+ *   The percentage rebate is based on the total rewards AFTER the transaction. That is:
+ *   The new percentage rate p = (R + pA)(Pmax-Pmin)/Rmax + Pmin
+ *   So p = (RPmax + (Rmax - R)Pmin) / (Rmax^2 - A(Pmax - Pmin))
  */
 function rebate($from, $to, $amount = 1) {
   if (relation(1, $to, $from, 'isOwner OR draw')) return 0;

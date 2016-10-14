@@ -135,7 +135,7 @@ function weRespondWith($args) {
 
 /**/ t\output('expecting: ' . print_r($args[0], 1));
   foreach ($args[0] as $k => $v) {
-    if ($k == 'descriptions') $v = u\ray($v);
+    if ($k == 'descriptions' or $k == 'bad') $v = empty($v) ? [] : u\ray($v);
     if ($k == 'can') { // currently tests only signed-out permissions
       $flags = 0;
       if ($v) foreach (u\ray($v) as $one) $flags |= u\bit(u\consta('co', $one));
@@ -283,13 +283,6 @@ function agentAsksDeviceToUndoTransactionWithSubs($agent, $device, $subs) {
 }
 
 /**
- * we respond ok (ARG) with subs: (ARG)
- *
- * in: 
- */
-function weRespondOkWithSubs($msg, $subs) {return weRespondOkTxidCreatedAndMessageWithSubs('', '', $msg, $subs);}
-
-/**
  * with balance (ARG)
  *
  * in: 
@@ -388,6 +381,8 @@ function weReturnErrorWithSubs($msg, $subs) {
  *     TEST Identify AnUnauthorizedCashierScansIn
  *     TEST Identify ACashierScansACustomerCardBeforeSigningIn
  *     TEST Identify ACashierAsksUsToIdentifyTheCashiersOwnCard
+ *     TEST Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOnline
+ *     TEST Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithTxDateAfterTheChange
  *     TEST Startup DeviceRequestsABadOp
  *     TEST Startup DeviceShouldHaveAnIdentifier
  *     TEST Startup DeviceGivesABadCode
@@ -527,6 +522,9 @@ function agentAsksDeviceToChargeForAtForce($agent, $device, $member, $amount, $g
  *     MAKE Offline ACashierDeclinedToChargeSomeoneOfflineAndItDidntGoThrough
  *     MAKE Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
  *     MAKE Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
+ *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
+ *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOnline
+ *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithTxDateAfterTheChange
  */
 function reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $description, $created, $force) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -565,37 +563,16 @@ function withDid($subs) {
  *
  * in: TEST Exchange ACashierAsksToChargeSomeoneForCash
  *     TEST Exchange ACashierAsksToRefundSomeone
- *     TEST Joint ACashierAsksToChargeSomeone
- *     TEST Offline ACashierChargedSomeoneOffline
  *     TEST Offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
  *     TEST Offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
  *     TEST Offline ACashierDeclinedToChargeSomeoneOfflineAndItDidntGoThrough
  *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
  *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
- *     TEST Transact ACashierAsksToChargeSomeone
- *     TEST Transact ACashierAsksToRefundSomeone
- *     TEST Undo AnAgentAsksToUndoACharge
- *     TEST Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
- *     TEST Undo AnAgentAsksToUndoARefund
- *     TEST Undo AnAgentAsksToUndoACashoutCharge
- *     TEST Undo AnAgentAsksToUndoACashinPayment
- *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
- *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
  *     TEST Undo AnAgentAsksToUndoANonexistentTransaction
  *     TEST Undo ACashierReversesATransactionWithInsufficientFunds
  */
 function weRespondOkTxidCreatedBalanceRewards($txid, $created, $balance, $rewards) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  global $rposResult;
-  $ok = '1';
-  foreach (u\ray('ok txid balance rewards') as $k) if (@$rposResult[$k] != $$k) $error = TRUE;
-  if (!t\approxTime(@$rposResult['created'], $created)) $error = TRUE;
-
-  if (@$error) {
-/**/ t\output('Expecting: ' . print_r(compact(u\ray('ok txid created balance rewards')), 1), 'expect');
-/**/ t\output('Got: ' . print_r($rposResult, 1));
-    return FALSE;
-  } else return TRUE;
+  return weRespondOkTxidCreatedBalanceRewardsSaying($txid, $created, $balance, $rewards);
 }
 
 /**
@@ -603,30 +580,12 @@ function weRespondOkTxidCreatedBalanceRewards($txid, $created, $balance, $reward
  *
  * in: TEST Exchange ACashierAsksToChargeSomeoneForCash
  *     TEST Exchange ACashierAsksToRefundSomeone
- *     TEST Joint ACashierAsksToChargeSomeone
- *     TEST Transact ACashierAsksToChargeSomeone
- *     TEST Transact ACashierAsksToRefundSomeone
- *     TEST Undo AnAgentAsksToUndoACharge
- *     TEST Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
- *     TEST Undo AnAgentAsksToUndoARefund
- *     TEST Undo AnAgentAsksToUndoACashoutCharge
- *     TEST Undo AnAgentAsksToUndoACashinPayment
- *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
- *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
  */
 function withMessageWithSubs($msg, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $rposResult;
   $expect = $subs ? u\tt($msg, $subs[0]) : '';
   return (@$rposResult['message'] == $expect) ?: t\output("Expected: $expect\n Got: " . @$rposResult['message']);
-}
-/**
- * we respond ok balance (ARG) rewards (ARG)
- *
- * in: 
- */
-function weRespondOkBalanceRewards($balance, $rewards) {
-  return weRespondOkTxidCreatedBalanceRewards('', '', $balance, $rewards);
 }
 
 /**
@@ -652,6 +611,9 @@ function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
  *
  * in: MAKE Identify ACustomerScansTheirOwnCardForSelfservice
  *     MAKE Identify ACustomerScansTheirOwnCardForSelfserviceWithWrongPIN
+ *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
+ *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOnline
+ *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithTxDateAfterTheChange
  */
 function membersHave($list) {return t\membersHave($list);}
 
@@ -670,11 +632,17 @@ function agentAsksDeviceToIdentifyWithPIN($agent, $device, $qr, $pin = NULL) {
 /**
  * bad codes (ARG)
  *
- * in: MAKE Identify TheDefaultCashierScansADeactivatedCard
+ * in: TEST Identify TheDefaultCashierScansADeactivatedCard
  */
 function badCodes($bad) {
-  global $testOnly; if ($testOnly) return FALSE;
-  return db\insert('r_bad', u\ray('code created', $bad, time()));
+  global $testOnly; 
+  
+  list ($qid, $code) = explode(',', $bad);
+  $qid = a(t\uid($qid))->qid;
+
+  return $testOnly
+  ? db\exists('r_bad', 'qid=:qid AND code=:code', compact('qid', 'code'))
+  : db\insert('r_bad', u\ray('qid code created', $qid, $code, time()));
 }
 
 /**
@@ -691,4 +659,58 @@ function withProofOfAgentAmountCreatedMemberCode($agent, $amount, $created, $mem
   $proof = "$agent$amount$member$code$created";
 //  $hash = \_password_crypt('sha512', $proof, @$rposResult['proof']);
   return (@$rposResult['proof'] == u\hash($proof));
+}
+/**
+ * we respond ok txid (ARG) created (ARG) balance (ARG) rewards (ARG) saying: (ARG)
+ *
+ * in: TEST Joint ACashierAsksToChargeSomeone
+ *     TEST Offline ACashierChargedSomeoneOffline
+ *     TEST Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
+ *     TEST Transact ACashierAsksToChargeSomeone
+ *     TEST Transact ACashierAsksToRefundSomeone
+ *     TEST Undo AnAgentAsksToUndoACharge
+ *     TEST Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
+ *     TEST Undo AnAgentAsksToUndoARefund
+ *     TEST Undo AnAgentAsksToUndoACashoutCharge
+ *     TEST Undo AnAgentAsksToUndoACashinPayment
+ *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
+ *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
+ */
+function weRespondOkTxidCreatedBalanceRewardsSaying($txid, $created, $balance, $rewards, $msg = NULL) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  global $rposResult;
+  
+  extract($rposResult, EXTR_PREFIX_ALL, 'a'); // actual results
+  $ok = '1';
+  foreach (u\ray('ok txid balance rewards') as $k) if (@$rposResult[$k] != $$k) $error = TRUE;
+  if (!t\approxTime($a_created, $created)) $error = TRUE;
+  
+  if (@$msg) {
+    $msg = $msg[0];
+    $msg['otherRewardAmount'] = @$msg['reward']; unset($msg['reward']);
+    $index = (@$msg['solution'] ? 'report undo|' : '') . 'report tx';
+    if ($msg['why'] == 'goods') $index .= '|reward customer';
+    $whys = u\ray(R_WHYS); $msg['why'] = $whys[constant('FOR_' . strtoupper($msg['why']))];
+    $wantMsg = u\tt($index, $msg);
+    if ($a_message != $wantMsg) $error = TRUE;
+  }
+///  debug(compact(u\ray('rposResult msg')));
+
+  if (@$error) {
+    if (@$msg) u\preray(compact('wantMsg'), $msg);
+/**/ t\output('Expecting: ' . print_r(compact(u\ray('ok txid created balance rewards msg')), 1), 'expect');
+/**/ t\output('Got: ' . print_r($rposResult, 1));
+    return FALSE;
+  } else return TRUE;
+}
+
+/**
+ * we change member (ARG) cardCode
+ *
+ * in: MAKE Identify TheDefaultCashierScansADeactivatedCard
+ */
+function weChangeMemberCardCode($id) {
+  global $testOnly; if ($testOnly) return FALSE;
+  a(t\uid($id))->makeCardCode();
+  return TRUE;
 }

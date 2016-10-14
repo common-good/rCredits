@@ -163,7 +163,7 @@ class Acct {
     u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
-    if ($field == 'agent') return r\acct($a->agentId);
+    if ($field == 'agentA') return r\acct($a->agentId);
     if ($field == 'proSe') return ($a->id == $a->agentId);
     if ($field == 'qid') return $a->qo->qid;
     if ($field == 'isCtty') return ($a->id < 0); // or ($a->id == $a->community);
@@ -190,7 +190,7 @@ class Acct {
 
     if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
     if ($field == 'hasPhoto') return $this->photo or file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE));
-    if ($field == 'photo') return u\decrypt($result);
+    if ($field == 'photo') return $result ? u\decrypt($result) : '';
     if (in_array($field, u\ray(R_VSECURE_FIELDS)) and !is_array($result) and u\starts($result, CRYPT_FLAG)) { // !is_array() is temporary, for ssnData in transition
       if (@r\acct()->admin and $pw2 = @$_COOKIE['pw2']) {
         $result = u\decrypt($result, 0, $pw2);
@@ -440,8 +440,29 @@ class Acct {
     $otherNum = db\max('otherNum', 'r_relations', 'main=:main', ['main' => $a->id]) + 1;
     $reid = r\relation('reid', $a->id, $a->agentId);
     db\update('r_relations', compact('otherNum', 'reid'), 'reid');
+    return $otherNum;
   }
+  
+  /**
+   * Say whether the wanted transaction proof really wrong, not just a delayed transaction with a cardcode that got changed.
+   * @param string $proof: tx proof supplied by the app
+   * @param string $wanted: proof we expected
+   * @param int $created: transaction creation date/time
+   * @return <the proof is really wrong>
+   */
+  public function badOldProof($proof, $wanted, $created) {
+    $a = $this;
+    $codeName = $a->proSe ? 'cardCode' : 'cardCode2';
+    $code = $a->$codeName;
+    $changes = $a->agentA->changes;
     
+    foreach ($changes as $tm => $v) {
+      if ($tm < $created) break;
+      if ($oldCode = @$v[$codeName] and u\hash(str_replace($code, $oldCode, $wanted)) == $proof) return false;
+    }
+    return true;
+  }
+  
   /**
    * Return specified account's profile picture, with markup
    * @param bool $unique: should the markup force reloading the image
@@ -768,9 +789,24 @@ EOF;
   
   public function cardCode() {
     $field = $this->proSe ? 'cardCode' : 'cardCode2';
-    return $this->agent->$field;
+    return $this->agentA->$field;
   }
-  
+
+  /**
+   * Create an rCard security code for the given account (either for an individual or a company agent).
+   * @param acct $a: the account
+   */
+  function makeCardCode($newCode = '') {
+    $a = $this;
+    $qid = $a->qid;
+    $aA = $a->agentA;
+    $field = $a->proSe ? 'cardCode' : 'cardCode2';
+    $oldCode = $aA->$field;
+    db\insert('r_bad', u\ray('qid code created', $qid, $oldCode, time()));
+    if (!$newCode) $newCode = r\cardCode($qid);
+    $aA->update($field, $newCode); // resave the secure fields
+  }
+    
   /**
    * Return the total waiting to be credited as a transfer TO or (if negative result) FROM the member's bank.
    * @param numeric $combinable: (RETURNED) how much is waiting and checks haven't been printed yet
@@ -1069,17 +1105,6 @@ EOF;
   }
 
   /**
-   * Add a deactivated or fabricated (and used) card code to the "bad" list.
-   * @param string $code: the bad card code
-   */
-  public function makeBad($code) {
-    $a = $this;
-//    $qid = str_replace(R_AGENT_MARK, '.', $a->qid);
-//    $mark = $a->proSe ? R_MEMBER_MARK : R_AGENT_URL_MARK;
-    db\update('r_bad', u\ray('code created', "$a->qid$code", time()), 'code', TRUE);
-  }
-  
-  /**
    * Change the account's community.
    * @param int $newCtty: the new community uid
    * @param bool $retro: <change rewards transactions retroactively>
@@ -1106,7 +1131,7 @@ EOF;
     if ($bit <= B_MAX) { // ordinary bits
       $can = (bool) ($a->flags & (1 << $bit)); // these are easy. be efficient.
       if (in_array($bit, [B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN])) {
-        if (!$a->proSe) return ($aa = $a->agent and $aa->can($bit)); // admin permissions are for agent instead
+        if (!$a->proSe) return ($aa = $a->agentA and $aa->can($bit)); // admin permissions are for agent instead
         if (!$can and $bit < (R_ADMIN_CAN_MANAGE_CTTYS ? B_ADMIN : B_CADMIN)) return $a->can($bit + 1); // not this admin bit, maybe the next higher?
       }
       return $can;
@@ -1129,13 +1154,13 @@ EOF;
     
     // collect efficient bits, for reference within this function
     for ($bit = 0; $bit <= B_MAX; $bit++) $can[$bit] = $a->can($bit);
-    foreach ([B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN] as $bit) $can[$bit] = $a->agent->can($bit);
+    foreach ([B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN] as $bit) $can[$bit] = $a->agentA->can($bit);
  
     $can[B_PERSON] = !$can[B_CO];
 
     $perm = $a->closed ? B_READ
       : ($a->proSe ? B_MANAGE
-      : (($can[B_CADMIN] and $a->community == $a->agent->community) ? B_MANAGE 
+      : (($can[B_CADMIN] and $a->community == $a->agentA->community) ? B_MANAGE 
       : (B_RELATED + relation('permission', $id, $a->agentId))));
     for ($i = B_RELATED; $i <= B_MANAGE; $i++) $can[$i] = ($i <= $perm); // set all, even the false ones
 
@@ -1185,4 +1210,4 @@ function acct($uid = '', $agent = '', &$error = '') {
 /**
  * Return an account object for the agent of the given account.
  */
-function agent($uid = '') {return @r\acct($uid)->agent;}
+function agent($uid = '') {return @r\acct($uid)->agentA;}

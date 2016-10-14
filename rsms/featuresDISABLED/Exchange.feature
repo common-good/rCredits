@@ -46,14 +46,12 @@ Scenario: The caller asks to trade cash for rCredits
   Then phone +20003 has r$250
   And phone +20001 has r$360
   And we say to phone +20003 "no charging"
-  Skip
+  
   And we say to phone +20003 "report exchange request" with subs:
   | did     | otherName | amount | tid |
   | charged | Abe One    | $100   | 2   |
   # "You requested $100 from Abe One for cash/loan/etc. Your balance is unchanged, pending approval. Invoice transaction #2"
-  Resume
 
-Skip
 Scenario: The caller confirms a unilateral trade of cash for rCredits
   Given phone +20003 can charge unilaterally
   When phone +20003 confirms "100 from .ZZA for cash"
@@ -63,7 +61,6 @@ Scenario: The caller confirms a unilateral trade of cash for rCredits
   | did     | otherName | amount | balance | tid |*
   | charged | Abe One    | $100   | $350    | 2   |
   # "You charged Abe One $100 cash/loan/etc. Your new balance is $350. Transaction #2"
-Resume
 
 Scenario: The caller requests an implicit trade with insufficient balance
   When phone +20001 says "150 to .ZZC"

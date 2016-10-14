@@ -33,14 +33,13 @@ Scenario: Balances get out of whack
   | id     | r  | rewards |*
   | .ZZA   | 10 |      10 |
   | .ZZB   |  0 |       0 |
-  Skip (we might never want this feature)
-  And we message member ".ZZA" with topic "account suspended" and subs:
-  | why                        |*
-  | to protect data integrity. |
-  And we message member ".ZZB" with topic "account suspended" and subs:
-  | why                        |*
-  | to protect data integrity. |
-Resume
+# (we might never want this feature)
+#  And we message member ".ZZA" with topic "account suspended" and subs:
+#  | why                        |*
+#  | to protect data integrity. |
+#  And we message member ".ZZB" with topic "account suspended" and subs:
+#  | why                        |*
+#  | to protect data integrity. |
   
 Scenario: Balances get a tiny bit out of whack
   Given balances:

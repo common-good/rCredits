@@ -55,7 +55,7 @@ define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divid
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
 define('R_STEPS', 'contact sign donate proxies prefs photo connect company relations'); // membership steps
-define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret code oneTimeLoginUrl password pass newPass form_build_id form_token form_id external_input'); // don't log these (external_input may contain passwords)
+define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret oneTimeLoginUrl password pass newPass form_build_id form_token form_id external_input'); // don't log these (external_input may contain passwords)
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts history settings settings/icon community Summary'); // don't log visits to these forms
 define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin PageNotFound Sinx Pass Empty TestRecovery ChangePassword Help Community Democracy Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
 define('BY_CHECK', '(check)'); // app includes this in description, for a purchase of rCredits by check
@@ -203,9 +203,7 @@ define('APP_CAN_BIT_DESCS', 'charge customers,undo last transaction,give rCredit
 // If we need more bits, create a flags2 field and make the B_ defs negative or 32-63 for setBit
 // for documentation of IS_OK etc. see u\SUBS()
 define('B_MEMBER', 0); // fulfilled membership requirements (ready to be approved).
-define('B_CGC', 0); // NYI ctty: is an official CGC (otherwise cannot do business with other communities)
 define('B_CONFIRMED', 1); // invitation has been confirmed (in advance by form invite OR explicitly OR implicitly by newb first buying from the inviter in person)
-define('B_UP', 1); // ctty: is operational (up) (see also B_CTTYUP)
 define('B_OK', 2); // can use rCredits for real (set by admin when ready). Set FALSE to freeze ctty funds (NYI)
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
 define('B_IDED', 4); // a cashier has verified the member's government-issued photo ID
@@ -220,7 +218,7 @@ define('B_PAYROLL', 12); // NYI automatically pay employees their total daily sa
 define('B_WEEKLY', 13); // send notices only weekly
 define('B_MONTHLY', 14); // send notices only monthly
 define('B_u15', 15); //
-define('B_BYSMS', 16); // notifications by SMS
+define('B_BYSMS', 16); // NYI notifications by SMS
 define('B_PAPER', 17); // will not accept electronic statements
 define('B_SECRET', 18); // don't let merchants tell me my balance on request
 define('B_u19', 19); //
@@ -237,8 +235,12 @@ define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
 define('B_ADMINABLE', 'confirmed co member bona cAdmin cAdmin2 regulator nonudge closed'); // for cAdmin to set
-define('B_ADMIN_BITS', 'member:cgc,confirmed:up');
 define('B_LIST', 'member confirmed ok bona ided refill co u7 u8 nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 closed regulator cAdmin2 cAdmin admin');
+
+// community-specific flags
+define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)
+define('B_UP', 1); // ctty: is operational (up) (see also B_CTTYUP)
+define('B_ADMIN_BITS', 'member:cgc,confirmed:up');
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+givebacks+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community (fines and givebacks are negative)
 

@@ -352,7 +352,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
     } else return r\txRet($erMsg, $erInfo + $erSubs);
   }
   
-  foreach ([$a1, $a2] as $a) if (!$a->co and !($channel == TX_POS ? $a->agent->ided : $a->ided)) {
+  foreach ([$a1, $a2] as $a) if (!$a->co and !($channel == TX_POS ? $a->agentA->ided : $a->ided)) {
     if ($force) {
       r\tellStaff('forced without photoId', $erInfo); 
     } elseif ($gainerA->id != r\cgfId()) { // and !$gainerA->coCan(CO_FAST)
@@ -395,7 +395,8 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
     }
     if (@$args['otherRewardAmount']) $notice .= '|reward other';
     r\notify($uid, $notice, $args);
-    $message = 'report tx' . ($goods == FOR_GOODS ? '|reward' : '');
+    $rewardMsg = ($channel == TX_POS and $a1->co) ? '|reward customer' : '|reward';
+    $message = 'report tx' . ($goods == FOR_GOODS ? $rewardMsg : '');
   } else $message = $ttype;
 
   return r\txRet($message, $args, !$oked);
@@ -635,7 +636,7 @@ EOF;
  */
 function accountChoices() {
   if (!$mya = r\acct()) return FALSE;
-  $result[$aid = $mya->agentId] = $mya->agent->fullName;
+  $result[$aid = $mya->agentId] = $mya->agentA->fullName;
   $nameOrder = "IF(MID(fullName, 2, 2)='. ', MID(fullName, 4), IF(MID(fullName, 2, 1)=' ', MID(fullName, 3), IF(MID(fullName, 1, 4)='the ', MID(fullName, 5), fullName)))"; // ignore "the ", "a ", and initialled first name (eg "X." or "X")
   $sqlNormal = 'SELECT r.main AS id, u.fullname FROM r_relations r LEFT JOIN users u ON u.uid=r.main WHERE r.other=:aid AND r.permission>0'; // normal selection SQL
   

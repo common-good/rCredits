@@ -28,11 +28,20 @@ Scenario: A member visits the bank info page after connecting
 
 Scenario: A member connects a bank account
   When member ".ZZA" completes form "settings/bank" with values:
-  | op     | connect | routingNumber | bankAccount | bankAccount2 | refills |*
-  | submit |       1 |     053000196 |         123 |          123 |       0 |
+  | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
+  | submit |       1 |     053000196 |         123 |          123 |       0 |     $0 |    $20 |         $0 |
   Then members:
   | id   | bankAccount      | last4bank | minimum | achMin | risks   | flags |*
   | .ZZA | USkk053000196123 | 6123      |       0 |     20 | hasBank | member,ok,confirmed,bona,ided |
+  And we show "Bank Information"
+  
+Scenario: A member chooses not to connect a bank account
+  When member ".ZZA" completes form "settings/bank" with values:
+  | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
+  | submit |       0 |               |             |              |       0 |     $0 |    $20 |         $0 |
+  Then members have:
+  | id   | risks |*
+  | .ZZA |       |
   And we show "Bank Information"
   
 Scenario: A member chooses automatic refills
@@ -57,20 +66,20 @@ Scenario: A member disconnects a bank account
   
 Scenario: A member gives a bad routing number
   When member ".ZZA" completes form "settings/bank" with values:
-  | op     | connect | routingNumber | bankAccount | bankAccount2 | refills |*
-  | submit |       1 |           zot |         123 |          123 |       0 |
+  | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
+  | submit |       1 |           zot |         123 |          123 |       0 |     $0 |    $20 |         $0 |
   Then we say "error": "bad routing number"
   
 Scenario: A member gives a bad account number
   When member ".ZZA" completes form "settings/bank" with values:
-  | op     | connect | routingNumber | bankAccount | bankAccount2 | refills |*
-  | submit |       1 |     053000196 |         zot |          zot |       0 |
+  | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
+  | submit |       1 |     053000196 |         zot |          zot |       0 |     $0 |    $20 |         $0 |
   Then we say "error": "bad account number"
 
 Scenario: A member gives mismatched account numbers
   When member ".ZZA" completes form "settings/bank" with values:
-  | op     | connect | routingNumber | bankAccount | bankAccount2 | refills |*
-  | submit |       1 |     053000196 |         123 |          456 |       0 |
+  | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
+  | submit |       1 |     053000196 |         123 |          456 |       0 |     $0 |    $20 |         $0 |
   Then we say "error": "mismatch" with subs:
   | thing          |*
   | account number |

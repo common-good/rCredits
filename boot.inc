@@ -7,7 +7,7 @@
  * Also used by /do.php, for no-sign-in database changes
  */
  
-define('R_VERSION', '2.47'); // software version
+define('R_VERSION', '2.48'); // software version
 define('STAGE_SUBDOMAIN', 'ws');
 define('STAGE', STAGE_SUBDOMAIN . '.rcredits.org'); // staging site (for secrets, etc.)
 define('PRODUCTION', 'new.rcredits.org'); // production site (used for setting $base_url)

@@ -25,11 +25,11 @@ function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $opti
   extract(u\just('download agents channels boxes', $options));
   if ($mya->jid) $agents = TRUE; // show which partner did it, on joint account
   list ($classes, $header, $downloadHeader) = txFields(@$download, @$agents, @$channels, @$boxes);
+
   if (@$download) {
     $csv = setupDownload($starting, $ending);
     u\csv($downloadHeader);
   } else $csv = FALSE;
-
   $totDone = $totPending = array_combine($classes, array_fill(0, count($classes), FALSE));
   
   // build the transaction list
@@ -79,7 +79,7 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
   $myx = r\x($tx, $mya);
   foreach (u\ray('xid amount byMe toMe fromMe reallyToMe agent data banking tid') as $k) $$k = $myx->$k;
 
-  if ($banking and ($amount < 0 or $xid < 0)) $amount = -$amount; // show as positive unless reversing
+  if ($banking and ($amount < 0 xor $xid < 0)) $amount = -$amount; // show as positive unless reversing
   $isExtra = ($myx->type != TX_TRANSFER and !$banking);
   $state = txColoredState($data);
   
@@ -94,8 +94,8 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
     $toYou = $fromYou = "<span class=\"virtual\">$amount</span>"; // make old draws clear
   } else list ($toYou, $fromYou) = u\order($toMe, $amount, R_NONE);
   
-  $button1 = ''; //(!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct($toMe, $byMe, $reallyToMe)) : '';
-  $button2 = ((($mya->can(@$reallyToMe ? B_BUY : B_SELL) and !$isExtra and !$banking) or $mya->admin) and !@$data['undoneBy']) ? r\Web\button(' X ', "$url&do=no", $myx->msg('reverse')) : ''; // (admin not cAdmin)
+  $button1 = (!$byMe and @$data['disputed']) ? w\button('OK', "$url&do=ok", $myx->msg('theyDid')) : ''; // w\txAct($toMe, $byMe, $reallyToMe)
+  $button2 = ((($mya->can(@$reallyToMe ? B_BUY : B_SELL) and !$isExtra and !$banking) or $mya->admin) and !@$data['undoneBy']) ? w\button(' X ', "$url&do=no", $myx->msg('reverse')) : ''; // (admin not cAdmin)
   //was txAct($toMe, $byMe, $reallyToMe)
   $button3 = ($mya->can(@$reallyToMe ? B_SELL : B_BUY) and !$isExtra and !$banking) ? "<a href='$url&do=edit' title='Edit Transaction'><img src='$rUrl/images/icons/edit.png' width=20 height=20 border=0 /></a>" : '';
 //  if (!$mya->can(B_MANAGE)) $button1 = $button2 = $button3 = '';

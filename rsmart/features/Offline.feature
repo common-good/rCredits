@@ -46,7 +46,9 @@ Setup:
 
 Scenario: A cashier charged someone offline
   When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now-1h" force 1
-  Then we respond ok txid 5 created "%now-1h" balance 160 rewards 260
+  Then we respond ok txid 5 created "%now-1h" balance -100 rewards 260 saying:
+  | did     | otherName | amount | why   | reward |*
+  | charged | Bea Two   | $100   | goods | $10    |
 # NOPE  And with proof of agent "C:A" amount 100.00 created "%now-1h" member ".ZZB" code "ccB"
   And we notice "new charge|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
@@ -63,7 +65,7 @@ Scenario: A cashier charged someone offline and they have insufficient balance
   | xid | created | type     | amount | from | to   | purpose |*
   | 5   | %today  | transfer |    200 | .ZZB | .ZZA | cash    |
   When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now-1h" force 1
-  Then we respond ok txid 6 created "%now-1h" balance -40 rewards 260
+  Then we respond ok txid 6 created "%now-1h" balance -300 rewards 260
   And we notice "new charge|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
@@ -77,7 +79,7 @@ Scenario: A cashier charged someone offline and they have insufficient balance
 Scenario: A cashier charged someone offline but it actually went through
   Given agent "C:A" asks device "devC" to charge ".ZZB,ccB" $100 for "goods": "food" at "%now-1h"
   When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now-1h" force 1
-  Then we respond ok txid 5 created "%now-1h" balance 160 rewards 260
+  Then we respond ok txid 5 created "%now-1h" balance -100 rewards 260
   #And we notice nothing
   And balances:
   | id   |       r |*
@@ -88,7 +90,7 @@ Scenario: A cashier charged someone offline but it actually went through
 
 Scenario: A cashier declined to charge someone offline and it didn't go through
   When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now-1h" force -1
-  Then we respond ok txid 0 created "" balance 250 rewards 250
+  Then we respond ok txid 0 created "" balance 0 rewards 250
   #And we notice nothing
   And balances:
   | id   |       r |*
@@ -100,7 +102,7 @@ Scenario: A cashier declined to charge someone offline and it didn't go through
 Scenario: A cashier canceled offline a supposedly offline charge that actually went through
   Given agent "C:A" asks device "devC" to charge ".ZZB,ccB" $100 for "goods": "food" at "%now-1h"
   When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now-1h" force -1
-  Then we respond ok txid 8 created %now balance 250 rewards 250
+  Then we respond ok txid 8 created %now balance 0 rewards 250
   And with undo "5"
   And we notice "new charge|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
@@ -124,7 +126,7 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   | xid | created | type     | amount | from | to   | purpose |*
   | 9   | %today  | transfer |    300 | .ZZB | .ZZA | cash    |
   When reconciling "C:A" on "devC" charging ".ZZB,ccB" $-100 for "goods": "refund" at "%now-1h" force -1
-  Then we respond ok txid 10 created %now balance -50 rewards 250
+  Then we respond ok txid 10 created %now balance -300 rewards 250
   And with undo "6"
   And we notice "new refund|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
@@ -138,3 +140,30 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   | .ZZA |     550 |
   | .ZZB |     -50 |
   | .ZZC |     750 |
+
+Scenario: Device sends correct old proof for legit tx after member loses card, with app offline
+  Given members have:
+  | id   | cardCode |*
+  | .ZZB | ccB2     |
+  // member just changed cardCode
+  When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now-1h" force 1
+  Then we respond ok txid 5 created "%now-1h" balance -100 rewards 260 saying:
+  | did     | otherName | amount | why   | reward |*
+  | charged | Bea Two   | $100   | goods | $10    |
+
+Scenario: Device sends correct old proof for legit tx after member loses card, with app online
+  Given members have:
+  | id   | cardCode |*
+  | .ZZB | ccB2     |
+  // member reported lost card, we just changed cardCode, now the member (or someone) tries to use the card with app online:
+  When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now-1h" force 0
+  Then we return error "bad proof"
+
+
+Scenario: Device sends correct old proof for legit tx after member loses card, with tx date after the change
+  Given members have:
+  | id   | cardCode |*
+  | .ZZB | ccB2     |
+  // member reported lost card, we just changed cardCode, now the member (or someone) tries to use the card with app online:
+  When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now+1h" force 1
+  Then we return error "bad proof"

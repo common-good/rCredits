@@ -53,10 +53,9 @@ Setup:
 Scenario: A cashier asks to charge someone
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $100 for "goods": "food" at %now
   # cash exchange would be for "cash": "cash out"
-  Then we respond ok txid 6 created %now balance 160 rewards 260
-  And with message "report tx|reward" with subs:
-  | did     | otherName | amount | why                | rewardAmount |*
-  | charged | Bea Two   | $100   | goods and services | $5           |
+  Then we respond ok txid 6 created %now balance -100 rewards 260 saying:
+  | did     | otherName | amount | why   | reward |*
+  | charged | Bea Two   | $100   | goods | $10    |
   And with did
   | did     | amount | forCash |*
   | charged | $100   |         |
@@ -75,10 +74,9 @@ Scenario: A cashier asks to charge someone
 
 Scenario: A cashier asks to refund someone
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $-100 for "goods": "food" at %now
-  Then we respond ok txid 6 created %now balance 340 rewards 240
-  And with message "report tx|reward" with subs:
-  | did      | otherName | amount | why                | rewardAmount |*
-  | refunded | Bea Two   | $100   | goods and services | $-5          |
+  Then we respond ok txid 6 created %now balance 100 rewards 240 saying:
+  | did      | otherName | amount | why   | reward |*
+  | refunded | Bea Two   | $100   | goods | $-10   |
   And with did
   | did      | amount | forCash |*
   | refunded | $100   |         |
@@ -117,7 +115,7 @@ Scenario: Device gives no member id
   
 Scenario: Device gives bad account id
   When agent "C:A" asks device "devC" to charge "whatever,ccB" $300 for "goods": "food" at %now
-  Then we return error "bad customer"
+  Then we return error "bad member"
 
 Scenario: Device gives no amount
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $"" for "goods": "food" at %now

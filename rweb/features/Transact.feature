@@ -123,12 +123,12 @@ Scenario: A member confirms request to pay a member company
   And we notice "new payment|reward other" to member ".ZZC" with subs:
   | created | fullName | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*
   | %today  | Our Pub  | Abe One   | $100 | stuff | reward | $10 |
-Skip messages don't show up in get_file_contents simulation and I haven't figured out how to test this yet
+#Skip messages don't show up in get_file_contents simulation and I haven't figured out how to test this yet
   And that "notice" has link results:
   | _name | Abe One |
   | _postalAddr | 1 A, A, AK |
   | Physical address: | 1 A St., Atown, AK 01000 |
-Resume
+#Resume
   And transactions:
   | xid | created | type     | amount | from  | to   | purpose      | taking |*
   |   4 | %today  | transfer |    100 | .ZZA  | .ZZC | stuff        | 0      |

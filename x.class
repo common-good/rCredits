@@ -113,7 +113,7 @@ class X {
           ? array($payer, $payerTid, t('rebate')) 
           : array($payee, $payeeTid, t('bonus'));
         $for .= t( ' on #') . $tid;
-        if ($amount and $to > 0) {
+        if ($amount and $to > 0) { // not a transfer to a community or region
           if ($xray = $this->save($this->rewardSetup($serial, $type, $to, $amount, $for, $created))) $xrays[] = $xray; else return FALSE;
         }
       }
@@ -445,7 +445,7 @@ class MyX extends x {
   //    $confirmAction = $toMe ? t('credit') : t('charge');
       u\both($tx, 'did', $toMe, $goods == FOR_GOODS ?  t('refunded') : t('credited'), t('charged'));
       if (r\isGiveback($payee, $payer, $data)) list ($tx['did'], $a2, $why) = [t('gave'), $a1, t('returning rewards to the community')];
-    } else u\both($tx, 'did', $toMe, $reverses ? t('re-charged') : t('charged'), ($channel == TX_POS ? t('credited') : t('paid')));
+    } else u\both($tx, 'did', $toMe, $reverses ? t('re-charged') : t('charged'), (($channel == TX_POS and $a1->co) ? t('credited') : t('paid')));
 
   ///  debug(compact('tx','toMe','amount','reverses','goods'));
 

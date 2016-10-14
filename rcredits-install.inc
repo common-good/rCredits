@@ -155,12 +155,13 @@ function tableDefs($schema = []) {
 
   // table r_bad
   $fields = array(
-    'code' => setupField('rCard code with "HTTP://" and "RC4.ME/" deleted', 'varchar 255'),
+    'qid' => setupField('phoney customer qid', 'varchar 255'),
+    'code' => setupfield('phoney card security code', 'varchar 50'),
     'created' => setupField('Unixtime record was created', 'int 11', 0),
   );
   $foreignKeys = [];
-  $indexes = index('created');
-  $schema['r_bad'] = setupTable('lost, stolen, or faked rCard codes', $fields, 'code', $foreignKeys, $indexes);
+  $indexes = [];
+  $schema['r_bad'] = setupTable('lost, stolen, or faked rCard codes', $fields, 'created', $foreignKeys, $indexes);
   
   // table r_do
   $fields = array(

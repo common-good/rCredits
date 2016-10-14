@@ -50,6 +50,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Bank AMemberTriesToGoBelowTheirMinimum
  *     MAKE Bank AMemberAsksToDoTwoTransfersOutInOneDay
  *     MAKE BankInfo AMemberConnectsABankAccount
+ *     MAKE BankInfo AMemberChoosesNotToConnectABankAccount
  *     MAKE BankInfo AMemberChoosesAutomaticRefills
  *     MAKE BankInfo AMemberDisconnectsABankAccount
  *     MAKE BankInfo AMemberGivesABadRoutingNumber
@@ -95,6 +96,7 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Contact AMemberGivesABadEmail
  *     MAKE Contact AMemberUpdatesToADifferentState
  *     MAKE Contact AMemberUpdatesToADifferentName
+ *     MAKE EditTx AMemberConfirmsOKForADisputedTransaction
  *     MAKE Exchange AMemberConfirmsRequestToChargeAnotherMember
  *     MAKE Exchange AMemberConfirmsRequestToPayAnotherMember
  *     MAKE Flow AMemberDraws
@@ -233,6 +235,7 @@ function members($list) {return t\members($list);}
  *     MAKE EditTx Setup
  *     MAKE EditTx ABuyerDisputesACharge
  *     MAKE EditTx ASellerReversesACharge
+ *     MAKE EditTx AMemberConfirmsOKForADisputedTransaction
  *     MAKE Exchange Setup
  *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
  *     TEST Flow AMemberDraws
@@ -270,6 +273,7 @@ function transactions($list) {return t\transactions($list);}
  *     TEST BankInfo AMemberChoosesTooLowATargetWithANegativeBalance
  *     TEST EditTx ABuyerTriesToDecreaseAPaymentAmount
  *     TEST EditTx ABuyerDisputesACharge
+ *     TEST EditTx AMemberConfirmsOKForADisputedTransaction
  *     TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
  *     TEST Exchange AMemberAsksToCashOutTooMuch
@@ -343,6 +347,7 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST EditTx ABuyerIncreasesAPaymentAmount
  *     TEST EditTx ABuyerChangesTheGoodsStatus
  *     TEST Membership AMemberSignsInForTheFirstTime
+ *     TEST Membership AMemberDoesItAll
  *     TEST Relations AMemberTriesToAddARelationWithSelf
  *     TEST Relations AMemberTriesToAddARelationAgain
  *     TEST Signin AMemberTypesTheWrongPassword
@@ -385,6 +390,7 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
  * in: TEST Gift AMemberDonates
  *     TEST Gift AMemberDonatesWithInsufficientFunds
  *     TEST Membership AMemberDoesItAll
+ *     TEST Membership AMemberOpensABusinessAccount
  */
 function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
@@ -393,10 +399,12 @@ function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs)
  *
  * in: TEST BankInfo AMemberVisitsTheBankInfoPageBeforeConnecting
  *     TEST BankInfo AMemberConnectsABankAccount
+ *     TEST BankInfo AMemberChoosesNotToConnectABankAccount
  *     TEST BankInfo AMemberChoosesAutomaticRefills
  *     TEST BankInfo AMemberDisconnectsABankAccount
  *     TEST Membership AMemberSignsInForTheFirstTime
  *     TEST Membership AMemberDoesItAll
+ *     TEST Membership AMemberOpensABusinessAccount
  *     TEST Signin AMemberSignsInWithUsernameOnTheMemberSite
  *     TEST Signin AMemberSignsInWithAccountIDOnTheMemberSite
  *     TEST Signin AMemberSignsInWithEmailOnTheMemberSite
@@ -434,11 +442,13 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST EditTx ABuyerChangesTheTransactionDescription
  *     TEST EditTx ABuyerDisputesACharge
  *     TEST EditTx ASellerReversesACharge
+ *     TEST EditTx AMemberConfirmsOKForADisputedTransaction
  *     TEST Joint AMemberRequestsAJointAccount
  *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     TEST Joint AMemberRequestsTwoJoinsAtOnce
  *     TEST Membership AMemberClicksTheMembershipLink
  *     TEST Membership ACompanyAgentClicksOnTheMembershipLink
+ *     TEST Membership AMemberOpensABusinessAccount
  *     TEST Preferences AMemberVisitsThePreferencesPage
  *     TEST Preferences AnotherMemberVisitsThePreferencesPage
  *     TEST Relations MemberHasAnEmployeeConfirmed
@@ -609,6 +619,7 @@ function usd($list) {return t\usd($list);}
  *     MAKE Membership AMemberClicksTheMembershipLink
  *     MAKE Membership ACompanyAgentClicksOnTheMembershipLink
  *     MAKE Membership AMemberDoesItAll
+ *     MAKE Membership AMemberOpensABusinessAccount
  *     MAKE Preferences AMemberVisitsThePreferencesPage
  *     MAKE Preferences AnotherMemberVisitsThePreferencesPage
  *     MAKE Relations MemberHasAnEmployeeConfirmed
@@ -733,6 +744,7 @@ function memberAccountIsNotActive($id) {
  * in: TEST Membership AMemberClicksTheMembershipLink
  *     TEST Membership ACompanyAgentClicksOnTheMembershipLink
  *     TEST Membership AMemberDoesItAll
+ *     TEST Membership AMemberOpensABusinessAccount
  */
 function withDone($steps) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -744,6 +756,7 @@ function withDone($steps) {
  * member (ARG) has done step (ARG)
  *
  * in: MAKE Membership AMemberDoesItAll
+ *     MAKE Membership AMemberOpensABusinessAccount
  */
 function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
 
@@ -761,7 +774,8 @@ function memberSupplies($uid, $field, $value) {
 /**
  * member (ARG) has permission (ARG)
  *
- * in: 
+ * in: MAKE Membership AMemberDoesItAll
+ *     MAKE Membership AMemberOpensABusinessAccount
  */
 function memberHasPermission($uid, $permission) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -957,7 +971,8 @@ function statisticsGetSet($time) {
 /**
  * members have: (ARG)
  *
- * in: TEST BankInfo AMemberChoosesAutomaticRefills
+ * in: TEST BankInfo AMemberChoosesNotToConnectABankAccount
+ *     TEST BankInfo AMemberChoosesAutomaticRefills
  *     TEST BankInfo AMemberDisconnectsABankAccount
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
  *     TEST Joint AMemberRequestsAJointAccount
@@ -965,6 +980,7 @@ function statisticsGetSet($time) {
  *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     BOTH Joint AJoinedAccountMemberUnjoinsTheAccount
  *     MAKE Membership AMemberDoesItAll
+ *     MAKE Membership AMemberOpensABusinessAccount
  *     MAKE Summary Setup
  *     MAKE Transactions AMemberLooksAtTransactionsForThePastYear
  */
@@ -1001,7 +1017,7 @@ function memberIsOnStepWithinSeconds($id, $step, $secs) {
 /**
  * account (ARG) was set up by member (ARG)
  *
- * in: 
+ * in: MAKE Membership AMemberOpensABusinessAccount
  */
 function accountWasSetUpByMember($coId, $id) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -1070,7 +1086,8 @@ function signupCompanyInfoForAccountIsRemembered($id) {
 /**
  * that (ARG) has link results: (ARG)
  *
- * in: 
+ * in: TEST Gift AMemberDonates
+ *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
  */
 function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $info);}
 

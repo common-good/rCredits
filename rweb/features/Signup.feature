@@ -209,25 +209,26 @@ Scenario: A member registers with a company with no relation
   | fullName | email | phone        | postalCode | federalId  | dob  | acctType    | company  | companyPhon  | companyOptions | tenure | owns | helper |*
   | Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 |               |     18 |    1 | .ZZZ   |
   Then we say "error": "what relation"
-Skip (requirement relaxed)
-Scenario: A member registers with a missing company
-  Given invitation to email "a@" from member ".ZZZ" is "c0D3"
-  When member "?" confirms form "signup/code=c0D3" with values:
-  | fullName | email | phone   | postalCode | federalId   | dob      | acctType | company  | companyPhon | companyOptions | tenure | owns | helper |*
-  | Abe One  | a@    | 413-253-0002 | 01001 | 111-22-3333 | 1/2/1990 | %R_PERSONAL |       | (413)628-0000 | isOwner=>1     |     18 |    1 | .ZZZ   |
-  Then we say "error": "missing field" with subs:
-  | field   |*
-  | company |
-Skip (requirement relaxed)
-Scenario: A member registers with a missing company phone
-  Given invitation to email "a@" from member ".ZZZ" is "c0D3"
-  When member "?" confirms form "signup/code=c0D3" with values:
-  | fullName | email | phone     | postalCode | federalId   | dob      | acctType    | company  | companyPhon | companyOptions | tenure | owns | helper |*
-  | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co |             | isOwner=>1     |     18 |    1 | .ZZZ   |
-  Then we say "error": "missing field" with subs:
-  | field   |*
-  | companyPhon |
-Resume
+
+# (requirement relaxed)
+#Scenario: A member registers with a missing company
+#  Given invitation to email "a@" from member ".ZZZ" is "c0D3"
+#  When member "?" confirms form "signup/code=c0D3" with values:
+#  | fullName | email | phone   | postalCode | federalId   | dob      | acctType | company  | companyPhon | companyOptions | tenure | owns | helper |*
+#  | Abe One  | a@    | 413-253-0002 | 01001 | 111-22-3333 | 1/2/1990 | %R_PERSONAL |       | (413)628-0000 | isOwner=>1     |     18 |    1 | .ZZZ   |
+#  Then we say "error": "missing field" with subs:
+#  | field   |*
+#  | company |
+
+#Scenario: A member registers with a missing company phone
+#  Given invitation to email "a@" from member ".ZZZ" is "c0D3"
+#  When member "?" confirms form "signup/code=c0D3" with values:
+#  | fullName | email | phone     | postalCode | federalId   | dob      | acctType    | company  | companyPhon | companyOptions | tenure | owns | helper |*
+#  | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co |             | isOwner=>1     |     18 |    1 | .ZZZ   |
+#  Then we say "error": "missing field" with subs:
+#  | field   |*
+#  | companyPhon |
+
 Scenario: A member registers with a bad company
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" confirms form "signup/code=c0D3" with values:

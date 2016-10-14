@@ -34,12 +34,12 @@ Scenario: A member donates
   And we notice "new payment|reward other" to member "cgf" with subs:
   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*
   | Abe One   | $10 | donation | reward | $1 |
-Skip messages don't show up in get_file_contents simulation and I haven't figured out how to test this yet
+#Skip messages don't show up in get_file_contents simulation and I haven't figured out how to test this yet
   And that "notice" has link results:
   | _name | Abe One |
   | _postalAddr | 1 A, A, AK |
   | Physical address: | 1 A St., Atown, AK 01000 |
-Resume
+#Resume
   And we tell staff "gift accepted" with subs:
   | amount | often | txField  |*
   |     10 |     1 | payerTid |

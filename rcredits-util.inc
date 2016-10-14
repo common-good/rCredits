@@ -1206,12 +1206,15 @@ function showCaller($skip = 0) {
 /**
  * Show what bits are set in the given integer.
  * @param int $n: the integer bit array
- * @param string $descs: string array of bit names (default: use bit numbers)
+ * @param string $descs: string array of bit names ('': use bit numbers, default: flag bit names)
  * @return: a list of the bits set n the integer
  */ 
 function bits($n, $descs = B_LIST) {
   $res = '';
-  if ($descs) $descs = u\ray($descs);
+  if ($descs) {
+    $descs = u\ray($descs);
+    if (!is_numeric(@$descs[0])) $descs = array_keys($descs); // ignore extra info after colon in bit name
+  }
   for($i = 0; $i < 32; $i++) if ($n & (1 << $i)) $res .= ' ' . ($descs ? $descs[$i] : $i);
   return $res;
 }
@@ -1380,7 +1383,7 @@ function roughName($name) {return preg_replace("/[^A-Z '\-]/", '', strtoupper(tr
 function urlArgs() {return basename(u\test() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);}
 function in($a, $b) {return (strpos($a, $b) !== FALSE);}
 function uc1($s) {return ucwords(substr($s, 0, 1)) . substr($s, 1);}
-function nextAfter($needle, $hay) {return $hay[array_search($needle, $hay) + 1];}
+function nextAfter($needle, $hay) {return ($i = array_search($needle, $hay)) === FALSE ? NULL : $hay[$i + 1];}
 function caller($depth = 1) {return debug_backtrace()[$depth + 1]['function'];}
 function rotateBits($b, $i) {return ($i = $i % strlen($b)) ? substr($b, $i) . substr($b, 0, $i) : $b;}
 function xorBits($b1, $b2) {$res = ''; for ($i = 0; $i < strlen($b1); $i++) $res .= ($b1[$i] xor $b2[$i]) ? 1 : 0; return $res;}

@@ -50,7 +50,7 @@ Setup:
   | .ZZA |    1918 |     268 |  918 |  1000 |
   | .ZZB |    2554 |     274 |  554 |  2000 |
   | .ZZC |    2332 |     262 | -668 |  3000 |
-Skip
+
 Scenario: A member clicks NO
   Given transactions:
   | xid | created   | type     | state    | amount | from | to   | purpose  | taking |*
@@ -77,7 +77,7 @@ Scenario: A member confirms NO
   |_tid | Date   | Name       | From you | To you | Status   | _ | Purpose                   | Reward/Fee |
   | 12  | %dm    | Corner Pub | 101.00   | --     | %chk     | X | reverses #11              | --     |
   | 11  | %dm-5d | Corner Pub | --       | 101.00 | disputed |   | (reversed by #12) cash CL | --     |
-Resume
+
 Scenario: A member looks at transactions for the past year
   When member ".ZZA" visits page "history/period=365"
   Then we show "Transaction History" with:
@@ -122,7 +122,7 @@ Scenario: A member looks at transactions for the past few days
   | signup   |
   | rebate   |
   | bonus    |
-Skip
+
 Scenario: Transactions with other states show up properly
   Given transactions:
   | xid   | created   | type     | state    | amount | from | to   | purpose  | taking |*
@@ -218,4 +218,4 @@ Scenario: A member confirms OK for a disputed transaction
   And we say "status": "charge accepted" with subs:
   | who     |*
   | Abe One |
-Resume
+

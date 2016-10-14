@@ -73,13 +73,13 @@ Scenario: a cashier scans a customer card
   When agent "C:B" asks device "devC" to identify ".ZZD,ccD"
   Then we respond with:
   | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
-  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 250     | 250     |
+  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 0       | 250     |
 
 Scenario: the default cashier scans a customer card
   When agent ".ZZC" asks device "devC" to identify ".ZZD,ccD"
   Then we respond with:
   | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
-  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 250     | 250     |
+  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 0       | 250     |
 
 Scenario: a customer scans their own card for self-service
   Given members have:
@@ -88,7 +88,7 @@ Scenario: a customer scans their own card for self-service
   When agent ".ZZC" asks device "devC" to identify ".ZZD,ccD" with PIN "4444"
   Then we respond with:
   | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
-  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 250     | 250     |
+  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 0       | 250     |
 
 Scenario: a customer scans their own card for self-service with wrong PIN
   Given members have:
@@ -98,9 +98,11 @@ Scenario: a customer scans their own card for self-service with wrong PIN
   Then we return error "bad pin"
 
 Scenario: the default cashier scans a de-activated card
-  Given bad codes "NEW.ZZD,ccDX"
-  When agent ".ZZC" asks device "devC" to identify ".ZZD,ccDX"
-  Then we return error "bad customer"
+  When we change member ".ZZD" cardCode
+  Then bad codes ".ZZD,ccD"
+  // member reported lost card, we just changed cardCode, now the member (or someone) tries to use the card with app online:
+  When agent ".ZZC" asks device "devC" to identify ".ZZD,ccD"
+  Then we return error "bad member"
   
 Scenario: an unauthorized cashier scans in
   When agent "" asks device "devC" to identify "C:D,ccD2"
@@ -118,7 +120,7 @@ Scenario: a cashier scans a customer card whose balance is secret
   When agent "C:B" asks device "devC" to identify ".ZZE,ccE"
   Then we respond with:
   | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
-  | 1  | Eve Five | this,that,other | refund,r4usd |     | Etown, IL |         | 0     | *250    | 250     |
+  | 1  | Eve Five | this,that,other | refund,r4usd |     | Etown, IL |         | 0     | *0      | 250     |
 
 Scenario: a cashier scans a company customer card
   When agent "C:B" asks device "devC" to identify "F:E,ccE2"
@@ -139,7 +141,7 @@ Scenario: Device asks for a picture but there isn't one
 Scenario: Device asks for a picture with the wrong card code
   Given member ".ZZB" has picture "picture1"
   When agent "C:A" asks device "devC" for a picture of member ".ZZB" with card code "garbage#@!"
-  Then we respond with picture "bad customer"
+  Then we respond with picture "bad member"
   
 Scenario: A non-yet-active member card is scanned
   When agent "C:B" asks device "devC" to identify ".ZZG,ccG"
@@ -152,7 +154,7 @@ Scenario: A member makes a purchase for the first time
   When agent ".ZZC" asks device "devC" to identify ".ZZD,ccD"
   Then we respond with:
   | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
-  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | -1    | 250     | 250     |
+  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | -1    | 0       | 250     |
 
 # disabled because "fast" bit is no longer used  
 #Scenario: A member makes a purchase for the first time from an exempt company
@@ -163,4 +165,4 @@ Scenario: A member makes a purchase for the first time
 #  When agent ".ZZC" asks device "devC" to identify ".ZZD,ccD"
 #  Then we respond with:
 #  | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
-#  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 250     | 250     |
+#  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 0       | 250     |

@@ -65,7 +65,7 @@ function adminSummary($a, $cAdmin = FALSE) {
   $admin = $mya->admin;
 
   $uid = $a->id;
-  $self = ($uid == $mya->agent->id);
+  $self = ($uid == $mya->agentId);
   $ctty = $a->community;
   
   if ($a->isNormal) { // managing some individual community member account
@@ -223,15 +223,14 @@ EOF;
 /**
  * Download the member list for the current community
  */
-define('EXPORT_PARAMS', 'do allCttys onlyActive onlyPeople anonymous');
+define('EXPORT_PARAMS', 'do requests allCttys onlyActive onlyPeople anonymous');
 
 function export($params) {
   extract(u\just(EXPORT_PARAMS, $params));
   $mya = r\acct();
   $ctty = r\acct($mya->community);
 
-  $filename = t('rCredits-')
-  . str_replace('.', '', $ctty->name)
+  $filename = ($allCttys ? t('rCredits') : str_replace('.', '', $ctty->name))
   . (@$onlyActive ? t('-active') : '')
   . (@$onlyPeople ? t('-members') : t('-accounts'))
   . '.csv';
@@ -244,10 +243,27 @@ function export($params) {
   : 'id first_name last_name phone email address city state zip cttyName member ecode modified created special';
   u\csv($fields = u\ray($fields));
 
+  if ($requests) { // handle requests first, in case member status gets updated by later record
+    $startDate = strtotime('1/1/2016');
+    $sql = 'SELECT * FROM r_request WHERE created>=' . $startDate;
+    if (!$mya->admin) $sql .= ' AND ctty=' . $mya->community;
+    $q = db\q($sql);
+    while ($row = $q->fetchAssoc()) {
+      extract($row);
+      list ($id, $first_name, $last_name, $modified) = [$listid, $first, $last, time()];
+      $address = $city = $state = $ecode = $special = '';
+      $member = $ctty == 0 ? '' : 'yes';
+      foreach (u\ray('phone email') as $k) $$k = u\decryptN($$k);
+      $cttyName = $ctty ? trim(str_replace('rCredits', '', r\acct($ctty)->fullName)) : '';
+      u\csv(array_values(compact($fields)));
+    }
+  }  
+  
   $where = @$allCttys ? '1' : 'community=:cttyId';
   if (@$onlyActive) $where .= ' AND :IS_OK';
   if (@$onlyPeople) $where .= ' AND NOT :IS_CO';
   $sql = "SELECT uid AS id, fullName FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND $where ORDER BY :IS_OK, -signed, -created";
+
   $q = db\q($sql, u\ray('cttyId', $ctty->id));
   while ($row = $q->fetchAssoc()) {
     extract($row);
@@ -273,12 +289,13 @@ function export($params) {
       $modified = u\fmtDate(time());
       $special = $a->special;
     }
-    $cttyName = $ctty->fullName;
+    $cttyName = trim(str_replace('rCredits', '', $a->cttyA->fullName));
     $created = u\fmtDate($a->created);
     if (is_numeric($zip)) $zip .= '-'; // prevent this from getting interpreted as a number
 
     u\csv(array_values(compact($fields)));
   }
+  
   exit();
 }
 

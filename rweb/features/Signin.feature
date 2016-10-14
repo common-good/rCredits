@@ -50,43 +50,7 @@ Scenario: A member types an unknown username/ID
   Then we say "error": "bad login"
 
 #.........................................................
-Skip (remote signin is no longer allowed)
-Scenario: A member signs in with username from rCredits.org
-  When a member posts to "signinx" with values:
-  | id     | pw |*
-  | abeone | a1 |
-  Then member ".ZZA" is logged in
-  And we show "Account Summary"
 
-Scenario: A member signs in with account ID from rCredits.org
-  When a member posts to "signinx" with values:
-  | id      | pw |*
-  | new.zza | a1 |
-  Then member ".ZZA" is logged in
-  And we show "Account Summary"
-
-Scenario: A member signs in with email from rCredits.org
-  When a member posts to "signinx" with values:
-  | id            | pw |*
-  | a@example.com | a1 |
-  Then member ".ZZA" is logged in
-  And we show "Account Summary"
-
-Scenario: A member types the wrong password from rCredits.org
-  When a member posts to "signinx" with values:
-  | id     | pw |*
-  | abeone | a2 |
-  Then we show "Miscellaneous"
-  And we say "error": "bad login"
-
-Scenario: A member types an unknown username/ID from rCredits.org
-  When a member posts to "signinx" with values:
-  | id    | pw |*
-  | bogus | a1 |
-  Then we show "Miscellaneous"
-  And we say "error": "bad login"
-#.........................................................
-Resume
 Scenario: A member asks for a new password for username
   Given next random code is "wHatEveR"
   When member "?" completes form "settings/password" with values:

@@ -102,7 +102,11 @@ function makeTestCards() {
   $a = a('abb');
   $a->update('name fullName cardCode pin', 'susanshopper', 'Susan Shopper', 'ZzhWMCq0zcBowqw', '1234');
   a\photoFromFile($a);
+  
+  a\makeTestAdmins();
 }
+
+function makeTestAdmins() {if (isSTAGE) foreach (u\ray(R_COS) as $k) if ($a = r\acct($k)) $a->setBit(B_CADMIN);}
 
 /**
  * Return a display of steps done and steps remaining (to open an account).

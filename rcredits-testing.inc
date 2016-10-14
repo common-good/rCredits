@@ -252,12 +252,14 @@ function doTx($info, $thing) {
 //  if ($amount != $r) u\setDft($usdXid, 10000 + $xid);
   if (@$purpose) $for = $purpose; // ?: 'cash';
   if (strpos(@$for, ',')) $for = explode(',', $for); // specifying both payerFor and payeeFor
-  foreach (u\ray('from to for') as $one) unset($info[$one]);
+  
   if (isset($risks)) $risks = getRisks($risks, K_TX_RISKS);
 
   if ($inv) {
     u\setDft($goods, u\forCash(@$for) ? FOR_USD : FOR_GOODS);
   } else {
+    $data = [];
+    if (@$state == 'disputed') $data['disputed'] = TRUE;
     if (!$testOnly) u\setDft($risk, NULL); // indicates that risk has not been calculated yet
     if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
     u\setDft($type, TX_TRANSFER);
@@ -266,7 +268,6 @@ function doTx($info, $thing) {
       u\setDft($goods, ($type != TX_TRANSFER or u\forCash(@$for)) ? FOR_USD : FOR_GOODS);
       if ($goods == FOR_GOODS) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
     }
-    $data = [];
     if (u\in(@$purpose, 'offline')) $data['force'] = 1;
     if (u\in(@$purpose, 'undoneBy:') or u\in(@$purpose, 'undoes:')) {
       list ($k, $v) = explode(':', @$purpose);
@@ -280,6 +281,7 @@ function doTx($info, $thing) {
 
   $fields = 'xid payer payerAgent payee payeeAgent type goods taking data risk risks';
   if (!$testOnly) $fields .= $inv ? ' created' : ' created channel';
+  foreach (u\ray('from to for state') as $one) unset($info[$one]);
   $info = compact(u\ray($fields)) + $info;
   
   if ($testOnly or @$type == TX_REBATE or @$type == TX_BONUS) {
@@ -821,7 +823,7 @@ function getPicture($picture) {
  * Send an RPC API request to the server, for rPOS.
  * @todo: after everyone is up to version 217, add penultimate param: $proof = 'calc'
  */
-function hitServer($op, $extra = [], $agent, $device = '', $version = 217) {
+function hitServer($op, $extra = [], $agent, $device = '', $version = 218) {
   global $rposResult;
   if ($agent) $agent = t\fullQid2($agent);
   extract(u\just('amount member code created proof goods', $extra));
@@ -830,8 +832,9 @@ function hitServer($op, $extra = [], $agent, $device = '', $version = 217) {
   if ($version >= 217) foreach (['agent', 'member'] as $k) if (@$$k) $$k = str_replace('.', '', $$k); 
   if (@$proof == 'calc' and @$member) {
     if ($a = r\acct($member)) u\setDft($code, $a->cardCode());
-    $proof = u\hash("$agent$amount$member$code$created");
-    t\output("proof is hash of $agent$amount$member$code$created", 'normal');
+    $company = ($i = strpos($agent, '-')) ? substr($agent, 0, $i) : $agent;
+    $proof = u\hash($hashOf = "$company$amount$member$code$created");
+    t\output("proof is hash of $hashOf", 'normal');
     unset($extra['code']);
   }
   if (@$goods) $goods = t\goodsBit($goods);
