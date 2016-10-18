@@ -25,9 +25,21 @@
 //serverType:"rc4"
 //signin:1
 //unencryptedCode:"utbYceW3KLLCcaw"
-		if (this.count === 6) {
+		if (this.count === 6 || this.count === 7) {
 			var region = this.parts[2];
-			var tail = this.parts[5];
+			if (this.parts[6]) {
+				this.accountInfo.counter = this.parts[6];
+				var tail = this.parts[5];
+				console.log(this.accountInfo.counter,tail);
+			}else if(this.parts[5].indexOf(':')> -1){
+				var tail = this.parts[5].split(':');
+				this.accountInfo.counter=tail[1];
+				tail=tail[0];
+				console.log(this.accountInfo.counter,tail);
+			}else{
+				var tail = this.parts[5];				
+				console.log(this.accountInfo.counter,tail);
+			}
 			var fmt = tail.substring(0, 1);
 			var acctLen = '';
 			var regionLens = '112233344';
@@ -49,7 +61,6 @@
 			this.accountInfo.securityCode = Sha256.hash(this.accountInfo.unencryptedCode);
 			this.accountInfo.isCompany = (agentLen > 0);
 			this.accountInfo.isPersonal = !this.accountInfo.isCompany;
-
 			region = r36ToR26(region, regionLen);
 			if (this.accountInfo.isCompany) {
 				this.accountInfo.signin = 1;
@@ -115,8 +126,8 @@
 		for (var i = 0; i < s.length; i++) {
 			s2 += ours.charAt(std.indexOf(s.charAt(i)));
 		}
-		console.log(s2.length, s2Len,s2,s);
-		while ((s2.length < s2Len)||(s2.length<3)) {
+		console.log(s2.length, s2Len, s2, s);
+		while ((s2.length < s2Len) || (s2.length < 3)) {
 			s2 = 'A' + s2;
 		}
 		console.log(s2);

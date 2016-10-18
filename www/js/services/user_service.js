@@ -128,6 +128,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			.setMember(accountInfo.accountId)
 			.setSignin(accountInfo.signin)
 			.getParams();
+		params.counter=accountInfo.counter;
 		console.log(accountInfo, params);
 		if (NetworkService.isOffline()) {
 			return this.loginWithRCardOffline(accountInfo).then(function () {
@@ -192,6 +193,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			params.setPIN(pin);
 		}
 		params = params.getParams();
+		params.counter=accountInfo.counter;
 		console.log(accountInfo);
 		if (NetworkService.isOffline()) {
 			return MemberSqlService.existMember(accountInfo.accountId)
@@ -247,7 +249,7 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		identifyPromise.resolve(customerLoginResponse);
 		return identifyPromise.promise;
 	};
-	UserService.prototype.createCustomer = function (customerInfo, customerAccountInfo) {
+	UserService.prototype.createCustomer = function (customerInfo) {
 		var props = ['balance', 'can', 'company', 'place'];
 		var customer = new Customer(customerInfo.name);
 		customer.setRewards(customerInfo.rewards);

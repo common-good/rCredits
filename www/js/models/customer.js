@@ -1,3 +1,4 @@
+/* global Class */
 (function (window, app) {
 	app.service('Customer', function (User) {
 		var Customer = Class.create(User, {
@@ -27,15 +28,10 @@
 			getLastTx: function () {
 				return this.lastTx.getId();
 			}
-//			,
-//			getId: function () {
-//				return this.accountInfo.accountId;
-//			}
 		});
 		Customer.parseFromDb = function (customerJson) {
 			var customer = new Customer(customerJson.name);
 			var proof = JSON.parse(customerJson.data);
-			
 			customer.setBalance(customerJson.balance);
 			customer.setRewards((customerJson.rewards));
 			customer.setLastTx(customerJson.lastTx);
@@ -44,7 +40,7 @@
 			customer.accountInfo.accountId = customerJson.qid;
 			customer.accountInfo.securityCode = proof.sc;
 			if (customerJson.photo) {
-				console.log(customerJson.photo);
+//				console.log(customerJson.photo);
 				customer.photo = customerJson.photo;
 			} else {
 				customer.photo = '/img/New-rCredits-Customer.png';

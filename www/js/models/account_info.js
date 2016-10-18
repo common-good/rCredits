@@ -8,6 +8,7 @@
 		this.url = '';
 		this.serverType = '';
 		this.signin = '';
+		this.counter='';
 	};
 	AccountInfo.IS_DEMO = 'rc4';
 	AccountInfo.prototype.isPersonalAccount = function () {
