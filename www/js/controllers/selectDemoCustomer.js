@@ -10,7 +10,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 		{name: 'Cathy', url: 'HTTP://NEW.RC4.ME/ABJ-ME04nW44DHzxVDg', signin: '1', img: 'img/CathyCashier.jpg'},
 		{name: 'Bob', url: 'HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G:somethingForBob', signin: '1', img: 'img/BobBossman.jpg'},
 		{name: 'Curt', url: 'HTTP://6VM.RC4.ME/G0ANyCBBlUF1qWNZ2k.something', signin: '0', img: 'img/CurtCustomerMember.jpg'},
-		{name: 'Susan', url: 'HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw', signin: '0', img: 'img/SusanShopper.jpg'},
+		{name: 'Susan', url: 'G6VM0RZzhWMCq0zcBowqw', signin: '0', img: 'img/SusanShopper.jpg'},
 		{name: "Curt's Hardware", url: 'HTTP://NEW.RC4.ME/AAD-utbYceW3KLLCcaw', signin: '1', img: 'img/CurtCustomerAgent.jpg'}
 	];
 	$scope.iswebview = ionic.Platform.platform();

@@ -3,14 +3,25 @@
 	var COMPANY_INDICATOR = '-';
 	var COMPANY_INDICATOR_URL = ':';
 	var PERSONAL_INDICATOR = '.';
+	var alphaB = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+	var regionLens = '112233344';
+	var acctLens = '232323445';
 	var QRCodeParser = function () {
 	};
 	QRCodeParser.prototype.setUrl = function (url) {
-		console.log(url);
 		this.plainUrl = url;
+		console.log(this.plainUrl);
+		if (this.plainUrl.indexOf('HTTP://') === -1) {
+			var fmt = this.plainUrl.substring(0, 1);
+			var region = this.plainUrl.substring(1, regionLens.indexOf(alphaB.indexOf(fmt)) + 1);
+			var transformedURL = this.plainUrl.replace(region, '');
+			this.plainUrl = 'HTTP://' + region+ '.XXX.ME/' + this.plainUrl;
+			console.log(region,this.plainUrl,regionLens.indexOf(alphaB.indexOf(fmt)) + 1);
+		}
 		this.url = new URL(url);
 	};
 	QRCodeParser.prototype.parse = function () {
+		console.log(this.plainUrl);
 		this.accountInfo = new AccountInfo();
 		this.accountInfo.url = this.plainUrl;
 		this.parts = this.accountInfo.url.split(/[/\\.-]/);
@@ -30,20 +41,18 @@
 			if (this.parts[6]) {
 				this.accountInfo.counter = this.parts[6];
 				var tail = this.parts[5];
-				console.log(this.accountInfo.counter,tail);
-			}else if(this.parts[5].indexOf(':')> -1){
+				console.log(this.accountInfo.counter, tail);
+			} else if (this.parts[5].indexOf(':') > -1) {
 				var tail = this.parts[5].split(':');
-				this.accountInfo.counter=tail[1];
-				tail=tail[0];
-				console.log(this.accountInfo.counter,tail);
-			}else{
-				var tail = this.parts[5];				
-				console.log(this.accountInfo.counter,tail);
+				this.accountInfo.counter = tail[1];
+				tail = tail[0];
+				console.log(this.accountInfo.counter, tail);
+			} else {
+				var tail = this.parts[5];
+				console.log(this.accountInfo.counter, tail);
 			}
 			var fmt = tail.substring(0, 1);
 			var acctLen = '';
-			var regionLens = '112233344';
-			var acctLens = '232323445';
 			var i = parseInt(fmt, 36);
 			var agentLen = i % 4;
 			i = Math.floor(i / 4);
