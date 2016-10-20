@@ -1,4 +1,4 @@
-/* global Sha256, parseInt */
+/* global Sha256, parseInt, rCreditsConfig */
 (function (window) {
 	var COMPANY_INDICATOR = '-';
 	var COMPANY_INDICATOR_URL = ':';
@@ -9,15 +9,22 @@
 	var QRCodeParser = function () {
 	};
 	QRCodeParser.prototype.setUrl = function (url) {
-		this.plainUrl = url;
-		console.log(this.plainUrl);
-		if (this.plainUrl.indexOf('HTTP://') === -1) {
-			var fmt = this.plainUrl.substring(0, 1);
-			var region = this.plainUrl.substring(1, regionLens.indexOf(alphaB.indexOf(fmt)) + 1);
-			var transformedURL = this.plainUrl.replace(region, '');
-			this.plainUrl = 'HTTP://' + region+ '.XXX.ME/' + this.plainUrl;
-			console.log(region,this.plainUrl,regionLens.indexOf(alphaB.indexOf(fmt)) + 1);
+		console.log(url);
+		if (url.indexOf('HTTP://') === -1) {
+			var fmt = url.substring(0, 1);
+			var i = parseInt(fmt, 36) / 4;
+			var regionLen = parseInt(regionLens.charAt(i));
+			var region = url.substring(1, regionLen + 1);
+			var transformedURL = url.replace(region, '');
+			if (url.indexOf(':') !== -1) {
+				var realOrFake = 'RCREDITS.ORG';
+			}else{
+				var realOrFake = 'RC4.ME';				
+			}
+			url = 'HTTP://' + region + '.'+realOrFake+'/' + transformedURL;
+			console.log(region, url, (regionLens.indexOf(alphaB.indexOf(fmt)) + 1), regionLen);
 		}
+		this.plainUrl = url;
 		this.url = new URL(url);
 	};
 	QRCodeParser.prototype.parse = function () {
