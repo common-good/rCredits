@@ -6,6 +6,7 @@
 	var alphaB = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 	var regionLens = '112233344';
 	var acctLens = '232323445';
+	var oldCode=false;
 	var QRCodeParser = function () {
 	};
 	QRCodeParser.prototype.setUrl = function (url) {
@@ -23,6 +24,9 @@
 			}
 			url = 'HTTP://' + region + '.'+realOrFake+'/' + transformedURL;
 			console.log(region, url, (regionLens.indexOf(alphaB.indexOf(fmt)) + 1), regionLen);
+		}else if(url.indexOf('.')>=7){
+			console.log(url.indexOf('.'));
+			oldCode=true;
 		}
 		this.plainUrl = url;
 		this.url = new URL(url);
@@ -43,7 +47,7 @@
 //serverType:"rc4"
 //signin:1
 //unencryptedCode:"utbYceW3KLLCcaw"
-		if (this.count === 6 || this.count === 7) {
+		if ((this.count === 6 || this.count === 7)&&!oldCode) {
 			var region = this.parts[2];
 			if (this.parts[6]) {
 				this.accountInfo.counter = this.parts[6];

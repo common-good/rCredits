@@ -12,9 +12,11 @@
 			"attributes": {
 				"ng-model": {},
 				"ng-change": {},
+				"ng-value": {},
 				"onclick": {},
 				"name": {},
 				"ng-checked": {},
+				"ng-repeat": {},
 				"id": {},
 				"type": {},
 				"class": {},

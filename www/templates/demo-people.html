@@ -1,11 +1,16 @@
 <ion-view hide-nav-bar="true" ng-controller="SelectDemoCust as demo">
 	<ion-content>
+		<ion-list id="formatlist">
+			<ion-radio class="thirds" ng-model="format.type" value="0">Old</ion-radio>
+			<ion-radio class="thirds" ng-model="format.type" value="1">New</ion-radio>
+			<ion-radio class="thirds" ng-model="format.type" value="2">Short</ion-radio>
+		</ion-list>
 		<div class="aTable">
-			<div ng-class-odd="'leftColumn'" ng-class-even="'rightColumn'" ng-repeat="person in customer">
+			<div ng-class-odd="'rightColumn'" ng-class-even="'leftColumn'" ng-repeat="person in customer">
 				<div ng-switch='whereWasI' class="aRow">
 					<a ng-switch-when="#/app/login" href="javascript:void(0)" ng-click="onSelectManager(person)" ng-model="selectedCustomer.selected"><img src="{{person.img}}" title="Demo User" class="demoImages"></a>
 					<a ng-switch-when="#/app/home" href="javascript:void(0)" ng-click="onSelectCustomer(person)" ng-model="selectedCustomer.selected"><img src="{{person.img}}" title="Demo User" class="demoImages"></a>
-					<a ng-switch-default href="#/app/home" >Please click here to go back and try again, somehow you got here from nowhere</a>
+					<a ng-switch-default href="#/app/home" >Please click here<br> to go back and try again,<br> somehow you got here <br>from nowhere<br></a>
 				</div>
 			</div>
 		</div>
