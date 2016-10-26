@@ -24,9 +24,6 @@
 			}
 			url = 'HTTP://' + region + '.'+realOrFake+'/' + transformedURL;
 			console.log(region, url, (regionLens.indexOf(alphaB.indexOf(fmt)) + 1), regionLen);
-		}else if(url.indexOf('.')>=7){
-			console.log(url.indexOf('.'));
-			oldCode=true;
 		}
 		this.plainUrl = url;
 		this.url = new URL(url);
@@ -36,8 +33,11 @@
 		this.accountInfo = new AccountInfo();
 		this.accountInfo.url = this.plainUrl;
 		this.parts = this.accountInfo.url.split(/[/\\.-]/);
+		if(this.parts[5].length<=4){
+			oldCode=true;
+		}
 		this.count = this.parts.length;
-		console.log(this.count, this.parts);
+		console.log(this.count, this.parts,this.parts[5].length<=4,this.parts[5].indexOf('.'),this.parts[5].indexOf('-') > -1,this.parts[5].indexOf('-') <=4,this.parts[5].indexOf('.') > -1,this.parts[5].indexOf('.') <=4);
 //isCompany:true
 //isPersonal:false
 //memberId:"NEW"
