@@ -6,7 +6,7 @@
 	var alphaB = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 	var regionLens = '112233344';
 	var acctLens = '232323445';
-	var oldCode=false;
+	var oldCode = false;
 	var QRCodeParser = function () {
 	};
 	QRCodeParser.prototype.setUrl = function (url) {
@@ -19,10 +19,10 @@
 			var transformedURL = url.replace(region, '');
 			if (url.indexOf(':') !== -1) {
 				var realOrFake = 'RCREDITS.ORG';
-			}else{
-				var realOrFake = 'RC4.ME';				
+			} else {
+				var realOrFake = 'RC4.ME';
 			}
-			url = 'HTTP://' + region + '.'+realOrFake+'/' + transformedURL;
+			url = 'HTTP://' + region + '.' + realOrFake + '/' + transformedURL;
 			console.log(region, url, (regionLens.indexOf(alphaB.indexOf(fmt)) + 1), regionLen);
 		}
 		this.plainUrl = url;
@@ -33,11 +33,13 @@
 		this.accountInfo = new AccountInfo();
 		this.accountInfo.url = this.plainUrl;
 		this.parts = this.accountInfo.url.split(/[/\\.-]/);
-		if(this.parts[5].length<=4){
-			oldCode=true;
+		if (this.parts[5].length <= 4) {
+			oldCode = true;
+		}else{
+			oldCode = false;
 		}
 		this.count = this.parts.length;
-		console.log(this.count, this.parts,this.parts[5].length<=4,this.parts[5].indexOf('.'),this.parts[5].indexOf('-') > -1,this.parts[5].indexOf('-') <=4,this.parts[5].indexOf('.') > -1,this.parts[5].indexOf('.') <=4);
+		console.log(this.count, this.parts, this.parts[5].length);
 //isCompany:true
 //isPersonal:false
 //memberId:"NEW"
@@ -47,7 +49,7 @@
 //serverType:"rc4"
 //signin:1
 //unencryptedCode:"utbYceW3KLLCcaw"
-		if ((this.count === 6 || this.count === 7)&&!oldCode) {
+		if ((this.count === 6 || this.count === 7) && !oldCode) {
 			var region = this.parts[2];
 			if (this.parts[6]) {
 				this.accountInfo.counter = this.parts[6];
@@ -69,7 +71,7 @@
 			i = Math.floor(i / 4);
 			console.log(i);
 			var regionLen = parseInt(regionLens.charAt(i));
-			var acctLen = parseInt(acctLens.charAt(i));
+			acctLen = parseInt(acctLens.charAt(i));
 			var account = r36ToR26(tail.substring(1, 1 + acctLen), acctLen);
 			var memberId = '';
 			console.log(tail, i, fmt, acctLen, agentLen, account, acctLens.charAt(i), regionLen);
@@ -84,9 +86,9 @@
 			region = r36ToR26(region, regionLen);
 			if (this.accountInfo.isCompany) {
 				this.accountInfo.signin = 1;
-				this.accountInfo.accountId = region + ':' + account;
+				this.accountInfo.accountId = region + account+'-'+r36ToR26(tail.substring(1 + acctLen,1 + acctLen + agentLen));
 			} else {
-				this.accountInfo.accountId = region + '.' + account;
+				this.accountInfo.accountId = region + account;
 				this.accountInfo.signin = 0;
 			}
 			memberId = region;
@@ -140,13 +142,14 @@
 	function r36ToR26(part, s2Len) {
 		console.log(part);
 		var std = '0123456789abcdefghijklmnop';
-		var ours = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		var ours= 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		var s = parseInt(part, 36).toString(26); // d4m
 		var s2 = '';
 		for (var i = 0; i < s.length; i++) {
 			s2 += ours.charAt(std.indexOf(s.charAt(i)));
+			console.log(s,s.charAt(i),std.indexOf(s.charAt(i)));
 		}
-		console.log(s2.length, s2Len, s2, s);
+		console.log(s2.length, s2Len, s.charAt(i), s2, s, part, s2Len);
 		while ((s2.length < s2Len) || (s2.length < 3)) {
 			s2 = 'A' + s2;
 		}

@@ -1,10 +1,8 @@
 <ion-view hide-nav-bar="true" ng-controller="SelectDemoCust as demo">
 	<ion-content>
-		<ion-list id="formatlist">
-			<ion-radio class="thirds" ng-model="format.type" value="0">Old</ion-radio>
-			<ion-radio class="thirds" ng-model="format.type" value="1">New</ion-radio>
-			<ion-radio class="thirds" ng-model="format.type" value="2">Short</ion-radio>
-		</ion-list>
+			<label class="thirds"><input name="formattype" type="radio" ng-model="format.type" value="0">Old</label>
+			<label class="thirds"><input name="formattype" type="radio" ng-model="format.type" value="1">New</label>
+			<label class="thirds"><input name="formattype" type="radio" ng-model="format.type" value="2">Short</label>
 		<div class="aTable">
 			<div ng-class-odd="'rightColumn'" ng-class-even="'leftColumn'" ng-repeat="person in customer">
 				<div ng-switch='whereWasI' class="aRow">
