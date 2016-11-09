@@ -66,10 +66,10 @@ function adminSummary($a, $cAdmin = FALSE) {
 
   $uid = $a->id;
   $self = ($uid == $mya->agentId);
-  $ctty = $a->community;
+  $ctty = $a->community ?: r\serverUid(); // serverUid for admin, if it has no ctty
   
   if ($a->isNormal) { // managing some individual community member account
-    if (!$a->ok) $a->nextStep(); // update Dwolla status
+    if (!$a->ok) $a->nextStep();
     if ($cAdmin) {
       $html = $a->photoHtml(TRUE, TRUE);
       $photo = item("<a href=$base_url/settings/security/photo>$html</a>");
@@ -86,7 +86,7 @@ function adminSummary($a, $cAdmin = FALSE) {
 //        $minimum = textFld(t('Minimum:'), '', dft(u\fmtAmt($a->minimum)));
 //        $achMin = textFld(t('ACH Min:'), '', dft(u\fmtAmt($a->achMin ?: R_ACHMIN_DEFAULT, 's')));
 //      }
-        $minimum = item(u\fmtAmt($a->j_minimum), t('Minimum:'));
+        $minimum = item(u\fmtAmt($a->minimum), t('Minimum:'));
         $achMin = item(u\fmtAmt($a->achMin), t('ACH Min:'));
 //      if (!$a->stepsDone['dw']) { // show info needed to open a Dwolla account
 //      extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
@@ -240,7 +240,7 @@ function export($params) {
       . ' created activated signed helper iCode balance rewards savingsAdd minimum share risk trust'
       . ' cttyName co gross employees achMin pinThreshold lastiCode tenure moves mediaConx jid'
       . ' owns bankName slave closed notices secret'
-  : 'id first_name last_name phone email address city state zip cttyName member ecode modified created special';
+  : 'id first_name last_name phone email address city state zip cttyName type ecode modified created special';
   u\csv($fields = u\ray($fields));
 
   if ($requests) { // handle requests first, in case member status gets updated by later record
@@ -252,7 +252,7 @@ function export($params) {
       extract($row);
       list ($id, $first_name, $last_name, $modified) = [$listid, $first, $last, time()];
       $address = $city = $state = $ecode = $special = '';
-      $member = $ctty == 0 ? '' : 'yes';
+      $member = $type = $ctty == 0 ? '' : 'member';
       foreach (u\ray('phone email') as $k) $$k = u\decryptN($$k);
       $cttyName = $ctty ? trim(str_replace('rCredits', '', r\acct($ctty)->fullName)) : '';
       u\csv(array_values(compact($fields)));

@@ -20,11 +20,11 @@ Scenario: A newbie has not taken the first step
   When cron runs "tickle"
   Then we notice "do step one|sign in" to member ".ZZD"
   And we notice "invitee slow" to member ".ZZE" with subs:
-  | fullName | elapsed | step |*
-  | Dee Four |       8 | sign |
+  | fullName | elapsed | step   |*
+  | Dee Four |       8 | verify |
   
 Scenario: A newbie has taken some steps but not all
-  Given member ".ZZA" has done step "sign contact donate proxies prefs photo"
+  Given member ".ZZA" has done step "contact verify sign donate proxies prefs photo"
   When cron runs "tickle"
   Then we notice "take another step|sign in" to member ".ZZA"
 
@@ -71,6 +71,7 @@ Scenario: A nonmember has accepted an invitation from someone else instead
   Then we do not email "nonmember" to member "b@example.com"
 
 Scenario: A member gets a credit line
+# This fails if run on a day of the month that the previous month doesn't have (for example on 10/31)
   Given balances:
   | id   | r   |*
   | .ZZE | 500 |
@@ -87,6 +88,7 @@ Scenario: A member gets a credit line
 # (feature temporarily disabled)
 
 Scenario: A member gets a bigger credit line after several months
+# This fails if run on a day of the month that the previous month doesn't have (for example on 10/31)
   Given balances:
   | id   | r    |*
   | .ZZE | 5000 |

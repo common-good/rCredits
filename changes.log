@@ -1,3 +1,25 @@
+2016-11-07 version 2.49
+. sharing donations now come out of rewards (and into CGF's rewards)
+. f('db.q', "UPDATE r_txs SET goods=:FOR_SHARE WHERE payerFor=':R_SHARING_MSG' ");
+. transaction rewards now decrease by 1% for every $500 of rewards received, down to 1%
+. each signup step now leads to the next
+. f('y.do1099bs', FALSE, [a('adn')->id => 'Howland Tools', a('ahh')->id => 'New England Dental Wellness', a('afd')->id => '(?)'], [a('afx')->id => ''], 2015);
+. updated signup steps for every account: eachA(function($a) {
+  $stepsDone0 = $a->stepsDone;
+  $stepsDone = f('r.stepsDone0');
+  foreach (ray($a->co ? 'proxies connect' : 'company relations') as $k) unset($stepsDone[$k]);
+  foreach ($stepsDone0 as $k => $v) if (isset($stepsDone[$k])) $stepsDone[$k] = $v;
+  $stepsDone['verify'] = $a->member ?: ($a->co ? FALSE : (array_sum($stepsDone0) > 1));
+  $a->update(compact('stepsDone'));
+/**/  if ($stepsDone != $stepsDone0) debug(['name'=>$a->fullName] + $stepsDone + ['was' => $stepsDone0]);
+});
+. finally fixed a problem in recaching that showed up mostly with joint accounts
+. monthly cron still runs on the 1st/31st/16th sometimes
+. show sum of starting balance on statements
+. change statements to forward date order
+. put link to back of invites on invitation page and tell admin when somebody prints icards
+. UPDATE r_txs SET created=1477976400 WHERE created BETWEEN 1477886400 AND 1477972799 AND (type=3 OR goods=3) (moving 10/31 inflation and sharing transactions to 11/1)
+
 2016-10-14
 . requests optionally included in users export
 . minor adjustments for new version (2.18) of old app

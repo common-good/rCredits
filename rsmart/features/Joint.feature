@@ -31,21 +31,21 @@ Setup:
   | .ZZB | .ZZA  | joint      |       |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose |*
-  | 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |
-  | 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  |
-  | 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |
-  | 4   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |
+  | 1   | %today-6m | signup |    200 | ctty | .ZZA | signup  |
+  | 2   | %today-6m | signup |    200 | ctty | .ZZB | signup  |
+  | 3   | %today-6m | signup |    200 | ctty | .ZZC | signup  |
+  | 4   | %today-6m | grant  |    200 | ctty | .ZZF | stuff   |
   Then balances:
   | id   |       r |*
-  | ctty |   -1000 |
-  | .ZZA |     250 |
-  | .ZZB |     250 |
-  | .ZZC |     250 |
-  | .ZZF |     250 |
+  | ctty |    -800 |
+  | .ZZA |     200 |
+  | .ZZB |     200 |
+  | .ZZC |     200 |
+  | .ZZF |     200 |
   
 Scenario: A cashier asks to charge someone
   When agent "C:E" asks device "devC" to charge ".ZZB,ccB" $400 for "goods": "food" at %now
-  Then we respond ok txid 5 created %now balance -400 rewards 540 saying:
+  Then we respond ok txid 5 created %now balance -400 rewards 440 saying:
   | did     | otherName | amount | why   | reward |*
   | charged | Bea Two   | $400   | goods | $40    |
   And with did
@@ -59,9 +59,9 @@ Scenario: A cashier asks to charge someone
   | %today  | Bea Two  | Corner Pub | $400   | food         | reward          | $40               |
   And balances:
   | id   |       r |*
-  | ctty |   -1060 |
-  | .ZZA |     100 |
+  | ctty |    -860 |
+  | .ZZA |       0 |
   | .ZZB |      40 |
-  | .ZZC |     670 |
-  | .ZZF |     250 |
+  | .ZZC |     620 |
+  | .ZZF |     200 |
   

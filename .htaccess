@@ -1,0 +1,2 @@
+# missing page is "always" when someone scans an rCard
+ErrorDocument 404 /index.html

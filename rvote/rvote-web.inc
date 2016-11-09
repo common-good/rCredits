@@ -114,7 +114,7 @@ function formProposal($form, &$sta) {
     'How close is the requested amount to the ideal (half the total project budget)?' => 5,
     'How close is the total amount raised/committed so far to the ideal (half the total project budget)?' => 5,
     'Ability to implement project with less funding than requested.' => 5,
-    'Aability to manage the project and funds effectively.' => 15,
+    'Ability to manage the project and funds effectively.' => 15,
     'Evaluation plan.' => 10,
     'rCredits member sponsorship of the project.' => 2.5,
     ' ' => '____',
@@ -195,6 +195,7 @@ function formProposal_submit($form, &$sta) {
   $mya = r\acct();
   $input['ctty'] = $mya->community;
   $input['categories'] = join(' ', array_keys($input['cats']));
-  db\insert('r_proposals', u\just($dbFields, $input));
+  db\insert('r_proposals', $info = u\just($dbFields, $input));
+  r\tellStaff('funding proposal received', $info);
   r\go('community', t('Your funding application has been submitted! The process of evaluating proposals may take several weeks. You will hear from us whether or not your proposal is chosen for funding.'));
 }

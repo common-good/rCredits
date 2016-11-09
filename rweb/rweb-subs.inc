@@ -29,13 +29,12 @@ $GLOBALS[TX_WEB . ' messages'] = array(
     <p></p><p>After you finish setting up this account, to manage it in the future:</p>
     <ol>
       <li>Sign in to your personal account at rCredits.org</li>
-      <li>Click on your photo in the upper right corner. Choose your company account from dropdown there.</li>
+      <li>Click your photo in the upper right corner. Choose your company account from the dropdown there.</li>
     </ol>
 EOF
   ),
   'verify cell' => t('We sent a verification code to your mobile phone (@number).<br>Please type that code in the box below.'),
   'options saved' => t('Your options have been saved'),
-  'photo saved' => t('Your photo was successfully uploaded.'),
   'step completed' => t('<span id="completed"> Step completed!</span>'), // space intended
   'after emailing' => t('After you have sent us an email: '),
   'return to membership' => t('<a href="@BASE_URL/status">Click here to return to the checklist</a>.'),
@@ -56,9 +55,13 @@ EOF
   'repeat invite' => t('Come back any time, to send more invitations (click "Invite Someone" at the bottom of any page).'),
   'gift transfer later' => t('<br><br>Funds will be transferred when you have money in your account.'),
   'repeat gift' => t('If you wish to make a donation again sometime, click "Membership" in the upper right corner, then on "Donate".'),
-  'setup complete' => t('<p>Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Your rCard will arrive by US Mail within a few days. Thank you for joining!</p>'),
+//  'setup complete' => t('<p>Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Your rCard will arrive by US Mail within a few days. Thank you for joining!</p>'),
+  'setup complete' => t('<h2>Your Account Setup Is Complete</h2>You have done everything you need to do.'),
+  'individual approval' => t('Once a staff member has approved your account, you can expect to receive your rCard in the mail within a day or two'),
+  'company approval' => t('Once a staff member has approved your account, you can begin accepting rCredits payments'),
+  'join thanks' => t('Thank you for joining us!'),
   'use temporary card' => t('<p>While you wait for your rCard to arrive, you can use your invitation card to make purchases at any member business (beginning with your inviter).</p>'),
-  'must be confirmed' => t('An email has been sent to @inviterName. They will need to confirm the invitation before you can use your rCredits account. Or you can make your first rCard purchase from them (or sale to them), as confirmation.'),
+  'must be confirmed' => t('An email has been sent to @inviterName. Ze will need to confirm the invitation before you can use your rCredits account. Or you can do your first rCard transaction with zem as confirmation.'),
   //  Meanwhile, click the "<a href="@BASE_URL/community/invite">Invite</a>" tab to invite anyone you know and trust &mdash; you get a $@R_HELPER_BONUSr reward when they make their first purchase.<br><br>
   'ready to charge' => t('<p>You successfully scanned in as "@agentName" to charge customers on behalf of @companyName.</p><p>Now go back to your scanning app, to scan a customer\'s card. Sign out only when your shift ends.</p>'),
   'transaction list truncated' => t('There are too many transactions to show all at once, so only the first @TX_MAX_ROWS are shown (choose a different date range to see the rest).'),
@@ -73,14 +76,14 @@ EOF
   'new savings balance' => t('<p>IMPORTANT! Your rCredits balance has been split to include a Credit Reserve containing your incentive rewards. Read <@a>last week\'s rCredits newsletter</a> for details.</p>', ['@a' => 'a href=http://us9.campaign-archive1.com/?u=b1d89f860859e1d9b906fa0b0&id=f1f54edd80&e=']),
   'minimum zeroed' => t('<p>Your rCredits "automatic refills" have been turned off, to prevent any unintended transfer from your bank account. To turn them back on or transfer funds manually, sign in to your account at rCredits.org OR <@a1>click here</a>.</p>'),
   'sent message' => t('Your message has been sent to @fullName.'),
-  
+    
   // prompts
   'note' => '<b class="loud">' . t('NOTE:') . '</b>',
   'ach warning' => t('If there are insufficient funds in your bank account when you request a transfer to your rCredits account (either explicitly, or by automatic refills), your bank will charge you a $20-35 fee, just like for a bounced check. If this happens more than once, the rCredits system will <i>also</i> charge you $@fee, to cover <i>its</i> bank fee. So make sure you have enough in your bank account to cover your transfers.', ['@fee'=>R_DEPOSIT_RETURN_FEE]),
   // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
 //  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
   'legalname desc' => t(' full legal name, properly capitalized (for tax reporting).'),
-  'usename desc' => t('This should be the name you use in formal letters, at work, on your checks and credit cards, etc.'),
+  'usename desc' => t('(properly capitalized!) The name you use on contracts, checks, credit cards, etc.'),
   'ssTitle' => t('Soc Sec #:'),
   'einTitle' => t('Federal ID:'),
   'ssDesc' => t('Your social security number (for tax reporting)'),
@@ -189,7 +192,7 @@ EOF
   'only us banks' => t('Unfortunately, at this time, we can handle only U.S. banks.'),
 //  'bad deposit cents' => t('Each deposit is a number less than @DW_VERIFY_ROOF.'),
   'no can scan' => t('You do not have permission to scan an individual\'s rCard.'),
-  'must opt' => t('You must not create a limited account for this person without giving him or her the opportunity to open a real rCredits account. <@a>Invite them</a>!', ['@a' => 'a href=' . BASE_URL . '/community/invite']),
+  'must opt' => t('You must not create a limited account for this person without giving zem the opportunity to open a real rCredits account. <@a>Invite zem</a>!', ['@a' => 'a href=' . BASE_URL . '/community/invite']),
   'must agree' => t('Accept Terms checkbox field is required.'), // drupal shows this
   'redo info' => t('We could not verify your personal information. Please try again, carefully.'),
   'bad ssn or dob' => t('There is a problem verifying your personal information.'),
@@ -214,7 +217,7 @@ EOF
   'no local proxy' => t('No other members nearby. <@a>Invite someone</a>!', ['@a'=>'a href=' . @BASE_URL . '/community/invite']),
   'too many joins' => t('You can join to only one other account.'),
   'short cash help' => t('<@a>Click here</a> for more information about cashing out incentive rewards.', ['@a'=>'a href=' . BASE_URL . '/help/cashing-out']),
-  'maybe not cash' => t('If you are actually reimbursing someone or paying them for goods or services (for example, employee labor), choose a different button under "For".'),
+  'maybe not cash' => t('If you are actually reimbursing someone or paying zem for goods or services (for example, employee labor), choose a different button under "For".'),
   'link expired' => t('That link has expired.'),
   'login failed' => t('Your attempt to sign in failed. Click the "Password problems" link if you need a new password.'),
   'file save error' => t('Your file upload did not succeed.'),
@@ -728,13 +731,13 @@ function photoRet($msg, $status = 'error') {
 }
 
 /**
- * Provide the crucial fields and scripts for resetting or changing a password.
+ * Provide the crucial fields and scripts for choosing or changing a password.
+ * @param bool $reset: <changing, rather than choosing>
  */
-function pickPassword() {
+function pickPassword($reset = TRUE) {
   $mya = r\acct();
-  $title = item(t('Choose a New Password'));
-  $pass1 = passFld(REQ . t('New password:'), '', clas('password-field') + autofill('off'));
-  $pass2 = passFld(REQ . t('Confirm new password:'), '', clas('password-confirm') + autofill('off'));
+  $pass1 = passFld(REQ . ($reset ? t('New password:') : t('Choose a Password:')), '', clas('password-field') + autofill('off'));
+  $pass2 = passFld(REQ . ($reset ? t('Confirm new password:') : t('Confirm password:')), '', clas('password-confirm') + autofill('off'));
   $strong = hidFld(0, attrib(['id' => 'edit-strong']));
   focusOn('pass1');
   js(BASE_URL . '/modules/user/user.js', 'file', 'footer');
@@ -766,7 +769,7 @@ function pickPassword() {
   js(BASE_URL . '/misc/drupal.js', 'file', 'footer', -999); // for password strength meter
   js("jQuery.extend(Drupal.settings, {$settings});");
 
-  return compact(u\ray('title pass1 pass2 strong'));
+  return compact(u\ray('pass1 pass2 strong'));
 }
   
 /**
@@ -775,7 +778,7 @@ function pickPassword() {
  */
 function box() {
   if ($box = @$_COOKIE['box']) return $box;
-  return r\setCook('box', $box = u\code(R_CODE_LEN));
+  return r\setCook('box', $box = u\code());
 }
 
 /**
@@ -834,10 +837,28 @@ function setGlobals($agent = '', $force = FALSE) {
 }
 
 /**
+ * Return all the session variables
+ * @param string $sid: the session ID
+ */
+function sessionVars($sid) {
+  if (!$both = db\lookup('uid,session', 'sessions', 'sid=:sid', compact('sid'))) return [];
+  extract($both);
+  $res['uid'] = $uid;
+  
+  $vars = explode(SVAR_HEADER, $session);
+  array_shift($vars); // first is empty of course
+  foreach ($vars as $one) {
+    list ($k, $v) = explode('|', $one);
+    $res[$k] = unserialize($v);
+  }
+  return $res;
+}
+
+/**
  * Set or retrieve an rCredits session variable.
  */
 function svar($name) {
-  $name = 'rcredits_' . $name;
+  $name = SVAR_HEADER . $name;
   $args = func_get_args();
   if (count($args) == 1) return @$_SESSION[$name]; else $_SESSION[$name] = $args[1];
 }
@@ -1164,7 +1185,7 @@ function nameAndEmail($what, $fullName = '') {
   $who = $what == t('Company') ? t('The company\'s') : ($what == t('Community') ? t('The community\'s') : t('Your'));
   $onchange = w\onchange("var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);");
   $fullName = textFld("$what:", ["$who " . t('full name'), tt('usename desc')], required(@$fullName) + $onchange);
-  $legalName = textFld(t('Legal name:'), ["$who " . t('full legal name'), t('(if different) ') . $who . tt('legalname desc')]);
+  $legalName = textFld(t('Legal name:'), ["$who " . t('full legal name (if different)'), $who . tt('legalname desc')]);
   $email = textFld(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required());
   return compact(u\ray('fullName legalName email'));
 }
@@ -1229,8 +1250,11 @@ EOF;
  */
 function ssnFields($personal = TRUE) {
   $ssTitle = tt($personal ? 'ssTitle' : 'einTitle');
-  if ($personal) $dob = textFld(t('Birthdate:'), [t('Your date of birth (mm/dd/yyyy)')], required() + autofill('off'));
-  $federalId = passFld($ssTitle, [tt($personal ? 'ssDesc' : 'einDesc')], required() + autofill('off')); // textfield so user doesn't have to retype on error
+  if ($personal) {
+    $dob = textFld(t('Birthdate:'), [t('Your date of birth (mm/dd/yyyy)')], required() + autofill('off'));
+    $ssReason = t('As a registered Money Services Business, we are required by law to ask for your social security number, even though it makes some people nervous. Fortunately, we have <@a>top notch security</a>.', ['@a' => 'a target=_blank href=' . r\promoLink('security.html')]);
+  }
+  $federalId = passFld($ssTitle, [tt($personal ? 'ssDesc' : 'einDesc'), @$ssReason], required() + autofill('off')); // textfield so user doesn't have to retype on error
   return compact(u\ray('dob federalId'));
 }
 
@@ -1338,34 +1362,6 @@ function invitation($code, $invitee = '', &$inviter = '', &$iCode = -1, &$err = 
   }
 }
 
-function passwordOkay($a, $password, $passFieldName = 'pass') {
-  require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
-  if (@$a->oneTimePass) {
-    extract(u\just('pass expires', $a->oneTimePass));
-    if ($password == @$pass) return ($a->admin or r\rTime() < @$expires) ? TRUE : say('pass expired', $passFieldName);
-  }
-  $hash = \_password_crypt('sha512', $password, $a->$passFieldName);
-  return ($hash and $a->$passFieldName == $hash) ?: say('bad login', $passFieldName);
-}
-
-/**
- * Return a once-use password and record it in the data field.
- * @param string $name: login identifier (email, account ID, or shortname)
- * @return assoc: [pass, expires] where
- *   pass: the once-use password
- *   expires: when it expires
- */
-function oneTimePass($name) {
-//  $pass = strtolower(u\nonce()); // not a hash, easy to remember and type
-  $pass = u\code();
-/// oops! don't let people reset passwords on test server. if (!isPRODUCTION and !in_array($name, u\ray('cornerstore bobbossman cathycashier helgas curtcustomer susanshopper'))) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
-/**/ if (isDEV or (!isPRODUCTION and time() - db\lookup('created', 'users', 'name=:name', compact('name')) < HOUR_SECS)) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
-/// if (isDEV) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
-  $expires = r\rTime() + HOUR_SECS * R_SIGNIN_HOURS;
-//  r\setCook('loginto', $name, $expires);
-  return compact('pass', 'expires');
-}  
-
 /**
  * Return a formatted, categorized list of businesses
  * @param string $which: word search for business name or industry
@@ -1445,7 +1441,7 @@ function eLinkAcct(&$sta, &$eLink = '', $allow = 'individual') {
   $a = r\acct($qid = @$qid); // current or specified account
   if (!$a and $allow != 'any') return r\go('', 'requires signin');
   if ($allow == 'individual' and $a->co) return r\go('', t('That page is for individual accounts only.'));
-  if ($qid and @$ecode != $a->emailCode) return w\hack('bad ecode');
+  if ($qid and (!$a or @$ecode != $a->emailCode)) return w\hack('bad ecode');
   $eLink = $sta['eLink'] = "allow=$allow&qid=$qid&ecode=" . @$ecode; // remember it (cttys don't use ecode)
   return $a;
 }
@@ -1809,7 +1805,7 @@ function menu($title, $type, $function, $args, $perms = '') {
   : (@$dem ? '../rvote/rvote-web.inc'
   : 'rweb.inc'));
   
-  if ($perms == 'anyone') $perms = FALSE;
+  if ($perms == ANY) $perms = FALSE;
   foreach ($args = u\ray($args) as $k => $value) if (is_numeric($value)) $args[$k] = (int) $value;
   
   $item = array(
@@ -2122,7 +2118,7 @@ function focusOn($focusFieldName) {
  */
 function webAccess($perms = NULL) {
   if ($perms == 'dev' and isDEV) return TRUE;
-  if ($perms == 'anyone') return TRUE; // needed for submenus (see w\subMenu())
+  if ($perms == ANY) return TRUE; // needed for submenus (see w\subMenu())
   setGlobals(); // remember who we are (the main reason for this function)
   if (!@$perms or !$mya = r\acct()) return FALSE;
   if ($perms == 'signedIn') return TRUE;
@@ -2155,6 +2151,22 @@ function js($what, $type = 'inline', $scope = 'footer', $weight = 99) {
 }
 
 /**
+ * Return standard fields for the bottom of any form used during account setup.
+ * 
+ */
+function setupFoot($normalLabel = '') {
+  $mya = r\acct();
+  if (!$mya->member) {
+    if ($remains = $mya->stepsRemaining() - 1) { // don't count current step
+      $nextStep = submit(t('Next ') . '&raquo;');
+      $steps = $remains == 1 ? t('step') : t('steps');
+      $progress = item(t('Just <b>@n</b> more @steps to go', ['@n' => $remains, '@steps' => $steps]));
+    } else $nextStep = submit(t('Finish'));
+  } else $submit = submit($normalLabel);
+  return compact(u\ray('submit nextStep progress'));
+}
+
+/**
  * Return the text with a help popover and optional link.
  */
 function popHelp($text, $help, $href = '', $class = '') {
@@ -2175,7 +2187,6 @@ function amtErr($field, &$sta, $restriction = '', $fractionLimit = 2) {
 function tt($message, $subs = []) {return u\tt($message, $subs);}
 //function block_def($info, $extra = []) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
 function blockView($subject, $content) {return compact(u\ray('subject content'));}
-
 function disabled($value = NULL, $disabled = TRUE) {return attrib(compact('disabled')) + (is_null($value) ? compact('value') : []);}
 function onchange($onchange) {return w\attrib(compact('onchange'));}
 function dft($default_value) {return compact('default_value');}
@@ -2193,3 +2204,4 @@ function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}
 function blurbLink() {global $rUrl; return "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">description of rCredits</a>";}
 function sayFieldErr($err, $field) {return say(strtoupper($field) . ': ' . tt($err), $field);}
 function rent($element) {return \render($element);} // Drupal makes render hard, requires pass by reference
+function goNextStep($step, $msg = NULL, $info = []) {r\go(r\acct()->nextStepUrl($step, $msg, $info), $msg);}

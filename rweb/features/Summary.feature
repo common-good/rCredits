@@ -83,6 +83,8 @@ Scenario: A company agent clicks the summary tab
   | ID           | ZZC (company account) |
 
 Scenario: Member's account is not active
-  Given member ".ZZA" account is not active
+  Given members have:
+  | id   | flags |*
+  | .ZZA |       |
   When member ".ZZA" visits page "summary"
-  Then we say "status": "take a step"
+  Then we show "Verify Your Email Address"

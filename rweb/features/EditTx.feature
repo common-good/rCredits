@@ -125,6 +125,11 @@ Scenario: A member confirms OK for a disputed transaction
   | 100 | %today-5d | transfer | disputed |     80 | .ZZA | .ZZC | this CF  | 1      |
   | 101 | %today-5d | rebate   | disputed |      4 | ctty | .ZZA | rebate   | 0      |
   | 102 | %today-5d | bonus    | disputed |      8 | ctty | .ZZC | bonus    | 0      |
+  When member ".ZZA" completes form "history/transactions/period=5&do=ok&xid=100" with values: ""
+  Then we say "status": "@who @did you @amount for @for on @date. Okay to @do" with subs:
+  | who        | did     | amount | for       | date    | do                  |*
+  | Corner Pub | charged | $80    | "this CF" | %dmy-5d | accept this charge? |
+  
   When member ".ZZA" confirms form "history/transactions/period=5&do=ok&xid=100" with values: ""
   Then we show "Transaction History" with:
   |_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward |

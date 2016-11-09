@@ -14,12 +14,12 @@ Setup:
   |   2 | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |
   
 Scenario: A member visits the bank info page before connecting
-  When member ".ZZA" visits page "settings/bank"
+  When member ".ZZA" visits page "settings/connect"
   Then we show "Bank Information"
   And radio "connect" is "No"
 
 Scenario: A member visits the bank info page after connecting
-  When member ".ZZB" visits page "settings/bank"
+  When member ".ZZB" visits page "settings/connect"
   Then we show "Bank Information" with:
   | Account | xxx1234 |
   | Target  |     -10 |
@@ -27,7 +27,7 @@ Scenario: A member visits the bank info page after connecting
   And radio "refills" is "Yes"
 
 Scenario: A member connects a bank account
-  When member ".ZZA" completes form "settings/bank" with values:
+  When member ".ZZA" completes form "settings/connect" with values:
   | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
   | submit |       1 |     053000196 |         123 |          123 |       0 |     $0 |    $20 |         $0 |
   Then members:
@@ -36,7 +36,7 @@ Scenario: A member connects a bank account
   And we show "Bank Information"
   
 Scenario: A member chooses not to connect a bank account
-  When member ".ZZA" completes form "settings/bank" with values:
+  When member ".ZZA" completes form "settings/connect" with values:
   | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
   | submit |       0 |               |             |              |       0 |     $0 |    $20 |         $0 |
   Then members have:
@@ -45,7 +45,7 @@ Scenario: A member chooses not to connect a bank account
   And we show "Bank Information"
   
 Scenario: A member chooses automatic refills
-  When member ".ZZA" completes form "settings/bank" with values:
+  When member ".ZZA" completes form "settings/connect" with values:
   | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
   | submit |       1 |     053000196 |        1-23 |         1-23 |       1 |    $20 | $40.00 |          5 |
   Then members have:
@@ -54,30 +54,30 @@ Scenario: A member chooses automatic refills
   And we show "Bank Information"
 
 Scenario: A member disconnects a bank account
-  When member ".ZZB" completes form "settings/bank" with values:
+  When member ".ZZB" completes form "settings/connect" with values:
   | op     |*
   | remove |
   Then members have:
   | id   | bankAccount | last4bank | minimum | achMin | risks |*
   | .ZZB |             |           |     -10 |     50 |       |
-  When member ".ZZB" visits page "settings/bank"
+  When member ".ZZB" visits page "settings/connect"
   Then we show "Bank Information"
   And radio "connect" is "No"
   
 Scenario: A member gives a bad routing number
-  When member ".ZZA" completes form "settings/bank" with values:
+  When member ".ZZA" completes form "settings/connect" with values:
   | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
   | submit |       1 |           zot |         123 |          123 |       0 |     $0 |    $20 |         $0 |
   Then we say "error": "bad routing number"
   
 Scenario: A member gives a bad account number
-  When member ".ZZA" completes form "settings/bank" with values:
+  When member ".ZZA" completes form "settings/connect" with values:
   | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
   | submit |       1 |     053000196 |         zot |          zot |       0 |     $0 |    $20 |         $0 |
   Then we say "error": "bad account number"
 
 Scenario: A member gives mismatched account numbers
-  When member ".ZZA" completes form "settings/bank" with values:
+  When member ".ZZA" completes form "settings/connect" with values:
   | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
   | submit |       1 |     053000196 |         123 |          456 |       0 |     $0 |    $20 |         $0 |
   Then we say "error": "mismatch" with subs:
@@ -85,13 +85,13 @@ Scenario: A member gives mismatched account numbers
   | account number |
 
 Scenario: A member gives a bad target amount
-  When member ".ZZB" completes form "settings/bank" with values:
+  When member ".ZZB" completes form "settings/connect" with values:
   | op     | refills | target | achMin | saveWeekly |*
   | submit |       1 |    zot |     10 |          0 |
   Then we say "error": "TARGET: The amount must be a number."
   
 Scenario: A member gives a bad minimum transfer amount
-  When member ".ZZB" completes form "settings/bank" with values:
+  When member ".ZZB" completes form "settings/connect" with values:
   | op     | refills | target | achMin | saveWeekly |*
   | submit |       1 |      5 |    zot |          0 |
   Then we say "error": "ACHMIN: The amount must be a number."
@@ -103,7 +103,7 @@ Scenario: A member chooses too low a target, with a positive balance
   Then balances:
   | id   | balance |*
   | .ZZB |     400 |
-  When member ".ZZB" completes form "settings/bank" with values:
+  When member ".ZZB" completes form "settings/connect" with values:
   | op     | refills | target | achMin | saveWeekly |*
   | submit |       1 |      5 |     10 |          0 |
   Then we say "error": "min sub floor" with subs:
@@ -117,7 +117,7 @@ Scenario: A member chooses too low a target, with a negative balance
   Then balances:
   | id   | balance |*
   | .ZZB |    -400 |
-  When member ".ZZB" completes form "settings/bank" with values:
+  When member ".ZZB" completes form "settings/connect" with values:
   | op     | refills | target | achMin | saveWeekly |*
   | submit |       1 |   -401 |     10 |          0 |
   Then we say "error": "min sub floor" with subs:
@@ -125,7 +125,7 @@ Scenario: A member chooses too low a target, with a negative balance
   | $-400 |
   
 Scenario: A member chooses too low an ACH minimum
-  When member ".ZZB" completes form "settings/bank" with values:
+  When member ".ZZB" completes form "settings/connect" with values:
   | op     | refills | target | achMin | saveWeekly |*
   | submit |       1 |    200 |      0 |          0 |
   Then we say "error": "bad achmin"

@@ -236,7 +236,7 @@ class call {
     $stats = r\stats(); // show system-wide demand. later maybe just $mya->community
     $totalDemand = u\fmtAmt($stats['usd']);
 //    $totalDemand = r\totals()->fancy['demand'];
-    list ($balance, $rewards) = array(u\fmtAmt($mya->j_r), u\fmtAmt($mya->j_rewards));
+    list ($balance, $rewards) = array(u\fmtAmt($mya->r), u\fmtAmt($mya->rewards));
     return tt('account info', compact(u\ray('qid balance rewards totalDemand')));
   }
 

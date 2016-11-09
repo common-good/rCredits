@@ -204,6 +204,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   global $testEmails;
 
   $subs['site'] = BASE_URL;
+  $subs['orgPhone'] = u\fmtPhone(CGF_PHONE);
   extract(u\just('subject body noFrame sms', $subs));
   
   if ($toA = is_object($to0) ? $to0 : r\acct($to0)) {
@@ -339,7 +340,7 @@ function notify($uid, $index, $subs = [], $force = FALSE) {
  * @param bool $get: <just return the message>
  */
 function suggestMin($a, $default = '', $dftMsg = '', $get = FALSE) {
-  $suggested0 = $default ?: max(R_ACHMIN, (R_SUGGEST_BUMP * $a->j_minimum) ?: 100);
+  $suggested0 = $default ?: max(R_ACHMIN, (R_SUGGEST_BUMP * $a->minimum) ?: 100);
   $suggested = u\fmtAmt($suggested0);
 
   $a1 = $a->makeDo('min', $suggested0);
@@ -367,6 +368,8 @@ function suggestMin($a, $default = '', $dftMsg = '', $get = FALSE) {
  * If there is an appropriate bit to set, it will be set as appropriate.
  */
 function membershipEvent($a, $status, $do = TRUE) {
+  global $channel;
+  
   $bit = @u\consta('b', $status); // get the appropriate bit, if any
   if (!$do or ($bit !== FALSE and $a->can($bit))) return FALSE; // do nothing or bit already set
 
@@ -379,7 +382,10 @@ function membershipEvent($a, $status, $do = TRUE) {
     $msg = 'approved';
     if (!$a->confirmed) $msg .= '|must be confirmed';
     if ($a->seq >= IBY_ICARD) $msg .= '|use temporary card';
-    r\message($a->id, $msg, ['inviterName' => @$a->helperA->fullName]);
+    $inviterName = @$a->helperA->fullName;
+    $subs = compact('inviterName');
+    r\message($a->id, $msg, $subs);
+    if ($channel == TX_WEB) w\say('must be confirmed', $subs);
     $a->update('activated', r\rTime());
   } elseif ($status == 'bona') {
     be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
@@ -420,8 +426,9 @@ function acceptGift($info) {
     $recurring = t(' (@how gift #@count)', u\ray('@how @count', $recurs[strpos('1MQY', $often)], $count));
   }
 
-  $purpose = @$honor == 'share' ? R_SHARING_MSG : (t('donation') . @$recurring);
-  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, FOR_GOODS, $purpose);
+  $sharing = (@$honor == 'share');
+  list ($goods, $purpose) = $sharing ? [FOR_SHARE, R_SHARING_MSG] : [FOR_GOODS, t('donation') . @$recurring];
+  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, $goods, $purpose);
   if (@$args['success']) {
     $completed = r\rTime();
     db\update('r_gifts', compact('donid', 'completed'), 'donid');
@@ -446,6 +453,7 @@ function acceptGift($info) {
  * @return FALSE;
  */
 function tellStaff($index, $subs = [], $uid = TRUE) {
+/**/  if (isDEV and !u\test()) return debug(['tellingStaff' => $index] + $subs + compact('uid'));
   if (empty($subs)) $subs = []; // accept ''
   foreach (u\ray('federalId dob answer secure pass') as $k) unset($subs[$k]); // secret stuff
   ksort($subs); // put the keys in a predictable order, for testing and easy reading
@@ -916,6 +924,7 @@ function invite($email, $inviter, $code = '', $subject = '', $message = '') {
  * @param string $field: error field, if any
  */
 function go($page, $msg = '', $field = '') {
+  global $base_url;
   if (u\test()) {
     global $lastGo; $lastGo = $page; // for testing
     $_POST = []; // make sure it doesn't act like we submitted the target page
@@ -923,11 +932,15 @@ function go($page, $msg = '', $field = '') {
     return strpos($page, 'http://') === FALSE ? t\pageForm($page, $msg, $field) : '';
   }
 
+  /*
   foreach (u\ray('login signup password reset') as $one) if (strpos($page, "user/$one") !== FALSE) {
     if (\drupal_session_started()) session_destroy();
   }
+  */
   if ($msg) r\Web\say($msg, $field);
-  \drupal_goto(substr($page, 0, 1) == '/' ? substr($page, 1) : $page);
+// die('in r go');
+  header("Location: $base_url/$page"); exit();
+//  \drupal_goto(substr($page, 0, 1) == '/' ? substr($page, 1) : $page);
 }
 
 /**
@@ -957,10 +970,10 @@ function noticeArgs($uid, $where = '0', $weekly = FALSE, $monthly = FALSE, $at =
   $yestertime = u\fmtDate($start = $unit == 'month' ? u\plusMonths(-1, $at) : strtotime("-1 $unit", $at));
   $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
   extract(u\just('return', $a->j_stats()));
-  $balance = u\fmtAmt($a->j_balance);
-//  $savings = u\fmtAmt($a->j_savings);
-  $savings = u\fmtAmt($a->j_rewards);
-  list ($rewards, $ourEmail) = array(u\fmtAmt($a->j_rewards), $a->cttyA->email);
+  $balance = u\fmtAmt($a->balance);
+//  $savings = u\fmtAmt($a->savings);
+  $savings = u\fmtAmt($a->rewards);
+  list ($rewards, $ourEmail) = array(u\fmtAmt($a->rewards), $a->cttyA->email);
   $companies = \variable_get('companies');
   $companies = $companies[u\test() ? r\serverUid() : $a->community];
   return compact(u\ray('messages unit range yestertime balance savings return ourEmail companies'));
@@ -1162,55 +1175,68 @@ EOF;
 }
 
 /**
- * Return the average balance (not including rewards) for the given account (possibly joint) and given period.
+ * Return the average balance, average credit reserve, and minimum balance for the given account (possibly joint) and period.
  * @param int $uid: account id (can be a community or region too)
  * @param int $start: starting date (should be 0 hours) -- first full day to include in the period
  * @param int $end: ending date (should be 0 hours) -- last full day to include in the period
  * @param bool $noj: ignore any joined account
- * @param float $min: minimum end-of-day balance in the period
- * @param float $days: (RETURNED) (UNUSED) number of days from start to end, inclusive
- * @return float: the average balance for that period (possibly with fractional cents)
+ * @return array: [balance, min, rewards, days]
+ *    balance: the average end-of-day balance for that period (possibly with fractional cents)
+ *    min:     minimum end-of-day balance in the period
+ *    rewards: the average end-of-day credit reserve amount for that period (possibly with fractional cents)
+ *    days:    (unused) number of days from start to end, inclusive
  */
-function averageBalance($uid, $start, $end = NULL, $noj = FALSE, &$min = '', &$days = '') {
+function averageBalance($uid, $start, $end = NULL, $noj = FALSE) {
   //u\EXPECT($uid > 1, 'bad uid for avg');
   u\setDft($end, r\rTime());
-  if (!$days = round(($end + 1 - $start) / DAY_SECS)) return 0; // rounding is for daylight savings time changes
+  if (!$days = round(($end + 1 - $start) / DAY_SECS)) return [0, 0, 0, 0]; // rounding is for daylight savings time changes
   $info = be\creditInfo(u\ray('uid asof', $uid, $start - 1));
-//  $min = $bal = $info->r;
   $min = $bal = $info->balance;
+  $rbal = $info->rewards;
   $jid = @$noj ? 0 : (r\acct($uid)->jid ?: 0);
   $isPayer = 't.payer IN (:uid, :jid)';
   $isPayee = 't.payee IN (:uid, :jid)'; // account can be both payer and payee, if joint account
+  $signedAmt = "IF($isPayer, -amount, amount)";
 
   $day = 0;
-  $avg = 0;
+  $avg = $ravg = 0;
   // use "1" as payer for r_usd, to avoid matching jid=0
+
   $sql = <<<EOF
-    SELECT SUM(IF($isPayee, t.amount, -t.amount)) AS total, 
+    SELECT SUM($signedAmt) AS total,
+    SUM(IF(t.type IN (:TX_REWARDS), amount, 0)) AS rtotal,
+    SUM(IF(t.goods=:FOR_SHARE, $signedAmt, 0)) AS share,
     FLOOR((t.completed-$start)/:DAY_SECS) AS day 
     FROM (
-      (SELECT payer,payee,amount,created AS completed FROM r_txs)
-      UNION (SELECT payer,1 AS payee,amount,completed FROM r_usd)
+      (SELECT type,goods,payer,payee,amount,created AS completed FROM r_txs)
+      UNION (SELECT :TX_BANK,-:FOR_SHARE,payer,1 AS payee,amount,completed FROM r_usd)
     ) t WHERE ($isPayer XOR $isPayee) AND completed BETWEEN $start AND $end 
     GROUP BY day
 EOF;
 
-  $result = db\q($sql, compact('uid', 'jid'));
-  while($row = $result->fetchAssoc()) {
+  $q = db\q($sql, compact('uid', 'jid'));
+
+  while($row = $q->fetchAssoc()) {
     $dayx = $day;
-    extract($row); // total, day
+    extract($row); // total, rewards, share, day
+
+    $rtotal += $share;
+    $total -= $rtotal; // don't include rewards in balance
     $avg += $bal * ($day - $dayx) / $days;
+    $ravg += $rbal * ($day - $dayx) / $days;
 /// debug(compact('uid','day','dayx','days','bal','avg','total', 'start','end'));
     $bal += $total;
+    $rbal += $rtotal;
     $min = min($min, $bal);
   }
   $dayx = $day;
   $day = round(($end - $start) / DAY_SECS); // end of period
   $avg += $bal * ($day - $dayx) / $days;
+  $ravg += $rbal * ($day - $dayx) / $days;
   $min = round($min, 2);
 /// debug(compact('uid','day','dayx','bal','avg'));
 
-  return $avg; // average end-of-day balance
+  return [$avg, $min, $ravg, $days];
 }
 
 /**
@@ -1349,12 +1375,18 @@ function up($up = NULL) {
  *   The percentage rebate is based on the total rewards AFTER the transaction. That is:
  *   The new percentage rate p = (R + pA)(Pmax-Pmin)/Rmax + Pmin
  *   So p = (RPmax + (Rmax - R)Pmin) / (Rmax^2 - A(Pmax - Pmin))
+ * BETTER: just decrease the reward percentage by 1% for every $500 of rewards received.
  */
 function rebate($from, $to, $amount = 1) {
+  global $testRewardStep;
   if (relation(1, $to, $from, 'isOwner OR draw')) return 0;
   if (relation(1, $from, $to, 'isOwner OR draw')) return 0;
   $a = r\acct($from);
-  return '' . round(min(R_MAX_REBATE, $amount * $a->rebate / 100), 2); // ''. to avoid serializing a long float
+//  $pct = u\test() ? $a->rebate : max(R_MIN_REWARD_PCT, R_REBATE - floor($a->rewards / R_REWARD_STEP));
+  $step = @$testRewardStep ?: R_REWARD_STEP;
+  $pct = max(R_MIN_REWARD_PCT, $a->rebate * (1 - floor($a->rewards / $step) / R_REBATE));
+  return '' . round(min(R_MAX_REBATE, $pct * $amount / 100), 2); // ''. to avoid serializing a long float
+//  return '' . round(min(R_MAX_REBATE, $amount * $a->rebate / 100), 2); // ''. to avoid serializing a long float
 }
 
 function bonus($to, $from, $amount = 1) {return rebate($to, $from, $amount * R_BONUS_FACTOR);}
@@ -1366,8 +1398,7 @@ function bonus($to, $from, $amount = 1) {return rebate($to, $from, $amount * R_B
 function xfee($for, $amount) {
   if (is_array($for)) $for = $for[1];
   if (!r\usdin($for)) return '';
-  if (strpos($for, '(cash)')) return 0;
-//  if (!strpos($for, BY_CARD) and !strpos($for, BY_CHECK)) return 0; // for FCCoop until they update their app
+  if (strpos($for, BY_CASH)) return 0;
   return '' . round(strpos($for, BY_CARD) ? -R_XFEE_CARD * $amount : R_XFEE_CHECK, 2);
 }
   
@@ -1386,7 +1417,7 @@ function makeDoCode($a) {return u\urlify(u\crypt(serialize($a)));}
 function cgfId() {return \variable_get('cgf_uid');}
 function disputeTx($xid) {return db\setData('r_txs', $xid, ['disputed' => TRUE]);}
 function denyInv($nvid) {return db\setData('r_invoices', $nvid, ['denied' => TRUE]);}
-function stepsDone0() {return array_fill_keys(u\ray(R_STEPS), FALSE);}
+function stepsDone0() {return array_fill_keys(array_keys(u\ray(R_STEPS)), FALSE);}
 function isReward($type) {return in_array($type, u\ray(TX_REWARDS));}
 //function usdin($for) {return u\abbreviates('usd in (', strtolower(is_array($for) ? $for[1] : $for));}
 function usdin($for) {return u\abbreviates(S_USD_IN, is_array($for) ? $for[1] : $for, TRUE);}

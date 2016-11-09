@@ -19,6 +19,10 @@ define('STATE_CODE', '25'); // Massachusetts code, for combined Federal/State fi
  * Create 1099-B reports for the IRS as a downloadable file to be uploaded to the IRS FIRE site.
  * Log in at fire.irs.gov (or fire.test.irs.gov)
  * @param mixed $testMode: must be set non-FALSE for a successful test. If >1, it is a single uid to test.
+ * @param assoc $badNames: names reported incorrectly, indexed by uid
+ * @param assoc $badTINs: EINs (no punctuation) reported incorrectly, indexed by uid
+ * @param int $year: reporting year (defaults to most recent completed calendar year)
+ * example for corrections: f('y.do1099bs', FALSE, [23947972 => 'Miss Pelled'], [29274902 => '292039482'], 2015);
  */
 function do1099bs($testMode = FALSE, $badNames = [], $badTINs = [], $year = NULL) {
   global $err1099;
@@ -123,19 +127,19 @@ function recA($year) {
  * Return a payee ("B") record for the given year, account, amount, and purpose.
  * @param string $mod: normally ''. C=show corrected info. G=show incorrect name and/or TIN (as submitted before)
  */
-function recB($year, $a, $completed, $amount, $for, $mod = '', $badName = '', $badTIN = '') {
+function recB($year, $a, $completed, $amount, $for, $mod = '', $badName = NULL, $badTIN = NULL) {
   $who = "$a->legalName ($a->mainQid)";
-  if (!$badName and !$badTIN) {
+  if (!isset($badName) and !isset($badTIN)) {
     if ($mod == 'G') return err1099(t('Original B Record has no error to be corrected: ') . $who);
-  } elseif ($mod != 'G') if ($badName or $badTIN) return err1099(u\tt('Spurious badName (@badName) or badTIN (@badTIN) for payee @who.', compact('badName', '$badTIN', 'who')));
+  } elseif ($mod != 'G') if (isset($badName) or isset($badTIN)) return err1099(u\tt('Spurious badName (@badName) or badTIN (@badTIN) for payee @who.', compact('badName', 'badTIN', 'who')));
   $corrected = pad($mod, 1);
   $tinType = pad($a->co ? 1 : 2, 1);
-  $payeeTIN = pad($badTIN ?: $a->federalId, 9);
+  $payeeTIN = pad(isset($badTIN) ? $badTIN : $a->federalId, 9);
   $accountNum = pad($a->id, 20);
   $payerOffice = pad('', 4);
   $amt = u\lpad($amount, 12);
   $foreignPayee = pad('', 1);
-  $payeeName = pad(noBreakAt(preg_replace('/[^A-Z &\-]/i', '', $badName ?: $a->legalName), 40), 2 * 40);
+  $payeeName = pad(noBreakAt(preg_replace('/[^A-Z &\-]/i', '', isset($badName) ? $badName : $a->legalNameDpy), 40), 2 * 40);
   list ($payeeFirst, $payeeLast) = u\parseName($payeeName);
 //  $nameControl = pad(preg_replace('/[^A-Z]/i', '', $a->co ? $payeeName : $payeeLast), 4);
   $nameControl = pad(preg_replace('/[^A-Z]/i', '', ($a->co and $mod != 'G') ? $payeeName : $payeeLast), 4); // temporary for TY2014,2015

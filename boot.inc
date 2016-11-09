@@ -7,17 +7,16 @@
  * Also used by /do.php, for no-sign-in database changes
  */
  
-define('R_VERSION', '2.48'); // software version
+define('R_VERSION', '2.49'); // software version
 define('STAGE_SUBDOMAIN', 'ws');
 define('STAGE', STAGE_SUBDOMAIN . '.rcredits.org'); // staging site (for secrets, etc.)
-define('PRODUCTION', 'new.rcredits.org'); // production site (used for setting $base_url)
 define('GAME_SITE', 'game.rcredits.org');
 
 $host = strtolower($_SERVER['HTTP_HOST']);
-define('isPRODUCTION', $host == PRODUCTION);
 define('isSTAGE', substr($host, 0, 6) == 'stage-' or $host == STAGE);
 define('isGAME', FALSE or (@$_SERVER['HTTP_HOST'] == GAME_SITE));
-define('isDEV', !isPRODUCTION and !isSTAGE and !isGAME); // developing
+define('isDEV', $_SERVER['SERVER_ADDR'] == '::1'); // developing
+define('isPRODUCTION', !isDEV and !isSTAGE and !isGAME); // new.rcredits.org or miw.rcredits.org, etc.
 
 define('DEV_ROOT', '/rMembers'); // path to drupal root on DEV machine
 define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)

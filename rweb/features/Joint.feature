@@ -16,11 +16,11 @@ Setup:
   |   2 | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |
   |   3 | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |
   Then balances:
-  | id   | r    |*
-  | ctty | -750 |
-  | .ZZA |  250 |
-  | .ZZB |  250 |
-  | .ZZC |  250 |
+  | id   | r    | rewards |*
+  | ctty | -750 |       ? |
+  | .ZZA |  250 |     250 |
+  | .ZZB |  250 |     250 |
+  | .ZZC |  250 |     250 |
 
 Scenario: A member requests a joint account
   Given relations:
@@ -50,19 +50,31 @@ Scenario: A member requests a joint account
   And member ".ZZA" cache is ok
   And member ".ZZB" cache is ok
   # cache is ok tests acct::cacheOk, to make sure cron doesn't muck with the cached amounts
+  
+  When member ".ZZA" confirms form "pay" with values:
+  | op  | who        | amount | goods      | purpose |*
+  | pay | Corner Pub |     20 | %FOR_GOODS | stuff   |
+  And member ".ZZB" confirms form "pay" with values:
+  | op  | who        | amount | goods      | purpose |*
+  | pay | Corner Pub |    300 | %FOR_GOODS | crud    |
+  Then member ".ZZA" cache is ok
+  And member ".ZZB" cache is ok
+  Then member ".ZZA" cache is ok
+  And member ".ZZB" cache is ok
+  # do it twice, to make sure cacheOk() doesn't screw it up
 
 Scenario: A joined account slave member requests a new minimum
   Given members have:
-  | id   | jid  | minimum |*
-  | .ZZA | .ZZB |     150 |
-  | .ZZB | .ZZA |       0 |
-  When member ".ZZB" completes form "settings/bank" with values:
+  | id   | jid  | achMin | minimum |*
+  | .ZZA | .ZZB |     50 |     150 |
+  | .ZZB | .ZZA |     50 |       0 |
+  When member ".ZZB" completes form "settings/connect" with values:
   | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
-  |       1 |     053000196 |         123 |          123 |       1 |    200 |    100 |          0 |
+  |       1 |     053000196 |         123 |          123 |       1 |    300 |    100 |          2 |
   Then members have:
-  | id   | bankAccount      | last4bank | minimum |*
-  | .ZZA | USkk053000196123 |      6123 |     200 |
-  | .ZZB |                  |           |       0 |
+  | id   | bankAccount      | last4bank | achMin | minimum | saveWeekly |*
+  | .ZZA | USkk053000196123 |      6123 |    100 |     300 |          2 |
+  | .ZZB |                  |           |     50 |       0 |          0 |
 
 #  When member ".ZZB" completes form "settings/preferences" with values:
 #  | minimum | achMin | savingsAdd | saveWeekly | share |*
@@ -73,7 +85,8 @@ Scenario: A joined account slave member requests a new minimum
 #  | .ZZB |       0 |          0 |    100 |    10 |
 
 Scenario: A joined account member looks at transaction history and summary
-  Given members have:
+  Given reward step is "1000"
+  And members have:
   | id   | jid  | minimum |*
   | .ZZA | .ZZB |     150 |
   | .ZZB | .ZZA |       0 |
@@ -105,12 +118,12 @@ Scenario: A joined account member looks at transaction history and summary
   |_Start Date |_End Date |
   | %dmy-2w    | %dmy     |
   And with:
-  | Start     |   |   800.00 | + | 520.00 | %dmy-2w |
+  | Start     |   |   800.00 |   | 520.00 | %dmy-2w |
   | From Bank | + | 1,000.00 |   |        | -100.00 Pending |
-  | Received  | + |   650.00 | + |        |         |
+  | Received  | + |   650.00 |   |        |         |
   | Out       | - |   500.00 |   |        |         |
   | Rewards   |   |          | + |  10.00 |         |
-  | End       |   | 1,950.00 | + | 530.00 | %dmy    |
+  | End       |   | 1,950.00 |   | 530.00 | %dmy    |
   And with:
   |_tid | Date   | Name       | From you | To you | Status  |_do   | Purpose   | Reward/Fee | Agent |
   | 5   | %dm-1d | Corner Pub | --       | 100.00 | %chk    | X    | labor     | 10.00      | ZZA  |
@@ -131,7 +144,7 @@ Scenario: A joined account member looks at transaction history and summary
 #  | _ever         | 136.7% | or 137.1% (depends on daylight time?) or 68.0%?!
   | Social return | $37.50 |
   | _ever         | $37.50 |
-  
+
 Scenario: A joined account member unjoins the account
   Given members have:
   | id   | jid  | minimum |*

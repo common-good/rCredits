@@ -5,6 +5,7 @@ use rCredits\DB as db;
 use rCredits\Backend as be;
 use rCredits\Util as u;
 use rCredits\Testing as t;
+use rCredits\Web as w;
 
 /**
  * @file
@@ -45,6 +46,7 @@ class Acct {
    */
   private function createNew($info) {
     extract($info);
+    
     u\setDft($phone, @$number);
     if ($phone) $phone = u\fmtPhone($phone, '+n');
     
@@ -55,6 +57,7 @@ class Acct {
     $shortName = @$fullName ? u\shortName($fullName) : '';
     u\setDft($name, @$shortName ?: tempName($info));
     u\setDft($flags, 0);
+    $co = ($flags & u\bit(B_CO));
     u\setDft($rebate, R_REBATE);
     if (@$state and !is_numeric(@$state)) { // allow state abbrevs within US
       $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
@@ -64,7 +67,8 @@ class Acct {
     u\setDft($login, $created);
     u\setDft($access, $login);
 
-    $stepsDone = r\stepsDone0();
+    $stepsDone = @$uid == 1 ? [] : r\stepsDone0();
+    foreach (u\ray($co ? 'proxies connect' : 'company relations') as $k) unset($stepsDone[$k]);
 
     if (!@$uid and !@$region) $region = @$postalCode ? -r\region(@$country, @$state, @$postalCode) : -r\uidRegion($community);
 
@@ -72,7 +76,7 @@ class Acct {
     
     $DBTX = db_transaction();
     $uid = r\regionalInsert('users', 'uid', $record, @$region);
-    if (!($flags & u\bit(B_CO))) { // must postcede $uid =
+    if (!$co) { // must postcede $uid =
       u\setDft($cardCode, r\cardCode(r\qid($uid)));
       u\setDft($emailCode, r\cardCode(r\qid($uid)));
     }
@@ -84,7 +88,7 @@ class Acct {
     self::$rs[$this->id] = (object) $record;
 
     foreach (u\ray('number region') as $k) unset($info[$k]);
-    u\preray(compact(u\ray('phone status email pass fullName legalName flags rebate state community created login access emailCode cardCode')), $info); // things we may have added or changed
+    u\preray(compact(u\ray('phone status email pass fullName legalName flags rebate state community created login access emailCode cardCode stepsDone')), $info); // things we may have added or changed
     $this->update($info); // this is a lot easier to do after saving the record
     unset($DBTX); // commit
   }
@@ -97,14 +101,15 @@ class Acct {
    * @param bool $test: <this is only a test, do not die on error>
    * @return [$id, $agent] where id and agent are actual record IDs
    */
-  public static function viable($id0, $agent0='', &$error='', $test = TRUE) {
-    if (is_numeric($id0) and is_numeric($agent0)) return [$id0, $agent0];
-    if (strpos($id0, '-')) list ($id0, $agentCode) = explode(AGT_MARK, $id0); // new company qid format
+  public static function viable($id00, $agent0='', &$error='', $test = TRUE) {
+    if (is_numeric($id00) and is_numeric($agent0)) return [$id00, $agent0];
+    $id0 = $id00;
+    if (strpos($id0, AGT_MARK)) list ($id0, $agentCode) = explode(AGT_MARK, $id0); // new company qid format
 
     if ($error = u\EXPECT(compact(u\ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
     if ($error = u\EXPECT((bool) $id0, 'null uid in new r\Acct()', $test)) return FALSE;
     if ($error = u\EXPECT(!(strpos($id0, R_AGENT_MARK) and $agent0), 'agent already specified in qid', $test)) return FALSE;
-    list ($id, $agent) = u\isZid($id0) ? [$id0, $agent0 ?: $id0] : r\qo($id0)->ia; // handle
+    list ($id, $agent) = u\isZid($id0) ? [$id0, $agent0 ?: $id0] : r\qo($id00)->ia; // handle
 
     if (u\isQid($agent0)) {
       list ($agent, $zot) = r\qo($agent0)->ia;
@@ -149,17 +154,27 @@ class Acct {
    */
   public function __get($field) {
     $a = $this;
-    if (u\starts($field, 'j_')) return $a->jGet(substr($field, 2)); // real field name is minus the "j_"
-    $a->reread(); // necessary when we pass an acct object to another page
+    $a->reread(); // make sure record has been read in
 
+    if (u\starts($field, 'o_')) { // ignore joinedness of the account, if it is joint ("own" account)
+      $field = substr($field, 2);
+    } elseif (u\starts($field, 'j_')) { // concatenate joint fields
+      $field = substr($field, 2);
+      return $a->o($field) . ($a->jid ? ' & ' . $a->jA->o($field) : '');
+    } else { // tests for field must precede tests for jid or slave (else loop)
+      if (u\in($field, JOINT_FIELDS) and $a->jid) return round($a->o($field) + $a->jA->o($field), 2); // sum joint fields
+      if (u\in($field, MASTER_FIELDS) and $a->slave) return $a->jA->o($field); // master only
+    }
+
+    // From here down, everything should be for "own" account
     $nick = substr($field, 0, 3); // possibly meaningful prefix
     if (in_array($nick, ['can', 'raw']) and $field != 'rawChanges') $field = lcfirst(substr($field, 3));
-    if (in_array($field, u\ray(B_LIST . ' up cgc cttyActive cttyUp'))) $nick = 'can';
+    if (u\in($field, B_LIST . ' up cgc cttyActive cttyUp')) $nick = 'can';
     if ($nick == 'can') return $a->can(u\consta('b', $field));
     
     if ($field == 'mainQid') return $a->qo->mainQid;
     if ($field == 'isRegulator') return (bool) ($a->flags & u\bit(B_REGULATOR)); // not ->can() included by cAdmin etc.
-    if ($field == 'balance') return $a->r - $a->rewards; // $a->r - $a->savings;
+    if ($field == 'balance') return $a->o_r - $a->o_rewards; // $a->r - $a->savings;
     u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
@@ -172,13 +187,16 @@ class Acct {
     if ($field == 'cttyA') return r\acct($a->community);
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'regionName') return @r\acct($a->region)->fullName ?: (t('rCredits ') . db\lookup('name', 'r_regions r INNER JOIN r_states s ON s.abbreviation=r.st', 's.country_id=:US_COUNTRY_ID AND r.region=:reg', ['reg' => $a->qo->region]));
+    if ($field == 'legalNameDpy') return str_replace('_', ' ', $a->legalName); // for u\parseName of names like Jay di_Fiori
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'hasBank') return $a->risk('hasBank');
     if ($field == 'lowSecurity') return u\n2ai(substr($a->created, -5, 5), 3); // result is 3 chars long
     if ($field == 'inviteCode') return $a->mainQid . $a->lowSecurity;
     if ($field == 'slave') return ($jid = $a->jid and $jid < $a->id); // slave in a joint account
+    if ($field == 'jA') return $a->jid ? r\acct($a->jid) : NULL;
+    if ($field == 'masterA') return $a->slave ? $a->jA : $a;
     if ($field == 'helperA') return $a->helper ? r\acct($a->helper) : '';
-    if ($field == 'prefsSet') return !is_null($a->minimum); // preferences have been set at least once
+    if ($field == 'prefsSet') return !is_null($a->o_minimum); // preferences have been set at least once
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
       : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
       
@@ -186,7 +204,8 @@ class Acct {
       $result = @self::$rs[$a->id]->$field; // returns NULL if field not set
     } else $result = $a->getSpecial($field); // set up caches and get value, if appropriate
     
-    if ($field == 'raw') return $result;
+//    if ($field == 'raw') return $result;
+    if ($nick == 'raw') return $result;
 
     if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
     if ($field == 'hasPhoto') return $this->photo or file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE));
@@ -245,13 +264,14 @@ class Acct {
    * Handle joint field request (for example $a->j_r)
    * @param string $field: normal name of field to get for both members of the joint account (if it is joint)
    * @return if joint: the sum or concatenation of the member account values, otherwise just the normal value
-   */
+   *//*
   private function jGet($field) {
     $a = $this;
     if (!$jid = $a->jid) return $a->$field;
+    if (in_array($field, u\ray(MASTER_FIELDS))) return $a->masterA->$field;
     $j = u\nn(r\acct($jid)->$field, 0); // use 0 if other value is null
     return is_numeric($j) ? round($j + $a->$field, 2) : ($a->$field . " & $j"); // assume $ for numeric fields
-  }
+  }*/
   
   /**
    * Return a printable (scrambled) invitation card code 
@@ -277,13 +297,15 @@ class Acct {
   /**
    * Return the entire account object or just certain fields.
    * @param string $just: space-delimited list of fields to return (all raw fields, if empty)
+   * @param bool $own: <return just the account's own field values, even if it is a joint account> (always true if $just == '')
+   * Note: the returned object does not include uid -- haven't figured out why.
    */
-  public function account($just = '') {
+  public function account($just = '', $own = TRUE) {
     $a = $this;
-    $this->reread(); // make sure we have read the record from the db
+    $a->reread(); // make sure we have read the record from the db
     if (!$just) return @self::$rs[$a->id];
 
-    foreach (u\ray($just) as $k) $res[$k] = $a->$k;
+    foreach (u\ray($just) as $k) $res[$k] = $own ? $a->o($k) : $a->$k;
     return (object) $res;
   }
 
@@ -311,16 +333,20 @@ class Acct {
     $a = $this;
     if (!is_array($info)) $info = u\rayy(func_get_args());
     
-    $jFields = 'hasBank bankAccount last4bank refill achMin minimum savingsAdd saveWeekly';
     u\EXPECT(!isset($info['savings']), 'archaic savings field');
-//    if ($jid = $a->jid and $jInfo = u\just($jFields . ' savings', $info)) {
-    if ($jid = $a->jid and $jInfo = u\just($jFields, $info)) {
-      list ($a2, $a1) = u\order($a->slave, $a, r\acct($jid)); // set $a1 master, $a2 slave
-      $a2->update1($jFields, FALSE, '', '', FALSE, @$jInfo['achMin'] ?: $a1->achMin, 0, 0, 0); // not much for slave
+//    if ($jid = $a->jid and $jInfo = u\just(MASTER_FIELDS . ' savings', $info)) {
+    if ($a->jid and $jInfo = u\just(MASTER_FIELDS, $info)) {
+      list ($a2, $a1) = u\order($a->slave, $a, $a->jA); // set $a1 master, $a2 slave
+
+      $jInfo2 = array_fill_keys(u\ray(MASTER_FIELDS), 0);
+      unset($jInfo2['achMin']); // no change to slave achMin
+      $a2->update1($jInfo2);
+      
+//      $a2->update1(MASTER_FIELDS, FALSE, '', '', FALSE, @$jInfo['achMin'] ?: $a1->achMin, 0, 0, 0); // not much for slave
 //      $a->updateSavings($jInfo, $a1 == $a ? $a2->rewards : $a1->rewards); // update savings in master
       $a1->update1($jInfo);
-//      if (!$info = u\justNot($jFields . ' savings', $info)) return TRUE; // fall through if something else to update
-      if (!$info = u\justNot($jFields, $info)) return TRUE; // fall through if something else to update
+//      if (!$info = u\justNot(MASTER_FIELDS . ' savings', $info)) return TRUE; // fall through if something else to update
+      if (!$info = u\justNot(MASTER_FIELDS, $info)) return TRUE; // fall through if something else to update
     }
 //    } else $a->updateSavings($info, 0); // update savings in proSe account
 
@@ -349,7 +375,7 @@ class Acct {
 
     if (isset($info['balance'])) {
       $info['r'] = $info['balance'];
-      foreach (['rewards', 'savingsAdd'] as $k) $info['r'] += isset($info[$k]) ? $info[$k] : $a->$k;
+      foreach (['rewards', 'savingsAdd'] as $k) $info['r'] += isset($info[$k]) ? $info[$k] : $a->o($k);
       $info['r'] = round($info['r'], 2);
       unset($info['balance']);
     }
@@ -392,9 +418,10 @@ class Acct {
     $a = $this;
     $newChanges = u\justNot(R_HIDE_CHANGES, $info); // see if there are any changes to remember
     foreach ($newChanges as $k => $v) { // don't record if no change
-      if ($v == $a->$k or (is_numeric($v) and is_numeric($a->$k) and $v + 0 == $a->$k + 0)) {
+      $ak = $a->$k;
+      if ($v == $ak or (is_numeric($v) and is_numeric($ak) and $v + 0 == $ak + 0)) {
         unset($newChanges[$k]);
-      } else $newChanges[$k] = $a->$k; // @self::$rs[$a->id]->$k;
+      } else $newChanges[$k] = $ak; // @self::$rs[$a->id]->$k;
     }
     
     if (!$newChanges) return [];
@@ -496,26 +523,18 @@ class Acct {
    *   float $r: (UPDATED) the account's r balance
    *   float $rewards: (UPDATED) the account's rewards ever
    *   float $committed: (UPDATED) the account's reserve for sharing rewards with CGF
-   */
+   *//*
   public function recache3($amount, $type, &$c) {
     $c->r = round($c->r + $amount, 2);
-    $this->slaveCacheR($c->r);
+    if ($c->r < 0 and $this->slave) { // Don't let joint account slave balance go negative, so cron can handle banking right.
+      $this->jA->update('r', $this->jA->o_r + $c->r); // send the negative balance to the master
+      $c->r = 0;
+    }
     if (r\isReward($type)) {
       if ($type == TX_REBATE or $type == TX_BONUS) $c->committed = round($c->committed + $amount * $this->share / 100, 2);
       $c->rewards = round($c->rewards + $amount, 2);
     }
-  }
-
-  /**
-   * Don't let joint account slave balance go negative, so cron can handle banking right.
-   * @param numeric $r: (RETURNED FIXED) the prospective balance to cache for this account
-   */
-  private function slaveCacheR(&$r) {
-    if ($r >= 0 or !$this->slave) return; // not negative or not slave -- no problem!
-    $j = r\acct($this->jid);
-    $j->update('r', $j->r + $r); // send the negative balance to the master
-    $r = 0;
-  }
+  }*/
 
   /**
    * Set the bit in the flags field to the given value.
@@ -585,9 +604,9 @@ class Acct {
    */
   public function avail($goods) {
     $a = $this;
-    $floor = ($a->can(B_DEBT) and $goods != FOR_USD) ? $a->j_floor : max($a->j_floor, 0); // no going into debt without permission
-    if ($goods == FOR_USD or (COMPANY_FREEZE and $a->co)) $floor = max($floor, $a->j_rewards); // no exchanging rewards for cash (and companies temporarily can't spend rewards)
-    return round($a->j_r - $floor, 2);
+    $floor = ($a->can(B_DEBT) and $goods != FOR_USD) ? $a->floor : max($a->floor, 0); // no going into debt without permission
+    if ($goods == FOR_USD or (COMPANY_FREEZE and $a->co)) $floor = max($floor, $a->rewards); // no exchanging rewards for cash (and companies temporarily can't spend rewards)
+    return round($a->r - $floor, 2);
 //    return round($a->j_r - $a->j_committed - $floor, 2);
   }
   
@@ -646,32 +665,55 @@ EOF;
 
   /**
    * Check the account's actual balance(s) and fix them if necessary.
+   * @param bool $testOnly: <don't fix anything>
    * @return TRUE if the cached amounts are correct.
    * Otherwise maybe deactivate the account, tell the staff, and return FALSE.
+   * Tricky: for joint accounts, r may be wrong (slave r is never negative), but the sum should be correct.
    */
-  public function cacheOk() {
+  public function cacheOk($testOnly = FALSE) {
     $a = $this;
     $uid = $a->id;
     if ($uid < 0) return TRUE; // for communities and regions, nothing is cached
-    $calc = be\creditInfo(compact('uid'));
+    $jA = $a->jA;
+
+    $calc = be\creditInfo(u\ray('uid noj', $uid, TRUE));
+    if ($jA) $jCalc = be\creditInfo(compact('uid')); // for joint account get joint info
     
-    foreach (['r', 'rewards'] as $key) {
-      $is = $a->{"j_$key"};
-      $shouldBe = round($calc->$key, 2);
-      if ($is != $shouldBe) {
-        r\tellStaff('cache mismatch', compact(u\ray('key is shouldBe')), $uid);
-        if ($a->jid) $shouldBe = round($shouldBe - r\acct($a->jid)->$key, 2);
+    foreach (['r', 'rewards'] as $k) {
+      list ($is, $shouldBe) = [$a->o($k), round($calc->$k, 2)];
+
+      if ($jA and $k == 'r') {
+        list ($jIs, $jShouldBe) = [$a->$k, round($jCalc->$k, 2)];
+        $bad = ($jIs != $jShouldBe or ($a->slave and $is < 0)); // joint r must be correct AND slave r non-negative
+      } else $bad = ($is != $shouldBe);
+      
+      if ($bad) {
+//        $worst = max(abs(round($is - $shouldBe, 2)), $worst);
+        $worst = TRUE;
+// NO        if ($a->jid) $shouldBe = round($shouldBe - $a->jA->o($k), 2);
         $DBTX = \db_transaction();
-        if ($key == 'r') $a->slaveCacheR($shouldBe);
-        $a->update($key, $shouldBe);
+        if ($k == 'r') $a->slaveCacheR($shouldBe, $testOnly); // affects only slave, sum is already correct (master goes first)
+        if (!$testOnly) $a->update($k, $shouldBe);
         unset($DBTX);
-        $suspend = (abs($is - $shouldBe) >= 1.00); // suspend on hacking
+        r\tellStaff('cache mismatch', compact(u\ray('k is shouldBe jIs jShouldBe')), $uid);
       }
     }
-    if (@$suspend) {
-      // (disable temporarily)      $a->suspend('to protect data integrity.');
+    if (@$worst) {
+      // (disable temporarily)      if ($worst > .01) $a->suspend('to protect data integrity.'); // ignore a penny error
       return FALSE;
     } else return TRUE;
+  }
+
+  /**
+   * Don't let joint account slave balance go negative, so cron can handle banking right.
+   * @param numeric $r: (RETURNED FIXED) the prospective balance to cache for this account
+   */
+  public function slaveCacheR(&$r, $testOnly = FALSE) {
+    $a = $this;
+    if ($r < 0 and $a->slave) { // Don't let joint account slave balance go negative, so cron can handle banking right.
+      if (!$testOnly) $a->jA->update('r', $a->jA->o_r + $r); // send the negative balance to the master
+      $r = 0;
+    }      
   }
 
   /**
@@ -707,19 +749,22 @@ EOF;
    */
   function join($b) {
     $a = $this;
+    $fields = u\ray(MASTER_NUMERIC_FIELDS);
 
     $DBTX = \db_transaction();
     foreach ([$a, $b] as $i => $ai) {
       $aj = $i == 0 ? $b : $a; // the other account
       $ai->update('jid', $aj->id);
-      if (!$ai->hasBank and $aj->hasBank) {
-        $ai->update('bankAccount last4bank', $aj->bankAccount, $aj->last4bank);
+      if (!$ai->o_hasBank and $aj->o_hasBank) {
+        $ai->update('bankAccount last4bank', $aj->o_bankAccount, $aj->o_last4bank);
         $ai->setRisk('hasBank');
-        $ai->setBit(B_REFILL, $aj->refill);
+        $ai->setBit(B_REFILL, $aj->o_refill);
       }
       $ai->setBit(B_JOINED);
+      foreach ($fields as $k) $$k = @$$k + $ai->o($k);
     }
-    $a->update('minimum achMin savingsAdd saveWeekly', $a->j_minimum, max($a->achMin, $b->achMin), $a->j_savingsAdd, $a->j_saveWeekly); // this sets master fields to the sums, slave fields to zero
+    $achMin = max($a->o_achMin, $b->o_achMin); // one of the $fields
+    $a->update(compact($fields)); // this sets master numeric fields to the sums, slave fields to zero
     unset($DBTX);
   }
   
@@ -736,12 +781,12 @@ EOF;
     if ($jid = $a->jid) { // unravel a consummated join
       $b = r\acct($jid); // ignore param (actual joined account will be unjoined and any join requests zapped)
       foreach ([$a, $b] as $ai) {
-        $ai->update1('jid minimum', '', max($a->minimum, $b->minimum));
+        $ai->update1('jid minimum', '', max($a->o_minimum, $b->o_minimum));
         $ai->cacheOk(); // make sure each account is left with its proper cached amounts
         $ai->setBit(B_JOINED, FALSE);
       }
-      list ($a1, $a2) = u\order($b->r > $a->r, $b, $a);
-      $amount = round(($a1->r - $a2->r) / 2, 2);
+      list ($a1, $a2) = u\order($b->o_r > $a->o_r, $b, $a);
+      $amount = round(($a1->o_r - $a2->o_r) / 2, 2);
       if ($amount > 0) be\transfer('payment', $a1, $a2, $amount, FOR_USD, t('joint account settlement'));
     } elseif ($b) {
       $sql .= ' AND other=:other';
@@ -835,13 +880,14 @@ EOF;
    */
   function stepDone($step, $details = [], $done = TRUE) {
     $a = $this;
-    $stepsDone = $a->stepsDone ?: r\stepsDone0();
+    $stepsDone = $a->stepsDone;
+
     if (!$stepsDone[$step]) { // unless already done
-      $stepsDone[$step] = $done;
-      $a->update(compact('stepsDone'));
 //      if ($done) r\tellStaff(t('Step completed: ') . strtoupper($step), $details, $a->id);
-    } elseif (!$a->admin) r\tellStaff(t('Settings changed: ') . strtoupper($step), $details, $a->id);
+    } elseif (!$a->cAdmin) r\tellStaff(t('Settings changed: ') . strtoupper($step), $details, $a->id);
    
+    $stepsDone[$step] = $done;
+    $a->update(compact('stepsDone'));
     if (!$nextStep = $a->nextStep()) r\membershipEvent($a, 'member');
     return $nextStep;
   }
@@ -850,14 +896,82 @@ EOF;
    * Return the next step to do.
    */
   function nextStep() {
-    $steps = $this->stepsDone ?: r\stepsDone0(); // don't change the real data
-    $unset = $this->co ? 'proxies connect' : 'company relations';
-    foreach (u\ray($unset) as $one) unset($steps[$one]);
-    foreach ($steps as $step => $done) if (!$done) break;
-    if ($done) return FALSE;
-    return $step;
+    $steps = $this->stepsDone ?: []; // don't change the real data ([] for admin)
+    foreach ($steps as $step => $done) if (!$done) return $step;
+    return FALSE;
   }
 
+  /**
+   * Go to the next step
+   * @param string $stepDone: the step just completed, if any
+   * @param string $msg: message to display if account is already a member (defaults to "info saved")
+   * @param string $msg: (RETURNED) a status message to display, if any 
+   * @return the url of the next account-setup step
+   */
+  public function nextStepUrl($stepDone = '', &$msg = NULL, $info = []) {
+    $a = $this;
+
+    if ($a->member) {
+      u\setDft($msg, 'info saved');
+      if ($stepDone) $nextStep = $stepDone; else return 'summary';
+    } else {
+      $nextStep = $stepDone ? $a->stepDone($stepDone, $info) : $a->nextStep();
+      if (!$nextStep) {
+        $approval = $a->co ? 'company approval' : 'individual approval';
+        $msg = "setup complete|$approval|join thanks";
+        return $stepDone ? 'empty' : ''; // go nowhere if not completing a step
+      } else $msg = 'info saved|step completed';
+    }
+    
+    $steps = u\ray(R_STEPS);
+    return $steps[$nextStep] ?: "settings/$nextStep";
+  }
+
+  /**
+   * Create a once-use password and return it.
+   * @param string $name: login identifier (email, account ID, or shortname) -- not used on production server
+   * @return the once-use password
+   */
+  function oneTimePass($name) {
+    $a = $this;
+  //  $pass = strtolower(u\nonce()); // not a hash, easy to remember and type
+    $verifying = !$a->stepDone['verify'];
+    $pass = u\code($verifying, $verifying ? 3 : R_CODE_LEN); // use
+  /// oops! don't let people reset passwords on test server. if (!isPRODUCTION and !in_array($name, u\ray('cornerstore bobbossman cathycashier helgas curtcustomer susanshopper'))) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
+  /**/ if (isDEV or (!isPRODUCTION and time() - db\lookup('created', 'users', 'name=:name', compact('name')) < HOUR_SECS)) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
+  /// if (isDEV) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
+    $expires = r\rTime() + HOUR_SECS * R_SIGNIN_HOURS;
+  //  r\setCook('loginto', $name, $expires);
+    $a->update('oneTimePass', compact('pass', 'expires'));
+    return $pass;
+  } 
+
+  /**
+   * Say whether the password is acceptable.
+   * @param string $password: the password supplied by the user
+   * @param string $passFieldName: password field name (none if using only oneTimePass)
+   * @param string $err: (RETURNED) the error message, if any
+   * @return <password is good>
+   */
+  function passwordOkay($password, $passFieldName = '', &$err = '') {
+    $a = $this;
+    if (@$a->oneTimePass) {
+      extract(u\just('pass expires', $a->oneTimePass));
+      if ($password == @$pass) return ($a->admin or r\rTime() < @$expires) ?: !($err = 'pass expired');
+    }
+
+    require_once DRUPAL_ROOT . '/includes/password.inc';
+    $hash = \_password_crypt('sha512', $password, $a->$passFieldName);
+    return ($hash and $a->$passFieldName == $hash) ?: (!$err = 'bad login');
+  }
+  
+  public function stepsRemaining() {
+    $a = $this;
+    $steps = $a->stepsDone ?: [];
+    $dones = array_sum($steps);
+    return count($steps) - $dones;
+  }
+  
   /**
    * Return the Community Admin's account ID.
    */
@@ -955,7 +1069,7 @@ EOF;
     }
 
     if ($amount0 > 0) { // tell staff to transfer the funds using BillPay or check
-      $a->update('r', $a->r - $amount0);
+      $a->update('r', $a->o_r - $amount0);
       if ($txid > 0) r\tellStaff(t('outgoing bank transfer request'), ['amount' => $amount0]);
     } elseif ($completed) $a->completeUsdTx(0, -$amount0, TRUE);
 
@@ -981,7 +1095,7 @@ EOF;
       if (!db\update('r_usd', ['txid'=>$txid, 'completed'=>r\rTime()], 'txid')) return FALSE;
     }
     
-    $a->update('r', $a->r + $amount);
+    $a->update('r', $a->o_r + $amount);
     unset($DBTX);
     
     $transfer = $automatic ? t('automatic transfer') : t('transfer');
@@ -1181,6 +1295,7 @@ EOF;
 
   public function isMe($uid) {return ($uid == $this->id or $uid == $this->jid);}
   public function codeHash() {return u\hash($this->cardCode());}
+  public function o($k) {return $this->{'o_' . $k};}
   
 } // end of class
 
@@ -1203,6 +1318,7 @@ function acct($uid = '', $agent = '', &$error = '') {
   global $currentAcct; // use this ONLY in this class file
   if (!$uid) return $currentAcct ?: (!$error = 'There is no current account.');
   if (strpos($uid, '@')) $uid = db\lookup('uid', 'users', 'mail=:mail', ['mail' => u\cryptN($uid)]);
+//  if (!$ua = r\Acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   if (!$ua = r\Acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   return new r\Acct($ua); // the only place we call new r\Acct() with a flat array (meaning an existing account)
 }

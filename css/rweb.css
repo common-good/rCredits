@@ -16,6 +16,9 @@
 .boxes .row > div {display:table-cell; padding:0 0 5px 17px; vertical-align:top;}
 label.submenu {display:none;}
 
+#edit-progress {padding-left:15px;}
+#edit-progress b {font-size:200%; color:darkred;}
+
 .vertical{
 /*    writing-mode:tb-rl; */
     -webkit-transform:rotate(-90deg);
@@ -257,6 +260,9 @@ body.logged-in.one-sidebar #content {width:100%;}
 .page-empty div.status  {margin:20px; padding:10px; background-image:none;} 
 .page-empty div.error {margin:20px;} 
 
+/* Verify */
+#rcreditswebformverify #edit-verify {display:inline-block;}
+
 /* Security */
 #rcreditswebformsecurity #edit-change a {margin-right:10px;}
 
@@ -378,7 +384,7 @@ body.logged-in.one-sidebar #content {width:100%;}
 
 /* Options (Preferences) */
 /* #rcreditswebformoptions .form-item-payHow {border-top:1px solid darkgreen; padding-top:5px;} */
-#rcreditswebformpreferences #edit-posttext {font-size:80%;}
+#rcreditswebformprefs #edit-posttext .control-data {font-size:80%; border-top:1px solid silver;}
 
 /* Proxy */
 /*#rcreditswebformproxy button {display:none;}*/
@@ -450,6 +456,9 @@ body.logged-in.one-sidebar #content {width:100%;}
 #rcreditswebformmembership #edit-steps em {color:darkgreen; font-style:normal; font-weight:bold;}
 
 /* Photo */
+#rcreditswebformphoto .btn-secondary {background-color:silver;}
+#rcreditswebformphoto #edit-progress .control-data {padding:0 0 20px 0; border-bottom:3px darkgreen double;}
+
 #photoUp {
   position: relative;  /* MANDATORY */
   
@@ -500,7 +509,7 @@ body.logged-in.one-sidebar #content {width:100%;}
 #rcreditswebformdeposits .control-label {min-width:150px;} /* can't be more than 153px (dunno why) */
 #edit-deposits .control-label {width:50px;}
 
-/* Change Password / Reset (first time or resetting password) (beginning with stuff from user.css) */
+/* Change Password / Reset / Verify (first time or resetting password) (beginning with stuff from user.css) */
 .password-strength {width:200px; float:right;}
 .password-strength-title {display:inline; font-size:11px; font-weight:bold; color:darkgreen;}
 .password-strength-text {float:right; font-weight:bold; font-size:11px; margin-top:3px;}
@@ -508,6 +517,7 @@ body.logged-in.one-sidebar #content {width:100%;}
 .password-indicator div {height:100%; width:0%; background-color:#47C965;}
 input.password-confirm,
 input.password-field,
+#rcreditswebformverify #edit-verify,
 #rcreditswebformchangepassword #edit-pass {width:200px; margin-bottom:10px;}
 div.password-confirm {float:right; margin-top:12px; visibility:hidden; font-size:11px;}
 div.password-confirm .ok {font-weight:bold; color:green;}
@@ -679,6 +689,10 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebformrelations #edit-list .control-data,
 #relations {width:100%; max-width:100%;}
 #rcreditswebformrelations #edit-list .control-label {display:none;}
+#rcreditswebformrelations .form-type-submit {display:inline-block;}
+#rcreditswebformrelations .form-type-submit label {display:none;}
+#rcreditswebformrelations #edit-go {margin-left:212px;}
+#rcreditswebformrelations #edit-nextStep {margin-left:50px;}
 
 #rcreditswebformrelations .form-item-new-person {display:inline-block;}
 #rcreditswebformrelations .form-item-newPerson label {margin-left:2px; padding-left:0;}

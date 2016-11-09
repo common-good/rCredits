@@ -25,7 +25,7 @@ Scenario: A member updates company info
   Then members:
   | id   | selling | website     | description   | employees | gross | coFlags       |*
   | .ZZC | stuff   | www.pub.com | we do vittles |         2 |   100 | %(1<<%CO_TIP) |
-  And we say "status": "options saved"
+  And we say "status": "info saved"
   
 Scenario: A member gives a bad employee count
   When member "C:A" confirms form "settings/company" with values:

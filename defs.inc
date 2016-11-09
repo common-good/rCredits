@@ -28,19 +28,25 @@ define('R_LAUNCH', strtotime('12/15/2013'));
 define('SYS_EMAIL', 'info@rCredits.org');
 define('PUBLIC_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.publicKey');
 define('PRIVATE_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.privateKey');
+define('ANY', 'any'); // accessible to anyone (if you change this, rebuild menus immediately)
+define('SVAR_HEADER', 'rcredits_'); // session variable header
 
 define('COMPANY_FREEZE', FALSE); // companies cannot spend rewards yet
 define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
+define('EMPTY_FIELD', '--'); // how to display empty fields
 define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty,Vacant Lot,Land,Cinema,Printing & Office Supply,Car Repair,Health Club/Gym,Restaurant,Hardware & Supply,Grocer,Farm,Food Processing,Department Store,Electric Company,Oil Company,Town Government,Community College,Hospital');
 define('R_REGION_FIELDS', 'region,fullName,st,postalCode,federalId,hasServer');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
 // isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 
-define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData special'); // fields stored in the account's "data" array field (serialized)
+define('MASTER_NUMERIC_FIELDS', 'minimum achMin savingsAdd saveWeekly');
+define('MASTER_FIELDS', MASTER_NUMERIC_FIELDS . ' hasBank bankAccount last4bank refill'); // only in master, for joint accounts
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
+define('JOINT_FIELDS', R_MONEY_FIELDS . ' balance savings'); // add these together for joint accounts
 define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount'); // very secure fields (admin-encrypted)
 define('R_SECURE_FIELDS', R_VSECURE_FIELDS . ' pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass last4bank'); // non-personal encrypted fields (must be complete list)
-define('R_HIDE_CHANGES', 'pw2 ssnData changes init r rewards committed floor login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank'); // do not record changes to these fields: anything often-changed (automatically or not)
+define('R_HIDE_CHANGES', R_MONEY_FIELDS . ' pw2 ssnData changes init login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank'); // do not record changes to these fields: anything often-changed (automatically or not)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
 //define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_BUY', '(r-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
@@ -54,10 +60,11 @@ define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities ca
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
-define('R_STEPS', 'contact sign donate proxies prefs photo connect company relations'); // membership steps
+define('R_STEPS', 'contact, verify, sign:community/agreement, donate:community/donate, proxies, prefs:settings/preferences, photo:settings/security/photo, connect, company, relations'); // membership steps
 define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret oneTimeLoginUrl password pass newPass form_build_id form_token form_id external_input'); // don't log these (external_input may contain passwords)
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts history settings settings/icon community Summary'); // don't log visits to these forms
 define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin PageNotFound Sinx Pass Empty TestRecovery ChangePassword Help Community Democracy Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
+define('BY_CASH', '(cash)'); // app includes this in description, for a purchase of rCredits by cash
 define('BY_CHECK', '(check)'); // app includes this in description, for a purchase of rCredits by check
 define('BY_CARD', '(card)'); // app includes this in description, for a purchase of rCredits by credit card
 define('R_ON_FILE', t('(on file)'));
@@ -65,7 +72,8 @@ define('R_ON_FILE', t('(on file)'));
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
 define('R_MAX_PHOTO_WIDTH', 1024);
-define('R_MAX_UPLOAD_SIZE', 3); // maximum upload size in MB
+define('CO_PHOTO_FACTOR', 3); // make company photos this many times as big as they look
+define('R_MAX_UPLOAD_SIZE', 4); // maximum upload size in MB
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_EXCHANGE_LIMITS', '1:5000,7:10000,49:20000,365:50000'); // per day, week, 7-week, year
 define('R_INVITE_DAYS', 30); // number of days to accept invitation to membership
@@ -108,10 +116,11 @@ define('N_CHANGED', 8); // transaction/invoice edited, canceled, or disputed
 define('N_NUDGE', 9); // your invitee needs a nudge
 define('N_SUGGESTION', 10); // suggestion from the system
 
-define('R_WHYS', t('goods and services,exchange of US Dollars or other currency,loan/reimbursement/etc.')); // transaction purposes
+define('R_WHYS', t('goods and services,exchange of US Dollars or other currency,loan/reimbursement/etc.,') . R_SHARING_MSG); // transaction purposes
 define('FOR_GOODS', 0); // index into R_WHYS for goods
 define('FOR_USD', 1); // index into R_WHYS for USD exchange
 define('FOR_NONGOODS', 2); // index into R_WHYS for loan, etc.
+define('FOR_SHARE', 3); // "sharing" gift to CGF (comes out of rewards)
 
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_MIN_DEFAULT', 100); // suggested minimum amount to hold in rCredits
@@ -120,13 +129,11 @@ define('R_ACHMIN_DEFAULT', 50); // suggested achMin
 define('R_ACH_TRIES', 3); // how many times to retry an ACH
 
 define('R_SUGGEST_BUMP', 1.25); // suggested minimum multiplier, so as not to unnecessarily sell rCredits
-define('R_VPAYMENT_MIN', 0.05); // minimum payment exchange (where bonus rounds to .01)
 define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial profile picture
 define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
 define('R_PHOTO_WIDTH', 300); // rCard photo width, in pixels
 define('R_PHOTO_HEIGHT', 400);
 define('R_PIXEL_FACTOR', 200); // what to multiply the aspect ratio components by, to get pixel dimensions
-define('R_GET_AUTH_URI', 'usd-get-auth'); // where Dwolla calls us back for getting auth code
 define('R_INDIVIDUAL_GIFT', 50); // suggested donation for individuals
 define('R_COMPANY_GIFT', 250); // suggested donation for companies
 define('R_BUYS_BEFORE_BONUS', 1); // number of purchases required before signup bonus (should probably be 3)
@@ -141,7 +148,6 @@ define('R_AGENT_URL_MARK', '-'); // use this as a substitute for R_AGENT_MARK in
 define('R_MARKS', '[\\' . R_MEMBER_MARK . '\\' . R_AGENT_MARK . '\\' . R_AGENT_URL_MARK . ']'); // any of those
 define('R_ANCIENT_EFT', 10); // how long, at most, an EFT might take (transferring funds to/from bank)
 define('R_REQUIRED', ' <span class="form-required" title="This field is required.">*</span>');
-define('R_CTTY_USD_SHARE', 1); // fraction of a community's total USD to hold in the community account
 define('R_CC_RATE', 2.5); // typical credit card percentage rate
 define('R_CODE_LEN', 20); // length of most random identifiers
 define('R_DUPTX_MINS', 10); // number of minutes before a duplicate transaction is allowed
@@ -352,7 +358,7 @@ $GLOBALS['emailSubjects'] = array(
   'offer-canceled' => t('rCredits Invoice CANCELED by {otherName}'),
 */
   'nonmember' => t('rCredits invitation followup'),
-  'welcome' => t('Welcome to rCredits!'),
+  'verify' => t('rCredits NEXT STEP: Verify your email address.'),
   'password-reset' => t('New rCredits PASSWORD'),
   'tell-staff' => t('rCredits STAFF ALERT: {topic}'),
   'notices' => t('rCredits Notices for {range}'),

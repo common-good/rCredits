@@ -186,9 +186,15 @@ Scenario: An agent asks to undo a charge, without permission
   | 5   | %today-1d | rebate   |      4 | ctty | .ZZB | rebate on #2 | %FOR_USD   |      0 |
   | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  | %FOR_USD   |      0 |
   When agent "C:A" asks device "devC" to undo transaction 4 code "ccB"
-  Then we return error "no perm" with subs:
-  | what    |*
-  | refunds |
+  Then we respond ok txid 7 created %now balance 0 rewards 250 saying:
+  | solution | did      | otherName | amount | why   | reward |*
+  | reversed | refunded | Bea Two   | $80    | goods | $-4    |
+#  Then we return error "no perm" with subs:
+#  | what    |*
+#  | refunds |
+#  And we notice "bad forced tx|no perm" to member ".ZZC" with subs:
+#  | what    | account | amount | created | by                  |*
+#  | refunds | Bea Two | $80    | %dmy-1d | %(" agent Abe One") |
 
 Scenario: An agent asks to undo a refund, without permission
   Given transactions: 
@@ -197,9 +203,12 @@ Scenario: An agent asks to undo a refund, without permission
   | 5   | %today-1d | rebate   |     -4 | ctty | .ZZB | rebate on #2 | %FOR_USD   |      0 |
   | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  | %FOR_USD   |      0 |
   When agent "C:D" asks device "devC" to undo transaction 4 code "ccB"
-  Then we return error "no perm" with subs:
-  | what  |*
-  | sales |
+  Then we respond ok txid 7 created %now balance 0 rewards 250 saying:
+  | solution | did        | otherName | amount | why   | reward |*
+  | reversed | re-charged | Bea Two   | $80    | goods | $4     |
+#  Then we return error "no perm" with subs:
+#  | what  |*
+#  | sales |
 
 Scenario: An agent asks to undo a non-existent transaction
 #  When agent "C:A" asks device "devC" to undo transaction 99 code %whatever

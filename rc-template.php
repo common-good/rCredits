@@ -393,7 +393,7 @@ function rcredits_submit($variables) {
   extract(rcElement($variables, 'tabled bare value title id size style parents class'));
 //  if (!@$id) $id = 'edit-' . strtolower(strtr($value, [' '=>'-', '_'=>'-', '['=>'-', ']'=>'']));
   $id = 'edit-' . $parents[0]; // whether or not id is set (assures mixed case when appropriate
-  if ($id == 'edit-opencompany') die(print_r(compact('parents','id'), 1));
+///    if ($id == 'edit-opencompany') die(print_r(compact('parents','id'), 1));
 //  u\setDft($id, strtolower("edit-$value"));
   u\setDft($size, 'md');
   u\setDft($style, 'primary');
@@ -530,6 +530,7 @@ function spinLink($href, $text, $id = '', $style = '', $size = '', $other = []) 
   $dataStyles = u\ray('zoom-in zoom-out slide-left slide-right'); // slide-up slide-down don't work well on menus
   $dataStyle = $dataStyles[rand(0, count($dataStyles) - 1)];
   list ($tag, $class, $attrs) = ['a', "btn btn-$style btn-$size", 'href id']; // default tag, class, and attribs
+//  if ($id == 'edit-nextStep') $class .= ' center-block';
   if (!$id) unset($id);
   
   if ($href == 'submit') { // submit button

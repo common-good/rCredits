@@ -90,8 +90,8 @@ function periodic() {
     r\tellStaff('task timed out', $row); // shouldn't happen. Drupal's queue processing hangs until we delete.
     db\q('DELETE FROM queue WHERE item_id=:item_id', u\just('item_id', $row));
   }
-  often('hour', 'M', '00', HOUR_SECS);
-  often('day', 'H', R_DAILY_HOUR, DAY_SECS); // longer periods get queued in lessOften(), so notices are last
+  often('hour', '00');
+  often('day', R_DAILY_HOUR); // longer periods get queued in lessOften(), so notices are last
 //  $lastDaily = \variable_get('daily', 0);
 //  if (strftime('%H') >= R_DAILY_HOUR and strftime('%d') != strftime('%d', $lastDaily)) everyDay();
 //  if (strftime('%M') == '00') everyHour();
@@ -207,7 +207,7 @@ function tickleStep($item) {
   $a = r\acct($uid);
   if (!$a->member and $step = $a->nextStep()) {
 //    $msg = $step == 'verify' ? 'call bank' : (($step == 'sign' or $step == 'contact') ? 'do step one' : 'take another step');
-    $msg = ($step == 'sign' or $step == 'contact') ? 'do step one' : 'take another step';
+    $msg = ($step == 'verify' or $step == 'contact') ? 'do step one' : 'take another step';
 /*    $when = $elapsed < 3 ? 
       (u\nextBusDay(+1) . t(' (how about 10am?)'))
     : (u\nextBusDay(0) . t(' between 9am and 4pm')); // for verify
@@ -244,9 +244,9 @@ function tickleActive($item) {
  * Do periodic activities where the period is longer than a day.
  */
 function lessOften() {
-  often('week', 'A', R_WEEKLY_DAY);
-  often('month', 'd', R_MONTHLY_DAY);
-  often('year', 'm', '01');  
+  often('week', R_WEEKLY_DAY);
+  often('month', R_MONTHLY_DAY);
+  often('year', '01');  
   queueNext();
 }
 
@@ -259,19 +259,15 @@ function lessOften() {
  * @param string $code: the strftime code for the smaller period to match or exceed
  * @param string $chosen: the chosen value to match or exceed
  */
-function often($period, $code, $chosen) {
-  $periodLen = r\rTime() - strtotime("-1 $period");
-  $lastCron = \variable_get('r_last_cron', []);
-  $lastTime = @$lastCron[$period];
-  $elapsed = r\rTime() - $lastTime;
-  list ($point, $lastPoint) = array(strftime("%$code", r\rTime()), strftime("%$code", $lastTime));
-  if ($point >= $chosen and ($elapsed > $periodLen or ($elapsed > $periodLen / 2 and $point <= $lastPoint))) {
-    $lastCron[$period] = r\rTime();
-    \variable_set('r_last_cron', $lastCron); // remember that this periodic activity has been done
-    $function = 'rCredits\\Cron\\every' . ucwords($period);
-    if ($period != 'hour' and $period != 'day') r\tellStaff("Running cron for the $period", ['time' => strftime('%I:%M%P', r\rTime())]);
-    $function(); // do it
-  }
+function often($period, $chosen) {
+  if (!timeFor(r\rTime(), $period, $chosen)) return;
+
+  $lastCron = \variable_get('r_last_cron');
+  $lastCron[$period] = r\rTime();
+  \variable_set('r_last_cron', $lastCron); // remember that this periodic activity has been done
+  $function = 'rCredits\\Cron\\every' . ucwords($period);
+  if ($period != 'hour' and $period != 'day') r\tellStaff("Running cron for the $period", ['time' => strftime('%I:%M%P', r\rTime())]);
+  $function(); // do it
 }
 
 /**
@@ -311,9 +307,12 @@ function inflationAdjust($item) {
   $a = r\acct($uid);
   if ($a->slave) return; // slave in joint account gets no inflation (master gets inflation for both)
   if (db\exists('r_txs', 'payee=:uid AND type=:TX_INFLATION AND created>=:end', compact('uid', 'end'))) return;
-  $avg = r\averageBalance($uid, $start, $end);
-  $adjustment = round($avg * R_INFLATION_RATE / 12, 2);
-  if ($adjustment > 0) be\fund($uid, TX_INFLATION, $adjustment, t('inflation adjustment')); // don't adjust debts
+  list ($avg, $min, $ravg) = r\averageBalance($uid, $start, $end);
+//  if ($adjustment > 0)  // don't adjust debts
+  foreach ([t('average balance') => $avg, t('credit reserve') => $ravg] as $k => $v) {
+    $adjustment = round($v * R_INFLATION_RATE / 12, 2);
+    if ($adjustment) be\fund($uid, TX_INFLATION, $adjustment, INFLATION_DESC . t(' on your ') . $k);
+  }
 }
 
 /**
@@ -457,8 +456,8 @@ function acctStats1($item, $asof = NULL) {
   $a = r\acct($uid);
   $asof = strtotime('today', $asof);
   $monthAgo = u\plusMonths(-1, $asof);
-  $avgBalPastMo = r\averageBalance($uid, $monthAgo, $asof, TRUE, $minPastMo);
-  $avgBalEver = r\averageBalance($uid, strtotime('today', $a->created), $asof, TRUE);
+  list ($avgBalPastMo, $minPastMo) = r\averageBalance($uid, $monthAgo, $asof, TRUE);
+  list ($avgBalEver) = r\averageBalance($uid, strtotime('today', $a->created), $asof, TRUE);
 ///  debug(compact('avgBalEver','uid','asof') + ['created' => $a->created]);
   $subs = compact('uid', 'monthAgo', 'asof');
   
@@ -685,7 +684,7 @@ function draw1($item) {
  * @return: amount to transfer from the connected bank account or draw from other rCredits accounts (0 if none).
  */
 function getHowMuchR($a, $banky = TRUE) {
-  if (!$need = max(0, $a->minimum + $a->j_committed - $a->j_balance)) return 0;
+  if (!$need = max(0, $a->minimum + $a->committed - $a->balance)) return 0;
   if ($banky) {
     $waiting = -$a->waitingToBank($combinable); // amount already requested (if any)
     $need = round($need - $waiting, 2); // avoid a re-request

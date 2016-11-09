@@ -189,13 +189,13 @@ function doAccount($info = []) {
   fixData($info, TRUE);
 
   if ($testOnly) {
-    if (!$acct = r\acct($uid)) return output("No such uid: $uid");
-    $acct->reread(TRUE); // this is required, for example, for cron's Trust test
+    if (!$a = r\acct($uid)) return output("No such uid: $uid");
+    $a->reread(TRUE); // this is required, for example, for cron's Trust test
     foreach ($info as $key => $want) {
-      if ($key == 'uid') $key = 'id';
-      $actual = ($key == 'trust' or $key == 'risk') ? round($acct->$key, 2) : $acct->$key;
+      if ($key == 'uid') continue;
+      $actual = ($key == 'trust' or $key == 'risk') ? round($a->o($key), 2) : $a->o($key);
       if (!eq($actual, $want)) {
-        if ($key == 'pass' and (!isset($pass) or r\Web\passwordOkay($acct, @$pass))) continue;
+        if ($key == 'pass' and (!isset($pass) or $a->passwordOkay(@$pass, 'pass', $err))) continue;
         if ($key == 'flags') list ($want, $actual) = [u\bits($want, B_LIST), u\bits($actual, B_LIST)];
         return output("uid $uid -- Wrong value for $key. Expected:$want Got:$actual");
       }
@@ -205,6 +205,7 @@ function doAccount($info = []) {
 
 /**/ if (!$a = new r\Acct($info)) return t\output('Cannot create account: ' . print_r($info, 1));
   if (@$picture) if (!makePicture($picture, $a)) return FALSE;
+  $a->stepDone('contact');
   if ($id0 == $id) $a->setBit(B_IDED); // assume we have a photoId for givens unless a step says otherwise
 
   return $uid;
@@ -457,8 +458,8 @@ function doMemberFields($info) {
   fixData($info, TRUE);
 
   if ($testOnly) {
-    foreach ($info as $key => $value) if ($value != '?') {
-      if (t\badEq("db $key", $a->$key, $value, $id)) return FALSE;
+    foreach ($info as $k => $v) if ($v != '?') {
+      if (t\badEq("db $k", $a->o($k), $v, $id)) return FALSE;
     }
     return TRUE;
   } else return ($info ? $a->update1($info) : TRUE); // handle no fields other than balFields
@@ -474,7 +475,7 @@ function memberFieldValues($list) {
     $a = r\acct(t\uid($id));
     if ($field == 'helper' or $field == 'community') $value = t\uid($value);
     if ($testOnly) {
-      if (t\badEq('fieldValue wanted/actual:', $value, $a->$field, $id)) return FALSE;
+      if (t\badEq('fieldValue wanted/actual:', $value, $a->o($field), $id)) return FALSE;
     } else $a->update1($field, $value);
   }
   return TRUE;
@@ -504,13 +505,13 @@ function doBalance($info) {
   $calc = t\uidCredit($id);
   foreach (u\ray($cashies = 'r balance rewards') as $k) {
     if (isset($$k) and $$k != '?') {
-      $cachedVal = $a->$k;
+      $cachedVal = $a->o($k);
       if (($id > 0) and t\badEq("cached $k", $cachedVal, $$k, $id)) return FALSE;
       if ($id > 0 or $k != 'rewards') if (!$a->jid) if (t\badEq("calc $k", $calc->$k, $$k, $id)) return FALSE;
     }
   }
-  foreach ($not = u\justNot($cashies, $info) as $k => $v) {
-    if ($v != '?' and $id > 0) if (t\badEq("db $k", $a->$k, $v, $id)) return FALSE;
+  foreach ($not = u\justNot($cashies . ' id', $info) as $k => $v) {
+    if ($v != '?' and $id > 0) if (t\badEq("db $k", $a->o($k), $v, $id)) return FALSE;
   }
   return TRUE;
 }
@@ -549,7 +550,7 @@ function usdTransfers($txs) {
       u\setDft($tx['risk'], NULL);
       u\setDft($tx['created'], @$tx['completed']);
       if (!db\insert('r_usd', $tx)) return FALSE;
-      if (@$tx['completed']) $a->update('r', $a->r - $tx['amount']);
+      if (@$tx['completed']) $a->update('r', $a->o_r - $tx['amount']);
     }
   }
   return TRUE;
@@ -592,7 +593,7 @@ function uidCredit($uid) {
   $info = be\creditInfo(u\ray('uid noj', $uid, TRUE));
   $a = r\acct($uid);
   if ($uid > 0 and !$a->jid) foreach (u\ray('r rewards') as $k) { // (community amounts don't get cached)
-    if (!t\eq($v1 = $info->$k, $v2 = $a->$k + 0)) {
+    if (!t\eq($v1 = $info->$k, $v2 = $a->o($k) + 0)) {
       output("Calculated $k different from cache: $v1 <> $v2");
       $info->$k = 'error';
     }
@@ -663,7 +664,7 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = []) {
 }
 
 function weTellStaff($topic, $subs = []) {
-  global $testOnly; if (!$testOnly) return FALSE;
+  global $testOnly; if (!$testOnly) return t\output('Cannot MAKE tellStaff!');
 
   if (!@$subs[0]) $subs[0] = [];
   $regionEmail = r\regionfield('email');
@@ -704,8 +705,8 @@ function noSuchEmail($index, $email) {
  * See whether the specified email has been sent (by searching the log file)
  */
 function findEmail($index, $email, $subs) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  global $testEmails; if (!@$testEmails) return FALSE;
+  global $testOnly; if (!$testOnly) return t\output('Cannot MAKE findEmail!');
+  global $testEmails; if (!@$testEmails) return t\output('There are no testEmails!');
 ///  debug(u\jsonEncode(compact(u\ray('index email subs testEmails'))));
 
   $subs = is_array(@$subs[0]) ? $subs[0] : @$subs;
@@ -1215,7 +1216,7 @@ function clear($ch = 0) {
   global $testSeq; $testSeq = NULL;
   global $channel; $channel = $ch;
   global $testMessages; $testMessages = [];
-/**/  global $sceneTest; echo "scene: $sceneTest->sceneName<br>\n"; // helpful when test dies
+/**/  global $sceneTest; if (u\test()) echo "scene: $sceneTest->sceneName<br>\n"; // helpful when test dies
 
   $cgfUid = r\cgfId();
   $tables = 'r_auth r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_log r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';

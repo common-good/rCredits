@@ -34,8 +34,8 @@ Scenario: A donation can be completed
   | Physical address: | 1 A St., Atown, AK 01000 |
   | _footer | Common Good Finance |
   And we notice "gift sent" to member ".ZZA" with subs:
-  | amount | rewardAmount |*
-  |    $10 |        $0.50 |
+  | amount |*
+  |    $10 |
   And we tell staff "gift accepted" with subs:
   | amount | myName  | often | rewardType | *
   |     10 | Abe One |     1 | reward     |

@@ -104,7 +104,7 @@ function formAdminPanel_submit($form, &$sta) {
         rename($oldFile, $newFile);
       }
     }
-    return r\go('/print-rcard/' . $a->id);
+    return r\go('print-rcard/' . $a->id);
   } elseif ($op == 'askForAppData') {
     $gets = u\ray(R_APP_DATA_GETS);
     $a->update('getAppData appData', $gets[0], []);
@@ -527,7 +527,7 @@ EOF;
   while ($row = $q->fetchAssoc()) {
     extract($row);
 // (needs htmlcell instead of cell)   if (!$in) $name = r\acct($uid)->bankInfoLink();
-    if (!$in) $name = r\acct($uid)->legalName;
+    if (!$in) $name = r\acct($uid)->legalNameDpy;
     $pdf->setX($x);
     $pdf->Cell(1, 0, u\fmtAmt($amount, ''), '', 0, 'R');
     $pdf->setX($x + $colW);
@@ -796,7 +796,7 @@ function handyLinks() {
   foreach ($links as $link) {
     list ($url, $detail, $label, $icon) = explode('|', $link);
     if (!$label) $label = $detail;
-    $handy[$url] = ['', $label, '', 'anyone', '', $detail, @$icon];
+    $handy[$url] = ['', $label, '', ANY, '', $detail, @$icon];
 /*    $result[] = <<<EOF
 <div><a href="$url" title="$detail">$label</a></div>
 EOF; */

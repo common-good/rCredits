@@ -113,7 +113,7 @@ function makeTestAdmins() {if (isSTAGE) foreach (u\ray(R_COS) as $k) if ($a = r\
  */
 function showSteps($a) {
   $steps = '';
-  if (!$a->ok) foreach ($a->stepsDone ?: r\stepsDone0() as $k => $done) { // :? for testing
+  if (!$a->ok) foreach ($a->stepsDone as $k => $done) { // :? for testing
     $color = $done ? 'silver' : 'red';
     if ($a->co) {
       if ($k == 'proxies') $color = 'white';
@@ -612,8 +612,8 @@ function printCheck(&$ck, $pos, $tx, $mark) {
     w\say('fixed bankAccount for ' . $a->fullName);
   }
   list ($fromName, $addr, $phone, $fromAcct, $toName, $toAcct) = $amount < 0 // which way
-    ? [$a->legalName, $a->postalAddr, $a->phone, $bankAccount, 'rCredits', $escrow] // from bank to escrow
-    : ['rCredits (' . CGF_LEGALNAME . ')', CGF_POSTALADDR, CGF_PHONE, $escrow, $a->legalName, $bankAccount];//e2b
+    ? [$a->legalNameDpy, $a->postalAddr, $a->phone, $bankAccount, 'rCredits', $escrow] // from bank to escrow
+    : ['rCredits (' . CGF_LEGALNAME . ')', CGF_POSTALADDR, CGF_PHONE, $escrow, $a->legalNameDpy, $bankAccount];//e2b
   $memo = $amount < 0 ? t('for rCredits') : t('for DEPOSIT to account #') . substr($toAcct, 4 + 9);
 
   list ($signature, $belowLine) = $amount < 0 

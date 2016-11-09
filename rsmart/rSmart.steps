@@ -353,8 +353,6 @@ function withUndo($subs) {
  *     TEST Transact BuyerAgentLacksPermissionToBuy
  *     TEST Transact SellerTriesToChargeTheCustomerTwice
  *     TEST Transact ACashierAsksToChargeSomeoneUnconfirmed
- *     TEST Undo AnAgentAsksToUndoAChargeWithoutPermission
- *     TEST Undo AnAgentAsksToUndoARefundWithoutPermission
  */
 function weReturnErrorWithSubs($msg, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -675,6 +673,8 @@ function withProofOfAgentAmountCreatedMemberCode($agent, $amount, $created, $mem
  *     TEST Undo AnAgentAsksToUndoACashinPayment
  *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
  *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
+ *     TEST Undo AnAgentAsksToUndoAChargeWithoutPermission
+ *     TEST Undo AnAgentAsksToUndoARefundWithoutPermission
  */
 function weRespondOkTxidCreatedBalanceRewardsSaying($txid, $created, $balance, $rewards, $msg = NULL) {
   global $testOnly; if (!$testOnly) return FALSE;

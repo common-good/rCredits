@@ -51,7 +51,9 @@ function formTxs($form, &$sta, $args = '') {
   
   extract(u\just('dateRange url starting ending', dateRange($args, 'history/transactions')));
   $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
-  list ($header, $classes, $rows, $totals) = x\getTxRows($starting, $ending, $url, $maxRows, compact(u\ray('download agents channels boxes')));
+  $descending = TRUE;
+  $optionSet = compact(u\ray('download agents channels boxes descending'));
+  list ($header, $classes, $rows, $totals) = x\getTxRows($starting, $ending, $optionSet, $url, $maxRows);
   
   // prepare screen display
   $classes = u\prefixValues('tx-', $classes);
@@ -303,7 +305,18 @@ function txSummary($starting, $ending) {
   );
   */
 
+  $toSavings = $fromSavings = '';
   $rows = [  
+    u\ray("||$PRIMARY||$SAVINGS|"),
+    u\ray("$STARTING||$old||$o_savings|$starting"),
+    u\ray("$BANK|+|$bank|||$p_bank"),
+    u\ray("$IN|+|$in||$toSavings|"),
+    u\ray("$OUT|-|$out||$fromSavings|"),
+    u\ray("$REWARDS|||+|$rewards|"),
+    u\ray("$ENDING||$new||$n_savings|$ending"),
+  ];
+  
+/*
     u\ray("||$PRIMARY||$SAVINGS|"),
     u\ray("$STARTING||$old|+|$o_savings|$starting"),
     u\ray("$BANK|+|$bank|||$p_bank"),
@@ -311,7 +324,7 @@ function txSummary($starting, $ending) {
     u\ray("$OUT|-|$out|-|$fromSavings|"),
     u\ray("$REWARDS|||+|$rewards|"),
     u\ray("$ENDING||$new|+|$n_savings|$ending"),
-  ];
+*/    
   
   $attributes = array('id' => 'txsum');
   $header = $cols = [];

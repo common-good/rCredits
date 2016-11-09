@@ -20,6 +20,8 @@ define('R_STATE_ID', 1020); // Massachusetts
 define('R_REBATE', 10); // standard initial rebate percentage
 define('R_BONUS_FACTOR', 1); // standard bonus is this times standard rebate
 define('R_MAX_REBATE', 500); // cap on rebate for a single transaction (max bonus is in proportion)
+define('R_MIN_REWARD_PCT', 1); // minimum reward percentage
+define('R_REWARD_STEP', 500); // how much rewards can the member get before their reward percentage goes down by 1%
 define('R_XFEE_CARD', .03); // percentage fee for exchanges of USD for rCredits using a credit/debit card
 define('R_XFEE_CHECK', 3.00); // flat fee for exchanges of USD for rCredits with a check
 define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller limits also apply)

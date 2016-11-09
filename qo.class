@@ -51,7 +51,7 @@ class Qo {
     $qo = $this;
     if ($field == 'id') return $qo->id();
     if ($field == 'agent') return $qo->agent();
-    if ($field == 'ia') return [$qo->id, $qo->agent()];
+    if ($field == 'ia') return [$qo->id(), $qo->agent()];
     if ($field == 'rel') return (@$qo->agent or @$qo->agentQid or @$qo->agentCode);
     if ($field == 'proSe') return !$qo->rel;
     if ($field == 'agentCode') return $qo->agentCode();

@@ -101,10 +101,16 @@ Setup:
 Scenario: Inflation adjustments are distributed
   When cron runs "lessOften"
   Then transactions: 
-  | xid| created| type      | amount                               | from | to   | purpose |*
-  | 20 | %today | inflation | %(round(%R_INFLATION_RATE*30, 2)) | ctty | .ZZA | inflation adjustment |
-  | 21 | %today | inflation | %(round(%R_INFLATION_RATE*14.8, 2)) | ctty | .ZZB | inflation adjustment |
-  | 22 | %today | inflation | %(round(%R_INFLATION_RATE*23.2, 2)) | ctty | .ZZC | inflation adjustment |
+  | xid| created| type      | amount                              | from | to   | purpose |*
+  | 20 | %today | inflation | %(round(%R_INFLATION_RATE*29.6, 2)) | ctty | .ZZA | %IAOY average balance |
+  | 21 | %today | inflation | %(round(%R_INFLATION_RATE *8.8, 2)) | ctty | .ZZA | %IAOY credit reserve  |
+  | 22 | %today | inflation | %(round(%R_INFLATION_RATE*14.2, 2)) | ctty | .ZZB | %IAOY average balance |
+  | 23 | %today | inflation | %(round(%R_INFLATION_RATE *9.0, 2)) | ctty | .ZZB | %IAOY credit reserve  |
+  | 24 | %today | inflation | %(round(%R_INFLATION_RATE*23.0, 2)) | ctty | .ZZC | %IAOY average balance |
+  | 25 | %today | inflation | %(round(%R_INFLATION_RATE *8.6, 2)) | ctty | .ZZC | %IAOY credit reserve  |
+  And member ".ZZA" cache is ok
+  And member ".ZZB" cache is ok
+  And member ".ZZC" cache is ok
   
 #  | 20 | %today | inflation | %(round(%R_INFLATION_RATE*38.42, 2)) | ctty | .ZZA | inflation adjustment |
 #  | 21 | %today | inflation | %(round(%R_INFLATION_RATE*23.11, 2)) | ctty | .ZZB | inflation adjustment |

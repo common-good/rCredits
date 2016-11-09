@@ -52,8 +52,8 @@ function ray($s, $value1 = NULL) {
 
   $ray = [];
   foreach ($simple as $one) {
-    list ($key, $value) = explode(':', $one);
-    $ray[$key] = $value;
+    list ($k, $v) = explode(':', $one . ':');
+    $ray[$k] = $v;
   }
   return $ray;
 }
@@ -157,7 +157,7 @@ function cleanAmount($amount) {
   $amount = trim($amount);
   if (substr($amount, 0, 1) == '$') $amount = substr($amount, 1);
   if (u\nonish($amount)) $amount = 0;
-  $amount = str_replace('--', '', $amount); // useful for monthly statements
+  $amount = str_replace(EMPTY_FIELD, '', $amount); // useful for monthly statements
   return preg_replace('/[ \,]/', '', $amount); // ignore spaces and commas
 }
 
@@ -749,7 +749,7 @@ function loga($type, $info = [], $special = '', $adhocChannel = FALSE) {
   // make it easy to match the message when searching
   if (isNonce($special) and @$info['message']) $info['message'] = str_replace(": $special", ': @nonce', $info['message']);
   // don't make code, password, and secret links any more accessible than they are
-  foreach (u\ray(R_NOLOG) as $one) if ($one != 'email' and @$info[$one]) $info[$one] = '(?)';
+  foreach (u\ray(R_NOLOG) as $k) if ($k != 'email' and @$info[$k]) $info[$k] = '(?)';
   $info = json_encode($info, JSON_UNESCAPED_SLASHES);
   $channels = ray(TX_CHANNELS); 
   if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
@@ -1013,7 +1013,7 @@ function badDate(&$s, $min = '', $max = PHP_INT_MAX) {
 }
 
 /**
- * Parse the name, returning the first and last names separately.
+ * Parse the name, returning the first and last names separately. Underlines in last name are treated as spaces.
  * @param string $name: the name to parse
  * @return array: [$first, $last]
  */
@@ -1027,7 +1027,7 @@ function parseName($name) {
     $name = preg_replace('/( Jr?)$/', '', $name);
   }
   $names = explode(' ', $name);
-  $last = array_pop($names) . @$suffix;
+  $last = str_replace('_', ' ', array_pop($names) . @$suffix);
   return array(join(' ', $names), $last);
 }
 
@@ -1134,7 +1134,6 @@ function insertBefore($bundle, $haystack, $needle) {
  
 function formatNum($num, $format) {
   $num = digits($num);
-  if ($format == 'dwolla') $format = 'ddd-ddd-dddd';
   if ($format == 'ein') $format = 'dd-ddddddd';
   if ($format == 'ss') $format = 'ddd-dd-dddd';
   $oldFormat = '(' . str_replace('d', '\\d', str_replace('-', ')(', $format)) . ')'; // eg (\d\d\d)(\d\d\d)(\d\d\d\d)
@@ -1186,11 +1185,14 @@ EOF;
 
 /**
  * Return a random upper/lowercase code.
- * @param int $len: how long (defaults to 20)
+ * @param bool $upper: use only uppercase
+ * @param int $len: how long
  */
-function code($len = 20) {
+function code($upper = FALSE, $len = R_CODE_LEN) {
   global $nextCode;
-  return (u\test() and @$nextCode) ? $nextCode : \user_password($len);
+  if (u\test() and @$nextCode) return $nextCode;
+  $res = \user_password($len);
+  return $upper ? strtoupper($res) : $res;
 }
 
 function showCaller($skip = 0) {
@@ -1381,7 +1383,7 @@ function strip($a) {foreach ($a as $i => $v) $a[$i] = strip_tags($v); return $a;
 function initials($s) {return preg_replace('/[^A-Z]/', '', ucwords(strtr($s, u\ray('Jr', ''))));}
 function roughName($name) {return preg_replace("/[^A-Z '\-]/", '', strtoupper(trim(str_replace('  ', ' ', $name))));}
 function urlArgs() {return basename(u\test() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);}
-function in($a, $b) {return (strpos($a, $b) !== FALSE);}
+function in($a, $b) {return (strpos(" $b ", " $a ") !== FALSE);} // needle in space-delimited hay
 function uc1($s) {return ucwords(substr($s, 0, 1)) . substr($s, 1);}
 function nextAfter($needle, $hay) {return ($i = array_search($needle, $hay)) === FALSE ? NULL : $hay[$i + 1];}
 function caller($depth = 1) {return debug_backtrace()[$depth + 1]['function'];}
@@ -1391,3 +1393,4 @@ function a2b($s) {$b = ''; for ($i = 0; $i < strlen($s); $i++) $b .= lpad(decbin
 function badZip($z, $country = US_COUNTRY_ID) {return ($country == US_COUNTRY_ID and !preg_match('/^\d{5}(\-\d{4})?$/', $z)) ? 'bad zip' : FALSE;}
 function randomFloat($min = 0, $max = 1) {return $min + mt_rand() / mt_getrandmax() * ($max - $min);}
 function hash($s) {return \hash('sha256', $s, false);}
+function day2n($day) {return array_search($day, u\ray('Sun Mon Tue Wed Thu Fri Sat'));} // workaround %u and %w failure

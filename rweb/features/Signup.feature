@@ -45,36 +45,38 @@ Scenario: A newbie visits the registration page with a used invite
 
 Scenario: A newbie registers in Western Massachusetts
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
-  And next random code is "%whatever"
+  And next random code is "WHATEVER"
   When member "?" confirms form "signup/code=c0D3" with values:
   | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns | helper |*
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ   |
   Then members:
   | id   | fullName | legalName | email | phone     | postalCode | country | state | city   | flags     | floor | address | postalAddr                | tenure | owns | helper |*
   | .AAA | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam | confirmed | 0     |    1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ  |
-  And we say "status": "your account is ready"
-  And we email "welcome" to member "a@" with subs:
-  | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NEW.AAA | %BASE_URL | %whatever |
-  And member ".AAA" one-time password is set
+  And we email "verify" to member "a@" with subs:
+  | fullName | name   | quid    | site      | code      |*
+  | Abe One  | abeone | NEW.AAA | %BASE_URL | WHATEVER |
+  And member ".AAA" one-time password is set to "WHATEVER"
+  And we show "Verify Your Email Address"
+  And we say "status": "info saved|step completed"
   #And we show "Empty"
 
 Scenario: A newbie registers with an unconfirmed icard invitation
-  And next random code is "%whatever"
+  And next random code is "WHATEVER"
   When member "?" confirms form "signup/code=O9C8KP3IECF" with values:
   | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns | helper |*
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ |
   Then members:
   | id   | fullName | legalName | email | phone     | postalCode | country | state | city   | flags | floor | address | postalAddr              | tenure | owns | iCode | helper |*
   | .AAA | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam |       | 0     |   1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 |     5 | .ZZZ   |
-  And we say "status": "your account is ready"
-  And we say "status": "must be confirmed" with subs:
-  | inviterName |*
-  | Zeta Zot    |
-  And we email "welcome" to member "a@" with subs:
+  And we show "Verify Your Email Address"
+  And we say "status": "info saved|step completed"
+# LATER  And we say "status": "must be confirmed" with subs:
+#  | inviterName |*
+#  | Zeta Zot    |
+  And we email "verify" to member "a@" with subs:
   | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NEW.AAA | %BASE_URL | %whatever |
-  And member ".AAA" one-time password is set
+  | Abe One  | abeone | NEW.AAA | %BASE_URL | WHATEVER |
+  And member ".AAA" one-time password is set to "WHATEVER"
   And we message "confirm invite" to member ".ZZZ" with subs:
   | fullName | a1 |*
   | Abe One  | ?  |
@@ -82,21 +84,22 @@ Scenario: A newbie registers with an unconfirmed icard invitation
   
 Scenario: A newbie registers with an unconfirmed self-invitation
   Given member ".ZZZ" email invitation code is "BRFWWVZCH3"
-  And next random code is "%whatever"
+  And next random code is "WHATEVER"
   When member "?" confirms form "signup/code=BRFWWVZCH3" with values:
   | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns | helper |*
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ   |
   Then members:
   | id   | fullName | legalName | email | phone     | postalCode | country | state | city   | flags | floor | address | postalAddr              | tenure | owns | iCode      | helper |*
   | .AAA | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam |       | 0     |   1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 | %IBY_SELF | .ZZZ   |
-  And we say "status": "your account is ready"
-  And we say "status": "must be confirmed" with subs:
-  | inviterName |*
-  | Zeta Zot    |
-  And we email "welcome" to member "a@" with subs:
+  And we show "Verify Your Email Address"
+  And we say "status": "info saved|step completed"
+# LATER  And we say "status": "must be confirmed" with subs:
+#  | inviterName |*
+#  | Zeta Zot    |
+  And we email "verify" to member "a@" with subs:
   | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NEW.AAA | %BASE_URL | %whatever |
-  And member ".AAA" one-time password is set
+  | Abe One  | abeone | NEW.AAA | %BASE_URL | WHATEVER |
+  And member ".AAA" one-time password is set to "WHATEVER"
   And we message "confirm invite" to member ".ZZZ" with subs:
   | fullName | a1 |*
   | Abe One  | ?  |
@@ -111,20 +114,21 @@ Scenario: A newbie registers with a different legal name
   | id   | fullName | legalName | email | phone     | postalCode | country | state | city   | flags     | name    | helper |*
   | .AAA | Abey One | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam | confirmed | abeyone | .ZZZ   |
 
-Scenario: A newbie registers elsewhere
+Scenario: A newbie registers from elsewhere
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
-  And next random code is "%whatever"
+  And next random code is "WHATEVER"
   When member "?" confirms form "signup/code=c0D3" with values:
-  | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns | helper |*
-  | Abe One  | a@ | 212-253-0000 | US      | 10001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | New York | NY    | 1 A St., New York, NY 10001 |     18 |    1 | .ZZZ   |
-  Then members:
-  | id      | fullName | email | phone     | postalCode | country | state | city     | flags     | helper |*
-  | NYA.AAA | Abe One  | a@ | +12122530000 | 10001      | US      | NY    | New York | confirmed | .ZZZ   |
-  And we say "status": "your account is ready"
-  And we email "welcome" to member "a@" with subs:
+  | fullName | email | phone       | postalCode | federalId   | dob      | acctType    | address | city | state | postalAddr                   | tenure | owns | helper |*
+  | Abe One  | a@ | (333) 253-0000 | 03768-2345 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | 1 A ST. | Lyme | NH    | 1 A ST., Lyme, NH 03768-2345 |     18 |    1 | .ZZZ   |
+ Then members:
+  | id      | fullName | email | phone     | postalCode | state | city | flags     | helper |*
+  | NEN.AAA | Abe One  | a@ | +13332530000 | 03768-2345 | NH    | Lyme | confirmed | .ZZZ   |
+  And we show "Verify Your Email Address"
+  And we say "status": "info saved|step completed"
+  And we email "verify" to member "a@" with subs:
   | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NYA.AAA | %BASE_URL | %whatever |
-  And member "NYA.AAA" one-time password is set
+  | Abe One  | abeone | NEN.AAA | %BASE_URL | WHATEVER |
+  # And we show "Empty"
 
 Scenario: A newbie registers with no case
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
@@ -244,18 +248,3 @@ Scenario: A member registers with a bad company phone
   | fullName | email  | phone    | postalCode | federalId   | dob      | acctType    | company  | companyPhon | companyOptions | tenure | owns | helper |*
   | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | %random      | isOwner=>1    |     18 |    1 | .ZZZ   |
   Then we say "error": "bad company phone" with subs: ""
-
-Scenario: A newbie registers from elsewhere
-  Given invitation to email "a@" from member ".ZZZ" is "c0D3"
-  And next random code is "%whatever"
-  When member "?" confirms form "signup/code=c0D3" with values:
-  | fullName | email | phone       | postalCode | federalId   | dob      | acctType    | address | city | state | postalAddr                   | tenure | owns | helper |*
-  | Abe One  | a@ | (333) 253-0000 | 03768-2345 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | 1 A ST. | Lyme | NH    | 1 A ST., Lyme, NH 03768-2345 |     18 |    1 | .ZZZ   |
- Then members:
-  | id      | fullName | email | phone     | postalCode | state | city | flags     | helper |*
-  | NEN.AAA | Abe One  | a@ | +13332530000 | 03768-2345 | NH    | Lyme | confirmed | .ZZZ   |
-  And we say "status": "your account is ready"
-  And we email "welcome" to member "a@" with subs:
-  | fullName | name   | quid    | site        | code  |*
-  | Abe One  | abeone | NEN.AAA | %BASE_URL | %whatever |
-  # And we show "Empty"

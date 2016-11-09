@@ -91,7 +91,7 @@ EOF;
  */
 function memberRay($myid) {
   if (!$a = r\acct($myid)) return [];
-  $where = r\acct()->admin ? '1' : "community=$a->community OR :IS_CO";
+  $where = r\acct()->admin ? '1' : "community=$a->community OR :IS_CO"; // ->admin failed once (no ctty) with myid=1 (dunno why)
   return db\q("SELECT fullName FROM users WHERE :IS_OK AND $where ORDER BY fullName")->fetchCol();
 }
 
@@ -195,14 +195,14 @@ function updateRelations($updates) {
  * @param int $xid: the transaction number
  * @param string $where: additional (security check) criteria, if any
  * @param assoc $subs: additional substitions for $where
- * @param bool $force: <reverse despite any shortfall>
+ * @param bool $force: <reverse despite any shortfall or lack of permission>
  * @return array [message, subs] where subs is an assoc of [
  */
 function undoTx($xid, $where = '1', $subs = [], $force = FALSE) {
   $mya = r\acct();
   $tx = lastTx("xid=:xid AND $where", compact('xid') + $subs);
 ///  debug(compact('xid','where','subs','tx'));
-  if ($error = r\nonoUndo($tx, $subs)) return array($error, $subs); // check nono before confirm AND here
+  if (!$force and $error = r\nonoUndo($tx, $subs)) return array($error, $subs); // check nono before confirm AND here
 
   $myx = r\x($tx, $mya);
   $data = $myx->data;
@@ -575,25 +575,27 @@ function creditInfo($args = []) {
   $subs = compact(u\ray('uid jid asof'));
   $isPayer = 't.payer IN (:uid, :jid)';
   $isPayee = 't.payee IN (:uid, :jid)'; // account can be both payer and payee, if joint account
+  $signedAmt = "IF($isPayer, -amount, amount)";
   
   $sql = <<<EOF
     SELECT 
     SUM(IF($isPayee, amount, 0)) AS `in`,
     SUM(IF($isPayer, amount, 0)) AS `out`, 
     SUM(IF(t.type IN (:TX_REWARDS), amount, 0)) AS rewards,
-    SUM(IF(t.type=:TX_XFEE, IF($isPayer, -amount, amount), 0)) AS xfees,
-    SUM(IF(:HAS_XFEE, IF($isPayer, -amount, amount), 0)) AS xin
+    SUM(IF(t.goods=:FOR_SHARE, $signedAmt, 0)) AS share,
+    SUM(IF(t.type=:TX_XFEE, $signedAmt, 0)) AS xfees,
+    SUM(IF(:HAS_XFEE, $signedAmt, 0)) AS xin
     FROM r_txs t
     WHERE ($isPayer OR $isPayee) AND t.created<=:asof
 EOF;
   
-  $sums = @$pending ? u\ray('in out rewards xfees xin', 0, 0, 0, 0, 0) : db\q($sql, $subs)->fetchAssoc();
+  $sums = @$pending ? u\ray('in out rewards share xfees xin', 0, 0, 0, 0, 0, 0) : db\q($sql, $subs)->fetchAssoc();
 
   $where = @$pending ? 'created<=:asof AND NOT completed' : 'completed AND completed<=:asof';
   $sql = "SELECT SUM(amount) AS bank FROM r_usd t WHERE $isPayer AND $where";
   $sums += db\q($sql, $subs)->fetchAssoc();
 
-  foreach ($sums as $key => $value) $sums[$key] = $value + 0; // no nulls
+  foreach ($sums as $k => $v) $sums[$k] = $v + 0; // no nulls
   extract($sums);
 
   $bank = -$bank; // make it "from bank" instead of "to bank"
@@ -601,6 +603,8 @@ EOF;
   $in -= $xin; $out -= $xin;
   $outProper = $out;
   $inProper = $in - $rewards;
+  if ($uid == r\cgfId()) $inProper -= $share; else $outProper += $share;
+  $rewards += $share; // share is negative for everyone but CGF
   
   // figure savings
   if ($asof == $asof0) {
@@ -617,7 +621,7 @@ EOF;
   $balance = $r - $rewards;
   $savings = $rewards; // tentative savings before additions ( = oldSavings - oldSavingsAdd)
   
-  $resultKeys = 'in out rewards refunds fees xfees xin inProper outProper balance r bank savings';
+  $resultKeys = 'in out rewards share refunds fees xfees xin inProper outProper balance r bank savings';
   $result = compact(u\ray($resultKeys));
   
   $fancy = [];

@@ -42,13 +42,13 @@ use rCredits\Testing as t;
 ///     debug(rCredits\Smart\pos($args));
  */
 
-define('RPOS_VERSION', 217); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first (and make sure it is available in Google Play Store), before bumping the number up here.)
+define('RPOS_VERSION', 218); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first (and make sure it is available in Google Play Store), before bumping the number up here.)
 define('R_QR_HEADER', 'HTTP://RC2.ME/I/'); // for transient QR IDs
 define('R_TRANSIENCE', 60); // number of seconds for device's transient QR to be valid
 
 $GLOBALS[TX_POS . ' messages'] = array(
   'bad proof' => t('That transaction is not valid.'),
-  'bad member' => t('That rCard is not valid.'),
+  'bad member' => t('That is not a valid account. The customer used a lost, stolen, or fraudulent rCard.'),
 //  'card deactivated' => t('The rCard has been de-activated.'),
   'bad agent' => t('That is not a valid agent rCard.'),
   'agent cannot scan' => t('That agent is not authorized to charge customers.'),
@@ -91,7 +91,7 @@ function pos($args = FALSE) {
   if (!$op or !in_array($op, u\ray('time identify photo charge payment undo'))) return posErr('bad op');
   
   $mya = getAgent($agent ?: @$member, $agentErr);
-  
+
   if (@$device) { // device was specified, substitute its record id, herein
     if (!$mya) return posErr($agentErr);
     if ($deviceId = getDevice($device, $mya->id)) {
@@ -223,8 +223,8 @@ function identify($args) {
     if (!@$deviceId) {
 /*      if ($device) {
         if ($owner = db\lookup('uid', 'r_boxes', 'code=:device', compact('device')) and !r\acct($owner)->coCan(CO_REQUIRE_CASHIER)) return posErr('restricted');
-      } else $device = u\code(R_CODE_LEN); */
-      if (!$device) $device = u\code(R_CODE_LEN);
+      } else $device = u\code(); */
+      if (!$device) $device = u\code();
       r\makeDevice($a->id, $device, TX_POS); // card is legit, so use device's code, if any
     }
     $default = $mya->mainQid;
@@ -233,7 +233,7 @@ function identify($args) {
     
   } else { // identifying customer
     if (!@$deviceId) return posErr('unknown device'); // tried to scan a customer card before very first agent scan-in
-    if (isset($pin) and $pin != $a->agentA->pin) return posErr('bad pin');
+    if (isset($pin) and $pin != $a->agentA->pin) return posErr('bad pin'); // maybe never use this
     $agentCans = 0;
     $company = $a->proSe ? "" : $a->fullName;
     $place = r\location($a);
@@ -318,28 +318,25 @@ function charge($args, $type = 'charge') {
   if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
 
   if (!$a = getMember($member, '', $err, FALSE)) { // proof is proof enough (no cardCode needed)
-    if (@$force) tellOwnerBadTx("Account $member", $amount, $created);
-    return posErr($err);
-  }
-  if ($mya->id == $a->id) return posErr('shoulda been login');
+    return badTx($args, "Account $member", $err);
+  } else $name = $a->fullName; // for use in error messages
+  if ($mya->id == $a->id) return posErr('shoulda been login'); // should never happen
 
   $selfhelp = ($goods == '2');
   $goods = $goods == "3" ? FOR_NONGOODS : ($goods == "0" ? FOR_USD : FOR_GOODS); // selfhelp is FOR_GOODS
   if (@$force) {
     $subs = u\ray('created payer payee amount goods payeeFor', $created, $a->id, $mya->id, $amount, $goods, $description);
     if ($q = db\lookup('xid,data', 'r_txs', $subs)) extract($q);
-//    if (@$proof) $proof = r\passHash($proofStart . $a->cardCode()); // return simpler
   }
   
   $amount = str_replace(',', '', number_format($amount, 2)); // make sure both cents digits are included
   $code = $a->cardCode();
   $hashOfTx = u\hash($wanted = "$mya->mainQid$amount$member$code$created");
   if ($version > 216) if ($proof != $hashOfTx) if (!$force or $a->badOldProof($proof, $wanted, $created)) {
-    r\tellStaff('bad proof', compact(u\ray('proof hashOfTx agent amount member code created force')));
+    r\tellStaff('bad proof', compact(u\ray('version proof hashOfTx agent amount member code created force')));
     if (u\test() or $version > 218 ) if ($version != 301) {
       if (u\test()) t\output("Should be proof of $wanted");
-      if (@$force) tellOwnerBadTx($a->fullName, $amount, $created);
-      return posErr('bad proof');
+      return badTx($args, $name, 'bad proof');
     }
   }
 
@@ -356,7 +353,8 @@ function charge($args, $type = 'charge') {
     } else {
       r\tellStaff('reversing tx', compact('xid'));
       list ($msg, $subs) = be\undoTx($xid, (@$amount < 0 and !$mya->co) ? 'payer=:myid' : 'payee=:myid', ['myid' => $mya->id], $force);
-      if (!@$subs['success']) return posErr($msg, $subs);
+      if (is_array($msg)) list ($msg, $subs) = [$msg[0], $msg[1] + $subs];
+      if (!@$subs['success']) return badTx($args, $name, $msg, $subs);
       $txid = $subs['xid'];
       $created = $subs['created0'];
       $message = u\tt($msg, $subs);
@@ -366,11 +364,12 @@ function charge($args, $type = 'charge') {
     $txid = 0;
     $message = "Transaction has been canceled.";
   } else { // doesn't exist and should (forcing or not)
-    list ($msg, $subs, $zot) = (@$amount < 0 and !$mya->co)
-    ? be\transfer('payment', $mya, $a, -@$amount, @$goods, @$description, $created, TRUE, compact('force'))
-    : be\transfer($type, $mya, $a, @$amount, @$goods, @$description, $created, TRUE, compact('force'));
-    if (!@$subs['success']) return posErr($msg, $subs);
-    if (!@$force and $aa = $a->agentA and !$aa->ided) $aa->setBit(B_IDED);
+    if (@$amount < 0 and $a->co and $a->proSe) return badTx($args, $name, $msg, $subs);
+    if (@$amount < 0 and !$mya->co) list ($type, $amount) = ['payment', -$amount];
+    list ($msg, $subs, $zot) = be\transfer($type, $mya, $a, @$amount, @$goods, @$description, $created, TRUE, compact('force'));
+    if (!@$subs['success']) return badTx($args, $name, $msg, $subs);
+
+    if (!@$force and $aa = $a->agentA and $mya->co and !$aa->ided) $aa->setBit(B_IDED);
     $txid = $subs['xid'];
     if ($selfhelp) {
       $msg = 'selfhelp tx';
@@ -390,13 +389,17 @@ function charge($args, $type = 'charge') {
 /**
  * Tell the device owner about a failed background transaction
  */
-function tellOwnerBadTx($account, $amount, $created) {
-  global $mya;
-  if (!$mya->proSe) {
-    $agent = $mya->agentA->fullName;
-    $by = t(' (agent @agent)', ['@agent' => $agent]);
-  } else $by = '';
-  r\message($mya->id, 'bad forced tx', u\ray('account amount created by', $account, u\fmtAmt($amount), u\fmtDate($created), $by));
+function badTx($args, $account, $msg, $subs = []) {
+  extract(u\just('force amount created', $args));
+  
+  if (@$force) {
+    global $mya;
+    $by = $mya->proSe ? '' : t(' (agent @agent)', ['@agent' => $mya->agentA->fullName]);
+    $subs += u\ray('account amount created by', $account, u\fmtAmt($amount), u\fmtDate($created), $by);
+    r\message($mya->id, "bad forced tx|$msg", $subs);
+  }
+  
+  return posErr($msg, $subs);
 }
 
 /**
@@ -484,8 +487,8 @@ function getMember($qid, $code, &$err = '', $requireCode = TRUE) {
 function balrew($a) {
   global $mya;
   if (!$mya->co) $a = $mya;
-  $balance = (($a->can(B_SECRET) and $mya->co) ? '*' : '') . round($a->j_balance, 2);
-  $rewards = $a->j_rewards;
+  $balance = (($a->can(B_SECRET) and $mya->co) ? '*' : '') . round($a->balance, 2);
+  $rewards = $a->rewards;
   return compact('balance', 'rewards');
 }
 

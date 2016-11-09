@@ -52,7 +52,8 @@ Setup:
   |   2 | %today-6m | signup   |    250 | ctty | .ZZB | signup  | %TX_SYS |
   |   3 | %today-6m | signup   |    250 | ctty | .ZZE | signup  | %TX_SYS |
   |   4 | %today-5m | transfer |     10 | .ZZB | .ZZA | cash E  | %TX_POS |
-  |   5 | %today-1m | transfer |   1100 | .ZZA | .ZZC | USD in  | %TX_POS |
+  |   5 | %today-1m | transfer |   1100 | .ZZA | .ZZC | USD in (cash) | %TX_POS |
+  # (cash) is required else a transaction fee transaction is created
   |   6 | %today-3w | transfer |    240 | .ZZA | .ZZB | what G  | %TX_POS |
   |   7 | %today-3w | rebate   |     12 | ctty | .ZZA | rebate  | %TX_POS |
   |   8 | %today-3w | bonus    |     24 | ctty | .ZZB | bonus   | %TX_POS |

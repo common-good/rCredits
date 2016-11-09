@@ -105,7 +105,7 @@ class X {
     $rewards = unserialize($data);
     
     if ($goods == FOR_GOODS) {
-      foreach (array('rebate', 'bonus') as $type) {
+      foreach (['rebate', 'bonus'] as $type) {
       // u\EXPECT(isset($rewards[$type]), 'nope!'); NO! pay to owners, for example, has no reward
         $amount = @$rewards[$type]; // @ for empty rewards to owners, for example
         $type = u\consta('tx', $type);
@@ -196,8 +196,9 @@ class X {
       $rebate = (string) r\rebate($payer, $payee, $amount); // force string, to avoid long serializations
       $bonus = (string) ($goods == FOR_GOODS ? r\bonus($payee, $payer, $amount) : 0);
       $data += compact('rebate', 'bonus');
-    } elseif ($goods == FOR_NONGOODS and !isset($data['xfee']) and $channel == TX_POS) {
-      if (($xfee = r\xfee($for, $amount)) !== '') $data += compact('xfee'); // record even when xfee=0 (cash xchg)
+    } elseif ($goods == FOR_USD and !isset($data['xfee']) and $channel == TX_POS) {
+      $xfee = r\xfee($for, $amount);
+      if ($xfee) $data += compact('xfee');
     }
     
     unset($data['preapproved']); // don't need these (but keep 'undoes' and original rebate/bonus, if any)
@@ -226,22 +227,30 @@ class X {
     if ($uid <= 0) return TRUE; // cache only usd for community and region
 
     if (!$a = r\acct($uid)) return FALSE;
-    $cache = $a->account('r rewards committed lastTx access');
-    if ($channel != TX_CRON) $cache->access = r\rTime(); // track last transaction or login (just major access)
+    extract((array) $a->account($cacheFields = 'r rewards committed lastTx access'));
+
+    if ($channel != TX_CRON) $access = r\rTime(); // track last transaction or login (just major access)
 
     $toMe = $uid == $t_payee ? -1 : 1;
-    if ($t_payer > 0) $cache->lastTx = array($t_xid, $toMe * ($t_payee - $t_payer), round($toMe * $t_amount, 2), $t_created);
+    if ($t_payer > 0) $lastTx = array($t_xid, $toMe * ($t_payee - $t_payer), round($toMe * $t_amount, 2), $t_created);
 
     foreach ($xrays as $xray) {
       extract(u\just('payer payee amount type', $xray));
-      if ($payer == $uid or $payee == $uid) $a->recache3($payee == $uid ? $amount : -$amount, $type, $cache);
+      if (!in_array($uid, [$payer, $payee])) continue;
+      if ($payer == $uid) $amount = -$amount;
+      $r = round($r + $amount, 2);
+      $a->slaveCacheR($r); // don't let slave r go negative
+
+      if (r\isReward($type)) {
+        if (in_array($type, [TX_REBATE, TX_BONUS])) $committed = round($committed + $amount * $a->share / 100, 2);
+        $rewards = round($rewards + $amount, 2);
+      }
     }
     // handle special case of paying the community to "give back" rewards [see also w\transfer()]
 //    if (r\isGiveback($uid, $t_payer, @$t_data)) $cache->rewards += $amount; // amount<0
 
-    if (!$a->update((array) $cache)) return FALSE;
+    return $a->update(compact(u\ray($cacheFields)));
 // NO    if ($t_type == TX_TRANSFER and $t_amount > 0) r\membershipEvent($a, 'bona', TRUE);
-    return TRUE;
   }
   
   /**

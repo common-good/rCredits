@@ -35,11 +35,15 @@ Scenario: members share their transaction rewards
   Then transactions: 
   | xid | created| type     | amount | from | to   | purpose |*
   |   4 | %today | transfer |      1 | .ZZA | cgf | sharing rewards with CGF |
-  |   7 | %today | transfer |   0.40 | .ZZB | cgf | sharing rewards with CGF |
+  |   5 | %today | transfer |   0.40 | .ZZB | cgf | sharing rewards with CGF |
   # plus reward transactions
   And we notice "gift sent" to member ".ZZA" with subs:
-  | amount | rewardAmount |*
-  | $1     | $0.05        |
+  | amount |*
+  | $1     |
   And we notice "gift sent" to member ".ZZB" with subs:
-  | amount | rewardAmount |*
-  | $0.40  | $0.04        |
+  | amount |*
+  | $0.40  |
+
+Scenario: periodic test timer works
+  Then oftenness works
+  

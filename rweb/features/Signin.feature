@@ -5,8 +5,8 @@ SO I can view or change settings, view or handle past transactions, and/or pay o
 
 Setup:
   Given members:
-  | id   | fullName | pass | email |*
-  | .ZZA | Abe One  | a1   | a@    |
+  | id   | fullName | pass | email | flags  |*
+  | .ZZA | Abe One  | a1   | a@    | member |
   And member is logged out
 
 Scenario: A member visits the member site

@@ -157,7 +157,7 @@ function tableDefs($schema = []) {
   $fields = array(
     'qid' => setupField('phoney customer qid', 'varchar 255'),
     'code' => setupfield('phoney card security code', 'varchar 50'),
-    'created' => setupField('Unixtime record was created', 'int 11', 0),
+    'created' => setupField('Unixtime record was created', 'int 11'),
   );
   $foreignKeys = [];
   $indexes = [];
@@ -681,9 +681,10 @@ function specString($spec) {
   . " COMMENT '$description'";
 }
 
-function setupTable($description, $fields, $primary_key, $foreignKeys = [], $indexes = []) {
-  $result = compact('description', 'fields', 'indexes') + array('foreign keys' => $foreignKeys);
-  return is_null($primary_key) ? $result : ($result + array('primary key' => (is_array($primary_key) ? $primary_key : array($primary_key))));
+function setupTable($description, $fields, $primaryKey, $foreignKeys = [], $indexes = []) {
+  $res = compact('description', 'fields', 'indexes') + ['foreign keys' => $foreignKeys];
+  if (@$primaryKey) $res['primary key'] = is_array($primaryKey) ? $primaryKey : [$primaryKey];
+  return $res;
 }
 
 function foreignKey($local, $foreign = 'uid', $table = 'users') {

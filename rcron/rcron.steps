@@ -22,6 +22,7 @@ use rCredits\Util as u;
 use rCredits\Backend as be;
 
 require_once __DIR__ . '/../defs.inc';
+define('IAOY', t('inflation adjustment on your'));
 
 if (basename($_SERVER['SCRIPT_FILENAME']) != 'compile.php') {
   require_once __DIR__ . '/../rcredits.inc';
@@ -478,4 +479,21 @@ function variableIsWithSubs($var, $index, $subs) {return t\varIs($var, $index, $
 function communityEmailForMemberIs($id, $email) {
   global $testOnly; if ($testOnly) return FALSE;
   return r\acct(t\uid($id))->cttyA->update('email', $email);
+}
+
+/**
+ * member (ARG) cache is ok
+ *
+ * in: TEST Inflation InflationAdjustmentsAreDistributed
+ */
+function memberCacheIsOk($id) {return r\acct(t\uid($id))->cacheOk();}
+
+/**
+ * oftenness works
+ *
+ * in: TEST Sharing PeriodicTestTimerWorks
+ */
+function oftennessWorks() {
+  global $testOnly; if (!$testOnly) return FALSE;
+  return f('cr.oftenTests');
 }

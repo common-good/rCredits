@@ -21,7 +21,7 @@ Scenario: A member changes some settings
 #  |     100 |     11 |          0 |          0 |       1 |          0 |      1 |         0 |    25 |
   | notices | statements | secretBal | share |*
   |  weekly |      paper |         0 |    25 |
-  Given member ".ZZA" completes form "settings/bank" with values:
+  And member ".ZZA" completes form "settings/connect" with values:
   | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
   |       1 |     211870281 |         123 |          123 |       1 |    100 |     11 |          0 |
   When member ".ZZD" visits page "sadmin/changes/NEW.ZZA"

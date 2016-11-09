@@ -20,9 +20,9 @@ define('TX_TID_MAX', 100000000); // zero-filler
  * Get a formatted list of transaction records.
  * @return [$header, $classes, $rows, $totals]
  */
-function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $options = []) {
+function getTxRows($starting, $ending, $options = [], $url0 = '', $maxRows = PHP_INT_MAX) {
   $mya = r\acct();
-  extract(u\just('download agents channels boxes', $options));
+  extract(u\just('download agents channels boxes descending', $options));
   if ($mya->jid) $agents = TRUE; // show which partner did it, on joint account
   list ($classes, $header, $downloadHeader) = txFields(@$download, @$agents, @$channels, @$boxes);
 
@@ -62,7 +62,7 @@ function getTxRows($starting, $ending, $url0 = '', $maxRows = PHP_INT_MAX, $opti
     if (!u\test()) exit();
   }
   
-  return array($header, $classes, @$download ? $rows : sortRows($rows), $totDone);
+  return array($header, $classes, @$download ? $rows : sortRows($rows, $descending), $totDone);
 }
 
 /**
@@ -77,14 +77,15 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
   
   $mya = r\acct();
   $myx = r\x($tx, $mya);
-  foreach (u\ray('xid amount byMe toMe fromMe reallyToMe agent data banking tid') as $k) $$k = $myx->$k;
+  foreach (u\ray('xid amount byMe toMe fromMe reallyToMe agent data goods banking tid') as $k) $$k = $myx->$k;
 
   if ($banking and ($amount < 0 xor $xid < 0)) $amount = -$amount; // show as positive unless reversing
   $isExtra = ($myx->type != TX_TRANSFER and !$banking);
   $state = txColoredState($data);
   
   $url = "$url0&xid=" . ($banking ? 'b' : '') . $xid;
-  $reward = $banking ? 0 : ($toMe ? (@$data['bonus'] + @$data['xfee']) : (@$data['rebate'] - @$data['xfee']));
+  if ($goods == FOR_SHARE) list ($reward, $amount) = [$toMe ? $amount : -$amount, 0]; else $reward = 0;
+  $reward += $banking ? 0 : ($toMe ? (@$data['bonus'] + @$data['xfee']) : (@$data['rebate'] - @$data['xfee']));
   $net = number_format(($toMe ? $amount : -$amount) + $reward, 2);
   
   if (isset($data['xfee'])) {$amount = -$amount; $toMe = !$toMe;}
@@ -122,14 +123,14 @@ function doRow($tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FAL
  * @param array $rows: the unsorted rows
  * @return array: those rows without the sort column, sorted
  */
-function sortRows($rows) {
+function sortRows($rows, $descending = FALSE) {
   if (!@$rows) return []; // no records
   $count = count($rows);
   foreach ($rows as $i => $row) {
     $keys[] = array_shift($rows[$i]); // assume we never will list more than a million at once
   }
   $rows = array_combine($keys, $rows);
-  krsort($rows, SORT_STRING);
+  if ($descending) krsort($rows, SORT_STRING); else ksort($rows, SORT_STRING);
   u\EXPECT(count($rows) == $count, "ksort lost rows: was $count, now " . count($rows));
   return array_values($rows);
 }
@@ -241,7 +242,7 @@ function addCat(&$cats, $purpose, $amount, &$dups) {
  */
 function finishCats(&$cats) {
   $otherInCount = $otherIn = $otherOutCount = $otherOut = 0;
-  foreach ($cats as $cat => $one) if ($one[0] == 1 and $cat != INFLATION_DESC) { // show inflation in summary
+  foreach ($cats as $cat => $one) if ($one[0] == 1 and !u\starts($cat, INFLATION_DESC)) { // show inflation in summary
     if ($one[1] < 0) {
       $otherOutCount++; $otherOut += $one[1];
     } else {$otherInCount++; $otherIn += $one[1];}

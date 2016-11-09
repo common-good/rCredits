@@ -77,12 +77,12 @@ Scenario: A member looks at transactions for the past year
 Scenario: A member looks at transactions for the past few days
   When member ".ZZA" visits page "history/transactions/period=15"
   Then we show "Transaction History" with:
-  | Start     |   | 1,870.00 | + | 262.00 | %dmy-15d |
+  | Start     |   | 1,870.00 |   | 262.00 | %dmy-15d |
   | From Bank | + |     0.00 |   |        | -44.00 Pending |
-  | Received  | + |     0.00 | + |        |          |
+  | Received  | + |     0.00 |   |        |          |
   | Out       | - |   220.00 |   |        |          |
   | Rewards   | + |          |   |   6.00 |          |
-  | End       |   | 1,650.00 | + | 268.00 | %dmy     |
+  | End       |   | 1,650.00 |   | 268.00 | %dmy     |
   And with:
   |_tid | Date   | Name       | From you | To you | Status  | _    | Purpose    | Reward/Fee |
   | 6   | %dm-6d | Bea Two    | 100.00   | --     | %chk    | X    | cash V     | --     |
@@ -95,47 +95,46 @@ Scenario: A member looks at transactions for the past few days
   | signup   |
   | rebate   |
   | bonus    |
-Skip
-Scenario: Transactions with other states show up properly
-  Given transactions:
-  | xid   | created   | type     | state    | amount | from | to   | purpose  | taking |*
-  | .AACA | %today-5d | transfer | denied   |    100 | .ZZC | .ZZA | labor CA | 0      |
-  | .AACB | %today-5d | rebate   | denied   |      5 | ctty | .ZZC | rebate   | 0      |
-  | .AACC | %today-5d | bonus    | denied   |     10 | ctty | .ZZA | bonus    | 0      |
-  | .AACD | %today-5d | transfer | denied   |      5 | .ZZA | .ZZC | cash CE  | 1      |
-  | .AACE | %today-5d | transfer | disputed |     80 | .ZZA | .ZZC | this CF  | 1      |
-  | .AACF | %today-5d | rebate   | disputed |      4 | ctty | .ZZA | rebate   | 0      |
-  | .AACG | %today-5d | bonus    | disputed |      8 | ctty | .ZZC | bonus    | 0      |
-  | .AACH | %today-5d | transfer | deleted  |    200 | .ZZA | .ZZC | never    | 1      |
-  | .AACK | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |
-  Then balances:
-  | id   |    r |*
-  | .ZZA | 1942 |
-  | .ZZB | 2554 |
-  | .ZZC | 2320 |
-  When member ".ZZA" visits page "history/transactions/period=5"
-  Then we show "Transaction History" with:
-  |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |
-  | 15  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X  | cash CL    | --     |
-  | 13  | %dm-5d | Corner Pub | 80.00    | --     | disputed | OK | this CF    | 4.00   |
-  | 11  | %dm-5d | Corner Pub | --       | 100.00 | denied   | X  | labor CA   | 10.00  |
-  | b4  | %dm-5d |            |  22.00   | --     | pending  |    | to bank    | --     |
-  | b3  | %dm-5d |            |  33.00   | --     | pending  |    | to bank    | --     |
-  # 12 is missing because ZZA denied it
-  And without:
-  | cash CE |
-  | never   |
-  | rebate  |
-  | bonus   |
-  When member ".ZZC" visits page "history/transactions/period=5"
-  Then we show "Transaction History" with:
-  |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |
-  | 10  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK | cash CL    | --     |
-  | 8   | %dm-5d | Abe One    | --       | 80.00  | disputed | X  | this CF    | 8.00   |
-  | 7   | %dm-5d | Abe One    | --       | 5.00   | denied   | X  | cash CE    | --     |
-  And without:
-  | labor CA|
-  | never   |
-  | rebate  |
-  | bonus   |
-Resume
+
+#Scenario: Transactions with other states show up properly
+#  Given transactions:
+#  | xid   | created   | type     | state    | amount | from | to   | purpose  | taking |*
+#  | .AACA | %today-5d | transfer | denied   |    100 | .ZZC | .ZZA | labor CA | 0      |
+#  | .AACB | %today-5d | rebate   | denied   |      5 | ctty | .ZZC | rebate   | 0      |
+#  | .AACC | %today-5d | bonus    | denied   |     10 | ctty | .ZZA | bonus    | 0      |
+#  | .AACD | %today-5d | transfer | denied   |      5 | .ZZA | .ZZC | cash CE  | 1      |
+#  | .AACE | %today-5d | transfer | disputed |     80 | .ZZA | .ZZC | this CF  | 1      |
+#  | .AACF | %today-5d | rebate   | disputed |      4 | ctty | .ZZA | rebate   | 0      |
+#  | .AACG | %today-5d | bonus    | disputed |      8 | ctty | .ZZC | bonus    | 0      |
+#  | .AACH | %today-5d | transfer | deleted  |    200 | .ZZA | .ZZC | never    | 1      |
+#  | .AACK | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |
+#  Then balances:
+#  | id   |    r |*
+#  | .ZZA | 1942 |
+#  | .ZZB | 2554 |
+#  | .ZZC | 2320 |
+#  When member ".ZZA" visits page "history/transactions/period=5"
+#  Then we show "Transaction History" with:
+#  |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |
+#  | 15  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X  | cash CL    | --     |
+#  | 13  | %dm-5d | Corner Pub | 80.00    | --     | disputed | OK | this CF    | 4.00   |
+#  | 11  | %dm-5d | Corner Pub | --       | 100.00 | denied   | X  | labor CA   | 10.00  |
+#  | b4  | %dm-5d |            |  22.00   | --     | pending  |    | to bank    | --     |
+#  | b3  | %dm-5d |            |  33.00   | --     | pending  |    | to bank    | --     |
+#  # 12 is missing because ZZA denied it
+#  And without:
+#  | cash CE |
+#  | never   |
+#  | rebate  |
+#  | bonus   |
+#  When member ".ZZC" visits page "history/transactions/period=5"
+#  Then we show "Transaction History" with:
+#  |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |
+#  | 10  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK | cash CL    | --     |
+#  | 8   | %dm-5d | Abe One    | --       | 80.00  | disputed | X  | this CF    | 8.00   |
+#  | 7   | %dm-5d | Abe One    | --       | 5.00   | denied   | X  | cash CE    | --     |
+#  And without:
+#  | labor CA|
+#  | never   |
+#  | rebate  |
+#  | bonus   |

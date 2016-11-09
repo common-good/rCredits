@@ -62,8 +62,8 @@ MENU_SUGGESTED_ITEM  Menu type -- A normal menu item, hidden until enabled by an
 function rweb_menu($submenu = '') {
 
   $items = array(
-    'signin' => ['call', 'Sign in', 'Signin', 'anyone'],
-//    'sinx' => ['call', 'Sign in from elsewhere', 'Sinx', 'anyone'],
+    'signin' => ['call', 'Sign in', 'Signin', ANY],
+//    'sinx' => ['call', 'Sign in from elsewhere', 'Sinx', ANY],
 
     'summary' => ['norm', t('Summary'), 'Summary', 'read'],
 
@@ -71,7 +71,7 @@ function rweb_menu($submenu = '') {
     'pay' => ['norm', t('Pay'), 'Tx 1', 'buy ok confirmed'],
     'pay/one' => ['sub', t('Pay One'), 'Tx', 'co buy ok'],
     'pay/payroll' => ['sub', t('Upload Payroll'), 'Payroll', 'co buy ok'],
-    'pay/zot' => ['sub', 'zot', '', 'anyone'], // Drupal bug: last choice is omitted
+    'pay/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
 
     'grant' => ['norm', t('Grant'), 'Tx', 'managing_ctty'],
     'loan' => ['norm', t('Loan'), 'Tx', 'managing_ctty'],
@@ -80,7 +80,7 @@ function rweb_menu($submenu = '') {
 
     'get' => ['norm', t('Bank'), 'Get 1', 'manage bank ok'],
 
-    'history' => ['norm', t('History'), 'History', 'read'],
+    'history' => ['norm', t('History'), 'History', 'read member'],
     'history/transactions' => ['sub', t('Transactions'), 'Txs 2', 'read', '', t(''), 'list'],
     'history/invoices-to' => ['sub', t('Invoices TO You'), 'Invoices to', 'read', '', t(''), 'log-in'],
     'history/invoices-from' => ['sub', t('Invoices FROM You'), 'Invoices from', 'read', '', t(''), 'log-out'],
@@ -88,25 +88,25 @@ function rweb_menu($submenu = '') {
     'history/notices' => ['sub', t('Notices'), 'Notices 2', 'read', '', t(''), 'envelope'],
     'history/tax-info' => ['sub', t('Tax Info'), 'TaxInfo', 'read', '', t(''), 'pawn'],
     'history/changes' => ['sub', t('See Changes'), 'SeeChanges', 'cadmin', '', t(''), 'refresh'],
-    'history/zot' => ['sub', 'zot', '', 'anyone'], // Drupal bug: last choice is omitted
+    'history/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
     'history/statement' => ['call', t('Statement'), '2', 'read', 'statement'],
 //    'history/notice' => ['call', t('Notice'), 'Notice 2', 'read'],
     
-//    'community' => ['norm', t('Community'), 'FindCo', 'anyone'],
-    'proposal' => ['call', t('Funding Proposal'), 'Proposal', 'anyone'], // keep the url short, for outsiders
-    'community' => ['norm', t('Community'), 'Community', 'anyone'],
+//    'community' => ['norm', t('Community'), 'FindCo', ANY],
+    'proposal' => ['call', t('Funding Proposal'), 'Proposal', ANY], // keep the url short, for outsiders
+    'community' => ['norm', t('Community'), 'Community', ANY],
     'community/democracy' => ['sub', t('Discussion & Voting'), 'Democracy 2', 'ok manage', '', t(''), 'bell'],
-    'community/agreement' => ['sub', t('The Agreement'), 'Agreement', 'anyone', '', t(''), 'globe'],
+    'community/agreement' => ['sub', t('The Agreement'), 'Agreement', ANY, '', t(''), 'globe'],
     'community/invite' => ['sub', t('Invite Someone'), 'Invite', 'member manage', '', t(''), 'share-alt'],
     'community/message' => ['sub', t('Message a Member'), 'Message', 'member manage', '', t(''), 'envelope'],
-    'community/find-company' => ['sub', t('Find a Company'), 'FindCo', 'anyone', '', t(''), 'search'],
+    'community/find-company' => ['sub', t('Find a Company'), 'FindCo', ANY, '', t(''), 'search'],
     'community/donate' => ['sub', t('Donate'), 'Donate', 'manage', '', t(''), 'thumbs-up'],
-    'community/grant' => ['sub', t('Get Paid to Organize'), 'Grant', 'anyone', '', t(''), 'apple'],
-    'community/funds' => ['sub', t('Funds in Each Community'), 'CttyFunds', 'anyone', '', t(''), 'usd'],
-    'community/graphs' => ['sub', t('rCredits Economy Graphs'), 'Graphs 2', 'anyone', '', t(''), 'stats'],
-    'community/flags' => ['sub', t('Risk Flags'), 'Flags 2', 'anyone', '', t(''), 'flag'],
-//    'community/game' => isGAME ? ['sub', t('Game'), 'Game', 'anyone') : NULL,
-    'community/zot' => ['sub', 'zot', '', 'anyone'], // Drupal bug: last choice is omitted
+    'community/grant' => ['sub', t('Get Paid to Organize'), 'Grant', ANY, '', t(''), 'apple'],
+    'community/funds' => ['sub', t('Funds in Each Community'), 'CttyFunds', ANY, '', t(''), 'usd'],
+    'community/graphs' => ['sub', t('rCredits Economy Graphs'), 'Graphs 2', ANY, '', t(''), 'stats'],
+    'community/flags' => ['sub', t('Risk Flags'), 'Flags 2', ANY, '', t(''), 'flag'],
+//    'community/game' => isGAME ? ['sub', t('Game'), 'Game', ANY) : NULL,
+    'community/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
     'community/invite/print' => ['call', t('Print Invite'), '', 'manage', 'printInvite'],
     'community/invite/invited-whom' => ['call', 'Invited Whom', 'InvitedWhom', 'manage'],
     'community/invite/waiting' => ['call', 'Waiting', 'Waiting', 'manage'],
@@ -114,24 +114,24 @@ function rweb_menu($submenu = '') {
     'settings' => ['norm', t('Settings'), 'Settings', 'manage -closed'],
 //    'settings/settings' => ['dft', t('Settings'), 'Settings', 'manage'],
     'settings/contact' => ['sub', t('Contact Info'), 'Contact', 'manage', '', t(''), 'user'],
-    'settings/preferences' => ['sub', t('Preferences'), 'Preferences', 'manage', '', t(''), 'cog'],
+    'settings/preferences' => ['sub', t('Preferences'), 'Prefs', 'manage', '', t(''), 'cog'],
     'settings/security' => ['sub', t('Security'), 'Security 2', 'manage -co', '', t(''), 'link'],
-    'settings/bank' => ['sub', t('Bank Info'), 'BankInfo 2', 'manage', '', t(''), 'piggy-bank'],
+    'settings/connect' => ['sub', t('Bank Info'), 'Connect 2', 'manage', '', t(''), 'piggy-bank'],
     'settings/company' => ['sub', t('Company Info'), 'Company 2', 'manage co', '', t(''), 'calendar'],
     'settings/relations' => ['sub', t('Relations'), 'Relations', 'manage', '', t(''), 'magnet'],
 // DISABLE FOR NOW    'settings/boxes' => ['sub', t('Devices'), 'Boxes', 'manage', '', t(''), 'phone'],
     'settings/proxies' => ['sub', t('Proxies'), 'Proxies', 'manage -co', '', t(''), 'thumbs-up'],
-    'settings/zot' => ['sub', 'zot', '', 'anyone'], // Drupal bug: last choice is omitted
+    'settings/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
 
-    'reset' => ['call', t('Choose New Password'), 'ResetPassword 1', 'anyone'],
+    'reset' => ['call', t('Choose New Password'), 'ResetPassword 1', ANY],
     'settings/notifications' => ['call', t('Notifications'), 'Notifications', 'manage'],
     'settings/ssn' => ['call', t('Correct SSN'), 'Ssn 2', 'manage'],
-    'settings/password' => ['call', t('Request New Password'), 'Pass 2', 'anyone'],
+    'settings/password' => ['call', t('Request New Password'), 'Pass 2', ANY],
     'settings/security/change-password' => ['call', 'Change Password', 'ChangePassword', 'manage'],
     'settings/security/change-pin' => ['call', 'Change PIN', 'ChangePin', 'manage'],
-    'settings/member-photo' => ['call', 'Member Photo', '2 3', 'anyone', 'memberPhoto'],
+    'settings/member-photo' => ['call', 'Member Photo', '2 3', ANY, 'memberPhoto'],
     'settings/security/photo' => ['call', 'Photo', 'Photo 3', 'manage'],
-    'settings/security/photo/upload' => ['call', 'Photo Upload', '4 5', 'anyone', 'photoUpload'],
+    'settings/security/photo/upload' => ['call', 'Photo Upload', '4 5', ANY, 'photoUpload'],
     'settings/icon' => ['call', 'Icon', 'Icon', 'read'],
 //    'settings/verify-phone' => ['call', 'Verify Phone', 'VerifyPhone', 'manage dw'],
 //    'settings/readd-phone' => ['call', 'reAdd Phone', '', 'manage dw', 'addPhone'],
@@ -139,21 +139,23 @@ function rweb_menu($submenu = '') {
 //    'settings/kba' => ['call', 'Kba', 'Kba', 'manage dw'],
 //    'settings/security/photo-id' => ['call', 'Kba', 'PhotoId', 'manage'],
     'settings/proxy' => ['call', 'Proxy', 'Proxy 2', 'manage'],
+    'settings/verify' => ['call', 'Verify Email', 'Verify 1', 'manage'],
+    'settings/resend' => ['call', 'Resend Email', 'Resend', 'manage'],
 
 //    'handy' => isDEV ? ['norm', t('Handy'), '', 'dev', 'handyLinks'] : NULL,
     'tests' => isDEV ? ['norm', t('Test'), '1', isDEV ? 'dev' : NULL, 'test'] : NULL,
 //    'php' => isDEV ? ['norm', t('PHP'), 'Php', 'dev'] : NULL,
     
-    'menu' => ['call', t('Menu'), 'Menu', 'anyone'],
-    'empty' => ['call', t('Empty'), 'Empty 1', 'anyone'],
-    'prox' => ['call', t('Prox'), 'Prox 1 2', 'anyone'], // proxy form called from rdo()
+    'menu' => ['call', t('Menu'), 'Menu', ANY],
+    'empty' => ['call', t('Empty'), 'Empty 1', ANY],
+    'prox' => ['call', t('Prox'), 'Prox 1 2', ANY], // proxy form called from rdo()
 
     'request-employee-rcard' => ['call', t('Request Employee rCard'), 'RequestRCard 1', 'manage'],
     
-    'I' => ['call', 'Scanned QR', 'I', 'anyone'],
+    'I' => ['call', 'Scanned QR', 'I', ANY],
     
     'signup-company' => ['call', t('Open a Company Account'), 'SignupCo', 'manage'],
-    'handle-invoice' => ['call', t('Handle Invoice'), 'HandleInvoice 1', 'anyone'],
+    'handle-invoice' => ['call', t('Handle Invoice'), 'HandleInvoice 1', ANY],
     'rerisk' => ['call', t('Recalculate Risk'), 'Rerisk 1 2 3', 'regulator'],
 
     'sadmin' => ['norm', t('Admin'), 'Admin', 'cadmin2'],
@@ -177,28 +179,28 @@ function rweb_menu($submenu = '') {
     'sadmin/recover' => ['call', t('Empty'), 'TestRecovery 1', 'dev'], // also go here manually, if needed
     'print-rcard' => ['call', t('Print ID Card'), '1 2', 'cadmin', 'memberID'],
 
-    'signout' => ['norm', t('Sign out'), '1', 'anyone', 'signout'],
+    'signout' => ['norm', t('Sign out'), '1', 'read', 'signout'],
     
-    'help' => ['call', t('Help'), 'Help 1 2', 'anyone'],
-    'change-account' => ['call', t('Change Who'), '1', 'anyone', 'changeWho'],
+    'help' => ['call', t('Help'), 'Help 1 2', ANY],
+    'change-account' => ['call', t('Change Who'), '1', ANY, 'changeWho'],
     'status' => ['call', 'Status', 'Membership 1', 'manage'],
-    'signup' => ['call', t('Sign Up For rCredits'), 'Signup', 'anyone'],
-    'menu' => ['call', 'Main Menu', 'Menu', 'anyone'],
-    'member' => ['call', 'Company Profile', 'Profile', 'anyone'],
-    'autocomplete' => ['call', 'Identify', '1 2 3', 'anyone', 'auto'],
-    'do' => ['call', 'Do', '1 2', 'anyone', 'rdo'],
-    'coup' => ['call', t('Disable account'), '1', 'anyone', 'coup'],
+    'signup' => ['call', t('Sign Up For rCredits'), 'Signup', ANY],
+    'menu' => ['call', 'Main Menu', 'Menu', ANY],
+    'member' => ['call', 'Company Profile', 'Profile', ANY],
+    'autocomplete' => ['call', 'Identify', '1 2 3', ANY, 'auto'],
+    'do' => ['call', 'Do', '1 2', ANY, 'rdo'],
+    'coup' => ['call', t('Disable account'), '1', ANY, 'coup'],
 
-//    'savings' => ['call', t('Savings'), 'ChooseSavings', 'anyone'], // temporary until 12/15/2015 or so
-    'accept' => ['call', 'Accept Invitation', 'Accept 1', 'anyone'], // called from promo site rCredits.org
-    'pos' => ['call', 'POS', '', 'anyone', 'rCredits\\Smart\\pos'], // called from the rPOS app
-    'ajax' => ['call', 'AJAX', '1', 'anyone', 'ajax'], // called from the rPOS app
-    'whosin' => ['call', t('Who\'s in?'), '1', 'anyone', 'whosin'], // called from promo site
-    'secret' => ['call', 'Secret', '', 'anyone', 'secrets'],
-    'error' => ['call', 'System Error', '1', 'anyone', 'error'],
-    'page-not-found' => ['call', t('Page Not Found'), 'PageNotFound', 'anyone'],
+//    'savings' => ['call', t('Savings'), 'ChooseSavings', ANY], // temporary until 12/15/2015 or so
+    'accept' => ['call', 'Accept Invitation', 'Accept 1', ANY], // called from promo site rCredits.org
+    'pos' => ['call', 'POS', '', ANY, 'rCredits\\Smart\\pos'], // called from the rPOS app
+    'ajax' => ['call', 'AJAX', '1', ANY, 'ajax'], // called from the rPOS app
+    'whosin' => ['call', t('Who\'s in?'), '1', ANY, 'whosin'], // called from promo site
+    'secret' => ['call', 'Secret', '', ANY, 'secrets'],
+    'error' => ['call', 'System Error', '1', ANY, 'error'],
+    'page-not-found' => ['call', t('Page Not Found'), 'PageNotFound', ANY],
     
-    'pay-with-rcredits' => ['call', 'Pay With rCredits', 'Buy', 'anyone'], // form will require PIN
+    'pay-with-rcredits' => ['call', 'Pay With rCredits', 'Buy', ANY], // form will require PIN
   );
 // $menu['user/password'] = $menu['settings/password']; // duplicates user/password (handles built-in Drupal link)
 
