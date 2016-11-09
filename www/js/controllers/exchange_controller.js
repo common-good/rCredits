@@ -20,9 +20,10 @@
 		};
 		this.doExchange = function () {
 			$ionicLoading.show();
+			console.log($scope.amount, this.exchange.getCurrencyFrom(), this);
 			TransactionService.exchange($scope.amount, this.exchange.getCurrencyFrom(), this.paymentMethod)
 				.then(function (transaction) {
-					console.log(transaction);
+					console.log(transaction,$scope.amount, this);
 					$state.go('app.transaction_result',
 						{'transactionStatus': 'success', 'transactionAmount': transaction.amount});
 				})

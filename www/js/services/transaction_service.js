@@ -83,7 +83,7 @@ app.service('TransactionService',
 		TransactionService.prototype.charge = function (amount, description, goods, force) {
 			return this.makeTransactionRequest(amount, description, goods, force)
 				.then(function (transactionResult) {
-					if (transactionResult.ok === TRANSACTION_OK) {
+					if (transactionResult.data.ok === TRANSACTION_OK) {
 						var transaction = self.parseTransaction_(transactionResult);
 						transaction.configureType(amount);
 						var customer = UserService.currentCustomer();
@@ -104,7 +104,7 @@ app.service('TransactionService',
 					} else {
 						for (var v in transactionResult) {
 						}
-							console.log(transactionResult.ok, transactionResult);
+							console.log(transactionResult.data.ok, transactionResult);
 					}
 					self.lastTransaction = transactionResult;
 					throw transactionResult;

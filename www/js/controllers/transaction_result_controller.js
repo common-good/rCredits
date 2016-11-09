@@ -34,9 +34,9 @@ app.controller('TransactionResultCtrl', function ($scope, $state, NetworkService
 	onoroff();
 	$scope.setMessages = function (transactionResult) {
 		if (NetworkService.isOnline()) {
-			console.log(transactionResult.lastTransaction.data.txid);
-			$scope.note = transactionResult.lastTransaction.data.message;
-			if (transactionResult.lastTransaction.data.txid) {
+			console.log(transactionResult);
+			$scope.note = transactionResult.data.message;
+			if (transactionResult.data.txid) {
 				if ($scope.note.indexOf("ransaction has been canceled") > -1) {
 					$scope.heading = 'Canceled';
 					$scope.success = false;
