@@ -11,6 +11,7 @@
 			},
 			setBalance: function (balance) {
 				this.balance = balance;
+				console.log(balance);
 				return this;
 			},
 			getPlace: function () {
@@ -20,6 +21,7 @@
 				return this.balance;
 			},
 			getRewards: function () {
+				console.log(this.balance);
 				return this.rewards;
 			},
 			setLastTx: function (transaction) {

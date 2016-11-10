@@ -94,7 +94,7 @@ app.service('TransactionService',
 						transaction.goods = 1;
 						transaction.data=transactionResult.data;
 						customer.setLastTx(transaction);
-						console.log(transactionResult.data.proof);
+						console.log(transactionResult.proof);
 						customer.saveInSQLite().then(function () {
 							self.saveTransaction(transaction);
 						});

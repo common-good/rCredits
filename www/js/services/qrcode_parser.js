@@ -35,7 +35,7 @@
 		this.parts = this.accountInfo.url.split(/[/\\.-]/);
 		if (this.parts[5].length <= 4) {
 			oldCode = true;
-		}else{
+		} else {
 			oldCode = false;
 		}
 		this.count = this.parts.length;
@@ -86,7 +86,7 @@
 			region = r36ToR26(region, regionLen);
 			if (this.accountInfo.isCompany) {
 				this.accountInfo.signin = 1;
-				this.accountInfo.accountId = region + account+'-'+r36ToR26(tail.substring(1 + acctLen,1 + acctLen + agentLen));
+				this.accountInfo.accountId = region + account + '-' + r36ToR26(tail.substring(1 + acctLen, 1 + acctLen + agentLen), agentLen, true);
 			} else {
 				this.accountInfo.accountId = region + account;
 				this.accountInfo.signin = 0;
@@ -139,19 +139,21 @@
 		this.accountInfo.unencryptedCode = this.url.pathname.substr(5, this.url.pathname.length - 1);
 		console.log(this.accountInfo.securityCode);
 	};
-	function r36ToR26(part, s2Len) {
+	function r36ToR26(part, s2Len, isAgent) {
 		console.log(part);
 		var std = '0123456789abcdefghijklmnop';
-		var ours= 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		var ours = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		var s = parseInt(part, 36).toString(26); // d4m
 		var s2 = '';
 		for (var i = 0; i < s.length; i++) {
 			s2 += ours.charAt(std.indexOf(s.charAt(i)));
-			console.log(s,s.charAt(i),std.indexOf(s.charAt(i)));
+			console.log(s, s.charAt(i), std.indexOf(s.charAt(i)));
 		}
 		console.log(s2.length, s2Len, s.charAt(i), s2, s, part, s2Len);
-		while ((s2.length < s2Len) || (s2.length < 3)) {
-			s2 = 'A' + s2;
+		if (!isAgent) {
+			while ((s2.length < s2Len) || (s2.length < 3)) {
+				s2 = 'A' + s2;
+			}
 		}
 		console.log(s2);
 		return s2;
