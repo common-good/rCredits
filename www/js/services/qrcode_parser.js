@@ -127,7 +127,7 @@
 			separator = COMPANY_INDICATOR_URL;
 		}
 		this.accountInfo.memberId = memberId;
-		this.accountInfo.accountId = memberId + separator + yyy;
+		this.accountInfo.accountId = memberId +yyy;
 	};
 	QRCodeParser.prototype.parseServerType_ = function () {
 		var lastPoint = this.url.host.lastIndexOf('.');
