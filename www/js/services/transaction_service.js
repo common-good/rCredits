@@ -87,14 +87,14 @@ app.service('TransactionService',
 						var transaction = self.parseTransaction_(transactionResult);
 						transaction.configureType(amount);
 						var customer = UserService.currentCustomer();
-						customer.balance = transactionResult.balance;
-						customer.rewards = transactionResult.rewards;
+						customer.balance = transactionResult.data.balance;
+						customer.rewards = transactionResult.data.rewards;
 						transaction.amount = amount;
 						transaction.description = description;
 						transaction.goods = 1;
 						transaction.data=transactionResult.data;
 						customer.setLastTx(transaction);
-						console.log(transactionResult.proof);
+						console.log(customer.balance);
 						customer.saveInSQLite().then(function () {
 							self.saveTransaction(transaction);
 						});
