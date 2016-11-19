@@ -128,7 +128,16 @@ angular.module('routes', [])
 						controller: 'SelectDemoCust'
 					}
 				}
-			});
+			})
+			.state('app.qr', {
+				url: '/customer-qr',
+				views: {
+					'menuContent': {
+						templateUrl: 'templates/customer-qr.html',
+						controller: 'QRCtrl'
+					}
+				}
+			});;
 		// if none of the above states are matched, use this as the fallback
 		$urlRouterProvider.otherwise('/app/login');
 	});

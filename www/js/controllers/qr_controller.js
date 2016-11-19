@@ -1,5 +1,18 @@
-app.controller('CustomerMenuCtrl', function ($scope, $state, $ionicLoading, UserService, $ionicHistory, NotificationService, CashierModeService, PermissionService, SelfServiceMode) {
+/* global QRCode, app, PermissionService */
+app.controller('QRCtrl', function ($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory,
+	NotificationService, CashierModeService, PreferenceService, NetworkService,
+	SelfServiceMode, $ionicSideMenuDelegate, $timeout) {
+	// Create a QR code
 	$scope.customer = UserService.currentCustomer();
+	console.log($scope.customer.accountInfo.url);
+	var qrcode = new QRCode(document.getElementById("qrcode"), {
+		width: 100,
+		height: 100
+	});
+	function makeCode() {
+		qrcode.makeCode($scope.customer.accountInfo.url);
+	}
+	$scope.qrcodeAng = makeCode();
 	$scope.showBalance = function () {
 		if ($scope.customer.balanceSecret) {
 			NotificationService.showAlert('balanceIsSecret');
@@ -15,8 +28,8 @@ app.controller('CustomerMenuCtrl', function ($scope, $state, $ionicLoading, User
 	$scope.hideLoading = function () {
 		$ionicLoading.hide();
 	};
-	$scope.showQR=function (){
-		$state.go('app.qr')
+	$scope.showQR = function () {
+		$state.go('app.qr');
 	};
 	$scope.$on('$destroy', function () {
 		$scope.customer = null;

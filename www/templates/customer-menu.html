@@ -1,9 +1,13 @@
 <ion-view class="customer-menu">
 	<ion-nav-buttons side="secondary">
+		<button class="button button-stable" ng-click="showQR()">
+			{{ 'qr' | translate }}
+		</button>
+		&nbsp;&nbsp;
 		<button class="button button-stable" ng-if="isOnline() && !isSelfServiceEnabled()" ng-click="showBalance()">
 			{{ 'balance' | translate }}
 		</button>
-	</ion-nav-buttons>
+		</ion-nav-buttons>
 	<subheader></subheader>
 	<ion-content class="has-subheader">
 		<div class="rc">
