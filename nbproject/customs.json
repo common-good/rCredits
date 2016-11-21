@@ -25,6 +25,7 @@
 		},
 		"ion-content": {
 			"attributes": {
+				"ng-controller": {},
 				"class": {}
 			}
 		},

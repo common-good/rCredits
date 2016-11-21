@@ -5,17 +5,14 @@ app.controller('TransactionResultCtrl', function ($scope, $state, NetworkService
 	$scope.transactionStatus = $stateParams.transactionStatus;
 	$scope.transactionAmount = $stateParams.transactionAmount;
 	$scope.networkStatus = NetworkService.isOnline();
-//	$scope.undo=function(){
-//		if(NetworkService.connectionOnline===true){
-//			$scope.timeCan=false;
-//		}
-//	};
+	$scope.showQR=function (){
+		$state.go('app.qr');
+	};
 	BackButtonService.disable();
 
 	var statusKey;
 	$scope.success = false;
 	$scope.timeCan = true;
-//
 	// Enable UNDO btn for 1 min
 	$timeout(function () {
 		$scope.timeCan = false;

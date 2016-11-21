@@ -9,27 +9,15 @@
 		</button>
 	</ion-nav-buttons>
 	<subheader></subheader>
-	<ion-content class="has-subheader"  ng-controller="QRCtrl">
+	<ion-content class="has-subheader">
 		<div class="rc">
 			<p class="customer-name">{{customer.name}}</p>
-			<ion-view class="customer-menu">
-				<ion-nav-buttons side="secondary">
-					<button class="button button-stable" ng-click="showQR()">
-						{{ 'qr' | translate }}
-					</button>
-				</ion-nav-buttons>
-				<subheader></subheader>
-				<ion-content class="has-subheader">
-					<div class="rc">
-						<img id="ItemPreview" src="img/New-rCredits-Customer.png" ng-src="{{customer.photo}}" class="customer-img" sf-load="hideLoading()"/>
-						<p class="customer-name">{{customer.name}}</p>
-						<p>{{customer.place}}</p>
-						<div id="qrcode"></div>
-						<p>{{customer.url}}</p>
-					</div>
-				</ion-content>
-			</ion-view>
-
+			<div class="rc">
+				<img id="ItemPreview" src="img/New-rCredits-Customer.png" ng-src="{{customer.photo}}" class="customer-img" sf-load="hideLoading()"/>
+				<p>{{customer.place}}</p>
+				<div id="qrcode"></div>
+				<div>{{customer.url}}</div>
+			</div>
 		</div>
 	</ion-content>
 </ion-view>

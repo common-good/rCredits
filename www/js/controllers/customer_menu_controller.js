@@ -16,7 +16,7 @@ app.controller('CustomerMenuCtrl', function ($scope, $state, $ionicLoading, User
 		$ionicLoading.hide();
 	};
 	$scope.showQR=function (){
-		$state.go('app.qr')
+		$state.go('app.qr');
 	};
 	$scope.$on('$destroy', function () {
 		$scope.customer = null;

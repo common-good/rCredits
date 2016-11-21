@@ -83,6 +83,7 @@ app.service('TransactionService',
 		TransactionService.prototype.charge = function (amount, description, goods, force) {
 			return this.makeTransactionRequest(amount, description, goods, force)
 				.then(function (transactionResult) {
+					console.log(transactionResult.data.ok, transactionResult);
 					if (transactionResult.data.ok === TRANSACTION_OK) {
 						var transaction = self.parseTransaction_(transactionResult);
 						transaction.configureType(amount);
@@ -92,7 +93,7 @@ app.service('TransactionService',
 						transaction.amount = amount;
 						transaction.description = description;
 						transaction.goods = 1;
-						transaction.data=transactionResult.data;
+						transaction.data = transactionResult.data;
 						customer.setLastTx(transaction);
 						console.log(customer.balance);
 						customer.saveInSQLite().then(function () {
@@ -104,7 +105,7 @@ app.service('TransactionService',
 					} else {
 						for (var v in transactionResult) {
 						}
-							console.log(transactionResult.data.ok, transactionResult);
+						console.log(transactionResult.data.ok, transactionResult);
 					}
 					self.lastTransaction = transactionResult;
 					throw transactionResult;
@@ -166,14 +167,13 @@ app.service('TransactionService',
 					sellerId: seller.getId()
 				}),
 				transaction.description
-				
+
 			]);
 			return SQLiteService.executeQuery(sqlQuery);
 		};
 		TransactionService.prototype.doOfflineTransaction = function (params, customer) {
 			var q = $q.defer();
-			var transactionResponseOk= {
-				"ok": "1",
+			var transactionResponseOk = {
 				"message": "",
 				"txid": customer.getId(),
 				"created": moment().unix(),
@@ -182,8 +182,10 @@ app.service('TransactionService',
 				"did": "",
 				"undo": "",
 				"transaction_status": Transaction.Status.OFFLINE,
-				"data":params
+				"data": params,
+				"ok":"1"
 			};
+			transactionResponseOk.data.ok="1";
 			var transactionResponseError = {
 				"ok": "0",
 				"message": "There has been an error"

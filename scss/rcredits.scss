@@ -108,7 +108,12 @@ subheader {
 .exchangeText2, .exchangeText2 > option, .item-select select{
 	font-size: 1.3em;
 }
-
+#qrcode img{
+	z-index: 9999999;
+	margin: auto;
+	display: inherit;/*
+	position: relative;*/
+}
 /*.item-radio input:checked + .radio-content .item-content {
 	color: black;
 }

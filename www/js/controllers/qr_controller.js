@@ -4,15 +4,17 @@ app.controller('QRCtrl', function ($scope, $state, $ionicLoading, BarcodeService
 	SelfServiceMode, $ionicSideMenuDelegate, $timeout) {
 	// Create a QR code
 	$scope.customer = UserService.currentCustomer();
-	console.log($scope.customer.accountInfo.url);
-	var qrcode = new QRCode(document.getElementById("qrcode"), {
-		width: 100,
-		height: 100
+//	var qrcode = new QRCode(document.getElementById("qrcode"), {
+//		text:$scope.customer.accountInfo.url,
+//		width: 200,
+//		height: 200
+//	});
+//	var makeCode = 
+	$scope.qrcode=new QRCode(document.getElementById("qrcode"), {
+		text:$scope.customer.accountInfo.url,
+		width: 200,
+		height: 200
 	});
-	function makeCode() {
-		qrcode.makeCode($scope.customer.accountInfo.url);
-	}
-	$scope.qrcodeAng = makeCode();
 	$scope.showBalance = function () {
 		if ($scope.customer.balanceSecret) {
 			NotificationService.showAlert('balanceIsSecret');
