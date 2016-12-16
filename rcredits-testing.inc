@@ -663,12 +663,14 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = []) {
   return db\exists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
-function weTellStaff($topic, $subs = []) {
+function weTellAdmin($topic, $subs = []) {
   global $testOnly; if (!$testOnly) return t\output('Cannot MAKE tellStaff!');
 
   if (!@$subs[0]) $subs[0] = [];
-  $regionEmail = r\regionfield('email');
-  return t\findEmail('tell-staff', $regionEmail, $subs[0] + u\ray('topic noFrame message', $topic, TRUE, '?'));
+//  $regionEmail = r\regionfield('email');
+  return t\findEmail('tell-staff', R_ADMIN_EMAIL, $subs[0] + u\ray('topic noFrame message', $topic, TRUE, '?'));
+}
+
 /*  
   foreach ($subs as $one) {
     $index = 'tell-staff';
@@ -689,7 +691,6 @@ function weTellStaff($topic, $subs = []) {
   }
   return TRUE;
   */
-}
 
 /**
  * Say whether any such email has been sent to the specified address.
@@ -707,7 +708,7 @@ function noSuchEmail($index, $email) {
 function findEmail($index, $email, $subs) {
   global $testOnly; if (!$testOnly) return t\output('Cannot MAKE findEmail!');
   global $testEmails; if (!@$testEmails) return t\output('There are no testEmails!');
-///  debug(u\jsonEncode(compact(u\ray('index email subs testEmails'))));
+//  debug(u\jsonEncode(compact(u\ray('index email subs testEmails'))));
 
   $subs = is_array(@$subs[0]) ? $subs[0] : @$subs;
   t\fixEmail($email);
@@ -746,6 +747,8 @@ function findEmail($index, $email, $subs) {
       extract($one, EXTR_PREFIX_ALL, 't'); // t_ means actual values
       if ($t_index == $index and $t_toEmail == $email) {
         foreach ($t_subs as $k => $v) if (!is_array($v)) $t_subs[$k] = strtr(strip_tags($v), $map);
+        if (isset($t_subs['site'])) $subs['site'] = BASE_URL; // site parameter is set in boot.inc so compiler.php can't see it.
+///        print_r($subs); die('here');
         if (@$ignore) foreach ($ignore as $k) unset($t_subs[$k]);
         ksort($t_subs);
         $wantedInActual = u\just(array_keys($subs), $t_subs);
@@ -800,9 +803,14 @@ function weShowWithSubs($page, $subs) {
 /**/ if (!$res) debug(compact('wanted', 'subs', 'testConfirmation'));
     return $res;
   }
-  $form = strtr(t\strip(r\Web\showForm($page, @$subs['arg1'], @$subs['arg2'])), $subs);
-  t\output("<b>WANTED: </b>$form", 'screen');
-  if ($form != $formOut['text']) return FALSE;
+  
+  if (strpos($page, '/statement')) {
+    $form = @file_get_contents(TEST_PDF_FLNM);
+  } else {
+    $form = strtr(t\strip(r\Web\showForm($page, @$subs['arg1'], @$subs['arg2'])), $subs);
+    t\output("<b>WANTED: </b>$form", 'screen');
+    if ($form != $formOut['text']) return FALSE;
+  }
   unset($subs['arg1']);
   unset($subs['arg2']);
   foreach ($subs as $one) if (strpos($form, $one) === FALSE) return FALSE; // sometimes we dunno what to sub for
@@ -1135,7 +1143,7 @@ function radioOptions($form) {
 function strip($form) {
   $form = str_replace('&nbsp;', ' ', $form);
   $form = preg_replace('~<fieldset id="help".*?</fieldset>~sm', '', $form); // remove help div
-  $form = preg_replace('~<div[^>]*class="invisible.*?</div>~sm', '', $form); // remove invisible divs (not nested)
+  $form = preg_replace('~<div[^>]*class="gone.*?</div>~sm', '', $form); // remove hidden divs (not nested)
   $form = preg_replace('~<option value="[^"]*">.*?</option>~sm', '', $form); // remove unselected options (fails for dropdowns created on the fly, eg state and country)
   $form = preg_replace('~<input type="hidden".*?/>~sm', '', $form); // remove hidden inputs
   $form = preg_replace('/<input[^>]* value=" *(.*?) *".*?>/sm', '$1', $form); // show button labels
@@ -1212,11 +1220,14 @@ function clear($ch = 0) {
   global $sms_devel; $sms_devel = TRUE;
     
   $lastGo = $formOut = $formArray = $formSta = $testOp = $testConfirmation = $tChecked = $tRadios = NULL;
+  $formOut['text'] = '';
+
   global $sms_devel; $sms_devel = TRUE;
   global $testSeq; $testSeq = NULL;
   global $channel; $channel = $ch;
   global $testMessages; $testMessages = [];
-/**/  global $sceneTest; if (u\test()) echo "scene: $sceneTest->sceneName<br>\n"; // helpful when test dies
+  global $sceneTest; 
+/**/ if (u\test() and !strpos($sceneTest->sceneName, 'Statement')) echo "scene: $sceneTest->sceneName<br>\n"; // helpful when test dies
 
   $cgfUid = r\cgfId();
   $tables = 'r_auth r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_log r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
@@ -1312,6 +1323,7 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $formOut;
   $model = t\strip($formOut[$type]);
+//  if (!$model and $type == 'text') $model = file_get_contents(TEST_PDF_FLNM);
 
   if (!$content) return FALSE; // probably an accidental single-row array with no labels
 /**/  u\EXPECT(is_numeric(key($content[0])), 'shown with should be array, not assoc: ' . print_r($content, 1));
@@ -1331,6 +1343,12 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   return TRUE;
 }
 
+function weShow($what, $show = TRUE) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  if ($what === '') return TRUE;
+  return t\shownWith(is_array($what) ? $what : [[$what]], 'text', $show);
+}
+
 function constants($list) {
   global $testOnly;
   foreach ($list as $one) {
@@ -1347,12 +1365,6 @@ function noPhotoId($id) {
   global $testOnly;
   if (!$a = r\acct(t\uid($id))) return t\output("Not an account: $id");
   return $testOnly ? !$a->ided : $a->setBit(B_IDED, FALSE);
-}
-
-function weShow($what, $show = TRUE) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  if ($what === '') return TRUE;
-  return t\shownWith(is_array($what) ? $what : array(array($what)), 'text', $show);
 }
 
 function weMessage($index, $id, $subs) {

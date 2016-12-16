@@ -106,8 +106,7 @@ function formAdminPanel_submit($form, &$sta) {
     }
     return r\go('print-rcard/' . $a->id);
   } elseif ($op == 'askForAppData') {
-    $gets = u\ray(R_APP_DATA_GETS);
-    $a->update('getAppData appData', $gets[0], []);
+    $a->update('getAppData appData', '!report', []);
     say(t('Request for app data sent to ') . $a->fullName);
   } elseif ($op == 'seeAppData') {
 /**/  debug($a->appData);
@@ -140,7 +139,7 @@ function formAdminPanel_submit($form, &$sta) {
     return say(a\showQuery('users', 1, 'name', $fields));
   }
   
-  $logFields = "channel,type,myid,IF(agent=myid,'--',agent) AS agent, REPLACE(special, ',', ', ') AS special, REPLACE(info, ',', ', ') AS info";
+  $logFields = "channel,type,myid,IF(agent=myid,':R_NONE',agent) AS agent, REPLACE(special, ',', ', ') AS special, REPLACE(info, ',', ', ') AS info";
 
   if ($op == 'log') return say(a\showQuery('r_log', 1, 'logid DESC', $logFields));
   if ($op == 'tells') return say(a\showQuery('r_log', "info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50", 'logid DESC', $logFields));
@@ -344,7 +343,7 @@ function formMemberList($form, &$sta) {
     $phone = str_replace('+1 ', '', u\fmtPhone($phone0 = $a->phone));
     $postalAddr = $a->postalAddr;
     $email = $a->email;
-    $fullName = "<a href=\"$base_url/sadmin/acct-info/$a->mainQid\">$fullName</a>";
+    $fullName = "<a href=\"$base_url/summary/$a->mainQid\">$fullName</a>";
     $steps = a\showSteps($a);
     $date = u\fmtDate($a->ok ? $access : $login);
 
@@ -423,10 +422,11 @@ function formPhp() {
  */
 function formPhp_submit($form, &$sta) {
   extract(u\just('code', $sta['input']));
+  \variable_set('code', $code); // remember for next time
   ob_start();
   print eval($code);
-  \variable_set('code', $code);
-  dsm(ob_get_clean());
+  $res = ob_get_clean();
+/**/  \drupal_set_message(print_r($res, 1));
 }
 
 //define('DEPOSIT_DATE1', 1411517529); // first deposit date
@@ -699,7 +699,7 @@ EOF;
 //  $pdf->Image(__DIR__ . '/../images/icons/print.png', 120, 30, 32, 32, '', '', '', true, 150, '', false, false, 0, false, false, false);
   
 //  if ($scan) $pdf->StopTransform();
-  if (u\test()) $pdf->Close(); else $pdf->Output('rCredits-ID-Card.pdf', 'I'); //Close and output PDF document
+  if (u\test()) $pdf->Close(); else $pdf->Output('t.pdf', 'I'); //Close and output PDF document
 }
 
 function formSMS($form, &$sta) {

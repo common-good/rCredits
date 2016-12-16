@@ -40,7 +40,7 @@ Scenario: A member signs in for the first time
   And we say "status": "info saved|step completed"
 
   When member ".AAA" completes form "community/agreement" with name "Dee Four" and all checkboxes
-  Then we show "Donate to Common Good Finance"
+  Then we show "Donate"
   And we say "status": "info saved|step completed"
 
   When member ".AAA" completes form "community/donate" with values:
@@ -75,7 +75,7 @@ Scenario: A member signs in for the first time
   | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
   | submit |       1 |     053000196 |         123 |          123 |       0 |     $0 |    $20 |         $0 |  
   Then we say "status": "setup complete|individual approval|join thanks"
-  And we tell staff "event - member" with subs:
+  And we tell admin "event - member" with subs:
   | fullName | quid | status |*
   | Dee Four | .AAA | member |
 

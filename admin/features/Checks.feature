@@ -33,7 +33,7 @@ Scenario: admin prints checks
   Then we show "Deposits" with:
   | Checks IN | 3 |
 # UNUSED  | Include   | 1 checks from %dm-2w |
-  When member ".ZZB" visits page "sadmin/checks/way=IN&date=0&previous=%today-3w&reprint=0&mark=1"
+  When member ".ZZB" visits page "sadmin/checks/way=IN&date=0&mark=1"
   Then we show pdf with:
   |_name    |_postalAddr          |_phone        |_transit      |_acct |_txid |_date |_amt   |_amount |_bank |*
   | Abe One | 1 A, Aton, MA 01001 | 413 772 0001 | 53-7028/2118 |   01 | 5002 | %dmy | $ 400 | Four Hundred and NO/100 | Greenfield Co-op Bank |

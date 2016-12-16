@@ -38,7 +38,7 @@ Scenario: A member donates
   | _name | Abe One |
   | _postalAddr | 1 A, A, AK |
   | Physical address: | 1 A St., Atown, AK 01000 |
-  And we tell staff "gift accepted" with subs:
+  And we tell admin "gift accepted" with subs:
   | amount | often | txField  |*
   |     10 |     1 | payerTid |
   # and many other fields
@@ -53,6 +53,6 @@ Scenario: A member donates with insufficient funds
   And gifts:
   | id   | giftDate | amount | often | honor  | honored | share | completed |*
   | .ZZA | %today   |    200 |     1 | memory | Jane Do |    10 |         0 |
-  And we tell staff "gift" with subs:
+  And we tell admin "gift" with subs:
   | amount | often |*
   |     10 |     1 |

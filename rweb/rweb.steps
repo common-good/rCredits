@@ -20,6 +20,7 @@ use rCredits\DB as db;
 use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Backend as be;
+use rCredits\Web as w;
 
 require_once __DIR__ . '/../defs.inc';
 
@@ -98,7 +99,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Contact AMemberGivesABadEmail
  *     MAKE Contact AMemberUpdatesToADifferentState
  *     MAKE Contact AMemberUpdatesToADifferentName
- *     MAKE EditTx AMemberConfirmsOKForADisputedTransaction
  *     MAKE Exchange AMemberConfirmsRequestToChargeAnotherMember
  *     MAKE Exchange AMemberConfirmsRequestToPayAnotherMember
  *     MAKE Flow AMemberDraws
@@ -218,6 +218,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     TEST Signup AMemberRegistersWithAnUnknownCompany
  *     MAKE SignupCo Setup
  *     TEST SignupCo AMemberRegistersACompany
+ *     MAKE Statement Setup
  *     MAKE Summary Setup
  *     MAKE Transact Setup
  *     MAKE Transactions Setup
@@ -251,6 +252,7 @@ function members($list) {return t\members($list);}
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
  *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
  *     MAKE Relations Setup
+ *     MAKE Statement Setup
  *     MAKE Summary Setup
  *     MAKE Transact Setup
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
@@ -384,13 +386,13 @@ function weSay($type, $index) {return weSayWithSubs($type, $index, array());}
 function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
 
 /**
- * we tell staff (ARG) with subs: (ARG)
+ * we tell admin (ARG) with subs: (ARG)
  *
  * in: TEST Gift AMemberDonates
  *     TEST Gift AMemberDonatesWithInsufficientFunds
  *     TEST Membership AMemberSignsInForTheFirstTime
  */
-function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
+function weTellAdminWithSubs($topic, $subs) {return t\weTellAdmin($topic, $subs);}
 
 /**
  * we show (ARG)
@@ -443,7 +445,6 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST EditTx ABuyerChangesTheTransactionDescription
  *     TEST EditTx ABuyerDisputesACharge
  *     TEST EditTx ASellerReversesACharge
- *     TEST EditTx AMemberConfirmsOKForADisputedTransaction
  *     TEST Joint AMemberRequestsAJointAccount
  *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     TEST Joint AMemberRequestsTwoJoinsAtOnce
@@ -465,6 +466,7 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithNoInvite
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithBadInvite
  *     TEST SignupCo AMemberRegistersACompany
+ *     TEST Statement AMemberLooksAtAStatementForPreviousMonth
  *     TEST Summary AMemberClicksTheSummaryTab
  *     TEST Summary AnAgentClicksTheSummaryTabWithoutPermissionToManage
  *     TEST Summary ACompanyAgentClicksTheSummaryTab
@@ -479,6 +481,7 @@ function weShowWith($title, $content = FALSE, $debug = TRUE) {return t\weShowWit
  * in: TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     TEST Relations ItsComplicated
  *     TEST SignupCo AMemberRegistersACompany
+ *     TEST Statement AMemberLooksAtAStatementForPreviousMonth
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
  *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
  */
@@ -489,6 +492,7 @@ function with($content) {return weShow($content);}
  *
  * in: TEST Relations MemberHasAnEmployer
  *     TEST Relations MemberCompanyHasRelations
+ *     TEST Statement AMemberLooksAtAStatementForPreviousMonth
  *     TEST Summary AnAgentClicksTheSummaryTabWithoutPermissionToManage
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
  *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
@@ -547,6 +551,7 @@ function withoutOptions($options) {
  *     TEST Signup AMemberRegistersWithAnExistingCompany
  *     MAKE SignupCo Setup
  *     TEST SignupCo AMemberRegistersACompany
+ *     MAKE Statement Setup
  *     MAKE Summary Setup
  *     MAKE Transact Setup
  *     MAKE Transactions Setup
@@ -581,6 +586,7 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
  *     TEST Relations Setup
  *     TEST SignupCo AMemberRegistersACompany
+ *     TEST Statement Setup
  *     TEST Summary Setup
  *     TEST Transact Setup
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
@@ -874,6 +880,7 @@ function dwollaIsDown() {
  *     MAKE Community Setup
  *     MAKE Download Setup
  *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
+ *     MAKE Statement Setup
  *     MAKE Summary Setup
  *     MAKE Transactions Setup
  */
@@ -952,6 +959,7 @@ function statisticsGetSet($time) {
  *     BOTH Joint AJoinedAccountSlaveMemberRequestsANewMinimum
  *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     BOTH Joint AJoinedAccountMemberUnjoinsTheAccount
+ *     MAKE Statement Setup
  *     MAKE Summary Setup
  *     MAKE Summary MembersAccountIsNotActive
  *     MAKE Transactions AMemberLooksAtTransactionsForThePastYear
@@ -1326,3 +1334,17 @@ function memberCompletesFormWithNameAndAllCheckboxes($id, $page, $signedBy) {
  * in: MAKE Membership AMemberSignsInForTheFirstTime
  */
 function proxies($list) {return t\proxies($list);}
+
+/**
+ * member (ARG) views statement for (ARG)
+ *
+ * in: MAKE Statement AMemberLooksAtAStatementForPreviousMonth
+ */
+function memberViewsStatementFor($id, $month) {
+  global $base_url;
+  global $testOnly; if ($testOnly) return FALSE;
+
+  t\logIn($id);
+  w\statement($month);
+  return TRUE;
+}

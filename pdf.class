@@ -48,7 +48,8 @@ class Pdf extends \TCPDF {
    * @param mixed $borders: border width if numeric or "B" for bottom, "R" for right, etc. (default none)
    */
   public function say($text, $x, $y, $w = '', $h = '', $format = '', $align = '', $borders = 0) {
-    global $pdfSays; $pdfSays[] = $text;
+    global $pdfSays; if (isDEV) $pdfSays[] = $text;
+// maybe use this instead of pdfSays?    global $formOut; if (isDEV) $formOut['text'] .= "$text ";
     $formats = [];
     $font = 'Arial';
     $size = PDF_FONT_SIZE;
@@ -75,6 +76,16 @@ class Pdf extends \TCPDF {
 ///    debug("wrote $text at $x,$y");
   }
 
+  /**
+   * Output a cell
+   * Overrides parent just for testing.
+   */
+  public function Cell($w, $h=0, $txt='', $border=0, $ln=0, $align='', $fill=false, $link='', $stretch=0, $ignore_min_height=false, $calign='T', $valign='M') {
+    global $formOut; if (isDEV) $formOut['text'] .= "$txt ";
+    
+    parent::Cell($w, $h, $txt, $border, $ln, $align, $fill, $link, $stretch, $ignore_min_height, $calign, $valign);
+  }    
+    
   public function setupHeader($args) {$this->hdr = $this->map(func_get_args());}
   public function setupFooter($args) {$this->ftr = $this->map(func_get_args());}
   
@@ -148,7 +159,9 @@ class Pdf extends \TCPDF {
    * Close and output PDF document  
    * @param string $dest: I=inline (to browser) D=download F=to file,...
    */
-  function output($filename = 'doc.pdf', $dest = 'I') { // must be same args and defaults as in TCPDF
-    if (u\test()) $this->Close(); else parent::Output($filename, $dest);
+  public function finish($filename = '', $dest = 'I') { // must be same args and defaults as in TCPDF
+    if (isDEV) parent::Output('testOutput.pdf', 'F'); // for testing
+    parent::Output($filename, $dest);
+    $this->Close();
   }
 }

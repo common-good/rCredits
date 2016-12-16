@@ -87,7 +87,7 @@ function doTask($item) {
  */
 function periodic() {
   if ($row = db\q('SELECT * FROM queue WHERE expire<>0 LIMIT 1')->fetchAssoc()) {
-    r\tellStaff('task timed out', $row); // shouldn't happen. Drupal's queue processing hangs until we delete.
+    r\tellAdmin('task timed out', $row); // shouldn't happen. Drupal's queue processing hangs until we delete.
     db\q('DELETE FROM queue WHERE item_id=:item_id', u\just('item_id', $row));
   }
   often('hour', '00');
@@ -103,9 +103,9 @@ function everyHour() {
   if (strftime('%H') + 0 == (R_DAILY_HOUR + 6) % 24) {
     $lastCron = \variable_get('r_last_cron', []);
     $lastTime = @$lastCron['day'];
-    if (r\rTime() - $lastTime > DAY_SECS) r\tellStaff('daily cron FAILED');
+    if (r\rTime() - $lastTime > DAY_SECS) r\tellAdmin('daily cron FAILED');
   }
-  // r\tellStaff('hourly cron');
+  // r\tellAdmin('hourly cron');
 }
 
 /**
@@ -222,7 +222,7 @@ function tickleStep($item) {
       }
     }
   } elseif (!$a->ok) {
-    return r\tellStaff('activate account', '', $uid);
+    return r\tellAdmin('activate account');
   }
 }
 
@@ -266,7 +266,7 @@ function often($period, $chosen) {
   $lastCron[$period] = r\rTime();
   \variable_set('r_last_cron', $lastCron); // remember that this periodic activity has been done
   $function = 'rCredits\\Cron\\every' . ucwords($period);
-  if ($period != 'hour' and $period != 'day') r\tellStaff("Running cron for the $period", ['time' => strftime('%I:%M%P', r\rTime())]);
+  if ($period != 'hour' and $period != 'day') r\tellAdmin("Running cron for the $period", ['time' => strftime('%I:%M%P', r\rTime())]);
   $function(); // do it
 }
 
@@ -296,7 +296,7 @@ function everyMonth() {
  * Yearly
  */
 function everyYear() {
-  r\tellStaff('generate 1099-B forms for IRS and states');
+  r\tellAdmin('generate 1099-B forms for IRS and states');
 }
 
 /**
@@ -357,7 +357,7 @@ function requests() {
         if (!$created) $row['created'] = strtotime('9/1/2011');
         $row['phone'] = u\fmtPhone($phone, '+n');
         foreach (['first', 'last'] as $k) $row[$k] = u\normalizeCase($$k);
-        r\tellStaff('invitation request', $row);
+        r\tellAdmin('invitation request', $row);
         foreach (['email', 'phone'] as $k) $row[$k] = u\cryptN($row[$k]);
         db\update('r_request', $row, 'listid', TRUE);
       } else $header = $row + ['ctty'];
@@ -511,7 +511,7 @@ EOF;
     
     while ($created <= $now) {
       foreach ($cttys as $ctty => $start) if ($created >= $start) {
-        r\queue('cttyStats1', compact('ctty', 'created'));
+        cr\queue('cttyStats1', compact('ctty', 'created'));
       }
       $delta = $created < $blockAgo ? $grain : 1;
       $created = strtotime("+$delta days", $created);
@@ -650,7 +650,7 @@ EOF;
 function completeUsdTx($item) {
   extract(u\just('txid payer amount channel', $item));
   $realAmt = db\lookup('amount', 'r_usd', 'txid=:txid', compact('txid'));
-  if ($amount != $realAmt) r\tellStaff('bad completeUsdTx amount in cron', $item + compact('realAmt'));
+  if ($amount != $realAmt) r\tellAdmin('bad completeUsdTx amount in cron', $item + compact('realAmt'));
   r\acct($payer)->completeUsdTx($txid, -$amount, @$channel == TX_CRON);
 }
 
@@ -767,7 +767,7 @@ function END() {
   $lastCron = \variable_get('r_last_cron', []);
   $elapsed = r\rTime() - @$lastCron['day'];
 ///  echo "Daily cron done after $elapsed seconds"; // keep
-  r\tellStaff("At " . strftime('%I:%M%P') . ", after $elapsed secs, daily cron ended successfully.", '', FALSE);
+  r\tellAdmin("At " . strftime('%I:%M%P') . ", after $elapsed secs, daily cron ended successfully.");
 }
 
 

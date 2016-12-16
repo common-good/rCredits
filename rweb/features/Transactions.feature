@@ -58,18 +58,16 @@ Scenario: A member looks at transactions for the past year
   | Start    |   | 1,000.00 |   |   0.00 | %dmy-12m |
   | Received | + | 1,110.00 |   |        |          |
   | Out      | - |   460.00 |   |        |          |
-  | Rewards  | + |          |   | 268.00 |          |
+  | Rewards  |   |          | + | 268.00 |          |
   | End      |   | 1,650.00 |   | 268.00 | %dmy     |
   And with:
-  |_tid | Date   | Name       | From you | To you   | Status  |_do   | Purpose    | Reward/Fee |
-# | b4  | %dm-5d |            |  22.00   | --     | pending |      | to bank    | --     |
-# | b3  | %dm-5d |            |  33.00   | --     | pending |      | to bank    | --     |
-  | 6   | %dm-6d | Bea Two    | 100.00   |   --     | %chk    | X    | cash V     | --     |
-  | 5   | %dm-1w | Corner Pub | 120.00   |   --     | %chk    | X    | this Q     | 6.00   |
-  | 4   | %dm-3m | Bea Two    | 240.00   |   --     | %chk    | X    | what G     | 12.00  |
-  | 3   | %dm-4m | Corner Pub | --       | 1,100.00 | %chk    | X    | usd F      | --     |
-  | 2   | %dm-5m | Bea Two    | --       |    10.00 | %chk    | X    | cash E     | --     |
-  | 1   | %dm-7m | ZZrCred    | --       |   --     | %chk    |      | signup     | 250.00 |
+  |_tid | Date   | Name       | Purpose  | Amount   | Reward |_do |
+  | 6   | %mdy-6d | Bea Two    | cash V  |  -100.00 | --     | X  |
+  | 5   | %mdy-1w | Corner Pub | this Q  |  -120.00 | 6.00   | X  |
+  | 4   | %mdy-3m | Bea Two    | what G  |  -240.00 | 12.00  | X  |
+  | 3   | %mdy-4m | Corner Pub | usd F   | 1,100.00 | --     | X  |
+  | 2   | %mdy-5m | Bea Two    | cash E  |    10.00 | --     | X  |
+  | 1   | %mdy-7m | ZZrCred    | signup  |       -- | 250.00 |    |
   And without:
   | rebate  |
   | bonus   |
@@ -84,9 +82,9 @@ Scenario: A member looks at transactions for the past few days
   | Rewards   | + |          |   |   6.00 |          |
   | End       |   | 1,650.00 |   | 268.00 | %dmy     |
   And with:
-  |_tid | Date   | Name       | From you | To you | Status  | _    | Purpose    | Reward/Fee |
-  | 6   | %dm-6d | Bea Two    | 100.00   | --     | %chk    | X    | cash V     | --     |
-  | 5   | %dm-1w | Corner Pub | 120.00   | --     | %chk    | X    | this Q     | 6.00   |
+  |_tid | Date   | Name       | Purpose    | Amount  | Reward |_do |
+  | 6   | %mdy-6d | Bea Two    | cash V     | -100.00 | --     | X  |
+  | 5   | %mdy-1w | Corner Pub | this Q     | -120.00 | 6.00   | X  |
   And without:
   | pie N    |
   | whatever |

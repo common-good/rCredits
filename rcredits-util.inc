@@ -157,7 +157,7 @@ function cleanAmount($amount) {
   $amount = trim($amount);
   if (substr($amount, 0, 1) == '$') $amount = substr($amount, 1);
   if (u\nonish($amount)) $amount = 0;
-  $amount = str_replace(EMPTY_FIELD, '', $amount); // useful for monthly statements
+  $amount = str_replace(R_NONE, '', $amount); // useful for monthly statements
   return preg_replace('/[ \,]/', '', $amount); // ignore spaces and commas
 }
 
@@ -945,7 +945,8 @@ function csvStart($filename) {
   global $csvFile;
   global $testCSVname; $testCSVname = $filename;
   global $testCSV; $testCSV = [];
-  
+
+  if (u\test()) return;  
   header('Content-type: text/plain');
   header("Content-Disposition: attachment; filename=\"$filename\";");
   header('Content-Type: application/csv; charset=UTF-8'); // tell the browser it's going to be a csv file
@@ -958,8 +959,8 @@ function csvStart($filename) {
  */
 function csv($a) {
   global $csvFile, $testCSV;
+  if (u\test()) {$testCSV[] = $a; return;}
   fputcsv($csvFile, $a);
-  $testCSV[] = $a;
 }
 
 /**
@@ -971,6 +972,9 @@ function csv($a) {
  *     word = upper, lower, and digits
  */
 function randomString($len = 16, $choices = '') {
+  global $nextCode;
+  if (u\test() and @$nextCode) return $nextCode;
+
   $lower = 'abcdefghijklmnopqrstuvwxyz';
   $upper = strtoupper($lower);
   $digits = '0123456789';

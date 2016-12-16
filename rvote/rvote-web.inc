@@ -139,7 +139,7 @@ EOF;
 
   $title = item(t('Community Funding Proposal'));
   $subtitle = item(t(<<< EOF
-<p>Complete this form to submit a proposal for funding from the Greenfield Area rCredits Community. Requests can be made for up to $10,000 for projects in the following categories:</p>
+<p>Complete this form by December 15, 2016, to submit a proposal for funding from the Greenfield Area rCredits Community. Requests can be made for up to $10,000 for projects in the following categories:</p>
 !list
 <p>Please keep your responses concise. Remember someone has to read and evaluate all the proposals. If you can answer a question in a single sentence, great! Limit each response to each question to no more than 5 short paragraphs, in any case. Proposals will be evaluated following <@aCrit>these criteria</a>.</p>
 <p><@aInfo>Click here for more information about rCredits</a> &mdash; the free local credit/debit card with incentive rewards and no fees for buyers or sellers. Amazingly, the rCredits system generates funding for local community projects without costing anyone anything.</p>

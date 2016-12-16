@@ -1,7 +1,22 @@
+function showMore(pgFactor) {
+  more = true; 
+  $('.showMore').css('visibility','hidden'); 
+  page = Math.floor(page * pgFactor); 
+  showPage(0);
+}
+
+function showPage(add) {
+  page += add;
+  var pghd = more ? '.PAGE-' : '.page-'; 
+  $('.prevPage').css('visibility', page < 1 ? 'hidden' : 'visible'); 
+  $('.nextPage').css('visibility', $(pghd + (page + 1)).length ? 'visible' : 'hidden'); 
+  $('.txRow').hide(); 
+  $('.txRow.head, ' + pghd + page).show();
+}
+
 function deleteCookie(name) {
   document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
-
 
 function toggleFields(fields, show) {
   fields.split(' ').forEach(function(e) {$('.form-item-' + e).toggle(show); });
@@ -21,6 +36,8 @@ jQuery('button[type="submit"]').click(function() {
 //  $('<input type="hidden" name="opid" />').appendTo(this.form).val(this.form.id);
 });
 
+var page=0;
+var more=false;
 var indexZ = 2;
 jQuery("#index a").mouseover(function() {
   var detail = jQuery("#" + this.id + "-detail");

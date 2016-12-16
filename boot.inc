@@ -1,20 +1,27 @@
 <?php
 /**
  * @file
- * Specialized settings
- * To be inserted in place of database settings in settings.php like this:
- * require_once __DIR__ . '/../all/modules/rcredits/boot.php';
+ * Set general environment and operational settings
  * Also used by /do.php, for no-sign-in database changes
  */
  
-define('R_VERSION', '2.49'); // software version
+global $base_url, $base_path, $base_root;
+global $databases, $drupal_hash_salt;
+global $cookie_domain, $conf, $is_https, $base_secure_url, $base_insecure_url;
+ 
+define('R_VERSION', '2.51'); // software version
 define('STAGE_SUBDOMAIN', 'ws');
 define('STAGE', STAGE_SUBDOMAIN . '.rcredits.org'); // staging site (for secrets, etc.)
 define('GAME_SITE', 'game.rcredits.org');
 
-$host = strtolower($_SERVER['HTTP_HOST']);
+set_error_handler('_drupal_error_handler');
+set_exception_handler('_drupal_exception_handler');
+timer_start('page');
+  
+$host = strtolower(@$_SERVER['HTTP_HOST']);
+if (strlen($host) > 30 or !preg_match('/^\[?(?:[a-zA-Z0-9-:\]_]+\.?)+$/', $host)) {header('HTTP 400 Bad Request'); exit();}
 define('isSTAGE', substr($host, 0, 6) == 'stage-' or $host == STAGE);
-define('isGAME', FALSE or (@$_SERVER['HTTP_HOST'] == GAME_SITE));
+define('isGAME', FALSE or ($host == GAME_SITE));
 define('isDEV', $_SERVER['SERVER_ADDR'] == '::1'); // developing
 define('isPRODUCTION', !isDEV and !isSTAGE and !isGAME); // new.rcredits.org or miw.rcredits.org, etc.
 
@@ -67,6 +74,15 @@ $databases = array (
   ),
 );
 
+$_GET['q'] = request_path();
+
+ini_set('magic_quotes_runtime', '0'); // Don't escape quotes when reading files from the database, disk, etc.
+ini_set('session.use_cookies', '1'); // Use session cookies, not transparent sessions with the session id in the query string.
+ini_set('session.use_only_cookies', '1');
+ini_set('session.use_trans_sid', '0');
+ini_set('session.cache_limiter', ''); // Don't send HTTP headers using PHP's session handler.
+ini_set('session.cookie_httponly', '1'); // Use httponly session cookies.
+
 ini_set('error_reporting', isDEV ? E_ALL : (E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT));
 ini_set('max_execution_time', isDEV ? 0 : 240); // don't ever timeout when developing
 ini_set('session.gc_probability', 1); // garbage collection this fraction of the time on startup (numerator)
@@ -75,12 +91,13 @@ define('SESSION_LIFE', @$_COOKIE['pw2'] ? 12 * HOUR_SECS : 24 * MIN_SECS); // st
 ini_set('session.gc_maxlifetime', SESSION_LIFE); // session timeout (and garbage collection happens)
 ini_set('session.cookie_lifetime', 0); // SESSION_LIFE); // (drupal doesn't refresh the cookie)
 
-$conf['cron_safe_threshold'] = 0; // disable poorman's cron
 if (isDEV) {
   error_reporting(E_ALL);
   ini_set('display_errors', TRUE);
   ini_set('display_startup_errors', TRUE);
 }
+
+setlocale(LC_ALL, 'C'); // Set sane locale settings, to ensure consistent string, dates, times and numbers handling.
 
 $uri = 'I' . $_SERVER['REQUEST_URI']; // handle scanned rCard URIs
 if (isDEV) $uri = str_replace(DEV_ROOT . '/', '/', $uri);
@@ -88,8 +105,45 @@ if (preg_match('~^I/[A-Z]+[\.-]~', $uri)) $_GET['q'] = $_SERVER['REQUEST_URI'] =
 
 $drupal_hash_salt = $db_salt;
 $protocol = (isDEV or isGAME) ? 'http://' : 'https://';
-$base_url = $protocol . $_SERVER['HTTP_HOST'] . (isDEV ? DEV_ROOT : ''); // NO trailing slash!
+$base_url = $protocol . $host . (isDEV ? DEV_ROOT : ''); // NO trailing slash!
 define('BASE_URL', $base_url);
 define('PROMO_URL', isDEV ? 'http://localhost/rPromo/_site' : 'http://rcredits.org');
 define('R_PATH', '/sites/all/modules/rcredits');
 global $rUrl; $rUrl = BASE_URL . R_PATH;
+$parts = parse_url($base_url);
+$base_path = @$parts['path'] . '/';
+$base_root = substr($base_url, 0, strlen($base_url) - strlen(@$parts['path'])); // everything until first slash after "scheme://"
+
+$conf = array();
+$conf['cron_safe_threshold'] = 0; // disable poorman's cron
+
+$is_https = isset($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on';
+
+$base_secure_url = str_replace('http://', 'https://', $base_url);
+$base_insecure_url = str_replace('https://', 'http://', $base_url);
+
+// Strip leading periods, www., and port numbers from cookie domain.
+$cookie_domain = ltrim($host, '.');
+if (strpos($cookie_domain, 'www.') === 0) $cookie_domain = substr($cookie_domain, 4);
+$cookie_domain = explode(':', $cookie_domain);
+$cookie_domain = '.' . $cookie_domain[0];
+
+// use $base_url, without the protocol, as session name, to use the same session identifiers across HTTP and HTTPS.
+//list( , $session_name) = explode('://', $base_url, 2);
+$session_name = $cookie_domain;
+// To prevent session cookies from being hijacked, a user can configure the
+// SSL version of their website to only transfer session cookies via SSL by
+// using PHP's session.cookie_secure setting. The browser will then use two
+// separate session cookies for the HTTPS and HTTP versions of the site. So we
+// must use different session identifiers for HTTPS and HTTP to prevent a
+// cookie collision.
+if ($is_https) ini_set('session.cookie_secure', TRUE);
+$prefix = $is_https ? 'SSESS' : 'SESS';
+
+session_name($prefix . substr(hash('sha256', $session_name), 0, 32));
+
+// Per RFC 2109, cookie domains must contain at least one dot other than the
+// first. For hosts such as 'localhost' or IP Addresses we don't set a cookie domain.
+if (count(explode('.', $cookie_domain)) > 2 && !is_numeric(str_replace('.', '', $cookie_domain))) {
+  ini_set('session.cookie_domain', $cookie_domain);
+}

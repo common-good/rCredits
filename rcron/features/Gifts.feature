@@ -36,7 +36,7 @@ Scenario: A donation can be completed
   And we notice "gift sent" to member ".ZZA" with subs:
   | amount |*
   |    $10 |
-  And we tell staff "gift accepted" with subs:
+  And we tell admin "gift accepted" with subs:
   | amount | myName  | often | rewardType | *
   |     10 | Abe One |     1 | reward     |
   # and many other fields
@@ -74,7 +74,7 @@ Scenario: A recurring donation can be completed
   | _name | Abe One |
   | _postalAddr | 1 A, A, AK |
   | Physical address: | 1 A St., Atown, AK 01000 |
-  And we tell staff "gift accepted" with subs:
+  And we tell admin "gift accepted" with subs:
   | amount | myName  | often | rewardType |*
   |     10 | Abe One |     Q | reward     |
   # and many other fields

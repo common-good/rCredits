@@ -153,7 +153,7 @@ EOF
       <li>as a stand-in for US Dollars, which are held unused in a separate account, and</li>
       <li>as incentive rewards for doing what makes the system stronger (signup bonuses, purchase rewards, inviter/helper rewards, and inflation offset).</li>
     </ol>
-    <p>Any incentive rewards you receive are yours to keep once your rCredits community declares itself a success. Meanwhile you can borrow them interest-free.</p>
+    <p>Any incentive rewards you receive are yours to keep once your rCredits community declares itself stable. Meanwhile you can borrow them interest-free.</p>
 EOF
   ) . $back;
   

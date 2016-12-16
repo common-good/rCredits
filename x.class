@@ -155,7 +155,7 @@ class X {
     $specs = " -- payer=$payer payee=$payee";
     u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid|empty');
     if ($type != TX_BANK) u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading' . $specs);
-    list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
+// highly inefficient    list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
 //    u\EXPECT($a1->ok and $a2->ok, 'non-member in tx' . $specs);
     
     u\setDft($taking, FALSE);
@@ -385,39 +385,44 @@ class MyX extends x {
    * @param bool $withDate: <include the transaction date in the message>
    * @return the message
    */
-  public function msg($type, $desc = '', $withDate = FALSE) {
+  public function msg($msgType, $desc = '', $withDate = FALSE) {
     $x = $this;
-    $uid = $x->a->id;
+    foreach (u\ray('toMe byMe') as $k) $extras[$k] = $x->$k;
+    $extras['name'] = r\acct($x->them)->fullName; // r\acct($toMe ? $x->payer : $x->payee)->fullName;
+    $extras['description'] = $x->toMe ? $x->payeeFor : $x->payerFor;
+    return self::msg0($x->ray + $extras, $msgType, $desc, $withDate);
+  }
+  
+  public static function msg0($tx, $msgType, $desc = '', $withDate = FALSE) {
+    extract(u\just('name amount toMe byMe goods description created', $tx));
+    
     $youDid = t('paid,received from,received from,repaid,paid,took back from,charged,refunded');
     $theyDid = t('charged,refunded,paid,took back from,received from,repaid,paid,received from');
     $reverse = t('request a refund of this charge,reverse this refund,refund this payment,request a reversal of this charge,request a refund of this payment,reverse this refund charge,reverse this charge,request a reversal of this refund');
     
-    $toMe = (int) ($x->payee == $uid);
-    $byMe = (int) ($toMe xor !$x->taking);
-    $neg = (int) ($x->amount < 0);
+    $them = $name;
+    $neg = (int) ($amount < 0);
     $index = 4 * $byMe + 2 * $toMe + $neg;
 
-    if ($type == 'actor') $type = $byMe ? 'youDid' : 'theyDid';
-    $types = explode(',', $$type);
+    if ($msgType == 'actor') $msgType = $byMe ? 'youDid' : 'theyDid';
+    $types = explode(',', $$msgType);
     $action = $types[$index];
-    $goods = $x->goods;
 
-    if ($type == 'reverse') {
-      if ($x->goods == FOR_USD) {
+    if ($msgType == 'reverse') {
+      if ($goods == FOR_USD) {
         return in_array($index, [0,3,4,7]) ? t('request a reversal of this charge') : t('reverse this exchange');
       } else return $action;
     } 
     
-    $them = r\acct($toMe ? $x->payer : $x->payee)->fullName;
-    $msg = $type == 'youDid' ? t('You') . ' @action @them' : ('@them @action ' . t('you'));
-    $msg .= ' ' . u\fmtAmt($x->amount);
+    $msg = $msgType == 'youDid' ? t('You') . ' @action @them' : ('@them @action ' . t('you'));
+    $msg .= ' ' . u\fmtAmt($amount);
     if ($desc) {
-      if ($desc == 'full') $desc = '"' . ($toMe ? $x->payeeFor : $x->payerFor) . '"';
+      if ($desc == 'full') $desc = '"' . $description . '"';
       if ($desc == 'vague') $desc = u\obj(R_WHYS)->$goods;
       $msg .= '|purpose';
     }
     if ($withDate) $msg .= '|when';
-    return u\tt($msg, u\ray('action them amount purpose created', $action, $them, $x->amount, $desc, u\fmtDate($x->created)));
+    return u\tt($msg, u\ray('action them amount purpose created', $action, $them, $amount, $desc, u\fmtDate($created)));
   }
 
   /**

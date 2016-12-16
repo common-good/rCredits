@@ -24,7 +24,7 @@ Scenario: Balances get out of whack
   | .ZZA   |  0 |      0 |
   | .ZZB   | 20 |      0 |
   When cron runs "recache"
-  Then we tell staff "cache mismatch" with subs:
+  Then we tell admin "cache mismatch" with subs:
   | id   | key     | is   | shouldBe |*
   | .ZZA | r       |    0 |       10 |
   | .ZZA | rewards |    0 |       10 |
@@ -47,6 +47,6 @@ Scenario: Balances get a tiny bit out of whack
   | .ZZA   | 10.0001 |
   | .ZZB   |       0 |
   When cron runs "recache"
-  Then we tell staff "cache mismatch" with subs:
+  Then we tell admin "cache mismatch" with subs:
   | id   | key     | is      | shouldBe |*
   | .ZZA | r       | 10.0001 |       10 |

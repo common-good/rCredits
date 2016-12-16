@@ -99,7 +99,7 @@ Setup:
   | .ZZC | 392 |     122 |
 
 Scenario: Inflation adjustments are distributed
-  When cron runs "lessOften"
+  When cron runs "everyMonth"
   Then transactions: 
   | xid| created| type      | amount                              | from | to   | purpose |*
   | 20 | %today | inflation | %(round(%R_INFLATION_RATE*29.6, 2)) | ctty | .ZZA | %IAOY average balance |

@@ -11,13 +11,16 @@
 }
 
 .btn-slight {background-color:wheat;}
-.invisible, .element-invisible {display:none;}
+.gone, .element-invisible {display:none;}
+.invisible {visibility:hidden;}
 .table {display:table;}
 .boxes .row > div {display:table-cell; padding:0 0 5px 17px; vertical-align:top;}
 label.submenu {display:none;}
 
 #edit-progress {padding-left:15px;}
 #edit-progress b {font-size:200%; color:darkred;}
+
+.prevPage {visibility:hidden;}
 
 .vertical{
 /*    writing-mode:tb-rl; */
@@ -69,12 +72,18 @@ nav.navbar.navbar-inverse .container {max-height:50px;}
   filter: none;
   border-bottom: 1px solid #022241;
 }
-@media (max-width:767px) {
+@media (max-width:768px) {
   #navbar {padding-right:0; position:fixed; z-index:10001; top:50px; right:0; left:auto; margin:0;}
   .navbar-inverse .navbar-nav > li > a,
   .submenu a.list-group-item {background-color:#044687;} /* here, not on #navbar, for android */
   .nav {padding-top:0;}
   .submenu .popover .arrow:after {border-left-color:#044687; border-bottom-color:transparent;}
+  #edit-title .control-label {display:none;}
+  #edit-title {width:100%; background-color:silver; position:fixed; z-index:2; left:0; top:50px; margin:0 !important; text-align:center;}
+  #edit-title .control-data {width:100%; max-width:100% !important; padding:0 2px;}
+  #edit-title h3 {margin:10px 0 10px 0;}
+  .breadcrumb {display:none;}
+  #main {margin-top:50px !important;}
 }
 
 #page-wrapper {width:100%; max-width:100; background-color:white;} /* not max-width:961px */
@@ -177,9 +186,10 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
 #edit-acct-account a.ok {background-color:lightgreen;}
 #edit-acct-account a.co {background-color:yellow;}
 
+#simple, #advanced {width:400px; margin:0 auto;}
+#dateRange {width:400px; margin:0 auto; display:none;}
 #advanced {display:none;}
-#simple, #advanced {width:600px;}
-#simple .control-data, #advanced  .control-data {width:400px; padding:5px;}
+#simple .control-data, #advanced  .control-data {width:200px; padding:5px;}
 #simple select, #advanced input {font-size:80%; height:50%;}
 #simple .control-label, #advanced .control-label {width:105px; min-width:105px;}
 #edit-show, #edit-download, #showSimple, #showAdvanced {margin:0 0 0 5px;}
@@ -545,13 +555,12 @@ div.password-confirm .error {font-weight:bold; color:red;}
 
 /* Transactions History */
 #rcreditswebformtxs .virtual {color:LightSteelBlue; font-weight:normal;}
-#rcreditswebformtxs #edit-title .control-label {display:none;}
+#rcreditswebformtxs #edit-title .control-data {width:100%; max-width:100%; text-align:center;}
 #rcreditswebformtxs #edit-reports {text-align:right;}
 
 #rcreditswebformtxs #edit-transactions .control-label {display:none;}
 #rcreditswebformtxs #edit-transactions .control-data,
-#txlist,
-#rcreditswebformtxs #txs-title {width:100%; max-width:100%;}
+
 #rcreditswebformtxs .form-type-checkboxes {margin-bottom:0;}
 #rcreditswebformtxs .form-type-checkbox {width:110px;}
 #rcreditswebformtxs .form-type-radios {border:0;}
@@ -582,13 +591,12 @@ div.password-confirm .error {font-weight:bold; color:red;}
 /* #rcreditswebformtxs th:first-child {text-align:right;} /* col 1: tid */
 /* #rcreditswebformtxs th:first-child +th {text-align:right;} /* col 2: date */
 #rcreditswebformtxs th:first-child +th+th {text-align:left;} /* col 3: name */
-/* #rcreditswebformtxs th:first-child +th+th+th {text-align:right;} /* col 4: fromyou */
-/* #rcreditswebformtxs th:first-child +th+th+th+th {text-align:right;} /* col 5: toyou */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th {text-align:right;} /* col 6: state */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th {text-align:right;} /* col 7: buttons */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {text-align:right;} /* col 8: purpose */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* col 9: reward */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th {display:none;} /* col 10: net */
+/* #rcreditswebformtxs th:first-child +th+th+th {text-align:right;} /* col 4: amount */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th {text-align:right;} /* col 5: state */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th {text-align:right;} /* col 6: buttons */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {text-align:right;} /* col 7: purpose */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {text-align:right;} /* col 8: reward */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {display:none;} /* col 9: net */
 
 /* #rcreditswebformtxs td:first-child {text-align:right;} /* col 1 */
 /* #rcreditswebformtxs td:first-child +td {text-align:right;} /* col 2 */
@@ -597,14 +605,45 @@ div.password-confirm .error {font-weight:bold; color:red;}
 /* #rcreditswebformtxs td:first-child +td+td+td+td {text-align:right;} /* col 5 */
 /* #rcreditswebformtxs td:first-child +td+td+td+td+td {text-align:right;} /* col 6 */
 /* #rcreditswebformtxs td:first-child +td+td+td+td+td+td {text-align:right;} /* col 7 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td {text-align:right;} /* col 8 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* col 9 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td {display:none;} /* col 10 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td {text-align:right;} /* col 8 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {display:none;} /* col 9 */
+
+#rcreditswebformtxs #edit-transactions .control-data {margin:0 auto; width:100%; max-width:100%;}
+#txlist {border:1px solid silver; padding:10px; width:100%; max-width:1024px; margin:10px auto; font-size:85%;}
+#txlist-title {width:100%; margin-top:0px;}
+#txlist div.row {margin-left:0; margin-right:0;}
+#txlist .row >div {border-top:1px solid #d9d9d9; margin:0 auto;}
+#txlist .row div div {padding-top:10px; padding-bottom:8px; min-height:35px;}
+
+#txlist .tid-date, 
+#txlist .name-purpose, 
+#txlist .amount-reward {padding:0;}
+#txlist .tid, #txlist .date {text-align:center;}
+#txlist .tid {font-weight:bold;}
+#txlist .amount, #txlist .reward {text-align:right;}
+
+#txlist .row .buttons {padding:0 0 0 5px; border:0; min-width:30px; max-width:50px;}
+#txlist .row .buttons div {max-width:50%;}
+#txlist .buttons a.btn-xs {font-size:9px; margin:0;}
+#txlist .buttons div {padding:0;}
+#txlist .row div .reward {font-size:85%;}
+
+#txlist .txRow {display:none;}
+#txlist .txRow.head,
+#txlist .txRow.page-0 {display:block;}
+
+#txlist .row.head >div {border-bottom:0;}
+#txlist .row.head div div {background:#757575; color:white; font-weight:bold; border-right:1px solid white;}
+#txlist .row.head .buttons {color:white; background-color:white; border:0;}
+#txlist .row.head .reward {font-size:100%;}
+
+#txs-links {margin-bottom:10px;}
+#txs-links.row >div {border:0; padding:0;}
+#txs-links span {padding-right:3px;}
+#txs-links .nav, #txs-links .nav span {padding:0; text-align:right;}
 
 /* Transaction Summary Table */
-#txsum, #txsum-title, #txs-title {width:100%; max-width:500px; margin:0 auto;} /* outline:2px solid darkgreen;} */
-#txsum-title, #txs-title {text-align:center; padding:0px; font-weight:bold; font-size:150%;}
-#txs-title, #txsum-title {margin-top:30px;}
+#txsum tr.even td, #txsum tr.odd td {background-color:white;}
 /* #txsum td {text-align:right !important; border:0px;} */
 #txsum tr#txsum-dates {background:none; line-height:.9; border:0px;}
 #txsum tr#txsum-headers {font-weight:bold; background:none; border-bottom:1px solid black;}
@@ -614,7 +653,12 @@ div.password-confirm .error {font-weight:bold; color:red;}
 .txsum-banksign, .txsum-tosign, .txsum-fromsign, .txsum-feessign, .txsum-rewardssign, .txsum-sharesign, .txsum-balancesign {min-width:1em;}
 .txsum-bank, .txsum-toyou, .txsum-fromyou, .txsum-fees, .txsum-share, .txsum-rewards {min-width:7em;}
 
-#txsum {border:2px solid midnightblue; width:auto;}
+/* #txsum {border:1px solid black; position:absolute; z-index:1; left:0; right:0; width:500px; margin:auto auto; top:0; bottom:0} */
+/* #txsum caption {background-color:darkgreen; color:white; margin:0 auto; padding:5px 0;} */
+#txs-totals .modal-dialog {width:455px;}
+#txs-totals .modal-body {padding:3px;}
+
+#txsum caption {display:none;}
 #txsum tr:first-child {font-weight:bold;}
 #txsum tr:first-child +tr+tr+tr+tr+tr td:first-child +td+td,
 #txsum tr:first-child +tr+tr+tr+tr+tr td:first-child +td+td+td+td {border-bottom:1px solid black;}
@@ -622,12 +666,15 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebformtxs #txsum tr td:first-child {text-align:left; font-weight:bold; background-color:#757575; color:white;}
 #rcreditswebformtxs #txsum tr td:last-child {text-align:left;}
 
-
 /* Invoices */
 #rcreditswebforminvoices .form-item-states2 {display:none;} /* disabled until invoices are more used */
 #rcreditswebforminvoices #edit-list .control-label,
 #rcreditswebforminvoices #edit-title .control-label {display:none;}
 #rcreditswebforminvoices #edit-list .control-data {width:100%; max-width:100%; text-align:center;}
+
+/* Statements / Notices */
+#statements th, #statements td,
+#notices th, #notices td {text-align:left; vertical-align:top; border:1px solid silver;}
 
 /* Deposits */
 /* #rcreditswebformdeposits {margin-left:50px;} */

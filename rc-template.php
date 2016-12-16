@@ -453,7 +453,7 @@ function rcredits_select($variables) {
   \element_set_attributes($variables['element'], array('id', 'name', 'size'));
   extract(rcElement($variables, 'attributes class'));
   $class[] = 'form-control';
-  return u\tag('select', \form_select_options($variables['element']), $attributes + compact('class'));
+  return u\tag('select', \form_select_options($variables['element']), ($attributes ?: []) + compact('class'));
 }
 
 function rcredits_fieldset($variables) {

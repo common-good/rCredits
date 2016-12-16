@@ -49,8 +49,9 @@ Scenario: A nonmember has not accepted the invitation
   | zot@example.com | .ZZA    | codeA1 | %today-8d |
   When cron runs "tickle"
   Then we email "nonmember" to member "zot@example.com" with subs:
-  | inviterName | code   | site        | nudge        | noFrame |*
-  | Abe One     | codeA1 | %BASE_URL | reminder one | 1       |
+  | inviterName | code   | site                      | nudge        | noFrame |*
+  | Abe One     | codeA1 | http://localhost/rMembers | reminder one | 1       |
+  # site should be %BASE_URL, but compiler doesn't know stuff defined in boot.inc (just defs.inc)
   And we notice "invite languishing" to member ".ZZA" with subs:
   | email           | elapsed |*
   | zot@example.com |       8 |

@@ -23,18 +23,19 @@ define('TX_OPT_BOXES', 3);
 define('TX_OPT_EXCHANGES', 4);
 define('TX_OPT_PEXCHANGES', 5);
 
-$GLOBALS['TX_DAYS'] = array(1 => 'day', 7 => '7 days', 30 => '30 days', 90 => '90 days', 180 => '6 months', 365 => '12 months', -1 => 'Year to date', -2 => 'Ever');
+$GLOBALS['TX_DAYS'] = array(1 => 'day', 7 => '7 days', 30 => '30 days', 90 => '90 days', 180 => '6 months', 365 => '12 months', -1 => 'Year to date');
 
 /**
  * List Transactions
  */
 function formTxs($form, &$sta, $args = '') {
-  global $agtViaBoxHelp;
+  w\downloadCheck('history/transactions');
+  
+  global $agtViaBoxHelp, $base_url;
   $agtViaBoxHelp = '|' . t('Agent is who did the transaction on your behalf.|Channel (Via) is where the transaction originated -- what type of device: Web, Smartphone, SMS, or Automatic.|Box is where the transaction originated -- which specific device.');
   $optHelp = $agtViaBoxHelp . '|' . t('Exchanges are 1-to-1 trades of US Dollars for rCredits (usually automatic).|PExchanges are daily automatic payment exchanges of rCredits between company and employee. The company pays the employee in US Dollars, then the employee trades back some US Dollars 1-to-1 for rCredits. The net effect is that the employee gets paid partly in US Dollars, partly in rCredits.');
-
   $mya = r\acct();
-  
+
   extract(u\just('options period starting ending do xid download downloaded', $args)); 
   
   global $testPeriod; $testPeriod = @$period ?: TX_DEFAULT_PERIOD; // remember for tests
@@ -50,29 +51,90 @@ function formTxs($form, &$sta, $args = '') {
   */
   
   extract(u\just('dateRange url starting ending', dateRange($args, 'history/transactions')));
-  $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
+
+//  $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
   $descending = TRUE;
   $optionSet = compact(u\ray('download agents channels boxes descending'));
-  list ($header, $classes, $rows, $totals) = x\getTxRows($starting, $ending, $optionSet, $url, $maxRows);
+//  list ($header, $classes, $rows, $totals) = x\getTxRows($starting, $ending, $optionSet, $url, $maxRows);
+  $txRows = x\getTxRows($starting, $ending, $optionSet, $url);
+  if (u\test() and @$download) return; // simulate exit, for tests
+  list ($header, $classes, $rows, $totals) = $txRows;
   
   // prepare screen display
-  $classes = u\prefixValues('tx-', $classes);
-  $attributes = array('id' => 'txlist');
-  $cols = [];
-  foreach ($classes as $class) $cols[] = compact('class');
-  $colgroups = array($cols);
-  $caption = $sticky = '';
-  $empty = tt('no txs');
-  $list = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
-  $transactions = item("<div id=\"txs-title\">TRANSACTIONS</div>$list <br>&nbsp;");
+//  $classes = u\prefixValues('tx-', $classes);
+//  $attributes = array('id' => 'txlist');
+//  $cols = [];
+//  foreach ($classes as $class) $cols[] = compact('class');
+//  $colgroups = array($cols);
+//  $caption = $sticky = '';
+//  $list = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
+  array_unshift($rows, $header); // put header at start
+  
+  $list = '';
+  $count = -2;
+  
+  foreach ($rows as $row) {
+    $count++;
+    $row = array_combine($classes, $row);
+    extract($row);
+    $class = 'row txRow';
+    if (!$list) $class .= ' head';
+    $class .= ' page-' . floor($count / MIN_TX_ROWS);
+    $class .= ' PAGE-' . floor($count / NORMAL_TX_ROWS);
+    
+    $list .= <<<EOF
+<div class="$class">
+  <div class="tid-date col-xs-2">
+    <div class="tid col-sm-5">$tid</div>
+    <div class="date col-sm-7">$date</div>
+  </div>
+  <div class="name-purpose col-xs-6">
+    <div class="name col-sm-6">$name</div>
+    <div class="purpose col-sm-6">$purpose</div>
+  </div>
+  <div class="amount-reward col-xs-3">
+    <div class="amount col-sm-7">$amount</div>
+    <div class="reward col-sm-5">$reward</div>
+  </div>
+  <div class="buttons col-xs-1">
+    $buttons
+  </div>
+</div>
+EOF;
+  }
+  
+  if ($count < 0) $list .= tt('no txs');
+  $pgFactor = MIN_TX_ROWS / NORMAL_TX_ROWS;
+  
+  $links = <<<EOF
+<div id="txs-links" class="row">
+  <div class="showMore col-xs-3">
+    <a onclick="javascript:showMore($pgFactor);" title="Show more transactions per page"><span class="glyphicon glyphicon-plus"></span>Show more</a>
+  </div>
+  <div class="dates col-xs-2">
+    <a onclick="javascript:$('#dateRange, #edit-submitPeriod, #edit-submitDates').show(); $('#edit-downloadPeriod, #edit-downloadDates').hide();" title="Select dates to show"><span class="glyphicon glyphicon-calendar"></span>Dates</a>
+  </div>
+  <div class="download col-xs-3">
+    <a onclick="javascript:$('#dateRange, #edit-downloadPeriod, #edit-downloadDates').show(); $('#edit-submitPeriod, #edit-submitDates').hide();" title="Select dates and download as CSV file"><span class="glyphicon glyphicon-download-alt"></span>Download</a>
+  </div>
+  <div class="totals col-xs-2">
+    <a data-toggle="modal" data-target="#txs-totals" title="Show totals for the selected period"><span class="glyphicon glyphicon-usd"></span>Totals</a>
+  </div>
+  <div class="nav col-xs-1">
+    <a class="prevPage" onclick="javascript:showPage(-1);" title="Previous Page"><span class="glyphicon glyphicon-triangle-left"></span></a>
+    <a class="nextPage" onclick="javascript:showPage(+1);" title="Next Page"><span class="glyphicon glyphicon-triangle-right"></span></a>
+  </div>
+</div>
+EOF;
+
+  $transactions = item("<div id=\"txlist\" class=\"table table-striped\">$links$list</div>");
   $summary = fld('markup', '', '', array('markup' => txSummary($starting, $ending)));
 
   $divider = item('<hr>');
-  $title = "";
   $title = item(t('Transaction History'));
-  $dataRange = '';
-  $form = compact('title') + $dateRange + compact(u\ray('summary transactions states'));
-  if (@$downloaded) js("window.open(\"$url&download=1\", \"download\");", 'inline', 'footer');
+  extract(u\just('simple advanced', $dateRange));
+  $dateRange = w\fieldSet('dateRange', compact('simple', 'advanced'), BARE);
+  $form = compact('title') + compact(u\ray('dateRange summary transactions states'));
   return labeled($form);
 }
 
@@ -80,6 +142,7 @@ function formTxs_validate($form, &$sta) {w\dateRangeValidate($sta);}
 
 function formTxs_submit($form, &$sta) {
   if (confirming_s($sta)) return;
+    
   w\dateRangeRedirect('history/transactions', $sta);
 }
 
@@ -267,7 +330,6 @@ function txSummary($starting, $ending) {
 
   $starting = u\fmtDate($starting);
   $ending = u\fmtDate($ending);
-  $summary_title = "<div id='txsum-title'>SUMMARY</div>";
   
 //  $classes = u\prefixValues('txsum-', u\ray('one banksign bank fromsign fromyou tosign toyou sharesign share balancesign balance'));
   $classes = u\prefixValues('txsum-', u\ray('label sign1 amount sign2 savings other'));
@@ -284,7 +346,7 @@ function txSummary($starting, $ending) {
   $OUT = w\popHelp(t('Funds Paid Out'), t('How many rCredits you paid out, in this period'));
   $REWARDS = w\popHelp(t('Rewards'), t('Incentive rewards you received, in this period (rewards go automatically into your Credit Reserve)'));
   $ENDING = w\popHelp(t('Ending Balance'), t('Your rCredits account balance at the end of this time period'));
-  $SAVINGS = w\popHelp(t('Credit Reserve'), t('Amount in your Credit Reserve, to spend in a pinch (once your rCredits community declares itself a success, this additional amount is yours to keep)'));
+  $SAVINGS = w\popHelp(t('Credit Reserve'), t('Amount in your Credit Reserve, to spend in a pinch (once your rCredits community declares itself stable, this additional amount is yours to keep)'));
   $PENDING = w\popHelp(t('pending'), t('Pending transfers from your bank account to your rCredits account'));
   if ($p_bank) $p_bank = $endingNow ? "+ $p_bank $PENDING" : '';
   
@@ -312,7 +374,7 @@ function txSummary($starting, $ending) {
     u\ray("$BANK|+|$bank|||$p_bank"),
     u\ray("$IN|+|$in||$toSavings|"),
     u\ray("$OUT|-|$out||$fromSavings|"),
-    u\ray("$REWARDS|||+|$rewards|"),
+    u\ray("$REWARDS||||+ &nbsp; $rewards|"),
     u\ray("$ENDING||$new||$n_savings|$ending"),
   ];
   
@@ -326,19 +388,23 @@ function txSummary($starting, $ending) {
     u\ray("$ENDING||$new|+|$n_savings|$ending"),
 */    
   
-  $attributes = array('id' => 'txsum');
+  $attributes = ['id' => 'txsum'];
   $header = $cols = [];
   foreach ($classes as $class) $cols[] = compact('class');
 //  $colgroups = array($cols);
   $colgroups = [];
   $caption = $sticky = $empty = '';
-  return $summary_title . theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
+  $txsum = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
+//  js("$('#txsum0').modal('show');", 'inline', 'footer', 9999);
+  return modal('txs-totals', t('Period Totals'), '', $txsum, 'X');
 }
 
 /**
  * List Invoices
  */
 function formInvoices($form, &$sta, $toFrom, $args = '') {
+  w\downloadCheck('history/invoices-' . $toFrom);
+
   $toMe = ($toFrom == 'to');
   extract(u\just('period starting ending download downloaded states nvid do', $args)); 
 

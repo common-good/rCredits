@@ -12,7 +12,7 @@ define('R_ADMIN_EMAIL', 'wspademan@gmail.com'); // regional admin's personal ema
 //define('R_ADMIN_ADDRESS', 'PO Box 305, Ashfield, MA 01330');
 define('R_ADMIN_PHONE', '+14136281021');
 define('R_REGION_EIN', '46-1821792');
-define('R_COS', 'NEWAAA CAAAAA RMCAAA MIWAAA INAAAA NEWAAD NEWAIG NEWAKH NENAAB NEWALJ'); // community organizers, staff, and programmers to treat as cAdmins on test server
+define('R_COS', 'NEWAAA CAAAAA RMCAAA MIWAAA INAAAA NEWAAD NEWAIG NEWAKH NENAAB NEWALJ NEWAKD'); // community organizers, staff, and programmers to treat as cAdmins on test server
 
 date_default_timezone_set('America/New_York'); // server handles just one timezone
 define('R_COUNTRY_ID', US_COUNTRY_ID); // this region's country: United States

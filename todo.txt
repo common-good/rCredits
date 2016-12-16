@@ -5,8 +5,9 @@ Software Priorities:
 1. App (in process)
 2. Ease of signup, etc.
 3. Dump Drupal
-4. Pump
-5. Greater Security (and security audit)
+4. Biodiesel Pump
+5. Server efficiency
+6. Greater Security (and security audit)
 
 NON_SOFTWARE TO_DOs
 - create rc2.me on rcredits.org WHM, add pointers on myhosting.com as for rc4.me, copy rc4.me's .htaccess (modified), and change ServerAlias www.rc2.me to *.rc2.me
@@ -14,7 +15,8 @@ NON_SOFTWARE TO_DOs
 - Fuzzy: what's up with Stacey Matlen (248 763 1903)? Bad email, no rCard use. 
 - What's up Janice Sorenson 26742000000180 (bad email?)
 - survey Fosters employees: 5 checkboxes and one blank (where shop?): Gfld Games? The Barn? Foster's? Other mkt?
-- contact Lorien Pratt (recommended by Barry) This is Lorien's pitch on Decision Analysis: http://www.lorienpratt.com/how-can-i-help-you/decision-intelligence-analysis-modeling-training-and-systems/
+- DONE contact Lorien Pratt (recommended by Barry) This is Lorien's pitch on Decision Analysis:     
+  . http://www.lorienpratt.com/how-can-i-help-you/decision-intelligence-analysis-modeling-training-and-systems/
 - send Business Name Change requests for rCredits Western Mass Region to IRS-Stop 343G, Cincinnati, OH 45999.
 - short tagline (see Richard Tillberg's ideas), like "rCredits, the Money Co-op"
 - ask Steve Alves to make a movie about rCredits
@@ -31,7 +33,7 @@ NON_SOFTWARE TO_DOs
         • the longest chain of successful invites (probably not that long, so maybe more than one chain)
 - Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site). Also Catholic Charities.
 
-. add a donate button to commongoodfinance.org
+. DONE add a donate button to commongoodfinance.org
 . video about Admin'ing
 . register sending email on emailreg.org, to prevent blacklisting
 . get listed with Charity Navigator and give.org?

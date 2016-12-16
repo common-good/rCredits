@@ -511,7 +511,7 @@ class Acct {
    */
   public function linkedDesc() {
     global $base_url;
-    $qid = "<a href=\"$base_url/sadmin/acct-info/$this->mainQid\">$this->mainQid</a>";
+    $qid = "<a href=\"$base_url/summary/$this->mainQid\">$this->mainQid</a>";
     return "$this->fullName ($qid)";
   }
   
@@ -685,7 +685,7 @@ EOF;
       if ($jA and $k == 'r') {
         list ($jIs, $jShouldBe) = [$a->$k, round($jCalc->$k, 2)];
         $bad = ($jIs != $jShouldBe or ($a->slave and $is < 0)); // joint r must be correct AND slave r non-negative
-      } else $bad = ($is != $shouldBe);
+      } else list ($bad, $jIs, $jShouldBe) = [$is != $shouldBe, '', ''];
       
       if ($bad) {
 //        $worst = max(abs(round($is - $shouldBe, 2)), $worst);
@@ -695,7 +695,8 @@ EOF;
         if ($k == 'r') $a->slaveCacheR($shouldBe, $testOnly); // affects only slave, sum is already correct (master goes first)
         if (!$testOnly) $a->update($k, $shouldBe);
         unset($DBTX);
-        r\tellStaff('cache mismatch', compact(u\ray('k is shouldBe jIs jShouldBe')), $uid);
+        $fullName = $a->fullName;
+        r\tellAdmin('cache mismatch', compact(u\ray('fullName k is shouldBe jIs jShouldBe')));
       }
     }
     if (@$worst) {
@@ -806,7 +807,7 @@ EOF;
       r\message($this->id, 'account suspended', compact('why'));
       $notes = u\fmtDate() . ': ' . t('account suspended') . " $why\n" . @$this->notes;
       $this->update(compact('notes'));
-      r\tellStaff('account suspended', u\ray('uid fullName why', $this->id, $this->fullName, $why));
+      r\tellAdmin('account suspended', u\ray('uid fullName why', $this->id, $this->fullName, $why));
     }      
   }
   
@@ -883,8 +884,8 @@ EOF;
     $stepsDone = $a->stepsDone;
 
     if (!$stepsDone[$step]) { // unless already done
-//      if ($done) r\tellStaff(t('Step completed: ') . strtoupper($step), $details, $a->id);
-    } elseif (!$a->cAdmin) r\tellStaff(t('Settings changed: ') . strtoupper($step), $details, $a->id);
+//      if ($done) r\tellAdmin(t('Step completed: ') . strtoupper($step), $details, $a->id);
+    } elseif (!$a->cAdmin) r\tellAdmin(t('Settings changed: ') . strtoupper($step), $details, $a->id);
    
     $stepsDone[$step] = $done;
     $a->update(compact('stepsDone'));
@@ -922,7 +923,6 @@ EOF;
         return $stepDone ? 'empty' : ''; // go nowhere if not completing a step
       } else $msg = 'info saved|step completed';
     }
-    
     $steps = u\ray(R_STEPS);
     return $steps[$nextStep] ?: "settings/$nextStep";
   }
@@ -936,7 +936,7 @@ EOF;
     $a = $this;
   //  $pass = strtolower(u\nonce()); // not a hash, easy to remember and type
     $verifying = !$a->stepDone['verify'];
-    $pass = u\code($verifying, $verifying ? 3 : R_CODE_LEN); // use
+    $pass = u\randomString($verifying ? 3 : R_CODE_LEN, $verifying ? 'upper' : 'word'); // use
   /// oops! don't let people reset passwords on test server. if (!isPRODUCTION and !in_array($name, u\ray('cornerstore bobbossman cathycashier helgas curtcustomer susanshopper'))) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
   /**/ if (isDEV or (!isPRODUCTION and time() - db\lookup('created', 'users', 'name=:name', compact('name')) < HOUR_SECS)) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
   /// if (isDEV) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
@@ -1070,7 +1070,7 @@ EOF;
 
     if ($amount0 > 0) { // tell staff to transfer the funds using BillPay or check
       $a->update('r', $a->o_r - $amount0);
-      if ($txid > 0) r\tellStaff(t('outgoing bank transfer request'), ['amount' => $amount0]);
+      if ($txid > 0) r\tellAdmin(t('outgoing bank transfer request'), ['amount' => $amount0]);
     } elseif ($completed) $a->completeUsdTx(0, -$amount0, TRUE);
 
     unset($DBTX);
@@ -1091,7 +1091,7 @@ EOF;
 
     if ($txid) { // unless transfer is already marked complete
       $realAmt = db\lookup('-amount', 'r_usd', 'txid=:txid', compact('txid'));
-      if ($amount != $realAmt) r\tellStaff('bad completeUsdTx amt in acct', compact(u\ray('txid amount realAmt automatic')));
+      if ($amount != $realAmt) r\tellAdmin('bad completeUsdTx amt in acct', compact(u\ray('txid amount realAmt automatic')));
       if (!db\update('r_usd', ['txid'=>$txid, 'completed'=>r\rTime()], 'txid')) return FALSE;
     }
     

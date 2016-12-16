@@ -56,14 +56,14 @@ EOF;
  * other than rebates and bonuses are included (even those will be included if the 'include_bonuses' option is set).
  */
 function myTransactions($starting, $ending, $uid, $jid = 0) {
-  $mya = r\acct();
   $subs = compact(u\ray('starting ending uid jid'));
-  $where = 't.created>=:starting AND t.created<=:ending'
-  . ' AND t.type>=0' // omit invisible transactions
-  . ' ORDER BY t.created DESC, t.xid DESC';
   
-  if ($uid == 'ctty') { // all transactions in the community or region
+  if ($uid == 'ctty') { // all transactions in the community or region (not currently used)
+    $mya = r\acct();
     $uid = $mya->community;
+    $where = 't.created>=:starting AND t.created<=:ending'
+    . ' AND t.type>=0' // omit invisible transactions
+    . ' ORDER BY t.created DESC, t.xid DESC';
     $sql = <<<EOF
       SELECT t.*, IF(taking, t.payeeFor, t.payerFor) AS purpose
       FROM r_txs t LEFT JOIN users u1 ON u1.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
@@ -71,6 +71,7 @@ function myTransactions($starting, $ending, $uid, $jid = 0) {
       AND $where
 EOF;
   } else { // normal account (member or community)
+  /*
     $isPayer = '(t.payer IN (:uid, :jid) AND t.payee<>:uid)';
 
     $sql = <<<EOF
@@ -80,8 +81,22 @@ EOF;
       WHERE ($isPayer OR t.payee IN (:uid, :jid))
       AND $where
 EOF;
-  }
+*/
+    $iPay = 'payer IN (:uid, :jid)';
+    $iGet = '(payee<>0 AND payee IN (:uid, :jid))';
+    list ($fromBank, $toBank) = [t('from bank'), t('to bank')];
+    $txFields = "xid, amount, IF($iPay, amount, 0) fromyou, IF($iPay, 0, amount) AS toyou, payer, payee, type, t1.created, t1.data, $iPay XOR taking AS byMe, $iGet AS toMe, IF($iPay, payerFor, payeeFor) AS description, IF($iPay, payerAgent, payeeAgent) AS agent, IF(:uid<0, xid, IF($iPay, payerTid, payeeTid)) AS tid, goods, (goods=:FOR_SHARE) AS sharing, channel";
+    $usdFields = "txid AS xid, amount, IF(amount > 0, amount, 0) AS fromyou, IF(amount > 0, 0, -amount) AS toyou, payer, 0 AS payee, :TX_BANK AS type, completed AS created, '' AS data, TRUE AS byMe, IF(amount<0, 1, 0) AS toMe, IF(amount<0, '$fromBank', '$toBank') AS description, '' AS agent, txid AS tid, :FOR_USD AS goods, 0 AS sharing, channel";
+    $where = "created BETWEEN :starting AND :ending AND type>=0 AND ($iPay XOR $iGet)"; // omit invisible transactions
 
+    $sql = <<<EOF
+      SELECT * FROM
+        (SELECT $txFields, u.fullName AS name FROM r_txs t1
+         LEFT JOIN users u ON uid=IF($iPay, payee, payer)
+         UNION SELECT $usdFields, ':R_NONE' AS name FROM r_usd) t
+      WHERE $where ORDER BY created DESC, xid DESC;
+EOF;
+  }
   return db\q($sql, $subs); 
 }
 
@@ -90,7 +105,7 @@ EOF;
  * POLICY QUESTION: Restrict to member's community? (yes for now)
  */
 function memberRay($myid) {
-  if (!$a = r\acct($myid)) return [];
+  if (!$a = r\acct($myid) and $myid != 1) return [];
   $where = r\acct()->admin ? '1' : "community=$a->community OR :IS_CO"; // ->admin failed once (no ctty) with myid=1 (dunno why)
   return db\q("SELECT fullName FROM users WHERE :IS_OK AND $where ORDER BY fullName")->fetchCol();
 }
@@ -348,15 +363,15 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
       $erInfo += ['date' => u\fmtDate($created)];
       foreach (['agent1'=>$a1, 'agent2'=>$a2] as $k => $a) $erInfo += [$k => $a->proSe ? t('self') : $a->fullName];
       foreach ([$a1, $a2] as $a) if (!$a->proSe) r\message($a->id, $msg, $erInfo);
-      r\tellStaff($msg . ' ' . u\tt($erMsg, $erSubs), $erInfo + $erSubs);
+      r\tellAdmin($msg . ' ' . u\tt($erMsg, $erSubs), $erInfo + $erSubs);
     } else return r\txRet($erMsg, $erInfo + $erSubs);
   }
   
   foreach ([$a1, $a2] as $a) if (!$a->co and !($channel == TX_POS ? $a->agentA->ided : $a->ided)) {
     if ($force) {
-      r\tellStaff('forced without photoId', $erInfo); 
+      r\tellAdmin('forced without photoId', $erInfo); 
     } elseif ($gainerA->id != r\cgfId()) { // and !$gainerA->coCan(CO_FAST)
-      r\tellStaff('tx without photoId', $erInfo); 
+      r\tellAdmin('tx without photoId', $erInfo); 
 //      return r\txRet($a == $a1 ? 'no photoid' : 'other no photoid', $erInfo + ['who' => $a2->fullName]);
     }
   }

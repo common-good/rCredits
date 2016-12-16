@@ -125,12 +125,19 @@ Scenario: A joined account member looks at transaction history and summary
   | Rewards   |   |          | + |  10.00 |         |
   | End       |   | 1,950.00 |   | 530.00 | %dmy    |
   And with:
-  |_tid | Date   | Name       | From you | To you | Status  |_do   | Purpose   | Reward/Fee | Agent |
-  | 5   | %dm-1d | Corner Pub | --       | 100.00 | %chk    | X    | labor     | 10.00      | ZZA  |
-  | 4   | %dm-2d | Dee Four   | --       |  50.00 | %chk    | X    | cash      | --         | ZZB  |
-  | 3   | %dm-1w | Abe One    | 500.00   | 500.00 | %chk    | X    | usd       | --         | ZZB  |
-  | 602 | %dm-2w |            | --       | 400.00 |         |      | from bank | --         | ZZA  |
-  | 601 | %dm-2w |            | --       | 600.00 |         |      | from bank | --         | ZZB  |
+#  |_tid | Date    | Name       | Purpose   | Amount | Reward | Agent | _ |
+#  | 5   | %mdy-1d | Corner Pub | labor     | 100.00 | 10.00      | ZZA  | X |
+#  | 4   | %mdy-2d | Dee Four   |  cash     |  50.00 | --         | ZZB  | X |
+##  | 3   | %mdy-1w | Abe One    | usd       | 500.00   | 500.00 | --         | ZZB  | X |
+#  | 602 | %mdy-2w |            | from bank | 400.00 | --         | ZZA  | X |
+#  | 601 | %mdy-2w |            | from bank | 600.00 | --         | ZZB  | X |
+
+  |_tid | Date    | Name       | Purpose   | Amount | Reward | _ |
+  | 5   | %mdy-1d | Corner Pub | labor     | 100.00 | 10.00  | X |
+  | 4   | %mdy-2d | Dee Four   |  cash     |  50.00 | --     | X |
+#  | 3   | %mdy-1w | Abe One    | usd       | 500.00   | 500.00 | --     | X |
+  | 602 | %mdy-2w |            | from bank | 400.00 | --     |   |
+  | 601 | %mdy-2w |            | from bank | 600.00 | --     |   |
   Given cron runs "acctStats"
   When member ".ZZB" visits page "summary"
   Then we show "Account Summary" with:

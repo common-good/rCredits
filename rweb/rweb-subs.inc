@@ -13,7 +13,7 @@ use rCredits\Web as w;
  * Tools for rWeb forms.
  */
 
-define('R_NONE', '<span class="none">--</span>'); // let the tests see null values
+define('R_NONE', '<span class="none">--</span>'); // how to show an empty field let the tests see null values
 define('R_AGREE_0', -2); // number of the first point in the rCredits Agreement
 define('R_AGREE_9', 6); // number of the last point in the rCredits Agreement
 define('REQ', '*'); // marks required fields (use this as start of field's label)
@@ -61,7 +61,7 @@ EOF
   'company approval' => t('Once a staff member has approved your account, you can begin accepting rCredits payments'),
   'join thanks' => t('Thank you for joining us!'),
   'use temporary card' => t('<p>While you wait for your rCard to arrive, you can use your invitation card to make purchases at any member business (beginning with your inviter).</p>'),
-  'must be confirmed' => t('An email has been sent to @inviterName. Ze will need to confirm the invitation before you can use your rCredits account. Or you can do your first rCard transaction with zem as confirmation.'),
+  'must be confirmed' => t('An email has been sent to @inviterName, who will need to confirm the invitation before you can use your rCredits account. Or you can do your first rCard transaction with @inviterName as confirmation.'),
   //  Meanwhile, click the "<a href="@BASE_URL/community/invite">Invite</a>" tab to invite anyone you know and trust &mdash; you get a $@R_HELPER_BONUSr reward when they make their first purchase.<br><br>
   'ready to charge' => t('<p>You successfully scanned in as "@agentName" to charge customers on behalf of @companyName.</p><p>Now go back to your scanning app, to scan a customer\'s card. Sign out only when your shift ends.</p>'),
   'transaction list truncated' => t('There are too many transactions to show all at once, so only the first @TX_MAX_ROWS are shown (choose a different date range to see the rest).'),
@@ -76,6 +76,7 @@ EOF
   'new savings balance' => t('<p>IMPORTANT! Your rCredits balance has been split to include a Credit Reserve containing your incentive rewards. Read <@a>last week\'s rCredits newsletter</a> for details.</p>', ['@a' => 'a href=http://us9.campaign-archive1.com/?u=b1d89f860859e1d9b906fa0b0&id=f1f54edd80&e=']),
   'minimum zeroed' => t('<p>Your rCredits "automatic refills" have been turned off, to prevent any unintended transfer from your bank account. To turn them back on or transfer funds manually, sign in to your account at rCredits.org OR <@a1>click here</a>.</p>'),
   'sent message' => t('Your message has been sent to @fullName.'),
+  'pass saved' => t('Your new password has been saved.'),
     
   // prompts
   'note' => '<b class="loud">' . t('NOTE:') . '</b>',
@@ -91,6 +92,8 @@ EOF
   'to scan another' => t('To scan another card, run the QR Scanner app again.'),
   'invite links' => t('<p>Here are your links, to include in your own email messages to your friends. Be sure to mention they can visit rCredits.org for more information.</p><p>@links</p>'),
   'timed out' => t('You were automatically signed out, to protect your account(s).'),
+  'secure msg' => t('@who sent you a secure message (see their Summary page).'),
+  'secure attach' => t('[<@aAttach>Attachment</a>: @name type=@type size=@size bytes]'),
 
   // confirm
   'yes or no' =>  '@yesNo', // to replace with yesNo(url)
@@ -225,6 +228,7 @@ EOF
   'bad invite num' => t('That is not a valid username or invitation number.'),
   'negative saveWeekly' => t('Your discretionary savings are already at their minimum, so your weekly savings addition cannot be negative.'),
   'requires signin' => t('You must be signed in, to use that page.'),
+  'too many days' => t('You cannot view or download more than 18 months at a time.'),
 //  'saveWeekly too low' => t('With a negative "minimum", your weekly savings addition must be at least @min.'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
@@ -855,12 +859,16 @@ function sessionVars($sid) {
 }
 
 /**
- * Set or retrieve an rCredits session variable.
+ * Set (if second parameter is given) or retrieve an rCredits session variable.
+ * @param string $name: name of variable
+ * @return: current value of the named session variable
  */
 function svar($name) {
   $name = SVAR_HEADER . $name;
   $args = func_get_args();
-  if (count($args) == 1) return @$_SESSION[$name]; else $_SESSION[$name] = $args[1];
+  $res = @$_SESSION[$name]; // current value
+  if (count($args) > 1) $_SESSION[$name] = $args[1];
+  return $res;
 }
 
 /**
@@ -914,6 +922,7 @@ function which($choices = '', $resultField = '', $info = '', $question = 'Which 
  */
 function modal($id, $legend, $prompt, $body, $closer = '') {
   if ($closer == 'X') $closer = '&times;'; // a better X (normally with class "close" alone)
+  if ($prompt !== '') $prompt = "<p>$prompt</p>";
   return <<<EOF
 <div id="$id" class="modal fade" role="dialog">
   <div class="modal-dialog">
@@ -921,7 +930,7 @@ function modal($id, $legend, $prompt, $body, $closer = '') {
       <div class="modal-header">
         <button type="button" class="pull-right btn btn-xs btn-default" data-dismiss="modal">$closer</button>
         <h4 class="modal-title">$legend</h4>
-        <p>$prompt</p>
+        $prompt
       </div>
       <div class="modal-body">
         $body
@@ -1103,7 +1112,7 @@ function suCreatorRelation($helper, $args, $myid) {
   $draw = ($flow & 2) ? 1 : 0;
   r\acct($myid)->newRelation(u\ray('other permission employee isOwner draw', $helper, r\perm(B_MANAGE), $employeeOk, $isOwner, $draw));
   if ($flow & 1) r\acct($helper)->newRelation(u\ray('other draw', $myid, TRUE));
-//  } else r\tellStaff("bad params in formSignup: $error -- ", $params);
+//  } else r\tellAdmin("bad params in formSignup: $error -- ", $params);
 } 
 
 /**
@@ -1156,7 +1165,7 @@ function tellStaffNewMember($params) {
   $params = compact(u\ray('phone country state acctType helper copts ats')) + $params;
   unset($params['code']); // don't need to see this
   $message = '<h2>NEW SIGNUP</h2>';
-  r\tellStaff($message, $params);
+  r\tellCO($message, $params);
 }
 
 /**
@@ -1312,7 +1321,7 @@ function toggle($field, $value, $id, $highlight = 'never') {
     list ($visHigh, $invisHigh) = u\order($highlight, ' highlight', '');
   } else $highlight = $visHigh = $invisHigh = '';
 
-  list ($yesvis, $novis) = u\order($value, "visible$visHigh", "invisible$invisHigh");
+  list ($yesvis, $novis) = u\order($value, "visible$visHigh", "gone$invisHigh");
   return <<<EOF
     <div class="$field-buttons$highlight">
     <div id="$id-YES" class="$yesvis form-yes">Yes $b1</div>
@@ -1448,7 +1457,7 @@ function eLinkAcct(&$sta, &$eLink = '', $allow = 'individual') {
 
 function hack($message, $info = []) {
   u\loga('hack', $_SERVER, $message);
-  r\tellStaff($message, $info);
+  r\tellAdmin($message, $info);
   return r\signedIn() ? signout() : r\go('');
 }
 
@@ -1546,24 +1555,59 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   return u\ray('dateRange', compact('simple', 'advanced')) + $res;
 }
 
+/*
+function dateRange2($args, $url, $download = TRUE) {
+  extract(u\just('starting ending', $args));
+  if (!@$starting) { // default to previous month
+    $ending = u\monthDay1() - 1;
+    $starting = u\monthDay1($ending);
+  }
+  $url = hidFld(BASE_URL . "/$url/starting=$starting&ending=$ending");
+
+  if ($download) $download = submit(t('Download')); else $show = submit(t('Show'));
+///  debug(render($submitPeriod));
+///  debug(rendA(compact('submitPeriod')));
+///  $actions = render($submitPeriod) . render(@$downloadPeriod) . render($showAdvanced);
+  
+  $starting = textFld(t('Starting:'), '', dft(u\fmtDate($starting)));
+  $ending = textFld(t('Ending:'), '', dft(u\fmtDate($ending)));
+  $advanced = fieldSet('advanced', compact(u\ray('starting ending download show url')), BARE);
+}
+*/
+
 function dateRangeValidate(&$sta) {
   extract(u\just('period starting ending', $sta['input']));
   $op = op($sta);
   list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? rangeDates(@$period) : rangeDates('', @$starting, @$ending);
+  if ($ending - $starting > TX_MAX_DAYS * DAY_SECS) return w\say('too many days', 'err');
   u\preray(compact(u\ray('starting ending period')), $sta['input']);
 }
 
+/**
+ * Initiate a download, if appropriate.
+ */
+function downloadCheck($page) {
+  global $base_url;
+  if ($query = w\svar("$page-downloadQuery", '')) { // get value and empty it
+    js("window.open(\"$base_url/$page/$query&download=1\", \"download\");", 'inline', 'footer');
+  }
+}
+
+/**
+ * Handle the results of the date range dialog.
+ * @param string $page: what page we're coming from and going to
+ * @param assoc $sta: form status array, for finding out whether user pressed Download and building redirect url
+ * @param assoc $sta: (MODIFIED) with $sta['redirect'] set unless downloading
+ */
 function dateRangeRedirect($page, &$sta) {
   if (confirming_s($sta)) return;
 
   $sta['input']['states'] = @join(',', @$sta['input']['states'] ?: []);
-  $url = "$page/" . http_build_query(u\just('states period starting ending', $sta['input']));
-
+  $query = http_build_query(u\just('states period starting ending', $sta['input']));
   if (u\starts(op($sta), 'download')) {
+    w\svar("$page-downloadQuery", $query);
     say('downloading');
-    $url .= '&downloaded=1';    
-  }
-  $sta['redirect'] = $url;
+  } else $sta['redirect'] = "$page/$query";
 }
 
 /**
@@ -2035,14 +2079,22 @@ function monthChoices($title, $things, $subtext = '', $end = -1, $target = '_bla
   $mya = r\acct();
   $start = u\monthDay1($mya->created); // start of account's first month
   $thisMo = u\monthDay1(); // start of this month
-  $month = $end ? u\plusMonths($end, $thisMo) : $thisMo;
-  
-  for (; $month >= $start; $month = u\plusMonths(-1, $month)) {
-    $year = date('Y', $month);
-    $text = strftime('%b%Y', $month);
-    $list[$year] = @$list[$year] . "<a href=\"$things/$text\" target=\"$target\">$text</a><br>\n";
+  $end = $end ? u\plusMonths($end, $thisMo) : $thisMo;
+  $endYear = date('Y', $end);
+  $startYear = date('Y', $start);
+
+  for ($year = $endYear; $year >= $startYear; $year--) {  
+//    for ($month = $start; $month <= $; $month = u\plusMonths(-1, $month)) {
+    $list[$year] = '';
+    for ($month = strtotime('1/1/' . $year); 
+         $month <= $end and date('Y', $month) == $year; 
+         $month = u\plusMonths(1, $month)) {
+      $mon = strftime('%b', $month);
+      $list[$year] .= $month < $start ? '.<br>' : "<a href=\"$things/$mon$year\" target=\"$target\">$mon</a><br>\n";
+    }
   }
-  if (@$list) {
+  
+  if ($end >= $start) {
     $headers = $data = '';
     foreach ($list as $year => $v) {
       $headers .= "<th>$year</th>";
@@ -2104,7 +2156,7 @@ function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   );
   r\rMail('invite', $email, $info, $mya);
   say(!$dupsOk ? 'Sent to @email' : 'invite sent|repeat invite', compact('email'));
-  if (!$admin) r\tellStaff('invited', $info + compact('email'), $mya->id);
+  if (!$admin) r\tellAdmin('invited', $info + compact('email'), $mya->id);
 }
 
 function focusOn($focusFieldName) {
@@ -2114,15 +2166,16 @@ function focusOn($focusFieldName) {
 }
 
 /**
- * Return true if the current account has all the accesses listed.
+ * Return TRUE if the current account has all the required permissions.
  */
 function webAccess($perms = NULL) {
   if ($perms == 'dev' and isDEV) return TRUE;
   if ($perms == ANY) return TRUE; // needed for submenus (see w\subMenu())
-  setGlobals(); // remember who we are (the main reason for this function)
-  if (!@$perms or !$mya = r\acct()) return FALSE;
+  setGlobals(); // remember who we are
+  if (!$mya = r\acct()) return ($perms == 'signedOut');
   if ($perms == 'signedIn') return TRUE;
-
+  if ($perms == 'signedOut') return FALSE;
+  
   foreach (u\ray($perms) as $perm) {
     $not = (substr($perm, 0, 1) == '-');
     $hasPerm = $mya->can(u\consta('b', $not ? substr($perm, 1) : $perm));
@@ -2173,7 +2226,7 @@ function popHelp($text, $help, $href = '', $class = '') {
   list ($href, $tag) = $href ? [" href=\"$href\"", 'a'] : ['', 'span'];
   if ($class) $class = " class=\"$class\"";
   $text = ucfirst($text);
-  return "<$tag$href$class data-toggle=\"popover\" data-trigger=\"hover\" title=\"$text\" data-content=\"$help\">$text</$tag>";
+  return "<$tag$href$class data-toggle=\"popover\" data-placement=\"bottom\" data-trigger=\"hover\" title=\"$text\" data-content=\"$help\">$text</$tag>";
 }
 
 /**

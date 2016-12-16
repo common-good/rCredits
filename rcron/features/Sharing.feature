@@ -16,7 +16,7 @@ Setup:
   |   3 | %today  | bonus    |      4 | ctty | .ZZB | bonus on #1  |
 
 Scenario: members share their transaction rewards
-  When cron runs "lessOften"
+  When cron runs "everyMonth"
   Then gifts:
   | id   | giftDate | amount | often | honor  | share |*
   | .ZZA | %today   |      1 |     1 | share  |    -1 |

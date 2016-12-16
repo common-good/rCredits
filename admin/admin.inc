@@ -113,14 +113,10 @@ function makeTestAdmins() {if (isSTAGE) foreach (u\ray(R_COS) as $k) if ($a = r\
  */
 function showSteps($a) {
   $steps = '';
-  if (!$a->ok) foreach ($a->stepsDone as $k => $done) { // :? for testing
+  if (!$a->ok and $a->id != 1) foreach ($a->stepsDone as $k => $done) {
     $color = $done ? 'silver' : 'red';
-    if ($a->co) {
-      if ($k == 'proxies') $color = 'white';
-    } elseif ($k == 'company' or $k == 'relations') $color = 'white';
-    $steps .= "<b style=\"color:$color;\">$k </b>";
+    if (!in_array($k, $a->co ? ['proxies'] : ['company', 'relations'])) $steps .= "<b style=\"color:$color;\">$k </b>";
   }
-// (Takes too long)  if (!$a->ok) $steps .= ' [Next step: <b style="color:red;">' . ($a->nextStep() ?: 'NONE!') . '</b>] ';
   return $steps;
 }
 
@@ -177,7 +173,7 @@ EOF;
         : ($permission >= B_READ ? t('can read')
         : t('can ?')))));
     }
-    $ret .= ($ret ? ', ' : '') . "$role <a href=\"$base_url/sadmin/acct-info/$them\">$who</a>$extra";
+    $ret .= ($ret ? ', ' : '') . "$role <a href=\"$base_url/summary/$them\">$who</a>$extra";
   }
   return $ret;
 }

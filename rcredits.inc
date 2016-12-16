@@ -46,7 +46,7 @@ function regionalInsert($table, $idField, $record, $region = NULL) {
     try {
       if (db\insert($table, $record)) return $id;
     } catch (Exception $e) { // BIG MYSTERY: why does this happen sometimes with no collision?
-      r\tellStaff('cannot save regional ' . $e->getMessage(), $record);
+      r\tellAdmin('cannot save regional ' . $e->getMessage(), $record);
     }
   }
   u\EXPECT(FALSE, "failed to save $table record in region $region after $try tries.");
@@ -260,7 +260,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
 /**/  $erInfo += ['error1' => print_r(@$res, 1)];
     } catch(Exception $e) {$erInfo += ['error' => $e->getMessage()];}
   }
-  return @$success ?: r\tellStaff('email fail', $erInfo);
+  return @$success ?: r\tellAdmin('email fail', $erInfo);
 }
 
 /**
@@ -271,8 +271,11 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
  */
 function badCard($qid, $code, $msg) {
   $created = time();
-  db\update('r_bad', $info = compact(u\ray('qid code created')), 'created', TRUE);
-  r\tellStaff('card marked bad', $info + compact('msg'));
+  if (!db\exists('r_bad', $info = compact('qid', 'code'))) {
+    db\insert('r_bad', $info += compact('created'), 'created', TRUE);
+    $index = 'card marked bad';
+  } else $index = 'attempted card already marked bad';
+  r\tellCO($index, $info + compact('msg'));
 }
 
 /**
@@ -395,14 +398,14 @@ function membershipEvent($a, $status, $do = TRUE) {
       $helped = db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) + 0;
       if ($helped == ORGANIZER_GRANT_MIN) {
         r\message($a->id, 'organizer grant', ['a' => 'a href="' . BASE_URL . '"/community/grant']);
-        r\tellStaff('eligible for grant', ['name' => $a->helperA->fullName], $a->helper);
+        r\tellAdmin('eligible for grant', ['name' => $a->helperA->fullName]);
       }
     }
   }
   unset($DBTX);
   
   $qid = $a->mainQid;
-  tellStaff('event - ' . $status, compact(u\ray('fullName qid status')), $a->id);
+  tellCO('event - ' . $status, compact(u\ray('fullName qid status')), $a->id);
   return TRUE;
 }
 
@@ -438,7 +441,7 @@ function acceptGift($info) {
       db\insert('r_gifts', compact(u\ray('uid giftDate amount often share')));
     };
 //    r\usd::commit();
-    r\tellStaff('gift accepted', $info + $args);
+    r\tellAdmin('gift accepted', $info + $args);
     r\notify($uid, 'gift sent', $args);
     return TRUE;
   } //else r\usd::rollback();
@@ -446,36 +449,32 @@ function acceptGift($info) {
 }
 
 /**
- * Notify rCredits staff (Community Admin, if uid is in their area)
+ * Notify rCredits staff (Community Admin, if uid is specified and in their area)
  * @param string $index: the message or message index
- * @param assoc $subs: substitutions for the message and/or data to show (show both)
- * @param bool/int $uid: related account record id (defaults to current account), none if FALSE
+ * @param assoc $subs: optional substitutions for the message and/or data to show (show both)
+ * @param bool/int $uid: related account record id (TRUE means current account), defaults to none
  * @return FALSE;
  */
-function tellStaff($index, $subs = [], $uid = TRUE) {
+function tellAdmin($index, $subs = [], $uid = NULL) {
 /**/  if (isDEV and !u\test()) return debug(['tellingStaff' => $index] + $subs + compact('uid'));
-  if (empty($subs)) $subs = []; // accept ''
   foreach (u\ray('federalId dob answer secure pass') as $k) unset($subs[$k]); // secret stuff
   ksort($subs); // put the keys in a predictable order, for testing and easy reading
   $message = u\tt($index, $subs) . u\seeAssoc($subs);
-  $email = $regionEmail = r\regionField('email'); // default (tell sysAdmin)
-  
-  if ($uid) {
-    if ($mya = r\acct($uid > 1 ? $uid : '')) {
-      $message = "$mya->fullName ($mya->mainQid): $message";
-      if ($ca = $mya->cAdminUid()) $email = r\acct($ca)->email; // tell Community Admin
-    } else $uid = NULL;
-  } else $uid = NULL; // default to SYS_EMAIL
+  if ($mya = r\acct(@$uid)) $who = "$mya->fullName ($mya->mainQid)"; // (default to current account)
+    
+  if (@$uid) { // account specified, so tell Community Admin
+    $email = $mya->cttyA->email;
+  } else list ($email, $uid) = [R_ADMIN_EMAIL, $mya ? $mya->id : NULL]; // no account specified so tell SysAdmin
 
   $noFrame = TRUE;
   $topic = strlen($index) < 30 ? strip_tags($index) : '';
-  $subs = compact(u\ray('email message topic noFrame uid')) + $subs;
+  $subs = compact(u\ray('who email message topic noFrame uid')) + $subs;
   r\rMail('tell-staff', $email, $subs, $uid);
-  if ($email != $regionEmail and $email != R_ADMIN_EMAIL) { // temporary until ctty admins get established
-    r\rMail('tell-staff', SYS_EMAIL, $subs, $uid); // tell regional admin also
-  }
+  if ($email != R_ADMIN_EMAIL) r\rMail('tell-staff', SYS_EMAIL, $subs, $uid);
   return FALSE;
 }
+
+function tellCO($index, $subs = [], $uid = NULL) {return tellAdmin($index, $subs, $uid ?: r\acct()->id);}
 
 /**
  * Return a unique temporary name related to the given uniquely identifying parmeters 
@@ -879,7 +878,7 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
 function txRet($message, $info = [], $confirm = FALSE) {
   $info0 = $info;
   if (is_array($message)) {list ($message, $info, $confirm) = $message; $info += $info0;}
-  if (!@$info['success']) r\tellStaff('failed transaction', $info + compact('message', 'confirm'));
+  if (!@$info['success']) r\tellCO('failed transaction', $info + compact('message', 'confirm'));
   return array($message, $info, $confirm);
 }
 
@@ -938,8 +937,8 @@ function go($page, $msg = '', $field = '') {
   }
   */
   if ($msg) r\Web\say($msg, $field);
-// die('in r go');
-  header("Location: $base_url/$page"); exit();
+  if (!u\starts($page, 'http')) $page = "$base_url/$page";
+  header("Location: $page"); exit();
 //  \drupal_goto(substr($page, 0, 1) == '/' ? substr($page, 1) : $page);
 }
 
@@ -1409,7 +1408,6 @@ function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emai
 function realCountry($country) {return db\lookup('name', 'r_countries', 'id=:country', compact('country'));}
 function realState($state, $country = R_COUNTRY_ID) {return db\lookup($country == US_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
-function queue($op, $item = []) {\DrupalQueue::get('q')->createItem(compact('op') + $item);}
 function perm($bit) {return $bit - B_RELATED;}
 function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}
 function doCode($code) {return @unserialize(@u\decrypt(@u\deurlify($code)));}  

@@ -1,3 +1,10 @@
+2016-12-15 version 2.51
+. radically revised transactions history page to work fast and cool on mobile
+. open company account now sets proper steps done
+. separated tellCO from tellAdmin
+. memberlist links to accounts now actually change the account
+. cAdmin now sees a message on Summary page saying where the member would be sent, to complete the signup.
+
 2016-11-07 version 2.49
 . sharing donations now come out of rewards (and into CGF's rewards)
 . f('db.q', "UPDATE r_txs SET goods=:FOR_SHARE WHERE payerFor=':R_SHARING_MSG' ");

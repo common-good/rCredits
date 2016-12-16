@@ -71,6 +71,7 @@ function adminSummary($a, $cAdmin = FALSE) {
   if ($a->isNormal) { // managing some individual community member account
     if (!$a->ok) $a->nextStep();
     if ($cAdmin) {
+      if (showSecureMessages()) $secureMsgs = submit(t('Show secure messages'));
       $html = $a->photoHtml(TRUE, TRUE);
       $photo = item("<a href=$base_url/settings/security/photo>$html</a>");
       if ($admin) $community = r\cttys($a->region, $ctty);
@@ -217,7 +218,7 @@ EOF;
 
   $uid = hidFld($uid); // must postcede js (which uses uid)
   
-  return compact(u\ray('community photo balance donations cgfDonations federalId legalName calling signupCo tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
+  return compact(u\ray('community secureMsgs photo balance donations cgfDonations federalId legalName calling signupCo tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
 }
 
 /**
@@ -250,10 +251,12 @@ function export($params) {
     $q = db\q($sql);
     while ($row = $q->fetchAssoc()) {
       extract($row);
+      if (db\exists('users', 'mail=:email', compact('email'))) continue; // don't duplicate or send to nonudge people
       list ($id, $first_name, $last_name, $modified) = [$listid, $first, $last, time()];
       $address = $city = $state = $ecode = $special = '';
       $member = $type = $ctty == 0 ? '' : 'member';
       foreach (u\ray('phone email') as $k) $$k = u\decryptN($$k);
+      if (strpos($email, '@example.com')) continue;
       $cttyName = $ctty ? trim(str_replace('rCredits', '', r\acct($ctty)->fullName)) : '';
       u\csv(array_values(compact($fields)));
     }
@@ -268,7 +271,7 @@ function export($params) {
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $a = r\acct($id);
-    $member = $a->ok ? 'yes' : '';
+    $member = $a->ok ? 'member' : '';
     if (@$anonymous) {
       foreach ($fields as $k) $$k = $a->$k; // do this first. some will be null.
       $zip = $a->postalCode;

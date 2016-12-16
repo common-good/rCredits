@@ -62,9 +62,6 @@ MENU_SUGGESTED_ITEM  Menu type -- A normal menu item, hidden until enabled by an
 function rweb_menu($submenu = '') {
 
   $items = array(
-    'signin' => ['call', 'Sign in', 'Signin', ANY],
-//    'sinx' => ['call', 'Sign in from elsewhere', 'Sinx', ANY],
-
     'summary' => ['norm', t('Summary'), 'Summary', 'read'],
 
     'charge' => ['norm', t('Charge'), 'Tx 1', 'sell ok'],
@@ -169,7 +166,7 @@ function rweb_menu($submenu = '') {
     'sadmin/handy' => ['sub', t('Handy'), '', 'dev', 'handyLinks'],
     'sadmin/php' => ['sub', t('PHP'), 'Php', 'dev'],
     'sadmin/zot' => ['sub', 'zot', '', 'admin'], // Drupal bug: last choice is omitted
-    'sadmin/acct-info' => ['call', 'Account Info', 'Summary 2', 'regulator'],
+//    'sadmin/acct-info' => ['call', 'Account Info', 'Summary 2', 'regulator'],
     'sadmin/tx-info' => ['call', 'Transaction Info', 'TxInfo 2', 'regulator'],
     'sadmin/deposit-details' => ['call', t('Deposit Details'), '2', 'admin', 'depositDetails'],
     'sadmin/checks' => ['call', t('Checks'), '2', 'admin', 'printChecks'],
@@ -179,7 +176,10 @@ function rweb_menu($submenu = '') {
     'sadmin/recover' => ['call', t('Empty'), 'TestRecovery 1', 'dev'], // also go here manually, if needed
     'print-rcard' => ['call', t('Print ID Card'), '1 2', 'cadmin', 'memberID'],
 
-    'signout' => ['norm', t('Sign out'), '1', 'read', 'signout'],
+    'signout' => ['norm', t('Sign out'), '1', 'signedIn', 'signout'],
+    'signin' => ['norm', t('Sign in'), 'Signin', 'signedOut'],
+//    'signin' => ['call', 'Sign in', 'Signin', ANY],
+//    'sinx' => ['call', 'Sign in from elsewhere', 'Sinx', ANY],
     
     'help' => ['call', t('Help'), 'Help 1 2', ANY],
     'change-account' => ['call', t('Change Who'), '1', ANY, 'changeWho'],

@@ -156,7 +156,7 @@ function tableDefs($schema = []) {
   // table r_bad
   $fields = array(
     'qid' => setupField('phoney customer qid', 'varchar 255'),
-    'code' => setupfield('phoney card security code', 'varchar 50'),
+    'code' => setupfield('phoney card security code', 'varchar 255'),
     'created' => setupField('Unixtime record was created', 'int 11'),
   );
   $foreignKeys = [];

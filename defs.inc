@@ -13,7 +13,7 @@ define('R_BULLET', '&#8226;'); // bullet in emails (where CSS is difficult)
 define('STATS_GRAIN', 10); // granularity of statistics, in days
 define('INFLATION_DESC', t('inflation adjustment'));
 
-require_once __DIR__ . '/boot.inc'; // secret settings for this community's rCredits server
+// NOT NEEDED require_once __DIR__ . '/boot.inc'; // secret settings for this community's rCredits server
 require_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
 
 // Common Good Finance email and other data
@@ -30,11 +30,11 @@ define('PUBLIC_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.publicKey');
 define('PRIVATE_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.privateKey');
 define('ANY', 'any'); // accessible to anyone (if you change this, rebuild menus immediately)
 define('SVAR_HEADER', 'rcredits_'); // session variable header
+define('TEST_PDF_FLNM', 'testOutput.pdf'); // pdf output during testing
 
 define('COMPANY_FREEZE', FALSE); // companies cannot spend rewards yet
 define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
-define('EMPTY_FIELD', '--'); // how to display empty fields
 define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty,Vacant Lot,Land,Cinema,Printing & Office Supply,Car Repair,Health Club/Gym,Restaurant,Hardware & Supply,Grocer,Farm,Food Processing,Department Store,Electric Company,Oil Company,Town Government,Community College,Hospital');
 define('R_REGION_FIELDS', 'region,fullName,st,postalCode,federalId,hasServer');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
@@ -323,7 +323,6 @@ define('TX_LINK', 6); // user clicked a no-signin link
 define('TX_CHANNELS', t('System SMS Web App Tone Cron Link'));
 
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits) -- negative types generally not shown
-define('TX_BANK', -9); // used only internally, to mark bank transfers
 define('TX_BONUS', -2); // sales bonus (negative reward types are invisible on transaction history)
 define('TX_REBATE', -1); // sales rebate
 define('TX_TRANSFER', 0); // normal fund transfer (usually for actual goods and services) -- not creating rC
@@ -338,10 +337,15 @@ define('TX_XFEE', 10); // exchange fee (for buying rCredits with a credit/debit 
 define('TX_GRANT', 11);
 define('TX_LOAN', 12);
 define('TX_INVEST', 13); // equity investment (community purchase are TX_TRANSFER)
+define('TX_BANK', 99); // used only internally, to mark bank transfers
 define('TX_TYPES', 'payment signup giveback inflation helper u5 u6 u7 u8 fine xfee grant loan investment');
 
-define('TX_DEFAULT_PERIOD', 30); // number of days to show in transaction history, by default
-define('TX_MAX_ROWS', 100); // maximum number of transactions to show on one screen
+define('TX_DEFAULT_PERIOD', 90); // number of days to show in transaction history, by default
+define('MIN_TX_ROWS', 3); // minimum number of transaction lines to show
+define('NORMAL_TX_ROWS', 30); // normal number of transaction lines to show
+define('TX_MAX_ROWS', 500); // (unused) maximum number of transactions to load at once
+define('TX_MAX_MOS', 18); // maximum transaction months, for display
+define('TX_MAX_DAYS', 30.5 * TX_MAX_MOS + 2); // maximum days in a transaction query (18 months) -- 2 for leap day & daylight
 define('TX_DOWNLOAD_MONEY_FIELDS', 'frombank fromyou toyou reward net');
 define('TX_DATA_FIELDS', 'rebate bonus undoneBy undoes disputed force changes isGift'); // serialized pseudo-fields in the data field of a transaction record
 
@@ -359,11 +363,13 @@ $GLOBALS['emailSubjects'] = array(
 */
   'nonmember' => t('rCredits invitation followup'),
   'verify' => t('rCredits NEXT STEP: Verify your email address.'),
+  'verifyCo' => t('rCredits NEXT STEP: Verify your company email address.'),
   'password-reset' => t('New rCredits PASSWORD'),
   'tell-staff' => t('rCredits STAFF ALERT: {topic}'),
   'notices' => t('rCredits Notices for {range}'),
   'message' => t('rCredits {topic}'),
 );
+
 $GLOBALS['topics'] = array( // topics for 'message' email
   'confirm invite' => t('Confirm invitation to @otherName'),
   'not confirmed' => t('Your rCredits membership requires confirmation.'),

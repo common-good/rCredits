@@ -6,7 +6,7 @@ use rCredits\Util as u;
 use rCredits\Testing as t;
 use rCredits\Backend as be;
 use rCredits\Risk as k;
-use rCredits\Cron as cron;
+use rCredits\Cron as cr;
 
 /**
  * @file
@@ -18,9 +18,10 @@ use rCredits\Cron as cron;
 function queueEach($op, $sql, $subs = []) {
   global $cronOp; // this is set to ONE_CRON_OP when calling cron() from PHP window on test server
   $result = db\q($sql, $subs);
+
   while ($row = $result->fetchAssoc()) {
     $oneOp = "rCredits\\Cron\\$op";
-    if (@$cronOp == ONE_CRON_OP) $oneOp($row); else r\queue($op, $row);
+    if (@$cronOp == ONE_CRON_OP or u\test()) $oneOp($row); else cr\queue($op, $row);
   }
 }
 
@@ -37,9 +38,9 @@ function queueNext($task = NULL) {
   u\setDft($task, str_replace(__NAMESPACE__ . '\\', '', u\caller()));
 
   if (u\test() and @$cronOp and $cronOp != 'ALL') {
-    r\queue($task == $cronOp ? 'END' : $cronOp);
-  } else r\queue(u\nextAfter($task, u\ray(R_DAILY_TASKS)));
-//  } else r\queue($tasks[array_search($task, $tasks) + 1]);
+    cr\queue($task == $cronOp ? 'END' : $cronOp);
+  } else cr\queue(u\nextAfter($task, u\ray(R_DAILY_TASKS)));
+//  } else cr\queue($tasks[array_search($task, $tasks) + 1]);
 }
 
 /**
@@ -82,3 +83,5 @@ function oftenTests() {
   }
   return $ok;
 }
+
+function queue($op, $item = []) {\DrupalQueue::get('q')->createItem(compact('op') + $item);}

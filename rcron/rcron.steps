@@ -232,14 +232,14 @@ function weNoticeToMember($notice, $id) {return t\notice($notice, $id);}
 function gifts($gifts) {return t\gifts($gifts);}
 
 /**
- * we tell staff (ARG) with subs: (ARG)
+ * we tell admin (ARG) with subs: (ARG)
  *
  * in: TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ARecurringDonationCanBeCompleted
  *     TEST Recache BalancesGetOutOfWhack
  *     TEST Recache BalancesGetATinyBitOutOfWhack
  */
-function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
+function weTellAdminWithSubs($topic, $subs) {return t\weTellAdmin($topic, $subs);}
 
 /**
  * usd: (ARG)
@@ -328,22 +328,22 @@ function uSDPaymentByMemberIsNotRecorded($id) {
 }
 
 /**
- * we tell staff nothing
+ * we tell admin nothing
  *
  * in: 
  */
-function weTellStaffNothing() {
+function weTellAdminNothing() {
   global $testOnly; if (!$testOnly) return FALSE;
   $info = '%"index":"tell-staff"%';
   return !db\lookup('info', 'r_log', "info LIKE '$info' ORDER BY logid DESC");
 }
 
 /**
- * we do not tell staff (ARG)
+ * we do not tell admin (ARG)
  *
  * in: 
  */
-function weDoNotTellStaff($topic) {return !t\weTellStaff($topic);}
+function weDoNotTellAdmin($topic) {return !t\weTellAdmin($topic);}
 
 /**
  * usd transfer count is (ARG)
