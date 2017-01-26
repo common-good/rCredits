@@ -46,7 +46,8 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 	};
 	UserService.prototype.makeRequest_ = function (params, accountInfo) {
 		var urlConf = new UrlConfigurator();
-		console.log(urlConf.getServerUrl(accountInfo),accountInfo, $httpParamSerializer(params));
+		console.log($httpParamSerializer(params));
+		//"https://otherrealm.org/cgf/test.php",
 		return $http({
 			method: 'POST',
 			url: urlConf.getServerUrl(accountInfo),
@@ -293,8 +294,11 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			data: $httpParamSerializer(params),
 			responseType: "arraybuffer"
 		}).then(function (res) {
+			console.log(res.data.toString());
 			var arrayBufferView = new Uint8Array(res.data);
+			console.log(arrayBufferView.toString());
 			var blob = new Blob([arrayBufferView], {type: "image/jpeg"});
+			console.log(blob.toString());
 			var urlCreator = window.URL || window.webkitURL;
 			var imgUrl = urlCreator.createObjectURL(blob);
 			var imageConvert = $q.defer();

@@ -1,4 +1,4 @@
-/* global rCreditsConfig, Transaction, _, app, Sha256 */
+/* global rCreditsConfig, Transaction, _, app, Sha256, parseFloat, moment */
 app.service('TransactionService',
 	function ($q, UserService, RequestParameterBuilder, $http, $httpParamSerializer, SQLiteService,
 		SqlQuery, NetworkService, MemberSqlService, NotificationService, $ionicLoading, TransactionSql, $rootScope) {
@@ -108,7 +108,7 @@ app.service('TransactionService',
 						console.log(transactionResult.data.ok, transactionResult);
 					}
 					self.lastTransaction = transactionResult;
-					throw transactionResult;
+					return transactionResult;
 				})
 				.finally(function () {
 					$rootScope.$emit("TransactionDone");
