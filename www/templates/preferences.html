@@ -13,7 +13,7 @@
 			<ion-item> &nbsp;</ion-item>
 			<ion-item ng-click="openLink('https://new.rcredits.org/signin')">
 				<div class="h2">Cashier Mode Permissions</div>
-				<span class="pref-subtitle">To change permissions, click here to login to <span class="linkerizer">rcredits.org/signin</span></span>
+				<span class="pref-subtitle">To change permissions, click here to login to <span class="linkerizer">rcredits.org</span></span>
 			</ion-item>
 			<ion-item ng-model="option.value" class="cashier-pref" ng-class="{'cashier-pref-selected': option.value}"
 					  ng-repeat="option in cashierCanModePref.options">
@@ -22,10 +22,6 @@
 			</ion-item>
 			<ion-item ng-click="changeCompany()">
 				<div class="h2">Change Company</div>
-			</ion-item>
-			<ion-item ng-click="openLink('https://rcredits.org/')">
-				<div class="h2">Home Page</div>
-				<span class="pref-subtitle">Got to the rCredits homepage<span class="linkerizer">rcredits.org</span></span>
 			</ion-item>
 		</ion-list>
 	</ion-content>
