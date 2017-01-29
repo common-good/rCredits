@@ -5,9 +5,8 @@
 			this.queryString = '';
 			this.queryData = [];
 		};
-		SqlQuery.prototype.setQueryString = function (tbl,queryStr) {
-			this.queryString = (queryStr ? queryStr : this.queryString);
-			this.tbl = tbl;
+		SqlQuery.prototype.setQueryString = function (queryStr) {
+			this.queryString = queryStr;
 		};
 		SqlQuery.prototype.setQueryData = function (data) {
 			var sqlData = data;

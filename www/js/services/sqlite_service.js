@@ -1,64 +1,58 @@
-/* global app, User */
+/* global app */
 (function (app) {
 	app.service('SQLiteService', function ($q, $timeout, NotificationService) {
 		var self;
 		var SQLiteService = function () {
 			self = this;
 			//this.sqlPlugin = window.sqlitePlugin || window;
-			window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
-			window.IDBTransaction = window.IDBTransaction || window.webkitIDBTransaction || window.msIDBTransaction || {READ_WRITE: "readwrite"};
-			window.IDBKeyRange = window.IDBKeyRange || window.webkitIDBKeyRange || window.msIDBKeyRange;
 			this.sqlPlugin = window;
 			this.db = null;
-			this.request = null;
+		};
+		SQLiteService.prototype.isDbEnable = function () {
+			console.log(!!this.sqlPlugin);
+			return !!this.sqlPlugin;
 		};
 		SQLiteService.prototype.createDatabase = function () {
 			var openPromise = $q.defer();
-			this.request = indexedDB.open(window.rCreditsConfig.SQLiteDatabase.name);
-			this.request.onupgradeneeded = function () {
-				// The database did not previously exist, so create object stores and indexes.
-				this.db = this.request.result;
-				this.members = this.db.createObjectStore("members", {keyPath: "qid"});
-				this.txs = this.db.createObjectStore("members", {keyPath: "me"});
-				this.titleIndex = this.members.createIndex("custQid", "members", {unique: true});
-				this.errors = this.db.createObjectStore("errors", {keypath: "qid"});
-				this.db.oncomplete = function () {
-					this.db = this.request.result;
-					console.log(db);
-					return openPromise.promise;
-				};
-			};
-			this.request.onerror = function (event) {
-				console.log(event);
-				return openPromise.promise;
-			};
-			this.request.onsuccess = function () {
-				this.db = this.request.result;
-				console.log(db);
-				return openPromise.promise;
-			};
-			$timeout(function () {
-				openPromise.resolve();
-			}, 1000);
+//			if (window.cordova) {
+//				this.db = $cordovaSQLite.openDB({name: "rcredits.db"}); //device
+//			} else {
+				this.db = this.sqlPlugin.openDatabase(
+					window.rCreditsConfig.SQLiteDatabase.name,
+					window.rCreditsConfig.SQLiteDatabase.version,
+					window.rCreditsConfig.SQLiteDatabase.description, 100000);
+				$timeout(function () {
+					openPromise.resolve();
+				}, 1000);
+//			}
+			return openPromise.promise;
 		};
 		SQLiteService.prototype.ex = function () {
 			var txPromise = $q.defer();
 			txPromise.resolve(true);
 			return txPromise.promise;
 		};
-		SQLiteService.prototype.executeQuery = function (table, params) {
+		SQLiteService.prototype.executeQuery_ = function (query, params) {
 			var txPromise = $q.defer();
-			if (table === "member") {
-				this.members.put({params});
-			} else if (table === "txs") {
-				this.txs.put({params});
-			} else {
-				console.log({qid: User.getId, table:table, details: params});
-				this.errors.put({qid: User.getId, details: params});
-			}
+			console.log(query, params);
+			this.db.transaction(function (tx) {
+				tx.executeSql(query, params, function (tx, res) {
+					txPromise.resolve(res);
+				}, function (tx, e) {
+					console.error(tx, e);
+//					var alertPopup = NotificationService.showAlert({
+//						title: "error",
+//						template: "There was an error: " + e.message
+//					});
+					txPromise.reject(e.message);
+				});
+			}, function (error) {
+				console.error('transaction error: ' + error.message);
+			}, function () {
+			});
 			return txPromise.promise;
 		};
-		SQLiteService.prototype.executeQueryOld = function (sqlQuery) {
+		SQLiteService.prototype.executeQuery = function (sqlQuery) {
 			return this.executeQuery_(sqlQuery.getQueryString(), sqlQuery.getQueryData());
 		};
 		SQLiteService.prototype.createSchema = function () {
@@ -93,7 +87,10 @@
 			});
 		};
 		SQLiteService.prototype.init = function () {
-			this.createDatabase();
+			if (!this.isDbEnable()) {
+				console.warn("SQLite is not enable");
+			}
+			this.createDatabase().then(this.createSchema.bind(this));
 			console.log(this);
 		};
 		return new SQLiteService();

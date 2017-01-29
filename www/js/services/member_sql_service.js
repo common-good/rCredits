@@ -16,22 +16,22 @@
 			var sqlQuery = new SqlQuery();
 			return this.existMember(user.accountInfo.accountId)
 				.then(function (sqlMemeber) {
-					sqlQuery.setQueryString('member',{
-						qid:user.getId(),
-						name:user.getName(),
-						company: user.getCompany(),
-						place: user.getPlace(),
-						balance: user.getBalance(),
-						rewards: user.getRewards(),
-						lastTx: user.getLastTx(),
-						proof: JSON.stringify({sc: user.accountInfo.securityCode}),
-						photo: user.getBlobImage()
-				});
+					sqlQuery.setQueryString("UPDATE members SET " +
+						"name = '" + user.getName() + "'," +
+						"company = '" + user.getCompany() + "'," +
+						"place = '" + user.getPlace() + "'," +
+						"balance = '" + user.getBalance() + "'," +
+						"rewards = '" + user.getRewards() + "'," +
+						"lastTx = '" + user.getLastTx() + "'," +
+						"proof = '" + JSON.stringify({sc: user.accountInfo.securityCode}) + "'," +
+						"photo = '" + user.getBlobImage() + "' " +
+						" WHERE qid = '" + user.getId() + "'"
+						);
 					return sqlQuery;
 				})
 				.catch(function (errorMessage) {
-					console.log(errorMessage);//'INSERT INTO members (qid, name, company, place, balance, rewards, lastTx, proof, photo) VALUES (?,?,?,?,?,?,?,?,?)
-					sqlQuery.setQueryString('members');
+					console.log(errorMessage);
+					sqlQuery.setQueryString('INSERT INTO members (qid, name, company, place, balance, rewards, lastTx, proof, photo) VALUES (?,?,?,?,?,?,?,?,?)');
 					sqlQuery.setQueryData([
 						user.getId(),
 						user.getName(),
