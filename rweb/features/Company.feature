@@ -15,7 +15,7 @@ Setup:
 Scenario: A member visits the company info page
   When member "C:A" visits page "settings/company"
   Then we show "Company Information" with:
-  |_rCredits page | rCredits web page |
+  |~page title | %PROJECT web page |
   | Company name  | Our Pub |
 
 Scenario: A member updates company info

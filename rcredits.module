@@ -16,7 +16,7 @@
  * - credit issuance: how credit comes into being, before it is used in transactions
  *
  * CREDIT ISSUANCE:
- * In the rCredits system, credit is always issued as a Ricardian Contract
+ * In the %PROJECT system, credit is always issued as a Ricardian Contract
  * (see http://www.systemics.com/docs/ricardo/issuer/contract.html).
  * Initially, for the first 6 months, credit will be issued only by the Society to Benefit Everyone, Inc.,
  * for rebates, bonuses, and inflation adjustments. That credit will be backed by the membership
@@ -45,7 +45,7 @@ use rCredits\Testing as t;
 use rCredits\Web as w;
 use rCredits\Admin as a;
 
-define('R_SYS_ERR', "The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again.<br>\n");
+define('R_SYS_ERR', t('The %PROJECT system has detected an unusual problem. If your activity was interrupted, please feel free to try again.') . "<br>\n");
 define('ONE_CRON_OP', 'one cron op'); // flags a call of f('cr. in PHP window, to prevent side-effects
 
 /**
@@ -81,7 +81,7 @@ function rcredits_exception_handler($e) {
   $msg = '<b>Exception:</b>' . R_SYS_ERR. "<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   if (isPRODUCTION) {
     $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
-    mail(R_ADMIN_EMAIL, 'rCredits FATAL ERROR', $message);
+    mail(R_ADMIN_EMAIL, t('%PROJECT FATAL ERROR'), $message);
     $R_FATAL_ERROR = u\loga('FATAL', compact('message')); // this gets picked up by rcredits_shutdown()
 /**/  die(); // invoke shutdown
 /**/ } else echo $msg;
@@ -159,10 +159,10 @@ function g($varName) {
 /**/ function tm($n = '') {debug($result = $n ? (is_numeric($n) ? date('m-d-Y H:i:s a', $n) : strtotime($n)) : time()); return $result;} // convert and display unixtime or string time
 function a($id) {global $lastA; return $lastA = r\acct(t\fullQid(strtoupper(strlen($id) == 3 ? '.' . $id : $id)));} // return an account object
 function x($xid, $mya = '') {r\x($xid, $mya);} // return a transaction object
-/**/ function da($idfield) {list ($id, $field) = u\ray($idfield); debug(a($id)->$field);}
+/**/ function da($idfield) {list ($id, $field) = ray($idfield); debug(a($id)->$field);}
 /**/ function step($a) {debug(us($a)->step());}
 function ctty($id) {return a(a($id)->community);}
-function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
+//function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
 /**/ function flog($s) {file_put_contents(isSTAGE ? 'photos/flog.txt' : 'flog.txt', print_r($s, 1) . "\n", FILE_APPEND);} // log to file
 /**/ function who($s = '') {$a = is_object($s) ? $s : a($s); debug("$a->fullName ($a->mainQid $a->id)"); return $a;} // show whose account
 function q($sql, $subs = [], $log = FALSE) {return f('db.q', $sql, $subs, $log);}
@@ -184,7 +184,7 @@ function f($func) {
   if (substr($func, 0, 2) == 's.') include_once __DIR__ . '/rsmart/rsmart.inc';
   
   $args = func_get_args();
-  if (strpos($func, ' ') and count($args) == 1) $args = u\ray($args[0]);
+  if (strpos($func, ' ') and count($args) == 1) $args = ray($args[0]);
   $func = array_shift($args);
   return call_user_func_array(funcNickname($func), $args);
 }
@@ -197,7 +197,7 @@ function f($func) {
  */
 function funcNickname($func) {
   list ($n, $func) = explode('.', $func);
-  $funcs = array_combine(u\ray('r w s u be db t p a cr y v'), u\ray(' Web Smart Util Backend DB Testing SMS Admin Cron Special Vote'));
+  $funcs = array_combine(ray('r w s u be db t p a cr y v'), ray(' Web Smart Util Backend DB Testing SMS Admin Cron Special Vote'));
   return 'rCredits\\' . ($funcs[$n] ? $funcs[$n] . '\\' : '') . $func;
 }
 
@@ -251,8 +251,8 @@ function patch($name) {
   if ($name == 'user_login_final_validate2207') {
     $email = $args[1];
     \watchdog('user', 'Login attempt failed for %user.', array('%user' => $email));
-    $a = 'href=$base_url/settings/password';
-    return (\drupal_get_messages('error', FALSE)) ? '' : w\say('bad login', compact('a'), 'name');
+    $_a = w\atag('/settings/password');
+    return (\drupal_get_messages('error', FALSE)) ? '' : w\say('bad login', compact('_a'), 'name');
   }
   if ($name == '_user_mail_notify3569') { // UNUSED
     list ($index, $account, $language) = $args;

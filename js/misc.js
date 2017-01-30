@@ -112,13 +112,15 @@ function who(form, id, question, amount, askGift) {
       if (j.who) {
         $(id).val(j.who);
         yesno(j.confirm, function() {
-          if (askGift && j.isNonprofit) {
+/*          if (askGift && j.isNonprofit) {
             $('.confirmation-modal').remove();
             yesno('Is this a donation?', 
               function() {$('#edit-isgift').val(1); yesSubmit = true; jForm.submit();},
               function() {yesSubmit = true; jForm.submit();}  
             );
-          } else {yesSubmit = true; jForm.submit();}
+          } else 
+          */
+          {yesSubmit = true; jForm.submit();}
         }, noSubmit);
       } else which(jForm, id, j.title, j.which);
     } else {noSubmit(); $.alert(j.message);}

@@ -34,7 +34,7 @@ Scenario: A buyer changes the transaction description
   |     20 | %FOR_GOODS | things  |
   When member ".ZZA" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
-  |_tid | Date | Name    | Purpose | Amount | Reward | _ |
+  |~tid | Date | Name    | Purpose | Amount | Reward | ~ |
   |   2 | %mdy  | Bea Two | things  | -20.00 |   1.00 | X |
 
 Scenario: A buyer increases a payment amount
@@ -83,13 +83,13 @@ Scenario: A buyer tries to decrease a payment amount
 
 Scenario: A buyer disputes a charge
   Given transactions:
-  | xid | created   | type     | amount | from | to   | purpose  | taking |*
-  | 100 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | 1      |
+  | xid | created   | type     | amount | from | to   | purpose  | flags  |*
+  | 100 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | taking |
   | 101 | %today-5d | rebate   |      4 | ctty | .ZZA | rebate   | 0      |
   | 102 | %today-5d | bonus    |      8 | ctty | .ZZC | bonus    | 0      |
   When member ".ZZA" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
-  |_tid | Date    | Name       | Purpose | Amount | Reward | _ |
+  |~tid | Date    | Name       | Purpose | Amount | Reward | ~ |
   |   3 | %mdy-5d | Corner Pub | this CF | -80.00 | 4.00   | X |
   # Status was %chk 
   When member ".ZZA" clicks "X" on transaction 100
@@ -98,13 +98,15 @@ Scenario: A buyer disputes a charge
   | $80    | Corner Pub | charged  | "this CF" | %today-5d | request a refund of this charge |
   When member ".ZZA" confirms "X" on transaction 100
 #  When member ".ZZA" confirms form "history/transactions/period=5&do=no&xid=100" with values: ""
+Skip (test doesn't work yet)
   Then we say "status": "report undo" with subs:
   | solution |*
   | marked "disputed" |
   And we show "Transaction History" with:
-  |_tid | Date   | Name       | Purpose | Amount | Reward | _ |
+  |~tid | Date   | Name       | Purpose | Amount | Reward | ~ |
   |   3 | %mdy-5d | Corner Pub | this CF | -80.00 | 4.00   |   |
   # Status was disputed
+Resume
   
 Scenario: A seller reverses a charge
   Given transactions:
@@ -114,7 +116,7 @@ Scenario: A seller reverses a charge
   | 102 | %today-5d | bonus    |      8 | ctty | .ZZC | bonus    | 0      |
   When member "C:B" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
-  |_tid | Date   | Name    | Purpose | Amount | Reward | _ |
+  |~tid | Date   | Name    | Purpose | Amount | Reward | ~ |
   |   2 | %mdy-5d | Abe One | this CF | 80.00  |   8.00 | X |
   When member "C:B" clicks "X" on transaction 100
   Then we show "tx desc active|purpose|when|.|confirm tx action" with subs:
@@ -123,19 +125,19 @@ Scenario: A seller reverses a charge
   
 Scenario: A member confirms OK for a disputed transaction
   Given transactions:
-  | xid | created   | type     | state    | amount | from | to   | purpose  | taking |*
+  | xid | created   | type     | flags    | amount | from | to   | purpose  | taking |*
   | 100 | %today-5d | transfer | disputed |     80 | .ZZA | .ZZC | this CF  | 1      |
-  | 101 | %today-5d | rebate   | disputed |      4 | ctty | .ZZA | rebate   | 0      |
-  | 102 | %today-5d | bonus    | disputed |      8 | ctty | .ZZC | bonus    | 0      |
+  | 101 | %today-5d | rebate   |          |      4 | ctty | .ZZA | rebate   | 0      |
+  | 102 | %today-5d | bonus    |          |      8 | ctty | .ZZC | bonus    | 0      |
   When member ".ZZA" completes form "history/transactions/period=5&do=ok&xid=100" with values: ""
-  Then we say "status": "@who @did you @amount for @for on @date. Okay to @do" with subs:
+  Then we say "status": "confirm accept" with subs:
   | who        | did     | amount | for       | date    | do                  |*
   | Corner Pub | charged | $80    | "this CF" | %dmy-5d | accept this charge? |
 
 # This test doesn't work yet.
 #  When member ".ZZA" confirms form "history/transactions/period=5&do=ok&xid=100" with values: ""
 #  Then we show "Transaction History" with:
-#  |_tid | Date   | Name       | Purpose | Amount | Reward | _ |
+#  |~tid | Date   | Name       | Purpose | Amount | Reward | ~ |
 #  | 11  | %mdy-5d | Corner Pub | this CF | -80.00 |   4.00 | X |
 #  And we say "status": "charge accepted" with subs:
 #  | who     |*

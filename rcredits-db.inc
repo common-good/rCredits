@@ -22,10 +22,10 @@ use rCredits\Util as u;
 function q($sql, $subs = [], $retId = FALSE, $log = FALSE) {
   global $channel;
 //  \db_query("SET NAMES 'utf8'"); // only needed once per connection, but hey
-  u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
+  u\EXPECT(compact(ray('sql subs')), 'notempty assoc');
 //  if (strpos($sql, 'INSERT INTO') !== FALSE and strpos($sql, ' VALUES (')) $return = \Database::RETURN_INSERT_ID;
   if ($retId) $return = \Database::RETURN_INSERT_ID;
-  if ($log and !strpos($sql, 'r_log') and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs, $sql);
+  if ($log and !strpos($sql, 'r_log') and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs + compact('sql'));
   try {
     return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
   } catch (Exception $e) {
@@ -44,7 +44,7 @@ function q($sql, $subs = [], $retId = FALSE, $log = FALSE) {
  *   FALSE if none
  */
 function lookup($fieldName, $table, $where = '1', $subs = []) {
-  u\EXPECT(compact(u\ray('fieldName table where subs')), 'notempty notempty notempty assoc');
+  u\EXPECT(compact(ray('fieldName table where subs')), 'notempty notempty notempty assoc');
   
   if (is_array($where)) list ($where, $subs) = [u\where($where), $where];
   if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
@@ -52,9 +52,9 @@ function lookup($fieldName, $table, $where = '1', $subs = []) {
 /// debug(compact('sql','subs'));
   $result = db\q($sql, $subs);
   $fieldCount = strpos($fieldName, '(') ? 1 : substr_count($fieldName, ',') + 1; // function or array, not both
-  $several = ($fieldName == '*' or $fieldCount > 1);
-  $result = $several ? $result->fetchAssoc() : $result->fetchField();
-  if ($several and $fieldName != '*' and $result) u\EXPECT(\count($result) == $fieldCount, 'field count is off'); // eg, if $fieldName == 'a,a' (\count because this class has a count function!)
+  if (substr($fieldName, -1, 1) == '*') $many = TRUE; elseif ($fieldCount > 1) $several = TRUE;
+  $result = (@$several or @$many) ? $result->fetchAssoc() : $result->fetchField();
+  if (@$several and $result) u\EXPECT(\count($result) == $fieldCount, 'field count is off'); // eg, if $fieldName == 'a,a' (\count because this class has a count function!)
   return $result;
 }
 
@@ -69,12 +69,12 @@ function lookup($fieldName, $table, $where = '1', $subs = []) {
  */
 function update($table, $info, $key, $either = FALSE) {
   //if ($table != 'r_log') u\loga('db', $info, "$table:$key" . ($either ? ' EITHER' : ''));
-  if ($either and !db\exists($table, "$key=:$key", array($key => $info[$key]))) $key = '';
+  if ($either and !db\exists($table, "$key=:$key", [$key => $info[$key]])) $key = '';
   $command = $key ? 'UPDATE' : 'INSERT INTO';
   $sql = '';
   foreach ($info as $field => $value) if ($field != $key) $sql .= ",`$field`=:$field";
   $sql = "$command $table SET " . substr($sql, 1) . ($key ? " WHERE `$key`=:$key" : '');
-///  if ($table=='r_do') {print_r(compact(u\ray('table info key either command sql'))); die('dbU');}
+///  if ($table=='r_do') {print_r(compact(ray('table info key either command sql'))); die('dbU');}
   try {
     $result = db\q($sql, $info, !$key);
     if ($command != 'INSERT INTO') return TRUE;
@@ -91,7 +91,7 @@ function update($table, $info, $key, $either = FALSE) {
       if ($hasSerial = ($field1['type'] == 'serial')) return FALSE; // record ID would have been returned above
     }
     
-    return db\lookup($id, $table, "`$id`=:id", u\ray('id', $info[$id])); // return the supplied id if success
+    return db\lookup($id, $table, "`$id`=:id", ray('id', $info[$id])); // return the supplied id if success
   } catch (PDOException $e) {u\EXPECT(FALSE, "PDOException: $e->message");} 
 }
 
@@ -142,7 +142,7 @@ function lst($field, $table, $where = '1', $subs = []) { // lst because "list" i
  * @param assoc $values: values to add to the data field in that record
  */
 function setData($table, $id, $values) {
-  $keys = u\ray('users r_txs r_invoices', 'uid', 'xid', 'nvid');
+  $keys = ray('users r_txs r_invoices', 'uid', 'xid', 'nvid');
   $key = $keys[$table];
   u\EXPECT($key, 'bad table');
   $data = db\lookup('data', $table, "$key=:id", compact('id'));
@@ -151,9 +151,27 @@ function setData($table, $id, $values) {
     return r\acct($id)->update(compact('data'));
   } else {
     $data = serialize($data);
-    return db\update($table, u\ray("data $key", $data, $id), $key);
+    return db\update($table, ray("data $key", $data, $id), $key);
   }
 }
 
-function count($table, $where = '1', $subs = []) {return db\lookup('COUNT(*)', $table, $where, $subs);}
+/**
+ * Set (or unset) a bit in the flags field of a record.
+ * @param string $table: what record the table is in
+ * @param string $id: the record ID
+ * @param int $bit: which bit to change
+ * @param bool $bool: TRUE or FALSE (how to set the bit -- defaults to TRUE)
+ */
+function setFlag($table, $id, $bit, $bool = TRUE) {
+  if ($table == 'users') return r\acct($id)->setBit($bit, $bool);
+
+  $keys = ray('users r_txs r_invoices', 'uid', 'xid', 'nvid');
+  $key = $keys[$table];
+  u\EXPECT($key, 'bad table');
+  $flags = db\lookup('flags', $table, "$key=:id", compact('id'));
+  u\setBit($flags, $bit, $bool);
+  return db\update($table, ray("flags $key", $flags, $id), $key);
+}
+
+function count($table, $where = '1', $subs = []) {return db\lookup('COUNT(1)', $table, $where, $subs);}
 function max($field, $table, $where = '1', $subs = []) {return db\lookup("MAX($field)", $table, $where, $subs);}

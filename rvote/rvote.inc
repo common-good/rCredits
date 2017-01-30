@@ -33,15 +33,16 @@ dropdown selector for year or page (when there are a lot of questions)
  * @param acct $cttyA: the community account
  * @param int $question: (optional) id of question member is focusing on
  * @param string $doWhat: (optional) what type of specifics to show (options or results)
- * @return [list, voting]
+ * @return [list, phase, endDate]
  *    list     array of questions for this community
- *    voting   "voting is happening now"
+ *    phase    what phase is happening now (G=grading V=voting ''=?)
+ *    endDate  when this phase ends
  */
 function questionList($cttyA, $question='', $doWhat='') {
   global $base_url;
 	global $voting;
 
-	$q = db\q("SELECT id, (CASE WHEN :now>endVoting THEN 'R' WHEN :now>endProposals THEN 'V' WHEN :now>endIdeas THEN 'P' ELSE 'I' END) AS phase, repeats, repeatedBy, text, detail,  linkIdeas, linkProposals, created, (CASE WHEN endVoting=0 THEN 0 WHEN :now>endVoting THEN endVoting-:now WHEN :now>endProposals THEN endVoting WHEN :now>endIdeas THEN endProposals ELSE endIdeas END) AS endDate, budget, units FROM r_questions WHERE ctty IN (:ctty, 0) AND endIdeas<>0 ORDER BY endDate, id", u\ray('ctty now', $cttyA->id, $now = time()));
+	$q = db\q("SELECT id, (CASE WHEN (endGrading<>0 AND :now>endVoting) then 'G' WHEN :now>endVoting THEN 'R' WHEN :now>endProposals THEN 'V' WHEN :now>endIdeas THEN 'P' ELSE 'I' END) AS phase, repeats, repeatedBy, text, detail,  linkIdeas, linkProposals, created, (CASE WHEN endVoting=0 THEN 0 WHEN (endGrading<>0 AND :now>endVoting) THEN endGrading WHEN :now>endVoting THEN endVoting-:now WHEN :now>endProposals THEN endVoting WHEN :now>endIdeas THEN endProposals ELSE endIdeas END) AS endDate, budget, units FROM r_questions WHERE ctty IN (:ctty, 0) AND endIdeas<>0 ORDER BY endDate, id", ray('ctty now', $cttyA->id, $now = time()));
 
 	$voting = false;
 	$qdivs = $list = '';
@@ -66,20 +67,20 @@ function questionList($cttyA, $question='', $doWhat='') {
 </div qline>\n
 EOF;
 
-	$see = "<a href=\"$linkIdeas\">Ideas</a>";
-	if(strpos('.PVR', $phase)) $see .= " | <a href='$linkProposals'>Proposals</a>";
-	if(strpos('.VR', $phase)) $see .= " | <a  href=\"$base_url/community/democracy/question=$id&do=options\">Options</a>";
-	if($phase == 'R') $see .= " | <a  href=\"$base_url/community/democracy/question=$id&do=results\">Results</a>";
-	if($endDatedpy == '?') $endDatedpy = 'not set';
+    $see = "<a href=\"$linkIdeas\">Ideas</a>";
+    if(strpos('.PVR', $phase)) $see .= " | <a href='$linkProposals'>Proposals</a>";
+    if(strpos('.VR', $phase)) $see .= " | <a  href=\"$base_url/community/democracy/question=$id&do=options\">Options</a>";
+    if($phase == 'R') $see .= " | <a  href=\"$base_url/community/democracy/question=$id&do=results\">Results</a>";
+    if($endDatedpy == '?') $endDatedpy = 'not set';
 
-	if($id == $question) {
-		$qstyle = " style='display:block;'";
-		$opts = ($doWhat == 'options') ? getOpts($id) : '';
-		$results = ($doWhat == 'results' or true) ? getresults($id) : '';
-	} else $qstyle = $opts = $results = '';
+    if($id == $question) {
+      $qstyle = " style='display:block;'";
+      $opts = ($doWhat == 'options') ? getOpts($id) : '';
+      $results = ($doWhat == 'results' or true) ? getresults($id) : '';
+    } else $qstyle = $opts = $results = '';
 
-//<div class='ballot' style='border:0;'>
-	$qdivs .= <<<EOF
+  //<div class='ballot' style='border:0;'>
+    $qdivs .= <<<EOF
 <div id='qdetails$id' class='ballot qdetails'$qstyle>
 <div class='question'><b>Question #$id:</b> $text$budget</div question>
 <div class='see'><b>See:</b> $see</div see>
@@ -100,9 +101,7 @@ $list
 $qdivs
 EOF;
 
-	if($voting) $voting = u\fmtDate($endDate);
-
-	return array($list, $voting);
+	return array($list, @$phase, u\fmtDate(@$endDate));
 }
 
 /**
@@ -245,6 +244,32 @@ function getQuestions($ctty) {
 	}
 
 	return [@$qIds, @$qTypes];
+}
+
+/**
+ * Return an HTML list of comments on a given proposal.
+ */
+function proposalComments($pid) {
+  $sql = <<<EOF
+    SELECT CONCAT('(q', v.option-11, ') ', v.text, IF(v.isVeto, ' VETO!', '')) AS notes FROM r_proposals p JOIN r_ballots b ON b.question=-p.id JOIN r_votes v ON v.ballot=b.id WHERE v.text <> '' AND p.id=:pid ORDER BY p.project, v.option
+EOF;
+  return db\q($sql, compact('pid'))->fetchCol();
+}
+
+/**
+ * Return an array of proposal record IDs in the requested order.
+ * @param mixed $order: an account object (meaning arbitrary persistent order for that account) or string (ORDER BY clause)
+ */
+function getProposals($mya, $order = '') {
+  $ctty = $mya->community;
+  
+  if (!$order) {
+    $plus = date('i', $mya->created);
+    $mod = date('s', $mya->created);
+    $order = "(id*$plus)%$mod, id"; // randomize but stay the same for this member
+  }
+  
+  return db\col('id', 'r_proposals', 'ctty IN (:ctty, 0) ORDER BY ' . $order, compact('ctty')); 
 }
 
 /*

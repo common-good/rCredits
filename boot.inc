@@ -9,44 +9,26 @@ global $base_url, $base_path, $base_root;
 global $databases, $drupal_hash_salt;
 global $cookie_domain, $conf, $is_https, $base_secure_url, $base_insecure_url;
  
-define('R_VERSION', '2.51'); // software version
-define('STAGE_SUBDOMAIN', 'ws');
-define('STAGE', STAGE_SUBDOMAIN . '.rcredits.org'); // staging site (for secrets, etc.)
-define('GAME_SITE', 'game.rcredits.org');
+global $CGdomain;
+
+require __DIR__ . '/defs.inc';
 
 set_error_handler('_drupal_error_handler');
 set_exception_handler('_drupal_exception_handler');
 timer_start('page');
-  
-$host = strtolower(@$_SERVER['HTTP_HOST']);
-if (strlen($host) > 30 or !preg_match('/^\[?(?:[a-zA-Z0-9-:\]_]+\.?)+$/', $host)) {header('HTTP 400 Bad Request'); exit();}
-define('isSTAGE', substr($host, 0, 6) == 'stage-' or $host == STAGE);
-define('isGAME', FALSE or ($host == GAME_SITE));
-define('isDEV', $_SERVER['SERVER_ADDR'] == '::1'); // developing
-define('isPRODUCTION', !isDEV and !isSTAGE and !isGAME); // new.rcredits.org or miw.rcredits.org, etc.
-
-define('DEV_ROOT', '/rMembers'); // path to drupal root on DEV machine
-define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)
-define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
-
-// time periods are defined here because this script uses them
-define('MIN_SECS', 60);
-define('HOUR_SECS', 60 * MIN_SECS);
-define('DAY_SECS', 24 * HOUR_SECS);
-define('WEEK_SECS', 7 * DAY_SECS);
-define('WEEK7_SECS', 52 * DAY_SECS);
-define('MONTH_DAYS', 30.4368);
-define('YEAR_SECS', round(12 * MONTH_DAYS * DAY_SECS));
 
 global $R_POST; $R_POST = $_POST;
-
+$uri = 'I' . $_SERVER['REQUEST_URI']; // handle scanned rCard URIs
+if (isDEV) $uri = str_replace(DEV_ROOT . '/', '/', $uri);
+$_SERVER['REQUEST_URI'] = $_GET['q'] = preg_match('~^I/[A-Z]+[\.-]~', $uri) ? $uri : \request_path();
+  
 $secrets = (array) json_decode(utf8_encode(file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.databases')));
 global $db_name;
-$db_name = key($secrets); // rCredits members db must be the first db name in the file
+$db_name = key($secrets); // members db must be the first db name in the file
 extract((array) $secrets[$db_name], EXTR_PREFIX_ALL, 'db');
 
 define('R_WORD', hex2bin($db_word));
-define('R_INVITE_KEY', $db_inviteKey); // this value is the same for all rCredits servers (except DEV)
+define('R_INVITE_KEY', $db_inviteKey); // this value is the same for all servers (except DEV)
 //define('DW_API_KEY', isPRODUCTION ? $db_dwollaKey :$db_dwSandKey);
 //define('DW_API_SECRET', isPRODUCTION ? $db_dwollaSecret :$db_dwSandSecret);
 define('R_SSN_USER', @$db_ssnUser);
@@ -74,8 +56,6 @@ $databases = array (
   ),
 );
 
-$_GET['q'] = request_path();
-
 ini_set('magic_quotes_runtime', '0'); // Don't escape quotes when reading files from the database, disk, etc.
 ini_set('session.use_cookies', '1'); // Use session cookies, not transparent sessions with the session id in the query string.
 ini_set('session.use_only_cookies', '1');
@@ -99,20 +79,7 @@ if (isDEV) {
 
 setlocale(LC_ALL, 'C'); // Set sane locale settings, to ensure consistent string, dates, times and numbers handling.
 
-$uri = 'I' . $_SERVER['REQUEST_URI']; // handle scanned rCard URIs
-if (isDEV) $uri = str_replace(DEV_ROOT . '/', '/', $uri);
-if (preg_match('~^I/[A-Z]+[\.-]~', $uri)) $_GET['q'] = $_SERVER['REQUEST_URI'] = $uri;
-
 $drupal_hash_salt = $db_salt;
-$protocol = (isDEV or isGAME) ? 'http://' : 'https://';
-$base_url = $protocol . $host . (isDEV ? DEV_ROOT : ''); // NO trailing slash!
-define('BASE_URL', $base_url);
-define('PROMO_URL', isDEV ? 'http://localhost/rPromo/_site' : 'http://rcredits.org');
-define('R_PATH', '/sites/all/modules/rcredits');
-global $rUrl; $rUrl = BASE_URL . R_PATH;
-$parts = parse_url($base_url);
-$base_path = @$parts['path'] . '/';
-$base_root = substr($base_url, 0, strlen($base_url) - strlen(@$parts['path'])); // everything until first slash after "scheme://"
 
 $conf = array();
 $conf['cron_safe_threshold'] = 0; // disable poorman's cron

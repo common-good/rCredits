@@ -43,7 +43,7 @@ Scenario: A member confirms request to charge another member
   When member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods      | purpose |*
   | charge | Bea Two | 100    | %FOR_USD | paper   |
-  Then we say "status": "report tx|balance unchanged" with subs:
+  Then we say "status": "report tx|for why|balance unchanged" with subs:
   | did     | otherName | amount | why         |*
   | charged | Bea Two   | $100   | exchange of US Dollars or other currency |
   And we message "new invoice" to member ".ZZB" with subs:
@@ -71,7 +71,7 @@ Scenario: A member confirms request to pay another member
   When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
   | pay | Bea Two | 100    | %FOR_USD | paper   |
-  Then we say "status": "report tx" with subs:
+  Then we say "status": "report tx|for why" with subs:
   | did    | otherName | amount | why         |*
   | paid   | Bea Two   | $100   | exchange of US Dollars or other currency |
   And we notice "new payment" to member ".ZZB" with subs:

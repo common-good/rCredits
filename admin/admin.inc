@@ -22,7 +22,7 @@ use rCredits\Web as w;
  * called from installation and test setup
  */
 function setupBasicAccounts() {
-  $keys = u\ray('uid community name fullName email postalCode country minimum rebate flags');
+  $keys = ray('uid community name fullName email postalCode country minimum rebate flags');
 
   $q = db\q('SELECT :R_REGION_FIELDS FROM r_regions');
   while ($row = $q->fetchAssoc()) { // create or update all regions
@@ -30,16 +30,16 @@ function setupBasicAccounts() {
     if (!$hasServer) continue;
 //    if (isDEV and !in_array($region, [R_SERVER_ID])) continue; // don't slow the tests down
     if ($uid = db\lookup('uid', 'users', "name=CONCAT(:region, '.')", compact('region'))) {
-      r\acct($uid)->update(compact(u\ray('postalCode federalId')));
+      r\acct($uid)->update(compact(ray('postalCode federalId')));
     } else {
       $fullName = $fullName ?: db\lookup('name', 'r_states', 'abbreviation=:st', compact('st'));
-      $email = u\shortName($fullName) . "@rCredits.org";
-      $fullName = 'rCredits ' . $fullName;
+      $email = u\shortName($fullName) . '@' . CG_DOMAIN;
+      $fullName = PROJECT . ' ' . $fullName;
       $uid = r\serverUid($region);
       $state = db\lookup('id', 'r_states', 'abbreviation=:st', compact('st'));
       $values = array($uid, $uid, $region . '.', $fullName, $email, $postalCode, R_COUNTRY_ID, 0, 0, u\bit(B_CO) | u\bit(B_OK));
       $info = array_combine($keys, $values);
-      $info += compact(u\ray('postalAddr state federalId'));
+      $info += compact(ray('postalAddr state federalId'));
       new r\Acct($info);
     }
   }
@@ -61,9 +61,9 @@ function setupBasicAccounts() {
 
     $values = array(r\qo('NEWAAB')->id, $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO]));
     $info = array_combine($keys, $values);
-    list ($phone, $address, $city, $state) = array(CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
+    list ($phone, $address, $city, $state) = array(u\fmtPhone(CGF_PHONE, '+n'), CGF_ADDRESS, CGF_CITY, R_STATE_ID);
     $helper = 1; //$wws->id;
-    $info += compact(u\ray('email phone address city state helper'));
+    $info += compact(ray('email phone address city state helper'));
     $cgf = new r\Acct($info);
     \variable_set('cgf_uid', $cgf->id);
 //    $cgf->newRelation($wws->id, r\perm(B_MANAGE));
@@ -106,14 +106,14 @@ function makeTestCards() {
   a\makeTestAdmins();
 }
 
-function makeTestAdmins() {if (isSTAGE) foreach (u\ray(R_COS) as $k) if ($a = r\acct($k)) $a->setBit(B_CADMIN);}
+function makeTestAdmins() {if (isSTAGE) foreach (ray(R_COS) as $k) if ($a = r\acct($k)) $a->setBit(B_CADMIN);}
 
 /**
  * Return a display of steps done and steps remaining (to open an account).
  */
 function showSteps($a) {
   $steps = '';
-  if (!$a->ok and $a->id != 1) foreach ($a->stepsDone as $k => $done) {
+  if (!$a->ok and $a->id != 1) foreach (($a->stepsDone ?: []) as $k => $done) {
     $color = $done ? 'silver' : 'red';
     if (!in_array($k, $a->co ? ['proxies'] : ['company', 'relations'])) $steps .= "<b style=\"color:$color;\">$k </b>";
   }
@@ -128,10 +128,10 @@ function showActivity($a) {
   $cgf = r\cgfId();
   $when = u\plusMonths(-3);
   $count = $a->co ? db\count('r_txs', 'payee=:uid AND created>:when', compact('uid', 'when'))
-    : db\count('r_txs', 'payer=:uid AND payee<>:cgf AND created>:when', compact(u\ray('uid cgf when')));
-  $ret = t('@count @what', u\ray('@count @what', $count, $a->co ? t('sales') : t('purchases')));
-  $subs = u\ray('@activated @signed @use', $a->ok ? u\fmtDate($a->activated) : t('NO'), $a->signed ? u\fmtDate($a->signed) : t('NO'), u\fmtDate($a->ok ? $a->access : $a->login));
-  $ret .= t(' in the past 3 months (signed @signed, activated @activated, last use/signin @use)', $subs);
+    : db\count('r_txs', 'payer=:uid AND payee<>:cgf AND created>:when', compact(ray('uid cgf when')));
+  $ret = t('%count %what', 'count what', $count, $a->co ? t('sales') : t('purchases'));
+  $subs = ray('activated signed use', $a->ok ? u\fmtDate($a->activated) : t('NO'), $a->signed ? u\fmtDate($a->signed) : t('NO'), u\fmtDate($a->ok ? $a->access : $a->login));
+  $ret .= t(' in the past 3 months (signed %signed, activated %activated, last use/signin %use)', $subs);
   return $ret;
 }
 
@@ -158,7 +158,7 @@ EOF;
       $role = t('related to');
     } elseif ($uid == $main) {
       $qo = r\qo($main, $them);
-      $extra = '<small> (' . r\qid($them) . ' / ' . spinLink("$base_url/print-rcard/$main/$them", t('card'), '', 'primary', 'xs', ['target' => '_blank']) . ')</small>';
+      $extra = '<small> (' . r\qid($them) . ' / ' . a\cardLink("$main/$them") . ')</small>';
       $role = $isOwner ? t('owned by')
         : ($draw ? t('drawn on by')
         : ($permission >= B_MANAGE ? t('managed by')
@@ -184,7 +184,7 @@ EOF;
 function usdAccts($where = "postalCode LIKE '013%'") {
   if (!r\acct()->admin) return;
   $result = db\q("SELECT uid FROM users WHERE $where ORDER BY fullName");
-  $head = u\ray('Name Dwolla? Type Verified OK Co Bal');
+  $head = ray('Name Dwolla? Type Verified OK Co Bal');
   while ($row = $result->fetch()) {
     $usA = new r\usd($a = r\acct($row->uid));
     $bal = $usA->bal($err);
@@ -226,12 +226,12 @@ function formatField($k, $v) {
   $v = $v . ''; // convert to string
   if ($k == 'bankAccount' and u\starts($v, '~')) $v = 'c' . $v; // FUDGE to repair broken crypt flag (?)
   while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
-  if ($v and in_array($k, u\ray(ID_KEYS)) and strlen($v) >= strlen(r\cgfId())) {
+  if ($v and in_array($k, ray(ID_KEYS)) and strlen($v) >= strlen(r\cgfId())) {
     if ($a = r\acct($v)) $v = $a->name; else $v .= t(' (missing)'); // eg, when uid is changed
   } // member ID. Don't include agent/payerAgent/etc. here
-  if ($v and $k == 'channel') $v = u\rayv(u\ray(TX_CHANNELS), $v);
+  if ($v and $k == 'channel') $v = u\rayv(ray(TX_CHANNELS), $v);
   if ($k == 'reid') $v = str_replace(R_MEMBER_MARK, R_AGENT_MARK, r\qid($v));
-  if ($v and in_array($k, u\ray(R_DATE_FIELDS))) $v = '<div style="line-height:65%;">' . strftime('%d%b', $v) . '<span style="font-size:50%;">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
+  if ($v and in_array($k, ray(R_DATE_FIELDS))) $v = '<div style="line-height:65%;">' . strftime('%d%b', $v) . '<span style="font-size:50%;">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
   if ($k == 'flags') $v = "<div style='text-transform:none; font-size:7px; line-height:11px;'>" . a\flagsDesc($v, B_LIST) . '</div>';
   return $v;
 }
@@ -248,7 +248,7 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
   $limit = 500; // max records to show
   
   $mya = r\acct();
-  if (!$admin = $mya->admin) {
+  if (!$mya->admin and $joinFields) {
     if ($table != 'users') {
       if (!is_array($joinFields)) $joinFields = array($joinFields);
       $fieldCount = count($joinFields);
@@ -315,7 +315,7 @@ EOF;
 } 
 
 function ssnName($v) {
-  foreach (u\ray('firstname middlename lastname') as $k) $$k = $v->$k ?: ''; // convert [] to ''
+  foreach (ray('firstname middlename lastname') as $k) $$k = $v->$k ?: ''; // convert [] to ''
   return ucWords(strtolower(str_replace('-', '', @"$firstname $middlename $lastname")));
 }
 function ssnAddr($v) {return ucWords(strtolower(@"$v->address, $v->city, $v->state $v->zip"));}
@@ -372,7 +372,7 @@ function badStats($ctty, $asof) {
   }
   $rStat = db\lookup('r', 'r_stats', 'ctty=:ctty AND created=:asof', compact('ctty', 'asof'));
   if ($rStat == round($total, 2)) return FALSE;
-  return ['STATS_ERROR' => compact(u\ray('ctty asof rStat total'))];
+  return ['STATS_ERROR' => compact(ray('ctty asof rStat total'))];
 }
 
 /*
@@ -385,17 +385,17 @@ function badStats($ctty, $asof) {
     //$r += db\lookup('SUM(amount)', 'r_txs', 'payer<0 AND created ' . $crit, compact('created'));
     //$usd += db\lookup('-SUM(amount)', 'r_usd', 'payee=0 AND completed ' . $crit, compact('created'));
     //$newbs = db\count('users', 'created<:created', compact('created')) - $pAccts - $bAccts;
-///    debug(compact(u\ray('id created r usd newbs users'))); break;
-//    db\update('r_stats', compact(u\ray('r usd newbs id')), 'id');
+///    debug(compact(ray('id created r usd newbs users'))); break;
+//    db\update('r_stats', compact(ray('r usd newbs id')), 'id');
 
     $newbs = db\count('users', 'created<:created AND community=:new', compact('created', 'new')) - $pAccts - $bAccts;
     $id = db\lookup('id', 'r_stats', 'created=:created AND ctty<>0', compact('created'));
-    db\update('r_stats', compact(u\ray('newbs id')), 'id');
+    db\update('r_stats', compact(ray('newbs id')), 'id');
   }
 */
 function pioneerBonus($a) {
   if (!$a->ok or !$a->can(B_BONA) or $a->co) return;
-  if (db\exists('r_txs', "payee=:uid AND payer=-8915 AND amount=100", u\ray('uid', $a->id))) return;
+  if (db\exists('r_txs', "payee=:uid AND payer=-8915 AND amount=100", ray('uid', $a->id))) return;
 /**/  debug("Pioneer bonus to $a->fullName");
   be\fund($a->id, TX_SIGNUP, 100, 'pioneer bonus');
 }
@@ -414,8 +414,8 @@ function pioneerBonus($a) {
 function getBanks() {
   return; // seldom used (and move SQL name fixes here? see changes.log)
   $fieldNames = 'route branch fedRoute type modified newRoute name address city state zip phone status view';
-  $lens = u\ray('9 1 9 1 6 9 36 36 20 2 9 10 1 1'); // also 5 chars of filler at end
-  $fields = array_combine(u\ray($fieldNames), $lens);
+  $lens = ray('9 1 9 1 6 9 36 36 20 2 9 10 1 1'); // also 5 chars of filler at end
+  $fields = array_combine(ray($fieldNames), $lens);
   db\q('TRUNCATE r_banks');
   
   $s = explode("\n", file_get_contents(__DIR__ . '/../FedACHdir.txt'));
@@ -427,8 +427,8 @@ function getBanks() {
       $i += $len;
     }
     $branch = $branch == 'B' ? 1 : 0;
-    foreach (u\ray('name address city') as $field) $$field = ucwords(strtolower(trim($$field)));
-    db\insert('r_banks', compact(u\ray($fieldNames)));
+    foreach (ray('name address city') as $field) $$field = ucwords(strtolower(trim($$field)));
+    db\insert('r_banks', compact(ray($fieldNames)));
   }
 }
 
@@ -525,7 +525,7 @@ function fixRelations() {
         $newReid = -$region + $reid;
         db\q('UPDATE r_relations SET reid=:newReid WHERE reid=:reid', compact('reid', 'newReid'));
       } else { // foreign region
-        $newReid = r\acct($main)->newRelation(compact(u\ray('other permission employee isOwner draw')));
+        $newReid = r\acct($main)->newRelation(compact(ray('other permission employee isOwner draw')));
         db\q('DELETE FROM r_relations WHERE reid=:reid', compact('reid'));
       }
 /**/  debug("Record MOVED: $reid to $newReid ($mainName -- $otherName)");
@@ -540,7 +540,7 @@ function fixRelations() {
  * @return list of bit names set in $n
  */
 function flagsDesc($n, $list) {
-  $bits = u\ray($list);
+  $bits = ray($list);
   if (!is_numeric(key($bits))) $bits = array_keys($bits);
   for ($i = 0; $i < 32; $i++) if (!@$bits[$i]) $bits[$i] = $i; // show bit number if no name
   $res = '';
@@ -563,20 +563,23 @@ EOF;
   $q = db\q($sql); // include today's potential deposit at the top
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    $date = $deposit == 1 ? t('<b>ANCIENT</b>') : ($deposit ? u\fmtDate($deposit) : t('<b>TODAY</b>'));
+    $dateDpy = $deposit == 1 ? t('<b>ANCIENT</b>') : ($deposit ? u\fmtDate($deposit) : t('<b>TODAY</b>'));
     foreach (['In', 'Out'] as $way) {
       list ($total, $count) = [u\fmtAmt(${"amount$way"}, ''), number_format(${"count$way"})];
       if (!$count) continue;
-      $details = t('<@a>details</a>', ['@a'=>"a href=deposit-details/way=$way&date=$deposit&total=$total&count=$count target=_blank"]);
-      $checks = t('<@a>checks</a>', ['@a'=>"a href=checks/way=$way&date=$deposit&mark=0 target=_blank"]);
+      $details = w\btn("deposit-details/way=$way&date=$deposit&total=$total&count=$count", t('details'));
+
+      list ($func, $label) = ($way == 'In' or ($deposit > 0 and $deposit < strtotime('1/10/2017')))
+      ? ['checks', t('checks')] 
+      : ['achs', t('ACHes')];
       $wayDesc = $way == 'In' ? t('IN') : t('OUT');
       $deposits[] =<<<EOF
 <tr>
-  <td>$date</td>
+  <td>$dateDpy</td>
   <td>$wayDesc</td>
   <td>$count</td>
   <td>$total</td>
-  <td>$details &nbsp; $checks</td>
+  <td>$details &nbsp; <a href="$func/way=$way&date=$deposit&mark=0" target="_blank">$label</a></td>
 </tr>
 EOF;
     }
@@ -600,17 +603,14 @@ EOF;
  */
 function printCheck(&$ck, $pos, $tx, $mark) {
   extract(u\just('txid created payer amount deposit bankAccount', $tx));
-  $escrow = 'USkk' . ESCROW_ROUTING . ESCROW_ACCOUNT;
+  $escrow = 'USkk' . ESCROW_ROUTING . ($amount < 0 ? ESCROW_IN : ESCROW_OUT);
   $a = r\acct($payer);
-  $bankAccount = ($pw2 = @$_COOKIE['pw2']) ? u\decrypt($bankAccount, 0, $pw2) : '';
-  if (substr($bankAccount, 0, 2) <> 'US' and ($bankAccount = $a->bankAccount) and $pw2) { // bank account got screwed up somehow -- probably double-encrypted (happened again on 2/10/2016)
-    db\update('r_usd', u\ray('txid bankAccount', $txid, u\crypt($bankAccount, 0, $pw2)), 'txid');
-    w\say('fixed bankAccount for ' . $a->fullName);
-  }
+  $a->fixTxBankAccount($bankAccount, $txid);
+  
   list ($fromName, $addr, $phone, $fromAcct, $toName, $toAcct) = $amount < 0 // which way
-    ? [$a->legalNameDpy, $a->postalAddr, $a->phone, $bankAccount, 'rCredits', $escrow] // from bank to escrow
-    : ['rCredits (' . CGF_LEGALNAME . ')', CGF_POSTALADDR, CGF_PHONE, $escrow, $a->legalNameDpy, $bankAccount];//e2b
-  $memo = $amount < 0 ? t('for rCredits') : t('for DEPOSIT to account #') . substr($toAcct, 4 + 9);
+    ? [$a->legalNameDpy, $a->postalAddr, $a->phone, $bankAccount, PROJECT, $escrow] // from bank to escrow
+    : [PROJECT . ' (' . CGF_LEGALNAME . ')', CGF_POSTALADDR, CGF_PHONE, $escrow, $a->legalNameDpy, $bankAccount];//e2b
+  $memo = $amount < 0 ? t('for %RCREDITS') : t('for DEPOSIT to account #') . substr($toAcct, 4 + 9);
 
   list ($signature, $belowLine) = $amount < 0 
   ? [t('Pre-authorized Check'), t('No Signature Required')] 
@@ -630,7 +630,7 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   //u\EXPECT((bool) $bankInfo, 'no bank info');
   extract($bankInfo, EXTR_PREFIX_ALL, 'b');
   if (strlen($b_zip) > 5) $b_zip = substr($b_zip, 0, 5) . '-' . substr($b_zip, 5);
-  if (!$prefix = db\lookup('id', 'r_transit', 'location=:location', u\ray('location', "$b_city, $b_state"))) {
+  if (!$prefix = db\lookup('id', 'r_transit', 'location=:location', ray('location', "$b_city, $b_state"))) {
     $prefix = db\lookup('id', 'r_transit', 'location=:b_state', compact('b_state'));
     //u\EXPECT((bool) $prefix, 'no transit prefix');
   }
@@ -672,7 +672,7 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   $ck->say("C000{$txid}C A{$routing}A {$account}C", $m, $mt - $m + CHECK_HEIGHT - .25 - $lineH * (12 / PDF_FONT_SIZE), '', '', 'GnuMICR;12');
 //  $ck->say('', 0, $mt - $m + CHECK_HEIGHT, $W, 1, '', '', 'T'); // comment this out
   
-  if (!$deposit and $mark) db\update('r_usd', u\ray('deposit txid', strtotime('today'), $txid), 'txid');
+  if (!$deposit and $mark) db\update('r_usd', ray('deposit txid', strtotime('today'), $txid), 'txid');
 }
 
 /**
@@ -687,12 +687,12 @@ function adminSignin() {
     extract($row);
     $bankAccount = u\crypt($bankAccount . '', 0, $pw2);
     db\update('r_usd', compact('txid', 'bankAccount'), 'txid');
-    w\say(t('bank account encrypted in exchange record #TXID.', ['TXID'=>$txid]));
+    w\say(t('bank account encrypted in exchange record #%txid.', compact('txid')));
     $a = r\acct($payer);
     if ($bankAccount = $a->bankAccount and !u\starts($bankAccount, CRYPT_FLAG)) {
       $bankAccount = u\crypt($bankAccount . '', 0, $pw2); // might be different (newer) than in r_usd
       $a->update(compact('bankAccount'));
-      w\say(t('bank account encrypted for user USER', ['USER'=>$a->fullName]));
+      w\say(t('bank account encrypted for user %user', 'user', $a->fullName));
     }
   }
 }
@@ -744,7 +744,7 @@ function endofyear2014($uid = FALSE) {
 function moveFieldsToHidden() {
   $q = db\q("SELECT uid FROM users WHERE uid<>0");
   $dataFields = [];
-  $secureFields = u\ray('photoId pin bankAccount');
+  $secureFields = ray('photoId pin bankAccount');
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $a = r\acct($uid);
@@ -754,8 +754,8 @@ function moveFieldsToHidden() {
     foreach ($dataFields as $k) $$k = @$data[$k];
     foreach ($secureFields as $k) $$k = @$secure[$k];
     $data = $secure = [];
-    foreach (u\ray(R_DATA_FIELDS) as $k) if (!is_null($a->$k)) $data[$k] = $a->$k;
-    foreach (u\ray(R_SECURE_FIELDS) as $k) if (!is_null($a->$k)) $secure[$k] = $a->$k;
+    foreach (ray(R_DATA_FIELDS) as $k) if (!is_null($a->$k)) $data[$k] = $a->$k;
+    foreach (ray(R_SECURE_FIELDS) as $k) if (!is_null($a->$k)) $secure[$k] = $a->$k;
 ///    debug($row + compact($dataFields, $secureFields, 'data', 'secure'));
     $a->update(compact($dataFields, $secureFields, 'data', 'secure'));
   }
@@ -795,17 +795,7 @@ function showSlugs() {
 // print iCards for all active members in the greater Greenfield ctty
 // be sure to chmod ...rcredits/temp to 777 before running this.
 function special() {
-  eachA(function ($a) {
-    if ($a->ided) return;
-    if ($a->photoId) {
-      $a->setBit(B_IDED);
-/**/      debug("OLD $a->fullName"); return;
-    }
-    if (f('db.exists', 'r_txs t LEFT JOIN users u ON u.uid=t.payer', 'payer=:id AND NOT :IS_CO AND t.created>:date AND channel=:TX_POS AND t.data LIKE \'%"force";s:1:"0"%\'', ['id' => $a->id, 'date' => strtotime('-3 months')])) {
-/**/      debug("NEW $a->fullName");
-      $a->setBit(B_IDED); 
-    }
-  });
+
 }
 
 function showRequests() {
@@ -845,3 +835,5 @@ function retro() {
     }
   }
 }*/
+
+function cardLink($link) {return spinLink("/print-rcard/$link", t('card'), '', 'primary', 'xs', w\away());}

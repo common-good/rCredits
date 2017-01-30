@@ -275,7 +275,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST BankInfo AMemberChoosesTooLowATargetWithAPositiveBalance
  *     TEST BankInfo AMemberChoosesTooLowATargetWithANegativeBalance
  *     TEST EditTx ABuyerTriesToDecreaseAPaymentAmount
- *     TEST EditTx ABuyerDisputesACharge
  *     TEST EditTx AMemberConfirmsOKForADisputedTransaction
  *     TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
@@ -306,30 +305,30 @@ function weSayWithSubs($type, $index, $subs) {
 
   $subs = @$subs[0] ?: array();
   if (isset($subs['email'])) t\fixEmail($subs['email']);
-  $msg0 = u\tt($index);
+  $msg0 = t($index);
   foreach ($subs as $key => $value) {
     if ($value == '?') $wild = $subs[$key] = \user_password(); // mark the wildcard spot
-    if (strpos($msg0, "@$key") === FALSE) return t\output("missing sub '$key' in message '$index'");
+    if (strpos($msg0, "%$key") === FALSE) return t\output("missing sub '$key' in message '$index'");
   }
-  $msg = u\tt($index, $subs);
+  $wantMsg = t($index, $subs);
   $msgs = \drupal_get_messages($type ?: NULL, FALSE);
   if (@$wild) {
-    $i = strpos($msg, $wild);
-    $tailLen = strlen($msg) - $i - strlen($wild);
+    $i = strpos($wantMsg, $wild);
+    $tailLen = strlen($wantMsg) - $i - strlen($wild);
     foreach ($msgs[$type] as $actual) {
-      if (substr($actual, 0, $i) == substr($msg, 0, $i) and substr($actual, -$tailLen) == substr($msg, -$tailLen)) {$res = TRUE; break;}
+      if (substr($actual, 0, $i) == substr($wantMsg, 0, $i) and substr($actual, -$tailLen) == substr($wantMsg, -$tailLen)) {$res = TRUE; break;}
     }
   } else {
-    $tmsg = strip_tags($msg);
+    $tmsg = strip_tags($wantMsg);
     foreach (@$msgs[$type] ?: [] as $actual) {
       $actual = strip_tags($actual);
       $actual = strtr($actual, ["ACTUAL: \r\n"=>'', "Confirm\r\n"=>'', "\r\nOkay\r\n"=>'', "Cancel\r\n\r\n"=>'']);
       if ($actual == $tmsg) {$res = TRUE; break;}
     }
-//  $res = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
+//  $res = (@$msgs[$type] and array_search($wantMsg, $msgs[$type]) !== FALSE);
   }
-/**/  if (!@$res) debug(compact('msg', 'msgs')); // + ['dmsgs'=>\drupal_get_messages(NULL, FALSE)]);
-  t\output("EXPECT: $msg", 'output'); // this must come after array_search!
+/**/  if (!@$res) debug(compact('wantMsg', 'msgs')); // + ['dmsgs'=>\drupal_get_messages(NULL, FALSE)]);
+  t\output("EXPECT: $wantMsg", 'output'); // this must come after array_search!
   return @$res;
 }
 
@@ -390,7 +389,6 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
  *
  * in: TEST Gift AMemberDonates
  *     TEST Gift AMemberDonatesWithInsufficientFunds
- *     TEST Membership AMemberSignsInForTheFirstTime
  */
 function weTellAdminWithSubs($topic, $subs) {return t\weTellAdmin($topic, $subs);}
 
@@ -448,8 +446,6 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST Joint AMemberRequestsAJointAccount
  *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     TEST Joint AMemberRequestsTwoJoinsAtOnce
- *     TEST Preferences AMemberVisitsThePreferencesPage
- *     TEST Preferences AnotherMemberVisitsThePreferencesPage
  *     TEST Relations MemberHasAnEmployeeConfirmed
  *     TEST Relations MemberHasAnEmployeeUnconfirmed
  *     TEST Relations MemberHasARelationWithAContractor
@@ -662,9 +658,9 @@ function memberVisitsPage($id, $page) {return t\memberVisitsPage($id, $page);}
 function memberIsLoggedOut() {
   global $testOnly;
   //u\deb('memberIsLoggedOut top loggedin=' . \user_is_logged_in());
-  if ($testOnly) return !\user_is_logged_in();
-  r\Acct::setDefault(NULL);
-  return TRUE; // never actually log out
+  if ($testOnly) return !r\acct();
+  w\setAcct(NULL);
+  return TRUE;
 }
 
 /**
@@ -762,7 +758,7 @@ function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
 function memberSupplies($uid, $field, $value) {
   global $testOnly; if ($testOnly) return FALSE;
   $a = r\acct($uid = t\uid($uid));
-  return $a->update(u\ray($field, $value));
+  return $a->update(ray($field, $value));
 }
 
 /**
@@ -836,7 +832,7 @@ function weDownloadWith($name, $rows) {
 ///    debug(compact('row','csvRow'));
       if (strpos($value, '%') !== FALSE) $value = t\lastMinuteSubs($value);
 ///      if (!isset($csvRow[$key])) debug(compact('key', 'csvRow', 'value'));
-/**/  if (!t\eq($csvValue = $csvRow[$key], $value)) return t\output("key=$key csvValue<>expected value ($csvValue<>$value) csvRow:" . print_r($csvRow, 1));
+/**/  if (!t\eq($csvValue = @$csvRow[$key], $value)) return t\output("key=$key csvValue<>expected value ($csvValue<>$value) csvRow:" . print_r($csvRow, 1));
     }
   }
   return TRUE;
@@ -976,7 +972,8 @@ function weRedirectTo($page) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $lastGo;
   $lastGo = preg_replace('/&tm=[0-9]+/', '', $lastGo); // ignore time, when redirecting to rcredits.org
-  return ($lastGo == $page);
+  if (!$res = ($lastGo == $page)) t\output(compact('lastGo', 'page'));
+  return $res;
 }
 
 /**
@@ -1147,7 +1144,7 @@ function memberCompletesRelationsFormWithValues($id1, $list) {
       $reid = r\relation('reid', t\uid($id1), t\uid($rec['other'])); // compound qid
       u\EXPECT($reid, "missing relation record for $id1,".$rec['other']);
       unset($list[$i]['other']);
-      foreach (u\ray('draw permission employee isOwner') as $k) if (isset($rec[$k])) {
+      foreach (ray('draw permission employee isOwner') as $k) if (isset($rec[$k])) {
         $list[$i]["$k-$i-$reid"] = $k == 'permission' ? u\consta('b', $rec[$k]) - B_RELATED : $rec[$k];
         unset($list[$i][$k]);
       }
@@ -1348,3 +1345,10 @@ function memberViewsStatementFor($id, $month) {
   w\statement($month);
   return TRUE;
 }
+
+/**
+ * we tell (ARG) CO (ARG) with subs: (ARG)
+ *
+ * in: TEST Membership AMemberSignsInForTheFirstTime
+ */
+function weTellCOWithSubs($id, $topic, $subs) {return t\weTellAdmin($topic, $subs, t\uid($id));}

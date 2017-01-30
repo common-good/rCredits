@@ -1,4 +1,4 @@
-Feature: Changes
+Feature: Activate
 AS a regional administrator
 I WANT to activate an rCredits account
 SO the new member can participate

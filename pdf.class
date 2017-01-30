@@ -81,7 +81,7 @@ class Pdf extends \TCPDF {
    * Overrides parent just for testing.
    */
   public function Cell($w, $h=0, $txt='', $border=0, $ln=0, $align='', $fill=false, $link='', $stretch=0, $ignore_min_height=false, $calign='T', $valign='M') {
-    global $formOut; if (isDEV) $formOut['text'] .= "$txt ";
+    global $formOut; if (isDEV) $formOut['text'] = $formOut['text'] . "$txt ";
     
     parent::Cell($w, $h, $txt, $border, $ln, $align, $fill, $link, $stretch, $ignore_min_height, $calign, $valign);
   }    

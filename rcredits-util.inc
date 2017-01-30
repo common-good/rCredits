@@ -16,48 +16,6 @@ define ('HEX_CHARS', '0123456789abcdef');
 
 // Some useful Drupal db methods: fetchAllKeyed(m, n), fetchAssoc and fetchAllAssoc(fld), fetchObject and fetchAll(), fetchCol(n), fetchField()
 
-/**
- * Return an array built from the argument(s).
- * Call by:
- *    ray(keys, value1, value2, ...) // return an associative array
- *    ray(keys) // return the given string split into an array
- *
- * Either way, keys may be delimited by space, comma, or semi-colon, 
- *   followed by any number of spaces, or by a bar surrounded by optional spaces
- *   Entries in a comma-delimited simple list that contain a colon will be split into key and value.
- * @param string $keys: delimited list of identifier names
- * @param mixed $value1,...: arbitrary values
- */
-function ray($s, $value1 = NULL) {
-  if (func_num_args() > 1) { // multi-argument call -- return an associative array
-    $args = func_get_args();
-    $keys = u\ray(array_shift($args));
-    u\EXPECT(count($keys) == count($args), 'assoc arg count mismatch');
-    return array_combine($keys, $args);
-  }
-
-// this func is called too often for the overhead u\EXPECT(compact('s'), 'string');
-  $pattern = strpos($s, "\n") !== FALSE ? '/\R/' 
-    : (strpos($s, '|') !== FALSE ? ' *\| *' 
-    : (strpos($s, ',') !== FALSE ? '\, *' 
-    : (strpos($s, ';') !== FALSE ? '; *' 
-    : (strpos($s, ' ') !== FALSE ? '  *' // strangely ' +' fails but '  *' works
-    : FALSE))));
-
-    if (isGAME) {
-    $m = notIn($pattern);
-    $simple = $pattern ? preg_split($m . $pattern . $m . 'u', $s) : array($s);
-  } else $simple = $pattern ? mb_split($pattern, $s) : array($s);
-  if (!strpos($pattern, ',') or !strpos($s, ':')) return $simple; // no subargs
-
-  $ray = [];
-  foreach ($simple as $one) {
-    list ($k, $v) = explode(':', $one . ':');
-    $ray[$k] = $v;
-  }
-  return $ray;
-}
-
 /*
  * Return an ascii character not in the given string (but not null).
  * (used in game.rcredits.org to simulate mb_split)
@@ -72,18 +30,7 @@ function notIn($s) {
   return FALSE;
 }
 
-function obj() {return (object) call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
-
-/**
- * Let a called function receive a single assoc arg or several named args, simulating a call with u\ray(s,...).
- * call by extract(u\rayy(func_get_args()));
- * The called function cannot otherwise accept an assoc as its first argument.
- * @param array $args: func_get_args() from the called function
- * @return u\ray called with those args if viable, else []
- */
-function rayy($args) {
-  return (count($args) >= 2 and is_string($args[0])) ? call_user_func_array('rCredits\\Util\\ray', $args) : [];
-}
+function obj() {return (object) call_user_func_array('ray', func_get_args());} // was rCredits\\Util\\ray
 
 /**
  * Say whether the string is a member of the given space-delimited list.
@@ -91,7 +38,7 @@ function rayy($args) {
  * @param string $hay: where to look
  * @return <needle is in the hay>
  */
-function inList($needle, $hay) {return (strpos(" $hay ", " $needle ") !== FALSE);}
+function inList($needle, $hay) {return (strpos(" $hay ", " $needle ") !== FALSE or strpos(",$hay,", ",$needle,") !== FALSE);}
 
 /* this is probably a bad idea
 function preK($prefix, $s) {
@@ -116,7 +63,7 @@ function just($these, $info) {
   if (is_string($info)) {
     parse_str(strpos($info, urlencode('=')) ? urldecode($info) : $info, $ray);
   } else $ray = (array) $info; // in case it was an object
-  if (!is_array($these)) $these = u\ray($these);
+  if (!is_array($these)) $these = ray($these);
   $keys = array_keys($ray); // eschew isset, to include null values in result
 //  foreach ($these as $k) if (isset($ray[$k])) $result[$k] = is_string($ray[$k]) ? trim($ray[$k]) : $ray[$k];
   foreach ($these as $k) if (in_array($k, $keys)) $result[$k] = is_string($v = @$ray[$k]) ? trim($v) : $v;
@@ -130,7 +77,7 @@ function just($these, $info) {
  * @return array of the results (not trimmed)
  */
 function justNot($these, $info) {
-  if (!is_array($these)) $these = u\ray($these);
+  if (!is_array($these)) $these = ray($these);
   $info = (array) $info;
   foreach ($these as $field) unset($info[$field]);
   return $info;
@@ -177,7 +124,7 @@ function badAmount(&$amount, $restriction = '', $fractionLimit = 2, $max = NULL)
   $dotPos = strpos($amount, '.');
   if ($dotPos !== FALSE and strlen($amount) > $dotPos + 1 + $fractionLimit) return 'too fractional';
   if (is_null($max)) $max = isGAME ? PHP_INT_MAX : R_MAX_AMOUNT;
-  if ($max !== '' and abs($amount) > $max) return tt('amount too big', compact('max'));
+  if ($max !== '' and abs($amount) > $max) return t('amount too big', compact('max'));
   if ($restriction == '>0' and $amount <= 0) return 'nonpositive amount';
   if ($restriction == '>=0' and $amount < 0) return 'negative amount';
   if ($restriction == '!=0' and $amount == 0) return 'zero amount';
@@ -196,7 +143,7 @@ function badAmount(&$amount, $restriction = '', $fractionLimit = 2, $max = NULL)
      Additionally, prior to June 25, 2011, we had never assigned a Social Security number with the first three digits of: 000, 666, 772 - 799, 800 - 899, 900 - 999.
  */
 function badSsn(&$ssn, $dob = '') {
-//  if (in_array($ssn, u\ray('5551234567 777777777 888888888 999999999'))) return FALSE; // test numbers
+//  if (in_array($ssn, ray('5551234567 777777777 888888888 999999999'))) return FALSE; // test numbers
   if (strlen(u\digits($ssn)) != 9) $bad = TRUE; // zap all but the digits (call by ref)
   if (FALSE AND @$dob) { // ssn (not ein) -- We once got a valid SSN that violated these rules, so skip this.
     $c1 = substr($ssn, 0, 1);
@@ -297,7 +244,7 @@ function shortName($fullName, $filler = '') {
  */
 function forCash($for) {
   if (is_array($for)) return forCash($for[0]) or forCash($for[1]);
-  return ($for == '' or preg_match('`^(rCredits/USD|automatic transfer|cash|usd)(\W|$)`i', $for)); // empty or a non-goods word at the beginning
+  return ($for == '' or preg_match('`^(' . t('|credits|rCredits|USD|automatic transfer|cash|usd') . ')(\W|$)`i', $for)); // empty or a non-goods word at the beginning
 }
 
 /**
@@ -391,19 +338,6 @@ function tribs($ray) {
 }
 
 /**
- * Return an HTML tag with optional attributes, surrounding optional HTML.
- * @param string @tag: the tag
- * @param string @html: (optional) inner HTML
- * @param assoc @tribs: (optional) keyed-array of attributes
- * @return the resultant HTML
- */
-function tag($tag, $html = '', $tribs = []) {
-  $tribs = $tribs ? ' ' . u\tribs($tribs) : '';
-  return "<$tag$tribs>$html</$tag>";
-}
-function tagN($tag, $html = '', $tribs = []) {return str_replace('#', '', tag($tag, $html, $tribs));}
-
-/**
  * URL encode an arbitrary non-empty ascii string compactly
  */
 function urlify($s) {
@@ -464,10 +398,10 @@ function fmtPhone($phone, $how = '+') {
 
   $phone = substr($phone, 0, 3) . $sep . substr($phone, 3, 3) . $sep . substr($phone, 6);
 //  if ($how == '') return $phone;
-  if ($how == '+') {
+  if ($how == '+' or $how == '') {
     $len = substr($foreign, 0, 1) == '7' ? 1 // get length of country prefix
       : (strpos('. 21 22 23 24 25 26 29 35 37 38 42 51 59 67 68 69 85 87 88 96 97 99 ', ' ' . substr($foreign, 0, 2) . ' ') ? 3 : 2);
-    return $foreign ? ('+' . substr($foreign, 0, $len) . ' ' . substr($foreign, $len)) : "+1 $phone";
+    return $foreign ? substr($foreign, 0, $len) . ' ' . substr($foreign, $len) : ($how ? "+1 $phone" : $phone);
   }
   return FALSE;
 }
@@ -480,7 +414,7 @@ function fmtPhone($phone, $how = '+') {
  * @param string $suffix: optional suffix for each key
  */
 function prefixKeys($prefix, $ray, $noArray = FALSE, $suffix = '') {
-  EXPECT(compact('prefix', 'ray'), 'string array');
+//  EXPECT(compact('prefix', 'ray'), 'string array');
   if ($prefix == '') return $ray;
   $newRay = [];
 /**/ foreach ($ray as $k => $v) $newRay[$prefix.$k.$suffix] = ($noArray and is_array($v)) ? print_r($v, 1) : $v;
@@ -522,8 +456,8 @@ function diff($a, $b) {
  * @param assoc $subs: (optional) parameter values keyed by name
  * @param string $mark: parameter mark (normally '@') will be prepended to the keys.
  * @todo get the r\'s out of this utilities file OR stop trying to separate u\ from r\
- */   
-function tt($message, $subs = [], $adhocChannel = '', $mark = '@') {
+ */   /*
+function t($message, $subs = [], $adhocChannel = '', $mark = '@') {
   global $channel;
  
   if (!$adhocChannel) $adhocChannel = $channel;
@@ -549,6 +483,7 @@ function tt($message, $subs = [], $adhocChannel = '', $mark = '@') {
   }
   return str_replace(' .', '.', join(' ', $messages));
 }
+*/
 
 /**
  * Return random uppercase dictionary word of 3-6 chars
@@ -557,7 +492,7 @@ function tt($message, $subs = [], $adhocChannel = '', $mark = '@') {
  */
 function nonce($minLen = 1) {
   list ($where, $subs) = array('LENGTH(nonce)>=:minLen', compact('minLen'));
-  $offset = db\lookup('FLOOR(RAND() * COUNT(*))', 'r_nonces', $where, $subs);
+  $offset = db\lookup('FLOOR(RAND() * COUNT(1))', 'r_nonces', $where, $subs);
   $nonce = db\lookup('nonce', 'r_nonces', "$where LIMIT $offset, 1", $subs);
 
   $impossible = join(' ', $GLOBALS['SMS not a nonce']);
@@ -638,12 +573,10 @@ function randomInt($len = NULL) {
  * @return string: the string with constant names replaced by their values
  */
 function SUBS($string, $prefix = ':', $flagField = 'flags') {
-  $string = preg_replace("/([a-z]+[0-9]?\.)?{$prefix}IS_([A-Z0-9_]*)/ms", "($1$flagField&(1<<:B_$2))", $string);
+  if ($prefix == ':') $string = preg_replace("/([a-z]+[0-9]?\.)?{$prefix}IS_([A-Z0-9_]*)/ms", "($1$flagField&(1<<:B_$2))", $string); // only for queries
 //  $string = preg_replace("/\\{$prefix}IS_([A-Z0-9_]*)/ms", "($flagField&(1<<:B_$1))", $string);
-  preg_match_all("/\\$prefix([A-Z_][A-Z0-9_]*)/ms", $string, $matches);
-  $map = [];
-  foreach ($matches[1] as $one) if (defined($one)) $map["$prefix$one"] = constant($one);
-  return strtr($string, $map);
+  $subs = constantSubs($string, $prefix);
+  return $subs ? strtr($string, $subs) : $string;
 }
 
 /**
@@ -651,7 +584,7 @@ function SUBS($string, $prefix = ':', $flagField = 'flags') {
  * Throw an Exception if the expectation is not met.
  * call by:
  *   EXPECT($assertion, $message, $ret) OR
- *   EXPECT($args, $types, $ret) eg EXPECT(compact(u\ray('arg1 arg2')), 'bool float');
+ *   EXPECT($args, $types, $ret) eg EXPECT(compact(ray('arg1 arg2')), 'bool float');
  * @param boolean $assertion: a statement to assert
  * @param string $message: message to display if assertion is FALSE
  *
@@ -681,6 +614,7 @@ function EXPECT($assertion, $message = '', $ret = FALSE) {
 }  
 
 function expect1($arg, $value, $type, $ret) {
+//  static $ecnt; $ecnt = @$ecnt + 1; u\EXPECT($ecnt < 10000, 'loop');
 //  EXPECT(compact(ray('arg type')), 'var string'); // can't do this because infinite recursion
 
 /**/ $msg = "Expected \$$arg ('" . print_r($value, 1) . "') to be type '$type'."; // standard err message (keep this)
@@ -726,20 +660,16 @@ function expect1($arg, $value, $type, $ret) {
  *
  * @param string $type: type of log entry (if FALSE, don't log anything)
  * @param array $info: the information to log
- * @param string $special: a special value if any (for example the nonce or an account object)
  * @param int $adhocChannel: a second channel used from within the primary channel
  * @return the log record id (for exception handler and shutdown function)
  */  
-function loga($type, $info = [], $special = '', $adhocChannel = FALSE) {
+function loga($type, $info = [], $adhocChannel = FALSE) {
 /**/  if (strlen($type) >= 60) die('in loga: ' . $type); // (KEEP) don't use EXPECT here
   global $channel;
   u\setDft($channel, -1);
   $useTextLogToo = FALSE; // isDEV;
 
-  if (is_object($special)) {
-    $mya = $special;
-    $special = '';
-  } else $mya = r\acct();
+  $mya = r\acct();
   $myid = @$mya->id;
   $agent = @$mya->agentId;
   $time = r\rTime();
@@ -747,22 +677,33 @@ function loga($type, $info = [], $special = '', $adhocChannel = FALSE) {
   if ($adhocChannel and $adhocChannel != $channel and !$special) $special = "via ch$adhocChannel";
   
   // make it easy to match the message when searching
-  if (isNonce($special) and @$info['message']) $info['message'] = str_replace(": $special", ': @nonce', $info['message']);
+//  if (isNonce($special) and @$info['message']) $info['message'] = str_replace(": $special", ': @nonce', $info['message']);
   // don't make code, password, and secret links any more accessible than they are
-  foreach (u\ray(R_NOLOG) as $k) if ($k != 'email' and @$info[$k]) $info[$k] = '(?)';
+  foreach (ray(R_NOLOG) as $k) if ($k != 'email' and @$info[$k]) $info[$k] = '(?)';
   $info = json_encode($info, JSON_UNESCAPED_SLASHES);
   $channels = ray(TX_CHANNELS); 
   if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
-  $record = compact(ray('time channel type myid agent info special'));
+  $record = compact(ray('time channel type myid agent info'));
 
   if ($type == 'FATAL' and strpos($info, 'calling db_query() ')) {
     return '';
   } else {
     $return = \Database::RETURN_INSERT_ID; // do NOT use db\insert here (avoid loop in error handling)
-    return \db_query('INSERT INTO r_log (time, channel, type, myid, agent, info, special) VALUES (:time, :channel, :type, :myid, :agent, :info, :special)', u\prefixKeys(':', $record), compact('return'));
+    return \db_query('INSERT INTO r_log (time, channel, type, myid, agent, info) VALUES (:time, :channel, :type, :myid, :agent, :info)', u\prefixKeys(':', $record), compact('return'));
   }
 //  return db\insert('r_log', $record);
 }  
+
+/**
+ * Return an email a tag.
+ */
+function emailTag($email = NULL, $subject = '', $body = '') {
+  u\setDft($email, r\regionField('email'));
+  $res = 'mailto:' . $email;
+  if ($subject) $res .= '?subject=' . urlencode($subject);
+  if ($body) $res .= '&body=' . urlencode($body);
+  return "a href=\"$res\" target=\"_blank\"";
+}
 
 function seeAssoc($info) {
   $result = '';
@@ -771,11 +712,35 @@ function seeAssoc($info) {
 }
 
 /**
+ * Return the distance between two points on Earth.
+ * @param
+ * @param float $lat1, $lon1 = Latitude and Longitude of point 1 (in decimal degrees)
+ * @param float $lat2, $lon2 = Latitude and Longitude of point 2 (in decimal degrees)
+ * @param string $unit = the unit you desire for results                             
+ *                    where: 'M' is statute miles                      
+ *                           'K' is kilometers (default)                                 
+ *                           'N' is nautical miles  
+ */ 
+function distance($lat1, $lon1, $lat2, $lon2, $unit = 'K') {
+  $theta = $lon1 - $lon2;
+  $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) +  cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
+  $dist = acos($dist);
+  $dist = rad2deg($dist);
+  $miles = $dist * 60 * 1.1515;
+  $unit = strtoupper($unit);
+
+  if ($unit == 'K') return ($miles * 1.609344);
+  if ($unit == 'N') return ($miles * 0.8684);
+  if ($unit == 'M') return $miles;
+  return FALSE;
+}
+
+/**
  * Look up the given SSN and return xml data.
  */
 function ssnLookup($ssn) {
   $xml = file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.ssncheck');
-  $xml = strtr($xml, u\ray('[ssnUser] [ssnPass] [ssn]', R_SSN_USER, R_SSN_PASS, $ssn));
+  $xml = strtr($xml, ray('[ssnUser] [ssnPass] [ssn]', R_SSN_USER, R_SSN_PASS, $ssn));
   if (!isPRODUCTION) return @file_get_contents('ssnresult.txt'); // testing
   return @file_get_contents("https://www.nationalpublicdata.com/feeds/FDSFeed.cfm?xml=" . urlencode($xml));
 }
@@ -939,7 +904,6 @@ function OLDdecrypt($data) {return OLDencrypt($data, FALSE);}
 /**
  * Initiate CSV download.
  * @param string $filename: pathname of the file that will download itself upon exit()
- * @return the CSV file object, ready for writing.
  */
 function csvStart($filename) {
   global $csvFile;
@@ -950,7 +914,7 @@ function csvStart($filename) {
   header('Content-type: text/plain');
   header("Content-Disposition: attachment; filename=\"$filename\";");
   header('Content-Type: application/csv; charset=UTF-8'); // tell the browser it's going to be a csv file
-  return $csvFile = fopen('php://output', 'w');
+  $csvFile = fopen('php://output', 'w');
 }
 
 /**
@@ -1103,7 +1067,7 @@ function weakPass($pass) {
  * @param string $prefix: table (and dot) prefix for the summed field (eg SUM(u.floor) AS floor)
  */
 function sumAs($list, $prefix = '') {
-  foreach (u\ray($list) as $one) $result[] = "SUM(IFNULL($prefix$one, 0)) AS $one";
+  foreach (ray($list) as $one) $result[] = "SUM(IFNULL($prefix$one, 0)) AS $one";
   return join(', ', $result);
 }
 
@@ -1184,7 +1148,7 @@ function parseZip($zip) {
 EOF;
   if (!$result = simplexml_load_file($server . $request)) return FALSE;
   $result = (array) $result->ZipCode;
-  return u\ray('state city', @$result['State'], ucwords(strtolower(@$result['City'])));
+  return ray('state city', @$result['State'], ucwords(strtolower(@$result['City'])));
 }  
 
 /**
@@ -1218,7 +1182,7 @@ function showCaller($skip = 0) {
 function bits($n, $descs = B_LIST) {
   $res = '';
   if ($descs) {
-    $descs = u\ray($descs);
+    $descs = ray($descs);
     if (!is_numeric(@$descs[0])) $descs = array_keys($descs); // ignore extra info after colon in bit name
   }
   for($i = 0; $i < 32; $i++) if ($n & (1 << $i)) $res .= ' ' . ($descs ? $descs[$i] : $i);
@@ -1276,9 +1240,9 @@ function n2english($num, $tri = 0) {
   if ($num < 0) return t('Negative ') . n2english(-$num);
   if ($num == 0) return t('Zero');
  
-  $ones = u\ray(ENGLISH_ONES);
-  $tens = u\ray(ENGLISH_TENS);
-  $lions = u\ray(ENGLISH_LIONS);
+  $ones = ray(ENGLISH_ONES);
+  $tens = ray(ENGLISH_TENS);
+  $lions = ray(ENGLISH_LIONS);
   $r = floor($num / 1000); // chunk the number, ...rxyy
   $x = ($num / 100) % 10;
   $y = $num % 100;
@@ -1328,10 +1292,11 @@ function plusMonths($n, $time = '') {
 /**
  * Return the value of the given bit.
  * @param mixed $bit:
+ *   string - a defined bit name (lowercase without the initial B_)
  *   int - return the numeric value of that bit number (power of 2)
  *   ray - return the array of bit numbers as an integer bit array (recursively)
  */
-function bit($bit) {return is_array($bit) ? (bit(array_shift($bit)) | ($bit ? bit($bit) : 0)) : (1 << $bit);}
+function bit($bit) {return is_array($bit) ? (bit(array_shift($bit)) | ($bit ? bit($bit) : 0)) : (1 << (is_numeric($bit) ? $bit : u\consta('b', $bit)));}
 
 function getBit($n, $bit = NULL) {return is_null($bit) ? $n : (bool) ($n & u\bit($bit));}
 function setBit(&$n, $bit, $on = TRUE) {return $n = $on ? ($n | u\bit($bit)) : ($n & ~u\bit($bit));}
@@ -1346,7 +1311,7 @@ function nray($a, $else = FALSE) {return !is_array($a) ? $a : $else;}
 function small($n) {return (abs($n) < .001);}
 function equy($a, $b) {return small($a - $b);} // sort of equal
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
-/**/ function prlog($log = 'rCredits') {print_r(loga($log));} // keep this
+/**/ function prlog($log = PROJECT) {print_r(loga($log));} // keep this
 function order($one1st, $one, $two) {return $one1st ? array($one, $two) : array($two, $one);}
 function both(&$vars, $k, $one1st, $one, $two) {list ($vars[$k], $vars['other' . ucwords($k)]) = u\order($one1st, $one, $two);}
 function wargs($s, $args, $prefix = '') {return strtr($s, prefixKeys($prefix, $args));} // for debugging
@@ -1384,7 +1349,7 @@ function similarEmail($e1, $e2) {return (strtolower(preg_replace('/\+.*@/', '@',
 //function rayo() {return (object) call_user_func_array('rCredits\\Util\\ray', func_get_args());}
 function rayv($a, $i) {return $a[$i];} // useful when $a is returned from a function
 function strip($a) {foreach ($a as $i => $v) $a[$i] = strip_tags($v); return $a;}
-function initials($s) {return preg_replace('/[^A-Z]/', '', ucwords(strtr($s, u\ray('Jr', ''))));}
+function initials($s) {return preg_replace('/[^A-Z]/', '', ucwords(strtr($s, ray('Jr', ''))));}
 function roughName($name) {return preg_replace("/[^A-Z '\-]/", '', strtoupper(trim(str_replace('  ', ' ', $name))));}
 function urlArgs() {return basename(u\test() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);}
 function in($a, $b) {return (strpos(" $b ", " $a ") !== FALSE);} // needle in space-delimited hay
@@ -1397,4 +1362,4 @@ function a2b($s) {$b = ''; for ($i = 0; $i < strlen($s); $i++) $b .= lpad(decbin
 function badZip($z, $country = US_COUNTRY_ID) {return ($country == US_COUNTRY_ID and !preg_match('/^\d{5}(\-\d{4})?$/', $z)) ? 'bad zip' : FALSE;}
 function randomFloat($min = 0, $max = 1) {return $min + mt_rand() / mt_getrandmax() * ($max - $min);}
 function hash($s) {return \hash('sha256', $s, false);}
-function day2n($day) {return array_search($day, u\ray('Sun Mon Tue Wed Thu Fri Sat'));} // workaround %u and %w failure
+function day2n($day) {return array_search($day, ray('Sun Mon Tue Wed Thu Fri Sat'));} // workaround %u and %w failure

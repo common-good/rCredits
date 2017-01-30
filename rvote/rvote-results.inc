@@ -89,7 +89,7 @@ function getResult($question, $quText, $quType, $budget, $tot, $votesDirect, $vo
 			$budgetdpy = ' (total budget: $' . number_format($budget, 0) . ')';
   		$middle .= "<tr><td class='optlinehdr'>$optlinehdr</td>$mid<td>$vetos</td></tr>\n";
 		} elseif ($quType == 'R') {
-      $fields = u\ray('minimum maximum result acceptance lowAvg highAvg lowVeto highVeto');
+      $fields = ray('minimum maximum result acceptance lowAvg highAvg lowVeto highVeto');
       foreach ($fields as $k) {
         $v = $toti->$k === '' ? '-' : number_format($toti->$k, 0);
 //        if ($k == 'result' and $toti->acceptance+0 < (1 - $toti->qminveto)) $v = t('none');
@@ -230,7 +230,7 @@ EOF;
 EOF;
     if ($res = db\q($sql)->fetchAssoc()) extract($res); else $lowVeto = '';
     
-    u\preray(compact(u\ray('result acceptance lowAvg highAvg lowVeto highVeto qminveto')), $newtot[0]);
+    u\preray(compact(ray('result acceptance lowAvg highAvg lowVeto highVeto qminveto')), $newtot[0]);
   }
 
 	return $newtot;
@@ -329,7 +329,7 @@ EOF;
   do {
     $justCreated = ($priority == 1) ? time() + 999 : $now; // "now" is time of previous query
     $now = time();
-    $q = db\q($sql, $subs = compact(u\ray('question now justCreated priority')));
+    $q = db\q($sql, $subs = compact(ray('question now justCreated priority')));
     $priority = 3 - $priority; // toggle 1 or 2
     if ($failsInARow = $q->rowCount() ? 0 : ($failsInARow + 1)) sleep(1); // let the creation time progress
 ///    debug(compact('sql', 'subs', 'failsInARow', 'question'));

@@ -2,38 +2,47 @@
 <html>
 <body style="font-family:Verdana, Arial, Helvetica; line-height:150%; background-color:silver; text-align:center;">
 <div style="margin:auto; max-width:900px; border:1px solid black; padding:20px; background-color:white; text-align:left;">
-<p>{PERSONAL_NOTE}</p>
-<p><b style="color:darkblue;">--<br>{MEMBER_NAME}</b><br>
-<span style="font-size:75%;">{MEMBER_PHONE}<br>rCredits Member since {DATE}</span></p>
+<p>%personalNote</p>
+<p><b style="color:darkblue;">--<br>%fullName</b> &nbsp; <span style="font-size:75%;">%phone<br>
+rCredits Member since %signed</span></p>
 <p>----</p>
 
 <p style="text-align:center;">Together we can build a Common Good Economy.<br>
 <br>
-<a href="{site}/signup/code={CODE}" style="font:bold 16px Arial;  text-decoration:none;  background-color:green;  color:white;  padding:8px 12px;  margin-bottom:5px;    -webkit-border-radius:8px;    -moz-border-radius:8px;    border-radius:8px;    border:solid 1px #20538D;    text-shadow:0 -1px 0 rgba(0, 0, 0, 0.4);    -webkit-box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);    -moz-box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);    box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);">Accept Invitation</a><br>
-<a href="{site}/signup/code={CODE}" style="font-size:85%; display:block; margin-top:10px; text-decoration:none;">({site}/signup/code={CODE})</a>
+<a href="%BASE_URL/signup/code=%CODE" style="font:bold 16px Arial;  text-decoration:none;  background-color:green;  color:white;  padding:8px 12px;  margin-bottom:5px;    -webkit-border-radius:8px;    -moz-border-radius:8px;    border-radius:8px;    border:solid 1px #20538D;    text-shadow:0 -1px 0 rgba(0, 0, 0, 0.4);    -webkit-box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);    -moz-box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);    box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);">Accept Invitation</a><br>
+<a href="%BASE_URL/signup/code=%CODE" style="font-size:85%; display:block; margin-top:10px; text-decoration:none;">(%BASE_URL/signup/code=%CODE)</a>
 </p>
 
 <div style="padding:15px; background-color:lightyellow; border:1px solid darkgreen;">
-<h2><span style="color:darkblue;">About <span style="color:darkgreen;">r</span>Credits</span><small style="font-weight:normal; font-size:75%;"><br><i>the currency of a better future</i></small></h2>
-<img src="http://rcredits.org/images/rlogo100.png" align="left" hspace="5" width="72" height="96" alt="" />
-<p>{MEMBER_NAME} has invited you to join <a href="http://rCredits.org" style="color:darkblue; font-weight:bold; text-decoration:none;">rCredits<sup>&reg;</sup></a>, a payment system with incentive rewards, for the Common Good. Get $20r for signing up and 10% back* on anything you pay for with your rCard<sup>&reg;</sup>. Merchants get 10% rewards too &mdash; and save a bundle on credit card fees. <a href="http://rCredits.org" style="font-size:75%; font-weight:bold; text-decoration:none;">[MORE]</a></p>
-<p>rCredits are a project of Common Good Finance<sup>&reg;</sup>, a 501(c)(3) Massachusetts-based nonprofit.</p>
+  <div>
+    <img src="%BASE_URL%R_PATH/images/%PROJECT_LOGO" align="left" hspace="5" height="96" alt="" style="margin-right:10px;" />
+    <h2><br><span style="color:darkblue;">%PROJECT&trade; Card</span><small style="font-weight:normal; font-size:75%; color:darkgray;"><br><i>a credit/debit card to support the common good</i></small><br>&nbsp;</h2>
+  </div>
+  <ul>
+    <li>Generate funds for your community's projects every time you use it.</li>
+    <li>You and other members decide together what to fund. </li>
+    <li>Easy to use. Easy to accept as payment.</li>
+    <li>No fees for you. No fees for businesses.</li>
+  </ul>
+   <a href="PROMO_URL" style="font-size:75%; font-weight:bold; text-decoration:none; margin-left:200px;">[MORE]</a></p>
 </div>
 
-<p style="font-size:85%;">* We expect 10% rewards to continue for a few years, not forever.</p>
-<p>Signup is by invitation only. Click below to accept your invitation and open your rCredits account with no risk or obligation**. It takes about 20 minutes. <span style="background-color:yellow; padding:0 5px;">Do it now, today</span>, because this link expires in 30 days.</p>
-<p>You will be asked for all the same information as for a bank account, plus a photo for your rCard. You will also be asked to make a donation "of any size" (one cent or more) to Common Good Finance. And you will be asked to sign the one-page <a href="http://rCredits.org/agreement.html" style="text-decoration:none;">rCredits Agreement</a>.</p>
+<p>%PROJECT is a 501(c)(3) nonprofit organization.</p>
+
+
+<p>Signup is by invitation only. Click below to accept your invitation and open your rCredits account with no risk or obligation**. It takes about 20 minutes.</p>
+<p>You will be asked for all the same information as for a bank account, plus a photo for your %PROJECT Card. You will also be asked to make a donation "of any size" (one cent or more) to support the project. And you will be asked to sign the one-page <a href="%BASE_URL/agreement.html" style="text-decoration:none;">%PROJECT Agreement</a>.</p>
 
 <p style="font-size:85%;">** No obligation until you buy something. No risk until you decide with your community to take a risk together.</p>
 <br>
 <p style="text-align:center;">
-<a href="{site}/signup/code={CODE}" style="font:bold 16px Arial;  text-decoration:none;  background-color:green;  color:white;  padding:8px 12px;  margin-bottom:5px;    -webkit-border-radius:8px;    -moz-border-radius:8px;    border-radius:8px;    border:solid 1px #20538D;    text-shadow:0 -1px 0 rgba(0, 0, 0, 0.4);    -webkit-box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);    -moz-box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);    box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);">Accept Invitation</a><br>
-<a href="{site}/signup/code={CODE}" style="font-size:85%; display:block; margin-top:10px; text-decoration:none;">({site}/signup/code={CODE})</a>
+<a href="%BASE_URL/signup/code=%CODE" style="font:bold 16px Arial;  text-decoration:none;  background-color:green;  color:white;  padding:8px 12px;  margin-bottom:5px;    -webkit-border-radius:8px;    -moz-border-radius:8px;    border-radius:8px;    border:solid 1px #20538D;    text-shadow:0 -1px 0 rgba(0, 0, 0, 0.4);    -webkit-box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);    -moz-box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);    box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);">Accept Invitation</a><br>
+<a href="%BASE_URL/signup/code=%CODE" style="font-size:85%; display:block; margin-top:10px; text-decoration:none;">(%BASE_URL/signup/code=%CODE)</a>
 </p>
 
-<p><b style="color:darkblue;">Common Good Finance</b><br>
-PO Box 21, Ashfield, MA 01330 USA<br>
-+1 413 628 1723<br>
-<a href="mailto:info@CommonGoodFinance.org" style="text-decoration:none;">info@CommonGoodFinance.org</a>
+<p><b style="color:darkblue;">%PROJECT</b><br>
+%CGF_POSTALADDR USA<br>
+%CGF_PHONE<br>
+<a href="mailto:%CGF_EMAIL" style="text-decoration:none;">%CGF_EMAIL</a>
 </div>
 </body></html>

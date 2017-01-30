@@ -113,7 +113,7 @@ class Qo {
     $regLen = strlen($region = u\n2a(u\a2n($qo->region), -1, 36));
     $tailLen = strlen($tail = u\n2a(u\a2n($qo->tail), $regLen > 3 ? -4 : -2, 36));
     $codeLen = ($agentCode = $qo->agentCode) ? strlen($agentCode = u\n2a(u\a2n($agentCode), -1, 36)) : 0;
-    $i = array_search($regLen . $tailLen, u\ray('12 13 22 23 32 33 34 44 45'));
+    $i = array_search($regLen . $tailLen, ray('12 13 22 23 32 33 34 44 45'));
     u\EXPECT($i !== FALSE, 'bad piece lengths in qo->qr mainQid=' . $qo->mainQid);
     u\EXPECT($codeLen < 4, 'agentCode too long: ' . $qo->agentCode);
     $fmt = u\n2a($i * 4 + $codeLen, 1, 36);
@@ -146,15 +146,15 @@ class Qo {
   public static function qr2($qr) {
     $fmt = substr($qr, 0, 1);
     $c = u\a2n($fmt, 36);
-    $fmts = u\ray(QR_FMTS);
+    $fmts = ray(QR_FMTS);
     list ($regionLen, $acctLen) = explode('/', $fmts[$c / 4]);
     $agentLen = $c % 4;
-///    debug(compact(u\ray('qr fmt c fmts regionLen acctLen agentLen')) + ['thefmt' => $fmts[$c / 4]]);
+///    debug(compact(ray('qr fmt c fmts regionLen acctLen agentLen')) + ['thefmt' => $fmts[$c / 4]]);
     if (strlen($qr) != 1 + $regionLen + $acctLen + $agentLen) return FALSE;
     $region = u\n2a(u\a2n(substr($qr, 1, $regionLen), 36), -3);
     $acct = u\n2a(u\a2n(substr($qr, 1 + $regionLen, $acctLen), 36), -3);
     $agent = $agentLen ? '-' . u\n2a(u\a2n(substr($qr, -$agentLen), 36), -1) : '';
-///    debug(compact(u\ray('qr fmt c regionLen acctLen agentLen region acct agent')));
+///    debug(compact(ray('qr fmt c regionLen acctLen agentLen region acct agent')));
     return $region . $acct . $agent;
   }
   

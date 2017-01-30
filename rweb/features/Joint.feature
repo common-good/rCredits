@@ -34,7 +34,7 @@ Scenario: A member requests a joint account
   | otherName |*
   | Bea Two   |
   And we show "Relations" with:
-  | other      | Draw | My employee? | Family? | Permission |_requests      |
+  | other      | Draw | My employee? | Family? | Permission |~requests      |
   | Bea Two    | No   | No           | No      | %can_joint | --            |
   And members have:
   | id   | jid | minimum |*
@@ -115,7 +115,7 @@ Scenario: A joined account member looks at transaction history and summary
   | .ZZD |  170 |
   When member ".ZZB" visits page "history/transactions/period=14"
   Then we show "Transaction History" with:
-  |_Start Date |_End Date |
+  |~Start Date |~End Date |
   | %dmy-2w    | %dmy     |
   And with:
   | Start     |   |   800.00 |   | 520.00 | %dmy-2w |
@@ -125,14 +125,14 @@ Scenario: A joined account member looks at transaction history and summary
   | Rewards   |   |          | + |  10.00 |         |
   | End       |   | 1,950.00 |   | 530.00 | %dmy    |
   And with:
-#  |_tid | Date    | Name       | Purpose   | Amount | Reward | Agent | _ |
+#  |~tid | Date    | Name       | Purpose   | Amount | Reward | Agent | ~ |
 #  | 5   | %mdy-1d | Corner Pub | labor     | 100.00 | 10.00      | ZZA  | X |
 #  | 4   | %mdy-2d | Dee Four   |  cash     |  50.00 | --         | ZZB  | X |
 ##  | 3   | %mdy-1w | Abe One    | usd       | 500.00   | 500.00 | --         | ZZB  | X |
 #  | 602 | %mdy-2w |            | from bank | 400.00 | --         | ZZA  | X |
 #  | 601 | %mdy-2w |            | from bank | 600.00 | --         | ZZB  | X |
 
-  |_tid | Date    | Name       | Purpose   | Amount | Reward | _ |
+  |~tid | Date    | Name       | Purpose   | Amount | Reward | ~ |
   | 5   | %mdy-1d | Corner Pub | labor     | 100.00 | 10.00  | X |
   | 4   | %mdy-2d | Dee Four   |  cash     |  50.00 | --     | X |
 #  | 3   | %mdy-1w | Abe One    | usd       | 500.00   | 500.00 | --     | X |
@@ -145,12 +145,12 @@ Scenario: A joined account member looks at transaction history and summary
   | ID            | ZZB (joint account) |
   | Balance       | $1,950 |
 #  | Savings       | $530 |
-  | _rewards      | $530 |
+  | ~rewards      | $530 |
 #  | Committed     | $0.60 |
 #  | Your return   | 21.9% | (sometimes is 20.2%)
-#  | _ever         | 136.7% | or 137.1% (depends on daylight time?) or 68.0%?!
+#  | ~ever         | 136.7% | or 137.1% (depends on daylight time?) or 68.0%?!
   | Social return | $37.50 |
-  | _ever         | $37.50 |
+  | ~ever         | $37.50 |
 
 Scenario: A joined account member unjoins the account
   Given members have:
@@ -194,6 +194,6 @@ Scenario: A member requests two joins at once
   | Bea Two   |
 # (actually does this, but test can't find it. why?)  And we say "error": "too many joins"
   And we show "Relations" with:
-  | other      | Draw | My employee? | Family? | Permission |_requests      |
+  | other      | Draw | My employee? | Family? | Permission |~requests      |
   | Bea Two    | No   | No           | No      | %can_joint | --            |
   | Dee Four   | No   | No           | No      | %can_none  | --            |

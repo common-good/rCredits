@@ -27,26 +27,28 @@ function getTxRows($starting, $ending, $options = [], $url0 = '', $maxRows = PHP
   list ($classes, $header, $downloadHeader) = txFields(@$download, @$agents, @$channels, @$boxes);
 
   if (@$download) {
-    $csv = setupDownload($starting, $ending);
+    setupDownload($starting, $ending);
     u\csv($downloadHeader);
-  } else $csv = FALSE;
+  }
   $totDone = $totPending = array_combine($classes, array_fill(0, count($classes), FALSE));
+  $totDone['roundups'] = 0; // track total donated change
   
   // build the transaction list
 //  $dones = ($states != STATES_PENDING);
 //  $pendings = ($states != STATES_DONE);
-//  $txOpts = compact(u\ray('dones pendings exchanges pexchanges'));
-  $txOpts = compact(u\ray('dones pendings', TRUE, FALSE));
+//  $txOpts = compact(ray('dones pendings exchanges pexchanges'));
+  $txOpts = compact(ray('dones pendings', TRUE, FALSE));
   $rows = [];
   
 //    $q = $func($starting, $ending, $report ? 'ctty' : $mya->id, $txOpts);
   $q = be\myTransactions($starting, $ending, $mya->id, $mya->jid ?: 0);
   while (count($rows) < $maxRows and $tx = $q->fetchAssoc()) {
-    doRow($rows, $tx, $totDone, $classes, $csv, @$agents, @$channels, @$boxes, $url0);
+    doRow($rows, $tx, $totDone, $classes, @$download, @$agents, @$channels, @$boxes, $url0);
   }
   
   if (@$tx and $q->fetchAssoc()) r\Web\say('transaction list truncated'); // there was more than we could show
   if (@$download) {
+    unset($totDone['roundups']); // donated change doesn't show in downloaded data
     u\splice($totDone, 'buttons', 1); // don't download buttons
     u\splice($totDone, 'amount', 1, ['frombank' => 0]);
     $totDone['date'] = '';
@@ -54,6 +56,7 @@ function getTxRows($starting, $ending, $options = [], $url0 = '', $maxRows = PHP
     foreach(u\just(TX_DOWNLOAD_MONEY_FIELDS, $totDone) as $key => $value) $totDone[$key] = round($value, 2);
     //if ($value === FALSE) $totDone[$key] = '-';
     u\csv(array_values($totDone));
+    
     global $testCSV; if (u\test()) return FALSE;
     exit();
   }
@@ -63,28 +66,33 @@ function getTxRows($starting, $ending, $options = [], $url0 = '', $maxRows = PHP
 }
 
 /**
- * Prepare one transaction row for output (or download).
+ * Prepare one transaction row for output (or download) and add it to the rows array.
  * @param assoc $tx: the transaction record
- * @param file $csv: the (open) download file or FALSE if not downloading
- *
- * @return: the row
  */
-function doRow(&$rows, $tx, &$tot, $classes, $csv = '', $agents = FALSE, $channels = FALSE, $boxes = FALSE, $url0 = '') {
+function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE, $channels = FALSE, $boxes = FALSE, $url0 = '') {
   global $rUrl;
   
-//  foreach (u\ray('xid amount byMe toMe reallyToMe agent data sharing tid') as $k) $$k = $myx->$k;
+//  foreach (ray('xid amount byMe toMe reallyToMe agent data sharing tid') as $k) $$k = $myx->$k;
 
-  extract(u\just('xid fromyou toyou byMe toMe reallyToMe agent data sharing tid name type created description', $tx));
-  $amt = $toMe ? $toyou : -$fromyou; // this may be different from $tx[$amount]
+  extract(u\just('xid fromyou toyou byMe toMe reallyToMe agent data roundup disputed sharing tid name type created description', $tx));
   $mya = r\acct();
 //  $myx = r\x($tx, $mya);
 
   if (@$data) $data = unserialize($data);
+  if (@$data['roundups'] and !$mya->admin) return; // don't show contributions of rounded up change
+
+  $change = ceil($fromyou) - $fromyou;
+  if (@$roundup and !$toMe and $change > .005) $fromyou = ceil($fromyou);
+  $tx['amount'] = $amt = $toMe ? $toyou : -$fromyou; // this may be different from $tx[$amount]
+  
   $reallyToMe = ($toMe xor $toyou < 0);
   $banking = ($type == TX_BANK);
 //  if ($banking and ($amount < 0 xor $xid < 0)) $amount = -$amount; // show as positive unless reversing
   $isExtra = ($type != TX_TRANSFER and !$banking);
-  if ($isExtra or $sharing + 0) list ($amt, $reward) = [0, $amt]; else $reward = 0; // show refunds, inflation, grants, fines, and signup bonus as rewards
+  if ($isExtra or $sharing + 0) {
+    if (!$mya->rewarding and !$download) return;
+    list ($amt, $reward) = [0, $amt]; // show refunds, inflation, grants, fines, and signup bonus as rewards
+  } else $reward = 0;
 //  $state = txColoredState($data);
   
 //  if ($sharing) list ($reward, $amount) = [$toMe ? $amount : -$amount, 0]; else $reward = 0;
@@ -104,26 +112,26 @@ function doRow(&$rows, $tx, &$tot, $classes, $csv = '', $agents = FALSE, $channe
   $button1 = ($mya->can(@$reallyToMe ? B_SELL : B_BUY) and !$isExtra and !$banking) ? "<a href='$url&do=edit' title='Edit Transaction'><img src='$rUrl/images/icons/edit.png' width=16 height=16 border=0 /></a>" : '';
   $button2 = ((($mya->can(@$reallyToMe ? B_BUY : B_SELL) and !$isExtra and !$banking) or $mya->admin) and !@$data['undoneBy']) ? w\button(' X ', "$url&do=no", r\MyX::msg0($tx, 'reverse')) : ''; // (admin not cAdmin)
   //was txAct($toMe, $byMe, $reallyToMe)
-  $button3 = (!$byMe and @$data['disputed']) ? w\button('OK', "$url&do=ok", r\MyX::msg0($tx, 'theyDid')) : ''; // w\txAct($toMe, $byMe, $reallyToMe)
+  $button3 = (!$byMe and $disputed) ? w\button('OK', "$url&do=ok", r\MyX::msg0($tx, 'theyDid')) : ''; // w\txAct($toMe, $byMe, $reallyToMe)
 //  if (!$mya->can(B_MANAGE)) $button1 = $button2 = $button3 = '';
 //  $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
 //  $buttons = "<div class=\"col-sm-4\">$button1</div><div class=\"col-sm-4\">$button2</div><div class=\"col-sm-4\">$button3</div>";
   $buttons = "<div class=\"col-xs-6\">$button1</div><div class=\"col-xs-6\">$button2</div>";
 //    $row = array($tid, strftime('%d-%b', $tx_created), @$myx->name, $fromYou, $toYou, $rpct, $amount, $usd, $buttons, $myx->for, $reward, $net);
-  $date = strftime($csv ? '%Y-%m-%d' : '%m/%d/%y', $created); // %d-%b
+  $date = strftime($download ? '%Y-%m-%d' : '%m/%d/%y', $created); // %d-%b
   if (strlen($tid) > 4) $tid = "<small>$tid</small>";
 
-  foreach (u\ray('amt fromyou toyou reward') as $k) $$k = $$k ? number_format($$k, 2) : R_NONE;
+  foreach (ray('amt fromyou toyou reward') as $k) $$k = $$k ? number_format($$k, 2) : R_NONE;
   if (strpos($reward, '-') === FALSE) $reward = '+' . $reward;
   $row = array($tid, $date, @$name, $description, $amt, $fromyou, $toyou, $reward, $net, $buttons);
-//  $row = array($tid, strftime($csv ? '%Y-%m-%d' : '%d-%b', $myx->created), @$myx->name2, $fromYou, $toYou, $state, $buttons, $myx->for, $reward, $net);
+//  $row = array($tid, strftime($download ? '%Y-%m-%d' : '%d-%b', $myx->created), @$myx->name2, $fromYou, $toYou, $state, $buttons, $myx->for, $reward, $net);
 
   if (@$agents) $row[] = (!@$agent or ($mya->isMe($agent) and $mya->co) or $agent < 0) ? R_NONE 
-  : ($csv ? r\qid($agent) : substr(r\qid($agent), 3));
-  if (@$channels and $txChannels = u\ray(TX_CHANNELS)) $row[] = $txChannels[$channel];
+  : ($download ? r\qid($agent) : substr(r\qid($agent), 3));
+  if (@$channels and $txChannels = ray(TX_CHANNELS)) $row[] = $txChannels[$channel];
   if (@$boxes) $row[] = db\lookup('boxnum', 'r_boxes', 'id=:tx_box', compact('tx_box'));
-  addRow($tot, array_combine($classes, $row), $tx, $csvRow);
-  if ($csv) return u\csv($csvRow); // not STDOUT
+  addRow($tot, array_combine($classes, $row), $tx, $change, $csvRow);
+  if ($download) return u\csv($csvRow); // not STDOUT
 //  finishCsvRow($csv, array_combine($classes, $row), $tx, $tot);
   
   $sort = (DT_MAX + $created) . (TX_TID_MAX + $tid) . ($banking ? 5 : 0) . u\randomFloat(.0001, .9999); // make it a string so as not to lose precision
@@ -156,7 +164,7 @@ function setupDownload($starting, $ending) {
   $mya = r\acct();
   $dt1 = strftime('%Y%m%d', $starting);
   $dt2 = strftime('%Y%m%d', $ending);
-  return u\csvStart(($mya->admin ? $mya->mainQid : 'rcredits') . "$dt1-$dt2.csv");
+  u\csvStart(($mya->admin ? $mya->mainQid : PROJECT_ID) . "$dt1-$dt2.csv");
 }
 
 /**
@@ -165,12 +173,12 @@ function setupDownload($starting, $ending) {
 function txFields($download = FALSE, $agents = FALSE, $channels = FALSE, $boxes = FALSE) {
   global $agtViaBoxHelp;
 //  $headHelp = t('Transaction number|Date transaction was completed|Payer name|Payee name|Transaction amount|Current state of transaction -- check mark means completed.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent|Amounts you received|Click a symbol to reverse a transaction or to edit the purpose|The net change in account balance') . @$agtViaBoxHelp;
-  $headHelp = t('Transaction number|Date transaction was completed|Payer name|Payee name|Current state of transaction -- check mark means completed.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent or received|fromyou|toyou|Click a symbol to reverse a transaction or to edit the purpose|The net change in account balance') . @$agtViaBoxHelp;
+  $headHelp = t('|Transaction number|Date transaction was completed|Payer name|Payee name|Current state of transaction -- check mark means completed.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent or received|fromyou|toyou|Click a symbol to reverse a transaction or to edit the purpose|The net change in account balance') . @$agtViaBoxHelp;
 //  $classes = 'tid date from to amount state purpose reward';
   $classes = 'tid date from to state purpose reward';
 //  $helpFields = $classes . ' name fromyou toyou buttons net' . (@$agtViaBoxHelp ? ' agent channel box' : '');
   $helpFields = $classes . ' name amount fromyou toyou buttons net' . (@$agtViaBoxHelp ? ' agent channel box' : '');
-  $headHelp = array_combine(u\ray($helpFields), u\ray($headHelp));
+  $headHelp = array_combine(ray($helpFields), ray($headHelp));
 /*  if ($report) { // community transaction history
     $headers = t('Tx#,Date,From,To,Total,Status,Purpose,Rewards');
   } else { // individual account transaction history
@@ -181,7 +189,7 @@ function txFields($download = FALSE, $agents = FALSE, $channels = FALSE, $boxes 
   $headers = t('Tx#,Date,Name,Purpose,Amount,From You, To You,Reward,Net,Action');
 //  }
 
-  $header = array_combine(u\ray($classes), u\ray($headers)); // make splices and additions easy and clear
+  $header = array_combine(ray($classes), ray($headers)); // make splices and additions easy and clear
   
   if (@$agents) $header['agent'] = t('Agent');
   if (@$channels) $header['channel'] = t('Via');
@@ -201,17 +209,18 @@ function txFields($download = FALSE, $agents = FALSE, $channels = FALSE, $boxes 
  * @param assoc $tot: (UPDATED) the running totals
  * @param assoc $row: keyed values for the current record (changes herein to $row are just for calculating $tot and $csvRow)
  * @param assoc $tx: the transaction record
+ * @param numeric $change: change being donated to the community
  * @param array $csvRow: (RETURNED) the values, formatted for CSV export
  */
-function addRow(&$tot, $row, $tx, &$csvRow = '') {
+function addRow(&$tot, $row, $tx, $change, &$csvRow = '') {
   extract(u\just('xid type toMe amount', $tx));
 
   if ($type == TX_BANK) {
-    $frombank = -$amount;
+    $frombank = $amount;
     $row['fromyou'] = $row['toyou'] = '';
   } else {
     $frombank = '';
-    if (in_array($type, u\ray(TX_REWARDS))) $row['fromyou'] = $row['toyou'] = '';
+    if (in_array($type, ray(TX_REWARDS))) $row['fromyou'] = $row['toyou'] = '';
   }
   
   unset($row['buttons']); // don't download status or buttons
@@ -219,18 +228,19 @@ function addRow(&$tot, $row, $tx, &$csvRow = '') {
 
   foreach ($row as $k => $v) $row[$k] = $v == R_NONE ? '' : strip_tags($v);
 //  if ($row['fromyou'] == $row['toyou']) $row['fromyou'] = $row['toyou'] = ''; // don't report gross on payex
-  foreach (u\ray(TX_DOWNLOAD_MONEY_FIELDS) as $k) {
+  foreach (ray(TX_DOWNLOAD_MONEY_FIELDS) as $k) {
     $row[$k] = u\cleanAmount(@$row[$k]) + 0;
     $tot[$k] = (@$tot[$k] ?: 0) + $row[$k]; // formatting value is useless
   }
+  $tot['roundups'] += $change;
   unset($row['amount']); // fromyou and toyou are enough
   $csvRow = array_values($row);
 }
 
-function txColoredState($data) {
+function txColoredState($disputed) {
   $states = array('&#10004;', 'disputed');
   $colors = array('green', 'red');
-  $state = @$data['disputed'] ? 1 : 0;
+  $state = $disputed ? 1 : 0;
   $color = $colors[$state];
   $state = $states[$state];
   return "<span style='color:$color;'>$state</span>";

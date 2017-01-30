@@ -51,19 +51,19 @@ Scenario: A member downloads transactions for the past year
   | id   | fullName |*
   | ctty | ZZrCred  |
   When member ".ZZA" visits page "history/transactions/period=365&download=1"
-  Then we download "rcredits%todayn-12m-%todayn.csv" with:
+  Then we download "%PROJECT_ID%todayn-12m-%todayn.csv" with:
   # For example rcredits20120525-20130524.csv
-  | Tx# | Date    | Name    | From bank | From you | To you | Purpose    | Reward | Net  |*
-  | 8   | %ymd-5d | Our Pub |           |          |    100 | cash CJ    |        |  100 |
-  | 7   | %ymd-5d | Our Pub |           |       80 |        | this CF    |      4 |  -76 |
-  | 6   | %ymd-6d | Bea Two |           |      100 |        | cash V     |        | -100 |
-  | 5   | %ymd-1w | Our Pub |           |      120 |        | this Q     |      6 | -114 |
-  | 4   | %ymd-3m | Bea Two |           |      240 |        | what G     |     12 | -228 |
-  | 501 | %ymd-4m |         |      1000 |          |        | from bank  |        | 1000 |
-  | 3   | %ymd-4m | Our Pub |           |          |    100 | usd F      |        |  100 |
-  | 2   | %ymd-5m | Bea Two |           |          |     10 | cash E     |        |   10 |
-  | 1   | %ymd-7m | ZZrCred |           |          |        | signup     |    250 |  250 |
-  |     |         | TOTALS  |      1000 |      540 |    210 |            |    272 |  942 |
+  | Tx# | Date    | Name    | Purpose   | From Bank | From You | To You | Reward | Net  |*
+  | 8   | %ymd-5d | Our Pub | cash CJ   |           |          |    100 |        |  100 |
+  | 7   | %ymd-5d | Our Pub | this CF   |           |       80 |        |      4 |  -76 |
+  | 6   | %ymd-6d | Bea Two | cash V    |           |      100 |        |        | -100 |
+  | 5   | %ymd-1w | Our Pub | this Q    |           |      120 |        |      6 | -114 |
+  | 4   | %ymd-3m | Bea Two | what G    |           |      240 |        |     12 | -228 |
+  | 501 | %ymd-4m |         | from bank |      1000 |          |        |        | 1000 |
+  | 3   | %ymd-4m | Our Pub | usd F     |           |          |    100 |        |  100 |
+  | 2   | %ymd-5m | Bea Two | cash E    |           |          |     10 |        |   10 |
+  | 1   | %ymd-7m | ZZrCred | signup    |           |          |        |    250 |  250 |
+  |     |         | TOTALS  |           |      1000 |      540 |    210 |    272 |  942 |
   And with download columns:
   | column |*
   | Date   |

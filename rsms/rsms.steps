@@ -137,8 +137,8 @@ function weSayToPhone($number, $message) {
  */
 function weSayToPhoneWithSubs($number, $message, $subs) {
   global $testOnly;
-///  debug(array(r\SMS\tt($message), r\SMS\tt($message, $subs[0]), $subs));
-  return t\findMessage('out', compact('number'), RSMS_PREFIX . trim(u\tt($message, @$subs[0])));
+///  debug(array(r\SMS\t($message), r\SMS\t($message, $subs[0]), $subs));
+  return t\findMessage('out', compact('number'), RSMS_PREFIX . trim(t($message, @$subs[0])));
 }
 
 /**
@@ -287,7 +287,7 @@ function phoneIsAMember($number) {
 function phoneIsMember($number, $id = NULL) {
   global $testOnly; if ($testOnly) return FALSE;
   $flags = 'ok';
-  return t\doAccount(compact(u\ray('number id flags')));
+  return t\doAccount(compact(ray('number id flags')));
 }
 
 /**
@@ -393,7 +393,7 @@ function theTotalDemandForRCreditsIs($amount) {
   $same = t\eq($old, $amount);
   if ($testOnly or $same) return $same;
   
-  if (!$uid = t\doAccount(u\ray('id flags', '.ZZZ', 'ok'))) return FALSE;
+  if (!$uid = t\doAccount(ray('id flags', '.ZZZ', 'ok'))) return FALSE;
   $a = r\acct($uid);
   $usd = $amount - $old - $a->usd;
   $a->update(compact('usd'));

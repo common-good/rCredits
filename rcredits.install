@@ -28,7 +28,7 @@ function rcredits_install() {
 
   variable_set('date_default_timezone', 'America/New_York');
   variable_set('site_frontpage', 'summary');
-  variable_set('site_name', 'rCredits');
+  variable_set('site_name', PROJECT);
   variable_set('site_slogan', 'version ' . R_VERSION);
   variable_set('user_register', USER_REGISTER_VISITORS); // let visitors register themselves
   

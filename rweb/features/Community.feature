@@ -65,13 +65,13 @@ Scenario: cron calculates the statistics
   And member ".ZZA" visits page "community/graphs"
   Then we show "Statistics" with:
   | Community: | Seedpack |
-  |_rCredits Accounts: | 2 members + 1 co |
-  |_Funds in the rCredits System: | $6,823.70 |
-  |_rCredits Circulation Velocity: | 4.0% per mo. |
-  |_Monthly Bank Transfers | $6,000 (net) |
-  |_rCredits Issued To-Date | $6,823.70 |
-  |_fees | $-6 |
-  |_Monthly Transactions | 4 @ $67.75 |
+  |~rCredits Accounts: | 2 members + 1 co |
+  |~Funds in the rCredits System: | $6,823.70 |
+  |~rCredits Circulation Velocity: | 4.0% per mo. |
+  |~Monthly Bank Transfers | $6,000 (net) |
+  |~rCredits Issued To-Date | $6,823.70 |
+  |~fees | $-6 |
+  |~Monthly Transactions | 4 @ $67.75 |
 # only 2 members and 1 company -- CGF and WWS are not counted because they have no transactions before today
   
 #  | Accounts        | 5 (3 personal, 2 companies) — up 5 from a month ago |

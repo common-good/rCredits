@@ -40,7 +40,7 @@ Scenario: A member confirms request to charge another member
   When member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods      | purpose |*
   | charge | Bea Two | 100    | %FOR_NONGOODS | payback |
-  Then we say "status": "report tx|balance unchanged" with subs:
+  Then we say "status": "report tx|for why|balance unchanged" with subs:
   | did     | otherName | amount | why         |*
   | charged | Bea Two   | $100   | loan/reimbursement/etc. |
   And we message "new invoice" to member ".ZZB" with subs:
@@ -68,7 +68,7 @@ Scenario: A member confirms request to pay another member
   When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
   | pay | Bea Two | 300    | %FOR_NONGOODS | payback |
-  Then we say "status": "report tx" with subs:
+  Then we say "status": "report tx|for why" with subs:
   | did    | otherName | amount | why         |*
   | paid   | Bea Two   | $300   | loan/reimbursement/etc. |
   And we notice "new payment" to member ".ZZB" with subs:
@@ -88,12 +88,12 @@ Scenario: A member repays someone, drawing from another account
   When member ".ZZB" confirms form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
   | pay | Our Pub | 300    | %FOR_NONGOODS | payback |
-  Then we say "status": "report tx" with subs:
+  Then we say "status": "report tx|for why" with subs:
   | did    | otherName | amount | why         |*
   | paid   | Our Pub   | $300   | loan/reimbursement/etc. |
-  And we notice "new payment" to member ".ZZC" with subs:
-  | created | fullName | otherName | amount | payeePurpose |*
-  | %today  | Our Pub  | Bea Two   | $300   | payback      |
+  And we notice "new payment linked" to member ".ZZC" with subs:
+  | created | fullName | otherName | amount | payeePurpose | aPayLink |*
+  | %today  | Our Pub  | Bea Two   | $300   | payback      | ?        |
   And transactions:
   | xid | created | type     | amount | from  | to   | goods           | purpose |*
   |   5 | %today  | transfer |     50 | .ZZA  | .ZZB | %FOR_NONGOODS | automatic transfer to NEWZZB,automatic transfer from NEWZZA |

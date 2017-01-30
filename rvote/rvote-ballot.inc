@@ -36,10 +36,10 @@ function ballot($mya, &$extras, $question) {
   $range = formatQuestionDates($qu['endProposals'], $qu['endVoting'], 1);
 
   // get current voted values for this question
-  $defaults = getCurrentVote($extras, $mya->id, $question, $qu['type'], $qu['optOrder']);
+  $defaults = getCurrentVote($mya, $extras, $question, $qu['type'], $qu['optOrder']);
 ///  debug(compact('defaults'));
   $optCount = $defaults['optCount'];
-  $opts = getOptsX($mya->id, $question, $qu['type'], $defaults);
+  $opts = getOptsX($defaults['ballot'], $qu['type'], $defaults);
 
   w\js('js/rvote/ballot.js', 'file', 'footer', 0);
   
@@ -72,9 +72,186 @@ EOF;
   return $bodymiddle;
 }
 
+function showProposal($mya, &$extras, $question, $voting = FALSE) {
+  global $quids;
+  $noneErr = t('There are no active proposals to grade in your community.');
+  
+  $ctty = $mya->community;
+  /*
+  // This new logic may be good:
+  $crit = "endProposals<>0 AND type='R' AND ctty=:ctty ORDER BY endProposals DESC";
+  if (!$res = db\lookup('id AS fundingId,endProposals AS endDate', 'r_questions', $crit, compact('ctty'))) return $noneErr;
+  extract($res);
+  
+  if ($endDate < time()) return showProposalGrades($fundingId, $extras);
+
+  $quids = getProposals($mya, $fundingId);
+// end new logic
+*/
+  $quids = getProposals($mya);
+
+  if (!$qcount = count($quids)) return $noneErr;
+  u\setDft($question, -$quids[0]);
+  
+  $row = db\lookup('*', 'r_proposals', 'id=-:question', compact('question'));
+//  if (!@$row['id']) return t('There are no more proposals to grade.');
+  
+  extract(u\just('project categories overview purpose where when until how amount type budgetTotal budget contingency qualifications evaluation name contact phone email sponsor', $row));
+
+  // set up question to display
+  $qnum = array_search(-$question, $quids); // this works even if the number of elections/questions changes during voting
+  $qndpy = $qnum + 1; // $qnum starts at 0
+
+  $optType = 'M'; // multiple choice
+  $tableHeader = tableHeader($optType);
+
+  if ($voting) {
+    // get current voted values for this question
+    $defaults = getCurrentVote($mya, $extras, $question, $optType, '');
+    $optCount = $defaults['optCount'];
+    $opts = getOptsX($defaults['ballot'], 'M', $defaults);
+    $detail = t('Scroll down to see the proposal. Click a letter twice for X<sup>+</sup>, thrice for X<sup>-</sup>.');
+
+    w\js('js/rvote/ballot.js', 'file', 'footer', 0);
+    
+  //<form name='ballotform' id='ballotform' action='ballot.php' method='$METHOD' onsubmit="return checkform(this, $optCount, '$qu[type]');">
+
+    $mid = <<<EOF
+<div class='ballot well q$optType'>
+
+<div class='ballotheader'>
+<div class='electiontitle'>Proposal Grading</div electiontitle>
+<div class='questioncount'>(Proposal #$qndpy of $qcount)</div questioncount>
+<div class='clearer'></div>
+</div ballotheader>
+
+<div class='question'><b>PROPOSAL #$qndpy:</b> $project</div question>
+<div class='questiondetail'>$detail</div questiondetail>
+<div class='optionheader'>$tableHeader</div optionheader>
+<div id='options'>
+$opts
+</div options>
+</div ballot>
+EOF;
+
+    $extras['mid'] = w\item($mid);
+    $extras['question'] = w\hidFld($question);
+    $submit = w\submit(BARE . t('Done With Proposal #') . $qndpy, 'primary', 'md', w\clas('pull-right'));
+    $extras['prev'] = w\submit('&laquo; ' . t('Previous'), 'primary', 'md', w\suffix(w\rendA('submit', $submit)));
+  }
+
+  $types = ray('Investment Loan Incentive Grant Other');
+  if (is_numeric(trim(substr($sponsor, 0, 3)))) $sponsor = substr($sponsor, 3);
+  
+  $rows = [
+//    t('Project Title:') => $project,
+    t('Categories:') => str_replace(' ', ', ', $categories),
+    t('Description:') => $overview,
+    t('Purpose:') => $purpose,
+    t('Where:') => $where,
+    t('When:') => t('From %start to %end.', 'start end', u\fmtDate($when), u\fmtDate($until)),
+    t('Implementation Plan:') => $how,
+    t('Amount Requested:') => u\fmtAmt($amount),
+    t('Funding Type:') => $types[$type],
+    t('Total Budget:') => u\fmtAmt($budgetTotal),
+    t('Budget Details:') => $budget,
+    t('Contingency Plan:') => $contingency,
+    t('Qualifications:') => $qualifications,
+    t('Evaluation Plan:') => $evaluation,
+    t('Applicant:') => $name,
+    t('Contact:') => $contact,
+    t('Sponsor:') => $sponsor,
+  ];
+  
+  if ($mya->cAdmin) $rows += [
+    ' ----------' => '<small style="color:silver;">' . t('for admin only:') . '</small>',
+    t('Phone:') => $phone,
+    t('Email:') => $email,
+  ];
+  
+  $f = 0;
+  foreach ($rows as $k => $v) $extras['f' . $f++] = w\item(strtr($v, ["\n" => "<br>\n", '  ' => '&nbsp; ']), $k);
+
+  return '';
+}
+
+/**
+ * Return a summary of the proposals.
+ */
+function showProposalGrades($mya, $args) {
+  $ctty = $mya->community;
+  
+  $nowish = strtotime('2/1/2017'); // ideal start and end date
+  list($bestAmt,$maxAmt) = [1000, 10000];
+  $bestPct = .5; // formula below needs to be generalized if this is anything but .5
+  
+  $avgGradeOption = 'AVG(grade) FROM r_votes v LEFT JOIN r_ballots b ON b.id=v.ballot WHERE b.question=-p.id AND v.option';
+  $sql = <<<EOF
+SELECT p.id, p.project, CONCAT_WS(', ', p.name, p.contact) AS who, 
+  CONCAT(MID(p.phone,2,3), '-', MID(p.phone,5,3), '-', MID(p.phone,8), ' ', p.email) AS contact, p.amount, p.categories, 
+  (SELECT COUNT(*) FROM r_ballots b WHERE b.question=-p.id) AS count, 
+  (SELECT $avgGradeOption=12+0) AS suitable, 
+  (SELECT $avgGradeOption=12+1) AS doable, 
+  (SELECT $avgGradeOption=12+2) AS mgmt, 
+  (SELECT $avgGradeOption=12+3) AS eval, 
+  (SELECT $avgGradeOption=12+4) AS cope,
+  (SELECT COUNT(v.id) FROM r_ballots b JOIN r_votes v ON v.ballot=b.id WHERE v.text <> '' AND b.question=-p.id) AS noteCount,
+  MID(p.sponsor, 0, 2) AS sponsor,
+  IF(MID(`where`, 0, 5)='01301', 12, 9) AS local,
+  IF(type=1, 12, 0) AS goodType,
+  GREATEST(0, 12-ABS(`when`-$nowish)/:MONTH_DAYS/:DAY_SECS) AS goodTime1,
+  GREATEST(0, 12-ABS(until-$nowish)/:MONTH_DAYS/:DAY_SECS) AS goodTime2,
+  12 * IF(amount<$bestAmt, amount/$bestAmt, 1-GREATEST(0, amount-$bestAmt)/($maxAmt-$bestAmt)) AS rightAmt,
+  12 * IF(amount/budgetTotal<$bestPct, amount/budgetTotal/$bestPct, 1-(amount/budgetTotal-$bestPct)/(1-$bestPct)) AS rightPct, budgetTotal, until
+FROM r_proposals p
+ORDER BY p.project
+EOF;
+
+  $list = '';
+  $cols = ray(t('categories:2,project:3,who:2,amount:1,grade:1,notes:1'));
+  $grades = ray('E E+ D- D D+ C- C C+ B- B B+ A- A A+');
+  $notes0 = t('<a>notes</a>', '_a', w\atag(''));
+  $q = db\q($sql);
+  $colKeys = array_keys($cols);
+  $rows = [array_combine($colKeys, $colKeys)];
+  while ($row = $q->fetchAssoc()) $rows[] = $row;
+
+  foreach ($rows as $row) {
+    extract($row);
+    
+    if ($list) {
+      $sponsor = $sponsor >= 20 ? 12
+      : ($sponsor >= 10 ? 9
+      : ($sponsor >= 2 ? 6
+      : ($sponsor >= 1 ? 3 : 0)));
+      $grade = round((20*$suitable + 20*$doable + 15*$mgmt + 10*$eval + 5*$cope + 2.5*$sponsor + 2.5*$local + 5*$goodType + 2.5*$goodTime1 + 2.5*$goodTime2 + 5*$rightAmt + 5*$rightPct) / 95); // should include 5*committed percent and divide by 100
+      $grade = $grades[$grade];
+      $amount = u\fmtAmt($amount);
+      $atag = w\atag("/prox/page=ProposalReport&p=$id&$args");
+      $project = "<$atag>$project</a>";
+      if ($noteCount) { //($comments = proposalComments($id)) {
+        $atag = w\atag("/prox/page=ProposalNotes&p=$id");
+        $notes = "<$atag>$noteCount notes</a>";
+      } else $notes = '';
+      $rowClass = 'row';
+    } else $rowClass = 'row head';
+    
+    $list .= <<<EOF
+<div class="$rowClass">
+  <div class="project-name col col-xs-8">$project<br>$who</div>
+  <div class="amount-categories col col-xs-2">$amount<br>$categories</div>
+  <div class="grade-notes col col-xs-2">$grade<br>$notes</div>
+</div>
+EOF;
+    
+//    $until = u\fmtDate($until);
+//    debug(compact(ray('categories project who amount budgetTotal until suitable doable mgmt eval cope sponsor local goodtype goodType goodTime1 goodTime2 rightAmt rightPct grade')));
+  }
+  return "<div id=\"proposalGrades\">$list</div>";
+}
+
 function processvote($args, $type) {
 	global $quids, $now, $ermsg;
-
 	if (!$optionCount = $args['optionCount']) return;
 
 	for($opti = 0; $opti < $optionCount; $opti++) {
@@ -89,11 +266,12 @@ function processvote($args, $type) {
     }
       
     list ($id, $text, $modified) = [$args["vote$opti"], @$args["votenote$opti"], time()];
-    db\update('r_votes', compact(u\ray('id grade gradeMax text isVeto modified')), 'id');
+//    debug(compact(ray('args type quids now optionCount opti isVeto type grade id text modified')));
+    db\update('r_votes', compact(ray('id grade gradeMax text isVeto modified')), 'id');
 	}
 	$ballot = $args['ballot'];
   $voter = db\lookup('voter', 'r_ballots', 'id=:ballot', compact('ballot'));
-  db\update('r_ballots', u\ray('id proxy modified', $ballot, $voter, time()), 'id');
+  db\update('r_ballots', ray('id proxy modified', $ballot, $voter, time()), 'id');
 }
 
 /**
@@ -105,29 +283,32 @@ function processvote($args, $type) {
  * @param char $type: question type (M=multiple-choice B=budget R=range E=essay)
  * @param char $optOrder: how to order the options
  */
-function getCurrentVote(&$extras, $voter, $question, $type, $optOrder) {
-
-	$optCount = db\count('r_options', 'question=:question', compact('question'));
-	$extras['optionCount'] = w\hidFld($optCount);
+function getCurrentVote($mya, &$extras, $question, $type, $optOrder) {
+  $voter = $mya->id;
 	if (!$ballot = db\lookup('id', 'r_ballots', 'question=:question AND voter=:voter', compact('question', 'voter'))) {
     $created = time();
-    $ballot = db\insert('r_ballots', compact(u\ray('question voter created')));
+    $ballot = db\insert('r_ballots', compact(ray('question voter created')));
   }
   
+
   $sql = <<<EOF
     SELECT v.id AS vote, v.option, v.grade, v.gradeMax, o.minimum AS min, o.maximum AS max, v.isVeto, v.text
-    FROM r_ballots b LEFT JOIN r_votes v ON v.ballot=b.id LEFT JOIN r_options o ON v.option=o.id 
-    WHERE b.voter=:voter AND o.question=:question ORDER BY v.displayOrder
+    FROM r_ballots b LEFT JOIN r_votes v ON v.ballot=b.id LEFT JOIN r_options o ON o.id=v.option
+    WHERE b.id=:ballot ORDER BY v.displayOrder
 EOF;
-	$q = db\q($sql, $subs = compact('voter', 'question'));
+	$q = db\q($sql, $subs = compact('ballot'));
 
   $rowCount = $q->rowCount();
+  if ($question < 0) $question = -min(getProposals($mya)); // grading a proposal, only first has options listed
+	$optCount = db\count('r_options', 'question=:question', compact('question'));
+  
 	if($rowCount < $optCount) { // vote records not set up yet (or interrupted)
-		if($rowCount) db\q('DELETE v FROM r_votes v LEFT join r_options o ON o.id=v.option WHERE o.question=:question', compact('question'));
-		// maybe delete orphaned veto records too?
+		if($rowCount) db\q('DELETE FROM r_votes WHERE ballot=:ballot', compact('ballot'));
 		setupVote($extras, $voter, $question, $optOrder, $ballot);
-  	$q = db\q($sql, $subs = compact('voter', 'question'));
+  	$q = db\q($sql, $subs);
+    $optCount = $q->rowCount();
 	}
+	$extras['optionCount'] = w\hidFld($optCount);
 
   $res = [];
   for ($i = 0; $row = $q->fetchAssoc(); $i++) {
@@ -152,7 +333,7 @@ EOF;
 	}
 	$extras['ballot'] = w\hidFld($ballot);
 
-	return $res + compact('optCount');
+	return $res + compact('optCount', 'ballot');
 }
 
 function setupVote(&$extras, $voter, $question, $optOrder, &$ballot) {
@@ -168,7 +349,7 @@ function setupVote(&$extras, $voter, $question, $optOrder, &$ballot) {
 		$grade = BLANKGRADE;
     $gradeMax = BLANKGRADE;
     $displayOrder = $i;
-    $vote = db\insert('r_votes', compact(u\ray('ballot option grade gradeMax displayOrder')));
+    $vote = db\insert('r_votes', compact(ray('ballot option grade gradeMax displayOrder')));
     $extras["vote$i"] = w\hidFld($vote);
 //    $extras["note$i"] = w\hidFld('');
 	}
@@ -187,10 +368,11 @@ function setupOptions($question, $optOrder='') {
 	return $opts;
 }
 
-function getOptsX($voter, $question, $type, $defaults) {
+function getOptsX($ballot, $type, $defaults) {
+
 // RETURN the options in the order the voter is used to seeing them
-  $sql = 'SELECT o.text, o.detail FROM (r_options o INNER JOIN r_votes v ON v.option=o.id) INNER JOIN r_ballots b on b.id=v.ballot WHERE b.voter=:voter AND o.question=:question ORDER BY v.displayOrder';
-	$q = db\q($sql, compact('voter', 'question'));
+  $sql = 'SELECT o.text, o.detail FROM (r_options o INNER JOIN r_votes v ON v.option=o.id) INNER JOIN r_ballots b on b.id=v.ballot WHERE b.id=:ballot ORDER BY v.displayOrder';
+	$q = db\q($sql, compact('ballot'));
 	for($opti = 0, $opts=''; $row = $q->fetchAssoc(); $opti++) {
 		extract($row);
   	$rowclass = ($opti&1) ? 'odd' : 'even';
@@ -311,7 +493,7 @@ function gradeInputs($opti, $defaults) {
 			if ($sign = $val - $grade) $dpy .= '<sup>' . ($sign > 0 ? '+' : '<b>&ndash;</b>') . '</sup>';
 		} else $val = $grade;
 		$vv = str_replace("value=\"$grade\"", "value='$val'$checked", $vv);
-///    debug(compact(u\ray('v oldval oldvalint grade val checked sign dpy vv')));
+///    debug(compact(ray('v oldval oldvalint grade val checked sign dpy vv')));
 //<input type='radio' name='option$opti' value='$grade' />
 	//	$gradehdr .= "<div class='g$ltr'>$dpy</div>\n"; // div table-cell fails in IE
 		$gradehdr .= "<td id='g$ltr$opti' class='g$ltr'>$dpy</td>\n";
@@ -385,17 +567,18 @@ function done($mya) {
 	if(ISDEMO) {
     $proxyCount = db\lookup('COUNT (DISTINCT voter)', 'r_ballots', 'proxy=:myid', ['myid' => $mya->id]) - 1;
     
-		$bodymiddle = <<<EOF
+		$bodymiddle = t(<<<EOF
 <h2>Thank You for Voting!</h2>
 
-<p>Normally it is important not to show election results until the election is over. Otherwise you get a "sheep" effect &mdash; later voters favoring options popular with earlier voters. For the wisest possible results, Common Good Voting normally fosters independent judgment by saving the results until after everyone has voted.</p>
+<p>Normally it is important not to show election results until the election is over. Otherwise you get a "sheep" effect &mdash; later voters favoring options popular with earlier voters. For the wisest possible results, %PROJECT voting normally fosters independent judgment by saving the results until after everyone has voted.</p>
 
 <p>However, since this is an ongoing demo, you get to see the results ahead of time. Imagine the election is over and take a peak at the table of results below.</p>
 
-<p>Note that you currently represent $proxyCount other rCredits members with your vote.</p>
+<p>Note that you currently represent %proxyCount other %PROJECT members with your vote.</p>
 
 <h2>RESULTS</h2>
-EOF;
+EOF
+  , compact('proxyCount'));
 
 		return $bodymiddle . showResults($mya->community); // show all results
 	}
@@ -505,19 +688,19 @@ EOF;
 /**
  * Return the welcome page for voting.
  */
-function votingWelcome() {
+function votingWelcome($endDate) {
   include_once __DIR__ . '/../rvote/rvote-results.inc';
-  $mya = r\acct();
+
   $subtext = w\item(t(<<<EOF
-  Welcome to the FIRST EVER rCredits Community vote.<br><br>
+  Welcome to the FIRST EVER %PROJECT Community vote.<br><br>
   
-  Before you vote, please make sure you are happy with your <@a>proxy choices</a> and adjust them as needed.<br><br>
+  Before you vote, please make sure you are happy with your <%a>proxy choices</a> and adjust them as needed.<br><br>
   
   Please keep in mind that you are acting on behalf of the community. You have a responsibility to vote according to what best serves the greater good. In most cases, your interests will be aligned with those of the community. But if there is a conflict, the community comes first.
 EOF
-  , ['@a' => "a href=$base_url/settings/proxies"]));
+  , '_a', w\atag('/settings/proxies')));
   
-  if ($mya->admin) {
+  if ($mya = r\acct() and $mya->admin) {
     $showVotes = submit(t('Show votes'));
     $noVote = submit(t('Didn\'t vote yet'));
     $noDirect = submit(t('Didn\'t vote directly'));
@@ -528,6 +711,48 @@ EOF
     $agree = w\boxFld('agree', '', t('I agree.'), '', required());
     $agree = w\item(str_replace('<input ', '<input required="required" ', w\rendA('agree', $agree)));
   }
-  $submit = w\submit(t('Vote Now'), 'success', 'lg', w\suffix(' &nbsp; ' . t('Polls close at midnight on @date.', ['@date' => $voting])));
-  return w\labeled(compact(u\ray('title showVotes noVote noDirect results resultsNoProx subtext agree submit args')));
+  $submit = w\submit(t('Vote Now'), 'success', 'lg', w\suffix(' &nbsp; ' . t('Polls close at midnight on %date.', 'date', $endDate)));
+  return w\labeled(compact(ray('title showVotes noVote noDirect results resultsNoProx subtext agree submit args')));
+} 
+
+/**
+ * Return the welcome page for grading.
+ */
+function gradingWelcome($endDate) {
+  global $base_url;
+  
+  $title = w\item(t('Grade Funding Proposals'));
+  $subtext = w\item(t(<<<EOF
+  Help grade specific proposals within our community's chosen funding priorities! You can grade just one or as many as you want. The community's chosen funding priorities are Renewable Energy, Small Business Development, Social Justice, Food Systems, and The Arts.<br><br>
+  
+  You will be asked to give the proposal a grade (A+ to E) for each of five questions (see below). The remaining 30 points are assigned automatically based on amount, timing, location, etc. We're not looking for comparative grades at this stage. For example, if all of the proposals are very much in line with the community's funding priorities, you could give them all an A for that question.<br>
+  <ul>
+    <li>How well does the project support our %PROJECT community funding priorities? (20 points)</li>
+    <li>Overall, how clearly doable is the project? (20 points)</li>
+    <li>Ability to manage the project and funds effectively. (15 points)</li>
+    <li>Evaluation plan. (10 points)</li>
+    <li>Ability to implement project with less funding than requested. (5 points)</li>
+  </ul>
+  
+  Before you begin, please make sure you are happy with your <%a>proxy choices</a> and adjust them as needed.<br><br>
+  
+  Please keep in mind you are acting on behalf of the community. You have a responsibility to grade the proposals according to what best serves the greater good. In most cases, your interests will be aligned with those of the community. But if there is a conflict, the community comes first.
+EOF
+  , '_a', w\atag('/settings/proxies')));
+  
+  if ($mya = r\acct() and $mya->admin) {
+  /*
+    $showVotes = submit(t('Show votes'));
+    $noVote = submit(t('Didn\'t vote yet'));
+    $noDirect = submit(t('Didn\'t vote directly'));
+    $results = @$results ? item(v\showResults($mya->community, $noProxies)) : submit(t('Results'));
+    $resultsNoProx = submit(t('Results (no proxies)'));
+    */
+    $agree = w\hidFld(TRUE);
+  } else {
+    $agree = w\boxFld('agree', '', t('I agree.'), '', w\required());
+    $agree = w\item(str_replace('<input ', '<input required="required" ', w\rendA('agree', $agree)));
+  }
+  $gradeIt = w\submit(t('Grade a Proposal'), 'success', 'lg', w\suffix(' &nbsp; ' . t('Grading ends at midnight on %date.', 'date', $endDate)));
+  return w\labeled(compact(ray('title showVotes noVote noDirect results resultsNoProx subtext agree gradeIt args')));
 } 

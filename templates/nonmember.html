@@ -3,21 +3,34 @@
 <body style="font-family: Verdana, Arial, Helvetica; line-height:150%; background-color:silver; text-align:center;">
 <div style="margin:auto; max-width:900px; border:1px solid black; padding:20px; background-color:white; text-align:left;">
 
-<p>You received an invitation to rCredits a few days ago. Click the link below to sign up now! ({nudge} before the invitation expires.)</p>
-<p><small><a href="{site}/signup/code={code}">{site}/signup/code={code}</a></small></p>
+<p>You received an invitation to %PROJECT a few days ago, from %fullName. Click the link below to sign up now! (%nudge)</p>
+<center><a href="%BASE_URL/signup/code=%CODE" style="font:bold 16px Arial;  text-decoration:none;  background-color:green;  color:white;  padding:8px 12px;  margin-bottom:5px;    -webkit-border-radius:8px;    -moz-border-radius:8px;    border-radius:8px;    border:solid 1px #20538D;    text-shadow:0 -1px 0 rgba(0, 0, 0, 0.4);    -webkit-box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);    -moz-box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);    box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);">Accept Invitation</a><br>
+<a href="%BASE_URL/signup/code=%CODE" style="font-size:85%; display:block; margin-top:10px; text-decoration:none;">(%BASE_URL/signup/code=%CODE)</a></center><br>
 
-<h2 style="color:darkgreen;">About rCredits</h2>
-<img src="https://new.rcredits.org/sites/all/themes/rcredits/logo.png" align="left" hspace="5" width="72" height="96" alt="" />
-<p>{inviterName} invited you to join <b style="color:darkgreen;">rCredits&trade;</b>, a new community-centered payment system with incentive rewards. Get $20 for signing up and 10% back* on anything you pay for with your rCard&trade;. Merchants get rewards too &mdash; and save a bundle on credit card fees. [<a href="http://rCredits.org">more...</a>]</p>
-<p>rCredits are a project of Common Good Finance&trade;, a 501(c)(3) Massachusetts-based nonprofit.</p>
-<p>* We expect 10% rewards to continue for a year or two, not forever.</p>
-<div style="padding:5px; background-color:lightyellow; border:1px solid darkgreen;">Sign up by invitation only. Click below to accept your invitation.</div><br style="line-height:200%;" />
-<small><a href="{site}/signup/code={code}">{site}/signup/code={code}</a></small>
-<br><br>
-<br>
-<p><b style="color:darkblue;">Common Good Finance</b><br>
-PO Box 21, Ashfield, MA 01330 USA<br>
-+1 413 628 1723<br>
-<a href="mailto:info@CommonGoodFinance.org">info@CommonGoodFinance.org</a>
+<div style="padding:15px; background-color:lightyellow; border:1px solid darkgreen;">
+  <div>
+    <img src="%BASE_URL%R_PATH/images/%PROJECT_LOGO" align="left" hspace="5" height="96" alt="" style="margin-right:10px;" />
+    <h2><br><span style="color:darkblue;">%PROJECT&trade; Card</span><small style="font-weight:normal; font-size:75%; color:darkgray;"><br><i>a credit/debit card to support the common good</i></small><br>&nbsp;</h2>
+  </div>
+  <ul>
+    <li>Generate funds for your community's projects every time you use it.</li>
+    <li>You and other members decide together what to fund. </li>
+    <li>Easy to use. Easy to accept as payment.</li>
+    <li>No fees for you. No fees for businesses.</li>
+  </ul>
+   <a href="PROMO_URL" style="font-size:75%; font-weight:bold; text-decoration:none; margin-left:200px;">[MORE]</a></p>
+</div>
+
+<p>%PROJECT is a 501(c)(3) nonprofit organization.</p>
+
+<p style="text-align:center;">
+<a href="%BASE_URL/signup/code=%CODE" style="font:bold 16px Arial;  text-decoration:none;  background-color:green;  color:white;  padding:8px 12px;  margin-bottom:5px;    -webkit-border-radius:8px;    -moz-border-radius:8px;    border-radius:8px;    border:solid 1px #20538D;    text-shadow:0 -1px 0 rgba(0, 0, 0, 0.4);    -webkit-box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);    -moz-box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);    box-shadow:inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);">Accept Invitation</a><br>
+<a href="%BASE_URL/signup/code=%CODE" style="font-size:85%; display:block; margin-top:10px; text-decoration:none;">(%BASE_URL/signup/code=%CODE)</a>
+</p>
+
+<p><b style="color:darkblue;">%PROJECT</b><br>
+%CGF_POSTALADDR USA<br>
+%CGF_PHONE<br>
+<a href="mailto:%CGF_EMAIL" style="text-decoration:none;">%CGF_EMAIL</a>
 </div>
 </body></html>

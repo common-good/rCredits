@@ -1,3 +1,35 @@
+2017-01-29 version 2.60
+. Changed in the agreement: "I understand I may receive some rCredits" rather than "...will receive..." AND removed "Once my geographic area becomes a Common Good Community"
+. Changed in agreement: "before my rCredits community has declared itself ready to allow cashing out Incentive Rewards"
+. removed sharing feature
+. made rewards feature contingent on TRUE/FALSE setting of $mya->rewarding (in preparation for community option to offer rewards). Default is FALSE (effectively removing the incentive rewards feature at this time, but rewards are still tracked as separate transactions, pending additional code to calculate balances differently depending on the setting)
+. when not rewarding, Pay and Charge forms show no "goods" field
+. when not rewarding, rewards are no longer shown in transaction history or statements (but still shown in downloads)
+
+2017-01-18 version 2.59
+. implemented roundup feature (donation of fractional dollars on all payments)
+. "sharing" donations are now only in advanced settings (not asked about during signup)
+. created flags field in r_txs (rather elegantly) and moved the taking field there (along with a roundup flag)
+. ALTER TABLE r_txs	CHANGE taking flags bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT 'boolean permissions and state flags'
+. ALTER TABLE r_log DROP COLUMN special
+. removed the give-back-rewards feature
+. changed 1099B function to NOT include rewards
+. fixed bug in tellCO that omitted identity
+. fixed bug in log file display for rCOs
+. moved a couple functions into x class, to simplify code
+. changed PHP form to not use drupal
+. ditched Postmark emailing service (now managing bounces directly)
+. combined t() and tt(), perhaps eliminating any outstanding opportunities for malicious cross-site scripting
+. abstracted the project name and related constants, to make it easy to rename rCredits to Common Good (or whatever)
+. fixed bug that kept anyone from completing the first page of signup
+. turned off the "step completed" message (perhaps to be replaced later by "only n steps to go")
+. reorganized boot.inc and defs.inc (and a little of rcredits-settings.inc) so more defs are available earlier (for tests)
+. reworked setGlobals() as setAcct(), now used consistently for account changes
+. moved constantSubs,atag,rayy, and ray to bootstrap.inc
+
+2016-12-20 version 2.52
+. implemented grading of proposals
+
 2016-12-15 version 2.51
 . radically revised transactions history page to work fast and cool on mobile
 . open company account now sets proper steps done
@@ -850,7 +882,7 @@
 . made sign out a primary link
 . shortened transfer time from bank: when there are insuffient funds, now updates cached usd amount and retries.
 • fixed bug: "I didn’t give a security answer, but it says on file"
-. we now check hourly for deposits into the Dwolla/rCredits account
+. we now check hourly for deposits into the Dwolla/%PROJECT account
 . member is now alerted immediately when funds arrive in their account for the first time (bona)
 . created 1099B reports for members and for electronic filing with IRS and state
 
@@ -880,7 +912,7 @@
 . fixed bug: verify bank deposits was mishandling ".01"
 . members can now open an account without a dwolla connection, if they have only one phone or if approved by admin (when Dwolla refuses to open an account for them)
 . mark transfers to bank complete immediately (as Dwolla does)
-. cache is now updated properly upon completion of transfers into the rCredits account
+. cache is now updated properly upon completion of transfers into the %PROJECT account
 . account is suspended if cron discovers any cache error
 . cache is checked before manual transfers to bank
 . data changes on production server:
@@ -931,7 +963,7 @@
 . fixed two homogenize bugs (it was transferring USD to the least needy first, then continuing until exhausted and beyond)
 . provided a link on relations page for member companies to print their own rPOS sign-in cards (no photo)
 . fixed relations page formatting
-. can now open another rCredits account before confirming bank deposits
+. can now open another %PROJECT account before confirming bank deposits
 . for admin, we no longer try to register an account with Dwolla when visiting the summary page (you must go to the status page instead)
 . now we are notified by email whenever there are deposits or withdrawals
 . new payment notices now show both physical and postalAddr and sometimes phone number, so member can ship or thank.

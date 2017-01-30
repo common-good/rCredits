@@ -16,7 +16,7 @@ use rCredits\Web as w;
 function seeSecure($a) {
   $mya = r\acct();
   $secure = $a->secure;
-  foreach (u\ray(R_SECURE_FIELDS) as $k) if (isset($secure[$k])) {
+  foreach (ray(R_SECURE_FIELDS) as $k) if (isset($secure[$k])) {
     $new[$k] = $secure[$k]; // reorder
     if ($mya->admin or ($k != 'pw2' and !u\inList($k, R_VSECURE_FIELDS))) $show[$k] = $a->$k; // some need decrypting
   }
@@ -26,7 +26,7 @@ function seeSecure($a) {
 
 /*
 function seeHidden($a) {
-  foreach (u\ray(R_SECRET_FIELDS) as $k) if ($k != 'ssnData') $ray[$k] = $a->$k;
+  foreach (ray(R_SECRET_FIELDS) as $k) if ($k != 'ssnData') $ray[$k] = $a->$k;
   say(u\rayTable($ray, FALSE));
 }
 */
@@ -91,13 +91,13 @@ function adminSummary($a, $cAdmin = FALSE) {
         $achMin = item(u\fmtAmt($a->achMin), t('ACH Min:'));
 //      if (!$a->stepsDone['dw']) { // show info needed to open a Dwolla account
 //      extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
-//      $dwInfo = item(u\rayTable(u\ray('usdEmail usdPass usdPIN', @$s_usdEmail, @$s_usdPass, @$s_usdPin), FALSE));
+//      $dwInfo = item(u\rayTable(ray('usdEmail usdPass usdPIN', @$s_usdEmail, @$s_usdPass, @$s_usdPin), FALSE));
       if (!$a->co) $trust = item($a->trust, t('Trust:'), t('This person\'s trust rating'));
     }
   
     $steps = $a->ok
       ? item(a\showActivity($a), t('Activity:'))
-      : item(a\showSteps($a), t('To do (red):'), t('sign=agreement | prefs=preferences | connect=connect bank (or not) | company=company info'));
+      : item(a\showSteps($a), t('To do (red):'), t('|sign=agreement | prefs=preferences | connect=connect bank (or not) | company=company info'));
 //    $created = item(u\fmtDate($a->created), t('Created:'));
     if ($rels = a\showRelations($a)) $relations = item($rels, t('Relations:'));
     if ($a->signupCo) $signupCo = item($a->signupCo['company'] . ' (' . $a->signupCo['companyPhone'] . ') ' . (@$a->signupCo['isOwner'] ?: '') . (@$a->signupCo['isEmployee'] ?: ''), t('Signup Co:'));
@@ -110,14 +110,14 @@ function adminSummary($a, $cAdmin = FALSE) {
   } else { // managing a community itself
     $count = item(db\count('users', 'community=:ctty AND uid<>:ctty', compact('ctty')), t('Members:'));
     $cInfo = be\creditInfo();
-    foreach ($fields = u\ray('in rewards out r') as $k) {
+    foreach ($fields = ray('in rewards out r') as $k) {
       $v = $cInfo->$k;
       if ($k == 'out') $v -= $cInfo->rewards;
       if ($k == 'r') $v += $cInfo->rewards;
       $$k = u\fmtAmt($v + 0, 'r');
     }
     
-    $balance = item(tt('@r = @in in - @out out (Rewards issued: @rewards)', compact($fields)), t('Funds:'));
+    $balance = item(t('%r = %in in - %out out (Rewards issued: %rewards)', compact($fields)), t('Funds:'));
   }
   
   if ($cAdmin and !$self) {
@@ -126,7 +126,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     $legalName = textFld(t('Legal Name:'), '', required($a->legalName));    
     if ($admin) $rTrader = ($a->isCtty)
     ? boolFld(t('rTrader?'), '', $a->ok)
-    : boolFld(t('rTrader?'), t('Is account approved to use rCredits? -- member, <@a>good photo</a>, ss# checks out, set risks and mediaConx', array('@a' => "a href=$base_url/settings/security/photo?" . rand())), $a->ok);
+    : boolFld(t('rTrader?'), t('Is account approved to use %PROJECT? -- member, <%a>good photo</a>, ss# checks out, set risks and mediaConx', '_a', w\atag('/settings/security/photo?' . rand())), $a->ok);
     if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
       if ($helper = $a->helper ?: ($a->co ? $a->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
         $hA = r\acct($helper);
@@ -141,9 +141,9 @@ function adminSummary($a, $cAdmin = FALSE) {
       $federalId = textFld(t('EIN/SSN:'), '', $a->federalId ? ($dba ? t('SSN') : R_ON_FILE) : '');
     }
   
-    $acctRisks = u\ray(K_ACCT_RISKS);
+    $acctRisks = ray(K_ACCT_RISKS);
     $riskBits = array_keys($acctRisks);
-    $risksEditable = array_flip(u\ray(K_ACCT_RISKS_EDITABLE));
+    $risksEditable = array_flip(ray(K_ACCT_RISKS_EDITABLE));
     foreach ($riskBits as $k) {
       $class = $acctRisks[$k] < 0 ? 'goodRisk' : 'badRisk';
       if (!isset($risksEditable[$k])) $class .= ' noEdit';
@@ -152,11 +152,11 @@ function adminSummary($a, $cAdmin = FALSE) {
     }
     $risks = bitsFld(t('Risks:'), $a->risks, '', K_ACCT_RISKS, $aliases);
 
-    $adminable = u\ray(B_ADMINABLE . ($admin ? ' admin' : ''));
-    foreach (u\ray(B_LIST) as $k) if (strpos($k, 'u') !== 0) { // ignore undefined bits ("u" in 0th position)
+    $adminable = ray(B_ADMINABLE . ($admin ? ' admin' : ''));
+    foreach (ray(B_LIST) as $k) if (strpos($k, 'u') !== 0) { // ignore undefined bits ("u" in 0th position)
       $blist[] = $k0 = $k;
       $class = in_array($k, $adminable) ? '' : 'noEdit';
-      if ($a->isCtty) $k = strtr($k, u\ray(B_ADMIN_BITS));
+      if ($a->isCtty) $k = strtr($k, ray(B_ADMIN_BITS));
       $aliases[$k0] = "<div class=\"$class\">$k</div>";
     }
     $adminable = bitsFld(t('Flags:'), $a->flags, 'b', join(' ', $blist), $aliases);
@@ -183,7 +183,7 @@ EOF;
     $cgfDonations = item("<table id=\"cgf-donations\">$lines</table>");
   }
   $calling = item($a->calling, t('Calling:'));
-  $tenure = item($a->tenure . t(' month(s)'), t('Tenure:'), t('How long had this person or company been at this address before opening an rCredits account?'));
+  $tenure = item($a->tenure . t(' month(s)'), t('Tenure:'), t('How long had this person or company been at this address before opening an %PROJECT account?'));
 
   if (!$a->co) {
     $moves = item($a->moves === '' ? '?' : $a->moves, t('Moves:'), t('(How many times has this person changed counties in the past decade?)'));
@@ -218,7 +218,7 @@ EOF;
 
   $uid = hidFld($uid); // must postcede js (which uses uid)
   
-  return compact(u\ray('community secureMsgs photo balance donations cgfDonations federalId legalName calling signupCo tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
+  return compact(ray('community secureMsgs photo balance donations cgfDonations federalId legalName calling signupCo tenure steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
 }
 
 /**
@@ -231,18 +231,18 @@ function export($params) {
   $mya = r\acct();
   $ctty = r\acct($mya->community);
 
-  $filename = ($allCttys ? t('rCredits') : str_replace('.', '', $ctty->name))
+  $filename = ($allCttys ? PROJECT : str_replace('.', '', $ctty->name))
   . (@$onlyActive ? t('-active') : '')
   . (@$onlyPeople ? t('-members') : t('-accounts'))
   . '.csv';
   u\csvStart($filename);
   $fields = @$anonymous ?
-    'uid city state zip member'
+    'uid city state zip type'
       . ' created activated signed helper iCode balance rewards savingsAdd minimum share risk trust'
       . ' cttyName co gross employees achMin pinThreshold lastiCode tenure moves mediaConx jid'
       . ' owns bankName slave closed notices secret'
   : 'id first_name last_name phone email address city state zip cttyName type ecode modified created special';
-  u\csv($fields = u\ray($fields));
+  u\csv($fields = ray($fields));
 
   if ($requests) { // handle requests first, in case member status gets updated by later record
     $startDate = strtotime('1/1/2016');
@@ -254,10 +254,10 @@ function export($params) {
       if (db\exists('users', 'mail=:email', compact('email'))) continue; // don't duplicate or send to nonudge people
       list ($id, $first_name, $last_name, $modified) = [$listid, $first, $last, time()];
       $address = $city = $state = $ecode = $special = '';
-      $member = $type = $ctty == 0 ? '' : 'member';
-      foreach (u\ray('phone email') as $k) $$k = u\decryptN($$k);
+      $type = $ctty == 0 ? '' : 'member';
+      foreach (ray('phone email') as $k) $$k = u\decryptN($$k);
       if (strpos($email, '@example.com')) continue;
-      $cttyName = $ctty ? trim(str_replace('rCredits', '', r\acct($ctty)->fullName)) : '';
+      $cttyName = $ctty ? trim(str_replace(PROJECT, '', r\acct($ctty)->fullName)) : '';
       u\csv(array_values(compact($fields)));
     }
   }  
@@ -267,15 +267,15 @@ function export($params) {
   if (@$onlyPeople) $where .= ' AND NOT :IS_CO';
   $sql = "SELECT uid AS id, fullName FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND $where ORDER BY :IS_OK, -signed, -created";
 
-  $q = db\q($sql, u\ray('cttyId', $ctty->id));
+  $q = db\q($sql, ray('cttyId', $ctty->id));
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $a = r\acct($id);
-    $member = $a->ok ? 'member' : '';
+    $type = $a->ok ? ($a->co ? 'member company' : 'member') : ($a->co ? 'company' : '');
     if (@$anonymous) {
       foreach ($fields as $k) $$k = $a->$k; // do this first. some will be null.
       $zip = $a->postalCode;
-      foreach (u\ray('weekly monthly secret') as $k) $$k = $a->can(u\consta('b', $k));
+      foreach (ray('weekly monthly secret') as $k) $$k = $a->can(u\consta('b', $k));
       $notices = $monthly ? t('monthly') : ($weekly ? t('weekly') : t('daily'));
       $state = r\realstate($state);
       if ($routing = substr($a->bankAccount, 4, 9)) {
@@ -290,11 +290,11 @@ function export($params) {
       $id = $a->mainQid;
       $ecode = "$a->emailCode";
       $modified = u\fmtDate(time());
-      $special = $a->special;
+// (BROKEN)      $special = $a->special;
     }
-    $cttyName = trim(str_replace('rCredits', '', $a->cttyA->fullName));
+    $cttyName = trim(str_replace(PROJECT, '', $a->cttyA->fullName));
     $created = u\fmtDate($a->created);
-    if (is_numeric($zip)) $zip .= '-'; // prevent this from getting interpreted as a number
+    if (is_numeric($zip)) $zip = ' ' . $zip; // prevent interpretation as a number (but Excel will strip any leading zeroes)
 
     u\csv(array_values(compact($fields)));
   }
@@ -324,16 +324,16 @@ function txInfo($xid) {
   $from = item(txInfoParty($payer, $payerAgent, $payerTid), t('From:'));
   $to = item(txInfoParty($payee, $payeeAgent, $payeeTid), t('To:'));
   $same = ($payerFor == $payeeFor);
-  $goodsDesc = ' (' . u\ray(R_WHYS)[$goods] . ')';
+  $goodsDesc = ' (' . ray(R_WHYS)[$goods] . ')';
   $for1 = item($payerFor . $goodsDesc, $same ? t('For:') : t('Payer Desc:'));
   if (!$same) $for2 = item($payeeFor, t('Payee Desc:'));
-  $by = item($taking ? t('by payee') : t('by payer'), t('Initiated:'));
-  $channels = u\ray(TX_CHANNELS);
+  $by = item($x->taking ? t('by payee') : t('by payer'), t('Initiated:'));
+  $channels = ray(TX_CHANNELS);
   $where = item($channels[$channel] . t(' (Device #box)', compact('box')), t('Method:'));
   // related transactions (rebate/bonus/xfer/undoes/undoneBy
   if (@$undoes) $rel[] = t('undoes tx#') . txLink($undoes);
   if (@$undoneBy) $rel[] = t('undone by tx#') . txLink($undoneBy);
-  foreach (u\ray('rebate bonus xfee') as $k) {
+  foreach (ray('rebate bonus xfee') as $k) {
     if (isset($$k)) $rel[] = u\fmtAmt($$k) . ' ' . $k;
   }
 
@@ -343,7 +343,7 @@ function txInfo($xid) {
   $risk = item(round($risk) . button(t('Recalculate'), "$base_url/rerisk/tx/$xid/1") . " ($riskDesc): $risks", t('Risk:'));
   $adminOk = boolFld(t('Risk Ok?'), '', $risks0 & 1);
   $submit = submit();
-  return labeled(compact(u\ray('title when amountDesc from to for1 for2 by where risk $adminOk related submit')));
+  return labeled(compact(ray('title when amountDesc from to for1 for2 by where risk $adminOk related submit')));
 }
 
 function txInfoParty($uid, $agent, $tid) {

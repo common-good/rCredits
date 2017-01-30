@@ -135,10 +135,10 @@ function weRespondWith($args) {
 
 /**/ t\output('expecting: ' . print_r($args[0], 1));
   foreach ($args[0] as $k => $v) {
-    if ($k == 'descriptions' or $k == 'bad') $v = empty($v) ? [] : u\ray($v);
+    if ($k == 'descriptions' or $k == 'bad') $v = empty($v) ? [] : ray($v);
     if ($k == 'can') { // currently tests only signed-out permissions
       $flags = 0;
-      if ($v) foreach (u\ray($v) as $one) $flags |= u\bit(u\consta('co', $one));
+      if ($v) foreach (ray($v) as $one) $flags |= u\bit(u\consta('co', $one));
       $v = $flags & APP_CAN_MASK;
       if (@$rposResult[$k] & (u\bit(CO_MANAGE) << (APP_CAN_BITS + 1))) $v |= (u\bit(CO_MANAGE) << (APP_CAN_BITS + 1)); // make manage bit go away, since it applies to agent
     }
@@ -163,7 +163,7 @@ function weRespondWith($args) {
  */
 function agentAsksDeviceForAPictureOfMemberWithCardCode($agent, $device, $member, $code) {
   global $testOnly; if ($testOnly) return FALSE;
-  return t\hitServer('photo', compact(u\ray('member code')), $agent, $device);
+  return t\hitServer('photo', compact(ray('member code')), $agent, $device);
 }
 
 /**
@@ -263,9 +263,9 @@ function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
     extract($q);
     $member = r\qid($payer, $payerAgent);
     list ($goods, $force, $proof) = [$goods == FOR_GOODS, -1, 'calc'];
-    $args = compact(u\ray($fields));
+    $args = compact(ray($fields));
   } else {
-    $args = u\ray($fields, R_SERVER_ID . '.ZZA', round(rand()/100, 2), rand(0, 1), 'whatever', rand(), -1, $code, '');
+    $args = ray($fields, R_SERVER_ID . '.ZZA', round(rand()/100, 2), rand(0, 1), 'whatever', rand(), -1, $code, '');
   }
   return t\hitServer('charge', $args, $agent, $device);
 }
@@ -278,7 +278,7 @@ function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
  */
 function agentAsksDeviceToUndoTransactionWithSubs($agent, $device, $subs) {
   global $testOnly; if ($testOnly) return FALSE;
-  $subs = $subs[0] + u\ray('force proof', -1, 'calc');;
+  $subs = $subs[0] + ray('force proof', -1, 'calc');;
   return t\hitServer('charge', $subs, $agent, $device);
 }
 
@@ -291,10 +291,10 @@ function withBalance($subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $rposResult;
   if (!$got = @$rposResult['balance']) return !$subs; else $subs = $subs[0];
-  $balance = u\tt('customer balance', $subs);
+  $balance = t('customer balance', $subs);
   if (@$subs['did']) {
     if (@$subs['forCash']) u\prefix(' ', $subs['forCash']);
-    $balance .= u\tt('just did', $subs);
+    $balance .= t('just did', $subs);
   }
 /**/  t\output('Expecting ' . print_r(compact('balance'), 1), 'expect');
   return ($got == $balance);
@@ -329,7 +329,7 @@ function withUndo($subs) {
   if (is_array($subs)) {
     if ($got) $subs = $subs[0]; else return !$subs;
 //    $subs['created'] = t\lastMinuteSubs($subs['created']);
-    $undo = u\tt('confirm undo', $subs);
+    $undo = t('confirm undo', $subs);
   } else $undo = $subs;
 /**/  t\output("Expecting undo: $undo\nGot: $got");
   return ($got == $undo);
@@ -357,9 +357,9 @@ function withUndo($subs) {
 function weReturnErrorWithSubs($msg, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $rposResult;
-  $msg = strip_tags(u\tt($msg, @$subs[0]));
+  $msg = strip_tags(t($msg, @$subs[0]));
   if ($rposResult['ok'] == '0' and $rposResult['message'] == $msg) return TRUE;
-/**/ t\output(u\ray('wanted,actually sent', $msg, print_r($rposResult, 1)));
+/**/ t\output(ray('wanted,actually sent', $msg, print_r($rposResult, 1)));
   return FALSE;
 }
 
@@ -529,7 +529,7 @@ function reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goo
   
   list ($member, $code) = t\parseQr($member); // ignore code, if any
   $proof = 'calc'; // tell hitServer() to send correct proof param
-  return t\hitServer('charge', compact(u\ray('member code proof amount goods description created force')), $agent, $device);
+  return t\hitServer('charge', compact(ray('member code proof amount goods description created force')), $agent, $device);
 }
 
 /**
@@ -552,7 +552,7 @@ function reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goo
 function withDid($subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $rposResult;
-  $expect = $subs ? u\tt('just did', $subs[0]) : '';
+  $expect = $subs ? t('just did', $subs[0]) : '';
   return (@$rposResult['did'] == $expect) ?: t\output("Expected: $expect\n Got: " . @$rposResult['did']);
 }
 
@@ -582,7 +582,7 @@ function weRespondOkTxidCreatedBalanceRewards($txid, $created, $balance, $reward
 function withMessageWithSubs($msg, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $rposResult;
-  $expect = $subs ? u\tt($msg, $subs[0]) : '';
+  $expect = $subs ? t($msg, $subs[0]) : '';
   return (@$rposResult['message'] == $expect) ?: t\output("Expected: $expect\n Got: " . @$rposResult['message']);
 }
 
@@ -624,7 +624,7 @@ function membersHave($list) {return t\membersHave($list);}
 function agentAsksDeviceToIdentifyWithPIN($agent, $device, $qr, $pin = NULL) {
   global $testOnly; if ($testOnly) return FALSE;
   list ($member, $code) = t\parseQr($qr);
-  return t\hitServer('identify', compact(u\ray('member code pin')), $agent, $device);
+  return t\hitServer('identify', compact(ray('member code pin')), $agent, $device);
 }
 
 /**
@@ -640,7 +640,7 @@ function badCodes($bad) {
 
   return $testOnly
   ? db\exists('r_bad', 'qid=:qid AND code=:code', compact('qid', 'code'))
-  : db\insert('r_bad', u\ray('qid code created', $qid, $code, time()));
+  : db\insert('r_bad', ray('qid code created', $qid, $code, time()));
 }
 
 /**
@@ -682,23 +682,23 @@ function weRespondOkTxidCreatedBalanceRewardsSaying($txid, $created, $balance, $
   
   extract($rposResult, EXTR_PREFIX_ALL, 'a'); // actual results
   $ok = '1';
-  foreach (u\ray('ok txid balance rewards') as $k) if (@$rposResult[$k] != $$k) $error = TRUE;
+  foreach (ray('ok txid balance rewards') as $k) if (@$rposResult[$k] != $$k) $error = TRUE;
   if (!t\approxTime($a_created, $created)) $error = TRUE;
   
   if (@$msg) {
     $msg = $msg[0];
     $msg['otherRewardAmount'] = @$msg['reward']; unset($msg['reward']);
-    $index = (@$msg['solution'] ? 'report undo|' : '') . 'report tx';
-    if ($msg['why'] == 'goods') $index .= '|reward customer';
-    $whys = u\ray(R_WHYS); $msg['why'] = $whys[constant('FOR_' . strtoupper($msg['why']))];
-    $wantMsg = u\tt($index, $msg);
+    $index = (@$msg['solution'] ? 'report undo|' : '') . 'report tx|for why';
+    if ($msg['why'] == 'goods' and $mya = r\acct() and $mya->rewarding) $index .= '|reward customer';
+    $whys = ray(R_WHYS); $msg['why'] = $whys[constant('FOR_' . strtoupper($msg['why']))];
+    $wantMsg = t($index, $msg);
     if ($a_message != $wantMsg) $error = TRUE;
   }
-///  debug(compact(u\ray('rposResult msg')));
+///  debug(compact(ray('rposResult msg')));
 
   if (@$error) {
     if (@$msg) u\preray(compact('wantMsg'), $msg);
-/**/ t\output('Expecting: ' . print_r(compact(u\ray('ok txid created balance rewards msg')), 1), 'expect');
+/**/ t\output('Expecting: ' . print_r(compact(ray('ok txid created balance rewards msg')), 1), 'expect');
 /**/ t\output('Got: ' . print_r($rposResult, 1));
     return FALSE;
   } else return TRUE;

@@ -54,7 +54,7 @@ Setup:
 Scenario: A cashier asks to charge someone for cash
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $100 for "cash": "cash out" at %now
   Then we respond ok txid 7 created %now balance 0 rewards 150
-  And with message "report tx" with subs:
+  And with message "report tx|for why" with subs:
   | did     | otherName | amount | why         |*
   | charged | Bea Two   | $100   | exchange of US Dollars or other currency |
   And with did
@@ -76,7 +76,7 @@ Scenario: A cashier asks to charge someone for cash
 Scenario: A cashier asks to refund someone
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $-100 for "cash": "cash in" at %now
   Then we respond ok txid 7 created %now balance 200 rewards 150
-  And with message "report tx" with subs:
+  And with message "report tx|for why" with subs:
   | did      | otherName | amount | why         |*
   | credited | Bea Two   | $100   | exchange of US Dollars or other currency |
   And with did
@@ -85,9 +85,9 @@ Scenario: A cashier asks to refund someone
   And with undo
   | created | amount | tofrom | otherName |*
   | %dmy    | $100   | to     | Bea Two   |
-  And we notice "new payment" to member ".ZZB" with subs:
-  | created | fullName | otherName  | amount | payeePurpose |*
-  | %today  | Bea Two  | Corner Pub | $100   | cash in      |
+  And we notice "new payment linked" to member ".ZZB" with subs:
+  | created | fullName | otherName  | amount | payeePurpose | aPayLink |*
+  | %today  | Bea Two  | Corner Pub | $100   | cash in      | ?        |
   And balances:
   | id   |       r |*
   | ctty |   -1000 |

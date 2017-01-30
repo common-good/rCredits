@@ -115,9 +115,9 @@ Scenario: An agent asks to undo a cash-out charge
   | reversed | credited | Abe One   | $80    | usd |
   And with did ""
   And with undo "4"
-  And we notice "new payment" to member ".ZZA" with subs:
-  | created | fullName | otherName  | amount | payeePurpose |*
-  | %today  | Abe One  | Corner Pub | $80    | reverses #2  |
+  And we notice "new payment linked" to member ".ZZA" with subs:
+  | created | fullName | otherName  | amount | payeePurpose | aPayLink |*
+  | %today  | Abe One  | Corner Pub | $80    | reverses #2  | ?        |
 
 Scenario: An agent asks to undo a cash-in payment
   Given transactions: 

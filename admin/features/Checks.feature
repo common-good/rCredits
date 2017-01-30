@@ -35,7 +35,7 @@ Scenario: admin prints checks
 # UNUSED  | Include   | 1 checks from %dm-2w |
   When member ".ZZB" visits page "sadmin/checks/way=IN&date=0&mark=1"
   Then we show pdf with:
-  |_name    |_postalAddr          |_phone        |_transit      |_acct |_txid |_date |_amt   |_amount |_bank |*
+  |~name    |~postalAddr          |~phone        |~transit      |~acct |~txid |~date |~amt   |~amount |~bank |*
   | Abe One | 1 A, Aton, MA 01001 | 413 772 0001 | 53-7028/2118 |   01 | 5002 | %dmy | $ 400 | Four Hundred and NO/100 | Greenfield Co-op Bank |
   | Bea Two | 2 B, Bton, MA 01002 | 413 772 0002 | 53-7028/2118 |   02 | 5003 | %dmy | $ 100 | One Hundred and NO/100 | Greenfield Co-op Bank |
   | Cor Pub | 3 C, Cton, MA 01003 | 413 772 0003 | 53-7028/2118 |   03 | 5004 | %dmy | $ 300 | Three Hundred and NO/100 | Greenfield Co-op Bank |  

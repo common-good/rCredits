@@ -39,7 +39,7 @@ function queueNext($task = NULL) {
 
   if (u\test() and @$cronOp and $cronOp != 'ALL') {
     cr\queue($task == $cronOp ? 'END' : $cronOp);
-  } else cr\queue(u\nextAfter($task, u\ray(R_DAILY_TASKS)));
+  } else cr\queue(u\nextAfter($task, ray(R_DAILY_TASKS)));
 //  } else cr\queue($tasks[array_search($task, $tasks) + 1]);
 }
 
@@ -57,7 +57,7 @@ function timeFor($time, $period, $chosen) {
   
   $lastCron = \variable_get('r_last_cron') ?: [];
   $lastTime = @$lastCron[$period];
-  $codes = u\ray(TIME_CODES);
+  $codes = ray(TIME_CODES);
   list ($periodCode, $withinCode) = str_split($codes[$period]);
   $point = strftime("%$withinCode", $time);
   if ($withinCode == 'a') $point = u\day2n($point); // %u and %w fail on dev machine (among others)

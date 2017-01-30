@@ -19,38 +19,40 @@ define('R_AGREE_9', 6); // number of the last point in the rCredits Agreement
 define('REQ', '*'); // marks required fields (use this as start of field's label)
 define('BARE', '-'); // marks bare (unwrapped) fields -- no div wrapper around them
 
-$GLOBALS[TX_WEB . ' messages'] = array(
+require_once __DIR__ . '/../rcredits-strings.inc';
+
+$GLOBALS['tStrings'] += array(
   // reports
-  'report new relation' => t('@who is now related to this account. You will need to adjust the permissions or other settings.'),
-  'report new cell' => t('Mobile number @number is now connected to this account.'),
-  'report delete cell' => t('Mobile number @number has been removed from this account.'),
+  'report new relation' => t('%who is now related to this account. You will need to adjust the permissions or other settings.'),
+  'report new cell' => t('Mobile number %number is now connected to this account.'),
+  'report delete cell' => t('Mobile number %number has been removed from this account.'),
   'your account is ready' => t('<p></p><p>So far so good. <b class="stopnot">But WAIT!</b> You have a few steps still to go. We sent you an email with your user ID and a link to the next step. If you don\'t see it within 60 seconds, check your spam folder.</p>'),
   'company is ready' => t(<<<EOF
     <p></p><p>After you finish setting up this account, to manage it in the future:</p>
     <ol>
-      <li>Sign in to your personal account at rCredits.org</li>
+      <li>Sign in to your personal account at %CG_DOMAIN</li>
       <li>Click your photo in the upper right corner. Choose your company account from the dropdown there.</li>
     </ol>
 EOF
   ),
-  'verify cell' => t('We sent a verification code to your mobile phone (@number).<br>Please type that code in the box below.'),
+  'verify cell' => t('We sent a verification code to your mobile phone (%number).<br>Please type that code in the box below.'),
   'options saved' => t('Your options have been saved'),
-  'step completed' => t('<span id="completed"> Step completed!</span>'), // space intended
+  'step completed' => ' ', // (confusing) t('<span id="completed"> Step completed!</span>'), // space intended
   'after emailing' => t('After you have sent us an email: '),
-  'return to membership' => t('<a href="@BASE_URL/status">Click here to return to the checklist</a>.'),
+//  'return to membership' => t('<a href="%BASE_URL/status">Click here to return to the checklist</a>.'),
   'ok to continue' => t('You may now continue what you were originally doing.'),
   'password reset' => t('A link has been emailed to you, to choose a new password.'),
-  'changed agent' => t('You successfully changed the agent to @agentName.'),
-  'changed account' => t('You successfully changed the account to @accountName.'),
-  'signed agreement' => t('You signed the rCredits Agreement on @date.'),
+  'changed agent' => t('You successfully changed the agent to %agentName.'),
+  'changed account' => t('You successfully changed the account to %accountName.'),
+  'signed agreement' => t('You signed the %PROJECT Agreement on %date.'),
   'downloading' => t('Your download will begin shortly...'),
-  'changed account' => t('You are now managing the account for @newAcct.'),
-  'lost old changes' => t('Any unsaved changes to account @oldAcct have been discarded.'),
-  'take a step' => t('Your account is <b class="stopnot">not yet activated.</b> <a href="@BASE_URL/status" class="nextstep">Click here for the next step!</a>.'),
-  'got token' => t('Your rCredits and US Dollar accounts have been successfully connected!'),
+  'changed account' => t('You are now managing the account for %newAcct.'),
+  'lost old changes' => t('Any unsaved changes to account %oldAcct have been discarded.'),
+//  'take a step' => t('Your account is <b class="stopnot">not yet activated.</b> <a href="%BASE_URL/status" class="nextstep">Click here for the next step!</a>.'),
+  'got token' => t('Your %RCREDITS and US Dollar accounts have been successfully connected!'),
   'got photo' => t('Your photo was successfully uploaded.'),
-  'company rcard' => t('Send a <a href="@href">company rCard</a> for @otherName to @manager at @address.'),
-  'amount rounded' => t('"@amount" was rounded to the nearest integer value.'),
+  'company rcard' => t('Send a <a href="%href">company rCard</a> for %otherName to %manager at %address.'),
+  'amount rounded' => t('"%amount" was rounded to the nearest integer value.'),
   'invite sent' => t('Your invitation has been sent.'),
   'repeat invite' => t('Come back any time, to send more invitations (click "Invite Someone" at the bottom of any page).'),
   'gift transfer later' => t('<br><br>Funds will be transferred when you have money in your account.'),
@@ -58,31 +60,31 @@ EOF
 //  'setup complete' => t('<p>Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Your rCard will arrive by US Mail within a few days. Thank you for joining!</p>'),
   'setup complete' => t('<h2>Your Account Setup Is Complete</h2>You have done everything you need to do.'),
   'individual approval' => t('Once a staff member has approved your account, you can expect to receive your rCard in the mail within a day or two'),
-  'company approval' => t('Once a staff member has approved your account, you can begin accepting rCredits payments'),
+  'company approval' => t('Once a staff member has approved your account, you can begin accepting %PROJECT payments'),
   'join thanks' => t('Thank you for joining us!'),
   'use temporary card' => t('<p>While you wait for your rCard to arrive, you can use your invitation card to make purchases at any member business (beginning with your inviter).</p>'),
-  'must be confirmed' => t('An email has been sent to @inviterName, who will need to confirm the invitation before you can use your rCredits account. Or you can do your first rCard transaction with @inviterName as confirmation.'),
-  //  Meanwhile, click the "<a href="@BASE_URL/community/invite">Invite</a>" tab to invite anyone you know and trust &mdash; you get a $@R_HELPER_BONUSr reward when they make their first purchase.<br><br>
-  'ready to charge' => t('<p>You successfully scanned in as "@agentName" to charge customers on behalf of @companyName.</p><p>Now go back to your scanning app, to scan a customer\'s card. Sign out only when your shift ends.</p>'),
-  'transaction list truncated' => t('There are too many transactions to show all at once, so only the first @TX_MAX_ROWS are shown (choose a different date range to see the rest).'),
+  'must be confirmed' => t('An email has been sent to %inviterName, who will need to confirm the invitation before you can use your %PROJECT account. Or you can do your first rCard transaction with %inviterName as confirmation.'),
+  //  Meanwhile, click the "<a href="%BASE_URL/community/invite">Invite</a>" tab to invite anyone you know and trust &mdash; you get a $%R_HELPER_BONUSr reward when they make their first purchase.<br><br>
+  'ready to charge' => t('<p>You successfully scanned in as "%agentName" to charge customers on behalf of %companyName.</p><p>Now go back to your scanning app, to scan a customer\'s card. Sign out only when your shift ends.</p>'),
+  'transaction list truncated' => t('There are too many transactions to show all at once, so only the first %TX_MAX_ROWS are shown (choose a different date range to see the rest).'),
   'address info' => t('<a1>Click here</a> for address information.'),
   'agent created' => t('The agent account was successfully created.'),
   'phone verified' => t('Your phone number has been verified.'),
-  'payroll done' => t('<br>Payroll upload was successful. You paid @count employees a total of @total.'),
-  'tx edited' => t('Your transaction #@tid was edited by @who.'),
-  'new tx goods' => t('It is now for @what.'),
-  'new tx amount' => t('The new amount is @amount.'),
-  'expired invite converted' => t('Your invitation has expired, so @inviterName will be asked to re-confirm.'),
-  'new savings balance' => t('<p>IMPORTANT! Your rCredits balance has been split to include a Credit Reserve containing your incentive rewards. Read <@a>last week\'s rCredits newsletter</a> for details.</p>', ['@a' => 'a href=http://us9.campaign-archive1.com/?u=b1d89f860859e1d9b906fa0b0&id=f1f54edd80&e=']),
-  'minimum zeroed' => t('<p>Your rCredits "automatic refills" have been turned off, to prevent any unintended transfer from your bank account. To turn them back on or transfer funds manually, sign in to your account at rCredits.org OR <@a1>click here</a>.</p>'),
-  'sent message' => t('Your message has been sent to @fullName.'),
+  'payroll done' => t('<br>Payroll upload was successful. You paid %count employees a total of %total.'),
+  'tx edited' => t('Your transaction #%tid was edited by %who.'),
+  'new tx goods' => t('It is now for %what.'),
+  'new tx amount' => t('The new amount is %amount.'),
+  'expired invite converted' => t('Your invitation has expired, so %inviterName will be asked to re-confirm.'),
+  'new savings balance' => t('<p>IMPORTANT! Your %RCREDITS balance has been split to include a Credit Reserve containing your incentive rewards. Read <%a>last week\'s %PROJECT newsletter</a> for details.</p>', '_a', w\atag('http://us9.campaign-archive1.com/?u=b1d89f860859e1d9b906fa0b0&id=f1f54edd80&e=')),
+//  'minimum zeroed' => t('<p>Your "automatic refills" have been turned off, to prevent any unintended transfer from your bank account. To turn them back on or transfer funds manually, sign in to your account at %CG_DOMAIN OR <%a1>click here</a>.</p>'),
+  'sent message' => t('Your message has been sent to %fullName.'),
   'pass saved' => t('Your new password has been saved.'),
     
   // prompts
   'note' => '<b class="loud">' . t('NOTE:') . '</b>',
-  'ach warning' => t('If there are insufficient funds in your bank account when you request a transfer to your rCredits account (either explicitly, or by automatic refills), your bank will charge you a $20-35 fee, just like for a bounced check. If this happens more than once, the rCredits system will <i>also</i> charge you $@fee, to cover <i>its</i> bank fee. So make sure you have enough in your bank account to cover your transfers.', ['@fee'=>R_DEPOSIT_RETURN_FEE]),
+  'ach warning' => t('If there are insufficient funds in your bank account when you request a transfer to your %PROJECT account (either explicitly, or by automatic refills), your bank will charge you a $20-35 fee, just like for a bounced check. If this happens more than once, the %PROJECT system will <i>also</i> charge you $%R_DEPOSIT_RETURN_FEE, to cover <i>its</i> bank fee. So make sure you have enough in your bank account to cover your transfers.'),
   // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
-//  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
+//  'prompt max' => t('Keep AT MOST this much in my %PROJECT account. (When your %RCREDITS balance goes above this amount by $%R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
   'legalname desc' => t(' full legal name, properly capitalized (for tax reporting).'),
   'usename desc' => t('(properly capitalized!) The name you use on contracts, checks, credit cards, etc.'),
   'ssTitle' => t('Soc Sec #:'),
@@ -90,148 +92,149 @@ EOF
   'ssDesc' => t('Your social security number (for tax reporting)'),
   'einDesc' => t('The company\'s Employer ID Number (EIN)'),
   'to scan another' => t('To scan another card, run the QR Scanner app again.'),
-  'invite links' => t('<p>Here are your links, to include in your own email messages to your friends. Be sure to mention they can visit rCredits.org for more information.</p><p>@links</p>'),
+  'invite links' => t('<p>Here are your links, to include in your own email messages to your friends. Be sure to mention they can visit %CG_DOMAIN for more information.</p><p>%links</p>'),
   'timed out' => t('You were automatically signed out, to protect your account(s).'),
-  'secure msg' => t('@who sent you a secure message (see their Summary page).'),
-  'secure attach' => t('[<@aAttach>Attachment</a>: @name type=@type size=@size bytes]'),
+  'secure msg' => t('%who sent you a secure message (see their Summary page).'),
+  'secure attach' => t('[<_%aAttach>Attachment</a>: %name type=%type size=%size bytes]'),
 
   // confirm
-  'yes or no' =>  '@yesNo', // to replace with yesNo(url)
-
+  'yes or no' =>  '%yesNo', // to replace with yesNo(url)
+  'confirm accept' => '%who %did you %amount for %for on %date. Okay to %do', // used in EditTx test
+  
   // errors
-  'missing purpose' => t('<p>What purpose? For buying or selling actual goods and services, you must include a description. Rebates and bonuses are intended as rewards for productive economic activity in rCredits.</p>
-    <p>For everyone\'s protection, the rCredits software automatically detects and penalizes attempts to "game" the system.</p>'),
-  'missing field0' => t('@field field is required.'), // Drupal's standard
-  'missing field' => t('Missing a required field: @field'),
+  'missing purpose' => t('<p>What purpose? For buying or selling actual goods and services, you must include a description. Rebates and bonuses are intended as rewards for productive economic activity in %RCREDITS.</p>
+    <p>For everyone\'s protection, the %PROJECT software automatically detects and penalizes attempts to "game" the system.</p>'),
+  'missing field0' => t('%field field is required.'), // Drupal's standard
+  'missing field' => t('Missing a required field: %field'),
   'no txs' => t('There are no transactions in that period.'),
   'no invoices' => t('There are no such invoices in that period.'),
   'no relations' => t('There are not yet any relations for this account.'),
   'no devices' => t('Surprisingly, this account has no related devices.'),
-  'required field' => t('@field must not be blank.'),
-  'duplicate email' => t('"@who" is already using that email address.'),
-  'email plus' => t('If you want to use the same email address for this account, add a plus sign (+) and an arbitrary tag to the local part, for example "@emailTagged".'), // used in user.module
-  'forgot password' => t('If you just forgot the password to the other account, <@a>click here</a> to request a new password.'), // used in user.module
+  'required field' => t('%field must not be blank.'),
+  'duplicate email' => t('"%who" is already using that email address.'),
+  'email plus' => t('If you want to use the same email address for this account, add a plus sign (+) and an arbitrary tag to the local part, for example "%emailTagged".'), // used in user.module
+  'forgot password' => t('If you just forgot the password to the other account, <%a>click here</a> to request a new password.'), // used in user.module
   'bad name' => t('That is not a plausible name.'),
   'bad phone' => t('That is not a proper phone number.'),
 //  'bad account code' => t('That is not your account code.'),
   'not your account' => t('That is not your account ID.'),
   'bad account number' => t('Your bank account number must be 3-17 digits long.'),
 //  'bad pin' => t('Your PIN must be exactly 4 digits'),
-  'bad federal id' => t('That is not a correct @what. Try again.'),
+  'bad federal id' => t('That is not a correct %what. Try again.'),
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
-  'short to' => t('You are @short short for that transaction.'),
-  'increase min' => t('<@a>Click here</a> to increase your minimum balance!', ['@a'=>'a href=' . BASE_URL . '/settings/preferences']),
+  'short to' => t('You are %short short for that transaction.'),
+  'increase min' => t('<%a>Click here</a> to increase your minimum balance!', '_a', w\atag('/settings/preferences')),
   'no such company' => t('There is no such company.'),
   'op canceled' => t('Operation Canceled.'),
-  'demand not yet' => t('You will be notified when there are some rCredits for you to buy with US Dollars.'),
+  'demand not yet' => t('You will be notified when there are some %RCREDITS for you to buy with US Dollars.'),
   'confirm delete cell' => t('Are you sure you want to remove the selected mobile phones from this account?'),
   'already related' => t('That person is already related to this account. If you want to change the settings, find this person in the list and change the settings on that row.'),
-  'already cell' => t('That mobile phone (@number) is already connected to this account.'),
-  'cell taken' => t('A mobile phone can be connected to only one account. You are already using that phone (@number) in connection with account "@accountName". If you really want to switch that phone to this account, you must first sign in to the other account and release it.'),
+  'already cell' => t('That mobile phone (%number) is already connected to this account.'),
+  'cell taken' => t('A mobile phone can be connected to only one account. You are already using that phone (%number) in connection with account "%accountName". If you really want to switch that phone to this account, you must first sign in to the other account and release it.'),
   'bad routing number' => t('US bank routing numbers are 9 digits. Use the number on the lower left edge of your checks.'),
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
-  'unknown member' => t('"@who" has not yet signed up for rCredits.'),
-//  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click the one you want or, if you don\'t see them listed, <a href="@draftLink">Click here to add them</a> to the list or <a id="which-cancel">here to cancel</a>.'),
-  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click the one you want.'),
-//  'similar found' => t('If you mean @otherName (@phone), <a href="@draftLink">click here for YES</a>. Otherwise, <a href="@cancelLink">click here to cancel</a>.'),
+  'unknown member' => t('"%who" has not yet signed up for %PROJECT.'),
+//  'ambiguous other' => t('"%who" might mean any of these %PROJECT accounts. Click the one you want or, if you don\'t see them listed, <a href="%draftLink">Click here to add them</a> to the list or <a id="which-cancel">here to cancel</a>.'),
+  'ambiguous other' => t('"%who" might mean any of these %PROJECT accounts. Click the one you want.'),
+//  'similar found' => t('If you mean %otherName (%phone), <a href="%draftLink">click here for YES</a>. Otherwise, <a href="%cancelLink">click here to cancel</a>.'),
   'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app from Google\'s Play Store.'),
   'no account permission' => t('You do not have permission to use that account.'),
   'bad transient id' => t('That QR code is out of date. Try again?'),
   'bad email' => t('That email address is not valid.'),
   'bad company phone' => t('You must give a valid phone number for your company.'),
   'what relation' => t('Are you an owner, employee, or contractor for the company? (please choose one or more)'),
-  'shortr to' => t('You do not have enough rCredits, for that transaction. <a href="@how">Go here</a> to get more rCredits.'),
+  'shortr to' => t('You do not have enough %RCREDITS, for that transaction. <a href="%how">Go here</a> to get more %RCREDITS.'),
   'incomplete agreement' => t('To sign this agreement, you must put a check in each box, meaning that you have read that section and agree to it.'),
-  'bad signature' => t('That signature does not match your full legal name ("@fullName").'),
+  'bad signature' => t('That signature does not match your full legal name ("%fullName").'),
   'bad invite' => t('That is not a valid Invitation Number or username.'),
-  'used invite' => t('<p>That invitation has already been used, to open an rCredits account.</p><p>If you already have an rCredits account set up and want to open an additional account for yourself, your business, or a family member, sign in and use the "Open a Company Account" button on the Summary page (for cashier accounts, first click your photo in the upper right corner and select your business from the dropdown).</p><p>Otherwise ask someone you know to send you a new invitation!'),
-  'expired invite' => t('<p>That invitation has expired.</p><p><@a>Click here</a> to ask @inviterName for another invitation.</p>'),
-  'min sub floor' => t('You cannot choose a Target Balance less than @floor.'),
+  'used invite' => t('<p>That invitation has already been used, to open an %PROJECT account.</p><p>If you already have an %PROJECT account set up and want to open an additional account for yourself, your business, or a family member, sign in and use the "Open a Company Account" button on the Summary page (for cashier accounts, first click your photo in the upper right corner and select your business from the dropdown).</p><p>Otherwise ask someone you know to send you a new invitation!'),
+//  'expired invite' => t('<p>That invitation has expired.</p><p><%a>Click here</a> to ask %inviterName for another invitation.</p>'),
+  'min sub floor' => t('You cannot choose a Target Balance less than %floor.'),
   'info not saved' => t('We apologize. Your information could not be saved at this time. Please try again in an hour or so.'),
-  'no page permission' => t('You do not have permission to visit this page. Return to your <@a>Summary</a> page.', ['@a' => 'a href=' . BASE_URL]),
-  'specific nonpositive' => t('The amount (@amount) must be a positive integer.'),
-  'insufficient relation' => t('You cannot open an account unless you have a close relationship to it. <@a>Invite someone</a> instead.', ['@a' => 'a href=' . BASE_URL . '/community/invite']),
-  'bad spoof check' => t('You must confirm (<i>every time</i>) that you are on the real rCredits site.'),
+  'no page permission' => t('You do not have permission to visit this page. Return to your <%a>Summary</a> page.', '_a', w\atag('/summary')),
+  'specific nonpositive' => t('The amount (%amount) must be a positive integer.'),
+  'insufficient relation' => t('You cannot open an account unless you have a close relationship to it. <%a>Invite someone</a> instead.', '_a', w\atag('/community/invite')),
+  'bad spoof check' => t('You must confirm (<i>every time</i>) that you are on the real %PROJECT site.'),
   'not an image' => t('That is not an acceptable image format. You might try converting it to a JPG or PNG image.'),
-  'bad commercial aspect' => t('Your company profile picture must be in landscape orientation, with a width-to-height ratio of about @R_COMMERCIAL_ASPECT.'),
-  'bad personal aspect' => t('Your profile picture must be in portrait orientation, with a width-to-height ratio of about @R_PERSONAL_ASPECT.'),
+  'bad commercial aspect' => t('Your company profile picture must be in landscape orientation, with a width-to-height ratio of about %R_COMMERCIAL_ASPECT.'),
+  'bad personal aspect' => t('Your profile picture must be in portrait orientation, with a width-to-height ratio of about %R_PERSONAL_ASPECT.'),
   'need a manager' => t('A company account must have at least one person to manage it.'),
   'self must sign' => t('You cannot sign this agreement on behalf of another person.'),
   'bad zip' => t('US zipcodes must be 5 digits, possibly followed by a hyphen and 4 more digits.'),
   'bad state' => t('You must say what state.'),
   'password required' => t('You must supply your current password, to change your email address or password.'),
   'bad account id' => t('That account does not exist. Check your typing?'),
-  'bad login' => t('That account/password combination does not exist. Try again or <!a>ask for a new password</a>.', ['!a' => 'a href="' . BASE_URL . '/settings/password"']),
+  'bad login' => t('That account/password combination does not exist. Try again or <%a>ask for a new password</a>.', '_a', w\atag('/settings/password')),
   'wrong pass' => t('That is not your correct password.'),
-  'multiple spaces' => t('@field cannot have more than one space in a row.'),
-  'illegal char' => t('@field contains an illegal character. Try retyping it'),
-  'too long' => t('@field is too long: it must be @USERNAME_MAX_LENGTH characters or less.'),
+  'multiple spaces' => t('%field cannot have more than one space in a row.'),
+  'illegal char' => t('%field contains an illegal character. Try retyping it'),
+  'too long' => t('%field is too long: it must be %USERNAME_MAX_LENGTH characters or less.'),
   'weak pass' => t('You need to choose a password that is harder to guess.'),
-  'mismatch' => t('You must have mistyped your @thing once. Try again.'),
+  'mismatch' => t('You must have mistyped your %thing once. Try again.'),
   'photo upload failed' => t('Your photo upload was not successful.'),
   'pass expired' => t('Your temporary password has expired.'),
-  'inhuman proxy' => t('@name is a company. Your proxies must be people.'),
-//  'dw mismatch' => t('WARNING: The "@field" of your Dwolla account and your rCredits account are conflicting. Your account permissions will be restricted until you correct this mismatch.'),
+  'inhuman proxy' => t('%name is a company. Your proxies must be people.'),
+//  'dw mismatch' => t('WARNING: The "%field" of your Dwolla account and your %PROJECT account are conflicting. Your account permissions will be restricted until you correct this mismatch.'),
   'proxy to go' => t('You have not yet completed your selection of proxies.'),
-  'no stop draw' => t('The account for @fullName has overspent its rCredits, based on your balance. So you cannot discontinue "draw" permission without first bringing that account back up to even (for example by giving it some funds.'),
+  'no stop draw' => t('The account for %fullName has overspent its %RCREDITS, based on your balance. So you cannot discontinue "draw" permission without first bringing that account back up to even (for example by giving it some funds.'),
   'doubled proxy' => t('Your alternate proxy cannot be the same person as your first proxy.'),
   'po in location' => t('Your physical location address cannot be a Post Office box.'),
-  'missing currency' => t('You must choose rCredits, USD, or both.'),
-  'download always both' => t('Note: Downloads always include both rCredits and USD amounts.'),
+  'missing currency' => t('You must choose %RCREDITS, USD, or both.'),
+  'download always both' => t('Note: Downloads always include both %RCREDITS and USD amounts.'),
 //  'sign in to scan' => t('You must <a href="/user/login">sign in</a> (or scan yourself in) BEFORE scanning a customer card.'),
-  'change min first' => t('That request would leave you with less than your minimum balance. <a href="@BASE_URL/settings/preferences">Lower your minimum</a> first.'),
+  'change min first' => t('That request would leave you with less than your minimum balance. <%a>Lower your minimum</a> first.', w\atag('/settings/preferences')),
   'bad member id' => t('That is not a valid member ID!'),
   'bad card' => t('That is not a valid member ID.'),
   'bad card code' => t('This rCard is not valid.'),
   'upload required' => t('You must upload a file.'),
-  'missing contact info' => t("<h2>Missing Contact Information</h2><p>Please complete your <@a1>Contact Information</a> before continuing.</p>"),
+//  'missing contact info' => t("<h2>Missing Contact Information</h2><p>Please complete your <%a1>Contact Information</a> before continuing.</p>"),
   'correct and retry' => t('Please correct the problem and resubmit this form.'),
-//  'duplicate phone' => t('That phone number is already the primary phone for another account.<br><br>If this is your ONLY phone and you can make do without a connected bank account (that is, if you have some other easy way to get money into and out of your rCredits account): <input type="button" value="Continue With No Bank Connection" onclick="jQuery(\'#edit-dupOk\').val(1); jQuery(\'#rcreditswebform@form\').submit();" />'),
+//  'duplicate phone' => t('That phone number is already the primary phone for another account.<br><br>If this is your ONLY phone and you can make do without a connected bank account (that is, if you have some other easy way to get money into and out of your %PROJECT account): <input type="button" value="Continue With No Bank Connection" onclick="jQuery(\'#edit-dupOk\').val(1); jQuery(\'#rcreditswebform%form\').submit();" />'),
   'not a duplicate phone' => t('That phone number is NOT the primary phone for another account.'),
   'bad pin' => t('That is not your correct PIN.'),
   'wrong pin len' => t('Your PIN must be exactly 4 characters long.'),
   'pin required' => t('You must choose a PIN.'),
   'only us banks' => t('Unfortunately, at this time, we can handle only U.S. banks.'),
-//  'bad deposit cents' => t('Each deposit is a number less than @DW_VERIFY_ROOF.'),
+//  'bad deposit cents' => t('Each deposit is a number less than %DW_VERIFY_ROOF.'),
   'no can scan' => t('You do not have permission to scan an individual\'s rCard.'),
-  'must opt' => t('You must not create a limited account for this person without giving zem the opportunity to open a real rCredits account. <@a>Invite zem</a>!', ['@a' => 'a href=' . BASE_URL . '/community/invite']),
+  'must opt' => t('You must not create a limited account for this person without giving zem the opportunity to open a real %PROJECT account. <%a>Invite zem</a>!', '_a', w\atag('/community/invite')),
   'must agree' => t('Accept Terms checkbox field is required.'), // drupal shows this
   'redo info' => t('We could not verify your personal information. Please try again, carefully.'),
   'bad ssn or dob' => t('There is a problem verifying your personal information.'),
   'bad ssn' => t('That is not a valid social security number.'),
-  'bank too little' => t('The amount you asked to transfer is less than the minimum ($@R_ACHMIN).'),
+  'bank too little' => t('The amount you asked to transfer is less than the minimum ($%R_ACHMIN).'),
   'members only' => t('You must be a member, to use this feature.'),
   'dwolla terms required' => t("Please accept Dwolla's terms before you click Continue."),
   'no card ordered' => t('No rCard was ordered.'),
-  'bad buy info' => t('To pay with rCredits, you must use the same @thing for the purchase as you use for your rCredits account.'),
+  'bad buy info' => t('To pay with %RCREDITS, you must use the same %thing for the purchase as you use for your %PROJECT account.'),
   'must be signed out' => t('You are already signed in.'),
-  'wrong payroll co' => t('The company name in cell A1 must match your company name exactly (@coName)'),
+  'wrong payroll co' => t('The company name in cell A1 must match your company name exactly (%coName)'),
   'not payroll csv' => t('This is not a payroll CSV. It must say "Payroll Details" in cell A2.'),
-  'bad payroll csv' => t('Incorrect payroll CSV format at line @line.'),
-  'empty payroll' => t('There are no employees listed as having received an rCredits payroll deduction.'),
-  'bad payroll employee' => t('@employee is mispelled, does not have an active rCredits account, or is not listed as an employee on your Relations page. Click Settings, then Relations.'),
-  'illegal amount change' => t('You cannot @action the original amount (@amount). <@a>Send an invoice</a> instead.'),
-  'bad achmin' => t('The minimum transfer amount must be at least $@R_ACHMIN.'),
+  'bad payroll csv' => t('Incorrect payroll CSV format at line %line.'),
+  'empty payroll' => t('There are no employees listed as having received an %PROJECT payroll deduction.'),
+  'bad payroll employee' => t('%employee is mispelled, does not have an active %PROJECT account, or is not listed as an employee on your Relations page. Click Settings, then Relations.'),
+  'illegal amount change' => t('You cannot %action the original amount (%amount). <%a>Send an invoice</a> instead.'),
+  'bad achmin' => t('The minimum transfer amount must be at least $%R_ACHMIN.'),
   'say why not' => t('You must say why you are denying the invoice.'),
-  'no co pass' => t('Company accounts do not have passwords. Sign in to your personal account, then click your photo in the upper right corner and select @company from the dropdown.'),
+  'no co pass' => t('Company accounts do not have passwords. Sign in to your personal account, then click your photo in the upper right corner and select %company from the dropdown.'),
   'account number mismatch' => t('You must have mistyped your account number once. Try again.'),
   'yes or no' => t('You must answer Yes or No.'),
-  'no local proxy' => t('No other members nearby. <@a>Invite someone</a>!', ['@a'=>'a href=' . @BASE_URL . '/community/invite']),
+  'no local proxy' => t('No other members nearby. <%a>Invite someone</a>!', '_a', w\atag('/community/invite')),
   'too many joins' => t('You can join to only one other account.'),
-  'short cash help' => t('<@a>Click here</a> for more information about cashing out incentive rewards.', ['@a'=>'a href=' . BASE_URL . '/help/cashing-out']),
+  'short cash help' => t('<%a>Click here</a> for more information about cashing out incentive rewards.', '_a', w\atag('/help/cashing-out')),
   'maybe not cash' => t('If you are actually reimbursing someone or paying zem for goods or services (for example, employee labor), choose a different button under "For".'),
   'link expired' => t('That link has expired.'),
   'login failed' => t('Your attempt to sign in failed. Click the "Password problems" link if you need a new password.'),
   'file save error' => t('Your file upload did not succeed.'),
-  'forced without perm' => t('<p>An unauthorized transaction was made using a Company Agent rCard.</p><ul><li>Date: @date</li><li>Customer: @a2 (by @agent2)</li><li>Company: @a1 (by @agent1)</li><li>Amount: @amount</li><li>For: @for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
+  'forced without perm' => t('<p>An unauthorized transaction was made using a Company Agent rCard.</p><ul><li>Date: %date</li><li>Customer: %a2 (by %agent2)</li><li>Company: %a1 (by %agent1)</li><li>Amount: %amount</li><li>For: %for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
   'bad invite num' => t('That is not a valid username or invitation number.'),
   'negative saveWeekly' => t('Your discretionary savings are already at their minimum, so your weekly savings addition cannot be negative.'),
   'requires signin' => t('You must be signed in, to use that page.'),
   'too many days' => t('You cannot view or download more than 18 months at a time.'),
-//  'saveWeekly too low' => t('With a negative "minimum", your weekly savings addition must be at least @min.'),
+//  'saveWeekly too low' => t('With a negative "minimum", your weekly savings addition must be at least %min.'),
 );
-$GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
+$GLOBALS['tStrings']['flooded'] = $GLOBALS['tStrings']['bad login'];
 
 
 /**
@@ -281,7 +284,7 @@ EOF;
     ORDER BY state<>:state, state, city, fullName
 EOF;
 //    ORDER BY GREATEST(SUM(w), :PHP_INT_MAX/4) DESC, state<>:state, state, city, SUM(w) DESC, fullName
-  $q = db\q($sql, u\ray('uid state city zip ctty', $uid, $a->state, $a->city, $a->postalCode, $a->community));
+  $q = db\q($sql, ray('uid state city zip ctty', $uid, $a->state, $a->city, $a->postalCode, $a->community));
   $res = $cityX = '';
   while ($row = $q->fetchAssoc()) { // show choices in reverse order, so inviter(s) are at top
     extract($row);
@@ -342,7 +345,7 @@ function htmlButton($name, $id, $value, $class, $other = []) {
   
   if (strpos($href, 'http') === FALSE) $onclick = $href;
   if ($href) list ($tag, $role) = ['a', 'button']; else $tag = 'button';
-  return u\tag($tag, $value, (@$tribs ?: []) + compact(@$onclick ? 'onclick' : 'href', 'class', 'role'));
+  return w\tag($tag, $value, (@$tribs ?: []) + compact(@$onclick ? 'onclick' : 'href', 'class', 'role'));
 }
 
 /**
@@ -361,7 +364,7 @@ function htmlButton($name, $id, $value, $class, $other = []) {
 //    if (!isset($x_default)) $x_default = $choices ? key($choices) : ''; // Drupal's select fails without this
 
 function NEWfld($type, $label, $desc = '', $other = []) {
-///  debug(compact(u\ray('type label desc other')));
+///  debug(compact(ray('type label desc other')));
   if (@$label[0] == REQ) list ($required, $label) = ['yes', substr($label, 1)];
   if ($bare = (@$label[0] == BARE)) $label = substr($label, 1); // bare? (no div wrapper)
 
@@ -369,13 +372,13 @@ function NEWfld($type, $label, $desc = '', $other = []) {
   if (!@$title) $title = $placeholder; // hover text defaults to same as hint
   foreach (['placeholder', 'title'] as $k) if ($$k) $tribs[$k] = $$k;
 
-  return compact(u\ray('type label required bare help tribs other')); // see rend()
+  return compact(ray('type label required bare help tribs other')); // see rend()
 }
 
 // only barely begun
 function rendForm($form) {
   $guts = rend($form);
-  return str_replace('rcreditswebform', 'r-', u\tagN('form', $guts, $form['#attributes']));
+  return str_replace('rcreditswebform', 'r-', w\tagN('form', $guts, $form['#attributes']));
 } 
 
 function NEWlabeled($form, $onSubmit = '', $labeled = TRUE) {
@@ -415,7 +418,7 @@ function labeled($form, $onSubmit = '', $labeled = TRUE, $level = 0) {
  */
 function rendA($name, $field) {
 //    $rent .= preg_replace('/name="(.*)"/', "name=\"$k\"", rent($field));
-  return preg_replace('/<(input|textarea|select) /', "<$1 id=\"edit-$name\" name=\"$name\" ", rent($field));
+  return preg_replace('/<(input|textarea|select|button) /', "<$1 id=\"edit-$name\" name=\"$name\" ", rent($field));
 }
     
 function rend($fields) {
@@ -443,7 +446,7 @@ function wrap($name, $html, $ray) {
   $class = [@$class];
   $class[] = $boxy ? 'option' : 'control-label col-sm-offset-1 col-xs-2';
   if (@$invisible) $class[] = 'sr-only';
-  $label = u\tag('label', $boxy ? $html . @$label : @$label, compact('for', 'class'));
+  $label = w\tag('label', $boxy ? $html . @$label : @$label, compact('for', 'class'));
     
   if (@!$bare) {
     $help = @$help ? "\n      <div class=\"help-block\">$help</div>" : '';
@@ -481,7 +484,7 @@ function fld($type, $title = '', $help = '', $other = [], $options = NULL) {
   if ($type == 'select' and !isset($other['default_value'])) $other['default_value'] = $options ? key($options) : ''; // Drupal's select fails without a default
   $title_display = 'before';
 //  if (isset($other['value']) and !isset($other['default_value'])) $other['default_value'] = $other['value'];
-  $field = u\prefixKeys('#', $other + compact(u\ray('type title title_display required bare help options')));
+  $field = u\prefixKeys('#', $other + compact(ray('type title title_display required bare help options')));
   return $field;
 }
 
@@ -508,7 +511,7 @@ function submi($title = '', $style = '', $size = 'xs', $other = []) {
 function buttonFld($value, $href = '', $title = NULL, $style = 'success', $size = 'xs') {
   $title = htmlspecialchars($title);
   $class = "btn btn-$style btn-$size";
-  return NEWfld('button', BARE, ['', '', $title], compact(u\ray('href value class')));
+  return NEWfld('button', BARE, ['', '', $title], compact(ray('href value class')));
 }
 function button($value, $href = '', $title = NULL, $style = 'success', $size = 'xs') {
   return rend([buttonFld($value, $href, $title, $style, $size)]);
@@ -552,12 +555,19 @@ function fieldSet($id, $flds, $label = '', $other = []) {return fld('fieldset', 
 
 /**
  * Return a form field for sharing percentage.
- */
-function shareFld() {
-  $mya = r\acct();
+ *//*
+function shareFld($a) {
   $sharePct = round(db\lookup('AVG(share)', 'r_gifts', 'share>=0'), 1);
-  $shareDft = $mya->prefsSet ? (($mya->share + 0) ?: 0) : R_SHARE_DFT;
-  return textFld(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the rCredits community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes rCredits and handles administration of your rCredits community until the community can take over that responsibility.</p>', compact('sharePct')), required($shareDft . '%'));
+  $shareDft = $a->prefsSet ? (($a->share + 0) ?: 0) : R_SHARE_DFT;
+  return textFld(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the %PROJECT system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the %PROJECT community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes %PROJECT and handles administration of your %PROJECT community until the community can take over that responsibility.</p>', compact('sharePct')), required($shareDft . '%'));
+}
+*/
+
+/**
+ * Return a form field for donating fractional dollars.
+ */
+function roundupFld($a) {
+  return w\boolFld(t('Round Up?'), t('Fund the common good! Round all your payments up to a whole dollar amount and donate the cents to local nonprofits and community investments.'), $a ? $a->roundup : FALSE);
 }
 
 /**
@@ -568,7 +578,7 @@ function shareFld() {
  */
 function badShare(&$share, $required = FALSE) {
   $share = trim(str_replace('%', '', $share));
-  if ($required and $share === '') return tt('missing field', ['field' => 'share']);
+  if ($required and $share === '') return t('missing field', 'field', 'share');
   if ($err = u\badAmount($share, '>=0', 3)) return t('AMOUNT:|') . $err;
   if ($share < 1) $share *= 100; // if under 1% assume they meant more
   if ($share > R_SHARE_MAX) return 'share too big';
@@ -612,7 +622,7 @@ function boxesFld($title, $desc, $defaults, $choices, $aliases = NULL) {
  * @param assoc $aliases: map of bit names to their display aliases (which may include formatting)
  */
 function bitsFld($label, $bitRay, $prefix, $bits, $aliases = []) {
-  $bits = u\ray($bits);
+  $bits = ray($bits);
   if (!is_numeric(key($bits))) $bits = array_keys($bits); // ignore values (eg weights for risk arrays)
   $defaults = [];
   foreach ($bits as $bit => $bitName) {
@@ -638,7 +648,7 @@ function acctTypeField() {
 /**
  * Return onSubmit script for a typeahead member account field (and include needed script files).
  * @param string $field: the field name
- * @param string $question: what to ask for confirmation or disambiguation (with params @amount and @name)
+ * @param string $question: what to ask for confirmation or disambiguation (with params %amount and %name)
  * @param string $amount: optional amount substitution for question (include quotes or formula, if not a number)
  * @param bool $askGift: <ask if this form submission is a payment that is a gift> (defaults to no, don't ask)
  * @return complete script without leading "return ".
@@ -659,8 +669,8 @@ function whoFldSubmit($field, $question, $amount = '0', $askGift = '0') {
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formArray, $formSta, $rUrl;
   
-  setGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
-  if (!@$formSta['confirm'] and !in_array($function, u\ray(R_NOLOG_FORMS))) {
+  setAcct(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
+  if (!@$formSta['confirm'] and !in_array($function, ray(R_NOLOG_FORMS))) {
     if ($logs = t\POST()) {
       foreach (u\just(R_NOLOG, $logs) as $k => $zot) $logs[$k] = '?';
       u\loga('in', $logs);
@@ -674,11 +684,12 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $mya = r\acct();
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
-    $specialForm = in_array($function, u\ray('Help Empty footer accounts Login'));
-    $adminForm = in_array($function, u\ray('Admin MemberList MemberInfo'));
+    $specialForm = in_array($function, ray('Help Empty footer accounts Login'));
+    $adminForm = in_array($function, ray('Admin MemberList MemberInfo'));
     $args = func_get_args(); // this and next few lines are from \drupal_get_form()
     array_shift($args); // Remove $function from the arguments.
     $formSta['build_info'] = compact('args');
+//    $formSta['method'] = 'post';
     if (!r\up() and !$specialForm and !$adminForm) {
       if ($mya and $mya->admin) {
         say(t('The system is DOWN.'));
@@ -686,6 +697,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
       } else $formName = 'rCredits\\Web\\formSystemDown';
     }
     
+    if (strpos($formName, 'Democracy') !== FALSE) require_once DRUPAL_ROOT . R_PATH . '/rvote/rvote-web.inc';
     $form = \drupal_build_form($formName, $formSta);
     \rweb_form_alter($form, $formSta, $formName);
     
@@ -773,7 +785,7 @@ function pickPassword($reset = TRUE) {
   js(BASE_URL . '/misc/drupal.js', 'file', 'footer', -999); // for password strength meter
   js("jQuery.extend(Drupal.settings, {$settings});");
 
-  return compact(u\ray('pass1 pass2 strong'));
+  return compact(ray('pass1 pass2 strong'));
 }
   
 /**
@@ -791,8 +803,8 @@ function box() {
  */
 function boxUser($code, $uid) {
   if ($id = @$_COOKIE[$cookid = 'boxnum' . $uid] and !u\test()) return $id; // we only get this if last set today
-  if ($id = db\lookup('id', 'r_boxes', 'code=:code AND uid=:uid', compact(u\ray('code uid')))) {
-    db\update('r_boxes', u\ray('id access', $id, r\rTime()), 'id');
+  if ($id = db\lookup('id', 'r_boxes', 'code=:code AND uid=:uid', compact(ray('code uid')))) {
+    db\update('r_boxes', ray('id access', $id, r\rTime()), 'id');
   } else $id = r\makeDevice($uid, $code, TX_WEB);
   return r\setCook($cookid, $id, r\rTime() + SESSION_LIFE);
 }
@@ -826,18 +838,33 @@ function noFlood(&$sta) {\flood_clear_event('failed_login_attempt_user', @$sta['
 
 /**
  * Set session variables and other globals.
- * @param int $agent: the account agent, if any (defaults to the account ID)
- * @param bool $force: resetup even if already done
+ * Call: $a = setAcct($myid) to set the current account (and agent if none yet)
+ *    OR $a = setAcct() to remember what account and agent we are signed in to
+ *    OR setAcct(NULL) to simulate signing out (for testing)
+ * @param int $myid: the new account, if any
+ * @return the current or new account
  */
-function setGlobals($agent = '', $force = FALSE) {
-  global $user, $channel, $boxUser;
-  if (@$channel and !$force) return; // already setup
-  if (!$agent) $agent = @$user->uid; // register_submit supplies agent (no one else does)
-  $myid = svar('myid') ?: $agent;
-  $mya = r\acct($myid, $agent);
-  r\Acct::setDefault($mya); // set default for r\acct()
-  $channel = TX_WEB;
-  if ($myid) $boxUser = boxUser(box(), $myid); // so far used only when recording transactions
+function setAcct($myid = '') {
+  global $channel, $boxUser;
+
+  if (is_null($myid)) {
+    svar('myid', NULL); svar('agentId', NULL);
+    return r\Acct::setDefault(NULL);
+  }
+
+  $agentId = svar('agentId');
+  
+  if ($myid) {
+    if (!$agentId) $agentId = svar('agentId', $myid);
+    svar('myid', $myid);
+  } else $myid = svar('myid');
+
+  if (!@$channel) { // only once per HTTP request
+    $channel = TX_WEB;
+    if (@$myid) $boxUser = boxUser(box(), $myid); // so far used only when recording transactions
+  }
+  
+  return r\Acct::setDefault(r\acct($myid, $agentId));
 }
 
 /**
@@ -889,7 +916,7 @@ function which($choices = '', $resultField = '', $info = '', $question = 'Which 
   $formName = current_path();
   
   if (is_array($choices)) { // called with all args (#1)
-    svar('pop', compact(u\ray('formName choices resultField info question')));
+    svar('pop', compact(ray('formName choices resultField info question')));
     r\go($formName); // reload page
   }
 
@@ -973,7 +1000,7 @@ function subMenuHtml($menu) {
     $detail
 EOF;
     $onclick = "jQuery(this).find('.glyphicon').css('color', 'darkblue');"; // glyph looks funny when ladda-spinning
-    $list .= spinLink("$base_url/$k", $text, '', 'list-group-item', '', compact('onclick'));
+    $list .= spinLink("/$k", $text, '', 'list-group-item', '', compact('onclick'));
   }
   return $list;
 }
@@ -1088,7 +1115,7 @@ function acctType($acctType) {
       : (u\bit(CO_CORPORATION) | (strpos($type, 'publicly') !== FALSE ? u\bit(CO_PUBLICLY_TRADED) : 0)
     ))));
   }
-  return compact(u\ray('flags coFlags'));
+  return compact(ray('flags coFlags'));
 }
 
 /**
@@ -1098,7 +1125,7 @@ function acctType($acctType) {
 function suCompanyRelation($other, $data) {
   extract(u\just('company companyPhone isOwner employeeOk contractor', $data));
   if ($main = findCompany($company, @$companyPhone)) { // company account exists
-    return r\acct($main)->newRelation(u\ray('other employee isOwner', $other, @$employeeOk, @$isOwner)); // no permissions/draw (for security)
+    return r\acct($main)->newRelation(ray('other employee isOwner', $other, @$employeeOk, @$isOwner)); // no permissions/draw (for security)
   } else return FALSE;
 }
 
@@ -1110,8 +1137,8 @@ function suCreatorRelation($helper, $args, $myid) {
   if (!@$isOwner and !@$employeeOk and !@$flow) return; // no useful relation (for example by true invitation)
 
   $draw = ($flow & 2) ? 1 : 0;
-  r\acct($myid)->newRelation(u\ray('other permission employee isOwner draw', $helper, r\perm(B_MANAGE), $employeeOk, $isOwner, $draw));
-  if ($flow & 1) r\acct($helper)->newRelation(u\ray('other draw', $myid, TRUE));
+  r\acct($myid)->newRelation(ray('other permission employee isOwner draw', $helper, r\perm(B_MANAGE), $employeeOk, $isOwner, $draw));
+  if ($flow & 1) r\acct($helper)->newRelation(ray('other draw', $myid, TRUE));
 //  } else r\tellAdmin("bad params in formSignup: $error -- ", $params);
 } 
 
@@ -1141,12 +1168,12 @@ function emailDup($email0, $uid) {
   global $base_url;
   $mail = u\cryptN($email0);
   if (!$who = db\lookup('fullName', 'users', 'mail=:mail and uid<>:uid AND NOT :IS_CO', compact('mail', 'uid'))) return FALSE;
-  $a = "a href=$base_url/settings/password/$email0";
+  $_a = w\atag("/settings/password/$email0");
   $emailTagged = str_replace('@', '+whatever@', $email0);
   $dupMsg = 'duplicate email';
   if (stripos($email0, '@gmail.com')) $dupMsg .= '|email plus';
   if (!$uid) $forgot = '|forgot password';
-  say($dupMsg . @$forgot, compact(u\ray('emailTagged who a')), 'email');
+  say($dupMsg . @$forgot, compact(ray('emailTagged who _a')), 'email');
   return TRUE;
 }
 
@@ -1162,7 +1189,7 @@ function tellStaffNewMember($params) {
   $helper = @$helper ? r\acct($helper)->fullName : 'unknown';
   $copts = u\jsonEncode(@$copts);
   $ats = @join(',', array_values($ats));
-  $params = compact(u\ray('phone country state acctType helper copts ats')) + $params;
+  $params = compact(ray('phone country state acctType helper copts ats')) + $params;
   unset($params['code']); // don't need to see this
   $message = '<h2>NEW SIGNUP</h2>';
   r\tellCO($message, $params);
@@ -1193,10 +1220,10 @@ function findCompany($company, $companyPhone) {
 function nameAndEmail($what, $fullName = '') {
   $who = $what == t('Company') ? t('The company\'s') : ($what == t('Community') ? t('The community\'s') : t('Your'));
   $onchange = w\onchange("var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);");
-  $fullName = textFld("$what:", ["$who " . t('full name'), tt('usename desc')], required(@$fullName) + $onchange);
-  $legalName = textFld(t('Legal name:'), ["$who " . t('full legal name (if different)'), $who . tt('legalname desc')]);
+  $fullName = textFld("$what:", ["$who " . t('full name'), t('usename desc')], required(@$fullName) + $onchange);
+  $legalName = textFld(t('Legal name:'), ["$who " . t('full legal name (if different)'), $who . t('legalname desc')]);
   $email = textFld(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required());
-  return compact(u\ray('fullName legalName email'));
+  return compact(ray('fullName legalName email'));
 }
 
 /**
@@ -1236,9 +1263,9 @@ EOF;
   $hidState = hidFld($state); // remember this when Drupal forgets it on error
   
   $phone = textFld(t('Phone:'), [t('Your phone number')], required(@$phone ? u\fmtPhone($phone): ''));
-//$a ? '' : t('Your phone number. This should not be a number already used for another rCredits account &mdash; unless you have no other phone number.')
-//  $dupOk = hidFld(0, attrib(u\ray('id', 'edit-dupOk')));
-//  $dupOk = boolFld(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
+//$a ? '' : t('Your phone number. This should not be a number already used for another %PROJECT account &mdash; unless you have no other phone number.')
+//  $dupOk = hidFld(0, attrib(ray('id', 'edit-dupOk')));
+//  $dupOk = boolFld(t('Dup Ok:'), t('If this is already the phone number for another %PROJECT account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your %PROJECT account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
 
   $faxetc = @$faxetc ? textFld(t('Fax etc:'), [t('Other contact info'),t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.')], dft(@$faxetc)) : NULL;
   $country = selectFld(t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
@@ -1250,7 +1277,7 @@ EOF;
   $owns = boolFld('', '', $a ? $a->owns : 0, [t('Rent'), t('Own')]);
   $postalAddr = textFld(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
 
-  return compact(u\ray($fields . ' hidCountry hidState'));
+  return compact(ray($fields . ' hidCountry hidState'));
 }  
 
 /**
@@ -1258,13 +1285,13 @@ EOF;
  * The dob field is not used for companies (but remains in the form, unseen), so it cannot be required.
  */
 function ssnFields($personal = TRUE) {
-  $ssTitle = tt($personal ? 'ssTitle' : 'einTitle');
+  $ssTitle = t($personal ? 'ssTitle' : 'einTitle');
   if ($personal) {
     $dob = textFld(t('Birthdate:'), [t('Your date of birth (mm/dd/yyyy)')], required() + autofill('off'));
-    $ssReason = t('As a registered Money Services Business, we are required by law to ask for your social security number, even though it makes some people nervous. Fortunately, we have <@a>top notch security</a>.', ['@a' => 'a target=_blank href=' . r\promoLink('security.html')]);
+    $ssReason = t('As a registered Money Services Business, we are required by law to ask for your social security number, even though it makes some people nervous. Fortunately, we have <%a>top notch security</a>.', '_a', w\atag(r\promoLink('security.html')));
   }
-  $federalId = passFld($ssTitle, [tt($personal ? 'ssDesc' : 'einDesc'), @$ssReason], required() + autofill('off')); // textfield so user doesn't have to retype on error
-  return compact(u\ray('dob federalId'));
+  $federalId = passFld($ssTitle, [t($personal ? 'ssDesc' : 'einDesc'), @$ssReason], required() + autofill('off')); // textfield so user doesn't have to retype on error
+  return compact(ray('dob federalId'));
 }
 
 /**
@@ -1312,7 +1339,7 @@ function amountField($name, $value, $id) {
 function toggle($field, $value, $id, $highlight = 'never') {
   $path = current_path();
   $name = $id = "$field-$id";
-  $zot = array($id => hidFld($value, attrib(compact(u\ray('id name')))));
+  $zot = array($id => hidFld($value, attrib(compact(ray('id name')))));
   $input = \render($zot);
   $b1 = button(' - ', "toggle('$id');", t('Change to NO'), 'danger');
   $b2 = button(' + ', "toggle('$id');", t('Change to YES'), 'success');
@@ -1348,7 +1375,7 @@ EOF;
  */
 function invitation($code, $invitee = '', &$inviter = '', &$iCode = -1, &$err = '') {
   if (!$invitee and $a = r\iCardAcct($code, $iCode)) {
-    if ($iCode >= IBY_ICARD and db\exists('users', 'helper=:id AND iCode=:iCode', u\ray('id iCode', $a->id, $iCode))) return !$err = 'used invite';
+    if ($iCode >= IBY_ICARD and db\exists('users', 'helper=:id AND iCode=:iCode', ray('id iCode', $a->id, $iCode))) return !$err = 'used invite';
     $inviter = $a->id;
     return TRUE;
   } else {
@@ -1407,7 +1434,7 @@ function directoryList($which, $region, $withButtons = FALSE) {
     WHERE :IS_CO AND u.uid>1 AND :IS_OK AND $regionCrit AND (u.fullName LIKE :which OR i.industry LIKE :which)
     ORDER BY industry, u.fullName
 EOF;
-  $result = db\q($sql, compact(u\ray('region which')));
+  $result = db\q($sql, compact(ray('region which')));
   while ($row = $result->fetchAssoc()) $rows[] = $row;
   $cat = $headed = $list = '';
   for ($i = 0; $i < count($rows); $i++) {
@@ -1432,7 +1459,7 @@ EOF;
     $list .= "<li>$item</li>\n";
   }
   
-  return $list ? "<ul>$list</ul>" : t('There are no such rCredits member businesses.');
+  return $list ? "<ul>$list</ul>" : t('There are no such %PROJECT member businesses.');
 }
 
 /**
@@ -1456,17 +1483,16 @@ function eLinkAcct(&$sta, &$eLink = '', $allow = 'individual') {
 }
 
 function hack($message, $info = []) {
-  u\loga('hack', $_SERVER, $message);
+  u\loga('hack', $_SERVER + compact('message'));
   r\tellAdmin($message, $info);
   return r\signedIn() ? signout() : r\go('');
 }
 
 function signout($arg = '') {
-  $msg = $arg == 'timedout' ? 'timed out' : '';
   @\session_destroy();
 //  return r\go(isDEV ? 'http://rPromo/_sites?region=x' : 'http://rCredits.org/control.html?region=x');
-  if (isDEV) r\go('signin', $msg);
-  r\go('http://rCredits.org/control.html?region=x' . ($arg ? "&a=$arg" : ''));
+//  if (isDEV and !u\test()) r\go('signin', $arg == 'timedout' ? 'timed out' : '');
+  return r\go(PROMO_URL . '/control.html?region=x' . ($arg ? "&a=$arg" : ''));
 }
 
 function fundRpt($now, $then, $type = '') {
@@ -1474,8 +1500,8 @@ function fundRpt($now, $then, $type = '') {
   $RUS = strpos($type, 'r') === FALSE ? '' : '@R';
   $change = u\fmtAmt(abs($now - $then));
   $way = $now >= $then ? t('up') : t('down');
-//  $s = u\fmtAmt($now) . tt("$RUS &mdash; @way @change$RUS from a month ago", compact('way', 'change'));
-  $s = u\fmtAmt($now) . tt($RUS, compact('way', 'change'));
+//  $s = u\fmtAmt($now) . t("$RUS &mdash; @way @change$RUS from a month ago", compact('way', 'change'));
+  $s = u\fmtAmt($now) . t($RUS, compact('way', 'change'));
   return strpos($type, '$') === FALSE ? str_replace('$', '', $s) : $s;
 }
 
@@ -1524,7 +1550,7 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   u\setDft($states, $settings);
 ///  debug($states);
   if ($choices) {
-    if ($states) foreach (u\ray($states) as $k) $stateDfts[] = $choices[$k];
+    if ($states) foreach (ray($states) as $k) $stateDfts[] = $choices[$k];
     $states2 = boxesFld(t('Show:'), '', @$stateDfts, $choices);
   }
   $showAdvJs = 'jQuery(\'#advanced\').show(); jQuery(\'#simple\').hide();';
@@ -1544,7 +1570,7 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   $period = selectFld(t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
   $simple = fieldSet('simple', compact('period', 'actions'), BARE);
   
-  $res = compact(u\ray('url starting ending states')); // the easy parts of the result
+  $res = compact(ray('url starting ending states')); // the easy parts of the result
   $submitDates = submi(t('show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
   $showSimple2 = '<a id="showSimple" href="javascript:void(0);" onclick="jQuery(\'#advanced\').hide(); jQuery(\'#simple\').show();">simpler</a>';
   if ($downloadable) $downloadDates = submi(t('download')); // must be lowercase
@@ -1552,7 +1578,7 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   $starting = textFld(t('Starting:'), '', dft(u\fmtDate($starting)));
   $ending = textFld(t('Ending:'), '', dft(u\fmtDate($ending)));
   $advanced = fieldSet('advanced', compact('starting', 'ending', 'states2', 'actions'), BARE);
-  return u\ray('dateRange', compact('simple', 'advanced')) + $res;
+  return ray('dateRange', compact('simple', 'advanced')) + $res;
 }
 
 /*
@@ -1571,7 +1597,7 @@ function dateRange2($args, $url, $download = TRUE) {
   
   $starting = textFld(t('Starting:'), '', dft(u\fmtDate($starting)));
   $ending = textFld(t('Ending:'), '', dft(u\fmtDate($ending)));
-  $advanced = fieldSet('advanced', compact(u\ray('starting ending download show url')), BARE);
+  $advanced = fieldSet('advanced', compact(ray('starting ending download show url')), BARE);
 }
 */
 
@@ -1580,7 +1606,7 @@ function dateRangeValidate(&$sta) {
   $op = op($sta);
   list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? rangeDates(@$period) : rangeDates('', @$starting, @$ending);
   if ($ending - $starting > TX_MAX_DAYS * DAY_SECS) return w\say('too many days', 'err');
-  u\preray(compact(u\ray('starting ending period')), $sta['input']);
+  u\preray(compact(ray('starting ending period')), $sta['input']);
 }
 
 /**
@@ -1708,7 +1734,7 @@ function sureForm(&$sta, $title = '') {
   $actions = w\fieldSet('actions', compact('confirm', 'cancel'));
   $form = compact('title', 'question', 'actions');
   $form['#skip_duplicate_check'] = TRUE; // Confirm form fails duplication check, as the form values rarely change -- so skip it.
-  $form['#attributes'] = array('class' => u\ray('confirmation'));
+  $form['#attributes'] = array('class' => ray('confirmation'));
 //  $form['#validate'] = 'rCredits\\Web\\sureForm_validate';
 //  $form['#submit'] = 'rCredits\\Web\\sureForm_submit';
 //  $sta['rebuild'] = TRUE;
@@ -1734,11 +1760,11 @@ function sureForm(&$sta, $title = '') {
 function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
   if (u\isAcct($result = be\identify($who, r\acct()->id, $selfMsg))) return $result;
   list ($msg, $args, $choices) = $result;
-  foreach (u\ray('form_build_id form_token form_id op') as $one) unset($info[$one]); // just for neatness
+  foreach (ray('form_build_id form_token form_id op') as $one) unset($info[$one]); // just for neatness
   if (u\abbreviates('who=', $last = basename($return = \current_path()))) $return = dirname($return);
   $info['return'] = urlencode(str_replace('/', R_URL_SLASH, $return)); // even urlencoded slashes confuse Drupal
   foreach ($choices as $uid => $fullName) $choices[$uid] = r\qid($uid) . ' ' . $fullName;
-  if (empty($choices)) return say($msg, $args, $field_name); else which($choices, $field_name, $info, tt($msg, $args));
+  if (empty($choices)) return say($msg, $args, $field_name); else which($choices, $field_name, $info, t($msg, $args));
 }
   
 /**
@@ -1751,9 +1777,9 @@ function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
 function transfer($op, $info, $confirmed) {
   $mya = r\acct();
   $myid = $mya->id;
-  extract($params = u\just('who amount goods purpose isGift', $info));
+  extract($params = u\just('who amount goods purpose', $info)); // used to include isGift
   if (!isset($goods) or $goods === '') return say('required field', ['field'=>'"For"'], 'ERR'); // '' is for test
-  u\EXPECT($params, 'string string int|empty string bool');
+  u\EXPECT($params, 'string string int|empty string');
 ///NO!  if (!in_array($op, ['pay', 'charge'])) $goods = FOR_USD; // make sure this is set, for blank_field check
   $txType = $op == 'pay' ? 'payment' : strtolower($op);
 //  if (blank_field($params)) return FALSE;
@@ -1765,7 +1791,7 @@ function transfer($op, $info, $confirmed) {
 
   if (@$isGift) { // tag gifts to nonprofits and handle special case of "giving back" rewards to the community
     $data = compact('isGift');
-    if (r\isGiveback($myid, $a->id, $data)) list ($mya, $a, $amount, $goods) = [$a,$mya,-$amount,FOR_NONGOODS];
+//    if (r\isGiveback($myid, $a->id, $data)) list ($mya, $a, $amount, $goods) = [$a,$mya,-$amount,FOR_NONGOODS];
   } else $data = [];
 
   list ($msg, $args, $confirm) = 
@@ -1773,7 +1799,7 @@ function transfer($op, $info, $confirmed) {
      : ($txType == 'charge' ? be\invoice($mya, $a, $amount, $goods, $purpose, $confirmed)
      : communityTransfer($txType, $a, $amount, $purpose, $confirmed));
 
-  if ($confirm) return @$identifiers . tt('confirm ' . $msg, $args);
+  if ($confirm) return @$identifiers . t('confirm ' . $msg, $args);
   if (!@$args['success']) return say($msg, $args, 'amount');
   return say($msg, $args);
 }
@@ -1783,7 +1809,7 @@ function transfer($op, $info, $confirmed) {
  * @param int $type: what type of transfer
  * @param acct $acct: the account to credit or debit
  * @param int $amount: how much to transfer
- * @param string @purpose: what's the transfer for
+ * @param string $purpose: what's the transfer for
  * @param bool $confirmed: has this transaction been confirmed by the user?
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
@@ -1797,7 +1823,7 @@ function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
   $did = $confirmAction . 'ed';
   $otherName = $acct->fullName;
   $amount = u\fmtAmt($amount);
-  return array($msg, compact(u\ray('success did confirmAction amount otherName')), $success and !$confirmed);
+  return array($msg, compact(ray('success did confirmAction amount otherName')), $success and !$confirmed);
 }  
 
 /**
@@ -1805,9 +1831,8 @@ function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
  * @param string $msg: the message or message index
  */
 function doSay($msg, $ok = FALSE) {
-  $type = $ok ? 'status' : 'error';
-  @file_put_contents(t\dosayFilename($type), $msg); // in case called from a test (no way to know)
-  return r\go('empty/1', $msg, !$ok);
+  if (isDEV) @file_put_contents(t\dosayFilename($ok ? 'status' : 'error'), $msg); // no way to know if actually testing
+  return r\go('empty/say=1', $msg, !$ok);
 }
 
 /**
@@ -1843,14 +1868,14 @@ function menu($title, $type, $function, $args, $perms = '') {
   if (strpos($function, '\\') === FALSE) $function = "rCredits\\Web\\$function";
   $smart = strpos($function, '\\Smart\\');
   $admin = ($perms == 'dev' or stripos($perms, 'admin') !== FALSE);
-  foreach (u\ray('Democracy Proposal') as $k) if (strpos($args, $k) !== FALSE) $dem = TRUE;
+  foreach (ray('Democracy Proposal') as $k) if (strpos($args, $k) !== FALSE) $dem = TRUE;
   $file = $smart ? '../rsmart/rsmart.inc' 
   : ($admin ? '../admin/admin-forms.inc' 
   : (@$dem ? '../rvote/rvote-web.inc'
   : 'rweb.inc'));
   
   if ($perms == ANY) $perms = FALSE;
-  foreach ($args = u\ray($args) as $k => $value) if (is_numeric($value)) $args[$k] = (int) $value;
+  foreach ($args = ray($args) as $k => $value) if (is_numeric($value)) $args[$k] = (int) $value;
   
   $item = array(
     'title' => $title,
@@ -1863,7 +1888,7 @@ function menu($title, $type, $function, $args, $perms = '') {
     'menu_name' => 'main-menu', 
     'module' => $smart ? 'rsmart' : 'rweb',
     'file' => $file,
-    'options' => u\ray('class', $title),
+    'options' => ray('class', $title),
   );
   return $item;
 }
@@ -1874,9 +1899,9 @@ function menu($title, $type, $function, $args, $perms = '') {
 function helpText($page, $tag = '', $args = '') {
   include_once __DIR__ . '/rweb-help.inc';
   $page = strtolower($page);
-  $help = $page == 'charge' ? strtr(rawHelp('pay', $tag, $args), u\ray('pay', 'charge')) : rawHelp($page, $tag, $args);
-  if ($help) return u\SUBS(@$help);
-  return tt('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @regPhone. Or send your question by <a href="mailto:@regEmail?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.', u\ray('regPhone regEmail page', u\fmtPhone(r\regionfield('phone')), r\regionfield('email'), $page));
+  $help = $page == 'charge' ? strtr(rawHelp('pay', $tag, $args), ray('pay', 'charge')) : rawHelp($page, $tag, $args);
+  if ($help) return u\SUBS(@$help, '%');
+  return t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at %regPhone. Or send your question by <%a>email</a>.', 'regPhone _a', u\fmtPhone(r\regionfield('phone')), w\atag('mailto:' . r\regionfield('email') . '?subject=' . t('help with %PROJECT Members Site, %page page', 'page', $page)));
 }
 
 /**
@@ -1908,12 +1933,13 @@ function blank_field($fields, $prefix = '') {
  */
 function say($index, $args = [], $errField = '') {
   global $fieldErr; // used mostly in tests (and in formTx)
+
   if (!@$index) return;
 ///  if (is_array($index) and !isset($index[0])) debug($index);
   if (is_array($index)) list ($index, $args, $errField) = array($index[0], $index[1], $args); // error returned from a function
   if (!is_array($args)) list ($args, $errField) = array($errField, $args); // allow either order, for easy 2-param calls
   $noTable = (strpos($index, '<table') === FALSE);
-  $message = $noTable ? tt($index, $args) : $index;
+  $message = $noTable ? t($index, $args) : $index;
   $fieldErr = ($errField and $errField != 'ERR');
   if ($fieldErr) \form_set_error($errField, $message); else \drupal_set_message($message, @$errField == 'ERR' ? 'error' : 'status', FALSE);
   if ($noTable) u\loga($fieldErr ? 'sayerr' : 'say', compact('message'));
@@ -1921,7 +1947,7 @@ function say($index, $args = [], $errField = '') {
 }
 
 /**
- * Display charts representing the condition of the rCredits system in the given community.
+ * Display charts representing the condition of the %PROJECT system in the given community.
  * @param string $whichChart: which chart or set of charts to display
  * @param int $ctty: account ID of community to show graphs for (defaults to all communities)
  * @return: html of the relevant charts, in their proper divs
@@ -1951,7 +1977,7 @@ function showCharts($whichChart, $ctty = 0) {
   $totalR = u\fmtAmt($r0); // was u\fmtAmt($r0 + $usd0);
   $totalUsd = u\fmtAmt($usd0);
 
-  $txTypes = u\ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly by rCard)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
+  $txTypes = ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly by rCard)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
 
   $avg = u\fmtAmt($txsPerMo ? $perMo / $txsPerMo : 0);
   $txs = "$txsPerMo @ $avg avg";
@@ -1970,14 +1996,14 @@ function showCharts($whichChart, $ctty = 0) {
 EOF;
   $q = db\q($sql, compact('created0', 'now', 'ctty'));
 
-  $charts = u\ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-rcredits');
+  $charts = ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-rcredits');
   if ($whichChart != 'all') $charts = u\just($whichChart, $charts);
   foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, []);
-  $moneyFields = u\ray('funds savings runny runnyBal top5 usd bankInPerMo bankOutPerMo perMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo tradeInPerMo tradeOutPerMo');
+  $moneyFields = ray('funds savings runny runnyBal top5 usd bankInPerMo bankOutPerMo perMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo tradeInPerMo tradeOutPerMo');
 
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    list ($y, $m, $d) = u\ray(strftime('%Y %m %d', $created));
+    list ($y, $m, $d) = ray(strftime('%Y %m %d', $created));
     list ($m, $d) = array($m - 1, $d - 1); // javascript Date object month, day, etc. are zero-based
     $date = "new Date($y,$m,$d)";
     $p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
@@ -1988,7 +2014,7 @@ EOF;
 //    $runnyBal = -$runnyBal; // for now, show runny DEBT instead of runny BAL
 //    $actives = abs($pAccts - $newbs); // active members
     foreach ($moneyFields as $k) {
-      if (!in_array($k, u\ray('bankOutPerMo tradeIn tradeInPerMo'))) $$k = max(0, $$k); // most can't be negative
+      if (!in_array($k, ray('bankOutPerMo tradeIn tradeInPerMo'))) $$k = max(0, $$k); // most can't be negative
       ${$k . '2'} = u\fmtAmt($$k);
     }
     $rate2 = number_format(100 * $rate, 1) . '%';
@@ -2055,12 +2081,12 @@ function fundStats($stats, $includeRaw = FALSE, $format = 's$') {
   $txRewards = $rebates + $bonuss;
   $usd = $bankIn - $bankOut;
 
-//  foreach (u\ray('bankInPerMo bankOutPerMo r usd total signups inflations helpers txRewards grants loans fines') as $one) {
+//  foreach (ray('bankInPerMo bankOutPerMo r usd total signups inflations helpers txRewards grants loans fines') as $one) {
   if ($ctty) { // a community
     $cttyA = r\acct($ctty);
-    $res['cttyName'] = $ctty == r\serverUid() ? t('Seedpack (Outliers)') : trim(strtr($cttyA->fullName, [t('Region')=>'', t('rCredits')=>'']));
+    $res['cttyName'] = $ctty == r\serverUid() ? t('Seedpack (Outliers)') : trim(strtr($cttyA->fullName, [t('Region')=>'', PROJECT=>'']));
   } else $res['cttyName'] = t('TOTAL');
-  foreach (u\ray('r usd tradeIn tradeOut signups txRewards helpers inflations spent grants loans invests fines') as $one) {
+  foreach (ray('r usd tradeIn tradeOut signups txRewards helpers inflations spent grants loans invests fines') as $one) {
     if ($includeRaw) $res[$one . '0'] = $$one;
     $res[$one] = u\fmtAmt($$one, $format);
   }
@@ -2101,7 +2127,7 @@ function monthChoices($title, $things, $subtext = '', $end = -1, $target = '_bla
       $data .= "<td>$v</td>";
     }
     $list = "<table id=\"$things\">\n<tr>$headers</tr>\n<tr>$data</tr>\n</table>";
-  } else $list = t('There are no @THING available yet for this account.', ['@THING' => strtolower($title)]);
+  } else $list = t('There are no %things available yet for this account.', 'things', strtolower($title));
   
   $title = item($title);
   if ($subtext) $subtext = item($subtext);
@@ -2120,7 +2146,7 @@ function userMenuItem($router_path, $link_title) {
   $customized = TRUE;
   $depth = 1;
   $mlid = 0;
-  $item = compact(u\ray('mlid menu_name router_path link_path link_title module customized depth'));
+  $item = compact(ray('mlid menu_name router_path link_path link_title module customized depth'));
   menu_link_save($item);
 }
 
@@ -2148,14 +2174,14 @@ function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
     'uid' => $mya->id,
     'noFrame' => TRUE,
     'subject' => $subject,
-    'PERSONAL_NOTE' => str_replace("\n", "<br>\n", $message), 
-    'MEMBER_NAME' => $mya->fullName, 
-    'MEMBER_PHONE' => u\fmtPhone($mya->phone),
-    'DATE' => u\fmtDate($mya->signed),
+    'personalNote' => str_replace("\n", "<br>\n", $message), 
+    'fullName' => $mya->fullName, 
+    'phone' => u\fmtPhone($mya->phone),
+    'signed' => u\fmtDate($mya->signed),
     'CODE' => r\invite($email, $mya->id, '', $subject, $message),
   );
   r\rMail('invite', $email, $info, $mya);
-  say(!$dupsOk ? 'Sent to @email' : 'invite sent|repeat invite', compact('email'));
+  say(!$dupsOk ? 'Sent to %email' : 'invite sent|repeat invite', compact('email'));
   if (!$admin) r\tellAdmin('invited', $info + compact('email'), $mya->id);
 }
 
@@ -2171,12 +2197,12 @@ function focusOn($focusFieldName) {
 function webAccess($perms = NULL) {
   if ($perms == 'dev' and isDEV) return TRUE;
   if ($perms == ANY) return TRUE; // needed for submenus (see w\subMenu())
-  setGlobals(); // remember who we are
+  setAcct(); // recall who we are
   if (!$mya = r\acct()) return ($perms == 'signedOut');
   if ($perms == 'signedIn') return TRUE;
   if ($perms == 'signedOut') return FALSE;
   
-  foreach (u\ray($perms) as $perm) {
+  foreach (ray($perms) as $perm) {
     $not = (substr($perm, 0, 1) == '-');
     $hasPerm = $mya->can(u\consta('b', $not ? substr($perm, 1) : $perm));
     if ($not ? $hasPerm : !$hasPerm) return FALSE;
@@ -2187,7 +2213,8 @@ function webAccess($perms = NULL) {
 function css($sheet, $weight = -99) {
   global $rUrl;
   $options = ['group' => CSS_THEME, 'preprocess' => FALSE, 'external' => TRUE] + weight($weight);
-  \drupal_add_css("$rUrl/$sheet", $options);
+  $version = isPRODUCTION ? R_VERSION : time();
+  \drupal_add_css("$rUrl/$sheet?$version", $options);
 }
 
 /**
@@ -2213,10 +2240,10 @@ function setupFoot($normalLabel = '') {
     if ($remains = $mya->stepsRemaining() - 1) { // don't count current step
       $nextStep = submit(t('Next ') . '&raquo;');
       $steps = $remains == 1 ? t('step') : t('steps');
-      $progress = item(t('Just <b>@n</b> more @steps to go', ['@n' => $remains, '@steps' => $steps]));
+      $progress = item(t('Just <b>%n</b> more %steps to go', 'n steps', $remains, $steps));
     } else $nextStep = submit(t('Finish'));
   } else $submit = submit($normalLabel);
-  return compact(u\ray('submit nextStep progress'));
+  return compact(ray('submit nextStep progress'));
 }
 
 /**
@@ -2236,10 +2263,43 @@ function amtErr($field, &$sta, $restriction = '', $fractionLimit = 2) {
   return u\badAmount($sta['input'][$field], $restriction, $fractionLimit);
 }
 
+
+/**
+ * Return an a tag.
+ */
+function atag($href, $extras = []) {
+  if ($href[0] == '/') $href = BASE_URL . $href;
+  if (strpos($href, BASE_URL) !== 0) {
+    if (substr($href, 0, 6) == 'mailto' or substr($href, 0, 4) == 'http') $extras += w\away();
+  }
+  return 'a ' . u\tribs(compact('href') + $extras);
+}
+
+/**
+ * Return an a tag for a non-spinning button to a new page.
+ */
+function atagB($href, $style = 'primary', $size = 'xs') {
+  return atag($href, ray('class role target', "btn btn-$size btn-$style", 'button', '_blank'));
+}
+function btn($href, $text, $style = 'primary', $size = 'xs') {return '<' . atagB($href, $style, $size) . ">$text</a>";}
+
+/**
+ * Return an HTML tag with optional attributes, surrounding optional HTML.
+ * @param string $tag: the tag
+ * @param string $html: (optional) inner HTML
+ * @param assoc $tribs: (optional) keyed-array of attributes
+ * @return the resultant HTML
+ */
+function tag($tag, $html = '', $tribs = []) {
+  $tribs = $tribs ? ' ' . u\tribs($tribs) : '';
+  return "<$tag$tribs>$html</$tag>";
+}
+function tagN($tag, $html = '', $tribs = []) {return str_replace('#', '', tag($tag, $html, $tribs));}
+
 // one-line functions that need no explanation
-function tt($message, $subs = []) {return u\tt($message, $subs);}
-//function block_def($info, $extra = []) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
-function blockView($subject, $content) {return compact(u\ray('subject content'));}
+//function t($message, $subs = []) {return t($message, $subs);}
+//function block_def($info, $extra = []) {return compact(ray('info cache'));} // also status, region, visibility, pages
+function blockView($subject, $content) {return compact(ray('subject content'));}
 function disabled($value = NULL, $disabled = TRUE) {return attrib(compact('disabled')) + (is_null($value) ? compact('value') : []);}
 function onchange($onchange) {return w\attrib(compact('onchange'));}
 function dft($default_value) {return compact('default_value');}
@@ -2254,7 +2314,8 @@ function required($dft = NULL) {return ['required' => TRUE] + (isset($dft) ? dft
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
 function op($sta) {global $testOp; return u\test() ? $testOp : str_replace('edit-', '', @$sta['input']['opid']);}
 function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}
-function blurbLink() {global $rUrl; return "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">description of rCredits</a>";}
-function sayFieldErr($err, $field) {return say(strtoupper($field) . ': ' . tt($err), $field);}
+//function blurbLink() {global $rUrl; return "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">" . t('description of %PROJECT') . '</a>';}
+function sayFieldErr($err, $field) {return say(strtoupper($field) . ': ' . t($err), $field);}
 function rent($element) {return \render($element);} // Drupal makes render hard, requires pass by reference
-function goNextStep($step, $msg = NULL, $info = []) {r\go(r\acct()->nextStepUrl($step, $msg, $info), $msg);}
+function goNextStep($step, $msg = NULL, $info = []) {if ($step = r\acct()->nextStepUrl($step, $msg, $info)) r\go($step, $msg); elseif (@$msg) say($msg);}
+function away() {return ['target' => '_blank'];}

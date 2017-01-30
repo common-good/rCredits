@@ -10,6 +10,7 @@ Software Priorities:
 6. Greater Security (and security audit)
 
 NON_SOFTWARE TO_DOs
+- pay $400 to apply to returnpath.com to be listed as a trusted email sender (so Outlook/hotmail/live.com users can receive our emails)?
 - create rc2.me on rcredits.org WHM, add pointers on myhosting.com as for rc4.me, copy rc4.me's .htaccess (modified), and change ServerAlias www.rc2.me to *.rc2.me
 
 - Fuzzy: what's up with Stacey Matlen (248 763 1903)? Bad email, no rCard use. 

@@ -15,9 +15,9 @@ Setup:
   
 Scenario: A member visits the preferences page
   When member ".ZZA" visits page "settings/preferences"
-  Then we show "Account Preferences" with:
-  | Share | 30% |
-  And radio "statements" is "printed statements"
+#  Then we show "Account Preferences" with:
+#  | Share | 30% |
+  Then radio "statements" is "printed statements"
   And radio "notices" is "daily"
   And we show checked:
   | No Search | by name or account number only |
@@ -26,9 +26,9 @@ Scenario: A member visits the preferences page
 
 Scenario: Another member visits the preferences page
   When member ".ZZB" visits page "settings/preferences"
-  Then we show "Account Preferences" with:
-  | Share | 20% |
-  And radio "statements" is "accept electronic"
+#  Then we show "Account Preferences" with:
+#  | Share | 20% |
+  Then radio "statements" is "accept electronic"
   And radio "notices" is "weekly"
   And we show checked:
   | Secret Balance | Don't let merchants |
@@ -41,8 +41,8 @@ Scenario: A member changes preferences
   |   3 | %today-1m | grant  |    250 | ctty | .ZZA | grant   |
   And member ".ZZA" has no photo ID recorded
   When member ".ZZA" completes form "settings/preferences" with values:
-  | share | notices | statements | nosearch | secretBal |*
-  |    25 | monthly | electronic |        0 |         1 |
+  | roundup | share | notices | statements | nosearch | secretBal |*
+  |       1 |    25 | monthly | electronic |        0 |         1 |
   Then members:
   | id   | share |  flags   |*
-  | .ZZA |    25 | member,ok,confirmed,bona,monthly,secret |
+  | .ZZA |    25 | member,ok,confirmed,bona,monthly,secret,roundup |

@@ -21,10 +21,10 @@ Scenario: A member registers a company
   | personal | isOwner | employeeOk | flow | helper  | fullName | phone |*
   |        0 |       1 |          1 |    0 | NEWZZA |          |       |
   And we show "Open a Company Account" with:
-  |_nameDescription      |
+  |~nameDescription      |
   | properly capitalized |
   And with:
-  |_acctType            |
+  |~acctType            |
   | partnership         |
   | private corporation |
   Given invitation to email "a@" from member ".ZZC" is "c0D3"

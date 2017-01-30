@@ -49,7 +49,6 @@ function extraSetup($feature) {
  *     MAKE Recache Setup
  *     BOTH Risk Setup
  *     TEST Risk WeCalculateRisks
- *     MAKE Sharing Setup
  *     MAKE Tickle Setup
  *     MAKE Trust Setup
  *     TEST Trust WeCalculateTrust
@@ -82,7 +81,6 @@ function members($list) {return t\members($list);}
  *     TEST Recache Setup
  *     BOTH Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
- *     TEST Sharing MembersShareTheirTransactionRewards
  *     MAKE Tickle AMemberGetsACreditLine
  *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
@@ -119,7 +117,6 @@ function balances($list) {return t\balances($list);}
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
  *     MAKE Risk Setup
  *     MAKE Risk WeCalculateRisks
- *     MAKE Sharing MembersShareTheirTransactionRewards
  *     MAKE Tickle ANewbieHasNotTakenTheFirstStep
  *     MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
  *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
@@ -187,8 +184,6 @@ function relations($relations) {return t\relations($relations);}
  *     MAKE Recache Setup
  *     MAKE Risk Setup
  *     TEST Risk WeCalculateRisks
- *     MAKE Sharing Setup
- *     TEST Sharing MembersShareTheirTransactionRewards
  *     MAKE Tickle AMemberGetsACreditLine
  *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
@@ -205,7 +200,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ARecurringDonationCanBeCompleted
  *     TEST Joint AJointAccountNeedsRefilling
- *     TEST Sharing MembersShareTheirTransactionRewards
  *     TEST Tickle ANewbieHasNotTakenTheFirstStep
  *     TEST Tickle ANonmemberHasNotAcceptedTheInvitation
  */
@@ -227,7 +221,6 @@ function weNoticeToMember($notice, $id) {return t\notice($notice, $id);}
  *     MAKE Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
  *     BOTH Gifts ARecurringDonationCanBeCompleted
  *     MAKE Risk Setup
- *     TEST Sharing MembersShareTheirTransactionRewards
  */
 function gifts($gifts) {return t\gifts($gifts);}
 
@@ -381,10 +374,10 @@ function memberTradesUSDToMemberForRCredits($id1, $amount, $id2) {
 function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   $a = acct(t\uid($id));
-  $message = u\tt($topic, @$subs[0]);
+  $message = t($topic, @$subs[0]);
   $topic = $GLOBALS['topics'][$topic];
   $fullName = $a->fullName;
-  return weEmailToMemberWithSubs('message', $a->email, compact(u\ray('message topic fullName')));
+  return weEmailToMemberWithSubs('message', $a->email, compact(ray('message topic fullName')));
 }
 
 /**
@@ -491,7 +484,7 @@ function memberCacheIsOk($id) {return r\acct(t\uid($id))->cacheOk();}
 /**
  * oftenness works
  *
- * in: TEST Sharing PeriodicTestTimerWorks
+ * in: 
  */
 function oftennessWorks() {
   global $testOnly; if (!$testOnly) return FALSE;

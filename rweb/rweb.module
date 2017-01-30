@@ -24,10 +24,10 @@ define('RWEB_BLOCKS', 'accounts footer');
  */
 function rweb_block_info() {
   $info = [];
-  foreach (u\ray(RWEB_BLOCKS) as $one) {
+  foreach (ray(RWEB_BLOCKS) as $one) {
     $def = array('info' => ucfirst($one) . ' Block');
     $status = 1;
-    $def += compact(u\ray('region status'));
+    $def += compact(ray('region status'));
     $info[$one] = $def;
   }
   $info['footer']['cache'] = -1;
@@ -40,7 +40,7 @@ function rweb_block_info() {
  * Implements hook_block_view().
  */
 function rweb_block_view($delta = '') {
-  if (in_array($delta, u\ray(RWEB_BLOCKS))) return r\Web\blockView(NULL, r\Web\showForm($delta)); // no subject for blocks
+  if (in_array($delta, ray(RWEB_BLOCKS))) return r\Web\blockView(NULL, r\Web\showForm($delta)); // no subject for blocks
 }
 
 function makeMenuItem($parts) {
@@ -93,14 +93,18 @@ function rweb_menu($submenu = '') {
     'proposal' => ['call', t('Funding Proposal'), 'Proposal', ANY], // keep the url short, for outsiders
     'community' => ['norm', t('Community'), 'Community', ANY],
     'community/democracy' => ['sub', t('Discussion & Voting'), 'Democracy 2', 'ok manage', '', t(''), 'bell'],
+    'community/democracy/proposal-report' => ['call', t('Proposal Report'), 'ProposalReport 3', 'manage'],
+    'community/democracy/proposal-notes' => ['call', t('Proposal Notes'), 'ProposalNotes 3', 'manage'],
+    
     'community/agreement' => ['sub', t('The Agreement'), 'Agreement', ANY, '', t(''), 'globe'],
     'community/invite' => ['sub', t('Invite Someone'), 'Invite', 'member manage', '', t(''), 'share-alt'],
+    'community/invite/example' => ['call', t('Invite Someone'), '', 'member manage', 'inviteExample'],
     'community/message' => ['sub', t('Message a Member'), 'Message', 'member manage', '', t(''), 'envelope'],
     'community/find-company' => ['sub', t('Find a Company'), 'FindCo', ANY, '', t(''), 'search'],
     'community/donate' => ['sub', t('Donate'), 'Donate', 'manage', '', t(''), 'thumbs-up'],
     'community/grant' => ['sub', t('Get Paid to Organize'), 'Grant', ANY, '', t(''), 'apple'],
     'community/funds' => ['sub', t('Funds in Each Community'), 'CttyFunds', ANY, '', t(''), 'usd'],
-    'community/graphs' => ['sub', t('rCredits Economy Graphs'), 'Graphs 2', ANY, '', t(''), 'stats'],
+    'community/graphs' => ['sub', t('%PROJECT Graphs'), 'Graphs 2', ANY, '', t(''), 'stats'],
     'community/flags' => ['sub', t('Risk Flags'), 'Flags 2', ANY, '', t(''), 'flag'],
 //    'community/game' => isGAME ? ['sub', t('Game'), 'Game', ANY) : NULL,
     'community/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
@@ -164,12 +168,13 @@ function rweb_menu($submenu = '') {
     'sadmin/make-community' => ['sub', t('Make Ctty'), 'MakeCtty', 'admin'],
     'sadmin/sms' => ['sub', t('Test SMS'), 'SMS', 'admin'],
     'sadmin/handy' => ['sub', t('Handy'), '', 'dev', 'handyLinks'],
-    'sadmin/php' => ['sub', t('PHP'), 'Php', 'dev'],
+    'sadmin/php' => ['sub', t('PHP'), 'Php 2', 'dev'],
     'sadmin/zot' => ['sub', 'zot', '', 'admin'], // Drupal bug: last choice is omitted
 //    'sadmin/acct-info' => ['call', 'Account Info', 'Summary 2', 'regulator'],
     'sadmin/tx-info' => ['call', 'Transaction Info', 'TxInfo 2', 'regulator'],
     'sadmin/deposit-details' => ['call', t('Deposit Details'), '2', 'admin', 'depositDetails'],
     'sadmin/checks' => ['call', t('Checks'), '2', 'admin', 'printChecks'],
+    'sadmin/achs' => ['call', t('ACHs'), '2', 'admin', 'achBatch'],
     'sadmin/changes' => ['call', t('See Changes'), 'SeeChanges 2', 'cadmin'],
     'sadmin/organizer-list' => ['call', t('Organizer List'), 'OrganizerList 2', 'admin'],
     'rcredits/util' => ['call', 'Util', '2', 'admin', 'util'],
@@ -184,7 +189,7 @@ function rweb_menu($submenu = '') {
     'help' => ['call', t('Help'), 'Help 1 2', ANY],
     'change-account' => ['call', t('Change Who'), '1', ANY, 'changeWho'],
     'status' => ['call', 'Status', 'Membership 1', 'manage'],
-    'signup' => ['call', t('Sign Up For rCredits'), 'Signup', ANY],
+    'signup' => ['call', t('Sign Up For %PROJECT'), 'Signup', ANY],
     'menu' => ['call', 'Main Menu', 'Menu', ANY],
     'member' => ['call', 'Company Profile', 'Profile', ANY],
     'autocomplete' => ['call', 'Identify', '1 2 3', ANY, 'auto'],
@@ -200,7 +205,7 @@ function rweb_menu($submenu = '') {
     'error' => ['call', 'System Error', '1', ANY, 'error'],
     'page-not-found' => ['call', t('Page Not Found'), 'PageNotFound', ANY],
     
-    'pay-with-rcredits' => ['call', 'Pay With rCredits', 'Buy', ANY], // form will require PIN
+    'pay-with-rcredits' => ['call', t('Pay With %RCREDITS'), 'Buy', ANY], // form will require PIN
   );
 // $menu['user/password'] = $menu['settings/password']; // duplicates user/password (handles built-in Drupal link)
 
@@ -212,18 +217,14 @@ function rweb_menu($submenu = '') {
 }
 
 function rweb_menu_alter(&$items) {
-  foreach (u\ray('node user/password user/register') as $one) unset($items[$one]);
+  foreach (ray('node user/password user/register') as $one) unset($items[$one]);
 }
 
 function rweb_form_alter(&$form, &$sta, $form_id) {
   global $base_url;
   $req = basename($_SERVER['REQUEST_URI']);
 ///  debug(compact('req','form_id'));
-  if (!\user_is_logged_in() and in_array($req, ['login', 'logout'])) {
-    $home = isGAME ? 'community/game' : 'signin';
-    header("location:$base_url/$home"); // nothing else works
-    exit();
-  }
+  if (!\user_is_logged_in() and in_array($req, ['login', 'logout'])) return r\go(PROMO_URL); // nothing else works
 /*  if ($req == 'login' and !user_is_logged_in()) {header("location:$base_url/" . (isGAME ? 'community/game' : 'signin')); exit();} // nothing else works
   if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isGAME ? "$base_url/community/game" : (isDEV ? 'http://localhost' . DEV_ROOT : BASE_URL) . '/signin')); exit();} // nothing else works */
   if ($req == 'user' and user_is_logged_in()) r\go(isGAME ? 'community/game' : 'summary'); // summary not ''

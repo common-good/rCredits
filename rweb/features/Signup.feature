@@ -13,22 +13,22 @@ Setup:
 Scenario: A newbie visits the registration page with no invite
   Given invitation to email "a@" from member ".ZZZ" is ""
   When member "?" visits page "signup"
-  Then we show "Open a Personal rCredits Account" with:
-  |_errorPhrase         |
+  Then we show "Open a Personal %PROJECT Account" with:
+  |~errorPhrase         |
   | you must be invited |
 
 Scenario: A newbie visits the registration page with bad invite
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" visits page "signup/code=WhAtEvEr"
-  Then we show "Open a Personal rCredits Account" with:
-  |_errorPhrase         |
+  Then we show "Open a Personal %PROJECT Account" with:
+  |~errorPhrase         |
   | you must be invited |
 
 Scenario: A newbie visits the registration page with expired invite
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   And invitation "c0D3" was sent on "%today-5w"
   When member "?" visits page "signup/code=c0D3"
-  Then we show "Open a Personal rCredits Account"
+  Then we show "Open a Personal %PROJECT Account"
 # lateness no longer makes a big difference
 #  And we say "error": "expired invite" with subs:
 #  | a | inviterName |*
@@ -40,7 +40,7 @@ Scenario: A newbie visits the registration page with a used invite
   | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns | helper |*
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St., Agawam, MA 01001 |     18 |    1 | .ZZZ   |
   When member "?" visits page "signup/code=c0D3"
-  Then we show "Open a Personal rCredits Account"
+  Then we show "Open a Personal %PROJECT Account"
   And we say "error": "used invite"
 
 Scenario: A newbie registers in Western Massachusetts
@@ -171,8 +171,8 @@ Scenario: A member registers again
   | fullName | email | phone      | postalCode | federalId   | dob      | acctType    |*
   | Bea Two  | a@ | 413-253-0002 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL |
   Then we say "error": "duplicate email|forgot password" with subs:
-  | who     | a                                        |*
-  | Abe One | a href=settings/password/a%40example.com |
+  | who     | a                                          |*
+  | Abe One | a href="settings/password/a%40example.com" |
 #  Then we say "error": "duplicate email|forgot password" with subs:
 #  | who     | emailTagged            | a                                       |*
 #  | Abe One | a+whatever@example.com | a href=settings/password/a%40example.com |

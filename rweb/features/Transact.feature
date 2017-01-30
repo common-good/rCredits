@@ -45,7 +45,7 @@ Scenario: A member confirms request to charge another member
   When member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods | purpose |*
   | charge | Bea Two | 100    | %FOR_GOODS     | labor   |
-  Then we say "status": "report tx|balance unchanged" with subs:
+  Then we say "status": "report tx|for why|balance unchanged" with subs:
   | did     | otherName | amount | why                |*
   | charged | Bea Two   | $100   | goods and services |
   And we message "new invoice" to member ".ZZB" with subs:
@@ -81,12 +81,12 @@ Scenario: A member confirms request to pay another member
   When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |*
   | pay | Bea Two | 100    | %FOR_GOODS     | labor   |
-  Then we say "status": "report tx|reward" with subs:
+  Then we say "status": "report tx|for why|the reward" with subs:
   | did    | otherName | amount | why                | rewardAmount |*
   | paid   | Bea Two   | $100   | goods and services | $5           |
   And we notice "new payment|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*
-  | %today  | Bea Two  | Abe One   | $100   | labor        | reward          |               $10 |
+  | %today  | Bea Two  | Abe One    | $100   | labor        | reward          |               $10 |
   And transactions:
   | xid | created | type     | amount | from  | to   | purpose      | taking |*
   |   4 | %today  | transfer |    100 | .ZZA  | .ZZB | labor        | 0      |
@@ -117,15 +117,15 @@ Scenario: A member confirms request to pay a member company
   When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |*
   | pay | Our Pub | 100    | %FOR_GOODS     | stuff   |
-  Then we say "status": "report tx|reward" with subs:
+  Then we say "status": "report tx|for why|the reward" with subs:
   | did    | otherName | amount | why                | rewardAmount |*
   | paid   | Our Pub   | $100   | goods and services | $5           |
-  And we notice "new payment|reward other" to member ".ZZC" with subs:
-  | created | fullName | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*
-  | %today  | Our Pub  | Abe One   | $100 | stuff | reward | $10 |
+  And we notice "new payment linked|reward other" to member ".ZZC" with subs:
+  | created | fullName | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount | aPayLink |*
+  | %today  | Our Pub  | Abe One   | $100 | stuff | reward | $10 | ? |
   And that "notice" has link results:
-  | _name | Abe One |
-  | _postalAddr | 1 A, A, AK |
+  | ~name | Abe One |
+  | ~postalAddr | 1 A, A, AK |
   | Physical address: | 1 A St., Atown, AK 01000 |
   And transactions:
   | xid | created | type     | amount | from  | to   | purpose      | taking |*

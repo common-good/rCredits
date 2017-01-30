@@ -24,9 +24,9 @@ Scenario: Someone scans a member card
 Scenario: Someone scans a company agent card
   When member "?" visits page "I/ZZB-ccB2"
   Then we show "Corner Pub" with:
-#  |_Address  |_phone        | _Button |*
+#  |~Address  |~phone        | ~Button |*
 #  | Cton     | 200.000.0003 | Pay     |
-  |_Address  |_phone        |
+  |~Address  |~phone        |
   | Cton     | 200 000 0003 |
 
 Scenario: Someone scans an old member card
@@ -36,7 +36,7 @@ Scenario: Someone scans an old member card
 Scenario: Someone scans an old company agent card
   When member "?" visits page "I/NEW-ZZB-ccB2"
   Then we show "Corner Pub" with:
-#  |_Address  |_phone        | _Button |*
+#  |~Address  |~phone        | ~Button |*
 #  | Cton     | 200.000.0003 | Pay     |
-  |_Address  |_phone        |
+  |~Address  |~phone        |
   | Cton     | 200 000 0003 |

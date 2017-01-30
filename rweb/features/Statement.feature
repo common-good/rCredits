@@ -55,9 +55,9 @@ Setup:
 Scenario: A member looks at a statement for previous month
   When member ".ZZA" views statement for %lastmy
   Then we show "ZZA" with:
-  | Starting | From Bank | FROM You | TO You   | Rewards | Ending   |
-  | 1,000.00 | -44.00    | 460.00   | 1,110.00 |         | 1,606.00 |
-  |     0.00 |           |          |          | 268.00  |   268.00 |
+  | Starting | From Bank | Paid   | Received | Rewards | Ending   |
+  | 1,000.00 | -44.00    | 460.00 | 1,110.00 |         | 1,606.00 |
+  |     0.00 |           |        |        | 268.00  |   268.00 |
   And with:
   | Tx#  | Date       | Name       | Purpose  | Amount  | Reward |
   | 1    | %lastmd+1d | ZZrCred    | signup  |       -- | 250.00 |

@@ -96,7 +96,7 @@ function recT($year, $testMode) {
   $foreign = pad(FALSE, 1); // 1 for foreign
   $coName = $transmitterName = pad(CGF_LEGALNAME, 80);
   list ($address, $city, $st, $zip) = u\parseAddr(CGF_POSTALADDR);
-  $coAddr = pad($address, 40) . pad($city, 40) . $st . pad($zip, 9);
+  $coAddr = pad($address, 40) . pad($city, 40) . $st . pad(str_replace('-', '', $zip), 9);
   $payees = u\lpad(0, 8); // not possible to know the count yet
   $contact = pad(ADMIN_NAME, 40) . pad(u\fmtPhone(R_ADMIN_PHONE,'n'), 15) . pad(R_ADMIN_EMAIL, 50);
   $source = pad('I', 1); // V=vendor I=in-house
@@ -131,7 +131,7 @@ function recB($year, $a, $completed, $amount, $for, $mod = '', $badName = NULL, 
   $who = "$a->legalName ($a->mainQid)";
   if (!isset($badName) and !isset($badTIN)) {
     if ($mod == 'G') return err1099(t('Original B Record has no error to be corrected: ') . $who);
-  } elseif ($mod != 'G') if (isset($badName) or isset($badTIN)) return err1099(u\tt('Spurious badName (@badName) or badTIN (@badTIN) for payee @who.', compact('badName', 'badTIN', 'who')));
+  } elseif ($mod != 'G') if (isset($badName) or isset($badTIN)) return err1099(t('Spurious badName (%badName) or badTIN (%badTIN) for payee %who.', compact('badName', 'badTIN', 'who')));
   $corrected = pad($mod, 1);
   $tinType = pad($a->co ? 1 : 2, 1);
   $payeeTIN = pad(isset($badTIN) ? $badTIN : $a->federalId, 9);

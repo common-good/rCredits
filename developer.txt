@@ -134,29 +134,30 @@ E. Database clues
          pin: the member's chosen 4-character PIN
          bankAccount: IBN (or fake IBN for US accounts created from routing number and account number)
         federalId: social security number or (for companies) EIN
-      - r_txs
+  - r_txs
     . xid: record id
     . payerTid: Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.
     . payeeTid: ditto
     . payer: uid of the account being debited.
-    . payee: uid of the account being creditd. CANNOT BE A COMMUNITY (uid<0) until getStats() is revised.
     . amount: the transaction amount
     . data: non-essential and unusual essential information in a serialized associative array:
-       undoneBy: xid of the transaction that reversed this one (if it is reversed)
-       undoes: the transaction id of the undone transaction that this transaction reversed
-       bonus and rebate: the dollar amounts of any rewards associated with a payment
-       preapproved: (not in the table, just internally) transaction is preapproved by another server (a payment or an authorized business unilaterally charging a customer)
-       disputed: TRUE if the payer disputes the transaction (else not set)
-       force: 1/-1 if transaction was taken offline (-1 if the transaction reverses another transaction)
-       changes: array of important changes made to the record
+        undoneBy: xid of the transaction that reversed this one (if it is reversed)
+        undoes: the transaction id of the undone transaction that this transaction reversed
+        bonus and rebate: the dollar amounts of any rewards associated with a payment
+        preapproved: (not in the table, just internally) transaction is preapproved by another server (a payment or an authorized business unilaterally charging a customer)
+        changes: array of important changes made to the record
+    . flags: miscellaneous bits of information
+        taking:
+        disputed: TRUE if the payer disputes the transaction (else not set)
+        offline: transaction was taken offline
    (more to come...)
          
 F. Notes on some PHP functions and rCredits utilities - often-used or crucial
      compact/extract: typically we compact arguments to a function and the function extracts them
      ray: turns a delimited string into an array, increasing code readability, typability, and maintainability
      just: makes extract() simpler, self-documenting, and less prone to confusion
-     tt: our version of Drupal's t() function, but with named messages and more convenient substitution
-     EXPECT: a costly but easy-to-use constistency checker
+     t (in bootstrap.inc): our version of Drupal's t() function, but with named messages and more convenient substitution
+     EXPECT: a costly but easy-to-use constistency checker (replace some of this with param hints in PHP 7)
      ret<X>: A collection of functions to return the argument when it passes a certain test.
      is<X>: A collection of functions to return TRUE when the argument passes a certain test, otherwise FALSE.
      r\acct(): interface to the acct object -- representing an account (including region), combined with the current agent for the account. Note that r\acct($uid) is very different from new r\Acct($uid).
@@ -231,7 +232,7 @@ G. Special rCredits datatypes
   Other countries or groups of countries will also have region codes, which will default (for now) to their 2-letter country code.
   US Population maps: http://www.towndesktop.com/images/states/michigan-pop-total.jpg
  
-H. Division of rCredits system responsibilities
+H. Division of %PROJECT system responsibilities
 
   Common Good Finance
   - manage the first region until it exists and can stand on its own
@@ -239,7 +240,7 @@ H. Division of rCredits system responsibilities
   Region
   - identified by name LIKE '%.'
   - every account is in a region (active or not yet active)
-  - every rCredits Community is in a region (active or not yet active)
+  - every %PROJECT community is in a region (active or not yet active)
 
   Region - not yet active
   - no record in users table
@@ -250,8 +251,8 @@ H. Division of rCredits system responsibilities
   - has a record in the users table (with no communities in the region's number space)
   - fullName = legalName = rCredits regionPlace Region (for example rCredits Western Mass Region)
   - email is regionPlace@rcredits.org OR region@regionPlace.rcredits.org (use a 2-char abbreviation instead of regionPlace if it is a state)
-  - is also an rCredits Community:
-    . on its own server the region account is the Seedpack community (anyone in the region who is too far away from an organized rCredits Community). The NEW Seedpack includes anyone not covered by another region.
+  - is also an %PROJECT community:
+    . on its own server the region account is the Seedpack community (anyone in the region who is too far away from an organized %PROJECT community). The NEW Seedpack includes anyone not covered by another region.
     . on other servers, a region account represents all communities in that region (tracking the trade balance)
   - coordinate rCredits communities within the geographic region
   - manage an rCredits server (and a backup server) on behalf of its communities
@@ -259,12 +260,12 @@ H. Division of rCredits system responsibilities
   - submit forms 1099-B to the IRS and state government
   - has its own EIN and contact info
   
-  rCredits Community (always active unless closed)
+  %PROJECT community (always active unless closed)
   - identified by uid<1
-  - every account is in an rCredits community
+  - every account is in an %PROJECT community
   - fullName is anything. legalName is Placename State rCredits (with state spelled out)
   - email is placename@regionPlace.rcredits.org
-  - accounts in the same rCredits community can be in different regions
+  - accounts in the same %PROJECT community can be in different regions
   - any account outside an organized area is in the Seedpack community
   - issue rCredits for the common good (only tentative automatic rewards until declared a Common Good Community)
   - Common Good Communities (CGCs) transact with, collaborate with, and oversee other communities in the region
@@ -306,6 +307,8 @@ X. Other thoughts:
     </IfModule>
   - Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
   - Suppose I live in 413 (NEW), but my cell is 987 (NYC). Person B lives in 222 with cell 333. When I am traveling to AAA I pay person B with SMS, by calling the local rCredits number. The local server contacts NYC to process my side of the transactions, but gets redirected to NEW. Similarly for person B's side. So at most 5 servers are involved (three just redirecting). NEW.rcredits.org and other subdomains act similarly.
+  - use http://realfavicongenerator.net/ to create favicon. To (re)test in Chrome, exit Chrome and type:
+    DEL C:\Users\William\AppData\Local\Google\Chrome\User Data\Default\Favicons
 
   
   

@@ -61,7 +61,7 @@ Scenario: A member looks at transactions for the past year
   | Rewards  |   |          | + | 268.00 |          |
   | End      |   | 1,650.00 |   | 268.00 | %dmy     |
   And with:
-  |_tid | Date   | Name       | Purpose  | Amount   | Reward |_do |
+  |~tid | Date   | Name       | Purpose  | Amount   | Reward |~do |
   | 6   | %mdy-6d | Bea Two    | cash V  |  -100.00 | --     | X  |
   | 5   | %mdy-1w | Corner Pub | this Q  |  -120.00 | 6.00   | X  |
   | 4   | %mdy-3m | Bea Two    | what G  |  -240.00 | 12.00  | X  |
@@ -82,7 +82,7 @@ Scenario: A member looks at transactions for the past few days
   | Rewards   | + |          |   |   6.00 |          |
   | End       |   | 1,650.00 |   | 268.00 | %dmy     |
   And with:
-  |_tid | Date   | Name       | Purpose    | Amount  | Reward |_do |
+  |~tid | Date   | Name       | Purpose    | Amount  | Reward |~do |
   | 6   | %mdy-6d | Bea Two    | cash V     | -100.00 | --     | X  |
   | 5   | %mdy-1w | Corner Pub | this Q     | -120.00 | 6.00   | X  |
   And without:
@@ -113,7 +113,7 @@ Scenario: A member looks at transactions for the past few days
 #  | .ZZC | 2320 |
 #  When member ".ZZA" visits page "history/transactions/period=5"
 #  Then we show "Transaction History" with:
-#  |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |
+#  |~tid | Date   | Name       | From you | To you | Status   | ~  | Purpose    | Reward/Fee |
 #  | 15  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X  | cash CL    | --     |
 #  | 13  | %dm-5d | Corner Pub | 80.00    | --     | disputed | OK | this CF    | 4.00   |
 #  | 11  | %dm-5d | Corner Pub | --       | 100.00 | denied   | X  | labor CA   | 10.00  |
@@ -127,7 +127,7 @@ Scenario: A member looks at transactions for the past few days
 #  | bonus   |
 #  When member ".ZZC" visits page "history/transactions/period=5"
 #  Then we show "Transaction History" with:
-#  |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward/Fee |
+#  |~tid | Date   | Name       | From you | To you | Status   | ~  | Purpose    | Reward/Fee |
 #  | 10  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK | cash CL    | --     |
 #  | 8   | %dm-5d | Abe One    | --       | 80.00  | disputed | X  | this CF    | 8.00   |
 #  | 7   | %dm-5d | Abe One    | --       | 5.00   | denied   | X  | cash CE    | --     |

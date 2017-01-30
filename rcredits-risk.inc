@@ -22,7 +22,7 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
   $a = r\acct($uid);
   global $_qid; $_qid = $a->mainQid; // for debugging
 ///  if ($a->mainQid != 'NEW.ZZA') return; // debug(
-  $idSub = u\ray('id', $a->id);
+  $idSub = ray('id', $a->id);
   
   setrisk('adminOk', $a); // administrator blessed this account
 //  if ($a->community <> r\serverUid()) setRisk('geography'); // HIDTA (Washtenaw cty, MI)
@@ -35,19 +35,19 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
   setRisk('rents', $a);
   
   $trusted = $a->trust - 1; // how well trusted (trust is always >=1)
-  $inviteTrust = db\lookup('SUM(trust - 1)', 'users u INNER JOIN r_invites i ON i.inviter=u.uid', 'i.invitee=:id OR i.email=:email', u\ray('id email', $a->id, $a->mail)); // trustedness of accounts that invited this one
+  $inviteTrust = db\lookup('SUM(trust - 1)', 'users u INNER JOIN r_invites i ON i.inviter=u.uid', 'i.invitee=:id OR i.email=:email', ray('id email', $a->id, $a->mail)); // trustedness of accounts that invited this one
   $trusted += $inviteTrust; // invited by trusted people
-  $relations = db\lookup('COUNT(*)', 'r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND NOT r.isOwner AND r.other=:id AND u.risk<:K_GREEN', $idSub);
+  $relations = db\count('r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND NOT r.isOwner AND r.other=:id AND u.risk<:K_GREEN', $idSub);
   $trusted += $relations; // access to (trusted by) non-suspect businesses
   setRisk('trusted', $trusted, $trusted > 1.5);
   
-  $conxRisk = db\lookup('COUNT(*)', 'users u INNER JOIN r_invites i ON i.invitee=u.uid', "i.inviter=:id AND u.risk>=:K_RED", $idSub); // invited by this account
-  $relationsRisk = db\lookup('COUNT(*)', 'r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND r.other=:id AND u.risk>=:K_RED', $idSub); // access to (trusted by) suspect businesses
+  $conxRisk = db\count('users u INNER JOIN r_invites i ON i.invitee=u.uid', "i.inviter=:id AND u.risk>=:K_RED", $idSub); // invited by this account
+  $relationsRisk = db\count('r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND r.other=:id AND u.risk>=:K_RED', $idSub); // access to (trusted by) suspect businesses
   setRisk('badConx', $conxRisk + $relationsRisk, 'ifany'); // invited suspicious accounts
 
   setRisk('socialConx', $a->mediaConx, 'ifany'); // 1st or 2nd-degree social media connections to administrator
 
-//  if ($a->co and db\exists('users', 'uid<>:id AND address=:address AND postalCode=:postalCode', u\ray('id address postalCode', $a->id, $a->address, $a->postalCode))) setRisk('homeCo'); // company shares physical address
+//  if ($a->co and db\exists('users', 'uid<>:id AND address=:address AND postalCode=:postalCode', ray('id address postalCode', $a->id, $a->address, $a->postalCode))) setRisk('homeCo'); // company shares physical address
   if ($a->co and $a->dupAddr()) setRisk('homeCo'); // company shares physical address (encryption requires func)
   setRisk('shady', $a); // no substantial internet search results and/or no SSN history
 //  if ($a->can(B_BANK)) setRisk('hasBank'); // has a connected bank account
@@ -106,7 +106,7 @@ function txRisk1($tx, &$risk = 0, &$calc = 0) {
     if ($withCo and (r\owning($payer, $payee) or $samePostal or r\isEmployee($payer, $payee))) setRisk('inhouse'); // transaction with owner or family member same address or payment by employee
 
     $since = $created - WEEK7_SECS; // just recent activity by customers, in case many are new
-    $count = db\lookup('COUNT(*)', 'r_txs', 'payer=:payer AND payee=:payee AND created BETWEEN :since AND :created', compact(u\ray('payer payee since created')));
+    $count = db\count('r_txs', 'payer=:payer AND payee=:payee AND created BETWEEN :since AND :created', compact(ray('payer payee since created')));
     setBigToFrom('From', 'payer', $payer, $amount, $created, $count);
     setBigToFrom('To', 'payee', $payee, $amount, $created, $count);
 
@@ -179,12 +179,12 @@ function setRisk($bitName = NULL, $multiplier = 1, $zot = '') {
   
   if (@$_risk === '') {
     $_risk = $_risks = 0;
-    $_acctRisks = u\ray(K_ACCT_RISKS);
-    $_txRisks = u\ray(K_TX_RISKS);
+    $_acctRisks = ray(K_ACCT_RISKS);
+    $_txRisks = ray(K_TX_RISKS);
     $_acctRiskBits = array_flip(array_keys($_acctRisks));
     $_txRiskBits = array_flip(array_keys($_txRisks));
   }
-  if (is_null($bitName)) return u\ray('risk risks', $_risk, $_risks); // must come after $_risks=0
+  if (is_null($bitName)) return ray('risk risks', $_risk, $_risks); // must come after $_risks=0
   
   if (is_numeric($bit = @$_acctRiskBits[$bitName])) {
     $weight = $_acctRisks[$bitName];
@@ -212,7 +212,7 @@ function setRisk($bitName = NULL, $multiplier = 1, $zot = '') {
 EOF;
   }
 
-///  global $_xid;  if ($_xid==1) debug(compact(u\ray('_xid bitName multiplier setBit bit weight _risk _risks')));
+///  global $_xid;  if ($_xid==1) debug(compact(ray('_xid bitName multiplier setBit bit weight _risk _risks')));
 }
 
 /**
@@ -236,7 +236,7 @@ function setBigRisk($uid, $ago, $threshold, $bitName) {
             WHERE payer=:uid OR payee=:uid) t
     WHERE created BETWEEN :since AND :now
 EOF;
-  if (!$res = db\q($mySql, compact(u\ray('uid since now')))->fetchAssoc()) return;
+  if (!$res = db\q($mySql, compact(ray('uid since now')))->fetchAssoc()) return;
   extract($res);
   $a = r\acct($uid);
   if (max($in, $out) > $threshold * max(1, $a->employees)) setRisk($bitName);
@@ -286,7 +286,7 @@ EOF;
     SUM(IF(count0<:count, 1, 0)) AS fewer, COUNT(*) AS others 
     FROM ($subtotals) s
 EOF;
-  if ($res = db\q($sql, compact(u\ray('amount count since uid')))->fetchAssoc()) {
+  if ($res = db\q($sql, compact(ray('amount count since uid')))->fetchAssoc()) {
     extract($res); // average amount and number of purchases per other
     if ($less / $others > .90) setRisk("big$way"); // unusually big for this payer/payee (top decile)
     if (abs($amount) >= $maxAmt) setRisk("biggest$way"); // biggest ever for this payer/payee
@@ -304,7 +304,7 @@ function setOriginRisk($uid, $created, $amount) {
   $since = $created - YEAR_SECS;
   $table = 'SELECT IF(amount<0,payer,payee) AS uid,risk,created,amount FROM r_txs';
   $where = 'uid=:uid AND risk IS NOT NULL AND created BETWEEN :since AND :created';
-  $avgRisk = db\lookup('AVG(risk/ABS(amount))', "($table) t", $where, compact(u\ray('uid since created'))) / (K_RED / K_THRESHOLD);
+  $avgRisk = db\lookup('AVG(risk/ABS(amount))', "($table) t", $where, compact(ray('uid since created'))) / (K_RED / K_THRESHOLD);
 ///  debug(compact('uid','amount','since','table','where','avgRisk'));
   if ($avgRisk > 0) setRisk('origins', $multiplier = $avgRisk, $multiplier > 1/2);
 }

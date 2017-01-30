@@ -37,7 +37,7 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 - ** tickle(): things to do 2/30/60/90 (etc) days after login/access/created date
   . 1mo: notice - suggest sending invitations
       $email = $mya->email;
-      $invited = ($nonperson or db\lookup('COUNT(*)', 'r_invites', 'inviter=:myid AND email<>:email', compact('myid', 'email')) >= 1);
+      $invited = ($nonperson or db\count('r_invites', 'inviter=:myid AND email<>:email', compact('myid', 'email')) >= 1);
           $step4 = t('<a>Invite someone</a> to sign up for rCredits! No one can join without an invitation. You can help by sending one. You might particularly want to invite companies and individuals you buy from or sell to (for example your employer or employees).');
 
   . 1mo: suggest another donation if first was small
@@ -193,9 +193,9 @@ function tickleSignup($item) {
   if (r\acct($email = u\decryptN($email))) return; // invitee already began to open an account
   $inviterName = r\acct($inviter)->fullName;
 //  $count = $elapsed < 7 ? t('two') : ($elapsed < 14 ? t('one') : 0);
-//  $nudge = $count ? u\tt("We will send you just @count more reminder(s)", compact('count')) : t('This is your last reminder');
-  $nudge = u\tt($elapsed < 7 ? 'reminder coming' : 'reminder one');
-  r\rMail('nonmember', $email, u\ray('inviterName nudge code noFrame', $inviterName, $nudge, $code, TRUE));
+//  $nudge = $count ? t("We will send you just @count more reminder(s)", compact('count')) : t('This is your last reminder');
+  $nudge = t($elapsed < 7 ? 'reminder coming' : 'reminder one');
+  r\rMail('nonmember', $email, ray('fullName nudge code noFrame', $inviterName, $nudge, $code, TRUE));
   r\notify($inviter, 'invite languishing', compact('email', 'elapsed'));
 }
 
@@ -218,11 +218,11 @@ function tickleStep($item) {
       $q = db\q('SELECT DISTINCT inviter FROM r_invites WHERE invitee=:uid', compact('uid'));
       while ($row = $q->fetchAssoc()) {
         extract($row);
-        r\notify($inviter, 'invitee slow', u\ray('fullName elapsed step', $a->fullName, $elapsed, $step));
+        r\notify($inviter, 'invitee slow', ray('fullName elapsed step', $a->fullName, $elapsed, $step));
       }
     }
   } elseif (!$a->ok) {
-    return r\tellAdmin('activate account');
+    return r\tellAdmin('activate account', compact('uid'));
   }
 }
 
@@ -289,7 +289,8 @@ function everyMonth() {
   $start = u\monthDay1($end = u\monthDay1() - 1); // mark start and end of preceding month
   if (u\test()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // test: the past 30 days
   queueEach('inflationAdjust', "SELECT uid, $start AS start, $end AS end FROM users WHERE :IS_OK AND uid>1");  
-  queueEach('shareCommitted', 'SELECT uid, committed, share FROM users WHERE :IS_OK AND committed>0');
+//  queueEach('shareCommitted', 'SELECT uid, committed, share FROM users WHERE :IS_OK AND committed>0');
+  queueEach('roundup', "SELECT payer, SUM(MOD(amount, 1)) AS roundups FROM r_txs WHERE :IS_ROUNDUP AND amount>0 AND created BETWEEN $start AND $end GROUP BY payer");
 }
 
 /**
@@ -317,16 +318,26 @@ function inflationAdjust($item) {
 
 /**
  * Share committed rewards with CGF.
- */
+ *//*
 function shareCommitted($item) {
   extract(u\just('uid committed share', $item));
   $share = round($share, 1);
   r\notify($uid, 'share gift', compact('share'));
-  $info = u\ray('giftDate uid amount often honor share', r\rTime(), $uid, $committed, 1, 'share', -1);
+  $info = ray('giftDate uid amount often honor share', r\rTime(), $uid, $committed, 1, 'share', -1);
   $DBTX = \db_transaction();
   db\insert('r_gifts', $info);
   r\acct($uid)->update('committed', 0);
   unset($DBTX);
+}
+*/
+
+/**
+ * Donate rounded change to the community.
+ */
+function roundup($item) {
+  extract(u\just('payer roundups', $item));
+  $a = r\acct($payer);
+  be\transfer('payment', $a, $a->cttyA, $roundups, FOR_NONGOODS, t('contribution of rounded-up payment change'), NULL, TRUE, ['roundups' => TRUE]);
 }
 
 /**
@@ -346,7 +357,7 @@ function requests() {
   $dlm = db\max('created', 'r_request') + 0;
   $secret = urlencode(db\lookup('last', 'r_request', 'listid=3894'));
 
-  if ($s = file_get_contents("http://rcredits.org/inc/requests.php?dlm=$dlm&secret=$secret")) {
+  if ($s = file_get_contents(PROMO_URL . "/inc/requests.php?dlm=$dlm&secret=$secret")) {
     foreach ($rows = explode("\n", $s) as $row) {
       $row = explode("\t", $row);
       if (@$header) {
@@ -481,7 +492,7 @@ EOF;
     FROM r_usd WHERE payer=:uid AND completed AND completed<:asof
 EOF;
   $row3 = db\q($sql, $subs)->fetchAssoc() ?: []; // get bankedEver, bankedPastMo
-  $newData = $row1 + $row2 + $row3 + compact(u\ray('avgBalPastMo avgBalEver minPastMo'));
+  $newData = $row1 + $row2 + $row3 + compact(ray('avgBalPastMo avgBalEver minPastMo'));
   foreach ($newData as $k => $v) $newData[$k] = '' . round($v, 2); // avoid long decimals
   $a->update('stats picture', serialize($newData), $minPastMo * 100);
 }
@@ -662,7 +673,7 @@ function bank1($item) {
   $action = 'draw from';
   if (!$checkNum = $a->bank(-$amount)) return; // may never happen, but if mysql is unavailable just redo next day
   $amount = u\fmtAmt($amount);
-  r\notify($uid, 'under min|banked|bank tx number', compact(u\ray('action amount checkNum')));
+  r\notify($uid, 'under min|banked|bank tx number', compact(ray('action amount checkNum')));
 }
 
 function draw1($item) {
@@ -678,10 +689,10 @@ function draw1($item) {
 }
 
 /**
- * Given an account's shortfall, return how much to actually transfer from wherever to the rCredits account.
+ * Given an account's shortfall, return how much to actually transfer from wherever to the %PROJECT account.
  * @param acct $a: which account
  * @param bool $banky: the account has a connected bank account
- * @return: amount to transfer from the connected bank account or draw from other rCredits accounts (0 if none).
+ * @return: amount to transfer from the connected bank account or draw from other %PROJECT accounts (0 if none).
  */
 function getHowMuchR($a, $banky = TRUE) {
   if (!$need = max(0, $a->minimum + $a->committed - $a->balance)) return 0;
@@ -727,7 +738,7 @@ function employee($item) {
     $h = r\acct($helper);
     if ($helper != $uid and !$h->cAdmin) {
       $fullName = $co->fullName;
-      be\fund($helper, TX_HELPER, R_COUNTED_BONUS, u\tt('employee invite reward', compact('fullName')));
+      be\fund($helper, TX_HELPER, R_COUNTED_BONUS, t('employee invite reward', compact('fullName')));
       r\acct($uid)->setBit(B_COUNTED);
     }
   }

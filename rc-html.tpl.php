@@ -43,8 +43,9 @@
 
 
 $unused = join('|', ['sites/all/modules/devel/devel_krumo_path.js', 'misc/drupal.js']); // also modules/user/user.js?
-$rPath = BASE_URL . R_PATH;
-$version = R_VERSION;
+//$rUrl = BASE_URL . R_PATH;
+global $rUrl;
+$version = isPRODUCTION ? R_VERSION : time();
 $styles = preg_replace('~<style.*</style>~ms', '', $styles); // zap all the drupal styles
 $scripts = preg_replace('~misc/jquery.js.*<~', "sites/all/modules/rcredits/js/jquery.min.js?$version\"><", $scripts);
 $scripts = preg_replace('~<script type="text/javascript" src="' . BASE_URL . "/($unused)" . '\?[a-z0-9]+"></script>~ms', '', $scripts);
@@ -52,6 +53,7 @@ $scripts = preg_replace('~<script type="text/javascript" src="' . BASE_URL . "/(
 //$scripts = preg_replace('/<script[!<]+<![!<]+<![!<]+jQuery.extend\(Drupal/ms', '', $scripts);
 //$scripts = preg_replace('/jQuery.extend.*--/ms', '//--', $scripts);
 $page_bottom = str_replace('?' . \variable_get('css_js_query_string', 'un like ly'), "?$version", $page_bottom);
+$favicon = isCG ? 'favicon' : 'rFavicon';
 
 /**/ echo <<<EOF
 <!DOCTYPE html>
@@ -63,7 +65,9 @@ $rdf_namespaces>
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- The above 3 meta tags *must* come first in the head -->
-  $head
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <link rel="shortcut icon" href="$rUrl/images/icons/$favicon.ico" type="image/vnd.microsoft.icon" />
   <meta name="MobileOptimized" content="width" />
   <meta name="HandheldFriendly" content="true" />
   <meta name="apple-mobile-web-app-capable" content="no"><!-- (not yet) -->
@@ -71,12 +75,12 @@ $rdf_namespaces>
   <title>$head_title</title>
   <meta name="description" content="">
   <meta name="author" content="William Spademan -- for Society to Benefit Everyone, Inc.">
-  <link rel="stylesheet" href="$rPath/css/bootstrap.min.css?$version" />
-  <link rel="stylesheet" href="$rPath/css/jquery-ui.css?$version">
-  <link rel="stylesheet" href="$rPath/css/ladda-themeless.min.css?$version">
+  <link rel="stylesheet" href="$rUrl/css/bootstrap.min.css?$version" />
+  <link rel="stylesheet" href="$rUrl/css/jquery-ui.css?$version">
+  <link rel="stylesheet" href="$rUrl/css/ladda-themeless.min.css?$version">
   $styles
-  <link rel="stylesheet" href="$rPath/css/rcredits.css?$version" type="text/css" />
-  <link rel="stylesheet" href="$rPath/css/rweb.css?$version" type="text/css" />
+  <link rel="stylesheet" href="$rUrl/css/rcredits.css?$version" type="text/css" />
+  <link rel="stylesheet" href="$rUrl/css/rweb.css?$version" type="text/css" />
   $scripts
 </head>
 

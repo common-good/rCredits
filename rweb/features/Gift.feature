@@ -31,12 +31,12 @@ Scenario: A member donates
   And we notice "gift sent" to member ".ZZA" with subs:
   | amount | rewardAmount |*
   |    $10 |        $0.50 | 
-  And we notice "new payment|reward other" to member "cgf" with subs:
-  | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*
-  | Abe One   | $10 | donation | reward | $1 |
+  And we notice "new payment linked|reward other" to member "cgf" with subs:
+  | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount | aPayLink |*
+  | Abe One   | $10    | donation     | reward          | $1                | ?        |
   And that "notice" has link results:
-  | _name | Abe One |
-  | _postalAddr | 1 A, A, AK |
+  | ~name | Abe One |
+  | ~postalAddr | 1 A, A, AK |
   | Physical address: | 1 A St., Atown, AK 01000 |
   And we tell admin "gift accepted" with subs:
   | amount | often | txField  |*

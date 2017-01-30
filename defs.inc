@@ -4,34 +4,76 @@
  * Definitions common to the various rCredits interfaces
  * (SMS, web, smartphone, etc.)
  */
- 
-// namespace rCredits\Util; // typically abbreviated as "u"
+
+define('R_VERSION', '2.60'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
-define('R_BULLET', '&#8226;'); // bullet in emails (where CSS is difficult)
-define('STATS_GRAIN', 10); // granularity of statistics, in days
-define('INFLATION_DESC', t('inflation adjustment'));
-
-// NOT NEEDED require_once __DIR__ . '/boot.inc'; // secret settings for this community's rCredits server
+define('isDEV', $_SERVER['SERVER_ADDR'] == '::1'); // developing
 require_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
+
+define('isCG', FALSE); // using new standard name
+define('PROJECT', isCG ? t('Common Good') : t('rCredits')); // project name
+define('CG_DOMAIN', isCG ? 'CommonGood.earth' : 'rCredits.org');
+define('RCREDITS', isCG ? t('Common Good credits') : 'rCredits'); // don't use %PROJECT here
+define('PROJECT_ID', str_replace(' ', '', strtolower(PROJECT)));
+define('PROJECT_LOGO', isCG ? 'cglogo80.png' : 'rlogo-circle80.png');
+define('PROMO_URL', isDEV ? 'http://localhost/' . (isCG ? 'cg' : 'r') . 'Promo/_site' : 'http://' . CG_DOMAIN);
+
+define('STAGE_SUBDOMAIN', 'ws');
+define('STAGE', STAGE_SUBDOMAIN . '.' . CG_DOMAIN); // staging site (for secrets, etc.)
+define('GAME_SITE', 'game.' . CG_DOMAIN);
+
+define('DEV_ROOT', '/rMembers'); // path to drupal root on DEV machine
+define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)
+define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
+
+$host = strtolower(@$_SERVER['HTTP_HOST']);
+if (strlen($host) > 30 or !preg_match('/^\[?(?:[a-zA-Z0-9-:\]_]+\.?)+$/', $host)) {header('HTTP 400 Bad Request'); exit();}
+$protocol = isDEV ? 'http://' : 'https://';
+$base_url = $protocol . $host . (isDEV ? DEV_ROOT : ''); // NO trailing slash!
+define('BASE_URL', $base_url);
+define('R_PATH', '/sites/all/modules/rcredits');
+global $rUrl; $rUrl = BASE_URL . R_PATH;
+define('R_ROOT', DRUPAL_ROOT . R_PATH);
+$parts = parse_url($base_url);
+$base_path = @$parts['path'] . '/';
+$base_root = substr($base_url, 0, strlen($base_url) - strlen(@$parts['path'])); // everything until first slash after "scheme://"
+
+define('isSTAGE', substr($host, 0, 6) == 'stage-' or $host == STAGE);
+define('isGAME', FALSE or ($host == GAME_SITE));
+define('isPRODUCTION', !isDEV and !isSTAGE and !isGAME); // new.<CG_DOMAIN> or miw.<CG_DOMAIN>, etc.
+
+// time periods are defined here because this script uses them
+define('MIN_SECS', 60);
+define('HOUR_SECS', 60 * MIN_SECS);
+define('DAY_SECS', 24 * HOUR_SECS);
+define('WEEK_SECS', 7 * DAY_SECS);
+define('WEEK7_SECS', 52 * DAY_SECS);
+define('MONTH_DAYS', 30.4368);
+define('YEAR_SECS', round(12 * MONTH_DAYS * DAY_SECS));
+
+define('REGION_DOMAIN', R_SERVER_ID . '.' . CG_DOMAIN);
 
 // Common Good Finance email and other data
 define('CGF_LEGALNAME', 'Society to Benefit Everyone, Inc.');
-define('CGF_EMAIL', isDEV ? 'cgf@example.com' : 'info@CommonGoodFinance.org');
-define('CGF_PHONE', '+14136281723');
+define('CGF_EMAIL', isDEV ? 'cgf@example.com' : 'info@' . CG_DOMAIN);
+define('CGF_PHONE', '+1 413 628 1723');
 define('CGF_ADDRESS', '48 Buckland Road');
 define('CGF_CITY', 'Ashfield');
-define('CGF_POSTALADDR', 'PO Box 21, Ashfield, MA 013300021');
+define('CGF_POSTALADDR', 'PO Box 21, Ashfield, MA 01330-0021');
 define('CGF_EIN', '205280780');
 define('R_LAUNCH', strtotime('12/15/2013'));
-define('SYS_EMAIL', 'info@rCredits.org');
+define('SYS_EMAIL', 'admin@' . CG_DOMAIN);
 define('PUBLIC_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.publicKey');
 define('PRIVATE_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.privateKey');
 define('ANY', 'any'); // accessible to anyone (if you change this, rebuild menus immediately)
 define('SVAR_HEADER', 'rcredits_'); // session variable header
 define('TEST_PDF_FLNM', 'testOutput.pdf'); // pdf output during testing
 
+define('R_BULLET', '&#8226;'); // bullet in emails (where CSS is difficult)
+define('STATS_GRAIN', 10); // granularity of statistics, in days
+define('INFLATION_DESC', t('inflation adjustment'));
 define('COMPANY_FREEZE', FALSE); // companies cannot spend rewards yet
 define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
@@ -60,6 +102,8 @@ define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities ca
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
+define('PERSONAL_STEP_COUNT', t('seven'));
+define('COMPANY_STEP_COUNT', t('eight'));
 define('R_STEPS', 'contact, verify, sign:community/agreement, donate:community/donate, proxies, prefs:settings/preferences, photo:settings/security/photo, connect, company, relations'); // membership steps
 define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret oneTimeLoginUrl password pass newPass form_build_id form_token form_id external_input'); // don't log these (external_input may contain passwords)
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts history settings settings/icon community Summary'); // don't log visits to these forms
@@ -203,7 +247,7 @@ define('CO_FAST', 29); // (deprecated as of app v 2.16) fast checkout -- never a
 define('CO_TIP', 30); // ask customer what percent tip to add
 
 define('APP_CAN_BIT_NAMES', 'charge undo r4usd usd4r refund buy');
-define('APP_CAN_BIT_DESCS', 'charge customers,undo last transaction,give rCredits for USD,give USD for rCredits,refund any amount,make payments');
+define('APP_CAN_BIT_DESCS', t('charge customers,undo last transaction,give %RCREDITS for USD,give USD for %RCREDITS,refund any amount,make payments'));
 
 // Permissions, options, and flags (flags field in account record)
 // If we need more bits, create a flags2 field and make the B_ defs negative or 32-63 for setBit
@@ -216,7 +260,7 @@ define('B_IDED', 4); // a cashier has verified the member's government-issued ph
 define('B_REFILL', 5); //
 define('B_CO', 6); // company account
 define('B_u7', 7); //
-define('B_u8', 8); // hold incentive rewards in reserve
+define('B_ROUNDUP', 8); // round payments up to nearest dollar, donate the cents to the community fund
 define('B_NONUDGE', 9); // don't send reminders
 define('B_NOSEARCH', 10); // user wants to be not findable by other members, by phone or email
 define('B_u11', 11); // 
@@ -234,19 +278,28 @@ define('B_SAVINGS', 22); // the connected bank account is a savings or money mar
 define('B_JOINED', 23); // account is a joint account
 define('B_u24', 24); //
 define('B_u25', 25); // 
-define('B_CLOSED', 26); // account is closed (data[newAccount] has new qid)
+define('B_CLOSED', 26); // account is closed (data[newAccount] has new qid, if any)
 define('B_REGULATOR', 27); // is a bank partner or government regulator (read-only admin)
 define('B_CADMIN2', 28); // is a community sub-administrator
 define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
 define('B_ADMINABLE', 'confirmed co member bona cAdmin cAdmin2 regulator nonudge closed'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok bona ided refill co u7 u8 nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 closed regulator cAdmin2 cAdmin admin');
+define('B_LIST', 'member confirmed ok bona ided refill co u7 roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 closed regulator cAdmin2 cAdmin admin');
 
 // community-specific flags
 define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)
 define('B_UP', 1); // ctty: is operational (up) (see also B_CTTYUP)
 define('B_ADMIN_BITS', 'member:cgc,confirmed:up');
+
+// Transaction flags (for flags field in transaction records)
+define('B_TAKING', 0); // payee initiated the transaction
+define('B_DISPUTED', 1); // non-originator disputes the transaction
+define('B_OFFLINE', 2); // transaction should have been declined, but it was taken offline
+// define('B_GIFT', 3); // gift of rewards back to the community
+// (defined above) define('B_ROUNDUP', 8); // payer donated the change to the community fund
+//define('TX_FLAGS', 'taking u1 u2 u3 u4 u5 u6 u7 roundup');
+define('TX_FLAGS', 'taking disputed offline roundup'); // position means nothing
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+givebacks+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community (fines and givebacks are negative)
 
@@ -260,7 +313,7 @@ define('B_SELL', 104); // can send invoices (or scan or view)
 define('B_BUY', 105); // can make purchase for the account (or sell or scan or view)
 define('B_MANAGE', 106); // can manage all aspects of the account
 define('B_JOINT', 107); // make this a joint account (subsuming the other, with permission) -- no companies!
-$GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept rCard payments'), t('give refunds & give USD for rCredits'), t('send invoices'), t('make purchases'), t('manage account'), t('joint account'));
+$GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept rCard payments'), t('give refunds & give USD for %RCREDITS'), t('send invoices'), t('make purchases'), t('manage account'), t('joint account'));
 define('B_PERMISSIONS', 'related read scan refund sell buy manage joint');
 
 // Other special pseudo-bit values for r\Acct::can() and rweb.module menus
@@ -312,7 +365,7 @@ define('FLOW_BOTH', 3);
 define('TX_DENIED', -1); // invoice rejected by the non-originator
 define('TX_PENDING', 0); // charged, waiting for confirmation (in all other states, transaction is complete)
 
-// Transaction channels (roughly in order of simplicity and generality of messages)
+// Transaction channels (roughly in order of simplicity and generality of messages) (CGF)
 define('TX_SYS', 0);
 define('TX_SMS', 1); 
 define('TX_WEB', 2);
@@ -320,7 +373,7 @@ define('TX_POS', 3); // smart phone or other computer-like device
 define('TX_TONE', 4); // touch tone phone
 define('TX_CRON', 5);
 define('TX_LINK', 6); // user clicked a no-signin link
-define('TX_CHANNELS', t('System SMS Web App Tone Cron Link'));
+define('TX_CHANNELS', 'System SMS Web App Tone Cron Link'); // can't be translated, because used in t() (find a solution)
 
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits) -- negative types generally not shown
 define('TX_BONUS', -2); // sales bonus (negative reward types are invisible on transaction history)
@@ -347,33 +400,33 @@ define('TX_MAX_ROWS', 500); // (unused) maximum number of transactions to load a
 define('TX_MAX_MOS', 18); // maximum transaction months, for display
 define('TX_MAX_DAYS', 30.5 * TX_MAX_MOS + 2); // maximum days in a transaction query (18 months) -- 2 for leap day & daylight
 define('TX_DOWNLOAD_MONEY_FIELDS', 'frombank fromyou toyou reward net');
-define('TX_DATA_FIELDS', 'rebate bonus undoneBy undoes disputed force changes isGift'); // serialized pseudo-fields in the data field of a transaction record
+define('TX_DATA_FIELDS', 'rebate bonus undoneBy undoes force changes'); // serialized pseudo-fields in the data field of a transaction record
 
 $GLOBALS['emailSubjects'] = array(
-/*  'new-payment' => t('rCredits PAYMENT from {otherName}'),
-  'new-charge' => t('rCredits CHARGE from {otherName}'),
-  'charge-disputed' => t('rCredits Charge DISPUTED by {otherName}'),
+/*  'new-payment' => t('%PROJECT PAYMENT from {otherName}'),
+  'new-charge' => t('%PROJECT CHARGE from {otherName}'),
+  'charge-disputed' => t('%PROJECT Charge DISPUTED by {otherName}'),
 
-  'invoice-denied' => t('rCredits Invoice DENIED by {otherName}'),
-  'invoice-canceled' => t('rCredits Invoice CANCELED by {otherName}'),
+  'invoice-denied' => t('%PROJECT Invoice DENIED by {otherName}'),
+  'invoice-canceled' => t('%PROJECT Invoice CANCELED by {otherName}'),
 
-  'new-offer' => t('rCredits PAYMENT OFFER from {otherName}'),
-  'offer-refused' => t('rCredits Payment REJECTED by {otherName}'),
-  'offer-canceled' => t('rCredits Invoice CANCELED by {otherName}'),
+  'new-offer' => t('%PROJECT PAYMENT OFFER from {otherName}'),
+  'offer-refused' => t('%PROJECT Payment REJECTED by {otherName}'),
+  'offer-canceled' => t('%PROJECT Invoice CANCELED by {otherName}'),
 */
-  'nonmember' => t('rCredits invitation followup'),
-  'verify' => t('rCredits NEXT STEP: Verify your email address.'),
-  'verifyCo' => t('rCredits NEXT STEP: Verify your company email address.'),
-  'password-reset' => t('New rCredits PASSWORD'),
-  'tell-staff' => t('rCredits STAFF ALERT: {topic}'),
-  'notices' => t('rCredits Notices for {range}'),
-  'message' => t('rCredits {topic}'),
+  'nonmember' => t('%PROJECT invitation followup'),
+  'verify' => t('%PROJECT NEXT STEP: Verify your email address.'),
+  'verifyCo' => t('%PROJECT NEXT STEP: Verify your company email address.'),
+  'password-reset' => t('New %PROJECT PASSWORD'),
+  'tell-staff' => t('%PROJECT STAFF ALERT: %topic'),
+  'notices' => t('%PROJECT Notices for %range'),
+  'message' => t('%PROJECT %topic'),
 );
 
 $GLOBALS['topics'] = array( // topics for 'message' email
-  'confirm invite' => t('Confirm invitation to @otherName'),
-  'not confirmed' => t('Your rCredits membership requires confirmation.'),
-  'new invoice' => t('INVOICE from @otherName'),
+  'confirm invite' => t('Confirm invitation to %otherName'),
+  'not confirmed' => t('Your %PROJECT membership requires confirmation.'),
+  'new invoice' => t('INVOICE from %otherName'),
   'account suspended' => t('Account SUSPENDED'),
   'account funded' => t('Account FUNDED'),
   'approved' => t('Account APPROVED!'),

@@ -7,7 +7,7 @@
 
 @font-face {
     font-family: "GnuMICR";
-    src: url(https://new.rcredits.org/GnuMICR.ttf) format("truetype");
+    src: url(GnuMICR.ttf) format("truetype");
 }
 
 .btn-slight {background-color:wheat;}
@@ -93,6 +93,9 @@ nav.navbar.navbar-inverse .container {max-height:50px;}
 textarea.form-control {height:100px;}
 #rcreditswebformphp .form-type-textarea { margin-top:40px;}
 #rcreditswebformphp textarea {height:500px;}
+#rcreditswebformphp #edit-res {margin-top:20px;}
+#rcreditswebformphp #edit-res label,
+.page-sadmin-php .breadcrumb {display:none;}
 
 .control-label {min-width:184px;}
 .control-data {max-width:650px;}
@@ -204,7 +207,7 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
   animation: puff .5s linear;  
 }
 .page-sadmin #messages {margin:0;}
-#messages .messages {display:inline-block; max-width:800px; text-align:left; margin:28px auto; background-position:8px; background-repeat:no-repeat; border:1px solid; padding:10px 10px 10px 40px;
+#messages .messages {display:inline-block; max-width:800px; text-align:left; margin:28px auto 10px 0; background-position:8px; background-repeat:no-repeat; border:1px solid; padding:10px 10px 10px 40px;
   border-radius:8px; -moz-border-
   :8px; -webkit-border-radius:8px;
   box-shadow: 0px 4px 4px rgba(0,0,0,0.7); -webkit-box-shadow: 0 4px 4px rgba(0,0,0,0.7); -moz-box-shadow: 0 4px 4px rgba(0,0,0,0.7);
@@ -218,6 +221,10 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
 .page-account #completed,
 .page-status #completed {font-weight:bold; font-size:200%; color:green;}
 #messages ul {list-style-type:none;}
+
+@media (max-width:768px) {
+  #messages .messages {margin-bottom:0px;}
+}
 
 div#shout {position:absolute; z-level:2; left:300px; top:100px; background-color:yellow; color:darkgreen; font-size:500%;}
 #site-name {visibility:hidden;}
@@ -285,6 +292,9 @@ body.logged-in.one-sidebar #content {width:100%;}
 
 /* Invite */
 #inviteLink {border:1px solid silver; background-color:lightyellow; color:silver;}
+
+/* Democracy */
+body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 
 /* Funding Proposal */
 #rcreditswebformproposal #edit-subtitle .table {margin-left:25px;}
@@ -386,11 +396,12 @@ body.logged-in.one-sidebar #content {width:100%;}
 #f1099b td:first-child +td {min-width:75px;} /* amount */
 #f1099b td:first-child +td+td {min-width:200px;} /* account */
 #f1099b .num {text-align:right;}
-#rcreditswebformtaxinfo #edit-posttext p {font-size:80%;}
+#rcreditswebformtaxinfo #edit-posttext p {font-size:12px; line-height:8px;}
 #rcreditswebformtaxinfo #summary {width:auto;}
 #rcreditswebformtaxinfo #summary .count {text-align:center;}
 #rcreditswebformtaxinfo #summary .amount {text-align:right;}
 #rcreditswebformtaxinfo #taxes b {color:red;}
+#rcreditswebformtaxinfo small {color:#338333;}
 
 /* Options (Preferences) */
 /* #rcreditswebformoptions .form-item-payHow {border-top:1px solid darkgreen; padding-top:5px;} */
@@ -643,6 +654,7 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #txs-links .nav, #txs-links .nav span {padding:0; text-align:right;}
 
 /* Transaction Summary Table */
+#txsum {padding-bottom:10px;}
 #txsum tr.even td, #txsum tr.odd td {background-color:white;}
 /* #txsum td {text-align:right !important; border:0px;} */
 #txsum tr#txsum-dates {background:none; line-height:.9; border:0px;}
@@ -660,8 +672,8 @@ div.password-confirm .error {font-weight:bold; color:red;}
 
 #txsum caption {display:none;}
 #txsum tr:first-child {font-weight:bold;}
-#txsum tr:first-child +tr+tr+tr+tr+tr td:first-child +td+td,
-#txsum tr:first-child +tr+tr+tr+tr+tr td:first-child +td+td+td+td {border-bottom:1px solid black;}
+#txsum tr:last-child td:first-child +td+td,
+#txsum tr:last-child td:first-child +td+td+td+td {border-top:2px solid silver;} /* 1px fails in Chrome */
 #rcreditswebformtxs #txsum tr td {text-align:right; border-left:1px solid silver;}
 #rcreditswebformtxs #txsum tr td:first-child {text-align:left; font-weight:bold; background-color:#757575; color:white;}
 #rcreditswebformtxs #txsum tr td:last-child {text-align:left;}

@@ -18,6 +18,15 @@ div#error, .error { color:red; background-color:#FFFF99;}
 
 h3 { margin-bottom:0px; }
 
+/* Proposal Grades */
+#proposalGrades .head {color:darkgreen; font-weight:bold;}
+/* #proposalGrades .head .col {background-color:darkgray;} */
+#proposalGrades .row {padding:15px 0; border-bottom:1px solid silver;}
+
+/* Proposal Notes */
+#proposalNotesList li {margin-bottom:10px;}
+#proposalNotesList li b {color:#000033;}
+
 /* div.ballot { padding:3px; border:1px solid black; width:650px; } */
 .ballot table { border-collapse:collapse; }
 .ballot td { border:0px; }
@@ -26,7 +35,8 @@ h3 { margin-bottom:0px; }
 .ballot div.electiontitle { float:left; }
 .ballot div.questioncount { float:right; }
 
-.ballot div.question { font-size:18px; padding-bottom:5px; }
+.ballot div.question { font-size:18px; padding-bottom:5px; color:darkblue; }
+.ballot div.question b { color:black; }
 .ballot div.questiondetail { font-size:16px; padding-bottom:10px; }
 .ballot div.discussionlink { font-size:13px; text-align:right; float:right; }
 .ballot div.discussionlink a { font-weight:bold; color:darkgreen; text-decoration:none; }

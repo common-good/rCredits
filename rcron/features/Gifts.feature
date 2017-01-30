@@ -25,14 +25,14 @@ Scenario: A donation can be completed
   And gifts:
   | id   | giftDate   | amount | often | honor  | honored | share | completed |*
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |
-  And we notice "new payment|reward other" to member "cgf" with subs:
-  | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*
-  | Abe One   | $10    | donation | reward          | $1                |
+  And we notice "new payment linked|reward other" to member "cgf" with subs:
+  | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount | aPayLink |*
+  | Abe One   | $10    | donation     | reward          | $1                | ?        |
   And that "notice" has link results:
-  | _name | Abe One |
-  | _postalAddr | 1 A, A, AK |
+  | ~name | Abe One |
+  | ~postalAddr | 1 A, A, AK |
   | Physical address: | 1 A St., Atown, AK 01000 |
-  | _footer | Common Good Finance |
+  | ~footer | %PROJECT |
   And we notice "gift sent" to member ".ZZA" with subs:
   | amount |*
   |    $10 |
@@ -67,12 +67,12 @@ Scenario: A recurring donation can be completed
   | id   | giftDate      | amount | often | honor  | honored | completed |*
   | .ZZA | %yesterday    |     10 |     Q | memory | Jane Do | %today    |
   | .ZZA | %yesterday+3m |     10 |     Q |        |         |         0 |
-  And we notice "new payment|reward other" to member "cgf" with subs:
-  | otherName | amount | payeePurpose                 | otherRewardType | otherRewardAmount |*
-  | Abe One   | $10    | donation (quarterly gift #1) | reward          | $1                |
+  And we notice "new payment linked|reward other" to member "cgf" with subs:
+  | otherName | amount | payeePurpose                 | otherRewardType | otherRewardAmount | aPayLink |*
+  | Abe One   | $10    | donation (quarterly gift #1) | reward          | $1                | ?        |
   And that "notice" has link results:
-  | _name | Abe One |
-  | _postalAddr | 1 A, A, AK |
+  | ~name | Abe One |
+  | ~postalAddr | 1 A, A, AK |
   | Physical address: | 1 A St., Atown, AK 01000 |
   And we tell admin "gift accepted" with subs:
   | amount | myName  | often | rewardType |*

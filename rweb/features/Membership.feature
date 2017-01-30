@@ -36,7 +36,7 @@ Scenario: A member signs in for the first time
   When member ".AAA" completes form "settings/verify" with values:
   | verify   | pass1      | pass2      | strong |*
   | WHATEVER | %whatever3 | %whatever3 |      1 |
-  Then we show "rCredits Agreement"
+  Then we show "%PROJECT Agreement"
   And we say "status": "info saved|step completed"
 
   When member ".AAA" completes form "community/agreement" with name "Dee Four" and all checkboxes
@@ -60,8 +60,8 @@ Scenario: A member signs in for the first time
   And we say "status": "info saved|step completed"
 
   When member ".AAA" completes form "settings/preferences" with values:
-  | share | notices | statements | nosearch | secretBal |*
-  |    25 | monthly | electronic |        0 |         1 |
+  | roundup | share | notices | statements | nosearch | secretBal |*
+  |       1 |    25 | monthly | electronic |        0 |         1 |
   Then we show "Photo ID Picture"
   And we say "status": "info saved|step completed"
 
@@ -75,7 +75,7 @@ Scenario: A member signs in for the first time
   | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
   | submit |       1 |     053000196 |         123 |          123 |       0 |     $0 |    $20 |         $0 |  
   Then we say "status": "setup complete|individual approval|join thanks"
-  And we tell admin "event - member" with subs:
+  And we tell ".AAA" CO "event - member" with subs:
   | fullName | quid | status |*
   | Dee Four | .AAA | member |
 

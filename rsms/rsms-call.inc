@@ -32,10 +32,10 @@ class call {
     global $channel, $rsms_number; 
     $channel = TX_SMS;
     $rsms_number = $this->number = $number = u\fmtPhone($number, '+n');
-    u\EXPECT(compact(u\ray('number message')), 'string&notempty string&notempty');
+    u\EXPECT(compact(ray('number message')), 'string&notempty string&notempty');
     $this->message = trim($message);
     $this->confirmed = FALSE;
-    u\loga('in', compact('message'), $number);
+    u\loga('in', compact('message', 'number'));
 ///    die('in new call ' . print_r($this, 1));
   }
 
@@ -47,9 +47,9 @@ class call {
    *   what to reply to the caller
    */
   function handle_call() {
-    return t('rCredits text messaging has been discontinued.');
-    if (!r\up()) return tt('system down');
-    if ($mya = r\acct() and !$mya->cttyUp) return tt('your community down', u\ray('contact', $mya->cAdminContact()));
+    return t('%PROJECT text messaging has been discontinued.');
+    if (!r\up()) return t('system down');
+    if ($mya = r\acct() and !$mya->cttyUp) return t('your community down', 'contact', $mya->cAdminContact());
     try {
       if($error_message = $this->validate_caller()) return $error_message;
       $this->parse();
@@ -73,7 +73,7 @@ class call {
 ///    debug($number);
     $myid = $this->uid = uid($number);
     if (!$myid) {
-      return tt('you must setup');
+      return t('you must setup');
       //$mya = new r\Acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
       //$myid = $mya->id;
     } else $mya = r\acct($myid);
@@ -86,21 +86,21 @@ class call {
     if (be\isTempName($mya->name)) {
       if($todo != 'setup name') {
         be\todo($number, 'setup name', '');
-        return tt("what's your name?");
+        return t("what's your name?");
       }
       $fullName = setup_name($mya, $this->message);
       be\todo($number, 'setup email', '');
       $qid = r\qid($mya->id, $mya->agentId, $mya->regionId); //$mya->credit_id;
-      return tt("what's your email?", compact('qid', 'fullName'));
+      return t("what's your email?", compact('qid', 'fullName'));
     } elseif ($todo == 'setup email' and !$mya->mail) {
       setup_email($mya, $this->message);
       be\todo($number, '', '');
       $balance = u\fmtAmt(be\fund($this->uid, TX_SIGNUP));
-      return tt('your account is ready', compact('balance'));
+      return t('your account is ready', compact('balance'));
 /*    } elseif (!\user_access('transact via sms')) { // user does not have permission to use the rCredits SMS interface
       // send the user an email here?
       // throw new rSMSexception('You do not have permission to use this system.'); // (due to misbehavior?), so don't waste a call?
-      return tt('no SMS permission'); // be polite 
+      return t('no SMS permission'); // be polite 
     }
     */
     return ''; // success
@@ -145,8 +145,8 @@ class call {
     }
 
     $unparseable = !$todo->nonce or strpos($message, ' '); // no nonce or not intended to be a nonce
-    if ($unparseable) throw new rSMSexception(tt('syntax') . ' ' . $this->do_helpme($intent));
-    if (strtoupper($message) != $todo->nonce) throw new rSMSexception(tt('wrong nonce'));
+    if ($unparseable) throw new rSMSexception(t('syntax') . ' ' . $this->do_helpme($intent));
+    if (strtoupper($message) != $todo->nonce) throw new rSMSexception(t('wrong nonce'));
 
     foreach (unserialize(stripslashes($todo->todo)) as $key => $value) $this->$key = $value;
     $this->confirmed = TRUE;
@@ -161,7 +161,7 @@ class call {
    */
   function confirm($type, $info) {
     $info['nonce'] = be\todo($this->number, serialize(get_object_vars($this)));
-    return tt("confirm $type|please confirm", $info);
+    return t("confirm $type|please confirm", $info);
   }
   
   /**
@@ -188,7 +188,7 @@ class call {
    * Handle a user's request to (again) accept SMS messages from us (already handled by the gateway).
    */
   function do_start() {
-    return tt('already started');
+    return t('already started');
   }
 
   /**
@@ -207,10 +207,10 @@ class call {
       if (u\abbreviates($feature, $try)) {
         // we might want to customize the messages here (see @todo above)
         be\todo($this->number, "help {$try}2", '');
-        return tt("help $try");
+        return t("help $try");
       }
     }
-    return tt('not a feature|help helpme', compact('feature'));
+    return t('not a feature|help helpme', compact('feature'));
   }
 
   /**
@@ -221,9 +221,9 @@ class call {
     $todo = $this->parms['todo'];
     if (isset($GLOBALS[TX_SMS . ' messages'][$todo])) {
       be\todo($this->number, $todo . '2', ''); // queue up tertiary help
-      return tt($todo);
+      return t($todo);
     }
-    return tt('help helpme');
+    return t('help helpme');
   }
     
   /**
@@ -237,24 +237,24 @@ class call {
     $totalDemand = u\fmtAmt($stats['usd']);
 //    $totalDemand = r\totals()->fancy['demand'];
     list ($balance, $rewards) = array(u\fmtAmt($mya->r), u\fmtAmt($mya->rewards));
-    return tt('account info', compact(u\ray('qid balance rewards totalDemand')));
+    return t('account info', compact(ray('qid balance rewards totalDemand')));
   }
 
   /**
    * Handle a user's request to use the phone for someone else's account (Until the user types "be me").
    */
   function do_be() {
-    return tt('nyi');
+    return t('nyi');
   }
   
   /**
    * Help the caller exchange rCredits for US Dollars or vice versa.
    */
   function do_get() {
-    return tt('nyi');
+    return t('nyi');
     extract($this->parms, EXTR_PREFIX_ALL, 'my');
     list ($message, $args, $confirm) = be\get(strtolower($my_rusd), $my_amount, $this->uid, $this->confirmed);
-    return $confirm ? $this->confirm($message, $args) : tt($message, $args);
+    return $confirm ? $this->confirm($message, $args) : t($message, $args);
   }
 
   /**
@@ -275,7 +275,7 @@ class call {
 
     if ($this->confirmed) {
       list ($message, $args) = be\undoTx($my_xid);
-      return tt($message, $args);
+      return t($message, $args);
     }
     
     if (isset($my_tofrom)) {
@@ -284,7 +284,7 @@ class call {
     } else $where = '(payee=:myid OR payer=:myid)';
 
     if (isset($my_who)) {
-      if (!u\isAcct($acct = be\identify($my_who, $myid))) return tt($acct); // return if error
+      if (is_array($acct = be\identify($my_who, $myid))) return t($acct); // return message and subs if error
       $otherUid = $acct->id;
       $where .= " AND ";
       if (isset($my_tofrom)) {
@@ -292,10 +292,10 @@ class call {
       } else $where .= '(payee=:otherUid OR payer=:otherUid)';
     }
 
-    $tx = be\lastTx($where, compact(u\ray('myid otherUid')));
-    if ($error = r\nonoUndo($tx, $subs)) return array($error, $subs);
+    if (!$myx = r\MyX::lastTx($where, compact(ray('myid otherUid')))) return ['undo no match', []];
+    if ($error = $myx->nonoUndo($subs)) return array($error, $subs);
     $this->parms['xid'] = $tx['xid'];
-    $myx = r\x($tx, $mya);
+//    $myx = r\x($tx, $mya);
     return $this->confirm('undo', $myx->reportArgs());
   }
 
@@ -317,32 +317,32 @@ class call {
     $mya = r\acct();
     $myid = $mya->id;
 
-    if (!$mya->can(B_BUY)) return tt('no perm', ['what' => t('purchases')]);
+    if (!$mya->can(B_BUY)) return t('no perm', 'what', t('purchases'));
     extract(u\just('amount who xid', $this->parms));
     if (isset($amount)) return $this->do_transfer('payment'); // complete syntax
     
     // confirmed invoice payment
     if ($this->confirmed) {
       list ($message, $args) = be\payInvoice($xid);
-      return tt($message, $args);
+      return t($message, $args);
     }
     
     // unconfirmed invoice payment
     $where = 'status=:TX_PENDING ORDER BY nvid DESC';
     $fields = 'nvid,amount,payee,created';
     if (isset($who)) {
-      if (!u\isAcct($a = be\identify($who, $myid))) return tt($a); // return if error
+      if (!u\isAcct($a = be\identify($who, $myid))) return t($a); // return if error
       $payee = $a->id;
       $res = db\lookup($fields, 'r_invoices', "payee=:payee AND $where", compact('payee'));
     } else $res = db\lookup($fields, 'r_invoices', $where);
 
-    if(!$res) return tt('no matching invoice');
+    if(!$res) return t('no matching invoice');
     extract($res);
     $this->parms['xid'] = $nvid;
     $otherName = r\acct($payee)->fullName;
     $created = u\fmtDate($created);
     $amount = u\fmtAmt($amount);
-    return $this->confirm('pay invoice', compact(u\ray('otherName amount created')));
+    return $this->confirm('pay invoice', compact(ray('otherName amount created')));
   }
   
   /**
@@ -355,14 +355,14 @@ class call {
     $mya = r\acct();
 
     $a = be\identify($who, $mya->id);
-    if ($a != 'ALL' and !u\isAcct($a)) return tt($a); // return the array if error
+    if (is_array($a)) return t($a); // return the message and subs if error
 
     $goods = u\forCash($what) ? FOR_USD : FOR_GOODS;
     
     list ($msg, $args, $confirm) = 
       $type == 'payment' ? be\transfer($type, $mya, $a, $amount, $goods, $what, NULL, $this->confirmed)
       : be\invoice($mya, $a, $amount, $goods, $what, $this->confirmed);
-    return $confirm ? $this->confirm($msg, $args) : tt($msg, $args);
+    return $confirm ? $this->confirm($msg, $args) : t($msg, $args);
   }
   
 } // end of SMS call class definition

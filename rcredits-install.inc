@@ -20,7 +20,7 @@ function tableDefs($schema = []) {
   require_once 'rcredits-settings.inc';
   require_once 'rcredits-util.inc';
   // fix uid size in all Drupal tables
-  foreach (u\ray(DRUPAL_UID_TABLES) as $table) {
+  foreach (ray(DRUPAL_UID_TABLES) as $table) {
     $desc = @$schema[$table]['fields']['uid']['description'] ?: 'users record id';
     $schema[$table]['fields']['uid'] = setupField($desc, 'int big');
   }
@@ -47,7 +47,7 @@ function tableDefs($schema = []) {
     'activated' => setupField('when was the account activated', 'int 11', 0),
     'helper' => setupField('who invited this person or company', 'int big'),
     'iCode' => setupField('sequence number of helper invitation', 'int'),
-    'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11', 0),
+    'signed' => setupField(t('when did this person sign the %PROJECT Agreement'), 'int 11', 0),
     'signedBy' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
     'rebate' => setupField('current rebate percentage (sales bonus is proportionate)', 'numeric 5,3', R_REBATE),
     'savingsAdd' => setupField('chosen amount to hold as savings, beyond rewards', 'numeric 11,2', 0),
@@ -57,7 +57,7 @@ function tableDefs($schema = []) {
 //    'chunk' => setupField('granularity of transfers from bank account', 'numeric 11,2', R_BANK_CHUNK),
 //    'maximum' => setupField('maximum rCredits balance (send excess to bank), 0=none)', 'numeric 11,2', -1), // -1 means no limit
     'share' => setupField('percentage of rebates/bonuses to donate to CGF', 'numeric 6,3', 0),
-    'r' => setupField('rCredits balance, including rewards (cached)', 'numeric 11,2', 0),
+    'r' => setupField('balance, including rewards (cached)', 'numeric 11,2', 0),
 //    'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2', 0),
     'committed' => setupField('amount committed (for donations to CGF)', 'numeric 11,2', 0),
@@ -82,7 +82,7 @@ function tableDefs($schema = []) {
     'id' => setupField('statistics record id', 'serial big'),
     'ctty' => setupField('community or region record id', 'int big'),
     'created' => setupField('Unixtime record was created', 'int 11', 0),
-    'r' => setupField('amount of rCredits issued to date', 'numeric 11,2', 0), // including stand-ins for USD
+    'r' => setupField(t('amount of %RCREDITS issued to date'), 'numeric 11,2', 0), // including stand-ins for USD
     'bankIn' => setupField('amount of US Dollars brought in the system ever', 'numeric 11,2', 0),
     'bankOut' => setupField('amount of US Dollars taken out of the system ever', 'numeric 11,2', 0),
 //    'usd' => setupField('amount of US Dollars in the system', 'numeric 11,2', 0),
@@ -190,7 +190,7 @@ function tableDefs($schema = []) {
     'xid' => setupField('the unique transaction ID', 'serial big'), 
     'serial' => setupField('serial number of related transactions (=xid of first transaction in the group)', 'int 11'), 
     'type' => setupField('transaction type (transfer, rebate, etc.)', 'int tiny'),
-    'taking' => setupField('was the transaction initiated by the payee', 'int tiny'), 
+//    'taking' => setupField('was the transaction initiated by the payee', 'int tiny'), 
     'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny', 0), 
     'amount' => setupField('amount transferred', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int big'), 
@@ -202,6 +202,7 @@ function tableDefs($schema = []) {
     'payerTid' => setupField("payer's transaction ID", 'int 11'),
     'payeeTid' => setupField("payee's transaction ID", 'int 11'),
     'data' => setupField('miscellaneous non-searchable data (serialized array)', 'text big'), 
+    'flags' => setupField('boolean permissions and state flags', 'int big', 0, TRUE),
     'channel' => setupField('through what medium was the transaction entered', 'int tiny'),
     'box' => setupField('on what machine was the transaction entered', 'int 11', 0), // 0 = none
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
@@ -210,8 +211,8 @@ function tableDefs($schema = []) {
 //    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee') + foreignKey('payerAgent') + foreignKey('payeeAgent');
-  $indexes = index('payer') + index('payee') + index('created') + index('payerTid') + index('payeeTid'); // also serial/type/taking/goods/payerAgent/payeeAgent/channel/?
-  $schema['r_txs'] = setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreignKeys, $indexes);
+  $indexes = index('payer') + index('payee') + index('created') + index('payerTid') + index('payeeTid'); // also serial/type/goods/payerAgent/payeeAgent/channel/?
+  $schema['r_txs'] = setupTable('Record of all transactions in the region', $fields, 'xid', $foreignKeys, $indexes);
 
   // table r_invoices
   $fields = array(
@@ -227,9 +228,9 @@ function tableDefs($schema = []) {
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee');
   $indexes = index('payer') + index('payee') + index('created') + index('status');
-  $schema['r_invoices'] = setupTable('Record of all rCredits invoices in the region', $fields, 'nvid', $foreignKeys, $indexes);
+  $schema['r_invoices'] = setupTable('Record of all invoices in the region', $fields, 'nvid', $foreignKeys, $indexes);
   
-//  foreach (u\ray('type taking goods payerAgent payeeAgent payerFor payeeFor') as $one) unset($fields[$one]);
+//  foreach (ray('type taking goods payerAgent payeeAgent payerFor payeeFor') as $one) unset($fields[$one]);
 
   // table r_auth
   $fields = array(
@@ -248,7 +249,7 @@ function tableDefs($schema = []) {
   $fields = array(
     'txid' => setupField('the unique transaction ID', 'serial big'), 
     'tid' => setupField("payer's transaction ID", 'int 11'), // set, but currently UNUSED
-    'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
+    'amount' => setupField('amount of transfer', 'numeric 11,2'), 
     'payer' => setupField('user id of the account holder', 'int big'), 
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'completed' => setupField('Unixtime transaction was completed', 'int 11', 0), // for deposits / withdrawals
@@ -319,7 +320,7 @@ function tableDefs($schema = []) {
     'myid' => setupField('current account uid', 'int big'),
     'agent' => setupField('agent account uid', 'int big'),
     'info' => setupField('arbitrary serialized data', 'text medium'),
-    'special' => setupField('special value if any', 'text medium'), // eg cell number, nonce, or sql
+//    'special' => setupField('special value if any', 'text medium'), // eg cell number, nonce, or sql
   );
   $foreignKeys = foreignKey('myid') + foreignKey('agent');
   $indexes = index('type') + index('channel') + index('myid') + index('agent');  
@@ -389,7 +390,7 @@ function tableDefs($schema = []) {
     'phone' => setupField('contact phone (no punctuation)', 'varchar 255'), // encrypted/searchable
     'email' => setupField('email of invitee', 'varchar 255'), // encrypted/searchable
     'zip' => setupField('postal code (no punctuation)', 'varchar 60'),
-    'ctty' => setupField('uid of this requester\'s rCredits community', 'int big'), // gleaned from zip
+    'ctty' => setupField('uid of this requester\'s %PROJECT community', 'int big'), // gleaned from zip
     'done' => setupField('are we done with this request', 'int tiny', 0), 
   );
   $foreignKeys = foreignKey('ctty');
@@ -463,8 +464,9 @@ function tableDefs($schema = []) {
     'repeats' => setupField('pointer to question that this is a revote on (0=none)', 'int big', 0),
     'repeatedBy' => setupField('pointer to question that is a revote of this one (0=none))', 'int big', 0),
     'endIdeas' => setupField('when does the Ideas phase end', 'int 11', 0),
-    'endProposals' => setupField('when does the Proposals phase end', 'int 11', 0),
+    'endProposals' => setupField('when does the Proposals phase end', 'int 11', 0), // not currently used
     'endVoting' => setupField('when does the Voting phase end', 'int 11', 0),
+    'endGrading' => setupField('when does the Grading phase end', 'int 11', 0), // grading specific proposals in Budget questions
     'text' => setupField('text of the question', 'text tiny'),
     'detail' => setupField('additional detail about the question', 'text medium'),
     'linkIdeas' => setupField('where to brainstorm ideas (and see the list)', 'text tiny'),
@@ -521,7 +523,7 @@ function tableDefs($schema = []) {
   // table r_ballots
   $fields = [
     'id' => setupField('ballot record id', 'serial big'),
-    'question' => setupField('question voted on by a particular voter', 'int big', 0),
+    'question' => setupField('question or proposal voted on by a particular voter', 'int big', 0), // <0 for proposals
     'voter' => setupField('record id of voter whose ballot this is', 'int big', 0),
     'proxy' => setupField('record id of voter who actually voted on behalf of the voter', 'int big', 0),
     'modified' => setupField('date/time last modified', 'int 11', 0),
@@ -570,11 +572,11 @@ function tableDefs($schema = []) {
     'contact' => setupField('contact person (or "self")', 'varchar 255'),
     'phone' => setupField('contact phone', 'varchar 255'),
     'email' => setupField('contact email', 'varchar 255'),
-    'sponsor' => setupField('rCredits member(s) sponsoring the project proposal', 'text tiny'),
+    'sponsor' => setupField('member(s) sponsoring the project proposal', 'text tiny'),
   ];
   $foreignKeys = foreignKey('ctty');
   $indexes = index('ctty') + index('name');
-  $schema['r_proposals'] = setupTable('rCredits funding proposals', $fields, 'id', $foreignKeys, $indexes);
+  $schema['r_proposals'] = setupTable(t('funding proposals'), $fields, 'id', $foreignKeys, $indexes);
   
 
   
@@ -741,6 +743,7 @@ function makeGeoDropdowns() {
     }
   }
 
+  // SUBS() doesn't seem to be actually used, below (?)
   $js .= u\SUBS(<<<EOF
 \n
 $ = jQuery;

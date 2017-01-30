@@ -53,19 +53,19 @@ Scenario: A member clicks the summary tab
   When member ".ZZA" visits page "summary"
   Then we show "Account Summary" with:
   | Name          | Abe One (abeone) |
-  | _Address      | 1 A St., Atown, AK 01000 |
+  | ~Address      | 1 A St., Atown, AK 01000 |
   | ID            | ZZA (personal account) |
   | Balance       | $10 |
 #  | Savings       | $256 |
-  | _rewards      | $256 |
+  | ~rewards      | $256 |
 #  | Credit limit  | $100 |
-  | Committed     | $0.60 |
+#  | Committed     | $0.60 |
 # (including savings in balance)  | Your return   | 20.6% |
 #  | Your return   | 72.1% |
-#  | _ever         | 544.1% |
+#  | ~ever         | 544.1% |
 #  or 541.4% (depends on daylight time?) or 280.9%?!
   | Social return | $9 |
-  | _ever         | $9 |
+  | ~ever         | $9 |
 
 Scenario: An agent clicks the summary tab without permission to manage
   When member "A:B" visits page "summary"
@@ -79,7 +79,7 @@ Scenario: A company agent clicks the summary tab
   When member "C:A" visits page "summary"
   Then we show "Account Summary" with:
   | Name         | Corner Pub (cornerpub) |
-  | _Address     | 3 C St., Ctown, Cher, FRANCE |
+  | ~Address     | 3 C St., Ctown, Cher, FRANCE |
   | ID           | ZZC (company account) |
 
 Scenario: Member's account is not active
