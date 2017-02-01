@@ -1,0 +1,98 @@
+Gherkin compiler for PHP (and JS / Jasmine / Karma)
+
+At the heart of Behavior-Driven Development (BDD) is a rethinking of the approach to unit testing and acceptance testing. The Gherkin language is a formal English-language description of business specifications, that can be compiled automatically into acceptance tests. Business stakeholders and developers work together to formulate these statements of what the software should do. Features are described using the standard Agile framework of a User story for each feature: 
+
+Feature: [Short name of feature]
+  As a [role] 
+  I want [feature] 
+  So [benefit]
+# [additional description]
+
+Acceptance criteria are written in terms of one or more scenarios for each feature:
+
+Scenario: [Short name of scenario]
+  Given [initial context]
+  And [additional context line(s)]
+  When [event occurs]
+  And [additional event(s) occur]
+  Then [expected outcome]
+  And [additional expected outcome(s)]
+# [additional description]
+
+All the "And" lines can be multiple or omitted.
+Comment lines (beginning with '#') can appear anywhere.
+
+This Gherkin compiler makes several extensions to the standard Gherkin language:
+ * A matrix argument is passed as an associative array only if the first row (showing the keys) ends with an asterisk. Otherwise it is passed as a plain array.
+ * You can include a "Variants" section after the Feature header, consisting of a single matrix argument
+   whose first line is a list of values to be replaced and each subsequent line is a list of replacements.
+   The whole series of tests will be run as-is, then with each list of replacements.
+ * You can include a special first scenario headed "Setup:" instead of "Scenario:" that will be run
+   at the start of each scenario to set things up. Typically this will include "Given" (and "And" or "When") statements, but you can also include "Then"s (and "And"s) to test the setup.
+ * You can also use magic "%" arguments like the following:
+	   %random (or %whatever) - a random-length, random string of characters without double quotes or percents
+	   %random3 (or %whatever3) - same as above. The string will stay the same for a whole scenario. Use any integer up to 3.
+	   %phone5 (or %number) - a random US phone number like +12223334444 (only "number" is implemented, not "phone")
+	   %today - today's date, formatted 
+	   %today-20d - 20 days ago (any integer 1 to 20)
+	   %today-20w - 20 weeks ago
+	   %today-20m - 20 months ago
+	   %today+20d - 20 days from now
+     same for %yesterday, %tomorrow, %yesterday+20d, etc. (There are additional date formats not listed here.)
+	   %CONSTANT_NAME - any defined constant (document any use of these, in the feature header, unless they self-explain)
+     %(expression) - the result of the expression
+    To adjust the magic constants $subs array (in PHP), create a file in your program directory called "usualSubs.inc".
+	For example, after the <?php tag, your usualSubs.inc file could say: 
+	  $fruits = array('apple', 'banana', 'cherry');
+	  $subs['%fruit'] = $fruits[random(0, 2)];
+	Magic "%" arguments also work within other arguments, including matrix arguments
+  * Any argument can be an array. Use "=>" to indicate a subvalue (for example a selected option) and separate subvalues with commas, like in an array definition, without the quotes. For example "first=>this,second=>that" produces an argument whose value is: array('first' => 'this', 'second' => 'that').
+  * Use the words "Skip" and "Resume" before, after, or within Scenarios, to temporarily disable certain tests or lines.
+
+_____________________________________________________________________________________
+
+Create and place your Gherkin-language feature files in a directory called "features" in your program directory.
+
+When you create a feature, name the file after the feature using punctuationless titlecase 
+-- for example, "PageTiltsWhenIPressEnter.feature" -- and save it in the features folder.
+
+To run the compiler, browse to path/gherkin/compiler.php?your_program_directory
+
+This will (if all goes well), create a test directory and, for each feature, a test in
+the test directory -- called, for example, "PageTiltsWhenIPressEnter.test".
+You shouldn't ever need to alter these test files (except for occasionally inserting debugging statements) except by rerunning the Gherkin compiler.
+
+The compiler will create a steps file in your program directory, called "zot.steps", if your program directory is zot.
+
+Your job then is to change all the "todo"s in the steps file, as needed.
+Each step function should return TRUE if the step's assertion is true (otherwise FALSE);
+If the global variable $testOnly is TRUE, the step function should only test the assertion.
+Otherwise, it should MAKE the assertion be true by setting up the appropriate conditions, then return TRUE.
+
+For example, if you have a step function called "accountExists", then:
+* When the step function is called from Given (for example "Given account 5 exists"),
+  the step function should create the account if it doesn't exist yet.
+* However, when the step function is called from Then ("Then account 5 exists"), 
+  just return FALSE if the account does not exist.
+
+If you modify a feature file, rerun the compiler to recreate all the test files.
+The .steps file will also be updated accordingly, but the compiler will never change the inside of any step function.
+In fact, the compiler will never /change/ anything already in the steps file exept the comments immediately preceding the step functions.
+And the compiler will add new functions (and preceding comments) to the end of the steps file.
+YOU should not change anything in the steps file EXCEPT the comments before the first function, and what is inside the step functions, and the names of the function parameters. You can also add functions.
+
+Once you have finished coding the steps, run the tests.
+
+For PHP:
+. Copy test.php to your program directory.
+. Browse to path_to_your_program_directory/test.php?lang=programming-language&path=path-to-program-folder
+
+For JS / Jasmine / Karma:
+. Type the following at your program directory prompt: path-to/karma/bin/karma start
+
+Of course your final task is to make all the tests return TRUE and turn green, by making the module
+actually do what is being tested.
+
+Need help? Ask William: wspademan@gmail.com
+
+Have fun.
