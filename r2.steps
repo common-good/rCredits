@@ -16,64 +16,70 @@
  *
  * You may also add statements just below this header.
  */
-
 function R2_steps() {
-this.v = []; // miscellaneous data
-
-/**
- * Add additional setup for any or all features or tests
- */
-this.extraSetup = function () {}
-
-/**
- * we scan QR (ARG)
- *
- * in: MAKE ParseQRCode WeScanAValidOldPersonalCard
- *     MAKE ParseQRCode WeScanAValidOldCompanyCard
- *     MAKE ParseQRCode WeScanAValidPersonalCard
- *     MAKE ParseQRCode WeScanAValidCompanyCard
- */
-this.weScanQR = function (qr) {
-  this.v.parser = new QRCodeParser();
-	this.v.parser.setUrl(qr);
-  this.v.parser.parse();
-	return true;
-}
-
-/**
- * account is personal
- *
- * in: TEST ParseQRCode WeScanAValidOldPersonalCard
- *     TEST ParseQRCode WeScanAValidPersonalCard
- */
-this.accountIsPersonal = function () {return (this.v.parser.getAccountInfo().isPersonalAccount());}
-
-/**
- * account is company
- *
- * in: TEST ParseQRCode WeScanAValidOldCompanyCard
- *     TEST ParseQRCode WeScanAValidCompanyCard
- */
-this.accountIsCompany = function () {return (this.v.parser.getAccountInfo().isCompanyAccount());}
-
-/**
- * account ID is (ARG)
- *
- * in: TEST ParseQRCode WeScanAValidOldPersonalCard
- *     TEST ParseQRCode WeScanAValidOldCompanyCard
- *     TEST ParseQRCode WeScanAValidPersonalCard
- *     TEST ParseQRCode WeScanAValidCompanyCard
- */
-this.accountIDIs = function (id) {return (this.v.parser.getAccountInfo().accountId == id);}
-
-/**
- * security code is (ARG)
- *
- * in: TEST ParseQRCode WeScanAValidOldPersonalCard
- *     TEST ParseQRCode WeScanAValidOldCompanyCard
- *     TEST ParseQRCode WeScanAValidPersonalCard
- *     TEST ParseQRCode WeScanAValidCompanyCard
- */
-this.securityCodeIs = function (id) {return (this.v.parser.getAccountInfo().securityCode == id);}
-
+	this.v = []; // miscellaneous data
+	/**
+	 * Add additional setup for any or all features or tests
+	 */
+	this.extraSetup = function () {};
+	/**
+	 * we scan QR (ARG)
+	 * in: MAKE ParseQRCode WeScanAValidOldPersonalCard
+	 *     MAKE ParseQRCode WeScanAValidOldCompanyCard
+	 *     MAKE ParseQRCode WeScanAValidPersonalCard
+	 *     MAKE ParseQRCode WeScanAValidCompanyCard
+	 */
+	this.weScanQR = function (qr) {
+		this.v.parser = new QRCodeParser();
+		this.v.parser.setUrl(qr);
+		this.v.parser.parse();
+		console.log(this.v.parser);
+		return true;
+	};
+	/**
+	 * account is personal
+	 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
+	 *     TEST ParseQRCode WeScanAValidPersonalCard
+	 */
+	this.accountIsPersonal = function () {
+		var isItP=(this.v.parser.getAccountInfo().isPersonalAccount()===this.v.parser.accountInfo.isPersonal);
+		console.log("isItP");
+		console.log(isItP);
+		return isItP;
+	};
+	/**
+	 * account is company
+	 *
+	 * in: TEST ParseQRCode WeScanAValidOldCompanyCard
+	 *     TEST ParseQRCode WeScanAValidCompanyCard
+	 */
+	this.accountIsCompany = function () {
+		var isItC=(this.v.parser.getAccountInfo().isCompanyAccount()===this.v.parser.accountInfo.isCompany);
+		console.log("isItC");
+		console.log(isItC);
+		return isItC;
+	};
+	/**
+	 * account ID is (ARG)	 *
+	 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
+	 *     TEST ParseQRCode WeScanAValidOldCompanyCard
+	 *     TEST ParseQRCode WeScanAValidPersonalCard
+	 *     TEST ParseQRCode WeScanAValidCompanyCard
+	 */
+	this.accountIDIs = function (id) {
+		var isThereId=(this.v.parser.getAccountInfo().accountId === id);
+		console.log("isThereId:"+this.v.parser.getAccountInfo().accountId);
+		console.log(isThereId+id);
+		return isThereId;
+	};
+	/**
+	 * security code is (ARG)
+	 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
+	 *     TEST ParseQRCode WeScanAValidOldCompanyCard
+	 *     TEST ParseQRCode WeScanAValidPersonalCard
+	 *     TEST ParseQRCode WeScanAValidCompanyCard
+	 */
+	this.securityCodeIs = function (id) {
+		return (this.v.parser.getAccountInfo().securityCode === id);
+	};
 }
