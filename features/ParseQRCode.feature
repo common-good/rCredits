@@ -18,7 +18,7 @@ Scenario: We scan a valid old company card.
   And security code is "WeHlioM5JZv1O9G"
   
 Scenario: We scan a valid personal card.
-  When we scan QR "HTTP://6VM.RC4.ME/GORZzhWMCq0zcBowqw"
+  When we scan QR "HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw"
   Then account is personal
   And account ID is "NEWABB"
   And security code is "ZzhWMCq0zcBowqw"

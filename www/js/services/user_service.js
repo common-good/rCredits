@@ -294,11 +294,11 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 			data: $httpParamSerializer(params),
 			responseType: "arraybuffer"
 		}).then(function (res) {
-			console.log(res.data.toString());
+//			console.log(res.data.toString());
 			var arrayBufferView = new Uint8Array(res.data);
-			console.log(arrayBufferView.toString());
+//			console.log(arrayBufferView.toString());
 			var blob = new Blob([arrayBufferView], {type: "image/jpeg"});
-			console.log(blob.toString());
+//			console.log(blob.toString());
 			var urlCreator = window.URL || window.webkitURL;
 			var imgUrl = urlCreator.createObjectURL(blob);
 			var imageConvert = $q.defer();

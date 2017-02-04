@@ -40,8 +40,8 @@ describe('r2% -- FEATURE_NAME', function () {
 
   it('Scenario: We scan a valid personal card.', function () {
     steps.testOnly = 0;
-    expect(steps.weScanQR('HTTP://6VM.RC4.ME/GORZzhWMCq0zcBowqw')).toBe(true);
-			console.log(steps.weScanQR('HTTP://6VM.RC4.ME/GORZzhWMCq0zcBowqw'));
+    expect(steps.weScanQR('HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw')).toBe(true);
+			console.log(steps.weScanQR('HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw'));
     steps.testOnly = 1;
     expect(steps.accountIsPersonal()).toBe(true);
 			console.log(steps.accountIsPersonal());
