@@ -93,17 +93,20 @@ body { background-color: #eeeeee; padding: 0; margin: 5px; overflow-y: scroll; }
 </style>
 </head>
 
-<body id="HTMLReporter" class="html-reporter">
+<body id="HTMLReporter" class="html-reporter showDetails">
 <h1>Tested in Chrome 55.0.2883 (Windows 10 0.0.0) on Sat Feb 04 2017</h1>
 
 <div class="alert">
 
 
+<!-- <span class="failingAlert bar">Failed 1 specs</span> -->
+<span class="failingAlert bar"><span class="fold-buttons"><a href="#" onclick="fold();">Fold</a> | 
+  <a href="#" onclick="unfold();">Unfold</a></span>5 specs, 1 failed, 0 pending</span>
+<span class="resultsMenu bar">
+<a class="summaryMenuItem" onclick="showSummary();" href="#">Spec List<a>|<a 
+   class="detailsMenuItem" onclick="showFailures();" href="#">Failures</a>
+</span>
 
-  
-  <span class="passingAlert bar"><span class="fold-buttons"><a href="#" onclick="fold();">Fold</a> | 
-  <a href="#" onclick="unfold();">Unfold</a></span>4 specs, 0 failed, 0 pending</span>
-  
 
 
 </div>
@@ -135,10 +138,30 @@ body { background-color: #eeeeee; padding: 0; margin: 5px; overflow-y: scroll; }
     
     </div>
   
+    <div class="suite failed">
+      <span class="description">rcredits-mobile% -- FEATURE_NAME</span>
+    
+      <div class="specSummary failed">
+      <span class="description">encountered a declaration exception</span>
+      </div>
+    
+    </div>
+  
   
 </div>
 
 <div id="details">
+  
+  
+  <div class="specDetail failed">
+    <span class="description">rcredits-mobile% -- FEATURE_NAME encountered a declaration exception</span>
+    <div class="stackTrace">
+      <div class="resultMessage">ReferenceError: Rcredits is not defined
+    at Suite.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?e88bcd1ac76da771ab27427e55a813c1679ada01:9:19)
+    at http://localhost:9876/base/test/Transact.test?e88bcd1ac76da771ab27427e55a813c1679ada01:7:1</div>
+    </div>
+  </div>
+  
   
 </div>
 
@@ -151,7 +174,7 @@ document.body.onkeypress = function (e) {
   switch (e.keyCode) {
     case 102: toggleFold(); break;
     case 49: showSummary(); break;
-    
+    case 50: showFailures(); break;
   }
 };
 
