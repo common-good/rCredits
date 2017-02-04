@@ -31,7 +31,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 //	var typeOfQR=['old','new','short'];
 	$scope.iswebview = ionic.Platform.platform();
 	$scope.format = {
-		type: 1
+		type: 2
 	};
 	for (var i = 0; i < formats.length; i++) {
 		formats[i].onclick = function () {

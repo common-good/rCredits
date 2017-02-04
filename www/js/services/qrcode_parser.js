@@ -100,9 +100,11 @@
 			this.parseSecurityCode_();
 		}
 		this.parseServerType_();
+		console.log(this.accountInfo.accountId);
 		return this.accountInfo;
 	};
 	QRCodeParser.prototype.getAccountInfo = function () {
+		console.log(this.accountInfo.accountId);
 		return this.accountInfo;
 	};
 	QRCodeParser.prototype.parseAccountType_ = function () {
