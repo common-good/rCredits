@@ -6,7 +6,7 @@
 
 describe('r2% -- FEATURE_NAME', function () {
 	'use strict';
-	beforeEach(module('app'));
+	//beforeEach(module('app'));
 	var $controller;
 	beforeEach(inject(function(_$controller_){
 		$controller = _$controller_;
