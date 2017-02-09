@@ -7,6 +7,10 @@ module.exports = function (config) {
 		// frameworks to use
 		// available frameworks: https://npmjs.org/browse/keyword/karma-adapter
 		frameworks: ['jasmine'],
+		//don't run the test in an iFrame
+		client:{
+			useIframe:false
+		},
 		// list of files / patterns to load in the browser
 		files: [
 			'www/lib/ionic/js/ionic.bundle.js',
@@ -22,12 +26,12 @@ module.exports = function (config) {
 			'www/js/**/*.js',
 			'www/js/models/user.js',
 			'www/js/models/user.js',
-      '**/*.steps', // ws
+			'**/*.steps', // ws
 			'test/*.test', // ws: was test/**/*_spec.js
 			'www/templates/**/*.html'
 		],
 		// list of files to exclude
-		exclude: [],
+		exclude: [],		
 		// preprocess matching files before serving them to the browser
 		// available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
 		preprocessors: {},

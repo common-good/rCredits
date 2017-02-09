@@ -21,24 +21,40 @@ define('NOW', time()); // compilation should happen in an instant, conceptually
 list ($compilerPath, $lang, $path) = @$argv ?: ['./', strtoupper(@$_GET['lang']), @$_GET['path']];
 $gherkinPath = dirname($compilerPath);
 
-if (!in_array($lang, ['PHP', 'JS'])) error('Language parameter (lang) must be PHP or JS.');
-if (!$path or !$features = findFiles("$path/features", '/\.feature$/', FALSE)) error('No feature files found.');
-if (!$stepsHeader = file_get_contents("$gherkinPath/steps-header.$lang")) error("Missing steps header file for $lang.");
-if (!file_exists($testDir = "$path/test")) mkdir($testDir);
-if (!$testTemplate = file_get_contents("$gherkinPath/test-template.$lang")) error("Missing test template file for $lang.");
+if (!in_array($lang, ['PHP', 'JS'])) {
+	error('Language parameter (lang) must be PHP or JS.');
+}
+if (!$path or ! $features = findFiles("$path/features", '/\.feature$/', FALSE)) {
+	error('No feature files found.');
+}
+if (!$stepsHeader = file_get_contents("$gherkinPath/steps-header.$lang")) {
+	error("Missing steps header file for $lang.");
+}
+if (!file_exists($testDir = "$path/test")) {
+	mkdir($testDir);
+}
+if (!$testTemplate = file_get_contents("$gherkinPath/test-template.$lang")) {
+	error("Missing test template file for $lang.");
+}
 
 $module = strtolower(basename($path));
 $Module = ucfirst($module);
 $moduleSubs = ['MODULE' => $module, 'MMODULE' => $Module]; // for % replacements in template files
 $stepsFilename = "$path/$module.steps";
 if (file_exists($stepsFilename)) {
-  $stepsText = file_get_contents($stepsFilename);
-  if ($lang == 'PHP') include $stepsFilename; // for defs, extra substitutions, and syntax errors may prevent corruption of steps
-  if ($lang == 'JS') {
-    if (substr($stepsText, -1, 1) != '}') error('Last character of steps file must be "}".');
-    $stepsText = substr($stepsText, 0, strlen($stepsText) - 1);
-  }
-} else $stepsText = strtr2($stepsHeader, $moduleSubs);
+	$stepsText = file_get_contents($stepsFilename);
+	if ($lang == 'PHP') {
+		include $stepsFilename;
+	} // for defs, extra substitutions, and syntax errors may prevent corruption of steps
+	if ($lang == 'JS') {
+		if (substr($stepsText, -1, 1) != '}') {
+			error('Last character of steps file must be "}".');
+		}
+		$stepsText = substr($stepsText, 0, strlen($stepsText) - 1);
+	}
+} else {
+	$stepsText = strtr2($stepsHeader, $moduleSubs);
+}
 
 $argPatterns = '"(.*?)"|([\-\+]?[0-9]+(?:[\.\,\-][0-9]+)*)|(%[a-z][A-Za-z0-9\-\+]+)'; // what forms the step arguments can take
 
@@ -55,8 +71,12 @@ $argPatterns = '"(.*?)"|([\-\+]?[0-9]+(?:[\.\,\-][0-9]+)*)|(%[a-z][A-Za-z0-9\-\+
 $steps = getSteps($stepsText); // global
 doFeatures($steps, $features, $module, $testTemplate);
 doSteps($steps, $stepsText);
-if ($lang == 'JS') $stepsText .= '}';
-if (!file_put_contents($stepsFilename, $stepsText)) error("Cannot write stepsfile $stepsFilename.");
+if ($lang == 'JS') {
+	$stepsText .= '}';
+}
+if (!file_put_contents($stepsFilename, $stepsText)) {
+	error("Cannot write stepsfile $stepsFilename.");
+}
 echo "\n\n<br>Updated $stepsFilename -- Done. " . date('g:ia') . "\n";
 
 // END of program
@@ -88,11 +108,11 @@ function doSteps($steps, &$stepsText) {
     extract($step); // original, english, toReplace, callers, TMB, functionName, argCount
     $newCallers = replacement($callers, @$TMB, $functionName); // (replacement includes function's opening parenthesis)
     if ($original == 'new') {
-      for ($argList = '', $i = 0; $i < $argCount; $i++) {
-        $argList .= ($argList ? ', ' : '') . $varName . ($i + 1);
-      }
-      $global = $lang == 'PHP' ? "  global \$testOnly;\n" : '';
-      $stepsText .= <<<EOF
+			for ($argList = '', $i = 0; $i < $argCount; $i++) {
+				$argList .= ($argList ? ', ' : '') . $varName . ($i + 1);
+			}
+			$global = $lang == 'PHP' ? "  global \$testOnly;\n" : '';
+			$stepsText .= <<<EOF
 
 /**
  * $english
@@ -102,8 +122,10 @@ $global  todo;
 }
 
 EOF;
-    } else $stepsText = str_replace($toReplace, $newCallers, $stepsText);
-  }
+		} else {
+			$stepsText = str_replace($toReplace, $newCallers, $stepsText);
+		}
+	}
 }
 
 /**
@@ -144,7 +166,9 @@ function doFeature(&$steps, $featureFilename) {
   $variantGroups = array();
 
   while (!is_null($line = array_shift($lines))) {
-    if (!($line = trim($line))) continue; // ignore blank lines
+	  if (!($line = trim($line))) {
+			continue;
+		} // ignore blank lines
     if (substr($line, 0, 1) == '#') continue; // ignore comment lines
     $any = preg_match('/^([A-Z]+)/i', $line, $matches);
     $word1 = $word1_original = $any ? $matches[1] : '';

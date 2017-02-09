@@ -15,7 +15,7 @@ var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate
 			localStorageServiceProvider.setPrefix('rcredits');
 			var storageQuota = false;
 		}])
-	.run(function ($ionicPlatform, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService, UserService, NotificationService, $rootScope) {
+	.run(function ($ionicPlatform,$state, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService, UserService, NotificationService, $rootScope) {
 		$ionicPlatform.ready(function () {
 			// This only for web development to enable proxy
 			$rootScope.whereWasI=location.hash;

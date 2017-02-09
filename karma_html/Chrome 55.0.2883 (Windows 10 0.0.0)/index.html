@@ -94,7 +94,7 @@ body { background-color: #eeeeee; padding: 0; margin: 5px; overflow-y: scroll; }
 </head>
 
 <body id="HTMLReporter" class="html-reporter showDetails">
-<h1>Tested in Chrome 55.0.2883 (Windows 10 0.0.0) on Sat Feb 04 2017</h1>
+<h1>Tested in Chrome 55.0.2883 (Windows 10 0.0.0) on Wed Feb 08 2017</h1>
 
 <div class="alert">
 
@@ -117,7 +117,7 @@ body { background-color: #eeeeee; padding: 0; margin: 5px; overflow-y: scroll; }
   
   
   
-    <div class="suite passed">
+    <div class="suite failed">
       <span class="description">r2% -- FEATURE_NAME</span>
     
       <div class="specSummary passed">
@@ -136,13 +136,8 @@ body { background-color: #eeeeee; padding: 0; margin: 5px; overflow-y: scroll; }
       <span class="description">Scenario: We scan a valid company card.</span>
       </div>
     
-    </div>
-  
-    <div class="suite failed">
-      <span class="description">rcredits-mobile% -- FEATURE_NAME</span>
-    
       <div class="specSummary failed">
-      <span class="description">encountered a declaration exception</span>
+      <span class="description">Scenario: We identify and charge a customer</span>
       </div>
     
     </div>
@@ -154,11 +149,35 @@ body { background-color: #eeeeee; padding: 0; margin: 5px; overflow-y: scroll; }
   
   
   <div class="specDetail failed">
-    <span class="description">rcredits-mobile% -- FEATURE_NAME encountered a declaration exception</span>
+    <span class="description">r2% -- FEATURE_NAME Scenario: We identify and charge a customer</span>
     <div class="stackTrace">
-      <div class="resultMessage">ReferenceError: Rcredits is not defined
-    at Suite.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?e88bcd1ac76da771ab27427e55a813c1679ada01:9:19)
-    at http://localhost:9876/base/test/Transact.test?e88bcd1ac76da771ab27427e55a813c1679ada01:7:1</div>
+      <div class="resultMessage">Expected false to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:14:36),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:16:53),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:21:56),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:23:33),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:25:74),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:27:47),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:29:45),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:31:44),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:33:40),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:35:40),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:37:43),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:39:40),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:41:43),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:43:38),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:45:36),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:47:57),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:49:40),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:51:40),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:53:36),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:55:36),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:57:39),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:59:36),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:61:43),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:63:87),Expected undefined to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:65:46),Expected false to be true.
+    at Object.&lt;anonymous&gt; (http://localhost:9876/base/test/Transact.test?7fdd60aa0619a45e596ef7de8b4ae6bcb2117dd8:67:36)</div>
     </div>
   </div>
   

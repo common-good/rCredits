@@ -1,18 +1,8 @@
 <?xml version="1.0"?>
-<testsuite name="Chrome 55.0.2883 (Windows 10 0.0.0)" package="" timestamp="2017-02-04T23:25:53" id="0" hostname="AaronEJs-Laptop" tests="5" errors="0" failures="1" time="0.015">
+<testsuite name="Chrome 55.0.2883 (Windows 10 0.0.0)" package="" timestamp="2017-02-08T19:28:23" id="0" hostname="AaronEJs-Laptop" tests="5" errors="1" failures="0" time="0">
   <properties>
     <property name="browser.fullName" value="Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36"/>
   </properties>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid old personal card." time="0.005" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid old company card." time="0.001" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid personal card." time="0.004" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid company card." time="0.004" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="rcredits-mobile% -- FEATURE_NAME encountered a declaration exception" time="0.001" classname="Chrome_55_0_2883_(Windows_10_0_0_0).rcredits-mobile% -- FEATURE_NAME">
-    <failure type="">ReferenceError: Rcredits is not defined
-    at Suite.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:9:19)
-    at E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:7:1
-</failure>
-  </testcase>
   <system-out>
     <![CDATA[Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'
@@ -210,6 +200,10 @@
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'id:WeHlioM5JZv1O9G'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: Object{_invokeQueue: [[..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...]], _configBlocks: [[..., ..., ...]], _runBlocks: [function ($ionicPlatform,$state, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService, UserService, NotificationService, $rootScope) { ... }], requires: ['ionic', 'routes', 'pascalprecht.translate', 'LocalStorageModule', 'ui.router'], name: 'rcredits', provider: function (recipeName, factoryFunction) { ... }, factory: function (recipeName, factoryFunction) { ... }, service: function (recipeName, factoryFunction) { ... }, value: function () { ... }, constant: function () { ... }, decorator: function (recipeName, factoryFunction) { ... }, animation: function (recipeName, factoryFunction) { ... }, filter: function (recipeName, factoryFunction) { ... }, controller: function (recipeName, factoryFunction) { ... }, directive: function (recipeName, factoryFunction) { ... }, config: function () { ... }, run: function (block) { ... }}
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'app: p:Home', ' page:false'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: Object{_invokeQueue: [[..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...]], _configBlocks: [[..., ..., ...]], _runBlocks: [function ($ionicPlatform,$state, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService, UserService, NotificationService, $rootScope) { ... }], requires: ['ionic', 'routes', 'pascalprecht.translate', 'LocalStorageModule', 'ui.router'], name: 'rcredits', provider: function (recipeName, factoryFunction) { ... }, factory: function (recipeName, factoryFunction) { ... }, service: function (recipeName, factoryFunction) { ... }, value: function () { ... }, constant: function () { ... }, decorator: function (recipeName, factoryFunction) { ... }, animation: function (recipeName, factoryFunction) { ... }, filter: function (recipeName, factoryFunction) { ... }, controller: function (recipeName, factoryFunction) { ... }, directive: function (recipeName, factoryFunction) { ... }, config: function () { ... }, run: function (block) { ... }}
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'app: p:Home', ' page:false'
 
 ]]>
   </system-out>

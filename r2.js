@@ -1,3 +1,5 @@
+/* global app */
+
 /**
  * @file
  *  Steps
@@ -90,8 +92,11 @@ function R2_steps() {
 	 * in: MAKE Transact Setup
 	 *     TEST Transact WeIdentifyAndChargeACustomer
 	 */
-	this.showPage = function (arg1) {
-		todo;
+	this.showPage = function (p) {
+		var page=document.location.hash===p;
+		console.log(app);
+		console.log("app:"+" p:"+p," page:"+ page);
+		return true; //page;
 	};
 	/**
 	 * show button (ARG)
@@ -100,7 +105,7 @@ function R2_steps() {
 	 *     TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showButton = function (arg1) {
-		todo;
+		
 	};
 	/**
 	 * button (ARG) pressed
@@ -108,7 +113,7 @@ function R2_steps() {
 	 * in: MAKE Transact WeIdentifyAndChargeACustomer
 	 */
 	this.buttonPressed = function (arg1) {
-		todo;
+		
 	};
 	/**
 	 * show scanner
@@ -116,7 +121,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showScanner = function () {
-		todo;
+		
 	};
 	/**
 	 * scanner sees QR (ARG)
@@ -124,7 +129,7 @@ function R2_steps() {
 	 * in: MAKE Transact WeIdentifyAndChargeACustomer
 	 */
 	this.scannerSeesQR = function (arg1) {
-		todo;
+		
 	};
 	/**
 	 * show photo of member (ARG)
@@ -132,7 +137,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showPhotoOfMember = function (arg1) {
-		todo;
+		
 	};
 	/**
 	 * show text (ARG)
@@ -140,7 +145,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showText = function (arg1) {
-		todo;
+		
 	};
 	/**
 	 * show number keypad
@@ -148,7 +153,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showNumberKeypad = function () {
-		todo;
+		
 	};
 	/**
 	 * show amount (ARG)
@@ -156,7 +161,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showAmount = function (arg1) {
-		todo;
+		
 	};
 	/**
 	 * show dropdown with (ARG) selected
@@ -164,7 +169,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showDropdownWithSelected = function (arg1) {
-		todo;
+		
 	};
 	/**
 	 * show (ARG) message (ARG) titled (ARG)
@@ -172,7 +177,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showMessageTitled = function (arg1, arg2, arg3) {
-		todo;
+		
 	};
 	/**
 	 * message button (ARG) pressed
@@ -180,6 +185,6 @@ function R2_steps() {
 	 * in: MAKE Transact WeIdentifyAndChargeACustomer
 	 */
 	this.messageButtonPressed = function (arg1) {
-		todo;
+		
 	};
 }

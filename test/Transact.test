@@ -4,68 +4,71 @@
 //   I WANT to scan a customer card and transfer funds from their account to my account or vice versa
 //   SO we can account fairly for our business dealings.
 
-describe('rcredits-mobile% -- FEATURE_NAME', function () {
+describe('r2% -- FEATURE_NAME', function () {
 	'use strict';
-  var steps = new Rcredits-mobile_steps();
-
-  beforeEach(function () { // Setup
-    steps.extraSetup();
-    steps.testOnly = 0;
-    expect(steps.showPage('Home')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showButton('Scan Customer rCard')).toBe(true);
-  });
-
-  it('Scenario: We identify and charge a customer', function () {
-    steps.testOnly = 0;
-    expect(steps.buttonPressed('Scan Customer rCard')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showScanner()).toBe(true);
-    steps.testOnly = 0;
-    expect(steps.scannerSeesQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showPhotoOfMember('NEWABB')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showText('Susan Shopper')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showText('Montague, MA')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showButton('Charge')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showButton('Refund')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showButton('Trade USD')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showButton('< Back')).toBe(true);
-    steps.testOnly = 0;
-    expect(steps.buttonPressed('Charge')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showNumberKeypad()).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showAmount(0.00)).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showDropdownWithSelected('groceries')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showButton('Charge')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showButton('< Back')).toBe(true);
-    steps.testOnly = 0;
-    expect(steps.buttonPressed(3)).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showAmount(0.03)).toBe(true);
-    steps.testOnly = 0;
-    expect(steps.buttonPressed('00')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showAmount(3.00)).toBe(true);
-    steps.testOnly = 0;
-    expect(steps.buttonPressed('Charge')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showMessageTitled('ok', 'Susan Shopper paid you $3.00', 'Success!')).toBe(true);
-    steps.testOnly = 0;
-    expect(steps.messageButtonPressed('ok')).toBe(true);
-    steps.testOnly = 1;
-    expect(steps.showPage('Home')).toBe(true);
-  });
+	beforeEach(module('app'));
+	var $controller;
+	beforeEach(inject(function(_$controller_){
+		$controller = _$controller_;
+	}));
+	var steps = new R2_steps();
+	beforeEach(function () { // Setup
+		steps.extraSetup();
+		steps.testOnly = 0;
+		expect(steps.showPage('Home')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showButton('Scan Customer rCard')).toBe(true);
+	});
+	it('Scenario: We identify and charge a customer', function () {
+		steps.testOnly = 0;
+		expect(steps.buttonPressed('Scan Customer rCard')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showScanner()).toBe(true);
+		steps.testOnly = 0;
+		expect(steps.scannerSeesQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showPhotoOfMember('NEWABB')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showText('Susan Shopper')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showText('Montague, MA')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showButton('Charge')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showButton('Refund')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showButton('Trade USD')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showButton('< Back')).toBe(true);
+		steps.testOnly = 0;
+		expect(steps.buttonPressed('Charge')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showNumberKeypad()).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showAmount(0.00)).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showDropdownWithSelected('groceries')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showButton('Charge')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showButton('< Back')).toBe(true);
+		steps.testOnly = 0;
+		expect(steps.buttonPressed(3)).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showAmount(0.03)).toBe(true);
+		steps.testOnly = 0;
+		expect(steps.buttonPressed('00')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showAmount(3.00)).toBe(true);
+		steps.testOnly = 0;
+		expect(steps.buttonPressed('Charge')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showMessageTitled('ok', 'Susan Shopper paid you $3.00', 'Success!')).toBe(true);
+		steps.testOnly = 0;
+		expect(steps.messageButtonPressed('ok')).toBe(true);
+		steps.testOnly = 1;
+		expect(steps.showPage('Home')).toBe(true);
+	});
 
 });
   
