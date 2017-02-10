@@ -8,9 +8,9 @@ module.exports = function (config) {
 		// available frameworks: https://npmjs.org/browse/keyword/karma-adapter
 		frameworks: ['jasmine'],
 		//don't run the test in an iFrame
-		client: {
-			useIframe: false
-		},
+//		client: {
+//			useIframe: false
+//		},
 		// list of files / patterns to load in the browser
 		files: [
 			'www/lib/ionic/js/ionic.bundle.js',
@@ -21,7 +21,7 @@ module.exports = function (config) {
 			'www/lib/prototypejs/dist/prototype.js',
 			'www/lib/underscore/underscore-min.js',
 			'www/lib/moment/moment.js',
-			'node_modules/angular-mocks/angular-mocks.js',
+//			'node_modules/angular-mocks/angular-mocks.js',
 			'www/lib/ionic/js/ionic.bundle.js',
 			'www/lib/underscore/underscore-min.js',
 			'www/lib/angular-translate/angular-translate.min.js',

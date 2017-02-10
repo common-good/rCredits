@@ -1,15 +1,16 @@
+/* global _$compile_, _$rootScope_ */
 //
 // Feature: Transfer funds to or from a customer.
 //   AS a company or individual
 //   I WANT to scan a customer card and transfer funds from their account to my account or vice versa
 //   SO we can account fairly for our business dealings.
-
-describe('r2% -- FEATURE_NAME', function () {
+describe('Transfer funds to or from a customer', function () {
 	'use strict';
 	beforeEach(module('CompanyHomeCtrl'));
 	var $controller;
-	beforeEach(inject(function(_$controller_){
-		$controller = _$controller_;
+	beforeEach(inject(function (_$controller_) {
+		$compile = _$compile_;
+		$rootScope = _$rootScope_;
 	}));
 	var steps = new R2_steps();
 	beforeEach(function () { // Setup

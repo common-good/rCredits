@@ -1,88 +1,16 @@
 <?xml version="1.0"?>
-<testsuite name="Chrome 55.0.2883 (Windows 10 0.0.0)" package="" timestamp="2017-02-09T00:51:43" id="0" hostname="AaronEJs-Laptop" tests="5" errors="0" failures="1" time="0.041">
+<testsuite name="Chrome 55.0.2883 (Windows 10 0.0.0)" package="" timestamp="2017-02-10T17:37:05" id="0" hostname="AaronEJs-Laptop" tests="5" errors="0" failures="1" time="0.023">
   <properties>
     <property name="browser.fullName" value="Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36"/>
   </properties>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid old personal card." time="0.008" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
+  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid old personal card." time="0.007" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
   <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid old company card." time="0.003" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid personal card." time="0.004" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid company card." time="0.008" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We identify and charge a customer" time="0.018" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME">
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:20:51)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:24:54)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:26:31)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:28:72)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:30:45)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:32:43)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:34:42)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:36:38)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:38:38)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:40:41)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:42:38)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:44:41)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:46:36)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:48:34)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:50:55)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:52:38)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:54:38)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:56:34)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:58:34)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:60:37)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:62:34)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:64:41)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:66:85)
-</failure>
-    <failure type="">Expected undefined to be true.
-    at Object.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:68:44)
-</failure>
-    <failure type="">TypeError: angular.element.cleanData is not a function
-    at Function.module.$$cleanup (E:/xampp/htdocs/cgf/rcredits-mobile/node_modules/angular-mocks/angular-mocks.js:2989:23)
-    at Object.module.$$afterEach (E:/xampp/htdocs/cgf/rcredits-mobile/node_modules/angular-mocks/angular-mocks.js:2959:14)
+  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid personal card." time="0.007" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
+  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid company card." time="0.005" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
+  <testcase name="r2% -- FEATURE_NAME encountered a declaration exception" time="0.001" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME">
+    <failure type="">ReferenceError: module is not defined
+    at Suite.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:9:13)
+    at E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:7:1
 </failure>
   </testcase>
   <system-out>
@@ -282,10 +210,6 @@
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'id:WeHlioM5JZv1O9G'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: Object{_invokeQueue: [[..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...]], _configBlocks: [[..., ..., ...]], _runBlocks: [function ($ionicPlatform,$state, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService, UserService, NotificationService, $rootScope) { ... }], requires: ['ionic', 'routes', 'pascalprecht.translate', 'LocalStorageModule', 'ui.router'], name: 'rcredits', provider: function (recipeName, factoryFunction) { ... }, factory: function (recipeName, factoryFunction) { ... }, service: function (recipeName, factoryFunction) { ... }, value: function () { ... }, constant: function () { ... }, decorator: function (recipeName, factoryFunction) { ... }, animation: function (recipeName, factoryFunction) { ... }, filter: function (recipeName, factoryFunction) { ... }, controller: function (recipeName, factoryFunction) { ... }, directive: function (recipeName, factoryFunction) { ... }, config: function () { ... }, run: function (block) { ... }}
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'app: p:Home', ' page:false'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: Object{_invokeQueue: [[..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...], [..., ..., ...]], _configBlocks: [[..., ..., ...]], _runBlocks: [function ($ionicPlatform,$state, SQLiteService, NetworkService, $rootScope, TransactionSyncService, BackButtonService, UserService, NotificationService, $rootScope) { ... }], requires: ['ionic', 'routes', 'pascalprecht.translate', 'LocalStorageModule', 'ui.router'], name: 'rcredits', provider: function (recipeName, factoryFunction) { ... }, factory: function (recipeName, factoryFunction) { ... }, service: function (recipeName, factoryFunction) { ... }, value: function () { ... }, constant: function () { ... }, decorator: function (recipeName, factoryFunction) { ... }, animation: function (recipeName, factoryFunction) { ... }, filter: function (recipeName, factoryFunction) { ... }, controller: function (recipeName, factoryFunction) { ... }, directive: function (recipeName, factoryFunction) { ... }, config: function () { ... }, run: function (block) { ... }}
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'app: p:Home', ' page:false'
 
 ]]>
   </system-out>

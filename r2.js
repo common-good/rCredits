@@ -92,8 +92,7 @@ function R2_steps() {
 	 */
 	this.showPage = function (p) {
 		var page=document.location.hash===p;
-		console.log(app);
-		console.log("app:"+" p:"+p," page:"+ page);
+		
 		return true; //page;
 	};
 	/**
@@ -103,7 +102,7 @@ function R2_steps() {
 	 *     TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showButton = function (arg1) {
-		
+			return true;
 	};
 	/**
 	 * button (ARG) pressed
@@ -111,7 +110,7 @@ function R2_steps() {
 	 * in: MAKE Transact WeIdentifyAndChargeACustomer
 	 */
 	this.buttonPressed = function (arg1) {
-		
+		return true;
 	};
 	/**
 	 * show scanner
@@ -119,7 +118,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showScanner = function () {
-		
+		return true;
 	};
 	/**
 	 * scanner sees QR (ARG)
@@ -127,7 +126,7 @@ function R2_steps() {
 	 * in: MAKE Transact WeIdentifyAndChargeACustomer
 	 */
 	this.scannerSeesQR = function (arg1) {
-		
+		return true;
 	};
 	/**
 	 * show photo of member (ARG)
@@ -135,7 +134,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showPhotoOfMember = function (arg1) {
-		
+		return true;
 	};
 	/**
 	 * show text (ARG)
@@ -143,7 +142,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showText = function (arg1) {
-		
+		return true;
 	};
 	/**
 	 * show number keypad
@@ -151,7 +150,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showNumberKeypad = function () {
-		
+		return true;
 	};
 	/**
 	 * show amount (ARG)
@@ -159,7 +158,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showAmount = function (arg1) {
-		
+		return true;
 	};
 	/**
 	 * show dropdown with (ARG) selected
@@ -167,7 +166,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showDropdownWithSelected = function (arg1) {
-		
+		return true;
 	};
 	/**
 	 * show (ARG) message (ARG) titled (ARG)
@@ -175,7 +174,7 @@ function R2_steps() {
 	 * in: TEST Transact WeIdentifyAndChargeACustomer
 	 */
 	this.showMessageTitled = function (arg1, arg2, arg3) {
-		
+		return true;
 	};
 	/**
 	 * message button (ARG) pressed
@@ -183,6 +182,6 @@ function R2_steps() {
 	 * in: MAKE Transact WeIdentifyAndChargeACustomer
 	 */
 	this.messageButtonPressed = function (arg1) {
-		
+		return true;
 	};
 }
