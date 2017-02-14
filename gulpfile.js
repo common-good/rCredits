@@ -1,5 +1,6 @@
 var gulp = require('gulp');
 var gutil = require('gulp-util');
+gulp.task('serve:before', ['default']);
 var bower = require('bower');
 var concat = require('gulp-concat');
 var sass = require('gulp-sass');
