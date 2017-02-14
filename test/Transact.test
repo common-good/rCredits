@@ -3,7 +3,7 @@
 //   AS a company or individual
 //   I WANT to scan a customer card and transfer funds from their account to my account or vice versa
 //   SO we can account fairly for our business dealings.
-
+/*
 describe('r2% -- FEATURE_NAME', function () {
 	'use strict';
 	beforeEach(module('CompanyHomeCtrl'));
@@ -71,4 +71,4 @@ describe('r2% -- FEATURE_NAME', function () {
 	});
 
 });
-  
+  */

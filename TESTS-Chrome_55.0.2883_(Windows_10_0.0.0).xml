@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
-<testsuite name="Chrome 55.0.2883 (Windows 10 0.0.0)" package="" timestamp="2017-02-10T17:37:05" id="0" hostname="AaronEJs-Laptop" tests="5" errors="0" failures="1" time="0.023">
+<testsuite name="Chrome 55.0.2883 (Windows 10 0.0.0)" package="" timestamp="2017-02-10T18:35:08" id="0" hostname="AaronEJs-Laptop" tests="5" errors="0" failures="1" time="0.023">
   <properties>
     <property name="browser.fullName" value="Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36"/>
   </properties>
   <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid old personal card." time="0.007" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
   <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid old company card." time="0.003" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid personal card." time="0.007" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid company card." time="0.005" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
+  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid personal card." time="0.005" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
+  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid company card." time="0.007" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
   <testcase name="r2% -- FEATURE_NAME encountered a declaration exception" time="0.001" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME">
     <failure type="">ReferenceError: module is not defined
     at Suite.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:9:13)

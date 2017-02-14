@@ -13,7 +13,9 @@ describe('Transfer funds to or from a customer', function () {
 		$rootScope = _$rootScope_;
 	}));
 	var steps = new R2_steps();
-	beforeEach(function () { // Setup
+	it('Should start on the hope screen',function () { // Setup
+		browser.get('#/app/home');
+		expect(browser.getLocationAbsUrl.toMatch('#/app/home'));
 		steps.extraSetup();
 		steps.testOnly = 0;
 		expect(steps.showPage('Home')).toBe(true);
