@@ -35,7 +35,7 @@ app.controller('LoginCtrl', function ($scope, $ionicLoading, $state, $ionicPlatf
 					.catch(function (errorMsg) {
 						NotificationService.showAlert({title: "error", template: errorMsg});
 						$ionicLoading.hide();
-					})
+					});
 			});
 		}
 	};

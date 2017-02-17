@@ -29,11 +29,18 @@ function R2_steps() {
 	 *     MAKE ParseQRCode WeScanAValidPersonalCard
 	 *     MAKE ParseQRCode WeScanAValidCompanyCard
 	 */
+	var q=0;
+		var del=.5;
+	function test(a){
+		return a,"waiting...";
+	}
 	this.weScanQR = function (qr) {
 		this.v.parser = new QRCodeParser();
+		console.log("we= "+q++);
+//		console.log(q++,"not waiting!");
 		this.v.parser.setUrl(qr);
 		this.v.parser.parse();
-		console.log(this.v.parser);
+//		console.log(this.v.parser);
 		return true;
 	};
 	/**
@@ -43,8 +50,8 @@ function R2_steps() {
 	 */
 	this.accountIsPersonal = function () {
 		var isItP=(this.v.parser.getAccountInfo().isPersonalAccount()===this.v.parser.accountInfo.isPersonal);
-		console.log("isItP");
-		console.log(isItP);
+		console.log("isItP= "+q++);
+//		console.log(isItP);
 		return isItP;
 	};
 	/**
@@ -55,8 +62,8 @@ function R2_steps() {
 	 */
 	this.accountIsCompany = function () {
 		var isItC=(this.v.parser.getAccountInfo().isCompanyAccount()===this.v.parser.accountInfo.isCompany);
-		console.log("isItC");
-		console.log(isItC);
+		console.log("isItC= "+q++);
+//		console.log(isItC);
 		return isItC;
 	};
 	/**
@@ -68,8 +75,8 @@ function R2_steps() {
 	 */
 	this.accountIDIs = function (id) {
 		var isThereId=(this.v.parser.getAccountInfo().accountId === id);
-		console.log("isThereId:"+this.v.parser.getAccountInfo().accountId);
-		console.log(isThereId+id);
+		console.log("isThereId= "+q++);
+//		console.log(isThereId+id);
 		return isThereId;
 	};
 	/**
@@ -80,8 +87,8 @@ function R2_steps() {
 	 *     TEST ParseQRCode WeScanAValidCompanyCard
 	 */
 	this.securityCodeIs = function (id) {
-		console.log("this.v.parser.getAccountInfo().securityCode:"+this.v.parser.getAccountInfo().unencryptedCode);
-		console.log("id:"+id);
+		console.log("this.v.parser.getAccountInfo().securityCode= "+q++);
+//		console.log("id:"+id);
 		return (this.v.parser.getAccountInfo().unencryptedCode === id);
 	};
 	/**

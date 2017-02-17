@@ -1,214 +1,52 @@
 <?xml version="1.0"?>
-<testsuite name="Chrome 55.0.2883 (Windows 10 0.0.0)" package="" timestamp="2017-02-10T18:35:08" id="0" hostname="AaronEJs-Laptop" tests="5" errors="0" failures="1" time="0.023">
+<testsuite name="Chrome 55.0.2883 (Windows 10 0.0.0)" package="" timestamp="2017-02-17T01:05:30" id="0" hostname="AaronEJs-Laptop" tests="4" errors="0" failures="0" time="0.007">
   <properties>
     <property name="browser.fullName" value="Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36"/>
   </properties>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid old personal card." time="0.007" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid old company card." time="0.003" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid personal card." time="0.005" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="r2% -- FEATURE_NAME Scenario: We scan a valid company card." time="0.007" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="r2% -- FEATURE_NAME encountered a declaration exception" time="0.001" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME">
-    <failure type="">ReferenceError: module is not defined
-    at Suite.&lt;anonymous&gt; (E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:9:13)
-    at E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:7:1
-</failure>
-  </testcase>
+  <testcase name="Scenario: We scan a valid old personal card." time="0.004" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
+  <testcase name="Scenario: We scan a valid old company card." time="0.001" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
+  <testcase name="Scenario: We scan a valid personal card." time="0.001" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
+  <testcase name="Scenario: We scan a valid company card." time="0.001" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
   <system-out>
-    <![CDATA[Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 7, ['HTTP:', '', 'NEW', 'RC4', 'ME', 'ABB', 'ZzhWMCq0zcBowqw'], 3
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '1f234beda2b18489229fbfddf734c691fdbd47c7a5d025f86887845dfbff752d'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: QRCodeParser{plainUrl: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw', url: URL{}, accountInfo: AccountInfo{isPersonal: true, isCompany: false, memberId: 'NEW', accountId: 'NEWABB', securityCode: '1f234beda2b18489229fbfddf734c691fdbd47c7a5d025f86887845dfbff752d', url: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw', serverType: 'rc4', signin: 0, counter: '', unencryptedCode: 'ZzhWMCq0zcBowqw'}, parts: ['HTTP:', '', 'NEW', 'RC4', 'ME', 'ABB', 'ZzhWMCq0zcBowqw'], count: 7}
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 7, ['HTTP:', '', 'NEW', 'RC4', 'ME', 'ABB', 'ZzhWMCq0zcBowqw'], 3
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '1f234beda2b18489229fbfddf734c691fdbd47c7a5d025f86887845dfbff752d'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: QRCodeParser{plainUrl: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw', url: URL{}, accountInfo: AccountInfo{isPersonal: true, isCompany: false, memberId: 'NEW', accountId: 'NEWABB', securityCode: '1f234beda2b18489229fbfddf734c691fdbd47c7a5d025f86887845dfbff752d', url: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw', serverType: 'rc4', signin: 0, counter: '', unencryptedCode: 'ZzhWMCq0zcBowqw'}, parts: ['HTTP:', '', 'NEW', 'RC4', 'ME', 'ABB', 'ZzhWMCq0zcBowqw'], count: 7}
+    <![CDATA[Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 0'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 1'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP= 2'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP= 3'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 4'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 5'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 6'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 7'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId:NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'trueNEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId:NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'trueNEWABB'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 8'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItC= 9'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 10'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 11'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 12'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 13'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode:ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'id:ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode:ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'id:ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP= 14'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP= 15'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 7, ['HTTP:', '', 'NEW', 'RC4', 'ME', 'AAB', 'WeHlioM5JZv1O9G'], 3
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'b7de95ae1f4d1a407253401e94be8cef51e49aba7ee9ca0495741fa4c7ffb6e4'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: QRCodeParser{plainUrl: 'HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G', url: URL{}, accountInfo: AccountInfo{isPersonal: false, isCompany: true, memberId: 'NEW', accountId: 'NEWAAB', securityCode: 'b7de95ae1f4d1a407253401e94be8cef51e49aba7ee9ca0495741fa4c7ffb6e4', url: 'HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G', serverType: 'rc4', signin: 1, counter: '', unencryptedCode: 'WeHlioM5JZv1O9G'}, parts: ['HTTP:', '', 'NEW', 'RC4', 'ME', 'AAB', 'WeHlioM5JZv1O9G'], count: 7}
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItC'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 16'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 17'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId:NEWAAB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'trueNEWAAB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode:WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'id:WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 6, ['HTTP:', '', '6VM', 'RC4', 'ME', 'G0RZzhWMCq0zcBowqw'], 18
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '', 'G0RZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 4
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '0R'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '11', '1', 1
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '11', '1', 1
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 2, 2, '', 'BB', '11', '0R', 2
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'ABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'G0RZzhWMCq0zcBowqw', 4, 'G', 2, 0, 'ABB', '2', 3
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '6VM'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'd4m', 'd', 13
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'd4m', '4', 4
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'd4m', 'm', 22
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 3, 3, '', 'NEW', 'd4m', '6VM', 3
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEW'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: AccountInfo{isPersonal: true, isCompany: false, memberId: 'NEW', accountId: 'NEWABB', securityCode: '1f234beda2b18489229fbfddf734c691fdbd47c7a5d025f86887845dfbff752d', url: 'HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw', serverType: '', signin: 0, counter: '', unencryptedCode: 'ZzhWMCq0zcBowqw'}, 0, 'NEW', 'ABB', 'G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: QRCodeParser{plainUrl: 'HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw', url: URL{}, accountInfo: AccountInfo{isPersonal: true, isCompany: false, memberId: 'NEW', accountId: 'NEWABB', securityCode: '1f234beda2b18489229fbfddf734c691fdbd47c7a5d025f86887845dfbff752d', url: 'HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw', serverType: 'rc4', signin: 0, counter: '', unencryptedCode: 'ZzhWMCq0zcBowqw'}, parts: ['HTTP:', '', '6VM', 'RC4', 'ME', 'G0RZzhWMCq0zcBowqw'], count: 6}
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 6, ['HTTP:', '', '6VM', 'RC4', 'ME', 'G0RZzhWMCq0zcBowqw'], 18
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '', 'G0RZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 4
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '0R'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '11', '1', 1
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '11', '1', 1
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 2, 2, '', 'BB', '11', '0R', 2
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'ABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'G0RZzhWMCq0zcBowqw', 4, 'G', 2, 0, 'ABB', '2', 3
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '6VM'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'd4m', 'd', 13
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'd4m', '4', 4
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'd4m', 'm', 22
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 3, 3, '', 'NEW', 'd4m', '6VM', 3
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEW'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: AccountInfo{isPersonal: true, isCompany: false, memberId: 'NEW', accountId: 'NEWABB', securityCode: '1f234beda2b18489229fbfddf734c691fdbd47c7a5d025f86887845dfbff752d', url: 'HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw', serverType: '', signin: 0, counter: '', unencryptedCode: 'ZzhWMCq0zcBowqw'}, 0, 'NEW', 'ABB', 'G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: QRCodeParser{plainUrl: 'HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw', url: URL{}, accountInfo: AccountInfo{isPersonal: true, isCompany: false, memberId: 'NEW', accountId: 'NEWABB', securityCode: '1f234beda2b18489229fbfddf734c691fdbd47c7a5d025f86887845dfbff752d', url: 'HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw', serverType: 'rc4', signin: 0, counter: '', unencryptedCode: 'ZzhWMCq0zcBowqw'}, parts: ['HTTP:', '', '6VM', 'RC4', 'ME', 'G0RZzhWMCq0zcBowqw'], count: 6}
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 18'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 19'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 20'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 21'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItC= 22'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP= 23'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 24'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 25'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId:NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'trueNEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId:NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'trueNEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode:ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'id:ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode:ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'id:ZzhWMCq0zcBowqw'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWABB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 6, ['HTTP:', '', '6VM', 'RC4', 'ME', 'H010WeHlioM5JZv1O9G'], 19
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '', 'H010WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 4
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '01'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '1', '1', 1
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 1, 2, '', 'B', '1', '01', 2
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'AAB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'H010WeHlioM5JZv1O9G', 4, 'H', 2, 1, 'AAB', '2', 3
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '6VM'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'd4m', 'd', 13
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'd4m', '4', 4
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'd4m', 'm', 22
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 3, 3, '', 'NEW', 'd4m', '6VM', 3
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEW'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '0'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '0', '0', 0
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 1, 1, '', 'A', '0', '0', 1
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: AccountInfo{isPersonal: false, isCompany: true, memberId: 'NEW', accountId: 'NEWAAB-A', securityCode: 'b7de95ae1f4d1a407253401e94be8cef51e49aba7ee9ca0495741fa4c7ffb6e4', url: 'HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G', serverType: '', signin: 1, counter: '', unencryptedCode: 'WeHlioM5JZv1O9G'}, 1, 'NEW', 'AAB', 'H'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: QRCodeParser{plainUrl: 'HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G', url: URL{}, accountInfo: AccountInfo{isPersonal: false, isCompany: true, memberId: 'NEW', accountId: 'NEWAAB-A', securityCode: 'b7de95ae1f4d1a407253401e94be8cef51e49aba7ee9ca0495741fa4c7ffb6e4', url: 'HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G', serverType: 'rc4', signin: 1, counter: '', unencryptedCode: 'WeHlioM5JZv1O9G'}, parts: ['HTTP:', '', '6VM', 'RC4', 'ME', 'H010WeHlioM5JZv1O9G'], count: 6}
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 6, ['HTTP:', '', '6VM', 'RC4', 'ME', 'H010WeHlioM5JZv1O9G'], 19
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '', 'H010WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 4
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '01'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '1', '1', 1
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 1, 2, '', 'B', '1', '01', 2
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'AAB'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'H010WeHlioM5JZv1O9G', 4, 'H', 2, 1, 'AAB', '2', 3
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '6VM'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'd4m', 'd', 13
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'd4m', '4', 4
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'd4m', 'm', 22
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 3, 3, '', 'NEW', 'd4m', '6VM', 3
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEW'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '0'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: '0', '0', 0
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 1, 1, '', 'A', '0', '0', 1
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: AccountInfo{isPersonal: false, isCompany: true, memberId: 'NEW', accountId: 'NEWAAB-A', securityCode: 'b7de95ae1f4d1a407253401e94be8cef51e49aba7ee9ca0495741fa4c7ffb6e4', url: 'HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G', serverType: '', signin: 1, counter: '', unencryptedCode: 'WeHlioM5JZv1O9G'}, 1, 'NEW', 'AAB', 'H'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: QRCodeParser{plainUrl: 'HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G', url: URL{}, accountInfo: AccountInfo{isPersonal: false, isCompany: true, memberId: 'NEW', accountId: 'NEWAAB-A', securityCode: 'b7de95ae1f4d1a407253401e94be8cef51e49aba7ee9ca0495741fa4c7ffb6e4', url: 'HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G', serverType: 'rc4', signin: 1, counter: '', unencryptedCode: 'WeHlioM5JZv1O9G'}, parts: ['HTTP:', '', '6VM', 'RC4', 'ME', 'H010WeHlioM5JZv1O9G'], count: 6}
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItC'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId:NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'trueNEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId:NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'trueNEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode:WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'id:WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode:WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'id:WeHlioM5JZv1O9G'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'NEWAAB-A'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 26'
+,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 27'
 ,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
 
 ]]>

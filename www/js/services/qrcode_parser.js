@@ -10,7 +10,7 @@
 	var QRCodeParser = function () {
 	};
 	QRCodeParser.prototype.setUrl = function (url) {
-		console.log(url);
+		//console.log(url);
 		if (url.indexOf('HTTP://') === -1) {
 			var fmt = url.substring(0, 1);
 			var i = parseInt(fmt, 36) / 4;
@@ -23,13 +23,13 @@
 				var realOrFake = 'RC4.ME';
 			}
 			url = 'HTTP://' + region + '.' + realOrFake + '/' + transformedURL;
-			console.log(region, url, (regionLens.indexOf(alphaB.indexOf(fmt)) + 1), regionLen);
+			//console.log(region, url, (regionLens.indexOf(alphaB.indexOf(fmt)) + 1), regionLen);
 		}
 		this.plainUrl = url;
 		this.url = new URL(url);
 	};
 	QRCodeParser.prototype.parse = function () {
-		console.log(this.plainUrl);
+		//console.log(this.plainUrl);
 		this.accountInfo = new AccountInfo();
 		this.accountInfo.url = this.plainUrl;
 		this.parts = this.accountInfo.url.split(/[/\\.-]/);
@@ -39,7 +39,7 @@
 			oldCode = false;
 		}
 		this.count = this.parts.length;
-		console.log(this.count, this.parts, this.parts[5].length);
+		//console.log(this.count, this.parts, this.parts[5].length);
 //isCompany:true
 //isPersonal:false
 //memberId:"NEW"
@@ -54,29 +54,29 @@
 			if (this.parts[6]) {
 				this.accountInfo.counter = this.parts[6];
 				var tail = this.parts[5];
-				console.log(this.accountInfo.counter, tail);
+				//console.log(this.accountInfo.counter, tail);
 			} else if (this.parts[5].indexOf(':') > -1) {
 				var tail = this.parts[5].split(':');
 				this.accountInfo.counter = tail[1];
 				tail = tail[0];
-				console.log(this.accountInfo.counter, tail);
+				//console.log(this.accountInfo.counter, tail);
 			} else {
 				var tail = this.parts[5];
-				console.log(this.accountInfo.counter, tail);
+				//console.log(this.accountInfo.counter, tail);
 			}
 			var fmt = tail.substring(0, 1);
 			var acctLen = '';
 			var i = parseInt(fmt, 36);
 			var agentLen = i % 4;
 			i = Math.floor(i / 4);
-			console.log(i);
+			//console.log(i);
 			var regionLen = parseInt(regionLens.charAt(i));
 			acctLen = parseInt(acctLens.charAt(i));
 			var account = r36ToR26(tail.substring(1, 1 + acctLen), acctLen);
 			var memberId = '';
-			console.log(tail, i, fmt, acctLen, agentLen, account, acctLens.charAt(i), regionLen);
+			//console.log(tail, i, fmt, acctLen, agentLen, account, acctLens.charAt(i), regionLen);
 			if (acctLen >= 6 || tail.length < 1 + acctLen + agentLen) {
-				console.log('That is not a valid rCard.');
+				//console.log('That is not a valid rCard.');
 				throw 'That is not a valid rCard.';
 			}
 			this.accountInfo.unencryptedCode = tail.substring(1 + acctLen + agentLen);
@@ -93,18 +93,18 @@
 			}
 			memberId = region;
 			this.accountInfo.memberId = memberId;
-			console.log(this.accountInfo, agentLen, region, account, fmt);
+			//console.log(this.accountInfo, agentLen, region, account, fmt);
 		} else {
 			this.parseAccountType_();
 			this.parseAccountCode_();
 			this.parseSecurityCode_();
 		}
 		this.parseServerType_();
-		console.log(this.accountInfo.accountId);
+		//console.log(this.accountInfo.accountId);
 		return this.accountInfo;
 	};
 	QRCodeParser.prototype.getAccountInfo = function () {
-		console.log(this.accountInfo.accountId);
+		//console.log(this.accountInfo.accountId);
 		return this.accountInfo;
 	};
 	QRCodeParser.prototype.parseAccountType_ = function () {
@@ -115,7 +115,7 @@
 			this.accountInfo.isPersonal = true;
 			this.accountInfo.signin = 0;
 		} else {
-			console.log('That is not a valid rCard.');
+			//console.log('That is not a valid rCard.');
 			throw 'That is not a valid rCard.';
 		}
 	};
@@ -136,28 +136,28 @@
 		this.accountInfo.serverType = this.url.host.substring(4, lastPoint).toLowerCase();
 	};
 	QRCodeParser.prototype.parseSecurityCode_ = function () {
-		console.log(this.url.pathname.substr(5, this.url.pathname.length - 1));
+		//console.log(this.url.pathname.substr(5, this.url.pathname.length - 1));
 		this.accountInfo.securityCode = Sha256.hash(this.url.pathname.substr(5, this.url.pathname.length - 1));//
 		this.accountInfo.unencryptedCode = this.url.pathname.substr(5, this.url.pathname.length - 1);
-		console.log(this.accountInfo.securityCode);
+		//console.log(this.accountInfo.securityCode);
 	};
 	function r36ToR26(part, s2Len, isAgent) {
-		console.log(part);
+		//console.log(part);
 		var std = '0123456789abcdefghijklmnop';
 		var ours = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		var s = parseInt(part, 36).toString(26); // d4m
 		var s2 = '';
 		for (var i = 0; i < s.length; i++) {
 			s2 += ours.charAt(std.indexOf(s.charAt(i)));
-			console.log(s, s.charAt(i), std.indexOf(s.charAt(i)));
+			//console.log(s, s.charAt(i), std.indexOf(s.charAt(i)));
 		}
-		console.log(s2.length, s2Len, s.charAt(i), s2, s, part, s2Len);
+		//console.log(s2.length, s2Len, s.charAt(i), s2, s, part, s2Len);
 		if (!isAgent) {
 			while ((s2.length < s2Len) || (s2.length < 3)) {
 				s2 = 'A' + s2;
 			}
 		}
-		console.log(s2);
+		//console.log(s2);
 		return s2;
 	}
 	window.QRCodeParser = QRCodeParser;

@@ -83,5 +83,7 @@ exports.config = {
 		'browserName': 'chrome'
 	},
 	baseUrl: 'http://localhost:9876/',
-	framework: 'jasmine'
+	framework: 'jasmine',
+	seleniumSessionId: 'd30acc78-5661-471d-af56-01429bbbf837',
+	multiCapabilities: {browserName: 'chrome'}
 };

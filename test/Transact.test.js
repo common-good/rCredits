@@ -1,77 +1,75 @@
-/* global _$compile_, _$rootScope_ */
+/* global _$compile_, _$rootScope_, expect */
 //
 // Feature: Transfer funds to or from a customer.
 //   AS a company or individual
 //   I WANT to scan a customer card and transfer funds from their account to my account or vice versa
 //   SO we can account fairly for our business dealings.
-describe('Transfer funds to or from a customer', function () {
+describe('r2% -- FEATURE_NAME', function () {
 	'use strict';
-	beforeEach(module('CompanyHomeCtrl'));
 	var $controller;
 	beforeEach(inject(function (_$controller_) {
 		$compile = _$compile_;
 		$rootScope = _$rootScope_;
 	}));
-	var steps = new R2_steps();
-	it('Should start on the hope screen',function () { // Setup
-		browser.get('#/app/home');
-		expect(browser.getLocationAbsUrl.toMatch('#/app/home'));
-		steps.extraSetup();
-		steps.testOnly = 0;
-		expect(steps.showPage('Home')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showButton('Scan Customer rCard')).toBe(true);
+	var steps = new Rcredits - mobile_steps();
+	var eachStep;
+	beforeEach(function () { // Setup
+		browser.get('http://localhost:8100/#/app/home');
+		eachStep = new Promise();//steps.extraSetup()
+		eachStep.then(steps.testOnly = 0);
+		eachStep.then(expect(steps.showPage('Home')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showButton('Scan Customer rCard')).toBe(true));
 	});
 	it('Scenario: We identify and charge a customer', function () {
-		steps.testOnly = 0;
-		expect(steps.buttonPressed('Scan Customer rCard')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showScanner()).toBe(true);
-		steps.testOnly = 0;
-		expect(steps.scannerSeesQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showPhotoOfMember('NEWABB')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showText('Susan Shopper')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showText('Montague, MA')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showButton('Charge')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showButton('Refund')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showButton('Trade USD')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showButton('< Back')).toBe(true);
-		steps.testOnly = 0;
-		expect(steps.buttonPressed('Charge')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showNumberKeypad()).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showAmount(0.00)).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showDropdownWithSelected('groceries')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showButton('Charge')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showButton('< Back')).toBe(true);
-		steps.testOnly = 0;
-		expect(steps.buttonPressed(3)).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showAmount(0.03)).toBe(true);
-		steps.testOnly = 0;
-		expect(steps.buttonPressed('00')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showAmount(3.00)).toBe(true);
-		steps.testOnly = 0;
-		expect(steps.buttonPressed('Charge')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showMessageTitled('ok', 'Susan Shopper paid you $3.00', 'Success!')).toBe(true);
-		steps.testOnly = 0;
-		expect(steps.messageButtonPressed('ok')).toBe(true);
-		steps.testOnly = 1;
-		expect(steps.showPage('Home')).toBe(true);
+		eachStep.then(steps.testOnly = 0);
+		eachStep.then(expect(steps.buttonPressed('Scan Customer rCard')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showScanner()).toBe(true));
+		eachStep.then(steps.testOnly = 0);
+		eachStep.then(expect(steps.scannerSeesQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showPhotoOfMember('NEWABB')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showText('Susan Shopper')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showText('Montague, MA')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showButton('Charge')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showButton('Refund')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showButton('Trade USD')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showButton('< Back')).toBe(true));
+		eachStep.then(steps.testOnly = 0);
+		eachStep.then(expect(steps.buttonPressed('Charge')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showNumberKeypad()).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showAmount(0.00)).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showDropdownWithSelected('groceries')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showButton('Charge')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showButton('< Back')).toBe(true));
+		eachStep.then(steps.testOnly = 0);
+		eachStep.then(expect(steps.buttonPressed(3)).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showAmount(0.03)).toBe(true));
+		eachStep.then(steps.testOnly = 0);
+		eachStep.then(expect(steps.buttonPressed('00')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showAmount(3.00)).toBe(true));
+		eachStep.then(steps.testOnly = 0);
+		eachStep.then(expect(steps.buttonPressed('Charge')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showMessageTitled('ok', 'Susan Shopper paid you $3.00', 'Success!')).toBe(true));
+		eachStep.then(steps.testOnly = 0);
+		eachStep.then(expect(steps.messageButtonPressed('ok')).toBe(true));
+		eachStep.then(steps.testOnly = 1);
+		eachStep.then(expect(steps.showPage('Home')).toBe(true));
 	});
-
 });
   
