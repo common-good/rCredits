@@ -4,13 +4,9 @@
 //   AS a cashier
 //   I WANT the customer's QR code to be interpreted correctly
 //   SO we know who we're dealing with.
+var R2_steps =require('../r2.js');
 describe('r2% -- FEATURE_NAME', function () {
 	'use strict';
-	var $controller;
-	beforeEach(inject(function (_$controller_) {
-		$compile = _$compile_;
-		$rootScope = _$rootScope_;
-	}));
 	var steps = new R2_steps();
 	beforeEach(function () { // Setup
 		steps.extraSetup();

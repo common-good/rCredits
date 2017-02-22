@@ -1,21 +1,17 @@
-/* global _$compile_, _$rootScope_, expect */
+/* global _$compile_, _$rootScope_, expect, browser */
 //
 // Feature: Transfer funds to or from a customer.
 //   AS a company or individual
 //   I WANT to scan a customer card and transfer funds from their account to my account or vice versa
 //   SO we can account fairly for our business dealings.
+var R2_steps =require('../r2.js');
 describe('r2% -- FEATURE_NAME', function () {
 	'use strict';
-	var $controller;
-	beforeEach(inject(function (_$controller_) {
-		$compile = _$compile_;
-		$rootScope = _$rootScope_;
-	}));
-	var steps = new Rcredits - mobile_steps();
+	var steps = new R2_steps();
 	var eachStep;
 	beforeEach(function () { // Setup
-		browser.get('http://localhost:8100/#/app/home');
 		eachStep = new Promise();//steps.extraSetup()
+		eachStep.then(browser.get('http://localhost:8100/#/app/home'));
 		eachStep.then(steps.testOnly = 0);
 		eachStep.then(expect(steps.showPage('Home')).toBe(true));
 		eachStep.then(steps.testOnly = 1);

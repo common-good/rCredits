@@ -16,179 +16,189 @@
  *
  * You may also add statements just below this header.
  */
-function R2_steps() {
-	this.v = []; // miscellaneous data
-	/**
-	 * Add additional setup for any or all features or tests
-	 */
-	this.extraSetup = function () {};
-	/**
-	 * we scan QR (ARG)
-	 * in: MAKE ParseQRCode WeScanAValidOldPersonalCard
-	 *     MAKE ParseQRCode WeScanAValidOldCompanyCard
-	 *     MAKE ParseQRCode WeScanAValidPersonalCard
-	 *     MAKE ParseQRCode WeScanAValidCompanyCard
-	 */
-	var q=0;
-		var del=.5;
-	function test(a){
-		return a,"waiting...";
-	}
-	this.weScanQR = function (qr) {
-		this.v.parser = new QRCodeParser();
-		console.log("we= "+q++);
+(function () {
+	var R2_steps = function () {
+		this.v = []; // miscellaneous data
+		console.log("test");
+		/**
+		 * Add additional setup for any or all features or tests
+		 */
+		this.extraSetup = function () {
+			browser.getSession().then(function (session) {
+				console.log('SauceOnDemandSessionID=' + session.getId());
+			});
+		};
+		/**
+		 * we scan QR (ARG)
+		 * in: MAKE ParseQRCode WeScanAValidOldPersonalCard
+		 *     MAKE ParseQRCode WeScanAValidOldCompanyCard
+		 *     MAKE ParseQRCode WeScanAValidPersonalCard
+		 *     MAKE ParseQRCode WeScanAValidCompanyCard
+		 */
+		var q = 0;
+		var del = .5;
+		function test(a) {
+			return a, "waiting...";
+		}
+		this.weScanQR = function (qr) {
+			this.v.parser = new QRCodeParser();
+			console.log("we= " + q++);
 //		console.log(q++,"not waiting!");
-		this.v.parser.setUrl(qr);
-		this.v.parser.parse();
+			this.v.parser.setUrl(qr);
+			this.v.parser.parse();
 //		console.log(this.v.parser);
-		return true;
-	};
-	/**
-	 * account is personal
-	 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
-	 *     TEST ParseQRCode WeScanAValidPersonalCard
-	 */
-	this.accountIsPersonal = function () {
-		var isItP=(this.v.parser.getAccountInfo().isPersonalAccount()===this.v.parser.accountInfo.isPersonal);
-		console.log("isItP= "+q++);
-//		console.log(isItP);
-		return isItP;
-	};
-	/**
-	 * account is company
-	 *
-	 * in: TEST ParseQRCode WeScanAValidOldCompanyCard
-	 *     TEST ParseQRCode WeScanAValidCompanyCard
-	 */
-	this.accountIsCompany = function () {
-		var isItC=(this.v.parser.getAccountInfo().isCompanyAccount()===this.v.parser.accountInfo.isCompany);
-		console.log("isItC= "+q++);
-//		console.log(isItC);
-		return isItC;
-	};
-	/**
-	 * account ID is (ARG)	 *
-	 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
-	 *     TEST ParseQRCode WeScanAValidOldCompanyCard
-	 *     TEST ParseQRCode WeScanAValidPersonalCard
-	 *     TEST ParseQRCode WeScanAValidCompanyCard
-	 */
-	this.accountIDIs = function (id) {
-		var isThereId=(this.v.parser.getAccountInfo().accountId === id);
-		console.log("isThereId= "+q++);
-//		console.log(isThereId+id);
-		return isThereId;
-	};
-	/**
-	 * security code is (ARG)
-	 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
-	 *     TEST ParseQRCode WeScanAValidOldCompanyCard
-	 *     TEST ParseQRCode WeScanAValidPersonalCard
-	 *     TEST ParseQRCode WeScanAValidCompanyCard
-	 */
-	this.securityCodeIs = function (id) {
-		console.log("this.v.parser.getAccountInfo().securityCode= "+q++);
-//		console.log("id:"+id);
-		return (this.v.parser.getAccountInfo().unencryptedCode === id);
-	};
-	/**
-	 * show page (ARG)
-	 *
-	 * in: MAKE Transact Setup
-	 *     TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showPage = function (p) {
-		var page=document.location.hash===p;
-		
-		return true; //page;
-	};
-	/**
-	 * show button (ARG)
-	 *
-	 * in: TEST Transact Setup
-	 *     TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showButton = function (arg1) {
 			return true;
+		};
+		/**
+		 * account is personal
+		 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
+		 *     TEST ParseQRCode WeScanAValidPersonalCard
+		 */
+		this.accountIsPersonal = function () {
+			var isItP = (this.v.parser.getAccountInfo().isPersonalAccount() === this.v.parser.accountInfo.isPersonal);
+			console.log("isItP= " + q++);
+//		console.log(isItP);
+			return isItP;
+		};
+		/**
+		 * account is company
+		 *
+		 * in: TEST ParseQRCode WeScanAValidOldCompanyCard
+		 *     TEST ParseQRCode WeScanAValidCompanyCard
+		 */
+		this.accountIsCompany = function () {
+			var isItC = (this.v.parser.getAccountInfo().isCompanyAccount() === this.v.parser.accountInfo.isCompany);
+			console.log("isItC= " + q++);
+//		console.log(isItC);
+			return isItC;
+		};
+		/**
+		 * account ID is (ARG)	 *
+		 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
+		 *     TEST ParseQRCode WeScanAValidOldCompanyCard
+		 *     TEST ParseQRCode WeScanAValidPersonalCard
+		 *     TEST ParseQRCode WeScanAValidCompanyCard
+		 */
+		this.accountIDIs = function (id) {
+			var isThereId = (this.v.parser.getAccountInfo().accountId === id);
+			console.log("isThereId= " + q++);
+//		console.log(isThereId+id);
+			return isThereId;
+		};
+		/**
+		 * security code is (ARG)
+		 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
+		 *     TEST ParseQRCode WeScanAValidOldCompanyCard
+		 *     TEST ParseQRCode WeScanAValidPersonalCard
+		 *     TEST ParseQRCode WeScanAValidCompanyCard
+		 */
+		this.securityCodeIs = function (id) {
+			console.log("this.v.parser.getAccountInfo().securityCode= " + q++);
+//		console.log("id:"+id);
+			return (this.v.parser.getAccountInfo().unencryptedCode === id);
+		};
+		/**
+		 * show page (ARG)
+		 *
+		 * in: MAKE Transact Setup
+		 *     TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showPage = function (p) {
+			var page = document.location.hash === p;
+
+			return true; //page;
+		};
+		/**
+		 * show button (ARG)
+		 *
+		 * in: TEST Transact Setup
+		 *     TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showButton = function (arg1) {
+			return true;
+		};
+		/**
+		 * button (ARG) pressed
+		 *
+		 * in: MAKE Transact WeIdentifyAndChargeACustomer
+		 */
+		this.buttonPressed = function (arg1) {
+			return true;
+		};
+		/**
+		 * show scanner
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showScanner = function () {
+			return true;
+		};
+		/**
+		 * scanner sees QR (ARG)
+		 *
+		 * in: MAKE Transact WeIdentifyAndChargeACustomer
+		 */
+		this.scannerSeesQR = function (arg1) {
+			return true;
+		};
+		/**
+		 * show photo of member (ARG)
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showPhotoOfMember = function (arg1) {
+			return true;
+		};
+		/**
+		 * show text (ARG)
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showText = function (arg1) {
+			return true;
+		};
+		/**
+		 * show number keypad
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showNumberKeypad = function () {
+			return true;
+		};
+		/**
+		 * show amount (ARG)
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showAmount = function (arg1) {
+			return true;
+		};
+		/**
+		 * show dropdown with (ARG) selected
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showDropdownWithSelected = function (arg1) {
+			return true;
+		};
+		/**
+		 * show (ARG) message (ARG) titled (ARG)
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showMessageTitled = function (arg1, arg2, arg3) {
+			return true;
+		};
+		/**
+		 * message button (ARG) pressed
+		 *
+		 * in: MAKE Transact WeIdentifyAndChargeACustomer
+		 */
+		this.messageButtonPressed = function (arg1) {
+			return true;
+		};
 	};
-	/**
-	 * button (ARG) pressed
-	 *
-	 * in: MAKE Transact WeIdentifyAndChargeACustomer
-	 */
-	this.buttonPressed = function (arg1) {
-		return true;
+	module.exports = function () {
+		return new R2_steps();
 	};
-	/**
-	 * show scanner
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showScanner = function () {
-		return true;
-	};
-	/**
-	 * scanner sees QR (ARG)
-	 *
-	 * in: MAKE Transact WeIdentifyAndChargeACustomer
-	 */
-	this.scannerSeesQR = function (arg1) {
-		return true;
-	};
-	/**
-	 * show photo of member (ARG)
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showPhotoOfMember = function (arg1) {
-		return true;
-	};
-	/**
-	 * show text (ARG)
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showText = function (arg1) {
-		return true;
-	};
-	/**
-	 * show number keypad
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showNumberKeypad = function () {
-		return true;
-	};
-	/**
-	 * show amount (ARG)
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showAmount = function (arg1) {
-		return true;
-	};
-	/**
-	 * show dropdown with (ARG) selected
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showDropdownWithSelected = function (arg1) {
-		return true;
-	};
-	/**
-	 * show (ARG) message (ARG) titled (ARG)
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showMessageTitled = function (arg1, arg2, arg3) {
-		return true;
-	};
-	/**
-	 * message button (ARG) pressed
-	 *
-	 * in: MAKE Transact WeIdentifyAndChargeACustomer
-	 */
-	this.messageButtonPressed = function (arg1) {
-		return true;
-	};
-}
+}());

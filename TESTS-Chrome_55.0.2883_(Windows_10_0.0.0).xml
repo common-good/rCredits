@@ -1,53 +1,12 @@
 <?xml version="1.0"?>
-<testsuite name="Chrome 55.0.2883 (Windows 10 0.0.0)" package="" timestamp="2017-02-17T01:05:30" id="0" hostname="AaronEJs-Laptop" tests="4" errors="0" failures="0" time="0.007">
+<testsuite name="Chrome 55.0.2883 (Windows 10 0.0.0)" package="" timestamp="2017-02-20T17:54:22" id="0" hostname="AaronEJs-Laptop" tests="0" errors="1" failures="0" time="0">
   <properties>
     <property name="browser.fullName" value="Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36"/>
   </properties>
-  <testcase name="Scenario: We scan a valid old personal card." time="0.004" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="Scenario: We scan a valid old company card." time="0.001" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="Scenario: We scan a valid personal card." time="0.001" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
-  <testcase name="Scenario: We scan a valid company card." time="0.001" classname="Chrome_55_0_2883_(Windows_10_0_0_0).r2% -- FEATURE_NAME"/>
   <system-out>
-    <![CDATA[Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 0'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 1'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP= 2'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP= 3'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 4'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 5'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 6'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 7'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 8'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItC= 9'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 10'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 11'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 12'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 13'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP= 14'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP= 15'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 16'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 17'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 18'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 19'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 20'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'we= 21'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItC= 22'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isItP= 23'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 24'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'isThereId= 25'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 26'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: 'this.v.parser.getAccountInfo().securityCode= 27'
-,Chrome 55.0.2883 (Windows 10 0.0.0) LOG: true
+    <![CDATA[Chrome 55.0.2883 (Windows 10 0.0.0) ERROR
+  Uncaught SyntaxError: Octal literals are not allowed in strict mode.
+  at E:/xampp/htdocs/cgf/rcredits-mobile/test/Transact.test:57
 
 ]]>
   </system-out>
