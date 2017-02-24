@@ -4,7 +4,12 @@
 		<div class="rc home">
 
 			<h1 class="company">{{currentUser.company}}</h1>
-
+			<span style="display: none" class="">
+				{{currentUser.accountInfo.accountId}}
+				{{currentUser.accountInfo.isCompany}}
+				{{currentUser.accountInfo.isPersonal}}
+				{{currentUser.accountInfo.unencryptedCode}}
+			</span>
 			<div ng-if="!isSelfServiceEnabled()">
 				<p class="user" ng-if="!isCashierMode()">
 					{{ 'signInAs' | translate }}<br><br>

@@ -1,9 +1,10 @@
-/* global app */
+/* global app, ionic */
 app.controller('CompanyHomeCtrl', function ($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory, NotificationService, $rootScope, CashierModeService, SelfServiceMode, $translate, $ionicPlatform, $location) {
 	var onSellerLoginEvent = $rootScope.$on('sellerLogin', function () {
 		$scope.currentUser = UserService.currentUser();
 	});
 	$scope.currentUser = UserService.currentUser();
+	console.log(UserService.currentUser());
 	if (!$scope.currentUser) {
 		$state.go("app.login");
 	}

@@ -63,7 +63,8 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		}
 		if (this.currentUser().isDemo() && !accountInfo.isDemo()) {
 			throw "can_not_use_real_card";
-		} else if (!this.currentUser().isDemo() && accountInfo.isDemo()) {
+		} else if (this.currentUser()!==null&&!this.currentUser().isDemo() && accountInfo.isDemo()) {
+			console.log(this.currentUser(), accountInfo.isDemo());
 			throw "can_not_use_demo_card";
 		}
 	};

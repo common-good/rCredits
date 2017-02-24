@@ -1,3 +1,5 @@
+/* global browser, by */
+
 /**
  * @file
  *  Steps
@@ -27,6 +29,7 @@
 			browser.getSession().then(function (session) {
 				console.log('SauceOnDemandSessionID=' + session.getId());
 			});
+			browser.findElement(by.className('scan-customer')).click();
 		};
 		/**
 		 * we scan QR (ARG)
@@ -37,16 +40,9 @@
 		 */
 		var q = 0;
 		var del = .5;
-		function test(a) {
-			return a, "waiting...";
-		}
 		this.weScanQR = function (qr) {
-			this.v.parser = new QRCodeParser();
-			console.log("we= " + q++);
-//		console.log(q++,"not waiting!");
-			this.v.parser.setUrl(qr);
-			this.v.parser.parse();
-//		console.log(this.v.parser);
+			this.v.parse.id = browser.findElement(by.id(qr));
+			this.v.parse.id.click();
 			return true;
 		};
 		/**
@@ -55,10 +51,8 @@
 		 *     TEST ParseQRCode WeScanAValidPersonalCard
 		 */
 		this.accountIsPersonal = function () {
-			var isItP = (this.v.parser.getAccountInfo().isPersonalAccount() === this.v.parser.accountInfo.isPersonal);
-			console.log("isItP= " + q++);
-//		console.log(isItP);
-			return isItP;
+			this.v.parse.isPersonal = element(by.binding('isPersonal'));
+			return expect(this.v.parse.isPersonal.getText().toBe('True'));
 		};
 		/**
 		 * account is company
@@ -202,3 +196,19 @@
 		return new R2_steps();
 	};
 }());
+//var loadPage = (function (expectedUrl, timeout) {
+//	var loaded = false;
+//
+//	browser.wait(function () {
+//		browser.executeScript(function () {
+//			return {
+//				url: window.location.href,
+//				haveAngular: !!window.angular
+//			};
+//		}).then(function (obj) {
+//			loaded = (obj.url === expectedUrl && obj.haveAngular);
+//		});
+//
+//		return loaded;
+//	}, timeout);
+//})(expectedUrl, timeout);

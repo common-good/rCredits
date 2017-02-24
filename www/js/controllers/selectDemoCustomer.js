@@ -3,7 +3,7 @@
  {name: 'Bob Bossman', url: 'HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G', signin: '1', img: 'img/BobBossman.jpg'},
  {name: 'Curt Customer', url: 'HTTP://NEW.RC4.ME/AAK.NyCBBlUF1qWNZ2k', signin: '0', img: 'img/CurtCustomerMember.jpg'},
  {name: 'Susan Shopper', url: 'HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw', signin: '0', img: 'img/SusanShopper.jpg'},
- {name: "Curt-Helga's Hardware", url: 'HTTP://NEW.RC4.ME/AAD-utbYceW3KLLCcaw', signin: '1', img: 'img/CurtCustomerAgent.jpg'}
+ {name: "Curt-Helga's Hardware", url: 'HTTP://NEW.RC4.ME/AAD-utbYceW3KLLCcaw', signin: '1', img, ionic: 'img/CurtCustomerAgent.jpg'}
  * */
 app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicLoading, $filter, NotificationService, UserService, TransactionService, $location, $rootScope, NetworkService, $ionicHistory) {
 	$scope.populateDemoCustomers = [
@@ -42,7 +42,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 		};
 	}
 	var type_Of_QR = $scope.format.type[0];
-	console.log($scope.format.type);
+//	console.log($scope.format.type);
 	//[{value: 'old', text: 'Old'}, {value: 'new', text: 'New'}, {value: 'short', text: 'Short'}];
 //	$scope.changeOfType={
 //		selected:$scope.format.type
@@ -51,6 +51,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 		clientSide: 'new'
 	};
 	$scope.customer = $scope.populateDemoCustomers[$scope.format.type];
+	console.log($scope.populateDemoCustomers[$scope.format.type].url);
 	$scope.selectedCustomer = {
 		selected: $scope.customer
 	};
@@ -98,9 +99,12 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 			});
 	};
 	$scope.onSelectManager = function (person) {
-		var selected = person;
+		var selected = person.url;
+		if (!selected) {
+			selected = person;
+		}
 		console.log(selected, $scope.whereWasI);
-		UserService.loginWithRCard(selected.url)
+		UserService.loginWithRCard(selected)
 			.then(function () {
 				$ionicHistory.nextViewOptions({
 					disableBack: true
@@ -109,7 +113,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 			})
 			.catch(function (errorMsg) {
 				if (errorMsg === 'login_your_self') {
-					NotificationService.showAlert({title: "Error", template: "You are already signed in as: " + selected.name});
+					NotificationService.showAlert({title: "Error", template: "You are already signed in as: " + person.name});
 				} else if (errorMsg === 'TypeError: this.db is null') {
 				} else {
 					NotificationService.showAlert({title: "Error", template: errorMsg});

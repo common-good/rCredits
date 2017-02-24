@@ -10,8 +10,8 @@ describe('r2% -- FEATURE_NAME', function () {
 	var steps = new R2_steps();
 	var eachStep;
 	beforeEach(function () { // Setup
-		eachStep = new Promise();//steps.extraSetup()
-		eachStep.then(browser.get('http://localhost:8100/#/app/home'));
+		eachStep = new Promise(browser.get('http://localhost:8100/#/app/home'));//
+		eachStep.then(steps.extraSetup());
 		eachStep.then(steps.testOnly = 0);
 		eachStep.then(expect(steps.showPage('Home')).toBe(true));
 		eachStep.then(steps.testOnly = 1);

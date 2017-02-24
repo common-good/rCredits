@@ -1,4 +1,4 @@
-/* global Sha256, parseInt, rCreditsConfig */
+/* global Sha256, parseInt, rCreditsConfig, AccountInfo */
 (function (window) {
 	var COMPANY_INDICATOR = '-';
 	var COMPANY_INDICATOR_URL = ':';
@@ -9,6 +9,7 @@
 	var oldCode = false;
 	var QRCodeParser = function () {
 	};
+	var realOrFake;
 	QRCodeParser.prototype.setUrl = function (url) {
 		//console.log(url);
 		if (url.indexOf('HTTP://') === -1) {
@@ -17,13 +18,18 @@
 			var regionLen = parseInt(regionLens.charAt(i));
 			var region = url.substring(1, regionLen + 1);
 			var transformedURL = url.replace(region, '');
-			if (url.indexOf(':') !== -1) {
-				var realOrFake = 'RCREDITS.ORG';
+			if (url.indexOf('-') !== -1) {
+				realOrFake = 'RC2.ME';
 			} else {
-				var realOrFake = 'RC4.ME';
+				realOrFake = 'RC4.ME';
 			}
+			console.log(url.indexOf('-'));
 			url = 'HTTP://' + region + '.' + realOrFake + '/' + transformedURL;
 			//console.log(region, url, (regionLens.indexOf(alphaB.indexOf(fmt)) + 1), regionLen);
+		} else if ((url.indexOf('RC2.ME') !== -1) || (url.indexOf('rc2.me') !== -1)) {
+			realOrFake = 'RC2.ME';
+		} else {
+			realOrFake = 'RC4.ME';
 		}
 		this.plainUrl = url;
 		this.url = new URL(url);
@@ -129,11 +135,11 @@
 			separator = COMPANY_INDICATOR_URL;
 		}
 		this.accountInfo.memberId = memberId;
-		this.accountInfo.accountId = memberId +yyy;
+		this.accountInfo.accountId = memberId + yyy;
 	};
 	QRCodeParser.prototype.parseServerType_ = function () {
 		var lastPoint = this.url.host.lastIndexOf('.');
-		this.accountInfo.serverType = this.url.host.substring(4, lastPoint).toLowerCase();
+		this.accountInfo.serverType = realOrFake;
 	};
 	QRCodeParser.prototype.parseSecurityCode_ = function () {
 		//console.log(this.url.pathname.substr(5, this.url.pathname.length - 1));
