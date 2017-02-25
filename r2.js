@@ -1,4 +1,4 @@
-/* global browser, by */
+/* global browser, by, expectedUrl, timeout, element */
 
 /**
  * @file
@@ -18,18 +18,41 @@
  *
  * You may also add statements just below this header.
  */
+
 (function () {
+//	var loadPage = (function (expectedUrl, timeout) {
+//		var loaded = false;
+//
+//		browser.wait(function () {
+//			browser.executeScript(function () {
+//				return {
+//					url: window.location.href,
+//					haveAngular: !!window.angular
+//				};
+//			}).then(function (obj) {
+//				loaded = (obj.url === expectedUrl && obj.haveAngular);
+//			});
+//
+//			return loaded;
+//		}, timeout);
+//	})(expectedUrl, timeout);
 	var R2_steps = function () {
 		this.v = []; // miscellaneous data
 		console.log("test");
 		/**
 		 * Add additional setup for any or all features or tests
 		 */
+		var EC = protractor.ExpectedConditions;
 		this.extraSetup = function () {
 			browser.getSession().then(function (session) {
 				console.log('SauceOnDemandSessionID=' + session.getId());
 			});
-			browser.findElement(by.className('scan-customer')).click();
+//			var setUp = new Promise(function (resolve, reject) {
+//				browser.driver.get("about:blank");
+			browser.driver.get("http://localhost:8100/#/app/home", 500);
+			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
+				element(by.className('scan-customer')).click();
+			});
 		};
 		/**
 		 * we scan QR (ARG)
@@ -41,9 +64,9 @@
 		var q = 0;
 		var del = .5;
 		this.weScanQR = function (qr) {
-			this.v.parse.id = browser.findElement(by.id(qr));
-			this.v.parse.id.click();
-			return true;
+				this.v.parse={};
+				this.v.parse.id = browser.findElement(by.id(qr)).click();
+				return true;
 		};
 		/**
 		 * account is personal
@@ -75,7 +98,7 @@
 		 */
 		this.accountIDIs = function (id) {
 			var isThereId = (this.v.parser.getAccountInfo().accountId === id);
-			console.log("isThereId= " + q++);
+			console.log("isThereId= " + isThereId);
 //		console.log(isThereId+id);
 			return isThereId;
 		};
@@ -196,19 +219,3 @@
 		return new R2_steps();
 	};
 }());
-//var loadPage = (function (expectedUrl, timeout) {
-//	var loaded = false;
-//
-//	browser.wait(function () {
-//		browser.executeScript(function () {
-//			return {
-//				url: window.location.href,
-//				haveAngular: !!window.angular
-//			};
-//		}).then(function (obj) {
-//			loaded = (obj.url === expectedUrl && obj.haveAngular);
-//		});
-//
-//		return loaded;
-//	}, timeout);
-//})(expectedUrl, timeout);
