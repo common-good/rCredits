@@ -9,65 +9,62 @@ describe('r2% -- FEATURE_NAME', function () {
 	'use strict';
 	var steps = new R2_steps();
 	var eachStep;
+	var p2 = new Promise(function (resolve, reject) {
+		resolve(1);
+	});
 	beforeEach(function () { // Setup
 		steps.extraSetup();
-//		steps.extraSetup();
-//		steps.extraSetup());
 	});
 	it('Scenario: We scan a valid old personal card.', function () {
-		steps.testOnly = 0;
-		if(expect(steps.weScanQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw')).toBe(true));
-		console.log(steps.weScanQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'));
-		steps.testOnly = 1;
-		if(expect(steps.accountIsPersonal()).toBe(true));
-		console.log(steps.accountIsPersonal());
-		steps.testOnly = 1;
-		if(expect(steps.accountIDIs('NEWABB')).toBe(true));
-		console.log(steps.accountIDIs('NEWABB'));
-		steps.testOnly = 1;
-		if(expect(steps.securityCodeIs('ZzhWMCq0zcBowqw')).toBe(true));
-//		console.log(steps.securityCodeIs('ZzhWMCq0zcBowqw'));
+			steps.testOnly = 0;
+			expect(steps.weScanQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw')).toBe(true);
+			steps.testOnly = 1;
+			expect(steps.accountIsPersonal()).toBe(true);
+			steps.testOnly = 1;
+			expect(steps.accountIDIs('NEWABB')).toBe(true);
+			steps.testOnly = 1;
+			expect(steps.securityCodeIs('ZzhWMCq0zcBowqw')).toBe(true);
 	});
 
 	it('Scenario: We scan a valid old company card.', function () {
 		steps.testOnly = 1;
-		if(expect(steps.weScanQR('HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G')).toBe(true));
+		expect(steps.weScanQR('HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G')).toBe(true);
 		steps.testOnly = 1;
-		if(expect(steps.accountIsCompany()).toBe(true));
+		expect(steps.accountIsCompany()).toBe(true);
 		steps.testOnly = 1;
-		if(expect(steps.accountIDIs('NEWAAB')).toBe(true));
+		expect(steps.accountIDIs('NEWAAB')).toBe(true);
 		steps.testOnly = 1;
-		if(expect(steps.securityCodeIs('WeHlioM5JZv1O9G')).toBe(true));
+		expect(steps.securityCodeIs('WeHlioM5JZv1O9G')).toBe(true);
 	});
 
 	it('Scenario: We scan a valid personal card.', function () {
 		steps.testOnly = 1;
-		if(expect(steps.weScanQR('HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw')).toBe(true));
-		console.log(steps.weScanQR('HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw'));
+		expect(steps.weScanQR('HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw')).toBe(true);
+		//console.log(steps.weScanQR('HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw'));
 		steps.testOnly = 1;
-		if(expect(steps.accountIsPersonal()).toBe(true));
-		console.log(steps.accountIsPersonal());
+		expect(steps.accountIsPersonal()).toBe(true);
+		//console.log(steps.accountIsPersonal());
 		steps.testOnly = 1;
-		if(expect(steps.accountIDIs('NEWABB')).toBe(true));
-		console.log(steps.accountIDIs('NEWABB'));
+		expect(steps.accountIDIs('NEWABB')).toBe(true);
+		//console.log(steps.accountIDIs('NEWABB'));
 		steps.testOnly = 1;
-		if(expect(steps.securityCodeIs('ZzhWMCq0zcBowqw')).toBe(true));
-		console.log(steps.securityCodeIs('ZzhWMCq0zcBowqw'));
+		expect(steps.securityCodeIs('ZzhWMCq0zcBowqw')).toBe(true);
+		//console.log(steps.securityCodeIs('ZzhWMCq0zcBowqw'));
 	});
 
 	it('Scenario: We scan a valid company card.', function () {
 		steps.testOnly = 1;
-		if(expect(steps.weScanQR('HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G')).toBe(true));
-		console.log(steps.weScanQR('HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G'));
+		expect(steps.weScanQR('HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G')).toBe(true);
+		//console.log(steps.weScanQR('HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G'));
 		steps.testOnly = 1;
-		if(expect(steps.accountIsCompany()).toBe(true));
-		console.log(steps.accountIsPersonal());
+		expect(steps.accountIsCompany()).toBe(true);
+		//console.log(steps.accountIsPersonal());
 		steps.testOnly = 1;
-		if(expect(steps.accountIDIs('NEWAAB-A')).toBe(true));
-		console.log(steps.accountIDIs('NEWAAB-A'));
+		expect(steps.accountIDIs('NEWAAB-A')).toBe(true);
+		//console.log(steps.accountIDIs('NEWAAB-A'));
 		steps.testOnly = 1;
-		if(expect(steps.securityCodeIs('WeHlioM5JZv1O9G')).toBe(true));
-		console.log(steps.securityCodeIs('WeHlioM5JZv1O9G'));
+		expect(steps.securityCodeIs('WeHlioM5JZv1O9G')).toBe(true);
+		//console.log(steps.securityCodeIs('WeHlioM5JZv1O9G'));
 	});
 });
   
