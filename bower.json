@@ -1,7 +1,7 @@
 {
   "name": "HelloIonic",
   "private": "true",
-  "devDependencies": {
+  "devDependencies": {"angular-json-tree":"1.0.1",
     "ionic": "driftyco/ionic-bower#1.2.4"
   },
   "dependencies": {"angular-ui-router": "0.3.1",

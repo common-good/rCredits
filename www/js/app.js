@@ -1,6 +1,6 @@
 /* global Language, rCreditsConfig, StatusBar */
 // rCredits Register
-var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate', 'LocalStorageModule', 'ui.router'])
+var app = angular.module('rcredits', ['ionic', 'routes', 'pascalprecht.translate', 'LocalStorageModule', 'ui.router', 'angular-json-tree'])
 	.config(['$translateProvider', 'localStorageServiceProvider', '$ionicConfigProvider',
 		function ($translateProvider, localStorageServiceProvider, $ionicConfigProvider) {
 			$ionicConfigProvider.views.maxCache(0);

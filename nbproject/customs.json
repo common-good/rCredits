@@ -3,6 +3,11 @@
 		"ion-side-menus": {},
 		"subheader": {},
 		"ion-nav-view": {},
+		"json-tree": {
+			"attributes": {
+				"object": {}
+			}
+		},
 		"ion-nav-buttons": {
 			"attributes": {
 				"side": {}

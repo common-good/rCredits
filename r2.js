@@ -1,4 +1,4 @@
-/* global browser, by, expectedUrl, timeout, element */
+/* global browser, by, expectedUrl, timeout, element, expect */
 
 /**
  * @file
@@ -53,8 +53,7 @@
 			this.v['qr']= qr;
 			var scan = browser.findElement(by.partialLinkText(this.v['qr']));
 			browser.wait(scan);
-//			console.log("weScanQR:", this.v['qr'], qr);
-			scan.click();
+			browser.wait(scan.click());
 			return true;
 		};
 		/**
@@ -64,6 +63,7 @@
 		 */
 		this.accountIsPersonal = function () {
 			this.v['isPersonal'] = element(by.partialLinkText(this.v['qr']));
+			console.log(this.v['isPersonal']);
 			return expect(this.v['isPersonal'].getText()).toBe('true');
 		};
 		/**
@@ -84,10 +84,7 @@
 		 *     TEST ParseQRCode WeScanAValidCompanyCard
 		 */
 		this.accountIDIs = function (id) {
-			var isThereId = (this.v.parser.getAccountInfo().accountId === id);
-			console.log("isThereId= " + isThereId);
-//		console.log(isThereId+id);
-			return true;
+			return expect(id===this.v['qr']).toBe(true);
 		};
 		/**
 		 * security code is (ARG)
@@ -96,10 +93,8 @@
 		 *     TEST ParseQRCode WeScanAValidPersonalCard
 		 *     TEST ParseQRCode WeScanAValidCompanyCard
 		 */
-		this.securityCodeIs = function (id) {
-			console.log("this.v.parser.getAccountInfo().securityCode= " + q++);
-//		console.log("id:"+id);
-			return true;// (this.v.parser.getAccountInfo().unencryptedCode === id);
+		this.securityCodeIs = function (securityCode) {
+			return expect(securityCode===this.v['qr']).toBe(true);
 		};
 		/**
 		 * show page (ARG)
