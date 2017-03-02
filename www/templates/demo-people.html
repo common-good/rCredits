@@ -5,11 +5,11 @@
 		<label class="thirds"><input name="formattype" type="radio" ng-model="format.type" value="2">Short</label>
 		<div ng-switch='whereWasI'>
 			<input type="text" id="customQR" style="width:100%" value="HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw"  text="HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw" ng-model="customPerson.url">
-			<a ng-switch-when="#/app/login" href="javascript:void(0)" ng-click="onSelectManager(customPerson.url,false)" ng-model="customPerson.url" id="managerLogin">Load Manager Info</a>
-			<a ng-switch-when="#/app/home" href="javascript:void(0)" ng-click="onSelectCustomer(customPerson.url,false)" ng-model="customPerson.url" id="customerLogin">Load Customer Info</a>
+			<a ng-switch-when="#/app/login" href="javascript:void(0)" ng-click="onSelectManager(customPerson.url,false)" ng-model="customPerson.url" id="accountLogin">Load Manager Info</a>
+			<a ng-switch-when="#/app/home" href="javascript:void(0)" ng-click="onSelectCustomer(customPerson.url,false)" ng-model="customPerson.url" id="accountLogin">Load Customer Info</a>
 			<a ng-switch-default href="#/app/home" >Please click here<br> to go back and try again,<br> somehow you got here <br>from nowhere<br></a>
-			<json-tree object="customPerson.accountInfo" start-expanded="true" ng-switch-when="#/app/home"></json-tree>
-			<json-tree object="customPerson.accountInfo" start-expanded="true" ng-switch-when="#/app/login"></json-tree>
+			<json-tree id="accountInfo" object="customPerson.accountInfo" start-expanded="true" ng-switch-when="#/app/home"></json-tree>
+			<json-tree id="accountInfo" object="customPerson.accountInfo" start-expanded="true" ng-switch-when="#/app/login"></json-tree>
 		</div>
 		<div class="aTable">
 			<div ng-class-odd="'rightColumn'" ng-class-even="'leftColumn'" ng-repeat="person in customer">

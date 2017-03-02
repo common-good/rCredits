@@ -1,4 +1,4 @@
-/* global browser, by, expectedUrl, timeout, element, expect */
+/* global browser, by, expectedUrl, timeout, element, expect, protractor */
 
 /**
  * @file
@@ -27,14 +27,13 @@
 		/**
 		 * Add additional setup for any or all features or tests
 		 */
-		var EC = protractor.ExpectedConditions;
 		this.extraSetup = function () {
 			browser.getSession().then(function (session) {
 				console.log('SessionID=' + session.getId());
 			});
 			browser.driver.get("http://localhost:8100/#/app/home", 500);
 			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
-				var button = element(by.className('scan-customer'));
+				var button = element(by.id('scan-customer'));
 				var isClickable = EC.elementToBeClickable(button);
 				browser.wait(isClickable, 5000); //wait for an element to become clickable
 				button.click();
@@ -50,10 +49,13 @@
 		var q = 0;
 		var del = .5;
 		this.weScanQR = function (qr) {
-			this.v['qr']= qr;
-			var scan = browser.findElement(by.partialLinkText(this.v['qr']));
+			this.v['qr'] = qr;
+			var scan = browser.findElement(by.id("accountLogin"));
 			browser.wait(scan);
 			browser.wait(scan.click());
+			var info = '\"' + document.getElementsByClassName('leaf-value')["0"].firstChild + '\"';
+			this.v['accountInfo'] = JSON.parse(info);
+			console.log(this.v['accountInfo']);
 			return true;
 		};
 		/**
@@ -63,7 +65,7 @@
 		 */
 		this.accountIsPersonal = function () {
 			this.v['isPersonal'] = element(by.partialLinkText(this.v['qr']));
-			console.log(this.v['isPersonal']);
+//			console.log(this.v['isPersonal']);
 			return expect(this.v['isPersonal'].getText()).toBe('true');
 		};
 		/**
@@ -84,7 +86,7 @@
 		 *     TEST ParseQRCode WeScanAValidCompanyCard
 		 */
 		this.accountIDIs = function (id) {
-			return expect(id===this.v['qr']).toBe(true);
+			return expect(id === this.v['qr']).toBe(true);
 		};
 		/**
 		 * security code is (ARG)
@@ -94,7 +96,7 @@
 		 *     TEST ParseQRCode WeScanAValidCompanyCard
 		 */
 		this.securityCodeIs = function (securityCode) {
-			return expect(securityCode===this.v['qr']).toBe(true);
+			return expect(securityCode === this.v['qr']).toBe(true);
 		};
 		/**
 		 * show page (ARG)

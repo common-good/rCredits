@@ -35,7 +35,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 	for (var i = 0; i < formats.length; i++) {
 		formats[i].onclick = function () {
 			$scope.format.type = this.value;
-			console.log($scope.format.type, this.value);
+			//console.log($scope.format.type, this.value);
 			$scope.customer = $scope.populateDemoCustomers[$scope.format.type];
 			$scope.manager = $scope.populateDemoCustomers[$scope.format.type];
 		};
@@ -45,7 +45,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 		clientSide: 'new'
 	};
 	$scope.customer = $scope.populateDemoCustomers[$scope.format.type];
-	console.log($scope.populateDemoCustomers[$scope.format.type].url);
+	//console.log($scope.populateDemoCustomers[$scope.format.type].url);
 	$scope.selectedCustomer = {
 		selected: $scope.customer
 	};
@@ -54,16 +54,17 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 		selected: $scope.manager
 	};
 	$scope.whereWasI = $rootScope.whereWasI;
-	$scope.customPerson= $scope.populateDemoCustomers[$scope.format.type];
-	$scope.customPerson.url='HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw';
+	$scope.customPerson = $scope.populateDemoCustomers[$scope.format.type];
+	$scope.customPerson.url = 'H6VM010WeHlioM5JZv1O9G';
 	$scope.onSelectCustomer = function (person, goToNextPage) {
 		var selected = person;
-		console.log(selected, $location.state(), $scope.whereWasI, $scope.format.type);
+		//console.log(selected, $location.state(), $scope.whereWasI, $scope.format.type);
 		UserService.identifyCustomer(selected)
 			.then(function () {
 				$scope.customPerson = UserService.currentCustomer();
+//				$scope.
 				if (goToNextPage) {
-				$scope.customer = UserService.currentCustomer();
+					$scope.customer = UserService.currentCustomer();
 					if ($scope.customer.firstPurchase) {
 						NotificationService.showConfirm({
 							title: 'firstPurchase',
@@ -102,10 +103,10 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 		if (!selected) {
 			selected = person;
 		}
-		console.log(selected, $scope.whereWasI);
+		//console.log(selected, $scope.whereWasI);
 		UserService.loginWithRCard(selected)
 			.then(function () {
-				$scope.manager=UserService.currentUser();
+		$scope.customPerson = UserService.currentUser();
 				if (goToNextPage) {
 					$ionicHistory.nextViewOptions({
 						disableBack: true
@@ -129,13 +130,13 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 	};
 	$scope.wifi = {checked: !NetworkService.isOnline()};
 	$scope.toggleWiFi = function () {
-		console.log($scope.wifi.checked);
+		//console.log($scope.wifi.checked);
 		if (!$scope.wifi.checked) {
 			NetworkService.fakingIt(false);
-			console.log(NetworkService.areYouFakingIt());
+			//console.log(NetworkService.areYouFakingIt());
 		} else {
 			NetworkService.fakingIt(true);
-			console.log(NetworkService.areYouFakingIt());
+			//console.log(NetworkService.areYouFakingIt());
 		}
 	};
 });

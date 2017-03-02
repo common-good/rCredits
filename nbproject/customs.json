@@ -5,6 +5,9 @@
 		"ion-nav-view": {},
 		"json-tree": {
 			"attributes": {
+				"ng-switch-when": {},
+				"start-expanded": {},
+				"id": {},
 				"object": {}
 			}
 		},
