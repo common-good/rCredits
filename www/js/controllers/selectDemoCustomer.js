@@ -55,7 +55,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 	};
 	$scope.whereWasI = $rootScope.whereWasI;
 	$scope.customPerson = $scope.populateDemoCustomers[$scope.format.type];
-	$scope.customPerson.url = 'H6VM010WeHlioM5JZv1O9G';
+	$scope.customPerson.url = '';// 'G6VM0RZzhWMCq0zcBowqw';//H6VM010WeHlioM5JZv1O9G
 	$scope.onSelectCustomer = function (person, goToNextPage) {
 		var selected = person;
 		//console.log(selected, $location.state(), $scope.whereWasI, $scope.format.type);

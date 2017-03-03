@@ -1,7 +1,8 @@
 exports.config = {
 	framework: 'jasmine',
 	seleniumAddress: 'http://localhost:4444/wd/hub',
-	seleniumSessionId: '6c9617aa-8e0b-4a15-ba7f-d1361e5ad5ba',
+//	seleniumSessionId: '4f43aa12-925e-4efb-8717-9a1afb0d22f0',
+	restartBrowserBetweenTests: true,
 	baseUrl: "http://localhost:8100/#/app/home",
 	specs: ['karma.conf.js',
 		'r2.js',

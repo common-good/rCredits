@@ -31,11 +31,11 @@
 			browser.getSession().then(function (session) {
 				console.log('SessionID=' + session.getId());
 			});
-			browser.driver.get("http://localhost:8100/#/app/home", 500);
+			browser.driver.get("http://localhost:8100/#/app/login", 500);
 			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
-				var button = element(by.id('scan-customer'));
+				var button = element(by.id('scan-to-login'));
 				var isClickable = EC.elementToBeClickable(button);
-				browser.wait(isClickable, 5000); //wait for an element to become clickable
+				browser.wait(isClickable, 1000); //wait for an element to become clickable
 				button.click();
 			});
 		};
@@ -50,12 +50,13 @@
 		var del = .5;
 		this.weScanQR = function (qr) {
 			this.v['qr'] = qr;
-			var scan = browser.findElement(by.id("accountLogin"));
-			browser.wait(scan);
-			browser.wait(scan.click());
-			var info = '\"' + document.getElementsByClassName('leaf-value')["0"].firstChild + '\"';
-			this.v['accountInfo'] = JSON.parse(info);
-			console.log(this.v['accountInfo']);
+			var scan = element(by.id("customQR")).sendKeys(qr);
+			var link=element(by.id("accountInfoButton"));
+			var isClickable = EC.elementToBeClickable(link);
+			browser.wait(isClickable,1000);
+			link.click();
+//			var info = '\"' + document.getElementsByClassName('leaf-value')["0"].firstChild + '\"';
+//			console.log(this.v['accountInfo']);
 			return true;
 		};
 		/**
@@ -64,8 +65,7 @@
 		 *     TEST ParseQRCode WeScanAValidPersonalCard
 		 */
 		this.accountIsPersonal = function () {
-			this.v['isPersonal'] = element(by.partialLinkText(this.v['qr']));
-//			console.log(this.v['isPersonal']);
+			this.v['isPersonal'] = element(by.id("isPersonal"));
 			return expect(this.v['isPersonal'].getText()).toBe('true');
 		};
 		/**
@@ -75,7 +75,7 @@
 		 *     TEST ParseQRCode WeScanAValidCompanyCard
 		 */
 		this.accountIsCompany = function () {
-			this.v['isPersonal'] = element(by.partialLinkText(this.v['qr']));
+			this.v['isPersonal'] = element(by.id("isPersonal"));
 			return expect(this.v['isPersonal'].getText()).toBe('false');
 		};
 		/**
@@ -86,7 +86,7 @@
 		 *     TEST ParseQRCode WeScanAValidCompanyCard
 		 */
 		this.accountIDIs = function (id) {
-			return expect(id === this.v['qr']).toBe(true);
+			return expect(id === browser.findElement(by.id("memberId"))).toBe(true);
 		};
 		/**
 		 * security code is (ARG)
@@ -96,7 +96,7 @@
 		 *     TEST ParseQRCode WeScanAValidCompanyCard
 		 */
 		this.securityCodeIs = function (securityCode) {
-			return expect(securityCode === this.v['qr']).toBe(true);
+			return expect(securityCode === browser.findElement(by.id("unencryptedCode"))).toBe(true);
 		};
 		/**
 		 * show page (ARG)
