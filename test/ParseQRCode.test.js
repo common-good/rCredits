@@ -16,7 +16,7 @@ describe('r2% -- FEATURE_NAME', function () {
 		steps.extraSetup();
 	});
 	it('Scenario: We scan a valid old personal card.', function () {
-			eachStep.then(function (resolve, reject) {steps.testOnly = 0;?resolve:reject;});
+			eachStep.then(function (resolve, reject) {steps.testOnly = 0?resolve:reject;});
 			eachStep.then(function (resolve, reject){expect(steps.weScanQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'))?resolve:reject;});
 			eachStep.then(function (resolve, reject) {steps.testOnly = 1?resolve:reject;});
 			eachStep.then(function (resolve, reject){expect(steps.accountIsPersonal())?resolve:reject;});
@@ -26,16 +26,16 @@ describe('r2% -- FEATURE_NAME', function () {
 			eachStep.then(function (resolve, reject){expect(steps.securityCodeIs('ZzhWMCq0zcBowqw'))?resolve:reject;});
 	});
 
-	it('Scenario: We scan a valid old company card.', function () {
-		eachStep.then(function (resolve, reject) {steps.testOnly = 0?resolve:reject;});
-		eachStep.then(function (resolve, reject){expect(steps.weScanQR('HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G'))?resolve:reject;});
-		eachStep.then(function (resolve, reject) {steps.testOnly = 1?resolve:reject;});
-		eachStep.then(function (resolve, reject){expect(steps.accountIsCompany())?resolve:reject;});
-		eachStep.then(function (resolve, reject) {steps.testOnly = 1?resolve:reject;});
-		eachStep.then(function (resolve, reject){expect(steps.accountIDIs('NEWAAB'))?resolve:reject;});
-		eachStep.then(function (resolve, reject) {steps.testOnly = 1?resolve:reject;});
-		eachStep.then(function (resolve, reject){expect(steps.securityCodeIs('WeHlioM5JZv1O9G'))?resolve:reject;});
-	});
+//	it('Scenario: We scan a valid old company card.', function () {
+//		eachStep.then(function (resolve, reject) {steps.testOnly = 0?resolve:reject;});
+//		eachStep.then(function (resolve, reject){expect(steps.weScanQR('HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G'))?resolve:reject;});
+//		eachStep.then(function (resolve, reject) {steps.testOnly = 1?resolve:reject;});
+//		eachStep.then(function (resolve, reject){expect(steps.accountIsCompany())?resolve:reject;});
+//		eachStep.then(function (resolve, reject) {steps.testOnly = 1?resolve:reject;});
+//		eachStep.then(function (resolve, reject){expect(steps.accountIDIs('NEWAAB'))?resolve:reject;});
+//		eachStep.then(function (resolve, reject) {steps.testOnly = 1?resolve:reject;});
+//		eachStep.then(function (resolve, reject){expect(steps.securityCodeIs('WeHlioM5JZv1O9G'))?resolve:reject;});
+//	});
 
 	it('Scenario: We scan a valid personal card.', function () {
 		eachStep.then(function (resolve, reject) {steps.testOnly = 0?resolve:reject;});
