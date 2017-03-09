@@ -89,7 +89,7 @@
 			this.accountInfo.securityCode = Sha256.hash(this.accountInfo.unencryptedCode);
 			this.accountInfo.isCompany = (agentLen > 0);
 			this.accountInfo.isPersonal = !this.accountInfo.isCompany;
-			console.log(this.accountInfo.isPersonal);
+//			console.log(this.accountInfo.isPersonal);
 			region = r36ToR26(region, regionLen);
 			if (this.accountInfo.isCompany) {
 				this.accountInfo.signin = 1;
@@ -116,6 +116,7 @@
 	};
 	QRCodeParser.prototype.parseAccountType_ = function () {
 		if (this.url.pathname.indexOf(COMPANY_INDICATOR) !== -1) {
+			console.log(this.accountInfo.accountId);
 			this.accountInfo.isCompany = true;
 			this.accountInfo.signin = 1;
 		} else if (this.url.pathname.indexOf(PERSONAL_INDICATOR) !== -1) {
@@ -130,13 +131,13 @@
 		var memberId = this.url.hostname.toUpperCase().split('.')[0];
 		var yyy = this.url.pathname.substring(1, 4);
 		var separator;
-		if (this.accountInfo.isPersonalAccount()) {
-			separator = PERSONAL_INDICATOR;
-		} else {
-			separator = COMPANY_INDICATOR_URL;
-		}
 		this.accountInfo.memberId = memberId;
-		this.accountInfo.accountId = memberId + yyy;
+		if (this.accountInfo.isPersonalAccount()) {
+			this.accountInfo.accountId = memberId + yyy;
+		} else {
+			this.accountInfo.accountId = memberId + yyy + '-A';
+		}
+		console.log(this.accountInfo.accountId);
 	};
 	QRCodeParser.prototype.parseServerType_ = function () {
 		var lastPoint = this.url.host.lastIndexOf('.');
