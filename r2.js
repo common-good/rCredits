@@ -128,9 +128,20 @@
 		 *     TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showPage = function (p) {
-			var page = document.location.hash === p;
-
-			return true;// expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("unencryptedCode")),securityCode),3000)).toBe(true);
+			browser.driver.get("http://localhost:8100/#/app/home", 500);
+			browser.driver.get("http://localhost:8100/#/app/login", 500);
+			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
+				var button = element(by.id('scan-to-login'));
+				var isClickable = EC.elementToBeClickable(button);
+				browser.driver.wait(isClickable, 3000); //wait for an element to become clickable
+				button.click();
+			});
+			element(by.id("customQR")).sendKeys('H6VM010WeHlioM5JZv1O9G');
+			var link=element(by.id("accountLogin"));
+			var isClickable = EC.elementToBeClickable(link);
+			browser.driver.wait(isClickable,3000);
+			link.click();
+			return expect(browser.driver.wait(EC.urlContains(p), 5000));
 		};
 		/**
 		 * show button (ARG)
@@ -139,7 +150,7 @@
 		 *     TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showButton = function (arg1) {
-			return true;
+			return expect(element(by.buttonText(arg1)).getText()).toEqual(arg1);
 		};
 		/**
 		 * button (ARG) pressed
@@ -147,7 +158,7 @@
 		 * in: MAKE Transact WeIdentifyAndChargeACustomer
 		 */
 		this.buttonPressed = function (arg1) {
-			return true;
+			return element(by.partialLinkText(arg1).click());
 		};
 		/**
 		 * show scanner
@@ -155,7 +166,7 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showScanner = function () {
-			return true;
+			return expect(browser.driver.wait(EC.or(EC.urlContains('demo-people'),EC.urlContains('qr')), 5000));
 		};
 		/**
 		 * scanner sees QR (ARG)
