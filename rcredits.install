@@ -36,7 +36,7 @@ function rcredits_install() {
   $theme = variable_get('theme_rcredits_settings', []);
   $theme['toggle_favicon'] = TRUE;
   $theme['default_favicon'] = 0;
-  $theme['favicon_path'] = 'sites/all/modules/rcredits/images/icons/favicon.ico';
+  $theme['favicon_path'] = 'rcredits/images/icons/favicon.ico';
   variable_set('theme_rcredits_settings', $theme);
   
   // pictures (probably do without most of these)

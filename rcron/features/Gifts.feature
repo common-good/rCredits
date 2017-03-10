@@ -20,8 +20,8 @@ Scenario: A donation can be completed
   Then transactions:
   | xid | created | type     | amount | from      | to      | purpose      |*
   |   1 | %today  | transfer |     10 | .ZZA      | cgf     | donation |
-  |   2 | %today  | rebate   |   0.50 | community | .ZZA    | rebate on #1 |
-  |   3 | %today  | bonus    |   1.00 | community | cgf     | bonus on #1  |
+  |   2 | %today  | rebate   |   0.50 | community | .ZZA    | reward on #1 |
+  |   3 | %today  | bonus    |   1.00 | community | cgf     | reward on #1  |
   And gifts:
   | id   | giftDate   | amount | often | honor  | honored | share | completed |*
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |
@@ -50,8 +50,8 @@ Scenario: A donation can be completed even if the member has never yet made an r
   Then transactions:
   | xid | created | type     | amount | from      | to      | purpose      |*
   |   1 | %today  | transfer |     10 | .ZZA      | cgf     | donation |
-  |   2 | %today  | rebate   |   0.50 | community | .ZZA    | rebate on #1 |
-  |   3 | %today  | bonus    |   1.00 | community | cgf     | bonus on #1  |
+  |   2 | %today  | rebate   |   0.50 | community | .ZZA    | reward on #1 |
+  |   3 | %today  | bonus    |   1.00 | community | cgf     | reward on #1  |
  
 Scenario: A recurring donation can be completed
   Given gifts:
@@ -61,8 +61,8 @@ Scenario: A recurring donation can be completed
   Then transactions:
   | xid   | created | type     | amount | from | to   | purpose      |*
   | .AAAB | %today  | transfer |     10 | .ZZA | cgf  | donation (quarterly gift #1) |
-  | .AAAC | %today  | rebate   |   0.50 | ctty | .ZZA | rebate on #1 |
-  | .AAAD | %today  | bonus    |   1.00 | ctty | cgf  | bonus on #1  |
+  | .AAAC | %today  | rebate   |   0.50 | ctty | .ZZA | reward on #1 |
+  | .AAAD | %today  | bonus    |   1.00 | ctty | cgf  | reward on #1  |
   And gifts:
   | id   | giftDate      | amount | often | honor  | honored | completed |*
   | .ZZA | %yesterday    |     10 |     Q | memory | Jane Do | %today    |

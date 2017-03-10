@@ -182,12 +182,12 @@ function handleTx($do, $xid, &$sta, $args) {
   $url = str_replace('&do=', '&did=', "history/transactions/$args"); // don't do it again
 
   if (substr($xid, 0, 1) == 'b') { // reversing bank transfer
-    if (!r\acct()->admin) return FALSE; // only admin can do this currently
+    $mya = r\acct();
+    if (!$mya->superAdmin) return FALSE; // only top admin can do this currently
     u\EXPECT($do == 'no', 'trying to edit bank transfer');
     $tx = db\lookup('*', 'r_usd', 'txid=:xid', ['xid'=>substr($xid, 1)]);
     foreach (u\just('txid amount tid', $tx) as $k => $v) $tx[$k] = -$v; // reverse transfer
     extract($tx);
-    $mya = r\acct();
     $mya->bank($amount, $zot, $tx);
     r\go($url, t('Reversed %amount bank transfer for %who.', 'amount who', u\fmtAmt(-$amount), $mya->fullName));
   }
@@ -235,7 +235,7 @@ function txEdit($xid) {
   $amount = textFld(t('Amount: $'), '', dft(number_format($amount,2)));
   $goods = $mya->rewarding ? radiosFld('&nbsp;', '', dft((int) $goods), ray(R_WHYS)) : w\hidfld($goods);
   $purpose = textFld(t('For:'), '', dft(u\nonish(@$purpose) ? '' : $purpose));
-  if ($mya->admin) $created = textFld(t('Date:'), '', dft(u\fmtDate($created))); else unset($created);
+  if ($mya->superAdmin) $created = textFld(t('Date:'), '', dft(u\fmtDate($created))); else unset($created);
   $submit = submit(t('Update'));
 
   return labeled($form + compact(ray('title to amount goods purpose created submit orig')));
@@ -341,19 +341,19 @@ function txSummary($starting, $ending) {
   $classes = u\prefixValues('txsum-', ray('label sign1 amount sign2 savings other'));
 /*
   $heads = ray(t('Starting balance,,From Bank,,From You,,To You,,To CGF,,Ending balance'));
-  $headHelp = ray(t('Your account balance at the start of this time period||How much was transferred from your bank account to your %PROJECT account||How much you spent||How much you received||Amount of rewards you committed to share with Common Good Finance||Your account balance at the end of this time period'));
+  $headHelp = ray(t('Your account balance at the start of this time period||How much was transferred from your bank account to your %PROJECT Account||How much you spent||How much you received||Amount of rewards you committed to share with Common Good Finance||Your account balance at the end of this time period'));
   foreach ($heads as $key => $value) if ($value) $heads[$key] = w\popHelp($value, $headHelp[$key]);
   */
   
   $PRIMARY = w\popHelp(t('Balance'), t('Your balance is what you use for spending and for receiving payments.'));
-  $STARTING = w\popHelp(t('Starting Balance'), t('Your %PROJECT account balance at the start of this time period'));
-  $BANK = w\popHelp(t('From Bank'), t('How much was transferred from your bank account to your %PROJECT account'));
+  $STARTING = w\popHelp(t('Starting Balance'), t('Your %PROJECT Account balance at the start of this time period'));
+  $BANK = w\popHelp(t('From Bank'), t('How much was transferred from your bank account to your %PROJECT Account'));
   $IN = w\popHelp(t('Funds Received'), t('How many %RCREDITS you received, in this period'));
   $OUT = w\popHelp(t('Funds Paid Out*'), t('How many %RCREDITS you paid out, in this period'));
   $REWARDS = w\popHelp(t('Rewards'), t('Incentive rewards you received, in this period (rewards go automatically into your Credit Reserve)'));
-  $ENDING = w\popHelp(t('Ending Balance'), t('Your %PROJECT account balance at the end of this time period'));
+  $ENDING = w\popHelp(t('Ending Balance'), t('Your %PROJECT Account balance at the end of this time period'));
   $SAVINGS = w\popHelp(t('Credit Reserve'), t('Amount in your Credit Reserve, to spend in a pinch (once your %PROJECT community declares itself stable, this additional amount is yours to keep)'));
-  $PENDING = w\popHelp(t('pending'), t('Pending transfers from your bank account to your %PROJECT account'));
+  $PENDING = w\popHelp(t('pending'), t('Pending transfers from your bank account to your %PROJECT Account'));
   if ($p_bank) $p_bank = $endingNow ? "+ $p_bank $PENDING" : '';
   
   $p_balance = u\starts($p_balance, '-') ? '- ' . substr($p_balance, 1) : "+ $p_balance";

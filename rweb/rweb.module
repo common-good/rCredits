@@ -99,6 +99,9 @@ function rweb_menu($submenu = '') {
     'community/agreement' => ['sub', t('The Agreement'), 'Agreement', ANY, '', t(''), 'globe'],
     'community/invite' => ['sub', t('Invite Someone'), 'Invite', 'member manage', '', t(''), 'share-alt'],
     'community/invite/example' => ['call', t('Invite Someone'), '', 'member manage', 'inviteExample'],
+    'community/invite/print' => ['call', t('Print Invite'), '', 'manage', 'printInvite'],
+    'community/invite/invited-whom' => ['call', 'Invited Whom', 'InvitedWhom', 'manage'],
+    'community/invite/waiting' => ['call', 'Waiting', 'Waiting', 'manage'],
     'community/message' => ['sub', t('Message a Member'), 'Message', 'member manage', '', t(''), 'envelope'],
     'community/find-company' => ['sub', t('Find a Company'), 'FindCo', ANY, '', t(''), 'search'],
     'community/donate' => ['sub', t('Donate'), 'Donate', 'manage', '', t(''), 'thumbs-up'],
@@ -108,9 +111,6 @@ function rweb_menu($submenu = '') {
     'community/flags' => ['sub', t('Risk Flags'), 'Flags 2', ANY, '', t(''), 'flag'],
 //    'community/game' => isGAME ? ['sub', t('Game'), 'Game', ANY) : NULL,
     'community/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
-    'community/invite/print' => ['call', t('Print Invite'), '', 'manage', 'printInvite'],
-    'community/invite/invited-whom' => ['call', 'Invited Whom', 'InvitedWhom', 'manage'],
-    'community/invite/waiting' => ['call', 'Waiting', 'Waiting', 'manage'],
     
     'settings' => ['norm', t('Settings'), 'Settings', 'manage -closed'],
 //    'settings/settings' => ['dft', t('Settings'), 'Settings', 'manage'],
@@ -151,7 +151,7 @@ function rweb_menu($submenu = '') {
     'empty' => ['call', t('Empty'), 'Empty 1', ANY],
     'prox' => ['call', t('Prox'), 'Prox 1 2', ANY], // proxy form called from rdo()
 
-    'request-employee-rcard' => ['call', t('Request Employee rCard'), 'RequestRCard 1', 'manage'],
+    'request-employee-rcard' => ['call', t('Request Employee %PROJECT Card'), 'RequestRCard 1', 'manage'],
     
     'I' => ['call', 'Scanned QR', 'I', ANY],
     
@@ -163,21 +163,21 @@ function rweb_menu($submenu = '') {
     'sadmin/panel' => ['sub', t('Panel'), 'AdminPanel 2', 'cadmin'],
     'sadmin/member-list' => ['sub', t('Member List'), 'MemberList', 'cadmin2'],
     'sadmin/export-list' => ['sub', t('Export'), 'DownloadMemberList 2', 'cadmin2'],
-    'sadmin/deposits' => ['sub', t('Deposits'), 'Deposits', 'admin'],
+    'sadmin/deposits' => ['sub', t('Deposits'), 'Deposits', 'superadmin'],
     'sadmin/new-member' => ['sub', t('New Member'), 'Signup code=.(admin)', 'cadmin'],
-    'sadmin/make-community' => ['sub', t('Make Ctty'), 'MakeCtty', 'admin'],
-    'sadmin/sms' => ['sub', t('Test SMS'), 'SMS', 'admin'],
-    'sadmin/handy' => ['sub', t('Handy'), '', 'dev', 'handyLinks'],
-    'sadmin/php' => ['sub', t('PHP'), 'Php 2', 'dev'],
-    'sadmin/zot' => ['sub', 'zot', '', 'admin'], // Drupal bug: last choice is omitted
+    'sadmin/make-community' => ['sub', t('Make Ctty'), 'MakeCtty', 'superadmin'],
+    'sadmin/sms' => ['sub', t('Test SMS'), 'SMS', 'superadmin'],
+    'sadmin/handy' => ['sub', t('Handy'), '', 'superadminORdev', 'handyLinks'],
+    'sadmin/php' => ['sub', t('PHP'), 'Php 2', 'superadminORdev'],
+    'sadmin/zot' => ['sub', 'zot', '', 'superadmin'], // Drupal bug: last choice is omitted
 //    'sadmin/acct-info' => ['call', 'Account Info', 'Summary 2', 'regulator'],
     'sadmin/tx-info' => ['call', 'Transaction Info', 'TxInfo 2', 'regulator'],
-    'sadmin/deposit-details' => ['call', t('Deposit Details'), '2', 'admin', 'depositDetails'],
-    'sadmin/checks' => ['call', t('Checks'), '2', 'admin', 'printChecks'],
-    'sadmin/achs' => ['call', t('ACHs'), '2', 'admin', 'achBatch'],
+    'sadmin/deposit-details' => ['call', t('Deposit Details'), '2', 'superadmin', 'depositDetails'],
+    'sadmin/checks' => ['call', t('Checks'), '2', 'superadmin', 'printChecks'],
+    'sadmin/achs' => ['call', t('ACHs'), '2', 'superadmin', 'achBatch'],
     'sadmin/changes' => ['call', t('See Changes'), 'SeeChanges 2', 'cadmin'],
     'sadmin/organizer-list' => ['call', t('Organizer List'), 'OrganizerList 2', 'admin'],
-    'rcredits/util' => ['call', 'Util', '2', 'admin', 'util'],
+    'rcredits/util' => ['call', 'Util', '2', 'superadmin', 'util'],
     'sadmin/recover' => ['call', t('Empty'), 'TestRecovery 1', 'dev'], // also go here manually, if needed
     'print-rcard' => ['call', t('Print ID Card'), '1 2', 'cadmin', 'memberID'],
 
@@ -227,8 +227,9 @@ function rweb_form_alter(&$form, &$sta, $form_id) {
   if (!\user_is_logged_in() and in_array($req, ['login', 'logout'])) return r\go(PROMO_URL); // nothing else works
 /*  if ($req == 'login' and !user_is_logged_in()) {header("location:$base_url/" . (isGAME ? 'community/game' : 'signin')); exit();} // nothing else works
   if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isGAME ? "$base_url/community/game" : (isDEV ? 'http://localhost' . DEV_ROOT : BASE_URL) . '/signin')); exit();} // nothing else works */
-  if ($req == 'user' and user_is_logged_in()) r\go(isGAME ? 'community/game' : 'summary'); // summary not ''
-  $form['opid'] = w\hidFld('none', ['name' => 'opid']);
+  if ($req == 'user' and user_is_logged_in()) return r\go(isGAME ? 'community/game' : 'summary'); // summary not ''
+  foreach ($form as $k => $v) if (@$v['#type'] == 'submit') {$submit1 = @$v['#id'] ?: "edit-$k"; break;}
+  $form['opid'] = w\hidFld(@$submit1 ?: 'none', ['name' => 'opid']); // default to first, in case submitted programmatically
 }
 
 //function rweb_form_user_register_form_alter(&$form, &$sta, $form_id) {r\Web\formRegister($form, $sta);}

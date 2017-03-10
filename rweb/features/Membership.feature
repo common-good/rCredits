@@ -60,8 +60,8 @@ Scenario: A member signs in for the first time
   And we say "status": "info saved|step completed"
 
   When member ".AAA" completes form "settings/preferences" with values:
-  | roundup | share | notices | statements | nosearch | secretBal |*
-  |       1 |    25 | monthly | electronic |        0 |         1 |
+  | roundup | crumbs | notices | statements | nosearch | secretBal |*
+  |       1 |      2 | monthly | electronic |        0 |         1 |
   Then we show "Photo ID Picture"
   And we say "status": "info saved|step completed"
 

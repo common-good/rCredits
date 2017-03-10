@@ -20,6 +20,6 @@ function rweb_install() {
   \drupal_flush_all_caches();
 
   global $channel; $channel = TX_WEB; // used in tt
-  variable_set('duplicate_email_message', u\tt('duplicate email'));
-  variable_set('forgot_password_message', u\tt('forgot password'));
+  variable_set('duplicate_email_message', t('duplicate email'));
+  variable_set('forgot_password_message', t('forgot password'));
 }

@@ -79,7 +79,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
 //  $myx = r\x($tx, $mya);
 
   if (@$data) $data = unserialize($data);
-  if (@$data['roundups'] and !$mya->admin) return; // don't show contributions of rounded up change
+  if (@$data['roundups'] and !$mya->superAdmin) return; // don't show contributions of rounded up change
 
   $change = ceil($fromyou) - $fromyou;
   if (@$roundup and !$toMe and $change > .005) $fromyou = ceil($fromyou);
@@ -89,9 +89,11 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   $banking = ($type == TX_BANK);
 //  if ($banking and ($amount < 0 xor $xid < 0)) $amount = -$amount; // show as positive unless reversing
   $isExtra = ($type != TX_TRANSFER and !$banking);
-  if ($isExtra or $sharing + 0) {
-    if (!$mya->rewarding and !$download) return;
+  if ($isExtra or $sharing += 0) {
     list ($amt, $reward) = [0, $amt]; // show refunds, inflation, grants, fines, and signup bonus as rewards
+    if (!$mya->rewarding) {
+      if ($download) $fromyou = $toyou = 0; else return;
+    }
   } else $reward = 0;
 //  $state = txColoredState($data);
   
@@ -99,7 +101,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
 //  $reward += $banking ? 0 : ($toMe ? (@$data['bonus'] + @$data['xfee']) : (@$data['rebate'] - @$data['xfee']));
   if ($type == TX_TRANSFER) $reward += $toMe ? @$data['bonus'] : @$data['rebate'];
 //  $net = number_format(($toMe ? $amount : -$amount) + $reward, 2);
-  $net = number_format($amt + $reward, 2);
+  $net = number_format($mya->rewarding ? $amt + $reward : $amt, 2);
   
 //  if (isset($data['xfee'])) {$amount = -$amount; $toMe = !$toMe;} // ???
 /*  if ($toMe and $fromMe) {
@@ -110,7 +112,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   
   $url = "$url0&xid=" . ($banking ? 'b' : '') . $xid;
   $button1 = ($mya->can(@$reallyToMe ? B_SELL : B_BUY) and !$isExtra and !$banking) ? "<a href='$url&do=edit' title='Edit Transaction'><img src='$rUrl/images/icons/edit.png' width=16 height=16 border=0 /></a>" : '';
-  $button2 = ((($mya->can(@$reallyToMe ? B_BUY : B_SELL) and !$isExtra and !$banking) or $mya->admin) and !@$data['undoneBy']) ? w\button(' X ', "$url&do=no", r\MyX::msg0($tx, 'reverse')) : ''; // (admin not cAdmin)
+  $button2 = ((($mya->can(@$reallyToMe ? B_BUY : B_SELL) and !$isExtra and !$banking) or $mya->superAdmin) and !@$data['undoneBy']) ? w\button(' X ', "$url&do=no", r\MyX::msg0($tx, 'reverse')) : ''; // (admin not cAdmin)
   //was txAct($toMe, $byMe, $reallyToMe)
   $button3 = (!$byMe and $disputed) ? w\button('OK', "$url&do=ok", r\MyX::msg0($tx, 'theyDid')) : ''; // w\txAct($toMe, $byMe, $reallyToMe)
 //  if (!$mya->can(B_MANAGE)) $button1 = $button2 = $button3 = '';
@@ -164,7 +166,7 @@ function setupDownload($starting, $ending) {
   $mya = r\acct();
   $dt1 = strftime('%Y%m%d', $starting);
   $dt2 = strftime('%Y%m%d', $ending);
-  u\csvStart(($mya->admin ? $mya->mainQid : PROJECT_ID) . "$dt1-$dt2.csv");
+  u\csvStart(($mya->cAdmin ? $mya->mainQid : PROJECT_ID) . "$dt1-$dt2.csv");
 }
 
 /**

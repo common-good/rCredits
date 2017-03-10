@@ -1,4 +1,99 @@
 /**
+ * List the USD account status of each account.
+ *//*
+function usdAccts($where = "postalCode LIKE '013%'") {
+  if (!r\acct()->admin) return;
+  $result = db\q("SELECT uid FROM users WHERE $where ORDER BY fullName");
+  $head = ray('Name Dwolla? Type Verified OK Co Bal');
+  while ($row = $result->fetch()) {
+    $usA = new r\usd($a = r\acct($row->uid));
+    $bal = $usA->bal($err);
+    $hasDwolla = $err ? '-' : 'Yes';
+    $source = $usA->source($err);
+    $type = @$source['Type'];
+    $verified = @$source['Verified'] ? 'Yes' : '-';
+    $count = @$source['count'];
+    
+    $ok = $a->ok ? 'ok' : '';
+//    $charge = $a->can(B_CHARGE) ? 'Chg' : '';
+    $company = $a->co ? 'Co' : '';
+    $line = array($a->fullName, $hasDwolla, $type, $verified, $ok, $company, $bal);
+    $lines[] = array_combine($head, $line);
+  }
+  return showRecords($lines);
+}*/
+
+---------------------------------
+
+//  $from = t('%PROJECT system <%SYS_EMAIL>');
+
+//  if (@$sms) { // send as text message
+//    list ($to, $subject) = [$toEmail, ''];
+//  } else { // if (in_array($toEmail, [R_ADMIN_EMAIL, SYS_EMAIL])) { // send as normal email
+    if (!isPRODUCTION) $subject = '(test) ' . $subject;
+//    $headers[] = 'Content-Type: text/html; charset=ISO-8859-1';
+//    if ($reply) $headers[] = "Reply-To: $reply";
+//  $headers[] = "From: $from";
+//  if (@r\acct()->admin) $headers[] = dkim($to, $from, $subject, $body, EMAIL_DOMAIN, 'system'); // last arg might be SYS_EMAIL
+//  $success = mail($to, $subject, $body, join("\n", $headers), '-f ' . BOUNCE_EMAIL);
+
+---------------------------------
+
+/*
+  $pdf->SetLineStyle(array('width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => array(0, 0, 0)));
+  if ($proSe) $pdf->RoundedRect(91, 30, 60, 60, 3.50, '1111', 'DF', NULL, array(255, 255, 255)); // x, y, w, h, ?, fill?
+  
+
+  $html = strtr('<span style="font-size:44px;">@ROLE<br><span style="font-size:76px; color:darkred; font-weight:bold;">@CODE</span><br>@REGION</span>', ['@ROLE' => $roleName, '@CODE' => $qid, '@REGION' => $a->regionName]);
+  $pdf->writeHTMLCell(100, 30, 94, 3 + $lower, $html); // w, h, x, y
+  $pdf->writeHTMLCell(40, 10, 160, 84.5, '<div style="font-size:44px;">' . CG_DOMAIN . '</div>');
+  $pdf->writeHTMLCell(182, 40, 10, 100, "<div style=\"font-size:$nameSize; text-align:center; color:midnightblue; font-weight:bold;\">$fullName</div>");
+*/
+
+---------------------------------
+
+/** 2/10/2017
+ * Print a sheet of invitation cards for one member.
+ * @param acct $a: the account for which to print invitation cards
+ * @param object $pdf: the pdf object in process
+ */
+function printInvite1r($a, &$pdf) {
+  require_once __DIR__ . '/../pdf.class';
+
+  $co = ($a->co and ($a->admin or $a->id != r\cgfId())); // pocket-size for individuals and CGF, otherwise bigger for companies
+  $name = $a->shortName ?: $a->fullName;
+  $iCode = $a->iCardCode(IBY_EMAIL);
+  $iCode = substr($iCode, 0, 4) . ' &nbsp;' . substr($iCode, 4, 4) . ' &nbsp;' . substr($iCode, 8);
+  
+  list ($mT, $mR, $mB, $mL) = $co ? [0, 0, 0, 0] : [.5, .75, .5, .75]; // margins
+  list ($y0, $dy, $wInvite, $wCode, $ptCode) = $co ? [.2, .18, 2.5, 1.9, 10] : [.125, .175, 2, 1.5, 9];
+  list ($dxInvite, $dyLine, $dxLine, $dyGoodFor) = $co ? [.25, .84, .25, .95] : [.08, .69, .125, .74];
+  if (strlen($name) < 29) $wInvite = 2; // center near the left if possible
+  list ($dxPic, $dyPic, $hPic, $dySite, $ptSite) = $co ? [.5, 1.2, 1.1, 2.35, 12] : [.62, .95, .8, 1.75, 10];
+  list ($wCard, $hCard) = $co ? [4.25, 2.75] : [3.5, 2]; // card dimensions
+  list ($goodFor) = $co ? [t('This card good for')] : [t('Get')];
+  list ($wPage, $hPage) = [8.5, 11]; // page dimensions
+//  $gLen = .1; // cutting guide length from card corner (for pluses in each corner of each card)
+  $gStyle = ['color' => [192,192,192]];
+
+  $pdf->AddPage();
+  
+  for ($y = $mT; $y < $hPage - $mB; $y += $hCard) for ($x = $mL; $x < $wPage - $mR; $x += $wCard) { // each card
+    $pdf->say($name, $x+$dxInvite, $y+$y0, $wInvite, '', '10', 'C');
+    $pdf->say(t('invites you to') . ' <span style="font-weight:bold; color:darkblue">' . PROJECT . '<sup>&reg;</sup></span>', $x+$dxInvite, $y+$y0+$dy, $wInvite, '', '10', 'C');
+    $pdf->say(t('the currency of a better future'), $x+$dxInvite, $y+$y0+2*$dy, $wInvite, '', '9;I;color:darkgreen;', 'C');
+    $pdf->Line($x+$dxLine, $y+$dyLine, $x+$wCard-$dxLine, $y+$dyLine, $gStyle); // x1, y1, x2, y2, style
+    $pdf->say(" $goodFor" . ' <span style="font-size:90%;"><sup>$</sup></span><span style="color:black;">' . R_SIGNUP_BONUS . '</span><span style="color:darkgreen;">r</span> ' . t('+ rewards whenever you buy or sell with %PROJECT.'), $x, $y+$dyGoodFor, $wCard, '', '9;color:darkgray', 'C');
+//    $pdf->say('<sup style="color:silver; font-size:50%; font-weight:normal;">$</sup>' . R_HELPER_BONUS . ' &nbsp;', $x, $y+.78, 2, '', '44;B;color:brown', 'C');
+    $pdf->Image(__DIR__ . '/../images/r=heart+$.png', $x+$dxPic, $y+$dyPic, 2.83*$hPic, $hPic, '', '', '', true); // file, x, y, w, h, type, link, align, resize
+    $pdf->say('Activate your membership at <span style="font-weight:bold; color:darkgreen;">' . CG_DOMAIN . '</span>. It\'s free!', $x, $y+$dySite, $wCard, '', $ptSite, 'C');
+
+    $pdf->say('Invitation #', $x+$wCard-$wCode, $y+$y0+$dy-.02, $wCode, '', $ptCode, 'C'); // text, x, y, w, h, format, align, borders
+    $pdf->say($iCode, $x+$wCard-$wCode, $y+$y0+2*$dy-.02, $wCode, '', $ptCode . ';color:darkred;Verdana', 'C'); // text, x, y, w, h, fmt, align, borders
+  }
+}
+
+/**
  * @file
  * Graveyard established 3/3/2016. Bury old code here.
  */
@@ -56,7 +151,7 @@ function redw($msg) {
 //      $qo->mainQid = substr($main, 0, $i);
 //      if (strlen($agt = substr($main, $i + 1)) > 3) $qo->agentQid = $agt; else $qo->agentCode = $agt;
       //$qo->agentCode = $agt;
-//      print_r(u\ray('main agent i agt mainQid agentQid agentCode', $main, $agent, $i, $agt, $qo->mainQid, $qo->agentQid, $qo->agentCode));
+///      print_r(u\ray('main agent i agt mainQid agentQid agentCode', $main, $agent, $i, $agt, $qo->mainQid, $qo->agentQid, $qo->agentCode));
 
 
 /*    if ($states == STATES_BOTH) { // get proper totals in $totDone

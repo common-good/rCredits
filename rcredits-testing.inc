@@ -251,6 +251,8 @@ function doTx($info, $thing) {
     if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
     u\setDft($type, TX_TRANSFER);
     foreach (ray('type') as $one) if (!is_numeric($$one)) $$one = u\consta('tx', $$one);
+    if (is_array(@$for) or @$for != 'roundups desc') if (@$payer) $roundup = r\acct($payer)->roundup;
+    
     if (!$testOnly) {
       u\setDft($goods, ($type != TX_TRANSFER or u\forCash(@$for)) ? FOR_USD : FOR_GOODS);
       if ($goods == FOR_GOODS) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
@@ -265,7 +267,7 @@ function doTx($info, $thing) {
     u\setDft($taking, 0);
     unset($info['purpose']);
   }
-
+  
   $fields = 'xid payer payerAgent payee payeeAgent type goods data flags risk risks';
   if (!$testOnly) $fields .= $inv ? ' created' : ' created channel';
   
@@ -275,11 +277,14 @@ function doTx($info, $thing) {
   
   $info = compact(ray($fields)) + $info;
   foreach (ray('from to for ' . TX_FLAGS) as $one) unset($info[$one]); // used to include state
+
+  if (!@$inv) {
+    if (@$for and !@$payerFor and !@$payeeFor) list ($payerFor, $payeeFor) = is_array($for) ? $for : array($for, $for);
+    foreach (['payerFor', 'payeeFor'] as $k) if (@$$k) $info[$k] = t($$k);
+  } elseif (@$for and !@$purpose) $info['purpose'] = t($for);
   
   if ($testOnly or @$type == TX_REBATE or @$type == TX_BONUS) {
     if ($inv) return verifyRecord('r_invoices', $info);
-    if ($testOnly and @$for) list ($info['payerFor'], $info['payeeFor']) = is_array($for) ? $for : array($for, $for);
-    unset($info['for']);
     if (!$testOnly) unset($info['risk']);
     return verifyRecord('r_txs', $info); // fails if rebate/bonus description is wrong (so omit it on create)
   }
@@ -287,7 +292,7 @@ function doTx($info, $thing) {
   if ($inv) {
     return db\insert('r_invoices', $info);
   } else {
-    $x = new r\X($info + compact('for'));
+    $x = new r\X($info);
     return $x->xid;
   }
 }
@@ -556,11 +561,10 @@ function usdTransfers($txs) {
 function cronRuns($op) {
   global $testOnly; if(@$testOnly) return FALSE;
   global $cronOp; $cronOp = $op;
-  $func = "rCredits\\Cron\\$op";
+  include_once __DIR__ . '/rcron/rcron.inc';
 
   $now = r\rTime();
   \variable_set('r_last_cron', ray('day week month', $now, $now, $now)); // normally don't run periodics
-
   if ($op == 'ALL' or strpos(R_DAILY_TASKS, " $op ")) {
 /**/  if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
     db\q("DELETE FROM queue WHERE name='q'");
@@ -569,9 +573,9 @@ function cronRuns($op) {
   } elseif ($op == '') {
     \drupal_cron_run();
   } elseif ($op == 'everyWeek') {
-    $func(); // queue up weekly tasks
+    f("cr.$op"); // queue up weekly tasks
     \drupal_cron_run();
-  } else $func();
+  } else f("cr.$op");
 
   return TRUE;
 }
@@ -865,7 +869,7 @@ function fullQid2($agent) {
   if (strpos($agent, ':')) { // company:agent
     list ($cpy, $agt) = explode(':', $agent);
     $cpy = t\fullQid('.ZZ' . $cpy);
-    $agt = t\fullQid('.ZZ' . $agt);
+    if (!is_numeric($agt)) $agt = t\fullQid('.ZZ' . $agt); // numeric agt actually fails anyway :(
     return t\fullQid(r\qid($cpy, $agt));
   } elseif (strpos($agent, '#')) { // company#agentNum (deprecated)
     list ($cpy, $agt) = explode('#', $agent);
@@ -1224,6 +1228,7 @@ function clear($ch = 0) {
   global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation, $tChecked, $tRadios;
   global $sms_devel; $sms_devel = TRUE;
   global $testRewardStep; $testRewardStep = 500;
+  global $testRewarding; $testRewarding = TRUE; // normally set this true in tests only if testing this feature
     
   $lastGo = $formOut = $formArray = $formSta = $testOp = $testConfirmation = $tChecked = $tRadios = NULL;
   $formOut['text'] = '';
@@ -1234,6 +1239,7 @@ function clear($ch = 0) {
   global $testMessages; $testMessages = [];
   global $sceneTest; 
 /**/ if (u\test() and !strpos($sceneTest->sceneName, 'Statement')) echo "scene: $sceneTest->sceneName<br>\n"; // helpful when test dies
+///   file_put_contents(flog('', TRUE), ''); // clear log file on disk
 
   $cgfUid = r\cgfId();
   $tables = 'r_auth r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_log r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
@@ -1425,3 +1431,4 @@ function that($thing) {global $thatThing; return $thatThing[$thing];}
 function dosayFilename($type) {return DRUPAL_ROOT . R_PATH . "/dosay-$type.txt";}
 function goodsBit($s) {return $s == 'goods' ? "1" : ($s == 'cash' ? "0" : "ERROR");} // no 3rd why for rSmart
 function approxTime($a, $b) {return t\eq($a, $b, 10000);}
+function rewarding() {global $testRewarding; return @$testRewarding;}

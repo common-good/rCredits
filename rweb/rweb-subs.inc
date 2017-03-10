@@ -51,19 +51,19 @@ EOF
 //  'take a step' => t('Your account is <b class="stopnot">not yet activated.</b> <a href="%BASE_URL/status" class="nextstep">Click here for the next step!</a>.'),
   'got token' => t('Your %RCREDITS and US Dollar accounts have been successfully connected!'),
   'got photo' => t('Your photo was successfully uploaded.'),
-  'company rcard' => t('Send a <a href="%href">company rCard</a> for %otherName to %manager at %address.'),
+  'company rcard' => t('Send a <%a>company %PROJECT Card</a> for %otherName to %manager at %address.'),
   'amount rounded' => t('"%amount" was rounded to the nearest integer value.'),
   'invite sent' => t('Your invitation has been sent.'),
   'repeat invite' => t('Come back any time, to send more invitations (click "Invite Someone" at the bottom of any page).'),
   'gift transfer later' => t('<br><br>Funds will be transferred when you have money in your account.'),
   'repeat gift' => t('If you wish to make a donation again sometime, click "Membership" in the upper right corner, then on "Donate".'),
-//  'setup complete' => t('<p>Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Your rCard will arrive by US Mail within a few days. Thank you for joining!</p>'),
+//  'setup complete' => t('<p>Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Your %PROJECT Card will arrive by US Mail within a few days. Thank you for joining!</p>'),
   'setup complete' => t('<h2>Your Account Setup Is Complete</h2>You have done everything you need to do.'),
-  'individual approval' => t('Once a staff member has approved your account, you can expect to receive your rCard in the mail within a day or two'),
+  'individual approval' => t('Once a staff member has approved your account, you can expect to receive your %PROJECT Card in the mail within a day or two'),
   'company approval' => t('Once a staff member has approved your account, you can begin accepting %PROJECT payments'),
   'join thanks' => t('Thank you for joining us!'),
-  'use temporary card' => t('<p>While you wait for your rCard to arrive, you can use your invitation card to make purchases at any member business (beginning with your inviter).</p>'),
-  'must be confirmed' => t('An email has been sent to %inviterName, who will need to confirm the invitation before you can use your %PROJECT account. Or you can do your first rCard transaction with %inviterName as confirmation.'),
+  'use temporary card' => t('<p>While you wait for your %PROJECT Card to arrive, you can use your invitation card to make purchases at any member business (beginning with your inviter).</p>'),
+  'must be confirmed' => t('An email has been sent to %inviterName, who will need to confirm the invitation before you can use your %PROJECT Account. Or you can do your first rCard transaction with %inviterName as confirmation.'),
   //  Meanwhile, click the "<a href="%BASE_URL/community/invite">Invite</a>" tab to invite anyone you know and trust &mdash; you get a $%R_HELPER_BONUSr reward when they make their first purchase.<br><br>
   'ready to charge' => t('<p>You successfully scanned in as "%agentName" to charge customers on behalf of %companyName.</p><p>Now go back to your scanning app, to scan a customer\'s card. Sign out only when your shift ends.</p>'),
   'transaction list truncated' => t('There are too many transactions to show all at once, so only the first %TX_MAX_ROWS are shown (choose a different date range to see the rest).'),
@@ -82,11 +82,11 @@ EOF
     
   // prompts
   'note' => '<b class="loud">' . t('NOTE:') . '</b>',
-  'ach warning' => t('If there are insufficient funds in your bank account when you request a transfer to your %PROJECT account (either explicitly, or by automatic refills), your bank will charge you a $20-35 fee, just like for a bounced check. If this happens more than once, the %PROJECT system will <i>also</i> charge you $%R_DEPOSIT_RETURN_FEE, to cover <i>its</i> bank fee. So make sure you have enough in your bank account to cover your transfers.'),
+  'ach warning' => t('If there are insufficient funds in your bank account when you request an exchange of US Dollars for %RCREDITS (either explicitly, or by automatic refills), your bank will charge you a $20-35 fee, just like for a bounced check. If this happens more than once, the %PROJECT system will <i>also</i> charge you $%R_DEPOSIT_RETURN_FEE, to cover <i>its</i> bank fee. So make sure you have enough in your bank account to cover your exchanges.'),
   // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
-//  'prompt max' => t('Keep AT MOST this much in my %PROJECT account. (When your %RCREDITS balance goes above this amount by $%R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
-  'legalname desc' => t(' full legal name, properly capitalized (for tax reporting).'),
-  'usename desc' => t('(properly capitalized!) The name you use on contracts, checks, credit cards, etc.'),
+//  'prompt max' => t('Keep AT MOST this much in my %PROJECT Account. (When your %RCREDITS balance goes above this amount by $%R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
+  'legalname desc' => t(' full legal name, properly capitalized, for tax reporting and banking.'),
+  'usename desc' => t('Your "doing-business-as" name, properly capitalized! &mdash; the full name you use most of the time.'),
   'ssTitle' => t('Soc Sec #:'),
   'einTitle' => t('Federal ID:'),
   'ssDesc' => t('Your social security number (for tax reporting)'),
@@ -135,8 +135,7 @@ EOF
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
   'unknown member' => t('"%who" has not yet signed up for %PROJECT.'),
-//  'ambiguous other' => t('"%who" might mean any of these %PROJECT accounts. Click the one you want or, if you don\'t see them listed, <a href="%draftLink">Click here to add them</a> to the list or <a id="which-cancel">here to cancel</a>.'),
-  'ambiguous other' => t('"%who" might mean any of these %PROJECT accounts. Click the one you want.'),
+//  'ambiguous other' => t('"%who" might mean any of these %PROJECT Accounts. Click the one you want or, if you don\'t see them listed, <a href="%draftLink">Click here to add them</a> to the list or <a id="which-cancel">here to cancel</a>.'),
 //  'similar found' => t('If you mean %otherName (%phone), <a href="%draftLink">click here for YES</a>. Otherwise, <a href="%cancelLink">click here to cancel</a>.'),
   'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app from Google\'s Play Store.'),
   'no account permission' => t('You do not have permission to use that account.'),
@@ -148,7 +147,7 @@ EOF
   'incomplete agreement' => t('To sign this agreement, you must put a check in each box, meaning that you have read that section and agree to it.'),
   'bad signature' => t('That signature does not match your full legal name ("%fullName").'),
   'bad invite' => t('That is not a valid Invitation Number or username.'),
-  'used invite' => t('<p>That invitation has already been used, to open an %PROJECT account.</p><p>If you already have an %PROJECT account set up and want to open an additional account for yourself, your business, or a family member, sign in and use the "Open a Company Account" button on the Summary page (for cashier accounts, first click your photo in the upper right corner and select your business from the dropdown).</p><p>Otherwise ask someone you know to send you a new invitation!'),
+  'used invite' => t('<p>That invitation has already been used, to open a %PROJECT Account.</p><p>If you already have a %PROJECT Account set up and want to open an additional account for yourself, your business, or a family member, sign in and use the "Open a Company Account" button on the Summary page (for cashier accounts, first click your photo in the upper right corner and select your business from the dropdown).</p><p>Otherwise ask someone you know to send you a new invitation!'),
 //  'expired invite' => t('<p>That invitation has expired.</p><p><%a>Click here</a> to ask %inviterName for another invitation.</p>'),
   'min sub floor' => t('You cannot choose a Target Balance less than %floor.'),
   'info not saved' => t('We apologize. Your information could not be saved at this time. Please try again in an hour or so.'),
@@ -175,7 +174,7 @@ EOF
   'photo upload failed' => t('Your photo upload was not successful.'),
   'pass expired' => t('Your temporary password has expired.'),
   'inhuman proxy' => t('%name is a company. Your proxies must be people.'),
-//  'dw mismatch' => t('WARNING: The "%field" of your Dwolla account and your %PROJECT account are conflicting. Your account permissions will be restricted until you correct this mismatch.'),
+//  'dw mismatch' => t('WARNING: The "%field" of your Dwolla account and your %PROJECT Account are conflicting. Your account permissions will be restricted until you correct this mismatch.'),
   'proxy to go' => t('You have not yet completed your selection of proxies.'),
   'no stop draw' => t('The account for %fullName has overspent its %RCREDITS, based on your balance. So you cannot discontinue "draw" permission without first bringing that account back up to even (for example by giving it some funds.'),
   'doubled proxy' => t('Your alternate proxy cannot be the same person as your first proxy.'),
@@ -183,22 +182,22 @@ EOF
   'missing currency' => t('You must choose %RCREDITS, USD, or both.'),
   'download always both' => t('Note: Downloads always include both %RCREDITS and USD amounts.'),
 //  'sign in to scan' => t('You must <a href="/user/login">sign in</a> (or scan yourself in) BEFORE scanning a customer card.'),
-  'change min first' => t('That request would leave you with less than your minimum balance. <%a>Lower your minimum</a> first.', w\atag('/settings/preferences')),
+  'change min first' => t('That request would leave you with less than your minimum balance. <%a>Lower your minimum</a> first.','_a', w\atag('/settings/preferences')),
   'bad member id' => t('That is not a valid member ID!'),
   'bad card' => t('That is not a valid member ID.'),
-  'bad card code' => t('This rCard is not valid.'),
+  'bad card code' => t('This %PROJECT Card is not valid.'),
   'upload required' => t('You must upload a file.'),
 //  'missing contact info' => t("<h2>Missing Contact Information</h2><p>Please complete your <%a1>Contact Information</a> before continuing.</p>"),
   'correct and retry' => t('Please correct the problem and resubmit this form.'),
-//  'duplicate phone' => t('That phone number is already the primary phone for another account.<br><br>If this is your ONLY phone and you can make do without a connected bank account (that is, if you have some other easy way to get money into and out of your %PROJECT account): <input type="button" value="Continue With No Bank Connection" onclick="jQuery(\'#edit-dupOk\').val(1); jQuery(\'#rcreditswebform%form\').submit();" />'),
+//  'duplicate phone' => t('That phone number is already the primary phone for another account.<br><br>If this is your ONLY phone and you can make do without a connected bank account (that is, if you have some other easy way to get money into and out of your %PROJECT Account): <input type="button" value="Continue With No Bank Connection" onclick="jQuery(\'#edit-dupOk\').val(1); jQuery(\'#rcreditswebform%form\').submit();" />'),
   'not a duplicate phone' => t('That phone number is NOT the primary phone for another account.'),
   'bad pin' => t('That is not your correct PIN.'),
   'wrong pin len' => t('Your PIN must be exactly 4 characters long.'),
   'pin required' => t('You must choose a PIN.'),
   'only us banks' => t('Unfortunately, at this time, we can handle only U.S. banks.'),
 //  'bad deposit cents' => t('Each deposit is a number less than %DW_VERIFY_ROOF.'),
-  'no can scan' => t('You do not have permission to scan an individual\'s rCard.'),
-  'must opt' => t('You must not create a limited account for this person without giving zem the opportunity to open a real %PROJECT account. <%a>Invite zem</a>!', '_a', w\atag('/community/invite')),
+  'no can scan' => t('You do not have permission to scan an individual\'s %PROJECT Card.'),
+  'must opt' => t('You must not create a limited account for this person without giving them the opportunity to open a real %PROJECT Account. <%a>Invite them</a>!', '_a', w\atag('/community/invite')),
   'must agree' => t('Accept Terms checkbox field is required.'), // drupal shows this
   'redo info' => t('We could not verify your personal information. Please try again, carefully.'),
   'bad ssn or dob' => t('There is a problem verifying your personal information.'),
@@ -206,14 +205,14 @@ EOF
   'bank too little' => t('The amount you asked to transfer is less than the minimum ($%R_ACHMIN).'),
   'members only' => t('You must be a member, to use this feature.'),
   'dwolla terms required' => t("Please accept Dwolla's terms before you click Continue."),
-  'no card ordered' => t('No rCard was ordered.'),
-  'bad buy info' => t('To pay with %RCREDITS, you must use the same %thing for the purchase as you use for your %PROJECT account.'),
+  'no card ordered' => t('No %PROJECT Card was ordered.'),
+  'bad buy info' => t('To pay with %RCREDITS, you must use the same %thing for the purchase as you use for your %PROJECT Account.'),
   'must be signed out' => t('You are already signed in.'),
   'wrong payroll co' => t('The company name in cell A1 must match your company name exactly (%coName)'),
   'not payroll csv' => t('This is not a payroll CSV. It must say "Payroll Details" in cell A2.'),
   'bad payroll csv' => t('Incorrect payroll CSV format at line %line.'),
-  'empty payroll' => t('There are no employees listed as having received an %PROJECT payroll deduction.'),
-  'bad payroll employee' => t('%employee is mispelled, does not have an active %PROJECT account, or is not listed as an employee on your Relations page. Click Settings, then Relations.'),
+  'empty payroll' => t('There are no employees listed as having received a %PROJECT payroll deduction.'),
+  'bad payroll employee' => t('%employee is mispelled, does not have an active %PROJECT Account, or is not listed as an employee on your Relations page. Click Settings, then Relations.'),
   'illegal amount change' => t('You cannot %action the original amount (%amount). <%a>Send an invoice</a> instead.'),
   'bad achmin' => t('The minimum transfer amount must be at least $%R_ACHMIN.'),
   'say why not' => t('You must say why you are denying the invoice.'),
@@ -223,11 +222,11 @@ EOF
   'no local proxy' => t('No other members nearby. <%a>Invite someone</a>!', '_a', w\atag('/community/invite')),
   'too many joins' => t('You can join to only one other account.'),
   'short cash help' => t('<%a>Click here</a> for more information about cashing out incentive rewards.', '_a', w\atag('/help/cashing-out')),
-  'maybe not cash' => t('If you are actually reimbursing someone or paying zem for goods or services (for example, employee labor), choose a different button under "For".'),
+  'maybe not cash' => t('If you are actually reimbursing someone or paying them for goods or services (for example, employee labor), choose a different button under "For".'),
   'link expired' => t('That link has expired.'),
   'login failed' => t('Your attempt to sign in failed. Click the "Password problems" link if you need a new password.'),
   'file save error' => t('Your file upload did not succeed.'),
-  'forced without perm' => t('<p>An unauthorized transaction was made using a Company Agent rCard.</p><ul><li>Date: %date</li><li>Customer: %a2 (by %agent2)</li><li>Company: %a1 (by %agent1)</li><li>Amount: %amount</li><li>For: %for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
+  'forced without perm' => t('<p>An unauthorized transaction was made using a Company %PROJECT Card.</p><ul><li>Date: %date</li><li>Customer: %a2 (by %agent2)</li><li>Company: %a1 (by %agent1)</li><li>Amount: %amount</li><li>For: %for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
   'bad invite num' => t('That is not a valid username or invitation number.'),
   'negative saveWeekly' => t('Your discretionary savings are already at their minimum, so your weekly savings addition cannot be negative.'),
   'requires signin' => t('You must be signed in, to use that page.'),
@@ -567,7 +566,7 @@ function shareFld($a) {
  * Return a form field for donating fractional dollars.
  */
 function roundupFld($a) {
-  return w\boolFld(t('Round Up?'), t('Fund the common good! Round all your payments up to a whole dollar amount and donate the cents to local nonprofits and community investments.'), $a ? $a->roundup : FALSE);
+  return w\boolFld(t('Round Up?'), t('Fund the common good! Round all your payments up to a whole dollar amount and donate the cents to local nonprofits, community investments, and the common good.'), $a ? $a->roundup : FALSE);
 }
 
 /**
@@ -691,7 +690,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $formSta['build_info'] = compact('args');
 //    $formSta['method'] = 'post';
     if (!r\up() and !$specialForm and !$adminForm) {
-      if ($mya and $mya->admin) {
+      if ($mya and $mya->superAdmin) {
         say(t('The system is DOWN.'));
         //if (!$mya->cttyUp) say(t('The community is DOWN.'));
       } else $formName = 'rCredits\\Web\\formSystemDown';
@@ -708,7 +707,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
         js('js/countries.js', 'file', 'header');
 //        if ($mya and \form_get_errors()) js("print_country($mya->country, $mya->state);", 'inline', 'footer');
       }*/
-      $tree = explode('/', 'home' . str_replace(DEV_ROOT, '', $_SERVER['REQUEST_URI']));
+      $tree = explode('/', 'home/' . str_replace(DEV_ROOT, '', $_SERVER['REQUEST_URI']));
       foreach ($tree as $k) if (preg_match('/^[a-z\-]+(\?|$)/', $k)) $crumbs[ucwords($k)] = $kk = isset($kk) ? "$kk/$k" : '';
       \drupal_set_breadcrumb($crumbs);
     }
@@ -1263,9 +1262,9 @@ EOF;
   $hidState = hidFld($state); // remember this when Drupal forgets it on error
   
   $phone = textFld(t('Phone:'), [t('Your phone number')], required(@$phone ? u\fmtPhone($phone): ''));
-//$a ? '' : t('Your phone number. This should not be a number already used for another %PROJECT account &mdash; unless you have no other phone number.')
+//$a ? '' : t('Your phone number. This should not be a number already used for another %PROJECT Account &mdash; unless you have no other phone number.')
 //  $dupOk = hidFld(0, attrib(ray('id', 'edit-dupOk')));
-//  $dupOk = boolFld(t('Dup Ok:'), t('If this is already the phone number for another %PROJECT account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your %PROJECT account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
+//  $dupOk = boolFld(t('Dup Ok:'), t('If this is already the phone number for another %PROJECT Account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your %PROJECT Account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
 
   $faxetc = @$faxetc ? textFld(t('Fax etc:'), [t('Other contact info'),t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.')], dft(@$faxetc)) : NULL;
   $country = selectFld(t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
@@ -1602,10 +1601,10 @@ function dateRange2($args, $url, $download = TRUE) {
 */
 
 function dateRangeValidate(&$sta) {
-  extract(u\just('period starting ending', $sta['input']));
+  extract(u\just('period starting ending download', $sta['input']));
   $op = op($sta);
   list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? rangeDates(@$period) : rangeDates('', @$starting, @$ending);
-  if ($ending - $starting > TX_MAX_DAYS * DAY_SECS) return w\say('too many days', 'err');
+  if ($ending - $starting > TX_MAX_DAYS * DAY_SECS and $op != 'downloadDates') return w\say('too many days', 'err');
   u\preray(compact(ray('starting ending period')), $sta['input']);
 }
 
@@ -1763,7 +1762,7 @@ function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
   foreach (ray('form_build_id form_token form_id op') as $one) unset($info[$one]); // just for neatness
   if (u\abbreviates('who=', $last = basename($return = \current_path()))) $return = dirname($return);
   $info['return'] = urlencode(str_replace('/', R_URL_SLASH, $return)); // even urlencoded slashes confuse Drupal
-  foreach ($choices as $uid => $fullName) $choices[$uid] = r\qid($uid) . ' ' . $fullName;
+  foreach ($choices as $uid => $fullName) $choices[$uid] = r\qid($uid) . ': ' . $fullName;
   if (empty($choices)) return say($msg, $args, $field_name); else which($choices, $field_name, $info, t($msg, $args));
 }
   
@@ -1874,7 +1873,7 @@ function menu($title, $type, $function, $args, $perms = '') {
   : (@$dem ? '../rvote/rvote-web.inc'
   : 'rweb.inc'));
   
-  if ($perms == ANY) $perms = FALSE;
+//  if ($perms == ANY) $perms = FALSE;
   foreach ($args = ray($args) as $k => $value) if (is_numeric($value)) $args[$k] = (int) $value;
   
   $item = array(
@@ -1977,7 +1976,7 @@ function showCharts($whichChart, $ctty = 0) {
   $totalR = u\fmtAmt($r0); // was u\fmtAmt($r0 + $usd0);
   $totalUsd = u\fmtAmt($usd0);
 
-  $txTypes = ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly by rCard)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
+  $txTypes = ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly by %PROJECT Card)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
 
   $avg = u\fmtAmt($txsPerMo ? $perMo / $txsPerMo : 0);
   $txs = "$txsPerMo @ $avg avg";
@@ -2160,8 +2159,6 @@ function hidFlds($ray) {return is_array($ray) ? hidFld(urlencode(serialize($ray)
  */
 function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   $mya = r\acct();
-  $admin = $mya->admin;
-//  if ($admin = $mya->admin) $mya = r\acct(R_ADMIN_QID); // use William for admin invites
   
   if (!$dupsOk) { // applies only to community admins
     $cemail = u\cryptN($email);
@@ -2182,7 +2179,7 @@ function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   );
   r\rMail('invite', $email, $info, $mya);
   say(!$dupsOk ? 'Sent to %email' : 'invite sent|repeat invite', compact('email'));
-  if (!$admin) r\tellAdmin('invited', $info + compact('email'), $mya->id);
+  if (!$mya->admin) r\tellAdmin('invited', $info + compact('email'), $mya->id);
 }
 
 function focusOn($focusFieldName) {
@@ -2195,12 +2192,14 @@ function focusOn($focusFieldName) {
  * Return TRUE if the current account has all the required permissions.
  */
 function webAccess($perms = NULL) {
-  if ($perms == 'dev' and isDEV) return TRUE;
+  if ($perms == 'dev') return isDEV;
   if ($perms == ANY) return TRUE; // needed for submenus (see w\subMenu())
   setAcct(); // recall who we are
   if (!$mya = r\acct()) return ($perms == 'signedOut');
   if ($perms == 'signedIn') return TRUE;
   if ($perms == 'signedOut') return FALSE;
+  if ($perms == 'superadmin') return $mya->superAdmin;
+  if ($perms == 'superadminORdev') return ($mya->superAdmin or isDEV);
   
   foreach (ray($perms) as $perm) {
     $not = (substr($perm, 0, 1) == '-');

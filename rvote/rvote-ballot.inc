@@ -245,7 +245,7 @@ EOF;
 EOF;
     
 //    $until = u\fmtDate($until);
-//    debug(compact(ray('categories project who amount budgetTotal until suitable doable mgmt eval cope sponsor local goodtype goodType goodTime1 goodTime2 rightAmt rightPct grade')));
+///    debug(compact(ray('categories project who amount budgetTotal until suitable doable mgmt eval cope sponsor local goodtype goodType goodTime1 goodTime2 rightAmt rightPct grade')));
   }
   return "<div id=\"proposalGrades\">$list</div>";
 }
@@ -266,7 +266,7 @@ function processvote($args, $type) {
     }
       
     list ($id, $text, $modified) = [$args["vote$opti"], @$args["votenote$opti"], time()];
-//    debug(compact(ray('args type quids now optionCount opti isVeto type grade id text modified')));
+///    debug(compact(ray('args type quids now optionCount opti isVeto type grade id text modified')));
     db\update('r_votes', compact(ray('id grade gradeMax text isVeto modified')), 'id');
 	}
 	$ballot = $args['ballot'];

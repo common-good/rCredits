@@ -29,16 +29,13 @@ Setup:
   |   4 | %today-5m | transfer |     10 | .ZZB | .ZZA | cash E   | 0      |
   |   5 | %today-4m | transfer |    100 | .ZZC | .ZZA | usd F    | 1      |
   |   6 | %today-3m | transfer |    240 | .ZZA | .ZZB | what G   | 0      |
-  |   7 | %today-3m | rebate   |     12 | ctty | .ZZA | rebate   | 0      |
-  |   8 | %today-3m | bonus    |     12 | ctty | .ZZB | bonus    | 0      |
+
   |   9 | %today-2w | transfer |     50 | .ZZB | .ZZC | cash P   | 0      |
   |  10 | %today-1w | transfer |    120 | .ZZA | .ZZC | this Q   | 1      |
-  |  11 | %today-1w | rebate   |      6 | ctty | .ZZA | rebate   | 0      |
-  |  12 | %today-1w | bonus    |     12 | ctty | .ZZC | bonus    | 0      |
+
   |  13 | %today-6d | transfer |    100 | .ZZA | .ZZB | cash V   | 0      |
   |  14 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | 1      |
-  |  15 | %today-5d | rebate   |      4 | ctty | .ZZA | rebate   | 0      |
-  |  16 | %today-5d | bonus    |      8 | ctty | .ZZC | bonus    | 0      |
+
   |  17 | %today-5d | transfer |    100 | .ZZC | .ZZA | cash CJ  | 1      |
   Then balances:
   | id   | r    | rewards |*

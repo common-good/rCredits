@@ -90,8 +90,8 @@ Scenario: A member confirms request to pay another member
   And transactions:
   | xid | created | type     | amount | from  | to   | purpose      | taking |*
   |   4 | %today  | transfer |    100 | .ZZA  | .ZZB | labor        | 0      |
-  |   5 | %today  | rebate   |      5 | ctty  | .ZZA | rebate on #2 | 0      |
-  |   6 | %today  | bonus    |     10 | ctty  | .ZZB | bonus on #2  | 0      |
+  |   5 | %today  | rebate   |      5 | ctty  | .ZZA | reward on #2 | 0      |
+  |   6 | %today  | bonus    |     10 | ctty  | .ZZB | reward on #2  | 0      |
   And balances:
   | id   |    r |*
   | ctty | -765 |
@@ -109,8 +109,8 @@ Scenario: A member confirms request to pay another member a lot
   Then transactions:
   | xid | created | type     | amount        | from  | to   | purpose      | taking |*
   |   4 | %today  | transfer | %R_MAX_AMOUNT | .ZZB  | .ZZC | food         | 0      |
-  |   5 | %today  | rebate   | %R_MAX_REBATE | ctty  | .ZZB | rebate on #2 | 0      |
-  |   6 | %today  | bonus    | %R_MAX_REBATE | ctty  | .ZZC | bonus on #2  | 0      |
+  |   5 | %today  | rebate   | %R_MAX_REBATE | ctty  | .ZZB | reward on #2 | 0      |
+  |   6 | %today  | bonus    | %R_MAX_REBATE | ctty  | .ZZC | reward on #2  | 0      |
   
 Scenario: A member confirms request to pay a member company
   Given next DO code is "whatever"
@@ -130,8 +130,8 @@ Scenario: A member confirms request to pay a member company
   And transactions:
   | xid | created | type     | amount | from  | to   | purpose      | taking |*
   |   4 | %today  | transfer |    100 | .ZZA  | .ZZC | stuff        | 0      |
-  |   5 | %today  | rebate   |      5 | ctty  | .ZZA | rebate on #2 | 0      |
-  |   6 | %today  | bonus    |     10 | ctty  | .ZZC | bonus on #2  | 0      |
+  |   5 | %today  | rebate   |      5 | ctty  | .ZZA | reward on #2 | 0      |
+  |   6 | %today  | bonus    |     10 | ctty  | .ZZC | reward on #2  | 0      |
   And balances:
   | id   |    r |*
   | ctty | -765 |

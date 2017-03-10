@@ -636,6 +636,7 @@ function drupal_valid_http_host($host) {
  *   The filename of the requested item or NULL if the item is not found.
  */
 function drupal_get_filename($type, $name, $filename = NULL) {
+  if ($name == 'rcredits' and $type == 'theme') return 'rcredits/theme/theme.info';
   // The location of files will not change during the request, so do not use
   // drupal_static().
   static $files = [], $dirs = [];
@@ -1219,7 +1220,7 @@ function drupal_unpack($obj, $field = 'data') {
  * @param assoc $subs: substitutions for parameters in $string marked with "%"
  *   For example, a $subs['eg'] replaces %eg in the string.
  *   Start the parameter name with underline to prevent it from getting sanitized with htmlspecialchars.
- *   If a substitution is an array, it will be converted to a string with print_r.
+ *   If a substitution is an array, it will be converted to a string.
  *   Multiple message indices are separated by '|'.
  *   But if the string starts with '|', discard it and treat all vertical bars as simple characters.
  */
@@ -1241,14 +1242,19 @@ function t($string, $subs0 = []) {
     if ($i > 0 and $model[0] != '.') $model = ' ' . $model; // separate the messages, unless adding a period
     $messages[$i] = $model;
   }
-  $string = join('', $messages);
+  $string = str_replace('\\', "\n", join('', $messages));
 
-  if (strpos($string, '%') !== FALSE) {
+//  if (strpos($string, '%') !== FALSE) {
+  if (preg_match('/[%@!]/', $string)) {
     $subs = constantSubs($string);
     foreach ($subs0 as $k => $v) {
-      if (is_array($v)) $v = print_r($v, 1);
-      if ($k[0] == '_') $k = substr($k, 1); else $v = \check_plain($v);
-      $subs['%' . $k] = $v;
+/**/  if (is_array($v)) $v = print_r($v, 1);
+      if ($k[0] == '!' or $k[0] == '@') { // old Drupal-style arg
+        $subs[$k] = $v;
+      } else {
+        if ($k[0] == '_') $k = substr($k, 1); else $v = \check_plain($v);
+        $subs['%' . $k] = $v;
+      }
     }
   }
   return @$subs ? strtr($string, $subs) : $string;
@@ -1844,7 +1850,7 @@ function drupal_random_bytes($count)  {
       // Initialize on the first call. The contents of $_SERVER includes a mix of
       // user-specific and system information that varies a little with each page.
       if (!isset($random_state)) {
-        $random_state = print_r($_SERVER, TRUE);
+/**/    $random_state = print_r($_SERVER, TRUE);
         if (function_exists('getmypid')) {
           // Further initialize with the somewhat random PHP process ID.
           $random_state .= getmypid();
@@ -2024,7 +2030,8 @@ function drupal_anonymous_user() {
 function drupal_bootstrap() {
   // Not drupal_static(), because does not depend on any run-time information.
 
-  require_once DRUPAL_ROOT . '/sites/all/modules/rcredits/boot.inc';
+//  require_once DRUPAL_ROOT . '/sites/all/modules/rcredits/boot.inc';
+  require_once DRUPAL_ROOT . '/rcredits/boot.inc';
 
   require_once DRUPAL_ROOT . '/includes/database/database.inc'; // db connection won't be initialized until requested
 

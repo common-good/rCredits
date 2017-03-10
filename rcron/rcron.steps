@@ -43,8 +43,8 @@ function extraSetup($feature) {
  *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
  *     MAKE Bank AMemberIsUnderMinimumOnlyBecauseRewardsAreReserved
  *     MAKE Gifts Setup
- *     MAKE Inflation Setup
  *     MAKE Joint Setup
+ *     MAKE Monthly Setup
  *     MAKE Notices Setup
  *     MAKE Recache Setup
  *     BOTH Risk Setup
@@ -74,10 +74,10 @@ function members($list) {return t\members($list);}
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
  *     MAKE Bank AnAccountHasAMinimumButNoRefills
  *     MAKE Gifts Setup
- *     TEST Inflation Setup
  *     TEST Joint Setup
  *     MAKE Joint AJointAccountNeedsRefilling
  *     MAKE Joint AJointAccountDoesNotNeedRefilling
+ *     TEST Monthly Setup
  *     TEST Recache Setup
  *     BOTH Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
@@ -108,9 +108,9 @@ function balances($list) {return t\balances($list);}
  *     MAKE Gifts ADonationCanBeCompleted
  *     MAKE Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
  *     MAKE Gifts ARecurringDonationCanBeCompleted
- *     MAKE Inflation InflationAdjustmentsAreDistributed
  *     MAKE Joint AJointAccountNeedsRefilling
  *     MAKE Joint AJointAccountDoesNotNeedRefilling
+ *     MAKE Monthly InflationAdjustmentsRoundUpDonationsAndCrumbDonationsAreMade
  *     MAKE Notices AMemberGetsSomeNotices
  *     MAKE Notices AMemberGetsSomeWeeklyNotices
  *     MAKE Recache BalancesGetOutOfWhack
@@ -142,8 +142,8 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     TEST Bank AMemberIsUnderMinimumOnlyBecauseRewardsAreReserved
  *     TEST Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
- *     MAKE Inflation Setup
  *     TEST Joint AJointAccountNeedsRefilling
+ *     MAKE Monthly Setup
  *     MAKE Risk Setup
  *     TEST Risk WeCalculateRisks
  */
@@ -178,9 +178,9 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
  *     TEST Gifts ARecurringDonationCanBeCompleted
- *     MAKE Inflation Setup
- *     TEST Inflation InflationAdjustmentsAreDistributed
  *     MAKE Joint Setup
+ *     MAKE Monthly Setup
+ *     TEST Monthly InflationAdjustmentsRoundUpDonationsAndCrumbDonationsAreMade
  *     MAKE Recache Setup
  *     MAKE Risk Setup
  *     TEST Risk WeCalculateRisks
@@ -477,7 +477,7 @@ function communityEmailForMemberIs($id, $email) {
 /**
  * member (ARG) cache is ok
  *
- * in: TEST Inflation InflationAdjustmentsAreDistributed
+ * in: TEST Monthly InflationAdjustmentsRoundUpDonationsAndCrumbDonationsAreMade
  */
 function memberCacheIsOk($id) {return r\acct(t\uid($id))->cacheOk();}
 

@@ -20,8 +20,8 @@ Scenario: A member donates
   Then transactions:
   | xid | created | type     | amount | from | to   | purpose      |*
   |   1 | %today  | transfer |     10 | .ZZA | cgf  | donation |
-  |   2 | %today  | rebate   |   0.50 | ctty | .ZZA | rebate on #1 |
-  |   3 | %today  | bonus    |   1.00 | ctty | cgf  | bonus on #1  |
+  |   2 | %today  | rebate   |   0.50 | ctty | .ZZA | reward on #1 |
+  |   3 | %today  | bonus    |   1.00 | ctty | cgf  | reward on #1  |
   And we say "status": "gift successful" with subs:
   | amount |*
   |    $10 |

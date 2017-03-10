@@ -446,6 +446,8 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST Joint AMemberRequestsAJointAccount
  *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     TEST Joint AMemberRequestsTwoJoinsAtOnce
+ *     TEST Preferences AMemberVisitsThePreferencesPage
+ *     TEST Preferences AnotherMemberVisitsThePreferencesPage
  *     TEST Relations MemberHasAnEmployeeConfirmed
  *     TEST Relations MemberHasAnEmployeeUnconfirmed
  *     TEST Relations MemberHasARelationWithAContractor

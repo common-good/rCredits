@@ -1,3 +1,24 @@
+2017-03-07 version 2.65
+. in commongood.earth/whm: whmapi1 suspend_outgoing_email user=example in WHM's API Shell interface (Home >> Server Configuration >> Tweak Settings, activate API Shell, Home >> Development >> API Shell) users: cogobank, s2be, rc4, game, stage
+. name ambiguity resolution (for Pay and Charge) wasn't working since using hidden opid field for op() function
+. a('aaa')->update('special', ''); was not updating the field because special was listed as part of the data field
+. now using SwiftMailer and DKIM authentication
+. Crumbs feature (members can donate a percentage of each incoming transaction)
+. superAdmin versus admin feature
+. new CG Card design and improved conversion automation
+. (re)prepared code for team development
+. put third-party software (apart from Drupal and Drupal modules) in /vendors
+. moved /sites/all/themes/rcredits to /rcredits and renamed it "theme"
+ . moved /sites/all/modules/rcredits to root (rcredits is no longer entirely a module, for example reinstall does not work)
+ - UPDATE `system` SET `filename` = 'rcredits/theme/theme.info' WHERE `filename` = 'sites/all/themes/rcredits/rcredits.info';
+ - UPDATE system set info='a:14:{s:4:"name";s:8:"rCredits";s:11:"description";s:80:"A variation on Responsive Bartik (pre-release 2012-08), for the rCredits System.";s:7:"version";s:3:"1.0";s:4:"core";s:3:"7.x";s:11:"stylesheets";a:2:{s:3:"all";a:3:{s:14:"css/layout.css";s:29:"rcredits/theme/css/layout.css";s:13:"css/style.css";s:28:"rcredits/theme/css/style.css";s:14:"css/colors.css";s:29:"rcredits/theme/css/colors.css";}s:5:"print";a:1:{s:13:"css/print.css";s:28:"rcredits/theme/css/print.css";}}s:7:"regions";a:18:{s:6:"header";s:6:"Header";s:4:"help";s:4:"Help";s:8:"page_top";s:8:"Page top";s:11:"page_bottom";s:11:"Page bottom";s:11:"highlighted";s:11:"Highlighted";s:8:"accounts";s:16:"Account selector";s:8:"featured";s:8:"Featured";s:7:"content";s:7:"Content";s:13:"sidebar_first";s:13:"Sidebar first";s:14:"sidebar_second";s:14:"Sidebar second";s:14:"triptych_first";s:14:"Triptych first";s:15:"triptych_middle";s:15:"Triptych middle";s:13:"triptych_last";s:13:"Triptych last";s:18:"footer_firstcolumn";s:19:"Footer first column";s:19:"footer_secondcolumn";s:20:"Footer second column";s:18:"footer_thirdcolumn";s:19:"Footer third column";s:19:"footer_fourthcolumn";s:20:"Footer fourth column";s:6:"footer";s:6:"Footer";}s:8:"settings";a:1:{s:20:"shortcut_module_link";s:1:"0";}s:6:"engine";s:11:"phptemplate";s:8:"features";a:9:{i:0;s:4:"logo";i:1;s:7:"favicon";i:2;s:4:"name";i:3;s:6:"slogan";i:4;s:17:"node_user_picture";i:5;s:20:"comment_user_picture";i:6;s:25:"comment_user_verification";i:7;s:9:"main_menu";i:8;s:14:"secondary_menu";}s:10:"screenshot";s:40:"sites/all/themes/rcredits/screenshot.png";s:3:"php";s:5:"5.2.4";s:7:"scripts";a:0:{}s:5:"mtime";i:1354818426;s:14:"regions_hidden";a:2:{i:0;s:8:"page_top";i:1;s:11:"page_bottom";}}' WHERE name='rcredits' AND type='theme'
+  - UPDATE `registry_file` SET filename=REPLACE(filename, 'sites/all/modules/rcredits', 'rcredits') WHERE filename LIKE 'sites/all/modules/rcredits%';
+  - UPDATE `system` SET filename=REPLACE(filename, 'sites/all/modules/rcredits', 'rcredits') WHERE filename LIKE 'sites/all/modules/rcredits%';
+  - UPDATE `registry` SET filename=REPLACE(filename, 'sites/all/modules/rcredits', 'rcredits') WHERE filename LIKE 'sites/all/modules/rcredits%';
+  - UPDATE `menu_router` SET include_file=REPLACE(include_file, 'sites/all/modules/rcredits', 'rcredits') WHERE include_file LIKE 'sites/all/modules/rcredits%';
+  - TRUNCATE cache
+  - list_themes(TRUE);
+
 2017-01-29 version 2.60
 . Changed in the agreement: "I understand I may receive some rCredits" rather than "...will receive..." AND removed "Once my geographic area becomes a Common Good Community"
 . Changed in agreement: "before my rCredits community has declared itself ready to allow cashing out Incentive Rewards"
@@ -882,7 +903,7 @@
 . made sign out a primary link
 . shortened transfer time from bank: when there are insuffient funds, now updates cached usd amount and retries.
 • fixed bug: "I didn’t give a security answer, but it says on file"
-. we now check hourly for deposits into the Dwolla/%PROJECT account
+. we now check hourly for deposits into the Dwolla/%PROJECT Account
 . member is now alerted immediately when funds arrive in their account for the first time (bona)
 . created 1099B reports for members and for electronic filing with IRS and state
 
@@ -912,7 +933,7 @@
 . fixed bug: verify bank deposits was mishandling ".01"
 . members can now open an account without a dwolla connection, if they have only one phone or if approved by admin (when Dwolla refuses to open an account for them)
 . mark transfers to bank complete immediately (as Dwolla does)
-. cache is now updated properly upon completion of transfers into the %PROJECT account
+. cache is now updated properly upon completion of transfers into the %PROJECT Account
 . account is suspended if cron discovers any cache error
 . cache is checked before manual transfers to bank
 . data changes on production server:
@@ -963,7 +984,7 @@
 . fixed two homogenize bugs (it was transferring USD to the least needy first, then continuing until exhausted and beyond)
 . provided a link on relations page for member companies to print their own rPOS sign-in cards (no photo)
 . fixed relations page formatting
-. can now open another %PROJECT account before confirming bank deposits
+. can now open another %PROJECT Account before confirming bank deposits
 . for admin, we no longer try to register an account with Dwolla when visiting the summary page (you must go to the status page instead)
 . now we are notified by email whenever there are deposits or withdrawals
 . new payment notices now show both physical and postalAddr and sometimes phone number, so member can ship or thank.

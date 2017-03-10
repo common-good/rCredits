@@ -18,7 +18,7 @@ function seeSecure($a) {
   $secure = $a->secure;
   foreach (ray(R_SECURE_FIELDS) as $k) if (isset($secure[$k])) {
     $new[$k] = $secure[$k]; // reorder
-    if ($mya->admin or ($k != 'pw2' and !u\inList($k, R_VSECURE_FIELDS))) $show[$k] = $a->$k; // some need decrypting
+    if ($mya->superAdmin or ($k != 'pw2' and !u\inList($k, R_VSECURE_FIELDS))) $show[$k] = $a->$k; // some need decrypting
   }
   $a->update('secure', @$new ?: []);
   say(u\rayTable($show, FALSE));
@@ -62,8 +62,6 @@ function adminSummary($a, $cAdmin = FALSE) {
   include_once __DIR__ . '/../admin/admin.inc';  
 
   $mya = r\acct();
-  $admin = $mya->admin;
-
   $uid = $a->id;
   $self = ($uid == $mya->agentId);
   $ctty = $a->community ?: r\serverUid(); // serverUid for admin, if it has no ctty
@@ -74,7 +72,7 @@ function adminSummary($a, $cAdmin = FALSE) {
       if (showSecureMessages()) $secureMsgs = submit(t('Show secure messages'));
       $html = $a->photoHtml(TRUE, TRUE);
       $photo = item("<a href=$base_url/settings/security/photo>$html</a>");
-      if ($admin) $community = r\cttys($a->region, $ctty);
+      if ($mya->admin) $community = r\cttys($a->region, $ctty);
       $donations = db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
       if ($donationInfo = db\lookup('often,honor,honored', 'r_gifts', 'uid=:uid', compact('uid'))) {
         extract($donationInfo);
@@ -124,7 +122,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     include __DIR__ . '/../rweb/risk-descs.inc';
 
     $legalName = textFld(t('Legal Name:'), '', required($a->legalName));    
-    if ($admin) $rTrader = ($a->isCtty)
+    if ($mya->superAdmin) $rTrader = ($a->isCtty)
     ? boolFld(t('rTrader?'), '', $a->ok)
     : boolFld(t('rTrader?'), t('Is account approved to use %PROJECT? -- member, <%a>good photo</a>, ss# checks out, set risks and mediaConx', '_a', w\atag('/settings/security/photo?' . rand())), $a->ok);
     if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
@@ -135,8 +133,8 @@ function adminSummary($a, $cAdmin = FALSE) {
       $helper = textFld(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper)); //  + autocomplete()
     } else $helper = item(@$a->helperA->fullName ?: t('N/A'), t('Helped by:'));
 
-    if ($a->member and !$a->co and $admin) $ssnCheck = item(a\ssnCheck($a));
-    if ($admin) {
+    if ($a->member and !$a->co and $mya->superAdmin) $ssnCheck = item(a\ssnCheck($a));
+    if ($mya->admin) {
       $dba = ($a->co and $owner = r\relation('other', 'main=:uid', compact('uid')) and r\acct($owner)->federalId == $a->federalId);
       $federalId = textFld(t('EIN/SSN:'), '', $a->federalId ? ($dba ? t('SSN') : R_ON_FILE) : '');
     }
@@ -152,7 +150,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     }
     $risks = bitsFld(t('Risks:'), $a->risks, '', K_ACCT_RISKS, $aliases);
 
-    $adminable = ray(B_ADMINABLE . ($admin ? ' admin' : ''));
+    $adminable = ray(B_ADMINABLE . ($mya->superAdmin ? ' admin' : ''));
     foreach (ray(B_LIST) as $k) if (strpos($k, 'u') !== 0) { // ignore undefined bits ("u" in 0th position)
       $blist[] = $k0 = $k;
       $class = in_array($k, $adminable) ? '' : 'noEdit';
@@ -183,11 +181,11 @@ EOF;
     $cgfDonations = item("<table id=\"cgf-donations\">$lines</table>");
   }
   $calling = item($a->calling, t('Calling:'));
-  $tenure = item($a->tenure . t(' month(s)'), t('Tenure:'), t('How long had this person or company been at this address before opening an %PROJECT account?'));
+  $tenure = item($a->tenure . t(' month(s)'), t('Tenure:'), t('How long had this person or company been at this address before opening a %PROJECT Account?'));
 
   if (!$a->co) {
     $moves = item($a->moves === '' ? '?' : $a->moves, t('Moves:'), t('(How many times has this person changed counties in the past decade?)'));
-    $mediaConx = textFld(t('Media Conx:'), t('(How many 1st or 2nd-degree connections do you have with this person on FaceBook or LinkedIn?)'), dft($a->mediaConx));
+    $mediaConx = textFld(t('Media Conx:'), t('(How many 1st or 2nd-degree connections do you have with this person on FaceBook or LinkedIn?)'), dft($a->mediaConx ?: 0));
   }
 
   $notes = areaFld(t('Notes:'), '', dft($a->notes));

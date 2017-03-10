@@ -23,8 +23,8 @@ Scenario: A member updates company info
   | private | selling | website     | description   | employees | gross | tips |*
   |         | stuff   | www.pub.com | we do vittles |         2 |   100 |    1 |
   Then members:
-  | id   | selling | website     | description   | employees | gross | coFlags       |*
-  | .ZZC | stuff   | www.pub.com | we do vittles |         2 |   100 | %(1<<%CO_TIP) |
+  | id   | selling | website     | description   | employees | gross |*
+  | .ZZC | stuff   | www.pub.com | we do vittles |         2 |   100 |
   And we say "status": "info saved"
   
 Scenario: A member gives a bad employee count

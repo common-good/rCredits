@@ -39,8 +39,7 @@
 
 /* ui dialogs */
 .modal-dialog {margin-top:60px;}
-.modal-dialog .modal-header {background-color:darkgreen;}
-.modal-dialog .modal-title {color:white;}
+.modal-dialog .modal-header, .modal-dialog .modal-title {background-color:darkgreen; color:white;}
 .ui-dialog-titlebar-close {display:none;}
 .which .ui-dialog-titlebar-close {display:block; color:darkgray; font-size:125%; padding-left:0; line-height:0;}
 /*.modal-body {background-color:midnightblue; padding:5px 30px;} */

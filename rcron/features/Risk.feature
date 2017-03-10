@@ -55,12 +55,10 @@ Setup:
   |   5 | %today-1m | transfer |   1100 | .ZZA | .ZZC | USD in (cash) | %TX_POS |
   # (cash) is required else a transaction fee transaction is created
   |   6 | %today-3w | transfer |    240 | .ZZA | .ZZB | what G  | %TX_POS |
-  |   7 | %today-3w | rebate   |     12 | ctty | .ZZA | rebate  | %TX_POS |
-  |   8 | %today-3w | bonus    |     24 | ctty | .ZZB | bonus   | %TX_POS |
+
   |   9 | %today-2w | transfer |     50 | .ZZB | .ZZC | cash P  | %TX_POS |
   |  10 | %today-1w | transfer |    120 | .ZZA | .ZZH | offline | %TX_POS |
-  |  11 | %today-1w | rebate   |      6 | ctty | .ZZA | rebate  | %TX_POS |
-  |  12 | %today-1w | bonus    |     12 | ctty | .ZZH | bonus   | %TX_POS |
+
   |  13 | %today-6d | transfer |    100 | .ZZA | .ZZB | cash V  | %TX_WEB |
   |  14 | %today-1d | transfer |    120 | .ZZA | .ZZC | undoneBy:17 | %TX_POS |
   |  17 | %today-1d | transfer |   -120 | .ZZA | .ZZC | undoes:14 | %TX_POS |

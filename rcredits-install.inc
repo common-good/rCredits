@@ -28,6 +28,7 @@ function tableDefs($schema = []) {
   // table user (additions to Drupal standard)
   $fields = array( // additional/changed users fields
     'flags' => setupField('boolean permissions and state flags', 'int big', 0, TRUE),
+    'wildTEST' => setupField('testing db mods', 'int big', 0, TRUE),
     'changes' => setupField('changes made to the account', 'blob big'),
     'community' => setupField("uid of this account's Common Good Community", 'int big'),
 //    'question' => setupField('security question', 'varchar 255'),
@@ -57,6 +58,7 @@ function tableDefs($schema = []) {
 //    'chunk' => setupField('granularity of transfers from bank account', 'numeric 11,2', R_BANK_CHUNK),
 //    'maximum' => setupField('maximum rCredits balance (send excess to bank), 0=none)', 'numeric 11,2', -1), // -1 means no limit
     'share' => setupField('percentage of rebates/bonuses to donate to CGF', 'numeric 6,3', 0),
+    'crumbs' => setupField('percentage of each transaction to donate to CG (half to community)', 'numeric 6,3', NULL),
     'r' => setupField('balance, including rewards (cached)', 'numeric 11,2', 0),
 //    'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2', 0),

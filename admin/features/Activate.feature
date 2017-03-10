@@ -19,13 +19,13 @@ Scenario: Admin activates an account
   When member "D:A" completes form "summary" with values:
   | mediaConx | rTrader | helper  | federalId  | adminable        |*
   |         1 |       1 | Bea Two | %R_ON_FILE | member,confirmed |
-  Then we notice "got funding" to member ".ZZD" with subs:
-  | amount           | purpose      | thing  |*
-  | $%R_SIGNUP_BONUS | signup bonus | reward |
-  And we notice "got funding" to member ".ZZB" with subs:
-  | amount           | purpose                                       | thing  |*
-  | $%R_HELPER_BONUS | inviting and/or assisting new member Dee Four | reward |
-  And members:
+#  Then we notice "got funding" to member ".ZZD" with subs:
+#  | amount           | purpose      | thing  |*
+#  | $%R_SIGNUP_BONUS | signup bonus | reward |
+#  And we notice "got funding" to member ".ZZB" with subs:
+#  | amount           | purpose                                       | thing  |*
+#  | $%R_HELPER_BONUS | inviting and/or assisting new member Dee Four | reward |
+  Then members:
   | id   | flags                    | helper |*
   | .ZZD | member,confirmed,ok,bona |   .ZZB |
   And transactions: 

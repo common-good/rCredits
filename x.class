@@ -113,8 +113,8 @@ class X {
         $amount = @$rewards[$type]; // @ for empty rewards to owners, for example
         $type = u\consta('tx', $type);
         list ($to, $tid, $for) = $type == TX_REBATE
-          ? array($payer, $payerTid, t('rebate')) 
-          : array($payee, $payeeTid, t('bonus'));
+          ? array($payer, $payerTid, t('reward')) 
+          : array($payee, $payeeTid, t('reward'));
         $for .= t( ' on #') . $tid;
         if ($amount and $to > 0) { // not a transfer to a community or region
           if ($xray = $this->save($this->rewardSetup($serial, $type, $to, $amount, $for, $created))) $xrays[] = $xray; else return FALSE;

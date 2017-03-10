@@ -10,9 +10,8 @@ use rCredits\Testing as t;
  * Extends the TCPDF class -- especially for custom headers and footer.
  */
 
-require_once(__DIR__ . "/../tcpdf/config/lang/eng.php");
-require_once(__DIR__ . "/../tcpdf/tcpdf.php");
-define('R_LOGO', __DIR__ . '/images/rlogo150.png');
+require_once DRUPAL_ROOT . '/vendor/tcpdf/config/lang/eng.php';
+require_once DRUPAL_ROOT . '/vendor/tcpdf/tcpdf.php';
 
 class Statement extends \TCPDF {
   public $regionName; // name of region
@@ -48,9 +47,9 @@ class Statement extends \TCPDF {
   
   public function Header() {
     $m = 5; // basic margin
-    $this->Image(R_LOGO, $m + 2, $m, 10, '', 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
+    $this->Image(__DIR__ . '/images/' . PROJECT_LOGO, $m + 2, $m, 14, '', 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
     $this->SetFont('helvetica', '', 9);
-    $this->writeHTMLCell(50, 0, $m + 15, $m + 2, 'empowering ourselves with<br>community-created credits<br>for the common good');
+    $this->writeHTMLCell(50, 0, $m + 20, $m + 2, '<b style="color:#004d00; font-stretch:expanded;">' . PROJECT . '&trade;</b><br>' . t('democratic economics<br>for caring communities'));
     $this->writeHTMLCell(80, 0, $m + 65, $m + 2, "<b>$this->regionName</b><br>$this->regionInfo", 0, 0, FALSE, TRUE, 'C');
     list ($page, $pages) = array($this->getAliasNumPage(), $this->getAliasNbPages());
     $this->writeHTMLCell(50, 0, $m + 168, $m + 2, "<b>Account: $this->qid</b><br>$this->month<br>Page $page of $pages");
@@ -63,7 +62,7 @@ class Statement extends \TCPDF {
     $this->Line(5, $h - 13, 5 + 200, $h - 13);
     $this->SetFont('helvetica', '', 9);
     $this->SetY(-13);
-		$this->Cell(0, 10, t('To manage your account, sign in at rCredits.org'), 0, '', 'C');
+		$this->Cell(0, 10, t('To manage your account, sign in at %CG_DOMAIN'), 0, '', 'C');
   }
 
   /**

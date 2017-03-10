@@ -4833,7 +4833,7 @@ function setPostalAddr() {
 
 function zipChange(z3s) {
 //    $.zipLookupSettings.libDirPath = 'http://ziplookup.googlecode.com/git/public/ziplookup/'; 
-    $.zipLookupSettings.libDirPath = '../sites/all/modules/rcredits/inc/'; 
+    $.zipLookupSettings.libDirPath = '../rcredits/inc/'; 
     $.zipLookup(
       $('#edit-postalcode').val(),
       function(cityName, stateName, stateShortName){ // success

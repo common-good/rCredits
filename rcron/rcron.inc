@@ -290,7 +290,8 @@ function everyMonth() {
   if (u\test()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // test: the past 30 days
   queueEach('inflationAdjust', "SELECT uid, $start AS start, $end AS end FROM users WHERE :IS_OK AND uid>1");  
 //  queueEach('shareCommitted', 'SELECT uid, committed, share FROM users WHERE :IS_OK AND committed>0');
-  queueEach('roundup', "SELECT payer, SUM(MOD(amount, 1)) AS roundups FROM r_txs WHERE :IS_ROUNDUP AND amount>0 AND created BETWEEN $start AND $end GROUP BY payer");
+  queueEach('roundup', "SELECT payer as uid, SUM(MOD(amount, 1)) AS donate FROM r_txs WHERE :IS_ROUNDUP AND amount>0 AND created BETWEEN $start AND $end GROUP BY payer");
+  queueEach('crumbs', "SELECT u.uid, SUM(t.amount)*u.crumbs AS donate FROM r_txs t LEFT JOIN users u ON u.uid=t.payee WHERE t.payer>0 AND u.crumbs>0 AND t.created BETWEEN $start AND $end GROUP BY t.payee"); // no crumbs on rewards
 }
 
 /**
@@ -335,9 +336,18 @@ function shareCommitted($item) {
  * Donate rounded change to the community.
  */
 function roundup($item) {
-  extract(u\just('payer roundups', $item));
-  $a = r\acct($payer);
-  be\transfer('payment', $a, $a->cttyA, $roundups, FOR_NONGOODS, t('contribution of rounded-up payment change'), NULL, TRUE, ['roundups' => TRUE]);
+  extract(u\just('uid donate', $item));
+  $a = r\acct($uid);
+  be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('roundups desc'), NULL, TRUE, ['roundups' => TRUE]);
+}
+
+/**
+ * Donate percentage of funds received to the community.
+ */
+function crumbs($item) {
+  extract(u\just('uid donate', $item));
+  $a = r\acct($uid);
+  be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('crumbs desc'), NULL, TRUE, ['crumbs' => TRUE]);
 }
 
 /**
@@ -689,10 +699,10 @@ function draw1($item) {
 }
 
 /**
- * Given an account's shortfall, return how much to actually transfer from wherever to the %PROJECT account.
+ * Given an account's shortfall, return how much to actually transfer from wherever to the %PROJECT Account.
  * @param acct $a: which account
  * @param bool $banky: the account has a connected bank account
- * @return: amount to transfer from the connected bank account or draw from other %PROJECT accounts (0 if none).
+ * @return: amount to transfer from the connected bank account or draw from other %PROJECT Accounts (0 if none).
  */
 function getHowMuchR($a, $banky = TRUE) {
   if (!$need = max(0, $a->minimum + $a->committed - $a->balance)) return 0;

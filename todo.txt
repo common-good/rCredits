@@ -1,5 +1,5 @@
 rCredits Software
-To Do
+To Do (see the G Suite spreadsheet instead)
 
 Software Priorities:
 1. App (in process)
@@ -34,7 +34,6 @@ NON_SOFTWARE TO_DOs
         • the longest chain of successful invites (probably not that long, so maybe more than one chain)
 - Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site). Also Catholic Charities.
 
-. DONE add a donate button to commongoodfinance.org
 . video about Admin'ing
 . register sending email on emailreg.org, to prevent blacklisting
 . get listed with Charity Navigator and give.org?

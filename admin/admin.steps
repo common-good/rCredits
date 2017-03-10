@@ -123,7 +123,7 @@ function relations($relations) {return t\relations($relations);}
 /**
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
- * in: TEST Activate AdminActivatesAnAccount
+ * in: 
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 

@@ -36,14 +36,13 @@
  */
 
 require_once 'rcredits.inc';
-require_once 'rcredits-backend.inc';
-require_once 'rcron/rcron.inc'; // required here by cron
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\DB as db;
 use rCredits\Testing as t;
 use rCredits\Web as w;
 use rCredits\Admin as a;
+use rCredits\Cron as cr;
 
 define('R_SYS_ERR', t('The %PROJECT system has detected an unusual problem. If your activity was interrupted, please feel free to try again.') . "<br>\n");
 define('ONE_CRON_OP', 'one cron op'); // flags a call of f('cr. in PHP window, to prevent side-effects
@@ -82,7 +81,7 @@ function rcredits_exception_handler($e) {
   if (isPRODUCTION) {
     $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
     mail(R_ADMIN_EMAIL, t('%PROJECT FATAL ERROR'), $message);
-    $R_FATAL_ERROR = u\loga('FATAL', compact('message')); // this gets picked up by rcredits_shutdown()
+    $R_FATAL_ERROR = f('u.loga', 'FATAL', compact('message')); // this gets picked up by rcredits_shutdown()
 /**/  die(); // invoke shutdown
 /**/ } else echo $msg;
 }
@@ -114,26 +113,11 @@ function rcredits_im_send($index, &$message, $subs) {
 } 
 
 /**
- * Implements hook_page_alter().
- * Used in testing.
-  0 => '#show_messages',
-  1 => '#theme',
-  2 => '#theme_wrappers',
-  3 => '#type',
-  4 => 'content',
-  5 => 'page_top',
-  6 => '#post_render',
- */
-function rcredits_page_alter($page) {
-/// debug($page['#type']);
-/// debug(strip_tags($page['content']['system_main']['main']['#markup']));
-}
-
-/**
  * Implements hook_cron().
  */
-function rcredits_cron() {
-  rCredits\Cron\periodic();
+function rcredits_cron() {//f('cr.periodic');} FAILS as f()! I don't know why
+  require_once __DIR__ . '/rcron/rcron.inc';
+  cr\periodic();
 }
 
 
@@ -141,9 +125,11 @@ function rcredits_cron() {
  * Implements hook_cron_queue_info().
  */
 function rcredits_cron_queue_info() {
-  $q = r\makeQueue('doTask', R_CRON_PERIOD - R_MAX_TASK_TIME); // make sure it finishes before the next period
+  $q = makeQueue('doTask', R_CRON_PERIOD - R_MAX_TASK_TIME); // make sure it finishes before the next period
   return compact('q');
 }
+
+function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
 
 /**
  * Set or return a global variable.
@@ -155,15 +141,18 @@ function g($varName) {
 /** Miscellaneous functions for debugging
  *
  */
-/**/ function bs($n, $list = B_LIST) {debug(a\flagsDesc($n, $list));} // show bit numbers/names
+/**/ function bs($n, $list = B_LIST) {d('a.flagsDesc', $n, $list);} // show bit numbers/names
 /**/ function tm($n = '') {debug($result = $n ? (is_numeric($n) ? date('m-d-Y H:i:s a', $n) : strtotime($n)) : time()); return $result;} // convert and display unixtime or string time
-function a($id) {global $lastA; return $lastA = r\acct(t\fullQid(strtoupper(strlen($id) == 3 ? '.' . $id : $id)));} // return an account object
-function x($xid, $mya = '') {r\x($xid, $mya);} // return a transaction object
+function a($id = '') {global $lastA; return $lastA = f('r.acct', f('t.fullQid', strtoupper(strlen($id) == 3 ? '.' . $id : $id)));} // return an account object
+function x($xid, $mya = '') {f('r.x', $xid, $mya);} // return a transaction object
 /**/ function da($idfield) {list ($id, $field) = ray($idfield); debug(a($id)->$field);}
 /**/ function step($a) {debug(us($a)->step());}
 function ctty($id) {return a(a($id)->community);}
 //function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
-/**/ function flog($s) {file_put_contents(isSTAGE ? 'photos/flog.txt' : 'flog.txt', print_r($s, 1) . "\n", FILE_APPEND);} // log to file
+function flog($s, $file = FALSE) {
+  $fileName = isSTAGE ? 'photos/flog.txt' : 'flog.txt';
+/**/ if ($file) return $fileName; else file_put_contents($fileName, print_r($s, 1) . "\n", FILE_APPEND); // log to file
+}
 /**/ function who($s = '') {$a = is_object($s) ? $s : a($s); debug("$a->fullName ($a->mainQid $a->id)"); return $a;} // show whose account
 function q($sql, $subs = [], $log = FALSE) {return f('db.q', $sql, $subs, $log);}
 
@@ -176,6 +165,10 @@ function f($func) {
   global $cronOp; $cronOp = ONE_CRON_OP; // just in case we use cr.
   if (substr($func, 0, 2) == 'a.') include_once __DIR__ . '/admin/admin.inc';
   if (substr($func, 0, 2) == 'y.') include_once __DIR__ . '/rcredits-yearly.inc';
+  if (substr($func, 0, 2) == 'w.') require_once __DIR__ . '/rweb/rweb.inc';
+  if (substr($func, 0, 3) == 'cr.') include_once __DIR__ . '/rcron/rcron.inc'; // required here by cron
+  if (substr($func, 0, 3) == 'be.') require_once __DIR__ . '/rcredits-backend.inc';
+
   if (substr($func, 0, 2) == 'v.') {
     include_once __DIR__ . '/rvote/rvote.inc';
     include_once __DIR__ . '/rvote/rvote-ballot.inc';
@@ -207,9 +200,9 @@ function funcNickname($func) {
  * or    eachA(function($a) {...});
  */
 function eachA($func = 'a.changeIt') {
-  $result = db\q('SELECT uid FROM users WHERE uid>1 ORDER BY uid')->fetchCol();
+  $result = q('SELECT uid FROM users WHERE uid>1 ORDER BY uid')->fetchCol();
   if (!is_callable($func)) $func = funcNickname($func);
-  foreach ($result as $one) $func(r\acct($one));
+  foreach ($result as $one) $func(a($one));
 }
 
 /**
@@ -218,9 +211,9 @@ function eachA($func = 'a.changeIt') {
  * or    eachX(function($x) {...});
  */
 function eachX($func = 'a.changeIt') {
-  $result = db\q('SELECT xid FROM r_txs');
+  $result = q('SELECT xid FROM r_txs');
   if (!is_callable($func)) $func = funcNickname($func);
-  foreach ($result as $xid) $func(r\x($xid));
+  foreach ($result as $xid) $func(x($xid));
 }
 
 /**
@@ -237,10 +230,10 @@ function patch($name) {
   
   // common.inc
   if ($name == 'common2682') {
-    db\q('DELETE FROM sessions WHERE uid=0'); // added 4/22/2016 (else loops when Drupal sets uid=0 on timeout)
-    if (!$mya = r\acct()) return 'signin'; // do not return!
+    q('DELETE FROM sessions WHERE uid=0'); // added 4/22/2016 (else loops when Drupal sets uid=0 on timeout)
+    if (!$mya = a()) return 'signin'; // do not return!
     if ($mya->cAdmin) return 'sadmin';
-    w\say(t('You do not have permission to visit that page.'), 'err');
+    f('w.say', t('You do not have permission to visit that page.'), 'err');
     return 'summary';
     //$click = " <a href=\"$base_url\signin\">" . t('Click here to sign in.') . '</a>'; // r\go('signout') fails
     //return t('You are not authorized to access this page.') . (isDEV ? $args[1] : '') . @$click;
@@ -251,14 +244,14 @@ function patch($name) {
   if ($name == 'user_login_final_validate2207') {
     $email = $args[1];
     \watchdog('user', 'Login attempt failed for %user.', array('%user' => $email));
-    $_a = w\atag('/settings/password');
-    return (\drupal_get_messages('error', FALSE)) ? '' : w\say('bad login', compact('_a'), 'name');
+    $_a = f('w.atag', '/settings/password');
+    return (\drupal_get_messages('error', FALSE)) ? '' : f('w.say', 'bad login', compact('_a'), 'name');
   }
   if ($name == '_user_mail_notify3569') { // UNUSED
     list ($index, $account, $language) = $args;
 //    $language = @$language ?: \user_preferred_language($account);
     $uid = $account->uid;
-    return r\rMail($index, r\acct($uid)->email, compact('uid'));
+    return f('r.rMail', $index, a($uid)->email, compact('uid'));
   }
   if ($name == 'user_form_process_password_confirm3595') return []; // patch no longer used (see w\formReset())
 
@@ -272,15 +265,3 @@ function patch($name) {
   if ($name == 'file_munge_filename1174') return; // file.inc
   if ($name == 'filter_access1023') return TRUE; // filter.module (allows all users access to all field formats)
 }
-
-/**
- * Run a background op in the foreground (not on production server).
- *//*
-function cron($op) {
-/// if (isPRODUCTION) return debug("Don't run cron this way on production server.");
-  global $testOnly; if(@$testOnly) return FALSE;
-  global $cronOp; $cronOp = ONE_CRON_OP;
-  $func = "rCredits\\Cron\\$op";
-  return $func();
-}
-*/

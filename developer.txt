@@ -251,7 +251,7 @@ H. Division of %PROJECT system responsibilities
   - has a record in the users table (with no communities in the region's number space)
   - fullName = legalName = rCredits regionPlace Region (for example rCredits Western Mass Region)
   - email is regionPlace@rcredits.org OR region@regionPlace.rcredits.org (use a 2-char abbreviation instead of regionPlace if it is a state)
-  - is also an %PROJECT community:
+  - is also a %PROJECT community:
     . on its own server the region account is the Seedpack community (anyone in the region who is too far away from an organized %PROJECT community). The NEW Seedpack includes anyone not covered by another region.
     . on other servers, a region account represents all communities in that region (tracking the trade balance)
   - coordinate rCredits communities within the geographic region
@@ -262,7 +262,7 @@ H. Division of %PROJECT system responsibilities
   
   %PROJECT community (always active unless closed)
   - identified by uid<1
-  - every account is in an %PROJECT community
+  - every account is in a %PROJECT community
   - fullName is anything. legalName is Placename State rCredits (with state spelled out)
   - email is placename@regionPlace.rcredits.org
   - accounts in the same %PROJECT community can be in different regions
@@ -292,13 +292,13 @@ K. Handling USD
 L. Setting up a development environment
   0. Install Apache, MySQL, and PHP (perhaps using XAMPP).
   1. Download rc4.me/rMembersDrupal.zip and extract the files into a "rMembers" folder in your webroot.
-  2. Clone github.com/CommonGoodFinance/rCredits into webroot/rMembers/sites/all/modules/rcredits
-  3. Create a database and populate it with "webroot/rMembers/sites/all/modules/rcredits/rMembers db.sql"
+  2. Clone github.com/CommonGoodFinance/rCredits into webroot/cgMembers/rcredits
+  3. Create a database and populate it with "webroot/cgMembers/rcredits/rMembers db.sql"
   4. Create a database user (and password) with all permissions.
-  5. Copy "webroot/rMembers/sites/all/modules/rcredits/.databases (rcredits - model)" to webroot/../
+  5. Copy "webroot/cgMembers/rcredits/.databases (rcredits - model)" to webroot/../
   6. Rename it .databases
   7. Edit it: supply proper database name/user/password and arbitrary salt, word, and inviteKey.
-  8. Test by browsing to http://localhost/rMembers and signing in with username admin -- any non-empty password will do.
+  8. Test by browsing to http://localhost/cgMembers and signing in with username admin -- any non-empty password will do.
 
 X. Other thoughts:
   - The test server must have the following in its .htaccess file (and the production server must NOT!):
@@ -307,8 +307,9 @@ X. Other thoughts:
     </IfModule>
   - Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
   - Suppose I live in 413 (NEW), but my cell is 987 (NYC). Person B lives in 222 with cell 333. When I am traveling to AAA I pay person B with SMS, by calling the local rCredits number. The local server contacts NYC to process my side of the transactions, but gets redirected to NEW. Similarly for person B's side. So at most 5 servers are involved (three just redirecting). NEW.rcredits.org and other subdomains act similarly.
-  - use http://realfavicongenerator.net/ to create favicon. To (re)test in Chrome, exit Chrome and type:
-    DEL C:\Users\William\AppData\Local\Google\Chrome\User Data\Default\Favicons
+  - use http://realfavicongenerator.net/ to create favicon from logo. To (re)test in Chrome, exit Chrome and type:
+    DEL "C:\Users\William\AppData\Local\Google\Chrome\User Data\Default\Favicons"
+  Use http://dkimvalidator.com to test DKIM, SPF, DMARC, and SpamAssassin results
 
   
   

@@ -19,8 +19,8 @@ Setup:
   |   2 | %today-6m | signup   |    250 | ctty | .ZZB | signup       |
   |   3 | %today-6m | signup   |    250 | ctty | .ZZC | signup       |
   |   4 | %today    | transfer |     20 | .ZZA | .ZZB | stuff        |
-  |   5 | %today    | rebate   |      1 | ctty | .ZZA | rebate on #2 |
-  |   6 | %today    | bonus    |      2 | ctty | .ZZB | bonus on #2  |
+  |   5 | %today    | rebate   |      1 | ctty | .ZZA | reward on #2 |
+  |   6 | %today    | bonus    |      2 | ctty | .ZZB | reward on #2  |
   Then balances:
   | id   |    r | rewards |*
   | ctty | -753 |         |
@@ -85,8 +85,6 @@ Scenario: A buyer disputes a charge
   Given transactions:
   | xid | created   | type     | amount | from | to   | purpose  | flags  |*
   | 100 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | taking |
-  | 101 | %today-5d | rebate   |      4 | ctty | .ZZA | rebate   | 0      |
-  | 102 | %today-5d | bonus    |      8 | ctty | .ZZC | bonus    | 0      |
   When member ".ZZA" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
   |~tid | Date    | Name       | Purpose | Amount | Reward | ~ |
@@ -112,8 +110,6 @@ Scenario: A seller reverses a charge
   Given transactions:
   | xid | created   | type     | amount | from | to   | purpose  | taking |*
   | 100 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | 1      |
-  | 101 | %today-5d | rebate   |      4 | ctty | .ZZA | rebate   | 0      |
-  | 102 | %today-5d | bonus    |      8 | ctty | .ZZC | bonus    | 0      |
   When member "C:B" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
   |~tid | Date   | Name    | Purpose | Amount | Reward | ~ |
@@ -127,8 +123,6 @@ Scenario: A member confirms OK for a disputed transaction
   Given transactions:
   | xid | created   | type     | flags    | amount | from | to   | purpose  | taking |*
   | 100 | %today-5d | transfer | disputed |     80 | .ZZA | .ZZC | this CF  | 1      |
-  | 101 | %today-5d | rebate   |          |      4 | ctty | .ZZA | rebate   | 0      |
-  | 102 | %today-5d | bonus    |          |      8 | ctty | .ZZC | bonus    | 0      |
   When member ".ZZA" completes form "history/transactions/period=5&do=ok&xid=100" with values: ""
   Then we say "status": "confirm accept" with subs:
   | who        | did     | amount | for       | date    | do                  |*

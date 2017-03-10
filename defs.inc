@@ -5,26 +5,27 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '2.60'); // software version
+define('R_VERSION', '2.65'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
 define('isDEV', $_SERVER['SERVER_ADDR'] == '::1'); // developing
 require_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
+// require .module and -util.inc at bottom
 
-define('isCG', FALSE); // using new standard name
-define('PROJECT', isCG ? t('Common Good') : t('rCredits')); // project name
-define('CG_DOMAIN', isCG ? 'CommonGood.earth' : 'rCredits.org');
-define('RCREDITS', isCG ? t('Common Good credits') : 'rCredits'); // don't use %PROJECT here
+define('PROJECT', t('Common Good')); // project name
+define('CG_DOMAIN', 'CommonGood.earth');
+define('RCREDITS', t('Common Good Credits')); // don't use %PROJECT here
+define('BANK_DBA', PROJECT);
 define('PROJECT_ID', str_replace(' ', '', strtolower(PROJECT)));
-define('PROJECT_LOGO', isCG ? 'cglogo80.png' : 'rlogo-circle80.png');
-define('PROMO_URL', isDEV ? 'http://localhost/' . (isCG ? 'cg' : 'r') . 'Promo/_site' : 'http://' . CG_DOMAIN);
+define('PROJECT_LOGO', 'logo80.png');
+define('PROMO_URL', isDEV ? 'http://localhost/cgPromo/_site' : 'http://' . CG_DOMAIN);
 
 define('STAGE_SUBDOMAIN', 'ws');
 define('STAGE', STAGE_SUBDOMAIN . '.' . CG_DOMAIN); // staging site (for secrets, etc.)
 define('GAME_SITE', 'game.' . CG_DOMAIN);
 
-define('DEV_ROOT', '/rMembers'); // path to drupal root on DEV machine
+define('DEV_ROOT', '/cgMembers'); // path to drupal root on DEV machine
 define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
 
@@ -32,10 +33,12 @@ $host = strtolower(@$_SERVER['HTTP_HOST']);
 if (strlen($host) > 30 or !preg_match('/^\[?(?:[a-zA-Z0-9-:\]_]+\.?)+$/', $host)) {header('HTTP 400 Bad Request'); exit();}
 $protocol = isDEV ? 'http://' : 'https://';
 $base_url = $protocol . $host . (isDEV ? DEV_ROOT : ''); // NO trailing slash!
+//$base_url = $protocol . $host . (isDEV ? DEV_ROOT : '') . '/rcredits'; // NO trailing slash!
 define('BASE_URL', $base_url);
-define('R_PATH', '/sites/all/modules/rcredits');
+//define('R_PATH', '/sites/all/modules/rcredits');
+define('R_PATH', '/rcredits');
 global $rUrl; $rUrl = BASE_URL . R_PATH;
-define('R_ROOT', DRUPAL_ROOT . R_PATH);
+define('R_ROOT', __DIR__);
 $parts = parse_url($base_url);
 $base_path = @$parts['path'] . '/';
 $base_root = substr($base_url, 0, strlen($base_url) - strlen(@$parts['path'])); // everything until first slash after "scheme://"
@@ -64,7 +67,9 @@ define('CGF_CITY', 'Ashfield');
 define('CGF_POSTALADDR', 'PO Box 21, Ashfield, MA 01330-0021');
 define('CGF_EIN', '205280780');
 define('R_LAUNCH', strtotime('12/15/2013'));
-define('SYS_EMAIL', 'admin@' . CG_DOMAIN);
+define('EMAIL_DOMAIN', 'new.rcredits.org'); // replace this with CG_DOMAIN when ready (including in ../php-dkim/dkim-cfg.php)
+define('SYS_EMAIL', 'system@' . EMAIL_DOMAIN); // old address so we don't get marked as spam (later at REGION_DOMAIN)
+define('BOUNCE_EMAIL', 'bounce@' . EMAIL_DOMAIN); // old address so we don't get marked as spam (later at REGION_DOMAIN)
 define('PUBLIC_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.publicKey');
 define('PRIVATE_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.privateKey');
 define('ANY', 'any'); // accessible to anyone (if you change this, rebuild menus immediately)
@@ -81,7 +86,7 @@ define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty
 define('R_REGION_FIELDS', 'region,fullName,st,postalCode,federalId,hasServer');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
 // isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 
-define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData special'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('MASTER_NUMERIC_FIELDS', 'minimum achMin savingsAdd saveWeekly');
 define('MASTER_FIELDS', MASTER_NUMERIC_FIELDS . ' hasBank bankAccount last4bank refill'); // only in master, for joint accounts
 define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
@@ -119,7 +124,7 @@ define('R_MAX_PHOTO_WIDTH', 1024);
 define('CO_PHOTO_FACTOR', 3); // make company photos this many times as big as they look
 define('R_MAX_UPLOAD_SIZE', 4); // maximum upload size in MB
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
-define('R_EXCHANGE_LIMITS', '1:5000,7:10000,49:20000,365:50000'); // per day, week, 7-week, year
+define('R_EXCHANGE_LIMITS', '1:5000,7:20000,49:80000,365:500000'); // per day, week, 7-week, year
 define('R_INVITE_DAYS', 30); // number of days to accept invitation to membership
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
 define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter easy copying, max 14 for small QR)
@@ -242,6 +247,7 @@ define('CO_MANAGE', 7); // this bit is not actually stored here, but pass B_MANA
 define('APP_CAN_BITS', 7); // number of bits for permissions (each: signed in and out)
 define('APP_AGENT_CANS', APP_CANS + APP_CAN_BITS); // company permission bits when signed IN (limited by agent)
 define('APP_CAN_MASK', pow(2, APP_CAN_BITS + 1) - 1); // the CANS bits -- signed-IN permission bits are 22-28
+define('CO_DFTS', '0 1 7 8 9 11 12'); // set these bits by default
 
 define('CO_FAST', 29); // (deprecated as of app v 2.16) fast checkout -- never ask for photo Id (set by cAdmin)
 define('CO_TIP', 30); // ask customer what percent tip to add
@@ -313,7 +319,7 @@ define('B_SELL', 104); // can send invoices (or scan or view)
 define('B_BUY', 105); // can make purchase for the account (or sell or scan or view)
 define('B_MANAGE', 106); // can manage all aspects of the account
 define('B_JOINT', 107); // make this a joint account (subsuming the other, with permission) -- no companies!
-$GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept rCard payments'), t('give refunds & give USD for %RCREDITS'), t('send invoices'), t('make purchases'), t('manage account'), t('joint account'));
+$GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept %PROJECT Card payments'), t('give refunds & give USD for %RCREDITS'), t('send invoices'), t('make purchases'), t('manage account'), t('joint account'));
 define('B_PERMISSIONS', 'related read scan refund sell buy manage joint');
 
 // Other special pseudo-bit values for r\Acct::can() and rweb.module menus

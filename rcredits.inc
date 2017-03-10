@@ -188,18 +188,19 @@ function cttys($region, $ctty = FALSE) {
 /**
  * Wrap all email, so it doesn't go out when testing.
  * @param string $index: index to email template and subject (empty if supplying explicit body and subject)
- * @param mixed $to: where to send the message -- uid, account, or email address
+ * @param mixed $to: where to send the message -- uid, account, email address, or [$email => $name]
  * @param assoc $subs: substitutions in template. may also include:
  *   noFrame:  don't show salutation and closing and footer
  *   subject:  specific subject
  *   body:     specific message
  * ... the following special substitions are always available:
  *   site, qid, shortName, and every cached field for the account
- * @param mixed $reply: uid, account, or email address to reply to OR 'ctty' (of $to) or NULL (same as from)
+ * @param mixed $reply: uid, account, or email address to reply to OR 'ctty' (of $to) or NULL (CGF_EMAIL) OR [email => name]
  * @return TRUE if the message got sent (or on dev machine pretending it got sent) else FALSE
  * NOTE: from is always SYS_EMAIL
  */
 function rMail($index, $to0, $subs, $reply0 = NULL) {
+//  require_once __DIR__ . '/dkim.php';
   if (isGAME) return; // no emails from game site
   global $testEmails;
 
@@ -209,23 +210,24 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   
   if ($toA = is_object($to0) ? $to0 : r\acct($to0)) {
     $toEmail = $toA->email;
-    $to = "\"$toA->fullName\" <$toEmail>";
+//    $to = "\"$toA->fullName\" <$toEmail>";
+    $to = [$toEmail => $toA->fullName];
     $subs += (array) $toA->account(); // this omits any special fields or special formatting
     $subs['qid'] = $toA->mainQid;
     $subs['shortName'] = $toA->name;
   } else $to = $toEmail = $to0;
   
-  if (in_array($to, ['jeannine+blossom@wetmeadow.org'])) return FALSE; // invalid or marked us as spam
-
   $testEmails[] = compact(ray('index toEmail subs'));
 
   if ($reply0 == 'region') {
     $reply = NULL;
   } else {
     $replyA = is_object($reply0) ? $reply0 : ($reply0 == 'ctty' ? $toA->cttyA : r\acct($reply0));
-    $reply = $replyA ? "\"$replyA->fullName\" <$replyA->email>" : $reply0;
+//    $reply = $replyA ? "\"$replyA->fullName\" <$replyA->email>" : $reply0;
+    $reply = $replyA ? [$replyA->email => $replyA->fullName] : $reply0;
     if ($reply == $to) $reply = NULL;
   }
+  if (!@$reply) $reply = [CGF_EMAIL => PROJECT];
 
   $nolog = ray(R_NOLOG); // subs not to log (sensitive data)
   foreach ($subs as $k0 => $v) if (!is_object($v) and !is_array($v)) {
@@ -234,7 +236,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
     $logSubs[$k] = in_array($k0, $nolog) ? '(?)' : $v; // hide personal info and secrets
   }
 
-  $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
+//  $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
   $subject = u\SUBS(strtr(@$subject ?: $GLOBALS['emailSubjects'][$index], $resubs), '%');
   $body = u\SUBS(strtr(@$body ?: (@$noFrame ? r\emailTemplate($index) : r\emailBody($index)), $resubs), '%');
 
@@ -246,25 +248,32 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
 
   if (!isPRODUCTION) if ($toEmail != r\regionField('email') and $toEmail != R_ADMIN_EMAIL) return TRUE;
   if (isDEV) return TRUE; // otherwise cURL error 60: SSL certificate problem: unable to get local issuer certificate
-  $from = t('%PROJECT system <%SYS_EMAIL>');
+  if (!isPRODUCTION) $subject = '(test) ' . $subject;
   
-  if (@$sms) { // send as text message
-    $success = mail($toEmail, '', $body, "From: $from", '-f bounce@' . REGION_DOMAIN); // this is an email-to-sms address
-  } else { // if (in_array($toEmail, [R_ADMIN_EMAIL, SYS_EMAIL])) { // send as normal email
-    $success = mail($to, $subject, $body, "Content-Type: text/html; charset=ISO-8859-1\nFrom: $from" . ($reply ? "\nReply-To: $reply" : ''), '-f bounce@' . REGION_DOMAIN);
-  }
-/*
-  else { // send as more likely-to-be-delivered email
-    require_once DRUPAL_ROOT . '/vendor/autoload.php';
-    $client = new \Postmark\PostmarkClient(isDEV ? POSTMARK_API_TEST : POSTMARK_TOKEN);
-    try {
-      $success = is_object($res = $client->sendEmail($from, $to, $subject, $body, NULL, NULL, NULL, $reply));
-/** /  $erInfo += ['error1' => print_r(@$res, 1)];
-    } catch(Exception $e) {$erInfo += ['error' => $e->getMessage()];}
-  }
-  */
+  require_once DRUPAL_ROOT . '/vendor/swiftmailer/lib/swift_required.php';
+  $transport = \Swift_SendmailTransport::newInstance('/usr/sbin/sendmail -bs');
+  $mailer = \Swift_Mailer::newInstance($transport);
+
+  $privateKey = "-----BEGIN RSA PRIVATE KEY-----\n" . str_replace(' ', "\n", DKIM_PRIVATE) . "\n-----END RSA PRIVATE KEY-----";
+  $signer = new \Swift_Signers_DKIMSigner($privateKey, EMAIL_DOMAIN, 'system');
+
+  $m = \Swift_SignedMessage::newInstance()
+  ->attachSigner($signer)
+  ->setSubject($subject)
+  ->setFrom([SYS_EMAIL => t('%PROJECT system')])
+  ->setTo($to)
+  ->setReturnPath(BOUNCE_EMAIL)
+  ->setBody($body, 'text/html')
+  ->addPart(strip_tags($body), 'text/plain'); // don't bother making the plain text pretty
+
+  if ($reply) $m->setReplyTo($reply);
+  if (@$sms) $m->setSubject('')->setTo($toEmail); // send as text message
   
-  return @$success ?: r\tellAdmin('email fail', $erInfo);
+  $success = $mailer->send($m);
+  u\EXPECT($success, 'cannot send email');
+  return TRUE;
+// this would likely fail if we can't send email  ?: r\tellAdmin('email fail', $erInfo);
+//  ->attach(Swift_Attachment::fromPath('my-document.pdf'))  
 }
 
 /**
@@ -275,7 +284,8 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
  */
 function badCard($qid, $code, $msg) {
   $created = time();
-  if (!db\exists('r_bad', $info = compact('qid', 'code'))) {
+  $info = compact('qid', 'code');
+  if (!db\exists('r_bad', $info)) {
     db\insert('r_bad', $info += compact('created'), 'created', TRUE);
     $index = 'card marked bad';
   } else $index = 'attempted card already marked bad';
@@ -399,12 +409,12 @@ function membershipEvent($a, $status, $do = TRUE) {
   } elseif ($status == 'bona') {
     be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
 
-    if (!$a->helperA->admin) { // no helper bonus for admin (cAdmin is okay) [don't require $a->confirmed]
+    if (!$a->helperA->superAdmin) { // no helper bonus for superAdmin (cAdmin is okay) [don't require $a->confirmed]
       be\fund($hId = $a->helper, TX_HELPER, R_HELPER_BONUS, t('invite reward', compact('fullName')));
       $helped = db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) + 0;
       if ($helped == ORGANIZER_GRANT_MIN) {
-        r\message($a->id, 'organizer grant', ['_a' => w\atag('/community/grant')]);
-        r\tellAdmin('eligible for grant', ['name' => $a->helperA->fullName]);
+        r\message($a->helper, 'organizer grant', ['_a' => w\atag('/community/grant')]);
+        r\tellAdmin('eligible for grant (already notified)', ['name' => $a->helperA->fullName]);
       }
     }
   }
@@ -510,11 +520,10 @@ function tempName($info) {
  */
 function location($a, $complete = FALSE) {
   $country = realCountry($a->country);
-  $state = r\realState($a->state, $a->country);
   $result = [];
   if ($complete) $result[] = (string) $a->address; // (string) in case address is NULL
   $result[] = $a->city;
-  $result[] = $state . (($complete and $a->postalCode) ? ' ' . $a->postalCode : '');
+  $result[] = $a->st . (($complete and $a->postalCode) ? ' ' . $a->postalCode : '');
   if ($a->country != R_COUNTRY_ID) $result[] = strtoupper($country);
   foreach ($result as $key => $value) if ($value === '') unset($result[$key]);
   return join(', ', $result);
@@ -908,12 +917,12 @@ function invite($email, $inviter, $code = '', $subject = '', $message = '') {
  */
 function go($page, $msg = '', $field = '') {
   global $base_url;
+  global $lastGo; $lastGo = $page; // for testing
 
   if ($msg) r\Web\say($msg, $field);
 //  else $page .= "/field=$field&msg=" . urlencode($msg); // say() fails if signed out
 
   if (u\test()) {
-    global $lastGo; $lastGo = $page; // for testing
     $_POST = []; // make sure it doesn't act like we submitted the target page
     t\output("Going to page $page (page0=$lastGo msg=$msg field=$field)");
     return strpos($page, 'http://') === FALSE ? t\pageForm($page, $msg, $field) : '';
@@ -1398,7 +1407,6 @@ function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR 
 function emailBody($key) {return str_replace('%body', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
 function realCountry($country) {return db\lookup('name', 'r_countries', 'id=:country', compact('country'));}
 function realState($state, $country = R_COUNTRY_ID) {return db\lookup($country == US_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
-function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
 function perm($bit) {return $bit - B_RELATED;}
 function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}
 function doCode($code) {return @unserialize(@u\decrypt(@u\deurlify($code)));}  

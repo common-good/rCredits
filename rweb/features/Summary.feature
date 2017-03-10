@@ -36,12 +36,12 @@ Setup:
   | .AAAE | %today-5w | transfer |     10 | .ZZB | .ZZA | cash E       |
   | .AAAF | %today-4w | transfer |     20 | .ZZC | .ZZA | usd F        |
   | .AAAG | %today-3w | transfer |     40 | .ZZA | .ZZB | whatever43   |
-  | .AAAH | %today-3w | rebate   |      2 | ctty | .ZZA | rebate on #4 |
-  | .AAAI | %today-3w | bonus    |      4 | ctty | .ZZB | bonus on #3  |
+  | .AAAH | %today-3w | rebate   |      2 | ctty | .ZZA | reward on #4 |
+  | .AAAI | %today-3w | bonus    |      4 | ctty | .ZZB | reward on #3  |
   | .AAAJ | %today-2d | transfer |      5 | .ZZB | .ZZC | cash J       |
   | .AAAK | %today-1d | transfer |     80 | .ZZA | .ZZC | whatever54   |
-  | .AAAL | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #5 |
-  | .AAAM | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #4  |
+  | .AAAL | %today-1d | rebate   |      4 | ctty | .ZZA | reward on #5 |
+  | .AAAM | %today-1d | bonus    |      8 | ctty | .ZZC | reward on #4  |
   Then balances:
   | id   | r   |*
   | .ZZA | 266 |

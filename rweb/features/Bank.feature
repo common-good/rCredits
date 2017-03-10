@@ -8,11 +8,11 @@ SO I can spend it through the rCredits system or hold it in the rCredits system 
 
 Setup:
   Given members:
-  | id   | fullName | floor | minimum | flags   | risks   |*
-  | .ZZA | Abe One  |   -50 |      10 | ok,bona | hasBank |
-  | .ZZB | Bea Two  |     0 |      10 | ok      | hasBank |
-  | .ZZC | Our Pub  |     0 |     100 | co,ok   |         |
-  | .ZZD | Dee Four |     0 |     100 | ok      | hasBank |
+  | id   | fullName | floor | minimum | flags     | risks   |*
+  | .ZZA | Abe One  |   -50 |      10 | ok,bona   | hasBank |
+  | .ZZB | Bea Two  |     0 |      10 | ok        | hasBank |
+  | .ZZC | Our Pub  |     0 |     100 | co,ok     |         |
+  | .ZZD | Dee Four |     0 |     100 | ok,refill | hasBank |
   And transactions:
   | xid | created    | type   | amount | from | to   | purpose |*
   | 1   | %today-10d | signup |     20 | ctty | .ZZA | signup  |
@@ -112,9 +112,9 @@ Scenario: a member asks to do two transfers out in one day
   When member ".ZZD" completes form "get" with values:
   | op  | amount |*
   | put |     10 |
-  Then we show "Bank Transfer" with:
+  Then we show "Exchange US Dollars for Common Good Credits" with:
   |~Pending |
-  | You have total pending transfer requests of $6 to your bank account. |
+  | You have total pending exchange requests of $6 to your bank account. |
   And we say "error": "short put|short cash help" with subs:
   | max |*
   | $0  |

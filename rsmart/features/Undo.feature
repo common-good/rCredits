@@ -57,8 +57,8 @@ Scenario: An agent asks to undo a charge
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
   | 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | whatever     | %FOR_GOODS |      1 |
-  | 5   | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #2 | %FOR_USD   |      0 |
-  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  | %FOR_USD   |      0 |
+  | 5   | %today-1d | rebate   |      4 | ctty | .ZZA | reward on #2 | %FOR_USD   |      0 |
+  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | reward on #2  | %FOR_USD   |      0 |
   When agent "C:B" asks device "devC" to undo transaction with subs:
   | member | code | amount | goods | description | created   |*
   | .ZZA   | ccA  | 80.00  |     1 | whatever    | %today-1d |
@@ -77,8 +77,8 @@ Scenario: An agent asks to undo a charge when balance is secret
   | xid | created   | type     | amount | from | to   | purpose      | taking |*
   | 4   | %today-6m | signup   |    250 | ctty | .ZZE | signup       |      0 |
   | 5   | %today-1d | transfer |     80 | .ZZE | .ZZC | whatever     |      1 |
-  | 6   | %today-1d | rebate   |      4 | ctty | .ZZE | rebate on #2 |      0 |
-  | 7   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  |      0 |
+  | 6   | %today-1d | rebate   |      4 | ctty | .ZZE | reward on #2 |      0 |
+  | 7   | %today-1d | bonus    |      8 | ctty | .ZZC | reward on #2  |      0 |
   When agent "C:B" asks device "devC" to undo transaction 5 code "ccE"
   Then we respond ok txid 8 created %now balance "*0" rewards 250 saying:
   | solution | did      | otherName | amount | why   | reward |*
@@ -93,8 +93,8 @@ Scenario: An agent asks to undo a refund
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose      | taking |*
   | 4   | %today-1d | transfer |    -80 | .ZZA | .ZZC | refund       |      1 |
-  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZA | rebate on #2 |      0 |
-  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  |      0 |
+  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZA | reward on #2 |      0 |
+  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | reward on #2  |      0 |
   When agent "C:B" asks device "devC" to undo transaction 4 code "ccA"
   Then we respond ok txid 7 created %now balance 0 rewards 250 saying:
   | solution | did        | otherName | amount | why   | reward |*
@@ -137,8 +137,8 @@ Scenario: An agent asks to undo a charge, with insufficient balance
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
   | 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | whatever     | %FOR_GOODS |      1 |
-  | 5   | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #2 | %FOR_USD   |      0 |
-  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  | %FOR_USD   |      0 |
+  | 5   | %today-1d | rebate   |      4 | ctty | .ZZA | reward on #2 | %FOR_USD   |      0 |
+  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | reward on #2  | %FOR_USD   |      0 |
   | 7   | %today    | transfer |    300 | .ZZC | .ZZB | labor        | %FOR_USD   |      0 |
   When agent "C:B" asks device "devC" to undo transaction 4 code "ccA"
   Then we respond ok txid 8 created %now balance 0 rewards 250 saying:
@@ -160,8 +160,8 @@ Scenario: An agent asks to undo a refund, with insufficient balance
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
   | 4   | %today-1d | transfer |    -80 | .ZZA | .ZZC | refund       | %FOR_GOODS |      1 |
-  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZA | rebate on #2 | %FOR_USD   |      0 |
-  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  | %FOR_USD   |      0 |
+  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZA | reward on #2 | %FOR_USD   |      0 |
+  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | reward on #2  | %FOR_USD   |      0 |
   | 7   | %today    | transfer |    300 | .ZZA | .ZZB | labor        | %FOR_USD   |      0 |
   When agent "C:B" asks device "devC" to undo transaction 4 code "ccA"
   Then we respond ok txid 8 created %now balance -300 rewards 250 saying:
@@ -183,8 +183,8 @@ Scenario: An agent asks to undo a charge, without permission
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
   | 4   | %today-1d | transfer |     80 | .ZZB | .ZZC | whatever     | %FOR_GOODS |      1 |
-  | 5   | %today-1d | rebate   |      4 | ctty | .ZZB | rebate on #2 | %FOR_USD   |      0 |
-  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  | %FOR_USD   |      0 |
+  | 5   | %today-1d | rebate   |      4 | ctty | .ZZB | reward on #2 | %FOR_USD   |      0 |
+  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | reward on #2  | %FOR_USD   |      0 |
   When agent "C:A" asks device "devC" to undo transaction 4 code "ccB"
   Then we respond ok txid 7 created %now balance 0 rewards 250 saying:
   | solution | did      | otherName | amount | why   | reward |*
@@ -200,8 +200,8 @@ Scenario: An agent asks to undo a refund, without permission
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
   | 4   | %today-1d | transfer |    -80 | .ZZB | .ZZC | refund       | %FOR_GOODS |      1 |
-  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZB | rebate on #2 | %FOR_USD   |      0 |
-  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  | %FOR_USD   |      0 |
+  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZB | reward on #2 | %FOR_USD   |      0 |
+  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | reward on #2  | %FOR_USD   |      0 |
   When agent "C:D" asks device "devC" to undo transaction 4 code "ccB"
   Then we respond ok txid 7 created %now balance 0 rewards 250 saying:
   | solution | did        | otherName | amount | why   | reward |*

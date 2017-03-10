@@ -53,8 +53,8 @@ function formDemocracy($form, &$sta, $args = '') {
   if (!$mya->proSe) {
     $switch = r\changeAcctLink($mya->agentId, t('Switch to your personal account'));
     $msg = $mya->co ? t('Companies cannot vote.') : t('You cannot vote on behalf of someone else.');
-    w\say("$msg|$switch.", $mya->admin ? '' : 'err');
-    if (!$mya->admin) return compact('title');
+    w\say("$msg|$switch.", $mya->superAdmin ? '' : 'err');
+    if (!$mya->superAdmin) return compact('title');
   }
   
   $cttyA = $mya->cttyA;
@@ -154,7 +154,7 @@ function formProposalReport($form, &$sta, $args = '') {
   $form['title'] = w\item(t('Project Proposal Details'));
   $form['project'] = w\item($project, t('Project:'));
 //  for ($i = 0; isset($extra["f$i"]); $i++) $form["f$i"] = $extra["f$i"];
-  $form += $extra;
+  $form += $extra ?: [];
   $form['back'] = w\item('<p>' . u\backButton() . '</p>');
 
   w\css('css/rvote.css');

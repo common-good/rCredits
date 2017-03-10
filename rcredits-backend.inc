@@ -342,6 +342,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   $force = @$data['force'];
   $erInfo = compact(ray('ttype amount goods for force')) + ray('a1 a2', $a1->fullName, $a2->fullName);
   $taking = ($ttype == 'charge');
+  $amount = round($amount, 2); // ignore fractions of cents
   $reallyTaking = ($taking xor $amount < 0); // not taking if charging a negative amount
 
   list ($loserA, $gainerA) = u\order($reallyTaking, $a2, $a1);
@@ -414,6 +415,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
     }
   } else $msg = $ttype;
 
+  if ($oked and isPRODUCTION) r\tellAdmin('tx', compact('msg') + $args);
   return r\txRet($msg, $args, !$oked);
 }
 
@@ -472,11 +474,12 @@ function fund($uid, $type, $amount, $for, $oked = TRUE) {
   $payeeAgent = $payee = $uid;
   $mya = r\acct(); // (null, if just registering or running as cron)
   $isReward = r\isReward($type);
-  u\EXPECT($isReward or $mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
+  u\EXPECT($isReward or @$mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
   if ($type == TX_FINE) $amount = -$amount;
   if (!$oked) return $amount;
   
-  $payer = r\acct($payee)->community;
+  $a = r\acct($payee);
+  $payer = $a->community;
   $payerAgent = (@$mya and $mya->id < 0) ? $mya->agentId : $payer; // take note if funded by community admin
   if (!new r\X(compact(ray('type amount payer payee payerAgent payeeAgent for taking')))) return FALSE;
   $types = ray(TX_TYPES);
@@ -484,7 +487,7 @@ function fund($uid, $type, $amount, $for, $oked = TRUE) {
   $subs = ray('amount purpose thing', u\fmtAmt(abs($amount)), $for, $thing);
   $index = $type == TX_FINE ? 'got fine' : 'got funding';
   if ($type == TX_INFLATION) $index .= '|inflation details';
-  r\notify($uid, $index, $subs);
+  if ($a->rewarding or !$isReward) r\notify($uid, $index, $subs); // don't report rewards unless rewarding
   return $amount;
 }
 

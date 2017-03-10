@@ -36,12 +36,10 @@ Setup:
   | .AAAE | %today-5m | transfer |     10 | .ZZB | .ZZA | cash E  | 0      |
   | .AAAF | %today-4m | transfer |   1100 | .ZZC | .ZZA | usd F   | 1      |
   | .AAAG | %today-3m | transfer |    240 | .ZZA | .ZZB | what G  | 0      |
-  | .AAAH | %today-3m | rebate   |     12 | ctty | .ZZA | rebate  | 0      |
-  | .AAAI | %today-3m | bonus    |     24 | ctty | .ZZB | bonus   | 0      |
+
   | .AAAP | %today-2w | transfer |     50 | .ZZB | .ZZC | cash P  | 0      |
   | .AAAQ | %today-1w | transfer |    120 | .ZZA | .ZZC | this Q  | 1      |
-  | .AAAR | %today-1w | rebate   |      6 | ctty | .ZZA | rebate  | 0      |
-  | .AAAS | %today-1w | bonus    |     12 | ctty | .ZZC | bonus   | 0      |
+
   | .AAAV | %today-6d | transfer |    100 | .ZZA | .ZZB | cash V  | 0      |
   Then balances:
   | id   | r       | rewards |*

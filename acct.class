@@ -9,7 +9,7 @@ use rCredits\Web as w;
 
 /**
  * @file
- * %PROJECT account class
+ * %PROJECT Account class
  */
  
 class Acct {
@@ -180,16 +180,19 @@ class Acct {
     u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
+    if ($field == 'st') return r\realState($a->state, $a->country);
     if ($field == 'agentA') return r\acct($a->agentId);
     if ($field == 'proSe') return ($a->id == $a->agentId);
     if ($field == 'qid') return $a->qo->qid;
-    if ($field == 'rewarding') return FALSE; // no community is guaranteeing incentive rewards at this time
+    if ($field == 'rewarding') return t\rewarding() ?: FALSE; // no community is guaranteeing incentive rewards at this time
     if ($field == 'isCtty') return ($a->id < 0); // or ($a->id == $a->community);
     if ($field == 'isRegion') return (substr($a->name, -1, 1) == '.');
     if ($field == 'isNormal') return ($a->id > 0);
     if ($field == 'cttyA') return r\acct($a->community);
     if ($field == 'region') return r\uidRegion($a->id);
-    if ($field == 'regionName') return @r\acct($a->region)->fullName ?: (PROJECT . ' ' . db\lookup('name', 'r_regions r INNER JOIN r_states s ON s.abbreviation=r.st', 's.country_id=:US_COUNTRY_ID AND r.region=:reg', ['reg' => $a->qo->region]));
+    if ($field == 'regionA') return @r\acct($a->region);
+    if ($field == 'regionName') return @$a->regionA->fullName ?: (PROJECT . ' ' . db\lookup('name', 'r_regions r INNER JOIN r_states s ON s.abbreviation=r.st', 's.country_id=:US_COUNTRY_ID AND r.region=:reg', ['reg' => $a->qo->region]));
+    if ($field == 'cttyUrl') return $a->community == $a->region ? CG_DOMAIN : strtolower(trim(strtr($a->cttyA->fullName, [PROJECT=>'', ' '=>''])) . '.' . $a->cttyA->st . '.') . CG_DOMAIN;
     if ($field == 'legalNameDpy') return str_replace('_', ' ', $a->legalName); // for u\parseName of names like Jay di_Fiori
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'hasBank') return $a->risk('hasBank');
@@ -200,6 +203,7 @@ class Acct {
     if ($field == 'masterA') return $a->slave ? $a->jA : $a;
     if ($field == 'helperA') return $a->helper ? r\acct($a->helper) : '';
     if ($field == 'prefsSet') return !is_null($a->o_minimum); // preferences have been set at least once
+    if ($field == 'superAdmin') return ($a->agentId == 1) ?: (u\test() and $a->admin and $a->agentA->name == 'abeone');
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
       : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
       
@@ -214,7 +218,7 @@ class Acct {
     if ($field == 'hasPhoto') return $this->photo or file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE));
     if ($field == 'photo') return $result ? u\decrypt($result) : '';
     if (in_array($field, ray(R_VSECURE_FIELDS)) and !is_array($result) and u\starts($result, CRYPT_FLAG)) { // !is_array() is temporary, for ssnData in transition
-      if (@r\acct()->admin and $pw2 = @$_COOKIE['pw2']) {
+      if (@r\acct()->superAdmin and $pw2 = @$_COOKIE['pw2']) {
         $result = u\decrypt($result, 0, $pw2);
         if ($field == 'ssnData') $result = unserialize($result);
         return @self::$rs[$a->id]->$field = $result;
@@ -396,7 +400,7 @@ class Acct {
     } elseif ($data = u\just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data += $a->data);
 
     if (($set = isset($info['secure'])) or $sFlds = u\just(R_SECURE_FIELDS, $info)) { // serialize and encrypt
-      if (!$set and @r\acct()->admin and $pw2 = @$_COOKIE['pw2'] and $vflds = u\just(R_VSECURE_FIELDS, $sFlds)) {
+      if (!$set and @r\acct()->superAdmin and $pw2 = @$_COOKIE['pw2'] and $vflds = u\just(R_VSECURE_FIELDS, $sFlds)) {
         foreach ($vflds as $k => $v) if (is_array($v) or !u\starts($v, CRYPT_FLAG)) { // is_array is temporary for ssnData in transition
           if ($k == 'ssnData') $v = serialize($v);
           $info[$k] = $sFlds[$k] = u\crypt($v . '', 0, $pw2);
@@ -579,8 +583,9 @@ class Acct {
    */
   public function invitationBack() {
     $a = $this;
-    $filename = ($a->co and ($a->admin or $a->id != r\cgfId())) ? 'InvitationCardsBackCo.pdf' : 'InvitationCardsBack.pdf';
-    return 'http://rc4.me/doc/' . $filename;
+    $forCG = ($a->id == r\cgfId() and $a->superAdmin);
+    $filename = ($a->co and !$forCG) ? 'InvitationCardsBackCo.pdf' : 'InvitationCardsBack.pdf';
+    return 'http://cg4.us/doc/' . $filename;
   }
 
   /**
@@ -861,10 +866,9 @@ EOF;
     $qid = $a->qid;
     $aA = $a->agentA;
     $field = $a->proSe ? 'cardCode' : 'cardCode2';
-    $oldCode = $aA->$field;
-    db\insert('r_bad', ray('qid code created', $qid, $oldCode, time()));
-    if (!$newCode) $newCode = r\cardCode($qid);
-    $aA->update($field, $newCode); // resave the secure fields
+    if ($aA->$field) r\badCard($qid, $aA->$field, t('making new card')); // (don't mark previous code bad if none)
+//    if ($oldCode = $aA->$field) db\insert('r_bad', ray('qid code created', $qid, $oldCode, time()));
+    $aA->update($field, $newCode ?: r\cardCode($qid)); // resave the secure fields
   }
     
   /**
@@ -927,16 +931,16 @@ EOF;
     $a = $this;
     
     if ($stepDone) u\setDft($msg, 'info saved');
-    if ($a->ok or $a->closed) return $stepDone == '' ? '' : "settings/$stepDone"; // "going" to current page makes tests work
+    if ($a->closed) return '';
+    if ($a->ok) return $stepDone == '' ? '' : "settings/$stepDone"; // "going" to current page makes tests work
     
 /*    if ($a->member) {
       if ($stepDone) $nextStep = $stepDone; else return 'summary';
     } else { */
     $nextStep = $stepDone ? $a->stepDone($stepDone, $info) : $a->nextStep();
     if (!$nextStep) {
-      $approval = $a->co
-      ? 'company approval'
-      : ('individual approval' . ($a->confirmed ? '' : '|must be confirmed'));
+      $approval = $a->co ? 'company approval' : 'individual approval';
+// fails with sysadmin as helper  if (!$a->confirmed) $approval .= '|' . t('must be confirmed', 'inviterName', @$a->helperA->fullName);
       
       $msg = "setup complete|$approval" . ($stepDone ? '|join thanks' : '');
       return 'summary'; // go nowhere if not completing a step
@@ -1217,9 +1221,10 @@ EOF;
    * @param array $values: numeric array of bit values (eg [3 => 3, 5 => 5])
    */
   public function setRisks($values) {
-    $risks = 0;
-    if ($values) foreach ($values as $bit) u\setBit($risks, $bit);
-    $this->update(compact('risks'));
+    $risks = $this->risks;
+    $riskBits = array_values(u\just(K_ACCT_RISKS_EDITABLE, array_flip(array_keys(ray(K_ACCT_RISKS))))); // editable risk bits
+    foreach ($riskBits as $bit) u\setBit($risks, $bit, isset($values[$bit]));
+    $this->update(compact('risks')); // update all at once, for efficiency
   }
   
   /**
@@ -1229,7 +1234,8 @@ EOF;
   public function setBits($values) {
     u\setDft($values, []); // fails in arg list (dunno why)
     $flags = $this->flags;
-    foreach (ray(B_ADMINABLE) as $bitName) { // set all these on or off
+    $adminable = B_ADMINABLE . ($this->superAdmin ? ' admin' : '');
+    foreach (ray($adminable) as $bitName) { // set all these on or off
 //      if (substr($bitName, 0, 1) == 'u') continue; // lowercase u means undefined
       $bit = u\consta('b', $bitName);
       $on = isset($values[$bit]); // isset because bit 0 is 0 when checked
@@ -1348,7 +1354,11 @@ EOF;
 function acct($uid = '', $agent = '', &$error = '') {
   global $currentAcct; // use this ONLY in this class file
   if (!$uid) return $currentAcct ?: (!$error = 'There is no current account.');
-  if (strpos($uid, '@')) $uid = db\lookup('uid', 'users', 'mail=:mail', ['mail' => u\cryptN($uid)]);
+  if (strpos($uid, '@')) {
+    $uid = db\lookup('uid', 'users', 'mail=:mail', ['mail' => u\cryptN($uid)]);
+  } elseif (FALSE and preg_match('/[0-9]( |-|\\)) ?[0-9]{4}/', $uid)) {
+    $uid = db\lookup('uid', 'users', 'phone=:phone', ['phone' => u\cryptN(u\fmtPhone($uid, '+n'))]);
+  }
 //  if (!$ua = r\Acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   if (!$ua = r\Acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   return new r\Acct($ua); // the only place we call new r\Acct() with a flat array (meaning an existing account)

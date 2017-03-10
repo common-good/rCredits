@@ -50,13 +50,13 @@ require_once __DIR__ . '/../rcredits-strings.inc';
 
 $GLOBALS['tStrings'] += array(
   'bad proof' => t('That transaction is not valid.'),
-  'bad member' => t('That is not a valid account. The customer used a lost, stolen, or fraudulent rCard.'),
-//  'card deactivated' => t('The rCard has been de-activated.'),
-  'bad agent' => t('That is not a valid agent rCard.'),
+  'bad member' => t('That is not a valid account. The customer used a lost, stolen, or fraudulent %PROJECT Card.'),
+//  'card deactivated' => t('The %PROJECT Card has been de-activated.'),
+  'bad agent' => t('That is not a valid agent %PROJECT Card.'),
   'agent cannot scan' => t('That agent is not authorized to charge customers.'),
   'scan in first' => t('You have to scan yourself in before charging a customer.'),
   'already scanned in' => t('You are already scanned in.'),
-  'wrong company' => t('That rCard is for a different company.'),
+  'wrong company' => t('That %PROJECT Card is for a different company.'),
   'company inactive' => t('That company is not an active participant.'),
 //  'customer balance' => t("Customer: %name\n\nBalance: %balance%spendable\nTradable for cash: %cashable"),
   'customer balance' => "Customer: %name\n\nBalance: %balance\nRewards to date: %rewards\n", // (parseable)
@@ -65,8 +65,8 @@ $GLOBALS['tStrings'] += array(
   'unknown device' => t('This device is not recognized. You must scan yourself in (at least once) before charging a customer.'),
   'confirm undo' => t('Undo transfer of %amount %tofrom %otherName?'), // no creation date, unlike web and SMS
   'member inactive' => t('That account is not yet activated.'),
-  'bad icard' => t('The customer has not yet activated his or her %PROJECT account.'),
-  'expired icard' => t('That invitation card has expired. The customer can use their rCard instead.'),
+  'bad icard' => t('The customer has not yet activated his or her %PROJECT Account.'),
+  'expired icard' => t('That invitation card has expired. The customer can use their %PROJECT Card instead.'),
   'bad pin' => t('That is not your correct PIN.'), // self-service error
 );
 

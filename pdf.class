@@ -10,8 +10,8 @@ use rCredits\Testing as t;
  * Extends the TCPDF class -- for printing checks, statements, deposit details, etc.
  */
 
-require_once(__DIR__ . '/../tcpdf/config/lang/eng.php');
-require_once(__DIR__ . '/../tcpdf/tcpdf.php');
+require_once DRUPAL_ROOT . '/vendor/tcpdf/config/lang/eng.php';
+require_once DRUPAL_ROOT . '/vendor/tcpdf/tcpdf.php';
 //require_once(__DIR__ . '/../fpdi/fpdi.php');
 
 define('PDF_FONT_SIZE', 12); // points
@@ -58,7 +58,7 @@ class Pdf extends \TCPDF {
     if ($w === '') $w = $this->pageW - $x;
     $h0 = $h;
     if ($h === '') $h = $this->pageH - $y;
-    if ($format and $fmts = explode(';', $format)) foreach ($fmts as $fmt) {
+    if ($format and $fmts = explode(';', $format)) foreach ($fmts as $fmt) if ($fmt) {
       if (strpos($fmt, ':')) {$formats[] = "$fmt;"; continue;}
       if ($fmt == 'B') {$formats[] = 'font-weight:bold;'; continue;}
       if ($fmt == 'I') {$formats[] = 'font-style:italic;'; continue;}

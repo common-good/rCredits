@@ -28,12 +28,17 @@ function formAdmin($form, &$sta) {return w\subMenu(t('Admin Options'), 'sadmin')
 function formAdminPanel($form, &$sta, $args = '') {
   extract(u\just('qid', $args));
   $mya = r\acct();
-  $admin = $mya->admin;
+  if (!$mya->cAdmin) hack('panel');
+  
   $tables = 'users txs usd log gifts proxies relations invites'; // tables to show
   
   $title = item(t('System Administration'));
   
-  if ($admin) {
+  $inviteeStatus = submi(t('Invitee Status'));
+  $organizerList = submi(t('Organizer List'));
+  $account = textFld(t('Account:'), t('Account to do something to'), (auto() ?: []) + dft(@$qid ?: svar('adminingAcct')));
+  
+  if ($mya->superAdmin) {
     if (r\up()) $stop = submi(t('STOP')); else $start = submi(t('START'));
     $do1099btest = submi(t('1099B TEST'));
     $do1099b = submi('1099B');
@@ -41,38 +46,33 @@ function formAdminPanel($form, &$sta, $args = '') {
     $special = submi(t('Special'));
     $askForAppData = submi(t('Ask for App Data'));
     $seeAppData = submi(t('See App Data'));
+    $ssnLink = submi(t('SSN Link'));
+    $seeSecure = submi(t('See Secure'));
+    $make2 = boxFld('make', t('Make:'));
   }
-  if (!$admin and $ctty = $mya->community) {
-    $cttyName = @r\acct($ctty)->fullName; // @ for testing
-    if ($mya->cttyUp) $stopCtty = submi(t('STOP ') . $cttyName); else $startCtty = submi(t('START ') . $cttyName);
-  }
-  
-  $inviteeStatus = submi(t('Invitee Status'));
-  $organizerList = submi(t('Organizer List'));
-  $account = textFld(t('Account:'), t('Account to do something to'), (auto() ?: []) + dft(@$qid ?: svar('adminingAcct')));
-  if ($admin) $make2 = boxFld('make', t('Make:'));
+
   $printId = submi(t('Print ID'));
 //  $connectBank = submi(t('Connect Bank'));
-  $seeSecure = submi(t('See Secure'));
 //  $seeHidden = submi(t('See Hidden'));
   $seeData = submi(t('See Data'));
   $seeChanges = submi(t('See Changes'));
-  $ssnLink = submi(t('SSN Link'));
-  $acctSet = fieldSet('acctSet', compact(ray('account make2 printId seeData seeChanges ssnLink seeSecure askForAppData seeAppData')));
-  
-  $form = compact('title');
-  if ($mya->cAdmin) {
-    foreach (ray($tables) as $one) $do[$one] = submi($one);
-    $do += compact(ray('inviteeStatus organizerList do1099btest do1099b special stop start stopCtty startCtty'));
-    $do = fieldSet('do', $do);
+  if (!$mya->superAdmin and $ctty = $mya->community) { // not super
+    $cttyName = @r\acct($ctty)->fullName; // @ for testing
+    if ($mya->cttyUp) $stopCtty = submi(t('STOP ') . $cttyName); else $startCtty = submi(t('START ') . $cttyName);
   }
+
+  foreach (ray($tables) as $one) $do[$one] = submi($one);
+  $do += compact(ray('inviteeStatus organizerList do1099btest do1099b special stop start stopCtty startCtty'));
+  $do = fieldSet('do', $do);
+  
+  $acctSet = fieldSet('acctSet', compact(ray('account make2 printId seeData seeChanges ssnLink seeSecure askForAppData seeAppData')));
+
   return labeled(compact(ray('title do acctSet')));
 }
 
 function formAdminPanel_submit($form, &$sta) {
   global $base_url;
   $mya = r\acct();
-  $admin = $mya->admin; // as distinct from merely cadmin
   
   extract(u\just('account make', $sta['input']));
   $op = op($sta);
@@ -91,11 +91,11 @@ function formAdminPanel_submit($form, &$sta) {
   if (@$account) {
     if (!$a = a($account)) return say('That is not an account.'); // should use whois first
     svar('adminingAcct', $account); // remember what account we're working on
-    if (!$admin and $a->community != $mya->community) return say('That account is not in your community.', 'ERR');
+    if (!$mya->admin and $a->community != $mya->community) return say('That account is not in your community.', 'ERR');
   }
   
   if (@$a and $op == 'printId') {
-    if ($a->co and $a->proSe) return say(t('A company cannot have an rCard (only its agents have rCards).'));
+    if ($a->co and $a->proSe) return say(t('A company cannot have a %PROJECT Card (only its agents have %PROJECT Cards).'));
     if (@$make) {
       $oldFile = DRUPAL_ROOT . $a->photoFilename(TRUE); // get this before makeCardCode
       $a->makeCardCode(); // this changes photo filename
@@ -123,7 +123,7 @@ function formAdminPanel_submit($form, &$sta) {
   } elseif ($op == 'seeChanges') {
     r\go("sadmin/changes/$a->mainQid");
   } elseif ($op == 'ssnLink') {
-    w\say(" &nbsp; $base_url/do/doSsn~$a->mainQid~$a->emailCode &nbsp; ");
+    w\say($a->fullName. t(' SSN Link:<br><br> &nbsp; %PROMO_URL/do/doSsn~%qid~%code &nbsp; ', 'qid code', $a->mainQid, $a->emailCode));
   } elseif ($op == 'do1099b' or $test1099 = ($op == 'do1099btest')) {
     include_once __DIR__ . '/../rcredits-yearly.inc';
     r\Special\do1099bs(@$test1099);
@@ -254,9 +254,9 @@ function formTestRecovery($form, &$sta, $doSay = FALSE) {
  */
 function formMakeCtty($form, &$sta) {
   $title = item(t('Make a New Community'));
-  $subtext = item(t('<p>Typically the name of an %PROJECT community is the place name followed by "%PROJECT"; for example, "<b>Greenfield Area %PROJECT</b>". Legal names should include the state (for disambiguation), spelled out; for example, "Greenfield Massachusetts %PROJECT".</p><p>By contrast, region names begin with "%PROJECT"; for example, "<b>%PROJECT Western Mass</b>".</p><p>Email should reflect the legal name, for example "<b>greenfield@westernmass.% . CG_DOMAIN</b>".</p>'));
-  $region = textFld(t('Region:'), [t('Region code'), t('3-letter code of community\'s region')]);
-  $zips = textFld(t('Zip Regex:'), [t('Zipcodes to include'), t('Type a regular expression for all zipcodes to be included (by default) in the community. For example, ^013|01002 would include all zipcodes starting 013 plus zipcode 01002. Individual members can also be moved manually in or out of this community.')]);
+  $subtext = item(t('<p>Typically the name of a %PROJECT community is the place name followed by "%PROJECT"; for example, "<b>Greenfield Area %PROJECT</b>". Legal names should include the state (for disambiguation), spelled out; for example, "Greenfield Massachusetts %PROJECT".</p><p>By contrast, region names begin with "%PROJECT"; for example, "<b>%PROJECT Western Mass</b>".</p><p>Email should reflect the legal name, for example "<b>greenfield@ma.%CG_DOMAIN</b>".</p>'));
+  $region = textFld(t('Region:'), [t('Region code'), t('3-letter code of community\'s region')], required());
+  $zips = textFld(t('Zip Regex:'), [t('Zipcodes to include'), t('|Type a regular expression for all zipcodes to be included (by default) in the community. For example, ^013|01002 would include all zipcodes starting 013 plus zipcode 01002. Individual members can also be moved manually in or out of this community.')]);
 
   // from w\contactFields
   $phone = textFld(t('Phone:'), [t('Contact phone number')], required(@$phone ? u\fmtPhone($phone): ''));
@@ -278,7 +278,7 @@ function formMakeCtty_validate($form, &$sta) {
   extract(u\just('zips region email phone federalId', $sta['input']));
 
   if (preg_match("~$zips~", null) === false) return say(t('bad Zips REGEX'), 'zips');
-  if ($region and !preg_match('/[A-Z]{3}/i', $region)) return say(t('bad region code'), 'region');
+  if (!$region or !preg_match('/[A-Z]{3}/i', $region)) return say(t('bad region code'), 'region');
 
   if (!@$fullName) $fullName = $legalName;
   foreach (ray('fullName legalName') as $field) {
@@ -293,14 +293,18 @@ function formMakeCtty_validate($form, &$sta) {
 
   if ($err = u\badSsn($federalId)) return say($err, ['what' => 'federalId'], 'federalId');
   
+  list ($address, $city, $state) = u\parseAddr($postalAddr); // zip doesn't apply, since it is used for defining the territory
+  if (!$address) return say('Bad postal address', 'postalAddr');
+  if (!$state = db\lookup('id', 'r_states', 'abbreviation=:state', compact('state'))) return say('Bad state', 'postalAddr');
+
   $region = strtoupper($region);
   if (!db\exists('r_regions', 'region=:region', compact('region'))) return say(t('That region does not exist.'), 'region');
 
-  u\preray(compact(ray($normals . ' name email phone region federalId')), $sta['input']); // fix formatting
+  u\preray(compact(ray($normals . ' name email phone address city state region federalId')), $sta['input']); // fix formatting
 }
 
 function formMakeCtty_submit($form, &$sta) {
-  $fields = 'name fullName legalName email phone federalId postalAddr';
+  $fields = 'name fullName legalName email phone federalId postalAddr address city state';
   extract(u\just('zips region ' . $fields, $sta['input']));
 
   $postalCode = $zips; // store the regex defining the region or community
@@ -308,7 +312,7 @@ function formMakeCtty_submit($form, &$sta) {
   $rebate = 0;
   $country = R_COUNTRY_ID;
   $region = r\qo("!$region")->id;
-  $fields .= ' postalCode flags rebate region country';
+  $fields .= ' postalCode flags rebate region address state country';
 
   $DBTX = \db_transaction();
   $info = compact(ray($fields)) + acctType(CO_PARTNERSHIP);
@@ -497,7 +501,7 @@ function depositDetails($args) {
   list ($activity, $where) = $in ? [t('DEPOSIT'), 'amount<0'] : [t('CASHOUT'), 'amount>0'];
   $today = $date == 1 ? t('(Historical)') : u\fmtDate($date ?: r\rTime());
   $escrow = $in ? ESCROW_IN : ESCROW_OUT;
-  $pdf->setupFooter('', PROJECT . " $activity $today", ['A5990D1155A '.$escrow.'C', 'GnuMICR;12'], 'Page @PAGE of @PAGES');
+  $pdf->setupFooter('', BANK_DBA . " $activity $today", ['A5990D1155A '.$escrow.'C', 'GnuMICR;12'], 'Page @PAGE of @PAGES');
   $pdf->AddPage();
 
   $left = t(<<<EOF
@@ -506,7 +510,7 @@ function depositDetails($args) {
 <br>
 <br>
 <b>%CGF_LEGALNAME<br>
-dba %PROJECT</b><br>
+dba %BANK_DBA</b><br>
 %CGF_POSTALADDR<br>
 %CGF_PHONE<br>
 <br>
@@ -519,7 +523,7 @@ Account #%escrow<br>
 <b>TOTAL: %total</b><br>
 %count checks<br>
 EOF
-  , compact(ray('activity today total count')));
+  , compact(ray('activity today total count escrow')));
 
   $pdf->say($left, $m, 0);
 
@@ -628,64 +632,44 @@ function printChecks($args) {
 //  say($count . t(' checks printed'));
 }
 
-define('PHOTO_MAX', 90); // maximum height and width of photo
-
 /**
  * Print an ID card
  * @param mixed $id: qid or uid of account to make a card for
  * @param mixed $agent: qid or uid of agent
- */
-function memberID($id, $agent = '') {
-  require_once __DIR__ . '/../statement.class';
-
-// causes test to fail  if (!$mya = r\acct()) exit('You must first sign in.');
-/*  if ($scan) {
-    $perm = r\relation('permission', $mya->id, $id);
-    if ($perm < r\perm(B_SCAN)) exit('That is not an employee with scan permission.');
-    $acct = r\acct($mya->id, $id);
-    if ($acct->agentA->co) exit('You may print scan-in cards only for employees.');
-  } else */
+ *//*
+function memberIDX($id, $agent = '') {
+  require_once __DIR__ . '/../pdf.class';
 
   if (!$a = r\acct($id, $agent)) exit('No such account ia: ' . $id . ':' . $agent);
   
-  $fullName = $a->shortName ?: $a->fullName;
   $a->setAgentNum(); // assign an agentCode, if appropriate (and not yet done)
   $qid = $a->qid; // get this before setting $a to agent (below)
   list ($fmt, $region, $tail, $agentCode) = $a->qo->qr();
   $tail = $fmt . $tail . $agentCode;
-  /*
-  if (!isSTAGE) { // old style
-    list ($region, $tail, $agentCode) = $a->qo->parse();
-    if ($a->proSe) $tail .= '.'; else $tail = substr(r\qid(r\relation('reid', $a->id, $a->agentId)), 3) . '-';
-  }
-  */
   
-  if ($proSe = $a->proSe) {
-    $nameSize = strlen($fullName) > 21 ? '100px' : '120px';
-    $fields = array('cardCode', 0, 'Personal rCard');
-  } else {
+  $acctName = $a->shortName ?: $a->fullName;
+  $nameFont = strlen($acctName) > 38 ? 'font-stretch:condensed;'
+  : (strlen($acctName) > 33 ? 'font-stretch:semi-condensed;' : '');
+  
+  if (!$proSe = $a->proSe) {
     if (!@$a->agentA->cardCode2) $a->makeCardCode(); // NOT r\cardCode($a->qid);
-    $a = $a->agentA; // hereafter it's all about the agent
-    $fullName = "$a->fullName<br>$fullName"; // agent and company
-    $nameSize = '72px';
-    
-    $fields = array('cardCode2', 5, 'Company rCard #:');
-  }
-  list ($cardField, $lower, $roleName) = $fields;
+    $aa = $a->agentA; // hereafter it's all about the agent
+  } else $aa = $a;
+
+  list ($cardFld, $role, $ptQid, $yName, $bg) = $proSe 
+  ? ['cardCode', t('Member'), 10, 1.73, 'background'] 
+  : ['cardCode2', t('Company'), '9.5;font-stretch:semi-condensed', 1.68, 'backgroundCo'];
+
   $server = isPRODUCTION ? 'RC2.ME' : 'RC4.ME';
-  $qrUrl = "HTTP://$region.$server/$tail" . $a->$cardField;
-  $photo = $a->photo ? "@$a->photo" : str_replace(R_DFT_PICTURE, R_NOT_VALID, DRUPAL_ROOT . $a->photoFilename());
+  $qrUrl = "HTTP://$region.$server/$tail" . $aa->$cardFld;
+  $photo = $aa->photo ? "@$aa->photo" : str_replace(R_DFT_PICTURE, R_NOT_VALID, DRUPAL_ROOT . $aa->photoFilename());
 
-//  $info = @getimagesize($photo);
-//  list ($photoW, $photoH) = is_array($info) ? $info : array(0, 0);
-//  list ($photoW, $photoH) = $photoW > $photoH ? array(PHOTO_MAX, '') : array('', PHOTO_MAX);
-  list ($photoW, $photoH) = ['', PHOTO_MAX];
-  $pdf = new r\Statement($a); // this function should be rewritten to use r\check class instead maybe?
-  $pdf->setPrintHeader(FALSE);
-  $pdf->setPrintFooter(FALSE);
-  $pdf->AddPage();
-
-  $style = array( // set style for barcode
+  list ($wCard, $hCard, $m, $xText) = [3.375, 2.125, .24, .06]; // card width, height, negative page margin, text indent
+  list ($xSite, $ySite, $wPhoto, $mxPhoto, $myPhoto, $xCardNo) = [$m+.1, $m+.38, 1.09, .09, .13, 2.4];
+  list ($cCG, $cSite, $cName) = ['#000065', 'black', '#004000'];
+  list ($xPhoto, $yPhoto, $wPhoto, $hPhoto) = [$m+$wCard-$mxPhoto-$wPhoto, $m+$myPhoto, $wPhoto, $wPhoto*4/3];
+  
+  $style = array( // style for barcode
     'border' => 0,
     'vpadding' => '0',
     'hpadding' => '0',
@@ -695,50 +679,111 @@ function memberID($id, $agent = '') {
     'module_height' => 1, // height of a single module in points
   );
 
-/*  if ($scan) { // scale it down for member-printed cards
-    $pdf->StartTransform();
-    $scale = 43.75; // make it card-size
-    $margin = .25; // print margin, in inches
-    $offset = 2500 * $margin / (100 - $scale);
-    $pdf->ScaleXY($scale, $offset, $offset);
-    $pdf->Rect(0, 0, 200, 128.57, 'D');
-    $pdf->writeHTMLCell(80, 50, 13, 35 + $lower, "<div style=\"font-size:180px; text-align:left; color:darkgreen; font-weight:bold;\">r<span style=\"color:darkblue;\">POS</span><br><span style=\"font-size:140px;\">SIGN-IN</span></div>");
-  } */
-  // Image params: $file, $x='', $y='', $w=0, $h=0, $type='', $link='', $align='', $resize=false, $dpi=300, $palign='', $ismask=false, $imgmask=false, $border=0, $fitbox=false, $hidden=false, $fitonpage=false, $alt=false, $altimgs=[])
+  $pdf = new r\Pdf();
+  $pdf->setPrintHeader(FALSE);
+  $pdf->setPrintFooter(FALSE);
+  $pdf->SetAutoPageBreak(FALSE);
 
-  if ($proSe) {
-    $pdf->Image(__DIR__ . '/../images/idcard/background.jpg', 0, 0, 202, 128, '', '', '', true, 150, '', false, false, 0, false, false, false); // white background for company cards
-  } else $pdf->Image(__DIR__ . '/../images/idcard/rlogo.png', 162, 40.5, 28, 42, '', '', '', true, 150, '', false, false, 0, false, false, false);
+  $pdf->AddPage();
+  $pdf->StartTransform();
+  $pdf->ScaleXY(100 * 8.5 / $wCard); // widen to page width (for extra resolution)
 
-  $pdf->SetLineStyle(array('width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => array(0, 0, 0)));
-  if ($proSe) $pdf->RoundedRect(91, 30, 60, 60, 3.50, '1111', 'DF', NULL, array(255, 255, 255)); // x, y, w, h, ?, fill?
-  
-  //if (!$scan) 
-  $pdf->Image($photo, 0, 0, $photoW, $photoH, '', './account', '', true, 300, '', false, false, 1, false, false, false);
-  $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', 96, 35 + $lower, 50, 50, $style, 'N'); // L,M,Q,H are low-high error-correction
+  $pdf->Image(__DIR__ . "/../images/idcard/$bg.png", $m, $m, $wCard, $hCard, '', '', 'L', true); // file, x, y, w, h, type, link, align, resize
+//  $pdf->say(isPRODUCTION ? $a->cttyUrl : CG_DOMAIN,  $xSite, $ySite, '', '', "7;color:$cSite;font-stretch:normal;", 'L');
+  $pdf->say(CG_DOMAIN,  $xSite, $ySite, '', '', "7;color:$cSite;font-stretch:normal;", 'L');
+  $pdf->say('TM', $m+2, $m+.1, 1, '', "3;color:$cCG", 'L');
+//  $pdf->Image(__DIR__ . "/../images/idcard/logo250.png", $m+$xLogo, $m+$yLogo, $wLogo, '', '', '', 'C', true); // file, x, y, w, h, type, link, align, resize
+  $pdf->Image($photo, $xPhoto, $yPhoto, $wPhoto, $hPhoto, '', '', 'L', true);
+  $pdf->Rect($xPhoto, $yPhoto, $wPhoto, $hPhoto, 'D'); // x, y, w, h, style, border, fill
+  $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', $m+1.12, $m+0.68, .8, .8, $style, 'N'); // L,M,Q,H are low-high error-correction
 
-  $html = strtr('<span style="font-size:44px;">@ROLE<br><span style="font-size:76px; color:darkred; font-weight:bold;">@CODE</span><br>@REGION</span>', ['@ROLE' => $roleName, '@CODE' => $qid, '@REGION' => $a->regionName]);
-  $pdf->writeHTMLCell(100, 30, 94, 3 + $lower, $html); // w, h, x, y
-  $pdf->writeHTMLCell(40, 10, 160, 84.5, '<div style="font-size:44px;">' . CG_DOMAIN . '</div>');
-  $pdf->writeHTMLCell(182, 40, 10, 100, "<div style=\"font-size:$nameSize; text-align:center; color:midnightblue; font-weight:bold;\">$fullName</div>");
+//  $pdf->say("$role<br>" . t('Card #'),  $m+$xCardNo, $m+.52, 1, '', '8;color:white;font-stretch:semi-expanded;', 'C');
+//  $pdf->say($qid, $m+$xCardNo, $m+.81, 1, '', "$ptQid;color:yellow;letter-spacing:0.5px", 'C');
 
-    /*
-  $instructions = <<<EOF
-<style>
-  big {color:darkgreen; font-size:2em;}
-  p {margin-top:.5em;}
-</style>
-Here is your<br><b style="color:darkgreen; font-size:1.3em;">Advance ID Card</b>
-<p>You may print this card and use it temporarily, along with a second photo ID. To print, right-click here, then click "Print" OR use your browser's print icon.</p>
-<p>To upload or change your photo, visit the "Settings" section.</p>
-EOF;
-*/
-//  $pdf->writeHTMLCell(90, 64, 110, 5, $instructions);
-  // Add temporary symbol over image (maybe remove lower right corner and add "temp"), to discourage unauthorized use
-//  $pdf->Image(__DIR__ . '/../images/icons/print.png', 120, 30, 32, 32, '', '', '', true, 150, '', false, false, 0, false, false, false);
-  
-//  if ($scan) $pdf->StopTransform();
+  $pdf->say($acctName, $m+$xText, $m+$yName, $wCard, '', "12;B;$nameFont;color:$cName", 'C');
+  if (!$proSe) $pdf->say($aa->fullName, $m+$xText, $m+$yName+0.22, $wCard, '', "8;color:$cName", 'C');
+  $pdf->say($qid, $m+$wCard-.5, $m+$hCard-.15, .5, '', "5;color:black;font-stretch:normal;", 'C');
+
+  if (!isPRODUCTION) $pdf->say(t('TEST'), $m+$wCard-.5, $m+$hCard-.25, .5, '', '6;color:darkred', 'C');
+
+  $pdf->StopTransform();
   if (u\test()) $pdf->Close(); else $pdf->Output('t.pdf', 'I'); //Close and output PDF document
+}
+*/
+
+function memberId($id, $agent = '') {
+  require_once __DIR__ . '/../pdf.class';
+
+  if (!$a = r\acct($id, $agent)) exit('No such account ia: ' . $id . ':' . $agent);
+  
+  $a->setAgentNum(); // assign an agentCode, if appropriate (and not yet done)
+  $qid = $a->qid; // get this before setting $a to agent (below)
+  list ($fmt, $region, $tail, $agentCode) = $a->qo->qr();
+  $tail = $fmt . $tail . $agentCode;
+  
+  $acctName = $a->shortName ?: $a->fullName;
+  $nameFont = strlen($acctName) > 38 ? 'font-stretch:condensed;'
+  : (strlen($acctName) > 33 ? 'font-stretch:semi-condensed;' : '');
+  
+  if (!$proSe = $a->proSe) {
+    if (!@$a->agentA->cardCode2) $a->makeCardCode(); // NOT r\cardCode($a->qid);
+    $aa = $a->agentA; // hereafter it's all about the agent
+  } else $aa = $a;
+
+  list ($cardFld, $role, $ptQid, $yName, $bg) = $proSe 
+  ? ['cardCode', t('Member'), 10, 1.73, 'bg'] 
+  : ['cardCode2', t('Company'), '9.5;font-stretch:semi-condensed', 1.64, 'bgCo'];
+
+  $server = isPRODUCTION ? 'RC2.ME' : 'RC4.ME';
+  $qrUrl = "HTTP://$region.$server/$tail" . $aa->$cardFld;
+  $photo = $aa->photo ? "@$aa->photo" : str_replace(R_DFT_PICTURE, R_NOT_VALID, DRUPAL_ROOT . $aa->photoFilename());
+
+  list ($wCard, $hCard, $m, $xText) = [3.375, 2.125, .24, .06]; // card dimensions, negative page margin, text indent
+//  list ($wPhoto, $mPhoto, $xCardNo) = [1.09, .1, 2.4];
+  list ($xProj, $yProj) = [1.54, $m+.04];
+  list ($xSite, $ySite, $wPhoto, $mxPhoto, $myPhoto, $xCardNo) = [$xProj+.035, $yProj+.29, 1.1, .085, .09, 2.4];
+  list ($cCG, $cSite, $cName) = ['#000065', 'black', '#004000'];
+  list ($xTest, $xPhoto, $yPhoto, $hPhoto) = [$m+$wCard-.74, $m+$mxPhoto, $m+$myPhoto, $wPhoto*4/3];
+
+  $style = array( // style for barcode
+    'border' => 0,
+    'vpadding' => '0',
+    'hpadding' => '0',
+    'fgcolor' => array(0,0,0),
+    'bgcolor' => false, //array(255,255,255)
+    'module_width' => 1, // width of a single module in points
+    'module_height' => 1, // height of a single module in points
+  );
+
+  $pdf = new r\Pdf();
+  $pdf->setPrintHeader(FALSE);
+  $pdf->setPrintFooter(FALSE);
+  $pdf->SetAutoPageBreak(FALSE);
+
+  $pdf->AddPage();
+  $pdf->StartTransform();
+  $pdf->ScaleXY(100 * 8.5 / $wCard); // widen to page width (for extra resolution)
+
+  $pdf->Image(__DIR__ . "/../images/idcard/$bg.png", $m, $m, $wCard, $hCard, '', '', 'L', true); // file, x, y, w, h, type, link, align, resize
+//  $pdf->Image($photo, $m+$mPhoto, $m+$mPhoto, $wPhoto, $wPhoto*4/3, '', '', 'L', true);
+  $pdf->Image($photo, $xPhoto, $yPhoto, $wPhoto, $hPhoto, '', '', 'L', true);
+  $pdf->Rect($xPhoto, $yPhoto, $wPhoto, $hPhoto, 'D'); // x, y, w, h, style, border, fill
+  $pdf->say(PROJECT, $xProj, $yProj, '', '', "18;Arial MT Medium;color:white;", 'L');
+  
+  $pdf->say('TM', $m+3, $m+.1, 1, '', "3;color:white", 'L');
+  $sp = '<span style="font-size:50%;"> </span>';
+  $url = str_replace('.', $sp . '<b style="display:inline; font-stretch:expanded; font-size:120%;">.</b>' . $sp, CG_DOMAIN);
+  $pdf->say($url,  $xSite, $ySite, '', '', "7;color:white;font-stretch:normal;", 'L');
+  $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', $m+1.445, $m+0.645, .8, .8, $style, 'N'); // L,M,Q,H are low-high error-correction
+
+  $pdf->say($acctName, $m+$xText, $m+$yName, '', '', "12;B;$nameFont", 'L');
+  if ($proSe) $pdf->say($qid, $m+$xText, $m+$hCard-.15, '', '', "6.5;color:#666666;letter-spacing:.7px;", 'L');
+  if (!$proSe) $pdf->say($aa->fullName, $m+$xText, $m+$yName+0.22, '', '', 8, 'L');
+
+  if (!isPRODUCTION) $pdf->say(t('TEST'), $xTest, $m+$hCard-.15, .5, '', '6.5;color:darkred', 'C');
+
+  $pdf->StopTransform();
+  if (u\test()) $pdf->Close(); else $pdf->Output(strtolower("$qid.cgcard.pdf"), 'I'); //Close and output PDF document
 }
 
 function formSMS($form, &$sta) {
@@ -765,7 +810,7 @@ function test($arg = '') {
   global $user;
   \drupal_get_messages(); // clear messages
   $modules = u\prefixValues('rcredits/', ray('admin rweb rcron rsmart'));
-  include_once __DIR__ . '/../../gherkin/test.php';
+  include_once DRUPAL_ROOT . '/vendor/gherkin/test.php';
   file_put_contents(T_MSG_FILE, serialize(\drupal_get_messages()));
   \session_destroy();
   \drupal_goto('sadmin/recover'); // has to be a form available when logged out
@@ -774,21 +819,23 @@ function test($arg = '') {
 function util($arg) {
 //  if ($arg == 'modal') drupal_goto('modal');
   if ($arg == 'reset') r\reset();
-/*  if ($arg == 'changeAgent') {
-    //session_destroy();
-    $mya = r\acct('NEW.ZZB');
-    svar('myid', $mya->id);
-    global $user; $user = $mya->account();
-    $user->roles = [];
-    setAcct();
-    r\go('');
-  } */
   if ($arg == 'reinstall') { // from devel module
-    $modules = ['rcredits','rsms','rsmart','rweb'];
+    require_once __DIR__ . '/../rcredits-install.inc';
+    $schema = r\tableDefs();
+    foreach ($schema as $table => $scheme) {
+      if (!\db_table_exists($table)) \db_create_table($table, $scheme);
+      // db_change_field or db_add_field here
+    }
+    w\say(t('This does not currently work.'));
+/*    $modules = ray('rcredits rsms rsmart rweb');
     \module_disable($modules, FALSE);
+    foreach ($modules as $module) {
+      \drupal_install_schema($module);
+    }
     \drupal_uninstall_modules($modules, FALSE);
     \module_enable($modules, FALSE);
-    \drupal_set_message(t('Uninstalled and installed: %names.', 'names', implode(', ', $modules)));
+    */
+//    w\say(t('Uninstalled and installed: %names.', 'names', implode(', ', $modules)));
   }
   if ($arg == 'clear_sessions') db\q('TRUNCATE table SESSIONS');
   if ($arg == 'php') r\go('devel/php');

@@ -27,8 +27,8 @@ Scenario: A member draws
   | xid | type     | amount | from | to   | purpose      |*
   |   1 | transfer |     10 | .ZZC | .ZZA | automatic transfer to NEWZZA,automatic transfer from NEWZZC |
   |   2 | transfer |     30 | .ZZA | .ZZB | food         |
-  |   3 | rebate   |   1.50 | ctty | .ZZA | rebate on #2 |
-  |   4 | bonus    |   3.00 | ctty | .ZZB | bonus on #1  |
+  |   3 | rebate   |   1.50 | ctty | .ZZA | reward on #2 |
+  |   4 | bonus    |   3.00 | ctty | .ZZB | reward on #1  |
   
 Scenario: A member draws again
   When member ".ZZA" confirms form "pay" with values:
@@ -38,8 +38,8 @@ Scenario: A member draws again
   | xid | type     | amount | from | to   | purpose      |*
   |   1 | transfer |    110 | .ZZC | .ZZA | automatic transfer to NEWZZA,automatic transfer from NEWZZC |
   |   2 | transfer |    130 | .ZZA | .ZZB | food         |
-  |   3 | rebate   |   6.50 | ctty | .ZZA | rebate on #2 |
-  |   4 | bonus    |  13.00 | ctty | .ZZB | bonus on #1  |
+  |   3 | rebate   |   6.50 | ctty | .ZZA | reward on #2 |
+  |   4 | bonus    |  13.00 | ctty | .ZZB | reward on #1  |
 
 Scenario: A member overdraws with not enough to draw on
   When member ".ZZA" completes form "pay" with values:

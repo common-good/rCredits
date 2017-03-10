@@ -1002,11 +1002,11 @@ function parseName($name) {
 /**
  * Parse the mailing address into its constituent parts.
  * @param string $address: the address to parse
- * @return [address, city, state, zip] (one or more may be empty or "ERROR", if error)
+ * @return [address, city, state, zip] (one or more will be empty or ER, if error)
  */
 function parseAddr($address) {
   $parts = explode(',', $address);
-  if (!$p = count($parts)) return ['ERROR', '', '', ''];
+  if (!$p = count($parts)) return ['', '', '', ''];
   list ($state, $zip) = explode(' ', strtoupper(@trim(array_pop($parts))) . ' ');
   if (!preg_match('/^[A-Z][A-Z]$/', $state)) $state = 'ER';
   $city = trim(array_pop($parts));

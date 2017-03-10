@@ -20,6 +20,7 @@ use rCredits\Web as w;
 /**
  * Set up the basic user accounts and relations on the server.
  * called from installation and test setup
+ * To prepare for export for developers, f('t.clear');
  */
 function setupBasicAccounts() {
   $keys = ray('uid community name fullName email postalCode country minimum rebate flags');
@@ -59,7 +60,7 @@ function setupBasicAccounts() {
     if (db\exists('users', "name='cgf'")) return; // already done
     if (!isPRODUCTION and db\exists('users', "name='cornerstore'")) return; // already done
 
-    $values = array(r\qo('NEWAAB')->id, $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO]));
+    $values = array(r\qo('NEWAAB')->id, $server, 'cgf', PROJECT, CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO]));
     $info = array_combine($keys, $values);
     list ($phone, $address, $city, $state) = array(u\fmtPhone(CGF_PHONE, '+n'), CGF_ADDRESS, CGF_CITY, R_STATE_ID);
     $helper = 1; //$wws->id;
@@ -178,30 +179,6 @@ EOF;
   return $ret;
 }
 
-/**
- * List the USD account status of each account.
- *//*
-function usdAccts($where = "postalCode LIKE '013%'") {
-  if (!r\acct()->admin) return;
-  $result = db\q("SELECT uid FROM users WHERE $where ORDER BY fullName");
-  $head = ray('Name Dwolla? Type Verified OK Co Bal');
-  while ($row = $result->fetch()) {
-    $usA = new r\usd($a = r\acct($row->uid));
-    $bal = $usA->bal($err);
-    $hasDwolla = $err ? '-' : 'Yes';
-    $source = $usA->source($err);
-    $type = @$source['Type'];
-    $verified = @$source['Verified'] ? 'Yes' : '-';
-    $count = @$source['count'];
-    
-    $ok = $a->ok ? 'ok' : '';
-//    $charge = $a->can(B_CHARGE) ? 'Chg' : '';
-    $company = $a->co ? 'Co' : '';
-    $line = array($a->fullName, $hasDwolla, $type, $verified, $ok, $company, $bal);
-    $lines[] = array_combine($head, $line);
-  }
-  return showRecords($lines);
-}*/
 define('ID_KEYS', 'id uid t.uid myid payer payee main other inviter invitee proxy person owner defaultAgent');
 
 function showRecords($ray) {
@@ -295,8 +272,8 @@ function ssnCheck($a) {
   if (@$addresses['lastname']) $addresses = [$addresses];
   foreach($addresses as $rec) {
     $rec = (object) $rec;
-    $rows[] = array($rec->datereported ? u\fmtDate(strtotime($rec->datereported)) : '', ssnName($rec), $rec->dob ? u\fmtDate(strtotime($rec->dob)) : '', ssnAddr($rec), ucwords(strtolower($rec->county)));
-    if (r\rTime() - @strtotime($rec->datereported) < 10 * YEAR_SECS) $counties[$rec->county] = 1;
+/**/ $rows[] = array($rec->datereported ? u\fmtDate(strtotime($rec->datereported)) : '', ssnName($rec), $rec->dob ? u\fmtDate(strtotime($rec->dob)) : '', ssnAddr($rec), ucwords(@strtolower(print_r($rec->county, 1)))); // county was an array once
+/**/ if (r\rTime() - @strtotime($rec->datereported) < 10 * YEAR_SECS) $counties[print_r($rec->county, 1)] = 1;
   }
   if (!@$a->moves) $a->update('moves', max(0, count($counties) - 1));
   
@@ -608,8 +585,9 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   $a->fixTxBankAccount($bankAccount, $txid);
   
   list ($fromName, $addr, $phone, $fromAcct, $toName, $toAcct) = $amount < 0 // which way
-    ? [$a->legalNameDpy, $a->postalAddr, $a->phone, $bankAccount, PROJECT, $escrow] // from bank to escrow
-    : [PROJECT . ' (' . CGF_LEGALNAME . ')', CGF_POSTALADDR, CGF_PHONE, $escrow, $a->legalNameDpy, $bankAccount];//e2b
+//    ? [$a->legalNameDpy, $a->postalAddr, $a->phone, $bankAccount, PROJECT, $escrow] // from bank to escrow
+    ? [$a->legalNameDpy, $a->postalAddr, $a->phone, $bankAccount, BANK_DBA, $escrow] // from bank to escrow
+    : [PROJECT . ' (' . CGF_LEGALNAME . ')', CGF_POSTALADDR, CGF_PHONE, $escrow, $a->legalNameDpy, $bankAccount]; //e2b
   $memo = $amount < 0 ? t('for %RCREDITS') : t('for DEPOSIT to account #') . substr($toAcct, 4 + 9);
 
   list ($signature, $belowLine) = $amount < 0 
@@ -676,7 +654,7 @@ function printCheck(&$ck, $pos, $tx, $mark) {
 }
 
 /**
- * Do automatic stuff that can be done only when admin signs in
+ * Do automatic stuff that can be done only when superAdmin signs in
  */
 function adminSignin() {
   $pw2 = @$_COOKIE['pw2'];
@@ -766,7 +744,7 @@ function moveFieldsToHidden() {
  * Make sure the very secure fields are encrypted with the admin's extra password.
  */
 function secureVery($a = '') {
-  if (!r\acct()->admin) return; // don't bother if not admin
+  if (!r\acct()->superAdmin) return; // don't bother if not admin
   if ($a) {
     if ($vflds = u\just(R_VSECURE_FIELDS, $a->secure)) return $a->update($vflds); // extra encryption
   } else {

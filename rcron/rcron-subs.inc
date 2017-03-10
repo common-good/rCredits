@@ -18,6 +18,7 @@ use rCredits\Cron as cr;
 function queueEach($op, $sql, $subs = []) {
   global $cronOp; // this is set to ONE_CRON_OP when calling cron() from PHP window on test server
   $result = db\q($sql, $subs);
+  $sql = u\SUBS($sql);
 
   while ($row = $result->fetchAssoc()) {
     $oneOp = "rCredits\\Cron\\$op";

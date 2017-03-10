@@ -9,18 +9,18 @@ SO I can request changes to software, that will enhance the experience of rCredi
 
 Setup:
   Given members:
-  | id   | fullName | address | city | state | flags        | minimum | achMin | saveWeekly | share |*
-  | .ZZA | Abe One  | 1 A St. | Aton | MA    | ok,bona,ided |     100 |     10 |          0 |    20 |
-  | .ZZB | Bea Two  | 2 B St. | Bton | MA    | ok,bona,debt |     200 |     20 |          0 |    50 |
-  | .ZZC | Cor Pub  | 3 C St. | Cton | CA    | ok,co,bona   |     300 |     30 |          0 |    50 |
-  | .ZZD | Dee Four | 4 D St. | Dton | DE    | ok,admin     |     400 |     40 |          0 |    50 |
+  | id   | fullName | address | city | state | flags        | minimum | achMin | saveWeekly | crumbs |*
+  | .ZZA | Abe One  | 1 A St. | Aton | MA    | ok,bona,ided |     100 |     10 |          0 |   0.02 |
+  | .ZZB | Bea Two  | 2 B St. | Bton | MA    | ok,bona,debt |     200 |     20 |          0 |   0.05 |
+  | .ZZC | Cor Pub  | 3 C St. | Cton | CA    | ok,co,bona   |     300 |     30 |          0 |   0.05 |
+  | .ZZD | Dee Four | 4 D St. | Dton | DE    | ok,admin     |     400 |     40 |          0 |   0.05 |
 
 Scenario: A member changes some settings
   Given member ".ZZA" completes form "settings/preferences" with values:
 #  | minimum | achMin | savingsAdd | smsNotices | notices | statements | debtOk | secretBal | share |*
 #  |     100 |     11 |          0 |          0 |       1 |          0 |      1 |         0 |    25 |
-  | roundup | notices | statements | secretBal | share |*
-  |       0 |  weekly |      paper |         0 |    25 |
+  | roundup | notices | statements | secretBal | crumbs |*
+  |       0 |  weekly |      paper |         0 |      1 |
   And member ".ZZA" completes form "settings/connect" with values:
   | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
   |       1 |     211870281 |         123 |          123 |       1 |    100 |     11 |          0 |
@@ -28,7 +28,7 @@ Scenario: A member changes some settings
   Then we show "Account Changes for Abe One" with:
   | Date | Field       | Old Value | New Value |
   | %dmy | flags       | member ok bona ided | member ok bona ided refill weekly paper |
-  | %dmy | share       |        20 | 25 |
+  | %dmy | crumbs      |      0.02 | 0.01 |
   | %dmy | hasBank     |           | 1  |
   | %dmy | bankAccount |           | USkk211870281123 |    
   | %dmy | achMin      |        10 | 11 |

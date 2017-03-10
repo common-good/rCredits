@@ -98,7 +98,7 @@ Scenario: Member company has relations
   When member "C:A" visits page "settings/relations"
   Then we show "Relations" with:
   | other   | My employee? | Owns | Permission     |~requests      |
-  | Abe One | Yes          | Yes  | manage account | request rCard |
+  | Abe One | Yes          | Yes  | manage account | request Common Good Card |
   When member ".ZZA" visits page "settings/relations"
   Then we show "Relations" with:
   | other      | My employee? | Family? | Permission   |~requests      |
