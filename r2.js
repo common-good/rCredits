@@ -128,14 +128,14 @@
 		 *     TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showPage = function (p) {
-			browser.driver.get("http://localhost:8100/#/app/home", 500);
-			browser.driver.get("http://localhost:8100/#/app/login", 500);
-			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
-				var button = element(by.id('scan-to-login'));
-				var isClickable = EC.elementToBeClickable(button);
-				browser.driver.wait(isClickable, 3000); //wait for an element to become clickable
-				button.click();
-			});
+//			browser.driver.get("http://localhost:8100/#/app/home", 500);
+//			browser.driver.get("http://localhost:8100/#/app/login", 500);
+//			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
+//				var button = element(by.id('scan-to-login'));
+//				var isClickable = EC.elementToBeClickable(button);
+//				browser.driver.wait(isClickable, 3000); //wait for an element to become clickable
+//				button.click();
+//			});
 			element(by.id("customQR")).sendKeys('H6VM010WeHlioM5JZv1O9G');
 			var link=element(by.id("accountLogin"));
 			var isClickable = EC.elementToBeClickable(link);
@@ -166,6 +166,17 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showScanner = function () {
+//			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
+//				var button = element(by.id('scan-customer'));
+//				var isClickable = EC.elementToBeClickable(button);
+//				browser.driver.wait(isClickable, 3000); //wait for an element to become clickable
+//				button.click();
+//			});
+//			element(by.id("customQR")).sendKeys(p);
+//			var link2=element(by.id("accountInfoButton"));
+//			var isClickable2 = EC.elementToBeClickable(link2);
+//			browser.driver.wait(isClickable2,3000);
+//			link2.click();
 			return expect(browser.driver.wait(EC.or(EC.urlContains('demo-people'),EC.urlContains('qr')), 5000));
 		};
 		/**
@@ -174,15 +185,20 @@
 		 * in: MAKE Transact WeIdentifyAndChargeACustomer
 		 */
 		this.scannerSeesQR = function (arg1) {
-			return true;
+			var code=this.securityCodeIs(arg1);
+			var link=element(by.id("accountLogin"));
+			var isClickable = EC.elementToBeClickable(link);
+			browser.driver.wait(isClickable,3000);
+			link.click();
+			return code;
 		};
 		/**
 		 * show photo of member (ARG)
 		 *
-		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 * in: TEST Transact WeIdentifyAndChargeACustomer 
 		 */
 		this.showPhotoOfMember = function (arg1) {
-			return true;
+			return browser.driver.wait(element(by.id('ItemPreview').isPresent()).toBe(true), 3000);
 		};
 		/**
 		 * show text (ARG)
@@ -190,7 +206,7 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showText = function (arg1) {
-			return true;
+			return browser.driver.wait(EC.textToBePresentInElement(by.id('customerPage'),arg1), 3000);
 		};
 		/**
 		 * show number keypad
@@ -198,7 +214,7 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showNumberKeypad = function () {
-			return true;
+			return browser.driver.wait(element(by.id('keypad').isPresent()).toBe(true), 3000);
 		};
 		/**
 		 * show amount (ARG)
@@ -206,7 +222,7 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showAmount = function (arg1) {
-			return true;
+			return browser.driver.wait(element(by.id('keypad').getText()).toEqual(arg1), 3000);
 		};
 		/**
 		 * show dropdown with (ARG) selected
@@ -214,7 +230,7 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showDropdownWithSelected = function (arg1) {
-			return true;
+			return browser.driver.wait(EC.textToBePresentInElementValue(by.id('category'),arg1), 3000);
 		};
 		/**
 		 * show (ARG) message (ARG) titled (ARG)

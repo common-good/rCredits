@@ -61,11 +61,15 @@ app.service('UserService', function ($q, $http, $httpParamSerializer, RequestPar
 		if (!this.currentUser()) {
 			return;
 		}
+		
 		if (this.currentUser().isDemo() && !accountInfo.isDemo()) {
 			throw "can_not_use_real_card";
 		} else if (this.currentUser()!==null&&!this.currentUser().isDemo() && accountInfo.isDemo()) {
 			console.log(this.currentUser(), accountInfo.isDemo());
 			throw "can_not_use_demo_card";
+		}
+		if(this.currentUser().isDemo()){
+			offlCtrl.isDemoMode();
 		}
 	};
 	UserService.prototype.loginWithRCard_ = function (params, accountInfo) {
