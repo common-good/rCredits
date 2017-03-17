@@ -1,8 +1,23 @@
 {
 	"elements": {
 		"ion-side-menus": {},
+		"ion-side-menu": {
+			"attributes": {
+				"side": {}
+			}
+		},
 		"subheader": {},
-		"ion-nav-view": {},
+		"ion-nav-view": {
+			"attributes": {
+				"name": {}
+			}
+		},
+		"ion-list": {},
+		"ion-header-bar": {
+			"attributes": {
+				"class": {}
+			}
+		},
 		"json-tree": {
 			"attributes": {
 				"ng-switch-when": {},

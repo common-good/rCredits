@@ -2,7 +2,6 @@
 	<subheader></subheader>
 	<ion-content class="has-subheader">
 		<div class="rc home">
-
 			<h1 class="company">{{currentUser.company}}</h1>
 			<span style="display: none" class="">
 				{{currentUser.accountInfo.accountId}}
@@ -22,11 +21,8 @@
 			<div ng-if="isSelfServiceEnabled()">
 				{{ 'selfServiceMode' | translate }}<br>
 			</div>
-
 			<div class="rc-logo" ng-include="'templates/logo.html'"></div>
-
-			<button ng-click="scanCustomer()"
-					class="scan-customer primary button button-block button-positive" id="scan-customer">
+			<button ng-click="scanCustomer()" class="scan-customer primary button button-block button-positive" id="scan">
 				{{ 'scanRCard' | translate }}
 			</button>
 		</div>
