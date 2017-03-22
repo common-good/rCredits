@@ -9,6 +9,9 @@
 //	'use strict';
 //	var steps = new R2_steps();
 //	var eachStep;
+//	beforeAll(function () {
+//		browser.waitForAngular();
+//	});
 //	beforeEach(function () { // Setup
 //		steps.extraSetup();
 //		steps.testOnly = 0;

@@ -23,7 +23,7 @@
 	var R2_steps = function () {
 		this.v = []; // miscellaneous data
 		this.v.parse = '';
-		var wait=10000;
+		var wait = 10000;
 		var EC = protractor.ExpectedConditions;
 		/**
 		 * Add additional setup for any or all features or tests
@@ -57,7 +57,9 @@
 			var link = element(by.id("accountInfoButton"));
 			var isClickable = EC.elementToBeClickable(link);
 			browser.driver.wait(isClickable, 7000);
-			browser.wait(link.click(), 7000);
+			browser.wait(link.click(), 7000).then(
+				browser.driver.refresh);
+			console.log('weScanQR');
 //			} else {
 //				var scan = element(by.id("customQR")).sendKeys(qr);
 //				var link = element(by.id("demoAccountLogin"));
@@ -67,34 +69,38 @@
 //			}
 			return true;
 		};
-		/**
-		 * account is personal
-		 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
-		 *     TEST ParseQRCode WeScanAValidPersonalCard
-		 */
 		this.accountIsPersonal = function () {
-			browser.driver.get("https://otherrealm.org", 20000).then(
-			browser.driver.get("http://localhost:8100/#/app/login", wait)).then(
-			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
-				var button = element(by.id('scan'));
-				browser.driver.wait(EC.elementToBeClickable(button), wait); //wait for an element to become clickable
-				browser.driver.wait(button.click(), wait);
-			}));
-			browser.wait(element(by.id("customQR")).sendKeys('H6VM010WeHlioM5JZv1O9G'),wait);
-			var link = element(by.id("demoAccountLogin"));
-			browser.wait(EC.elementToBeClickable(link), wait);
-			browser.wait(link.click(), wait);
-			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
-				var button = element(by.id('scan'));
-				browser.driver.wait(EC.elementToBeClickable(button), wait); //wait for an element to become clickable
-				browser.driver.wait(button.click(), wait);
-			});
-			browser.wait(element(by.id("customQR")).sendKeys(this.v['qr']),wait);
-//			console.log(this.v['qr']);
-			var link2 = element(by.id("accountInfoButton"));
-			browser.wait(EC.elementToBeClickable(link2), wait)
-				.then(link2.click());
-			return expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("isPersonal")), 'true'), wait)).toBe(true);
+			var d = protractor.promise.defer();
+			var p = function () {
+				var button = element(by.cssContainingText('.button', 'scan')).getText();
+				var link = element(by.cssContainingText('.button', 'scan')).getText();
+				var isClickable = EC.or(EC.elementToBeClickable(link), EC.elementToBeClickable(button));
+				browser.wait(isClickable, 8000);
+				browser.wait(link.click(),wait);
+			}
+			.then(function () {browser.wait(element(by.id("customQR")).sendKeys('HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G'),wait);})
+				.then(function () {
+					var link = element(by.id("demoAccountLogin"));
+					var isClickable = EC.elementToBeClickable(link);
+					browser.driver.wait(isClickable, 7000);
+					browser.wait(link.click(), 7000);
+				})
+				.then(function () {
+					var button = element(by.cssContainingText('.button', 'scan')).getText();
+					var link = element(by.cssContainingText('.button', 'scan')).getText();
+					var isClickable = EC.or(EC.elementToBeClickable(link), EC.elementToBeClickable(button));
+					browser.wait(isClickable, 8000);
+					browser.wait(link.click(),wait);
+				})
+				.then(element(by.id("customQR")).sendKeys(this.v['qr']))
+				.then(function () {
+					var isClickable2 = EC.elementToBeClickable(element(by.id("accountInfoButton")));
+					browser.driver.wait(isClickable2, wait);
+					var link2 = element(by.id("accountInfoButton"));
+					browser.wait(link2.click(), 7000);
+					d.resolve(expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("isPersonal")), 'true'), 999000)).toBe(true));
+				});
+			return d.promise;
 		};
 		/**
 		 * account is company
