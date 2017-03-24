@@ -11,7 +11,11 @@ exports.config = {
 		'test/*.js'],
 	capabilities: {
 		browserName: 'chrome'
-	}
+	},
+	beforeLaunce: {
+		q: require('q')
+	},
+	getPageTimeout: 8000
 //	,onPrepare: function () {
 //		browser.driver.manage().window().maximize();
 //	}

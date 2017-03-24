@@ -53,6 +53,18 @@
 			console.log(qr.substr(-16, 1));
 //			if (qr.substr(-16, 1) === 'H'||qr.substr(-16, 1) === '-') {
 			var scan = element(by.id("customQR")).sendKeys(qr);
+//			
+//			
+//			
+//			
+//			
+//			Need to login first!
+//			
+//			
+//			
+//			
+//			
+//			
 			var link = element(by.id("accountInfoButton"));
 			var isClickable = EC.elementToBeClickable(link);
 			browser.driver.wait(isClickable, 7000);
@@ -69,87 +81,88 @@
 			return true;
 		};
 		this.accountIsPersonal = function () {
-			var d = $q.defer();
-			var p=d.pomise;
-			var r;
-				p.when(function () {
-					console.log('1accountIsPersonal');
-					var button = element(by.cssContainingText('.button', 'scan')).getText();
-					var link = element(by.cssContainingText('.button', 'scan')).getText();
-					var isClickable = EC.or(EC.elementToBeClickable(link), EC.elementToBeClickable(button));
-					browser.wait(isClickable, 8000);
-					browser.wait(link.click(), wait);
-					pexpect(isClickable).toBeTruthy();
-					
-				})
-			.then(function () {
-				browser.wait(element(by.id("customQR")).sendKeys('HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G'), wait);
-			})
-				.then(function () {
-					console.log('1accountIsPersonal');
-					var link = element(by.id("demoAccountLogin"));
-					var isClickable = EC.elementToBeClickable(link);
-					browser.driver.wait(isClickable, 7000);
-					browser.wait(link.click(), 7000);
-				})
-				.then(function () {
-					console.log('1accountIsPersonal');
-					var button = element(by.cssContainingText('.button', 'scan')).getText();
-					var link = element(by.cssContainingText('.button', 'scan')).getText();
-					var isClickable = EC.or(EC.elementToBeClickable(link), EC.elementToBeClickable(button));
-					browser.wait(isClickable, 8000);
-					browser.wait(link.click(), wait);
-				})
-				.then(element(by.id("customQR")).sendKeys(this.v['qr']))
-				.then(function () {
-					var isClickable2 = EC.elementToBeClickable(element(by.id("accountInfoButton")));
-					browser.driver.wait(isClickable2, wait);
-					var link2 = element(by.id("accountInfoButton"));
-					browser.wait(link2.click(), 7000);
-					d.resolve(expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("isPersonal")), 'true'), 999000)).toBe(true));
-				});
-		
-		return d.promise;
-	};
-	/**
-	 * account is company
-	 *
-	 * in: TEST ParseQRCode WeScanAValidOldCompanyCard
-	 *     TEST ParseQRCode WeScanAValidCompanyCard
-	 */
-	this.accountIsCompany = function () {
+			wait = 10000;
+			browser.wait(browser.executeScript("document.location.href='https://otherrealm.org'"), wait)
+				.then(browser.wait(browser.executeScript("document.location.href='http://localhost:8100/#/app/home'"), wait))
+				.then(browser.wait(browser.executeScript("document.getElementById('scan').click();"), wait))
+				.then(browser.wait(browser.executeScript("document.getElementById('H6VM010WeHlioM5JZv1O9G').click();"), wait))
+				.then(browser.wait(browser.executeScript("document.getElementById('scan').click();"), wait))
+				.then(browser.wait(browser.executeScript("document.getElementById('G6VM0RZzhWMCq0zcBowqw').click();"), wait));
+			return expect(browser.wait(EC.textToBePresentInElement(element(by.id("isPersonal")), 'true'), 999000)).toBe(true);
+		};
+		/**
+		 var d = protractor.promise.defer();
+		 (function () {
+		 console.log('1accountIsPersonal');
+		 var button = element(by.cssContainingText('.button', 'scan')).getText();
+		 var link = element(by.cssContainingText('.button', 'scan')).getText();
+		 var isClickable = EC.or(EC.elementToBeClickable(link), EC.elementToBeClickable(button));
+		 browser.wait(isClickable, 8000);
+		 browser.wait(link.click(),wait);
+		 }
+		 .then(function () {browser.wait(element(by.id("customQR")).sendKeys('HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G'),wait);})
+		 .then(function () {
+		 console.log('1accountIsPersonal');
+		 var link = element(by.id("demoAccountLogin"));
+		 var isClickable = EC.elementToBeClickable(link);
+		 browser.driver.wait(isClickable, 7000);
+		 browser.wait(link.click(), 7000);
+		 })
+		 .then(function () {
+		 console.log('1accountIsPersonal');
+		 var button = element(by.cssContainingText('.button', 'scan')).getText();
+		 var link = element(by.cssContainingText('.button', 'scan')).getText();
+		 var isClickable = EC.or(EC.elementToBeClickable(link), EC.elementToBeClickable(button));
+		 browser.wait(isClickable, 8000);
+		 browser.wait(link.click(),wait);
+		 })
+		 .then(element(by.id("customQR")).sendKeys(this.v['qr']))
+		 .then(function () {
+		 var isClickable2 = EC.elementToBeClickable(element(by.id("accountInfoButton")));
+		 browser.driver.wait(isClickable2, wait);
+		 var link2 = element(by.id("accountInfoButton"));
+		 browser.wait(link2.click(), 7000);
+		 d.resolve(expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("isPersonal")), 'true'), 999000)).toBe(true));
+		 }));
+		 return d.promise;
+		 * account is company
+		 *
+		 * in: TEST ParseQRCode WeScanAValidOldCompanyCard
+		 *     TEST ParseQRCode WeScanAValidCompanyCard
+		 */
+		this.accountIsCompany = function () {
 //			browser.driver.wait(EC.textToBePresentInElement(element(by.id("isPersonal")),'false'),10000);
-		return expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("isPersonal")), 'false'), 7000)).toBe(true);
-	};
-	/**
-	 * account ID is (ARG)	 *
-	 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
-	 *     TEST ParseQRCode WeScanAValidOldCompanyCard
-	 *     TEST ParseQRCode WeScanAValidPersonalCard
-	 *     TEST ParseQRCode WeScanAValidCompanyCard
-	 */
-	this.accountIDIs = function (id) {
+			return expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("isPersonal")), 'false'), 7000)).toBe(true);
+		};
+		/**
+		 * account ID is (ARG)	 *
+		 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
+		 *     TEST ParseQRCode WeScanAValidOldCompanyCard
+		 *     TEST ParseQRCode WeScanAValidPersonalCard
+		 *     TEST ParseQRCode WeScanAValidCompanyCard
+		 */
+		this.accountIDIs = function (id) {
 //			browser.driver.wait(EC.textToBePresentInElement(element(by.id("memberId")),'false'),10000);
-		return expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("memberId")), id), 7000)).toBe(true);
-	};
-	/**
-	 * security code is (ARG)
-	 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
-	 *     TEST ParseQRCode WeScanAValidOldCompanyCard
-	 *     TEST ParseQRCode WeScanAValidPersonalCard
-	 *     TEST ParseQRCode WeScanAValidCompanyCard
-	 */
-	this.securityCodeIs = function (securityCode) {
+			return expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("memberId")), id), 7000)).toBe(true);
+		};
+		/**
+		 * security code is (ARG)
+		 * in: TEST ParseQRCode WeScanAValidOldPersonalCard
+		 *     TEST ParseQRCode WeScanAValidOldCompanyCard
+		 *     TEST ParseQRCode WeScanAValidPersonalCard
+		 *     TEST ParseQRCode WeScanAValidCompanyCard
+		 */
+		this.securityCodeIs = function (securityCode) {
 //			browser.driver.wait(EC.textToBePresentInElement(element(by.id("unencryptedCode")),'false'),10000);
-		return expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("unencryptedCode")), securityCode), 7000)).toBe(true);
-	};
-	/**
-	 * show page (ARG)
-	 *
-	 * in: MAKE Transact Setup
-	 *     TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showPage = function (p) {
+			return expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("unencryptedCode")), securityCode), 7000)).toBe(true);
+		};
+		/**
+		 * show page (ARG)
+		 *
+		 * in: MAKE Transact Setup
+		 *     TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showPage = function (p) {
 //			browser.driver.get("http://localhost:8100/#/app/home", 500);
 //			browser.driver.get("http://localhost:8100/#/app/login", 500);
 //			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
@@ -158,116 +171,116 @@
 //				browser.driver.wait(isClickable, 7000); //wait for an element to become clickable
 //				button.click();
 //			});
-		element(by.id("customQR")).sendKeys('H6VM010WeHlioM5JZv1O9G');
-		var exp;
-		var link = element(by.id("demoAccountLogin"));
-		var isClickable = EC.elementToBeClickable(link);
-		browser.wait(isClickable, 7000)
-			.then(link.click());
+			element(by.id("customQR")).sendKeys('H6VM010WeHlioM5JZv1O9G');
+			var exp;
+			var link = element(by.id("demoAccountLogin"));
+			var isClickable = EC.elementToBeClickable(link);
+			browser.wait(isClickable, 7000)
+				.then(link.click());
 //			.then(exp=expect(browser.wait(EC.urlContains(p), 5000)));
-		return browser.wait(EC.urlContains(p.toLowerCase()), 7000);
-	};
-	/**
-	 * show button (ARG)
-	 *
-	 * in: TEST Transact Setup
-	 *     TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showButton = function (arg1) {
-		return browser.wait(expect(element(by.cssContainingText('button', arg1)).getText()).toEqual(arg1), 6000);
-	};
-	/**
-	 * button (ARG) pressed
-	 *
-	 * in: MAKE Transact WeIdentifyAndChargeACustomer
-	 */
-	this.buttonPressed = function (arg1) {
-		console.log(arg1);
-		var button = element(by.cssContainingText('.button', arg1.toString())).getText();
-		var link = element(by.cssContainingText('.button', arg1.toString())).getText();
-		var isClickable = EC.or(EC.elementToBeClickable(link), EC.elementToBeClickable(button));
-		browser.wait(isClickable, 8000);
-		link.click();
-		return isClickable;
-	};
-	/**
-	 * show scanner
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showScanner = function () {
-		return browser.driver.wait(EC.or(EC.urlContains('demo-people'), EC.urlContains('qr')), 9000);
-	};
-	/**
-	 * scanner sees QR (ARG)
-	 *
-	 * in: MAKE Transact WeIdentifyAndChargeACustomer
-	 */
-	this.scannerSeesQR = function (arg1) {
-		var QR = element(by.id("customQR"));
-		QR.sendKeys(arg1);
-		var link = element(by.id("demoAccountLogin"));
-		var isClickable = EC.elementToBeClickable(link);
-		browser.wait(isClickable, 7000)
-			.then(link.click());
-		return expect(QR.getText()).toBe(arg1);
-	};
-	/**
-	 * show photo of member (ARG)
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer 
-	 */
-	this.showPhotoOfMember = function (arg1) {
-		return browser.driver.wait(expect(element(by.id('ItemPreview')).isPresent()).toBe(true), 7000);
-	};
-	/**
-	 * show text (ARG)
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showText = function (arg1) {
-		return  browser.wait(EC.textToBePresentInElement(element(by.id('customerPage')), arg1), 7000);
-	};
-	/**
-	 * show number keypad
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showNumberKeypad = function () {
-		return  browser.driver.wait(expect(element(by.id('keypad')).isPresent()).toBe(true), 7000);
-	};
-	/**
-	 * show amount (ARG)
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showAmount = function (arg1) {
-		return browser.driver.wait(expect(element(by.id('displayAmount')).getText()).toEqual(arg1.toString()), 7000);
-	};
-	/**
-	 * show dropdown with (ARG) selected
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showDropdownWithSelected = function (arg1) {
-		return true; //browser.driver.wait(EC.textToBePresentInElementValue(by.id('category'), arg1), 7000);
-	};
-	/**
-	 * show (ARG) message (ARG) titled (ARG)
-	 *
-	 * in: TEST Transact WeIdentifyAndChargeACustomer
-	 */
-	this.showMessageTitled = function (arg1, arg2, arg3) {
-		return true;
-	};
-	/**
-	 * message button (ARG) pressed
-	 *
-	 * in: MAKE Transact WeIdentifyAndChargeACustomer
-	 */
-	this.messageButtonPressed = function (arg1) {
-		return true;
-	};
+			return browser.wait(EC.urlContains(p.toLowerCase()), 7000);
+		};
+		/**
+		 * show button (ARG)
+		 *
+		 * in: TEST Transact Setup
+		 *     TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showButton = function (arg1) {
+			return browser.wait(expect(element(by.cssContainingText('button', arg1)).getText()).toEqual(arg1), 6000);
+		};
+		/**
+		 * button (ARG) pressed
+		 *
+		 * in: MAKE Transact WeIdentifyAndChargeACustomer
+		 */
+		this.buttonPressed = function (arg1) {
+			console.log(arg1);
+			var button = element(by.cssContainingText('.button', arg1.toString())).getText();
+			var link = element(by.cssContainingText('.button', arg1.toString())).getText();
+			var isClickable = EC.or(EC.elementToBeClickable(link), EC.elementToBeClickable(button));
+			browser.wait(isClickable, 8000);
+			link.click();
+			return isClickable;
+		};
+		/**
+		 * show scanner
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showScanner = function () {
+			return browser.driver.wait(EC.or(EC.urlContains('demo-people'), EC.urlContains('qr')), 9000);
+		};
+		/**
+		 * scanner sees QR (ARG)
+		 *
+		 * in: MAKE Transact WeIdentifyAndChargeACustomer
+		 */
+		this.scannerSeesQR = function (arg1) {
+			var QR = element(by.id("customQR"));
+			QR.sendKeys(arg1);
+			var link = element(by.id("demoAccountLogin"));
+			var isClickable = EC.elementToBeClickable(link);
+			browser.wait(isClickable, 7000)
+				.then(link.click());
+			return expect(QR.getText()).toBe(arg1);
+		};
+		/**
+		 * show photo of member (ARG)
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer 
+		 */
+		this.showPhotoOfMember = function (arg1) {
+			return browser.driver.wait(expect(element(by.id('ItemPreview')).isPresent()).toBe(true), 7000);
+		};
+		/**
+		 * show text (ARG)
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showText = function (arg1) {
+			return  browser.wait(EC.textToBePresentInElement(element(by.id('customerPage')), arg1), 7000);
+		};
+		/**
+		 * show number keypad
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showNumberKeypad = function () {
+			return  browser.driver.wait(expect(element(by.id('keypad')).isPresent()).toBe(true), 7000);
+		};
+		/**
+		 * show amount (ARG)
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showAmount = function (arg1) {
+			return browser.driver.wait(expect(element(by.id('displayAmount')).getText()).toEqual(arg1.toString()), 7000);
+		};
+		/**
+		 * show dropdown with (ARG) selected
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showDropdownWithSelected = function (arg1) {
+			return true; //browser.driver.wait(EC.textToBePresentInElementValue(by.id('category'), arg1), 7000);
+		};
+		/**
+		 * show (ARG) message (ARG) titled (ARG)
+		 *
+		 * in: TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showMessageTitled = function (arg1, arg2, arg3) {
+			return true;
+		};
+		/**
+		 * message button (ARG) pressed
+		 *
+		 * in: MAKE Transact WeIdentifyAndChargeACustomer
+		 */
+		this.messageButtonPressed = function (arg1) {
+			return true;
+		};
 	};
 	module.exports = function () {
 		return new R2_steps();

@@ -82,7 +82,7 @@
 			var memberId = '';
 			//console.log(tail, i, fmt, acctLen, agentLen, account, acctLens.charAt(i), regionLen);
 			if (acctLen >= 6 || tail.length < 1 + acctLen + agentLen) {
-				//console.log('That is not a valid rCard.');
+				console.log(this.url);
 				throw 'That is not a valid rCard.';
 			}
 			this.accountInfo.unencryptedCode = tail.substring(1 + acctLen + agentLen);
@@ -123,7 +123,7 @@
 			this.accountInfo.isPersonal = true;
 			this.accountInfo.signin = 0;
 		} else {
-			//console.log('That is not a valid rCard.');
+			console.log(this.url);
 			throw 'That is not a valid rCard.';
 		}
 	};

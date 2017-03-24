@@ -21,7 +21,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 			{name: "Curt's Hardware", url: 'HTTP://6VM.RC4.ME/H0G0utbYceW3KLLCcaw', signin: '1', img: 'img/CurtCustomerAgent.jpg'}
 		], [
 			{name: 'Susan', url: 'G6VM0RZzhWMCq0zcBowqw', signin: '0', img: 'img/SusanShopper.jpg'},
-			{name: 'Bob', url: 'H6VM010WeHlioM5JZv1O9G:somethingForBob', signin: '1', img: 'img/BobBossman.jpg'},
+			{name: 'Bob', url: 'H6VM010WeHlioM5JZv1O9G', signin: '1', img: 'img/BobBossman.jpg'},
 			{name: 'Cathy', url: 'H6VM021ME04nW44DHzxVDg', signin: '1', img: 'img/CathyCashier.jpg'},
 			{name: 'Curt', url: 'G6VM0ANyCBBlUF1qWNZ2k.something', signin: '0', img: 'img/CurtCustomerMember.jpg'},
 			{name: "Curt's Hardware", url: 'H6VM0G0utbYceW3KLLCcaw', signin: '1', img: 'img/CurtCustomerAgent.jpg'}
