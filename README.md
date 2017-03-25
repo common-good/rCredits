@@ -13,9 +13,9 @@ In your project folder:
 
 
 1. In the root 'index.html' file, in ' <meta http-equiv="Content-Security-Policy" ' change 'http://192.168.2.2:*' to your own local url
-2. $ npm install -g bower
-3. $ npm install
-4. $ npm install karma --save-dev
+2. npm install -g bower
+3. npm install
+4. npm install karma --save-dev
 5. In karma.conf.js, add this line as the first element in the list of files:
       'node_modules/jquery.min.js',
 6. Download and copy jquery.min.js to node_modules
@@ -28,13 +28,13 @@ In your project folder:
 
 ## To run the app in your default browser:
 
-$ ionic serve
+ionic serve
 
 ## To Run on Device
 
 ```
-$ ionic state restore # Only if plugins or platforms may have changed
-$ ionic run <android|ios>
+ionic state restore # Only if plugins or platforms may have changed
+ionic run <android|ios>
 ```
 
 ## Adding a Plugin
@@ -50,12 +50,19 @@ $ ionic run <android|ios>
 
 ### If Packages Get Screwed Up
 
-$ npm rebuild
+npm rebuild
 
 ### If SCSS/CSS Gets Screwed Up
 
-$ gulp sass
+gulp sass
 
 ### To Run Unit Tests
 
-$ . test.sh
+Prerequisites:
+Go through the tutorial at: http://www.protractortest.org/#/tutorial
+
+Then:
+1. Start Webdriver:
+webdriver-manager start
+2. Start Protractor:
+protractor protConf.js
