@@ -8,10 +8,6 @@ var R2_steps = require('../r2.js');
 describe('r2% -- FEATURE_NAME', function () {
 	'use strict';
 	var steps = new R2_steps();
-	var eachStep;
-	var eachStep = new Promise(function (resolve, reject) {
-		resolve(1);
-	});
 	var createdItemUrl;
 	beforeAll(function () {
 		browser.manage().timeouts().pageLoadTimeout(40000);
@@ -26,14 +22,14 @@ describe('r2% -- FEATURE_NAME', function () {
 		steps.extraSetup();
 	});
 	it('Scenario: We scan a valid old personal card.', function () {
-		eachStep.then(function (resolve, reject) {steps.testOnly = 0?resolve:reject;});
-			eachStep.then(function (resolve, reject){expect(steps.weScanQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'))?resolve:reject;});
-			eachStep.then(function (resolve, reject) {steps.testOnly = 1?resolve:reject;});
-			eachStep.then(function (resolve, reject){expect(steps.accountIsPersonal())?resolve:reject;});
-			eachStep.then(function (resolve, reject) {steps.testOnly = 1?resolve:reject;});
-			eachStep.then(function (resolve, reject){expect(steps.accountIDIs('NEWABB'))?resolve:reject;});
-			eachStep.then(function (resolve, reject) {steps.testOnly = 1?resolve:reject;});
-			eachStep.then(function (resolve, reject){expect(steps.securityCodeIs('ZzhWMCq0zcBowqw'))?resolve:reject;});
+		steps.testOnly = 0;
+		expect(steps.weScanQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'));
+		steps.testOnly = 1;
+		expect(steps.accountIsPersonal());
+		steps.testOnly = 1;
+		expect(steps.accountIDIs('NEWABB'));
+		steps.testOnly = 1;
+		expect(steps.securityCodeIs('ZzhWMCq0zcBowqw'));
 	});
 
 	it('Scenario: We scan a valid old company card.', function () {

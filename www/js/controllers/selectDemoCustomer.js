@@ -106,7 +106,7 @@ app.controller('SelectDemoCust', function ($scope, $state, $stateParams, $ionicL
 		//console.log(selected, $scope.whereWasI);
 		UserService.loginWithRCard(selected)
 			.then(function () {
-		$scope.customPerson = UserService.currentUser();
+				$scope.customPerson = UserService.currentUser();
 				if (goToNextPage) {
 					$ionicHistory.nextViewOptions({
 						disableBack: true

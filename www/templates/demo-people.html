@@ -1,8 +1,8 @@
 <ion-view hide-nav-bar="true" ng-controller="SelectDemoCust as demo">
 	<ion-content>
-		<label class="thirds"><input name="formattype" type="radio" ng-model="format.type" value="0">Old</label>
-		<label class="thirds"><input name="formattype" type="radio" ng-model="format.type" value="1">New</label>
-		<label class="thirds"><input name="formattype" type="radio" ng-model="format.type" value="2">Short</label>
+		<label class="thirds"><input name="formattype" id="oldURL" type="radio" ng-model="format.type" value="0">Old</label>
+		<label class="thirds"><input name="formattype" id="newURL" type="radio" ng-model="format.type" value="1">New</label>
+		<label class="thirds"><input name="formattype" id="shortURL" type="radio" ng-model="format.type" value="2">Short</label>
 		<div ng-switch='whereWasI'>
 			<input type="text" id="customQR" style="width:100%" value="HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw"  text="HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw" ng-model="customPerson.url">
 			<a ng-switch-when="#/app/login" href="javascript:void(0)" ng-click="onSelectManager(customPerson.url, false)" ng-model="customPerson.url" id="accountInfoButton">Load Manager Info</a>
