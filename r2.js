@@ -48,7 +48,7 @@
 		 *     MAKE ParseQRCode WeScanAValidCompanyCard
 		 */
 		var del = .5;
-		this.weScanQR = function (qr) {
+		this.weScanPersonalQR = function (qr) {
 			this.v['qr'] = qr;
 //			if (qr.substr(-16, 1) === 'H'||qr.substr(-16, 1) === '-') {
 			var parts = qr.split(/[/\\.-]/);
@@ -69,67 +69,63 @@
 					browser.wait(isClickable, wait)
 						.then(link.click());
 					console.log('weScanQR');
-
-				}).then(expect(browser.wait(EC.textToBePresentInElement(element(by.id("isCompany")), 'true'), wait)).toBe(true))
-				.then(function (c) {
-					if (!c) {
-						return expect(browser.wait(EC.textToBePresentInElement(element(by.id("url")), qr), wait)).toBe(true);
-					} else {
-//						console.log('c', c);
-						browser.wait(browser.driver.get("https://otherrealm.org"), wait)
-							.then(browser.wait(browser.driver.get("http://localhost:8100/#/app/home"), wait))
-							.then(browser.wait(browser.executeScript("document.getElementById('scan').click();"), wait))
-							.then(function () {
-								element(by.id("customQR")).sendKeys('H6VM010WeHlioM5JZv1O9G');
-								var link = element(by.id("demoAccountLogin"));
-								var isClickable = EC.elementToBeClickable(link);
-								browser.wait(isClickable, wait)
-									.then(link.click());
-							}).then(browser.wait(browser.executeScript('window.scrollTo(0,document.body.scrollHeight)')
-							.then(function () {
-								var button = element(by.id('scan'));
-								var isClickable = EC.elementToBeClickable(button);
-								browser.driver.wait(isClickable, wait); //wait for an element to become clickable
-								browser.driver.wait(button.click(), wait);
-							}), 99999))
-							.then(function () {
-								element(by.id("customQR")).sendKeys(qr);
-								var link = element(by.id("accountInfoButton"));
-								var isClickable = EC.elementToBeClickable(link);
-								browser.wait(isClickable, wait)
-									.then(link.click());
-							});
-					}
+				})
+				.then(browser.executeScript('return window.find("isCompany:true");'))
+				.then(function () {
+					browser.wait(browser.driver.get("https://otherrealm.org"), wait)
+						.then(browser.wait(browser.driver.get("http://localhost:8100/#/app/home"), wait))
+						.then(browser.wait(browser.executeScript("document.getElementById('scan').click();"), wait))
+						.then(function () {
+							element(by.id("customQR")).sendKeys('H6VM010WeHlioM5JZv1O9G');
+							var link = element(by.id("demoAccountLogin"));
+							var isClickable = EC.elementToBeClickable(link);
+							browser.wait(isClickable, wait)
+								.then(link.click());
+						}).then(browser.wait(browser.executeScript('window.scrollTo(0,document.body.scrollHeight)')
+						.then(function () {
+							var button = element(by.id('scan'));
+							var isClickable = EC.elementToBeClickable(button);
+							browser.driver.wait(isClickable, wait); //wait for an element to become clickable
+							browser.driver.wait(button.click(), wait);
+						}), 99999))
+						.then(function () {
+							element(by.id("customQR")).sendKeys(qr);
+							var link = element(by.id("accountInfoButton"));
+							var isClickable = EC.elementToBeClickable(link);
+							browser.wait(isClickable, wait)
+								.then(link.click());
+						});
+					return expect(browser.wait(EC.textToBePresentInElement(element(by.id("url")), qr), wait)).toBe(true);
 				});
-//			browser.wait(browser.executeScript("document.location.href='https://otherrealm.org'"), wait)
-//						.then(browser.wait(browser.executeScript("document.location.href='http://localhost:8100/#/app/home'"), wait))
-//						.then(browser.wait(browser.executeScript("document.getElementById('scan').click();"), wait))
-//						.then(browser.wait(browser.executeScript("document.getElementById('H6VM010WeHlioM5JZv1O9G').click();"), wait))
-//						.then(browser.wait(browser.executeScript("document.getElementById('scan').click();"), wait))
-//						.then(browser.wait(browser.executeScript("document.getElementById('" + qr + "').click();"), wait));
-//				browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
-//				var button = element(by.id('scan-to-login'));
-//				var isClickable = EC.elementToBeClickable(button);
-//				browser.driver.wait(isClickable, 3000); //wait for an element to become clickable
-//				button.click();
-//			});
-//			element(by.id("customQR")).sendKeys('H6VM010WeHlioM5JZv1O9G');
-//			var link=element(by.id("accountLogin"));
-//			var isClickable = EC.elementToBeClickable(link);
-//			browser.driver.wait(isClickable,3000);
-//			link.click();
-//			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
-//				var button = element(by.id('scan-customer'));
-//				var isClickable = EC.elementToBeClickable(button);
-//				browser.driver.wait(isClickable, 3000); //wait for an element to become clickable
-//				button.click();
-//			});
-//			element(by.id("customQR")).sendKeys(this.v['qr']);
-//			var link2=element(by.id("accountInfoButton"));
-//			var isClickable2 = EC.elementToBeClickable(link2);
-//			browser.driver.wait(isClickable2,3000);
-//			link2.click();
-			return expect(browser.wait(EC.textToBePresentInElement(element(by.id("url")), qr), 999000)).toBe(true);
+
+		};
+		this.weScanCompanyQR = function (qr) {
+			this.v['qr'] = qr;
+//			if (qr.substr(-16, 1) === 'H'||qr.substr(-16, 1) === '-') {
+			var parts = qr.split(/[/\\.-]/);
+			console.log(parts[5].length, qr.indexOf('HTTP://'));
+			browser.wait(browser.executeScript("document.getElementById('scan').click();"), wait)
+				.then(function () {
+					if (parts[5].length <= 4) {
+						browser.wait(element(by.id('oldURL')).click(), wait);
+					} else if (qr.indexOf('HTTP://') !== -1) {
+						browser.wait(element(by.id('newURL')).click(), wait);
+					}
+				})
+				.then(function () {
+					console.log("document.getElementById('" + qr + "').click();");
+					element(by.id("customQR")).sendKeys(qr);
+					var link = element(by.id("accountInfoButton"));
+					var isClickable = EC.elementToBeClickable(link);
+					browser.wait(isClickable, wait)
+						.then(link.click());
+					console.log('weScanQR');
+				})
+				.then(browser.executeScript('return window.find("isCompany:true");'))
+				.then(function () {
+					return expect(browser.wait(EC.textToBePresentInElement(element(by.id("url")), qr), wait)).toBe(true);
+				});
+
 		};
 		this.accountIsPersonal = function () {
 //			browser.wait(browser.executeScript("document.location.href='https://otherrealm.org'"), wait)

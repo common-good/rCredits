@@ -23,7 +23,7 @@ describe('r2% -- FEATURE_NAME', function () {
 	});
 	it('Scenario: We scan a valid old personal card.', function () {
 		steps.testOnly = 0;
-		expect(steps.weScanQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'));
+		expect(steps.weScanPersonalQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'));
 		steps.testOnly = 1;
 		expect(steps.accountIsPersonal());
 		steps.testOnly = 1;
@@ -34,7 +34,7 @@ describe('r2% -- FEATURE_NAME', function () {
 
 	it('Scenario: We scan a valid old company card.', function () {
 		steps.testOnly = 0;
-		expect(steps.weScanQR('HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G'));
+		expect(steps.weScanCompanyQR('HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G'));
 		steps.testOnly = 1;
 		expect(steps.accountIsCompany());
 		steps.testOnly = 1;
@@ -45,7 +45,7 @@ describe('r2% -- FEATURE_NAME', function () {
 
 	it('Scenario: We scan a valid personal card.', function () {
 		steps.testOnly = 0;
-		expect(steps.weScanQR('HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw'));
+		expect(steps.weScanPersonalQR('HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw'));
 		//console.log(steps.weScanQR('HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw'));
 		steps.testOnly = 1;
 		expect(steps.accountIsPersonal());
@@ -72,7 +72,7 @@ describe('r2% -- FEATURE_NAME', function () {
 ////		console.log(steps.securityCodeIs('WeHlioM5JZv1O9G'));
 //		expect(steps.securityCodeIs('WeHlioM5JZv1O9G'));
 		steps.testOnly = 0;
-		expect(steps.weScanQR('HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G'));
+		expect(steps.weScanCompanyQR('HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G'));
 		steps.testOnly = 1;
 		expect(steps.accountIsCompany());
 		steps.testOnly = 1;

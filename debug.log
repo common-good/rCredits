@@ -1,3 +1,9 @@
 [0321/152606.957:ERROR:registration_protocol_win.cc(84)] TransactNamedPipe: The pipe has been ended. (0x6D)
 [0324/140130.411:ERROR:registration_protocol_win.cc(84)] TransactNamedPipe: The pipe has been ended. (0x6D)
 [0324/191008.578:ERROR:registration_protocol_win.cc(84)] TransactNamedPipe: The pipe has been ended. (0x6D)
+[0330/200101.087:ERROR:process_info.cc(343)] VirtualQueryEx: Access is denied. (0x5)
+[0330/200101.087:ERROR:process_info.cc(564)] ReadMemoryInfo failed
+[0330/200101.093:ERROR:process_reader_win.cc(142)] SuspendThread: Access is denied. (0x5)
+[0330/200101.093:ERROR:exception_snapshot_win.cc(87)] thread ID 10620 not found in process
+[0330/200101.093:WARNING:crash_report_exception_handler.cc(60)] ProcessSnapshotWin::Initialize failed
+[0330/200101.093:ERROR:scoped_process_suspend.cc(38)] NtResumeProcess: An attempt was made to access an exiting process.  (0xc000010a)
