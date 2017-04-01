@@ -1,73 +1,80 @@
-///* global _$compile_, _$rootScope_, expect, browser */
-////
-//// Feature: Transfer funds to or from a customer.
-////   AS a company or individual
-////   I WANT to scan a customer card and transfer funds from their account to my account or vice versa
-////   SO we can account fairly for our business dealings.
-//var R2_steps =require('../r2.js');
-//describe('r2% -- FEATURE_NAME', function () {
-//	'use strict';
-//	var steps = new R2_steps();
-//	var eachStep;
-//	beforeAll(function () {
-//		browser.waitForAngular();
-//	});
-//	beforeEach(function () { // Setup
-//		steps.extraSetup();
-//		steps.testOnly = 0;
-//		expect(steps.showPage('Home')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showButton('Scan Customer rCard')).toBe(true);
-//	});
-//	it('Scenario: We identify and charge a customer', function () {
-//		steps.testOnly = 0;
-//		expect(steps.buttonPressed('Scan Customer rCard')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showScanner()).toBe(true);
-//		steps.testOnly = 0;
-//		expect(steps.scannerSeesQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showPhotoOfMember('NEWABB')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showText('Susan Shopper')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showText('Montague, MA')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showButton('Charge')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showButton('Refund')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showButton('Trade USD')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showButton('Back')).toBe(true);
-//		steps.testOnly = 0;
-//		expect(steps.buttonPressed('Charge')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showNumberKeypad()).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showAmount("0.00")).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showDropdownWithSelected('groceries')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showButton('Charge')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showButton('Back')).toBe(true);
-//		steps.testOnly = 0;
-//		expect(steps.buttonPressed("3")).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showAmount("0.03")).toBe(true);
-//		steps.testOnly = "0";
-//		expect(steps.buttonPressed('00')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showAmount(3.00)).toBe(true);
-//		steps.testOnly = 0;
-//		expect(steps.buttonPressed('Charge')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showMessageTitled('ok', 'Susan Shopper paid you $3.00', 'Success!')).toBe(true);
-//		steps.testOnly = 0;
-//		expect(steps.messageButtonPressed('ok')).toBe(true);
-//		steps.testOnly = 1;
-//		expect(steps.showPage('Home')).toBe(true);
-//	});
-//});
-//  
+/* global _$compile_, _$rootScope_, expect, browser */
+//
+// Feature: Transfer funds to or from a customer.
+//   AS a company or individual
+//   I WANT to scan a customer card and transfer funds from their account to my account or vice versa
+//   SO we can account fairly for our business dealings.
+var R2_steps =require('../r2.js');
+describe('r2% -- FEATURE_NAME', function () {
+	'use strict';
+	var steps = new R2_steps();
+	var eachStep;
+	var createdItemUrl;
+	beforeAll(function () {
+		browser.manage().timeouts().pageLoadTimeout(40000);
+		browser.manage().timeouts().implicitlyWait(25000);
+		browser.driver.get("http://localhost:8100", 500);
+		browser.waitForAngular();
+		browser.getCurrentUrl().then(function (url) {
+			createdItemUrl = url;
+		});
+	});
+	beforeEach(function () { // Setup
+		steps.extraSetup();
+		steps.testOnly = 0;
+		expect(steps.showPage('Home'));
+		steps.testOnly = 1;
+		expect(steps.showButton('Scan Customer rCard'));
+	});
+	it('Scenario: We identify and charge a customer', function () {
+		steps.testOnly = 0;
+		expect(steps.buttonPressed('Scan Customer rCard'));
+		steps.testOnly = 1;
+		expect(steps.showScanner());
+		steps.testOnly = 0;
+		expect(steps.scannerSeesQR('HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw'));
+		steps.testOnly = 1;
+		expect(steps.showPhotoOfMember('NEWABB'));
+		steps.testOnly = 1;
+		expect(steps.showText('Susan Shopper'));
+		steps.testOnly = 1;
+		expect(steps.showText('Montague, MA'));
+		steps.testOnly = 1;
+		expect(steps.showButton('Charge'));
+		steps.testOnly = 1;
+		expect(steps.showButton('Refund'));
+		steps.testOnly = 1;
+		expect(steps.showButton('Trade USD'));
+		steps.testOnly = 1;
+		expect(steps.showButton('Back'));
+		steps.testOnly = 0;
+		expect(steps.buttonPressed('Charge'));
+		steps.testOnly = 1;
+		expect(steps.showNumberKeypad());
+		steps.testOnly = 1;
+		expect(steps.showAmount("0.00"));
+		steps.testOnly = 1;
+		expect(steps.showDropdownWithSelected('groceries'));
+		steps.testOnly = 1;
+		expect(steps.showButton('Charge'));
+		steps.testOnly = 1;
+		expect(steps.showButton('Back'));
+		steps.testOnly = 0;
+		expect(steps.buttonPressed("3"));
+		steps.testOnly = 1;
+		expect(steps.showAmount("0.03"));
+		steps.testOnly = "0";
+		expect(steps.buttonPressed('00'));
+		steps.testOnly = 1;
+		expect(steps.showAmount(3.00));
+		steps.testOnly = 0;
+		expect(steps.buttonPressed('Charge'));
+		steps.testOnly = 1;
+		expect(steps.showMessageTitled('ok', 'Susan Shopper paid you $3.00', 'Success!'));
+		steps.testOnly = 0;
+		expect(steps.messageButtonPressed('ok'));
+		steps.testOnly = 1;
+		expect(steps.showPage('Home'));
+	});
+});
+  

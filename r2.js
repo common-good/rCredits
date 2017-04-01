@@ -87,7 +87,7 @@
 							var isClickable = EC.elementToBeClickable(button);
 							browser.driver.wait(isClickable, wait); //wait for an element to become clickable
 							browser.driver.wait(button.click(), wait);
-						}), 99999))
+						}), wait))
 						.then(function () {
 							element(by.id("customQR")).sendKeys(qr);
 							var link = element(by.id("accountInfoButton"));
@@ -97,7 +97,6 @@
 						});
 					return expect(browser.wait(EC.textToBePresentInElement(element(by.id("url")), qr), wait)).toBe(true);
 				});
-
 		};
 		this.weScanCompanyQR = function (qr) {
 			this.v['qr'] = qr;
@@ -128,49 +127,9 @@
 
 		};
 		this.accountIsPersonal = function () {
-//			browser.wait(browser.executeScript("document.location.href='https://otherrealm.org'"), wait)
-//				.then(browser.wait(browser.executeScript("document.location.href='http://localhost:8100/#/app/home'"), wait))
-//				.then(browser.wait(browser.executeScript("document.getElementById('scan').click();"), wait))
-//				.then(browser.wait(browser.executeScript("document.getElementById('H6VM010WeHlioM5JZv1O9G').click();"), wait))
-//				.then(browser.wait(browser.executeScript("document.getElementById('scan').click();"), wait))
-//				.then(browser.wait(browser.executeScript("document.getElementById('G6VM0RZzhWMCq0zcBowqw').click();"), wait));
-			return expect(browser.wait(EC.textToBePresentInElement(element(by.id("isPersonal")), 'true'), 999000)).toBe(true);
+			return expect(browser.wait(EC.textToBePresentInElement(element(by.id("isPersonal")), 'true'), wait)).toBe(true);
 		};
 		/**
-		 var d = protractor.promise.defer();
-		 (function () {
-		 console.log('1accountIsPersonal');
-		 var button = element(by.cssContainingText('.button', 'scan')).getText();
-		 var link = element(by.cssContainingText('.button', 'scan')).getText();
-		 var isClickable = EC.or(EC.elementToBeClickable(link), EC.elementToBeClickable(button));
-		 browser.wait(isClickable, 8000);
-		 browser.wait(link.click(),wait);
-		 }
-		 .then(function () {browser.wait(element(by.id("customQR")).sendKeys('HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G'),wait);})
-		 .then(function () {
-		 console.log('1accountIsPersonal');
-		 var link = element(by.id("demoAccountLogin"));
-		 var isClickable = EC.elementToBeClickable(link);
-		 browser.driver.wait(isClickable, 7000);
-		 browser.wait(link.click(), 7000);
-		 })
-		 .then(function () {
-		 console.log('1accountIsPersonal');
-		 var button = element(by.cssContainingText('.button', 'scan')).getText();
-		 var link = element(by.cssContainingText('.button', 'scan')).getText();
-		 var isClickable = EC.or(EC.elementToBeClickable(link), EC.elementToBeClickable(button));
-		 browser.wait(isClickable, 8000);
-		 browser.wait(link.click(),wait);
-		 })
-		 .then(element(by.id("customQR")).sendKeys(this.v['qr']))
-		 .then(function () {
-		 var isClickable2 = EC.elementToBeClickable(element(by.id("accountInfoButton")));
-		 browser.driver.wait(isClickable2, wait);
-		 var link2 = element(by.id("accountInfoButton"));
-		 browser.wait(link2.click(), 7000);
-		 d.resolve(expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("isPersonal")), 'true'), 999000)).toBe(true));
-		 }));
-		 return d.promise;
 		 * account is company
 		 *
 		 * in: TEST ParseQRCode WeScanAValidOldCompanyCard
@@ -178,7 +137,7 @@
 		 */
 		this.accountIsCompany = function () {
 //			browser.driver.wait(EC.textToBePresentInElement(element(by.id("isPersonal")),'false'),10000);
-			return expect(browser.wait(EC.textToBePresentInElement(element(by.id("isCompany")), 'true'), 999000)).toBe(true);
+			return expect(browser.wait(EC.textToBePresentInElement(element(by.id("isCompany")), 'true'), wait)).toBe(true);
 		};
 		/**
 		 * account ID is (ARG)	 *
@@ -211,12 +170,12 @@
 		this.showPage = function (p) {
 //			browser.driver.get("http://localhost:8100/#/app/home", 500);
 //			browser.driver.get("http://localhost:8100/#/app/login", 500);
-//			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
-//				var button = element(by.id('scan-to-login'));
-//				var isClickable = EC.elementToBeClickable(button);
-//				browser.driver.wait(isClickable, wait); //wait for an element to become clickable
-//				button.click();
-//			});
+			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
+				var button = element(by.id('scan'));
+				var isClickable = EC.elementToBeClickable(button);
+				browser.driver.wait(isClickable, wait); //wait for an element to become clickable
+				button.click();
+			});
 			element(by.id("customQR")).sendKeys('H6VM010WeHlioM5JZv1O9G');
 			var exp;
 			var link = element(by.id("demoAccountLogin"));
@@ -224,7 +183,7 @@
 			browser.wait(isClickable, wait)
 				.then(link.click());
 //			.then(exp=expect(browser.wait(EC.urlContains(p), 5000)));
-			return browser.wait(EC.urlContains(p.toLowerCase()), wait);
+			return expect(browser.wait(EC.urlContains(p.toLowerCase()), wait)).toBe(true);
 		};
 		/**
 		 * show button (ARG)
@@ -233,7 +192,7 @@
 		 *     TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showButton = function (arg1) {
-			return browser.wait(expect(element(by.cssContainingText('button', arg1)).getText()).toEqual(arg1), 6000);
+			return browser.wait(expect(element(by.cssContainingText('button', arg1)).getText()).toContain(arg1), wait);
 		};
 		/**
 		 * button (ARG) pressed
@@ -241,9 +200,8 @@
 		 * in: MAKE Transact WeIdentifyAndChargeACustomer
 		 */
 		this.buttonPressed = function (arg1) {
-			console.log(arg1);
-			var button = element(by.cssContainingText('.button', arg1.toString())).getText();
-			var link = element(by.cssContainingText('.button', arg1.toString())).getText();
+			var button = element(by.cssContainingText('button', arg1.toString())).getText();
+			var link = element(by.cssContainingText('button', arg1.toString())).getText();
 			var isClickable = EC.or(EC.elementToBeClickable(link), EC.elementToBeClickable(button));
 			browser.wait(isClickable, 8000);
 			link.click();
@@ -255,7 +213,7 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showScanner = function () {
-			return browser.driver.wait(EC.or(EC.urlContains('demo-people'), EC.urlContains('qr')), 9000);
+			return expect(browser.driver.wait(EC.or(EC.urlContains('demo-people'), EC.urlContains('qr')), 9000)).toBe(true);
 		};
 		/**
 		 * scanner sees QR (ARG)
@@ -268,8 +226,10 @@
 			var link = element(by.id("demoAccountLogin"));
 			var isClickable = EC.elementToBeClickable(link);
 			browser.wait(isClickable, wait)
-				.then(link.click());
-			return expect(QR.getText()).toBe(arg1);
+				.then(link.click())
+				.then(function () {
+					return browser.wait(expect(element(by.id("url")).getText()).toEqual('url:'+arg1), wait);
+				});
 		};
 		/**
 		 * show photo of member (ARG)
@@ -277,7 +237,7 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer 
 		 */
 		this.showPhotoOfMember = function (arg1) {
-			return browser.driver.wait(expect(element(by.id('ItemPreview')).isPresent()).toBe(true), wait);
+			return expect(browser.driver.wait(element(by.id('ItemPreview')).isPresent(), wait)).toBe(true);
 		};
 		/**
 		 * show text (ARG)
@@ -285,7 +245,7 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showText = function (arg1) {
-			return  browser.wait(EC.textToBePresentInElement(element(by.id('customerPage')), arg1), wait);
+			return  expect(browser.wait(EC.textToBePresentInElement(element(by.id('customerPage')), arg1), wait)).toBe(true);
 		};
 		/**
 		 * show number keypad
@@ -293,7 +253,7 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showNumberKeypad = function () {
-			return  browser.driver.wait(expect(element(by.id('keypad')).isPresent()).toBe(true), wait);
+			return  expect(browser.driver.wait(element(by.id('keypad')).isPresent(), wait)).toBe(true);
 		};
 		/**
 		 * show amount (ARG)
@@ -301,7 +261,7 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showAmount = function (arg1) {
-			return browser.driver.wait(expect(element(by.id('displayAmount')).getText()).toEqual(arg1.toString()), wait);
+			return expect(browser.driver.wait(element(by.id('displayAmount')).getText(), wait)).toEqual(arg1.toString());
 		};
 		/**
 		 * show dropdown with (ARG) selected
