@@ -46,7 +46,7 @@ describe('r2% -- FEATURE_NAME', function () {
 		steps.testOnly = 1;
 		expect(steps.showButton('Trade USD'));
 		steps.testOnly = 1;
-		expect(steps.showBackButton('Back'));
+		expect(steps.showBackButton1('Back'));
 		steps.testOnly = 0;
 		expect(steps.buttonPressed('Charge'));
 		steps.testOnly = 1;
@@ -58,7 +58,7 @@ describe('r2% -- FEATURE_NAME', function () {
 		steps.testOnly = 1;
 		expect(steps.showButton('Charge'));
 		steps.testOnly = 1;
-		expect(steps.showBackButton('Back'));
+		expect(steps.showBackButton2('Back'));
 		steps.testOnly = 0;
 		expect(steps.buttonPressed("3"));
 		steps.testOnly = 1;

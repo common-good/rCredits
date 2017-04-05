@@ -24,7 +24,7 @@
 		this.v = []; // miscellaneous data
 		this.v.parse = '';
 		var wait = 20000;
-		var count=0;
+		var count = 0;
 		var EC = protractor.ExpectedConditions;
 		/**
 		 * Add additional setup for any or all features or tests
@@ -202,8 +202,15 @@
 		 * in: TEST Transact Setup
 		 *     TEST Transact WeIdentifyAndChargeACustomer
 		 */
-		this.showBackButton = function (arg1) {
-			browser.wait(expect(element(by.cssContainingText('div[nav-bar="active"].default-title'),arg1).getText()).toContain(arg1), wait);
+		this.showBackButton1 = function (arg1) {
+			var back = $('button.back-button');
+			browser.wait(EC.presenceOf(back), wait);
+			return expect(back.getText()).toContain(arg1);
+		};
+		this.showBackButton2 = function (arg1) {
+			var back = element(by.css('#bB > span.back-text > span.default-title:nth-child(1)'));
+			browser.wait(EC.presenceOf(back), wait);
+			return expect(back.getText()).toContain(arg1);
 		};
 		/**
 		 * button (ARG) pressed
