@@ -25,14 +25,14 @@ Scenario: We identify and charge a customer
   And show button "Charge"
   And show button "Refund"
   And show button "Trade USD"
-  And show button "Back"
+  And show back button "Back"
   
   When button "Charge" pressed
   Then show number keypad
   And show amount "0.00"
   And show dropdown with "groceries" selected
   And show button "Charge"
-  And show button "Back"
+  And show back button "Back"
   
   When button "3" pressed
   Then show amount "0.03"

@@ -24,6 +24,7 @@
 		this.v = []; // miscellaneous data
 		this.v.parse = '';
 		var wait = 20000;
+		var count=0;
 		var EC = protractor.ExpectedConditions;
 		/**
 		 * Add additional setup for any or all features or tests
@@ -192,7 +193,17 @@
 		 *     TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showButton = function (arg1) {
-			return browser.wait(expect(element(by.cssContainingText('button', arg1)).getText()).toContain(arg1), wait);
+			var button = expect(element(by.cssContainingText('.button', arg1)).getText()).toEqual(arg1);
+			return browser.wait(button, wait);
+		};
+		/**
+		 * show back button (ARG)
+		 *
+		 * in: TEST Transact Setup
+		 *     TEST Transact WeIdentifyAndChargeACustomer
+		 */
+		this.showBackButton = function (arg1) {
+			browser.wait(expect(element(by.cssContainingText('div[nav-bar="active"].default-title'),arg1).getText()).toContain(arg1), wait);
 		};
 		/**
 		 * button (ARG) pressed
@@ -228,7 +239,7 @@
 			browser.wait(isClickable, wait)
 				.then(link.click())
 				.then(function () {
-					return browser.wait(expect(element(by.id("url")).getText()).toEqual('url:'+arg1), wait);
+					return browser.wait(expect(element(by.id("url")).getText()).toEqual('url:' + arg1), wait);
 				});
 		};
 		/**
