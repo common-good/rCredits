@@ -41,6 +41,12 @@
 //				browser.driver.wait(button.click(), 7000);
 //			});
 		};
+		var waitForElement = function (selector, waitFor) {
+			waitFor = waitFor || 50000;
+			browser.driver.manage().timeouts().implicitlyWait(waitFor);
+			browser.driver.findElement(by.css(selector));
+			browser.driver.manage().timeouts().implicitlyWait(0);
+		};
 		/**
 		 * we scan QR (ARG)
 		 * in: MAKE ParseQRCode WeScanAValidOldPersonalCard
@@ -171,18 +177,20 @@
 		this.showPage = function (p) {
 //			browser.driver.get("http://localhost:8100/#/app/home", 500);
 //			browser.driver.get("http://localhost:8100/#/app/login", 500);
-			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
-				var button = element(by.id('scan'));
-				var isClickable = EC.elementToBeClickable(button);
-				browser.driver.wait(isClickable, wait); //wait for an element to become clickable
-				button.click();
-			});
-			element(by.id("customQR")).sendKeys('H6VM010WeHlioM5JZv1O9G');
-			var exp;
-			var link = element(by.id("demoAccountLogin"));
-			var isClickable = EC.elementToBeClickable(link);
-			browser.wait(isClickable, wait)
-				.then(link.click());
+			if (count++ === 0) {
+				browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
+					var button = element(by.id('scan'));
+					var isClickable = EC.elementToBeClickable(button);
+					browser.driver.wait(isClickable, wait); //wait for an element to become clickable
+					button.click();
+				});
+				element(by.id("customQR")).sendKeys('H6VM010WeHlioM5JZv1O9G');
+				var exp;
+				var link = element(by.id("demoAccountLogin"));
+				var isClickable = EC.elementToBeClickable(link);
+				browser.wait(isClickable, wait)
+					.then(link.click());
+			}
 //			.then(exp=expect(browser.wait(EC.urlContains(p), 5000)));
 			return expect(browser.wait(EC.urlContains(p.toLowerCase()), wait)).toBe(true);
 		};
@@ -202,15 +210,8 @@
 		 * in: TEST Transact Setup
 		 *     TEST Transact WeIdentifyAndChargeACustomer
 		 */
-		this.showBackButton1 = function (arg1) {
-			var back = $('button.back-button');
-			browser.wait(EC.presenceOf(back), wait);
-			return expect(back.getText()).toContain(arg1);
-		};
-		this.showBackButton2 = function (arg1) {
-			var back = element(by.css('#bB > span.back-text > span.default-title:nth-child(1)'));
-			browser.wait(EC.presenceOf(back), wait);
-			return expect(back.getText()).toContain(arg1);
+		this.showBackButton = function (arg1) {
+			return browser.wait(expect(browser.executeScript("return document.getElementById('testing').innerHTML")).toBe(arg1));
 		};
 		/**
 		 * button (ARG) pressed
@@ -218,10 +219,10 @@
 		 * in: MAKE Transact WeIdentifyAndChargeACustomer
 		 */
 		this.buttonPressed = function (arg1) {
-			var button = element(by.cssContainingText('button', arg1.toString())).getText();
-			var link = element(by.cssContainingText('button', arg1.toString())).getText();
+			var button = element(by.cssContainingText('.button', arg1.toString())).getText();
+			var link = element(by.cssContainingText('.button', arg1.toString())).getText();
 			var isClickable = EC.or(EC.elementToBeClickable(link), EC.elementToBeClickable(button));
-			browser.wait(isClickable, 8000);
+			browser.wait(isClickable, wait);
 			link.click();
 			return isClickable;
 		};
@@ -231,7 +232,7 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showScanner = function () {
-			return expect(browser.driver.wait(EC.or(EC.urlContains('demo-people'), EC.urlContains('qr')), 9000)).toBe(true);
+			return expect(browser.driver.wait(EC.or(EC.urlContains('demo-people'), EC.urlContains('qr')), wait)).toBe(true);
 		};
 		/**
 		 * scanner sees QR (ARG)
@@ -243,11 +244,13 @@
 			QR.sendKeys(arg1);
 			var link = element(by.id("demoAccountLogin"));
 			var isClickable = EC.elementToBeClickable(link);
+			console.log(arg1);
+			var url=expect(browser.wait(element(by.binding("customPerson.accountInfo.url")).getText(), wait)).toEqual('url:' + arg1);
 			browser.wait(isClickable, wait)
-				.then(link.click())
 				.then(function () {
-					return browser.wait(expect(element(by.id("url")).getText()).toEqual('url:' + arg1), wait);
-				});
+					return browser.wait(url,wait);
+				})
+				.then(link.click());
 		};
 		/**
 		 * show photo of member (ARG)
@@ -287,7 +290,7 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showDropdownWithSelected = function (arg1) {
-			return true; //browser.driver.wait(EC.textToBePresentInElementValue(by.id('category'), arg1), wait);
+			return expect(browser.driver.wait(element(by.options('c |  translate for c in categories')).getText(), wait)).toEqual(arg1.toString());
 		};
 		/**
 		 * show (ARG) message (ARG) titled (ARG)
@@ -295,7 +298,10 @@
 		 * in: TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showMessageTitled = function (arg1, arg2, arg3) {
-			return true;
+			var note=browser.wait(expect(browser.executeScript("return document.getElementById('note').innerHTML")).toBe(arg2),500000);
+			var headding=browser.wait(expect(browser.executeScript("return document.getElementById('headingSuccess').innerHTML")).toBe(arg3),500000);
+			var backHome=browser.wait(expect(browser.executeScript("return document.getElementById('backHome').innerHTML")).toBe(arg1),500000);
+			return browser.wait(EC.and(note,headding,backHome),500000);
 		};
 		/**
 		 * message button (ARG) pressed
@@ -303,7 +309,9 @@
 		 * in: MAKE Transact WeIdentifyAndChargeACustomer
 		 */
 		this.messageButtonPressed = function (arg1) {
-			return true;
+			var button=browser.wait(expect(browser.executeScript("return document.getElementById('backHome').innerHTML")).toBe(arg1),500000);
+			var click=browser.wait(expect(browser.executeScript("return document.getElementById('backHome').click()")).toBeTruthy(),500000);
+			return browser.wait(EC.and(button,click),500000);
 		};
 	};
 	module.exports = function () {

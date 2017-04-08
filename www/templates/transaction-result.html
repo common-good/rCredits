@@ -23,15 +23,15 @@
 				<i class="icon ion-android-alert large-icon"
 				   ng-hide="success">
 				</i>
-				<h1>
+				<h1 id='headingSuccess'>
 					{{ heading}}
 				</h1>
-				<p>
+				<p id='note'>
 					{{ note}}
 				</p>
 			</div>
 			<div class="actions">
-				<button class="button primary button-block button-positive"
+				<button id='backHome' class="button primary button-block button-positive"
 						ng-click="redirectHome()">
 					{{ 'home' | translate }}
 				</button>

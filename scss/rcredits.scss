@@ -114,11 +114,8 @@ subheader {
 	display: inherit;/*
 	position: relative;*/
 }
-#bB > span.back-text > span.default-title:nth-child(0){
-	color: red;
-}
-#bB > span.back-text > span.default-title:nth-child(1){
-	color: red;
+#testing{
+	display: none;
 }
 /*.item-radio input:checked + .radio-content .item-content {
 	color: black;

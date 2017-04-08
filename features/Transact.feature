@@ -39,6 +39,6 @@ Scenario: We identify and charge a customer
   When button "00" pressed
   Then show amount "3.00"
   When button "Charge" pressed
-  Then show "ok" message "Susan Shopper paid you $3.00" titled "Success!"
-  When message button "ok" pressed
+  Then show "Home" message "Susan Shopper paid you $3.00" titled "Success!"
+  When message button "Home" pressed
   Then show page "Home"

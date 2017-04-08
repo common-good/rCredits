@@ -1,6 +1,7 @@
 app.controller('MenuCtrl', function ($scope, $state, $ionicLoading, BarcodeService, UserService, $ionicHistory,
 	NotificationService, CashierModeService, PreferenceService, NetworkService,
 	SelfServiceMode, $ionicSideMenuDelegate, $timeout) {
+		var backCount=0;
 	// Logout
 	$scope.logout = function () {
 		$ionicLoading.show();
@@ -15,6 +16,10 @@ app.controller('MenuCtrl', function ($scope, $state, $ionicLoading, BarcodeServi
 				$ionicLoading.hide();
 			});
 	};
+	$scope.trackGoBack = 'Back';
+//	$scope.goBack = function () {
+//		$ionicHistory.goBack();
+//	};
 	$scope.softLogout = function () {
 		return UserService.softLogout();
 	};
