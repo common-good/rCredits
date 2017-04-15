@@ -1,6 +1,6 @@
 app.controller('TransactionResultCtrl', function ($scope, $state, NetworkService,
 	$stateParams, $ionicLoading, $filter, NotificationService, UserService,
-	TransactionService, BackButtonService, $timeout, SelfServiceMode) {
+	TransactionService, BackButtonService, $timeout,$interval, SelfServiceMode) {
 	var oldOnline = NetworkService.isOnline();
 	$scope.transactionStatus = $stateParams.transactionStatus;
 	$scope.transactionAmount = $stateParams.transactionAmount;
@@ -18,13 +18,12 @@ app.controller('TransactionResultCtrl', function ($scope, $state, NetworkService
 		$scope.timeCan = false;
 	}, 60 * 1000);
 	function onoroff() {
-		$timeout(function () {
+		var onOff=$interval(function () {
 //			console.log(NetworkService.isOnline());
 			if (NetworkService.isOnline() !== oldOnline) {
 				$scope.timeCan = false;
-			} else {
-				return onoroff();
-			}
+				$interval.cancel(onOff);
+			} 
 			oldOnline = NetworkService.isOnline();
 		}, 100);
 	}

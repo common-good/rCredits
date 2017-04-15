@@ -60,21 +60,21 @@ describe('r2% -- FEATURE_NAME', function () {
 		steps.testOnly = 1;
 		expect(steps.showBackButton('Back'));
 		steps.testOnly = 0;
-		expect(steps.buttonPressed("3"));
+		expect(steps.buttonPressed("1"));
 		steps.testOnly = 1;
-		expect(steps.showAmount("0.03"));
+		expect(steps.showAmount("0.01"));
 		steps.testOnly = "0";
 		expect(steps.buttonPressed('00'));
 		steps.testOnly = 1;
-		expect(steps.showAmount("3.00"));
+		expect(steps.showAmount("1.00"));
 		steps.testOnly = 0;
 		expect(steps.buttonPressed('Charge'));
 		steps.testOnly = 1;
-		expect(steps.showMessageTitled('Home', 'Susan Shopper paid you $3.00', 'Success!'));
+		expect(steps.showMessageTitled('Home', 'You charged Susan Shopper $1', 'Successful'));
 		steps.testOnly = 0;
 		expect(steps.messageButtonPressed('Home'));
 		steps.testOnly = 1;
-		expect(steps.showPage('Home'));
+		expect(steps.homepage('Home'));
 	});
 });
   
