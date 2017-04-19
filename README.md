@@ -66,3 +66,4 @@ Then:
 webdriver-manager start
 2. Start Protractor:
 protractor protConf.js
+Note, currently the test sometimes fails for two reasons, both related to protractor/webdriver and unrelated to the actual Common Good code: one is a timeout that happens when the server response takes too long and the other is that, for some reason, you can't get both tests to run at the same time (the second test fails, saying that the browser no longer has a valid session) and you need to comment out the one you're not testing.  I will try to find workarounds for these.

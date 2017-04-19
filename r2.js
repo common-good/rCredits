@@ -34,12 +34,6 @@
 				console.log('SessionID=' + session.getId());
 			});
 			browser.driver.get("http://localhost:8100/#/app/login", 500);
-//			browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
-//				var button = element(by.id('scan'));
-//				var isClickable = EC.elementToBeClickable(button);
-//				browser.driver.wait(isClickable, 7000); //wait for an element to become clickable
-//				browser.driver.wait(button.click(), 7000);
-//			});
 		};
 		var waitForElement = function (selector, waitFor) {
 			waitFor = waitFor || 50000;
@@ -57,7 +51,6 @@
 		var del = .5;
 		this.weScanPersonalQR = function (qr) {
 			this.v['qr'] = qr;
-//			if (qr.substr(-16, 1) === 'H'||qr.substr(-16, 1) === '-') {
 			var parts = qr.split(/[/\\.-]/);
 			console.log(parts[5].length, qr.indexOf('HTTP://'));
 			browser.wait(browser.executeScript("document.getElementById('scan').click();"), wait)
@@ -107,7 +100,6 @@
 		};
 		this.weScanCompanyQR = function (qr) {
 			this.v['qr'] = qr;
-//			if (qr.substr(-16, 1) === 'H'||qr.substr(-16, 1) === '-') {
 			var parts = qr.split(/[/\\.-]/);
 			console.log(parts[5].length, qr.indexOf('HTTP://'));
 			browser.wait(browser.executeScript("document.getElementById('scan').click();"), wait)
@@ -142,7 +134,6 @@
 		 *     TEST ParseQRCode WeScanAValidCompanyCard
 		 */
 		this.accountIsCompany = function () {
-//			browser.driver.wait(EC.textToBePresentInElement(element(by.id("isPersonal")),'false'),10000);
 			return expect(browser.wait(EC.textToBePresentInElement(element(by.id("isCompany")), 'true'), wait)).toBe(true);
 		};
 		/**
@@ -153,7 +144,6 @@
 		 *     TEST ParseQRCode WeScanAValidCompanyCard
 		 */
 		this.accountIDIs = function (id) {
-//			browser.driver.wait(EC.textToBePresentInElement(element(by.id("memberId")),'false'),10000);
 			return expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("memberId")), id), wait)).toBe(true);
 		};
 		/**
@@ -164,7 +154,6 @@
 		 *     TEST ParseQRCode WeScanAValidCompanyCard
 		 */
 		this.securityCodeIs = function (securityCode) {
-//			browser.driver.wait(EC.textToBePresentInElement(element(by.id("unencryptedCode")),'false'),10000);
 			return expect(browser.driver.wait(EC.textToBePresentInElement(element(by.id("unencryptedCode")), securityCode), wait)).toBe(true);
 		};
 		/**
@@ -174,8 +163,6 @@
 		 *     TEST Transact WeIdentifyAndChargeACustomer
 		 */
 		this.showPage = function (p) {
-//			browser.driver.get("http://localhost:8100/#/app/home", 500);
-//			browser.driver.get("http://localhost:8100/#/app/login", 500);
 			if (count++ === 0) {
 				browser.executeScript('window.scrollTo(0,document.body.scrollHeight)').then(function () {
 					var button = element(by.id('scan'));
@@ -190,7 +177,6 @@
 				browser.wait(isClickable, wait)
 					.then(link.click());
 			}
-//			.then(exp=expect(browser.wait(EC.urlContains(p), 5000)));
 			return expect(browser.wait(EC.urlContains(p.toLowerCase()), wait)).toBe(true);
 		};
 		/**
