@@ -8,9 +8,9 @@ Setup:
   | id   | fullName   | address | city  | state  | postalCode | country | postalAddr | rebate | flags        |*
   | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK |      5 | ok,confirmed |
   And balances:
-  | id   | r   | rewards |*
-  | cgf  |   0 |       0 |
-  | .ZZA | 120 |      20 |
+  | id   | balance | r   | rewards |*
+  | cgf  |       0 |   0 |       0 |
+  | .ZZA |     100 | 120 |      20 |
 
 Scenario: A donation can be completed
   Given gifts:
@@ -18,10 +18,8 @@ Scenario: A donation can be completed
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 |         0 |
   When cron runs "gifts"
   Then transactions:
-  | xid | created | type     | amount | from      | to      | purpose      |*
-  |   1 | %today  | transfer |     10 | .ZZA      | cgf     | donation |
-  |   2 | %today  | rebate   |   0.50 | community | .ZZA    | reward on #1 |
-  |   3 | %today  | bonus    |   1.00 | community | cgf     | reward on #1  |
+  | xid | created | type     | amount | rebate | bonus | from      | to      | purpose      |*
+  |   1 | %today  | transfer |     10 |    .50 |  1.00 | .ZZA      | cgf     | donation |
   And gifts:
   | id   | giftDate   | amount | often | honor  | honored | share | completed |*
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |
@@ -48,10 +46,8 @@ Scenario: A donation can be completed even if the member has never yet made an r
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 |         0 |
   When cron runs "gifts"
   Then transactions:
-  | xid | created | type     | amount | from      | to      | purpose      |*
-  |   1 | %today  | transfer |     10 | .ZZA      | cgf     | donation |
-  |   2 | %today  | rebate   |   0.50 | community | .ZZA    | reward on #1 |
-  |   3 | %today  | bonus    |   1.00 | community | cgf     | reward on #1  |
+  | xid | created | type     | amount | rebate | bonus | from      | to      | purpose      |*
+  |   1 | %today  | transfer |     10 |    .50 |  1.00 | .ZZA      | cgf     | donation |
  
 Scenario: A recurring donation can be completed
   Given gifts:
@@ -59,10 +55,8 @@ Scenario: A recurring donation can be completed
   | .ZZA | %yesterday |     10 |     Q | memory | Jane Do |    10 |         0 |
   When cron runs "gifts"
   Then transactions:
-  | xid   | created | type     | amount | from | to   | purpose      |*
-  | .AAAB | %today  | transfer |     10 | .ZZA | cgf  | donation (quarterly gift #1) |
-  | .AAAC | %today  | rebate   |   0.50 | ctty | .ZZA | reward on #1 |
-  | .AAAD | %today  | bonus    |   1.00 | ctty | cgf  | reward on #1  |
+  | xid   | created | type     | amount | rebate | bonus | from | to   | purpose      |*
+  | .AAAB | %today  | transfer |     10 |    .50 |  1.00 | .ZZA | cgf  | donation (quarterly gift #1) |
   And gifts:
   | id   | giftDate      | amount | often | honor  | honored | completed |*
   | .ZZA | %yesterday    |     10 |     Q | memory | Jane Do | %today    |

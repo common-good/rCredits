@@ -91,7 +91,7 @@ $favicon
   <link rel="stylesheet" href="$rUrl/css/jquery-ui.css?$version">
   <link rel="stylesheet" href="$rUrl/css/ladda-themeless.min.css?$version">
   $styles
-  <link rel="stylesheet" href="$rUrl/css/rcredits.css?$version" type="text/css" />
+  <link rel="stylesheet" href="$rUrl/css/cg.css?$version" type="text/css" />
   <link rel="stylesheet" href="$rUrl/css/rweb.css?$version" type="text/css" />
   $scripts
 </head>

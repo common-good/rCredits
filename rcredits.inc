@@ -186,6 +186,16 @@ function cttys($region, $ctty = FALSE) {
 }
 
 /**
+ * Record the current IP as approved (for whitelisting in WHM)
+ * @param int $uid: account ID
+ * @param string $device: one device code for this account (not very important, but interesting, especially for POS)
+ */
+function ipok($uid, $device) {
+  $ip = $_SERVER['REMOTE_ADDR'];
+  if (!db\exists('r_ips', 'ip=:ip', compact('ip'))) db\insert('r_ips', compact(ray('ip uid device'))); 
+}
+
+/**
  * Wrap all email, so it doesn't go out when testing.
  * @param string $index: index to email template and subject (empty if supplying explicit body and subject)
  * @param mixed $to: where to send the message -- uid, account, email address, or [$email => $name]
@@ -421,7 +431,7 @@ function membershipEvent($a, $status, $do = TRUE) {
   unset($DBTX);
   
   $qid = $a->mainQid;
-  tellCO('event - ' . $status, compact(ray('fullName qid status')), $a->id);
+  if ($status != 'bona') tellCO('event - ' . $status, compact(ray('fullName qid status')), $a->id);
   return TRUE;
 }
 
@@ -436,6 +446,7 @@ function acceptGift($info) {
   if ($a->shortfall(FOR_GOODS, $amount)) return FALSE; // wait until tomorrow, if not enough
   if ($a->shortfall(FOR_GOODS, $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
   $cgf = r\acct(r\cgfId());
+  $data['gift'] = 1;
 
 //  r\usd::beginAtom();
   if ($often != 1) {
@@ -443,11 +454,12 @@ function acceptGift($info) {
     $recurs = ray(t('once monthly quarterly annual'));
     $count = db\count('r_gifts', 'uid=:uid AND often=:often', compact('uid', 'often'));
     $recurring = t(' (%how gift #%count)', 'how count', $recurs[strpos('1MQY', $often)], $count);
+    $data['patronage'] = 1;
   }
 
   $sharing = (@$honor == 'share');
   list ($goods, $purpose) = $sharing ? [FOR_SHARE, R_SHARING_MSG] : [FOR_GOODS, t('donation') . @$recurring];
-  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, $goods, $purpose);
+  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, $goods, $purpose, NULL, TRUE, $data);
   if (@$args['success']) {
     $completed = r\rTime();
     db\update('r_gifts', compact('donid', 'completed'), 'donid');
@@ -757,7 +769,7 @@ function makeDevice($uid, $code = '', $ch = NULL) {
   
   u\setDft($ch, $channel);
 
-  if ($ch == TX_WEB and $mya and $mya->admin) return 0; // don't create spurious devices as admin
+//  if ($ch == TX_WEB and $mya and $mya->superAdmin) return 0; // don't create spurious devices as admin
 /*  if ($boxName === '0') {
     $where = "t1.boxName REGEXP '^[0-9]+$' AND t1.uid=:uid";
     $boxName = u\firstUnusedId('boxName', 'r_boxes', 1, PHP_INT_MAX-1, $where, compact('uid'));
@@ -805,6 +817,7 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_invites:invitee:D',
     'r_invoices:payer:D',
     'r_invoices:payee:D',
+    'r_ips:uid:D',
     'r_log:myid:D',
     'r_log:agent:D',
     'r_near:uid1:D',
@@ -1031,15 +1044,14 @@ function cttyPaidEver($ctty = 0) {
  * @todo: change r field to bal and include replacements for USD
  */
 function getStats($ctty, $created = NULL) {
-  u\setDft($created, u\test() ? REQUEST_TIME : r\rTime());
+  u\setDft($created, r\rTime());
   $subs = compact('created', $ctty ? 'ctty' : '');
-  list ($members, $tmembers) = isGAME ? ['members', 't.members'] : [1, 1];
   list ($cttyCrit, $payerCrit, $payeeCrit, $cttysCrit) = $ctty ? 
     ['community=:ctty', 'payer=:ctty', 'payee=:ctty', '(u.community=:ctty OR u2.community=:ctty)']
   : ['1', 'payer<1', 'payee<1', '1'];
   list ($tradeOutSum, $tradeInSum) = $ctty == 0 ? [0, 0]
-  : ["SUM($tmembers * IF(u.community<>:ctty AND u2.community=:ctty, amount, 0))",
-     "SUM($tmembers * IF(u2.community<>:ctty AND u.community=:ctty, -amount, 0))"];
+  : ["SUM(IF(u.community<>:ctty AND u2.community=:ctty, amount, 0))",
+     "SUM(IF(u2.community<>:ctty AND u.community=:ctty, -amount, 0))"];
   
   $runny = 'IF(:HAS_BANK AND :IS_REFILL AND minimum>0, -minimum/2, IF(:IS_CO, 0, tin.rewards))'; // spendable, leading to a run on the bank
   $payins = '(SELECT payee, SUM(amount) AS received, SUM(IF(type IN (:TX_REWARDS), amount, 0)) AS rewards FROM r_txs WHERE created<=:created GROUP BY payee)';
@@ -1048,9 +1060,9 @@ function getStats($ctty, $created = NULL) {
   
   // get pAccts, bAccts, newbs, savings, savingsIntent
   $sql = <<<EOF
-    SELECT SUM($members * IF(activated AND activated<=:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
+    SELECT SUM(IF(activated AND activated<=:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
       SUM(IF(activated AND activated<=:created AND :IS_CO, 1, 0)) AS bAccts,
-      SUM($members * IF(created<=:created AND (NOT activated OR activated>:created), 1, 0)) AS newbs,
+      SUM(IF(created<=:created AND (NOT activated OR activated>:created), 1, 0)) AS newbs,
       SUM($runny) AS runny,
       SUM(IF($runny>0, 1, 0)) AS runnyCount,
       SUM(IF($runny>0, tin.received - tout.paid + tus.deposited, 0)) AS runnyBal,
@@ -1083,8 +1095,8 @@ EOF;
   // get usd
   $sql = <<<EOF
     SELECT
-    SUM($tmembers * IF(amount<0, -amount, 0)) AS bankIn,
-    SUM($tmembers * IF(amount>0, amount, 0)) AS bankOut
+    SUM(IF(amount<0, -amount, 0)) AS bankIn,
+    SUM(IF(amount>0, amount, 0)) AS bankOut
     FROM r_usd t LEFT JOIN users u ON u.uid=t.payer
     WHERE $cttyCrit AND t.completed AND t.completed<=:created
 EOF;
@@ -1096,20 +1108,21 @@ EOF;
 
   // get purchases, rewards (of all types), xfees, grants, loans, investments, community trade, shared, forcash
   $sums = ''; // fine and giveback are negative rewards
-  foreach (ray('signup rebate bonus giveback inflation helper fine xfee grant loan invest') as $one) {
+  foreach (ray('signup giveback inflation helper fine xfee grant loan invest') as $one) {
     $type = u\consta('tx', $one);
-    $sums .= "SUM($tmembers * IF(type=$type AND $payerCrit, amount, 0)) AS `{$one}s`, ";
+    $sums .= "SUM(IF(type=$type AND $payerCrit, amount, 0)) AS `{$one}s`, ";
   }
 
   $sql = <<<EOF
     SELECT $sums 
-    SUM($tmembers * IF(type=:TX_TRANSFER AND ($payerCrit OR ($payeeCrit AND amount<0)), ABS(amount), 0)) AS cttyBuys,
-    SUM($tmembers * IF(type=:TX_TRANSFER AND $payeeCrit AND amount>0, -amount, 0)) AS cttyIncomes,
+    SUM(payerReward) AS rebates, SUM(payeeReward) AS bonuss,
+    SUM(IF(type=:TX_TRANSFER AND ($payerCrit OR ($payeeCrit AND amount<0)), ABS(amount), 0)) AS cttyBuys,
+    SUM(IF(type=:TX_TRANSFER AND $payeeCrit AND amount>0, -amount, 0)) AS cttyIncomes,
     $tradeOutSum AS tradeOut, 
     $tradeInSum AS tradeIn,    
-    SUM($tmembers * IF(channel=:TX_CRON AND payeeFor=':R_SHARING_MSG', amount, 0)) AS shared,
-    SUM($tmembers * IF(goods=:FOR_GOODS, amount, 0)) AS purchases, 
-    SUM($tmembers * IF(payer>1 AND goods=:FOR_USD, amount, 0)) AS forCashs
+    SUM(IF(channel=:TX_CRON AND payeeFor=':R_SHARING_MSG', amount, 0)) AS shared,
+    SUM(IF(goods=:FOR_GOODS, amount, 0)) AS purchases, 
+    SUM(IF(payer>1 AND goods=:FOR_USD, amount, 0)) AS forCashs
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
     WHERE $cttysCrit AND t.created<=:created
 EOF;
@@ -1136,19 +1149,19 @@ EOF;
 
   $sql = <<<EOF
     SELECT 
-    SUM($tmembers * IF(goods=:FOR_GOODS, amount, 0)) AS perMo,
-    SUM($tmembers * IF(goods=:FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, amount, 0)) AS p2bPerMo,
-    SUM($tmembers * IF(goods=:FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, amount, 0)) AS b2bPerMo,
-    SUM($tmembers * IF(goods=:FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, amount, 0)) AS b2pPerMo,
-    SUM($tmembers * IF(goods=:FOR_GOODS, 0, amount)) AS cashPerMo,
+    SUM(IF(goods=:FOR_GOODS, amount, 0)) AS perMo,
+    SUM(IF(goods=:FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, amount, 0)) AS p2bPerMo,
+    SUM(IF(goods=:FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, amount, 0)) AS b2bPerMo,
+    SUM(IF(goods=:FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, amount, 0)) AS b2pPerMo,
+    SUM(IF(goods=:FOR_GOODS, 0, amount)) AS cashPerMo,
     $tradeOutSum AS tradeOutPerMo,
     $tradeInSum AS tradeInPerMo,
 
-    SUM($tmembers * IF(goods=:FOR_GOODS, 1, 0)) AS txsPerMo,
-    SUM($tmembers * IF(goods=:FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, 1, 0)) AS p2bTxsPerMo,
-    SUM($tmembers * IF(goods=:FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, 1, 0)) AS b2bTxsPerMo,
-    SUM($tmembers * IF(goods=:FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, 1, 0)) AS b2pTxsPerMo,
-    SUM($tmembers * IF(goods=:FOR_GOODS, 0, 1)) AS cashTxsPerMo
+    SUM(IF(goods=:FOR_GOODS, 1, 0)) AS txsPerMo,
+    SUM(IF(goods=:FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, 1, 0)) AS p2bTxsPerMo,
+    SUM(IF(goods=:FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, 1, 0)) AS b2bTxsPerMo,
+    SUM(IF(goods=:FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, 1, 0)) AS b2pTxsPerMo,
+    SUM(IF(goods=:FOR_GOODS, 0, 1)) AS cashTxsPerMo
 
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
     WHERE $cttysCrit AND t.created>:monthAgo AND t.created<=:created
@@ -1157,11 +1170,11 @@ EOF;
 
   // get bankIn(Txs)PerMo, bankOut(Txs)PerMo
   $sql = <<<EOF
-    SELECT SUM($tmembers * IF(amount<0, -amount, 0)) AS bankInPerMo,
-    SUM($tmembers * IF(amount<0, 0, amount)) AS bankOutPerMo,
+    SELECT SUM(IF(amount<0, -amount, 0)) AS bankInPerMo,
+    SUM(IF(amount<0, 0, amount)) AS bankOutPerMo,
     
-    SUM($tmembers * IF(amount<0, 1, 0)) AS bankInTxsPerMo,
-    SUM($tmembers * IF(amount<0, 0, 1)) AS bankOutTxsPerMo
+    SUM(IF(amount<0, 1, 0)) AS bankInTxsPerMo,
+    SUM(IF(amount<0, 0, 1)) AS bankOutTxsPerMo
 
     FROM r_usd t LEFT JOIN users u ON t.payer=u.uid
     WHERE $cttyCrit AND t.completed AND completed<=:created AND completed>:monthAgo
@@ -1203,12 +1216,12 @@ function averageBalance($uid, $start, $end = NULL, $noj = FALSE) {
 
   $sql = <<<EOF
     SELECT SUM($signedAmt) AS total,
-    SUM(IF(t.type IN (:TX_REWARDS), amount, 0)) AS rtotal,
+    SUM(IF($isPayer, payerReward, payeeReward)) AS rtotal,
     SUM(IF(t.goods=:FOR_SHARE, $signedAmt, 0)) AS share,
     FLOOR((t.completed-$start)/:DAY_SECS) AS day 
     FROM (
-      (SELECT type,goods,payer,payee,amount,created AS completed FROM r_txs)
-      UNION (SELECT :TX_BANK,-:FOR_SHARE,payer,1 AS payee,amount,completed FROM r_usd)
+      (SELECT type,goods,payer,payee,amount,payerReward,payeeReward,created AS completed FROM r_txs)
+      UNION (SELECT :TX_BANK,-:FOR_SHARE,payer,1 AS payee,amount,0,0,completed FROM r_usd)
     ) t WHERE ($isPayer XOR $isPayee) AND completed BETWEEN $start AND $end 
     GROUP BY day
 EOF;
@@ -1261,7 +1274,7 @@ function riskList($risks, $descs) {
     if (u\getBit($risks, $bit)) {
       $class = $descs[$bitName] < 0 ? 'goodRisk' : 'badRisk';
       $helpIndex = @$riskHelp ? array_search($bitName, array_keys($riskHelp)) : -1;
-      $why[] = w\popHelp($bitName, $riskHelp[$bitName], "$base_url/help/flags@$bitName", $class);
+      $why[] = w\popHelp($bitName, $riskHelp[$bitName], "$base_url/help/risks@$bitName", $class);
 //      $why[] = "<a href=\"$base_url/help/flags@$bitName\" class=\"$class riskHelp$helpIndex\">$bitName</a>";
     }
   }
@@ -1277,15 +1290,19 @@ function riskList($risks, $descs) {
  * @return [message, subs, confirmed] on error, else false
  */
 function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
-  global $scanned;
+  global $scanned, $channel;
   
   if (!$a2->ok) return array('non member', ['otherName' => $a2->fullName], FALSE);
   u\EXPECT($a1->ok, 'main account inactive tx');
   foreach ([$a1, $a2] as $a) {
     $other = $a == $a1 ? $a2 : $a1; // if neither confirmed nor confirming icard by tx with inviter
 //    if (!$a->confirmed and !($a->iCode == IBY_ICARD and $a->helper == $other->id)) { 
-    if (!$a->confirmed and $a->helper != $other->id) { 
-      return ['not confirmed', ray('youName inviterName', $a->fullName, $a->helperA->fullName), FALSE];
+//    if (!$a->confirmed and $a->helper != $other->id) { 
+    if (!$a->confirmed and $other->id > 0 and $other->id != r\cgfId()) { // communities and CG can transact with anyone
+      if ($a1->community != $a2->community or $channel != TX_POS) { // first tx must be in-person at home
+        return FALSE ? ['not confirmed', ray('youName inviterName', $a->fullName, $a->helperA->fullName), FALSE]
+        : ['first at home', [], FALSE];
+      }
     }
   }
   list ($myAccess, $otherAccess) = u\order($taking xor $neg, B_SELL, B_BUY);
@@ -1367,29 +1384,36 @@ function up($up = NULL) {
 }
 
 /**
- * Return the rebate on the given amount for the given account.
+ * Return the reward on the given amount for the given account.
+ * @param int $from: payer account ID
+ * @param int $to: payee account ID
+ * @param numeric $amount: transaction amount
+ * @param bool $isPayer: <return reward for payer> (else payee)
  * @todo? or manager of company with no (other) employees (set bit?)
- * NEW: Figure the rebate based on R = the payer's total rewards ever and A = the transaction amount,
+ * NEW (not used): Figure the rebate based on R = the payer's total rewards ever and A = the transaction amount,
  *   such that the rebate percentage p tapers linearly from Rmax to 0
  *   The percentage rebate is based on the total rewards AFTER the transaction. That is:
  *   The new percentage rate p = (R + pA)(Pmax-Pmin)/Rmax + Pmin
  *   So p = (RPmax + (Rmax - R)Pmin) / (Rmax^2 - A(Pmax - Pmin))
- * BETTER: just decrease the reward percentage by 1% for every $500 of rewards received.
+ * BETTER (used here): just decrease the reward percentage by 1% for every $500 of rewards received.
  */
-function rebate($from, $to, $amount = 1) {
+function reward($from, $to, $amount = 1, $isPayer = TRUE) {
   global $testRewardStep;
   if (relation(1, $to, $from, 'isOwner OR draw')) return 0;
   if (relation(1, $from, $to, 'isOwner OR draw')) return 0;
-  $a = r\acct($from);
+  $a = r\acct($isPayer ? $from : $to);
 //  $pct = u\test() ? $a->rebate : max(R_MIN_REWARD_PCT, R_REBATE - floor($a->rewards / R_REWARD_STEP));
   $step = @$testRewardStep ?: R_REWARD_STEP;
-  $pct = max(R_MIN_REWARD_PCT, $a->rebate * (1 - floor($a->rewards / $step) / R_REBATE));
-  return '' . round(min(R_MAX_REBATE, $pct * $amount / 100), 2); // ''. to avoid serializing a long float
+
+  $over = (($isPayer xor $amount < 0) and $a->balance + $a->rewards - abs($amount) < max(0, $a->floor)); // ignore floor<0
+  if ($over) { // member is overdrawing
+    $pct = -max($a->rebate, R_REBATE); // reduce credit line
+  } else $pct = max(R_MIN_REWARD_PCT, $a->rebate * (1 - floor($a->o_rewards / $step) / R_REBATE)); // increase credit line
+  if (!$isPayer) $pct *= R_BONUS_FACTOR;
+///   debug(compact(ray('from to amount pct step over res')) + ['new bal' => $a->balance + $a->rewards + ($isPayer ? -$amount : $amount)]);
+  return round(min(R_MAX_REBATE, $pct * $amount / 100), 2);
 //  return '' . round(min(R_MAX_REBATE, $amount * $a->rebate / 100), 2); // ''. to avoid serializing a long float
 }
-
-function bonus($to, $from, $amount = 1) {return rebate($to, $from, $amount * R_BONUS_FACTOR);}
-//function bonus($to, $from, $amount = 1) {return round($amount * (u\test() ? 2 : R_BONUS_FACTOR) * r\acct($to)->rebate / 100, 2);}
 
 /**
  * Return the appropriate exchange fee for the given transaction description and amount.

@@ -1,3 +1,16 @@
+---------------------------------
+
+      if ($xfee = @$dataRay['xfee'] and $
+      if (@$xfee != @$toChange['xfee']) { // undo the extras
+        db\q('DELETE FROM r_txs WHERE serial=:xid AND xid<>:xid', compact('xid'));
+        $xraysNeg[] = ray('type amount', TX_XFEE, -$xfee) + compact(ray('payer payee payerReward payeeReward'));
+        unset($dataRay['xfee']);
+      }
+      $dataRay = $x->dataSetup($payer, $payee, $amount, $goods, $payeeFor, $dataRay, $channel);
+//      $xray['data'] = serialize($dataRay);
+
+---------------------------------
+
 /**
  * List the USD account status of each account.
  *//*

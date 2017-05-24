@@ -24,21 +24,22 @@ use rCredits\Web as w;
  */
 function setupBasicAccounts() {
   $keys = ray('uid community name fullName email postalCode country minimum rebate flags');
-
+  $flags = u\bit(B_CO) | u\bit(B_OK);
+  
   $q = db\q('SELECT :R_REGION_FIELDS FROM r_regions');
   while ($row = $q->fetchAssoc()) { // create or update all regions
     extract($row);
     if (!$hasServer) continue;
 //    if (isDEV and !in_array($region, [R_SERVER_ID])) continue; // don't slow the tests down
     if ($uid = db\lookup('uid', 'users', "name=CONCAT(:region, '.')", compact('region'))) {
-      r\acct($uid)->update(compact(ray('postalCode federalId')));
+      r\acct($uid)->update(compact(ray('postalCode federalId flags')));
     } else {
       $fullName = $fullName ?: db\lookup('name', 'r_states', 'abbreviation=:st', compact('st'));
       $email = u\shortName($fullName) . '@' . CG_DOMAIN;
       $fullName = PROJECT . ' ' . $fullName;
       $uid = r\serverUid($region);
       $state = db\lookup('id', 'r_states', 'abbreviation=:st', compact('st'));
-      $values = array($uid, $uid, $region . '.', $fullName, $email, $postalCode, R_COUNTRY_ID, 0, 0, u\bit(B_CO) | u\bit(B_OK));
+      $values = array($uid, $uid, $region . '.', $fullName, $email, $postalCode, R_COUNTRY_ID, 0, 0, $flags);
       $info = array_combine($keys, $values);
       $info += compact(ray('postalAddr state federalId'));
       new r\Acct($info);
@@ -131,8 +132,9 @@ function showActivity($a) {
   $count = $a->co ? db\count('r_txs', 'payee=:uid AND created>:when', compact('uid', 'when'))
     : db\count('r_txs', 'payer=:uid AND payee<>:cgf AND created>:when', compact(ray('uid cgf when')));
   $ret = t('%count %what', 'count what', $count, $a->co ? t('sales') : t('purchases'));
-  $subs = ray('activated signed use', $a->ok ? u\fmtDate($a->activated) : t('NO'), $a->signed ? u\fmtDate($a->signed) : t('NO'), u\fmtDate($a->ok ? $a->access : $a->login));
-  $ret .= t(' in the past 3 months (signed %signed, activated %activated, last use/signin %use)', $subs);
+  foreach (ray('created activated signed') as $k) $subs[$k] = $a->$k ? u\fmtDate($a->$k) : t('NO');
+  $subs['use'] = u\fmtDate($a->ok ? $a->access : $a->login);
+  $ret .= t(' in the past 3 months (created %created, signed %signed, activated %activated, last use/signin %use)', $subs);
   return $ret;
 }
 
@@ -181,21 +183,6 @@ EOF;
 
 define('ID_KEYS', 'id uid t.uid myid payer payee main other inviter invitee proxy person owner defaultAgent');
 
-function showRecords($ray) {
-  if (!$ray or empty($ray)) return 'data set is empty';
-  $lines[] = '<tr><th>' . join('</th><th>', array_keys((array) $ray[0])) . "</th></tr>\n";
-  foreach ($ray as $row) {
-    $line = '';
-    foreach ($row as $k => $v) {
-      $v = a\formatField($k, $v);
-      if ($k == 'for2' and $v == $row->for1) $v = 'same';
-      $line .= "  <td>$v</td>\n";
-    }
-    $lines[] = $line;
-  }
-  return "<table>\n<tr>" . join("</tr>\n<tr>\n", $lines) . "</tr>\n</table>";
-}
-
 /**
  * Return the given field, formatted for viewing.
  */
@@ -239,7 +226,7 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
   } else $fields = str_replace('t.', '', $fields);
 
   if ($order) $where .= " ORDER BY $order";
-  return showRecords(db\q("SELECT $fields FROM $table WHERE $where LIMIT $limit")->fetchAll());
+  return w\showRecords(db\q("SELECT $fields FROM $table WHERE $where LIMIT $limit")->fetchAll(), 'rCredits\\Admin\\formatField');
 }
 
 /**
@@ -657,6 +644,7 @@ function printCheck(&$ck, $pos, $tx, $mark) {
  * Do automatic stuff that can be done only when superAdmin signs in
  */
 function adminSignin() {
+  global $box;
   $pw2 = @$_COOKIE['pw2'];
   u\EXPECT($pw2, 'no pw2!');
   
@@ -773,7 +761,67 @@ function showSlugs() {
 // print iCards for all active members in the greater Greenfield ctty
 // be sure to chmod ...rcredits/temp to 777 before running this.
 function special() {
+  eachX(function($x) {
+    $cgf = 26742000000002;
+    foreach (ray('type payer payee goods flags taking amount payeeFor') as $k) $$k = $x->$k;
+    if ($payeeFor == 'contribution (percentage of past month receipts)' and ($payee < 0 or $payee == $cgf)) {
+      foreach ([B_GIFT, B_CRUMBS] as $k) u\setBit($flags, $k);
+      $payee = $cgf;
+    } elseif ($payeeFor == 'contribution of rounded-up payment change' and ($payee < 0 or $payee == $cgf)) {
+      foreach ([B_GIFT, B_ROUNDUPS] as $k) u\setBit($flags, $k);
+      $payee = $cgf;
+    } elseif ($payee == $cgf and $payer > 0) {
+      foreach (ray('ontribution onation everses') as $k) if (strpos($payeeFor, $k)) {
+        if (strpos($payeeFor, 'everses')) u\setBit($flags, B_UNDOES);
+        if (strpos($payeeFor, 'eversed')) u\setBit($flags, B_UNDONE);
+        u\setBit($flags, B_GIFT);
+        if (strpos($payeeFor, 'onation (')) u\setBit($flags, B_PATRONAGE);
+      }
+    }
+    if ($flags & u\bit(B_GIFT)) $x->update(compact(ray('flags payee')));
+  });
+}
 
+function special2() {
+  eachA(function($a) {
+    list ($balance, $rewards) = [$a->balance, $a->rewards]; // remember old values
+/**/    if (!$a->cacheOk(FALSE, FALSE) and (abs($a->balance - $balance) > .005 or abs($a->rewards - $rewards > 20))) debug("$a->id $a->fullName new: $a->balance+$a->rewards old: $balance+$rewards jid=$a->jid");
+  });
+}
+
+// go through and revise rebates to negative something when appropriate and set "short" bit
+function special3() {
+  return; // too complicated; don't do it.
+  global $asql;
+  $asql = <<<EOF
+SELECT xid,type,goods,amount,payer,payee,payerReward,payeeReward,flags,created FROM r_txs WHERE payer=:uid OR payee=:uid
+UNION (SELECT txid AS xid,:TX_BANK AS type,0 AS goods,amount,payer,0 AS payee,0 AS payerReward,0 AS payeeReward,0 AS flags,created FROM r_usd WHERE payer=:uid)
+ORDER BY created,xid
+EOF;
+  eachA(function($a) {
+    $TEST = TRUE;
+    global $asql;
+    $balance = $rewards = 0;
+    $q = db\q($asql, ['uid' => $a->id]);
+    while ($row = $q->fetchAssoc()) {
+      extract($row);
+      if ($type == 0 AND $a->id == $payer AND $goods != FOR_SHARE AND !(flags & B_UNDONE)) {
+        $payerReward = r\reward($payer, $payee, $amount);
+        if ($payerReward != $row['payerReward']) {
+/**/          debug("$a->fullName xid=$xid newreward=$payerReward old=" . $row['payerReward']); 
+          if (!$TEST) x($xid)->update(compact('payerReward'));
+        }
+      }
+      list ($dbal, $drew) = $a->id == $payer ? [-$amount, $payerReward] : [$amount, $payeeReward];
+///      debug(compact(ray('row balance dbal rewards drew')));
+      $balance += $dbal;
+      $rewards += $drew;
+    }
+    list ($newbal, $newrew) = [round($balance, 2), round($rewards, 2)];
+    list ($balance, $rewards) = [$a->balance, $a->rewards]; // remember old values
+/**/    if (!$a->cacheOk(FALSE, FALSE)) flog("$a->id $a->fullName new: $a->balance+$a->rewards old: $balance+$rewards jid=$a->jid");
+/**/    if ($a->balance != $newbal or $a->rewards != $newrew) debug("MISCALC $a->id $a->fullName cache: $a->balance+$a->rewards runningCalc: $newbal+$newrew ");
+  });
 }
 
 function showRequests() {

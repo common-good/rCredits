@@ -24,28 +24,26 @@ Setup:
   |  .ZZA |     22 |   4 | %today-5d  |         0  |
   |  .ZZA |     33 |   3 | %today-5d  |         0  |
   Then balances:
-  | id   | r     |*
-  | .ZZA |  1000 |
-  | .ZZB |  2000 |
-  | .ZZC |  3000 |
+  | id   | balance | rewards |*
+  | .ZZA |    1000 |       0 |
+  | .ZZB |    2000 |       0 |
+  | .ZZC |    3000 |       0 |
   Given transactions: 
-  | xid   | created   | type     | amount | from | to   | purpose | taking |*
-  | .AAAB | %today-7m | signup   |    250 | ctty | .ZZA | signup  | 0      |
-  | .AAAC | %today-6m | signup   |    250 | ctty | .ZZB | signup  | 0      |
-  | .AAAD | %today-6m | signup   |    250 | ctty | .ZZC | signup  | 0      |
-  | .AAAE | %today-5m | transfer |     10 | .ZZB | .ZZA | cash E  | 0      |
-  | .AAAF | %today-4m | transfer |   1100 | .ZZC | .ZZA | usd F   | 1      |
-  | .AAAG | %today-3m | transfer |    240 | .ZZA | .ZZB | what G  | 0      |
-
-  | .AAAP | %today-2w | transfer |     50 | .ZZB | .ZZC | cash P  | 0      |
-  | .AAAQ | %today-1w | transfer |    120 | .ZZA | .ZZC | this Q  | 1      |
-
-  | .AAAV | %today-6d | transfer |    100 | .ZZA | .ZZB | cash V  | 0      |
+  | xid | created   | type     | amount | rebate | bonus | from | to   | purpose | taking |*
+  |   1 | %today-7m | signup   |      0 |      0 |   250 | ctty | .ZZA | signup  | 0      |
+  |   2 | %today-6m | signup   |      0 |      0 |   250 | ctty | .ZZB | signup  | 0      |
+  |   3 | %today-6m | signup   |      0 |      0 |   250 | ctty | .ZZC | signup  | 0      |
+  |   4 | %today-5m | transfer |     10 |      0 |     0 | .ZZB | .ZZA | cash E  | 0      |
+  |   5 | %today-4m | transfer |   1100 |      0 |     0 | .ZZC | .ZZA | usd F   | 1      |
+  |   6 | %today-3m | transfer |    240 |     12 |    24 | .ZZA | .ZZB | what G  | 0      |
+  |   7 | %today-2w | transfer |     50 |      0 |     0 | .ZZB | .ZZC | cash P  | 0      |
+  |   8 | %today-1w | transfer |    120 |      6 |    12 | .ZZA | .ZZC | this Q  | 1      |
+  |   9 | %today-6d | transfer |    100 |      0 |     0 | .ZZA | .ZZB | cash V  | 0      |
   Then balances:
-  | id   | r       | rewards |*
-  | .ZZA |    1918 |     268 |
-  | .ZZB |    2554 |     274 |
-  | .ZZC |    2332 |     262 |
+  | id   | balance | rewards |*
+  | .ZZA |    1650 |     268 |
+  | .ZZB |    2280 |     274 |
+  | .ZZC |    2070 |     262 |
 
 Scenario: A member looks at transactions for the past year
   Given members have:
@@ -53,19 +51,19 @@ Scenario: A member looks at transactions for the past year
   | ctty | ZZrCred  |
   When member ".ZZA" visits page "history/transactions/period=365"
   Then we show "Transaction History" with:
-  | Start    |   | 1,000.00 |   |   0.00 | %dmy-12m |
-  | Received | + | 1,110.00 |   |        |          |
-  | Out      | - |   460.00 |   |        |          |
-  | Rewards  |   |          | + | 268.00 |          |
-  | End      |   | 1,650.00 |   | 268.00 | %dmy     |
+  | Start        |   | 1,000.00 |   |   0.00 | %dmy-12m |
+  | Received     | + | 1,110.00 |   |        |          |
+  | Out          | - |   460.00 |   |        |          |
+  | Credit Line+ |   |          | + | 268.00 |          |
+  | End          |   | 1,650.00 |   | 268.00 | %dmy     |
   And with:
   |~tid | Date   | Name       | Purpose  | Amount   | Reward |~do |
-  | 6   | %mdy-6d | Bea Two    | cash V  |  -100.00 | --     | X  |
-  | 5   | %mdy-1w | Corner Pub | this Q  |  -120.00 | 6.00   | X  |
-  | 4   | %mdy-3m | Bea Two    | what G  |  -240.00 | 12.00  | X  |
-  | 3   | %mdy-4m | Corner Pub | usd F   | 1,100.00 | --     | X  |
-  | 2   | %mdy-5m | Bea Two    | cash E  |    10.00 | --     | X  |
-  | 1   | %mdy-7m | ZZrCred    | signup  |       -- | 250.00 |    |
+  | 6   | %mdy-6d | Bea Two    | cash V  |  -100.00 |   0.00 | X  |
+  | 5   | %mdy-1w | Corner Pub | this Q  |  -120.00 |   6.00 | X  |
+  | 4   | %mdy-3m | Bea Two    | what G  |  -240.00 |  12.00 | X  |
+  | 3   | %mdy-4m | Corner Pub | usd F   | 1,100.00 |   0.00 | X  |
+  | 2   | %mdy-5m | Bea Two    | cash E  |    10.00 |   0.00 | X  |
+  | 1   | %mdy-7m | ZZrCred    | signup  |     0.00 | 250.00 |    |
   And without:
   | rebate  |
   | bonus   |
@@ -73,16 +71,16 @@ Scenario: A member looks at transactions for the past year
 Scenario: A member looks at transactions for the past few days
   When member ".ZZA" visits page "history/transactions/period=15"
   Then we show "Transaction History" with:
-  | Start     |   | 1,870.00 |   | 262.00 | %dmy-15d |
-  | From Bank | + |     0.00 |   |        | -44.00 Pending |
-  | Received  | + |     0.00 |   |        |          |
-  | Out       | - |   220.00 |   |        |          |
-  | Rewards   | + |          |   |   6.00 |          |
-  | End       |   | 1,650.00 |   | 268.00 | %dmy     |
+  | Start        |   | 1,870.00 |   | 262.00 | %dmy-15d |
+  | From Bank    | + |     0.00 |   |        | -44.00 Pending |
+  | Received     | + |     0.00 |   |        |          |
+  | Out          | - |   220.00 |   |        |          |
+  | Credit Line+ | + |          |   |   6.00 |          |
+  | End          |   | 1,650.00 |   | 268.00 | %dmy     |
   And with:
   |~tid | Date   | Name       | Purpose    | Amount  | Reward |~do |
-  | 6   | %mdy-6d | Bea Two    | cash V     | -100.00 | --     | X  |
-  | 5   | %mdy-1w | Corner Pub | this Q     | -120.00 | 6.00   | X  |
+  | 6   | %mdy-6d | Bea Two    | cash V    | -100.00 |   0.00 | X  |
+  | 5   | %mdy-1w | Corner Pub | this Q    | -120.00 |   6.00 | X  |
   And without:
   | pie N    |
   | whatever |

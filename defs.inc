@@ -5,12 +5,12 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '2.65'); // software version
+define('R_VERSION', '2.70'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
-define('isDEV', $_SERVER['SERVER_ADDR'] == '::1'); // developing
-require_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
+define('isDEV', in_array($_SERVER['SERVER_ADDR'], ['::1', '127.0.0.1'])); // developing
+require_once __DIR__ . '/rcredits-settings.inc'; // custom settings for this community's rCredits server
 // require .module and -util.inc at bottom
 
 define('PROJECT', t('Common Good')); // project name
@@ -30,7 +30,7 @@ define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len mu
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
 
 $host = strtolower(@$_SERVER['HTTP_HOST']);
-if (strlen($host) > 30 or !preg_match('/^\[?(?:[a-zA-Z0-9-:\]_]+\.?)+$/', $host)) {header('HTTP 400 Bad Request'); exit();}
+if (!isDEV) if (strlen($host) > 30 or !preg_match('/^\[?([a-zA-Z0-9-:\]_]+\.?)+$/', $host)) {header('HTTP 400 Bad Request'); exit();}
 $protocol = isDEV ? 'http://' : 'https://';
 $base_url = $protocol . $host . (isDEV ? DEV_ROOT : ''); // NO trailing slash!
 //$base_url = $protocol . $host . (isDEV ? DEV_ROOT : '') . '/rcredits'; // NO trailing slash!
@@ -66,6 +66,7 @@ define('CGF_ADDRESS', '48 Buckland Road');
 define('CGF_CITY', 'Ashfield');
 define('CGF_POSTALADDR', 'PO Box 21, Ashfield, MA 01330-0021');
 define('CGF_EIN', '205280780');
+define('SLOGANS', 'for truth and justice,for community power,for community democracy,for community investment,for a sustainable future,to empower communities,for community abundance,for a better future,for economic democracy,for democratic economics');
 define('R_LAUNCH', strtotime('12/15/2013'));
 define('EMAIL_DOMAIN', 'new.rcredits.org'); // replace this with CG_DOMAIN when ready (including in ../php-dkim/dkim-cfg.php)
 define('SYS_EMAIL', 'system@' . EMAIL_DOMAIN); // old address so we don't get marked as spam (later at REGION_DOMAIN)
@@ -93,10 +94,10 @@ define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount field
 define('JOINT_FIELDS', R_MONEY_FIELDS . ' balance savings'); // add these together for joint accounts
 define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount'); // very secure fields (admin-encrypted)
 define('R_SECURE_FIELDS', R_VSECURE_FIELDS . ' pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass last4bank'); // non-personal encrypted fields (must be complete list)
-define('R_HIDE_CHANGES', R_MONEY_FIELDS . ' pw2 ssnData changes init login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank'); // do not record changes to these fields: anything often-changed (automatically or not)
+define('R_HIDE_CHANGES', R_MONEY_FIELDS . ' pw2 ssnData changes init login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank lastip'); // do not record changes to these fields: anything often-changed (automatically or not)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
 //define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
-define('R_AVAIL_BUY', '(r-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
+define('R_AVAIL_BUY', '(balance+rewards-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 //define('R_AVAIL_CASH', '(r-committed-GREATEST(0, floor, rewards))'); // balance available to cash out
 define('R_AVAIL_CASH', '(r-GREATEST(0, floor, rewards))'); // balance available to cash out
 define('R_SHARE_MAX', 50); // minimum sharing percentage
@@ -290,22 +291,16 @@ define('B_CADMIN2', 28); // is a community sub-administrator
 define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
-define('B_ADMINABLE', 'confirmed co member bona cAdmin cAdmin2 regulator nonudge closed'); // for cAdmin to set
+define('B_ADMINABLE', 'confirmed co member bona cAdmin cAdmin2 regulator nonudge closed cgc invites rewardy'); // for cAdmin to set
 define('B_LIST', 'member confirmed ok bona ided refill co u7 roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 closed regulator cAdmin2 cAdmin admin');
 
 // community-specific flags
 define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)
 define('B_UP', 1); // ctty: is operational (up) (see also B_CTTYUP)
-define('B_ADMIN_BITS', 'member:cgc,confirmed:up');
-
-// Transaction flags (for flags field in transaction records)
-define('B_TAKING', 0); // payee initiated the transaction
-define('B_DISPUTED', 1); // non-originator disputes the transaction
-define('B_OFFLINE', 2); // transaction should have been declined, but it was taken offline
-// define('B_GIFT', 3); // gift of rewards back to the community
-// (defined above) define('B_ROUNDUP', 8); // payer donated the change to the community fund
-//define('TX_FLAGS', 'taking u1 u2 u3 u4 u5 u6 u7 roundup');
-define('TX_FLAGS', 'taking disputed offline roundup'); // position means nothing
+define('B_INVITES', 3); // require invitations
+define('B_REWARDY', 4); // community issues rewards explicitly
+define('B_CTTY_BITS', 'cgc up u2 invites rewardy');
+define('B_ADMIN_BITS', 'member:cgc,confirmed:up,bona:invites,ided:rewardy');
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+givebacks+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community (fines and givebacks are negative)
 
@@ -367,6 +362,20 @@ define('FLOW_TO', 1);
 define('FLOW_FROM', 2);
 define('FLOW_BOTH', 3);
 
+// Transaction flags (for flags field in transaction records)
+define('B_TAKING', 0); // payee initiated the transaction
+define('B_DISPUTED', 1); // non-originator disputes the transaction
+define('B_OFFLINE', 2); // transaction was taken offline
+define('B_SHORT', 3); // transaction was taken (offline) despite credit shortfall
+define('B_UNDONE', 4); // undone by another transaction
+define('B_UNDOES', 5); // undoes another transaction
+define('B_CRUMBS', 6); // monthly donation of percentage of receipts
+define('B_ROUNDUPS', 7); // monthly donation of rounded up cents
+// B_ROUNDUP is 8 (defined above) // payer donated the change to the community fund
+define('B_PATRONAGE', 9); // recurring gift
+define('B_GIFT', 10); // gift (of any type)
+define('TX_FLAGS', 'taking disputed offline roundup short undone undoes crumbs roundups roundup patronage gift'); // tx flags (position means nothing)
+
 // Invoice status (use data['disputed'] for txs)
 define('TX_DENIED', -1); // invoice rejected by the non-originator
 define('TX_PENDING', 0); // charged, waiting for confirmation (in all other states, transaction is complete)
@@ -382,16 +391,16 @@ define('TX_LINK', 6); // user clicked a no-signin link
 define('TX_CHANNELS', 'System SMS Web App Tone Cron Link'); // can't be translated, because used in t() (find a solution)
 
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits) -- negative types generally not shown
-define('TX_BONUS', -2); // sales bonus (negative reward types are invisible on transaction history)
-define('TX_REBATE', -1); // sales rebate
+define('TX_BONUS', -2); // UNUSED sales bonus (negative reward types are invisible on transaction history)
+define('TX_REBATE', -1); // UNUSED sales rebate
 define('TX_TRANSFER', 0); // normal fund transfer (usually for actual goods and services) -- not creating rC
 define('TX_SIGNUP', 1); // signup incentive reward
-define('TX_GIVEBACK', 2); // gift to the community
+define('TX_GIVEBACK', 2); // gift to the community (UNUSED)
 define('TX_INFLATION', 3); // reward to conpensate for inflation
 define('TX_HELPER', 4); // reward for inviting and assisting with account opening
-define('TX_FINE', 9); // destroys rCredits (this is essentially a negative reward)
-define('TX_REWARDS', '-2,-1,1,2,3,4,9'); // only these count as rewards
+define('TX_REWARDS', '-2,-1,1,2,3,4'); // only these count as rewards
 
+define('TX_FINE', 9); // destroys rCredits (this is essentially a negative grant)
 define('TX_XFEE', 10); // exchange fee (for buying rCredits with a credit/debit card or check)
 define('TX_GRANT', 11);
 define('TX_LOAN', 12);
@@ -406,7 +415,7 @@ define('TX_MAX_ROWS', 500); // (unused) maximum number of transactions to load a
 define('TX_MAX_MOS', 18); // maximum transaction months, for display
 define('TX_MAX_DAYS', 30.5 * TX_MAX_MOS + 2); // maximum days in a transaction query (18 months) -- 2 for leap day & daylight
 define('TX_DOWNLOAD_MONEY_FIELDS', 'frombank fromyou toyou reward net');
-define('TX_DATA_FIELDS', 'rebate bonus undoneBy undoes force changes'); // serialized pseudo-fields in the data field of a transaction record
+define('TX_DATA_FIELDS', 'undoneBy undoes force changes'); // serialized pseudo-fields in the data field of a transaction record
 
 $GLOBALS['emailSubjects'] = array(
 /*  'new-payment' => t('%PROJECT PAYMENT from {otherName}'),

@@ -17,10 +17,10 @@ Setup:
   | 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |
   | 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  |
   Then balances:
-  | id   |    r |*
-  | ctty | -500 |
-  | .ZZA |  250 |
-  | .ZZB |  250 |
+  | id   | balance | rewards |*
+  | ctty |       0 |       0 |
+  | .ZZA |       0 |     250 |
+  | .ZZB |       0 |     250 |
 
 Scenario: a joint account needs refilling
   Given balances:

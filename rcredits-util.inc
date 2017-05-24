@@ -165,7 +165,7 @@ function badSsn(&$ssn, $dob = '') {
  *   1 = round to nearest dollar
  *   s = simplify: Omit the cents for whole dollar amounts
  *   $ = include initial dollar sign
- *   r = include a trailing r
+ *   r = include a trailing cg
  *   u = include a trailing us
  * @return
  *   the formatted amount
@@ -179,7 +179,7 @@ function fmtAmt($amount, $opt = 's$') {
   if ($amount == '-0.00') $amount = strpos($opt, '1') ? '0' : '0.00'; // this happens, for small negative amounts
   if (strpos($opt, '$')) $amount = '$' . $amount;
   if (strpos($opt, 's')) $amount = str_replace('.00', '', $amount);
-  if (strpos($opt, 'r')) $amount .= 'r';
+  if (strpos($opt, 'r')) $amount .= 'cg';
   if (strpos($opt, 'u')) $amount .= 'us';
   return $amount;
 }
@@ -1357,7 +1357,7 @@ function uc1($s) {return ucwords(substr($s, 0, 1)) . substr($s, 1);}
 function nextAfter($needle, $hay) {return ($i = array_search($needle, $hay)) === FALSE ? NULL : $hay[$i + 1];}
 function caller($depth = 1) {return debug_backtrace()[$depth + 1]['function'];}
 function rotateBits($b, $i) {return ($i = $i % strlen($b)) ? substr($b, $i) . substr($b, 0, $i) : $b;}
-function xorBits($b1, $b2) {$res = ''; for ($i = 0; $i < strlen($b1); $i++) $res .= ($b1[$i] xor $b2[$i]) ? 1 : 0; return $res;}
+function xorBits($b1, $b2) {$res = ''; for ($i = 0; $i < strlen($b1); $i++) $res .= (@$b1[$i] xor @$b2[$i]) ? 1 : 0; return $res;}
 function a2b($s) {$b = ''; for ($i = 0; $i < strlen($s); $i++) $b .= lpad(decbin(ord($s[$i])), 8); return $b;}
 function badZip($z, $country = US_COUNTRY_ID) {return ($country == US_COUNTRY_ID and !preg_match('/^\d{5}(\-\d{4})?$/', $z)) ? 'bad zip' : FALSE;}
 function randomFloat($min = 0, $max = 1) {return $min + mt_rand() / mt_getrandmax() * ($max - $min);}

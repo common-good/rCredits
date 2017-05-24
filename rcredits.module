@@ -150,7 +150,7 @@ function x($xid, $mya = '') {f('r.x', $xid, $mya);} // return a transaction obje
 function ctty($id) {return a(a($id)->community);}
 //function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
 function flog($s, $file = FALSE) {
-  $fileName = isSTAGE ? 'photos/flog.txt' : 'flog.txt';
+  $fileName = DRUPAL_ROOT . (isSTAGE ? '/flog.txt' : '/flog.txt');
 /**/ if ($file) return $fileName; else file_put_contents($fileName, print_r($s, 1) . "\n", FILE_APPEND); // log to file
 }
 /**/ function who($s = '') {$a = is_object($s) ? $s : a($s); debug("$a->fullName ($a->mainQid $a->id)"); return $a;} // show whose account
@@ -202,7 +202,7 @@ function funcNickname($func) {
 function eachA($func = 'a.changeIt') {
   $result = q('SELECT uid FROM users WHERE uid>1 ORDER BY uid')->fetchCol();
   if (!is_callable($func)) $func = funcNickname($func);
-  foreach ($result as $one) $func(a($one));
+  foreach ($result as $uid) $func(a($uid));
 }
 
 /**
@@ -211,9 +211,9 @@ function eachA($func = 'a.changeIt') {
  * or    eachX(function($x) {...});
  */
 function eachX($func = 'a.changeIt') {
-  $result = q('SELECT xid FROM r_txs');
+  $result = q('SELECT xid FROM r_txs')->fetchCol();
   if (!is_callable($func)) $func = funcNickname($func);
-  foreach ($result as $xid) $func(x($xid));
+  foreach ($result as $xid) $func(r\x($xid)); // x() doesn't work here (without r\) -- dunno why
 }
 
 /**

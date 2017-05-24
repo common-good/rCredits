@@ -10,6 +10,10 @@
     src: url(GnuMICR.ttf) format("truetype");
 }
 
+.alignR {text-align:right;}
+.alignC {text-align:center;}
+.alignL {text-align:left;}
+
 .btn-slight {background-color:wheat;}
 .gone, .element-invisible {display:none;}
 .invisible {visibility:hidden;}
@@ -319,6 +323,12 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 /* Notifications */
 #rcreditswebformnotifications .header .vertical {font-weight:bold; margin:35px 0 20px -10px;}
 
+/* Ctty Funds */
+#rcreditswebformcttyfunds .usd {background-color:darkgreen;}
+#rcreditswebformcttyfunds .reward {background-color:darkred;}
+#rcreditswebformcttyfunds .ctty {background-color:darkblue;}
+#rcreditswebformcttyfunds label {display:none;}
+
 /* Member List */
 #memberlist .name a {font-weight:bold;}
 #memberlist .co a {color:darkred;}
@@ -345,9 +355,11 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #risk-help .goodRisk, #risk-help .badRisk, #risk-help .tagged {font-weight:bold;}
 #risk-help td {vertical-align:top;}
 #risk-help .weight {text-align:center;}
+#rcreditswebformhelp #bit-help td:first-child {color:darkgreen; font-weight:bold;}
 #taxes th, #taxes td {text-align:center;}
 #taxes th:first-child,
 #taxes td:first-child {font-weight:bold; text-align:left;}
+#rcreditswebformhelp #special-flag {font-size:100%; margin-bottom:20px;}
 
 /* Summary / Member Info / Account Info */
 #rcreditswebformsummary #edit-photo img {max-width:100px;}
@@ -452,6 +464,11 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformprofile {font-family:Arial;}
 #rcreditswebformprofile #member-details {min-width:200px; font-weight:normal;}
 #rcreditswebformprofile #user-picture img {max-height:300px;}
+
+/* Community and Money Data */
+#rcreditswebformdata .form-type-submit {margin-bottom:4px;}
+#rcreditswebformdata button {width:300px; text-align:left; background-image: linear-gradient(#fff, #ddd 60%, #ddd);}
+/*linear-gradient(#fff, #fff 60%, #f5f5f5);*/
 
 /* Membership / Status */
 /* #rcreditswebformmembership #next-steps {width:500px; margin:-13px;} */

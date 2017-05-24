@@ -25,11 +25,11 @@ Setup:
   |   3 | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |
   |   4 | %today-6m | grant  |    200 | ctty | .ZZA | heroism | 0      |
   Then balances:
-  | id   |    r |*
-  | ctty | -950 |
-  | .ZZA |  450 |
-  | .ZZB |  250 |
-  | .ZZC |  250 |
+  | id   | balance | rewards |*
+  | ctty |    -200 |       0 |
+  | .ZZA |     200 |     250 |
+  | .ZZB |       0 |     250 |
+  | .ZZC |       0 |     250 |
 
 Scenario: A member asks to charge another member
   When member ".ZZA" completes form "charge" with values:
@@ -53,11 +53,11 @@ Scenario: A member confirms request to charge another member
   | nvid | created | status      | amount | goods      | from | to   | for   |*
   |    1 | %today  | %TX_PENDING |    100 | %FOR_USD | .ZZB | .ZZA | paper |
   And balances:
-  | id   |    r |*
-  | ctty | -950 |
-  | .ZZA |  450 |
-  | .ZZB |  250 |
-  | .ZZC |  250 |
+  | id   | balance | rewards |*
+  | ctty |    -200 |       0 |
+  | .ZZA |     200 |     250 |
+  | .ZZB |       0 |     250 |
+  | .ZZC |       0 |     250 |
 
 Scenario: A member asks to pay another member
   When member ".ZZA" completes form "pay" with values:
@@ -78,15 +78,14 @@ Scenario: A member confirms request to pay another member
   | created | fullName | otherName | amount | payeePurpose |*
   | %today  | Bea Two  | Abe One   | $100   | paper        |
   And transactions:
-  | xid | created | type     | amount | from  | to   | goods      | purpose      | taking |*
-  |   5 | %today  | transfer |    100 | .ZZA  | .ZZB | %FOR_USD | paper        | 0      |
+  | xid | created | type     | amount | rebate | bonus | from  | to   | goods    | purpose      | taking |*
+  |   5 | %today  | transfer |    100 |      0 |     0 | .ZZA  | .ZZB | %FOR_USD | paper        | 0      |
   And balances:
-  | id   |    r |*
-  | ctty | -950 |
-  | .ZZA |  350 |
-  | .ZZB |  350 |
-  | .ZZC |  250 |
-
+  | id   | balance | rewards |*
+  | ctty |    -200 |       0 |
+  | .ZZA |     100 |     250 |
+  | .ZZB |     100 |     250 |
+  | .ZZC |       0 |     250 |
 Scenario: A member asks to cash out too much
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods      | purpose |*

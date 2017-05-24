@@ -129,7 +129,7 @@ EOF
   if ($i == 'account/photo') return t(<<<EOF
     <p>For an individual account you will need to upload a clear photo of your face, for identification. This is the photo that will appear on your Member ID card. If you have trouble coming up with a photo in a format that works, have a youngster take picture of you with their cell phone or tablet. Ask them to email you the picture, save that attachment to your desktop, then upload it here. If you still have trouble, email a description of your predicament to us at <%a>%regEmail</a> and we will help.</p>
 EOF
-  , '_a regEmail', emailTag($regEmail, t('photo trouble'))) . $companyAccount;
+  , '_a regEmail', u\emailTag($regEmail, t('photo trouble'))) . $companyAccount;
 
   if ($i == 'account/company') return t(<<<EOF
     <p>All of the information from this form goes automatically on your <%aPage>%PROJECT webpage</a>, along with your company name and profile picture. Your email address will not be included unless you put it in the description explicitly. click the link, to see the results (after saving your changes).</p>
@@ -313,19 +313,22 @@ EOF
 EOF
   , '_aCircles', w\atag('/help/economic-circles')) . $back;
 
-  if ($i == 'growth') return showCharts('accts', $ctty) . t(<<<EOF
-    <p>The real power and purpose of the %PROJECT system is in our gathering as a community to decide what our funding priorities should be &mdash;</p>
-    <ul>
-      <li>for sustainable agriculture and energy systems,</li>
-      <li>for supporting local businesses, local entrepreneurs, and local self-reliance,</li>
-      <li>for ensuring that everyone has healthy food, a home, health care, cultural enrichment, and satisfying work</li>
-    </ul>
-    <p>&mdash; then issuing %RCREDITS to fund our decisions.</p>
-    <p>That community-level sovereignty requires <i>broad participation</i>. The green line shows how many we are today. Membership in %PROJECT is by invitation, so we can grow quickly toward full community-centered economic democracy, while building a network of trust.</p>
-    <p>Almost everything is automated, once your account is set up. The one labor-intensive piece is opening the account.</p>
-    <p>You can help! <%aInvite>Click here to invite</a> your friends and local businesses where you want to spend your %RCREDITS. Sit with your friends while they sign up &mdash; it takes only half an hour, but without a nudge most people spend several weeks putting it off.</p>
+  if ($i == 'growth') {
+    $_helpus = @$mya ? t('You can help! <%aInvite>Click here to invite</a> your friends and local businesses where you want to spend your %RCREDITS. Sit with your friends while they sign up &mdash; it takes only half an hour, but without a nudge most people spend several weeks putting it off.', '_aInvite', w\atag('/community/invite')) : t('<_aSignup>Join us</a>!', '%_aSignup', w\atag('/signup'));
+    
+    return showCharts('accts', $ctty) . t(<<<EOF
+      <p>The real power and purpose of the %PROJECT system is in our gathering as a community to decide what our funding priorities should be &mdash;</p>
+      <ul>
+        <li>for sustainable agriculture and energy systems,</li>
+        <li>for supporting local businesses, innovation, and local self-reliance,</li>
+        <li>for ensuring everyone in our community has access to healthy food, a home, health care, cultural enrichment, and satisfying work</li>
+      </ul>
+      <p>&mdash; then issuing %RCREDITS to fund our decisions.</p>
+      <p>That community-level sovereignty requires <i>broad participation</i>. The green line shows how many we are today.</p>
+      <p>%helpus</p>
 EOF
-  , '_aInvite', w\atag('/community/invite')) . $back;
+    , compact('_helpus')) . $back;
+  }
 
   if ($i == 'funds') return showCharts('funds', $ctty) . t(<<<EOF
     <p>There are two kinds of funds in the %PROJECT system:</p>
@@ -372,8 +375,8 @@ EOF
   if ($i == 'economic-circles') return showCharts('tx', $ctty) . t(<<<EOF
     <p>Economic circles are crucial to a healthy regional economy. The more we can keep money circulating locally, the richer we are. Why? Because we can use that money over and over &mdash; in effect turning each dollar into millions.</p>
     <p>In a typical economic circle, you buy something from a local store or pay for local services. That business then pays its local suppliers and its local employees. Those employees in turn become consumers like you &mdash; they buy something from a local store, etc. When at any point in this circle we lose the "local" and pay someone or some company outside our region, that money is gone. It has leaked out of our community and we are that much poorer.</p>
-    <p>The %PROJECT system gives us an easy way to track our economic circles and opportunities for improvement. For now, "local" means within the %PROJECT system, but we expect the definition to expand as %PROJECT membership continues to grow.</p>
-    <p>This chart shows four types of transactions. For strong economic circles, we should see the volume of person-to-business (<b class='p2b'>p2b</b>) transactions matching the volume of business-to-person (<b class='b2p'>b2p</b>) transactions. More <b class='p2b'>p2b</b> than <b class='b2p'>b2p</b> means business are not paying enough local employees (or other local businesses). More <b class='b2p'>b2p</b> than <b class='p2b'>p2b</b> means people are shopping elsewhere. As you can see, member businesses are just beginning pay their employees in %RCREDITS (see our post on <%aFB>FaceBook</a> about solving the payroll problem).</p>
+    <p>The %PROJECT system gives us an easy way to track our economic circles and opportunities for improvement.</p>
+    <p>This chart shows four types of transactions. For strong economic circles, we should see the volume of person-to-business (<b class='p2b'>p2b</b>) transactions matching the volume of business-to-person (<b class='b2p'>b2p</b>) transactions. More <b class='p2b'>p2b</b> than <b class='b2p'>b2p</b> means business are not paying enough local employees (or other local businesses). More <b class='b2p'>b2p</b> than <b class='p2b'>p2b</b> means people are shopping elsewhere. As you see (in red), several member businesses have begun paying their employees in %RCREDITS (see our <%aFB>FaceBook post</a> on how we solved the payroll challenge).</p>
     <p>The <%aDemand>Monthly Bank Transfers</a> chart also measures how well we are doing as a community, at keeping money in the system.</p>
 EOF
   , '_aFB _aDemand', w\atag('http://rc4.me/fb'), w\atag('demand')) . $back;
@@ -423,10 +426,24 @@ EOF
     , '_a1', w\atag('http://rc4.me/doc/accounting.pdf'));
   }
   
-  if ($i == 'flags') {
+  if ($i == 'bits') {
+    include_once __DIR__ . '/bit-descs.inc';
+    foreach ($flagHelp as $k => $v) $res[] = "<tr><td>$k</td><td>$v</td></tr>";
+    $res = join("\n", $res);
+    return t(<<<EOF
+      <div id="bit-help">
+      <p>Community Administrators can see and set/unset most of these bits on each account's Summary page.</p>
+      <table>$res</table>
+      </div bit-help>
+EOF
+    );
+  }
+  
+  
+  if ($i == 'risks') {
     include_once __DIR__ . '/risk-descs.inc';
     extract($riskHelp, EXTR_PREFIX_ALL, 'h');
-    $acctRisks = $txRisks = $special = '';
+    $acctRisks = $txRisks = $_special = '';
     foreach (ray(K_ACCT_RISKS) as $k => $weight) {
       $extra = '';
       if ($k == 'trusted') $extra = t('This risk factor is multiplied by the number of other accounts that trust this member. Being chosen as an alternate proxy counts as half. Likewise being chosen as someone\'s proxy\'s proxy counts as half.');
@@ -437,7 +454,7 @@ EOF
       if ($k == 'bigDay') $extra = t('For individual accounts, the number of "employees" is 1.');
       if (in_array($k, array('bigWeek', 'big7Week', 'bigYear'))) $extra = t('(see bigDay)');
       $acctRisks .= ($line = riskHelpLine($k, $weight, $extra, $tag));
-      if ($tag == $k) $special = $line;
+      if ($tag == $k) $_special = $line;
     }
     foreach (ray(K_TX_RISKS) as $k => $weight) {
       $extra = '';
@@ -445,14 +462,14 @@ EOF
       if (in_array($k, ray('fromSuspect toSuspect suspectOut suspectIn'))) $extra = t('This risk factor is multiplied by the suspicious account risk, divided by the "unusually large" threshold ($%K_THRESHOLD).');
       if ($k == 'invoiceless') $extra = t('And no mention of an invoice in the transaction description.');
       $txRisks .= ($line = riskHelpLine($k, $weight, $extra, $tag));
-      if ($tag == $k) $special = $line;
+      if ($tag == $k) $_special = $line;
     }
 
     $acctRisks = t('<h2>Account Flags</h2>') . "\n<table>$acctRisks</table>\n";
     $txRisks = t('<h2>Transaction and ACH Flags</h2>') . "\n<table>$txRisks</table>\n";
-    $score = number_format(K_RED*300*8/15/K_THRESHOLD, 0);
-    $score = "<span class=\"badRisk\">$score</span>";
-//    if ($special) $special = preg_replace('/^(.*)\[(.*)\](.*)/', '<div id="special-flag"><big style="color:red;">$1</big> (weight:$2) $3</div>', $special);
+    $_score = number_format(K_RED*300*8/15/K_THRESHOLD, 0);
+    $_score = "<span class=\"badRisk\">$_score</span>";
+//    if ($_special) $_special = preg_replace('/^(.*)\[(.*)\](.*)/', '<div id="special-flag"><big style="color:red;">$1</big> (weight:$2) $3</div>', $_special);
     return t(<<<EOF
       <div id="risk-help">
       <table id="special-flag">%special</table>
@@ -460,7 +477,7 @@ EOF
       <p>Risk scores are then proportional to the sum of the inverses of those weight divisors - a higher score means more risk. For transactions, the score is further multiplied by the transaction amount and divided by the "unusually large" threshold ($%K_THRESHOLD). All risk scores (whether for accounts, transactions, or ACHs) are finally multiplied by %K_RED and rounded to the nearest integer. So %K_RED is the minimum "suspicious" score.</p>
       <p>For example, a $300 transaction with two risk factors having weight divisors of 3 and 5 respectively, would be scored 100 * 300 * (&#8531; + &#x2155;) / %K_THRESHOLD = %score (asterisk here means multiply, slash means divide).</p>
 EOF
-    , compact('score', 'special')) . $acctRisks . $txRisks . '</div risk-help>';
+    , compact('_score', '_special')) . $acctRisks . $txRisks . '</div risk-help>';
   }
 }
 

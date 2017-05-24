@@ -43,10 +43,14 @@ function rweb_block_view($delta = '') {
   if (in_array($delta, ray(RWEB_BLOCKS))) return r\Web\blockView(NULL, r\Web\showForm($delta)); // no subject for blocks
 }
 
+/**
+ * Construct a menu item from its list of parts.
+ * The last two parts (detail and icon) are used only for submenus (see subMenuHtml())
+ */
 function makeMenuItem($parts) {
   $types = ['norm' => MENU_NORMAL_ITEM, 'sub' => MENU_LOCAL_TASK, 'dft' => MENU_DEFAULT_LOCAL_TASK, 'call' => MENU_CALLBACK];
   @list ($type, $title, $args, $perms, $func) = $parts;
-  return r\Web\menu($title, $types[$type], $func ?: 'showForm', $args, $perms);
+  return w\menu($title, $types[$type], $func ?: 'showForm', $args, $perms);
 }
 
 /**
@@ -92,6 +96,7 @@ function rweb_menu($submenu = '') {
 //    'community' => ['norm', t('Community'), 'FindCo', ANY],
     'proposal' => ['call', t('Funding Proposal'), 'Proposal', ANY], // keep the url short, for outsiders
     'community' => ['norm', t('Community'), 'Community', ANY],
+    'community/data' => ['sub', t('Community & Money Data'), 'Data 2', 'read', '', t(''), 'list-alt'],
     'community/democracy' => ['sub', t('Discussion & Voting'), 'Democracy 2', 'ok manage', '', t(''), 'bell'],
     'community/democracy/proposal-report' => ['call', t('Proposal Report'), 'ProposalReport 3', 'manage'],
     'community/democracy/proposal-notes' => ['call', t('Proposal Notes'), 'ProposalNotes 3', 'manage'],

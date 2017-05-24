@@ -20,95 +20,91 @@ Setup:
   | .ZZB  |   -100 | %today-2m |  
   | .ZZC  |   -300 | %today-2m |  
   Then balances:
-  | id   | r   | rewards |*
-  | .ZZA | 500 |     100 |
-  | .ZZB | 200 |     100 |
-  | .ZZC | 400 |     100 |
+  | id   | balance | rewards |*
+  | .ZZA |     400 |     100 |
+  | .ZZB |     100 |     100 |
+  | .ZZC |     300 |     100 |
   When transactions: 
   | xid | created   | type     | amount | from | to   | purpose |*
   |   4 | %today-9d | transfer |     10 | .ZZB | .ZZA | cash E  |
   Then balances:
-  | id   | r   | rewards |*
-  | .ZZA | 510 |     100 |
-  | .ZZB | 190 |     100 |
-  | .ZZC | 400 |     100 |
+  | id   | balance | rewards |*
+  | .ZZA |     410 |     100 |
+  | .ZZB |      90 |     100 |
+  | .ZZC |     300 |     100 |
   When transactions: 
   | xid | created   | type     | amount | from | to   | purpose |*
   |   5 | %today-8d | transfer |    100 | .ZZC | .ZZA | usd F   |
   Then balances:
-  | id   | r   | rewards |*
-  | .ZZA | 610 |     100 |
-  | .ZZB | 190 |     100 |
-  | .ZZC | 300 |     100 |
+  | id   | balance | rewards |*
+  | .ZZA |     510 |     100 |
+  | .ZZB |      90 |     100 |
+  | .ZZC |     200 |     100 |
   When transactions: 
-  | xid | created   | type     | amount | from | to   | purpose |*
-  |   6 | %today-7d | transfer | 240.01 | .ZZA | .ZZB | what G  |
-  |   7 | %today-7d | rebate   |     12 | ctty | .ZZA | reward on #4  |
-  |   8 | %today-7d | bonus    |     24 | ctty | .ZZB | reward on #3  |
+  | xid | created   | type     | amount | rebate | bonus | from | to   | purpose |*
+  |   6 | %today-7d | transfer | 240.01 |     12 |    24 | .ZZA | .ZZB | what G  |
+  # pennies here and below, to trigger roundup contribution
   Then balances:
-  | id   | r   | rewards |*
-  | .ZZA | 382 |     112 |
-  | .ZZB | 454 |     124 |
-  | .ZZC | 300 |     100 |
+  | id   | balance | rewards |*
+  | .ZZA |  269.99 |    112 |
+  | .ZZB |  330.01 |    124 |
+  | .ZZC |  200.00 |    100 |
   When transactions: 
-  | xid | created   | type     | amount | from | to   | purpose |*
-  |   9 | %today-6d | transfer |  99.99 | .ZZA | .ZZB | pie N   |
-  |  10 | %today-6d | rebate   |      5 | ctty | .ZZA | reward on #5 |
-  |  11 | %today-6d | bonus    |     10 | ctty | .ZZB | reward on #4  |
+  | xid | created   | type     | amount | rebate | bonus | from | to   | purpose |*
+  |   7 | %today-6d | transfer |  99.99 |      5 |    10 | .ZZA | .ZZB | pie N   |
   Then balances:
-  | id   | r   | rewards |*
-  | .ZZA | 287 |     117 |
-  | .ZZB | 564 |     134 |
-  | .ZZC | 300 |     100 |
+  | id   | balance | rewards |*
+  | .ZZA |     170 |     117 |
+  | .ZZB |     430 |     134 |
+  | .ZZC |     200 |     100 |
   When transactions: 
-  | xid | created   | type     | amount | from | to   | purpose |*
-  |  12 | %today-5d | transfer |    100 | .ZZC | .ZZA | labor M |
-  |  13 | %today-5d | rebate   |     10 | ctty | .ZZC | reward on #3 |
-  |  14 | %today-5d | bonus    |      5 | ctty | .ZZA | reward on #6  |
+  | xid | created   | type     | amount | rebate | bonus | from | to   | purpose |*
+  |  8 | %today-5d | transfer |    100 |     10 |     5 | .ZZC | .ZZA | labor M |
   Then balances:
-  | id   | r   | rewards |*
-  | .ZZA | 392 |     122 |
-  | .ZZB | 564 |     134 |
-  | .ZZC | 210 |     110 |
+  | id   | balance | rewards |*
+  | .ZZA |     270 |     122 |
+  | .ZZB |     430 |     134 |
+  | .ZZC |     100 |     110 |
   When transactions: 
-  | xid | created   | type     | amount | from | to   | purpose |*
-  |  15 | %today-4d | transfer |     50 | .ZZB | .ZZC | cash P  |
+  | xid | created   | type     | amount | rebate | bonus | from | to   | purpose |*
+  |  9 | %today-4d | transfer |     50 |      0 |     0 | .ZZB | .ZZC | cash P  |
   Then balances:
-  | id   | r   | rewards |*
-  | .ZZA | 392 |     122 |
-  | .ZZB | 514 |     134 |
-  | .ZZC | 260 |     110 |
+  | id   | balance | rewards |*
+  | .ZZA |     270 |     122 |
+  | .ZZB |     380 |     134 |
+  | .ZZC |     150 |     110 |
   # A: (21*(100+400) + 110+400 + 130+480 + 92+280 + -3+280 + 2*(107+280) + 3*(31+140))/30 * R/12 = 
   When transactions: 
-  | xid | created   | type     | amount | from | to   | purpose |*
-  |  16 | %today-3d | transfer |    120 | .ZZA | .ZZC | this Q  |
-  |  17 | %today-3d | rebate   |      6 | ctty | .ZZA | reward on #7 |
-  |  18 | %today-3d | bonus    |     12 | ctty | .ZZC | reward on #5  |
+  | xid | created   | type     | amount | rebate | bonus | from | to   | purpose |*
+  |  10 | %today-3d | transfer |    120 |      6 |    12 | .ZZA | .ZZC | this Q  |
   Then balances:
-  | id   | r   | rewards |*
-  | .ZZA | 278 |     128 |
-  | .ZZB | 514 |     134 |
-  | .ZZC | 392 |     122 |
+  | id   | balance | rewards |*
+  | .ZZA |     150 |     128 |
+  | .ZZB |     380 |     134 |
+  | .ZZC |     270 |     122 |
   When transactions: 
-  | xid | created   | type     | amount | from | to   | purpose |*
-  |  19 | %today-1d | transfer |    100 | .ZZA | .ZZB | cash V  |
+  | xid | created   | type     | amount | rebate | bonus | from | to   | purpose |*
+  |  11 | %today-1d | transfer |    100 |      0 |     0 | .ZZA | .ZZB | cash V  |
   Then balances:
-  | id   | r   | rewards |*
-  | .ZZA | 178 |     128 |
-  | .ZZB | 614 |     134 |
-  | .ZZC | 392 |     122 |
+  | id   | balance | rewards |*
+  | .ZZA |      50 |     128 |
+  | .ZZB |     480 |     134 |
+  | .ZZC |     270 |     122 |
 
 Scenario: Inflation adjustments, round up donations, and crumb donations are made
   When cron runs "everyMonth"
 # inflation  
   Then transactions: 
-  | xid| created| type      | amount                              | from | to   | purpose |*
-  | 20 | %today | inflation | %(round(%R_INFLATION_RATE*29.6, 2)) | ctty | .ZZA | %IAOY average balance |
-  | 21 | %today | inflation | %(round(%R_INFLATION_RATE *8.8, 2)) | ctty | .ZZA | %IAOY credit reserve  |
-  | 22 | %today | inflation | %(round(%R_INFLATION_RATE*14.2, 2)) | ctty | .ZZB | %IAOY average balance |
-  | 23 | %today | inflation | %(round(%R_INFLATION_RATE *9.0, 2)) | ctty | .ZZB | %IAOY credit reserve  |
-  | 24 | %today | inflation | %(round(%R_INFLATION_RATE*23.0, 2)) | ctty | .ZZC | %IAOY average balance |
-  | 25 | %today | inflation | %(round(%R_INFLATION_RATE *8.6, 2)) | ctty | .ZZC | %IAOY credit reserve  |
+  | xid| created| type      | amount | bonus                               | from | to   | purpose |*
+  | 12 | %today | inflation |      0 | %(round(%R_INFLATION_RATE*29.2, 2)) | ctty | .ZZA | %IAOY average balance |
+  # 29.6?
+  | 13 | %today | inflation |      0 | %(round(%R_INFLATION_RATE *8.8, 2)) | ctty | .ZZA | %IAOY credit reserve  |
+  | 14 | %today | inflation |      0 | %(round(%R_INFLATION_RATE*13.6, 2)) | ctty | .ZZB | %IAOY average balance |
+  # 14.2?
+  | 15 | %today | inflation |      0 | %(round(%R_INFLATION_RATE *9.0, 2)) | ctty | .ZZB | %IAOY credit reserve  |
+  | 16 | %today | inflation |      0 | %(round(%R_INFLATION_RATE*22.8, 2)) | ctty | .ZZC | %IAOY average balance |
+  # 23.0?
+  | 17 | %today | inflation |      0 | %(round(%R_INFLATION_RATE *8.6, 2)) | ctty | .ZZC | %IAOY credit reserve  |
   And member ".ZZA" cache is ok
   And member ".ZZB" cache is ok
   And member ".ZZC" cache is ok
@@ -123,8 +119,8 @@ Scenario: Inflation adjustments, round up donations, and crumb donations are mad
 
 # roundups
   And transactions:
-  | xid | created | type     | amount | from | to  | purpose       |*
-  | 26  | %today  | transfer |   1.00 | .ZZA | cgf | roundups desc |
+  | xid | created | type     | amount | rebate | bonus | from | to  | purpose       |*
+  | 18  | %today  | transfer |   1.00 |    .05 |   .10 | .ZZA | cgf | roundups desc |
  
 # crumbs
-  | 29  | %today  | transfer |   3.40 | .ZZC | cgf | crumbs desc |
+  | 19  | %today  | transfer |   3.40 |    .34 |   .34 | .ZZC | cgf | crumbs desc |

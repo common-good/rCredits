@@ -74,7 +74,7 @@ Scenario: A nonmember has accepted an invitation from someone else instead
 Scenario: A member gets a credit line
 # This fails if run on a day of the month that the previous month doesn't have (for example on 10/31)
   Given balances:
-  | id   | r   |*
+  | id   | rewards |*
   | .ZZE | 500 |
   And transactions:
   | created   | type     | amount | from | to   | purpose |*
@@ -91,7 +91,7 @@ Scenario: A member gets a credit line
 Scenario: A member gets a bigger credit line after several months
 # This fails if run on a day of the month that the previous month doesn't have (for example on 10/31)
   Given balances:
-  | id   | r    |*
+  | id   | rewards |*
   | .ZZE | 5000 |
   And transactions:
   | created   | type     | amount | from | to   | purpose |*
@@ -121,7 +121,7 @@ Scenario: A member gets a bigger credit line after several months
 
 Scenario: A member gets no new credit line because the change would be minimal
   Given balances:
-  | id   | r   |*
+  | id   | rewards |*
   | .ZZE | 500 |
   And members have:
   | id   | floor |*

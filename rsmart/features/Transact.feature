@@ -38,13 +38,13 @@ Setup:
   | 4   | %today-6m | signup |    250 | ctty | .ZZE | signup  |
   | 5   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |
   Then balances:
-  | id   |       r |*
-  | ctty |   -1250 |
-  | .ZZA |     250 |
-  | .ZZB |     250 |
-  | .ZZC |     250 |
-  | .ZZE |     250 |
-  | .ZZF |     250 |
+  | id   | balance | rewards |*
+  | ctty |    -500 |       0 |
+  | .ZZA |       0 |     250 |
+  | .ZZB |       0 |     250 |
+  | .ZZC |     250 |       0 |
+  | .ZZE |       0 |     250 |
+  | .ZZF |     250 |       0 |
 
 #Variants: with/without an agent
 #  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to member |
@@ -66,11 +66,11 @@ Scenario: A cashier asks to charge someone
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
   And balances:
-  | id   |       r |*
-  | ctty |   -1265 |
-  | .ZZA |     250 |
-  | .ZZB |     160 |
-  | .ZZC |     355 |
+  | id   | balance | rewards |*
+  | ctty |    -500 |       0 |
+  | .ZZA |       0 |     250 |
+  | .ZZB |    -100 |     260 |
+  | .ZZC |     350 |       5 |
 
 Scenario: A cashier asks to refund someone
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $-100 for "goods": "food" at %now
@@ -87,11 +87,11 @@ Scenario: A cashier asks to refund someone
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $-10              |
   And balances:
-  | id   |       r |*
-  | ctty |    -1235 |
-  | .ZZA |     250 |
-  | .ZZB |     340 |
-  | .ZZC |     145 |
+  | id   | balance | rewards |*
+  | ctty |    -500 |       0 |
+  | .ZZA |       0 |     250 |
+  | .ZZB |     100 |     240 |
+  | .ZZC |     150 |      -5 |
 
 Scenario: A cashier asks to charge another member, with insufficient balance
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $300 for "goods": "food" at %now
@@ -164,9 +164,13 @@ Scenario: Device sends wrong proof
   When agent "C:A" asks device "devC" to charge ".ZZB,whatever" $100 for "goods": "food" at %now
   Then we return error "bad proof"  
   
-Scenario: A cashier asks to charge someone unconfirmed
+Scenario: A cashier in the same community asks to charge someone unconfirmed
   When agent "C:A" asks device "devC" to charge ".ZZE,ccE" $100 for "goods": "food" at %now
   # cash exchange would be for "cash": "cash out"
-  Then we return error "not confirmed" with subs:
-  | youName  | inviterName |*
-  | Eve Five | Dee Four    |
+  Then we respond ok txid 6 created %now balance "*-100" rewards 260 saying:
+  # asterisk means secret balance
+  | did     | otherName | amount | why   | reward |*
+  | charged | Eve Five  | $100   | goods | $10    |
+#  Then we return error "not confirmed" with subs:
+#  | youName  | inviterName |*
+#  | Eve Five | Dee Four    |

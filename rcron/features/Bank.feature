@@ -38,7 +38,7 @@ Scenario: a member has a negative balance
 
 Scenario: an unbanked member barely below minimum draws on another account
   Given balances:
-  | id   | r     |*
+  | id   | balance |*
   | .ZZA | 200   |
   | .ZZB | 99.99 |
   When cron runs "bank"
@@ -51,9 +51,9 @@ Scenario: an unbanked member barely below minimum draws on another account
   
 Scenario: an unbanked member barely below minimum cannot draw on another account
   Given balances:
-  | id   | r     |*
-  | .ZZA | 0     |
-  | .ZZB | 99.99 |
+  | id   | balance |*
+  | .ZZA | 0      |
+  | .ZZB | 99.99  |
   When cron runs "bank"
   Then we notice "under min|cannot draw" to member ".ZZB"
 
@@ -114,8 +114,8 @@ Scenario: a member is under minimum only because rewards are reserved
   | id   | fullName | minimum | flags     | achMin | risks   |*
   | .ZZD | Dee Four |     100 | ok,refill | 10     | hasBank |
   And balances:
-  | id   | r   | rewards | savingsAdd |*
-  | .ZZD | 110 |      30 |          0 |
+  | id   | balance | rewards | savingsAdd |*
+  | .ZZD | 80      |      30 |          0 |
   When cron runs "bank"
   Then usd transfers:
   | payer | amount |*
@@ -123,8 +123,8 @@ Scenario: a member is under minimum only because rewards are reserved
   
 Scenario: a member member with zero minimum has balance below minimum
   Given balances:
-  | id   | minimum | r   |*
-  | .ZZA |       0 | -10 |
+  | id   | minimum | balance |*
+  | .ZZA |       0 | -10     |
   When cron runs "bank"
   Then usd transfers:
   | payer | amount |*
@@ -132,7 +132,7 @@ Scenario: a member member with zero minimum has balance below minimum
   
 Scenario: an unbanked member with zero minimum has balance below minimum
   Given balances:
-  | id   | minimum | r   |*
+  | id   | minimum | balance |*
   | .ZZA |       0 |   0 |
   | .ZZB |       0 | -10 |
   When cron runs "bank"
@@ -140,7 +140,7 @@ Scenario: an unbanked member with zero minimum has balance below minimum
 
 Scenario: a member has a deposited but not completed transfer
   Given balances:
-  | id   | r   |*
+  | id   | balance |*
   | .ZZA |  80 |
   | .ZZB | 100 |
   And usd transfers:

@@ -19,6 +19,7 @@ define('R_AGREE_9', 6); // number of the last point in the rCredits Agreement
 define('REQ', '*'); // marks required fields (use this as start of field's label)
 define('BARE', '-'); // marks bare (unwrapped) fields -- no div wrapper around them
 
+require_once __DIR__ . '/../rcredits-util.inc';
 require_once __DIR__ . '/../rcredits-strings.inc';
 
 $GLOBALS['tStrings'] += array(
@@ -471,6 +472,65 @@ $core
 EOF;
 }
   
+/**
+ * Say whether the user has permission to run the named query.
+ * @param string $queryName: name of the query -- if first character is a digit, restrict to admins 0=super 1=admin 2=cAdmin2
+ * @param string $sql: the query
+ *                     (RETURNED) the query modified to apply to the current community, if appropriate
+ * @return FALSE if not permitted, else the query name without any leading digit
+ */
+function queryPermitted($qName, &$sql = '') {
+  if (!preg_match('/^([0-9])(.*)/', $qName, $m)) return $qName;
+  if (!$mya = r\acct()) return FALSE;
+  
+  if ($mya->community) $sql = str_replace('WHERE 1 ', "WHERE u.community=$mya->community ", $sql); // handle community-specific query
+  list ($zot, $digit, $qName) = $m;
+  return $digit >= ($mya->superAdmin ? 0 : ($mya->admin ? 1 : ($mya->cAdmin2 ? 2 : ($mya->co ? B_CO : 9)))) ? $qName : FALSE;
+}
+  
+/**
+ * Return a table of formatted records, given an array of rows.
+ */
+define('ALIGN_RIGHT', 'proxiedFor trust');
+define('ALIGN_CENTER', '');
+define('FMT_INT', 'trust count');
+//define('FMT_2D', 'negativeBalanceTotal positiveBalanceTotal');
+ 
+function showRecords($ray, $formatFunc = 'rCredits\\Web\\formatField') {
+  if (!$ray or empty($ray)) return 'data set is empty';
+  $lines[] = '<tr><th>' . join('</th><th>', array_keys((array) $ray[0])) . "</th></tr>\n";
+  foreach ($ray as $row) {
+    $line = '';
+    foreach ($row as $k => $v) {
+      $v = $formatFunc($k, $v);
+      if ($k == 'for2' and $v == $row->for1) $v = 'same'; // admin uses this for conciseness
+      $align = in_array($k, ray(ALIGN_RIGHT)) ? 'R' : (in_array($k, ray(ALIGN_CENTER)) ? 'C' : 'L');
+      foreach (ray('balance credit trust count $') as $w) if (stripos($k, $w) !== FALSE) {
+        $align = 'R';
+        if ($v !== '' and is_numeric($v)) $v = number_format($v, in_array($w, ray(FMT_INT)) ? 0 : 2);
+      }
+//      if (in_array($k, ray(FMT_INT))) $v = round($v);
+//      if (in_array($k, ray(FMT_2D)) or strpos($k, '$') !== FALSE) if ($v != '') $v = number_format($v, 2);
+      $line .= "  <td class=\"align$align\">$v</td>\n";
+    }
+    $lines[] = $line;
+  }
+  return "<table>\n<tr>" . join("</tr>\n<tr>\n", $lines) . "</tr>\n</table>";
+}
+
+/**
+ * Return the given field, formatted for viewing.
+ */
+function formatField($k, $v) {
+  $v = $v . ''; // convert to string
+//  if ($v and $k == 'channel') $v = u\rayv(ray(TX_CHANNELS), $v);
+//  if ($v and in_array($k, ray(R_DATE_FIELDS))) $v = '<div style="line-height:65%;">' . strftime('%d%b', $v) . '<span style="font-size:50%;">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
+
+  if (u\starts($v, CRYPTN_FLAG)) $v = u\decryptN($v); // decrypt phone and email
+  if ($k == 'phone') $v = u\fmtPhone($v);
+  return $v;
+}
+
 // old
 function fld($type, $title = '', $help = '', $other = [], $options = NULL) {
   $label = $title;
@@ -792,6 +852,7 @@ function pickPassword($reset = TRUE) {
  * @return the box ID string
  */
 function box() {
+  global $box;
   if ($box = @$_COOKIE['box']) return $box;
   return r\setCook('box', $box = u\code());
 }
@@ -844,7 +905,7 @@ function noFlood(&$sta) {\flood_clear_event('failed_login_attempt_user', @$sta['
  * @return the current or new account
  */
 function setAcct($myid = '') {
-  global $channel, $boxUser;
+  global $channel, $boxUser, $box;
 
   if (is_null($myid)) {
     svar('myid', NULL); svar('agentId', NULL);
@@ -860,10 +921,12 @@ function setAcct($myid = '') {
 
   if (!@$channel) { // only once per HTTP request
     $channel = TX_WEB;
-    if (@$myid) $boxUser = boxUser(box(), $myid); // so far used only when recording transactions
+    if (@$myid) $boxUser = boxUser($box = box(), $myid); // so far used only when recording transactions
   }
   
-  return r\Acct::setDefault(r\acct($myid, $agentId));
+  $mya = r\acct($myid, $agentId);
+
+  return r\Acct::setDefault($mya);
 }
 
 /**
@@ -2085,6 +2148,7 @@ function fundStats($stats, $includeRaw = FALSE, $format = 's$') {
     $cttyA = r\acct($ctty);
     $res['cttyName'] = $ctty == r\serverUid() ? t('Seedpack (Outliers)') : trim(strtr($cttyA->fullName, [t('Region')=>'', PROJECT=>'']));
   } else $res['cttyName'] = t('TOTAL');
+
   foreach (ray('r usd tradeIn tradeOut signups txRewards helpers inflations spent grants loans invests fines') as $one) {
     if ($includeRaw) $res[$one . '0'] = $$one;
     $res[$one] = u\fmtAmt($$one, $format);
@@ -2249,10 +2313,11 @@ function setupFoot($normalLabel = '') {
  * Return the text with a help popover and optional link.
  */
 function popHelp($text, $help, $href = '', $class = '') {
-  list ($href, $tag) = $href ? [" href=\"$href\"", 'a'] : ['', 'span'];
+  $trigger = $href == '#' ? 'click' : 'hover';
+  list ($href, $tag) = ($href and $href != '#') ? [" href=\"$href\"", 'a'] : ['', 'span'];
   if ($class) $class = " class=\"$class\"";
   $text = ucfirst($text);
-  return "<$tag$href$class data-toggle=\"popover\" data-placement=\"bottom\" data-trigger=\"hover\" title=\"$text\" data-content=\"$help\">$text</$tag>";
+  return "<$tag$href$class type=\"button\" data-toggle=\"popover\" data-placement=\"bottom\" data-trigger=\"$trigger\" data-content=\"$help\" title=\"$text\">$text</$tag>";
 }
 
 /**

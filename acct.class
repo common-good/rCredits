@@ -171,28 +171,28 @@ class Acct {
     // From here down, everything should be for "own" account
     $nick = substr($field, 0, 3); // possibly meaningful prefix
     if (in_array($nick, ['can', 'raw']) and $field != 'rawChanges') $field = lcfirst(substr($field, 3));
-    if (u\in($field, B_LIST . ' up cgc cttyActive cttyUp')) $nick = 'can';
+    if (u\in($field, B_LIST . ' ' . B_CTTY_BITS)) $nick = 'can';
     if ($nick == 'can') return $a->can(u\consta('b', $field));
+    if ($nick == 'ctt' and $field != 'cttyA') return $a->cttyA->can(u\consta('b', substr($field, 4))); // ctty bit
     
     if ($field == 'mainQid') return $a->qo->mainQid;
     if ($field == 'isRegulator') return (bool) ($a->flags & u\bit(B_REGULATOR)); // not ->can() included by cAdmin etc.
-    if ($field == 'balance') return $a->o_r - $a->o_rewards; // $a->r - $a->savings;
-    u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
+//    if ($field == 'balance') return $a->o_r - $a->o_rewards; // $a->r - $a->savings;
+//    u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
     if ($field == 'st') return r\realState($a->state, $a->country);
     if ($field == 'agentA') return r\acct($a->agentId);
     if ($field == 'proSe') return ($a->id == $a->agentId);
     if ($field == 'qid') return $a->qo->qid;
-    if ($field == 'rewarding') return t\rewarding() ?: FALSE; // no community is guaranteeing incentive rewards at this time
-    if ($field == 'isCtty') return ($a->id < 0); // or ($a->id == $a->community);
+    if ($field == 'isCtty') return ($a->id < 0); // or ($a->id == $a->community); (regions are communities too)
     if ($field == 'isRegion') return (substr($a->name, -1, 1) == '.');
     if ($field == 'isNormal') return ($a->id > 0);
     if ($field == 'cttyA') return r\acct($a->community);
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'regionA') return @r\acct($a->region);
     if ($field == 'regionName') return @$a->regionA->fullName ?: (PROJECT . ' ' . db\lookup('name', 'r_regions r INNER JOIN r_states s ON s.abbreviation=r.st', 's.country_id=:US_COUNTRY_ID AND r.region=:reg', ['reg' => $a->qo->region]));
-    if ($field == 'cttyUrl') return $a->community == $a->region ? CG_DOMAIN : strtolower(trim(strtr($a->cttyA->fullName, [PROJECT=>'', ' '=>''])) . '.' . $a->cttyA->st . '.') . CG_DOMAIN;
+    if ($field == 'url') return ($a->isRegion ? '' : strtr($a->fullName, [PROJECT=>'', ' '=>'']) . $a->st . '.') . CG_DOMAIN; // applies only to communities (->cttyUrl)
     if ($field == 'legalNameDpy') return str_replace('_', ' ', $a->legalName); // for u\parseName of names like Jay di_Fiori
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'hasBank') return $a->risk('hasBank');
@@ -215,8 +215,18 @@ class Acct {
     if ($nick == 'raw') return $result;
 
     if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
-    if ($field == 'hasPhoto') return $this->photo or file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE));
-    if ($field == 'photo') return $result ? u\decrypt($result) : '';
+//    if ($field == 'hasPhoto') return $this->photo or file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE));
+//    if ($field == 'photo') return $result ? u\decrypt($result) : '';
+
+    if ($field == 'hasPhoto') return $a->co 
+    ? file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE))
+    : db\exists('r_photos', 'uid=:id', ['id' => $a->id]);
+    
+    if ($field == 'photo') return $a->co
+    ? @file_get_contents(DRUPAL_ROOT . $this->photoFilename(TRUE))
+    : (($result = db\lookup('photo', 'r_photos', 'uid=:id', ['id' => $a->id])) ? u\decrypt($result) : '');
+    
+//    if ($field == 'photoX') return ($result = @self::$rs[$a->id]->photo) ?: ''; // return encrypted
     if (in_array($field, ray(R_VSECURE_FIELDS)) and !is_array($result) and u\starts($result, CRYPT_FLAG)) { // !is_array() is temporary, for ssnData in transition
       if (@r\acct()->superAdmin and $pw2 = @$_COOKIE['pw2']) {
         $result = u\decrypt($result, 0, $pw2);
@@ -380,18 +390,23 @@ class Acct {
     $a = $this;
     if (!is_array($info)) $info = rayy(func_get_args());
 
-    if (isset($info['balance'])) {
+/*    if (isset($info['balance'])) {
       $info['r'] = $info['balance'];
       foreach (['rewards', 'savingsAdd'] as $k) $info['r'] += isset($info[$k]) ? $info[$k] : $a->o($k);
       $info['r'] = round($info['r'], 2);
       unset($info['balance']);
-    }
+    } */
 
     foreach ($bits = u\just(B_LIST, $info) as $k => $v) {$a->setBit($k, $v); unset($info[$k]);}
     if ($a->ok and !isGAME) $info += $a->recordChanges(u\justNot(B_LIST, $info)); // record changes if member is active
     foreach (u\just('hasBank', $info) as $k => $v) {$a->setRisk($k, $v); unset($info[$k]);}
 
-    if (isset($info['photo'])) $info['photo'] = u\crypt($info['photo']);
+    if (isset($info['photo'])) {
+      if ($info['photo']) { // setting photo
+        db\update('r_photos', ray('uid photo', $a->id, u\crypt($info['photo'])), 'uid', TRUE);
+      } else db\q('DELETE FROM r_photos WHERE uid=:uid', ['uid' => $a->id]);
+      unset($info['photo']);
+    }
     if (isset($info['email'])) $info['mail'] = u\cryptN($info['email']);
     if (isset($info['phone'])) $info['phone'] = u\cryptN($info['phone']);
     
@@ -568,13 +583,15 @@ class Acct {
    * @return: the account (FALSE if $a is empty)
    */
   public static function setDefault($a) {
-    global $currentAcct, $channel; 
+    global $currentAcct, $channel, $box; 
     global $user; if (empty($user)) $user = (object) ['uid' => $a ? $a->id : 0]; // probably needed only for rWeb login form testing
-    if ($a and @$currentAcct != $a and !$a->cAdmin) { // admin access doesn't count
+    if ($a and @$currentAcct != $a and (!@currentAcct or !$a->cAdmin)) { // admin access doesn't count
       $access = r\rTime();
       if ($channel == TX_WEB) $login = $access;
-      $a->update(compact('login', 'access'));
+      $lastip = $_SERVER['REMOTE_ADDR'];
+      $a->update(compact('login', 'access', 'lastip'));
     }
+    if (@$a->ok) r\ipok($a->id, $box); // box is not very important
     return $currentAcct = $a;
   }
 
@@ -612,6 +629,7 @@ class Acct {
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
     $avail += $get ? $a->draw($need - $avail) : $a->canDraw(); // get or just asking
+///    debug(compact(ray('goods need get actor avail')));
     return max(0, $need - $avail); 
   }
   
@@ -623,7 +641,8 @@ class Acct {
     $a = $this;
     $floor = ($a->can(B_DEBT) and $goods != FOR_USD) ? $a->floor : max($a->floor, 0); // no going into debt without permission
     if ($goods == FOR_USD or (COMPANY_FREEZE and $a->co)) $floor = max($floor, $a->rewards); // no exchanging rewards for cash (and companies temporarily can't spend rewards)
-    return round($a->r - $floor, 2);
+//    return round($a->r - $floor, 2);
+    return round($a->balance + $a->rewards - $floor, 2);
 //    return round($a->j_r - $a->j_committed - $floor, 2);
   }
   
@@ -687,33 +706,34 @@ EOF;
    * Otherwise maybe deactivate the account, tell the staff, and return FALSE.
    * Tricky: for joint accounts, r may be wrong (slave r is never negative), but the sum should be correct.
    */
-  public function cacheOk($testOnly = FALSE) {
+  public function cacheOk($testOnly = FALSE, $report = TRUE) {
     $a = $this;
     $uid = $a->id;
-    if ($uid < 0) return TRUE; // for communities and regions, nothing is cached
+//    if ($uid < 0) return TRUE; // for communities and regions, nothing is cached
     $jA = $a->jA;
 
     $calc = be\creditInfo(ray('uid noj', $uid, TRUE));
     if ($jA) $jCalc = be\creditInfo(compact('uid')); // for joint account get joint info
     
-    foreach (['r', 'rewards'] as $k) {
+    foreach (['balance', 'rewards'] as $k) {
       list ($is, $shouldBe) = [$a->o($k), round($calc->$k, 2)];
 
-      if ($jA and $k == 'r') {
+      if ($jA and $k == 'balance') {
         list ($jIs, $jShouldBe) = [$a->$k, round($jCalc->$k, 2)];
-        $bad = ($jIs != $jShouldBe or ($a->slave and $is < 0)); // joint r must be correct AND slave r non-negative
+//        $bad = ($jIs != $jShouldBe or ($a->slave and $is < 0)); // joint r must be correct AND slave r non-negative
+        $bad = ($jIs != $jShouldBe); // joint r must be correct AND slave r non-negative
       } else list ($bad, $jIs, $jShouldBe) = [$is != $shouldBe, '', ''];
       
       if ($bad) {
 //        $worst = max(abs(round($is - $shouldBe, 2)), $worst);
         $worst = TRUE;
 // NO        if ($a->jid) $shouldBe = round($shouldBe - $a->jA->o($k), 2);
-        $DBTX = \db_transaction();
-        if ($k == 'r') $a->slaveCacheR($shouldBe, $testOnly); // affects only slave, sum is already correct (master goes first)
+//        $DBTX = \db_transaction();
+//        if ($k == 'balance') $a->slaveCacheR($shouldBe, $testOnly); // affects only slave, sum is already correct (master goes first)
         if (!$testOnly) $a->update($k, $shouldBe);
-        unset($DBTX);
+//        unset($DBTX);
         $fullName = $a->fullName;
-        r\tellAdmin('cache mismatch', compact(ray('fullName k is shouldBe jIs jShouldBe')));
+        if ($report) r\tellAdmin('cache mismatch', compact(ray('fullName k is shouldBe jIs jShouldBe')));
       }
     }
     if (@$worst) {
@@ -724,15 +744,16 @@ EOF;
 
   /**
    * Don't let joint account slave balance go negative, so cron can handle banking right.
-   * @param numeric $r: (RETURNED FIXED) the prospective balance to cache for this account
-   */
-  public function slaveCacheR(&$r, $testOnly = FALSE) {
+   * @param numeric $balance: (RETURNED FIXED) the prospective balance to cache for this account
+   *//*
+  public function slaveCacheR(&$balance, $testOnly = FALSE) {
     $a = $this;
-    if ($r < 0 and $a->slave) { // Don't let joint account slave balance go negative, so cron can handle banking right.
-      if (!$testOnly) $a->jA->update('r', $a->jA->o_r + $r); // send the negative balance to the master
-      $r = 0;
+    if ($balance < 0 and $a->slave) { // Don't let joint account slave balance go negative, so cron can handle banking right.
+      if (!$testOnly) $a->jA->update('balance', $a->jA->o_balance + $balance); // send the negative balance to the master
+      $balance = 0;
     }      
   }
+  */
 
   /**
    * Return full account name, including the other's name in a joint account.
@@ -806,6 +827,7 @@ EOF;
       }
       list ($a1, $a2) = u\order($b->o_balance > $a->o_balance, $b, $a);
       $amount = round(($a1->o_balance - $a2->o_balance) / 2, 2);
+///      debug("amount=$amount a1=$a1->id bal=$a1->o_balance a2=$a2->id bal=$a2->o_balance");
       if ($amount > 0) be\transfer('payment', $a1, $a2, $amount, FOR_USD, t('joint account settlement'), NULL, TRUE, ['force' => 1]);
     } elseif ($b) {
       $sql .= ' AND other=:other';
@@ -835,7 +857,7 @@ EOF;
    * ($this->photo without parens is empty for companies and empty if there is no photo)
    */
   public function photo() {
-    return $this->photo ?: @file_get_contents(BASE_URL . $this->photoFilename());
+    return $this->hasPhoto ? $this->photo : @file_get_contents(BASE_URL . $this->photoFilename());
   }
   
   /**
@@ -845,10 +867,10 @@ EOF;
    * @return: the relative file path (relative to Drupal)
    */
   public function photoFilename($ideal = FALSE) {
-    $cardCode = @$this->cardCode; // @ for testing
-    if (!$ideal and !$this->hasPhoto) {
-      $file = $this->co ? R_DFT_PICTURE_WIDE : R_DFT_PICTURE;
-    } else $file = "$this->id-$cardCode.jpg";
+    $file = ($ideal or $this->hasPhoto)
+    ? @"$this->id-$this->cardCode.jpg" // @ for testing
+    : ($this->co ? R_DFT_PICTURE_WIDE : R_DFT_PICTURE);
+
     return R_PICTURE_DIR . $file;
   }
   
@@ -1045,14 +1067,14 @@ EOF;
     $years = round((strtotime('today') - strtotime('today', $created)) / DAY_SECS) * DAY_SECS / YEAR_SECS;
     // rounding is to assure consistency for tests, despite daylight savings time changes
     $returnMo = @$avgBalPastMo > 0 ? 
-        number_format(100 * 12 * (@$benePastMo + @$extraPastMo) / $avgBalPastMo, 1)
+        number_format(100 * 12 * @$extraPastMo / $avgBalPastMo, 1)
       : (@$benePastMo + @$extraPastMo > 0 ? '&infin;' : number_format(100 * R_INFLATION_RATE, 1));
     $return = ($years > 0 and @$avgBalEver > 0) ? 
-        number_format(100 * (@$beneEver + @$extraEver) / $avgBalEver / $years, 1)
-      : (@$beneEver + @$extraEver > 0 ? '&infin;' : number_format(100 * R_INFLATION_RATE, 1));
+        number_format(100 * @$extraEver / $avgBalEver / $years, 1)
+      : (@$extraEver > 0 ? '&infin;' : number_format(100 * R_INFLATION_RATE, 1));
     $cttyBeneMo = u\fmtAmt(@$giftsPastMo + max(0, @$bankedPastMo) + @$benePastMo * (1 + R_CC_RATE / $a->rebate));
     $cttyBene = u\fmtAmt(@$giftsEver + max(0, @$bankedEver) + @$beneEver * (1 + R_CC_RATE / $a->rebate) + r\cttyPaidEver($a->community) / (@$pAccts ?: 1));
-/// debug(compact(ray('years returnMo extraPastMo benePastMo avgBalPastMo avgBalEver extraEver cttyBeneMo giftsPastMo bankedPastMo benePastMo cttyBeneMo giftsEver bankedEver beneEver')));
+///    debug(['id' => $a->id] + compact(ray('years returnMo extraPastMo benePastMo avgBalPastMo avgBalEver extraEver cttyBeneMo giftsPastMo bankedPastMo benePastMo cttyBeneMo giftsEver bankedEver beneEver')));
     return compact(ray('returnMo return cttyBeneMo cttyBene'));
   }
 
@@ -1104,7 +1126,8 @@ EOF;
     }
 
     if ($amount0 > 0) { // tell staff to transfer the funds using BillPay or check
-      $a->update('r', $a->o_r - $amount0);
+//      $a->update('r', $a->o_r - $amount0);
+      $a->update('balance', $a->o_balance - $amount0);
       if ($txid > 0) r\tellAdmin(t('outgoing bank transfer request'), ['amount' => $amount0]);
     } elseif ($completed) $a->completeUsdTx(0, -$amount0, TRUE);
 
@@ -1130,7 +1153,8 @@ EOF;
       if (!db\update('r_usd', ['txid'=>$txid, 'completed'=>r\rTime()], 'txid')) return FALSE;
     }
     
-    $a->update('r', $a->o_r + $amount);
+//    $a->update('r', $a->o_r + $amount);
+    $a->update('balance', $a->o_balance + $amount);
     unset($DBTX);
     
     $transfer = $automatic ? t('automatic transfer') : t('transfer');

@@ -41,11 +41,11 @@ Setup:
   | 2   | %today-6m | signup   |    250 | ctty | .ZZB | signup       |      0 |
   | 3   | %today-6m | signup   |    250 | ctty | .ZZC | signup       |      0 |
   Then balances:
-  | id   |       r |*
-  | ctty |    -750 |
-  | .ZZA |     250 |
-  | .ZZB |     250 |
-  | .ZZC |     250 |
+  | id   | balance | rewards|*
+  | ctty |       0 |      0 |
+  | .ZZA |       0 |    250 |
+  | .ZZB |       0 |    250 |
+  | .ZZC |       0 |    250 |
 
 #Variants: with/without an agent
 #  | ".ZZA" asks device "devC" | ".ZZC" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # member to member (pro se) |
@@ -57,13 +57,11 @@ Scenario: An agent asks to undo a charge
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
   | 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | whatever     | %FOR_GOODS |      1 |
-  | 5   | %today-1d | rebate   |      4 | ctty | .ZZA | reward on #2 | %FOR_USD   |      0 |
-  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | reward on #2  | %FOR_USD   |      0 |
   When agent "C:B" asks device "devC" to undo transaction with subs:
   | member | code | amount | goods | description | created   |*
   | .ZZA   | ccA  | 80.00  |     1 | whatever    | %today-1d |
 #  When agent "C:B" asks device "devC" to undo transaction 4 code "ccA"
-  Then we respond ok txid 7 created %now balance 0 rewards 250 saying:
+  Then we respond ok txid 5 created %now balance 0 rewards 250 saying:
   | solution | did      | otherName | amount | why   | reward |*
   | reversed | refunded | Abe One   | $80    | goods | $-4    |
   And with did ""
@@ -77,10 +75,8 @@ Scenario: An agent asks to undo a charge when balance is secret
   | xid | created   | type     | amount | from | to   | purpose      | taking |*
   | 4   | %today-6m | signup   |    250 | ctty | .ZZE | signup       |      0 |
   | 5   | %today-1d | transfer |     80 | .ZZE | .ZZC | whatever     |      1 |
-  | 6   | %today-1d | rebate   |      4 | ctty | .ZZE | reward on #2 |      0 |
-  | 7   | %today-1d | bonus    |      8 | ctty | .ZZC | reward on #2  |      0 |
   When agent "C:B" asks device "devC" to undo transaction 5 code "ccE"
-  Then we respond ok txid 8 created %now balance "*0" rewards 250 saying:
+  Then we respond ok txid 6 created %now balance "*0" rewards 250 saying:
   | solution | did      | otherName | amount | why   | reward |*
   | reversed | refunded | Eve Five  | $80    | goods | $-4    |
   And with did ""
@@ -93,10 +89,8 @@ Scenario: An agent asks to undo a refund
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose      | taking |*
   | 4   | %today-1d | transfer |    -80 | .ZZA | .ZZC | refund       |      1 |
-  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZA | reward on #2 |      0 |
-  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | reward on #2  |      0 |
   When agent "C:B" asks device "devC" to undo transaction 4 code "ccA"
-  Then we respond ok txid 7 created %now balance 0 rewards 250 saying:
+  Then we respond ok txid 5 created %now balance 0 rewards 250 saying:
   | solution | did        | otherName | amount | why   | reward |*
   | reversed | re-charged | Abe One   | $80    | goods | $4     |
   And with did ""
@@ -137,11 +131,9 @@ Scenario: An agent asks to undo a charge, with insufficient balance
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
   | 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | whatever     | %FOR_GOODS |      1 |
-  | 5   | %today-1d | rebate   |      4 | ctty | .ZZA | reward on #2 | %FOR_USD   |      0 |
-  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | reward on #2  | %FOR_USD   |      0 |
-  | 7   | %today    | transfer |    300 | .ZZC | .ZZB | labor        | %FOR_USD   |      0 |
+  | 5   | %today    | transfer |    300 | .ZZC | .ZZB | cash out     | %FOR_USD   |      0 |
   When agent "C:B" asks device "devC" to undo transaction 4 code "ccA"
-  Then we respond ok txid 8 created %now balance 0 rewards 250 saying:
+  Then we respond ok txid 6 created %now balance 0 rewards 250 saying:
   | solution | did      | otherName | amount | why   | reward |*
   | reversed | refunded | Abe One   | $80    | goods | $-4    |
   And with did ""
@@ -150,21 +142,19 @@ Scenario: An agent asks to undo a charge, with insufficient balance
   | created | otherName  | amount | payerPurpose | otherRewardAmount |*
   | %today  | Corner Pub | $80    | reverses #2  | $-4               |
   And balances:
-  | id   |       r |*
-  | ctty |    -750 |
-  | .ZZA |     250 |
-  | .ZZB |     550 |
-  | .ZZC |     -50 |
+  | id   | balance | rewards |*
+  | ctty |       0 |       0 |
+  | .ZZA |       0 |     250 |
+  | .ZZB |     300 |     250 |
+  | .ZZC |    -300 |     250 |
 
 Scenario: An agent asks to undo a refund, with insufficient balance  
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
   | 4   | %today-1d | transfer |    -80 | .ZZA | .ZZC | refund       | %FOR_GOODS |      1 |
-  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZA | reward on #2 | %FOR_USD   |      0 |
-  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | reward on #2  | %FOR_USD   |      0 |
-  | 7   | %today    | transfer |    300 | .ZZA | .ZZB | labor        | %FOR_USD   |      0 |
+  | 5   | %today    | transfer |    300 | .ZZA | .ZZB | cash out     | %FOR_USD   |      0 |
   When agent "C:B" asks device "devC" to undo transaction 4 code "ccA"
-  Then we respond ok txid 8 created %now balance -300 rewards 250 saying:
+  Then we respond ok txid 6 created %now balance -300 rewards 250 saying:
   | solution | did        | otherName | amount | why   | reward |*
   | reversed | re-charged | Abe One   | $80    | goods | $4     |
   And with did ""
@@ -173,20 +163,18 @@ Scenario: An agent asks to undo a refund, with insufficient balance
   | created | otherName  | amount | payerPurpose | otherRewardAmount |*
   | %today  | Corner Pub | $80    | reverses #2  | $4                     |
   And balances:
-  | id   |       r |*
-  | ctty |    -750 |
-  | .ZZA |     -50 |
-  | .ZZB |     550 |
-  | .ZZC |     250 |
+  | id   | balance | rewards |*
+  | ctty |       0 |       0 |
+  | .ZZA |    -300 |     250 |
+  | .ZZB |     300 |     250 |
+  | .ZZC |       0 |     250 |
 
 Scenario: An agent asks to undo a charge, without permission
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
   | 4   | %today-1d | transfer |     80 | .ZZB | .ZZC | whatever     | %FOR_GOODS |      1 |
-  | 5   | %today-1d | rebate   |      4 | ctty | .ZZB | reward on #2 | %FOR_USD   |      0 |
-  | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | reward on #2  | %FOR_USD   |      0 |
   When agent "C:A" asks device "devC" to undo transaction 4 code "ccB"
-  Then we respond ok txid 7 created %now balance 0 rewards 250 saying:
+  Then we respond ok txid 5 created %now balance 0 rewards 250 saying:
   | solution | did      | otherName | amount | why   | reward |*
   | reversed | refunded | Bea Two   | $80    | goods | $-4    |
 #  Then we return error "no perm" with subs:
@@ -200,10 +188,8 @@ Scenario: An agent asks to undo a refund, without permission
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose      | goods        | taking |*
   | 4   | %today-1d | transfer |    -80 | .ZZB | .ZZC | refund       | %FOR_GOODS |      1 |
-  | 5   | %today-1d | rebate   |     -4 | ctty | .ZZB | reward on #2 | %FOR_USD   |      0 |
-  | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | reward on #2  | %FOR_USD   |      0 |
   When agent "C:D" asks device "devC" to undo transaction 4 code "ccB"
-  Then we respond ok txid 7 created %now balance 0 rewards 250 saying:
+  Then we respond ok txid 5 created %now balance 0 rewards 250 saying:
   | solution | did        | otherName | amount | why   | reward |*
   | reversed | re-charged | Bea Two   | $80    | goods | $4     |
 #  Then we return error "no perm" with subs:
@@ -238,9 +224,9 @@ Scenario: A cashier reverses a transaction with insufficient funds
   | created | fullName | otherName  | amount | payerPurpose |*
   | %today  | Bea Two  | Corner Pub | $100   | reverses #2  |
   And balances:
-  | id   |       r |*
-  | ctty |    -850 |
-  | .ZZA |     249 |
-  | .ZZB |     251 |
-  | .ZZC |     350 |
+  | id   | balance | rewards|*
+  | ctty |    -100 |      0 |
+  | .ZZA |      -1 |    250 |
+  | .ZZB |       1 |    250 |
+  | .ZZC |     100 |    250 |
   

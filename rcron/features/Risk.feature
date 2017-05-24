@@ -56,15 +56,15 @@ Setup:
   # (cash) is required else a transaction fee transaction is created
   |   6 | %today-3w | transfer |    240 | .ZZA | .ZZB | what G  | %TX_POS |
 
-  |   9 | %today-2w | transfer |     50 | .ZZB | .ZZC | cash P  | %TX_POS |
-  |  10 | %today-1w | transfer |    120 | .ZZA | .ZZH | offline | %TX_POS |
+  |   7 | %today-2w | transfer |     50 | .ZZB | .ZZC | cash P  | %TX_POS |
+  |   8 | %today-1w | transfer |    120 | .ZZA | .ZZH | offline | %TX_POS |
 
-  |  13 | %today-6d | transfer |    100 | .ZZA | .ZZB | cash V  | %TX_WEB |
-  |  14 | %today-1d | transfer |    120 | .ZZA | .ZZC | undoneBy:17 | %TX_POS |
-  |  17 | %today-1d | transfer |   -120 | .ZZA | .ZZC | undoes:14 | %TX_POS |
-  |  20 | %today-1d | transfer |     40 | .ZZC | .ZZE | labor   | %TX_WEB |
-  |  23 | %today-1d | transfer |     10 | .ZZF | .ZZE | cash    | %TX_WEB |
-  |  24 | %today-1d | transfer |     11 | .ZZF | .ZZE | cash    | %TX_WEB |  
+  |   9 | %today-6d | transfer |    100 | .ZZA | .ZZB | cash V  | %TX_WEB |
+  |  10 | %today-1d | transfer |    120 | .ZZA | .ZZC | undoneBy:17 | %TX_POS |
+  |  11 | %today-1d | transfer |   -120 | .ZZA | .ZZC | undoes:14 | %TX_POS |
+  |  12 | %today-1d | transfer |     40 | .ZZC | .ZZE | labor   | %TX_WEB |
+  |  13 | %today-1d | transfer |     10 | .ZZF | .ZZE | cash    | %TX_WEB |
+  |  14 | %today-1d | transfer |     11 | .ZZF | .ZZE | cash    | %TX_WEB |  
   And usd transfers:
   | txid | payer | amount | completed |*
   |    1 | .ZZA  |   -400 | %today-2m |  
@@ -99,7 +99,7 @@ Scenario: We calculate risks
   | .ZZB | trusted,socialConx,moves,rents,moreIn |
   | .ZZC | cashCo,homeCo,miser,bigDay,bigWeek,big7Week |
   | .ZZD | trusted,hasBank |
-  | .ZZE | new,shady,poBox,moreOut |
+  | .ZZE | new,shady,poBox,moreIn,moreOut |
   | .ZZF | photoOff,bigDay |
   | .ZZG | new,moves,badConx,addrOff |
   | .ZZH | moves,ssnOff |
@@ -110,20 +110,18 @@ Scenario: We calculate risks
   | xid | risks |*
   |   1 | |
   |   2 | |
-  |   3 | toSuspect |
+  |   3 | |
   |   4 | exchange,p2p |
   |   5 | cashIn,inhouse,toSuspect,biggestFrom,biggestTo |
   |   6 | p2p,biggestTo |
-  |   7 |   |
-  |   8 |   |
-  |   9 | cashOut,toSuspect,biggestFrom |
-  |  10 | p2p,toSuspect,biggestTo,offline,firstOffline |
-  |  13 | exchange,p2p,absent,invoiceless,bigFrom,bigTo |
-  |  14 | inhouse,toSuspect,oftenFrom,oftenTo |
-  |  17 | fromSuspect,biggestFrom,biggestTo,origins |
-  |  20 | b2p,fromSuspect,toSuspect,absent,invoiceless,biggestTo,origins |
-  |  23 | exchange,p2p,fromSuspect,toSuspect,absent,invoiceless,bigFrom,bigTo,suspectOut |
-  |  24 | exchange,p2p,fromSuspect,toSuspect,absent,invoiceless,biggestFrom,suspectOut |
+  |   7 | cashOut,toSuspect,biggestFrom |
+  |   8 | p2p,toSuspect,biggestTo,offline,firstOffline |
+  |   9 | exchange,p2p,absent,invoiceless,bigFrom,bigTo |
+  |  10 | inhouse,toSuspect,oftenFrom,oftenTo |
+  |  11 | fromSuspect,biggestFrom,biggestTo,origins |
+  |  12 | b2p,fromSuspect,toSuspect,absent,invoiceless,biggestTo,origins |
+  |  13 | exchange,p2p,fromSuspect,toSuspect,absent,invoiceless,bigFrom,bigTo,suspectOut |
+  |  14 | exchange,p2p,fromSuspect,toSuspect,absent,invoiceless,biggestFrom,suspectOut |
   When cron runs "achRisk"
   Then usd transfers:
   | txid | risks |*

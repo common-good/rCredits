@@ -31,11 +31,15 @@ function formAdminPanel($form, &$sta, $args = '') {
   if (!$mya->cAdmin) hack('panel');
   
   $tables = 'users txs usd log gifts proxies relations invites'; // tables to show
+  $queries = [
+    '' => '',
+  ];
   
   $title = item(t('System Administration'));
   
   $inviteeStatus = submi(t('Invitee Status'));
-  $organizerList = submi(t('Organizer List'));
+  $organizerList = submi(t('Local Requests'));
+  $queries = selectFld(t('Query:'), '', '', $queries);
   $account = textFld(t('Account:'), t('Account to do something to'), (auto() ?: []) + dft(@$qid ?: svar('adminingAcct')));
   
   if ($mya->superAdmin) {
@@ -135,7 +139,7 @@ function formAdminPanel_submit($form, &$sta) {
   
   // handle all other buttons with showQuery()
   if ($op == 'users') {
-    $fields = 'uid, flags, r, rewards, savingsAdd AS saveAdd, minimum AS min, committed AS comit, share, floor, city, postalCode AS zip';
+    $fields = 'uid, flags, balance, r, rewards, savingsAdd AS saveAdd, minimum AS min, floor, city, postalCode AS zip';
     return say(a\showQuery('users', 1, 'name', $fields));
   }
   
@@ -146,9 +150,9 @@ function formAdminPanel_submit($form, &$sta) {
 
   if ($op == 'txs') {
     $fields = <<<EOF
-    xid, t.created, type AS ty, goods AS gd, t.:IS_TAKING AS k,
+    xid, t.created, flags, type AS ty, goods AS gd, t.:IS_TAKING AS k,
     IF (LOCATE('"force";s:1:"1"', u1.data)>0, 1, IF(LOCATE('"force";s:2:"-1"', u1.data)>0, -1, IF(LOCATE('"force";s:1:"0"', u1.data)>0, '0', ''))) AS f,
-    payer, payee, amount, payerFor AS for1, payeeFor AS for2, payerTid AS tid1, payeeTid AS tid2
+    payer, payee, amount, payerReward, payeeReward, payerFor AS for1, payeeFor AS for2, payerTid AS tid1, payeeTid AS tid2
 EOF;
     if ($mya->admin) $fields = str_replace('u1.', '', $fields);
     return say(a\showQuery('r_txs', isDEV ? 1 : 'type NOT IN (:TX_REBATE,:TX_BONUS)', 'xid DESC', $fields, array('payer', 'payee')));
@@ -406,12 +410,11 @@ EOF
   , 'cttyName code expMo _example', $cttyA->fullName, 'do/action~qid~ecode~monthNum', $expMo, $base_url . '/do/doDemocracy~*|ID|*~*|ECODE|*~' . ($expMo + 1)));
   if ($mya->admin) $allCttys2 = boxFld('allCttys', t('All communities:'), '', TRUE); // temporary for CGF oversight
   $requests2 = boxFld('requests', t('Include requests:'), t('Include non-members who have requested an invitation 2016 or later.'), TRUE);
-  $onlyActive2 = boxFld('onlyActive', t('Active only:'), t('Export only active accounts'));
-  $onlyPeople2 = boxFld('onlyPeople', t('People only:'), t('Export only individual accounts'), FALSE);
+  $status = w\radiosFld(t('Status:'), '', dft(2), ray('active not-yet-active both'));
+  $types = w\radiosfld(t('Types:'), '', dft(2), ray('individuals companies both'));
   $anonymous = boxFld('anonymous', t('Anonymous:'), t('Export only non-identifying information (for data-mapping and analysis)'), FALSE);
-  //$onlyCos = boxFld(t('Companies only:'), t('Export only company accounts'), FALSE);
   $submit = submit(t('Download'));
-  return labeled(compact(ray('title subtext requests2 allCttys2 onlyActive2 onlyPeople2 anonymous submit download')));
+  return labeled(compact(ray('title subtext requests2 allCttys2 status types anonymous submit download')));
 }
 
 function formDownloadMemberList_submit($form, &$sta) {
@@ -501,7 +504,7 @@ function depositDetails($args) {
   list ($activity, $where) = $in ? [t('DEPOSIT'), 'amount<0'] : [t('CASHOUT'), 'amount>0'];
   $today = $date == 1 ? t('(Historical)') : u\fmtDate($date ?: r\rTime());
   $escrow = $in ? ESCROW_IN : ESCROW_OUT;
-  $pdf->setupFooter('', BANK_DBA . " $activity $today", ['A5990D1155A '.$escrow.'C', 'GnuMICR;12'], 'Page @PAGE of @PAGES');
+  $pdf->setupFooter('', BANK_DBA . " $activity $today", ['........ A5990D1155A '.$escrow.'C', 'GnuMICR;12'], 'Page @PAGE of @PAGES');
   $pdf->AddPage();
 
   $left = t(<<<EOF
@@ -713,7 +716,6 @@ function memberIDX($id, $agent = '') {
 
 function memberId($id, $agent = '') {
   require_once __DIR__ . '/../pdf.class';
-
   if (!$a = r\acct($id, $agent)) exit('No such account ia: ' . $id . ':' . $agent);
   
   $a->setAgentNum(); // assign an agentCode, if appropriate (and not yet done)
@@ -731,7 +733,7 @@ function memberId($id, $agent = '') {
   } else $aa = $a;
 
   list ($cardFld, $role, $ptQid, $yName, $bg) = $proSe 
-  ? ['cardCode', t('Member'), 10, 1.73, 'bg'] 
+  ? ['cardCode', t('Member'), 10, 1.70, 'bg'] 
   : ['cardCode2', t('Company'), '9.5;font-stretch:semi-condensed', 1.64, 'bgCo'];
 
   $server = isPRODUCTION ? 'RC2.ME' : 'RC4.ME';
@@ -777,10 +779,10 @@ function memberId($id, $agent = '') {
   $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', $m+1.445, $m+0.645, .8, .8, $style, 'N'); // L,M,Q,H are low-high error-correction
 
   $pdf->say($acctName, $m+$xText, $m+$yName, '', '', "12;B;$nameFont", 'L');
-  if ($proSe) $pdf->say($qid, $m+$xText, $m+$hCard-.15, '', '', "6.5;color:#666666;letter-spacing:.7px;", 'L');
+  if ($proSe) $pdf->say($qid, $m+$xText, $m+$hCard-.19, '', '', "6.5;color:#666666;letter-spacing:.7px;", 'L');
   if (!$proSe) $pdf->say($aa->fullName, $m+$xText, $m+$yName+0.22, '', '', 8, 'L');
 
-  if (!isPRODUCTION) $pdf->say(t('TEST'), $xTest, $m+$hCard-.15, .5, '', '6.5;color:darkred', 'C');
+  if (!isPRODUCTION) $pdf->say(t('TEST'), $xTest, $m+$hCard-.19, .5, '', '6.5;color:darkred', 'C');
 
   $pdf->StopTransform();
   if (u\test()) $pdf->Close(); else $pdf->Output(strtolower("$qid.cgcard.pdf"), 'I'); //Close and output PDF document
@@ -819,15 +821,11 @@ function test($arg = '') {
 function util($arg) {
 //  if ($arg == 'modal') drupal_goto('modal');
   if ($arg == 'reset') r\reset();
-  if ($arg == 'reinstall') { // from devel module
+  if ($arg == 'rebuild') {
     require_once __DIR__ . '/../rcredits-install.inc';
-    $schema = r\tableDefs();
-    foreach ($schema as $table => $scheme) {
-      if (!\db_table_exists($table)) \db_create_table($table, $scheme);
-      // db_change_field or db_add_field here
-    }
-    w\say(t('This does not currently work.'));
-/*    $modules = ray('rcredits rsms rsmart rweb');
+    r\rebuildDb();
+    if (isDEV) t\clear(); else a\setupBasicAccounts();
+  /*    $modules = ray('rcredits rsms rsmart rweb');
     \module_disable($modules, FALSE);
     foreach ($modules as $module) {
       \drupal_install_schema($module);
@@ -851,7 +849,7 @@ function handyLinks() {
 
   $links = array(
     'devel/menu/reset?destination=sadmin|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Redo MENUS|menu-hamburger',
-    'rcredits/util/reinstall|Remove and reinstall all the rCredits modules|REINSTALL r|fast-backward',
+    'rcredits/util/rebuild|Rebuild all project tables|REINSTALL cg|fast-backward',
     'rcredits/util/clear_sessions|Empty the sessions table|Clear Sessions|unchecked',
     
     'devel/settings|Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the block administration page.|Devel settings|cog',

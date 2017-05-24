@@ -14,7 +14,7 @@ use rCredits\Admin as a;
 
 global $base_path;
 define('BASE_PATH', $base_path);
-define('T_BALANCE_FIELDS', 'id r balance floor rewards savingsAdd saveWeekly minimum share committed');
+define('T_BALANCE_FIELDS', 'id balance r floor rewards savingsAdd saveWeekly minimum share committed');
 define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to');
 define('T_MSG_FILE', 'test-messages.txt');
 
@@ -220,8 +220,9 @@ function fixFlags($flags) {
 function doInvoice($info, $type) {return doTx($info, $type);}
 
 /**
- * Fabricate bogus transactions.
- * Minimum parameters: amount, from, to
+ * Fabricate transactions or invoices OR test them.
+ * @param assoc $info: transaction or invoice data to create or test
+ *   Minimum parameters: amount, from, to
  * @return:
  *   if $testOnly return TRUE if the data is as expected
  *   otherwise return the serial of the created transaction(s) (treated as TRUE in test steps)
@@ -251,11 +252,18 @@ function doTx($info, $thing) {
     if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
     u\setDft($type, TX_TRANSFER);
     foreach (ray('type') as $one) if (!is_numeric($$one)) $$one = u\consta('tx', $$one);
+    if (r\isReward($type) and $amount) list ($payerReward, $payeeReward, $amount) = [0, $amount, 0];
+    if (isset($rebate)) $payerReward = $rebate;
+    if (isset($bonus)) $payeeReward = $bonus;
+    
     if (is_array(@$for) or @$for != 'roundups desc') if (@$payer) $roundup = r\acct($payer)->roundup;
     
     if (!$testOnly) {
       u\setDft($goods, ($type != TX_TRANSFER or u\forCash(@$for)) ? FOR_USD : FOR_GOODS);
-      if ($goods == FOR_GOODS) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
+      if ($goods == FOR_GOODS) {
+        u\setDft($payerReward, r\reward($payer, $payee, $amount, TRUE));
+        u\setDft($payeeReward, r\reward($payer, $payee, $amount, FALSE));
+      }
     }
     if (u\in(@$purpose, 'offline')) $data['force'] = 1;
     if (u\in(@$purpose, 'undoneBy:') or u\in(@$purpose, 'undoes:')) {
@@ -268,7 +276,7 @@ function doTx($info, $thing) {
     unset($info['purpose']);
   }
   
-  $fields = 'xid payer payerAgent payee payeeAgent type goods data flags risk risks';
+  $fields = 'xid payer payerAgent payee payeeAgent amount payerReward payeeReward type goods data flags risk risks';
   if (!$testOnly) $fields .= $inv ? ' created' : ' created channel';
   
   $flagRay = ray(@$flags);
@@ -276,17 +284,17 @@ function doTx($info, $thing) {
   foreach (ray(TX_FLAGS) as $k) if (@$$k or in_array($k, $flagRay)) u\setBit($flags, $k);
   
   $info = compact(ray($fields)) + $info;
-  foreach (ray('from to for ' . TX_FLAGS) as $one) unset($info[$one]); // used to include state
+  foreach (ray('from to for rebate bonus ' . TX_FLAGS) as $one) unset($info[$one]); // used to include state
 
   if (!@$inv) {
     if (@$for and !@$payerFor and !@$payeeFor) list ($payerFor, $payeeFor) = is_array($for) ? $for : array($for, $for);
     foreach (['payerFor', 'payeeFor'] as $k) if (@$$k) $info[$k] = t($$k);
   } elseif (@$for and !@$purpose) $info['purpose'] = t($for);
   
-  if ($testOnly or @$type == TX_REBATE or @$type == TX_BONUS) {
+//  if ($testOnly or @$type == TX_REBATE or @$type == TX_BONUS) {
+  if ($testOnly) {
     if ($inv) return verifyRecord('r_invoices', $info);
-    if (!$testOnly) unset($info['risk']);
-    return verifyRecord('r_txs', $info); // fails if rebate/bonus description is wrong (so omit it on create)
+    return verifyRecord('r_txs', $info);
   }
   
   if ($inv) {
@@ -317,7 +325,7 @@ function txUid($id, &$main, &$other) {
  */
 function doRelation($info) {
   include_once __DIR__ . '/admin/admin-forms.inc';
-  global $testOnly;
+  global $testOnly, $memberIdCalled;
   extract($info);
   
   if (@$id) $reid = t\uid(str_replace(R_AGENT_MARK, R_MEMBER_MARK, $id)); // deprecated
@@ -338,8 +346,12 @@ function doRelation($info) {
     return verifyRecord('r_relations', $info);
   } else {
 //    db\insert('r_relations', $info);
-    r\acct($main)->newRelation($info);
-    if (@$rCard == 'yes') r\Web\memberId($main, $other); // make a Company Agent rCard
+    $mainAcct->newRelation($info);
+    if (@$rCard == 'yes') {
+      if (!$agtAcct->cardCode2) r\acct($main, $other)->makeCardCode();
+      if (!@$memberIdCalled) r\Web\memberId($main, $other); // make a Company Agent rCard
+      $memberIdCalled = TRUE;
+    }
     return TRUE;
   }
 }
@@ -446,9 +458,7 @@ function doneStep($id, $step) {
  */
 function doMemberFields($info) {
   global $testOnly;
-
-  $balFields = u\just(T_BALANCE_FIELDS, $info);
-  if (!doBalance($balFields, $testOnly)) return;
+  if ($balFields = u\just(T_BALANCE_FIELDS, $info) and !doBalance($balFields, TRUE)) return FALSE;
 
   $a = r\acct($id = t\uid($info['id']));
   $info = u\justNot(T_BALANCE_FIELDS, $info); // don't rehandle balance fields, and already got id
@@ -491,6 +501,7 @@ function doBalance($info) {
   if (!$a = r\acct($id)) return t\output("account $id0 does not exist");
   $a->reread(TRUE); // otherwise db updates are invisible
 
+  if (isset($info['r']) and !isset($info['balance'])) $info['balance'] = $info['r'] - @$info['rewards']; // 20170515
   t\fixData($info);
 /// print_r(compact('a','id','id0'));
   if (!$testOnly) { // setting the values
@@ -499,16 +510,17 @@ function doBalance($info) {
   }
 
   // verify
-  $calc = t\uidCredit($id);
-  foreach (ray($cashies = 'r balance rewards') as $k) {
-    if (isset($$k) and $$k != '?') {
+  if (!$calc = t\uidCredit($id)) return FALSE;
+  foreach (ray($cashies = 'balance rewards') as $k) {
+    $v = @$info[$k];
+    if (isset($v) and $v != '?') if ($id > 0 or $k != 'rewards') {
       $cachedVal = $a->o($k);
-      if (($id > 0) and t\badEq("cached $k", $cachedVal, $$k, $id)) return FALSE;
-      if ($id > 0 or $k != 'rewards') if (!$a->jid) if (t\badEq("calc $k", $calc->$k, $$k, $id)) return FALSE;
+      if (t\badEq("cached $k", $cachedVal, $v, $id)) return FALSE;
+      if (!$a->jid and t\badEq("calc $k", $calc->$k, $v, $id)) return FALSE;
     }
   }
   foreach ($not = u\justNot($cashies . ' id', $info) as $k => $v) {
-    if ($v != '?' and $id > 0) if (t\badEq("db $k", $a->o($k), $v, $id)) return FALSE;
+    if ($v != '?' and $k != 'committed' and $id > 0) if (t\badEq("db $k", $a->o($k), $v, $id)) return FALSE;
   }
   return TRUE;
 }
@@ -548,6 +560,7 @@ function usdTransfers($txs) {
       u\setDft($tx['created'], @$tx['completed']);
       if (!db\insert('r_usd', $tx)) return FALSE;
       if (@$tx['completed']) $a->update('r', $a->o_r - $tx['amount']);
+      if (@$tx['completed']) $a->update('balance', $a->o_balance - $tx['amount']);
     }
   }
   return TRUE;
@@ -583,15 +596,16 @@ function cronRuns($op) {
 /**
  * Return the credit info for the given uid.
  * To get just the r balance, use uidCredit(uid)->r
- * @param int $uid: return credit info for this account id
+ * @param int $uid: return credit info for this account id (FALSE if there is an error)
+ * @param bool $ignoreCalc: <ignore errors when comparing with calculated values>
  */
-function uidCredit($uid) {
+function uidCredit($uid, $ignoreCalc = TRUE) {
   $info = be\creditInfo(ray('uid noj', $uid, TRUE));
   $a = r\acct($uid);
-  if ($uid > 0 and !$a->jid) foreach (ray('r rewards') as $k) { // (community amounts don't get cached)
+  if ($uid > 0 and !$a->jid) foreach (ray('balance rewards') as $k) { // (community amounts don't get cached)
     if (!t\eq($v1 = $info->$k, $v2 = $a->o($k) + 0)) {
-      output("Calculated $k different from cache: $v1 <> $v2");
-      $info->$k = 'error';
+      output("$uid Calculated $k different from cache: $v1 <> $v2");
+      if (!$ignoreCalc) return FALSE;
     }
   }
   return $info;
@@ -1228,7 +1242,7 @@ function clear($ch = 0) {
   global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation, $tChecked, $tRadios;
   global $sms_devel; $sms_devel = TRUE;
   global $testRewardStep; $testRewardStep = 500;
-  global $testRewarding; $testRewarding = TRUE; // normally set this true in tests only if testing this feature
+//  global $testRewarding; $testRewarding = TRUE; // normally set this true in tests only if testing this feature
     
   $lastGo = $formOut = $formArray = $formSta = $testOp = $testConfirmation = $tChecked = $tRadios = NULL;
   $formOut['text'] = '';
@@ -1243,7 +1257,7 @@ function clear($ch = 0) {
 
   $cgfUid = r\cgfId();
   $tables = 'r_auth r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_log r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
-  foreach (ray('block bootstrap field filter form menu page path update') as $k) $tables .= " cache_$k";
+  foreach (ray('bootstrap form menu') as $k) $tables .= " cache_$k";
   foreach (ray($tables) as $table) if (db\exists($table)) db\q("TRUNCATE $table");
 
   db\q('DELETE FROM users WHERE uid<>0');
@@ -1253,6 +1267,7 @@ function clear($ch = 0) {
 
   ctty('aab')->setBit(B_OK);
   ctty('aab')->setBit(B_UP);
+  ctty('aab')->setBit(B_REWARDY); // do rewards by default
 
   t\log('clearing');
   r\Acct::_clear(); // empty the acct cache
@@ -1318,7 +1333,7 @@ function parseAmt($var, $a) {
 
 function badEq($type, $v1, $v2, $id) {
   if (t\eq($v1, $v2)) return FALSE;
-  t\output("bad $type v1=$v1, expected v2=$v2 uid=$id");
+  t\output("uid=$id badEq $type v1=$v1, expected v2=$v2");
   return TRUE;
 }
 
@@ -1431,4 +1446,4 @@ function that($thing) {global $thatThing; return $thatThing[$thing];}
 function dosayFilename($type) {return DRUPAL_ROOT . R_PATH . "/dosay-$type.txt";}
 function goodsBit($s) {return $s == 'goods' ? "1" : ($s == 'cash' ? "0" : "ERROR");} // no 3rd why for rSmart
 function approxTime($a, $b) {return t\eq($a, $b, 10000);}
-function rewarding() {global $testRewarding; return @$testRewarding;}
+function rewarding() {return ctty('aab')->cttyRewardy;}

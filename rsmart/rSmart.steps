@@ -200,7 +200,7 @@ function memberHasNoPicture($id) {
   global $testOnly; if ($testOnly) return FALSE;
   if (!$a = r\acct(t\uid($id))) return FALSE;
   $a->update('photo', '');
-  if ($a->hasPhoto) unlink(DRUPAL_ROOT . $a->photoFilename(TRUE));
+  @unlink(DRUPAL_ROOT . $a->photoFilename(TRUE));
   return !$a->hasPhoto;
 }
 
@@ -352,7 +352,6 @@ function withUndo($subs) {
  *     TEST Transact SellerAgentLacksPermissionToScanAndSell
  *     TEST Transact BuyerAgentLacksPermissionToBuy
  *     TEST Transact SellerTriesToChargeTheCustomerTwice
- *     TEST Transact ACashierAsksToChargeSomeoneUnconfirmed
  */
 function weReturnErrorWithSubs($msg, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -496,7 +495,7 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  *     MAKE Transact BuyerAgentLacksPermissionToBuy
  *     MAKE Transact SellerTriesToChargeTheCustomerTwice
  *     MAKE Transact DeviceSendsWrongProof
- *     MAKE Transact ACashierAsksToChargeSomeoneUnconfirmed
+ *     MAKE Transact ACashierInTheSameCommunityAsksToChargeSomeoneUnconfirmed
  */
 function agentAsksDeviceToChargeForAt($agent, $device, $member, $amount, $goods, $description, $created) {
   return reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $description, $created, 0);
@@ -666,6 +665,7 @@ function withProofOfAgentAmountCreatedMemberCode($agent, $amount, $created, $mem
  *     TEST Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
  *     TEST Transact ACashierAsksToChargeSomeone
  *     TEST Transact ACashierAsksToRefundSomeone
+ *     TEST Transact ACashierInTheSameCommunityAsksToChargeSomeoneUnconfirmed
  *     TEST Undo AnAgentAsksToUndoACharge
  *     TEST Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
  *     TEST Undo AnAgentAsksToUndoARefund
@@ -682,24 +682,29 @@ function weRespondOkTxidCreatedBalanceRewardsSaying($txid, $created, $balance, $
   
   extract($rposResult, EXTR_PREFIX_ALL, 'a'); // actual results
   $ok = '1';
-  foreach (ray('ok txid balance rewards') as $k) if (@$rposResult[$k] != $$k) $error = TRUE;
-  if (!t\approxTime($a_created, $created)) $error = TRUE;
+  foreach (ray('ok txid balance rewards') as $k) if (@$rposResult[$k] != $$k) $error = 1;
+  if (!t\approxTime($a_created, $created)) $error = 2;
   
   if (@$msg) {
     $msg = $msg[0];
-    $msg['otherRewardAmount'] = @$msg['reward']; unset($msg['reward']);
-    $index = (@$msg['solution'] ? 'report undo|' : '') . 'report tx|for why';
-    if ($msg['why'] == 'goods' and $mya = r\acct() and $mya->rewarding) $index .= '|reward customer';
-    $whys = ray(R_WHYS); $msg['why'] = $whys[constant('FOR_' . strtoupper($msg['why']))];
+    $index = (@$msg['solution'] ? 'report undo|' : '') . 'report tx'; // |for why
+    if (t\rewarding()) {
+      $index .= '|for why';
+      $msg['otherRewardAmount'] = @$msg['reward']; unset($msg['reward']);
+      if ($msg['why'] == 'goods') $index .= '|reward customer';
+      $whys = ray(R_WHYS); 
+      $msg['why'] = $whys[constant('FOR_' . strtoupper($msg['why']))];
+    }
     $wantMsg = t($index, $msg);
-    if ($a_message != $wantMsg) $error = TRUE;
+    if ($a_message != $wantMsg) $error = 3;
+///    debug(compact('a_message','wantMsg','error'));
   }
 ///  debug(compact(ray('rposResult msg')));
 
   if (@$error) {
     if (@$msg) u\preray(compact('wantMsg'), $msg);
-/**/ t\output('Expecting: ' . print_r(compact(ray('ok txid created balance rewards msg')), 1), 'expect');
-/**/ t\output('Got: ' . print_r($rposResult, 1));
+/**/ t\output('Expecting (but did not get): ' . print_r(compact(ray('ok txid created balance rewards msg')), 1), 'expect');
+/**/ t\output('Got: ' . print_r($rposResult + compact('error'), 1));
     return FALSE;
   } else return TRUE;
 }

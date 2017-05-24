@@ -114,6 +114,7 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Signin AMemberTypesTheWrongPassword
  *     MAKE Signin AMemberTypesAnUnknownUsernameID
  *     MAKE Signin AMemberClicksALinkToResetPassword
+ *     MAKE Signup ANewbieVisitsTheInvitationAcceptancePageWithNoInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     MAKE Signup ANewbieRegistersInWesternMassachusetts
  *     MAKE Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
@@ -289,6 +290,7 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
  *     TEST Relations AMemberAddsARelation
  *     TEST Signin AMemberAsksForANewPasswordForACompany
+ *     TEST Signup ANewbieVisitsTheInvitationAcceptancePageWithNoInvite
  *     TEST Signup AMemberRegistersBadName
  *     TEST Signup AMemberRegistersAgain
  *     TEST Signup AMemberRegistersWithABadCompany
@@ -461,8 +463,6 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST ScanCard SomeoneScansACompanyAgentCard
  *     TEST ScanCard SomeoneScansAnOldCompanyAgentCard
  *     TEST Signin AMemberVisitsTheMemberSite
- *     TEST Signup ANewbieVisitsTheRegistrationPageWithNoInvite
- *     TEST Signup ANewbieVisitsTheRegistrationPageWithBadInvite
  *     TEST SignupCo AMemberRegistersACompany
  *     TEST Statement AMemberLooksAtAStatementForPreviousMonth
  *     TEST Summary AMemberClicksTheSummaryTab
@@ -636,8 +636,6 @@ function usd($list) {return t\usd($list);}
  *     MAKE Signin AMemberClicksALinkToResetPassword
  *     MAKE Signin AMemberClicksALinkToResetPasswordWithWrongCode
  *     MAKE Signin AMemberClicksALinkToResetPasswordForUnknownAccount
- *     MAKE Signup ANewbieVisitsTheRegistrationPageWithNoInvite
- *     MAKE Signup ANewbieVisitsTheRegistrationPageWithBadInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     MAKE Summary AMemberClicksTheSummaryTab
@@ -669,8 +667,6 @@ function memberIsLoggedOut() {
  * invitation to email (ARG) from member (ARG) is (ARG)
  *
  * in: MAKE Membership AMemberSignsInForTheFirstTime
- *     MAKE Signup ANewbieVisitsTheRegistrationPageWithNoInvite
- *     MAKE Signup ANewbieVisitsTheRegistrationPageWithBadInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     MAKE Signup ANewbieRegistersInWesternMassachusetts
@@ -1354,3 +1350,16 @@ function memberViewsStatementFor($id, $month) {
  * in: TEST Membership AMemberSignsInForTheFirstTime
  */
 function weTellCOWithSubs($id, $topic, $subs) {return t\weTellAdmin($topic, $subs, t\uid($id));}
+
+/**
+ * community (ARG) is (ARG)
+ *
+ * in: MAKE Signup ANewbieVisitsTheInvitationAcceptancePageWithNoInvite
+ */
+function communityIs($bit, $setting) {
+  global $testOnly;
+  $ctty = ctty('aab');
+  $bit = u\consta('b', $bit);
+  $setting = ($setting == 'on');
+  return $testOnly ? ($ctty->can($bit) == $setting) : $ctty->setBit($bit, $setting);
+}

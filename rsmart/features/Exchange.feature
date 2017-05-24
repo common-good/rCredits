@@ -40,11 +40,11 @@ Setup:
   | 5   | %today-5m | transfer |    200 | .ZZA | .ZZC | cash    |
   | 6   | %today-4m | grant    |    250 | ctty | .ZZF | stuff   |
   Then balances:
-  | id   |       r | rewards |*
-  | ctty |   -1000 |         |
-  | .ZZA |     150 |     350 |
-  | .ZZB |     250 |     150 |
-  | .ZZC |     350 |     250 |
+  | id   | balance | rewards |*
+  | ctty |    -250 |       0 |
+  | .ZZA |    -200 |     350 |
+  | .ZZB |     100 |     150 |
+  | .ZZC |     100 |     250 |
   | .ZZF |     250 |       0 |
 
 #Variants: with/without an agent
@@ -67,11 +67,11 @@ Scenario: A cashier asks to charge someone for cash
   | created | fullName | otherName  | amount | payerPurpose |*
   | %today  | Bea Two  | Corner Pub | $100   | cash out     |
   And balances:
-  | id   |       r |*
-  | ctty |   -1000 |
-  | .ZZA |     150 |
-  | .ZZB |     150 |
-  | .ZZC |     450 |
+  | id   | balance | rewards |*
+  | ctty |    -250 |       0 |
+  | .ZZA |    -200 |     350 |
+  | .ZZB |       0 |     150 |
+  | .ZZC |     200 |     250 |
 
 Scenario: A cashier asks to refund someone
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $-100 for "cash": "cash in" at %now
@@ -89,11 +89,11 @@ Scenario: A cashier asks to refund someone
   | created | fullName | otherName  | amount | payeePurpose | aPayLink |*
   | %today  | Bea Two  | Corner Pub | $100   | cash in      | ?        |
   And balances:
-  | id   |       r |*
-  | ctty |   -1000 |
-  | .ZZA |     150 |
-  | .ZZB |     350 |
-  | .ZZC |     250 |
+  | id   | balance | rewards |*
+  | ctty |    -250 |       0 |
+  | .ZZA |    -200 |     350 |
+  | .ZZB |     200 |     150 |
+  | .ZZC |       0 |     250 |
 
 Scenario: A cashier asks to charge another member, with insufficient balance
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $300 for "cash": "cash out" at %now

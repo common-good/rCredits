@@ -49,6 +49,7 @@ jQuery(".index-detail").click(function() {jQuery("#edit-acct-index, .index-detai
 jQuery(".noEdit").prev().attr("disabled", 1);
 
 jQuery('[data-toggle="popover"][data-trigger="hover"]').popover(); 
+jQuery('[data-toggle="popover"][data-trigger="click"]').popover(); 
 
 var mobile = jQuery('.navbar-toggle').is(':visible');
 jQuery('.submenu [data-toggle="popover"]').each(function(index) {

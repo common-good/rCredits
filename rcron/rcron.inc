@@ -338,7 +338,7 @@ function shareCommitted($item) {
 function roundup($item) {
   extract(u\just('uid donate', $item));
   $a = r\acct($uid);
-  be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('roundups desc'), NULL, TRUE, ['roundups' => TRUE]);
+  if ($donate > 0) be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('roundups desc'), NULL, TRUE, ['roundups' => TRUE, 'gift' => TRUE]);
 }
 
 /**
@@ -347,7 +347,7 @@ function roundup($item) {
 function crumbs($item) {
   extract(u\just('uid donate', $item));
   $a = r\acct($uid);
-  be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('crumbs desc'), NULL, TRUE, ['crumbs' => TRUE]);
+  be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('crumbs desc'), NULL, TRUE, ['crumbs' => TRUE, 'gift' => TRUE]);
 }
 
 /**
@@ -489,20 +489,22 @@ EOF;
   $row1 = db\q($sql, $subs)->fetchAssoc() ?: []; // giftsEver, giftsPastMo
   
   $sql = <<<EOF
-    SELECT SUM(IF(type IN (:TX_REBATE,:TX_BONUS), amount, 0)) AS beneEver,
-    SUM(IF(type IN (:TX_REBATE,:TX_BONUS) AND created>=:monthAgo, amount, 0)) AS benePastMo,
-    SUM(IF(type IN (:TX_SIGNUP,:TX_INFLATION,:TX_GRANT), amount, 0)) AS extraEver,
-    SUM(IF(type IN (:TX_SIGNUP,:TX_INFLATION,:TX_GRANT) AND created>=:monthAgo, amount, 0)) AS extraPastMo
-    FROM r_txs WHERE payee=:uid AND created<:asof
+    SELECT SUM(IF(type=:TX_TRANSFER, payerReward+payeeReward, 0)) AS beneEver,
+    SUM(IF(type=:TX_TRANSFER AND created>=:monthAgo, payerReward+payeeReward, 0)) AS benePastMo,
+    SUM(IF(type IN (:TX_GRANT), amount, 0)) AS extraEver,
+    SUM(IF(type IN (:TX_GRANT) AND created>=:monthAgo, amount, 0)) AS extraPastMo
+    FROM r_txs WHERE :uid IN (payer, payee) AND created<:asof
 EOF;
-  $row2 = db\q($sql, $subs)->fetchAssoc() ?: []; // get beneEver, benePastMo
+  $row2 = db\q($sql, $subs)->fetchAssoc() ?: []; // get beneEver (purchase rewards), benePastMo, extraEver, extraPastMo
   
   $sql = <<<EOF
     SELECT SUM(amount) AS bankedEver, SUM(IF(completed<:monthAgo, 0, amount)) AS bankedPastMo
     FROM r_usd WHERE payer=:uid AND completed AND completed<:asof
 EOF;
   $row3 = db\q($sql, $subs)->fetchAssoc() ?: []; // get bankedEver, bankedPastMo
+
   $newData = $row1 + $row2 + $row3 + compact(ray('avgBalPastMo avgBalEver minPastMo'));
+
   foreach ($newData as $k => $v) $newData[$k] = '' . round($v, 2); // avoid long decimals
   $a->update('stats picture', serialize($newData), $minPastMo * 100);
 }
@@ -648,7 +650,7 @@ function bank() {
   }
   
 //  $where = ':IS_REFILL AND (:IS_JOINED OR r-rewards-savingsAdd<minimum) AND uid>1 AND :IS_OK';
-  $where = ':IS_REFILL AND (:IS_JOINED OR r-rewards<minimum) AND uid>1 AND :IS_OK';
+  $where = ':IS_REFILL AND (:IS_JOINED OR balance<minimum) AND uid>1 AND :IS_OK';
   $sql = <<<EOF
   SELECT uid
   FROM users 

@@ -33,6 +33,6 @@ Scenario: Admin activates an account
   |   1 | %today  | %TX_SIGNUP | %R_SIGNUP_BONUS | ctty | .ZZD | signup bonus |
   |   2 | %today  | %TX_HELPER | %R_HELPER_BONUS | ctty | .ZZB | inviting and/or assisting new member Dee Four |
   And balances:
-  | id   | r               | rewards         |*
-  | .ZZB | %R_HELPER_BONUS | %R_HELPER_BONUS |
-  | .ZZD | %R_SIGNUP_BONUS | %R_SIGNUP_BONUS |
+  | id   | balance | rewards         |*
+  | .ZZB |       0 | %R_HELPER_BONUS |
+  | .ZZD |       0 | %R_SIGNUP_BONUS |

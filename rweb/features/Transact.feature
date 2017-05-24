@@ -23,11 +23,10 @@ Setup:
   |   2 | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |
   |   3 | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |
   Then balances:
-  | id   |    r |*
-  | ctty | -750 |
-  | .ZZA |  250 |
-  | .ZZB |  250 |
-  | .ZZC |  250 |
+  | id   | balance | rewards |*
+  | .ZZA |       0 |     250 |
+  | .ZZB |       0 |     250 |
+  | .ZZC |       0 |     250 |
 
 # (rightly fails, so do this in a separate feature) Variants: with/without an agent
 #  | ".ZZA" | # member to member (pro se) |
@@ -55,11 +54,10 @@ Scenario: A member confirms request to charge another member
   | nvid | created | status      | amount | from | to  | for   |*
   |    1 | %today  | %TX_PENDING |    100 | .ZZB  | .ZZA | labor |
   And balances:
-  | id   |    r |*
-  | ctty | -750 |
-  | .ZZA |  250 |
-  | .ZZB |  250 |
-  | .ZZC |  250 |
+  | id   | balance | rewards |*
+  | .ZZA |       0 |     250 |
+  | .ZZB |       0 |     250 |
+  | .ZZC |       0 |     250 |
 
 Scenario: A member asks to pay another member for goods
   When member ".ZZA" completes form "pay" with values:
@@ -88,17 +86,13 @@ Scenario: A member confirms request to pay another member
   | created | fullName | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Abe One    | $100   | labor        | reward          |               $10 |
   And transactions:
-  | xid | created | type     | amount | from  | to   | purpose      | taking |*
-  |   4 | %today  | transfer |    100 | .ZZA  | .ZZB | labor        | 0      |
-  |   5 | %today  | rebate   |      5 | ctty  | .ZZA | reward on #2 | 0      |
-  |   6 | %today  | bonus    |     10 | ctty  | .ZZB | reward on #2  | 0      |
+  | xid | created | type     | amount | rebate | bonus | from  | to   | purpose      | taking |*
+  |   4 | %today  | transfer |    100 |      5 |    10 | .ZZA  | .ZZB | labor        | 0      |
   And balances:
-  | id   |    r |*
-  | ctty | -765 |
-  | .ZZA |  155 |
-  | .ZZB |  360 |
-  | .ZZC |  250 |
-  
+  | id   | balance | rewards |*
+  | .ZZA |    -100 |     255 |
+  | .ZZB |     100 |     260 |
+  | .ZZC |       0 |     250 |
 Scenario: A member confirms request to pay another member a lot
   Given balances:
   | id   | r             |*
@@ -107,10 +101,8 @@ Scenario: A member confirms request to pay another member a lot
   | op  | who     | amount        | goods | purpose |*
   | pay | Our Pub | %R_MAX_AMOUNT | %FOR_GOODS     | food    |
   Then transactions:
-  | xid | created | type     | amount        | from  | to   | purpose      | taking |*
-  |   4 | %today  | transfer | %R_MAX_AMOUNT | .ZZB  | .ZZC | food         | 0      |
-  |   5 | %today  | rebate   | %R_MAX_REBATE | ctty  | .ZZB | reward on #2 | 0      |
-  |   6 | %today  | bonus    | %R_MAX_REBATE | ctty  | .ZZC | reward on #2  | 0      |
+  | xid | created | type     | amount        | payerReward   | payeeReward   | from  | to   | purpose      | taking |*
+  |   4 | %today  | transfer | %R_MAX_AMOUNT | %R_MAX_REBATE | %R_MAX_REBATE | .ZZB  | .ZZC | food         | 0      |
   
 Scenario: A member confirms request to pay a member company
   Given next DO code is "whatever"
@@ -128,17 +120,13 @@ Scenario: A member confirms request to pay a member company
   | ~postalAddr | 1 A, A, AK |
   | Physical address: | 1 A St., Atown, AK 01000 |
   And transactions:
-  | xid | created | type     | amount | from  | to   | purpose      | taking |*
-  |   4 | %today  | transfer |    100 | .ZZA  | .ZZC | stuff        | 0      |
-  |   5 | %today  | rebate   |      5 | ctty  | .ZZA | reward on #2 | 0      |
-  |   6 | %today  | bonus    |     10 | ctty  | .ZZC | reward on #2  | 0      |
+  | xid | created | type     | amount | payerReward | payeeReward | from  | to   | purpose      | taking |*
+  |   4 | %today  | transfer |    100 |           5 |          10 | .ZZA  | .ZZC | stuff        | 0      |
   And balances:
-  | id   |    r |*
-  | ctty | -765 |
-  | .ZZA |  155 |
-  | .ZZB |  250 |
-  | .ZZC |  360 |
-
+  | id   | balance | rewards |*
+  | .ZZA |    -100 |     255 |
+  | .ZZB |       0 |     250 |
+  | .ZZC |     100 |     260 |
 Scenario: A member confirms request to pay the same member the same amount
   Given member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |*
@@ -185,6 +173,13 @@ Scenario: A member asks to charge another member before the other has made an rC
   Then we say "error": "other no photoid" with subs:
   | who     |*
   | Bea Two |
+  
+Scenario: A member confirms request to pay before making a Common Good Card purchase
+  Given member ".ZZA" confirms form "pay" with values:
+  | op  | who     | amount | goods      | purpose |*
+  | pay | Bea Two | 100    | %FOR_GOODS | labor   |  
+  Then we say "error": "first at home"
+  
 Resume
 Skip (not sure about this feature)
 Scenario: A member asks to pay another member before making an rCard purchase

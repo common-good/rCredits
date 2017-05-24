@@ -28,11 +28,11 @@ Setup:
   | 5005 |  .ZZC |    -30 |   1 | %today-2d | %today-2d | %today-1d |
   | 5006 |  .ZZD |   -140 |   1 | %today-2d | %today-2d | %today-1d |
   Then balances:
-  | id   | r    | rewards |*
-  | .ZZA |  106 |      20 |
-  | .ZZB |   96 |       0 |
-  | .ZZC |   40 |      10 |
-  | .ZZD |  160 |      20 |
+  | id   | balance | rewards |*
+  | .ZZA |      86 |      20 |
+  | .ZZB |      96 |       0 |
+  | .ZZC |      30 |      10 |
+  | .ZZD |     140 |      20 |
 
 Scenario: a member moves credit to the bank
   When member ".ZZA" completes form "get" with values:
@@ -45,8 +45,8 @@ Scenario: a member moves credit to the bank
   | action     | amount |*
   | deposit to | $86    |
   And balances:
-  | id   | r  |*
-  | .ZZA | 20 |
+  | id   | balance |*
+  | .ZZA |       0 |
 
 Scenario: a member draws credit from the bank with zero floor
   When member ".ZZB" completes form "get" with values:
@@ -56,8 +56,8 @@ Scenario: a member draws credit from the bank with zero floor
   | txid | payer | amount     | tid | created | completed | channel |*
   | 5007 |  .ZZB | -%R_ACHMIN |   2 | %today  |         0 | %TX_WEB |
   And balances:
-  | id   | r   |*
-  | .ZZA | 106 |
+  | id   | balance |*
+  | .ZZA |      86 |
   And we say "status": "banked|bank tx number" with subs:
   | action     | amount     | checkNum |*
   | draw from  | $%R_ACHMIN |     5007 |
@@ -70,8 +70,8 @@ Scenario: a member draws credit from the bank with adequate floor
   | txid | payer | amount     | tid | created | completed | channel |*
   | 5007 |  .ZZA | -%R_ACHMIN |   4 | %today  |    %today | %TX_WEB |
   And balances:
-  | id   | r                |*
-  | .ZZA | %(106+%R_ACHMIN) |
+  | id   | balance         |*
+  | .ZZA | %(86+%R_ACHMIN) |
   And we say "status": "banked|bank tx number|available now" with subs:
   | action     | amount     | checkNum |*
   | draw from  | $%R_ACHMIN |     5007 |

@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Specialized rCredits settings for this rCredits server
+ * Specialized settings for this rCredits server
  */
 
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)
@@ -22,8 +22,8 @@ define('R_BONUS_FACTOR', 1); // standard bonus is this times standard rebate
 define('R_MAX_REBATE', 500); // cap on rebate for a single transaction (max bonus is in proportion)
 define('R_MIN_REWARD_PCT', 1); // minimum reward percentage
 define('R_REWARD_STEP', 100); // how much rewards can the member get before their reward percentage goes down by 1%
-define('R_XFEE_CARD', .03); // percentage fee for exchanges of USD for PROJECT Credits using a credit/debit card
-define('R_XFEE_CHECK', 3.00); // flat fee for exchanges of USD for PROJECT Credits with a check
+define('R_XFEE_CARD', .03); // percentage fee for exchanges of USD for Common Good Credits using a credit/debit card
+define('R_XFEE_CHECK', 3.00); // flat fee for exchanges of USD for Common Good Credits with a check
 define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller limits also apply)
 define('R_SIGNUP_BONUS', 20); // how much people start with at this time
 define('R_HELPER_BONUS', 20); // how much you get for inviting and assisting someone with account opening
@@ -39,7 +39,7 @@ define('R_DEBT_DAYS', 30); // how long to pay back reserve credit
 define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars) for monthly and annual statements by mail
 define('R_INFLATION_RATE', .05); // annual USD inflation rate (but never less than zero) (extra big is okay)
 //define('R_ADMIN_QID', 'NEW.AAA'); // William's account code
-define('R_USDTX_DAYS', 5); // how many days it takes for a transfer to clear from bank to PROJECT account
+define('R_USDTX_DAYS', 5); // how many days it takes for a transfer to clear from bank to Common Good account
 define('R_USDTX_QUICK', 200); // maximum amount a member can transfer overnight (instead of waiting USDTX days)
 
 define('BANK_NAME', 'Citizens Bank');

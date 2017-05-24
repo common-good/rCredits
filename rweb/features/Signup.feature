@@ -10,19 +10,32 @@ Setup:
   | .ZZZ | Zeta Zot | personal    | ok,bona    | 99654321 |
   And member is logged out
 
+Skip because this error should happen after saying what zipcode
 Scenario: A newbie visits the registration page with no invite
-  Given invitation to email "a@" from member ".ZZZ" is ""
+  Given community "invites" is "on"
+  And invitation to email "a@" from member ".ZZZ" is ""
   When member "?" visits page "signup"
   Then we show "Open a Personal %PROJECT Account" with:
   |~errorPhrase         |
   | you must be invited |
 
 Scenario: A newbie visits the registration page with bad invite
-  Given invitation to email "a@" from member ".ZZZ" is "c0D3"
+  Given community "invites" is "on"
+  And invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" visits page "signup/code=WhAtEvEr"
   Then we show "Open a Personal %PROJECT Account" with:
   |~errorPhrase         |
   | you must be invited |
+Resume
+
+Scenario: A newbie visits the invitation acceptance page with no invite
+  Given community "invites" is "on"
+  When member "?" confirms form "accept/self" with values:
+  | friend | postalCode |*
+  | self   | 01001      |
+  Then we say "error": "invitation required" with subs:
+  | a1 |*
+  | a href=%PROMO_URL/signup |
 
 Scenario: A newbie visits the registration page with expired invite
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
@@ -62,7 +75,7 @@ Scenario: A newbie registers in Western Massachusetts
 
 Scenario: A newbie registers with an unconfirmed icard invitation
   And next random code is "WHATEVER"
-  When member "?" confirms form "signup/code=O9C8KP3IECF" with values:
+  When member "?" confirms form "signup/code=SCMZDDI26QF" with values:
   | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns | helper |*
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ |
   Then members:
@@ -83,9 +96,9 @@ Scenario: A newbie registers with an unconfirmed icard invitation
   #And we show "Empty"
   
 Scenario: A newbie registers with an unconfirmed self-invitation
-  Given member ".ZZZ" email invitation code is "BRFWWVZCH3"
+  Given member ".ZZZ" email invitation code is "VDYQGBRQO7A"
   And next random code is "WHATEVER"
-  When member "?" confirms form "signup/code=BRFWWVZCH3" with values:
+  When member "?" confirms form "signup/code=VDYQGBRQO7A" with values:
   | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns | helper |*
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ   |
   Then members:

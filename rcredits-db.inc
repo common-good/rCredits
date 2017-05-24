@@ -72,7 +72,10 @@ function update($table, $info, $key, $either = FALSE) {
   if ($either and !db\exists($table, "$key=:$key", [$key => $info[$key]])) $key = '';
   $command = $key ? 'UPDATE' : 'INSERT INTO';
   $sql = '';
-  foreach ($info as $field => $value) if ($field != $key) $sql .= ",`$field`=:$field";
+  foreach ($info as $field => $v) {
+    if ($field != $key) $sql .= ",`$field`=:$field";
+    if (is_array($v)) u\EXPECT(FALSE, 'array in update param'); // exception fails if called in $DBTX
+  }
   $sql = "$command $table SET " . substr($sql, 1) . ($key ? " WHERE `$key`=:$key" : '');
 ///  if ($table=='r_do') {print_r(compact(ray('table info key either command sql'))); die('dbU');}
   try {

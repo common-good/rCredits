@@ -1,5 +1,7 @@
 /* CSS common to all rCredits sites */
 
+code {color:#637c36;}
+
 /* Nav */
 .navbar {margin-bottom:0;}
 .navbar-nav {margin-right:0;} /* bootstrap bug causes needless horizontal scrolling of menu */
@@ -44,6 +46,7 @@
 .which .ui-dialog-titlebar-close {display:block; color:darkgray; font-size:125%; padding-left:0; line-height:0;}
 /*.modal-body {background-color:midnightblue; padding:5px 30px;} */
 [data-trigger="hover"] +div.popover, /* tooltip */
+[data-trigger="click"] +div.popover,
 .ui-dialog {
   min-width:250px;
   box-shadow: 0px 4px 4px rgba(0,0,0,0.7);
@@ -52,8 +55,10 @@
 }
 
 [data-trigger="hover"] +div.popover .popover-title,
+[data-trigger="click"] +div.popover .popover-title,
 .ui-widget-header {background:darkgreen; color:white;}
 
+[data-trigger="click"] +div.popover .popover-content,
 [data-trigger="hover"] +div.popover .popover-content {color:black;}
 
 /* Slideshow */

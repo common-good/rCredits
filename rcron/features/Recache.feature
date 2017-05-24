@@ -11,28 +11,28 @@ Setup:
   | .ZZB | Bea Two    | b@    | ok,bona |
   | .ZZC | Corner Pub | c@    | ok,co   |
   And transactions: 
-  | xid   | created   | type       | amount | from | to   | purpose | taking |*
-  | .AAAB | %today-6m | %TX_SIGNUP |     10 | ctty | .ZZA | signup  | 0      |
+  | xid   | created   | type       | amount | payerReward | payeeReward | from | to   | purpose | taking |*
+  | .AAAB | %today-6m | %TX_SIGNUP |      0 |           0 |          10 | ctty | .ZZA | signup  | 0      |
   Then balances:
-  | id   | r  | rewards |*
-  | .ZZA | 10 |      10 |
-  | .ZZB |  0 |       0 |
+  | id   | balance | rewards |*
+  | .ZZA |       0 |      10 |
+  | .ZZB |       0 |       0 |
 
 Scenario: Balances get out of whack
   Given balances:
-  | id     | r  |rewards |*
-  | .ZZA   |  0 |      0 |
-  | .ZZB   | 20 |      0 |
+  | id     | balance |rewards |*
+  | .ZZA   |       0 |      0 |
+  | .ZZB   |      20 |      0 |
   When cron runs "recache"
   Then we tell admin "cache mismatch" with subs:
   | id   | key     | is   | shouldBe |*
-  | .ZZA | r       |    0 |       10 |
+  | .ZZA | balance |    0 |       10 |
   | .ZZA | rewards |    0 |       10 |
-  | .ZZB | r       |   20 |        0 |
+  | .ZZB | balance |   20 |        0 |
   And balances:
-  | id     | r  | rewards |*
-  | .ZZA   | 10 |      10 |
-  | .ZZB   |  0 |       0 |
+  | id     | balance | rewards |*
+  | .ZZA   |       0 |      10 |
+  | .ZZB   |       0 |       0 |
 # (we might never want this feature)
 #  And we message member ".ZZA" with topic "account suspended" and subs:
 #  | why                        |*
@@ -43,10 +43,10 @@ Scenario: Balances get out of whack
   
 Scenario: Balances get a tiny bit out of whack
   Given balances:
-  | id     | r       |*
+  | id     | balance |*
   | .ZZA   | 10.0001 |
   | .ZZB   |       0 |
   When cron runs "recache"
   Then we tell admin "cache mismatch" with subs:
   | id   | key     | is      | shouldBe |*
-  | .ZZA | r       | 10.0001 |       10 |
+  | .ZZA | balance | 10.0001 |        0 |

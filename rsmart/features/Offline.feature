@@ -37,12 +37,12 @@ Setup:
   | 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |
   | 4   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |
   Then balances:
-  | id   |       r |*
-  | ctty |   -1000 |
-  | .ZZA |     250 |
-  | .ZZB |     250 |
-  | .ZZC |     250 |
-  | .ZZF |     250 |
+  | id   | balance | rewards |*
+  | ctty |    -250 |       0 |
+  | .ZZA |       0 |     250 |
+  | .ZZB |       0 |     250 |
+  | .ZZC |       0 |     250 |
+  | .ZZF |     250 |       0 |
 
 Scenario: A cashier charged someone offline
   When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now-1h" force 1
@@ -54,27 +54,27 @@ Scenario: A cashier charged someone offline
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
   And balances:
-  | id   |       r |*
-  | ctty |   -1015 |
-  | .ZZA |     250 |
-  | .ZZB |     160 |
-  | .ZZC |     355 |
+  | id   | balance | rewards |*
+  | ctty |    -250 |       0 |
+  | .ZZA |       0 |     250 |
+  | .ZZB |    -100 |     260 |
+  | .ZZC |     100 |     255 |
 
 Scenario: A cashier charged someone offline and they have insufficient balance
   Given transactions: 
   | xid | created | type     | amount | from | to   | purpose |*
   | 5   | %today  | transfer |    200 | .ZZB | .ZZA | cash    |
   When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now-1h" force 1
-  Then we respond ok txid 6 created "%now-1h" balance -300 rewards 260
+  Then we respond ok txid 6 created "%now-1h" balance -300 rewards 240
   And we notice "new charge|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
-  | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
+  | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $-10               |
   And balances:
-  | id   |       r |*
-  | ctty |   -1015 |
-  | .ZZA |     450 |
-  | .ZZB |     -40 |
-  | .ZZC |     355 |
+  | id   | balance | rewards |*
+  | ctty |    -250 |       0 |
+  | .ZZA |     200 |     250 |
+  | .ZZB |    -300 |     240 |
+  | .ZZC |     100 |     255 |
 
 Scenario: A cashier charged someone offline but it actually went through
   Given agent "C:A" asks device "devC" to charge ".ZZB,ccB" $100 for "goods": "food" at "%now-1h"
@@ -82,27 +82,27 @@ Scenario: A cashier charged someone offline but it actually went through
   Then we respond ok txid 5 created "%now-1h" balance -100 rewards 260
   #And we notice nothing
   And balances:
-  | id   |       r |*
-  | ctty |   -1015 |
-  | .ZZA |     250 |
-  | .ZZB |     160 |
-  | .ZZC |     355 |
+  | id   | balance | rewards |*
+  | ctty |    -250 |       0 |
+  | .ZZA |       0 |     250 |
+  | .ZZB |    -100 |     260 |
+  | .ZZC |     100 |     255 |
 
 Scenario: A cashier declined to charge someone offline and it didn't go through
   When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now-1h" force -1
   Then we respond ok txid 0 created "" balance 0 rewards 250
   #And we notice nothing
   And balances:
-  | id   |       r |*
-  | ctty |   -1000 |
-  | .ZZA |     250 |
-  | .ZZB |     250 |
-  | .ZZC |     250 |
+  | id   | balance | rewards |*
+  | ctty |    -250 |       0 |
+  | .ZZA |       0 |     250 |
+  | .ZZB |       0 |     250 |
+  | .ZZC |       0 |     250 |
 
 Scenario: A cashier canceled offline a supposedly offline charge that actually went through
   Given agent "C:A" asks device "devC" to charge ".ZZB,ccB" $100 for "goods": "food" at "%now-1h"
   When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now-1h" force -1
-  Then we respond ok txid 8 created %now balance 0 rewards 250
+  Then we respond ok txid 6 created %now balance 0 rewards 250
   And with undo "5"
   And we notice "new charge|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
@@ -111,11 +111,11 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | reverses #2  | reward          | $-10              |
   And balances:
-  | id   |       r |*
-  | ctty |   -1000 |
-  | .ZZA |     250 |
-  | .ZZB |     250 |
-  | .ZZC |     250 |
+  | id   | balance | rewards |*
+  | ctty |    -250 |       0 |
+  | .ZZA |       0 |     250 |
+  | .ZZB |       0 |     250 |
+  | .ZZC |       0 |     250 |
 
 Scenario: A cashier canceled offline a supposedly offline charge that actually went through, but customer is broke
   Given transactions: 
@@ -124,9 +124,9 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   And agent "C:A" asks device "devC" to charge ".ZZB,ccB" $-100 for "goods": "refund" at "%now-1h"
   And transactions: 
   | xid | created | type     | amount | from | to   | purpose |*
-  | 9   | %today  | transfer |    300 | .ZZB | .ZZA | cash    |
+  | 7   | %today  | transfer |    300 | .ZZB | .ZZA | cash    |
   When reconciling "C:A" on "devC" charging ".ZZB,ccB" $-100 for "goods": "refund" at "%now-1h" force -1
-  Then we respond ok txid 10 created %now balance -300 rewards 250
+  Then we respond ok txid 8 created %now balance -300 rewards 250
   And with undo "6"
   And we notice "new refund|reward other" to member ".ZZB" with subs:
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
@@ -135,11 +135,11 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | reverses #2  | reward          | $10               |
   And balances:
-  | id   |       r |*
-  | ctty |   -1500 |
-  | .ZZA |     550 |
-  | .ZZB |     -50 |
-  | .ZZC |     750 |
+  | id   | balance | rewards |*
+  | ctty |    -750 |       0 |
+  | .ZZA |     300 |     250 |
+  | .ZZB |    -300 |     250 |
+  | .ZZC |     500 |     250 |
 
 Scenario: Device sends correct old proof for legit tx after member loses card, with app offline
   Given members have:

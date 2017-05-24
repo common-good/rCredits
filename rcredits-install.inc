@@ -1,6 +1,7 @@
 <?php
 
 namespace rCredits;
+use rCredits as r;
 use rCredits\Util as u;
 use rCredits\DB as db;
 
@@ -25,10 +26,9 @@ function tableDefs($schema = []) {
     $schema[$table]['fields']['uid'] = setupField($desc, 'int big');
   }
   
-  // table user (additions to Drupal standard)
+  // table users (additions to Drupal standard)
   $fields = array( // additional/changed users fields
     'flags' => setupField('boolean permissions and state flags', 'int big', 0, TRUE),
-    'wildTEST' => setupField('testing db mods', 'int big', 0, TRUE),
     'changes' => setupField('changes made to the account', 'blob big'),
     'community' => setupField("uid of this account's Common Good Community", 'int big'),
 //    'question' => setupField('security question', 'varchar 255'),
@@ -56,20 +56,22 @@ function tableDefs($schema = []) {
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
     'minimum' => setupField('chosen minimum balance (for automatic refills)', 'numeric 11,2', NULL), // NULL means preferences not set yet
 //    'chunk' => setupField('granularity of transfers from bank account', 'numeric 11,2', R_BANK_CHUNK),
-//    'maximum' => setupField('maximum rCredits balance (send excess to bank), 0=none)', 'numeric 11,2', -1), // -1 means no limit
-    'share' => setupField('percentage of rebates/bonuses to donate to CGF', 'numeric 6,3', 0),
+    'maximum' => setupField('maximum balance (send excess to bank)', 'numeric 11,2', -1), // -1 means no limit (unused)
+    'share' => setupField('percentage of rebates/bonuses to donate to CG', 'numeric 6,3', 0),
     'crumbs' => setupField('percentage of each transaction to donate to CG (half to community)', 'numeric 6,3', NULL),
+    'balance' => setupField('balance, not including rewards (cached)', 'numeric 11,2', 0),
     'r' => setupField('balance, including rewards (cached)', 'numeric 11,2', 0),
 //    'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2', 0),
     'committed' => setupField('amount committed (for donations to CGF)', 'numeric 11,2', 0),
 //    'frozen' => setupField('amount of rCredits currently unavailable until specific dates or indefinitely', 'text medium'),
-    'photo' => setupField('member photo', 'blob big'), // encrypted
+//    'photo' => setupField('member photo', 'blob big'), // encrypted
     'risk' => setupField('today\'s suspiciousness rating', 'float medium', NULL), // NULL means never set yet
     'risks' => setupField('list of risk factors', 'int big', 0, TRUE),
     'trust' => setupField('how much this person is trusted by others in the community', 'float medium', NULL),
     'stats' => setupField('account statistics', 'text medium'),
     'notices' => setupField('when to send what kind of notice', 'text tiny'),
+    'lastip' => setupField('latest IP address used', 'varchar 39'),
 //    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
     'special' => setupField('special transient data', 'text big'),
   );
@@ -79,6 +81,15 @@ function tableDefs($schema = []) {
   $schema['users']['fields']['data'] = setupField('serialized array of miscellaneous data', 'text big');
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
 
+  // table r_photos (separate from user table for efficiency -- this table gets big)
+  $fields = array(
+    'uid' => setupField('account record id', 'int big'),
+    'photo' => setupField('member photo', 'blob big'), // encrypted for members, filename for companies
+  );
+  $foreignKeys = foreignKey('uid');
+  $indexes = [];
+  $schema['r_photos'] = setupTable('one photo for each account', $fields, 'uid', $foreignKeys, $indexes);
+    
   // table r_stats
   $fields = array(
     'id' => setupField('statistics record id', 'serial big'),
@@ -201,10 +212,12 @@ function tableDefs($schema = []) {
     'payeeAgent' => setupField("user id of payee's agent (who approved this transaction for the payee)", 'int big'), 
     'payerFor' => setupField("payer's description", 'varchar 255'), 
     'payeeFor' => setupField("payee's description", 'varchar 255'), 
+    'payerReward' => setupField('incentive reward for payer', 'numeric 11,2', 0), 
+    'payeeReward' => setupField('incentive reward for payee', 'numeric 11,2', 0), 
     'payerTid' => setupField("payer's transaction ID", 'int 11'),
     'payeeTid' => setupField("payee's transaction ID", 'int 11'),
     'data' => setupField('miscellaneous non-searchable data (serialized array)', 'text big'), 
-    'flags' => setupField('boolean permissions and state flags', 'int big', 0, TRUE),
+    'flags' => setupField('boolean characteristics and state flags', 'int big', 0, TRUE),
     'channel' => setupField('through what medium was the transaction entered', 'int tiny'),
     'box' => setupField('on what machine was the transaction entered', 'int 11', 0), // 0 = none
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
@@ -286,7 +299,17 @@ function tableDefs($schema = []) {
   $foreignKeys = [];
   $indexes = index('newroute');
   $schema['r_banks'] = setupTable('Bank routing numbers', $fields, 'route', $foreignKeys, $indexes);
-            
+
+  // table r_ips
+  $fields = array(
+    'ip' => setupField('ip address', 'varchar 39'),
+    'uid' => setupField('account ID', 'int big'), 
+    'device' => setupField('device code', 'varchar 255'), // device identifier (unique to each device/type combo)
+  );
+  $foreignKeys = foreignKey('uid');
+  $indexes = index('uid');
+  $schema['r_ips'] = setupTable('IP addresses of approved accounts', $fields, 'ip', $foreignKeys, $indexes);
+  
   // table r_gifts
   $fields = array(
     'donid' => setupField('gift record id', 'serial'),
@@ -639,23 +662,20 @@ function tableDefs($schema = []) {
  *
  * Make database fields, according to the schema
  */
-function makeFields() {
+function rebuildDb() {
   global $db_name;
-  $schema = [];
-  \rcredits_schema_alter($schema); // get the fields to add (or drop)
-  foreach ($schema as $table => $one) {
-    $previous = '';
-    foreach ($one['fields'] as $field => $spec) {
-  //      if (\db_field_exists($table, $field)) {
-  //      if (db\exists('INFORMATION_SCHEMA.COLUMNS', "TABLE_SCHEMA='$db_name' aND TABLE_NAME='$table' AND COLUMN_NAME='$field'")) {
-      $spec = specString($spec);
-      if (db\exists('INFORMATION_SCHEMA.COLUMNS', 'TABLE_SCHEMA=:db_name AND TABLE_NAME=:table AND COLUMN_NAME=:field', compact('db_name', 'table', 'field'))) {
-  //      \db_change_field($table, $field, $field, $spec);
-        db\q("ALTER TABLE $table CHANGE `$field` `$field` $spec");
-      } else db\q("ALTER TABLE $table ADD `$field` $spec " . ($previous ? "AFTER `$previous`" : 'FIRST'));
-      //\db_add_field($table, $field, $spec);
-      $previous = $field;
-    }
+  $schema = tableDefs();
+  foreach ($schema as $table => $scheme) {
+    if (\db_table_exists($table)) {
+      $previous = '';
+      foreach ($scheme['fields'] as $field => $spec) {
+        $spec = specString($spec);
+        if (db\exists('INFORMATION_SCHEMA.COLUMNS', 'TABLE_SCHEMA=:db_name AND TABLE_NAME=:table AND COLUMN_NAME=:field', compact('db_name', 'table', 'field'))) {
+          db\q("ALTER TABLE $table CHANGE `$field` `$field` $spec");
+        } else db\q("ALTER TABLE $table ADD `$field` $spec " . ($previous ? "AFTER `$previous`" : 'FIRST'));
+        $previous = $field;
+      }
+    } else \db_create_table($table, $scheme);
   }
 }
 

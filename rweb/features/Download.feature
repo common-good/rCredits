@@ -29,19 +29,16 @@ Setup:
   |   4 | %today-5m | transfer |     10 | .ZZB | .ZZA | cash E   | 0      |
   |   5 | %today-4m | transfer |    100 | .ZZC | .ZZA | usd F    | 1      |
   |   6 | %today-3m | transfer |    240 | .ZZA | .ZZB | what G   | 0      |
-
-  |   9 | %today-2w | transfer |     50 | .ZZB | .ZZC | cash P   | 0      |
-  |  10 | %today-1w | transfer |    120 | .ZZA | .ZZC | this Q   | 1      |
-
-  |  13 | %today-6d | transfer |    100 | .ZZA | .ZZB | cash V   | 0      |
-  |  14 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | 1      |
-
-  |  17 | %today-5d | transfer |    100 | .ZZC | .ZZA | cash CJ  | 1      |
+  |   7 | %today-2w | transfer |     50 | .ZZB | .ZZC | cash P   | 0      |
+  |   8 | %today-1w | transfer |    120 | .ZZA | .ZZC | this Q   | 1      |
+  |   9 | %today-6d | transfer |    100 | .ZZA | .ZZB | cash V   | 0      |
+  |  10 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | 1      |
+  |  11 | %today-5d | transfer |    100 | .ZZC | .ZZA | cash CJ  | 1      |
   Then balances:
-  | id   | r    | rewards |*
-  | .ZZA |  942 |     272 |
-  | .ZZB | 2542 |     262 |
-  | .ZZC | 3320 |     270 |
+  | id   | balance | rewards |*
+  | .ZZA |     670 |     272 |
+  | .ZZB |    2280 |     262 |
+  | .ZZC |    3050 |     270 |
 
 Scenario: A member downloads transactions for the past year
   Given members have:

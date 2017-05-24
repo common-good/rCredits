@@ -216,6 +216,7 @@ define('LANGUAGE_RTL', 1);
  * @see http://php.net/manual/function.time.php
  */
 define('REQUEST_TIME', (int) $_SERVER['REQUEST_TIME']);
+define('NOW', REQUEST_TIME); // cg 20170418
 
 /**
  * Flag used to indicate that text is not sanitized, so run check_plain().
@@ -1736,6 +1737,7 @@ function drupal_set_title($title = NULL, $output = CHECK_PLAIN) {
  *   TRUE if access is denied, FALSE if access is allowed.
  */
 function drupal_is_denied($ip) {
+  return; // cg 20170513
   // Because this function is called on every page request, we first check
   // for an array of IP addresses in settings.php before querying the
   // database.

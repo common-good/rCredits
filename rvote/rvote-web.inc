@@ -67,7 +67,8 @@ function formDemocracy($form, &$sta, $args = '') {
   }
   
   if ($mya->community == -26742000000002) {
-    $middle = v\showProposalGrades($mya, $args); // FUDGE for 19 Jan 2017 (pending reworking the overall flow and logic of voting phases)
+    $middle = file_get_contents(__DIR__ . '/greenfieldma2017.html');
+//    $middle = v\showProposalGrades($mya, $args); // FUDGE for 19 Jan 2017 (pending reworking the overall flow and logic of voting phases)
   } else if (@$phase == 'V') { // voting
     return v\votingWelcome($endDate);
   } elseif (@$phase == 'G') { // grading specific proposals within voted budget

@@ -493,12 +493,13 @@ function printInvite($accts = '') {
 function printInvite1($a, &$pdf) {
   $forCG = ($a->id == r\cgfId() and $a->superAdmin);
   require_once __DIR__ . '/../pdf.class';
+  $slogans = ray(SLOGANS);
+  $cardi = 0;
 
   $co = ($a->co and !$forCG); // pocket-size for individuals and CGF, otherwise bigger for companies
   $name = $a->shortName ?: $a->fullName;
   $invite = $forCG ? t('You are invited to:') : t('%name invites you to:', compact('name'));
-  $iCode = $a->iCardCode(IBY_EMAIL);
-  $iCode = substr($iCode, 0, 4) . ' &nbsp;' . substr($iCode, 4, 4) . ' &nbsp;' . substr($iCode, 8);
+//  $iCode = $a->iCardCode(IBY_EMAIL);
   
   list ($mT, $mR, $mB, $mL) = $co ? [0, 0, 0, 0] : [.5, .75, .5, .75]; // margins
   list ($y0, $dy, $wInvite, $dyCode, $wCodeOLD, $ptCode) = $co ? [.2, .23, 3.75, 1.35, 1.9, 13] : [.125, .19, 3, .95, 1.5, 12];
@@ -532,16 +533,19 @@ function printInvite1($a, &$pdf) {
     $pdf->Image(__DIR__ . '/../images/' . PROJECT_LOGO, $x+$x0, $y+$y0, $hLogo, $hLogo, '', '', '', true); // file, x, y, w, h, type, link, align, resize
     $pdf->say($invite, $x+$dxInvite, $y+$y0+$dyInvite, $wInvite, '', "$ptInvite;font-stretch:$sInvite", 'L');
     $pdf->say(PROJECT . '<sup style="font-size:50%;">&trade;</sup>', $x+$dxProject, $y+$y0+$dyProject, $wInvite, '', "$ptProject;B;color:darkblue;font-stretch:$sProject", 'L');
-    $pdf->say(t('a payment card for the common good'), $x+$dxInvite, $y+$y0+$dySlogan, $wInvite, '', "$ptInvite;font-stretch:$sSlogan;color:darkgray", 'L');
+    $scardi = strlen($slogans[$cardi]) > 20 ? 'normal' : $sSlogan;
+    $pdf->say(t('the payment card ' . $slogans[$cardi]), $x+$dxInvite, $y+$y0+$dySlogan, $wInvite, '', "$ptInvite;font-stretch:$scardi;color:darkgray", 'L');
 //    $pdf->Line($x+$dxLine, $y+$dyLine, $x+$wCard-$dxLine, $y+$dyLine, $gStyle); // x1, y1, x2, y2, style
 
     $pdf->say('Invitation #', $x+$tx0, $y+$y0+$dyCode, $wCode, '', $ptCode, 'C'); // text, x, y, w, h, format, align, borders
+    $iCode = $a->iCardCode(IBY_ICARD + $cardi);
+    $iCode = substr($iCode, 0, 4) . ' &nbsp;' . substr($iCode, 4, 4) . ' &nbsp;' . substr($iCode, 8);
     $pdf->say($iCode, $x+$tx0, $y+$y0+$dyCode+$dy, $wCode, '', $ptCode . ';color:darkred;B;Verdana;font-stretch:normal', 'C'); // text, x, y, w, h, fmt, align, borders
 //    $pdf->Image(__DIR__ . '/../images/heart+$70.png', $x+$dxHeart, $y+$dyHeart, $wHeart, $hHeart, '', '', '', true); // file, x, y, w, h, type, link, align, resize
 
     $sSite = 'normal'; // looks better
     $pdf->say('Join us at <span style="font-weight:bold; color:darkgreen; font-size:120%">' . CG_DOMAIN . '</span>', $x, $y+$dySite, $wCard, '', "$ptSite;font-stretch:$sSite", 'C');
-
+    $cardi++;
   }
 }
 
@@ -578,27 +582,39 @@ function notice($month = '') {
 }
 
 /**
- * Generate an account statement for the given month.
- * @param string $month: mmmyyyy
+ * Generate an account statement for the given month or year.
+ * @param string $month: mmmyyyy or CYyyyy (calendar year) or FYyyyy (fiscal year)
  */
-function statement($month) {
+function statement($month = '') {
   include_once __DIR__ . '/../rcredits-txs.inc';
   $purposeLenMax = 60; // maximum number of characters in purpose field, not including added "..."
 
-  if (!$start = strtotime("1$month")) return r\go('empty', t('That is not a recognizable month.'), 'ERR');
-  $start = u\monthDay1($start);
-  $end = u\plusMonths(1, $start) - 1;
   if (!$mya = r\acct()) return r\go('', t('You must first sign in.'), 'ERR');
 
+  $type = substr($month, 0, 2); // CY, FY, Q<n>, or other
+
+  if (is_numeric($year = substr($month, 2))) {  
+    if (substr($type, 0, 1) == 'Q') {
+      list ($endMo, $endDay) = [3 * substr($type, 1), in_array($type, ['Q1', 'Q4']) ? 31 : 30];
+      $lastDay = "$endMo/$endDay/$year";
+    } else $lastDay = $type == 'CY' ? "12/31/$year" : "$mya->fyEnd/$year";
+    $end = strtotime($lastDay) + DAY_SECS - 1; // fails if FY ends on clock change day
+    list ($start, $period) = [u\plusMonths(-12, $end + 1), "$type $year"];
+  } else {
+    if (!$start = strtotime("1$month")) return r\go('empty', t('That is not a recognizable month.'), 'ERR');
+    $start = u\monthDay1($start);
+    list ($end, $period) = [u\plusMonths(1, $start) - 1, strftime('%B %Y', $start)];
+  }
+  
   include_once __DIR__ . '/../statement.class';
   
-  $pdf = new r\Statement($mya, $start);
+  $pdf = new r\Statement($mya, $period);
 
   $size = $pdf->getFontSizePt();
   $m = 5; // left/right margin size
   $pdf->SetMargins($m, PDF_MARGIN_TOP, $m);
   $pdf->SetAutoPageBreak(TRUE, 15); // leave space at bottom
-  $pdf->setLanguageArray($l); // (eg "page" in footer)
+  $pdf->setLanguageArray([]); // (eg "page" in footer)
   $pdf->AddPage();
   $pageWidth = $pdf->getPageWidth();
 
@@ -638,7 +654,7 @@ function statement($month) {
 ///**/    if (round($bal9, 2) != round($bal0 + @$frombank - @$fromyou + @$toyou, 2)) return r\go('empty', 'balance mismatch: ' . print_r(compact('tot', 'bal0', 'bal9'), 1));
   
   $pdf->barHead('SUMMARY');
-  if ($mya->rewarding) {
+  if ($mya->cttyRewardy) {
     list ($w, $rew1, $fromRew, $rew2, $rew34) = [8, ' /plus/8/R/; Rewards**//23/R;', ' /plus/8/R/; /reward/23/R;', 'fromSavings', ' //8; //23;'];
   } else {
 //    $rew1 = $rew2 = $rew34 = '';
@@ -648,8 +664,8 @@ function statement($month) {
   $fields[1] = explode('; ', "/balTitle/15/; Starting Bal/bal0/28/R; /plus/$w/R; From Bank/frombank/23/R; /minus/$w/C; Paid*/fromyou/23/R; /plus/$w/R; Received/toyou/23/R;$rew1 /equals/$w/R; Ending Bal/bal9/28/R");
   $pdf->colHeads($fields[1]);
   $fields[2] = explode('; ', "/savingsTitle/15/; /savings0/28/R; //$w/R; //23/R; /minus/$w/C; /$fromRew/23/R; /plus/$w/R; /toSavings/23/R;$rew2 //$w/R; /savings9/28/R");
-  $fields[3] = explode('; ', "//15; /underline0/28/R; //$w; //23; //$w; //23; //$w; //23;$rew34 //$w; /underline9/28/R");
-  $fields[4] = explode('; ', "//15; /total0/28/R; //$w; //23; //$w; //23; //$w; //23;$rew34 //$w; /total9/28/R");
+//  $fields[3] = explode('; ', "//15; /underline0/28/R; //$w; //23; //$w; //23; //$w; //23;$rew34 //$w; /underline9/28/R");
+//  $fields[4] = explode('; ', "//15; /total0/28/R; //$w; //23; //$w; //23; //$w; //23;$rew34 //$w; /total9/28/R");
   
   list ($plus, $minus, $equals, $space) = array('+', '-', '=', ' ');
   list ($total0, $underline9, $total9) = [$bal0 + $savings0, str_repeat('-', 17), $bal9 + $savings9];
@@ -664,11 +680,11 @@ function statement($month) {
   $yield = number_format($avg ? round(100 * $rewardsEver / $avg) : 0, 1) . '%';
   $numFields = ray('total0 bal0 amount frombank fromyou toyou reward bal9 rewardsEver committed savings0 savings9 fromSavings toSavings total9');
   foreach ($numFields as $one) $$one = number_format(@$$one ?: 0, 2); // ?: is needed because $$one might be null or ''
-  u\prefix('+ ', $savings0);
-  u\prefix('+ ', $savings9);
+//  u\prefix('+ ', $savings0);
+//  u\prefix('+ ', $savings9);
   
   $pdf->setFontSize(.9 * $size);
-  for ($i = 1; $i <= 4; $i++) foreach ($fields[$i] as $one) {
+  for ($i = 1; $i <= 2; $i++) foreach ($fields[$i] as $one) {
     list ($head, $fldName, $width, $align) = explode('/', "$one/");
     foreach (ray('fromyou fromSavings reward', 1, 1, 3) as $k => $v) if ($fldName == $k) $$k .= str_repeat(' ', $v); // footnote alignment
     $pdf->Cell($width, 0, @$fldName ? @$$fldName : '', '', @$fldName[strlen(@$fldName) - 1] == '9' ? 1 : 0, $align);
@@ -676,7 +692,7 @@ function statement($month) {
   
   $pdf->newLine();
   list ($labelWidth, $numWidth) = array(45, 25);
-  if ($mya->rewarding) $pdf->Cell($labelWidth, 0, "Incentive Rewards Ever: $rewardsEver", '', 1);
+  if ($mya->cttyRewardy) $pdf->Cell($labelWidth, 0, "Incentive Rewards Ever: $rewardsEver", '', 1);
 //  $pdf->Cell($numWidth, 0, $rewardsEver, '', 0, 'R');
 //  $pdf->Cell(0, 0, " (Effective yield $yield APR)", '', 1, 'L');
 
@@ -692,13 +708,13 @@ function statement($month) {
   $pdf->newLine();
   $change = '$' . number_format(@$change + 0, 2);
   $pdf->Cell($pageWidth, 0, "  * Including $change in rounded-up change donated to the community fund.", '', 1, 'L');
-  if ($mya->rewarding) $pdf->Cell($pageWidth, 0, t('** Rewards are yours to keep once your %PROJECT community says so. In the meantime you can borrow them interest-free.'), '', 1, 'L');
+  if ($mya->cttyRewardy) $pdf->Cell($pageWidth, 0, t('** Rewards are yours to keep once your %PROJECT community says so. In the meantime you can borrow them interest-free.'), '', 1, 'L');
   
   $pdf->newLine();
 
   $pdf->setFontSize($size);
   $pdf->barHead('DETAILS');
-  list ($rew, $lastHead, $purposeW) = $mya->rewarding ? [' Reward//22/R', 'Reward', 70] : ['', 'Amount', 90];
+  list ($rew, $lastHead, $purposeW) = $mya->cttyRewardy ? [' Reward//22/R', 'Reward', 70] : ['', 'Amount', 90];
   $fields = ray("Tx#/tid/15/C /space/1/ Date//17/ Name//55/ /space/1/ Purpose//$purposeW/ /space/1/ Amount//20/R$rew");
   $pdf->colHeads($fields);
   $pdf->setFontSize(.9 * $size);
@@ -722,7 +738,7 @@ function statement($month) {
     }
     foreach (['amount', 'reward'] as $k) $$k = $$k == R_NONE ? 0 : (str_replace(',', '', $$k) + 0); // convert from string
     if ($mya->id == CGF_ID and $purpose == R_SHARING_MSG) list ($amount, $reward) = [$reward, $amount];
-    if ($reward and $mya->rewarding) {
+    if ($reward and $mya->cttyRewardy) {
       $catDesc = r\usdin($purpose) 
       ? t('exchange fees') // this is not a reward and should be moved out of this block
       : (u\starts($purpose, INFLATION_DESC)
@@ -789,7 +805,7 @@ function formDonate($form, &$sta) {
 //  $inSetup = $mya->ok ? '' : t(' The amount you choose will come from your account once it is activated and has enough funds.</p><p>Also choose a percentage of your ongoing incentive rewards to share with Common Good Finance.');
   $form = array(
     'title' => item(t('Donate to %PROJECT')),
-    'subtext' => item($donated . t('<p>Make a gift of any size (even a penny or a million), to help support the %PROJECT system. Buy a BRICK or some other piece of the Common Good Economy, as a tax-deductible donation (one-time, monthly, or quarterly).</p><p><b class="loud">NOTE: This is a donation, not a deposit.</b> Thank you for your support!</p>')),
+    'subtext' => item($donated . t('<p>Make a gift of any size (zero or more), to help support the %PROJECT system. Buy a BRICK or some other piece of the Common Good Economy, as a tax-deductible donation (one-time, monthly, or quarterly).</p><p><b class="loud">NOTE: This is a donation, not a deposit.</b> Thank you for your support!</p>')),
     'gift' => selectFld(t('Donation:'), '', required($mya->co ? R_COMPANY_GIFT : R_INDIVIDUAL_GIFT) + $giftAttrib, $giftLevels),
     'amount' => textFld(t('Other amount $'), ''),
     'often' => selectFld(t('When:'), '', required(), $oftens),
@@ -807,9 +823,10 @@ function formDonate_validate($form, &$sta) {
   $mya = r\acct();
   js(R_GIFT_SHOWHIDE, 'inline', 'footer');
   extract(u\just('gift amount share often', $sta['input']));
-  if (!$amount = $gift ?: $amount) return say('missing field', array('field' => 'amount'), 'amount');
-  if (!$often) return say('missing field', array('field' => 'when'), 'often');
-  if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
+  $amount = $gift ?: $amount;
+//  if (!$amount) return say('missing field', array('field' => 'amount'), 'amount');
+  if ($amount and !$often) return say('missing field', array('field' => 'when'), 'often');
+  if ($err = u\badAmount($amount, '>=0')) return say($err, 'amount');
 //  if (!$mya->ok and $err = w\badShare($share)) return say($err, 'share');
 //  $share = min($share, 999.999); // any bigger kills PDO
   $sta['input'] = compact(ray('amount share')) + $sta['input'];
@@ -818,19 +835,22 @@ function formDonate_validate($form, &$sta) {
 function formDonate_submit($form, &$sta) {
   $mya = r\acct();
   $info = u\just('amount often honor honored share roundup', $sta['input']);
-  if ($info['honor'] == '-') $info['honor'] = 'honor';
-  if (!$info['honored']) $info['honor'] = '';
-  $uid = $mya->id;
-  $giftDate = r\rTime();
-  $info += compact('uid', 'giftDate');
-  $donid = db\insert('r_gifts', $info);
-//  if (!$mya->ok) $mya->update(u\just('share', $info));
-//  if ($mya->ok) $mya->setbit(B_ROUNDUP, $roundup);
+  if ($info['amount']) {
+    if ($info['honor'] == '-') $info['honor'] = 'honor';
+    if (!$info['honored']) $info['honor'] = '';
+    u\setDft($info['often'], '1');
+    $uid = $mya->id;
+    $giftDate = r\rTime();
+    $info += compact('uid', 'giftDate');
+    $donid = db\insert('r_gifts', $info);
+  //  if (!$mya->ok) $mya->update(u\just('share', $info));
+  //  if ($mya->ok) $mya->setbit(B_ROUNDUP, $roundup);
 
-  $msg = 'gift successful';
-  if (!r\acceptGift($info + compact('donid'))) $msg .= '|gift transfer later';
-  $amount = u\fmtAmt($info['amount']);
-  say($msg, compact('amount'));
+    $msg = 'gift successful';
+    if (!r\acceptGift($info + compact('donid'))) $msg .= '|gift transfer later';
+    $amount = u\fmtAmt($info['amount']);
+    say($msg, compact('amount'));
+  }
   r\tellAdmin('gift', $info);
 
   return w\goNextStep('donate', '');
@@ -1250,7 +1270,7 @@ function formInvite($form, &$sta) {
   $friend = $mya->co ? t('customer, employee, or supplier') : t('friend');
   $_size = $mya->co ? '4.25" &times; 2.75"' : '3.5" &times; 2"';
   
-  $subtext2 = $mya->rewarding ? t('<p>Get a $%R_HELPER_BONUS reward for each %friend you invite, who signs up!</p>', compact('friend')) : '';
+  $subtext2 = $mya->cttyRewardy ? t('<p>Get a $%R_HELPER_BONUS reward for each %friend you invite, who signs up!</p>', compact('friend')) : '';
   $subtext2 .= t(<<<EOF
 <p>Your friends and business associates can join %PROJECT <b>only if you invite them</b>. You may need to help or remind the people you invite.</p><p>Invite <b>only people you trust</b> who live, shop, or work in your community. <%a2>Who you have invited</a> <%a1>People waiting to be invited</a></p>
   <br>
@@ -1443,7 +1463,7 @@ function formSummary($form, &$sta, $qid = '') {
     if ($mya->rewards) $balanceDesc .= t(' (see <%a>History</a>)', '_a', w\atag('/history'));
     $balance = item($balance . "<small>$balanceDesc</small>", t('Balance:'));
 //    $savings = item(u\fmtAmt($mya->savings) . t('<small> (your total incentive rewards to date)</small>', [
-    list ($rewardNote, $rewardDesc) = $mya->rewarding ? [t('<small> (your total incentive rewards to date)</small>'), t('This amount will be yours to keep, once your community reaches a certain size.')] : ['', t('Some of this amount may be yours to keep, at your %PROJECT community\'s decision, once membership reaches a certain size.')];
+    list ($rewardNote, $rewardDesc) = $mya->cttyRewardy ? [t('<small> (your total incentive rewards to date)</small>'), t('This amount will be yours to keep, once your community reaches a certain size.')] : ['', t('Some of this amount may be yours to keep, at your %PROJECT community\'s decision, once membership reaches a certain size.')];
     $savings = item(u\fmtAmt($mya->rewards) . $rewardNote, t('Credit Reserve:'), $rewardDesc);
 //    $committed = item(u\fmtAmt(max(0, $mya->committed)), t('Committed:'), t('reserved for donation to Common Good Finance'));
 
@@ -1495,7 +1515,8 @@ function formSummary_validate($form, &$sta) {
   } else {unset($helper); unset($sta['input']['helper']);}
 
   if (@$rTrader and !$mya->ok and $mya->isNormal) {
-    if (!@$helper or $helper == 1) return say(t('You must specify who gets the helper reward.'), 'helper');
+    if (!@$helper) return say(t('You must specify who gets the helper reward.'), 'helper');
+//    if (!@$helper or $helper == 1) return say(t('You must specify who gets the helper reward.'), 'helper');
     if (is_null(@$adminable[B_MEMBER])) return say(t('That account is not READY (not a member).'), 'adminable'); // test "is_null" because 0 is the value when set
     if (!$mya->confirmed) say(t('NOTE: Member %helperName has not yet confirmed this invitation.', 'helperName', $h->fullName));
   }
@@ -1536,7 +1557,7 @@ function formSummary_submit($form, &$sta) {
 
     if ($mya->isNormal) {
       $fullName = $mya->fullName;
-      if (!$mya->confirmed and @$helper and @$helper != $mya->helper) { // helper has not confirmed yet (must be self-signup)
+      if (FALSE and !$mya->confirmed and @$helper and @$helper != $mya->helper) { // helper has not confirmed yet (must be self-signup)
         $_a1 = r\acct($helper)->makeDo('confirmInvite', $mya->id); // link to confirm invitedness
         r\message($helper, 'confirm invite', compact('_a1', 'fullName')); // ask inviter to confirm
       }
@@ -1658,7 +1679,7 @@ function photoUpload($uid = '', $sid = '') {
   $f0 = ray('imgUrl imgInitW imgInitH imgW imgH imgY1 imgX1 cropH cropW rotation uid sid');
   $f = ray('url w0 h0 w h y1 x1 cropH cropW angle uid sid');
   $params = t\POST();
-  foreach (array_combine($f0, $f) as $k0 => $k) $$k = $params[$k0];
+  foreach ($params2 = array_combine($f0, $f) as $k0 => $k) $$k = $params[$k0];
   
   if (!@$uid or !@$sid or !$sessionVars = w\sessionVars($sid)) return w\photoRet(t('bad sid'));
   $mya = r\acct($uid);
@@ -1671,6 +1692,7 @@ function photoUpload($uid = '', $sid = '') {
   if (!(imagetypes() & $type)) return w\photoRet(t('That image format is not recognized.'));
   $ext = image_type_to_extension($type, FALSE);
   $func = 'imagecreatefrom' . ($ext == 'bmp' ? 'wbmp' : $ext);
+///   flog(compact(ray('uid sid f0 f params params2 sessionVars quality cropH cropW what actualW actualH type zotAttr ext func')));
   if (!$img0 = $func($url)) return w\photoRet(t('image creation error'));
   // preliminary rotate and/or mirror if necessary (never necessary -- jscript apparently does it)
 /*  $exif = exif_read_data($url);
@@ -1980,10 +2002,10 @@ function formTx($form, &$sta, $args = '') {
   $amount = textFld('Amount:', [t('amount to ') . $type], required(@$amount));
   $goodsOpts = ray(R_WHYS);
   unset($goodsOpts[FOR_SHARE]); // this gets set only automatically
-  if ($mya->rewarding) {
+  if ($mya->cttyRewardy) {
     $goods = $incentive ? hidFld(FOR_NONGOODS) : radiosFld(t('For:'), '', dft((int) @$goods), $goodsOpts); // required() fails here
   } else $goods = hidFld($incentive ? FOR_NONGOODS : FOR_GOODS);
-  $purpose = textFld($mya->rewarding ? ' ' : t('For:'), [t('purpose or description of goods and services')], required(@$purpose));
+  $purpose = textFld($mya->cttyRewardy ? ' ' : t('For:'), [t('purpose or description of goods and services')], required(@$purpose));
 // (keep this for a while)  $calc = item(u\calculator('amount'));
   $scanClass = 'not-scanned';
 //  $isGift = hidfld(FALSE);
@@ -2046,6 +2068,13 @@ function formPayroll_validate($form, &$sta) {
   list ($min, $max) = [strtotime('-2 months'), strtotime('+7 days')];
   foreach (['startDate', 'endDate'] as $k) if ($err = u\badDate($$k, $min, $max)) return sayFieldErr($err, $k);
   if (!@$_FILES['files']['name']['payroll']) return say('upload required', 'payroll');
+  $file = new \stdClass();
+  foreach ($_FILES['files'] as $k => $v) $file->$k = $v['payroll'];
+  if (function_exists('mime_content_type') and mime_content_type($file->tmp_name) != 'text/csv') return say('bad file type', 'payroll');
+  if ($file->size > R_MAX_UPLOAD_SIZE * 1024000) return say(t('That file is too big'), 'payroll');
+  $sta['input']['filename'] = $file->tmp_name;
+
+/*  
   $validators = array(
     'file_validate_extensions' => array('csv'),
     'file_validate_size' => array(R_MAX_UPLOAD_SIZE * 1024000),
@@ -2053,6 +2082,7 @@ function formPayroll_validate($form, &$sta) {
   if (!$file = \file_save_upload('payroll', $validators, '', FILE_EXISTS_REPLACE)) return say('Try again.', 'payroll');
   if ($file->filemime != 'text/csv') return say('bad file type', 'payroll');
   $sta['input']['filename'] = $filePath = file_directory_temp() . '/' . $file->filename;
+  */
 }
 
 define('R_NOREWARD', '<noreward>'); // "no rewards" flag in description
@@ -2274,7 +2304,8 @@ function formGet($form, &$sta, $args = '') {
 //  $minimum = textFld(t('Minimum:'), t('prompt min'), dft(u\fmtAmt(!$mya->prefsSet ? $mya->minimum : R_MINR_DEFAULT, 's')));
 //  $toSpend = u\fmtAmt($mya->avail(FOR_GOODS));
 //  $toSpend = u\fmtAmt($mya->r - $mya->committed);
-  $toSpend = u\fmtAmt($mya->r);
+  $balance = u\fmtAmt($mya->balance);
+  $rewards = u\fmtAmt($mya->rewards);
   $waiting0 = $mya->waitingToBank();
 
   if (!db\exists('r_usd', 'payer IN (:myid,:jid) AND amount>0 AND created>:dayAgo', ray('myid jid dayAgo', $myid, $jid, strtotime('-1 day')))) { // limit to one withdrawal request per 24 hours
@@ -2285,7 +2316,7 @@ function formGet($form, &$sta, $args = '') {
     }
   } else $avail = 0;
 
-  $toCash = u\fmtAmt(max(0, $avail));
+  $cashoutable = u\fmtAmt(max(0, $avail));
   if ($waiting = u\fmtAmt(abs($waiting0))) {
     $where = 'payer IN (:myid, :jid) AND completed=0 AND deposit=0 ORDER BY txid DESC';
     if ($rec = db\lookup('amount, txid', 'r_usd', $where, compact('myid', 'jid'))) {
@@ -2297,7 +2328,7 @@ function formGet($form, &$sta, $args = '') {
   $way = $waiting0 < 0 ? 'from' : 'to';
   $waiting = item($waiting == '$0' ? t('You have no pending exchange requests.') : (t('You have total pending exchange requests of %waiting %way your bank account.', compact('waiting', 'way')) . @$link), t('Pending:')); // amount already requested (if any)
   $avail = hidFld($avail);
-  $balance = item(t('balances', compact('toSpend', 'toCash')), t('Available:'));
+  $balances = item(t('balances', compact(ray('balance rewards cashoutable'))), t('Balance:'));
   $amount = textFld(t('Amount $'), t('Transfer how much?') . ($mya->cAdmin ? t(' (no limit for admin)') : ''));
   $get = submit(BARE . t('From Bank'));
 //  $fromBank = fld('checkbox', t('Automate:'), t('(recommended) Refill my %PROJECT Account from my bank account automatically, as needed.'), dft(!$mya->prefsSet ? $mya->can(B_FROM_BANK) : TRUE));
@@ -2308,7 +2339,7 @@ function formGet($form, &$sta, $args = '') {
   $put = submit(BARE . t('To Bank'));
   $actions = fieldSet('actions', compact('get', 'put'));
 
-  return labeled(compact(ray('title subtext waiting balance amount actions avail')));
+  return labeled(compact(ray('title subtext waiting balances amount actions avail')));
 }
   
 function formGet_validate($form, &$sta) {
@@ -2319,9 +2350,9 @@ function formGet_validate($form, &$sta) {
 // (this is unnecessary)  if ($amount > R_MAX_DAILY_EXCHANGE) return say('max daily usd', 'amount');
   if (op($sta) == 'get') return;
   
-  if ($amount > ($mya->cAdmin ? round($mya->r - $mya->rewards, 2) : $avail)) {
+  if ($amount > ($mya->cAdmin ? round($mya->balance, 2) : $avail)) {
     $max = u\fmtAmt($avail);
-    $extra = $mya->rewarding ? '|short cash help' : '';
+    $extra = $mya->cttyRewardy ? '|short cash help' : '';
     return say('short put' . $extra, compact('max'), 'amount');
   }
   if (round($mya->r - $amount, 2) < $mya->minimum and $mya->refill) return say('change min first', 'amount');
@@ -2437,13 +2468,15 @@ EOF;
     js($js, 'inline', 'footer');
   }
   
-  if ($i = strpos(@$code, '(') or @$code == 'w') { // self-invitation with friend's name and zipcode
+  if (!@$code) $code = 'self ()'; // can't actually tell whether this is allowable, because we don't yet know which community
+  
+  if ($i = strpos(@$code, '(')) { // self-invitation with friend's name and zipcode
     $inviterName = substr($code, 0, $i);
     $notes = hidFld("knows: $code");
     $code = r\acct(1)->iCardCode(IBY_SELF); // inviter is admin for now; invitation() will set $iCode=IBY_SELF
   }
     
-  $inviteOk = ((isDEV and @$code == 'w') or w\invitation(@$code, '', $inviter, $iCode, $err));
+  $inviteOk = ((isDEV and !@$code) or w\invitation(@$code, '', $inviter, $iCode, $err));
   if (@$inviter and $iCode != IBY_SELF) {
     $ia = r\acct($inviter);
     $inviterEmail = htmlspecialchars($ia->email);
@@ -2452,7 +2485,7 @@ EOF;
   }
   if (!$inviteOk) {
     w\say($err, compact('inviterName'), 'err');
-    $subtext = item(t('To sign up for %PROJECT, you must be invited or approved by someone who is already a member. Ask someone you know to invite you OR mention your friend when you sign up at <%a>%CG_DOMAIN</a>!', '_a', w\atag(PROMO_URL . '/signup.html')));
+    $subtext = item(t('That is not a valid invitation code. If you are in a Common Good Community that requires invitations, ask someone you know to invite you OR mention your friend when you sign up at <%a>%CG_DOMAIN</a>!', '_a', w\atag(PROMO_URL . '/signup.html')));
     return labeled(compact(ray('title subtext')));
   } 
 
@@ -2463,14 +2496,18 @@ EOF;
   $count = $personal ? PERSONAL_STEP_COUNT : COMPANY_STEP_COUNT;
   
   $subtext = item(t(<<<EOF
-Opening a %PROJECT Account is very much like opening an online bank account. It takes about that much time. After this signup page there are <%b>%count more short steps</b> we will guide you through. Opening your account is the hard part &mdash; after that it gets much easier. If you need help, please don't hesitate to ask (<%a>click here to send us an email</a>).
+<p>Opening a %PROJECT Account is very much like opening an online bank account. For example, you will be asked for your social security number or tax ID.</p>
+<p>After this long signup page there are <%b>some short steps</b> we will guide you through. In particular, you will be asked to sign the short but ESSENTIAL %PROJECT Agreement. You will need to upload a photo for your %PROJECT Card. You will be asked to make a donation <i>of any size</i> to support the project &mdash; you decide how much (%PROJECT is a nonprofit). And you will need your bank account information if you choose to connect it.</p>
+<p>If you need help, please don't hesitate to ask (<%a>click here to send us an email</a>).</p>
 EOF
   , '_b _a count', 'b class="loud"', w\atag('mailto:' . CGF_EMAIL . '?subject=' . t('signup help')), $count));
 
+//Opening a %PROJECT Account is very much like opening an online bank account. After this long signup page there are <%b>some short steps</b> we will guide you through. If you need help, please don't hesitate to ask (<%a>click here to send us an email</a>).
+  
   if ($personal) {
     $acctType = hidFld(R_PERSONAL);
-    $pin = passFld(t('PIN:'), [t('Choose a PIN (any 4 digits)'), t('Your security code for purchases.')]); // first time logging in, get PIN
-    $calling = textFld(t('Life Calling:'), [t('Your calling in life'), t('One of the main purposes of %PROJECT is to provide you the opportunity to do what you feel called to do in life. What would bring you joy to do, to earn %RCREDITS (that you\'re not doing yet)? What might you have to offer?')]);
+    $pin = passFld(t('PIN:'), [t('Choose a PIN (any 4 digits)'), t('Your security code for online purchases.')]); // first time logging in, get PIN
+    $calling = textFld(t('Life Calling:'), [t('Your calling in life (optional)'), t('One of the main purposes of %PROJECT is to provide you the opportunity to do what you feel called to do in life. What would bring you joy to do, to earn %RCREDITS (maybe something you\'re not doing yet)? What might you have to offer?')]);
     $companyOptions = array(
       'isOwner' => t('owner'),
       'employeeOk' => t('employee'),
@@ -2640,7 +2677,7 @@ function formContact($form, &$sta) {
   $fullName = textFld($mya->co ? t('Company Name:') : t('Your Name:'), $nameDesc, required(@$mya->fullName));
   $onchange = w\onchange("jQuery('.form-item-pin').show();");
   $email = textFld(t('Email:'), '', $onchange + required(@$mya->email));
-  if (!$mya->superAdmin and $mya->pin !== '') $pin = passFld(t('Your PIN:'), t('Required for changing email address'));
+  if (!$mya->cAdmin and $mya->pin !== '') $pin = passFld(t('Your PIN:'), t('Required for changing email address'));
 
   $submit = submit();
 
@@ -2669,7 +2706,7 @@ function formContact_validate($form, &$sta) {
   }
 
   if (!emailOkay($email, $mya->co, $mya)) return; // say('bad email', ray('email', $email), 'email');
-  if (!$mya->superAdmin and $email != $mya->email and $pin != $mya->agentA->pin) return say('bad pin', 'pin');
+  if (!$mya->cAdmin and $email != $mya->email and $pin != $mya->agentA->pin) return say('bad pin', 'pin');
   if (!phoneOk($phone, $country)) return;
   if (stripos(@$address, ' box ') or stripos(@$address, 'pob ') !== FALSE) return say('po in location', 'address');
   
@@ -2922,7 +2959,7 @@ function formConnect_validate($form, &$sta) {
 
     foreach (ray($accts = 'routingNumber bankAccount bankAccount2') as $one) $$one = preg_replace('/[\.\- ]/', '', @$$one);
     u\preray(compact(ray($accts)), $sta['input']);
-    if (!preg_match('/^(|[0-9]{9})$/', $routingNumber)) say('bad routing number', 'routingNumber');
+    if (!preg_match('/^(|[0-9]{9})$/', $routingNumber)) return say('bad routing number', 'routingNumber');
     if (!db\exists('r_banks', 'route=:routingNumber', compact('routingNumber'))) return say('bad routing number', 'routingNumber');
     if (!preg_match('/^[0-9]{3,17}$/', $bankAccount)) say('bad account number', 'bankAccount'); // {3,20} ? Dwolla says 3-17
     if ($bankAccount != $bankAccount2) say('mismatch', ['thing' => t('account number')], 'bankAccount2');
@@ -4010,20 +4047,30 @@ function formFlags_validate($form, &$sta) {w\dateRangeValidate($sta);}
 function formFlags_submit($form, &$sta) {dateRangeRedirect('community/flags', $sta);}
 
 function formCttyFunds($form, &$sta) {
+  $mya = r\acct();
   $title = item(t('Funds By Community'));
-  $subtext = item(t('How %RCREDITS were issued in each community. Hover over headings for more information.'));
-  $headers = ray(t('Community r USD Trade-IN Trade-OUT Signup+ Purchase+ Invite+ Inflate+ Spent Grant Loan Invest Fees'));
-  $headHelps = ray(t('Community name (abbreviated),Total %RCREDITS issued to date,In exchange for US Dollars,Value of goods and services imported from other communities (negated because credit leaves the community),Value of goods and services exported to other communities,Signup bonuses (incentive rewards for opening a %PROJECT Account),Purchase rewards (incentive rewards for buying or selling using %PROJECT),Incentive rewards for inviting (and helping) a new member to open a %PROJECT Account,Monthly inflation adjustments,%PROJECT community spending (net),%PROJECT community grants,Zero-interest loans from the %PROJECT community,Investments by the %PROJECT community,Fees collected by the %PROJECT community'));
-  foreach ($headers as $k => $v) $headers[$k] = w\popHelp($v, $headHelps[$k]);
-  $headers = '<tr><th>' . join('</th><th>', $headers) . '</th></tr>';
+  $rewardsDesc = $mya->cttyRewardy ? t('Incentive Rewards') : t('an automated increase in a member\'s credit line');
+  $subtext = item(t('<p>How %RCREDITS came in or out of each community. That is, how many were used, received, and issued by each community &mdash; either in exchange for US Dollars (green), as %rewardsDesc (red), or allocated democratically (blue). A community\'s US Dollar Escrow balance is the sum of the green column amounts.</p><p>Hover over headings for more information.</p>', compact('rewardsDesc')));
+  $heads = ray(t('Community USD Trade-IN Trade-OUT Signup+ Purchase+ Invite+ Inflate+ Spent Grant Loan Invest Fees TOTAL'));
+  $headHelps = ray(t('Community name (abbreviated),In exchange for US Dollars,Value of goods and services imported from other communities (negative because credit leaves the community),Value of goods and services exported to other communities,Signup bonuses (incentive rewards for opening a %PROJECT Account),Purchase rewards (incentive rewards for buying or selling using %PROJECT),Incentive rewards for inviting (and helping) a new member to open a %PROJECT Account,Monthly inflation adjustments,%PROJECT community spending (net),%PROJECT community grants,Zero-interest loans from the %PROJECT community,Investments by the %PROJECT community,Fees collected by the %PROJECT community,Total %RCREDITS issued to date'));
+  $classes = ray(' usd usd usd reward reward reward reward ctty ctty ctty ctty ctty none');
+  $headers = '<tr>';
+  foreach ($heads as $k => $v) {
+    $head = w\popHelp($v, $headHelps[$k]);
+    $class = $classes[$k];
+    $headers .= "<th class=\"$class\">$head</th>";
+  }
+  $headers .= '</th></tr>';
+//  $headers = '<tr><th>' . join('</th><th>', $headers) . '</th></tr>';
   
   $q = db\q("SELECT DISTINCT ctty FROM r_stats s LEFT JOIN users u ON u.uid=ctty ORDER BY ctty=0, u.name NOT LIKE '%.', u.fullName");
   while ($row = $q->fetchAssoc()) { // not fetchField because one value is 0
     extract($row);
     $stats = w\fundStats(r\stats($ctty), FALSE, '1');
+    $stats['TOTAL'] = $stats['r']; unset($stats['r']); // change column name and move to end
     $list[] = '<tr><td>' . join('</td><td>', $stats) . '</td></tr>';
   }
-  $list = join("\n", @$list ?: [t('No statistics are available')]); // @ is for tests
+  $list = join("\n", @$list ?: ['<b>' . t('No statistics are available.') . '</b><br>&nbsp;']); // @ is for tests
   
   $list = item(<<<EOF
 <table id="cttyFunds">
@@ -4033,6 +4080,35 @@ $list
 EOF
   );
   return compact(ray('title subtext list'));
+}
+
+/**
+ * Present a choice of data queries
+ */
+function formData($form, &$sta, $args = '') {
+  require_once __DIR__ . '/queries.inc';
+  extract(u\just('qName', $args));
+  
+  if ($qName0 = urldecode(@$qName) and $sql = @$queries[$qName0] and $qName = w\queryPermitted($qName0, $sql)) {
+    $title = w\item($qName);
+    $report = w\item(w\showRecords(db\q($sql)->fetchAll()));
+    $form = compact(ray('title report'));
+  } else {
+    $form['title'] = w\item(t('Community and Money Data'));
+    $form['subtext'] = w\item(t('Click the query of your choice. If you need information not provided here, <%a1>request it</a>!', ['_a1' => u\emailTag(CGF_EMAIL, t('data request'))]));
+    
+    foreach ($queries as $k0 => $v) {
+      if ($k = w\queryPermitted($k0)) $form[$k0] = w\submit($k, 'default', 'xs');
+    }
+  }
+  
+  return $form;
+}
+
+function formData_submit($form, &$sta) {
+  require __DIR__ . '/queries.inc';
+  $op = w\op($sta);
+  r\go('community/data/qName=' . urlencode($op));
 }
 
 /**
@@ -4096,12 +4172,17 @@ function riskLine($q, $descs, &$red = '') {
 
 /**
  * Accept an invitation by supplying the invitee email address.
+ * @parm string $args: '', 'zip', or 'self'
  */
 function formAccept($form, &$sta, $args = '') {
   if (@$args == 'zip') {
     $title = item(t('Who do you know?'));
     $friend = textFld(t('Friend\'s name:'), '', required());
     $postalCode = textFld(t('Their zipcode:'), '', required());
+  } elseif (@$args == 'self') {
+    $title = item(t('Where do you live?'));
+    $friend = w\hidFld('self');
+    $postalCode = textFld(t('Your zipcode:'), '', required());
   } else {
     $title = item(t('Accept Your Invitation'));
     $invitation = textFld(t('Invitation #:'), t('Carefully type your invitation number.'), required());
@@ -4116,12 +4197,17 @@ function formAccept($form, &$sta, $args = '') {
 }
 
 function formAccept_validate($form, &$sta) {
-  extract(u\just('invitation postalCode', $sta['input']));
+  extract(u\just('invitation friend postalCode', $sta['input']));
   \drupal_get_messages(); // drop previous errors
   
-  if (@$invitation) {
+  if (isset($invitation)) {
     if (!r\iCardAcct($invitation)) return say('bad invite num', 'invitation');
-  } elseif ($err = u\badZip($postalCode)) say($err, 'postalCode');
+  } elseif ($err = u\badZip($postalCode)) {
+    return say($err, 'postalCode');
+  } elseif (@$friend == 'self') {
+    $community = r\communityUid(@$postalCode);
+    if (r\acct($community)->invites) return say('invitation required', ['_a1' => w\atag(PROMO_URL . '/signup')], 'postalCode');
+  }
 
 //  if ($error = \user_validate_mail($email)) return say('bad email', compact('email'), 'email');
 }

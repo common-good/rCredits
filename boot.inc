@@ -33,7 +33,7 @@ define('R_INVITE_KEY', $db_inviteKey); // this value is the same for all servers
 define('R_SSN_USER', @$db_ssnUser);
 define('R_SSN_PASS', @$db_ssnPass);
 define('R_SALTY_PASSWORD', $db_pass); // (Drupal's salt is too long for our encryption algorithm)
-define('POSTMARK_TOKEN', $secrets['postmarkToken']);
+//define('POSTMARK_TOKEN', $secrets['postmarkToken']);
 // $db_salt is used below
 
 $databases = array (

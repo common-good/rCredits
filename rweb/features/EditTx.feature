@@ -14,19 +14,16 @@ Setup:
   | .ZZC | .ZZA  |   1 | sell       |
   | .ZZC | .ZZB  |   2 | manage     |
   And transactions: 
-  | xid | created   | type     | amount | from | to   | purpose      |*
-  |   1 | %today-6m | signup   |    250 | ctty | .ZZA | signup       |
-  |   2 | %today-6m | signup   |    250 | ctty | .ZZB | signup       |
-  |   3 | %today-6m | signup   |    250 | ctty | .ZZC | signup       |
-  |   4 | %today    | transfer |     20 | .ZZA | .ZZB | stuff        |
-  |   5 | %today    | rebate   |      1 | ctty | .ZZA | reward on #2 |
-  |   6 | %today    | bonus    |      2 | ctty | .ZZB | reward on #2  |
+  | xid | created   | type     | amount | rebate | bonus | from | to   | purpose      |*
+  |   1 | %today-6m | signup   |      0 |      0 |   250 | ctty | .ZZA | signup       |
+  |   2 | %today-6m | signup   |      0 |      0 |   250 | ctty | .ZZB | signup       |
+  |   3 | %today-6m | signup   |      0 |      0 |   250 | ctty | .ZZC | signup       |
+  |   4 | %today    | transfer |     20 |      1 |     2 | .ZZA | .ZZB | stuff        |
   Then balances:
-  | id   |    r | rewards |*
-  | ctty | -753 |         |
-  | .ZZA |  231 |     251 |
-  | .ZZB |  272 |     252 |
-  | .ZZC |  250 |     250 |
+  | id   | balance | rewards |*
+  | .ZZA |     -20 |     251 |
+  | .ZZB |      20 |     252 |
+  | .ZZC |       0 |     250 |
 
 Scenario: A buyer changes the transaction description
   Given member ".ZZA" edits transaction "4" with values:
@@ -42,11 +39,10 @@ Scenario: A buyer increases a payment amount
   | amount | goods        | purpose |*
   |     40 | %FOR_GOODS | stuff   |
   Then balances:
-  | id   |    r | rewards |*
-  | ctty | -756 |         |
-  | .ZZA |  212 |     252 |
-  | .ZZB |  294 |     254 |
-  | .ZZC |  250 |     250 |
+  | id   |  balance | rewards |*
+  | .ZZA |      -40 |     252 |
+  | .ZZB |       40 |     254 |
+  | .ZZC |        0 |     250 |
   And we say "status": "info saved"
   And we notice "tx edited|new tx amount" to member ".ZZA" with subs:
   | tid | who     | amount |*
@@ -60,11 +56,10 @@ Scenario: A buyer changes the goods status
   | amount | goods      | purpose |*
   |     20 | %FOR_USD | stuff   |
   Then balances:
-  | id   |    r | rewards |*
-  | ctty | -750 |         |
-  | .ZZA |  230 |     250 |
-  | .ZZB |  270 |     250 |
-  | .ZZC |  250 |     250 |
+  | id   | balance | rewards |*
+  | .ZZA |     -20 |     250 |
+  | .ZZB |      20 |     250 |
+  | .ZZC |       0 |     250 |
   And we say "status": "info saved"
   And we notice "tx edited|new tx goods" to member ".ZZA" with subs:
   | tid | who     | what        |*

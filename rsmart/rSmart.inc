@@ -63,7 +63,7 @@ $GLOBALS['tStrings'] += array(
   'report exchange' => t("You %did %otherName %amount in exchange for cash."),
   'just did' => t("\n\nWe just %did %amount %forCash."), // "We" not "You" here, in case viewed by manager
   'unknown device' => t('This device is not recognized. You must scan yourself in (at least once) before charging a customer.'),
-  'confirm undo' => t('Undo transfer of %amount %tofrom %otherName?'), // no creation date, unlike web and SMS
+  'confirm undo' => t('Undo transfer of %amount %tofrom %otherName? (Press OK for Yes, Cancel for No.)'), // no creation date, unlike web and SMS
   'member inactive' => t('That account is not yet activated.'),
   'bad icard' => t('The customer has not yet activated his or her %PROJECT Account.'),
   'expired icard' => t('That invitation card has expired. The customer can use their %PROJECT Card instead.'),
@@ -105,6 +105,7 @@ function pos($args = FALSE) {
   if ($op == 'time') return getTime($args); // no agent required
 
   if (!$mya) return posErr($agentErr); // set "current" account for internals
+  
   if (!$mya->cttyUp) return posErr('your community down', ray('contact', $mya->cAdminContact()));
 
   $op = 'rCredits\\Smart\\' . $op;
@@ -192,9 +193,10 @@ function identify($args) {
 
   $companyInfo = getCompanyInfo();
   
-  if (!$a = @$agent ? getMember(@$member, $code, $err, $version > 217) : $mya) { // get customer or agent
-    return posErr($err, [], $companyInfo);
-  }
+  if (@$agent) { // get other party
+    if ($info = machine(@$member, $code)) return ok($info + $companyInfo); // purchase from fuel pump or other machine
+    if (!$a = getMember(@$member, $code, $err, $version > 217)) return posErr($err, [], $companyInfo);
+  } else $a = $mya; // get agent
 
   if ($version > 217 and !u\test()) {
     if (@$signin) {
@@ -285,7 +287,8 @@ function photoReturn($pic) {
 
   if (u\test()) {
     $filename = DRUPAL_ROOT . R_PICTURE_DIR . R_DFT_PICTURE; // never a company photo
-    if (u\starts(bin2hex(substr(file_get_contents($filename), 0, $max)), $message)) $message = 'no photo';
+    $picNone = file_get_contents($filename);
+    if (u\starts(bin2hex(substr($picNone, 0, $max)), $message)) $message = 'no photo';
 //    if ($pic === '') $message = 'no photo';
     t\output($message); 
     return $message;
@@ -380,7 +383,7 @@ function charge($args, $type = 'charge') {
     $txid = $subs['xid'];
     if ($selfhelp) {
       $msg = 'selfhelp tx';
-      if ($mya->rewarding) $msg .= '|for why|reward other';
+      if ($mya->cttyRewardy) $msg .= '|for why|reward other';
     } else {
       $forCash = $goods == FOR_USD ? t('for USD') : '';
       $did = t('just did', $subs + compact('forCash'));
@@ -392,6 +395,19 @@ function charge($args, $type = 'charge') {
   extract(balrew($a));
 
   return ok(compact(ray('message txid created balance rewards did undo')));
+}
+
+/**
+ * Handle request for purchase from fuel pump or other machine.
+ * @param string $member: account qid of machine (including agent number, which is machine number)
+ * @param string $code: M<n>, where <n> is a 1-6 digit radix-36 machine number, from QR code in place of security code
+ * @return assoc of parameters to return or FALSE if this is not a machine purchase
+ */
+function machine($member, $code){
+  global $mya;
+  if ($mya->co or !$mya->proSe) return FALSE;
+  if (strlen($code) > 7 or substr($code, 0, 1) != 'M') return FALSE;
+  
 }
 
 /**

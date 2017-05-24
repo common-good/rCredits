@@ -10,7 +10,7 @@ use rCredits\Testing as t;
  * Extends the TCPDF class -- for printing checks, statements, deposit details, etc.
  */
 
-require_once DRUPAL_ROOT . '/vendor/tcpdf/config/lang/eng.php';
+require_once DRUPAL_ROOT . '/vendor/tcpdf/config/tcpdf_config.php'; // lang/eng.php';
 require_once DRUPAL_ROOT . '/vendor/tcpdf/tcpdf.php';
 //require_once(__DIR__ . '/../fpdi/fpdi.php');
 

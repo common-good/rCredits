@@ -22,11 +22,10 @@ Setup:
   |   3 | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |
   |   4 | %today-6m | grant  |    200 | ctty | .ZZA | heroism | 0      |
   Then balances:
-  | id   |    r |*
-  | ctty | -950 |
-  | .ZZA |  450 |
-  | .ZZB |  250 |
-  | .ZZC |  250 |
+  | id   | balance | rewards |*
+  | .ZZA |     200 |     250 |
+  | .ZZB |       0 |     250 |
+  | .ZZC |       0 |     250 |
 
 Scenario: A member asks to charge another member
   When member ".ZZA" completes form "charge" with values:
@@ -50,11 +49,10 @@ Scenario: A member confirms request to charge another member
   | nvid | created | status      | amount | goods      | from | to   | for   |*
   |    1 | %today  | %TX_PENDING |    100 | %FOR_NONGOODS | .ZZB | .ZZA | payback |
   And balances:
-  | id   |    r |*
-  | ctty | -950 |
-  | .ZZA |  450 |
-  | .ZZB |  250 |
-  | .ZZC |  250 |
+  | id   | balance | rewards |*
+  | .ZZA |     200 |     250 |
+  | .ZZB |       0 |     250 |
+  | .ZZC |       0 |     250 |
 
 Scenario: A member asks to pay another member
   When member ".ZZA" completes form "pay" with values:
@@ -78,11 +76,10 @@ Scenario: A member confirms request to pay another member
   | xid | created | type     | amount | from  | to   | goods           | purpose      | taking |*
   |   5 | %today  | transfer |    300 | .ZZA  | .ZZB | %FOR_NONGOODS | payback      | 0      |
   And balances:
-  | id   |    r |*
-  | ctty | -950 |
-  | .ZZA |  150 |
-  | .ZZB |  550 |
-  | .ZZC |  250 |
+  | id   | balance | rewards |*
+  | .ZZA |    -100 |     250 |
+  | .ZZB |     300 |     250 |
+  | .ZZC |       0 |     250 |
 
 Scenario: A member repays someone, drawing from another account
   When member ".ZZB" confirms form "pay" with values:
@@ -99,8 +96,7 @@ Scenario: A member repays someone, drawing from another account
   |   5 | %today  | transfer |     50 | .ZZA  | .ZZB | %FOR_NONGOODS | automatic transfer to NEWZZB,automatic transfer from NEWZZA |
   |   6 | %today  | transfer |    300 | .ZZB  | .ZZC | %FOR_NONGOODS | payback |
   And balances:
-  | id   |    r |*
-  | ctty | -950 |
-  | .ZZA |  400 |
-  | .ZZB |    0 |
-  | .ZZC |  550 |
+  | id   | balance | rewards |*
+  | .ZZA |     150 |     250 |
+  | .ZZB |    -250 |     250 |
+  | .ZZC |     300 |     250 |

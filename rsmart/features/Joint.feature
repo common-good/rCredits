@@ -36,12 +36,12 @@ Setup:
   | 3   | %today-6m | signup |    200 | ctty | .ZZC | signup  |
   | 4   | %today-6m | grant  |    200 | ctty | .ZZF | stuff   |
   Then balances:
-  | id   |       r |*
-  | ctty |    -800 |
-  | .ZZA |     200 |
-  | .ZZB |     200 |
-  | .ZZC |     200 |
-  | .ZZF |     200 |
+  | id   | balance | rewards |*
+  | ctty |    -200 |       0 |
+  | .ZZA |       0 |     200 |
+  | .ZZB |       0 |     200 |
+  | .ZZC |       0 |     200 |
+  | .ZZF |     200 |       0 |
   
 Scenario: A cashier asks to charge someone
   When agent "C:E" asks device "devC" to charge ".ZZB,ccB" $400 for "goods": "food" at %now
@@ -58,10 +58,10 @@ Scenario: A cashier asks to charge someone
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $400   | food         | reward          | $40               |
   And balances:
-  | id   |       r |*
-  | ctty |    -860 |
-  | .ZZA |       0 |
-  | .ZZB |      40 |
-  | .ZZC |     620 |
-  | .ZZF |     200 |
+  | id   | balance | rewards |*
+  | ctty |    -200 |       0 |
+  | .ZZA |       0 |     200 |
+  | .ZZB |    -400 |     240 |
+  | .ZZC |     400 |     220 |
+  | .ZZF |     200 |       0 |
   

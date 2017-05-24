@@ -10,21 +10,21 @@ use rCredits\Testing as t;
  * Extends the TCPDF class -- especially for custom headers and footer.
  */
 
-require_once DRUPAL_ROOT . '/vendor/tcpdf/config/lang/eng.php';
+require_once DRUPAL_ROOT . '/vendor/tcpdf/config/tcpdf_config.php'; // lang/eng.php';
 require_once DRUPAL_ROOT . '/vendor/tcpdf/tcpdf.php';
 
 class Statement extends \TCPDF {
   public $regionName; // name of region
   public $regionInfo; // addr, phone, email of region
   public $qid; // rCredits account in header
-  public $month; // statement month
+  public $period; // statement period
   
   /**
    * Create a pdf object for the given rCredits account.
    * @param acct $a: the rCredits account object
-   * @param int $month: month date (for account statements) (defaults to current month)
+   * @param int $period: period date (for account statements) (defaults to current period)
    */
-	public function __construct($a = NULL, $month = REQUEST_TIME) {
+	public function __construct($a = NULL, $period) {
 //    parent::__construct('P', 'in', 'LETTER');
     parent::__construct('P', 'mm', 'LETTER');
     u\setDft($a, r\acct());
@@ -32,7 +32,7 @@ class Statement extends \TCPDF {
     list ($this->regionName, $phone) = array($ctty->fullName, u\fmtPhone($ctty->phone));
     $this->regionInfo = "$ctty->postalAddr<br>$phone &#8226; $ctty->email";
     $this->qid = $a->mainQid;
-    $this->month = strftime('%B %Y', $month);
+    $this->period = $period;
   }
 
   /**
@@ -49,10 +49,10 @@ class Statement extends \TCPDF {
     $m = 5; // basic margin
     $this->Image(__DIR__ . '/images/' . PROJECT_LOGO, $m + 2, $m, 14, '', 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
     $this->SetFont('helvetica', '', 9);
-    $this->writeHTMLCell(50, 0, $m + 20, $m + 2, '<b style="color:#004d00; font-stretch:expanded;">' . PROJECT . '&trade;</b><br>' . t('democratic economics<br>for caring communities'));
+    $this->writeHTMLCell(50, 0, $m + 20, $m + 2, '<b style="color:#004d00; font-stretch:expanded;">' . PROJECT . '&trade;</b><br>' . t('the payment card<br>for community power'));
     $this->writeHTMLCell(80, 0, $m + 65, $m + 2, "<b>$this->regionName</b><br>$this->regionInfo", 0, 0, FALSE, TRUE, 'C');
     list ($page, $pages) = array($this->getAliasNumPage(), $this->getAliasNbPages());
-    $this->writeHTMLCell(50, 0, $m + 168, $m + 2, "<b>Account: $this->qid</b><br>$this->month<br>Page $page of $pages");
+    $this->writeHTMLCell(50, 0, $m + 168, $m + 2, "<b>Account: $this->qid</b><br>$this->period<br>Page $page of $pages");
     
     $this->Line($m, $m + 17, $m + 200, $m + 17);
   }

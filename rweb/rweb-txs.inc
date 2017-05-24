@@ -81,7 +81,7 @@ function formTxs($form, &$sta, $args = '') {
     if (!$list) $class .= ' head';
     $class .= ' page-' . floor($count / MIN_TX_ROWS);
     $class .= ' PAGE-' . floor($count / NORMAL_TX_ROWS);
-    list ($c1, $c2, $c3, $c4, $reward) = $mya->rewarding ? [6, 3, 7, 5, $reward] : [7, 2, 12, 0, ''];
+    list ($c1, $c2, $c3, $c4, $reward) = $mya->cttyRewardy ? [6, 3, 7, 5, $reward] : [7, 2, 12, 0, ''];
     
     $list .= <<<EOF
 <div class="$class">
@@ -233,7 +233,7 @@ function txEdit($xid) {
   $title = item(t('Edit Transaction'));
   $to = item(r\acct($toMe ? $payer : $payee)->fullName, $toMe ? t('From:') : t('To:'));
   $amount = textFld(t('Amount: $'), '', dft(number_format($amount,2)));
-  $goods = $mya->rewarding ? radiosFld('&nbsp;', '', dft((int) $goods), ray(R_WHYS)) : w\hidfld($goods);
+  $goods = $mya->cttyRewardy ? radiosFld('&nbsp;', '', dft((int) $goods), ray(R_WHYS)) : w\hidfld($goods);
   $purpose = textFld(t('For:'), '', dft(u\nonish(@$purpose) ? '' : $purpose));
   if ($mya->superAdmin) $created = textFld(t('Date:'), '', dft(u\fmtDate($created))); else unset($created);
   $submit = submit(t('Update'));
@@ -274,10 +274,11 @@ function txEdit_submit($form, &$sta) {
   u\EXPECT($a->cAdmin or $x->payer == $id or $x->payee == $id, "not our xid:$x_xid id=$id");
 
   $forField = $x_toMe ? 'payeeFor' : 'payerFor';
-  if ($purpose != $orig[$forField]) $x->setField($forField, $purpose);
-  if ($goodsChange = ($goods != $x_goods)) $x->setField('goods', $goods);
-  if ($amtChange = ($amount != $x_amount)) $x->setField('amount', $amount);
-  if (isset($created) and $created != $x_created) $x->setField('created', $created);
+  if ($purpose != $orig[$forField]) $changes[$forField] = $purpose; // $x->setField($forField, $purpose);
+  if ($goodsChange = ($goods != $x_goods)) $changes['goods'] = $goods; // $x->setField('goods', $goods);
+  if ($amtChange = ($amount != $x_amount)) $changes['amount'] = $amount; // $x->setField('amount', $amount);
+  if (isset($created) and $created != $x_created) $changes['created'] = $created; // $x->setField('created', $created);
+  if (@$changes) $x->setFields($changes);
   if ($amtChange or $goodsChange) {
     $agent = r\agent();
     $msg = 'tx edited' . ($goodsChange ? '|new tx goods' : '') . ($amtChange ? '|new tx amount' : '');
@@ -350,7 +351,7 @@ function txSummary($starting, $ending) {
   $BANK = w\popHelp(t('From Bank'), t('How much was transferred from your bank account to your %PROJECT Account'));
   $IN = w\popHelp(t('Funds Received'), t('How many %RCREDITS you received, in this period'));
   $OUT = w\popHelp(t('Funds Paid Out*'), t('How many %RCREDITS you paid out, in this period'));
-  $REWARDS = w\popHelp(t('Rewards'), t('Incentive rewards you received, in this period (rewards go automatically into your Credit Reserve)'));
+  $REWARDS = w\popHelp(t('Credit Line+'), ($mya->cttyRewardy ? t('Incentive rewards') : t('Credit line increases')) . t(' you received in this period (rewards go automatically into your Credit Reserve)'));
   $ENDING = w\popHelp(t('Ending Balance'), t('Your %PROJECT Account balance at the end of this time period'));
   $SAVINGS = w\popHelp(t('Credit Reserve'), t('Amount in your Credit Reserve, to spend in a pinch (once your %PROJECT community declares itself stable, this additional amount is yours to keep)'));
   $PENDING = w\popHelp(t('pending'), t('Pending transfers from your bank account to your %PROJECT Account'));
@@ -374,7 +375,7 @@ function txSummary($starting, $ending) {
   */
 
   $toSavings = $fromSavings = '';
-  $rows = $mya->rewarding 
+  $rows = $mya->cttyRewardy 
   ? [  
     ray("||$PRIMARY||$SAVINGS|"),
     ray("$STARTING||$old||$o_savings|$starting"),

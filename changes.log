@@ -1,3 +1,60 @@
+2017-05-11 version 2.66
+. INSERT INTO `new_rcredits`.`r_banks` (`route`, `branch`, `fedRoute`, `type`, `modified`, `newRoute`, `name`, `address`, `city`, `state`, `zip`, `phone`, `status`, `view`) VALUES ('062201601', NULL, '062201601', '0', '090215', NULL, 'BBVA Compass', '701 South 32nd Street', 'Birmingham', 'AL', '352330000', '8002667277', NULL, NULL);
+. added descriptions to flags on Summary page (but popovers are clunky)
+. rewrote rebuildDb utility on Handy menu
+. communities can set required invites -- default is OFF
+. communities can set explicit incentive rewards -- default is OFF
+. changed popovers to click rather than hover, on Summary page
+. created r_ips to track IP addresses used by CG members (for whitelisting on our server)
+. minimum donation is now zero
+. invitations are no longer required
+. update Drupal files: includes/install, common, module, session modules/system block node
+. remake tables
+. f('db.q', 'DROP TABLE IF EXISTS actions,authmap,batch,blocked_ips,block_custom,block_node_type,block_role,cache_block,cache_field,cache_filter,cache_page,cache_path,cache_update,date_formats,date_format_locale,date_format_type,field_config,field_config_instance,file_managed,file_usage,history,node,node_access,node_revision,node_type,offsite,role,role_permission,sequences,sms_carriers,url_alias,users_roles,watchdog');
+. eachA(function($a) {
+    if (!$a->co and ($photo = $a->photoX)) f('db.insert', 'r_photos', ray('uid photo', $a->id, $photo));
+  });
+. ALTER TABLE users DROP column photo
+. added gift bits to transaction flags field
+. updated tcpdf to version 6.2.13
+. rewrote payroll upload validation to not use file_managed
+. run "special" code to restructure transaction rewards:
+function special() {
+  if (!db\exists('r_txs', 'type<0')) return;
+  db\q('DELETE FROM r_txs WHERE type<0'); // zap rebates and bonuses
+  
+  eachX(function($x) {
+    foreach (ray('type goods flags taking amount') as $k) $$k = $x->$k;
+    if ($goods == FOR_SHARE) {
+      list ($payerReward, $payeeReward, $amount) = [-$amount, $amount, 0];
+    } elseif ($type == TX_TRANSFER) {
+      $data = $data0 = $x->data ?: [];
+      if ($data) extract($data);
+      if (@$rebate or @$bonus) list ($payerReward, $payeeReward) = [@$rebate, @$bonus];
+      unset($data['rebate']); unset($data['bonus']);
+      foreach (ray(TX_FLAGS) as $k) if (@$$k) {
+        u\setBit($flags, u\consta('b', $k));
+        unset($data[$k]);
+      }
+      if (@$undoneBy) u\setBit($flags, B_UNDONE);
+      if (@$force == 1) u\setBit($flags, B_OFFLINE);
+      if (@$force != -1) unset($data['force']);
+    } elseif ($type > 0 and $type <= TX_FINE and $amount+0) { // reward 
+      $payeeReward = $amount;
+      $amount = 0;
+    } else return; // no change needed
+
+    $x->update(compact(ray('flags amount payerReward payeeReward data')));
+  });
+}
+
+function special2() {
+  eachA(function($a) {
+    list ($balance, $rewards) = [$a->r-$a->rewards, $a->rewards]; // remember old values
+/**/    if (!$a->cacheOk(FALSE, FALSE) and (abs($a->balance - $balance) > .005 or abs($a->rewards - $rewards > 20))) debug("$a->id $a->fullName new: $a->balance+$a->rewards old: $balance+$rewards jid=$a->jid");
+  });
+}
+
 2017-03-07 version 2.65
 . in commongood.earth/whm: whmapi1 suspend_outgoing_email user=example in WHM's API Shell interface (Home >> Server Configuration >> Tweak Settings, activate API Shell, Home >> Development >> API Shell) users: cogobank, s2be, rc4, game, stage
 . name ambiguity resolution (for Pay and Charge) wasn't working since using hidden opid field for op() function
@@ -23,7 +80,7 @@
 . Changed in the agreement: "I understand I may receive some rCredits" rather than "...will receive..." AND removed "Once my geographic area becomes a Common Good Community"
 . Changed in agreement: "before my rCredits community has declared itself ready to allow cashing out Incentive Rewards"
 . removed sharing feature
-. made rewards feature contingent on TRUE/FALSE setting of $mya->rewarding (in preparation for community option to offer rewards). Default is FALSE (effectively removing the incentive rewards feature at this time, but rewards are still tracked as separate transactions, pending additional code to calculate balances differently depending on the setting)
+. made rewards feature contingent on TRUE/FALSE setting of $mya->cttyRewardy (in preparation for community option to offer rewards). Default is FALSE (effectively removing the incentive rewards feature at this time, but rewards are still tracked as separate transactions, pending additional code to calculate balances differently depending on the setting)
 . when not rewarding, Pay and Charge forms show no "goods" field
 . when not rewarding, rewards are no longer shown in transaction history or statements (but still shown in downloads)
 

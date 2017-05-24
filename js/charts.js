@@ -20,7 +20,7 @@ function acctsChart() {
   data.addRows(acctsData);
 
   var options = {
-    title: 'rCredits Accounts: ' + accts,
+    title: 'Accounts: ' + accts,
     width: chartWidth, height: chartHeight,
     colors: ['green', 'orange', 'blue'],
     series: {
@@ -39,7 +39,7 @@ function acctsChart() {
 function fundsChart() {
   var data = new google.visualization.DataTable();
   data.addColumn('date', 'Date');
-  data.addColumn('number', 'Rewards');
+  data.addColumn('number', 'Credit');
   data.addColumn('number', 'USD');
   data.addColumn('number', 'Runny');
   data.addColumn('number', 'Top 5');
@@ -72,12 +72,12 @@ function velocityChart() {
   data.addRows(velocityData);
 
   var options = {
-    title: 'rCredits Circulation Velocity: ' + velocity,
+    title: 'Circulation Velocity: ' + velocity,
     width: chartWidth, height: chartHeight,
     hAxis: {
       format: 'MMM d',
       gridlines: {count: 5},
-      title: 'What fraction of rCredits turn over monthly', 
+      title: 'What fraction of Common Good Credits turn over monthly', 
       titleTextStyle: {color: 'darkgray'}
     },
     legend: 'none'
@@ -142,7 +142,7 @@ function issuedChart() {
   data.addRows(issuedData);
 
   var options = {
-    title: 'rCredits Issued To-Date: ' + issued,
+    title: 'Common Good Credits Issued To-Date: ' + issued,
     width: chartWidth, height: chartHeight,
 //    pieStartAngle: 240,
     pieSliceText: 'percentage',

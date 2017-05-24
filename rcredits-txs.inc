@@ -74,7 +74,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   
 //  foreach (ray('xid amount byMe toMe reallyToMe agent data sharing tid') as $k) $$k = $myx->$k;
 
-  extract(u\just('xid fromyou toyou byMe toMe reallyToMe agent data roundup disputed sharing tid name type created description', $tx));
+  extract(u\just('xid fromyou toyou reward byMe toMe reallyToMe agent data roundup disputed sharing tid name type created description', $tx));
   $mya = r\acct();
 //  $myx = r\x($tx, $mya);
 
@@ -88,20 +88,21 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   $reallyToMe = ($toMe xor $toyou < 0);
   $banking = ($type == TX_BANK);
 //  if ($banking and ($amount < 0 xor $xid < 0)) $amount = -$amount; // show as positive unless reversing
-  $isExtra = ($type != TX_TRANSFER and !$banking);
+//  $isExtra = ($mya->cttyRewardy and $type != TX_TRANSFER and !$banking);
+  $isExtra = (in_array($type, ray(TX_REWARDS)) and !$banking);
   if ($isExtra or $sharing += 0) {
-    list ($amt, $reward) = [0, $amt]; // show refunds, inflation, grants, fines, and signup bonus as rewards
-    if (!$mya->rewarding) {
+    if (!$mya->cttyRewardy) {
       if ($download) $fromyou = $toyou = 0; else return;
     }
-  } else $reward = 0;
+//    list ($amt, $reward) = [0, $amt];
+  }
 //  $state = txColoredState($data);
   
 //  if ($sharing) list ($reward, $amount) = [$toMe ? $amount : -$amount, 0]; else $reward = 0;
 //  $reward += $banking ? 0 : ($toMe ? (@$data['bonus'] + @$data['xfee']) : (@$data['rebate'] - @$data['xfee']));
-  if ($type == TX_TRANSFER) $reward += $toMe ? @$data['bonus'] : @$data['rebate'];
+//  if ($type == TX_TRANSFER) $reward += $toMe ? @$payeeReward : @$payerReward;
 //  $net = number_format(($toMe ? $amount : -$amount) + $reward, 2);
-  $net = number_format($mya->rewarding ? $amt + $reward : $amt, 2);
+  $net = number_format($mya->cttyRewardy ? $amt + $reward : $amt, 2);
   
 //  if (isset($data['xfee'])) {$amount = -$amount; $toMe = !$toMe;} // ???
 /*  if ($toMe and $fromMe) {
