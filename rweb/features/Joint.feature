@@ -94,11 +94,11 @@ Scenario: A joined account member looks at transaction history and summary
   | 1  | .ZZA | .ZZB  | joint      |        0 |       0 |    0 |
   | 2  | .ZZB | .ZZA  | joint      |        0 |       0 |    0 |
   And usd transfers:
-  | txid | payer | amount | created   | completed |*
-  |  600 | .ZZA  |  -1000 | %today-2w | %today-6m |
-  |  601 | .ZZB  |   -600 | %today-2w | %today-2w |
-  |  602 | .ZZA  |   -400 | %today-2w | %today-2w |
-  |  603 | .ZZA  |    100 | %today    |         0 |
+  | txid | payee | amount | created   | completed |*
+  |  600 | .ZZA  |   1000 | %today-2w | %today-6m |
+  |  601 | .ZZB  |    600 | %today-2w | %today-2w |
+  |  602 | .ZZA  |    400 | %today-2w | %today-2w |
+  |  603 | .ZZA  |   -100 | %today    |         0 |
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose |*
   |   4 | %today-1m | transfer |    200 | .ZZA | .ZZD | favors  |

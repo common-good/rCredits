@@ -19,13 +19,13 @@ Setup:
   | .ZZC | .ZZB  | buy        |
   | .ZZC | .ZZA  | sell       |
   And usd transfers:
-  | txid | payer | amount | tid | created   | completed |*
-  | 1001 |  .ZZA |  -1000 |   1 | %today-3m | %today-3m |
-  | 1002 |  .ZZB |  -2000 |   1 | %today-3m | %today-3m |
-  | 1003 |  .ZZC |  -3000 |   1 | %today-3m | %today-3m |
-  | 1004 |  .ZZA |    -11 |   2 | %lastm+5d | %lastm+5d |
-  | 1005 |  .ZZA |     22 |   4 | %lastm+8d | %lastm+8d |
-  | 1006 |  .ZZA |     33 |   3 | %lastm+9d | %lastm+9d |
+  | txid | payee | amount | tid | created   | completed |*
+  | 1001 |  .ZZA |   1000 |   1 | %today-3m | %today-3m |
+  | 1002 |  .ZZB |   2000 |   1 | %today-3m | %today-3m |
+  | 1003 |  .ZZC |   3000 |   1 | %today-3m | %today-3m |
+  | 1004 |  .ZZA |     11 |   2 | %lastm+5d | %lastm+5d |
+  | 1005 |  .ZZA |    -22 |   4 | %lastm+8d | %lastm+8d |
+  | 1006 |  .ZZA |    -33 |   3 | %lastm+9d | %lastm+9d |
   Then balances:
   | id   | balance | rewards |*
   | .ZZA |     956 |       0 |

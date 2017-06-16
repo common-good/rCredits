@@ -66,13 +66,13 @@ Setup:
   |  13 | %today-1d | transfer |     10 | .ZZF | .ZZE | cash    | %TX_WEB |
   |  14 | %today-1d | transfer |     11 | .ZZF | .ZZE | cash    | %TX_WEB |  
   And usd transfers:
-  | txid | payer | amount | completed |*
-  |    1 | .ZZA  |   -400 | %today-2m |  
-  |    2 | .ZZB  |   -100 | %today-2m |  
-  |    3 | .ZZC  |   -300 | %today-2m |  
-  |    4 | .ZZE  |   -200 | %today    |  
-  |    5 | .ZZF  |    600 | %today    |  
-  |    6 | .ZZC  |    500 | %today    |
+  | txid | payee | amount | completed |*
+  |    1 | .ZZA  |    400 | %today-2m |  
+  |    2 | .ZZB  |    100 | %today-2m |  
+  |    3 | .ZZC  |    300 | %today-2m |  
+  |    4 | .ZZE  |    200 | %today    |  
+  |    5 | .ZZF  |   -600 | %today    |  
+  |    6 | .ZZC  |   -500 | %today    |
   And member field values:
   | id   | field      | value |*
   | .ZZA | community  |    -2 |
@@ -95,12 +95,12 @@ Scenario: We calculate risks
   When cron runs "acctRisk"
   Then members:
   | id   | risks |*
-  | .ZZA | adminOk,trusted,geography,badConx,moreIn,moreOut,big7Week |
-  | .ZZB | trusted,socialConx,moves,rents,moreIn |
+  | .ZZA | adminOk,trusted,geography,badConx,moreOut,big7Week |
+  | .ZZB | trusted,socialConx,moves,rents,moreIn,moreOut |
   | .ZZC | cashCo,homeCo,miser,bigDay,bigWeek,big7Week |
   | .ZZD | trusted,hasBank |
-  | .ZZE | new,shady,poBox,moreIn,moreOut |
-  | .ZZF | photoOff,bigDay |
+  | .ZZE | new,shady,poBox,moreIn |
+  | .ZZF | photoOff,bigDay,bigWeek |
   | .ZZG | new,moves,badConx,addrOff |
   | .ZZH | moves,ssnOff |
   | .ZZI | new,moves,fishy |
@@ -124,10 +124,10 @@ Scenario: We calculate risks
   |  14 | exchange,p2p,fromSuspect,toSuspect,absent,invoiceless,biggestFrom,suspectOut |
   When cron runs "achRisk"
   Then usd transfers:
-  | txid | risks |*
-  |    1 |  |
-  |    2 |  |
-  |    3 | toSuspect |
-  |    4 | toSuspect |
-  |    5 | toBank,suspectOut |
-  |    6 | toBank,origins,suspectOut |
+  | txid | payee | risks |*
+  |    1 |  .ZZA | |
+  |    2 |  .ZZB | |
+  |    3 |  .ZZC | |
+  |    4 |  .ZZE | toSuspect |
+  |    5 |  .ZZF | toBank,suspectOut |
+  |    6 |  .ZZC | toBank,origins,suspectOut |

@@ -69,10 +69,12 @@ function rweb_menu($submenu = '') {
     'summary' => ['norm', t('Summary'), 'Summary', 'read'],
 
     'charge' => ['norm', t('Charge'), 'Tx 1', 'sell ok'],
+    'charge/invoices' => ['sub', t('Upload Invoices'), 'InvoiceUpload', 'co sell ok'],
+//    'charge/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
     'pay' => ['norm', t('Pay'), 'Tx 1', 'buy ok confirmed'],
-    'pay/one' => ['sub', t('Pay One'), 'Tx', 'co buy ok'],
+//    'pay/one' => ['sub', t('Pay One'), 'Tx', 'co buy ok'],
     'pay/payroll' => ['sub', t('Upload Payroll'), 'Payroll', 'co buy ok'],
-    'pay/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
+//    'pay/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
 
     'grant' => ['norm', t('Grant'), 'Tx', 'managing_ctty'],
     'loan' => ['norm', t('Loan'), 'Tx', 'managing_ctty'],
@@ -192,6 +194,7 @@ function rweb_menu($submenu = '') {
 //    'sinx' => ['call', 'Sign in from elsewhere', 'Sinx', ANY],
     
     'help' => ['call', t('Help'), 'Help 1 2', ANY],
+    'cgbiz' => ['call', t('Common Good Business'), 'CgBiz 1', ANY],
     'change-account' => ['call', t('Change Who'), '1', ANY, 'changeWho'],
     'status' => ['call', 'Status', 'Membership 1', 'manage'],
     'signup' => ['call', t('Sign Up For %PROJECT'), 'Signup', ANY],
@@ -202,7 +205,7 @@ function rweb_menu($submenu = '') {
     'coup' => ['call', t('Disable account'), '1', ANY, 'coup'],
 
 //    'savings' => ['call', t('Savings'), 'ChooseSavings', ANY], // temporary until 12/15/2015 or so
-    'accept' => ['call', 'Accept Invitation', 'Accept 1', ANY], // called from promo site rCredits.org
+    'accept' => ['call', 'Accept Invitation', 'Accept 1', ANY], // called from promo site
     'pos' => ['call', 'POS', '', ANY, 'rCredits\\Smart\\pos'], // called from the rPOS app
     'ajax' => ['call', 'AJAX', '1', ANY, 'ajax'], // called from the rPOS app
     'whosin' => ['call', t('Who\'s in?'), '1', ANY, 'whosin'], // called from promo site

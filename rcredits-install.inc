@@ -60,7 +60,7 @@ function tableDefs($schema = []) {
     'share' => setupField('percentage of rebates/bonuses to donate to CG', 'numeric 6,3', 0),
     'crumbs' => setupField('percentage of each transaction to donate to CG (half to community)', 'numeric 6,3', NULL),
     'balance' => setupField('balance, not including rewards (cached)', 'numeric 11,2', 0),
-    'r' => setupField('balance, including rewards (cached)', 'numeric 11,2', 0),
+//    'r' => setupField('balance, including rewards (cached)', 'numeric 11,2', 0),
 //    'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2', 0),
     'committed' => setupField('amount committed (for donations to CGF)', 'numeric 11,2', 0),
@@ -198,6 +198,20 @@ function tableDefs($schema = []) {
   $indexes = index('person');
   $schema['r_proxies'] = setupTable('Who represents whom', $fields, 'id', $foreignKeys, $indexes);
   
+  // table r_events
+  $fields = array(
+    'id' => setupField('record id', 'serial'),
+    'ctty' => setupField('what community the event is in', 'int big'),
+    'type' => setupField('event type (I=in person, V=vote, G=grading, R=RFP)', 'char 1'),
+    'event' => setupField('name of event', 'varchar 255'),
+    'details' => setupField('event details', 'text big'), 
+    'start' => setupField('Unixtime event begins', 'int 11', 0),
+    'end' => setupField('Unixtime event ends', 'int 11', 0),
+  );
+  $foreignKeys = foreignKey('ctty');
+  $indexes = index('ctty');
+  $schema['r_events'] = setupTable('Who represents whom', $fields, 'id', $foreignKeys, $indexes);
+  
   // table r_txs
   $fields = array(
     'xid' => setupField('the unique transaction ID', 'serial big'), 
@@ -237,7 +251,7 @@ function tableDefs($schema = []) {
     'payer' => setupField('user id of the payer', 'int big'), 
     'payee' => setupField('user id of the payee', 'int big'), 
     'goods' => setupField('is this an invoice for real goods and services?', 'int tiny', 0), 
-    'purpose' => setupField("payee's description", 'varchar 255'), 
+    'purpose' => setupField("payee's description", 'text big'), 
     'data' => setupField('miscellaneous non-searchable data (serialized array)', 'text big'), 
     'created' => setupField('Unixtime invoice was created', 'int 11', 0),
   );
@@ -265,7 +279,7 @@ function tableDefs($schema = []) {
     'txid' => setupField('the unique transaction ID', 'serial big'), 
     'tid' => setupField("payer's transaction ID", 'int 11'), // set, but currently UNUSED
     'amount' => setupField('amount of transfer', 'numeric 11,2'), 
-    'payer' => setupField('user id of the account holder', 'int big'), 
+    'payee' => setupField('CG account ID', 'int big'), 
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'completed' => setupField('Unixtime transaction was completed', 'int 11', 0), // for deposits / withdrawals
     'deposit' => setupField('Unixtime transfer check was printed and deposited', 'int 11', 0),
@@ -363,6 +377,8 @@ function tableDefs($schema = []) {
     'employee' => setupField('agent is an employee (according to employer)', 'int tiny', 0),
 //    'employeeOk' => setupField('employee says this agent is an employee', 'int tiny', 0),
     'isOwner' => setupField('this agent is an owner (or part owner) or family relation', 'int tiny', 0),
+    'isCustomer' => setupField('this other is a customer', 'int tiny', 0),
+    'code' => setupfield('the company\'s account code for this other', 'varchar 50'),
   );
   $foreignKeys = foreignKey('main') + foreignKey('other') + foreignKey('foreignUid');
   $indexes = index('main') + index('other');

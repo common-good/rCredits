@@ -23,7 +23,7 @@ define('TX_OPT_BOXES', 3);
 define('TX_OPT_EXCHANGES', 4);
 define('TX_OPT_PEXCHANGES', 5);
 
-$GLOBALS['TX_DAYS'] = array(1 => 'day', 7 => '7 days', 30 => '30 days', 90 => '90 days', 180 => '6 months', 365 => '12 months', -1 => 'Year to date');
+$GLOBALS['TX_DAYS'] = array(1 => 'Day', 7 => '7 days', 30 => '30 days', 90 => '90 days', 180 => '6 months', 365 => '12 months', -1 => 'Year to date', -2 => 'Ever');
 
 /**
  * List Transactions

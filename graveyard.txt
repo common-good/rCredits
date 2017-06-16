@@ -1,3 +1,34 @@
+
+/**
+ * Return the user's bank transactions for the given period (inclusive)
+ * @param int $starting: starting time (the beginning of some day)
+ * @param int $ending: ending time (the end of some day)
+ * @param mixed $uid: account id for which to return transactions
+ *   'ctty' means return transactions for the current account's whole community
+ * @param int $jid: account id for joined account, if any
+ * @param assoc $opts: array of options
+ *   bool $dones: include completed transactions (default TRUE)
+ *   bool $pendings: include open invoices (default TRUE)
+ * @return the recordset (FALSE if none)
+ *//*
+function bankTransfers($starting, $ending, $uid, $jid = 0) {
+  $mya = r\acct();
+
+  $where = "t.completed BETWEEN :starting AND :ending ORDER BY t.completed DESC";
+  $fields = "txid AS xid, amount, t.payee, :TX_BANK AS type, t.completed AS created, '' AS data, IF(:IS_DEPOSIT, 1, 0) AS toMe";
+  
+  if ($uid == 'ctty') { // community or region
+    $uid = $mya->community;
+    $sql = <<<EOF
+      SELECT $fields, '' AS purpose, payer
+      FROM r_usd t LEFT JOIN users u ON u.uid=t.payee
+      WHERE u.community=:uid AND :jid=0 AND $where
+EOF;
+  } else $sql = "SELECT $fields, 0 AS payer FROM r_usd t WHERE payee IN (:uid, :jid) AND $where"; // normal account
+
+  return db\q($sql, compact(ray('starting ending uid jid'))); 
+}*/
+
 ---------------------------------
 
       if ($xfee = @$dataRay['xfee'] and $

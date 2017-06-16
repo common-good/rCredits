@@ -46,15 +46,26 @@ Scenario: A newbie has taken some steps but not all
 Scenario: A nonmember has not accepted the invitation
   Given invites:
   | email           | inviter | code   | invited   |*
-  | zot@example.com | .ZZA    | codeA1 | %today-8d |
+  | zot@example.com | .ZZF    | codeF1 | %today-8d |
   When cron runs "tickle"
   Then we email "nonmember" to member "zot@example.com" with subs:
   | inviterName | code   | site                      | nudge        | noFrame |*
-  | Abe One     | codeA1 | http://localhost/rMembers | reminder one | 1       |
+  | Flo Six     | codeF1 | http://localhost/rMembers | reminder one | 1       |
   # site should be %BASE_URL, but compiler doesn't know stuff defined in boot.inc (just defs.inc)
-  And we notice "invite languishing" to member ".ZZA" with subs:
+  And we notice "invite languishing" to member ".ZZF" with subs:
   | email           | elapsed |*
   | zot@example.com |       8 |
+
+Scenario: A nonmember has not accepted the invitation from a not-yet-active member
+  Given invites:
+  | email           | inviter | code   | invited   |*
+  | zot@example.com | .ZZA    | codeA1 | %today-8d |
+  When cron runs "tickle"
+  Then we do not email "zot@example.com"
+#  Then we email "nonmember" to member "zot@example.com" with subs:
+#  | inviterName | code   | site                      | nudge        | noFrame |*
+#  | Abe One     | codeA1 | http://localhost/rMembers | reminder one | 1       |
+  And we do not notice to member ".ZZA"
 
 Scenario: A nonmember has accepted the invitation
   Given invites:
@@ -73,12 +84,12 @@ Scenario: A nonmember has accepted an invitation from someone else instead
 
 Scenario: A member gets a credit line
 # This fails if run on a day of the month that the previous month doesn't have (for example on 10/31)
-  Given balances:
+  Given transactions:
+  | created   | type     | amount | from | to   | rebate | bonus | purpose |*
+  | %today-1m | transfer |    300 | .ZZE | .ZZF |    500 |     0 | gift    |
+  Then balances:
   | id   | rewards |*
-  | .ZZE | 500 |
-  And transactions:
-  | created   | type     | amount | from | to   | purpose |*
-  | %today-1m | transfer |    300 | .ZZE | .ZZF | gift    |
+  | .ZZE |     500 |
   When cron runs "tickle"
   Then members have:
   | id   | floor |*
@@ -90,13 +101,13 @@ Scenario: A member gets a credit line
 
 Scenario: A member gets a bigger credit line after several months
 # This fails if run on a day of the month that the previous month doesn't have (for example on 10/31)
-  Given balances:
+  Given transactions:
+  | created   | type     | amount | from | to   | rebate | bonus | purpose |*
+  | %today-6m | transfer |    300 | .ZZE | .ZZF |   5000 |     0 | gift    |
+  | %today-5m | transfer |   1500 | .ZZE | .ZZF |      0 |     0 | gift    |
+  Then balances:
   | id   | rewards |*
-  | .ZZE | 5000 |
-  And transactions:
-  | created   | type     | amount | from | to   | purpose |*
-  | %today-6m | transfer |    300 | .ZZE | .ZZF | gift    |
-  | %today-5m | transfer |   1500 | .ZZE | .ZZF | gift    |
+  | .ZZE |    5000 |
   When cron runs "tickle"
   Then members have:
   | id   | floor |*
@@ -109,8 +120,8 @@ Scenario: A member gets a bigger credit line after several months
 # only works if not the first of the month
 #Scenario: A member gets no new credit line because it's the wrong day
 #  Given usd transfers:
-#  | payer | amount | created   |*
-#  | .ZZE  | -500   | %today-6w |
+#  | payee | amount | created   |*
+#  | .ZZE  | 500   | %today-6w |
 #  And transactions:
 #  | created   | type     | amount | from | to   | purpose |*
 #  | %today-5w | transfer |    300 | .ZZE | .ZZF | gift    |

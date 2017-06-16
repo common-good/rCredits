@@ -16,11 +16,11 @@ Setup:
   | .ZZC | .ZZB  | buy        |
   | .ZZC | .ZZA  | sell       |
   And usd transfers:
-  | txid | payer | amount | created   | completed | tid |*
-  |  501 | .ZZA  |  -1000 | %today-4m | %today-4m |   1 |
-  |  502 | .ZZB  |  -2000 | %today-5m | %today-5m |   1 |
-  |  503 | .ZZC  |  -3000 | %today-6m | %today-6m |   1 |
-  |  504 | .ZZA  |   -200 | %today-3d |         0 |   2 |
+  | txid | payee | amount | created   | completed | tid |*
+  |  501 | .ZZA  |   1000 | %today-4m | %today-4m |   1 |
+  |  502 | .ZZB  |   2000 | %today-5m | %today-5m |   1 |
+  |  503 | .ZZC  |   3000 | %today-6m | %today-6m |   1 |
+  |  504 | .ZZA  |    200 | %today-3d |         0 |   2 |
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose  | taking |*
   |   1 | %today-7m | signup   |    250 | ctty | .ZZA | signup   | 0      |

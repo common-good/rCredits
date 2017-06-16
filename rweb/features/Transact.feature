@@ -95,7 +95,7 @@ Scenario: A member confirms request to pay another member
   | .ZZC |       0 |     250 |
 Scenario: A member confirms request to pay another member a lot
   Given balances:
-  | id   | r             |*
+  | id   | balance       |*
   | .ZZB | %R_MAX_AMOUNT |
   When member ".ZZB" confirms form "pay" with values:
   | op  | who     | amount        | goods | purpose |*

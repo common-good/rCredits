@@ -14,10 +14,10 @@ Setup:
   | .ZZC | .ZZA  | manage     |    1 |
   | .ZZC | .ZZB  | sell       |    0 |
   And balances:
-  | id   | balance | r   | rewards |*
-  | .ZZA |       0 |  20 |      20 |
-  | .ZZB |     100 | 120 |      20 |
-  | .ZZC |     100 | 120 |      20 |
+  | id   | balance | rewards |*
+  | .ZZA |       0 |      20 |
+  | .ZZB |     100 |      20 |
+  | .ZZC |     100 |      20 |
 
 Scenario: A member draws
   When member ".ZZA" confirms form "pay" with values:

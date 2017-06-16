@@ -42,7 +42,7 @@ use rCredits\Testing as t;
 ///     debug(rCredits\Smart\pos($args));
  */
 
-define('RPOS_VERSION', 219); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first (and make sure it is available in Google Play Store), before bumping the number up here.)
+define('RPOS_VERSION', 221); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first (and make sure it is available in Google Play Store), before bumping the number up here.)
 define('R_QR_HEADER', 'HTTP://RC2.ME/I/'); // for transient QR IDs
 define('R_TRANSIENCE', 60); // number of seconds for device's transient QR to be valid
 
@@ -155,7 +155,7 @@ function getTime($args) {
   $time = r\rTime();
   
   if ($version < RPOS_VERSION) $message = $version < 218 
-  ? t("IMPORTANT: Your app needs updating.\n\nSearch for \"%PROJECT\" in the Google Play Store, to download the latest version.")
+  ? t("IMPORTANT: Your app needs updating.\n\nSearch for \"CG Pay\" in the Google Play Store, to download the latest version.")
   : '!update';
   if (@$data or !@$message) $message = handleAppMsg(@$data);
 

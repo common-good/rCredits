@@ -1541,6 +1541,7 @@ function watchdog_exception($type, Exception $exception, $message = NULL, $varia
  * @see hook_watchdog()
  */
 function watchdog($type, $message, $variables = [], $severity = WATCHDOG_NOTICE, $link = NULL) {
+  return; // cg 20170513
   global $user, $base_root;
 
   static $in_error_state = FALSE;

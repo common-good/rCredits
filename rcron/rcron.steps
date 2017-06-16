@@ -81,8 +81,8 @@ function members($list) {return t\members($list);}
  *     TEST Recache Setup
  *     BOTH Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
- *     MAKE Tickle AMemberGetsACreditLine
- *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
+ *     TEST Tickle AMemberGetsACreditLine
+ *     TEST Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     TEST Weekly AMemberCrawlsOutOfDebt
  *     TEST Weekly AMemberBuildsUpSavings
@@ -120,6 +120,7 @@ function balances($list) {return t\balances($list);}
  *     MAKE Tickle ANewbieHasNotTakenTheFirstStep
  *     MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
  *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
+ *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitationFromANotyetactiveMember
  *     MAKE Tickle ANonmemberHasAcceptedTheInvitation
  *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
  *     MAKE Tickle AMemberGetsACreditLine
@@ -413,6 +414,7 @@ function memberHasDoneStep($id, $step) {return t\doneStep($id, $step);}
  * in: MAKE Risk Setup
  *     MAKE Tickle ANewbieHasNotTakenTheFirstStep
  *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
+ *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitationFromANotyetactiveMember
  *     MAKE Tickle ANonmemberHasAcceptedTheInvitation
  *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
  */
@@ -490,3 +492,17 @@ function oftennessWorks() {
   global $testOnly; if (!$testOnly) return FALSE;
   return f('cr.oftenTests');
 }
+
+/**
+ * we do not notice to member (ARG)
+ *
+ * in: TEST Tickle ANonmemberHasNotAcceptedTheInvitationFromANotyetactiveMember
+ */
+function weDoNotNoticeToMember($id) {return !t\notice([], $id);}
+
+/**
+ * we do not email (ARG)
+ *
+ * in: TEST Tickle ANonmemberHasNotAcceptedTheInvitationFromANotyetactiveMember
+ */
+function weDoNotEmail($email) {return t\noEmailTo($email);}

@@ -18,10 +18,10 @@ Setup:
   | .ZZB | %today-6w |    20 |
   | .ZZC | %today-6w |    30 |
   And usd transfers:
-  | payer | amount | completed |*
-  | .ZZA  | -100   | %today-7w |
-  | .ZZB  | -200   | %today-6w |
-  | .ZZC  | -300   | %today-6w |
+  | payee | amount | completed |*
+  | .ZZA  |  100   | %today-7w |
+  | .ZZB  |  200   | %today-6w |
+  | .ZZC  |  300   | %today-6w |
   And relations:
   | main | agent | num | permission |*
   | .ZZA | .ZZB  |   1 | buy        |

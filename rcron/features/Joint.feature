@@ -29,8 +29,8 @@ Scenario: a joint account needs refilling
   | .ZZB |   49.99 |     250 |
   When cron runs "bank"
   Then usd transfers:
-  | txid | payer | amount |*
-  |    1 | .ZZA  | -30    |
+  | txid | payee | amount |*
+  |    1 | .ZZA  |  30    |
   And we notice "under min|banked|bank tx number" to member ".ZZA" with subs:
   | action    | amount | checkNum |*
   | draw from | $30    |        1 |

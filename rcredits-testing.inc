@@ -14,7 +14,7 @@ use rCredits\Admin as a;
 
 global $base_path;
 define('BASE_PATH', $base_path);
-define('T_BALANCE_FIELDS', 'id balance r floor rewards savingsAdd saveWeekly minimum share committed');
+define('T_BALANCE_FIELDS', 'id balance floor rewards savingsAdd saveWeekly minimum share committed');
 define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to');
 define('T_MSG_FILE', 'test-messages.txt');
 
@@ -159,7 +159,7 @@ function doAccount($info = []) {
 /**/  if ($helper === '') die(print_r(debug_backtrace(), 1)); // set helper to zero if none, never blank
     u\setDft($last4bank, @substr(@$bankAccount, -4, 4));
 
-    $moneyFields = 'share committed floor r rewards'; // not minimum because NULL means not set, in Membership page
+    $moneyFields = 'share committed floor rewards'; // not minimum because NULL means not set, in Membership page
     foreach (ray($moneyFields) as $one) u\setDft($$one, 0);
     if (@$cc) $cardCode = $cc;
     if (@$cc2) $cardCode2 = $cc2;
@@ -547,20 +547,20 @@ function usdTransfers($txs) {
   global $testOnly, $channel; $channel0 = $channel;
 
   foreach ($txs as $tx) { // do not extract $tx, because setDft will fail after the first unless we unset vars
-    if (@$tx['payer']) $tx['payer'] = t\uid($tx['payer']);
+    if (@$tx['payee']) $payee = $tx['payee'] = t\uid($tx['payee']);
 
     if ($testOnly) {
       if (isset($tx['risks'])) $tx['risks'] = getRisks($tx['risks'], K_TX_RISKS);
       if (!verifyRecord('r_usd', $tx)) return FALSE;
     } else {
-      if (!$a = r\acct(@$tx['payer'])) return t\output('Bad payer: ' . @$tx['payer']);
+      if (!$a = r\acct(@$payee)) return t\output('Bad payee: ' . @$payee);
       $tx['bankAccount'] = @$a->secure['bankAccount'];
       u\setDft($tx['txid'], t\seq());
       u\setDft($tx['risk'], NULL);
       u\setDft($tx['created'], @$tx['completed']);
       if (!db\insert('r_usd', $tx)) return FALSE;
-      if (@$tx['completed']) $a->update('r', $a->o_r - $tx['amount']);
-      if (@$tx['completed']) $a->update('balance', $a->o_balance - $tx['amount']);
+//      if (@$tx['completed']) $a->update('r', $a->o_r - $tx['amount']);
+      if (@$tx['completed']) $a->update('balance', $a->o_balance + $tx['amount']);
     }
   }
   return TRUE;
@@ -595,7 +595,7 @@ function cronRuns($op) {
 
 /**
  * Return the credit info for the given uid.
- * To get just the r balance, use uidCredit(uid)->r
+ * To get just the balance, use uidCredit(uid)->balance
  * @param int $uid: return credit info for this account id (FALSE if there is an error)
  * @param bool $ignoreCalc: <ignore errors when comparing with calculated values>
  */
@@ -722,6 +722,7 @@ function noSuchEmail($index, $email) {
 
 /** 
  * See whether the specified email has been sent (by searching the log file)
+ * @param string $index: email message index
  */
 function findEmail($index, $email, $subs) {
   global $testOnly; if (!$testOnly) return t\output('Cannot MAKE findEmail!');
@@ -781,6 +782,18 @@ function findEmail($index, $email, $subs) {
   
   output(['EXPECTED (but did not get)'=>''] + compact(ray('index email subjectDpy subs messageDpy')), 'email');
   return FALSE;
+}
+
+/**
+ * Say whether any email was sent to the given address.
+ * @return FALSE if any email was sent, else TRUE.
+ */
+function noEmailTo($email) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  global $testEmails;
+
+  if (@$testEmails) foreach ($testEmails as $one) if ($one['toEmail'] == $email) return FALSE;
+  return TRUE;
 }
 
 /**
@@ -1239,13 +1252,14 @@ function output($msg, $color = 'error') {
  */
 function clear($ch = 0) {
   include_once __DIR__ . '/admin/admin.inc';
-  global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation, $tChecked, $tRadios;
+  global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation, $tChecked, $tRadios, $testEmails;
   global $sms_devel; $sms_devel = TRUE;
   global $testRewardStep; $testRewardStep = 500;
 //  global $testRewarding; $testRewarding = TRUE; // normally set this true in tests only if testing this feature
     
   $lastGo = $formOut = $formArray = $formSta = $testOp = $testConfirmation = $tChecked = $tRadios = NULL;
   $formOut['text'] = '';
+  $testEmails = NULL;
 
   global $sms_devel; $sms_devel = TRUE;
   global $testSeq; $testSeq = NULL;
@@ -1263,7 +1277,7 @@ function clear($ch = 0) {
   db\q('DELETE FROM users WHERE uid<>0');
   a\setupBasicAccounts();
 
-  db\q('UPDATE users SET floor=0,minimum=NULL,r=0,rewards=0,committed=0');
+  db\q('UPDATE users SET floor=0,balance=0,minimum=NULL,rewards=0,committed=0');
 
   ctty('aab')->setBit(B_OK);
   ctty('aab')->setBit(B_UP);

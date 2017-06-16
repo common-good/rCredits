@@ -68,7 +68,7 @@ define('CGF_POSTALADDR', 'PO Box 21, Ashfield, MA 01330-0021');
 define('CGF_EIN', '205280780');
 define('SLOGANS', 'for truth and justice,for community power,for community democracy,for community investment,for a sustainable future,to empower communities,for community abundance,for a better future,for economic democracy,for democratic economics');
 define('R_LAUNCH', strtotime('12/15/2013'));
-define('EMAIL_DOMAIN', 'new.rcredits.org'); // replace this with CG_DOMAIN when ready (including in ../php-dkim/dkim-cfg.php)
+define('EMAIL_DOMAIN', 'new.CommonGood.earth'); // replace this with CG_DOMAIN when ready
 define('SYS_EMAIL', 'system@' . EMAIL_DOMAIN); // old address so we don't get marked as spam (later at REGION_DOMAIN)
 define('BOUNCE_EMAIL', 'bounce@' . EMAIL_DOMAIN); // old address so we don't get marked as spam (later at REGION_DOMAIN)
 define('PUBLIC_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.publicKey');
@@ -90,8 +90,8 @@ define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed 
 define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('MASTER_NUMERIC_FIELDS', 'minimum achMin savingsAdd saveWeekly');
 define('MASTER_FIELDS', MASTER_NUMERIC_FIELDS . ' hasBank bankAccount last4bank refill'); // only in master, for joint accounts
-define('R_MONEY_FIELDS', 'r rewards floor committed'); // financial amount fields in account record
-define('JOINT_FIELDS', R_MONEY_FIELDS . ' balance savings'); // add these together for joint accounts
+define('R_MONEY_FIELDS', 'balance rewards floor committed'); // financial amount fields in account record
+define('JOINT_FIELDS', R_MONEY_FIELDS . ' savings'); // add these together for joint accounts
 define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount'); // very secure fields (admin-encrypted)
 define('R_SECURE_FIELDS', R_VSECURE_FIELDS . ' pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass last4bank'); // non-personal encrypted fields (must be complete list)
 define('R_HIDE_CHANGES', R_MONEY_FIELDS . ' pw2 ssnData changes init login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank lastip'); // do not record changes to these fields: anything often-changed (automatically or not)
@@ -118,6 +118,7 @@ define('BY_CASH', '(cash)'); // app includes this in description, for a purchase
 define('BY_CHECK', '(check)'); // app includes this in description, for a purchase of rCredits by check
 define('BY_CARD', '(card)'); // app includes this in description, for a purchase of rCredits by credit card
 define('R_ON_FILE', t('(on file)'));
+define('DEPOSIT_SQL', '(amount>0 XOR txid<0)'); // SQL fragment for "transfer is from bank to CG"
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
@@ -205,6 +206,7 @@ define('HAS_XFEE', "data LIKE '%s:4:\"xfee\";%'"); // sql to recognize a transac
 define('R_DEPOSIT_RETURN_FEE', 20); // what we charge members for a second bounced transfer
 
 define('R_USPS_WEB_TOOLS_ID', '921COMMO5331'); // USPS API credentials
+define('PARTNER_API_URL', 'https://WEBSITE/common-good-api/'); // where to communicate with co-branding partners
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -285,14 +287,14 @@ define('B_SAVINGS', 22); // the connected bank account is a savings or money mar
 define('B_JOINED', 23); // account is a joint account
 define('B_u24', 24); //
 define('B_u25', 25); // 
-define('B_CLOSED', 26); // account is closed (data[newAccount] has new qid, if any)
+define('B_u26', 26); // was "account is closed"
 define('B_REGULATOR', 27); // is a bank partner or government regulator (read-only admin)
 define('B_CADMIN2', 28); // is a community sub-administrator
 define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
-define('B_ADMINABLE', 'confirmed co member bona cAdmin cAdmin2 regulator nonudge closed cgc invites rewardy'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok bona ided refill co u7 roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 closed regulator cAdmin2 cAdmin admin');
+define('B_ADMINABLE', 'confirmed co member bona cAdmin cAdmin2 regulator nonudge cgc invites rewardy'); // for cAdmin to set
+define('B_LIST', 'member confirmed ok bona ided refill co u7 roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 u26 regulator cAdmin2 cAdmin admin');
 
 // community-specific flags
 define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)
@@ -324,6 +326,7 @@ define('B_DEV', 122); // isDEV or is admin
 define('B_u123', 123); //
 define('B_CTTYUP', 124); // account's community is operating (see also B_UP)
 define('B_BANK', 125); // account has a connected bank account
+define('B_CLOSED', 126); // account is closed
 define('B_SHOW_ALL', 999); // special signal to r\Acct::can() to return all permissions
 
 // Canonic strings
@@ -374,7 +377,8 @@ define('B_ROUNDUPS', 7); // monthly donation of rounded up cents
 // B_ROUNDUP is 8 (defined above) // payer donated the change to the community fund
 define('B_PATRONAGE', 9); // recurring gift
 define('B_GIFT', 10); // gift (of any type)
-define('TX_FLAGS', 'taking disputed offline roundup short undone undoes crumbs roundups roundup patronage gift'); // tx flags (position means nothing)
+define('B_NOASK', 11); // transaction was taken with ID checking OFF
+define('TX_FLAGS', 'taking disputed offline roundup short undone undoes crumbs roundups roundup patronage gift noask'); // tx flags (position means nothing)
 
 // Invoice status (use data['disputed'] for txs)
 define('TX_DENIED', -1); // invoice rejected by the non-originator

@@ -38,8 +38,8 @@ Scenario: A member registers a company
   | main | agent | permission | employee | isOwner | draw |*
   | .AAA | .ZZA  | manage     |        1 |       1 |    0 |
   And balances:
-  | id   | r | rewards |*
-  | .AAA | 0 |       0 |
+  | id   | balance | rewards |*
+  | .AAA |       0 |       0 |
   And we say "status": "company is ready"
 
 Scenario: A member registers a company while managing another account

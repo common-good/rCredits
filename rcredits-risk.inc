@@ -145,11 +145,11 @@ function achRisk1($tx, &$risk = 0, &$calc = 0) {
   extract($tx); // all tx fields
   global $_txid; $_txid = $txid; // for debugging
   
-  $a = r\acct($payer);
-  if ($amount > 0) setRisk($amount > 0 ? 'toBank' : 'fromBank'); // mark only transfers OUT
-  setRisk($amount > 0 ? 'suspectOut' : 'toSuspect', $a->risk / K_RED, $a->risk >= K_RED);
+  $a = r\acct($payee);
+  if ($amount < 0) setRisk($amount < 0 ? 'toBank' : 'fromBank'); // mark only transfers OUT
+  setRisk($amount < 0 ? 'suspectOut' : 'toSuspect', $a->risk / K_RED, $a->risk >= K_RED);
   
-  if ($amount > 0) setOriginRisk($payer, $created, $amount);
+  if ($amount < 0) setOriginRisk($payee, $created, $amount);
   
   extract(setRisk());
   $calc = $risk;
@@ -228,12 +228,12 @@ function setBigRisk($uid, $ago, $threshold, $bitName) {
   $since = $now - $ago - 2 * HOUR_SECS; // an extra couple hours to handle daylight time changes and cron timing
   $mySql =<<<EOF
     SELECT COUNT(*) AS count0, 
-      SUM(IF(amount>0,amount,0)) AS `in`, 
-      SUM(IF(amount<0,-amount,0)) AS `out`
-    FROM (SELECT amount,created FROM r_usd 
-            WHERE payer=:uid AND completed>=created
-          UNION SELECT IF(payee=:uid, amount, -amount) AS amount,created FROM r_txs 
-            WHERE payer=:uid OR payee=:uid) t
+      SUM(IF(:DEPOSIT_SQL,amount,0)) AS `in`, 
+      SUM(IF(:DEPOSIT_SQL,0,-amount)) AS `out`
+    FROM (SELECT txid,amount,created FROM r_usd 
+      WHERE payee=:uid AND completed>=created
+    UNION SELECT 0 AS txid,IF(payee=:uid, amount, -amount) AS amount,created FROM r_txs 
+       WHERE payer=:uid OR payee=:uid) t
     WHERE created BETWEEN :since AND :now
 EOF;
   if (!$res = db\q($mySql, compact(ray('uid since now')))->fetchAssoc()) return;

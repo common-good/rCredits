@@ -19,11 +19,11 @@ Setup:
   | .ZZC | .ZZB  | buy        |
   | .ZZC | .ZZA  | sell       |
   And usd transfers:
-  | txid | payer | amount | completed |*
-  |  100 | .ZZA  |  -1000 | %today-3d |
-  |  101 | .ZZB  |  -2000 | %today-4d |
-  |  102 | .ZZC  |  -3050 | %today-5d |
-  |  103 | .ZZC  |     50 | %today-2d |
+  | txid | payee | amount | completed |*
+  |  100 | .ZZA  |   1000 | %today-3d |
+  |  101 | .ZZB  |   2000 | %today-4d |
+  |  102 | .ZZC  |   3050 | %today-5d |
+  |  103 | .ZZC  |    -50 | %today-2d |
   Then balances:
   | id   | balance | rewards |*
   | .ZZA |    1000 |       0 |

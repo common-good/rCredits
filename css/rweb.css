@@ -302,6 +302,7 @@ body.logged-in.one-sidebar #content {width:100%;}
 
 /* Democracy */
 body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
+#rcreditswebformdemocracy #edit-title .control-data {padding-left:0;}
 
 /* Funding Proposal */
 #rcreditswebformproposal #edit-subtitle .table {margin-left:25px;}

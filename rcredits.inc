@@ -409,10 +409,10 @@ function membershipEvent($a, $status, $do = TRUE) {
     $inviterName = @$a->helperA->fullName;
     $subs = compact('inviterName');
     $msg = 'approved';
-    if (!$a->confirmed) {
+/*    if (!$a->confirmed) {
       $msg .= '|must be confirmed';
       if ($channel == TX_WEB) w\say('must be confirmed', $subs);
-    }
+    } */
     if ($a->seq >= IBY_ICARD) $msg .= '|use temporary card';
     r\message($a->id, $msg, $subs);
     $a->update('activated', r\rTime());
@@ -504,7 +504,7 @@ function tellAdmin($index, $subs = [], $uid = NULL) {
   return FALSE;
 }
 
-function tellCO($index, $subs = [], $uid = NULL) {return tellAdmin($index, $subs, $uid ?: r\acct()->id);}
+function tellCO($index, $subs = [], $uid = NULL) {return tellAdmin($index, $subs, $uid ?: (@r\acct()->id ?: @$subs['loserId']));}
 
 /**
  * Return a unique temporary name related to the given uniquely identifying parmeters 
@@ -795,14 +795,14 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
   if ($delete) {
     if (db\exists($table = 'r_txs', 'payer=:oldUid OR payee=:oldUid', compact('oldUid'))
       or db\exists($table = 'r_ballots', ':oldUid IN (voter, proxy)', compact('oldUid'))
-      or db\exists($table = 'r_usd', 'payer=:oldUid', compact('oldUid'))) {
+      or db\exists($table = 'r_usd', 'payee=:oldUid', compact('oldUid'))) {
       return r\Web\say('Account "%name" has records in table %table, so it cannot be deleted.', ray('name table', $a->fullName, $table), 'ERR');
     }
   } elseif (!$newUid) {
     $region = @$a->postalCode ? r\region(@$a->country, @$a->state, $a->postalCode) : r\communityUid();
     $newUid = r\Acct::nextId($region);
   }
-  $subs = array( // all tables are listed, to be sure we don't leave any out
+  $subs = array( // all cg tables are listed, to be sure we don't leave any out
   // r_areas
   // r_bad
     'r_ballots:voter',
@@ -843,7 +843,7 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_txs:payee',
     'r_txs:payerAgent',
     'r_txs:payeeAgent',
-    'r_usd:payer',
+    'r_usd:payee',
     'r_user_industries:uid:D',
   // r_votes
     'users:uid:D',
@@ -1053,10 +1053,11 @@ function getStats($ctty, $created = NULL) {
   : ["SUM(IF(u.community<>:ctty AND u2.community=:ctty, amount, 0))",
      "SUM(IF(u2.community<>:ctty AND u.community=:ctty, -amount, 0))"];
   
-  $runny = 'IF(:HAS_BANK AND :IS_REFILL AND minimum>0, -minimum/2, IF(:IS_CO, 0, tin.rewards))'; // spendable, leading to a run on the bank
-  $payins = '(SELECT payee, SUM(amount) AS received, SUM(IF(type IN (:TX_REWARDS), amount, 0)) AS rewards FROM r_txs WHERE created<=:created GROUP BY payee)';
-  $payouts = '(SELECT payer, SUM(amount) AS paid FROM r_txs WHERE created<=:created GROUP BY payer)';
-  $exchanges = '(SELECT payer, SUM(-amount) AS deposited FROM r_usd WHERE created<=:created GROUP BY payer)';
+  $runny = 'IF(:HAS_BANK AND :IS_REFILL AND minimum>0, -minimum/2, IF(:IS_CO, 0, tin.rewards+tout.rewards))'; // spendable, leading to a run on the bank
+//  $payins1 = '(SELECT payer, SUM(amount) AS received, SUM(payerReward) AS rewards FROM r_txs WHERE created<=:created GROUP BY payer)';
+  $payins = '(SELECT payee, SUM(amount) AS received, SUM(payeeReward) AS rewards FROM r_txs WHERE created<=:created GROUP BY payee)';
+  $payouts = '(SELECT payer, SUM(amount) AS paid, SUM(payerReward) AS rewards FROM r_txs WHERE created<=:created GROUP BY payer)';
+  $exchanges = '(SELECT payee, SUM(amount) AS deposited FROM r_usd WHERE created<=:created GROUP BY payee)';
   
   // get pAccts, bAccts, newbs, savings, savingsIntent
   $sql = <<<EOF
@@ -1070,7 +1071,7 @@ function getStats($ctty, $created = NULL) {
     FROM users u 
     LEFT JOIN $payins tin ON tin.payee=u.uid
     LEFT JOIN $payouts tout ON tout.payer=u.uid
-    LEFT JOIN $exchanges tus ON tus.payer=u.uid
+    LEFT JOIN $exchanges tus ON tus.payee=u.uid
     WHERE u.uid>1 AND $cttyCrit AND created<=:created
 EOF;
   $res = db\q($sql, $subs)->fetchAssoc() ?: [];
@@ -1086,18 +1087,21 @@ EOF;
   // get top5
   $sql = <<<EOF
     SELECT SUM(runny) AS top5
-    FROM (SELECT $runny AS runny FROM users u LEFT JOIN $payins tin ON tin.payee=u.uid 
+    FROM (SELECT $runny AS runny FROM users u 
+    LEFT JOIN $payins tin ON tin.payee=u.uid 
+    LEFT JOIN $payouts tout ON tout.payer=u.uid 
       WHERE u.uid>1 AND $cttyCrit AND created<=:created
       ORDER BY $runny DESC LIMIT $topN) u0
 EOF;
   $res += db\q($sql, $subs)->fetchAssoc() ?: [];
   
   // get usd
+  $in = 'amount<0 XOR txid<0';
   $sql = <<<EOF
     SELECT
-    SUM(IF(amount<0, -amount, 0)) AS bankIn,
-    SUM(IF(amount>0, amount, 0)) AS bankOut
-    FROM r_usd t LEFT JOIN users u ON u.uid=t.payer
+    SUM(IF($in, amount, 0)) AS bankIn,
+    SUM(IF($in, 0, -amount)) AS bankOut
+    FROM r_usd t LEFT JOIN users u ON u.uid=t.payee
     WHERE $cttyCrit AND t.completed AND t.completed<=:created
 EOF;
   $res += db\q($sql, $subs)->fetchAssoc() ?: [];
@@ -1169,14 +1173,15 @@ EOF;
   $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
   // get bankIn(Txs)PerMo, bankOut(Txs)PerMo
+  $in = 'amount<0 XOR txid<0';
   $sql = <<<EOF
-    SELECT SUM(IF(amount<0, -amount, 0)) AS bankInPerMo,
-    SUM(IF(amount<0, 0, amount)) AS bankOutPerMo,
+    SELECT SUM(IF($in, 0, amount)) AS bankInPerMo,
+    SUM(IF($in, -amount, 0)) AS bankOutPerMo,
     
-    SUM(IF(amount<0, 1, 0)) AS bankInTxsPerMo,
-    SUM(IF(amount<0, 0, 1)) AS bankOutTxsPerMo
+    SUM(IF($in, 0, 1)) AS bankInTxsPerMo,
+    SUM(IF($in, 1, 0)) AS bankOutTxsPerMo
 
-    FROM r_usd t LEFT JOIN users u ON t.payer=u.uid
+    FROM r_usd t LEFT JOIN users u ON t.payee=u.uid
     WHERE $cttyCrit AND t.completed AND completed<=:created AND completed>:monthAgo
 EOF;
   $res += db\q($sql, $subs)->fetchAssoc() ?: [];
@@ -1212,8 +1217,8 @@ function averageBalance($uid, $start, $end = NULL, $noj = FALSE) {
 
   $day = 0;
   $avg = $ravg = 0;
-  // use "1" as payer for r_usd, to avoid matching jid=0
 
+  // use "1" as payee for r_usd, to avoid matching jid=0
   $sql = <<<EOF
     SELECT SUM($signedAmt) AS total,
     SUM(IF($isPayer, payerReward, payeeReward)) AS rtotal,
@@ -1221,7 +1226,7 @@ function averageBalance($uid, $start, $end = NULL, $noj = FALSE) {
     FLOOR((t.completed-$start)/:DAY_SECS) AS day 
     FROM (
       (SELECT type,goods,payer,payee,amount,payerReward,payeeReward,created AS completed FROM r_txs)
-      UNION (SELECT :TX_BANK,-:FOR_SHARE,payer,1 AS payee,amount,0,0,completed FROM r_usd)
+      UNION (SELECT :TX_BANK,-:FOR_SHARE,1 AS payer,payee,amount,0,0,completed FROM r_usd)
     ) t WHERE ($isPayer XOR $isPayee) AND completed BETWEEN $start AND $end 
     GROUP BY day
 EOF;
@@ -1344,11 +1349,11 @@ function median($field, $table = 'users', $where = 1, $subs = []) {
 
 /**
  * Return the next sequential bank transfer number for an account.
- * @param int $payer: the account uid
+ * @param int $payee: the account uid
  * @return int: the next unused positive integer (1 if there are no bank transfers yet)
  */
-function getUsdTid($payer) {
-  return db\lookup('MAX(tid)+1', 'r_usd', 'payer=:payer', compact('payer')) ?: 1;
+function getUsdTid($payee) {
+  return db\lookup('MAX(tid)+1', 'r_usd', 'payee=:payee', compact('payee')) ?: 1;
 }
 
 /**

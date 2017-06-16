@@ -8,9 +8,9 @@ Setup:
   | id   | fullName   | address | city  | state  | postalCode | postalAddr | rebate | flags   |*
   | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | 1 A, A, AK |      5 | ok,confirmed,bona |
   And balances:
-  | id     | r   | rewards |*
-  | cgf    |   0 |       0 |
-  | .ZZA   | 120 |      20 |
+  | id     | balance | rewards |*
+  | cgf    |       0 |       0 |
+  | .ZZA   |     100 |      20 |
 
 Scenario: A member donates
   Given next DO code is "whatever"
@@ -53,4 +53,4 @@ Scenario: A member donates with insufficient funds
   | .ZZA | %today   |    200 |     1 | memory | Jane Do |    10 |         0 |
   And we tell admin "gift" with subs:
   | amount | often |*
-  |     10 |     1 |
+  |    200 |     1 |

@@ -2,9 +2,10 @@
 
 /**
  * @file
- * List of queries for the Community and Money Data page on the Community menu.
- * Queries beginning with a digit are for admins only: 0=superAdmin 1=admin 2=cAdmin or cAdmin2 B_CO=companies
- * Note: query names cannot contain any of the following characters: /&? (because they confuse the url)
+ * List of queries for the Community and Money Data page on the Community menu (for members only).
+ * Queries beginning with a digit are for admins or companies only: 0=superAdmin 1=admin 2=cAdmin or cAdmin2 B_CO=companies
+ * Queries containing "WHERE 1" are customized for the current account's community.
+ * Note: query names cannot contain any of the following characters: /&? (because they confuse the url).
  */
 
 $bizQ = 'SELECT payee, goods, SUM(amount) AS tot, COUNT(*) AS cnt FROM r_txs WHERE goods=:FOR_GOODS AND created BETWEEN';

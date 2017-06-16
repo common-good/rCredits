@@ -121,9 +121,9 @@ function adminSummary($a, $cAdmin = FALSE) {
     include __DIR__ . '/../rweb/bit-descs.inc';
 
     $legalName = textFld(t('Legal Name:'), '', required($a->legalName));    
-    if ($mya->superAdmin) $rTrader = ($a->isCtty)
-    ? boolFld(t('rTrader?'), '', $a->ok)
-    : boolFld(t('rTrader?'), t('Is account approved to use %PROJECT? -- member, <%a>good photo</a>, ss# checks out, set risks and mediaConx', '_a', w\atag('/settings/security/photo?' . rand())), $a->ok);
+    if ($mya->superAdmin or ($mya->cAdmin and $mya->activated)) $rTrader = ($a->isCtty)
+    ? boolFld(t('Active?'), '', $a->ok)
+    : boolFld(t('Active?'), t('Is account approved to use %PROJECT? -- member, <%a>good photo</a>, ss# checks out, set risks and mediaConx', '_a', w\atag('/settings/security/photo?' . rand())), $a->ok);
     if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
       if ($helper = $a->helper ?: ($a->co ? $a->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
         $hA = r\acct($helper);
@@ -240,7 +240,7 @@ function export($params) {
       . ' created activated signed helper iCode balance rewards savingsAdd minimum share risk trust'
       . ' cttyName co gross employees achMin pinThreshold lastiCode tenure moves mediaConx jid'
       . ' owns bankName slave closed notices secret'
-  : 'id first_name last_name phone email address city state zip cttyName type ecode modified created special';
+  : 'id first_name last_name phone email address city state zip cttyName type ecode special modified created';
   u\csv($fields = ray($fields));
 
   if ($requests) { // handle requests first, in case member status gets updated by later record
@@ -257,6 +257,7 @@ function export($params) {
       foreach (ray('phone email') as $k) $$k = u\decryptN($$k);
       if (strpos($email, '@example.com')) continue;
       $cttyName = $ctty ? trim(str_replace(PROJECT, '', r\acct($ctty)->fullName)) : '';
+      $zip .= "\t"; // prevent leading zeros from getting dropped on import
       u\csv(array_values(compact($fields)));
     }
   }  
@@ -266,7 +267,7 @@ function export($params) {
   if (@$status == 1) $where .= ' AND NOT :IS_OK';
   if (@$types == 0) $where .= ' AND NOT :IS_CO';
   if (@$types == 1) $where .= ' AND :IS_CO';
-  $sql = "SELECT uid AS id, fullName FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND NOT :IS_CLOSED AND $where ORDER BY :IS_OK, -signed, -created";
+  $sql = "SELECT uid AS id, fullName FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND (NOT activated OR :IS_OK) AND $where ORDER BY :IS_OK, -signed, -created";
 
   $q = db\q($sql, ray('cttyId', $ctty->id));
   while ($row = $q->fetchAssoc()) {
@@ -291,11 +292,12 @@ function export($params) {
       $id = $a->mainQid;
       $ecode = "$a->emailCode";
       $modified = u\fmtDate(time());
+      $special = '';
 // (BROKEN)      $special = $a->special;
     }
     $cttyName = trim(str_replace(PROJECT, '', $a->cttyA->fullName));
     $created = u\fmtDate($a->created);
-    if (is_numeric($zip)) $zip = ' ' . $zip; // prevent interpretation as a number (but Excel will strip any leading zeroes)
+    if (is_numeric($zip)) $zip .= "\t"; // prevent interpretation as a number
 
     u\csv(array_values(compact($fields)));
   }

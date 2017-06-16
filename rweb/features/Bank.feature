@@ -20,13 +20,13 @@ Setup:
   | 3   | %today-10d | signup |     10 | ctty | .ZZC | signup  |
   | 4   | %today-10d | signup |     20 | ctty | .ZZD | signup  |
   And usd transfers:
-  | txid | payer | amount | tid | created   | completed | deposit   |*
-  | 5001 |  .ZZA |    -99 |   1 | %today-7d | %today-5d | %today-1d |
-  | 5002 |  .ZZA |   -100 |   2 | %today-5d |         0 | %today-1d |
-  | 5003 |  .ZZA |     13 |   3 | %today-2d | %today-2d | %today-1d |
-  | 5004 |  .ZZB |      4 |   1 | %today-2d | %today-2d | %today-1d |
-  | 5005 |  .ZZC |    -30 |   1 | %today-2d | %today-2d | %today-1d |
-  | 5006 |  .ZZD |   -140 |   1 | %today-2d | %today-2d | %today-1d |
+  | txid | payee | amount | tid | created   | completed | deposit   |*
+  | 5001 |  .ZZA |     99 |   1 | %today-7d | %today-5d | %today-1d |
+  | 5002 |  .ZZA |    100 |   2 | %today-5d |         0 | %today-1d |
+  | 5003 |  .ZZA |    -13 |   3 | %today-2d | %today-2d | %today-1d |
+  | 5004 |  .ZZB |     -4 |   1 | %today-2d | %today-2d | %today-1d |
+  | 5005 |  .ZZC |     30 |   1 | %today-2d | %today-2d | %today-1d |
+  | 5006 |  .ZZD |    140 |   1 | %today-2d | %today-2d | %today-1d |
   Then balances:
   | id   | balance | rewards |*
   | .ZZA |      86 |      20 |
@@ -39,8 +39,8 @@ Scenario: a member moves credit to the bank
   | op  | amount |*
   | put |     86 |
   Then usd transfers:
-  | payer | amount | tid | created   | completed | channel |*
-  |  .ZZA |     86 |   4 | %today    | %today    | %TX_WEB |
+  | payee | amount | tid | created   | completed | channel |*
+  |  .ZZA |    -86 |   4 | %today    | %today    | %TX_WEB |
   And we say "status": "banked" with subs:
   | action     | amount |*
   | deposit to | $86    |
@@ -53,8 +53,8 @@ Scenario: a member draws credit from the bank with zero floor
   | op  | amount    |*
   | get | %R_ACHMIN |
   Then usd transfers:
-  | txid | payer | amount     | tid | created | completed | channel |*
-  | 5007 |  .ZZB | -%R_ACHMIN |   2 | %today  |         0 | %TX_WEB |
+  | txid | payee | amount    | tid | created | completed | channel |*
+  | 5007 |  .ZZB | %R_ACHMIN |   2 | %today  |         0 | %TX_WEB |
   And balances:
   | id   | balance |*
   | .ZZA |      86 |
@@ -67,8 +67,8 @@ Scenario: a member draws credit from the bank with adequate floor
   | op  | amount    |*
   | get | %R_ACHMIN |
   Then usd transfers:
-  | txid | payer | amount     | tid | created | completed | channel |*
-  | 5007 |  .ZZA | -%R_ACHMIN |   4 | %today  |    %today | %TX_WEB |
+  | txid | payee | amount    | tid | created | completed | channel |*
+  | 5007 |  .ZZA | %R_ACHMIN |   4 | %today  |    %today | %TX_WEB |
   And balances:
   | id   | balance         |*
   | .ZZA | %(86+%R_ACHMIN) |
@@ -107,8 +107,8 @@ Scenario: a member tries to go below their minimum
 
 Scenario: a member asks to do two transfers out in one day
   Given usd transfers:
-  | payer | amount | tid | created   |*
-  |  .ZZD |      6 |   0 | %today    |
+  | payee | amount | tid | created   |*
+  |  .ZZD |     -6 |   0 | %today    |
   When member ".ZZD" completes form "get" with values:
   | op  | amount |*
   | put |     10 |

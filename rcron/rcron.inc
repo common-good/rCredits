@@ -61,7 +61,7 @@ YEARLY
 
 NOTES:
 - Timer Cron is disabled on the staging site. Here's what the cron job would be:
-  <star>/5 * * * * /usr/bin/lynx -source http://ws.rcredits.org/cron.php?cron_key=w8x3lfzNQK1bxMz6RMTuF54mMInAs4b8SiVJO9zvWYg
+  <star>/5 * * * * curl https://new2.CommonGood.earth/cron.php?cron_key=w8x3lfzNQK1bxMz6RMTuF54mMInAs4b8SiVJO9zvWYg
   where <star> means * (not the same as for the production site) 
  */
 
@@ -145,8 +145,9 @@ function tickle() {
   $delays = '8';
   $elapsed = str_replace('@DATE', 'invited', $timeSince);
   $sql = <<<EOF
-    SELECT email, inviter, code, $elapsed AS elapsed FROM r_invites
-    WHERE $elapsed IN ($delays) AND invitee=0
+    SELECT email, inviter, code, $elapsed AS elapsed FROM r_invites i
+    LEFT JOIN users u ON u.uid=i.inviter
+    WHERE $elapsed IN ($delays) AND invitee=0 AND u.:IS_OK
 EOF;
 
   queueEach('tickleSignup', $sql);
@@ -160,14 +161,14 @@ EOF;
   $sql = <<<EOF
     SELECT uid, $elapsed AS elapsed FROM users 
     WHERE ($elapsed IN ($delays) OR ($elapsed>8 AND $elapsed%7=0))
-    AND uid>1 AND NOT :IS_OK AND NOT :IS_NONUDGE AND NOT :IS_CLOSED
+    AND uid>1 AND NOT activated AND NOT :IS_NONUDGE
 EOF;
   queueEach('tickleStep', $sql);
 
   // Tickle sometime after first Tx (activation date)
   $elapsed = str_replace('@DATE', 'date0', $timeSince);
   $months = "ROUND($elapsed/:MONTH_DAYS)";
-  $start = strtotime('-6 months', strtotime('today', r\rTime()));
+  $start = strtotime('-6 months', $today);
   $day = date('d');
   $tomorrow = date('d', strtotime('+1'));
   $sql = <<<EOF
@@ -177,7 +178,7 @@ EOF;
       DAY(FROM_UNIXTIME(MIN(created))) AS day0
       FROM r_txs GROUP BY payer
     ) t ON t.payer=u.uid
-    WHERE $elapsed>15 AND uid > 1 AND :IS_BONA
+    WHERE $elapsed>15 AND uid > 1 AND u.:IS_BONA AND u.:IS_OK
     AND ($day=day0 OR (day0>$day AND $tomorrow=1))
 EOF;
   queueEach('tickleActive', $sql, compact('start'));
@@ -215,7 +216,8 @@ function tickleStep($item) {
 //    if ($step != 'verify' or $elapsed > 1) r\notify($a->id, "$msg|sign in", compact('when'));
     r\notify($uid, "$msg|sign in");
     if ($elapsed >= 8) {
-      $q = db\q('SELECT DISTINCT inviter FROM r_invites WHERE invitee=:uid', compact('uid'));
+      $sql = 'SELECT DISTINCT inviter FROM r_invites i LEFT JOIN users u ON u.uid=i.inviter WHERE invitee=:uid AND u.:IS_OK';
+      $q = db\q($sql, compact('uid'));
       while ($row = $q->fetchAssoc()) {
         extract($row);
         r\notify($inviter, 'invitee slow', ray('fullName elapsed step', $a->fullName, $elapsed, $step));
@@ -232,7 +234,7 @@ function tickleStep($item) {
 function tickleActive($item) {
   extract(u\just('uid months monthly', $item));
   $a = r\acct($uid);
-  $ratio = $monthly ? $a->floor / $monthly : 1;
+  $ratio = ($monthly+=0) ? $a->floor / $monthly : 1;
   if ($ratio > 1.1 or $ratio < .9) { // big change (or any change in sign)
     $a->update('floor', round(-$monthly, 2));
     $msg = 'new floor' . ($a->can(B_DEBT) ? '' : '|no floor effect');
@@ -405,7 +407,7 @@ EOF;
  * Also give signup bonus, if appropriate.
  */
 function recache() {
-  $fields = 'uid, r, rewards, minimum, floor';
+  $fields = 'uid, rewards, minimum, floor';
   queueEach('recache1', "SELECT $fields FROM users WHERE :IS_OK"); // make this IS_MEMBER if early gift
   queueNext();
 }
@@ -498,8 +500,8 @@ EOF;
   $row2 = db\q($sql, $subs)->fetchAssoc() ?: []; // get beneEver (purchase rewards), benePastMo, extraEver, extraPastMo
   
   $sql = <<<EOF
-    SELECT SUM(amount) AS bankedEver, SUM(IF(completed<:monthAgo, 0, amount)) AS bankedPastMo
-    FROM r_usd WHERE payer=:uid AND completed AND completed<:asof
+    SELECT SUM(-amount) AS bankedEver, SUM(IF(completed<:monthAgo, 0, -amount)) AS bankedPastMo
+    FROM r_usd WHERE payee=:uid AND completed AND completed<:asof
 EOF;
   $row3 = db\q($sql, $subs)->fetchAssoc() ?: []; // get bankedEver, bankedPastMo
 
@@ -644,7 +646,7 @@ function bank() {
   $weekday = strftime('%w'); // 0-6 Sun-Sat (use %w because %u fails on Windows and maybe linux)
   if (u\test() or in_array($weekday, [2, 3, 4, 5])) { // no completions on Saturday, Sunday, or Monday
     $now = r\rTime();
-    $sql = 'SELECT * FROM r_usd WHERE amount<0 AND NOT completed AND (amount>=-:R_USDTX_QUICK OR :now>=created+:R_USDTX_DAYS*:DAY_SECS)'; // this allows us to wait arbitrarily long to deposit chks
+    $sql = 'SELECT * FROM r_usd WHERE amount>0 AND NOT completed AND (amount<=:R_USDTX_QUICK OR :now>=created+:R_USDTX_DAYS*:DAY_SECS)'; // this allows us to wait arbitrarily long to deposit chks
 //    $sql = 'SELECT * FROM r_usd WHERE amount<0 AND NOT completed AND deposit AND :REQUEST_TIME>=deposit+:R_USDTX_DAYS*:DAY_SECS'; // this depends on deposits almost every day
     queueEach('completeUsdTx', $sql, compact('now'));
   }
@@ -671,10 +673,10 @@ EOF;
 }
 
 function completeUsdTx($item) {
-  extract(u\just('txid payer amount channel', $item));
+  extract(u\just('txid payee amount channel', $item));
   $realAmt = db\lookup('amount', 'r_usd', 'txid=:txid', compact('txid'));
   if ($amount != $realAmt) r\tellAdmin('bad completeUsdTx amount in cron', $item + compact('realAmt'));
-  r\acct($payer)->completeUsdTx($txid, -$amount, @$channel == TX_CRON);
+  r\acct($payee)->completeUsdTx($txid, $amount, @$channel == TX_CRON);
 }
 
 function bank1($item) {
@@ -683,7 +685,7 @@ function bank1($item) {
   if ($a->slave) return; // slaves don't have automatic refills
   if (!$amount = getHowMuchR($a)) return; // check shortfall here NOT in query, balance may change
   $action = 'draw from';
-  if (!$checkNum = $a->bank(-$amount)) return; // may never happen, but if mysql is unavailable just redo next day
+  if (!$checkNum = $a->bank($amount)) return; // may never happen, but if mysql is unavailable just redo next day
   $amount = u\fmtAmt($amount);
   r\notify($uid, 'under min|banked|bank tx number', compact(ray('action amount checkNum')));
 }
@@ -709,10 +711,10 @@ function draw1($item) {
 function getHowMuchR($a, $banky = TRUE) {
   if (!$need = max(0, $a->minimum + $a->committed - $a->balance)) return 0;
   if ($banky) {
-    $waiting = -$a->waitingToBank($combinable); // amount already requested (if any)
+    $waiting = $a->waitingToBank($combinable); // net amount already requested from bank (if any)
     $need = round($need - $waiting, 2); // avoid a re-request
   }
-  return ($need <= 0 ? 0 : max(@$combinable + 0 < 0 ? 0 : $a->achMin, round(R_ACHMIN * ceil($need / R_ACHMIN))));
+  return ($need <= 0 ? 0 : max(@$combinable + 0 > 0 ? 0 : $a->achMin, round(R_ACHMIN * ceil($need / R_ACHMIN))));
 }
 
 /**
@@ -768,7 +770,8 @@ function notices() {
   $where = $dailySql = '((NOT :IS_WEEKLY AND NOT :IS_MONTHLY) OR NOT :IS_MEMBER)'; // daily
   if ($weekly) $where .= ' OR :IS_WEEKLY';
   if ($monthly) $where .= ' OR :IS_MONTHLY';
-  $sql = "SELECT DISTINCT u.uid, :IS_WEEKLY AS weekly, :IS_MONTHLY AS monthly FROM r_notices n JOIN users u ON u.uid=n.uid WHERE NOT sent AND ($where)";
+  $sql = "SELECT DISTINCT u.uid, :IS_WEEKLY AS weekly, :IS_MONTHLY AS monthly FROM r_notices n JOIN users u ON u.uid=n.uid WHERE IF(activated, u.:IS_OK, NOT u.:IS_NONUDGE) AND NOT sent AND ($where)";
+
   queueEach('notice', $sql);
   queueNext();
 }

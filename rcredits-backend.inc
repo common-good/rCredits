@@ -16,36 +16,6 @@ define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows'); // used?
 // require_once __DIR__ . '/rcredits-util.inc';
 
 /**
- * Return the user's bank transactions for the given period (inclusive)
- * @param int $starting: starting time (the beginning of some day)
- * @param int $ending: ending time (the end of some day)
- * @param mixed $uid: account id for which to return transactions
- *   'ctty' means return transactions for the current account's whole community
- * @param int $jid: account id for joined account, if any
- * @param assoc $opts: array of options
- *   bool $dones: include completed transactions (default TRUE)
- *   bool $pendings: include open invoices (default TRUE)
- * @return the recordset (FALSE if none)
- */
-function bankTransfers($starting, $ending, $uid, $jid = 0) {
-  $mya = r\acct();
-
-  $where = "t.completed BETWEEN :starting AND :ending ORDER BY t.completed DESC";
-  $fields = "txid AS xid, amount, t.payer, :TX_BANK AS type, t.completed AS created, '' AS data, IF(t.amount<0, 1, 0) AS toMe";
-  
-  if ($uid == 'ctty') { // community or region
-    $uid = $mya->community;
-    $sql = <<<EOF
-      SELECT $fields, '' AS purpose, 0 AS payee
-      FROM r_usd t LEFT JOIN users u ON u.uid=t.payer
-      WHERE u.community=:uid AND :jid=0 AND $where
-EOF;
-  } else $sql = "SELECT $fields, 0 AS payee FROM r_usd t WHERE payer IN (:uid, :jid) AND $where"; // normal account
-
-  return db\q($sql, compact(ray('starting ending uid jid'))); 
-}
-
-/**
  * Return the user's transactions for the given period (inclusive)
  * @param int $starting: starting time (the beginning of some day)
  * @param int $ending: ending time (the end of some day)
@@ -83,12 +53,12 @@ EOF;
       AND $where
 EOF;
 */
-    $iPay = 'payer IN (:uid, :jid)';
-    $iGet = '(payee<>0 AND payee IN (:uid, :jid))';
+    $iPay = '(payer<>0 AND payer IN (:uid, :jid))';
+    $iGet = 'payee IN (:uid, :jid)';
 //    foreach (ray(TX_FLAGS) as $k) $$k = u\bit(u\consta('b', $k)); // taking and roundup flags
     list ($fromBank, $toBank) = [t('from bank'), t('to bank')];
     $txFields = "xid, amount, IF($iPay, amount, 0) AS fromyou, IF($iPay, 0, amount) AS toyou, IF($iPay, payerReward, payeeReward) AS reward, payer, payee, type, t1.created, t1.data, $iPay XOR t1.:IS_TAKING AS byMe, t1.:IS_ROUNDUP AS roundup, t1.:IS_DISPUTED AS disputed, $iGet AS toMe, IF($iPay, payerFor, payeeFor) AS description, IF($iPay, payerAgent, payeeAgent) AS agent, IF(:uid<0, xid, IF($iPay, payerTid, payeeTid)) AS tid, goods, (goods=:FOR_SHARE) AS sharing, channel";
-    $usdFields = "txid AS xid, amount, IF(amount > 0, amount, 0) AS fromyou, IF(amount > 0, 0, -amount) AS toyou, 0 AS reward, payer, 0 AS payee, :TX_BANK AS type, completed AS created, '' AS data, TRUE AS byMe, FALSE AS roundup, FALSE AS disputed, IF(amount<0, 1, 0) AS toMe, IF(amount<0, '$fromBank', '$toBank') AS description, '' AS agent, txid AS tid, :FOR_USD AS goods, 0 AS sharing, channel";
+    $usdFields = "txid AS xid, amount, IF(:DEPOSIT_SQL, 0, -amount) AS fromyou, IF(:DEPOSIT_SQL, amount, 0) AS toyou, 0 AS reward, 0 AS payer, payee, :TX_BANK AS type, completed AS created, '' AS data, TRUE AS byMe, FALSE AS roundup, FALSE AS disputed, IF(:DEPOSIT_SQL, 1, 0) AS toMe, IF(:DEPOSIT_SQL, '$fromBank', '$toBank') AS description, '' AS agent, txid AS tid, :FOR_USD AS goods, 0 AS sharing, channel";
     $where = "created BETWEEN :starting AND :ending AND type>=0 AND ($iPay XOR $iGet)"; // omit invisible transactions
 
     $sql = <<<EOF
@@ -103,12 +73,14 @@ EOF;
 }
 
 /**
- * Return an array of member names.
+ * Return an array of member names (called with ajax, so current user is passed as arguments).
  * POLICY QUESTION: Restrict to member's community? (yes for now)
+ * @param int $myid: account ID
+ * @param int $aid: agent account ID
  */
-function memberRay($myid) {
-  if (!$a = r\acct($myid) and $myid != 1) return [];
-  $where = r\acct()->admin ? '1' : "community=$a->community OR :IS_CO"; // ->admin failed once (no ctty) with myid=1 (dunno why)
+function memberRay($myid, $aid) {
+  if (!$a = r\acct($myid, $aid)) return [];
+  $where = $a->admin ? '1' : "community=$a->community OR :IS_CO";
   return db\q("SELECT fullName FROM users WHERE :IS_OK AND $where ORDER BY fullName")->fetchCol();
 }
 
@@ -357,6 +329,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   $reallyTaking = ($taking xor $amount < 0); // not taking if charging a negative amount
 
   list ($loserA, $gainerA) = u\order($reallyTaking, $a2, $a1);
+  $erInfo += ['loserId' => $loserA->id];
   list ($payer, $payee) = u\order($taking, $uid, $myid); // Analyze who's buying or selling
   list ($payerAgent, $payeeAgent) = u\order($taking, $a2->agentId, $a1->agentId);
 
@@ -631,13 +604,13 @@ EOF;
   $sums = @$pending ? ray('in out rewards share xfees xin', 0, 0, 0, 0, 0, 0) : db\q($sql, $subs)->fetchAssoc();
 
   $where = @$pending ? 'created<=:asof AND NOT completed' : 'completed AND completed<=:asof';
-  $sql = "SELECT SUM(amount) AS bank FROM r_usd t WHERE $isPayer AND $where";
+  $sql = "SELECT SUM(amount) AS bank FROM r_usd t WHERE $isPayee AND $where";
   $sums += db\q($sql, $subs)->fetchAssoc();
 
   foreach ($sums as $k => $v) $sums[$k] = $v + 0; // no nulls
   extract($sums);
 
-  $bank = -$bank; // make it "from bank" instead of "to bank"
+//  $bank = -$bank; // make it "from bank" instead of "to bank"
   $balance = ($in - $out) + $bank;
 //  $r = $balance + $rewards;
 //  $in -= $xin; $out -= $xin;

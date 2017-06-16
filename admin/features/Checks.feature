@@ -24,11 +24,11 @@ Setup:
   
 Scenario: admin prints checks
   Given usd transfers:
-  | txid | payer | amount | created   | deposit   | completed |*
-  | 5001 | .ZZA  |   -100 | %today-3w | %today-2w | %today-3w |
-  | 5002 | .ZZA  |   -400 | %today-2w |         0 | %today    |
-  | 5003 | .ZZB  |   -100 | %today-1d |         0 | %today    |  
-  | 5004 | .ZZC  |   -300 | %today    |         0 |         0 |
+  | txid | payee | amount | created   | deposit   | completed |*
+  | 5001 | .ZZA  |    100 | %today-3w | %today-2w | %today-3w |
+  | 5002 | .ZZA  |    400 | %today-2w |         0 | %today    |
+  | 5003 | .ZZB  |    100 | %today-1d |         0 | %today    |  
+  | 5004 | .ZZC  |    300 | %today    |         0 |         0 |
   When member ".ZZA" visits page "sadmin/deposits"
   Then we show "Deposits" with:
   | Checks IN | 3 |

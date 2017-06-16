@@ -1,3 +1,16 @@
+2017-06-16
+. update includes/menu.inc
+. invoice uploads
+. co-branding partner collaborative signups
+. removed B_CLOSED (now $a->closed means: activated and !ok) and deleted never-activated closed accounts:
+  $list = f('db.col', 'uid', 'users', 'activated=0 AND flags&(1<<26)'); foreach ($list as $uid) f('r.deleteAccount', $uid);
+  UPDATE users SET activated=GREATEST(created,signed) WHERE (flags&(1<<2)) AND !activated
+  UPDATE users SET flags = flags-(1<<26) WHERE (flags&(1<<26))
+. switched domain name from new.rcredits.org to new.CommonGood.earth (finally)
+. UPDATE r_usd SET amount=-amount (reversed sign on usd exchange table)
+. ALTER TABLE `r_usd` CHANGE `payer` `payee` BIGINT(20) NULL DEFAULT NULL COMMENT 'CG account ID';
+. added CgBiz form to handle CG Business certification
+
 2017-05-11 version 2.66
 . INSERT INTO `new_rcredits`.`r_banks` (`route`, `branch`, `fedRoute`, `type`, `modified`, `newRoute`, `name`, `address`, `city`, `state`, `zip`, `phone`, `status`, `view`) VALUES ('062201601', NULL, '062201601', '0', '090215', NULL, 'BBVA Compass', '701 South 32nd Street', 'Birmingham', 'AL', '352330000', '8002667277', NULL, NULL);
 . added descriptions to flags on Summary page (but popovers are clunky)

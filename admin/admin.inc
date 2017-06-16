@@ -517,26 +517,26 @@ function flagsDesc($n, $list) {
  */
 function deposits() {
   $sql = <<<EOF
-    SELECT SUM(IF(amount<0, -amount, 0)) AS amountIn, SUM(IF(amount<0, 1, 0)) AS countIn,
-      SUM(IF(amount>0, -amount, 0)) AS amountOut, SUM(IF(amount>0, 1, 0)) AS countOut,
+    SELECT SUM(IF(amount>0 AND txid>0, amount, 0)) AS amountIn, SUM(IF(amount>0 AND txid>0, 1, 0)) AS countIn,
+      SUM(IF(amount<0 AND txid>0, amount, 0)) AS amountOut, SUM(IF(amount<0 AND txid>0, 1, 0)) AS countOut,
+      SUM(IF(txid<0, amount, 0)) AS amountBad, SUM(IF(txid<0, 1, 0)) AS countBad,
       deposit
     FROM r_usd
-    GROUP BY deposit ORDER BY deposit<>0, deposit DESC, amount>0
+    GROUP BY deposit ORDER BY deposit<>0, deposit DESC, amount<0
 EOF;
 
   $q = db\q($sql); // include today's potential deposit at the top
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $dateDpy = $deposit == 1 ? t('<b>ANCIENT</b>') : ($deposit ? u\fmtDate($deposit) : t('<b>TODAY</b>'));
-    foreach (['In', 'Out'] as $way) {
+    foreach (['In'=>t('IN'), 'Out'=>t('OUT'), 'Bad'=>t('BAD')] as $way => $wayDesc) {
       list ($total, $count) = [u\fmtAmt(${"amount$way"}, ''), number_format(${"count$way"})];
       if (!$count) continue;
       $details = w\btn("deposit-details/way=$way&date=$deposit&total=$total&count=$count", t('details'));
 
-      list ($func, $label) = ($way == 'In' or ($deposit > 0 and $deposit < strtotime('1/10/2017')))
+      list ($func, $label) = ($way != 'Out' or ($deposit > 0 and $deposit < strtotime('1/10/2017')))
       ? ['checks', t('checks')] 
       : ['achs', t('ACHes')];
-      $wayDesc = $way == 'In' ? t('IN') : t('OUT');
       $deposits[] =<<<EOF
 <tr>
   <td>$dateDpy</td>
@@ -566,18 +566,18 @@ EOF;
  * @param bool $mark: whether to set the deposit date for each relevant transfer, in r_usd
  */
 function printCheck(&$ck, $pos, $tx, $mark) {
-  extract(u\just('txid created payer amount deposit bankAccount', $tx));
-  $escrow = 'USkk' . ESCROW_ROUTING . ($amount < 0 ? ESCROW_IN : ESCROW_OUT);
-  $a = r\acct($payer);
+  extract(u\just('txid created payee amount deposit bankAccount', $tx));
+  $escrow = 'USkk' . ESCROW_ROUTING . ($amount > 0 ? ESCROW_IN : ESCROW_OUT);
+  $a = r\acct($payee);
   $a->fixTxBankAccount($bankAccount, $txid);
   
-  list ($fromName, $addr, $phone, $fromAcct, $toName, $toAcct) = $amount < 0 // which way
+  list ($fromName, $addr, $phone, $fromAcct, $toName, $toAcct) = $amount > 0 // which way
 //    ? [$a->legalNameDpy, $a->postalAddr, $a->phone, $bankAccount, PROJECT, $escrow] // from bank to escrow
     ? [$a->legalNameDpy, $a->postalAddr, $a->phone, $bankAccount, BANK_DBA, $escrow] // from bank to escrow
     : [PROJECT . ' (' . CGF_LEGALNAME . ')', CGF_POSTALADDR, CGF_PHONE, $escrow, $a->legalNameDpy, $bankAccount]; //e2b
-  $memo = $amount < 0 ? t('for %RCREDITS') : t('for DEPOSIT to account #') . substr($toAcct, 4 + 9);
+  $memo = $amount > 0 ? t('for %RCREDITS') : t('for DEPOSIT to account #') . substr($toAcct, 4 + 9);
 
-  list ($signature, $belowLine) = $amount < 0 
+  list ($signature, $belowLine) = $amount > 0 
   ? [t('Pre-authorized Check'), t('No Signature Required')] 
   : ['', SIGNATORY];
   
@@ -648,13 +648,13 @@ function adminSignin() {
   $pw2 = @$_COOKIE['pw2'];
   u\EXPECT($pw2, 'no pw2!');
   
-  $q = db\q("SELECT txid,payer,bankAccount FROM r_usd WHERE bankAccount<>'' and bankAccount NOT LIKE ':CRYPT_FLAG%'");
+  $q = db\q("SELECT txid,payee,bankAccount FROM r_usd WHERE bankAccount<>'' and bankAccount NOT LIKE ':CRYPT_FLAG%'");
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $bankAccount = u\crypt($bankAccount . '', 0, $pw2);
     db\update('r_usd', compact('txid', 'bankAccount'), 'txid');
     w\say(t('bank account encrypted in exchange record #%txid.', compact('txid')));
-    $a = r\acct($payer);
+    $a = r\acct($payee);
     if ($bankAccount = $a->bankAccount and !u\starts($bankAccount, CRYPT_FLAG)) {
       $bankAccount = u\crypt($bankAccount . '', 0, $pw2); // might be different (newer) than in r_usd
       $a->update(compact('bankAccount'));
@@ -761,6 +761,7 @@ function showSlugs() {
 // print iCards for all active members in the greater Greenfield ctty
 // be sure to chmod ...rcredits/temp to 777 before running this.
 function special() {
+return;
   eachX(function($x) {
     $cgf = 26742000000002;
     foreach (ray('type payer payee goods flags taking amount payeeFor') as $k) $$k = $x->$k;
@@ -783,6 +784,7 @@ function special() {
 }
 
 function special2() {
+return;
   eachA(function($a) {
     list ($balance, $rewards) = [$a->balance, $a->rewards]; // remember old values
 /**/    if (!$a->cacheOk(FALSE, FALSE) and (abs($a->balance - $balance) > .005 or abs($a->rewards - $rewards > 20))) debug("$a->id $a->fullName new: $a->balance+$a->rewards old: $balance+$rewards jid=$a->jid");

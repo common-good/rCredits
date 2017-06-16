@@ -139,7 +139,7 @@ function formAdminPanel_submit($form, &$sta) {
   
   // handle all other buttons with showQuery()
   if ($op == 'users') {
-    $fields = 'uid, flags, balance, r, rewards, savingsAdd AS saveAdd, minimum AS min, floor, city, postalCode AS zip';
+    $fields = 'uid, flags, balance, rewards, savingsAdd AS saveAdd, minimum AS min, floor, city, postalCode AS zip';
     return say(a\showQuery('users', 1, 'name', $fields));
   }
   
@@ -150,12 +150,12 @@ function formAdminPanel_submit($form, &$sta) {
 
   if ($op == 'txs') {
     $fields = <<<EOF
-    xid, t.created, flags, type AS ty, goods AS gd, t.:IS_TAKING AS k,
+    xid, t.created, t.flags, t.type AS ty, t.goods AS gd, t.:IS_TAKING AS k,
     IF (LOCATE('"force";s:1:"1"', u1.data)>0, 1, IF(LOCATE('"force";s:2:"-1"', u1.data)>0, -1, IF(LOCATE('"force";s:1:"0"', u1.data)>0, '0', ''))) AS f,
     payer, payee, amount, payerReward, payeeReward, payerFor AS for1, payeeFor AS for2, payerTid AS tid1, payeeTid AS tid2
 EOF;
     if ($mya->admin) $fields = str_replace('u1.', '', $fields);
-    return say(a\showQuery('r_txs', isDEV ? 1 : 'type NOT IN (:TX_REBATE,:TX_BONUS)', 'xid DESC', $fields, array('payer', 'payee')));
+    return say(a\showQuery('r_txs', 1, 'xid DESC', $fields, ['payer', 'payee']));
   }
 
   if ($op == 'gifts') return say(a\showQuery('r_gifts', "honor<>'share'", 'donid DESC', 'donid,giftDate,t.uid,amount,often,honor,honored,t.share,completed', 'uid'));
@@ -455,29 +455,30 @@ function formDeposits($form, &$sta, $deposit = '') {
 //  if ($deposit) return r\go("sadmin/deposit/$deposit");
   $title = item(t('Deposits'));
 
-  foreach ($ways = [t('IN'), t('OUT')] as $way) {  
-    $where = $way == t('IN') ? 'amount<0' : 'amount>0';
+  $ways = [t('IN') => '(amount>0 AND txid>0)', t('OUT') => '(amount<0 AND txid>0)']; // , t('BAD') => 'txid<0'];
+  if (r\acct()->superAdmin) foreach ($ways as $way => $where) {  
     $count = db\count('r_usd', $where . ' AND deposit=0');
-    $previous = db\lookup('MAX(deposit)', 'r_usd', $where);
-    if ($previous == 1) $previous = 0; // handle transition from Dwolla
-    $oldCount = $previous ? db\count('r_usd', $where . ' AND deposit=:previous', compact('previous')) : 0;
+//    $previous = db\lookup('MAX(deposit)', 'r_usd', $where);
+//    if ($previous == 1) $previous = 0; // handle transition from Dwolla
+//    $oldCount = $previous ? db\count('r_usd', $where . ' AND deposit=:previous', compact('previous')) : 0;
     $count = item(t('Checks') . " $way: $count");
 //    if ($previous) $reprint = boxFld('', t('Include/Reprint ') . $oldCount . t(' checks from ') . strftime('%d-%b', $previous) . '?'); else unset($reprint);
 // fails    if ($count or $previous) $submit = submit(t('Print checks ' . $way), 'primary', 'md', w\away());
-    if ($count or $previous) $submit = submit($way == t('IN') ? t('Print checks IN') : t('ACH Batch OUT'));
-    $previous = hidFld($previous);
+//    if ($count or $previous) 
+    $submit = submit($way == t('IN') ? t('Print checks IN') : t('ACH Batch OUT'));
+//    $previous = hidFld($previous);
 ///    echo "\n\n\nway=$way " . print_r(u\prefixKeys($way, compact(ray('count reprint submit previous'))), 1) . "\n\n\n";
-    $$way = w\fieldSet("_$way", u\prefixKeys($way, compact(ray('count submit previous'))), BARE);
+    $$way = w\fieldSet("_$way", u\prefixKeys($way, compact(ray('count submit'))), BARE);
   }
   
   $deposits = item(a\deposits(), ' ');
-  return compact('title', $ways, 'deposits');
+  return compact('title', array_keys($ways), 'deposits');
 }
 
 function formDeposits_submit($form, &$sta) {
   $op = w\op($sta);
   $way = str_replace('submit', '', $op); // cute. INsubmit or OUTsubmit -> IN or OUT
-  $previous = @$sta['input'][$way . 'previous'];
+//  $previous = @$sta['input'][$way . 'previous'];
 //  r\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1");
   $func = ($way == 'IN' or time() < strtotime('1/10/2017')) ? 'checks' : 'achs';
   r\go("sadmin/$func/way=$way&date=0&mark=1");
@@ -501,7 +502,7 @@ function depositDetails($args) {
   $pdf->setPrintFooter(TRUE);
 //  $pdf->setLanguageArray($l); // (eg "page" in footer)
 
-  list ($activity, $where) = $in ? [t('DEPOSIT'), 'amount<0'] : [t('CASHOUT'), 'amount>0'];
+  list ($activity, $where) = $in ? [t('DEPOSIT'), '(NOT (amount<0 XOR txid<0))'] : [t('CASHOUT'), '(amount<0 XOR txid<0)'];
   $today = $date == 1 ? t('(Historical)') : u\fmtDate($date ?: r\rTime());
   $escrow = $in ? ESCROW_IN : ESCROW_OUT;
   $pdf->setupFooter('', BANK_DBA . " $activity $today", ['........ A5990D1155A '.$escrow.'C', 'GnuMICR;12'], 'Page @PAGE of @PAGES');
@@ -531,7 +532,7 @@ EOF
   $pdf->say($left, $m, 0);
 
   $sql = <<<EOF
-    SELECT ABS(amount) AS amount, txid, uid, u.fullName AS name FROM r_usd t LEFT JOIN users u ON u.uid=t.payer 
+    SELECT ABS(amount) AS amount, txid, uid, u.fullName AS name FROM r_usd t LEFT JOIN users u ON u.uid=t.payee 
     WHERE $where AND deposit=$date ORDER BY txid
 EOF;
   $q = db\q($sql);
@@ -576,24 +577,24 @@ EOF;
  * Create an ACH Batch file for all relevant checks.
  */
 function achBatch($args) {
-  extract(u\just('way date reprint mark', $args));
-  $where = @$reprint ? "(deposit=0 OR deposit>=$previous)" : "deposit=$date";
-  $where .= strtoupper($way) == 'IN' ? ' AND amount<0' : ' AND amount>0';
-  $q = db\q("SELECT txid,created,payer,amount,deposit,bankAccount FROM r_usd WHERE $where ORDER BY created, txid");
+  extract(u\just('way date mark', $args));
+  $ways = ['IN'=>'(amount>0 AND txid>0)', 'OUT'=>'(amount<0 AND txid>0)', 'BAD'=>'txid<0'];
+  $where = $ways[$way];
+  $q = db\q("SELECT txid,created,payee,amount,deposit,bankAccount FROM r_usd WHERE deposit=:date AND $where ORDER BY created, txid", compact('date'));
   if (!$q->rowCount()) return r\go('sadmin/deposits', t('There are no transactions for that ACH batch.'));
 
   $date = strftime('%Y%m%d', $date);
   u\csvStart(PROJECT . "-ach-batch-$way-$date.csv");
   while ($tx = $q->fetchAssoc()) {
     extract($tx);
-    $a = r\acct($payer);
+    $a = r\acct($payee);
     $a->fixTxBankAccount($bankAccount, $txid);
     $routing = substr($bankAccount, 4, 9);
     $account = substr($bankAccount, 4 + 9);
     $fullName = substr($a->fullName, 0, 22); // Citizens Bank limits this field to 22 chars
     $amount = number_format(abs($amount), 2);
     $addenda = substr(PROJECT . " tx#$txid", 0, 79); // Citizens Bank limits this field to 79 chars
-    $row = [$payer, $fullName, $routing, $account, $amount, $addenda];
+    $row = [$payee, $fullName, $routing, $account, $amount, $addenda];
     u\csv($row);
     if (!$deposit and $mark) db\update('r_usd', ray('deposit txid', strtotime('today'), $txid), 'txid');
   }
@@ -606,12 +607,12 @@ function achBatch($args) {
  * Create a PDF of all relevant checks.
  * @param string $way: IN (from member bank account to rCredits) or OUT (from rCredits to member bank account)
  * @param int $date: deposit/check date
- * @param bool $reprint: whether to include a reprint of the previous deposit's checks
- * @param int $previous: date of previous deposit
+ * @param bool $reprint: UNUSED whether to include a reprint of the previous deposit's checks
+ * @param int $previous: UNUSED date of previous deposit
  * @param bool $mark: whether to set the deposit date for each relevant transfer, in r_usd
  */
 function printChecks($args) {
-  extract(u\just('way date reprint previous mark', $args));
+  extract(u\just('way date mark', $args));
   include_once __DIR__ . '/../pdf.class';
   $ck = new r\Pdf();
   $ck->setPrintHeader(FALSE);
@@ -620,9 +621,9 @@ function printChecks($args) {
 //  $ck->SetMargins(0, 0, 0); // left/top/right margin
   $ck->SetAutoPageBreak(FALSE);
 
-  $where = @$reprint ? "(deposit=0 OR deposit>=$previous)" : "deposit=$date";
-  $where .= strtoupper($way) == 'IN' ? ' AND amount<0' : ' AND amount>0';
-  $q = db\q("SELECT txid,created,payer,amount,deposit,bankAccount FROM r_usd WHERE $where ORDER BY created, txid");
+  $ways = ['IN'=>'(amount>0 AND txid>0)', 'OUT'=>'(amount<0 AND txid>0)', 'BAD'=>'txid<0'];
+  $where = $ways[strtoupper($way)];
+  $q = db\q("SELECT txid,created,payee,amount,deposit,bankAccount FROM r_usd WHERE deposit=:date AND $where ORDER BY created, txid", compact('date'));
   $pos = 3; // before first position of 3, on 3-up check paper
   $count = 0;
   while ($tx = $q->fetchAssoc()) {

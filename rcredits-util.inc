@@ -18,7 +18,7 @@ define ('HEX_CHARS', '0123456789abcdef');
 
 /*
  * Return an ascii character not in the given string (but not null).
- * (used in game.rcredits.org to simulate mb_split)
+ * (used in game.CommonGood.earth to simulate mb_split)
  * @return the character (FALSE if string contains all characters)
  */
 function notIn($s) {
@@ -155,6 +155,25 @@ function badSsn(&$ssn, $dob = '') {
     if ($dob < strtotime('25Jun2011')) if ($c1 == '8' or ($c1 == '7' and $s1 > '771')) $bad = TRUE;
   }
   return @$bad ? (@$dob ? 'bad ssn' : 'bad federal id') : FALSE;
+}
+
+/**
+ * Say whether the given postal code is bad.
+ * @param string $z: (MODIFIED) the postal code to test, returned with extraneous punctuation removed
+ * @param int $country: country code (defaults to US)
+ * @return the error index if the postal code is bad, otherwise FALSE
+ */
+function badZip(&$z, $country = US_COUNTRY_ID) {
+  $z = preg_replace('/[^A-Za-z0-9\\-]/', '', $z);
+  $pattern = $country == US_COUNTRY_ID ? '/^\\d{5}(\\-\\d{4})?$/' : '/*/'; // allow any postal code for other countries, for now
+  return (!preg_match($pattern, $z)) ? 'bad zip' : FALSE;
+}
+
+/**
+ * Say where the given address contains a PO box.
+ */
+function poAddress($address) {
+  return (stripos(@$address, ' box ') or stripos(@$address, 'pob ') !== FALSE);
 }
 
 /**
@@ -333,7 +352,10 @@ function a22x3($s) {
  * @param assoc $ray: list of attribute names and values (value can be an array)
  */
 function tribs($ray) {
-  foreach ($ray as $k => $v) $tribs[$k] = "$k=\"" . (is_array($v) ? join(' ', $v) : $v) . '"';
+  foreach ($ray as $k => $v) {
+///    if (is_array($v)) foreach ($v as $j) if (is_array($j)) die(print_r(debug_backtrace(), 1));
+    $tribs[$k] = "$k=\"" . (is_array($v) ? join(' ', $v) : $v) . '"';
+  }
   return join(' ', @$tribs ?: []);
 }
 
@@ -524,7 +546,7 @@ This function uses the ignore_errors context parameter. Without this set (the de
 
 When using POST with REST, take care: PHP's HTTP redirection handler will drop your POST payload if the endpoint issues a redirect. If you experience problems using POST with the function below, it might be due to redirects. Most of the POST calls I've run into issue redirects if the URL is missing a trailing '/' character. In other words, if you experience problems where it seems like your parameters are not being sent in, try appending a '/' to the end of the URL and try it again.
  */
-function httpRequest($url, $content = FALSE, $responseFormat = 'raw', $extra_headers = [], $method = 'POST', $request_format = 'url') {
+function post($url, $content = FALSE, $responseFormat = 'raw', $extra_headers = [], $method = 'POST', $request_format = 'url') {
   $ignore_errors = TRUE;
   $headers = array('Content-Type' => $request_format == 'json' ? 'application/json' : 'application/x-www-form-urlencoded') + $extra_headers;
 
@@ -1359,7 +1381,6 @@ function caller($depth = 1) {return debug_backtrace()[$depth + 1]['function'];}
 function rotateBits($b, $i) {return ($i = $i % strlen($b)) ? substr($b, $i) . substr($b, 0, $i) : $b;}
 function xorBits($b1, $b2) {$res = ''; for ($i = 0; $i < strlen($b1); $i++) $res .= (@$b1[$i] xor @$b2[$i]) ? 1 : 0; return $res;}
 function a2b($s) {$b = ''; for ($i = 0; $i < strlen($s); $i++) $b .= lpad(decbin(ord($s[$i])), 8); return $b;}
-function badZip($z, $country = US_COUNTRY_ID) {return ($country == US_COUNTRY_ID and !preg_match('/^\d{5}(\-\d{4})?$/', $z)) ? 'bad zip' : FALSE;}
 function randomFloat($min = 0, $max = 1) {return $min + mt_rand() / mt_getrandmax() * ($max - $min);}
 function hash($s) {return \hash('sha256', $s, false);}
 function day2n($day) {return array_search($day, ray('Sun Mon Tue Wed Thu Fri Sat'));} // workaround %u and %w failure

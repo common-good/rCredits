@@ -211,7 +211,7 @@ EOF
   'must be signed out' => t('You are already signed in.'),
   'wrong payroll co' => t('The company name in cell A1 must match your company name exactly (%coName)'),
   'not payroll csv' => t('This is not a payroll CSV. It must say "Payroll Details" in cell A2.'),
-  'bad payroll csv' => t('Incorrect payroll CSV format at line %line.'),
+  'bad csv' => t('Incorrect CSV format'),
   'empty payroll' => t('There are no employees listed as having received a %PROJECT payroll deduction.'),
   'bad payroll employee' => t('%employee is mispelled, does not have an active %PROJECT Account, or is not listed as an employee on your Relations page. Click Settings, then Relations.'),
   'illegal amount change' => t('You cannot %action the original amount (%amount). <%a>Send an invoice</a> instead.'),
@@ -226,12 +226,13 @@ EOF
   'maybe not cash' => t('If you are actually reimbursing someone or paying them for goods or services (for example, employee labor), choose a different button under "For".'),
   'link expired' => t('That link has expired.'),
   'login failed' => t('Your attempt to sign in failed. Click the "Password problems" link if you need a new password.'),
+  'bad file type' => t('Bad file type: %filetype'),
   'file save error' => t('Your file upload did not succeed.'),
   'forced without perm' => t('<p>An unauthorized transaction was made using a Company %PROJECT Card.</p><ul><li>Date: %date</li><li>Customer: %a2 (by %agent2)</li><li>Company: %a1 (by %agent1)</li><li>Amount: %amount</li><li>For: %for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
   'bad invite num' => t('That is not a valid username or invitation number.'),
   'negative saveWeekly' => t('Your discretionary savings are already at their minimum, so your weekly savings addition cannot be negative.'),
   'requires signin' => t('You must be signed in, to use that page.'),
-  'too many days' => t('You cannot view or download more than 18 months at a time.'),
+  'too many days' => t('You cannot view more than 18 months at a time on screen (but you can download any period).'),
 //  'saveWeekly too low' => t('With a negative "minimum", your weekly savings addition must be at least %min.'),
 );
 $GLOBALS['tStrings']['flooded'] = $GLOBALS['tStrings']['bad login'];
@@ -473,17 +474,18 @@ EOF;
 }
   
 /**
- * Say whether the user has permission to run the named query.
- * @param string $queryName: name of the query -- if first character is a digit, restrict to admins 0=super 1=admin 2=cAdmin2
+ * Say whether the member has permission to run the named query (all queries are for members only).
+ * @param string $qName: name of the query -- if first character is a digit, restrict to admins/companies
+ *   0=super 1=admin 2=cAdmin2 B_CO(6)=company
  * @param string $sql: the query
  *                     (RETURNED) the query modified to apply to the current community, if appropriate
  * @return FALSE if not permitted, else the query name without any leading digit
  */
 function queryPermitted($qName, &$sql = '') {
-  if (!preg_match('/^([0-9])(.*)/', $qName, $m)) return $qName;
-  if (!$mya = r\acct()) return FALSE;
-  
-  if ($mya->community) $sql = str_replace('WHERE 1 ', "WHERE u.community=$mya->community ", $sql); // handle community-specific query
+  if (!$mya = r\acct()) return FALSE; // queries are for signed-in members only
+  if (!preg_match('/^([0-9])(.*)/', $qName, $m)) return $qName; // no restrictions
+  if ($mya->community) $sql = str_replace('WHERE 1 ', "WHERE u.community=$mya->community ", $sql); // handle community-specific query (if is for superAdmin)
+
   list ($zot, $digit, $qName) = $m;
   return $digit >= ($mya->superAdmin ? 0 : ($mya->admin ? 1 : ($mya->cAdmin2 ? 2 : ($mya->co ? B_CO : 9)))) ? $qName : FALSE;
 }
@@ -727,7 +729,7 @@ function whoFldSubmit($field, $question, $amount = '0', $askGift = '0') {
  */
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formArray, $formSta, $rUrl;
-  
+
   setAcct(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
   if (!@$formSta['confirm'] and !in_array($function, ray(R_NOLOG_FORMS))) {
     if ($logs = t\POST()) {
@@ -774,7 +776,6 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 
 //    if (!in_array('form-horizontal', @$form['#attributes']['class'])) $form['#attributes']['class'][] = 'form-vertical';
     $formArray = $form2 = $form; 
-
     $rent = \render($form2);
 
 //    if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-radio')) js('js/radiocheck.js', 'file', 'footer');
@@ -867,6 +868,17 @@ function boxUser($code, $uid) {
     db\update('r_boxes', ray('id access', $id, r\rTime()), 'id');
   } else $id = r\makeDevice($uid, $code, TX_WEB);
   return r\setCook($cookid, $id, r\rTime() + SESSION_LIFE);
+}
+
+/**
+ * Return rows from an uploaded file.
+ */
+function uploadrows($filename) {
+  file_put_contents($filename, strtr(file_get_contents($filename), ["\r\n" => "\n", "\r" => "\n"]));
+  $fp = fopen($filename, "r"); 
+  while ($row = fgetcsv($fp)) $rows[] = $row; // get all rows, so we can look ahead
+  fclose($fp);
+  unlink($filename);
 }
 
 /**
@@ -1277,14 +1289,15 @@ function findCompany($company, $companyPhone) {
  * Return form fields for name and email.
  * @param bool $what: prompt description of what the name is for ("Company", "Community", or "Full name")
  * @param string $fullName: default full name
+ * @param string $email: default email address
  * @return the relevant form fields
  */
-function nameAndEmail($what, $fullName = '') {
+function nameAndEmail($what, $fullName = '', $email = '') {
   $who = $what == t('Company') ? t('The company\'s') : ($what == t('Community') ? t('The community\'s') : t('Your'));
   $onchange = w\onchange("var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);");
   $fullName = textFld("$what:", ["$who " . t('full name'), t('usename desc')], required(@$fullName) + $onchange);
   $legalName = textFld(t('Legal name:'), ["$who " . t('full legal name (if different)'), $who . t('legalname desc')]);
-  $email = textFld(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required());
+  $email = textFld(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required(@$email));
   return compact(ray('fullName legalName email'));
 }
 
@@ -1295,49 +1308,60 @@ function nameAndEmail($what, $fullName = '') {
  */
 function contactFields($defaults = [], $a = '') {
 //  $country = $state = ''; // make sure these are not NULL
-  $fields = 'phone faxetc country postalCode address city state tenure owns postalAddr';
+  $hidableFlds = 'phone country state postalCode address city partner customer';
+  $fields = $hidableFlds . 'faxetc tenure owns postalAddr partnerCode';
   extract($defaults ?: ($a ? (array) $a->account($fields) : []));
-  $country = @$country + 0;
-  $state = @$state + 0;
-  //  $dupPhone = @$defaults['dupPhone'];
-
-//  js('http://ziplookup.googlecode.com/git/public/ziplookup/zipLookup.min.js', 'file', 'header');
-  js('js/countries.js', 'file', 'footer');
-  js('js/zipLookup.js', 'file', 'footer');
-  $js = <<<EOF
-  print_country($country, $state);
-  $('#rcreditswebformsignup').submit(function() {
-    $('#edit-hidcountry').val($('#edit-country').val());
-    $('#edit-hidstate').val($('#edit-state').val());
-  });
-EOF;
-//  print_country("$country", "$state");
-//  if ("$state" == '') zipChange('010 013');
-//EOF;
-  js($js, 'inline', 'footer');
-
-  $countryAttrib = w\onchange("print_state(this.options[this.selectedIndex].value,'');");
-  $onblur = 'setPostalAddr();';
-  $stateAttrib = attrib(compact('onblur'));
-  $addressAttrib = $cityAttrib = w\onchange($onblur);
-  $zipAttrib = w\onchange("zipChange('010 013');");
-  $hidCountry = hidFld($country); // remember this when Drupal forgets it on error
-  $hidState = hidFld($state); // remember this when Drupal forgets it on error
   
-  $phone = textFld(t('Phone:'), [t('Your phone number')], required(@$phone ? u\fmtPhone($phone): ''));
+  if (@$partner and @$partnerCode
+    and @$postalCode and @$address and @$city and $state0 = @$state
+    and @r\acct($partner)->emailCode == $partnerCode
+    and $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'))
+    and !u\poAddress($address)
+    and !u\badZip($postalCode)) { // using valid signup data from partner org
+
+    $postalAddr = "$address, $city, $state0 $postalCode";
+    foreach (ray($hidableFlds) as $k) $$k = w\hidFld($$k);
+    
+  } else {
+    $country = @$country + 0;
+    $state = @$state + 0;
+    $hidCountry = hidFld($country); // remember this when Drupal forgets it on error
+    $hidState = hidFld($state); // remember this when Drupal forgets it on error
+
+  //  js('http://ziplookup.googlecode.com/git/public/ziplookup/zipLookup.min.js', 'file', 'header');
+    js('js/countries.js', 'file', 'footer');
+    js('js/zipLookup.js', 'file', 'footer');
+    $js = <<<EOF
+    print_country($country, $state);
+    $('#rcreditswebformsignup').submit(function() {
+      $('#edit-hidcountry').val($('#edit-country').val());
+      $('#edit-hidstate').val($('#edit-state').val());
+    });
+EOF;
+    js($js, 'inline', 'footer');
+
+    $countryAttrib = w\onchange("print_state(this.options[this.selectedIndex].value,'');");
+    $onblur = 'setPostalAddr();';
+    $stateAttrib = attrib(compact('onblur'));
+    $addressAttrib = $cityAttrib = w\onchange($onblur);
+    $zipAttrib = w\onchange("zipChange('010 013');");
+    $phone = textFld(t('Phone:'), [t('Your phone number')], required(@$phone ? u\fmtPhone($phone): ''));
+    $faxetc = @$faxetc ? textFld(t('Fax etc:'), [t('Other contact info'),t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.')], dft(@$faxetc)) : NULL;
+    $country = selectFld(t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
+    $postalCode = textFld(t('Postal Code:'), [t('Physical location postal code'), t('Postal code for your <em>physical location</em>')], required(@$postalCode) + $zipAttrib);
+    $address = textFld(t('Street Address:'), [t('Physical address'), t('Where is your building located (physical address)?')], required(@$address) + $addressAttrib);
+    $city = textFld(t('City:'), [t('City where you live')], required(@$city) + $cityAttrib);
+    $state = selectFld(t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
+  }
+
+  $postalAddr = textFld(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
+  
 //$a ? '' : t('Your phone number. This should not be a number already used for another %PROJECT Account &mdash; unless you have no other phone number.')
 //  $dupOk = hidFld(0, attrib(ray('id', 'edit-dupOk')));
 //  $dupOk = boolFld(t('Dup Ok:'), t('If this is already the phone number for another %PROJECT Account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your %PROJECT Account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
 
-  $faxetc = @$faxetc ? textFld(t('Fax etc:'), [t('Other contact info'),t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.')], dft(@$faxetc)) : NULL;
-  $country = selectFld(t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
-  $postalCode = textFld(t('Postal Code:'), [t('Physical location postal code'), t('Postal code for your <em>physical location</em>')], required(@$postalCode) + $zipAttrib);
-  $address = textFld(t('Street Address:'), [t('Physical address'), t('Where is your building located (physical address)?')], required(@$address) + $addressAttrib);
-  $city = textFld(t('City:'), [t('City where you live')], required(@$city) + $cityAttrib);
-  $state = selectFld(t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
-  $tenure = $a ? NULL : textFld(t('How long:'), [t('MONTHS at this address.')], required(@$tenure));
+  $tenure = $a ? NULL : textFld(t('How long:'), [t('MONTHS at current address.')], required(@$tenure));
   $owns = boolFld('', '', $a ? $a->owns : 0, [t('Rent'), t('Own')]);
-  $postalAddr = textFld(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
 
   return compact(ray($fields . ' hidCountry hidState'));
 }  
@@ -1552,7 +1576,7 @@ function hack($message, $info = []) {
 
 function signout($arg = '') {
   @\session_destroy();
-//  return r\go(isDEV ? 'http://rPromo/_sites?region=x' : 'http://rCredits.org/control.html?region=x');
+//  return r\go(isDEV ? 'http://rPromo/_sites?region=x' : 'http://CommonGood.earth/control.html?region=x');
 //  if (isDEV and !u\test()) r\go('signin', $arg == 'timedout' ? 'timed out' : '');
   return r\go(PROMO_URL . '/control.html?region=x' . ($arg ? "&a=$arg" : ''));
 }
@@ -1666,8 +1690,9 @@ function dateRange2($args, $url, $download = TRUE) {
 function dateRangeValidate(&$sta) {
   extract(u\just('period starting ending download', $sta['input']));
   $op = op($sta);
-  list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? rangeDates(@$period) : rangeDates('', @$starting, @$ending);
-  if ($ending - $starting > TX_MAX_DAYS * DAY_SECS and $op != 'downloadDates') return w\say('too many days', 'err');
+  $downloadOp = ($op == 'submitPeriod' or $op == 'downloadPeriod');
+  list ($starting, $ending, $period) = $downloadOp ? rangeDates(@$period) : rangeDates('', @$starting, @$ending);
+  if ($ending - $starting > TX_MAX_DAYS * DAY_SECS and !$downloadOp) return w\say('too many days', 'err');
   u\preray(compact(ray('starting ending period')), $sta['input']);
 }
 
@@ -1963,7 +1988,7 @@ function helpText($page, $tag = '', $args = '') {
   $page = strtolower($page);
   $help = $page == 'charge' ? strtr(rawHelp('pay', $tag, $args), ray('pay', 'charge')) : rawHelp($page, $tag, $args);
   if ($help) return u\SUBS(@$help, '%');
-  return t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at %regPhone. Or send your question by <%a>email</a>.', 'regPhone _a', u\fmtPhone(r\regionfield('phone')), w\atag('mailto:' . r\regionfield('email') . '?subject=' . t('help with %PROJECT Members Site, %page page', 'page', $page)));
+  return t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at %regPhone. Or send your question by <%a>email</a>.', 'regPhone _a', u\fmtPhone(r\regionfield('phone')), w\emailtag(NULL, t('help with %PROJECT Members Site, %page page', 'page', $page)));
 }
 
 /**
@@ -2266,8 +2291,17 @@ function webAccess($perms = NULL) {
   if ($perms == 'superadminORdev') return ($mya->superAdmin or isDEV);
   
   foreach (ray($perms) as $perm) {
-    $not = (substr($perm, 0, 1) == '-');
-    $hasPerm = $mya->can(u\consta('b', $not ? substr($perm, 1) : $perm));
+    if ($not = (substr($perm, 0, 1) == '-')) $perm = substr($perm, 1);
+/*      $perm = 'can' . $perm;
+      if ($not ? $mya->$perm : !$mya->perm) return FALSE;
+/*      if ($mya->$perm) return FALSE;
+    } elseif (!$mya->$perm) return FALSE;*/
+    
+/*///*          if ($mya->$perm) {debug(compact(ray('perms perm'))); return FALSE;}
+///    } elseif (!$mya->$perm) {debug(compact(ray('perms perm'))); return FALSE;} */
+
+    
+    $hasPerm = $mya->can(u\consta('b', $perm));
     if ($not ? $hasPerm : !$hasPerm) return FALSE;
   }
   return TRUE;
@@ -2337,6 +2371,11 @@ function atag($href, $extras = []) {
     if (substr($href, 0, 6) == 'mailto' or substr($href, 0, 4) == 'http') $extras += w\away();
   }
   return 'a ' . u\tribs(compact('href') + $extras);
+}
+function emailtag($email = NULL, $subject = '', $body = '') {
+  u\setDft($email, r\regionfield('email'));
+  foreach (['subject', 'body'] as $k) if ($$k) $$k = "$k=" . urlencode($$k) . '&';
+  return "a href=\"mailto:$email?$subject$body\" target=\"_blank\"";
 }
 
 /**

@@ -15,10 +15,10 @@ Setup:
   |   2 | %today-2m | signup   |    100 | ctty | .ZZB | signup  |
   |   3 | %today-2m | signup   |    100 | ctty | .ZZC | signup  |
   And usd transfers:
-  | payer | amount | completed |*
-  | .ZZA  |   -400 | %today-2m |  
-  | .ZZB  |   -100 | %today-2m |  
-  | .ZZC  |   -300 | %today-2m |  
+  | payee | amount | completed |*
+  | .ZZA  |    400 | %today-2m |  
+  | .ZZB  |    100 | %today-2m |  
+  | .ZZC  |    300 | %today-2m |  
   Then balances:
   | id   | balance | rewards |*
   | .ZZA |     400 |     100 |

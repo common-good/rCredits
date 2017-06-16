@@ -175,7 +175,7 @@ EOF
   ) . $back;
 
   if ($i == 'backing-rcredits') return t(<<<EOF
-    <p>%RCREDITS are backed by all %PROJECT members together. Backing %RCREDITS means you will accept at least <i>a limited amount</i> of them as payment for your goods and services (or trade US Dollars for them) even if, at that time, you cannot easily spend them or easily exchange them for US Dollars. For example, if over the past six months the average amount of Common Good Credits you received or spent in a month is $200, you agree back $200 worth of Common Good Credits. This means if your community has a <%aCrunch>cash flow crunch</a>, you agree to accept at least $200 more in Common Good Credits as payment for your goods and services.</p>
+    <p>%RCREDITS are backed by all %PROJECT members together. Backing %RCREDITS means you will accept at least <i>a limited amount</i> of them as payment for your goods and services (or trade US Dollars for them) even if, at that time, you cannot easily spend them or easily exchange them for US Dollars. For example, if over the past six months the average amount of Common Good Credits you received or spent in a month is $200, you agree to back $200 worth of Common Good Credits. This means if your community has a <%aCrunch>cash flow crunch</a>, you agree to accept at least $200 more in Common Good Credits as payment for your goods and services.</p>
 
     <p>Like the Federal Reserve's backing for US Dollars held as bank deposits, backing for %RCREDITS helps prevent unfounded fears from causing a "run on the bank". Since we all make this agreement together, we can rest assured that even in a crisis %RCREDITS will maintain their value.</p>
 EOF

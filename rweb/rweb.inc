@@ -57,7 +57,7 @@ function ajax() {
 //  $mya = r\acct($myid, $aid);
   
   if ($op == 'typeWho') {
-    exit(json_encode(be\memberRay($myid)));
+    exit(json_encode(be\memberRay($myid, $aid)));
   } elseif ($op == 'changeCtty') {
     extract(u\just('uid newCtty retro', $data));
     $a = r\acct($uid);
@@ -92,8 +92,8 @@ function ajaxRet($data, $ok = 1) {exit(json_encode($data + compact('ok')));}
 
 /**
  * Complete a "no signin required" request
- *   called when the user clicks an email link: new.rcredits.org/do/do<form>~<qid>~<emailCode>~mo~v
- *   like new.rcredits.org/do/doProxies~NEWAAA~23lkjlk6j~2~$16.
+ *   called when the user clicks an email link: new.CommonGood.earth/do/do<form>~<qid>~<emailCode>~mo~v
+ *   like new.CommonGood.earth/do/doProxies~NEWAAA~23lkjlk6j~2~$16.
  * @param string code: an encoded serialized array of parameters, possibly including:
  *   op: what to do (REQUIRED)
  *   v: an amount or identifier
@@ -507,6 +507,7 @@ function printInvite1($a, &$pdf) {
   list ($dxHeart, $dyHeart, $hHeart) = $co ? [2.5, 1.6, .4] : [2.05, 1.15, .3];
   list ($x0, $wLogo, $wHeart) = [$y0, $hLogo, 1.9*$hHeart];
   list ($sSite, $sSlogan, $sProject) = $co ? ['semi-expanded', 'normal', 'normal'] : ['expanded', 'semi-expanded', 'semi-expanded'];
+  list ($sloganMax, $sSloganTight) = $co ? [18, 'semi-condensed'] : [20, 'normal'];
   list ($dxInvite, $dyInvite, $ptInvite, $dyLine, $dxLine, $dyGoodFor) = $co ? [$x0+$wLogo+.07, .07, 11.5, .84, .25, .95] : [$x0+$wLogo+.07, 0, 9, .69, .125, .74]; // Line UNUSED
   list ($dxProject, $dyProject, $ptProject, $dySlogan) = $co ? [$dxInvite-.02, .27, 24, .7] : [$dxInvite-.02, .15, 20, .52];
   list ($wCard, $hCard, $tx0) = $co ? [4.25, 2.75, $x0+.04] : [3.5, 2, $x0+.02]; // card dimensions, text indent
@@ -533,7 +534,7 @@ function printInvite1($a, &$pdf) {
     $pdf->Image(__DIR__ . '/../images/' . PROJECT_LOGO, $x+$x0, $y+$y0, $hLogo, $hLogo, '', '', '', true); // file, x, y, w, h, type, link, align, resize
     $pdf->say($invite, $x+$dxInvite, $y+$y0+$dyInvite, $wInvite, '', "$ptInvite;font-stretch:$sInvite", 'L');
     $pdf->say(PROJECT . '<sup style="font-size:50%;">&trade;</sup>', $x+$dxProject, $y+$y0+$dyProject, $wInvite, '', "$ptProject;B;color:darkblue;font-stretch:$sProject", 'L');
-    $scardi = strlen($slogans[$cardi]) > 20 ? 'normal' : $sSlogan;
+    $scardi = strlen($slogans[$cardi]) > $sloganMax ? $sSloganTight : $sSlogan;
     $pdf->say(t('the payment card ' . $slogans[$cardi]), $x+$dxInvite, $y+$y0+$dySlogan, $wInvite, '', "$ptInvite;font-stretch:$scardi;color:darkgray", 'L');
 //    $pdf->Line($x+$dxLine, $y+$dyLine, $x+$wCard-$dxLine, $y+$dyLine, $gStyle); // x1, y1, x2, y2, style
 
@@ -622,7 +623,7 @@ function statement($month = '') {
   $pdf->RoundedRect(91, 30, 60, 60, 3.50, '1111', 'DF', NULL, array(255, 255, 255)); // x, y, w, h, ?, fill?
   */
   //$pdf->Cell(0, 0, 'Page ', 0, false, 'L', 0, '', 0, false, 'T', 'M');
-  //$pdf->writeHTMLCell(40, 10, 160, 84.5, '<div style="font-size:44px;">rCredits.org</div>');
+  //$pdf->writeHTMLCell(40, 10, 160, 84.5, '<div style="font-size:44px;">CommonGood.earth</div>');
   list ($address, $city, $state, $zip) = u\parseAddr($mya->postalAddr);
   $pdf->setX($m + 10);
   $pdf->Cell(0, 0, $mya->j_fullName, '', 2);
@@ -1044,7 +1045,8 @@ function formAgreement($form, &$sta) {
     say('self must sign', 'signedBy');
   } else {
     $signerA = $mya->cAdmin ? ($mya->co ? r\acct($mya->helper) : $mya) : $mya->agentA;
-    $signedBy = textFld(t('Signed:'), t('Type your full name here ') . "($signerA->legalName)", required($mya->cAdmin ? $signerA->legalNameDpy : ''));
+    $behalf = $mya->co ? t('(on behalf of %co) ', 'co', $mya->fullName) : '';
+    $signedBy = textFld(t('Signed:'), $behalf . t('Type your full name here ') . "($signerA->legalName)", required($mya->cAdmin ? $signerA->legalNameDpy : ''));
     $setupFoot = w\setupFoot();
     $_addendum = t('This means, for example, paying attention to your experience and making comments to improve the system.');
     if ($mya->cAdmin) $_addendum .= t('</p><p>ADMINISTRATORS need not put checkmarks in the boxes.');
@@ -1077,7 +1079,7 @@ EOF
   , '_ol1 _aAttn _aDecision _ol2 _aOther', 
     'ol style="list-style-type:lower-alpha;"', w\atag('/help/paying-attention'), w\atag('/help/decision-principles'), 'ol style="list-style-type:lower-roman;"', w\atag('/help/other-decisions'));
 
-  $agreement = t(<<<EOF
+  $prolog = ($mya and $mya->co) ? t('<h4>As a responsible participant in the Common Good Economy:</h4>') : t(<<<EOF
 %instructions
 <%div>
 <h4>A. I recognize that:</h4>
@@ -1088,6 +1090,10 @@ EOF
 </ul>
 
 <h4>B. As a responsible participant in the Common Good Economy:</h4>
+EOF
+  );
+  
+  $agreement = $prolog . t(<<<EOF
 <ol>
   <li>[1] As long as I can spend my %RCREDITS easily or exchange them easily for US Dollars, I will accept them without limit as payment for my goods and services. I will exchange %RCREDITS for US Dollars only if I cannot spend them easily.</li>
   <li>[2] I will accept %RCREDITS from members of any <%aCGC>Common Good Community</a> in good standing. In the event of a <%aCrunch>cash flow crunch</a> I will <%aBack>back</a> %RCREDITS up to my average monthly use over the past six months.</li>
@@ -1468,7 +1474,7 @@ function formSummary($form, &$sta, $qid = '') {
 //    $committed = item(u\fmtAmt(max(0, $mya->committed)), t('Committed:'), t('reserved for donation to Common Good Finance'));
 
     $invites = db\count('r_invites', 'inviter=:myid', compact('myid'));
-    $successes = db\count('users', 'helper=:myid AND (:IS_OK OR :IS_CLOSED)', compact('myid'));
+    $successes = db\count('users', 'helper=:myid AND activated<>0', compact('myid'));
     $doInvite = $mya->cAdmin 
     ? w\btn('/community/invite/print', t('front')) . ' ' . w\btn($mya->invitationBack(), t('back'))
     : t('<small>[<%a>invite someone</a>]</small>', '_a', atag('/community/invite'));
@@ -1545,7 +1551,7 @@ function formSummary_submit($form, &$sta) {
 
   $mya->stampNotes($notes);
   
-  if ($mya->superAdmin) { // most of this is for regional admin only
+  if ($mya->cAdmin) {
     $aa = $mya->agentA;
     if (@$who and ($who->community == $aa->community or $aa->id == 1)) {
       svar('myid', $who->id); // make it the new current account
@@ -1563,10 +1569,18 @@ function formSummary_submit($form, &$sta) {
       }
 
       if (@$rTrader and !$mya->ok) { // activating the account
+        if (!$mya->activated) { // first time activation
+          u\EXPECT($mya->superAdmin, 'initial activation is only for superadmin');
+          $mya->eachPartner(function($coA, $zot, $custCode) { // tell partner that account is activated
+            u\post($coA->partnerAPI(), ray('partnerCode customer op', $coA->emailCode, $custCode, 'end'));
+          });
+        }
         $DBTX2 = \db_transaction();
         u\EXPECT($helper, 'no helper!');
         $mya->update(compact('helper')); // this must happen before activating account (on next line)
         r\membershipEvent($mya, 'ok', $rTrader);
+        $mya->setBit(B_NONUDGE, FALSE, TRUE);
+
         a\secureVery($mya);
         if (!$mya->co) {
   //        if (!a\photoFromFile($mya, $err)) return say($err, 'ERR');
@@ -1706,13 +1720,17 @@ function photoUpload($uid = '', $sid = '') {
 
   $img = u\alterImg($img0, $w, $h, $x1, $y1, $cropW, $cropH, $angle);
 
-  if ($mya->co) {
-	  imagejpeg($img, DRUPAL_ROOT . $mya->photoFilename(TRUE), $quality);
-  } else {
-    ob_start();
-    imagejpeg($img, NULL, $quality);
-    $photo = ob_get_clean();
-    $mya->update(compact('photo')); // do not combine this with line above
+  try {
+    if ($mya->co) {
+      imagejpeg($img, DRUPAL_ROOT . $mya->photoFilename(TRUE), $quality);
+    } else {
+      ob_start();
+      imagejpeg($img, NULL, $quality);
+      $photo = ob_get_clean();
+      $mya->update(compact('photo')); // do not combine this with line above
+    }
+  } catch (Exception $e) {
+    return w\photoRet(t('Your photo could not be uploaded (%err). Try a smaller version or <%a>email it</a> to us?', ray('_err _a', $e->getMessage(), w\emailtag(NULL, t('Here is a photo for my %PROJECT card')))));
   }
   
   return w\photoRet(str_replace(DRUPAL_ROOT, $base_url, $filename), 'success');
@@ -1994,12 +2012,16 @@ function formTx($form, &$sta, $args = '') {
 
   // set up form fields
   $title = item(ucwords($type));
-  if ($mya->co and $type == 'pay') $subtext = item('<small>[' . t('<%a>Upload Payroll</a>', '_a', w\atag('/pay/payroll')) . ']</small>');
+  if ($mya->co) {
+    list ($thing, $url) = $type == 'pay' ? [t('Payroll'), '/pay/payroll'] : [t('Invoices'), '/charge/invoices'];
+    $subtext = item('<small>[' . t('<%a>Upload %thing</a>', '_a thing', w\atag($url), $thing) . ']</small>');
+  }
+
   $whoLabel = ($type == 'loan' ? t('Lend to') : ucwords($type)) . t(' whom:');
   $question = ($type == 'loan' ? t('Lend') : ucwords($type)) . t(' %amount to %name?'); 
   $who = textFld($whoLabel, [t('name, id, email, or phone')], required(@$who));
 
-  $amount = textFld('Amount:', [t('amount to ') . $type], required(@$amount));
+  $amount = textFld(t('Amount:'), [t('amount to ') . $type], required(@$amount));
   $goodsOpts = ray(R_WHYS);
   unset($goodsOpts[FOR_SHARE]); // this gets set only automatically
   if ($mya->cttyRewardy) {
@@ -2030,6 +2052,78 @@ function formTx_submit($form, &$sta) {
 //  if (confirming_s($sta)) return;
   w\transfer($op = op($sta), $sta['input'], TRUE); // op who amount goods what
 //  if (!$fieldErr) return r\go($op); // this is especially important when skipping the confirmation (scanning)
+}
+
+/**
+ * Upload invoices spreadsheet to create invoices.
+ */
+function formInvoiceUpload($form, &$sta) {
+  global $base_url;
+  $mya = r\acct();
+  $title = item(t('Upload Invoices'));
+  $subtext = item(t(<<<EOF
+  <ol>
+  <li><b>Create a spreadsheet</b> with one row for each customer. You need three columns:
+    <ul>
+    <li>Customer's 6-letter %PROJECT account code OR <x %a>your account code</x a> for the customer.</li>
+    <li>Amount to charge the customer.
+    <li>A description of the charge.
+    </ul><br>
+    Save the spreadsheet as a CSV file.</li>
+  <li><b>Upload here</b> the CSV file you created in step one, to automatically charge each customer.</li>
+  </ol>
+EOF
+  , '_a', w\atag('/settings/relations')));
+  $invoices = fld('file', '', '', attrib(ray('enctype', "multipart/form-data")));
+  $submit = submit('Upload and Invoice');
+
+  return labeled(compact(ray('title subtext invoices submit')));
+}
+
+function formInvoiceUpload_validate($form, &$sta, $type = 'invoices') {
+  if (!@$_FILES['files']['name'][$type]) return say('upload required', $type);
+  $file = new \stdClass();
+  foreach ($_FILES['files'] as $k => $v) $file->$k = $v[$type];
+  if (function_exists('mime_content_type') and $filetype = mime_content_type($file->tmp_name)) {
+    if (!in_array($filetype, ['text/csv', 'text/plain'])) return say('bad file type', compact('filetype'), $type);
+  }
+  if ($file->size > R_MAX_UPLOAD_SIZE * 1024000) return say(t('That file is too big'), $type);
+  $sta['input']['filename'] = $file->tmp_name;
+}
+
+function formInvoiceUpload_submit($form, &$sta) {
+  extract(u\just('filename', $sta['input']));
+  $rows = uploadRows($filename);
+  $mya = r\acct(); $myid = $mya->id;
+  
+  $total = 0;
+
+  foreach ($rows as $i => $row) {
+    $atLine = t(' at line ') . ($i + 1); // for error messages
+    if (count($row) < 3) return say(t('Incomplete row') . $atLine);
+    list ($cust, $amt, $desc) = $row;
+    $cust = db\lookup('other', 'r_relations', 'main=:myid AND code=:cust', compact('myid', 'cust')) ?
+    : @r\acct($cust)->id;
+    if (!$cust) return say(t('Bad customer account code') . $atLine, 'invoices');
+    if ($err = u\badAmount($amt, '>0')) return say('bad csv|' . $err . $atLine, 'invoices');
+    $txs[] = [$cust, $amt, $desc, @$goods];
+    $total += $amt;
+    $cust = $amt = '';
+  }      
+
+  if (!@$txs) return say('empty invoice list', 'invoices');
+  
+  foreach ($txs as $one) {
+    list ($uid, $amt, $desc, $goods) = $one;
+    list ($msg, $subs) = be\transfer('charge', $mya, r\acct($uid), $amt, $goods, $desc);
+    say($msg, $subs);
+    if (!@$subs['success']) $err = TRUE;
+  }
+  
+  if (!@$err) {
+    $mya->update('payrollStart payrollEnd', u\s2t($startDate), u\s2t($endDate));
+    return r\go('history', t('payroll done', 'total count', u\fmtAmt($total), count($txs)));
+  }
 }
 
 /**
@@ -2067,22 +2161,7 @@ function formPayroll_validate($form, &$sta) {
   extract(u\just('startDate endDate', $sta['input']));
   list ($min, $max) = [strtotime('-2 months'), strtotime('+7 days')];
   foreach (['startDate', 'endDate'] as $k) if ($err = u\badDate($$k, $min, $max)) return sayFieldErr($err, $k);
-  if (!@$_FILES['files']['name']['payroll']) return say('upload required', 'payroll');
-  $file = new \stdClass();
-  foreach ($_FILES['files'] as $k => $v) $file->$k = $v['payroll'];
-  if (function_exists('mime_content_type') and mime_content_type($file->tmp_name) != 'text/csv') return say('bad file type', 'payroll');
-  if ($file->size > R_MAX_UPLOAD_SIZE * 1024000) return say(t('That file is too big'), 'payroll');
-  $sta['input']['filename'] = $file->tmp_name;
-
-/*  
-  $validators = array(
-    'file_validate_extensions' => array('csv'),
-    'file_validate_size' => array(R_MAX_UPLOAD_SIZE * 1024000),
-  );
-  if (!$file = \file_save_upload('payroll', $validators, '', FILE_EXISTS_REPLACE)) return say('Try again.', 'payroll');
-  if ($file->filemime != 'text/csv') return say('bad file type', 'payroll');
-  $sta['input']['filename'] = $filePath = file_directory_temp() . '/' . $file->filename;
-  */
+  return formInvoiceUpload_validate($form, $sta, 'payroll');
 }
 
 define('R_NOREWARD', '<noreward>'); // "no rewards" flag in description
@@ -2090,23 +2169,19 @@ define('R_NOREWARD', '<noreward>'); // "no rewards" flag in description
 function formPayroll_submit($form, &$sta) {
   extract(u\just('startDate endDate filename', $sta['input']));
   $mya = r\acct();
-  file_put_contents($filename, strtr(file_get_contents($filename), ["\r\n" => "\n", "\r" => "\n"]));
-  $fp = fopen($filename, "r"); 
-  while ($row = fgetcsv($fp)) $rows[] = $row; // get all rows, so we can look ahead
-  fclose($fp);
-  unlink($filename);
+
   $desc0 = t('labor: ') . $startDate . t(' to ') . $endDate;
   $map = ['<startdate>' => $startDate, '<enddate>' => $endDate, R_NOREWARD => ''];
   $total = 0;
 
-  foreach ($rows as $i => $row) {
-    $subs = ['line' => $i + 1]; // for error messages
-    if (count($row) < 2) say('empty row');
+  if ($rows = uploadRows($filename)) foreach ($rows as $i => $row) {
+    $erSubs = ['line' => $i + 1]; // for error messages
+    if (count($row) < 2) say(t('Empty row at line %line.', $ersubs));
     @list ($employee, $amt, $desc) = $row; // desc is optional
     if (!$employee or u\starts(strtoupper($employee), t('TOTAL'))) break; // should never happen unless user has a total line
-    if ($err = u\badAmount($amt, '>0')) return say('bad payroll csv|' . $err, $subs, 'payroll');
-    if (!@$employee) return say('bad payroll csv|' . t('Missing employee name.'), $subs, 'payroll');
-    if (!$uid = r\worksForUs($employee, NULL, TRUE)) return say('bad payroll employee', $subs + compact('employee'), 'payroll');
+    if ($err = u\badAmount($amt, '>0')) return say('bad payroll csv|' . $err, $erSubs, 'payroll');
+    if (!@$employee) return say('bad payroll csv|' . t('Missing employee name.'), $erSubs, 'payroll');
+    if (!$uid = r\worksForUs($employee, NULL, TRUE)) return say('bad payroll employee', $erSubs + compact('employee'), 'payroll');
     $goods = strpos($desc, R_NOREWARD) !== FALSE ? FOR_NONGOODS : FOR_GOODS;
     $toPay[] = [$uid, $amt, $desc ? strtr($desc, $map) : $desc0, $goods];
     $total += $amt;
@@ -2308,24 +2383,24 @@ function formGet($form, &$sta, $args = '') {
   $rewards = u\fmtAmt($mya->rewards);
   $waiting0 = $mya->waitingToBank();
 
-  if (!db\exists('r_usd', 'payer IN (:myid,:jid) AND amount>0 AND created>:dayAgo', ray('myid jid dayAgo', $myid, $jid, strtotime('-1 day')))) { // limit to one withdrawal request per 24 hours
+  if (!db\exists('r_usd', 'payee IN (:myid,:jid) AND amount<0 AND created>:dayAgo', ray('myid jid dayAgo', $myid, $jid, strtotime('-1 day')))) { // limit to one withdrawal request per 24 hours
     $avail = $mya->avail(FOR_USD); // drawing from connected accounts not allowed
     foreach (ray(R_EXCHANGE_LIMITS) as $days => $limit) {
-      $sofar = $days == 1 ? 0 : db\lookup('SUM(amount)', 'r_usd', 'payer=:myid AND amount>0 AND created>:date', ray('myid date', $myid, strtotime("-$days days")));
+      $sofar = $days == 1 ? 0 : db\lookup('-SUM(amount)', 'r_usd', 'payee=:myid AND amount<0 AND created>:date', ray('myid date', $myid, strtotime("-$days days")));
       $avail = min($avail, $limit - $sofar);
     }
   } else $avail = 0;
 
   $cashoutable = u\fmtAmt(max(0, $avail));
   if ($waiting = u\fmtAmt(abs($waiting0))) {
-    $where = 'payer IN (:myid, :jid) AND completed=0 AND deposit=0 ORDER BY txid DESC';
+    $where = 'payee IN (:myid, :jid) AND completed=0 AND deposit=0 ORDER BY txid DESC';
     if ($rec = db\lookup('amount, txid', 'r_usd', $where, compact('myid', 'jid'))) {
       extract($rec);
       $text = t('Cancel') . (($amount == $waiting0) ? '' : (' ' . u\fmtAmt(abs($amount)) . t(' request')));
       $link = " <a class=\"buttino\" href=\"get/cancel=$txid\">$text</a>";
     }
   }
-  $way = $waiting0 < 0 ? 'from' : 'to';
+  $way = $waiting0 < 0 ? t('to') : ('from');
   $waiting = item($waiting == '$0' ? t('You have no pending exchange requests.') : (t('You have total pending exchange requests of %waiting %way your bank account.', compact('waiting', 'way')) . @$link), t('Pending:')); // amount already requested (if any)
   $avail = hidFld($avail);
   $balances = item(t('balances', compact(ray('balance rewards cashoutable'))), t('Balance:'));
@@ -2363,19 +2438,23 @@ function formGet_submit($form, &$sta) {
 //  $us = new r\usd($mya = r\acct());
   extract(u\just('amount', $sta['input']));
 
-  if (op($sta) == 'put') {
-    $action = t('deposit to');
-//    if (!$mya->cacheOk()) return r\go('', 'cannot bank', ray('action error', $action, t('data integrity issue')));
-  } else list ($action, $amount) = [t('draw from'), -$amount];
+  list ($action, $amount) = op($sta) == 'put' ? [t('deposit to'), -$amount] : [t('draw from'), $amount];
   
-//  if ($us->bank($amount, $error) or isDEV) { // ignore lack of verified bank connection, if testing
   $checkNum = $mya->bank($amount, $completed);
-  if ($amount < 0) {
+  if ($amount > 0) {
     $extra = '|bank tx number' . ($completed ? '|available now' : '');
   } else $extra = '';
   $amount = u\fmtAmt(abs(@$amount));
   w\say('banked' . $extra, $subs = compact(ray('action amount checkNum')));
   r\tellAdmin('banked' . $extra, $subs);
+}
+
+/**
+ * Certify that a business is indeed a Common Good participant.
+ */
+function formCgBiz($form, &$sta, $id) {
+  if (!@$id or !$a = r\acct(strtoupper($id)) or !$a->ok) return r\go('', t('That is not a %PROJECT Business.'));
+  r\go('member/' . $a->name, t('<big><b>%fullName</b> is a %PROJECT Business since %activated.</big> For more information about Common Good, <%a>click here</a>.', 'fullName activated _a', $a->fullName, u\fmtDate($a->activated), w\atag(r\promoLink(''))));
 }
 
 /**
@@ -2434,7 +2513,10 @@ function formSignupCo_submit($form, &$sta) {
 
 /**
  * Modify the user registration form.
- * @param string $args: if not empty, a urlencoded assoc (from an email invitation or the "Create a Company Account" button):
+ * @param string $args: if not empty, 
+ *   a urlencoded assoc (from an email invitation or the "Create a Company Account" button) OR
+ *   an assoc gleaned from POSTed parameters (for combined signup with Coop Power's heating fuel program, for example)
+ *
  *   code: the invitation code (or a friend's name with postalCode in parens)
  *   personal: opening a personal account (default TRUE)
  *   fullName: the likely name of the account to create
@@ -2445,8 +2527,9 @@ function formSignupCo_submit($form, &$sta) {
  *   helper: uid of account creating this one -- non null (same as $inviter) means created with formSignupCo
  */
 function formSignup($form, &$sta, $args = '') {
-  if (!$args) $args = basename(t\SERVER('REQUEST_URI')); // because menu_execute_active_handler fails
-  extract(u\just('code personal fullName phone helper', $args));
+  if (!$args) $args = @$_POST ?: basename(t\SERVER('REQUEST_URI')); // because menu_execute_active_handler fails
+  $contactDefaults = 'phone postalCode address city postalAddr partner partnerCode customer';
+  extract(u\just('code personal fullName state email helper ' . $contactDefaults, $args));
   extract(u\just('hidCountry hidState', $sta['input']));
 
   if (@$personal and r\signedIn()) return formEmpty('must be signed out');
@@ -2497,7 +2580,7 @@ EOF;
   
   $subtext = item(t(<<<EOF
 <p>Opening a %PROJECT Account is very much like opening an online bank account. For example, you will be asked for your social security number or tax ID.</p>
-<p>After this long signup page there are <%b>some short steps</b> we will guide you through. In particular, you will be asked to sign the short but ESSENTIAL %PROJECT Agreement. You will need to upload a photo for your %PROJECT Card. You will be asked to make a donation <i>of any size</i> to support the project &mdash; you decide how much (%PROJECT is a nonprofit). And you will need your bank account information if you choose to connect it.</p>
+<p>After this long signup page there are <%b>some short steps</b> we will guide you through. In particular, you will be asked to sign the short but ESSENTIAL %PROJECT Agreement. You will need to upload a photo for your %PROJECT Card. You will be invited to make a donation <i>of any size</i> to support the project &mdash; you decide how much (%PROJECT is a nonprofit). And you will need your bank account information if you choose to connect it.</p>
 <p>If you need help, please don't hesitate to ask (<%a>click here to send us an email</a>).</p>
 EOF
   , '_b _a count', 'b class="loud"', w\atag('mailto:' . CGF_EMAIL . '?subject=' . t('signup help')), $count));
@@ -2516,7 +2599,7 @@ EOF
     $copts = boxOpt('companyOptions', $companyOptions, $sta);
 
     $companyInfo = array(
-      'company_text' => item(t('Are you an owner and/or employee of a local company, or of any %PROJECT member company (or virtual community)? Otherwise leave this part blank.')),
+      'company_text' => item(t('Are you an owner and/or employee of a local company, or of any %PROJECT member company? Otherwise leave this part blank.')),
       'company' => textFld(t('Company: '), [t('Your company')], autocomplete('company')),
       'companyPhon' => textFld(t('Company Ph<span>&nbsp;</span>one:'), [t('Company phone number')]), // Google Chrome bug require obfuscation of "phone"
       'companyOptions' => boxesFld('', '', @$copts, $companyOptions), 
@@ -2536,9 +2619,10 @@ EOF
   $iCode = hidFld(@$iCode + 0);
   $helper = hidFld(@$helper ? r\acct($helper)->id : @$inviter);
   
+  $contactDefaults = compact(ray($contactDefaults));
   $form = compact(ray('title forother subtext acctType'))
-        + w\nameAndEmail($personal ? t('Full name') : t('Company'), @$fullName)
-        + w\contactFields(ray('phone country state', @$phone, @$hidCountry, @$hidState), FALSE) + w\ssnFields($personal)
+        + w\nameAndEmail($personal ? t('Full name') : t('Company'), @$fullName, @$email)
+        + w\contactFields($contactDefaults + ray('country state', @$hidCountry, @$hidState ?: @$state), FALSE) + w\ssnFields($personal)
         + compact(ray('pin calling companyInfo buysAt submit args confirmed helper iCode notes'));
 //  keep_values($form);
   return labeled($form);
@@ -2553,9 +2637,9 @@ function formSignup_validate($form, &$sta) {
   \variable_set('signupData', ray('time phone state companyOptions', time(), @$phone, @$state, @$companyOptions));
   if (!emailOkay($email, $acctType != R_PERSONAL)) return;
   if (!phoneOk($phone, $country)) return;
-  if ($err = u\badZip($postalCode)) say($err, 'postalCode');
+  if ($err = u\badZip($postalCode)) return say($err, 'postalCode');
   if (!@$state) return say('bad state', 'state');
-  if (!formBasic_validate($form, $sta, $acctType == R_PERSONAL)) return;
+  if (!formBasic_validate($form, $sta, $acctType != R_PERSONAL)) return;
   if ($err = u\badAmount($tenure, '>=0')) return say(t('How-long: ') . t($err), 'tenure');
   if (@$pin === '') return say('pin required', 'pin');
   if (@$pin and strlen($pin) != 4) return say('wrong pin len', 'pin');
@@ -2578,18 +2662,18 @@ function formSignup_validate($form, &$sta) {
     if ($err = u\badName(@$$field)) return say($err, compact('field'), $field); // @ for testing
     $$field = u\normalizeCase($$field);
   }
-  if (stripos(@$address, ' box ') or stripos(@$address, 'pob ') !== FALSE) return say('po in location', 'address');
+  if (u\poAddress($address)) return say('po in location', 'address');
 
   $flags = $acctType == R_PERSONAL ? 0 : u\bit(B_CO);
   if (@$confirmed) $flags |= u\bit(B_CONFIRMED); // companies are always pre-confirmed, because the company account is opened by a member
   $administer_users = FALSE; // for testing (keep Drupal from griping)
   $status = 1;
-  u\preray(compact(ray('fullName legalName address city postalAddr email flags signupCo administer_users status')), $sta['input']);
+  u\preray(compact(ray('fullName legalName address city postalCode postalAddr email flags signupCo administer_users status')), $sta['input']);
 }
 
 function formSignup_submit($form, &$sta) {
   $dbFields = 'fullName legalName email flags phone federalId dob pin country postalCode address city state postalAddr helper iCode notes wants calling signupCo tenure';
-  extract(u\just('confirmed acctType args company ats owns ' . $dbFields, $sta['input']));
+  extract(u\just('confirmed acctType args company ats owns partner customer ' . $dbFields, $sta['input']));
 //  if (op($sta) == 'continue') return r\go('signup/' . urldecode(u\urlArgs()) . '&dwok=1'); // got agreement, so continue
 //  if (!emailOkay($email)) return; // I don't know how people create duplicate accounts, but maybe this will prevent it. Nope, apparently not. (ws 1/27/2014)
 
@@ -2610,6 +2694,13 @@ function formSignup_submit($form, &$sta) {
   u\EXPECT($myid > 0, 'registration failure');
 //  svar('myid', $myid); // switch to new account
   $mya = w\setAcct($myid); // this works for both an individual account (proSe) and a company account (with agent)
+  
+  if (@$partner and @$customer) { // sent directly from partner
+    $partnerA = r\acct($partner);
+    $iCode = $partnerA->iCardCode(IBY_EMAIL);
+    $partnerA->newRelation(ray('other isCustomer code', $myid, TRUE, $customer));
+    u\post($partnerA->partnerAPI(), compact('partnerCode', 'customer') + ['op' => 'start']);
+  }
 
   if (@$iCode < 0) w\invitation($code, $myid); // mark the invitation used
   $email = u\cryptN($email);
@@ -2692,28 +2783,30 @@ function formContact_validate($form, &$sta) {
   $mya = r\acct();
   $myid = $mya->id;
   extract(u\normalizeCase(u\just($normals = 'fullName city address postalAddr', $sta['input'])));
-  extract(u\just('email pin phone country state', $sta['input']));
+  extract(u\just('email pin phone country state postalCode', $sta['input']));
 
   // what's this doing in validate?!
 //  js('js/countries.js', 'file', 'header'); // country and state dropdowns
 //  js("print_country(\"$country\", \"$state\");", 'inline', 'footer'); // initialize dropdowns
 
   if ($fullName != $mya->fullName) {
-    if ($err = u\badName($fullName)) return say($err, array('field' => 'fullName'), 'fullName');
+    if ($err = u\badName($fullName)) return say($err, ['field' => 'fullName'], 'fullName');
     $name = u\shortName($fullName);
     $otherName = db\lookup('fullName', 'users', 'name=:name AND uid<>:myid', compact('name', 'myid'));
     if ($otherName) return say('shortname taken', compact('otherName'), 'fullName');
   }
 
+  if ($err = u\badZip($postalCode)) return say($err, 'postalCode');
   if (!emailOkay($email, $mya->co, $mya)) return; // say('bad email', ray('email', $email), 'email');
   if (!$mya->cAdmin and $email != $mya->email and $pin != $mya->agentA->pin) return say('bad pin', 'pin');
   if (!phoneOk($phone, $country)) return;
-  if (stripos(@$address, ' box ') or stripos(@$address, 'pob ') !== FALSE) return say('po in location', 'address');
+  if (u\poAddress($address)) return say('po in location', 'address');
   
   u\preray(compact(ray($normals . ' email phone name')), $sta['input']); // fix formatting and add name
 }
 
 function formContact_submit($form, &$sta) {
+  global $partnerInfo; // information used within eachPartner function argument (so must be global)
   extract($info = u\just('fullName name email phone faxetc country postalCode state city address postalAddr owns', $sta['input']));
   unset($info['owns']);
   
@@ -2721,7 +2814,13 @@ function formContact_submit($form, &$sta) {
   if ($mya->id == 1) unset($info['name']); // don't change 'admin'
   
   $info = u\normalizeCase(u\just('fullName city address postalAddr', $info)) + $info;
+  $partnerInfo = u\just('email phone address city state postalCode postalAddr', $info); // what to tell partner about
 
+  $mya->eachPartner(function($coA, $custA, $custCode) { // tell partner what changed
+    foreach ($info = $partnerInfo as $k => $v) if ($custA->$k == $v) unset($info[$k]);
+    if ($info) u\post($coA->partnerAPI(), ray('partnerCode customer op', $coA->emailCode, $custCode, 'change') + $info);
+  });
+  
   $mya->setRisk('rents', !@$owns); // @ for tests
   $mya->update($info);
   return w\goNextStep('contact', NULL, $info);
@@ -2815,45 +2914,29 @@ function formSsn_submit($form, &$sta, $args = '') {
   return doSay(t('info saved|setup complete'), 'ok');
 }
 
-define('R_BASIC_FIELDS', 'first last org federalId dob');
+define('R_BASIC_FIELDS', 'fullName federalId dob');
 
 /**
  * Validate the data that affects social security number verification.
  * called from signup validation, as well as from formBasic()
- * @param string/bool $personal: is this a personal account ('mya' means use the current account's type)
+ * @param string/bool $co: is this a company account ('mya' means use the current account's type)
  *   'mya' also means we are retrying basic information (the AccountInfo step) during signup
  */
-function formBasic_validate($form, &$sta, $personal = 'mya') {
+function formBasic_validate($form, &$sta, $co = 'mya') {
   extract(u\just(R_BASIC_FIELDS, $sta['input']));
-  if ((string) $personal == 'mya') {
-//    $us = new r\usd($mya = r\acct());
-    $personal = !$mya->co;
-//    $dw = $mya->can(B_DW);
+  if ((string) $co == 'mya') {
+    $mya = r\acct();
+    $co = $mya->co;
   }
-  $what = $personal ? t('social security number') : t('federal ID');
-  if ($personal) {
-    list ($min, $max) = array(r\rTime() - 150 * 365.25 * DAY_SECS, r\rTime() + 9 * 31 * DAY_SECS);
-    if ($err = u\badDate($dob, $min, $max)) return say($err, 'org'); // badDate makes dob internal
-  }
-  if ($err = u\badSsn($federalId, @$dob)) return say($err, compact('what'), 'org');
+  if ($err = u\badName($fullName)) return say($err, ['field' => 'fullName'], 'fullName');
 
-  if (@$mya) { // retrying account info
-    if ($personal) { // personal
-      if ($err = u\badName($first)) return say($err, 'first');
-      if ($err = u\badName($last)) return say($err, 'last');
-//      $emptyErr = t('There was a problem submitting your data. Try again?'); // (this happened early on)
-//      if ($dw and !$us->ssn($federalId, $err)) return say(@$err ?: $emptyErr, 'org');
-/*      if ($dw and $us->step() == 'AccountInfo' and !$us->accountInfo($dob, '', $first, $last, '', '', $err)) {
-        return say(@$err ?: $emptyErr, 'first');
-      } */
-    } else { // org
-      if ($err = u\badName($org)) return say($err, 'org');
-/*      if ($dw and !$us->accountInfo('', $federalId, '', '', $org, $mya->businessStructure(), $err)) {
-        if ($err) return say($err ?: $emptyErr, 'first');
-      }
-      */
-    }
+  $what = $co ? t('federal ID') : t('social security number');
+  if (!$co) {
+    list ($min, $max) = array(r\rTime() - 150 * 365.25 * DAY_SECS, r\rTime() + 9 * 31 * DAY_SECS);
+    if ($err = u\badDate($dob, $min, $max)) return say($err, 'dob'); // badDate makes dob internal
   }
+  if ($err = u\badSsn($federalId, @$dob)) return say($err, compact('what'), 'federalId');
+
   u\preray(compact(ray(R_BASIC_FIELDS)), $sta['input']);
   return TRUE;
 }
@@ -3448,7 +3531,7 @@ function formChangePin_submit($form, &$sta) {
  * Login from elsewhere.
  *//*
 function formSinx($form, &$sta) {
-  extract(u\just('id pw pw2', t\POST())); // posted from rCredits.org or admin computer
+  extract(u\just('id pw pw2', t\POST())); // posted from promo site or admin computer
 
   if (flooding($uid = r\loginString(@$id), $sta)) return r\go('', 'flooded', 'ERR'); // getting hammered
 ///  if (!\user_authenticate($name = r\acct($uid)->name, @$pw)) return r\go('', 'bad login', 'ERR');
@@ -3704,7 +3787,7 @@ EOF;
 
   $canDescs = ray(APP_CAN_BIT_DESCS);
   $permissions = '';
-  if (!$mya->stepDone['company']) foreach (ray(CO_DFTS) as $i) $mya->setCoBit(APP_CANS + $i); // set defaults
+  if (!$mya->member and !$mya->stepDone['company'] and !$mya->coCan(APP_CANS + APP_CAN_BITS)) foreach (ray(CO_DFTS) as $i) $mya->setCoBit(APP_CANS + $i); // set defaults if doing initial account setup AND manager has no permission to charge custs yet
   
   foreach ($canDescs as $i => $desc) {
     $outbox = <<<EOF
@@ -3898,7 +3981,7 @@ EOF;
 function formPrefs_validate($form, &$sta) {
   extract(u\just('crumbs', $sta['input']));
 //  $mya = r\acct();
-  $crumbs = str_replace('%', '', $crumbs);
+  if (!$crumbs = str_replace('%', '', $crumbs)) $crumbs = 0;
   if ($err = u\badAmount($crumbs, '>=0', 1, 100)) return say($err, 'crumbs');
 //  if ($mya->ok and $err = w\badShare($sta['input']['share'], TRUE)) return say($err, 'share');
   u\preray(compact('crumbs'), $sta['input']); // update trimmed percentage
@@ -4010,8 +4093,8 @@ EOF;
   foreach ($headers as $v) {$vLow = strtolower($v); $achHeader .= "<th class=\"k-$vLow\">$v</th>";}
   $achHeader = "<tr>$achHeader</tr>";
   $sql = <<<EOF
-    SELECT t.risk AS score,txid,t.created,ABS(t.amount) AS amount,payer,IF(t.amount<0,'in','out') AS way,t.risks 
-    FROM r_usd t LEFT JOIN users u ON u.uid=payer
+    SELECT t.risk AS score,txid,t.created,ABS(t.amount) AS amount,payee,IF(t.amount>0,'in','out') AS way,t.risks 
+    FROM r_usd t LEFT JOIN users u ON u.uid=payee
     WHERE t.created BETWEEN :starting AND :ending AND $cttyCrit
     ORDER BY t.risk DESC LIMIT :K_LINES
 EOF;
@@ -4124,7 +4207,7 @@ function riskLine($q, $descs, &$red = '') {
   $abridgable = ray(t('labor,automatic transfer,donation,deferred'));
   if (!$row = $q->fetchAssoc()) return FALSE;
   
-  if (@$row['amount'] + 0 < 0) list ($row['payer'], $row['payee'], $row['amount']) = array($row['payee'], $row['payer'], -$row['amount']); // don't show user negative amounts
+  if (@$row['amount'] + 0 < 0) list ($row['payer'], $row['payee'], $row['amount']) = array(@$row['payee'], @$row['payer'], -$row['amount']); // don't show user negative amounts
   extract(u\just('uid xid created description score amount risks', $row));
 
   $extra = (($mya = r\acct()) and $mya->can(B_REGULATOR));

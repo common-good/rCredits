@@ -59,8 +59,8 @@ function formDemocracy($form, &$sta, $args = '') {
   
   $cttyA = $mya->cttyA;
   
-  $title = w\item(t('Community Democracy'));
-  $subtitle = w\item($cttyA->fullName);
+  $title = w\item(t('Community Democracy') . "<br><small>$cttyA->fullName</small>");
+//  $subtitle = w\item($cttyA->fullName);
 
   if (!@$do or $do == 'options' or $do == 'results') {  
     list($questionList, $phase, $endDate) = v\questionList($cttyA, @$question, @$do);

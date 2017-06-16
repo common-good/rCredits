@@ -195,6 +195,7 @@ class Acct {
     if ($field == 'url') return ($a->isRegion ? '' : strtr($a->fullName, [PROJECT=>'', ' '=>'']) . $a->st . '.') . CG_DOMAIN; // applies only to communities (->cttyUrl)
     if ($field == 'legalNameDpy') return str_replace('_', ' ', $a->legalName); // for u\parseName of names like Jay di_Fiori
     if ($field == 'owns') return !$a->risk('rents');
+    if ($field == 'closed') return ($a->activated and !$a->ok); // data[newAccount] has new qid, if any
     if ($field == 'hasBank') return $a->risk('hasBank');
     if ($field == 'lowSecurity') return u\n2ai(substr($a->created, -5, 5), 3); // result is 3 chars long
     if ($field == 'inviteCode') return $a->mainQid . $a->lowSecurity;
@@ -894,12 +895,12 @@ EOF;
   }
     
   /**
-   * Return the total waiting to be credited as a transfer TO or (if negative result) FROM the member's bank.
+   * Return the total waiting to be credited as a transfer FROM or (if negative result) TO the member's bank.
    * @param numeric $combinable: (RETURNED) how much is waiting and checks haven't been printed yet
    */
   public function waitingToBank(&$combinable = 0) {
     $id = ($jid = $this->jid) ? "$this->id,$jid" : $this->id;
-    extract(db\q("SELECT SUM(amount) AS amt, SUM(IF(deposit, 0, amount)) AS combinable FROM r_usd WHERE payer IN ($id) AND NOT completed")->fetchAssoc());
+    extract(db\q("SELECT SUM(amount) AS amt, SUM(IF(deposit, 0, amount)) AS combinable FROM r_usd WHERE payee IN ($id) AND NOT completed")->fetchAssoc());
     return $amt;
   }
 
@@ -1097,7 +1098,7 @@ EOF;
 
   /**
    * Request a transfer of funds to or from a connected bank account.
-   * @param numeric $amount0: the amount to transfer TO or (if negative) FROM the bank
+   * @param numeric $amount0: the amount to transfer FROM or (if negative) TO the bank
    * @param int $completed: (also RETURNED) the completion date
    * @param assoc $tx: forced field values, if any
    * @return the transaction number (FALSE if failure)
@@ -1105,31 +1106,32 @@ EOF;
   public function bank($amount0, &$completed = '', $tx = []) {
     global $channel;
     $a = $this;
-    $payer = $a->id;
+    $payee = $a->id;
     $bankAccount = @$a->secure['bankAccount']; // already-encrypted bank account (@ is for testing)
     if ($tx) extract($tx);
-    u\setDft($tid, r\getUsdTid($payer));
+    u\setDft($tid, r\getUsdTid($payee));
     u\setDft($created, r\rTime());
-    if (!$completed) $completed = ($amount0 > 0 or -$amount0 <= -$a->floor) ? $created : 0;
+//    $amount0 = -$amount0; // positive now means transfer to CG
+    if (!$completed) $completed = ($amount0 < 0 or $amount0 <= -$a->floor) ? $created : 0;
 
     $DBTX = \db_transaction();
-    $where = 'payer=:payer AND NOT deposit AND amount' . ($amount0 < 0 ? '<0 AND NOT completed' : '>0');
-    if ($res = db\lookup('txid,amount', 'r_usd', $where, compact('payer'))) { // found another the same direction
+    $where = 'payee=:payee AND NOT deposit AND amount' . ($amount0 < 0 ? '<0' : '>0 AND NOT completed');
+    if ($res = db\lookup('txid,amount', 'r_usd', $where, compact('payee'))) { // found another the same direction
       extract($res);
       $amount += $amount0;
       db\update('r_usd', compact(ray('txid amount completed bankAccount')), 'txid');
     } else {
       $amount = $amount0;
       if (isGAME) $tx += ['members' => $a->members];
-      $txid = db\insert('r_usd', $tx += compact(ray('amount payer created completed tid bankAccount channel')));
+      $txid = db\insert('r_usd', $tx += compact(ray('amount payee created completed tid bankAccount channel')));
       u\EXPECT((bool) $txid, 'saving usd record');
     }
 
-    if ($amount0 > 0) { // tell staff to transfer the funds using BillPay or check
+    if ($amount0 < 0) { // outgoing - tell staff to transfer the funds using BillPay or check
 //      $a->update('r', $a->o_r - $amount0);
-      $a->update('balance', $a->o_balance - $amount0);
-      if ($txid > 0) r\tellAdmin(t('outgoing bank transfer request'), ['amount' => $amount0]);
-    } elseif ($completed) $a->completeUsdTx(0, -$amount0, TRUE);
+      $a->update('balance', $a->o_balance + $amount0);
+      if ($txid > 0) r\tellAdmin(t('outgoing bank transfer request'), ['amount' => -$amount0]);
+    } elseif ($completed) $a->completeUsdTx(0, $amount0, TRUE);
 
     unset($DBTX);
     return $txid;
@@ -1138,7 +1140,7 @@ EOF;
   /**
    * Mark an incoming USD transfer complete, update cache, and report.
    * @param int $txid: the transfer record ID (if empty, no need to mark it complete)
-   * @param numeric $amount: transfer amount (positive)
+   * @param numeric $amount: transfer amount from bank to CG (positive)
    * @param bool $automatic: <transfer was created automatically>
    * @return <success>
    */
@@ -1148,7 +1150,7 @@ EOF;
     $DBTX = \db_transaction();
 
     if ($txid) { // unless transfer is already marked complete
-      $realAmt = db\lookup('-amount', 'r_usd', 'txid=:txid', compact('txid'));
+      $realAmt = db\lookup('amount', 'r_usd', 'txid=:txid', compact('txid'));
       if ($amount != $realAmt) r\tellAdmin('bad completeUsdTx amt in acct', compact(ray('txid amount realAmt automatic')));
       if (!db\update('r_usd', ['txid'=>$txid, 'completed'=>r\rTime()], 'txid')) return FALSE;
     }
@@ -1315,6 +1317,7 @@ EOF;
     if ($bit == B_CTTYUP) return $a->cttyA->up;
 
     if ($bit == B_BANK) return $a->hasBank; // might get set after getCan() is called
+    if ($bit == B_CLOSED) return $a->closed;
     $can = @self::$perms[$a->id][$a->agentId] ?: $a->getCan();
     return $can[$bit];
   }
@@ -1354,9 +1357,23 @@ EOF;
     return self::$perms[$id][$a->agentId] = $can;
   }
 
+  /**
+   * Call a function for each co-branding partner for whom the current account is a customer.
+   * @param function(coA, custA, custCode) $func: the function to call, with three parameters:
+   *   coA: company account
+   *   custA: customer account
+   *   custCode: the company's identifier for the customer
+   */
+  public function eachPartner($func) {
+    $sql = 'SELECT main, code FROM r_relations WHERE other=:id AND isCustomer ORDER BY code';
+    $res = q($sql, ['id' => $this->id])->fetchAllKeyed();
+    foreach ($res as $main => $code) $func(r\acct($main), $this, $code);
+  }
+  
   public function isMe($uid) {return ($uid == $this->id or $uid == $this->jid);}
   public function codeHash() {return u\hash($this->cardCode());}
   public function o($k) {return $this->{'o_' . $k};}
+  public function partnerAPI() {return str_replace('WEBSITE', $this->website, PARTNER_API_URL);}
   
 } // end of class
 
