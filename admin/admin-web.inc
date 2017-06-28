@@ -78,7 +78,8 @@ function adminSummary($a, $cAdmin = FALSE) {
         extract($donationInfo);
         $donationInfo = "howoften:$often ($honor) $honored";
       }
-      $donations = item(u\fmtAmt($donations) . ", $donationInfo @$a->share%", t('Donations:'));
+      $donationInfo .= ($a->roundup ? t(' + roundups') : '') . ($a->crumbs > 0 ? t(' + %crumbs% crumbs', 'crumbs', $a->crumbs * 100) : '');
+      $donations = item(u\fmtAmt($donations) . ", $donationInfo", t('Donations:')); //  @$a->share%"
 
 //      $creditLimit = textFld(t('Credit limit:'), '', dft(u\fmtAmt(-$a->floor)));
 //      if ($a->stepsDone['prefs']) { // don't even look at these if newbie hasn't chosen yet
@@ -257,11 +258,12 @@ function export($params) {
       foreach (ray('phone email') as $k) $$k = u\decryptN($$k);
       if (strpos($email, '@example.com')) continue;
       $cttyName = $ctty ? trim(str_replace(PROJECT, '', r\acct($ctty)->fullName)) : '';
-      $zip .= "\t"; // prevent leading zeros from getting dropped on import
+      if (!@$chimp) $zip .= "\t"; // prevent leading zeros from getting dropped on import (fails for MailChimp, so don't)
       u\csv(array_values(compact($fields)));
     }
   }  
   
+  // add actual accounts
   $where = @$allCttys ? '1' : 'community=:cttyId';
   if (@$status == 0) $where .= ' AND :IS_OK';
   if (@$status == 1) $where .= ' AND NOT :IS_OK';
@@ -297,7 +299,7 @@ function export($params) {
     }
     $cttyName = trim(str_replace(PROJECT, '', $a->cttyA->fullName));
     $created = u\fmtDate($a->created);
-    if (is_numeric($zip)) $zip .= "\t"; // prevent interpretation as a number
+    if (is_numeric($zip) and !@$chimp) $zip .= "\t"; // prevent interpretation as a number (fails for MailChimp, so don't)
 
     u\csv(array_values(compact($fields)));
   }

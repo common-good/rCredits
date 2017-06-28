@@ -87,7 +87,7 @@ EOF
   // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
 //  'prompt max' => t('Keep AT MOST this much in my %PROJECT Account. (When your %RCREDITS balance goes above this amount by $%R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
   'legalname desc' => t(' full legal name, properly capitalized, for tax reporting and banking.'),
-  'usename desc' => t('Your "doing-business-as" name, properly capitalized! &mdash; the full name you use most of the time.'),
+  'usename desc' => t('Your full "doing-business-as" name, properly capitalized! &mdash; the full name you use most of the time.'),
   'ssTitle' => t('Soc Sec #:'),
   'einTitle' => t('Federal ID:'),
   'ssDesc' => t('Your social security number (for tax reporting)'),
@@ -124,7 +124,7 @@ EOF
   'bad federal id' => t('That is not a correct %what. Try again.'),
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
   'short to' => t('You are %short short for that transaction.'),
-  'increase min' => t('<%a>Click here</a> to increase your minimum balance!', '_a', w\atag('/settings/preferences')),
+  'increase min' => t('<%a>Click here</a> to increase your target balance!', '_a', w\atag('/settings/preferences')),
   'no such company' => t('There is no such company.'),
   'op canceled' => t('Operation Canceled.'),
   'demand not yet' => t('You will be notified when there are some %RCREDITS for you to buy with US Dollars.'),
@@ -183,7 +183,7 @@ EOF
   'missing currency' => t('You must choose %RCREDITS, USD, or both.'),
   'download always both' => t('Note: Downloads always include both %RCREDITS and USD amounts.'),
 //  'sign in to scan' => t('You must <a href="/user/login">sign in</a> (or scan yourself in) BEFORE scanning a customer card.'),
-  'change min first' => t('That request would leave you with less than your minimum balance. <%a>Lower your minimum</a> first.','_a', w\atag('/settings/preferences')),
+  'change min first' => t('That request would leave you with less than your target balance. <%a>Lower your target balance</a> first.','_a', w\atag('/settings/preferences')),
   'bad member id' => t('That is not a valid member ID!'),
   'bad card' => t('That is not a valid member ID.'),
   'bad card code' => t('This %PROJECT Card is not valid.'),
@@ -233,7 +233,7 @@ EOF
   'negative saveWeekly' => t('Your discretionary savings are already at their minimum, so your weekly savings addition cannot be negative.'),
   'requires signin' => t('You must be signed in, to use that page.'),
   'too many days' => t('You cannot view more than 18 months at a time on screen (but you can download any period).'),
-//  'saveWeekly too low' => t('With a negative "minimum", your weekly savings addition must be at least %min.'),
+//  'saveWeekly too low' => t('With a negative "target balance", your weekly savings addition must be at least %min.'),
 );
 $GLOBALS['tStrings']['flooded'] = $GLOBALS['tStrings']['bad login'];
 
@@ -758,7 +758,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
       } else $formName = 'rCredits\\Web\\formSystemDown';
     }
     
-    if (strpos($formName, 'Democracy') !== FALSE) require_once DRUPAL_ROOT . R_PATH . '/rvote/rvote-web.inc';
+    if (strpos($formName, 'Events') !== FALSE) require_once DRUPAL_ROOT . R_PATH . '/rvote/rvote-web.inc';
     $form = \drupal_build_form($formName, $formSta);
     \rweb_form_alter($form, $formSta, $formName);
     
@@ -874,11 +874,12 @@ function boxUser($code, $uid) {
  * Return rows from an uploaded file.
  */
 function uploadrows($filename) {
-  file_put_contents($filename, strtr(file_get_contents($filename), ["\r\n" => "\n", "\r" => "\n"]));
-  $fp = fopen($filename, "r"); 
+  file_put_contents($filename, $str = strtr($get = file_get_contents($filename), ["\r\n" => "\n", "\r" => "\n"]));
+  $fp = fopen($filename, "r");  
   while ($row = fgetcsv($fp)) $rows[] = $row; // get all rows, so we can look ahead
   fclose($fp);
   unlink($filename);
+  return $rows;
 }
 
 /**
@@ -1292,35 +1293,43 @@ function findCompany($company, $companyPhone) {
  * @param string $email: default email address
  * @return the relevant form fields
  */
-function nameAndEmail($what, $fullName = '', $email = '') {
+function nameAndEmail($what, $fullName = '', $email = '', $hideEmail = FALSE) {
   $who = $what == t('Company') ? t('The company\'s') : ($what == t('Community') ? t('The community\'s') : t('Your'));
   $onchange = w\onchange("var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);");
   $fullName = textFld("$what:", ["$who " . t('full name'), t('usename desc')], required(@$fullName) + $onchange);
   $legalName = textFld(t('Legal name:'), ["$who " . t('full legal name (if different)'), $who . t('legalname desc')]);
-  $email = textFld(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required(@$email));
+  $email = $hideEmail ? w\hidFld(@$email) : textFld(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required(@$email));
   return compact(ray('fullName legalName email'));
 }
 
 /**
  * Return the part of the form that is (mostly) common to formContact and formSignup
  * @param assoc $defaults: initial field values (defaults to current values) - see list at "$fields ="...
+ *   plus {partner, partnerCode, customer} for signup from partner site
  * @param acct $a: account for which to show existing contact field values (empty if new account)
  */
 function contactFields($defaults = [], $a = '') {
 //  $country = $state = ''; // make sure these are not NULL
-  $hidableFlds = 'phone country state postalCode address city partner customer';
-  $fields = $hidableFlds . 'faxetc tenure owns postalAddr partnerCode';
+  $fieldsHidable = 'phone country state postalCode address city postalAddr hidCountry hidState'; // suppressable fields
+  $fields = $fieldsHidable . ' faxetc tenure owns';
   extract($defaults ?: ($a ? (array) $a->account($fields) : []));
-  
-  if (@$partner and @$partnerCode
+
+  if (@$partner and @$partnerCode and @$customer
     and @$postalCode and @$address and @$city and $state0 = @$state
-    and @r\acct($partner)->emailCode == $partnerCode
+    and ($partnerA = r\acct($partner) and $partnerA->emailCode == $partnerCode)
     and $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'))
     and !u\poAddress($address)
-    and !u\badZip($postalCode)) { // using valid signup data from partner org
+    and !u\badZip($postalCode)
+    
+    and (!@$postalCode2 or (@$address2 and @$city2 and @$state20 = @$state2
+      and $state2 = db\lookup('id', 'r_states', 'abbreviation=:state2 and country_id=:US_COUNTRY_ID', compact('state2'))
+      and !u\badZip($postalCode2)))) { // using valid signup data from partner org
 
-    $postalAddr = "$address, $city, $state0 $postalCode";
-    foreach (ray($hidableFlds) as $k) $$k = w\hidFld($$k);
+    $postalAddr = @$postalCode2 ? "$address2, $city2, $state20 $postalCode2" : "$address, $city, $state0 $postalCode";
+    $hidCountry = $country = US_COUNTRY_ID; // only US partners at this time
+    $hidState = $state;
+    foreach (ray($fieldsHidable . ' partner customer') as $k) $$k = w\hidFld($$k);
+    $fields .= ' partner customer';
     
   } else {
     $country = @$country + 0;
@@ -1352,10 +1361,9 @@ EOF;
     $address = textFld(t('Street Address:'), [t('Physical address'), t('Where is your building located (physical address)?')], required(@$address) + $addressAttrib);
     $city = textFld(t('City:'), [t('City where you live')], required(@$city) + $cityAttrib);
     $state = selectFld(t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
+    $postalAddr = textFld(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
   }
 
-  $postalAddr = textFld(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
-  
 //$a ? '' : t('Your phone number. This should not be a number already used for another %PROJECT Account &mdash; unless you have no other phone number.')
 //  $dupOk = hidFld(0, attrib(ray('id', 'edit-dupOk')));
 //  $dupOk = boolFld(t('Dup Ok:'), t('If this is already the phone number for another %PROJECT Account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your %PROJECT Account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
@@ -1363,7 +1371,7 @@ EOF;
   $tenure = $a ? NULL : textFld(t('How long:'), [t('MONTHS at current address.')], required(@$tenure));
   $owns = boolFld('', '', $a ? $a->owns : 0, [t('Rent'), t('Own')]);
 
-  return compact(ray($fields . ' hidCountry hidState'));
+  return compact(ray($fields));
 }  
 
 /**
@@ -1387,9 +1395,10 @@ function ssnFields($personal = TRUE) {
  * @return TRUE if the phone number is acceptable
  */
 function phoneOk(&$phone, $country = US_COUNTRY_ID) {
-  $myid = @r\acct()->id ?: 0;
   if (!$phone = u\fmtPhone($phone, '+n')) return say('bad phone', 'phone');
   if ($country == US_COUNTRY_ID and strlen($phone) != 12) return say('bad phone', 'phone');
+//  $mya = r\acct();
+//  $myid = $mya ? $mya->id : 0;
   //$dup = db\exists('users', 'phone=:phone and uid<>:myid', compact('phone', 'myid'));
   // NO! this makes contact form fail. if (!$dup and $dupOk) return say('not a duplicate phone', 'phone');
   return TRUE;
@@ -1952,13 +1961,14 @@ function error($logid) {
 function menu($title, $type, $function, $args, $perms = '') {
   global $menuWeight; $menuWeight += !@$menuWeight ?: 1;
   
+  $admin = ($perms == 'dev' or stripos($perms, 'admin') !== FALSE);
+  foreach (ray('Event Democracy Proposal Question Option') as $k) if (strpos($args, $k) !== FALSE) $dem = TRUE;
   if (strpos($function, '\\') === FALSE) $function = "rCredits\\Web\\$function";
   $smart = strpos($function, '\\Smart\\');
-  $admin = ($perms == 'dev' or stripos($perms, 'admin') !== FALSE);
-  foreach (ray('Democracy Proposal') as $k) if (strpos($args, $k) !== FALSE) $dem = TRUE;
+
   $file = $smart ? '../rsmart/rsmart.inc' 
-  : ($admin ? '../admin/admin-forms.inc' 
-  : (@$dem ? '../rvote/rvote-web.inc'
+  : (@$dem ? '../rvote/rvote-web.inc' 
+  : ($admin ? '../admin/admin-forms.inc' // must be after smart and dem
   : 'rweb.inc'));
   
 //  if ($perms == ANY) $perms = FALSE;
@@ -2411,7 +2421,7 @@ function clas($class) {return ['class' => [$class]];}
 function attrib($attributes) {return compact('attributes');}
 function suffix($field_suffix = '') {return compact('field_suffix');}
 function prefix($prefix) {return compact('prefix');}
-function autocomplete($type = '') {return array('autocomplete_path' => "autocomplete/$type/" . @r\acct()->id);}
+function autocomplete($type = '') {global $mya; return ['autocomplete_path' => "autocomplete/$type/" . @$mya->id];}
 function autofill($settings = 'on') {return attrib(['autocomplete' => $settings]);}
 function required($dft = NULL) {return ['required' => TRUE] + (isset($dft) ? dft($dft) : []);}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.

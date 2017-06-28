@@ -174,7 +174,7 @@ function setupDownload($starting, $ending) {
  * Return classes and headers for the appropriate set of fields.
  */
 function txFields($download = FALSE, $agents = FALSE, $channels = FALSE, $boxes = FALSE) {
-  global $agtViaBoxHelp;
+  global $mya, $agtViaBoxHelp;
 //  $headHelp = t('Transaction number|Date transaction was completed|Payer name|Payee name|Transaction amount|Current state of transaction -- check mark means completed.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent|Amounts you received|Click a symbol to reverse a transaction or to edit the purpose|The net change in account balance') . @$agtViaBoxHelp;
   $headHelp = t('|Transaction number|Date transaction was completed|Payer name|Payee name|Current state of transaction -- check mark means completed.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent or received|fromyou|toyou|Click a symbol to reverse a transaction or to edit the purpose|The net change in account balance') . @$agtViaBoxHelp;
 //  $classes = 'tid date from to amount state purpose reward';
@@ -193,7 +193,7 @@ function txFields($download = FALSE, $agents = FALSE, $channels = FALSE, $boxes 
 //  }
 
   $header = array_combine(ray($classes), ray($headers)); // make splices and additions easy and clear
-  
+  if (!@$mya->cttyRewardy) list ($header['reward'], $headHelp['reward']) = [t('Balance'), t('Running Balance')];
   if (@$agents) $header['agent'] = t('Agent');
   if (@$channels) $header['channel'] = t('Via');
   if (@$boxes) $header['box'] = t('Box');

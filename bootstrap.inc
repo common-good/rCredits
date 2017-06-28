@@ -1238,7 +1238,7 @@ function t($string, $subs0 = []) {
 
   foreach ($messages as $i => $message) {
     $model = @$GLOBALS['tStrings'][$message] ?: $message;
-    if ($p = strpos($model, '. Type ') and @$channel != @TX_SMS) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
+//    if ($p = strpos($model, '. Type ') and @$channel != @TX_SMS) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
     
     if ($i > 0 and $model[0] != '.') $model = ' ' . $model; // separate the messages, unless adding a period
     $messages[$i] = $model;

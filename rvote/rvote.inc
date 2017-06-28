@@ -30,7 +30,7 @@ dropdown selector for year or page (when there are a lot of questions)
 /**
  * Return a list of questions being considered by the member's community.
  * Provide details and links as appropriate to the current phase.
- * @param acct $cttyA: the community account
+ * @param acct $eid: the event record ID
  * @param int $question: (optional) id of question member is focusing on
  * @param string $doWhat: (optional) what type of specifics to show (options or results)
  * @return [list, phase, endDate]
@@ -38,11 +38,13 @@ dropdown selector for year or page (when there are a lot of questions)
  *    phase    what phase is happening now (G=grading V=voting ''=?)
  *    endDate  when this phase ends
  */
-function questionList($cttyA, $question='', $doWhat='') {
+function questionList($eid, $question='', $doWhat='') {
   global $base_url;
 	global $voting;
 
-	$q = db\q("SELECT id, (CASE WHEN (endGrading<>0 AND :now>endVoting) then 'G' WHEN :now>endVoting THEN 'R' WHEN :now>endProposals THEN 'V' WHEN :now>endIdeas THEN 'P' ELSE 'I' END) AS phase, repeats, repeatedBy, text, detail,  linkIdeas, linkProposals, created, (CASE WHEN endVoting=0 THEN 0 WHEN (endGrading<>0 AND :now>endVoting) THEN endGrading WHEN :now>endVoting THEN endVoting-:now WHEN :now>endProposals THEN endVoting WHEN :now>endIdeas THEN endProposals ELSE endIdeas END) AS endDate, budget, units FROM r_questions WHERE ctty IN (:ctty, 0) AND endIdeas<>0 ORDER BY endDate, id", ray('ctty now', $cttyA->id, $now = time()));
+//	$q = db\q("SELECT id, (CASE WHEN (endGrading<>0 AND :now>endVoting) then 'G' WHEN :now>endVoting THEN 'R' WHEN :now>endProposals THEN 'V' WHEN :now>endIdeas THEN 'P' ELSE 'I' END) AS phase, repeats, repeatedBy, text, detail,  linkIdeas, linkProposals, created, (CASE WHEN endVoting=0 THEN 0 WHEN (endGrading<>0 AND :now>endVoting) THEN endGrading WHEN :now>endVoting THEN endVoting-:now WHEN :now>endProposals THEN endVoting WHEN :now>endIdeas THEN endProposals ELSE endIdeas END) AS endDate, budget, units FROM r_questions WHERE ctty IN (:ctty, 0) AND endIdeas<>0 ORDER BY endDate, id", ray('ctty now', $cttyA->id, $now = time()));
+
+	$q = db\q("SELECT id, (CASE WHEN (endGrading<>0 AND :now>endVoting) then 'G' WHEN :now>endVoting THEN 'R' WHEN :now>endProposals THEN 'V' WHEN :now>endIdeas THEN 'P' ELSE 'I' END) AS phase, repeats, repeatedBy, text, detail,  linkIdeas, linkProposals, created, (CASE WHEN endVoting=0 THEN 0 WHEN (endGrading<>0 AND :now>endVoting) THEN endGrading WHEN :now>endVoting THEN endVoting-:now WHEN :now>endProposals THEN endVoting WHEN :now>endIdeas THEN endProposals ELSE endIdeas END) AS endDate, budget, units FROM r_questions WHERE e.id=:eid AND endIdeas<>0 ORDER BY endDate, id", ray('ctty now', $cttyA->id, $now = time()));
 
 	$voting = false;
 	$qdivs = $list = '';
@@ -134,7 +136,7 @@ function getOpt($opti, $opttext, $optdetail) {
 	return <<<EOF
 <div class="optRow $rowclass">
 <div class="rowwrapper">
-<div class="item"><img id="expand$opti" src="$rUrl/images/rvote/expand.gif" alt="show detail" title="show detail" width="13" height="13" onclick="expand($opti);"$expandimgstyle />&nbsp;
+<div class="item"><img id="expand$opti" src="$rUrl/images/rvote/expand.gif" alt="show detail" title="show detail" width="13" height="13" onclick="expandOpt($opti);"$expandimgstyle />&nbsp;
 <b>Option:</b> $opttext</div item>
 <div id="optdetail$opti" class="optdetail">
 <div id="optdetailtext$opti" class="optdetailtext"><div class="optdetailheader">DETAIL:</div optdetailheader>$optdetail<br>&nbsp;</div optdetailtext$opti>
@@ -233,9 +235,11 @@ function formatQuestionDates($dt1, $dt2, $startplusdays=0) {
 function getQuestions($ctty) {
 	// note that if a ballot is kept open beyond the election end time, the following query will disallow it
 //	if(!$crit) $crit = 'NOW() BETWEEN question_startdate AND question_enddate';
+  $event = v\getCurrentEvent($ctty);
+  extract(u\just('eid', $event));
   $now = time();
-  $crit = 'ctty IN (:ctty, 0) AND :now>endProposals AND (:now<endVoting OR endVoting=0)';
-	$q = db\q('SELECT id AS question, type FROM r_questions WHERE ' . $crit, compact('ctty', 'now'));
+//  $crit = 'ctty IN (:ctty, 0) AND :now>endProposals AND (:now<endVoting OR endVoting=0)';
+	$q = db\q('SELECT id AS question, type FROM r_questions WHERE event=:eid', compact('eid'));
 
 	while($row = $q->fetchAssoc()) {
 		extract($row);
@@ -279,6 +283,8 @@ function qid($qid) {
 
 function goDemocracy() {
   return <<<EOF
-<br><a href="democracy" class="pull-left btn btn-xs btn-primary" role="button">&laquo; Common Good Democracy Home</a>
+<br><a href="events" class="pull-left btn btn-xs btn-primary" role="button">&laquo; Common Good Democracy Events Home</a>
 EOF;
 }
+
+function getCurrentEvent($ctty) {return db\lookup('id AS eid, type, event, details, start, end', 'r_events', 'ctty=:ctty AND end>:now ORDER BY end LIMIT 1', ray('ctty now', $ctty, time()));}

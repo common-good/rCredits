@@ -55,7 +55,7 @@ h3 { margin-bottom:0px; }
 
 .ballot .item { float:left; text-align:left; width:100%; padding: 3px 20px 10px 5px; background-color:inherit; }
 .ballot .item .optImgWrap { float:left; width:20px; min-height:25px; }
-.ballot .item .optImg { visibility:hidden; }
+/*.ballot .item .optImg { visibility:hidden; }*/
 .ballot .optionheader .item {padding-left:40px;}
 
 .ballot div.veto { float:right; width:auto; text-align:right; padding-top:3px; clear:right; background-color:inherit; font-weight:bold; }
@@ -67,7 +67,7 @@ h3 { margin-bottom:0px; }
 .ballot div.optdetail { clear:left; overflow:visible; display:none; text-align:left; background-color:inherit; }
 .ballot div.optdetailE { margin:0 20px 0 15px; }
 .ballot div.optdetailheader { display:inline; padding:5px; padding-bottom:0px; margin:0 5px 0 10px; background-color:black; color:white; font-weight:bold; }
-.ballot div.optdetailtext { display:block; padding-top:5px; max-height:150px; overflow:-moz-scrollbars-vertical; overflow:scroll; overflow-x:hidden; background-color:inherit; }
+.ballot div.optdetailtext { display:block; padding-top:5px; padding-left:5px; max-height:150px; overflow:-moz-scrollbars-vertical; overflow:scroll; overflow-x:hidden; background-color:inherit; }
 
 /* Sliders and Percentage */
 .ballot .sliderandpct { float:left; width:100%; padding-right:30px; height:60px; background-color:inherit; }

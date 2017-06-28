@@ -1,3 +1,18 @@
+2017-06-27 version 2.74
+. implemented signups with partial data directly from (and reporting to) partner site
+. fixed bug that allowed companies to vote by direct link
+. worked around PHP anomaly (crash) on use of null object return from a function (specifically @r\acct()->field)
+. added mailChimp question to admin member list export
+. gave cAdmin permission to change tx dates (within a month)
+. fixed bug that drew too much from bank when old committed field was non-zero
+. added running balance to transaction history
+
+2017-06-16 version 2.71
+. created r_events table and revised democracy page (renamed Democracy Events)
+. ALTER TABLE `r_questions` DROP `ctty`, DROP `repeats`, DROP `repeatedBy`, DROP `endIdeas`, DROP `endProposals`, DROP `endVoting`, DROP `endGrading`, DROP `linkIdeas`, DROP `linkProposals`, DROP `modified`;
+. UPDATE `r_questions` SET event=1
+. UPDATE `r_proposals` SET event=3
+
 2017-06-16
 . update includes/menu.inc
 . invoice uploads
@@ -21,7 +36,7 @@
 . created r_ips to track IP addresses used by CG members (for whitelisting on our server)
 . minimum donation is now zero
 . invitations are no longer required
-. update Drupal files: includes/install, common, module, session modules/system block node
+. update Drupal files: includes/install, cache, common, menu, module, session modules/system block node
 . remake tables
 . f('db.q', 'DROP TABLE IF EXISTS actions,authmap,batch,blocked_ips,block_custom,block_node_type,block_role,cache_block,cache_field,cache_filter,cache_page,cache_path,cache_update,date_formats,date_format_locale,date_format_type,field_config,field_config_instance,file_managed,file_usage,history,node,node_access,node_revision,node_type,offsite,role,role_permission,sequences,sms_carriers,url_alias,users_roles,watchdog');
 . eachA(function($a) {

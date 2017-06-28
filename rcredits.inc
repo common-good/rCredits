@@ -405,7 +405,7 @@ function membershipEvent($a, $status, $do = TRUE) {
   $fullName = $a->fullName;
 
   if ($status == 'ok') {
-    u\EXPECT(@r\acct()->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
+    u\EXPECT($mya = r\acct() and $mya->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
     $inviterName = @$a->helperA->fullName;
     $subs = compact('inviterName');
     $msg = 'approved';
@@ -504,7 +504,17 @@ function tellAdmin($index, $subs = [], $uid = NULL) {
   return FALSE;
 }
 
-function tellCO($index, $subs = [], $uid = NULL) {return tellAdmin($index, $subs, $uid ?: (@r\acct()->id ?: @$subs['loserId']));}
+/**
+ * Report something of interest to a community admin.
+ * @param string $index: message index or text
+ * @param assoc $subs: substitutions/parameter, if any, to include in the report
+ * @param int $uid: record ID of an account in the community to report about.
+ *    If none, choose something reasonable, reporting to superAdmin as a last resort.
+ */
+function tellCO($index, $subs = [], $uid = NULL) {
+  if (!$uid) $uid = ($mya = r\acct()) ? $mya->id : @$subs['loserId'];
+  return tellAdmin($index, $subs, $uid);
+}
 
 /**
  * Return a unique temporary name related to the given uniquely identifying parmeters 
@@ -811,6 +821,7 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_boxes:uid:D',
   // r_countries
     'r_do:uid:D',
+    'r_events:ctty',
     'r_gifts:uid:D',
   // r_industries
     'r_invites:inviter',
@@ -830,7 +841,7 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_proposals:ctty',
     'r_proxies:person:D',
     'r_proxies:proxy:D',
-    'r_questions:ctty',
+  // r_questions
   // r_regions
     'r_relations:main:D',
     'r_relations:other:D',
@@ -1447,6 +1458,6 @@ function stepsDone0() {return array_fill_keys(array_keys(ray(R_STEPS)), FALSE);}
 function isReward($type) {return in_array($type, ray(TX_REWARDS));}
 //function usdin($for) {return u\abbreviates('usd in (', strtolower(is_array($for) ? $for[1] : $for));}
 function usdin($for) {return u\abbreviates(S_USD_IN, is_array($for) ? $for[1] : $for, TRUE);}
-function regionField($fld) {return @r\acct(serverUid())->$fld;}
+function regionField($fld) {return ($mya = r\acct(serverUid())) ? $mya->$fld : NULL;}
 function signedIn() {return r\acct() ? TRUE : FALSE;}
 function iCodeDesc($iCode) {$iCodeDescs = ray(IBYS); return $iCodeDescs[min($iCode, IBY_ICARD) - IBY0];}

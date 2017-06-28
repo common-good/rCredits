@@ -60,7 +60,6 @@ a.list-group-item:hover {background-color:#b4dcfe;} /* for non-dropdown menus */
 .submenu .popover h4 {font-size:14px;}
 .submenu .popover-content {padding:0;}
 .submenu .popover .arrow:after {border-bottom-color:#044687;}
-.popmenu {display:none;}
 .submenu a.list-group-item {border-width:0 0 1px 0;}
 .submenu a.list-group-item:hover {background-color:#022f5a;}
 .submenu a.list-group-item:last-child {border:0;}
@@ -299,6 +298,9 @@ body.logged-in.one-sidebar #content {width:100%;}
 
 /* Invite */
 #inviteLink {border:1px solid silver; background-color:lightyellow; color:silver;}
+
+/* Export */
+.form-item-chimpSet, .form-item-chimpSet>.control-label {display:none;}
 
 /* Democracy */
 body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
@@ -645,7 +647,7 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #txlist-title {width:100%; margin-top:0px;}
 #txlist div.row {margin-left:0; margin-right:0;}
 #txlist .row >div {border-top:1px solid #d9d9d9; margin:0 auto;}
-#txlist .row div div {padding-top:10px; padding-bottom:8px; min-height:35px;}
+#txlist .row>div>div {padding-top:10px; padding-bottom:8px; min-height:35px;}
 
 #txlist .tid-date, 
 #txlist .name-purpose, 
@@ -665,7 +667,7 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #txlist .txRow.page-0 {display:block;}
 
 #txlist .row.head >div {border-bottom:0;}
-#txlist .row.head div div {background:#757575; color:white; font-weight:bold; border-right:1px solid white;}
+#txlist .row.head>div>div {background:#757575; color:white; font-weight:bold; border-right:1px solid white;}
 #txlist .row.head .buttons {color:white; background-color:white; border:0;}
 #txlist .row.head .reward {font-size:100%;}
 

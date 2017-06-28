@@ -529,7 +529,7 @@ function doBalance($info) {
  * Return a field for the account with the given cell number.
  */
 function phoneField($field, $number) {
-  return @r\acct(r\SMS\uid($number))->$field;
+  return ($mya = r\acct(r\SMS\uid($number))) ? $mya->$field : NULL;
 }
 
 function usdTransferCount($where = '1') {

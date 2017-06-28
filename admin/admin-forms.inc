@@ -44,6 +44,16 @@ function formAdminPanel($form, &$sta, $args = '') {
   
   if ($mya->superAdmin) {
     if (r\up()) $stop = submi(t('STOP')); else $start = submi(t('START'));
+/*    if (time() < strtotime('6/20/2017')) {
+      global $base_url;
+      $members = db\col('uid', 'users', ':IS_OK AND NOT :IS_CO AND activated<1486098000 ORDER BY community, uid');
+      foreach($members as $k) {
+        $list[] = <<<EOF
+<a href="$base_url/print-rcard/$k" target="_blank" class="btn btn-xs btn-primary" role="button" onclick="this.style.display='none';">NEXT</a>
+EOF;
+      }
+      $start = w\item(join('', $list));
+    } */
     $do1099btest = submi(t('1099B TEST'));
     $do1099b = submi('1099B');
     $tables .= ' notices boxes do stats usd nonmembers';
@@ -61,7 +71,7 @@ function formAdminPanel($form, &$sta, $args = '') {
   $seeData = submi(t('See Data'));
   $seeChanges = submi(t('See Changes'));
   if (!$mya->superAdmin and $ctty = $mya->community) { // not super
-    $cttyName = @r\acct($ctty)->fullName; // @ for testing
+    $cttyName = ($cttyA = r\acct($ctty)) ? $cttyA->fullName : NULL;
     if ($mya->cttyUp) $stopCtty = submi(t('STOP ') . $cttyName); else $startCtty = submi(t('START ') . $cttyName);
   }
 
@@ -108,7 +118,7 @@ function formAdminPanel_submit($form, &$sta) {
         rename($oldFile, $newFile);
       }
     }
-    return r\go('print-rcard/' . $a->id);
+    return r\go('print-rcard/' . $a->id . ($a->co ? "/$a->agentId" : ''));
   } elseif ($op == 'askForAppData') {
     $a->update('getAppData appData', '!report', []);
     say(t('Request for app data sent to ') . $a->fullName);
@@ -162,7 +172,7 @@ EOF;
   if ($op == 'invites') return say(a\showQuery('r_invites', 1, 'invited DESC', 'invited, inviter, invitee, email', 'inviter'));
   if ($op == 'notices') return say(a\showQuery('r_notices', 1, 'msgid DESC'));
   if ($op == 'proxies') return say(a\showQuery('r_proxies', 1, 'id DESC', 'person, proxy, priority', 'person'));
-  if ($op == 'relations') return say(a\showQuery('r_relations', 1, 'main, reid', 'reid,main,other,otherNum,draw,permission,employee,isOwner', 'main'));
+  if ($op == 'relations') return say(a\showQuery('r_relations', 1, 'main DESC, reid', 'reid,main,other,otherNum,draw,permission,employee,isOwner,code', 'main'));
   if ($op == 'usd') return say(a\showQuery('r_usd', 1, 'created DESC'));
   foreach (ray('boxes do stats nonmembers') as $one) if ($op == $one) return say(a\showQuery("r_$one"));
 }
@@ -218,7 +228,7 @@ function formSeeChanges($form, &$sta, $qid = '') {
       foreach ($info as $k => $v) {
         $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, $a->$k);
 ///        if (is_array($v)) $v = print_r($v, 1);
-//        while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
+        while (substr($v, strlen(CRYPT_FLAG)) == CRYPT_FLAG) $v = u\decrypt($v); // u\starts failes here (when encrypted?)
         $rec[$k] = $oldValue = a\formatField($k, $v);
         $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";
       }
@@ -407,14 +417,23 @@ function formDownloadMemberList($form, &$sta, $args = '') {
 <blockquote>%example</blockquote>
 <p>Other action choices might be listed here someday. :)</p>
 EOF
-  , 'cttyName code expMo _example', $cttyA->fullName, 'do/action~qid~ecode~monthNum', $expMo, $base_url . '/do/doDemocracy~*|ID|*~*|ECODE|*~' . ($expMo + 1)));
+  , 'cttyName code expMo _example', $cttyA->fullName, 'do/action~qid~ecode~monthNum', $expMo, $base_url . '/do/doEvents~*|ID|*~*|ECODE|*~' . ($expMo + 1)));
+  
+  $chimp = boolFld(t('Exporting to MailChimp?'), '', TRUE);
+  
   if ($mya->admin) $allCttys2 = boxFld('allCttys', t('All communities:'), '', TRUE); // temporary for CGF oversight
   $requests2 = boxFld('requests', t('Include requests:'), t('Include non-members who have requested an invitation 2016 or later.'), TRUE);
   $status = w\radiosFld(t('Status:'), '', dft(2), ray('active not-yet-active both'));
   $types = w\radiosfld(t('Types:'), '', dft(2), ray('individuals companies both'));
   $anonymous = boxFld('anonymous', t('Anonymous:'), t('Export only non-identifying information (for data-mapping and analysis)'), FALSE);
+  $chimpSet = w\fieldSet('fields', compact(ray('allCttys2 requests2 status types anonymous')));
+  
   $submit = submit(t('Download'));
-  return labeled(compact(ray('title subtext requests2 allCttys2 status types anonymous submit download')));
+  
+  $js = "$('#edit-chimp-1').click(function() { $('.form-item-chimpSet').hide();});
+         $('#edit-chimp-0').click(function() { $('.form-item-chimpSet').show();});";
+  w\js($js, 'inline', 'footer');
+  return labeled(compact(ray('title subtext chimp chimpSet submit download')));
 }
 
 function formDownloadMemberList_submit($form, &$sta) {
@@ -497,7 +516,7 @@ function depositDetails($args) {
   $colW = 1.25; // amount column width
   $pdf->setPageUnit('in'); // measure everything in inches
   $pdf->SetMargins($m, $m, $m);  // left/top/right margin, needed for auto page breaks
-  $pdf->SetAutoPageBreak($count > ($in ? 47 : 9), $m); // leave space at bottom (count compensates for TCPDF bug)
+  $pdf->SetAutoPageBreak($count > ($in ? 47 : 9), $m+.1); // leave space at bottom (count compensates for TCPDF bug)
   $pdf->setPrintHeader(FALSE);
   $pdf->setPrintFooter(TRUE);
 //  $pdf->setLanguageArray($l); // (eg "page" in footer)
@@ -579,7 +598,7 @@ EOF;
 function achBatch($args) {
   extract(u\just('way date mark', $args));
   $ways = ['IN'=>'(amount>0 AND txid>0)', 'OUT'=>'(amount<0 AND txid>0)', 'BAD'=>'txid<0'];
-  $where = $ways[$way];
+  $where = $ways[strtoupper($way)];
   $q = db\q("SELECT txid,created,payee,amount,deposit,bankAccount FROM r_usd WHERE deposit=:date AND $where ORDER BY created, txid", compact('date'));
   if (!$q->rowCount()) return r\go('sadmin/deposits', t('There are no transactions for that ACH batch.'));
 
@@ -739,7 +758,8 @@ function memberId($id, $agent = '') {
 
   $server = isPRODUCTION ? 'RC2.ME' : 'RC4.ME';
   $qrUrl = "HTTP://$region.$server/$tail" . $aa->$cardFld;
-  $photo = $aa->photo ? "@$aa->photo" : str_replace(R_DFT_PICTURE, R_NOT_VALID, DRUPAL_ROOT . $aa->photoFilename());
+  $permitted = ($proSe or B_RELATED + r\relation('permission', $a->id, $aa->id) >= B_BUY);
+  $photo = ($aa->hasPhoto and $permitted) ? "@$aa->photo" : (DRUPAL_ROOT . R_PICTURE_DIR . R_NOT_VALID); // '@' tells tcpdf it's and image, not a file; $a->canBuy fails because admin has permission
 
   list ($wCard, $hCard, $m, $xText) = [3.375, 2.125, .24, .06]; // card dimensions, negative page margin, text indent
 //  list ($wPhoto, $mPhoto, $xCardNo) = [1.09, .1, 2.4];
@@ -786,7 +806,11 @@ function memberId($id, $agent = '') {
   if (!isPRODUCTION) $pdf->say(t('TEST'), $xTest, $m+$hCard-.19, .5, '', '6.5;color:darkred', 'C');
 
   $pdf->StopTransform();
-  if (u\test()) $pdf->Close(); else $pdf->Output(strtolower("$qid.cgcard.pdf"), 'I'); //Close and output PDF document
+/*  if (time() < strtotime('6/20/2017')) {
+    $pdf->Output(strtolower("$qid.cgcard.pd"), 'D'); // Close and output PDF document ('I')
+  } else */
+  if (u\test()) $pdf->Close(); else $pdf->Output(strtolower("$qid.cgcard.pd"), 'I'); // Close and output PDF document ('I')
+//  if (time() < strtotime('6/20/2017') and $next = nextMember($id)) r\go("$base_url/print-rcard/$next");
 }
 
 function formSMS($form, &$sta) {

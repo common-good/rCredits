@@ -237,6 +237,7 @@ function ssnCheck($a) {
   if (isDEV) return t('no SSN data');
   if (!$ssnData = @$a->ssnData) {
     if (!$ssnData0 = u\ssnLookup($a->federalId)or strpos($ssnData0, 'RequestTimedOutException')) return w\say(t('No data returned from ssnLookup (probably timed out).'));
+
 //    if (strpos($ssnData0), 'timeout')
     $xml = simplexml_load_string($ssnData0);
     $json = json_encode($xml);
@@ -331,7 +332,8 @@ function badStats($ctty, $asof) {
   $q = db\q('SELECT uid FROM users WHERE community=:ctty AND uid > 1', compact('ctty'));
   while ($row = $q->fetchAssoc()) {
     extract(u\just('uid', $row));
-    $r = be\creditInfo(compact('uid','asof'))->r;
+    $info = be\creditInfo(compact('uid','asof'));
+    $r = $info->r;
     $total = @$total + $r;
   }
   $rStat = db\lookup('r', 'r_stats', 'ctty=:ctty AND created=:asof', compact('ctty', 'asof'));
@@ -865,3 +867,9 @@ function retro() {
 }*/
 
 function cardLink($link) {return spinLink("/print-rcard/$link", t('card'), '', 'primary', 'xs', w\away());}
+
+function nextMember($id = 0) {
+  $members = db\col('uid', 'users', ':IS_OK AND NOT :IS_CO AND activated<1486098000 ORDER BY community, uid');
+  $i = $id ? array_search($id, $members) : -1;
+  return @$members[$i + 1];
+}

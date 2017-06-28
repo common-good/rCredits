@@ -323,8 +323,8 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
     if ($k != 'force') unset($data[$k]); // keep force in data also
   }
   if (@$force == 1) $offline = TRUE; // temporary until app handles this right
-  $erInfo = compact(ray('ttype amount goods for force')) + ray('a1 a2', $a1->fullName, $a2->fullName);
   $taking = ($ttype == 'charge');
+  $erInfo = compact(ray('ttype amount goods for force')) + ray('a1 a2 op', $a1->fullName, $a2->fullName, $taking ? t('charged') : t('paid'));
   $amount = round($amount, 2); // ignore fractions of cents
   $reallyTaking = ($taking xor $amount < 0); // not taking if charging a negative amount
 
@@ -333,8 +333,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   list ($payer, $payee) = u\order($taking, $uid, $myid); // Analyze who's buying or selling
   list ($payerAgent, $payeeAgent) = u\order($taking, $a2->agentId, $a1->agentId);
 
-  if (!@$force and !@$data['inv'] and r\dupTx($uid, $myid, $taking ? $amount : -$amount)) return r\txRet('duplicate transaction', ray('op', $taking ? t('charged') : t('paid')));
-
+  if (!@$force and !@$data['inv'] and r\dupTx($uid, $myid, $taking ? $amount : -$amount)) return r\txRet('duplicate transaction', $erInfo);
   if ($err = r\txPermErr($a1, $a2, $taking, $amount < 0)) { // Check permissions
     list ($erMsg, $erSubs) = $err;
     if (@$force) {
@@ -421,17 +420,16 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
  *    confirm: boolean "this needs to be confirmed"
  */
 function invoice($a1, $a2, $amount, $goods = FOR_USD, $purpose = NULL, $oked = TRUE) {
-  if ($err = u\badAmount($amount, '>0')) return r\txRet($err);
   u\EXPECT(compact(ray('a1 a2 amount goods purpose oked')), 'acct acct float int string bool');
-  u\setDft($purpose, $why = ray(R_WHYS)[$goods]);
   list ($payee, $payer) = array($a1->id, $a2->id);
-  if ($err = r\txPermErr($a1, $a2, TRUE)) return r\txRet($err);
-  if (r\dupTx($payee, $payer, -$amount)) return r\txRet('duplicate transaction', ['op' => t('charged')]);
+  u\setDft($purpose, $why = ray(R_WHYS)[$goods]);
+  $subs = ray('myName otherName amount why purpose did op', $a1->fullName, $a2->fullName, u\fmtAmt($amount), $why, $purpose, t('charged'), t('charged'));
+  if ($err = u\badAmount($amount, '>0')) return r\txRet($err, $subs);
+  if ($err = r\txPermErr($a1, $a2, TRUE)) return r\txRet($err, $subs);
+  if (r\dupTx($payee, $payer, -$amount)) return r\txRet('duplicate transaction', $subs);
 //  if (!$a1->co and !$a1->photoId) return r\txRet('no photoid');
 //  if (!$a2->co and !$a2->photoId) return r\txRet('other no photoid', ['who' => $a2->fullName]);
   
-  $subs = ray('myName otherName amount why purpose did', $a1->fullName, $a2->fullName, u\fmtAmt($amount), $why, $purpose, t('charged'));
-
   if ($oked) {
     $created = r\rTime();
     $info = compact(ray('amount payer payee goods purpose created'));

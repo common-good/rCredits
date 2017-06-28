@@ -1055,7 +1055,7 @@ function signupCompanyInfoIsRemembered() {
  */
 function signupCompanyInfoForAccountIsRemembered($id) {
   global $testOnly; if (!$testOnly) return FALSE;
-  return (bool) @r\acct(t\uid($id))->signupCo;
+  return (bool) ($a = r\acct(t\uid($id)) and $a->signupCo);
 }
 
 /**
@@ -1096,7 +1096,7 @@ function aMemberPostsToWithValues($page, $values) {return memberConfirmsFormWith
  */
 function memberIsLoggedIn($id) {
   global $testOnly;
-  return $testOnly ? (\user_is_logged_in() and t\uid($id) == @r\acct()->id) : t\login($id);
+  return $testOnly ? (\user_is_logged_in() and $mya = r\acct() and t\uid($id) == $mya->id) : t\login($id);
 }
 
 /**

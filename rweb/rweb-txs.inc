@@ -60,18 +60,11 @@ function formTxs($form, &$sta, $args = '') {
   if (u\test() and @$download) return; // simulate exit, for tests
   list ($header, $classes, $rows, $totals) = $txRows;
   
-  // prepare screen display
-//  $classes = u\prefixValues('tx-', $classes);
-//  $attributes = array('id' => 'txlist');
-//  $cols = [];
-//  foreach ($classes as $class) $cols[] = compact('class');
-//  $colgroups = array($cols);
-//  $caption = $sticky = '';
-//  $list = theme_table(compact(ray('header rows attributes caption colgroups sticky empty')));
   array_unshift($rows, $header); // put header at start
   
   $list = '';
   $count = -2;
+  $summary = fld('markup', '', '', array('markup' => txSummary($starting, $ending, $run)));
   
   foreach ($rows as $row) {
     $count++;
@@ -81,7 +74,9 @@ function formTxs($form, &$sta, $args = '') {
     if (!$list) $class .= ' head';
     $class .= ' page-' . floor($count / MIN_TX_ROWS);
     $class .= ' PAGE-' . floor($count / NORMAL_TX_ROWS);
-    list ($c1, $c2, $c3, $c4, $reward) = $mya->cttyRewardy ? [6, 3, 7, 5, $reward] : [7, 2, 12, 0, ''];
+//    list ($c1, $c2, $c3, $c4, $reward) = $mya->cttyRewardy ? [6, 3, 7, 5, $reward] : [7, 2, 12, 0, ''];
+    list ($c1, $c2, $c3, $c4, $last) = [6, 3, 5, 7, (!$list or $mya->cttyRewardy) ? $reward : number_format($run, 2)];
+    if ($list) $run -= u\cleanAmount($amount);
     
     $list .= <<<EOF
 <div class="$class">
@@ -95,7 +90,7 @@ function formTxs($form, &$sta, $args = '') {
   </div>
   <div class="amount-reward col-xs-$c2">
     <div class="amount col-sm-$c3">$amount</div>
-    <div class="reward col-sm-$c4">$reward</div>
+    <div class="reward col-sm-$c4">$last</div>
   </div>
   <div class="buttons col-xs-1">
     $buttons
@@ -129,7 +124,6 @@ EOF;
 EOF;
 
   $transactions = item("<div id=\"txlist\" class=\"table table-striped\">$links$list</div>");
-  $summary = fld('markup', '', '', array('markup' => txSummary($starting, $ending)));
 
   $divider = item('<hr>');
   $title = item(t('Transaction History'));
@@ -235,7 +229,8 @@ function txEdit($xid) {
   $amount = textFld(t('Amount: $'), '', dft(number_format($amount,2)));
   $goods = $mya->cttyRewardy ? radiosFld('&nbsp;', '', dft((int) $goods), ray(R_WHYS)) : w\hidfld($goods);
   $purpose = textFld(t('For:'), '', dft(u\nonish(@$purpose) ? '' : $purpose));
-  if ($mya->superAdmin) $created = textFld(t('Date:'), '', dft(u\fmtDate($created))); else unset($created);
+  $created0 = w\hidFld($created);
+  if ($mya->cAdmin) $created = textFld(t('Date:'), '', dft(u\fmtDate($created))); else unset($created);
   $submit = submit(t('Update'));
 
   return labeled($form + compact(ray('title to amount goods purpose created submit orig')));
@@ -244,11 +239,12 @@ function txEdit($xid) {
 function txEdit_validate($form, &$sta) {
   global $base_url;
   $mya = r\acct();
-  extract(u\just('created amount goods purpose orig', $sta['input']));
+  extract(u\just('created0 created amount goods purpose orig', $sta['input']));
   extract($orig = unserialize(htmlspecialchars_decode($orig)), EXTR_PREFIX_ALL, 'x');
   
   if ($goods == FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
+  if ($err = u\badDate($created, $created0 - 30 * DAY_SECS, time() + 7 * DAY_SECS)) return say($err, 'created');
 ///  debug(compact('x_toMe','amount','x_amount'));
   if (!$mya->cAdmin and ($x_toMe ? ($amount > $x_amount) : ($amount < $x_amount))) {
     $who = r\acct($x_toMe ? $x_payer : $x_payee)->name;
@@ -304,14 +300,17 @@ function txBal($bal, $plus = '', $minus = '- ') {
  * Return the transaction summary table
  * @param int $starting: starting time (the start of some day)
  * @param int $ending: ending time (the end of some day)
+ * @param numeric $endBalance: (RETURNED) closing balance at end of period
+ * @return html for summary
  */
-function txSummary($starting, $ending) {
+function txSummary($starting, $ending, &$endBalance = '') {
   $mya = r\acct();
   $myid = $mya->id;
   
   $endingNow = ($ending > r\rTime());
   $previous_ending = $starting - 1;
   extract($nowInfo = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'n');
+  $endBalance = $n_balance;
   extract($pendingInfo = (array) be\creditInfo(ray('pending asof', TRUE, $ending)), EXTR_PREFIX_ALL, 'p');
   extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'o');
 ///  debug(compact('nowInfo','oldInfo'));

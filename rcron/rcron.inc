@@ -709,7 +709,7 @@ function draw1($item) {
  * @return: amount to transfer from the connected bank account or draw from other %PROJECT Accounts (0 if none).
  */
 function getHowMuchR($a, $banky = TRUE) {
-  if (!$need = max(0, $a->minimum + $a->committed - $a->balance)) return 0;
+  if (!$need = max(0, $a->minimum - $a->balance)) return 0; // + $a->committed
   if ($banky) {
     $waiting = $a->waitingToBank($combinable); // net amount already requested from bank (if any)
     $need = round($need - $waiting, 2); // avoid a re-request

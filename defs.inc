@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '2.70'); // software version
+define('R_VERSION', '2.74'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -68,7 +68,7 @@ define('CGF_POSTALADDR', 'PO Box 21, Ashfield, MA 01330-0021');
 define('CGF_EIN', '205280780');
 define('SLOGANS', 'for truth and justice,for community power,for community democracy,for community investment,for a sustainable future,to empower communities,for community abundance,for a better future,for economic democracy,for democratic economics');
 define('R_LAUNCH', strtotime('12/15/2013'));
-define('EMAIL_DOMAIN', 'new.CommonGood.earth'); // replace this with CG_DOMAIN when ready
+define('EMAIL_DOMAIN', CG_DOMAIN); // replace this with CG_DOMAIN when ready
 define('SYS_EMAIL', 'system@' . EMAIL_DOMAIN); // old address so we don't get marked as spam (later at REGION_DOMAIN)
 define('BOUNCE_EMAIL', 'bounce@' . EMAIL_DOMAIN); // old address so we don't get marked as spam (later at REGION_DOMAIN)
 define('PUBLIC_KEY', dirname($_SERVER['DOCUMENT_ROOT']) . '/.publicKey');
@@ -206,7 +206,7 @@ define('HAS_XFEE', "data LIKE '%s:4:\"xfee\";%'"); // sql to recognize a transac
 define('R_DEPOSIT_RETURN_FEE', 20); // what we charge members for a second bounced transfer
 
 define('R_USPS_WEB_TOOLS_ID', '921COMMO5331'); // USPS API credentials
-define('PARTNER_API_URL', 'https://WEBSITE/common-good-api/'); // where to communicate with co-branding partners
+define('PARTNER_API_URL', isDEV ? 'http://WEBSITE/cgapi/' : 'https://WEBSITE/common-good-api/'); // where to communicate with co-branding partners
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');

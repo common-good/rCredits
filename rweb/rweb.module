@@ -99,9 +99,12 @@ function rweb_menu($submenu = '') {
     'proposal' => ['call', t('Funding Proposal'), 'Proposal', ANY], // keep the url short, for outsiders
     'community' => ['norm', t('Community'), 'Community', ANY],
     'community/data' => ['sub', t('Community & Money Data'), 'Data 2', 'read', '', t(''), 'list-alt'],
-    'community/democracy' => ['sub', t('Discussion & Voting'), 'Democracy 2', 'ok manage', '', t(''), 'bell'],
-    'community/democracy/proposal-report' => ['call', t('Proposal Report'), 'ProposalReport 3', 'manage'],
-    'community/democracy/proposal-notes' => ['call', t('Proposal Notes'), 'ProposalNotes 3', 'manage'],
+    'community/events' => ['sub', t('Democracy Events'), 'Events 2', 'ok manage', '', t(''), 'bell'],
+    'community/events/event' => ['call', t('Add/Edit Event'), 'Event 3', 'cadmin'],
+    'community/events/question' => ['call', t('Add/Edit Question'), 'Question 3', 'cadmin'],
+    'community/events/option' => ['call', t('Add/Edit Option'), 'Option 3', 'cadmin'],
+    'community/events/proposal-report' => ['call', t('Proposal Report'), 'ProposalReport 3', 'manage'],
+    'community/events/proposal-notes' => ['call', t('Proposal Notes'), 'ProposalNotes 3', 'manage'],
     
     'community/agreement' => ['sub', t('The Agreement'), 'Agreement', ANY, '', t(''), 'globe'],
     'community/invite' => ['sub', t('Invite Someone'), 'Invite', 'member manage', '', t(''), 'share-alt'],

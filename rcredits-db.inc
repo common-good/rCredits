@@ -69,7 +69,7 @@ function lookup($fieldName, $table, $where = '1', $subs = []) {
  */
 function update($table, $info, $key, $either = FALSE) {
   //if ($table != 'r_log') u\loga('db', $info, "$table:$key" . ($either ? ' EITHER' : ''));
-  if ($either and !db\exists($table, "$key=:$key", [$key => $info[$key]])) $key = '';
+  if ($either) if (!isset($info[$key]) or !db\exists($table, "$key=:$key", [$key => $info[$key]])) $key = '';
   $command = $key ? 'UPDATE' : 'INSERT INTO';
   $sql = '';
   foreach ($info as $field => $v) {

@@ -211,7 +211,7 @@ function rdo($code, $args = '') {
  */
 function formProx($form, &$sta, $args) {
   extract(u\just('page', $args0 = $args));
-  foreach (ray('Democracy Proposal') as $k) {
+  foreach (ray('Events Democracy Proposal') as $k) {
     if (strpos($page, $k) !== FALSE) include_once DRUPAL_ROOT . R_PATH . '/rvote/rvote-web.inc';
   }
   
@@ -1081,7 +1081,6 @@ EOF
 
   $prolog = ($mya and $mya->co) ? t('<h4>As a responsible participant in the Common Good Economy:</h4>') : t(<<<EOF
 %instructions
-<%div>
 <h4>A. I recognize that:</h4>
 <ul>
   <li>[-2] %RCREDITS are intended as the basis for the Common Good Economy -- a democratic, community-centered economic system that puts people and planet first.</li>
@@ -1091,7 +1090,7 @@ EOF
 
 <h4>B. As a responsible participant in the Common Good Economy:</h4>
 EOF
-  );
+  , compact('_instructions'));
   
   $agreement = $prolog . t(<<<EOF
 <ol>
@@ -1463,7 +1462,7 @@ function formSummary($form, &$sta, $qid = '') {
   if ($mya->isNormal) { // unless this is a community or region account
     $acctType = $mya->co ? t('company account') : ($mya->jid ? t('joint account') : t('personal account'));
     $balance = u\fmtAmt($mya->balance);
-    $totalDesc = u\fmtAmt($mya->r);
+//    $totalDesc = u\fmtAmt($mya->r);
 //    $balanceDesc = $mya->savings ? t(' plus your savings, for a total of @total', ['@total' => $totalDesc]) : '';
     $balanceDesc = '';
     if ($mya->rewards) $balanceDesc .= t(' (see <%a>History</a>)', '_a', w\atag('/history'));
@@ -2088,12 +2087,12 @@ function formInvoiceUpload_validate($form, &$sta, $type = 'invoices') {
     if (!in_array($filetype, ['text/csv', 'text/plain'])) return say('bad file type', compact('filetype'), $type);
   }
   if ($file->size > R_MAX_UPLOAD_SIZE * 1024000) return say(t('That file is too big'), $type);
-  $sta['input']['filename'] = $file->tmp_name;
+  $sta['input']['rows'] = w\uploadRows($file->tmp_name);
 }
 
 function formInvoiceUpload_submit($form, &$sta) {
-  extract(u\just('filename', $sta['input']));
-  $rows = uploadRows($filename);
+  extract(u\just('rows', $sta['input']));
+//  $rows = uploadRows($filename);
   $mya = r\acct(); $myid = $mya->id;
   
   $total = 0;
@@ -2102,11 +2101,11 @@ function formInvoiceUpload_submit($form, &$sta) {
     $atLine = t(' at line ') . ($i + 1); // for error messages
     if (count($row) < 3) return say(t('Incomplete row') . $atLine);
     list ($cust, $amt, $desc) = $row;
-    $cust = db\lookup('other', 'r_relations', 'main=:myid AND code=:cust', compact('myid', 'cust')) ?
-    : @r\acct($cust)->id;
-    if (!$cust) return say(t('Bad customer account code') . $atLine, 'invoices');
     if ($err = u\badAmount($amt, '>0')) return say('bad csv|' . $err . $atLine, 'invoices');
-    $txs[] = [$cust, $amt, $desc, @$goods];
+    $uid = db\lookup('other', 'r_relations', 'main=:myid AND code=:cust', compact('myid', 'cust')) ?
+    : (($custA = r\acct($cust)) ? $custA->id : FALSE);
+    if (!$uid) return say(t('Bad customer account code') . $atLine, 'invoices');
+    $txs[] = [$uid, $amt, $desc, FOR_GOODS];
     $total += $amt;
     $cust = $amt = '';
   }      
@@ -2167,14 +2166,14 @@ function formPayroll_validate($form, &$sta) {
 define('R_NOREWARD', '<noreward>'); // "no rewards" flag in description
 
 function formPayroll_submit($form, &$sta) {
-  extract(u\just('startDate endDate filename', $sta['input']));
+  extract(u\just('startDate endDate rows', $sta['input']));
   $mya = r\acct();
 
   $desc0 = t('labor: ') . $startDate . t(' to ') . $endDate;
   $map = ['<startdate>' => $startDate, '<enddate>' => $endDate, R_NOREWARD => ''];
   $total = 0;
 
-  if ($rows = uploadRows($filename)) foreach ($rows as $i => $row) {
+  if (@$rows) foreach ($rows as $i => $row) {
     $erSubs = ['line' => $i + 1]; // for error messages
     if (count($row) < 2) say(t('Empty row at line %line.', $ersubs));
     @list ($employee, $amt, $desc) = $row; // desc is optional
@@ -2430,7 +2429,7 @@ function formGet_validate($form, &$sta) {
     $extra = $mya->cttyRewardy ? '|short cash help' : '';
     return say('short put' . $extra, compact('max'), 'amount');
   }
-  if (round($mya->r - $amount, 2) < $mya->minimum and $mya->refill) return say('change min first', 'amount');
+  if (round($mya->balance - $amount, 2) < $mya->minimum and $mya->refill) return say('change min first', 'amount');
 }
   
 function formGet_submit($form, &$sta) {
@@ -2528,7 +2527,7 @@ function formSignupCo_submit($form, &$sta) {
  */
 function formSignup($form, &$sta, $args = '') {
   if (!$args) $args = @$_POST ?: basename(t\SERVER('REQUEST_URI')); // because menu_execute_active_handler fails
-  $contactDefaults = 'phone postalCode address city postalAddr partner partnerCode customer';
+  $contactDefaults = 'phone postalCode address city address2 city2 postalCode2 state2 postalAddr partner partnerCode customer';
   extract(u\just('code personal fullName state email helper ' . $contactDefaults, $args));
   extract(u\just('hidCountry hidState', $sta['input']));
 
@@ -2580,7 +2579,7 @@ EOF;
   
   $subtext = item(t(<<<EOF
 <p>Opening a %PROJECT Account is very much like opening an online bank account. For example, you will be asked for your social security number or tax ID.</p>
-<p>After this long signup page there are <%b>some short steps</b> we will guide you through. In particular, you will be asked to sign the short but ESSENTIAL %PROJECT Agreement. You will need to upload a photo for your %PROJECT Card. You will be invited to make a donation <i>of any size</i> to support the project &mdash; you decide how much (%PROJECT is a nonprofit). And you will need your bank account information if you choose to connect it.</p>
+<p>After this signup page there are <%b>some short steps</b> we will guide you through. In particular, you will be asked to sign the short but ESSENTIAL %PROJECT Agreement. You will need to upload a photo for your %PROJECT Card. You will be invited to make a donation <i>of any size</i> to support the project &mdash; you decide how much (%PROJECT is a nonprofit). And you will need your bank account information if you choose to connect it.</p>
 <p>If you need help, please don't hesitate to ask (<%a>click here to send us an email</a>).</p>
 EOF
   , '_b _a count', 'b class="loud"', w\atag('mailto:' . CGF_EMAIL . '?subject=' . t('signup help')), $count));
@@ -2620,9 +2619,11 @@ EOF
   $helper = hidFld(@$helper ? r\acct($helper)->id : @$inviter);
   
   $contactDefaults = compact(ray($contactDefaults));
+  $contactFlds = w\contactFields($contactDefaults + ray('country state', @$hidCountry, @$hidState ?: @$state), FALSE);
+
   $form = compact(ray('title forother subtext acctType'))
-        + w\nameAndEmail($personal ? t('Full name') : t('Company'), @$fullName, @$email)
-        + w\contactFields($contactDefaults + ray('country state', @$hidCountry, @$hidState ?: @$state), FALSE) + w\ssnFields($personal)
+        + w\nameAndEmail($personal ? t('Full name') : t('Company'), @$fullName, @$email, isset($contactFlds['partner']))
+        + $contactFlds + w\ssnFields($personal)
         + compact(ray('pin calling companyInfo buysAt submit args confirmed helper iCode notes'));
 //  keep_values($form);
   return labeled($form);
@@ -3730,8 +3731,8 @@ function formVerify($form, &$sta, $arg = '') {
 
   $mya = r\acct();
   $title = item(t('Verify Your Email Address'));
-  $subtext = item(t('We emailed you a Verification Code (if you don\'t see it, check your Spam folder). Type the code here, choose a password, and press Next.'));
-  $resend = ' &nbsp; ' . t('<%a>Resend email</a>', '_a', w\atag('/settings/resend'));
+  $subtext = item(t('sent email', 'email', $mya->email));
+  $resend = ' &nbsp; ' . t('<%a>Resend or change email</a>', '_a', w\atag('/settings/resend'));
   $verify = textFld(t('Code:'), [t('Verification Code')], required() + suffix($resend));
   svar('msg', 'yes');
   $form = compact(ray('title subtext verify'));
@@ -3767,6 +3768,9 @@ function formResend_validate($form, &$sta) {
 }
 
 function formResend_submit($form, &$sta) {
+  $mya = r\acct();
+  extract(u\just('email', $sta['input']));
+  $mya->update('email', $email);
   return formPass_submit($form, $sta, 'settings/verify');
 }
 

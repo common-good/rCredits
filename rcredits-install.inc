@@ -198,20 +198,6 @@ function tableDefs($schema = []) {
   $indexes = index('person');
   $schema['r_proxies'] = setupTable('Who represents whom', $fields, 'id', $foreignKeys, $indexes);
   
-  // table r_events
-  $fields = array(
-    'id' => setupField('record id', 'serial'),
-    'ctty' => setupField('what community the event is in', 'int big'),
-    'type' => setupField('event type (I=in person, V=vote, G=grading, R=RFP)', 'char 1'),
-    'event' => setupField('name of event', 'varchar 255'),
-    'details' => setupField('event details', 'text big'), 
-    'start' => setupField('Unixtime event begins', 'int 11', 0),
-    'end' => setupField('Unixtime event ends', 'int 11', 0),
-  );
-  $foreignKeys = foreignKey('ctty');
-  $indexes = index('ctty');
-  $schema['r_events'] = setupTable('Who represents whom', $fields, 'id', $foreignKeys, $indexes);
-  
   // table r_txs
   $fields = array(
     'xid' => setupField('the unique transaction ID', 'serial big'), 
@@ -369,16 +355,16 @@ function tableDefs($schema = []) {
   $fields = array(
     'reid' => setupField('relationship record id', 'serial big'),
     'main' => setupField('uid of the account to which others are related', 'int big'),
-    'other' => setupField('uid of a user related to that account', 'int big'), // eg owner, agent, employee, supplier
-    'otherNum' => setupField('sequence number of other (starts with 1)', 'int'),
+    'other' => setupField('uid of an other account related to this account', 'int big'), // eg owner, agent, employee, supplier
+    'otherNum' => setupField('sequence number of the other (starts with 1)', 'int'),
 //    'amount' => setupField('average monthly amount paid to other', 'numeric 11,2', 0), // typically to employee or supplier
-    'draw' => setupField('whether credit can flow from main to agent', 'int tiny', 0),
-    'permission' => setupField('what type of permission the agent has on the main account', 'int tiny', 0),
-    'employee' => setupField('agent is an employee (according to employer)', 'int tiny', 0),
-//    'employeeOk' => setupField('employee says this agent is an employee', 'int tiny', 0),
-    'isOwner' => setupField('this agent is an owner (or part owner) or family relation', 'int tiny', 0),
+    'draw' => setupField('whether credit can flow from main to other account', 'int tiny', 0),
+    'permission' => setupField('what type of permission the other has on the main account', 'int tiny', 0),
+    'employee' => setupField('this other is an employee according to the main account (employer)', 'int tiny', 0),
+//    'employeeOk' => setupField('employee says this other is an employee', 'int tiny', 0),
+    'isOwner' => setupField('this other is an owner (or part owner) or family relation', 'int tiny', 0),
     'isCustomer' => setupField('this other is a customer', 'int tiny', 0),
-    'code' => setupfield('the company\'s account code for this other', 'varchar 50'),
+    'code' => setupfield('the (main) company\'s account code for this other', 'varchar 50'),
   );
   $foreignKeys = foreignKey('main') + foreignKey('other') + foreignKey('foreignUid');
   $indexes = index('main') + index('other');
@@ -497,29 +483,44 @@ function tableDefs($schema = []) {
 
   // VOTING
 
+  // table r_events
+  $fields = array(
+    'id' => setupField('record id', 'serial'),
+    'ctty' => setupField('what community the event is in', 'int big'),
+    'type' => setupField('event type (I=in person, V=vote, G=grading, R=RFP)', 'char 1'),
+    'event' => setupField('name of event', 'varchar 255'),
+    'details' => setupField('event details', 'text big'), 
+    'start' => setupField('Unixtime event begins', 'int 11', 0),
+    'end' => setupField('Unixtime event ends', 'int 11', 0),
+  );
+  $foreignKeys = foreignKey('ctty');
+  $indexes = index('ctty');
+  $schema['r_events'] = setupTable('Events in each community\'s democratic process', $fields, 'id', $foreignKeys, $indexes);
+    
   // table r_questions
   $fields = [
     'id' => setupField('question record id', 'serial big'),
-    'ctty' => setupField('community or region record id', 'int big'),
+    'event' => setupField('what event this question is part of', 'int big'),
+//    'ctty' => setupField('community or region record id', 'int big'),
 //	`phase` CHAR(1) DEFAULT 'I', // current phase: I=ideas P=proposals, [D=discussion], V=voting, R=results
     'repeats' => setupField('pointer to question that this is a revote on (0=none)', 'int big', 0),
     'repeatedBy' => setupField('pointer to question that is a revote of this one (0=none))', 'int big', 0),
-    'endIdeas' => setupField('when does the Ideas phase end', 'int 11', 0),
-    'endProposals' => setupField('when does the Proposals phase end', 'int 11', 0), // not currently used
-    'endVoting' => setupField('when does the Voting phase end', 'int 11', 0),
-    'endGrading' => setupField('when does the Grading phase end', 'int 11', 0), // grading specific proposals in Budget questions
-    'text' => setupField('text of the question', 'text tiny'),
+//    'endIdeas' => setupField('when does the Ideas phase end', 'int 11', 0),
+//    'endProposals' => setupField('when does the Proposals phase end', 'int 11', 0), // not currently used
+//    'endVoting' => setupField('when does the Voting phase end', 'int 11', 0),
+//    'endGrading' => setupField('when does the Grading phase end', 'int 11', 0), // grading specific proposals in Budget questions
+    'text' => setupField('text of the question', 'text medium'),
     'detail' => setupField('additional detail about the question', 'text medium'),
-    'linkIdeas' => setupField('where to brainstorm ideas (and see the list)', 'text tiny'),
-    'linkProposals' => setupField('where to propose options (and see the discussion)', 'text tiny'),
-//    'linkDiscussion' => setupField('discussion of final opts, before & during vote - normally same as above', 'text tiny'),
-    'type' => setupField('vote type M=multiple choice, B=budget (penny vote)', 'char 1', 'M'),
+//    'linkIdeas' => setupField('where to brainstorm ideas (and see the list)', 'text tiny'),
+//    'linkProposals' => setupField('where to propose options (and see the discussion)', 'text tiny'),
+    'linkDiscussion' => setupField('link to online discussion of the issue', 'text tiny'),
+    'type' => setupField('vote type M=multiple choice, B=budget (penny vote), R=range, E=essay', 'char 1', 'M'),
     'units' => setupField('budget units (defaults to money, measured in the community\'s national currency)', 'varchar 255'),
     'budget' => setupField('how much (money) is to be budgeted', 'numeric 11,0', 0),
     'minVeto' => setupField('minimum veto fraction of vote, to force reconsideration', 'numeric 5,3'), // set by ctty, here for history (no effect on M results)
     'optOrder' => setupField('option order', 'char 1', 'S'), // S=shuffle (randomize), Z=reverse sometimes, N=no change (static)
     'voteCount' => setupField('total number of votes', 'int 11', 0),
-    'modified' => setupField('date/time last modified', 'int 11', 0),
+//    'modified' => setupField('date/time last modified', 'int 11', 0),
     'created' => setupField('date/time created', 'int 11', 0),
   ];
   $foreignKeys = foreignKey('ctty');
@@ -593,8 +594,9 @@ function tableDefs($schema = []) {
   // table r_proposals
   $fields = [
     'id' => setupField('proposal record id', 'serial big'),
+    'event' => setupField('what event this question is part of', 'int big'),
     'project' => setupField('project title', 'varchar 255'),
-    'ctty' => setupField('community or region record id', 'int big'),
+//    'ctty' => setupField('community or region record id', 'int big'),
     'categories' => setupField('funding categories (space-separated list)', 'text tiny'),
     'overview' => setupField('project overview', 'text medium'),
     'purpose' => setupField('why the project is needed', 'text medium'),

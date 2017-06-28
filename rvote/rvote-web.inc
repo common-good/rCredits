@@ -12,7 +12,7 @@ use rCredits\Vote as v;
  * Provide infrastructure for members to discuss and vote.
  * @param string $args: miscellaneous parameters
  * @param string $qid: account QID when called from rdo() (from email link)
- * In MailChimp, use this link for voting links or buttons: https://new.rcredits.org/do/doDemocracy~*|ID|*~*|Ecode|*~~
+ * In MailChimp, use this link for voting links or buttons: https://new.CommonGood.earth/do/doEvents~*|ID|*~*|Ecode|*~~
  
 To get a list of proposal comments:
 
@@ -40,7 +40,7 @@ SELECT fullName, Count(b.id) AS votes FROM `users` u INNER JOIN r_ballots b ON b
 SELECT fullName, b.id, COUNT(v.id) as votes FROM `users` u INNER JOIN r_ballots b ON b.voter=u.uid LEFT JOIN r_votes v ON v.ballot=b.id GROUP BY b.id ORDER BY COUNT(v.id)
   
  */
-function formDemocracy($form, &$sta, $args = '') {
+function formEvents($form, &$sta, $args = '') {
   global $base_url;
   include_once __DIR__ . '/../rvote/rvote.inc';
   include_once __DIR__ . '/../rvote/rvote-ballot.inc';
@@ -48,45 +48,79 @@ function formDemocracy($form, &$sta, $args = '') {
   
   extract(u\just('question do results noProxies', $args));
 
-  $mya = w\eLinkAcct($sta, $args, 'acct'); // allow any signed in account, so user can switch to personal account, below
-    
-  if (!$mya->proSe) {
-    $switch = r\changeAcctLink($mya->agentId, t('Switch to your personal account'));
-    $msg = $mya->co ? t('Companies cannot vote.') : t('You cannot vote on behalf of someone else.');
-    w\say("$msg|$switch.", $mya->superAdmin ? '' : 'err');
-    if (!$mya->superAdmin) return compact('title');
-  }
-  
+  $mya = w\eLinkAcct($sta, $args, r\acct() ? 'acct' : 'individual'); // allow any signed in account, so user can switch to personal account, below
   $cttyA = $mya->cttyA;
-  
+
   $title = w\item(t('Community Democracy') . "<br><small>$cttyA->fullName</small>");
 //  $subtitle = w\item($cttyA->fullName);
 
-  if (!@$do or $do == 'options' or $do == 'results') {  
-    list($questionList, $phase, $endDate) = v\questionList($cttyA, @$question, @$do);
+  if ($event = v\getCurrentEvent($cttyA->id)) {
+    extract($event); // this overwrites $event with short name of event (for example "Voting on 3 questions")
+
+    $end = u\fmtDate($end);
+    $begun = ($start <= time()); // event has begun
+
+    if (strpos(' VG', $type) and $begun) {
+      if (!$mya->proSe or $mya->co) { // "or" is necessary if a voting link is accidentally sent to a company
+        $switch = r\changeAcctLink($mya->agentId, t('Switch to your personal account'));
+        $msg = $mya->co ? t('Companies cannot vote.') : t('You cannot vote on behalf of someone else.');
+        w\say("$msg|$switch.", $mya->superAdmin ? '' : 'err');
+        if (!$mya->superAdmin) return compact('title');
+      }
+
+      if (!@$do) $voting = $type == 'V' ? v\votingWelcome($end) : v\gradingWelcome($end);
+    }
+
+    $start = $start <= time() ? t('NOW') : u\fmtDate($start);
+    $status0 = t('<b>Status:</b> %event from %start to %end', compact(ray('event start end')));
+    if ($details) $status0 .= u\lf2br("\n\n$details");
+  } else $status0 = t('There are no upcoming %PROJECT events scheduled in your community at this time.');
+  
+  if (!@$do) $status = item($status0);
+
+  if (@$do == 'options' or @$do == 'results') {  
+    list($questionList, $phase, $endDate) = v\questionList(@$eid, @$question, @$do);
   }
   
-  if ($mya->community == -26742000000002) {
+  if (FALSE and $mya->community == -26742000000002) {
     $middle = file_get_contents(__DIR__ . '/greenfieldma2017.html');
 //    $middle = v\showProposalGrades($mya, $args); // FUDGE for 19 Jan 2017 (pending reworking the overall flow and logic of voting phases)
-  } else if (@$phase == 'V') { // voting
-    return v\votingWelcome($endDate);
-  } elseif (@$phase == 'G') { // grading specific proposals within voted budget
-    return v\gradingWelcome($endDate);
   } elseif (@$do == 'proposals') {
     
   } elseif (@$do == 'options' or @$do == 'results') {
     $middle = $questionlist;
   } elseif (@$do == 'ballot') {
     $middle = v\ballot($mya, $extraFields, @$question);
-  } elseif (@$do == 'done') {
-    $notes = db\col('DISTINCT text', 'r_votes v INNER JOIN r_ballots b ON v.ballot=b.id', "b.voter=:uid AND v.text<>''", ['uid' => $mya->id]);
+  } elseif (@$do == 'done' and @$eid) { // @todo: handle proposals too
+    $table = "r_votes v INNER JOIN r_ballots b ON v.ballot=b.id INNER JOIN r_questions q ON q.id=b.question";
+    $notes = db\col('DISTINCT v.text', $table, "q.event=:eid AND b.voter=:uid AND v.text<>''", ray('uid eid', $mya->id, $eid));
     r\tellCO($mya->fullName . t(' has voted. '), $notes);
     $middle = v\done($mya);
     if (!r\acct()) return doSay($middle, 'status');
   } elseif (@$do == 'grade') {
     $middle = v\showProposal($mya, $extraFields, @$question, TRUE);
-  } else $middle = t('There is no vote in progress in your community.');
+  } else {
+    $middle = t('Event History');
+    if ($mya->cAdmin) $middle .= ' ' . button(t('Add'), "$base_url/community/events/event/", '', 'warning');
+    $middle = "<h4>$middle</h4>";
+    $sql = <<<EOF
+      SELECT id, end, event FROM r_events ORDER BY end DESC, id DESC
+EOF;
+    $q = db\q($sql);
+    $list = '';
+    while ($row = $q->fetchAssoc()) {
+      extract($row, EXTR_PREFIX_ALL, 'e');
+      $e_end = u\fmtDate($e_end);
+      $buttons = $mya->cAdmin ? button(t('Edit'), "$base_url/community/events/event/$e_id", '', 'warning') : '';
+      $list .= <<<EOF
+<tr><td>$e_end</td><td>$e_event</td><td>$buttons</td></tr>
+EOF;
+    }
+    if ($list) $list = "<table><tr><th>Ends</th><th>Event</th></tr>\n$list</table>";
+    $middle .= $list ?: t('There have not yet been any %PROJECT events in your community.');
+  }
+  
+//  } else $middle = t('There is no vote in progress in your community.');
 //  } else $middle = t('There are no questions pending in your community.');
   
   $middle = w\item(@$middle);
@@ -95,10 +129,10 @@ function formDemocracy($form, &$sta, $args = '') {
   w\js('js/rvote/ballot.js', 'file', 'footer');
   w\css('css/rvote.css');
   
-  return labeled(compact(ray('title subtitle showVotes middle args')) + (@$extraFields ?: []));
+  return labeled(compact(ray('args title subtitle status showVotes')) + (@$voting ?: []) + compact('middle') + (@$extraFields ?: []));
 }
 
-function formDemocracy_validate($form, &$sta) {
+function formEvents_validate($form, &$sta) {
   extract(u\just('question agree op', $sta['input']));
   $mya = w\eLinkAcct($sta, $args);
   if (@$question < 0 and w\op($sta) == 'submit') {
@@ -106,7 +140,7 @@ function formDemocracy_validate($form, &$sta) {
   }
 }
 
-function formDemocracy_submit($form, &$sta) {
+function formEvents_submit($form, &$sta) {
   extract(u\just('question agree op', $sta['input']));
   $mya = w\eLinkAcct($sta, $args);
   $ctty = $mya->community;
@@ -114,11 +148,11 @@ function formDemocracy_submit($form, &$sta) {
   $op = (w\op($sta) == 'prev' and strpos($op, t('Previous')) === FALSE) ? 'doneWithQ' : w\op($sta);
   if ($op == 'showVotes') return w\say(v\showVotes($ctty));
   if (in_array($op, ['noDirect', 'noVote'])) return w\say(v\showNonVoters($ctty, $op == 'noDirect'));
-  if ($op == 'results') return r\go("prox/page=Democracy&$args&results=1");
-  if ($op == 'resultsNoProx') return r\go("prox/page=Democracy&$args&results=1&noProxies=1");
+  if ($op == 'results') return r\go("prox/page=Events&$args&results=1");
+  if ($op == 'resultsNoProx') return r\go("prox/page=Events&$args&results=1&noProxies=1");
   
-  if ($op == 'gradeIt') return r\go("prox/page=Democracy&do=grade&$args");
-  if (@$agree) return r\go("prox/page=Democracy&do=ballot&$args");
+  if ($op == 'gradeIt') return r\go("prox/page=Events&do=grade&$args");
+  if (@$agree) return r\go("prox/page=Events&do=ballot&$args");
   
   // process ballot submission
   if (@$question <= -1) {
@@ -135,7 +169,176 @@ function formDemocracy_submit($form, &$sta) {
 
   if ($question == 'done') w\say(t('That was the last proposal. Thank you bigly for grading!'));
   if ($question != 'before') $args .= $question == 'done' ? '&do=done' : "&do=$do&question=$question";
-  return r\go("prox/page=Democracy&$args"); 
+  return r\go("prox/page=Events&$args"); 
+}
+
+/**
+ * Add or Edit an event
+ * @param int $id: event record ID (empty means Add, else Edit)
+ */
+function formEvent($form, &$sta, $eid = '') {
+  global $base_url;
+  $mya = r\acct();
+  if (!$add = empty($eid)) {
+    $fields = 'type,event,details,start,end';
+    if (is_numeric($eid) and $event = db\lookup($fields, 'r_events', 'id=:eid', compact('eid'))) extract($event); else $add = FALSE;
+
+    if (strpos(' VG', $type)) { // must precede setting $type field
+      list ($header, $page) = $type == 'V' ? [t('Questions'), 'question'] : [t('Proposals'), 'proposal'];
+      if ($mya->cAdmin) $header .= ' ' . button(t('Add'), "$base_url/community/events/$page/eid=$eid", '', 'warning');
+
+      $q = db\q('SELECT id AS qid,text,detail,type,budget FROM r_questions WHERE event=:eid ORDER BY id', compact('eid'));
+      while ($row = $q->fetchAssoc()) {
+        extract($row, EXTR_PREFIX_ALL, 'q');
+        $budget = $q_budget ? u\fmtAmt($q_budget) : '-';
+        $buttons = $mya->cAdmin ? button(t('Edit'), "$base_url/community/events/$page/qid=$q_qid", '', 'warning') : '';
+        $list[] = <<<EOF
+<tr><td>$q_text</td><td>$q_type</td><td>$budget</td><td>$buttons</td></tr>
+EOF;
+      }
+      if (@$list) {
+        $list = join("\n", $list);
+        $list = <<<EOF
+<table>
+<tr><th>Question</th><th>Type</th><th>Budget</th></tr>
+$list
+</table>
+EOF;
+      } else $list = t('no questions yet');
+      
+      $list = w\item('<h4>' . $header . '</h4>' . $list);
+    }
+    $id = w\hidFld($eid);
+  } 
+  
+  $title = w\item($add ? t('Add Event') : t('Edit Event'));
+  $types = ray(' :Choose Type,I:In-person,V:Vote,G:Grade Proposals,P:Request For Proposals');
+  $type = w\selectFld(t('Type:'), '', required(@$type), $types);
+  $event = w\textFld(t('Event name:'), [t('Short Descriptive Event Name'), t('For example, "Voting on 3 questions".')], required(@$event));
+  $details = w\areaFld(t('Details:'), [t('Event Details')], dft(@$details));
+  $start = w\textFld(t('Start:'), [t('Start Date')], required(@$start ? u\fmtDate($start) : ''));
+  $end = w\textFld(t('End:'), [t('End Date')], required(@$end ? u\fmtDate($end) : ''));
+  if ($mya->cAdmin) $submit = w\submit();
+  
+  return w\labeled(compact(ray('title id type event details start end submit list')));
+}
+
+function formEvent_validate($form, &$sta) {
+  extract(u\just('type start end', $sta['input']));
+  if (w\blank_field(compact('type'))) return NULL;
+  foreach (['start', 'end'] as $k) if ($err = u\badDate($$k, strtotime('-1 day'), strtotime('+1 year'))) return w\say($err, $k);
+  u\preray(compact('start', 'end'), $sta['input']);
+}
+
+function formEvent_submit($form, &$sta) {
+  global $base_url;
+  extract($info = u\just('id type event details start end', $sta['input']));
+  $mya = r\acct();
+  $info['end'] = strtotime('+1 day', $end) - 1; // just before the start of the next day
+  db\update('r_events', $info + ['ctty' => $mya->community], @$id ? 'id' : '', TRUE);
+  r\go("$base_url/community/events", 'info saved');
+}
+
+/**
+ * Add or edit a question.
+ */
+function formQuestion($form, &$sta, $args = '') {
+  global $base_url;
+  
+  extract(u\just('eid qid', $args));
+  
+  $mya = r\acct();
+  if (!$add = empty($qid)) {
+    $fields = 'e.id AS eid, e.ctty, q.text, q.detail, q.linkDiscussion, q.type, q.units, q.budget, q.optOrder';
+    if (is_numeric($qid) and $question = db\lookup($fields, 'r_questions q LEFT JOIN r_events e ON e.id=q.event', 'q.id=:qid', compact('qid'))) extract($question); else $add = FALSE;
+    if ($ctty != $mya->community) return r\go('', t('Wrong community.'));
+
+    $id = w\hidFld($qid);
+
+    $header = t('Options');
+    if ($mya->cAdmin) $header .= ' ' . button(t('Add'), "$base_url/community/events/option/qid=$qid", '', 'warning');
+    
+    $q = db\q('SELECT id AS oid,text,detail FROM r_options WHERE question=:qid ORDER BY id', compact('qid'));
+    $list = '';
+    while ($row = $q->fetchAssoc()) {
+      extract($row, EXTR_PREFIX_ALL, 'o');
+      $buttons = $mya->cAdmin ? button(t('Edit'), "$base_url/community/events/option/oid=$o_oid", '', 'warning') : '';
+      $list .= "<tr><td>$o_text</td><td>$buttons</td></tr>";
+    }
+    if ($list) {
+      $list = "<table><tr><th>Option</th></tr>$list</table>";
+    } else $list = t('no options yet');
+    
+    $list = w\item('<h4>' . $header . '</h4>' . $list);    
+  } elseif (empty($eid)) return r\go('', t('Missing event id.'));
+
+  $title = w\item($add ? t('Add Question') : t('Edit Question'));
+  $event = w\hidFld($eid);
+  $text = w\textFld(t('Question:'), [t('Question Text')], required(@$text));
+  $detail = w\areaFld(t('Detail:'), [t('Question Detail')], dft(@$detail));
+  $linkDiscussion = w\textFld(t('Discussion Link:'), [t('Link to Discussion')], dft(@$linkDiscussion));
+  $types = ray(' :Choose Type,M:Multiple choice,B:Budget (penny vote among various options),R:Range,E:Essay');
+  $type = w\selectFld(t('Type:'), '', required(@$type), $types);
+//  $units = w\textFld(t('Units:'), [t('Units'), t('Units for Budget or Range question. Defaults to dollars.'), dft(@$units));
+  $budget = w\textfld(t('Budget:'), [t('Budget Amount'), t('If this is a Budget question, how much (money) is to be budgeted.')], dft(@$budget));
+  $optOrders = ray(' :Choose Option Order,S:Shuffle (randomize),Z:Reverse sometimes,N:No change (static)');
+  $optOrder = w\selectFld(t('Option order:'), ['', t('In a Multiple choic or Budget question, how to scramble the options, if at all')], dft(@$optOrder), $optOrders);
+  
+  if ($mya->cAdmin) $submit = w\submit();
+  
+  return w\labeled(compact(ray('title id event text detail linkDiscussion type budget optOrder submit list')));
+}
+
+function formQuestion_validate($form, &$sta) {
+  extract(u\just('type budget optOrder', $sta['input']));
+  if ($type == 'M' or $type == 'B') foreach (['type', 'optOrder'] as $k) if (w\blank_field(compact($k))) return NULL;
+  if (!@$budget) $budget = 0;
+  if ($err = u\badAmount($budget)) return say($err, 'budget');
+  u\preray(compact('budget'), $sta['input']);
+}
+
+function formQuestion_submit($form, &$sta) {
+  global $base_url;
+  extract($info = u\just('id event text detail linkDiscussion type budget optOrder', $sta['input']));
+  db\update('r_questions', $info, @$id ? 'id' : '', TRUE);
+  r\go("$base_url/community/events/event/$event", 'info saved');
+}
+
+/**
+ * Add or edit a question.
+ */
+function formOption($form, &$sta, $args = '') {
+  global $base_url;
+
+  extract(u\just('qid oid', $args));
+  
+  $mya = r\acct();
+  if (!$add = empty($oid)) {
+    $fields = 'e.id AS eid, e.ctty, q.id AS qid, o.text, o.detail';
+    if (is_numeric($oid) and $option = db\lookup($fields, 'r_options o LEFT JOIN r_questions q ON q.id=o.question LEFT JOIN r_events e ON e.id=q.event', 'o.id=:oid', compact('oid'))) extract($option); else $add = FALSE;
+    if ($ctty != $mya->community) return r\go('', t('Wrong community.'));
+
+    $id = w\hidFld($oid);
+  } elseif (empty($qid)) return r\go('', t('Missing question id.'));
+
+  $title = w\item($add ? t('Add Option') : t('Edit Option'));
+  $question = w\hidFld($qid);
+  $text = w\textFld(t('Option:'), [t('Option Text')], required(@$text));
+  $detail = w\areaFld(t('Detail:'), [t('Option Detail')], dft(@$detail));
+  
+  if ($mya->cAdmin) $submit = w\submit();
+  
+  return w\labeled(compact(ray('title id question text detail submit')));
+}
+
+function formOption_validate($form, &$sta) {
+}
+
+function formOption_submit($form, &$sta) {
+  global $base_url;
+  extract($info = u\just('id question text detail', $sta['input']));
+  db\update('r_options', $info, @$id ? 'id' : '', TRUE);
+  r\go("$base_url/community/events/question/qid=$question", 'info saved');
 }
 
 /**

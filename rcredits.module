@@ -143,17 +143,38 @@ function g($varName) {
  */
 /**/ function bs($n, $list = B_LIST) {d('a.flagsDesc', $n, $list);} // show bit numbers/names
 /**/ function tm($n = '') {debug($result = $n ? (is_numeric($n) ? date('m-d-Y H:i:s a', $n) : strtotime($n)) : time()); return $result;} // convert and display unixtime or string time
-function a($id = '') {global $lastA; return $lastA = f('r.acct', f('t.fullQid', strtoupper(strlen($id) == 3 ? '.' . $id : $id)));} // return an account object
+function a($id = '', $agent = '') {global $lastA; return $lastA = f('r.acct', f('t.fullQid', strtoupper(strlen($id) == 3 ? '.' . $id : $id)), f('t.fullQid', strtoupper(strlen($agent) == 3 ? '.' . $agent : $agent)));} // return an account object
 function x($xid, $mya = '') {f('r.x', $xid, $mya);} // return a transaction object
 /**/ function da($idfield) {list ($id, $field) = ray($idfield); debug(a($id)->$field);}
 /**/ function step($a) {debug(us($a)->step());}
 function ctty($id) {return a(a($id)->community);}
 //function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
-function flog($s, $file = FALSE) {
+/**/ function flog($s, $file = FALSE) {
   $fileName = DRUPAL_ROOT . (isSTAGE ? '/flog.txt' : '/flog.txt');
 /**/ if ($file) return $fileName; else file_put_contents($fileName, print_r($s, 1) . "\n", FILE_APPEND); // log to file
 }
-/**/ function who($s = '') {$a = is_object($s) ? $s : a($s); debug("$a->fullName ($a->mainQid $a->id)"); return $a;} // show whose account
+
+function who($s = '', $agent = '') {
+  $a = is_object($s) ? $s : a($s, $agent); 
+  $res = "$a->fullName ($a->mainQid $a->id)";
+  if (!$a->proSe) {
+    $aa = $a->agentA;
+    $res .=  " -- agent $aa->fullName ($aa->mainQid $aa->id)";
+  }
+/**/  debug($res);
+  return $a; // show whose account
+}
+
+/**
+ * Return a field of the indicated account.
+ * @param string $field: name of field to return
+ * @param mixed $a: account, qid, partial qid, or account record ID (defaults to current account)
+ */
+function af($field, $a = NULL) {
+  if (!isset($a)) $a = r\acct(); elseif (!is_object($a)) $a = a($a);
+  return $a ? $a->$field : NULL;
+}
+
 function q($sql, $subs = [], $log = FALSE) {return f('db.q', $sql, $subs, $log);}
 
 /**

@@ -47,7 +47,6 @@ class Acct {
   private function createNew($info) {
     $a = $this;
     extract($info);
-    
     u\setDft($phone, @$number);
     if ($phone) $phone = u\fmtPhone($phone, '+n');
     
@@ -155,6 +154,7 @@ class Acct {
    * @return the value if it exists, else NULL
    */
   public function __get($field) {
+    global $mya;
     $a = $this;
     $a->reread(); // make sure record has been read in
 
@@ -177,7 +177,6 @@ class Acct {
     
     if ($field == 'mainQid') return $a->qo->mainQid;
     if ($field == 'isRegulator') return (bool) ($a->flags & u\bit(B_REGULATOR)); // not ->can() included by cAdmin etc.
-//    if ($field == 'balance') return $a->o_r - $a->o_rewards; // $a->r - $a->savings;
 //    u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
@@ -190,8 +189,8 @@ class Acct {
     if ($field == 'isNormal') return ($a->id > 0);
     if ($field == 'cttyA') return r\acct($a->community);
     if ($field == 'region') return r\uidRegion($a->id);
-    if ($field == 'regionA') return @r\acct($a->region);
-    if ($field == 'regionName') return @$a->regionA->fullName ?: (PROJECT . ' ' . db\lookup('name', 'r_regions r INNER JOIN r_states s ON s.abbreviation=r.st', 's.country_id=:US_COUNTRY_ID AND r.region=:reg', ['reg' => $a->qo->region]));
+    if ($field == 'regionA') return r\acct($a->region);
+    if ($field == 'regionName') return ($regionA = $a->regionA) ? $regionA->fullName : (PROJECT . ' ' . db\lookup('name', 'r_regions r INNER JOIN r_states s ON s.abbreviation=r.st', 's.country_id=:US_COUNTRY_ID AND r.region=:reg', ['reg' => $a->qo->region]));
     if ($field == 'url') return ($a->isRegion ? '' : strtr($a->fullName, [PROJECT=>'', ' '=>'']) . $a->st . '.') . CG_DOMAIN; // applies only to communities (->cttyUrl)
     if ($field == 'legalNameDpy') return str_replace('_', ' ', $a->legalName); // for u\parseName of names like Jay di_Fiori
     if ($field == 'owns') return !$a->risk('rents');
@@ -229,7 +228,7 @@ class Acct {
     
 //    if ($field == 'photoX') return ($result = @self::$rs[$a->id]->photo) ?: ''; // return encrypted
     if (in_array($field, ray(R_VSECURE_FIELDS)) and !is_array($result) and u\starts($result, CRYPT_FLAG)) { // !is_array() is temporary, for ssnData in transition
-      if (@r\acct()->superAdmin and $pw2 = @$_COOKIE['pw2']) {
+      if (@$mya->superAdmin and $pw2 = @$_COOKIE['pw2']) {
         $result = u\decrypt($result, 0, $pw2);
         if ($field == 'ssnData') $result = unserialize($result);
         return @self::$rs[$a->id]->$field = $result;
@@ -367,7 +366,6 @@ class Acct {
       if (!$info = u\justNot(MASTER_FIELDS, $info)) return TRUE; // fall through if something else to update
     }
 //    } else $a->updateSavings($info, 0); // update savings in proSe account
-
     return $a->update1($info);
   }
 
@@ -388,6 +386,7 @@ class Acct {
    * Update the account record in the database (with no special treatment of joint accounts).
    */
   public function update1($info) { // public only for testing
+    global $mya;
     $a = $this;
     if (!is_array($info)) $info = rayy(func_get_args());
 
@@ -416,7 +415,8 @@ class Acct {
     } elseif ($data = u\just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data += $a->data);
 
     if (($set = isset($info['secure'])) or $sFlds = u\just(R_SECURE_FIELDS, $info)) { // serialize and encrypt
-      if (!$set and @r\acct()->superAdmin and $pw2 = @$_COOKIE['pw2'] and $vflds = u\just(R_VSECURE_FIELDS, $sFlds)) {
+
+      if (!$set and $mya and $mya->superAdmin and $pw2 = @$_COOKIE['pw2'] and $vflds = u\just(R_VSECURE_FIELDS, $sFlds)) {
         foreach ($vflds as $k => $v) if (is_array($v) or !u\starts($v, CRYPT_FLAG)) { // is_array is temporary for ssnData in transition
           if ($k == 'ssnData') $v = serialize($v);
           $info[$k] = $sFlds[$k] = u\crypt($v . '', 0, $pw2);
@@ -584,16 +584,16 @@ class Acct {
    * @return: the account (FALSE if $a is empty)
    */
   public static function setDefault($a) {
-    global $currentAcct, $channel, $box; 
+    global $mya, $channel, $box; 
     global $user; if (empty($user)) $user = (object) ['uid' => $a ? $a->id : 0]; // probably needed only for rWeb login form testing
-    if ($a and @$currentAcct != $a and (!@currentAcct or !$a->cAdmin)) { // admin access doesn't count
+    if ($a and $a != $mya and (!$mya or !$a->cAdmin)) { // admin access doesn't count
       $access = r\rTime();
       if ($channel == TX_WEB) $login = $access;
       $lastip = $_SERVER['REMOTE_ADDR'];
       $a->update(compact('login', 'access', 'lastip'));
     }
     if (@$a->ok) r\ipok($a->id, $box); // box is not very important
-    return $currentAcct = $a;
+    return $mya = $a;
   }
 
   /**
@@ -642,9 +642,7 @@ class Acct {
     $a = $this;
     $floor = ($a->can(B_DEBT) and $goods != FOR_USD) ? $a->floor : max($a->floor, 0); // no going into debt without permission
     if ($goods == FOR_USD or (COMPANY_FREEZE and $a->co)) $floor = max($floor, $a->rewards); // no exchanging rewards for cash (and companies temporarily can't spend rewards)
-//    return round($a->r - $floor, 2);
     return round($a->balance + $a->rewards - $floor, 2);
-//    return round($a->j_r - $a->j_committed - $floor, 2);
   }
   
   /**
@@ -1233,11 +1231,11 @@ EOF;
   public function coCan($bit = NULL) {return u\getBit($bit <= B_MAX ? $this->coFlags : $this->coFlags2, $bit);}
   public function setCoBit($bit, $on = TRUE) {$this->setBitx($bit, $on, 'coFlags');}
   
-  public function setCoCans($can) {
+  public function setCoCans($cans) {
     $coFlags = $this->coFlags;
     for ($i = 0; $i < 2 * APP_CAN_BITS; $i++) {
       $bit = u\bit(APP_CANS + $i);
-      $coFlags = isset($can[$i]) ? ($coFlags | $bit) : ($coFlags & ~$bit);
+      $coFlags = isset($cans[$i]) ? ($coFlags | $bit) : ($coFlags & ~$bit);
     }
     $this->update(compact('coFlags'));
   }
@@ -1308,7 +1306,7 @@ EOF;
     if ($bit <= B_MAX) { // ordinary bits
       $can = (bool) ($a->flags & (1 << $bit)); // these are easy. be efficient.
       if (in_array($bit, [B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN])) {
-        if (!$a->proSe) return ($aa = $a->agentA and $aa->can($bit)); // admin permissions are for agent instead
+        if (!$a->proSe) return ($aa = $a->agentA and $aa->can($bit)); // admin permissions are for agent instead (in tests, agent sometimes doesn't exist)
         if (!$can and $bit < (R_ADMIN_CAN_MANAGE_CTTYS ? B_ADMIN : B_CADMIN)) return $a->can($bit + 1); // not this admin bit, maybe the next higher?
       }
       return $can;
@@ -1316,45 +1314,47 @@ EOF;
 
     if ($bit == B_CTTYUP) return $a->cttyA->up;
 
-    if ($bit == B_BANK) return $a->hasBank; // might get set after getCan() is called
+    if ($bit == B_BANK) return $a->hasBank; // might get set after getCans() is called
     if ($bit == B_CLOSED) return $a->closed;
-    $can = @self::$perms[$a->id][$a->agentId] ?: $a->getCan();
-    return $can[$bit];
+    $cans = @self::$perms[$a->id][$a->agentId] ?: $a->getCans($bit);
+    return $cans[$bit];
   }
 
   /**
    * Set up permissions (::$perms) if we haven't yet
    * @return the permissions array for this account
    */
-  private function getCan() {
+  private function getCans($bit) {
     $a = $this;
+    $aa = $this->agentA;
     $id = $a->id;
     
     // collect efficient bits, for reference within this function
-    for ($bit = 0; $bit <= B_MAX; $bit++) $can[$bit] = $a->can($bit);
-    foreach ([B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN] as $bit) $can[$bit] = $a->agentA->can($bit);
- 
-    $can[B_PERSON] = !$can[B_CO];
+//    for ($bit = 0; $bit <= B_MAX; $bit++) $cans[$bit] = $a->can($bit);
+//    foreach ([B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN] as $bit) $cans[$bit] = $a->agentA->can($bit);
+
+    $cans[B_PERSON] = !$a->can(B_CO);
 
     $perm = $a->closed ? B_READ
       : ($a->proSe ? B_MANAGE
-      : (($can[B_CADMIN] and $a->community == $a->agentA->community) ? B_MANAGE 
-      : (B_RELATED + relation('permission', $id, $a->agentId))));
-    for ($i = B_RELATED; $i <= B_MANAGE; $i++) $can[$i] = ($i <= $perm); // set all, even the false ones
+      : (($aa->can(B_CADMIN) and $a->community == $aa->community) ? B_MANAGE 
+      : (B_RELATED + relation('permission', $id, $aa->id))));
+    for ($i = B_RELATED; $i <= B_MANAGE; $i++) $cans[$i] = ($i <= $perm); // set all, even the false ones
 
-    // (NO! this should never happen) if ($can[B_OK]) $can[B_MEMBER] = TRUE;
-    if (!$can[B_OK]) $can[B_SELL] = $can[B_BUY] = FALSE; // (read here kills acct dropdown)
+    // (NO! this should never happen) if ($cans[B_OK]) $cans[B_MEMBER] = TRUE;
+    if (!$a->can(B_OK)) $cans[B_SELL] = $cans[B_BUY] = FALSE; // (read here kills acct dropdown)
 
-    if (!$can[B_MEMBER]) $can[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
+    if (!$a->can(B_MEMBER)) $cans[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
     
-    if ($can[B_ADMIN] and R_ADMIN_CAN_MANAGE_CTTYS) { // temporary extra power, until communities are independent
-      $can[B_READ] = $can[B_SCAN] = $can[B_SELL] = $can[B_BUY] = $can[B_MANAGE] = TRUE;
+    if ($aa->can(B_ADMIN) and R_ADMIN_CAN_MANAGE_CTTYS) { // temporary extra power, until communities are independent
+      $cans[B_READ] = $cans[B_SCAN] = $cans[B_SELL] = $cans[B_BUY] = $cans[B_MANAGE] = TRUE;
     }
-    $can[B_DEV] = (isDEV or $can[B_ADMIN]); // used in menu system for tests page, etc.
-    if ($can[B_MANAGING_CTTY] = ($can[B_CADMIN] and $id == $a->community)) $can[B_BUY] = TRUE;
+    $cans[B_DEV] = (isDEV or $aa->can(B_ADMIN)); // used in menu system for tests page, etc.
+//    if ($cans[B_MANAGING_CTTY] = ($aa->can(B_CADMIN) and $id == $a->community)) $cans[B_BUY] = TRUE;
+    $cans[B_MANAGING_CTTY] = ($aa->can(B_CADMIN) and $id == $a->community);
     
-    ksort($can); // easier to debug
-    return self::$perms[$id][$a->agentId] = $can;
+    ksort($cans); // easier to debug
+    return self::$perms[$id][$a->agentId] = $cans;
   }
 
   /**
@@ -1393,8 +1393,8 @@ EOF;
  * @return the appropriate account object (FALSE if none)
  */
 function acct($uid = '', $agent = '', &$error = '') {
-  global $currentAcct; // use this ONLY in this class file
-  if (!$uid) return $currentAcct ?: (!$error = 'There is no current account.');
+  global $mya; // use this ONLY in this class file
+  if (!$uid) return $mya ?: (!$error = 'There is no current account.');
   if (strpos($uid, '@')) {
     $uid = db\lookup('uid', 'users', 'mail=:mail', ['mail' => u\cryptN($uid)]);
   } elseif (FALSE and preg_match('/[0-9]( |-|\\)) ?[0-9]{4}/', $uid)) {
@@ -1408,4 +1408,4 @@ function acct($uid = '', $agent = '', &$error = '') {
 /**
  * Return an account object for the agent of the given account.
  */
-function agent($uid = '') {return @r\acct($uid)->agentA;}
+function agent($uid = '') {return ($a = r\acct($uid)) ? $a->agentA : NULL;}

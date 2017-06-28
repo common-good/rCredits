@@ -310,7 +310,7 @@ X. Other thoughts:
   - use http://realfavicongenerator.net/ to create favicon from logo. To (re)test in Chrome, exit Chrome and type:
     DEL "C:\Users\William\AppData\Local\Google\Chrome\User Data\Default\Favicons"
   Use http://dkimvalidator.com to test DKIM, SPF, DMARC, and SpamAssassin results
-
+  - don't do @function()->field to handle a possibly null object return. It sometimes crashes PHP.
   
   
 LINKS:

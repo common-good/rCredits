@@ -1384,3 +1384,4 @@ function a2b($s) {$b = ''; for ($i = 0; $i < strlen($s); $i++) $b .= lpad(decbin
 function randomFloat($min = 0, $max = 1) {return $min + mt_rand() / mt_getrandmax() * ($max - $min);}
 function hash($s) {return \hash('sha256', $s, false);}
 function day2n($day) {return array_search($day, ray('Sun Mon Tue Wed Thu Fri Sat'));} // workaround %u and %w failure
+function lf2br($s) {return strtr($s, ["\r" => '', "\n" => '<br>']);}

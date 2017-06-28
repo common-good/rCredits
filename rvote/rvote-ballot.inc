@@ -16,6 +16,9 @@ A comment explaining the rationale for the veto is required. Each voter gets onl
 // Election can be verified with a list of voters (without ballot number) and a list of ballots (without voter id).
 // List of ballots includes the ballot id, voted grade for each option and each question, and proxy ballot id if not direct.
 
+/**
+ * Return one ballot question.
+ */
 function ballot($mya, &$extras, $question) {
   global $quids;
   
@@ -30,10 +33,10 @@ function ballot($mya, &$extras, $question) {
   $submit = w\submit(BARE . t('Done With Question #') . $qndpy, 'primary', 'md', w\clas('pull-right'));
   $extras['prev'] = w\submit('&laquo; ' . t('Previous'), 'primary', 'md', w\suffix(w\rendA('submit', $submit)));
 
-  $qu = db\lookup('id AS question, text, detail, linkProposals, type, budget, minVeto, optOrder, endProposals, endVoting', 'r_questions', 'id=:question', compact('question'));
+  $qu = db\lookup('q.id AS question, q.text, q.detail, q.linkDiscussion, q.type, q.budget, q.minVeto, q.optOrder, e.start, e.end', 'r_questions q LEFT JOIN r_events e ON e.id=q.event', 'q.id=:question', compact('question'));
   $tableHeader = tableHeader($qu['type']);
-  if($qu['linkProposals']) $qu['linkProposals'] = "<div class='discussionlink'> [<a href='$qu[linkProposals]' target='_blank'>See discussion</a>]</div>";
-  $range = formatQuestionDates($qu['endProposals'], $qu['endVoting'], 1);
+  if($qu['linkDiscussion']) $qu['linkDiscussion'] = "<div class='discussionlink'> [<a href='$qu[linkDiscussion]' target='_blank'>See discussion</a>]</div>";
+  $range = formatQuestionDates($qu['start'], $qu['end'], 1);
 
   // get current voted values for this question
   $defaults = getCurrentVote($mya, $extras, $question, $qu['type'], $qu['optOrder']);
@@ -49,6 +52,7 @@ function ballot($mya, &$extras, $question) {
   }
 
 //<form name='ballotform' id='ballotform' action='ballot.php' method='$METHOD' onsubmit="return checkform(this, $optCount, '$qu[type]');">
+  $qu['detail'] = u\lf2br($qu['detail']);
 
   $bodymiddle = <<<EOF
 <div class='ballot well q$qu[type]'>
@@ -59,7 +63,7 @@ function ballot($mya, &$extras, $question) {
 <div class='clearer'></div>
 </div ballotheader>
 
-$qu[linkProposals]
+$qu[linkDiscussion]
 <div class='question'><b>QUESTION #$qndpy:</b> $qu[text]</div question>
 <div class='questiondetail'>$qu[detail]</div questiondetail>
 <div class='optionheader'>$tableHeader</div optionheader>
@@ -293,7 +297,7 @@ function getCurrentVote($mya, &$extras, $question, $type, $optOrder) {
 
   $sql = <<<EOF
     SELECT v.id AS vote, v.option, v.grade, v.gradeMax, o.minimum AS min, o.maximum AS max, v.isVeto, v.text
-    FROM r_ballots b LEFT JOIN r_votes v ON v.ballot=b.id LEFT JOIN r_options o ON o.id=v.option
+    FROM r_ballots b INNER JOIN r_votes v ON v.ballot=b.id LEFT JOIN r_options o ON o.id=v.option
     WHERE b.id=:ballot ORDER BY v.displayOrder
 EOF;
 	$q = db\q($sql, $subs = compact('ballot'));
@@ -519,11 +523,12 @@ function optEnd($opti, $rowclass, $opttext, $optdetail, $defaults) {
 	global $rUrl;
 	$votenote = "votenote$opti";	
   $votenoteHtml = w\rendA($votenote, w\areaFld(BARE, '', @$defaults[$votenote]));
+  $optImgWrapClass = $optdetail ? 'optImgWrap' : 'hidden';
 
 	return <<<EOF
 <div class="item">
-  <div class="optImgWrap">
-    <img id="expand$opti" class="optImg" src="$rUrl/images/rvote/expand.gif" alt="show detail" title="show detail" width="13" height="13" onclick="expand($opti);" />
+  <div class="$optImgWrapClass">
+    <img id="expand$opti" class="optImg" src="$rUrl/images/rvote/expand.gif" alt="show detail" title="show detail" width="13" height="13" onclick="expandOpt($opti);" />
   </div><!--optImgWrap-->
 $opttext</div><!--item-->
 
@@ -585,7 +590,7 @@ EOF
 
 	$bodymiddle = <<<EOF
 <h2>Thank You for Voting!</h2>
-<p>Results will be announced here when the polls close. In the meantime, you may feel free to change any of your votes (simply sign in and select "Discussion & Voting" again on the Community menu).</p>
+<p>Results will be announced here when the polls close. In the meantime, you may feel free to change any of your votes (simply sign in and select "Democracy Events" again on the Community menu).</p>
 EOF;
 	return $bodymiddle;
 }
@@ -690,29 +695,26 @@ EOF;
  */
 function votingWelcome($endDate) {
   include_once __DIR__ . '/../rvote/rvote-results.inc';
-
   $subtext = w\item(t(<<<EOF
-  Welcome to the FIRST EVER %PROJECT Community vote.<br><br>
-  
   Before you vote, please make sure you are happy with your <%a>proxy choices</a> and adjust them as needed.<br><br>
   
   Please keep in mind that you are acting on behalf of the community. You have a responsibility to vote according to what best serves the greater good. In most cases, your interests will be aligned with those of the community. But if there is a conflict, the community comes first.
 EOF
   , '_a', w\atag('/settings/proxies')));
   
-  if ($mya = r\acct() and $mya->admin) {
-    $showVotes = submit(t('Show votes'));
-    $noVote = submit(t('Didn\'t vote yet'));
-    $noDirect = submit(t('Didn\'t vote directly'));
-    $results = @$results ? item(v\showResults($mya->community, $noProxies)) : submit(t('Results'));
-    $resultsNoProx = submit(t('Results (no proxies)'));
+  if ($mya = r\acct() and $mya->superAdmin) {
+    $showVotes = w\submit(t('Show votes'));
+    $noVote = w\submit(t('Didn\'t vote yet'));
+    $noDirect = w\submit(t('Didn\'t vote directly'));
+    $results = @$results ? w\item(v\showResults($mya->community, $noProxies)) : w\submit(t('Results'));
+    $resultsNoProx = w\submit(t('Results (no proxies)'));
     $agree = w\hidFld(TRUE);
   } else {
-    $agree = w\boxFld('agree', '', t('I agree.'), '', required());
+    $agree = w\boxFld('agree', '', t('I agree.'), '', w\required());
     $agree = w\item(str_replace('<input ', '<input required="required" ', w\rendA('agree', $agree)));
   }
   $submit = w\submit(t('Vote Now'), 'success', 'lg', w\suffix(' &nbsp; ' . t('Polls close at midnight on %date.', 'date', $endDate)));
-  return w\labeled(compact(ray('title showVotes noVote noDirect results resultsNoProx subtext agree submit args')));
+  return compact(ray('title showVotes noVote noDirect results resultsNoProx subtext agree submit args'));
 } 
 
 /**
@@ -720,7 +722,7 @@ EOF
  */
 function gradingWelcome($endDate) {
   global $base_url;
-  
+
   $title = w\item(t('Grade Funding Proposals'));
   $subtext = w\item(t(<<<EOF
   Help grade specific proposals within our community's chosen funding priorities! You can grade just one or as many as you want. The community's chosen funding priorities are Renewable Energy, Small Business Development, Social Justice, Food Systems, and The Arts.<br><br>

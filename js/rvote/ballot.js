@@ -98,7 +98,7 @@ function Opt(i, slider) {
       formatter: function(v) {
         var me = opts[optI(this.id)]; // "this" is the slider, not the Opt object
         v = roundTo(v, 2);
-        if (me != null && me.type == 'B') v += '%'; else v = '$' + v.toLocaleString(); // maybe use accounting.js here
+        if (me != null && me.type == 'B') v += '%'; else v = v.toLocaleString(); // maybe use accounting.js here (don't add $)
         return v;
       }
     });
@@ -171,24 +171,26 @@ function optsTotal() {
   return sum;
 }
 
-function expand(i) { // if i<0 expand only
+function expandOpt(i) { // if i<0 expand only
 	var expandonly = (i<0);
 	if(expandonly) i = -i;
 	var img = byid('expand' + i);
-	var detail = byid('optdetail' + i);
-	var detailtext = byid('optdetailtext' + i);
+	var detail = '#optdetail' + i;
+	var detailtext = '#optdetailtext' + i;
 	var expand = (img.src.indexOf('expand')>0 ? true : false);
 	if(expand) {
 		img.src=img.src.replace('expand', 'contract');
 		img.alt='hide detail';
 		img.style.visibility = 'visible';
 //		if(expandonly) detailtext.style.height = (detailtext.style.height ? '' : '150px'); // vetoing (kludge for MSIE)
-		detail.style.display = 'block';
+		$(detail).show();
+    $(detailtext).show();
 	} else {
 		if(expandonly) return;
 		img.src=img.src.replace('contract', 'expand');
 		img.alt='show detail';
-		detail.style.display = 'none';
+		$(detail).hide();
+    $(detailtext).hide();
 	}
 	img.title = img.alt;
 }
