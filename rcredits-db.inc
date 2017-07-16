@@ -25,7 +25,7 @@ function q($sql, $subs = [], $retId = FALSE, $log = FALSE) {
   u\EXPECT(compact(ray('sql subs')), 'notempty assoc');
 //  if (strpos($sql, 'INSERT INTO') !== FALSE and strpos($sql, ' VALUES (')) $return = \Database::RETURN_INSERT_ID;
   if ($retId) $return = \Database::RETURN_INSERT_ID;
-  if ($log and !strpos($sql, 'r_log') and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs + compact('sql'));
+  if ($log and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs + compact('sql'));
   try {
     return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
   } catch (Exception $e) {

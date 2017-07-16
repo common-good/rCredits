@@ -14,7 +14,7 @@ use rCredits\Admin as a;
 use rCredits\Web as w;
 
 function seeSecure($a) {
-  $mya = r\acct();
+  global $mya;
   $secure = $a->secure;
   foreach (ray(R_SECURE_FIELDS) as $k) if (isset($secure[$k])) {
     $new[$k] = $secure[$k]; // reorder
@@ -61,7 +61,7 @@ function adminSummary($a, $cAdmin = FALSE) {
   global $base_url;
   include_once __DIR__ . '/../admin/admin.inc';  
 
-  $mya = r\acct();
+  global $mya;
   $uid = $a->id;
   $self = ($uid == $mya->agentId);
   $ctty = $a->community ?: r\serverUid(); // serverUid for admin, if it has no ctty
@@ -200,10 +200,11 @@ EOF;
   $js = <<<EOF
 $('#edit-community').on('change', function() {
   var newCtty = this.value;
-  yesno('Change rewards transactions retroactively?', 
-    function() {changeCtty(newCtty, true);},
-    function() {changeCtty(newCtty, false);}
-  );
+  changeCtty(newCtty, false);
+//  yesno('Change rewards transactions retroactively?', 
+//    function() {changeCtty(newCtty, true);},
+//    function() {changeCtty(newCtty, false);}
+//  );
 });
 
 function changeCtty(newCtty, retro) {
@@ -228,7 +229,7 @@ define('EXPORT_PARAMS', 'do requests allCttys status types anonymous');
 
 function export($params) {
   extract(u\just(EXPORT_PARAMS, $params));
-  $mya = r\acct();
+  global $mya;
   $ctty = r\acct($mya->community);
 
   $filename = ($allCttys ? PROJECT : str_replace('.', '', $ctty->name))
@@ -278,7 +279,7 @@ function export($params) {
     $type = $a->ok ? ($a->co ? 'member company' : 'member') : ($a->co ? 'company' : '');
     if (@$anonymous) {
       foreach ($fields as $k) $$k = $a->$k; // do this first. some will be null.
-      $zip = $a->postalCode;
+      $zip = $a->zip;
       foreach (ray('weekly monthly secret') as $k) $$k = $a->can(u\consta('b', $k));
       $notices = $monthly ? t('monthly') : ($weekly ? t('weekly') : t('daily'));
       $state = r\realstate($state);

@@ -22,7 +22,7 @@ A comment explaining the rationale for the veto is required. Each voter gets onl
 function ballot($mya, &$extras, $question) {
   global $quids;
   
-  list($quids, $qutypes) = getQuestions($mya->community); 
+  list($quids, $qutypes) = getQuestions('', $mya);
   if (!$qcount = count($quids)) return t('There is no vote in progress for your community.');
   u\setDft($question, $quids[0]);
 
@@ -33,7 +33,7 @@ function ballot($mya, &$extras, $question) {
   $submit = w\submit(BARE . t('Done With Question #') . $qndpy, 'primary', 'md', w\clas('pull-right'));
   $extras['prev'] = w\submit('&laquo; ' . t('Previous'), 'primary', 'md', w\suffix(w\rendA('submit', $submit)));
 
-  $qu = db\lookup('q.id AS question, q.text, q.detail, q.linkDiscussion, q.type, q.budget, q.minVeto, q.optOrder, e.start, e.end', 'r_questions q LEFT JOIN r_events e ON e.id=q.event', 'q.id=:question', compact('question'));
+  $qu = v\question($question);
   $tableHeader = tableHeader($qu['type']);
   if($qu['linkDiscussion']) $qu['linkDiscussion'] = "<div class='discussionlink'> [<a href='$qu[linkDiscussion]' target='_blank'>See discussion</a>]</div>";
   $range = formatQuestionDates($qu['start'], $qu['end'], 1);

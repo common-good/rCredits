@@ -25,7 +25,7 @@ define('T_MSG_FILE', 'test-messages.txt');
  */
 function fixData(&$info, $direct = FALSE) {
   global $rUrl, $testVars;
-  $fields = 'postalCode country state email phone dob federalId idProof flags adminable notices statements who rewards';
+  $fields = 'zip country state email phone dob federalId idProof flags adminable notices statements who rewards';
   if (@$testVars) foreach ($info as $k => $v) if (strpos($v, '@') !== FALSE) {
     foreach ($testVars as $varName => $var) $info[$k] = str_replace("@$varName", $var, $v);
   }
@@ -41,7 +41,7 @@ function fixData(&$info, $direct = FALSE) {
   if (@$notices) $notices = array_search($notices, ray('daily weekly monthly'), TRUE);
   if (@$statements) $statements = array_search($statements, ray('electronic paper'), TRUE);
   if (@$email) $info['email'] = t\fixEmail($email);
-  if (@$postalCode or @$country or @$state) {
+  if (@$zip or @$country or @$state) {
     u\setDft($country, 'US');
     if ($country == 'US' or $country == US_COUNTRY_ID) u\setDft($state, 'MA');
   }
@@ -150,11 +150,11 @@ function doAccount($info = []) {
     u\setDft($email, $mailDft . '@example.com'); // a@example.com, etc.
 
     u\setDft($community, r\serverUid());
-    u\setDft($postalCode, '01301');
+    u\setDft($zip, '01301');
     u\setDft($country, 'US');
     $state = r\realState(@$state, $country);
-    u\setDft($postalAddr, @$address . ', ' . @$city . ", $state $postalCode");
-//    u\setDft($photoId, "$state-{$postalCode}999");
+    u\setDft($postalAddr, @$address . ', ' . @$city . ", $state $zip");
+//    u\setDft($photoId, "$state-{$zip}999");
     u\setDft($helper, '.AAB'); // everyone but .AAB should have a helper
 /**/  if ($helper === '') die(print_r(debug_backtrace(), 1)); // set helper to zero if none, never blank
     u\setDft($last4bank, @substr(@$bankAccount, -4, 4));
@@ -164,7 +164,7 @@ function doAccount($info = []) {
     if (@$cc) $cardCode = $cc;
     if (@$cc2) $cardCode2 = $cc2;
 
-    $fixFields = 'rebate fullName legalName name pass email secure community postalCode country postalAddr cardCode cardCode2 ' . $moneyFields;
+    $fixFields = 'rebate fullName legalName name pass email secure community zip country postalAddr cardCode cardCode2 ' . $moneyFields;
   } else $fixFields = '';
 
   if (isset($flags) and isset($acctType) and $acctType !== R_PERSONAL and $acctType != 'personal') $flags .= ',co';
@@ -648,32 +648,6 @@ function getErrors() {
 }
 
 /**
- * Find the message in the log table.
- * @param assoc $subs: subs for message iff message index is passed.
- */
-function findMessage($type, $fields, $message = '', $subject = '', $subs = []) {
-  global $channel;
-
-  $mya = r\acct();
-  $fields = @$fields[0] ?: $fields;
-  $subs = @$subs[0] ?: @$subs;
-  $agent = $mya ? $mya->agentId : 0;
-  $myid = $mya ? $mya->id : 0;
-
-
-  if ($message = ($message ?: @$fields['message'])) {
-    if ($channel != TX_SMS and strlen($message < 30)) $message = t($message, $subs);
-    $fields['message'] = $message;
-  } else unset($fields['message']); // empty message in features means NO message
-//  output(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
-  output(array('EXPECT' => '') + $fields, 'output'); // keep this
-  $info = u\jsonEncode($fields);
-  $crit = "channel=:channel AND type=:type AND myid<=>:myid AND agent<=>:agent ORDER BY logid DESC";
-/// debug("info=:info AND $crit"); debug(compact(ray('info type myid agent channel')));
-  return db\exists('r_log', "info=:info AND $crit", compact(ray('info type myid agent channel')));
-}
-
-/**
  * Say whether we sent the given email to admin or ctty admin.
  * @param string $topic: message topic
  * @param assoc $subs: message parameters
@@ -689,40 +663,23 @@ function weTellAdmin($topic, $subs = [], $coUid = FALSE) {
   return t\findEmail('tell-staff', $email, $subs[0] + ray('topic noFrame message', $topic, TRUE, '?'));
 }
 
-/*  
-  foreach ($subs as $one) {
-    $index = 'tell-staff';
-    $subject = str_replace('{topic}', $topic, $GLOBALS['emailSubjects'][$index]);
-    
-    $find = '%"index":"@index","email":"@regionEmail","subject":"@subject"%';
-    if ($id = @$one['id']) {
-      $id = t\uid($id);
-      $find .= "(#$id)%";
-      unset($one['id']);
-    }
-    $find = t($find, compact(ray('index subject regionEmail')));
-    foreach ($one as $k => $value) $find .= "$value%";
-    if (!$last = db\lookup('info', 'r_log', "info LIKE '$find' ORDER BY logid DESC")) {
-      if (count($subs) > 1) output("tell-staff can't find $find");
-      return FALSE;
-    }
-  }
-  return TRUE;
-  */
-
 /**
  * Say whether any such email has been sent to the specified address.
  */
 function noSuchEmail($index, $email) {
   global $testOnly; if (!$testOnly) return FALSE;
+  return !findEmail($index, $email, []);
 //  $subject = strtr($GLOBALS['emailSubjects'][$index], $esubs);
-  $pattern = strtr('%"index":"INDEX","email":"EMAIL"%', ray('INDEX EMAIL', $index, $email));
-  return !db\exists('r_log', 'info LIKE :pattern', compact('pattern'));
+//  $pattern = strtr('%"index":"INDEX","email":"EMAIL"%', ray('INDEX EMAIL', $index, $email));
+//  return !db\exists('r_log', 'info LIKE :pattern', compact('pattern'));
 }
 
 /** 
  * See whether the specified email has been sent (by searching the log file)
  * @param string $index: email message index
+ * @param string $email: the email address to find
+ * @param assoc $subs: parameters within the message
+ * @return <email was sent>
  */
 function findEmail($index, $email, $subs) {
   global $testOnly; if (!$testOnly) return t\output('Cannot MAKE findEmail!');
@@ -1270,7 +1227,7 @@ function clear($ch = 0) {
 ///   file_put_contents(flog('', TRUE), ''); // clear log file on disk
 
   $cgfUid = r\cgfId();
-  $tables = 'r_auth r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_log r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
+  $tables = 'r_auth r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
   foreach (ray('bootstrap form menu') as $k) $tables .= " cache_$k";
   foreach (ray($tables) as $table) if (db\exists($table)) db\q("TRUNCATE $table");
 
@@ -1449,7 +1406,7 @@ function seq($table = 'r_usd') {
   global $testSeq;
   $id = $testSeq[$table] = @$testSeq[$table] + 1;
   $k = $table == 'r_usd' ? 'txid' : '';
-  t\log("seq table=$table id=$id");
+//  t\log("seq table=$table id=$id");
   u\EXPECT(!db\exists('r_usd', "$k=:id", compact('id')), "duplicate seq: $id in table $table");
 ///  print_r(compact('table','testSeq','id','k'));
   return $id;

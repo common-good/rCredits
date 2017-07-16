@@ -7,9 +7,9 @@
     "pass" : "db password",
     "salt" : "about 43 almost arbitrary characters",
     "word" : "32 hex digits",
-    "dkimPrivate" : "private DKIM encryption key with EOLS replace by spaces (not used in development)",
-    "dkimPublic" : "public DKIM encryption key with EOLS replace by spaces (recorded here for reference)",
-    "inviteKey" : "arbitrary string of 0s and 1s",
+    "dkimPrivate" : "private DKIM encryption key with EOLS replaced by spaces (not used in development)",
+    "dkimPublic" : "public DKIM encryption key with EOLS replaced by spaces (recorded here for reference)",
+    "inviteKey" : "arbitrary string of 0s and 1s (for development use 101010101)",
    	"ssnUser" : "SSN lookup username (this and ssnPass can be left as-is on development machine)",
     "ssnPass" : "SSN lookup password"
   },

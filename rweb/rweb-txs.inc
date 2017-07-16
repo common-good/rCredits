@@ -34,7 +34,7 @@ function formTxs($form, &$sta, $args = '') {
   global $agtViaBoxHelp, $base_url;
   $agtViaBoxHelp = t('||Agent is who did the transaction on your behalf.|Channel (Via) is where the transaction originated -- what type of device: Web, Smartphone, SMS, or Automatic.|Box is where the transaction originated -- which specific device.');
   $optHelp = $agtViaBoxHelp . t('||Exchanges are 1-to-1 trades of US Dollars for %RCREDITS (usually automatic).|PExchanges are daily automatic payment exchanges of %RCREDITS between company and employee. The company pays the employee in US Dollars, then the employee trades back some US Dollars 1-to-1 for %RCREDITS. The net effect is that the employee gets paid partly in US Dollars, partly in %RCREDITS.');
-  $mya = r\acct();
+  global $mya;
 
   extract(u\just('options period starting ending do xid download downloaded', $args)); 
   
@@ -160,7 +160,7 @@ function formStatements($form, $sta, $month = '') {
  * @return: the form (FALSE on error or if already confirming)
  */
 function txConfirm($do, $xid, &$sta) {
-  $mya = r\acct();
+  global $mya;
   if (u\test() and @$sta['confirm']) return FALSE;
   if (confirming_v($sta)) return FALSE;
   if (!$myx = r\MyX::lastTx($mya, 'xid=:xid', compact('xid'), TRUE)) return 'bad tx id'; // bail on hack attempt
@@ -176,7 +176,7 @@ function handleTx($do, $xid, &$sta, $args) {
   $url = str_replace('&do=', '&did=', "history/transactions/$args"); // don't do it again
 
   if (substr($xid, 0, 1) == 'b') { // reversing bank transfer
-    $mya = r\acct();
+    global $mya;
     if (!$mya->superAdmin) return FALSE; // only top admin can do this currently
     u\EXPECT($do == 'no', 'trying to edit bank transfer');
     $tx = db\lookup('*', 'r_usd', 'txid=:xid', ['xid'=>substr($xid, 1)]);
@@ -211,7 +211,7 @@ function txOKorNO($task, $xid) {
  * @return the form (FALSE on error)
  */
 function txEdit($xid) {
-  $mya = r\acct();
+  global $mya;
   if (!$myx = r\MyX::lastTx($mya, 'xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
   extract(u\just('taking toMe payer payee amount goods payerFor payeeFor created', $myx->ray));
   
@@ -233,18 +233,18 @@ function txEdit($xid) {
   if ($mya->cAdmin) $created = textFld(t('Date:'), '', dft(u\fmtDate($created))); else unset($created);
   $submit = submit(t('Update'));
 
-  return labeled($form + compact(ray('title to amount goods purpose created submit orig')));
+  return labeled($form + compact(ray('title to amount goods purpose created0 created submit orig')));
 }
 
 function txEdit_validate($form, &$sta) {
   global $base_url;
-  $mya = r\acct();
+  global $mya;
   extract(u\just('created0 created amount goods purpose orig', $sta['input']));
   extract($orig = unserialize(htmlspecialchars_decode($orig)), EXTR_PREFIX_ALL, 'x');
   
   if ($goods == FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
-  if ($err = u\badDate($created, $created0 - 30 * DAY_SECS, time() + 7 * DAY_SECS)) return say($err, 'created');
+  if (isset($created) and $err = u\badDate($created, $created0 - 30 * DAY_SECS, time() + 7 * DAY_SECS)) return say($err, 'created');
 ///  debug(compact('x_toMe','amount','x_amount'));
   if (!$mya->cAdmin and ($x_toMe ? ($amount > $x_amount) : ($amount < $x_amount))) {
     $who = r\acct($x_toMe ? $x_payer : $x_payee)->name;
@@ -257,7 +257,6 @@ function txEdit_validate($form, &$sta) {
     $amount = u\fmtAmt($x_amount);
     return say(t('illegal amount change', compact(ray('amount action _a'))), 'amount');
   }
-  if (@$created and $err = u\badDate($created)) return say($err, 'created');
   u\preray(compact('amount', 'created'), $sta['input']);
 }
 
@@ -304,7 +303,7 @@ function txBal($bal, $plus = '', $minus = '- ') {
  * @return html for summary
  */
 function txSummary($starting, $ending, &$endBalance = '') {
-  $mya = r\acct();
+  global $mya;
   $myid = $mya->id;
   
   $endingNow = ($ending > r\rTime());
@@ -485,7 +484,7 @@ function invoiceList($toMe, $starting, $ending, $states, $url, $download) {
     ORDER BY i.status=:TX_PENDING, nvid DESC
 EOF;
 
-  $mya = r\acct();
+  global $mya;
   $q = db\q($sql, ray('uid starting ending', $mya->id, $starting, $ending));
 ///   debug(compact('sql','starting','ending', 'mya'));
   while (count($rows) < $maxRows and $tx = $q->fetchAssoc()) {

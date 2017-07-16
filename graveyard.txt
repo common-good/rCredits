@@ -1,3 +1,181 @@
+  // preliminary rotate and/or mirror if necessary (never necessary -- jscript apparently does it)
+/*  $exif = exif_read_data($url);
+  if ($orientation = @$exif['Orientation']) {
+    $orients = ray('0/0 0/0 0/1 180/0 180/1 270/1 270/0 90/1 90/0');
+    list ($angle0, $mirror) = explode('/', $orients[$orientation]);
+    if ($angle0 or $mirror) r\tellAdmin('photo problem?', $sessionVars + compact('angle0', 'mirror'));
+//    if ($angle0) $img0 = imagerotate($img0, $angle0, 0); 
+//    if ($mirror) $img0 = _mirrorImage($img0);
+  } */
+  
+---------------------------------    
+
+    /*
+    $onblur = 'setPostalAddr();';
+    $stateAttrib = attrib(compact('onblur'));
+    $addressAttrib = $cityAttrib = w\onchange($onblur);
+    $zipAttrib = w\onchange("zipChange('010 013');");
+    */
+
+---------------------------------    
+
+
+  //  if ($adhocChannel and $adhocChannel != $channel and !$special) $special = "via ch$adhocChannel";
+  
+  // make it easy to match the message when searching
+//  if (isNonce($special) and @$info['message']) $info['message'] = str_replace(": $special", ': @nonce', $info['message']);
+  // don't make code, password, and secret links any more accessible than they are
+//  $info = json_encode($info, JSON_UNESCAPED_SLASHES);
+//  $channels = ray(TX_CHANNELS); 
+//  if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
+//    $return = \Database::RETURN_INSERT_ID; // do NOT use db\insert here (avoid loop in error handling)
+//    return \db_query('INSERT INTO r_log (time, channel, type, myid, agent, info) VALUES (:time, :channel, :type, :myid, :agent, :info)', u\prefixKeys(':', $record), compact('return'));
+//  return db\insert('r_log', $record);
+
+---------------------------------
+
+  // table r_log
+  $fields = array(
+    'logid' => setupField('log record id', 'serial'),
+    'time' => setupField('date/time logged', 'int 11', 0),
+    'channel' => setupField('logged from what interface module', 'int tiny'),
+    'type' => setupField('what type of log entry', 'varchar 60'),
+    'myid' => setupField('current account uid', 'int big'),
+    'agent' => setupField('agent account uid', 'int big'),
+    'info' => setupField('arbitrary serialized data', 'text medium'),
+//    'special' => setupField('special value if any', 'text medium'), // eg cell number, nonce, or sql
+  );
+  $foreignKeys = foreignKey('myid') + foreignKey('agent');
+  $indexes = index('type') + index('channel') + index('myid') + index('agent');  
+  $schema['r_log'] = setupTable('Development and error log', $fields, 'logid', $foreignKeys, $indexes);
+
+---------------------------------
+
+/*  
+  foreach ($subs as $one) {
+    $index = 'tell-staff';
+    $subject = str_replace('{topic}', $topic, $GLOBALS['emailSubjects'][$index]);
+    
+    $find = '%"index":"@index","email":"@regionEmail","subject":"@subject"%';
+    if ($id = @$one['id']) {
+      $id = t\uid($id);
+      $find .= "(#$id)%";
+      unset($one['id']);
+    }
+    $find = t($find, compact(ray('index subject regionEmail')));
+    foreach ($one as $k => $value) $find .= "$value%";
+    if (!$last = db\lookup('info', 'r_log', "info LIKE '$find' ORDER BY logid DESC")) {
+      if (count($subs) > 1) output("tell-staff can't find $find");
+      return FALSE;
+    }
+  }
+  return TRUE;
+  */
+  
+---------------------  
+
+/**
+ * usd: (ARG)
+ *
+ * in: 
+ */
+function usd($list) {return t\usd($list);}
+
+/**
+ * totals: (ARG)
+ *
+ * in: 
+ */
+function totals($ray) {
+  global $testOnly; if(!$testOnly) return FALSE;
+  $totals = r\totals();
+  foreach ($ray[0] as $key => $value) if ($value != $totals->$key) {
+    t\output("Total mismatch ($key): value $value <> calc " . $totals->$key);
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/**
+ * constants: (ARG)
+ *
+ * in: 
+ */
+function constants($list) {return t\constants($list);}
+
+
+-------------------------------
+
+/**
+ * we tell admin nothing
+ *
+ * in: 
+ */
+function weTellAdminNothing() {
+  global $testOnly; if (!$testOnly) return FALSE;
+  $info = '%"index":"tell-staff"%';
+  return !db\lookup('info', 'r_log', "info LIKE '$info' ORDER BY logid DESC");
+}
+
+/**
+ * we do not tell admin (ARG)
+ *
+ * in: 
+ */
+function weDoNotTellAdmin($topic) {return !t\weTellAdmin($topic);}
+
+-------------------------------
+
+/**
+ * Find the message in the log table.
+ * @param assoc $subs: subs for message iff message index is passed.
+ */
+function findMessage($type, $fields, $message = '', $subject = '', $subs = []) {
+  global $channel;
+
+  $mya = r\acct();
+  $fields = @$fields[0] ?: $fields;
+  $subs = @$subs[0] ?: @$subs;
+  $agent = $mya ? $mya->agentId : 0;
+  $myid = $mya ? $mya->id : 0;
+
+
+  if ($message = ($message ?: @$fields['message'])) {
+    if ($channel != TX_SMS and strlen($message < 30)) $message = t($message, $subs);
+    $fields['message'] = $message;
+  } else unset($fields['message']); // empty message in features means NO message
+//  output(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
+  output(array('EXPECT' => '') + $fields, 'output'); // keep this
+  $info = u\jsonEncode($fields);
+  $crit = "channel=:channel AND type=:type AND myid<=>:myid AND agent<=>:agent ORDER BY logid DESC";
+/// debug("info=:info AND $crit"); debug(compact(ray('info type myid agent channel')));
+  return db\exists('r_log', "info=:info AND $crit", compact(ray('info type myid agent channel')));
+}
+
+-----------------------------------------------------
+
+function error($logid) {
+  if ($info0 = db\lookup('info', 'r_log', 'logid=:logid', compact('logid'))) {
+    if (!$info = json_decode(utf8_encode($info0))) $info = $info0; // probably too big for json
+  }
+  r\go('signin/err=' . R_SYS_ERR);
+}
+
+-----------------------------------------------------
+
+/**
+
+  switch (@$channel) {
+    case TX_WEB:
+      \drupal_set_message($msg, 'error'); // this fails
+      \drupal_goto('error/' . $R_FATAL_ERROR); // this fails -- use shutdown function to show error page (getting message from log)
+    case TX_SMS: if (@$rsms_number) \sms_send($rsms_number, R_SYS_ERR); break;
+    case TX_POS: be\api_error(R_SYS_ERR);
+    default: di e('with no channel');
+  }
+ */
+
+----------------------------------------------------
 
 /**
  * Return the user's bank transactions for the given period (inclusive)

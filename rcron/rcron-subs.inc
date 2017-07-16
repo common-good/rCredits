@@ -16,13 +16,11 @@ use rCredits\Cron as cr;
 */
 
 function queueEach($op, $sql, $subs = []) {
-  global $cronOp; // this is set to ONE_CRON_OP when calling cron() from PHP window on test server
   $result = db\q($sql, $subs);
   $sql = u\SUBS($sql);
 
   while ($row = $result->fetchAssoc()) {
-    $oneOp = "rCredits\\Cron\\$op";
-    if (@$cronOp == ONE_CRON_OP or u\test()) $oneOp($row); else cr\queue($op, $row);
+    cr\queue($op, $row);
   }
 }
 
@@ -85,4 +83,18 @@ function oftenTests() {
   return $ok;
 }
 
-function queue($op, $item = []) {\DrupalQueue::get('q')->createItem(compact('op') + $item);}
+function queue($op, $item = []) {
+  global $cronOp; // this is set to ONE_CRON_OP when calling cron() from PHP window on test server
+  global $mya;
+
+  $info = $item;
+  if ($uid = @$info['uid']) $mya = r\acct($uid); // fudge current account
+//  if (!strpos($op, '1')) {
+
+  if (!in_array($op, ray('acctHourly acctStats acctStats1 acctRisk acctRisk1'))) u\log($op, 'cr', u\justNot('uid', $item));
+  
+  if (@$cronOp == ONE_CRON_OP or u\test()) {
+    $oneOp = "rCredits\\Cron\\$op";
+    $oneOp($item);
+  } else \DrupalQueue::get('q')->createItem(compact('op') + $item);
+}

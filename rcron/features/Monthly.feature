@@ -119,8 +119,8 @@ Scenario: Inflation adjustments, round up donations, and crumb donations are mad
 
 # roundups
   And transactions:
-  | xid | created | type     | amount | rebate | bonus | from | to  | purpose       |*
-  | 18  | %today  | transfer |   1.00 |    .05 |   .10 | .ZZA | cgf | roundups desc |
+  | xid | created | type     | amount | rebate | bonus | from | to  | purpose       | flags         |*
+  | 18  | %today  | transfer |   1.00 |    .05 |   .10 | .ZZA | cgf | roundups desc | gift,roundups |
  
 # crumbs
-  | 19  | %today  | transfer |   3.40 |    .34 |   .34 | .ZZC | cgf | crumbs desc |
+  | 19  | %today  | transfer |   3.40 |    .34 |   .34 | .ZZC | cgf | crumbs desc   | gift,crumbs   |

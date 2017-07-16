@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '2.74'); // software version
+define('R_VERSION', '2.81'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -84,10 +84,10 @@ define('COMPANY_FREEZE', FALSE); // companies cannot spend rewards yet
 define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
 define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty,Vacant Lot,Land,Cinema,Printing & Office Supply,Car Repair,Health Club/Gym,Restaurant,Hardware & Supply,Grocer,Farm,Food Processing,Department Store,Electric Company,Oil Company,Town Government,Community College,Hospital');
-define('R_REGION_FIELDS', 'region,fullName,st,postalCode,federalId,hasServer');
+define('R_REGION_FIELDS', 'region,fullName,st,zip,federalId,hasServer');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
 // isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 
-define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid getAppData appData'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid source getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('MASTER_NUMERIC_FIELDS', 'minimum achMin savingsAdd saveWeekly');
 define('MASTER_FIELDS', MASTER_NUMERIC_FIELDS . ' hasBank bankAccount last4bank refill'); // only in master, for joint accounts
 define('R_MONEY_FIELDS', 'balance rewards floor committed'); // financial amount fields in account record
@@ -110,9 +110,9 @@ define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might 
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
 define('PERSONAL_STEP_COUNT', t('seven'));
 define('COMPANY_STEP_COUNT', t('eight'));
-define('R_STEPS', 'contact, verify, sign:community/agreement, donate:community/donate, proxies, prefs:settings/preferences, photo:settings/security/photo, connect, company, relations'); // membership steps
-define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret oneTimeLoginUrl password pass newPass form_build_id form_token form_id external_input'); // don't log these (external_input may contain passwords)
-define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts history settings settings/icon community Summary'); // don't log visits to these forms
+define('R_STEPS', 'contact, verify, sign:community/agreement, donate:community/donate, proxies, prefs:settings/preferences, connect, company, relations, photo:settings/security/photo'); // membership steps
+define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret oneTimeLoginUrl password pass pass1 pass2 newPass external_input'); // don't log these (external_input may contain passwords)
+define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts history settings settings/icon community Summary Php'); // don't log visits to these forms
 define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin PageNotFound Sinx Pass Empty TestRecovery ChangePassword Help Community Democracy Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
 define('BY_CASH', '(cash)'); // app includes this in description, for a purchase of rCredits by cash
 define('BY_CHECK', '(check)'); // app includes this in description, for a purchase of rCredits by check
@@ -392,7 +392,7 @@ define('TX_POS', 3); // smart phone or other computer-like device
 define('TX_TONE', 4); // touch tone phone
 define('TX_CRON', 5);
 define('TX_LINK', 6); // user clicked a no-signin link
-define('TX_CHANNELS', 'System SMS Web App Tone Cron Link'); // can't be translated, because used in t() (find a solution)
+define('TX_CHANNELS', 'Sys SMS Web App Tone Cron Link'); // can't be translated, because used in t() (find a solution)
 
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits) -- negative types generally not shown
 define('TX_BONUS', -2); // UNUSED sales bonus (negative reward types are invisible on transaction history)
@@ -438,7 +438,7 @@ $GLOBALS['emailSubjects'] = array(
   'verifyCo' => t('%PROJECT NEXT STEP: Verify your company email address.'),
   'password-reset' => t('New %PROJECT PASSWORD'),
   'tell-staff' => t('%PROJECT STAFF ALERT: %topic'),
-  'notices' => t('%PROJECT Notices for %range'),
+  'notices' => t('%PROJECT Notices for %qid for %range'),
   'message' => t('%PROJECT %topic'),
 );
 

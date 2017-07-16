@@ -1,0 +1,269 @@
+<!doctype html>
+<!--
+
+PRODUCTION:
+<form id="signup" action="https://www.salesforce.com/servlet/servlet.WebToLead?encoding=UTF-8" method="POST" onsubmit="var ret = createRetURL(this); this.retURL.value = 'https://new.CommonGood.earth/cooppower.php?' + ret; return (ret != '');">
+
+DEV:
+<form id="signup" action="" method="POST" onsubmit="var ret = createRetURL(this); this.action='http://localhost/cgMembers/rcredits/misc/cooppower.php?' + ret; return (ret != '');">
+
+
+http://developer.force.com/cookbook/recipe/interact-with-the-forcecom-rest-api-from-php
+
+https://ws.rcredits.org/cooppower.php?m_address=&first_name=William&last_name=Spademan&company=Society to Benefit Everyone, Inc.&email=info@commongoodfinance.org&phone=4136281723&street=48 Buckland Road&city=Ashfield&state=MA&zip=01330&m_street=48 Buckland Road&m_city=Ashfield&m_state=MA&m_zip=01330&m_company=Eversource&m_number=E12345&m_person=&m_amount=Less than $100&source=Radio&referrer=&cg_account=&
+
+curl https://yourInstance.salesforce.com/services/data/v20.0/sobjects/Account/001D000000INjVe -H "Authorization: Bearer token" -H "Content-Type: application/json" -d @patchaccount.json -X PATCH
+
+patchaccount.json:
+{
+    "BillingCity" : "San Francisco"
+}
+
+-->
+  
+  <body>
+
+<script>
+function createRetURL(form) {
+  var ret = '';
+  var e, id, v;
+  var ok = true;
+  var erColor = 'cyan';
+  var cg_pattern = new RegExp('^[A-Z]{6}$');
+  var zip_pattern = new RegExp('^[0-9]{5}$');
+
+  eid('phone').value = ev('phone').replace(/[^\d]/g, ''); // keep just the digits
+  eid('cg_account').value = ev('cg_account').toUpperCase();
+  eid('state').value = ev('state').toUpperCase();
+    
+  for(var i=0; i < form.elements.length; i++){
+    e = form.elements[i];
+    id = e.id; v = e.value;
+    
+    if (id != 'oid' && id != 'retURL' && id != 'submit' && id != 'sameAddress') {
+      visibleInput = (e.tagName == 'INPUT' && e.type != 'hidden');
+      visibleSelect = (e.tagName == 'SELECT' && e.style.display != 'none');
+      if (visibleInput || visibleSelect) { // set default (non-error) background color
+        e.style.backgroundColor = 'white';
+        e.parentElement.parentElement.querySelector('label').style.backgroundColor = 'white';
+      }
+      if ((visibleInput && v == '' && id != 'cg_account' && id != 'm_person' && id != 'company') 
+        || (visibleSelect && e.selectedIndex == 0)
+        || (id == 'email' && !emailok(v))
+        || (id == 'phone' && v.length != 10)
+        || ((id == 'zip' || id == 'm_zip') && !zip_pattern.test(v))
+        || (id == 'cg_account' && v != '' && !cg_pattern.test(v))
+      ) {
+        ok = false;
+        e.style.backgroundColor = erColor;
+        e.parentElement.parentElement.querySelector('label').style.backgroundColor = erColor;
+      } else {
+        if (id=='m_number') v = mNumberFinal();
+        ret += id + '=' + v + '&';
+      }
+    }
+  }
+
+  if (ok) { // do things that should only be done if there are no errors
+    eid('m_number').value = mNumberFinal()
+    if (ev('company') == 'none' || ev('company') == '') eid('company').value = 'self';
+    eid('m_address').value = ev('m_street') + '\n' + ev('m_city') + ', ' + ev('m_state').toUpperCase() + ' ' + ev('m_zip');
+    if (ev('m_person').length <= 5) eid('m_person').value = (ev('first_name') + ' ' + ev('last_name')).trim();
+  } else eid('ermsg').innerHTML = 'Fix the <span style="background-color:' + erColor + '">highlighted</span> fields. &nbsp; ';
+  
+  return (ok ? ret : '');
+}
+
+function eid(s) {return document.getElementById(s);}
+function ev(s) {return eid(s).value;}
+function mNumberFinal() {return ev('m_company').charAt(0) + ev('m_number').replace(/ /g, '');}
+
+function emailok(email) {
+  var cc='[-!#$%&\'*+\\/0-9=?A-Z^_`a-z{|}~';
+  var ccd=cc + '.]+'; cc += ']+';
+  re=new RegExp('^' + ccd + '@' + cc + '\\.' + ccd + '$');
+  return re.test(email);
+}
+
+function populateMeterAddress(same) {
+  var map = ['street', 'city', 'state', 'zip'];
+  map.forEach(function (v, k) {eid('m_' + v).value = (same ? eid(v).value : '');});
+}
+
+</script>
+
+<style>
+#signup th, #signup label {width:300px; text-align:left; font-size:95%; font-weight:normal;}
+h3 {padding:30px 0 0 0; margin:0; color:DarkOliveGreen; font-weight:bold;}
+</style>
+
+<form id="signup" action="" method="POST" onsubmit="var ret = createRetURL(this); this.action='http://localhost/cgMembers/rcredits/misc/cooppower.php?' + ret; return (ret != '');">
+
+<input id="oid" type="hidden" name="oid" value="00DA0000000gGh5" />
+<input id="retURL" type="hidden" name="retURL" value="http://cooppower.coop" />
+<input id="m_address" type="hidden" name="Electric_Meter_Address__c" value="" />
+<!--input type="hidden" name="debug" value=1>
+<input type="hidden" name="debugEmail" value="lynn@cooppower.coop"-->
+
+<table>
+
+<tr>
+  <th><label for="first_name">First Name:</label></th>
+    <td><input id="first_name" maxlength="40" name="first_name" size="20" type="text" /></td>
+</tr>
+
+<tr>
+  <th><label for="last_name">Last Name:</label></th>
+  <td><input id="last_name" maxlength="80" name="last_name" size="20" type="text" /></td>
+</tr>
+
+<tr>
+  <th><label for="company">Organization/Company (if any):</label></th>
+  <td><input id="company" maxlength="80" name="company" size="20" type="text" value="none" /></td>
+</tr>
+
+<tr>
+  <th><label for="email">Email Address:</label></th>
+  <td><input id="email" maxlength="80" name="email" size="20" type="text" /></td>
+  </tr>
+  
+  <tr>
+  <th><label for="phone">Phone:</label></th>
+  <td><input id="phone" maxlength="14" name="phone" size="20" type="text" /></td>
+</tr>
+  
+<tr><td colspan="2""><h3>Mailing Address</h3></td></tr>
+<tr>
+  <th><label for="street">Street:</label></th>
+  <td><input id="street" maxlength="80" name="street" size="20" type="text" /></td>
+</tr>
+
+<tr>
+  <th><label for="city">City:</label></th>
+  <td><input id="city" maxlength="40" name="city" size="20" type="text" /></td>
+</tr>
+
+<tr>
+  <th><label for="state">State/Province:</label></th>
+  <td><input id="state" maxlength="2" name="state" size="2" type="text" /></td>
+</tr>
+
+<tr>
+  <th><label for="zip">Zip:</label></th>
+  <td><input id="zip" maxlength="5" name="zip" size="5" type="text" /></td>
+</tr>
+
+<tr><td colspan="2"><h3>Address of Electric Meter</h3></td><tr>
+<tr id="sameness">
+  <th></th>
+  <td><input id="sameAddress" name="sameAddress" type="checkbox" onChange="populateMeterAddress(this.checked); this.parentElement.style.display = 'none';" /> &nbsp;Same address as above</td>
+</tr>
+  
+<tr>
+  <th><label for="m_street">Address:</label></th>
+  <td><input id="m_street" maxlength="80" name="Meter_Street_Address__c" size="20" type="text" /></td>
+</tr>
+
+<tr>
+  <th><label for="m_city">City:</label></th>
+  <td><input id="m_city" maxlength="32" name="Meter_City__c" size="20" type="text" /></td>
+</tr>
+
+<tr>
+  <th><label for="m_state">State:</label></th>
+  <td><input id="m_state" maxlength="2" name="Meter_State__c" size="2" type="text" /></td>
+</tr>
+
+<tr>
+  <th><label for="m_zip">ZIP Code:</label></th>
+  <td><input id="m_zip" maxlength="5" name="Meter_ZIP_Code__c" size="5" type="text" /></td>
+</tr>
+
+<tr>
+  <th><label for="m_company">Electric Company:</label></th>
+  <td><select  id="m_company" name="Electric_Company__c" title="Electric Company">
+  <option value="">--None--</option>
+  <option value="Eversource">Eversource</option>
+  <option value="National Grid">National Grid</option>
+</select></td>
+</tr>
+
+<tr>
+  <th><label for="m_number">Electric Account #:</label></th>
+  <td><input id="m_number" maxlength="64" name="Electric_Account_Number__c" size="20" type="text" /></td>
+</tr>
+
+<tr>
+  <th><label for="m_person">Name on Electric Account (if different):</label></th>
+  <td><input id="m_person" maxlength="64" name="Electric_Account_Holder__c" size="20" type="text" /></td>
+</tr>
+<tr>
+  <th><label for="m_amount">Your Monthly Electric Bill Amount:</label></th>
+  <td><select id="m_amount" name="Electric_Bill_Monthly_Amount__c" title="Monthly Electric Bill Amount">
+    <option value="">--None--</option>
+    <option value="Less than $100">Less than $100</option>
+    <option value="$100-$200">$100-$200</option>
+    <option value="$200-$500">$200-$500</option>
+    <option value="$500-$1,000">$500-$1,000</option>
+    <option value="More than $1,000">More than $1,000</option>
+  </select></td>
+</tr>
+
+<tr>
+  <th><label for="source">How did you hear about this opportunity?</label></th>
+  <td><select id="source" name="lead_source" title="Source" onchange="eid('referrer').style.display = ((this.options[this.selectedIndex].value == 'Partner') ? 'block' : 'none');">
+    <option value="">--None--</option>
+    <option value="Community Event">Community Event</option>
+    <option value="Newspaper">Newspaper</option>
+    <option value="Radio">Radio</option>
+    <option value="CPWebsite">Co-op Power Website</option>
+    <option value="Word of mouth">Word of mouth</option>
+    <option value="CPEmail">Co-op Power Email</option>
+    <option value="Tabling">Info Table</option>
+    <option value="Door-to-Door">Door-to-Door Campaign</option>
+    <option value="Phone-a-thon">Phone-a-thon</option>
+    <option value="Solarize Campaign">Solarize Campaign</option>
+    <option value="Partner">Another Organization</option>
+  </select></td>
+</tr>
+
+<tr>
+  <th><label for="referrer"></label></th>
+  <td><select id="referrer" name="Referrer__c" title="Referred By">
+    <option value="">--Which One?--</option>
+    <option>Community Action</option>
+    <option>Climate Action Now</option>
+    <option>Mothers Up Front</option>
+    <option>Resonant Energy</option>
+    <option>Common Good</option>
+    <option>Hampshire Community Energy Co-op</option>
+    <option>Franklin Community Energy Co-op</option>
+    <option>Hamden Community Energy Co-op</option>
+    <option>Other</option>
+  </select></td>
+</tr>
+
+<tr>
+  <th><label for="cg_account">Common Good Account (if any):</label></th>
+  <td><input id="cg_account" maxlength="6" name="cg_account" size="6" type="text" /></td>
+</tr>
+
+  
+<tr>
+  <td colspan="2"><p>Community Solar payments are processed through <a href="http://CommonGood.earth" target="_blank">Common Good</a>. If you already have a Common Good account, type your 6-letter account code in the box above (find it printed under your name on your Common Good card).</p>
+
+<p>If you do not yet have a Common Good account, leave this box empty. When you hit "Submit", you will be redirected to CommonGood.earth to set up an account. Please also email us a picture or scan of your most recent electric bill (we will send you a reminder email that you can reply to with the attachment). Once we receive your bill and we have confirmation that your Common Good account is set up, we will send you an agreement to review and sign.  THANK YOU!!</p>
+  </td>
+</tr>
+
+<tr>
+  <td id="ermsg" align="right"></td>
+  <td><input id="submit" type="submit" name="submit" value="Submit" /></td>
+</tr>
+</table>
+
+</form>
+<script>eid('referrer').style.display = 'none';</script>
+
+	</body>
+</html>

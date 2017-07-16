@@ -42,9 +42,9 @@ SELECT fullName, b.id, COUNT(v.id) as votes FROM `users` u INNER JOIN r_ballots 
  */
 function formEvents($form, &$sta, $args = '') {
   global $base_url;
-  include_once __DIR__ . '/../rvote/rvote.inc';
-  include_once __DIR__ . '/../rvote/rvote-ballot.inc';
-  include_once __DIR__ . '/../rvote/rvote-results.inc';
+  include_once __DIR__ . '/rvote.inc';
+  include_once __DIR__ . '/rvote-ballot.inc';
+  include_once __DIR__ . '/rvote-results.inc';
   
   extract(u\just('question do results noProxies', $args));
 
@@ -112,6 +112,7 @@ EOF;
       extract($row, EXTR_PREFIX_ALL, 'e');
       $e_end = u\fmtDate($e_end);
       $buttons = $mya->cAdmin ? button(t('Edit'), "$base_url/community/events/event/$e_id", '', 'warning') : '';
+      if ($e_end < time()) $buttons .= ' &nbsp; ' . button(t('Results'), "$base_url/community/events/event/$e_id/report", '', 'success');
       $list .= <<<EOF
 <tr><td>$e_end</td><td>$e_event</td><td>$buttons</td></tr>
 EOF;
@@ -160,7 +161,7 @@ function formEvents_submit($form, &$sta) {
     $do = 'grade';
     $question = -bumpQnum(-$question, v\getProposals($mya), $op);
   } else {
-    list($quids, $qutypes) = v\getQuestions($ctty); 
+    list($quids, $qutypes) = v\getQuestions('', $mya); 
     $type = $qutypes[$question];
     $do = 'ballot';
     $question = bumpQnum($question, $quids, $op);
@@ -174,15 +175,47 @@ function formEvents_submit($form, &$sta) {
 
 /**
  * Add or Edit an event
- * @param int $id: event record ID (empty means Add, else Edit)
+ * @param int $eid: event record ID: empty means Add, else do $do (defaults to edit)
+ 
  */
-function formEvent($form, &$sta, $eid = '') {
-  global $base_url;
-  $mya = r\acct();
-  if (!$add = empty($eid)) {
-    $fields = 'type,event,details,start,end';
-    if (is_numeric($eid) and $event = db\lookup($fields, 'r_events', 'id=:eid', compact('eid'))) extract($event); else $add = FALSE;
+function formEvent($form, &$sta, $eid = NULL, $do = 'edit') {
+  include_once __DIR__ . '/rvote.inc';
+  global $base_url, $mya;
 
+  $typeDescs = ray(t('I:Meeting,V:Vote,G:Grading,P:RFP'));
+  if (strpos($eid, '=')) extract(u\just('eid do', $eid)); // passed from rdo()
+  
+  if (isset($eid)) {
+    $fields = 'type,event,details,start,end';
+    if (is_numeric($eid) and $event = v\event($fields, $eid)) {
+      extract($event); 
+      $subtitle = w\item(t('for vote ending ') . u\fmtDate($end));
+    } else $do = 'add';
+  } else $do = 'add';
+
+  
+  if ($do == 'report') {
+    include_once __DIR__ . '/rvote-results.inc';
+    $title = w\item($typeDescs[$type] . t(' Results'));
+    if (strpos('.VG', $type)) {
+      $results = v\showResults($eid);
+    } else {
+      if ($results = @file_get_contents(DRUPAL_ROOT . "/reports/$eid")) {
+        require_once DRUPAL_ROOT . '/vendor/htmlpurifier/library/HTMLPurifier.auto.php';
+        $purifier = new HTMLPurifier();
+        $results = $purifier->purify($results);    
+      } else $results = t('There is no report yet for this event.');
+    }
+    $results = w\item($results);
+    return compact(ray('title subtitle results'));
+  } elseif ($do == 'details') {
+
+
+
+  
+  } elseif (!$mya->cAdmin) return w\hack('event permission');
+
+  if ($do == 'edit') {
     if (strpos(' VG', $type)) { // must precede setting $type field
       list ($header, $page) = $type == 'V' ? [t('Questions'), 'question'] : [t('Proposals'), 'proposal'];
       if ($mya->cAdmin) $header .= ' ' . button(t('Add'), "$base_url/community/events/$page/eid=$eid", '', 'warning');
@@ -209,9 +242,10 @@ EOF;
       $list = w\item('<h4>' . $header . '</h4>' . $list);
     }
     $id = w\hidFld($eid);
-  } 
+  }
   
-  $title = w\item($add ? t('Add Event') : t('Edit Event'));
+  // add or edit
+  $title = w\item($do == 'add' ? t('Add Event') : t('Edit Event'));
   $types = ray(' :Choose Type,I:In-person,V:Vote,G:Grade Proposals,P:Request For Proposals');
   $type = w\selectFld(t('Type:'), '', required(@$type), $types);
   $event = w\textFld(t('Event name:'), [t('Short Descriptive Event Name'), t('For example, "Voting on 3 questions".')], required(@$event));
@@ -233,7 +267,7 @@ function formEvent_validate($form, &$sta) {
 function formEvent_submit($form, &$sta) {
   global $base_url;
   extract($info = u\just('id type event details start end', $sta['input']));
-  $mya = r\acct();
+  global $mya;
   $info['end'] = strtotime('+1 day', $end) - 1; // just before the start of the next day
   db\update('r_events', $info + ['ctty' => $mya->community], @$id ? 'id' : '', TRUE);
   r\go("$base_url/community/events", 'info saved');
@@ -247,7 +281,7 @@ function formQuestion($form, &$sta, $args = '') {
   
   extract(u\just('eid qid', $args));
   
-  $mya = r\acct();
+  global $mya;
   if (!$add = empty($qid)) {
     $fields = 'e.id AS eid, e.ctty, q.text, q.detail, q.linkDiscussion, q.type, q.units, q.budget, q.optOrder';
     if (is_numeric($qid) and $question = db\lookup($fields, 'r_questions q LEFT JOIN r_events e ON e.id=q.event', 'q.id=:qid', compact('qid'))) extract($question); else $add = FALSE;
@@ -312,7 +346,7 @@ function formOption($form, &$sta, $args = '') {
 
   extract(u\just('qid oid', $args));
   
-  $mya = r\acct();
+  global $mya;
   if (!$add = empty($oid)) {
     $fields = 'e.id AS eid, e.ctty, q.id AS qid, o.text, o.detail';
     if (is_numeric($oid) and $option = db\lookup($fields, 'r_options o LEFT JOIN r_questions q ON q.id=o.question LEFT JOIN r_events e ON e.id=q.event', 'o.id=:oid', compact('oid'))) extract($option); else $add = FALSE;
@@ -515,7 +549,7 @@ function formProposal_validate($form, &$sta) {
 function formProposal_submit($form, &$sta) {
   $input = $sta['input'];
   $dbFields = 'ctty project categories overview purpose where when until how amount type budgetTotal budget contingency qualifications evaluation name contact phone email sponsor';
-  $mya = r\acct();
+  global $mya;
   $input['ctty'] = $mya->community;
   $input['categories'] = join(' ', array_keys($input['cats']));
   db\insert('r_proposals', $info = u\just($dbFields, $input));

@@ -406,7 +406,7 @@ function rcredits_radio($variables) {
   \element_set_attributes($variables['element'], array('id', 'name', '#return_value' => 'value'));
   extract(rcElement($variables, 'title attributes class return_value value parents'));
   
-  if (isset($return_value) and $value === $return_value) $checked = 'checked';
+  if (isset($return_value) and $value == $return_value) $checked = 'checked';
   $type = 'radio';
   $class[] = 'form-radio';
   $tribs = u\tribs(compact(ray('type class checked')) + $attributes);

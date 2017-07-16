@@ -21,7 +21,7 @@ define('TX_TID_MAX', 100000000); // zero-filler
  * @return [$header, $classes, $rows, $totals]
  */
 function getTxRows($starting, $ending, $options = [], $url0 = '', $maxRows = PHP_INT_MAX) {
-  $mya = r\acct();
+  global $mya;
   extract(u\just('download agents channels boxes descending', $options));
   if ($mya->jid) $agents = TRUE; // show which partner did it, on joint account
   list ($classes, $header, $downloadHeader) = txFields(@$download, @$agents, @$channels, @$boxes);
@@ -75,7 +75,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
 //  foreach (ray('xid amount byMe toMe reallyToMe agent data sharing tid') as $k) $$k = $myx->$k;
 
   extract(u\just('xid fromyou toyou reward byMe toMe reallyToMe agent data roundup disputed sharing tid name type created description', $tx));
-  $mya = r\acct();
+  global $mya;
 //  $myx = r\x($tx, $mya);
 
   if (@$data) $data = unserialize($data);
@@ -164,7 +164,7 @@ function sortRows($rows, $descending = FALSE) {
 }
 
 function setupDownload($starting, $ending) {
-  $mya = r\acct();
+  global $mya;
   $dt1 = strftime('%Y%m%d', $starting);
   $dt2 = strftime('%Y%m%d', $ending);
   u\csvStart(($mya->cAdmin ? $mya->mainQid : PROJECT_ID) . "$dt1-$dt2.csv");

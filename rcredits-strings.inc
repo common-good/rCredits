@@ -119,7 +119,7 @@ $GLOBALS['tStrings'] = array(
   'invite default' => t("%PROJECT Card is great. I signed up. Check it out!\n\n%name"),
   'roundups desc' => t('contribution of rounded-up payment change'),
   'crumbs desc' => t('contribution (percentage of past month receipts)'),
-  'sent email' => t('We emailed a Verification Code to you at <b>%email</b> (if you don\'t see it, check your Spam folder). Type the code here, choose a password, and press Next.'),
+  'sent email' => t('<p>We emailed a Verification Code to you at <b>%email</b> (if you don\'t see it, check your Spam folder). Type the code here, choose a password, and press Next.</p><p>Mixed-case, digits, punctuation, and plain old length make your password strong.</p>'),
 
   // questions
   "what's your name?" => t("To set up your %PROJECT Account, we need your full name and email address. First, what's your name?"),
@@ -233,6 +233,7 @@ $GLOBALS['tStrings'] = array(
   'no search' => t('OR that member has chosen not to be identified by email or phone number.'),
   'must confirm' => t('%youName: membership must be approved by %inviterName OR you must do a transaction with %inviterName FIRST.'),
   'first at home' => t('Your first transaction must be in person in your home community.'),
+  'zero transaction' => t('The transaction amount cannot be zero.'),
   
 //  'savings too low' => t('Until your %PROJECT community declares itself a stable Common Good Community, your savings amount must be at least as much as the incentive rewards you have received (%rewards to date)'),
   'savings too low' => t('Your additional savings amount cannot be less than zero.'),

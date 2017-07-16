@@ -27,7 +27,7 @@ function formAdmin($form, &$sta) {return w\subMenu(t('Admin Options'), 'sadmin')
  */
 function formAdminPanel($form, &$sta, $args = '') {
   extract(u\just('qid', $args));
-  $mya = r\acct();
+  global $mya;
   if (!$mya->cAdmin) hack('panel');
   
   $tables = 'users txs usd log gifts proxies relations invites'; // tables to show
@@ -86,7 +86,7 @@ EOF;
 
 function formAdminPanel_submit($form, &$sta) {
   global $base_url;
-  $mya = r\acct();
+  global $mya;
   
   extract(u\just('account make', $sta['input']));
   $op = op($sta);
@@ -126,7 +126,7 @@ function formAdminPanel_submit($form, &$sta) {
 /**/  debug($a->appData);
   } elseif ($op == 'seeSecure') {
     if (@$a) {
-      say(u\rayTable(ray('fullName phone dob physicalAddr', $a->fullName, substr(@$a->phone, 2), $admin ? u\fmtDate(@$a->dob) : '', @$a->address . ' ' . $a->postalCode)));
+      say(u\rayTable(ray('fullName phone dob physicalAddr', $a->fullName, substr(@$a->phone, 2), $admin ? u\fmtDate(@$a->dob) : '', @$a->address . ' ' . $a->zip)));
 //      seeHidden($a);
       seeSecure($a);
     }
@@ -149,14 +149,14 @@ function formAdminPanel_submit($form, &$sta) {
   
   // handle all other buttons with showQuery()
   if ($op == 'users') {
-    $fields = 'uid, flags, balance, rewards, savingsAdd AS saveAdd, minimum AS min, floor, city, postalCode AS zip';
+    $fields = 'uid, flags, balance, rewards, savingsAdd AS saveAdd, minimum AS min, floor, city, zip AS zip';
     return say(a\showQuery('users', 1, 'name', $fields));
   }
   
   $logFields = "channel,type,myid,IF(agent=myid,':R_NONE',agent) AS agent, REPLACE(info, ',', ', ') AS info";
 
-  if ($op == 'log') return say(a\showQuery('r_log', 1, 'logid DESC', $logFields, 'myid'));
-  if ($op == 'tells') return say(a\showQuery('r_log', "info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50", 'logid DESC', $logFields, 'myid'));
+/**/ if ($op == 'log') return say(file_get_contents(flog())); // say(a\showQuery('r_log', 1, 'logid DESC', $logFields, 'myid'));
+//  if ($op == 'tells') return say(a\showQuery('r_log', "info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50", 'logid DESC', $logFields, 'myid'));
 
   if ($op == 'txs') {
     $fields = <<<EOF
@@ -286,7 +286,7 @@ function formMakeCtty($form, &$sta) {
 }
 
 function formMakeCtty_validate($form, &$sta) {
-  $mya = r\acct();
+  global $mya;
   $myid = $mya->id;
   extract(u\normalizeCase(u\just($normals = 'fullName legalName postalAddr', $sta['input'])));
   extract(u\just('zips region email phone federalId', $sta['input']));
@@ -321,12 +321,12 @@ function formMakeCtty_submit($form, &$sta) {
   $fields = 'name fullName legalName email phone federalId postalAddr address city state';
   extract(u\just('zips region ' . $fields, $sta['input']));
 
-  $postalCode = $zips; // store the regex defining the region or community
+  $zip = $zips; // store the regex defining the region or community
   $flags = u\bit(B_CO) | u\bit(B_OK) | u\bit(B_UP);
   $rebate = 0;
   $country = R_COUNTRY_ID;
   $region = r\qo("!$region")->id;
-  $fields .= ' postalCode flags rebate region address state country';
+  $fields .= ' zip flags rebate region address state country';
 
   $DBTX = \db_transaction();
   $info = compact(ray($fields)) + acctType(CO_PARTNERSHIP);
@@ -343,7 +343,7 @@ function formMakeCtty_submit($form, &$sta) {
  */
 function formMemberList($form, &$sta) {
   global $base_url;
-  $mya = r\acct();
+  global $mya;
 
   $cAdmin = $mya->cAdmin;
   $ctty = r\acct($mya->community);
@@ -406,7 +406,7 @@ function formDownloadMemberList($form, &$sta, $args = '') {
     $download = item("<iframe class=\"hidden\" src=\"$base_url/sadmin/export-list/$params\"></iframe>");
   }
   
-  $mya = r\acct();
+  global $mya;
   $cttyA = $mya->cttyA;
 
   $title = item(t('Download Member List'));

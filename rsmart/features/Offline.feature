@@ -108,8 +108,8 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
   And we notice "new refund|reward other" to member ".ZZB" with subs:
-  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
-  | %today  | Bea Two  | Corner Pub | $100   | reverses #2  | reward          | $-10              |
+  | created | fullName | otherName  | amount | payerPurpose       | otherRewardType | otherRewardAmount |*
+  | %today  | Bea Two  | Corner Pub | $100   | food (reverses #2)  | reward          | $-10              |
   And balances:
   | id   | balance | rewards |*
   | ctty |    -250 |       0 |
@@ -132,8 +132,8 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | refund       | reward          | $-10              |
   And we notice "new charge|reward other" to member ".ZZB" with subs:
-  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
-  | %today  | Bea Two  | Corner Pub | $100   | reverses #2  | reward          | $10               |
+  | created | fullName | otherName  | amount | payerPurpose         | otherRewardType | otherRewardAmount |*
+  | %today  | Bea Two  | Corner Pub | $100   | refund (reverses #2)  | reward          | $10               |
   And balances:
   | id   | balance | rewards |*
   | ctty |    -750 |       0 |

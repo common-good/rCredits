@@ -47,12 +47,13 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
 
   setRisk('socialConx', $a->mediaConx, 'ifany'); // 1st or 2nd-degree social media connections to administrator
 
-//  if ($a->co and db\exists('users', 'uid<>:id AND address=:address AND postalCode=:postalCode', ray('id address postalCode', $a->id, $a->address, $a->postalCode))) setRisk('homeCo'); // company shares physical address
+//  if ($a->co and db\exists('users', 'uid<>:id AND address=:address AND zip=:zip', ray('id address zip', $a->id, $a->address, $a->zip))) setRisk('homeCo'); // company shares physical address
   if ($a->co and $a->dupAddr()) setRisk('homeCo'); // company shares physical address (encryption requires func)
   setRisk('shady', $a); // no substantial internet search results and/or no SSN history
 //  if ($a->can(B_BANK)) setRisk('hasBank'); // has a connected bank account
   setRisk('hasBank', $a); // has a connected bank account
-  if ($uid != r\cgfId() and db\lookup('SUM(amount*IF(often=1,1,12))', 'r_gifts', 'share>=0 AND uid=:id', $idSub) + 0 < K_MISER_DONATION and $a->share < K_MISER_SHARE) setRisk('miser'); // unusually small donation to CGF
+  if ($uid != r\cgfId() and db\lookup('SUM(amount*IF(often=1,1,12))', 'r_gifts', 'share>=0 AND uid=:id', $idSub) + 0 < K_MISER_DONATION and !$a->roundup and !$a->crumbs) setRisk('miser'); // unusually small donation to CGF
+  //  and $a->share < K_MISER_SHARE
   
   setRisk('photoOff', $a); // photo mismatches ID or DOB
   setRisk('addrOff', $a); // addr mismatches ID

@@ -5,7 +5,7 @@ SO I can enjoy the rCredit system's rapid growth and be a part of that.
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | postalCode | postalAddr | rebate | flags   |*
+  | id   | fullName   | address | city  | state  | zip | postalAddr | rebate | flags   |*
   | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | 1 A, A, AK |      5 | ok,confirmed,bona |
   And balances:
   | id     | balance | rewards |*

@@ -145,16 +145,16 @@ EOF
 EOF
     );
 
-  if ($i == 'issuing-rcredits') return showCharts('issued', $ctty) . t(<<<EOF
+  if ($i == 'issuing-credits') return showCharts('issued', $ctty) . t(<<<EOF
     <p>%RCREDITS are a type of credit. Like any medium of exchange, they represent value. They make it possible for us to trade goods and services with each other in our community, without having to trade something directly with whoever has what we want, and without having to give them something of precisely the same value ("barter"). The medium of exchange lets us give any amount of our goods or services to any participant in the economy, then receive the same value of goods or services from some other participant(s). If everyone both buys and sells, the credits move through the community in interconnected circles of exchange.</p>
     <p>Issuing %RCREDITS is a community responsibility. This is the key to creating a Common Good Economy. We must issue as much credit as we need, to enable our exchanges of goods and services -- but no more than the value we as a community are capable of producing.</p>
     <p>Once %RCREDITS become well-established and popular in a community, we can issue them together, with careful planning, as grants, zero-interest loans, equity investments, and incentives for doing the right thing. Together we can fund whatever enterprises and activities we decide would be best -- for our community, for communities elsewhere, and for the world.</p>
     <p>In the meantime, until then, %RCREDITS are issued automatically:</p>
     <ol>
       <li>as a stand-in for US Dollars, which are held unused in a separate account, and</li>
-      <li>in some %PROJECT communities, as tentative incentive rewards for doing what makes the system stronger (signup bonuses, purchase rewards, inviter/helper rewards, and inflation offset).</li>
+      <li>as an increase in your credit line (or in some %PROJECT communities &mdash; as tentative incentive rewards*) to encourage doing what makes the system stronger.</li>
     </ol>
-    <p>Any incentive rewards you receive are yours to keep once your %PROJECT community says so. Meanwhile you can borrow them interest-free.</p>
+    <p>* Any incentive rewards you receive (signup bonuses, purchase rewards, inviter/helper rewards, and inflation offset) are yours to keep once your %PROJECT community says so. Meanwhile you can borrow them interest-free.</p>
 EOF
   ) . $back;
   

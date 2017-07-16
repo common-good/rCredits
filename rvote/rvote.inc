@@ -232,11 +232,21 @@ function formatQuestionDates($dt1, $dt2, $startplusdays=0) {
   } else return $dt1 . t(' to whenever');
 }
 
-function getQuestions($ctty) {
+/**
+ * Return the questions and their types, for a given event.
+ * @param int $eid: the event ID or empty
+ * @param acct $mya: the relevant account, if $eid is empty
+ * @return [qIds, qTypes] where
+ *   qIds: array of question record IDs
+ *   qTypes: corresponding array of question types
+ */
+function getQuestions($eid, $mya = NULL) {
 	// note that if a ballot is kept open beyond the election end time, the following query will disallow it
 //	if(!$crit) $crit = 'NOW() BETWEEN question_startdate AND question_enddate';
-  $event = v\getCurrentEvent($ctty);
-  extract(u\just('eid', $event));
+  if (!@$eid) {
+    $event = v\getCurrentEvent($mya->community);
+    extract(u\just('eid', $event));
+  }
   $now = time();
 //  $crit = 'ctty IN (:ctty, 0) AND :now>endProposals AND (:now<endVoting OR endVoting=0)';
 	$q = db\q('SELECT id AS question, type FROM r_questions WHERE event=:eid', compact('eid'));
@@ -288,3 +298,12 @@ EOF;
 }
 
 function getCurrentEvent($ctty) {return db\lookup('id AS eid, type, event, details, start, end', 'r_events', 'ctty=:ctty AND end>:now ORDER BY end LIMIT 1', ray('ctty now', $ctty, time()));}
+
+/**
+ * Return fields from an event record.
+ * @param string $fields: fields to return
+ * @param int $eid: event record ID
+ */
+function event($fields, $eid) {return db\lookup($fields, 'r_events', 'id=:eid', compact('eid'));}
+
+function question($question) {return db\lookup('q.id AS question, q.text, q.detail, q.linkDiscussion, q.type, q.budget, q.minVeto, q.optOrder, e.start, e.end', 'r_questions q LEFT JOIN r_events e ON e.id=q.event', 'q.id=:question', compact('question'));}

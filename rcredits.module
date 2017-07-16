@@ -47,6 +47,9 @@ use rCredits\Cron as cr;
 define('R_SYS_ERR', t('The %PROJECT system has detected an unusual problem. If your activity was interrupted, please feel free to try again.') . "<br>\n");
 define('ONE_CRON_OP', 'one cron op'); // flags a call of f('cr. in PHP window, to prevent side-effects
 
+set_exception_handler('rcredits_exception_handler');
+\drupal_register_shutdown_function('rcredits_shutdown');
+
 /**
  * Top level exception handler (not a hook)
  * Log the error and follow up according to channel.
@@ -82,16 +85,8 @@ function rcredits_exception_handler($e) {
     $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
     mail(R_ADMIN_EMAIL, t('%PROJECT FATAL ERROR'), $message);
     $R_FATAL_ERROR = f('u.loga', 'FATAL', compact('message')); // this gets picked up by rcredits_shutdown()
-/**/  die(); // invoke shutdown
 /**/ } else echo $msg;
-}
-
-/**
- * Implements hook_boot().
- */
-function rcredits_boot() {
-  drupal_register_shutdown_function('rcredits_shutdown');
-  set_exception_handler('rcredits_exception_handler');
+/**/ die(); // invoke shutdown
 }
 
 /**
@@ -149,9 +144,9 @@ function x($xid, $mya = '') {f('r.x', $xid, $mya);} // return a transaction obje
 /**/ function step($a) {debug(us($a)->step());}
 function ctty($id) {return a(a($id)->community);}
 //function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
-/**/ function flog($s, $file = FALSE) {
-  $fileName = DRUPAL_ROOT . (isSTAGE ? '/flog.txt' : '/flog.txt');
-/**/ if ($file) return $fileName; else file_put_contents($fileName, print_r($s, 1) . "\n", FILE_APPEND); // log to file
+/**/ function flog($s, $file = FALSE) { // log to file (or return log file name, if $file is TRUE)
+  $fileName = DRUPAL_ROOT . '/rlogs/' . date('Ym') . '.log'; // new log file every month
+/**/ if ($file) return $fileName; else file_put_contents($fileName, print_r($s, 1) . "\n", FILE_APPEND);
 }
 
 function who($s = '', $agent = '') {

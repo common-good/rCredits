@@ -1099,6 +1099,7 @@ function drupal_page_header() {
  */
 function drupal_serve_page_from_cache(stdClass $cache) {
   // Negotiate whether to use compression.
+/**/  die('serving cached page'); // cg 7/15/2017 we never do this
   $page_compression = !empty($cache->data['page_compressed']);
   $return_compressed = $page_compression && isset($_SERVER['HTTP_ACCEPT_ENCODING']) && strpos($_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip') !== FALSE;
 
@@ -1620,7 +1621,8 @@ function drupal_set_message($message = NULL, $type = 'status', $repeat = TRUE) {
       $_SESSION['messages'][$type] = [];
     }
 
-    if ($repeat || !in_array($message, $_SESSION['messages'][$type])) {
+//    if ($repeat || !in_array($message, $_SESSION['messages'][$type])) {
+    if (!in_array($message, $_SESSION['messages'][$type])) { // cg 7/15/2017
       $_SESSION['messages'][$type][] = $message;
     }
 
@@ -2049,7 +2051,7 @@ function drupal_bootstrap() {
   drupal_block_denied(ip_address());
   
   _drupal_bootstrap_variables();
-  require_once DRUPAL_ROOT . '/' . variable_get('session_inc', 'includes/session.inc');
+  require_once DRUPAL_ROOT . '/includes/session.inc';
   drupal_session_initialize();
   _drupal_bootstrap_page_header();
   drupal_language_initialize();

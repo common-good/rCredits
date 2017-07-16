@@ -236,36 +236,6 @@ function gifts($gifts) {return t\gifts($gifts);}
 function weTellAdminWithSubs($topic, $subs) {return t\weTellAdmin($topic, $subs);}
 
 /**
- * usd: (ARG)
- *
- * in: 
- */
-function usd($list) {return t\usd($list);}
-
-/**
- * totals: (ARG)
- *
- * in: 
- */
-function totals($ray) {
-  global $testOnly; if(!$testOnly) return FALSE;
-  $totals = r\totals();
-  foreach ($ray[0] as $key => $value) if ($value != $totals->$key) {
-    t\output("Total mismatch ($key): value $value <> calc " . $totals->$key);
-    return FALSE;
-  }
-  return TRUE;
-}
-
-/**
- * constants: (ARG)
- *
- * in: 
- */
-function constants($list) {return t\constants($list);}
-
-
-/**
  * notices: (ARG)
  *
  * in: BOTH Notices AMemberGetsSomeNotices
@@ -320,24 +290,6 @@ function uSDPaymentByMemberIsNotRecorded($id) {
   $id = t\uid($id);
   return db\q('DELETE FROM r_usd WHERE payer=:id LIMIT 1', compact('id'));
 }
-
-/**
- * we tell admin nothing
- *
- * in: 
- */
-function weTellAdminNothing() {
-  global $testOnly; if (!$testOnly) return FALSE;
-  $info = '%"index":"tell-staff"%';
-  return !db\lookup('info', 'r_log', "info LIKE '$info' ORDER BY logid DESC");
-}
-
-/**
- * we do not tell admin (ARG)
- *
- * in: 
- */
-function weDoNotTellAdmin($topic) {return !t\weTellAdmin($topic);}
 
 /**
  * usd transfer count is (ARG)

@@ -170,11 +170,6 @@ class X {
     u\setDft($flags, 0);
     u\setDft($data, []);
 
-    foreach (ray(TX_FLAGS) as $k) if (isset($$k)) {
-      u\setBit($flags, $k, $$k);
-      unset($info[$k]);
-    }
-
     if ($type != TX_BANK and !isset($payerFor)) {
       u\setDft($for, ray(R_WHYS)[$goods]);
       list ($payerFor, $payeeFor) = is_array($for) ? $for : [$for, $for];
@@ -187,6 +182,15 @@ class X {
     if (!isset($payerReward) and !isset($payeeReward)) extract($this->getRewards($info)); // payerReward and payeeReward
 
     $data = $this->dataSetup($payer, $payee, $amount, $goods, @$payerFor, @$data, $channel);
+    extract(u\just(TX_FLAGS, $data));
+    if (@$undoneBy) $undone = TRUE;
+    
+    foreach (ray(TX_FLAGS) as $k) {
+      if (@$$k) u\setBit($flags, $k);
+      unset($info[$k]);
+      if ($k != 'undoes') unset($data[$k]); // data['undoes'] holds tid, so don't zap
+    }
+
     $data = $data ? serialize($data) : '';
 //    if (isGAME and $payer > 0) $info += ['members' => $a1->members];
 
@@ -321,7 +325,7 @@ class X {
    */
   public function setFields($toChange) {
     $x = $this; $xid = $x->xid; $xray = $x->ray0;
-    $mya = r\acct();
+    global $mya;
     
     extract(u\just('data payer payee amount goods payerFor payeeFor payerReward payeeReward created channel', $xray));
     extract($toChange, EXTR_PREFIX_ALL, 'ch');
@@ -538,7 +542,7 @@ class MyX extends x {
    */
   function nonoUndo(&$subs = []) {
     $x = $this;
-//    $mya = r\acct();
+//    global $mya;
 //    extract(u\just('amount toMe data payer payee payerTid payeeTid taking', $oldRecord));
 //    $data = unserialize($data);
     if (@$x->data['undoneBy']) {

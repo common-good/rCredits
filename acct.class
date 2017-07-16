@@ -62,7 +62,7 @@ class Acct {
     if (@$state and !is_numeric(@$state)) { // allow state abbrevs within US
       $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
-    u\setDft($community, r\communityUid(@$postalCode)); // defaults to current server
+    u\setDft($community, r\communityUid(@$zip)); // defaults to current server
     u\setDft($created, r\rTime());
     u\setDft($login, $created);
     u\setDft($access, $login);
@@ -70,7 +70,7 @@ class Acct {
     $stepsDone = @$uid == 1 ? [] : r\stepsDone0();
     foreach (ray($co ? 'proxies connect' : 'company relations') as $k) unset($stepsDone[$k]);
 
-    if (!@$uid and !@$region) $region = @$postalCode ? -r\region(@$country, @$state, @$postalCode) : -r\uidRegion($community);
+    if (!@$uid and !@$region) $region = @$zip ? -r\region(@$country, @$state, @$zip) : -r\uidRegion($community);
 
     $record = compact('uid', 'name');
     
@@ -476,8 +476,9 @@ class Acct {
 //    $info = compact('reid') + ray('main other permission employee isOwner draw',
 //      $this->id, $other, $permission, (int) $employee, (int) $isOwner, (int) $draw);
     //return db\insert('r_relations', $info);
-    u\EXPECT($info['other'], 'missing other in new relation');
+    u\EXPECT(@$info['other'] or @$info['data'], 'missing other in new relation'); // placeholder for "other" ok if there's data
     foreach (['employee', 'isOwner', 'draw'] as $k) $info[$k] = (int) @$info[$k];
+    $info['created'] = time();
     return r\regionalInsert('r_relations', 'reid', $info + ['main' => $this->id], -$this->region);
   }
 
@@ -989,15 +990,13 @@ EOF;
    * @return the once-use password
    */
   function oneTimePass($name) {
+    global $base_url;
     $a = $this;
   //  $pass = strtolower(u\nonce()); // not a hash, easy to remember and type
     $verifying = !$a->stepDone['verify'];
     $pass = u\randomString($verifying ? 3 : R_CODE_LEN, $verifying ? 'upper' : 'word'); // use
-  /// oops! don't let people reset passwords on test server. if (!isPRODUCTION and !in_array($name, ray('cornerstore bobbossman cathycashier helgas curtcustomer susanshopper'))) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
-  /**/ if (isDEV or (!isPRODUCTION and time() - db\lookup('created', 'users', 'name=:name', compact('name')) < HOUR_SECS)) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
-  /// if (isDEV) \drupal_set_message('Link: ' . "<a href='http://localhost" . DEV_ROOT . "/reset/id=$name&code=$pass'>reset</a>");
+  /**/ if (isDEV or (!isPRODUCTION and time() - $a->created < HOUR_SECS)) \drupal_set_message('Link: ' . "<a href='$base_url/reset/id=$name&code=$pass'>reset</a>");
     $expires = r\rTime() + HOUR_SECS * R_SIGNIN_HOURS;
-  //  r\setCook('loginto', $name, $expires);
     $a->update('oneTimePass', compact('pass', 'expires'));
     return $pass;
   } 
@@ -1274,7 +1273,7 @@ EOF;
   public function dupAddr() {
     $a = $this;
     if (!$address = $a->address) return FALSE;
-    $q = db\q('SELECT uid FROM users WHERE :IS_OK AND uid<>:id AND postalCode=:postalCode', ray('id postalCode', $a->id, $a->postalCode));
+    $q = db\q('SELECT uid FROM users WHERE :IS_OK AND uid<>:id AND zip=:zip', ray('id zip', $a->id, $a->zip));
     while ($row = $q->fetchAssoc()) if (r\acct($row['uid'])->address = $address) return TRUE;
     return FALSE;      
   }
@@ -1282,7 +1281,7 @@ EOF;
   /**
    * Change the account's community.
    * @param int $newCtty: the new community uid
-   * @param bool $retro: <change rewards transactions retroactively>
+   * @param bool $retro: (UNUSED) <change rewards transactions retroactively>
    * @param string $err: (RETURNED) the error message, if any
    * @return <success>
    */   
@@ -1290,10 +1289,10 @@ EOF;
     $a = $this;
     if (!db\exists('users', 'uid<1 AND uid=:newCtty', compact('newCtty'))) return !$err = 'bad ctty';
     
-    $DBTX = \db_transaction();
+//    $DBTX = \db_transaction();
     $a->update('community', $newCtty);
-    if ($retro) db\q('UPDATE r_txs SET payer=:newCtty WHERE payee=:myid AND type IN (:TX_REWARDS)', ray('newCtty myid', $newCtty, $a->id));
-    unset($DBTX);
+//    if ($retro) db\q('UPDATE r_txs SET payer=:newCtty WHERE payee=:myid AND type IN (:TX_REWARDS)', ray('newCtty myid', $newCtty, $a->id));
+//    unset($DBTX);
     return TRUE;
   }
   

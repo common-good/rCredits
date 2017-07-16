@@ -7,7 +7,7 @@ SO I can participate actively.
 
 Setup:
   Given members:
-  | id  | fullName | phone | email | city  | state | postalCode | floor | flags  | pass      |*
+  | id  | fullName | phone | email | city  | state | zip | floor | flags  | pass      |*
   | .ZZA | Abe One |     1 | a@    | Atown | AK    | 01000      |     0 |        | %whatever |
   | .ZZB | Bea Two |     2 | b@    | Btown | UT    | 02000      |  -200 | member | |
   | .ZZC | Our Pub |     3 | c@    | Ctown | CA    | 03000      |     0 | co     | |
@@ -20,10 +20,10 @@ Scenario: A member signs in for the first time
   And invitation to email "d@" from member ".ZZA" is "c0D3"
   And next random code is "WHATEVER"
   When member "?" confirms form "signup/code=c0D3" with values:
-  | fullName  | email | phone | country | postalCode | federalId | dob | acctType    | code | address | city    | state | tenure | owns | postalAddr                |*
+  | fullName  | email | phone | country | zip | federalId | dob | acctType    | code | address | city    | state | tenure | owns | postalAddr                |*
   | Dee Four  | d@ | 413-253-0000 | US | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 | 1 A St. | Amherst | MA    |     25 |    0 | 1 A St., Amherst, MA 01002 |
   Then members:
-  | id   | fullName | email   | country | postalCode | state | city    | flags     | tenure | risks | helper |*
+  | id   | fullName | email   | country | zip | state | city    | flags     | tenure | risks | helper |*
   | .AAA | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents | .ZZA   |
   And we email "verify" to member "d@" with subs:
   | fullName | name    | quid    | site      | code      |*
@@ -62,18 +62,18 @@ Scenario: A member signs in for the first time
   When member ".AAA" completes form "settings/preferences" with values:
   | roundup | crumbs | notices | statements | nosearch | secretBal |*
   |       1 |      2 | monthly | electronic |        0 |         1 |
-  Then we show "Photo ID Picture"
-  And we say "status": "info saved|step completed"
-
-  When member ".AAA" completes form "settings/security/photo" with values:
-  | op       |*
-  | nextStep |
   Then we show "Bank Information"
   And we say "status": "info saved|step completed"
 
   When member ".AAA" completes form "settings/connect" with values:
   | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
   | submit |       1 |     053000196 |         123 |          123 |       0 |     $0 |    $20 |         $0 |  
+  Then we show "Photo ID Picture"
+  And we say "status": "info saved|step completed"
+
+  When member ".AAA" completes form "settings/security/photo" with values:
+  | op       |*
+  | nextStep |
   Then we say "status": "setup complete|individual approval|join thanks"
   And we tell ".AAA" CO "event - member" with subs:
   | fullName | quid | status |*

@@ -569,7 +569,7 @@ function post($url, $content = FALSE, $responseFormat = 'raw', $extra_headers = 
     $response = stream_get_contents($fp);
   } else $response = FALSE;
 
-  if ($response === FALSE) throw new \Exception("$method $url failed: $php_errormsg"); // this happens, for example, when the hidden data server is unavailable. Probably death is the best solution.
+  EXPECT($response !== FALSE, "$method $url failed"); // this happens, for example, when the hidden data server is unavailable. Probably death is the best solution.
   $result = $responseFormat == 'xml' ? simplexml_load_string($response)
     : ($responseFormat == 'json' ? json_decode(utf8_encode($response))
     : ($response) );
@@ -686,34 +686,27 @@ function expect1($arg, $value, $type, $ret) {
  * @return the log record id (for exception handler and shutdown function)
  */  
 function loga($type, $info = [], $adhocChannel = FALSE) {
+  global $mya;
 /**/  if (strlen($type) >= 60) die('in loga: ' . $type); // (KEEP) don't use EXPECT here
+  if ($type == 'FATAL' and strpos($info, 'calling db_query() ')) return '';
+
   global $channel;
-  u\setDft($channel, -1);
-  $useTextLogToo = FALSE; // isDEV;
+  $channels = ray(TX_CHANNELS);
+  $ch = @$channel ? $channels[$channel] : t('hack');
+//  $useTextLogToo = FALSE; // isDEV;
 
-  $mya = r\acct();
-  $myid = @$mya->id;
-  $agent = @$mya->agentId;
-  $time = r\rTime();
-  $date = fmtDate();
-  if ($adhocChannel and $adhocChannel != $channel and !$special) $special = "via ch$adhocChannel";
-  
-  // make it easy to match the message when searching
-//  if (isNonce($special) and @$info['message']) $info['message'] = str_replace(": $special", ': @nonce', $info['message']);
-  // don't make code, password, and secret links any more accessible than they are
+  $qid = @$mya ? $mya->qid . (($mya->cAdmin2 and !$mya->proSe) ? strtolower($mya->agentA->mainQid) : '') : t('nobody');
+  $time = date('d H:i:s');
+
+  $map = ["\r" => '', "\n" => '', '    ' => ' '];
+  if ($msg = @$info['message']) $info['message'] = strtr(strip_tags(str_replace('>', '>|', $msg)), $map);
+  if (@$info['form_id']) {$type .= str_replace('rCredits\\Web\\form', '', $info['form_id']);}
+  if (@$info['toEmail']) $info = u\just('index subject', $info); // don't show whole email
+  foreach (ray('form_id form_build_id form_token orig') as $k) unset($info[$k]);
   foreach (ray(R_NOLOG) as $k) if ($k != 'email' and @$info[$k]) $info[$k] = '(?)';
+//  $record = compact(ray('time channel type myid agent info'));
   $info = json_encode($info, JSON_UNESCAPED_SLASHES);
-  $channels = ray(TX_CHANNELS); 
-  if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
-  $record = compact(ray('time channel type myid agent info'));
-
-  if ($type == 'FATAL' and strpos($info, 'calling db_query() ')) {
-    return '';
-  } else {
-    $return = \Database::RETURN_INSERT_ID; // do NOT use db\insert here (avoid loop in error handling)
-    return \db_query('INSERT INTO r_log (time, channel, type, myid, agent, info) VALUES (:time, :channel, :type, :myid, :agent, :info)', u\prefixKeys(':', $record), compact('return'));
-  }
-//  return db\insert('r_log', $record);
+/**/ flog("$qid/$time/$ch/$type/$info");
 }  
 
 /**
@@ -1024,16 +1017,16 @@ function parseName($name) {
 /**
  * Parse the mailing address into its constituent parts.
  * @param string $address: the address to parse
- * @return [address, city, state, zip] (one or more will be empty or ER, if error)
+ * @return [address, city, state, zip, $country] (one or more will be empty or ER, if error)
  */
 function parseAddr($address) {
   $parts = explode(',', $address);
   if (!$p = count($parts)) return ['', '', '', ''];
-  list ($state, $zip) = explode(' ', strtoupper(@trim(array_pop($parts))) . ' ');
-  if (!preg_match('/^[A-Z][A-Z]$/', $state)) $state = 'ER';
+  list ($state, $zip, $country) = explode(' ', strtoupper(@trim(array_pop($parts))) . '  ');
+  if (!$country and !preg_match('/^[A-Z][A-Z]$/', $state)) $state = 'ER';
   $city = trim(array_pop($parts));
   $address = join(', ', $parts);
-  return [$address, $city, $state, $zip];
+  return [$address, $city, $state, $zip, $country];
 }
 
 /**

@@ -333,6 +333,7 @@ function notify($uid, $index, $subs = [], $force = FALSE) {
   $a = r\acct($uid);
   u\EXPECT($a, 'no account');
   $subs['uid'] = $uid;
+  $subs['qid'] = $a->qid;
   $subs['otherName'] = @$subs['myName']; // notifying someone else about US, if anyone
   $fullName = $a->fullName;
   $warnIndexes = ray('new invoice,new offer,charge disputed');
@@ -419,7 +420,7 @@ function membershipEvent($a, $status, $do = TRUE) {
   } elseif ($status == 'bona') {
     be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
 
-    if (!$a->helperA->superAdmin) { // no helper bonus for superAdmin (cAdmin is okay) [don't require $a->confirmed]
+    if (!$a->helperA->co and !$a->helperA->superAdmin) { // no helper bonus for companies or superAdmin (cAdmin is okay) [don't require $a->confirmed]
       be\fund($hId = $a->helper, TX_HELPER, R_HELPER_BONUS, t('invite reward', compact('fullName')));
       $helped = db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) + 0;
       if ($helped == ORGANIZER_GRANT_MIN) {
@@ -545,7 +546,7 @@ function location($a, $complete = FALSE) {
   $result = [];
   if ($complete) $result[] = (string) $a->address; // (string) in case address is NULL
   $result[] = $a->city;
-  $result[] = $a->st . (($complete and $a->postalCode) ? ' ' . $a->postalCode : '');
+  $result[] = $a->st . (($complete and $a->zip) ? ' ' . $a->zip : '');
   if ($a->country != R_COUNTRY_ID) $result[] = strtoupper($country);
   foreach ($result as $key => $value) if ($value === '') unset($result[$key]);
   return join(', ', $result);
@@ -630,7 +631,7 @@ function uidRegion($uid) {
  */
 function region($country = '', $state = '', $zip = '', &$raw = '') {
   if (!$state) $state =  R_STATE_ID;
-  $where = ":zip RLIKE postalCode OR (postalCode='' AND country_id=:country AND s.id=:state) ORDER BY (postalCode='')";
+  $where = ":zip RLIKE zip OR (zip='' AND country_id=:country AND s.id=:state) ORDER BY (zip='')";
   $table = 'r_regions r LEFT JOIN r_states s ON s.abbreviation=r.st';
   if (!$region = db\lookup('region', $table, $where, compact('state', 'zip', 'country'))) {
     $region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
@@ -656,13 +657,13 @@ function isEmployee($uid, $company = '') {
 
 /**
  * Return the community record ID for the given postal code.
- * @param string $postalCode: postal code to identify community (if none, assume something in server community)
- * @param bool $defaultZero: return 0 if postalCode does not match any community? (else return server uid)
+ * @param string $zip: postal code to identify community (if none, assume something in server community)
+ * @param bool $defaultZero: return 0 if zip does not match any community? (else return server uid)
  */
-function communityUid($postalCode = '', $defaultZero = FALSE) {
-  if (!$postalCode) return serverUid();
-  $where = "country=:R_COUNTRY_ID AND :postalCode RLIKE postalCode AND uid<1";
-  return db\lookup('uid', 'users', $where, compact('postalCode')) ?: ($defaultZero ? 0 : serverUid());
+function communityUid($zip = '', $defaultZero = FALSE) {
+  if (!$zip) return serverUid();
+  $where = "country=:R_COUNTRY_ID AND :zip RLIKE zip AND uid<1";
+  return db\lookup('uid', 'users', $where, compact('zip')) ?: ($defaultZero ? 0 : serverUid());
 }
 
 /**
@@ -775,7 +776,7 @@ function changeAcctLink($uid, $v, $class = '') {
  */
 function makeDevice($uid, $code = '', $ch = NULL) {
   global $channel;
-  $mya = r\acct();
+  global $mya;
   
   u\setDft($ch, $channel);
 
@@ -809,7 +810,7 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
       return r\Web\say('Account "%name" has records in table %table, so it cannot be deleted.', ray('name table', $a->fullName, $table), 'ERR');
     }
   } elseif (!$newUid) {
-    $region = @$a->postalCode ? r\region(@$a->country, @$a->state, $a->postalCode) : r\communityUid();
+    $region = @$a->zip ? r\region(@$a->country, @$a->state, $a->zip) : r\communityUid();
     $newUid = r\Acct::nextId($region);
   }
   $subs = array( // all cg tables are listed, to be sure we don't leave any out
@@ -943,7 +944,12 @@ function go($page, $msg = '', $field = '') {
   global $base_url;
   global $lastGo; $lastGo = $page; // for testing
 
-  if ($msg) r\Web\say($msg, $field);
+  if ($msg) {
+/*    if (u\starts($page, 'empty')) {
+      list ($page, $msg) = strpos($page, '/') ? ["$page&msg=$msg", ''] : ["$page/msg=$msg", '']; 
+    } else */
+    r\Web\say($msg, $field);
+  }
 //  else $page .= "/field=$field&msg=" . urlencode($msg); // say() fails if signed out
 
   if (u\test()) {
@@ -1015,7 +1021,8 @@ function companies($ctty, $export = FALSE) {
   $q = db\q('SELECT uid FROM users WHERE :IS_CO AND :IS_OK AND uid>1 AND community=:ctty ORDER BY fullName', compact('ctty'));
   while ($row = $q->fetchAssoc()) {
     $a = r\acct($row['uid']);
-    if (!$a->coCan(CO_PRIVATE)) $res .= strtr($model, ['NAME' => $a->fullName, 'DESC' => $a->shortDesc]) . "\n";
+    $new = $a->activated > REQUEST_TIME - 4 * WEEK_SECS ? ' <small style="color:red; font-weight:bold;"> NEW!</small>' : '';
+    if (!$a->coCan(CO_PRIVATE)) $res .= strtr($model, ['NAME' => "$a->fullName$new", 'DESC' => $a->shortDesc]) . "\n";
   }
   return $res;
 }

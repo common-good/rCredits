@@ -5,7 +5,7 @@ SO the new member can participate
 
 Setup:
   Given members:
-  | id   | fullName | address | city | state | postalCode | email | flags            | minimum | federalId |*
+  | id   | fullName | address | city | state | zip | email | flags            | minimum | federalId |*
   | .ZZA | Abe One  | 1 A St. | Aton | MA    | 01000      | a@    | ok,bona,admin    |     100 | 111111111 |
   | .ZZB | Bea Two  | 2 B St. | Bton | MA    | 02000      | b@    | ok,bona          |     200 | 222222222 |
   | .ZZD | Dee Four | 4 D St. | Dton | MA    | 04000      | d@    | member,confirmed |     400 | 444444444 |

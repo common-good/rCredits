@@ -30,7 +30,7 @@ function myTransactions($starting, $ending, $uid, $jid = 0) {
   $subs = compact(ray('starting ending uid jid'));
   
   if ($uid == 'ctty') { // all transactions in the community or region (not currently used)
-    $mya = r\acct();
+    global $mya;
     $uid = $mya->community;
     $where = 't.created>=:starting AND t.created<=:ending'
     . ' AND t.type>=0' // omit invisible transactions
@@ -180,7 +180,7 @@ function updateRelations($updates) {
  * @return array [message, subs] where subs is an assoc of [
  */
 function undoTx($xid, $where = '1', $subs = [], $force = FALSE) {
-  $mya = r\acct();
+  global $mya;
   if (!$myx = r\MyX::lastTx($mya, "xid=:xid AND $where", compact('xid') + $subs)) return ['undo no match', $subs];
 ///  debug(compact('xid','where','subs','tx'));
   if (!$force and $error = $myx->nonoUndo($subs)) return array($error, $subs); // check nono before confirm AND here
@@ -195,7 +195,8 @@ function undoTx($xid, $where = '1', $subs = [], $force = FALSE) {
   } else {
     $type = $myx->toMe ? 'charge' : 'payment';
     $amounts = u\just('amount payerReward payeeReward', $myx->ray);
-    return reverse($xid, $amounts, $myx->a2, $data, $myx->goods, $myx->tid, $type, $myx->tid2, $force); // create an offsetting transaction
+    $what = [$myx->payerFor, $myx->payeeFor];
+    return reverse($xid, $amounts, $what, $myx->a2, $data, $myx->goods, $myx->tid, $type, $myx->tid2, $force); // create an offsetting transaction
   }
 
   $amount = u\fmtAmt($myx->amount);
@@ -209,18 +210,19 @@ function undoTx($xid, $where = '1', $subs = [], $force = FALSE) {
 /**
  * Create an offsetting transaction (nearly the same as the original but with a negative amount).
  */
-function reverse($xid, $amounts, $acct, $data, $old_goods, $tid, $type, $otherTid, $force) {
-  $mya = r\acct();
+function reverse($xid, $amounts, $what, $acct, $data, $old_goods, $tid, $type, $otherTid, $force) {
+  global $mya;
 ///    print_r(compact(ray('xid amount acct data tid toMe'))); die();
-  u\EXPECT(compact(ray('xid amounts acct data tid type otherTid')), 'id assoc acct assoc|empty string string int'); // otherTid may be 0 (for reversing rewards)
+  u\EXPECT(compact(ray('xid amounts what acct data tid type otherTid')), 'id assoc array acct assoc|empty string string int'); // otherTid may be 0 (for reversing rewards)
   
   if (!is_array($data)) $data = [];
   $old_data = $data; // remember original data from transaction we're reversing
 //  extract(u\just('rebate bonus xfee', $data));
   extract(u\just('xfee', $data));
-  $myFor = t('reverses #') . $tid;
-  $otherFor = str_replace($tid, $otherTid, $myFor);
-  $what = u\order($type == 'payment', $myFor, $otherFor);
+  $tids = u\order($type == 'payment', $tid, $otherTid);
+  for ($i = 0; $i < 2; $i++) $what[$i] .= t(' (reverses #%tid)', 'tid', $tids[$i]);
+//  $otherFor = str_replace($tid, $otherTid, $myFor);
+//  $what = u\order($type == 'payment', $myFor, $otherFor);
 //  foreach (ray('rebate bonus xfee') as $k) if (@$$k) $data[$k] = -$$k;
   if (@$xfee) $data['xfee'] = -$xfee;
   $data['undoes'] = $xid; // remember what we're reversing (especially to get the realness right)
@@ -234,13 +236,13 @@ function reverse($xid, $amounts, $acct, $data, $old_goods, $tid, $type, $otherTi
     $old_data['undoneBy'] = $new_xid;
     $old_data['changes'][] = array(r\rTime(), $mya->agentId, 'undo', $new_xid);
     $old_data = serialize($old_data);
-    $myFor = "(reversed by #$new_tid) ";
+    $myFor = " (reversed by #$new_tid)";
     $otherFor = str_replace($new_tid, $new_otherTid, $myFor);
     list ($payerFor, $payeeFor) = u\order($type == 'payment', $myFor, $otherFor);
     $sql = <<<EOF
       UPDATE r_txs SET 
-        payerFor=CONCAT(:payerFor, payerFor), 
-        payeeFor=CONCAT(:payeeFor, payeeFor),
+        payerFor=CONCAT(payerFor, :payerFor), 
+        payeeFor=CONCAT(payeeFor, :payeeFor),
         data=:old_data
       WHERE xid=:xid
 EOF;
@@ -309,7 +311,6 @@ function payInvoice($nvid, &$msg = '') {
   */
 function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oked = TRUE, $data = []) {
   global $scanned, $channel;
-
   u\EXPECT(in_array($ttype, ray('payment,charge,invoice payment')), 'bad transaction type');
   u\setDft($for, ray(R_WHYS)[$goods]);
   u\setDft($created, r\rTime());
@@ -326,6 +327,10 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   $taking = ($ttype == 'charge');
   $erInfo = compact(ray('ttype amount goods for force')) + ray('a1 a2 op', $a1->fullName, $a2->fullName, $taking ? t('charged') : t('paid'));
   $amount = round($amount, 2); // ignore fractions of cents
+  if (!@$amount) {
+/**/  r\tellAdmin('zero transaction', $erInfo + ['stack' => print_r(debug_backtrace(), 1)]);
+    return r\txRet('zero transaction', $erInfo);
+  }
   $reallyTaking = ($taking xor $amount < 0); // not taking if charging a negative amount
 
   list ($loserA, $gainerA) = u\order($reallyTaking, $a2, $a1);
@@ -457,7 +462,7 @@ function invoice($a1, $a2, $amount, $goods = FOR_USD, $purpose = NULL, $oked = T
  */
 function fund($uid, $type, $amount, $for, $oked = TRUE) {
   $payeeAgent = $payee = $uid;
-  $mya = r\acct(); // (null, if just registering or running as cron)
+  global $mya; // (null, if just registering or running as cron)
   $isReward = r\isReward($type);
   u\EXPECT($isReward or @$mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
   if ($type == TX_FINE) $amount = -$amount;
@@ -483,7 +488,7 @@ function fund($uid, $type, $amount, $for, $oked = TRUE) {
  * @return FALSE if success; else array($error_message, $subs)
  */
 function addCell($number, $validate = FALSE) {
-  $mya = r\acct();
+  global $mya;
   $myid = $mya->id;
 
   $numberInternal = u\fmtPhone($number, '+n');
@@ -537,13 +542,13 @@ function identify($who, $myid, $self_message = 'no self-trading') {
   if (!$short = u\shortName(" $who ", '%')) $short = '-'; // abbreviations must not be null or zeroes
   $cmail = strpos($who, '@') ? u\cryptN($who) : '-';
 
-  $cttyCrit = (TRUE or $mya->admin) ? '' : "AND community=$mya->community"; // no restrictions on lookup, for now
+  $cttyCrit = $mya->admin ? '1' : ":IS_OK AND community=$mya->community"; // restrict to own community and approved (as of 7/6/2017)
   
   $sql = <<<EOF
     SELECT DISTINCT uid,fullName
     FROM users 
     WHERE (fullName LIKE :short OR (!:IS_NOSEARCH AND (:cphone=phone OR :cmail=mail)))
-    AND :IS_OK $cttyCrit
+    AND $cttyCrit
     ORDER BY fullName
 EOF;
 
@@ -653,9 +658,9 @@ function accountChoices() {
   $result[$aid = $mya->agentId] = $mya->agentA->fullName;
   $nameOrder = "IF(MID(fullName, 2, 2)='. ', MID(fullName, 4), IF(MID(fullName, 2, 1)=' ', MID(fullName, 3), IF(MID(fullName, 1, 4)='the ', MID(fullName, 5), fullName)))"; // ignore "the ", "a ", and initialled first name (eg "X." or "X")
   $sqlNormal = 'SELECT r.main AS id, u.fullname FROM r_relations r LEFT JOIN users u ON u.uid=r.main WHERE r.other=:aid AND r.permission>0'; // normal selection SQL
-  
+
   if ($mya->admin or $mya->isRegulator) {
-    $q = @db\q("SELECT uid AS id, fullName FROM users WHERE ABS(uid)>1 ORDER BY (uid<0) DESC, $nameOrder");
+    $q = @db\q("SELECT uid AS id, fullName FROM users ORDER BY (uid<0) DESC, $nameOrder");
   } elseif ($mya->cAdmin) {
     $sql = <<<EOF
 SELECT DISTINCT id, fullName FROM

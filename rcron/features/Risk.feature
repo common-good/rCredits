@@ -5,7 +5,7 @@ SO I can handle those risks appropriately
 
 Setup:
   Given members:
-  | id   | fullName   | rebate | address | postalCode | flags   | risks    | tenure | moves | share |*
+  | id   | fullName   | rebate | address | zip | flags   | risks    | tenure | moves | share |*
   | .ZZA | Abe One    |      5 | 1 A St. |      01001 | ok,bona | adminOk  | 21     | 0     |    10 |
   | .ZZB | Bea Two    |     10 | 2 A St. |      01001 | ok,bona | rents    | 43     | 1     |    20 |
   | .ZZC | Corner Pub |     10 | 3 C St. |      01003 | ok,co   | cashCo   | 18     |       |     1 |

@@ -14,8 +14,11 @@ global $CGdomain;
 require __DIR__ . '/defs.inc';
 
 set_error_handler('_drupal_error_handler');
-set_exception_handler('_drupal_exception_handler');
 timer_start('page');
+if (!isPRODUCTION) {
+  error_reporting(E_ALL);
+  ini_set('display_errors', 'On');
+}
 
 global $R_POST; $R_POST = $_POST;
 $uri = 'I' . $_SERVER['REQUEST_URI']; // handle scanned rCard URIs
@@ -69,7 +72,7 @@ define('SESSION_LIFE', @$_COOKIE['pw2'] ? 12 * HOUR_SECS : 24 * MIN_SECS); // st
 ini_set('session.gc_maxlifetime', SESSION_LIFE); // session timeout (and garbage collection happens)
 ini_set('session.cookie_lifetime', 0); // SESSION_LIFE); // (drupal doesn't refresh the cookie)
 
-if (isDEV) {
+if (isDEV or !isPRODUCTION) {
   error_reporting(E_ALL);
   ini_set('display_errors', TRUE);
   ini_set('display_startup_errors', TRUE);

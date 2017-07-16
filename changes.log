@@ -1,3 +1,38 @@
+2017-07-14 version 2.81
+. fixed invoice link bug that crashed if wrong person was current
+. event reporting (without comments)
+. "Customers" query for partners
+. renamed postalCode field "zip" (in users, r_regions, and code) for conciseness (but it still applies to other countries' postal codes):
+    ALTER TABLE `users` CHANGE `postalCode` `zip` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL DEFAULT NULL;
+    ALTER TABLE `r_regions` CHANGE `postalCode` `zip` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;
+. reworked address input to be clearer
+. fixed bug that discarded radio buttons on error
+. put photo step last
+. fixed bug that failed to set tx flags
+. added comments to vote reports
+. added temporary backup of photos on upload (in case we need to recrop)
+. fixed bug in redirect to formEmpty when signed out, that discarded any messages
+. repaired recent tx flags:
+  use rCredits\Util as u;
+  eachX(function($x) {
+    foreach (ray('type flags') as $k) $$k = $x->$k;
+    if ($type != TX_TRANSFER) return;
+
+    if ($data = $x->data) {
+      extract($data);
+      foreach (ray(TX_FLAGS) as $k) if (@$$k) {
+        u\setBit($flags, u\consta('b', $k));
+        unset($data[$k]);
+      }
+    }
+    if (@$undoneBy) u\setBit($flags, B_UNDONE);
+    if (@$force == 1) u\setBit($flags, B_OFFLINE);
+    if (@$force != -1) unset($data['force']);
+
+///    if ($flags > 1024 and $x->flags < 1024) {print_r($x); print_r(compact(ray('flags data'))); die();}
+    $x->update(compact(ray('flags data')));
+  });
+
 2017-06-27 version 2.74
 . implemented signups with partial data directly from (and reporting to) partner site
 . fixed bug that allowed companies to vote by direct link
@@ -305,10 +340,10 @@ function special2() {
   }
 . see who is in the "wrong" community and fix them by hand:
   eachA(function($a) {
-    $shouldbe = f('r.communityUid', $a->postalCode);
+    $shouldbe = f('r.communityUid', $a->zip);
     if ($shouldbe == $a->community) return;
     if ($a->ok) {
-      debug ("$a->fullName: ctty=$a->community should be $shouldbe (zip $a->postalCode)");
+      debug ("$a->fullName: ctty=$a->community should be $shouldbe (zip $a->zip)");
     } else $a->update('community', $shouldbe);
   });
   

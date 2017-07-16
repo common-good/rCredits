@@ -23,7 +23,7 @@ use rCredits\Web as w;
  * To prepare for export for developers, f('t.clear');
  */
 function setupBasicAccounts() {
-  $keys = ray('uid community name fullName email postalCode country minimum rebate flags');
+  $keys = ray('uid community name fullName email zip country minimum rebate flags');
   $flags = u\bit(B_CO) | u\bit(B_OK);
   
   $q = db\q('SELECT :R_REGION_FIELDS FROM r_regions');
@@ -32,14 +32,14 @@ function setupBasicAccounts() {
     if (!$hasServer) continue;
 //    if (isDEV and !in_array($region, [R_SERVER_ID])) continue; // don't slow the tests down
     if ($uid = db\lookup('uid', 'users', "name=CONCAT(:region, '.')", compact('region'))) {
-      r\acct($uid)->update(compact(ray('postalCode federalId flags')));
+      r\acct($uid)->update(compact(ray('zip federalId flags')));
     } else {
       $fullName = $fullName ?: db\lookup('name', 'r_states', 'abbreviation=:st', compact('st'));
       $email = u\shortName($fullName) . '@' . CG_DOMAIN;
       $fullName = PROJECT . ' ' . $fullName;
       $uid = r\serverUid($region);
       $state = db\lookup('id', 'r_states', 'abbreviation=:st', compact('st'));
-      $values = array($uid, $uid, $region . '.', $fullName, $email, $postalCode, R_COUNTRY_ID, 0, 0, $flags);
+      $values = array($uid, $uid, $region . '.', $fullName, $email, $zip, R_COUNTRY_ID, 0, 0, $flags);
       $info = array_combine($keys, $values);
       $info += compact(ray('postalAddr state federalId'));
       new r\Acct($info);
@@ -68,15 +68,16 @@ function setupBasicAccounts() {
     $info += compact(ray('email phone address city state helper'));
     $cgf = new r\Acct($info);
     \variable_set('cgf_uid', $cgf->id);
+    $cgf->update('emailCode website', '1495kJHm0h145PHh2345h', 'cg4.us');
 //    $cgf->newRelation($wws->id, r\perm(B_MANAGE));
   }
 }
 
 /**
  * Re-setup the test cards on the STAGING server, after importing data from the PRODUCTION server.
-  f('a.makeTestCards');
+  f('a.makeTestAccounts');
  */
-function makeTestCards() {
+function makeTestAccounts() {
   if (isPRODUCTION) return;
 
   $a = a('aab');
@@ -85,8 +86,9 @@ function makeTestCards() {
 //  $a->setBitx(CO_REQUIRE_CASHIER, FALSE, 'coFlags');
 
   $a = a('aaa');
-  $a->update('name fullName cardCode2 pin', 'bobbossman', 'Bob Bossman', 'WeHlioM5JZv1O9G', '1234');
+  $a->update('name fullName cardCode2 pin', 'mariamanager', 'Maria Manager', 'WeHlioM5JZv1O9G', '1234');
   a\photoFromFile($a);
+  $a->setBit(B_CADMIN, FALSE); // easier to test the average user's experience if we can sign in as one
   
   $a = a('aad');
   $a->update('name fullName cardCode2 pin', 'cathycashier', 'Cathy Cashier', 'ME04nW44DHzxVDg', '1234');
@@ -211,7 +213,7 @@ function formatField($k, $v) {
 function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields = []) {
   $limit = 500; // max records to show
   
-  $mya = r\acct();
+  global $mya;
   if (!$mya->admin and $joinFields) {
     if ($table != 'users') {
       if (!is_array($joinFields)) $joinFields = array($joinFields);
@@ -367,7 +369,7 @@ function pioneerBonus($a) {
 }
 
 
-// MEMBER LIST: SELECT fullName, city FROM users WHERE (postalCode LIKE '010%' OR postalCode LIKE '013%') AND NOT (flags&(1<<6)) AND NOT (flags&(1<<9)) ORDER BY city, fullName
+// MEMBER LIST: SELECT fullName, city FROM users WHERE (zip LIKE '010%' OR zip LIKE '013%') AND NOT (flags&(1<<6)) AND NOT (flags&(1<<9)) ORDER BY city, fullName
 
 /**
  * Read and parse an updated list of financial institution routing numbers into the r_banks table.
@@ -400,7 +402,7 @@ function getBanks() {
 
 /**
  * Create a smaller photo to send to POS devices
- * CALLED ONLY FROM a\makeTestCards()!
+ * CALLED ONLY FROM a\makeTestAccounts()!
  * @param acct $a: the account whose photo is to be shrunk
  * @param string $filename: the photo filename (defaults to account's shortname)
  * @param string $err: (RETURNED) the error message, if any
@@ -408,7 +410,7 @@ function getBanks() {
   include_once __DIR__ . '/../rcredits/admin/admin.inc';
   debug (f('a.photoFromFile', a('aaa'), $err));
   debug ($err);
-  currently called only from a.makeTestCards()
+  currently called only from a.makeTestAccounts()
  */
 function photoFromFile($a, $filename = '', &$err = '') {
   if ($a->co) return !$err = 'tried to shrink a company photo';

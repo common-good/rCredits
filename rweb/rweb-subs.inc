@@ -273,7 +273,7 @@ EOF;
       WHERE uid IN ($friends)
       UNION
       SELECT uid, :PHP_INT_MAX/4 AS w FROM users 
-      WHERE (state=:state AND city=:city) OR postalCode=:zip
+      WHERE (state=:state AND city=:city) OR zip=:zip
       UNION
       SELECT IF(uid1 IN ($friends), uid2, uid1) AS uid, weight AS w FROM r_near
       WHERE uid1 IN ($friends) OR uid2 IN ($friends)
@@ -285,7 +285,7 @@ EOF;
     ORDER BY state<>:state, state, city, fullName
 EOF;
 //    ORDER BY GREATEST(SUM(w), :PHP_INT_MAX/4) DESC, state<>:state, state, city, SUM(w) DESC, fullName
-  $q = db\q($sql, ray('uid state city zip ctty', $uid, $a->state, $a->city, $a->postalCode, $a->community));
+  $q = db\q($sql, ray('uid state city zip ctty', $uid, $a->state, $a->city, $a->zip, $a->community));
   $res = $cityX = '';
   while ($row = $q->fetchAssoc()) { // show choices in reverse order, so inviter(s) are at top
     extract($row);
@@ -405,8 +405,8 @@ function labeled($form, $onSubmit = '', $labeled = TRUE, $level = 0) {
   foreach ($form as $k => $v) if (substr($k, 0, 1) != '#') {
     $type = @$v['#type'];
     if ($type == 'hidden') t\POST([$k => $v['#value']]); // fake post for tests
-    if ($type == 'fieldset') $form[$k] = labeled($form[$k], $labeled, $level + 1);
-    $form[$k]['#tabled'] = TRUE; // remember that form is laid out in a table (labels in left column)
+    if ($type == 'fieldset') $form[$k] = labeled($form[$k], '', $labeled, $level + 1);
+    if ($labeled) $form[$k]['#tabled'] = TRUE; // remember that form is laid out in a table (labels in left column)
   }
   return $form;
 }
@@ -477,17 +477,28 @@ EOF;
  * Say whether the member has permission to run the named query (all queries are for members only).
  * @param string $qName: name of the query -- if first character is a digit, restrict to admins/companies
  *   0=super 1=admin 2=cAdmin2 B_CO(6)=company
- * @param string $sql: the query
+ * @param string $sql: the query, optionally followed by subtext, after a tilda (~)
  *                     (RETURNED) the query modified to apply to the current community, if appropriate
+ * @param string $subtext: (RETURNED) the explanatory text, if any
  * @return FALSE if not permitted, else the query name without any leading digit
  */
-function queryPermitted($qName, &$sql = '') {
-  if (!$mya = r\acct()) return FALSE; // queries are for signed-in members only
-  if (!preg_match('/^([0-9])(.*)/', $qName, $m)) return $qName; // no restrictions
-  if ($mya->community) $sql = str_replace('WHERE 1 ', "WHERE u.community=$mya->community ", $sql); // handle community-specific query (if is for superAdmin)
+function queryPermitted($qName, &$sql = '', &$subtext = '') {
+  global $mya; if (!$mya) return FALSE; // queries are for signed-in members only
 
-  list ($zot, $digit, $qName) = $m;
-  return $digit >= ($mya->superAdmin ? 0 : ($mya->admin ? 1 : ($mya->cAdmin2 ? 2 : ($mya->co ? B_CO : 9)))) ? $qName : FALSE;
+  $cttyName = $mya->community ? $mya->cttyA->fullName : t('All Communities');
+  list ($sql, $text2) = explode('~', "$sql~");
+  $map[':myid'] = $mya->id;
+  $map[':ctty'] = $mya->community ?: 'community'; // alternative is for superAdmin
+  $sql = strtr($sql0 = $sql, $map);
+  $subtext = strpos($sql0, ':ctty') ? "<b>$cttyName</b><br>$text2" : $text2;
+  
+  if (!preg_match('/^([0-9])(.*)/', $qName, $m)) {
+    return $qName; // no restrictions
+  } else {
+    list ($zot, $d, $qName) = $m;
+    if (strpos($sql0, ':myid')) $subtext = "<b>for $mya->fullName</b><br>$text2";
+    return $d >= ($mya->superAdmin ? 0 : ($mya->admin ? 1 : ($mya->cAdmin2 ? 2 : ($mya->co ? B_CO : 9)))) ? $qName : FALSE;
+  }
 }
   
 /**
@@ -576,6 +587,9 @@ function buttonFld($value, $href = '', $title = NULL, $style = 'success', $size 
 }
 function button($value, $href = '', $title = NULL, $style = 'success', $size = 'xs') {
   return rend([buttonFld($value, $href, $title, $style, $size)]);
+}
+function btnShowDiv($divId, $title, $style='success', $size = 'xs') {
+  return "<a href=\"#$divId\" class=\"btn btn-$size btn-$style\" data-toggle=\"collapse\">$title</a>";
 }
 
 function NEWitem($value, $title = '', $desc = '', $other = []) {return fld('item', $title, $desc, compact('value') + $other);}
@@ -733,16 +747,15 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   setAcct(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
   if (!@$formSta['confirm'] and !in_array($function, ray(R_NOLOG_FORMS))) {
     if ($logs = t\POST()) {
-      foreach (u\just(R_NOLOG, $logs) as $k => $zot) $logs[$k] = '?';
       u\loga('in', $logs);
     } else {
       $formName = str_replace(base_path(), '', $_SERVER['REQUEST_URI']);
-      u\loga('form', [$formName]);
+      if (strpos($formName, 'sadmin/') === FALSE and strpos($formName, '/icon') === FALSE) u\loga('form', [$formName]);
     }
   }
 
   try {
-    $mya = r\acct();
+    global $mya;
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
     $specialForm = in_array($function, ray('Help Empty footer accounts Login'));
@@ -758,7 +771,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
       } else $formName = 'rCredits\\Web\\formSystemDown';
     }
     
-    if (strpos($formName, 'Events') !== FALSE) require_once DRUPAL_ROOT . R_PATH . '/rvote/rvote-web.inc';
+    if (strpos($formName, 'Event') !== FALSE) require_once DRUPAL_ROOT . R_PATH . '/rvote/rvote-web.inc';
     $form = \drupal_build_form($formName, $formSta);
     \rweb_form_alter($form, $formSta, $formName);
     
@@ -811,7 +824,7 @@ function photoRet($msg, $status = 'error') {
  * @param bool $reset: <changing, rather than choosing>
  */
 function pickPassword($reset = TRUE) {
-  $mya = r\acct();
+  global $mya;
   $pass1 = passFld(REQ . ($reset ? t('New password:') : t('Choose a Password:')), '', clas('password-field') + autofill('off'));
   $pass2 = passFld(REQ . ($reset ? t('Confirm new password:') : t('Confirm password:')), '', clas('password-confirm') + autofill('off'));
   $strong = hidFld(0, attrib(['id' => 'edit-strong']));
@@ -1154,7 +1167,7 @@ function goButton($label, $goto, $title) {
  * Remaining params are as for goButton().
  */
 function goButtonIf($perms, $label, $goto, $title) {
-  $mya = r\acct();
+  global $mya;
   if (!is_array($perms)) $perms = array($perms);
   foreach ($perms as $perm) if (!$mya->can($perm)) return [];
   return goButton($label, $goto, $title);
@@ -1258,8 +1271,8 @@ function emailDup($email0, $uid) {
 function tellStaffNewMember($params) {
   extract($params);
   $phone = u\fmtPhone(@$phone);
+  $state = @$state ? r\realState($state, $country) : 'state lookup failed';
   $country = r\realCountry($country);
-  $state = @$state ? r\realState($state) : 'state lookup failed';
   $acctType = $GLOBALS['account types'][$acctType];
   $helper = @$helper ? r\acct($helper)->fullName : 'unknown';
   $copts = u\jsonEncode(@$copts);
@@ -1310,66 +1323,90 @@ function nameAndEmail($what, $fullName = '', $email = '', $hideEmail = FALSE) {
  */
 function contactFields($defaults = [], $a = '') {
 //  $country = $state = ''; // make sure these are not NULL
-  $fieldsHidable = 'phone country state postalCode address city postalAddr hidCountry hidState'; // suppressable fields
-  $fields = $fieldsHidable . ' faxetc tenure owns';
-  extract($defaults ?: ($a ? (array) $a->account($fields) : []));
+  $partnerExtras = ' partner customer source partnerCode'; // add-on fields passed through only for partner signup (start with space) (even partnerCode is necessary, in case form is redrawn on error)
+  $fields = 'phone country physical address city state zip tenure owns sameAddr2 address2 city2 state2 zip2 postalAddr hidCountry hidState hidState2';
+  $fieldsHidable = str_replace(' tenure owns', '', $fields);
+  extract($defaults + ($a ? (array) $a->account($fields) : []));
 
+  if (!$defaults and @$postalAddr) list ($address2, $city2, $state2, $zip2) = u\parseAddr(@$postalAddr);
+  if (!@$country) $country = US_COUNTRY_ID;
+
+  foreach (['state', 'state2'] as $k) {
+    if (${$k . '0'} = @$$k) $$k = db\lookup('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
+  }
+
+  if (@$partner) r\tellAdmin(t('partner %partner sent new member'), ['address1' => @$address] + compact(ray($fields . $partnerExtras)) + $_POST); // temporary (tellAdmin strips off address along with other secure fields)
+  
   if (@$partner and @$partnerCode and @$customer
-    and @$postalCode and @$address and @$city and $state0 = @$state
+    and @$zip and @$address and @$city and @$state
     and ($partnerA = r\acct($partner) and $partnerA->emailCode == $partnerCode)
-    and $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'))
     and !u\poAddress($address)
-    and !u\badZip($postalCode)
+    and !u\badZip($zip)
     
-    and (!@$postalCode2 or (@$address2 and @$city2 and @$state20 = @$state2
-      and $state2 = db\lookup('id', 'r_states', 'abbreviation=:state2 and country_id=:US_COUNTRY_ID', compact('state2'))
-      and !u\badZip($postalCode2)))) { // using valid signup data from partner org
+    and (!@$zip2 or (@$address2 and @$city2 and @$state2
+    and !u\badZip($zip2)))) { // using valid signup data from partner org
 
-    $postalAddr = @$postalCode2 ? "$address2, $city2, $state20 $postalCode2" : "$address, $city, $state0 $postalCode";
-    $hidCountry = $country = US_COUNTRY_ID; // only US partners at this time
-    $hidState = $state;
-    foreach (ray($fieldsHidable . ' partner customer') as $k) $$k = w\hidFld($$k);
-    $fields .= ' partner customer';
+    $postalAddr = @$zip2 ? "$address2, $city2, $state20 $zip2" : "$address, $city, $state0 $zip";
+    $hidCountry = $country;
+    $hidState = $state + 0;
+    $hidState2 = $state2 + 0;
+    foreach (ray($fieldsHidable . $partnerExtras) as $k) $$k = w\hidFld(@$$k);
+    $fields .= $partnerExtras;
     
   } else {
+///    if (@$partner) debug("partner=$partner partnerCode=$partnerCode customer=$customer zip=$zip address=$address city=$city state=$state0 ($state) zip2=$zip2 address2=$address2 city2=$city2 state2=$state20 ($state2) poAddress=" . u\poAddress($address) . " badZip=" . u\badZip($zip) . " badZip2=" . u\badZip($zip2));
     $country = @$country + 0;
     $state = @$state + 0;
-    $hidCountry = hidFld($country); // remember this when Drupal forgets it on error
-    $hidState = hidFld($state); // remember this when Drupal forgets it on error
+    $hidCountry = hidFld($country + 0); // remember this when Drupal forgets it on error
+    $hidState = hidFld($state + 0); // remember this when Drupal forgets it on error
+    $hidState2 = hidFld(@$state2 + 0);
 
   //  js('http://ziplookup.googlecode.com/git/public/ziplookup/zipLookup.min.js', 'file', 'header');
     js('js/countries.js', 'file', 'footer');
-    js('js/zipLookup.js', 'file', 'footer');
+//    js('js/zipLookup.js', 'file', 'footer');
     $js = <<<EOF
-    print_country($country, $state);
-    $('#rcreditswebformsignup').submit(function() {
+    print_country($country, $state, $state2);
+    $('#rcreditswebformsignup, #rcreditswebformcontact').submit(function() {
       $('#edit-hidcountry').val($('#edit-country').val());
       $('#edit-hidstate').val($('#edit-state').val());
+      $('#edit-hidstate2').val($('#edit-state2').val());
     });
 EOF;
     js($js, 'inline', 'footer');
 
-    $countryAttrib = w\onchange("print_state(this.options[this.selectedIndex].value,'');");
-    $onblur = 'setPostalAddr();';
-    $stateAttrib = attrib(compact('onblur'));
-    $addressAttrib = $cityAttrib = w\onchange($onblur);
-    $zipAttrib = w\onchange("zipChange('010 013');");
+    $countryAttrib = w\onchange("
+      print_state(this.options[this.selectedIndex].value,'','state');
+      print_state(this.options[this.selectedIndex].value,'','state2');
+    ");
+
+    $stateAttrib = $addressAttrib = $cityAttrib = $zipAttrib = [];
     $phone = textFld(t('Phone:'), [t('Your phone number')], required(@$phone ? u\fmtPhone($phone): ''));
     $faxetc = @$faxetc ? textFld(t('Fax etc:'), [t('Other contact info'),t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.')], dft(@$faxetc)) : NULL;
     $country = selectFld(t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
-    $postalCode = textFld(t('Postal Code:'), [t('Physical location postal code'), t('Postal code for your <em>physical location</em>')], required(@$postalCode) + $zipAttrib);
+    $physical = w\item('', t('Physical Address'));
     $address = textFld(t('Street Address:'), [t('Physical address'), t('Where is your building located (physical address)?')], required(@$address) + $addressAttrib);
     $city = textFld(t('City:'), [t('City where you live')], required(@$city) + $cityAttrib);
     $state = selectFld(t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
-    $postalAddr = textFld(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
+    $zip = textFld(t('Postal Code:'), [t('Physical location postal code'), t('Postal code for your <em>physical location</em>')], required(@$zip) + $zipAttrib);
+
+    $sameAddr2 = ($a or @$state2)
+    ? w\item('', t('Mailing Address')) 
+    : w\boxFld('sameAddr', t('Mailing Address'), t('same as above'), 0, w\onchange('setPostalAddr(true)'));
+    
+    $postalAddr = w\hidFld();
+    $address2 = textFld(t('Street Address:'), [t('Postal street address')], required(@$address2) + $addressAttrib);
+    $city2 = textFld(t('City:'), [t('Postal city')], required(@$city2) + $cityAttrib);
+    $state2 = selectFld(t('State:'), t(''), dft(@$state2) + $stateAttrib); // can't use required() here
+    $zip2 = textFld(t('Postal Code:'), [t('Postal code'), ''], required(@$zip2) + $zipAttrib);
+//    $postalAddr = textFld(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
   }
 
 //$a ? '' : t('Your phone number. This should not be a number already used for another %PROJECT Account &mdash; unless you have no other phone number.')
 //  $dupOk = hidFld(0, attrib(ray('id', 'edit-dupOk')));
 //  $dupOk = boolFld(t('Dup Ok:'), t('If this is already the phone number for another %PROJECT Account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your %PROJECT Account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
 
-  $tenure = $a ? NULL : textFld(t('How long:'), [t('MONTHS at current address.')], required(@$tenure));
-  $owns = boolFld('', '', $a ? $a->owns : 0, [t('Rent'), t('Own')]);
+  $tenure = $a ? NULL : textFld(t('How long:'), [t('MONTHS at current address.'), t('How long have you been at your current address, in months (roughly)')], required(@$tenure));
+  $owns = boolFld('', '', $a ? $a->owns : @$owns, [t('Rent'), t('Own')]); // default fails
 
   return compact(ray($fields));
 }  
@@ -1397,7 +1434,7 @@ function ssnFields($personal = TRUE) {
 function phoneOk(&$phone, $country = US_COUNTRY_ID) {
   if (!$phone = u\fmtPhone($phone, '+n')) return say('bad phone', 'phone');
   if ($country == US_COUNTRY_ID and strlen($phone) != 12) return say('bad phone', 'phone');
-//  $mya = r\acct();
+//  global $mya;
 //  $myid = $mya ? $mya->id : 0;
   //$dup = db\exists('users', 'phone=:phone and uid<>:myid', compact('phone', 'myid'));
   // NO! this makes contact form fail. if (!$dup and $dupOk) return say('not a duplicate phone', 'phone');
@@ -1410,7 +1447,7 @@ function no_selection($list) {
 }
 
 function adminField($label) {
-  $mya = r\acct();
+  global $mya;
   return ($mya->cAdmin and $mya->federalId) ? item(R_ON_FILE, $label) : NULL;
 }
 
@@ -1496,7 +1533,7 @@ function invitation($code, $invitee = '', &$inviter = '', &$iCode = -1, &$err = 
 /**
  * Return a formatted, categorized list of businesses
  * @param string $which: word search for business name or industry
- * @param mixed $region: community (the default), postalCode (maybe partial), or country (maybe partial)
+ * @param mixed $region: community (the default), zip (maybe partial), or country (maybe partial)
  * @param bool $withButtons: include "Pay" and "Chg" buttons
  */
 function directoryList($which, $region, $withButtons = FALSE) {
@@ -1514,7 +1551,7 @@ function directoryList($which, $region, $withButtons = FALSE) {
     $regionCrit = 'community=:region';
   } else {
     $region = \db_like($region) . '%';
-    $regionCrit = '(postalCode LIKE :region OR country LIKE :region)';
+    $regionCrit = '(zip LIKE :region OR country LIKE :region)';
   }
   $regionCrit = "($regionCrit OR name='cgf')"; // always include CGF
   
@@ -1583,11 +1620,15 @@ function hack($message, $info = []) {
   return r\signedIn() ? signout() : r\go('');
 }
 
+/**
+ * Let there be no current user.
+ * @param string $arg: "a" parameter for promo site redirect (if "no redirect", don't go there)
+ */
 function signout($arg = '') {
   @\session_destroy();
 //  return r\go(isDEV ? 'http://rPromo/_sites?region=x' : 'http://CommonGood.earth/control.html?region=x');
 //  if (isDEV and !u\test()) r\go('signin', $arg == 'timedout' ? 'timed out' : '');
-  return r\go(PROMO_URL . '/control.html?region=x' . ($arg ? "&a=$arg" : ''));
+  if ($arg != 'no redirect') return r\go(PROMO_URL . '/control.html?region=x' . ($arg ? "&a=$arg" : ''));
 }
 
 function fundRpt($now, $then, $type = '') {
@@ -1612,7 +1653,7 @@ function txsRpt($amt, $count, $accts, $type) {
  * Return markup to identify the agent of the given account.
  */
 function identifiers($a) {
-  $mya = r\acct();
+  global $mya;
   list ($agentA, $company) = $a->proSe ? array($a, '') : array(r\acct($a->agentId), $a->fullName);
   $location = r\location($a);
   $pic = ($mya and $mya->co) ? $a->agentA->photoHtml() : ''; // let companies see the picture
@@ -1854,9 +1895,10 @@ function sureForm(&$sta, $title = '') {
  *   no return (refreshes page) if ambiguous
  */
 function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
-  if (u\isAcct($result = be\identify($who, r\acct()->id, $selfMsg))) return $result;
+  global $mya;
+  if (u\isAcct($result = be\identify($who, @$mya->id, $selfMsg))) return $result;
   list ($msg, $args, $choices) = $result;
-  foreach (ray('form_build_id form_token form_id op') as $one) unset($info[$one]); // just for neatness
+//  foreach (ray('form_build_id form_token form_id op') as $one) unset($info[$one]); // just for neatness
   if (u\abbreviates('who=', $last = basename($return = \current_path()))) $return = dirname($return);
   $info['return'] = urlencode(str_replace('/', R_URL_SLASH, $return)); // even urlencoded slashes confuse Drupal
   foreach ($choices as $uid => $fullName) $choices[$uid] = r\qid($uid) . ': ' . $fullName;
@@ -1871,7 +1913,7 @@ function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
  * @return confirmation message (FALSE if confirmation not appropriate -- Note that say() returns FALSE)
  */
 function transfer($op, $info, $confirmed) {
-  $mya = r\acct();
+  global $mya;
   $myid = $mya->id;
   extract($params = u\just('who amount goods purpose', $info)); // used to include isGift
   if (!isset($goods) or $goods === '') return say('required field', ['field'=>'"For"'], 'ERR'); // '' is for test
@@ -1929,24 +1971,6 @@ function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
 function doSay($msg, $ok = FALSE) {
   if (isDEV) @file_put_contents(t\dosayFilename($ok ? 'status' : 'error'), $msg); // no way to know if actually testing
   return r\go('empty/say=1', $msg, !$ok);
-}
-
-/**
-
-  switch (@$channel) {
-    case TX_WEB:
-      \drupal_set_message($msg, 'error'); // this fails
-      \drupal_goto('error/' . $R_FATAL_ERROR); // this fails -- use shutdown function to show error page (getting message from log)
-    case TX_SMS: if (@$rsms_number) \sms_send($rsms_number, R_SYS_ERR); break;
-    case TX_POS: be\api_error(R_SYS_ERR);
-    default: di e('with no channel');
-  }
- */
-function error($logid) {
-  if ($info0 = db\lookup('info', 'r_log', 'logid=:logid', compact('logid'))) {
-    if (!$info = json_decode(utf8_encode($info0))) $info = $info0; // probably too big for json
-  }
-  r\go('signin/err=' . R_SYS_ERR);
 }
 
 /**
@@ -2093,7 +2117,7 @@ function showCharts($whichChart, $ctty = 0) {
 EOF;
   $q = db\q($sql, compact('created0', 'now', 'ctty'));
 
-  $charts = ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-rcredits');
+  $charts = ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-credits');
   if ($whichChart != 'all') $charts = u\just($whichChart, $charts);
   foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, []);
   $moneyFields = ray('funds savings runny runnyBal top5 usd bankInPerMo bankOutPerMo perMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo tradeInPerMo tradeOutPerMo');
@@ -2200,7 +2224,7 @@ function fundStats($stats, $includeRaw = FALSE, $format = 's$') {
  * @param string $target: link target ('' or _blank)
  */
 function monthChoices($title, $things, $subtext = '', $end = -1, $target = '_blank') {
-  $mya = r\acct();
+  global $mya;
   $start = u\monthDay1($mya->created); // start of account's first month
   $thisMo = u\monthDay1(); // start of this month
   $end = $end ? u\plusMonths($end, $thisMo) : $thisMo;
@@ -2257,7 +2281,7 @@ function hidFlds($ray) {return is_array($ray) ? hidFld(urlencode(serialize($ray)
  * Send an invitation to the email and optionally report it.
  */
 function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
-  $mya = r\acct();
+  global $mya;
   
   if (!$dupsOk) { // applies only to community admins
     $cemail = u\cryptN($email);
@@ -2341,15 +2365,15 @@ function js($what, $type = 'inline', $scope = 'footer', $weight = 99) {
  * Return standard fields for the bottom of any form used during account setup.
  * 
  */
-function setupFoot($normalLabel = '') {
-  $mya = r\acct();
+function setupFoot($label = '', $extra = []) {
+  global $mya;
   if (!$mya->member) {
     if ($remains = $mya->stepsRemaining() - 1) { // don't count current step
       $nextStep = submit(t('Next ') . '&raquo;');
       $steps = $remains == 1 ? t('step') : t('steps');
       $progress = item(t('Just <b>%n</b> more %steps to go', 'n steps', $remains, $steps));
     } else $nextStep = submit(t('Finish'));
-  } else $submit = submit($normalLabel);
+  } else $submit = submit($label, '', '', $extra);
   return compact(ray('submit nextStep progress'));
 }
 
@@ -2414,7 +2438,8 @@ function tagN($tag, $html = '', $tribs = []) {return str_replace('#', '', tag($t
 //function block_def($info, $extra = []) {return compact(ray('info cache'));} // also status, region, visibility, pages
 function blockView($subject, $content) {return compact(ray('subject content'));}
 function disabled($value = NULL, $disabled = TRUE) {return attrib(compact('disabled')) + (is_null($value) ? compact('value') : []);}
-function onchange($onchange) {return w\attrib(compact('onchange'));}
+function on($what, $do) {return w\attrib(["on$what" => $do]);}
+function onchange($do) {return on('change', $do);}
 function dft($default_value) {return compact('default_value');}
 function weight($weight) {return compact('weight');}
 function clas($class) {return ['class' => [$class]];}

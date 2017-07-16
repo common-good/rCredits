@@ -41,9 +41,9 @@ function tableDefs($schema = []) {
 //    'address' => setupField('physical street address', 'varchar 60'),
     'city' => setupField('municipality', 'varchar 60'),
     'state' => setupField('state/province index', 'int 5'),
-    'postalCode' => setupField('postal code for physical address (no punctuation)', 'varchar 255'),
+    'zip' => setupField('postal code for physical address (no punctuation)', 'varchar 255'),
     'country' => setupField('country index', 'int 4'),
-//    'postalAddr' => setupField('complete postal address', 'varchar 255'),
+    'postalAddr' => setupField('complete postal address', 'varchar 255'),
     'notes' => setupField('miscellaneous notes about the user or the account', 'text big'),
     'activated' => setupField('when was the account activated', 'int 11', 0),
     'helper' => setupField('who invited this person or company', 'int big'),
@@ -336,35 +336,21 @@ function tableDefs($schema = []) {
   $indexes = index('uid') + index('iid');
   $schema['r_user_industries'] = setupTable('industries for each company', $fields, 'id', $foreignKeys, $indexes);
   
-  // table r_log
-  $fields = array(
-    'logid' => setupField('log record id', 'serial'),
-    'time' => setupField('date/time logged', 'int 11', 0),
-    'channel' => setupField('logged from what interface module', 'int tiny'),
-    'type' => setupField('what type of log entry', 'varchar 60'),
-    'myid' => setupField('current account uid', 'int big'),
-    'agent' => setupField('agent account uid', 'int big'),
-    'info' => setupField('arbitrary serialized data', 'text medium'),
-//    'special' => setupField('special value if any', 'text medium'), // eg cell number, nonce, or sql
-  );
-  $foreignKeys = foreignKey('myid') + foreignKey('agent');
-  $indexes = index('type') + index('channel') + index('myid') + index('agent');  
-  $schema['r_log'] = setupTable('Development and error log', $fields, 'logid', $foreignKeys, $indexes);
-  
   // table r_relations
   $fields = array(
     'reid' => setupField('relationship record id', 'serial big'),
     'main' => setupField('uid of the account to which others are related', 'int big'),
-    'other' => setupField('uid of an other account related to this account', 'int big'), // eg owner, agent, employee, supplier
-    'otherNum' => setupField('sequence number of the other (starts with 1)', 'int'),
+    'other' => setupField('uid of an other account related to this account', 'int big'), // eg owner, agent, employee, supplier (0 for a partner's customer with no account yet)
+    'otherNum' => setupField('sequence number of the other (starts with 1)', 'int'), // used only for company cards, otherwise 0
 //    'amount' => setupField('average monthly amount paid to other', 'numeric 11,2', 0), // typically to employee or supplier
     'draw' => setupField('whether credit can flow from main to other account', 'int tiny', 0),
     'permission' => setupField('what type of permission the other has on the main account', 'int tiny', 0),
     'employee' => setupField('this other is an employee according to the main account (employer)', 'int tiny', 0),
-//    'employeeOk' => setupField('employee says this other is an employee', 'int tiny', 0),
     'isOwner' => setupField('this other is an owner (or part owner) or family relation', 'int tiny', 0),
     'isCustomer' => setupField('this other is a customer', 'int tiny', 0),
     'code' => setupfield('the (main) company\'s account code for this other', 'varchar 50'),
+    'data' => setupField('serialized array of parameters', 'text medium'), // used for partner's customer data while other=0
+    'created' => setupField('Unixtime record created', 'int 11'),
   );
   $foreignKeys = foreignKey('main') + foreignKey('other') + foreignKey('foreignUid');
   $indexes = index('main') + index('other');
@@ -487,7 +473,7 @@ function tableDefs($schema = []) {
   $fields = array(
     'id' => setupField('record id', 'serial'),
     'ctty' => setupField('what community the event is in', 'int big'),
-    'type' => setupField('event type (I=in person, V=vote, G=grading, R=RFP)', 'char 1'),
+    'type' => setupField('event type (I=in person, V=vote, G=grading, P=RFP)', 'char 1'),
     'event' => setupField('name of event', 'varchar 255'),
     'details' => setupField('event details', 'text big'), 
     'start' => setupField('Unixtime event begins', 'int 11', 0),
@@ -521,6 +507,7 @@ function tableDefs($schema = []) {
     'optOrder' => setupField('option order', 'char 1', 'S'), // S=shuffle (randomize), Z=reverse sometimes, N=no change (static)
     'voteCount' => setupField('total number of votes', 'int 11', 0),
 //    'modified' => setupField('date/time last modified', 'int 11', 0),
+    'result' => setupField('results of the vote or grading', 'text big'),
     'created' => setupField('date/time created', 'int 11', 0),
   ];
   $foreignKeys = foreignKey('ctty');
@@ -768,6 +755,7 @@ function setupField($description = '', $type = 'varchar 255', $default = NULL, $
  * This should be called just once, offline, when country/state tables change, then upload it.
  */
 function makeGeoDropdowns() {
+  return; // WHOA! don't call this without capturing improvements made directly to countries.js
   if (!isDEV) return;
   $js = 'var cs = new [];'; // countries
   $js .= "\n\nvar ss = new [];"; // states
@@ -824,17 +812,17 @@ function setPostalAddr() {
   var state = $('#edit-state').val();
   var city = $('#edit-city').val();
   var address = $('#edit-address').val();
-  var postalCode = $('#edit-postalcode').val();
+  var zip = $('#edit-zip').val();
   var postalAddr = $('#edit-postaladdr');
-  if (address != '' && postalCode != '' && city != '' && state != 0 && postalAddr.val() == '') {
-    postalAddr.val(address + ', ' + city + ', ' + (country==USID ? STs[state] : ss[country][state]) + ' ' + postalCode + (country==USID ? '' : (' ' + cs[country])));
+  if (address != '' && zip != '' && city != '' && state != 0 && postalAddr.val() == '') {
+    postalAddr.val(address + ', ' + city + ', ' + (country==USID ? STs[state] : ss[country][state]) + ' ' + zip + (country==USID ? '' : (' ' + cs[country])));
   } // postalAddr.attr('selectionEnd',0); fails
 }
 
 function zipChange(z3s) {
     $.zipLookupSettings.libDirPath = 'http://ziplookup.googlecode.com/git/public/ziplookup/'; 
     $.zipLookup(
-      $('#edit-postalcode').val(),
+      $('#edit-zip').val(),
       function(cityName, stateName, stateShortName){ // success
         $('#edit-city').val(cityName);
 //        $('#edit-state').val(stateName);
@@ -848,7 +836,7 @@ function zipChange(z3s) {
       }
     );
 
-//  var z3=$('#edit-postalcode').val().substr(0, 3);
+//  var z3=$('#edit-zip').val().substr(0, 3);
 //  if (z3s.indexOf(z3) >= 0) $('#edit-buysat').show();
   setPostalAddr();
 }

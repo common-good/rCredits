@@ -4791,7 +4791,7 @@ $ = jQuery;
 var USID = cs.indexOf('United States');
 var MAID = STs.indexOf('MA');
 
-function print_country(dft_country, dft_state){
+function print_country(dft_country, dft_state, dft_state2){
   if (dft_country == "") {
     dft_country = USID; // 1228 is US
     dft_state = 0; // 1020 is MA
@@ -4804,11 +4804,14 @@ function print_country(dft_country, dft_state){
     if (dft_country == x) options.selectedIndex = i;
     i++;
   }
-  print_state(options[options.selectedIndex].value, dft_state);
+  print_state(options[options.selectedIndex].value, dft_state, 'state');
+  print_state(options[options.selectedIndex].value, dft_state2, 'state2');
 }
 
-function print_state(ci, dft_state){
-  var options = $('#edit-state')[0];
+function print_state(ci, dft_state, field){
+  var fld = $('#edit-' + field);
+  if (fld.length < 1) return;
+  var options = fld[0];
   options.length=0; // zap any previous list items
   var x, i = 0;
   if (dft_state == 0) {options.options[i] = new Option('---', 0); i++;}
@@ -4819,23 +4822,34 @@ function print_state(ci, dft_state){
   }
 }
 
-function setPostalAddr() {
-	var country = $('#edit-country').val();
-	var state = $('#edit-state').val();
-	var city = $('#edit-city').val();
-	var address = $('#edit-address').val();
-	var postalCode = $('#edit-postalcode').val();
-	var postalAddr = $('#edit-postaladdr');
-	if (address != '' && postalCode != '' && city != '' && state != 0 && postalAddr.val() == '') {
-	  postalAddr.val(address + ', ' + city + ', ' + (country==USID ? STs[state] : ss[country][state]) + ' ' + postalCode + (country==USID ? '' : (' ' + cs[country])));
-	} // postalAddr.attr('selectionEnd',0); fails
+/**
+ * On click of "sameAddr" field, set postal address fields equal to physical address fields.
+ * On submit of signup or contact form, set (aggregate) postalAddr field and return true.
+ */
+function setPostalAddr(same) {
+  if (same) {
+    $('.form-item-sameAddr').hide();
+    var fields = ['address', 'city', 'state', 'zip'];
+    for (i = 0; i < fields.length; i++) $('#edit-' + fields[i] + '2').val($('#edit-' + fields[i]).val());
+  } else {
+    var country = $('#edit-country').val();
+    var state = $('#edit-state2').val();
+    var city = $('#edit-city2').val();
+    var address = $('#edit-address2').val();
+    var zip = $('#edit-zip2').val();
+    var postalAddr = $('#edit-postaladdr');
+
+//	if (address != '' && zip != '' && city != '' && state != 0 && postalAddr.val() == '') {
+    postalAddr.val(address + ', ' + city + ', ' + (country==USID ? STs[state] : ss[country][state]) + ' ' + zip + (country==USID ? '' : (' ' + cs[country])));
+    return true;
+  }
 }
 
 function zipChange(z3s) {
 //    $.zipLookupSettings.libDirPath = 'http://ziplookup.googlecode.com/git/public/ziplookup/'; 
     $.zipLookupSettings.libDirPath = '../rcredits/inc/'; 
     $.zipLookup(
-      $('#edit-postalcode').val(),
+      $('#edit-zip').val(),
       function(cityName, stateName, stateShortName){ // success
         $('#edit-city').val(cityName);
 //        $('#edit-state').val(stateName);
@@ -4849,7 +4863,7 @@ function zipChange(z3s) {
       }
     );
 
-//  var z3=$('#edit-postalcode').val().substr(0, 3);
+//  var z3=$('#edit-zip').val().substr(0, 3);
 //  if (z3s.indexOf(z3) >= 0) $('#edit-buysat').show();
-  setPostalAddr();
+//  setPostalAddr();
 }

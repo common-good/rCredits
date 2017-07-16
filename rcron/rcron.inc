@@ -122,7 +122,7 @@ function everyDay() {
   queueNext('START');
   // miscellaneous quick stuff to do every day
   $time = r\rTime() - 7 * DAY_SECS;
-  db\q('DELETE FROM r_log WHERE time<:time', compact('time')); // zap log except for the past few days
+//  db\q('DELETE FROM r_log WHERE time<:time', compact('time')); // zap log except for the past few days
   db\q('DELETE FROM r_do WHERE completed<0 AND :now>-completed', ['now'=>r\rTime()]); // completed<0 is -expiry time
 
   $cttys = db\q('SELECT uid AS ctty FROM users WHERE uid<0')->fetchCol();
@@ -170,7 +170,7 @@ EOF;
   $months = "ROUND($elapsed/:MONTH_DAYS)";
   $start = strtotime('-6 months', $today);
   $day = date('d');
-  $tomorrow = date('d', strtotime('+1'));
+  $laterD = date('d', strtotime('+1'));
   $sql = <<<EOF
     SELECT uid, $months AS months, monthly
     FROM users u LEFT JOIN (
@@ -179,7 +179,7 @@ EOF;
       FROM r_txs GROUP BY payer
     ) t ON t.payer=u.uid
     WHERE $elapsed>15 AND uid > 1 AND u.:IS_BONA AND u.:IS_OK
-    AND ($day=day0 OR (day0>$day AND $tomorrow=1))
+    AND ($day=day0 OR (day0>$day AND $laterD=1))
 EOF;
   queueEach('tickleActive', $sql, compact('start'));
   
@@ -349,7 +349,7 @@ function roundup($item) {
 function crumbs($item) {
   extract(u\just('uid donate', $item));
   $a = r\acct($uid);
-  be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('crumbs desc'), NULL, TRUE, ['crumbs' => TRUE, 'gift' => TRUE]);
+  if ($donate > 0) be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('crumbs desc'), NULL, TRUE, ['crumbs' => TRUE, 'gift' => TRUE]);
 }
 
 /**
@@ -392,7 +392,7 @@ function requests() {
   ON (
     (r.email<>'' AND u.mail=r.email) OR
     (r.phone<>'' AND u.phone=r.phone) OR
-    (INSTR(u.fullName, r.first)>0 AND INSTR(u.fullName, r.last)>0 AND MID(u.postalCode, 1, 5)=MID(r.zip, 1, 5))
+    (INSTR(u.fullName, r.first)>0 AND INSTR(u.fullName, r.last)>0 AND MID(u.zip, 1, 5)=MID(r.zip, 1, 5))
   )
   LEFT JOIN r_invites AS i ON (i.email=r.email AND i.invited>r.created)
   SET done=1 WHERE NOT done AND (u.uid IS NOT NULL OR i.id IS NOT NULL)
@@ -444,7 +444,7 @@ function setNear() {
     'SELECT DISTINCT person AS id1, proxy AS id2, 1 AS w FROM r_proxies',
     'SELECT DISTINCT payer AS id1, payee AS id2, 1 AS w FROM r_txs WHERE payer>0 AND payee>0',
     'SELECT DISTINCT main AS id1, other AS id2, 1 AS w FROM r_relations',
-    'SELECT DISTINCT u1.uid AS id1, u2.uid AS id2, 0.5 AS w FROM users u1 INNER JOIN users u2 ON (u2.city=u1.city OR u2.postalCode=u1.postalCode) WHERE u1.uid<>u2.uid',
+    'SELECT DISTINCT u1.uid AS id1, u2.uid AS id2, 0.5 AS w FROM users u1 INNER JOIN users u2 ON (u2.city=u1.city OR u2.zip=u1.zip) WHERE u1.uid<>u2.uid',
   ]); // each type of relationship counts as one point
   $sql = <<<EOF
     INSERT INTO r_near
@@ -790,6 +790,7 @@ function notice($item) {
  * Last task queued once the everyDay() function has gotten things started.
  */
 function END() {
+  global $mya; $mya = NULL; // don't tell Admin the last current member
   $lastCron = \variable_get('r_last_cron', []);
   $elapsed = r\rTime() - @$lastCron['day'];
 ///  echo "Daily cron done after $elapsed seconds"; // keep

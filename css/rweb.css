@@ -10,6 +10,18 @@
     src: url(GnuMICR.ttf) format("truetype");
 }
 
+.smallish {font-size:85%;}
+
+@media (min-width: 768px) { /* same as cg.css, but lower threshold (since no "Common Good" and no signin) */
+  .nav2 {left:0;}
+  .navbar .form-group {display:none;}
+  .nav2 .nav2-inner {margin-right:10px;} 
+  #signin input {width:140px;}
+  .nav2 .form-group {display:inline-block;}
+  .nav {padding-top:0;}  
+  .navbar .container {width:auto;} /* cancel bootstrap's confinement */
+}
+
 .alignR {text-align:right;}
 .alignC {text-align:center;}
 .alignL {text-align:left;}
@@ -473,6 +485,10 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformdata button {width:300px; text-align:left; background-image: linear-gradient(#fff, #ddd 60%, #ddd);}
 /*linear-gradient(#fff, #fff 60%, #f5f5f5);*/
 
+/* Event */
+#rcreditswebformevent .detail {font-size:14px; color:darkgreen;}
+#rcreditswebformevent .comment {font-size:14px; color:saddlebrown;}
+
 /* Membership / Status */
 /* #rcreditswebformmembership #next-steps {width:500px; margin:-13px;} */
 #rcreditswebformmembership #edit-title {display:none;}
@@ -583,6 +599,9 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebformsignup  #companyInfo {top:0; margin:0 0 10px 0; padding:0 15px; border:1px solid darkgreen; background-color:lightyellow;}
 #rcreditswebformsignup .form-item-companyPhon label span {display:none;}
 /* #rcreditswebformsignup #edit-buysat .checkbox {width:150px;} */
+.form-item-dob {margin-top:60px;}
+.form-item-physical, .form-item-sameAddr2 {margin-top:30px;}
+.form-item-physical>label, .form-item-sameAddr2>label {color:darkgreen; font-size:130%;}
 
 /* Contact Info (labeled) */
 #rcreditswebformcontact .form-item-pin {display:none; margin-left:180px;}
