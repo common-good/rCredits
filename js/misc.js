@@ -79,12 +79,12 @@ if (!mobile) jQuery('form div').hover(function() {jQuery('* [data-toggle="popove
  */
 function get(op, data, success) {
   data = {op:op, sid:ajaxSid, data:data};
-  $.get(ajaxUrl, data, success);
+  jQuery.get(ajaxUrl, data, success);
 }
 
 function post(op, data, success) {
   data = {op:op, sid:ajaxSid, data:data};
-  $.post(ajaxUrl, data, success);
+  jQuery.post(ajaxUrl, data, success); // jQuery not $, because drupal.js screws it up on formVerify
 }
 
 function yesno(question, yes, no) {
@@ -113,14 +113,6 @@ function who(form, id, question, amount, askGift) {
       if (j.who) {
         $(id).val(j.who);
         yesno(j.confirm, function() {
-/*          if (askGift && j.isNonprofit) {
-            $('.confirmation-modal').remove();
-            yesno('Is this a donation?', 
-              function() {$('#edit-isgift').val(1); yesSubmit = true; jForm.submit();},
-              function() {yesSubmit = true; jForm.submit();}  
-            );
-          } else 
-          */
           {yesSubmit = true; jForm.submit();}
         }, noSubmit);
       } else which(jForm, id, j.title, j.which);

@@ -132,6 +132,14 @@ function badAmount(&$amount, $restriction = '', $fractionLimit = 2, $max = NULL)
 }
 
 /**
+ * Say whether a given date of birth is bad. Convert dob to internal format.
+ */
+function badDob(&$dob) {
+  list ($min, $max) = array(r\rTime() - 150 * 365.25 * DAY_SECS, r\rTime() + 9 * 31 * DAY_SECS);
+  return u\badDate($dob, $min, $max); // badDate makes dob internal
+}
+
+/**
  * Say whether the given SSN is bad.
  * @param string $ssn: the social security number to test (RETURNED stripped of all but the digits)
  * @param int $dob: the person's birth date (null if the ssn is actually an EIN)
@@ -156,6 +164,15 @@ function badSsn(&$ssn, $dob = '') {
   }
   return @$bad ? (@$dob ? 'bad ssn' : 'bad federal id') : FALSE;
 }
+
+function ssnName($v, &$firstname = '', &$middlename = '', &$lastname = '') {
+  foreach (ray('firstname middlename lastname') as $k) {
+    if (is_array($v->$k)) $v->$k = join(' ', $v->$k); // concatenate multiple first, middle, or last names
+    if ($$k = ucWords(strtolower(str_replace('-', '', $v->$k)))) $res[] = $$k;
+  }
+  return @$res ? join(' ', $res) : '';
+}
+function ssnAddr($v) {return ucWords(strtolower(@"$v->address, $v->city, $v->state $v->zip"));}
 
 /**
  * Say whether the given postal code is bad.
@@ -569,7 +586,8 @@ function post($url, $content = FALSE, $responseFormat = 'raw', $extra_headers = 
     $response = stream_get_contents($fp);
   } else $response = FALSE;
 
-  EXPECT($response !== FALSE, "$method $url failed"); // this happens, for example, when the hidden data server is unavailable. Probably death is the best solution.
+//  EXPECT($response !== FALSE, "$method $url failed");
+  if ($response === FALSE) u\tellAdmin("$method $url failed");
   $result = $responseFormat == 'xml' ? simplexml_load_string($response)
     : ($responseFormat == 'json' ? json_decode(utf8_encode($response))
     : ($response) );
@@ -681,7 +699,7 @@ function expect1($arg, $value, $type, $ret) {
  * This makes it easy for tests to see what was done
  *
  * @param string $type: type of log entry (if FALSE, don't log anything)
- * @param array $info: the information to log
+ * @param mixed $info: the information to log (string or assoc)
  * @param int $adhocChannel: a second channel used from within the primary channel
  * @return the log record id (for exception handler and shutdown function)
  */  
@@ -698,14 +716,16 @@ function loga($type, $info = [], $adhocChannel = FALSE) {
   $qid = @$mya ? $mya->qid . (($mya->cAdmin2 and !$mya->proSe) ? strtolower($mya->agentA->mainQid) : '') : t('nobody');
   $time = date('d H:i:s');
 
-  $map = ["\r" => '', "\n" => '', '    ' => ' '];
-  if ($msg = @$info['message']) $info['message'] = strtr(strip_tags(str_replace('>', '>|', $msg)), $map);
-  if (@$info['form_id']) {$type .= str_replace('rCredits\\Web\\form', '', $info['form_id']);}
-  if (@$info['toEmail']) $info = u\just('index subject', $info); // don't show whole email
-  foreach (ray('form_id form_build_id form_token orig') as $k) unset($info[$k]);
-  foreach (ray(R_NOLOG) as $k) if ($k != 'email' and @$info[$k]) $info[$k] = '(?)';
-//  $record = compact(ray('time channel type myid agent info'));
-  $info = json_encode($info, JSON_UNESCAPED_SLASHES);
+  if (is_array($info)) {
+    $map = ["\r" => '', "\n" => '', '    ' => ' '];
+    if ($msg = @$info['message']) $info['message'] = strtr(strip_tags(str_replace('>', '>|', $msg)), $map);
+    if (@$info['form_id']) {$type .= str_replace('rCredits\\Web\\form', '', $info['form_id']);}
+    if (@$info['toEmail']) $info = u\just('index subject', $info); // don't show whole email
+    foreach (ray('form_id form_build_id form_token orig') as $k) unset($info[$k]);
+    foreach (ray(R_NOLOG) as $k) if ($k != 'email' and @$info[$k]) $info[$k] = '(?)';
+  //  $record = compact(ray('time channel type myid agent info'));
+    $info = json_encode($info, JSON_UNESCAPED_SLASHES);
+  }
 /**/ flog("$qid/$time/$ch/$type/$info");
 }  
 
@@ -1279,15 +1299,17 @@ function n2english($num, $tri = 0) {
  * @param string $starts: the possible abbreviation
  * @param string $s: the possibly abbreviated string
  * @param bool $noCase: <ignore case>
+ * @param int $starting: earliest location the potential match can start (0 for starting, -strlen($starts) for ending)
  * @return <the first string abbreviates the second>
  */
-function abbreviates($starts, $s, $noCase = FALSE) {
+function abbreviates($starts, $s, $noCase = FALSE, $starting = 0) {
   if (!@$s or is_numeric($s)) $s = @$s . '';
   u\EXPECT(compact('starts', 's', 'noCase'), 'string string bool');
   if ($noCase) list ($starts, $s) = array(strtolower($starts), strtolower($s));
-  return (substr($s, 0, strlen($starts)) == $starts);
+  return (substr($s, $starting, strlen($starts)) == $starts);
 }
 function starts($s, $starts, $noCase = FALSE) {return abbreviates($starts, $s, $noCase);} // near synonym
+function ends($s, $ends, $noCase = FALSE) {return abbreviates($ends, $s, $noCase, -strlen($ends));}
 
 /**
  * Return the time with some number of months added (or subtracted)

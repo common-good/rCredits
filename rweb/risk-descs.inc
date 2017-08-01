@@ -21,6 +21,7 @@ global $riskHelp; $riskHelp = array(
   'photoOff' => t('rCard photo differs photo ID or birthdate (flag set by administrator)'),
   'addrOff' => t('Address does not match address on photo ID (flag set by administrator)'),
   'ssnOff' => t('Something is awry in the account\'s social security number lookup (flag set by administrator)'),
+  'dobOff' => t('Member\'s birth date could not be confirmed or is at odds with social security number lookup data'),
   'poBox' => t('Postal address is a post box'),
   'fishy' => t('Something just seems a little off (flag set by administrator on intuition)'),
   'moreIn' => t('Recipient has received %K_UNUSUAL_BUMP% more than usual over the past seven weeks'),

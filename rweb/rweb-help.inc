@@ -58,10 +58,10 @@ EOF
     <h2>Need Help Signing In?</h2>
     <p>If your username and password aren't working, no worries. Just click "<%aForgot>Forgot it</a>" here or on the sign-in page, to get an email for choosing a new password.</p>
     <h2>About %RCREDITS&reg;</h2>
-    <p>%RCREDITS is a credits/debit card and payment system to support the common good. It is also a Common Good Economics Toolkit, to help you and people everywhere create a democratic, community-centered economic system that puts people and planet first -- one community at a time.</p>
+    <p>%RCREDITS is a credits/debit card and payment system to support the common good. It is also a %PROJECT Economics Toolkit, to help you and people everywhere create a democratic, community-centered economic system that puts people and planet first -- one community at a time.</p>
     <p>We take transparency seriously &mdash; for true democratic control of our local economy we have to be able to see what's going on. Even if you are not a member, you can see what's happening in the %PROJECT economy graphically on the <%aCtty>Community page</a>.</p>
     <p>The <%aAgree>%PROJECT Agreement</a> is at the heart of the %PROJECT system. It is the promise we make together to accept %RCREDITS that gives them value.</p>
-    <p>Participation in %PROJECT is by invitation. Ask a friend to invite you or <%aPromo>request an invitation here</a> and we will let you know when the Common Good Economy comes to your community.</p>
+    <p>Participation in %PROJECT is by invitation. Ask a friend to invite you or <%aPromo>request an invitation here</a> and we will let you know when the %PROJECT Economy comes to your community.</p>
     <p>%PROJECT is a 501(c)(3) Massachusetts-based nonprofit.</p>
 EOF
   , 'username _aForgot _aCtty _aAgree _aPromo', $username, w\atag("/account/password/%username"), w\atag('/community'), w\atag('/agreement'), w\atag(PROMO_URL));
@@ -147,7 +147,7 @@ EOF
 
   if ($i == 'issuing-credits') return showCharts('issued', $ctty) . t(<<<EOF
     <p>%RCREDITS are a type of credit. Like any medium of exchange, they represent value. They make it possible for us to trade goods and services with each other in our community, without having to trade something directly with whoever has what we want, and without having to give them something of precisely the same value ("barter"). The medium of exchange lets us give any amount of our goods or services to any participant in the economy, then receive the same value of goods or services from some other participant(s). If everyone both buys and sells, the credits move through the community in interconnected circles of exchange.</p>
-    <p>Issuing %RCREDITS is a community responsibility. This is the key to creating a Common Good Economy. We must issue as much credit as we need, to enable our exchanges of goods and services -- but no more than the value we as a community are capable of producing.</p>
+    <p>Issuing %RCREDITS is a community responsibility. This is the key to creating a %PROJECT Economy. We must issue as much credit as we need, to enable our exchanges of goods and services -- but no more than the value we as a community are capable of producing.</p>
     <p>Once %RCREDITS become well-established and popular in a community, we can issue them together, with careful planning, as grants, zero-interest loans, equity investments, and incentives for doing the right thing. Together we can fund whatever enterprises and activities we decide would be best -- for our community, for communities elsewhere, and for the world.</p>
     <p>In the meantime, until then, %RCREDITS are issued automatically:</p>
     <ol>
@@ -159,37 +159,39 @@ EOF
   ) . $back;
   
   if ($i == 'common-good-community') return t(<<<EOF
-    <p>The purpose of the %PROJECT system is to create and fund community-centered participatory democracy. Any group of people within a defined geographic community can use the %PROJECT system to exercise their economic sovereignty, deciding for themselves how many %RCREDITS to issue (within safe limits) and what to fund with them.</p>
+    <p>The purpose of the %PROJECT system is to create and fund community-centered participatory democracy. In a %PROJECT Community* you decide together how many %RCREDITS to issue (within safe limits) and what to fund with them.</p>
     
-    <p>A community that has met the <%aRequirements>requirements</a> for "Good Standing" (in relation to other Common Good Communities) may apply to the %PROJECT organization for certification. This certification obligates participants in other %PROJECT Communities to accept the community's %RCREDITS on a par with its own (as promised by each participant signing the %PROJECT Agreement).</p>
-
-    <p>A Common Good Community is considered in "Good Standing" when it is issuing %RCREDITS responsibly, so they accurately represent the potential of its members to produce corresponding goods and services in the short term. A community is also deemed to be in "Good Standing" if it has not yet issued %RCREDITS beyond those backed by US Dollars. A Common Good Community may lose its good standing if it runs a trade deficit with other Common Good Communities and fails to redeem it in a timely manner. Common Good staff and the other communities will provide ongoing feedback, to prevent this from happening accidentally.</p>
+    <p>A %PROJECT Community is in "Good Standing" when it is issuing %RCREDITS responsibly, so they accurately represent the potential of its members to produce corresponding goods and services in the short term. A %PROJECT Community may lose its good standing if it runs a trade deficit with other %PROJECT Communities and fails to redeem it in a timely manner. %PROJECT staff and the other %PROJECT Communities will provide ongoing feedback, to prevent this from happening accidentally.</p>
+    <hr class="narrow">
+    <p><small>* There are no specific requirements for a group of members to become a sovereign %PROJECT Community. But <%aClearness>these Clearness Questions</a> will help you get ready for that responsibility.</small></p>
 EOF
-  , '_aRequirements', w\atag('https://docs.google.com/document/d/1-lBTNHTxIPrTSrIK18ZdbcMeEPS5g5jFhST34VGkR8E')) . $back;
+  , '_aClearness', w\atag('https://docs.google.com/document/d/1-lBTNHTxIPrTSrIK18ZdbcMeEPS5g5jFhST34VGkR8E')) . $back;
   
-  if ($i == 'cashflow-crunch') return t(<<<EOF
-    <p>Once your geographic area becomes a Common Good Community, you can together decide to spend, grant, lend, and/or invest some of the US Dollars that members have put into their %PROJECT Accounts, that are sitting unused. Of course you want to be careful not to use ALL of the US Dollars. From time to time, members will want to exchange some of their %RCREDITS for US Dollars, to pay companies and individuals not yet participating in the %PROJECT system. There need to be enough US Dollars in reserve to cover the likely amount of those withdrawals.</p>
-
-    <p>If you and your community misjudge and use too much of your US Dollar reserve, you will have a cash flow crunch until more US Dollars come in. There are many ways to handle this situation. For example, you might ask members who can, to add funds to their %PROJECT Account. Or you might get a short-term loan from a traditional bank or credit union. It will be up to you and your community to choose what to do.</p>
+  if ($i == 'cashflow') return t(<<<EOF
+    <p>As a %PROJECT Community you and other members decide together when to spend, grant, lend, and/or invest some of the US Dollars members have put into their %PROJECT accounts, which are held in a Community Escrow Fund in a bank.</p>
+    
+    <p>Your %PROJECT Community must take care to keep enough money in the Community Escrow Fund to cover requests by members to <%aCashout>move funds to their bank account</a>, trading some of their %RCREDITS for US Dollars.</p>
+    
+    <p>If you misjudge and use too much of the Community Escrow Fund, you will have a short-term cash flow challenge until more US Dollars come in. The "<%aBack>backing</a>" clause in the %PROJECT Agreement provides stability, so your %PROJECT Community can handle such challenges smoothly.</p>
 EOF
-  ) . $back;
+  , '_aCashout _aBack', w\atag('cashing-out'), w\atag('backing-common-good-credits')) . $back;
 
-  if ($i == 'backing-rcredits') return t(<<<EOF
-    <p>%RCREDITS are backed by all %PROJECT members together. Backing %RCREDITS means you will accept at least <i>a limited amount</i> of them as payment for your goods and services (or trade US Dollars for them) even if, at that time, you cannot easily spend them or easily exchange them for US Dollars. For example, if over the past six months the average amount of Common Good Credits you received or spent in a month is $200, you agree to back $200 worth of Common Good Credits. This means if your community has a <%aCrunch>cash flow crunch</a>, you agree to accept at least $200 more in Common Good Credits as payment for your goods and services.</p>
+  if ($i == 'backing-common-good-credits') return t(<<<EOF
+    <p>To ensure that %RCREDITS maintain their value, you (and every other member) agree to accept however many you typically spend and/or receive in a month, even if your %PROJECT Community is unable to redeem them immediately for US Dollars.</p>
 
-    <p>Like the Federal Reserve's backing for US Dollars held as bank deposits, backing for %RCREDITS helps prevent unfounded fears from causing a "run on the bank". Since we all make this agreement together, we can rest assured that even in a crisis %RCREDITS will maintain their value.</p>
+    <p>Like the Federal Reserve's backing for US Dollars held as bank deposits, backing for %RCREDITS helps prevent unfounded fears from causing a "<%aCrunch>run on the bank</a>". All members agree to back %RCREDITS so your %PROJECT Community can continue to run smoothly.</p>
 EOF
-  , '_aCrunch', w\atag('cashflow-crunch')) . $back;
+  , '_aCrunch', w\atag('cashflow')) . $back;
 
   if ($i == 'cashing-out') return t(<<<EOF
-    <p>%RCREDITS have value and act like money because we agree to accept them as payment for our good and services, so they move from member to member to member as a token of exchange. When someone pays you in %RCREDITS, you can spend those funds &mdash; OR you can "cash them out" by transferring them to your bank account or exchanging them for cash.</p>
-    <p>You can cash out %RCREDITS that someone <i>pays</i> you, but any %RCREDITS you <i>receive free</i>, as Incentive Rewards (if your %PROJECT community is offering Incentive Rewards), must continue to circulate within the %PROJECT system. You cannot cash them out &mdash; you can only spend them.</p>
-    <p>You can help keep the %PROJECT system healthy by maintaining a positive Balance (most of the time) and treating your incentive rewards, if any, as a <%aReserve>Credit Reserve</a>.</p>
+    <p>%RCREDITS have value and act like money because we agree to accept them as payment for our good and services, so they move from member to member to member as a token of exchange. When someone pays you in %RCREDITS, you can spend those funds &mdash; OR you can "cash them out" by transferring them to your bank account or exchanging them for US Dollars.</p>
+    <p>You can cash out %RCREDITS that someone <i>pays</i> you, but any %RCREDITS you borrow from your Credit Reserve must continue to circulate within the %PROJECT system. You cannot cash them out &mdash; you can only spend them.</p>
+    <p>You can help keep the %PROJECT system healthy by maintaining a positive balance most of the time.</p>  
 EOF
 , '_aReserve', w\atag('credit-reserve')) . $back;
 
-  if ($i == 'credit-reserve') return t(<<<EOF
-    <p><b>Background.</b> It is crucial to the success of the %PROJECT system that most of the %RCREDITS issued as incentive rewards stay in the system and keep circulating in the community. While the system is small, it is a bit frail in that regard, so we need to be extra careful to make sure there is no "<%aCrunch>cash flow crunch</a>" at least until we are ready to handle it as a strong, well-functioning democratic %PROJECT community.</p>
+/*  if ($i == 'credit-reserve') return t(<<<EOF
+    <p><b>Background.</b> It is crucial to the success of the %PROJECT system that most members maintain a positive account balance, so there are some %RCREDITS to circulate in the community. While the system is small, it is a bit frail in that regard, so we need to be extra careful to make sure there is no "<%aCrunch>cash flow crunch</a>" at least until we are ready to handle it as a strong, well-functioning democratic %PROJECT community.</p>
 
     <p><b>Your Credit Reserve.</b> So we divide your account into two pieces: your Balance and your Credit Reserve. Your incentive rewards go into the Credit Reserve, to encourage you to keep them in the system until you need them. This is like a traditional reserve credit line that kicks in whenever you would otherwise overdraw your checking account &mdash; except there are no fees here. You can spend those reserved funds any time, simply by letting your Balance go negative.</p>
 
@@ -197,11 +199,11 @@ EOF
     
     <p>Remember, we issue %RCREDITS together as a commmunity, so it is up to all of us to protect their value. Most people choose to keep a positive Balance, by setting a Target Balance on the Preferences settings page. Keeping most of the %RCREDITS we issue in the system helps the system stay healthy while it grows more and more robust.</p>
 EOF
-  , '_aCrunch', w\atag('cashflow-crunch')) . $back;
+  , '_aCrunch', w\atag('cashflow')) . $back; */
   
-  if ($i == 'graceful-failure') return t(<<<EOF
-     <p>Common Good staff and advisors have put great care into designing the %PROJECT system so that it will NOT fail. Paradoxically, one requirement for its success is a detailed plan for a graceful shutdown. In the unlikely event that the whole %PROJECT system proves unworkable, the %PROJECT Agreement gives us a way to end without leaving anyone "holding the bag".</p>
-     <p>As part of the %PROJECT Agreement, you promise to bring your balance up to zero or more, if it is negative. You can either:</p>
+  if ($i == 'closing-down') return t(<<<EOF
+     <p>%PROJECT staff and advisers have put great care into designing the %PROJECT system so that it will continue to flourish. In the unlikely event the system needs to close down, the %PROJECT Agreement gives us a way to end gracefully.</p>
+     <p>As part of the %PROJECT Agreement, you promise to bring your balance up to zero if it is negative. You can either:</p>
      <ul><li>continue to accept %RCREDITS until you are square OR</li>
          <li>trade US Dollars to another member in exchange for %RCREDITS OR</li>
          <li>transfer US Dollars from your bank account.</li>
@@ -211,12 +213,11 @@ EOF
          <li>trade them to another member in exchange for US Dollars OR</li>
          <li>transfer them to your bank account.</li>
      </ul>
-     <p>We ALL make this agreement so if the system fails, everyone is protected and no one is loses what they put in.</p>
-      <p>Once a Common Good Community has ongoing revenue to cover its expenses and any tentative incentive rewards it issued, it is no longer in any danger of ending abruptly. The system has been running successfully for several years now, to everyone's increasing benefit. So the long-term success of our pioneering %PROJECT Economy is looking more and more certain.</p>
+     <p>We all make this agreement so if the system closes down, everyone is protected.</p>
 EOF
   ) . $back;
 
-  if ($i == 'ready') return t(<<<EOF
+/*  if ($i == 'ready') return t(<<<EOF
      <p>There is no magic formula (yet) for deciding when a Common Good Community is ready to allow cashing out incentive rewards. The important question is: who gets to decide such things?</p>
      <p>The %PROJECT system was invented for a single, critically important purpose: to create an opportunity for the community to take responsibility for its own economy. In a <%aCGC>Common Good Community</a> you decide, along with your friends and neighbors, how many %RCREDITS to issue as incentive rewards, and how many as grants, loans, and investments. You decide what to incentivize:</p>
      <ul>
@@ -229,10 +230,10 @@ EOF
      <p>Having enough throughput to be able to issue incentive rewards is a small step along that path. Nobody knows yet when we will have a fully-functioning Common Good Community, capable of making that judgment. One of our community organizers predicts it will be when there are about 3,000 %PROJECT members. Time will tell.</p>
      <p>In the meantime, you are encouraged to maintain a positive account balance, treating your incentive rewards (if any) as a <%aReserve>Credit Reserve</a>, so those %RCREDITS can keep circulating among the participants as much as possible, while we grow.</p>
 EOF
-  , '_aCGC _aReserve', w\atag('common-good-community'), w\atag('credit-reserve')) . $back;
+  , '_aCGC _aReserve', w\atag('common-good-community'), w\atag('credit-reserve')) . $back; */
   
   if ($i == 'ethics') return t(<<<EOF
-    <p>A Common Good Community relies on its members to show a high level of ethical behavior, as the basis for creating a culture of trust and possibility. Of course it is always possible for someone to "game" the system and we will continue to develop software that brings such misbehavior to the attention of the community.</p>
+    <p>A %PROJECT Community relies on its members to show a high level of ethical behavior, as the basis for creating a culture of trust and possibility. Of course it is always possible for someone to "game" the system and we will continue to develop software that brings such misbehavior to the attention of the community.</p>
     <p>Sometimes what looks like unethical behavior is in reality a desperate bid to escape from poverty. It is our responsibility as a community to think well about what our members need and want, and use the funding power of %PROJECT accordingly, so that such desperation is never necessary.</p>
 EOF
   ) . $back;
@@ -246,34 +247,38 @@ EOF
           <ol style='list-style-type:lower-alpha;'>
             <li>Either member will initiate the dispute resolution process by sending a registered letter to the other at their address of record in which they appoint a representative and include the representative's full contact information. The representative should be familiar with Common Good and agree to put in the time and good will necessary to resolve the dispute.</li>
             <li>Within 10 days of the postmark of the registered letter, the other Party will submit a registered letter naming their representative, again with full contact information, and including best times for a meeting.</li>
-            <li>The representative of the initiating Party will contact the other representative and set up a meeting. If there are any costs associated with setting up the meeting between organizers, they will be born by the organizers with the expectation that they will be reimbursed by their representees.</li>
-            <li>The organizers will agree on and appoint an arbitrator who agrees to spend the time and energy to resolve the dispute. Any costs incurred by the arbitrator will be borne equally by each Party.</li>
+            <li>The representative of the initiating Party will contact the other representative and set up a meeting. If there are any costs associated with setting up the meeting between representatives, they will be born by the representatives with the expectation that they will be reimbursed by their representees.</li>
+            <li>The representatives will agree on and appoint an arbitrator who agrees to spend the time and energy to resolve the dispute. Any costs incurred by the arbitrator will be borne equally by each Party.</li>
             <li>The arbitrator may request any documentation or witnesses deemed necessary to arrive at a resolution, and both parties agree to comply promptly.  The decision of the arbitrator is binding on both parties.</li>
-            <li>The dispute resolution will be written up by the arbitrator and signed by both organizers.</li>
-            <li>The following timetables will be adhered to as well as possible: The organizers have 10 days to agree on an arbitrator, and the arbitrator will have 10 days to come up with a resolution.  All parties agree to complete the dispute resolution process within 30 days.</li>
+            <li>The dispute resolution will be written up by the arbitrator and signed by both representatives.</li>
+            <li>The following timetables will be adhered to as well as possible: The representatives have 10 days to agree on an arbitrator, and the arbitrator will have 10 days to come up with a resolution.  All parties agree to complete the dispute resolution process within 30 days.</li>
           </ol>
         </li>
       </ol>
 EOF
   ) . $back;
 
-  if ($i == 'paying-attention') return t(<<<EOF
-    <p>Common Good will give you regular feedback on how your actions impact your finances and the well being of the community. For this feedback to be effective, you have to pay attention to it. Please feel free to make suggestions to improve the quality or timing of the feedback.</p>
+  if ($i == 'participate') return t(<<<EOF
+  <p>%PROJECT staff and the %PROJECT system will give you regular feedback on how your actions impact your finances and the well being of the community. For this feedback to be effective, you have to pay attention to it.</p>
+
+  <p>The %PROJECT system needs feedback too! Please make suggestions when you see something that could be improved.</p>
+  
+  <p>Similarly, participatory economic democracy works only if you participate in your community's <%aProcess>decision process</a> to set funding priorities and make <%aOther>other decisions</a> from time to time, as needed.</p>
 EOF
-  ) . $back;
+  , '_aProcess _aOther', w\atag('decision-principles'), w\atag('other-decisions')) . $back;
 
   if ($i == 'decision-principles') return t(<<<EOF
-    <p>Each Common Good Community must decide for itself how to manage its decision making. Common Good staff are developing recommendations for best practices to value and encourage active participation by all members.</p>
+    <p>Each %PROJECT Community must decide for itself how to manage its decision making. %PROJECT staff are developing recommendations for best practices to value and encourage active participation by all members.</p>
 EOF
   ) . $back;
 
   if ($i == 'other-decisions') return t(<<<EOF
-    <p>From time to time, members will need to make a variety of non-financial decisions. Trustees need to be elected. Policies and procedures occasionally need to be revised. Other issues may arise.</p>
+    <p>From time to time, members will need to make a variety of non-financial decisions. A governing board may need to be elected. Policies and procedures occasionally need to be created or revised. Other issues may arise.</p>
 EOF
   ) . $back;
 
   if ($i == 'common-good-community-requirements') return t(<<<EOF
-    <p>Requirements for certification as a Common Good Community are not yet finalized. They may include such things as qualified leadership, minimum size, experience using the %PROJECT system, diversity of participants, and successful completion of a training program.</p>
+    <p>Requirements for certification as a %PROJECT Community are not yet finalized. They may include such things as qualified leadership, minimum size, experience using the %PROJECT system, diversity of participants, and successful completion of a training program.</p>
 EOF
   ) . $back;
 
@@ -333,7 +338,7 @@ EOF
   if ($i == 'funds') return showCharts('funds', $ctty) . t(<<<EOF
     <p>There are two kinds of funds in the %PROJECT system:</p>
     <ul>
-      <li><b style='color:white; background-color:darkgreen;'>%RCREDITS</b>. These are the funds that we issue together as a community, by agreeing to accept them as payment for our goods and services.</li>
+      <li><b style='color:white; background-color:darkgreen;'>%RCREDITS</b>. These are the funds that we issue together as a community, by agreeing to accept them as payment for our goods and services (or labor).</li>
       <li><p><b style='color:white; background-color:darkblue;'>US Dollars</b>. When you transfer funds from bank account to your %PROJECT Account, that money goes into the community's US Dollar bank account, the "%PROJECT Escrow". The system issues you an equal amount of %RCREDITS to spend or hold in your account. Then when a business gets paid in %RCREDITS, if they don't have enough places to spend them yet, they trade some of their %RCREDITS for US Dollars from the %PROJECT Escrow.</p>
       
       <p>The %PROJECT Escrow accumulates more and more US Dollars, as the system grows, and those Dollars just sit there, unused. Once we have enough active participation, we can decide together how best to use that money &mdash; for strategic incentives, grants, zero-interest loans, and equity investments for sustainability and the common good.</p></li>
@@ -354,7 +359,7 @@ EOF
       <li><b style='color:white; background-color:magenta;'>Runny Balance</b>. The violet line shows the actual total combined balance in runny accounts (Balance plus Credit Reserve). They <i>could</i> spend all their cash reserve, but this is what they actually have done so far.</li>
     </ul>
 EOF
-  , '_aCrunch', w\atag('cashflow-crunch')) . $back;
+  , '_aCrunch', w\atag('cashflow')) . $back;
   
 /*
       <li><b style='color:white; background-color:magenta;'>Runny Debt</b>. The violet line shows how much of their incentive rewards the runny accounts have already spent. This total has already reduced the %PROJECT Escrow, so you can think of it as mitigating the yellow line (subtract it from the yellow line).</li>

@@ -148,6 +148,7 @@ function ctty($id) {return a(a($id)->community);}
   $fileName = DRUPAL_ROOT . '/rlogs/' . date('Ym') . '.log'; // new log file every month
 /**/ if ($file) return $fileName; else file_put_contents($fileName, print_r($s, 1) . "\n", FILE_APPEND);
 }
+function lug($s) {u\loga('debug', $s);}
 
 function who($s = '', $agent = '') {
   $a = is_object($s) ? $s : a($s, $agent); 

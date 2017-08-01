@@ -11,6 +11,7 @@
 }
 
 .smallish {font-size:85%;}
+.skip {margin-left:10px;}
 
 @media (min-width: 768px) { /* same as cg.css, but lower threshold (since no "Common Good" and no signin) */
   .nav2 {left:0;}

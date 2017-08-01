@@ -1,3 +1,9 @@
+2017-08-01 version 2.83
+. extensive rephrasing of agreement and its hyperlinks to accommodate Co-op Power volunteers
+. new SSN step to verify SSN or Birthdate if it can't be done automatically
+. added dobOff risk flag
+. added a Skip button to each step
+
 2017-07-14 version 2.81
 . fixed invoice link bug that crashed if wrong person was current
 . event reporting (without comments)

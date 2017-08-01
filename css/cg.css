@@ -1,6 +1,7 @@
 /* CSS common to all Common Good sites */
 
 code {color:#637c36;}
+.wide-list {padding-left:20px; -webkit-padding-start:20px;}
 
 /* Nav */
 .navbar {margin-bottom:0;}

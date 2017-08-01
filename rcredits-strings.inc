@@ -234,6 +234,7 @@ $GLOBALS['tStrings'] = array(
   'must confirm' => t('%youName: membership must be approved by %inviterName OR you must do a transaction with %inviterName FIRST.'),
   'first at home' => t('Your first transaction must be in person in your home community.'),
   'zero transaction' => t('The transaction amount cannot be zero.'),
+  'bad birthdate' => t('Birth date does not match.'),
   
 //  'savings too low' => t('Until your %PROJECT community declares itself a stable Common Good Community, your savings amount must be at least as much as the incentive rewards you have received (%rewards to date)'),
   'savings too low' => t('Your additional savings amount cannot be less than zero.'),

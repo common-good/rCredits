@@ -1127,7 +1127,7 @@ EOF;
     if ($amount0 < 0) { // outgoing - tell staff to transfer the funds using BillPay or check
 //      $a->update('r', $a->o_r - $amount0);
       $a->update('balance', $a->o_balance + $amount0);
-      if ($txid > 0) r\tellAdmin(t('outgoing bank transfer request'), ['amount' => -$amount0]);
+      if ($txid > 0) r\tellAdmin(t('outgoing bank transfer'), ['amount' => -$amount0]);
     } elseif ($completed) $a->completeUsdTx(0, $amount0, TRUE);
 
     unset($DBTX);
@@ -1148,7 +1148,7 @@ EOF;
 
     if ($txid) { // unless transfer is already marked complete
       $realAmt = db\lookup('amount', 'r_usd', 'txid=:txid', compact('txid'));
-      if ($amount != $realAmt) r\tellAdmin('bad completeUsdTx amt in acct', compact(ray('txid amount realAmt automatic')));
+      if ($amount != $realAmt) r\tellAdmin(t('bad completeUsdTx amt'), compact(ray('txid amount realAmt automatic')));
       if (!db\update('r_usd', ['txid'=>$txid, 'completed'=>r\rTime()], 'txid')) return FALSE;
     }
     
@@ -1367,6 +1367,68 @@ EOF;
     $sql = 'SELECT main, code FROM r_relations WHERE other=:id AND isCustomer ORDER BY code';
     $res = q($sql, ['id' => $this->id])->fetchAllKeyed();
     foreach ($res as $main => $code) $func(r\acct($main), $this, $code);
+  }
+
+  /**
+   * Get and store SSN verification from 3rd party (in the background).
+   * ssn step is marked done if all of the following are true:
+   * . supplied last name (dba or legal) matches
+   * . at least one other piece of name (dba or legal) matches, that has at least 4 letters
+   * . birth date matches
+   * . person is not dead
+   * @return the data
+   */
+  public function ssnCheck() {
+    $a = $this;
+//    if (isDEV) return w\say('no SSN data');
+    if (@$a->ssnData) return $a->ssnData;
+    
+    $max = 3;
+    for ($i = 0; $i < $max; $i++) {
+      if ($ssnData0 = u\ssnLookup($a->federalId) and !strpos($ssnData0, 'RequestTimedOutException')) break;
+    }
+    if ($i == $max) return $a->ssnErr(t('No data returned from ssnLookup on %max tries.', compact('max')));
+
+    $xml = simplexml_load_string($ssnData0);
+    $json = json_encode($xml);
+    $ssnData = json_decode($json, TRUE);
+    if (!is_array($d = $ssnData['searchResults']) or $ssnData['ResultCount'] + 0 <= 0) { // 0 for tests, <=0 for failure
+  /**/  return $a->ssnErr(t('No SSN data available: ') . print_r($ssnData0, 1));
+    }
+    unset($ssnData['searchResults']['ssn']); // has first 5 digits of SSN -- don't store it
+    $a->update(compact('ssnData'));
+    if (@$d['deathsearchresults']) return $a->ssnErr(t('The person is dead (?).'), $ssnData);
+    
+    list ($first1, $last1) = u\parseName($a->fullName);
+    list ($first2, $last2) = u\parseName($a->legalName);
+    foreach (ray('first1 last1 first2 last2') as $k) $$k = strtolower($$k);
+    
+    $Ls = $Fs = $DOBs = [];
+    foreach (@$d['ssnnames']['ssnname'] as $one) {
+      $one = (object) $one;
+      $name = u\ssnName($one, $F, $M, $L);
+      $Ls[] = strtolower($L);
+      $Fs[] = strtolower($F);
+      if ($M) $Fs += split(' ', strtolower($M));
+      if (@$one->dob) $DOBs[] = strtotime($one->dob);
+    }
+    
+    if (!in_array($last1, $Ls) and !in_array($last2, $Ls)) return $a->ssnErr(t('Last name does not match.'), $ssnData);
+    if (!in_array($first1, $Fs) and !in_array($first2, $Fs)) return $a->ssnErr(t('No first name is a match.'), $ssnData);
+    if (!in_array($a->dob, $DOBs)) return $a->ssnErr(t('Bad birthdate'), $ssnData);
+    
+    $a->stepDone('ssn');
+    return $a->ssnData;
+  } 
+    
+  /**
+   * Set ssnData to an error message and maybe more
+   * @param string $s: the error message
+   * @param assoc $ssnData: whatever ssn Data we received from the lookup service
+   */
+  public function ssnErr($s, $ssnData = []) {
+    $this->update('ssnData', $res = $ssnData + ['CGerror' => $s]);
+    return $res;
   }
   
   public function isMe($uid) {return ($uid == $this->id or $uid == $this->jid);}

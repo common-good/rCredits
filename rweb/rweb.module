@@ -135,6 +135,7 @@ function rweb_menu($submenu = '') {
     'settings/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
 
     'reset' => ['call', t('Choose New Password'), 'ResetPassword 1', ANY],
+    'settings/skip' => ['call', t('Skip Step'), '', 'manage', 'skipStep'],
     'settings/notifications' => ['call', t('Notifications'), 'Notifications', 'manage'],
     'settings/ssn' => ['call', t('Correct SSN'), 'Ssn 2', 'manage'],
     'settings/password' => ['call', t('Request New Password'), 'Pass 2', ANY],

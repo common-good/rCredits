@@ -235,34 +235,24 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
  * Show results of an SSN search, compared to personal data supplied by the member.
  * Updates the moves field, if it isn't set yet.
  */
-function ssnCheck($a) {
+function ssnShow($a) {
   if (isDEV) return t('no SSN data');
-  if (!$ssnData = @$a->ssnData) {
-    if (!$ssnData0 = u\ssnLookup($a->federalId)or strpos($ssnData0, 'RequestTimedOutException')) return w\say(t('No data returned from ssnLookup (probably timed out).'));
-
-//    if (strpos($ssnData0), 'timeout')
-    $xml = simplexml_load_string($ssnData0);
-    $json = json_encode($xml);
-    $ssnData = json_decode($json, TRUE);
-    if (!is_array($d = $ssnData['searchResults']) or $ssnData['ResultCount'] + 0 <= 0) {
-/**/  return w\say(t('No SSN data available: ') . print_r($ssnData0, 1));
-    }
-    unset($ssnData['searchResults']['ssn']); // has first 5 digits of SSN -- don't store it
-    $a->update(compact('ssnData')); // ResultCount is 0 for tests, <=0 for failure
-  } else $d = @$ssnData['searchResults'] ?: []; // [] for admin without pw2
   
+  $ssnData = @$a->ssnCheck();
+  $d = @$ssnData['searchResults'] ?: []; // [] for admin without pw2
+  if ($err = $ssnData['CGerror']) $rows[] = ["<b style=\"color:red;\">ERROR</b>", $err, '', '', ''];
   $name = $a->fullName . ($a->legalName == $a->fullName ? '' : "<br>$a->legalName");
   $rows[] = array(t('Data Given'), $name, u\fmtDate(is_numeric($a->dob) ? $a->dob: 0), r\location($a, TRUE), '', ''); // is_numeric check for admin without pw2
-  $name = ssnName($one = (object) @$d['ssnnames']['ssnname']);
+  $name = u\ssnName($one = (object) @$d['ssnnames']['ssnname']);
   $dob = $one->dob ? u\fmtDate(strtotime($one->dob)) : ''; // arrives as an empty array if none
-  $rows[] = array(t('Found'), $name, $dob, @$d['deathsearchresults'] ? 'DEAD' : '', '', '');
+  $rows[] = array(t('Found'), $name, $dob, @$d['deathsearchresults'] ? '<h1 color="red">DEAD</h1>' : '', '', '');
   
   $counties = [];
   $addresses = @$d['addresses']['address'] ?: [];
   if (@$addresses['lastname']) $addresses = [$addresses];
   foreach($addresses as $rec) {
     $rec = (object) $rec;
-/**/ $rows[] = array($rec->datereported ? u\fmtDate(strtotime($rec->datereported)) : '', ssnName($rec), $rec->dob ? u\fmtDate(strtotime($rec->dob)) : '', ssnAddr($rec), ucwords(@strtolower(print_r($rec->county, 1)))); // county was an array once
+/**/ $rows[] = array($rec->datereported ? u\fmtDate(strtotime($rec->datereported)) : '', u\ssnName($rec), $rec->dob ? u\fmtDate(strtotime($rec->dob)) : '', u\ssnAddr($rec), ucwords(@strtolower(print_r($rec->county, 1)))); // county was an array once
 /**/ if (r\rTime() - @strtotime($rec->datereported) < 10 * YEAR_SECS) $counties[print_r($rec->county, 1)] = 1;
   }
   if (!@$a->moves) $a->update('moves', max(0, count($counties) - 1));
@@ -280,12 +270,6 @@ function ssnCheck($a) {
   </table>
 EOF;
 } 
-
-function ssnName($v) {
-  foreach (ray('firstname middlename lastname') as $k) $$k = $v->$k ?: ''; // convert [] to ''
-  return ucWords(strtolower(str_replace('-', '', @"$firstname $middlename $lastname")));
-}
-function ssnAddr($v) {return ucWords(strtolower(@"$v->address, $v->city, $v->state $v->zip"));}
 
 /**
  * Redo all the stats

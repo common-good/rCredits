@@ -29,7 +29,7 @@ Scenario: Admin activates an account
   | id   | flags                    | helper |*
   | .ZZD | member,confirmed,ok,bona |   .ZZB |
   And transactions: 
-  | xid | created | type            | amount          | from | to   | purpose      |*
+  | xid | created | type       | amount          | from | to   | purpose      |*
   |   1 | %today  | %TX_SIGNUP | %R_SIGNUP_BONUS | ctty | .ZZD | signup bonus |
   |   2 | %today  | %TX_HELPER | %R_HELPER_BONUS | ctty | .ZZB | inviting and/or assisting new member Dee Four |
   And balances:

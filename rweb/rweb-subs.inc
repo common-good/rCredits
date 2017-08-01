@@ -15,7 +15,7 @@ use rCredits\Web as w;
 
 define('R_NONE', '<span class="none">--</span>'); // how to show an empty field let the tests see null values
 define('R_AGREE_0', -2); // number of the first point in the rCredits Agreement
-define('R_AGREE_9', 6); // number of the last point in the rCredits Agreement
+define('R_AGREE_9', 7); // number of the last point in the rCredits Agreement
 define('REQ', '*'); // marks required fields (use this as start of field's label)
 define('BARE', '-'); // marks bare (unwrapped) fields -- no div wrapper around them
 
@@ -60,7 +60,7 @@ EOF
   'repeat gift' => t('If you wish to make a donation again sometime, click "Membership" in the upper right corner, then on "Donate".'),
 //  'setup complete' => t('<p>Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Your %PROJECT Card will arrive by US Mail within a few days. Thank you for joining!</p>'),
   'setup complete' => t('<h2>Your Account Setup Is Complete</h2>You have done everything you need to do.'),
-  'individual approval' => t('Once a staff member has approved your account, you can expect to receive your %PROJECT Card in the mail within a day or two'),
+  'individual approval' => t('Once a staff member has approved your account, you can expect to receive your %PROJECT Card in the mail soon'),
   'company approval' => t('Once a staff member has approved your account, you can begin accepting %PROJECT payments'),
   'join thanks' => t('Thank you for joining us!'),
   'use temporary card' => t('<p>While you wait for your %PROJECT Card to arrive, you can use your invitation card to make purchases at any member business (beginning with your inviter).</p>'),
@@ -580,13 +580,22 @@ function submi($title = '', $style = '', $size = 'xs', $other = []) {
   return submit(BARE . $title, $style, $size, $other);
 }
 
-function buttonFld($value, $href = '', $title = NULL, $style = 'success', $size = 'xs') {
+/**
+ * Return a button field array.
+ * @param string $value: what the button says
+ * @param string $href: where the button goes (or does)
+ * @param string $title: hover text
+ * @param string $style: Bootstrap style
+ * @param string $size: Bootstrap size
+ * @param assoc $extra: other attributes (id, class, etc)
+ */
+function buttonFld($value, $href = '', $title = NULL, $style = 'success', $size = 'xs', $extra = []) {
   $title = htmlspecialchars($title);
-  $class = "btn btn-$style btn-$size";
-  return NEWfld('button', BARE, ['', '', $title], compact(ray('href value class')));
+  $class = trim(@$extra['class'] . " btn btn-$style btn-$size");
+  return NEWfld('button', BARE, ['', '', $title], compact(ray('href value class id')) + $extra);
 }
-function button($value, $href = '', $title = NULL, $style = 'success', $size = 'xs') {
-  return rend([buttonFld($value, $href, $title, $style, $size)]);
+function button($value, $href = '', $title = NULL, $style = 'success', $size = 'xs', $extra = []) {
+  return rend([buttonFld($value, $href, $title, $style, $size, $extra)]);
 }
 function btnShowDiv($divId, $title, $style='success', $size = 'xs') {
   return "<a href=\"#$divId\" class=\"btn btn-$size btn-$style\" data-toggle=\"collapse\">$title</a>";
@@ -1335,7 +1344,7 @@ function contactFields($defaults = [], $a = '') {
     if (${$k . '0'} = @$$k) $$k = db\lookup('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
   }
 
-  if (@$partner) r\tellAdmin(t('partner %partner sent new member'), ['address1' => @$address] + compact(ray($fields . $partnerExtras)) + $_POST); // temporary (tellAdmin strips off address along with other secure fields)
+  if (@$partner) r\tellAdmin(t('%partner sent new member', compact('partner')), ['address1' => @$address] + compact(ray($fields . $partnerExtras)) + $_POST); // temporary (tellAdmin strips off address along with other secure fields)
   
   if (@$partner and @$partnerCode and @$customer
     and @$zip and @$address and @$city and @$state
@@ -2366,10 +2375,11 @@ function js($what, $type = 'inline', $scope = 'footer', $weight = 99) {
  * 
  */
 function setupFoot($label = '', $extra = []) {
-  global $mya;
+  global $mya, $base_url;
   if (!$mya->member) {
     if ($remains = $mya->stepsRemaining() - 1) { // don't count current step
-      $nextStep = submit(t('Next ') . '&raquo;');
+      $skip = button(t('Skip'), "$base_url/settings/skip", t('Skip this step for now'), 'warning', 'xs', ['class' => 'skip']);
+      $nextStep = submit(t('Next ') . '&raquo;', '', '', w\suffix($skip));
       $steps = $remains == 1 ? t('step') : t('steps');
       $progress = item(t('Just <b>%n</b> more %steps to go', 'n steps', $remains, $steps));
     } else $nextStep = submit(t('Finish'));

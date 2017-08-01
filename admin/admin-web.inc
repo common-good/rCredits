@@ -133,7 +133,7 @@ function adminSummary($a, $cAdmin = FALSE) {
       $helper = textFld(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper)); //  + autocomplete()
     } else $helper = item(@$a->helperA->fullName ?: t('N/A'), t('Helped by:'));
 
-    if ($a->member and !$a->co and $mya->superAdmin) $ssnCheck = item(a\ssnCheck($a));
+    if ($a->member and !$a->co and $mya->superAdmin) $ssnShow = item(a\ssnShow($a));
     if ($mya->admin) {
       $dba = ($a->co and $owner = r\relation('other', 'main=:uid', compact('uid')) and r\acct($owner)->federalId == $a->federalId);
       $federalId = textFld(t('EIN/SSN:'), '', $a->federalId ? ($dba ? t('SSN') : R_ON_FILE) : '');
@@ -219,7 +219,7 @@ EOF;
 
   $uid = hidFld($uid); // must postcede js (which uses uid)
   
-  return compact(ray('community donations secureMsgs photo balance cgfDonations federalId legalName calling signupCo tenure activity steps dwInfo relations invited invitedBy proxies proxyFor ssnCheck moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
+  return compact(ray('community donations secureMsgs photo balance cgfDonations federalId legalName calling signupCo tenure activity steps dwInfo relations invited invitedBy proxies proxyFor ssnShow moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
 }
 
 /**

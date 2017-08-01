@@ -56,7 +56,7 @@ $queries = [
   "SELECT code AS customer, 
     IFNULL(u.fullName, REPLACE(SUBSTRING(r.data, 27, LOCATE('\"', SUBSTRING(r.data, 28))), '\"', '')) AS name,
     SUBSTRING_INDEX(SUBSTRING_INDEX(r.data, '\"', 12), '\"', -1) AS phone,
-    CONCAT(FROM_UNIXTIME(r.created, '%m/%d/%Y'), IF(u.uid IS NULL, ' *', '')) AS created, 
+    CONCAT(FROM_UNIXTIME(r.created, '%m/%d/%Y'), IF(u.uid IS NULL OR u.uid=0, ' *', '')) AS created, 
     IF(u.uid IS NULL OR u.activated=0, '', FROM_UNIXTIME(u.activated, '%m/%d/%Y')) AS completed
   FROM r_relations r LEFT JOIN users u ON u.uid=r.other WHERE r.main=:myid AND r.isCustomer ORDER BY completed,created"
   . t('~<p>For companies partnering with %PROJECT, list participating customers, with the dates they begin and finish opening their %PROJECT account. An asterisk after the creation date indicates a customer who did not complete the first page (usually someone who balks at providing their social security number).</p>'),

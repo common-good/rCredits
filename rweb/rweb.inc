@@ -49,22 +49,26 @@ function formPageNotFound($form, &$sta, $arg = '') {
  */
 
 function ajax() {
+  global $channel; $channel = TX_AJAX; // tell log and tellAdmin our environment
   extract(u\just('op sid data', t\POST() ?: $_GET));
   header('Content-Type: application/json');
 
   if (!@$sid or !$vars = w\sessionVars($sid)) ajaxErr('bad sid');
   if (!$aid = $vars['uid'] or !$myid = $vars['myid']) ajaxErr('not signed in');
 //  $mya = r\acct($myid, $aid);
+  lug(compact(ray('op data myid aid')));
   
-  if ($op == 'typeWho') {
+  if ($op == 'ssn') { // verify member's SSN
+    $mya = r\acct($myid);
+    $mya->ssnCheck();
+    exit();
+  } elseif ($op == 'typeWho') {
     exit(json_encode(be\memberRay($myid, $aid)));
   } elseif ($op == 'changeCtty') { // change member's community
     extract(u\just('uid newCtty retro', $data));
     $a = r\acct($uid);
     if (!$a->changeCtty($newCtty, $retro, $err)) ajaxErr(t('Community change failed.|') . $err);
 //    ajaxRet(['msg' => "uid is $uid, newCtty is $newCtty"]);
-  } elseif ($op == 'ssn') { // verify member's SSN
-    
   } elseif ($op == 'who') {
     extract(u\just('who question amount', $data));
     $amtDpy = u\fmtAmt($amount);
@@ -90,7 +94,11 @@ function ajax() {
 
 function ajaxErr($msg) {ajaxMsg($msg, 0);}
 function ajaxMsg($msg, $ok = 1) {ajaxRet(['message' => $msg], $ok);}
-function ajaxRet($data, $ok = 1) {exit(json_encode($data + compact('ok')));}
+function ajaxRet($data, $ok = 1) {
+  $data = json_encode($data + compact('ok'));
+  u\loga('ajax', $data);
+  exit($data);
+}
 
 /**
  * Complete a "no signin required" request
@@ -1050,44 +1058,32 @@ function formAgreement($form, &$sta) {
     $behalf = $mya->co ? t('(on behalf of %co) ', 'co', $mya->fullName) : '';
     $signedBy = textFld(t('Signed:'), $behalf . t('Type your full name here ') . "($signerA->legalName)", required($mya->cAdmin ? $signerA->legalNameDpy : ''));
     $setupFoot = w\setupFoot();
-    $_addendum = t('This means, for example, paying attention to your experience and making comments to improve the system.');
-    if ($mya->cAdmin) $_addendum .= t('</p><p>ADMINISTRATORS need not put checkmarks in the boxes.');
+
+    $_addendum = $mya->cAdmin ? t('<p>ADMINISTRATORS need not put checkmarks in the boxes.</p>') : '';
     
     $instructions = t(<<<EOF
       <div id="instructions" class="well">
-      <p><b>Instructions:</b> Put a check mark in each checkbox to indicate you have read that section and agree to it. Really DO read the agreement and make sure you understand it. This agreement, that we make with each other, is the foundation for the %PROJECT system of democratic economics.</p>
-
-      <p><b>Summary.</b> In the first part of the agreement (A), you acknowledge the intent and purpose of the %PROJECT system. In the second part (B), you agree to use the %PROJECT system the way it is designed to work. Notice you can stop participating at any time, simply by giving back the rCredits you got for free (B4).</p>
-      
-      <p><b>Responsibility.</b> Since the purpose of the %PROJECT system is to give us control of our local economy, as a community, the agreement requires that each member be responsible. You agree to take on that responsibility "as [your] life circumstances allow".%addendum</p>
+      <p><b>Instructions:</b> Put a check mark in each checkbox to indicate you have read and understand that section.</p>
+      <p><b>Summary.</b> In the first part of the agreement (A), you acknowledge the intent and purpose of the %PROJECT system. In the second part (B), you agree to use the %PROJECT system the way it is designed to work.</p>
+      %addendum
       </div>
 EOF
     , compact('_addendum'));
   }
 
   $_personOnly = ($mya and $mya->co) ? '' : t(<<<EOF
-  <li>[6] I agree to participate responsibly in managing the Common Good Economy to the best of my ability and as my life circumstances allow, including:
-    <%ol1>
-      <li><%aAttn>paying attention</a> and understanding how the Common Good Economy works</li>
-      <li>participating in the <%aDecision>decision process</a> to set my community's funding priorities:
-        <%ol2>
-          <li>to foster healthy, fulfilling lives for all community members and</li>
-          <li>to assist communities elsewhere</li>
-        </ol></li>
-      <li>participating in <%aOther>other decisions</a> from time to time, as needed.</li>
-    </ol>
-  </li>
+  <li>[7] I agree to <%aParticipate>participate</a> in managing the Common Good Economy to the best of my ability and as my life circumstances allow.</li>
 EOF
-  , '_ol1 _aAttn _aDecision _ol2 _aOther', 
-    'ol style="list-style-type:lower-alpha;"', w\atag('/help/paying-attention'), w\atag('/help/decision-principles'), 'ol style="list-style-type:lower-roman;"', w\atag('/help/other-decisions'));
+  , '_ol1 _aParticipate _aDecision _ol2 _aOther', 
+    'ol style="list-style-type:lower-alpha;"', w\atag('/help/participate'), w\atag('/help/decision-principles'), 'ol style="list-style-type:lower-roman;"', w\atag('/help/other-decisions'));
 
   $prolog = ($mya and $mya->co) ? t('<h4>As a responsible participant in the Common Good Economy:</h4>') : t(<<<EOF
 %instructions
 <h4>A. I recognize that:</h4>
 <ul>
   <li>[-2] %RCREDITS are intended as the basis for the Common Good Economy -- a democratic, community-centered economic system that puts people and planet first.</li>
-  <li>[-1] Together as a community we have the power to <%aIssue>issue credit</a> for our own use as a medium of exchange. It is our promise to accept %RCREDITS that gives them value.</li>
-  <li>[0] Governance by the people is essential for a just society.</li>
+  <li>[-1]When I pay or accept payment in Common Good Credits, I am building the Common Good Economy.</li>
+  <li>[0]When I pay attention, make suggestions for improvement, and participate in decisions with other Common Good members, I am building the Common Good Economy.</li>
 </ul>
 
 <h4>B. As a responsible participant in the Common Good Economy:</h4>
@@ -1096,17 +1092,18 @@ EOF
   
   $agreement = $prolog . t(<<<EOF
 <ol>
-  <li>[1] As long as I can spend my %RCREDITS easily or exchange them easily for US Dollars, I will accept them without limit as payment for my goods and services. I will exchange %RCREDITS for US Dollars only if I cannot spend them easily.</li>
-  <li>[2] I will accept %RCREDITS from members of any <%aCGC>Common Good Community</a> in good standing. In the event of a <%aCrunch>cash flow crunch</a> I will <%aBack>back</a> %RCREDITS up to my average monthly use over the past six months.</li>
-  <li>[3] Whenever I exchange %RCREDITS for US Dollars or vice versa, I will exchange them one for one, and I will price my goods and services the same in %RCREDITS and in US Dollars. </li>
-  <li>[4] I understand I may receive from the community a credit line or tentative incentive rewards that I can spend but cannot <%aCashOut>cash out</a>. If I have a negative balance and stop participating (or <%aGrace>if the system ends</a>), I will bring my balance <%aGrace>up to zero</a> as soon as possible.</li>
-  <li>[5] I promise to maintain a high level of honesty, integrity, and <%aEthics>ethics</a> in my dealings with other %PROJECT participants and with the community (including the %PROJECT system itself). When there is a dispute, I will follow the <%aDispute>Dispute Resolution Process</a> and will honor its outcome.</li>
+  <li>[1] As long as I can spend my %RCREDITS easily or exchange them easily for US Dollars, I will accept them without limit as payment for my goods and services (or labor). I will exchange %RCREDITS for US Dollars only if I cannot spend them easily.</li>
+  <li>[2] I will accept %RCREDITS from members of any <%aCGC>Common Good Community</a> in good standing.</li>
+  <li>[3] If <%aCrunch>needed</a> I will <%aBack>back</a> %RCREDITS up to my average monthly use over the past six months.</li>
+  <li>[4] Whenever I exchange %RCREDITS for US Dollars or vice versa, I will exchange them one for one, and I will price my goods and services (or labor) the same in %RCREDITS and in US Dollars. </li>
+  <li>[5] I understand I may receive from the community a credit line that I can spend but cannot <%aCashOut>cash out</a>. If I use my credit line and then stop participating (or if the system <%aGrace>closes down</a>), I will bring my negative balance up to zero as soon as possible.</li>
+  <li>[6] I promise to maintain a high level of honesty, integrity, and <%aEthics>ethics</a> in my dealings with other %PROJECT participants and with the community. When there is a dispute, I will follow the <%aDispute>Dispute Resolution Process</a> and will honor its outcome.</li>
   %personOnly
 </ol>
 </div>
 EOF
-  , '_div _aCGC _aCrunch _aBack _aCashOut _aGrace _aReady _aEthics _aDispute _personOnly',
-  'div id="agreement"', w\atag('/help/common-good-community'), w\atag('/help/cashflow-crunch'), w\atag('/help/backing-rcredits'), w\atag('/help/cashing-out'), w\atag('/help/graceful-failure'), w\atag('/help/ready'), w\atag('/help/ethics'), w\atag('/help/dispute-resolution-process'), $_personOnly);
+  , '_div _aCGC _aCrunch _aBack _aCashOut _aGrace _aEthics _aDispute _personOnly',
+  'div id="agreement"', w\atag('/help/common-good-community'), w\atag('/help/cashflow'), w\atag('/help/backing-common-good-credits'), w\atag('/help/cashing-out'), w\atag('/help/closing-down'), w\atag('/help/ethics'), w\atag('/help/dispute-resolution-process'), $_personOnly);
 //  <li>[5] I will move my deposits and investments to the Common Good Economy when that is sensible, in my judgment.</li>
 
   for ($i = R_AGREE_0; $i <= R_AGREE_9; $i++) {
@@ -1690,6 +1687,7 @@ function formIcon() {
  * @return json success or error message            
  */
 function photoUpload($uid = '', $sid = '') {
+  global $channel; $channel = TX_AJAX;
   global $base_url;
   $f0 = ray('imgUrl imgInitW imgInitH imgW imgH imgY1 imgX1 cropH cropW rotation uid sid');
   $f = ray('url w0 h0 w h y1 x1 cropH cropW angle uid sid');
@@ -1710,9 +1708,11 @@ function photoUpload($uid = '', $sid = '') {
 ///   flog(compact(ray('uid sid f0 f params params2 sessionVars quality cropH cropW what actualW actualH type zotAttr ext func')));
   if (!$img0 = $func($url)) return w\photoRet(t('image creation error'));
   if (!$mya->co) try {
-    $filename = DRUPAL_ROOT . R_PICTURE_DIR . "$mya->fullName-" . u\randomString(10, 'word');
-    imagejpeg($img, $filename, 100); // save for a few days in case we have to recrop
-  } catch (Exception $e) {} // ignore errors here (but catch below)   
+    $filename = str_replace(' ', '_', DRUPAL_ROOT . R_PICTURE_DIR . "$mya->fullName-" . u\randomString(10, 'word'));
+    imagejpeg($img0, $filename, 100); // save for a few days in case we have to recrop
+  } catch (Exception $e) {
+    lug('failed to save photo file ' . $filename);
+  }
 
   $img = u\alterImg($img0, $w, $h, $x1, $y1, $cropW, $cropH, $angle);
 
@@ -1756,7 +1756,7 @@ function formPhoto($form, &$sta, $arg = '') {
     if ($mya->hasPhoto) extract(w\setupFoot()); // be sure new member has a chance to continue
     $desc = $mya->co
     ? t('<p>1. Choose a picture to represent your company in %PROJECT promotions.</p>')
-    : t('<p>1. Choose a recent color picture of yourself for your photo-ID %PROJECT Card. <%b>Requirements</b>:
+    : t('<p>1. Choose a recent color picture of yourself for your photo-ID %PROJECT Card. Your photo will not be visible to other members (unless you show it to them).<%b>Requirements</b>:
     <ul>
     <li>It should be a photo of you and only you (you can crop other people out.</li>
     <li>It must show clearly your full face (no sunglasses, eyes open).</li>
@@ -2556,7 +2556,7 @@ function formSignup($form, &$sta, $args = '') {
         $goto = 'empty';
         w\say(t('That is not a valid %PROJECT member ID. But no worries. We will try to figure out who you are and match up your %PROJECT account with with your account at %partnerName. If you have not yet finished opening your %PROJECT account, <%a>sign in</a> (if you have not yet begun go to %CG_DOMAIN and click "Sign up").', 'partnerName _a', $partnerA->fullName, w\atag('signin')));
       }
-      r\tellAdmin(t('partner %partner sent current member %qid') . (@$valid ? '' : t('(invalid)')), $args);
+      r\tellAdmin(t('new member of %partner: %qid') . (@$valid ? '' : t('(invalid)')), $args);
       return r\go($goto); // complain, finish account setup, or report success
     } elseif (!$reid) { // new member from partner and not a retry
         $reid = $partnerA->newRelation(ray('other isCustomer code data', 0, TRUE, $customer, serialize($args))); // create a place-holder relation, in case they bail before completing first page
@@ -2612,8 +2612,16 @@ EOF;
   $count = $personal ? PERSONAL_STEP_COUNT : COMPANY_STEP_COUNT;
   
   $subtext = item(t(<<<EOF
-<p>Opening a %PROJECT Account is very much like opening an online bank account. For example, you will be asked for your social security number or tax ID.</p>
-<p>After this signup page there are <%b>some short steps</b> we will guide you through. In particular, you will be asked to sign the short but ESSENTIAL %PROJECT Agreement. You will need to upload a photo for your %PROJECT Card. You will be invited to make a donation <i>of any size</i> to support the project &mdash; you decide how much (%PROJECT is a nonprofit). And you will need your bank account information if you choose to connect it.</p>
+<p>Opening a %PROJECT Account takes 10-15 minutes and is very much like opening an online bank account. For example, you will be asked for your social security number or tax ID.</p>
+
+<p>After this page we will guide you through <%b>several short steps</b>. Here are some highlights:</p>
+<ul>
+  <li>You will be asked to <b>sign</b> the short but ESSENTIAL %PROJECT Agreement.</li>
+  <li>You will need to upload a <b>photo</b> for your %PROJECT Card. Your photo is not visible to other members.</li>
+  <li>You will be invited (but not required) to make a <b>donation</b> <i>of any size</i> to support the project. You decide how much (%PROJECT is a nonprofit).</li>
+  <li>Your name and city will be visible to other members who may wish to select you as their <b>proxy</b> in the community's democratic process.</li>
+  <li>You will need your <b>bank</b> account information if you choose to connect it.</li>
+</ul>
 <p>If you need help, please <%a>ask</a> (our contact information is at the bottom of every page).</p>
 EOF
   , '_b _a count', 'b class="loud"', w\atag('mailto:' . CGF_EMAIL . '?subject=' . t('signup help')), $count));
@@ -2922,58 +2930,61 @@ EOF;
 }
 
 /**
- * Ask new member to verify their SSN by typing it again. (only with no-signin link)
+ * Ask new member to confirm their SSN and/or birthdate by typing it again. (sometimes with no-signin link)
  */
 function formSsn($form, &$sta, $args = '') {
   $mya = w\eLinkAcct($sta, $args, 'acct');
-  $title = item(t('Verify Your ') . ($mya->co ? t('EIN') : t('Social Security Number')));
-  $subtext = item(t('Please type carefully.'));
+  $ssnData = $mya->ssnData;
+  $badBday = (@$ssnData['error'] == t('bad birthdate'));
+  
+  $thing = $badBday ? t('Birth Date') : ($mya->co ? t('EIN') : t('Social Security Number'));
+  $title = item(t('Confirm Your ') . $thing);
+  $subtext = item(t('Our 3rd party service was unable to verify your %thing automatically. Please type it again (carefully) in case there was a typo.', 'thing', strtolower($thing)));
   $submit = submit(t('Submit'));
-  $form = compact('title', 'subtext') + ssnFields(!$mya->co) + compact('submit');
-  unset($form['dob']);
+  $field = w\hidFld($badBday ? 'dob' : 'federalId');
+  $form = compact(ray('title subtext field')) + ssnFields(!$mya->co) + compact('submit');
+  if ($badBday) unset($form['federalId']); else unset($form['dob']);
   return labeled($form);
 }
 
 function formSsn_validate($form, &$sta) {
   $mya = w\eLinkAcct($sta);
-  $what = $mya->co ? t('federal ID') : t('social security number');
-  extract(u\just('federalId', $sta['input']));
-  if ($err = u\badSsn($federalId, !$mya->co)) return say($err, compact('what'), 'federalId');
+  extract(u\just('field', $sta['input']));
+  return formBasic_validate($form, $sta, FALSE, $field);
 }
 
 function formSsn_submit($form, &$sta, $args = '') {
   $mya = w\eLinkAcct($sta);
-  extract(u\just('federalId', $sta['input']));
-  $same = ($mya->federalId == $federalId);
-  $mya->update(compact('federalId'));
-  r\tellAdmin('new SSN', ray('uid same', $mya->id, $same));
-  return doSay(t('info saved|setup complete'), 'ok');
+  extract(u\just('field', $sta['input']));
+
+  extract(u\just($field, $sta['input']));
+  if ($same = ($mya->$field == $$field)) $mya->setRisk($field == 'dob' ? 'dobOff' : 'ssnOff');
+  $mya->update(compact($field));
+  r\tellAdmin('new ' . $field, ray('uid same', $mya->id, $same ? t('Yes') : t('No')));
+  return r\acct() ? w\goNextStep('ssn') : doSay(t('info saved|setup complete'), 'ok'); // r\acct not $mya!
 }
 
 define('R_BASIC_FIELDS', 'fullName federalId dob');
 
 /**
  * Validate the data that affects social security number verification.
- * called from signup validation, as well as from formBasic()
+ * called from signup validation and ssn validation, as well as from formBasic()
  * @param string/bool $co: is this a company account ('mya' means use the current account's type)
  *   'mya' also means we are retrying basic information (the AccountInfo step) during signup
  */
-function formBasic_validate($form, &$sta, $co = 'mya') {
-  extract(u\just(R_BASIC_FIELDS, $sta['input']));
+function formBasic_validate($form, &$sta, $co = 'mya', $fields = R_BASIC_FIELDS) {
+  extract(u\just($fields, $sta['input']));
   if ((string) $co == 'mya') {
-    global $mya;
+    $mya = w\eLinkAcct($sta);
     $co = $mya->co;
   }
-  if ($err = u\badName($fullName)) return say($err, ['field' => 'fullName'], 'fullName');
+  if (isset($fullName) and $err = u\badName($fullName)) return say($err, ['field' => 'fullName'], 'fullName');
 
   $what = $co ? t('federal ID') : t('social security number');
-  if (!$co) {
-    list ($min, $max) = array(r\rTime() - 150 * 365.25 * DAY_SECS, r\rTime() + 9 * 31 * DAY_SECS);
-    if ($err = u\badDate($dob, $min, $max)) return say($err, 'dob'); // badDate makes dob internal
-  }
-  if ($err = u\badSsn($federalId, @$dob)) return say($err, compact('what'), 'federalId');
+  if (!$co and isset($dob) and $err = u\badDob($dob)) return say($err, 'dob');
+  if (isset($federalId) and $err = u\badSsn($federalId, @$dob)) return say($err, compact('what'), 'federalId');
 
-  u\preray(compact(ray(R_BASIC_FIELDS)), $sta['input']);
+  u\preray(compact(ray($fields)), $sta['input']);
   return TRUE;
 }
 
@@ -3606,7 +3617,7 @@ function formSignin($form, &$sta) {
   focusOn((@$name == 'admin' or strlen(@$name) > 4) ? 'pass' : 'name');
 
   $title = item(t('Welcome to %PROJECT!'));
-  $signup = isDEV ? "<a href=\"$base_url/signup/code=w\">Signup</a>" : '';
+  $signup = isDEV ? "<a href=\"$base_url/signup\">Signup</a>" : '';
   $subtext = item(t('<p>Not yet a member? <%a>Check it out</a>!</p>', '_a', w\atag(r\promoLink(''))) . $signup . t('<p><b>TIP</b>: Try not to sign in to your financial accounts on a public computer. Or if you do, be careful! Check the address bar at the top of the screen to make sure you have the right website (<b><em>%BASE_URL/</em>...</b>). And be sure to sign OUT when you\'re done!</p>'));
 
   $_a = w\atag('/settings/password/' . @$name, ['tabindex' => 3]); // uses $name, so must precede $name = textField
@@ -3768,6 +3779,9 @@ function formFindCo_submit($form, &$sta) {
   svar('region', trim($region));
 }
 
+/**
+ * Send the new member a link and a code, to verify their email address.
+ */
 function formVerify($form, &$sta, $arg = '') {
   global $base_url, $mya;
 
@@ -3778,6 +3792,10 @@ function formVerify($form, &$sta, $arg = '') {
   svar('msg', 'yes');
   $form = compact(ray('title subtext verify'));
   if (!$mya->co) $form += w\pickPassword(FALSE);
+  
+  $js = "get('ssn', {}, function () {});"; // research SSN verification, in background (sets stepDone('ssn'))
+  w\js($js, 'inline', 'footer');  
+  
   return labeled($form + w\setupFoot());
 }
 
@@ -3792,6 +3810,19 @@ function formVerify_submit($form, &$sta) {
   global $mya;
   if (!$mya->co) formResetPassword_submit($form, $sta);
   return w\goNextStep('verify');
+}
+
+/**
+ * Skip the current setup step and save it for last
+ */
+function skipStep() {
+  global $mya;
+  $step = $mya->nextStep();
+  $stepsDone = $mya->stepsDone;
+  unset($stepsDone[$step]);
+  $stepsDone[$step] = FALSE;
+  $mya->update(compact('stepsDone'));
+  return r\go($mya->nextStepUrl());
 }
 
 function formResend($form, &$sta) {
@@ -4054,7 +4085,7 @@ function formPrefs_submit($form, $sta) {
   u\setBit($flags, B_SECRET, @$secretBal);
   u\setBit($flags, B_NOSEARCH, @$nosearch);
 */
-  if (@$statements) r\tellAdmin($mya->mainQid . ' wants paper statements');
+  if (@$statements) r\tellAdmin(t('%who wants paper statements', 'who', $mya->mainQid), ['topic' => t('paper')]);
   
   $mya->update($info);
 //  $mya->stepDone('prefs', $details = $old + $info + ['flags' => u\bits($mya->flags)]);
@@ -4467,7 +4498,7 @@ function formRequestRCard_submit($form, &$sta) {
     $otherName = r\acct($other)->fullName;
     $address = $mya->postalAddr; // was r\location($mya, TRUE);
     $_a = atag("/print-rcard/$main/$other");
-    r\tellAdmin($mya->can(B_BUY) ? 'company rcard' : 'cashier card', compact(ray('main other _a manager otherName address')));
+    r\tellAdmin($mya->can(B_BUY) ? t('company rcard') : t('cashier card'), compact(ray('main other _a manager otherName address')));
     say('card ordered', compact('otherName', 'company'));
   } else say('no card ordered');
   return r\go('settings/relations');

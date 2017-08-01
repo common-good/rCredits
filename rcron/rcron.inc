@@ -268,7 +268,10 @@ function often($period, $chosen) {
   $lastCron[$period] = r\rTime();
   \variable_set('r_last_cron', $lastCron); // remember that this periodic activity has been done
   $function = 'rCredits\\Cron\\every' . ucwords($period);
-  if ($period != 'hour' and $period != 'day') r\tellAdmin("Running cron for the $period", ['time' => strftime('%I:%M%P', r\rTime())]);
+  $topic = t('cron period', compact('period'));
+  $time = strftime('%I:%M%P', r\rTime());
+  $msg = t('Running cron for the %period, at %time', compact('period', 'time'));
+  if ($period != 'hour' and $period != 'day') r\tellAdmin($msg, compact('topic'));
   $function(); // do it
 }
 
@@ -300,7 +303,8 @@ function everyMonth() {
  * Yearly
  */
 function everyYear() {
-  r\tellAdmin('generate 1099-B forms for IRS and states');
+  $topic = t('Annual task list');
+  r\tellAdmin(t('Generate 1099-B forms for IRS and states'), compact('topic'));
 }
 
 /**
@@ -675,7 +679,7 @@ EOF;
 function completeUsdTx($item) {
   extract(u\just('txid payee amount channel', $item));
   $realAmt = db\lookup('amount', 'r_usd', 'txid=:txid', compact('txid'));
-  if ($amount != $realAmt) r\tellAdmin('bad completeUsdTx amount in cron', $item + compact('realAmt'));
+  if ($amount != $realAmt) r\tellAdmin('bad completeUsdTx amount', $item + compact('realAmt'));
   r\acct($payee)->completeUsdTx($txid, $amount, @$channel == TX_CRON);
 }
 
@@ -793,8 +797,10 @@ function END() {
   global $mya; $mya = NULL; // don't tell Admin the last current member
   $lastCron = \variable_get('r_last_cron', []);
   $elapsed = r\rTime() - @$lastCron['day'];
-///  echo "Daily cron done after $elapsed seconds"; // keep
-  r\tellAdmin("At " . strftime('%I:%M%P') . ", after $elapsed secs, daily cron ended successfully.");
+  $time = strftime('%I:%M%P');
+  $msg = t('At %time, after %elapsed secs, daily cron ended successfully.', compact(ray('time elapsed')));
+  $topic = t('cron end');
+  r\tellAdmin($msg, compact('topic'));
 }
 
 

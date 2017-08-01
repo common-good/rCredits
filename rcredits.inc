@@ -45,7 +45,7 @@ function regionalInsert($table, $idField, $record, $region = NULL) {
     try {
       if (db\insert($table, $record)) return $id;
     } catch (Exception $e) { // BIG MYSTERY: why does this happen sometimes with no collision?
-      r\tellAdmin('cannot save regional ' . $e->getMessage(), $record);
+      r\tellAdmin(t('cannot save regional: ') . $e->getMessage(), $record + ['topic' => t('cannot save')]);
     }
   }
   u\EXPECT(FALSE, "failed to save $table record in region $region after $try tries.");
@@ -425,7 +425,8 @@ function membershipEvent($a, $status, $do = TRUE) {
       $helped = db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) + 0;
       if ($helped == ORGANIZER_GRANT_MIN) {
         r\message($a->helper, 'organizer grant', ['_a' => w\atag('/community/grant')]);
-        r\tellAdmin('eligible for grant (already notified)', ['name' => $a->helperA->fullName]);
+        list ($name, $topic) = [$a->helperA->fullName, t('eligible')];
+        r\tellAdmin('eligible for grant (already notified)', compact(ray('name topic')));
       }
     }
   }
@@ -1021,7 +1022,7 @@ function companies($ctty, $export = FALSE) {
   $q = db\q('SELECT uid FROM users WHERE :IS_CO AND :IS_OK AND uid>1 AND community=:ctty ORDER BY fullName', compact('ctty'));
   while ($row = $q->fetchAssoc()) {
     $a = r\acct($row['uid']);
-    $new = $a->activated > REQUEST_TIME - 4 * WEEK_SECS ? ' <small style="color:red; font-weight:bold;"> NEW!</small>' : '';
+    $new = ($a->activated > REQUEST_TIME - 9 * WEEK_SECS) ? ' <small style="color:red; font-weight:bold;"> NEW!</small>' : '';
     if (!$a->coCan(CO_PRIVATE)) $res .= strtr($model, ['NAME' => "$a->fullName$new", 'DESC' => $a->shortDesc]) . "\n";
   }
   return $res;
