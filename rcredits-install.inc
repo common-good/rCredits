@@ -45,6 +45,7 @@ function tableDefs($schema = []) {
     'country' => setupField('country index', 'int 4'),
     'postalAddr' => setupField('complete postal address', 'varchar 255'),
     'notes' => setupField('miscellaneous notes about the user or the account', 'text big'),
+    'tickle' => setupField('Unixtime to tickle an admin about this account (or negative the date/time settled)', 'int 11'),
     'activated' => setupField('when was the account activated', 'int 11', 0),
     'helper' => setupField('who invited this person or company', 'int big'),
     'iCode' => setupField('sequence number of helper invitation', 'int'),
@@ -89,7 +90,20 @@ function tableDefs($schema = []) {
   $foreignKeys = foreignKey('uid');
   $indexes = [];
   $schema['r_photos'] = setupTable('one photo for each account', $fields, 'uid', $foreignKeys, $indexes);
-    
+
+  // table r_notes (NO. use users fields instead)
+/*  $fields = array(
+    'id' => setupField('record id', 'serial big'),
+    'uid' => setupField('id of account the note is about', 'int big'),
+    'agent' => setupField('id of account for the note writer', 'int big'),
+    'tickle' => setupField('Unixtime to tickle an admin about this note (or negative the date/time completed)', 'int 11'),
+    'created' => setupField('Unixtime record was created', 'int 11'),
+  );
+  $foreignKeys = [];
+  $indexes = [];
+  $schema['r_notes'] = setupTable('notes about accounts', $fields, 'id', $foreignKeys, $indexes);
+  */
+  
   // table r_stats
   $fields = array(
     'id' => setupField('statistics record id', 'serial big'),
@@ -403,7 +417,7 @@ function tableDefs($schema = []) {
     'phone' => setupField('contact phone (no punctuation)', 'varchar 255'), // encrypted/searchable
     'email' => setupField('email of invitee', 'varchar 255'), // encrypted/searchable
     'zip' => setupField('postal code (no punctuation)', 'varchar 60'),
-    'ctty' => setupField('uid of this requester\'s %PROJECT community', 'int big'), // gleaned from zip
+    'ctty' => setupField('uid of this requester\'s Common Good Community', 'int big'), // gleaned from zip
     'done' => setupField('are we done with this request', 'int tiny', 0), 
   );
   $foreignKeys = foreignKey('ctty');

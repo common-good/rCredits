@@ -255,9 +255,11 @@ EOF;
 
 /**
  * Return a list of proxy choices for the current account.
- * @param int $dft: the current proxy choice, if any
+ * @param acct $a: the "current" account (whether signed in or not)
+ * @param int $dfts: the current proxy choices, if any
+ * @param array $choiceList: (RETURNED) array of account IDs to choose from, not including current choice
  */
-function proxyChoices($a, $dft) {
+function proxyChoices($a, $dfts, &$choiceList) {
   $uid = $a->id;
   $table = <<<EOF
     (SELECT DISTINCT IF(inviter=:uid, invitee, inviter) AS uid FROM r_invites 
@@ -266,6 +268,10 @@ function proxyChoices($a, $dft) {
       WHERE :uid IN (person, proxy)) q
 EOF;
 
+  $cttyCrit = $a->cttyA->isRegion  // must have same params either way (hence :ctty=:ctty)
+  ? "((:ctty=:ctty AND city='$a->city' AND state=$a->state AND :IS_OK) OR u.uid IN (:DEFAULT_PROXIES))"
+  : '(community=:ctty AND :IS_OK)';
+  
   if (!$friends = db\lst('uid', $table, 1, compact('uid'))) $friends = '0'; // list of account's friends
   $sql = <<<EOF
     SELECT u.uid, fullName, city, state, SUM(w) AS weight FROM (
@@ -280,16 +286,18 @@ EOF;
       UNION
       SELECT uid, 0 AS w FROM users
     ) n LEFT JOIN users u ON u.uid=n.uid
-    WHERE community=:ctty AND u.uid>1 AND u.uid<>:uid AND NOT :IS_CO
+    WHERE $cttyCrit AND u.uid>1 AND u.uid<>:uid AND NOT :IS_CO
     GROUP BY u.uid, u.state, u.city 
-    ORDER BY state<>:state, state, city, fullName
+    ORDER BY state, city, fullName
 EOF;
 //    ORDER BY GREATEST(SUM(w), :PHP_INT_MAX/4) DESC, state<>:state, state, city, SUM(w) DESC, fullName
   $q = db\q($sql, ray('uid state city zip ctty', $uid, $a->state, $a->city, $a->zip, $a->community));
-  $res = $cityX = '';
+  $res = '';
+  $cityX = '(none)'; // required for placeholders to work right
   while ($row = $q->fetchAssoc()) { // show choices in reverse order, so inviter(s) are at top
     extract($row);
-    $state = $state == $a->state ? '' : (', ' . r\realState($state));
+    if (!$current = in_array($uid, $dfts)) $choiceList[] = $uid;
+    $state = ($state == $a->state or !$state) ? '' : (', ' . r\realState($state));
 /*    if ($weight < PHP_INT_MAX / 2) { // show city and maybe state
       $state = $state == $a->state ? '' : (', ' . r\realState($state));
     } else list ($city, $state) = [t('Top Suggestions'), '']; */
@@ -302,7 +310,7 @@ EOF;
     : ($weight == PHP_INT_MAX / 4 ? 'slight'
     : ($weight <= PHP_INT_MAX / 2 ? 'primary'
     : 'success' ));
-    if ($dft == $uid) $style = 'warning';
+    if ($current) $style = 'warning';
 ///    debug(compact('row','city','cityX','friends') + ['max/2-w'=>PHP_INT_MAX / 2 - $weight]);
     $res .= <<<EOF
 <button type="submit" name="i-$uid" class="btn btn-xs btn-$style ladda-button" data-style="zoom-out">
@@ -398,7 +406,7 @@ function labeled($form, $onSubmit = '', $labeled = TRUE, $level = 0) {
   if ($onSubmit) {
     list ($zot1, $zot2, $caller) = explode('\\', u\caller());
     $formId = 'rcreditsweb' . strtolower($caller);
-    w\js("$('#$formId').submit(function() { $onSubmit });", 'inline'); // spaces are required around $onSubmit
+    w\js("jQuery('#$formId').submit(function() { $onSubmit });", 'inline'); // spaces are required around $onSubmit
     // (Drupal kills the quotes) $form['#attributes']['onsubmit'] = $onSubmit; // eg ' return func();'; 
   }
   $form['#attributes']['class'][] = $labeled ? 'form-horizontal' : 'form-vertical';
@@ -1341,10 +1349,13 @@ function contactFields($defaults = [], $a = '') {
   if (!@$country) $country = US_COUNTRY_ID;
 
   foreach (['state', 'state2'] as $k) {
-    if (${$k . '0'} = @$$k) $$k = db\lookup('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
+//    if (${$k . '0'} = @$$k) $$k = db\lookup('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
+    if (@$$k) $$k = db\lookup('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
   }
+//  if (@$state2 == '1020') r\tellAdmin('state2 1020: ' . print_r(debug_backtrace(), 1));
 
   if (@$partner) r\tellAdmin(t('%partner sent new member', compact('partner')), ['address1' => @$address] + compact(ray($fields . $partnerExtras)) + $_POST); // temporary (tellAdmin strips off address along with other secure fields)
+  js('js/countries.js', 'file', 'footer'); // required for setPostalAddr, whether or not the fields are shown
   
   if (@$partner and @$partnerCode and @$customer
     and @$zip and @$address and @$city and @$state
@@ -1355,7 +1366,8 @@ function contactFields($defaults = [], $a = '') {
     and (!@$zip2 or (@$address2 and @$city2 and @$state2
     and !u\badZip($zip2)))) { // using valid signup data from partner org
 
-    $postalAddr = @$zip2 ? "$address2, $city2, $state20 $zip2" : "$address, $city, $state0 $zip";
+    //$postalAddr = @$zip2 ? "$address2, $city2, $state20 $zip2" : "$address, $city, $state0 $zip";
+    $postalAddr = ''; // get it from the separate fields
     $hidCountry = $country;
     $hidState = $state + 0;
     $hidState2 = $state2 + 0;
@@ -1371,7 +1383,6 @@ function contactFields($defaults = [], $a = '') {
     $hidState2 = hidFld(@$state2 + 0);
 
   //  js('http://ziplookup.googlecode.com/git/public/ziplookup/zipLookup.min.js', 'file', 'header');
-    js('js/countries.js', 'file', 'footer');
 //    js('js/zipLookup.js', 'file', 'footer');
     $js = <<<EOF
     print_country($country, $state, $state2);
@@ -2411,6 +2422,7 @@ function amtErr($field, &$sta, $restriction = '', $fractionLimit = 2) {
  */
 function atag($href, $extras = []) {
   if ($href[0] == '/') $href = BASE_URL . $href;
+  if ($href[0] == '$') $href = 'javascript:' . substr($href, 1);
   if (strpos($href, BASE_URL) !== 0) {
     if (substr($href, 0, 6) == 'mailto' or substr($href, 0, 4) == 'http') $extras += w\away();
   }

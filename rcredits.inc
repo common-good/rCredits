@@ -668,6 +668,15 @@ function communityUid($zip = '', $defaultZero = FALSE) {
 }
 
 /**
+ * Return the name of the given community (optionally without the project name)
+ */
+function cttyName($uid, $omit = FALSE) {
+  if (!$cttyA = r\acct($uid)) return '';
+  $name = $cttyA->isRegion ? t('%PROJECT Seedpack') : $cttyA->fullName;
+  return $omit ? trim(str_replace(PROJECT, '', $name)) : $name;
+}
+
+/**
  * Given a full name, make a username and add digits until it is unique.
  */
 function uniqueName($fullName) {

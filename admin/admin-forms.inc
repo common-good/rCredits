@@ -422,7 +422,7 @@ EOF
   $chimp = boolFld(t('Exporting to MailChimp?'), '', TRUE);
   
   if ($mya->admin) $allCttys2 = boxFld('allCttys', t('All communities:'), '', TRUE); // temporary for CGF oversight
-  $requests2 = boxFld('requests', t('Include requests:'), t('Include non-members who have requested an invitation 2016 or later.'), TRUE);
+  $requests2 = boxFld('requests', t('Include requests:'), t('Include non-members who have requested an invitation 8/9/2017 or later.'), TRUE);
   $status = w\radiosFld(t('Status:'), '', dft(2), ray('active not-yet-active both'));
   $types = w\radiosfld(t('Types:'), '', dft(2), ray('individuals companies both'));
   $anonymous = boxFld('anonymous', t('Anonymous:'), t('Export only non-identifying information (for data-mapping and analysis)'), FALSE);
@@ -603,7 +603,7 @@ function achBatch($args) {
   if (!$q->rowCount()) return r\go('sadmin/deposits', t('There are no transactions for that ACH batch.'));
 
   $date = strftime('%Y%m%d', $date);
-  u\csvStart(PROJECT . "-ach-batch-$way-$date.csv");
+  u\csvStart("CGach$way-$date.csv");
   while ($tx = $q->fetchAssoc()) {
     extract($tx);
     $a = r\acct($payee);

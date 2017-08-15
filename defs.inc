@@ -28,6 +28,7 @@ define('GAME_SITE', 'game.' . CG_DOMAIN);
 define('DEV_ROOT', '/cgMembers'); // path to drupal root on DEV machine
 define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
+define('DEFAULT_PROXIES', '2, 3'); // account IDs for place-holder proxies
 
 $host = strtolower(@$_SERVER['HTTP_HOST']);
 if (!isDEV) if (strlen($host) > 30 or !preg_match('/^\[?([a-zA-Z0-9-:\]_]+\.?)+$/', $host)) {header('HTTP 400 Bad Request'); exit();}
@@ -114,6 +115,7 @@ define('R_STEPS', 'contact, verify, ssn, sign:community/agreement, donate:commun
 define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret oneTimeLoginUrl password pass pass1 pass2 newPass external_input'); // don't log these (external_input may contain passwords)
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts history settings settings/icon community Summary Php'); // don't log visits to these forms
 define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin PageNotFound Sinx Pass Empty TestRecovery ChangePassword Help Community Democracy Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
+define('SSN_ERR_INDEX', 'CGerror'); // where to put/find error messages in ssnData
 define('BY_CASH', '(cash)'); // app includes this in description, for a purchase of rCredits by cash
 define('BY_CHECK', '(check)'); // app includes this in description, for a purchase of rCredits by check
 define('BY_CARD', '(card)'); // app includes this in description, for a purchase of rCredits by credit card

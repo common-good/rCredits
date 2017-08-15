@@ -708,9 +708,9 @@ function statement($month = '') {
 //  $pdf->Cell(0, 0, " (Effective yield $yield APR)", '', 1, 'L');
 
   if ($mya->id == CGF_ID) {
-    $shared = db\lookup('SUM(amount)', 'r_txs', "payee=:CGF_ID AND payeeFor=':R_SHARING_MSG' AND created<=:end", compact('end'));
-    $pdf->Cell($labelWidth, 0, 'Sharing Donations Ever:');  
-    $pdf->Cell($numWidth, 0, number_format($shared, 2), '', 1, 'R');
+//    $shared = db\lookup('SUM(amount)', 'r_txs', "payee=:CGF_ID AND payeeFor=':R_SHARING_MSG' AND created<=:end", compact('end'));
+//    $pdf->Cell($labelWidth, 0, 'Sharing Donations Ever:');  
+//    $pdf->Cell($numWidth, 0, number_format($shared, 2), '', 1, 'R');
   } elseif ($start == u\monthDay1()) { // committed amount is not available retroactively
     //$pdf->Cell($labelWidth, 0, 'Reserved to donate to CGF:');  
     //$pdf->Cell($numWidth, 0, $committed, '', 1, 'R');
@@ -1142,14 +1142,22 @@ function formProxy($form, &$sta, $args = '') {
   if ($priority != 1 and $priority != 2) w\hack('bad proxy priority');
   $mya = w\eLinkAcct($sta, $args);
   $dft = $mya->proxy($priority);
-  if (!$choices = w\proxyChoices($mya, $dft)) return r\go("prox/page=Proxies&$args", 'no local proxy');
+  $dftOther = $mya->proxy(3 - $priority);
+  if (!$choices = w\proxyChoices($mya, [$dft, $dftOther], $choiceList)) return r\go("prox/page=Proxies&$args", 'no local proxy');
+  if (!$mya->member and count($choiceList) <= 2) { // no real choices, so don't make the member choose
+    if (!$dft) $mya->proxy($priority, $choiceList[0]);
+    if (!$dftOther) $mya->proxy(3 - $priority, $choiceList[$dft ? 0 : 1]);
+    return w\goNextStep('proxies');
+  }
 
   $title = $priority == 1 ? t('Your #1 Proxy') : t('Your <%b>Alternate</b> Proxy', '_b', 'b class="loud"');
   $title = item($title . t(' (choose one)'), BARE);
   foreach (['warning', 'success', 'primary', 'slight'] as $i => $v) {
     $b["_b$i"] = "b class=\"btn btn-xs btn-$v\"";
   }
-  $subtext = item(t('<p>Choose and click someone you know and trust. Top suggestions for you are <%b1>green</b>, <%b2>blue</b>, and <%b3>peach</b> (in that order).</p>', $b) . ($dft ? t('<p>Your current selection, if any, is <%b0>orange</b>.</p>', $b) : ''), BARE);
+  
+  $limitedChoice = $mya->cttyA->isRegion ? t('<p>You are outside any organized %PROJECT Community, so your choices will be very limited until more people sign up in your area. But no worries. You will have the opportunity to revise your proxy choices before your community votes on anything.</p>') : '';
+  $subtext = item(t('<p>Choose and click someone you know and trust. Top suggestions for you are <%b1>green</b>, <%b2>blue</b>, and <%b3>peach</b> (in that order).</p>', $b) . (($dft or $dftOther) ? t('<p>Your current selection(s), if any, is/are <%b0>orange</b>.</p>', $b) : '') . $limitedChoice, BARE);
   $list = item($choices);
   $priority = hidFld($priority);
   return compact(ray('title subtext list priority'));
@@ -1708,7 +1716,7 @@ function photoUpload($uid = '', $sid = '') {
 ///   flog(compact(ray('uid sid f0 f params params2 sessionVars quality cropH cropW what actualW actualH type zotAttr ext func')));
   if (!$img0 = $func($url)) return w\photoRet(t('image creation error'));
   if (!$mya->co) try {
-    $filename = str_replace(' ', '_', DRUPAL_ROOT . R_PICTURE_DIR . "$mya->fullName-" . u\randomString(10, 'word'));
+    $filename = str_replace(' ', '_', DRUPAL_ROOT . R_PICTURE_DIR . "$mya->fullName-" . u\randomString(10, 'word') . '.jpg');
     imagejpeg($img0, $filename, 100); // save for a few days in case we have to recrop
   } catch (Exception $e) {
     lug('failed to save photo file ' . $filename);
@@ -1749,16 +1757,17 @@ function formPhoto($form, &$sta, $arg = '') {
     $chooserStyle = 'btn-xs btn-secondary';
 // No! wait for user to be happy with the photo   $mya->stepDone('photo');
     extract(w\setupFoot()); // get nextStep and progress fields
-    $allSet = $mya->member ? t('you\'re all set') : t('click "Finish" above');
+    $buttonName = $mya->stepsRemaining() > 1 ? t('Next') : t('Finish');
+    $allSet = $mya->member ? t('you\'re all set') : t('click "%buttonName" above', compact('buttonName'));
     $desc = t('If you like this photo, %allSet. Otherwise:', compact('allSet'));
   } else {
     if ($arg) say($arg, 'err');
     if ($mya->hasPhoto) extract(w\setupFoot()); // be sure new member has a chance to continue
     $desc = $mya->co
     ? t('<p>1. Choose a picture to represent your company in %PROJECT promotions.</p>')
-    : t('<p>1. Choose a recent color picture of yourself for your photo-ID %PROJECT Card. Your photo will not be visible to other members (unless you show it to them).<%b>Requirements</b>:
+    : t('<p>1. Choose a recent color picture of yourself for your photo-ID %PROJECT Card. Your photo will be encrypted and will not be visible to other members (unless you show it to them).<%b>Requirements</b>:
     <ul>
-    <li>It should be a photo of you and only you (you can crop other people out.</li>
+    <li>It should be a photo of you and only you (you can crop other people out).</li>
     <li>It must show clearly your full face (no sunglasses, eyes open).</li>
     <li>It should fill most of the frame (no shoulders needed).</li></ul>', '_b', 'b class="loud"');    
     $desc .= t('<p>2. Play with the buttons to adjust the position, size, and rotation, then click the <img src="%rUrl/images/icons/crop.png" height="20" />button to upload the image. Please feel free to %emailIt, if that is easier for you.', '_b _emailIt rUrl', 'b style="color:lightgreen; background-color:darkgray;"', $emailIt, $rUrl);
@@ -1881,17 +1890,20 @@ function formAccounts($form, &$sta) {
     $a = r\acct($uid);
     if (!$a and isDEV) continue; // ignore this if testing -- "current" account has been undermined is all
     if ($mya->cAdmin or $mya->isRegulator) {
+      $qid = $a->mainQid;
+      if ($mya->cAdmin and !$mya->admin) $qid = substr($qid, -2, 2); // show just last two letters for cAdmins
       if ($a->isCtty) { // show communities in a separate category
 //        $class = $a->id < 0 ? 'cgc' : '';
-        $ltrs['_'][$uid] = trim(str_replace(PROJECT, '', "<small>$a->mainQid</small> $choice"));
-        continue; // omit regions from dropdown
+        $choice = r\cttyName($uid);
+        $ltrs['_'][$uid] = "<small>$qid</small> $choice";
+      } else {
+        $pos = substr($choice, 1, 2) == '. ' ? 3 
+        : (substr($choice, 1, 1) == ' ' ? 2
+        : (strtoupper(substr($choice, 0, 4)) == 'THE ' ? 4 : 0));
+        $ltr = strtoupper(substr($choice, $pos, 1));
+        $ltrs[$ltr][$uid] = "<small>$qid</small> $choice";
+        $choice =  "$qid $choice";
       }
-      $pos = substr($choice, 1, 2) == '. ' ? 3 
-      : (substr($choice, 1, 1) == ' ' ? 2
-      : (strtoupper(substr($choice, 0, 4)) == 'THE ' ? 4 : 0));
-      $ltr = strtoupper(substr($choice, $pos, 1));
-      $ltrs[$ltr][$uid] = "<small>$a->mainQid</small> $choice";
-      $choice = (($mya->admin or $mya->isRegulator) ? $a->mainQid : substr($a->mainQid, -3, 2)) . ' ' . $choice;
     }
     $choices[$uid] = $choice;
   }
@@ -2617,7 +2629,7 @@ EOF;
 <p>After this page we will guide you through <%b>several short steps</b>. Here are some highlights:</p>
 <ul>
   <li>You will be asked to <b>sign</b> the short but ESSENTIAL %PROJECT Agreement.</li>
-  <li>You will need to upload a <b>photo</b> for your %PROJECT Card. Your photo is not visible to other members.</li>
+  <li>You will need to upload a <b>photo</b> for your %PROJECT Card. Your photo will be encrypted and will not be visible to other members (unless you show it to them).</li>
   <li>You will be invited (but not required) to make a <b>donation</b> <i>of any size</i> to support the project. You decide how much (%PROJECT is a nonprofit).</li>
   <li>Your name and city will be visible to other members who may wish to select you as their <b>proxy</b> in the community's democratic process.</li>
   <li>You will need your <b>bank</b> account information if you choose to connect it.</li>
@@ -2668,7 +2680,7 @@ EOF
         + $contactFlds + w\ssnFields($personal)
         + compact(ray('pin calling companyInfo buysAt submit args confirmed helper iCode notes relation'));
 //  keep_values($form);
-  return labeled($form, 'return setPostalAddr();');
+  return labeled($form, 'return setPostalAddr(false);');
 }
 
 function formSignup_validate($form, &$sta) {
@@ -2819,7 +2831,7 @@ function formContact($form, &$sta) {
         + contactFields([], $mya)
         + compact('submit');
   
-  return labeled($form, 'return setPostalAddr();');
+  return labeled($form, 'return setPostalAddr(false);');
 }
 
 function formContact_validate($form, &$sta) {

@@ -1,3 +1,38 @@
+2017-08-
+. fixed bug that resulted in "1020" instead of "MA" in postalAddr
+. limited proxy choices to same city/state or placeholders for new seedpack members
+. limited proxy choices to active accounts (or placeholders)
+. $keys = ray('uid community name fullName email');
+  foreach (ray(t('2:PlaceHolder One,3:PlaceHolder Two')) as $k => $v) {
+    $name = str_replace(' ', '', strtolower($v));
+    $values = array($k, 0, $name, $v, 'z@o.t');
+    $info = array_combine($keys, $values);
+    new rCredits\Acct($info);
+  }
+. added a copy-ach-filename-to-clipboard button
+. changed Mailchimp export to tabs, because they stopped accepting it with commas
+. repaired risks data (dobOff, poBox, fishy) -- for n=16 to 18 (losing some minimal dobOff and fishy data)
+  UPDATE users SET risks=risks-(1<<n) where risks&(1<<n)
+. fixed bug which prevented calling setPostalAddr on signup form submission
+. stopped marking (some) r_request records as "member" in exports
+. changed area of CG Greenfield to ^013([012346789]|5[012346789]) because ^013(?!(55|66|31|68)) fails
+. changed area of CG Noho to ^010(0[2347]|11|12|26|27|3[23589]|40|5[0349]|6[01236]|7[0235]|8[248]|9[368]) but 01040 (Holyoke) might go south later and Amherst will surely split off
+. corrected individual communities accordingly (about 30):
+eachA(function($a) {
+$FIN = a('!NEWAAC')->id;
+$BENE = a('!NEVAAB')->id;
+if ($a->id > 1 and $a->community and $a->community != $FIN and $a->community != $BENE) {
+  $ctty2 = f('r.communityUid', $a->zip);
+  if ($ctty2 and $ctty2 != $a->community) {
+    $old = $a->cttyA->fullName;
+    $new = a($ctty2)->fullName;
+//    debug("$a->zip &nbsp; $a->fullName: $old >>> $new");
+    $a->update('community', $ctty2);
+  }
+}
+});
+. fixed bug in member export that failed for non-chimp exports by cAdmins
+
 2017-08-01 version 2.83
 . extensive rephrasing of agreement and its hyperlinks to accommodate Co-op Power volunteers
 . new SSN step to verify SSN or Birthdate if it can't be done automatically

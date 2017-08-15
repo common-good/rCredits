@@ -225,42 +225,46 @@ EOF;
 /**
  * Download the member list for the current community
  */
-define('EXPORT_PARAMS', 'do requests allCttys status types anonymous');
+define('EXPORT_PARAMS', 'do requests allCttys status types chimp anonymous');
 
 function export($params) {
   extract(u\just(EXPORT_PARAMS, $params));
   global $mya;
-  $ctty = r\acct($mya->community);
+  $cttyA = r\acct($mya->community);
 
-  $filename = ($allCttys ? PROJECT : str_replace('.', '', $ctty->name))
+  $filename = ($allCttys ? PROJECT : str_replace('.', '', $cttyA->name))
   . (@$status == 0 ? t('-active') : (@$status == 1 ? t('-notyet') : ''))
   . (@$types == 0 ? t('-members') : (@$types == 1 ? t('-orgs') : t('-accounts')))
   . '.csv';
   u\csvStart($filename);
+  $delimiter = @$chimp ? "\t" : ',';
+  
   $fields = @$anonymous ?
     'uid city state zip type'
       . ' created activated signed helper iCode balance rewards savingsAdd minimum share risk trust'
       . ' cttyName co gross employees achMin pinThreshold lastiCode tenure moves mediaConx jid'
       . ' owns bankName slave closed notices secret'
   : 'id first_name last_name phone email address city state zip cttyName type ecode special modified created';
-  u\csv($fields = ray($fields));
+  u\csv($fields = ray($fields), $delimiter);
 
   if ($requests) { // handle requests first, in case member status gets updated by later record
-    $startDate = strtotime('1/1/2016');
-    $sql = 'SELECT * FROM r_request WHERE created>=' . $startDate;
-    if (!$mya->admin) $sql .= ' AND ctty=' . $mya->community;
+    $startDate = strtotime('8/9/2017'); // change this to -1 month?
+    $sql = "SELECT * FROM r_request WHERE email<>'' and created>=$startDate";
+    if (!$mya->admin) $sql .= " AND ctty=$mya->community";
     $q = db\q($sql);
     while ($row = $q->fetchAssoc()) {
       extract($row);
       if (db\exists('users', 'mail=:email', compact('email'))) continue; // don't duplicate or send to nonudge people
       list ($id, $first_name, $last_name, $modified) = [$listid, $first, $last, time()];
       $address = $city = $state = $ecode = $special = '';
-      $type = $ctty == 0 ? '' : 'member';
+//      $type = $ctty == 0 ? '' : 'member';
+      $type = '';
       foreach (ray('phone email') as $k) $$k = u\decryptN($$k);
       if (strpos($email, '@example.com')) continue;
-      $cttyName = $ctty ? trim(str_replace(PROJECT, '', r\acct($ctty)->fullName)) : '';
+//      $cttyName = $ctty ? trim(str_replace(PROJECT, '', r\acct($ctty)->fullName)) : '';
+      $cttyName = ($zip and $ctty = r\communityUid($zip)) ? r\cttyName($ctty, TRUE) : '';
       if (!@$chimp) $zip .= "\t"; // prevent leading zeros from getting dropped on import (fails for MailChimp, so don't)
-      u\csv(array_values(compact($fields)));
+      u\csv(array_values(compact($fields)), $delimiter);
     }
   }  
   
@@ -270,9 +274,10 @@ function export($params) {
   if (@$status == 1) $where .= ' AND NOT :IS_OK';
   if (@$types == 0) $where .= ' AND NOT :IS_CO';
   if (@$types == 1) $where .= ' AND :IS_CO';
+
   $sql = "SELECT uid AS id, fullName FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND (NOT activated OR :IS_OK) AND $where ORDER BY :IS_OK, -signed, -created";
 
-  $q = db\q($sql, ray('cttyId', $ctty->id));
+  $q = db\q($sql, ray('cttyId', $cttyA->id));
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $a = r\acct($id);
@@ -298,11 +303,11 @@ function export($params) {
       $special = '';
 // (BROKEN)      $special = $a->special;
     }
-    $cttyName = trim(str_replace(PROJECT, '', $a->cttyA->fullName));
+    $cttyName = r\cttyName($a->community, TRUE);
     $created = u\fmtDate($a->created);
     if (is_numeric($zip) and !@$chimp) $zip .= "\t"; // prevent interpretation as a number (fails for MailChimp, so don't)
 
-    u\csv(array_values(compact($fields)));
+    u\csv(array_values(compact($fields)), $delimiter);
   }
   
   exit();

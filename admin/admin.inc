@@ -52,9 +52,13 @@ function setupBasicAccounts() {
   $info = array_combine($keys, $values);
   $a1 = new r\Acct($info); // set up system admin record (uid=1)
   if (isDEV) $a1->update('pw2', r\passHash(DEV_PW2));
-//  $flags = $a1->flags;
-//  foreach (array(B_ADMIN, B_CO) as $bit) u\setBit($flags, $bit);
-//  $a1->update('fullName flags', t('System Administrator'), $flags);
+
+  foreach (ray(t('2:PlaceHolder One,3:PlaceHolder Two')) as $k => $v) {
+    $name = str_replace(' ', '', strtolower($v));
+    $values = array($k, 0, $name, $v, 'z@o.t', '', 0, 0, 0, 0);
+    $info = array_combine($keys, $values);
+    new r\Acct($info);
+  }  
 
   $server = r\serverUid();
   if ($server == r\serverUid('NEW')) { // no need to set up CGF unless in Western Mass (or testing)
@@ -521,6 +525,18 @@ EOF;
       list ($total, $count) = [u\fmtAmt(${"amount$way"}, ''), number_format(${"count$way"})];
       if (!$count) continue;
       $details = w\btn("deposit-details/way=$way&date=$deposit&total=$total&count=$count", t('details'));
+      if ($way == 'Out') {
+        list ($WAY, $date) = [t('OUT'), strftime('%Y%m%d', $deposit)];
+
+        $js = <<<EOF
+var area = document.createElement('textarea');
+area.value = 'CGach$WAY-$date.csv';
+document.body.appendChild(area);
+area.select();
+alert(document.execCommand('copy') ? 'filename copied to clipboard' : 'copy to clipboard failed');
+EOF;
+        $details = w\btn("$ $js", t('flnm'), 'default') . ' ' . $details;
+      }
 
       list ($func, $label) = ($way != 'Out' or ($deposit > 0 and $deposit < strtotime('1/10/2017')))
       ? ['checks', t('checks')] 

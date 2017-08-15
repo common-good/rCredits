@@ -117,8 +117,8 @@ $GLOBALS['tStrings'] = array(
   'reminder coming' => t('We will send you just one reminder'),
   'reminder one' => t('This is your one reminder'),
   'invite default' => t("%PROJECT Card is great. I signed up. Check it out!\n\n%name"),
-  'roundups desc' => t('contribution of rounded-up payment change'),
-  'crumbs desc' => t('contribution (percentage of past month receipts)'),
+  'roundups desc' => t('donation: of rounded-up payment change'),
+  'crumbs desc' => t('donation: percentage of past month receipts'),
   'sent email' => t('<p>We emailed a Verification Code to you at <b>%email</b> (if you don\'t see it, check your Spam folder). Type the code here, choose a password, and press Next.</p><p>Mixed-case, digits, punctuation, and plain old length make your password strong.</p>'),
 
   // questions

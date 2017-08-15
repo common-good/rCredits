@@ -706,7 +706,7 @@ function expect1($arg, $value, $type, $ret) {
 function loga($type, $info = [], $adhocChannel = FALSE) {
   global $mya;
 /**/  if (strlen($type) >= 60) die('in loga: ' . $type); // (KEEP) don't use EXPECT here
-  if ($type == 'FATAL' and strpos($info, 'calling db_query() ')) return '';
+//  if ($type == 'FATAL' and strpos($info, 'calling db_query() ')) return '';
 
   global $channel;
   $channels = ray(TX_CHANNELS);
@@ -955,11 +955,12 @@ function csvStart($filename) {
 /**
  * Output to the csv file.
  * @param array $a: the line to output
+ * Note we use fputs to work around PHP's inability to omit enclosure for fputcsv.
  */
-function csv($a) {
+function csv($a, $delimiter = ',') {
   global $csvFile, $testCSV;
   if (u\test()) {$testCSV[] = $a; return;}
-  fputcsv($csvFile, $a);
+  if ($delimiter == ',') fputcsv($csvFile, $a, $delimiter); else fputs($csvFile, join($delimiter, $a) . "\n");
 }
 
 /**

@@ -76,7 +76,7 @@ function createRetURL(form) {
 
 function eid(s) {return document.getElementById(s);}
 function ev(s) {return eid(s).value;}
-function mNumberFinal() {return ev('m_company').charAt(0) + ev('m_number').replace(/ /g, '');}
+function mNumberFinal() {return ev('m_company').charAt(0) + ev('m_number').replace(/[^0-9]/g, '');}
 
 function emailok(email) {
   var cc='[-!#$%&\'*+\\/0-9=?A-Z^_`a-z{|}~';
@@ -244,7 +244,7 @@ h3 {padding:30px 0 0 0; margin:0; color:DarkOliveGreen; font-weight:bold;}
 </tr>
 
 <tr>
-  <th><label for="cg_account">Common Good Account (if any):</label></th>
+  <th><label for="cg_account">Common Good Account ID (if any):</label></th>
   <td><input id="cg_account" maxlength="6" name="cg_account" size="6" type="text" /></td>
 </tr>
 
@@ -252,7 +252,9 @@ h3 {padding:30px 0 0 0; margin:0; color:DarkOliveGreen; font-weight:bold;}
 <tr>
   <td colspan="2"><p>Community Solar payments are processed through <a href="http://CommonGood.earth" target="_blank">Common Good</a>. If you already have a Common Good account, type your 6-letter account code in the box above (find it printed under your name on your Common Good card).</p>
 
-<p>If you do not yet have a Common Good account, leave this box empty. When you hit "Submit", you will be redirected to CommonGood.earth to set up an account. Please also email us a picture or scan of your most recent electric bill (we will send you a reminder email that you can reply to with the attachment). Once we receive your bill and we have confirmation that your Common Good account is set up, we will send you an agreement to review and sign.  THANK YOU!!</p>
+<p>If you do not yet have a Common Good account, leave this box empty. When you hit "Submit", you will be redirected to CommonGood.earth to set up an account.</p>
+  
+<p>Please also email us (solar@cooppower.coop) a picture or scan of your most recent electric bill (we will send you a reminder email that you can reply to, attaching your bill). Once we receive your bill and we have confirmation that your Common Good account is set up, we will send you an agreement to review and sign. THANK YOU!!</p>
   </td>
 </tr>
 
