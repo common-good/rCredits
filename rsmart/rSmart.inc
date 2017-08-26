@@ -325,6 +325,9 @@ function charge($args, $type = 'charge') {
   if (!@$member) return posErr('missing member'); // handle empty string (versus missing param)
   if ($version > 216 and !@$proof) return posErr(missingArg('proof', []));
   if (@$description === '') return posErr('missing description');
+  if (strpos($description, ' ') !== FALSE) {
+    r\tellAdmin(t('POS tx description not urlencoded.'));
+  } else $description = urldecode($description);
   if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
 
   if (!$a = getMember($member, '', $err, FALSE)) { // proof is proof enough (no cardCode needed)

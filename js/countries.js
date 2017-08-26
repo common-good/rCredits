@@ -4795,6 +4795,7 @@ function print_country(dft_country, dft_state, dft_state2){
   if (dft_country == "") {
     dft_country = USID; // 1228 is US
     dft_state = 0; // 1020 is MA
+    dft_state2 = 0;
   }
   var options = $('#edit-country')[0];
   options.length=0; // zap any previous list items

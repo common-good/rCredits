@@ -95,6 +95,8 @@ function populateMeterAddress(same) {
 <style>
 #signup th, #signup label {width:300px; text-align:left; font-size:95%; font-weight:normal;}
 h3 {padding:30px 0 0 0; margin:0; color:DarkOliveGreen; font-weight:bold;}
+span.cgLoud {background-color:yellow;}
+h2.cgLoud {color:darkred !important; font-weight:bold; margin-top:30px;}
 </style>
 
 <form id="signup" action="" method="POST" onsubmit="var ret = createRetURL(this); this.action='http://localhost/cgMembers/rcredits/misc/cooppower.php?' + ret; return (ret != '');">
@@ -250,11 +252,12 @@ h3 {padding:30px 0 0 0; margin:0; color:DarkOliveGreen; font-weight:bold;}
 
   
 <tr>
-  <td colspan="2"><p>Community Solar payments are processed through <a href="http://CommonGood.earth" target="_blank">Common Good</a>. If you already have a Common Good account, type your 6-letter account code in the box above (find it printed under your name on your Common Good card).</p>
+  <td colspan="2"><h2 class="cgLoud">IMPORTANT:</h2>
+  <p>Community Solar payments are processed through <a href="http://CommonGood.earth" target="_blank">Common Good</a>. If you already have a Common Good account, type your 6-letter account code in the box above (find it printed under your name on your Common Good card).</p>
 
-<p>If you do not yet have a Common Good account, leave this box empty. When you hit "Submit", you will be redirected to CommonGood.earth to set up an account.</p>
+<p>If you do not yet have a Common Good account, leave this box empty. When you hit "Submit", <span class="cgLoud">you will be redirected to CommonGood.earth</span> to open a Common Good account.</p>
   
-<p>Please also email us (solar@cooppower.coop) a picture or scan of your most recent electric bill (we will send you a reminder email that you can reply to, attaching your bill). Once we receive your bill and we have confirmation that your Common Good account is set up, we will send you an agreement to review and sign. THANK YOU!!</p>
+<p><span class="cgLoud">Please also email Co-op Power</span> (solar@cooppower.coop) a picture or scan of your most recent electric bill (we will send you a reminder email that you can reply to, attaching your bill). Once we receive your bill and we have confirmation that your Common Good account is set up, we will send you an agreement to review and sign. THANK YOU!!</p>
   </td>
 </tr>
 

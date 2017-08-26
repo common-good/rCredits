@@ -68,7 +68,7 @@ function formEvents($form, &$sta, $args = '') {
         if (!$mya->superAdmin) return compact('title');
       }
 
-      if (!@$do) $voting = $type == 'V' ? v\votingWelcome($end) : v\gradingWelcome($end);
+      if (!@$do) $voting = $type == 'V' ? v\votingWelcome($end) : v\gradingWelcome($end); // end is displayable end date
     }
 
     $start = $start <= time() ? t('NOW') : u\fmtDate($start);
@@ -110,9 +110,9 @@ EOF;
     $list = '';
     while ($row = $q->fetchAssoc()) {
       extract($row, EXTR_PREFIX_ALL, 'e');
-      $e_end = u\fmtDate($e_end);
       $buttons = $mya->cAdmin ? button(t('Edit'), "$base_url/community/events/event/$e_id", '', 'warning') : '';
       if ($e_end < time()) $buttons .= ' &nbsp; ' . button(t('Results'), "$base_url/community/events/event/$e_id/report", '', 'success');
+      $e_end = u\fmtDate($e_end);
       $list .= <<<EOF
 <tr><td>$e_end</td><td>$e_event</td><td>$buttons</td></tr>
 EOF;
@@ -250,8 +250,8 @@ EOF;
   $type = w\selectFld(t('Type:'), '', required(@$type), $types);
   $event = w\textFld(t('Event name:'), [t('Short Descriptive Event Name'), t('For example, "Voting on 3 questions".')], required(@$event));
   $details = w\areaFld(t('Details:'), [t('Event Details')], dft(@$details));
-  $start = w\textFld(t('Start:'), [t('Start Date')], required(@$start ? u\fmtDate($start) : ''));
-  $end = w\textFld(t('End:'), [t('End Date')], required(@$end ? u\fmtDate($end) : ''));
+  $start = w\textFld(t('Start:'), [t('Start Date')], required(@$start ? u\fmtDate($start, TRUE) : ''));
+  $end = w\textFld(t('End:'), [t('End Date')], required(@$end ? u\fmtDate($end, TRUE) : ''));
   if ($mya->cAdmin) $submit = w\submit();
   
   return w\labeled(compact(ray('title id type event details start end submit list')));

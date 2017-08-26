@@ -413,13 +413,14 @@ function fmtEin($ein) {
  *   '+n' +1dddddddddd (AKA 'internal')
  *   'n'  dddddddddd
  *   '+'  +1 ddd ddd dddd (the international standard with spaces added) (the default)
+ *   '-'  ddd-ddd-dddd
  * @return the formatted phone number (FALSE if the $phone is not a phone number or $how is bad)
  */
 define('MAX_PHONE_DIGITS', 15);
 define('MIN_PHONE_DIGITS', 7);
 
 function fmtPhone($phone, $how = '+') {
-  $sep = ' '; // digit group separator
+  $sep = $how == '-' ? '-' : ' '; // digit group separator
   $foreign = ''; // set to 'n' format if the phone is outside US
   $phone = (preg_replace('/[\(\) \-\.]/', '', $phone)); // ignore typical punctuation
   if (substr($phone, 0, 2) == '+1') {
@@ -436,7 +437,7 @@ function fmtPhone($phone, $how = '+') {
   if ($how == '+n' or $how == 'internal') return ($foreign ? "+$foreign" : "+1$phone");
 
   $phone = substr($phone, 0, 3) . $sep . substr($phone, 3, 3) . $sep . substr($phone, 6);
-//  if ($how == '') return $phone;
+  if ($how == '-') return $phone;
   if ($how == '+' or $how == '') {
     $len = substr($foreign, 0, 1) == '7' ? 1 // get length of country prefix
       : (strpos('. 21 22 23 24 25 26 29 35 37 38 42 51 59 67 68 69 85 87 88 96 97 99 ', ' ' . substr($foreign, 0, 2) . ' ') ? 3 : 2);
@@ -1019,9 +1020,10 @@ function badDate(&$s, $min = '', $max = PHP_INT_MAX) {
 /**
  * Parse the name, returning the first and last names separately. Underlines in last name are treated as spaces.
  * @param string $name: the name to parse
- * @return array: [$first, $last]
+ * @param bool $withMiddles: <separate out the middle name(s)>
+ * @return array: [$first, $last] or [$first, $last, $middles]
  */
-function parseName($name) {
+function parseName($name, $withMiddles = FALSE) {
   $name = trim(preg_replace('/  /', ' ', $name));
   if ($i = strpos($name, ',')) {
     $suffix = substr($name, $i);
@@ -1032,7 +1034,10 @@ function parseName($name) {
   }
   $names = explode(' ', $name);
   $last = str_replace('_', ' ', array_pop($names) . @$suffix);
-  return array(join(' ', $names), $last);
+  if ($withMiddles) {
+    $first = array_shift($names);
+    return [$first, $last, join(' ', $names)];
+  } else return [join(' ', $names), $last];
 }
 
 /**
@@ -1135,7 +1140,7 @@ function insertBefore($bundle, $haystack, $needle) {
   if (!$i = array_search($needle, array_keys($haystack))) return FALSE;
   return array_slice($haystack, 0, $i) + $bundle + array_slice($haystack, $i);
 }
- 
+
 function formatNum($num, $format) {
   $num = digits($num);
   if ($format == 'ein') $format = 'dd-ddddddd';
@@ -1365,7 +1370,7 @@ function isName($value) {return preg_match('/^[ \\x{00c0}-\\x{01ff}a-zA-Z0-9\,\.
 function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\\Acct');}
 function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);} // deprecated
 function s2t($s) {return strtotime(preg_match('/[A-Z]/i', $s) ? $s : str_replace('-', '/', $s));}
-function fmtDate($time = NULL, $numeric = FALSE) {return strftime($numeric ? '%m/%d/%Y' : '%d-%b-%Y', isset($time) ? $time : r\rTime());}
+function fmtDate($time = NULL, $numeric = FALSE) {return strftime($numeric ? '%m/%d/%Y' : '%d%b%Y', isset($time) ? $time : r\rTime());}
 function fmtTime($time = NULL) {return strtolower(strftime('%I:%M%p', isset($time) ? $time : r\rTime()));}
 function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}
 function digits(&$n) {return $n = preg_replace('/\D/', '', @$n);}
@@ -1401,3 +1406,4 @@ function randomFloat($min = 0, $max = 1) {return $min + mt_rand() / mt_getrandma
 function hash($s) {return \hash('sha256', $s, false);}
 function day2n($day) {return array_search($day, ray('Sun Mon Tue Wed Thu Fri Sat'));} // workaround %u and %w failure
 function lf2br($s) {return strtr($s, ["\r" => '', "\n" => '<br>']);}
+function sqlSerialValue($s, $n) {return "SUBSTRING_INDEX(SUBSTRING_INDEX($s, '\\\"', $n * 2), '\\\"', -1)";}

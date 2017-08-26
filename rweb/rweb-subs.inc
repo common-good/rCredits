@@ -1328,6 +1328,7 @@ function nameAndEmail($what, $fullName = '', $email = '', $hideEmail = FALSE) {
   $onchange = w\onchange("var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);");
   $fullName = textFld("$what:", ["$who " . t('full name'), t('usename desc')], required(@$fullName) + $onchange);
   $legalName = textFld(t('Legal name:'), ["$who " . t('full legal name (if different)'), $who . t('legalname desc')]);
+  if ($email and !emailOkay($email, FALSE)) $hideEmail = FALSE; // make sure they can fix it
   $email = $hideEmail ? w\hidFld(@$email) : textFld(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required(@$email));
   return compact(ray('fullName legalName email'));
 }
@@ -1339,6 +1340,7 @@ function nameAndEmail($what, $fullName = '', $email = '', $hideEmail = FALSE) {
  * @param acct $a: account for which to show existing contact field values (empty if new account)
  */
 function contactFields($defaults = [], $a = '') {
+  global $fieldErr; // set in w\say
 //  $country = $state = ''; // make sure these are not NULL
   $partnerExtras = ' partner customer source partnerCode'; // add-on fields passed through only for partner signup (start with space) (even partnerCode is necessary, in case form is redrawn on error)
   $fields = 'phone country physical address city state zip tenure owns sameAddr2 address2 city2 state2 zip2 postalAddr hidCountry hidState hidState2';
@@ -1346,6 +1348,7 @@ function contactFields($defaults = [], $a = '') {
   extract($defaults + ($a ? (array) $a->account($fields) : []));
 
   if (!$defaults and @$postalAddr) list ($address2, $city2, $state2, $zip2) = u\parseAddr(@$postalAddr);
+  if (!@$state2) $state2 = 0; // otherwise default fails in countrys.js
   if (!@$country) $country = US_COUNTRY_ID;
 
   foreach (['state', 'state2'] as $k) {
@@ -1354,7 +1357,7 @@ function contactFields($defaults = [], $a = '') {
   }
 //  if (@$state2 == '1020') r\tellAdmin('state2 1020: ' . print_r(debug_backtrace(), 1));
 
-  if (@$partner) r\tellAdmin(t('%partner sent new member', compact('partner')), ['address1' => @$address] + compact(ray($fields . $partnerExtras)) + $_POST); // temporary (tellAdmin strips off address along with other secure fields)
+//  if (@$partner) r\tellAdmin(t('%partner sent new member', compact('partner')), ['address1' => @$address] + compact(ray($fields . $partnerExtras)) + $_POST); // temporary (tellAdmin strips off address along with other secure fields)
   js('js/countries.js', 'file', 'footer'); // required for setPostalAddr, whether or not the fields are shown
   
   if (@$partner and @$partnerCode and @$customer
@@ -1409,7 +1412,7 @@ EOF;
     $state = selectFld(t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
     $zip = textFld(t('Postal Code:'), [t('Physical location postal code'), t('Postal code for your <em>physical location</em>')], required(@$zip) + $zipAttrib);
 
-    $sameAddr2 = ($a or @$state2)
+    $sameAddr2 = ($a ? !$a->cAdmin : @$state2) // show box on signup (until mailing addr filled) and to admin
     ? w\item('', t('Mailing Address')) 
     : w\boxFld('sameAddr', t('Mailing Address'), t('same as above'), 0, w\onchange('setPostalAddr(true)'));
     
@@ -1648,7 +1651,7 @@ function signout($arg = '') {
   @\session_destroy();
 //  return r\go(isDEV ? 'http://rPromo/_sites?region=x' : 'http://CommonGood.earth/control.html?region=x');
 //  if (isDEV and !u\test()) r\go('signin', $arg == 'timedout' ? 'timed out' : '');
-  if ($arg != 'no redirect') return r\go(PROMO_URL . '/control.html?region=x' . ($arg ? "&a=$arg" : ''));
+  if ($arg != 'no redirect') return r\go(PROMO_URL . '?region=x' . ($arg ? "&a=$arg" : ''));
 }
 
 function fundRpt($now, $then, $type = '') {
@@ -2423,7 +2426,7 @@ function amtErr($field, &$sta, $restriction = '', $fractionLimit = 2) {
 function atag($href, $extras = []) {
   if ($href[0] == '/') $href = BASE_URL . $href;
   if ($href[0] == '$') $href = 'javascript:' . substr($href, 1);
-  if (strpos($href, BASE_URL) !== 0) {
+  if (!u\starts($href, BASE_URL)) {
     if (substr($href, 0, 6) == 'mailto' or substr($href, 0, 4) == 'http') $extras += w\away();
   }
   return 'a ' . u\tribs(compact('href') + $extras);
@@ -2433,14 +2436,17 @@ function emailtag($email = NULL, $subject = '', $body = '') {
   foreach (['subject', 'body'] as $k) if ($$k) $$k = "$k=" . urlencode($$k) . '&';
   return "a href=\"mailto:$email?$subject$body\" target=\"_blank\"";
 }
+function btn($href, $text, $style = 'primary', $size = 'xs', $extras = []) {
+  return '<' . atagB($href, $style, $size, $extras) . ">$text</a>";
+}
+function lnk($href, $text, $extras = []) {return '<' . atag($href, $extras) . ">$text</a>";}
 
 /**
  * Return an a tag for a non-spinning button to a new page.
  */
-function atagB($href, $style = 'primary', $size = 'xs') {
-  return atag($href, ray('class role target', "btn btn-$size btn-$style", 'button', '_blank'));
+function atagB($href, $style = 'primary', $size = 'xs', $extras = []) {
+  return atag($href, $extras + ray('class role', "btn btn-$size btn-$style", 'button'));
 }
-function btn($href, $text, $style = 'primary', $size = 'xs') {return '<' . atagB($href, $style, $size) . ">$text</a>";}
 
 /**
  * Return an HTML tag with optional attributes, surrounding optional HTML.

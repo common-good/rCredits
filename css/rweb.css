@@ -345,6 +345,12 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformcttyfunds .ctty {background-color:darkblue;}
 #rcreditswebformcttyfunds label {display:none;}
 
+/* Admin Followup Calls */
+#rcreditswebformfollowup label {display:none;}
+#rcreditswebformfollowup #memberlist th:first-child +th {width:85px;}
+#rcreditswebformfollowup #memberlist th:first-child +th +th {width:170px;}
+#rcreditswebformfollowup #memberlist th:first-child +th +th +th {width:95px;}
+
 /* Member List */
 #memberlist .name a {font-weight:bold;}
 #memberlist .co a {color:darkred;}
@@ -378,6 +384,18 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformhelp #special-flag {font-size:100%; margin-bottom:20px;}
 
 /* Summary / Member Info / Account Info */
+#rcreditswebformsummary .form-item-left {float:left; width:50%;}
+#rcreditswebformsummary .form-item-right {float:right; width:50%;}
+#rcreditswebformsummary .form-item-right>label,
+#rcreditswebformsummary .form-item-left>label {display:none;}
+#rcreditswebformsummary .form-item-right .control-data,
+#rcreditswebformsummary .form-item-left .control-data {width:auto;}
+#rcreditswebformsummary .admin label {min-width:100px;}
+#rcreditswebformsummary .admin .control-data {width:auto; max-width:380px;}
+#rcreditswebformsummary .admin textarea {width:380px;}
+#rcreditswebformsummary .admin .form-checkboxes {width:380px;}
+#rcreditswebformsummary #edit-notes .control-data {width:380px; max-height:150px; overflow:scroll;}
+#rcreditswebformsummary #edit-tickle {max-width:120px; display:inline-block;}
 #rcreditswebformsummary #edit-photo img {max-width:100px;}
 #rcreditswebformsummary #edit-creditlimit .help-block,
 #rcreditswebformsummary #edit-committed .help-block,
@@ -791,7 +809,7 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebformrelations #edit-list .control-data,
 #relations {width:100%; max-width:100%;}
 #rcreditswebformrelations #edit-list .control-label {display:none;}
-#rcreditswebformrelations .form-type-submit {display:inline-block;}
+#rcreditswebformrelations .form-type-submit {display:inline-block; width:400px;}
 #rcreditswebformrelations .form-type-submit label {display:none;}
 #rcreditswebformrelations #edit-go {margin-left:212px;}
 #rcreditswebformrelations #edit-nextStep {margin-left:50px;}

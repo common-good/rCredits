@@ -1,4 +1,33 @@
-2017-08-
+2017-08-26 version 2.91
+. removed restrictions on signing up (anyone can sign up)
+. added a continuation email to partner signup people in case they don't complete the first page
+. created admin followup call page
+. created New Note field on Summary page (for cAdmins instead of editing notes field directly)
+. created tickle feature for admin calls
+. eachA(function($a) { // add 'ssn' step to not-yet-member accounts and attempt to verify SSN
+  if ($a->member or $a->co) return;
+  $stepsDoneX = $a->stepsDone;
+  if (isset($stepsDoneX['ssn'])) return;
+  $stepsDone = f('r.stepsDone0'); foreach (ray('company relations') as $k) unset($stepsDone[$k]);
+  foreach ($stepsDone as $k => $v) $stepsDone[$k] = (bool) @$stepsDoneX[$k];
+  $a->update(compact('stepsDone'));
+  $a->ssnCheck();
+});
+. eachA(function($a) { // set tickle for every active account
+  if (!$a->activated or !$a->ok) return;
+  if (time() - $a->activated < 30 * DAY_SECS) {
+    $tickle = $a->activated + TICKLE_WELCOME * DAY_SECS;
+  } else {
+    $tickle = time() - 1;
+    for ($i = 1; $tickle < time(); $i++) $tickle = strtotime("+$i years", $a->activated);
+  }
+  $a->update(compact('tickle'));
+});
+. UPDATE users u LEFT JOIN r_relations r ON r.other=u.uid SET flags=flags|(1<<21) WHERE draw
+. fixed bug that kept source field from showing
+. split Summary page into two columns for admins and rearranged fields
+
+2017-08-15
 . fixed bug that resulted in "1020" instead of "MA" in postalAddr
 . limited proxy choices to same city/state or placeholders for new seedpack members
 . limited proxy choices to active accounts (or placeholders)
@@ -26,7 +55,7 @@ if ($a->id > 1 and $a->community and $a->community != $FIN and $a->community != 
   if ($ctty2 and $ctty2 != $a->community) {
     $old = $a->cttyA->fullName;
     $new = a($ctty2)->fullName;
-//    debug("$a->zip &nbsp; $a->fullName: $old >>> $new");
+///    debug("$a->zip &nbsp; $a->fullName: $old >>> $new");
     $a->update('community', $ctty2);
   }
 }

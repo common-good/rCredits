@@ -120,6 +120,13 @@ $GLOBALS['tStrings'] = array(
   'roundups desc' => t('donation: of rounded-up payment change'),
   'crumbs desc' => t('donation: percentage of past month receipts'),
   'sent email' => t('<p>We emailed a Verification Code to you at <b>%email</b> (if you don\'t see it, check your Spam folder). Type the code here, choose a password, and press Next.</p><p>Mixed-case, digits, punctuation, and plain old length make your password strong.</p>'),
+  'proxy help' => t(<<<EOF
+    <p><b>Direct democracy</b> is at the heart of the %PROJECT design. In each community, members meet to discuss and decide on funding priorities for incentives, grants, loans, and investments of %RCREDITS for the greater good.</p>
+    <p>You assign a person in your community as your ongoing Representative (Proxy). This should be a member you know and trust and generally agree with. Whenever you don't vote, your Representative votes for you. The Representative's vote simply counts double (one vote for them and one vote for you). If your Representative also fails to vote, then your Representative's Proxy votes for all three of you.<br><br>Everyone's voice is counted, whether or not they vote directly &mdash; one person one vote.</p>
+    <p>Our community's most trusted Representatives (chosen by many people to be their proxy) will meet in person to research and debate specific issues. These trusted Representatives ("Trustees") do not decide broad policy issues &mdash; all members decide the policy issues. Instead, Trustees oversee public discussions, choose wording for questions to be voted on, take action as directed by the members, and assure that the system is running smoothly.</p>
+    <p>There is no way to tell who has chosen you as their proxy. <i>Your proxy does NOT have access to your %PROJECT account, bank account, or personal information.</i></p>
+EOF
+  ),
 
   // questions
   "what's your name?" => t("To set up your %PROJECT Account, we need your full name and email address. First, what's your name?"),

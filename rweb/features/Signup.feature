@@ -54,7 +54,7 @@ Scenario: A newbie visits the registration page with a used invite
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St., Agawam, MA 01001 |     18 |    1 | .ZZZ   |
   When member "?" visits page "signup/code=c0D3"
   Then we show "Open a Personal %PROJECT Account"
-  And we say "error": "used invite"
+#  And we say "error": "used invite"
 
 Scenario: A newbie registers in Western Massachusetts
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"

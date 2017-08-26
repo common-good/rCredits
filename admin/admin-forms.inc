@@ -339,6 +339,73 @@ function formMakeCtty_submit($form, &$sta) {
 }
 
 /**
+ * Show a list of standard calls to make (to help new members, check-in, ask for donation, etc.)
+ */
+function formFollowup($form, &$sta, $args = '') {
+  global $base_url;
+  global $mya;
+  
+  extract(u\just('uid', $args));
+  
+  if (@$uid) {
+    w\setAcct($uid); // switch to that user
+    return formSummary($form, $sta);
+  }
+
+  $title = item(t('Standard Calls to Members'));
+  if ($mya->admin) $subtitle = w\item(t('To limit see the list for a specific community, choose that community account (or any account in that community. To see the whole list, choose your own account.'));
+  
+  $name0 = u\sqlSerialValue('data', 2);
+  $phone0 = u\sqlSerialValue('data', 6);
+  $email0 = u\sqlSerialValue('data', 4);
+  $city0 = u\sqlSerialValue('data', 10);
+  $now = time();
+  list ($where1, $where2) = ($mya->admin and $mya->proSe) ? [1, 1] : [0, "community=$mya->community"];
+  
+  $sql = <<<EOF
+    (SELECT 0 AS uid, 0 AS tickle, $name0 AS fullName, $phone0 AS phone, created, 0 AS activated, 
+      CONCAT_WS(' ', $city0, $email0) AS notes, 0 AS co FROM r_relations WHERE other=0 AND $where1)
+    UNION
+      (SELECT uid, tickle, fullName, phone, created, activated, notes, :IS_CO AS co FROM users 
+      WHERE uid>3 AND NOT :IS_NONUDGE AND NOT (activated and NOT :IS_OK) AND $where2 AND (tickle>0 OR NOT :IS_MEMBER
+      OR (SELECT xid FROM r_txs WHERE uid IN (payer, payee) AND created>$now-60*:DAY_SECS LIMIT 1) IS NULL))
+    ORDER BY IF(tickle>0, tickle, created)
+EOF;
+
+  $fields = ray('type call name phone notes');
+  $q = db\q($sql);
+  $guts = $heads = '';
+  foreach ($fields as $k) {
+    $heads .= '<th>' . ucfirst($k) . '</th>';
+    $guts .= "<td>$k</td>";
+  }
+  $list = "<table id=\"memberlist\"><tr>$heads</tr>\n";
+  $emails = '';
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    list ($type, $color, $offset) = !$uid ? [t('wary?'), '#ff4d4d', 0]
+    : (!$activated ? [t('setup'), 'yellow', 0]
+    : ($tickle == ($activated + TICKLE_WELCOME * DAY_SECS) ? [t('welcome'), 'lime', 0]
+    : (($tickle and date('dM', $tickle) == date('dM', $activated)) ? [t('annual'), 'violet', 0]
+    : ($tickle>0 ? [t('followup'), 'orange', 0]
+    : ( [t('dormant'), 'cyan', 90] )))));
+    $type = "<span style=\"background-color:$color;\">$type</span>";
+    $call = u\fmtDate($tickle > 0 ? $tickle : $created + $offset * DAY_SECS);
+    $name = $uid ? w\lnk("$base_url/summary/$uid", $fullName ?: $uid) : ($fullName ?: $created);
+    if ($co) $name = "<span class=\"co\">$name</span>";
+    $phone = u\fmtPhone(u\decryptN($phone), '-');
+    $notes = strtr($notes, ["\n" => '|| ', date('Y') => '']);
+    $notes = substr($notes, 0, 200) . (strlen($notes) > 200 ? '...' : '');
+    $list .= strtr("<tr>$guts</tr>\n", compact($fields));
+  }
+  if (!isset($tickle)) $list .= t('There are no followup calls to be made.');
+  $list .= "</table>\n";
+  
+  $list = item($list);
+  return compact(ray('title subtitle list'));
+}
+
+/**
  * Show a list of members in the current account's community
  */
 function formMemberList($form, &$sta) {
@@ -874,7 +941,7 @@ function handyLinks() {
 
   $links = array(
     'devel/menu/reset?destination=sadmin|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Redo MENUS|menu-hamburger',
-    'rcredits/util/rebuild|Rebuild all project tables|REINSTALL cg|fast-backward',
+    'rcredits/util/rebuild|Rebuild all project tables|REBUILD database|fast-backward',
     'rcredits/util/clear_sessions|Empty the sessions table|Clear Sessions|unchecked',
     
     'devel/settings|Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the block administration page.|Devel settings|cog',

@@ -360,7 +360,6 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST Signin AMemberAsksForANewPasswordForAnUnknownAccount
  *     TEST Signin AMemberClicksALinkToResetPasswordWithWrongCode
  *     TEST Signin AMemberClicksALinkToResetPasswordForUnknownAccount
- *     TEST Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     TEST Signup ANewbieRegistersInWesternMassachusetts
  *     TEST Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
  *     TEST Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
@@ -389,8 +388,7 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
 /**
  * we tell admin (ARG) with subs: (ARG)
  *
- * in: TEST Gift AMemberDonates
- *     TEST Gift AMemberDonatesWithInsufficientFunds
+ * in: TEST Gift AMemberDonatesWithInsufficientFunds
  */
 function weTellAdminWithSubs($topic, $subs) {return t\weTellAdmin($topic, $subs);}
 

@@ -228,9 +228,7 @@ function gifts($gifts) {return t\gifts($gifts);}
 /**
  * we tell admin (ARG) with subs: (ARG)
  *
- * in: TEST Gifts ADonationCanBeCompleted
- *     TEST Gifts ARecurringDonationCanBeCompleted
- *     TEST Recache BalancesGetOutOfWhack
+ * in: TEST Recache BalancesGetOutOfWhack
  *     TEST Recache BalancesGetATinyBitOutOfWhack
  */
 function weTellAdminWithSubs($topic, $subs) {return t\weTellAdmin($topic, $subs);}

@@ -182,6 +182,10 @@ function handleTx($do, $xid, &$sta, $args) {
     $tx = db\lookup('*', 'r_usd', 'txid=:xid', ['xid'=>substr($xid, 1)]);
     foreach (u\just('txid amount tid', $tx) as $k => $v) $tx[$k] = -$v; // reverse transfer
     extract($tx);
+    if (!$deposit) { // transfer request has not been processed yet
+      $deposit = $tx['deposit'] = r\rTime(); // mark both done
+      db\update('r_usd', compact(ray('xid deposit')), 'xid');
+    }
     $mya->bank($amount, $zot, $tx);
     r\go($url, t('Reversed %amount bank transfer for %who.', 'amount who', u\fmtAmt(-$amount), $mya->fullName));
   }
@@ -230,7 +234,7 @@ function txEdit($xid) {
   $goods = $mya->cttyRewardy ? radiosFld('&nbsp;', '', dft((int) $goods), ray(R_WHYS)) : w\hidfld($goods);
   $purpose = textFld(t('For:'), '', dft(u\nonish(@$purpose) ? '' : $purpose));
   $created0 = w\hidFld($created);
-  if ($mya->cAdmin) $created = textFld(t('Date:'), '', dft(u\fmtDate($created))); else unset($created);
+  if ($mya->cAdmin) $created = textFld(t('Date:'), '', dft(u\fmtDate($created, TRUE))); else unset($created);
   $submit = submit(t('Update'));
 
   return labeled($form + compact(ray('title to amount goods purpose created0 created submit orig')));

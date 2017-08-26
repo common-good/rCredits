@@ -307,6 +307,7 @@ EOF
     Hover over any option or column header for an explanation of what it means. Select some options, and the period or specific date range that interests you, then click either "Show" or "Download". The downloaded spreadsheet (in CSV format) has more complete information, including column totals.
 EOF
   );
+  if ($i == 'proxies') return t('proxy help');
 
   if ($i == 'demand') return showCharts('banking', $ctty) . t(<<<EOF
     <p>The "demand" for %RCREDITS is the net amount of US Dollars people want to trade for %RCREDITS. As long as people have plenty of places to spend within the %PROJECT system, they will generally keep moving money in. So the demand gives us a pretty reliable measure of the system's soundness.</p>

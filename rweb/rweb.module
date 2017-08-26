@@ -129,7 +129,7 @@ function rweb_menu($submenu = '') {
     'settings/security' => ['sub', t('Security'), 'Security 2', 'manage -co', '', t(''), 'link'],
     'settings/connect' => ['sub', t('Bank Info'), 'Connect 2', 'manage', '', t(''), 'piggy-bank'],
     'settings/company' => ['sub', t('Company Info'), 'Company 2', 'manage co', '', t(''), 'calendar'],
-    'settings/relations' => ['sub', t('Relations'), 'Relations', 'manage', '', t(''), 'magnet'],
+    'settings/relations' => ['sub', t('Relations'), 'Relations 2', 'manage', '', t(''), 'magnet'],
 // DISABLE FOR NOW    'settings/boxes' => ['sub', t('Devices'), 'Boxes', 'manage', '', t(''), 'phone'],
     'settings/proxies' => ['sub', t('Proxies'), 'Proxies', 'manage -co', '', t(''), 'thumbs-up'],
     'settings/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
@@ -172,6 +172,7 @@ function rweb_menu($submenu = '') {
 
     'sadmin' => ['norm', t('Admin'), 'Admin', 'cadmin2'],
     'sadmin/panel' => ['sub', t('Panel'), 'AdminPanel 2', 'cadmin'],
+    'sadmin/followup' => ['sub', t('Admin Calls to Make'), 'Followup', 'cadmin'],
     'sadmin/member-list' => ['sub', t('Member List'), 'MemberList', 'cadmin2'],
     'sadmin/export-list' => ['sub', t('Export'), 'DownloadMemberList 2', 'cadmin2'],
     'sadmin/deposits' => ['sub', t('Deposits'), 'Deposits', 'superadmin'],

@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 09, 2017 at 09:04 PM
+-- Generation Time: Aug 26, 2017 at 10:05 PM
 -- Server version: 5.6.24
 -- PHP Version: 5.6.8
 
@@ -19,38 +19,6 @@ SET time_zone = "+00:00";
 --
 -- Database: `new_rcredits`
 --
-
--- --------------------------------------------------------
-
---
--- Table structure for table `actions`
---
-
-CREATE TABLE IF NOT EXISTS `actions` (
-  `aid` varchar(255) NOT NULL DEFAULT '0' COMMENT 'Primary Key: Unique actions ID.',
-  `type` varchar(32) NOT NULL DEFAULT '' COMMENT 'The object that that action acts on (node, user, comment, system or custom types.)',
-  `callback` varchar(255) NOT NULL DEFAULT '' COMMENT 'The callback function that executes when the action runs.',
-  `parameters` longblob NOT NULL COMMENT 'Parameters to be passed to the callback function.',
-  `label` varchar(255) NOT NULL DEFAULT '0' COMMENT 'Label of the action.'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Stores action information.';
-
---
--- Dumping data for table `actions`
---
-
-INSERT INTO `actions` (`aid`, `type`, `callback`, `parameters`, `label`) VALUES
-('comment_publish_action', 'comment', 'comment_publish_action', '', 'Publish comment'),
-('comment_save_action', 'comment', 'comment_save_action', '', 'Save comment'),
-('comment_unpublish_action', 'comment', 'comment_unpublish_action', '', 'Unpublish comment'),
-('node_make_sticky_action', 'node', 'node_make_sticky_action', '', 'Make content sticky'),
-('node_make_unsticky_action', 'node', 'node_make_unsticky_action', '', 'Make content unsticky'),
-('node_promote_action', 'node', 'node_promote_action', '', 'Promote content to front page'),
-('node_publish_action', 'node', 'node_publish_action', '', 'Publish content'),
-('node_save_action', 'node', 'node_save_action', '', 'Save content'),
-('node_unpromote_action', 'node', 'node_unpromote_action', '', 'Remove content from front page'),
-('node_unpublish_action', 'node', 'node_unpublish_action', '', 'Unpublish content'),
-('system_block_ip_action', 'user', 'system_block_ip_action', '', 'Ban IP address of current user'),
-('user_block_user_action', 'user', 'user_block_user_action', '', 'Block current user');
 
 -- --------------------------------------------------------
 
@@ -89,7 +57,6 @@ CREATE TABLE IF NOT EXISTS `block` (
 
 INSERT INTO `block` (`bid`, `module`, `delta`, `theme`, `status`, `weight`, `region`, `custom`, `visibility`, `pages`, `title`, `cache`) VALUES
 (1, 'system', 'main', 'bartik', 1, 0, 'content', 0, 0, '', '', -1),
-(3, 'node', 'recent', 'seven', 0, 10, '-1', 0, 0, '', '', -1),
 (4, 'user', 'login', 'bartik', 1, 0, 'sidebar_first', 0, 0, '', '', -1),
 (5, 'system', 'navigation', 'bartik', 1, 0, 'sidebar_first', 0, 0, '', '', -1),
 (6, 'system', 'powered-by', 'bartik', 1, 10, 'footer', 0, 0, '', '', -1),
@@ -98,14 +65,11 @@ INSERT INTO `block` (`bid`, `module`, `delta`, `theme`, `status`, `weight`, `reg
 (9, 'system', 'help', 'seven', 1, 0, 'help', 0, 0, '', '', -1),
 (10, 'user', 'login', 'seven', 1, 10, 'content', 0, 0, '', '', -1),
 (11, 'user', 'new', 'seven', 0, 0, '-1', 0, 0, '', '', -1),
-(14, 'node', 'syndicate', 'bartik', 0, 0, '-1', 0, 0, '', '', -1),
-(15, 'node', 'recent', 'bartik', 0, 0, '-1', 0, 0, '', '', 1),
 (17, 'system', 'management', 'bartik', 0, 0, '-1', 0, 0, '', '', -1),
 (18, 'system', 'user-menu', 'bartik', 0, 0, '-1', 0, 0, '', '', -1),
 (19, 'system', 'main-menu', 'bartik', 0, 0, '-1', 0, 0, '', '', -1),
 (20, 'user', 'new', 'bartik', 0, 0, '-1', 0, 0, '', '', 1),
 (21, 'user', 'online', 'bartik', 0, 0, '-1', 0, 0, '', '', -1),
-(23, 'node', 'syndicate', 'seven', 0, 0, '-1', 0, 0, '', '', -1),
 (25, 'system', 'powered-by', 'seven', 0, 10, '-1', 0, 0, '', '', -1),
 (26, 'system', 'navigation', 'seven', 0, 0, '-1', 0, 0, '', '', -1),
 (27, 'system', 'management', 'seven', 0, 0, '-1', 0, 0, '', '', -1),
@@ -118,8 +82,6 @@ INSERT INTO `block` (`bid`, `module`, `delta`, `theme`, `status`, `weight`, `reg
 (36, 'devel', 'switch_user', 'seven', 0, 0, '-1', 0, 0, '', '', -1),
 (41, 'devel', 'execute_php', 'rcredits', 0, 0, '-1', 0, 0, '', '', -1),
 (42, 'devel', 'switch_user', 'rcredits', 0, 0, '-1', 0, 0, '', '', -1),
-(44, 'node', 'recent', 'rcredits', 0, -9, '-1', 0, 0, '', '', -1),
-(45, 'node', 'syndicate', 'rcredits', 0, 0, '-1', 0, 0, '', '', -1),
 (46, 'system', 'help', 'rcredits', 1, 0, 'help', 0, 0, '', '', -1),
 (47, 'system', 'main', 'rcredits', 1, 0, 'content', 0, 0, '', '', -1),
 (48, 'system', 'main-menu', 'rcredits', 0, 0, '-1', 0, 0, '', '', -1),
@@ -130,11 +92,9 @@ INSERT INTO `block` (`bid`, `module`, `delta`, `theme`, `status`, `weight`, `reg
 (53, 'user', 'login', 'rcredits', 1, -9, 'sidebar_first', 0, 0, '', '', -1),
 (54, 'user', 'new', 'rcredits', 0, 0, '-1', 0, 0, '', '', -1),
 (55, 'user', 'online', 'rcredits', 0, 0, '-1', 0, 0, '', '', -1),
-(60, 'node', 'recent', 'responsive_bartik', 0, -9, '-1', 0, 0, '', '', -1),
 (61, 'system', 'powered-by', 'responsive_bartik', 0, -9, '-1', 0, 0, '', '', -1),
 (62, 'devel', 'execute_php', 'responsive_bartik', 0, 0, '-1', 0, 0, '', '', -1),
 (63, 'devel', 'switch_user', 'responsive_bartik', 0, 0, '-1', 0, 0, '', '', -1),
-(65, 'node', 'syndicate', 'responsive_bartik', 0, 0, '-1', 0, 0, '', '', -1),
 (66, 'system', 'main-menu', 'responsive_bartik', 0, 0, '-1', 0, 0, '', '', -1),
 (67, 'system', 'management', 'responsive_bartik', 0, 0, '-1', 0, 0, '', '', -1),
 (68, 'system', 'navigation', 'responsive_bartik', 0, 0, '-1', 0, 0, '', '', -1),
@@ -148,17 +108,6 @@ INSERT INTO `block` (`bid`, `module`, `delta`, `theme`, `status`, `weight`, `reg
 (508, 'rweb', 'footer', 'rcredits', 1, 0, 'footer', 0, 0, '', '', -1),
 (509, 'rweb', 'accounts', 'seven', 0, 0, '-1', 0, 0, '', '', 1),
 (510, 'rweb', 'footer', 'seven', 0, 0, '-1', 0, 0, '', '', -1);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `blocked_ips`
---
-
-CREATE TABLE IF NOT EXISTS `blocked_ips` (
-  `iid` int(10) unsigned NOT NULL COMMENT 'Primary Key: unique ID for IP addresses.',
-  `ip` varchar(40) NOT NULL DEFAULT '' COMMENT 'IP address'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Stores blocked IP addresses.';
 
 -- --------------------------------------------------------
 
@@ -177,20 +126,6 @@ CREATE TABLE IF NOT EXISTS `cache` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `cache_block`
---
-
-CREATE TABLE IF NOT EXISTS `cache_block` (
-  `cid` varchar(255) NOT NULL DEFAULT '' COMMENT 'Primary Key: Unique cache ID.',
-  `data` longblob COMMENT 'A collection of data to cache.',
-  `expire` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry should expire, or 0 for never.',
-  `created` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry was created.',
-  `serialized` smallint(6) NOT NULL DEFAULT '0' COMMENT 'A flag to indicate whether content is serialized (1) or not (0).'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Cache table for the Block module to store already built...';
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `cache_bootstrap`
 --
 
@@ -201,34 +136,6 @@ CREATE TABLE IF NOT EXISTS `cache_bootstrap` (
   `created` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry was created.',
   `serialized` smallint(6) NOT NULL DEFAULT '0' COMMENT 'A flag to indicate whether content is serialized (1) or not (0).'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Cache table for data required to bootstrap Drupal, may be...';
-
--- --------------------------------------------------------
-
---
--- Table structure for table `cache_field`
---
-
-CREATE TABLE IF NOT EXISTS `cache_field` (
-  `cid` varchar(255) NOT NULL DEFAULT '' COMMENT 'Primary Key: Unique cache ID.',
-  `data` longblob COMMENT 'A collection of data to cache.',
-  `expire` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry should expire, or 0 for never.',
-  `created` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry was created.',
-  `serialized` smallint(6) NOT NULL DEFAULT '0' COMMENT 'A flag to indicate whether content is serialized (1) or not (0).'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Generic cache table for caching things not separated out...';
-
--- --------------------------------------------------------
-
---
--- Table structure for table `cache_filter`
---
-
-CREATE TABLE IF NOT EXISTS `cache_filter` (
-  `cid` varchar(255) NOT NULL DEFAULT '' COMMENT 'Primary Key: Unique cache ID.',
-  `data` longblob COMMENT 'A collection of data to cache.',
-  `expire` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry should expire, or 0 for never.',
-  `created` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry was created.',
-  `serialized` smallint(6) NOT NULL DEFAULT '0' COMMENT 'A flag to indicate whether content is serialized (1) or not (0).'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Cache table for the Filter module to store already...';
 
 -- --------------------------------------------------------
 
@@ -261,188 +168,12 @@ CREATE TABLE IF NOT EXISTS `cache_menu` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `cache_page`
---
-
-CREATE TABLE IF NOT EXISTS `cache_page` (
-  `cid` varchar(255) NOT NULL DEFAULT '' COMMENT 'Primary Key: Unique cache ID.',
-  `data` longblob COMMENT 'A collection of data to cache.',
-  `expire` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry should expire, or 0 for never.',
-  `created` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry was created.',
-  `serialized` smallint(6) NOT NULL DEFAULT '0' COMMENT 'A flag to indicate whether content is serialized (1) or not (0).'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Cache table used to store compressed pages for anonymous...';
-
--- --------------------------------------------------------
-
---
--- Table structure for table `cache_path`
---
-
-CREATE TABLE IF NOT EXISTS `cache_path` (
-  `cid` varchar(255) NOT NULL DEFAULT '' COMMENT 'Primary Key: Unique cache ID.',
-  `data` longblob COMMENT 'A collection of data to cache.',
-  `expire` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry should expire, or 0 for never.',
-  `created` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry was created.',
-  `serialized` smallint(6) NOT NULL DEFAULT '0' COMMENT 'A flag to indicate whether content is serialized (1) or not (0).'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Cache table for path alias lookup.';
-
--- --------------------------------------------------------
-
---
--- Table structure for table `cache_update`
---
-
-CREATE TABLE IF NOT EXISTS `cache_update` (
-  `cid` varchar(255) NOT NULL DEFAULT '' COMMENT 'Primary Key: Unique cache ID.',
-  `data` longblob COMMENT 'A collection of data to cache.',
-  `expire` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry should expire, or 0 for never.',
-  `created` int(11) NOT NULL DEFAULT '0' COMMENT 'A Unix timestamp indicating when the cache entry was created.',
-  `serialized` smallint(6) NOT NULL DEFAULT '0' COMMENT 'A flag to indicate whether content is serialized (1) or not (0).'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Cache table for the Update module to store information...';
-
--- --------------------------------------------------------
-
---
--- Table structure for table `date_formats`
---
-
-CREATE TABLE IF NOT EXISTS `date_formats` (
-  `dfid` int(10) unsigned NOT NULL COMMENT 'The date format identifier.',
-  `format` varchar(100) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL COMMENT 'The date format string.',
-  `type` varchar(64) NOT NULL COMMENT 'The date format type, e.g. medium.',
-  `locked` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether or not this format can be modified.'
-) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8 COMMENT='Stores configured date formats.';
-
---
--- Dumping data for table `date_formats`
---
-
-INSERT INTO `date_formats` (`dfid`, `format`, `type`, `locked`) VALUES
-(1, 'Y-m-d H:i', 'short', 1),
-(2, 'm/d/Y - H:i', 'short', 1),
-(3, 'd/m/Y - H:i', 'short', 1),
-(4, 'Y/m/d - H:i', 'short', 1),
-(5, 'd.m.Y - H:i', 'short', 1),
-(6, 'm/d/Y - g:ia', 'short', 1),
-(7, 'd/m/Y - g:ia', 'short', 1),
-(8, 'Y/m/d - g:ia', 'short', 1),
-(9, 'M j Y - H:i', 'short', 1),
-(10, 'j M Y - H:i', 'short', 1),
-(11, 'Y M j - H:i', 'short', 1),
-(12, 'M j Y - g:ia', 'short', 1),
-(13, 'j M Y - g:ia', 'short', 1),
-(14, 'Y M j - g:ia', 'short', 1),
-(15, 'D, Y-m-d H:i', 'medium', 1),
-(16, 'D, m/d/Y - H:i', 'medium', 1),
-(17, 'D, d/m/Y - H:i', 'medium', 1),
-(18, 'D, Y/m/d - H:i', 'medium', 1),
-(19, 'F j, Y - H:i', 'medium', 1),
-(20, 'j F, Y - H:i', 'medium', 1),
-(21, 'Y, F j - H:i', 'medium', 1),
-(22, 'D, m/d/Y - g:ia', 'medium', 1),
-(23, 'D, d/m/Y - g:ia', 'medium', 1),
-(24, 'D, Y/m/d - g:ia', 'medium', 1),
-(25, 'F j, Y - g:ia', 'medium', 1),
-(26, 'j F Y - g:ia', 'medium', 1),
-(27, 'Y, F j - g:ia', 'medium', 1),
-(28, 'j. F Y - G:i', 'medium', 1),
-(29, 'l, F j, Y - H:i', 'long', 1),
-(30, 'l, j F, Y - H:i', 'long', 1),
-(31, 'l, Y,  F j - H:i', 'long', 1),
-(32, 'l, F j, Y - g:ia', 'long', 1),
-(33, 'l, j F Y - g:ia', 'long', 1),
-(34, 'l, Y,  F j - g:ia', 'long', 1),
-(35, 'l, j. F Y - G:i', 'long', 1);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `date_format_type`
---
-
-CREATE TABLE IF NOT EXISTS `date_format_type` (
-  `type` varchar(64) NOT NULL COMMENT 'The date format type, e.g. medium.',
-  `title` varchar(255) NOT NULL COMMENT 'The human readable name of the format type.',
-  `locked` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether or not this is a system provided format.'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Stores configured date format types.';
-
---
--- Dumping data for table `date_format_type`
---
-
-INSERT INTO `date_format_type` (`type`, `title`, `locked`) VALUES
-('long', 'Long', 1),
-('medium', 'Medium', 1),
-('short', 'Short', 1);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `field_config_instance`
---
-
-CREATE TABLE IF NOT EXISTS `field_config_instance` (
-  `id` int(11) NOT NULL COMMENT 'The primary identifier for a field instance',
-  `field_id` int(11) NOT NULL COMMENT 'The identifier of the field attached by this instance',
-  `field_name` varchar(32) NOT NULL DEFAULT '',
-  `entity_type` varchar(32) NOT NULL DEFAULT '',
-  `bundle` varchar(128) NOT NULL DEFAULT '',
-  `data` longblob NOT NULL,
-  `deleted` tinyint(4) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
-
---
--- Dumping data for table `field_config_instance`
---
-
-INSERT INTO `field_config_instance` (`id`, `field_id`, `field_name`, `entity_type`, `bundle`, `data`, `deleted`) VALUES
-(1, 1, 'comment_body', 'comment', 'comment_node_page', 0x613a363a7b733a353a226c6162656c223b733a373a22436f6d6d656e74223b733a383a2273657474696e6773223b613a323a7b733a31353a22746578745f70726f63657373696e67223b693a313b733a31383a22757365725f72656769737465725f666f726d223b623a303b7d733a383a227265717569726564223b623a313b733a373a22646973706c6179223b613a313a7b733a373a2264656661756c74223b613a353a7b733a353a226c6162656c223b733a363a2268696464656e223b733a343a2274797065223b733a31323a22746578745f64656661756c74223b733a363a22776569676874223b693a303b733a383a2273657474696e6773223b613a303a7b7d733a363a226d6f64756c65223b733a343a2274657874223b7d7d733a363a22776964676574223b613a343a7b733a343a2274797065223b733a31333a22746578745f7465787461726561223b733a383a2273657474696e6773223b613a313a7b733a343a22726f7773223b693a353b7d733a363a22776569676874223b693a303b733a363a226d6f64756c65223b733a343a2274657874223b7d733a31313a226465736372697074696f6e223b733a303a22223b7d, 0),
-(3, 1, 'comment_body', 'comment', 'comment_node_article', 0x613a363a7b733a353a226c6162656c223b733a373a22436f6d6d656e74223b733a383a2273657474696e6773223b613a323a7b733a31353a22746578745f70726f63657373696e67223b693a313b733a31383a22757365725f72656769737465725f666f726d223b623a303b7d733a383a227265717569726564223b623a313b733a373a22646973706c6179223b613a313a7b733a373a2264656661756c74223b613a353a7b733a353a226c6162656c223b733a363a2268696464656e223b733a343a2274797065223b733a31323a22746578745f64656661756c74223b733a363a22776569676874223b693a303b733a383a2273657474696e6773223b613a303a7b7d733a363a226d6f64756c65223b733a343a2274657874223b7d7d733a363a22776964676574223b613a343a7b733a343a2274797065223b733a31333a22746578745f7465787461726561223b733a383a2273657474696e6773223b613a313a7b733a343a22726f7773223b693a353b7d733a363a22776569676874223b693a303b733a363a226d6f64756c65223b733a343a2274657874223b7d733a31313a226465736372697074696f6e223b733a303a22223b7d, 0);
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `file_managed`
 --
 
 CREATE TABLE IF NOT EXISTS `file_managed` (
-  `fid` int(10) unsigned NOT NULL COMMENT 'File ID.',
-  `uid` bigint(20) DEFAULT NULL COMMENT 'users record id',
-  `filename` varchar(255) NOT NULL DEFAULT '' COMMENT 'Name of the file with no path components. This may differ from the basename of the URI if the file is renamed to avoid overwriting an existing file.',
-  `uri` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '' COMMENT 'The URI to access the file (either local or remote).',
-  `filemime` varchar(255) NOT NULL DEFAULT '' COMMENT 'The file’s MIME type.',
-  `filesize` bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT 'The size of the file in bytes.',
-  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'A field indicating the status of the file. Two status are defined in core: temporary (0) and permanent (1). Temporary files older than DRUPAL_MAXIMUM_TEMP_FILE_AGE will be removed during a cron run.',
-  `timestamp` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'UNIX timestamp for when the file was added.'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Stores information for uploaded files.';
-
--- --------------------------------------------------------
-
---
--- Table structure for table `file_usage`
---
-
-CREATE TABLE IF NOT EXISTS `file_usage` (
-  `fid` int(10) unsigned NOT NULL COMMENT 'File ID.',
-  `module` varchar(255) NOT NULL DEFAULT '' COMMENT 'The name of the module that is using the file.',
-  `type` varchar(64) NOT NULL DEFAULT '' COMMENT 'The name of the object type in which the file is used.',
-  `id` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'The primary key of the object using the file.',
-  `count` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'The number of times this file is used by this object.'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Track where a file is used.';
-
---
--- Dumping data for table `file_usage`
---
-
-INSERT INTO `file_usage` (`fid`, `module`, `type`, `id`, `count`) VALUES
-(15, 'user', 'user', 17561, 1),
-(18, 'user', 'user', 17568, 1),
-(19, 'user', 'user', 17580, 1),
-(20, 'user', 'user', 965, 1),
-(21, 'user', 'user', 974, 1),
-(22, 'user', 'user', 56, 1),
-(30, 'user', 'user', 964, 1),
-(31, 'user', 'user', 71, 1);
+  `uid` bigint(20) DEFAULT NULL COMMENT 'users record id'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -517,10 +248,8 @@ CREATE TABLE IF NOT EXISTS `flood` (
 --
 
 CREATE TABLE IF NOT EXISTS `history` (
-  `uid` bigint(20) NOT NULL DEFAULT '0' COMMENT 'users record id',
-  `nid` int(11) NOT NULL DEFAULT '0' COMMENT 'The node.nid that was read.',
-  `timestamp` int(11) NOT NULL DEFAULT '0' COMMENT 'The Unix timestamp at which the read occurred.'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='A record of which users have read which nodes.';
+  `uid` bigint(20) DEFAULT NULL COMMENT 'users record id'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -554,7 +283,7 @@ CREATE TABLE IF NOT EXISTS `menu_links` (
   `p8` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'The eighth mlid in the materialized path. See p1.',
   `p9` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'The ninth mlid in the materialized path. See p1.',
   `updated` smallint(6) NOT NULL DEFAULT '0' COMMENT 'Flag that indicates that this link was generated during the update from Drupal 5.'
-) ENGINE=InnoDB AUTO_INCREMENT=1378 DEFAULT CHARSET=utf8 COMMENT='Contains the individual links within a menu.';
+) ENGINE=InnoDB AUTO_INCREMENT=1388 DEFAULT CHARSET=utf8 COMMENT='Contains the individual links within a menu.';
 
 --
 -- Dumping data for table `menu_links`
@@ -570,61 +299,57 @@ INSERT INTO `menu_links` (`menu_name`, `mlid`, `plid`, `link_path`, `router_path
 ('user-menu', 357, 0, 'membership', 'membership', 'Membership', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a303a22223b7d7d, 'menu', 0, 0, 0, 0, -48, 1, 1, 357, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('user-menu', 358, 0, 'account', 'account', 'Settings', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a303a22223b7d7d, 'menu', 0, 0, 0, 0, -47, 1, 1, 358, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('user-menu', 380, 0, 'promo-site', 'promo-site', 'Main site', 0x613a303a7b7d, 'menu', 0, 0, 0, 0, -49, 1, 1, 380, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1213, 0, 'sadmin', 'sadmin', 'Admin', 0x613a313a7b733a353a22636c617373223b733a353a2241646d696e223b7d, 'system', 0, 0, 0, 0, 72, 1, 0, 1213, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1214, 0, 'get', 'get', 'Bank', 0x613a313a7b733a353a22636c617373223b733a343a2242616e6b223b7d, 'system', 0, 0, 0, 0, 10, 1, 0, 1214, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1215, 0, 'charge', 'charge', 'Charge', 0x613a313a7b733a353a22636c617373223b733a363a22436861726765223b7d, 'system', 0, 0, 0, 0, 1, 1, 0, 1215, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1216, 0, 'community', 'community', 'Community', 0x613a313a7b733a353a22636c617373223b733a393a22436f6d6d756e697479223b7d, 'system', 0, 0, 0, 0, 22, 1, 0, 1216, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1217, 0, 'fine', 'fine', 'Fine', 0x613a313a7b733a353a22636c617373223b733a343a2246696e65223b7d, 'system', 0, 0, 0, 0, 9, 1, 0, 1217, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1218, 0, 'grant', 'grant', 'Grant', 0x613a313a7b733a353a22636c617373223b733a353a224772616e74223b7d, 'system', 0, 0, 0, 0, 6, 1, 0, 1218, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1219, 0, 'history', 'history', 'History', 0x613a313a7b733a353a22636c617373223b733a373a22486973746f7279223b7d, 'system', 0, 0, 0, 0, 11, 1, 0, 1219, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1220, 0, 'invest', 'invest', 'Invest', 0x613a313a7b733a353a22636c617373223b733a363a22496e76657374223b7d, 'system', 0, 0, 0, 0, 8, 1, 0, 1220, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1221, 0, 'loan', 'loan', 'Loan', 0x613a313a7b733a353a22636c617373223b733a343a224c6f616e223b7d, 'system', 0, 0, 0, 0, 7, 1, 0, 1221, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1222, 0, 'pay', 'pay', 'Pay', 0x613a313a7b733a353a22636c617373223b733a333a22506179223b7d, 'system', 0, 0, 0, 0, 2, 1, 0, 1222, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1223, 0, 'settings', 'settings', 'Settings', 0x613a313a7b733a353a22636c617373223b733a383a2253657474696e6773223b7d, 'system', 0, 0, 0, 0, 40, 1, 0, 1223, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1224, 0, 'signin', 'signin', 'Sign in', 0x613a313a7b733a353a22636c617373223b733a373a225369676e20696e223b7d, 'system', 0, 0, 0, 0, 93, 1, 0, 1224, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1225, 0, 'signout', 'signout', 'Sign out', 0x613a313a7b733a353a22636c617373223b733a383a225369676e206f7574223b7d, 'system', 0, 0, 0, 0, 92, 1, 0, 1225, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1226, 0, 'summary', 'summary', 'Summary', 0x613a313a7b733a353a22636c617373223b733a373a2253756d6d617279223b7d, 'system', 0, 0, 0, 0, 0, 1, 0, 1226, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1227, 0, 'tests', 'tests', 'Test', 0x613a313a7b733a353a22636c617373223b733a343a2254657374223b7d, 'system', 0, 0, 0, 0, 63, 1, 0, 1227, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1228, 1223, 'settings/connect', 'settings/connect', 'Bank Info', 0x613a313a7b733a353a22636c617373223b733a393a2242616e6b20496e666f223b7d, 'system', -1, 0, 0, 0, 44, 2, 0, 1223, 1228, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1229, 1216, 'community/graphs', 'community/graphs', 'Common Good Graphs', 0x613a313a7b733a353a22636c617373223b733a31383a22436f6d6d6f6e20476f6f6420477261706873223b7d, 'system', -1, 0, 0, 0, 37, 2, 0, 1216, 1229, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1230, 1223, 'settings/company', 'settings/company', 'Company Info', 0x613a313a7b733a353a22636c617373223b733a31323a22436f6d70616e7920496e666f223b7d, 'system', -1, 0, 0, 0, 45, 2, 0, 1223, 1230, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1231, 1223, 'settings/contact', 'settings/contact', 'Contact Info', 0x613a313a7b733a353a22636c617373223b733a31323a22436f6e7461637420496e666f223b7d, 'system', -1, 0, 0, 0, 41, 2, 0, 1223, 1231, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1232, 1213, 'sadmin/deposits', 'sadmin/deposits', 'Deposits', 0x613a313a7b733a353a22636c617373223b733a383a224465706f73697473223b7d, 'system', -1, 0, 0, 0, 76, 2, 0, 1213, 1232, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1233, 1216, 'community/democracy', 'community/democracy', 'Discussion & Voting', 0x613a313a7b733a353a22636c617373223b733a31393a2244697363757373696f6e202620566f74696e67223b7d, 'system', -1, 0, 0, 0, 23, 2, 0, 1216, 1233, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1234, 1216, 'community/donate', 'community/donate', 'Donate', 0x613a313a7b733a353a22636c617373223b733a363a22446f6e617465223b7d, 'system', -1, 0, 0, 0, 34, 2, 0, 1216, 1234, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1235, 1213, 'sadmin/export-list', 'sadmin/export-list', 'Export', 0x613a313a7b733a353a22636c617373223b733a363a224578706f7274223b7d, 'system', -1, 0, 0, 0, 75, 2, 0, 1213, 1235, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1236, 1216, 'community/find-company', 'community/find-company', 'Find a Company', 0x613a313a7b733a353a22636c617373223b733a31343a2246696e64206120436f6d70616e79223b7d, 'system', -1, 0, 0, 0, 33, 2, 0, 1216, 1236, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1237, 1216, 'community/funds', 'community/funds', 'Funds in Each Community', 0x613a313a7b733a353a22636c617373223b733a32333a2246756e647320696e204561636820436f6d6d756e697479223b7d, 'system', -1, 0, 0, 0, 36, 2, 0, 1216, 1237, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1238, 1216, 'community/grant', 'community/grant', 'Get Paid to Organize', 0x613a313a7b733a353a22636c617373223b733a32303a22476574205061696420746f204f7267616e697a65223b7d, 'system', -1, 0, 0, 0, 35, 2, 0, 1216, 1238, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1239, 1213, 'sadmin/handy', 'sadmin/handy', 'Handy', 0x613a313a7b733a353a22636c617373223b733a353a2248616e6479223b7d, 'system', -1, 0, 0, 0, 80, 2, 0, 1213, 1239, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1240, 1216, 'community/invite', 'community/invite', 'Invite Someone', 0x613a313a7b733a353a22636c617373223b733a31343a22496e7669746520536f6d656f6e65223b7d, 'system', -1, 0, 0, 0, 27, 2, 0, 1216, 1240, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1241, 1219, 'history/invoices-from', 'history/invoices-from', 'Invoices FROM You', 0x613a313a7b733a353a22636c617373223b733a31373a22496e766f696365732046524f4d20596f75223b7d, 'system', -1, 0, 0, 0, 14, 2, 0, 1219, 1241, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1242, 1219, 'history/invoices-to', 'history/invoices-to', 'Invoices TO You', 0x613a313a7b733a353a22636c617373223b733a31353a22496e766f6963657320544f20596f75223b7d, 'system', -1, 0, 0, 0, 13, 2, 0, 1219, 1242, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1243, 1213, 'sadmin/make-community', 'sadmin/make-community', 'Make Ctty', 0x613a313a7b733a353a22636c617373223b733a393a224d616b652043747479223b7d, 'system', -1, 0, 0, 0, 78, 2, 0, 1213, 1243, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1244, 1213, 'sadmin/member-list', 'sadmin/member-list', 'Member List', 0x613a313a7b733a353a22636c617373223b733a31313a224d656d626572204c697374223b7d, 'system', -1, 0, 0, 0, 74, 2, 0, 1213, 1244, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1245, 1216, 'community/message', 'community/message', 'Message a Member', 0x613a313a7b733a353a22636c617373223b733a31363a224d6573736167652061204d656d626572223b7d, 'system', -1, 0, 0, 0, 32, 2, 0, 1216, 1245, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1246, 1213, 'sadmin/new-member', 'sadmin/new-member', 'New Member', 0x613a313a7b733a353a22636c617373223b733a31303a224e6577204d656d626572223b7d, 'system', -1, 0, 0, 0, 77, 2, 0, 1213, 1246, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1247, 1219, 'history/notices', 'history/notices', 'Notices', 0x613a313a7b733a353a22636c617373223b733a373a224e6f7469636573223b7d, 'system', -1, 0, 0, 0, 16, 2, 0, 1219, 1247, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1248, 1213, 'sadmin/php', 'sadmin/php', 'PHP', 0x613a313a7b733a353a22636c617373223b733a333a22504850223b7d, 'system', -1, 0, 0, 0, 81, 2, 0, 1213, 1248, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1249, 1213, 'sadmin/panel', 'sadmin/panel', 'Panel', 0x613a313a7b733a353a22636c617373223b733a353a2250616e656c223b7d, 'system', -1, 0, 0, 0, 73, 2, 0, 1213, 1249, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1250, 1222, 'pay/one', 'pay/one', 'Pay One', 0x613a313a7b733a353a22636c617373223b733a373a22506179204f6e65223b7d, 'system', -1, 0, 0, 0, 3, 2, 0, 1222, 1250, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1251, 1223, 'settings/preferences', 'settings/preferences', 'Preferences', 0x613a313a7b733a353a22636c617373223b733a31313a22507265666572656e636573223b7d, 'system', -1, 0, 0, 0, 42, 2, 0, 1223, 1251, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1252, 1223, 'settings/proxies', 'settings/proxies', 'Proxies', 0x613a313a7b733a353a22636c617373223b733a373a2250726f78696573223b7d, 'system', -1, 0, 0, 0, 47, 2, 0, 1223, 1252, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1253, 1223, 'settings/relations', 'settings/relations', 'Relations', 0x613a313a7b733a353a22636c617373223b733a393a2252656c6174696f6e73223b7d, 'system', -1, 0, 0, 0, 46, 2, 0, 1223, 1253, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1254, 1216, 'community/flags', 'community/flags', 'Risk Flags', 0x613a313a7b733a353a22636c617373223b733a31303a225269736b20466c616773223b7d, 'system', -1, 0, 0, 0, 38, 2, 0, 1216, 1254, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1255, 1223, 'settings/security', 'settings/security', 'Security', 0x613a313a7b733a353a22636c617373223b733a383a225365637572697479223b7d, 'system', -1, 0, 0, 0, 43, 2, 0, 1223, 1255, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1256, 1219, 'history/changes', 'history/changes', 'See Changes', 0x613a313a7b733a353a22636c617373223b733a31313a22536565204368616e676573223b7d, 'system', -1, 0, 0, 0, 18, 2, 0, 1219, 1256, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1257, 1219, 'history/statements', 'history/statements', 'Statements', 0x613a313a7b733a353a22636c617373223b733a31303a2253746174656d656e7473223b7d, 'system', -1, 0, 0, 0, 15, 2, 0, 1219, 1257, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1258, 1219, 'history/tax-info', 'history/tax-info', 'Tax Info', 0x613a313a7b733a353a22636c617373223b733a383a2254617820496e666f223b7d, 'system', -1, 0, 0, 0, 17, 2, 0, 1219, 1258, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1259, 1213, 'sadmin/sms', 'sadmin/sms', 'Test SMS', 0x613a313a7b733a353a22636c617373223b733a383a225465737420534d53223b7d, 'system', -1, 0, 0, 0, 79, 2, 0, 1213, 1259, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1260, 1216, 'community/agreement', 'community/agreement', 'The Agreement', 0x613a313a7b733a353a22636c617373223b733a31333a225468652041677265656d656e74223b7d, 'system', -1, 0, 0, 0, 26, 2, 0, 1216, 1260, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1261, 1219, 'history/transactions', 'history/transactions', 'Transactions', 0x613a313a7b733a353a22636c617373223b733a31323a225472616e73616374696f6e73223b7d, 'system', -1, 0, 0, 0, 12, 2, 0, 1219, 1261, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1262, 1222, 'pay/payroll', 'pay/payroll', 'Upload Payroll', 0x613a313a7b733a353a22636c617373223b733a31343a2255706c6f616420506179726f6c6c223b7d, 'system', -1, 0, 0, 0, 4, 2, 0, 1222, 1262, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1263, 1222, 'pay/zot', 'pay/zot', 'zot', 0x613a313a7b733a353a22636c617373223b733a333a227a6f74223b7d, 'system', -1, 0, 0, 0, 5, 2, 0, 1222, 1263, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1264, 1219, 'history/zot', 'history/zot', 'zot', 0x613a313a7b733a353a22636c617373223b733a333a227a6f74223b7d, 'system', -1, 0, 0, 0, 19, 2, 0, 1219, 1264, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1265, 1216, 'community/zot', 'community/zot', 'zot', 0x613a313a7b733a353a22636c617373223b733a333a227a6f74223b7d, 'system', -1, 0, 0, 0, 39, 2, 0, 1216, 1265, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1266, 1223, 'settings/zot', 'settings/zot', 'zot', 0x613a313a7b733a353a22636c617373223b733a333a227a6f74223b7d, 'system', -1, 0, 0, 0, 48, 2, 0, 1223, 1266, 0, 0, 0, 0, 0, 0, 0, 0),
-('main-menu', 1267, 1213, 'sadmin/zot', 'sadmin/zot', 'zot', 0x613a313a7b733a353a22636c617373223b733a333a227a6f74223b7d, 'system', -1, 0, 0, 0, 82, 2, 0, 1213, 1267, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1213, 0, 'sadmin', 'sadmin', 'Admin', 0x613a313a7b733a353a22636c617373223b733a353a2241646d696e223b7d, 'system', 0, 0, 0, 0, 192, 1, 0, 1213, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1214, 0, 'get', 'get', 'Bank', 0x613a313a7b733a353a22636c617373223b733a343a2242616e6b223b7d, 'system', 0, 0, 0, 0, 125, 1, 0, 1214, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1216, 0, 'community', 'community', 'Community', 0x613a313a7b733a353a22636c617373223b733a393a22436f6d6d756e697479223b7d, 'system', 0, 0, 0, 0, 137, 1, 0, 1216, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1217, 0, 'fine', 'fine', 'Fine', 0x613a313a7b733a353a22636c617373223b733a343a2246696e65223b7d, 'system', 0, 0, 0, 0, 124, 1, 0, 1217, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1218, 0, 'grant', 'grant', 'Grant', 0x613a313a7b733a353a22636c617373223b733a353a224772616e74223b7d, 'system', 0, 0, 0, 0, 121, 1, 0, 1218, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1219, 0, 'history', 'history', 'History', 0x613a313a7b733a353a22636c617373223b733a373a22486973746f7279223b7d, 'system', 0, 0, 0, 0, 126, 1, 0, 1219, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1220, 0, 'invest', 'invest', 'Invest', 0x613a313a7b733a353a22636c617373223b733a363a22496e76657374223b7d, 'system', 0, 0, 0, 0, 123, 1, 0, 1220, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1221, 0, 'loan', 'loan', 'Loan', 0x613a313a7b733a353a22636c617373223b733a343a224c6f616e223b7d, 'system', 0, 0, 0, 0, 122, 1, 0, 1221, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1222, 0, 'pay', 'pay', 'Pay', 0x613a313a7b733a353a22636c617373223b733a333a22506179223b7d, 'system', 0, 0, 0, 0, 119, 1, 0, 1222, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1223, 0, 'settings', 'settings', 'Settings', 0x613a313a7b733a353a22636c617373223b733a383a2253657474696e6773223b7d, 'system', 0, 0, 0, 0, 159, 1, 0, 1223, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1224, 0, 'signin', 'signin', 'Sign in', 0x613a313a7b733a353a22636c617373223b733a373a225369676e20696e223b7d, 'system', 0, 0, 0, 0, 214, 1, 0, 1224, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1225, 0, 'signout', 'signout', 'Sign out', 0x613a313a7b733a353a22636c617373223b733a383a225369676e206f7574223b7d, 'system', 0, 0, 0, 0, 213, 1, 0, 1225, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1226, 0, 'summary', 'summary', 'Summary', 0x613a313a7b733a353a22636c617373223b733a373a2253756d6d617279223b7d, 'system', 0, 0, 0, 0, 116, 1, 0, 1226, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1227, 0, 'tests', 'tests', 'Test', 0x613a313a7b733a353a22636c617373223b733a343a2254657374223b7d, 'system', 0, 0, 0, 0, 183, 1, 0, 1227, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1228, 1223, 'settings/connect', 'settings/connect', 'Bank Info', 0x613a313a7b733a353a22636c617373223b733a393a2242616e6b20496e666f223b7d, 'system', -1, 0, 0, 0, 163, 2, 0, 1223, 1228, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1229, 1216, 'community/graphs', 'community/graphs', 'Common Good Graphs', 0x613a313a7b733a353a22636c617373223b733a31383a22436f6d6d6f6e20476f6f6420477261706873223b7d, 'system', -1, 0, 0, 0, 156, 2, 0, 1216, 1229, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1230, 1223, 'settings/company', 'settings/company', 'Company Info', 0x613a313a7b733a353a22636c617373223b733a31323a22436f6d70616e7920496e666f223b7d, 'system', -1, 0, 0, 0, 164, 2, 0, 1223, 1230, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1231, 1223, 'settings/contact', 'settings/contact', 'Contact Info', 0x613a313a7b733a353a22636c617373223b733a31323a22436f6e7461637420496e666f223b7d, 'system', -1, 0, 0, 0, 160, 2, 0, 1223, 1231, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1232, 1213, 'sadmin/deposits', 'sadmin/deposits', 'Deposits', 0x613a313a7b733a353a22636c617373223b733a383a224465706f73697473223b7d, 'system', -1, 0, 0, 0, 197, 2, 0, 1213, 1232, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1234, 1216, 'community/donate', 'community/donate', 'Donate', 0x613a313a7b733a353a22636c617373223b733a363a22446f6e617465223b7d, 'system', -1, 0, 0, 0, 153, 2, 0, 1216, 1234, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1235, 1213, 'sadmin/export-list', 'sadmin/export-list', 'Export', 0x613a313a7b733a353a22636c617373223b733a363a224578706f7274223b7d, 'system', -1, 0, 0, 0, 196, 2, 0, 1213, 1235, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1236, 1216, 'community/find-company', 'community/find-company', 'Find a Company', 0x613a313a7b733a353a22636c617373223b733a31343a2246696e64206120436f6d70616e79223b7d, 'system', -1, 0, 0, 0, 152, 2, 0, 1216, 1236, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1237, 1216, 'community/funds', 'community/funds', 'Funds in Each Community', 0x613a313a7b733a353a22636c617373223b733a32333a2246756e647320696e204561636820436f6d6d756e697479223b7d, 'system', -1, 0, 0, 0, 155, 2, 0, 1216, 1237, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1238, 1216, 'community/grant', 'community/grant', 'Get Paid to Organize', 0x613a313a7b733a353a22636c617373223b733a32303a22476574205061696420746f204f7267616e697a65223b7d, 'system', -1, 0, 0, 0, 154, 2, 0, 1216, 1238, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1239, 1213, 'sadmin/handy', 'sadmin/handy', 'Handy', 0x613a313a7b733a353a22636c617373223b733a353a2248616e6479223b7d, 'system', -1, 0, 0, 0, 201, 2, 0, 1213, 1239, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1240, 1216, 'community/invite', 'community/invite', 'Invite Someone', 0x613a313a7b733a353a22636c617373223b733a31343a22496e7669746520536f6d656f6e65223b7d, 'system', -1, 0, 0, 0, 146, 2, 0, 1216, 1240, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1241, 1219, 'history/invoices-from', 'history/invoices-from', 'Invoices FROM You', 0x613a313a7b733a353a22636c617373223b733a31373a22496e766f696365732046524f4d20596f75223b7d, 'system', -1, 0, 0, 0, 129, 2, 0, 1219, 1241, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1242, 1219, 'history/invoices-to', 'history/invoices-to', 'Invoices TO You', 0x613a313a7b733a353a22636c617373223b733a31353a22496e766f6963657320544f20596f75223b7d, 'system', -1, 0, 0, 0, 128, 2, 0, 1219, 1242, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1243, 1213, 'sadmin/make-community', 'sadmin/make-community', 'Make Ctty', 0x613a313a7b733a353a22636c617373223b733a393a224d616b652043747479223b7d, 'system', -1, 0, 0, 0, 199, 2, 0, 1213, 1243, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1244, 1213, 'sadmin/member-list', 'sadmin/member-list', 'Member List', 0x613a313a7b733a353a22636c617373223b733a31313a224d656d626572204c697374223b7d, 'system', -1, 0, 0, 0, 195, 2, 0, 1213, 1244, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1245, 1216, 'community/message', 'community/message', 'Message a Member', 0x613a313a7b733a353a22636c617373223b733a31363a224d6573736167652061204d656d626572223b7d, 'system', -1, 0, 0, 0, 151, 2, 0, 1216, 1245, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1246, 1213, 'sadmin/new-member', 'sadmin/new-member', 'New Member', 0x613a313a7b733a353a22636c617373223b733a31303a224e6577204d656d626572223b7d, 'system', -1, 0, 0, 0, 198, 2, 0, 1213, 1246, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1247, 1219, 'history/notices', 'history/notices', 'Notices', 0x613a313a7b733a353a22636c617373223b733a373a224e6f7469636573223b7d, 'system', -1, 0, 0, 0, 131, 2, 0, 1219, 1247, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1248, 1213, 'sadmin/php', 'sadmin/php', 'PHP', 0x613a313a7b733a353a22636c617373223b733a333a22504850223b7d, 'system', -1, 0, 0, 0, 202, 2, 0, 1213, 1248, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1249, 1213, 'sadmin/panel', 'sadmin/panel', 'Panel', 0x613a313a7b733a353a22636c617373223b733a353a2250616e656c223b7d, 'system', -1, 0, 0, 0, 193, 2, 0, 1213, 1249, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1251, 1223, 'settings/preferences', 'settings/preferences', 'Preferences', 0x613a313a7b733a353a22636c617373223b733a31313a22507265666572656e636573223b7d, 'system', -1, 0, 0, 0, 161, 2, 0, 1223, 1251, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1252, 1223, 'settings/proxies', 'settings/proxies', 'Proxies', 0x613a313a7b733a353a22636c617373223b733a373a2250726f78696573223b7d, 'system', -1, 0, 0, 0, 166, 2, 0, 1223, 1252, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1253, 1223, 'settings/relations', 'settings/relations', 'Relations', 0x613a313a7b733a353a22636c617373223b733a393a2252656c6174696f6e73223b7d, 'system', -1, 0, 0, 0, 165, 2, 0, 1223, 1253, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1254, 1216, 'community/flags', 'community/flags', 'Risk Flags', 0x613a313a7b733a353a22636c617373223b733a31303a225269736b20466c616773223b7d, 'system', -1, 0, 0, 0, 157, 2, 0, 1216, 1254, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1255, 1223, 'settings/security', 'settings/security', 'Security', 0x613a313a7b733a353a22636c617373223b733a383a225365637572697479223b7d, 'system', -1, 0, 0, 0, 162, 2, 0, 1223, 1255, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1256, 1219, 'history/changes', 'history/changes', 'See Changes', 0x613a313a7b733a353a22636c617373223b733a31313a22536565204368616e676573223b7d, 'system', -1, 0, 0, 0, 133, 2, 0, 1219, 1256, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1257, 1219, 'history/statements', 'history/statements', 'Statements', 0x613a313a7b733a353a22636c617373223b733a31303a2253746174656d656e7473223b7d, 'system', -1, 0, 0, 0, 130, 2, 0, 1219, 1257, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1258, 1219, 'history/tax-info', 'history/tax-info', 'Tax Info', 0x613a313a7b733a353a22636c617373223b733a383a2254617820496e666f223b7d, 'system', -1, 0, 0, 0, 132, 2, 0, 1219, 1258, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1259, 1213, 'sadmin/sms', 'sadmin/sms', 'Test SMS', 0x613a313a7b733a353a22636c617373223b733a383a225465737420534d53223b7d, 'system', -1, 0, 0, 0, 200, 2, 0, 1213, 1259, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1260, 1216, 'community/agreement', 'community/agreement', 'The Agreement', 0x613a313a7b733a353a22636c617373223b733a31333a225468652041677265656d656e74223b7d, 'system', -1, 0, 0, 0, 145, 2, 0, 1216, 1260, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1261, 1219, 'history/transactions', 'history/transactions', 'Transactions', 0x613a313a7b733a353a22636c617373223b733a31323a225472616e73616374696f6e73223b7d, 'system', -1, 0, 0, 0, 127, 2, 0, 1219, 1261, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1262, 1222, 'pay/payroll', 'pay/payroll', 'Upload Payroll', 0x613a313a7b733a353a22636c617373223b733a31343a2255706c6f616420506179726f6c6c223b7d, 'system', -1, 0, 0, 0, 120, 2, 0, 1222, 1262, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1264, 1219, 'history/zot', 'history/zot', 'zot', 0x613a313a7b733a353a22636c617373223b733a333a227a6f74223b7d, 'system', -1, 0, 0, 0, 134, 2, 0, 1219, 1264, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1265, 1216, 'community/zot', 'community/zot', 'zot', 0x613a313a7b733a353a22636c617373223b733a333a227a6f74223b7d, 'system', -1, 0, 0, 0, 158, 2, 0, 1216, 1265, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1266, 1223, 'settings/zot', 'settings/zot', 'zot', 0x613a313a7b733a353a22636c617373223b733a333a227a6f74223b7d, 'system', -1, 0, 0, 0, 167, 2, 0, 1223, 1266, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1267, 1213, 'sadmin/zot', 'sadmin/zot', 'zot', 0x613a313a7b733a353a22636c617373223b733a333a227a6f74223b7d, 'system', -1, 0, 0, 0, 203, 2, 0, 1213, 1267, 0, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1268, 0, 'admin', 'admin', 'Administration', 0x613a303a7b7d, 'system', 0, 0, 1, 0, 9, 1, 0, 1268, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('navigation', 1269, 0, 'filter/tips', 'filter/tips', 'Compose tips', 0x613a303a7b7d, 'system', 1, 0, 0, 0, 0, 1, 0, 1269, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1270, 1268, 'admin/appearance', 'admin/appearance', 'Appearance', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a33333a2253656c65637420616e6420636f6e66696775726520796f7572207468656d65732e223b7d7d, 'system', 0, 0, 0, 0, -6, 2, 0, 1268, 1270, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -639,29 +364,22 @@ INSERT INTO `menu_links` (`menu_name`, `mlid`, `plid`, `link_path`, `router_path
 ('devel', 1279, 0, 'devel/reinstall', 'devel/reinstall', 'Reinstall modules', 0x613a323a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a36343a2252756e20686f6f6b5f756e696e7374616c6c282920616e64207468656e20686f6f6b5f696e7374616c6c282920666f72206120676976656e206d6f64756c652e223b7d733a353a22616c746572223b623a313b7d, 'system', 0, 0, 0, 0, 0, 1, 0, 1279, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1280, 1268, 'admin/reports', 'admin/reports', 'Reports', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a33343a2256696577207265706f7274732c20757064617465732c20616e64206572726f72732e223b7d7d, 'system', 0, 0, 1, 0, 5, 2, 0, 1268, 1280, 0, 0, 0, 0, 0, 0, 0, 0),
 ('devel', 1281, 0, 'devel/run-cron', 'devel/run-cron', 'Run cron', 0x613a303a7b7d, 'system', 0, 0, 0, 0, 0, 1, 0, 1281, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('management', 1282, 1268, 'admin/smsframework', 'admin/smsframework', 'SMS Framework', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a33313a22436f6e74726f6c20686f7720796f75722073697465207573657320534d532e223b7d7d, 'system', 0, 0, 1, 0, 0, 2, 0, 1268, 1282, 0, 0, 0, 0, 0, 0, 0, 0),
 ('devel', 1283, 0, 'devel/session', 'devel/session', 'Session viewer', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a33313a224c6973742074686520636f6e74656e7473206f6620245f53455353494f4e2e223b7d7d, 'system', 0, 0, 0, 0, 0, 1, 0, 1283, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1284, 1268, 'admin/structure', 'admin/structure', 'Structure', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34353a2241646d696e697374657220626c6f636b732c20636f6e74656e742074797065732c206d656e75732c206574632e223b7d7d, 'system', 0, 0, 1, 0, -8, 2, 0, 1268, 1284, 0, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1285, 1268, 'admin/tasks', 'admin/tasks', 'Tasks', 0x613a303a7b7d, 'system', -1, 0, 0, 0, -20, 2, 0, 1268, 1285, 0, 0, 0, 0, 0, 0, 0, 0),
 ('devel', 1286, 0, 'devel/variable', 'devel/variable', 'Variable editor', 0x613a323a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a33313a224564697420616e642064656c6574652073697465207661726961626c65732e223b7d733a353a22616c746572223b623a313b7d, 'system', 0, 0, 0, 0, 0, 1, 0, 1286, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('navigation', 1287, 0, 'comment/%comment/devel', 'comment/%comment/devel', 'Devel', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 100, 1, 0, 1287, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('navigation', 1288, 0, 'node/%/devel', 'node/%/devel', 'Devel', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 100, 1, 0, 1288, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('navigation', 1289, 0, 'user/%/devel', 'user/%/devel', 'Devel', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 100, 1, 0, 1289, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('management', 1290, 1280, 'admin/reports/updates', 'admin/reports/updates', 'Available updates', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a38323a22476574206120737461747573207265706f72742061626f757420617661696c61626c65207570646174657320666f7220796f757220696e7374616c6c6564206d6f64756c657320616e64207468656d65732e223b7d7d, 'system', 0, 0, 0, 0, -50, 3, 0, 1268, 1280, 1290, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1291, 1284, 'admin/structure/block', 'admin/structure/block', 'Blocks', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a37393a22436f6e666967757265207768617420626c6f636b20636f6e74656e74206170706561727320696e20796f75722073697465277320736964656261727320616e64206f7468657220726567696f6e732e223b7d7d, 'system', 0, 0, 1, 0, 0, 3, 0, 1268, 1284, 1291, 0, 0, 0, 0, 0, 0, 0),
-('management', 1292, 1282, 'admin/smsframework/carriers', 'admin/smsframework/carriers', 'Carrier configuration', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a32393a22436f6e66696775726520737570706f727465642063617272696572732e223b7d7d, 'system', 0, 0, 0, 0, 0, 3, 0, 1268, 1282, 1292, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1293, 1271, 'admin/config/content', 'admin/config/content', 'Content authoring', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a35333a2253657474696e67732072656c6174656420746f20666f726d617474696e6720616e6420617574686f72696e6720636f6e74656e742e223b7d7d, 'system', 0, 0, 1, 0, -15, 3, 0, 1268, 1271, 1293, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1294, 1271, 'admin/config/development', 'admin/config/development', 'Development', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a31383a22446576656c6f706d656e7420746f6f6c732e223b7d7d, 'system', 0, 0, 1, 0, -10, 3, 0, 1268, 1271, 1294, 0, 0, 0, 0, 0, 0, 0),
 ('devel', 1295, 0, 'devel/cache/clear', 'devel/cache/clear', 'Empty cache', 0x613a323a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a3130303a22436c656172207468652043535320636163686520616e6420616c6c206461746162617365206361636865207461626c65732077686963682073746f726520706167652c206e6f64652c207468656d6520616e64207661726961626c65206361636865732e223b7d733a353a22616c746572223b623a313b7d, 'system', 0, 0, 0, 0, 0, 1, 0, 1295, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('devel', 1296, 0, 'devel/entity/info', 'devel/entity/info', 'Entity info', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34363a225669657720656e7469747920696e666f726d6174696f6e206163726f7373207468652077686f6c6520736974652e223b7d7d, 'system', 0, 0, 0, 0, 0, 1, 0, 1296, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('devel', 1297, 0, 'devel/field/info', 'devel/field/info', 'Field info', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34363a2256696577206669656c647320696e666f726d6174696f6e206163726f7373207468652077686f6c6520736974652e223b7d7d, 'system', 0, 0, 0, 0, 0, 1, 0, 1297, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('management', 1298, 1282, 'admin/smsframework/gateways', 'admin/smsframework/gateways', 'Gateway configuration', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34393a22436f6e66696775726520676174657761797320616e642063686f7365207468652064656661756c7420676174657761792e223b7d7d, 'system', 0, 0, 0, 0, 0, 3, 0, 1268, 1282, 1298, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1299, 1270, 'admin/appearance/list', 'admin/appearance/list', 'List', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a33313a2253656c65637420616e6420636f6e66696775726520796f7572207468656d65223b7d7d, 'system', -1, 0, 0, 0, -1, 3, 0, 1268, 1270, 1299, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1300, 1277, 'admin/modules/list', 'admin/modules/list', 'List', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 3, 0, 1268, 1277, 1300, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1301, 1271, 'admin/config/media', 'admin/config/media', 'Media', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a31323a224d6564696120746f6f6c732e223b7d7d, 'system', 0, 0, 1, 0, -10, 3, 0, 1268, 1271, 1301, 0, 0, 0, 0, 0, 0, 0),
 ('devel', 1302, 0, 'devel/menu/item', 'devel/menu/item', 'Menu item', 0x613a323a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a33323a2244657461696c732061626f7574206120676976656e206d656e75206974656d2e223b7d733a353a22616c746572223b623a313b7d, 'system', 0, 0, 0, 0, 0, 1, 0, 1302, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('management', 1303, 1277, 'admin/modules/install', 'admin/modules/install', 'Install new module', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 25, 3, 0, 1268, 1277, 1303, 0, 0, 0, 0, 0, 0, 0),
-('management', 1304, 1270, 'admin/appearance/install', 'admin/appearance/install', 'Install new theme', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 25, 3, 0, 1268, 1270, 1304, 0, 0, 0, 0, 0, 0, 0),
 ('devel', 1305, 0, 'devel/menu/reset', 'devel/menu/reset', 'Rebuild menus', 0x613a323a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a3131333a2252656275696c64206d656e75206261736564206f6e20686f6f6b5f6d656e75282920616e642072657665727420616e7920637573746f6d206368616e6765732e20416c6c206d656e75206974656d732072657475726e20746f2074686569722064656661756c742073657474696e67732e223b7d733a353a22616c746572223b623a313b7d, 'system', 0, 0, 0, 0, 0, 1, 0, 1305, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1306, 1271, 'admin/config/regional', 'admin/config/regional', 'Regional and language', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34383a22526567696f6e616c2073657474696e67732c206c6f63616c697a6174696f6e20616e64207472616e736c6174696f6e2e223b7d7d, 'system', 0, 0, 1, 0, -5, 3, 0, 1268, 1271, 1306, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1307, 1271, 'admin/config/search', 'admin/config/search', 'Search and metadata', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a33363a224c6f63616c2073697465207365617263682c206d6574616461746120616e642053454f2e223b7d7d, 'system', 0, 0, 1, 0, -10, 3, 0, 1268, 1271, 1307, 0, 0, 0, 0, 0, 0, 0),
@@ -670,22 +388,16 @@ INSERT INTO `menu_links` (`menu_name`, `mlid`, `plid`, `link_path`, `router_path
 ('management', 1310, 1271, 'admin/config/system', 'admin/config/system', 'System', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a33373a2247656e6572616c2073797374656d2072656c6174656420636f6e66696775726174696f6e2e223b7d7d, 'system', 0, 0, 1, 0, -20, 3, 0, 1268, 1271, 1310, 0, 0, 0, 0, 0, 0, 0),
 ('devel', 1311, 0, 'devel/theme/registry', 'devel/theme/registry', 'Theme registry', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a36333a22566965772061206c697374206f6620617661696c61626c65207468656d652066756e6374696f6e73206163726f7373207468652077686f6c6520736974652e223b7d7d, 'system', 0, 0, 0, 0, 0, 1, 0, 1311, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1312, 1277, 'admin/modules/uninstall', 'admin/modules/uninstall', 'Uninstall', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 20, 3, 0, 1268, 1277, 1312, 0, 0, 0, 0, 0, 0, 0),
-('management', 1313, 1277, 'admin/modules/update', 'admin/modules/update', 'Update', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 10, 3, 0, 1268, 1277, 1313, 0, 0, 0, 0, 0, 0, 0),
-('management', 1314, 1270, 'admin/appearance/update', 'admin/appearance/update', 'Update', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 10, 3, 0, 1268, 1270, 1314, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1315, 1271, 'admin/config/user-interface', 'admin/config/user-interface', 'User interface', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a33383a22546f6f6c73207468617420656e68616e636520746865207573657220696e746572666163652e223b7d7d, 'system', 0, 0, 0, 0, -15, 3, 0, 1268, 1271, 1315, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1316, 1271, 'admin/config/services', 'admin/config/services', 'Web services', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a33303a22546f6f6c732072656c6174656420746f207765622073657276696365732e223b7d7d, 'system', 0, 0, 1, 0, 0, 3, 0, 1268, 1271, 1316, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1317, 1271, 'admin/config/workflow', 'admin/config/workflow', 'Workflow', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34333a22436f6e74656e7420776f726b666c6f772c20656469746f7269616c20776f726b666c6f7720746f6f6c732e223b7d7d, 'system', 0, 0, 0, 0, 5, 3, 0, 1268, 1271, 1317, 0, 0, 0, 0, 0, 0, 0),
 ('navigation', 1318, 0, 'taxonomy/term/%taxonomy_term/devel', 'taxonomy/term/%taxonomy_term/devel', 'Devel', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 100, 1, 0, 1318, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('navigation', 1319, 1287, 'comment/%comment/devel/load', 'comment/%comment/devel/load', 'Load', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 2, 0, 1287, 1319, 0, 0, 0, 0, 0, 0, 0, 0),
-('navigation', 1320, 1288, 'node/%/devel/load', 'node/%/devel/load', 'Load', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 2, 0, 1288, 1320, 0, 0, 0, 0, 0, 0, 0, 0),
 ('navigation', 1321, 1289, 'user/%/devel/load', 'user/%/devel/load', 'Load', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 2, 0, 1289, 1321, 0, 0, 0, 0, 0, 0, 0, 0),
 ('navigation', 1322, 1287, 'comment/%comment/devel/render', 'comment/%comment/devel/render', 'Render', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 100, 2, 0, 1287, 1322, 0, 0, 0, 0, 0, 0, 0, 0),
-('navigation', 1323, 1288, 'node/%/devel/render', 'node/%/devel/render', 'Render', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 100, 2, 0, 1288, 1323, 0, 0, 0, 0, 0, 0, 0, 0),
 ('navigation', 1324, 1289, 'user/%/devel/render', 'user/%/devel/render', 'Render', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 100, 2, 0, 1289, 1324, 0, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1325, 1310, 'admin/config/system/actions', 'admin/config/system/actions', 'Actions', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34313a224d616e6167652074686520616374696f6e7320646566696e656420666f7220796f757220736974652e223b7d7d, 'system', 0, 0, 1, 0, 0, 4, 0, 1268, 1271, 1310, 1325, 0, 0, 0, 0, 0, 0),
-('management', 1326, 1292, 'admin/smsframework/carriers/add', 'admin/smsframework/carriers/add', 'Add', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a32393a22436f6e66696775726520737570706f727465642063617272696572732e223b7d7d, 'system', -1, 0, 0, 0, 0, 4, 0, 1268, 1282, 1292, 1326, 0, 0, 0, 0, 0, 0),
 ('management', 1327, 1291, 'admin/structure/block/add', 'admin/structure/block/add', 'Add block', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 4, 0, 1268, 1284, 1291, 1327, 0, 0, 0, 0, 0, 0),
-('management', 1328, 1308, 'admin/appearance/settings/bartik', 'admin/appearance/settings/bartik', 'Bartik', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 4, 0, 1268, 1270, 1308, 1328, 0, 0, 0, 0, 0, 0),
 ('management', 1329, 1307, 'admin/config/search/clean-urls', 'admin/config/search/clean-urls', 'Clean URLs', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34333a22456e61626c65206f722064697361626c6520636c65616e2055524c7320666f7220796f757220736974652e223b7d7d, 'system', 0, 0, 0, 0, 5, 4, 0, 1268, 1271, 1307, 1329, 0, 0, 0, 0, 0, 0),
 ('management', 1330, 1310, 'admin/config/system/cron', 'admin/config/system/cron', 'Cron', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34303a224d616e616765206175746f6d617469632073697465206d61696e74656e616e6365207461736b732e223b7d7d, 'system', 0, 0, 0, 0, 20, 4, 0, 1268, 1271, 1310, 1330, 0, 0, 0, 0, 0, 0),
 ('management', 1331, 1306, 'admin/config/regional/date-time', 'admin/config/regional/date-time', 'Date and time', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34343a22436f6e66696775726520646973706c617920666f726d61747320666f72206461746520616e642074696d652e223b7d7d, 'system', 0, 0, 0, 0, -15, 4, 0, 1268, 1271, 1306, 1331, 0, 0, 0, 0, 0, 0),
@@ -695,26 +407,20 @@ INSERT INTO `menu_links` (`menu_name`, `mlid`, `plid`, `link_path`, `router_path
 ('management', 1335, 1271, 'admin/config/people/ip-blocking', 'admin/config/people/ip-blocking', 'IP address blocking', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a32383a224d616e61676520626c6f636b6564204950206164647265737365732e223b7d7d, 'system', 0, 0, 1, 0, 10, 3, 0, 1268, 1271, 1335, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1336, 1301, 'admin/config/media/image-toolkit', 'admin/config/media/image-toolkit', 'Image toolkit', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a37343a2243686f6f736520776869636820696d61676520746f6f6c6b697420746f2075736520696620796f75206861766520696e7374616c6c6564206f7074696f6e616c20746f6f6c6b6974732e223b7d7d, 'system', 0, 0, 0, 0, 20, 4, 0, 1268, 1271, 1301, 1336, 0, 0, 0, 0, 0, 0),
 ('management', 1337, 1300, 'admin/modules/list/confirm', 'admin/modules/list/confirm', 'List', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 4, 0, 1268, 1277, 1300, 1337, 0, 0, 0, 0, 0, 0),
-('management', 1338, 1290, 'admin/reports/updates/list', 'admin/reports/updates/list', 'List', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 4, 0, 1268, 1280, 1290, 1338, 0, 0, 0, 0, 0, 0),
 ('management', 1339, 1294, 'admin/config/development/logging', 'admin/config/development/logging', 'Logging and errors', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a3135343a2253657474696e677320666f72206c6f6767696e6720616e6420616c65727473206d6f64756c65732e20566172696f7573206d6f64756c65732063616e20726f7574652044727570616c27732073797374656d206576656e747320746f20646966666572656e742064657374696e6174696f6e732c2073756368206173207379736c6f672c2064617461626173652c20656d61696c2c206574632e223b7d7d, 'system', 0, 0, 0, 0, -15, 4, 0, 1268, 1271, 1294, 1339, 0, 0, 0, 0, 0, 0),
 ('management', 1340, 1294, 'admin/config/development/maintenance', 'admin/config/development/maintenance', 'Maintenance mode', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a36323a2254616b65207468652073697465206f66666c696e6520666f72206d61696e74656e616e6365206f72206272696e67206974206261636b206f6e6c696e652e223b7d7d, 'system', 0, 0, 0, 0, -10, 4, 0, 1268, 1271, 1294, 1340, 0, 0, 0, 0, 0, 0),
-('management', 1341, 1292, 'admin/smsframework/carriers/manage', 'admin/smsframework/carriers/manage', 'Manage', 0x613a303a7b7d, 'system', -1, 0, 0, 0, -10, 4, 0, 1268, 1282, 1292, 1341, 0, 0, 0, 0, 0, 0),
 ('management', 1342, 1294, 'admin/config/development/performance', 'admin/config/development/performance', 'Performance', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a3130313a22456e61626c65206f722064697361626c6520706167652063616368696e6720666f7220616e6f6e796d6f757320757365727320616e64207365742043535320616e64204a532062616e647769647468206f7074696d697a6174696f6e206f7074696f6e732e223b7d7d, 'system', 0, 0, 0, 0, -20, 4, 0, 1268, 1271, 1294, 1342, 0, 0, 0, 0, 0, 0),
 ('management', 1343, 1316, 'admin/config/services/rss-publishing', 'admin/config/services/rss-publishing', 'RSS publishing', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a3131343a22436f6e666967757265207468652073697465206465736372697074696f6e2c20746865206e756d626572206f66206974656d7320706572206665656420616e6420776865746865722066656564732073686f756c64206265207469746c65732f746561736572732f66756c6c2d746578742e223b7d7d, 'system', 0, 0, 0, 0, 0, 4, 0, 1268, 1271, 1316, 1343, 0, 0, 0, 0, 0, 0),
 ('management', 1344, 1306, 'admin/config/regional/settings', 'admin/config/regional/settings', 'Regional settings', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a35343a2253657474696e677320666f7220746865207369746527732064656661756c742074696d65207a6f6e6520616e6420636f756e7472792e223b7d7d, 'system', 0, 0, 0, 0, -20, 4, 0, 1268, 1271, 1306, 1344, 0, 0, 0, 0, 0, 0),
-('management', 1345, 1290, 'admin/reports/updates/settings', 'admin/reports/updates/settings', 'Settings', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 50, 4, 0, 1268, 1280, 1290, 1345, 0, 0, 0, 0, 0, 0),
 ('management', 1346, 1308, 'admin/appearance/settings/seven', 'admin/appearance/settings/seven', 'Seven', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 4, 0, 1268, 1270, 1308, 1346, 0, 0, 0, 0, 0, 0),
 ('management', 1347, 1310, 'admin/config/system/site-information', 'admin/config/system/site-information', 'Site information', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a3130343a224368616e67652073697465206e616d652c20652d6d61696c20616464726573732c20736c6f67616e2c2064656661756c742066726f6e7420706167652c20616e64206e756d626572206f6620706f7374732070657220706167652c206572726f722070616765732e223b7d7d, 'system', 0, 0, 0, 0, -20, 4, 0, 1268, 1271, 1310, 1347, 0, 0, 0, 0, 0, 0),
 ('management', 1348, 1293, 'admin/config/content/formats', 'admin/config/content/formats', 'Text formats', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a3132373a22436f6e66696775726520686f7720636f6e74656e7420696e7075742062792075736572732069732066696c74657265642c20696e636c7564696e6720616c6c6f7765642048544d4c20746167732e20416c736f20616c6c6f777320656e61626c696e67206f66206d6f64756c652d70726f76696465642066696c746572732e223b7d7d, 'system', 0, 0, 1, 0, 0, 4, 0, 1268, 1271, 1293, 1348, 0, 0, 0, 0, 0, 0),
-('management', 1349, 1290, 'admin/reports/updates/install', 'admin/reports/updates/install', 'Install new module or theme', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 25, 4, 0, 1268, 1280, 1290, 1349, 0, 0, 0, 0, 0, 0),
 ('management', 1350, 1312, 'admin/modules/uninstall/confirm', 'admin/modules/uninstall/confirm', 'Uninstall', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 4, 0, 1268, 1277, 1312, 1350, 0, 0, 0, 0, 0, 0),
-('management', 1351, 1290, 'admin/reports/updates/update', 'admin/reports/updates/update', 'Update', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 10, 4, 0, 1268, 1280, 1290, 1351, 0, 0, 0, 0, 0, 0),
 ('management', 1352, 1308, 'admin/appearance/settings/rcredits', 'admin/appearance/settings/rcredits', 'rCredits', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 4, 0, 1268, 1270, 1308, 1352, 0, 0, 0, 0, 0, 0),
 ('navigation', 1353, 1318, 'taxonomy/term/%taxonomy_term/devel/load', 'taxonomy/term/%taxonomy_term/devel/load', 'Load', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 2, 0, 1318, 1353, 0, 0, 0, 0, 0, 0, 0, 0),
 ('navigation', 1354, 1318, 'taxonomy/term/%taxonomy_term/devel/render', 'taxonomy/term/%taxonomy_term/devel/render', 'Render', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 100, 2, 0, 1318, 1354, 0, 0, 0, 0, 0, 0, 0, 0),
 ('management', 1355, 1348, 'admin/config/content/formats/%', 'admin/config/content/formats/%', '', 0x613a303a7b7d, 'system', 0, 0, 1, 0, 0, 5, 0, 1268, 1271, 1293, 1348, 1355, 0, 0, 0, 0, 0),
 ('management', 1356, 1348, 'admin/config/content/formats/add', 'admin/config/content/formats/add', 'Add text format', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 1, 5, 0, 1268, 1271, 1293, 1348, 1356, 0, 0, 0, 0, 0),
-('management', 1357, 1291, 'admin/structure/block/list/bartik', 'admin/structure/block/list/bartik', 'Bartik', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 4, 0, 1268, 1284, 1291, 1357, 0, 0, 0, 0, 0, 0),
 ('management', 1358, 1325, 'admin/config/system/actions/configure', 'admin/config/system/actions/configure', 'Configure an advanced action', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 5, 0, 1268, 1271, 1310, 1325, 1358, 0, 0, 0, 0, 0),
 ('management', 1359, 1331, 'admin/config/regional/date-time/formats', 'admin/config/regional/date-time/formats', 'Formats', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a35313a22436f6e66696775726520646973706c617920666f726d617420737472696e677320666f72206461746520616e642074696d652e223b7d7d, 'system', -1, 0, 1, 0, -9, 5, 0, 1268, 1271, 1306, 1331, 1359, 0, 0, 0, 0, 0),
 ('management', 1360, 1348, 'admin/config/content/formats/list', 'admin/config/content/formats/list', 'List', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 5, 0, 1268, 1271, 1293, 1348, 1360, 0, 0, 0, 0, 0),
@@ -722,7 +428,6 @@ INSERT INTO `menu_links` (`menu_name`, `mlid`, `plid`, `link_path`, `router_path
 ('management', 1362, 1291, 'admin/structure/block/list/seven', 'admin/structure/block/list/seven', 'Seven', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 4, 0, 1268, 1284, 1291, 1362, 0, 0, 0, 0, 0, 0),
 ('management', 1363, 1331, 'admin/config/regional/date-time/types', 'admin/config/regional/date-time/types', 'Types', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34343a22436f6e66696775726520646973706c617920666f726d61747320666f72206461746520616e642074696d652e223b7d7d, 'system', -1, 0, 1, 0, -10, 5, 0, 1268, 1271, 1306, 1331, 1363, 0, 0, 0, 0, 0),
 ('management', 1364, 1291, 'admin/structure/block/list/rcredits', 'admin/structure/block/list/rcredits', 'rCredits', 0x613a303a7b7d, 'system', -1, 0, 0, 0, -10, 4, 0, 1268, 1284, 1291, 1364, 0, 0, 0, 0, 0, 0),
-('management', 1365, 1357, 'admin/structure/block/list/bartik/add', 'admin/structure/block/list/bartik/add', 'Add block', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 5, 0, 1268, 1284, 1291, 1357, 1365, 0, 0, 0, 0, 0),
 ('management', 1366, 1362, 'admin/structure/block/list/seven/add', 'admin/structure/block/list/seven/add', 'Add block', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 5, 0, 1268, 1284, 1291, 1362, 1366, 0, 0, 0, 0, 0),
 ('management', 1367, 1363, 'admin/config/regional/date-time/types/add', 'admin/config/regional/date-time/types/add', 'Add date type', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a31383a22416464206e6577206461746520747970652e223b7d7d, 'system', -1, 0, 0, 0, -10, 6, 0, 1268, 1271, 1306, 1331, 1363, 1367, 0, 0, 0, 0),
 ('management', 1368, 1359, 'admin/config/regional/date-time/formats/add', 'admin/config/regional/date-time/formats/add', 'Add format', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34333a22416c6c6f7720757365727320746f20616464206164646974696f6e616c206461746520666f726d6174732e223b7d7d, 'system', -1, 0, 0, 0, -10, 6, 0, 1268, 1271, 1306, 1331, 1359, 1368, 0, 0, 0, 0),
@@ -734,7 +439,16 @@ INSERT INTO `menu_links` (`menu_name`, `mlid`, `plid`, `link_path`, `router_path
 ('management', 1374, 1369, 'admin/structure/block/manage/%/%/delete', 'admin/structure/block/manage/%/%/delete', 'Delete block', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 5, 0, 1268, 1284, 1291, 1369, 1374, 0, 0, 0, 0, 0),
 ('management', 1375, 1359, 'admin/config/regional/date-time/formats/%/delete', 'admin/config/regional/date-time/formats/%/delete', 'Delete date format', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34373a22416c6c6f7720757365727320746f2064656c657465206120636f6e66696775726564206461746520666f726d61742e223b7d7d, 'system', 0, 0, 0, 0, 0, 6, 0, 1268, 1271, 1306, 1331, 1359, 1375, 0, 0, 0, 0),
 ('management', 1376, 1363, 'admin/config/regional/date-time/types/%/delete', 'admin/config/regional/date-time/types/%/delete', 'Delete date type', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34353a22416c6c6f7720757365727320746f2064656c657465206120636f6e66696775726564206461746520747970652e223b7d7d, 'system', 0, 0, 0, 0, 0, 6, 0, 1268, 1271, 1306, 1331, 1363, 1376, 0, 0, 0, 0),
-('management', 1377, 1359, 'admin/config/regional/date-time/formats/%/edit', 'admin/config/regional/date-time/formats/%/edit', 'Edit date format', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34353a22416c6c6f7720757365727320746f2065646974206120636f6e66696775726564206461746520666f726d61742e223b7d7d, 'system', 0, 0, 0, 0, 0, 6, 0, 1268, 1271, 1306, 1331, 1359, 1377, 0, 0, 0, 0);
+('management', 1377, 1359, 'admin/config/regional/date-time/formats/%/edit', 'admin/config/regional/date-time/formats/%/edit', 'Edit date format', 0x613a313a7b733a31303a2261747472696275746573223b613a313a7b733a353a227469746c65223b733a34353a22416c6c6f7720757365727320746f2065646974206120636f6e66696775726564206461746520666f726d61742e223b7d7d, 'system', 0, 0, 0, 0, 0, 6, 0, 1268, 1271, 1306, 1331, 1359, 1377, 0, 0, 0, 0),
+('main-menu', 1378, 1216, 'community/data', 'community/data', 'Community & Money Data', 0x613a313a7b733a353a22636c617373223b733a32323a22436f6d6d756e6974792026204d6f6e65792044617461223b7d, 'system', -1, 0, 0, 0, 138, 2, 0, 1216, 1378, 0, 0, 0, 0, 0, 0, 0, 0),
+('navigation', 1380, 0, 'node/%node/devel', 'node/%node/devel', 'Devel', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 100, 1, 0, 1380, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('navigation', 1381, 1380, 'node/%node/devel/load', 'node/%node/devel/load', 'Load', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 0, 2, 0, 1380, 1381, 0, 0, 0, 0, 0, 0, 0, 0),
+('navigation', 1382, 1380, 'node/%node/devel/render', 'node/%node/devel/render', 'Render', 0x613a303a7b7d, 'system', -1, 0, 0, 0, 100, 2, 0, 1380, 1382, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1383, 0, 'charge', 'charge', 'Charge', 0x613a313a7b733a353a22636c617373223b733a363a22436861726765223b7d, 'system', 0, 0, 0, 0, 117, 1, 0, 1383, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1384, 1383, 'charge/invoices', 'charge/invoices', 'Upload Invoices', 0x613a313a7b733a353a22636c617373223b733a31353a2255706c6f616420496e766f69636573223b7d, 'system', -1, 0, 0, 0, 118, 2, 0, 1383, 1384, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1385, 1216, 'community/events', 'community/events', 'Democracy Events', 0x613a313a7b733a353a22636c617373223b733a31363a2244656d6f6372616379204576656e7473223b7d, 'system', -1, 0, 0, 0, 139, 2, 0, 1216, 1385, 0, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1386, 1385, 'community/events/event', 'community/events/event', 'Add/Edit Event', 0x613a313a7b733a353a22636c617373223b733a31343a224164642f45646974204576656e74223b7d, 'system', -1, 0, 0, 0, 136, 3, 0, 1216, 1385, 1386, 0, 0, 0, 0, 0, 0, 0),
+('main-menu', 1387, 1213, 'sadmin/followup', 'sadmin/followup', 'Admin Calls to Make', 0x613a313a7b733a353a22636c617373223b733a31393a2241646d696e2043616c6c7320746f204d616b65223b7d, 'system', -1, 0, 0, 0, 194, 2, 0, 1213, 1387, 0, 0, 0, 0, 0, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -773,20 +487,17 @@ CREATE TABLE IF NOT EXISTS `menu_router` (
 --
 
 INSERT INTO `menu_router` (`path`, `load_functions`, `to_arg_functions`, `access_callback`, `access_arguments`, `page_callback`, `page_arguments`, `delivery_callback`, `fit`, `number_parts`, `context`, `tab_parent`, `tab_root`, `title`, `title_callback`, `title_arguments`, `theme_callback`, `theme_arguments`, `type`, `description`, `position`, `weight`, `include_file`) VALUES
-('accept', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a363a22416363657074223b693a313b693a313b7d, '', 1, 1, 0, '', 'accept', 'Accept Invitation', 't', '', '', 'a:0:{}', 0, '', '', 102, 'rcredits/rweb/rweb.inc'),
+('accept', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a363a22416363657074223b693a313b693a313b7d, '', 1, 1, 0, '', 'accept', 'Accept Invitation', 't', '', '', 'a:0:{}', 0, '', '', 224, 'rcredits/rweb/rweb.inc'),
 ('admin', '', '', 'user_access', 0x613a313a7b693a303b733a32373a226163636573732061646d696e697374726174696f6e207061676573223b7d, 'system_admin_menu_block_page', 0x613a303a7b7d, '', 1, 1, 0, '', 'admin', 'Administration', 't', '', '', 'a:0:{}', 6, '', '', 9, 'modules/system/system.admin.inc'),
 ('admin/appearance', '', '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e6973746572207468656d6573223b7d, 'system_themes_page', 0x613a303a7b7d, '', 3, 2, 0, '', 'admin/appearance', 'Appearance', 't', '', '', 'a:0:{}', 6, 'Select and configure your themes.', 'left', -6, 'modules/system/system.admin.inc'),
 ('admin/appearance/default', '', '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e6973746572207468656d6573223b7d, 'system_theme_default', 0x613a303a7b7d, '', 7, 3, 0, '', 'admin/appearance/default', 'Set default theme', 't', '', '', 'a:0:{}', 0, '', '', 0, 'modules/system/system.admin.inc'),
 ('admin/appearance/disable', '', '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e6973746572207468656d6573223b7d, 'system_theme_disable', 0x613a303a7b7d, '', 7, 3, 0, '', 'admin/appearance/disable', 'Disable theme', 't', '', '', 'a:0:{}', 0, '', '', 0, 'modules/system/system.admin.inc'),
 ('admin/appearance/enable', '', '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e6973746572207468656d6573223b7d, 'system_theme_enable', 0x613a303a7b7d, '', 7, 3, 0, '', 'admin/appearance/enable', 'Enable theme', 't', '', '', 'a:0:{}', 0, '', '', 0, 'modules/system/system.admin.inc'),
-('admin/appearance/install', '', '', 'update_manager_access', 0x613a303a7b7d, 'drupal_get_form', 0x613a323a7b693a303b733a32373a227570646174655f6d616e616765725f696e7374616c6c5f666f726d223b693a313b733a353a227468656d65223b7d, '', 7, 3, 1, 'admin/appearance', 'admin/appearance', 'Install new theme', 't', '', '', 'a:0:{}', 388, '', '', 25, 'modules/update/update.manager.inc'),
 ('admin/appearance/list', '', '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e6973746572207468656d6573223b7d, 'system_themes_page', 0x613a303a7b7d, '', 7, 3, 1, 'admin/appearance', 'admin/appearance', 'List', 't', '', '', 'a:0:{}', 140, 'Select and configure your theme', '', -1, 'modules/system/system.admin.inc'),
 ('admin/appearance/settings', '', '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e6973746572207468656d6573223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a32313a2273797374656d5f7468656d655f73657474696e6773223b7d, '', 7, 3, 1, 'admin/appearance', 'admin/appearance', 'Settings', 't', '', '', 'a:0:{}', 132, 'Configure default and theme specific settings.', '', 20, 'modules/system/system.admin.inc'),
-('admin/appearance/settings/bartik', '', '', '_system_themes_access', 0x613a313a7b693a303b4f3a383a22737464436c617373223a31323a7b733a383a2266696c656e616d65223b733a32353a227468656d65732f62617274696b2f62617274696b2e696e666f223b733a343a226e616d65223b733a363a2262617274696b223b733a343a2274797065223b733a353a227468656d65223b733a353a226f776e6572223b733a34353a227468656d65732f656e67696e65732f70687074656d706c6174652f70687074656d706c6174652e656e67696e65223b733a363a22737461747573223b733a313a2230223b733a393a22626f6f747374726170223b733a313a2230223b733a31343a22736368656d615f76657273696f6e223b733a323a222d31223b733a363a22776569676874223b733a313a2230223b733a343a22696e666f223b613a31373a7b733a343a226e616d65223b733a363a2242617274696b223b733a31313a226465736372697074696f6e223b733a34383a224120666c657869626c652c207265636f6c6f7261626c65207468656d652077697468206d616e7920726567696f6e732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32383a227468656d65732f62617274696b2f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32373a227468656d65732f62617274696b2f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32383a227468656d65732f62617274696b2f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32373a227468656d65732f62617274696b2f6373732f7072696e742e637373223b7d7d733a373a22726567696f6e73223b613a31373a7b733a363a22686561646572223b733a363a22486561646572223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31313a22686967686c696768746564223b733a31313a22486967686c696768746564223b733a383a226665617475726564223b733a383a224665617475726564223b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a31333a22736964656261725f6669727374223b733a31333a2253696465626172206669727374223b733a31343a22736964656261725f7365636f6e64223b733a31343a2253696465626172207365636f6e64223b733a31343a2274726970747963685f6669727374223b733a31343a225472697074796368206669727374223b733a31353a2274726970747963685f6d6964646c65223b733a31353a225472697074796368206d6964646c65223b733a31333a2274726970747963685f6c617374223b733a31333a225472697074796368206c617374223b733a31383a22666f6f7465725f6669727374636f6c756d6e223b733a31393a22466f6f74657220666972737420636f6c756d6e223b733a31393a22666f6f7465725f7365636f6e64636f6c756d6e223b733a32303a22466f6f746572207365636f6e6420636f6c756d6e223b733a31383a22666f6f7465725f7468697264636f6c756d6e223b733a31393a22466f6f74657220746869726420636f6c756d6e223b733a31393a22666f6f7465725f666f75727468636f6c756d6e223b733a32303a22466f6f74657220666f7572746820636f6c756d6e223b733a363a22666f6f746572223b733a363a22466f6f746572223b7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2230223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a32383a227468656d65732f62617274696b2f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313431363432393438383b733a31343a22726567696f6e735f68696464656e223b613a323a7b693a303b733a383a22706167655f746f70223b693a313b733a31313a22706167655f626f74746f6d223b7d7d733a363a22707265666978223b733a31313a2270687074656d706c617465223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32383a227468656d65732f62617274696b2f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32373a227468656d65732f62617274696b2f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32383a227468656d65732f62617274696b2f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32373a227468656d65732f62617274696b2f6373732f7072696e742e637373223b7d7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b7d7d, 'drupal_get_form', 0x613a323a7b693a303b733a32313a2273797374656d5f7468656d655f73657474696e6773223b693a313b733a363a2262617274696b223b7d, '', 15, 4, 1, 'admin/appearance/settings', 'admin/appearance', 'Bartik', 't', '', '', 'a:0:{}', 132, '', '', 0, 'modules/system/system.admin.inc'),
 ('admin/appearance/settings/global', '', '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e6973746572207468656d6573223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a32313a2273797374656d5f7468656d655f73657474696e6773223b7d, '', 15, 4, 1, 'admin/appearance/settings', 'admin/appearance', 'Global settings', 't', '', '', 'a:0:{}', 140, '', '', -1, 'modules/system/system.admin.inc'),
 ('admin/appearance/settings/rcredits', '', '', '_system_themes_access', 0x613a313a7b693a303b4f3a383a22737464436c617373223a31323a7b733a383a2266696c656e616d65223b733a32353a2272637265646974732f7468656d652f7468656d652e696e666f223b733a343a226e616d65223b733a383a227263726564697473223b733a343a2274797065223b733a353a227468656d65223b733a353a226f776e6572223b733a34353a227468656d65732f656e67696e65732f70687074656d706c6174652f70687074656d706c6174652e656e67696e65223b733a363a22737461747573223b733a313a2231223b733a393a22626f6f747374726170223b733a313a2231223b733a31343a22736368656d615f76657273696f6e223b733a313a2230223b733a363a22776569676874223b733a313a2230223b733a343a22696e666f223b613a31343a7b733a343a226e616d65223b733a383a227243726564697473223b733a31313a226465736372697074696f6e223b733a38303a224120766172696174696f6e206f6e20526573706f6e736976652042617274696b20287072652d72656c6561736520323031322d3038292c20666f72207468652072437265646974732053797374656d2e223b733a373a2276657273696f6e223b733a333a22312e30223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32393a2272637265646974732f7468656d652f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32383a2272637265646974732f7468656d652f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32393a2272637265646974732f7468656d652f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32383a2272637265646974732f7468656d652f6373732f7072696e742e637373223b7d7d733a373a22726567696f6e73223b613a31383a7b733a363a22686561646572223b733a363a22486561646572223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31313a22686967686c696768746564223b733a31313a22486967686c696768746564223b733a383a226163636f756e7473223b733a31363a224163636f756e742073656c6563746f72223b733a383a226665617475726564223b733a383a224665617475726564223b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a31333a22736964656261725f6669727374223b733a31333a2253696465626172206669727374223b733a31343a22736964656261725f7365636f6e64223b733a31343a2253696465626172207365636f6e64223b733a31343a2274726970747963685f6669727374223b733a31343a225472697074796368206669727374223b733a31353a2274726970747963685f6d6964646c65223b733a31353a225472697074796368206d6964646c65223b733a31333a2274726970747963685f6c617374223b733a31333a225472697074796368206c617374223b733a31383a22666f6f7465725f6669727374636f6c756d6e223b733a31393a22466f6f74657220666972737420636f6c756d6e223b733a31393a22666f6f7465725f7365636f6e64636f6c756d6e223b733a32303a22466f6f746572207365636f6e6420636f6c756d6e223b733a31383a22666f6f7465725f7468697264636f6c756d6e223b733a31393a22466f6f74657220746869726420636f6c756d6e223b733a31393a22666f6f7465725f666f75727468636f6c756d6e223b733a32303a22466f6f74657220666f7572746820636f6c756d6e223b733a363a22666f6f746572223b733a363a22466f6f746572223b7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2230223b7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a34303a2273697465732f616c6c2f7468656d65732f72637265646974732f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313335343831383432363b733a31343a22726567696f6e735f68696464656e223b613a323a7b693a303b733a383a22706167655f746f70223b693a313b733a31313a22706167655f626f74746f6d223b7d7d733a363a22707265666978223b733a31313a2270687074656d706c617465223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32393a2272637265646974732f7468656d652f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32383a2272637265646974732f7468656d652f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32393a2272637265646974732f7468656d652f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32383a2272637265646974732f7468656d652f6373732f7072696e742e637373223b7d7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b7d7d, 'drupal_get_form', 0x613a323a7b693a303b733a32313a2273797374656d5f7468656d655f73657474696e6773223b693a313b733a383a227263726564697473223b7d, '', 15, 4, 1, 'admin/appearance/settings', 'admin/appearance', 'rCredits', 't', '', '', 'a:0:{}', 132, '', '', 0, 'modules/system/system.admin.inc'),
 ('admin/appearance/settings/seven', '', '', '_system_themes_access', 0x613a313a7b693a303b4f3a383a22737464436c617373223a31323a7b733a383a2266696c656e616d65223b733a32333a227468656d65732f736576656e2f736576656e2e696e666f223b733a343a226e616d65223b733a353a22736576656e223b733a343a2274797065223b733a353a227468656d65223b733a353a226f776e6572223b733a34353a227468656d65732f656e67696e65732f70687074656d706c6174652f70687074656d706c6174652e656e67696e65223b733a363a22737461747573223b733a313a2231223b733a393a22626f6f747374726170223b733a313a2230223b733a31343a22736368656d615f76657273696f6e223b733a323a222d31223b733a363a22776569676874223b733a313a2230223b733a343a22696e666f223b613a31373a7b733a343a226e616d65223b733a353a22536576656e223b733a31313a226465736372697074696f6e223b733a36353a22412073696d706c65206f6e652d636f6c756d6e2c207461626c656c6573732c20666c7569642077696474682061646d696e697374726174696f6e207468656d652e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a313a7b733a363a2273637265656e223b613a323a7b733a393a2272657365742e637373223b733a32323a227468656d65732f736576656e2f72657365742e637373223b733a393a227374796c652e637373223b733a32323a227468656d65732f736576656e2f7374796c652e637373223b7d7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2231223b7d733a373a22726567696f6e73223b613a353a7b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31333a22736964656261725f6669727374223b733a31333a2246697273742073696465626172223b7d733a31343a22726567696f6e735f68696464656e223b613a333a7b693a303b733a31333a22736964656261725f6669727374223b693a313b733a383a22706167655f746f70223b693a323b733a31313a22706167655f626f74746f6d223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a32373a227468656d65732f736576656e2f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313431363432393438383b7d733a363a22707265666978223b733a31313a2270687074656d706c617465223b733a31313a227374796c65736865657473223b613a313a7b733a363a2273637265656e223b613a323a7b733a393a2272657365742e637373223b733a32323a227468656d65732f736576656e2f72657365742e637373223b733a393a227374796c652e637373223b733a32323a227468656d65732f736576656e2f7374796c652e637373223b7d7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b7d7d, 'drupal_get_form', 0x613a323a7b693a303b733a32313a2273797374656d5f7468656d655f73657474696e6773223b693a313b733a353a22736576656e223b7d, '', 15, 4, 1, 'admin/appearance/settings', 'admin/appearance', 'Seven', 't', '', '', 'a:0:{}', 132, '', '', 0, 'modules/system/system.admin.inc'),
-('admin/appearance/update', '', '', 'update_manager_access', 0x613a303a7b7d, 'drupal_get_form', 0x613a323a7b693a303b733a32363a227570646174655f6d616e616765725f7570646174655f666f726d223b693a313b733a353a227468656d65223b7d, '', 7, 3, 1, 'admin/appearance', 'admin/appearance', 'Update', 't', '', '', 'a:0:{}', 132, '', '', 10, 'modules/update/update.manager.inc'),
 ('admin/compact', '', '', 'user_access', 0x613a313a7b693a303b733a32373a226163636573732061646d696e697374726174696f6e207061676573223b7d, 'system_admin_compact_page', 0x613a303a7b7d, '', 3, 2, 0, '', 'admin/compact', 'Compact mode', 't', '', '', 'a:0:{}', 0, '', '', 0, 'modules/system/system.admin.inc'),
 ('admin/config', '', '', 'user_access', 0x613a313a7b693a303b733a32373a226163636573732061646d696e697374726174696f6e207061676573223b7d, 'system_admin_config_page', 0x613a303a7b7d, '', 3, 2, 0, '', 'admin/config', 'Configuration', 't', '', '', 'a:0:{}', 6, 'Administer settings.', '', 0, 'modules/system/system.admin.inc'),
 ('admin/config/content', '', '', 'user_access', 0x613a313a7b693a303b733a32373a226163636573732061646d696e697374726174696f6e207061676573223b7d, 'system_admin_menu_block_page', 0x613a303a7b7d, '', 7, 3, 0, '', 'admin/config/content', 'Content authoring', 't', '', '', 'a:0:{}', 6, 'Settings related to formatting and authoring content.', 'left', -15, 'modules/system/system.admin.inc'),
@@ -833,74 +544,60 @@ INSERT INTO `menu_router` (`path`, `load_functions`, `to_arg_functions`, `access
 ('admin/config/workflow', '', '', 'user_access', 0x613a313a7b693a303b733a32373a226163636573732061646d696e697374726174696f6e207061676573223b7d, 'system_admin_menu_block_page', 0x613a303a7b7d, '', 7, 3, 0, '', 'admin/config/workflow', 'Workflow', 't', '', '', 'a:0:{}', 6, 'Content workflow, editorial workflow tools.', 'right', 5, 'modules/system/system.admin.inc'),
 ('admin/index', '', '', 'user_access', 0x613a313a7b693a303b733a32373a226163636573732061646d696e697374726174696f6e207061676573223b7d, 'system_admin_index', 0x613a303a7b7d, '', 3, 2, 1, 'admin', 'admin', 'Index', 't', '', '', 'a:0:{}', 132, '', '', -18, 'modules/system/system.admin.inc'),
 ('admin/modules', '', '', 'user_access', 0x613a313a7b693a303b733a31383a2261646d696e6973746572206d6f64756c6573223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a31343a2273797374656d5f6d6f64756c6573223b7d, '', 3, 2, 0, '', 'admin/modules', 'Modules', 't', '', '', 'a:0:{}', 6, 'Extend site functionality.', '', -2, 'modules/system/system.admin.inc'),
-('admin/modules/install', '', '', 'update_manager_access', 0x613a303a7b7d, 'drupal_get_form', 0x613a323a7b693a303b733a32373a227570646174655f6d616e616765725f696e7374616c6c5f666f726d223b693a313b733a363a226d6f64756c65223b7d, '', 7, 3, 1, 'admin/modules', 'admin/modules', 'Install new module', 't', '', '', 'a:0:{}', 388, '', '', 25, 'modules/update/update.manager.inc'),
 ('admin/modules/list', '', '', 'user_access', 0x613a313a7b693a303b733a31383a2261646d696e6973746572206d6f64756c6573223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a31343a2273797374656d5f6d6f64756c6573223b7d, '', 7, 3, 1, 'admin/modules', 'admin/modules', 'List', 't', '', '', 'a:0:{}', 140, '', '', 0, 'modules/system/system.admin.inc'),
 ('admin/modules/list/confirm', '', '', 'user_access', 0x613a313a7b693a303b733a31383a2261646d696e6973746572206d6f64756c6573223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a31343a2273797374656d5f6d6f64756c6573223b7d, '', 15, 4, 0, '', 'admin/modules/list/confirm', 'List', 't', '', '', 'a:0:{}', 4, '', '', 0, 'modules/system/system.admin.inc'),
 ('admin/modules/uninstall', '', '', 'user_access', 0x613a313a7b693a303b733a31383a2261646d696e6973746572206d6f64756c6573223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a32343a2273797374656d5f6d6f64756c65735f756e696e7374616c6c223b7d, '', 7, 3, 1, 'admin/modules', 'admin/modules', 'Uninstall', 't', '', '', 'a:0:{}', 132, '', '', 20, 'modules/system/system.admin.inc'),
 ('admin/modules/uninstall/confirm', '', '', 'user_access', 0x613a313a7b693a303b733a31383a2261646d696e6973746572206d6f64756c6573223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a32343a2273797374656d5f6d6f64756c65735f756e696e7374616c6c223b7d, '', 15, 4, 0, '', 'admin/modules/uninstall/confirm', 'Uninstall', 't', '', '', 'a:0:{}', 4, '', '', 0, 'modules/system/system.admin.inc'),
-('admin/modules/update', '', '', 'update_manager_access', 0x613a303a7b7d, 'drupal_get_form', 0x613a323a7b693a303b733a32363a227570646174655f6d616e616765725f7570646174655f666f726d223b693a313b733a363a226d6f64756c65223b7d, '', 7, 3, 1, 'admin/modules', 'admin/modules', 'Update', 't', '', '', 'a:0:{}', 132, '', '', 10, 'modules/update/update.manager.inc'),
 ('admin/reports', '', '', 'user_access', 0x613a313a7b693a303b733a31393a226163636573732073697465207265706f727473223b7d, 'system_admin_menu_block_page', 0x613a303a7b7d, '', 3, 2, 0, '', 'admin/reports', 'Reports', 't', '', '', 'a:0:{}', 6, 'View reports, updates, and errors.', 'left', 5, 'modules/system/system.admin.inc'),
 ('admin/reports/status', '', '', 'user_access', 0x613a313a7b693a303b733a32393a2261646d696e6973746572207369746520636f6e66696775726174696f6e223b7d, 'system_status', 0x613a303a7b7d, '', 7, 3, 0, '', 'admin/reports/status', 'Status report', 't', '', '', 'a:0:{}', 6, 'Get a status report about your site''s operation and any detected problems.', '', -60, 'modules/system/system.admin.inc'),
 ('admin/reports/status/php', '', '', 'user_access', 0x613a313a7b693a303b733a32393a2261646d696e6973746572207369746520636f6e66696775726174696f6e223b7d, 'system_php', 0x613a303a7b7d, '', 15, 4, 0, '', 'admin/reports/status/php', 'PHP', 't', '', '', 'a:0:{}', 0, '', '', 0, 'modules/system/system.admin.inc'),
 ('admin/reports/status/run-cron', '', '', 'user_access', 0x613a313a7b693a303b733a32393a2261646d696e6973746572207369746520636f6e66696775726174696f6e223b7d, 'system_run_cron', 0x613a303a7b7d, '', 15, 4, 0, '', 'admin/reports/status/run-cron', 'Run cron', 't', '', '', 'a:0:{}', 0, '', '', 0, 'modules/system/system.admin.inc'),
-('admin/reports/updates', '', '', 'user_access', 0x613a313a7b693a303b733a32393a2261646d696e6973746572207369746520636f6e66696775726174696f6e223b7d, 'update_status', 0x613a303a7b7d, '', 7, 3, 0, '', 'admin/reports/updates', 'Available updates', 't', '', '', 'a:0:{}', 6, 'Get a status report about available updates for your installed modules and themes.', '', -50, 'modules/update/update.report.inc'),
-('admin/reports/updates/check', '', '', 'user_access', 0x613a313a7b693a303b733a32393a2261646d696e6973746572207369746520636f6e66696775726174696f6e223b7d, 'update_manual_status', 0x613a303a7b7d, '', 15, 4, 0, '', 'admin/reports/updates/check', 'Manual update check', 't', '', '', 'a:0:{}', 0, '', '', 0, 'modules/update/update.fetch.inc'),
-('admin/reports/updates/install', '', '', 'update_manager_access', 0x613a303a7b7d, 'drupal_get_form', 0x613a323a7b693a303b733a32373a227570646174655f6d616e616765725f696e7374616c6c5f666f726d223b693a313b733a363a227265706f7274223b7d, '', 15, 4, 1, 'admin/reports/updates', 'admin/reports/updates', 'Install new module or theme', 't', '', '', 'a:0:{}', 388, '', '', 25, 'modules/update/update.manager.inc'),
-('admin/reports/updates/list', '', '', 'user_access', 0x613a313a7b693a303b733a32393a2261646d696e6973746572207369746520636f6e66696775726174696f6e223b7d, 'update_status', 0x613a303a7b7d, '', 15, 4, 1, 'admin/reports/updates', 'admin/reports/updates', 'List', 't', '', '', 'a:0:{}', 140, '', '', 0, 'modules/update/update.report.inc'),
-('admin/reports/updates/settings', '', '', 'user_access', 0x613a313a7b693a303b733a32393a2261646d696e6973746572207369746520636f6e66696775726174696f6e223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a31353a227570646174655f73657474696e6773223b7d, '', 15, 4, 1, 'admin/reports/updates', 'admin/reports/updates', 'Settings', 't', '', '', 'a:0:{}', 132, '', '', 50, 'modules/update/update.settings.inc'),
-('admin/reports/updates/update', '', '', 'update_manager_access', 0x613a303a7b7d, 'drupal_get_form', 0x613a323a7b693a303b733a32363a227570646174655f6d616e616765725f7570646174655f666f726d223b693a313b733a363a227265706f7274223b7d, '', 15, 4, 1, 'admin/reports/updates', 'admin/reports/updates', 'Update', 't', '', '', 'a:0:{}', 132, '', '', 10, 'modules/update/update.manager.inc'),
-('admin/smsframework', '', '', 'user_access', 0x613a313a7b693a303b733a32333a2261646d696e697374657220736d736672616d65776f726b223b7d, 'system_admin_menu_block_page', 0x613a303a7b7d, '', 3, 2, 0, '', 'admin/smsframework', 'SMS Framework', 't', '', '', 'a:0:{}', 6, 'Control how your site uses SMS.', 'right', 0, 'modules/system/system.admin.inc'),
-('admin/smsframework/carriers', '', '', 'user_access', 0x613a313a7b693a303b733a32333a2261646d696e697374657220736d736672616d65776f726b223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a32333a22736d735f63617272696572735f61646d696e5f666f726d223b7d, '', 7, 3, 0, '', 'admin/smsframework/carriers', 'Carrier configuration', 't', '', '', 'a:0:{}', 6, 'Configure supported carriers.', '', 0, 'sites/all/modules/smsframework/sms.admin.inc'),
-('admin/smsframework/carriers/%carrier', '', '', 'user_access', 0x613a313a7b693a303b733a32333a2261646d696e697374657220736d736672616d65776f726b223b7d, 'drupal_get_form', 0x613a323a7b693a303b733a32323a22736d735f63617272696572735f656469745f666f726d223b693a313b693a333b7d, '', 15, 4, 0, '', 'admin/smsframework/carriers/%carrier', 'Edit carrier', 't', '', '', 'a:0:{}', 0, 'Configure supported carriers.', '', 0, 'sites/all/modules/smsframework/sms.admin.inc'),
-('admin/smsframework/carriers/add', '', '', 'user_access', 0x613a313a7b693a303b733a32333a2261646d696e697374657220736d736672616d65776f726b223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a32323a22736d735f63617272696572735f656469745f666f726d223b7d, '', 15, 4, 1, 'admin/smsframework/carriers', 'admin/smsframework/carriers', 'Add', 't', '', '', 'a:0:{}', 132, 'Configure supported carriers.', '', 0, 'sites/all/modules/smsframework/sms.admin.inc'),
-('admin/smsframework/carriers/delete/%carrier', '', '', 'user_access', 0x613a313a7b693a303b733a32333a2261646d696e697374657220736d736672616d65776f726b223b7d, 'drupal_get_form', 0x613a323a7b693a303b733a32343a22736d735f63617272696572735f64656c6574655f666f726d223b693a313b693a343b7d, '', 31, 5, 0, '', 'admin/smsframework/carriers/delete/%carrier', 'Edit carrier', 't', '', '', 'a:0:{}', 0, 'Configure supported carriers.', '', 0, 'sites/all/modules/smsframework/sms.admin.inc'),
-('admin/smsframework/carriers/manage', '', '', 'user_access', 0x613a313a7b693a303b733a32333a2261646d696e697374657220736d736672616d65776f726b223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a32333a22736d735f63617272696572735f61646d696e5f666f726d223b7d, '', 15, 4, 1, 'admin/smsframework/carriers', 'admin/smsframework/carriers', 'Manage', 't', '', '', 'a:0:{}', 140, '', '', -10, 'sites/all/modules/smsframework/sms.admin.inc'),
-('admin/smsframework/gateways', '', '', 'user_access', 0x613a313a7b693a303b733a32333a2261646d696e697374657220736d736672616d65776f726b223b7d, 'drupal_get_form', 0x613a323a7b693a303b733a32323a22736d735f61646d696e5f64656661756c745f666f726d223b693a313b4e3b7d, '', 7, 3, 0, '', 'admin/smsframework/gateways', 'Gateway configuration', 't', '', '', 'a:0:{}', 6, 'Configure gateways and chose the default gateway.', '', 0, 'sites/all/modules/smsframework/sms.admin.inc'),
-('admin/smsframework/gateways/%', 0x613a313a7b693a333b4e3b7d, '', 'user_access', 0x613a313a7b693a303b733a32333a2261646d696e697374657220736d736672616d65776f726b223b7d, 'drupal_get_form', 0x613a323a7b693a303b733a32323a22736d735f61646d696e5f676174657761795f666f726d223b693a313b693a333b7d, '', 14, 4, 0, '', 'admin/smsframework/gateways/%', '', 'sms_admin_gateway_title', 'a:1:{i:0;i:3;}', '', 'a:0:{}', 0, '', '', 0, 'sites/all/modules/smsframework/sms.admin.inc'),
 ('admin/structure', '', '', 'user_access', 0x613a313a7b693a303b733a32373a226163636573732061646d696e697374726174696f6e207061676573223b7d, 'system_admin_menu_block_page', 0x613a303a7b7d, '', 3, 2, 0, '', 'admin/structure', 'Structure', 't', '', '', 'a:0:{}', 6, 'Administer blocks, content types, menus, etc.', 'right', -8, 'modules/system/system.admin.inc'),
 ('admin/structure/block', '', '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e697374657220626c6f636b73223b7d, 'block_admin_display', 0x613a313a7b693a303b733a383a227263726564697473223b7d, '', 7, 3, 0, '', 'admin/structure/block', 'Blocks', 't', '', '', 'a:0:{}', 6, 'Configure what block content appears in your site''s sidebars and other regions.', '', 0, 'modules/block/block.admin.inc'),
-('admin/structure/block/add', '', '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e697374657220626c6f636b73223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a32303a22626c6f636b5f6164645f626c6f636b5f666f726d223b7d, '', 15, 4, 1, 'admin/structure/block', 'admin/structure/block', 'Add block', 't', '', '', 'a:0:{}', 388, '', '', 0, 'modules/block/block.admin.inc');
-INSERT INTO `menu_router` (`path`, `load_functions`, `to_arg_functions`, `access_callback`, `access_arguments`, `page_callback`, `page_arguments`, `delivery_callback`, `fit`, `number_parts`, `context`, `tab_parent`, `tab_root`, `title`, `title_callback`, `title_arguments`, `theme_callback`, `theme_arguments`, `type`, `description`, `position`, `weight`, `include_file`) VALUES
-('admin/structure/block/demo/bartik', '', '', '_block_themes_access', 0x613a313a7b693a303b4f3a383a22737464436c617373223a31323a7b733a383a2266696c656e616d65223b733a32353a227468656d65732f62617274696b2f62617274696b2e696e666f223b733a343a226e616d65223b733a363a2262617274696b223b733a343a2274797065223b733a353a227468656d65223b733a353a226f776e6572223b733a34353a227468656d65732f656e67696e65732f70687074656d706c6174652f70687074656d706c6174652e656e67696e65223b733a363a22737461747573223b733a313a2230223b733a393a22626f6f747374726170223b733a313a2230223b733a31343a22736368656d615f76657273696f6e223b733a323a222d31223b733a363a22776569676874223b733a313a2230223b733a343a22696e666f223b613a31373a7b733a343a226e616d65223b733a363a2242617274696b223b733a31313a226465736372697074696f6e223b733a34383a224120666c657869626c652c207265636f6c6f7261626c65207468656d652077697468206d616e7920726567696f6e732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32383a227468656d65732f62617274696b2f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32373a227468656d65732f62617274696b2f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32383a227468656d65732f62617274696b2f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32373a227468656d65732f62617274696b2f6373732f7072696e742e637373223b7d7d733a373a22726567696f6e73223b613a31373a7b733a363a22686561646572223b733a363a22486561646572223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31313a22686967686c696768746564223b733a31313a22486967686c696768746564223b733a383a226665617475726564223b733a383a224665617475726564223b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a31333a22736964656261725f6669727374223b733a31333a2253696465626172206669727374223b733a31343a22736964656261725f7365636f6e64223b733a31343a2253696465626172207365636f6e64223b733a31343a2274726970747963685f6669727374223b733a31343a225472697074796368206669727374223b733a31353a2274726970747963685f6d6964646c65223b733a31353a225472697074796368206d6964646c65223b733a31333a2274726970747963685f6c617374223b733a31333a225472697074796368206c617374223b733a31383a22666f6f7465725f6669727374636f6c756d6e223b733a31393a22466f6f74657220666972737420636f6c756d6e223b733a31393a22666f6f7465725f7365636f6e64636f6c756d6e223b733a32303a22466f6f746572207365636f6e6420636f6c756d6e223b733a31383a22666f6f7465725f7468697264636f6c756d6e223b733a31393a22466f6f74657220746869726420636f6c756d6e223b733a31393a22666f6f7465725f666f75727468636f6c756d6e223b733a32303a22466f6f74657220666f7572746820636f6c756d6e223b733a363a22666f6f746572223b733a363a22466f6f746572223b7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2230223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a32383a227468656d65732f62617274696b2f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313431363432393438383b733a31343a22726567696f6e735f68696464656e223b613a323a7b693a303b733a383a22706167655f746f70223b693a313b733a31313a22706167655f626f74746f6d223b7d7d733a363a22707265666978223b733a31313a2270687074656d706c617465223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32383a227468656d65732f62617274696b2f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32373a227468656d65732f62617274696b2f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32383a227468656d65732f62617274696b2f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32373a227468656d65732f62617274696b2f6373732f7072696e742e637373223b7d7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b7d7d, 'block_admin_demo', 0x613a313a7b693a303b733a363a2262617274696b223b7d, '', 31, 5, 0, '', 'admin/structure/block/demo/bartik', 'Bartik', 't', '', '_block_custom_theme', 'a:1:{i:0;s:6:"bartik";}', 0, '', '', 0, 'modules/block/block.admin.inc'),
+('admin/structure/block/add', '', '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e697374657220626c6f636b73223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a32303a22626c6f636b5f6164645f626c6f636b5f666f726d223b7d, '', 15, 4, 1, 'admin/structure/block', 'admin/structure/block', 'Add block', 't', '', '', 'a:0:{}', 388, '', '', 0, 'modules/block/block.admin.inc'),
 ('admin/structure/block/demo/rcredits', '', '', '_block_themes_access', 0x613a313a7b693a303b4f3a383a22737464436c617373223a31323a7b733a383a2266696c656e616d65223b733a32353a2272637265646974732f7468656d652f7468656d652e696e666f223b733a343a226e616d65223b733a383a227263726564697473223b733a343a2274797065223b733a353a227468656d65223b733a353a226f776e6572223b733a34353a227468656d65732f656e67696e65732f70687074656d706c6174652f70687074656d706c6174652e656e67696e65223b733a363a22737461747573223b733a313a2231223b733a393a22626f6f747374726170223b733a313a2231223b733a31343a22736368656d615f76657273696f6e223b733a313a2230223b733a363a22776569676874223b733a313a2230223b733a343a22696e666f223b613a31343a7b733a343a226e616d65223b733a383a227243726564697473223b733a31313a226465736372697074696f6e223b733a38303a224120766172696174696f6e206f6e20526573706f6e736976652042617274696b20287072652d72656c6561736520323031322d3038292c20666f72207468652072437265646974732053797374656d2e223b733a373a2276657273696f6e223b733a333a22312e30223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32393a2272637265646974732f7468656d652f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32383a2272637265646974732f7468656d652f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32393a2272637265646974732f7468656d652f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32383a2272637265646974732f7468656d652f6373732f7072696e742e637373223b7d7d733a373a22726567696f6e73223b613a31383a7b733a363a22686561646572223b733a363a22486561646572223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31313a22686967686c696768746564223b733a31313a22486967686c696768746564223b733a383a226163636f756e7473223b733a31363a224163636f756e742073656c6563746f72223b733a383a226665617475726564223b733a383a224665617475726564223b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a31333a22736964656261725f6669727374223b733a31333a2253696465626172206669727374223b733a31343a22736964656261725f7365636f6e64223b733a31343a2253696465626172207365636f6e64223b733a31343a2274726970747963685f6669727374223b733a31343a225472697074796368206669727374223b733a31353a2274726970747963685f6d6964646c65223b733a31353a225472697074796368206d6964646c65223b733a31333a2274726970747963685f6c617374223b733a31333a225472697074796368206c617374223b733a31383a22666f6f7465725f6669727374636f6c756d6e223b733a31393a22466f6f74657220666972737420636f6c756d6e223b733a31393a22666f6f7465725f7365636f6e64636f6c756d6e223b733a32303a22466f6f746572207365636f6e6420636f6c756d6e223b733a31383a22666f6f7465725f7468697264636f6c756d6e223b733a31393a22466f6f74657220746869726420636f6c756d6e223b733a31393a22666f6f7465725f666f75727468636f6c756d6e223b733a32303a22466f6f74657220666f7572746820636f6c756d6e223b733a363a22666f6f746572223b733a363a22466f6f746572223b7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2230223b7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a34303a2273697465732f616c6c2f7468656d65732f72637265646974732f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313335343831383432363b733a31343a22726567696f6e735f68696464656e223b613a323a7b693a303b733a383a22706167655f746f70223b693a313b733a31313a22706167655f626f74746f6d223b7d7d733a363a22707265666978223b733a31313a2270687074656d706c617465223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32393a2272637265646974732f7468656d652f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32383a2272637265646974732f7468656d652f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32393a2272637265646974732f7468656d652f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32383a2272637265646974732f7468656d652f6373732f7072696e742e637373223b7d7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b7d7d, 'block_admin_demo', 0x613a313a7b693a303b733a383a227263726564697473223b7d, '', 31, 5, 0, '', 'admin/structure/block/demo/rcredits', 'rCredits', 't', '', '_block_custom_theme', 'a:1:{i:0;s:8:"rcredits";}', 0, '', '', 0, 'modules/block/block.admin.inc'),
 ('admin/structure/block/demo/seven', '', '', '_block_themes_access', 0x613a313a7b693a303b4f3a383a22737464436c617373223a31323a7b733a383a2266696c656e616d65223b733a32333a227468656d65732f736576656e2f736576656e2e696e666f223b733a343a226e616d65223b733a353a22736576656e223b733a343a2274797065223b733a353a227468656d65223b733a353a226f776e6572223b733a34353a227468656d65732f656e67696e65732f70687074656d706c6174652f70687074656d706c6174652e656e67696e65223b733a363a22737461747573223b733a313a2231223b733a393a22626f6f747374726170223b733a313a2230223b733a31343a22736368656d615f76657273696f6e223b733a323a222d31223b733a363a22776569676874223b733a313a2230223b733a343a22696e666f223b613a31373a7b733a343a226e616d65223b733a353a22536576656e223b733a31313a226465736372697074696f6e223b733a36353a22412073696d706c65206f6e652d636f6c756d6e2c207461626c656c6573732c20666c7569642077696474682061646d696e697374726174696f6e207468656d652e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a313a7b733a363a2273637265656e223b613a323a7b733a393a2272657365742e637373223b733a32323a227468656d65732f736576656e2f72657365742e637373223b733a393a227374796c652e637373223b733a32323a227468656d65732f736576656e2f7374796c652e637373223b7d7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2231223b7d733a373a22726567696f6e73223b613a353a7b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31333a22736964656261725f6669727374223b733a31333a2246697273742073696465626172223b7d733a31343a22726567696f6e735f68696464656e223b613a333a7b693a303b733a31333a22736964656261725f6669727374223b693a313b733a383a22706167655f746f70223b693a323b733a31313a22706167655f626f74746f6d223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a32373a227468656d65732f736576656e2f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313431363432393438383b7d733a363a22707265666978223b733a31313a2270687074656d706c617465223b733a31313a227374796c65736865657473223b613a313a7b733a363a2273637265656e223b613a323a7b733a393a2272657365742e637373223b733a32323a227468656d65732f736576656e2f72657365742e637373223b733a393a227374796c652e637373223b733a32323a227468656d65732f736576656e2f7374796c652e637373223b7d7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b7d7d, 'block_admin_demo', 0x613a313a7b693a303b733a353a22736576656e223b7d, '', 31, 5, 0, '', 'admin/structure/block/demo/seven', 'Seven', 't', '', '_block_custom_theme', 'a:1:{i:0;s:5:"seven";}', 0, '', '', 0, 'modules/block/block.admin.inc'),
-('admin/structure/block/list/bartik', '', '', '_block_themes_access', 0x613a313a7b693a303b4f3a383a22737464436c617373223a31323a7b733a383a2266696c656e616d65223b733a32353a227468656d65732f62617274696b2f62617274696b2e696e666f223b733a343a226e616d65223b733a363a2262617274696b223b733a343a2274797065223b733a353a227468656d65223b733a353a226f776e6572223b733a34353a227468656d65732f656e67696e65732f70687074656d706c6174652f70687074656d706c6174652e656e67696e65223b733a363a22737461747573223b733a313a2230223b733a393a22626f6f747374726170223b733a313a2230223b733a31343a22736368656d615f76657273696f6e223b733a323a222d31223b733a363a22776569676874223b733a313a2230223b733a343a22696e666f223b613a31373a7b733a343a226e616d65223b733a363a2242617274696b223b733a31313a226465736372697074696f6e223b733a34383a224120666c657869626c652c207265636f6c6f7261626c65207468656d652077697468206d616e7920726567696f6e732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32383a227468656d65732f62617274696b2f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32373a227468656d65732f62617274696b2f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32383a227468656d65732f62617274696b2f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32373a227468656d65732f62617274696b2f6373732f7072696e742e637373223b7d7d733a373a22726567696f6e73223b613a31373a7b733a363a22686561646572223b733a363a22486561646572223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31313a22686967686c696768746564223b733a31313a22486967686c696768746564223b733a383a226665617475726564223b733a383a224665617475726564223b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a31333a22736964656261725f6669727374223b733a31333a2253696465626172206669727374223b733a31343a22736964656261725f7365636f6e64223b733a31343a2253696465626172207365636f6e64223b733a31343a2274726970747963685f6669727374223b733a31343a225472697074796368206669727374223b733a31353a2274726970747963685f6d6964646c65223b733a31353a225472697074796368206d6964646c65223b733a31333a2274726970747963685f6c617374223b733a31333a225472697074796368206c617374223b733a31383a22666f6f7465725f6669727374636f6c756d6e223b733a31393a22466f6f74657220666972737420636f6c756d6e223b733a31393a22666f6f7465725f7365636f6e64636f6c756d6e223b733a32303a22466f6f746572207365636f6e6420636f6c756d6e223b733a31383a22666f6f7465725f7468697264636f6c756d6e223b733a31393a22466f6f74657220746869726420636f6c756d6e223b733a31393a22666f6f7465725f666f75727468636f6c756d6e223b733a32303a22466f6f74657220666f7572746820636f6c756d6e223b733a363a22666f6f746572223b733a363a22466f6f746572223b7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2230223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a32383a227468656d65732f62617274696b2f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313431363432393438383b733a31343a22726567696f6e735f68696464656e223b613a323a7b693a303b733a383a22706167655f746f70223b693a313b733a31313a22706167655f626f74746f6d223b7d7d733a363a22707265666978223b733a31313a2270687074656d706c617465223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32383a227468656d65732f62617274696b2f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32373a227468656d65732f62617274696b2f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32383a227468656d65732f62617274696b2f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32373a227468656d65732f62617274696b2f6373732f7072696e742e637373223b7d7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b7d7d, 'block_admin_display', 0x613a313a7b693a303b733a363a2262617274696b223b7d, '', 31, 5, 1, 'admin/structure/block', 'admin/structure/block', 'Bartik', 't', '', '', 'a:0:{}', 132, '', '', 0, 'modules/block/block.admin.inc'),
-('admin/structure/block/list/bartik/add', '', '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e697374657220626c6f636b73223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a32303a22626c6f636b5f6164645f626c6f636b5f666f726d223b7d, '', 63, 6, 1, 'admin/structure/block/list/bartik', 'admin/structure/block', 'Add block', 't', '', '', 'a:0:{}', 388, '', '', 0, 'modules/block/block.admin.inc'),
-('admin/structure/block/list/rcredits', '', '', '_block_themes_access', 0x613a313a7b693a303b4f3a383a22737464436c617373223a31323a7b733a383a2266696c656e616d65223b733a32353a2272637265646974732f7468656d652f7468656d652e696e666f223b733a343a226e616d65223b733a383a227263726564697473223b733a343a2274797065223b733a353a227468656d65223b733a353a226f776e6572223b733a34353a227468656d65732f656e67696e65732f70687074656d706c6174652f70687074656d706c6174652e656e67696e65223b733a363a22737461747573223b733a313a2231223b733a393a22626f6f747374726170223b733a313a2231223b733a31343a22736368656d615f76657273696f6e223b733a313a2230223b733a363a22776569676874223b733a313a2230223b733a343a22696e666f223b613a31343a7b733a343a226e616d65223b733a383a227243726564697473223b733a31313a226465736372697074696f6e223b733a38303a224120766172696174696f6e206f6e20526573706f6e736976652042617274696b20287072652d72656c6561736520323031322d3038292c20666f72207468652072437265646974732053797374656d2e223b733a373a2276657273696f6e223b733a333a22312e30223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32393a2272637265646974732f7468656d652f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32383a2272637265646974732f7468656d652f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32393a2272637265646974732f7468656d652f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32383a2272637265646974732f7468656d652f6373732f7072696e742e637373223b7d7d733a373a22726567696f6e73223b613a31383a7b733a363a22686561646572223b733a363a22486561646572223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31313a22686967686c696768746564223b733a31313a22486967686c696768746564223b733a383a226163636f756e7473223b733a31363a224163636f756e742073656c6563746f72223b733a383a226665617475726564223b733a383a224665617475726564223b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a31333a22736964656261725f6669727374223b733a31333a2253696465626172206669727374223b733a31343a22736964656261725f7365636f6e64223b733a31343a2253696465626172207365636f6e64223b733a31343a2274726970747963685f6669727374223b733a31343a225472697074796368206669727374223b733a31353a2274726970747963685f6d6964646c65223b733a31353a225472697074796368206d6964646c65223b733a31333a2274726970747963685f6c617374223b733a31333a225472697074796368206c617374223b733a31383a22666f6f7465725f6669727374636f6c756d6e223b733a31393a22466f6f74657220666972737420636f6c756d6e223b733a31393a22666f6f7465725f7365636f6e64636f6c756d6e223b733a32303a22466f6f746572207365636f6e6420636f6c756d6e223b733a31383a22666f6f7465725f7468697264636f6c756d6e223b733a31393a22466f6f74657220746869726420636f6c756d6e223b733a31393a22666f6f7465725f666f75727468636f6c756d6e223b733a32303a22466f6f74657220666f7572746820636f6c756d6e223b733a363a22666f6f746572223b733a363a22466f6f746572223b7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2230223b7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a34303a2273697465732f616c6c2f7468656d65732f72637265646974732f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313335343831383432363b733a31343a22726567696f6e735f68696464656e223b613a323a7b693a303b733a383a22706167655f746f70223b693a313b733a31313a22706167655f626f74746f6d223b7d7d733a363a22707265666978223b733a31313a2270687074656d706c617465223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32393a2272637265646974732f7468656d652f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32383a2272637265646974732f7468656d652f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32393a2272637265646974732f7468656d652f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32383a2272637265646974732f7468656d652f6373732f7072696e742e637373223b7d7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b7d7d, 'block_admin_display', 0x613a313a7b693a303b733a383a227263726564697473223b7d, '', 31, 5, 1, 'admin/structure/block', 'admin/structure/block', 'rCredits', 't', '', '', 'a:0:{}', 140, '', '', -10, 'modules/block/block.admin.inc'),
+('admin/structure/block/list/rcredits', '', '', '_block_themes_access', 0x613a313a7b693a303b4f3a383a22737464436c617373223a31323a7b733a383a2266696c656e616d65223b733a32353a2272637265646974732f7468656d652f7468656d652e696e666f223b733a343a226e616d65223b733a383a227263726564697473223b733a343a2274797065223b733a353a227468656d65223b733a353a226f776e6572223b733a34353a227468656d65732f656e67696e65732f70687074656d706c6174652f70687074656d706c6174652e656e67696e65223b733a363a22737461747573223b733a313a2231223b733a393a22626f6f747374726170223b733a313a2231223b733a31343a22736368656d615f76657273696f6e223b733a313a2230223b733a363a22776569676874223b733a313a2230223b733a343a22696e666f223b613a31343a7b733a343a226e616d65223b733a383a227243726564697473223b733a31313a226465736372697074696f6e223b733a38303a224120766172696174696f6e206f6e20526573706f6e736976652042617274696b20287072652d72656c6561736520323031322d3038292c20666f72207468652072437265646974732053797374656d2e223b733a373a2276657273696f6e223b733a333a22312e30223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32393a2272637265646974732f7468656d652f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32383a2272637265646974732f7468656d652f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32393a2272637265646974732f7468656d652f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32383a2272637265646974732f7468656d652f6373732f7072696e742e637373223b7d7d733a373a22726567696f6e73223b613a31383a7b733a363a22686561646572223b733a363a22486561646572223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31313a22686967686c696768746564223b733a31313a22486967686c696768746564223b733a383a226163636f756e7473223b733a31363a224163636f756e742073656c6563746f72223b733a383a226665617475726564223b733a383a224665617475726564223b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a31333a22736964656261725f6669727374223b733a31333a2253696465626172206669727374223b733a31343a22736964656261725f7365636f6e64223b733a31343a2253696465626172207365636f6e64223b733a31343a2274726970747963685f6669727374223b733a31343a225472697074796368206669727374223b733a31353a2274726970747963685f6d6964646c65223b733a31353a225472697074796368206d6964646c65223b733a31333a2274726970747963685f6c617374223b733a31333a225472697074796368206c617374223b733a31383a22666f6f7465725f6669727374636f6c756d6e223b733a31393a22466f6f74657220666972737420636f6c756d6e223b733a31393a22666f6f7465725f7365636f6e64636f6c756d6e223b733a32303a22466f6f746572207365636f6e6420636f6c756d6e223b733a31383a22666f6f7465725f7468697264636f6c756d6e223b733a31393a22466f6f74657220746869726420636f6c756d6e223b733a31393a22666f6f7465725f666f75727468636f6c756d6e223b733a32303a22466f6f74657220666f7572746820636f6c756d6e223b733a363a22666f6f746572223b733a363a22466f6f746572223b7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2230223b7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a34303a2273697465732f616c6c2f7468656d65732f72637265646974732f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313335343831383432363b733a31343a22726567696f6e735f68696464656e223b613a323a7b693a303b733a383a22706167655f746f70223b693a313b733a31313a22706167655f626f74746f6d223b7d7d733a363a22707265666978223b733a31313a2270687074656d706c617465223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32393a2272637265646974732f7468656d652f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32383a2272637265646974732f7468656d652f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32393a2272637265646974732f7468656d652f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32383a2272637265646974732f7468656d652f6373732f7072696e742e637373223b7d7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b7d7d, 'block_admin_display', 0x613a313a7b693a303b733a383a227263726564697473223b7d, '', 31, 5, 1, 'admin/structure/block', 'admin/structure/block', 'rCredits', 't', '', '', 'a:0:{}', 140, '', '', -10, 'modules/block/block.admin.inc');
+INSERT INTO `menu_router` (`path`, `load_functions`, `to_arg_functions`, `access_callback`, `access_arguments`, `page_callback`, `page_arguments`, `delivery_callback`, `fit`, `number_parts`, `context`, `tab_parent`, `tab_root`, `title`, `title_callback`, `title_arguments`, `theme_callback`, `theme_arguments`, `type`, `description`, `position`, `weight`, `include_file`) VALUES
 ('admin/structure/block/list/seven', '', '', '_block_themes_access', 0x613a313a7b693a303b4f3a383a22737464436c617373223a31323a7b733a383a2266696c656e616d65223b733a32333a227468656d65732f736576656e2f736576656e2e696e666f223b733a343a226e616d65223b733a353a22736576656e223b733a343a2274797065223b733a353a227468656d65223b733a353a226f776e6572223b733a34353a227468656d65732f656e67696e65732f70687074656d706c6174652f70687074656d706c6174652e656e67696e65223b733a363a22737461747573223b733a313a2231223b733a393a22626f6f747374726170223b733a313a2230223b733a31343a22736368656d615f76657273696f6e223b733a323a222d31223b733a363a22776569676874223b733a313a2230223b733a343a22696e666f223b613a31373a7b733a343a226e616d65223b733a353a22536576656e223b733a31313a226465736372697074696f6e223b733a36353a22412073696d706c65206f6e652d636f6c756d6e2c207461626c656c6573732c20666c7569642077696474682061646d696e697374726174696f6e207468656d652e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a313a7b733a363a2273637265656e223b613a323a7b733a393a2272657365742e637373223b733a32323a227468656d65732f736576656e2f72657365742e637373223b733a393a227374796c652e637373223b733a32323a227468656d65732f736576656e2f7374796c652e637373223b7d7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2231223b7d733a373a22726567696f6e73223b613a353a7b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31333a22736964656261725f6669727374223b733a31333a2246697273742073696465626172223b7d733a31343a22726567696f6e735f68696464656e223b613a333a7b693a303b733a31333a22736964656261725f6669727374223b693a313b733a383a22706167655f746f70223b693a323b733a31313a22706167655f626f74746f6d223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a32373a227468656d65732f736576656e2f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313431363432393438383b7d733a363a22707265666978223b733a31313a2270687074656d706c617465223b733a31313a227374796c65736865657473223b613a313a7b733a363a2273637265656e223b613a323a7b733a393a2272657365742e637373223b733a32323a227468656d65732f736576656e2f72657365742e637373223b733a393a227374796c652e637373223b733a32323a227468656d65732f736576656e2f7374796c652e637373223b7d7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b7d7d, 'block_admin_display', 0x613a313a7b693a303b733a353a22736576656e223b7d, '', 31, 5, 1, 'admin/structure/block', 'admin/structure/block', 'Seven', 't', '', '', 'a:0:{}', 132, '', '', 0, 'modules/block/block.admin.inc'),
 ('admin/structure/block/list/seven/add', '', '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e697374657220626c6f636b73223b7d, 'drupal_get_form', 0x613a313a7b693a303b733a32303a22626c6f636b5f6164645f626c6f636b5f666f726d223b7d, '', 63, 6, 1, 'admin/structure/block/list/seven', 'admin/structure/block', 'Add block', 't', '', '', 'a:0:{}', 388, '', '', 0, 'modules/block/block.admin.inc'),
 ('admin/structure/block/manage/%/%', 0x613a323a7b693a343b4e3b693a353b4e3b7d, '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e697374657220626c6f636b73223b7d, 'drupal_get_form', 0x613a333a7b693a303b733a32313a22626c6f636b5f61646d696e5f636f6e666967757265223b693a313b693a343b693a323b693a353b7d, '', 60, 6, 0, '', 'admin/structure/block/manage/%/%', 'Configure block', 't', '', '', 'a:0:{}', 6, '', '', 0, 'modules/block/block.admin.inc'),
 ('admin/structure/block/manage/%/%/configure', 0x613a323a7b693a343b4e3b693a353b4e3b7d, '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e697374657220626c6f636b73223b7d, 'drupal_get_form', 0x613a333a7b693a303b733a32313a22626c6f636b5f61646d696e5f636f6e666967757265223b693a313b693a343b693a323b693a353b7d, '', 121, 7, 2, 'admin/structure/block/manage/%/%', 'admin/structure/block/manage/%/%', 'Configure block', 't', '', '', 'a:0:{}', 140, '', '', 0, 'modules/block/block.admin.inc'),
 ('admin/structure/block/manage/%/%/delete', 0x613a323a7b693a343b4e3b693a353b4e3b7d, '', 'user_access', 0x613a313a7b693a303b733a31373a2261646d696e697374657220626c6f636b73223b7d, 'drupal_get_form', 0x613a333a7b693a303b733a32353a22626c6f636b5f637573746f6d5f626c6f636b5f64656c657465223b693a313b693a343b693a323b693a353b7d, '', 121, 7, 0, 'admin/structure/block/manage/%/%', 'admin/structure/block/manage/%/%', 'Delete block', 't', '', '', 'a:0:{}', 132, '', '', 0, 'modules/block/block.admin.inc'),
 ('admin/tasks', '', '', 'user_access', 0x613a313a7b693a303b733a32373a226163636573732061646d696e697374726174696f6e207061676573223b7d, 'system_admin_menu_block_page', 0x613a303a7b7d, '', 3, 2, 1, 'admin', 'admin', 'Tasks', 't', '', '', 'a:0:{}', 140, '', '', -20, 'modules/system/system.admin.inc'),
-('admin/update/ready', '', '', 'update_manager_access', 0x613a303a7b7d, 'drupal_get_form', 0x613a313a7b693a303b733a33323a227570646174655f6d616e616765725f7570646174655f72656164795f666f726d223b7d, '', 7, 3, 0, '', 'admin/update/ready', 'Ready to update', 't', '', '', 'a:0:{}', 0, '', '', 0, 'modules/update/update.manager.inc'),
-('ajax', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\ajax', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'ajax', 'AJAX', 't', '', '', 'a:0:{}', 0, '', '', 104, 'rcredits/rweb/rweb.inc'),
-('autocomplete', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\auto', 0x613a333a7b693a303b693a313b693a313b693a323b693a323b693a333b7d, '', 1, 1, 0, '', 'autocomplete', 'Identify', 't', '', '', 'a:0:{}', 0, '', '', 99, 'rcredits/rweb/rweb.inc'),
+('ajax', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\ajax', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'ajax', 'AJAX', 't', '', '', 'a:0:{}', 0, '', '', 226, 'rcredits/rweb/rweb.inc'),
+('autocomplete', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\auto', 0x613a333a7b693a303b693a313b693a313b693a323b693a323b693a333b7d, '', 1, 1, 0, '', 'autocomplete', 'Identify', 't', '', '', 'a:0:{}', 0, '', '', 221, 'rcredits/rweb/rweb.inc'),
 ('batch', '', '', '1', 0x613a303a7b7d, 'system_batch_page', 0x613a303a7b7d, '', 1, 1, 0, '', 'batch', '', 't', '', '_system_batch_theme', 'a:0:{}', 0, '', '', 0, 'modules/system/system.admin.inc'),
-('change-account', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\changeWho', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'change-account', 'Change Who', 't', '', '', 'a:0:{}', 0, '', '', 95, 'rcredits/rweb/rweb.inc'),
-('charge', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a373a2273656c6c206f6b223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a323a225478223b693a313b693a313b7d, '', 1, 1, 0, '', 'charge', 'Charge', 't', '', '', 'a:0:{}', 6, '', '', 1, 'rcredits/rweb/rweb.inc'),
+('cgbiz', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a353a22436742697a223b693a313b693a313b7d, '', 1, 1, 0, '', 'cgbiz', 'Common Good Business', 't', '', '', 'a:0:{}', 0, '', '', 216, 'rcredits/rweb/rweb.inc'),
+('change-account', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\changeWho', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'change-account', 'Change Who', 't', '', '', 'a:0:{}', 0, '', '', 217, 'rcredits/rweb/rweb.inc'),
+('charge', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a373a2273656c6c206f6b223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a323a225478223b693a313b693a313b7d, '', 1, 1, 0, '', 'charge', 'Charge', 't', '', '', 'a:0:{}', 6, '', '', 117, 'rcredits/rweb/rweb.inc'),
+('charge/invoices', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22636f2073656c6c206f6b223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31333a22496e766f69636555706c6f6164223b7d, '', 3, 2, 1, 'charge', 'charge', 'Upload Invoices', 't', '', '', 'a:0:{}', 132, '', '', 118, 'rcredits/rweb/rweb.inc'),
 ('comment/%comment/devel', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_load_object', 0x613a323a7b693a303b733a373a22636f6d6d656e74223b693a313b693a313b7d, '', 7, 3, 1, '', 'comment/%comment/devel', 'Devel', 't', '', '', 'a:0:{}', 132, '', '', 100, 'sites/all/modules/devel/devel.pages.inc'),
 ('comment/%comment/devel/load', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_load_object', 0x613a323a7b693a303b733a373a22636f6d6d656e74223b693a313b693a313b7d, '', 15, 4, 1, 'comment/%comment/devel', 'comment/%comment/devel/load', 'Load', 't', '', '', 'a:0:{}', 140, '', '', 0, 'sites/all/modules/devel/devel.pages.inc'),
 ('comment/%comment/devel/render', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_render_object', 0x613a323a7b693a303b733a373a22636f6d6d656e74223b693a313b693a313b7d, '', 15, 4, 1, 'comment/%comment/devel', 'comment/%comment/devel/render', 'Render', 't', '', '', 'a:0:{}', 132, '', '', 100, 'sites/all/modules/devel/devel.pages.inc'),
-('community', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a393a22436f6d6d756e697479223b7d, '', 1, 1, 0, '', 'community', 'Community', 't', '', '', 'a:0:{}', 6, '', '', 22, 'rcredits/rweb/rweb.inc'),
-('community/agreement', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a393a2241677265656d656e74223b7d, '', 3, 2, 1, 'community', 'community', 'The Agreement', 't', '', '', 'a:0:{}', 132, '', '', 26, 'rcredits/rweb/rweb.inc'),
-('community/democracy', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a226f6b206d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a393a2244656d6f6372616379223b693a313b693a323b7d, '', 3, 2, 1, 'community', 'community', 'Discussion & Voting', 't', '', '', 'a:0:{}', 132, '', '', 23, 'rcredits/rweb/../rvote/rvote-web.inc'),
-('community/democracy/proposal-notes', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31333a2250726f706f73616c4e6f746573223b693a313b693a333b7d, '', 7, 3, 0, '', 'community/democracy/proposal-notes', 'Proposal Notes', 't', '', '', 'a:0:{}', 0, '', '', 25, 'rcredits/rweb/../rvote/rvote-web.inc'),
-('community/democracy/proposal-report', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31343a2250726f706f73616c5265706f7274223b693a313b693a333b7d, '', 7, 3, 0, '', 'community/democracy/proposal-report', 'Proposal Report', 't', '', '', 'a:0:{}', 0, '', '', 24, 'rcredits/rweb/../rvote/rvote-web.inc'),
-('community/donate', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a363a22446f6e617465223b7d, '', 3, 2, 1, 'community', 'community', 'Donate', 't', '', '', 'a:0:{}', 132, '', '', 34, 'rcredits/rweb/rweb.inc'),
-('community/find-company', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a363a2246696e64436f223b7d, '', 3, 2, 1, 'community', 'community', 'Find a Company', 't', '', '', 'a:0:{}', 132, '', '', 33, 'rcredits/rweb/rweb.inc'),
-('community/flags', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a353a22466c616773223b693a313b693a323b7d, '', 3, 2, 1, 'community', 'community', 'Risk Flags', 't', '', '', 'a:0:{}', 132, '', '', 38, 'rcredits/rweb/rweb.inc'),
-('community/funds', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a393a224374747946756e6473223b7d, '', 3, 2, 1, 'community', 'community', 'Funds in Each Community', 't', '', '', 'a:0:{}', 132, '', '', 36, 'rcredits/rweb/rweb.inc'),
-('community/grant', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a353a224772616e74223b7d, '', 3, 2, 1, 'community', 'community', 'Get Paid to Organize', 't', '', '', 'a:0:{}', 132, '', '', 35, 'rcredits/rweb/rweb.inc'),
-('community/graphs', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a363a22477261706873223b693a313b693a323b7d, '', 3, 2, 1, 'community', 'community', 'Common Good Graphs', 't', '', '', 'a:0:{}', 132, '', '', 37, 'rcredits/rweb/rweb.inc'),
-('community/invite', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d656d626572206d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a363a22496e76697465223b7d, '', 3, 2, 1, 'community', 'community', 'Invite Someone', 't', '', '', 'a:0:{}', 132, '', '', 27, 'rcredits/rweb/rweb.inc'),
-('community/invite/example', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d656d626572206d616e616765223b7d, 'rCredits\\Web\\inviteExample', 0x613a313a7b693a303b733a303a22223b7d, '', 7, 3, 0, '', 'community/invite/example', 'Invite Someone', 't', '', '', 'a:0:{}', 0, '', '', 28, 'rcredits/rweb/rweb.inc'),
-('community/invite/invited-whom', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31313a22496e766974656457686f6d223b7d, '', 7, 3, 0, '', 'community/invite/invited-whom', 'Invited Whom', 't', '', '', 'a:0:{}', 0, '', '', 30, 'rcredits/rweb/rweb.inc'),
-('community/invite/print', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\printInvite', 0x613a313a7b693a303b733a303a22223b7d, '', 7, 3, 0, '', 'community/invite/print', 'Print Invite', 't', '', '', 'a:0:{}', 0, '', '', 29, 'rcredits/rweb/rweb.inc'),
-('community/invite/waiting', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a2257616974696e67223b7d, '', 7, 3, 0, '', 'community/invite/waiting', 'Waiting', 't', '', '', 'a:0:{}', 0, '', '', 31, 'rcredits/rweb/rweb.inc'),
-('community/message', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d656d626572206d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a224d657373616765223b7d, '', 3, 2, 1, 'community', 'community', 'Message a Member', 't', '', '', 'a:0:{}', 132, '', '', 32, 'rcredits/rweb/rweb.inc'),
-('community/zot', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a303a22223b7d, '', 3, 2, 1, 'community', 'community', 'zot', 't', '', '', 'a:0:{}', 132, '', '', 39, 'rcredits/rweb/rweb.inc'),
-('coup', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\coup', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'coup', 'Disable account', 't', '', '', 'a:0:{}', 0, '', '', 101, 'rcredits/rweb/rweb.inc'),
+('community', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a393a22436f6d6d756e697479223b7d, '', 1, 1, 0, '', 'community', 'Community', 't', '', '', 'a:0:{}', 6, '', '', 137, 'rcredits/rweb/rweb.inc'),
+('community/agreement', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a393a2241677265656d656e74223b7d, '', 3, 2, 1, 'community', 'community', 'The Agreement', 't', '', '', 'a:0:{}', 132, '', '', 145, 'rcredits/rweb/rweb.inc'),
+('community/data', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a343a2244617461223b693a313b693a323b7d, '', 3, 2, 1, 'community', 'community', 'Community & Money Data', 't', '', '', 'a:0:{}', 132, '', '', 138, 'rcredits/rweb/rweb.inc'),
+('community/donate', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a363a22446f6e617465223b7d, '', 3, 2, 1, 'community', 'community', 'Donate', 't', '', '', 'a:0:{}', 132, '', '', 153, 'rcredits/rweb/rweb.inc'),
+('community/events', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a226f6b206d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a363a224576656e7473223b693a313b693a323b7d, '', 3, 2, 1, 'community', 'community', 'Democracy Events', 't', '', '', 'a:0:{}', 132, '', '', 139, 'rcredits/rweb/../rvote/rvote-web.inc'),
+('community/events/event', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d656d626572223b7d, 'rCredits\\Web\\showForm', 0x613a333a7b693a303b733a353a224576656e74223b693a313b693a333b693a323b693a343b7d, '', 7, 3, 0, '', 'community/events/event', 'Add/Edit Event', 't', '', '', 'a:0:{}', 0, '', '', 140, 'rcredits/rweb/../rvote/rvote-web.inc'),
+('community/events/option', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226361646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a363a224f7074696f6e223b693a313b693a333b7d, '', 7, 3, 0, '', 'community/events/option', 'Add/Edit Option', 't', '', '', 'a:0:{}', 0, '', '', 142, 'rcredits/rweb/../rvote/rvote-web.inc'),
+('community/events/proposal-notes', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31333a2250726f706f73616c4e6f746573223b693a313b693a333b7d, '', 7, 3, 0, '', 'community/events/proposal-notes', 'Proposal Notes', 't', '', '', 'a:0:{}', 0, '', '', 144, 'rcredits/rweb/../rvote/rvote-web.inc'),
+('community/events/proposal-report', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31343a2250726f706f73616c5265706f7274223b693a313b693a333b7d, '', 7, 3, 0, '', 'community/events/proposal-report', 'Proposal Report', 't', '', '', 'a:0:{}', 0, '', '', 143, 'rcredits/rweb/../rvote/rvote-web.inc'),
+('community/events/question', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226361646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a383a225175657374696f6e223b693a313b693a333b7d, '', 7, 3, 0, '', 'community/events/question', 'Add/Edit Question', 't', '', '', 'a:0:{}', 0, '', '', 141, 'rcredits/rweb/../rvote/rvote-web.inc'),
+('community/find-company', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a363a2246696e64436f223b7d, '', 3, 2, 1, 'community', 'community', 'Find a Company', 't', '', '', 'a:0:{}', 132, '', '', 152, 'rcredits/rweb/rweb.inc'),
+('community/flags', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a353a22466c616773223b693a313b693a323b7d, '', 3, 2, 1, 'community', 'community', 'Risk Flags', 't', '', '', 'a:0:{}', 132, '', '', 157, 'rcredits/rweb/rweb.inc'),
+('community/funds', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a393a224374747946756e6473223b7d, '', 3, 2, 1, 'community', 'community', 'Funds in Each Community', 't', '', '', 'a:0:{}', 132, '', '', 155, 'rcredits/rweb/rweb.inc'),
+('community/grant', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a353a224772616e74223b7d, '', 3, 2, 1, 'community', 'community', 'Get Paid to Organize', 't', '', '', 'a:0:{}', 132, '', '', 154, 'rcredits/rweb/rweb.inc'),
+('community/graphs', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a363a22477261706873223b693a313b693a323b7d, '', 3, 2, 1, 'community', 'community', 'Common Good Graphs', 't', '', '', 'a:0:{}', 132, '', '', 156, 'rcredits/rweb/rweb.inc'),
+('community/invite', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d656d626572206d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a363a22496e76697465223b7d, '', 3, 2, 1, 'community', 'community', 'Invite Someone', 't', '', '', 'a:0:{}', 132, '', '', 146, 'rcredits/rweb/rweb.inc'),
+('community/invite/example', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d656d626572206d616e616765223b7d, 'rCredits\\Web\\inviteExample', 0x613a313a7b693a303b733a303a22223b7d, '', 7, 3, 0, '', 'community/invite/example', 'Invite Someone', 't', '', '', 'a:0:{}', 0, '', '', 147, 'rcredits/rweb/rweb.inc'),
+('community/invite/invited-whom', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31313a22496e766974656457686f6d223b7d, '', 7, 3, 0, '', 'community/invite/invited-whom', 'Invited Whom', 't', '', '', 'a:0:{}', 0, '', '', 149, 'rcredits/rweb/rweb.inc'),
+('community/invite/print', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\printInvite', 0x613a313a7b693a303b733a303a22223b7d, '', 7, 3, 0, '', 'community/invite/print', 'Print Invite', 't', '', '', 'a:0:{}', 0, '', '', 148, 'rcredits/rweb/rweb.inc'),
+('community/invite/waiting', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a2257616974696e67223b7d, '', 7, 3, 0, '', 'community/invite/waiting', 'Waiting', 't', '', '', 'a:0:{}', 0, '', '', 150, 'rcredits/rweb/rweb.inc'),
+('community/message', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d656d626572206d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a224d657373616765223b7d, '', 3, 2, 1, 'community', 'community', 'Message a Member', 't', '', '', 'a:0:{}', 132, '', '', 151, 'rcredits/rweb/rweb.inc'),
+('community/zot', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a303a22223b7d, '', 3, 2, 1, 'community', 'community', 'zot', 't', '', '', 'a:0:{}', 132, '', '', 158, 'rcredits/rweb/rweb.inc'),
+('coup', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\coup', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'coup', 'Disable account', 't', '', '', 'a:0:{}', 0, '', '', 223, 'rcredits/rweb/rweb.inc'),
 ('devel/arguments', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_querylog_arguments', 0x613a303a7b7d, '', 3, 2, 0, '', 'devel/arguments', 'Arguments query', 't', '', '', 'a:0:{}', 0, 'Return a given query, with arguments instead of placeholders. Used by query log', '', 0, 'sites/all/modules/devel/devel.pages.inc'),
 ('devel/cache/clear', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_cache_clear', 0x613a303a7b7d, '', 7, 3, 0, '', 'devel/cache/clear', 'Empty cache', 't', '', '', 'a:0:{}', 6, 'Clear the CSS cache and all database cache tables which store page, node, theme and variable caches.', '', 0, 'sites/all/modules/devel/devel.pages.inc'),
 ('devel/elements', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_elements_page', 0x613a303a7b7d, '', 3, 2, 0, '', 'devel/elements', 'Hook_elements()', 't', '', '', 'a:0:{}', 6, 'View the active form/render elements for this site.', '', 0, 'sites/all/modules/devel/devel.pages.inc'),
@@ -920,98 +617,97 @@ INSERT INTO `menu_router` (`path`, `load_functions`, `to_arg_functions`, `access
 ('devel/theme/registry', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_theme_registry', 0x613a303a7b7d, '', 7, 3, 0, '', 'devel/theme/registry', 'Theme registry', 't', '', '', 'a:0:{}', 6, 'View a list of available theme functions across the whole site.', '', 0, 'sites/all/modules/devel/devel.pages.inc'),
 ('devel/variable', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_variable_page', 0x613a303a7b7d, '', 3, 2, 0, '', 'devel/variable', 'Variable editor', 't', '', '', 'a:0:{}', 6, 'Edit and delete site variables.', '', 0, 'sites/all/modules/devel/devel.pages.inc'),
 ('devel/variable/edit/%', 0x613a313a7b693a333b4e3b7d, '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'drupal_get_form', 0x613a323a7b693a303b733a31393a22646576656c5f7661726961626c655f65646974223b693a313b693a333b7d, '', 14, 4, 0, '', 'devel/variable/edit/%', 'Variable editor', 't', '', '', 'a:0:{}', 0, '', '', 0, 'sites/all/modules/devel/devel.pages.inc'),
-('do', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\rdo', 0x613a323a7b693a303b693a313b693a313b693a323b7d, '', 1, 1, 0, '', 'do', 'Do', 't', '', '', 'a:0:{}', 0, '', '', 100, 'rcredits/rweb/rweb.inc'),
-('empty', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a353a22456d707479223b693a313b693a313b7d, '', 1, 1, 0, '', 'empty', 'Empty', 't', '', '', 'a:0:{}', 0, '', '', 65, 'rcredits/rweb/rweb.inc'),
-('error', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\error', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'error', 'System Error', 't', '', '', 'a:0:{}', 0, '', '', 107, 'rcredits/rweb/rweb.inc'),
+('do', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\rdo', 0x613a323a7b693a303b693a313b693a313b693a323b7d, '', 1, 1, 0, '', 'do', 'Do', 't', '', '', 'a:0:{}', 0, '', '', 222, 'rcredits/rweb/rweb.inc'),
+('empty', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a353a22456d707479223b693a313b693a313b7d, '', 1, 1, 0, '', 'empty', 'Empty', 't', '', '', 'a:0:{}', 0, '', '', 185, 'rcredits/rweb/rweb.inc'),
+('error', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\error', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'error', 'System Error', 't', '', '', 'a:0:{}', 0, '', '', 229, 'rcredits/rweb/rweb.inc'),
 ('file/ajax', '', '', 'user_access', 0x613a313a7b693a303b733a31343a2261636365737320636f6e74656e74223b7d, 'file_ajax_upload', 0x613a303a7b7d, 'ajax_deliver', 3, 2, 0, '', 'file/ajax', '', 't', '', 'ajax_base_page_theme', 'a:0:{}', 0, '', '', 0, ''),
 ('file/progress', '', '', 'user_access', 0x613a313a7b693a303b733a31343a2261636365737320636f6e74656e74223b7d, 'file_ajax_progress', 0x613a303a7b7d, '', 3, 2, 0, '', 'file/progress', '', 't', '', 'ajax_base_page_theme', 'a:0:{}', 0, '', '', 0, ''),
 ('filter/tips', '', '', '1', 0x613a303a7b7d, 'filter_tips_long', 0x613a303a7b7d, '', 3, 2, 0, '', 'filter/tips', 'Compose tips', 't', '', '', 'a:0:{}', 20, '', '', 0, 'modules/filter/filter.pages.inc'),
-('fine', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d616e6167696e675f63747479223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a323a225478223b7d, '', 1, 1, 0, '', 'fine', 'Fine', 't', '', '', 'a:0:{}', 6, '', '', 9, 'rcredits/rweb/rweb.inc'),
-('get', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31343a226d616e6167652062616e6b206f6b223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a333a22476574223b693a313b693a313b7d, '', 1, 1, 0, '', 'get', 'Bank', 't', '', '', 'a:0:{}', 6, '', '', 10, 'rcredits/rweb/rweb.inc'),
-('grant', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d616e6167696e675f63747479223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a323a225478223b7d, '', 1, 1, 0, '', 'grant', 'Grant', 't', '', '', 'a:0:{}', 6, '', '', 6, 'rcredits/rweb/rweb.inc'),
-('handle-invoice', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31333a2248616e646c65496e766f696365223b693a313b693a313b7d, '', 1, 1, 0, '', 'handle-invoice', 'Handle Invoice', 't', '', '', 'a:0:{}', 0, '', '', 70, 'rcredits/rweb/rweb.inc'),
-('help', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a333a7b693a303b733a343a2248656c70223b693a313b693a313b693a323b693a323b7d, '', 1, 1, 0, '', 'help', 'Help', 't', '', '', 'a:0:{}', 0, '', '', 94, 'rcredits/rweb/rweb.inc'),
-('history', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31313a2272656164206d656d626572223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a22486973746f7279223b7d, '', 1, 1, 0, '', 'history', 'History', 't', '', '', 'a:0:{}', 6, '', '', 11, 'rcredits/rweb/rweb.inc'),
-('history/changes', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226361646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31303a225365654368616e676573223b7d, '', 3, 2, 1, 'history', 'history', 'See Changes', 't', '', '', 'a:0:{}', 132, '', '', 18, 'rcredits/rweb/../admin/admin-forms.inc'),
-('history/invoices-from', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a383a22496e766f69636573223b693a313b733a343a2266726f6d223b7d, '', 3, 2, 1, 'history', 'history', 'Invoices FROM You', 't', '', '', 'a:0:{}', 132, '', '', 14, 'rcredits/rweb/rweb.inc');
+('fine', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d616e6167696e675f63747479223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a323a225478223b7d, '', 1, 1, 0, '', 'fine', 'Fine', 't', '', '', 'a:0:{}', 6, '', '', 124, 'rcredits/rweb/rweb.inc'),
+('get', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31343a226d616e6167652062616e6b206f6b223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a333a22476574223b693a313b693a313b7d, '', 1, 1, 0, '', 'get', 'Bank', 't', '', '', 'a:0:{}', 6, '', '', 125, 'rcredits/rweb/rweb.inc'),
+('grant', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d616e6167696e675f63747479223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a323a225478223b7d, '', 1, 1, 0, '', 'grant', 'Grant', 't', '', '', 'a:0:{}', 6, '', '', 121, 'rcredits/rweb/rweb.inc'),
+('handle-invoice', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31333a2248616e646c65496e766f696365223b693a313b693a313b7d, '', 1, 1, 0, '', 'handle-invoice', 'Handle Invoice', 't', '', '', 'a:0:{}', 0, '', '', 190, 'rcredits/rweb/rweb.inc'),
+('help', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a333a7b693a303b733a343a2248656c70223b693a313b693a313b693a323b693a323b7d, '', 1, 1, 0, '', 'help', 'Help', 't', '', '', 'a:0:{}', 0, '', '', 215, 'rcredits/rweb/rweb.inc'),
+('history', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31313a2272656164206d656d626572223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a22486973746f7279223b7d, '', 1, 1, 0, '', 'history', 'History', 't', '', '', 'a:0:{}', 6, '', '', 126, 'rcredits/rweb/rweb.inc'),
+('history/changes', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226361646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31303a225365654368616e676573223b7d, '', 3, 2, 1, 'history', 'history', 'See Changes', 't', '', '', 'a:0:{}', 132, '', '', 133, 'rcredits/rweb/../admin/admin-forms.inc'),
+('history/invoices-from', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a383a22496e766f69636573223b693a313b733a343a2266726f6d223b7d, '', 3, 2, 1, 'history', 'history', 'Invoices FROM You', 't', '', '', 'a:0:{}', 132, '', '', 129, 'rcredits/rweb/rweb.inc'),
+('history/invoices-to', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a383a22496e766f69636573223b693a313b733a323a22746f223b7d, '', 3, 2, 1, 'history', 'history', 'Invoices TO You', 't', '', '', 'a:0:{}', 132, '', '', 128, 'rcredits/rweb/rweb.inc'),
+('history/notices', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a373a224e6f7469636573223b693a313b693a323b7d, '', 3, 2, 1, 'history', 'history', 'Notices', 't', '', '', 'a:0:{}', 132, '', '', 131, 'rcredits/rweb/rweb.inc'),
+('history/statement', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\statement', 0x613a313a7b693a303b693a323b7d, '', 3, 2, 0, '', 'history/statement', 'Statement', 't', '', '', 'a:0:{}', 0, '', '', 135, 'rcredits/rweb/rweb.inc'),
+('history/statements', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31303a2253746174656d656e7473223b693a313b693a323b7d, '', 3, 2, 1, 'history', 'history', 'Statements', 't', '', '', 'a:0:{}', 132, '', '', 130, 'rcredits/rweb/rweb.inc'),
+('history/tax-info', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a22546178496e666f223b7d, '', 3, 2, 1, 'history', 'history', 'Tax Info', 't', '', '', 'a:0:{}', 132, '', '', 132, 'rcredits/rweb/rweb.inc'),
+('history/transactions', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a333a22547873223b693a313b693a323b7d, '', 3, 2, 1, 'history', 'history', 'Transactions', 't', '', '', 'a:0:{}', 132, '', '', 127, 'rcredits/rweb/rweb.inc'),
+('history/zot', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a303a22223b7d, '', 3, 2, 1, 'history', 'history', 'zot', 't', '', '', 'a:0:{}', 132, '', '', 134, 'rcredits/rweb/rweb.inc'),
+('I', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a313a2249223b7d, '', 1, 1, 0, '', 'I', 'Scanned QR', 't', '', '', 'a:0:{}', 0, '', '', 188, 'rcredits/rweb/rweb.inc'),
+('invest', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d616e6167696e675f63747479223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a323a225478223b7d, '', 1, 1, 0, '', 'invest', 'Invest', 't', '', '', 'a:0:{}', 6, '', '', 123, 'rcredits/rweb/rweb.inc'),
+('loan', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d616e6167696e675f63747479223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a323a225478223b7d, '', 1, 1, 0, '', 'loan', 'Loan', 't', '', '', 'a:0:{}', 6, '', '', 122, 'rcredits/rweb/rweb.inc'),
+('member', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a2250726f66696c65223b7d, '', 1, 1, 0, '', 'member', 'Company Profile', 't', '', '', 'a:0:{}', 0, '', '', 220, 'rcredits/rweb/rweb.inc'),
+('menu', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a343a224d656e75223b7d, '', 1, 1, 0, '', 'menu', 'Main Menu', 't', '', '', 'a:0:{}', 0, '', '', 184, 'rcredits/rweb/rweb.inc'),
+('node/%node/devel', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_load_object', 0x613a323a7b693a303b733a343a226e6f6465223b693a313b693a313b7d, '', 7, 3, 1, '', 'node/%node/devel', 'Devel', 't', '', '', 'a:0:{}', 132, '', '', 100, 'sites/all/modules/devel/devel.pages.inc'),
+('node/%node/devel/load', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_load_object', 0x613a323a7b693a303b733a343a226e6f6465223b693a313b693a313b7d, '', 15, 4, 1, 'node/%node/devel', 'node/%node/devel/load', 'Load', 't', '', '', 'a:0:{}', 140, '', '', 0, 'sites/all/modules/devel/devel.pages.inc'),
+('node/%node/devel/render', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_render_object', 0x613a323a7b693a303b733a343a226e6f6465223b693a313b693a313b7d, '', 15, 4, 1, 'node/%node/devel', 'node/%node/devel/render', 'Render', 't', '', '', 'a:0:{}', 132, '', '', 100, 'sites/all/modules/devel/devel.pages.inc'),
+('page-not-found', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31323a22506167654e6f74466f756e64223b7d, '', 1, 1, 0, '', 'page-not-found', 'Page Not Found', 't', '', '', 'a:0:{}', 0, '', '', 230, 'rcredits/rweb/rweb.inc'),
+('pay', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31363a22627579206f6b20636f6e6669726d6564223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a323a225478223b693a313b693a313b7d, '', 1, 1, 0, '', 'pay', 'Pay', 't', '', '', 'a:0:{}', 6, '', '', 119, 'rcredits/rweb/rweb.inc'),
+('pay-with-rcredits', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a333a22427579223b7d, '', 1, 1, 0, '', 'pay-with-rcredits', 'Pay With Common Good Credits', 't', '', '', 'a:0:{}', 0, '', '', 231, 'rcredits/rweb/rweb.inc'),
+('pay/payroll', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a22636f20627579206f6b223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a22506179726f6c6c223b7d, '', 3, 2, 1, 'pay', 'pay', 'Upload Payroll', 't', '', '', 'a:0:{}', 132, '', '', 120, 'rcredits/rweb/rweb.inc'),
+('pos', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Smart\\pos', 0x613a313a7b693a303b733a303a22223b7d, '', 1, 1, 0, '', 'pos', 'POS', 't', '', '', 'a:0:{}', 0, '', '', 225, 'rcredits/rweb/../rsmart/rsmart.inc'),
+('print-rcard', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226361646d696e223b7d, 'rCredits\\Web\\memberID', 0x613a323a7b693a303b693a313b693a313b693a323b7d, '', 1, 1, 0, '', 'print-rcard', 'Print ID Card', 't', '', '', 'a:0:{}', 0, '', '', 212, 'rcredits/rweb/../admin/admin-forms.inc'),
+('proposal', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a383a2250726f706f73616c223b7d, '', 1, 1, 0, '', 'proposal', 'Funding Proposal', 't', '', '', 'a:0:{}', 0, '', '', 136, 'rcredits/rweb/../rvote/rvote-web.inc'),
+('prox', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a333a7b693a303b733a343a2250726f78223b693a313b693a313b693a323b693a323b7d, '', 1, 1, 0, '', 'prox', 'Prox', 't', '', '', 'a:0:{}', 0, '', '', 186, 'rcredits/rweb/rweb.inc'),
+('rcredits/util', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\util', 0x613a313a7b693a303b693a323b7d, '', 3, 2, 0, '', 'rcredits/util', 'Util', 't', '', '', 'a:0:{}', 0, '', '', 210, 'rcredits/rweb/../admin/admin-forms.inc'),
+('request-employee-rcard', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31323a22526571756573745243617264223b693a313b693a313b7d, '', 1, 1, 0, '', 'request-employee-rcard', 'Request Employee Common Good Card', 't', '', '', 'a:0:{}', 0, '', '', 187, 'rcredits/rweb/rweb.inc'),
+('rerisk', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a22726567756c61746f72223b7d, 'rCredits\\Web\\showForm', 0x613a343a7b693a303b733a363a2252657269736b223b693a313b693a313b693a323b693a323b693a333b693a333b7d, '', 1, 1, 0, '', 'rerisk', 'Recalculate Risk', 't', '', '', 'a:0:{}', 0, '', '', 191, 'rcredits/rweb/rweb.inc'),
+('reset', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31333a22526573657450617373776f7264223b693a313b693a313b7d, '', 1, 1, 0, '', 'reset', 'Choose New Password', 't', '', '', 'a:0:{}', 0, '', '', 168, 'rcredits/rweb/rweb.inc'),
+('sadmin', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a373a226361646d696e32223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a353a2241646d696e223b7d, '', 1, 1, 0, '', 'sadmin', 'Admin', 't', '', '', 'a:0:{}', 6, '', '', 192, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/achs', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\achBatch', 0x613a313a7b693a303b693a323b7d, '', 3, 2, 0, '', 'sadmin/achs', 'ACHs', 't', '', '', 'a:0:{}', 0, '', '', 207, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/changes', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226361646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31303a225365654368616e676573223b693a313b693a323b7d, '', 3, 2, 0, '', 'sadmin/changes', 'See Changes', 't', '', '', 'a:0:{}', 0, '', '', 208, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/checks', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\printChecks', 0x613a313a7b693a303b693a323b7d, '', 3, 2, 0, '', 'sadmin/checks', 'Checks', 't', '', '', 'a:0:{}', 0, '', '', 206, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/deposit-details', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\depositDetails', 0x613a313a7b693a303b693a323b7d, '', 3, 2, 0, '', 'sadmin/deposit-details', 'Deposit Details', 't', '', '', 'a:0:{}', 0, '', '', 205, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/deposits', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a383a224465706f73697473223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Deposits', 't', '', '', 'a:0:{}', 132, '', '', 197, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/export-list', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a373a226361646d696e32223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31383a22446f776e6c6f61644d656d6265724c697374223b693a313b693a323b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Export', 't', '', '', 'a:0:{}', 132, '', '', 196, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/followup', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a353a2261646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a383a22466f6c6c6f777570223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Admin Calls to Make', 't', '', '', 'a:0:{}', 132, '', '', 194, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/handy', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31353a22737570657261646d696e4f52646576223b7d, 'rCredits\\Web\\handyLinks', 0x613a313a7b693a303b733a303a22223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Handy', 't', '', '', 'a:0:{}', 132, '', '', 201, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/make-community', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a383a224d616b6543747479223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Make Ctty', 't', '', '', 'a:0:{}', 132, '', '', 199, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/member-list', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a373a226361646d696e32223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31303a224d656d6265724c697374223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Member List', 't', '', '', 'a:0:{}', 132, '', '', 195, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/new-member', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226361646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a363a225369676e7570223b693a313b733a31333a22636f64653d2e2861646d696e29223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'New Member', 't', '', '', 'a:0:{}', 132, '', '', 198, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/organizer-list', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a353a2261646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31333a224f7267616e697a65724c697374223b693a313b693a323b7d, '', 3, 2, 0, '', 'sadmin/organizer-list', 'Organizer List', 't', '', '', 'a:0:{}', 0, '', '', 209, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/panel', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226361646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31303a2241646d696e50616e656c223b693a313b693a323b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Panel', 't', '', '', 'a:0:{}', 132, '', '', 193, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/php', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31353a22737570657261646d696e4f52646576223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a333a22506870223b693a313b693a323b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'PHP', 't', '', '', 'a:0:{}', 132, '', '', 202, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/recover', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22646576223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31323a22546573745265636f76657279223b693a313b693a313b7d, '', 3, 2, 0, '', 'sadmin/recover', 'Empty', 't', '', '', 'a:0:{}', 0, '', '', 211, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/sms', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a333a22534d53223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Test SMS', 't', '', '', 'a:0:{}', 132, '', '', 200, 'rcredits/rweb/../admin/admin-forms.inc'),
+('sadmin/tx-info', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a22726567756c61746f72223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a363a225478496e666f223b693a313b693a323b7d, '', 3, 2, 0, '', 'sadmin/tx-info', 'Transaction Info', 't', '', '', 'a:0:{}', 0, '', '', 204, 'rcredits/rweb/rweb.inc'),
+('sadmin/zot', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a303a22223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'zot', 't', '', '', 'a:0:{}', 132, '', '', 203, 'rcredits/rweb/../admin/admin-forms.inc'),
+('secret', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\secrets', 0x613a313a7b693a303b733a303a22223b7d, '', 1, 1, 0, '', 'secret', 'Secret', 't', '', '', 'a:0:{}', 0, '', '', 228, 'rcredits/rweb/rweb.inc'),
+('settings', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31343a226d616e616765202d636c6f736564223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a383a2253657474696e6773223b7d, '', 1, 1, 0, '', 'settings', 'Settings', 't', '', '', 'a:0:{}', 6, '', '', 159, 'rcredits/rweb/rweb.inc'),
+('settings/basic', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a353a224261736963223b7d, '', 3, 2, 0, '', 'settings/basic', 'Basic', 't', '', '', 'a:0:{}', 0, '', '', 179, 'rcredits/rweb/rweb.inc'),
+('settings/company', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a226d616e61676520636f223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a373a22436f6d70616e79223b693a313b693a323b7d, '', 3, 2, 1, 'settings', 'settings', 'Company Info', 't', '', '', 'a:0:{}', 132, '', '', 164, 'rcredits/rweb/rweb.inc'),
+('settings/connect', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a373a22436f6e6e656374223b693a313b693a323b7d, '', 3, 2, 1, 'settings', 'settings', 'Bank Info', 't', '', '', 'a:0:{}', 132, '', '', 163, 'rcredits/rweb/rweb.inc'),
+('settings/contact', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a22436f6e74616374223b7d, '', 3, 2, 1, 'settings', 'settings', 'Contact Info', 't', '', '', 'a:0:{}', 132, '', '', 160, 'rcredits/rweb/rweb.inc'),
+('settings/icon', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a343a2249636f6e223b7d, '', 3, 2, 0, '', 'settings/icon', 'Icon', 't', '', '', 'a:0:{}', 0, '', '', 178, 'rcredits/rweb/rweb.inc'),
+('settings/member-photo', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\memberPhoto', 0x613a323a7b693a303b693a323b693a313b693a333b7d, '', 3, 2, 0, '', 'settings/member-photo', 'Member Photo', 't', '', '', 'a:0:{}', 0, '', '', 175, 'rcredits/rweb/rweb.inc'),
+('settings/notifications', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31333a224e6f74696669636174696f6e73223b7d, '', 3, 2, 0, '', 'settings/notifications', 'Notifications', 't', '', '', 'a:0:{}', 0, '', '', 170, 'rcredits/rweb/rweb.inc'),
+('settings/password', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a343a2250617373223b693a313b693a323b7d, '', 3, 2, 0, '', 'settings/password', 'Request New Password', 't', '', '', 'a:0:{}', 0, '', '', 172, 'rcredits/rweb/rweb.inc'),
+('settings/preferences', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a353a225072656673223b7d, '', 3, 2, 1, 'settings', 'settings', 'Preferences', 't', '', '', 'a:0:{}', 132, '', '', 161, 'rcredits/rweb/rweb.inc'),
+('settings/proxies', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a226d616e616765202d636f223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a2250726f78696573223b7d, '', 3, 2, 1, 'settings', 'settings', 'Proxies', 't', '', '', 'a:0:{}', 132, '', '', 166, 'rcredits/rweb/rweb.inc'),
+('settings/proxy', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a353a2250726f7879223b693a313b693a323b7d, '', 3, 2, 0, '', 'settings/proxy', 'Proxy', 't', '', '', 'a:0:{}', 0, '', '', 180, 'rcredits/rweb/rweb.inc'),
+('settings/relations', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a393a2252656c6174696f6e73223b693a313b693a323b7d, '', 3, 2, 1, 'settings', 'settings', 'Relations', 't', '', '', 'a:0:{}', 132, '', '', 165, 'rcredits/rweb/rweb.inc'),
+('settings/resend', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a363a22526573656e64223b7d, '', 3, 2, 0, '', 'settings/resend', 'Resend Email', 't', '', '', 'a:0:{}', 0, '', '', 182, 'rcredits/rweb/rweb.inc'),
+('settings/security', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a226d616e616765202d636f223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a383a225365637572697479223b693a313b693a323b7d, '', 3, 2, 1, 'settings', 'settings', 'Security', 't', '', '', 'a:0:{}', 132, '', '', 162, 'rcredits/rweb/rweb.inc'),
+('settings/security/change-password', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31343a224368616e676550617373776f7264223b7d, '', 7, 3, 0, '', 'settings/security/change-password', 'Change Password', 't', '', '', 'a:0:{}', 0, '', '', 173, 'rcredits/rweb/rweb.inc'),
+('settings/security/change-pin', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a393a224368616e676550696e223b7d, '', 7, 3, 0, '', 'settings/security/change-pin', 'Change PIN', 't', '', '', 'a:0:{}', 0, '', '', 174, 'rcredits/rweb/rweb.inc'),
+('settings/security/photo', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a353a2250686f746f223b693a313b693a333b7d, '', 7, 3, 0, '', 'settings/security/photo', 'Photo', 't', '', '', 'a:0:{}', 0, '', '', 176, 'rcredits/rweb/rweb.inc'),
+('settings/security/photo/upload', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\photoUpload', 0x613a323a7b693a303b693a343b693a313b693a353b7d, '', 15, 4, 0, '', 'settings/security/photo/upload', 'Photo Upload', 't', '', '', 'a:0:{}', 0, '', '', 177, 'rcredits/rweb/rweb.inc'),
+('settings/skip', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\skipStep', 0x613a313a7b693a303b733a303a22223b7d, '', 3, 2, 0, '', 'settings/skip', 'Skip Step', 't', '', '', 'a:0:{}', 0, '', '', 169, 'rcredits/rweb/rweb.inc'),
+('settings/ssn', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a333a2253736e223b693a313b693a323b7d, '', 3, 2, 0, '', 'settings/ssn', 'Correct SSN', 't', '', '', 'a:0:{}', 0, '', '', 171, 'rcredits/rweb/rweb.inc'),
+('settings/verify', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a363a22566572696679223b693a313b693a313b7d, '', 3, 2, 0, '', 'settings/verify', 'Verify Email', 't', '', '', 'a:0:{}', 0, '', '', 181, 'rcredits/rweb/rweb.inc'),
+('settings/zot', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a303a22223b7d, '', 3, 2, 1, 'settings', 'settings', 'zot', 't', '', '', 'a:0:{}', 132, '', '', 167, 'rcredits/rweb/rweb.inc'),
+('signin', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a227369676e65644f7574223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a363a225369676e696e223b7d, '', 1, 1, 0, '', 'signin', 'Sign in', 't', '', '', 'a:0:{}', 6, '', '', 214, 'rcredits/rweb/rweb.inc'),
+('signout', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a383a227369676e6564496e223b7d, 'rCredits\\Web\\signout', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'signout', 'Sign out', 't', '', '', 'a:0:{}', 6, '', '', 213, 'rcredits/rweb/rweb.inc');
 INSERT INTO `menu_router` (`path`, `load_functions`, `to_arg_functions`, `access_callback`, `access_arguments`, `page_callback`, `page_arguments`, `delivery_callback`, `fit`, `number_parts`, `context`, `tab_parent`, `tab_root`, `title`, `title_callback`, `title_arguments`, `theme_callback`, `theme_arguments`, `type`, `description`, `position`, `weight`, `include_file`) VALUES
-('history/invoices-to', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a383a22496e766f69636573223b693a313b733a323a22746f223b7d, '', 3, 2, 1, 'history', 'history', 'Invoices TO You', 't', '', '', 'a:0:{}', 132, '', '', 13, 'rcredits/rweb/rweb.inc'),
-('history/notices', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a373a224e6f7469636573223b693a313b693a323b7d, '', 3, 2, 1, 'history', 'history', 'Notices', 't', '', '', 'a:0:{}', 132, '', '', 16, 'rcredits/rweb/rweb.inc'),
-('history/statement', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\statement', 0x613a313a7b693a303b693a323b7d, '', 3, 2, 0, '', 'history/statement', 'Statement', 't', '', '', 'a:0:{}', 0, '', '', 20, 'rcredits/rweb/rweb.inc'),
-('history/statements', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31303a2253746174656d656e7473223b693a313b693a323b7d, '', 3, 2, 1, 'history', 'history', 'Statements', 't', '', '', 'a:0:{}', 132, '', '', 15, 'rcredits/rweb/rweb.inc'),
-('history/tax-info', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a22546178496e666f223b7d, '', 3, 2, 1, 'history', 'history', 'Tax Info', 't', '', '', 'a:0:{}', 132, '', '', 17, 'rcredits/rweb/rweb.inc'),
-('history/transactions', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a333a22547873223b693a313b693a323b7d, '', 3, 2, 1, 'history', 'history', 'Transactions', 't', '', '', 'a:0:{}', 132, '', '', 12, 'rcredits/rweb/rweb.inc'),
-('history/zot', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a303a22223b7d, '', 3, 2, 1, 'history', 'history', 'zot', 't', '', '', 'a:0:{}', 132, '', '', 19, 'rcredits/rweb/rweb.inc'),
-('I', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a313a2249223b7d, '', 1, 1, 0, '', 'I', 'Scanned QR', 't', '', '', 'a:0:{}', 0, '', '', 68, 'rcredits/rweb/rweb.inc'),
-('invest', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d616e6167696e675f63747479223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a323a225478223b7d, '', 1, 1, 0, '', 'invest', 'Invest', 't', '', '', 'a:0:{}', 6, '', '', 8, 'rcredits/rweb/rweb.inc'),
-('loan', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31333a226d616e6167696e675f63747479223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a323a225478223b7d, '', 1, 1, 0, '', 'loan', 'Loan', 't', '', '', 'a:0:{}', 6, '', '', 7, 'rcredits/rweb/rweb.inc'),
-('member', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a2250726f66696c65223b7d, '', 1, 1, 0, '', 'member', 'Company Profile', 't', '', '', 'a:0:{}', 0, '', '', 98, 'rcredits/rweb/rweb.inc'),
-('menu', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a343a224d656e75223b7d, '', 1, 1, 0, '', 'menu', 'Main Menu', 't', '', '', 'a:0:{}', 0, '', '', 64, 'rcredits/rweb/rweb.inc'),
-('node/%/devel', 0x613a313a7b693a313b733a393a226e6f64655f6c6f6164223b7d, '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_load_object', 0x613a323a7b693a303b733a343a226e6f6465223b693a313b693a313b7d, '', 5, 3, 1, '', 'node/%/devel', 'Devel', 't', '', '', 'a:0:{}', 132, '', '', 100, 'sites/all/modules/devel/devel.pages.inc'),
-('node/%/devel/load', 0x613a313a7b693a313b733a393a226e6f64655f6c6f6164223b7d, '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_load_object', 0x613a323a7b693a303b733a343a226e6f6465223b693a313b693a313b7d, '', 11, 4, 1, 'node/%/devel', 'node/%/devel/load', 'Load', 't', '', '', 'a:0:{}', 140, '', '', 0, 'sites/all/modules/devel/devel.pages.inc'),
-('node/%/devel/render', 0x613a313a7b693a313b733a393a226e6f64655f6c6f6164223b7d, '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_render_object', 0x613a323a7b693a303b733a343a226e6f6465223b693a313b693a313b7d, '', 11, 4, 1, 'node/%/devel', 'node/%/devel/render', 'Render', 't', '', '', 'a:0:{}', 132, '', '', 100, 'sites/all/modules/devel/devel.pages.inc'),
-('page-not-found', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31323a22506167654e6f74466f756e64223b7d, '', 1, 1, 0, '', 'page-not-found', 'Page Not Found', 't', '', '', 'a:0:{}', 0, '', '', 108, 'rcredits/rweb/rweb.inc'),
-('pay', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31363a22627579206f6b20636f6e6669726d6564223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a323a225478223b693a313b693a313b7d, '', 1, 1, 0, '', 'pay', 'Pay', 't', '', '', 'a:0:{}', 6, '', '', 2, 'rcredits/rweb/rweb.inc'),
-('pay-with-rcredits', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a333a22427579223b7d, '', 1, 1, 0, '', 'pay-with-rcredits', 'Pay With Common Good Credits', 't', '', '', 'a:0:{}', 0, '', '', 109, 'rcredits/rweb/rweb.inc'),
-('pay/one', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a22636f20627579206f6b223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a323a225478223b7d, '', 3, 2, 1, 'pay', 'pay', 'Pay One', 't', '', '', 'a:0:{}', 132, '', '', 3, 'rcredits/rweb/rweb.inc'),
-('pay/payroll', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a22636f20627579206f6b223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a22506179726f6c6c223b7d, '', 3, 2, 1, 'pay', 'pay', 'Upload Payroll', 't', '', '', 'a:0:{}', 132, '', '', 4, 'rcredits/rweb/rweb.inc'),
-('pay/zot', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a303a22223b7d, '', 3, 2, 1, 'pay', 'pay', 'zot', 't', '', '', 'a:0:{}', 132, '', '', 5, 'rcredits/rweb/rweb.inc'),
-('pos', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Smart\\pos', 0x613a313a7b693a303b733a303a22223b7d, '', 1, 1, 0, '', 'pos', 'POS', 't', '', '', 'a:0:{}', 0, '', '', 103, 'rcredits/rweb/../rsmart/rsmart.inc'),
-('print-rcard', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226361646d696e223b7d, 'rCredits\\Web\\memberID', 0x613a323a7b693a303b693a313b693a313b693a323b7d, '', 1, 1, 0, '', 'print-rcard', 'Print ID Card', 't', '', '', 'a:0:{}', 0, '', '', 91, 'rcredits/rweb/../admin/admin-forms.inc'),
-('proposal', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a383a2250726f706f73616c223b7d, '', 1, 1, 0, '', 'proposal', 'Funding Proposal', 't', '', '', 'a:0:{}', 0, '', '', 21, 'rcredits/rweb/../rvote/rvote-web.inc'),
-('prox', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a333a7b693a303b733a343a2250726f78223b693a313b693a313b693a323b693a323b7d, '', 1, 1, 0, '', 'prox', 'Prox', 't', '', '', 'a:0:{}', 0, '', '', 66, 'rcredits/rweb/rweb.inc'),
-('rcredits/util', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\util', 0x613a313a7b693a303b693a323b7d, '', 3, 2, 0, '', 'rcredits/util', 'Util', 't', '', '', 'a:0:{}', 0, '', '', 89, 'rcredits/rweb/../admin/admin-forms.inc'),
-('request-employee-rcard', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31323a22526571756573745243617264223b693a313b693a313b7d, '', 1, 1, 0, '', 'request-employee-rcard', 'Request Employee Common Good Card', 't', '', '', 'a:0:{}', 0, '', '', 67, 'rcredits/rweb/rweb.inc'),
-('rerisk', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a22726567756c61746f72223b7d, 'rCredits\\Web\\showForm', 0x613a343a7b693a303b733a363a2252657269736b223b693a313b693a313b693a323b693a323b693a333b693a333b7d, '', 1, 1, 0, '', 'rerisk', 'Recalculate Risk', 't', '', '', 'a:0:{}', 0, '', '', 71, 'rcredits/rweb/rweb.inc'),
-('reset', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31333a22526573657450617373776f7264223b693a313b693a313b7d, '', 1, 1, 0, '', 'reset', 'Choose New Password', 't', '', '', 'a:0:{}', 0, '', '', 49, 'rcredits/rweb/rweb.inc'),
-('sadmin', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a373a226361646d696e32223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a353a2241646d696e223b7d, '', 1, 1, 0, '', 'sadmin', 'Admin', 't', '', '', 'a:0:{}', 6, '', '', 72, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/achs', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\achBatch', 0x613a313a7b693a303b693a323b7d, '', 3, 2, 0, '', 'sadmin/achs', 'ACHs', 't', '', '', 'a:0:{}', 0, '', '', 86, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/changes', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226361646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31303a225365654368616e676573223b693a313b693a323b7d, '', 3, 2, 0, '', 'sadmin/changes', 'See Changes', 't', '', '', 'a:0:{}', 0, '', '', 87, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/checks', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\printChecks', 0x613a313a7b693a303b693a323b7d, '', 3, 2, 0, '', 'sadmin/checks', 'Checks', 't', '', '', 'a:0:{}', 0, '', '', 85, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/deposit-details', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\depositDetails', 0x613a313a7b693a303b693a323b7d, '', 3, 2, 0, '', 'sadmin/deposit-details', 'Deposit Details', 't', '', '', 'a:0:{}', 0, '', '', 84, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/deposits', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a383a224465706f73697473223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Deposits', 't', '', '', 'a:0:{}', 132, '', '', 76, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/export-list', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a373a226361646d696e32223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31383a22446f776e6c6f61644d656d6265724c697374223b693a313b693a323b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Export', 't', '', '', 'a:0:{}', 132, '', '', 75, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/handy', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31353a22737570657261646d696e4f52646576223b7d, 'rCredits\\Web\\handyLinks', 0x613a313a7b693a303b733a303a22223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Handy', 't', '', '', 'a:0:{}', 132, '', '', 80, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/make-community', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a383a224d616b6543747479223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Make Ctty', 't', '', '', 'a:0:{}', 132, '', '', 78, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/member-list', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a373a226361646d696e32223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31303a224d656d6265724c697374223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Member List', 't', '', '', 'a:0:{}', 132, '', '', 74, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/new-member', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226361646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a363a225369676e7570223b693a313b733a31333a22636f64653d2e2861646d696e29223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'New Member', 't', '', '', 'a:0:{}', 132, '', '', 77, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/organizer-list', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a353a2261646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31333a224f7267616e697a65724c697374223b693a313b693a323b7d, '', 3, 2, 0, '', 'sadmin/organizer-list', 'Organizer List', 't', '', '', 'a:0:{}', 0, '', '', 88, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/panel', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226361646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31303a2241646d696e50616e656c223b693a313b693a323b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Panel', 't', '', '', 'a:0:{}', 132, '', '', 73, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/php', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31353a22737570657261646d696e4f52646576223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a333a22506870223b693a313b693a323b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'PHP', 't', '', '', 'a:0:{}', 132, '', '', 81, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/recover', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22646576223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31323a22546573745265636f76657279223b693a313b693a313b7d, '', 3, 2, 0, '', 'sadmin/recover', 'Empty', 't', '', '', 'a:0:{}', 0, '', '', 90, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/sms', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a333a22534d53223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'Test SMS', 't', '', '', 'a:0:{}', 132, '', '', 79, 'rcredits/rweb/../admin/admin-forms.inc'),
-('sadmin/tx-info', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a22726567756c61746f72223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a363a225478496e666f223b693a313b693a323b7d, '', 3, 2, 0, '', 'sadmin/tx-info', 'Transaction Info', 't', '', '', 'a:0:{}', 0, '', '', 83, 'rcredits/rweb/rweb.inc'),
-('sadmin/zot', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a22737570657261646d696e223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a303a22223b7d, '', 3, 2, 1, 'sadmin', 'sadmin', 'zot', 't', '', '', 'a:0:{}', 132, '', '', 82, 'rcredits/rweb/../admin/admin-forms.inc'),
-('secret', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\secrets', 0x613a313a7b693a303b733a303a22223b7d, '', 1, 1, 0, '', 'secret', 'Secret', 't', '', '', 'a:0:{}', 0, '', '', 106, 'rcredits/rweb/rweb.inc'),
-('settings', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31343a226d616e616765202d636c6f736564223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a383a2253657474696e6773223b7d, '', 1, 1, 0, '', 'settings', 'Settings', 't', '', '', 'a:0:{}', 6, '', '', 40, 'rcredits/rweb/rweb.inc'),
-('settings/basic', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a353a224261736963223b7d, '', 3, 2, 0, '', 'settings/basic', 'Basic', 't', '', '', 'a:0:{}', 0, '', '', 59, 'rcredits/rweb/rweb.inc'),
-('settings/company', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a226d616e61676520636f223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a373a22436f6d70616e79223b693a313b693a323b7d, '', 3, 2, 1, 'settings', 'settings', 'Company Info', 't', '', '', 'a:0:{}', 132, '', '', 45, 'rcredits/rweb/rweb.inc'),
-('settings/connect', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a373a22436f6e6e656374223b693a313b693a323b7d, '', 3, 2, 1, 'settings', 'settings', 'Bank Info', 't', '', '', 'a:0:{}', 132, '', '', 44, 'rcredits/rweb/rweb.inc'),
-('settings/contact', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a22436f6e74616374223b7d, '', 3, 2, 1, 'settings', 'settings', 'Contact Info', 't', '', '', 'a:0:{}', 132, '', '', 41, 'rcredits/rweb/rweb.inc'),
-('settings/icon', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a343a2249636f6e223b7d, '', 3, 2, 0, '', 'settings/icon', 'Icon', 't', '', '', 'a:0:{}', 0, '', '', 58, 'rcredits/rweb/rweb.inc'),
-('settings/member-photo', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\memberPhoto', 0x613a323a7b693a303b693a323b693a313b693a333b7d, '', 3, 2, 0, '', 'settings/member-photo', 'Member Photo', 't', '', '', 'a:0:{}', 0, '', '', 55, 'rcredits/rweb/rweb.inc'),
-('settings/notifications', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31333a224e6f74696669636174696f6e73223b7d, '', 3, 2, 0, '', 'settings/notifications', 'Notifications', 't', '', '', 'a:0:{}', 0, '', '', 50, 'rcredits/rweb/rweb.inc'),
-('settings/password', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a343a2250617373223b693a313b693a323b7d, '', 3, 2, 0, '', 'settings/password', 'Request New Password', 't', '', '', 'a:0:{}', 0, '', '', 52, 'rcredits/rweb/rweb.inc'),
-('settings/preferences', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a353a225072656673223b7d, '', 3, 2, 1, 'settings', 'settings', 'Preferences', 't', '', '', 'a:0:{}', 132, '', '', 42, 'rcredits/rweb/rweb.inc'),
-('settings/proxies', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a226d616e616765202d636f223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a2250726f78696573223b7d, '', 3, 2, 1, 'settings', 'settings', 'Proxies', 't', '', '', 'a:0:{}', 132, '', '', 47, 'rcredits/rweb/rweb.inc'),
-('settings/proxy', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a353a2250726f7879223b693a313b693a323b7d, '', 3, 2, 0, '', 'settings/proxy', 'Proxy', 't', '', '', 'a:0:{}', 0, '', '', 60, 'rcredits/rweb/rweb.inc'),
-('settings/relations', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a393a2252656c6174696f6e73223b7d, '', 3, 2, 1, 'settings', 'settings', 'Relations', 't', '', '', 'a:0:{}', 132, '', '', 46, 'rcredits/rweb/rweb.inc'),
-('settings/resend', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a363a22526573656e64223b7d, '', 3, 2, 0, '', 'settings/resend', 'Resend Email', 't', '', '', 'a:0:{}', 0, '', '', 62, 'rcredits/rweb/rweb.inc'),
-('settings/security', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a31303a226d616e616765202d636f223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a383a225365637572697479223b693a313b693a323b7d, '', 3, 2, 1, 'settings', 'settings', 'Security', 't', '', '', 'a:0:{}', 132, '', '', 43, 'rcredits/rweb/rweb.inc'),
-('settings/security/change-password', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a31343a224368616e676550617373776f7264223b7d, '', 7, 3, 0, '', 'settings/security/change-password', 'Change Password', 't', '', '', 'a:0:{}', 0, '', '', 53, 'rcredits/rweb/rweb.inc'),
-('settings/security/change-pin', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a393a224368616e676550696e223b7d, '', 7, 3, 0, '', 'settings/security/change-pin', 'Change PIN', 't', '', '', 'a:0:{}', 0, '', '', 54, 'rcredits/rweb/rweb.inc'),
-('settings/security/photo', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a353a2250686f746f223b693a313b693a333b7d, '', 7, 3, 0, '', 'settings/security/photo', 'Photo', 't', '', '', 'a:0:{}', 0, '', '', 56, 'rcredits/rweb/rweb.inc'),
-('settings/security/photo/upload', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\photoUpload', 0x613a323a7b693a303b693a343b693a313b693a353b7d, '', 15, 4, 0, '', 'settings/security/photo/upload', 'Photo Upload', 't', '', '', 'a:0:{}', 0, '', '', 57, 'rcredits/rweb/rweb.inc'),
-('settings/ssn', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a333a2253736e223b693a313b693a323b7d, '', 3, 2, 0, '', 'settings/ssn', 'Correct SSN', 't', '', '', 'a:0:{}', 0, '', '', 51, 'rcredits/rweb/rweb.inc'),
-('settings/verify', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a363a22566572696679223b693a313b693a313b7d, '', 3, 2, 0, '', 'settings/verify', 'Verify Email', 't', '', '', 'a:0:{}', 0, '', '', 61, 'rcredits/rweb/rweb.inc'),
-('settings/zot', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a303a22223b7d, '', 3, 2, 1, 'settings', 'settings', 'zot', 't', '', '', 'a:0:{}', 132, '', '', 48, 'rcredits/rweb/rweb.inc'),
-('signin', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a393a227369676e65644f7574223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a363a225369676e696e223b7d, '', 1, 1, 0, '', 'signin', 'Sign in', 't', '', '', 'a:0:{}', 6, '', '', 93, 'rcredits/rweb/rweb.inc'),
-('signout', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a383a227369676e6564496e223b7d, 'rCredits\\Web\\signout', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'signout', 'Sign out', 't', '', '', 'a:0:{}', 6, '', '', 92, 'rcredits/rweb/rweb.inc'),
-('signup', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a363a225369676e7570223b7d, '', 1, 1, 0, '', 'signup', 'Sign Up For Common Good', 't', '', '', 'a:0:{}', 0, '', '', 97, 'rcredits/rweb/rweb.inc'),
-('signup-company', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a383a225369676e7570436f223b7d, '', 1, 1, 0, '', 'signup-company', 'Open a Company Account', 't', '', '', 'a:0:{}', 0, '', '', 69, 'rcredits/rweb/rweb.inc'),
-('sms/twilio/incoming', '', '', '1', 0x613a303a7b7d, 'sms_twilio_incoming', 0x613a303a7b7d, '', 7, 3, 0, '', 'sms/twilio/incoming', 'Incoming Twilio SMS', 't', '', '', 'a:0:{}', 0, '', '', 0, ''),
-('status', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31303a224d656d62657273686970223b693a313b693a313b7d, '', 1, 1, 0, '', 'status', 'Status', 't', '', '', 'a:0:{}', 0, '', '', 96, 'rcredits/rweb/rweb.inc'),
-('summary', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a2253756d6d617279223b7d, '', 1, 1, 0, '', 'summary', 'Summary', 't', '', '', 'a:0:{}', 6, '', '', 0, 'rcredits/rweb/rweb.inc'),
+('signup', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a363a225369676e7570223b7d, '', 1, 1, 0, '', 'signup', 'Sign Up For Common Good', 't', '', '', 'a:0:{}', 0, '', '', 219, 'rcredits/rweb/rweb.inc'),
+('signup-company', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a383a225369676e7570436f223b7d, '', 1, 1, 0, '', 'signup-company', 'Open a Company Account', 't', '', '', 'a:0:{}', 0, '', '', 189, 'rcredits/rweb/rweb.inc'),
+('status', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a363a226d616e616765223b7d, 'rCredits\\Web\\showForm', 0x613a323a7b693a303b733a31303a224d656d62657273686970223b693a313b693a313b7d, '', 1, 1, 0, '', 'status', 'Status', 't', '', '', 'a:0:{}', 0, '', '', 218, 'rcredits/rweb/rweb.inc'),
+('summary', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a343a2272656164223b7d, 'rCredits\\Web\\showForm', 0x613a313a7b693a303b733a373a2253756d6d617279223b7d, '', 1, 1, 0, '', 'summary', 'Summary', 't', '', '', 'a:0:{}', 6, '', '', 116, 'rcredits/rweb/rweb.inc'),
 ('system/ajax', '', '', '1', 0x613a303a7b7d, 'ajax_form_callback', 0x613a303a7b7d, 'ajax_deliver', 3, 2, 0, '', 'system/ajax', 'AHAH callback', 't', '', 'ajax_base_page_theme', 'a:0:{}', 0, '', '', 0, 'includes/form.inc'),
 ('system/files', '', '', '1', 0x613a303a7b7d, 'file_download', 0x613a313a7b693a303b733a373a2270726976617465223b7d, '', 3, 2, 0, '', 'system/files', 'File download', 't', '', '', 'a:0:{}', 0, '', '', 0, ''),
 ('system/temporary', '', '', '1', 0x613a303a7b7d, 'file_download', 0x613a313a7b693a303b733a393a2274656d706f72617279223b7d, '', 3, 2, 0, '', 'system/temporary', 'Temporary files', 't', '', '', 'a:0:{}', 0, '', '', 0, ''),
@@ -1019,11 +715,11 @@ INSERT INTO `menu_router` (`path`, `load_functions`, `to_arg_functions`, `access
 ('taxonomy/term/%taxonomy_term/devel', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_load_object', 0x613a333a7b693a303b733a31333a227461786f6e6f6d795f7465726d223b693a313b693a323b693a323b733a343a227465726d223b7d, '', 15, 4, 1, '', 'taxonomy/term/%taxonomy_term/devel', 'Devel', 't', '', '', 'a:0:{}', 132, '', '', 100, 'sites/all/modules/devel/devel.pages.inc'),
 ('taxonomy/term/%taxonomy_term/devel/load', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_load_object', 0x613a333a7b693a303b733a31333a227461786f6e6f6d795f7465726d223b693a313b693a323b693a323b733a343a227465726d223b7d, '', 31, 5, 1, 'taxonomy/term/%taxonomy_term/devel', 'taxonomy/term/%taxonomy_term/devel/load', 'Load', 't', '', '', 'a:0:{}', 140, '', '', 0, 'sites/all/modules/devel/devel.pages.inc'),
 ('taxonomy/term/%taxonomy_term/devel/render', '', '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_render_object', 0x613a333a7b693a303b733a31333a227461786f6e6f6d795f7465726d223b693a313b693a323b693a323b733a343a227465726d223b7d, '', 31, 5, 1, 'taxonomy/term/%taxonomy_term/devel', 'taxonomy/term/%taxonomy_term/devel/render', 'Render', 't', '', '', 'a:0:{}', 132, '', '', 100, 'sites/all/modules/devel/devel.pages.inc'),
-('tests', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22646576223b7d, 'rCredits\\Web\\test', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'tests', 'Test', 't', '', '', 'a:0:{}', 6, '', '', 63, 'rcredits/rweb/../admin/admin-forms.inc'),
+('tests', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22646576223b7d, 'rCredits\\Web\\test', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'tests', 'Test', 't', '', '', 'a:0:{}', 6, '', '', 183, 'rcredits/rweb/../admin/admin-forms.inc'),
 ('user/%/devel', 0x613a313a7b693a313b733a393a22757365725f6c6f6164223b7d, '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_load_object', 0x613a323a7b693a303b733a343a2275736572223b693a313b693a313b7d, '', 5, 3, 1, '', 'user/%/devel', 'Devel', 't', '', '', 'a:0:{}', 132, '', '', 100, 'sites/all/modules/devel/devel.pages.inc'),
 ('user/%/devel/load', 0x613a313a7b693a313b733a393a22757365725f6c6f6164223b7d, '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_load_object', 0x613a323a7b693a303b733a343a2275736572223b693a313b693a313b7d, '', 11, 4, 1, 'user/%/devel', 'user/%/devel/load', 'Load', 't', '', '', 'a:0:{}', 140, '', '', 0, 'sites/all/modules/devel/devel.pages.inc'),
 ('user/%/devel/render', 0x613a313a7b693a313b733a393a22757365725f6c6f6164223b7d, '', 'user_access', 0x613a313a7b693a303b733a32343a2261636365737320646576656c20696e666f726d6174696f6e223b7d, 'devel_render_object', 0x613a323a7b693a303b733a343a2275736572223b693a313b693a313b7d, '', 11, 4, 1, 'user/%/devel', 'user/%/devel/render', 'Render', 't', '', '', 'a:0:{}', 132, '', '', 100, 'sites/all/modules/devel/devel.pages.inc'),
-('whosin', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\whosin', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'whosin', 'Who''s in?', 't', '', '', 'a:0:{}', 0, '', '', 105, 'rcredits/rweb/rweb.inc');
+('whosin', '', '', 'rCredits\\Web\\webAccess', 0x613a313a7b693a303b733a333a22616e79223b7d, 'rCredits\\Web\\whosin', 0x613a313a7b693a303b693a313b7d, '', 1, 1, 0, '', 'whosin', 'Who''s in?', 't', '', '', 'a:0:{}', 0, '', '', 227, 'rcredits/rweb/rweb.inc');
 
 -- --------------------------------------------------------
 
@@ -1034,28 +730,6 @@ INSERT INTO `menu_router` (`path`, `load_functions`, `to_arg_functions`, `access
 CREATE TABLE IF NOT EXISTS `node` (
   `uid` bigint(20) DEFAULT NULL COMMENT 'users record id'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `node_access`
---
-
-CREATE TABLE IF NOT EXISTS `node_access` (
-  `nid` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'The node.nid this record affects.',
-  `gid` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'The grant ID a user must possess in the specified realm to gain this row’s privileges on the node.',
-  `realm` varchar(255) NOT NULL DEFAULT '' COMMENT 'The realm in which the user must possess the grant ID. Each node access node can define one or more realms.',
-  `grant_view` tinyint(3) unsigned NOT NULL DEFAULT '0' COMMENT 'Boolean indicating whether a user with the realm/grant pair can view this node.',
-  `grant_update` tinyint(3) unsigned NOT NULL DEFAULT '0' COMMENT 'Boolean indicating whether a user with the realm/grant pair can edit this node.',
-  `grant_delete` tinyint(3) unsigned NOT NULL DEFAULT '0' COMMENT 'Boolean indicating whether a user with the realm/grant pair can delete this node.'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Identifies which realm/grant pairs a user must possess in...';
-
---
--- Dumping data for table `node_access`
---
-
-INSERT INTO `node_access` (`nid`, `gid`, `realm`, `grant_view`, `grant_update`, `grant_delete`) VALUES
-(0, 0, 'all', 1, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -1079,7 +753,7 @@ CREATE TABLE IF NOT EXISTS `queue` (
   `data` longblob COMMENT 'The arbitrary data for the item.',
   `expire` int(11) NOT NULL DEFAULT '0' COMMENT 'Timestamp when the claim lease expires on the item.',
   `created` int(11) NOT NULL DEFAULT '0' COMMENT 'Timestamp when the item was created.'
-) ENGINE=InnoDB AUTO_INCREMENT=273 DEFAULT CHARSET=utf8 COMMENT='Stores items in queues.';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Stores items in queues.';
 
 -- --------------------------------------------------------
 
@@ -1176,24 +850,7 @@ INSERT INTO `registry` (`name`, `type`, `filename`, `module`, `weight`) VALUES
 ('EntityFieldQuery', 'class', 'includes/entity.inc', '', 0),
 ('EntityFieldQueryException', 'class', 'includes/entity.inc', '', 0),
 ('EntityMalformedException', 'class', 'includes/entity.inc', '', 0),
-('EntityPropertiesTestCase', 'class', 'modules/field/tests/field.test', 'field', 0),
-('FieldAttachOtherTestCase', 'class', 'modules/field/tests/field.test', 'field', 0),
-('FieldAttachStorageTestCase', 'class', 'modules/field/tests/field.test', 'field', 0),
-('FieldAttachTestCase', 'class', 'modules/field/tests/field.test', 'field', 0),
-('FieldBulkDeleteTestCase', 'class', 'modules/field/tests/field.test', 'field', 0),
-('FieldCrudTestCase', 'class', 'modules/field/tests/field.test', 'field', 0),
-('FieldDisplayAPITestCase', 'class', 'modules/field/tests/field.test', 'field', 0),
-('FieldException', 'class', 'modules/field/field.module', 'field', 0),
-('FieldFormTestCase', 'class', 'modules/field/tests/field.test', 'field', 0),
-('FieldInfo', 'class', 'modules/field/field.info.class.inc', 'field', 0),
-('FieldInfoTestCase', 'class', 'modules/field/tests/field.test', 'field', 0),
-('FieldInstanceCrudTestCase', 'class', 'modules/field/tests/field.test', 'field', 0),
 ('FieldsOverlapException', 'class', 'includes/database/database.inc', '', 0),
-('FieldSqlStorageTestCase', 'class', 'modules/field/modules/field_sql_storage/field_sql_storage.test', 'field_sql_storage', 0),
-('FieldTestCase', 'class', 'modules/field/tests/field.test', 'field', 0),
-('FieldTranslationsTestCase', 'class', 'modules/field/tests/field.test', 'field', 0),
-('FieldUpdateForbiddenException', 'class', 'modules/field/field.module', 'field', 0),
-('FieldValidationException', 'class', 'modules/field/field.attach.inc', 'field', 0),
 ('FileFieldDisplayTestCase', 'class', 'modules/file/tests/file.test', 'file', 0),
 ('FileFieldPathTestCase', 'class', 'modules/file/tests/file.test', 'file', 0),
 ('FileFieldRevisionTestCase', 'class', 'modules/file/tests/file.test', 'file', 0),
@@ -1238,46 +895,12 @@ INSERT INTO `registry` (`name`, `type`, `filename`, `module`, `weight`) VALUES
 ('ModuleTestCase', 'class', 'modules/system/system.test', 'system', 0),
 ('ModuleUpdater', 'class', 'modules/system/system.updater.inc', 'system', 0),
 ('ModuleVersionTestCase', 'class', 'modules/system/system.test', 'system', 0),
-('MultiStepNodeFormBasicOptionsTest', 'class', 'modules/node/node.test', 'node', 0),
 ('NewDefaultThemeBlocks', 'class', 'modules/block/block.test', 'block', -5),
-('NodeAccessBaseTableTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeAccessFieldTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeAccessPagerTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeAccessRebuildTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeAccessRecordsTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeAccessTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeAdminTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeBlockFunctionalTest', 'class', 'modules/node/node.test', 'node', 0),
-('NodeBlockTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeBuildContent', 'class', 'modules/node/node.test', 'node', 0),
-('NodeController', 'class', 'modules/node/node.module', 'node', 0),
-('NodeCreationTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeEntityFieldQueryAlter', 'class', 'modules/node/node.test', 'node', 0),
-('NodeEntityViewModeAlterTest', 'class', 'modules/node/node.test', 'node', 0),
-('NodeFeedTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeLoadHooksTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeLoadMultipleTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodePageCacheTest', 'class', 'modules/node/node.test', 'node', 0),
-('NodePostSettingsTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeQueryAlter', 'class', 'modules/node/node.test', 'node', 0),
-('NodeRevisionPermissionsTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeRevisionsTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeRSSContentTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeSaveTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeTitleTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeTitleXSSTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeTokenReplaceTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeTypePersistenceTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeTypeTestCase', 'class', 'modules/node/node.test', 'node', 0),
-('NodeWebTestCase', 'class', 'modules/node/node.test', 'node', 0),
 ('NoFieldsException', 'class', 'includes/database/database.inc', '', 0),
 ('NonDefaultBlockAdmin', 'class', 'modules/block/block.test', 'block', -5),
-('PageEditTestCase', 'class', 'modules/node/node.test', 'node', 0),
 ('PageNotFoundTestCase', 'class', 'modules/system/system.test', 'system', 0),
-('PagePreviewTestCase', 'class', 'modules/node/node.test', 'node', 0),
 ('PagerDefault', 'class', 'includes/pager.inc', '', 0),
 ('PageTitleFiltering', 'class', 'modules/system/system.test', 'system', 0),
-('PageViewTestCase', 'class', 'modules/node/node.test', 'node', 0),
 ('Query', 'class', 'includes/database/query.inc', '', 0),
 ('QueryAlterableInterface', 'interface', 'includes/database/query.inc', '', 0),
 ('QueryConditionInterface', 'interface', 'includes/database/query.inc', '', 0),
@@ -1324,7 +947,6 @@ INSERT INTO `registry` (`name`, `type`, `filename`, `module`, `weight`) VALUES
 ('SiteMaintenanceTestCase', 'class', 'modules/system/system.test', 'system', 0),
 ('SkipDotsRecursiveDirectoryIterator', 'class', 'includes/filetransfer/filetransfer.inc', '', 0),
 ('StreamWrapperInterface', 'interface', 'includes/stream_wrappers.inc', '', 0),
-('SummaryLengthTestCase', 'class', 'modules/node/node.test', 'node', 0),
 ('SystemAdminTestCase', 'class', 'modules/system/system.test', 'system', 0),
 ('SystemAuthorizeCase', 'class', 'modules/system/system.test', 'system', 0),
 ('SystemBlockTestCase', 'class', 'modules/system/system.test', 'system', 0),
@@ -1346,18 +968,13 @@ INSERT INTO `registry` (`name`, `type`, `filename`, `module`, `weight`) VALUES
 ('TruncateQuery', 'class', 'includes/database/query.inc', '', 0),
 ('TruncateQuery_mysql', 'class', 'includes/database/mysql/query.inc', '', 0),
 ('TruncateQuery_sqlite', 'class', 'includes/database/sqlite/query.inc', '', 0),
-('UpdateCoreTestCase', 'class', 'modules/update/update.test', 'update', 0),
-('UpdateCoreUnitTestCase', 'class', 'modules/update/update.test', 'update', 0),
 ('UpdateQuery', 'class', 'includes/database/query.inc', '', 0),
 ('UpdateQuery_pgsql', 'class', 'includes/database/pgsql/query.inc', '', 0),
 ('UpdateQuery_sqlite', 'class', 'includes/database/sqlite/query.inc', '', 0),
 ('Updater', 'class', 'includes/updater.inc', '', 0),
 ('UpdaterException', 'class', 'includes/updater.inc', '', 0),
 ('UpdaterFileTransferException', 'class', 'includes/updater.inc', '', 0),
-('UpdateScriptFunctionalTest', 'class', 'modules/system/system.test', 'system', 0),
-('UpdateTestContribCase', 'class', 'modules/update/update.test', 'update', 0),
-('UpdateTestHelper', 'class', 'modules/update/update.test', 'update', 0),
-('UpdateTestUploadCase', 'class', 'modules/update/update.test', 'update', 0);
+('UpdateScriptFunctionalTest', 'class', 'modules/system/system.test', 'system', 0);
 
 -- --------------------------------------------------------
 
@@ -1389,7 +1006,7 @@ INSERT INTO `registry_file` (`filename`, `hash`) VALUES
 ('includes/batch.queue.inc', '554b2e92e1dad0f7fd5a19cb8dff7e109f10fbe2441a5692d076338ec908de0f'),
 ('includes/cache-install.inc', 'e7ed123c5805703c84ad2cce9c1ca46b3ce8caeeea0d8ef39a3024a4ab95fa0e'),
 ('includes/cache.inc', 'd01e10e4c18010b6908026f3d71b72717e3272cfb91a528490eba7f339f8dd1b'),
-('includes/common.inc', 'a535d0b08fca17e3dac1416f31d7a5519433d1aaa02b55eebc06ecceafc84a61'),
+('includes/common.inc', '2b2000e65e3c19a8d39286e9980bf34d3f9765a2a7d9c0297a272d5272a136e6'),
 ('includes/database/database.inc', '648f0c0eebefafc25cf5298f68dfe4d9f1bc9c804f3e021559b45cf1a6f0161e'),
 ('includes/database/log.inc', '9feb5a17ae2fabcf26a96d2a634ba73da501f7bcfc3599a693d916a6971d00d1'),
 ('includes/database/mysql/database.inc', 'd62a2d8ca103cb3b085e7f8b894a7db14c02f20d0b1ed0bd32f6534a45b4527f'),
@@ -1412,7 +1029,7 @@ INSERT INTO `registry_file` (`filename`, `hash`) VALUES
 ('includes/database/sqlite/select.inc', '8d1c426dbd337733c206cce9f59a172546c6ed856d8ef3f1c7bef05a16f7bf68'),
 ('includes/date.inc', '18c047be64f201e16d189f1cc47ed9dcf0a145151b1ee187e90511b24e5d2b36'),
 ('includes/entity.inc', '3080fe3c30991a48f1f314a60d02e841d263a8f222337e5bde3be61afe41ee7a'),
-('includes/errors.inc', 'c8bda5b8fb4062823237d9b9ced5fb518d0a61b8ae7cee7e19ef0eba837e3d69'),
+('includes/errors.inc', '03505bea9c52004ccff2ebc899f081b74c5f846524f41888cbcbf141629277fb'),
 ('includes/file.inc', 'cf1de474b1c36b8df3254730754cd8e747c2e9daaa3dc4df6eddd7bc2b870b43'),
 ('includes/file.mimetypes.inc', '33266e837f4ce076378e7e8cef6c5af46446226ca4259f83e13f605856a7f147'),
 ('includes/filetransfer/filetransfer.inc', 'fdea8ae48345ec91885ac48a9bc53daf87616271472bb7c29b7e3ce219b22034'),
@@ -1430,13 +1047,13 @@ INSERT INTO `registry_file` (`filename`, `hash`) VALUES
 ('includes/locale.inc', 'b250f375b93ffe3749f946e0ad475065c914af23e388d68e5c5df161590f086a'),
 ('includes/lock.inc', 'a181c8bd4f88d292a0a73b9f1fbd727e3314f66ec3631f288e6b9a54ba2b70fa'),
 ('includes/mail.inc', 'd9fb2b99025745cbb73ebcfc7ac12df100508b9273ce35c433deacf12dd6a13a'),
-('includes/menu.inc', 'c9ff3c7db04b7e01d0d19b5e47d9fb209799f2ae6584167235b957d22542e526'),
+('includes/menu.inc', '04431df4dbf50948c99772cdaa9f8ac6f7e52393e0a2e30bec5a1f143926487f'),
 ('includes/module.inc', 'f63ab8cec01f932d7abfc2d09d91ba322e333f4ff447088ab0db4d16b5d9f676'),
 ('includes/pager.inc', '6f9494b85c07a2cc3be4e54aff2d2757485238c476a7da084d25bde1d88be6d8'),
 ('includes/password.inc', 'fd9a1c94fe5a0fa7c7049a2435c7280b1d666b2074595010e3c492dd15712775'),
 ('includes/path.inc', '74bf05f3c68b0218730abf3e539fcf08b271959c8f4611940d05124f34a6a66f'),
 ('includes/registry.inc', 'c225de772f86eebd21b0b52fa8fcc6671e05fa2374cedb3164f7397f27d3c88d'),
-('includes/session.inc', '7548621ae4c273179a76eba41aa58b740100613bc015ad388a5c30132b61e34b'),
+('includes/session.inc', 'e92cb07f192c030232d317d4efd93babf5c85eb9dde1f5e283a2feb8f7182e6c'),
 ('includes/stream_wrappers.inc', '4f1feb774a8dbc04ca382fa052f59e58039c7261625f3df29987d6b31f08d92d'),
 ('includes/tablesort.inc', '2d88768a544829595dd6cda2a5eb008bedb730f36bba6dfe005d9ddd999d5c0f'),
 ('includes/theme.inc', 'ab2a805bb52a54dc762f314bbba6b55b959734a87e8f96119435d08b08e6fe1f'),
@@ -1450,124 +1067,67 @@ INSERT INTO `registry_file` (`filename`, `hash`) VALUES
 ('includes/xmlrpc.inc', 'ea24176ec445c440ba0c825fc7b04a31b440288df8ef02081560dc418e34e659'),
 ('includes/xmlrpcs.inc', '741aa8d6fcc6c45a9409064f52351f7999b7c702d73def8da44de2567946598a'),
 ('modules/block/block.test', 'df1b364688b46345523dfcb95c0c48352d6a4edbc66597890d29b9b0d7866e86'),
-('modules/field/field.attach.inc', '2df4687b5ec078c4893dc1fea514f67524fd5293de717b9e05caf977e5ae2327'),
-('modules/field/field.info.class.inc', 'a6f2f418552dba0e03f57ee812a6f0f63bbfe4bf81fe805d51ecec47ef84b845'),
-('modules/field/field.module', '2ec1a3ec060504467c3065426a5a1eca8e2c894cb4d4480616bca60fe4b2faf2'),
-('modules/field/modules/field_sql_storage/field_sql_storage.test', '24b4d2596016ff86071ff3f00d63ff854e847dc58ab64a0afc539bdc1f682ac5'),
 ('modules/field/modules/text/text.test', 'a1e5cb0fa8c0651c68d560d9bb7781463a84200f701b00b6e797a9ca792a7e42'),
-('modules/field/tests/field.test', '0c9c6f9396ab8e0685951f4e90f298629c31d2f7970e5b288e674bc146fefa90'),
 ('modules/file/tests/file.test', '5cb7a7a6cc14a6d4269bf4d406a304f77052be7691e0ec9b8e7c5262316d7539'),
 ('modules/filter/filter.test', '13330238c7b8d280ff2dd8cfee1c001d5a994ad45e3c9b9c5fdcd963c6080926'),
-('modules/node/node.module', '3489bbd7e909b21c54a1bd5e4d4daeafb9bebc6606e48fe1d5e7a6ed935a1a3e'),
-('modules/node/node.test', 'e2e485fde00796305fd6926c8b4e9c4e1919020a3ec00819aa5cc1d2b3ebcc5c'),
 ('modules/system/system.archiver.inc', 'faa849f3e646a910ab82fd6c8bbf0a4e6b8c60725d7ba81ec0556bd716616cd1'),
 ('modules/system/system.mail.inc', 'd31e1769f5defbe5f27dc68f641ab80fb8d3de92f6e895f4c654ec05fc7e5f0f'),
 ('modules/system/system.queue.inc', 'ef00fd41ca86de386fa134d5bc1d816f9af550cf0e1334a5c0ade3119688ca3c'),
 ('modules/system/system.tar.inc', '8a31d91f7b3cd7eac25b3fa46e1ed9a8527c39718ba76c3f8c0bbbeaa3aa4086'),
 ('modules/system/system.test', 'ad3c68f2cacfe6a99c065edc9aca05a22bdbc74ff6158e9918255b4633134ab4'),
 ('modules/system/system.updater.inc', '338cf14cb691ba16ee551b3b9e0fa4f579a2f25c964130658236726d17563b6a'),
-('modules/update/update.test', '1ea3e22bd4d47afb8b2799057cdbdfbb57ce09013d9d5f2de7e61ef9c2ebc72d'),
-('rcredits/admin/admin.inc', 'f25814d99fe12d4de79b1b6131df4cbc405fcee31c5bb67ee5f5edc4fde180d7'),
-('rcredits/rcredits-backend.inc', '55d83e2df00209ca40c4e9bfbee602cff7d2199192275c821830c580c8ce0eb0'),
+('rcredits/admin/admin.inc', '85e8498142476fd2a03640b1988179cc3ea11b2d7308ff8fd8b8d4367db5b0e3'),
+('rcredits/rcredits-backend.inc', 'cf42867095a2d0d739b5c6d2d065e7be0a800a9e5e69cea6685be97948fa04d5'),
 ('rcredits/rcredits-db.inc', 'a59e74a857c723f4f984d337d593e8c54693f69191cb9420af0c93cea42d1eeb'),
-('rcredits/rcredits-settings.inc', '7c24fddc240e0dec4c35c49e9b672186657573ace69cf4fb57df773ce52cd004'),
-('rcredits/rcredits-util.inc', '395360bcbadf3c0ecd27962509b6287f97298e383760f49e0bd1c78fc74b3813'),
-('rcredits/rcredits.inc', '8d9c7f01f6a930baf3cbff6f2816d4f4d2a61dbba570dee293c55931d64a12e9'),
-('rcredits/rcredits.install', '1ac008a7ae9428a44c6f79be1fa55ac7122c9024f8c3b2b38c5e81ee7efdec25'),
-('rcredits/rcredits.module', '63911d570ce186ea23b059bf4b826ea9f4314412f00eaefaa2afba0e8786e722'),
-('rcredits/rsmart/rsmart.inc', '47c23f6165368750549a12d3ce7f7ccbb9f9d413a2d58923931a6086670d5c60'),
+('rcredits/rcredits-settings.inc', 'ef052e8ee4d46ce474151bcc64109b9af1c1c27d82c02107f246e2d9868cec40'),
+('rcredits/rcredits-util.inc', 'a5721f0fa3cca16a1f42391bd425181208f9889d9d6b7efa4fd45927f51a5278'),
+('rcredits/rcredits.inc', '07fbb343694cc0934e695b325ff3c501a6c2a66210d85f23a4d0f7143d81637d'),
+('rcredits/rcredits.install', '2d6c2587da87cc848e2a4d9d1982a9ae53a5e0becb1770d81a7d26076d053291'),
+('rcredits/rcredits.module', 'e0355c5b2e0420f1c9ccf7425a6e4b6783f8d5608ef3ec7feb503c473a37d45f'),
+('rcredits/rsmart/rsmart.inc', '7451e81a5a2ffa6442f5e4f1a9f820335e7f2d9ab4cf16d126793c5b4e1ee350'),
 ('rcredits/rsmart/rsmart.module', 'a619c93027b02d922905c5d80bb1a0680d7758119deec45947f0f9d7c033a1a0'),
-('rcredits/rsmart/test/Exchange.test', '0ce1659604b266e18b6feeae134ac98f0a7d983363d7c86be1247e20bdeb0396'),
-('rcredits/rsmart/test/Identify.test', '24fee6a4f5a9bd3a3a259fa64a9e47214ab82800fa948557659393eee5ace886'),
-('rcredits/rsmart/test/Joint.test', 'b2270a634cd4e7db9ec2816cb4c6ac590711712a3effb4c1a77aac53e1f34689'),
-('rcredits/rsmart/test/Offline.test', '08e67f8912c9609b6a0d2216d481f59896ce54c15bfbc2d85b70a3809dcd1fee'),
-('rcredits/rsmart/test/Startup.test', 'fc6d47383db9d0f45cbea6f9a858050c3d17d0baf6021e9758b446202a742b46'),
-('rcredits/rsmart/test/Time.test', 'b67ef94dfde5b22cc29818955284699a2499c8eec214386098211014ec60f965'),
-('rcredits/rsmart/test/Transact.test', 'de0cab790aebb58669311468350ff711316b4e65f0ae3c49a670a65eb8159d1e'),
-('rcredits/rsmart/test/Undo.test', 'd3402ddec9d04beff0cdabbf357bf7900c0a4cba97c3b2195f83fa65dd4cd2dd'),
-('rcredits/rsms/../rcredits-util.inc', '395360bcbadf3c0ecd27962509b6287f97298e383760f49e0bd1c78fc74b3813'),
+('rcredits/rsmart/test/Exchange.test', '0c0a85089e0c6008f0537280fdfed00d719a03e52a2676818ee496c7e47e8d3e'),
+('rcredits/rsmart/test/Identify.test', 'f92727b09548886ac3ff9840a22aad6a418072b5212bf42934dbe2eeb898cc2c'),
+('rcredits/rsmart/test/Joint.test', '7fc5c53ba711167b31949fa23625184a83053ed1406898649469378193206fd1'),
+('rcredits/rsmart/test/Offline.test', '2c0588c68ce11b9d877331ff6c5dfebb0d4509981dea0d65f7d8037eb2a90c02'),
+('rcredits/rsmart/test/Startup.test', 'cf02a44b445dd8edb37879ed69c4ad3857acd924a3ceef7a703e9f5e10a62438'),
+('rcredits/rsmart/test/Time.test', '1109c49fb7674ab1423c69f51c1837137e73ee4aead2577456a7b396b3656aff'),
+('rcredits/rsmart/test/Transact.test', '02738c64f3547e9986fe8e5de88aa2ed96abf452b21c26e11d2cb7133c28819d'),
+('rcredits/rsmart/test/Undo.test', 'dfaa48896049f3db192adafa9681123eced8c27bc5ad56f1f14c0ac2e93e957d'),
+('rcredits/rsms/../rcredits-util.inc', 'a5721f0fa3cca16a1f42391bd425181208f9889d9d6b7efa4fd45927f51a5278'),
 ('rcredits/rsms/rsms-call.inc', '99e52c9b0caffe05963b493502fa17254bb7f2bd87956e07b2298d6dad10ce28'),
 ('rcredits/rsms/rsms.inc', '9a09e64aefba6ed832ab2a18ea8fff17a29a3b2956712b945f3112444baf36d5'),
 ('rcredits/rsms/rsms.install', 'f2b9fe657534699a51f5af4027af72f795ff44c88f22421f831b66ff3a4aa19e'),
 ('rcredits/rsms/rsms.module', '297b340d9600365b94f118bf7d25d9915c95518898ba57993e67f911be22a328'),
 ('rcredits/rsms/rsms.steps', 'c601f497e69eef4d38ac823579e82c99ae733f0b59997babf658773e5d5cb356'),
-('rcredits/rweb/../admin/admin-forms.inc', '935c879889e20dd622d1241aa09213c52c7dec1e38e25f16438b16d15d25c62e'),
-('rcredits/rweb/../admin/admin-web.inc', '20b023660a810e8aa3f423dfdcfe78c680f0d6593f3e523c7a76deb0e6b4fd8f'),
-('rcredits/rweb/rweb-txs.inc', 'f449f54ff342514501c2a58c1227e972b463488bc0461e6289a9ec9a8cd33f7a'),
-('rcredits/rweb/rweb.inc', 'cc46db933a3338fa5e7f3c952ce533d30ece648afd4067b1ef4a448d0b349d43'),
-('rcredits/rweb/rweb.module', '63719ae86c8cdb75b453ffbcf6a8c8067a7698649f4649135c4cadc0a2a3d3c7'),
-('rcredits/rweb/test/Bank.test', 'abe1382c0a599bedaf84c764ecf53f2186969197a53b749a1c73f73f7290f28d'),
-('rcredits/rweb/test/Community.test', '601bb6d172cd6dcd3debeda26836f5c5e72256ae3b9f3f8987138dc5fb57f6a3'),
+('rcredits/rweb/../admin/admin-forms.inc', '949d24850c3e22b2146a14e8e63d45adb81a94e5b67a5184f102a207f5149d82'),
+('rcredits/rweb/../admin/admin-web.inc', '84b23eb655cebcba95bfb1ae0e6f8aba0635d460d3e812324adc8457dd400000'),
+('rcredits/rweb/rweb-txs.inc', '3ecba8a6851721411e0f7b899f53771d816d2ce92dcb82e031986bc9b4ac9dc4'),
+('rcredits/rweb/rweb.inc', '887e383677e1327272ea3454c884425f24e5654ea37db08f6f97c0f1a6bff5f6'),
+('rcredits/rweb/rweb.module', '6c776e85b46d2e02bf3e3f31462b0d70169d4e960da3b82a6280151aae53c91c'),
+('rcredits/rweb/test/Bank.test', '597d3431d93f1ec4912692b3c5d7c1096d67bb367d2367c372db815579ba546e'),
+('rcredits/rweb/test/Community.test', '0d45dc489b0b1eb5ab3e66c6f2f23d929f91af14fe43ff5ae2831be7bff6981e'),
 ('rcredits/rweb/test/Company.test', '6ee55d5588d26c5af6e812bd03f713917a000a1b452466cd14795ccd37156dbf'),
-('rcredits/rweb/test/Contact.test', '7c30751c0e9cb778dde47395572443f8099abd9420aaed8ec7127ded360bc7c1'),
-('rcredits/rweb/test/Download.test', '8ffa22bb7efeccad940f0ca9588e76e92503379a3baf126567ed826c1401c8f9'),
-('rcredits/rweb/test/EditTx.test', '6b11a6e74836bd6bfd0212d5d6fa0bde4acde061b47562644298f681d7a39f8a'),
-('rcredits/rweb/test/Exchange.test', '187a9f2c474c39fcee15404bb0cf27108705fc9900119f09cc55904bc25de0c3'),
+('rcredits/rweb/test/Contact.test', 'ac54430e164545355ae966bc674a1a21762f7d4b81cad5dcf4a3cb479cf95a5d'),
+('rcredits/rweb/test/Download.test', 'efa24f816f422c62642d4b967445c8ff410af77d2be894a9fc77441aeb05ba7a'),
+('rcredits/rweb/test/EditTx.test', '9d19ef91def9c9ca7c1e890f5b8733ad47ec66050a890b10f9113600846b72f0'),
+('rcredits/rweb/test/Exchange.test', '6ff0d1348692b4b07d2ca0dc7f0dc3cc94b750a3117c3fbe1db656772e61ec74'),
 ('rcredits/rweb/test/Flow.test', '497bd8b700dd2aa17f66acafdaa25d3c7a9c969baebca8045338508fd3c79d0d'),
-('rcredits/rweb/test/Gift.test', 'e714c866398b8c92e1768c4900e01207bcf3e68c4da5c90a64372b5bac2be08b'),
-('rcredits/rweb/test/Joint.test', '2004f63c6c1b2f12d9551983294785b100e15c0c69ce864e98fb464def79e7dd'),
-('rcredits/rweb/test/Membership.test', '37a2640176b5450c051c2116035b19cf9ac98fd091e80e20b118038053dc3a86'),
-('rcredits/rweb/test/Preferences.test', '8089679dc851b35c98230c5289ded81dc4602b26b31f0b6154f6dce4824e8351'),
-('rcredits/rweb/test/Reimburse.test', '10dea698719ab89059501c3cc649b86db745ed91d71cd0b3a01fa0e0103f6349'),
-('rcredits/rweb/test/Relations.test', '0853d8fb47b7a78348b7e3060095e2bed2a162bb8b804593df447e36527a9fda'),
+('rcredits/rweb/test/Gift.test', 'cdf2795c6094e2cea981ce8ff9e6c3a9308bff3c5ef4e5a373d769eb096b8522'),
+('rcredits/rweb/test/Joint.test', 'c25e661ca383cace28be75ceeee7a1491580e89d4494e164c5e1911a1cba1880'),
+('rcredits/rweb/test/Membership.test', '9cd29a637640db47f20131604b30acba70ea3007b0e06e587202da1f2d1fdbb8'),
+('rcredits/rweb/test/Preferences.test', '5a39f9a4e3d22c5369d85bf0bccb267dbac40a29360afd16a458ab21b908b9ab'),
+('rcredits/rweb/test/Reimburse.test', '74c41ca7ceafc7ed0658a43c0066818a1310fa0373bbcb1f9ec49567f6946c67'),
+('rcredits/rweb/test/Relations.test', 'd616cc14c3c18f326b426d218a9ff4bfaa572df7ebc775cacd3f8c06a34e8e95'),
 ('rcredits/rweb/test/ScanCard.test', 'cd6c21ffd40c8e3917aedba0e1a523777027fd6076939b5bbd2658b185bd3eab'),
-('rcredits/rweb/test/Signin.test', 'e4fae615b9348afc1652c265863415ebf0098216de97543f3d01cf07760988d9'),
-('rcredits/rweb/test/Signup.test', '87e4edb1f17ad08595f92e378b281a5693ceb4e1bed8f39546979855d0acdc7b'),
+('rcredits/rweb/test/Signin.test', '2ecbcfdce34092707265d647f9ffbcf5b62225a3d2541980fd390b4de19764c2'),
+('rcredits/rweb/test/Signup.test', '1ac8d0a203343d1a0aba1160a64b14e7060603a464295a6ddea988cbf29b1232'),
 ('rcredits/rweb/test/SignupCo.test', '78598d583ec11e81d24a8ecf2618e8a0628f89d880d62ea3cd898aaf4b83bd1b'),
-('rcredits/rweb/test/Summary.test', 'f47f1ec7118ebcac786983261eb28ac9dc940437d9884abd5bca30d81225f418'),
-('rcredits/rweb/test/Transact.test', '7534b152b2c98545e5ac53ffa904d017fb39d34ada47e06b2db5417c568e8acf'),
-('rcredits/rweb/test/Transactions.test', 'a6db5cf1c84979a2a54cc00837577cb8292860eafa2dd96324cdceb63d0b504b'),
+('rcredits/rweb/test/Summary.test', 'ccb64d87da52ba228e0c59fc41f51c509ce87710b3d974eb7bfab388fc61b484'),
+('rcredits/rweb/test/Transact.test', '8680536973974ba0814fb0ee9cd0653f256b6156a555028836187d6328f8943e'),
+('rcredits/rweb/test/Transactions.test', 'd53b407f2eda38238c5208358a7e907ba904cfb2587a990bf2cf2bf560b3e40b'),
 ('sites/all/modules/devel/devel.mail.inc', 'dbdc696b3e023a588359ec1207ac6997e1abe425ed301d1b1513f68a0abcf9c2'),
-('sites/all/modules/devel/devel.test', '7ee8668c46ce85c9307cf5f35ad2b18a0793dec8455114ee8c05eee36be76302'),
-('sites/all/modules/smsframework/sms.admin.inc', '23b57a43d972231af0523a67b47c551ac09078a10e34c92ce75a5f6673012f4a'),
-('sites/all/modules/smsframework/sms.install', 'ee9e1226883629ad1383cd716b8d332a81f024caf28a27cade42d28515c07aa0'),
-('sites/all/modules/smsframework/sms.module', 'e01747961552fa244a2be6d9d039e8a17d6dd7989b330c87f393a85f2d8f35e9'),
-('sites/all/modules/smsframework/sms.rules.inc', '409c6361e07e237e326e82fcb89ba61ca3c9cb8c7d37d01b7d505de57ae11fc7'),
-('sites/all/modules/smsframework/sms.tokens.inc', '5672412b2062604504c88009d9882ae07a0b0775f8a939468b88a7a10a49c9be'),
-('sites/all/modules/sms_twilio/sms_twilio.module', 'f8695271fdc37ca6c927aab51dda4c2c239b73d5dc0d5c1b3ff306f2a9cc9f3c');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `role`
---
-
-CREATE TABLE IF NOT EXISTS `role` (
-  `rid` int(10) unsigned NOT NULL COMMENT 'Primary Key: Unique role ID.',
-  `name` varchar(64) NOT NULL DEFAULT '' COMMENT 'Unique role name.',
-  `weight` int(11) NOT NULL DEFAULT '0' COMMENT 'The weight of this role in listings and the user interface.'
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COMMENT='Stores user roles.';
-
---
--- Dumping data for table `role`
---
-
-INSERT INTO `role` (`rid`, `name`, `weight`) VALUES
-(3, 'administrator', 2),
-(1, 'anonymous user', 0),
-(2, 'authenticated user', 1);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `role_permission`
---
-
-CREATE TABLE IF NOT EXISTS `role_permission` (
-  `rid` int(10) unsigned NOT NULL COMMENT 'Foreign Key: role.rid.',
-  `permission` varchar(128) NOT NULL DEFAULT '' COMMENT 'A single permission granted to the role identified by rid.',
-  `module` varchar(255) NOT NULL DEFAULT '' COMMENT 'The module declaring the permission.'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Stores the permissions assigned to user roles.';
-
---
--- Dumping data for table `role_permission`
---
-
-INSERT INTO `role_permission` (`rid`, `permission`, `module`) VALUES
-(1, 'access content', 'node'),
-(1, 'use text format filtered_html', 'filter'),
-(2, 'access content', 'node'),
-(2, 'use text format filtered_html', 'filter');
+('sites/all/modules/devel/devel.test', '7ee8668c46ce85c9307cf5f35ad2b18a0793dec8455114ee8c05eee36be76302');
 
 -- --------------------------------------------------------
 
@@ -22225,6 +21785,29 @@ CREATE TABLE IF NOT EXISTS `r_do` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `r_events`
+--
+
+CREATE TABLE IF NOT EXISTS `r_events` (
+  `id` int(11) NOT NULL COMMENT 'record id',
+  `ctty` bigint(20) DEFAULT NULL COMMENT 'what community the event is in',
+  `type` char(1) DEFAULT NULL COMMENT 'event type (I=in person, V=vote, G=grading, P=RFP)',
+  `event` varchar(255) DEFAULT NULL COMMENT 'name of event',
+  `details` longtext COMMENT 'event details',
+  `start` int(11) NOT NULL DEFAULT '0' COMMENT 'Unixtime event begins',
+  `end` int(11) NOT NULL DEFAULT '0' COMMENT 'Unixtime event ends'
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COMMENT='Who represents whom';
+
+--
+-- Dumping data for table `r_events`
+--
+
+INSERT INTO `r_events` (`id`, `ctty`, `type`, `event`, `details`, `start`, `end`) VALUES
+(2, -410044001, 'V', 'Voting on 3 questions', 'These are the event details.', 1497672000, 1512104400);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `r_gifts`
 --
 
@@ -22366,10 +21949,29 @@ CREATE TABLE IF NOT EXISTS `r_invoices` (
   `payer` bigint(20) DEFAULT NULL COMMENT 'user id of the payer',
   `payee` bigint(20) DEFAULT NULL COMMENT 'user id of the payee',
   `goods` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'is this an invoice for real goods and services?',
-  `purpose` varchar(255) DEFAULT NULL COMMENT 'payee''s description',
+  `purpose` longtext COMMENT 'payee''s description',
   `data` longtext COMMENT 'miscellaneous non-searchable data (serialized array)',
   `created` int(11) NOT NULL DEFAULT '0' COMMENT 'Unixtime invoice was created'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Record of all rCredits invoices in the region';
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `r_ips`
+--
+
+CREATE TABLE IF NOT EXISTS `r_ips` (
+  `ip` varchar(39) NOT NULL DEFAULT '' COMMENT 'ip address',
+  `uid` bigint(20) DEFAULT NULL COMMENT 'account ID',
+  `device` varchar(255) DEFAULT NULL COMMENT 'device code'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='IP addresses of approved accounts';
+
+--
+-- Dumping data for table `r_ips`
+--
+
+INSERT INTO `r_ips` (`ip`, `uid`, `device`) VALUES
+('::1', 410061553, NULL);
 
 -- --------------------------------------------------------
 
@@ -22386,15 +21988,37 @@ CREATE TABLE IF NOT EXISTS `r_log` (
   `agent` bigint(20) DEFAULT NULL COMMENT 'agent account uid',
   `info` mediumtext COMMENT 'arbitrary serialized data',
   `special` mediumtext COMMENT 'special value if any'
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COMMENT='Development and error log';
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8 COMMENT='Development and error log';
 
 --
 -- Dumping data for table `r_log`
 --
 
 INSERT INTO `r_log` (`logid`, `time`, `channel`, `type`, `myid`, `agent`, `info`, `special`) VALUES
-(1, 1489089462, 2, 'form', 1, 1, '["sadmin/php"]', NULL),
-(2, 1489089464, 2, 'form', 1, 1, '["settings/icon"]', NULL);
+(1, 1499353443, 2, 'debug', 410061551, 410061551, '{"message":"clearing"}', NULL),
+(2, 1499353443, 2, 'debug', 410061551, 410061551, '{"message":"seq table=r_usd id=1"}', NULL),
+(3, 1499353443, 2, 'debug', 410061551, 410061551, '{"message":"seq table=r_usd id=2"}', NULL),
+(4, 1499353443, 2, 'debug', 410061551, 410061551, '{"message":"seq table=r_usd id=3"}', NULL),
+(5, 1499353443, 2, 'debug', 410061551, 410061551, '{"message":"seq table=r_usd id=4"}', NULL),
+(6, 1499353443, 2, 'debug', 410061551, 410061551, '{"message":"seq table=r_usd id=5"}', NULL),
+(7, 1499353443, 2, 'debug', 410061551, 410061551, '{"message":"seq table=r_usd id=6"}', NULL),
+(8, 1499353443, 2, 'in', 410061551, 410061551, '{"who":"Bea Two","op":"pay","amount":"100","goods":"","purpose":"labor","strong":0,"iCode":-2,"helper":410061551,"confirmed":true,"args":"code=qhGp6nversMAHgoQKtBf&personal=0&isOwner=0&employeeOk=0&flow=0&helper=NEWZZA&fullName=Acme+Co&phone=%2B14132222222","hidState":0,"hidCountry":0,"flow":0,"relation":"1","acctType":0,"postalCode":"01002","country":"1228","state":"1020","email":"aco@example.com","phone":"413-253-9876","federalId":"(?)","fullName":"AAAme Co","company":"","companyPhon":"","companyOptions":"","address":"(?)","city":"amherst","postalAddr":"(?)","tenure":"18","owns":"1"}', NULL),
+(9, 1499353619, 2, 'form', NULL, NULL, '["sadmin/recover"]', NULL),
+(10, 1499353621, 2, 'form', 1, 1, '["settings/icon"]', NULL),
+(11, 1499354462, 2, 'form', NULL, NULL, '["sadmin/recover"]', NULL),
+(12, 1499354463, 2, 'form', NULL, NULL, '[""]', NULL),
+(13, 1499354465, 2, 'form', NULL, NULL, '["settings/icon"]', NULL),
+(14, 1499354469, 2, 'in', NULL, NULL, '{"name":"admin","pass":"(?)","pw2":"(?)","op":"Sign in","external_input":"(?)","form_build_id":"(?)","form_id":"(?)","opid":"edit-submit"}', NULL),
+(15, 1499354469, 2, 'signin', 1, 1, '{"name":"admin"}', NULL),
+(16, 1499354470, 2, 'form', 1, 1, '["settings/icon"]', NULL),
+(17, 1499354475, 2, 'form', 410061551, 1, '["settings/icon"]', NULL),
+(18, 1499354483, 2, 'form', 410061551, 1, '["settings/icon"]', NULL),
+(19, 1499435304, 2, 'form', 410061551, 1, '["settings/contact"]', NULL),
+(20, 1499435305, 2, 'form', 410061551, 1, '["settings/icon"]', NULL),
+(21, 1499435340, 2, 'in', 410061551, 1, '{"fullName":"Abe One","email":"t1@example.com","phone":"4136280139","country":"1228","state":"1020","postalCode":"01330","address":"(?)","city":"Ashfield","postalAddr":"(?)","hidCountry":"1228","hidState":"1020","owns":"1","op":"Save","form_build_id":"(?)","form_token":"(?)","form_id":"(?)","opid":"edit-submit"}', NULL),
+(22, 1499435340, 2, 'say', 410061551, 1, '{"message":"Your information has been saved."}', NULL),
+(23, 1499435341, 2, 'form', 410061551, 1, '["settings/contact"]', NULL),
+(24, 1499435342, 2, 'form', 410061551, 1, '["settings/icon"]', NULL);
 
 -- --------------------------------------------------------
 
@@ -27950,11 +27574,31 @@ CREATE TABLE IF NOT EXISTS `r_pairs` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `r_photos`
+--
+
+CREATE TABLE IF NOT EXISTS `r_photos` (
+  `uid` bigint(20) NOT NULL DEFAULT '0' COMMENT 'account record id',
+  `photo` longblob COMMENT 'member photo'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='one photo for each account';
+
+--
+-- Dumping data for table `r_photos`
+--
+
+INSERT INTO `r_photos` (`uid`, `photo`) VALUES
+(410061551, 0x637e3088d71ad8020f029db1e1c2b03e97c41cd0f9f066104fae98255fe43ab774fd5321c068a6d960388baa9b1019133c0535e7351f054c3a29145d4564cf3c80579b7a79bc69db0a0f59da1048901935b246aaa31afcf78a66e0bea59557074696f67398038222b190628f74309c6f6624dc37fb2f42b58495371e5a3d0b9215aea3dc066ef4034bdef3004d4605fe3a677315fb23e54916037a89e47815a808a2f1250a18171c05de352e6b3aaa4aa687493871123ebac015284813e65de1854fd40cc6f024ce90ac31846a5a8d561a5fcfdb7be0ae6aae45811187d8809a8a09a148624b6259f2a2564249b265abfca6c017f4b9bbe3b66c44c56e19cfc79d08b10674c13a3d3f71ab01a5b834ed4a11a3cdd99ace46170f7567010aa58200330c112ee05760e5e198436f4b03726751b9003fae5d7b1de3666f51a6f83864bb1d0527a8fa86a3c6cd7d32a53cf030c03600d0f473c768e580fd23a6b856b123b3540cb3892f4c51bc91cbbf06f6efe65eb17a8d4eec53416a0aba67e8bcff008d0f723b6562087ebb0636d3e68dae002e04b04a4dc3219e444079961ee9286c07c2b607411307995e1a40b2329e9dce4e18b794e6238107693a6bd79f3b85e8cad4a276e2090d32c1263c591f459aa86dabbcd31b381c63481f3e2bc3b7a28191e93da66f92c90b719899229ba8e33c7ac42e4e84bd9c7f9290aabf862aaa3574b863ca63cf0215721fbae5cc9ca680d63d062c55f533750eff897b1ea9f02f69464023a6d36e5ae41e264d5243d808194bee74142d6b876b729981a15c9f3be38f595404c4e5caa19292039d2a75634eef4b6e5eaea9d3b5432947447f3a4cb20a3b96a8399614aab89edbac902f5d6d5779fc4461752d560304860520452452e5bc015beda4189c12efe2606216d2a1adc717a2060382a74fffdeb2570484fa33a0af99272ebc220786421e1bbb40629fbc967453abd827ee969c180d890cf193b7b679291f87e3b2edbe0e57424988be10c029d3ef1796ae56dbb1798890751ba58fa36cea69de99223dc7453f876c5945ff002a74ad894cd182bc7e5ca4ec184bc5111fc55ca5ea0b74e1acc3b7e89450ea83e621afe6e6f9d588094184fd4c4d600e386d43f19008fc39332cb9c426b80addf9c99213ea600e1be437a3734715b1e11dad5d8b8baba5c2d630dd3a053de8e8d7cc807981ac5de26ec52a74564eff9dddb58d951876870d324c197688c6ac0ee2416ed1d4548b5a36e508b4a465c5d678d9976e82ec502d2f9ebd6501213244a35c9432e6506dfde7bef9c3405a449bf7f5cb6f59229ae76f892f7eb23a13110dceaeeefb1f1ab62d7e9c4a07261f4a798fe36a21885592de2319091cbd1b0f369086047eb02334c22a2336386330d1b821cb3f1e0a367f52e585efac43eb0bd8d9d20465f3749e893f5ecbe479809c4841c9686a7581d43eb95938d66e485dc390e5c8da224102457e3d2a7c3a982a4f7dcba6822649bb8d46c36710fbb258f340e967cdc5564a7617a6c0ad7173035e1dd192821a0f50878c8e1698cb4eb252b4aa112c02f5058b5805c7f321d06887b47dac4035c83802cd88a81a82b60874a877048e43e4c224339b72c57f0c579222607185ca81c9fd8f71e625ccad85c44c12cf7e5c5777cc9b0c4199bd773722093c5360145f141ac6dfedf87cc996f3e4163b10e64221bdc7d3090991fc70d17e5d82a415a87ece655db98c510e6a4298a86daa1c09566d975af71f75473593b1986d487fd7fc49180b475612daa669c9820a181f2f518d93fd8c045b90bc67da9be34c1a60eaafe622c97cc9509e0a2724f4895820f7d11609244fd6926fbcebef581cefd233434a20aabd82ab064e632f527ce8666aa0a5f99862edfba302407d5cc95dd2fd19192ddaf7e5dbc41071b57eef8da533ecfab189c324aa7da724556b72a430f08d7e1d1d1e52f2799d370526de36e17fe810969a840f67d335acc266aa0df9e765cf2008cecb88ae700f81520b99fd8dde97acf94382bd957146ae2799b8aa2a08151adb7088dc3482c788697a1dbe7989ae49a6fa5c6a5d4789c03ffce73e1ce697ce93527526718c27112baa0447ec0d894f9403306a70a0b2c8c313c1f40a0a7615fe1bf3fdaf7bcdf31c4efea30d03a197f7846415343a280dfff78f03ccf6f44e366c32ea5ae2371d79ca0a798de8229b19d84d4b0fe0dc5fec47f6dcc54efbce5fd66fa384da670734f95292a92ff4d9b842a4dcef6c11c1949167967db442fdfc13e044dc4e97074c8d39410fd04174a222816bb9155394c902c750f99edcd6187027dbea39013854ae5422d2c55af146b9be02a6b04b95a237e1ddaf78c4cade7a69cd58ea3b6912599102df66ba0499713e7d44a45a600d7065b2596dd72bdd8d3432b908b792291a61b71d148d28a96260ec3a6c4d67fe1533105dfc71852a50e51c7effd759d53ebc3cd96847fe06ceaf2e77dc9b4466537db8a713d6dd1fc18acdee9d7f08885a299619a811971eea8a9bccec3f2d712b78feadc4d2d8ce7fafd835024d9bcb36e25eb3669311745c324861f959621c879fee0f0201857ab7f2e44a090b650a04a11e46f92b41f2b44ed77bba54ead1830cc108c317469a123ff0da525aee84349a772a3d67c9ea8127a4e1c84193f1ea943e13e4d6f7bf9045c61aa77cdca24e0bfedb1c8edb3786303ee9cffa55dbf9ed68c36da193471aaafb7b48f835cf6478d4e3f4437a164c0475c3219328993669feb3bb27da4cb3c443a3f5df88c40fca36e8eb3b7f053afddc8e5fabc91e0eb176803084b7cbd8ca97636aecc846cee55ef3424a94849918351b2876f6ea6405631f7ff6d860d01b4e8ef98471ef41585916374aad387f8d2f54bacae60d69d173fd60d6ca5073acac2d6b19e54719c7034793ec65d8b6e3f54473948d027bd18c91b0ef3920cf2d55a7f3af3db5cc16195d6651c1528dae2f6aea608272446e304ac4e6f48cc318893918269289482e77b782d0cc044faa86b403b5393fb632259ce695cd0e006e009280739f68f943776a861cbc47c82ed136e60ef7fd42820d87b6ac32a40c9274273cd177033b8656f852fc216ebc509298407291aa3a0a066aedae27b161974b0383c47e1bc44d2a42db66b7148e9add191ba8abb5020e7aae051d9106c6906a3536d7a8eacddbcf4af2bdc38e11ba19044fb976b2412a21665aa06447545874287cdef43db15c26a856777631f63e44f2a04cdedc71d5eb6e2952b776bf5dd6f0db65a67bca3ea5666202846288e728966c3ce8fa29c000435eff2d66e5933d495c19fb7aa7379f4b72b9993ac1f556db99a583c9aa8ad212adc7425154845db2eee2c0a8267402f9eecb7b21466c700d85f39ec346846232a3b85592e44d640fa8c639d531650c993a07e70d04e9d579fc4b99c014f7b6de4c0649d1c3d83541530010d90ed625e344daeca52ed9b016bff4c790d35045aeaaa2d23b1a02b5226ed25c0ebdc0dd380657badce6e98733353c4566df0d0d2c7bf791e6f0eb46b0c3b8589535a1f999b6d97cafc78ec629de5e4cc5c937b0a94c08306f759f3ec473fb2cb6b669d746c26bd8c0f1888cacf176d35d0235ded1911ce2fa64243919b19803fac76678f68350129dcc05bbfd3b0527f0ee24f3b6ff0d0b2c0d2c937c32c7594f77e8bbc80642f5ed6a01ed4879baa6078ccebb7a67dc5a79812c911d00dec212aa0aa47f8952bd3f6f28780762522798796a35cf737e980b9a6959c06da250a651a1c74ebd7ac0fba8f7255322e83dfb9c0cee037db481edab86560ca628dab1bf563958d028041eb34b85d88deb9c2768927921f8054ceae0baa5154d998f16604bd209b989ef7b1030d9a57c67256e9cf4bba880ce091a436911d789367849971961ed2d967e31131a13f151cb00516aaa2eb3226f98e926ae036335f43b7c2b8cd7d6a20e379ac4bf0fa80f02d7ca8ea212af074757e0a2219525cdbd9b6a1b17f24b20f6feab584f5c2b761ab39bfda0f420c17e804a6b2014fbf524b41394968eb938a20c813a90a6db934ce226cf2a97c05b2c676d7d9373fcd47f527c755e86f94d891eb58655cd5e8a1a0d75f7327795520dd6d3c7780124c9675c8f191cbebe0f54b30cec7bbca4114446342ad6a77edbe0c112f756c117a93588e4741b00c3e8deed0f378045f9cdb67560cfd264768199994b7a0c11a6917cce8f9ac4fd7cec430c5c063f4f1842fefe86c6640bbf8af041164de21e58b5e63153edcdef25050ed56554fa546c34e02099f821940010536c161321d65a7dc39711750769d9e1870b2cd146a4af6af2619b51505c605b3cc4f366628e7d92cc06721fc6cc3ee8252787591ce035fce195ae01a350ac0faa761acfd2c4aa2eb51a25220869f6b2b632e05f3109a711d5ce119ea3cd62faa2c2da481120224c56a893f0894bcd09f502761cfdf5e43e4cc4a8444b512becfe3c06fab54aa20a07c44be1f7a435e8f82be0ea850af776384fcccbbe6b7607fafef49456ccbb4743664fbcc44598bdd10e1d59877124d7a23416e5d101b07fa1e0daa3b4c1d6a05ac12a4263cfb6d9fcc1cff121e2741d9ce26e5ad1b84283d0ec8cffbe1c3137d6aefa3c0b8c4c02e5a20e5f08acebe2b236b069c97a13654dbcfb7b6f9ae34b9de79adbbcef89f228b37d1c8842d2e8f719247b533cfbd6e0e7e7c68b509052836c5131bd041278f5b44a45877f5dfe9dfc81c2e027197b370f909de4c7524fdf75385a3dafad9a43a575dc2b8fffd329bd2e0abefaf1e9e3c1d19cfcf0b22628a450d25e07f274d94d619dac1cdbf75182435c2aad7fd91f20f6da7028aa67cbd008652a799b4e6b535abb389577ad852a779381b101a0401316f344dc8acd1db498b22f432c5823afe535b24ec7d12badfc7362fbd05ebfbc15381bf8fd521f920a60f1ef0e4094b613bd9de7f8d17d64750b536440017bf822cfe9db3de4e90da0999e0ac3b37bbfb0045137d38523c8610531051094bdd3915762c8a0ce514da751870242c15b159f55fc87c649d8427756b0cfaf7219667f3471046413ba73cad26254345ffbd351c4460501494d7ac0e8cc743acf03da553f9d7da8760df223292ad5ef042091f6d88f904567a36c9f69757130dd36f4c23579a242e4a86e39c7444c4dc2e9ec2f495cdbe5e3cbaa13156c60223be9c43f9eef86ffc1fc29cd6fea0a887ecdca47b7af0aab42bd977ec6e01b50648de5d583f7ad35540aebdc661b9d67d512b10229b72553724c24badb1c20d0dfa1639fba8a1970fad470640cd745ca5fbf2147661b7d6d4f967a915a26d2a44c9977d1aca8ad6e8c2de9257fc5dc013b624af61fa9815b4489f246817c5cffc4db8598f0229824c850d3bc1507adcd017684e445dc911d53e97cf6c2d9196eb60e0e6773bf31484bf081bca0305ae283089db2ccf86357d97a6c667fb71b44b9caea70cd96613e40a0d0da362a69579941684a04211de9f926cf0d06d7818d353f8cf5707cf80a13ad2aa8cbbd34c698500896ed55a21f9b1940537b5278040a23f2d8714a76873e1539c7838c277554af87457a2f2c857d753766666a8b42b3b39f0fe144f18b3794b4a51c67653e5697c91d0cbaa30e449aeca575e987c14cea8485c1293df46c374c063fbda056d3f77e2eeb36463a82315029867e0cd41dceebdb213cafdd51b46bc4e34d4125b86926dc48073024a87974c4c5e732c005001a2b252c2e623d2adb8ddaeb781f587597baaa2533b93e5067f1753c5c6a44cb37fd63d7060538c0a64527460537af5e94092f28a97807a82dfea4788262cb82bb010f40e2df1b3c9ee2917eaadd551f07b05cf5cdc96358a245b918c60573fba22fd575afdb1d829a4ee1ca9576cf5ee01d5377a02f08883f871bf107b9ce5dad67cc822ecc164f8cf9e4101b2956b85871976b67edafb93d011065624fee11bfebf7af12d215accc26f736800f28ef8ebf66866836e3e1099f17532926586dd4ed5c837e4e728b560d55ccf957d5c8ab578e9fb79689b42519f62253b91637e724301424ab6d05bd2b323bf502c7b5d8273d229da7f44cdbdec927de3f1861dc928b5a2d5bad2571e6480b8062a18d2aeb42e6895148ed3f03e89eec065e34850f2144511dc9bf55cd2e2b0bd44e7f8c4ec775876712edf7129a8bc072f9621ce9b9020b5befe356e88f5a19cadcf6e6bae115083838956460350154aff2918ee9adcfb0f6f38c3a5fc85e0417717b8c407b520a280382b3f0b4b34b0ad33226b461f56616415f4df0341a575a22da3463b1423c63ce1b4f482f469692504c09ee99cad21840fda6f8147499d30b16be923335b130657691aab674ee9060b873ea472137931634c2020bbd689761730f04d68d7a3171cc1d614542dbb910e09edb78f4c552e4b482f0f4d68905c7fc30cf838faa9a0fbd40696db7adb6b5a072d929a2f4a0ce16e05b91acbb7c6bb8db2dae2e7be1b118542e3981adb8738ea08bd2c93975f4eee01acaf8cc8470e52d13df8446722b0aa319f701706ffe82b112021abc067eba75ed116a21e7fbf021595984ada4241ba3846f98b26014121bc2631403ab181bc69ea46caac58971278bba77d1e0d3e5f9d7feba98934fdacc6532154f1aacfaf5a1e06684f5f69b92b11ce7904b94f57fcdd3628e451ad5d0e7f49affcb95168052dd0b71f6fd70c51978838e339f4e792582ce71d4d9d9149afcaa2c1448e68026cdebd4e2356e95ab5baa2f84c80825884a65529f1835af4c30ecd07adcc6fc1d1f35a7f739ebb80e31e0bfd931220d149180e4a9f1b5101be8006af9a3d11cd7a919052567151564003ace2d9bd8c5f7438ffa7adde49b10b01966fee93a7e026f8ac8c11e3cbfb85ff0e27c2c6b7504ae841145a9092e8f32b3212b0c3e276ae604d6a6824251415d1e03c37f653b85f5252ef74fb7ae77b9c21b7c4c9f0d8bf518a6c764814e249fd5118abedde16ef8bd1d5b1e064b93ca8b378b3b3318819dd7df5ee9265ab7cdf889ade522f99f84b9db5507b42c54e914060e03f5ca1646eb1b1c45d8caf35f80b0ffe31235c00eb4f0ed6857235121b656293271688a69cd919936fcc5485c97211a7c9806bf13d7a38a6c5d15cefe0408e1b3f924eb49b13a663bf7878f2451d27e0fcef1fdb46667bdafadd41378a40eeb8ee68ee6bc2128b98d9295f88954271f51c5afb07facbb8b7920bc8a657a47d7e0776abbeeb2ac9e3ff96c6baa2907b2c72e3db17bd9e4848ca8e8bde5150cd4227d9ac26f3791560d0d9bc00f40ce089e604acaa248ad30dda128df17eefb209f6ff64b0dd642a83c0766c6b3914fac4e4c7b4aca5ff809c322c970c7701688922a310e7e70d1f86dfab714c4f9d44103c0951c914b14927c19f486864a9ab58d82de5f8aef84c493d484a8eaea243d0d80d6d1e2576f7fe5b11bdf035be710e599825478d80153b91263b7706f5b6030cbb57fe735d8c217b8afdb9afc1074b4a2ecb68498796063804fd8ac1849b231b262d18a5f2e52ce10fb23215a43608ed74ad7bf052bd21e636dfbbb789b3c48194ebe322cc4265ff1c01a964e46b018bbae2d16bfff2b99fd709a4eba9df49e51c795bf7ffca13d20703bda122999a18677be1b129d611222582a36b974e0ea97b016c00f7b31f02ba814693bd918554af9f9959fbc30ec78edee24186d02f8889df8f8714563216f0406a01a52d4e89530444961a619fe0c5b43128e98390d0bbdd9f6e23211d0e7d17fe28b25ab58ca572e628adbed2d3cc8e8952cf09163e861eb79ff1f18781fa91e13e925f2efd9a945c961c8db9478f5ceb076227eb458792c1becf36a2ea001fa2e893add55c5457088c1dce46a49d808d780550e88416888951687994d805bc2fe5d53e19bdfd8cfbc7d35a03fb69eb638941e78de33ae31452c649a64544861ffb12a5d0220a34274b73790913032e90eab7b78ce643df0cf30a7ebd4c93605df262fe979037917d3a784cb8e406c2bf512ec10fbd87e92953e7360a0b4ebc9f13cdbad2cc75b53ecbba0dcd82391afb7418315775447f6ccffafd5a083e2bfb92859081201b1a1120107953a7b5f0117345c8d0fd139a2959ed44d4881c2aa460ce7ceeda42edee38bd2d147f560cb3782d26e7d0037a96f3f7693d60c9908e07410157fa456e4cf7b33f0cf1849428d7aa4bc421dad840809e3e4e4b411190a6cdf1e19f8405eefae2960cefffe130e2095eae8e1ca7272e6e308380c98249053c5c383842112ad83385803cec14af5ef570c143e73964062a0924c4851cf701f74925b355d6747ad72162dca877729c8eda120d91d447d17439428b4285f8c36e300038916fd3c4adc15b95dbcd01ca308fa9acf95bcbacee60eac43d96341bd6571e7145a094ff910cbbf17c1d76aa1db72af4685adeeef0f285cb6d696d51091a4e0d6d9deede9e00562828d57bfa5a4ca489274ed230b316e2096cc4f081729962ff2de7707bb814f0a54227d1572a29fc924568c035a6a2bcdeb5df17e07e5ca56271acb7634ab5fa99428029a73f8dee7ac9d107cec938d8071a5ab79ca0243b721eb5f898f5be8dfd374ebcc550131b95d3e80804a95baa277f78d1e78521c9e9556649424a5b7595967c5e31a475bbe527610f7ba0865a73f1cd0ece3686a9a1528899f27f69eded54523cb807c432f3566125c8d2cf9a3fef994d98a2e2f6801a83e744d62ba8b1c80de0754623d8816e71bfe7ab9c493aa2054e4e8dce768ce71a48352094aa543dc5cc17a0511e40d2a2a42046845af71acf8ec3ba81feef3312451d8aacbd3bae510acd05a1febdd217f86dcf496d78af5cbfddb29b7132603262047fb86940f3e898356ea7409f657e4c8cea3819313dd1072417dbc5bebb7f80c843fc71862437b3296d885dc1f7a33ba4adca6b538337f047d0f11c4ef16eeda7cb37933447f6d27d011264318cda66dba26bbfe60e1d1ee31787ce37b75461c7be0f7e0eb60d5586e63f064dddd46a5f3c8360e51d9010e7e851f62daa28fc1d9de0cad154a58df6568a2ca5300982bd15ec8ee6d80925c257a4aff0f90a6859028fdfa720ea3976fc82f80692ebc105cf203d6f1d9492dc460f75dbd33d51a8bac15181eb13c8f8041cb0d250c6c0c80916b8ef1915938b5470a74f88fe182d1b5a34d018a278dc7bed3019f48d19ca5d7195bb491924d821258cbf2248bb71916b56eaa8365093a4a6d101418dc7311f6286d3896867bcefa53a0731785506d6a5001f1d8025694e0e861a82c2ea394fb9dd2f6d965ada1d2fe9cde988a1ef07c5a538c3a7bb25e7fca94bea6de2a70e590e3940656ccf68d495529b29f2a577def6e22c248b0eb8c9de616ab5965b16272bd8d2f5b0ecfe02b4617ee401684c553fca80a99b3815d7bd16ffa2c70bf84a90cdc6bee6a85361a65719a48e017a82ab7220ab139e3c55dd424e12d0e83b9517d1982a721f928a8a3b781e166abc0c8d7ba767d1bfa8728bf3413f077c82d2c4dadee831bb66e1d13057fd6a7cdc9e28c31c195ba6011f625d34ce3000f5ab3f2691b2778d4b287e4c384e8faca34802d528c0525b8e5ca2f67df4466aae35735f5048e46596c8f2bc331108efd414eb79a91daf4126bfc31a0c48a9f85922279be0df63a4c75a6143a51c5bd00ab1cb3d9bcff988d47fa39bc8610651bb6aca9a4de060a26561a5af6706cd02f4efd3e5fa1626f2a700aa12316570e3b8270b672c99b883c5c32714210ea9ec189e51e9897fa10590663c2207bb122a43a2a0e5cd275b6ad21200bc97b6dd81a69c2d3a1ec1409b0f73620c3d0544ea74a1d51111fbe2b788cc70b9dd79fee93b7ff41a06448c182bbcc171ec4bdb63c9f3f912fd4503faba2ac717cfaa586f9c98f2e8f7ce290072bc296510539b1feb5eff92e88d2bc3e130b91ec5c2fc6c5fd6f23ea79cb43c68f2902dd4ec5985783238119db9b2edfe1dfa3caba66d4e91dbb1467a1c82daca7022212aed9b16aa38c5c672e7657c6da53e334e923ddde92590bdca9c2f37d713ce947856489b7ba857837772ee140788c2c87b8e073fdab565894a54ef09f6018bcc95020981466ea2d4fd7c4de0e73e85fac5867ca23a740638f912fbc02f346391196cd671eb0b9429be170c1dd965def07eac49cbe6a41b21ef1bb5a86c4247f42eff0ded7f66f72f2adb1aea5306c59abe42e1e27c27160c4f561544e1cebec8303b6a8c082f5fb0b55520ce830e2b57181d4e04f4f9e7612014692c322dd4c7d5390b06d2ed2510fa30a51835d32606f915ddd63141b0d9efa31c18a0ff8a6c14f997baa862ec31300023f3494c3955fbecceac7629e203ce779048b0c873d467367e1acf3fc5484bb6ad5b0e918c3faacd48a3175907fa5ea8221aa836418843a478e4b43d6bfd8889535e8b0faccfeafdfee4238c954b9b13ec38d076d76527ba11ce3e23aa2b5528b3bd894d699226eee5cafd793300f7e2829c01e78382a7a55b63014eb71c266498eea5faf82050cffe17c77af958ba20d5caca0f9f6dc7657030e62378dfcac9ba6a0e47a0203bb590ea26db81954839090b725943c6bb5fe07c045b05f5e5a171cb3604fb77230380a64c60b460c771920e43267de4dd732dc01eb2ca7c500ee261a1c6e03b2e807cdd4079d0224ba33cdf6948126b18dd6eb855a21652ec03905c9e9d6254102c8e524a9e5ade52a2fb098981d29a2045ad9582165c7234368e75d436b716f0442f76f0a7296fcab02764956b13780cd644624bdbad8e79d75f58f50674857cec26ba110bb80d3e51f8969a8fb227ab1e4a07558fc3cd848f4f00437a1518eb4183d47c36bfbbecdef4dc43172b2d952c3cad346d78719609ea9c8459c8b5300792c41496b31f3e164cd5611b63d6c0c8cf3bffc2c1cec4f1a7df22d6c9fdc6e47c6ff685e148c1f8b5c3ec987a3b5eb26d336eda34ba82561a62237ce2f645243f14f1e122366017eb49688850b56ad30a80ce0835ae5a0a0bf214170eb9913cb4ddf695ed07a3f3e4f2025a01e787eb258d9ea3e01747a5989a1c40c684234a531a0c16c4212a03afa55ef0b16d707a7001f7016d9cfd3cbbdb726101692cf8c27fe2ce30d301c74f7919d2991576f718069140f88213f1a063f88a4606f5ff3045e6f2a4a9e4cf23af1ec548a6be91c3048e4b819064e5f05d3b5131d54ea3f9c9d271ecffcda2212d71d9d0a46ac2b39e1de28ab0be9fd4037ada0f92efbf721298142126f74bc7d2eca53867f6c91d7718e0d4d2e552051dfc14cf899e2f93102a50ce7cdf54fb93bf1f57a0ba748f05e65fe78c7f39b9a169c540dca3c1b106f04fd0193da506853461446f691b7fe20033956868efa51ee9d12def01a923392bef34070acd05de5d5bab6c0c28d714fc192bbe7d744f95a1e3137320fdc9982d5f217d84f3e2f47214f9da1a3d8db2172ec10b59437d616641b3c0411b992ed29f790b50720246f7b6b62d1ec1b76314ca90793140398d9bf2bc4d72e21b3ca4ce8e1ccfabcdac40bf99a86067c83ebf479fe673830b0164e7cd3d4a1d3bff4f2a44b6b78da34614a5dc25542a989cfb0d6a86280b0728fe882be25c4c8b5e19f4c1bfa53f687367d176057df033c1fc1a2f4b3186f81f12461650778df6e26f99f987e83cc3c57189d3ed06f7570b2b984edeaa06197cbaa28be4841b8b775bf00e5825bdeed653defeda2c6507a1de3fdf762098ea5148ff8a2c5e913036ec24aba06751a015b0e519955151b181a3814ae01da60ca20a292728027ac7fe0234d83c3c472a824ad4d937ebe6c87b73a066c62838b7cce6e85384518c766529ca447ed4d090d438789c5ca155770eebc1d1174607d9b46393b40ffc2960bcbaeb6446417109863ce30345ccedef20dec3bd5a71aded22ebad8db0ed0c073aaf22b47eec28c2ca1a5d0a21279a75fe24cbe0fefa3721de3b741c3f6bbfc1dce199ad7b386d980d7bc568b051d1fae1133bdba878cb9853db3549584cfa9e3869f41cf3d0d1695d96858b292d8214b44287865fdc305616faa803abf2ef61dd45cf288987a8bd6a18931d2702ae856ff6618f6bf04d05ad57a902b33d227b55e34100163e16c4ed3efcdac6ea510d7abdf0e7afbc05b7db961fa9fc8523a80f640428e24b921ba85347397d7382cfab8575baa202a101778267a7d0794648701f64f5d5efcf3ed69e6a4382949c27a537d06ddc998d087014a1573c4a3b71eb58ed03928dde1d3a1e2a436bcd88477239595e3c2dc26276f471f36e2c4006d7a366c7d4da45be8a485a2826839b9134e37b3638e746e74bae5ce46f6bb312eb86849cfca9c5c3263a2ff9b8a36ab76ac44c3615e89c7b30994cd5ed28963f258313bb6ec1984b53d7055e6f682de2cdea6422d3de697959db768480b9fca7962fcddf73c4f992a6183cc1369c72e9aad885cfde82dc1465bce11e668c5e12ff0e53361f14c80dbabf830ee8ee8c104bc0bc09d7c7925e4a6d488e87e3bcd95567e00173cf4ac24d2b207eb5c3c73426ff46ba5091333cda1e24eb1519961174aecb66f69fe2af7701579a1e77c85d9a7625560ab89cb8142db116926969e6774bb90a459e6c007710d0454bbd714c928c471c9f00083cddf98dd9c9ab25443947feed79b3df6258fa02b9e30b57b6e9175807f20aa5ac08305c806fb3881daeb5cf7215466d2f1d51e6745cc16c7aec53e037ffa77da2964a397c12b14138b94f8a8f2f9892c197a871b1c5fb2a0674e2de1dc5882daae85e9befdfebac42421a4a494eead5b797e3df1bf14781e740829363fa5a32fe4310643e73a7d01309a8e278fe2e04a70441c9af10ca3930458c61e1213692059ec461dc51b67e377eda898e9fb6d681a44fdcc1cf5a5d5f2fee036efbc5e0f361f13b15226c3fd58a88c1a81fdf5a12b10be20f14c74f6c909ca9e7f87f5cc1ccc8a3a6573b9d6552eb91bcc33680e3c4ade9d47f7b2567833fe6e812d287aa19bbd0379565a1b624f213fa8870f6e2359ee6b926447f1b2053a8b3f9e3972c7efccd87c71b4d5318b50ea739dc8dc18b9b4a846c140a5034ac0d00952dde4fd1f43d4d55af4b02d38b6a240204a91f91be6d7846b80e9db24336e914f29cd5b36af4c96191868dbf874046829974578c02eb1c3464c61a3d95b78a7e49a05c463fe424e8ccdde77e9e392e78e9247d5fdb63594df5c17fbb107f157e5e241f3db2eec2092ddc18d06ba3eeff809f04fb7063c054cb07a73a9f2f43cf11ff0ff17f462361e749670d6522ceac531224437beed8f961d9bcd459f353841bc84a8c30344152167340ac9b425e3de3930195e3fba28429fab3ae5ece1183ebfb4b318bbf3c4d1de74380be8ead4d636b0454a4b83d51e6a3d6b38ae76e697e759f6510cdf485908d26be4d949f9dd61f832edc4a535c2d3e53a51b5825ef3c469602ce0b46d7334200bcb4482b9590b26151a4040580cd1e91a2baef5542d0a7a8968e218204ad4b507c58fda559a03adcc4735b9e4dc9a2a0b3f343c899e7dad162cc729dbd0bca8eebdd99d16e153c1e030e0e375686774472fcc139b59de974b5511c8fdc9e9eff5b72ab490f3912828dbf1d36f99dd90f7ea2bc3e07b5615611748f01ac0c80b72b30b791243b836c42b3db9ee389f3300b06ab1080e94e4a8ed8ba2ed566c80390b1f7e526ed0f5a969bff342c06b773852be8a400f67f8a552feabe9636ca2b3262c228e9c194b34ca2519d7eae47d7cc6cd9508196698480bffc24984e8951318c2a44c65621ef17ea87e16edaf1df069cf1f38607d8866a1f3082416464bc247ab212bd49b68272c5c6cf425c08fac16fe210e3326920b8d7469d97c2eea8dbf16c18fff08f8e2c934912ec10db648b7d4d8f09ba9ec3cb415d59b95124a63691eded34d8c2da67864f6c255eda54a51a5af3f477ffd41cdcecc6d0a8d4a8fe29e4621f5c24b6fb98b186de0a38514520b3fd81a11f41070efebbbaadd15b974acc801a6eee9a1452f90cb2c871a3fa40b99abbd39b2533ce9c6408657bc9d9c68803fc1e71d08bf173ededdce86ea7c6c16c4c0550bb7cad527c108d31c3b14e0e70665fc0ae6ee521ed91324aba964462b45ae3fd652e9bd09a0ca22dfb506a09b0645b8e9260faa1aa49767d38b0d5ac56a1860c210cecba20834c812972f948db3fae65aa215f758dd11f482913b35493b4cb42a9e54de1d97b77e800626fe347e26a2ad8980b6ab32173d3ef7e35cd5a21b00c79f8f7a7b73ba1a9ac2c0b85cc6a97589d9de5731f9f9b2ad7ac6a421483870013948288b47553d47f3f0a1bfdd0ae2e11ef78b77b3a57e2169efc85686c50aa4cee3b1da0f173ce4d07b26d1fc782034f6d0c6dd7e4d8c6d0603d4bb49c25e5423395df25d36a1c372f65c82e64ac6bddcc2b9c83eb23dcc4826c6b3dcf1e3b1a3a0aad670271ddd913778deb8f8aea2c585f501494de60fd7a7c1629fb838424f983c1120482c5a6a8f86e2ef654cae7d9a14e5eaa6f1e8fdd649af4f98d2cd3b33e6a89104bbf451ace3df02b7d9a81910bd89658faffad54545d61f81efd9cf1ab76cafc803de05c961b2509bdc53af12d92e532cc9cbc44499baa8165da5381b3c532b949ec66deecc887501f7ec8d24b7037d6fbf8cf5a17da5a263c875dd155f2421af7748b83ecf4eb00377917005f0584b40ca06781cc12384ee01d807652b3244b048e5371d4a0508332a6ef16c2885071870b1187d5b2ac72c11a6ac7943fc798becdbf958563485f4aab0fca7e15b9736a61d99f928494a461cf3a6d53e79cfc76293cd5059b7a7321362a8bc8d01b076e19935d9b92ddef1e37cfa9412be56368d70a84cc4c10344b2f7a2ef27b7b63445dd3943230dbfa48c73c68e7317b278e88467e99ef588a3a86583eb7483c544860560b7368ac02190cafff706238e413b3a7e99c88b921f960fb41c59635daa74488858be3b0d57f8ad277b7e30aff3beead210d63a89fcae7633daba3b4754f8318a27ca243e855a9a24a1c1b8c25fbf8c1601c14e2f87efbb1b4c33e5b0f813a047d340b8a28c70dd0c664782c3ebd7e30309b03a71d1aef328226fa5151d192b9be8d0f6bf0028f7759331d3fdf82bb24391dbaedd306413c0967ab7078585fb2f7f021ad7353726670c77b093d4b38106a2495f1013c1977c5e41e4972908234d79af20ecf574ae7cf47e845802c8fd7ca826e4e866a83da9e80457a8d63f7c71ef3a3b5f4c26ae5ed4b3e0f7b2742f488f33168c6d8e54d688cd31768387a76f1c0375a7c2847a6cfedcdfd3beac881eae9c9312874be1e49c538daf2e05c821d7c01f85813c21885602e4e9ee23b6a2c434fa39201f157c84312f8e9e6e8c858a95148b8b341678efb9fdf2b37eb63475deaf6209b4c778d0cec0293331eb929a0556ceef57523274b07bf99648ab8da3c979c4cb344613c362ab76faa05f76436ced6b0ebe21ae7157f7fa6d09cdb4a76bcef80eff0bd5bf54d8f4999fd1fae03bdff37c76f26c09e742cef4ca48d464cce37aad14b1e6c0cae7f8750cb5d05a6f4cb3422acb9ee5f7bfeee4c70ddda502b4a68b1aa3b53664f3d47cbf835455b7e39d2e8b6e4b7c6e46176ccfd3352f0d1470d2fbd22c74199ec69eb1630a9b57f0d05f192191e16a4ebc9e9db8ec4ab6c19bea0127205180b2bfc32635146225d9c177489bb8b965b3817301aab5570a2c0b3b8ca9612d6b722547536ff544a02cf4b001a2dfb719c75e980f17076bfb7663c83b3d64e94f7b0fa0c0069782f8bdadf662db2504d94de80f69b790088c812321577013e9492a195b8be44eded1eaf5bc7414860dc6abc7757f9152dfcb70c5f41f3f918298c973d43cfe33f4450c2d4b8f4e51eaf8470007d42252695f29483a498b9cfc0b4ba76a30e7aa86bf655972eae4c31cab0d81ee118fbe6ac590e67fab8f6367de3f041619304c2ed635427afd7539620e0b5455e47ffccf487b66eef2ded14c3e5ea2047902634696f6f4a8ea05e5df4939a771fdae98dcf6dde25dfc582717949aa1361c1f97f3f93c5be37b944ffe019276fd44df928a0f7ee6d1dea28f59231c7265ff63ac4d2bdc4c653b638e1eefeae7bcfaefbae860ea3e138e5750f758346d6148952267ad74b2bd86057e9c6b60f42803d2efcf6a6b1bf11146d097a3e65d86039a9b22ef4775e27c91bf442f42f70fc990345d3624aeea19b61917d6b89e4cd4e2ce0adad1effe0f89c3c7b964e5a1b7b540cc7335048af8e66d3a74dd05bd87321c25efc7ebc4de56d88eb6b4e29db9e73fdf8a09bcca6e84cac01767213fbefef2ab194332291c5b7c81bdae6d11bbc7a73b2fd114e5021fa0abe715dd4694f7e4fb10f0f62d4a89682712c0138a9883dbd5c5a2fd2b603d7a644a6e89072cd9b561d94975e730347566ce574656cfd080a01a2e48e07844edc9422c33cd8a2fb5878a167f3a9fd58e8b3e3191da0c809a4122ef220edad1e799c4484a3609e3561c36fc032fc31c9e76ec637381a16cecf22d85380195d334afa9572c08304202ed7721e0155486b24dcf53e045f6df0078c390c09534ed8de98e57d611cfe2881e2f434e4820e2e8f6ccd81e1209bcd08198112fd521ffe779d1842843c6c8f10b908d6d396d3d5c41260fd4d3e9eb2f19cd01bb93253f3e1006e76767f2fe4b23c249ef997071c846c7b7b565ae832af877663b3b1237e9ae00d6ae980c64117b3a7ffbbd48865b44ba3f8fc68fc1c25a3e5e9e4c7a537dd87b12637fecf38b6e4e00eabfb837f11782d690b86ea1ec3d9bf9c2a0079c0bf12d1a3cf083ad56fcc4611b3bde4398856f85d3083f205bf6a4bacc0a78eaae32f0754caec5f673c36e8f9077c12b690af3693c7ca27e9d369ce8ed76a91eee7bc5e6cb83a3c6e6840471e455ab1dc0963239acf436e816e8c4ac9b9bb796c999e287299baa2b8715106b3d25079f550bfe81d7c4b9f2cf32e49864dc1f6068be7aaf02086c737a5617894f5783b26828196b14e04beffee15e1c22f0800a962c691327f19bb55493dbdbb1f2fdb9fd9c77529e0b07e6b42fe942812f92330304c995d2623616ea6f806484f7711989943db645dc6dc5219b53ed3dad383e3d68a143c487d41faab2dd2805486f5c4b95e3d9cb61816a7e28bb73c948fbbee99b4b3215900c2c6cf0f397ec37e51f01b155cd37c7467f0c4f66eb08d0e49b333c88aa1ff7163142b3d6b313cd4022013401fabb27d472de946762fe24f5ccd0fe021330be6ad27dba67cba57f0faf2f438f2b6c15f7fa3ca9fbd2d45ead431206024e5f5b99ba3600d64efb21900578cf9402703f1735485e1ed66ecbcac2d1224914ddb2c0f05460aec277852fafb941ba8aed8f7f33b9434907ed576181dd5c931332307f3313c96bd20f11d04ec5a17aca2cdd548d3b0ba6838a1bde84),
+(410061552, 0x637e3054222cc4da34e6e60d7081b6323d035c1384f47ef6ac5e47a69ec65c6ac136e7e20600e40c3b7762102e5584a7bc4e64722801865830848347965e88271448d5);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `r_proposals`
 --
 
 CREATE TABLE IF NOT EXISTS `r_proposals` (
   `id` bigint(20) NOT NULL COMMENT 'proposal record id',
+  `event` bigint(20) DEFAULT NULL COMMENT 'what event this question is part of',
   `project` varchar(255) DEFAULT NULL COMMENT 'project title',
   `ctty` bigint(20) DEFAULT NULL COMMENT 'community or region record id',
   `categories` tinytext COMMENT 'funding categories (space-separated list)',
@@ -27999,24 +27643,19 @@ CREATE TABLE IF NOT EXISTS `r_proxies` (
 
 CREATE TABLE IF NOT EXISTS `r_questions` (
   `id` bigint(20) NOT NULL COMMENT 'question record id',
-  `ctty` bigint(20) DEFAULT NULL COMMENT 'community or region record id',
+  `event` bigint(20) DEFAULT NULL COMMENT 'what event this question is part of',
   `repeats` bigint(20) NOT NULL DEFAULT '0' COMMENT 'pointer to question that this is a revote on (0=none)',
   `repeatedBy` bigint(20) NOT NULL DEFAULT '0' COMMENT 'pointer to question that is a revote of this one (0=none))',
-  `endIdeas` int(11) NOT NULL DEFAULT '0' COMMENT 'when does the Ideas phase end',
-  `endProposals` int(11) NOT NULL DEFAULT '0' COMMENT 'when does the Proposals phase end',
-  `endVoting` int(11) NOT NULL DEFAULT '0' COMMENT 'when does the Voting phase end',
-  `endGrading` int(11) NOT NULL DEFAULT '0' COMMENT 'when does the Grading phase end',
-  `text` tinytext COMMENT 'text of the question',
+  `text` mediumtext COMMENT 'text of the question',
   `detail` mediumtext COMMENT 'additional detail about the question',
-  `linkIdeas` tinytext COMMENT 'where to brainstorm ideas (and see the list)',
-  `linkProposals` tinytext COMMENT 'where to propose options (and see the discussion)',
-  `type` char(1) NOT NULL DEFAULT 'M' COMMENT 'vote type M=multiple choice, B=budget (penny vote)',
+  `linkDiscussion` tinytext COMMENT 'link to online discussion of the issue',
+  `type` char(1) NOT NULL DEFAULT 'M' COMMENT 'vote type M=multiple choice, B=budget (penny vote), R=range, E=essay',
   `units` varchar(255) DEFAULT NULL COMMENT 'budget units (defaults to money, measured in the community''s national currency)',
   `budget` decimal(11,0) NOT NULL DEFAULT '0' COMMENT 'how much (money) is to be budgeted',
   `minVeto` decimal(5,3) DEFAULT NULL COMMENT 'minimum veto fraction of vote, to force reconsideration',
   `optOrder` char(1) NOT NULL DEFAULT 'S' COMMENT 'option order',
   `voteCount` int(11) NOT NULL DEFAULT '0' COMMENT 'total number of votes',
-  `modified` int(11) NOT NULL DEFAULT '0' COMMENT 'date/time last modified',
+  `result` longtext COMMENT 'results of the vote or grading',
   `created` int(11) NOT NULL DEFAULT '0' COMMENT 'date/time created'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Questions to be voted on';
 
@@ -28030,7 +27669,7 @@ CREATE TABLE IF NOT EXISTS `r_regions` (
   `region` char(3) COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT 'region id',
   `fullName` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `st` char(2) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT 'state or province abbreviation',
-  `postalCode` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `zip` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `postalAddr` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `federalId` varchar(9) COLLATE utf8_unicode_ci NOT NULL,
   `hasServer` tinyint(1) NOT NULL DEFAULT '0'
@@ -28040,7 +27679,7 @@ CREATE TABLE IF NOT EXISTS `r_regions` (
 -- Dumping data for table `r_regions`
 --
 
-INSERT INTO `r_regions` (`region`, `fullName`, `st`, `postalCode`, `postalAddr`, `federalId`, `hasServer`) VALUES
+INSERT INTO `r_regions` (`region`, `fullName`, `st`, `zip`, `postalAddr`, `federalId`, `hasServer`) VALUES
 ('AZA', NULL, 'AZ', '', NULL, '', 0),
 ('CAA', NULL, 'CA', '', NULL, '', 0),
 ('CLN', NULL, 'NC', '', NULL, '', 0),
@@ -28109,12 +27748,16 @@ INSERT INTO `r_regions` (`region`, `fullName`, `st`, `postalCode`, `postalAddr`,
 CREATE TABLE IF NOT EXISTS `r_relations` (
   `reid` bigint(20) NOT NULL COMMENT 'relationship record id',
   `main` bigint(20) DEFAULT NULL COMMENT 'uid of the account to which others are related',
-  `other` bigint(20) DEFAULT NULL COMMENT 'uid of a user related to that account',
-  `otherNum` int(11) DEFAULT NULL COMMENT 'sequence number of other (starts with 1)',
-  `permission` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'what type of permission the agent has on the main account',
-  `employee` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'agent is an employee (according to employer)',
-  `isOwner` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'this agent is an owner (or part owner) or family relation',
-  `draw` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'whether credit can flow from main to agent'
+  `other` bigint(20) DEFAULT NULL COMMENT 'uid of an other account related to this account',
+  `otherNum` int(11) DEFAULT NULL COMMENT 'sequence number of the other (starts with 1)',
+  `permission` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'what type of permission the other has on the main account',
+  `employee` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'this other is an employee according to the main account (employer)',
+  `isOwner` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'this other is an owner (or part owner) or family relation',
+  `isCustomer` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'this other is a customer',
+  `code` varchar(50) DEFAULT NULL COMMENT 'the (main) company''s account code for this other',
+  `data` mediumtext COMMENT 'serialized array of parameters',
+  `created` int(11) DEFAULT NULL COMMENT 'Unixtime record created',
+  `draw` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'whether credit can flow from main to other account'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Who can manage which accounts, and how';
 
 -- --------------------------------------------------------
@@ -28131,7 +27774,7 @@ CREATE TABLE IF NOT EXISTS `r_request` (
   `phone` varchar(255) DEFAULT NULL COMMENT 'contact phone (no punctuation)',
   `email` varchar(255) DEFAULT NULL COMMENT 'email of invitee',
   `zip` varchar(60) DEFAULT NULL COMMENT 'postal code (no punctuation)',
-  `ctty` bigint(20) DEFAULT NULL COMMENT 'uid of this requester''s %PROJECT community',
+  `ctty` bigint(20) DEFAULT NULL COMMENT 'uid of this requester''s Common Good Community',
   `done` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'are we done with this request'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Requests to be invited';
 
@@ -32101,7 +31744,7 @@ CREATE TABLE IF NOT EXISTS `r_txs` (
   `xid` bigint(20) NOT NULL COMMENT 'the unique transaction ID',
   `serial` int(11) DEFAULT NULL COMMENT 'serial number of related transactions (=xid of first transaction in the group)',
   `type` tinyint(4) DEFAULT NULL COMMENT 'transaction type (transfer, rebate, etc.)',
-  `flags` bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT 'boolean permissions and state flags',
+  `flags` bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT 'boolean characteristics and state flags',
   `goods` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'is this transfer an exchange for real goods and services?',
   `amount` decimal(11,2) DEFAULT NULL COMMENT 'amount transferred',
   `payer` bigint(20) DEFAULT NULL COMMENT 'user id of the payer',
@@ -32110,6 +31753,8 @@ CREATE TABLE IF NOT EXISTS `r_txs` (
   `payeeAgent` bigint(20) DEFAULT NULL COMMENT 'user id of payee''s agent (who approved this transaction for the payee)',
   `payerFor` varchar(255) DEFAULT NULL COMMENT 'payer''s description',
   `payeeFor` varchar(255) DEFAULT NULL COMMENT 'payee''s description',
+  `payerReward` decimal(11,2) NOT NULL DEFAULT '0.00' COMMENT 'incentive reward for payer',
+  `payeeReward` decimal(11,2) NOT NULL DEFAULT '0.00' COMMENT 'incentive reward for payee',
   `payerTid` int(11) DEFAULT NULL COMMENT 'payer''s transaction ID',
   `payeeTid` int(11) DEFAULT NULL COMMENT 'payee''s transaction ID',
   `data` longtext COMMENT 'miscellaneous non-searchable data (serialized array)',
@@ -32129,7 +31774,7 @@ CREATE TABLE IF NOT EXISTS `r_txs` (
 CREATE TABLE IF NOT EXISTS `r_usd` (
   `txid` bigint(20) NOT NULL COMMENT 'the unique transaction ID',
   `amount` decimal(11,2) DEFAULT NULL COMMENT 'amount of transfer',
-  `payer` bigint(20) DEFAULT NULL COMMENT 'user id of the account holder',
+  `payee` bigint(20) DEFAULT NULL COMMENT 'CG account ID',
   `created` int(11) NOT NULL DEFAULT '0' COMMENT 'Unixtime transaction was created',
   `completed` int(11) NOT NULL DEFAULT '0' COMMENT 'Unixtime transaction was completed',
   `tid` int(11) DEFAULT NULL COMMENT 'payer''s transaction ID',
@@ -32168,108 +31813,17 @@ CREATE TABLE IF NOT EXISTS `r_votes` (
   `text` longtext COMMENT 'what was voter''s comment or moral objection to this option',
   `isVeto` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'this is a veto (not a canceled veto or mere comment)',
   `modified` int(11) NOT NULL DEFAULT '0' COMMENT 'date/time last modified'
-) ENGINE=InnoDB AUTO_INCREMENT=131 DEFAULT CHARSET=utf8 COMMENT='What grade a particular voter gave a particular options...';
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COMMENT='What grade a particular voter gave a particular options...';
 
 --
 -- Dumping data for table `r_votes`
 --
 
 INSERT INTO `r_votes` (`id`, `ballot`, `option`, `grade`, `gradeMax`, `displayOrder`, `text`, `isVeto`, `modified`) VALUES
-(1, 2, 1, 12, -1, 0, '', 0, 1482211781),
-(2, 2, 2, 6, -1, 1, '', 0, 1482211781),
-(3, 2, 3, 9, -1, 2, '', 0, 1482211781),
-(4, 2, 4, 3, -1, 3, '', 0, 1482211781),
-(5, 2, 5, 6, -1, 4, '', 0, 1482211781),
-(41, 4, 1, 12, -1, 0, '', 0, 1482211783),
-(42, 4, 2, 12, -1, 1, '', 0, 1482211783),
-(43, 4, 3, 1, -1, 2, '', 0, 1482211783),
-(44, 4, 4, 1, -1, 3, '', 0, 1482211783),
-(45, 4, 5, 12, -1, 4, '', 0, 1482211783),
-(46, 5, 1, 0, -1, 0, '', 0, 1482211845),
-(47, 5, 2, 0, -1, 1, '', 0, 1482211845),
-(48, 5, 3, 0, -1, 2, '', 0, 1482211845),
-(49, 5, 4, 0, -1, 3, '', 0, 1482211845),
-(50, 5, 5, 0, -1, 4, '', 0, 1482211845),
-(51, 6, 1, 0, -1, 0, '', 0, 1482211847),
-(52, 6, 2, 0, -1, 1, '', 0, 1482211847),
-(53, 6, 3, 0, -1, 2, '', 0, 1482211847),
-(54, 6, 4, 0, -1, 3, '', 0, 1482211848),
-(55, 6, 5, 0, -1, 4, '', 0, 1482211848),
-(56, 7, 1, 0, -1, 0, '', 0, 1482211850),
-(57, 7, 2, 0, -1, 1, '', 0, 1482211850),
-(58, 7, 3, 0, -1, 2, '', 0, 1482211850),
-(59, 7, 4, 0, -1, 3, '', 0, 1482211850),
-(60, 7, 5, 0, -1, 4, '', 0, 1482211850),
-(61, 8, 1, 0, -1, 0, '', 0, 1482211853),
-(62, 8, 2, 0, -1, 1, '', 0, 1482211853),
-(63, 8, 3, 0, -1, 2, '', 0, 1482211853),
-(64, 8, 4, 0, -1, 3, '', 0, 1482211853),
-(65, 8, 5, 0, -1, 4, '', 0, 1482211853),
-(66, 9, 1, 0, -1, 0, '', 0, 1482211857),
-(67, 9, 2, 0, -1, 1, '', 0, 1482211857),
-(68, 9, 3, 0, -1, 2, '', 0, 1482211857),
-(69, 9, 4, 0, -1, 3, '', 0, 1482211857),
-(70, 9, 5, 0, -1, 4, '', 0, 1482211857),
-(71, 10, 1, 0, -1, 0, '', 0, 1482211859),
-(72, 10, 2, 0, -1, 1, '', 0, 1482211860),
-(73, 10, 3, 0, -1, 2, '', 0, 1482211860),
-(74, 10, 4, 0, -1, 3, '', 0, 1482211860),
-(75, 10, 5, 0, -1, 4, '', 0, 1482211860),
-(76, 11, 1, -1, -1, 0, NULL, 0, 0),
-(77, 11, 2, -1, -1, 1, NULL, 0, 0),
-(78, 11, 3, -1, -1, 2, NULL, 0, 0),
-(79, 11, 4, -1, -1, 3, NULL, 0, 0),
-(80, 11, 5, -1, -1, 4, NULL, 0, 0),
-(81, 12, 1, 0, -1, 0, '', 0, 1482211876),
-(82, 12, 2, 0, -1, 1, '', 0, 1482211876),
-(83, 12, 3, 0, -1, 2, '', 0, 1482211876),
-(84, 12, 4, 0, -1, 3, '', 0, 1482211876),
-(85, 12, 5, 0, -1, 4, '', 0, 1482211876),
-(86, 13, 1, 0, -1, 0, '', 0, 1482211879),
-(87, 13, 2, 0, -1, 1, '', 0, 1482211879),
-(88, 13, 3, 0, -1, 2, '', 0, 1482211879),
-(89, 13, 4, 0, -1, 3, '', 0, 1482211879),
-(90, 13, 5, 0, -1, 4, '', 0, 1482211879),
-(91, 14, 1, 0, -1, 0, '', 0, 1482211881),
-(92, 14, 2, 0, -1, 1, '', 0, 1482211881),
-(93, 14, 3, 0, -1, 2, '', 0, 1482211881),
-(94, 14, 4, 0, -1, 3, '', 0, 1482211881),
-(95, 14, 5, 0, -1, 4, '', 0, 1482211881),
-(96, 15, 1, 0, -1, 0, '', 0, 1482211885),
-(97, 15, 2, 0, -1, 1, '', 0, 1482211885),
-(98, 15, 3, 0, -1, 2, '', 0, 1482211885),
-(99, 15, 4, 0, -1, 3, '', 0, 1482211885),
-(100, 15, 5, 0, -1, 4, '', 0, 1482211885),
-(101, 16, 1, 0, -1, 0, '', 0, 1482211888),
-(102, 16, 2, 0, -1, 1, '', 0, 1482211888),
-(103, 16, 3, 0, -1, 2, '', 0, 1482211888),
-(104, 16, 4, 0, -1, 3, '', 0, 1482211889),
-(105, 16, 5, 0, -1, 4, '', 0, 1482211889),
-(106, 17, 1, 0, -1, 0, '', 0, 1482211898),
-(107, 17, 2, 0, -1, 1, '', 0, 1482211898),
-(108, 17, 3, 0, -1, 2, '', 0, 1482211898),
-(109, 17, 4, 0, -1, 3, '', 0, 1482211898),
-(110, 17, 5, 0, -1, 4, '', 0, 1482211898),
-(111, 18, 1, 0, -1, 0, '', 0, 1482211901),
-(112, 18, 2, 0, -1, 1, '', 0, 1482211901),
-(113, 18, 3, 0, -1, 2, '', 0, 1482211901),
-(114, 18, 4, 0, -1, 3, '', 0, 1482211901),
-(115, 18, 5, 0, -1, 4, '', 0, 1482211901),
-(116, 19, 1, 0, -1, 0, '', 0, 1482211903),
-(117, 19, 2, 0, -1, 1, '', 0, 1482211903),
-(118, 19, 3, 0, -1, 2, '', 0, 1482211903),
-(119, 19, 4, 0, -1, 3, '', 0, 1482211903),
-(120, 19, 5, 0, -1, 4, '', 0, 1482211903),
-(121, 20, 1, 0, -1, 0, '', 0, 1482211908),
-(122, 20, 2, 0, -1, 1, '', 0, 1482211908),
-(123, 20, 3, 0, -1, 2, '', 0, 1482211908),
-(124, 20, 4, 0, -1, 3, '', 0, 1482211908),
-(125, 20, 5, 0, -1, 4, '', 0, 1482211908),
-(126, 21, 1, 0, -1, 0, '', 0, 1482212031),
-(127, 21, 2, 0, -1, 1, '', 0, 1482212031),
-(128, 21, 3, 0, -1, 2, '', 0, 1482212031),
-(129, 21, 4, 0, -1, 3, '', 0, 1482212031),
-(130, 21, 5, 0, -1, 4, '', 0, 1482212031);
+(1, 2, 2, -1, -1, 0, NULL, 0, 0),
+(2, 1, 1, 6, -1, 0, '', 0, 1497832812),
+(3, 1, 2, 3, -1, 1, '', 0, 1497832813),
+(4, 1, 3, 9, -1, 2, '', 0, 1497832813);
 
 -- --------------------------------------------------------
 
@@ -32286,23 +31840,6 @@ CREATE TABLE IF NOT EXISTS `semaphore` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sequences`
---
-
-CREATE TABLE IF NOT EXISTS `sequences` (
-  `value` int(10) unsigned NOT NULL COMMENT 'The value of the sequence.'
-) ENGINE=InnoDB AUTO_INCREMENT=984 DEFAULT CHARSET=utf8 COMMENT='Stores IDs.';
-
---
--- Dumping data for table `sequences`
---
-
-INSERT INTO `sequences` (`value`) VALUES
-(983);
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `sessions`
 --
 
@@ -32315,24 +31852,6 @@ CREATE TABLE IF NOT EXISTS `sessions` (
   `cache` int(11) NOT NULL DEFAULT '0' COMMENT 'The time of this user’s last post. This is used when the site has specified a minimum_cache_lifetime. See cache_get().',
   `session` longblob COMMENT 'The serialized contents of $_SESSION, an array of name/value pairs that persists across page requests by this session ID. Drupal loads $_SESSION from here at the start of each request and saves it at the end.'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Drupal’s session handlers read and write into the...';
-
---
--- Dumping data for table `sessions`
---
-
-INSERT INTO `sessions` (`uid`, `sid`, `ssid`, `hostname`, `timestamp`, `cache`, `session`) VALUES
-(1, 'I8MuP6dYCKeScMJLzr6C0DUExCVndBmNrtKrWZUnFjk', '', '::1', 1489089453, 0, 0x72637265646974735f6167656e7449647c693a313b72637265646974735f6d7969647c693a313b);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `sms_carriers`
---
-
-CREATE TABLE IF NOT EXISTS `sms_carriers` (
-  `name` varchar(64) NOT NULL,
-  `domain` varchar(128) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -32369,13 +31888,13 @@ INSERT INTO `system` (`filename`, `name`, `type`, `owner`, `status`, `bootstrap`
 ('modules/contextual/contextual.module', 'contextual', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a31363a22436f6e7465787475616c206c696e6b73223b733a31313a226465736372697074696f6e223b733a37353a2250726f766964657320636f6e7465787475616c206c696e6b7320746f20706572666f726d20616374696f6e732072656c6174656420746f20656c656d656e7473206f6e206120706167652e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a313a7b693a303b733a31353a22636f6e7465787475616c2e74657374223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('modules/dashboard/dashboard.module', 'dashboard', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a393a2244617368626f617264223b733a31313a226465736372697074696f6e223b733a3133363a2250726f766964657320612064617368626f617264207061676520696e207468652061646d696e69737472617469766520696e7465726661636520666f72206f7267616e697a696e672061646d696e697374726174697665207461736b7320616e6420747261636b696e6720696e666f726d6174696f6e2077697468696e20796f757220736974652e223b733a343a22636f7265223b733a333a22372e78223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a353a2266696c6573223b613a313a7b693a303b733a31343a2264617368626f6172642e74657374223b7d733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a22626c6f636b223b7d733a393a22636f6e666967757265223b733a32353a2261646d696e2f64617368626f6172642f637573746f6d697a65223b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('modules/dblog/dblog.module', 'dblog', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a31363a224461746162617365206c6f6767696e67223b733a31313a226465736372697074696f6e223b733a34373a224c6f677320616e64207265636f7264732073797374656d206576656e747320746f207468652064617461626173652e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a313a7b693a303b733a31303a2264626c6f672e74657374223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
-('modules/field/field.module', 'field', 'module', '', 1, 0, 7003, 0, 0x613a31343a7b733a343a226e616d65223b733a353a224669656c64223b733a31313a226465736372697074696f6e223b733a35373a224669656c642041504920746f20616464206669656c647320746f20656e746974696573206c696b65206e6f64657320616e642075736572732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a343a7b693a303b733a31323a226669656c642e6d6f64756c65223b693a313b733a31363a226669656c642e6174746163682e696e63223b693a323b733a32303a226669656c642e696e666f2e636c6173732e696e63223b693a333b733a31363a2274657374732f6669656c642e74657374223b7d733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a31373a226669656c645f73716c5f73746f72616765223b7d733a383a227265717569726564223b623a313b733a31313a227374796c65736865657473223b613a313a7b733a333a22616c6c223b613a313a7b733a31353a227468656d652f6669656c642e637373223b733a32393a226d6f64756c65732f6669656c642f7468656d652f6669656c642e637373223b7d7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
-('modules/field/modules/field_sql_storage/field_sql_storage.module', 'field_sql_storage', 'module', '', 1, 0, 7002, 0, 0x613a31333a7b733a343a226e616d65223b733a31373a224669656c642053514c2073746f72616765223b733a31313a226465736372697074696f6e223b733a33373a2253746f726573206669656c64206461746120696e20616e2053514c2064617461626173652e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a226669656c64223b7d733a353a2266696c6573223b613a313a7b693a303b733a32323a226669656c645f73716c5f73746f726167652e74657374223b7d733a383a227265717569726564223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
+('modules/field/field.module', 'field', 'module', '', 0, 0, -1, 0, 0x613a31343a7b733a343a226e616d65223b733a353a224669656c64223b733a31313a226465736372697074696f6e223b733a35373a224669656c642041504920746f20616464206669656c647320746f20656e746974696573206c696b65206e6f64657320616e642075736572732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a343a7b693a303b733a31323a226669656c642e6d6f64756c65223b693a313b733a31363a226669656c642e6174746163682e696e63223b693a323b733a32303a226669656c642e696e666f2e636c6173732e696e63223b693a333b733a31363a2274657374732f6669656c642e74657374223b7d733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a31373a226669656c645f73716c5f73746f72616765223b7d733a383a227265717569726564223b623a313b733a31313a227374796c65736865657473223b613a313a7b733a333a22616c6c223b613a313a7b733a31353a227468656d652f6669656c642e637373223b733a32393a226d6f64756c65732f6669656c642f7468656d652f6669656c642e637373223b7d7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
+('modules/field/modules/field_sql_storage/field_sql_storage.module', 'field_sql_storage', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31373a224669656c642053514c2073746f72616765223b733a31313a226465736372697074696f6e223b733a33373a2253746f726573206669656c64206461746120696e20616e2053514c2064617461626173652e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a226669656c64223b7d733a353a2266696c6573223b613a313a7b693a303b733a32323a226669656c645f73716c5f73746f726167652e74657374223b7d733a383a227265717569726564223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('modules/field/modules/list/list.module', 'list', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a343a224c697374223b733a31313a226465736372697074696f6e223b733a36393a22446566696e6573206c697374206669656c642074797065732e205573652077697468204f7074696f6e7320746f206372656174652073656c656374696f6e206c697374732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a323a7b693a303b733a353a226669656c64223b693a313b733a373a226f7074696f6e73223b7d733a353a2266696c6573223b613a313a7b693a303b733a31353a2274657374732f6c6973742e74657374223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('modules/field/modules/list/tests/list_test.module', 'list_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a393a224c6973742074657374223b733a31313a226465736372697074696f6e223b733a34313a22537570706f7274206d6f64756c6520666f7220746865204c697374206d6f64756c652074657374732e223b733a343a22636f7265223b733a333a22372e78223b733a373a227061636b616765223b733a373a2254657374696e67223b733a373a2276657273696f6e223b733a343a22372e3334223b733a363a2268696464656e223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
 ('modules/field/modules/number/number.module', 'number', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a363a224e756d626572223b733a31313a226465736372697074696f6e223b733a32383a22446566696e6573206e756d65726963206669656c642074797065732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a226669656c64223b7d733a353a2266696c6573223b613a313a7b693a303b733a31313a226e756d6265722e74657374223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('modules/field/modules/options/options.module', 'options', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a373a224f7074696f6e73223b733a31313a226465736372697074696f6e223b733a38323a22446566696e65732073656c656374696f6e2c20636865636b20626f7820616e6420726164696f20627574746f6e207769646765747320666f72207465787420616e64206e756d65726963206669656c64732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a226669656c64223b7d733a353a2266696c6573223b613a313a7b693a303b733a31323a226f7074696f6e732e74657374223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
-('modules/field/modules/text/text.module', 'text', 'module', '', 1, 0, 7000, 0, 0x613a31333a7b733a343a226e616d65223b733a343a2254657874223b733a31313a226465736372697074696f6e223b733a33323a22446566696e65732073696d706c652074657874206669656c642074797065732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a226669656c64223b7d733a353a2266696c6573223b613a313a7b693a303b733a393a22746578742e74657374223b7d733a383a227265717569726564223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
+('modules/field/modules/text/text.module', 'text', 'module', '', 0, 0, 7000, 0, 0x613a31333a7b733a343a226e616d65223b733a343a2254657874223b733a31313a226465736372697074696f6e223b733a33323a22446566696e65732073696d706c652074657874206669656c642074797065732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a226669656c64223b7d733a353a2266696c6573223b613a313a7b693a303b733a393a22746578742e74657374223b7d733a383a227265717569726564223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('modules/field/tests/field_test.module', 'field_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31343a224669656c64204150492054657374223b733a31313a226465736372697074696f6e223b733a33393a22537570706f7274206d6f64756c6520666f7220746865204669656c64204150492074657374732e223b733a343a22636f7265223b733a333a22372e78223b733a373a227061636b616765223b733a373a2254657374696e67223b733a353a2266696c6573223b613a313a7b693a303b733a32313a226669656c645f746573742e656e746974792e696e63223b7d733a373a2276657273696f6e223b733a343a22372e3334223b733a363a2268696464656e223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('modules/field_ui/field_ui.module', 'field_ui', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a383a224669656c64205549223b733a31313a226465736372697074696f6e223b733a33333a225573657220696e7465726661636520666f7220746865204669656c64204150492e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a226669656c64223b7d733a353a2266696c6573223b613a313a7b693a303b733a31333a226669656c645f75692e74657374223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('modules/file/file.module', 'file', 'module', '', 1, 0, 0, 0, 0x613a31323a7b733a343a226e616d65223b733a343a2246696c65223b733a31313a226465736372697074696f6e223b733a32363a22446566696e657320612066696c65206669656c6420747970652e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a226669656c64223b7d733a353a2266696c6573223b613a313a7b693a303b733a31353a2274657374732f66696c652e74657374223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
@@ -32388,7 +31907,7 @@ INSERT INTO `system` (`filename`, `name`, `type`, `owner`, `status`, `bootstrap`
 ('modules/locale/locale.module', 'locale', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a363a224c6f63616c65223b733a31313a226465736372697074696f6e223b733a3131393a2241646473206c616e67756167652068616e646c696e672066756e6374696f6e616c69747920616e6420656e61626c657320746865207472616e736c6174696f6e206f6620746865207573657220696e7465726661636520746f206c616e677561676573206f74686572207468616e20456e676c6973682e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a313a7b693a303b733a31313a226c6f63616c652e74657374223b7d733a393a22636f6e666967757265223b733a33303a2261646d696e2f636f6e6669672f726567696f6e616c2f6c616e6775616765223b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('modules/locale/tests/locale_test.module', 'locale_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31313a224c6f63616c652054657374223b733a31313a226465736372697074696f6e223b733a34323a22537570706f7274206d6f64756c6520666f7220746865206c6f63616c65206c617965722074657374732e223b733a343a22636f7265223b733a333a22372e78223b733a373a227061636b616765223b733a373a2254657374696e67223b733a373a2276657273696f6e223b733a343a22372e3334223b733a363a2268696464656e223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
 ('modules/menu/menu.module', 'menu', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a343a224d656e75223b733a31313a226465736372697074696f6e223b733a36303a22416c6c6f77732061646d696e6973747261746f727320746f20637573746f6d697a65207468652073697465206e617669676174696f6e206d656e752e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a313a7b693a303b733a393a226d656e752e74657374223b7d733a393a22636f6e666967757265223b733a32303a2261646d696e2f7374727563747572652f6d656e75223b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
-('modules/node/node.module', 'node', 'module', '', 1, 0, 7014, 0, 0x613a31353a7b733a343a226e616d65223b733a343a224e6f6465223b733a31313a226465736372697074696f6e223b733a36363a22416c6c6f777320636f6e74656e7420746f206265207375626d697474656420746f20746865207369746520616e6420646973706c61796564206f6e2070616765732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a323a7b693a303b733a31313a226e6f64652e6d6f64756c65223b693a313b733a393a226e6f64652e74657374223b7d733a383a227265717569726564223b623a313b733a393a22636f6e666967757265223b733a32313a2261646d696e2f7374727563747572652f7479706573223b733a31313a227374796c65736865657473223b613a313a7b733a333a22616c6c223b613a313a7b733a383a226e6f64652e637373223b733a32313a226d6f64756c65732f6e6f64652f6e6f64652e637373223b7d7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
+('modules/node/node.module', 'node', 'module', '', 0, 0, -1, 0, 0x613a31353a7b733a343a226e616d65223b733a343a224e6f6465223b733a31313a226465736372697074696f6e223b733a36363a22416c6c6f777320636f6e74656e7420746f206265207375626d697474656420746f20746865207369746520616e6420646973706c61796564206f6e2070616765732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a323a7b693a303b733a31313a226e6f64652e6d6f64756c65223b693a313b733a393a226e6f64652e74657374223b7d733a383a227265717569726564223b623a313b733a393a22636f6e666967757265223b733a32313a2261646d696e2f7374727563747572652f7479706573223b733a31313a227374796c65736865657473223b613a313a7b733a333a22616c6c223b613a313a7b733a383a226e6f64652e637373223b733a32313a226d6f64756c65732f6e6f64652f6e6f64652e637373223b7d7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('modules/node/tests/node_access_test.module', 'node_access_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a32343a224e6f6465206d6f64756c6520616363657373207465737473223b733a31313a226465736372697074696f6e223b733a34333a22537570706f7274206d6f64756c6520666f72206e6f6465207065726d697373696f6e2074657374696e672e223b733a373a227061636b616765223b733a373a2254657374696e67223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a363a2268696464656e223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
 ('modules/node/tests/node_test.module', 'node_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31373a224e6f6465206d6f64756c65207465737473223b733a31313a226465736372697074696f6e223b733a34303a22537570706f7274206d6f64756c6520666f72206e6f64652072656c617465642074657374696e672e223b733a373a227061636b616765223b733a373a2254657374696e67223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a363a2268696464656e223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
 ('modules/node/tests/node_test_exception.module', 'node_test_exception', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a32373a224e6f6465206d6f64756c6520657863657074696f6e207465737473223b733a31313a226465736372697074696f6e223b733a35303a22537570706f7274206d6f64756c6520666f72206e6f64652072656c6174656420657863657074696f6e2074657374696e672e223b733a373a227061636b616765223b733a373a2254657374696e67223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a363a2268696464656e223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
@@ -32451,7 +31970,7 @@ INSERT INTO `system` (`filename`, `name`, `type`, `owner`, `status`, `bootstrap`
 ('modules/system/system.module', 'system', 'module', '', 1, 0, 7079, 0, 0x613a31343a7b733a343a226e616d65223b733a363a2253797374656d223b733a31313a226465736372697074696f6e223b733a35343a2248616e646c65732067656e6572616c207369746520636f6e66696775726174696f6e20666f722061646d696e6973747261746f72732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a363a7b693a303b733a31393a2273797374656d2e61726368697665722e696e63223b693a313b733a31353a2273797374656d2e6d61696c2e696e63223b693a323b733a31363a2273797374656d2e71756575652e696e63223b693a333b733a31343a2273797374656d2e7461722e696e63223b693a343b733a31383a2273797374656d2e757064617465722e696e63223b693a353b733a31313a2273797374656d2e74657374223b7d733a383a227265717569726564223b623a313b733a393a22636f6e666967757265223b733a31393a2261646d696e2f636f6e6669672f73797374656d223b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('modules/system/tests/cron_queue_test.module', 'cron_queue_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31353a2243726f6e2051756575652074657374223b733a31313a226465736372697074696f6e223b733a34313a22537570706f7274206d6f64756c6520666f72207468652063726f6e2071756575652072756e6e65722e223b733a373a227061636b616765223b733a373a2254657374696e67223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a363a2268696464656e223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
 ('modules/taxonomy/taxonomy.module', 'taxonomy', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a383a225461786f6e6f6d79223b733a31313a226465736372697074696f6e223b733a33383a22456e61626c6573207468652063617465676f72697a6174696f6e206f6620636f6e74656e742e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a373a226f7074696f6e73223b7d733a353a2266696c6573223b613a323a7b693a303b733a31353a227461786f6e6f6d792e6d6f64756c65223b693a313b733a31333a227461786f6e6f6d792e74657374223b7d733a393a22636f6e666967757265223b733a32343a2261646d696e2f7374727563747572652f7461786f6e6f6d79223b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
-('modules/toolbar/toolbar.module', 'toolbar', 'module', '', 0, 0, 0, 0, 0x613a31323a7b733a343a226e616d65223b733a373a22546f6f6c626172223b733a31313a226465736372697074696f6e223b733a39393a2250726f7669646573206120746f6f6c62617220746861742073686f77732074686520746f702d6c6576656c2061646d696e697374726174696f6e206d656e75206974656d7320616e64206c696e6b732066726f6d206f74686572206d6f64756c65732e223b733a343a22636f7265223b733a333a22372e78223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
+('modules/toolbar/toolbar.module', 'toolbar', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a373a22546f6f6c626172223b733a31313a226465736372697074696f6e223b733a39393a2250726f7669646573206120746f6f6c62617220746861742073686f77732074686520746f702d6c6576656c2061646d696e697374726174696f6e206d656e75206974656d7320616e64206c696e6b732066726f6d206f74686572206d6f64756c65732e223b733a343a22636f7265223b733a333a22372e78223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
 ('modules/tracker/tracker.module', 'tracker', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a373a22547261636b6572223b733a31313a226465736372697074696f6e223b733a34353a22456e61626c657320747261636b696e67206f6620726563656e7420636f6e74656e7420666f722075736572732e223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a373a22636f6d6d656e74223b7d733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a313a7b693a303b733a31323a22747261636b65722e74657374223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('modules/translation/tests/translation_test.module', 'translation_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a32343a22436f6e74656e74205472616e736c6174696f6e2054657374223b733a31313a226465736372697074696f6e223b733a34393a22537570706f7274206d6f64756c6520666f722074686520636f6e74656e74207472616e736c6174696f6e2074657374732e223b733a343a22636f7265223b733a333a22372e78223b733a373a227061636b616765223b733a373a2254657374696e67223b733a373a2276657273696f6e223b733a343a22372e3334223b733a363a2268696464656e223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
 ('modules/translation/translation.module', 'translation', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a31393a22436f6e74656e74207472616e736c6174696f6e223b733a31313a226465736372697074696f6e223b733a35373a22416c6c6f777320636f6e74656e7420746f206265207472616e736c6174656420696e746f20646966666572656e74206c616e6775616765732e223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a363a226c6f63616c65223b7d733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a313a7b693a303b733a31363a227472616e736c6174696f6e2e74657374223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
@@ -32461,20 +31980,19 @@ INSERT INTO `system` (`filename`, `name`, `type`, `owner`, `status`, `bootstrap`
 ('modules/update/tests/bbb_update_test.module', 'bbb_update_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31353a22424242205570646174652074657374223b733a31313a226465736372697074696f6e223b733a34313a22537570706f7274206d6f64756c6520666f7220757064617465206d6f64756c652074657374696e672e223b733a373a227061636b616765223b733a373a2254657374696e67223b733a343a22636f7265223b733a333a22372e78223b733a363a2268696464656e223b623a313b733a373a2276657273696f6e223b733a343a22372e3334223b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
 ('modules/update/tests/ccc_update_test.module', 'ccc_update_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31353a22434343205570646174652074657374223b733a31313a226465736372697074696f6e223b733a34313a22537570706f7274206d6f64756c6520666f7220757064617465206d6f64756c652074657374696e672e223b733a373a227061636b616765223b733a373a2254657374696e67223b733a343a22636f7265223b733a333a22372e78223b733a363a2268696464656e223b623a313b733a373a2276657273696f6e223b733a343a22372e3334223b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
 ('modules/update/tests/update_test.module', 'update_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31313a225570646174652074657374223b733a31313a226465736372697074696f6e223b733a34313a22537570706f7274206d6f64756c6520666f7220757064617465206d6f64756c652074657374696e672e223b733a373a227061636b616765223b733a373a2254657374696e67223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a363a2268696464656e223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
-('modules/update/update.module', 'update', 'module', '', 1, 0, 7001, 0, 0x613a31333a7b733a343a226e616d65223b733a31343a22557064617465206d616e61676572223b733a31313a226465736372697074696f6e223b733a3130343a22436865636b7320666f7220617661696c61626c6520757064617465732c20616e642063616e207365637572656c7920696e7374616c6c206f7220757064617465206d6f64756c657320616e64207468656d65732076696120612077656220696e746572666163652e223b733a373a2276657273696f6e223b733a343a22372e3334223b733a373a227061636b616765223b733a343a22436f7265223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a313a7b693a303b733a31313a227570646174652e74657374223b7d733a393a22636f6e666967757265223b733a33303a2261646d696e2f7265706f7274732f757064617465732f73657474696e6773223b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d);
+('modules/update/update.module', 'update', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31343a22557064617465206d616e61676572223b733a31313a226465736372697074696f6e223b733a3130343a22436865636b7320666f7220617661696c61626c6520757064617465732c20616e642063616e207365637572656c7920696e7374616c6c206f7220757064617465206d6f64756c657320616e64207468656d65732076696120612077656220696e746572666163652e223b733a373a2276657273696f6e223b733a343a22372e3334223b733a373a227061636b616765223b733a343a22436f7265223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a313a7b693a303b733a31313a227570646174652e74657374223b7d733a393a22636f6e666967757265223b733a33303a2261646d696e2f7265706f7274732f757064617465732f73657474696e6773223b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d);
 INSERT INTO `system` (`filename`, `name`, `type`, `owner`, `status`, `bootstrap`, `schema_version`, `weight`, `info`) VALUES
 ('modules/user/tests/user_form_test.module', 'user_form_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a32323a2255736572206d6f64756c6520666f726d207465737473223b733a31313a226465736372697074696f6e223b733a33373a22537570706f7274206d6f64756c6520666f72207573657220666f726d2074657374696e672e223b733a373a227061636b616765223b733a373a2254657374696e67223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a363a2268696464656e223b623a313b733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
-('modules/user/user.module', 'user', 'module', '', 0, 0, 7018, 0, 0x613a31353a7b733a343a226e616d65223b733a343a2255736572223b733a31313a226465736372697074696f6e223b733a34373a224d616e6167657320746865207573657220726567697374726174696f6e20616e64206c6f67696e2073797374656d2e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a323a7b693a303b733a31313a22757365722e6d6f64756c65223b693a313b733a393a22757365722e74657374223b7d733a383a227265717569726564223b623a313b733a393a22636f6e666967757265223b733a31393a2261646d696e2f636f6e6669672f70656f706c65223b733a31313a227374796c65736865657473223b613a313a7b733a333a22616c6c223b613a313a7b733a383a22757365722e637373223b733a32313a226d6f64756c65732f757365722f757365722e637373223b7d7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
-('profiles/standard/standard.profile', 'standard', 'module', '', 1, 0, 0, 1000, 0x613a31353a7b733a343a226e616d65223b733a383a225374616e64617264223b733a31313a226465736372697074696f6e223b733a35313a22496e7374616c6c207769746820636f6d6d6f6e6c792075736564206665617475726573207072652d636f6e666967757265642e223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a32313a7b693a303b733a353a22626c6f636b223b693a313b733a353a22636f6c6f72223b693a323b733a373a22636f6d6d656e74223b693a333b733a31303a22636f6e7465787475616c223b693a343b733a393a2264617368626f617264223b693a353b733a343a2268656c70223b693a363b733a353a22696d616765223b693a373b733a343a226c697374223b693a383b733a343a226d656e75223b693a393b733a363a226e756d626572223b693a31303b733a373a226f7074696f6e73223b693a31313b733a343a2270617468223b693a31323b733a383a227461786f6e6f6d79223b693a31333b733a353a2264626c6f67223b693a31343b733a363a22736561726368223b693a31353b733a383a2273686f7274637574223b693a31363b733a373a22746f6f6c626172223b693a31373b733a373a226f7665726c6179223b693a31383b733a383a226669656c645f7569223b693a31393b733a343a2266696c65223b693a32303b733a333a22726466223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a373a227061636b616765223b733a353a224f74686572223b733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b733a363a2268696464656e223b623a313b733a383a227265717569726564223b623a313b733a31373a22646973747269627574696f6e5f6e616d65223b733a363a2244727570616c223b7d),
+('modules/user/user.module', 'user', 'module', '', 0, 0, -1, 0, 0x613a31353a7b733a343a226e616d65223b733a343a2255736572223b733a31313a226465736372697074696f6e223b733a34373a224d616e6167657320746865207573657220726567697374726174696f6e20616e64206c6f67696e2073797374656d2e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a323a7b693a303b733a31313a22757365722e6d6f64756c65223b693a313b733a393a22757365722e74657374223b7d733a383a227265717569726564223b623a313b733a393a22636f6e666967757265223b733a31393a2261646d696e2f636f6e6669672f70656f706c65223b733a31313a227374796c65736865657473223b613a313a7b733a333a22616c6c223b613a313a7b733a383a22757365722e637373223b733a32313a226d6f64756c65732f757365722f757365722e637373223b7d7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
+('profiles/standard/standard.profile', 'standard', 'module', '', 0, 0, 0, 1000, 0x613a31353a7b733a343a226e616d65223b733a383a225374616e64617264223b733a31313a226465736372697074696f6e223b733a35313a22496e7374616c6c207769746820636f6d6d6f6e6c792075736564206665617475726573207072652d636f6e666967757265642e223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a32313a7b693a303b733a353a22626c6f636b223b693a313b733a353a22636f6c6f72223b693a323b733a373a22636f6d6d656e74223b693a333b733a31303a22636f6e7465787475616c223b693a343b733a393a2264617368626f617264223b693a353b733a343a2268656c70223b693a363b733a353a22696d616765223b693a373b733a343a226c697374223b693a383b733a343a226d656e75223b693a393b733a363a226e756d626572223b693a31303b733a373a226f7074696f6e73223b693a31313b733a343a2270617468223b693a31323b733a383a227461786f6e6f6d79223b693a31333b733a353a2264626c6f67223b693a31343b733a363a22736561726368223b693a31353b733a383a2273686f7274637574223b693a31363b733a373a22746f6f6c626172223b693a31373b733a373a226f7665726c6179223b693a31383b733a383a226669656c645f7569223b693a31393b733a343a2266696c65223b693a32303b733a333a22726466223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a353a226d74696d65223b693a313431363432393438383b733a373a227061636b616765223b733a353a224f74686572223b733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b733a363a2268696464656e223b623a313b733a383a227265717569726564223b623a313b733a31373a22646973747269627574696f6e5f6e616d65223b733a363a2244727570616c223b7d),
 ('rcredits/rcredits.module', 'rcredits', 'module', '', 1, 1, 0, 0, 0x613a31303a7b733a343a226e616d65223b733a383a227243726564697473223b733a31313a226465736372697074696f6e223b733a36353a22436f7265207472616e73616374696f6e2070726f63657373696e6720666f7220746865207243726564697473206d757475616c206372656469742073797374656d223b733a373a227061636b616765223b733a383a227243726564697473223b733a343a22636f7265223b733a333a22372e78223b733a333a22706870223b733a333a22352e33223b733a353a2266696c6573223b613a393a7b693a303b733a31353a2272637265646974732e6d6f64756c65223b693a313b733a31363a2272637265646974732e696e7374616c6c223b693a323b733a32313a2272637265646974732d73657474696e67732e696e63223b693a333b733a393a227263726f6e2e696e63223b693a343b733a31373a2272637265646974732d7574696c2e696e63223b693a353b733a31323a2272637265646974732e696e63223b693a363b733a32303a2272637265646974732d6261636b656e642e696e63223b693a373b733a31353a2272637265646974732d64622e696e63223b693a383b733a31353a2261646d696e2f61646d696e2e696e63223b7d733a353a226d74696d65223b693a313431383530323538373b733a31323a22646570656e64656e63696573223b613a303a7b7d733a373a2276657273696f6e223b4e3b733a393a22626f6f747374726170223b693a303b7d),
 ('rcredits/rsmart/rsmart.module', 'rsmart', 'module', '', 1, 0, 0, 0, 0x613a31303a7b733a343a226e616d65223b733a33313a22724372656469747320536d6172742044657669636520496e74657266616365223b733a31313a226465736372697074696f6e223b733a34363a22536d6172742064657669636520496e7465726661636520746f207468652072437265646974732073797374656d2e223b733a373a227061636b616765223b733a383a227243726564697473223b733a343a22636f7265223b733a333a22372e78223b733a333a22706870223b733a333a22352e33223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a383a227263726564697473223b7d733a353a2266696c6573223b613a32393a7b693a303b733a31333a2272736d6172742e6d6f64756c65223b693a313b733a31303a2272736d6172742e696e63223b693a323b733a32313a2274657374732f4964656e7469667951522e74657374223b693a333b733a31383a2274657374732f537461727475702e74657374223b693a343b733a31393a2274657374732f5472616e736163742e74657374223b693a353b733a33333a2274657374732f5472616e736163744d656d626572546f4d656d6265722e74657374223b693a363b733a31353a2274657374732f556e646f2e74657374223b693a373b733a32343a2274657374732f556e646f436f6d706c657465642e74657374223b693a383b733a32323a2274657374732f556e646f50656e64696e672e74657374223b693a393b733a32313a2274657374732f556e646f41747461636b2e74657374223b693a31303b733a32333a2274657374732f496e73756666696369656e742e74657374223b693a31313b733a31373a2274657374732f4368616e67652e74657374223b693a31323b733a31363a2274657374732f6164686f632e74657374223b693a31333b733a32313a2274657374732f556e696c61746572616c2e74657374223b693a31343b733a32373a2274657374732f4964656e74696679437573746f6d65722e74657374223b693a31353b733a31393a2274657374732f4964656e746966792e74657374223b693a31363b733a31393a2274657374732f45786368616e67652e74657374223b693a31373b733a31353a2274657374732f54696d652e74657374223b693a31383b733a31383a2274657374732f4f66666c696e652e74657374223b693a31393b733a31383a2274657374732f5370656369616c2e74657374223b693a32303b733a31363a2274657374732f4a6f696e742e74657374223b693a32313b733a31383a22746573742f45786368616e67652e74657374223b693a32323b733a31383a22746573742f4964656e746966792e74657374223b693a32333b733a31353a22746573742f4a6f696e742e74657374223b693a32343b733a31373a22746573742f4f66666c696e652e74657374223b693a32353b733a31373a22746573742f537461727475702e74657374223b693a32363b733a31343a22746573742f54696d652e74657374223b693a32373b733a31383a22746573742f5472616e736163742e74657374223b693a32383b733a31343a22746573742f556e646f2e74657374223b7d733a353a226d74696d65223b693a313436363731373232323b733a373a2276657273696f6e223b4e3b733a393a22626f6f747374726170223b693a303b7d),
-('rcredits/rsms/rsms.module', 'rsms', 'module', '', 1, 0, 0, 0, 0x613a31303a7b733a343a226e616d65223b733a32323a22724372656469747320534d5320696e74657266616365223b733a31313a226465736372697074696f6e223b733a38343a22526571756573742065786368616e6765732c20696e666f726d6174696f6e2c20616e64206f74686572206f7065726174696f6e732066726f6d20796f75722063656c6c2070686f6e652c207573696e6720534d53223b733a373a227061636b616765223b733a383a227243726564697473223b733a343a22636f7265223b733a333a22372e78223b733a333a22706870223b733a333a22352e33223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a383a227263726564697473223b7d733a353a2266696c6573223b613a32313a7b693a303b733a31323a2272736d732e696e7374616c6c223b693a313b733a31313a2272736d732e6d6f64756c65223b693a323b733a383a2272736d732e696e63223b693a333b733a31333a2272736d732d63616c6c2e696e63223b693a343b733a32303a222e2e2f72637265646974732d7574696c2e696e63223b693a353b733a31393a222e2e2f72637265646974732d6170692e696e63223b693a363b733a31303a2272736d732e7374657073223b693a373b733a32313a22676865726b696e2f746573745f646566732e706870223b693a383b733a32383a2274657374732f416262726576696174696f6e73576f726b2e74657374223b693a393b733a32363a2274657374732f45786368616e6765466f72436173682e74657374223b693a31303b733a31383a2274657374732f47657448656c702e74657374223b693a31313b733a32353a2274657374732f476574496e666f726d6174696f6e2e74657374223b693a31323b733a34363a2274657374732f4f66666572546f45786368616e67655553446f6c6c617273466f7252437265646974732e74657374223b693a31333b733a33363a2274657374732f4f70656e416e4163636f756e74466f7254686543616c6c65722e74657374223b693a31343b733a31393a2274657374732f5472616e736163742e74657374223b693a31353b733a31353a2274657374732f556e646f2e74657374223b693a31363b733a32343a2274657374732f416262726576696174696f6e732e74657374223b693a31373b733a31353a2274657374732f42616e6b2e74657374223b693a31383b733a31393a2274657374732f45786368616e67652e74657374223b693a31393b733a31353a2274657374732f48656c702e74657374223b693a32303b733a32323a2274657374732f496e666f726d6174696f6e2e74657374223b7d733a353a226d74696d65223b693a313431343138373236343b733a373a2276657273696f6e223b4e3b733a393a22626f6f747374726170223b693a303b7d),
 ('rcredits/rweb/rweb.module', 'rweb', 'module', '', 1, 0, 0, 0, 0x613a31303a7b733a343a226e616d65223b733a32323a2272437265646974732057656220496e74657266616365223b733a31313a226465736372697074696f6e223b733a34353a225765622042726f7773657220496e7465726661636520746f207468652072437265646974732073797374656d2e223b733a373a227061636b616765223b733a383a227243726564697473223b733a343a22636f7265223b733a333a22372e78223b733a333a22706870223b733a333a22352e33223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a383a227263726564697473223b7d733a353a2266696c6573223b613a36343a7b693a303b733a31313a22727765622e6d6f64756c65223b693a313b733a383a22727765622e696e63223b693a323b733a31323a22727765622d7478732e696e63223b693a333b733a32323a222e2e2f61646d696e2f61646d696e2d7765622e696e63223b693a343b733a32343a222e2e2f61646d696e2f61646d696e2d666f726d732e696e63223b693a353b733a32383a2274657374732f414d656d6265724861734f7074696f6e732e74657374223b693a363b733a32363a2274657374732f45786368616e6765466f72436173682e74657374223b693a373b733a31383a2274657374732f47657448656c702e74657374223b693a383b733a32353a2274657374732f476574496e666f726d6174696f6e2e74657374223b693a393b733a34363a2274657374732f4f66666572546f45786368616e67655553446f6c6c617273466f7252437265646974732e74657374223b693a31303b733a33363a2274657374732f4f70656e416e4163636f756e74466f7254686543616c6c65722e74657374223b693a31313b733a31373a2274657374732f5369676e75702e74657374223b693a31323b733a32323a2274657374732f5472616e73616374696f6e2e74657374223b693a31333b733a31353a2274657374732f556e646f2e74657374223b693a31343b733a31393a2274657374732f5472616e736163742e74657374223b693a31353b733a31383a2274657374732f53756d6d6172792e74657374223b693a31363b733a32333a2274657374732f5472616e73616374696f6e732e74657374223b693a31373b733a32303a2274657374732f52656c6174696f6e732e74657374223b693a31383b733a31363a2274657374732f6d756c74692e74657374223b693a31393b733a32313a2274657374732f4d656d626572736869702e74657374223b693a32303b733a31383a2274657374732f5265616c5573642e74657374223b693a32313b733a32303a2274657374732f5472616e73616374522e74657374223b693a32323b733a32323a2274657374732f5472616e736163745573642e74657374223b693a32333b733a31373a2274657374732f5369676e696e2e74657374223b693a32343b733a31353a2274657374732f476966742e74657374223b693a32353b733a31353a2274657374732f466c6f772e74657374223b693a32363b733a31393a2274657374732f446f776e6c6f61642e74657374223b693a32373b733a31343a2274657374732f4765742e74657374223b693a32383b733a32373a2274657374732f496e636f6d706c6574655573645478732e74657374223b693a32393b733a31393a2274657374732f5363616e436172642e74657374223b693a33303b733a31383a2274657374732f436f6e746163742e74657374223b693a33313b733a32313a2274657374732f537461746973746963732e74657374223b693a33323b733a32303a2274657374732f436f6d6d756e6974792e74657374223b693a33333b733a31363a2274657374732f426f7865732e74657374223b693a33343b733a31353a2274657374732f42616e6b2e74657374223b693a33353b733a31373a2274657374732f4564697454782e74657374223b693a33363b733a31383a2274657374732f436f6d70616e792e74657374223b693a33373b733a32323a2274657374732f4d656d62657273686970322e74657374223b693a33383b733a31363a2274657374732f4a6f696e742e74657374223b693a33393b733a31393a2274657374732f45786368616e67652e74657374223b693a34303b733a32303a2274657374732f5265696d62757273652e74657374223b693a34313b733a31393a2274657374732f5369676e7570436f2e74657374223b693a34323b733a32323a2274657374732f507265666572656e6365732e74657374223b693a34333b733a31343a22746573742f42616e6b2e74657374223b693a34343b733a31393a22746573742f436f6d6d756e6974792e74657374223b693a34353b733a31373a22746573742f436f6d70616e792e74657374223b693a34363b733a31373a22746573742f436f6e746163742e74657374223b693a34373b733a31383a22746573742f446f776e6c6f61642e74657374223b693a34383b733a31363a22746573742f4564697454782e74657374223b693a34393b733a31383a22746573742f45786368616e67652e74657374223b693a35303b733a31343a22746573742f466c6f772e74657374223b693a35313b733a31343a22746573742f476966742e74657374223b693a35323b733a31353a22746573742f4a6f696e742e74657374223b693a35333b733a32303a22746573742f4d656d626572736869702e74657374223b693a35343b733a32313a22746573742f507265666572656e6365732e74657374223b693a35353b733a31393a22746573742f5265696d62757273652e74657374223b693a35363b733a31393a22746573742f52656c6174696f6e732e74657374223b693a35373b733a31383a22746573742f5363616e436172642e74657374223b693a35383b733a31363a22746573742f5369676e696e2e74657374223b693a35393b733a31363a22746573742f5369676e75702e74657374223b693a36303b733a31383a22746573742f5369676e7570436f2e74657374223b693a36313b733a31373a22746573742f53756d6d6172792e74657374223b693a36323b733a31383a22746573742f5472616e736163742e74657374223b693a36333b733a32323a22746573742f5472616e73616374696f6e732e74657374223b7d733a353a226d74696d65223b693a313436363731373232383b733a373a2276657273696f6e223b4e3b733a393a22626f6f747374726170223b693a303b7d),
 ('rcredits/theme/theme.info', 'rcredits', 'theme', 'themes/engines/phptemplate/phptemplate.engine', 1, 1, 0, 0, 0x613a31343a7b733a343a226e616d65223b733a383a227243726564697473223b733a31313a226465736372697074696f6e223b733a38303a224120766172696174696f6e206f6e20526573706f6e736976652042617274696b20287072652d72656c6561736520323031322d3038292c20666f72207468652072437265646974732053797374656d2e223b733a373a2276657273696f6e223b733a333a22312e30223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32393a2272637265646974732f7468656d652f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32383a2272637265646974732f7468656d652f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32393a2272637265646974732f7468656d652f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32383a2272637265646974732f7468656d652f6373732f7072696e742e637373223b7d7d733a373a22726567696f6e73223b613a31383a7b733a363a22686561646572223b733a363a22486561646572223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31313a22686967686c696768746564223b733a31313a22486967686c696768746564223b733a383a226163636f756e7473223b733a31363a224163636f756e742073656c6563746f72223b733a383a226665617475726564223b733a383a224665617475726564223b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a31333a22736964656261725f6669727374223b733a31333a2253696465626172206669727374223b733a31343a22736964656261725f7365636f6e64223b733a31343a2253696465626172207365636f6e64223b733a31343a2274726970747963685f6669727374223b733a31343a225472697074796368206669727374223b733a31353a2274726970747963685f6d6964646c65223b733a31353a225472697074796368206d6964646c65223b733a31333a2274726970747963685f6c617374223b733a31333a225472697074796368206c617374223b733a31383a22666f6f7465725f6669727374636f6c756d6e223b733a31393a22466f6f74657220666972737420636f6c756d6e223b733a31393a22666f6f7465725f7365636f6e64636f6c756d6e223b733a32303a22466f6f746572207365636f6e6420636f6c756d6e223b733a31383a22666f6f7465725f7468697264636f6c756d6e223b733a31393a22466f6f74657220746869726420636f6c756d6e223b733a31393a22666f6f7465725f666f75727468636f6c756d6e223b733a32303a22466f6f74657220666f7572746820636f6c756d6e223b733a363a22666f6f746572223b733a363a22466f6f746572223b7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2230223b7d733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a34303a2273697465732f616c6c2f7468656d65732f72637265646974732f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313335343831383432363b733a31343a22726567696f6e735f68696464656e223b613a323a7b693a303b733a383a22706167655f746f70223b693a313b733a31313a22706167655f626f74746f6d223b7d7d),
-('sites/all/modules/ coder/coder.module', 'coder', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a353a22436f646572223b733a31313a226465736372697074696f6e223b733a36363a22446576656c6f706572204d6f64756c6520746861742061737369737473207769746820636f64652072657669657720616e642076657273696f6e2075706772616465223b733a373a227061636b616765223b733a31313a22446576656c6f706d656e74223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a313a7b693a303b733a31323a22636f6465722e6d6f64756c65223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a353a22636f646572223b733a393a22646174657374616d70223b733a31303a2231333235323436373139223b733a353a226d74696d65223b693a313332353236313132303b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
-('sites/all/modules/ coder/coder_review/coder_review.module', 'coder_review', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a31323a22436f64657220526576696577223b733a31313a226465736372697074696f6e223b733a3131373a22446576656c6f706572206d6f64756c65207768696368207265766965777320796f757220636f6465206964656e74696679696e6720636f64696e67207374796c652070726f626c656d7320616e64207768657265207570646174657320746f2074686520415049206172652072657175697265642e223b733a373a227061636b616765223b733a31313a22446576656c6f706d656e74223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a22636f646572223b7d733a353a2266696c6573223b613a383a7b693a303b733a33333a2274657374732f636f6465725f7265766965775f746573745f636173652e74696e63223b693a313b733a32363a2274657374732f636f6465725f7265766965775f36782e74657374223b693a323b733a32363a2274657374732f636f6465725f7265766965775f37782e74657374223b693a333b733a33313a2274657374732f636f6465725f7265766965775f636f6d6d656e742e74657374223b693a343b733a32383a2274657374732f636f6465725f7265766965775f6931386e2e74657374223b693a353b733a33323a2274657374732f636f6465725f7265766965775f73656375726974792e74657374223b693a363b733a32373a2274657374732f636f6465725f7265766965775f73716c2e74657374223b693a373b733a32393a2274657374732f636f6465725f7265766965775f7374796c652e74657374223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a353a22636f646572223b733a393a22646174657374616d70223b733a31303a2231333235323436373139223b733a353a226d74696d65223b693a313332353236313132303b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
-('sites/all/modules/ coder/coder_review/tests/coder_review_test/coder_review_test.module', 'coder_review_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31373a22436f646572205265766965772054657374223b733a373a227061636b616765223b733a353a22436f646572223b733a343a22636f7265223b733a333a22372e78223b733a363a2268696464656e223b623a313b733a353a2266696c6573223b613a313a7b693a303b733a32343a22636f6465725f7265766965775f746573742e6d6f64756c65223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a353a22636f646572223b733a393a22646174657374616d70223b733a31303a2231333235323436373139223b733a353a226d74696d65223b693a313332353236313132303b733a31323a22646570656e64656e63696573223b613a303a7b7d733a31313a226465736372697074696f6e223b733a303a22223b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
-('sites/all/modules/ coder/coder_upgrade/coder_upgrade.module', 'coder_upgrade', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31333a22436f6465722055706772616465223b733a31313a226465736372697074696f6e223b733a39333a224d6f64696669657320736f7572636520636f646520746f206173736973742077697468207468652075706772616465206f662061206d6f64756c6520666f72206368616e67657320746f20612072656c6965642075706f6e204150492e223b733a373a227061636b616765223b733a31313a22446576656c6f706d656e74223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a2267706c6962223b7d733a353a2266696c6573223b613a313a7b693a303b733a31383a22636f6465725f757067726164652e74657374223b7d733a393a22636f6e666967757265223b733a34373a2261646d696e2f636f6e6669672f646576656c6f706d656e742f636f6465722f757067726164652f73657474696e6773223b733a343a22636f7265223b733a333a22372e78223b733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a353a22636f646572223b733a393a22646174657374616d70223b733a31303a2231333235323436373139223b733a353a226d74696d65223b693a313332353236313132303b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
+('sites/all/modules/ coder2/coder.module', 'coder', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a353a22436f646572223b733a31313a226465736372697074696f6e223b733a36363a22446576656c6f706572204d6f64756c6520746861742061737369737473207769746820636f64652072657669657720616e642076657273696f6e2075706772616465223b733a373a227061636b616765223b733a31313a22446576656c6f706d656e74223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a313a7b693a303b733a31323a22636f6465722e6d6f64756c65223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a353a22636f646572223b733a393a22646174657374616d70223b733a31303a2231333235323436373139223b733a353a226d74696d65223b693a313332353236313132303b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
+('sites/all/modules/ coder2/coder_review/coder_review.module', 'coder_review', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a31323a22436f64657220526576696577223b733a31313a226465736372697074696f6e223b733a3131373a22446576656c6f706572206d6f64756c65207768696368207265766965777320796f757220636f6465206964656e74696679696e6720636f64696e67207374796c652070726f626c656d7320616e64207768657265207570646174657320746f2074686520415049206172652072657175697265642e223b733a373a227061636b616765223b733a31313a22446576656c6f706d656e74223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a22636f646572223b7d733a353a2266696c6573223b613a383a7b693a303b733a33333a2274657374732f636f6465725f7265766965775f746573745f636173652e74696e63223b693a313b733a32363a2274657374732f636f6465725f7265766965775f36782e74657374223b693a323b733a32363a2274657374732f636f6465725f7265766965775f37782e74657374223b693a333b733a33313a2274657374732f636f6465725f7265766965775f636f6d6d656e742e74657374223b693a343b733a32383a2274657374732f636f6465725f7265766965775f6931386e2e74657374223b693a353b733a33323a2274657374732f636f6465725f7265766965775f73656375726974792e74657374223b693a363b733a32373a2274657374732f636f6465725f7265766965775f73716c2e74657374223b693a373b733a32393a2274657374732f636f6465725f7265766965775f7374796c652e74657374223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a353a22636f646572223b733a393a22646174657374616d70223b733a31303a2231333235323436373139223b733a353a226d74696d65223b693a313332353236313132303b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
+('sites/all/modules/ coder2/coder_review/tests/coder_review_test/coder_review_test.module', 'coder_review_test', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31373a22436f646572205265766965772054657374223b733a373a227061636b616765223b733a353a22436f646572223b733a343a22636f7265223b733a333a22372e78223b733a363a2268696464656e223b623a313b733a353a2266696c6573223b613a313a7b693a303b733a32343a22636f6465725f7265766965775f746573742e6d6f64756c65223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a353a22636f646572223b733a393a22646174657374616d70223b733a31303a2231333235323436373139223b733a353a226d74696d65223b693a313332353236313132303b733a31323a22646570656e64656e63696573223b613a303a7b7d733a31313a226465736372697074696f6e223b733a303a22223b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
+('sites/all/modules/ coder2/coder_upgrade/coder_upgrade.module', 'coder_upgrade', 'module', '', 0, 0, -1, 0, 0x613a31333a7b733a343a226e616d65223b733a31333a22436f6465722055706772616465223b733a31313a226465736372697074696f6e223b733a39333a224d6f64696669657320736f7572636520636f646520746f206173736973742077697468207468652075706772616465206f662061206d6f64756c6520666f72206368616e67657320746f20612072656c6965642075706f6e204150492e223b733a373a227061636b616765223b733a31313a22446576656c6f706d656e74223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a2267706c6962223b7d733a353a2266696c6573223b613a313a7b693a303b733a31383a22636f6465725f757067726164652e74657374223b7d733a393a22636f6e666967757265223b733a34373a2261646d696e2f636f6e6669672f646576656c6f706d656e742f636f6465722f757067726164652f73657474696e6773223b733a343a22636f7265223b733a333a22372e78223b733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a353a22636f646572223b733a393a22646174657374616d70223b733a31303a2231333235323436373139223b733a353a226d74696d65223b693a313332353236313132303b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('sites/all/modules/devel/devel.module', 'devel', 'module', '', 1, 1, 7004, 88, 0x613a31343a7b733a343a226e616d65223b733a353a22446576656c223b733a31313a226465736372697074696f6e223b733a35323a22566172696f757320626c6f636b732c2070616765732c20616e642066756e6374696f6e7320666f7220646576656c6f706572732e223b733a373a227061636b616765223b733a31313a22446576656c6f706d656e74223b733a343a22636f7265223b733a333a22372e78223b733a393a22636f6e666967757265223b733a33303a2261646d696e2f636f6e6669672f646576656c6f706d656e742f646576656c223b733a343a2274616773223b613a313a7b693a303b733a393a22646576656c6f706572223b7d733a353a2266696c6573223b613a323a7b693a303b733a31303a22646576656c2e74657374223b693a313b733a31343a22646576656c2e6d61696c2e696e63223b7d733a373a2276657273696f6e223b733a31343a22372e782d312e322b33332d646576223b733a373a2270726f6a656374223b733a353a22646576656c223b733a393a22646174657374616d70223b733a31303a2231333335373434353832223b733a353a226d74696d65223b693a313333353735383938323b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('sites/all/modules/devel/devel_generate/devel_generate.module', 'devel_generate', 'module', '', 0, 0, -1, 0, 0x613a31343a7b733a343a226e616d65223b733a31343a22446576656c2067656e6572617465223b733a31313a226465736372697074696f6e223b733a34383a2247656e65726174652064756d6d792075736572732c206e6f6465732c20616e64207461786f6e6f6d79207465726d732e223b733a373a227061636b616765223b733a31313a22446576656c6f706d656e74223b733a343a22636f7265223b733a333a22372e78223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a353a22646576656c223b7d733a343a2274616773223b613a313a7b693a303b733a393a22646576656c6f706572223b7d733a393a22636f6e666967757265223b733a33333a2261646d696e2f636f6e6669672f646576656c6f706d656e742f67656e6572617465223b733a373a2276657273696f6e223b733a31343a22372e782d312e322b33332d646576223b733a373a2270726f6a656374223b733a353a22646576656c223b733a393a22646174657374616d70223b733a31303a2231333335373434353832223b733a353a226d74696d65223b693a313333353735383938323b733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
 ('sites/all/modules/devel/devel_node_access.module', 'devel_node_access', 'module', '', 0, 0, -1, 0, 0x613a31343a7b733a343a226e616d65223b733a31373a22446576656c206e6f646520616363657373223b733a31313a226465736372697074696f6e223b733a36383a22446576656c6f70657220626c6f636b7320616e64207061676520696c6c757374726174696e672072656c6576616e74206e6f64655f616363657373207265636f7264732e223b733a373a227061636b616765223b733a31313a22446576656c6f706d656e74223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a343a226d656e75223b7d733a343a22636f7265223b733a333a22372e78223b733a393a22636f6e666967757265223b733a33303a2261646d696e2f636f6e6669672f646576656c6f706d656e742f646576656c223b733a343a2274616773223b613a313a7b693a303b733a393a22646576656c6f706572223b7d733a373a2276657273696f6e223b733a31343a22372e782d312e322b33332d646576223b733a373a2270726f6a656374223b733a353a22646576656c223b733a393a22646174657374616d70223b733a31303a2231333335373434353832223b733a353a226d74696d65223b693a313333353735383938323b733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
@@ -32486,9 +32004,8 @@ INSERT INTO `system` (`filename`, `name`, `type`, `owner`, `status`, `bootstrap`
 ('sites/all/modules/smsframework/modules/sms_track/sms_track.module', 'sms_track', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a383a22547261636b696e67223b733a31313a226465736372697074696f6e223b733a36323a224d65737361676520617263686976696e6720616e642064656c697665727920747261636b696e6720666f722074686520534d53204672616d65776f726b2e223b733a343a22636f7265223b733a333a22372e78223b733a373a227061636b616765223b733a31333a22534d53204672616d65776f726b223b733a31323a22646570656e64656e63696573223b613a323a7b693a303b733a333a22736d73223b693a313b733a353a227669657773223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a31323a22736d736672616d65776f726b223b733a393a22646174657374616d70223b733a31303a2231333336363533373331223b733a353a226d74696d65223b693a313333363636383133323b733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
 ('sites/all/modules/smsframework/modules/sms_user/sms_user.module', 'sms_user', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a383a22534d532055736572223b733a31313a226465736372697074696f6e223b733a36343a2250726f766964657320696e746567726174696f6e206265747765656e2074686520534d53204672616d65776f726b20616e642044727570616c2075736572732e223b733a31323a22646570656e64656e63696573223b613a323a7b693a303b733a333a22736d73223b693a313b733a353a22746f6b656e223b7d733a373a227061636b616765223b733a31333a22534d53204672616d65776f726b223b733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a333a7b693a303b733a34323a22696e636c756465732f736d735f757365725f68616e646c65725f6669656c645f6e756d6265722e696e63223b693a313b733a34323a22696e636c756465732f736d735f757365725f68616e646c65725f6669656c645f7374617475732e696e63223b693a323b733a34333a22696e636c756465732f736d735f757365725f68616e646c65725f66696c7465725f7374617475732e696e63223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a31323a22736d736672616d65776f726b223b733a393a22646174657374616d70223b733a31303a2231333336363533373331223b733a353a226d74696d65223b693a313333363636383133323b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('sites/all/modules/smsframework/modules/sms_valid/sms_valid.module', 'sms_valid', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a31303a2256616c69646174696f6e223b733a31313a226465736372697074696f6e223b733a35373a2250726f7669646573206e756d6265722076616c69646174696f6e20666561747572657320746f2074686520534d53204672616d65776f726b2e223b733a343a22636f7265223b733a333a22372e78223b733a373a227061636b616765223b733a31333a22534d53204672616d65776f726b223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a333a22736d73223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a31323a22736d736672616d65776f726b223b733a393a22646174657374616d70223b733a31303a2231333336363533373331223b733a353a226d74696d65223b693a313333363636383133323b733a333a22706870223b733a353a22352e322e34223b733a353a2266696c6573223b613a303a7b7d733a393a22626f6f747374726170223b693a303b7d),
-('sites/all/modules/smsframework/sms.module', 'sms', 'module', '', 1, 0, 1, 0, 0x613a31323a7b733a343a226e616d65223b733a31333a22534d53204672616d65776f726b223b733a31313a226465736372697074696f6e223b733a39373a2250726f7669646573206120657874656e7369626c6520415049207468617420666163696c69746174657320636f6d6d756e69636174696f6e206265747765656e2044727570616c20616e6420766172696f757320534d532067617465776179732e223b733a373a227061636b616765223b733a31333a22534d53204672616d65776f726b223b733a343a22636f7265223b733a333a22372e78223b733a373a2270726f6a656374223b733a31323a22736d736672616d65776f726b223b733a353a2266696c6573223b613a353a7b693a303b733a31333a22736d732e61646d696e2e696e63223b693a313b733a31313a22736d732e696e7374616c6c223b693a323b733a31303a22736d732e6d6f64756c65223b693a333b733a31343a22736d732e746f6b656e732e696e63223b693a343b733a31333a22736d732e72756c65732e696e63223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a393a22646174657374616d70223b733a31303a2231333336363533373331223b733a353a226d74696d65223b693a313333363636383133323b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
-('sites/all/modules/sms_twilio/sms_twilio.module', 'sms_twilio', 'module', '', 1, 0, 0, 0, 0x613a31323a7b733a343a226e616d65223b733a363a225477696c696f223b733a31313a226465736372697074696f6e223b733a35363a22416c6c6f77732074686520534d53204672616d65776f726b20746f20757365207477696c696f2e636f6d206173206120676174657761792e223b733a373a227061636b616765223b733a31333a22534d53204672616d65776f726b223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a333a22736d73223b7d733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a313a7b693a303b733a31373a22736d735f7477696c696f2e6d6f64756c65223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a31303a22736d735f7477696c696f223b733a393a22646174657374616d70223b733a31303a2231333138313633303430223b733a353a226d74696d65223b693a313333313937303834323b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
-('themes/bartik/bartik.info', 'bartik', 'theme', 'themes/engines/phptemplate/phptemplate.engine', 0, 0, -1, 0, 0x613a31373a7b733a343a226e616d65223b733a363a2242617274696b223b733a31313a226465736372697074696f6e223b733a34383a224120666c657869626c652c207265636f6c6f7261626c65207468656d652077697468206d616e7920726567696f6e732e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a323a7b733a333a22616c6c223b613a333a7b733a31343a226373732f6c61796f75742e637373223b733a32383a227468656d65732f62617274696b2f6373732f6c61796f75742e637373223b733a31333a226373732f7374796c652e637373223b733a32373a227468656d65732f62617274696b2f6373732f7374796c652e637373223b733a31343a226373732f636f6c6f72732e637373223b733a32383a227468656d65732f62617274696b2f6373732f636f6c6f72732e637373223b7d733a353a227072696e74223b613a313a7b733a31333a226373732f7072696e742e637373223b733a32373a227468656d65732f62617274696b2f6373732f7072696e742e637373223b7d7d733a373a22726567696f6e73223b613a31373a7b733a363a22686561646572223b733a363a22486561646572223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31313a22686967686c696768746564223b733a31313a22486967686c696768746564223b733a383a226665617475726564223b733a383a224665617475726564223b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a31333a22736964656261725f6669727374223b733a31333a2253696465626172206669727374223b733a31343a22736964656261725f7365636f6e64223b733a31343a2253696465626172207365636f6e64223b733a31343a2274726970747963685f6669727374223b733a31343a225472697074796368206669727374223b733a31353a2274726970747963685f6d6964646c65223b733a31353a225472697074796368206d6964646c65223b733a31333a2274726970747963685f6c617374223b733a31333a225472697074796368206c617374223b733a31383a22666f6f7465725f6669727374636f6c756d6e223b733a31393a22466f6f74657220666972737420636f6c756d6e223b733a31393a22666f6f7465725f7365636f6e64636f6c756d6e223b733a32303a22466f6f746572207365636f6e6420636f6c756d6e223b733a31383a22666f6f7465725f7468697264636f6c756d6e223b733a31393a22466f6f74657220746869726420636f6c756d6e223b733a31393a22666f6f7465725f666f75727468636f6c756d6e223b733a32303a22466f6f74657220666f7572746820636f6c756d6e223b733a363a22666f6f746572223b733a363a22466f6f746572223b7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2230223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a32383a227468656d65732f62617274696b2f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313431363432393438383b733a31343a22726567696f6e735f68696464656e223b613a323a7b693a303b733a383a22706167655f746f70223b693a313b733a31313a22706167655f626f74746f6d223b7d7d),
+('sites/all/modules/smsframework/sms.module', 'sms', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a31333a22534d53204672616d65776f726b223b733a31313a226465736372697074696f6e223b733a39373a2250726f7669646573206120657874656e7369626c6520415049207468617420666163696c69746174657320636f6d6d756e69636174696f6e206265747765656e2044727570616c20616e6420766172696f757320534d532067617465776179732e223b733a373a227061636b616765223b733a31333a22534d53204672616d65776f726b223b733a343a22636f7265223b733a333a22372e78223b733a373a2270726f6a656374223b733a31323a22736d736672616d65776f726b223b733a353a2266696c6573223b613a353a7b693a303b733a31333a22736d732e61646d696e2e696e63223b693a313b733a31313a22736d732e696e7374616c6c223b693a323b733a31303a22736d732e6d6f64756c65223b693a333b733a31343a22736d732e746f6b656e732e696e63223b693a343b733a31333a22736d732e72756c65732e696e63223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a393a22646174657374616d70223b733a31303a2231333336363533373331223b733a353a226d74696d65223b693a313333363636383133323b733a31323a22646570656e64656e63696573223b613a303a7b7d733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
+('sites/all/modules/sms_twilio/sms_twilio.module', 'sms_twilio', 'module', '', 0, 0, -1, 0, 0x613a31323a7b733a343a226e616d65223b733a363a225477696c696f223b733a31313a226465736372697074696f6e223b733a35363a22416c6c6f77732074686520534d53204672616d65776f726b20746f20757365207477696c696f2e636f6d206173206120676174657761792e223b733a373a227061636b616765223b733a31333a22534d53204672616d65776f726b223b733a31323a22646570656e64656e63696573223b613a313a7b693a303b733a333a22736d73223b7d733a343a22636f7265223b733a333a22372e78223b733a353a2266696c6573223b613a313a7b693a303b733a31373a22736d735f7477696c696f2e6d6f64756c65223b7d733a373a2276657273696f6e223b733a31313a22372e782d312e782d646576223b733a373a2270726f6a656374223b733a31303a22736d735f7477696c696f223b733a393a22646174657374616d70223b733a31303a2231333138313633303430223b733a353a226d74696d65223b693a313333313937303834323b733a333a22706870223b733a353a22352e322e34223b733a393a22626f6f747374726170223b693a303b7d),
 ('themes/seven/seven.info', 'seven', 'theme', 'themes/engines/phptemplate/phptemplate.engine', 1, 0, -1, 0, 0x613a31373a7b733a343a226e616d65223b733a353a22536576656e223b733a31313a226465736372697074696f6e223b733a36353a22412073696d706c65206f6e652d636f6c756d6e2c207461626c656c6573732c20666c7569642077696474682061646d696e697374726174696f6e207468656d652e223b733a373a227061636b616765223b733a343a22436f7265223b733a373a2276657273696f6e223b733a343a22372e3334223b733a343a22636f7265223b733a333a22372e78223b733a31313a227374796c65736865657473223b613a313a7b733a363a2273637265656e223b613a323a7b733a393a2272657365742e637373223b733a32323a227468656d65732f736576656e2f72657365742e637373223b733a393a227374796c652e637373223b733a32323a227468656d65732f736576656e2f7374796c652e637373223b7d7d733a383a2273657474696e6773223b613a313a7b733a32303a2273686f72746375745f6d6f64756c655f6c696e6b223b733a313a2231223b7d733a373a22726567696f6e73223b613a353a7b733a373a22636f6e74656e74223b733a373a22436f6e74656e74223b733a343a2268656c70223b733a343a2248656c70223b733a383a22706167655f746f70223b733a383a225061676520746f70223b733a31313a22706167655f626f74746f6d223b733a31313a225061676520626f74746f6d223b733a31333a22736964656261725f6669727374223b733a31333a2246697273742073696465626172223b7d733a31343a22726567696f6e735f68696464656e223b613a333a7b693a303b733a31333a22736964656261725f6669727374223b693a313b733a383a22706167655f746f70223b693a323b733a31313a22706167655f626f74746f6d223b7d733a373a2270726f6a656374223b733a363a2264727570616c223b733a393a22646174657374616d70223b733a31303a2231343136343239343838223b733a363a22656e67696e65223b733a31313a2270687074656d706c617465223b733a383a226665617475726573223b613a393a7b693a303b733a343a226c6f676f223b693a313b733a373a2266617669636f6e223b693a323b733a343a226e616d65223b693a333b733a363a22736c6f67616e223b693a343b733a31373a226e6f64655f757365725f70696374757265223b693a353b733a32303a22636f6d6d656e745f757365725f70696374757265223b693a363b733a32353a22636f6d6d656e745f757365725f766572696669636174696f6e223b693a373b733a393a226d61696e5f6d656e75223b693a383b733a31343a227365636f6e646172795f6d656e75223b7d733a31303a2273637265656e73686f74223b733a32373a227468656d65732f736576656e2f73637265656e73686f742e706e67223b733a333a22706870223b733a353a22352e322e34223b733a373a2273637269707473223b613a303a7b7d733a353a226d74696d65223b693a313431363432393438383b7d);
 
 -- --------------------------------------------------------
@@ -32521,9 +32038,11 @@ CREATE TABLE IF NOT EXISTS `users` (
   `phone` varchar(255) DEFAULT NULL COMMENT 'contact phone (no country code, no punctuation)',
   `city` varchar(60) DEFAULT NULL COMMENT 'municipality',
   `state` int(5) DEFAULT NULL COMMENT 'state/province index',
-  `postalCode` varchar(255) DEFAULT NULL COMMENT 'postal code for physical address (no punctuation)',
+  `zip` varchar(255) DEFAULT NULL COMMENT 'postal code for physical address (no punctuation)',
   `country` int(4) DEFAULT NULL COMMENT 'country index',
+  `postalAddr` varchar(255) DEFAULT NULL COMMENT 'complete postal address',
   `notes` longtext COMMENT 'miscellaneous notes about the user or the account',
+  `tickle` int(11) NOT NULL DEFAULT '0' COMMENT 'Unixtime to tickle an admin about this account (or negative the date/time settled)',
   `signed` int(11) NOT NULL DEFAULT '0' COMMENT 'when did this person sign the Common Good Agreement',
   `signedBy` varchar(60) DEFAULT NULL COMMENT 'who signed the agreement (on behalf of the account)',
   `rebate` decimal(5,3) NOT NULL DEFAULT '10.000' COMMENT 'current rebate percentage (sales bonus is proportionate)',
@@ -32531,20 +32050,21 @@ CREATE TABLE IF NOT EXISTS `users` (
   `saveWeekly` decimal(11,2) NOT NULL DEFAULT '0.00' COMMENT 'chosen amount to increase savingsAdd by, weekly',
   `floor` decimal(11,2) NOT NULL DEFAULT '0.00' COMMENT 'how low can balance go (normally zero or less)',
   `minimum` decimal(11,2) DEFAULT NULL COMMENT 'chosen minimum balance (for automatic refills)',
+  `maximum` decimal(11,2) NOT NULL DEFAULT '-1.00' COMMENT 'maximum balance (send excess to bank)',
   `rewards` decimal(11,2) NOT NULL DEFAULT '0.00' COMMENT 'total incentive rewards to date (cached)',
-  `r` decimal(11,2) NOT NULL DEFAULT '0.00' COMMENT 'balance, including rewards (cached)',
-  `share` decimal(6,3) NOT NULL DEFAULT '0.000' COMMENT 'percentage of rebates/bonuses to donate to CGF',
+  `share` decimal(6,3) NOT NULL DEFAULT '0.000' COMMENT 'percentage of rebates/bonuses to donate to CG',
   `crumbs` decimal(6,3) DEFAULT NULL COMMENT 'percentage of each transaction to donate to CG (half to community)',
+  `balance` decimal(11,2) NOT NULL DEFAULT '0.00' COMMENT 'balance, not including rewards (cached)',
   `committed` decimal(11,2) NOT NULL DEFAULT '0.00' COMMENT 'amount committed (for donations to CGF)',
   `activated` int(11) NOT NULL DEFAULT '0' COMMENT 'when was the account activated',
   `helper` bigint(20) DEFAULT NULL COMMENT 'who invited this person or company',
-  `photo` longblob COMMENT 'member photo',
   `risk` float DEFAULT NULL COMMENT 'today''s suspiciousness rating',
   `risks` bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT 'list of risk factors',
   `trust` float DEFAULT NULL COMMENT 'how much this person is trusted by others in the community',
   `changes` longblob COMMENT 'changes made to the account',
   `stats` mediumtext COMMENT 'account statistics',
   `notices` tinytext COMMENT 'when to send what kind of notice',
+  `lastip` varchar(39) DEFAULT NULL COMMENT 'latest IP address used',
   `special` longtext COMMENT 'special transient data',
   `iCode` int(11) DEFAULT NULL COMMENT 'sequence number of helper invitation'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Stores user data.';
@@ -32553,11 +32073,13 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`uid`, `name`, `pass`, `mail`, `theme`, `signature`, `signature_format`, `created`, `access`, `login`, `status`, `timezone`, `language`, `picture`, `init`, `data`, `flags`, `community`, `secure`, `fullName`, `phone`, `city`, `state`, `postalCode`, `country`, `notes`, `signed`, `signedBy`, `rebate`, `savingsAdd`, `saveWeekly`, `floor`, `minimum`, `rewards`, `r`, `share`, `crumbs`, `committed`, `activated`, `helper`, `photo`, `risk`, `risks`, `trust`, `changes`, `stats`, `notices`, `special`, `iCode`) VALUES
-(-410044001, 'NEW.', '', '!d6e7e3bed7ffb532679c202adf2d3872a58a4ff654f697452e3eefd505c57dab', '', '', NULL, 1489089460, 1489089460, 1489089460, 1, NULL, '', 0, '', 'a:2:{s:9:"legalName";s:24:"Common Good Western Mass";s:9:"stepsDone";a:8:{s:7:"contact";b:0;s:6:"verify";b:0;s:4:"sign";b:0;s:6:"donate";b:0;s:5:"prefs";b:0;s:5:"photo";b:0;s:7:"company";b:0;s:9:"relations";b:0;}}', 70, -410044001, 0x637e31efeddf47367247f721f8c66e7668e451cd6b158d924cfc21314716457bb7aa9466e27a2c2a260df17bad67b85176404d442e87985eada6a8db05f9289261d9c9ffd0e673b0c58d9c5f62e847399ed4b46b3cb09a0b13e8cc946e708bfe324daae3e19eb309a166f7e953d2b7c65879e8606cb5d7e3885602169a7e3ea935bbd6758515eff06ae2d4de87047072c4b0008280d967cd1c23f05eaf522541d54d3f4541061fe69455c3dd23bd965c6e6d6e8629022767187cadd216bf9feb0eeb6e, 'Common Good Western Mass', NULL, NULL, 1020, '', 1228, NULL, 0, NULL, '0.000', '0.00', '0.00', '0.00', NULL, '0.00', '0.00', '0.000', NULL, '0.00', 0, NULL, NULL, NULL, 0, NULL, 0x613a313a7b693a313438393038393436313b613a313a7b733a353a22666c616773223b693a36383b7d7d, NULL, NULL, NULL, NULL),
-(0, '', '', '', '', '', NULL, 0, 0, 0, 0, NULL, '', 0, NULL, NULL, 0, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '10.000', '0.00', '0.00', '0.00', NULL, '0.00', '0.00', '0.000', NULL, '0.00', 0, NULL, NULL, NULL, 0, 1, NULL, NULL, NULL, NULL, NULL),
-(1, 'admin', '', '!d6e7e3bed7ffb532679c202adf2d3872a58a4ff654f697452e3eefd505c57dab', '', '', NULL, 1489089460, 1489089460, 1489089460, 1, NULL, '', 0, '', 'a:2:{s:9:"legalName";s:20:"System Administrator";s:9:"stepsDone";a:0:{}}', 1073741888, 0, 0x637e318fc74ecc1cea0c6beb2f81eec77c3601b80e77871e4a72f6baa37b0c78c342c1c8ed3388998b66249704c6293402086fc8f32e2c1cdc47530019e74491a755db36d560165dec6a1fb84dd2d326f8bbd4ef266caf3e92e4954a6cf6aac703ebf2fdd6c52e3867e8b26bba80696e4563b8a6563e79dc27ec9cec17ef08ba43b9a535c116eb1c30f0370f2fdc14bd2c288598006966b38bec4ffe867c14c4677eb5, 'System Administrator', NULL, NULL, NULL, '', 0, NULL, 0, NULL, '0.000', '0.00', '0.00', '0.00', NULL, '0.00', '0.00', '0.000', NULL, '0.00', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL),
-(410044002, 'cgf', '', '!1f1135e36cc9e3bb60a76784e47de465ec11467b99752aa18b7027c867a5e310', '', '', NULL, 1489089461, 1489089461, 1489089461, 1, NULL, '', 0, '', 'a:2:{s:9:"legalName";s:11:"Common Good";s:9:"stepsDone";a:8:{s:7:"contact";b:0;s:6:"verify";b:0;s:4:"sign";b:0;s:6:"donate";b:0;s:5:"prefs";b:0;s:5:"photo";b:0;s:7:"company";b:0;s:9:"relations";b:0;}}', 71, -410044001, 0x637e31a6f975e9f93a09f530bcf3081269bec7534bbc7483d3fdc090270d0dbceda095ea57a7ee1c8bce197232a017d8448f62f8d6f4714ae763085c4fdf1da228a749fbb1b034a2a339c2cf3765358973724f0d402a60a036109ace43d530c4f70f23301b24b1940d56d5ec9aff8c71cb76d9630efe0bf5571f6ebb541b9c65ae1816, 'Common Good', '!95b597379bd887c35560d9493bb5c3191d7c37d94ff60f6f602c01bc78ac434b', 'Ashfield', 1020, '01330', 1228, NULL, 0, NULL, '10.000', '0.00', '0.00', '0.00', NULL, '0.00', '0.00', '0.000', NULL, '0.00', 0, 1, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO `users` (`uid`, `name`, `pass`, `mail`, `theme`, `signature`, `signature_format`, `created`, `access`, `login`, `status`, `timezone`, `language`, `picture`, `init`, `data`, `flags`, `community`, `secure`, `fullName`, `phone`, `city`, `state`, `zip`, `country`, `postalAddr`, `notes`, `tickle`, `signed`, `signedBy`, `rebate`, `savingsAdd`, `saveWeekly`, `floor`, `minimum`, `maximum`, `rewards`, `share`, `crumbs`, `balance`, `committed`, `activated`, `helper`, `risk`, `risks`, `trust`, `changes`, `stats`, `notices`, `lastip`, `special`, `iCode`) VALUES
+(-410044001, 'NEW.', '', '!c0596f89091740bf94823f94148efdbb677a02895229832c3ba89ed47479bf70', '', '', NULL, 1503777673, 1503777673, 1503777673, 1, NULL, '', 0, '', 'a:2:{s:9:"legalName";s:24:"Common Good Western Mass";s:9:"stepsDone";a:8:{s:7:"contact";b:0;s:6:"verify";b:0;s:4:"sign";b:0;s:6:"donate";b:0;s:5:"prefs";b:0;s:7:"company";b:0;s:9:"relations";b:0;s:5:"photo";b:0;}}', 86, -410044001, 0x637e3149fdd9bd02a36df0c1bedb3e11f66e0ce07a24f97d28204f1068478be468828f3bde117d09216fa475becbdfc1457e6727125d376d23cc5a5bb9f362a77e11fe32cecad7abb7bf677a83a6ab7369276b41174db38c40d305fc31d1d8213bafd81882c70b2f2c5f2cef11bb8c7f6ce41aa5c01b27bb9dccd6b4ca6980702bc6ef86ce46af8031e93bf7c8e1e6c0d2acc7c05e2b6cada55430bde0abde8b2bd10427df089a59ffbf610a07db51fe50091ddf900bba6d0afee4886238f2515e4059, 'Common Good Western Mass', NULL, NULL, 1020, '', 1228, NULL, NULL, 0, 0, NULL, '0.000', '0.00', '0.00', '0.00', NULL, '-1.00', '0.00', '0.000', NULL, '0.00', '0.00', 0, NULL, NULL, 0, NULL, 0x613a323a7b693a313530333737373637343b613a313a7b733a353a22666c616773223b693a37303b7d693a313530333737373637333b613a313a7b733a353a22666c616773223b693a36383b7d7d, NULL, NULL, NULL, NULL, NULL),
+(0, '', '', '', '', '', NULL, 0, 0, 0, 0, NULL, '', 0, '', NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, '10.000', '0.00', '0.00', '0.00', NULL, '-1.00', '0.00', '0.000', NULL, '0.00', '0.00', 0, NULL, NULL, 0, 1, NULL, NULL, NULL, NULL, NULL, NULL),
+(1, 'admin', '', '!c0596f89091740bf94823f94148efdbb677a02895229832c3ba89ed47479bf70', '', '', NULL, 1503777673, 1503777675, 1503777675, 1, NULL, '', 0, '', 'a:2:{s:9:"legalName";s:20:"System Administrator";s:9:"stepsDone";a:0:{}}', 1073741888, 0, 0x637e310ca6f3b9d9fa2d6b50e3e156f50b59e217804b3d967efd12dab504079102377e00a0e1286318f22377a29482169d2ff85f761c8b9140bf436b7483ff486486c1aff18f51ccc4342a76e12ab7a0e9e2939b27a0908f232414b31f6dfc252ffb4afe6f9f2428b4180b835ec8b7f04a076688e97755d974b83f6d7a881122d2297be29bd668f2fb3d003845373de36f7629a2906b4e4ab5f509f803de1efe2cd1cb, 'System Administrator', NULL, NULL, NULL, '', 0, NULL, NULL, 0, 0, NULL, '0.000', '0.00', '0.00', '0.00', NULL, '-1.00', '0.00', '0.000', NULL, '0.00', '0.00', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '::1', NULL, NULL),
+(2, 'placeholderone', '', '!501dd921b1d63acea8561c3061d09d0ee1c7d12d7b78accae347c827a19d076e', '', '', NULL, 1503777673, 1503777673, 1503777673, 1, NULL, '', 0, '', 'a:2:{s:9:"legalName";s:15:"PlaceHolder One";s:9:"stepsDone";a:9:{s:7:"contact";b:0;s:6:"verify";b:0;s:3:"ssn";b:0;s:4:"sign";b:0;s:6:"donate";b:0;s:7:"proxies";b:0;s:5:"prefs";b:0;s:7:"connect";b:0;s:5:"photo";b:0;}}', 0, 0, 0x637e31f817cb6c48024b09280aec279f587baf4f4c6eae1f64fda692d64dfd70ebc1904e1d381c964e6bee6bdea4cea1cc28b70e1191bab51c7d2aeec525b554244428793dc899233ec5ecf305df36386f915de8950d81858b90041c828e17606ec35581b4ae8d31105a9136a30086f4cef0f925379ff74a0c526bf5b4237198351236b165b09eeb2500f65d48358c57f434a729b8f8a270c52b1cb2a9e40cc047b622, 'PlaceHolder One', NULL, NULL, NULL, '', 0, NULL, NULL, 0, 0, NULL, '0.000', '0.00', '0.00', '0.00', NULL, '-1.00', '0.00', '0.000', NULL, '0.00', '0.00', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(3, 'placeholdertwo', '', '!501dd921b1d63acea8561c3061d09d0ee1c7d12d7b78accae347c827a19d076e', '', '', NULL, 1503777673, 1503777673, 1503777673, 1, NULL, '', 0, '', 'a:2:{s:9:"legalName";s:15:"PlaceHolder Two";s:9:"stepsDone";a:9:{s:7:"contact";b:0;s:6:"verify";b:0;s:3:"ssn";b:0;s:4:"sign";b:0;s:6:"donate";b:0;s:7:"proxies";b:0;s:5:"prefs";b:0;s:7:"connect";b:0;s:5:"photo";b:0;}}', 0, 0, 0x637e3179372c1412a27844a33210bdb3903be93e1540f51f49796bf21e4c3f92aed292fe599c7ca5f45fe903305b5c1d94d389c9053c65469e15e2c7cdf11882e2a3d1e435afb6d0d01d05ee04dc1f322b2ea68ecc3d6bb1c7794a7fa15a57a34cd6b535f805478b462c814acf63bf1693586fabc5ce07698bee16ac9514b24fe57241a317db06c91e526c24221cd718c0d9d126f346b60e338981f870704daa8054c0, 'PlaceHolder Two', NULL, NULL, NULL, '', 0, NULL, NULL, 0, 0, NULL, '0.000', '0.00', '0.00', '0.00', NULL, '-1.00', '0.00', '0.000', NULL, '0.00', '0.00', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(410044002, 'cgf', '', '!8549eabc39efeaa1b64afc26372a691232033cfeaab14769afa98f356c014031', '', '', NULL, 1503777673, 1503777673, 1503777673, 1, NULL, '', 0, '', 'a:3:{s:7:"website";s:6:"cg4.us";s:9:"legalName";s:11:"Common Good";s:9:"stepsDone";a:8:{s:7:"contact";b:0;s:6:"verify";b:0;s:4:"sign";b:0;s:6:"donate";b:0;s:5:"prefs";b:0;s:7:"company";b:0;s:9:"relations";b:0;s:5:"photo";b:0;}}', 71, -410044001, 0x637e31a427bcdb405bbb46b316e45a85fd827f7d140b68884f69aed06ddce1428871ae6ea4d74c907611c1fb25ae06716cb949edc744d6c43ce360169ad1c627970a27094a319e21a188c7e83e88a9ee558cd62b47ff9935281a237aae0004bda162ebdd0863142aa15ef84c19592e3f9744c78350dd46a4000a1e5c803030772b36419936c080bbfb3a8dd12360de8f294c14e9b30517ba69936ef8866ba1f44177dd, 'Common Good', '!4bdf74bc453e0a8bea74ad36941b0a46f99fe9e8f7f71da948b004a3a97a2362', 'Ashfield', 1020, '01330', 1228, NULL, NULL, 0, 0, NULL, '10.000', '0.00', '0.00', '0.00', NULL, '-1.00', '0.00', '0.000', NULL, '0.00', '0.00', 0, 1, NULL, 0, NULL, 0x637e31dde93f6ca3b0d798a0dcfb4e5d16f2f5c944710fb0bb2f7a1c532daff9c0b333279e336798f36a4f6d5679cc087323fe7c74b0ccfdee400e2dbadea5ec11997028ee909d96ac7d62af8f5a2d7a74887fa69e48687bbff3efc4f8751496b4f66e5322cb620297c15192d71cec6bb066cf1c066f1adc032522c5b7438640bfe642, NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -32566,16 +32088,8 @@ INSERT INTO `users` (`uid`, `name`, `pass`, `mail`, `theme`, `signature`, `signa
 --
 
 CREATE TABLE IF NOT EXISTS `users_roles` (
-  `uid` bigint(20) NOT NULL DEFAULT '0' COMMENT 'users record id',
-  `rid` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Primary Key: role.rid for role.'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Maps users to roles.';
-
---
--- Dumping data for table `users_roles`
---
-
-INSERT INTO `users_roles` (`uid`, `rid`) VALUES
-(1, 3);
+  `uid` bigint(20) DEFAULT NULL COMMENT 'users record id'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -32598,16 +32112,16 @@ INSERT INTO `variable` (`name`, `value`) VALUES
 ('cgf_uid', 0x733a393a22343130303434303032223b),
 ('clean_url', 0x733a313a2231223b),
 ('code', 0x733a31333a22662827742e636c65617227293b223b),
-('companies', 0x613a313a7b693a2d3431303034343030313b733a3135333a223c74723e3c74642077696474683d22323030223e436f6d6d6f6e20476f6f643c2f74643e3c7464207374796c653d226d617267696e2d6c6566743a313070783b223e3c2f74643e3c2f74723e0a3c74723e3c74642077696474683d22323030223e436f726e6572205075623c2f74643e3c7464207374796c653d226d617267696e2d6c6566743a313070783b223e3c2f74643e3c2f74723e0a223b7d),
+('companies', 0x613a313a7b693a2d3431303034343030313b733a37373a223c74723e3c74642077696474683d22323030223e436f6d6d6f6e20476f6f643c2f74643e3c7464207374796c653d226d617267696e2d6c6566743a313070783b223e3c2f74643e3c2f74723e0a223b7d),
 ('cron_key', 0x733a34333a22773878336c667a4e514b3162784d7a36524d54754635346d4d496e41733462385369564a4f397a76575967223b),
-('cron_last', 0x693a313438393032343438343b),
-('css_js_query_string', 0x733a363a226f6d68327479223b),
+('cron_last', 0x693a313530333737333932343b),
+('css_js_query_string', 0x733a363a226f7077696a6d223b),
 ('ctools_last_cron', 0x693a313336363437373831313b),
 ('cttyPaidEver', 0x4e3b),
 ('daily', 0x693a313337363131303830363b),
 ('date_default_timezone', 0x733a31363a22416d65726963612f4e65775f596f726b223b),
 ('default_nodes_main', 0x733a323a223130223b),
-('drupal_http_request_fails', 0x623a313b),
+('drupal_http_request_fails', 0x623a303b),
 ('drupal_private_key', 0x733a34333a22445f4b54466c3841345575464c484457786371354e7155596d437661334f37396447306153334d54507845223b),
 ('duplicate_email_message', 0x733a34333a22222577686f2220697320616c7265616479207573696e67207468617420656d61696c20616464726573732e223b),
 ('email__active_tab', 0x733a32343a22656469742d656d61696c2d61646d696e2d63726561746564223b),
@@ -32630,9 +32144,9 @@ INSERT INTO `variable` (`name`, `value`) VALUES
 ('phpResult', 0x4e3b),
 ('rcredits_preserve', 0x693a313335363237343937373b),
 ('r_box', 0x693a36313b),
-('r_last_cron', 0x613a343a7b733a333a22646179223b693a313438393032343438343b733a343a227765656b223b693a303b733a353a226d6f6e7468223b693a303b733a343a22686f7572223b693a313438393032343438343b7d),
+('r_last_cron', 0x613a343a7b733a333a22646179223b693a313530333737333932343b733a343a227765656b223b693a303b733a353a226d6f6e7468223b693a303b733a343a22686f7572223b693a313530333737333932343b7d),
 ('r_totals', 0x613a303a7b7d),
-('signupData', 0x613a343a7b733a343a2274696d65223b693a313438393032343039353b733a353a2270686f6e65223b733a31323a223431332d3235332d39383736223b733a353a227374617465223b733a343a2231303230223b733a31343a22636f6d70616e794f7074696f6e73223b733a303a22223b7d),
+('signupData', 0x613a343a7b733a343a2274696d65223b693a313530333737323337313b733a353a2270686f6e65223b733a31323a223431332d3235332d39383736223b733a353a227374617465223b733a343a2231303230223b733a31343a22636f6d70616e794f7074696f6e73223b613a313a7b733a373a2269734f776e6572223b733a313a2231223b7d7d),
 ('site_403', 0x733a303a22223b),
 ('site_404', 0x733a31343a22706167652d6e6f742d666f756e64223b),
 ('site_default_country', 0x733a323a225553223b),
@@ -32648,7 +32162,7 @@ INSERT INTO `variable` (`name`, `value`) VALUES
 ('up', 0x623a313b),
 ('update_check_disabled', 0x693a303b),
 ('update_check_frequency', 0x733a313a2237223b),
-('update_last_check', 0x693a313438393032343538343b),
+('update_last_check', 0x693a313439343531333532333b),
 ('update_last_email_notification', 0x693a313432303437383730373b),
 ('update_notification_threshold', 0x733a383a227365637572697479223b),
 ('update_notify_emails', 0x613a313a7b693a303b733a31393a227773706164656d616e40676d61696c2e636f6d223b7d),
@@ -32699,22 +32213,10 @@ CREATE TABLE IF NOT EXISTS `watchdog` (
 --
 
 --
--- Indexes for table `actions`
---
-ALTER TABLE `actions`
-  ADD PRIMARY KEY (`aid`);
-
---
 -- Indexes for table `block`
 --
 ALTER TABLE `block`
   ADD PRIMARY KEY (`bid`), ADD UNIQUE KEY `tmd` (`theme`,`module`,`delta`), ADD KEY `list` (`theme`,`status`,`region`,`weight`,`module`);
-
---
--- Indexes for table `blocked_ips`
---
-ALTER TABLE `blocked_ips`
-  ADD PRIMARY KEY (`iid`), ADD KEY `blocked_ip` (`ip`);
 
 --
 -- Indexes for table `cache`
@@ -32723,27 +32225,9 @@ ALTER TABLE `cache`
   ADD PRIMARY KEY (`cid`), ADD KEY `expire` (`expire`);
 
 --
--- Indexes for table `cache_block`
---
-ALTER TABLE `cache_block`
-  ADD PRIMARY KEY (`cid`), ADD KEY `expire` (`expire`);
-
---
 -- Indexes for table `cache_bootstrap`
 --
 ALTER TABLE `cache_bootstrap`
-  ADD PRIMARY KEY (`cid`), ADD KEY `expire` (`expire`);
-
---
--- Indexes for table `cache_field`
---
-ALTER TABLE `cache_field`
-  ADD PRIMARY KEY (`cid`), ADD KEY `expire` (`expire`);
-
---
--- Indexes for table `cache_filter`
---
-ALTER TABLE `cache_filter`
   ADD PRIMARY KEY (`cid`), ADD KEY `expire` (`expire`);
 
 --
@@ -32757,54 +32241,6 @@ ALTER TABLE `cache_form`
 --
 ALTER TABLE `cache_menu`
   ADD PRIMARY KEY (`cid`), ADD KEY `expire` (`expire`);
-
---
--- Indexes for table `cache_page`
---
-ALTER TABLE `cache_page`
-  ADD PRIMARY KEY (`cid`), ADD KEY `expire` (`expire`);
-
---
--- Indexes for table `cache_path`
---
-ALTER TABLE `cache_path`
-  ADD PRIMARY KEY (`cid`), ADD KEY `expire` (`expire`);
-
---
--- Indexes for table `cache_update`
---
-ALTER TABLE `cache_update`
-  ADD PRIMARY KEY (`cid`), ADD KEY `expire` (`expire`);
-
---
--- Indexes for table `date_formats`
---
-ALTER TABLE `date_formats`
-  ADD PRIMARY KEY (`dfid`), ADD UNIQUE KEY `formats` (`format`,`type`);
-
---
--- Indexes for table `date_format_type`
---
-ALTER TABLE `date_format_type`
-  ADD PRIMARY KEY (`type`), ADD KEY `title` (`title`);
-
---
--- Indexes for table `field_config_instance`
---
-ALTER TABLE `field_config_instance`
-  ADD PRIMARY KEY (`id`), ADD KEY `field_name_bundle` (`field_name`,`entity_type`,`bundle`), ADD KEY `deleted` (`deleted`);
-
---
--- Indexes for table `file_managed`
---
-ALTER TABLE `file_managed`
-  ADD PRIMARY KEY (`fid`), ADD UNIQUE KEY `uri` (`uri`), ADD KEY `uid` (`uid`), ADD KEY `status` (`status`), ADD KEY `timestamp` (`timestamp`);
-
---
--- Indexes for table `file_usage`
---
-ALTER TABLE `file_usage`
-  ADD PRIMARY KEY (`fid`,`type`,`id`,`module`), ADD KEY `type_id` (`type`,`id`), ADD KEY `fid_count` (`fid`,`count`), ADD KEY `fid_module` (`fid`,`module`);
 
 --
 -- Indexes for table `filter`
@@ -32825,12 +32261,6 @@ ALTER TABLE `flood`
   ADD PRIMARY KEY (`fid`), ADD KEY `allow` (`event`,`identifier`,`timestamp`), ADD KEY `purge` (`expiration`);
 
 --
--- Indexes for table `history`
---
-ALTER TABLE `history`
-  ADD PRIMARY KEY (`uid`,`nid`), ADD KEY `nid` (`nid`);
-
---
 -- Indexes for table `menu_links`
 --
 ALTER TABLE `menu_links`
@@ -32841,12 +32271,6 @@ ALTER TABLE `menu_links`
 --
 ALTER TABLE `menu_router`
   ADD PRIMARY KEY (`path`), ADD KEY `fit` (`fit`), ADD KEY `tab_parent` (`tab_parent`(64),`weight`,`title`), ADD KEY `tab_root_weight_title` (`tab_root`(64),`weight`,`title`);
-
---
--- Indexes for table `node_access`
---
-ALTER TABLE `node_access`
-  ADD PRIMARY KEY (`nid`,`gid`,`realm`);
 
 --
 -- Indexes for table `queue`
@@ -32865,18 +32289,6 @@ ALTER TABLE `registry`
 --
 ALTER TABLE `registry_file`
   ADD PRIMARY KEY (`filename`);
-
---
--- Indexes for table `role`
---
-ALTER TABLE `role`
-  ADD PRIMARY KEY (`rid`), ADD UNIQUE KEY `name` (`name`), ADD KEY `name_weight` (`name`,`weight`);
-
---
--- Indexes for table `role_permission`
---
-ALTER TABLE `role_permission`
-  ADD PRIMARY KEY (`rid`,`permission`), ADD KEY `permission` (`permission`);
 
 --
 -- Indexes for table `r_areas`
@@ -32927,6 +32339,12 @@ ALTER TABLE `r_do`
   ADD PRIMARY KEY (`doid`), ADD KEY `uid` (`uid`);
 
 --
+-- Indexes for table `r_events`
+--
+ALTER TABLE `r_events`
+  ADD PRIMARY KEY (`id`), ADD KEY `ctty` (`ctty`);
+
+--
 -- Indexes for table `r_gifts`
 --
 ALTER TABLE `r_gifts`
@@ -32949,6 +32367,12 @@ ALTER TABLE `r_invites`
 --
 ALTER TABLE `r_invoices`
   ADD PRIMARY KEY (`nvid`), ADD KEY `payer` (`payer`), ADD KEY `payee` (`payee`), ADD KEY `created` (`created`), ADD KEY `status` (`status`);
+
+--
+-- Indexes for table `r_ips`
+--
+ALTER TABLE `r_ips`
+  ADD PRIMARY KEY (`ip`), ADD KEY `uid` (`uid`);
 
 --
 -- Indexes for table `r_log`
@@ -32993,6 +32417,12 @@ ALTER TABLE `r_pairs`
   ADD PRIMARY KEY (`id`), ADD KEY `option1` (`option1`), ADD KEY `option2` (`option2`);
 
 --
+-- Indexes for table `r_photos`
+--
+ALTER TABLE `r_photos`
+  ADD PRIMARY KEY (`uid`);
+
+--
 -- Indexes for table `r_proposals`
 --
 ALTER TABLE `r_proposals`
@@ -33008,7 +32438,7 @@ ALTER TABLE `r_proxies`
 -- Indexes for table `r_questions`
 --
 ALTER TABLE `r_questions`
-  ADD PRIMARY KEY (`id`), ADD KEY `ctty` (`ctty`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `r_regions`
@@ -33083,22 +32513,10 @@ ALTER TABLE `semaphore`
   ADD PRIMARY KEY (`name`), ADD KEY `value` (`value`), ADD KEY `expire` (`expire`);
 
 --
--- Indexes for table `sequences`
---
-ALTER TABLE `sequences`
-  ADD PRIMARY KEY (`value`);
-
---
 -- Indexes for table `sessions`
 --
 ALTER TABLE `sessions`
   ADD PRIMARY KEY (`sid`,`ssid`), ADD KEY `timestamp` (`timestamp`), ADD KEY `uid` (`uid`), ADD KEY `ssid` (`ssid`);
-
---
--- Indexes for table `sms_carriers`
---
-ALTER TABLE `sms_carriers`
-  ADD PRIMARY KEY (`domain`);
 
 --
 -- Indexes for table `system`
@@ -33111,12 +32529,6 @@ ALTER TABLE `system`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`uid`), ADD UNIQUE KEY `name` (`name`), ADD KEY `access` (`access`), ADD KEY `created` (`created`), ADD KEY `mail` (`mail`), ADD KEY `picture` (`picture`);
-
---
--- Indexes for table `users_roles`
---
-ALTER TABLE `users_roles`
-  ADD PRIMARY KEY (`uid`,`rid`), ADD KEY `rid` (`rid`);
 
 --
 -- Indexes for table `variable`
@@ -33134,26 +32546,6 @@ ALTER TABLE `variable`
 ALTER TABLE `block`
   MODIFY `bid` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Primary Key: Unique block ID.',AUTO_INCREMENT=511;
 --
--- AUTO_INCREMENT for table `blocked_ips`
---
-ALTER TABLE `blocked_ips`
-  MODIFY `iid` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary Key: unique ID for IP addresses.';
---
--- AUTO_INCREMENT for table `date_formats`
---
-ALTER TABLE `date_formats`
-  MODIFY `dfid` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'The date format identifier.',AUTO_INCREMENT=36;
---
--- AUTO_INCREMENT for table `field_config_instance`
---
-ALTER TABLE `field_config_instance`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'The primary identifier for a field instance',AUTO_INCREMENT=4;
---
--- AUTO_INCREMENT for table `file_managed`
---
-ALTER TABLE `file_managed`
-  MODIFY `fid` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'File ID.';
---
 -- AUTO_INCREMENT for table `flood`
 --
 ALTER TABLE `flood`
@@ -33162,17 +32554,12 @@ ALTER TABLE `flood`
 -- AUTO_INCREMENT for table `menu_links`
 --
 ALTER TABLE `menu_links`
-  MODIFY `mlid` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'The menu link ID (mlid) is the integer primary key.',AUTO_INCREMENT=1378;
+  MODIFY `mlid` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'The menu link ID (mlid) is the integer primary key.',AUTO_INCREMENT=1388;
 --
 -- AUTO_INCREMENT for table `queue`
 --
 ALTER TABLE `queue`
-  MODIFY `item_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary Key: Unique item ID.',AUTO_INCREMENT=273;
---
--- AUTO_INCREMENT for table `role`
---
-ALTER TABLE `role`
-  MODIFY `rid` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary Key: Unique role ID.',AUTO_INCREMENT=4;
+  MODIFY `item_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary Key: Unique item ID.';
 --
 -- AUTO_INCREMENT for table `r_auth`
 --
@@ -33199,6 +32586,11 @@ ALTER TABLE `r_countries`
 ALTER TABLE `r_do`
   MODIFY `doid` int(11) NOT NULL AUTO_INCREMENT COMMENT 'record id';
 --
+-- AUTO_INCREMENT for table `r_events`
+--
+ALTER TABLE `r_events`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'record id',AUTO_INCREMENT=3;
+--
 -- AUTO_INCREMENT for table `r_gifts`
 --
 ALTER TABLE `r_gifts`
@@ -33222,7 +32614,7 @@ ALTER TABLE `r_invoices`
 -- AUTO_INCREMENT for table `r_log`
 --
 ALTER TABLE `r_log`
-  MODIFY `logid` int(11) NOT NULL AUTO_INCREMENT COMMENT 'log record id',AUTO_INCREMENT=3;
+  MODIFY `logid` int(11) NOT NULL AUTO_INCREMENT COMMENT 'log record id',AUTO_INCREMENT=25;
 --
 -- AUTO_INCREMENT for table `r_nonmembers`
 --
@@ -33297,12 +32689,7 @@ ALTER TABLE `r_user_industries`
 -- AUTO_INCREMENT for table `r_votes`
 --
 ALTER TABLE `r_votes`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'vote record id',AUTO_INCREMENT=131;
---
--- AUTO_INCREMENT for table `sequences`
---
-ALTER TABLE `sequences`
-  MODIFY `value` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'The value of the sequence.',AUTO_INCREMENT=984;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'vote record id',AUTO_INCREMENT=5;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

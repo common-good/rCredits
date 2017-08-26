@@ -487,7 +487,7 @@ function rcredits_fieldset($variables) {
   extract(rcElement($variables, 'attributes class legend bare help value children'));
 
   $class[] = 'form-wrapper';
-  $attributes += compact('class');
+  u\preray(compact('class'), $attributes);
   if (@$legend) $legend = w\tag('legend', w\tag('span', $legend, ['class'=>'fieldset-legend']));
   if (@$help) $help = w\tag('div', $help, ['class'=>'fieldset-help']);
   $wrapper = w\tag('div', @$help . $children . @$value, ['class'=>'fieldset-wrapper']);

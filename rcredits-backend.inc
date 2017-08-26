@@ -147,7 +147,7 @@ function updateRelations($updates) {
     foreach ($data as $field => $value) {
       $changes .= ($changes ? ',' : '') . "$field=:$field";
       $subs += array($field => $value);
-      if ($field == 'draws' and $value) {
+      if ($field == 'draw' and $value) {
         r\acct($other)->setBit(B_DRAWS);
       }
     }

@@ -70,7 +70,7 @@ class Acct {
     u\setDft($access, $login);
 
     $stepsDone = @$uid == 1 ? [] : r\stepsDone0();
-    foreach (ray($co ? 'proxies connect' : 'company relations') as $k) unset($stepsDone[$k]);
+    foreach (ray($co ? 'proxies connect ssn' : 'company relations') as $k) unset($stepsDone[$k]);
 
     if (!@$uid and !@$region) $region = @$zip ? -r\region(@$country, @$state, @$zip) : -r\uidRegion($community);
 
@@ -188,7 +188,6 @@ class Acct {
     if ($field == 'qid') return $a->qo->qid;
     if ($field == 'isCtty') return ($a->id < 0); // or ($a->id == $a->community); (regions are communities too)
     if ($field == 'isRegion') return (substr($a->name, -1, 1) == '.');
-    if ($field == 'isNormal') return ($a->id > 0);
     if ($field == 'cttyA') return r\acct($a->community);
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'regionA') return r\acct($a->region);
@@ -205,6 +204,7 @@ class Acct {
     if ($field == 'masterA') return $a->slave ? $a->jA : $a;
     if ($field == 'helperA') return $a->helper ? r\acct($a->helper) : '';
     if ($field == 'prefsSet') return !is_null($a->o_minimum); // preferences have been set at least once
+    if ($field == 'hasCustomers') return db\exists('r_relations', 'main=:id AND isCustomer', ['id' => $a->id]);
     if ($field == 'superAdmin') return ($a->agentId == 1) ?: (u\test() and $a->admin and $a->agentA->name == 'abeone');
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
       : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
@@ -632,7 +632,7 @@ class Acct {
     $avail = $a->avail($goods);
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
-    $avail += $get ? $a->draw($need - $avail) : $a->canDraw(); // get or just asking
+    $avail += $get ? $a->draw($need - $avail) : $a->canDraw(); // get or just asking   
 ///    debug(compact(ray('goods need get actor avail')));
     return max(0, $need - $avail); 
   }
@@ -908,10 +908,11 @@ EOF;
   /**
    * Add a date stamp and agent's initials to the given note (before updating the notes field with it).
    */
-  public function stampNotes(&$notes) {
+  public function stampNote($note) {
     $rep = strtolower(u\initials(r\agent()->legalName) ?: 'WS');
-    $date = str_replace('-', '', u\fmtDate());
-    if ($notes != '' and $notes != $this->notes and substr($notes, 5, 2) != substr($date, 5, 2)) $notes = "$date  $rep: $notes"; // check century (will fail gently in 2100)
+//    $date = str_replace('-', '', u\fmtDate());
+    $date = u\fmtDate();
+    return "$date  $rep: $note\n";
   }
 
   /**
@@ -927,11 +928,14 @@ EOF;
 
     if (!$stepsDone[$step]) { // unless already done
 //      if ($done) r\tellAdmin(t('Step completed: ') . strtoupper($step), $details, $a->id);
-    } elseif (!$a->cAdmin) r\tellAdmin(t('Settings changed: ') . strtoupper($step), $details, $a->id);
+    } // elseif (!$a->cAdmin) r\tellAdmin(t('Settings changed: ') . strtoupper($step), $details, $a->id);
    
     $stepsDone[$step] = $done;
     $a->update(compact('stepsDone'));
-    if (!$nextStep = $a->nextStep()) r\membershipEvent($a, 'member');
+    if (!$nextStep = $a->nextStep()) {
+      r\tellAdmin(t('New Member (%name)', ['name' => $a->fullName]));
+      r\membershipEvent($a, 'member');
+    }
     return $nextStep;
   }
   
@@ -1166,6 +1170,33 @@ EOF;
   }
 
   /**
+   * Return the next suggested date, type, and description to contact this member for a standard checkin.
+   * @param bool $done: <asking because a checkin was just completed>
+   * @return [$type, $date, $tip] or ['', 0, ''] if none
+   *   $type: a one-word checkin type
+   *   $date: the suggested date
+   *   $tip: a tip to mention if the next suggested date is within a month +/-
+   */
+  public function nextTickle($done = FALSE) {
+    $a = $this;
+
+    if (!$a->member) {
+      if ($a->nonudge or time() - $a->created < HOUR_SECS) return ['', 0, ''];
+      return [t('Setup'), max(0, $a->created), t('<b class="loud">Opening account</b>: Do you need help?')];
+    }
+    if (!$a->ok) return [t('Activate'), time(), t('<b class="loud">Activate account</b>')];
+
+    $daysIn = (time() - $a->activated) / DAY_SECS;
+    if ($daysIn < 90 and !($done and $daysIn < 8)) return [t('Welcome'), $when = max(0, $a->activated + TICKLE_WELCOME * DAY_SECS), t('<span class="loud">%when <b>Welcome</b></span> to %PROJECT, How\'s it going? Any questions, suggestions, or concerns? Donate/crumbs/roundups (if none), volunteer?', 'when', u\fmtDate($when))];
+    
+    $yearsIn = round($daysIn / 365.25);
+    if ($done and abs($yearsIn * 365.25 - $daysIn < 30)) $yearsIn++;
+    // if (($daysIn + 30) mod 365 < 2 * 30) 
+    return [t('Annual'), $when = strtotime("$yearsIn years", $a->activated), t('<span class="loud">%when <b>Annual</b></span>: Thanks for participating. How\'s it going? Questions, suggestions, concerns? Mailing address okay? Volunteer? Consider crumbs, roundups, joint account, auto-cashout?', 'when', u\fmtDate($when))];
+    //return [0, ''];
+  }
+  
+  /**
    * Return a link to a "no signin required" action.
    * Omit $life only for a forever link not specific to a particular account
    * @param string $op: what to do (REQUIRED)
@@ -1354,7 +1385,7 @@ EOF;
 //    if ($cans[B_MANAGING_CTTY] = ($aa->can(B_CADMIN) and $id == $a->community)) $cans[B_BUY] = TRUE;
     $cans[B_MANAGING_CTTY] = ($aa->can(B_CADMIN) and $id == $a->community);
     
-    ksort($cans); // easier to debug
+    ksort($cans); // easier to debog
     return self::$perms[$id][$a->agentId] = $cans;
   }
 
@@ -1396,14 +1427,14 @@ EOF;
     $json = json_encode($xml);
     $ssnData = json_decode($json, TRUE);
     if (!is_array($d = $ssnData['searchResults']) or $ssnData['ResultCount'] + 0 <= 0) { // 0 for tests, <=0 for failure
-  /**/  return $a->ssnErr(t('No SSN data available: ') . print_r($ssnData0, 1));
+/**/    return $a->ssnErr(t('No SSN data available: ') . print_r($ssnData0, 1));
     }
     unset($ssnData['searchResults']['ssn']); // has first 5 digits of SSN -- don't store it
     $a->update(compact('ssnData'));
     if (@$d['deathsearchresults']) return $a->ssnErr(t('The person is dead (?).'), $ssnData);
     
-    list ($first1, $last1) = u\parseName($a->fullName);
-    list ($first2, $last2) = u\parseName($a->legalName);
+    list ($first1, $last1, $mid1) = u\parseName($a->fullName, TRUE);
+    list ($first2, $last2, $mid2) = u\parseName($a->legalName, TRUE);
     foreach (ray('first1 last1 first2 last2') as $k) $$k = strtolower($$k);
     
     $Ls = $Fs = $DOBs = [];
@@ -1421,9 +1452,15 @@ EOF;
       if (@$one->dob) $DOBs[] = strtotime($one->dob);
     }
     
-    if (!in_array($last1, $Ls) and !in_array($last2, $Ls)) return $a->ssnErr(t('Last name does not match.'), $ssnData);
-    if (!in_array($first1, $Fs) and !in_array($first2, $Fs)) return $a->ssnErr(t('First name does not match.'), $ssnData);
-    if (!in_array($a->dob, $DOBs)) return $a->ssnErr(t('bad birthdate'), $ssnData);
+    if (!array_intersect([$last1, $last2], $Ls)) return $a->ssnErr(t('Last name does not match.'), $ssnData);
+    if (!array_intersect([$first1, $first2, $mid1, $mid2], $Fs)) return $a->ssnErr(t('First name does not match.'), $ssnData);
+
+    if ($DOBs) {
+      if (!in_array($a->dob, $DOBs)) return $a->ssnErr(t('bad birthdate'), $ssnData);
+    } else {
+      $a->ssnErr(t('Cannot verify birthdate'), $ssnData);
+      $a->setRisk('dobOff'); // nothing to compare, so don't ask member to retype dob
+    }
     
     $a->stepDone('ssn');
     return $a->ssnData;

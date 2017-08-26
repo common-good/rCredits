@@ -98,6 +98,8 @@ function xid2tid($xid, $uid) {
  * @see also X::cacheTotals(), where the transaction data is recorded
  */
 function dupTx($uid, $other, $amount) {
+  global $channel;
+  if ($channel == TX_WEB) return FALSE; // allow dups on web interface
   if (!$lastTx = r\acct($uid)->lastTx) return FALSE;
   list ($xid, $dif, $oldAmt, $created) = $lastTx;
 ///  t\log(compact(ray('uid other amount lastTx')));
@@ -180,7 +182,7 @@ function cttys($region, $ctty = FALSE) {
   $ray = db\q($sql, compact('region'))->fetchAllKeyed();
   if ($ctty) {
 //    if (!@$cttys[$ctty]) u\preray([$ctty => $a->cttyA->fullName . t(' (outside the region)')], $cttys);
-    $ray[r\serverUid()] .= t(' (outside any %PROJECT community)');
+    $ray[r\serverUid()] = t('Seedpack (no community yet)');
     return w\selectFld(t('Community:'), '', w\dft($ctty), $ray);
   } else return $ray;
 }
@@ -453,7 +455,7 @@ function acceptGift($info) {
 //  r\usd::beginAtom();
   if ($often != 1) {
     $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
-    $recurs = ray(t('once monthly quarterly annual'));
+    $recurs = ray(t('once monthly quarterly yearly'));
     $count = db\count('r_gifts', 'uid=:uid AND often=:often', compact('uid', 'often'));
     $recurring = t(' (%how gift #%count)', 'how count', $recurs[strpos('1MQY', $often)], $count);
     $data['patronage'] = 1;
@@ -471,7 +473,7 @@ function acceptGift($info) {
       db\insert('r_gifts', compact(ray('uid giftDate amount often share')));
     };
 //    r\usd::commit();
-    r\tellAdmin('gift accepted', $info + $args);
+//    r\tellAdmin('gift accepted', $info + $args);
     r\notify($uid, 'gift sent', $args);
     return TRUE;
   } //else r\usd::rollback();
@@ -499,7 +501,7 @@ function tellAdmin($index, $subs = [], $uid = NULL) {
   } else list ($email, $uid) = [R_ADMIN_EMAIL, $uid ?: ($mya ? $mya->id : NULL)]; // no account specified so tell SysAdmin
 
   $noFrame = TRUE;
-  $topic = strlen($index) < 30 ? strip_tags($index) : '';
+  $topic = strlen($index) < 50 ? strip_tags($index) : '';
   $subs = compact(ray('who email message topic noFrame uid')) + $subs;
   r\rMail('tell-staff', $email, $subs, $uid);
   if ($email != R_ADMIN_EMAIL) r\rMail('tell-staff', SYS_EMAIL, $subs, $uid); // always tell one or more staff (for now)
@@ -1423,12 +1425,15 @@ function up($up = NULL) {
  * @param numeric $amount: transaction amount
  * @param bool $isPayer: <return reward for payer> (else payee)
  * @todo? or manager of company with no (other) employees (set bit?)
- * NEW (not used): Figure the rebate based on R = the payer's total rewards ever and A = the transaction amount,
+ * (not used): Figure the rebate based on R = the payer's total rewards ever and A = the transaction amount,
  *   such that the rebate percentage p tapers linearly from Rmax to 0
  *   The percentage rebate is based on the total rewards AFTER the transaction. That is:
  *   The new percentage rate p = (R + pA)(Pmax-Pmin)/Rmax + Pmin
  *   So p = (RPmax + (Rmax - R)Pmin) / (Rmax^2 - A(Pmax - Pmin))
- * BETTER (used here): just decrease the reward percentage by 1% for every $500 of rewards received.
+ * Used here: If the member's balance after the transaction is negative, their reward is negative the maximum reward (-10%).
+ *   Otherwise the reward percentage starts at the maximum (10%), then decreases by 1% for every chunk ($500) of rewards
+ *   they have received, down to the minimum (1%).
+ *   
  */
 function reward($from, $to, $amount = 1, $isPayer = TRUE) {
   global $testRewardStep;

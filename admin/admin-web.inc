@@ -66,7 +66,7 @@ function adminSummary($a, $cAdmin = FALSE) {
   $self = ($uid == $mya->agentId);
   $ctty = $a->community ?: r\serverUid(); // serverUid for admin, if it has no ctty
   
-  if ($a->isNormal) { // managing some individual community member account
+  if (!$a->isCtty) { // managing some individual account
     if (!$a->ok) $a->nextStep();
     if ($cAdmin) {
       if (showSecureMessages()) $secureMsgs = submit(t('Show secure messages'));
@@ -86,7 +86,7 @@ function adminSummary($a, $cAdmin = FALSE) {
 //        $minimum = textFld(t('Minimum:'), '', dft(u\fmtAmt($a->minimum)));
 //        $achMin = textFld(t('ACH Min:'), '', dft(u\fmtAmt($a->achMin ?: R_ACHMIN_DEFAULT, 's')));
 //      }
-        $minimum = item(u\fmtAmt($a->minimum), t('Minimum:'));
+        $minimum = item(u\fmtAmt($a->minimum), t('Target Bal:'));
         $achMin = item(u\fmtAmt($a->achMin), t('ACH Min:'));
 //      if (!$a->stepsDone['dw']) { // show info needed to open a Dwolla account
 //      extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
@@ -124,7 +124,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     $legalName = textFld(t('Legal Name:'), '', required($a->legalName));    
     if ($mya->superAdmin or ($mya->cAdmin and $mya->activated)) $rTrader = ($a->isCtty)
     ? boolFld(t('Active?'), '', $a->ok)
-    : boolFld(t('Active?'), t('Is account approved to use %PROJECT? -- member, <%a>good photo</a>, ss# checks out, set risks and mediaConx', '_a', w\atag('/settings/security/photo?' . rand())), $a->ok);
+    : boolFld(t('Active?'), t('Is account approved to use %PROJECT?', '_a', w\atag('/settings/security/photo?' . rand())), $a->ok);
     if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
       if ($helper = $a->helper ?: ($a->co ? $a->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
         $hA = r\acct($helper);
@@ -132,7 +132,8 @@ function adminSummary($a, $cAdmin = FALSE) {
       }
       $helper = textFld(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper)); //  + autocomplete()
     } else $helper = item(@$a->helperA->fullName ?: t('N/A'), t('Helped by:'));
-
+    
+    $source = w\item($a->source, t('Source:'));
     if ($a->member and !$a->co and $mya->superAdmin) $ssnShow = item(a\ssnShow($a));
     if ($mya->admin) {
       $dba = ($a->co and $owner = r\relation('other', 'main=:uid', compact('uid')) and r\acct($owner)->federalId == $a->federalId);
@@ -187,13 +188,22 @@ EOF;
 
   if (!$a->co) {
     $moves = item($a->moves === '' ? '?' : $a->moves, t('Moves:'), t('(How many times has this person changed counties in the past decade?)'));
-    $mediaConx = textFld(t('Media Conx:'), t('(How many 1st or 2nd-degree connections do you have with this person on FaceBook or LinkedIn?)'), dft($a->mediaConx ?: 0));
+//    $mediaConx = textFld(t('Media Conx:'), t('(How many 1st or 2nd-degree connections do you have with this person on FaceBook or LinkedIn?)'), dft($a->mediaConx ?: 0));
   }
 
-  $notes = areaFld(t('Notes:'), '', dft($a->notes));
+  list ($tickleType, $zot, $tip) = $a->nextTickle();
+  $preNote = item($tip);
+  
+  if ($a->superAdmi) {
+    $notes = areaFld(t('Notes:'), '', dft($a->notes));
+  } else $notes = item(str_replace("\n", '<br>', $a->notes), t('Notes:'));
+
+  $note = areaFld(t('New Note:'));
+  $suffix = submitTickle(1, t('Wait a DAY')) . submitTickle(7, t('Wait a WEEK')) . submitTickle('', t('Done'));
+  $tickle = textFld(t('Tickle:'), t('On what date should we next follow up on the current issue?'), dft($a->tickle ? u\fmtDate($a->tickle, TRUE) : '') + w\suffix($suffix));
   $risk = item(round($a->risk) . ' ' . button(t('Recalc'), "$base_url/rerisk/acct/$uid/1"), t('Risk Score:'));
   if (!$a->co) $trust = item(number_format($a->trust, 1), t('Trust:'));
-  if ($mya->can(B_CADMIN2)) $submit = submit(t('Go'));    
+  if ($mya->can(B_CADMIN2)) $submit = submit(t('Save'));    
 
   $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
 
@@ -219,7 +229,18 @@ EOF;
 
   $uid = hidFld($uid); // must postcede js (which uses uid)
   
-  return compact(ray('community donations secureMsgs photo balance cgfDonations federalId legalName calling signupCo tenure activity steps dwInfo relations invited invitedBy proxies proxyFor ssnShow moves floor minimum achMin risk trust risks adminable mediaConx helper rTrader notes count submit back uid'));
+  $bigFields = $a->ok ? 'adminable risks ssnShow' : 'ssnShow adminable risks';
+  return compact(ray("preNote notes note tickle submit donations rTrader activity source helper secureMsgs $bigFields community photo balance cgfDonations legalName calling signupCo tenure steps dwInfo relations invited invitedBy proxies proxyFor moves floor minimum achMin risk trust mediaConx count back uid"));
+}
+
+/**
+ * Return a button for setting the tickle field and submitting the form.
+ * @param mixed $v: what to set tickle to -- empty or number of days hence
+ * @param string $text: what the button says
+ */
+function submitTickle($v, $text) {
+  if ($v) $v = u\fmtDate(strtotime("+$v days"), TRUE);
+  return '&nbsp;' . w\btn("$$('#edit-tickle').val('$v'); $('#rcreditswebformsummary').submit();", $text);
 }
 
 /**

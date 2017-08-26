@@ -244,7 +244,7 @@ function ssnShow($a) {
   
   $ssnData = @$a->ssnCheck();
   $d = @$ssnData['searchResults'] ?: []; // [] for admin without pw2
-  if ($err = $ssnData['CGerror']) $rows[] = ["<b style=\"color:red;\">ERROR</b>", $err, '', '', ''];
+  if ($err = $ssnData[SSN_ERR_INDEX]) $rows[] = ["<b style=\"color:red;\">ERROR</b>", $err, '', '', ''];
   $name = $a->fullName . ($a->legalName == $a->fullName ? '' : "<br>$a->legalName");
   $rows[] = array(t('Data Given'), $name, u\fmtDate(is_numeric($a->dob) ? $a->dob: 0), r\location($a, TRUE), '', ''); // is_numeric check for admin without pw2
   $name = u\ssnName($one = (object) @$d['ssnnames']['ssnname']);

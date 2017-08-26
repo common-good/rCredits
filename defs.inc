@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '2.83'); // software version
+define('R_VERSION', '2.91'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -135,6 +135,7 @@ define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter ea
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('ORGANIZER_GRANT_MIN', 10); // minimum number of individuals to recruit, to be eligible for a grant
 define('ORGANIZER_GRANT_MAX', '$5,000'); // maximum organizer grant amount
+define('TICKLE_WELCOME', 14); // number of days to wait after activation, before followup
 
 define('ICARD_EXPIRES', 14); // how many days until invitation card expires, after account is activated
 define('ICARD_CODELEN_MIN', 10); // minimum length for an invitation code
@@ -203,7 +204,7 @@ define('R_ANCIENT_EFT', 10); // how long, at most, an EFT might take (transferri
 define('R_REQUIRED', ' <span class="form-required" title="This field is required.">*</span>');
 define('R_CC_RATE', 2.5); // typical credit card percentage rate
 define('R_CODE_LEN', 20); // length of most random identifiers
-define('R_DUPTX_MINS', 10); // number of minutes before a duplicate transaction is allowed
+define('R_DUPTX_MINS', 4); // number of minutes before a duplicate transaction is allowed
 define('HAS_XFEE', "data LIKE '%s:4:\"xfee\";%'"); // sql to recognize a transaction that has an exchange fee
 define('R_DEPOSIT_RETURN_FEE', 20); // what we charge members for a second bounced transfer
 
@@ -437,6 +438,7 @@ $GLOBALS['emailSubjects'] = array(
   'offer-canceled' => t('%PROJECT Invoice CANCELED by {otherName}'),
 */
   'nonmember' => t('%PROJECT invitation followup'),
+  'partner-signup' => t('Continue your %PROJECT sign-up'),
   'verify' => t('%PROJECT NEXT STEP: Verify your email address.'),
   'verifyCo' => t('%PROJECT NEXT STEP: Verify your company email address.'),
   'password-reset' => t('New %PROJECT PASSWORD'),

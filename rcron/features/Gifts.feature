@@ -34,9 +34,9 @@ Scenario: A donation can be completed
   And we notice "gift sent" to member ".ZZA" with subs:
   | amount |*
   |    $10 |
-  And we tell admin "gift accepted" with subs:
-  | amount | myName  | often | rewardType | *
-  |     10 | Abe One |     1 | reward     |
+#  And we tell admin "gift accepted" with subs:
+#  | amount | myName  | often | rewardType | *
+#  |     10 | Abe One |     1 | reward     |
   # and many other fields
 
 Scenario: A donation can be completed even if the member has never yet made an rCard purchase
@@ -68,7 +68,7 @@ Scenario: A recurring donation can be completed
   | ~name | Abe One |
   | ~postalAddr | 1 A, A, AK |
   | Physical address: | 1 A St., Atown, AK 01000 |
-  And we tell admin "gift accepted" with subs:
-  | amount | myName  | often | rewardType |*
-  |     10 | Abe One |     Q | reward     |
+#  And we tell admin "gift accepted" with subs:
+#  | amount | myName  | often | rewardType |*
+#  |     10 | Abe One |     Q | reward     |
   # and many other fields
