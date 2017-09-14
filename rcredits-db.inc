@@ -178,3 +178,4 @@ function setFlag($table, $id, $bit, $bool = TRUE) {
 
 function count($table, $where = '1', $subs = []) {return db\lookup('COUNT(1)', $table, $where, $subs);}
 function max($field, $table, $where = '1', $subs = []) {return db\lookup("MAX($field)", $table, $where, $subs);}
+function sum($field, $table, $where = '1', $subs = []) {return db\lookup("SUM($field)", $table, $where, $subs);}

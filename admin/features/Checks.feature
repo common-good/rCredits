@@ -12,9 +12,9 @@ SO I can make deposits easily and review past deposits as necessary
 Setup:
   Given members:
   | id   | fullName | floor | flags            | postalAddr          | phone | bankAccount     |*
-  | .ZZA | Abe One  | -500  | ok,bona,admin    | 1 A, Aton, MA 01001 |     1 | USkk21187028101 |
-  | .ZZB | Bea Two  | -500  | ok,co,bona       | 2 B, Bton, MA 01002 |     2 | USkk21187028102 |
-  | .ZZC | Cor Pub  |    0  | ok,co,bona       | 3 C, Cton, MA 01003 |     3 | USkk21187028103 |
+  | .ZZA | Abe One  | -500  | ok,admin    | 1 A, Aton, MA 01001 |     1 | USkk21187028101 |
+  | .ZZB | Bea Two  | -500  | ok,co            | 2 B, Bton, MA 01002 |     2 | USkk21187028102 |
+  | .ZZC | Cor Pub  |    0  | ok,co            | 3 C, Cton, MA 01003 |     3 | USkk21187028103 |
   
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose |*

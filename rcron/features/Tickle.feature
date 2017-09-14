@@ -9,7 +9,7 @@ Setup:
   | .ZZA | Abe One  | a@    |         | %today-1d |     0 |
   | .ZZB | Bea Two  | b@    |         | %today-2d |     0 |
   | .ZZD | Dee Four | d@    |         | %today-8d |     0 |
-  | .ZZE | Eve Five | e@    | ok,bona | %today-3m |     0 |
+  | .ZZE | Eve Five | e@    | ok      | %today-3m |     0 |
   | .ZZF | Flo Six  | f@    | ok      | %today-3m |     0 |
 
 Scenario: A newbie has not taken the first step
@@ -99,19 +99,20 @@ Scenario: A member gets a credit line
 #  |  $50 |
 # (feature temporarily disabled)
 
-Scenario: A member gets a bigger credit line after several months
+# We use rewards rather than floor, to measure credit-worthiness
+#Scenario: A member gets a bigger credit line after several months
 # This fails if run on a day of the month that the previous month doesn't have (for example on 10/31)
-  Given transactions:
-  | created   | type     | amount | from | to   | rebate | bonus | purpose |*
-  | %today-6m | transfer |    300 | .ZZE | .ZZF |   5000 |     0 | gift    |
-  | %today-5m | transfer |   1500 | .ZZE | .ZZF |      0 |     0 | gift    |
-  Then balances:
-  | id   | rewards |*
-  | .ZZE |    5000 |
-  When cron runs "tickle"
-  Then members have:
-  | id   | floor |*
-  | .ZZE |  -300 |
+#  Given transactions:
+#  | created   | type     | amount | from | to   | rebate | bonus | purpose |*
+#  | %today-6m | transfer |    300 | .ZZE | .ZZF |   5000 |     0 | gift    |
+#  | %today-5m | transfer |   1500 | .ZZE | .ZZF |      0 |     0 | gift    |
+#  Then balances:
+#  | id   | rewards |*
+#  | .ZZE |    5000 |
+#  When cron runs "tickle"
+#  Then members have:
+#  | id   | floor |*
+#  | .ZZE |  -300 |
 #  And we notice "new floor|no floor effect" to member ".ZZE" with subs:
 #  | limit |*
 #  | $300 |

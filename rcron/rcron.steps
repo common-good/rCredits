@@ -82,7 +82,6 @@ function members($list) {return t\members($list);}
  *     BOTH Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
  *     TEST Tickle AMemberGetsACreditLine
- *     TEST Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     TEST Weekly AMemberCrawlsOutOfDebt
  *     TEST Weekly AMemberBuildsUpSavings
@@ -124,7 +123,6 @@ function balances($list) {return t\balances($list);}
  *     MAKE Tickle ANonmemberHasAcceptedTheInvitation
  *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
  *     MAKE Tickle AMemberGetsACreditLine
- *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     MAKE Trust WeCalculateTrust
  *     MAKE Weekly AMemberCrawlsOutOfDebt
@@ -186,7 +184,6 @@ function relations($relations) {return t\relations($relations);}
  *     MAKE Risk Setup
  *     TEST Risk WeCalculateRisks
  *     MAKE Tickle AMemberGetsACreditLine
- *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  */
 function transactions($list) {return t\transactions($list);}
@@ -228,7 +225,8 @@ function gifts($gifts) {return t\gifts($gifts);}
 /**
  * we tell admin (ARG) with subs: (ARG)
  *
- * in: TEST Recache BalancesGetOutOfWhack
+ * in: TEST Monthly InflationAdjustmentsRoundUpDonationsAndCrumbDonationsAreMade
+ *     TEST Recache BalancesGetOutOfWhack
  *     TEST Recache BalancesGetATinyBitOutOfWhack
  */
 function weTellAdminWithSubs($topic, $subs) {return t\weTellAdmin($topic, $subs);}
@@ -336,7 +334,6 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
  *
  * in: MAKE Bank AnAccountHasAMinimumButNoRefills
  *     TEST Tickle AMemberGetsACreditLine
- *     TEST Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  *     BOTH Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     MAKE Weekly AMemberBuildsUpSavings
  */

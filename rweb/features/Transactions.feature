@@ -6,9 +6,9 @@ SO I can see what happened, accept or refuse offers, adjust descriptions, and co
 Setup:
   Given members:
   | id   | fullName   | floor | acctType    | flags      | created    | rebate |*
-  | .ZZA | Abe One    | -100  | personal    | ok,bona    | %today-15m |      5 |
-  | .ZZB | Bea Two    | -200  | personal    | ok,co,bona | %today-15m |     10 |
-  | .ZZC | Corner Pub | -300  | corporation | ok,co,bona | %today-15m |     10 |
+  | .ZZA | Abe One    | -100  | personal    | ok,roundup | %today-15m |      5 |
+  | .ZZB | Bea Two    | -200  | personal    | ok,co      | %today-15m |     10 |
+  | .ZZC | Corner Pub | -300  | corporation | ok,co      | %today-15m |     10 |
   And relations:
   | main | agent | permission |*
   | .ZZA | .ZZB  | buy        |
@@ -90,6 +90,27 @@ Scenario: A member looks at transactions for the past few days
   | rebate   |
   | bonus    |
 
+Scenario: A member looks at transactions with roundups
+  Given transactions:
+  | xid | created | type     | amount | rebate | bonus | from | to   | purpose  |*
+  |  10 | %today  | transfer |  49.95 |   2.50 |     5 | .ZZA | .ZZC | sundries |
+  Then balances:
+  | id   | balance | rewards |*
+  | .ZZA | 1600.05 |  270.50 |
+  When member ".ZZA" visits page "history/transactions/period=15"
+  Then we show "Transaction History" with:
+  | Start        |   | 1,870.00 |   | 262.00 | %dmy-15d |
+  | From Bank    | + |     0.00 |   |        | -44.00 Pending |
+  | Received     | + |     0.00 |   |        |          |
+  | Out          | - |   270.00 |   |        |          |
+  | Credit Line+ | + |          |   |   8.50 |          |
+  | End          |   | 1,600.00 |   | 270.50 | %dmy     |
+  And with:
+  |~tid | Date    | Name       | Purpose   | Amount  | Reward |~do |
+  | 7   | %mdy    | Corner Pub | sundries  |  -50.00 |   2.50 | X  |
+  | 6   | %mdy-6d | Bea Two    | cash V    | -100.00 |   0.00 | X  |
+  | 5   | %mdy-1w | Corner Pub | this Q    | -120.00 |   6.00 | X  |
+  
 #Scenario: Transactions with other states show up properly
 #  Given transactions:
 #  | xid   | created   | type     | state    | amount | from | to   | purpose  | taking |*

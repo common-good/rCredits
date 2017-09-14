@@ -11,12 +11,12 @@ SO I can charge customers on behalf of my company.
 Setup:
   Given members:
   | id   | fullName   | email | city  | state | cc  | cc2  | flags      |*
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 | ok,bona    |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 | ok,bona    |
-  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      | ok,co,bona |
-  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 | ok,bona    |
-  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 | ok,bona,secret |
-  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      | ok,co,bona |
+  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 | ok         |
+  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 | ok         |
+  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      | ok,co      |
+  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 | ok         |
+  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 | ok,secret |
+  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      | ok,co      |
   | .ZZG | Gil Seven  | g@    | Gtown | GA    | ccG |      |            |
   And devices:
   | id   | code |*

@@ -5,10 +5,10 @@ SO I can support the Common Good System and be supported by it.
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType    | flags           | rebate | crumbs |*
-  | .ZZA | Abe One    | -500  | personal    | ok,bona,roundup |      5 |      0 |
-  | .ZZB | Bea Two    | -500  | personal    | ok,co,bona      |     10 |      0 |
-  | .ZZC | Corner Pub | -500  | corporation | ok,co,bona      |     10 |   0.02 |
+  | id   | fullName   | floor | acctType    | flags       | rebate | crumbs | city |*
+  | .ZZA | Abe One    | -500  | personal    | ok,roundup  |      5 |      0 | Avil |
+  | .ZZB | Bea Two    | -500  | personal    | ok,co       |     10 |      0 | Bvil |
+  | .ZZC | Corner Pub | -500  | corporation | ok,co,paper |     10 |   0.02 | Cvil |
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose |*
   |   1 | %today-2m | signup   |    100 | ctty | .ZZA | signup  |
@@ -117,10 +117,20 @@ Scenario: Inflation adjustments, round up donations, and crumb donations are mad
 # B: (21*200 + 2*190 + 454 + 2*564 + 3*514 + 614)/30 * R/12 = 23.10556*R = 1.16
 # C: (22*400 + 3*300 + 210 + 260 + 3*392)/30 * R/12 = 31.5167*R = 1.58
 
-# roundups
+# roundups (creation date is last second of previous month)
   And transactions:
   | xid | created | type     | amount | rebate | bonus | from | to  | purpose       | flags         |*
-  | 18  | %today  | transfer |   1.00 |    .05 |   .10 | .ZZA | cgf | roundups desc | gift,roundups |
+  | 18  |       ? | transfer |   1.00 |    .05 |   .10 | .ZZA | cgf | roundups desc | gift,roundups |
  
-# crumbs
-  | 19  | %today  | transfer |   3.40 |    .34 |   .34 | .ZZC | cgf | crumbs desc   | gift,crumbs   |
+# crumbs (creation date is last second of previous month)
+  | 19  |       ? | transfer |   3.40 |    .34 |   .34 | .ZZC | cgf | crumbs desc   | gift,crumbs   |
+
+# alerting admin about paper statements
+  And we tell admin "Send paper statements" with subs:
+  | list |*
+  | Corner Pub (Cvil) |
+
+# distribution of shares to CGCs
+  And transactions:
+  | xid | created | type     | amount | from | to   | flags |*
+  |  20 |       ? | transfer |   2.20 |  cgf | ctty | gift  |

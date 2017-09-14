@@ -313,7 +313,7 @@ function txSummary($starting, $ending, &$endBalance = '') {
   $endingNow = ($ending > r\rTime());
   $previous_ending = $starting - 1;
   extract($nowInfo = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'n');
-  $endBalance = $n_balance;
+  $endBalance = round($n_balance - $n_partRounds, 2);
   extract($pendingInfo = (array) be\creditInfo(ray('pending asof', TRUE, $ending)), EXTR_PREFIX_ALL, 'p');
   extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'o');
 ///  debug(compact('nowInfo','oldInfo'));
@@ -328,7 +328,7 @@ function txSummary($starting, $ending, &$endBalance = '') {
   $d_inProper += $fromSavings;
   
   $fields = 'old bank in out rewards new';
-  $values = array($o_balance, $d_bank, $d_inProper, $d_outProper, $d_rewards, $n_balance); // both
+  $values = array($o_balance - $o_partRounds, $d_bank, $d_inProper, $d_outProper + $n_partRounds, $d_rewards, $endBalance); // both
   $values = array_combine(ray($fields), $values);
 
   $p_inProper = $p_outProper = $p_rewards = 0; // temporary until we include unpaid invoice data here

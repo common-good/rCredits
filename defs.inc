@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '2.91'); // software version
+define('R_VERSION', '2.97'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -28,7 +28,7 @@ define('GAME_SITE', 'game.' . CG_DOMAIN);
 define('DEV_ROOT', '/cgMembers'); // path to drupal root on DEV machine
 define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
-define('DEFAULT_PROXIES', '2, 3'); // account IDs for place-holder proxies
+define('DEFAULT_PROXIES', '2, 3'); // account record IDs for place-holder proxies
 
 $host = strtolower(@$_SERVER['HTTP_HOST']);
 if (!isDEV) if (strlen($host) > 30 or !preg_match('/^\[?([a-zA-Z0-9-:\]_]+\.?)+$/', $host)) {header('HTTP 400 Bad Request'); exit();}
@@ -95,7 +95,7 @@ define('R_MONEY_FIELDS', 'balance rewards floor committed'); // financial amount
 define('JOINT_FIELDS', R_MONEY_FIELDS . ' savings'); // add these together for joint accounts
 define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount'); // very secure fields (admin-encrypted)
 define('R_SECURE_FIELDS', R_VSECURE_FIELDS . ' pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass last4bank'); // non-personal encrypted fields (must be complete list)
-define('R_HIDE_CHANGES', R_MONEY_FIELDS . ' pw2 ssnData changes init login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank lastip'); // do not record changes to these fields: anything often-changed (automatically or not)
+define('R_HIDE_CHANGES', R_MONEY_FIELDS . ' pw2 ssnData changes init login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank lastip tickle'); // do not record changes to these fields: anything often-changed (automatically or not)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
 //define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_BUY', '(balance+rewards-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
@@ -135,7 +135,9 @@ define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter ea
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('ORGANIZER_GRANT_MIN', 10); // minimum number of individuals to recruit, to be eligible for a grant
 define('ORGANIZER_GRANT_MAX', '$5,000'); // maximum organizer grant amount
-define('TICKLE_WELCOME', 14); // number of days to wait after activation, before followup
+define('TICKLE_WELCOME', 2 * WEEK_SECS); // number of seconds to wait after activation, before followup
+define('TICKLE_DELAYED', 6 * WEEK_SECS); // number of seconds to wait after activation, before followup if no gift or no CGC
+define('OFTENS', 'M:Monthly,Q:Quarterly,Y:Yearly');
 
 define('ICARD_EXPIRES', 14); // how many days until invitation card expires, after account is activated
 define('ICARD_CODELEN_MIN', 10); // minimum length for an invitation code
@@ -267,7 +269,7 @@ define('APP_CAN_BIT_DESCS', t('charge customers,undo last transaction,give %RCRE
 define('B_MEMBER', 0); // fulfilled membership requirements (ready to be approved).
 define('B_CONFIRMED', 1); // invitation has been confirmed (in advance by form invite OR explicitly OR implicitly by newb first buying from the inviter in person)
 define('B_OK', 2); // can use rCredits for real (set by admin when ready). Set FALSE to freeze ctty funds (NYI)
-define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
+define('B_u3', 3); //
 define('B_IDED', 4); // a cashier has verified the member's government-issued photo ID
 define('B_REFILL', 5); //
 define('B_CO', 6); // company account
@@ -296,16 +298,16 @@ define('B_CADMIN2', 28); // is a community sub-administrator
 define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
-define('B_ADMINABLE', 'confirmed co member bona cAdmin cAdmin2 regulator nonudge cgc invites rewardy'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok bona ided refill co u7 roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 u26 regulator cAdmin2 cAdmin admin');
+define('B_ADMINABLE', 'confirmed co member cAdmin cAdmin2 regulator nonudge cgc invites rewardy'); // for cAdmin to set
+define('B_LIST', 'member confirmed ok u3 ided refill co u7 roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 u26 regulator cAdmin2 cAdmin admin');
 
 // community-specific flags
 define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)
 define('B_UP', 1); // ctty: is operational (up) (see also B_CTTYUP)
 define('B_INVITES', 3); // require invitations
 define('B_REWARDY', 4); // community issues rewards explicitly
-define('B_CTTY_BITS', 'cgc up u2 invites rewardy');
-define('B_ADMIN_BITS', 'member:cgc,confirmed:up,bona:invites,ided:rewardy');
+define('B_CTTY_BITS', 'cgc up invites rewardy');
+define('B_ADMIN_BITS', 'member:cgc,confirmed:up,u3:invites,ided:rewardy');
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+givebacks+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community (fines and givebacks are negative)
 
@@ -381,7 +383,7 @@ define('B_ROUNDUPS', 7); // monthly donation of rounded up cents
 define('B_PATRONAGE', 9); // recurring gift
 define('B_GIFT', 10); // gift (of any type)
 define('B_NOASK', 11); // transaction was taken with ID checking OFF
-define('TX_FLAGS', 'taking disputed offline roundup short undone undoes crumbs roundups roundup patronage gift noask'); // tx flags (position means nothing)
+define('TX_FLAGS', 'taking disputed offline short undone undoes crumbs roundups roundup patronage gift noask'); // tx flags (position means nothing)
 
 // Invoice status (use data['disputed'] for txs)
 define('TX_DENIED', -1); // invoice rejected by the non-originator

@@ -340,12 +340,14 @@ function formMakeCtty_submit($form, &$sta) {
 
 /**
  * Show a list of standard calls to make (to help new members, check-in, ask for donation, etc.)
+ * @param int $uid: (optional) account to deal with
+ * @param bool $one: (optional) <show just my community>
  */
 function formFollowup($form, &$sta, $args = '') {
   global $base_url;
   global $mya;
   
-  extract(u\just('uid', $args));
+  extract(u\just('uid one', $args));
   
   if (@$uid) {
     w\setAcct($uid); // switch to that user
@@ -353,23 +355,28 @@ function formFollowup($form, &$sta, $args = '') {
   }
 
   $title = item(t('Standard Calls to Members'));
-  if ($mya->admin) $subtitle = w\item(t('To limit see the list for a specific community, choose that community account (or any account in that community. To see the whole list, choose your own account.'));
+  if ($mya->admin) {
+    $subtitle = w\item(t('<p>Start with today and work backward.</p><p>If there is no answer (or a machine), leave a message saying you will call back in a couple days, make a note, and click the "2 days" button. If you don\'t reach someone by phone after three tries, say you will send them an email (and send them an email) and click the "7" button.</p><ul><li>If the email fails for a setup help call, keep phoning or emailing at 2- or 7-day intervals until you reach them or we close the account.</li><li>If the email fails for a Welcome check-in, forget it (click the "Auto" button).</li><li>If the email fails for an Annual check-in, send a US Mail fund appeal/check-in.</li></ul><p>(comments on this standard procedure are welcome)</p>') . w\btn('/sadmin/followup/one=1', t('Show just my community')) . ' &nbsp; ' . w\btn('/sadmin/followup', t('Show ALL')));
+  }
   
   $name0 = u\sqlSerialValue('data', 2);
   $phone0 = u\sqlSerialValue('data', 6);
   $email0 = u\sqlSerialValue('data', 4);
   $city0 = u\sqlSerialValue('data', 10);
   $now = time();
-  list ($where1, $where2) = ($mya->admin and $mya->proSe) ? [1, 1] : [0, "community=$mya->community"];
+  $todayEnd = strtotime('tomorrow') - 1;
+  list ($where1, $where2) = ($mya->admin and !@$one) ? [1, 1] : [0, "community=$mya->community"];
   
+  // list today's calls first, then yesterday, 2 days ago etc., then tomorrow, the next day, etc.
   $sql = <<<EOF
     (SELECT 0 AS uid, 0 AS tickle, $name0 AS fullName, $phone0 AS phone, created, 0 AS activated, 
-      CONCAT_WS(' ', $city0, $email0) AS notes, 0 AS co FROM r_relations WHERE other=0 AND $where1)
+      CONCAT_WS(' ', $city0, $email0) AS notes, 0 AS co, '' AS lastTx FROM r_relations WHERE other=0 AND $where1)
     UNION
-      (SELECT uid, tickle, fullName, phone, created, activated, notes, :IS_CO AS co FROM users 
+      (SELECT DISTINCT uid, tickle, fullName, phone, u.created, activated, notes, :IS_CO AS co, t.created AS lastTx 
+      FROM users u LEFT JOIN (SELECT created,payer,payee FROM r_txs ORDER BY created DESC LIMIT 1) t ON uid IN (payer, payee)
       WHERE uid>3 AND NOT :IS_NONUDGE AND NOT (activated and NOT :IS_OK) AND $where2 AND (tickle>0 OR NOT :IS_MEMBER
-      OR (SELECT xid FROM r_txs WHERE uid IN (payer, payee) AND created>$now-60*:DAY_SECS LIMIT 1) IS NULL))
-    ORDER BY IF(tickle>0, tickle, created)
+      OR t.created<$now-60*:DAY_SECS OR t.created IS NULL))
+    ORDER BY ($todayEnd - IF(tickle>0, tickle, created)) * IF(tickle>$todayEnd, -5 * 366 * :DAY_SECS, 1)
 EOF;
 
   $fields = ray('type call name phone notes');
@@ -385,10 +392,13 @@ EOF;
     extract($row);
     list ($type, $color, $offset) = !$uid ? [t('wary?'), '#ff4d4d', 0]
     : (!$activated ? [t('setup'), 'yellow', 0]
-    : ($tickle == ($activated + TICKLE_WELCOME * DAY_SECS) ? [t('welcome'), 'lime', 0]
+    : (round(($activated + TICKLE_WELCOME - $tickle) / DAY_SECS) == 0 ? [t('welcome2'), 'lime', 0]
+    : (round(($activated + TICKLE_DELAYED - $tickle) / DAY_SECS) == 0 ? [t('welcome6'), 'lime', 0]
+    : (($activated < strtotime('9/2/2017') and $tickle < $activated + 90 * DAY_SECS and !$notes) ? [t('welcome'), 'lime', 0]
     : (($tickle and date('dM', $tickle) == date('dM', $activated)) ? [t('annual'), 'violet', 0]
+    : (($lastTx < $now - 60 * DAY_SECS and $now - $activated > 60 * DAY_SECS) ? [t('dormant'), 'silver', 0]
     : ($tickle>0 ? [t('followup'), 'orange', 0]
-    : ( [t('dormant'), 'cyan', 90] )))));
+    : ( [t('other'), 'cyan', 90] ))))))));
     $type = "<span style=\"background-color:$color;\">$type</span>";
     $call = u\fmtDate($tickle > 0 ? $tickle : $created + $offset * DAY_SECS);
     $name = $uid ? w\lnk("$base_url/summary/$uid", $fullName ?: $uid) : ($fullName ?: $created);
@@ -669,7 +679,7 @@ function achBatch($args) {
   $q = db\q("SELECT txid,created,payee,amount,deposit,bankAccount FROM r_usd WHERE deposit=:date AND $where ORDER BY created, txid", compact('date'));
   if (!$q->rowCount()) return r\go('sadmin/deposits', t('There are no transactions for that ACH batch.'));
 
-  $date = strftime('%Y%m%d', $date);
+  $date = strftime('%Y%m%d', $date ?: time());
   u\csvStart("CGach$way-$date.csv");
   while ($tx = $q->fetchAssoc()) {
     extract($tx);

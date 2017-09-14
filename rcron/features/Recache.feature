@@ -7,8 +7,8 @@ SO I don't lose money or get confused.
 Setup:
   Given members:
   | id   | fullName   |email | flags    |*
-  | .ZZA | Abe One    | a@    | ok,bona |
-  | .ZZB | Bea Two    | b@    | ok,bona |
+  | .ZZA | Abe One    | a@    | ok      |
+  | .ZZB | Bea Two    | b@    | ok      |
   | .ZZC | Corner Pub | c@    | ok,co   |
   And transactions: 
   | xid   | created   | type       | amount | payerReward | payeeReward | from | to   | purpose | taking |*

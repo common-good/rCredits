@@ -6,9 +6,9 @@ SO I can make it right.
 Setup:
   Given members:
   | id   | fullName   | rebate | flags      |*
-  | .ZZA | Abe One    |      5 | ok,confirmed,bona    |
-  | .ZZB | Bea Two    |     10 | ok,confirmed,bona    |
-  | .ZZC | Corner Pub |     10 | ok,confirmed,co,bona |
+  | .ZZA | Abe One    |      5 | ok,confirmed         |
+  | .ZZB | Bea Two    |     10 | ok,confirmed         |
+  | .ZZC | Corner Pub |     10 | ok,confirmed,co      |
   And relations:
   | main | agent | num | permission |*
   | .ZZC | .ZZA  |   1 | sell       |

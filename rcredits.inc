@@ -109,9 +109,9 @@ function dupTx($uid, $other, $amount) {
 /**
  * Say whether the named employee works for the account owner.
  * @param string $name: the employee's name
- * @param int $us: the employer's account ID (defaults to current account ID)
+ * @param int $us: the employer's account record ID (defaults to current account record ID)
  * @param bool $loose: <the employee need not be formally an employee>
- * @return int: the person's account ID if s/he does work for us, otherwise FALSE
+ * @return int: the person's account record ID if s/he does work for us, otherwise FALSE
  */
 function worksForUs($name, $us = NULL, $loose = TRUE) {
   u\setDft($us, r\acct()->id);
@@ -189,7 +189,7 @@ function cttys($region, $ctty = FALSE) {
 
 /**
  * Record the current IP as approved (for whitelisting in WHM)
- * @param int $uid: account ID
+ * @param int $uid: account record ID
  * @param string $device: one device code for this account (not very important, but interesting, especially for POS)
  */
 function ipok($uid, $device) {
@@ -290,7 +290,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
 
 /**
  * Add a deactivated or phony (and used) card code to the "bad" list.
- * @param string $qid: the account code
+ * @param string $qid: the account ID
  * @param string $code: the bad card code
  * @param string $msg: type of error
  */
@@ -418,24 +418,13 @@ function membershipEvent($a, $status, $do = TRUE) {
     } */
     if ($a->seq >= IBY_ICARD) $msg .= '|use temporary card';
     r\message($a->id, $msg, $subs);
-    $a->update('activated', r\rTime());
-  } elseif ($status == 'bona') {
-    be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
-
-    if (!$a->helperA->co and !$a->helperA->superAdmin) { // no helper bonus for companies or superAdmin (cAdmin is okay) [don't require $a->confirmed]
-      be\fund($hId = $a->helper, TX_HELPER, R_HELPER_BONUS, t('invite reward', compact('fullName')));
-      $helped = db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) + 0;
-      if ($helped == ORGANIZER_GRANT_MIN) {
-        r\message($a->helper, 'organizer grant', ['_a' => w\atag('/community/grant')]);
-        list ($name, $topic) = [$a->helperA->fullName, t('eligible')];
-        r\tellAdmin('eligible for grant (already notified)', compact(ray('name topic')));
-      }
-    }
+    if (!$a->lastTx) $a->update('activated', r\rTime());
+    $a->setBit(B_NONUDGE, FALSE); // just in case it's on
   }
   unset($DBTX);
   
   $qid = $a->mainQid;
-  if ($status != 'bona') tellCO('event - ' . $status, compact(ray('fullName qid status')), $a->id);
+//  tellCO('event - ' . $status, compact(ray('fullName qid status')), $a->id);
   return TRUE;
 }
 
@@ -617,7 +606,7 @@ function setCook($key, $value, $expires = NULL) {
 }
 
 /**
- * Return the rCredits region id for the given account id
+ * Return the rCredits region id for the given account record ID
  */
 function uidRegion($uid) {
   $uid = abs($uid) - 1; // -1 because uids are all bumped up by 1
@@ -911,19 +900,6 @@ function txRet($message, $info = [], $confirm = FALSE) {
   if (!@$info['success']) r\tellCO('failed transaction', $info + compact('message', 'confirm'));
   return array($message, $info, $confirm);
 }
-
-/**
- * Check if an account needs a signup bonus.
- * @param int $uid: account id
- * @return: whether the signup bonus is deserved
- *//*
-function checkBona($uid) {
-  $acct = r\acct($uid);
-  if ($acct->can(B_BONA)) return FALSE;
-  if (!db\exists('r_txs', 'payee=:uid and r>0 and payer>0', compact('uid'))) return FALSE;
-  if (!db\lookup('COUNT(DISTINCT payee)', 'r_txs', 'payer=:uid and goods', compact('uid')) >= R_BUYS_BEFORE_BONUS) return FALSE;
-  return TRUE;
-}*/
 
 /**
  * Record an invitation
@@ -1223,7 +1199,7 @@ EOF;
 
 /**
  * Return the average balance, average credit reserve, and minimum balance for the given account (possibly joint) and period.
- * @param int $uid: account id (can be a community or region too)
+ * @param int $uid: account record ID (can be a community or region too)
  * @param int $start: starting date (should be 0 hours) -- first full day to include in the period
  * @param int $end: ending date (should be 0 hours) -- last full day to include in the period
  * @param bool $noj: ignore any joined account
@@ -1317,7 +1293,7 @@ function riskList($risks, $descs) {
 }
 
 /**
- * Check account permissions for a transaction or invoice
+ * Check account permissions for a transaction or invoice. Note that invoicing a not-yet-complete account is permitted.
  * @param acct $a1: the account paying or requesting payment
  * @param acct $a2: the other account
  * @param bool $taking: the first account is taking money from the second (charging or invoicing)
@@ -1327,7 +1303,10 @@ function riskList($risks, $descs) {
 function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
   global $scanned, $channel;
   
-  if (!$a2->ok) return array('non member', ['otherName' => $a2->fullName], FALSE);
+  $invoicing = ($taking and $channel == TX_WEB);
+  if ($invoicing and !$a2->confirmed) $a2->setBit(B_CONFIRMED);
+
+  if (!$a2->ok) if (!$invoicing or $a2->closed) return array('non member', ['otherName' => $a2->fullName], FALSE); // okay to invoice (and maybe someday pay) a not-yet-active, but not a no-longer-active account
   u\EXPECT($a1->ok, 'main account inactive tx');
   foreach ([$a1, $a2] as $a) {
     $other = $a == $a1 ? $a2 : $a1; // if neither confirmed nor confirming icard by tx with inviter
@@ -1336,7 +1315,7 @@ function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
     if (!$a->confirmed and $other->id > 0 and $other->id != r\cgfId()) { // communities and CG can transact with anyone
       if ($a1->community != $a2->community or $channel != TX_POS) { // first tx must be in-person at home
         return FALSE ? ['not confirmed', ray('youName inviterName', $a->fullName, $a->helperA->fullName), FALSE]
-        : ['first at home', [], FALSE];
+        : ['first at home', [], FALSE]; // "FALSE ?" should be $a1->cttyA->invites ?
       }
     }
   }
@@ -1346,7 +1325,7 @@ function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
   if ($scanned and $taking) list ($myAccess, $myWhat) = $neg ? array(B_REFUND, t('refunds')) : array(B_SCAN, t('sales'));
 ///  debug(compact(ray('taking neg scanned myAccess otherAccess myWhat otherWhat')));
   if (!$a1->can($myAccess)) return array("no perm", ray('what', $myWhat), FALSE);
-  if (!$a2->can($otherAccess)) return array("other no perm", ray('otherName what', $a2->agentA->fullName, $otherWhat), FALSE);
+  if (!$a2->can($otherAccess)) if (!($invoicing and $a2->proSe)) return array("other no perm", ray('otherName what', $a2->agentA->fullName, $otherWhat), FALSE);
 //  if (!$a1->can($myAccess)) return array("no $myAccessErr", [], FALSE);
 //  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", ray('otherName', $a2->agentA->fullName), FALSE);
 
@@ -1420,8 +1399,8 @@ function up($up = NULL) {
 
 /**
  * Return the reward on the given amount for the given account.
- * @param int $from: payer account ID
- * @param int $to: payee account ID
+ * @param int $from: payer account record ID
+ * @param int $to: payee account record ID
  * @param numeric $amount: transaction amount
  * @param bool $isPayer: <return reward for payer> (else payee)
  * @todo? or manager of company with no (other) employees (set bit?)

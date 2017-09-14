@@ -6,8 +6,8 @@ SO I can trade USD for rCredits and perhaps automate such trades.
 Setup:
   Given members:
   | id   | fullName | minimum | achMin | floor | bankAccount | risks   | flags   |*
-  | .ZZA | Abe One  |       0 |     20 |     0 |             |         | member,ok,confirmed,bona,ided |
-  | .ZZB | Bea Two  |     -10 |     50 |    10 |      901234 | hasBank | member,ok,confirmed,bona,ided,refill |
+  | .ZZA | Abe One  |       0 |     20 |     0 |             |         | member,ok,confirmed,ided |
+  | .ZZB | Bea Two  |     -10 |     50 |    10 |      901234 | hasBank | member,ok,confirmed,ided,refill |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose | taking |*
   |   1 | %today-6m | signup |    250 | ctty | .ZZA | signup  | 0      |
@@ -32,7 +32,7 @@ Scenario: A member connects a bank account
   | submit |       1 |     053000196 |         123 |          123 |       0 |     $0 |    $20 |         $0 |
   Then members:
   | id   | bankAccount      | last4bank | minimum | achMin | risks   | flags |*
-  | .ZZA | USkk053000196123 | 6123      |       0 |     20 | hasBank | member,ok,confirmed,bona,ided |
+  | .ZZA | USkk053000196123 | 6123      |       0 |     20 | hasBank | member,ok,confirmed,ided |
   And we show "Bank Information"
   
 Scenario: A member chooses not to connect a bank account

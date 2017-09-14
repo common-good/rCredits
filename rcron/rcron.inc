@@ -65,7 +65,7 @@ NOTES:
   where <star> means * (not the same as for the production site) 
  */
 
-define('R_DAILY_TASKS', 'START recache checkAccts requests setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank bona employees notices END'); // had homogenize, pool 
+define('R_DAILY_TASKS', 'START recache checkAccts requests setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank notices END'); // had homogenize, pool 
 //define ('R_DAILY_TASKS', 'START redistribute END');
 include_once __DIR__ . '/rcron-subs.inc';
 
@@ -178,7 +178,7 @@ EOF;
       DAY(FROM_UNIXTIME(MIN(created))) AS day0
       FROM r_txs GROUP BY payer
     ) t ON t.payer=u.uid
-    WHERE $elapsed>15 AND uid > 1 AND u.:IS_BONA AND u.:IS_OK
+    WHERE $elapsed>15 AND uid > 1 AND u.:IS_OK
     AND ($day=day0 OR (day0>$day AND $laterD=1))
 EOF;
   queueEach('tickleActive', $sql, compact('start'));
@@ -291,12 +291,29 @@ function everyWeek() {
  * Do monthly tasks.
  */
 function everyMonth() {
+  $cgf = r\cgfId();
   $start = u\monthDay1($end = u\monthDay1() - 1); // mark start and end of preceding month
   if (u\test()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // test: the past 30 days
   queueEach('inflationAdjust', "SELECT uid, $start AS start, $end AS end FROM users WHERE :IS_OK AND uid>1");  
 //  queueEach('shareCommitted', 'SELECT uid, committed, share FROM users WHERE :IS_OK AND committed>0');
   queueEach('roundup', "SELECT payer as uid, SUM(1-MOD(amount, 1)) AS donate FROM r_txs WHERE :IS_ROUNDUP AND amount>0 AND MOD(amount, 1)>0 AND created BETWEEN $start AND $end GROUP BY payer");
-  queueEach('crumbs', "SELECT u.uid, SUM(t.amount)*u.crumbs AS donate FROM r_txs t LEFT JOIN users u ON u.uid=t.payee WHERE t.payer>0 AND u.crumbs>0 AND t.created BETWEEN $start AND $end GROUP BY t.payee"); // no crumbs on rewards
+  
+  $sql = <<<EOF
+    SELECT $cgf AS cgf, u.uid, SUM(t.amount)*u.crumbs AS donate FROM r_txs t LEFT JOIN users u ON u.uid=t.payee 
+    WHERE t.payer>0 AND u.crumbs>0 AND t.created BETWEEN $start AND $end GROUP BY t.payee
+EOF;
+  queueEach('crumbs', $sql); // no crumbs on rewards
+
+  $sql = <<<EOF
+      SELECT $cgf AS cgf, $end AS `end`, u.community AS ctty, SUM(IF(payee=$cgf, amount, 0)) AS `in`,
+        SUM(IF(payer=$cgf AND t.created<=$end, amount, 0)) AS `out`
+      FROM r_txs t LEFT JOIN users u ON u.uid=IF(payer=$cgf, payee, payer)
+      WHERE ((payer=$cgf AND payee<0) OR payee=$cgf) AND t.:IS_GIFT GROUP BY community
+EOF;
+  queueEach('cgc', $sql);
+  
+  $list = db\lst("CONCAT(fullName,' (',city,')')", 'users', ':IS_OK AND :IS_PAPER');
+  r\tellAdmin(t('Send paper statements'), compact('list'));
 }
 
 /**
@@ -339,23 +356,38 @@ function shareCommitted($item) {
 */
 
 /**
- * Donate rounded change to the community.
+ * Donate rounded change to the community. Date the transaction in the preceding month (in which the roundups originate).
  */
 function roundup($item) {
   extract(u\just('uid donate', $item));
   $a = r\acct($uid);
-  if ($donate > 0) be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('roundups desc'), NULL, TRUE, ['roundups' => TRUE, 'gift' => TRUE]);
+  if ($donate > 0) be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('roundups desc'), u\monthDay1() - 1, TRUE, ['roundups' => TRUE, 'gift' => TRUE]);
 }
 
 /**
  * Donate percentage of funds received to the community.
  */
 function crumbs($item) {
-  extract(u\just('uid donate', $item));
-  $a = r\acct($uid);
-  if ($donate > 0) be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('crumbs desc'), NULL, TRUE, ['crumbs' => TRUE, 'gift' => TRUE]);
+  extract(u\just('uid donate cgf', $item));
+  $flags = ray('crumbs gift', TRUE, TRUE);
+  list ($a, $cgfA) = [r\acct($uid), r\acct($cgf)];
+  if ($donate > 0) be\transfer('payment', $a, $cgfA, $donate, FOR_GOODS, t('crumbs desc'), u\monthDay1() - 1, TRUE, $flags);
 }
 
+/**
+ * Kick half the donations originating in an organized CGC back to that community.
+ */
+function cgc($item) {
+//  return; // no yet
+  extract(u\just('ctty in out cgf end', $item));
+  $kickBack = round(($in - $out) / 2, 2);
+  if ($kickBack > 0) {
+    list ($a, $cgfA) = [r\acct($ctty), r\acct($cgf)];
+    $desc = t('50% share of local donations through %dt', 'dt', u\fmtDate($end));
+    be\transfer('payment', $cgfA, $a, $kickBack, FOR_NONGOODS, $desc, u\monthDay1() - 1, TRUE, ['gift' => TRUE]);
+  }
+}  
+  
 /**
  * Mark recently completed bank transfers complete.
  * @param assoc $tx: the USD deposit or withdrawal transaction
@@ -721,48 +753,6 @@ function getHowMuchR($a, $banky = TRUE) {
   return ($need <= 0 ? 0 : max(@$combinable + 0 > 0 ? 0 : $a->achMin, round(R_ACHMIN * ceil($need / R_ACHMIN))));
 }
 
-/**
- * Give signup bonuses.
- * NOTE: Henceforth do this when activating account, instead.
- * But keep this function active until all legacy accounts have been given a signup bonus
- */
-function bona() {
-//  $sql = 'SELECT DISTINCT u.uid FROM users u LEFT JOIN r_txs t ON t.payer=u.uid WHERE NOT :IS_BONA AND NOT :IS_CO AND t.taking'; // new human member who has completed an rCard purchase
-  $sql = 'SELECT DISTINCT u.uid FROM users u WHERE :IS_OK AND NOT :IS_BONA AND NOT :IS_CO'; // new human member
-  queueEach('bona1', $sql);
-  queueNext();
-}
-
-function bona1($item) {
-  extract(u\just('uid', $item));
-  $a = r\acct($uid);
-  r\membershipEvent($a, 'bona');
-}
-
-/**
- * For each new employee, reward the inviter of their company (if nobody has been rewarded for that employee yet).
- */
-function employees() {
-  $sql = 'SELECT u.uid, r.main AS company FROM r_relations r INNER JOIN users u ON u.uid=r.other WHERE r.employee AND :IS_BONA AND NOT :IS_COUNTED';
-// DISCONTINUED  queueEach('employee', $sql);
-  queueNext();
-}
-
-/*
-function employee($item) {
-  extract(u\just('uid company', $item));
-  $co = r\acct($company);
-  if ($coHelper = $co->helper and $helper = r\acct($coHelper)->helper) { // if is for tests (handles no helper)
-    $h = r\acct($helper);
-    if ($helper != $uid and !$h->cAdmin) {
-      $fullName = $co->fullName;
-      be\fund($helper, TX_HELPER, R_COUNTED_BONUS, t('employee invite reward', compact('fullName')));
-      r\acct($uid)->setBit(B_COUNTED);
-    }
-  }
-}
-*/
-  
 /**
  * Send daily, weekly, or monthly message digests. (Newbies are always daily)
  */

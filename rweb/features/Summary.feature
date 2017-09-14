@@ -8,9 +8,9 @@ SO I know where it stands.
 Setup:
   Given members:
   | id   | fullName   | postalAddr                   | floor | flags      | rebate |*
-  | .ZZA | Abe One    | 1 A St., Atown, AK 01000     | -100  | ok,bona    |      5 |
-  | .ZZB | Bea Two    | 2 B St., Btown, UT 02000     | -200  | ok,bona    |     10 |
-  | .ZZC | Corner Pub | 3 C St., Ctown, Cher, FRANCE | -300  | ok,co,bona |     10 |
+  | .ZZA | Abe One    | 1 A St., Atown, AK 01000     | -100  | ok         |      5 |
+  | .ZZB | Bea Two    | 2 B St., Btown, UT 02000     | -200  | ok,roundup |     10 |
+  | .ZZC | Corner Pub | 3 C St., Ctown, Cher, FRANCE | -300  | ok,co      |     10 |
   And members have:
   | id   | created   | share |*
   | ctty | %today-9w |     0 |
@@ -61,7 +61,19 @@ Scenario: A member clicks the summary tab
 #  | ~ever         | 544.1% |
 #  or 541.4% (depends on daylight time?) or 280.9%?!
   | Social return | $27 |
-  | ~ever         | $27 |
+  | including     | $0 |
+  
+Scenario: A member clicks the summary tab with roundups
+  Given transactions:
+  | xid | created | type     | amount | payerReward | payeeReward | from | to   | purpose |*
+  |   9 | %today  | transfer |  80.02 |           4 |           8 | .ZZB | .ZZC | goodies |
+  When member ".ZZB" visits page "summary"
+  Then balances:
+  | id   | balance | rewards |*
+  | .ZZB |  144.98 |     258 |  
+  And we show "Account Summary" with:
+  | Name          | Bea Two (beatwo) |
+  | Balance       | $144 |
 
 Scenario: An agent clicks the summary tab without permission to manage
   When member "A:B" visits page "summary"

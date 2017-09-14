@@ -70,19 +70,17 @@ function getTxRows($starting, $ending, $options = [], $url0 = '', $maxRows = PHP
  * @param assoc $tx: the transaction record
  */
 function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE, $channels = FALSE, $boxes = FALSE, $url0 = '') {
-  global $rUrl;
+  global $rUrl, $mya;
   
 //  foreach (ray('xid amount byMe toMe reallyToMe agent data sharing tid') as $k) $$k = $myx->$k;
-
-  extract(u\just('xid fromyou toyou reward byMe toMe reallyToMe agent data roundup disputed sharing tid name type created description', $tx));
-  global $mya;
+  extract(u\just('xid fromyou toyou reward byMe toMe reallyToMe agent data flags roundup disputed sharing tid name type created description', $tx));
 //  $myx = r\x($tx, $mya);
 
   if (@$data) $data = unserialize($data);
-  if (@$data['roundups'] and !$mya->superAdmin) return; // don't show contributions of rounded up change
+  if (u\getBit(@$flags, B_ROUNDUPS) and !$toMe) return; // don't show contributions of roundups except to recipient (CGF)
 
   $change = ceil($fromyou) - $fromyou;
-  if (@$roundup and !$toMe and $change > .005) $fromyou = ceil($fromyou);
+  if (@$roundup and !$toMe and $change > .005) $fromyou = ceil($fromyou); else $change = 0;
   $tx['amount'] = $amt = $toMe ? $toyou : -$fromyou; // this may be different from $tx[$amount]
   
   $reallyToMe = ($toMe xor $toyou < 0);

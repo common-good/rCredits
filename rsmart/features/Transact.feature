@@ -8,13 +8,13 @@ SO my company can sell stuff, give refunds, and trade rCredits for US Dollars.
 
 Setup:
   Given members:
-  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags                | helper |*
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,confirmed,bona    | 0      |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,confirmed,bona    | 0      |
-  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,confirmed,bona | .ZZA   |
-  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,confirmed,bona    | 0      |
-  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,bona,secret       | .ZZD   |
-  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,confirmed,bona | 0      |
+  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags             | helper |*
+  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,confirmed      | 0      |
+  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,confirmed      | 0      |
+  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,confirmed   | .ZZA   |
+  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,confirmed      | 0      |
+  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,secret,roundup | .ZZD   |
+  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,confirmed   | 0      |
   And devices:
   | id   | code |*
   | .ZZC | devC |
@@ -165,12 +165,12 @@ Scenario: Device sends wrong proof
   Then we return error "bad proof"  
   
 Scenario: A cashier in the same community asks to charge someone unconfirmed
-  When agent "C:A" asks device "devC" to charge ".ZZE,ccE" $100 for "goods": "food" at %now
+  When agent "C:A" asks device "devC" to charge ".ZZE,ccE" $100.02 for "goods": "food" at %now
   # cash exchange would be for "cash": "cash out"
-  Then we respond ok txid 6 created %now balance "*-100" rewards 260 saying:
+  Then we respond ok txid 6 created %now balance "*-101" rewards 260 saying:
   # asterisk means secret balance
-  | did     | otherName | amount | why   | reward |*
-  | charged | Eve Five  | $100   | goods | $10    |
+  | did     | otherName | amount  | why   | reward |*
+  | charged | Eve Five  | $100.02 | goods | $10    |
 #  Then we return error "not confirmed" with subs:
 #  | youName  | inviterName |*
 #  | Eve Five | Dee Four    |

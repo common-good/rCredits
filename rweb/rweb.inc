@@ -56,7 +56,7 @@ function ajax() {
   if (!@$sid or !$vars = w\sessionVars($sid)) ajaxErr('bad sid');
   if (!$aid = $vars['uid'] or !$myid = $vars['myid']) ajaxErr('not signed in');
 //  $mya = r\acct($myid, $aid);
-  lug(compact(ray('op data myid aid')));
+/**/  lug(compact(ray('op data myid aid')));
   
   if ($op == 'ssn') { // verify member's SSN
     $mya = r\acct($myid);
@@ -646,12 +646,12 @@ function statement($month = '') {
   $pdf->setY($pdf->getY() + 10);
 
   list ($header, $classes, $rows, $tot) = x\getTxRows($start, $end); // get the transaction data
-  extract(u\just('frombank fromyou toyou reward change', $tot));
+  extract(u\just('frombank fromyou toyou reward roundups', $tot));
 //  list ($fromyou, $toyou) = $amount < 0 ? [-$amount, 0] : [0, $amount];
   $info = be\creditInfo(ray('asof', $end));
 
   $info0 = be\creditInfo(ray('asof', $start - 1));
-  $bal0 = $info0->balance; // balance BEFORE start of this period
+  $bal0 = $info0->balance - $info0->partRounds; // balance BEFORE start of this period
   list ($savings0, $savings9) = [$info0->savings, $info->savings];
   $dSavings = round($savings9 - $reward - $savings0, 2);
   list ($toSavings, $fromSavings) = u\order($dSavings >= 0, abs($dSavings), 0);
@@ -660,7 +660,7 @@ function statement($month = '') {
   $balTitle = t('Balance:');
   $savingsTitle = t('Credit line:');
 
-  list ($bal9, $rewardsEver) = array($info->balance, $info->rewards);
+  list ($bal9, $rewardsEver) = array($info->balance - $info->partRounds, $info->rewards);
 //  u\EXPECT($bal9 == round($bal0 + @$frombank - @$fromyou + @$toyou + @$reward, 2), 'balance mismatch');
 ///**/    if (round($bal9, 2) != round($bal0 + @$frombank - @$fromyou + @$toyou, 2)) return r\go('empty', 'balance mismatch: ' . print_r(compact('tot', 'bal0', 'bal9'), 1));
   
@@ -672,7 +672,7 @@ function statement($month = '') {
     list ($w, $rew1, $fromRew, $rew2, $rew34) = [15, '', '', '', ''];
     $toSavings = $savings9 - $savings0;
   }
-  $fields[1] = explode('; ', "/balTitle/15/; Starting Bal/bal0/28/R; /plus/$w/R; From Bank/frombank/23/R; /minus/$w/C; Paid*/fromyou/23/R; /plus/$w/R; Received/toyou/23/R;$rew1 /equals/$w/R; Ending Bal/bal9/28/R");
+  $fields[1] = explode('; ', "/balTitle/15/; Starting/bal0/28/R; /plus/$w/R; From Bank/frombank/23/R; /minus/$w/C; Paid*/fromyou/23/R; /plus/$w/R; Received/toyou/23/R;$rew1 /equals/$w/R; Ending/bal9/28/R");
   $pdf->colHeads($fields[1]);
   $fields[2] = explode('; ', "/savingsTitle/15/; /savings0/28/R; //$w/R; //23/R; /minus/$w/C; /$fromRew/23/R; /plus/$w/R; /toSavings/23/R;$rew2 //$w/R; /savings9/28/R");
 //  $fields[3] = explode('; ', "//15; /underline0/28/R; //$w; //23; //$w; //23; //$w; //23;$rew34 //$w; /underline9/28/R");
@@ -717,7 +717,7 @@ function statement($month = '') {
   }
   $pdf->setFontSize(.8 * $size);
   $pdf->newLine();
-  $change = '$' . number_format(@$change + 0, 2);
+  $change = '$' . number_format(@$roundups + 0, 2);
   $pdf->Cell($pageWidth, 0, "  * Including $change in rounded-up change donated to the community fund.", '', 1, 'L');
   if ($mya->cttyRewardy) $pdf->Cell($pageWidth, 0, t('** Rewards are yours to keep once your %PROJECT community says so. In the meantime you can borrow them interest-free.'), '', 1, 'L');
   
@@ -809,30 +809,31 @@ function formDonate($form, &$sta) {
 //       5 => t('Cloth ........ $5'),
        0 => t('Water ... (other)'),
   );
-  $oftens = array(0 => 'when?', 'M' => 'Monthly', 'Q' => 'Quarterly', 'Y' => 'Yearly');
+  $oftens = [0 => t('when?')] + ray(OFTENS);
   $honors = array('-' => '(optional)', 'honor' => 'in honor of', 'memory' => 'in memory of', 'other' => 'other');
   $giftAttrib = w\onchange(str_replace('show()', "show(); jQuery('#edit-amount').focus()", R_GIFT_SHOWHIDE));
    
 //  $inSetup = $mya->ok ? '' : t(' The amount you choose will come from your account once it is activated and has enough funds.</p><p>Also choose a percentage of your ongoing incentive rewards to share with Common Good Finance.');
-  $form = array(
-    'title' => item(t('Donate to %PROJECT')),
-    'subtext' => item($donated . t('<p>Make a gift of any size (zero or more), to help support the %PROJECT system. Buy a BRICK or some other piece of the Common Good Economy, as a tax-deductible donation (monthly, quarterly, or yearly).</p><p><b class="loud">NOTE: This is a donation, not a deposit.</b> Thank you for your support!</p>')),
-    'gift' => selectFld(t('Donation:'), '', required($mya->co ? R_COMPANY_GIFT : R_INDIVIDUAL_GIFT) + $giftAttrib, $giftLevels),
-    'amount' => textFld(t('Other amount $'), ''),
-    'often' => selectFld(t('When:'), '', required(), $oftens),
-    'honor' => selectFld(t('Honoring:'), '', '', $honors),
-    'honored' => areaFld('', [t('Honoring whom or what')]),
-//    'share' => $mya->ok ? '' : w\shareFld($mya),
-//    'roundup' => $mya->ok ? '' : w\roundupFld($mya),
-  );
+  $title = item(t('Donate to %PROJECT'));
+  $subtext = item($donated . t('<p>Make a gift of any size (zero or more), to help support the %PROJECT system. Buy a BRICK or some other piece of the Common Good Economy, as a tax-deductible donation: monthly, quarterly, or yearly.</p><p><b class="loud">NOTE: This is a donation, not a deposit.</b> Thank you for your support!</p>'));
+  $gift = selectFld(t('Donation:'), '', required($mya->co ? R_COMPANY_GIFT : R_INDIVIDUAL_GIFT) + $giftAttrib, $giftLevels);
+  $amount = textFld(t('Other amount $'), '');
+  $often = selectFld(t('When:'), '', required(), $oftens);
+  $honor = selectFld(t('Honoring:'), '', '', $honors);
+  $honored = areaFld('', [t('Honoring whom or what')]);
+//    $share = $mya->ok ? '' : w\shareFld($mya),
+//    $roundup = $mya->ok ? '' : w\roundupFld($mya),
+  if (!$mya->ok) $wait = submit(t('Ask me in a few weeks'), 'info', 'xs');
 
   js(R_GIFT_SHOWHIDE, 'inline', 'footer');
-  return labeled($form + w\setupFoot(t('Donate')));
+  return labeled(compact(ray('title subtext gift amount often honor honored')) + w\setupFoot(t('Donate')) + compact('wait'));
 }
 
 function formDonate_validate($form, &$sta) {
   global $mya;
-  js(R_GIFT_SHOWHIDE, 'inline', 'footer');
+
+  if (op($sta) == 'wait') return;
+  
   extract(u\just('gift amount share often', $sta['input']));
   $amount = $gift ?: $amount;
 //  if (!$amount) return say('missing field', array('field' => 'amount'), 'amount');
@@ -846,7 +847,7 @@ function formDonate_validate($form, &$sta) {
 function formDonate_submit($form, &$sta) {
   global $mya;
   $info = u\just('amount often honor honored share roundup', $sta['input']);
-  if ($info['amount'] > 0) {
+  if ($info['amount'] > 0 and op($sta) != 'wait') {
     if ($info['honor'] == '-') $info['honor'] = 'honor';
     if (!$info['honored']) $info['honor'] = '';
     u\setDft($info['often'], '1');
@@ -939,100 +940,6 @@ function formHelp_submit($form, &$sta) {
 }
 
 /**
- * Show the account's current membership status and steps to get to the next milestone.
- * @param acct $a: the account to test if just updating membership status bits -- otherwise empty
- * @param string $code: numeric means show specific screen even if not appropriate (for in-person demos)
- * @return TRUE if the member has done everything possible toward opening the account.
- *//*
-function formMembership($a, &$sta = '', $code = '') {
-  global $base_url;
-
-  if (!($updating = (bool) $a) and !$a = r\acct()) return NULL; // no account available
-  if ($updating and $a->ok) return TRUE;
-
-  $myid = $a->id;  
-  $co = $a->co;
-  $ok = $a->ok;
-  if ($code == 'gotPhoto') say('got photo');
-  $mempage = is_numeric($code) ? $code : FALSE;
-  extract($a->stepsDone, EXTR_PREFIX_ALL, 'ok');
-
-  if (!$ok or !$a->can(B_MEMBER)) {
-    $ready = (@$ok_sign and $ok_contact and $ok_donate and $ok_photo and $ok_prefs and $ok_connect); // @ for tests
-    $ready = ($ready and ($co? ($ok_company and $ok_relations) : $ok_proxies));
-  } else $ready = TRUE;
-
-  if ($updating) return $ready;
-  
-  $message1 = $message2 = '';
-
-  if ($ready and !$ok) {
-    $nextMsg = $co ? t('you can begin accepting rCredits payments') : t('you can expect to receive your rCard in the mail within a day or two');
-    $message1 = t("<h2>Your Account Setup Is Complete</h2><p>You have done everything you need to do. Once a staff member has approved your account, $nextMsg.</p><p>Thank you for joining us!</p>");
-  } elseif (!$ok) { // not a member yet (no rCard, no vote)
-    $message1 = ($ok_photo or $ok_sign or $ok_donate or ($ok_proxies and !$co) or $ok_contact or ($ok_connect and !$co) or $ok_prefs) ? 
-          t("<h2>You're getting there!</h2><p>")
-        : t('<h2>Welcome to rCredits</h2><p>Thanks for joining us. ');
-    $message1 .= $co ? t('Before you can begin accepting rCredits payments, you must complete the following steps (in any order).') 
-      : t('Before we can send your rCard, and before you can vote on community funding, you must complete the following steps (in any order). This usually takes about 20 minutes.');
-    $message1 .= t(' If you need help, please <@a1>send us an email</a>.</p>', ['a1' => 'a href="mailto:' . r\regionField('email') . '" target="_blank"']);
-
-    $stepContact = t('Complete your <a>Contact Information</a>.');
-    $stepAgree = t('Sign the <a>rCredits Agreement</a>.');
-    $stepGift = t('Make a <a>Donation</a> of <i>any size</i>, to support the %PROJECT system.');
-    $stepProxies = t('<a>Choose two people</a> to represent your views whenever you are not there, to discuss and vote on community funding issues. (A list of members in your area will be provided, to choose from.)');
-    $stepPrefs = t('Set your <a>Account Preferences</a>.');
-    $stepPhoto = t('Upload a <a>Photo</a> for your ') . ($co ? t('company profile.') : t('Member ID Card.'));
-    $stepSecurity = t('<a>Provide your security information.</a> Upload ')
-      . ($co ? t('your Charter, Articles of Organization, or similar document.')
-        : t('a photo of your driver\'s license or other official ID.'))
-      . ($gotSecurity ? t(' <span class="pending">(DONE, pending approval)</span>') : '');
-
-    $stepProof = t('<a>Prove your identity.</a> Upload ')
-      . ($co ? t('your Charter, Articles of Organization, or similar document.')
-        : t('a photo of your driver\'s license or other official ID.'))
-      . ($gotIdProof ? t(' <span class="pending">(DONE, pending approval)</span>') : '');
-    $stepBank = t('<a>Connect</a> to the mainstream economy (or choose not to, yet).');
-    $stepCompany = t('Tweak your <a>Company Information</a>.');
-    $stepRelations = t('Set up <a>Relations</a> to individuals who will use or manage this account.');
-
-    $stepNum = 1;
-    $message2 = $ok_contact ? '' : memberStep(0, $ok_contact, $stepContact, 'settings/contact');
-    $message2 .= memberStep($stepNum++, $ok_sign, $stepAgree, 'community/agreement')
-              . memberStep($stepNum++, $ok_donate, $stepGift, 'community/donate');
-              
-    if (!$co) 
-    $message2 .= memberStep($stepNum++, $ok_proxies, $stepProxies, 'settings/proxies');
-
-//    $message2 .= memberStep($stepNum++, $gotSecurity, $stepSecurity, 'settings/security');
-    $message2 .= memberStep($stepNum++, $ok_prefs, $stepPrefs, 'settings/preferences')
-               . memberStep($stepNum++, $ok_photo, $stepPhoto, 'settings/security/photo?' . rand());
-
-    $message2 .= memberStep($stepNum++, $ok_connect, $stepBank, 'settings/connect');
-//    if (!$co) $message2 .= memberStep($stepNum++, $gotIdProof, $stepProof, 'settings/id-proof');
-    if ($co)
-    $message2 .= memberStep($stepNum++, $ok_company, $stepCompany, 'settings/company')
-               . memberStep($stepNum++, $ok_relations, $stepRelations, 'settings/relations');
-
-// (Suggest it after 1mo) if (!$co) $message2 .= memberStep(4, $invited, $step4, 'invite');
-  } elseif (FALSE) {
-    $message1 = t('<h2>You have completed all membership steps.</h2><p>Within 24 hours, you should receive an email saying your account is approved and you can expect your rCard in the mail within a day or two. Hurray!</p>'); // UNUSED
-  } else {
-    $bonusMsg = ($a->can(B_BONA) or ($a->hasBank and $a->minimum > 0)) ? '' : t('<p>To receive your $@BONUS signup bonus, you must have a way to get money into your account. Ask someone to pay you with rCredits, or <@a>transfer funds from your bank account</a>, or trade US Dollars for rCredits at a participating business. As soon as you get some money in, your signup bonus will arrive.</p>', ['@BONUS'=>R_SIGNUP_BONUS, '@a'=>"a href=$base_url/get"]);
-    $personMsg = !$a->co ? t('<p>You are also responsible for guiding your local economy, together with hundreds of other rCredits members -- setting investment and grant-making priorities, electing local directors for your Common Good Community, planning a sustainable local prosperity for all residents, and offering help to communities elsewhere.</p>') . $bonusMsg : '</p>';
-    $message1 = t('<h2>Congratulations! Your account is Activated.</h2><p>You are authorized to use rCredits to buy and sell with other members.</p>') . $personMsg;
-  }
-  $message = $message1 . "<table width=\"100%\">$message2</table>";
-  
-  $title = item(t('Membership Steps'));
-//  $subtext = item(t('for ') . $a->fullName);
-
-  $steps = item($message);
-  $form = compact(ray('title steps addendum'));
-  return labeled($form);
-}*/
-
-/**
  * Give member a chance to sign the rCredits Agreement. (agreement revised 4/17/2014)
  */
 function formAgreement($form, &$sta) {
@@ -1063,7 +970,7 @@ function formAgreement($form, &$sta) {
     
     $instructions = t(<<<EOF
       <div id="instructions" class="well">
-      <p><b>Instructions:</b> Put a check mark in each checkbox to indicate you have read and understand that section.</p>
+      <p><b>Instructions:</b> Put a check mark in each checkbox to indicate you have read and understand that section. If there are no participating businesses near you, some of this Agreement will not apply to you &mdash; <b class="loud">YET!</b> But when enough people have joined, you will be able to start a %PROJECT Community together quickly, to enjoy the benefits of economic democracy.</p>
       <p><b>Summary.</b> In the first part of the agreement (A), you acknowledge the intent and purpose of the %PROJECT system. In the second part (B), you agree to use the %PROJECT system the way it is designed to work.</p>
       %addendum
       </div>
@@ -1309,8 +1216,8 @@ EOF
 jQuery('#inviteLink').click(function () {SelectText(this.id);}); // document.execCommand("copy");
 function SelectText(element) { // from http://stackoverflow.com/questions/985272
     var doc = document
-        , text = doc.getElementById(element)
-        , range, selection
+   , text = doc.getElementById(element)
+   , range, selection
     ;    
     if (doc.body.createTextRange) {
         range = doc.body.createTextRange();
@@ -1374,9 +1281,8 @@ function formMessage($form, &$sta) {
   $subject = w\textFld(t('Subject:'), [t('Subject')], required(t('a message from %PROJECT member ') . r\acct()->fullName));
   $message = areaFld(t('Message:'), [t('Your message goes here.')], required());
   $submit = submit(t('Send'));
-  $onSubmit = 'return ' . w\whoFldSubmit('to', t('Send to %name?'));
 
-  return labeled(compact(ray('title subtext to subject message submit')), $onSubmit);
+  return labeled(compact(ray('title subtext to subject message submit')), w\whoFldSubmit('to', t('Send to %name?')));
 }
 
 function formMessage_validate($form, &$sta) {
@@ -1443,28 +1349,30 @@ function formSummary($form, &$sta, $qid = '') {
     
     if ($mya->legalName != $mya->fullName) $legalName = item($mya->legalName, t('Legal Name:'));    
     //extract(u\just('r usd pAccts', r\stats($mya->community)));
-    extract(u\just('returnMo return cttyBeneMo cttyBene', $mya->j_stats()));
 // Don't show return because that's not the point of rCredits
 //    $returnMo = item("$returnMo% APR " . t('over the past month'), t('Your return:'));
 //    $return = item("$return% APR " . t('overall (ever)'), ' ', t('Your effective rate of return on your average balance [<@a>details</a>]', ray('@a', 'a href=help/your-return')));
-    $cttyBeneMo = item("$cttyBeneMo " . t('over the past month'), t('Social return:'));
-    $cttyBene = item("$cttyBene " . t('overall (ever)'), ' ', t('How much your participation has benefited the community financially [<%a>details</a>]', '_a', w\atag('/help/social-return')));  
   }
-  
-  if ($mya->co) {
-    if ($mya->hasCustomers) $showCustomers = w\item(w\btn('community/data/qName=6Customers', t('Customer List')));
-  } else {
-    $hasMultipleAccounts = db\exists('r_relations', 'other=:myid AND permission>0', compact('myid'));
-    $another = $hasMultipleAccounts ? t('Another') : t('a');
-    $openCompany = submit(t('Open %another Company Account', compact('another')));
-    if ($hasMultipleAccounts) $clickPhoto = item(t('Click your photo to manage your other account(s).'));
-  }
+
+  extract(u\just('returnMo return cttyBeneMo cttyBene', $mya->j_stats()));
+  $gifts = u\fmtAmt($mya->totalGifts());
+//  $cttyBene = item("$cttyBeneMo " . t('over the past month') . "<br>$cttyBene " . t('overall (ever), including %gifts in contributions', compact('gifts')), t('Social return:'), t('Financial benefit to your community to date, from your participation together with other members, empowering economic democracy! [<%a>details</a>]', '_a', w\atag('/help/social-return')));  
+  $cttyBene = item("$cttyBene " . t('overall, including your %gifts in contributions', compact('gifts')), t('Social return:'), t('Financial benefit to your community to date, from your participation together with other members, empowering economic democracy! [<%a>details</a>]', '_a', w\atag('/help/social-return')));  
+    
+  if ($mya->co and $mya->hasCustomers) $showCustomers = w\item(w\btn('community/data/qName=6Customers', t('Customer List')));
+
+  $hasMultipleAccounts = db\exists('r_relations', 'other=:id AND permission>0', ['id' => $mya->agentId]);
+  $another = $hasMultipleAccounts ? t('Another') : t('a');
+  $openCompany = submit(t('Open %another Company Account', compact('another')));
+
+  if (!$mya->co and $hasMultipleAccounts) $clickPhoto = item(t('Click your photo to manage your other account(s).'));
+
   $title = item(t('Account Summary'));
   if (isDEV and !$mya->proSe) $agentName = ' &nbsp; &nbsp; ' . t('<b>Agent: </b>') . $mya->agentA->fullName;
   $accountName = item("$mya->j_fullName ($mya->j_name)" . @$agentName, t('Name:'), $mya->postalAddr . @$extras);
   if (!$mya->isCtty) { // unless this is a community or region account
     $acctType = $mya->co ? t('company account') : ($mya->jid ? t('joint account') : t('personal account'));
-    $balance = u\fmtAmt($mya->balance);
+    $balance = u\fmtAmt($mya->balance - $mya->partRounds);
 //    $totalDesc = u\fmtAmt($mya->r);
 //    $balanceDesc = $mya->savings ? t(' plus your savings, for a total of @total', ['@total' => $totalDesc]) : '';
     $balanceDesc = '';
@@ -1493,10 +1401,10 @@ function formSummary($form, &$sta, $qid = '') {
   } else $extra = '';
   $accountId = fld('item', t('ID:'), '', ($mya->mainQid ?: 'N/A') . ' (' . $acctType . ')' . $extra);
 
-  $fields = 'title clickPhoto showCustomers openCompany photo accountName legalName federalId accountId community balance savings creditLimit committed invites cttyBeneMo cttyBene';
+  $fields = 'title clickPhoto showCustomers openCompany photo accountName legalName federalId accountId community balance savings creditLimit committed invites cttyBene';
   $fields = compact(ray($fields));
   
-//  if ($mya->superAdmin and !$mya->ok) $onSubmit = 'return ' . w\whoFldSubmit('helper', t('This person was invited by %name, yes?'));
+//  if ($mya->superAdmin and !$mya->ok) $onSubmit = w\whoFldSubmit('helper', t('This person was invited by %name, yes?'));
   if ($mya->can(B_REGULATOR)) {
     $class = ['class' => ['admin']];
     $right = w\fieldSet('right2', $form, '', $class); // the admin part
@@ -1515,7 +1423,7 @@ function formSummary_validate($form, &$sta) {
 //  $a = r\acct(@$uid);
   global $mya;
   
-  if ($mya->superAdmin and @$tickle and $err = u\badDate($tickle)) return say($err, 'tickle');
+  if (@$tickle !== '' and $err = u\badDate($tickle)) return say($err, 'tickle');
   
   if (@$federalId == R_ON_FILE or @$federalId == t('SSN')) {
     unset($sta['input']['federalId']);
@@ -1557,10 +1465,10 @@ function formSummary_submit($form, &$sta) {
 //  $a = r\acct(@$uid); // same as $mya if no uid passed
 
   if (!@$tickle) {
-    $tickleDone = (bool) $mya->tickle;
+    $tickleDone = $mya->ok ? ($note and !$tickle and $mya->tickle) : 'activate';
     list ($tickleType, $tickle, $zot) = $mya->nextTickle($tickleDone);
 //    if ($tickleDone) $note = trim(t('(%typeDone) ', 'type', @$note ? '': "$tickleType ") . @$note);
-    if ($tickleDone) $note = trim(t('Done ') . @$note);
+    if ($tickleDone === TRUE) $note = trim(t('Done ') . @$note);
   }
   if (@$note) $notes = $mya->stampNote($note) . (isset($notes) ? $notes : $mya->notes);
   
@@ -1583,8 +1491,8 @@ function formSummary_submit($form, &$sta) {
     if (@$rTrader and !$mya->ok) { // activating the account
       if (!$mya->activated) { // first time activation
         u\EXPECT($mya->superAdmin, 'initial activation is only for superadmin');
-        $mya->eachPartner(function($coA, $zot, $custCode) { // tell partner that account is activated
-          u\post($coA->partnerAPI(), ray('partnerCode customer op', $coA->emailCode, $custCode, 'end'));
+        $mya->eachPartner(function($coA, $zot, $custCode) { // tell partner: account is activated
+          u\post($coA->partnerAPI(), ray('partnerCode qid op', $coA->emailCode, $mya->mainQid, 'end'));
         });
       }
       $DBTX2 = \db_transaction();
@@ -1595,9 +1503,20 @@ function formSummary_submit($form, &$sta) {
 
       a\secureVery($mya);
       if (!$mya->co) {
+        be\fund($mya->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
+
+        if (!$mya->helperA->co and !$mya->helperA->superAdmin) { // no helper bonus for companies or superAdmin (cAdmin is okay) [don't require $mya->confirmed]
+          be\fund($hId = $mya->helper, TX_HELPER, R_HELPER_BONUS, t('invite reward', compact('fullName')));
+          $helped = db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) + 0;
+          if ($helped == ORGANIZER_GRANT_MIN) {
+//            r\message($mya->helper, 'organizer grant', ['_a' => w\atag('/community/grant')]);
+            list ($name, $topic) = [$mya->helperA->fullName, t('eligible')];
+            r\tellAdmin('eligible for grant', compact(ray('name topic')));
+          }
+        }
 //        if (!a\photoFromFile($mya, $err)) return say($err, 'ERR');
-        r\membershipEvent($mya, 'bona');
-        $adminable[B_BONA] = B_BONA; // otherwise gets unset
+//        r\membershipEvent($mya, 'bona');
+//        $adminable[B_BONA] = B_BONA; // otherwise gets unset
       }
       unset($DBTX2); 
     } elseif (@$federalId and $federalId != $mya->federalId) $mya->update('ssnData', '');
@@ -1721,7 +1640,7 @@ function photoUpload($uid = '', $sid = '') {
     $filename = str_replace(' ', '_', DRUPAL_ROOT . R_PICTURE_DIR . "$mya->fullName-" . u\randomString(10, 'word') . '.jpg');
     imagejpeg($img0, $filename, 100); // save for a few days in case we have to recrop
   } catch (Exception $e) {
-    lug('failed to save photo file ' . $filename);
+/**/    lug('failed to save photo file ' . $filename);
   }
 
   $img = u\alterImg($img0, $w, $h, $x1, $y1, $cropW, $cropH, $angle);
@@ -1867,7 +1786,7 @@ function formPhoto_submit($form, &$sta) {
     if (file_exists($pictureFilename)) {
       rename($pictureFilename, $newFilename);
     } else imagejpeg(imagecreatefromstring($mya->photo), $newFilename, 100);
-    $mya->stepDone('photo', [], FALSE);
+    $mya->stepDone('photo', FALSE);
     $mya->update('photo', '');
     $mya->setBit(B_MEMBER, FALSE);
     $mya->setBit(B_OK, FALSE);
@@ -2052,7 +1971,7 @@ function formTx($form, &$sta, $args = '') {
 //  $isGift = hidfld(FALSE);
   $$type = submit(ucwords($type));
 
-  $onSubmit = 'return ' . w\whoFldSubmit('who', $question, 'this.amount.value', $type == 'pay');
+  $onSubmit = w\whoFldSubmit('who', $question, 'this.amount.value', $type == 'pay');
   
   $form = labeled(compact(ray("title subtext who amount goods purpose calc $type")), $onSubmit);
   $form['#attributes']['class'][] = $scanClass;
@@ -2084,15 +2003,16 @@ function formInvoiceUpload($form, &$sta) {
   <ol>
   <li><b>Create a spreadsheet</b> with one row for each customer. You need three columns:
     <ul>
-    <li>Customer's 6-letter %PROJECT account code OR <x %a>your account code</x a> for the customer.</li>
+    <li>Customer's 6-letter %PROJECT account ID, as in your <%a>Customer list</a>.</li>
     <li>Amount to charge the customer.
     <li>A description of the charge.
-    </ul><br>
-    Save the spreadsheet as a CSV file.</li>
-  <li><b>Upload here</b> the CSV file you created in step one, to automatically charge each customer.</li>
+    </ul>
+    Save the spreadsheet as a CSV file.<br>&nbsp;</li>
+  <li><p><b>Upload here</b> the CSV file you created in step one, to automatically charge each customer.</p>
+  </li>
   </ol>
 EOF
-  , '_a', w\atag('/settings/relations')));
+  , '_a', w\atag('/community/data/qName=6Customers')));
   $invoices = fld('file', '', '', attrib(ray('enctype', "multipart/form-data")));
   $submit = submit('Upload and Invoice');
 
@@ -2122,10 +2042,9 @@ function formInvoiceUpload_submit($form, &$sta) {
     if (count($row) < 3) return say(t('Incomplete row') . $atLine);
     list ($cust, $amt, $desc) = $row;
     if ($err = u\badAmount($amt, '>0')) return say('bad csv|' . $err . $atLine, 'invoices');
-    $uid = db\lookup('other', 'r_relations', 'main=:myid AND code=:cust', compact('myid', 'cust')) ?
-    : (($custA = r\acct($cust)) ? $custA->id : FALSE);
-    if (!$uid) return say(t('Bad customer account code') . $atLine, 'invoices');
-    $txs[] = [$uid, $amt, $desc, FOR_GOODS];
+//    $isCustomer = exists('r_relations', 'main=:myid AND other=:cust', compact('myid', 'cust')) ?
+    if (!$custA = r\acct($cust) or !db\relation($myid, $custA->id)) return say(t('Bad customer account ID') . $atLine, 'invoices');
+    $txs[] = [$custA->id, $amt, $desc, FOR_GOODS];
     $total += $amt;
     $cust = $amt = '';
   }      
@@ -2254,7 +2173,7 @@ function formBuy($form, &$sta, $doCode = '') {
   }
   if ($err = u\badAmount($amount, '>0')) return r\go('', $err, 'zot');
   if (!u\isQid(@$company) or !($co = r\acct($company)) or !$co->co) return r\go('', 'bad account id', 'zot');
-//  if ($code != @$co->data['cardCode']) return r\go('', 'bad account code', 'zot');
+//  if ($code != @$co->data['cardCode']) return r\go('', 'bad account ID', 'zot');
   $cust_email = strtolower($cust_email);
   if (($a = r\acct()) ? !u\similarEmail($a->email, $cust_email) : (!$a = r\acct($cust_email))) return r\go('', t('bad buy info', ray('thing', t('email'))), 'zot');
 //  if (!in_array(strtolower($cust_name), array(strtolower($a->fullName), strtolower($a->legalName)))) return r\go('', t('bad buy info', ray('thing', t('name'))), 'zot');
@@ -2317,8 +2236,10 @@ function formHandleInvoice($form, &$sta, $args = '') {
   extract(u\just('nvid amount payer payee purpose created data', $inv));
   if (@$code) {
     if (!$info = r\doCode($code)) return hack(t('fake doCode in handleInvoice'));
-    w\signout('no redirect');
-  } elseif ($mya and $payer != $mya->id and $payee != $mya->id) return hack(t('bad person in invoice payment'));
+    if (@$mya and $payer != $mya->id) w\signout('no redirect'); // make sure we're signed out of any possibly different acct
+  } elseif (!$mya) {
+    return hack(t('attempt to handle invoice not signed in'));
+  } else if (!in_array($mya->id, [$payer, $payee]) or ($mya->id == $payer xor $toMe)) return hack(t('bad person in invoice payment'));
 
   $subs = ray('amount what', u\fmtAmt($amount), $purpose);
   
@@ -2326,6 +2247,7 @@ function formHandleInvoice($form, &$sta, $args = '') {
     $title = item(t('Confirm Payment'));
     $subs += ray('who', r\acct($payee)->fullName);
     $subtext = item(t('Pay %amount to %who for %what?', $subs));
+// (still need to look at whether there are auto-refills. if so, warn about bounce fees. If always is checked, set isCustomer to 2 in relations record (create it if needed)    $always = boxFld('always', t('Auto:'), t('Pay invoices from %who automatically?', $subs), 0);
     $pay = submit(t('Pay'));
 
     $whyNot = textFld(t('Why not:'));
@@ -2562,21 +2484,22 @@ function formSignup($form, &$sta, $args = '') {
     $reid = r\relation('reid', 'main=:main AND code=:customer', ray('main customer', $partnerA->id, $customer));
 
     if (@$qid) { // partner sent an already-member
-      if ($a = r\acct($qid) and ($a->phone == u\fmtPhone(@$phone, '+n') or (similar_text($a->fullName, @$fullName, $pct) > 5 and $pct > .5))) { // existing member code is valid
+      if ($a = r\acct($qid) and ($a->phone == u\fmtPhone(@$phone, '+n') or (u\similar($a->fullName, @$fullName, 5, .5)))) { // existing member code is valid
         $valid = TRUE;
         if ($reid) { // relation with this partner already exists
           u\EXPECT(r\relation('other', $reid) == $a->id, 'duplicate customer');
           db\update('r_relations', ray('reid isCustomer code', $reid, TRUE, $customer), 'reid'); // just update the customer
         } else $reid = $partnerA->newRelation(ray('other isCustomer code', $a->id, TRUE, $customer)); // create the relation
-        if ($partnerA->website) { // partner should always have a website
-          u\post($partnerA->partnerAPI(), compact('partnerCode', 'customer') + ['op' => $a->ok ? 'end' : 'start']);
-          $goto = (@$valid and $a->member) ? "http://$partnerA->website?cgSignup=ok" : "signin?name=$qid";
-        } else {w\say(t('Partner has no website. Fix it on the Company Info settings page.')); $goto = 'empty';} // testing?!
+        if (!$partnerA->website) return r\go('empty', t('Partner has no website. Fix it on the Company Info settings page.')); // partner should always have a website
+        list ($op, $fields, $qid) = ['end', 'partnerCode qid op', $a->mainQid];
+        if (!$a->ok) list ($op, $fields) = ['start', $fields . ' customer'];
+        u\post($partnerA->partnerAPI(), compact($fields));
+        $goto = $a->member ? "http://$partnerA->website?cgSignup=ok" : "signin?name=$qid";
       } else { // member mistyped their qid (a royal pain in the butt)
         $goto = 'empty';
         w\say(t('That is not a valid %PROJECT member ID. But no worries. We will try to figure out who you are and match up your %PROJECT account with with your account at %partnerName. If you have not yet finished opening your %PROJECT account, <%a>sign in</a> (if you have not yet begun go to %CG_DOMAIN and click "Sign up").', 'partnerName _a', $partnerA->fullName, w\atag('signin')));
       }
-      r\tellAdmin(t('new member of %partner: %qid') . (@$valid ? '' : t('(invalid)')), $args);
+      r\tellAdmin(t('new customer of %partner: %fullName', compact('partner', 'fullName')) . (@$valid ? '' : t('(invalid)')), $args);
       return r\go($goto); // complain, finish account setup, or report success
     } elseif (!$reid) { // new member from partner and not a retry
         $reid = $partnerA->newRelation(ray('other isCustomer code data', 0, TRUE, $customer, serialize($args))); // create a place-holder relation, in case they bail before completing first page
@@ -2666,7 +2589,7 @@ EOF
   
   if ($personal) {
     $acctType = hidFld(R_PERSONAL);
-    $pin = passFld(t('PIN:'), [t('Choose a PIN (any 4 digits)'), t('Your security code for online purchases.')]); // first time logging in, get PIN
+//    $pin = passFld(t('PIN:'), [t('Choose a PIN (any 4 digits)'), t('Your security code for online purchases.')]); // first time logging in, get PIN
     $calling = textFld(t('Life Calling:'), [t('Your calling in life (optional)'), t('One of the main purposes of %PROJECT is to provide you the opportunity to do what you feel called to do in life. What would bring you joy to do, to earn %RCREDITS (maybe something you\'re not doing yet)? What might you have to offer?')]);
     $companyOptions = array(
       'isOwner' => t('owner'),
@@ -2704,6 +2627,7 @@ EOF
         + $contactFlds + w\ssnFields($personal)
         + compact(ray('pin calling source source2 companyInfo buysAt submit args confirmed helper iCode notes relation'));
 //  keep_values($form);
+//  $sponsorConfirmation = w\whoFldSubmit('sponsor', t('Your sponsoring organization is %name, yes?'));
   return labeled($form, 'return setPostalAddr(false);');
 }
 
@@ -2720,8 +2644,8 @@ function formSignup_validate($form, &$sta) {
   if (!@$state) return say('bad state', 'state');
   if (!formBasic_validate($form, $sta, $acctType != R_PERSONAL)) return;
   if ($err = u\badAmount($tenure, '>=0')) return say(t('How-long: ') . t($err), 'tenure');
-  if (@$pin === '') return say('pin required', 'pin');
-  if (@$pin and strlen($pin) != 4) return say('wrong pin len', 'pin');
+//  if (@$pin === '') return say('pin required', 'pin');
+//  if (@$pin and strlen($pin) != 4) return say('wrong pin len', 'pin');
   
   if (@$companyOptions) extract(u\just('isOwner employeeOk contractor', $companyOptions));
   $gotrelation = (@$employeeOk or @$isOwner or @$contractor);
@@ -2780,7 +2704,7 @@ function formSignup_submit($form, &$sta) {
     $iCode = $partnerA->iCardCode(IBY_EMAIL);
     db\update('r_relations', ray('reid other', $relation, $myid), 'reid');
 //    $partnerA->newRelation(ray('other isCustomer code', $myid, TRUE, $customer));
-    u\post($partnerA->partnerAPI(), compact('partnerCode', 'customer') + ['op' => 'start']);
+    u\post($partnerA->partnerAPI(), ray('partnerCode customer qid op', $partnerCode, $customer, $a->mainQid, 'start'));
   }
 
   if (@$iCode < 0) w\invitation($code, $myid); // mark the invitation used
@@ -2847,13 +2771,13 @@ function formContact($form, &$sta) {
   if ($mya->ok) $nameDesc .= '<br>' . ($mya->co ? t('Your username and %PROJECT webpage address') : t('triggers new card', 'field', t('name')) . t('Your username')) . t(' will also change.');
   $title = item(t('Contact Information'));
   $fullName = textFld($mya->co ? t('Company Name:') : t('Your Name:'), $nameDesc, required(@$mya->fullName));
-  $onchange = w\onchange("jQuery('.form-item-pin').show();");
+  $onchange = w\onchange("jQuery('.form-item-pass').show();");
   $email = textFld(t('Email:'), '', $onchange + required(@$mya->email));
-  if (!$mya->cAdmin and $mya->pin !== '') $pin = passFld(t('Your PIN:'), t('Required for changing email address'));
+  if (!$mya->cAdmin) $pass = passFld(t('Password:'), t('Required for changing email address'));
 
   $submit = submit();
 
-  $form = compact(ray('title fullName email pin')) 
+  $form = compact(ray('title fullName email pass')) 
         + contactFields([], $mya)
         + compact('submit');
   
@@ -2864,7 +2788,7 @@ function formContact_validate($form, &$sta) {
   global $mya;
   $myid = $mya->id;
   extract(u\normalizeCase(u\just($normals = 'fullName city address postalAddr', $sta['input'])));
-  extract(u\just('email pin phone country state zip', $sta['input']));
+  extract(u\just('email pass phone country state zip', $sta['input']));
 
   // what's this doing in validate?!
 //  js('js/countries.js', 'file', 'header'); // country and state dropdowns
@@ -2879,7 +2803,8 @@ function formContact_validate($form, &$sta) {
 
   if ($err = u\badZip($zip)) return say($err, 'zip');
   if (!emailOkay($email, $mya->co, $mya)) return; // say('bad email', ray('email', $email), 'email');
-  if (!$mya->cAdmin and $email != $mya->email and $pin != $mya->agentA->pin) return say('bad pin', 'pin');
+  if (!$mya->cAdmin and $email != $mya->email and !$mya->AgentA->passwordOkay($pass, 'pass', $err)) return w\say($err, 'pass');
+//$pin != $mya->agentA->pin) return say('bad pin', 'pin');
   if (!phoneOk($phone, $country)) return;
   if (u\poAddress($address)) return say('po in location', 'address');
   
@@ -2900,7 +2825,7 @@ function formContact_submit($form, &$sta) {
   $mya->eachPartner(function($coA, $custA, $custCode) { // tell partner what changed
     global $partnerInfo;
     foreach ($partnerInfo as $k => $v) if ($custA->$k == $v) unset($partnerInfo[$k]);
-    if ($partnerInfo) u\post($coA->partnerAPI(), ray('partnerCode customer op', $coA->emailCode, $custCode, 'change') + $partnerInfo);
+    if ($partnerInfo) u\post($coA->partnerAPI(), ray('partnerCode qid op', $coA->emailCode, $mya->mainQid, 'change') + $partnerInfo);
   });
   
   $mya->setRisk('rents', !@$owns); // @ for tests
@@ -3325,7 +3250,7 @@ EOF;
   $caption = $sticky = '';
   $empty = t('no relations');
   $list = theme_table(compact(ray('header rows attributes caption colgroups sticky empty')));
-  $onSubmit = 'return ' . w\whoFldSubmit('newperson', t('Create a new relation with %name?'));
+  $onSubmit = w\whoFldSubmit('newperson', t('Create a new relation with %name?'));
 
   $title = item(t('Relations'));
   $subtext = item($subtext);
@@ -3585,6 +3510,7 @@ function formChangePassword_submit($form, &$sta) {
   return r\go('settings/security');
 }
 
+/*
 function formChangePin($form, &$sta) {
   global $mya;
 
@@ -3597,11 +3523,12 @@ function formChangePin($form, &$sta) {
   
   return labeled(compact(ray('title pin pass submit')));
 }
+*/
 
 /**
  * Replacement for user_formAccount_validate()
  * (because we want to allow the same email for several accounts)
- */
+ *//*
 function formChangePin_validate($form, &$sta) {
   global $mya;
   extract(u\just('pass pin', $sta['input']));
@@ -3622,6 +3549,7 @@ function formChangePin_submit($form, &$sta) {
   say(t('Your new pin has been saved.'));
   return r\go('settings/security');
 }
+*/
 
 /**
  * Login from elsewhere.
@@ -3639,6 +3567,13 @@ function formSinx($form, &$sta) {
   $input = ['name' => $a->name];
   formSignin_submit('', compact('uid', 'input'));
 }*/
+
+/**
+ * Pay with Common Good from a website or app.
+ */
+function formPayWithCG($form, &$sta) {
+///  debug($sta['input']);
+}
 
 /**
  * Completely redo the login form (see user_login() in user.module).
@@ -3682,7 +3617,7 @@ function formSignin($form, &$sta) {
 /**
  * Replacement for user_login_authenticate_validate()
  * See the original function for explanation of flood control.
- * Accept name (short name) or account id, with password.
+ * Accept name (short name) or account ID, with password.
  * Sets $sta['uid'] to signify successful authentication.
  */
 function formSignin_validate($form, &$sta) {
@@ -4007,7 +3942,7 @@ function formCompany_submit($form, &$sta) {
  
  UNUSED:
  *   Scanning in (not signed in, scanned agent)
- *   Signing in (not signed in, scanned person) - show login page with account id filled in
+ *   Signing in (not signed in, scanned person) - show login page with account ID filled in
  *   Agent charging a customer (signed in, scanned any) - show photo and Charge button
  *   Agent paying someone (signed in, scanned any) - show Pay button
  *   Person paying someone (signed in, scanned any) - go to Pay page
@@ -4176,7 +4111,7 @@ function formFlags($form, &$sta, $args = '') {
   $url = hidFld($url);
   
   $title = item(t('Suspicious Activity Report')); //  . strftime('%A, %m/%d/%y')
-  $subtext = item(t(t('<p>Any potentially suspicious accounts, transactions, and bank transfers (ACHs) are listed here, so all members can keep an eye on things. System administrators will investigate any transaction with a suspiciousness score of %K_RED or more (shown in red). If you don\'t see any red, that means nothing even remotely suspicious happened. But for the sake of transparency, we show the %MAXLINES top scores in each category anyway.</p><p>Green risks are "good" (they mitigate other risk factors). Hover over any risk for a brief description or click it for details. To see a company\'s name, hover over its account code.</p>'), compact('MAXLINES')));
+  $subtext = item(t(t('<p>Any potentially suspicious accounts, transactions, and bank transfers (ACHs) are listed here, so all members can keep an eye on things. System administrators will investigate any transaction with a suspiciousness score of %K_RED or more (shown in red). If you don\'t see any red, that means nothing even remotely suspicious happened. But for the sake of transparency, we show the %MAXLINES top scores in each category anyway.</p><p>Green risks are "good" (they mitigate other risk factors). Hover over any risk for a brief description or click it for details. To see a company\'s name, hover over its account ID.</p>'), compact('MAXLINES')));
 
   $achHeader = $txHeader = $acctHeader = '';
   $accts = $txs = $achs = '';
@@ -4297,7 +4232,7 @@ function formData($form, &$sta, $args = '') {
     $form = compact(ray('title subtext report'));
   } else {
     $form['title'] = w\item(t('Community and Money Data'));
-    $form['subtext'] = w\item(t('Click the query of your choice. If you need information not provided here, <%a1>request it</a>!', ['_a1' => u\emailTag(CGF_EMAIL, t('data request'))]));
+    $form['subtext'] = w\item(t('Click the query of your choice. If you need information not provided here, <%a1>request it</a>!', ['_a1' => u\emailTag(CGF_EMAIL, t('data request'))]), '&nbsp;');
     
     foreach ($queries as $k0 => $v) {
       if ($k = w\queryPermitted($k0)) $form[$k0] = w\submit($k, 'default', 'xs');
@@ -4571,7 +4506,7 @@ copyright &copy; %year <%aSite>%PROJECT<sup>&trade;</sup></a>, a nonprofit organ
 %CGF_PHONE &nbsp; <%aEmail>%CGF_EMAIL</a><br>
 <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>&nbsp;
 EOF
-  , '_aSite _aAgree _aSecurity _aHelp year _aEmail', w\atag(r\promoLink('')), w\atag('/community/agreement'), w\atag(r\promoLink('security.html')), w\atag("/help/$helpType"), $year, u\emailTag(CGF_EMAIL));
+  , '_aSite _aAgree _aSecurity _aHelp year _aEmail', w\atag(r\promoLink('about.html')), w\atag('/community/agreement'), w\atag(r\promoLink('security.html')), w\atag("/help/$helpType"), $year, u\emailTag(CGF_EMAIL));
 //    <%aCttys>Communities</a> |
 
   $footerText = item($markup); // unique name for this page

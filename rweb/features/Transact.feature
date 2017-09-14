@@ -8,9 +8,9 @@ SO I can buy and sell stuff.
 Setup:
   Given members:
   | id   | fullName | address | city  | state  | zip | country | postalAddr | rebate | flags      |*
-  | .ZZA | Abe One  | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK |  5 | ok,confirmed,bona    |
-  | .ZZB | Bea Two  | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT | 10 | ok,confirmed,bona    |
-  | .ZZC | Our Pub  | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR | 10 | ok,confirmed,co,bona |
+  | .ZZA | Abe One  | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK |  5 | ok,confirmed         |
+  | .ZZB | Bea Two  | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT | 10 | ok,confirmed         |
+  | .ZZC | Our Pub  | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR | 10 | ok,confirmed,co      |
   And relations:
   | main | agent | permission |*
   | .ZZA | .ZZB  | buy        |
@@ -127,27 +127,29 @@ Scenario: A member confirms request to pay a member company
   | .ZZA |    -100 |     255 |
   | .ZZB |       0 |     250 |
   | .ZZC |     100 |     260 |
-Scenario: A member confirms request to pay the same member the same amount
-  Given member ".ZZA" confirms form "pay" with values:
-  | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | %FOR_GOODS     | labor   |  
-  When member ".ZZA" confirms form "pay" with values:
-  | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    | %FOR_GOODS     | labor   |
-  Then we say "error": "duplicate transaction" with subs:
-  | op   |*
-  | paid |
+
+#NO. Duplicates are never flagged on web interface.
+#Scenario: A member confirms request to pay the same member the same amount
+#  Given member ".ZZA" confirms form "pay" with values:
+#  | op  | who     | amount | goods | purpose |*
+#  | pay | Bea Two | 100    | %FOR_GOODS     | labor   |  
+#  When member ".ZZA" confirms form "pay" with values:
+#  | op  | who     | amount | goods | purpose |*
+#  | pay | Bea Two | 100    | %FOR_GOODS     | labor   |
+#  Then we say "error": "duplicate transaction" with subs:
+#  | op   |*
+#  | paid |
   
-Scenario: A member confirms request to charge the same member the same amount
-  Given member ".ZZA" confirms form "charge" with values:
-  | op     | who     | amount | goods | purpose |*
-  | charge | Bea Two | 100    | %FOR_GOODS     | labor   |  
-  When member ".ZZA" confirms form "charge" with values:
-  | op     | who     | amount | goods | purpose |*
-  | charge | Bea Two | 100    | %FOR_GOODS     | labor   |
-  Then we say "error": "duplicate transaction" with subs:
-  | op      |*
-  | charged |
+#Scenario: A member confirms request to charge the same member the same amount
+#  Given member ".ZZA" confirms form "charge" with values:
+#  | op     | who     | amount | goods | purpose |*
+#  | charge | Bea Two | 100    | %FOR_GOODS     | labor   |  
+#  When member ".ZZA" confirms form "charge" with values:
+#  | op     | who     | amount | goods | purpose |*
+#  | charge | Bea Two | 100    | %FOR_GOODS     | labor   |
+#  Then we say "error": "duplicate transaction" with subs:
+#  | op      |*
+#  | charged |
 
 Scenario: A member leaves goods blank
   Given member ".ZZA" confirms form "pay" with values:

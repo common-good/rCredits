@@ -19,9 +19,9 @@ define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows'); // used?
  * Return the user's transactions for the given period (inclusive)
  * @param int $starting: starting time (the beginning of some day)
  * @param int $ending: ending time (the end of some day)
- * @param mixed $uid: account id for which to return transactions
+ * @param mixed $uid: account record ID for which to return transactions
  *   'ctty' means return transactions for the current account's whole community
- * @param int $jid: account id for joined account, if any
+ * @param int $jid: account record ID for joined account, if any
  * @return the recordset (FALSE if none)
  * NOTE: Denied invoices are included only for the payee, otherwise all complete or tentative transactions
  * other than rebates and bonuses are included (even those will be included if the 'include_bonuses' option is set).
@@ -57,8 +57,8 @@ EOF;
     $iGet = 'payee IN (:uid, :jid)';
 //    foreach (ray(TX_FLAGS) as $k) $$k = u\bit(u\consta('b', $k)); // taking and roundup flags
     list ($fromBank, $toBank) = [t('from bank'), t('to bank')];
-    $txFields = "xid, amount, IF($iPay, amount, 0) AS fromyou, IF($iPay, 0, amount) AS toyou, IF($iPay, payerReward, payeeReward) AS reward, payer, payee, type, t1.created, t1.data, $iPay XOR t1.:IS_TAKING AS byMe, t1.:IS_ROUNDUP AS roundup, t1.:IS_DISPUTED AS disputed, $iGet AS toMe, IF($iPay, payerFor, payeeFor) AS description, IF($iPay, payerAgent, payeeAgent) AS agent, IF(:uid<0, xid, IF($iPay, payerTid, payeeTid)) AS tid, goods, (goods=:FOR_SHARE) AS sharing, channel";
-    $usdFields = "txid AS xid, amount, IF(:DEPOSIT_SQL, 0, -amount) AS fromyou, IF(:DEPOSIT_SQL, amount, 0) AS toyou, 0 AS reward, 0 AS payer, payee, :TX_BANK AS type, completed AS created, '' AS data, TRUE AS byMe, FALSE AS roundup, FALSE AS disputed, IF(:DEPOSIT_SQL, 1, 0) AS toMe, IF(:DEPOSIT_SQL, '$fromBank', '$toBank') AS description, '' AS agent, txid AS tid, :FOR_USD AS goods, 0 AS sharing, channel";
+    $txFields = "xid, amount, t1.flags, IF($iPay, amount, 0) AS fromyou, IF($iPay, 0, amount) AS toyou, IF($iPay, payerReward, payeeReward) AS reward, payer, payee, type, t1.created, t1.data, $iPay XOR t1.:IS_TAKING AS byMe, t1.:IS_ROUNDUP AS roundup, t1.:IS_DISPUTED AS disputed, $iGet AS toMe, IF($iPay, payerFor, payeeFor) AS description, IF($iPay, payerAgent, payeeAgent) AS agent, IF(:uid<0, xid, IF($iPay, payerTid, payeeTid)) AS tid, goods, (goods=:FOR_SHARE) AS sharing, channel";
+    $usdFields = "txid AS xid, amount, 0 AS flags, IF(:DEPOSIT_SQL, 0, -amount) AS fromyou, IF(:DEPOSIT_SQL, amount, 0) AS toyou, 0 AS reward, 0 AS payer, payee, :TX_BANK AS type, completed AS created, '' AS data, TRUE AS byMe, FALSE AS roundup, FALSE AS disputed, IF(:DEPOSIT_SQL, 1, 0) AS toMe, IF(:DEPOSIT_SQL, '$fromBank', '$toBank') AS description, '' AS agent, txid AS tid, :FOR_USD AS goods, 0 AS sharing, channel";
     $where = "created BETWEEN :starting AND :ending AND type>=0 AND ($iPay XOR $iGet)"; // omit invisible transactions
 
     $sql = <<<EOF
@@ -75,8 +75,8 @@ EOF;
 /**
  * Return an array of member names (called with ajax, so current user is passed as arguments).
  * POLICY QUESTION: Restrict to member's community? (yes for now)
- * @param int $myid: account ID
- * @param int $aid: agent account ID
+ * @param int $myid: account record ID
+ * @param int $aid: agent account record ID
  */
 function memberRay($myid, $aid) {
   if (!$a = r\acct($myid, $aid)) return [];
@@ -562,7 +562,7 @@ EOF;
 
   if (count($result) == 1 and @$result[$myid]) return [$self_message, [], []];
   unset($result[$myid]); // self is one of many results, so ignore it
-  if (!$result) return ['unknown member' . ("$cphone$cmail" == '--' ? '' : '|no search'), $subs, []];
+  if (!$result) return [($mya->admin ? 'unknown member' : 'unknown ctty member') . ("$cphone$cmail" == '--' ? '' : '|no search'), $subs, []];
   if (count($result) == 1) return r\acct(key($zot = $result)); // get the one entry (zot resets the pointer)
   return ['ambiguous other', $subs, $result];
 }
@@ -576,7 +576,6 @@ EOF;
  *   noj: ignore any joined account
  * @return
  *   standard object of credit account information (see $resultKeys, below)
- *   with corresponding number-formatted information in ->fancy
  *   including the overall demand for rCredits
  */
 function creditInfo($args = []) {
@@ -585,6 +584,8 @@ function creditInfo($args = []) {
   $jid = @$noj ? 0 : ($a->jid ?: 0);
 
   u\setDft($asof, $asof0 = r\rTime() + DAY_SECS);
+  $mday1 = u\monthDay1($asof); // start of relevant month, for partial (not-yet-given) roundups calculation
+  if ($asof == u\plusMonths(1, $mday1) - 1) $mday1 = $asof + 1; // for asof the end of month, there are no partRounds
   $subs = compact(ray('uid jid asof'));
   $isPayer = 't.payer IN (:uid, :jid)';
   $isPayee = 't.payee IN (:uid, :jid)'; // account can be both payer and payee, if joint account
@@ -596,7 +597,8 @@ function creditInfo($args = []) {
     SUM(IF($isPayee, amount, 0)) AS `in`,
     SUM(IF($isPayer, amount, 0)) AS `out`, 
     SUM(IF($isPayer, payerReward, payeeReward)) AS rewards,
-    SUM(IF(t.:IS_ROUNDUP AND $isPayer, MOD(amount, 1), 0)) AS roundups,
+    SUM(IF(t.:IS_ROUNDUP AND $isPayer AND MOD(amount, 1)>0, 1-MOD(amount, 1), 0)) AS roundups,
+    SUM(IF(t.:IS_ROUNDUP AND $isPayer AND MOD(amount, 1)>0 AND t.created>=$mday1, 1-MOD(amount, 1), 0)) AS partRounds,
     SUM(IF(t.goods=:FOR_SHARE, $signedAmt, 0)) AS share,
     SUM(IF(t.type=:TX_XFEE, $signedAmt, 0)) AS xfees,
     SUM(IF(:HAS_XFEE, $signedAmt, 0)) AS xin
@@ -636,22 +638,17 @@ EOF;
 //  $balance = $r - $savings;
   $savings = $rewards; // tentative savings before additions ( = oldSavings - oldSavingsAdd) (used in transaction summary)
   
-  $resultKeys = 'in out rewards share refunds fees xfees xin inProper outProper balance r bank savings roundups';
+  $resultKeys = 'in out rewards share refunds fees xfees xin inProper outProper balance r bank savings roundups partRounds';
   $result = compact(ray($resultKeys));
   
-  $fancy = [];
-  foreach ($result as $k => $v) {
-    $result[$k] = $v = round($v, 2);
-    $fancy[$k] = u\fmtAmt($v);
-  }
-///    debug(compact('uid', 'args', 'result'));
-  $result['fancy'] = $fancy;
+  foreach ($result as $k => $v) $result[$k] = $v = round($v, 2);
+
   return (object) $result;
 }
 
 /**
  * Return a list of account choices for the current user (agent of the current account)
- * @return an assoc of names keyed by account ids (FALSE if none)
+ * @return an assoc of names keyed by account record IDs (FALSE if none)
  */
 function accountChoices() {
   if (!$mya = r\acct()) return FALSE;

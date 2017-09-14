@@ -206,6 +206,7 @@ class Acct {
     if ($field == 'prefsSet') return !is_null($a->o_minimum); // preferences have been set at least once
     if ($field == 'hasCustomers') return db\exists('r_relations', 'main=:id AND isCustomer', ['id' => $a->id]);
     if ($field == 'superAdmin') return ($a->agentId == 1) ?: (u\test() and $a->admin and $a->agentA->name == 'abeone');
+    if ($field == 'partRounds') return db\sum('1-MOD(amount, 1)', 'r_txs', ':IS_ROUNDUP AND payer=:id AND MOD(amount, 1)>0 AND created>=:mday1', ray('id mday1', $this->id, u\monthDay1()));
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
       : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
       
@@ -291,7 +292,7 @@ class Acct {
     $j = u\nn(r\acct($jid)->$field, 0); // use 0 if other value is null
     return is_numeric($j) ? round($j + $a->$field, 2) : ($a->$field . " & $j"); // assume $ for numeric fields
   }*/
-  
+
   /**
    * Return a printable (scrambled) invitation card code 
    * @param int $iCode: sequence number (0 to 35^3-1)
@@ -589,7 +590,7 @@ class Acct {
   public static function setDefault($a) {
     global $mya, $channel, $box; 
     global $user; if (empty($user)) $user = (object) ['uid' => $a ? $a->id : 0]; // probably needed only for rWeb login form testing
-    if ($a and $a != $mya and (!$mya or !$a->cAdmin)) { // admin access doesn't count
+    if ($a and $a != $mya and !$a->cAdmin) { // admin access doesn't count
       $access = r\rTime();
       if ($channel == TX_WEB) $login = $access;
       $lastip = $_SERVER['REMOTE_ADDR'];
@@ -632,7 +633,8 @@ class Acct {
     $avail = $a->avail($goods);
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
-    $avail += $get ? $a->draw($need - $avail) : $a->canDraw(); // get or just asking   
+//    $avail += $get ? $a->draw($need - $avail) : $a->canDraw(); // get or just asking   
+    $avail += $get ? $a->draw(($a->refill ? $a->minimum : 0) + $need - $a->balance) : $a->canDraw(); // get or just asking   
 ///    debug(compact(ray('goods need get actor avail')));
     return max(0, $need - $avail); 
   }
@@ -668,8 +670,8 @@ EOF;
   }
   
   /**
-   * Draw the needed amount from other accounts.
-   * @param float $need: the amount needed
+   * Draw the wanted amount from other accounts, usually to make a purchase and maintain a non-negative balance.
+   * @param float $want: the amount wanted
    * @return float: the amount drawn
    */
   public function draw($need) {
@@ -922,7 +924,7 @@ EOF;
    * @param bool $done: whether to set the step done or not done
    * @return the next step (FALSE if none)
    */
-  function stepDone($step, $details = [], $done = TRUE) {
+  function stepDone($step, $done = TRUE, $details = []) {
     $a = $this;
     $stepsDone = $a->stepsDone;
 
@@ -933,7 +935,7 @@ EOF;
     $stepsDone[$step] = $done;
     $a->update(compact('stepsDone'));
     if (!$nextStep = $a->nextStep()) {
-      r\tellAdmin(t('New Member (%name)', ['name' => $a->fullName]));
+      r\tellCO(t('New Member (%name)', ['name' => $a->fullName]));
       r\membershipEvent($a, 'member');
     }
     return $nextStep;
@@ -965,7 +967,7 @@ EOF;
 /*    if ($a->member) {
       if ($stepDone) $nextStep = $stepDone; else return 'summary';
     } else { */
-    $nextStep = $stepDone ? $a->stepDone($stepDone, $info) : $a->nextStep();
+    $nextStep = $stepDone ? $a->stepDone($stepDone, TRUE, $info) : $a->nextStep();
     if (!$nextStep) {
       $approval = $a->co ? 'company approval' : 'individual approval';
 // fails with sysadmin as helper  if (!$a->confirmed) $approval .= '|' . t('must be confirmed', 'inviterName', @$a->helperA->fullName);
@@ -992,7 +994,7 @@ EOF;
   
   /**
    * Create a once-use password and return it.
-   * @param string $name: login identifier (email, account ID, or shortname) -- not used on production server
+   * @param string $name: login identifier (email, account record ID, or shortname) -- not used on production server
    * @return the once-use password
    */
   function oneTimePass($name) {
@@ -1034,7 +1036,7 @@ EOF;
   }
   
   /**
-   * Return the Community Admin's account ID.
+   * Return the Community Admin's account record ID.
    */
   function cAdminUid() {
     return db\lookup('uid', 'users', 'community=:ctty AND :IS_CADMIN', ray('ctty', $this->community));
@@ -1165,13 +1167,13 @@ EOF;
     $transfer = $automatic ? t('automatic transfer') : t('transfer');
     $amount = u\fmtAmt($amount);
     r\notify($a->id, 'transfer complete', compact('transfer', 'amount'));
-    if (!$a->can(B_BONA)) r\message($a->id, 'account funded');
+//    if (!$a->can(B_BONA)) r\message($a->id, 'account funded');
     return TRUE;
   }
 
   /**
    * Return the next suggested date, type, and description to contact this member for a standard checkin.
-   * @param bool $done: <asking because a checkin was just completed>
+   * @param mixed $done: <asking because a checkin was just completed> or "activate"
    * @return [$type, $date, $tip] or ['', 0, ''] if none
    *   $type: a one-word checkin type
    *   $date: the suggested date
@@ -1180,22 +1182,59 @@ EOF;
   public function nextTickle($done = FALSE) {
     $a = $this;
 
-    if (!$a->member) {
-      if ($a->nonudge or time() - $a->created < HOUR_SECS) return ['', 0, ''];
-      return [t('Setup'), max(0, $a->created), t('<b class="loud">Opening account</b>: Do you need help?')];
+    $activate = ($done . '' == 'activate');
+    if ($activate) {
+      list ($done, $activated) = [FALSE, time()];
+    } else {
+      $activated = $a->activated;
+      if (!$a->member) {
+        if ($a->nonudge or time() - $a->created < HOUR_SECS) return ['', 0, ''];
+        return [t('Setup'), max(0, $a->created), t('<b class="loud">Opening account</b>: Do you need help?')];
+      }
+      if (!$a->ok) return [t('Activate'), time(), t('<b class="loud">Activate account</b>')];
     }
-    if (!$a->ok) return [t('Activate'), time(), t('<b class="loud">Activate account</b>')];
-
-    $daysIn = (time() - $a->activated) / DAY_SECS;
-    if ($daysIn < 90 and !($done and $daysIn < 8)) return [t('Welcome'), $when = max(0, $a->activated + TICKLE_WELCOME * DAY_SECS), t('<span class="loud">%when <b>Welcome</b></span> to %PROJECT, How\'s it going? Any questions, suggestions, or concerns? Donate/crumbs/roundups (if none), volunteer?', 'when', u\fmtDate($when))];
     
-    $yearsIn = round($daysIn / 365.25);
+    $gifts = $a->totalGifts() ?: db\sum('amount', 'r_gifts', 'uid=:id', ['id' => $a->id]); // a promised gift counts here
+    $help = $gifts ? 'thanks' : 'ask';
+    if ($a->signupCo) $signupCo = w\signupCoDisply($a->signupCo) . ',';
+    $daysIn = (time() - $activated) / DAY_SECS; // how many days after activation are we
+    $tickleDaysIn = $a->tickle ? ($a->tickle - $activated) / DAY_SECS : 0; // how many days after activation to tickle
+    if ($activate or ($tickleDaysIn < 90 and $daysIn < ($done ? 8 : 90))) { // not welcoming if wrong time or done at right time
+      $when = $activated + (($gifts and !$a->cttyA->isRegion) ? TICKLE_WELCOME : TICKLE_DELAYED);
+      $msg = t('<span class="loud">%when <b>Welcome</b></span> to %PROJECT, How\'s it going%lastTx? %help donation/crumbs/roundups, %signupCo volunteer? [<%a>details</a>]', 'when lastTx help signupCo _a', u\fmtDate($when, TRUE), $a->lastTxDesc(), ucfirst($help), @$signupCo, w\atag("/help/welcome/gifts=$gifts"));
+      if ($a->paper) $msg .= t(' <span class="loud">Paper statements</span> at $%R_STATEMENT_COST/month &mdash; really?');
+      return [t('Welcome'), $when, $msg];
+    }
+    
+    $yearsIn = min(1, round($daysIn / 365.25));
     if ($done and abs($yearsIn * 365.25 - $daysIn < 30)) $yearsIn++;
     // if (($daysIn + 30) mod 365 < 2 * 30) 
-    return [t('Annual'), $when = strtotime("$yearsIn years", $a->activated), t('<span class="loud">%when <b>Annual</b></span>: Thanks for participating. How\'s it going? Questions, suggestions, concerns? Mailing address okay? Volunteer? Consider crumbs, roundups, joint account, auto-cashout?', 'when', u\fmtDate($when))];
+    $gift = $gifts ? t('Thanks for donation(s). Annual gift?') : t('Donate?');
+
+    $feature = $a->co ? t('cash-out') : t('joint account');
+    return [t('Annual'), $when = strtotime("$yearsIn years", $a->activated ?: time()), t('<span class="loud">%when <b>Annual</b></span>: Thanks for participating. How\'s it going%lastTx? %gift Mailing address okay? Volunteer? Consider %feature? [<%a>details</a>]', 'when lastTx gift _a feature', u\fmtDate($when, TRUE), $a->lastTxDesc(), $gift, w\atag("/help/annual/gifts=$gifts&years=$yearsIn"), $feature)];
     //return [0, ''];
   }
-  
+
+  /**
+   * Return a description of the members gift history.
+   * @param string $often: (RETURNED) frequency of latest gift
+   */
+  public function giftsDesc(&$often = '') {
+    $a = $this;
+    $totalGifts = u\fmtAmt($a->totalGifts());
+//      db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
+    if ($donationInfo = db\lookup('amount,often,honor,honored,giftDate', 'r_gifts', "uid=:id AND giftDate<:REQUEST_TIME AND honor<>'share' ORDER BY donid DESC", ['id' => $a->id])) {
+      extract($donationInfo);
+      $oftens = ray(OFTENS);
+      list ($often, $amount, $giftDate) = [$oftens[$often], u\fmtAmt($amount), u\fmtDate($giftDate, TRUE)];
+      $honor = $honor = 'share' ? '' : ($honor ? "($honor) $honored" : '');
+      $lastGift = t('Last') . ": $giftDate $amount $often $honor";
+    } else $lastGift = '';
+    $totalGifts .= ($a->roundup ? t(' +roundups') : '') . ($a->crumbs > 0 ? t(' +%crumbs% crumbs', 'crumbs', $a->crumbs * 100) : '');    
+    return $lastGift ? "$totalGifts, $lastGift" : t('none');
+  }
+
   /**
    * Return a link to a "no signin required" action.
    * Omit $life only for a forever link not specific to a particular account
@@ -1467,6 +1506,13 @@ EOF;
   } 
     
   /**
+   * Return the account's total gifts to the Common Good.
+   */
+  function totalGifts() {
+    return db\sum('amount', 'r_txs', 'payer=:payer AND :IS_GIFT', ray('payer', $this->id));
+  }
+  
+  /**
    * Set ssnData to an error message and maybe more
    * @param string $s: the error message
    * @param assoc $ssnData: whatever ssn Data we received from the lookup service
@@ -1480,6 +1526,8 @@ EOF;
   public function codeHash() {return u\hash($this->cardCode());}
   public function o($k) {return $this->{'o_' . $k};}
   public function partnerAPI() {return str_replace('WEBSITE', $this->website, PARTNER_API_URL);}
+  public function lastTxDesc() {return ($tx = $this->lastTx) ? t(' (Last tx: %dt)', 'dt', u\fmtDate($tx[3], TRUE)) : '';}
+  public function firstCo() {return db\lookup('fullName', 'r_relations r INNER JOIN users u ON r.main=u.uid', 'r.permission>0 AND r.other=:id ORDER BY r.created LIMIT 1', ['id' => $this->id]);}
   
 } // end of class
 

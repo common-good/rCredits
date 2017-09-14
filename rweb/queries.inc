@@ -1,5 +1,8 @@
 <?php
 
+use rCredits as r;
+use rCredits\Util as u;
+
 /**
  * @file
  * List of queries for the Community and Money Data page on the Community menu (for members only).
@@ -10,7 +13,10 @@
  * Note: query names cannot contain any of the following characters: /&? (because they confuse the url).
  */
 
+$cgf = r\cgfId();
 $bizQ = 'SELECT payee, goods, SUM(amount) AS tot, COUNT(*) AS cnt FROM r_txs WHERE goods=:FOR_GOODS AND created BETWEEN';
+$name = u\sqlSerialValue('r.data', 2); // used in Customers query
+$phone = u\sqlSerialValue('r.data', 6);
 
 $queries = [
   2 . 'Most Trusted Members' => 
@@ -41,24 +47,29 @@ $queries = [
       SUM(IF(u.:IS_CO, IF(u.:IS_REFILL, u.minimum, 0), 0)) AS coTargetBalances 
     FROM users u LEFT JOIN users c ON c.uid=u.community WHERE c.uid IS NOT NULL GROUP BY c.fullName",
 
+//     SUM(IF(t.:IS_GIFT OR t.:IS_ROUNDUPS OR t.:IS_CRUMBS OR t.:IS_PATRONAGE,0,amount)) AS `payments to CG`
   'Donations to Common Good and Community' =>
     "SELECT CONCAT_WS(' ', YEAR(FROM_UNIXTIME(t.created)), MONTHNAME(FROM_UNIXTIME(t.created))) AS month,
     SUM(IF(t.:IS_ROUNDUPS,amount,0)) AS roundups,
     SUM(IF(t.:IS_CRUMBS,amount,0)) AS crumbs,
     SUM(IF(t.:IS_PATRONAGE,amount,0)) AS recurring,
-    SUM(IF(t.:IS_GIFT AND NOT t.:IS_ROUNDUPS AND NOT t.:IS_CRUMBS AND NOT t.:IS_PATRONAGE,amount,0)) AS other,
-    SUM(IF(t.:IS_GIFT OR t.:IS_ROUNDUPS OR t.:IS_CRUMBS OR t.:IS_PATRONAGE,0,amount)) AS `payments to CG`
+    SUM(IF(t.:IS_GIFT AND NOT t.:IS_ROUNDUPS AND NOT t.:IS_CRUMBS AND NOT t.:IS_PATRONAGE,amount,0)) AS other
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer
-    WHERE u.community=:ctty AND (t.:IS_GIFT OR t.:IS_ROUNDUPS OR t.:IS_CRUMBS OR t.:IS_PATRONAGE OR t.payee=26742000000002)
+    WHERE u.community=:ctty AND (t.:IS_GIFT OR t.:IS_ROUNDUPS OR t.:IS_CRUMBS OR t.:IS_PATRONAGE) AND t.payee=$cgf
     GROUP BY YEAR(FROM_UNIXTIME(t.created)) DESC, MONTH(FROM_UNIXTIME(t.created)) DESC",
-  
+    
   B_CO . 'Customers' => // 27 is where the name starts in serialized data from partner: a:16:{s:8:"fullName";s:8:"NAME HERE...
-  "SELECT code AS customer, 
-    IFNULL(u.fullName, REPLACE(SUBSTRING(r.data, 27, LOCATE('\"', SUBSTRING(r.data, 28))), '\"', '')) AS name,
-    SUBSTRING_INDEX(SUBSTRING_INDEX(r.data, '\"', 12), '\"', -1) AS phone,
-    CONCAT(FROM_UNIXTIME(r.created, '%m/%d/%Y'), IF(u.uid IS NULL OR u.uid=0, ' *', '')) AS created, 
-    IF(u.uid IS NULL OR u.activated=0, '', FROM_UNIXTIME(u.activated, '%m/%d/%Y')) AS completed
-  FROM r_relations r LEFT JOIN users u ON u.uid=r.other WHERE r.main=:myid AND r.isCustomer ORDER BY completed,created"
-  . t('~<p>For companies partnering with %PROJECT, list participating customers, with the dates they begin and finish opening their %PROJECT account. An asterisk after the creation date indicates a customer who did not complete the first page (usually someone who balks at providing their social security number).</p>'),
+  "SELECT IFNULL(uid, (SELECT uid FROM users WHERE fullName=$name)) AS account,
+    code AS customer, IFNULL(fullName, $name) AS name, IF(u.activated, '', $phone) AS phone,
+    FROM_UNIXTIME(r.created, '%m/%d/%Y') AS created, 
+    IF(u.uid IS NULL OR u.activated=0,
+      IF(u.uid IS NULL OR u.uid=0, 'NOT BEGUN', 'in process'), 
+      FROM_UNIXTIME(u.activated, '%m/%d/%Y')) AS completed
+  FROM r_relations r LEFT JOIN users u ON u.uid=r.other WHERE r.main=:myid AND r.isCustomer ORDER BY completed DESC,created"
+  . t('~<p>A list of your customers who joined through a shared sign-up, showing progress opening their %PROJECT account.</p>'),
 
 ];
+
+//    IFNULL(u.fullName, REPLACE(SUBSTRING(r.data, 27, LOCATE('\"', SUBSTRING(r.data, 28))), '\"', '')) AS name,
+//    SUBSTRING_INDEX(SUBSTRING_INDEX(r.data, '\"', 12), '\"', -1) AS phone,
+

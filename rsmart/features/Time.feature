@@ -9,9 +9,9 @@ Summary:
 Setup:
   Given members:
   | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags      |*
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |      5 | ok,bona    |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |      5 | ok,bona    |
-  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,bona |
+  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |      5 | ok         |
+  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |      5 | ok         |
+  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co      |
   And devices:
   | id   | code |*
   | .ZZC | devC |

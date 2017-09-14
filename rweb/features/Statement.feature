@@ -5,10 +5,10 @@ SO I have a formal record of them.
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType    | flags      | created    | rebate |*
-  | .ZZA | Abe One    | -100  | personal    | ok,bona    | %today-15m |      5 |
-  | .ZZB | Bea Two    | -200  | personal    | ok,co,bona | %today-15m |     10 |
-  | .ZZC | Corner Pub | -300  | corporation | ok,co,bona | %today-15m |     10 |
+  | id   | fullName   | floor | acctType    | flags | created    | rebate |*
+  | .ZZA | Abe One    | -100  | personal    | ok    | %today-15m |      5 |
+  | .ZZB | Bea Two    | -200  | personal    | ok,co | %today-15m |     10 |
+  | .ZZC | Corner Pub | -300  | corporation | ok,co | %today-15m |     10 |
   And members have:
   | id   | fullName |*
   | ctty | ZZrCred  |
@@ -57,7 +57,7 @@ Scenario: A member looks at a statement for previous month
   | 1,000.00 | -44.00    | 460.00 | 1,110.00 |         | 1,606.00 |
   |     0.00 |           |        |        | 268.00  |   268.00 |
   And with:
-  | Tx#  | Date       | Name       | Purpose  | Amount  | Reward |
+  | Tx   | Date       | Name       | Purpose  | Amount  | Reward |
   | 1    | %lastmd+1d | ZZrCred    | signup  |     0.00 | 250.00 |
   | 2    | %lastmd+3d | Bea Two    | cash E  |    10.00 |   0.00 |
   | 3    | %lastmd+4d | Corner Pub | usd F   | 1,100.00 |   0.00 |

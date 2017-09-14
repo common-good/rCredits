@@ -6,8 +6,8 @@ SO I can automate and control the behavior of my rCredits account.
 Setup:
   Given members:
   | id   | crumbs | minimum | savingsAdd | saveWeekly | achMin | floor | flags   |*
-  | .ZZA |    .01 |     100 |          0 |          1 |     20 |    10 | ok,confirmed,bona,nosearch,paper |
-  | .ZZB |    .02 |     -10 |         10 |          0 |     50 |     0 | ok,confirmed,bona,weekly,secret |
+  | .ZZA |    .01 |     100 |          0 |          1 |     20 |    10 | ok,confirmed,nosearch,paper |
+  | .ZZB |    .02 |     -10 |         10 |          0 |     50 |     0 | ok,confirmed,weekly,secret |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose | taking |*
   |   1 | %today-6m | signup |    250 | ctty | .ZZA | signup  | 0      |
@@ -20,7 +20,7 @@ Scenario: A member visits the preferences page
   And radio "statements" is "printed statements"
   And radio "notices" is "daily"
   And we show checked:
-  | No Search | by name or account number only |
+  | No Search | by name or account ID only |
   And we show unchecked:
   | Secret Balance | Don't let merchants |
 
@@ -33,7 +33,7 @@ Scenario: Another member visits the preferences page
   And we show checked:
   | Secret Balance | Don't let merchants |
   And we show unchecked:
-  | No Search | by name or account number only |
+  | No Search | by name or account ID only |
   
 Scenario: A member changes preferences
   Given transactions: 
@@ -45,4 +45,4 @@ Scenario: A member changes preferences
   |       1 |      3 | monthly | electronic |        0 |         1 |
   Then members:
   | id   | crumbs |  flags   |*
-  | .ZZA |    .03 | member,ok,confirmed,bona,monthly,secret,roundup |
+  | .ZZA |    .03 | member,ok,confirmed,monthly,secret,roundup |

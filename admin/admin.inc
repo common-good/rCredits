@@ -313,44 +313,8 @@ EOF;
   }
 }
   
-/**
- * Check consistency with individual stats
- * @param int $ctty: record ID of community to check
- * @param int $created: stats date to check
- */
-function badStats($ctty, $asof) {
-  $q = db\q('SELECT uid FROM users WHERE community=:ctty AND uid > 1', compact('ctty'));
-  while ($row = $q->fetchAssoc()) {
-    extract(u\just('uid', $row));
-    $info = be\creditInfo(compact('uid','asof'));
-    $r = $info->r;
-    $total = @$total + $r;
-  }
-  $rStat = db\lookup('r', 'r_stats', 'ctty=:ctty AND created=:asof', compact('ctty', 'asof'));
-  if ($rStat == round($total, 2)) return FALSE;
-  return ['STATS_ERROR' => compact(ray('ctty asof rStat total'))];
-}
-
-/*
-  $r = $usd = 0;
-  $q = db\q("SELECT id, created, pAccts, bAccts FROM r_stats WHERE ctty<>0 ORDER BY created");
-  $new = r\acct('R_ADMIN_QID')->community;
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    $crit = 'BETWEEN :created AND :created+:DAY_SECS-1';
-    //$r += db\lookup('SUM(amount)', 'r_txs', 'payer<0 AND created ' . $crit, compact('created'));
-    //$usd += db\lookup('-SUM(amount)', 'r_usd', 'payee=0 AND completed ' . $crit, compact('created'));
-    //$newbs = db\count('users', 'created<:created', compact('created')) - $pAccts - $bAccts;
-///    debug(compact(ray('id created r usd newbs users'))); break;
-//    db\update('r_stats', compact(ray('r usd newbs id')), 'id');
-
-    $newbs = db\count('users', 'created<:created AND community=:new', compact('created', 'new')) - $pAccts - $bAccts;
-    $id = db\lookup('id', 'r_stats', 'created=:created AND ctty<>0', compact('created'));
-    db\update('r_stats', compact(ray('newbs id')), 'id');
-  }
-*/
 function pioneerBonus($a) {
-  if (!$a->ok or !$a->can(B_BONA) or $a->co) return;
+  if (!$a->ok or $a->co) return;
   if (db\exists('r_txs', "payee=:uid AND payer=-8915 AND amount=100", ray('uid', $a->id))) return;
 /**/  debug("Pioneer bonus to $a->fullName");
   be\fund($a->id, TX_SIGNUP, 100, 'pioneer bonus');
@@ -524,6 +488,7 @@ EOF;
     foreach (['In'=>t('IN'), 'Out'=>t('OUT'), 'Bad'=>t('BAD')] as $way => $wayDesc) {
       list ($total, $count) = [u\fmtAmt(${"amount$way"}, ''), number_format(${"count$way"})];
       if (!$count) continue;
+      if (!$deposit) $deposit = strtotime('today');
       $details = w\btn("deposit-details/way=$way&date=$deposit&total=$total&count=$count", t('details'));
       if ($way == 'Out') {
         list ($WAY, $date) = [t('OUT'), strftime('%Y%m%d', $deposit)];
@@ -853,20 +818,6 @@ function showInactive() {
 /**/ echo "$a->phone\t$a->fullName\t$dt\t$ok\n";
   }
 }
-/*
-function retro() {
-  $q=f('db.q','Select uid from users WHERE NOT :IS_CO AND uid>1 AND :IS_BONA');
-  while ($row=$q->fetchAssoc()) {
-    extract($row);
-    $a = a($uid);
-    $h = a($a->helper);
-    if (!$h->cAdmin) { // helper is not admin
-      $fullName = $a->fullName;
-      f('be.fund',$a->helper, TX_HELPER, R_HELPER_BONUS, f('u.tt','invite reward', compact('fullName')));
-///      debug("helper bonus to $h->fullName for inviting $fullName");
-    }
-  }
-}*/
 
 function cardLink($link) {return spinLink("/print-rcard/$link", t('card'), '', 'primary', 'xs', w\away());}
 
@@ -875,3 +826,12 @@ function nextMember($id = 0) {
   $i = $id ? array_search($id, $members) : -1;
   return @$members[$i + 1];
 }
+
+/*
+to find orphaned customers
+
+eachA(function ($a) {
+  $name = str_replace("'", "\\'", $a->fullName);
+///  if ($reid = f('db.lookup', 'reid', 'r_relations', "other=0 AND data LIKE '%$name%' AND reid NOT IN(26742000000222, 26742000000216)")) debug("$reid $name $a->id");
+});
+*/

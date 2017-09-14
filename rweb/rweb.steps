@@ -138,8 +138,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Transact AMemberConfirmsRequestToPayAnotherMember
  *     MAKE Transact AMemberConfirmsRequestToPayAnotherMemberALot
  *     MAKE Transact AMemberConfirmsRequestToPayAMemberCompany
- *     MAKE Transact AMemberConfirmsRequestToPayTheSameMemberTheSameAmount
- *     MAKE Transact AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount
  *     MAKE Transact AMemberLeavesGoodsBlank
  */
 function memberConfirmsFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values, TRUE);}
@@ -255,11 +253,13 @@ function members($list) {return t\members($list);}
  *     MAKE Relations Setup
  *     MAKE Statement Setup
  *     MAKE Summary Setup
+ *     MAKE Summary AMemberClicksTheSummaryTabWithRoundups
  *     MAKE Transact Setup
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMemberALot
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
  *     MAKE Transactions Setup
+ *     MAKE Transactions AMemberLooksAtTransactionsWithRoundups
  */
 function transactions($list) {return t\transactions($list);}
 
@@ -298,8 +298,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
- *     TEST Transact AMemberConfirmsRequestToPayTheSameMemberTheSameAmount
- *     TEST Transact AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount
  *     TEST Transact AMemberLeavesGoodsBlank
  */
 function weSayWithSubs($type, $index, $subs) {
@@ -464,10 +462,12 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST SignupCo AMemberRegistersACompany
  *     TEST Statement AMemberLooksAtAStatementForPreviousMonth
  *     TEST Summary AMemberClicksTheSummaryTab
+ *     TEST Summary AMemberClicksTheSummaryTabWithRoundups
  *     TEST Summary AnAgentClicksTheSummaryTabWithoutPermissionToManage
  *     TEST Summary ACompanyAgentClicksTheSummaryTab
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
  *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
+ *     TEST Transactions AMemberLooksAtTransactionsWithRoundups
  */
 function weShowWith($title, $content = FALSE, $debug = TRUE) {return t\weShowWith($title, $content, $debug);}
 
@@ -480,6 +480,7 @@ function weShowWith($title, $content = FALSE, $debug = TRUE) {return t\weShowWit
  *     TEST Statement AMemberLooksAtAStatementForPreviousMonth
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
  *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
+ *     TEST Transactions AMemberLooksAtTransactionsWithRoundups
  */
 function with($content) {return weShow($content);}
 
@@ -584,12 +585,14 @@ function relations($relations) {return t\relations($relations);}
  *     TEST SignupCo AMemberRegistersACompany
  *     TEST Statement Setup
  *     TEST Summary Setup
+ *     TEST Summary AMemberClicksTheSummaryTabWithRoundups
  *     TEST Transact Setup
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     MAKE Transact AMemberConfirmsRequestToPayAnotherMemberALot
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
  *     TEST Transactions Setup
+ *     TEST Transactions AMemberLooksAtTransactionsWithRoundups
  */
 function balances($list) {return t\balances($list);}
 
@@ -637,11 +640,13 @@ function usd($list) {return t\usd($list);}
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     MAKE Summary AMemberClicksTheSummaryTab
+ *     MAKE Summary AMemberClicksTheSummaryTabWithRoundups
  *     MAKE Summary AnAgentClicksTheSummaryTabWithoutPermissionToManage
  *     MAKE Summary ACompanyAgentClicksTheSummaryTab
  *     MAKE Summary MembersAccountIsNotActive
  *     MAKE Transactions AMemberLooksAtTransactionsForThePastYear
  *     MAKE Transactions AMemberLooksAtTransactionsForThePastFewDays
+ *     MAKE Transactions AMemberLooksAtTransactionsWithRoundups
  */
 function memberVisitsPage($id, $page) {return t\memberVisitsPage($id, $page);}
 
@@ -849,16 +854,6 @@ function withDownloadColumns($columns) {
 /// debug(compact('headers','testCSV','columns'));
   foreach ($columns as $one) if (array_search($one['column'], $headers) === FALSE) return FALSE;
   return TRUE;
-}
-
-/**
- * Dwolla is down
- *
- * in: 
- */
-function dwollaIsDown() {
-  global $testOnly; if ($testOnly) return FALSE;
-  global $dwollaDown; return $dwollaDown = TRUE;
 }
 
 /**
@@ -1360,4 +1355,14 @@ function communityIs($bit, $setting) {
   $bit = u\consta('b', $bit);
   $setting = ($setting == 'on');
   return $testOnly ? ($ctty->can($bit) == $setting) : $ctty->setBit($bit, $setting);
+}
+
+/**
+ * we tell (ARG) CO (ARG)
+ *
+ * in: 
+ */
+function weTellCO($arg1, $arg2) {
+  global $testOnly;
+  todo;
 }

@@ -6,10 +6,10 @@ SO we can share our finances, as for a typical "joint account" at a bank.
 Setup:
   Given members:
   | id   | fullName   | acctType    | flags                     | rebate | minimum | created   |*
-  | .ZZA | Abe One    | personal    | ok,confirmed,ided,bona    |     10 |     100 | %today-6m |
-  | .ZZB | Bea Two    | personal    | ok,confirmed,ided,bona    |     10 |      50 | %today-6m |
-  | .ZZC | Corner Pub | corporation | ok,confirmed,ided,co,bona |      5 |       0 | %today-6m |
-  | .ZZD | Dee Four   | personal    | ok,confirmed,ided,bona    |     10 |       0 | %today-6m |
+  | .ZZA | Abe One    | personal    | ok,confirmed,ided         |     10 |     100 | %today-6m |
+  | .ZZB | Bea Two    | personal    | ok,confirmed,ided         |     10 |      50 | %today-6m |
+  | .ZZC | Corner Pub | corporation | ok,confirmed,ided,co      |      5 |       0 | %today-6m |
+  | .ZZD | Dee Four   | personal    | ok,confirmed,ided         |     10 |       0 | %today-6m |
   And transactions: 
   | xid | created   | type       | amount | from      | to   | purpose | taking |*
   |   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |
@@ -145,8 +145,7 @@ Scenario: A joined account member looks at transaction history and summary
 #  | Your return   | 21.9% | (sometimes is 20.2%)
 #  | ~ever         | 136.7% | or 137.1% (depends on daylight time?) or 68.0%?!
   | Social return | $68.75 |
-  | ~ever         | $68.75 |
-
+  | including     | $0 |
 Scenario: A joined account member unjoins the account
   Given members have:
   | id   | jid  | minimum |*

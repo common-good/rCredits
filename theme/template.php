@@ -315,9 +315,9 @@ EOF;
  */
 function rcredits_form_element($variables) {
   extract(rcElement($variables, 'name tabled type bare markup help parents children required title title_display id field_prefix field_suffix inline class box'));
-///  debug(compact('parents', 'tabled', 'bare'));
 
-  $for = @$name ?: strtr(@$parents[0], [' '=>'-', '_'=>'-', '['=>'-', ']'=>'']);
+  $parentName = strtr(@$parents[0], [' '=>'-', '_'=>'-', '['=>'-', ']'=>'']);
+  $for = @$name ?: $parentName;
   if ($for == 'title') $children = "<h3>$children</h3>";
   $children = @$field_prefix . $children . @$field_suffix;
 
@@ -344,11 +344,11 @@ EOF;
 
   $id = @$markup ? " id=\"edit-$for\"" : '';
   $outerClass = "form-group form-item-$for";
+  if ($for != $parentName) $outerClass .= " form-item-$parentName";
   $outerClass .= ' ' . ($boxy ?: "form-type-$type");
   $required = @$required ? ' required="yes"' : '';
   if (@$class[0] == 'boxes') $outerClass .= ' boxes';
   if (@$attributes['disabled']) $outerClass .= ' disabled';
-  
   return <<<EOF
   <div$id class="$outerClass"$required>
 $core

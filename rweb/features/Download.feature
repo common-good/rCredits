@@ -6,9 +6,9 @@ SO I can see what happened and possbily integrate with an accounting program.
 Setup:
   Given members:
   | id   | fullName | floor | acctType    | flags      | rebate |*
-  | .ZZA | Abe One  | -100  | personal    | ok,bona    |      5 |
-  | .ZZB | Bea Two  | -200  | personal    | ok,co,bona |      5 |
-  | .ZZC | Our Pub  | -300  | corporation | ok,co,bona |     10 |
+  | .ZZA | Abe One  | -100  | personal    | ok         |      5 |
+  | .ZZB | Bea Two  | -200  | personal    | ok,co      |      5 |
+  | .ZZC | Our Pub  | -300  | corporation | ok,co      |     10 |
   And relations:
   | main | agent | permission |*
   | .ZZA | .ZZB  | buy        |

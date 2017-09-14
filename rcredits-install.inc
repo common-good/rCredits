@@ -279,7 +279,7 @@ function tableDefs($schema = []) {
     'txid' => setupField('the unique transaction ID', 'serial big'), 
     'tid' => setupField("payer's transaction ID", 'int 11'), // set, but currently UNUSED
     'amount' => setupField('amount of transfer', 'numeric 11,2'), 
-    'payee' => setupField('CG account ID', 'int big'), 
+    'payee' => setupField('CG account record ID', 'int big'), 
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'completed' => setupField('Unixtime transaction was completed', 'int 11', 0), // for deposits / withdrawals
     'deposit' => setupField('Unixtime transfer check was printed and deposited', 'int 11', 0),
@@ -317,7 +317,7 @@ function tableDefs($schema = []) {
   // table r_ips
   $fields = array(
     'ip' => setupField('ip address', 'varchar 39'),
-    'uid' => setupField('account ID', 'int big'), 
+    'uid' => setupField('account record ID', 'int big'), 
     'device' => setupField('device code', 'varchar 255'), // device identifier (unique to each device/type combo)
   );
   $foreignKeys = foreignKey('uid');
@@ -361,8 +361,8 @@ function tableDefs($schema = []) {
     'permission' => setupField('what type of permission the other has on the main account', 'int tiny', 0),
     'employee' => setupField('this other is an employee according to the main account (employer)', 'int tiny', 0),
     'isOwner' => setupField('this other is an owner (or part owner) or family relation', 'int tiny', 0),
-    'isCustomer' => setupField('this other is a customer', 'int tiny', 0),
-    'code' => setupfield('the (main) company\'s account code for this other', 'varchar 50'),
+    'isCustomer' => setupField('this other is a customer', 'int tiny', 0), // 2 means <pay invoices automatically>
+    'code' => setupfield('the (main) company\'s account ID for this other', 'varchar 50'),
     'data' => setupField('serialized array of parameters', 'text medium'), // used for partner's customer data while other=0
     'created' => setupField('Unixtime record created', 'int 11'),
   );

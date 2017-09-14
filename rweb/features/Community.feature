@@ -9,9 +9,9 @@ SO I can see how well the rCredits system is doing for myself, for my ctty, and 
 Setup:
   Given members:
   | id   | fullName   | rebate | flags      | minimum | floor | share | created   | activated |*
-  | .ZZA | Abe One    |      5 | ok,bona    |       5 |     0 |    10 | %today-6m | %today-5m |
-  | .ZZB | Bea Two    |      5 | ok,bona    |    1000 |   -20 |    20 | %today-5w | %today-4w |
-  | .ZZC | Corner Pub |     10 | ok,co,bona |    2000 |    10 |    30 | %today-4w | %today-3w |
+  | .ZZA | Abe One    |      5 | ok         |       5 |     0 |    10 | %today-6m | %today-5m |
+  | .ZZB | Bea Two    |      5 | ok         |    1000 |   -20 |    20 | %today-5w | %today-4w |
+  | .ZZC | Corner Pub |     10 | ok,co      |    2000 |    10 |    30 | %today-4w | %today-3w |
   And relations:
   | main | agent | permission |*
   | .ZZA | .ZZB  | buy        |

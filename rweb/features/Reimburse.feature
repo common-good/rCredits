@@ -5,10 +5,10 @@ SO I can be cool and save time by not having to find cash or write a check.
 
 Setup:
   Given members:
-  | id   | fullName | address | city  | state  | zip | country | postalAddr | rebate | flags      |*
-  | .ZZA | Abe One  | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK |  5 | ok,confirmed,bona    |
-  | .ZZB | Bea Two  | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT | 10 | ok,confirmed,bona    |
-  | .ZZC | Our Pub  | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR | 10 | ok,confirmed,co,bona |
+  | id   | fullName | address | city  | state  | zip   | country | postalAddr | rebate | flags      |*
+  | .ZZA | Abe One  | 1 A St. | Atown | Alaska | 01000 | US      | 1 A, A, AK |  5 | ok,confirmed    |
+  | .ZZB | Bea Two  | 2 B St. | Btown | Utah   | 02000 | US      | 2 B, B, UT | 10 | ok,confirmed    |
+  | .ZZC | Our Pub  | 3 C St. | Ctown | Cher   |       | France  | 3 C, C, FR | 10 | ok,confirmed,co |
   And relations:
   | main | agent | permission | draw |*
   | .ZZA | .ZZB  | buy        |    1 |
@@ -93,10 +93,10 @@ Scenario: A member repays someone, drawing from another account
   | %today  | Our Pub  | Bea Two   | $300   | payback      | ?        |
   And transactions:
   | xid | created | type     | amount | from  | to   | goods           | purpose |*
-  |   5 | %today  | transfer |     50 | .ZZA  | .ZZB | %FOR_NONGOODS | automatic transfer to NEWZZB,automatic transfer from NEWZZA |
+  |   5 | %today  | transfer |    300 | .ZZA  | .ZZB | %FOR_NONGOODS | automatic transfer to NEWZZB,automatic transfer from NEWZZA |
   |   6 | %today  | transfer |    300 | .ZZB  | .ZZC | %FOR_NONGOODS | payback |
   And balances:
   | id   | balance | rewards |*
-  | .ZZA |     150 |     250 |
-  | .ZZB |    -250 |     250 |
+  | .ZZA |    -100 |     250 |
+  | .ZZB |       0 |     250 |
   | .ZZC |     300 |     250 |

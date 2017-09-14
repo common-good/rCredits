@@ -20,7 +20,9 @@ use rCredits\Web as w;
 function rawHelp($i, $tag = '', $args = '') {
   global $rUrl;
   
+  extract(u\just('gifts years', $args)); // must precede eLinkAcct
   $mya = w\eLinkAcct($zot, $args, 'any');
+  
   $ctty = @$mya->community ?: 0;
   $company = @$mya->co;
   $username = @$mya->name; // @ is for SMS testing (when not signed in)
@@ -54,6 +56,48 @@ EOF
 EOF
   , '_aEmail', u\emailTag($regEmail, t('help with %PROJECT')));
 
+  if ($i == 'welcome' or $i == 'annual') {
+    $welcome = t('<li><b>Welcome</b> to %PROJECT. Thanks for participating!</li>');
+    if (!$mya->co and $myCo = $mya->firstCo()) {
+      list ($signupCo, $myCo) = ['', t(' (personally rather than for company "%myCo")', compact('myCo'))];
+    } else $signupCo = $mya->signupCo ? t('<li><b>Company</b>. How about signing up your company (%co)?</li>', 'co', w\signupCoDisplay($mya->signupCo)) : '';
+    $notyet = t("<li><b>Want</b>. What's one place you would like to use your %PROJECT card that you can't yet?</li>");
+    $how = t("<li><b>How's it going?</b> %myCo Any questions, suggestions, or concerns%lastTx? If you could change or improve one thing about the %PROJECT system, what would it be?</li>", 'lastTx myCo', $mya->lastTxDesc(), @$myCo) . $notyet;
+    
+    $_volunteer = join("</li>\n<li>", explode('~', t(
+      'Hand out promo cards and schedule appointments with local businesses.'
+    . '~Help new members open their Common Good account.'
+    . '~Call new members to welcome them and see if they have questions.'
+    . '~Assemble promotional materials (at home or with other volunteers).'
+    . '~Deliver things.'
+    . '~Print and mail things.'
+    . '~Take photographs.'
+    . '~Help set up for meetings.'
+    . '~Help add new features to the software.'
+    . '~Serve on the board of directors.'
+    )));
+    
+    $volunteer = t('<li><b>Volunteer?</b><ul><li>%volunteer</li></ul></li>', compact('_volunteer'));
+    $coAsk = ($mya->co and !$mya->crumbs) ? t('<li><b>Crumbs</b>. We particularly encourage businesses to contribute what we call "crumbs" to support the system and the common good (do you know about this option?) &mdash; it means contributing a small percentage of each payment received, instead of the system charging you credit card fees. What percentage would you like to contribute?</li>') : '';
+    $giftDetails = t('<li><b>Amount</b>. Wait for answer, then ask: What amount would you like to give and do you prefer yearly, quarterly, or monthly?</li>');
+    $ask = t('<li><b>Offer</b>. The idea of %PROJECT is to empower us to take responsibility for our local economy, so most of our members contribute some small amount periodically and/or choose roundups or crumbs, to support the system. Would you like to contribute at this time?</li>') . $giftDetails . $coAsk;
+    $thx = t('<li><b>Thanks</b> for your donation/s (%giftsDesc).</li>', '_giftsDesc', $mya->giftsDesc($often));
+    $reask = @$often ? $thx : $thx . t('<li><b>Gift</b>. Would you like to contribute at this time? (unless contributing Quarterly or Monthly)</li>') . $giftDetails;
+    $option = $mya->co 
+    ? t('automatic cash-out option') 
+    : (t('joint account option') . ($mya->roundup ? '' : t(' and roundups option (roundups let you always pay a whole dollar amount and donate the change to the community fund)')));
+    $options = t(<<<EOF
+      <li><b>Features</b>. Do you know about our %option?</li>
+      <li><b>Promo</b>. Do you want more handout cards or brochures, to tell friends or local businesses about %PROJECT?</li>
+EOF
+    , compact('option'));
+    $addressCheck = t('<li><b>Address</b>. Are you still at %addr? (if not, ask about physical address too)</li>', 'addr', $mya->postalAddr);
+    $annualAsk = '<ol><li>' . t("<b>Thanks</b>. Thanks for being a pioneer member! (member for %years year/s)", compact('years')) . "</li>\n$how\n$ask\n$addressCheck\n$signupCo\n$volunteer\n$options\n</ol>";
+  }
+  
+  if ($i == 'annual') return @$gifts ? str_replace($ask, $reask, $annualAsk) : $annualAsk;
+  if ($i == 'welcome') return @$gifts ? "<ol>$welcome\n$thx\n$how\n$signupCo\n$volunteer\n</ol>" : "<ol>$welcome\n$how\n$ask\n$volunteer\n</ol>";
+  
   if ($i == 'other') return t(<<<EOF
     <h2>Need Help Signing In?</h2>
     <p>If your username and password aren't working, no worries. Just click "<%aForgot>Forgot it</a>" here or on the sign-in page, to get an email for choosing a new password.</p>
@@ -89,7 +133,7 @@ EOF
   );
 
   if ($i == 'pay' and $whys = ray(R_WHYS)) return t(<<<EOF
-    <p><b>Whom:</b> Type all or part of the full name of the account you want to pay. You can leave out the punctuation, spaces, and capitals. Or you can type their phone number or email address or their account ID. Note that a period in the account ID (a regular account) is different from a colon (an agent acting on behalf of an account).</p>
+    <p><b>Whom:</b> Type all or part of the full name of the account you want to pay. You can leave out the punctuation, spaces, and capitals. Or you can type their phone number or email address or their account ID.</p>
     <p><b>Amount:</b> The amount of the transaction, measured in dollars, to be paid in %RCREDITS.</p>
     <p><b>Purpose:</b> If this is a purely financial transaction, click "%forMoney" or "%forNongoods". Otherwise, a description is required (for purchases and sales of real goods and services). Donations to nonprofit organizations count as purchases of real services &mdash; services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank &mdash; your statements will call the purpose "cash".</p>
 EOF

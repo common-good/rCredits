@@ -166,8 +166,8 @@ class X {
     u\setDft($goods, FOR_USD);
     u\setDft($payerAgent, $payer);
     u\setDft($payeeAgent, $payee);
-    u\setDft($created, r\rTime());
     u\setDft($flags, 0);
+    u\setDft($created, r\rTime());
     u\setDft($data, []);
 
     if ($type != TX_BANK and !isset($payerFor)) {

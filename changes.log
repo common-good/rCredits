@@ -1,3 +1,39 @@
+2017-09-14 version 2.97
+. monthly notifications to admin to send paper statements
+. links in Welcome and Annual notices to suggested language and volunteer options
+. include partial month roundups in displayed and functional balance
+. use last second of previous month as roundup donation date
+. automate distribution of 50% donations monthly to official CGCs (maybe set Greenfield's percentage to 10%)
+. UPDATE r_txs SET flags=flags|(1<<10) WHERE payer=26742000000002 and payee<0
+. delay Welcome to 6 weeks if no donation or in Seedpack:
+  UPDATE users u SET tickle=activated+6*7*24*60*60 WHERE tickle=activated+2*7*24*60*60 AND (community=-26742000000001 OR (flags&(1<<8)=0 AND IFNULL(crumbs, 0)=0 AND (SELECT SUM(amount) FROM r_gifts g WHERE g.uid=u.uid) = 0))
+. invoice upload now only allows account ID
+. improved social return language and included total donations to date
+. improved Customer list, showing "NOT BEGUN" and "in process", as well as account ID
+. did away with PIN
+. did away with B_BONA
+. UPDATE users SET floor=0
+. Find and fix erroneous roundups using
+    for ($m = 1; $m < 8; $m++) {
+      $start = strtotime("$m/1/2017");
+      $end = strtotime(($m+1) . '/1/2017')-1;
+      $sql = "SELECT uid, fullName, SUM(1-MOD(amount, 1)) AS shouldDonate FROM r_txs t JOIN users u ON u.uid=t.payer WHERE t.:IS_ROUNDUP AND amount>0 AND MOD(amount, 1)>0 AND t.created BETWEEN $start AND $end GROUP BY payer";
+      $q = f('db.q', $sql);
+      while ($row = $q->fetchAssoc()) {
+        extract($row);
+        $line[] = "$m: $uid $fullName -- $$shouldDonate";
+      }
+    }
+/**/    debug(join("\n", $line));
+    DELETE FROM r_txs WHERE amount=0 AND payerReward=0 AND payeeReward=0
+    SELECT MONTH(FROM_UNIXTIME(created)) AS m,t.* FROM r_txs t WHERE flags&(1<<7) ORDER BY MONTH(FROM_UNIXTIME(created)), payer
+    (two transactions were missing:)
+    INSERT INTO `r_txs` (`xid`, `serial`, `type`, `flags`, `goods`, `amount`, `payer`, `payee`, `payerAgent`, `payeeAgent`, `payerFor`, `payeeFor`, `payerReward`, `payeeReward`, `payerTid`, `payeeTid`, `data`, `channel`, `created`, `box`, `risk`, `risks`) VALUES
+    (75043, 75043, 0, 1152, 0, '0.00', 17238000000003, 26742000000002, 17238000000003, 26742000000002, 'contribution of rounded-up payment change', 'donation: of rounded-up payment change', '0.00', '0.00', 82, 4950, '', 5, 1491023539, 0, NULL, 0),
+    (83822, 83822, 0, 1152, 0, '0.94', 17238000000036, 26742000000002, 17238000000036, 26742000000002, 'donation: of rounded-up payment change', 'donation: of rounded-up payment change', '0.09', '0.01', 11, 5172, '', 5, 1501564094, 0, -0.0630677, 2048);
+    after fixing transaction amounts and dates (last second of previous month), fix cache with $a = a($uid); $a->cacheOk();
+. Added a "Ask me in a few weeks" button to donations page
+
 2017-08-26 version 2.91
 . removed restrictions on signing up (anyone can sign up)
 . added a continuation email to partner signup people in case they don't complete the first page

@@ -117,7 +117,7 @@ EOF
   'forgot password' => t('If you just forgot the password to the other account, <%a>click here</a> to request a new password.'), // used in user.module
   'bad name' => t('That is not a plausible name.'),
   'bad phone' => t('That is not a proper phone number.'),
-//  'bad account code' => t('That is not your account code.'),
+//  'bad account ID' => t('That is not your account ID.'),
   'not your account' => t('That is not your account ID.'),
   'bad account number' => t('Your bank account number must be 3-17 digits long.'),
 //  'bad pin' => t('Your PIN must be exactly 4 digits'),
@@ -136,6 +136,7 @@ EOF
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
   'unknown member' => t('"%who" has not yet signed up for %PROJECT.'),
+  'unknown ctty member' => t('"%who" does not have an active %PROJECT account in your community.'),
 //  'ambiguous other' => t('"%who" might mean any of these %PROJECT Accounts. Click the one you want or, if you don\'t see them listed, <a href="%draftLink">Click here to add them</a> to the list or <a id="which-cancel">here to cancel</a>.'),
 //  'similar found' => t('If you mean %otherName (%phone), <a href="%draftLink">click here for YES</a>. Otherwise, <a href="%cancelLink">click here to cancel</a>.'),
   'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app from Google\'s Play Store.'),
@@ -257,7 +258,7 @@ EOF;
  * Return a list of proxy choices for the current account.
  * @param acct $a: the "current" account (whether signed in or not)
  * @param int $dfts: the current proxy choices, if any
- * @param array $choiceList: (RETURNED) array of account IDs to choose from, not including current choice
+ * @param array $choiceList: (RETURNED) array of account record IDs to choose from, not including current choice
  */
 function proxyChoices($a, $dfts, &$choiceList) {
   $uid = $a->id;
@@ -498,14 +499,16 @@ function queryPermitted($qName, &$sql = '', &$subtext = '') {
   $map[':myid'] = $mya->id;
   $map[':ctty'] = $mya->community ?: 'community'; // alternative is for superAdmin
   $sql = strtr($sql0 = $sql, $map);
-  $subtext = strpos($sql0, ':ctty') ? "<b>$cttyName</b><br>$text2" : $text2;
+  $subtext = strpos($sql0, ':ctty') ? "<h4>$cttyName</h4><br>$text2" : $text2;
   
   if (!preg_match('/^([0-9])(.*)/', $qName, $m)) {
     return $qName; // no restrictions
   } else {
     list ($zot, $d, $qName) = $m;
-    if (strpos($sql0, ':myid')) $subtext = "<b>for $mya->fullName</b><br>$text2";
-    return $d >= ($mya->superAdmin ? 0 : ($mya->admin ? 1 : ($mya->cAdmin2 ? 2 : ($mya->co ? B_CO : 9)))) ? $qName : FALSE;
+    if (strpos($sql0, ':myid')) $subtext = "<div><h4>for $mya->fullName</h4>$text2</div>";
+    return $d >= ($mya->superAdmin ? 0 : ($mya->admin ? 1 : ($mya->cAdmin2 ? 2 : ($mya->co ? B_CO : 9))))
+    ? $qName
+    : FALSE;
   }
 }
   
@@ -549,6 +552,7 @@ function formatField($k, $v) {
 
   if (u\starts($v, CRYPTN_FLAG)) $v = u\decryptN($v); // decrypt phone and email
   if ($k == 'phone') $v = u\fmtPhone($v);
+  if ($k == 'account') $v = $v ? r\qid($v) : '';
   return $v;
 }
 
@@ -743,7 +747,7 @@ function acctTypeField() {
  * @param string $question: what to ask for confirmation or disambiguation (with params %amount and %name)
  * @param string $amount: optional amount substitution for question (include quotes or formula, if not a number)
  * @param bool $askGift: <ask if this form submission is a payment that is a gift> (defaults to no, don't ask)
- * @return complete script without leading "return ".
+ * @return complete script including a leading "return ".
  */
 function whoFldSubmit($field, $question, $amount = '0', $askGift = '0') {
   $id = '#edit-' . strtolower($field);
@@ -751,7 +755,7 @@ function whoFldSubmit($field, $question, $amount = '0', $askGift = '0') {
 
   js('js/typeahead.bundle.min.js', 'file');
   js("suggestWho('$id');", 'inline', 'footer');
-  return "$('$id').val() == '' ? true : who(this, '$id', '$question', $amount, $askGift);"; // amount might be 'this.amount.value'
+  return "return $('$id').val() == '' ? true : who(this, '$id', '$question', $amount, $askGift);"; // amount might be 'this.amount.value'
 }
 
 /**
@@ -889,7 +893,7 @@ function box() {
 }
 
 /**
- * Return the box record id for the given machine code and account id.
+ * Return the box record id for the given machine code and account record ID.
  * @param int $code: machine identifier
  */
 function boxUser($code, $uid) {
@@ -1442,10 +1446,12 @@ function ssnFields($personal = TRUE) {
   $ssTitle = t($personal ? 'ssTitle' : 'einTitle');
   if ($personal) {
     $dob = textFld(t('Birthdate:'), [t('Your date of birth (mm/dd/yyyy)')], required() + autofill('off'));
-    $ssReason = t('As a registered Money Services Business, we are required by law to ask for your social security number, even though it makes some people nervous. Fortunately, we have <%a>top notch security</a>.', '_a', w\atag(r\promoLink('security.html')));
+// NOT YET    $ssReason = t('As a registered Money Services Business, we are required by law to ask for your social security number, even though it makes some people nervous. Fortunately, we have <%aSecure>top notch security</a>. If you do not have a social security number <%aUndoc>click here</a>.', '_aSecure _aUndoc', w\atag(r\promoLink('security.html')), w\atag("$$('.form-item-sponsor').show(); $('.form-item-federalId').hide();"));
+    $ssReason = t('As a registered Money Services Business, we are required by law to ask for your social security number, even though it makes some people nervous. Fortunately, we have <%aSecure>top notch security</a>.', '_aSecure', w\atag(r\promoLink('security.html')));
+// NOT YET    $sponsor = textFld(t('Sponsor:'), [t('Sponsor code'), t('Your sponsoring organization\'s Common Good account ID (required if you have no social security number).')]);
   }
   $federalId = passFld($ssTitle, [t($personal ? 'ssDesc' : 'einDesc'), @$ssReason], required() + autofill('off')); // textfield so user doesn't have to retype on error
-  return compact(ray('dob federalId'));
+  return compact(ray('dob federalId sponsor'));
 }
 
 /**
@@ -1517,10 +1523,10 @@ EOF;
  * Return the recipient of a recent invitation OR mark an invitation USED
  * Call by:
  *   $email = invitation($code, '', $inviter, $iCode, $err) returned with $inviter=inviter uid
- *   invitation($code, $invitee) marks the invitation USED by recording the invitee's account id
+ *   invitation($code, $invitee) marks the invitation USED by recording the invitee's account record ID
  * @param string $code: the invitation code
- * @param int $invitee: account id of the invited person
- * @param int $inviter: (RETURNED, if invitee='') account id of the inviter (returned even if error)
+ * @param int $invitee: account record ID of the invited person
+ * @param int $inviter: (RETURNED, if invitee='') account record ID of the inviter (returned even if error)
  * @param int $iCode: (RETURNED) the invitation sequence number
  * @param int $err: (RETURNED) error message, if any
  * @return:
@@ -2093,7 +2099,7 @@ function say($index, $args = [], $errField = '') {
 /**
  * Display charts representing the condition of the %PROJECT system in the given community.
  * @param string $whichChart: which chart or set of charts to display
- * @param int $ctty: account ID of community to show graphs for (defaults to all communities)
+ * @param int $ctty: account record ID of community to show graphs for (defaults to all communities)
  * @return: html of the relevant charts, in their proper divs
  */
 function showCharts($whichChart, $ctty = 0) {
@@ -2440,6 +2446,16 @@ function btn($href, $text, $style = 'primary', $size = 'xs', $extras = []) {
   return '<' . atagB($href, $style, $size, $extras) . ">$text</a>";
 }
 function lnk($href, $text, $extras = []) {return '<' . atag($href, $extras) . ">$text</a>";}
+
+/**
+ * Format info about the new member's company.
+ */
+function signupCoDisplay($info) {
+//  return $info ? $info['company'] . ' (' . $info['companyPhone'] . ') ' . (@$info['isOwner'] ?: '') . (@$info['isEmployee'] ?: ''), t('Signup Co:') : '';
+  if (!@$info) return '';
+  extract($info);
+  return @$isOwner . ' ' . @$isEmployee . ' ' . @$company;
+}
 
 /**
  * Return an a tag for a non-spinning button to a new page.

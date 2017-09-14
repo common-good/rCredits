@@ -1,3 +1,223 @@
+/*
+function retro() {
+  $q=f('db.q','Select uid from users WHERE NOT :IS_CO AND uid>1 AND :IS_BONA');
+  while ($row=$q->fetchAssoc()) {
+    extract($row);
+    $a = a($uid);
+    $h = a($a->helper);
+    if (!$h->cAdmin) { // helper is not admin
+      $fullName = $a->fullName;
+      f('be.fund',$a->helper, TX_HELPER, R_HELPER_BONUS, f('u.tt','invite reward', compact('fullName')));
+///      debug("helper bonus to $h->fullName for inviting $fullName");
+    }
+  }
+}*/
+
+______________________________________
+
+/**
+ * Check if an account needs a signup bonus.
+ * @param int $uid: account id
+ * @return: whether the signup bonus is deserved
+ *//*
+function checkBona($uid) {
+  $acct = r\acct($uid);
+  if ($acct->can(B_BONA)) return FALSE;
+  if (!db\exists('r_txs', 'payee=:uid and r>0 and payer>0', compact('uid'))) return FALSE;
+  if (!db\lookup('COUNT(DISTINCT payee)', 'r_txs', 'payer=:uid and goods', compact('uid')) >= R_BUYS_BEFORE_BONUS) return FALSE;
+  return TRUE;
+}*/
+
+___________________________________________________
+
+/**
+ * For each new employee, reward the inviter of their company (if nobody has been rewarded for that employee yet).
+ */
+function employees() {
+  $sql = 'SELECT u.uid, r.main AS company FROM r_relations r INNER JOIN users u ON u.uid=r.other WHERE r.employee AND :IS_BONA AND NOT :IS_COUNTED';
+// DISCONTINUED  queueEach('employee', $sql);
+  queueNext();
+}
+
+/*
+function employee($item) {
+  extract(u\just('uid company', $item));
+  $co = r\acct($company);
+  if ($coHelper = $co->helper and $helper = r\acct($coHelper)->helper) { // if is for tests (handles no helper)
+    $h = r\acct($helper);
+    if ($helper != $uid and !$h->cAdmin) {
+      $fullName = $co->fullName;
+      be\fund($helper, TX_HELPER, R_COUNTED_BONUS, t('employee invite reward', compact('fullName')));
+      r\acct($uid)->setBit(B_COUNTED);
+    }
+  }
+}
+*/
+
+___________________________________________________________
+
+/**
+ * Give signup bonuses.
+ * NOTE: Henceforth do this when activating account, instead.
+ * But keep this function active until all legacy accounts have been given a signup bonus
+ */
+function bona() {
+//  $sql = 'SELECT DISTINCT u.uid FROM users u LEFT JOIN r_txs t ON t.payer=u.uid WHERE NOT :IS_BONA AND NOT :IS_CO AND t.taking'; // new human member who has completed an rCard purchase
+  $sql = 'SELECT DISTINCT u.uid FROM users u WHERE :IS_OK AND NOT :IS_BONA AND NOT :IS_CO'; // new human member
+  queueEach('bona1', $sql);
+  queueNext();
+}
+
+function bona1($item) {
+  extract(u\just('uid', $item));
+  $a = r\acct($uid);
+  r\membershipEvent($a, 'bona');
+}
+
+--------------------------------------------------
+
+/**
+ * Show the account's current membership status and steps to get to the next milestone.
+ * @param acct $a: the account to test if just updating membership status bits -- otherwise empty
+ * @param string $code: numeric means show specific screen even if not appropriate (for in-person demos)
+ * @return TRUE if the member has done everything possible toward opening the account.
+ *//*
+function formMembership($a, &$sta = '', $code = '') {
+  global $base_url;
+
+  if (!($updating = (bool) $a) and !$a = r\acct()) return NULL; // no account available
+  if ($updating and $a->ok) return TRUE;
+
+  $myid = $a->id;  
+  $co = $a->co;
+  $ok = $a->ok;
+  if ($code == 'gotPhoto') say('got photo');
+  $mempage = is_numeric($code) ? $code : FALSE;
+  extract($a->stepsDone, EXTR_PREFIX_ALL, 'ok');
+
+  if (!$ok or !$a->can(B_MEMBER)) {
+    $ready = (@$ok_sign and $ok_contact and $ok_donate and $ok_photo and $ok_prefs and $ok_connect); // @ for tests
+    $ready = ($ready and ($co? ($ok_company and $ok_relations) : $ok_proxies));
+  } else $ready = TRUE;
+
+  if ($updating) return $ready;
+  
+  $message1 = $message2 = '';
+
+  if ($ready and !$ok) {
+    $nextMsg = $co ? t('you can begin accepting rCredits payments') : t('you can expect to receive your rCard in the mail within a day or two');
+    $message1 = t("<h2>Your Account Setup Is Complete</h2><p>You have done everything you need to do. Once a staff member has approved your account, $nextMsg.</p><p>Thank you for joining us!</p>");
+  } elseif (!$ok) { // not a member yet (no rCard, no vote)
+    $message1 = ($ok_photo or $ok_sign or $ok_donate or ($ok_proxies and !$co) or $ok_contact or ($ok_connect and !$co) or $ok_prefs) ? 
+          t("<h2>You're getting there!</h2><p>")
+        : t('<h2>Welcome to rCredits</h2><p>Thanks for joining us. ');
+    $message1 .= $co ? t('Before you can begin accepting rCredits payments, you must complete the following steps (in any order).') 
+      : t('Before we can send your rCard, and before you can vote on community funding, you must complete the following steps (in any order). This usually takes about 20 minutes.');
+    $message1 .= t(' If you need help, please <@a1>send us an email</a>.</p>', ['a1' => 'a href="mailto:' . r\regionField('email') . '" target="_blank"']);
+
+    $stepContact = t('Complete your <a>Contact Information</a>.');
+    $stepAgree = t('Sign the <a>rCredits Agreement</a>.');
+    $stepGift = t('Make a <a>Donation</a> of <i>any size</i>, to support the %PROJECT system.');
+    $stepProxies = t('<a>Choose two people</a> to represent your views whenever you are not there, to discuss and vote on community funding issues. (A list of members in your area will be provided, to choose from.)');
+    $stepPrefs = t('Set your <a>Account Preferences</a>.');
+    $stepPhoto = t('Upload a <a>Photo</a> for your ') . ($co ? t('company profile.') : t('Member ID Card.'));
+    $stepSecurity = t('<a>Provide your security information.</a> Upload ')
+      . ($co ? t('your Charter, Articles of Organization, or similar document.')
+        : t('a photo of your driver\'s license or other official ID.'))
+      . ($gotSecurity ? t(' <span class="pending">(DONE, pending approval)</span>') : '');
+
+    $stepProof = t('<a>Prove your identity.</a> Upload ')
+      . ($co ? t('your Charter, Articles of Organization, or similar document.')
+        : t('a photo of your driver\'s license or other official ID.'))
+      . ($gotIdProof ? t(' <span class="pending">(DONE, pending approval)</span>') : '');
+    $stepBank = t('<a>Connect</a> to the mainstream economy (or choose not to, yet).');
+    $stepCompany = t('Tweak your <a>Company Information</a>.');
+    $stepRelations = t('Set up <a>Relations</a> to individuals who will use or manage this account.');
+
+    $stepNum = 1;
+    $message2 = $ok_contact ? '' : memberStep(0, $ok_contact, $stepContact, 'settings/contact');
+    $message2 .= memberStep($stepNum++, $ok_sign, $stepAgree, 'community/agreement')
+              . memberStep($stepNum++, $ok_donate, $stepGift, 'community/donate');
+              
+    if (!$co) 
+    $message2 .= memberStep($stepNum++, $ok_proxies, $stepProxies, 'settings/proxies');
+
+//    $message2 .= memberStep($stepNum++, $gotSecurity, $stepSecurity, 'settings/security');
+    $message2 .= memberStep($stepNum++, $ok_prefs, $stepPrefs, 'settings/preferences')
+               . memberStep($stepNum++, $ok_photo, $stepPhoto, 'settings/security/photo?' . rand());
+
+    $message2 .= memberStep($stepNum++, $ok_connect, $stepBank, 'settings/connect');
+//    if (!$co) $message2 .= memberStep($stepNum++, $gotIdProof, $stepProof, 'settings/id-proof');
+    if ($co)
+    $message2 .= memberStep($stepNum++, $ok_company, $stepCompany, 'settings/company')
+               . memberStep($stepNum++, $ok_relations, $stepRelations, 'settings/relations');
+
+// (Suggest it after 1mo) if (!$co) $message2 .= memberStep(4, $invited, $step4, 'invite');
+  } elseif (FALSE) {
+    $message1 = t('<h2>You have completed all membership steps.</h2><p>Within 24 hours, you should receive an email saying your account is approved and you can expect your rCard in the mail within a day or two. Hurray!</p>'); // UNUSED
+  } else {
+    $bonusMsg = ($a->can(B_BONA) or ($a->hasBank and $a->minimum > 0)) ? '' : t('<p>To receive your $@BONUS signup bonus, you must have a way to get money into your account. Ask someone to pay you with rCredits, or <@a>transfer funds from your bank account</a>, or trade US Dollars for rCredits at a participating business. As soon as you get some money in, your signup bonus will arrive.</p>', ['@BONUS'=>R_SIGNUP_BONUS, '@a'=>"a href=$base_url/get"]);
+    $personMsg = !$a->co ? t('<p>You are also responsible for guiding your local economy, together with hundreds of other rCredits members -- setting investment and grant-making priorities, electing local directors for your Common Good Community, planning a sustainable local prosperity for all residents, and offering help to communities elsewhere.</p>') . $bonusMsg : '</p>';
+    $message1 = t('<h2>Congratulations! Your account is Activated.</h2><p>You are authorized to use rCredits to buy and sell with other members.</p>') . $personMsg;
+  }
+  $message = $message1 . "<table width=\"100%\">$message2</table>";
+  
+  $title = item(t('Membership Steps'));
+//  $subtext = item(t('for ') . $a->fullName);
+
+  $steps = item($message);
+  $form = compact(ray('title steps addendum'));
+  return labeled($form);
+}*/
+
+---------------------------------
+
+/**
+ * Check consistency with individual stats
+ * @param int $ctty: record ID of community to check
+ * @param int $created: stats date to check
+ *//*
+function badStats($ctty, $asof) {
+  $q = db\q('SELECT uid FROM users WHERE community=:ctty AND uid > 1', compact('ctty'));
+  while ($row = $q->fetchAssoc()) {
+    extract(u\just('uid', $row));
+    $info = be\creditInfo(compact('uid','asof'));
+    $r = $info->r;
+    $total = @$total + $r;
+  }
+  $rStat = db\lookup('r', 'r_stats', 'ctty=:ctty AND created=:asof', compact('ctty', 'asof'));
+  if ($rStat == round($total, 2)) return FALSE;
+  return ['STATS_ERROR' => compact(ray('ctty asof rStat total'))];
+}*/
+
+/*
+  $r = $usd = 0;
+  $q = db\q("SELECT id, created, pAccts, bAccts FROM r_stats WHERE ctty<>0 ORDER BY created");
+  $new = r\acct('R_ADMIN_QID')->community;
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $crit = 'BETWEEN :created AND :created+:DAY_SECS-1';
+    //$r += db\lookup('SUM(amount)', 'r_txs', 'payer<0 AND created ' . $crit, compact('created'));
+    //$usd += db\lookup('-SUM(amount)', 'r_usd', 'payee=0 AND completed ' . $crit, compact('created'));
+    //$newbs = db\count('users', 'created<:created', compact('created')) - $pAccts - $bAccts;
+///    debug(compact(ray('id created r usd newbs users'))); break;
+//    db\update('r_stats', compact(ray('r usd newbs id')), 'id');
+
+    $newbs = db\count('users', 'created<:created AND community=:new', compact('created', 'new')) - $pAccts - $bAccts;
+    $id = db\lookup('id', 'r_stats', 'created=:created AND ctty<>0', compact('created'));
+    db\update('r_stats', compact(ray('newbs id')), 'id');
+  }
+*/
+
+------------------------------------------  
+
+ *   with corresponding number-formatted information in ->fancy
+    $fancy = [];
+    $fancy[$k] = u\fmtAmt($v);
+    $result['fancy'] = $fancy;
+    
+------------------------------------------  
+
   // preliminary rotate and/or mirror if necessary (never necessary -- jscript apparently does it)
 /*  $exif = exif_read_data($url);
   if ($orientation = @$exif['Orientation']) {

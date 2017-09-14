@@ -394,7 +394,7 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformsummary .admin .control-data {width:auto; max-width:380px;}
 #rcreditswebformsummary .admin textarea {width:380px;}
 #rcreditswebformsummary .admin .form-checkboxes {width:380px;}
-#rcreditswebformsummary #edit-notes .control-data {width:380px; max-height:150px; overflow:scroll;}
+#rcreditswebformsummary #edit-notes .control-data {width:380px; max-height:150px; overflow-x:hidden; overflow-y:scroll; overflow-wrap:break-word}
 #rcreditswebformsummary #edit-tickle {max-width:120px; display:inline-block;}
 #rcreditswebformsummary #edit-photo img {max-width:100px;}
 #rcreditswebformsummary #edit-creditlimit .help-block,
@@ -503,6 +503,7 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformdata .form-type-submit {margin-bottom:4px;}
 #rcreditswebformdata button {width:300px; text-align:left; background-image: linear-gradient(#fff, #ddd 60%, #ddd);}
 /*linear-gradient(#fff, #fff 60%, #f5f5f5);*/
+#rcreditswebformdata #edit-subtext div {display:inline-block;}
 
 /* Event */
 #rcreditswebformevent .detail {font-size:14px; color:darkgreen;}
@@ -621,6 +622,7 @@ div.password-confirm .error {font-weight:bold; color:red;}
 .form-item-dob {margin-top:60px;}
 .form-item-physical, .form-item-sameAddr2 {margin-top:30px;}
 .form-item-physical>label, .form-item-sameAddr2>label {color:darkgreen; font-size:130%;}
+#rcreditswebformsignup .form-item-sponsor {display:none;}
 
 /* Contact Info (labeled) */
 #rcreditswebformcontact .form-item-pin {display:none; margin-left:180px;}
@@ -759,6 +761,7 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebformdeposits  #edit-count {margin-bottom:3px;}
 
 /* Donate */
+#rcreditswebformdonate .form-item-wait {margin-top:30px;}
 #rcreditswebformdonate #edit-gift {font-family:"Lucida Console",Menlo,Monaco,"Courier New",monospace;}
 #rcreditswebformdonate .form-item-share .control-data {max-width:650px;}
 #rcreditswebformdonate .form-item-share input {max-width:100px;}

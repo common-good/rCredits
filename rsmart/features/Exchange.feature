@@ -10,12 +10,12 @@ SO my company can accept cash deposits and give customers cash.
 Setup:
   Given members:
   | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags      |*
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,confirmed,bona    |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,confirmed,bona    |
-  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,confirmed,co,bona |
-  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,confirmed,bona    |
-  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,confirmed,bona,secret |
-  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,confirmed,co,bona |
+  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,confirmed         |
+  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,confirmed         |
+  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,confirmed,co      |
+  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,confirmed         |
+  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,confirmed,secret |
+  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,confirmed,co      |
   And devices:
   | id   | code |*
   | .ZZC | devC |

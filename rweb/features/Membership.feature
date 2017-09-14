@@ -81,7 +81,7 @@ Scenario: A member signs in for the first time
   | op       |*
   | nextStep |
   Then we say "status": "setup complete|individual approval|join thanks"
-  And we tell ".AAA" CO "event - member" with subs:
+  And we tell ".AAA" CO "New Member (Dee Four)" with subs:
   | fullName | quid | status |*
   | Dee Four | .AAA | member |
 

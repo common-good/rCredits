@@ -169,7 +169,7 @@ function getTime($args) {
  *   OR => [ok, message, logon, name, place, company, balance, rewards, time, descriptions[], bad[], can]
  *          where logon is 0 or -1
  * @params assoc $args:
- *   agent: agent ID of current agent -- empty if none yet
+ *   agent: agent code of current agent -- empty if none yet
  *   device: a unique device ID
  *   member: account ID of customer or new agent
  *   code: rCard security code (possibly encrypted with itself as the key)
@@ -183,7 +183,6 @@ function getTime($args) {
  *   descriptions: array of the agent's company's most common charge descriptions (most popular first)
  *   can: bit permissions -- what the agent can do
  *   default: the default agent (empty if none allowed)
- *   company: the agent's company account ID
  * device, descriptions, and can are returned only if scanning in (logon is true)
  */
 function identify($args) {
@@ -515,7 +514,7 @@ function getMember($qid, $code, &$err = '', $requireCode = TRUE) {
 function balrew($a) {
   global $mya;
   if (!$mya->co) $a = $mya;
-  $balance = (($a->can(B_SECRET) and $mya->co) ? '*' : '') . round($a->balance, 2);
+  $balance = (($a->can(B_SECRET) and $mya->co) ? '*' : '') . round($a->balance - $a->partRounds, 2);
   $rewards = $a->rewards;
   return compact('balance', 'rewards');
 }

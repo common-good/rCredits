@@ -9,7 +9,7 @@ SO I can spend it through the rCredits system or hold it in the rCredits system 
 Setup:
   Given members:
   | id   | fullName | floor | minimum | flags     | risks   |*
-  | .ZZA | Abe One  |   -50 |      10 | ok,bona   | hasBank |
+  | .ZZA | Abe One  |   -50 |      10 | ok        | hasBank |
   | .ZZB | Bea Two  |     0 |      10 | ok        | hasBank |
   | .ZZC | Our Pub  |     0 |     100 | co,ok     |         |
   | .ZZD | Dee Four |     0 |     100 | ok,refill | hasBank |

@@ -7,7 +7,7 @@ SO I can be part of the Common Good Economy
 Setup:
   Given members:
   | id   | fullName | acctType    | flags      | created  |*
-  | .ZZZ | Zeta Zot | personal    | ok,bona    | 99654321 |
+  | .ZZZ | Zeta Zot | personal    | ok         | 99654321 |
   And member is logged out
 
 Skip because this error should happen after saying what zipcode

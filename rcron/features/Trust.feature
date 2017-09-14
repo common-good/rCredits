@@ -7,8 +7,8 @@ AND identify disjoint circles of trust that may flag potential security risks.
 Setup:
   Given members:
   | id   | fullName   | email | flags   |*
-  | .ZZA | Abe One    | a@    | ok,bona |
-  | .ZZB | Bea Two    | b@    | ok,bona |
+  | .ZZA | Abe One    | a@    | ok      |
+  | .ZZB | Bea Two    | b@    | ok      |
   | .ZZC | Corner Pub | c@    | ok,co   |
   | .ZZD | Dee Four   | d@    | ok      |
   | .ZZE | Eve Five   | e@    | ok      |

@@ -10,9 +10,9 @@ SO I can show them my company's rCredits web page.
 Setup:
   Given members:
   | id   | fullName   | flags      | cc  | cc2  | address | city | phone        |*
-  | .ZZA | Abe One    | ok,bona    | ccA | ccA2 | 1 A St. | Aton | +12000000001 |
-  | .ZZB | Bea Two    | ok,bona    | ccB | ccB2 | 2 B St. | Bton | +12000000002 |
-  | .ZZC | Corner Pub | ok,co,bona |     |      | 3 C St. | Cton | +12000000003 |
+  | .ZZA | Abe One    | ok         | ccA | ccA2 | 1 A St. | Aton | +12000000001 |
+  | .ZZB | Bea Two    | ok         | ccB | ccB2 | 2 B St. | Bton | +12000000002 |
+  | .ZZC | Corner Pub | ok,co      |     |      | 3 C St. | Cton | +12000000003 |
   And relations:
   | id   | main | agent | permission |*
   | .ZZB | .ZZC | .ZZB  | read       |

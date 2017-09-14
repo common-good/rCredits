@@ -73,14 +73,8 @@ function adminSummary($a, $cAdmin = FALSE) {
       $html = $a->photoHtml(TRUE, TRUE);
       $photo = item("<a href=$base_url/settings/security/photo>$html</a>");
       if ($mya->admin) $community = r\cttys($a->region, $ctty);
-      $donations = db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
-      if ($donationInfo = db\lookup('often,honor,honored', 'r_gifts', 'uid=:uid', compact('uid'))) {
-        extract($donationInfo);
-        $donationInfo = "howoften:$often ($honor) $honored";
-      }
-      $donationInfo .= ($a->roundup ? t(' + roundups') : '') . ($a->crumbs > 0 ? t(' + %crumbs% crumbs', 'crumbs', $a->crumbs * 100) : '');
-      $donations = item(u\fmtAmt($donations) . ", $donationInfo", t('Donations:')); //  @$a->share%"
-
+      $donations = item($a->giftsDesc(), t('Donations:'));
+      
 //      $creditLimit = textFld(t('Credit limit:'), '', dft(u\fmtAmt(-$a->floor)));
 //      if ($a->stepsDone['prefs']) { // don't even look at these if newbie hasn't chosen yet
 //        $minimum = textFld(t('Minimum:'), '', dft(u\fmtAmt($a->minimum)));
@@ -97,7 +91,6 @@ function adminSummary($a, $cAdmin = FALSE) {
     if (!$a->ok) $steps = item(a\showSteps($a), t('To do (red):'), t('|sign=agreement | prefs=preferences | connect=connect bank (or not) | company=company info'));
 //    $created = item(u\fmtDate($a->created), t('Created:'));
     if ($rels = a\showRelations($a)) $relations = item($rels, t('Relations:'));
-    if ($a->signupCo) $signupCo = item($a->signupCo['company'] . ' (' . $a->signupCo['companyPhone'] . ') ' . (@$a->signupCo['isOwner'] ?: '') . (@$a->signupCo['isEmployee'] ?: ''), t('Signup Co:'));
     
 //    $invited = item(db\count('r_invites', 'inviter=:uid', compact('uid')), t('Invited:'));
     $invitedBy = $a->helper ? ($a->helperA->fullName . "#$a->iCode (" . r\iCodeDesc($a->iCode) . ') + ') : '';
@@ -170,7 +163,7 @@ function adminSummary($a, $cAdmin = FALSE) {
       SELECT u.community AS ctty, SUM(IF(payee=:uid, amount, 0)) AS `in`,
         SUM(IF(payer=:uid, amount, 0)) AS `out`
       FROM r_txs t LEFT JOIN users u ON u.uid=IF(payer=:uid, payee, payer)
-      WHERE (payer=:uid AND payee<0) OR payee=:uid GROUP BY community
+      WHERE ((payer=:uid AND payee<0) OR payee=:uid) AND t.:IS_GIFT GROUP BY community
 EOF;
     $q = db\q($sql, compact('uid'));
     $lines = '<tr><th>Community</th><th>Donations</th><th>Paid</th><th>Due</th></tr>';
@@ -194,13 +187,13 @@ EOF;
   list ($tickleType, $zot, $tip) = $a->nextTickle();
   $preNote = item($tip);
   
-  if ($a->superAdmi) {
+  if ($a->superAdmin) {
     $notes = areaFld(t('Notes:'), '', dft($a->notes));
   } else $notes = item(str_replace("\n", '<br>', $a->notes), t('Notes:'));
 
   $note = areaFld(t('New Note:'));
-  $suffix = submitTickle(1, t('Wait a DAY')) . submitTickle(7, t('Wait a WEEK')) . submitTickle('', t('Done'));
-  $tickle = textFld(t('Tickle:'), t('On what date should we next follow up on the current issue?'), dft($a->tickle ? u\fmtDate($a->tickle, TRUE) : '') + w\suffix($suffix));
+  $suffix = submitTickle(1, t('Wait a day')) . submitTickle(2, t('2 days')) . submitTickle(7, '7') . submitTickle(30, '30') . submitTickle('', t('Auto'));
+  $tickle = textFld(t('Tickle:'), t('On what date should we follow up?'), dft($a->tickle ? u\fmtDate($a->tickle, TRUE) : '') + w\suffix($suffix));
   $risk = item(round($a->risk) . ' ' . button(t('Recalc'), "$base_url/rerisk/acct/$uid/1"), t('Risk Score:'));
   if (!$a->co) $trust = item(number_format($a->trust, 1), t('Trust:'));
   if ($mya->can(B_CADMIN2)) $submit = submit(t('Save'));    
@@ -265,7 +258,8 @@ function export($params) {
       . ' created activated signed helper iCode balance rewards savingsAdd minimum share risk trust'
       . ' cttyName co gross employees achMin pinThreshold lastiCode tenure moves mediaConx jid'
       . ' owns bankName slave closed notices secret'
-  : 'id first_name last_name phone email address city state zip cttyName type ecode special modified created';
+  : (@$chimp ? 'id first_name last_name phone email city state zip cttyName type ecode special created'
+  : 'id first_name last_name phone email address city state zip cttyName type ecode special modified created');
   u\csv($fields = ray($fields), $delimiter);
 
   if ($requests) { // handle requests first, in case member status gets updated by later record

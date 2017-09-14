@@ -6,7 +6,7 @@ SO my rCredits account will make my financial position progressively better.
 Setup:
   Given members:
   | id   | fullName | minimum | savingsAdd | saveWeekly | achMin | floor | risks   | flags   |*
-  | .ZZA | Abe One  |    -100 |          0 |         20 |     20 |    10 | hasBank | ok,confirmed,bona,refill |
+  | .ZZA | Abe One  |    -100 |          0 |         20 |     20 |    10 | hasBank | ok,confirmed,refill |
   
 Scenario: A member crawls out of debt
   When cron runs "everyWeek"

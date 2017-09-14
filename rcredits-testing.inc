@@ -596,7 +596,7 @@ function cronRuns($op) {
 /**
  * Return the credit info for the given uid.
  * To get just the balance, use uidCredit(uid)->balance
- * @param int $uid: return credit info for this account id (FALSE if there is an error)
+ * @param int $uid: return credit info for this account ID (FALSE if there is an error)
  * @param bool $ignoreCalc: <ignore errors when comparing with calculated values>
  */
 function uidCredit($uid, $ignoreCalc = TRUE) {
