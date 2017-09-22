@@ -28,15 +28,3 @@ Scenario: Someone scans a company agent card
 #  | Cton     | 200.000.0003 | Pay     |
   |~Address  |~phone        |
   | Cton     | 200 000 0003 |
-
-Scenario: Someone scans an old member card
-  When member "?" visits page "I/NEW.ZZB-ccB"
-  Then we redirect to "%PROMO_URL/"
-
-Scenario: Someone scans an old company agent card
-  When member "?" visits page "I/NEW-ZZB-ccB2"
-  Then we show "Corner Pub" with:
-#  |~Address  |~phone        | ~Button |*
-#  | Cton     | 200.000.0003 | Pay     |
-  |~Address  |~phone        |
-  | Cton     | 200 000 0003 |

@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '2.97'); // software version
+define('R_VERSION', '2.98'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -58,6 +58,7 @@ define('MONTH_DAYS', 30.4368);
 define('YEAR_SECS', round(12 * MONTH_DAYS * DAY_SECS));
 
 define('REGION_DOMAIN', R_SERVER_ID . '.' . CG_DOMAIN);
+define('EMAILX', 'example.com'); // domain for unknown, placeholder, test, or example emails
 
 // Common Good Finance email and other data
 define('CGF_LEGALNAME', 'Society to Benefit Everyone, Inc.');
@@ -111,7 +112,7 @@ define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might 
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
 define('PERSONAL_STEP_COUNT', t('seven'));
 define('COMPANY_STEP_COUNT', t('eight'));
-define('R_STEPS', 'contact, verify, ssn, sign:community/agreement, donate:community/donate, proxies, prefs:settings/preferences, connect, company, relations, photo:settings/security/photo'); // membership steps
+define('R_STEPS', 'signup:signup, verify, ssn, sign:community/agreement, donate:community/donate, proxies, prefs:settings/preferences, connect, company, relations, photo'); // membership steps
 define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret oneTimeLoginUrl password pass pass1 pass2 newPass external_input'); // don't log these (external_input may contain passwords)
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts history settings settings/icon community Summary Php'); // don't log visits to these forms
 define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin PageNotFound Sinx Pass Empty TestRecovery ChangePassword Help Community Democracy Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
@@ -121,6 +122,7 @@ define('BY_CHECK', '(check)'); // app includes this in description, for a purcha
 define('BY_CARD', '(card)'); // app includes this in description, for a purchase of rCredits by credit card
 define('R_ON_FILE', t('(on file)'));
 define('DEPOSIT_SQL', '(amount>0 XOR txid<0)'); // SQL fragment for "transfer is from bank to CG"
+define('CANONIC_ACCTS', 3); // number of canonic accounts (admin, placeholders,...)
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
@@ -183,8 +185,9 @@ define('R_MIN_DEFAULT', 100); // suggested minimum amount to hold in rCredits
 define('R_ACHMIN', 10); // minimum granularity of withdrawals from bank account
 define('R_ACHMIN_DEFAULT', 50); // suggested achMin
 define('R_ACH_TRIES', 3); // how many times to retry an ACH
+define('CASHOUT_MIN', 100); // minimum dollar amount to cash out automatically
 
-define('R_SUGGEST_BUMP', 1.25); // suggested minimum multiplier, so as not to unnecessarily sell rCredits
+define('R_SUGGEST_BUMP', 1.25); // suggested minimum multiplier, so as not to overdraw
 define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial profile picture
 define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
 define('R_PHOTO_WIDTH', 300); // rCard photo width, in pixels
@@ -273,7 +276,7 @@ define('B_u3', 3); //
 define('B_IDED', 4); // a cashier has verified the member's government-issued photo ID
 define('B_REFILL', 5); //
 define('B_CO', 6); // company account
-define('B_u7', 7); //
+define('B_CASHOUT', 7); // automatic weekly cashout
 define('B_ROUNDUP', 8); // round payments up to nearest dollar, donate the cents to the community fund
 define('B_NONUDGE', 9); // don't send reminders
 define('B_NOSEARCH', 10); // user wants to be not findable by other members, by phone or email
@@ -299,7 +302,7 @@ define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
 define('B_ADMINABLE', 'confirmed co member cAdmin cAdmin2 regulator nonudge cgc invites rewardy'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok u3 ided refill co u7 roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 u26 regulator cAdmin2 cAdmin admin');
+define('B_LIST', 'member confirmed ok u3 ided refill co cashout roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 u26 regulator cAdmin2 cAdmin admin');
 
 // community-specific flags
 define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)
@@ -323,6 +326,7 @@ define('B_MANAGE', 106); // can manage all aspects of the account
 define('B_JOINT', 107); // make this a joint account (subsuming the other, with permission) -- no companies!
 $GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept %PROJECT Card payments'), t('give refunds & give USD for %RCREDITS'), t('send invoices'), t('make purchases'), t('manage account'), t('joint account'));
 define('B_PERMISSIONS', 'related read scan refund sell buy manage joint');
+define('AUTOPAY_FLAG', 2); // set isCustomer to this value in r_relations if customer allows automatic payments to the payee
 
 // Other special pseudo-bit values for r\Acct::can() and rweb.module menus
 define('B_MANAGING_CTTY', 120); // cadmin is actually managing a qualified account
@@ -363,7 +367,7 @@ define('K_ACCT_RISKS_EDITABLE', 'adminOk cashCo rents shady photoOff addrOff ssn
 define('K_TX_RISKS', 'txAdminOk:-0.3,redo:2,exchange:2,cashIn:5,cashOut:2,fromBank:5,toBank:2,b2p:2,p2p:2,inhouse:2,fromSuspect:3,toSuspect:3,absent:4,invoiceless:4,bigFrom:3,biggestFrom:3,oftenFrom:3,bigTo:3,biggestTo:3,oftenTo:3,offline:10,firstOffline:3,origins:3,suspectOut:2'); // names of transaction risks
 define('K_ADMINOK', 0); // community admin blessed the account or transaction
 define('K_HASBANK', 3); // account has a connected bank account
-define('HAS_BANK', '(risks&(1<<' . K_HASBANK . '))'); // mysql criterion
+define('HAS_BANK', 'risks&(1<<' . K_HASBANK . ')'); // mysql criterion (not surrounding parens, so we can do u.:HAS_BANK)
 
 define('FLOW_NONE', 0); // which way can credit flow, with another account
 define('FLOW_TO', 1);
@@ -385,9 +389,11 @@ define('B_GIFT', 10); // gift (of any type)
 define('B_NOASK', 11); // transaction was taken with ID checking OFF
 define('TX_FLAGS', 'taking disputed offline short undone undoes crumbs roundups roundup patronage gift noask'); // tx flags (position means nothing)
 
-// Invoice status (use data['disputed'] for txs)
+// Invoice status (use data['disputed'] for txs) (set to txid>1 if paid)
 define('TX_DENIED', -1); // invoice rejected by the non-originator
-define('TX_PENDING', 0); // charged, waiting for confirmation (in all other states, transaction is complete)
+define('TX_PENDING', 0); // charged, waiting for confirmation
+define('TX_APPROVED', 1); // invoice is approved but not paid
+define('TX_STATUSES', t('-1:denied,0:pending,1:approved,2:paid'));
 
 // Transaction channels (roughly in order of simplicity and generality of messages) (CGF)
 define('TX_SYS', 0);
@@ -398,7 +404,8 @@ define('TX_TONE', 4); // touch tone phone
 define('TX_CRON', 5);
 define('TX_LINK', 6); // user clicked a no-signin link
 define('TX_AJAX', 7);
-define('TX_CHANNELS', 'Sys SMS Web App Tone Cron Link Ajax'); // can't be translated, because used in t() (find a solution)
+define('TX_FOREIGN', 8); // user clicked a "Pay with CG" button or request an app to charge them
+define('TX_CHANNELS', 'Sys SMS Web App Tone Cron Link Ajax Foreign'); // can't translate, because used in t() (find a solution)
 
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits) -- negative types generally not shown
 define('TX_BONUS', -2); // UNUSED sales bonus (negative reward types are invisible on transaction history)
@@ -419,6 +426,8 @@ define('TX_BANK', 99); // used only internally, to mark bank transfers
 define('TX_TYPES', 'payment signup giveback inflation helper u5 u6 u7 u8 fine xfee grant loan investment');
 
 define('TX_DEFAULT_PERIOD', 90); // number of days to show in transaction history, by default
+define('TX_DEFAULT_INV_PERIOD', -2); // number of days to show in invoice history, by default (all of them)
+
 define('MIN_TX_ROWS', 3); // minimum number of transaction lines to show
 define('NORMAL_TX_ROWS', 30); // normal number of transaction lines to show
 define('TX_MAX_ROWS', 500); // (unused) maximum number of transactions to load at once

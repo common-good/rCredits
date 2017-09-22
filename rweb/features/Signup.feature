@@ -60,11 +60,11 @@ Scenario: A newbie registers in Western Massachusetts
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   And next random code is "WHATEVER"
   When member "?" confirms form "signup/code=c0D3" with values:
-  | fullName | email | phone     | country | zip | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns | helper |*
-  | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ   |
+  | fullName | email | phone     | country | zip   | federalId   | dob      | acctType     | address | city       | state | postalAddr                | tenure | owns | helper |*
+  | Abe One  | a@ | 413-253-0000 | US      | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ   |
   Then members:
   | id   | fullName | legalName | email | phone     | zip | country | state | city   | flags     | floor | address | postalAddr                | tenure | owns | helper |*
-  | .AAA | Abe One  | Abe One   | a@ | +14132530000 | 01001      | US      | MA    | Agawam | confirmed | 0     |    1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ  |
+  | .AAA | Abe One  | Abe One   | a@ | +14132530000 | 01002 | US      | MA    | Agawam | confirmed | 0     |    1 A St. | 1 A St. Agawam MA 01001 |     18 |    1 | .ZZZ  |
   And we email "verify" to member "a@" with subs:
   | fullName | name   | quid    | site      | code      |*
   | Abe One  | abeone | NEW.AAA | %BASE_URL | WHATEVER |
@@ -205,7 +205,7 @@ Scenario: A member registers with an existing company
   | .AAA | Abe One  | a@    | 01002      | MA    | Amherst | confirmed | .ZZZ   |
   And relations:
   | id   | main | agent | permission | employee | isOwner | draw |*
-  | :AAA | .AAD | .AAA  |            |        0 |       1 |    0 |
+  | .AAA | .AAD | .AAA  |            |        0 |       1 |    0 |
 
 Scenario: A member registers with an unknown company
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"

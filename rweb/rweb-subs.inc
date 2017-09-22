@@ -97,7 +97,8 @@ EOF
   'timed out' => t('You were automatically signed out, to protect your account(s).'),
   'secure msg' => t('%who sent you a secure message (see their Summary page).'),
   'secure attach' => t('[<_%aAttach>Attachment</a>: %name type=%type size=%size bytes]'),
-
+  'new customer welcome' => t('<h2>Congratulations!</h2><p>You have successfully completed your sign-up with %partnerName.</p><p><b class="loud">But wait!</b> You still need to sign up with %PROJECT, in order to be able to PAY %partnerName for their services.</p><p>%PROJECT is also worthwhile on its own merits. Fill out this form to get started.</p>'),
+  
   // confirm
   'yes or no' =>  '%yesNo', // to replace with yesNo(url)
   'confirm accept' => '%who %did you %amount for %for on %date. Okay to %do', // used in EditTx test
@@ -413,7 +414,8 @@ function labeled($form, $onSubmit = '', $labeled = TRUE, $level = 0) {
   $form['#attributes']['class'][] = $labeled ? 'form-horizontal' : 'form-vertical';
   foreach ($form as $k => $v) if (substr($k, 0, 1) != '#') {
     $type = @$v['#type'];
-    if ($type == 'hidden') t\POST([$k => $v['#value']]); // fake post for tests
+    $params = [$k => @$v['#value']];
+    if ($type == 'hidden') t\POST($params); // fake post for tests
     if ($type == 'fieldset') $form[$k] = labeled($form[$k], '', $labeled, $level + 1);
     if ($labeled) $form[$k]['#tabled'] = TRUE; // remember that form is laid out in a table (labels in left column)
   }
@@ -811,7 +813,6 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 //    if (!in_array('form-horizontal', @$form['#attributes']['class'])) $form['#attributes']['class'][] = 'form-vertical';
     $formArray = $form2 = $form; 
     $rent = \render($form2);
-
 //    if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-radio')) js('js/radiocheck.js', 'file', 'footer');
     
     if ($colgroup = @$form['#colgroup']) {
@@ -1258,10 +1259,10 @@ function suCreatorRelation($helper, $args, $myid) {
  * @param acct $a: current account if any
  * @return: TRUE if email is okay to use, else FALSE
  */
-function emailOkay(&$email0, $dupsOk, $a = FALSE) {
+function emailOkay(&$email0, $dupsOk, $a = FALSE, $suppressErr = FALSE) {
   $email = strtolower(str_replace("'", '&#039;', $email0));
-  if ($error = \user_validate_mail($email)) return say('bad email', compact('email'), 'email');
-  if (!$dupsOk and emailDup($email, $a ? $a->id : 0)) return FALSE;
+  if ($error = \user_validate_mail($email)) return $suppressErr ? FALSE : say('bad email', compact('email'), 'email');
+  if (!$dupsOk and emailDup($email, $a ? $a->id : 0, $suppressErr)) return FALSE;
   $email0 = $email;
   return TRUE;
 }
@@ -1273,16 +1274,18 @@ function emailOkay(&$email0, $dupsOk, $a = FALSE) {
  * @param int $uid: the account it is for (0 if the account is not created yet)
  * @return <email is a dup>
  */
-function emailDup($email0, $uid) {
+function emailDup($email0, $uid, $suppressErr = FALSE) {
   global $base_url;
   $mail = u\cryptN($email0);
   if (!$who = db\lookup('fullName', 'users', 'mail=:mail and uid<>:uid AND NOT :IS_CO', compact('mail', 'uid'))) return FALSE;
-  $_a = w\atag("/settings/password/$email0");
-  $emailTagged = str_replace('@', '+whatever@', $email0);
-  $dupMsg = 'duplicate email';
-  if (stripos($email0, '@gmail.com')) $dupMsg .= '|email plus';
-  if (!$uid) $forgot = '|forgot password';
-  say($dupMsg . @$forgot, compact(ray('emailTagged who _a')), 'email');
+  if (!$suppressErr) {
+    $_a = w\atag("/settings/password/$email0");
+    $emailTagged = str_replace('@', '+whatever@', $email0);
+    $dupMsg = 'duplicate email';
+    if (stripos($email0, '@gmail.com')) $dupMsg .= '|email plus';
+    if (!$uid) $forgot = '|forgot password';
+    say($dupMsg . @$forgot, compact(ray('emailTagged who _a')), 'email');
+  }
   return TRUE;
 }
 
@@ -1325,14 +1328,17 @@ function findCompany($company, $companyPhone) {
  * @param bool $what: prompt description of what the name is for ("Company", "Community", or "Full name")
  * @param string $fullName: default full name
  * @param string $email: default email address
+ * @param bool $hideEmail: <don't ask for email address>
+ * @param int $myid: current account record ID, if any
  * @return the relevant form fields
  */
-function nameAndEmail($what, $fullName = '', $email = '', $hideEmail = FALSE) {
+function nameAndEmail($what, $fullName = '', $email = '', $hideEmail = FALSE, $myid = 0) {
   $who = $what == t('Company') ? t('The company\'s') : ($what == t('Community') ? t('The community\'s') : t('Your'));
   $onchange = w\onchange("var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);");
   $fullName = textFld("$what:", ["$who " . t('full name'), t('usename desc')], required(@$fullName) + $onchange);
   $legalName = textFld(t('Legal name:'), ["$who " . t('full legal name (if different)'), $who . t('legalname desc')]);
-  if ($email and !emailOkay($email, FALSE)) $hideEmail = FALSE; // make sure they can fix it
+  if ($email and !emailOkay($email, FALSE, $myid ? r\acct($myid) : '')) $hideEmail = FALSE; // make sure they can fix it
+  if (strpos($email, '@' . EMAILX) and !u\test()) $hideEmail = FALSE; // handle placeholder for making joint accounts
   $email = $hideEmail ? w\hidFld(@$email) : textFld(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required(@$email));
   return compact(ray('fullName legalName email'));
 }
@@ -1341,48 +1347,44 @@ function nameAndEmail($what, $fullName = '', $email = '', $hideEmail = FALSE) {
  * Return the part of the form that is (mostly) common to formContact and formSignup
  * @param assoc $defaults: initial field values (defaults to current values) - see list at "$fields ="...
  *   plus {partner, partnerCode, customer} for signup from partner site
- * @param acct $a: account for which to show existing contact field values (empty if new account)
+ * @param acct $a: account record ID of account for which to show existing contact field values, if any
  */
-function contactFields($defaults = [], $a = '') {
+function contactFields($defaults = [], $myid = 0) {
   global $fieldErr; // set in w\say
 //  $country = $state = ''; // make sure these are not NULL
-  $partnerExtras = ' partner customer source partnerCode'; // add-on fields passed through only for partner signup (start with space) (even partnerCode is necessary, in case form is redrawn on error)
-  $fields = 'phone country physical address city state zip tenure owns sameAddr2 address2 city2 state2 zip2 postalAddr hidCountry hidState hidState2';
-  $fieldsHidable = str_replace(' tenure owns', '', $fields);
+  $partnerExtras = ' partner customer partnerCode'; // add-on fields passed through only for partner signup (start with space) (even partnerCode is necessary, in case form is redrawn on error)
+  $fields = 'phone country physical address city state zip tenure owns sameAddr2 address2 city2 state2 zip2 postalAddr hidCountry hidState hidState2 source source2';
+  $a = $myid ? r\acct($myid) : FALSE;
+  foreach ($defaults as $k => $v) if (is_null($v)) unset($defaults[$k]); // needed for joint account setup
   extract($defaults + ($a ? (array) $a->account($fields) : []));
 
-  if (!$defaults and @$postalAddr) list ($address2, $city2, $state2, $zip2) = u\parseAddr(@$postalAddr);
+  $step0 = !($a and ($a->member or $a->federalId)); // <asking this info while signing up>
+
+  if (@$postalAddr) list ($address2, $city2, $state2, $zip2) = u\parseAddr(@$postalAddr);
   if (!@$state2) $state2 = 0; // otherwise default fails in countrys.js
   if (!@$country) $country = US_COUNTRY_ID;
 
   foreach (['state', 'state2'] as $k) {
-//    if (${$k . '0'} = @$$k) $$k = db\lookup('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
     if (@$$k) $$k = db\lookup('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
   }
-//  if (@$state2 == '1020') r\tellAdmin('state2 1020: ' . print_r(debug_backtrace(), 1));
-
-//  if (@$partner) r\tellAdmin(t('%partner sent new member', compact('partner')), ['address1' => @$address] + compact(ray($fields . $partnerExtras)) + $_POST); // temporary (tellAdmin strips off address along with other secure fields)
   js('js/countries.js', 'file', 'footer'); // required for setPostalAddr, whether or not the fields are shown
-  
-  if (@$partner and @$partnerCode and @$customer
-    and @$zip and @$address and @$city and @$state
-    and ($partnerA = r\acct($partner) and $partnerA->emailCode == $partnerCode)
-    and !u\poAddress($address)
-    and !u\badZip($zip)
-    
-    and (!@$zip2 or (@$address2 and @$city2 and @$state2
-    and !u\badZip($zip2)))) { // using valid signup data from partner org
 
-    //$postalAddr = @$zip2 ? "$address2, $city2, $state20 $zip2" : "$address, $city, $state0 $zip";
+  if ($step0 and @$address and @$city and @$state and !u\badZip($zip) and !u\poAddress($address)
+    and @$address2 and @$city2 and @$state2 and !u\badZip($zip2)) { // already got a bunch of data
+
     $postalAddr = ''; // get it from the separate fields
     $hidCountry = $country;
     $hidState = $state + 0;
     $hidState2 = $state2 + 0;
-    foreach (ray($fieldsHidable . $partnerExtras) as $k) $$k = w\hidFld(@$$k);
-    $fields .= $partnerExtras;
+    if (@$partner and @$partnerCode and @$customer // customer signup 
+      and ($partnerA = r\acct($partner) and $partnerA->emailCode == $partnerCode)) { // using valid data from partner org
+      $fields .= $partnerExtras;
+      $fieldsToHide = str_replace(' tenure owns', '', $fields); // DO ask about these
+    } else $fieldsToHide = $fields; // otherwise this is a joint Account setup, so DON'T ask about tenure and owns
+    foreach (ray($fieldsToHide) as $k) $$k = w\hidFld(@$$k);
     
   } else {
-///    if (@$partner) debug("partner=$partner partnerCode=$partnerCode customer=$customer zip=$zip address=$address city=$city state=$state0 ($state) zip2=$zip2 address2=$address2 city2=$city2 state2=$state20 ($state2) poAddress=" . u\poAddress($address) . " badZip=" . u\badZip($zip) . " badZip2=" . u\badZip($zip2));
+    $fieldsToHide = '';
     $country = @$country + 0;
     $state = @$state + 0;
     $hidCountry = hidFld($country + 0); // remember this when Drupal forgets it on error
@@ -1416,7 +1418,7 @@ EOF;
     $state = selectFld(t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
     $zip = textFld(t('Postal Code:'), [t('Physical location postal code'), t('Postal code for your <em>physical location</em>')], required(@$zip) + $zipAttrib);
 
-    $sameAddr2 = ($a ? !$a->cAdmin : @$state2) // show box on signup (until mailing addr filled) and to admin
+    $sameAddr2 = ($step0 ? @state2 : !$a->cAdmin) // show box on signup (until mailing addr filled) and to admin
     ? w\item('', t('Mailing Address')) 
     : w\boxFld('sameAddr', t('Mailing Address'), t('same as above'), 0, w\onchange('setPostalAddr(true)'));
     
@@ -1425,15 +1427,15 @@ EOF;
     $city2 = textFld(t('City:'), [t('Postal city')], required(@$city2) + $cityAttrib);
     $state2 = selectFld(t('State:'), t(''), dft(@$state2) + $stateAttrib); // can't use required() here
     $zip2 = textFld(t('Postal Code:'), [t('Postal code'), ''], required(@$zip2) + $zipAttrib);
-//    $postalAddr = textFld(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
+    
+    $source = $step0 ? textFld(t('Referred by:'), [t('How you heard about %PROJECT'), t('Where did you hear about %PROJECT? (name of company or person, web address, publication name, radio station name, or whatever)')]) : NULL;
+    $source2 = $step0 ? textFld(t('Code:'), [t('Invitation or card code'), t('If you have an invitation or card code, type it here ("B" for brochure). Otherwise leave blank.')]) : NULL;
   }
 
-//$a ? '' : t('Your phone number. This should not be a number already used for another %PROJECT Account &mdash; unless you have no other phone number.')
-//  $dupOk = hidFld(0, attrib(ray('id', 'edit-dupOk')));
-//  $dupOk = boolFld(t('Dup Ok:'), t('If this is already the phone number for another %PROJECT Account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your %PROJECT Account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
-
-  $tenure = $a ? NULL : textFld(t('How long:'), [t('MONTHS at current address.'), t('How long have you been at your current address, in months (roughly)')], required(@$tenure));
-  $owns = boolFld('', '', $a ? $a->owns : @$owns, [t('Rent'), t('Own')]); // default fails
+  if (!strpos($fieldsToHide, ' tenure ')) {
+    $tenure = $step0 ? textFld(t('How long:'), [t('MONTHS at current address.'), t('How long have you been at your current address, in months (roughly)')], required(@$tenure)) : NULL;
+    $owns = boolFld('', '', $step0 ? @$owns : $a->owns, [t('Rent'), t('Own')]); // default fails
+  }
 
   return compact(ray($fields));
 }  
@@ -1720,15 +1722,13 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   }
   $showAdvJs = 'jQuery(\'#advanced\').show(); jQuery(\'#simple\').hide();';
   if ($states != $settings or (@$ending and $ending != strtotime('tomorrow') - 1)) js($showAdvJs, 'inline', 'footer'); // showing advanced selection
-  u\setDft($period, TX_DEFAULT_PERIOD);
+  u\setDft($period, strpos($url, 'invoice') ? TX_DEFAULT_INV_PERIOD : TX_DEFAULT_PERIOD);
   list ($starting, $ending) = rangeDates(@$period, @$starting, @$ending);
   $url = BASE_URL . "/$url/period=$period&starting=$starting&ending=$ending&states=$states";
 
   $showAdvanced2 = '<a id="showAdvanced" href="javascript:void(0);" onclick="' . $showAdvJs . '">advanced</a>';
   $submitPeriod = submi(t('Show')); // label has to be different from submitDates (see below)
   if ($downloadable) $downloadPeriod = submi(t('Download'));
-///  debug(render($submitPeriod));
-///  debug(rendA(compact('submitPeriod')));
 ///  $actions = render($submitPeriod) . render(@$downloadPeriod) . render($showAdvanced);
   $actions = fieldSet('actionsSimple', compact('submitPeriod', 'downloadPeriod'), '', suffix($showAdvanced2));
 ///  $period = selectFld(t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
@@ -1917,15 +1917,15 @@ function sureForm(&$sta, $title = '') {
  * @param string $field_name: name of the field the user typed in
  * @param array $info: field values to be stored, then reinstated when the page is refreshed to show the choices
  * @param string $selfMsg: index to error message to give if user self-refers
- * UNUSED @param boolean $create: whether to create the person/company if it doesn't exist
+ * @param bool $paying: <we're preparing to pay this person> (in which case the persn has to have an active account)
  * @return:
  *   NULL if there is an error
  *   acct of the identified person
  *   no return (refreshes page) if ambiguous
  */
-function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
+function whois($who, $field_name, $info, $selfMsg = 'no self-trading', $paying = FALSE) {
   global $mya;
-  if (u\isAcct($result = be\identify($who, @$mya->id, $selfMsg))) return $result;
+  if (u\isAcct($result = be\identify($who, @$mya->id, $paying, $selfMsg))) return $result;
   list ($msg, $args, $choices) = $result;
 //  foreach (ray('form_build_id form_token form_id op') as $one) unset($info[$one]); // just for neatness
   if (u\abbreviates('who=', $last = basename($return = \current_path()))) $return = dirname($return);
@@ -1950,7 +1950,7 @@ function transfer($op, $info, $confirmed) {
 ///NO!  if (!in_array($op, ['pay', 'charge'])) $goods = FOR_USD; // make sure this is set, for blank_field check
   $txType = $op == 'pay' ? 'payment' : strtolower($op);
 //  if (blank_field($params)) return FALSE;
-  if (!$a = w\whois($who, 'who', $info)) return FALSE;
+  if (!$a = w\whois($who, 'who', $info, 'no self-trading', $op != 'charge')) return FALSE;
 //  if ($goods == FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($error = u\badAmount($amount, '>0')) return say($error, 'amount');
 //  $op = $op == 'pay' ? t('paid') : ($op == 'charge' ? 'charged' : $op . 'ed'); // for possible error message
@@ -2398,7 +2398,7 @@ function setupFoot($label = '', $extra = []) {
   global $mya, $base_url;
   if (!$mya->member) {
     if ($remains = $mya->stepsRemaining() - 1) { // don't count current step
-      $skip = button(t('Skip'), "$base_url/settings/skip", t('Skip this step for now'), 'warning', 'xs', ['class' => 'skip']);
+      $skip = button(t('Skip for now'), "$base_url/settings/skip", t('Leave this step for last'), 'warning', 'xs', ['class' => 'skip']);
       $nextStep = submit(t('Next ') . '&raquo;', '', '', w\suffix($skip));
       $steps = $remains == 1 ? t('step') : t('steps');
       $progress = item(t('Just <b>%n</b> more %steps to go', 'n steps', $remains, $steps));
@@ -2448,13 +2448,122 @@ function btn($href, $text, $style = 'primary', $size = 'xs', $extras = []) {
 function lnk($href, $text, $extras = []) {return '<' . atag($href, $extras) . ">$text</a>";}
 
 /**
+ * Skip a setup step and save it for last. Has no effect if step is already done.
+ * @param string $step0: the step to skip (defaults to current step)
+ * If defaulting to the current step, redirect to the next step.
+ */
+function skipStep($step0 = '') {
+  global $mya;
+  $step = $step0 ?: $mya->nextStep();
+  $stepsDone = $mya->stepsDone;
+  if ($stepsDone[$step]) return; // nothing to do
+  unset($stepsDone[$step]);
+  $stepsDone[$step] = FALSE; // put this step at the end
+  $mya->update(compact('stepsDone'));
+  if (!$step0) return r\go($mya->nextStepUrl());
+}
+
+/**
+ * Customer clicked on link to begin CG signup after completing partner signup
+ * @param int $reid: r_relations record ID linking customer to partner
+ * @param int $reid: (RETURNED) set to NULL if not a valid r_relations ID
+ * @return assoc of signup args from r_relations record (NULL if none)
+ *   redirects to signup step, if already in process
+ */
+function continuePartnerSignup(&$reid, $customer) {
+  if (!$info = r\relation('other,data', 'reid=:reid AND code=:customer', compact('reid', 'customer'))) return $reid = NULL;
+  extract($info);
+  $a = r\acct($other);
+  if ($a->federalId) return r\go("signin?name=$a->mainQid", t('Sign in to continue your account set-up.'));
+
+  return unserialize($data) + ['myid' => @$a ? $a->id : 0];
+}
+
+/**
+ * Create a new account and a customer relation with a company, if it doesn't already exist.
+ */
+function newCustomer($reid, $args) {
+  foreach (ray('address2 city2 state2 zip2') as $k) $$k = @$args[$k] ?: '?';
+  $args += ['country' => US_COUNTRY_ID, 'postalAddr' => "$address2, $city2, $state2 $zip2"];
+  $a = new r\Acct(u\just('fullName phone email address city state zip country postalAddr source', $args));
+  u\EXPECT($a, 'cannot create account');
+  if (!$reid) {
+    extract(u\just('partner customer email', $args));
+    $partnerA = r\acct($partner);
+    $reid = $partnerA->newRelation(ray('other isCustomer code data', $a->id, TRUE, $customer, serialize($args)));
+    w\say('new customer welcome', ['partnerName' => $partnerA->fullName]);
+    try { // give them a way to continue, even if they haven't completed the first page
+      $noFrame = TRUE;
+      r\rMail('partner-signup', $email, compact(ray('fullName reid customer noFrame'))); // so customer can continue
+    } catch (Exception $e) {r\tellAdmin('bad email addr from partner', $args);} // bad email gets caught in signup submit also
+  }
+
+  return $a->id;
+}
+
+/**
+ * Handle simplified signup for second person in a joint account.
+ */
+function jointSignup() {
+  $mya = r\acct();
+  $fields = 'fullName phone address city state zip country postalAddr source flags minimum achMin';
+  $args = (array) $mya->account($fields);
+  $a = new r\Acct($args + ['email' => t('name@') . EMAILX]);
+  u\EXPECT($a, 'cannot create account');
+  $a->update('tenure', round($mya->tenure + ($a->created - $mya->created) / (30 * DAY_SECS)));
+  if (@$mya->risk('rents')) $a->setRisk('rents');
+  $reid = $mya->newRelation(ray('other permission', $a->id, r\perm(B_JOINT)));
+  $a->join($mya);
+  return $a->id;
+}
+
+/**
+ * Handle info passed from partner signup, for use in CG signup
+ * @param assoc $args: what the partner passed (includes non-empty customer, partner and partnerCode)
+ * @return string $myid: account record ID for the newly-created account
+ *   but if person already has an account, we redirect to continue signup
+ *   we also redirect if all that needs to be done is to display a message (including if the person is already a member)
+ */
+function partnerSignup($args) {
+  extract(u\just('partner partnerCode customer qid phone fullName email', $args));
+  if (!$partnerA = r\acct($partner) or $partnerA->emailCode != $partnerCode) return NULL;
+  $partnerName = $partnerA->fullName;
+  
+  $reid = r\relation('reid', 'main=:main AND code=:customer', ray('main customer', $partnerA->id, $customer));
+  
+  if (!@$qid) { // person is not a member yet
+    if ($reid and $uid = r\relation('other', $reid)) return $uid;
+    return newCustomer($reid, $args); // mark new or old member as a customer of the partner
+  }
+    
+  // partner sent an already-member
+  $valid = ($a = r\acct($qid) and ($a->phone == u\fmtPhone(@$phone, '+n') or (u\similar($a->fullName, @$fullName, 5, .5))));
+  r\tellAdmin(t('new customer of %partner: %fullName', compact('partner', 'fullName')) . (@$valid ? '' : t('(invalid)')), $args);
+
+  if (!$valid) return r\go('empty', t('That does not appear to be your correct %PROJECT member ID. But no worries. We will try to figure out who you are and match up your %PROJECT account with your account at %partnerName. If you have not yet finished opening your %PROJECT account, <%a>sign in</a> (if you have not yet begun, go to %CG_DOMAIN and click "Sign up").', 'partnerName _a', $partnerName, w\atag('signin'))); // member mistyped their qid (a royal pain in the butt)
+
+  if ($reid) { // relation with this partner already exists
+    u\EXPECT(r\relation('other', $reid) == $a->id, 'duplicate customer');
+    db\update('r_relations', ray('reid isCustomer code', $reid, TRUE, $customer), 'reid'); // just update the customer
+  } else $reid = $partnerA->newRelation(ray('other isCustomer code', $a->id, TRUE, $customer)); // create the relation
+  
+  if (!$partnerA->website) return r\go('empty', t('Partner has no website. Fix it on the Company Info settings page.')); // partner should always have a website
+  list ($op, $fields) = ['end', 'partnerCode qid op'];
+  if (!$a->member) list ($op, $fields) = ['start', $fields . ' customer'];
+  if ($a->member) w\say('new customer done', compact('partnerName')); else $goto = "signin?name=$qid";
+  u\post($partnerA->partnerAPI(), compact($fields)); // tell partner we're starting or done
+
+  return r\go(@$goto ?: 'empty'); // complain, finish account setup, or report success
+}
+
+/**
  * Format info about the new member's company.
  */
 function signupCoDisplay($info) {
 //  return $info ? $info['company'] . ' (' . $info['companyPhone'] . ') ' . (@$info['isOwner'] ?: '') . (@$info['isEmployee'] ?: ''), t('Signup Co:') : '';
   if (!@$info) return '';
   extract($info);
-  return @$isOwner . ' ' . @$isEmployee . ' ' . @$company;
+  return @$isOwner . ' ' . @$isEmployee . ': ' . @$company;
 }
 
 /**

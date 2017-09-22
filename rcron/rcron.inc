@@ -65,7 +65,7 @@ NOTES:
   where <star> means * (not the same as for the production site) 
  */
 
-define('R_DAILY_TASKS', 'START recache checkAccts requests setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank notices END'); // had homogenize, pool 
+define('R_DAILY_TASKS', 'START recache checkAccts requests setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank invoices notices END'); // had homogenize, pool 
 //define ('R_DAILY_TASKS', 'START redistribute END');
 include_once __DIR__ . '/rcron-subs.inc';
 
@@ -161,7 +161,7 @@ EOF;
   $sql = <<<EOF
     SELECT uid, $elapsed AS elapsed FROM users 
     WHERE ($elapsed IN ($delays) OR ($elapsed>8 AND $elapsed%7=0))
-    AND uid>1 AND NOT activated AND NOT :IS_NONUDGE
+    AND uid>:CANONIC_ACCTS AND NOT activated AND NOT :IS_NONUDGE
 EOF;
   queueEach('tickleStep', $sql);
 
@@ -207,15 +207,9 @@ function tickleStep($item) {
   extract(u\just('uid elapsed', $item));
   $a = r\acct($uid);
   if (!$a->member and $step = $a->nextStep()) {
-//    $msg = $step == 'verify' ? 'call bank' : (($step == 'sign' or $step == 'contact') ? 'do step one' : 'take another step');
-    $msg = ($step == 'verify' or $step == 'contact') ? 'do step one' : 'take another step';
-/*    $when = $elapsed < 3 ? 
-      (u\nextBusDay(+1) . t(' (how about 10am?)'))
-    : (u\nextBusDay(0) . t(' between 9am and 4pm')); // for verify
-    */
-//    if ($step != 'verify' or $elapsed > 1) r\notify($a->id, "$msg|sign in", compact('when'));
+    $msg = ($step == 'signup' or $step == 'verify') ? 'do step one' : 'take another step';
     r\notify($uid, "$msg|sign in");
-    if ($elapsed >= 8) {
+    if ($elapsed >= 8 and $elapsed < 30) {
       $sql = 'SELECT DISTINCT inviter FROM r_invites i LEFT JOIN users u ON u.uid=i.inviter WHERE invitee=:uid AND u.:IS_OK';
       $q = db\q($sql, compact('uid'));
       while ($row = $q->fetchAssoc()) {
@@ -285,6 +279,10 @@ function everyWeek() {
   db\q("UPDATE users SET minimum=IF(ABS($newMin)<.01, .01, $newMin) WHERE $refillable AND minimum<GREATEST(0, floor)"); // crawl out of debt
   db\q("UPDATE users SET minimum=minimum+saveWeekly WHERE $refillable AND saveWeekly>0 AND minimum>=GREATEST(0, floor)"); // build up savings
 //  db\q('UPDATE users SET savingsAdd=GREATEST(0, savingsAdd+saveWeekly) WHERE :IS_OK AND :HAS_BANK AND saveWeekly<>0'); // save or unsave
+  $today = strtotime('today');
+  $start = strtotime('-6 months', $today);
+  $sql = "SELECT uid, SUM(t.amount) AS total, balance, $today AS today, $start AS start FROM users u LEFT JOIN r_txs t ON t.payee=u.uid WHERE u.:IS_OK AND u.:IS_CASHOUT AND u.:HAS_BANK AND t.created BETWEEN $start AND $today GROUP BY t.payee";
+  queueEach('cashout', $sql);
 }
 
 /**
@@ -341,22 +339,8 @@ function inflationAdjust($item) {
 }
 
 /**
- * Share committed rewards with CGF.
- *//*
-function shareCommitted($item) {
-  extract(u\just('uid committed share', $item));
-  $share = round($share, 1);
-  r\notify($uid, 'share gift', compact('share'));
-  $info = ray('giftDate uid amount often honor share', r\rTime(), $uid, $committed, 1, 'share', -1);
-  $DBTX = \db_transaction();
-  db\insert('r_gifts', $info);
-  r\acct($uid)->update('committed', 0);
-  unset($DBTX);
-}
-*/
-
-/**
  * Donate rounded change to the community. Date the transaction in the preceding month (in which the roundups originate).
+ * Allow this even if account is inactive (donation has already been made, from member's point of view).
  */
 function roundup($item) {
   extract(u\just('uid donate', $item));
@@ -366,6 +350,7 @@ function roundup($item) {
 
 /**
  * Donate percentage of funds received to the community.
+ * Allow this even if account is inactive (donation has already been made, from member's point of view).
  */
 function crumbs($item) {
   extract(u\just('uid donate cgf', $item));
@@ -715,6 +700,26 @@ function completeUsdTx($item) {
   r\acct($payee)->completeUsdTx($txid, $amount, @$channel == TX_CRON);
 }
 
+/**
+ * Automatically cashout accounts that choose to, leaving average weekly gross in the account.
+ */
+function cashout($item) {
+  extract(u\just('uid total today start', $item));
+  if (!$first = db\lookup('created', 'r_txs', 'payee=:uid ORDER BY created LIMIT 1', compact('uid'))) return;
+  $days = round(($today - max($start, $first)) / DAY_SECS); // number of days over which to find weekly average gross
+  $avg = 7 * $total / $days;
+
+  $a = r\acct($uid);
+  $waiting = $a->waitingFromBank($combinable); // net amount already requested from bank (if any)
+  if ($waiting > 0) return; // no cashout if waiting to bring some in
+  $cashout = round($a->balance + $waiting - $avg, 2); // (waiting is negative)
+  if ($cashout < CASHOUT_MIN) return;
+  $action = t('deposit to');
+  if (!$checkNum = $a->bank(-$cashout)) return;
+  $amount = u\fmtAmt($cashout);
+  r\notify($uid, 'banked|bank tx number', compact(ray('action amount checkNum')));
+}
+
 function bank1($item) {
   extract(u\just('uid', $item));
   $a = r\acct($uid);
@@ -747,10 +752,49 @@ function draw1($item) {
 function getHowMuchR($a, $banky = TRUE) {
   if (!$need = max(0, $a->minimum - $a->balance)) return 0; // + $a->committed
   if ($banky) {
-    $waiting = $a->waitingToBank($combinable); // net amount already requested from bank (if any)
+    $waiting = $a->waitingFromBank($combinable); // net amount already requested from bank (if any)
     $need = round($need - $waiting, 2); // avoid a re-request
   }
   return ($need <= 0 ? 0 : max(@$combinable + 0 > 0 ? 0 : $a->achMin, round(R_ACHMIN * ceil($need / R_ACHMIN))));
+}
+
+/**
+ * Handle pending invoices.
+ */
+function invoices() {
+  $sql = 'SELECT * FROM r_invoices WHERE status=:TX_PENDING OR status=:TX_APPROVED';
+  queueEach('invoice', $sql);
+  queueNext();
+}
+
+function invoice($item) {
+  extract(u\just('nvid payer payee amount purpose status created', $item));
+  $a = r\acct($payer);
+  $payeeName = r\acct($payee)->fullName;
+  
+  $masterA = $a->masterA;
+  if ($status == TX_APPROVED) {
+    $short = round($amount - $a->avail(), 2);
+    if ($short <= 0) {
+      if (!$ok = be\payInvoice($nvid, $msg)) r\tellAdmin(t('invoice payment failed in cron'), compact('msg') + $item);
+    } elseif ($masterA->hasBank) {
+      if ($masterA->refill) $amount += getHowMuchR($masterA);
+      if ($amount < 0.01) return; // (avoid floating point equality errors by using <)
+      if (!$checkNum = $masterA->bank($amount)) return; // may never happen, but if mysql is unavailable just redo next day
+      list ($amount, $action) = [u\fmtAmt($amount), t('draw from')];
+      r\notify($payer, 'banked|bank tx number', compact(ray('action amount checkNum')));
+    } elseif ($a->waitingFromBank() <= 0) r\notify($payer, 'short invoice|when funded', ray('short payeeName', u\fmtAmt($short), $payeeName));
+  }
+  
+  if ($status == TX_PENDING) {
+    $today = strtotime('today'); // not time(), because tests fail erratically
+    $daysAgo = max(1, round(($today - $created) / DAY_SECS));
+    if ($daysAgo % 7 == 0) {
+      $subs = ray('daysAgo created amount purpose nvid _a1 payerName payeeName', $daysAgo, u\fmtDate($created, TRUE), u\fmtAmt($amount), $purpose, $nvid, $a->makeDo('inv', $nvid), $a->fullName, $payeeName);
+      r\message($payer, 'stale invoice', $subs); // tell other party by email about this invoice
+      r\message($payee, 'stale invoice report', $subs); // tell the payee we're following up on it
+    }
+  }
 }
 
 /**

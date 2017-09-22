@@ -62,7 +62,10 @@ EOF
       list ($signupCo, $myCo) = ['', t(' (personally rather than for company "%myCo")', compact('myCo'))];
     } else $signupCo = $mya->signupCo ? t('<li><b>Company</b>. How about signing up your company (%co)?</li>', 'co', w\signupCoDisplay($mya->signupCo)) : '';
     $notyet = t("<li><b>Want</b>. What's one place you would like to use your %PROJECT card that you can't yet?</li>");
-    $how = t("<li><b>How's it going?</b> %myCo Any questions, suggestions, or concerns%lastTx? If you could change or improve one thing about the %PROJECT system, what would it be?</li>", 'lastTx myCo', $mya->lastTxDesc(), @$myCo) . $notyet;
+    $negative = $mya->balance < 0 ? t(' (balance: <%b>%bal</b>', 'b bal', 'b style="color:red;"', u\fmtAmt($mya->balance)): '';
+    $how = t("<li><b>How's it going?</b> %myCo Any questions, suggestions, or concerns%lastTx? If you could change or improve one thing about the %PROJECT system, what would it be?</li>", 'lastTx myCo', $mya->lastTxDesc() . $negative, @$myCo) . $notyet;
+    if ($mya->paper) $how .= t('<li><b>Paper statements</b>. Do you really want paper statements? ($%R_STATEMENT_COST/month)</li>');
+    if ($negative) $how .= t('<li><b>Negative</b>. You have a negative balance. Do you need help getting money into your account?</li>');
     
     $_volunteer = join("</li>\n<li>", explode('~', t(
       'Hand out promo cards and schedule appointments with local businesses.'
@@ -77,17 +80,17 @@ EOF
     . '~Serve on the board of directors.'
     )));
     
-    $volunteer = t('<li><b>Volunteer?</b><ul><li>%volunteer</li></ul></li>', compact('_volunteer'));
+    $volunteer = $mya->co ? '' : t('<li><b>Volunteer?</b> (if supportive) <ul><li>%volunteer</li></ul></li>', compact('_volunteer'));
     $coAsk = ($mya->co and !$mya->crumbs) ? t('<li><b>Crumbs</b>. We particularly encourage businesses to contribute what we call "crumbs" to support the system and the common good (do you know about this option?) &mdash; it means contributing a small percentage of each payment received, instead of the system charging you credit card fees. What percentage would you like to contribute?</li>') : '';
     $giftDetails = t('<li><b>Amount</b>. Wait for answer, then ask: What amount would you like to give and do you prefer yearly, quarterly, or monthly?</li>');
     $ask = t('<li><b>Offer</b>. The idea of %PROJECT is to empower us to take responsibility for our local economy, so most of our members contribute some small amount periodically and/or choose roundups or crumbs, to support the system. Would you like to contribute at this time?</li>') . $giftDetails . $coAsk;
     $thx = t('<li><b>Thanks</b> for your donation/s (%giftsDesc).</li>', '_giftsDesc', $mya->giftsDesc($often));
-    $reask = @$often ? $thx : $thx . t('<li><b>Gift</b>. Would you like to contribute at this time? (unless contributing Quarterly or Monthly)</li>') . $giftDetails;
+    $reask = @$often ? $thx : $thx . t('<li><b>Gift</b>. Would you like to contribute at this time?</li>') . $giftDetails;
     $option = $mya->co 
-    ? t('automatic cash-out option') 
-    : (t('joint account option') . ($mya->roundup ? '' : t(' and roundups option (roundups let you always pay a whole dollar amount and donate the change to the community fund)')));
+    ? t('automatic cash-out option?') 
+    : (t('joint account option?') . ($mya->roundup ? '' : t(' and roundups option? (roundups let you always pay a whole dollar amount and donate the change to the community fund)')));
     $options = t(<<<EOF
-      <li><b>Features</b>. Do you know about our %option?</li>
+      <li><b>Features</b>. Do you know about our %option</li>
       <li><b>Promo</b>. Do you want more handout cards or brochures, to tell friends or local businesses about %PROJECT?</li>
 EOF
     , compact('option'));

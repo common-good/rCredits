@@ -15,7 +15,7 @@ use rCredits\Admin as a;
 global $base_path;
 define('BASE_PATH', $base_path);
 define('T_BALANCE_FIELDS', 'id balance floor rewards savingsAdd saveWeekly minimum share committed');
-define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to');
+define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to partner myid reid main agent other');
 define('T_MSG_FILE', 'test-messages.txt');
 
 /**
@@ -25,7 +25,7 @@ define('T_MSG_FILE', 'test-messages.txt');
  */
 function fixData(&$info, $direct = FALSE) {
   global $rUrl, $testVars;
-  $fields = 'zip country state email phone dob federalId idProof flags adminable notices statements who rewards';
+  $fields = 'zip country state email phone dob federalId idProof flags adminable notices statements who rewards risks toEmail';
   if (@$testVars) foreach ($info as $k => $v) if (strpos($v, '@') !== FALSE) {
     foreach ($testVars as $varName => $var) $info[$k] = str_replace("@$varName", $var, $v);
   }
@@ -57,8 +57,9 @@ function fixData(&$info, $direct = FALSE) {
   }
 
   foreach (u\just(T_ID_FIELDS, $info) as $k => $v) {
-    if (strpos($v, '.') !== FALSE) $info[$k] = t\uid($v) ?: 0;
+    if (preg_match('/^(\.|[A-Z]{3})[A-Z]{3}$/', $v)) $info[$k] = t\uid($v) ?: 0;
   }
+  if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
   
   $info = compact(ray($fields)) + $info;
 }
@@ -68,7 +69,7 @@ function fixData(&$info, $direct = FALSE) {
  */
 function fixEmail(&$email) {
   $email = str_replace("'", '&#039;', htmlspecialchars($email)); // Drupal does this in user_register()
-  if (substr(@$email, -1, 1) == '@') $email .= 'example.com'; 
+  if (substr(@$email, -1, 1) == '@') $email .= EMAILX; 
   return $email;
 }
 
@@ -147,13 +148,13 @@ function doAccount($info = []) {
 
     $zza = r\qo('.ZZA')->id;
     $mailDft = ($zza <= $uid and $uid < $zza + 26) ? chr(ord('a') + $uid - $zza) : \user_password(10);
-    u\setDft($email, $mailDft . '@example.com'); // a@example.com, etc.
+    u\setDft($email, $mailDft . '@' . EMAILX); // a@example.com, etc.
 
     u\setDft($community, r\serverUid());
     u\setDft($zip, '01301');
     u\setDft($country, 'US');
     $state = r\realState(@$state, $country);
-    u\setDft($postalAddr, @$address . ', ' . @$city . ", $state $zip");
+    u\setDft($postalAddr, @$address2 ? "$address2, $city2, $state2 $zip2" : @$address . ', ' . @$city . ", $state $zip");
 //    u\setDft($photoId, "$state-{$zip}999");
     u\setDft($helper, '.AAB'); // everyone but .AAB should have a helper
 /**/  if ($helper === '') die(print_r(debug_backtrace(), 1)); // set helper to zero if none, never blank
@@ -169,7 +170,7 @@ function doAccount($info = []) {
 
   if (isset($flags) and isset($acctType) and $acctType !== R_PERSONAL and $acctType != 'personal') $flags .= ',co';
 
-  if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
+//  if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
   
   foreach (ray('id acctType dw cc cc2') as $one) unset($info[$one]); // these are not real fields
   u\preray(compact(ray('uid jid helper flags risks last4bank ' . $fixFields)), $info); // add in changed fields
@@ -192,7 +193,7 @@ function doAccount($info = []) {
 
 /**/ if (!$a = new r\Acct($info)) return t\output('Cannot create account: ' . print_r($info, 1));
   if (@$picture) if (!makePicture($picture, $a)) return FALSE;
-  $a->stepDone('contact');
+  $a->stepDone('signup');
   if ($id0 == $id) $a->setBit(B_IDED); // assume we have a photoId for givens unless a step says otherwise
 
   return $uid;
@@ -276,15 +277,18 @@ function doTx($info, $thing) {
     unset($info['purpose']);
   }
   
-  $fields = 'xid payer payerAgent payee payeeAgent amount payerReward payeeReward type goods data flags risk risks';
-  if (!$testOnly) $fields .= $inv ? ' created' : ' created channel';
+  $fields = 'xid payer payerAgent payee payeeAgent amount payerReward payeeReward type goods data risk risks';
+  if (!$testOnly) $fields .= $inv ? ' created' : ' created channel'; // when creating, add these if not already explicit
+
+  if (!$inv) {  
+    $fields .= ' flags';
+    $flagRay = ray(@$flags);
+    $flags = 0;
+    foreach (ray(TX_FLAGS) as $k) if (@$$k or in_array($k, $flagRay)) u\setBit($flags, $k);
+  }
   
-  $flagRay = ray(@$flags);
-  $flags = 0;
-  foreach (ray(TX_FLAGS) as $k) if (@$$k or in_array($k, $flagRay)) u\setBit($flags, $k);
-  
-  $info = compact(ray($fields)) + $info;
-  foreach (ray('from to for rebate bonus ' . TX_FLAGS) as $one) unset($info[$one]); // used to include state
+  $info = compact(ray($fields)) + $info; // apply modifications
+  foreach (ray('from to for rebate bonus ' . TX_FLAGS) as $one) unset($info[$one]);
 
   if (!@$inv) {
     if (@$for and !@$payerFor and !@$payeeFor) list ($payerFor, $payeeFor) = is_array($for) ? $for : array($for, $for);
@@ -326,29 +330,35 @@ function txUid($id, &$main, &$other) {
 function doRelation($info) {
   include_once __DIR__ . '/admin/admin-forms.inc';
   global $testOnly, $memberIdCalled;
+
+  t\fixData($info);
   extract($info);
-  
-  if (@$id) $reid = t\uid(str_replace(R_AGENT_MARK, R_MEMBER_MARK, $id)); // deprecated
+//  if (@$id) $reid = t\uid(str_replace(R_AGENT_MARK, R_MEMBER_MARK, $id)); // deprecated
 //  u\num($id, u\a2n(substr($id, -3)));
-  if (!$mainAcct = r\acct(t\uid($main))) return output("main:$main is not an id");
-  if (!$agtAcct = r\acct(t\uid($agent))) return output("agent:$agent is not an id");
+//  if (!$mainAcct = r\acct(t\uid($main))) return output("main:$main is not an id");
+//  if (!$agtAcct = r\acct(t\uid($agent))) return output("agent:$agent is not an id");
+  u\setDft($other, @$agent);
+  list ($mainA, $agtA) = [r\acct($main), r\acct($other)];
+  foreach ([$main => $mainA, $other => $agtA] as $i => $a) if (!$a or !$a->proSe) return t\output("bad rel acct: $i");
   //u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
-  u\EXPECT($mainAcct->proSe and $agtAcct->proSe);
-  list ($main, $other, $otherNum) = array($mainAcct->id, $agtAcct->id, @$num);
+//  u\EXPECT($mainA->proSe and $agtA->proSe, "not proSe: $mainA->proSe or $agtA->proSe");
+//  list ($main, $other, $otherNum) = array($mainA->id, $agtA->id, @$num);
+  if (isset($id) and !@$reid) $reid = $id;
+  u\setDft($otherNum, @$num);
   $info['permission'] = @$permission ? u\consta('b', $permission) - B_RELATED : 0;
 
-  if (@$draw) $agtAcct->setBit(B_DRAWS);
+  if (@$draw) $agtA->setBit(B_DRAWS);
   
-  foreach (ray('id main agent num rCard') as $k) unset($info[$k]);
+  foreach (ray('id agent num rCard') as $k) unset($info[$k]);
   $info += compact(ray('reid main other otherNum'));
   
   if ($testOnly) {
     return verifyRecord('r_relations', $info);
   } else {
 //    db\insert('r_relations', $info);
-    $mainAcct->newRelation($info);
+    $mainA->newRelation($info);
     if (@$rCard == 'yes') {
-      if (!$agtAcct->cardCode2) r\acct($main, $other)->makeCardCode();
+      if (!$agtA->cardCode2) r\acct($main, $other)->makeCardCode();
       if (!@$memberIdCalled) r\Web\memberId($main, $other); // make a Company Agent rCard
       $memberIdCalled = TRUE;
     }
@@ -436,20 +446,6 @@ function doneStep($id, $step) {
   if (!$a = r\acct(t\uid($id))) return t\output("Not an account: $id");
   @$a->stepDone($step); // might have to do the steps below also
   return TRUE;
-  /*
-  if ($step == 'photo') return t\makePicture('whatever', $a);
-  if ($step == 'sign') return $a->update('signed', r\rTime());
-  if ($step == 'donate') return db\insert('r_gifts', ray('uid amount', $uid, 123));
-  if ($step == 'proxies') return db\q('INSERT INTO r_proxies (person, proxy) VALUES (:uid, 2),(:uid, 3)', compact('uid'));
-  
-  if ($step == 'contact') return $a->update('postalAddr', 'The World');
-  if ($step == 'connect') return $a->update('bankAccount', 'USkk123456789whatever');
-  if ($step == 'prefs') return $a->update1('minimum', 0);
-  //if ($step == 'invite') return db\insert('r_invites', ray('inviter email code', $uid, 'any@example.com', 'whatever'));
-  if ($step == 'company') return $a->update('selling', 'stuff');
-  // if ($step == 'relations') ?
-  return FALSE;
-  */
 }
 
 /**
@@ -629,8 +625,8 @@ function fullQid($q) {
  * Interpret the given identifier (int, full qid, or local qid) as an account ID.
  */
 function uid($id, $field = 'id') {
-  u\EXPECT($id, 'empty id'); // otherwise site loops (?)
-  if (is_numeric($id)) return $id;
+//  u\EXPECT($id, 'empty id'); // otherwise site loops (?)
+  if (is_numeric($id) or empty($id)) return $id;
   if ($id == 'community' or $id == 'ctty') return r\serverUid();
   if ($id == 'cgf') return r\cgfId();
 //  return r\qo($id)->$field; FAILS
@@ -764,6 +760,16 @@ function showSubs($s, $subs) {
   return strtr($s, $subs);
 }
 
+/**
+ * Simulate posting to a page from some other site (or app).
+ */
+function postToPage($page, $args) {
+  global $testOnly; if ($testOnly) return FALSE;
+  $params = t\ray2assoc($args);
+  t\POST($params);
+  return t\memberVisitsPage('?', $page);
+}
+
 function memberVisitsPage($id, $page) { // pass options in URL
   global $testOnly; if ($testOnly) return FALSE;
   if (!t\login($id)) return FALSE;
@@ -771,10 +777,10 @@ function memberVisitsPage($id, $page) { // pass options in URL
   return TRUE;
 }
 
-function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
+function weShowWith($title, $content = FALSE, $mustBePresent = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
-  if ($title and !weShow($title, $showDebugs)) return FALSE;
-  return weShow($content, $showDebugs);
+  if ($title and !weShow($title, $mustBePresent)) return FALSE;
+  return weShow($content, $mustBePresent);
 }
 
 function weShowWithSubs($page, $subs) {
@@ -913,7 +919,6 @@ function logIn($id) {
 function verifyRecord($table, $info) {
 ///  debug(compact('table','info'));
 /**/  if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1)); // keep
-  
   unset($info['data']);
   foreach ($info as $key => $value) {
     if ($value == '?') {unset($info[$key]); continue;}
@@ -954,16 +959,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
 ///  debug(compact(ray('id page values confirmed testOnly')));
 
   $values = @$values[0] ?: [];
-  t\fixData($values);
 
-/*  
-  if (isset($values['amount']) and !is_numeric($values['amount'])) { // not sure this still works or is still used
-    $a = r\acct(t\fullQid($id));
-    list ($values['amount']) = t\parseAmt($values['amount'], $a);
-  }
-  */
-//  if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
-  
   t\logIn($id);
 
   $validate = TRUE;
@@ -1167,10 +1163,14 @@ function SERVER($key, $value = NULL) {
 /**
  * Fake $_POST params for testing
  */
-function POST($value = NULL) {
+function POST(&$values = NULL) {
   if (!u\test()) return $_POST;
   global $T_POST;
-  return isset($value) ? $T_POST = $value + ($T_POST ?: []) : $T_POST;
+  if (isset($values)) {
+    t\fixData($values);
+    $_POST = $T_POST = $values + ($T_POST ?: []);
+  }
+  return $T_POST;
 }
 
 /**
@@ -1210,10 +1210,11 @@ function output($msg, $color = 'error') {
 function clear($ch = 0) {
   include_once __DIR__ . '/admin/admin.inc';
   global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation, $tChecked, $tRadios, $testEmails;
+  global $nextCode; $nextCode = NULL;
   global $sms_devel; $sms_devel = TRUE;
   global $testRewardStep; $testRewardStep = 500;
 //  global $testRewarding; $testRewarding = TRUE; // normally set this true in tests only if testing this feature
-    
+  global $T_POST; $T_POST = $_POST = [];
   $lastGo = $formOut = $formArray = $formSta = $testOp = $testConfirmation = $tChecked = $tRadios = NULL;
   $formOut['text'] = '';
   $testEmails = NULL;
@@ -1314,10 +1315,10 @@ function badEq($type, $v1, $v2, $id) {
  *   The names (labels) will be sought once also, unless preceded by underscore (_).
  *   The array can go either way, horizontally or vertically
  * @param string $type: description of what to check for (default 'text')
- * @param bool $showDebugs: whether to report debugging info while looking
+ * @param bool $mustBePresent: whether to complain about missing info (otherwise complain about info that is present)
  * @return TRUE if all the content is included
  */
-function shownWith($content, $type = 'text', $showDebugs = TRUE) {
+function shownWith($content, $type = 'text', $mustBePresent = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $formOut;
   $model = t\strip($formOut[$type]);
@@ -1331,18 +1332,23 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   foreach ($ray as $one) {
     if ($one === '' or substr($one, 0, 1) == '~') continue; // ignore ~labels
 //    if (u\in($one, '%')) $one = t\lastMinuteSubs(htmlspecialchars($one));
-    if ($showDebugs) t\output("EXPECT page with " . u\purify($one, ''));
     $one = t($one); // translate constants in member
     if (($one = u\redash($one)) !== '') $i = strpos($model, $one, $xi = $i);
-    if ($showDebugs) t\output(compact('xi','i','one'));
-    if ($i === FALSE) {
-      if ($showDebugs) t\output(substr($model, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($model, $xi));
-      return FALSE;
+    if ($i === FALSE xor !$mustBePresent) {
+      t\output(t('EXPECT page %with %this', 'with this', $mustBePresent ? t('with') : t('without'), u\purify($one, '')));
+      t\output(compact('xi','i','one'));
+      if (!$mustBePresent) $xi = $i; // show what's found if it's not supposed to be there
+      t\output(substr($model, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($model, $xi));
+      return !$mustBePresent;
     } else $i += strlen($one);
   }
-  return TRUE;
+  return $mustBePresent;
 }
 
+/**
+ * Say whether we have shown the given text.
+ * @param bool $show: <complain if not shown> (else complain if shown)
+ */
 function weShow($what, $show = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
   if ($what === '') return TRUE;
@@ -1418,3 +1424,4 @@ function dosayFilename($type) {return DRUPAL_ROOT . R_PATH . "/dosay-$type.txt";
 function goodsBit($s) {return $s == 'goods' ? "1" : ($s == 'cash' ? "0" : "ERROR");} // no 3rd why for rSmart
 function approxTime($a, $b) {return t\eq($a, $b, 10000);}
 function rewarding() {return ctty('aab')->cttyRewardy;}
+function ray2assoc($ray) {foreach ($ray as $one) $res[$one[0]] = $one[1]; return @$res ?: [];}

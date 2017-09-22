@@ -80,9 +80,17 @@ $GLOBALS['tStrings'] = array(
   'new refund' => t('<b>Refund:</b> %otherName refunded you %amount for "%payerPurpose".'),
   'new payment' => t('<b>Payment:</b> %otherName paid you %amount for "%payeePurpose".'),
   'new payment linked' => t('<b>Payment:</b> <%aPayLink>%otherName</a> paid you %amount for "%payeePurpose".'),
-  'new invoice' => t('<b>Invoice:</b> %otherName invoiced you %amount for "%purpose". <%a1>Click here to pay or deny this invoice</a>. Or sign in at %CG_DOMAIN and click "History", then "Invoices TO You".'),
-//  'new invoice' => t('<b>Invoice:</b> %otherName invoiced you %amount for "%purpose". To pay (or deny) this invoice, <%a>click here</a>.'),
+  'new invoice' => t('<b>Invoice:</b> %otherName invoiced you %amount for "%purpose". <%a1>Click here to pay or deny this invoice</a>. Or sign in at %CG_DOMAIN and click "Invoices TO You" on the History menu.'),
+  'stale invoice' => t('<b>Invoice Reminder:</b> %daysAgo days ago we emailed you an invoice from %payeeName for %amount. <%a1>Click here to pay or deny this invoice</a>.'),
+  'stale invoice report' => t('<b>Invoice Update:</b> %daysAgo days ago you invoiced %payerName %amount for %purpose (invoice #%nvid, %created). That invoice is still marked "pending", so we sent %payerName a reminder. If this invoice is no longer valid, sign in at %CG_DOMAIN and choose "Invoices FROM You" on the History menu to cancel it.'),
+  //  'new invoice' => t('<b>Invoice:</b> %otherName invoiced you %amount for "%purpose". To pay (or deny) this invoice, <%a>click here</a>.'),
+  'new customer done' => t('<h2>Congratulations!</h2>Your sign-up with %partnerName is complete. Expect a confirmation note from them by email.'),
 
+  'short invoice' => t('Your balance is %short short, to pay your invoice from %payeeName.'),
+  'expect a transfer' => t('Funds will be transferred from your connected bank account to cover this payment.'),
+  'finish signup' => t('<b class="loud">IMPORTANT</b>: You must sign in at %CG_DOMAIN and finish setting up your %PROJECT account before this payment can be made.'),
+  'when funded' => t('This payment will be made as soon as you put enough money in your account.'),
+  'auto pay on' => t('From now on your invoices from %payeeName will be approved and paid automatically, drawing funds from your connected bank account as needed. (We do not expect there to be overdraft problems, of course, but if there are, you will be responsible for them.)'),
   'invoice denied' => t('<p><b>Invoice DENIED:</b> Your customer %payerName has declined to pay the following invoice:</p>
   <blockquote>%created %amount for "%purpose"</blockquote>
   <p>Reason given: "%reason". You may want to contact the customer directly, to resolve any dispute.</p>'),

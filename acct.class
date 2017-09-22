@@ -53,21 +53,21 @@ class Acct {
     if ($phone) $phone = u\fmtPhone($phone, '+n');
     
     $status = TRUE;
-    u\EXPECT($email, 'account with no email address');
+    u\setDft($email, strtolower(u\randomString(10, 'word')) . '@' . EMAILX);
     u\setDft($fullName, @$legalName);
     u\setDft($legalName, $fullName);
-    $shortName = @$fullName ? u\shortName($fullName) : '';
-    u\setDft($name, @$shortName ?: tempName($info));
+    u\setDft($name, r\uniqueName($fullName, $info));
     u\setDft($flags, 0);
     $co = ($flags & u\bit(B_CO));
     u\setDft($rebate, R_REBATE);
-    if (@$state and !is_numeric(@$state)) { // allow state abbrevs within US
+    if (@$state and !is_numeric($state)) { // allow state abbrevs within US
       $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
     u\setDft($community, r\communityUid(@$zip)); // defaults to current server
     u\setDft($created, r\rTime());
     u\setDft($login, $created);
     u\setDft($access, $login);
+    u\setDft($country, US_COUNTRY_ID);
 
     $stepsDone = @$uid == 1 ? [] : r\stepsDone0();
     foreach (ray($co ? 'proxies connect ssn' : 'company relations') as $k) unset($stepsDone[$k]);
@@ -206,7 +206,7 @@ class Acct {
     if ($field == 'prefsSet') return !is_null($a->o_minimum); // preferences have been set at least once
     if ($field == 'hasCustomers') return db\exists('r_relations', 'main=:id AND isCustomer', ['id' => $a->id]);
     if ($field == 'superAdmin') return ($a->agentId == 1) ?: (u\test() and $a->admin and $a->agentA->name == 'abeone');
-    if ($field == 'partRounds') return db\sum('1-MOD(amount, 1)', 'r_txs', ':IS_ROUNDUP AND payer=:id AND MOD(amount, 1)>0 AND created>=:mday1', ray('id mday1', $this->id, u\monthDay1()));
+    if ($field == 'partRounds') return db\sum('1-MOD(amount, 1)', 'r_txs', ':IS_ROUNDUP AND payer=:id AND MOD(amount, 1)>0 AND created>=:mday1', ray('id mday1', $this->id, u\monthDay1())); // not-yet-distributed change from rounded-up payments
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
       : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
       
@@ -467,18 +467,12 @@ class Acct {
   public function isNonprofit() {return (bool) ($this->coFlags & u\bit(CO_NONPROFIT));}
   
   /**
-   * Create a new relationship record.
+   * Create a new relationship record for the current account (as "main") relating to some agent.
    * NOTE: Assume no other company agent for this company is trying to create a relation at the same time.
    * @param assoc $info: field values
    * @return: the record ID of the new relationship record
    */
   function newRelation($info) {
-//  function newRelation($other, $permission = 0, $employee = 0, $isOwner = 0, $draw = 0, $reid = NULL) {
-//   * @param int $other: account ID of the account to relate to this (all other params are optional)
-//   * @param int $reid: relationship record ID (for testing only)
-//    $info = compact('reid') + ray('main other permission employee isOwner draw',
-//      $this->id, $other, $permission, (int) $employee, (int) $isOwner, (int) $draw);
-    //return db\insert('r_relations', $info);
     u\EXPECT(@$info['other'] or @$info['data'], 'missing other in new relation'); // placeholder for "other" ok if there's data
     foreach (['employee', 'isOwner', 'draw'] as $k) $info[$k] = (int) @$info[$k];
     $info['created'] = time();
@@ -643,7 +637,7 @@ class Acct {
    * Return how much is available in this account for the given operation, without drawing on other accounts.
    * @param string $goods: purpose of the potential expenditure: FOR_GOODS or FOR_USD - see r\Acct::shortfall())
    */
-  public function avail($goods) {
+  public function avail($goods = FOR_GOODS) {
     $a = $this;
     $floor = ($a->can(B_DEBT) and $goods != FOR_USD) ? $a->floor : max($a->floor, 0); // no going into debt without permission
     if ($goods == FOR_USD or (COMPANY_FREEZE and $a->co)) $floor = max($floor, $a->rewards); // no exchanging rewards for cash (and companies temporarily can't spend rewards)
@@ -898,16 +892,6 @@ EOF;
   }
     
   /**
-   * Return the total waiting to be credited as a transfer FROM or (if negative result) TO the member's bank.
-   * @param numeric $combinable: (RETURNED) how much is waiting and checks haven't been printed yet
-   */
-  public function waitingToBank(&$combinable = 0) {
-    $id = ($jid = $this->jid) ? "$this->id,$jid" : $this->id;
-    extract(db\q("SELECT SUM(amount) AS amt, SUM(IF(deposit, 0, amount)) AS combinable FROM r_usd WHERE payee IN ($id) AND NOT completed")->fetchAssoc());
-    return $amt;
-  }
-
-  /**
    * Add a date stamp and agent's initials to the given note (before updating the notes field with it).
    */
   public function stampNote($note) {
@@ -978,6 +962,16 @@ EOF;
 
     $steps = ray(R_STEPS);
     return $a->member ? '' : ($steps[$nextStep] ?: "settings/$nextStep");
+  }
+
+  /**
+   * Check SSN secretly during a signup step (normally on the verify step as soon as we get federalId, unless already verified)
+   */
+  public function verifySsnInBackground() {
+    if (!$this->ssnData) {  
+      $js = "get('ssn', {}, function () {});"; // research SSN verification, in background (sets stepDone('ssn'))
+      w\js($js, 'inline', 'footer');  
+    }
   }
 
   /**
@@ -1057,6 +1051,9 @@ EOF;
    */
   public function j_stats() {
     $a = $this;
+    $fields = 'returnMo return cttyBeneMo cttyBene';
+    if (!$a->member or $a->isCtty) return ray($fields, 0, 0, 0, 0);
+    
     $stats = ($stats = $a->stats) ? unserialize($stats) : [];
 
     if ($jid = $a->jid) {
@@ -1080,8 +1077,8 @@ EOF;
       : (@$extraEver > 0 ? '&infin;' : number_format(100 * R_INFLATION_RATE, 1));
     $cttyBeneMo = u\fmtAmt(@$giftsPastMo + max(0, @$bankedPastMo) + @$benePastMo * (1 + R_CC_RATE / $a->rebate));
     $cttyBene = u\fmtAmt(@$giftsEver + max(0, @$bankedEver) + @$beneEver * (1 + R_CC_RATE / $a->rebate) + r\cttyPaidEver($a->community) / (@$pAccts ?: 1));
-///    debug(['id' => $a->id] + compact(ray('years returnMo extraPastMo benePastMo avgBalPastMo avgBalEver extraEver cttyBeneMo giftsPastMo bankedPastMo benePastMo cttyBeneMo giftsEver bankedEver beneEver')));
-    return compact(ray('returnMo return cttyBeneMo cttyBene'));
+
+    return compact(ray($fields));
   }
 
   /**
@@ -1102,6 +1099,16 @@ EOF;
   }
 
   /**
+   * Return the total waiting to be credited as a transfer FROM or (if negative result) TO the member's bank.
+   * @param numeric $combinable: (RETURNED) how much is waiting and checks haven't been printed yet
+   */
+  public function waitingFromBank(&$combinable = 0) {
+    $id = ($jid = $this->jid) ? "$this->id,$jid" : $this->id;
+    extract(db\q("SELECT SUM(amount) AS amt, SUM(IF(deposit, 0, amount)) AS combinable FROM r_usd WHERE payee IN ($id) AND NOT completed")->fetchAssoc());
+    return $amt;
+  }
+  
+  /**
    * Request a transfer of funds to or from a connected bank account.
    * @param numeric $amount0: the amount to transfer FROM or (if negative) TO the bank
    * @param int $completed: (also RETURNED) the completion date
@@ -1116,7 +1123,6 @@ EOF;
     if ($tx) extract($tx);
     u\setDft($tid, r\getUsdTid($payee));
     u\setDft($created, r\rTime());
-//    $amount0 = -$amount0; // positive now means transfer to CG
     if (!$completed) $completed = ($amount0 < 0 or $amount0 <= -$a->floor) ? $created : 0;
 
     $DBTX = \db_transaction();
@@ -1133,7 +1139,6 @@ EOF;
     }
 
     if ($amount0 < 0) { // outgoing - tell staff to transfer the funds using BillPay or check
-//      $a->update('r', $a->o_r - $amount0);
       $a->update('balance', $a->o_balance + $amount0);
       if ($txid > 0) r\tellAdmin(t('outgoing bank transfer'), ['amount' => -$amount0]);
     } elseif ($completed) $a->completeUsdTx(0, $amount0, TRUE);
@@ -1189,40 +1194,45 @@ EOF;
       $activated = $a->activated;
       if (!$a->member) {
         if ($a->nonudge or time() - $a->created < HOUR_SECS) return ['', 0, ''];
-        return [t('Setup'), max(0, $a->created), t('<b class="loud">Opening account</b>: Do you need help?')];
+        $head = @$a->federalId ? t('Opening account') : t('Just beginning');
+        return [t('Setup'), max(0, $a->created), t('<b class="loud">%head</b>: Do you need help?', compact('head'))];
       }
       if (!$a->ok) return [t('Activate'), time(), t('<b class="loud">Activate account</b>')];
     }
     
-    $gifts = $a->totalGifts() ?: db\sum('amount', 'r_gifts', 'uid=:id', ['id' => $a->id]); // a promised gift counts here
+    $gifts = $a->giftsDesc() ?: db\sum('amount', 'r_gifts', 'uid=:id', ['id' => $a->id]); // a promised gift counts here
+    
     $help = $gifts ? 'thanks' : 'ask';
-    if ($a->signupCo) $signupCo = w\signupCoDisply($a->signupCo) . ',';
+    if ($a->signupCo) $signupCo = w\signupCoDisplay($a->signupCo) . ',';
     $daysIn = (time() - $activated) / DAY_SECS; // how many days after activation are we
     $tickleDaysIn = $a->tickle ? ($a->tickle - $activated) / DAY_SECS : 0; // how many days after activation to tickle
+    
     if ($activate or ($tickleDaysIn < 90 and $daysIn < ($done ? 8 : 90))) { // not welcoming if wrong time or done at right time
       $when = $activated + (($gifts and !$a->cttyA->isRegion) ? TICKLE_WELCOME : TICKLE_DELAYED);
-      $msg = t('<span class="loud">%when <b>Welcome</b></span> to %PROJECT, How\'s it going%lastTx? %help donation/crumbs/roundups, %signupCo volunteer? [<%a>details</a>]', 'when lastTx help signupCo _a', u\fmtDate($when, TRUE), $a->lastTxDesc(), ucfirst($help), @$signupCo, w\atag("/help/welcome/gifts=$gifts"));
+      $msg = t('<span class="loud">%when <b>Welcome</b></span> to %PROJECT, How\'s it going%lastTx? %help donation(s), %signupCo volunteer? [<%a>details</a>]', 'when lastTx help signupCo _a', u\fmtDate($when, TRUE), $a->lastTxDesc(), ucfirst($help), @$signupCo, w\atag("/help/welcome/gifts=$gifts"));
       if ($a->paper) $msg .= t(' <span class="loud">Paper statements</span> at $%R_STATEMENT_COST/month &mdash; really?');
       return [t('Welcome'), $when, $msg];
     }
     
-    $yearsIn = min(1, round($daysIn / 365.25));
+    // Annual
+    $yearsIn = max(1, round($daysIn / 365.25));
     if ($done and abs($yearsIn * 365.25 - $daysIn < 30)) $yearsIn++;
     // if (($daysIn + 30) mod 365 < 2 * 30) 
     $gift = $gifts ? t('Thanks for donation(s). Annual gift?') : t('Donate?');
 
     $feature = $a->co ? t('cash-out') : t('joint account');
-    return [t('Annual'), $when = strtotime("$yearsIn years", $a->activated ?: time()), t('<span class="loud">%when <b>Annual</b></span>: Thanks for participating. How\'s it going%lastTx? %gift Mailing address okay? Volunteer? Consider %feature? [<%a>details</a>]', 'when lastTx gift _a feature', u\fmtDate($when, TRUE), $a->lastTxDesc(), $gift, w\atag("/help/annual/gifts=$gifts&years=$yearsIn"), $feature)];
+    return [t('Annual'), $when = strtotime("+$yearsIn years", $a->activated ?: time()), t('<span class="loud">%when <b>Annual</b></span>: Thanks for participating. How\'s it going%lastTx? %gift Mailing address okay? Volunteer? Consider %feature? [<%a>details</a>]', 'when lastTx gift _a feature', u\fmtDate($when, TRUE), $a->lastTxDesc(), $gift, w\atag("/help/annual/gifts=$gifts&years=$yearsIn"), $feature)];
     //return [0, ''];
   }
 
   /**
    * Return a description of the members gift history.
    * @param string $often: (RETURNED) frequency of latest gift
+   * @return: description of gifts (FALSE if none)
    */
   public function giftsDesc(&$often = '') {
     $a = $this;
-    $totalGifts = u\fmtAmt($a->totalGifts());
+    $totalGifts = ($amt = $a->totalGifts()) ? u\fmtAmt($amt) : '';
 //      db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
     if ($donationInfo = db\lookup('amount,often,honor,honored,giftDate', 'r_gifts', "uid=:id AND giftDate<:REQUEST_TIME AND honor<>'share' ORDER BY donid DESC", ['id' => $a->id])) {
       extract($donationInfo);
@@ -1231,8 +1241,10 @@ EOF;
       $honor = $honor = 'share' ? '' : ($honor ? "($honor) $honored" : '');
       $lastGift = t('Last') . ": $giftDate $amount $often $honor";
     } else $lastGift = '';
+
     $totalGifts .= ($a->roundup ? t(' +roundups') : '') . ($a->crumbs > 0 ? t(' +%crumbs% crumbs', 'crumbs', $a->crumbs * 100) : '');    
-    return $lastGift ? "$totalGifts, $lastGift" : t('none');
+
+    return ($totalGifts ?: '') . (($totalGifts and $lastGift) ? ', ' : '') . ($lastGift ?: '');
   }
 
   /**
@@ -1377,6 +1389,7 @@ EOF;
     if ($bit <= B_MAX) { // ordinary bits
       $can = (bool) ($a->flags & (1 << $bit)); // these are easy. be efficient.
       if (in_array($bit, [B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN])) {
+        if ($a->id == 1) return TRUE; // this didn't used to be necessary (9/20/2017)
         if (!$a->proSe) return ($aa = $a->agentA and $aa->can($bit)); // admin permissions are for agent instead (in tests, agent sometimes doesn't exist)
         if (!$can and $bit < (R_ADMIN_CAN_MANAGE_CTTYS ? B_ADMIN : B_CADMIN)) return $a->can($bit + 1); // not this admin bit, maybe the next higher?
       }
@@ -1405,6 +1418,7 @@ EOF;
 //    foreach ([B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN] as $bit) $cans[$bit] = $a->agentA->can($bit);
 
     $cans[B_PERSON] = !$a->can(B_CO);
+    if ($id == 1) $cans[B_ADMIN] = TRUE;
 
     $perm = $a->closed ? B_READ
       : ($a->proSe ? B_MANAGE
@@ -1547,6 +1561,7 @@ EOF;
  * @return the appropriate account object (FALSE if none)
  */
 function acct($uid = '', $agent = '', &$error = '') {
+  u\EXPECT(!is_array($uid), 'array uid'); // otherwise hangs (at least for a drupal field array)
   global $mya; // use this ONLY in this class file
   if (!$uid) return $mya ?: (!$error = 'There is no current account.');
   if (strpos($uid, '@')) {

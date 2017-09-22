@@ -58,12 +58,12 @@ Scenario: A member looks at transactions for the past year
   | End          |   | 1,650.00 |   | 268.00 | %dmy     |
   And with:
   |~tid | Date   | Name       | Purpose  | Amount   | Reward |~do |
-  | 6   | %mdy-6d | Bea Two    | cash V  |  -100.00 |   0.00 | X  |
-  | 5   | %mdy-1w | Corner Pub | this Q  |  -120.00 |   6.00 | X  |
-  | 4   | %mdy-3m | Bea Two    | what G  |  -240.00 |  12.00 | X  |
-  | 3   | %mdy-4m | Corner Pub | usd F   | 1,100.00 |   0.00 | X  |
-  | 2   | %mdy-5m | Bea Two    | cash E  |    10.00 |   0.00 | X  |
-  | 1   | %mdy-7m | ZZrCred    | signup  |     0.00 | 250.00 |    |
+  | 6   | %mdi-6d | Bea Two    | cash V  |  -100.00 |   0.00 | X  |
+  | 5   | %mdi-1w | Corner Pub | this Q  |  -120.00 |   6.00 | X  |
+  | 4   | %mdi-3m | Bea Two    | what G  |  -240.00 |  12.00 | X  |
+  | 3   | %mdi-4m | Corner Pub | usd F   | 1,100.00 |   0.00 | X  |
+  | 2   | %mdi-5m | Bea Two    | cash E  |    10.00 |   0.00 | X  |
+  | 1   | %mdi-7m | ZZrCred    | signup  |     0.00 | 250.00 |    |
   And without:
   | rebate  |
   | bonus   |
@@ -79,8 +79,8 @@ Scenario: A member looks at transactions for the past few days
   | End          |   | 1,650.00 |   | 268.00 | %dmy     |
   And with:
   |~tid | Date   | Name       | Purpose    | Amount  | Reward |~do |
-  | 6   | %mdy-6d | Bea Two    | cash V    | -100.00 |   0.00 | X  |
-  | 5   | %mdy-1w | Corner Pub | this Q    | -120.00 |   6.00 | X  |
+  | 6   | %mdi-6d | Bea Two    | cash V    | -100.00 |   0.00 | X  |
+  | 5   | %mdi-1w | Corner Pub | this Q    | -120.00 |   6.00 | X  |
   And without:
   | pie N    |
   | whatever |
@@ -107,9 +107,9 @@ Scenario: A member looks at transactions with roundups
   | End          |   | 1,600.00 |   | 270.50 | %dmy     |
   And with:
   |~tid | Date    | Name       | Purpose   | Amount  | Reward |~do |
-  | 7   | %mdy    | Corner Pub | sundries  |  -50.00 |   2.50 | X  |
-  | 6   | %mdy-6d | Bea Two    | cash V    | -100.00 |   0.00 | X  |
-  | 5   | %mdy-1w | Corner Pub | this Q    | -120.00 |   6.00 | X  |
+  | 7   | %mdi    | Corner Pub | sundries  |  -50.00 |   2.50 | X  |
+  | 6   | %mdi-6d | Bea Two    | cash V    | -100.00 |   0.00 | X  |
+  | 5   | %mdi-1w | Corner Pub | this Q    | -120.00 |   6.00 | X  |
   
 #Scenario: Transactions with other states show up properly
 #  Given transactions:

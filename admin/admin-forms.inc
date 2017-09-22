@@ -62,6 +62,7 @@ EOF;
     $seeAppData = submi(t('See App Data'));
     $ssnLink = submi(t('SSN Link'));
     $seeSecure = submi(t('See Secure'));
+    $resetSSN = submi(t('Recheck SSN'));
     $make2 = boxFld('make', t('Make:'));
   }
 
@@ -79,7 +80,7 @@ EOF;
   $do += compact(ray('inviteeStatus organizerList do1099btest do1099b special stop start stopCtty startCtty'));
   $do = fieldSet('do', $do);
   
-  $acctSet = fieldSet('acctSet', compact(ray('account make2 printId seeData seeChanges ssnLink seeSecure askForAppData seeAppData')));
+  $acctSet = fieldSet('acctSet', compact(ray('account make2 printId seeData seeChanges ssnLink seeSecure resetSSN askForAppData seeAppData')));
 
   return labeled(compact(ray('title do acctSet')));
 }
@@ -124,12 +125,14 @@ function formAdminPanel_submit($form, &$sta) {
     say(t('Request for app data sent to ') . $a->fullName);
   } elseif ($op == 'seeAppData') {
 /**/  debug($a->appData);
-  } elseif ($op == 'seeSecure') {
-    if (@$a) {
+  } elseif ($op == 'seeSecure' and @$a) {
       say(u\rayTable(ray('fullName phone dob physicalAddr', $a->fullName, substr(@$a->phone, 2), $admin ? u\fmtDate(@$a->dob) : '', @$a->address . ' ' . $a->zip)));
 //      seeHidden($a);
       seeSecure($a);
-    }
+  } elseif ($op == 'resetSSN' and @$a) {
+    $a->setBit(B_MEMBER, FALSE);
+    $a->stepDone('ssn', FALSE);
+    $a->update('ssnData', '');    
   } elseif ($op == 'seeData') {
     if (@$a and $a->proSe) say(u\rayTable($a->data, FALSE, TRUE));
 /*  } elseif ($op == 'connectBank') {
@@ -356,27 +359,20 @@ function formFollowup($form, &$sta, $args = '') {
 
   $title = item(t('Standard Calls to Members'));
   if ($mya->admin) {
-    $subtitle = w\item(t('<p>Start with today and work backward.</p><p>If there is no answer (or a machine), leave a message saying you will call back in a couple days, make a note, and click the "2 days" button. If you don\'t reach someone by phone after three tries, say you will send them an email (and send them an email) and click the "7" button.</p><ul><li>If the email fails for a setup help call, keep phoning or emailing at 2- or 7-day intervals until you reach them or we close the account.</li><li>If the email fails for a Welcome check-in, forget it (click the "Auto" button).</li><li>If the email fails for an Annual check-in, send a US Mail fund appeal/check-in.</li></ul><p>(comments on this standard procedure are welcome)</p>') . w\btn('/sadmin/followup/one=1', t('Show just my community')) . ' &nbsp; ' . w\btn('/sadmin/followup', t('Show ALL')));
+    $subtitle = w\item(t('<p>Start with today and work backward.</p><p>If there is no answer (or a machine), leave a message saying you will call back in a couple days, make a note, and click the "2 days" button. If you don\'t reach someone by phone after 2 tries, say you will send them an email (and send them an email) and click the "7" button after emailing about a Setup or Annual check-in / click the "Auto" button after emailing a Welcome.</p><ul><li>If the email gets no response for a setup help call, keep phoning or emailing at 2- or 7-day intervals until you reach them or we close the account.</li><li>If the email gets no response for an Annual check-in, send a US Mail fund appeal/check-in.</li></ul><p>(comments on this standard procedure are welcome)</p>') . w\btn('/sadmin/followup/one=1', t('Show just my community')) . ' &nbsp; ' . w\btn('/sadmin/followup', t('Show ALL')));
   }
   
-  $name0 = u\sqlSerialValue('data', 2);
-  $phone0 = u\sqlSerialValue('data', 6);
-  $email0 = u\sqlSerialValue('data', 4);
-  $city0 = u\sqlSerialValue('data', 10);
   $now = time();
   $todayEnd = strtotime('tomorrow') - 1;
   list ($where1, $where2) = ($mya->admin and !@$one) ? [1, 1] : [0, "community=$mya->community"];
   
   // list today's calls first, then yesterday, 2 days ago etc., then tomorrow, the next day, etc.
   $sql = <<<EOF
-    (SELECT 0 AS uid, 0 AS tickle, $name0 AS fullName, $phone0 AS phone, created, 0 AS activated, 
-      CONCAT_WS(' ', $city0, $email0) AS notes, 0 AS co, '' AS lastTx FROM r_relations WHERE other=0 AND $where1)
-    UNION
-      (SELECT DISTINCT uid, tickle, fullName, phone, u.created, activated, notes, :IS_CO AS co, t.created AS lastTx 
-      FROM users u LEFT JOIN (SELECT created,payer,payee FROM r_txs ORDER BY created DESC LIMIT 1) t ON uid IN (payer, payee)
-      WHERE uid>3 AND NOT :IS_NONUDGE AND NOT (activated and NOT :IS_OK) AND $where2 AND (tickle>0 OR NOT :IS_MEMBER
-      OR t.created<$now-60*:DAY_SECS OR t.created IS NULL))
-    ORDER BY ($todayEnd - IF(tickle>0, tickle, created)) * IF(tickle>$todayEnd, -5 * 366 * :DAY_SECS, 1)
+    SELECT DISTINCT uid, tickle, fullName, phone, u.data, u.created, activated, notes, :IS_CO AS co, t.created AS lastTx 
+    FROM users u LEFT JOIN (SELECT created,payer,payee FROM r_txs ORDER BY created DESC LIMIT 1) t ON uid IN (payer, payee)
+    WHERE uid>3 AND NOT :IS_NONUDGE AND NOT (activated and NOT :IS_OK) AND $where2 AND (tickle>0 OR NOT :IS_MEMBER
+      OR t.created<$now-60*:DAY_SECS OR t.created IS NULL)
+    ORDER BY ($todayEnd - IF(tickle>0, tickle, u.created)) * IF(tickle>$todayEnd, -5 * 366 * :DAY_SECS, 1)
 EOF;
 
   $fields = ray('type call name phone notes');
@@ -390,12 +386,12 @@ EOF;
   $emails = '';
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    list ($type, $color, $offset) = !$uid ? [t('wary?'), '#ff4d4d', 0]
+    list ($type, $color, $offset) = strpos($data, '"signup";b:0') ? [t('pre'), '#ff4d4d', 0]
     : (!$activated ? [t('setup'), 'yellow', 0]
     : (round(($activated + TICKLE_WELCOME - $tickle) / DAY_SECS) == 0 ? [t('welcome2'), 'lime', 0]
     : (round(($activated + TICKLE_DELAYED - $tickle) / DAY_SECS) == 0 ? [t('welcome6'), 'lime', 0]
     : (($activated < strtotime('9/2/2017') and $tickle < $activated + 90 * DAY_SECS and !$notes) ? [t('welcome'), 'lime', 0]
-    : (($tickle and date('dM', $tickle) == date('dM', $activated)) ? [t('annual'), 'violet', 0]
+    : (($tickle and in_array(($tickle - $activated) % DAY_SECS, [0, 1, DAY_SECS - 1])) ? [t('annual'), 'violet', 0] // +/-:2/29
     : (($lastTx < $now - 60 * DAY_SECS and $now - $activated > 60 * DAY_SECS) ? [t('dormant'), 'silver', 0]
     : ($tickle>0 ? [t('followup'), 'orange', 0]
     : ( [t('other'), 'cyan', 90] ))))))));

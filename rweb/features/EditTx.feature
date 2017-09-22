@@ -32,7 +32,7 @@ Scenario: A buyer changes the transaction description
   When member ".ZZA" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
   |~tid | Date | Name    | Purpose | Amount | Reward | ~ |
-  |   2 | %mdy  | Bea Two | things  | -20.00 |   1.00 | X |
+  |   2 | %mdi  | Bea Two | things  | -20.00 |   1.00 | X |
 
 Scenario: A buyer increases a payment amount
   When member ".ZZA" edits transaction "4" with values:
@@ -83,7 +83,7 @@ Scenario: A buyer disputes a charge
   When member ".ZZA" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
   |~tid | Date    | Name       | Purpose | Amount | Reward | ~ |
-  |   3 | %mdy-5d | Corner Pub | this CF | -80.00 | 4.00   | X |
+  |   3 | %mdi-5d | Corner Pub | this CF | -80.00 | 4.00   | X |
   # Status was %chk 
   When member ".ZZA" clicks "X" on transaction 100
   Then we show "tx desc passive|purpose|when|.|confirm tx action" with subs:
@@ -97,7 +97,7 @@ Skip (test doesn't work yet)
   | marked "disputed" |
   And we show "Transaction History" with:
   |~tid | Date   | Name       | Purpose | Amount | Reward | ~ |
-  |   3 | %mdy-5d | Corner Pub | this CF | -80.00 | 4.00   |   |
+  |   3 | %mdi-5d | Corner Pub | this CF | -80.00 | 4.00   |   |
   # Status was disputed
 Resume
   
@@ -108,7 +108,7 @@ Scenario: A seller reverses a charge
   When member "C:B" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
   |~tid | Date   | Name    | Purpose | Amount | Reward | ~ |
-  |   2 | %mdy-5d | Abe One | this CF | 80.00  |   8.00 | X |
+  |   2 | %mdi-5d | Abe One | this CF | 80.00  |   8.00 | X |
   When member "C:B" clicks "X" on transaction 100
   Then we show "tx desc active|purpose|when|.|confirm tx action" with subs:
   | amount | otherName | did     | purpose   | created   | txAction            |*
@@ -127,7 +127,7 @@ Scenario: A member confirms OK for a disputed transaction
 #  When member ".ZZA" confirms form "history/transactions/period=5&do=ok&xid=100" with values: ""
 #  Then we show "Transaction History" with:
 #  |~tid | Date   | Name       | Purpose | Amount | Reward | ~ |
-#  | 11  | %mdy-5d | Corner Pub | this CF | -80.00 |   4.00 | X |
+#  | 11  | %mdi-5d | Corner Pub | this CF | -80.00 |   4.00 | X |
 #  And we say "status": "charge accepted" with subs:
 #  | who     |*
 #  | Abe One |

@@ -16,7 +16,7 @@ Scenario: A newbie has not taken the first step
   Given invites:
   | email | inviter | code   | invited   | invitee |*
   | d@    | .ZZE    | codeD1 | %today-8d | .ZZD    |
-  And member ".ZZD" has done step "contact"
+  And member ".ZZD" has done step "signup"
   When cron runs "tickle"
   Then we notice "do step one|sign in" to member ".ZZD"
   And we notice "invitee slow" to member ".ZZE" with subs:
@@ -24,7 +24,7 @@ Scenario: A newbie has not taken the first step
   | Dee Four |       8 | verify |
   
 Scenario: A newbie has taken some steps but not all
-  Given member ".ZZA" has done step "contact verify sign donate proxies prefs photo"
+  Given member ".ZZA" has done step "signup verify sign donate proxies prefs photo"
   When cron runs "tickle"
   Then we notice "take another step|sign in" to member ".ZZA"
 

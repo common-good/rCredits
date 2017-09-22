@@ -485,7 +485,7 @@ function invoiceList($toMe, $starting, $ending, $states, $url, $download) {
     LEFT JOIN users u ON u.uid=i.$yu
     LEFT JOIN r_txs t ON t.xid=i.status
     WHERE $where
-    ORDER BY i.status=:TX_PENDING, nvid DESC
+    ORDER BY (i.status=:TX_PENDING OR i.status=:TX_APPROVED), nvid DESC
 EOF;
 
   global $mya;
@@ -506,7 +506,8 @@ EOF;
       $button2 = (!$toMe ?: $status == TX_PENDING) ? button(' X ', "$do=no", $toMe ? t('Deny this invoice') : t('Delete this invoice')) : '';
 //    $button3 = (!$toMe and $status == TX_PENDING) ? "<input type='image' title='Edit this invoice' src='$rUrl/images/icons/edit.png' />" : '';
       $button3 = '';
-      $status = $status == TX_DENIED ? t('denied') : t('pending');
+      $statuses = ray(TX_STATUSES);
+      $status = $statuses[$status];
     }
 
     $buttons = "<div class='txs-buttons'><div>$status</div><div>$button1</div><div>$button2</div><div>$button3</div></div>";

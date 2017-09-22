@@ -401,6 +401,7 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformsummary #edit-committed .help-block,
 #rcreditswebformsummary #edit-balance .help-block,
 #rcreditswebformsummary #edit-rewards .help-block {display:inline-block; margin:0;}
+#rcreditswebformsummary #edit-topButtons a {margin-right:10px;}
 
 #rcreditswebformsummary .form-type-item {margin-bottom:0;}
 

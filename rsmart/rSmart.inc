@@ -85,7 +85,8 @@ function pos($args = FALSE) {
   
   if (!r\up()) exit('system down'); // app does not (and should not) distinguish this from system failure
   if (is_object($args)) $args = (array) $args; // this helps with debugging when passing json_decoded args
-  if (!$args) $args = t\POST(); else t\POST($args);
+//  if (!$args) $args = t\POST(); else t\POST($args);
+  if ($args) t\POST($args); else $args = t\POST();
   u\loga('in', $args);
   extract(u\just('op device agent member version', $args));
   $args['version'] = (int) $version;
@@ -325,7 +326,7 @@ function charge($args, $type = 'charge') {
   if ($version > 216 and !@$proof) return posErr(missingArg('proof', []));
   if (@$description === '') return posErr('missing description');
   if (strpos($description, ' ') !== FALSE) {
-    r\tellAdmin(t('POS tx description not urlencoded.'));
+    r\tellAdmin(t('POS tx description not urlencoded'), $args);
   } else $description = urldecode($description);
   if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
 
@@ -346,9 +347,9 @@ function charge($args, $type = 'charge') {
   $hashOfTx = u\hash($wanted = "$mya->mainQid$amount$member$code$created");
   if ($version > 216) if ($proof != $hashOfTx) if (!$force or $a->badOldProof($proof, $wanted, $created)) {
     r\tellAdmin('bad proof', compact(ray('version proof hashOfTx agent amount member code created force')));
-    if (u\test() or $version > 218 ) if ($version != 301) {
+    if (u\test() or $version > 218 ) {
       if (u\test()) t\output("Should be proof of $wanted");
-      return badTx($args, $name, 'bad proof');
+      return badTx($args, $name, t('bad proof (wanted %hashOfTx as hash of %wanted', compact('hashOfTx', 'wanted')));
     }
   }
 

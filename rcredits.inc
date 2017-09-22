@@ -72,7 +72,7 @@ function isGiveback($payer, $payee, $data) {
 function badUnpaidInv($nvid, &$inv = '') {
   $fields = 'nvid,status,amount,payer,payee,goods,purpose,data,created';
   if (!$inv = db\lookup($fields, 'r_invoices', 'nvid=:nvid', compact('nvid'))) return 'no matching invoice';
-  if ($inv['status'] > 0) return 'already paid';
+  if ($inv['status'] > TX_APPROVED) return 'already paid';
 }
 
 /**
@@ -510,25 +510,6 @@ function tellCO($index, $subs = [], $uid = NULL) {
 }
 
 /**
- * Return a unique temporary name related to the given uniquely identifying parmeters 
- * in this order of preference: 
- *   phone: "unknown phone dddddddddd"
- *   email: "unknown whatever AT domain DOT ext"
- *   UNUSED (because it's hard to verify): website: "unknown domain DOT ext SLASH andsoforth"
- * If none, just pick a 10-character random string ("unknown 234h2khpsdf987")
- * @param array $info: associative array of fields, each of which uniquely identifies a user.
- * @return string: the temporary name
- */
-function tempName($info) {
-  extract($info, EXTR_PREFIX_ALL, 'my');
-  $phone = @$my_number ?: (@$my_phone ?: '');
-  if ($phone) return R_TEMP_NAME_PREFIX . u\fmtPhone($phone, 'n');
-  if (isset($my_email)) return R_TEMP_NAME_PREFIX . str_replace('@', ' AT ', str_replace('.', ' DOT ', $my_email));
-// NO  if (isset($my_website)) return R_TEMP_NAME_PREFIX . str_replace('.', ' DOT ', str_replace('/', ' SLASH ', $my_website));
-  return R_TEMP_NAME_PREFIX . substr(md5('zot' . strval(r\rTime())), 0, 10); // pseudo random
-}
-
-/**
  * Return the rough (physical) location of the entity with the given account (city, state, non-US country).
  * @param acct $a: the account
  * @param bool $complete: if TRUE, include the street address
@@ -623,9 +604,9 @@ function uidRegion($uid) {
  */
 function region($country = '', $state = '', $zip = '', &$raw = '') {
   if (!$state) $state =  R_STATE_ID;
-  $where = ":zip RLIKE zip OR (zip='' AND country_id=:country AND s.id=:state) ORDER BY (zip='')";
+  $where = "IF(zip='', country_id=:country AND s.id=:state, :zip RLIKE zip) ORDER BY (zip='') LIMIT 1";
   $table = 'r_regions r LEFT JOIN r_states s ON s.abbreviation=r.st';
-  if (!$region = db\lookup('region', $table, $where, compact('state', 'zip', 'country'))) {
+  if (!$region = db\lookup('region', $table, $where, compact(ray('state zip country')))) {
     $region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
   }
   return r\qo('!' . ($raw = $region ?: 'ZZZ') . 'AAA')->id;
@@ -670,8 +651,16 @@ function cttyName($uid, $omit = FALSE) {
 /**
  * Given a full name, make a username and add digits until it is unique.
  */
-function uniqueName($fullName) {
+function uniqueName($fullName, $info = []) {
+  if (!$fullName) {
+    extract(u\just('phone email', $info));
+    $fullName = R_TEMP_NAME_PREFIX .
+      (@$phone ?  u\fmtPhone($phone, 'n')
+      : (@$email ? R_TEMP_NAME_PREFIX . strtr($email, ['@'=>'AT', '.'=>'DOT'])
+      : substr(md5('zot' . strval(r\rTime())), 0, 10))); // pseudo random
+  }
   $name = $name0 = u\shortName($fullName);
+
   for ($i = 2; ; $i++) {
     if (!db\exists('users', 'name=:name', compact('name'))) return $name;
     $name = $name0 . $i;
@@ -710,7 +699,7 @@ function employees() {
  * @param string $where: SQL criteria
  * @param assoc $subs: criteria parameters
  * @param int $reid: relations record id
- * @param string $qid: 
+ * @param string $qid: (NYI)
  */
 function relation($field, $main, $other = [], $where = 'TRUE', $subs = []) {
   if (is_numeric($main)) {

@@ -57,7 +57,7 @@ function tableDefs($schema = []) {
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
     'minimum' => setupField('chosen minimum balance (for automatic refills)', 'numeric 11,2', NULL), // NULL means preferences not set yet
 //    'chunk' => setupField('granularity of transfers from bank account', 'numeric 11,2', R_BANK_CHUNK),
-    'maximum' => setupField('maximum balance (send excess to bank)', 'numeric 11,2', -1), // -1 means no limit (unused)
+//    'maximum' => setupField('maximum balance (send excess to bank)', 'numeric 11,2', -1), // -1 means no limit (unused)
     'share' => setupField('percentage of rebates/bonuses to donate to CG', 'numeric 6,3', 0),
     'crumbs' => setupField('percentage of each transaction to donate to CG (half to community)', 'numeric 6,3', NULL),
     'balance' => setupField('balance, not including rewards (cached)', 'numeric 11,2', 0),
@@ -252,6 +252,7 @@ function tableDefs($schema = []) {
     'payee' => setupField('user id of the payee', 'int big'), 
     'goods' => setupField('is this an invoice for real goods and services?', 'int tiny', 0), 
     'purpose' => setupField("payee's description", 'text big'), 
+// not needed yet    'flags' => setupField('boolean characteristics and state flags', 'int big', 0, TRUE),
     'data' => setupField('miscellaneous non-searchable data (serialized array)', 'text big'), 
     'created' => setupField('Unixtime invoice was created', 'int 11', 0),
   );

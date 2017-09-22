@@ -1,3 +1,29 @@
+2017-09-22 version 2.98
+. separated approval of invoices from payment
+. customers can now pre-approve invoices from a company or person (while paying the first)
+. first step is now "signup", not "contact"
+. partner signups get an account even if they don't complete the signup step (effective retroactively:)
+. $q = f('db.q', 'SELECT reid,code AS customer,data FROM r_relations WHERE other=0');
+  $noFrame = TRUE;
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $args = unserialize($data);
+    if (@$args['postalCode']) {
+      $args['zip'] = @$args['postalCode']; unset($args['postalCode']);
+      $args['zip2'] = @$args['postalCode2']; unset($args['postalCode2']);
+    }
+    extract(f('u.just', 'fullName email', $args));
+    if (stripos($fullName, 'test') !== FALSE) continue;
+    $other = f('w.newCustomer', $reid, $args);
+    f('db.update', 'r_relations', compact(ray('reid other')), 'reid');
+    f('r.rMail', 'partner-signup', $email, compact(ray('fullName reid customer noFrame'))); // so customer can continue
+  }
+. you can now invoice a not-yet member
+. cashout bit lets accounts cashout all but a week's worth of gross automatically (weekly)
+. admin call details are now specific to each account
+. unpaid invoices get sent a reminder (to both parties)
+. members can now open a joint account -- and make it joint -- at the same time
+
 2017-09-14 version 2.97
 . monthly notifications to admin to send paper statements
 . links in Welcome and Annual notices to suggested language and volunteer options

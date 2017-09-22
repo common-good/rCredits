@@ -488,10 +488,9 @@ EOF;
     foreach (['In'=>t('IN'), 'Out'=>t('OUT'), 'Bad'=>t('BAD')] as $way => $wayDesc) {
       list ($total, $count) = [u\fmtAmt(${"amount$way"}, ''), number_format(${"count$way"})];
       if (!$count) continue;
-      if (!$deposit) $deposit = strtotime('today');
       $details = w\btn("deposit-details/way=$way&date=$deposit&total=$total&count=$count", t('details'));
       if ($way == 'Out') {
-        list ($WAY, $date) = [t('OUT'), strftime('%Y%m%d', $deposit)];
+        list ($WAY, $date) = [t('OUT'), strftime('%Y%m%d', $deposit ?: strtotime('today'))];
 
         $js = <<<EOF
 var area = document.createElement('textarea');

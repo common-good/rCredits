@@ -418,7 +418,8 @@ function rcredits_radio($variables) {
 function rcredits_submit($variables) {
   extract(rcElement($variables, 'tabled bare value title id size style parents class'));
 //  if (!@$id) $id = 'edit-' . strtolower(strtr($value, [' '=>'-', '_'=>'-', '['=>'-', ']'=>'']));
-  $id = 'edit-' . @$parents[0]; // whether or not id is set (assures mixed case when appropriate
+  $id2 = 'edit-' . @$parents[0]; // whether or not id is set (assures mixed case when appropriate
+  if (!@$id or $id == strtolower($id2)) $id = $id2;
 ///    if ($id == 'edit-opencompany') die(print_r(compact('parents','id'), 1));
 //  u\setDft($id, strtolower("edit-$value"));
 //  u\setDft($size, 'md');

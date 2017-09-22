@@ -1,12 +1,13 @@
 Feature: Preferences
 AS a member
-I WANT certain preferences to be adjusted automatically every week
-SO my rCredits account will make my financial position progressively better.
+I WANT certain adjustments to my account to be made automatically every week
+SO my financial position will be progressively better.
 
 Setup:
   Given members:
   | id   | fullName | minimum | savingsAdd | saveWeekly | achMin | floor | risks   | flags   |*
-  | .ZZA | Abe One  |    -100 |          0 |         20 |     20 |    10 | hasBank | ok,confirmed,refill |
+  | .ZZA | Abe One  |    -100 |          0 |         20 |     20 |    10 | hasBank | ok,confirmed,refill  |
+  | .ZZB | Bea Two  |     100 |          0 |         20 |     20 |    10 | hasBank | ok,confirmed,cashout |
   
 Scenario: A member crawls out of debt
   When cron runs "everyWeek"
@@ -35,3 +36,20 @@ Scenario: A member builds up savings
 #  Then balances:
 #  | id   | minimum | savingsAdd |*
 #  | .ZZA |     100 |          0 |
+
+Scenario: A member cashes out automatically
+  Given transactions:
+  | xid | created   | type     | amount | from | to   | purpose |*
+  |   1 | %today-8m | signup   |    900 | ctty | .ZZA | signup  |
+  |   2 | %today-7m | transfer |    200 | .ZZA | .ZZB | stuff   |
+  |   3 | %today-6m | transfer |    600 | .ZZA | .ZZB | stuff   |
+  Then balances:
+  | id   | balance |*
+  | .ZZB |     800 |
+  When cron runs "everyWeek"
+  Then usd transfers:
+  | txid | payee | amount  |*
+  |    1 | .ZZB  | -777.17 |
+  And we notice "banked|bank tx number" to member ".ZZB" with subs:
+  | action     | amount  | checkNum |*
+  | deposit to | $777.17 |        1 |

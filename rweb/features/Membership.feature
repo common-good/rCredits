@@ -77,7 +77,7 @@ Scenario: A member signs in for the first time
   Then we show "Photo ID Picture"
   And we say "status": "info saved|step completed"
 
-  When member ".AAA" completes form "settings/security/photo" with values:
+  When member ".AAA" completes form "settings/photo" with values:
   | op       |*
   | nextStep |
   Then we say "status": "setup complete|individual approval|join thanks"

@@ -1,3 +1,191 @@
+_____________________________________________
+
+/**
+ * Share committed rewards with CGF.
+ *//*
+function shareCommitted($item) {
+  extract(u\just('uid committed share', $item));
+  $share = round($share, 1);
+  r\notify($uid, 'share gift', compact('share'));
+  $info = ray('giftDate uid amount often honor share', r\rTime(), $uid, $committed, 1, 'share', -1);
+  $DBTX = \db_transaction();
+  db\insert('r_gifts', $info);
+  r\acct($uid)->update('committed', 0);
+  unset($DBTX);
+}
+*/
+_____________________________________________
+
+  . button(t('PIN'), "$base_url/settings/security/change-pin", '', 'warning')
+  . button(t('photo'), "$base_url/settings/photo?" . rand(), '', 'warning')
+_____________________________________________
+
+/* KEEP   'idProof = $has ? 
+        fld('item', t('Photo ID:'), '', R_ON_FILE . ($mya->ok ? '' : t(' (pending approval)')))
+      : fld('file', t('Photo ID:'), t('Upload an image of your @proofType. (maximum @R_MAX_UPLOAD_SIZE MB)', compact('proofType')), attrib(array('enctype = "multipart/form-data")));
+      */
+//    $submit = submit($has ? t('Save') : t('Upload and Save'));  );
+
+/*
+Dwolla says: 
+We're having trouble confirming your information. We want to be absolutely sure that you are creating this account, not someone else creating an account under your name. Protecting your identity is our #1 concern.
+
+Personal Accounts or Sole Proprietors:
+Please upload a government-issued photo ID such as a U.S. driver's license or passport. 
+
+Businesses or Non-Profits:
+Please upload a copy of your EIN documentation or Non-Profit Status documentation. 
+
+2.5MB max
+*/
+//  $has = $mya->hasPhoto('proof');
+//  $proofType = $person ? t("driver's license or other official ID such as birth certificate or passport, showing your social security number (or the equivalent)") : t("EIN documentation from the IRS (or the equivalent) -- This could also be a letter from an officer or owner of the organization (who is an rCredits member), on the organization's letterhead, authorizing opening this %PROJECT Account.");
+  
+//    'subtext = item(t('Just like for a bank account, we need to verify your identity. The photo ID file you upload can be either an image or a PDF. Please be patient while the file is encrypted &mdash; it may take several seconds.'));
+_____________________________________________
+
+function isTempAccount($uid) {
+  return !r\acct($uid)->pass;
+}
+
+function isTempName($name) {
+  return u\abbreviates(R_TEMP_NAME_PREFIX, $name);
+}
+_____________________________________________
+
+/**
+ * Return a unique temporary name related to the given uniquely identifying parmeters 
+ * in this order of preference: 
+ *   phone: "unknown phone dddddddddd"
+ *   email: "unknown whatever AT domain DOT ext"
+ *   UNUSED (because it's hard to verify): website: "unknown domain DOT ext SLASH andsoforth"
+ * If none, just pick a 10-character random string ("unknown 234h2khpsdf987")
+ * @param array $info: associative array of fields, each of which uniquely identifies a user.
+ * @return string: the temporary name
+ */
+function tempName($info) {
+  extract($info, EXTR_PREFIX_ALL, 'my');
+  $phone = @$my_number ?: (@$my_phone ?: '');
+  if ($phone) return R_TEMP_NAME_PREFIX . u\fmtPhone($phone, 'n');
+  if (isset($my_email)) return R_TEMP_NAME_PREFIX . str_replace('@', ' AT ', str_replace('.', ' DOT ', $my_email));
+// NO  if (isset($my_website)) return R_TEMP_NAME_PREFIX . str_replace('.', ' DOT ', str_replace('/', ' SLASH ', $my_website));
+  return R_TEMP_NAME_PREFIX . substr(md5('zot' . strval(r\rTime())), 0, 10); // pseudo random
+}
+_____________________________________________
+
+  $name0 = u\sqlSerialValue('data', 2);
+  $phone0 = u\sqlSerialValue('data', 6);
+  $email0 = u\sqlSerialValue('data', 4);
+  $city0 = u\sqlSerialValue('data', 10);
+  
+(SELECT 0 AS uid, 0 AS tickle, $name0 AS fullName, $phone0 AS phone, created, 0 AS activated, 
+      CONCAT_WS(' ', $city0, $email0) AS notes, 0 AS co, '' AS lastTx FROM r_relations WHERE other=0 AND $where1)
+    UNION
+_____________________________________________
+
+Scenario: Someone scans an old member card
+  When member "?" visits page "I/NEW.ZZB-ccB"
+  Then we redirect to "%PROMO_URL/"
+
+Scenario: Someone scans an old company agent card
+  When member "?" visits page "I/NEW-ZZB-ccB2"
+  Then we show "Corner Pub" with:
+#  |~Address  |~phone        | ~Button |*
+#  | Cton     | 200.000.0003 | Pay     |
+  |~Address  |~phone        |
+  | Cton     | 200 000 0003 |
+_____________________________________________
+
+///  print_r(compact(ray('who parts count promo')));
+  /*if ($count == 5) { // old fashioned format: ABC.DEF-whatever or ABC-DEF-whatever (agent)
+    list ($region, $mark, $tail, $zot, $code) = $parts;
+    $a = r\acct($region . $tail);
+  } else */
+  
+  global $mya;
+  if (!$gotCode = @$a->agentA->$field) return r\go($promo); // say('bad card code', 'ERR');
+  if ($gotCode != $code) return r\go($promo); // say('bad card code', 'ERR');
+  list ($otherId, $otherAgent) = array($a->id, $a->agentId);
+  $field = $mark == R_AGENT_URL_MARK ? 'cardCode2' : 'cardCode';
+
+  //  if (!$mya) return $a->proSe ? r\go('user/login?name=' . $a->name) : scanIn($a);
+  if (!@$a) return r\go($promo); // say('bad member id', 'ERR'); // not an ID QR
+
+_____________________________________________
+
+//    if (${$k . '0'} = @$$k) $$k = db\lookup('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
+///  if (@$state2 == '1020') r\tellAdmin('state2 1020: ' . print_r(debug_backtrace(), 1));
+
+//  if (@$partner) r\tellAdmin(t('%partner sent new member', compact('partner')), ['address1' => @$address] + compact(ray($fields . $partnerExtras)) + $_POST); // temporary (tellAdmin strips off address along with other secure fields)
+_____________________________________________
+
+/*  
+  if (isset($values['amount']) and !is_numeric($values['amount'])) { // not sure this still works or is still used
+    $a = r\acct(t\fullQid($id));
+    list ($values['amount']) = t\parseAmt($values['amount'], $a);
+  }
+  */
+//  if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
+_____________________________________________
+
+//    $postalAddr = textFld(t('Postal Addr:'), [t('Complete mailing address'), t('Where does the post office send your mail (usually)?')], required(@$postalAddr));
+
+//$a ? '' : t('Your phone number. This should not be a number already used for another %PROJECT Account &mdash; unless you have no other phone number.')
+//  $dupOk = hidFld(0, attrib(ray('id', 'edit-dupOk')));
+//  $dupOk = boolFld(t('Dup Ok:'), t('If this is already the phone number for another %PROJECT Account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your %PROJECT Account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
+_____________________________________________
+
+//      $a = "a target=\"_blank\" href=\"mailto:$inviterEmail?subject=invite me again?&body=Hi $inviterName, the %PROJECT invitation you sent me expired. :( Please send me another one. :)\"";
+/*  if (!$inviteOk) {
+    w\say($err, compact('inviterName'), 'err');
+    $subtext = item(t('That is not a valid invitation code. If you are in a Common Good Community that requires invitations, ask someone you know to invite you OR mention your friend when you sign up at <%a>%CG_DOMAIN</a>!', '_a', w\atag(PROMO_URL . '/signup.html')));
+    return labeled(compact(ray('title subtext')));
+  } */
+
+//  If you want to use this address <b>for more than one account</b>, include a tag on the local part starting with "+" (for example, myemail<b>+whatever</b>@example.com).');
+
+//  if (!@$inviterName) r\tellAdmin('no inviterName', compact(ray('code inviter iCode inviteOk personal fullName phone helper'))); // debug (this happened to Fuzzy)
+//  if ($iCode != IBY_FORM) say(t('@inviterName will need to confirm that ze trusts you before your account can be activated. Or you can make a purchase from them (or sale to them) using your rCard, as your first transaction.', compact('inviterName')));
+_____________________________________________
+
+//  if (op($sta) == 'continue') return r\go('signup/' . urldecode(u\urlArgs()) . '&dwok=1'); // got agreement, so continue
+//  if (!emailOkay($email)) return; // I don't know how people create duplicate accounts, but maybe this will prevent it. Nope, apparently not. (ws 1/27/2014)
+_____________________________________________
+
+//    $msg = $step == 'verify' ? 'call bank' : (($step == 'sign' or $step == 'contact') ? 'do step one' : 'take another step');
+/*    $when = $elapsed < 3 ? 
+      (u\nextBusDay(+1) . t(' (how about 10am?)'))
+    : (u\nextBusDay(0) . t(' between 9am and 4pm')); // for verify
+    */
+//    if ($step != 'verify' or $elapsed > 1) r\notify($a->id, "$msg|sign in", compact('when'));
+_____________________________________________
+
+  /*
+  if ($step == 'photo') return t\makePicture('whatever', $a);
+  if ($step == 'sign') return $a->update('signed', r\rTime());
+  if ($step == 'donate') return db\insert('r_gifts', ray('uid amount', $uid, 123));
+  if ($step == 'proxies') return db\q('INSERT INTO r_proxies (person, proxy) VALUES (:uid, 2),(:uid, 3)', compact('uid'));
+  
+  if ($step == 'signup') return $a->update('postalAddr', 'The World');
+  if ($step == 'connect') return $a->update('bankAccount', 'USkk123456789whatever');
+  if ($step == 'prefs') return $a->update1('minimum', 0);
+  //if ($step == 'invite') return db\insert('r_invites', ray('inviter email code', $uid, 'any@example.com', 'whatever'));
+  if ($step == 'company') return $a->update('selling', 'stuff');
+  // if ($step == 'relations') ?
+  return FALSE;
+  */
+  
+_____________________________________________
+
+//  function newRelation($other, $permission = 0, $employee = 0, $isOwner = 0, $draw = 0, $reid = NULL) {
+//   * @param int $other: account ID of the account to relate to this (all other params are optional)
+//   * @param int $reid: relationship record ID (for testing only)
+//    $info = compact('reid') + ray('main other permission employee isOwner draw',
+//      $this->id, $other, $permission, (int) $employee, (int) $isOwner, (int) $draw);
+    //return db\insert('r_relations', $info);
+    
+_____________________________________________
+
 /*
 function retro() {
   $q=f('db.q','Select uid from users WHERE NOT :IS_CO AND uid>1 AND :IS_BONA');

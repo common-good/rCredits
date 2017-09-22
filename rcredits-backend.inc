@@ -425,6 +425,8 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
  *    confirm: boolean "this needs to be confirmed"
  */
 function invoice($a1, $a2, $amount, $goods = FOR_USD, $purpose = NULL, $oked = TRUE) {
+  global $channel;
+  
   u\EXPECT(compact(ray('a1 a2 amount goods purpose oked')), 'acct acct float int string bool');
   list ($payee, $payer) = array($a1->id, $a2->id);
   u\setDft($purpose, $why = ray(R_WHYS)[$goods]);
@@ -437,13 +439,17 @@ function invoice($a1, $a2, $amount, $goods = FOR_USD, $purpose = NULL, $oked = T
   
   if ($oked) {
     $created = r\rTime();
-    $info = compact(ray('amount payer payee goods purpose created'));
+    $status = ($channel != TX_FOREIGN and r\relation('isCustomer=:AUTOPAY_FLAG', $payee, $payer)) ? TX_APPROVED : TX_PENDING;
+    $info = compact(ray('amount status payer payee goods purpose created'));
     $nvid = db\insert('r_invoices', $info);
     $a1->update('lastTx', [$nvid, $payer - $payee, round(-$amount, 2), $created, 'inv']);
 
-    $subs['_a1'] = $a1->makeDo('inv', $nvid); // link to pay/deny
-    //$a2->update(ray('lastTx', array($nvid, $payee - $payer, round($amount, 2), $created, 'inv')));
-    r\message($payer, 'new invoice', $subs); // tell other party by email about this invoice
+    if ($status == TX_PENDING) {
+      $subs['_a1'] = $a1->makeDo('inv', $nvid); // link to pay/deny
+      //$a2->update(ray('lastTx', array($nvid, $payee - $payer, round($amount, 2), $created, 'inv')));
+      r\message($payer, 'new invoice', $subs); // tell other party by email about this invoice
+    } elseif (!$ok = be\payInvoice($nvid, $msg)) r\tellAdmin(t('invoice payment failed'), compact('msg') + $subs + $info);
+
     $msg = 'report tx';
     if ($a1->cttyRewardy) $msg .= '|for why';
     if ($amount > 0) $msg .= '|balance unchanged';
@@ -501,7 +507,7 @@ function addCell($number, $validate = FALSE) {
       extract($result, EXTR_PREFIX_ALL, 'old');
       if ($old_uid == $myid) return array('already cell', $subs);
       $accountName = accountName($old_uid);
-      if (!isTempAccount($old_uid)) return array('cell taken', compact(ray('number accountName')));
+//      if (!isTempAccount($old_uid)) return array('cell taken', compact(ray('number accountName')));
     }
     return NULL;
   }
@@ -523,14 +529,15 @@ function deleteCell($number) {
  * Figure out who the user meant. Only OK people in the user's community are eligible (except admin sees all).
  *
  * @param string $who: how the user referred to the trader (name, phone, email, uid, or temporary code)
+ * @param int $myid: current user's account record ID
+ * @param bool $paying: <we're preparing to pay this person> (in which case the persn has to have an active account)
  * @param string $self_message: index to error message for identifying oneself
  *   If true, the other trader will be created only if specified by email or phone
  * @return one of the following:
  *   the other trader's acct
  *   array(error index, array of substitutions, array of possible fullNames (0 or more) indexed by uid)
  */
-function identify($who, $myid, $self_message = 'no self-trading') {
-  $create = FALSE; // not currently used
+function identify($who, $myid, $paying, $self_message = 'no self-trading') {
   $who = trim($who);
   $subs = compact('who');
   if (!$mya = r\acct($myid)) return ['search forbidden', [], []];
@@ -542,7 +549,9 @@ function identify($who, $myid, $self_message = 'no self-trading') {
   if (!$short = u\shortName(" $who ", '%')) $short = '-'; // abbreviations must not be null or zeroes
   $cmail = strpos($who, '@') ? u\cryptN($who) : '-';
 
-  $cttyCrit = $mya->admin ? '1' : ":IS_OK AND community=$mya->community"; // restrict to own community and approved (as of 7/6/2017)
+  $cttyCrit = $mya->admin 
+  ? '1' 
+  : (($paying ? ':IS_OK AND ' : '') . "community=$mya->community"); // restrict to own community and approved (as of 7/6/2017)
   
   $sql = <<<EOF
     SELECT DISTINCT uid,fullName
@@ -557,8 +566,8 @@ EOF;
   $result = db\q($sql, compact(ray('short cphone cmail')))->fetchAllKeyed(0, 1);
   
   // QID? if not, maybe first word is a QID if this is from a list showing QID and fullName
-  $qid = ($i = strpos($who, ':')) ? substr($who, 0, $i) : strtoupper($who);
-  if ($a = r\acct($qid)) $result[$a->id] = $a->fullName;
+  $qid = trim(($i = strpos($who, ':')) ? substr($who, 0, $i) : strtoupper($who));
+  if ($a = r\acct($qid)) $result[$a->id] = $a->fullName; // explicit QID is a result, regardless of community
 
   if (count($result) == 1 and @$result[$myid]) return [$self_message, [], []];
   unset($result[$myid]); // self is one of many results, so ignore it
@@ -693,12 +702,4 @@ function todo($number, $todo = 'nothing', $nonce = 'whatever') {
 function accountName($uid) {
   $acct = r\acct($uid);
   return $acct->fullName . ' ' . u\hug($acct->mainQid);
-}
-
-function isTempAccount($uid) {
-  return !r\acct($uid)->pass;
-}
-
-function isTempName($name) {
-  return u\abbreviates(R_TEMP_NAME_PREFIX, $name);
 }

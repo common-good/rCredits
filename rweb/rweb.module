@@ -140,16 +140,16 @@ function rweb_menu($submenu = '') {
     'settings/ssn' => ['call', t('Correct SSN'), 'Ssn 2', 'manage'],
     'settings/password' => ['call', t('Request New Password'), 'Pass 2', ANY],
     'settings/security/change-password' => ['call', 'Change Password', 'ChangePassword', 'manage'],
-    'settings/security/change-pin' => ['call', 'Change PIN', 'ChangePin', 'manage'],
+//    'settings/security/change-pin' => ['call', 'Change PIN', 'ChangePin', 'manage'],
     'settings/member-photo' => ['call', 'Member Photo', '2 3', ANY, 'memberPhoto'],
-    'settings/security/photo' => ['call', 'Photo', 'Photo 3', 'manage'],
-    'settings/security/photo/upload' => ['call', 'Photo Upload', '4 5', ANY, 'photoUpload'],
+    'settings/photo' => ['call', 'Photo', 'Photo 2', 'manage'],
+    'settings/photo/upload' => ['call', 'Photo Upload', '3 4', ANY, 'photoUpload'],
     'settings/icon' => ['call', 'Icon', 'Icon', 'read'],
 //    'settings/verify-phone' => ['call', 'Verify Phone', 'VerifyPhone', 'manage dw'],
 //    'settings/readd-phone' => ['call', 'reAdd Phone', '', 'manage dw', 'addPhone'],
     'settings/basic' => ['call', 'Basic', 'Basic', 'manage'],
 //    'settings/kba' => ['call', 'Kba', 'Kba', 'manage dw'],
-//    'settings/security/photo-id' => ['call', 'Kba', 'PhotoId', 'manage'],
+//    'settings/photo-id' => ['call', 'Kba', 'PhotoId', 'manage'],
     'settings/proxy' => ['call', 'Proxy', 'Proxy 2', 'manage'],
     'settings/verify' => ['call', 'Verify Email', 'Verify 1', 'manage'],
     'settings/resend' => ['call', 'Resend Email', 'Resend', 'manage'],
@@ -218,7 +218,7 @@ function rweb_menu($submenu = '') {
     'error' => ['call', 'System Error', '1', ANY, 'error'],
     'page-not-found' => ['call', t('Page Not Found'), 'PageNotFound', ANY],
     
-    'pay-with-rcredits' => ['call', t('Pay With %RCREDITS'), 'Buy', ANY], // form will require PIN
+    'pay-with-cg' => ['call', t('Pay With %RCREDITS'), 'Buy', ANY],
   );
 // $menu['user/password'] = $menu['settings/password']; // duplicates user/password (handles built-in Drupal link)
 
@@ -240,7 +240,8 @@ function rweb_form_alter(&$form, &$sta, $form_id) {
   if (!\user_is_logged_in() and in_array($req, ['login', 'logout'])) return r\go(PROMO_URL); // nothing else works
 /*  if ($req == 'login' and !user_is_logged_in()) {header("location:$base_url/" . (isGAME ? 'community/game' : 'signin')); exit();} // nothing else works
   if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isGAME ? "$base_url/community/game" : (isDEV ? 'http://localhost' . DEV_ROOT : BASE_URL) . '/signin')); exit();} // nothing else works */
-  if ($req == 'user' and user_is_logged_in()) return r\go(isGAME ? 'community/game' : 'summary'); // summary not ''
+//  if ($req == 'user' and user_is_logged_in()) return r\go(isGAME ? 'community/game' : 'summary'); // summary not ''
+  if ($req == 'user' and user_is_logged_in()) return r\go('summary'); // summary not ''
   foreach ($form as $k => $v) if (@$v['#type'] == 'submit') {$submit1 = @$v['#id'] ?: "edit-$k"; break;}
   $form['opid'] = w\hidFld(@$submit1 ?: 'none', ['name' => 'opid']); // default to first, in case submitted programmatically
 }

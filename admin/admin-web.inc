@@ -71,9 +71,9 @@ function adminSummary($a, $cAdmin = FALSE) {
     if ($cAdmin) {
       if (showSecureMessages()) $secureMsgs = submit(t('Show secure messages'));
       $html = $a->photoHtml(TRUE, TRUE);
-      $photo = item("<a href=$base_url/settings/security/photo>$html</a>");
+      $photo = item("<a href=$base_url/settings/photo>$html</a>");
       if ($mya->admin) $community = r\cttys($a->region, $ctty);
-      $donations = item($a->giftsDesc(), t('Donations:'));
+      $donations = item($a->giftsDesc() ?: t('none'), t('Donations:'));
       
 //      $creditLimit = textFld(t('Credit limit:'), '', dft(u\fmtAmt(-$a->floor)));
 //      if ($a->stepsDone['prefs']) { // don't even look at these if newbie hasn't chosen yet
@@ -117,7 +117,7 @@ function adminSummary($a, $cAdmin = FALSE) {
     $legalName = textFld(t('Legal Name:'), '', required($a->legalName));    
     if ($mya->superAdmin or ($mya->cAdmin and $mya->activated)) $rTrader = ($a->isCtty)
     ? boolFld(t('Active?'), '', $a->ok)
-    : boolFld(t('Active?'), t('Is account approved to use %PROJECT?', '_a', w\atag('/settings/security/photo?' . rand())), $a->ok);
+    : boolFld(t('Active?'), t('Is account approved to use %PROJECT?', '_a', w\atag('/settings/photo?' . rand())), $a->ok);
     if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
       if ($helper = $a->helper ?: ($a->co ? $a->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
         $hA = r\acct($helper);
@@ -223,7 +223,7 @@ EOF;
   $uid = hidFld($uid); // must postcede js (which uses uid)
   
   $bigFields = $a->ok ? 'adminable risks ssnShow' : 'ssnShow adminable risks';
-  return compact(ray("preNote notes note tickle submit donations rTrader activity source helper secureMsgs $bigFields community photo balance cgfDonations legalName calling signupCo tenure steps dwInfo relations invited invitedBy proxies proxyFor moves floor minimum achMin risk trust mediaConx count back uid"));
+  return compact(ray("preNote notes note tickle submit donations rTrader activity relations source helper secureMsgs $bigFields community photo balance cgfDonations legalName calling signupCo tenure steps dwInfo invited invitedBy proxies proxyFor moves floor minimum achMin risk trust mediaConx count back uid"));
 }
 
 /**
@@ -275,7 +275,7 @@ function export($params) {
 //      $type = $ctty == 0 ? '' : 'member';
       $type = '';
       foreach (ray('phone email') as $k) $$k = u\decryptN($$k);
-      if (strpos($email, '@example.com')) continue;
+      if (strpos($email, '@' . EMAILX)) continue;
 //      $cttyName = $ctty ? trim(str_replace(PROJECT, '', r\acct($ctty)->fullName)) : '';
       $cttyName = ($zip and $ctty = r\communityUid($zip)) ? r\cttyName($ctty, TRUE) : '';
       if (!@$chimp) $zip .= "\t"; // prevent leading zeros from getting dropped on import (fails for MailChimp, so don't)

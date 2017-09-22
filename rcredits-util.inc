@@ -588,7 +588,7 @@ function post($url, $content = FALSE, $responseFormat = 'raw', $extra_headers = 
   } else $response = FALSE;
 
 //  EXPECT($response !== FALSE, "$method $url failed");
-  if ($response === FALSE) u\tellAdmin("$method $url failed");
+  if ($response === FALSE) r\tellAdmin("$method $url failed");
   $result = $responseFormat == 'xml' ? simplexml_load_string($response)
     : ($responseFormat == 'json' ? json_decode(utf8_encode($response))
     : ($response) );

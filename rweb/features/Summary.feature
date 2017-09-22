@@ -81,7 +81,7 @@ Scenario: An agent clicks the summary tab without permission to manage
   | Name | Abe One (abeone)   |
   | ID   | NEWZZA (personal account) |
   And without:
-  | Balance | Rewards | Floor  |
+  | Make This a Joint |
 
 Scenario: A company agent clicks the summary tab
   When member "C:A" visits page "summary"

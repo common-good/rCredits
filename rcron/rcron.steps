@@ -43,6 +43,7 @@ function extraSetup($feature) {
  *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
  *     MAKE Bank AMemberIsUnderMinimumOnlyBecauseRewardsAreReserved
  *     MAKE Gifts Setup
+ *     MAKE Invoices Setup
  *     MAKE Joint Setup
  *     MAKE Monthly Setup
  *     MAKE Notices Setup
@@ -74,6 +75,8 @@ function members($list) {return t\members($list);}
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
  *     MAKE Bank AnAccountHasAMinimumButNoRefills
  *     MAKE Gifts Setup
+ *     TEST Invoices Setup
+ *     TEST Invoices UnpaidInvoicesGetHandled
  *     TEST Joint Setup
  *     MAKE Joint AJointAccountNeedsRefilling
  *     MAKE Joint AJointAccountDoesNotNeedRefilling
@@ -85,6 +88,7 @@ function members($list) {return t\members($list);}
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     TEST Weekly AMemberCrawlsOutOfDebt
  *     TEST Weekly AMemberBuildsUpSavings
+ *     TEST Weekly AMemberCashesOutAutomatically
  */
 function balances($list) {return t\balances($list);}
 
@@ -107,6 +111,7 @@ function balances($list) {return t\balances($list);}
  *     MAKE Gifts ADonationCanBeCompleted
  *     MAKE Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
  *     MAKE Gifts ARecurringDonationCanBeCompleted
+ *     MAKE Invoices UnpaidInvoicesGetHandled
  *     MAKE Joint AJointAccountNeedsRefilling
  *     MAKE Joint AJointAccountDoesNotNeedRefilling
  *     MAKE Monthly InflationAdjustmentsRoundUpDonationsAndCrumbDonationsAreMade
@@ -127,6 +132,7 @@ function balances($list) {return t\balances($list);}
  *     MAKE Trust WeCalculateTrust
  *     MAKE Weekly AMemberCrawlsOutOfDebt
  *     MAKE Weekly AMemberBuildsUpSavings
+ *     MAKE Weekly AMemberCashesOutAutomatically
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
@@ -141,10 +147,12 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     TEST Bank AMemberIsUnderMinimumOnlyBecauseRewardsAreReserved
  *     TEST Bank AMemberMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
+ *     TEST Invoices UnpaidInvoicesGetHandled
  *     TEST Joint AJointAccountNeedsRefilling
  *     MAKE Monthly Setup
  *     MAKE Risk Setup
  *     TEST Risk WeCalculateRisks
+ *     TEST Weekly AMemberCashesOutAutomatically
  */
 function usdTransfers($tx) {return t\usdTransfers($tx);}
 
@@ -164,6 +172,7 @@ function bankTransferCountIs($count) {return (t\usdTransferCount() == $count);}
  * relations: (ARG)
  *
  * in: MAKE Bank Setup
+ *     MAKE Invoices Setup
  *     MAKE Joint Setup
  *     MAKE Risk Setup
  */
@@ -177,6 +186,8 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
  *     TEST Gifts ARecurringDonationCanBeCompleted
+ *     MAKE Invoices Setup
+ *     TEST Invoices UnpaidInvoicesGetHandled
  *     MAKE Joint Setup
  *     MAKE Monthly Setup
  *     TEST Monthly InflationAdjustmentsRoundUpDonationsAndCrumbDonationsAreMade
@@ -185,6 +196,7 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Risk WeCalculateRisks
  *     MAKE Tickle AMemberGetsACreditLine
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
+ *     MAKE Weekly AMemberCashesOutAutomatically
  */
 function transactions($list) {return t\transactions($list);}
 
@@ -197,9 +209,11 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Bank AMemberIsWellBelowMinimum
  *     TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ARecurringDonationCanBeCompleted
+ *     TEST Invoices UnpaidInvoicesGetHandled
  *     TEST Joint AJointAccountNeedsRefilling
  *     TEST Tickle ANewbieHasNotTakenTheFirstStep
  *     TEST Tickle ANonmemberHasNotAcceptedTheInvitation
+ *     TEST Weekly AMemberCashesOutAutomatically
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 
@@ -453,3 +467,18 @@ function weDoNotNoticeToMember($id) {return !t\notice([], $id);}
  * in: TEST Tickle ANonmemberHasNotAcceptedTheInvitationFromANotyetactiveMember
  */
 function weDoNotEmail($email) {return t\noEmailTo($email);}
+
+/**
+ * invoices: (ARG)
+ *
+ * in: MAKE Invoices Setup
+ *     TEST Invoices UnpaidInvoicesGetHandled
+ */
+function invoices($list) {return t\invoices($list);}
+
+/**
+ * we message (ARG) to member (ARG) with subs: (ARG)
+ *
+ * in: TEST Invoices UnpaidInvoicesGetHandled
+ */
+function weMessageToMemberWithSubs($index, $id, $subs) {return t\weMessage($index, $id, $subs);}
