@@ -82,7 +82,7 @@ function txRisk1($tx, &$risk = 0, &$calc = 0) {
   global $_risk; $_risk = '';
   extract($tx); // all tx fields
   global $_xid; $_xid = $xid; // for debugging
-  extract(u\just('force undoneBy undoes xfee', unserialize($data)));
+  extract(just('force undoneBy undoes xfee', unserialize($data)));
 
   $cttyPayer = ($payer < 0);
   if ($neg = ($amount < 0)) list ($payer, $payee, $amount) = array($payee, $payer, -$amount);

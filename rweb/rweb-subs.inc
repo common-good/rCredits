@@ -326,7 +326,7 @@ EOF;
 function htmlItem($name, $id, $value, $class, $other = []) {return $value;}
 
 function htmlText($name, $id, $value, $class, $other = []) {
-  extract(u\just('tribs invisible id prefix suffix inline class box disabled autocomplete_path', $other));
+  extract(just('tribs invisible id prefix suffix inline class box disabled autocomplete_path', $other));
 
   $class = [@$class];
   $class[] = 'form-control input-md';
@@ -343,7 +343,7 @@ function htmlHidden($name, $id, $value) {
 }
 
 function htmlSubmit($name, $id, $value, $class, $other = []) {
-  extract(u\just('tribs size style', $other));
+  extract(just('tribs size style', $other));
   return <<<EOF
   <button type="submit" id="$id" name="op" class="btn btn-$style btn-$size ladda-button" data-style="expand-right">
     <span class="ladda-label">$value</span>
@@ -352,7 +352,7 @@ EOF;
 }
 
 function htmlButton($name, $id, $value, $class, $other = []) {
-  extract(u\just('tribs href class', $other));
+  extract(just('tribs href class', $other));
   
   if (strpos($href, 'http') === FALSE) $onclick = $href;
   if ($href) list ($tag, $role) = ['a', 'button']; else $tag = 'button';
@@ -436,8 +436,8 @@ function rendA($name, $field) {
 function rend($fields) {
   $html = '';
   foreach ($fields as $name => $ray) {
-    extract(u\just('type bare other', $ray)); // see fld()
-    extract(u\just('id value class', $other));
+    extract(just('type bare other', $ray)); // see fld()
+    extract(just('id value class', $other));
     u\setDft($id, "edit-$name");
     $func = 'rCredits\\Web\\html' . ucfirst($type);
     $fldHtml = $func($name, $id, @$value, @$class, @$other);
@@ -447,8 +447,8 @@ function rend($fields) {
 }
 
 function wrap($name, $html, $ray) {
-  extract(u\just('type label required bare help other', $ray)); // see fld()
-  extract(u\just('invisible id prefix suffix inline class box disabled', $other));
+  extract(just('type label required bare help other', $ray)); // see fld()
+  extract(just('invisible id prefix suffix inline class box disabled', $other));
   $for = strtr(@$name, ['_'=>'-', '['=>'-', ']'=>'']);
   if ($for == 'title') $html = "<h3>$html</h3>";
   $html = @$field_prefix . $html . @$field_suffix;
@@ -522,13 +522,13 @@ define('ALIGN_CENTER', '');
 define('FMT_INT', 'trust count');
 //define('FMT_2D', 'negativeBalanceTotal positiveBalanceTotal');
  
-function showRecords($ray, $formatFunc = 'rCredits\\Web\\formatField') {
+function showRecords($ray, $formatFunc = 'rCredits\\Web\\formatField', $flagsField = B_LIST) {
   if (!$ray or empty($ray)) return 'data set is empty';
   $lines[] = '<tr><th>' . join('</th><th>', array_keys((array) $ray[0])) . "</th></tr>\n";
   foreach ($ray as $row) {
     $line = '';
     foreach ($row as $k => $v) {
-      $v = $formatFunc($k, $v);
+      $v = $formatFunc($k, $v, $flagsField);
       if ($k == 'for2' and $v == $row->for1) $v = 'same'; // admin uses this for conciseness
       $align = in_array($k, ray(ALIGN_RIGHT)) ? 'R' : (in_array($k, ray(ALIGN_CENTER)) ? 'C' : 'L');
       foreach (ray('balance credit trust count $') as $w) if (stripos($k, $w) !== FALSE) {
@@ -546,6 +546,7 @@ function showRecords($ray, $formatFunc = 'rCredits\\Web\\formatField') {
 
 /**
  * Return the given field, formatted for viewing.
+ * Unlike a\formatField, the third argument ($flagsField) is ignored.
  */
 function formatField($k, $v) {
   $v = $v . ''; // convert to string
@@ -621,10 +622,10 @@ function hidFld($value = '', $other = []) {return fld('hidden', '', '', compact(
 function NEWtextFld($label = '', $desc = '', $other = []) {return fld('text', $label, $desc, $other);}
 function textFld($label = '', $desc = '', $other = []) {return fld('textfield', $label, $desc, $other);}
 function passFld($label = '', $desc = '', $other = []) {return fld('password', $label, $desc, $other);}
-function areaFld($label = '', $help = '', $other = []) {return fld('textarea', $label, $help, $other);}
-function radiosFld($label, $help, $other, $options) {return fld('radios', $label, $help, $other, $options);}
-function selectFld($label, $help, $other, $options = []) {return fld('select', $label, $help, $other, $options);}
-function htmlFld($label = '', $help = '', $dft = '', $other = []) {return fld('text_format', $label, $help, ['format' => 'filtered_html'] + dft(strtr($dft, ["\r" => '', "\n" => '', '<br>' => PHP_EOL, "\0" => ''])) + $other);}
+function areaFld($label = '', $desc = '', $other = []) {return fld('textarea', $label, $desc, $other);}
+function radiosFld($label, $desc, $other, $options) {return fld('radios', $label, $desc, $other, $options);}
+function selectFld($label, $desc, $other, $options = []) {return fld('select', $label, $desc, $other, $options);}
+function htmlFld($label = '', $desc = '', $dft = '', $other = []) {return fld('text_format', $label, $desc, ['format' => 'filtered_html'] + dft(strtr($dft, ["\r" => '', "\n" => '', '<br>' => PHP_EOL, "\0" => ''])) + $other);}
 
 function boxFld($name, $label = '', $desc = '', $dft = NULL, $other = []) {
   $fld = fld('checkbox', $desc, '', compact('name') + dft(@$dft) + $other);
@@ -766,7 +767,6 @@ function whoFldSubmit($field, $question, $amount = '0', $askGift = '0') {
  */
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formArray, $formSta, $rUrl;
-
   setAcct(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
   if (!@$formSta['confirm'] and !in_array($function, ray(R_NOLOG_FORMS))) {
     if ($logs = t\POST()) {
@@ -786,6 +786,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $args = func_get_args(); // this and next few lines are from \drupal_get_form()
     array_shift($args); // Remove $function from the arguments.
     $formSta['build_info'] = compact('args');
+    $formSta['cache'] = TRUE;
 //    $formSta['method'] = 'post';
     if (!r\up() and !$specialForm and !$adminForm) {
       if ($mya and $mya->superAdmin) {
@@ -812,6 +813,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 
 //    if (!in_array('form-horizontal', @$form['#attributes']['class'])) $form['#attributes']['class'][] = 'form-vertical';
     $formArray = $form2 = $form; 
+flog('show');
     $rent = \render($form2);
 //    if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-radio')) js('js/radiocheck.js', 'file', 'footer');
     
@@ -921,28 +923,52 @@ function uploadrows($filename) {
  * See whether someone is trying too many logins.
  * @param int $uid: account record ID
  * @param assoc $sta: (MODIFIED) the form status, updated with relevant flood info
+ * @param
  * @return mixed: FALSE only if we're not being flooded
  */
-function flooding($uid, &$sta) {
+define('MAX_PW_FAILS', 10);
+define('MAX_IP_FAILS', 50);
+
+function flooding($uid, &$sta, &$err) {
   if (u\test()) return !$uid;
   $trigger = 'flood_control_triggered';
-  $limit = 50; //variable_get('user_failed_login_ip_limit', 50);
   $window = HOUR_SECS; //variable_get('user_failed_login_ip_window', HOUR_SECS);
-  if (!\flood_is_allowed('failed_login_attempt_ip', $limit, $window)) return $sta[$trigger] = 'ip';
+  if (!\flood_is_allowed('failed_login_attempt_ip', MAX_IP_FAILS, $window)) {
+    $sta[$trigger] = 'ip';
+    $err = t('There have been too many failed sign-in attempts from your IP Address. Try again later.');
+    r\tellAdmin($err, ['ip' => $_SERVER['REMOTE_ADDR']]);
+    return TRUE;
+  }
   
+  $err = t('bad login');
   if (!$uid) return TRUE;
 
   $uidOnly = FALSE; //variable_get('user_failed_login_identifier_uid_only', FALSE);
-  $limit = 5; //variable_get('user_failed_login_user_limit', 5);
   $window = 6 * HOUR_SECS; //variable_get('user_failed_login_user_window', 6 * HOUR_SECS);
-  
   $sta['flood_control_user_identifier'] = $id = $uidOnly ? $uid : $uid . '-' . ip_address();
-  if (!\flood_is_allowed('failed_login_attempt_user', $limit, $window, $id)) return $sta[$trigger] = 'user';
+  if (!\flood_is_allowed('failed_login_attempt_user', MAX_PW_FAILS, $window, $id)) {
+    $sta[$trigger] = 'user';
+    $err = t('There have been too many failed sign-in attempts to your account (%MAX_PW_FAILS). Try again later.');
+    return TRUE;
+  }
 
   return FALSE;
 }
 
-function noFlood(&$sta) {\flood_clear_event('failed_login_attempt_user', @$sta['flood_control_user_identifier']);}
+function noFlood($sta) {\flood_clear_event('failed_login_attempt_user', @$sta['flood_control_user_identifier']);}
+
+function updateFlood($sta, $success) {
+  if ($success) return noFlood($sta); // Clear failures (don't block a user who might log in and out more than once in an hour)
+  
+  \flood_register_event('failed_login_attempt_ip', 3600); // Always register an IP-based failed login event.
+  if ($id = @$sta['flood_control_user_identifier']) \flood_register_event('failed_login_attempt_user', 21600, $id); // Register a per-user failed login event.
+
+  if ($trigger = @$sta['flood_control_triggered']) {
+    $msg = $trigger == 'user' ? t('Sorry, there have been more than :MAX_PW_FAILS failed sign-in attempts for this account. It is temporarily blocked.') : t('Sorry, too many failed login attempts from your IP address. This IP address is temporarily blocked.');
+    w\say($msg . t(' Try again later or <%a>request a new password</a>.', '_a', w\atag('user/password')), 'name');
+  } else return w\say(t('bad login', '_a', w\atag('/settings/password')), 'name');
+}
+
 
 /**
  * Set session variables and other globals.
@@ -965,6 +991,7 @@ function setAcct($myid = '') {
   if ($myid) {
     if (!$agentId) $agentId = svar('agentId', $myid);
     svar('myid', $myid);
+    db\update('sessions', ray('uid acct', $agentId, $myid), 'uid');
   } else $myid = svar('myid');
 
   if (!@$channel) { // only once per HTTP request
@@ -1233,7 +1260,7 @@ function acctType($acctType) {
  * @return TRUE if there is a formal relationship
  */
 function suCompanyRelation($other, $data) {
-  extract(u\just('company companyPhone isOwner employeeOk contractor', $data));
+  extract(just('company companyPhone isOwner employeeOk contractor', $data));
   if ($main = findCompany($company, @$companyPhone)) { // company account exists
     return r\acct($main)->newRelation(ray('other employee isOwner', $other, @$employeeOk, @$isOwner)); // no permissions/draw (for security)
   } else return FALSE;
@@ -1243,7 +1270,7 @@ function suCompanyRelation($other, $data) {
  * Set up relationship of this new account with the account that created it (if any).
  */
 function suCreatorRelation($helper, $args, $myid) {
-  extract($params = u\just('isOwner employeeOk flow', $args));
+  extract($params = just('isOwner employeeOk flow', $args));
   if (!@$isOwner and !@$employeeOk and !@$flow) return; // no useful relation (for example by true invitation)
 
   $draw = ($flow & 2) ? 1 : 0;
@@ -1346,19 +1373,18 @@ function nameAndEmail($what, $fullName = '', $email = '', $hideEmail = FALSE, $m
 /**
  * Return the part of the form that is (mostly) common to formContact and formSignup
  * @param assoc $defaults: initial field values (defaults to current values) - see list at "$fields ="...
+ * @param bool $step0: <called from signup form>
  *   plus {partner, partnerCode, customer} for signup from partner site
  * @param acct $a: account record ID of account for which to show existing contact field values, if any
  */
-function contactFields($defaults = [], $myid = 0) {
-  global $fieldErr; // set in w\say
+function contactFields($defaults = [], $step0, $myid = 0) {
+  global $mya;
 //  $country = $state = ''; // make sure these are not NULL
   $partnerExtras = ' partner customer partnerCode'; // add-on fields passed through only for partner signup (start with space) (even partnerCode is necessary, in case form is redrawn on error)
   $fields = 'phone country physical address city state zip tenure owns sameAddr2 address2 city2 state2 zip2 postalAddr hidCountry hidState hidState2 source source2';
   $a = $myid ? r\acct($myid) : FALSE;
   foreach ($defaults as $k => $v) if (is_null($v)) unset($defaults[$k]); // needed for joint account setup
   extract($defaults + ($a ? (array) $a->account($fields) : []));
-
-  $step0 = !($a and ($a->member or $a->federalId)); // <asking this info while signing up>
 
   if (@$postalAddr) list ($address2, $city2, $state2, $zip2) = u\parseAddr(@$postalAddr);
   if (!@$state2) $state2 = 0; // otherwise default fails in countrys.js
@@ -1379,12 +1405,14 @@ function contactFields($defaults = [], $myid = 0) {
     if (@$partner and @$partnerCode and @$customer // customer signup 
       and ($partnerA = r\acct($partner) and $partnerA->emailCode == $partnerCode)) { // using valid data from partner org
       $fields .= $partnerExtras;
-      $fieldsToHide = str_replace(' tenure owns', '', $fields); // DO ask about these
-    } else $fieldsToHide = $fields; // otherwise this is a joint Account setup, so DON'T ask about tenure and owns
-    foreach (ray($fieldsToHide) as $k) $$k = w\hidFld(@$$k);
+      $hideNot = 'tenure owns'; // DO ask about these
+    } else $hideNot = u\badAmount($tenure, '>=0') ? 'tenure' : ''; // otherwise this is a joint Account setup or error, so DON'T ask about tenure and owns (unless tenure error)
+
+    $fieldsToHide = justNOT($hideNot, ray($fields));
+    foreach ($fieldsToHide as $k) $$k = w\hidFld(@$$k);
     
   } else {
-    $fieldsToHide = '';
+    $fieldsToHide = [];
     $country = @$country + 0;
     $state = @$state + 0;
     $hidCountry = hidFld($country + 0); // remember this when Drupal forgets it on error
@@ -1418,7 +1446,7 @@ EOF;
     $state = selectFld(t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
     $zip = textFld(t('Postal Code:'), [t('Physical location postal code'), t('Postal code for your <em>physical location</em>')], required(@$zip) + $zipAttrib);
 
-    $sameAddr2 = ($step0 ? @state2 : !$a->cAdmin) // show box on signup (until mailing addr filled) and to admin
+    $sameAddr2 = ($step0 ? @$state2 : !(@$mya and $mya->cAdmin)) // show box on signup (until mailing addr filled) & to admin
     ? w\item('', t('Mailing Address')) 
     : w\boxFld('sameAddr', t('Mailing Address'), t('same as above'), 0, w\onchange('setPostalAddr(true)'));
     
@@ -1432,10 +1460,8 @@ EOF;
     $source2 = $step0 ? textFld(t('Code:'), [t('Invitation or card code'), t('If you have an invitation or card code, type it here ("B" for brochure). Otherwise leave blank.')]) : NULL;
   }
 
-  if (!strpos($fieldsToHide, ' tenure ')) {
-    $tenure = $step0 ? textFld(t('How long:'), [t('MONTHS at current address.'), t('How long have you been at your current address, in months (roughly)')], required(@$tenure)) : NULL;
-    $owns = boolFld('', '', $step0 ? @$owns : $a->owns, [t('Rent'), t('Own')]); // default fails
-  }
+  if (!in_array('tenure', $fieldsToHide)) $tenure = $step0 ? textFld(t('How long:'), [t('MONTHS at current address.'), t('How long have you been at your current address, in months (roughly)')], required(@$tenure)) : NULL;
+  if (!in_array('owns', $fieldsToHide)) $owns = boolFld('', '', $step0 ? @$owns : $a->owns, [t('Rent'), t('Own')]); // default fails
 
   return compact(ray($fields));
 }  
@@ -1635,8 +1661,8 @@ EOF;
  * @return the account (defaults to current account)
  */
 function eLinkAcct(&$sta, &$eLink = '', $allow = 'individual') {
-  if (!$eLink) extract(u\just('eLink', $sta)); // verifying or submitting; get stored eLink args
-  extract(u\just('qid ecode allow', $eLink));
+  if (!$eLink) extract(just('eLink', $sta)); // verifying or submitting; get stored eLink args
+  extract(just('qid ecode allow', $eLink));
   $a = r\acct($qid = @$qid); // current or specified account
   if (!$a and $allow != 'any') return r\go('', 'requires signin');
   if ($allow == 'individual' and $a->co) return r\go('', t('That page is for individual accounts only.'));
@@ -1656,10 +1682,12 @@ function hack($message, $info = []) {
  * @param string $arg: "a" parameter for promo site redirect (if "no redirect", don't go there)
  */
 function signout($arg = '') {
+  global $base_url;
   @\session_destroy();
 //  return r\go(isDEV ? 'http://rPromo/_sites?region=x' : 'http://CommonGood.earth/control.html?region=x');
 //  if (isDEV and !u\test()) r\go('signin', $arg == 'timedout' ? 'timed out' : '');
-  if ($arg != 'no redirect') return r\go(PROMO_URL . '?region=x' . ($arg ? "&a=$arg" : ''));
+  $url = (isDEV and !u\test()) ? $base_url : (PROMO_URL . '?region=x' . ($arg ? "&a=$arg" : ''));
+  if ($arg != 'no redirect') return r\go($url);
 }
 
 function fundRpt($now, $then, $type = '') {
@@ -1713,7 +1741,7 @@ EOF;
  *   states: (array) options to display
  */
 function dateRange($args, $url, $choices = [], $settings = '', $downloadable = TRUE) {
-  extract(u\just('period starting ending states', $args));
+  extract(just('period starting ending states', $args));
   u\setDft($states, $settings);
 ///  debug($states);
   if ($choices) {
@@ -1748,7 +1776,7 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
 
 /*
 function dateRange2($args, $url, $download = TRUE) {
-  extract(u\just('starting ending', $args));
+  extract(just('starting ending', $args));
   if (!@$starting) { // default to previous month
     $ending = u\monthDay1() - 1;
     $starting = u\monthDay1($ending);
@@ -1766,12 +1794,16 @@ function dateRange2($args, $url, $download = TRUE) {
 }
 */
 
-function dateRangeValidate(&$sta) {
-  extract(u\just('period starting ending download', $sta['input']));
+/**
+ * Validate the chosen date range.
+ * @param bool $limit: <limit the range to 180 days or less>
+ */
+function dateRangeValidate(&$sta, $limit = TRUE) {
+  extract(just('period starting ending download', $sta['input']));
   $op = op($sta);
   $downloadOp = ($op == 'submitPeriod' or $op == 'downloadPeriod');
   list ($starting, $ending, $period) = $downloadOp ? rangeDates(@$period) : rangeDates('', @$starting, @$ending);
-  if ($ending - $starting > TX_MAX_DAYS * DAY_SECS and !$downloadOp) return w\say('too many days', 'err');
+  if ($limit and $ending - $starting > TX_MAX_DAYS * DAY_SECS and !$downloadOp) return w\say('too many days', 'err');
   u\preray(compact(ray('starting ending period')), $sta['input']);
 }
 
@@ -1795,7 +1827,7 @@ function dateRangeRedirect($page, &$sta) {
   if (confirming_s($sta)) return;
 
   $sta['input']['states'] = @join(',', @$sta['input']['states'] ?: []);
-  $query = http_build_query(u\just('states period starting ending', $sta['input']));
+  $query = http_build_query(just('states period starting ending', $sta['input']));
   if (u\starts(op($sta), 'download')) {
     w\svar("$page-downloadQuery", $query);
     say('downloading');
@@ -1944,7 +1976,7 @@ function whois($who, $field_name, $info, $selfMsg = 'no self-trading', $paying =
 function transfer($op, $info, $confirmed) {
   global $mya;
   $myid = $mya->id;
-  extract($params = u\just('who amount goods purpose', $info)); // used to include isGift
+  extract($params = just('who amount goods purpose', $info)); // used to include isGift
   if (!isset($goods) or $goods === '') return say('required field', ['field'=>'"For"'], 'ERR'); // '' is for test
   u\EXPECT($params, 'string string int|empty string');
 ///NO!  if (!in_array($op, ['pay', 'charge'])) $goods = FOR_USD; // make sure this is set, for blank_field check
@@ -2082,7 +2114,7 @@ function blank_field($fields, $prefix = '') {
  * @return FALSE (transfer() depends on this)
  */
 function say($index, $args = [], $errField = '') {
-  global $fieldErr; // used mostly in tests (and in formTx)
+  global $mya, $fieldErr; // used mostly in tests (and in formTx)
 
   if (!@$index) return;
 ///  if (is_array($index) and !isset($index[0])) debug($index);
@@ -2092,7 +2124,8 @@ function say($index, $args = [], $errField = '') {
   $message = $noTable ? t($index, $args) : $index;
   $fieldErr = ($errField and $errField != 'ERR');
   if ($fieldErr) \form_set_error($errField, $message); else \drupal_set_message($message, @$errField == 'ERR' ? 'error' : 'status', FALSE);
-  if ($noTable) u\loga($fieldErr ? 'sayerr' : 'say', compact('message'));
+  $adminReport = ($mya and $mya->admin2 and strlen($message) > 200);
+  if ($noTable and !$adminReport) u\loga($fieldErr ? 'sayerr' : 'say', compact('message'));
   return FALSE;
 }
 
@@ -2147,7 +2180,7 @@ EOF;
   $q = db\q($sql, compact('created0', 'now', 'ctty'));
 
   $charts = ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-credits');
-  if ($whichChart != 'all') $charts = u\just($whichChart, $charts);
+  if ($whichChart != 'all') $charts = just($whichChart, $charts);
   foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, []);
   $moneyFields = ray('funds savings runny runnyBal top5 usd bankInPerMo bankOutPerMo perMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo tradeInPerMo tradeOutPerMo');
 
@@ -2352,6 +2385,7 @@ function webAccess($perms = NULL) {
   if ($perms == 'signedOut') return FALSE;
   if ($perms == 'superadmin') return $mya->superAdmin;
   if ($perms == 'superadminORdev') return ($mya->superAdmin or isDEV);
+  if ($perms == 'prose') return ($mya->proSe);
   
   foreach (ray($perms) as $perm) {
     if ($not = (substr($perm, 0, 1) == '-')) $perm = substr($perm, 1);
@@ -2411,7 +2445,7 @@ function setupFoot($label = '', $extra = []) {
  * Return the text with a help popover and optional link.
  */
 function popHelp($text, $help, $href = '', $class = '') {
-  $trigger = $href == '#' ? 'click' : 'hover';
+  $trigger = $href == '#' ? 'hover' : 'hover'; // click doesn't work :(
   list ($href, $tag) = ($href and $href != '#') ? [" href=\"$href\"", 'a'] : ['', 'span'];
   if ($class) $class = " class=\"$class\"";
   $text = ucfirst($text);
@@ -2485,10 +2519,10 @@ function continuePartnerSignup(&$reid, $customer) {
 function newCustomer($reid, $args) {
   foreach (ray('address2 city2 state2 zip2') as $k) $$k = @$args[$k] ?: '?';
   $args += ['country' => US_COUNTRY_ID, 'postalAddr' => "$address2, $city2, $state2 $zip2"];
-  $a = new r\Acct(u\just('fullName phone email address city state zip country postalAddr source', $args));
+  $a = new r\Acct(just('fullName phone email address city state zip country postalAddr source', $args));
   u\EXPECT($a, 'cannot create account');
   if (!$reid) {
-    extract(u\just('partner customer email', $args));
+    extract(just('partner customer email', $args));
     $partnerA = r\acct($partner);
     $reid = $partnerA->newRelation(ray('other isCustomer code data', $a->id, TRUE, $customer, serialize($args)));
     w\say('new customer welcome', ['partnerName' => $partnerA->fullName]);
@@ -2506,13 +2540,16 @@ function newCustomer($reid, $args) {
  */
 function jointSignup() {
   $mya = r\acct();
-  $fields = 'fullName phone address city state zip country postalAddr source flags minimum achMin';
+  if ($mya->jid) return $mya->jid; // in case form gets run twice
+  $fields = 'fullName phone address city state zip country postalAddr source minimum achMin';
   $args = (array) $mya->account($fields);
+  $args['fullName'] .= t(' PARTNER');
   $a = new r\Acct($args + ['email' => t('name@') . EMAILX]);
   u\EXPECT($a, 'cannot create account');
   $a->update('tenure', round($mya->tenure + ($a->created - $mya->created) / (30 * DAY_SECS)));
   if (@$mya->risk('rents')) $a->setRisk('rents');
-  $reid = $mya->newRelation(ray('other permission', $a->id, r\perm(B_JOINT)));
+  $mya->newRelation(ray('other permission', $a->id, r\perm(B_JOINT)));
+  $a->newRelation(ray('other permission', $mya->id, r\perm(B_JOINT)));
   $a->join($mya);
   return $a->id;
 }
@@ -2525,7 +2562,9 @@ function jointSignup() {
  *   we also redirect if all that needs to be done is to display a message (including if the person is already a member)
  */
 function partnerSignup($args) {
-  extract(u\just('partner partnerCode customer qid phone fullName email', $args));
+  foreach ($args as $k => $v) $args[$k] = trim(str_replace('  ', ' ', $v)); // avoid complaint about double spaces
+  
+  extract(just('partner partnerCode customer qid phone fullName email', $args));
   if (!$partnerA = r\acct($partner) or $partnerA->emailCode != $partnerCode) return NULL;
   $partnerName = $partnerA->fullName;
   
@@ -2548,18 +2587,29 @@ function partnerSignup($args) {
   } else $reid = $partnerA->newRelation(ray('other isCustomer code', $a->id, TRUE, $customer)); // create the relation
   
   if (!$partnerA->website) return r\go('empty', t('Partner has no website. Fix it on the Company Info settings page.')); // partner should always have a website
-  list ($op, $fields) = ['end', 'partnerCode qid op'];
+  list ($op, $name, $email, $fields) = ['complete', $fullName, $a->email, 'partnerCode qid op name email']; // use acct email
   if (!$a->member) list ($op, $fields) = ['start', $fields . ' customer'];
   if ($a->member) w\say('new customer done', compact('partnerName')); else $goto = "signin?name=$qid";
-  u\post($partnerA->partnerAPI(), compact($fields)); // tell partner we're starting or done
+  u\post($partnerA->api(), compact($fields)); // tell partner we're starting or done
 
   return r\go(@$goto ?: 'empty'); // complain, finish account setup, or report success
 }
 
 /**
- * Format info about the new member's company.
+ * Return account and password fields for sign-in.
  */
-function signupCoDisplay($info) {
+function signinFlds($acct, $acctDesc = '', $passDesc = '') {
+  $acct = textFld(t('Account ID:'), [t('Account ID'), $acctDesc], required($acct) + w\autofill('section-rSignin rAccount'));
+  $pass = passFld(t('Password:'), [t('Password'), $passDesc], required() + w\autofill('section-rSignin rPass'));
+  return [$acct, $pass];
+}
+
+/**
+ * Format info about the new member's company.
+ * @param assoc $info: company info from when the member signed up
+ * @param string $company: (RETURNED) the company name
+ */
+function signupCoDisplay($info, &$company = '') {
 //  return $info ? $info['company'] . ' (' . $info['companyPhone'] . ') ' . (@$info['isOwner'] ?: '') . (@$info['isEmployee'] ?: ''), t('Signup Co:') : '';
   if (!@$info) return '';
   extract($info);
@@ -2586,6 +2636,15 @@ function tag($tag, $html = '', $tribs = []) {
 }
 function tagN($tag, $html = '', $tribs = []) {return str_replace('#', '', tag($tag, $html, $tribs));}
 
+/**
+ * Get text from submitted submit button.
+ */
+function opText($sta) {
+  $op = strtolower('edit-' . op($sta));
+  foreach ($sta['buttons'] as $k => $one) if (@$one['#id'] == $op) return @$one['#value'];
+  return '';
+}
+
 // one-line functions that need no explanation
 //function t($message, $subs = []) {return t($message, $subs);}
 //function block_def($info, $extra = []) {return compact(ray('info cache'));} // also status, region, visibility, pages
@@ -2603,7 +2662,7 @@ function autocomplete($type = '') {global $mya; return ['autocomplete_path' => "
 function autofill($settings = 'on') {return attrib(['autocomplete' => $settings]);}
 function required($dft = NULL) {return ['required' => TRUE] + (isset($dft) ? dft($dft) : []);}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
-function op($sta) {global $testOp; return u\test() ? $testOp : str_replace('edit-', '', @$sta['input']['opid']);}
+function op($sta) {global $testOp; return u\test() ? $testOp : substr(@$sta['input']['opid'], 5);} // without edit-
 function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}
 //function blurbLink() {global $rUrl; return "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">" . t('description of %PROJECT') . '</a>';}
 function sayFieldErr($err, $field) {return say(strtoupper($field) . ': ' . t($err), $field);}

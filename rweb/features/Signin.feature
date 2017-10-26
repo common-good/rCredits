@@ -12,7 +12,7 @@ Setup:
 Scenario: A member visits the member site
   When member "?" visits page "signin"
   Then we show "Welcome to %PROJECT" with:
-  | Account ID | account ID, email, or username |
+  | Account ID | account ID or email |
   | Password   | Sign-in problems? |
   |~promo      | Not yet a member? |
 

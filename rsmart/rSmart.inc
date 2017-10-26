@@ -88,7 +88,7 @@ function pos($args = FALSE) {
 //  if (!$args) $args = t\POST(); else t\POST($args);
   if ($args) t\POST($args); else $args = t\POST();
   u\loga('in', $args);
-  extract(u\just('op device agent member version', $args));
+  extract(just('op device agent member version', $args));
   $args['version'] = (int) $version;
   
   if (!$op or !in_array($op, ray('time identify photo charge payment undo'))) return posErr('bad op');
@@ -152,7 +152,7 @@ function posErr($message, $subs = [], $extra = []) {
 function getTime($args) {
   global $mya;
   if ($err = missingArg($keys = 'version', $args)) return posErr($err); 
-  extract(u\just($keys . ' data', $args));
+  extract(just($keys . ' data', $args));
   $time = r\rTime();
   
   if ($version < RPOS_VERSION) $message = $version < 218 
@@ -188,11 +188,11 @@ function getTime($args) {
  */
 function identify($args) {
   global $mya;
-  if ($err = missingArg($keys = 'device member code version', $args)) return posErr($err); // no agent on scanin
-  extract(u\just($keys . ' agent pin signin', $args));
 
   $companyInfo = getCompanyInfo();
-  
+  if ($err = missingArg($keys = 'device member code version', $args)) return posErr($err, [], $companyInfo);
+  extract(just($keys . ' agent pin signin', $args)); // no agent on scanin
+
   if (@$agent) { // get other party
     if ($info = machine(@$member, $code)) return ok($info + $companyInfo); // purchase from fuel pump or other machine
     if (!$a = getMember(@$member, $code, $err, $version > 217)) return posErr($err, [], $companyInfo);
@@ -266,7 +266,7 @@ function identify($args) {
  */
 function photo($args) {
   if ($err = missingArg($keys = 'member', $args)) return photoReturn($err);
-  extract(u\just($keys . ' code version', $args));
+  extract(just($keys . ' code version', $args));
 
   if (!@$member) return photoReturn('missing member');
 // FAILS in background in version 217  if (!@$code) return posErr(missingArg('code', []));
@@ -320,7 +320,7 @@ function charge($args, $type = 'charge') {
   
   $keys = 'agent member amount goods description created';
   if ($err = missingArg($keys, $args)) return posErr($err);
-  extract(u\just($keys . ' proof force version', $args));
+  extract(just($keys . ' proof force version', $args));
 
   if (!@$member) return posErr('missing member'); // handle empty string (versus missing param)
   if ($version > 216 and !@$proof) return posErr(missingArg('proof', []));
@@ -417,7 +417,7 @@ function machine($member, $code){
  * Tell the device owner about a failed background transaction
  */
 function badTx($args, $account, $msg, $subs = []) {
-  extract(u\just('force amount created', $args));
+  extract(just('force amount created', $args));
   
   if (@$force) {
     global $mya;
@@ -444,7 +444,8 @@ function getCompanyInfo() {
   $can = ($mya->coFlags >> APP_CANS) & APP_CAN_MASK;
   $can |= $agentCans << (APP_CAN_BITS + 1); // extra bit is for "manage" permission
   $bad = db\q("SELECT CONCAT(qid, ',', code) FROM r_bad")->fetchCol() ?: [];
-  return compact('descriptions', 'bad', 'can');
+  $balance = $mya->balance;
+  return compact(ray('descriptions bad can balance'));
 }
 
 /**

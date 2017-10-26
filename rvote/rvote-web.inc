@@ -46,7 +46,7 @@ function formEvents($form, &$sta, $args = '') {
   include_once __DIR__ . '/rvote-ballot.inc';
   include_once __DIR__ . '/rvote-results.inc';
   
-  extract(u\just('question do results noProxies', $args));
+  extract(just('question do results noProxies', $args));
 
   $mya = w\eLinkAcct($sta, $args, r\acct() ? 'acct' : 'individual'); // allow any signed in account, so user can switch to personal account, below
   $cttyA = $mya->cttyA;
@@ -134,7 +134,7 @@ EOF;
 }
 
 function formEvents_validate($form, &$sta) {
-  extract(u\just('question agree op', $sta['input']));
+  extract(just('question agree op', $sta['input']));
   $mya = w\eLinkAcct($sta, $args);
   if (@$question < 0 and w\op($sta) == 'submit') {
     // for each option, if blank then error
@@ -142,7 +142,7 @@ function formEvents_validate($form, &$sta) {
 }
 
 function formEvents_submit($form, &$sta) {
-  extract(u\just('question agree op', $sta['input']));
+  extract(just('question agree op', $sta['input']));
   $mya = w\eLinkAcct($sta, $args);
   $ctty = $mya->community;
 
@@ -183,7 +183,7 @@ function formEvent($form, &$sta, $eid = NULL, $do = 'edit') {
   global $base_url, $mya;
 
   $typeDescs = ray(t('I:Meeting,V:Vote,G:Grading,P:RFP'));
-  if (strpos($eid, '=')) extract(u\just('eid do', $eid)); // passed from rdo()
+  if (strpos($eid, '=')) extract(just('eid do', $eid)); // passed from rdo()
   
   if (isset($eid)) {
     $fields = 'type,event,details,start,end';
@@ -258,7 +258,7 @@ EOF;
 }
 
 function formEvent_validate($form, &$sta) {
-  extract(u\just('type start end', $sta['input']));
+  extract(just('type start end', $sta['input']));
   if (w\blank_field(compact('type'))) return NULL;
   foreach (['start', 'end'] as $k) if ($err = u\badDate($$k, strtotime('-1 day'), strtotime('+1 year'))) return w\say($err, $k);
   u\preray(compact('start', 'end'), $sta['input']);
@@ -266,7 +266,7 @@ function formEvent_validate($form, &$sta) {
 
 function formEvent_submit($form, &$sta) {
   global $base_url;
-  extract($info = u\just('id type event details start end', $sta['input']));
+  extract($info = just('id type event details start end', $sta['input']));
   global $mya;
   $info['end'] = strtotime('+1 day', $end) - 1; // just before the start of the next day
   db\update('r_events', $info + ['ctty' => $mya->community], @$id ? 'id' : '', TRUE);
@@ -279,7 +279,7 @@ function formEvent_submit($form, &$sta) {
 function formQuestion($form, &$sta, $args = '') {
   global $base_url;
   
-  extract(u\just('eid qid', $args));
+  extract(just('eid qid', $args));
   
   global $mya;
   if (!$add = empty($qid)) {
@@ -324,7 +324,7 @@ function formQuestion($form, &$sta, $args = '') {
 }
 
 function formQuestion_validate($form, &$sta) {
-  extract(u\just('type budget optOrder', $sta['input']));
+  extract(just('type budget optOrder', $sta['input']));
   if ($type == 'M' or $type == 'B') foreach (['type', 'optOrder'] as $k) if (w\blank_field(compact($k))) return NULL;
   if (!@$budget) $budget = 0;
   if ($err = u\badAmount($budget)) return say($err, 'budget');
@@ -333,7 +333,7 @@ function formQuestion_validate($form, &$sta) {
 
 function formQuestion_submit($form, &$sta) {
   global $base_url;
-  extract($info = u\just('id event text detail linkDiscussion type budget optOrder', $sta['input']));
+  extract($info = just('id event text detail linkDiscussion type budget optOrder', $sta['input']));
   db\update('r_questions', $info, @$id ? 'id' : '', TRUE);
   r\go("$base_url/community/events/event/$event", 'info saved');
 }
@@ -344,7 +344,7 @@ function formQuestion_submit($form, &$sta) {
 function formOption($form, &$sta, $args = '') {
   global $base_url;
 
-  extract(u\just('qid oid', $args));
+  extract(just('qid oid', $args));
   
   global $mya;
   if (!$add = empty($oid)) {
@@ -370,7 +370,7 @@ function formOption_validate($form, &$sta) {
 
 function formOption_submit($form, &$sta) {
   global $base_url;
-  extract($info = u\just('id question text detail', $sta['input']));
+  extract($info = just('id question text detail', $sta['input']));
   db\update('r_options', $info, @$id ? 'id' : '', TRUE);
   r\go("$base_url/community/events/question/qid=$question", 'info saved');
 }
@@ -381,7 +381,7 @@ function formOption_submit($form, &$sta) {
 function formProposalReport($form, &$sta, $args = '') {
   include_once __DIR__ . '/../rvote/rvote.inc';
   include_once __DIR__ . '/../rvote/rvote-ballot.inc';
-  extract(u\just('p', $args));
+  extract(just('p', $args));
   
   $mya = w\eLinkAcct($sta, $args, 'acct'); // allow any signed in account, so user can switch to personal account, below
 
@@ -405,7 +405,7 @@ function formProposalReport($form, &$sta, $args = '') {
  */
 function formProposalNotes($form, &$sta, $args = '') {
   include_once __DIR__ . '/../rvote/rvote.inc';
-  extract(u\just('p', $args));
+  extract(just('p', $args));
 
   if (!@$p or !$project = db\lookup('project', 'r_proposals', 'id=:p', compact('p'))) return r\go('empty', t('No such proposal.'));
 
@@ -536,7 +536,7 @@ EOF;
 } 
   
 function formProposal_validate($form, &$sta) {
-  extract(u\just('cats when until amount budgetTotal phone email', $sta['input']));
+  extract(just('cats when until amount budgetTotal phone email', $sta['input']));
   if (!@$cats) return say(t('You must choose at least one category.'), 'categories');
   if ($err = u\badDate($when, time())) return sayFieldErr($err, 'when');
   if ($err = u\badDate($until, $when)) return sayFieldErr($err, 'until');
@@ -552,7 +552,7 @@ function formProposal_submit($form, &$sta) {
   global $mya;
   $input['ctty'] = $mya->community;
   $input['categories'] = join(' ', array_keys($input['cats']));
-  db\insert('r_proposals', $info = u\just($dbFields, $input));
+  db\insert('r_proposals', $info = just($dbFields, $input));
   r\tellCO('funding proposal received', $info);
   r\go('community', t('Your funding application has been submitted! The process of evaluating proposals may take several weeks. You will hear from us whether or not your proposal is chosen for funding.'));
 }

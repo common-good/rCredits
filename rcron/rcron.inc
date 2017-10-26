@@ -88,10 +88,20 @@ function doTask($item) {
 function periodic() {
   if ($row = db\q('SELECT * FROM queue WHERE expire<>0 LIMIT 1')->fetchAssoc()) {
     r\tellAdmin('task timed out', $row); // shouldn't happen. Drupal's queue processing hangs until we delete.
-    db\q('DELETE FROM queue WHERE item_id=:item_id', u\just('item_id', $row));
+    db\q('DELETE FROM queue WHERE item_id=:item_id', just('item_id', $row));
   }
+
   often('hour', '00');
   often('day', R_DAILY_HOUR); // longer periods get queued in lessOften(), so notices are last
+
+  $cttys = db\q('SELECT uid FROM users WHERE uid<0')->fetchCol();
+  foreach ($cttys as $ctty) { // should never happen, but it does. figure out where.
+    $a = r\acct($ctty);
+    foreach ([B_UP, B_CGC] as $bit) if (!$a->can($bit)) {
+/**/  r\tellAdmin(t('Community bits got unset!'), ray('ctty bit time trace', $ctty, $bit, time(), print_r(debug_backtrace(), 1)));
+      $a->setBit($bit);
+    }
+  }
 //  $lastDaily = \variable_get('daily', 0);
 //  if (strftime('%H') >= R_DAILY_HOUR and strftime('%d') != strftime('%d', $lastDaily)) everyDay();
 //  if (strftime('%M') == '00') everyHour();
@@ -105,6 +115,8 @@ function everyHour() {
     $lastTime = @$lastCron['day'];
     if (r\rTime() - $lastTime > DAY_SECS) r\tellAdmin('daily cron FAILED');
   }
+  db\q('DELETE FROM cache_form WHERE created<:REQUEST_TIME-:HOUR_SECS');
+
   // r\tellAdmin('hourly cron');
 }
 
@@ -113,7 +125,7 @@ function everyHour() {
  */
 function acctHourly($item) {
   return; // nothing to do, currently
-  extract(u\just('uid', $item));
+  extract(just('uid', $item));
   $a = r\acct($uid);
 //  $a->shortfall(FOR_GOODS, PHP_INT_MAX); // notice recent deposits, if any
 }
@@ -190,7 +202,7 @@ EOF;
  * Remind invitee to accept invitation.
  */
 function tickleSignup($item) {
-  extract(u\just('email inviter code elapsed', $item));
+  extract(just('email inviter code elapsed', $item));
   if (r\acct($email = u\decryptN($email))) return; // invitee already began to open an account
   $inviterName = r\acct($inviter)->fullName;
 //  $count = $elapsed < 7 ? t('two') : ($elapsed < 14 ? t('one') : 0);
@@ -204,7 +216,7 @@ function tickleSignup($item) {
  * Remind newb to take another step.
  */
 function tickleStep($item) {
-  extract(u\just('uid elapsed', $item));
+  extract(just('uid elapsed', $item));
   $a = r\acct($uid);
   if (!$a->member and $step = $a->nextStep()) {
     $msg = ($step == 'signup' or $step == 'verify') ? 'do step one' : 'take another step';
@@ -226,7 +238,7 @@ function tickleStep($item) {
  * Calculate credit line (for overdrafts etc.): give the member (r)credit up to their average monthly throughput over the past 6 months (which comes to 1/6 their monthly throughput if they've been in for a month, 2/6 for 2 months, etc, up to 100% at 6 months)
  */
 function tickleActive($item) {
-  extract(u\just('uid months monthly', $item));
+  extract(just('uid months monthly', $item));
   $a = r\acct($uid);
   $ratio = ($monthly+=0) ? $a->floor / $monthly : 1;
   if ($ratio > 1.1 or $ratio < .9) { // big change (or any change in sign)
@@ -280,7 +292,7 @@ function everyWeek() {
   db\q("UPDATE users SET minimum=minimum+saveWeekly WHERE $refillable AND saveWeekly>0 AND minimum>=GREATEST(0, floor)"); // build up savings
 //  db\q('UPDATE users SET savingsAdd=GREATEST(0, savingsAdd+saveWeekly) WHERE :IS_OK AND :HAS_BANK AND saveWeekly<>0'); // save or unsave
   $today = strtotime('today');
-  $start = strtotime('-6 months', $today);
+  $start = strtotime('-7 weeks', $today);
   $sql = "SELECT uid, SUM(t.amount) AS total, balance, $today AS today, $start AS start FROM users u LEFT JOIN r_txs t ON t.payee=u.uid WHERE u.:IS_OK AND u.:IS_CASHOUT AND u.:HAS_BANK AND t.created BETWEEN $start AND $today GROUP BY t.payee";
   queueEach('cashout', $sql);
 }
@@ -326,7 +338,7 @@ function everyYear() {
  * Calculate and credit inflation adjustment to each member account.
  */
 function inflationAdjust($item) {
-  extract(u\just('uid start end', $item));
+  extract(just('uid start end', $item));
   $a = r\acct($uid);
   if ($a->slave) return; // slave in joint account gets no inflation (master gets inflation for both)
   if (db\exists('r_txs', 'payee=:uid AND type=:TX_INFLATION AND created>=:end', compact('uid', 'end'))) return;
@@ -343,7 +355,7 @@ function inflationAdjust($item) {
  * Allow this even if account is inactive (donation has already been made, from member's point of view).
  */
 function roundup($item) {
-  extract(u\just('uid donate', $item));
+  extract(just('uid donate', $item));
   $a = r\acct($uid);
   if ($donate > 0) be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('roundups desc'), u\monthDay1() - 1, TRUE, ['roundups' => TRUE, 'gift' => TRUE]);
 }
@@ -353,7 +365,7 @@ function roundup($item) {
  * Allow this even if account is inactive (donation has already been made, from member's point of view).
  */
 function crumbs($item) {
-  extract(u\just('uid donate cgf', $item));
+  extract(just('uid donate cgf', $item));
   $flags = ray('crumbs gift', TRUE, TRUE);
   list ($a, $cgfA) = [r\acct($uid), r\acct($cgf)];
   if ($donate > 0) be\transfer('payment', $a, $cgfA, $donate, FOR_GOODS, t('crumbs desc'), u\monthDay1() - 1, TRUE, $flags);
@@ -364,7 +376,7 @@ function crumbs($item) {
  */
 function cgc($item) {
 //  return; // no yet
-  extract(u\just('ctty in out cgf end', $item));
+  extract(just('ctty in out cgf end', $item));
   $kickBack = round(($in - $out) / 2, 2);
   if ($kickBack > 0) {
     list ($a, $cgfA) = [r\acct($ctty), r\acct($cgf)];
@@ -495,7 +507,7 @@ function acctStats() {
  * picture (an otherwise unused field) will be minPastMo in cents (ready for r\stats to SUM)
  */
 function acctStats1($item, $asof = NULL) {
-  extract(u\just('uid', $item));
+  extract(just('uid', $item));
   u\setDft($asof, r\rTime());
   $a = r\acct($uid);
   $asof = strtotime('today', $asof);
@@ -568,7 +580,7 @@ EOF;
 }
 
 function cttyStats1($item) {
-  extract(u\just('ctty created', $item));
+  extract(just('ctty created', $item));
   r\getStats($ctty, @$created); // record stats for one community on the regional server, for the given date
   // this fails on cross-community txs!  if ($ctty != 0) if ($err = badStats($ctty, $created)) return 
 }
@@ -694,17 +706,17 @@ EOF;
 }
 
 function completeUsdTx($item) {
-  extract(u\just('txid payee amount channel', $item));
+  extract(just('txid payee amount channel', $item));
   $realAmt = db\lookup('amount', 'r_usd', 'txid=:txid', compact('txid'));
   if ($amount != $realAmt) r\tellAdmin('bad completeUsdTx amount', $item + compact('realAmt'));
   r\acct($payee)->completeUsdTx($txid, $amount, @$channel == TX_CRON);
 }
 
 /**
- * Automatically cashout accounts that choose to, leaving average weekly gross in the account.
+ * Automatically cashout accounts that choose to, leaving average weekly gross (over past 7 weeks) in the account.
  */
 function cashout($item) {
-  extract(u\just('uid total today start', $item));
+  extract(just('uid total today start', $item));
   if (!$first = db\lookup('created', 'r_txs', 'payee=:uid ORDER BY created LIMIT 1', compact('uid'))) return;
   $days = round(($today - max($start, $first)) / DAY_SECS); // number of days over which to find weekly average gross
   $avg = 7 * $total / $days;
@@ -721,7 +733,7 @@ function cashout($item) {
 }
 
 function bank1($item) {
-  extract(u\just('uid', $item));
+  extract(just('uid', $item));
   $a = r\acct($uid);
   if ($a->slave) return; // slaves don't have automatic refills
   if (!$amount = getHowMuchR($a)) return; // check shortfall here NOT in query, balance may change
@@ -732,7 +744,7 @@ function bank1($item) {
 }
 
 function draw1($item) {
-  extract(u\just('uid ma', $item)); // ma is UNUSED
+  extract(just('uid ma', $item)); // ma is UNUSED
   $a = r\acct($uid);
   if ($a->jid) return; // don't draw within a joint account
   if (!$amount = getHowMuchR($a, FALSE)) return;
@@ -768,7 +780,7 @@ function invoices() {
 }
 
 function invoice($item) {
-  extract(u\just('nvid payer payee amount purpose status created', $item));
+  extract(just('nvid payer payee amount purpose status created', $item));
   $a = r\acct($payer);
   $payeeName = r\acct($payee)->fullName;
   
@@ -815,7 +827,7 @@ function notices() {
 }
 
 function notice($item) {
-  extract(u\just('uid daily weekly monthly', $item));
+  extract(just('uid daily weekly monthly', $item));
 
   $now = r\rTime();
   if ($args = r\noticeArgs($uid, 'NOT sent', $weekly, $monthly)) {

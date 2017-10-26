@@ -36,7 +36,7 @@ function formTxs($form, &$sta, $args = '') {
   $optHelp = $agtViaBoxHelp . t('||Exchanges are 1-to-1 trades of US Dollars for %RCREDITS (usually automatic).|PExchanges are daily automatic payment exchanges of %RCREDITS between company and employee. The company pays the employee in US Dollars, then the employee trades back some US Dollars 1-to-1 for %RCREDITS. The net effect is that the employee gets paid partly in US Dollars, partly in %RCREDITS.');
   global $mya;
 
-  extract(u\just('options period starting ending do xid download downloaded', $args)); 
+  extract(just('options period starting ending do xid download downloaded', $args)); 
   
   global $testPeriod; $testPeriod = @$period ?: TX_DEFAULT_PERIOD; // remember for tests
   if (@$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
@@ -50,7 +50,7 @@ function formTxs($form, &$sta, $args = '') {
   }
   */
   
-  extract(u\just('dateRange url starting ending', dateRange($args, 'history/transactions')));
+  extract(just('dateRange url starting ending', dateRange($args, 'history/transactions')));
 
 //  $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
   $descending = TRUE;
@@ -127,7 +127,7 @@ EOF;
 
   $divider = item('<hr>');
   $title = item(t('Transaction History'));
-  extract(u\just('simple advanced', $dateRange));
+  extract(just('simple advanced', $dateRange));
   $dateRange = w\fieldSet('dateRange', compact('simple', 'advanced'), BARE);
   $form = compact('title') + compact(ray('dateRange summary transactions states'));
   return labeled($form);
@@ -180,7 +180,7 @@ function handleTx($do, $xid, &$sta, $args) {
     if (!$mya->superAdmin) return FALSE; // only top admin can do this currently
     u\EXPECT($do == 'no', 'trying to edit bank transfer');
     $tx = db\lookup('*', 'r_usd', 'txid=:xid', ['xid'=>substr($xid, 1)]);
-    foreach (u\just('txid amount tid', $tx) as $k => $v) $tx[$k] = -$v; // reverse transfer
+    foreach (just('txid amount tid', $tx) as $k => $v) $tx[$k] = -$v; // reverse transfer
     extract($tx);
     if (!$deposit) { // transfer request has not been processed yet
       $deposit = $tx['deposit'] = r\rTime(); // mark both done
@@ -217,7 +217,7 @@ function txOKorNO($task, $xid) {
 function txEdit($xid) {
   global $mya;
   if (!$myx = r\MyX::lastTx($mya, 'xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
-  extract(u\just('taking toMe payer payee amount goods payerFor payeeFor created', $myx->ray));
+  extract(just('taking toMe payer payee amount goods payerFor payeeFor created', $myx->ray));
   
   if (!$mya->can($taking ? B_SELL : B_BUY)) return FALSE;
   
@@ -243,16 +243,16 @@ function txEdit($xid) {
 function txEdit_validate($form, &$sta) {
   global $base_url;
   global $mya;
-  extract(u\just('created0 created amount goods purpose orig', $sta['input']));
+  extract(just('created0 created amount goods purpose orig', $sta['input']));
   extract($orig = unserialize(htmlspecialchars_decode($orig)), EXTR_PREFIX_ALL, 'x');
+  $dif = abs($amount - $x_amount);
   
   if ($goods == FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
-  if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
+  if ($dif and $err = u\badAmount($amount, $mya->cAdmin ? '' : '>0')) return say($err, 'amount');
   if (isset($created) and $err = u\badDate($created, $created0 - 30 * DAY_SECS, time() + 7 * DAY_SECS)) return say($err, 'created');
 ///  debug(compact('x_toMe','amount','x_amount'));
   if (!$mya->cAdmin and ($x_toMe ? ($amount > $x_amount) : ($amount < $x_amount))) {
     $who = r\acct($x_toMe ? $x_payer : $x_payee)->name;
-    $dif = abs($amount - $x_amount);
     $action = $x_toMe ? t('increase') : t('decrease');
     $date = u\fmtDate($x_created);
     $amount = u\fmtAmt($amount);
@@ -265,7 +265,7 @@ function txEdit_validate($form, &$sta) {
 }
 
 function txEdit_submit($form, &$sta) {
-  extract(u\just('created amount goods purpose orig', $sta['input']));
+  extract(just('created amount goods purpose orig', $sta['input']));
   extract($orig = unserialize(htmlspecialchars_decode($orig)), EXTR_PREFIX_ALL, 'x');
   $a = r\acct(); $id = $a->id;
   $x = r\x($x_xid, $a);
@@ -424,10 +424,10 @@ function formInvoices($form, &$sta, $toFrom, $args = '') {
   w\downloadCheck('history/invoices-' . $toFrom);
 
   $toMe = ($toFrom == 'to');
-  extract(u\just('period starting ending download downloaded states nvid do', $args)); 
+  extract(just('period starting ending download downloaded states nvid do', $args)); 
 
   $choices = array(t('open'), t('paid'), t('denied'));
-  extract(u\just('dateRange url starting ending states', dateRange($args, "history/invoices-$toFrom", $choices, '0,1,2')));
+  extract(just('dateRange url starting ending states', dateRange($args, "history/invoices-$toFrom", $choices, '0,1,2')));
 
   if (@$do == 'ok') {$ok = be\payInvoice($nvid, $msg); say($msg, $ok ? '' : 'ERR');}
   if (@$do == 'no') return r\go("handle-invoice/nvid=$nvid&toMe=$toMe&ret=" . u\urlify($url));
@@ -443,7 +443,7 @@ function formInvoices($form, &$sta, $toFrom, $args = '') {
   return labeled($form);
 }
 
-function formInvoices_validate($form, &$sta) {w\dateRangeValidate($sta);}
+function formInvoices_validate($form, &$sta) {w\dateRangeValidate($sta, FALSE);}
 
 function formInvoices_submit($form, &$sta) {
   dateRangeRedirect('history/invoices-' . $sta['input']['toFrom'], $sta);

@@ -12,6 +12,10 @@
 
 .smallish {font-size:85%;}
 .skip {margin-left:10px;}
+.positive {color:green;} /* highlights donations and other happy amounts */
+#edit-none {display:none;} /* for hidden submit button */
+
+#orgname {display:none;}
 
 @media (min-width: 768px) { /* same as cg.css, but lower threshold (since no "Common Good" and no signin) */
   .nav2 {left:0;}
@@ -132,6 +136,15 @@ textarea.form-control {height:100px;}
   #rcreditswebformhelp .control-label {display:none !important;}
   #edit-agreement .control-data,
   #rcreditswebformhelp .control-data {width:100% !important;}
+  #rcreditswebformbuy .control-label {display:none;}
+  #rcreditswebformbuy .control-data {text-align:center;}
+  #rcreditswebformbuy #edit-account {margin:0 auto;}
+  
+  .page-pay-with-cg {background-color:white !important;}
+  .page-pay-with-cg #page-wrapper {margin-top:0 !important; max-width:100% !important; max-height:200% !important; border:0 !important; box-shadow:none !important;}
+  .page-pay-with-cg .navbar {max-width:100% !important; margin-top:0 !important; }
+  .page-pay-with-cg .navbar .container {margin:0 !important;}
+  
 }
 
 #which option:hover {background-color:#7CC6F0;}
@@ -347,9 +360,11 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 
 /* Admin Followup Calls */
 #rcreditswebformfollowup label {display:none;}
-#rcreditswebformfollowup #memberlist th:first-child +th {width:85px;}
-#rcreditswebformfollowup #memberlist th:first-child +th +th {width:170px;}
-#rcreditswebformfollowup #memberlist th:first-child +th +th +th {width:95px;}
+#rcreditswebformfollowup #memberlist th.hd-type,
+#rcreditswebformfollowup #memberlist th.hd-call {width:85px;}
+#rcreditswebformfollowup #memberlist th.hd-name {width:170px;}
+#rcreditswebformfollowup #memberlist th.hd-ctty,
+#rcreditswebformfollowup #memberlist th.hd-phone {width:95px;}
 
 /* Member List */
 #memberlist .name a {font-weight:bold;}
@@ -383,6 +398,11 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #taxes td:first-child {font-weight:bold; text-align:left;}
 #rcreditswebformhelp #special-flag {font-size:100%; margin-bottom:20px;}
 
+/* Honors */
+#rcreditswebformhonors .well {display:inline-block; width:200px; margin:3px 10px;}
+#rcreditswebformhonors #edit-list {width:100%;}
+#rcreditswebformhonors .honor-type {width:300px; text-align:center; font-weight:bold; font-size:30px; color:darkgreen; margin:35px auto 20px auto; padding-right:100px;}
+
 /* Summary / Member Info / Account Info */
 #rcreditswebformsummary .form-item-left {float:left; width:50%;}
 #rcreditswebformsummary .form-item-right {float:right; width:50%;}
@@ -390,11 +410,21 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformsummary .form-item-left>label {display:none;}
 #rcreditswebformsummary .form-item-right .control-data,
 #rcreditswebformsummary .form-item-left .control-data {width:auto;}
+#rcreditswebformsummary .form-item-left h3.above-details {text-align:center; line-height:18px;}
+#rcreditswebformsummary .form-item-left h3.above-details span {font-size:50%; font-weight:normal; color:gray;}
+#rcreditswebformsummary #intros {text-align:center; margin-bottom:10px;}
+#rcreditswebformsummary #intros div {text-align:left;}
+#rcreditswebformsummary #email-details {background-color:lightyellow; padding:10px; margin:5px 0;}
 #rcreditswebformsummary .admin label {min-width:100px;}
-#rcreditswebformsummary .admin .control-data {width:auto; max-width:380px;}
-#rcreditswebformsummary .admin textarea {width:380px;}
-#rcreditswebformsummary .admin .form-checkboxes {width:380px;}
-#rcreditswebformsummary #edit-notes .control-data {width:380px; max-height:150px; overflow-x:hidden; overflow-y:scroll; overflow-wrap:break-word}
+#rcreditswebformsummary .admin .control-data {width:auto; max-width:auto;}
+#rcreditswebformsummary #left2.admin .control-data,
+#rcreditswebformsummary #right2.admin .control-data {width:450px; max-width:500px;}
+#rcreditswebformsummary #left2.admin #edit-details .control-data {width:auto; max-width:650px;}
+#rcreditswebformsummary #left2.admin #edit-details>.control-data,
+#rcreditswebformsummary #left2.admin .scripts {width:100%; max-width:100%;}
+#rcreditswebformsummary .admin textarea {width:450px;}
+#rcreditswebformsummary .admin .form-checkboxes {width:500px; max-width:500px;}
+#rcreditswebformsummary #edit-notes .control-data {width:450px; max-height:150px; overflow-x:hidden; overflow-y:scroll; overflow-wrap:break-word}
 #rcreditswebformsummary #edit-tickle {max-width:120px; display:inline-block;}
 #rcreditswebformsummary #edit-photo img {max-width:100px;}
 #rcreditswebformsummary #edit-creditlimit .help-block,
@@ -402,6 +432,10 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformsummary #edit-balance .help-block,
 #rcreditswebformsummary #edit-rewards .help-block {display:inline-block; margin:0;}
 #rcreditswebformsummary #edit-topButtons a {margin-right:10px;}
+/*#rcreditswebformsummary .admin #user-picture {position:fixed; top:80px; right:50%; z-index:99;}*/
+#rcreditswebformsummary .admin #edit-photo {position:absolute; top:5px; right:15px; z-index:1;}
+#rcreditswebformsummary .admin #edit-photo .control-label {display:none;}
+#rcreditswebformsummary .admin #edit-photo .control-data {width:auto;}
 
 #rcreditswebformsummary .form-type-item {margin-bottom:0;}
 
@@ -415,10 +449,38 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 
 /* Pay/Charge/Tx */
 
+/* Pay With CG */
+.page-pay-with-cg {width:100%; height:100%; background-color:#ccffff;}
+.page-pay-with-cg #orgname {display:inline-block;}
+.page-pay-with-cg #page-wrapper {max-width:440px; max-height:510px; margin:50px auto 0 auto; border:1px solid silver; border-top:0; box-shadow: 5px 5px 10px #888888; background-color:white; -webkit-border-radius: 15px; border-radius: 15px;}
+.page-pay-with-cg .navbar {max-width:440px; margin:50px auto 0 auto;}
+.page-pay-with-cg .navbar .container {margin:0 0 0 15px;}
+.page-pay-with-cg #navbar,
+.page-pay-with-cg .navbar-header button,
+.page-pay-with-cg #main-menu button,
+.page-pay-with-cg #footer-menu,
+.page-pay-with-cg #footer-details,
+.page-pay-with-cg .breadcrumb {display:none !important;}
+.page-pay-with-cg #messages {margin:0 0 0 0; padding-bottom:0;}
+.page-pay-with-cg #messages .messages {display block; width:100%; box-shadow:none; -webkit-border-radius:0; border-radius:0; margin-bottom:0; border:0;}
+
+#rcreditswebformbuy .control-label {width:100px; min-width:0; text-align:right;}
+#rcreditswebformbuy .control-data {width:70%;}
+#rcreditswebformbuy #edit-subtext {margin-bottom:0px;}
+#rcreditswebformbuy #edit-subtext h4 {margin:0;}
+#rcreditswebformbuy #edit-payment {vertical-align:top; margin-top:0px;}
+#rcreditswebformbuy #edit-payment .control-data label {display:none;}
+#rcreditswebformbuy #edit-payment .control-data .form-type-textfield {display:inline-block; max-width:50px; margin:0;}
+#rcreditswebformbuy #edit-amount {height:20px; padding:0 2px;}
+#rcreditswebformbuy #edit-account {width:210px;}
+#rcreditswebformbuy #edit-title .control-label {width:0;}
+#rcreditswebformbuy #edit-title .control-data {width:100%; text-align:center;}
+#rcreditswebformbuy .form-horizontal .form-group {margin-left:0; margin-right:0;}
+#rcreditswebformbuy .form-item-submit button {margin-right:5px;}
+
 /* Agreement */
 #rcreditswebformagreement #instructions {background:lightyellow;}
-#rcreditswebformagreement  .checkbox {display:inline-block; padding-right:10px;}
-#rcreditswebformagreement  .checkbox  input {position:relative; left:0; top:2px;}
+#rcreditswebformagreement .checkbox {display:inline-block; width:0; position:relative; left:-37px; top:5px; z-index:1;}
 #rcreditswebformagreement #edit-agreement .control-label {max-width:8.3%; min-width:0; margin:0; padding:0;} 
 #rcreditswebformagreement #edit-agreement .control-data {max-width:900px; width:80%;}
 #rcreditswebformagreement #agreement ul,

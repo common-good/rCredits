@@ -79,10 +79,15 @@ function setupBasicAccounts() {
 
 /**
  * Re-setup the test cards on the STAGING server, after importing data from the PRODUCTION server.
+ * Set bogus email addresses and phones so we DEFINITELY don't accidentally email someone (happened once)
   f('a.makeTestAccounts');
  */
+ define('TEST_ACCTS', 'aaa aab aad aaq aak abb');
+ define('DEV_ACCTS', ''); // developer accounts
+ define('R_COS', 'CAAAAA RMCAAA MIWAAA INAAAA NEWAAD NEWAIG NEWAKH NENAAB NEWALJ NEWAKD'); // community organizers, staff, and programmers to treat as cAdmins on test server (not the superAdmin, so he can sign in as an ordinary user).
+ 
 function makeTestAccounts() {
-  if (isPRODUCTION) return;
+  if (isPRODUCTION) return; // protects us even if the constant is not set
 
   $a = a('aab');
   $selling = "groceries\ngifts\nsundries\ndeli\nbaked goods";
@@ -90,12 +95,11 @@ function makeTestAccounts() {
 //  $a->setBitx(CO_REQUIRE_CASHIER, FALSE, 'coFlags');
 
   $a = a('aaa');
-  $a->update('name fullName cardCode2 pin', 'mariamanager', 'Maria Manager', 'WeHlioM5JZv1O9G', '1234');
+  $a->update('name fullName cardCode2', 'mariamanager', 'Maria Manager', 'WeHlioM5JZv1O9G');
   a\photoFromFile($a);
-  $a->setBit(B_CADMIN, FALSE); // easier to test the average user's experience if we can sign in as one
   
   $a = a('aad');
-  $a->update('name fullName cardCode2 pin', 'cathycashier', 'Cathy Cashier', 'ME04nW44DHzxVDg', '1234');
+  $a->update('name fullName cardCode2', 'cathycashier', 'Cathy Cashier', 'ME04nW44DHzxVDg');
   a\photoFromFile($a);
   
   $a = a('aaq');
@@ -104,17 +108,24 @@ function makeTestAccounts() {
   a\photoFromFile($a);
   
   $a = a('aak');
-  $a->update('name fullName cardCode cardCode2 pin', 'curtcustomer', 'Curt Customer', 'NyCBBlUF1qWNZ2k', 'utbYceW3KLLCcaw', '1234');
+  $a->update('name fullName cardCode cardCode2', 'curtcustomer', 'Curt Customer', 'NyCBBlUF1qWNZ2k', 'utbYceW3KLLCcaw');
   a\photoFromFile($a);
   
   $a = a('abb');
-  $a->update('name fullName cardCode pin', 'susanshopper', 'Susan Shopper', 'ZzhWMCq0zcBowqw', '1234');
+  $a->update('name fullName cardCode', 'susanshopper', 'Susan Shopper', 'ZzhWMCq0zcBowqw');
   a\photoFromFile($a);
   
+  foreach (ray(TEST_ACCTS) as $k) a($k)->update('email phone', 'test@example.com', '+14130000000'); // prevent accidental texts and emails to real accts
+  foreach (ray(TEST_ACCTS . ' ' . DEV_ACCTS) as $k) a($k)->update('community', -2); // isolate everyone into a bogus community
   a\makeTestAdmins();
 }
 
-function makeTestAdmins() {if (isSTAGE) foreach (ray(R_COS) as $k) if ($a = r\acct($k)) $a->setBit(B_CADMIN);}
+/**
+ * Let COs test, let techs manage testville
+ */
+function makeTestAdmins() {
+  if (isSTAGE) foreach (ray(R_COS . ' ' . DEV_ACCTS) as $k) if ($k and $a = a($k)) $a->setBit(B_CADMIN);
+}
 
 /**
  * Return a display of steps done and steps remaining (to open an account).
@@ -150,21 +161,23 @@ function showActivity($a) {
 function showRelations($a) {
   global $base_url;
   $uid = $a->id;
+  $jid = $a->jid ?: 0;
   $ret = '';
   $sql = <<<EOF
     SELECT IF(r.main=:uid, other, main) AS them, main, IF(r.main=:uid, u2.fullName, u1.fullName) as who, 
       permission, employee, isOwner, draw,
       u1.:IS_CO AS iCo, u2.:IS_CO AS uCo
     FROM r_relations r LEFT JOIN users u1 ON u1.uid=r.main LEFT JOIN users u2 ON u2.uid=r.other
-    WHERE :uid IN (r.main, r.other)
+    WHERE :uid IN (r.main, r.other) AND :uid<>:jid AND (permission OR employee OR isOwner OR draw OR isCustomer=0)
 EOF;
-  $q = db\q($sql, compact('uid'));
+  $q = db\q($sql, compact('uid', 'jid'));
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $permission += B_RELATED; // shift to use bit names
     $extra = '';
-    if ($isOwner and !$iCo and !$uCo) {
+    if ($isOwner and !$iCo and !$uCo) { // family
       $role = t('related to');
+      if ($draw) $role .= $uid == $main ? t(' and drawn on by') : t(' and draws on');
     } elseif ($uid == $main) {
       $qo = r\qo($main, $them);
       $extra = '<small> (' . r\qid($them) . ' / ' . a\cardLink("$main/$them") . ')</small>';
@@ -173,14 +186,14 @@ EOF;
         : ($permission >= B_MANAGE ? t('managed by')
         : (($permission >= B_SCAN or $employee) ? t('employs')
         : ($permission >= B_READ ? t('readable by')
-        : t('? by')))));
+        : t('probably employs')))));
     } else {
       $role = $isOwner ? t('owns')
         : ($draw ? t('draws from')
         : ($permission >= B_MANAGE ? t('manages')
         : (($permission >= B_SCAN or $employee) ? t('works for')
         : ($permission >= B_READ ? t('can read')
-        : t('can ?')))));
+        : t('probably works for')))));
     }
     $ret .= ($ret ? ', ' : '') . "$role <a href=\"$base_url/summary/$them\">$who</a>$extra";
   }
@@ -192,7 +205,7 @@ define('ID_KEYS', 'id uid t.uid myid payer payee main other inviter invitee prox
 /**
  * Return the given field, formatted for viewing.
  */
-function formatField($k, $v) {
+function formatField($k, $v, $flagsField = B_LIST) {
   $v = $v . ''; // convert to string
   if ($k == 'bankAccount' and u\starts($v, '~')) $v = 'c' . $v; // FUDGE to repair broken crypt flag (?)
   while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
@@ -202,7 +215,7 @@ function formatField($k, $v) {
   if ($v and $k == 'channel') $v = u\rayv(ray(TX_CHANNELS), $v);
   if ($k == 'reid') $v = str_replace(R_MEMBER_MARK, R_AGENT_MARK, r\qid($v));
   if ($v and in_array($k, ray(R_DATE_FIELDS))) $v = '<div style="line-height:65%;">' . strftime('%d%b', $v) . '<span style="font-size:50%;">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
-  if ($k == 'flags') $v = "<div style='text-transform:none; font-size:7px; line-height:11px;'>" . a\flagsDesc($v, B_LIST) . '</div>';
+  if ($k == 'flags') $v = "<div style='text-transform:none; font-size:7px; line-height:11px;'>" . a\flagsDesc($v, $flagsField) . '</div>';
   return $v;
 }
 
@@ -216,8 +229,9 @@ function formatField($k, $v) {
  */
 function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields = []) {
   $limit = 500; // max records to show
-  
   global $mya;
+  
+  $flagsField = $table == 'r_txs' ? TX_FLAGS : B_LIST;
   if (!$mya->admin and $joinFields) {
     if ($table != 'users') {
       if (!is_array($joinFields)) $joinFields = array($joinFields);
@@ -232,7 +246,7 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
   } else $fields = str_replace('t.', '', $fields);
 
   if ($order) $where .= " ORDER BY $order";
-  return w\showRecords(db\q("SELECT $fields FROM $table WHERE $where LIMIT $limit")->fetchAll(), 'rCredits\\Admin\\formatField');
+  return w\showRecords(db\q("SELECT $fields FROM $table WHERE $where LIMIT $limit")->fetchAll(), 'rCredits\\Admin\\formatField', $flagsField);
 }
 
 /**
@@ -244,7 +258,7 @@ function ssnShow($a) {
   
   $ssnData = @$a->ssnCheck();
   $d = @$ssnData['searchResults'] ?: []; // [] for admin without pw2
-  if ($err = $ssnData[SSN_ERR_INDEX]) $rows[] = ["<b style=\"color:red;\">ERROR</b>", $err, '', '', ''];
+  if ($err = @$ssnData[SSN_ERR_INDEX]) $rows[] = ["<b style=\"color:red;\">ERROR</b>", $err, '', '', ''];
   $name = $a->fullName . ($a->legalName == $a->fullName ? '' : "<br>$a->legalName");
   $rows[] = array(t('Data Given'), $name, u\fmtDate(is_numeric($a->dob) ? $a->dob: 0), r\location($a, TRUE), '', ''); // is_numeric check for admin without pw2
   $name = u\ssnName($one = (object) @$d['ssnnames']['ssnname']);
@@ -534,7 +548,7 @@ EOF;
  * @param bool $mark: whether to set the deposit date for each relevant transfer, in r_usd
  */
 function printCheck(&$ck, $pos, $tx, $mark) {
-  extract(u\just('txid created payee amount deposit bankAccount', $tx));
+  extract(just('txid created payee amount deposit bankAccount', $tx));
   $escrow = 'USkk' . ESCROW_ROUTING . ($amount > 0 ? ESCROW_IN : ESCROW_OUT);
   $a = r\acct($payee);
   $a->fixTxBankAccount($bankAccount, $txid);
@@ -632,49 +646,6 @@ function adminSignin() {
 }
 
 /*
-function vote20141214($uid = FALSE) {
-  $info = ['noFrame'=>TRUE, 'subject'=>'rCredits celebration! when can you come?'];
-  $sql = $uid ? 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid=:uid AND NOT :IS_CO ORDER BY fullName'
-    : 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid>1 AND NOT :IS_CO ORDER BY fullName';
-  $q = db\q($sql, ['ctty'=>r\serverUid()] + ($uid ? compact('uid') : []));
-  for ($i = 0; $row = $q->fetchAssoc(); $i++) {
-    $action = r\acct($row['uid'])->makeDo0('vote', '20141214');
-    $row += $info + compact('action');
-    w\say("mailing to ".$row['fullName']);
-    r\rMail('survey2014-12-14', $row['email'], $row); // strangely, $row + $info + compact('action') fails here
-  }
-  w\say($i . ' emails sent.');
-}
-
-function rsvp20141220($uid = FALSE) {
-  $info = ['noFrame'=>TRUE, 'subject'=>'rCredits Celebration / rCredits Seminar'];
-  $sql = $uid ? 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid=:uid AND NOT :IS_CO ORDER BY fullName'
-    : 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid>1 AND NOT :IS_CO ORDER BY fullName';
-  $q = db\q($sql, ['ctty'=>r\serverUid()] + ($uid ? compact('uid') : []));
-  for ($i = 0; $row = $q->fetchAssoc(); $i++) {
-    $action = r\acct($row['uid'])->makeDo0('yesno', '20141220');
-    $yes = "$action/yes=1";
-    $no = "$action/no=1";
-    $row += $info + compact('yes', 'no');
-    w\say("mailing to ".$row['fullName']);
-    r\rMail('rsvp2014-12-20', $row['email'], $row); // strangely, $row + $info + compact('action') fails here
-  }
-  w\say($i . ' emails sent.');
-}
-
-function endofyear2014($uid = FALSE) {
-  $info = ['noFrame'=>TRUE, 'subject'=>'rCredits Pilot Completed! / Seminar TONIGHT'];
-  $where = $uid ? 'uid=:uid' : 'NOT :IS_NONUDGE AND community=:ctty AND uid>1 AND NOT :IS_CO ORDER BY fullName';
-  $sql = 'SELECT uid,fullName,mail AS email FROM users WHERE ' . $where;
-  $q = db\q($sql, $uid ? compact('uid') : ['ctty'=>r\serverUid()]);
-  for ($i = 0; $row = $q->fetchAssoc(); $i++) {
-    $row += $info;
-    w\say("mailing to ".$row['fullName']);
-    r\rMail('endofyear2014', $row['email'], $row); // strangely, $row + $info + compact('action') fails here
-  }
-  w\say($i . ' emails sent.');
-}
-
 function moveFieldsToHidden() {
   $q = db\q("SELECT uid FROM users WHERE uid<>0");
   $dataFields = [];
@@ -702,7 +673,7 @@ function moveFieldsToHidden() {
 function secureVery($a = '') {
   if (!r\acct()->superAdmin) return; // don't bother if not admin
   if ($a) {
-    if ($vflds = u\just(R_VSECURE_FIELDS, $a->secure)) return $a->update($vflds); // extra encryption
+    if ($vflds = just(R_VSECURE_FIELDS, $a->secure)) return $a->update($vflds); // extra encryption
   } else {
     $q = db\q('SELECT uid FROM users WHERE :IS_OK');
     while ($row = $q->fetchAssoc()) secureVery(r\acct($row['uid']));
@@ -824,6 +795,156 @@ function nextMember($id = 0) {
   $members = db\col('uid', 'users', ':IS_OK AND NOT :IS_CO AND activated<1486098000 ORDER BY community, uid');
   $i = $id ? array_search($id, $members) : -1;
   return @$members[$i + 1];
+}
+
+/**
+ * Return a detailed script for calls to account-holders.
+ * @param string $type: annual, welcome, setup, pre, 
+ * @return a short description and details if suggested date is within a month +/- of standard welcome or annual call
+ */
+function callDetails($type = '', $when = '') {
+  global $mya;
+  
+  $now = time();
+  $keys = ray('nocall pre setup activate welcome annual');
+  $heads = ray(t('No call,Just beginning,Setup,Activate,Welcome,Annual'));
+  $heads = array_combine($keys, $heads);
+  $head = $heads[$type ?: 'nocall'];
+  $setup = in_array($type, ray('pre setup'));
+  $late = round(($now - $when) / DAY_SECS);
+  $subtext = $now < $when ? t('in %days days', 'days', -$late) : t('%late days overdue', compact('late'));
+  $subtext = !$when ? '' : "<br><span>$subtext</span>";
+  
+  if (!$mya->member) {
+    $head .= $setup ? '<p>Do you need help?</p>' : '';
+//    return "<div class=\"well\"><h3>$head$body</h3></div>";
+  }
+
+  $gifts = $mya->giftsDesc() ?: db\sum('amount', 'r_gifts', 'uid=:id', ['id' => $mya->id]); // a promised gift counts here
+  
+/*        $help = $gifts ? 'thanks' : 'ask';
+        $msg = t('<span class="loud">%when <b>Welcome</b></span> to %PROJECT, How\'s it going%lastTx? %help donation(s), %signupCo volunteer? [<%a>details</a>]', 'when lastTx help signupCo _a', u\fmtDate($when, TRUE), $a->lastTxDesc(), ucfirst($help), @$signupCo, w\atag("/help/welcome/gifts=$gifts"));
+         if ($a->paper) $msg .= t(' <span class="loud">Paper statements</span> at $%R_STATEMENT_COST/month &mdash; really?');
+    $gift = $gifts ? t('Thanks for donation(s). Annual gift?') : t('Donate?');
+    $feature = $a->co ? t('cash-out') : t('joint account');
+
+    return [t('Annual'), $when = strtotime("+$yearsIn years", $activated), t('<span class="loud">%when <b>Annual</b></span>: Thanks for participating. How\'s it going%lastTx? %gift Mailing address okay? Volunteer? Consider %feature? [<%a>details</a>]', 'when lastTx gift _a feature', u\fmtDate($when, TRUE), $a->lastTxDesc(), $gift, w\atag("/help/annual/gifts=$gifts&years=$yearsIn"), $feature)];
+         */
+      
+  $welcome = t('<li><b>Welcome</b> to %PROJECT. Thanks for participating!</li>');
+  if (!$mya->co and $myCo = $mya->firstCo()) {
+    list ($signupCo, $myCo) = ['', t(' (personally rather than for company "%myCo")', compact('myCo'))];
+  } else $signupCo = $mya->signupCo ? t('<li><b>Company</b>. How about signing up your company: %coName? (%co)</li>', 'co coName', w\signupCoDisplay($mya->signupCo, $coName), $coName) : '';
+  $notyet = t("<li><b>Want</b>. What's a place you would like to use your %PROJECT card but can't yet?</li>");
+  $how = t("<li><b>How's it going?</b> %myCo %lastTx Do you have any questions, suggestions, or concerns? Are you getting our newsletter? If you could change or improve one thing about the %PROJECT system, what would it be?</li>", '_lastTx myCo', $mya->lastTxDesc(), @$myCo) . $notyet;
+  if ($mya->paper) $how .= t('<li><b>Paper statements</b>. Do you really want paper statements? ($%R_STATEMENT_COST/month)</li>');
+  if ($mya->balance < 0) $how .= t('<li><b>Negative</b>. You have a negative balance of <%b>%bal</b>. Do you need help getting money into your account? That amount is, in effect, borrowed from your local community of %PROJECT members. So it is much better of course, for the community\'s financial health, if you bring your balance back up above zero when you can.</li>', '_b bal', 'b style="color:darkred;"', u\fmtAmt($mya->balance));
+  
+  $reason = $setup ? t('see if I might help you finish opening your %PROJECT account')
+  : ($type == 'welcome' ? t('welcome you to %PROJECT, check in, make sure you got your card, and ask you a couple questions')
+  : ($type == 'annual' ? t('thank you for being a member, make sure we have your address right, and ask a couple questions')
+  : t('ERROR')));
+  $intro = t('Hi, this is %name with %PROJECT. I\'m calling to %reason.', 'name reason', $mya->agentA->fullName, $reason);
+  $live = $intro . t(' Is this a good time?');
+  $callback = t('Please give me a call back when you can at %phone', ['phone' => u\fmtPhone($mya->agentA->phone, '-')]);
+  $msg1 = "$intro $callback" . t(' &mdash; or I\'ll try again in a day or two.');
+  $msg2 = "$intro $callback" . t(' &mdash; I\'ll also send you an email.');
+  $email = t('<p>Dear %name,</p><p>Following up on my phone message, I\'m writing to %reason. %callback &mdash; or reply to this email.</p>', 'name email reason callback', $mya->fullName, $mya->email, $reason, $callback);
+  if ($setup) {
+    if ($info = db\lookup('reid,code', 'r_relations', 'other=:myid AND isCustomer', ['myid' => $mya->id])) {
+      $_how = t('using <%a>this link</a>', '_a', w\atag(tr('%BASE_URL/signup/reid=%reid&customer=%code', $info)));
+    } else $_how = t('by signing in at %CG_DOMAIN with account ID "%acct" (then click "Sign-in problems" if you don\'t remember your password)', 'acct', $mya->mainQid);
+    $email .= t('<p>Or you can complete the account on your own, %how. But please feel free to ask for help if you run into any problems at all.</p>', compact('_how'));
+  } else $email .= t('<p>Here are the questions and information we have for you:</p>');
+  
+  if ($mya->co) { // company
+    $volunteer = '';
+    $coAsk = $mya->crumbs ? '' : t('<li><b>Crumbs</b>. We particularly encourage businesses to contribute what we call "crumbs" to support the system and the common good. Do you know about this option? It means contributing a small percentage of each payment received, instead of the system charging you credit card fees. What percentage would you like to contribute?</li>');
+    $coAsk .= t('<li><b>Coupons</b>. In addition to providing <i>free</i> advertising, %PROJECT can bring new customers to you with coupons. We give each new member a coupon to a %PROJECT business. Would you like to be in that rotation? (yes: we\'ll call you back about that)</li>');
+    $options = db\exists('r_usd', 'payee=:myid AND amount<0 AND created>:now-:DAY_SECS*30', ray('myid now', $mya->id, $now)) ? t('Do you know about our automatic cash-out option? If you want your company account to transfer your surplus funds to your bank account automatically every week, we can set that up.') : '';
+  } else { // individual
+    $_volunteer = join("</li>\n<li>", explode('~', t(
+      'Hand out promo cards and schedule appointments with local businesses.'
+    . '~Help new members open their %PROJECT account.'
+    . '~Call new members to welcome them and see if they have questions.'
+    . '~Assemble promotional materials (at home or with other volunteers).'
+    . '~Deliver things.'
+    . '~Print and mail things.'
+    . '~Take photographs.'
+    . '~Help set up for meetings.'
+    . '~Help add new features to the software.'
+    . '~Serve on the board of directors.'
+    )));
+    $_volunteerLink = t('<%a>volunteer</a>', '_a', 'a href="#volunteer" data-toggle="collapse"');
+    $volunteer = t('<li><b>Volunteer</b>. (if supportive) Would you like to %volunteerLink with %PROJECT?<ul id="volunteer" class="collapse"><li>%volunteer</li></ul></li>', compact(ray('_volunteerLink _volunteer')));
+    $coAsk = '';
+    $options = t('Do you know about our joint account option? Sign in at %CG_DOMAIN and visit the Relations page on the Settings menu, to join an existing account with yours. Or to open a new account joined to yours, click "Make this a Joint Account" on your Summary page.');
+    if (!$mya->roundup) $options .= t(' And do you know about the roundups option? Roundups let you always pay a whole dollar amount and donate the change to the community fund. Choose it on the Preferences page on the Settings menu. Or just ask and we\'ll set it for you.');
+  }
+  $giftDetails = t('(Wait for answer, then ask:) What amount would you like to give and do you prefer yearly, quarterly, or monthly? Suggested amounts are $50 for individuals and $250 for companies, but any amount is wonderful.');
+  $ask = t('<li><b>Offer</b>. The idea of %PROJECT is to empower us to take responsibility for our local economy, so most of our members contribute some small amount periodically and/or choose roundups or crumbs, to support the system. Would you like to contribute at this time? %details</li>', 'details', $giftDetails) . $coAsk;
+  $thx = t('<li><b>Donations</b>. Thank you very much %gifts.</li>', '_gifts', a\giftsToDate());
+  $reask = @$often ? $thx : $thx . t('<li><b>Gift</b>. Would you like to %contribute at this time? %details</li>', 'contribute details', $type == 'annual' ? t('make an annual contribution') : t('contribute'), $giftDetails);
+  if ($options) $options = t('<li><b>Features</b>. %options</li>', compact('options'));
+  $options .= t('<li><b>Tell people!</b> Do you need more handout cards or brochures, to tell %who about %PROJECT?', 'who', $mya->co ? t('your customers and suppliers') : t('your friends or local businesses'));
+  $addressCheck = t('<li><b>Address</b>. Are you still at %addr? (if not, ask about postal address too)</li>', 'addr', r\location($mya, TRUE));
+
+  $yearsIn = max(1, round(($now - $mya->activated) / DAY_SECS / 365.25)); // how many years after activation are we
+  $annualAsk = '<ol><li>' . t("<b>Thanks</b>. Thank you for being a pioneer of economic democracy! (member for %yearsIn year/s) Thanks to your participation, along with other members, we were able to issue $10,000 in grants and loans this year. (Were you in on the discussions of what to fund?)", compact('yearsIn')) . "</li>\n$how\n$ask\n$addressCheck\n$signupCo\n$volunteer\n$options\n</ol>";
+  
+  $res = '';
+  if ($type == 'annual') $res = @$gifts ? str_replace($ask, $reask, $annualAsk) : $annualAsk;
+  if ($type == 'welcome') $res = @$gifts ? "<ol>$welcome\n$thx\n$how\n$signupCo\n$volunteer\n</ol>" : "<ol>$welcome\n$how\n$ask\n$volunteer\n</ol>";
+  $email .= $res . t('<p>I look forward to hearing from you!</p><p>Sincerely,</p><p>%name<br>for the %PROJECT Team</p>', 'name', $mya->agentA->fullName);
+  $live .= $res . t('<p>Thank you very much for your time and for being a %PROJECT member. Have a great day.</p>');
+  if (@$_volunteerLink) $email = str_replace($_volunteerLink, t('volunteer'), $email);
+  $email = str_replace('id="volunteer"', '', $email);  // make sure the div isn't duplicated (causing expansion to fail)
+  $email = preg_replace('/\([^)]+\)/', '', $email);
+  
+  $links = $details = '';
+  foreach (ray('msg1 msg2 email live') as $k) {
+    $details .= tr('<div id="%k-details" class="collapse">%detail</div>', 'k _detail', $k, $$k);
+    $links .= tr(' <a id="%k-link" href="#%k-details" data-toggle="collapse" class="btn btn-xs btn-warning">%k</a>', 'k', $k);
+  }
+
+  $email = str_replace("href=\"#email-details\" data-toggle=\"collapse\"", "href=\"javascript:followupEmail();\"", $email);
+  $email .= '<' . u\emailTag($mya->email, t('your %PROJECT account'), '', $mya->fullName, 'id="email-do" class="collapse"') . '></a>';
+  
+$js = <<<EOF
+function followupEmail() {
+  var L=$('#email-link');
+  L.html('<h3 style="color:red;">Press Ctrl-C, Enter (then Ctrl-V in email)</h3>');
+  var d=$('#email-details');
+  d.attr('tabindex', '99'); // oddly, Chrome requires this for keydown
+  d.attr('class', ''); // show
+  d.focus();
+  SelectText(d[0].id);
+  d.bind('keydown', function(event) {
+    if (event.keyCode!=13) return;
+    $('#email-do')[0].click();
+    d.attr('class', 'collapse'); // hide
+    L.html('email');
+  });
+}
+EOF;
+  w\js($js);
+
+  return "<div class=\"well scripts\"><h3 class=\"above-details\">$head$subtext</h3><div id=\"intros\"><b class=\"loud\">$mya->phoneDash</b>$links</div>$details</div>";
+}
+  
+/**
+ * Return an eloquent statement of the member's gifts to date, to follow "Thank you ".
+ */
+function giftsToDate() {
+  global $mya;
+
+  if (!$mya) return '';
+  $mya->giftsDesc($often, $all);
+  if (!$all) return '';
+  list ($total, $x1, $x2) = explode('+', "$all++");
+  if ($x = u\unite(trim($x1), $x2)) $x = t('for choosing %x', '_x', $x);
+  if ($total) $total = t('for your contributions, totaling ') . $total;
+  return u\unite($total, $x, t(', and '));
 }
 
 /*

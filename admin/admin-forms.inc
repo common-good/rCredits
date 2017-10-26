@@ -26,10 +26,10 @@ function formAdmin($form, &$sta) {return w\subMenu(t('Admin Options'), 'sadmin')
 'wrong community' => 'SELECT * FROM `users` WHERE uid>0 AND MID(community, 2, 7)<>MID(uid, 1, 7)',
  */
 function formAdminPanel($form, &$sta, $args = '') {
-  extract(u\just('qid', $args));
+  extract(just('qid', $args));
   global $mya;
   if (!$mya->cAdmin) hack('panel');
-  
+
   $tables = 'users txs usd log gifts proxies relations invites'; // tables to show
   $queries = [
     '' => '',
@@ -89,7 +89,7 @@ function formAdminPanel_submit($form, &$sta) {
   global $base_url;
   global $mya;
   
-  extract(u\just('account make', $sta['input']));
+  extract(just('account make', $sta['input']));
   $op = op($sta);
 
   if ($op == 'start' or $op == 'stop') {
@@ -158,7 +158,7 @@ function formAdminPanel_submit($form, &$sta) {
   
   $logFields = "channel,type,myid,IF(agent=myid,':R_NONE',agent) AS agent, REPLACE(info, ',', ', ') AS info";
 
-/**/ if ($op == 'log') return say(file_get_contents(flog())); // say(a\showQuery('r_log', 1, 'logid DESC', $logFields, 'myid'));
+/**/ if ($op == 'log') return say(str_replace("\n", "<br><br>\n", file_get_contents(flog()))); // say(a\showQuery('r_log', 1, 'logid DESC', $logFields, 'myid'));
 //  if ($op == 'tells') return say(a\showQuery('r_log', "info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50", 'logid DESC', $logFields, 'myid'));
 
   if ($op == 'txs') {
@@ -190,7 +190,7 @@ function formOrganizerList($form, &$sta, $where = '') {
     $where = "zip LIKE '" . str_replace(' ', "%' or zip LIKE '", $where) . "%'";
     $q = db\q("SELECT * FROM r_request WHERE $where");
     while ($row = $q->fetchAssoc()) {
-      extract(u\just('first last phone email zip', $row));
+      extract(just('first last phone email zip', $row));
       $phone = u\fmtPhone(u\decryptN($phone));
       $email = u\decryptN($email);
       $list[] = "<tr><td>$first $last</td><td>$phone</td><td>$email</td><td>$zip</td></tr>\n";
@@ -291,8 +291,8 @@ function formMakeCtty($form, &$sta) {
 function formMakeCtty_validate($form, &$sta) {
   global $mya;
   $myid = $mya->id;
-  extract(u\normalizeCase(u\just($normals = 'fullName legalName postalAddr', $sta['input'])));
-  extract(u\just('zips region email phone federalId', $sta['input']));
+  extract(u\normalizeCase(just($normals = 'fullName legalName postalAddr', $sta['input'])));
+  extract(just('zips region email phone federalId', $sta['input']));
 
   if (preg_match("~$zips~", null) === false) return say(t('bad Zips REGEX'), 'zips');
   if (!$region or !preg_match('/[A-Z]{3}/i', $region)) return say(t('bad region code'), 'region');
@@ -322,7 +322,7 @@ function formMakeCtty_validate($form, &$sta) {
 
 function formMakeCtty_submit($form, &$sta) {
   $fields = 'name fullName legalName email phone federalId postalAddr address city state';
-  extract(u\just('zips region ' . $fields, $sta['input']));
+  extract(just('zips region ' . $fields, $sta['input']));
 
   $zip = $zips; // store the regex defining the region or community
   $flags = u\bit(B_CO) | u\bit(B_OK) | u\bit(B_UP);
@@ -345,12 +345,13 @@ function formMakeCtty_submit($form, &$sta) {
  * Show a list of standard calls to make (to help new members, check-in, ask for donation, etc.)
  * @param int $uid: (optional) account to deal with
  * @param bool $one: (optional) <show just my community>
+ * @param bool $recent: (optional) <show latest notes first>
  */
 function formFollowup($form, &$sta, $args = '') {
   global $base_url;
   global $mya;
   
-  extract(u\just('uid one', $args));
+  extract(just('uid one recent', $args));
   
   if (@$uid) {
     w\setAcct($uid); // switch to that user
@@ -358,50 +359,61 @@ function formFollowup($form, &$sta, $args = '') {
   }
 
   $title = item(t('Standard Calls to Members'));
-  if ($mya->admin) {
-    $subtitle = w\item(t('<p>Start with today and work backward.</p><p>If there is no answer (or a machine), leave a message saying you will call back in a couple days, make a note, and click the "2 days" button. If you don\'t reach someone by phone after 2 tries, say you will send them an email (and send them an email) and click the "7" button after emailing about a Setup or Annual check-in / click the "Auto" button after emailing a Welcome.</p><ul><li>If the email gets no response for a setup help call, keep phoning or emailing at 2- or 7-day intervals until you reach them or we close the account.</li><li>If the email gets no response for an Annual check-in, send a US Mail fund appeal/check-in.</li></ul><p>(comments on this standard procedure are welcome)</p>') . w\btn('/sadmin/followup/one=1', t('Show just my community')) . ' &nbsp; ' . w\btn('/sadmin/followup', t('Show ALL')));
-  }
+  $subtitle = w\item(t('<p>Start with today and work backward. Click an account name.</p><ul><li><b>Live Person.</b> If you get a live person, click "live" for a script. Then, if no followup is needed, make a note about your conversation and click "Auto".</li><li><b>Message #1.</b> If you get a machine, click "msg1" for a Phone Message script, type "PM setup" or "PM welcome" or whatever as a note, and click the "2 days" button.</li><li><b>Message #2.</b> If you already left one message, click "msg2" for a Phone Message script, then click "email" to send the person an Email Message. Type "EM setup" or whatever and click the "7" button if this is for a Setup or Annual check-in or the "Auto" button if it is for a Welcome.</li><li><b>After Setup Help Email.</b> If the email gets no response for a setup help call, keep phoning or emailing at 1-, 2-, or 7-day intervals until you reach them or we close the account.</li><li><b>After Annual Check-in Email.</b> If the email gets no response for an Annual check-in, send a US Mail fund appeal/check-in.</li></ul><p>(comments on this standard procedure are welcome)</p>') . w\btn('/sadmin/followup/one=1', t('Show just my community')) . ' &nbsp; ' . w\btn('/sadmin/followup', t('Show ALL')) . ' &nbsp; ' . w\btn('/sadmin/followup/recent=1', t('Recent notes first')));
   
   $now = time();
   $todayEnd = strtotime('tomorrow') - 1;
-  list ($where1, $where2) = ($mya->admin and !@$one) ? [1, 1] : [0, "community=$mya->community"];
+  list ($where1, $where2) = (($mya->admin or $mya->isAdmin2) and !@$one) ? [1, 1] : [0, "community=$mya->community"];
+  $cttys = r\cttyList();
+  $cttys[key($cttys)] = t('Seedpack');
+  foreach ($cttys as $k => $v) $cttys[$k] = trim(str_replace(PROJECT, '', $v));
   
-  // list today's calls first, then yesterday, 2 days ago etc., then tomorrow, the next day, etc.
+  $by = @$recent
+  ? "notes IS NULL OR notes='' OR MID(notes,1,6)='knows ', (MID(notes,6,4)*37+LOCATE(MID(notes,3,3),'JanFebMarAprMayJunJulAugSepOctNovDec'))*32+MID(notes,1,2) DESC"
+  : "($todayEnd - IF(tickle>0, tickle, u.created)) * IF(tickle>$todayEnd, -5 * 366 * :DAY_SECS, 1)"; // today's calls first, then yesterday, 2 days ago etc., then tomorrow, the next day, etc.
   $sql = <<<EOF
-    SELECT DISTINCT uid, tickle, fullName, phone, u.data, u.created, activated, notes, :IS_CO AS co, t.created AS lastTx 
+    SELECT DISTINCT uid, community, tickle, fullName, phone, u.data, u.created, activated, notes, :IS_CO AS co, t.created AS lastTx, :IS_MEMBER AS member
     FROM users u LEFT JOIN (SELECT created,payer,payee FROM r_txs ORDER BY created DESC LIMIT 1) t ON uid IN (payer, payee)
     WHERE uid>3 AND NOT :IS_NONUDGE AND NOT (activated and NOT :IS_OK) AND $where2 AND (tickle>0 OR NOT :IS_MEMBER
       OR t.created<$now-60*:DAY_SECS OR t.created IS NULL)
-    ORDER BY ($todayEnd - IF(tickle>0, tickle, u.created)) * IF(tickle>$todayEnd, -5 * 366 * :DAY_SECS, 1)
+    ORDER BY $by
 EOF;
 
-  $fields = ray('type call name phone notes');
+  $fields = ray('ctty type call name phone notes');
+  if (@$one) array_shift($fields);
   $q = db\q($sql);
   $guts = $heads = '';
   foreach ($fields as $k) {
-    $heads .= '<th>' . ucfirst($k) . '</th>';
+    $heads .= "<th class=\"hd-$k\">" . ucfirst($k) . '</th>';
     $guts .= "<td>$k</td>";
   }
   $list = "<table id=\"memberlist\"><tr>$heads</tr>\n";
   $emails = '';
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    list ($type, $color, $offset) = strpos($data, '"signup";b:0') ? [t('pre'), '#ff4d4d', 0]
-    : (!$activated ? [t('setup'), 'yellow', 0]
-    : (round(($activated + TICKLE_WELCOME - $tickle) / DAY_SECS) == 0 ? [t('welcome2'), 'lime', 0]
-    : (round(($activated + TICKLE_DELAYED - $tickle) / DAY_SECS) == 0 ? [t('welcome6'), 'lime', 0]
-    : (($activated < strtotime('9/2/2017') and $tickle < $activated + 90 * DAY_SECS and !$notes) ? [t('welcome'), 'lime', 0]
-    : (($tickle and in_array(($tickle - $activated) % DAY_SECS, [0, 1, DAY_SECS - 1])) ? [t('annual'), 'violet', 0] // +/-:2/29
-    : (($lastTx < $now - 60 * DAY_SECS and $now - $activated > 60 * DAY_SECS) ? [t('dormant'), 'silver', 0]
-    : ($tickle>0 ? [t('followup'), 'orange', 0]
-    : ( [t('other'), 'cyan', 90] ))))))));
+    foreach (['tickle', 'activated'] as $k) if ($$k) $$k = strtotime('today', $$k); // round down to nearest day
+    $days = round(($tickle - $activated) / DAY_SECS); // tickle: days since activation
+    list ($type, $color) = !$activated 
+    ? ($member ? [t('activate'), 'red'] : (strpos($data, '"signup";b:0') ? [t('pre'), '#ff4d4d'] : [t('setup'), 'yellow']))
+//    : (round(($activated + TICKLE_WELCOME - $tickle) / DAY_SECS) == 0 ? [t('welcome2'), 'lime']
+//    : (round(($activated + TICKLE_DELAYED - $tickle) / DAY_SECS) == 0 ? [t('welcome6'), 'lime']
+    : (between($days, TICKLE_WELCOME - 1, TICKLE_WELCOME + 14) ? [t('welcome2'), 'lime']
+    : (between($days, TICKLE_DELAYED - 1, TICKLE_DELAYED + 14) ? [t('welcome6'), 'lime']
+    : (($activated < strtotime('9/2/2017') and $tickle < $activated + 90 * DAY_SECS and !$notes) ? [t('welcome'), 'lime']
+    : (($tickle and $days % 365 < 30) ? [t('annual'), 'violet'] // +/-:2/29
+//    in_array(($tickle - $activated) % DAY_SECS, [0, 1, DAY_SECS - 1])) ? [t('annual'), 'violet'] // +/-:2/29
+    : (($lastTx < $now - 60 * DAY_SECS and $now - $activated > 60 * DAY_SECS) ? [t('dormant'), 'silver']
+    : ($tickle ? [t('followup'), 'orange']
+    : ( [t('other'), 'black'] )))))));
     $type = "<span style=\"background-color:$color;\">$type</span>";
-    $call = u\fmtDate($tickle > 0 ? $tickle : $created + $offset * DAY_SECS);
-    $name = $uid ? w\lnk("$base_url/summary/$uid", $fullName ?: $uid) : ($fullName ?: $created);
+    $call = u\fmtDate($tickle ?: $created);
+    $name = w\lnk("$base_url/summary/$uid", $fullName ?: $uid);
     if ($co) $name = "<span class=\"co\">$name</span>";
     $phone = u\fmtPhone(u\decryptN($phone), '-');
     $notes = strtr($notes, ["\n" => '|| ', date('Y') => '']);
+    if ($type == t('pre')) $notes = db\lookup('code', 'r_relations', 'other=:uid AND isCustomer', compact('uid')) . " $notes";
     $notes = substr($notes, 0, 200) . (strlen($notes) > 200 ? '...' : '');
+    $ctty = $cttys[$community];
     $list .= strtr("<tr>$guts</tr>\n", compact($fields));
   }
   if (!isset($tickle)) $list .= t('There are no followup calls to be made.');
@@ -450,7 +462,7 @@ function formMemberList($form, &$sta) {
 <tr>
 <td class="$nameClass">$fullName</td>
 <td><a href="mailto:$email" target="_blank">$email</a></td>
-<td><a href="tel:$phone0">$phone</a></td>
+<td>$phone</td>
 <td>$postalAddr</td>
 </tr>
 $one
@@ -470,7 +482,7 @@ EOF;
 
 function formDownloadMemberList($form, &$sta, $args = '') {
   global $base_url;
-  extract($params = u\just(EXPORT_PARAMS, $args));
+  extract($params = just(EXPORT_PARAMS, $args));
   if (@$do == 'export') return w\export($params);
 
   if (@$do == 'done') {
@@ -510,7 +522,7 @@ EOF
 }
 
 function formDownloadMemberList_submit($form, &$sta) {
-  extract(u\just(EXPORT_PARAMS, $sta['input']));
+  extract(just(EXPORT_PARAMS, $sta['input']));
   $do = 'done';
   return r\go('sadmin/export-list/' . http_build_query(compact(ray(EXPORT_PARAMS))), t('Download initiated.'));
 }
@@ -529,8 +541,19 @@ function formPhp($form, &$sta, $res = '') {
  * Process PHP execute form submissions.
  */
 function formPhp_submit($form, &$sta) {
-  extract(u\just('code', $sta['input']));
+  extract(just('code', $sta['input']));
   \variable_set('code', $code); // remember for next time
+  $code = <<<EOF
+use rCredits as r;
+use rCredits\DB as db;
+use rCredits\Backend as be;
+use rCredits\Testing as t;
+use rCredits\Util as u;
+use rCredits\Admin as a;
+use rCredits\Web as w;  
+$code
+EOF;
+  
   ob_start();
   eval($code);
   $res = ob_get_clean();
@@ -579,7 +602,7 @@ function formDeposits_submit($form, &$sta) {
 }
 
 function depositDetails($args) {
-  extract(u\just('way date total count', $args));
+  extract(just('way date total count', $args));
   include_once __DIR__ . '/../pdf.class';
   $pdf = new r\Pdf();
 
@@ -669,7 +692,7 @@ EOF;
  * Create an ACH Batch file for all relevant checks.
  */
 function achBatch($args) {
-  extract(u\just('way date mark', $args));
+  extract(just('way date mark', $args));
   $ways = ['IN'=>'(amount>0 AND txid>0)', 'OUT'=>'(amount<0 AND txid>0)', 'BAD'=>'txid<0'];
   $where = $ways[strtoupper($way)];
   $q = db\q("SELECT txid,created,payee,amount,deposit,bankAccount FROM r_usd WHERE deposit=:date AND $where ORDER BY created, txid", compact('date'));
@@ -704,7 +727,7 @@ function achBatch($args) {
  * @param bool $mark: whether to set the deposit date for each relevant transfer, in r_usd
  */
 function printChecks($args) {
-  extract(u\just('way date mark', $args));
+  extract(just('way date mark', $args));
   include_once __DIR__ . '/../pdf.class';
   $ck = new r\Pdf();
   $ck->setPrintHeader(FALSE);
@@ -900,7 +923,7 @@ function formSMS($form, &$sta) {
 
 function formSMS_submit($form, $sta) {
   global $sms_devel; $sms_devel = TRUE;
-  extract(u\just('number message', $sta['input']));
+  extract(just('number message', $sta['input']));
   $number = u\fmtPhone($number, '+n');
   svar('lastSMS', $number);
   \rsms_sms_incoming('process', $number, $message);

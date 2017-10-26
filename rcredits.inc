@@ -213,12 +213,12 @@ function ipok($uid, $device) {
  */
 function rMail($index, $to0, $subs, $reply0 = NULL) {
 //  require_once __DIR__ . '/dkim.php';
-  if (isGAME) return; // no emails from game site
+//  if (isGAME) return; // no emails from game site
   global $testEmails;
 
   $subs['site'] = BASE_URL;
   $subs['orgPhone'] = CGF_PHONE;
-  extract(u\just('subject body noFrame sms', $subs));
+  extract(just('subject body noFrame sms', $subs));
   
   if ($toA = is_object($to0) ? $to0 : r\acct($to0)) {
     $toEmail = $toA->email;
@@ -227,12 +227,15 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
     $subs += (array) $toA->account(); // this omits any special fields or special formatting
     $subs['qid'] = $toA->mainQid;
     $subs['shortName'] = $toA->name;
+    if ($toA->closed) return r\tellAdmin(t('attempt to email closed account'), compact(ray('index subs reply0')));
   } else $to = $toEmail = $to0;
   
   $testEmails[] = compact(ray('index toEmail subs'));
 
   if ($reply0 == 'region') {
     $reply = NULL;
+  } elseif (is_array($reply0)) {
+    $reply = $reply0;
   } else {
     $replyA = is_object($reply0) ? $reply0 : ($reply0 == 'ctty' ? $toA->cttyA : r\acct($reply0));
 //    $reply = $replyA ? "\"$replyA->fullName\" <$replyA->email>" : $reply0;
@@ -258,9 +261,12 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
 /**/ t\output('Actual (in rMail) ' . print_r($erInfo, 1), 'email');
   u\loga('email', $erInfo + ['toUid' => @$toA->id]);
 
-  if (!isPRODUCTION) if ($toEmail != r\regionField('email') and $toEmail != R_ADMIN_EMAIL) return TRUE;
-  if (isDEV) return TRUE; // otherwise cURL error 60: SSL certificate problem: unable to get local issuer certificate
-  if (!isPRODUCTION) $subject = '(test) ' . $subject;
+  if (isPRODUCTION !== TRUE) { // make sure we never send rogue emails from test server even if constant isn't set
+    return; // no emails unless real!!
+    if ($toEmail != r\regionField('email') and $toEmail != R_ADMIN_EMAIL) return TRUE;
+    if (isDEV) return TRUE; // otherwise cURL error 60: SSL certificate problem: unable to get local issuer certificate
+    $subject = '(test) ' . $subject;
+  }
   
   require_once DRUPAL_ROOT . '/vendor/swiftmailer/lib/swift_required.php';
   $transport = \Swift_SendmailTransport::newInstance('/usr/sbin/sendmail -bs');
@@ -434,7 +440,7 @@ function membershipEvent($a, $status, $do = TRUE) {
  * @return TRUE if the funds were successfully transferred.
  */
 function acceptGift($info) {
-  extract(u\just('donid uid giftDate amount often honor', $info));
+  extract(just('donid uid giftDate amount often honor', $info));
   $a = r\acct($uid);
   if ($a->shortfall(FOR_GOODS, $amount)) return FALSE; // wait until tomorrow, if not enough
   if ($a->shortfall(FOR_GOODS, $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
@@ -653,7 +659,7 @@ function cttyName($uid, $omit = FALSE) {
  */
 function uniqueName($fullName, $info = []) {
   if (!$fullName) {
-    extract(u\just('phone email', $info));
+    extract(just('phone email', $info));
     $fullName = R_TEMP_NAME_PREFIX .
       (@$phone ?  u\fmtPhone($phone, 'n')
       : (@$email ? R_TEMP_NAME_PREFIX . strtr($email, ['@'=>'AT', '.'=>'DOT'])
@@ -915,7 +921,7 @@ function invite($email, $inviter, $code = '', $subject = '', $message = '') {
  * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out.
  * @param string $page: page to go to
  * @param string $msg: message to output, if any
- * @param string $field: error field, if any
+ * @param string $field: error field, if any ('err' is typical, triggering error message rather than status message)
  */
 function go($page, $msg = '', $field = '') {
   global $base_url;
@@ -975,7 +981,7 @@ function noticeArgs($uid, $where = '0', $weekly = FALSE, $monthly = FALSE, $at =
   $unit = $weekly ? 'week' : ($monthly ? 'month' : 'day');
   $yestertime = u\fmtDate($start = $unit == 'month' ? u\plusMonths(-1, $at) : strtotime("-1 $unit", $at));
   $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
-  extract(u\just('return', $a->j_stats()));
+  extract(just('return', $a->j_stats()));
   $balance = u\fmtAmt($a->balance);
 //  $savings = u\fmtAmt($a->savings);
   $savings = u\fmtAmt($a->rewards);
@@ -991,15 +997,18 @@ function noticeArgs($uid, $where = '0', $weekly = FALSE, $monthly = FALSE, $at =
  * @param bool $export: <format for use on promo site> (otherwise format for email notices)
  */
 function companies($ctty, $export = FALSE) {
-  $model = $export ? 
-      '<div class="row"><div class="cmpy-name">NAME</div><div class="cmpy-does">DESC</div></div>'
-    : '<tr><td width="200">NAME</td><td style="margin-left:10px;">DESC</td></tr>';
+  $model = $export 
+  ? '<div class="row"><div class="cmpy-name">%name</div><div class="cmpy-does">%desc</div></div>'
+  : '<tr><td width="200">%name</td><td style="margin-left:10px;">%desc</td></tr>';
   $res = '';
   $q = db\q('SELECT uid FROM users WHERE :IS_CO AND :IS_OK AND uid>1 AND community=:ctty ORDER BY fullName', compact('ctty'));
   while ($row = $q->fetchAssoc()) {
     $a = r\acct($row['uid']);
-    $new = ($a->activated > REQUEST_TIME - 9 * WEEK_SECS) ? ' <small style="color:red; font-weight:bold;"> NEW!</small>' : '';
-    if (!$a->coCan(CO_PRIVATE)) $res .= strtr($model, ['NAME' => "$a->fullName$new", 'DESC' => $a->shortDesc]) . "\n";
+    if (!$a->coCan(CO_PRIVATE)) {
+      $name = $a->website ? w\lnk("http://$a->website", $a->fullName) : $a->fullName;
+      $new = ($a->activated > REQUEST_TIME - 9 * WEEK_SECS) ? ' <small style="color:red; font-weight:bold;"> NEW!</small>' : '';
+      $res .= tr($model, '_name desc', "$name$new", $a->shortDesc) . "\n";
+    }
   }
   return $res;
 }
@@ -1371,7 +1380,7 @@ function suggest($a, $index, $subs, $page = 'Preferences') {
  * @return the full url
  */
 function promoLink($page = '') {
-  if (r\signedIn()) $page .= '?region=' . (isSTAGE ? STAGE_SUBDOMAIN : R_SERVER_ID) . '&tm=' . r\rTime();
+  if (r\signedIn()) $page .= '?region=' . R_SERVER_ID . '&tm=' . r\rTime();
   return PROMO_URL . "/$page";
 }
 
@@ -1440,7 +1449,7 @@ function realState($state, $country = R_COUNTRY_ID) {return db\lookup($country =
 function perm($bit) {return $bit - B_RELATED;}
 function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}
 function doCode($code) {return @unserialize(@u\decrypt(@u\deurlify($code)));}  
-function makeDoCode($a) {return u\urlify(u\crypt(serialize($a)));}
+function makeDoCode($ray) {return u\urlify(u\crypt(serialize($ray)));}
 function cgfId() {return \variable_get('cgf_uid');}
 function disputeTx($xid) {return db\setFlag('r_txs', $xid, B_DISPUTED, TRUE);}
 function denyInv($nvid) {return db\setData('r_invoices', $nvid, ['denied' => TRUE]);}
@@ -1451,3 +1460,4 @@ function usdin($for) {return u\abbreviates(S_USD_IN, is_array($for) ? $for[1] : 
 function regionField($fld) {return ($mya = r\acct(serverUid())) ? $mya->$fld : NULL;}
 function signedIn() {return r\acct() ? TRUE : FALSE;}
 function iCodeDesc($iCode) {$iCodeDescs = ray(IBYS); return $iCodeDescs[min($iCode, IBY_ICARD) - IBY0];}
+function cttyList() {return db\q("SELECT uid,fullname FROM users WHERE uid<0 ORDER BY created,fullName")->fetchAllKeyed();}

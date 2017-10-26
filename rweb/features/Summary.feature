@@ -48,9 +48,9 @@ Setup:
 Scenario: A member clicks the summary tab
   When member ".ZZA" visits page "summary"
   Then we show "Account Summary" with:
-  | Name          | Abe One (abeone) |
-  | ~Address      | 1 A St., Atown, AK 01000 |
   | ID            | ZZA (personal account) |
+  | Name          | Abe One (abeone) |
+  | Postal Addr   | 1 A St., Atown, AK 01000 |
   | Balance       | $10 |
 #  | Savings       | $256 |
   | ~rewards      | $256 |
@@ -78,18 +78,18 @@ Scenario: A member clicks the summary tab with roundups
 Scenario: An agent clicks the summary tab without permission to manage
   When member "A:B" visits page "summary"
   Then we show "Account Summary" with:
-  | Name | Abe One (abeone)   |
   | ID   | NEWZZA (personal account) |
+  | Name | Abe One (abeone)   |
   And without:
   | Make This a Joint |
 
 Scenario: A company agent clicks the summary tab
   When member "C:A" visits page "summary"
   Then we show "Account Summary" with:
-  | Name         | Corner Pub (cornerpub) |
-  | ~Address     | 3 C St., Ctown, Cher, FRANCE |
   | ID           | ZZC (company account) |
-
+  | Name         | Corner Pub (cornerpub) |
+  | Postal Addr  | 3 C St., Ctown, Cher, FRANCE |
+  
 Scenario: Member's account is not active
   Given members have:
   | id   | flags |*

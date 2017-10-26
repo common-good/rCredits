@@ -77,7 +77,7 @@ function doPayer($year, $sql, &$totals, $mod = '', $badNames = [], $badTINs = []
 function do1099b($year, $payee, &$total, $mod = '', $badNames = [], $badTINs = []) {
   $bCount = 0;
   while ($row = be\get1099b($payee, $year)) {
-    extract(u\just('created amount for', $row));
+    extract(just('created amount for', $row));
     if ($amount <= 0) continue; // IRS says do NOT report non-positive transactions
     if ($mod == 'G') $amount = 0; // IRS says zero out amount when showing the bad old data
     $total += $amount;

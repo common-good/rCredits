@@ -22,7 +22,7 @@ define('TX_TID_MAX', 100000000); // zero-filler
  */
 function getTxRows($starting, $ending, $options = [], $url0 = '', $maxRows = PHP_INT_MAX) {
   global $mya;
-  extract(u\just('download agents channels boxes descending', $options));
+  extract(just('download agents channels boxes descending', $options));
   if ($mya->jid) $agents = TRUE; // show which partner did it, on joint account
   list ($classes, $header, $downloadHeader) = txFields(@$download, @$agents, @$channels, @$boxes);
 
@@ -53,7 +53,7 @@ function getTxRows($starting, $ending, $options = [], $url0 = '', $maxRows = PHP
     u\splice($totDone, 'amount', 1, ['frombank' => 0]);
     $totDone['date'] = '';
     $totDone['name'] = 'TOTALS';
-    foreach(u\just(TX_DOWNLOAD_MONEY_FIELDS, $totDone) as $key => $value) $totDone[$key] = round($value, 2);
+    foreach(just(TX_DOWNLOAD_MONEY_FIELDS, $totDone) as $key => $value) $totDone[$key] = round($value, 2);
     //if ($value === FALSE) $totDone[$key] = '-';
     u\csv(array_values($totDone));
     
@@ -73,7 +73,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   global $rUrl, $mya;
   
 //  foreach (ray('xid amount byMe toMe reallyToMe agent data sharing tid') as $k) $$k = $myx->$k;
-  extract(u\just('xid fromyou toyou reward byMe toMe reallyToMe agent data flags roundup disputed sharing tid name type created description', $tx));
+  extract(just('xid fromyou toyou reward byMe toMe reallyToMe agent data flags roundup disputed sharing tid name type created description', $tx));
 //  $myx = r\x($tx, $mya);
 
   if (@$data) $data = unserialize($data);
@@ -90,7 +90,8 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   $isExtra = (in_array($type, ray(TX_REWARDS)) and !$banking);
   if ($isExtra or $sharing += 0) {
     if (!$mya->cttyRewardy) {
-      if ($download) $fromyou = $toyou = 0; else return;
+      return;
+//      if ($download) $fromyou = $toyou = 0; else return;
     }
 //    list ($amt, $reward) = [0, $amt];
   }
@@ -214,7 +215,7 @@ function txFields($download = FALSE, $agents = FALSE, $channels = FALSE, $boxes 
  * @param array $csvRow: (RETURNED) the values, formatted for CSV export
  */
 function addRow(&$tot, $row, $tx, $change, &$csvRow = '') {
-  extract(u\just('xid type toMe amount', $tx));
+  extract(just('xid type toMe amount', $tx));
 
   if ($type == TX_BANK) {
     $frombank = $amount;

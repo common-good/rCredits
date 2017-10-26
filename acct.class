@@ -6,6 +6,7 @@ use rCredits\Backend as be;
 use rCredits\Util as u;
 use rCredits\Testing as t;
 use rCredits\Web as w;
+use rCredits\Admin as a;
 
 /**
  * @file
@@ -81,8 +82,8 @@ class Acct {
     u\EXPECT($uid != 0, 'zero regionalinsert');
     if (!$co) { // must postcede $uid =
       u\setDft($cardCode, r\cardCode(r\qid($uid)));
-      u\setDft($emailCode, r\cardCode(r\qid($uid)));
     }
+    u\setDft($emailCode, r\cardCode(r\qid($uid)));
     
     if (isset($number)) $success = SMS\create($number, $uid);
 
@@ -178,10 +179,11 @@ class Acct {
     if ($nick == 'ctt' and $field != 'cttyA') return $a->cttyA->can(u\consta('b', substr($field, 4))); // ctty bit
     
     if ($field == 'mainQid') return $a->qo->mainQid;
-    if ($field == 'isRegulator') return (bool) ($a->flags & u\bit(B_REGULATOR)); // not ->can() included by cAdmin etc.
+    if ($field == 'isAdmin2') return (bool) ($a->agentA->flags & u\bit(B_ADMIN2)); // not ->can() included by cAdmin etc. (see note in can())
 //    u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
+    if ($field == 'phoneDash') return u\fmtPhone($a->phone, '-');
     if ($field == 'st') return r\realState($a->state, $a->country);
     if ($field == 'agentA') return r\acct($a->agentId);
     if ($field == 'proSe') return ($a->id == $a->agentId);
@@ -279,6 +281,44 @@ class Acct {
     : (strpos($fields, ' ') === FALSE ? u\inList($fields, $specials) // be efficient, if just one field
     : (bool) array_intersect(ray($fields), ray($specials)));
   }
+
+  /**
+   * Activate the account.
+   * @param int $helper: account record ID of account that invited this one
+   */
+  public function activate($helper) {
+    $a = $this;
+    include_once __DIR__ . '/admin/admin.inc';
+    if (!$a->activated) { // first time activation
+      u\EXPECT($a->superAdmin, 'initial activation is only for superadmin');
+      $a->eachPartner(function($coA, $zot, $custCode) { // tell partner: account is activated
+        if ($api = $coA->api()) u\post($api, ray('partnerCode qid op name', $coA->emailCode, $a->mainQid, 'complete', $a->fullName));
+      });
+    }
+    $DBTX = \db_transaction();
+    u\EXPECT($helper, 'no helper!');
+    $a->update(compact('helper')); // this must happen before activating account (on next line)
+    r\membershipEvent($a, 'ok', TRUE);
+    $a->setBit(B_NONUDGE, FALSE, TRUE);
+
+    a\secureVery($a);
+    if ($a->co) {unset($DBTX); return;}
+    
+    be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
+
+    if (!$a->helperA->co and !$a->helperA->superAdmin) { // no helper bonus for companies or superAdmin (cAdmin is okay) [don't require $a->confirmed]
+      $fullName = $a->fullName;
+      be\fund($hId = $a->helper, TX_HELPER, R_HELPER_BONUS, t('invite reward', compact('fullName')));
+      $helped = db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) + 0;
+      if ($helped == ORGANIZER_GRANT_MIN) {
+//            r\message($a->helper, 'organizer grant', ['_a' => w\atag('/community/grant')]);
+        list ($name, $topic) = [$a->helperA->fullName, t('eligible')];
+        r\tellAdmin('eligible for grant', compact(ray('name topic')));
+      }
+    }
+    unset($DBTX); 
+  }
+
   
   /**
    * Handle joint field request (for example $a->j_r)
@@ -354,8 +394,8 @@ class Acct {
     if (!is_array($info)) $info = rayy(func_get_args());
     
     u\EXPECT(!isset($info['savings']), 'archaic savings field');
-//    if ($jid = $a->jid and $jInfo = u\just(MASTER_FIELDS . ' savings', $info)) {
-    if ($a->jid and $jInfo = u\just(MASTER_FIELDS, $info)) {
+//    if ($jid = $a->jid and $jInfo = just(MASTER_FIELDS . ' savings', $info)) {
+    if ($a->jid and $jInfo = just(MASTER_FIELDS, $info)) {
       list ($a2, $a1) = u\order($a->slave, $a, $a->jA); // set $a1 master, $a2 slave
 
       $jInfo2 = array_fill_keys(ray(MASTER_FIELDS), 0);
@@ -365,8 +405,8 @@ class Acct {
 //      $a2->update1(MASTER_FIELDS, FALSE, '', '', FALSE, @$jInfo['achMin'] ?: $a1->achMin, 0, 0, 0); // not much for slave
 //      $a->updateSavings($jInfo, $a1 == $a ? $a2->rewards : $a1->rewards); // update savings in master
       $a1->update1($jInfo);
-//      if (!$info = u\justNot(MASTER_FIELDS . ' savings', $info)) return TRUE; // fall through if something else to update
-      if (!$info = u\justNot(MASTER_FIELDS, $info)) return TRUE; // fall through if something else to update
+//      if (!$info = justNOT(MASTER_FIELDS . ' savings', $info)) return TRUE; // fall through if something else to update
+      if (!$info = justNOT(MASTER_FIELDS, $info)) return TRUE; // fall through if something else to update
     }
 //    } else $a->updateSavings($info, 0); // update savings in proSe account
     return $a->update1($info);
@@ -400,9 +440,9 @@ class Acct {
       unset($info['balance']);
     } */
 
-    foreach ($bits = u\just(B_LIST, $info) as $k => $v) {$a->setBit($k, $v); unset($info[$k]);}
-    if ($a->ok and !isGAME) $info += $a->recordChanges(u\justNot(B_LIST, $info)); // record changes if member is active
-    foreach (u\just('hasBank', $info) as $k => $v) {$a->setRisk($k, $v); unset($info[$k]);}
+    foreach ($bits = just(B_LIST, $info) as $k => $v) {$a->setBit($k, $v); unset($info[$k]);}
+    if ($a->ok and !isGAME) $info += $a->recordChanges(justNOT(B_LIST, $info)); // record changes if member is active
+    foreach (just('hasBank', $info) as $k => $v) {$a->setRisk($k, $v); unset($info[$k]);}
 
     if (isset($info['photo'])) {
       if ($info['photo']) { // setting photo
@@ -415,11 +455,11 @@ class Acct {
     
     if (isset($info['data'])) {
       $info['data'] = serialize($info['data']);
-    } elseif ($data = u\just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data += $a->data);
+    } elseif ($data = just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data += $a->data);
 
-    if (($set = isset($info['secure'])) or $sFlds = u\just(R_SECURE_FIELDS, $info)) { // serialize and encrypt
+    if (($set = isset($info['secure'])) or $sFlds = just(R_SECURE_FIELDS, $info)) { // serialize and encrypt
 
-      if (!$set and $mya and $mya->superAdmin and $pw2 = @$_COOKIE['pw2'] and $vflds = u\just(R_VSECURE_FIELDS, $sFlds)) {
+      if (!$set and $mya and $mya->superAdmin and $pw2 = @$_COOKIE['pw2'] and $vflds = just(R_VSECURE_FIELDS, $sFlds)) {
         foreach ($vflds as $k => $v) if (is_array($v) or !u\starts($v, CRYPT_FLAG)) { // is_array is temporary for ssnData in transition
           if ($k == 'ssnData') $v = serialize($v);
           $info[$k] = $sFlds[$k] = u\crypt($v . '', 0, $pw2);
@@ -431,7 +471,7 @@ class Acct {
     if (isset($info['pass'])) $info['pass'] = r\passHash($info['pass']);
 
     u\preray($info, self::$rs[$a->id]); // cache the new field values
-    $info = u\justNot(R_SECURE_FIELDS . ' email ' . R_DATA_FIELDS, $info); // don't pass these
+    $info = justNOT(R_SECURE_FIELDS . ' email ' . R_DATA_FIELDS, $info); // don't pass these
     return $info ? db\update('users', $info + ['uid' => $a->id], 'uid') : TRUE;
   }
 
@@ -442,7 +482,7 @@ class Acct {
    */
   private function recordChanges($info) {
     $a = $this;
-    $newChanges = u\justNot(R_HIDE_CHANGES, $info); // see if there are any changes to remember
+    $newChanges = justNOT(R_HIDE_CHANGES, $info); // see if there are any changes to remember
     foreach ($newChanges as $k => $v) { // don't record if no change
       $ak = $a->$k;
       if ($v == $ak or (is_numeric($v) and is_numeric($ak) and $v + 0 == $ak + 0)) {
@@ -460,7 +500,7 @@ class Acct {
       $changes[$time] += $newChanges;
     } else u\preray([$time => $newChanges], $changes); // put the new changes first
     $changes = serialize($changes);
-    if ($encrypted or u\just(R_SECURE_FIELDS, $newChanges)) $changes = u\crypt(u\crypt($changes, 0), 1);
+    if ($encrypted or just(R_SECURE_FIELDS, $newChanges)) $changes = u\crypt(u\crypt($changes, 0), 1);
     return compact('changes');
   }
   
@@ -584,7 +624,7 @@ class Acct {
   public static function setDefault($a) {
     global $mya, $channel, $box; 
     global $user; if (empty($user)) $user = (object) ['uid' => $a ? $a->id : 0]; // probably needed only for rWeb login form testing
-    if ($a and $a != $mya and !$a->cAdmin) { // admin access doesn't count
+    if ($a and $a != $mya and !$a->admin2) { // admin access doesn't count
       $access = r\rTime();
       if ($channel == TX_WEB) $login = $access;
       $lastip = $_SERVER['REMOTE_ADDR'];
@@ -824,9 +864,11 @@ EOF;
         $ai->setBit(B_JOINED, FALSE);
       }
       list ($a1, $a2) = u\order($b->o_balance > $a->o_balance, $b, $a);
-      $amount = round(($a1->o_balance - $a2->o_balance) / 2, 2);
-///      debug("amount=$amount a1=$a1->id bal=$a1->o_balance a2=$a2->id bal=$a2->o_balance");
-      if ($amount > 0) be\transfer('payment', $a1, $a2, $amount, FOR_USD, t('joint account settlement'), NULL, TRUE, ['force' => 1]);
+      if ($a1->ok and $a2->ok) { // no need to settle with closed or not-yet-open account
+        $amount = round(($a1->o_balance - $a2->o_balance) / 2, 2);
+  ///      debug("amount=$amount a1=$a1->id bal=$a1->o_balance a2=$a2->id bal=$a2->o_balance");
+        if ($amount > 0) be\transfer('payment', $a1, $a2, $amount, FOR_USD, t('joint account settlement'), NULL, TRUE, ['force' => 1]);
+      }
     } elseif ($b) {
       $sql .= ' AND other=:other';
       $subs += ['other' => $b->id];
@@ -912,7 +954,7 @@ EOF;
     $a = $this;
     $stepsDone = $a->stepsDone;
 
-    if (!$stepsDone[$step]) { // unless already done
+    if (!@$stepsDone[$step]) { // unless already done
 //      if ($done) r\tellAdmin(t('Step completed: ') . strtoupper($step), $details, $a->id);
     } // elseif (!$a->cAdmin) r\tellAdmin(t('Settings changed: ') . strtoupper($step), $details, $a->id);
    
@@ -921,6 +963,7 @@ EOF;
     if (!$nextStep = $a->nextStep()) {
       r\tellCO(t('New Member (%name)', ['name' => $a->fullName]));
       r\membershipEvent($a, 'member');
+      $a->update('tickle', time());
     }
     return $nextStep;
   }
@@ -1013,7 +1056,7 @@ EOF;
   function passwordOkay($password, $passFieldName = '', &$err = '') {
     $a = $this;
     if (@$a->oneTimePass) {
-      extract(u\just('pass expires', $a->oneTimePass));
+      extract(just('pass expires', $a->oneTimePass));
       if ($password == @$pass) return ($a->admin or r\rTime() < @$expires) ?: !($err = 'pass expired');
     }
 
@@ -1075,8 +1118,8 @@ EOF;
     $return = ($years > 0 and @$avgBalEver > 0) ? 
         number_format(100 * @$extraEver / $avgBalEver / $years, 1)
       : (@$extraEver > 0 ? '&infin;' : number_format(100 * R_INFLATION_RATE, 1));
-    $cttyBeneMo = u\fmtAmt(@$giftsPastMo + max(0, @$bankedPastMo) + @$benePastMo * (1 + R_CC_RATE / $a->rebate));
-    $cttyBene = u\fmtAmt(@$giftsEver + max(0, @$bankedEver) + @$beneEver * (1 + R_CC_RATE / $a->rebate) + r\cttyPaidEver($a->community) / (@$pAccts ?: 1));
+    $cttyBeneMo = u\fmtAmt(@$giftsPastMo + $a->rebate ? max(0, @$bankedPastMo) + @$benePastMo * (1 + R_CC_RATE / $a->rebate) : 0);
+    $cttyBene = u\fmtAmt(@$giftsEver + $a->rebate ? max(0, @$bankedEver) + @$beneEver * (1 + R_CC_RATE / $a->rebate) + r\cttyPaidEver($a->community) / (@$pAccts ?: 1) : 0);
 
     return compact(ray($fields));
   }
@@ -1179,72 +1222,65 @@ EOF;
   /**
    * Return the next suggested date, type, and description to contact this member for a standard checkin.
    * @param mixed $done: <asking because a checkin was just completed> or "activate"
-   * @return [$type, $date, $tip] or ['', 0, ''] if none
-   *   $type: a one-word checkin type
+   * @return [$type, $date] or ['', 0, ''] if none
+   *   $type: a one-word call type
    *   $date: the suggested date
-   *   $tip: a tip to mention if the next suggested date is within a month +/-
    */
   public function nextTickle($done = FALSE) {
     $a = $this;
 
+    $now = time();
     $activate = ($done . '' == 'activate');
     if ($activate) {
-      list ($done, $activated) = [FALSE, time()];
+      list ($done, $activated) = ['', $now];
     } else {
-      $activated = $a->activated;
       if (!$a->member) {
-        if ($a->nonudge or time() - $a->created < HOUR_SECS) return ['', 0, ''];
-        $head = @$a->federalId ? t('Opening account') : t('Just beginning');
-        return [t('Setup'), max(0, $a->created), t('<b class="loud">%head</b>: Do you need help?', compact('head'))];
-      }
-      if (!$a->ok) return [t('Activate'), time(), t('<b class="loud">Activate account</b>')];
+        if ($a->nonudge or $now - $a->created < HOUR_SECS) return ['', 0];
+        return [@$a->federalId ? 'setup' : 'pre', max(0, $a->created)];
+      } elseif (!$a->ok) return ['activate', $now];
+      $activated = max($a->activated, strtotime('1/1/2013')); // max is for testing
     }
     
-    $gifts = $a->giftsDesc() ?: db\sum('amount', 'r_gifts', 'uid=:id', ['id' => $a->id]); // a promised gift counts here
-    
-    $help = $gifts ? 'thanks' : 'ask';
     if ($a->signupCo) $signupCo = w\signupCoDisplay($a->signupCo) . ',';
-    $daysIn = (time() - $activated) / DAY_SECS; // how many days after activation are we
+    $daysIn = ($now - $activated) / DAY_SECS; // how many days after activation are we
     $tickleDaysIn = $a->tickle ? ($a->tickle - $activated) / DAY_SECS : 0; // how many days after activation to tickle
-    
+
     if ($activate or ($tickleDaysIn < 90 and $daysIn < ($done ? 8 : 90))) { // not welcoming if wrong time or done at right time
-      $when = $activated + (($gifts and !$a->cttyA->isRegion) ? TICKLE_WELCOME : TICKLE_DELAYED);
-      $msg = t('<span class="loud">%when <b>Welcome</b></span> to %PROJECT, How\'s it going%lastTx? %help donation(s), %signupCo volunteer? [<%a>details</a>]', 'when lastTx help signupCo _a', u\fmtDate($when, TRUE), $a->lastTxDesc(), ucfirst($help), @$signupCo, w\atag("/help/welcome/gifts=$gifts"));
-      if ($a->paper) $msg .= t(' <span class="loud">Paper statements</span> at $%R_STATEMENT_COST/month &mdash; really?');
-      return [t('Welcome'), $when, $msg];
+      $when = $activated + (($a->giftsDesc() and !$a->cttyA->isRegion) ? TICKLE_WELCOME : TICKLE_DELAYED) * DAY_SECS;
+      return ['welcome', $when];
     }
-    
-    // Annual
     $yearsIn = max(1, round($daysIn / 365.25));
     if ($done and abs($yearsIn * 365.25 - $daysIn < 30)) $yearsIn++;
+    return ['annual', strtotime("+$yearsIn years", $activated)]; // Annual
     // if (($daysIn + 30) mod 365 < 2 * 30) 
-    $gift = $gifts ? t('Thanks for donation(s). Annual gift?') : t('Donate?');
-
-    $feature = $a->co ? t('cash-out') : t('joint account');
-    return [t('Annual'), $when = strtotime("+$yearsIn years", $a->activated ?: time()), t('<span class="loud">%when <b>Annual</b></span>: Thanks for participating. How\'s it going%lastTx? %gift Mailing address okay? Volunteer? Consider %feature? [<%a>details</a>]', 'when lastTx gift _a feature', u\fmtDate($when, TRUE), $a->lastTxDesc(), $gift, w\atag("/help/annual/gifts=$gifts&years=$yearsIn"), $feature)];
     //return [0, ''];
   }
 
   /**
-   * Return a description of the members gift history.
+   * Return a description of the members gift history. The total gifts include first planned gift, if none completed yet.
    * @param string $often: (RETURNED) frequency of latest gift
+   * @param string $totalGifts: (RETURNED) total gifts with no mention of latest
    * @return: description of gifts (FALSE if none)
    */
-  public function giftsDesc(&$often = '') {
+  public function giftsDesc(&$often = '', &$totalGifts = '') {
     $a = $this;
-    $totalGifts = ($amt = $a->totalGifts()) ? u\fmtAmt($amt) : '';
 //      db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
-    if ($donationInfo = db\lookup('amount,often,honor,honored,giftDate', 'r_gifts', "uid=:id AND giftDate<:REQUEST_TIME AND honor<>'share' ORDER BY donid DESC", ['id' => $a->id])) {
-      extract($donationInfo);
+    if ($info = db\lookup('amount,often,giftDate', 'r_gifts', "uid=:id AND giftDate<:REQUEST_TIME AND (NOT honor<=>'share') ORDER BY donid DESC", ['id' => $a->id])) {
+      extract($info);
       $oftens = ray(OFTENS);
       list ($often, $amount, $giftDate) = [$oftens[$often], u\fmtAmt($amount), u\fmtDate($giftDate, TRUE)];
-      $honor = $honor = 'share' ? '' : ($honor ? "($honor) $honored" : '');
-      $lastGift = t('Last') . ": $giftDate $amount $often $honor";
+      $lastGift = t('Last') . ": $giftDate <%b>$amount</b> $often";
+      if ($info = db\lookup('honor,honored', 'r_gifts', "uid=:id AND (NOT honor<=>'' AND honor<>'share') ORDER BY donid DESC", ['id' => $a->id])) {
+        extract($info);
+        $lastGift .= u\honorDesc($honor) . $honored;
+      }
     } else $lastGift = '';
 
-    $totalGifts .= ($a->roundup ? t(' +roundups') : '') . ($a->crumbs > 0 ? t(' +%crumbs% crumbs', 'crumbs', $a->crumbs * 100) : '');    
+    if ($totalGifts = ($amt = $a->totalGifts()) ? u\fmtAmt($amt) : (@$amount ?: '')) $totalGifts = t('<%b>%totalGifts</b> to date', compact('totalGifts'));
+    $totalGifts .= trim(($a->roundup ? t(' +<%b>roundups</b>') : '') . ($a->crumbs > 0 ? t(' +<%b>%crumbs% crumbs</b>', 'crumbs', $a->crumbs * 100) : ''));
+    foreach (ray('totalGifts lastGift') as $k) $$k = tr($$k, '_b', 'b class="positive"'); // must do to each, not together
 
-    return ($totalGifts ?: '') . (($totalGifts and $lastGift) ? ', ' : '') . ($lastGift ?: '');
+    return u\unite($totalGifts, $lastGift, ', ');
   }
 
   /**
@@ -1329,7 +1365,7 @@ EOF;
    */
   public function setRisks($values) {
     $risks = $this->risks;
-    $riskBits = array_values(u\just(K_ACCT_RISKS_EDITABLE, array_flip(array_keys(ray(K_ACCT_RISKS))))); // editable risk bits
+    $riskBits = array_values(just(K_ACCT_RISKS_EDITABLE, array_flip(array_keys(ray(K_ACCT_RISKS))))); // editable risk bits
     foreach ($riskBits as $bit) u\setBit($risks, $bit, isset($values[$bit]));
     $this->update(compact('risks')); // update all at once, for efficiency
   }
@@ -1339,16 +1375,16 @@ EOF;
    * @param array $values: numeric array of bit values (eg [3 => 3, 5 => 5])
    */
   public function setBits($values) {
+    $a = $this;
     u\setDft($values, []); // fails in arg list (dunno why)
-    $flags = $this->flags;
-    $adminable = B_ADMINABLE . ($this->superAdmin ? ' admin' : '');
-    foreach (ray($adminable) as $bitName) { // set all these on or off
+    $flags = $a->flags;
+    foreach ($a->adminables() as $bitName) { // set all these on or off
 //      if (substr($bitName, 0, 1) == 'u') continue; // lowercase u means undefined
       $bit = u\consta('b', $bitName);
       $on = isset($values[$bit]); // isset because bit 0 is 0 when checked
       u\setBit($flags, $bit, $on);
     }
-    $this->update(compact('flags'));
+    $a->update(compact('flags'));
   }  
 
   /**
@@ -1388,10 +1424,10 @@ EOF;
     $a = $this;
     if ($bit <= B_MAX) { // ordinary bits
       $can = (bool) ($a->flags & (1 << $bit)); // these are easy. be efficient.
-      if (in_array($bit, [B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN])) {
-        if ($a->id == 1) return TRUE; // this didn't used to be necessary (9/20/2017)
+      if (in_array($bit, [B_ADMIN2, B_CADMIN2, B_CADMIN, B_ADMIN])) {
+        if ($a->id == 1) return TRUE; // this didn't use to be necessary (9/20/2017)
         if (!$a->proSe) return ($aa = $a->agentA and $aa->can($bit)); // admin permissions are for agent instead (in tests, agent sometimes doesn't exist)
-        if (!$can and $bit < (R_ADMIN_CAN_MANAGE_CTTYS ? B_ADMIN : B_CADMIN)) return $a->can($bit + 1); // not this admin bit, maybe the next higher?
+        if (!$can and $bit < (R_ADMIN_CAN_MANAGE_CTTYS ? B_ADMIN : B_CADMIN)) return $a->can($bit + 1); // not this admin bit, maybe the next higher? IMPORTANT NOTE: this gives cAdmin2 Admin2 permission, so always use ->isAdmin2 rather than ->admin2 unless you WANT cAdmin2 to have the permission in question
       }
       return $can;
     }
@@ -1413,20 +1449,18 @@ EOF;
     $aa = $this->agentA;
     $id = $a->id;
     
-    // collect efficient bits, for reference within this function
-//    for ($bit = 0; $bit <= B_MAX; $bit++) $cans[$bit] = $a->can($bit);
-//    foreach ([B_REGULATOR, B_CADMIN2, B_CADMIN, B_ADMIN] as $bit) $cans[$bit] = $a->agentA->can($bit);
-
     $cans[B_PERSON] = !$a->can(B_CO);
     if ($id == 1) $cans[B_ADMIN] = TRUE;
 
     $perm = $a->closed ? B_READ
-      : ($a->proSe ? B_MANAGE
-      : (($aa->can(B_CADMIN) and $a->community == $aa->community) ? B_MANAGE 
-      : (B_RELATED + relation('permission', $id, $aa->id))));
+    : ($a->proSe ? B_MANAGE
+    : (($aa->can(B_CADMIN) and $a->community == $aa->community) ? B_MANAGE : 0) );
+      
+    if (!$perm) $perm = max(B_RELATED + relation('permission', $id, $aa->id),
+      ($aa->can(B_ADMIN2) ? B_READ : ($aa->can(B_CADMIN2) and $a->community == $aa->community) ? B_READ : 0));
+      
     for ($i = B_RELATED; $i <= B_MANAGE; $i++) $cans[$i] = ($i <= $perm); // set all, even the false ones
 
-    // (NO! this should never happen) if ($cans[B_OK]) $cans[B_MEMBER] = TRUE;
     if (!$a->can(B_OK)) $cans[B_SELL] = $cans[B_BUY] = FALSE; // (read here kills acct dropdown)
 
     if (!$a->can(B_MEMBER)) $cans[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
@@ -1467,7 +1501,9 @@ EOF;
    */
   public function ssnCheck($force = FALSE) {
     $a = $this;
-//    if (isDEV) return w\say('no SSN data');
+    if (!@$a->federalId) return t('No SSN yet.');
+    if ($a->federalId == '999999999') return t('SSN is a test.');
+    if (u\isEncrypted($a->federalId)) return t('SSN available only to superAdmin');
     if (@$a->ssnData and !u\starts(@$a->ssnData[SSN_ERR_INDEX], SSN_TIMEOUT_MSG) and !$force) return $a->ssnData;
     
     $max = 5;
@@ -1539,9 +1575,10 @@ EOF;
   public function isMe($uid) {return ($uid == $this->id or $uid == $this->jid);}
   public function codeHash() {return u\hash($this->cardCode());}
   public function o($k) {return $this->{'o_' . $k};}
-  public function partnerAPI() {return str_replace('WEBSITE', $this->website, PARTNER_API_URL);}
+  public function api($etc = '') {return $this->website ? tr(CO_API_URL, 'website etc', $this->website, $etc) : '';}
   public function lastTxDesc() {return ($tx = $this->lastTx) ? t(' (Last tx: %dt)', 'dt', u\fmtDate($tx[3], TRUE)) : '';}
-  public function firstCo() {return db\lookup('fullName', 'r_relations r INNER JOIN users u ON r.main=u.uid', 'r.permission>0 AND r.other=:id ORDER BY r.created LIMIT 1', ['id' => $this->id]);}
+  public function firstCo() {return db\lookup('fullName', 'r_relations r INNER JOIN users u ON r.main=u.uid', 'r.permission>0 AND r.other=:id AND u.:IS_CO ORDER BY r.created LIMIT 1', ['id' => $this->id]);}
+  public function adminables() {return ray(B_ADMINABLE . ($this->admin ? ' admin2' : '') . ($this->superAdmin ? ' admin co' : ''));}
   
 } // end of class
 

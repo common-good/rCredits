@@ -16,7 +16,7 @@ Scenario: A member donates
   Given next DO code is "whatever"
   When member ".ZZA" completes form "community/donate" with values:
   | gift | amount | often | honor  | honored | share |*
-  |    0 |     10 |     1 | memory | Jane Do |    10 |
+  |   -1 |     10 |     1 | memory | Jane Do |    10 |
   Then transactions:
   | xid | created | type     | amount | rebate | bonus | from | to   | purpose      |*
   |   1 | %today  | transfer |     10 |   0.50 |  1.00 | .ZZA | cgf  | donation |
@@ -44,7 +44,7 @@ Scenario: A member donates
 Scenario: A member donates with insufficient funds
   When member ".ZZA" completes form "community/donate" with values:
   | gift | amount | often | honor  | honored | share |*
-  |    0 |    200 |     1 | memory | Jane Do |    10 |
+  |   -1 |    200 |     1 | memory | Jane Do |    10 |
   Then we say "status": "gift successful|gift transfer later" with subs:
   | amount |*
   |   $200 |

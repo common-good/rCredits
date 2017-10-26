@@ -187,6 +187,23 @@ function sessionTimeout() {
   }, sessionLife - signoutWarningAdvance);
 }
 
+function SelectText(element) { // from http://stackoverflow.com/questions/985272
+  var doc = document;
+  var text = doc.getElementById(element);
+  var range, selection;
+  if (doc.body.createTextRange) {
+    range = doc.body.createTextRange();
+    range.moveToElementText(text);
+    range.select();
+  } else if (window.getSelection) {
+    selection = window.getSelection();        
+    range = doc.createRange();
+    range.selectNodeContents(text);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+}
+
 var _gaq = _gaq || [];
 _gaq.push(['_setAccount', 'UA-30262912-1']);
 _gaq.push(['_trackPageview']);

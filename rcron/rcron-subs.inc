@@ -91,7 +91,7 @@ function queue($op, $item = []) {
   if ($uid = @$info['uid']) $mya = r\acct($uid); // fudge current account
 //  if (!strpos($op, '1')) {
 
-  if (!in_array($op, ray('acctHourly acctStats acctStats1 acctRisk acctRisk1'))) u\log($op, 'cr', u\justNot('uid', $item));
+  if (!in_array($op, ray('acctHourly acctStats acctStats1 acctRisk acctRisk1'))) u\log($op, 'cr', justNOT('uid', $item));
   
   if (@$cronOp == ONE_CRON_OP or u\test()) {
     $oneOp = "rCredits\\Cron\\$op";

@@ -144,9 +144,10 @@ function x($xid, $mya = '') {f('r.x', $xid, $mya);} // return a transaction obje
 /**/ function step($a) {debug(us($a)->step());}
 function ctty($id) {return a(a($id)->community);}
 //function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
-/**/ function flog($s, $file = FALSE) { // log to file (or return log file name, if $file is TRUE)
+/**/ function flog($s = '') { // log to file and return log file name
   $fileName = DRUPAL_ROOT . '/rlogs/' . date('Ym') . '.log'; // new log file every month
-/**/ if ($file) return $fileName; else file_put_contents($fileName, print_r($s, 1) . "\n", FILE_APPEND);
+/**/ if (func_num_args()) file_put_contents($fileName, print_r($s, 1) . "\n", FILE_APPEND);
+  return $fileName;
 }
 /**/ function lug($s) {u\loga('debug', $s);}
 
@@ -216,8 +217,8 @@ function funcNickname($func) {
  * call: eachA($func);
  * or    eachA(function($a) {...});
  */
-function eachA($func = 'a.changeIt') {
-  $result = q('SELECT uid FROM users WHERE uid>1 ORDER BY uid')->fetchCol();
+function eachA($func = 'a.changeIt', $where = 'uid>1') {
+  $result = q("SELECT uid FROM users WHERE $where ORDER BY uid")->fetchCol();
   if (!is_callable($func)) $func = funcNickname($func);
   foreach ($result as $uid) $func(a($uid));
 }
@@ -258,12 +259,6 @@ function patch($name) {
   // user.module
   if ($name == 'user_access810') return FALSE;
 //  if ($name == 'user_account_form_validate1250') return w\emailDup($args[1], $args[2]); // does this get called?
-  if ($name == 'user_login_final_validate2207') {
-    $email = $args[1];
-    \watchdog('user', 'Login attempt failed for %user.', array('%user' => $email));
-    $_a = f('w.atag', '/settings/password');
-    return (\drupal_get_messages('error', FALSE)) ? '' : f('w.say', 'bad login', compact('_a'), 'name');
-  }
   if ($name == '_user_mail_notify3569') { // UNUSED
     list ($index, $account, $language) = $args;
 //    $language = @$language ?: \user_preferred_language($account);

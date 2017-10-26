@@ -116,7 +116,7 @@ EOF;
   }
 
   while ($row = $q1099->fetchAssoc()) {
-    extract(u\just('data serial tome', $row));
+    extract(just('data serial tome', $row));
     $data = unserialize($data);
     if (@$data['undoneBy']) { // look at expenses, in case there's a reversed rebate, but don't return em
       $ignore1099[] = $serial; // ignore undone txs and their rewards
@@ -139,7 +139,7 @@ function updateRelations($updates) {
   $myid = r\acct()->id;
   $report = '';
   foreach ($updates as $reid => $data) {
-    extract(u\just('main other fullName', $data['original'])); 
+    extract(just('main other fullName', $data['original'])); 
     unset($data['original']);
 
     $reidSub = $subs = compact('reid');
@@ -194,7 +194,7 @@ function undoTx($xid, $where = '1', $subs = [], $force = FALSE) {
     r\notify($myx->them, 'charge disputed', $myx->reportArgs());
   } else {
     $type = $myx->toMe ? 'charge' : 'payment';
-    $amounts = u\just('amount payerReward payeeReward', $myx->ray);
+    $amounts = just('amount payerReward payeeReward', $myx->ray);
     $what = [$myx->payerFor, $myx->payeeFor];
     return reverse($xid, $amounts, $what, $myx->a2, $data, $myx->goods, $myx->tid, $type, $myx->tid2, $force); // create an offsetting transaction
   }
@@ -217,8 +217,8 @@ function reverse($xid, $amounts, $what, $acct, $data, $old_goods, $tid, $type, $
   
   if (!is_array($data)) $data = [];
   $old_data = $data; // remember original data from transaction we're reversing
-//  extract(u\just('rebate bonus xfee', $data));
-  extract(u\just('xfee', $data));
+//  extract(just('rebate bonus xfee', $data));
+  extract(just('xfee', $data));
   $tids = u\order($type == 'payment', $tid, $otherTid);
   for ($i = 0; $i < 2; $i++) $what[$i] .= t(' (reverses #%tid)', 'tid', $tids[$i]);
 //  $otherFor = str_replace($tid, $otherTid, $myFor);
@@ -232,7 +232,7 @@ function reverse($xid, $amounts, $what, $acct, $data, $old_goods, $tid, $type, $
   list ($message, $args, $confirm) = transfer($type, $mya, $acct, $amounts, $old_goods, $what, NULL, TRUE, $data);
 
   if (@$args['success']) {
-    extract(u\just('xid tid otherTid', $args), EXTR_PREFIX_ALL, 'new');
+    extract(just('xid tid otherTid', $args), EXTR_PREFIX_ALL, 'new');
     $old_data['undoneBy'] = $new_xid;
     $old_data['changes'][] = array(r\rTime(), $mya->agentId, 'undo', $new_xid);
     $old_data = serialize($old_data);
@@ -263,7 +263,7 @@ EOF;
  */
 function payInvoice($nvid, &$msg = '') {
   if ($msg = r\badUnpaidInv($nvid, $inv)) return FALSE;
-  extract(u\just('payer payee amount goods purpose', $inv));
+  extract(just('payer payee amount goods purpose', $inv));
   
   $DBTX = \db_transaction();
   $purpose .= ' (' . PROJECT . " inv#$nvid)";
@@ -317,9 +317,9 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   u\EXPECT(compact(ray('a1 a2 goods oked data')), 'acct acct int bool assoc');
 
   $type = TX_TRANSFER;
-  if (is_array($amount)) extract(u\just('amount payerReward payeeReward', $amount));
+  if (is_array($amount)) extract(just('amount payerReward payeeReward', $amount));
   list ($myid, $uid) = array($a1->id, $a2->id);
-  foreach (u\just('force offline', $data) as $k => $v) {
+  foreach (just('force offline', $data) as $k => $v) {
     $$k = $v;
     if ($k != 'force') unset($data[$k]); // keep force in data also
   }
@@ -413,8 +413,8 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
 /**
  * Create an invoice
  * call by: list ($msg, $args, $confirm) = be\invoice(...);
- * @param acct $a1: acct object for first party (usually current user)
- * @param acct $a2: acct object for the other party
+ * @param acct $a1: acct object for payee (usually current user)
+ * @param acct $a2: acct object for payer
  * @param numeric $amount: the invoiced amount
  * @param int $goods: 0=for USD, 1=for real goods and services, 2=other
  * @param string $purpose: description of the transaction's purpose (user input)
@@ -588,7 +588,7 @@ EOF;
  *   including the overall demand for rCredits
  */
 function creditInfo($args = []) {
-  extract(u\just('uid pending asof noj', $args));
+  extract(just('uid pending asof noj', $args));
   if (!$a = r\acct(@$uid)) return NULL; else $uid = $a->id;
   $jid = @$noj ? 0 : ($a->jid ?: 0);
 
@@ -665,8 +665,9 @@ function accountChoices() {
   $nameOrder = "IF(MID(fullName, 2, 2)='. ', MID(fullName, 4), IF(MID(fullName, 2, 1)=' ', MID(fullName, 3), IF(MID(fullName, 1, 4)='the ', MID(fullName, 5), fullName)))"; // ignore "the ", "a ", and initialled first name (eg "X." or "X")
   $sqlNormal = 'SELECT r.main AS id, u.fullname FROM r_relations r LEFT JOIN users u ON u.uid=r.main WHERE r.other=:aid AND r.permission>0'; // normal selection SQL
 
-  if ($mya->admin or $mya->isRegulator) {
-    $q = @db\q("SELECT uid AS id, fullName FROM users ORDER BY (uid<0) DESC, $nameOrder");
+  if ($mya->admin or $mya->isAdmin2) {
+    $where = $mya->superAdmin ? '1' : 'uid NOT IN (0,1,2,3)';
+    $q = @db\q("SELECT uid AS id, fullName FROM users WHERE $where ORDER BY (uid<0) DESC, $nameOrder");
   } elseif ($mya->cAdmin) {
     $sql = <<<EOF
 SELECT DISTINCT id, fullName FROM

@@ -33,7 +33,7 @@ function achify() {
     if ($amount < 0) continue; // ignore these while the system is young (admin may want to dissuade the member)
     $a = r\acct($uid);
     if (!$a->bank or !$a->ok) continue;
-    extract(u\just('bankAccount bankAccountType', $a->secure));
+    extract(just('bankAccount bankAccountType', $a->secure));
     if (!@$bankAccount) continue;
     list ($route, $account) = u\parseBankAccount($bankAccount);
     $code = @$bankAccountType == 'checking' ? ($amount < 0 ? 22 : 27) : ($amount < 0 ? 32 : 37);

@@ -40,16 +40,16 @@ Scenario: A member builds up savings
 Scenario: A member cashes out automatically
   Given transactions:
   | xid | created   | type     | amount | from | to   | purpose |*
-  |   1 | %today-8m | signup   |    900 | ctty | .ZZA | signup  |
-  |   2 | %today-7m | transfer |    200 | .ZZA | .ZZB | stuff   |
-  |   3 | %today-6m | transfer |    600 | .ZZA | .ZZB | stuff   |
+  |   1 | %today-8w | signup   |    900 | ctty | .ZZA | signup  |
+  |   2 | %today-7w | transfer |    200 | .ZZA | .ZZB | stuff   |
+  |   3 | %today-6w | transfer |    500 | .ZZA | .ZZB | stuff   |
   Then balances:
   | id   | balance |*
-  | .ZZB |     800 |
+  | .ZZB |     700 |
   When cron runs "everyWeek"
   Then usd transfers:
-  | txid | payee | amount  |*
-  |    1 | .ZZB  | -777.17 |
+  | txid | payee | amount |*
+  |    1 | .ZZB  |   -600 |
   And we notice "banked|bank tx number" to member ".ZZB" with subs:
-  | action     | amount  | checkNum |*
-  | deposit to | $777.17 |        1 |
+  | action     | amount | checkNum |*
+  | deposit to | $600   |        1 |

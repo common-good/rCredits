@@ -18,7 +18,7 @@ To do:
  */
 function formGame($form, &$sta, $args = '') {
   if (isPRODUCTION) return r\go('community', t('The game is not yet available.'));
-  extract(u\just('ctty memberCo acct', $args)); // ctty recovers a stored game
+  extract(just('ctty memberCo acct', $args)); // ctty recovers a stored game
 
   if (@$ctty == 'reset') {
     w\svar('ctty', '');
@@ -44,7 +44,7 @@ function formGame($form, &$sta, $args = '') {
 function formGame2() {
   global $base_url;
   
-  extract(u\just('week day ctty learn', gameVars()));
+  extract(just('week day ctty learn', gameVars()));
   if ($week > 0) {
     $title = item(t('<h2>Week @week, Day @day</h2>', $timeSubs = ['@week' => $week, '@day' => $day]));
     $subtext = item(t(<<<EOF
@@ -133,8 +133,8 @@ EOF
 }
 
 function formGame_validate($form, &$sta) {
-  extract(u\just('count', $sta['input']));
-  extract(u\just('ctty', gameVars()));
+  extract(just('count', $sta['input']));
+  extract(just('ctty', gameVars()));
   
   if (!@$ctty and $err = u\badAmount($count, '>0', 0, 30)) return sayFieldErr($err, 'count');
   
@@ -205,9 +205,9 @@ function gameVars() {
 }
 
 function formGame_submit($form, &$sta) {
-  extract($all = u\just('count learn pNewMembers pNewMembersUSD coMembers', $params = $sta['input']));
+  extract($all = just('count learn pNewMembers pNewMembersUSD coMembers', $params = $sta['input']));
   if (@$count) return gameSetup($count, $learn);
-  extract(u\just('week day ctty learn', gameVars()));
+  extract(just('week day ctty learn', gameVars()));
 
   foreach ($params as $k => $v) if (u\starts($k, 'goto')) {unset($params[$k]); $params[$k] = $v;} // reorder
   
@@ -308,7 +308,7 @@ function gameActivate($a, $ok = TRUE) {
 }
 
 function gameStats() {
-  extract(u\just('week day ctty', gameVars()));
+  extract(just('week day ctty', gameVars()));
   $asof = r\rTime();
   $monthAgo = u\plusMonths(-1, $asof);
   $q = db\q('SELECT uid FROM users WHERE uid>0 AND community=:ctty', compact('ctty'));

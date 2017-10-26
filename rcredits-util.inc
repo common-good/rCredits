@@ -16,30 +16,6 @@ define ('HEX_CHARS', '0123456789abcdef');
 
 // Some useful Drupal db methods: fetchAllKeyed(m, n), fetchAssoc and fetchAllAssoc(fld), fetchObject and fetchAll(), fetchCol(n), fetchField()
 
-/*
- * Return an ascii character not in the given string (but not null).
- * (used in game.CommonGood.earth to simulate mb_split)
- * @return the character (FALSE if string contains all characters)
- */
-function notIn($s) {
-  if (strpos($s, '`') === FALSE) return '`';
-  for ($i = 1; $i < 256; $i++) {
-    $c = chr($i);
-    if (strpos($s, $c) === FALSE) return $c;
-  }
-  return FALSE;
-}
-
-function obj() {return (object) call_user_func_array('ray', func_get_args());} // was rCredits\\Util\\ray
-
-/**
- * Say whether the string is a member of the given space-delimited list.
- * @param string $needle: what to look for
- * @param string $hay: where to look
- * @return <needle is in the hay>
- */
-function inList($needle, $hay) {return (strpos(" $hay ", " $needle ") !== FALSE or strpos(",$hay,", ",$needle,") !== FALSE);}
-
 /* this is probably a bad idea
 function preK($prefix, $s) {
   if (is_array($s)) {
@@ -49,39 +25,6 @@ function preK($prefix, $s) {
   } else return $prefix . ucwords($s);
 }
 */
-
-/**
- * Return just the specified key/value pairs from the given array, trimmed.
- * Typical use: extract(just('key2 key4 key 7', $info));
- * If a key did not exist in the original array, it will not be in the returned array either.
- * @param string/array $these: array or space-delimited array of field names
- * @param array/object/string $info: possible key/value pairs to return (passed as array, object, or UrlArgString)
- * @return array of the results, trimmed
- */
-function just($these, $info) {
-  $result = [];
-  if (is_string($info)) {
-    parse_str(strpos($info, urlencode('=')) ? urldecode($info) : $info, $ray);
-  } else $ray = (array) $info; // in case it was an object
-  if (!is_array($these)) $these = ray($these);
-  $keys = array_keys($ray); // eschew isset, to include null values in result
-//  foreach ($these as $k) if (isset($ray[$k])) $result[$k] = is_string($ray[$k]) ? trim($ray[$k]) : $ray[$k];
-  foreach ($these as $k) if (in_array($k, $keys)) $result[$k] = is_string($v = @$ray[$k]) ? trim($v) : $v;
-  return $result;
-}
-
-/**
- * Return all but the specified key/value pairs from the given array.
- * @param string/array $these: array or space-delimited array of field names
- * @param array/object/string $info: possible key/value pairs to return (passed as array, object, or UrlArgString)
- * @return array of the results (not trimmed)
- */
-function justNot($these, $info) {
-  if (!is_array($these)) $these = ray($these);
-  $info = (array) $info;
-  foreach ($these as $field) unset($info[$field]);
-  return $info;
-}
 
 /**
  * array_splice() for associative arrays.
@@ -346,7 +289,7 @@ function ae2n($string) {return a2n($string, 62);}
 /**
  * Encode 3 hex digits as 2 legal URL characters: [A-Za-z0-9.-]
  * @param string $s: the three digits to convert
- * rCredits\Util\x32a2(rCredits\Util\a22x3('B7'));
+ * u\x32a2(u\a22x3('B7'));
  */
 function x32a2($s) {
   $chars = URL_CHARS;
@@ -581,11 +524,14 @@ function post($url, $content = FALSE, $responseFormat = 'raw', $extra_headers = 
   }
 
   $context = stream_context_create(compact('http'));
-  if ($fp = fopen($url, 'rb', FALSE, $context)) {
-    // If you're troubleshooting, uncomment the next line to see the HTTP response headers across all redirects:
-    // $meta = stream_get_meta_data($fp); var_dump($meta['wrapper_data']);
-    $response = stream_get_contents($fp);
-  } else $response = FALSE;
+  $response = FALSE;
+  try {
+    if ($fp = fopen($url, 'rb', FALSE, $context)) {
+      // If you're troubleshooting, uncomment the next line to see the HTTP response headers across all redirects:
+      // $meta = stream_get_meta_data($fp); var_dump($meta['wrapper_data']);
+      $response = stream_get_contents($fp);
+    }
+  } catch (Exception $e) {if (u\test()) return FALSE;}
 
 //  EXPECT($response !== FALSE, "$method $url failed");
   if ($response === FALSE) r\tellAdmin("$method $url failed");
@@ -721,7 +667,7 @@ function loga($type, $info = [], $adhocChannel = FALSE) {
     $map = ["\r" => '', "\n" => '', '    ' => ' '];
     if ($msg = @$info['message']) $info['message'] = strtr(strip_tags(str_replace('>', '>|', $msg)), $map);
     if (@$info['form_id']) {$type .= str_replace('rCredits\\Web\\form', '', $info['form_id']);}
-    if (@$info['toEmail']) $info = u\just('index subject', $info); // don't show whole email
+    if (@$info['toEmail']) $info = just('index subject', $info); // don't show whole email
     foreach (ray('form_id form_build_id form_token orig') as $k) unset($info[$k]);
     foreach (ray(R_NOLOG) as $k) if ($k != 'email' and @$info[$k]) $info[$k] = '(?)';
   //  $record = compact(ray('time channel type myid agent info'));
@@ -733,12 +679,13 @@ function loga($type, $info = [], $adhocChannel = FALSE) {
 /**
  * Return an email a tag.
  */
-function emailTag($email = NULL, $subject = '', $body = '') {
+function emailTag($email = NULL, $subject = '', $body = '', $name = '', $extra = '') {
   u\setDft($email, r\regionField('email'));
-  $res = 'mailto:' . $email;
+  if ($name) $email = urlencode("\"name\"") . ' ' . urlencode("<$email>");
+  $res = "mailto: $email";
   if ($subject) $res .= '?subject=' . urlencode($subject);
   if ($body) $res .= '&body=' . urlencode($body);
-  return "a href=\"$res\" target=\"_blank\"";
+  return "a href=\"$res\" target=\"_blank\" $extra";
 }
 
 function seeAssoc($info) {
@@ -845,6 +792,13 @@ function alterImg($img0, $w, $h, $x1 = 0, $y1 = 0, $cropW = 0, $cropH = 0, $angl
   } else $img3 = $img2;
   
   return $img3;
+}
+
+/**
+ * Say whether a value is encrypted. This works only if the unencrypted value can never start with ! or c~.
+ */
+function isEncrypted($s) {
+  return (u\starts($s, CRYPT_FLAG) or u\starts($s, CRYPTN_FLAG));
 }
 
 /**
@@ -1224,7 +1178,7 @@ function bits($n, $descs = B_LIST) {
   $res = '';
   if ($descs) {
     $descs = ray($descs);
-    if (!is_numeric(@$descs[0])) $descs = array_keys($descs); // ignore extra info after colon in bit name
+    if (!is_numeric(@key($descs))) $descs = array_keys($descs); // ignore extra info after colon in bit name
   }
   for($i = 0; $i < 32; $i++) if ($n & (1 << $i)) $res .= ' ' . ($descs ? $descs[$i] : $i);
   return $res;
@@ -1408,3 +1362,6 @@ function day2n($day) {return array_search($day, ray('Sun Mon Tue Wed Thu Fri Sat
 function lf2br($s) {return strtr($s, ["\r" => '', "\n" => '<br>']);}
 function sqlSerialValue($s, $n) {return "SUBSTRING_INDEX(SUBSTRING_INDEX($s, '\\\"', $n * 2), '\\\"', -1)";}
 function similar($s1, $s2, $chars = 5, $pct0 = .1) {return (similar_text($s1, $s2, $pct) > $chars and $pct > $pct0);}
+function unite($a, $b, $m = '') {return ($a and $b) ? tr('%a%m%b', '_a _m _b', $a, $m ?: t(' and '), $b) : ($a ?: $b);}
+function honorDesc($honor) {return $honor == 'other' ? ' ' : t(' in %honor of ', compact('honor'));}
+function inList($needle, $hay) {return (strpos(" $hay ", " $needle ") !== FALSE or strpos(",$hay,", ",$needle,") !== FALSE);}

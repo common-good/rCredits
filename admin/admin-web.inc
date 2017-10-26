@@ -55,49 +55,21 @@ function changeTxAmt($xid, $oldAmt, $newAmt) {
 }*/
 
 /**
- * Return Summary fields exclusively for community admins (admin, cAdmin, cAdmin2, or regulator).
+ * Return Summary fields exclusively for community admins (admin, admin2, cAdmin, cAdmin2).
  */
-function adminSummary($a, $cAdmin = FALSE) {
-  global $base_url;
+function adminSummary() {
+  global $mya, $base_url;
   include_once __DIR__ . '/../admin/admin.inc';  
 
-  global $mya;
-  $uid = $a->id;
-  $self = ($uid == $mya->agentId);
-  $ctty = $a->community ?: r\serverUid(); // serverUid for admin, if it has no ctty
+  $uid = $mya->id;
+  $ctty = $mya->community ?: r\serverUid(); // serverUid for admin, if it has no ctty
+  if ($mya->proSe and !$mya->superAdmin) return []; // nothing special on admin's own account
   
-  if (!$a->isCtty) { // managing some individual account
-    if (!$a->ok) $a->nextStep();
-    if ($cAdmin) {
-      if (showSecureMessages()) $secureMsgs = submit(t('Show secure messages'));
-      $html = $a->photoHtml(TRUE, TRUE);
-      $photo = item("<a href=$base_url/settings/photo>$html</a>");
-      if ($mya->admin) $community = r\cttys($a->region, $ctty);
-      $donations = item($a->giftsDesc() ?: t('none'), t('Donations:'));
-      
-//      $creditLimit = textFld(t('Credit limit:'), '', dft(u\fmtAmt(-$a->floor)));
-//      if ($a->stepsDone['prefs']) { // don't even look at these if newbie hasn't chosen yet
-//        $minimum = textFld(t('Minimum:'), '', dft(u\fmtAmt($a->minimum)));
-//        $achMin = textFld(t('ACH Min:'), '', dft(u\fmtAmt($a->achMin ?: R_ACHMIN_DEFAULT, 's')));
-//      }
-        $minimum = item(u\fmtAmt($a->minimum), t('Target Bal:'));
-        $achMin = item(u\fmtAmt($a->achMin), t('ACH Min:'));
-//      if (!$a->stepsDone['dw']) { // show info needed to open a Dwolla account
-//      extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
-      if (!$a->co) $trust = item($a->trust, t('Trust:'), t('This person\'s trust rating'));
-    }
+  if ($others = db\lst('fullName', 'sessions s JOIN users u ON u.uid=s.uid', ':uid=IFNULL(s.acct, s.uid) AND s.uid<>:agentId', ray('uid agentId', $uid, $mya->agentId))) {
+    w\say(t('<b class="loud">Other people</b> signed in to this account: ') . $others);
+  }
   
-    $activity = item(a\showActivity($a), t('Activity:'));
-    if (!$a->ok) $steps = item(a\showSteps($a), t('To do (red):'), t('|sign=agreement | prefs=preferences | connect=connect bank (or not) | company=company info'));
-//    $created = item(u\fmtDate($a->created), t('Created:'));
-    if ($rels = a\showRelations($a)) $relations = item($rels, t('Relations:'));
-    
-//    $invited = item(db\count('r_invites', 'inviter=:uid', compact('uid')), t('Invited:'));
-    $invitedBy = $a->helper ? ($a->helperA->fullName . "#$a->iCode (" . r\iCodeDesc($a->iCode) . ') + ') : '';
-    $invitedBy = item($invitedBy . db\lst('fullName', 'r_invites i LEFT JOIN users u ON u.uid=i.inviter', 'invitee=:uid', compact('uid')), t('Invited by:'));
-    $proxies = item(db\lst('fullName', 'r_proxies p LEFT JOIN users u ON u.uid=p.proxy', 'p.person=:uid ORDER BY priority', compact('uid')), t('Proxies:'));
-    $proxyFor = item(db\count('r_proxies', 'proxy=:uid', compact('uid')), t('Proxy for:'));
-  } else { // managing a community itself
+  if ($mya->isCtty) { // managing a community itself
     $count = item(db\count('users', 'community=:ctty AND uid<>:ctty', compact('ctty')), t('Members:'));
     $cInfo = be\creditInfo();
     foreach ($fields = ray('balance in rewards out') as $k) {
@@ -108,99 +80,12 @@ function adminSummary($a, $cAdmin = FALSE) {
     }
     
     $balance = item(t('%balance = %in in - %out out (Rewards issued: %rewards)', compact($fields)), t('Funds:'));
-  }
-  
-  if ($cAdmin and !$self) {
-    include __DIR__ . '/../rweb/risk-descs.inc';
-    include __DIR__ . '/../rweb/bit-descs.inc';
+  } else { // managing some individual account
+    if (!$mya->ok) $mya->nextStep();
 
-    $legalName = textFld(t('Legal Name:'), '', required($a->legalName));    
-    if ($mya->superAdmin or ($mya->cAdmin and $mya->activated)) $rTrader = ($a->isCtty)
-    ? boolFld(t('Active?'), '', $a->ok)
-    : boolFld(t('Active?'), t('Is account approved to use %PROJECT?', '_a', w\atag('/settings/photo?' . rand())), $a->ok);
-    if (!$a->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
-      if ($helper = $a->helper ?: ($a->co ? $a->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
-        $hA = r\acct($helper);
-        $helper = "$hA->mainQid: $hA->fullName";
-      }
-      $helper = textFld(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper)); //  + autocomplete()
-    } else $helper = item(@$a->helperA->fullName ?: t('N/A'), t('Helped by:'));
-    
-    $source = w\item($a->source, t('Source:'));
-    if ($a->member and !$a->co and $mya->superAdmin) $ssnShow = item(a\ssnShow($a));
-    if ($mya->admin) {
-      $dba = ($a->co and $owner = r\relation('other', 'main=:uid', compact('uid')) and r\acct($owner)->federalId == $a->federalId);
-      $federalId = textFld(t('EIN/SSN:'), '', $a->federalId ? ($dba ? t('SSN') : R_ON_FILE) : '');
-    }
-  
-    $acctRisks = ray(K_ACCT_RISKS);
-    $riskBits = array_keys($acctRisks);
-    $risksEditable = array_flip(ray(K_ACCT_RISKS_EDITABLE));
-    foreach ($riskBits as $k) {
-      $class = $acctRisks[$k] < 0 ? 'goodRisk' : 'badRisk';
-      if (!isset($risksEditable[$k])) $class .= ' noEdit';
-      $dpy = w\popHelp($k, $riskHelp[$k], '#');
-      $aliases[$k] = "<div class=\"$class\">$dpy</div>";
-    }
-    $risks = bitsFld(t('Risks:'), $a->risks, '', K_ACCT_RISKS, $aliases);
-    if ($a->isCtty) $flagHelp = u\just(B_CTTY_BITS, $flagHelp);
-
-    $adminable = ray(B_ADMINABLE . ($mya->superAdmin ? ' admin' : ''));
-    foreach (ray($a->isCtty ? B_CTTY_BITS : B_LIST) as $k) if (!preg_match('/u[0-9]+/', $k)) { // ignore undefined bits
-      $blist[] = $k0 = $k;
-      $class = in_array($k, $adminable) ? '' : 'noEdit';
-      if ($a->isCtty) $k = strtr($k, ray(B_ADMIN_BITS));
-      $dpy = w\popHelp($k, $flagHelp[$k0], '#');
-      $aliases[$k0] = "<div class=\"$class\">$dpy</div>";
-    }
-    $adminable = bitsFld(t('Bits:'), $a->flags, 'b', join(' ', $blist), $aliases);
-
-//    $who = textFld(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
-  }      
-
-  if ($a->id == r\cgfId()) {
-    $sql = <<<EOF
-      SELECT u.community AS ctty, SUM(IF(payee=:uid, amount, 0)) AS `in`,
-        SUM(IF(payer=:uid, amount, 0)) AS `out`
-      FROM r_txs t LEFT JOIN users u ON u.uid=IF(payer=:uid, payee, payer)
-      WHERE ((payer=:uid AND payee<0) OR payee=:uid) AND t.:IS_GIFT GROUP BY community
-EOF;
-    $q = db\q($sql, compact('uid'));
-    $lines = '<tr><th>Community</th><th>Donations</th><th>Paid</th><th>Due</th></tr>';
-    while ($row = $q->fetchAssoc()) {
-      extract($row);
-      $row['due'] = round($in / 2 - $out, 2);
-      foreach (['in', 'out', 'due'] as $k) $$k = number_format($row[$k], 2);
-      $ctty = r\acct($ctty)->fullName;
-      $lines .= "<tr><td>$ctty</td><td>$in</td><td>$out</td><td>$due</td></tr>\n";
-    }
-    $cgfDonations = item("<table id=\"cgf-donations\">$lines</table>");
-  }
-  $calling = item($a->calling, t('Calling:'));
-  $tenure = item($a->tenure . t(' month(s)'), t('Tenure:'), t('How long had this person or company been at this address before opening a %PROJECT Account?'));
-
-  if (!$a->co) {
-    $moves = item($a->moves === '' ? '?' : $a->moves, t('Moves:'), t('(How many times has this person changed counties in the past decade?)'));
-//    $mediaConx = textFld(t('Media Conx:'), t('(How many 1st or 2nd-degree connections do you have with this person on FaceBook or LinkedIn?)'), dft($a->mediaConx ?: 0));
-  }
-
-  list ($tickleType, $zot, $tip) = $a->nextTickle();
-  $preNote = item($tip);
-  
-  if ($a->superAdmin) {
-    $notes = areaFld(t('Notes:'), '', dft($a->notes));
-  } else $notes = item(str_replace("\n", '<br>', $a->notes), t('Notes:'));
-
-  $note = areaFld(t('New Note:'));
-  $suffix = submitTickle(1, t('Wait a day')) . submitTickle(2, t('2 days')) . submitTickle(7, '7') . submitTickle(30, '30') . submitTickle('', t('Auto'));
-  $tickle = textFld(t('Tickle:'), t('On what date should we follow up?'), dft($a->tickle ? u\fmtDate($a->tickle, TRUE) : '') + w\suffix($suffix));
-  $risk = item(round($a->risk) . ' ' . button(t('Recalc'), "$base_url/rerisk/acct/$uid/1"), t('Risk Score:'));
-  if (!$a->co) $trust = item(number_format($a->trust, 1), t('Trust:'));
-  if ($mya->can(B_CADMIN2)) $submit = submit(t('Save'));    
-
-  $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
-
-  $js = <<<EOF
+    if ($mya->admin and !$mya->proSe) {
+      $community = r\cttys($mya->region, $ctty);
+      $js = <<<EOF
 $('#edit-community').on('change', function() {
   var newCtty = this.value;
   changeCtty(newCtty, false);
@@ -218,12 +103,136 @@ function changeCtty(newCtty, retro) {
   });
 }
 EOF;
-  js($js);
+      js($js);
+    }
+
+    if ($mya->cAdmin and !$mya->proSe) {
+      if (showSecureMessages()) $secureMsgs = submit(t('Show secure messages'));
+      $html = $mya->photoHtml(TRUE, TRUE);
+      $photo = item("<a href=$base_url/settings/photo>$html</a>");
+
+      $donations = item($mya->giftsDesc() ?: t('none'), t('Donations:'));
+      
+//      $creditLimit = textFld(t('Credit limit:'), '', dft(u\fmtAmt(-$mya->floor)));
+//      if ($mya->stepsDone['prefs']) { // don't even look at these if newbie hasn't chosen yet
+//        $minimum = textFld(t('Minimum:'), '', dft(u\fmtAmt($mya->minimum)));
+//        $achMin = textFld(t('ACH Min:'), '', dft(u\fmtAmt($mya->achMin ?: R_ACHMIN_DEFAULT, 's')));
+//      }
+      $minimum = item(u\fmtAmt($mya->minimum), t('Target Bal:'));
+      $achMin = item(u\fmtAmt($mya->achMin), t('ACH Min:'));
+//      if (!$mya->stepsDone['dw']) { // show info needed to open a Dwolla account
+//      extract((array) $mya->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
+      if (!$mya->co) $trust = item($mya->trust, t('Trust:'), t('This person\'s trust rating'));
+      $invitedBy = $mya->helper ? ($mya->helperA->fullName . "#$mya->iCode (" . r\iCodeDesc($mya->iCode) . ') + ') : '';
+      $invitedBy = item($invitedBy . db\lst('fullName', 'r_invites i LEFT JOIN users u ON u.uid=i.inviter', 'invitee=:uid', compact('uid')), t('Invited by:'));
+      $proxies = item(db\lst('fullName', 'r_proxies p LEFT JOIN users u ON u.uid=p.proxy', 'p.person=:uid ORDER BY priority', compact('uid')), t('Proxies:'));
+      $proxyFor = item(db\count('r_proxies', 'proxy=:uid', compact('uid')), t('Proxy for:'));
+      $risk = item(round($mya->risk) . ' ' . button(t('Recalc'), "$base_url/rerisk/acct/$uid/1"), t('Risk Score:'));
+      if (!$mya->co) $trust = item(number_format($mya->trust, 1), t('Trust:'));
+
+    if (!$mya->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
+        if ($helper = $mya->helper ?: ($mya->co ? $mya->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
+          $hA = r\acct($helper);
+          $helper = "$hA->mainQid: $hA->fullName";
+        }
+        $helper = textFld(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper)); //  + autocomplete()
+      } else $helper = item(@$mya->helperA->fullName ?: t('N/A'), t('Helped by:'));
+    }
+  
+    $activity = item(a\showActivity($mya), t('Activity:'));
+    if (!$mya->ok) $steps = item(a\showSteps($mya), t('To do (red):'), t('|sign=agreement | prefs=preferences | connect=connect bank (or not) | company=company info'));
+    if ($rels = a\showRelations($mya)) $relations = item($rels, t('Relations:'));  
+  }
+  
+  if ($mya->cAdmin and !$mya->proSe) { // either a community or regular account (but not the cAdmin's own account)
+    include __DIR__ . '/../rweb/risk-descs.inc';
+    include __DIR__ . '/../rweb/bit-descs.inc';
+
+    $legalName = textFld(t('Legal Name:'), '', required($mya->legalName));    
+    if ($mya->superAdmin or ($mya->cAdmin and $mya->activated)) $rTrader = ($mya->isCtty)
+    ? boolFld(t('Active?'), '', $mya->ok)
+    : boolFld(t('Active?'), t('Is account approved to use %PROJECT?', '_a', w\atag('/settings/photo?' . rand())), $mya->ok);
+    
+    $source = w\item($mya->source, t('Source:'));
+    if ($mya->member and !$mya->co and $mya->superAdmin) $ssnShow = item(a\ssnShow($mya));
+    if ($mya->admin) {
+      $dba = ($mya->co and $owner = r\relation('other', 'main=:uid', compact('uid')) and r\acct($owner)->federalId == $mya->federalId);
+      $ssnDft = $mya->federalId ? ($dba ? t('SSN') : R_ON_FILE) : '';
+      $federalId = $mya->superAdmin ? textFld(t('EIN/SSN:'), '', $ssnDft) : w\item($ssnDft);
+    }
+  
+    $acctRisks = ray(K_ACCT_RISKS);
+    $riskBits = array_keys($acctRisks);
+    $risksEditable = array_flip(ray(K_ACCT_RISKS_EDITABLE));
+    foreach ($riskBits as $k) {
+      $class = $acctRisks[$k] < 0 ? 'goodRisk' : 'badRisk';
+      if (!isset($risksEditable[$k])) $class .= ' noEdit';
+      $dpy = w\popHelp($k, $riskHelp[$k], '#');
+      $aliases[$k] = "<div class=\"$class\">$dpy</div>";
+    }
+    $risks = bitsFld(t('Risks:'), $mya->risks, '', K_ACCT_RISKS, $aliases);
+    if ($mya->isCtty) $flagHelp = just(B_CTTY_BITS, $flagHelp);
+
+    $adminable = $mya->adminables();
+
+    foreach (ray($mya->isCtty ? B_CTTY_BITS : B_LIST) as $k) if (!preg_match('/u[0-9]+/', $k)) { // ignore undefined bits
+      $blist[] = $k0 = $k;
+      $class = in_array($k, $adminable) ? '' : 'noEdit';
+      if ($mya->isCtty) $k = strtr($k, ray(B_ADMIN_BITS));
+      $dpy = w\popHelp($k, $flagHelp[$k0], '#');
+      $aliases[$k0] = "<div class=\"$class\">$dpy</div>";
+    }
+    $adminable = bitsFld(t('Bits:'), $mya->flags, 'b', join(' ', $blist), $aliases);
+    $calling = item($mya->calling, t('Calling:'));
+    $tenure = item($mya->tenure . t(' month(s)'), t('Tenure:'), t('How long had this person or company been at this address before opening a %PROJECT Account?'));
+
+    if (!$mya->co) {
+      $moves = item($mya->moves === '' ? '?' : $mya->moves, t('Moves:'), t('(How many times has this person changed counties in the past decade?)'));
+
+//    $who = textFld(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
+  }      
+
+  if ($mya->id == r\cgfId()) {
+    $sql = <<<EOF
+      SELECT u.community AS ctty, SUM(IF(payee=:uid, amount, 0)) AS `in`,
+        SUM(IF(payer=:uid, amount, 0)) AS `out`
+      FROM r_txs t LEFT JOIN users u ON u.uid=IF(payer=:uid, payee, payer)
+      WHERE ((payer=:uid AND payee<0) OR payee=:uid) AND t.:IS_GIFT GROUP BY community
+EOF;
+    $q = db\q($sql, compact('uid'));
+    $lines = '<tr><th>Community</th><th>Donations</th><th>Paid</th><th>Due</th></tr>';
+    while ($row = $q->fetchAssoc()) {
+      extract($row);
+      $row['due'] = round($in / 2 - $out, 2);
+      foreach (['in', 'out', 'due'] as $k) $$k = number_format($row[$k], 2);
+      $ctty = r\acct($ctty)->fullName;
+      $lines .= "<tr><td>$ctty</td><td>$in</td><td>$out</td><td>$due</td></tr>\n";
+    }
+    $cgfDonations = item("<table id=\"cgf-donations\">$lines</table>");
+  }
+//    $mediaConx = textFld(t('Media Conx:'), t('(How many 1st or 2nd-degree connections do you have with this person on FaceBook or LinkedIn?)'), dft($mya->mediaConx ?: 0));
+  }
+
+  if (!$mya->proSe) {
+    list ($tickleType, $zot) = $mya->nextTickle();
+    $details = w\item(a\callDetails($tickleType, $mya->tickle));
+//    $preNote = item($tip);
+
+    if ($mya->superAdmin) {
+      $notes = areaFld(t('Notes:'), '', dft($mya->notes));
+    } else $notes = item(str_replace("\n", '<br>', $mya->notes), t('Notes:'));
+
+    $note = areaFld(t('New Note:'), [t('Type a Note Here'), t('Abbreviations: PM=phone msg EM=email msg. Be sure to say what you left a message <i>about</i> (for example "PM setup")')]);
+    $suffix = submitTickle(1, t('Wait a day')) . submitTickle(2, t('2 days')) . submitTickle(7, '7') . submitTickle(30, '30') . submitTickle('', t('Auto')) . ' &nbsp; ' . w\btn("$$('#rcreditswebformsummary').submit();", t('Save'), 'primary', 'md');
+    $tickle = textFld(t('Tickle:'), [t('Followup Date'), t('When to follow up ("Auto" sets an automatic Welcome or Annual date)')], dft($mya->tickle ? u\fmtDate($mya->tickle, TRUE) : '') + w\suffix($suffix));
+    }
+
+//  $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
 
   $uid = hidFld($uid); // must postcede js (which uses uid)
   
-  $bigFields = $a->ok ? 'adminable risks ssnShow' : 'ssnShow adminable risks';
-  return compact(ray("preNote notes note tickle submit donations rTrader activity relations source helper secureMsgs $bigFields community photo balance cgfDonations legalName calling signupCo tenure steps dwInfo invited invitedBy proxies proxyFor moves floor minimum achMin risk trust mediaConx count back uid"));
+  $bigFields = $mya->ok ? 'adminable risks ssnShow' : 'ssnShow adminable risks';
+  return compact(ray("photo details notes note tickle donations rTrader activity relations source helper secureMsgs $bigFields community balance cgfDonations legalName calling signupCo tenure steps dwInfo invited invitedBy proxies proxyFor moves floor minimum achMin risk trust mediaConx count back uid"));
 }
 
 /**
@@ -242,7 +251,7 @@ function submitTickle($v, $text) {
 define('EXPORT_PARAMS', 'do requests allCttys status types chimp anonymous');
 
 function export($params) {
-  extract(u\just(EXPORT_PARAMS, $params));
+  extract(just(EXPORT_PARAMS, $params));
   global $mya;
   $cttyA = r\acct($mya->community);
 
@@ -342,7 +351,7 @@ function txInfo($xid) {
   global $base_url;
   $x = r\x($xid);
   extract($x->ray);
-  extract(u\just('xfee force undoes undoneBy', $x->data));
+  extract(just('xfee force undoes undoneBy', $x->data));
   
   $title = item(t('Transaction #') . $xid);
   $when = item(u\fmtDate($created) . t(' at ') . u\fmtTime($created) . (@$force ? t(' (created offline)') : ''), t('Date/Time:'));

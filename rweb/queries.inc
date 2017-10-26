@@ -35,8 +35,8 @@ $queries = [
 
   'Positive and Negative Balance Totals' => 
     "SELECT c.fullName AS community, 
-    SUM(IF(u.r-u.rewards<0, 1, 0)) AS negativeBalanceCount, SUM(IF(u.r-u.rewards<0, u.r-u.rewards, 0)) AS negativeBalanceTotal,
-    SUM(IF(u.r-u.rewards>=0, 1, 0)) AS positiveBalanceCount, SUM(IF(u.r-u.rewards>=0, u.r-u.rewards, 0)) AS positiveBalanceTotal
+    SUM(IF(u.balance<0, 1, 0)) AS negativeBalanceCount, SUM(IF(u.balance<0, u.balance, 0)) AS negativeBalanceTotal,
+    SUM(IF(u.balance>=0, 1, 0)) AS positiveBalanceCount, SUM(IF(u.balance>=0, u.balance, 0)) AS positiveBalanceTotal
     FROM users u LEFT JOIN users c ON c.uid=u.community WHERE u.:IS_OK GROUP BY c.fullName",
   
   'Company and Member Balances and Credit Lines' =>
@@ -61,11 +61,11 @@ $queries = [
   B_CO . 'Customers' => // 27 is where the name starts in serialized data from partner: a:16:{s:8:"fullName";s:8:"NAME HERE...
   "SELECT IFNULL(uid, (SELECT uid FROM users WHERE fullName=$name)) AS account,
     code AS customer, IFNULL(fullName, $name) AS name, IF(u.activated, '', $phone) AS phone,
-    FROM_UNIXTIME(r.created, '%m/%d/%Y') AS created, 
+    FROM_UNIXTIME(r.created, '%m/%d/%Y') AS created,
     IF(u.uid IS NULL OR u.activated=0,
       IF(u.uid IS NULL OR u.uid=0, 'NOT BEGUN', 'in process'), 
       FROM_UNIXTIME(u.activated, '%m/%d/%Y')) AS completed
-  FROM r_relations r LEFT JOIN users u ON u.uid=r.other WHERE r.main=:myid AND r.isCustomer ORDER BY completed DESC,created"
+  FROM r_relations r LEFT JOIN users u ON u.uid=r.other WHERE r.main=:myid AND isCustomer ORDER BY u.activated,r.created"
   . t('~<p>A list of your customers who joined through a shared sign-up, showing progress opening their %PROJECT account.</p>'),
 
 ];

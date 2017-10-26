@@ -255,7 +255,10 @@ EOF;
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="#"><div><img src="$logo" /></div></a>
+      <a class="navbar-brand" href="#"><div>
+        <img src="$logo" />
+        <div id="orgname">Common Good<sup>&trade;</sup></div>
+      </div></a>
     </div>
     <div id="navbar" class="collapse navbar-collapse">
       <ul class="nav navbar-nav">
@@ -528,7 +531,7 @@ function rcredits_hidden($variables) {
  */
 function rcElement($variables, $fields) {
   foreach ($variables['element'] as $k => $v) $e[substr($k, 1)] = $v;
-  return u\just($fields, $e);
+  return just($fields, $e);
 }
 
 /**

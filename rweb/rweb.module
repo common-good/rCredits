@@ -107,6 +107,7 @@ function rweb_menu($submenu = '') {
     'community/events/proposal-notes' => ['call', t('Proposal Notes'), 'ProposalNotes 3', 'manage'],
     
     'community/agreement' => ['sub', t('The Agreement'), 'Agreement', ANY, '', t(''), 'globe'],
+    'community/honors' => ['sub', t('Honored and Remembered'), 'Honors', ANY, '', t(''), 'grain'],
     'community/invite' => ['sub', t('Invite Someone'), 'Invite', 'member manage', '', t(''), 'share-alt'],
     'community/invite/example' => ['call', t('Invite Someone'), '', 'member manage', 'inviteExample'],
     'community/invite/print' => ['call', t('Print Invite'), '', 'manage', 'printInvite'],
@@ -115,7 +116,7 @@ function rweb_menu($submenu = '') {
     'community/message' => ['sub', t('Message a Member'), 'Message', 'member manage', '', t(''), 'envelope'],
     'community/find-company' => ['sub', t('Find a Company'), 'FindCo', ANY, '', t(''), 'search'],
     'community/donate' => ['sub', t('Donate'), 'Donate', 'manage', '', t(''), 'thumbs-up'],
-    'community/grant' => ['sub', t('Get Paid to Organize'), 'Grant', ANY, '', t(''), 'apple'],
+    'community/grant' => ['sub', t('Get Paid to Organize'), 'Grant', 'prose', '', t(''), 'apple'],
     'community/funds' => ['sub', t('Funds in Each Community'), 'CttyFunds', ANY, '', t(''), 'usd'],
     'community/graphs' => ['sub', t('%PROJECT Graphs'), 'Graphs 2', ANY, '', t(''), 'stats'],
     'community/flags' => ['sub', t('Risk Flags'), 'Flags 2', ANY, '', t(''), 'flag'],
@@ -168,11 +169,11 @@ function rweb_menu($submenu = '') {
     
     'signup-company' => ['call', t('Open a Company Account'), 'SignupCo', 'manage'],
     'handle-invoice' => ['call', t('Handle Invoice'), 'HandleInvoice 1', ANY],
-    'rerisk' => ['call', t('Recalculate Risk'), 'Rerisk 1 2 3', 'regulator'],
+    'rerisk' => ['call', t('Recalculate Risk'), 'Rerisk 1 2 3', 'admin2'],
 
-    'sadmin' => ['norm', t('Admin'), 'Admin', 'cadmin2'],
+    'sadmin' => ['norm', t('Admin'), 'Admin', 'admin2'],
     'sadmin/panel' => ['sub', t('Panel'), 'AdminPanel 2', 'cadmin'],
-    'sadmin/followup' => ['sub', t('Admin Calls to Make'), 'Followup', 'cadmin'],
+    'sadmin/followup' => ['sub', t('Admin Calls to Make'), 'Followup', 'admin2'],
     'sadmin/member-list' => ['sub', t('Member List'), 'MemberList', 'cadmin2'],
     'sadmin/export-list' => ['sub', t('Export'), 'DownloadMemberList 2', 'cadmin2'],
     'sadmin/deposits' => ['sub', t('Deposits'), 'Deposits', 'superadmin'],
@@ -182,8 +183,7 @@ function rweb_menu($submenu = '') {
     'sadmin/handy' => ['sub', t('Handy'), '', 'superadminORdev', 'handyLinks'],
     'sadmin/php' => ['sub', t('PHP'), 'Php 2', 'superadminORdev'],
     'sadmin/zot' => ['sub', 'zot', '', 'superadmin'], // Drupal bug: last choice is omitted
-//    'sadmin/acct-info' => ['call', 'Account Info', 'Summary 2', 'regulator'],
-    'sadmin/tx-info' => ['call', 'Transaction Info', 'TxInfo 2', 'regulator'],
+    'sadmin/tx-info' => ['call', 'Transaction Info', 'TxInfo 2', 'admin2'],
     'sadmin/deposit-details' => ['call', t('Deposit Details'), '2', 'superadmin', 'depositDetails'],
     'sadmin/checks' => ['call', t('Checks'), '2', 'superadmin', 'printChecks'],
     'sadmin/achs' => ['call', t('ACHs'), '2', 'superadmin', 'achBatch'],
@@ -218,7 +218,8 @@ function rweb_menu($submenu = '') {
     'error' => ['call', 'System Error', '1', ANY, 'error'],
     'page-not-found' => ['call', t('Page Not Found'), 'PageNotFound', ANY],
     
-    'pay-with-cg' => ['call', t('Pay With %RCREDITS'), 'Buy', ANY],
+    'pay-with-cg' => ['call', t('Pay With %RCREDITS'), 'Buy 1', ANY],
+    'authcode' => ['call', t('Supply a one-use auth code'), '', ANY, 'authcode'],
   );
 // $menu['user/password'] = $menu['settings/password']; // duplicates user/password (handles built-in Drupal link)
 

@@ -82,6 +82,12 @@ function tableDefs($schema = []) {
   $schema['users']['fields']['data'] = setupField('serialized array of miscellaneous data', 'text big');
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
 
+  // table sessions (additions to Drupal standard)
+  $fields = array( // additional/changed sessions fields
+    'acct' => setupField('currently viewing/managing this account ID', 'int big'),
+  );
+  $schema['sessions']['fields'] = (@$schema['sessions']['fields'] ?: []) + $fields;
+
   // table r_photos (separate from user table for efficiency -- this table gets big)
   $fields = array(
     'uid' => setupField('account record id', 'int big'),

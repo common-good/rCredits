@@ -431,7 +431,7 @@ EOF;
  * Tally each option as voted
  */
 function tallyVote(&$tot, $quType, $info, $weight, $vetoWeight, &$voterGrades) {
-  extract(u\just('option grade gradeMax text isVeto', $info));
+  extract(just('option grade gradeMax text isVeto', $info));
 	if(($quType == 'B') or ($grade != BLANKGRADE)) { // don't count ungraded opts; but blank B option means 0%, so count it
 		$tot[$option]->weight += $weight;
 		if (@$isVeto) $tot[$option]->vetos += $vetoWeight; else $tot[$option]->grade += $weight * $grade;

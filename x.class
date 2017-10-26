@@ -58,7 +58,7 @@ class X {
   private function createNew($info, $save) {
     extract($info);
     if (@$data and !is_array($data)) $data = unserialize($data);
-    if ($data2 = u\just(TX_DATA_FIELDS, $info)) foreach ($data2 as $k => $zot) unset($info[$k]);
+    if ($data2 = just(TX_DATA_FIELDS, $info)) foreach ($data2 as $k => $zot) unset($info[$k]);
     $info['data'] = (@$data ?: []) + (@$data2 ?: []);
     $xray = $this->setup($info);
     if (!$save) return $xray;
@@ -85,7 +85,7 @@ class X {
   private function save($xray) {
     if (!$xid = db\insert('r_txs', $xray)) return FALSE;
     if (!@$xray['serial']) { // main transaction needs some touching up, now that we know the xid
-      extract(u\just('payer payee', $xray));
+      extract(just('payer payee', $xray));
       $payerTid = $payer > 0 ? r\xid2tid($xid, $payer) : 0;
       $payeeTid = $payee > 0 ? r\xid2tid($xid, $payee) : 0;
       $serial = $xid; // set serial for this and remember it for dependents
@@ -102,7 +102,7 @@ class X {
    * @return TRUE if success else FALSE
    */
   private function makeExtraTxs(&$xrays) {
-    extract(u\just('type serial goods payer payee data payerTid payeeTid created payeeFor', $xrays[0]));
+    extract(just('type serial goods payer payee data payerTid payeeTid created payeeFor', $xrays[0]));
     
     if ($type != TX_TRANSFER) return TRUE;
     $rewards = unserialize($data);
@@ -155,7 +155,7 @@ class X {
     global $channel, $boxUser; // through what medium was the transaction requested (web, SMS, etc.), what machine
 //    $fields = 'type data flags goods amount payer payee payerFor payerAgent payeeAgent created rebate bonus';
     $fields = 'type data flags goods amount payer payee payerReward payeeReward payerFor payerAgent payeeAgent created';
-    extract(u\just($fields . ' for ' . TX_FLAGS, $info)); // flags including offline, short, etc.
+    extract(just($fields . ' for ' . TX_FLAGS, $info)); // flags including offline, short, etc.
     u\setDft($type, TX_TRANSFER);
 
     u\EXPECT(compact(ray('amount payer payee')), 'float zid zid|empty');
@@ -182,7 +182,7 @@ class X {
     if (!isset($payerReward) and !isset($payeeReward)) extract($this->getRewards($info)); // payerReward and payeeReward
 
     $data = $this->dataSetup($payer, $payee, $amount, $goods, @$payerFor, @$data, $channel);
-    extract(u\just(TX_FLAGS, $data));
+    extract(just(TX_FLAGS, $data));
     if (@$undoneBy) $undone = TRUE;
     
     foreach (ray(TX_FLAGS) as $k) {
@@ -201,7 +201,7 @@ class X {
    * Return the appropriate reward amounts for the given data.
    */
   private static function getRewards($info) {
-    extract(u\just('payer payee amount goods', $info));
+    extract(just('payer payee amount goods', $info));
     $fields = 'payerReward payeeReward';
     if (@$goods != FOR_GOODS or r\owning($payer, $payee)) {
       return ray($fields, 0, 0); // no rewards for an incestuous tx
@@ -243,7 +243,7 @@ class X {
    */
   private function cacheTotals($uid, $xrays) {
     global $channel;
-    extract(u\just('amount type xid payer payee payerReward payeeReward created data', $xrays[0]), EXTR_PREFIX_ALL, 't');
+    extract(just('amount type xid payer payee payerReward payeeReward created data', $xrays[0]), EXTR_PREFIX_ALL, 't');
   //  if ($t_state < TX_DONE) return; // don't change totals if transaction doesn't count (yet)
 //    if ($uid <= 0) return TRUE; // cache only usd for community and region
 
@@ -259,7 +259,7 @@ class X {
 ///    debug(compact(ray('uid xrays rewards reward toMe')));
 
     foreach ($xrays as $xray) {
-      extract(u\just('payer payee amount type', $xray));
+      extract(just('payer payee amount type', $xray));
       if (!in_array($uid, [$payer, $payee])) continue;
       if ($payer == $uid) $amount = -$amount;
       $balance = round($balance + $amount, 2);
@@ -297,13 +297,13 @@ class X {
       u\EXPECT(count($keys) == count($args), 'assoc arg count mismatch');
       return $x->update(array_combine($keys, $args));
     }
-    if (isset($just)) $info = u\just($just, $info);
+    if (isset($just)) $info = just($just, $info);
 
     if (isset($info['data'])) { // allow setting data to empty
       $info['data'] = ($data = $info['data']) ? serialize($data) : '';
-    } elseif ($data = u\just(TX_DATA_FIELDS, $info)) $info['data'] = serialize($data + ($x->data ?: []));
+    } elseif ($data = just(TX_DATA_FIELDS, $info)) $info['data'] = serialize($data + ($x->data ?: []));
 
-    if ($flagFields = u\just(TX_FLAGS, $info)) {
+    if ($flagFields = just(TX_FLAGS, $info)) {
       $flags = isset($info['flags']) ? $info['flags'] : $x->flags;
       foreach ($flagFields as $k => $v) {
         u\setBit($flags, u\consta('b', $k), $v);
@@ -327,7 +327,7 @@ class X {
     $x = $this; $xid = $x->xid; $xray = $x->ray0;
     global $mya;
     
-    extract(u\just('data payer payee amount goods payerFor payeeFor payerReward payeeReward created channel', $xray));
+    extract(just('data payer payee amount goods payerFor payeeFor payerReward payeeReward created channel', $xray));
     extract($toChange, EXTR_PREFIX_ALL, 'ch');
     $chKeys = array_keys($toChange);
     $dataRay = unserialize($data);
@@ -343,7 +343,7 @@ class X {
     }
 
     $agt = $mya->proSe ? '' : (' ' . $mya->agentA->mainQid); // don't record agent if proSe
-    $dataRay['changes'][r\rTime() . $agt] = u\just($chKeys, $xray);
+    $dataRay['changes'][r\rTime() . $agt] = just($chKeys, $xray);
     $toChange['data'] = $dataRay;
     $x->update($toChange);
 
@@ -428,7 +428,7 @@ class MyX extends x {
   }
   
   public static function msg0($tx, $msgType, $purpose = '', $withDate = FALSE) {
-    extract(u\just('name amount toMe byMe goods description created', $tx));
+    extract(just('name amount toMe byMe goods description created', $tx));
     
     $youDid = t('paid,received from,received from,repaid,paid,took back from,charged,refunded');
     $theyDid = t('charged,refunded,paid,took back from,received from,repaid,paid,received from');
@@ -452,7 +452,7 @@ class MyX extends x {
     $msg .= ' %amount';
     if ($purpose) {
       if ($purpose == 'full') $purpose = '"' . $description . '"';
-      if ($purpose == 'vague') $purpose = u\obj(R_WHYS)->$goods;
+      if ($purpose == 'vague') $purpose = obj(R_WHYS)->$goods;
       $msg .= '|purpose';
     }
     if ($withDate) $msg .= '|when';
@@ -480,7 +480,7 @@ class MyX extends x {
     $tx = $x1->ray0;
     $fields = 'data amount goods payer payee payerReward payeeReward toMe payerPurpose payeePurpose payerTid payeeTid created';
     foreach (ray($fields) as $k) $$k = $x1->$k;
-//    extract(u\just('rebate bonus', $data));
+//    extract(just('rebate bonus', $data));
 
     $reverses = isset($data['undoes']);
     $role = $toMe ? 'payee' : 'payer';
@@ -543,7 +543,7 @@ class MyX extends x {
   function nonoUndo(&$subs = []) {
     $x = $this;
 //    global $mya;
-//    extract(u\just('amount toMe data payer payee payerTid payeeTid taking', $oldRecord));
+//    extract(just('amount toMe data payer payee payerTid payeeTid taking', $oldRecord));
 //    $data = unserialize($data);
     if (@$x->data['undoneBy']) {
       $subs['oldTid'] = $x->toMe ? $x->payeeTid : $x->payerTid;

@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '2.98'); // software version
+define('R_VERSION', '3.18'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -21,8 +21,7 @@ define('PROJECT_ID', str_replace(' ', '', strtolower(PROJECT)));
 define('PROJECT_LOGO', 'logo80.png');
 define('PROMO_URL', isDEV ? 'http://localhost/cgPromo/_site' : 'http://' . CG_DOMAIN);
 
-define('STAGE_SUBDOMAIN', 'ws');
-define('STAGE', STAGE_SUBDOMAIN . '.' . CG_DOMAIN); // staging site (for secrets, etc.)
+define('STAGE', 'ws.rcredits.org'); // staging site (for secrets, etc.)
 define('GAME_SITE', 'game.' . CG_DOMAIN);
 
 define('DEV_ROOT', '/cgMembers'); // path to drupal root on DEV machine
@@ -46,7 +45,7 @@ $base_root = substr($base_url, 0, strlen($base_url) - strlen(@$parts['path'])); 
 
 define('isSTAGE', substr($host, 0, 6) == 'stage-' or $host == STAGE);
 define('isGAME', FALSE or ($host == GAME_SITE));
-define('isPRODUCTION', !isDEV and !isSTAGE and !isGAME); // new.<CG_DOMAIN> or miw.<CG_DOMAIN>, etc.
+define('isPRODUCTION', ($host == R_SERVER_ID . '.' . CG_DOMAIN) or (!isDEV and !isSTAGE and !isGAME)); // new.<CG_DOMAIN> or miw.<CG_DOMAIN>, etc. (make really sure we get this right)
 
 // time periods are defined here because this script uses them
 define('MIN_SECS', 60);
@@ -137,8 +136,8 @@ define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter ea
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('ORGANIZER_GRANT_MIN', 10); // minimum number of individuals to recruit, to be eligible for a grant
 define('ORGANIZER_GRANT_MAX', '$5,000'); // maximum organizer grant amount
-define('TICKLE_WELCOME', 2 * WEEK_SECS); // number of seconds to wait after activation, before followup
-define('TICKLE_DELAYED', 6 * WEEK_SECS); // number of seconds to wait after activation, before followup if no gift or no CGC
+define('TICKLE_WELCOME', 2 * 7); // number of days to wait after activation, before followup
+define('TICKLE_DELAYED', 6 * 7); // number of days to wait after activation, before followup if no gift or no CGC
 define('OFTENS', 'M:Monthly,Q:Quarterly,Y:Yearly');
 
 define('ICARD_EXPIRES', 14); // how many days until invitation card expires, after account is activated
@@ -214,7 +213,7 @@ define('HAS_XFEE', "data LIKE '%s:4:\"xfee\";%'"); // sql to recognize a transac
 define('R_DEPOSIT_RETURN_FEE', 20); // what we charge members for a second bounced transfer
 
 define('R_USPS_WEB_TOOLS_ID', '921COMMO5331'); // USPS API credentials
-define('PARTNER_API_URL', isDEV ? 'http://WEBSITE/cgapi/' : 'https://WEBSITE/common-good-api/'); // where to communicate with co-branding partners
+define('CO_API_URL', isDEV ? 'http://%website/cgapi/%etc' : 'https://%website/common-good-api/%etc'); // where to communicate with co-branding partners
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -296,13 +295,13 @@ define('B_JOINED', 23); // account is a joint account
 define('B_u24', 24); //
 define('B_u25', 25); // 
 define('B_u26', 26); // was "account is closed"
-define('B_REGULATOR', 27); // is a bank partner or government regulator (read-only admin)
-define('B_CADMIN2', 28); // is a community sub-administrator
+define('B_ADMIN2', 27); // is an overall admin assistant or bank partner or government regulator (read-only except notes)
+define('B_CADMIN2', 28); // is a community sub-administrator (read-only except notes)
 define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
-define('B_ADMINABLE', 'confirmed co member cAdmin cAdmin2 regulator nonudge cgc invites rewardy'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok u3 ided refill co cashout roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 u26 regulator cAdmin2 cAdmin admin');
+define('B_ADMINABLE', 'confirmed member cAdmin cAdmin2 nonudge cgc invites rewardy'); // for cAdmin to set
+define('B_LIST', 'member confirmed ok u3 ided refill co cashout roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 u26 admin2 cAdmin2 cAdmin admin');
 
 // community-specific flags
 define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)

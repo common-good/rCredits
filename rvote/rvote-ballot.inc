@@ -100,7 +100,7 @@ function showProposal($mya, &$extras, $question, $voting = FALSE) {
   $row = db\lookup('*', 'r_proposals', 'id=-:question', compact('question'));
 //  if (!@$row['id']) return t('There are no more proposals to grade.');
   
-  extract(u\just('project categories overview purpose where when until how amount type budgetTotal budget contingency qualifications evaluation name contact phone email sponsor', $row));
+  extract(just('project categories overview purpose where when until how amount type budgetTotal budget contingency qualifications evaluation name contact phone email sponsor', $row));
 
   // set up question to display
   $qnum = array_search(-$question, $quids); // this works even if the number of elections/questions changes during voting
@@ -420,7 +420,7 @@ function getOptsR($opti, $rowclass, $opttext, $optdetail, $defaults) {
 	$option = "option$opti";
   $onchange = 'changepct($opti);';
 
-  extract(u\just('min max minDft maxDft', $defaults));
+  extract(just('min max minDft maxDft', $defaults));
   $sliderHtml = <<<EOF
 <input id="$slider" data-slider-id='$slider' type="text" data-slider-min="$min" data-slider-max="$max" data-slider-step="1" data-slider-value="[$minDft, $maxDft]" data-slider-handle="triangle" />
 EOF;

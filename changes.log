@@ -1,3 +1,20 @@
+2017-09-
+. fixed bug in justNOT (it now handles flat arrays properly), which fixed "How Long" not showing up on error
+. added an admin2 bit that parallels cAdmin2 (read only except for making notes) but for all communities (for our Work/Study students)
+. fixed a bug in acct::giftDesc() that got the last gift date wrong
+. suppressed some fields on Summary page for cAdmin2 and admin2
+. fixed a bug in the new streamlined joint account opening that created two accounts
+. improved admin calls scripts and moved them to Summary page
+. cleaned up Summary page
+. added a field to sessions to track what account each member is currently managing
+. added USE statements to formPhp
+. moved just and justNOT to bootstrap
+. created a powerful in() function and a between function
+. eachA(function($a) {
+    if (!$a->emailCode) $a->update('emailCode', r\cardCode($a->mainQid));
+  }, 'uid<>0');
+. finished formBuy for pay-with-cg buttons on member websites (limited to companies to minimize scam opportunities)
+
 2017-09-22 version 2.98
 . separated approval of invoices from payment
 . customers can now pre-approve invoices from a company or person (while paying the first)

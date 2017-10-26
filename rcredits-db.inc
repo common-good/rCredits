@@ -15,7 +15,7 @@ use rCredits\Util as u;
  *   These can be keys supplied in $subs OR constants (all uppercase and underscores)
  * @param assoc $subs: array of substitutions to make in $sql
  *   Each key, with a colon tacked on the front, is replaced (in $sql) with its value
- * @param bool $retId: <return and inserted record ID rather than a recordset>
+ * @param bool $retId: <return an inserted record ID rather than a recordset>
  * @param bool $log: <log the operation>
  * @return: if inserting, then the id of the inserted record, else the query object (FALSE if failure)
  */

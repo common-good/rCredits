@@ -245,7 +245,7 @@ function getQuestions($eid, $mya = NULL) {
 //	if(!$crit) $crit = 'NOW() BETWEEN question_startdate AND question_enddate';
   if (!@$eid) {
     $event = v\getCurrentEvent($mya->community);
-    extract(u\just('eid', $event));
+    extract(just('eid', $event));
   }
   $now = time();
 //  $crit = 'ctty IN (:ctty, 0) AND :now>endProposals AND (:now<endVoting OR endVoting=0)';

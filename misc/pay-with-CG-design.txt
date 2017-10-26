@@ -1,0 +1,18 @@
+https://www.imagefu.com/create/button
+gradient: upper left white to lower right blue
+border 1px #999999ff
+corners 8px
+padding 6px
+font Open Sans 16px
+10 spaces for logo 
+logo250 at 15%
+"Pay With": 8pt black
+
+OR
+
+border 2px
+corners 12px
+padding 8px 14px
+font 32px
+logo250 at 30%
+"Pay With": 16pt

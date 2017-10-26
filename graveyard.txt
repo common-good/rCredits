@@ -1,5 +1,129 @@
 _____________________________________________
 
+/*
+function vote20141214($uid = FALSE) {
+  $info = ['noFrame'=>TRUE, 'subject'=>'rCredits celebration! when can you come?'];
+  $sql = $uid ? 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid=:uid AND NOT :IS_CO ORDER BY fullName'
+    : 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid>1 AND NOT :IS_CO ORDER BY fullName';
+  $q = db\q($sql, ['ctty'=>r\serverUid()] + ($uid ? compact('uid') : []));
+  for ($i = 0; $row = $q->fetchAssoc(); $i++) {
+    $action = r\acct($row['uid'])->makeDo0('vote', '20141214');
+    $row += $info + compact('action');
+    w\say("mailing to ".$row['fullName']);
+    r\rMail('survey2014-12-14', $row['email'], $row); // strangely, $row + $info + compact('action') fails here
+  }
+  w\say($i . ' emails sent.');
+}
+
+function rsvp20141220($uid = FALSE) {
+  $info = ['noFrame'=>TRUE, 'subject'=>'rCredits Celebration / rCredits Seminar'];
+  $sql = $uid ? 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid=:uid AND NOT :IS_CO ORDER BY fullName'
+    : 'SELECT uid,fullName,mail AS email FROM users WHERE NOT :IS_NONUDGE AND community=:ctty AND uid>1 AND NOT :IS_CO ORDER BY fullName';
+  $q = db\q($sql, ['ctty'=>r\serverUid()] + ($uid ? compact('uid') : []));
+  for ($i = 0; $row = $q->fetchAssoc(); $i++) {
+    $action = r\acct($row['uid'])->makeDo0('yesno', '20141220');
+    $yes = "$action/yes=1";
+    $no = "$action/no=1";
+    $row += $info + compact('yes', 'no');
+    w\say("mailing to ".$row['fullName']);
+    r\rMail('rsvp2014-12-20', $row['email'], $row); // strangely, $row + $info + compact('action') fails here
+  }
+  w\say($i . ' emails sent.');
+}
+
+function endofyear2014($uid = FALSE) {
+  $info = ['noFrame'=>TRUE, 'subject'=>'rCredits Pilot Completed! / Seminar TONIGHT'];
+  $where = $uid ? 'uid=:uid' : 'NOT :IS_NONUDGE AND community=:ctty AND uid>1 AND NOT :IS_CO ORDER BY fullName';
+  $sql = 'SELECT uid,fullName,mail AS email FROM users WHERE ' . $where;
+  $q = db\q($sql, $uid ? compact('uid') : ['ctty'=>r\serverUid()]);
+  for ($i = 0; $row = $q->fetchAssoc(); $i++) {
+    $row += $info;
+    w\say("mailing to ".$row['fullName']);
+    r\rMail('endofyear2014', $row['email'], $row); // strangely, $row + $info + compact('action') fails here
+  }
+  w\say($i . ' emails sent.');
+}
+_____________________________________________
+
+/*
+ * Return an ascii character not in the given string (but not null).
+ * (used in game.CommonGood.earth to simulate mb_split)
+ * @return the character (FALSE if string contains all characters)
+ *//*
+function notIn($s) {
+  if (strpos($s, '`') === FALSE) return '`';
+  for ($i = 1; $i < 256; $i++) {
+    $c = chr($i);
+    if (strpos($s, $c) === FALSE) return $c;
+  }
+  return FALSE;
+}*/
+_____________________________________________
+
+//  if (strtoupper($account) != $a->mainQid) return r\go('', 'not your account', 'zot');
+  //if ($pin != $a->pin) return r\go('', 'wrong pin', 'zot');
+  //if ($answer != $a->answer) return r\go('', 'wrong answer', 'zot');
+_____________________________________________
+
+      \form_set_error('name', \format_plural(\variable_get('user_failed_login_user_limit', 5), 'Sorry, there has been more than one failed login attempt for this account. It is temporarily blocked. Try again later or <a href="@url">request a new password</a>.', 'Sorry, there have been more than @count failed login attempts for this account. It is temporarily blocked. Try again later or <a href="@url">request a new password</a>.', array('@url' => url('user/password'))));
+      
+    form_set_error('name', t('Sorry, unrecognized username or password. <a href="@password">Have you forgotten your password?</a>', array('@password' => url('user/password', array('query' => array('name' => $sta['values']['name']))))));
+    watchdog('user', 'Login attempt failed for %user.', array('%user' => $sta['values']['name']));
+  } CGF end */
+//  $sta['submitted'] = TRUE; // dunno why this doesn't get set otherwise (required, to trigger call to _submit)
+_____________________________________________
+
+//  <li>[5] I will move my deposits and investments to the Common Good Economy when that is sensible, in my judgment.</li>
+  <li>[6] I promise to maintain a high level of honesty, integrity, and <%aEthics>ethics</a> in my dealings with other %PROJECT participants and with the community. When there is a dispute, I will follow the <%aDispute>Dispute Resolution Process</a> and will honor its outcome.</li>
+_____________________________________________
+
+//        if (!a\photoFromFile($mya, $err)) return say($err, 'ERR');
+//        r\membershipEvent($mya, 'bona');
+//        $adminable[B_BONA] = B_BONA; // otherwise gets unset
+_____________________________________________
+
+/*
+function formChangePin($form, &$sta) {
+  global $mya;
+
+  $title = item(t('Change PIN'));
+  if (!$mya->admin) {
+    $pass = passFld(t('Current Password:'));
+  }
+  $pin = passFld(t('New PIN:'));
+  $submit = submit();
+  
+  return labeled(compact(ray('title pin pass submit')));
+}
+*/
+
+/**
+ * Replacement for user_formAccount_validate()
+ * (because we want to allow the same email for several accounts)
+ *//*
+function formChangePin_validate($form, &$sta) {
+  global $mya;
+  extract(u\just('pass pin', $sta['input']));
+  if (!$mya->admin) {
+    if (empty($pass)) return say('password required', 'pass');
+    if (!$mya->passwordOkay($pass, 'pass', $err)) return w\say($err, 'pass');
+  }
+  if (@$pin and strlen($pin) != 4) return say('wrong pin len', 'pin');
+  if ($err = u\badAmount($pin, '>=0', 0)) return say($err, 'pin');
+}
+
+function formChangePin_submit($form, &$sta) {
+  extract($info = u\just('pin', $sta['values'])); // values NOT input
+  global $mya;
+  
+  if (empty($pin) or !$mya->update(compact('pin'))) return r\go('security', t('Your PIN remains unchanged.'));
+//  if (r\acct()->update(ray('pass', r\passHash($pass)))) {
+  say(t('Your new pin has been saved.'));
+  return r\go('settings/security');
+}
+*/
+_____________________________________________
+
 /**
  * Share committed rewards with CGF.
  *//*

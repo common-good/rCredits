@@ -1217,7 +1217,8 @@ function drupal_unpack($obj, $field = 'data') {
 }
 
 /**
- * Translates a string to the current language, with replacements.
+ * Translates a string to the current language, with replacements. 
+ * tr() replaces parameters without translation -- until transaction is implemented, t() and tr() do the same thing.
  * @param string $string: string to translate (or index thereof)
  * @param assoc $subs: substitutions for parameters in $string marked with "%"
  *   For example, a $subs['eg'] replaces %eg in the string.
@@ -1261,6 +1262,7 @@ function t($string, $subs0 = []) {
   }
   return @$subs ? strtr($string, $subs) : $string;
 }
+function tr($s) {return t($s, rayy(func_get_args(), 1));}
 
 /**
  * Return defined constant replacement array for a string. (CGF)
@@ -1283,7 +1285,7 @@ function constantSubs($string, $prefix = '%') {
 function rayy($args, $n = 0) {
   for ($i = 0; $i < $n; $i++) array_shift($args); // ignore first n args
   if (is_array(@$args[0])) return $args[0];
-  return (count($args) >= 2 and is_string($args[0])) ? call_user_func_array('ray', $args) : []; // was rCredits\\Util\\ray
+  return (count($args) >= 2 and is_string($args[0])) ? call_user_func_array('ray', $args) : [];
 }
 
 /**
@@ -1314,10 +1316,6 @@ function ray($s, $value1 = NULL) {
     : (strpos($s, ' ') !== FALSE ? '  *' // strangely ' +' fails but '  *' works
     : FALSE))));
 
-  /* if (isGAME) {
-    $m = notIn($pattern);
-    $simple = $pattern ? preg_split($m . $pattern . $m . 'u', $s) : array($s);
-  } else */
   $simple = $pattern ? mb_split($pattern, $s) : array($s);
   if (!strpos($pattern, ',') or !strpos($s, ':')) return $simple; // no subargs
 
@@ -1328,6 +1326,60 @@ function ray($s, $value1 = NULL) {
   }
   return $ray;
 }
+
+function obj() {return (object) call_user_func_array('ray', func_get_args());}
+
+/**
+ * Return just the specified key/value pairs from the given array, trimmed.
+ * Typical use: extract(just('key2 key4 key 7', $info));
+ * If a key did not exist in the original array, it will not be in the returned array either.
+ * @param string/array $these: array or space-delimited array of field names
+ * @param array/object/string $info: possible key/value pairs to return (passed as array, object, or UrlArgString)
+ * @return array of the results, trimmed
+ */
+function just($these, $info) {
+  $result = [];
+  if (is_string($info)) {
+    parse_str(strpos($info, urlencode('=')) ? urldecode($info) : $info, $ray);
+  } else $ray = (array) $info; // in case it was an object
+  if (!is_array($these)) $these = ray($these);
+  $keys = array_keys($ray); // eschew isset, to include null values in result
+//  foreach ($these as $k) if (isset($ray[$k])) $result[$k] = is_string($ray[$k]) ? trim($ray[$k]) : $ray[$k];
+  foreach ($these as $k) if (in_array($k, $keys)) $result[$k] = is_string($v = @$ray[$k]) ? trim($v) : $v;
+  return $result;
+}
+
+/**
+ * Return all but the specified key/value pairs from the given array.
+ * @param string/array $these: array or space-delimited array of field names
+ * @param array/object/string $info: possible key/value pairs to return (passed as array, object, or UrlArgString)
+ * @return array of the results (not trimmed)
+ */
+function justNot($these, $info) {
+  if (!is_array($these)) $these = ray($these);
+  $info = (array) $info;
+  if ($assoc = isset($info[0])) {
+    foreach ($info as $v) if (!in_array($v, $these)) $res[] = $v;
+    return @$res ?: [];
+  } else {
+    foreach ($these as $field) unset($info[$field]);
+    return $info;
+  }
+}
+
+/**
+ * Say whether something is in a given list.
+ * Call with: in(what, list) or in(what, a, b, ...) where list is an assoc, array, or delimited string
+ * @param mixed $what: what to find in the list
+ */
+function in($what, $list) {
+  if (func_num_args() == 2) {
+    $list = is_array($list) ? array_values($list) : ray($list);
+  } else $list = rayy(func_get_args(), 1);
+  return in_array($what, $list);
+}
+
+function between($what, $low, $high) {return ($low <= $what and $what <= $high);}
 
 /**
  * Formats a string for HTML display by replacing variable placeholders.

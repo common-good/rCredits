@@ -29,7 +29,7 @@ function fixData(&$info, $direct = FALSE) {
   if (@$testVars) foreach ($info as $k => $v) if (strpos($v, '@') !== FALSE) {
     foreach ($testVars as $varName => $var) $info[$k] = str_replace("@$varName", $var, $v);
   }
-  extract(u\just($fields, $info));
+  extract(just($fields, $info));
 
   if (@$who) $who = t\fullQid($who);
   foreach (['flags', 'adminable'] as $k) if (isset($$k)) $$k = t\fixFlags($$k);
@@ -56,7 +56,7 @@ function fixData(&$info, $direct = FALSE) {
     if (@$dob) $dob = strtotime(str_replace('/', '-', $dob));
   }
 
-  foreach (u\just(T_ID_FIELDS, $info) as $k => $v) {
+  foreach (just(T_ID_FIELDS, $info) as $k => $v) {
     if (preg_match('/^(\.|[A-Z]{3})[A-Z]{3}$/', $v)) $info[$k] = t\uid($v) ?: 0;
   }
   if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
@@ -371,7 +371,7 @@ function doRelation($info) {
  */
 function doSelling($info) {
   global $testOnly;
-  extract(u\just('id selling', $info));
+  extract(just('id selling', $info));
   $selling = str_replace(',', "\n", $selling);
   if (!$a = r\acct(t\uid($id))) return t\output("Not an account: $id");
   return $a->update(compact('selling'));
@@ -382,7 +382,7 @@ function doSelling($info) {
  */
 function doCompanyFlags($info) {
   global $testOnly;
-  extract(u\just('id flags', $info));
+  extract(just('id flags', $info));
   $coFlags = 0;
   $canBitNames = ray(APP_CAN_BIT_NAMES);
   if ($flags) foreach (ray($flags) as $one) {
@@ -454,10 +454,10 @@ function doneStep($id, $step) {
  */
 function doMemberFields($info) {
   global $testOnly;
-  if ($balFields = u\just(T_BALANCE_FIELDS, $info) and !doBalance($balFields, TRUE)) return FALSE;
+  if ($balFields = just(T_BALANCE_FIELDS, $info) and !doBalance($balFields, TRUE)) return FALSE;
 
   $a = r\acct($id = t\uid($info['id']));
-  $info = u\justNot(T_BALANCE_FIELDS, $info); // don't rehandle balance fields, and already got id
+  $info = justNOT(T_BALANCE_FIELDS, $info); // don't rehandle balance fields, and already got id
   fixData($info, TRUE);
 
   if ($testOnly) {
@@ -474,7 +474,7 @@ function doMemberFields($info) {
 function memberFieldValues($list) {
   global $testOnly;
   foreach ($list as $one) {
-    extract(u\just('id field value', $one));
+    extract(just('id field value', $one));
     $a = r\acct(t\uid($id));
     if ($field == 'helper' or $field == 'community') $value = t\uid($value);
     if ($testOnly) {
@@ -491,7 +491,7 @@ function memberFieldValues($list) {
 function doBalance($info) {
   global $testOnly;
 
-/**/  if ($info != u\just(T_BALANCE_FIELDS, $info)) return t\output("spurious field in balances: " . print_r($info, 1));
+/**/  if ($info != just(T_BALANCE_FIELDS, $info)) return t\output("spurious field in balances: " . print_r($info, 1));
   $id = t\uid($id0 = $info['id']);
 
   if (!$a = r\acct($id)) return t\output("account $id0 does not exist");
@@ -515,7 +515,7 @@ function doBalance($info) {
       if (!$a->jid and t\badEq("calc $k", $calc->$k, $v, $id)) return FALSE;
     }
   }
-  foreach ($not = u\justNot($cashies . ' id', $info) as $k => $v) {
+  foreach ($not = justNOT($cashies . ' id', $info) as $k => $v) {
     if ($v != '?' and $k != 'committed' and $id > 0) if (t\badEq("db $k", $a->o($k), $v, $id)) return FALSE;
   }
   return TRUE;
@@ -723,8 +723,8 @@ function findEmail($index, $email, $subs) {
 ///        print_r($subs); die('here');
         if (@$ignore) foreach ($ignore as $k) unset($t_subs[$k]);
         ksort($t_subs);
-        $wantedInActual = u\just(array_keys($subs), $t_subs);
-        $actualInWanted = u\just(array_keys($t_subs), $subs);
+        $wantedInActual = just(array_keys($subs), $t_subs);
+        $actualInWanted = just(array_keys($t_subs), $subs);
         if ($wantedInActual == $actualInWanted) return TRUE; // actual is exactly what was wanted
         t\output(compact('wantedInActual', 'actualInWanted'), 'email');
         foreach ($subs as $k=>$v) if (isset($t_subs[$k]) and $v != $t_subs[$k]) t\output("k=$k v=$v tv=" . @$t_subs[$k], 'email');
@@ -790,7 +790,7 @@ function weShowWithSubs($page, $subs) {
 
   $subs = @$subs[0] ?: []; // comes in as "" if no subs
   if (strpos($page, 'confirm ') !== FALSE) {
-    foreach (u\just(R_DATE_FIELDS, $subs) as $k => $v) if (is_numeric($v)) $subs[$k] = u\fmtDate($v);
+    foreach (just(R_DATE_FIELDS, $subs) as $k => $v) if (is_numeric($v)) $subs[$k] = u\fmtDate($v);
     $wanted = t($page, $subs);
     t\output("<b>WANTED: </b>$wanted", 'screen');
     $res = ($wanted == $testConfirmation);
@@ -829,7 +829,7 @@ function getPicture($picture) {
 function hitServer($op, $extra = [], $agent, $device = '', $version = 218) {
   global $rposResult;
   if ($agent) $agent = t\fullQid2($agent);
-  extract(u\just('amount member code created proof goods', $extra));
+  extract(just('amount member code created proof goods', $extra));
   if (is_numeric(@$amount)) $amount = number_format($amount, 2);
   if (@$member) $member = t\fullQid2($member);
   if ($version >= 217) foreach (['agent', 'member'] as $k) if (@$$k) $$k = str_replace('.', '', $$k); 
@@ -1077,7 +1077,7 @@ function postLogout($function) {
   return TRUE; // never actually log out
   global $skipToStep;
 /*  if ($messages = @cache_get('t_messages')->data) {
-    extract(u\just('msgs skipToStep', $messages));
+    extract(just('msgs skipToStep', $messages));
     if ($skipToStep == $function) {
       if (strlen(serialize($msgs)) > strlen(serialize(@$_SESSION['messages']))) {
         foreach (ray('status error notice') as $type) {
@@ -1225,7 +1225,7 @@ function clear($ch = 0) {
   global $testMessages; $testMessages = [];
   global $sceneTest; 
 /**/ if (u\test() and !strpos($sceneTest->sceneName, 'Statement')) echo "scene: $sceneTest->sceneName<br>\n"; // helpful when test dies
-///   file_put_contents(flog('', TRUE), ''); // clear log file on disk
+///   file_put_contents(flog(), ''); // clear log file on disk
 
   $cgfUid = r\cgfId();
   $tables = 'r_auth r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
@@ -1358,7 +1358,7 @@ function weShow($what, $show = TRUE) {
 function constants($list) {
   global $testOnly;
   foreach ($list as $one) {
-    extract(u\just('name value', $one));
+    extract(just('name value', $one));
     
   }
 }
