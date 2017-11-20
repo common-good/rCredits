@@ -131,18 +131,20 @@ function acctHourly($item) {
 }
 
 function everyDay() {
-  queueNext('START');
   // miscellaneous quick stuff to do every day
   $time = r\rTime() - 7 * DAY_SECS;
 //  db\q('DELETE FROM r_log WHERE time<:time', compact('time')); // zap log except for the past few days
   db\q('DELETE FROM r_do WHERE completed<0 AND :now>-completed', ['now'=>r\rTime()]); // completed<0 is -expiry time
 
+  $where = "RIGHT(fullName, 8)=' PARTNER' COLLATE utf8_bin AND pass='' AND NOT :IS_CO AND activated=0";
+  eachA(function ($a) {if ($jA = $a->jA and $jA->jid == $a->id) $jA->update('jid', '');}, $where);
+  db\del('users', $where); // abandoned new joint acct
+
+  $companies = \variable_get('companies', []);
   $cttys = db\q('SELECT uid AS ctty FROM users WHERE uid<0')->fetchCol();
-  foreach ($cttys as $ctty) {
-    $companies = \variable_get('companies', []);
-    $companies[$ctty] = r\companies($ctty);
-    \variable_set('companies', $companies);
-  }  
+  foreach ($cttys as $ctty) $companies[$ctty] = r\companies($ctty, TRUE);  
+  \variable_set('companies', $companies);
+  queueNext('START');
 }
 
 /**
@@ -357,7 +359,7 @@ function inflationAdjust($item) {
 function roundup($item) {
   extract(just('uid donate', $item));
   $a = r\acct($uid);
-  if ($donate > 0) be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('roundups desc'), u\monthDay1() - 1, TRUE, ['roundups' => TRUE, 'gift' => TRUE]);
+  if ($donate > 0) be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('roundups desc'), u\monthDay1() - 1, ['roundups' => TRUE, 'gift' => TRUE]);
 }
 
 /**
@@ -368,7 +370,7 @@ function crumbs($item) {
   extract(just('uid donate cgf', $item));
   $flags = ray('crumbs gift', TRUE, TRUE);
   list ($a, $cgfA) = [r\acct($uid), r\acct($cgf)];
-  if ($donate > 0) be\transfer('payment', $a, $cgfA, $donate, FOR_GOODS, t('crumbs desc'), u\monthDay1() - 1, TRUE, $flags);
+  if ($donate > 0) be\transfer('payment', $a, $cgfA, $donate, FOR_GOODS, t('crumbs desc'), u\monthDay1() - 1, $flags);
 }
 
 /**
@@ -381,7 +383,7 @@ function cgc($item) {
   if ($kickBack > 0) {
     list ($a, $cgfA) = [r\acct($ctty), r\acct($cgf)];
     $desc = t('50% share of local donations through %dt', 'dt', u\fmtDate($end));
-    be\transfer('payment', $cgfA, $a, $kickBack, FOR_NONGOODS, $desc, u\monthDay1() - 1, TRUE, ['gift' => TRUE]);
+    be\transfer('payment', $cgfA, $a, $kickBack, FOR_NONGOODS, $desc, u\monthDay1() - 1, ['gift' => TRUE]);
   }
 }  
   

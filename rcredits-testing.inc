@@ -11,6 +11,7 @@ use rCredits\DB as db;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 use rCredits\Admin as a;
+use rCredits\Cron as cron;
 
 global $base_path;
 define('BASE_PATH', $base_path);
@@ -574,7 +575,7 @@ function cronRuns($op) {
 
   $now = r\rTime();
   \variable_set('r_last_cron', ray('day week month', $now, $now, $now)); // normally don't run periodics
-  if ($op == 'ALL' or strpos(R_DAILY_TASKS, " $op ")) {
+  if ($op == 'ALL') { //  or strpos(R_DAILY_TASKS, " $op ")
 /**/  if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
     db\q("DELETE FROM queue WHERE name='q'");
     \variable_set('r_last_cron', ray('day week month', $now - DAY_SECS, 0, 0));

@@ -31,8 +31,10 @@ $flagHelp = array(
   'cAdmin2' => t('The account is a community sub-administrator (the cAdmin2 has read-only permission on all accounts, except with permission to add notes).'),
   'cAdmin' => t('The account is a community administrator.'),
   'admin' => t('The account is a system administrator -- can manage the server and autorize community administrators, but cannot manage communities or individual accounts (except temporarily while we\'re getting started).'),
+  
   'cgc' => t('Account is an effectively autonomous Common Good Community.'),
   'up' => t('Community is operational (up).'),
   'invites' => t('Community requires invitations.'),
   'rewardy' => t('Community issues rewards explicitly.'),
+  'noneg' => t('Community does not reduce a member\'s credit line on overdrafts.'),
 );

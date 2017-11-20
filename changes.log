@@ -1,4 +1,26 @@
-2017-09-
+2017-11-20 version 3.26
+. added input sanitization filter to form.inc and direct $_POST submissions (rather late in the game)
+. fixed resend-verification email bug (was sending password-reset email instead of verify email
+. created a preJoin form to ask whether joining with an existing member and if so who
+. now shows Bank menu item always, but redirects to Bank Info page if no connection yet.
+. changed "Show more" link on Transactions page to suggest clicking the right triangle to see next page.
+. changed !isPRODUCTION to NOT_PRODUCTION to avoid typo disasters
+. fixed bug in test server showing links normally sent by email
+. added semi-automatic record of deleted users, relations, and txs records (in x_users, x_relations, etc.)
+. CREATE TABLE x_users LIKE users; ALTER TABLE x_users MODIFY uid BIGINT NOT NULL; ALTER TABLE `x_users` ADD `deleted` INT(11) NOT NULL DEFAULT '0' FIRST; ALTER TABLE x_users DROP PRIMARY KEY; ALTER TABLE x_users ADD PRIMARY KEY(uid, deleted);
+. changed txs reversal confirmation (web interface) to use JS
+. changed txs history to change dates immediately on selection of period
+. fixed bug in daterange that kept dates from getting changed
+. company reports page, with daily totals report
+. made donating zero a little harder
+. made an option for communities to turn off negative rewards ("noneg")
+. sped up transactions history page by using simpler hover text and ajax confirmation of reversals
+. ajax deletion confirmation on invoices page
+. turned page caching back on
+. in acct::adminables() fixed bug that set community CGC and UP bits off (but there's probably another such bug)
+. deleted 7 fields from users table: status, language, theme, signature, signature_format, timezone, init (leaving 44)
+  
+2017-10-26 version 3.18
 . fixed bug in justNOT (it now handles flat arrays properly), which fixed "How Long" not showing up on error
 . added an admin2 bit that parallels cAdmin2 (read only except for making notes) but for all communities (for our Work/Study students)
 . fixed a bug in acct::giftDesc() that got the last gift date wrong

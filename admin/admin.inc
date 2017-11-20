@@ -63,7 +63,7 @@ function setupBasicAccounts() {
   $server = r\serverUid();
   if ($server == r\serverUid('NEW')) { // no need to set up CGF unless in Western Mass (or testing)
     if (db\exists('users', "name='cgf'")) return; // already done
-    if (!isPRODUCTION and db\exists('users', "name='cornerstore'")) return; // already done
+    if (NOT_PRODUCTION and db\exists('users', "name='cornerstore'")) return; // already done
 
     $values = array(r\qo('NEWAAB')->id, $server, 'cgf', PROJECT, CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO]));
     $info = array_combine($keys, $values);
@@ -895,7 +895,7 @@ function callDetails($type = '', $when = '') {
   $res = '';
   if ($type == 'annual') $res = @$gifts ? str_replace($ask, $reask, $annualAsk) : $annualAsk;
   if ($type == 'welcome') $res = @$gifts ? "<ol>$welcome\n$thx\n$how\n$signupCo\n$volunteer\n</ol>" : "<ol>$welcome\n$how\n$ask\n$volunteer\n</ol>";
-  $email .= $res . t('<p>I look forward to hearing from you!</p><p>Sincerely,</p><p>%name<br>for the %PROJECT Team</p>', 'name', $mya->agentA->fullName);
+  $email .= $res . t('<p>I look forward to hearing from you!</p><p>Sincerely,</p><p>%name<br>for the %PROJECT Team</p>', 'name', $mya->agentA->shortName);
   $live .= $res . t('<p>Thank you very much for your time and for being a %PROJECT member. Have a great day.</p>');
   if (@$_volunteerLink) $email = str_replace($_volunteerLink, t('volunteer'), $email);
   $email = str_replace('id="volunteer"', '', $email);  // make sure the div isn't duplicated (causing expansion to fail)

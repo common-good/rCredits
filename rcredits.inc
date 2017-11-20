@@ -146,6 +146,7 @@ EOF;
  * Join or unjoin this account to another.
  * @param int $reid: relations record ID
  * @param bool $join: whether to join the accounts (otherwise unjoin)
+ * @return a message saying the join was successful
  */
 function setJoin($reid, $join) {
   extract(r\relation('main,other', $reid));
@@ -155,11 +156,17 @@ function setJoin($reid, $join) {
     $a1->unjoin(); // zap any join or other join requests
     if (r\relation('permission', $other, $main) == r\perm(B_JOINT)) { // confirming join
       $a1->join($a2);
+      $msg = t('Success! Your accounts have been successfully joined.');
     } else { // requesting join
       $_atag = $a2->makeDo('join', $main); // seek agreement
       r\message($other, 'join accounts', ray('_atag name', $_atag, $a2->fullName));
+      $msg = t('Success! An email has been sent to the other account owner, to confirm joining with yours.');
     }
-  } else $a1->unjoin($a2);
+  } else {
+    $a1->unjoin($a2);
+    $msg = t('Your accounts have been successfully separated.');
+  }
+  return $msg;
 }
 
 /**
@@ -206,7 +213,7 @@ function ipok($uid, $device) {
  *   subject:  specific subject
  *   body:     specific message
  * ... the following special substitions are always available:
- *   site, qid, shortName, and every cached field for the account
+ *   site, qid, zip3, shortName, and every cached field for the account
  * @param mixed $reply: uid, account, or email address to reply to OR 'ctty' (of $to) or NULL (CGF_EMAIL) OR [email => name]
  * @return TRUE if the message got sent (or on dev machine pretending it got sent) else FALSE
  * NOTE: from is always SYS_EMAIL
@@ -227,6 +234,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
     $subs += (array) $toA->account(); // this omits any special fields or special formatting
     $subs['qid'] = $toA->mainQid;
     $subs['shortName'] = $toA->name;
+    $subs['zip3'] = substr($toA->zip, 0, 2); // temporarily show a wider region than zip3
     if ($toA->closed) return r\tellAdmin(t('attempt to email closed account'), compact(ray('index subs reply0')));
   } else $to = $toEmail = $to0;
   
@@ -458,7 +466,7 @@ function acceptGift($info) {
 
   $sharing = (@$honor == 'share');
   list ($goods, $purpose) = $sharing ? [FOR_SHARE, R_SHARING_MSG] : [FOR_GOODS, t('donation') . @$recurring];
-  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, $goods, $purpose, NULL, TRUE, $data);
+  list ($msg, $args) = be\transfer('payment', $a, $cgf, $amount, $goods, $purpose, NULL, $data);
   if (@$args['success']) {
     $completed = r\rTime();
     db\update('r_gifts', compact('donid', 'completed'), 'donid');
@@ -790,15 +798,16 @@ function makeDevice($uid, $code = '', $ch = NULL) {
 
 /**
  * Assign the given account a new id (or delete it).
- * @param int $oldUid: the account's current record ID
+ * @param int $a: the account to delete (qid or uid are also acceptable)
  * @param int $newUid: the new record ID to give the account (defaults to next available)
  * @param bool $unusable: whether to mark the old account record ID as unusuable
  * @param bool $delete: whether to delete the account rather than giving it a new ID (called by deleteAccount)
  * @return the new uid
  */
-function deleteAccount($uid) {r\changeUid($uid, 0, FALSE, TRUE);}
-function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
-  $a = r\acct($oldUid);
+function deleteAccount($a) {r\changeUid($a, 0, FALSE, TRUE);}
+function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
+  if (!$a or !$a = is_object($a) ? $a : r\acct($a)) return w\say('nope');
+  $oldUid = $a->id;
   if ($delete) {
     if (db\exists($table = 'r_txs', 'payer=:oldUid OR payee=:oldUid', compact('oldUid'))
       or db\exists($table = 'r_ballots', ':oldUid IN (voter, proxy)', compact('oldUid'))
@@ -867,7 +876,9 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
   foreach ($subs as $one) {
     list ($table, $field, $deletable) = explode(':', $one); // if deleting and not deletable, set to zero
     if ($delete and deletable) {
-      db\q("DELETE FROM $table WHERE $field=:oldUid", compact('oldUid'));
+      if (in_array($table, ray(TRACK_DELETED))) {
+        db\del($table, $oldUid);
+      } else db\q("DELETE FROM $table WHERE $field=:oldUid", compact('oldUid'));
     } else db\q("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
   }
   $oldQid = r\qid($oldUid);
@@ -887,13 +898,13 @@ function changeUid($oldUid, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
  * @param mixed $message: the success or error message OR an array containing all three params
  * @param assoc $info: (optional) message substitutions and other info about transaction
  *   includes success=TRUE if the transaction was successful
- * @param bool $confirm: <to be confirmed> (default FALSE)
+ * @param bool $confirm: UNUSED <to be confirmed> (default FALSE)
  */
-function txRet($message, $info = [], $confirm = FALSE) {
+function txRet($message, $info = []) {
   $info0 = $info;
   if (is_array($message)) {list ($message, $info, $confirm) = $message; $info += $info0;}
   if (!@$info['success']) r\tellCO('failed transaction', $info + compact('message', 'confirm'));
-  return array($message, $info, $confirm);
+  return [$message, $info];
 }
 
 /**
@@ -946,7 +957,10 @@ function go($page, $msg = '', $field = '') {
     if (\drupal_session_started()) session_destroy();
   }
   */
-  if (!u\starts($page, 'http')) $page = "$base_url/$page";
+  if (!u\starts($page, 'http')) {
+    if (substr($page, 0, 1) == '/') $page = substr($page, 1); // supplying the slash is preferred, to agree with w\atag()
+    $page = "$base_url/$page";
+  }
   \drupal_session_commit();
   header("Location: $page", TRUE, 302); 
   exit();
@@ -993,19 +1007,26 @@ function noticeArgs($uid, $where = '0', $weekly = FALSE, $monthly = FALSE, $at =
 
 /**
  * Return a list of participating companies for the given community.
- * @param int $ctty: uid of community
- * @param bool $export: <format for use on promo site> (otherwise format for email notices)
+ * @param mixed $ctty: uid of community OR zipcode OR zipcode pattern or array of business uids
+ * @param bool $email: <format for use in emails and show just new companies> (else format for promo site or Find Co page)
  */
-function companies($ctty, $export = FALSE) {
-  $model = $export 
-  ? '<div class="row"><div class="cmpy-name">%name</div><div class="cmpy-does">%desc</div></div>'
-  : '<tr><td width="200">%name</td><td style="margin-left:10px;">%desc</td></tr>';
+function companies($ctty, $email = FALSE) {
+  $model = $email 
+  ? '<tr><td width="200">%name</td><td style="margin-left:10px;">%desc</td></tr>'
+  : '<div class="row"><div class="cmpy-name">%name</div><div class="cmpy-does">%desc</div></div>';
+  $where = (is_integer($ctty) and strlen($ctty) > 9) ? 'community=:ctty' : 'zip REGEXP :ctty';
+  if ($email) $where .= ' AND activated>:REQUEST_TIME-9*:WEEK_SECS'; // show only new companies in emails
+  
+  $uids = is_array($ctty) 
+  ? $ctty
+  : db\q("SELECT DISTINCT uid FROM users WHERE :IS_CO AND :IS_OK AND uid>1 AND $where ORDER BY fullName", compact('ctty'))->fetchCol();
+  if (!$uids) return $email ? t('no new companies this month') : t('No companies there yet. Invite them!');
+  
   $res = '';
-  $q = db\q('SELECT uid FROM users WHERE :IS_CO AND :IS_OK AND uid>1 AND community=:ctty ORDER BY fullName', compact('ctty'));
-  while ($row = $q->fetchAssoc()) {
-    $a = r\acct($row['uid']);
+  foreach ($uids as $uid) {
+    $a = r\acct($uid);
     if (!$a->coCan(CO_PRIVATE)) {
-      $name = $a->website ? w\lnk("http://$a->website", $a->fullName) : $a->fullName;
+      $name = $a->website ? w\lnk("http://$a->website", $a->bestName) : $a->bestName;
       $new = ($a->activated > REQUEST_TIME - 9 * WEEK_SECS) ? ' <small style="color:red; font-weight:bold;"> NEW!</small>' : '';
       $res .= tr($model, '_name desc', "$name$new", $a->shortDesc) . "\n";
     }
@@ -1065,8 +1086,8 @@ function getStats($ctty, $created = NULL) {
   
   // get pAccts, bAccts, newbs, savings, savingsIntent
   $sql = <<<EOF
-    SELECT SUM(IF(activated AND activated<=:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
-      SUM(IF(activated AND activated<=:created AND :IS_CO, 1, 0)) AS bAccts,
+    SELECT SUM(IF(:IS_OK AND activated<=:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
+      SUM(IF(:IS_OK AND activated<=:created AND :IS_CO, 1, 0)) AS bAccts,
       SUM(IF(created<=:created AND (NOT activated OR activated>:created), 1, 0)) AS newbs,
       SUM($runny) AS runny,
       SUM(IF($runny>0, 1, 0)) AS runnyCount,
@@ -1422,7 +1443,7 @@ function reward($from, $to, $amount = 1, $isPayer = TRUE) {
 
   $over = (($isPayer xor $amount < 0) and $a->balance + $a->rewards - abs($amount) < max(0, $a->floor)); // ignore floor<0
   if ($over) { // member is overdrawing
-    $pct = -max($a->rebate, R_REBATE); // reduce credit line
+    $pct = $a->cttyNoneg ? 0 : -max($a->rebate, R_REBATE); // reduce credit line
   } else $pct = max(R_MIN_REWARD_PCT, $a->rebate * (1 - floor($a->o_rewards / $step) / R_REBATE)); // increase credit line
   if (!$isPayer) $pct *= R_BONUS_FACTOR;
 ///   debug(compact(ray('from to amount pct step over res')) + ['new bal' => $a->balance + $a->rewards + ($isPayer ? -$amount : $amount)]);

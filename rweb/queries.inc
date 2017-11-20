@@ -15,8 +15,6 @@ use rCredits\Util as u;
 
 $cgf = r\cgfId();
 $bizQ = 'SELECT payee, goods, SUM(amount) AS tot, COUNT(*) AS cnt FROM r_txs WHERE goods=:FOR_GOODS AND created BETWEEN';
-$name = u\sqlSerialValue('r.data', 2); // used in Customers query
-$phone = u\sqlSerialValue('r.data', 6);
 
 $queries = [
   2 . 'Most Trusted Members' => 
@@ -57,16 +55,6 @@ $queries = [
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer
     WHERE u.community=:ctty AND (t.:IS_GIFT OR t.:IS_ROUNDUPS OR t.:IS_CRUMBS OR t.:IS_PATRONAGE) AND t.payee=$cgf
     GROUP BY YEAR(FROM_UNIXTIME(t.created)) DESC, MONTH(FROM_UNIXTIME(t.created)) DESC",
-    
-  B_CO . 'Customers' => // 27 is where the name starts in serialized data from partner: a:16:{s:8:"fullName";s:8:"NAME HERE...
-  "SELECT IFNULL(uid, (SELECT uid FROM users WHERE fullName=$name)) AS account,
-    code AS customer, IFNULL(fullName, $name) AS name, IF(u.activated, '', $phone) AS phone,
-    FROM_UNIXTIME(r.created, '%m/%d/%Y') AS created,
-    IF(u.uid IS NULL OR u.activated=0,
-      IF(u.uid IS NULL OR u.uid=0, 'NOT BEGUN', 'in process'), 
-      FROM_UNIXTIME(u.activated, '%m/%d/%Y')) AS completed
-  FROM r_relations r LEFT JOIN users u ON u.uid=r.other WHERE r.main=:myid AND isCustomer ORDER BY u.activated,r.created"
-  . t('~<p>A list of your customers who joined through a shared sign-up, showing progress opening their %PROJECT account.</p>'),
 
 ];
 

@@ -65,7 +65,7 @@ Scenario: cron calculates the statistics
   And member ".ZZA" visits page "community/graphs"
   Then we show "Statistics" with:
   | Community: | Seedpack |
-  |~rCredits Accounts: | 2 members + 1 co |
+  |~rCredits Accounts: | 2 members + 2 co |
   |~Funds in the rCredits System: | $6,823.70 |
   |~rCredits Circulation Velocity: | 4.0% per mo. |
   |~Monthly Bank Transfers | $6,000 (net) |

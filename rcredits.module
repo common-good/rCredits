@@ -137,7 +137,7 @@ function g($varName) {
  *
  */
 /**/ function bs($n, $list = B_LIST) {d('a.flagsDesc', $n, $list);} // show bit numbers/names
-/**/ function tm($n = '') {debug($result = $n ? (is_numeric($n) ? date('m-d-Y H:i:s a', $n) : strtotime($n)) : time()); return $result;} // convert and display unixtime or string time
+/**/ function tm($n = '') {debug($result = $n ? (is_numeric($n) ? date('m/d/Y H:i:s a', $n) : strtotime($n)) : time()); return $result;} // convert and display unixtime or string time
 function a($id = '', $agent = '') {global $lastA; return $lastA = f('r.acct', f('t.fullQid', strtoupper(strlen($id) == 3 ? '.' . $id : $id)), f('t.fullQid', strtoupper(strlen($agent) == 3 ? '.' . $agent : $agent)));} // return an account object
 function x($xid, $mya = '') {f('r.x', $xid, $mya);} // return a transaction object
 /**/ function da($idfield) {list ($id, $field) = ray($idfield); debug(a($id)->$field);}

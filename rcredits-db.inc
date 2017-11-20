@@ -86,11 +86,8 @@ function update($table, $info, $key, $either = FALSE) {
     if ($table == 'users') {
       $id = 'uid';
     } else {
-      require_once __DIR__ . '/rcredits-install.inc';
-      $schema = r\tableDefs();
-      $id = $schema[$table]['primary key'][0];
+      $id = db\idnm($table, $field1);
       u\EXPECT($id and isset($info[$id]), 'no primary key ' . $id);
-      $field1 = reset($schema[$table]['fields']);
       if ($hasSerial = ($field1['type'] == 'serial')) return FALSE; // record ID would have been returned above
     }
     
@@ -176,6 +173,36 @@ function setFlag($table, $id, $bit, $bool = TRUE) {
   return db\update($table, ray("flags $key", $flags, $id), $key);
 }
 
+/**
+ * Make a backup copy of the record before deleting it (then delete it).
+ * @param string $table: delete a record from this table
+ * @param mixed $id: integer id of record to delete OR criteria
+ * @param assoc $subs: parameters for selection criteria
+ */
+function del($table, $id, $subs = []) {
+  $xtable = $table == 'users' ? 'x_users' : str_replace('r_', 'x_', $table);
+  if (is_numeric($id)) {
+    $idnm = db\idnm($table, $field1); // $field1 not used
+    $where = "$idnm=$id";
+  } else $where = $id;
+  $now = time();
+  $q = db\q("INSERT INTO $xtable SELECT :now AS deleted,a.* FROM $table a WHERE $where", compact('now'));
+  if ($q->rowCount()) db\q("DELETE FROM $table WHERE $where");
+}
+
+/**
+ * Return the table's record id field name.
+ * @param string $table: table name
+ * @param string $field1: (RETURNED) descriptive array of first field in the table
+ */
+function idnm($table, &$field1 = '') {
+  require_once __DIR__ . '/rcredits-install.inc';
+  $schema = r\tableDefs();
+  $id = $table == 'users' ? 'uid' : $schema[$table]['primary key'][0];
+  $field1 = reset($schema[$table]['fields']);
+  return $id;
+}
+  
 function count($table, $where = '1', $subs = []) {return db\lookup('COUNT(1)', $table, $where, $subs);}
 function max($field, $table, $where = '1', $subs = []) {return db\lookup("MAX($field)", $table, $where, $subs);}
 function sum($field, $table, $where = '1', $subs = []) {return db\lookup("SUM($field)", $table, $where, $subs);}

@@ -112,7 +112,10 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   
   $url = "$url0&xid=" . ($banking ? 'b' : '') . $xid;
   $button1 = ($mya->can(@$reallyToMe ? B_SELL : B_BUY) and !$isExtra and !$banking) ? "<a href='$url&do=edit' title='Edit Transaction'><img src='$rUrl/images/icons/edit.png' width=16 height=16 border=0 /></a>" : '';
-  $button2 = ((($mya->can(@$reallyToMe ? B_BUY : B_SELL) and !$isExtra and !$banking) or $mya->superAdmin) and !@$data['undoneBy']) ? w\button(' X ', "$url&do=no", r\MyX::msg0($tx, 'reverse')) : ''; // (admin not cAdmin)
+  list ($msg, $title) = [t('Reverse this transaction?'), t('Reverse')];
+  $onclick = "yesno('$msg', function () {location.href='$url&do=no';}); return false;";
+//  $button2 = ((($mya->can(@$reallyToMe ? B_BUY : B_SELL) and !$isExtra and !$banking) or $mya->superAdmin) and !@$data['undoneBy']) ? w\button(' X ', "$url&do=no", r\MyX::msg0($tx, 'reverse')) : ''; // (admin not cAdmin)
+  $button2 = ((($mya->can(@$reallyToMe ? B_BUY : B_SELL) and !$isExtra and !$banking) or $mya->superAdmin) and !@$data['undoneBy']) ? w\btn("$url&do=no", ' X ', 'primary', 'xs', compact('onclick', 'title')) : ''; // (admin not cAdmin)
   //was txAct($toMe, $byMe, $reallyToMe)
   $button3 = (!$byMe and $disputed) ? w\button('OK', "$url&do=ok", r\MyX::msg0($tx, 'theyDid')) : ''; // w\txAct($toMe, $byMe, $reallyToMe)
 //  if (!$mya->can(B_MANAGE)) $button1 = $button2 = $button3 = '';

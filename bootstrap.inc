@@ -1276,7 +1276,7 @@ function constantSubs($string, $prefix = '%') {
 
 /**
  * Let a called function receive a single assoc arg or several named args, simulating a call with ray(s,...). (CGF)
- * call by extract(rayy(func_get_args()));
+ * call by extract(rayy(func_get_args(), 0));
  * The called function cannot otherwise accept an assoc as its first argument.
  * @param array $args: func_get_args() from the called function
  * @param int $n: how many leading args to ignore
@@ -1339,14 +1339,22 @@ function obj() {return (object) call_user_func_array('ray', func_get_args());}
  */
 function just($these, $info) {
   $result = [];
-  if (is_string($info)) {
-    parse_str(strpos($info, urlencode('=')) ? urldecode($info) : $info, $ray);
-  } else $ray = (array) $info; // in case it was an object
+  $ray = is_string($info) ? urlq2ray($info) : (array) $info;
   if (!is_array($these)) $these = ray($these);
   $keys = array_keys($ray); // eschew isset, to include null values in result
 //  foreach ($these as $k) if (isset($ray[$k])) $result[$k] = is_string($ray[$k]) ? trim($ray[$k]) : $ray[$k];
   foreach ($these as $k) if (in_array($k, $keys)) $result[$k] = is_string($v = @$ray[$k]) ? trim($v) : $v;
   return $result;
+}
+
+/**
+ * Parse the URL query string into an array.
+ * @param string $q: the query string
+ * @return an associative array of "GET" parameters.
+ */
+function urlq2ray($q) {
+  parse_str(strpos($q, urlencode('=')) ? urldecode($q) : $q, $ray);
+  return $ray;
 }
 
 /**
@@ -2117,6 +2125,7 @@ function drupal_bootstrap() {
  * Returns the time zone of the current user.
  */
 function drupal_get_user_timezone() {
+  return @date_default_timezone_get(); // cg 20171119
   global $user;
   if (variable_get('configurable_timezones', 1) && $user->uid && $user->timezone) {
     return $user->timezone;

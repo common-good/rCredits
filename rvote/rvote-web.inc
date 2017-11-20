@@ -270,7 +270,7 @@ function formEvent_submit($form, &$sta) {
   global $mya;
   $info['end'] = strtotime('+1 day', $end) - 1; // just before the start of the next day
   db\update('r_events', $info + ['ctty' => $mya->community], @$id ? 'id' : '', TRUE);
-  r\go("$base_url/community/events", 'info saved');
+  r\go('community/events', 'info saved');
 }
 
 /**
@@ -335,7 +335,7 @@ function formQuestion_submit($form, &$sta) {
   global $base_url;
   extract($info = just('id event text detail linkDiscussion type budget optOrder', $sta['input']));
   db\update('r_questions', $info, @$id ? 'id' : '', TRUE);
-  r\go("$base_url/community/events/event/$event", 'info saved');
+  r\go("community/events/event/$event", 'info saved');
 }
 
 /**
@@ -372,7 +372,7 @@ function formOption_submit($form, &$sta) {
   global $base_url;
   extract($info = just('id question text detail', $sta['input']));
   db\update('r_options', $info, @$id ? 'id' : '', TRUE);
-  r\go("$base_url/community/events/question/qid=$question", 'info saved');
+  r\go("community/events/question/qid=$question", 'info saved');
 }
 
 /**

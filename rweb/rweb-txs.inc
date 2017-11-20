@@ -50,7 +50,7 @@ function formTxs($form, &$sta, $args = '') {
   }
   */
   
-  extract(just('dateRange url starting ending', dateRange($args, 'history/transactions')));
+  extract(just('dateRange downloadMsg url starting ending', dateRange($args, 'history/transactions')));
 
 //  $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
   $descending = TRUE;
@@ -108,10 +108,10 @@ EOF;
     <a onclick="javascript:showMore($pgFactor);" title="Show more transactions per page"><span class="glyphicon glyphicon-plus"></span>Show more</a>
   </div>
   <div class="dates col-xs-2">
-    <a onclick="javascript:$('#dateRange, #edit-submitPeriod, #edit-submitDates').show(); $('#edit-downloadPeriod, #edit-downloadDates').hide();" title="Select dates to show"><span class="glyphicon glyphicon-calendar"></span>Dates</a>
+    <a onclick="javascript:$('#dateRange, #edit-submitPeriod, #edit-submitDates').show(); $('#edit-downloadPeriod, #edit-downloadDates, #edit-downloadMsg').hide();" title="Select dates to show"><span class="glyphicon glyphicon-calendar"></span>Dates</a>
   </div>
   <div class="download col-xs-3">
-    <a onclick="javascript:$('#dateRange, #edit-downloadPeriod, #edit-downloadDates').show(); $('#edit-submitPeriod, #edit-submitDates').hide();" title="Select dates and download as CSV file"><span class="glyphicon glyphicon-download-alt"></span>Download</a>
+    <a onclick="javascript:$('#dateRange, #edit-downloadPeriod, #edit-downloadDates, #edit-downloadMsg').show(); $('#edit-submitPeriod, #edit-submitDates').hide();" title="Select dates and download as CSV file"><span class="glyphicon glyphicon-download-alt"></span>Download</a>
   </div>
   <div class="totals col-xs-2">
     <a data-toggle="modal" data-target="#txs-totals" title="Show totals for the selected period"><span class="glyphicon glyphicon-usd"></span>Totals</a>
@@ -127,18 +127,18 @@ EOF;
 
   $divider = item('<hr>');
   $title = item(t('Transaction History'));
-  extract(just('simple advanced', $dateRange));
-  $dateRange = w\fieldSet('dateRange', compact('simple', 'advanced'), BARE);
-  $form = compact('title') + compact(ray('dateRange summary transactions states'));
+  extract(just('simple advanced downloadMsg', $dateRange));
+  $dateRange = w\fieldSet('dateRange', compact(ray('simple advanced downloadMsg')), BARE);
+  $form = compact(ray('title dateRange summary transactions states'));
+//  $onSubmit = "return $('$id').val() == '' ? true : who(this, '$id', '$question', $amount, $askGift);"
   return labeled($form);
 }
 
 function formTxs_validate($form, &$sta) {w\dateRangeValidate($sta);}
 
 function formTxs_submit($form, &$sta) {
-  if (confirming_s($sta)) return;
-    
-  w\dateRangeRedirect('history/transactions', $sta);
+//  if (confirming_s($sta)) return;
+  return w\dateRangeRedirect('history/transactions', $sta);
 }
 
 /**
@@ -193,8 +193,9 @@ function handleTx($do, $xid, &$sta, $args) {
   if (!$xid = (int) @$xid) return FALSE;
   if ($do == 'edit') return txEdit($xid);
   if ($do == 'ok' or $do == 'no') {
-    if ($confirm = txConfirm($do, $xid, $sta)) return $confirm;
-    if (!$sta['rebuild']) txOKorNO($do, $xid); // don't do anything if canceling
+//    if ($confirm = txConfirm($do, $xid, $sta)) return $confirm;
+//    if (!$sta['rebuild']) txOKorNO($do, $xid); // don't do anything if canceling
+    txOKorNO($do, $xid);
     return r\go($url); // back to the normal form
   }
   return FALSE;

@@ -53,7 +53,6 @@ class Acct {
     u\setDft($phone, @$number);
     if ($phone) $phone = u\fmtPhone($phone, '+n');
     
-    $status = TRUE;
     u\setDft($email, strtolower(u\randomString(10, 'word')) . '@' . EMAILX);
     u\setDft($fullName, @$legalName);
     u\setDft($legalName, $fullName);
@@ -92,7 +91,7 @@ class Acct {
     self::$rs[$a->id] = (object) $record;
 
     foreach (ray('number region') as $k) unset($info[$k]);
-    u\preray(compact(ray('phone status email pass fullName legalName flags rebate state community created login access emailCode cardCode stepsDone')), $info); // things we may have added or changed
+    u\preray(compact(ray('phone email pass fullName legalName flags rebate state community created login access emailCode cardCode stepsDone')), $info); // things we may have added or changed
     $a->update($info); // this is a lot easier to do after saving the record
     unset($DBTX); // commit
   }
@@ -188,6 +187,7 @@ class Acct {
     if ($field == 'agentA') return r\acct($a->agentId);
     if ($field == 'proSe') return ($a->id == $a->agentId);
     if ($field == 'qid') return $a->qo->qid;
+    if ($field == 'bestName') return $a->shortName ?: $a->fullName;
     if ($field == 'isCtty') return ($a->id < 0); // or ($a->id == $a->community); (regions are communities too)
     if ($field == 'isRegion') return (substr($a->name, -1, 1) == '.');
     if ($field == 'cttyA') return r\acct($a->community);
@@ -867,7 +867,7 @@ EOF;
       if ($a1->ok and $a2->ok) { // no need to settle with closed or not-yet-open account
         $amount = round(($a1->o_balance - $a2->o_balance) / 2, 2);
   ///      debug("amount=$amount a1=$a1->id bal=$a1->o_balance a2=$a2->id bal=$a2->o_balance");
-        if ($amount > 0) be\transfer('payment', $a1, $a2, $amount, FOR_USD, t('joint account settlement'), NULL, TRUE, ['force' => 1]);
+        if ($amount > 0) be\transfer('payment', $a1, $a2, $amount, FOR_USD, t('joint account settlement'), NULL, ['force' => 1]);
       }
     } elseif ($b) {
       $sql .= ' AND other=:other';
@@ -1040,7 +1040,7 @@ EOF;
   //  $pass = strtolower(u\nonce()); // not a hash, easy to remember and type
     $verifying = !$a->stepDone['verify'];
     $pass = u\randomString($verifying ? 3 : R_CODE_LEN, $verifying ? 'upper' : 'word'); // use
-  /**/ if (isDEV or (!isPRODUCTION and time() - $a->created < HOUR_SECS)) \drupal_set_message('Link: ' . "<a href='$base_url/reset/id=$name&code=$pass'>reset</a>");
+///  /**/ if (isDEV or (NOT_PRODUCTION and time() - $a->created < HOUR_SECS)) \drupal_set_message('Link: ' . "<a href='$base_url/reset/id=$name&code=$pass'>reset</a>");
     $expires = r\rTime() + HOUR_SECS * R_SIGNIN_HOURS;
     $a->update('oneTimePass', compact('pass', 'expires'));
     return $pass;
@@ -1578,7 +1578,10 @@ EOF;
   public function api($etc = '') {return $this->website ? tr(CO_API_URL, 'website etc', $this->website, $etc) : '';}
   public function lastTxDesc() {return ($tx = $this->lastTx) ? t(' (Last tx: %dt)', 'dt', u\fmtDate($tx[3], TRUE)) : '';}
   public function firstCo() {return db\lookup('fullName', 'r_relations r INNER JOIN users u ON r.main=u.uid', 'r.permission>0 AND r.other=:id AND u.:IS_CO ORDER BY r.created LIMIT 1', ['id' => $this->id]);}
-  public function adminables() {return ray(B_ADMINABLE . ($this->admin ? ' admin2' : '') . ($this->superAdmin ? ' admin co' : ''));}
+  public function adminables() {
+    $res = ray(B_ADMINABLE . ($this->admin ? ' admin2' : '') . ($this->superAdmin ? ' admin' : ''));
+    return array_values($this->isCtty ? array_intersect($res, ray(B_CTTY_BITS)) : array_diff($res, ray(B_CTTY_BITS)));
+  }
   
 } // end of class
 

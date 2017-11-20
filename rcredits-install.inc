@@ -26,8 +26,20 @@ function tableDefs($schema = []) {
     $schema[$table]['fields']['uid'] = setupField($desc, 'int big');
   }
   
-  // table users (additions to Drupal standard)
-  $fields = array( // additional/changed users fields
+  // table users
+  $fields = array(
+    // standard Drupal fields
+    'uid' => setupField('account record ID', 'int big'),
+    'name' => setupField('unique user name', 'varchar 60', ''),
+    'pass' => setupField('account password', 'varchar 128', ''),
+    'mail' => setupField('encrypted email address', 'varchar 254', ''),
+    'created' => setupField('Unix date and time record was created', 'int 11', 0),
+    'access' => setupField('Unix date and time account was last accessed', 'int 11', 0),
+    'login' => setupField('Unix date and time user last signed in', 'int 11', 0),
+    'picture' => setupField('used for temporary storage when generating statistics', 'int 11', 0),
+    'data' => setupField('serialized associative array of miscellaneous fields (not encrypted)', 'text big'),
+    
+    // additions to Drupal fields
     'flags' => setupField('boolean permissions and state flags', 'int big', 0, TRUE),
     'changes' => setupField('changes made to the account', 'blob big'),
     'community' => setupField("uid of this account's Common Good Community", 'int big'),
@@ -77,9 +89,12 @@ function tableDefs($schema = []) {
     'special' => setupField('special transient data', 'text big'),
   );
   // need foreign keys here
-  $schema['users']['fields'] = (@$schema['users']['fields'] ?: []) + $fields;
-  $schema['users']['fields']['uid'] = setupField('Unique user ID', 'int big'); // not unsigned
-  $schema['users']['fields']['data'] = setupField('serialized array of miscellaneous data', 'text big');
+//  $schema['users']['fields']['uid'] = setupField('Unique user ID', 'int big'); // not unsigned (must be first field)
+//  $schema['users']['fields']['data'] = setupField('serialized array of miscellaneous data', 'text big');
+//  $schema['users']['fields'] = $fields;
+  $foreignKeys = foreignKey('community');
+  $indexes = index('name') + index('mail') + index('created') + index('community') + index('zip');
+  $schema['users'] = setupTable('Account data', $fields, 'uid', $foreignKeys, $indexes);
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
 
   // table sessions (additions to Drupal standard)
@@ -296,8 +311,8 @@ function tableDefs($schema = []) {
     'channel' => setupField('through what medium was the transaction entered', 'int tiny'),
 //    'members' => isGAME ? setupField('number of members represented', 'int medium', 1) : NULL,
   );
-  $foreignKeys = foreignKey('payer');
-  $indexes = index('created') + index('payer') + index('deposit');
+  $foreignKeys = foreignKey('payee');
+  $indexes = index('created') + index('payee') + index('deposit');
   $schema['r_usd'] = setupTable('Record of transfers to or from a bank account', $fields, 'txid', $foreignKeys, $indexes);
 
   // table r_banks
@@ -334,13 +349,13 @@ function tableDefs($schema = []) {
   // table r_gifts
   $fields = array(
     'donid' => setupField('gift record id', 'serial'),
-    'giftDate' => setupField('date/time of gift', 'int 11', 0),
-    'completed' => setupField('Unixtime donation was completed', 'int 11', 0),
     'uid' => setupField('uid of account that made the gift', 'int big'),
     'amount' => setupField('amount of gift', 'numeric 11,2'),
     'often' => setupField('recurring how often (Y, Q, M, 1)', 'varchar 1'),
     'honor' => setupField('what type of honor', 'varchar 10'), // "share" = gift is "sharing" rewards with CGF
     'honored' => setupField('who is honored', 'text medium'),
+    'completed' => setupField('Unixtime donation was completed', 'int 11', 0),
+    'giftDate' => setupField('date/time of gift', 'int 11', 0),
     'share' => setupField('percentage of rebates/bonuses to donate to CGF', 'numeric 6,3'), // -1 = N/A
   );
   $foreignKeys = foreignKey('uid');
@@ -679,7 +694,19 @@ function tableDefs($schema = []) {
   setupField('r_areas', 'Region', 'state, province, or territory', 'varchar 24'); 
   
   */
-  
+
+  foreach (ray(TRACK_DELETED) as $table) {
+    $xtable = $table == 'users' ? 'x_users' : str_replace('r_', 'x_', $table);
+    $schema[$xtable] = $schema[$table];
+/*    $fields = $schema[$xtable]['fields'];
+    if ($key = @$schema[$xtable]['primary key']) {
+      if ($fields[$key]['type'] == 'serial') $schema[$xtable]['fields'][$key]['type'] = 'int'; // permits dropping primary key
+    } */
+    $deleted = setupField('Unixtime record was deleted', 'int 11', 0);
+    u\preray(compact('deleted'), $schema[$xtable]['fields']);
+    $schema[$xtable]['primary key'][] = 'deleted'; // allow duplicate keys in deletions tables
+  }
+
   return $schema;
 }
 

@@ -70,16 +70,27 @@ function adminSummary() {
   }
   
   if ($mya->isCtty) { // managing a community itself
-    $count = item(db\count('users', 'community=:ctty AND uid<>:ctty', compact('ctty')), t('Members:'));
+    $sql = <<<EOF
+      SELECT
+      SUM(IF(:IS_OK AND :IS_CO, 1, 0)) AS cos,
+      SUM(IF(:IS_OK AND NOT :IS_CO, 1, 0)) AS mems,
+      SUM(IF(NOT :IS_OK AND :IS_NONUDGE, 1, 0)) AS closed,
+      SUM(IF(NOT :IS_OK AND NOT :IS_NONUDGE, 1, 0)) AS inProcess
+      FROM users WHERE community=:ctty AND uid<>:ctty
+EOF;
+    $res = db\q($sql, compact('ctty'))->fetchAssoc();
+    $res['tot'] = array_sum($res);
+//    $count = item(db\count('users', 'community=:ctty AND uid<>:ctty', compact('ctty')), t('Members:'));
+    $count = item(t('%tot = %mems members + %cos companies + %inProcess in process + %closed closed', $res), t('Accounts:'));
     $cInfo = be\creditInfo();
     foreach ($fields = ray('balance in rewards out') as $k) {
       $v = $cInfo->$k;
-      if ($k == 'out') $v -= $cInfo->rewards;
+//      if ($k == 'out') $v -= $cInfo->rewards;
 //      if ($k == 'r') $v += $cInfo->rewards;
       $$k = u\fmtAmt($v + 0);
     }
     
-    $balance = item(t('%balance = %in in - %out out (Rewards issued: %rewards)', compact($fields)), t('Funds:'));
+    $balance = item(t('%balance = %in in - %out out (Credit issued: %rewards)', compact($fields)), t('Funds:'));
   } else { // managing some individual account
     if (!$mya->ok) $mya->nextStep();
 
@@ -149,11 +160,12 @@ EOF;
     include __DIR__ . '/../rweb/bit-descs.inc';
 
     $legalName = textFld(t('Legal Name:'), '', required($mya->legalName));    
+    $shortName = textFld(t('Short Name:'), t('Shortest usable version of full name.'), dft($mya->shortName));
+    
     if ($mya->superAdmin or ($mya->cAdmin and $mya->activated)) $rTrader = ($mya->isCtty)
     ? boolFld(t('Active?'), '', $mya->ok)
     : boolFld(t('Active?'), t('Is account approved to use %PROJECT?', '_a', w\atag('/settings/photo?' . rand())), $mya->ok);
     
-    $source = w\item($mya->source, t('Source:'));
     if ($mya->member and !$mya->co and $mya->superAdmin) $ssnShow = item(a\ssnShow($mya));
     if ($mya->admin) {
       $dba = ($mya->co and $owner = r\relation('other', 'main=:uid', compact('uid')) and r\acct($owner)->federalId == $mya->federalId);
@@ -225,14 +237,15 @@ EOF;
     $note = areaFld(t('New Note:'), [t('Type a Note Here'), t('Abbreviations: PM=phone msg EM=email msg. Be sure to say what you left a message <i>about</i> (for example "PM setup")')]);
     $suffix = submitTickle(1, t('Wait a day')) . submitTickle(2, t('2 days')) . submitTickle(7, '7') . submitTickle(30, '30') . submitTickle('', t('Auto')) . ' &nbsp; ' . w\btn("$$('#rcreditswebformsummary').submit();", t('Save'), 'primary', 'md');
     $tickle = textFld(t('Tickle:'), [t('Followup Date'), t('When to follow up ("Auto" sets an automatic Welcome or Annual date)')], dft($mya->tickle ? u\fmtDate($mya->tickle, TRUE) : '') + w\suffix($suffix));
-    }
+    $source = w\item($mya->source, t('Source:'));
+  }
 
 //  $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
 
   $uid = hidFld($uid); // must postcede js (which uses uid)
   
   $bigFields = $mya->ok ? 'adminable risks ssnShow' : 'ssnShow adminable risks';
-  return compact(ray("photo details notes note tickle donations rTrader activity relations source helper secureMsgs $bigFields community balance cgfDonations legalName calling signupCo tenure steps dwInfo invited invitedBy proxies proxyFor moves floor minimum achMin risk trust mediaConx count back uid"));
+  return compact(ray("photo details notes note tickle donations rTrader activity relations source helper secureMsgs $bigFields community balance cgfDonations legalName shortName calling signupCo tenure steps dwInfo invited invitedBy proxies proxyFor moves floor minimum achMin risk trust mediaConx count back uid"));
 }
 
 /**

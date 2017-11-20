@@ -447,6 +447,12 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformsummary .noEdit {margin-left:-7px; padding-left:7px; background-color:#e0e0ff;}
 #rcreditswebformsummary #edit-clickPhoto .control-data {font-size:78%; background-color:lightcyan; width:auto; border-radius:15px;}
 
+/* Find Company */
+#rcreditswebformfindco .row {display:table-row; max-width:700px;}
+#rcreditswebformfindco .well {padding:10px 35px;}
+#rcreditswebformfindco .cmpy-name {display:table-cell; width:auto; max-width:300px; overflow:hidden; color:darkblue;}
+#rcreditswebformfindco .cmpy-does {display:table-cell; width:auto; max-width:400px; overflow:hidden; padding-left:10px;}
+
 /* Pay/Charge/Tx */
 
 /* Pay With CG */
@@ -695,9 +701,10 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebformtxs #edit-title .control-data {width:100%; max-width:100%; text-align:center;}
 #rcreditswebformtxs #edit-reports {text-align:right;}
 
+#rcreditswebformtxs #edit-downloadMsg .control-data {max-width:none; width:100%;}
+#rcreditswebformtxs #edit-downloadMsg .control-label,
 #rcreditswebformtxs #edit-transactions .control-label {display:none;}
 #rcreditswebformtxs #edit-transactions .control-data,
-
 #rcreditswebformtxs .form-type-checkboxes {margin-bottom:0;}
 #rcreditswebformtxs .form-type-checkbox {width:110px;}
 #rcreditswebformtxs .form-type-radios {border:0;}

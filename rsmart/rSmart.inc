@@ -88,6 +88,7 @@ function pos($args = FALSE) {
 //  if (!$args) $args = t\POST(); else t\POST($args);
   if ($args) t\POST($args); else $args = t\POST();
   u\loga('in', $args);
+  $args = u\sanitizeInput($args);
   extract(just('op device agent member version', $args));
   $args['version'] = (int) $version;
   
@@ -349,7 +350,8 @@ function charge($args, $type = 'charge') {
     r\tellAdmin('bad proof', compact(ray('version proof hashOfTx agent amount member code created force')));
     if (u\test() or $version > 218 ) {
       if (u\test()) t\output("Should be proof of $wanted");
-      return badTx($args, $name, t('bad proof (wanted %hashOfTx as hash of %wanted', compact('hashOfTx', 'wanted')));
+      $err = u\test() ? t('bad proof') : t('bad proof (wanted %hashOfTx as hash of %wanted', compact('hashOfTx', 'wanted'));
+      return badTx($args, $name, $err);
     }
   }
 
@@ -379,7 +381,7 @@ function charge($args, $type = 'charge') {
   } else { // doesn't exist and should (forcing or not)
     if (@$amount < 0 and $a->co and $a->proSe) return badTx($args, $name, $msg, $subs);
     if (@$amount < 0 and !$mya->co) list ($type, $amount) = ['payment', -$amount];
-    list ($msg, $subs, $zot) = be\transfer($type, $mya, $a, @$amount, @$goods, @$description, $created, TRUE, compact('force'));
+    list ($msg, $subs) = be\transfer($type, $mya, $a, @$amount, @$goods, @$description, $created, compact('force'));
     if (!@$subs['success']) return badTx($args, $name, $msg, $subs);
 
     if (!@$force and $aa = $a->agentA and $mya->co and !$aa->ided) $aa->setBit(B_IDED);

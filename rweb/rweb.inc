@@ -50,7 +50,7 @@ function formPageNotFound($form, &$sta, $arg = '') {
 
 function ajax() {
   global $channel; $channel = TX_AJAX; // tell log and tellAdmin our environment
-  extract(just('op sid data', t\POST() ?: $_GET));
+  extract(just('op sid data', t\POST() ?: $_GET)); // don't sanitize this, it only comes from us!
   header('Content-Type: application/json');
 
   if (!@$sid or !$vars = w\sessionVars($sid)) ajaxErr('bad sid');
@@ -506,7 +506,7 @@ function printInvite1($a, &$pdf) {
   $cardi = 0;
 
   $co = ($a->co and !$forCG); // pocket-size for individuals and CGF, otherwise bigger for companies
-  $name = $a->shortName ?: $a->fullName;
+  $name = $a->bestName;
   $invite = $forCG ? t('You are invited to:') : t('%name invites you to:', compact('name'));
 //  $iCode = $a->iCardCode(IBY_EMAIL);
   
@@ -804,7 +804,7 @@ function formDonate($form, &$sta) {
      100 => t('Two Bricks . $100'),
       50 => t('One Brick ... $50'),
       25 => t('Half Brick .. $25'),
-       0 => t('None for now . $0'),
+//       0 => t('None for now . $0'),
       -1 => t('Water ... (other)'),
 //      10 => t('Tile ........ $10'),
 //       5 => t('Cloth ........ $5'),
@@ -815,7 +815,8 @@ function formDonate($form, &$sta) {
    
 //  $inSetup = $mya->ok ? '' : t(' The amount you choose will come from your account once it is activated and has enough funds.</p><p>Also choose a percentage of your ongoing incentive rewards to share with Common Good Finance.');
   $title = item(t('Donate to %PROJECT'));
-  $subtext = item($donated . t('<p>Make a gift of any size (zero or more), to help support the %PROJECT system. Buy a BRICK or some other piece of the Common Good Economy, as a tax-deductible donation: monthly, quarterly, or yearly.</p><p><b class="loud">NOTE: This is a donation, not a deposit.</b> Thank you for your support!</p>'));
+  $amountTip = $mya->co ? '' : t('The most common amounts chosen are $50 and $25.');
+  $subtext = item($donated . t('<p>Make a tax-deductible gift of any size: monthly, quarterly, or yearly.</p></p><p>Half of your gift supports whatever projects you decide on together in your community; half supports the operation of the %PROJECT system (to donate zero, choose "Water"). %amountTip</p><p><b class="loud">NOTE: This is a donation, not a deposit.</b> Thank you for your support!</p>', compact('amountTip')));
   $gift = selectFld(t('Donation:'), '', required($mya->co ? R_COMPANY_GIFT : R_INDIVIDUAL_GIFT) + $giftAttrib, $giftLevels);
   $amount = textFld(t('Other amount $'), '');
   $often = selectFld(t('When:'), '', required(), $oftens);
@@ -823,7 +824,7 @@ function formDonate($form, &$sta) {
   $honored = areaFld('', [t('Honoring whom or what')]);
 //    $share = $mya->ok ? '' : w\shareFld($mya),
 //    $roundup = $mya->ok ? '' : w\roundupFld($mya),
-  if (!$mya->ok) $wait = submit(t('Ask me in a few weeks'), 'info', 'xs');
+//  if (!$mya->ok) $wait = submit(t('Ask me in a few weeks'), 'info', 'xs');
 
   js(R_GIFT_SHOWHIDE, 'inline', 'footer');
   return labeled(compact(ray('title subtext gift amount often honor honored')) + w\setupFoot(t('Donate')) + compact('wait'));
@@ -1054,6 +1055,7 @@ function formProxy($form, &$sta, $args = '') {
   if (!$mya->member and count($choiceList) <= 2) { // no real choices, so don't make the member choose
     if (!$dft) $mya->proxy($priority, $choiceList[0]);
     if (!$dftOther) $mya->proxy(3 - $priority, $choiceList[$dft ? 0 : 1]);
+    w\say('no local proxy');
     return w\goNextStep('proxies');
   }
 
@@ -1313,15 +1315,16 @@ function formSummary($form, &$sta, $qid = '') {
     $stepUrl .= "/reid=$reid&customer=$code";
   }
   
-  if ($mya->can(B_ADMIN2) and !$mya->proSe) { // some kind of admin (but not self)
+  $extras = '<br>' . u\fmtPhone($mya->phone) . " ($mya->faxetc)<br>$mya->email ";
+
+  if ($mya->admin2 and !$mya->proSe) { // some kind of admin (but not self)
     include_once __DIR__ . '/../admin/admin-web.inc';  
     $form = w\adminSummary();
-    foreach (ray('photo legalName federalId community') as $k) if (@$form[$k]) { // move these up (see return line)
+    foreach (ray('photo legalName shortName federalId community') as $k) if (@$form[$k]) { // move these up (see return line)
       $$k = $form[$k];
       unset($form[$k]);
     }
 
-    $extras = '<br>' . u\fmtPhone($mya->phone) . " ($mya->faxetc)<br>$mya->email ";
     if (!$mya->isCtty and $mya->cAdmin and !$mya->co) $extras .= a\cardLink($mya->id); // w\btn("/print-rcard/$mya->id", t('card'));
     
     if ($stepUrl == 'summary') {
@@ -1344,16 +1347,19 @@ function formSummary($form, &$sta, $qid = '') {
 //  $cttyBene = item("$cttyBeneMo " . t('over the past month') . "<br>$cttyBene " . t('overall (ever), including %gifts in contributions', compact('gifts')), t('Social return:'), t('Financial benefit to your community to date, from your participation together with other members, empowering economic democracy! [<%a>details</a>]', '_a', w\atag('/help/social-return')));  
   $cttyBene = item("$cttyBene " . t('overall, including your %gifts in contributions', compact('gifts')), t('Social return:'), t('Financial benefit to your community to date, from your participation together with other members, empowering economic democracy! [<%a>details</a>]', '_a', w\atag('/help/social-return')));  
     
-  if ($mya->co and $mya->hasCustomers) $showCustomers = w\item(w\btn('community/data/qName=6Customers', t('Customer List')));
+  // $showCustomers = w\item(w\btn('community/data/qName=6Customers', t('Customer List')));
 
   if ($mya->canManage) {
-    $hasMultipleAccounts = db\exists('r_relations r LEFT JOIN users u ON u.uid=r.main', 'other=:id AND permission>0 AND u.:IS_CO', ['id' => $mya->agentId]);
+    $hasMultipleAccounts = ($mya->co or db\exists('r_relations r LEFT JOIN users u ON u.uid=r.main', 'other=:id AND permission>0 AND u.:IS_CO', ['id' => $mya->agentId]));
     $another = $hasMultipleAccounts ? t('Another') : t('a');
     $makeCo = w\btn('signup-company', t('Open %another Company Account', compact('another')), 'primary', 'xs');
-    if (!$mya->jid) $makeJoint = w\btn('signup/joint=1', t('Make This a Joint Account'), 'primary', 'xs');
-    $topButtons = item($makeCo . @$makeJoint);
+//    if (!$mya->jid and !$mya->co) $makeJoint = w\btn('signup/joint=1', t('Make this a joint account'), 'primary', 'xs');
+    if ($mya->member and !$mya->jid and !$mya->co) $makeJoint = w\btn('/prejoin', t('Make this a joint account'), 'primary', 'xs');
     if (!$mya->co and $hasMultipleAccounts) $clickPhoto = item(t('Click your photo to manage your other account(s).'));
   }
+
+  if ($mya->co) $reports = w\btn('company-reports', t('Reports'));
+  $topButtons = item(@$makeCo . @$makeJoint . @$reports);
 
   $title = item(t('Account Summary'));
   if (isDEV and !$mya->proSe) $agentName = ' &nbsp; &nbsp; ' . t('<b>Agent: </b>') . $mya->agentA->fullName;
@@ -1390,7 +1396,7 @@ function formSummary($form, &$sta, $qid = '') {
   } else $extra = '';
   $accountId = fld('item', t('ID:'), '', ($mya->mainQid ?: 'N/A') . ' (' . $acctType . ')' . $extra);
 
-  $fields = 'photo title clickPhoto showCustomers topButtons accountId accountName details address legalName federalId community balance savings creditLimit committed invites cttyBene';
+  $fields = 'photo title clickPhoto showCustomers topButtons accountId accountName details address legalName shortName federalId community balance savings creditLimit committed invites cttyBene';
   foreach (ray('details') as $k) $$k = @$form[$k]; unset($form[$k]); // put these on the left if admin
   $fields = compact(ray($fields));
   
@@ -1403,6 +1409,7 @@ function formSummary($form, &$sta, $qid = '') {
     $form['none'] = submit('none'); // force _submit despite lack of submit button    
   } else $form = $fields;
 
+  if ($mya->superAdmin and $mya->proSe) $form = just('title accountId accountName', $form);
   return labeled($form, @$onSubmit);
 }
 
@@ -1605,7 +1612,7 @@ function photoUpload($uid = '', $sid = '') {
   global $base_url;
   $f0 = ray('imgUrl imgInitW imgInitH imgW imgH imgY1 imgX1 cropH cropW rotation uid sid');
   $f = ray('url w0 h0 w h y1 x1 cropH cropW angle uid sid');
-  $params = t\POST();
+  $params = t\POST(); // don't sanitize this, it only comes from us!
   foreach ($params2 = array_combine($f0, $f) as $k0 => $k) $$k = $params[$k0];
   
   if (!@$uid or !@$sid or !$sessionVars = w\sessionVars($sid)) return w\photoRet(t('bad sid'));
@@ -1956,25 +1963,52 @@ function formTx($form, &$sta, $args = '') {
 //  $isGift = hidfld(FALSE);
   $$type = submit(ucwords($type));
 
-  $onSubmit = w\whoFldSubmit('who', $question, 'this.amount.value', $type == 'pay');
+  $onSubmit = w\whoFldSubmit('who', $question, 'this.amount.value', $type == 'charge');
   
   $form = labeled(compact(ray("title subtext who amount goods purpose calc $type")), $onSubmit);
   $form['#attributes']['class'][] = $scanClass;
+
   return keep_values($form); // get defaults from which('info')
 }
 
 function formTx_validate($form, &$sta) {
+  extract(just('who', $sta['input']));
+  if (strpos($who, '@') and $err = !\valid_email_address($email = $who)) return w\say('bad email', compact('email'), 'who');
 //  if (confirming_v($sta)) return;
 //  if ($err = amtErr('amount', $sta)) return say($err, 'amount'); // not needed
 //  if ($confirm = transfer(op($sta), $sta['input'], FALSE)) confirm($confirm, $sta); // op who amount goods what
-  transfer(op($sta), $sta['input'], FALSE);
+//  transfer(op($sta), $sta['input'], FALSE);
 }
 
 function formTx_submit($form, &$sta) {
+  extract($info = just('who amount goods purpose', $sta['input']));
+  if (strpos($who, '@')) return r\go('charge/nonmember/' . u\urlify(serialize($info)));
 //  global $fieldErr;
 //  if (confirming_s($sta)) return;
-  w\transfer($op = op($sta), $sta['input'], TRUE); // op who amount goods what
+  w\transfer($op = op($sta), $info); // op who amount goods what
 //  if (!$fieldErr) return r\go($op); // this is especially important when skipping the confirmation (scanning)
+}
+
+/**
+ * Pay or charge a nonmember (continued from Charge page)
+ */
+function formTxNonmember($form, &$sta, $args = '') {
+  if (!$args or !$info = unserialize(u\deurlify($args))) return r\go('', t('Url Error'), 'err');
+  extract($info = just('who amount goods purpose', $info));
+  if (count($info) != 4) return r\go('', t('Url Error'), 'err');
+  
+  $title = w\item(t('Invoice a Non-member'));
+  $subtext = w\item(t('Sending an invoice to %email (%amount for %purpose)', 'email amount purpose', $who, u\fmtAmt($amount), $purpose));
+  $name = w\textFld(t('Recipient Name:'), [t('Recipient\'s full name')], required());
+  $submit = w\submit(t('Send Invoice'));
+  $args = w\hidFld($args);
+  return labeled(compact(ray('title subtext name submit args')));
+}
+
+function formTxNonmember_submit($form, &$sta) {
+  extract(just('name args', $sta['input']));
+  $info = unserialize(u\deurlify($args));
+  be\invoiceNonmember($name, $info);
 }
 
 /**
@@ -2152,7 +2186,7 @@ function formEmpty($form, &$sta = '', $args = '') {
  */
 function buySay($msg, $info) {
   list ($code, $info) = is_array($info) ? [r\makeDoCode($info), 'err'] : ['done', $info];
-  return r\go("/pay-with-cg/$code", $msg, $info);
+  return r\go("pay-with-cg/$code", $msg, $info);
 }
 
 /**
@@ -2165,8 +2199,7 @@ function formBuy($form, &$sta, $doCode = '') {
   $required = 'company code';
   $fields = $required . ' item amount name account zip verb return cancel err';
 //  $_POST = ray($fields, 'Cool Item #1 with a really REALLY long description', '12.34', 'NEWZZC', 'cCode', 'Pay', 'http://google.com', '01330', 'wspademan@gmail.com');
-  extract($args = just($fields, $doCode ? r\doCode($doCode) : (@$sta['input'] ?: $_POST)));
-//if (!@$item) die(print_r(compact(ray('_POST doCode args')), 1));
+  extract(u\sanitizeInput($args = just($fields, $doCode ? r\doCode($doCode) : (@$sta['input'] ?: $_POST))));
   foreach (ray($required) as $k) if (!@$$k) return r\go('empty', t('missing field', 'field', $k), 'err'); // handle hackers gracefully
   if (!u\isQid(@$company) or !$co = r\acct($company) or !$co->co) return r\go('empty', 'bad account id', 'err');
   if ($code != $co->emailCode) { // not testing
@@ -2185,7 +2218,7 @@ function formBuy($form, &$sta, $doCode = '') {
   $account = trim(strpos($account, '@') ? strtolower($account) : strtoupper($account));
   if ($a = r\acct($account) and (!u\similar($a->fullName, $name) or !u\starts($zip, $a->zip))) $a = NULL;
   $subtext = w\item($a 
-  ? t('<h4>Hello %name!</h4><small>(Account %acct)</small>', 'name acct', $a->shortName ?: $a->fullName, $a->mainQid) . @$tst
+  ? t('<h4>Hello %name!</h4><small>(Account %acct)</small>', 'name acct', $a->bestName, $a->mainQid) . @$tst
   : (t('<h4>Hello UNKNOWN member</h4>') . (@$tst ?: t('<span class="loud">Make sure this is really %PROJECT!</span>')))
   );
   list ($name, $pass) = w\signinFlds($a ? $a->mainQid : '');
@@ -2340,7 +2373,7 @@ function formHandleInvoice_submit($form, &$sta) {
       $msg .= '|' . t('auto pay on', compact('payeeName'));
     }
   } elseif ($op == 'delete') {
-    db\q('DELETE FROM r_invoices WHERE nvid=:nvid', compact('nvid'));
+    db\del('r_invoices', $nvid);
     r\notify($payer, 'invoice withdrawn', $subs);
     $msg = 'invoice delete done';
   } elseif ($op == 'deny' or @$whyNot) {
@@ -2358,15 +2391,17 @@ function formHandleInvoice_submit($form, &$sta) {
  * Exchange USD for rCredits or vice-versa (the Bank tab)
  */
 function formGet($form, &$sta, $args = '') {
+  global $mya;
   global $base_url;
   
+  if (!$mya->hasBank) return r\go('settings/connect');
+  
   \drupal_page_is_cacheable(false); // suppress caching, so buttons work right
-  global $mya;
   $myid = $mya->id;
   $jid = $mya->jid ?: 0;
   extract(just('cancel', $args));
   if ($txid = @$cancel) {
-    db\q('DELETE FROM r_usd WHERE txid=:txid', compact('txid'));
+    db\del('r_usd', $txid);
     say('transfer canceled', compact('txid'));
     r\tellAdmin("canceled exchange #$txid");
   }
@@ -2455,6 +2490,49 @@ function formCgBiz($form, &$sta, $id) {
 }
 
 /**
+ * Create a joint account with a new or existing member.
+ */
+function formPrejoin($form, &$sta) {
+  $title = w\item(t('Create a Joint Account'));
+  $subtext = w\item(t('If the person you want to join with does not yet have a %PROJECT account, you will need to go through most of the same steps as setting up a separate account for them. We will guide you through those steps.'));
+  $old = boolFld(t('Already member?'), t('Is the person you want to join your account with already a %PROJECT member?'), TRUE);
+  $account = textFld(t('Account:'), [t('Other Account ID'), t('Type the account ID of the account you want to join with.')]);
+  $submit = w\submit(t('Go'));
+
+  $js = <<<EOF
+$('#edit-old-0').click(function() {this.form.submit();});
+EOF;
+  js($js, 'inline', 'footer');
+  
+  return labeled(compact(ray('title subtext old account submit')));
+}
+
+function formPrejoin_validate($form, &$sta) {
+  global $mya;
+  if ($mya->jid or $mya->co) return w\hack(t('prejoin to already joined or co'));
+  
+  extract(just('old account', $sta['input']));
+  if ($old) {
+    if (!$account) return w\say(t('You must give the other person\'s account ID.'), 'account');
+    if (!$oldA = r\acct(trim(strtoupper($account))) or !$oldA->ok) return w\say('not an account', 'account');
+    if ($oldA->co) return w\say(t('You cannot join a company account.'), 'account');
+    $sta['input']['account'] = $oldA->id;
+  }
+}
+
+function formPrejoin_submit($form, &$sta) {
+  global $mya;
+  extract(just('old account', $sta['input']));
+  if (!$old) return r\go('signup/joint=1');
+
+  if (!$reid = r\relation('reid', $mya->id, $account)) $reid = $mya->newRelation(ray('other permission', $account, r\perm(B_JOINT)));
+  $msg = r\setJoin($reid, TRUE);
+  return r\go('', $msg);
+}
+
+//function toggler($sel) {return w\attrib(['onclick' => "$('$sel').toggle(this.checked)"]);}
+
+/**
  * Prepare to open a company account.
  * This form creates an invite and redirects to signup, using that code.
  * @see also: formAgent
@@ -2526,7 +2604,7 @@ function formSignupCo_submit($form, &$sta) {
  */
 function formSignup($form, &$sta, $args = '') {
   if (!$args) $args = @$_POST ?: basename(t\SERVER('REQUEST_URI')); // because menu_execute_active_handler fails
-
+  u\sanitizeInput($args);
   $contactDefaults = 'phone address city zip address2 city2 zip2 state2 postalAddr partner partnerCode customer source';
   extract(just('joint reid inviter code personal fullName state email helper ' . $contactDefaults, $args));
   extract(just('hidCountry hidState', $sta['input']));
@@ -2776,8 +2854,6 @@ function formSignup_submit($form, &$sta) {
  * @NOTE: The country and state drop down require a change in form.inc (see patch/form.inc.patch)
  */
 function formContact($form, &$sta) {
-//  if ($sta['input']) {print_r($sta['input'] + debug_backtrace());  die('valid');}
-
   global $mya;
   focusOn('fullname');
   $nameDesc = t('usename desc');
@@ -2817,7 +2893,7 @@ function formContact_validate($form, &$sta) {
 
   if ($err = u\badZip($zip)) return say($err, 'zip');
   if (!emailOkay($email, $mya->co, $mya)) return; // say('bad email', ray('email', $email), 'email');
-  if (!$mya->cAdmin and $email != $mya->email and !$mya->AgentA->passwordOkay($pass, 'pass', $err)) return w\say($err, 'pass');
+  if (!$mya->cAdmin and $email != $mya->email and !$mya->agentA->passwordOkay($pass, 'pass', $err)) return w\say($err, 'pass');
 //$pin != $mya->agentA->pin) return say('bad pin', 'pin');
   if (!phoneOk($phone, $country)) return;
   if (u\poAddress($address)) return say('po in location', 'address');
@@ -2826,7 +2902,6 @@ function formContact_validate($form, &$sta) {
 }
 
 function formContact_submit($form, &$sta) {
-  flog('submit');
   global $partnerInfo; // information used within eachPartner function argument (so must be global)
   extract($info = just('fullName name email phone faxetc country zip state city address postalAddr owns', $sta['input']));
   unset($info['owns']);
@@ -3009,7 +3084,7 @@ function formConnect($form, &$sta, $args = '') {
     $connect = boolFld(t('Connect:'), '', 0);
     if ($usa) $routingNumber = textFld(t('Routing:'), t('Type carefully your bank\'s routing number.'));
     //$bankAccount = textFld(t('Account:'), t('Type carefully your checking account number.'));
-    $bankAccount = passFld(t('Account:'), t('Type carefully your <b>checking</b> account number. <span><br>Savings accounts will not work, at this time.</span>'));
+    $bankAccount = passFld(t('Account:'), t('Type <b class="loud">carefully</b> your <b>checking</b> account number. The bank charges us $20 if you get this wrong. <span>Savings accounts will not work, at this time.</span>'));
     $bankAccount2 = passFld(t('Again:'), t('Type your account number again.<br>(we need to be REALLY SURE we don\'t connect to the wrong account)'));
   
     $connectFields = fieldSet('connectFields2', compact(ray('checkHint routingNumber bankAccount bankAccount2 refills targetFields')), BARE);
@@ -3317,7 +3392,8 @@ function formRelations_submit($form, &$sta) {
         if ($v == $joinPerm) {
           if (@$gotJoin) {say('too many joins', 'err'); continue;} else $gotJoin = TRUE;
         }
-        r\setJoin($reid, @$gotJoin); // handle joining or unjoining accounts
+        $msg = r\setJoin($reid, @$gotJoin); // handle joining or unjoining accounts
+        w\say($msg);
       }
       $changes[$reid][$k] = $v;
       $changes[$reid]['original'] = @$raws0[$reid]; // save for update reporting and permission-checking
@@ -3609,7 +3685,7 @@ function formSignin_submit($form, &$sta, $goto = 'summary') {
   u\loga('signin', ['name' => $mya->name]);
   if ($mya->superAdmin) f('a.adminSignin');
   if (isSTAGE and !$mya->cAdmin) f('a.makeTestAdmins'); // make sure rCOs can test stuff
-  return r\go($mya->admin2 ? '/sadmin/followup' : $goto);
+  return r\go($mya->admin2 ? 'sadmin/followup' : $goto);
 }
 
 function formPass($form, $sta, $id = '') {
@@ -3632,33 +3708,44 @@ function formPass_validate($form, &$sta) {
   $sta['input']['uid'] = $uid;
 }
 
-function formPass_submit($form, &$sta, $goto = 'empty') {
+/**
+ * Handle request to reset password or resend verification email
+ * @param string $goto: where to redirect (defaults to empty page if resetting password)
+ * @see formResend_submit()
+ */
+function formPass_submit($form, &$sta, $goto = '') {
   extract(just('uid', $sta['input']));
   $a = r\acct(@$uid); // defaults to current account when called from formResend_submit (without uid)
   $myid = @$uid ?: $a->id;
   $name = $a->name;
   $code = $a->oneTimePass($name);
 //  list ($region, $code) = [strtolower(R_SERVER_ID), $pw];
-  r\notify($myid, 'password-reset', compact(ray('name code')), TRUE);
-/**/  if (isDEV or (!isPRODUCTION and $a->cAdmin)) w\say("Attention admin: name=$name code=$code");
+  r\notify($myid, $goto ? 'verify' : 'password-reset', compact(ray('name qid code')), TRUE);
+/**/  if (isDEV or (NOT_PRODUCTION and $a->cAdmin)) w\say(t('Attention admin: code=%code Link: <a href="%BASE_URL/reset/id=%name&code=%code">reset</a>', compact(ray('name code'))));
 //  r\tellAdmin('password reset', compact(ray('name myid code')));
-  return r\go($goto, 'password reset');
+  return r\go($goto ?: 'empty', $goto ? t('Email sent') : 'password reset');
 }
 
-function formFindCo($form, &$sta) {
+/**
+ * Show a list of participating businesses in a given region.
+ * @param string $args: optional parameters from URL:
+ *    where   community qid or start of zip pattern
+ *    cos     part of company name or industry category
+ */
+function formFindCo($form, &$sta, $args = '') {
   global $mya;
-  $which = svar('which_companies') ?: '';
-  $region = svar('region') ?: '';
+  extract(just('where cos', $args));
 
-  $list = w\directoryList($which, $region ?: @$mya->community);
+  $list = w\directoryList(@$cos, @$where ?: @$mya->community);
+  $list = "<div class=\"well\">$list</div>";
   
   $form = array(
     'title' => item(t('Find companies in your region')), // should be 'Find member businesses in your region'
 //    'subtext' => item(t('for a country name or postal code...')),
-    'which' => textFld(t('Search for:'), [t('Whatever'), t('Type part of company name or industry category')], dft($which) + autocomplete('industry')),
-    'region' => textFld(t('Where:'), [t('Start of postal code'), t('Type the first few characters of your postal code<br>For example, use 013 for Franklin County, Massachusetts; 05 for Vermont, etc.')], dft($region)), // or country name
+    'which' => textFld(t('Search for:'), [t('Whatever'), t('Type part of company name or industry category')], dft(@$cos) + autocomplete('industry')),
+    'region' => textFld(t('Where:'), [t('Start of postal code'), t('Type the first few characters of your postal code<br>For example, use 013 for Franklin County, Massachusetts; 05 for Vermont, etc.')], dft(@$where)), // or country name
     'submit' => submit(t('Find')),
-    'item' => item($list),
+    'list' => w\item($list),
   );
 
   return labeled($form);
@@ -3669,8 +3756,9 @@ function formFindCo_validate($form, &$sta) {
 
 function formFindCo_submit($form, &$sta) {
   extract($sta['input']);
-  svar('which_companies', trim($which));
-  svar('region', trim($region));
+  r\go("community/find-company/where=$region&cos=$which");
+//  svar('which_companies', trim($which));
+//  svar('region', trim($region));
 }
 
 /**
@@ -3740,7 +3828,7 @@ EOF;
   $myCats = db\q('SELECT iid FROM r_user_industries WHERE uid=:myid', compact('myid'))->fetchCol();
   $links = t('<%a>See your public %PROJECT web page</a> (in a new window)', 
     '_a', w\atag("/member/$mya->name", ['id' => 'show-webpage'] + w\away()));
-  $code = w\item($mya->emailCode, t('Secret Code:'));
+  $code = w\item($mya->emailCode, t('Secret Code:'), t('Use this code for a <%a>Pay with Common Good</a> button on your website.', w\atag('https://docs.google.com/document/d/1QpOW0WU7RiUV900PMekyH7ve3-_9yjCnQn627cWovOQ')));
 
   $canDescs = ray(APP_CAN_BIT_DESCS);
   $permissions = '';
@@ -4114,8 +4202,9 @@ EOF
 /**
  * Present a choice of data queries
  */
-function formData($form, &$sta, $args = '') {
-  require_once __DIR__ . '/queries.inc';
+function formData($form, &$sta, $args = '', $isco = FALSE) {
+  $isco = ($isco == 'co');
+  require_once __DIR__ . ($isco ? '/queries-co.inc' : '/queries.inc');
   extract(just('qName', $args));
   
   if ($qName0 = urldecode(@$qName) and $sql = @$queries[$qName0] and $qName = w\queryPermitted($qName0, $sql, $subtext)) {
@@ -4124,8 +4213,10 @@ function formData($form, &$sta, $args = '') {
     $report = w\item(w\showRecords(db\q($sql)->fetchAll()));
     $form = compact(ray('title subtext report'));
   } else {
-    $form['title'] = w\item(t('Community and Money Data'));
-    $form['subtext'] = w\item(t('Click the query of your choice. If you need information not provided here, <%a1>request it</a>!', ['_a1' => u\emailTag(CGF_EMAIL, t('data request'))]), '&nbsp;');
+    $title = w\item($isco ? t('Company Reports') : t('Community and Money Data'));
+    $subtext = w\item(t('Click the query of your choice. If you need information not provided here, <%a1>request it</a>!', ['_a1' => u\emailTag(CGF_EMAIL, t('data request'))]), '&nbsp;');
+    $isco = w\hidFld($isco ?: 0);
+    $form = compact(ray('title subtext isco'));
     
     foreach ($queries as $k0 => $v) {
       if ($k = w\queryPermitted($k0)) $form[$k0] = w\submit($k, 'default', 'xs');
@@ -4135,11 +4226,13 @@ function formData($form, &$sta, $args = '') {
 }
 
 function formData_submit($form, &$sta) {
-  require __DIR__ . '/queries.inc';
+  extract(just('isco', $sta['input']));
+  require_once __DIR__ . ($isco ? '/queries-co.inc' : '/queries.inc');
   $op = w\opText($sta);
   $d = substr(op($sta), 0, 1);
   if (strpos('0123456789', $d) !== FALSE) $op = $d . $op; // leading digit, if any
-  r\go('community/data/qName=' . urlencode($op));
+  $url = $isco ? '/company-reports' : '/community/data';
+  r\go("$url/qName=" . urlencode($op));
 }
 
 /**
@@ -4398,10 +4491,12 @@ function formFooter() {
 </div>
 copyright &copy; %year <%aSite>%PROJECT<sup>&trade;</sup></a><span id="footer-details">, a nonprofit organization<br/>
 %CGF_POSTALADDR<br/>
-%CGF_PHONE &nbsp; <%aEmail>%CGF_EMAIL</a><br></span>
+%CGF_PHONE &nbsp; <%aEmail>%CGF_EMAIL</a><br>
+<br>
+IP: %ip</span>
 <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>&nbsp;
 EOF
-  , '_aSite _aAgree _aSecurity _aHelp year _aEmail', w\atag(r\promoLink('about.html')), w\atag('/community/agreement'), w\atag(r\promoLink('security.html')), w\atag("/help/$helpType"), $year, u\emailTag(CGF_EMAIL));
+  , '_aSite _aAgree _aSecurity _aHelp year _aEmail ip', w\atag(r\promoLink('about.html')), w\atag('/community/agreement'), w\atag(r\promoLink('security.html')), w\atag("/help/$helpType"), $year, u\emailTag(CGF_EMAIL), $_SERVER['REMOTE_ADDR']);
 //    <%aCttys>Communities</a> |
 
   $footerText = item($markup); // unique name for this page
@@ -4437,7 +4532,8 @@ EOF;
  */
 function whosin($ctty = '') {
 //  if (!$uid = db\lookup('uid', 'users', 'name=:ctty', ['ctty' => "$ctty."])) return '';
-  if (!$uid = r\qo("!$ctty")->id or !$list = r\companies($uid, TRUE)) return '';
+  $ctty = '!' . $ctty; // promo site omits the leading '!' from the community's QID
+  if (!$uid = r\qo($ctty)->id or !$list = r\companies($uid, FALSE)) return '';
   $map = [
     '<tr><td width="200">' => '<div class="row"><div class="cmpy-name">',
     '</td><td style="margin-left:10px;">' => '</div><div class="cmpy-does">',

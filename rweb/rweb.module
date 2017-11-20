@@ -70,6 +70,7 @@ function rweb_menu($submenu = '') {
 
     'charge' => ['norm', t('Charge'), 'Tx 1', 'sell ok'],
     'charge/invoices' => ['sub', t('Upload Invoices'), 'InvoiceUpload', 'co sell ok'],
+    'charge/nonmember' => ['call', t('Charge Nonmember'), 'TxNonmember', 'sell ok'],
 //    'charge/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
     'pay' => ['norm', t('Pay'), 'Tx 1', 'buy ok confirmed'],
 //    'pay/one' => ['sub', t('Pay One'), 'Tx', 'co buy ok'],
@@ -81,7 +82,7 @@ function rweb_menu($submenu = '') {
     'invest' => ['norm', t('Invest'), 'Tx', 'managing_ctty'],
     'fine' => ['norm', t('Fine'), 'Tx', 'managing_ctty'],
 
-    'get' => ['norm', t('Bank'), 'Get 1', 'manage bank ok'],
+    'get' => ['norm', t('Bank'), 'Get 1', 'manage ok'],
 
     'history' => ['norm', t('History'), 'History', 'read member'],
     'history/transactions' => ['sub', t('Transactions'), 'Txs 2', 'read', '', t(''), 'list'],
@@ -114,7 +115,7 @@ function rweb_menu($submenu = '') {
     'community/invite/invited-whom' => ['call', 'Invited Whom', 'InvitedWhom', 'manage'],
     'community/invite/waiting' => ['call', 'Waiting', 'Waiting', 'manage'],
     'community/message' => ['sub', t('Message a Member'), 'Message', 'member manage', '', t(''), 'envelope'],
-    'community/find-company' => ['sub', t('Find a Company'), 'FindCo', ANY, '', t(''), 'search'],
+    'community/find-company' => ['sub', t('Find a Company'), 'FindCo 2', ANY, '', t(''), 'search'],
     'community/donate' => ['sub', t('Donate'), 'Donate', 'manage', '', t(''), 'thumbs-up'],
     'community/grant' => ['sub', t('Get Paid to Organize'), 'Grant', 'prose', '', t(''), 'apple'],
     'community/funds' => ['sub', t('Funds in Each Community'), 'CttyFunds', ANY, '', t(''), 'usd'],
@@ -168,8 +169,10 @@ function rweb_menu($submenu = '') {
     'I' => ['call', 'Scanned QR', 'I', ANY],
     
     'signup-company' => ['call', t('Open a Company Account'), 'SignupCo', 'manage'],
+    'prejoin' => ['call', t('Open a Joint Account'), 'Prejoin', 'manage'],
     'handle-invoice' => ['call', t('Handle Invoice'), 'HandleInvoice 1', ANY],
     'rerisk' => ['call', t('Recalculate Risk'), 'Rerisk 1 2 3', 'admin2'],
+    'company-reports' => ['call', t('Company Reports'), 'Data 1 co', 'read co'],
 
     'sadmin' => ['norm', t('Admin'), 'Admin', 'admin2'],
     'sadmin/panel' => ['sub', t('Panel'), 'AdminPanel 2', 'cadmin'],

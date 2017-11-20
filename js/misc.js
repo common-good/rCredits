@@ -1,7 +1,13 @@
 function showMore(pgFactor) {
-  more = true; 
-  $('.showMore').css('visibility','hidden'); 
   page = Math.floor(page * pgFactor); 
+  if (more) {
+    $.alert('Click &#9654; (far right) to see the next page', 'Tip');
+  } else {
+    more = true;
+    if ($('.PAGE-' + (page + 1)).length) {
+      $('.showMore a').css('color','silver'); 
+    } else $('.showMore').css('visibility','hidden'); 
+  }
   showPage(0);
 }
 
@@ -105,18 +111,25 @@ function noSubmit() {
 }
 function yesSubmit() {}
 
-function who(form, id, question, amount, askGift) {
+function who(form, id, question, amount, allowNonmember) {
   jForm = $(form);
+  var who = $(id).val();
   if (yesSubmit) return true;
-  get('who', {who:$(id).val(), question:question, amount:amount}, function(j) {
+  get('who', {who:who, question:question, amount:amount}, function(j) {
     if (j.ok) {
       if (j.who) {
         $(id).val(j.who);
         yesno(j.confirm, function() {
-          {yesSubmit = true; jForm.submit();}
+          yesSubmit = true; jForm.submit();
         }, noSubmit);
       } else which(jForm, id, j.title, j.which);
-    } else {noSubmit(); $.alert(j.message);}
+    } else if (allowNonmember && who.includes('@')) {
+      yesno('That email address is for a non-member (or for a member with a non-public email address). Do you want to send them an invoice anyway, with an invitation to join?', function() {
+        yesSubmit = true; jForm.submit();
+      }, noSubmit);
+    } else {
+      noSubmit(); $.alert(j.message);
+    }
   });
   return false;
 }

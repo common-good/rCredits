@@ -525,13 +525,11 @@ function post($url, $content = FALSE, $responseFormat = 'raw', $extra_headers = 
 
   $context = stream_context_create(compact('http'));
   $response = FALSE;
-  try {
-    if ($fp = fopen($url, 'rb', FALSE, $context)) {
-      // If you're troubleshooting, uncomment the next line to see the HTTP response headers across all redirects:
-      // $meta = stream_get_meta_data($fp); var_dump($meta['wrapper_data']);
-      $response = stream_get_contents($fp);
-    }
-  } catch (Exception $e) {if (u\test()) return FALSE;}
+  if ($fp = @fopen($url, 'rb', FALSE, $context)) {
+    // If you're troubleshooting, uncomment the next line to see the HTTP response headers across all redirects:
+    // $meta = stream_get_meta_data($fp); var_dump($meta['wrapper_data']);
+    $response = stream_get_contents($fp);
+  } elseif (u\test()) return FALSE;
 
 //  EXPECT($response !== FALSE, "$method $url failed");
   if ($response === FALSE) r\tellAdmin("$method $url failed");
@@ -724,7 +722,7 @@ function distance($lat1, $lon1, $lat2, $lon2, $unit = 'K') {
 function ssnLookup($ssn) {
   $xml = file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.ssncheck');
   $xml = strtr($xml, ray('[ssnUser] [ssnPass] [ssn]', R_SSN_USER, R_SSN_PASS, $ssn));
-  if (!isPRODUCTION) return @file_get_contents('ssnresult.txt'); // testing
+  if (NOT_PRODUCTION) return @file_get_contents('ssnresult.txt'); // testing
   return @file_get_contents("https://www.nationalpublicdata.com/feeds/FDSFeed.cfm?xml=" . urlencode($xml));
 }
 
@@ -1035,6 +1033,27 @@ define('R_SMALL_WORDS', 'of|a|the|and|an|or|nor|but|is|if|then|else|when|at|from
 function titleCase($s) {
   return preg_replace_callback('/\b(' . R_SMALL_WORDS . ')\b/i', function ($m) {return strtolower($m[0]);}, ucwords(strtolower($s)));
 }
+
+/**
+ * Prevent XSS
+ */
+function sanitizeInput($args, $form = []) {
+  if (!is_array($args)) $args = urlq2ray($args); // all GET args
+//  require_once DRUPAL_ROOT . '/vendor/autoload.php';
+  require_once DRUPAL_ROOT . '/vendor/zendframework/zend-filter/src/FilterInterface.php';
+  require_once DRUPAL_ROOT . '/vendor/zendframework/zend-filter/src/AbstractFilter.php';
+  require_once DRUPAL_ROOT . '/vendor/zendframework/zend-filter/src/StripTags.php';
+  $filterPlain = new \Zend\Filter\StripTags();
+  $filterHtml = new \Zend\Filter\StripTags(ray('b blockquote code del dd dl dt em h1 h2 h3 h4 i kbd li ol p pre s sup sub strong strike ul hr'));
+  foreach ($args as $k => $v) if (!is_array($v)) {
+    if (@$form[$k]['#format'] == 'filtered_html') {
+      $v = $filterHtml->filter($v);
+      $args[$k] = w\linkify($v);
+//      $args[$k] = preg_replace('/javascript\w*:/i', '', $v);
+    } elseif (@$form[$k]['#type'] != 'password') $args[$k] = \check_plain($v);
+  }
+  return $args;
+}  
 
 function gzdecode($data){
     $g=tempnam('./','gz');

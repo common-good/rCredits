@@ -229,7 +229,7 @@ function reverse($xid, $amounts, $what, $acct, $data, $old_goods, $tid, $type, $
   foreach ($amounts as $k => $v) $amounts[$k] = -$v;
   if ($force) u\preray(compact('force'), $data);
 
-  list ($message, $args, $confirm) = transfer($type, $mya, $acct, $amounts, $old_goods, $what, NULL, TRUE, $data);
+  list ($message, $args) = be\transfer($type, $mya, $acct, $amounts, $old_goods, $what, NULL, $data);
 
   if (@$args['success']) {
     extract(just('xid tid otherTid', $args), EXTR_PREFIX_ALL, 'new');
@@ -251,7 +251,7 @@ EOF;
     $args['solution'] = 'reversed';
   }
   
-  return array($message, $args);
+  return [$message, $args];
 }
 
 
@@ -268,7 +268,7 @@ function payInvoice($nvid, &$msg = '') {
   $DBTX = \db_transaction();
   $purpose .= ' (' . PROJECT . " inv#$nvid)";
   $data['inv'] = $nvid;
-  list ($index, $subs) = be\transfer('payment', r\acct($payer), r\acct($payee), $amount, $goods, $purpose, NULL, TRUE, $data);
+  list ($index, $subs) = be\transfer('payment', r\acct($payer), r\acct($payee), $amount, $goods, $purpose, NULL, $data);
   if ($ok = @$subs['success']) db\q('UPDATE r_invoices SET status=:xid WHERE nvid=:nvid', ray('xid nvid', @$subs['xid'], $nvid));
   unset($DBTX);
   
@@ -278,7 +278,7 @@ function payInvoice($nvid, &$msg = '') {
 
 /**
  * Create a transaction
- * call by: list ($msg, $args, $confirm) = be\transfer(...);
+ * call by: list ($msg, $args) = be\transfer(...);
  * @param string $ttype: payment, charge, or invoice payment
  * @param acct $a1: acct object for first party (usually current user)
  * @param acct $a2: acct object for the other party
@@ -287,7 +287,7 @@ function payInvoice($nvid, &$msg = '') {
  * @param int $goods: 0=for USD, 1=for real goods and services, 2=other
  * @param string $for OR array($payerFor, $payeeFor): description of the transaction's purpose (user input)
  * @param int $created: time of transaction (defaults to current time)
- * @param bool $oked: has this transaction been confirmed by the user? (default TRUE)
+ * @param bool $oked: UNUSED has this transaction been confirmed by the user? (default TRUE)
  * @param array $data: associative array of info about the transaction this request is reversing (if any), 
  *   indexed by any of:
  *   'rebate': the rebate amount for this request (should be negative the original bonus amount)
@@ -301,20 +301,20 @@ function payInvoice($nvid, &$msg = '') {
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    subs: replacement parameters, specific to the message (in particular, success=TRUE or FALSE)
- *    confirm: boolean "this needs to be confirmed"
+ *    confirm: UNUSED boolean "this needs to be confirmed"
  *
  * Do something different, based on these boolean values: 
  *   $taking (charge vs. payment), 
- *   $oked (user confirmed the transaction request),
+ *   $oked UNUSED (user confirmed the transaction request),
  *   $goods (the transaction is an exchange for real stuff),
  *   $shortfall (how inadequate the payer's balance is)
   */
-function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oked = TRUE, $data = []) {
+function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $data = []) {
   global $scanned, $channel;
   u\EXPECT(in_array($ttype, ray('payment,charge,invoice payment')), 'bad transaction type');
   u\setDft($for, ray(R_WHYS)[$goods]);
   u\setDft($created, r\rTime());
-  u\EXPECT(compact(ray('a1 a2 goods oked data')), 'acct acct int bool assoc');
+  u\EXPECT(compact(ray('a1 a2 goods data')), 'acct acct int assoc');
 
   $type = TX_TRANSFER;
   if (is_array($amount)) extract(just('amount payerReward payeeReward', $amount));
@@ -363,7 +363,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   if ($error = u\badAmount($amount)) return r\txRet($error, $erInfo);
 //  $need = $amount - @$payerReward; // leave room for reversing rewards (minus a negative)
 
-  if ($shortfall = $loserA->id < 0 ? 0 : $loserA->shortfall($goods, abs($amount), $oked, $a1)) {
+  if ($shortfall = $loserA->id < 0 ? 0 : $loserA->shortfall($goods, abs($amount), TRUE, $a1)) {
     if (@$force) {
       $short = TRUE; // flag overdraft
     } else {
@@ -383,51 +383,51 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $oke
   $roundup = (r\acct($payer)->roundup and !@$data['roundups'] and $amount > 0); // payer, not a1 or loser
   
   $info = compact(ray('type created amount payer payee payerReward payeeReward payerAgent payeeAgent for data taking roundup goods force offline short'));
-  if (!$myx = new r\MyX($info, $a1, $oked)) return r\txRet('tx save err', $erInfo);
+  if (!$myx = new r\MyX($info, $a1, TRUE)) return r\txRet('tx save err', $erInfo);
   
   // Report results
   $args = $myx->reportArgs(TRUE, $shortfall);
 
-  if ($oked) { // notify other party by email about any completed transaction
-    foreach ([$a1, $a2] as $a) if (!$a->confirmed) $a->setBit(B_CONFIRMED);
-    $notice = $reallyTaking ? 'new charge'
-      : (($amount < 0 and $goods == FOR_GOODS) ? 'new refund' : 'new payment');
-    if ($notice == 'new payment' and $a2->co) { // not "new charge" (the most common); payment at payer's initiative
-      $notice = 'new payment linked';
-      $args['_aPayLink'] = $a2->makeDo('addr', $myid, 0); // link to address, so merchant can ship or nonprofit can thank
+  // notify other party by email about any completed transaction
+  foreach ([$a1, $a2] as $a) if (!$a->confirmed) $a->setBit(B_CONFIRMED);
+  $notice = $reallyTaking ? 'new charge'
+    : (($amount < 0 and $goods == FOR_GOODS) ? 'new refund' : 'new payment');
+  if ($notice == 'new payment' and $a2->co) { // not "new charge" (the most common); payment at payer's initiative
+    $notice = 'new payment linked';
+    $args['_aPayLink'] = $a2->makeDo('addr', $myid, 0); // link to address, so merchant can ship or nonprofit can thank
 //      "<$atag>" . check_plain($args['myName']) . '</a>';
-    }
-    if (@$args['otherRewardAmount'] and $a1->cttyRewardy) $notice .= '|reward other';
-    r\notify($uid, $notice, $args);
-    $msg = 'report tx';
-    if ($a1->cttyRewardy) {
-      $msg .= '|for why';
-      if ($goods == FOR_GOODS) $msg .=  ($channel == TX_POS and $a1->co) ? '|reward customer' : '|the reward';
-    }
-  } else $msg = $ttype;
+  }
+  if (@$args['otherRewardAmount'] and $a1->cttyRewardy) $notice .= '|reward other';
+  r\notify($uid, $notice, $args);
+  $msg = 'report tx';
+  if ($a1->cttyRewardy) {
+    $msg .= '|for why';
+    if ($goods == FOR_GOODS) $msg .=  ($channel == TX_POS and $a1->co) ? '|reward customer' : '|the reward';
+  }
+//  } else $msg = $ttype;
 
-  if ($oked and isPRODUCTION) r\tellAdmin('tx', compact('msg') + $args);
-  return r\txRet($msg, $args, !$oked);
+  if (isPRODUCTION) r\tellAdmin('tx', compact('msg') + $args); // a backup record of all txs (until the backup server works)
+  return r\txRet($msg, $args);
 }
 
 /**
  * Create an invoice
- * call by: list ($msg, $args, $confirm) = be\invoice(...);
+ * call by: list ($msg, $args) = be\invoice(...);
  * @param acct $a1: acct object for payee (usually current user)
  * @param acct $a2: acct object for payer
  * @param numeric $amount: the invoiced amount
  * @param int $goods: 0=for USD, 1=for real goods and services, 2=other
  * @param string $purpose: description of the transaction's purpose (user input)
- * @param bool $oked: has this invoice been confirmed by the user? (default TRUE)
+ * @param bool $oked: UNUSED has this invoice been confirmed by the user? (default TRUE)
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    subs: replacement parameters, specific to the message (in particular, success=TRUE or FALSE)
- *    confirm: boolean "this needs to be confirmed"
+ *    confirm: UNUSED boolean "this needs to be confirmed"
  */
-function invoice($a1, $a2, $amount, $goods = FOR_USD, $purpose = NULL, $oked = TRUE) {
+function invoice($a1, $a2, $amount, $goods = FOR_USD, $purpose = NULL) {
   global $channel;
   
-  u\EXPECT(compact(ray('a1 a2 amount goods purpose oked')), 'acct acct float int string bool');
+  u\EXPECT(compact(ray('a1 a2 amount goods purpose')), 'acct acct float int string');
   list ($payee, $payer) = array($a1->id, $a2->id);
   u\setDft($purpose, $why = ray(R_WHYS)[$goods]);
   $subs = ray('myName otherName amount why purpose did op', $a1->fullName, $a2->fullName, u\fmtAmt($amount), $why, $purpose, t('charged'), t('charged'));
@@ -437,42 +437,50 @@ function invoice($a1, $a2, $amount, $goods = FOR_USD, $purpose = NULL, $oked = T
 //  if (!$a1->co and !$a1->photoId) return r\txRet('no photoid');
 //  if (!$a2->co and !$a2->photoId) return r\txRet('other no photoid', ['who' => $a2->fullName]);
   
-  if ($oked) {
-    $created = r\rTime();
-    $status = ($channel != TX_FOREIGN and r\relation('isCustomer=:AUTOPAY_FLAG', $payee, $payer)) ? TX_APPROVED : TX_PENDING;
-    $info = compact(ray('amount status payer payee goods purpose created'));
-    $nvid = db\insert('r_invoices', $info);
-    $a1->update('lastTx', [$nvid, $payer - $payee, round(-$amount, 2), $created, 'inv']);
+  $created = r\rTime();
+  $status = ($channel != TX_FOREIGN and r\relation('isCustomer=:AUTOPAY_FLAG', $payee, $payer)) ? TX_APPROVED : TX_PENDING;
+  $info = compact(ray('amount status payer payee goods purpose created'));
+  $nvid = db\insert('r_invoices', $info);
+  $a1->update('lastTx', [$nvid, $payer - $payee, round(-$amount, 2), $created, 'inv']);
 
-    if ($status == TX_PENDING) {
-      $subs['_a1'] = $a1->makeDo('inv', $nvid); // link to pay/deny
-      //$a2->update(ray('lastTx', array($nvid, $payee - $payer, round($amount, 2), $created, 'inv')));
-      r\message($payer, 'new invoice', $subs); // tell other party by email about this invoice
-    } elseif (!$ok = be\payInvoice($nvid, $msg)) r\tellAdmin(t('invoice payment failed'), compact('msg') + $subs + $info);
+  if ($status == TX_PENDING) {
+    $subs['_a1'] = $a1->makeDo('inv', $nvid); // link to pay/deny
+    //$a2->update(ray('lastTx', array($nvid, $payee - $payer, round($amount, 2), $created, 'inv')));
+    r\message($payer, 'new invoice', $subs); // tell other party by email about this invoice
+  } elseif (!$ok = be\payInvoice($nvid, $msg)) r\tellAdmin(t('invoice payment failed'), compact('msg') + $subs + $info);
 
-    $msg = 'report tx';
-    if ($a1->cttyRewardy) $msg .= '|for why';
-    if ($amount > 0) $msg .= '|balance unchanged';
-    return array($msg, $subs + ['success'=>TRUE], FALSE);
-  } else return array('charge', $subs, TRUE);
+  $msg = 'report tx';
+  if ($a1->cttyRewardy) $msg .= '|for why';
+  if ($amount > 0) $msg .= '|balance unchanged';
+  return array($msg, $subs + ['success'=>TRUE]);
 }
 
 /**
- * Record a transfer (of rCredits) to or from the community.
+ * Send an email invoice to a nonmember, inviting them to join.
+ * @param string $name: name of person to invoice
+ * @param assoc $info: assoc [email, amount, goods, purpose] -- these params may also be specified individually
+ */
+function invoiceNonmember($name, $info) {
+  extract(just('email amount goods purpose', rayy(func_get_args(), 1)));
+  
+}
+  
+/**
+ * Record a transfer (of cgCredits) to or from the community.
  * @param int $uid: uid of the account to credit or debit
  * @param int $type: what type of transfer
  * @param int $amount: how much to transfer
  * @param string $for: purpose of funding
- * @param bool $oked: actually do it? (otherwise just see if it can be done)
+ * @param bool $oked: TRUE actually do it? (otherwise just see if it can be done)
  * @return int: the incentive amount (FALSE on failure)
  */
-function fund($uid, $type, $amount, $for, $oked = TRUE) {
+function fund($uid, $type, $amount, $for) {
   $payeeAgent = $payee = $uid;
   global $mya; // (null, if just registering or running as cron)
   $isReward = r\isReward($type);
   u\EXPECT($isReward or @$mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
   if ($type == TX_FINE) $amount = -$amount;
-  if (!$oked) return $amount;
+//  if (!$oked) return $amount;
   if ($isReward) list ($payerReward, $payeeReward, $amount) = [0, $amount, 0];
 ///    debug(compact(ray('uid type amount for isReward payeeReward')));
   
@@ -605,7 +613,7 @@ function creditInfo($args = []) {
     SELECT 
     SUM(IF($isPayee, amount, 0)) AS `in`,
     SUM(IF($isPayer, amount, 0)) AS `out`, 
-    SUM(IF($isPayer, payerReward, payeeReward)) AS rewards,
+    SUM(IF($isPayer AND :uid>0, payerReward, payeeReward)) AS rewards,
     SUM(IF(t.:IS_ROUNDUP AND $isPayer AND MOD(amount, 1)>0, 1-MOD(amount, 1), 0)) AS roundups,
     SUM(IF(t.:IS_ROUNDUP AND $isPayer AND MOD(amount, 1)>0 AND t.created>=$mday1, 1-MOD(amount, 1), 0)) AS partRounds,
     SUM(IF(t.goods=:FOR_SHARE, $signedAmt, 0)) AS share,

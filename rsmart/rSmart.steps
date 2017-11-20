@@ -262,7 +262,7 @@ function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
   if ($q = db\lookup('payer, payerAgent, amount, goods, payeeFor AS description, created', 'r_txs', 'xid=:txid', compact('txid'))) {
     extract($q);
     $member = r\qid($payer, $payerAgent);
-    list ($goods, $force, $proof) = [$goods == FOR_GOODS, -1, 'calc'];
+    list ($goods, $force, $proof) = [(int) ($goods == FOR_GOODS), -1, 'calc'];
     $args = compact(ray($fields));
   } else {
     $args = ray($fields, R_SERVER_ID . '.ZZA', round(rand()/100, 2), rand(0, 1), 'whatever', rand(), -1, $code, '');

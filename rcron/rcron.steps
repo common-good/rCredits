@@ -84,7 +84,6 @@ function members($list) {return t\members($list);}
  *     TEST Recache Setup
  *     BOTH Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
- *     TEST Tickle AMemberGetsACreditLine
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     TEST Weekly AMemberCrawlsOutOfDebt
  *     TEST Weekly AMemberBuildsUpSavings
@@ -127,7 +126,6 @@ function balances($list) {return t\balances($list);}
  *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitationFromANotyetactiveMember
  *     MAKE Tickle ANonmemberHasAcceptedTheInvitation
  *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
- *     MAKE Tickle AMemberGetsACreditLine
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     MAKE Trust WeCalculateTrust
  *     MAKE Weekly AMemberCrawlsOutOfDebt
@@ -194,7 +192,6 @@ function relations($relations) {return t\relations($relations);}
  *     MAKE Recache Setup
  *     MAKE Risk Setup
  *     TEST Risk WeCalculateRisks
- *     MAKE Tickle AMemberGetsACreditLine
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     MAKE Weekly AMemberCashesOutAutomatically
  */
@@ -347,7 +344,6 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
  * members have: (ARG)
  *
  * in: MAKE Bank AnAccountHasAMinimumButNoRefills
- *     TEST Tickle AMemberGetsACreditLine
  *     BOTH Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     MAKE Weekly AMemberBuildsUpSavings
  */

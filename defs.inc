@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.18'); // software version
+define('R_VERSION', '3.26'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -28,6 +28,7 @@ define('DEV_ROOT', '/cgMembers'); // path to drupal root on DEV machine
 define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
 define('DEFAULT_PROXIES', '2, 3'); // account record IDs for place-holder proxies
+define('TRACK_DELETED', 'r_invoices r_relations r_txs r_usd users'); // remember rows in these tables if we delete them
 
 $host = strtolower(@$_SERVER['HTTP_HOST']);
 if (!isDEV) if (strlen($host) > 30 or !preg_match('/^\[?([a-zA-Z0-9-:\]_]+\.?)+$/', $host)) {header('HTTP 400 Bad Request'); exit();}
@@ -46,6 +47,7 @@ $base_root = substr($base_url, 0, strlen($base_url) - strlen(@$parts['path'])); 
 define('isSTAGE', substr($host, 0, 6) == 'stage-' or $host == STAGE);
 define('isGAME', FALSE or ($host == GAME_SITE));
 define('isPRODUCTION', ($host == R_SERVER_ID . '.' . CG_DOMAIN) or (!isDEV and !isSTAGE and !isGAME)); // new.<CG_DOMAIN> or miw.<CG_DOMAIN>, etc. (make really sure we get this right)
+define('NOT_PRODUCTION', !isPRODUCTION); // safer to use than !isPRODUCTION (in case of typo)
 
 // time periods are defined here because this script uses them
 define('MIN_SECS', 60);
@@ -300,16 +302,18 @@ define('B_CADMIN2', 28); // is a community sub-administrator (read-only except n
 define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
-define('B_ADMINABLE', 'confirmed member cAdmin cAdmin2 nonudge cgc invites rewardy'); // for cAdmin to set
+define('B_ADMINABLE', 'confirmed member cAdmin cAdmin2 nonudge cgc invites rewardy noneg'); // for cAdmin to set
 define('B_LIST', 'member confirmed ok u3 ided refill co cashout roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 u26 admin2 cAdmin2 cAdmin admin');
 
 // community-specific flags
 define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)
 define('B_UP', 1); // ctty: is operational (up) (see also B_CTTYUP)
+// B_CO (see above)
 define('B_INVITES', 3); // require invitations
 define('B_REWARDY', 4); // community issues rewards explicitly
-define('B_CTTY_BITS', 'cgc up invites rewardy');
-define('B_ADMIN_BITS', 'member:cgc,confirmed:up,u3:invites,ided:rewardy');
+define('B_NONEG', 5); // community does not reduce credit line no matter what (even for overdrafts)
+define('B_CTTY_BITS', 'cgc up co invites rewardy noneg');
+define('B_ADMIN_BITS', 'member:cgc,confirmed:up,co:co,u3:invites,ided:rewardy,refill:noneg');
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+givebacks+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community (fines and givebacks are negative)
 

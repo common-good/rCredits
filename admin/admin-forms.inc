@@ -558,7 +558,7 @@ EOF;
   eval($code);
   $res = ob_get_clean();
 /**/  \drupal_set_message(print_r($res, 1));
-  r\go('/sadmin/php/');
+  r\go('sadmin/php/');
 }
 
 //define('DEPOSIT_DATE1', 1411517529); // first deposit date
@@ -751,85 +751,12 @@ function printChecks($args) {
 //  say($count . t(' checks printed'));
 }
 
+
 /**
  * Print an ID card
  * @param mixed $id: qid or uid of account to make a card for
  * @param mixed $agent: qid or uid of agent
- *//*
-function memberIDX($id, $agent = '') {
-  require_once __DIR__ . '/../pdf.class';
-
-  if (!$a = r\acct($id, $agent)) exit('No such account ia: ' . $id . ':' . $agent);
-  
-  $a->setAgentNum(); // assign an agentCode, if appropriate (and not yet done)
-  $qid = $a->qid; // get this before setting $a to agent (below)
-  list ($fmt, $region, $tail, $agentCode) = $a->qo->qr();
-  $tail = $fmt . $tail . $agentCode;
-  
-  $acctName = $a->shortName ?: $a->fullName;
-  $nameFont = strlen($acctName) > 38 ? 'font-stretch:condensed;'
-  : (strlen($acctName) > 33 ? 'font-stretch:semi-condensed;' : '');
-  
-  if (!$proSe = $a->proSe) {
-    if (!@$a->agentA->cardCode2) $a->makeCardCode(); // NOT r\cardCode($a->qid);
-    $aa = $a->agentA; // hereafter it's all about the agent
-  } else $aa = $a;
-
-  list ($cardFld, $role, $ptQid, $yName, $bg) = $proSe 
-  ? ['cardCode', t('Member'), 10, 1.73, 'background'] 
-  : ['cardCode2', t('Company'), '9.5;font-stretch:semi-condensed', 1.68, 'backgroundCo'];
-
-  $server = isPRODUCTION ? 'RC2.ME' : 'RC4.ME';
-  $qrUrl = "HTTP://$region.$server/$tail" . $aa->$cardFld;
-  $photo = $aa->photo ? "@$aa->photo" : str_replace(R_DFT_PICTURE, R_NOT_VALID, DRUPAL_ROOT . $aa->photoFilename());
-
-  list ($wCard, $hCard, $m, $xText) = [3.375, 2.125, .24, .06]; // card width, height, negative page margin, text indent
-  list ($xSite, $ySite, $wPhoto, $mxPhoto, $myPhoto, $xCardNo) = [$m+.1, $m+.38, 1.09, .09, .13, 2.4];
-  list ($cCG, $cSite, $cName) = ['#000065', 'black', '#004000'];
-  list ($xPhoto, $yPhoto, $wPhoto, $hPhoto) = [$m+$wCard-$mxPhoto-$wPhoto, $m+$myPhoto, $wPhoto, $wPhoto*4/3];
-  
-  $style = array( // style for barcode
-    'border' => 0,
-    'vpadding' => '0',
-    'hpadding' => '0',
-    'fgcolor' => array(0,0,0),
-    'bgcolor' => false, //array(255,255,255)
-    'module_width' => 1, // width of a single module in points
-    'module_height' => 1, // height of a single module in points
-  );
-
-  $pdf = new r\Pdf();
-  $pdf->setPrintHeader(FALSE);
-  $pdf->setPrintFooter(FALSE);
-  $pdf->SetAutoPageBreak(FALSE);
-
-  $pdf->AddPage();
-  $pdf->StartTransform();
-  $pdf->ScaleXY(100 * 8.5 / $wCard); // widen to page width (for extra resolution)
-
-  $pdf->Image(__DIR__ . "/../images/idcard/$bg.png", $m, $m, $wCard, $hCard, '', '', 'L', true); // file, x, y, w, h, type, link, align, resize
-//  $pdf->say(isPRODUCTION ? $a->cttyUrl : CG_DOMAIN,  $xSite, $ySite, '', '', "7;color:$cSite;font-stretch:normal;", 'L');
-  $pdf->say(CG_DOMAIN,  $xSite, $ySite, '', '', "7;color:$cSite;font-stretch:normal;", 'L');
-  $pdf->say('TM', $m+2, $m+.1, 1, '', "3;color:$cCG", 'L');
-//  $pdf->Image(__DIR__ . "/../images/idcard/logo250.png", $m+$xLogo, $m+$yLogo, $wLogo, '', '', '', 'C', true); // file, x, y, w, h, type, link, align, resize
-  $pdf->Image($photo, $xPhoto, $yPhoto, $wPhoto, $hPhoto, '', '', 'L', true);
-  $pdf->Rect($xPhoto, $yPhoto, $wPhoto, $hPhoto, 'D'); // x, y, w, h, style, border, fill
-  $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', $m+1.12, $m+0.68, .8, .8, $style, 'N'); // L,M,Q,H are low-high error-correction
-
-//  $pdf->say("$role<br>" . t('Card #'),  $m+$xCardNo, $m+.52, 1, '', '8;color:white;font-stretch:semi-expanded;', 'C');
-//  $pdf->say($qid, $m+$xCardNo, $m+.81, 1, '', "$ptQid;color:yellow;letter-spacing:0.5px", 'C');
-
-  $pdf->say($acctName, $m+$xText, $m+$yName, $wCard, '', "12;B;$nameFont;color:$cName", 'C');
-  if (!$proSe) $pdf->say($aa->fullName, $m+$xText, $m+$yName+0.22, $wCard, '', "8;color:$cName", 'C');
-  $pdf->say($qid, $m+$wCard-.5, $m+$hCard-.15, .5, '', "5;color:black;font-stretch:normal;", 'C');
-
-  if (!isPRODUCTION) $pdf->say(t('TEST'), $m+$wCard-.5, $m+$hCard-.25, .5, '', '6;color:darkred', 'C');
-
-  $pdf->StopTransform();
-  if (u\test()) $pdf->Close(); else $pdf->Output('t.pdf', 'I'); //Close and output PDF document
-}
-*/
-
+ */
 function memberId($id, $agent = '') {
   require_once __DIR__ . '/../pdf.class';
   if (!$a = r\acct($id, $agent)) exit('No such account ia: ' . $id . ':' . $agent);
@@ -839,7 +766,7 @@ function memberId($id, $agent = '') {
   list ($fmt, $region, $tail, $agentCode) = $a->qo->qr();
   $tail = $fmt . $tail . $agentCode;
   
-  $acctName = $a->shortName ?: $a->fullName;
+  $acctName = $a->bestName;
   $nameFont = strlen($acctName) > 38 ? 'font-stretch:condensed;'
   : (strlen($acctName) > 33 ? 'font-stretch:semi-condensed;' : '');
   
@@ -899,14 +826,14 @@ function memberId($id, $agent = '') {
   if ($proSe) $pdf->say($qid, $m+$xText, $m+$hCard-.19, '', '', "6.5;color:#666666;letter-spacing:.7px;", 'L');
   if (!$proSe) $pdf->say($aa->fullName, $m+$xText, $m+$yName+0.22, '', '', 8, 'L');
 
-  if (!isPRODUCTION) $pdf->say(t('TEST'), $xTest, $m+$hCard-.19, .5, '', '6.5;color:darkred', 'C');
+  if (NOT_PRODUCTION) $pdf->say(t('TEST'), $xTest, $m+$hCard-.19, .5, '', '6.5;color:darkred', 'C');
 
   $pdf->StopTransform();
 /*  if (time() < strtotime('6/20/2017')) {
     $pdf->Output(strtolower("$qid.cgcard.pd"), 'D'); // Close and output PDF document ('I')
   } else */
   if (u\test()) $pdf->Close(); else $pdf->Output(strtolower("$qid.cgcard.pd"), 'I'); // Close and output PDF document ('I')
-//  if (time() < strtotime('6/20/2017') and $next = nextMember($id)) r\go("$base_url/print-rcard/$next");
+//  if (time() < strtotime('6/20/2017') and $next = nextMember($id)) r\go("print-rcard/$next");
 }
 
 function formSMS($form, &$sta) {

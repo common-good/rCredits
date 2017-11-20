@@ -148,7 +148,7 @@ EOF
   'what relation' => t('Are you an owner, employee, or contractor for the company? (please choose one or more)'),
   'shortr to' => t('You do not have enough %RCREDITS, for that transaction. <a href="%how">Go here</a> to get more %RCREDITS.'),
   'incomplete agreement' => t('To sign this agreement, you must put a check in each box, meaning that you have read that section and agree to it.'),
-  'bad signature' => t('That signature does not match your full legal name ("%fullName").'),
+  'bad signature' => t('That signature does not match your full legal name ("%legalName").'),
   'bad invite' => t('That is not a valid Invitation Number or username.'),
   'used invite' => t('<p>That invitation has already been used, to open a %PROJECT Account.</p><p>If you already have a %PROJECT Account set up and want to open an additional account for yourself, your business, or a family member, sign in and use the "Open a Company Account" button on the Summary page (for cashier accounts, first click your photo in the upper right corner and select your business from the dropdown).</p><p>Otherwise ask someone you know to send you a new invitation!'),
 //  'expired invite' => t('<p>That invitation has expired.</p><p><%a>Click here</a> to ask %inviterName for another invitation.</p>'),
@@ -222,7 +222,7 @@ EOF
   'no co pass' => t('Company accounts do not have passwords. Sign in to your personal account, then click your photo in the upper right corner and select %company from the dropdown.'),
   'account number mismatch' => t('You must have mistyped your account number once. Try again.'),
   'yes or no' => t('You must answer Yes or No.'),
-  'no local proxy' => t('No other members nearby. <%a>Invite someone</a>!', '_a', w\atag('/community/invite')),
+  'no local proxy' => t('There are no other members nearby. <%a>Invite someone</a>!', '_a', w\atag('/community/invite')),
   'too many joins' => t('You can join to only one other account.'),
   'short cash help' => t('<%a>Click here</a> for more information about cashing out incentive rewards.', '_a', w\atag('/help/cashing-out')),
   'maybe not cash' => t('If you are actually reimbursing someone or paying them for goods or services (for example, employee labor), choose a different button under "For".'),
@@ -239,6 +239,23 @@ EOF
 );
 $GLOBALS['tStrings']['flooded'] = $GLOBALS['tStrings']['bad login'];
 
+/**
+ * Handle submission of form (mostly still with standard Drupal)
+ */
+function submitForm($form, $sta) {
+  if ($form['#id'] != 'rcreditswebformphp') $sta['input'] = u\sanitizeInput($sta['input'], $form);
+  return form_execute_handlers('submit', $form, $sta);
+}  
+
+/**
+ * Convert URLs to hyperlinks
+ */
+function linkify($text) {
+    $text = preg_replace('`(((f|ht){1}tp://)[-a-zA-Z0-9@:%_\+.~#?&//=]+)`i', '<a href="\\1">\\1</a>', $text);
+    $text = preg_replace('`([[:space:]()[{}])(www.[-a-zA-Z0-9@:%_\+.~#?&//=]+)`i', '\\1<a href="http://\\2">\\2</a>', $text);
+    $text = preg_replace('`([_\.0-9a-z-]+@([0-9a-z][0-9a-z-]+\.)+[a-z]{2,3})`i', '<a href="mailto:\\1">\\1</a>', $text);
+    return $text;
+} 
 
 /**
  * Return yes and no buttons.
@@ -531,7 +548,7 @@ function showRecords($ray, $formatFunc = 'rCredits\\Web\\formatField', $flagsFie
       $v = $formatFunc($k, $v, $flagsField);
       if ($k == 'for2' and $v == $row->for1) $v = 'same'; // admin uses this for conciseness
       $align = in_array($k, ray(ALIGN_RIGHT)) ? 'R' : (in_array($k, ray(ALIGN_CENTER)) ? 'C' : 'L');
-      foreach (ray('balance credit trust count $') as $w) if (stripos($k, $w) !== FALSE) {
+      foreach (ray('balance credit trust count total $') as $w) if (stripos($k, $w) !== FALSE) {
         $align = 'R';
         if ($v !== '' and is_numeric($v)) $v = number_format($v, in_array($w, ray(FMT_INT)) ? 0 : 2);
       }
@@ -690,11 +707,11 @@ function badShare(&$share, $required = FALSE) {
  * @param mixed $dft: the default value (TRUE or FALSE) or an assoc of attributes
  * @param array $labels: labels for the two choices (defaults to [No, Yes])
  */
-function boolFld($title = '', $help = '', $dft = NULL, $labels = NULL) {
+function boolFld($title = '', $help = '', $dft = NULL, $labels = NULL, $extra = []) {
   $class = ['yesno'];
   $inline = TRUE;
   $dft = is_null($dft) ? [] : (is_array($dft) ? $dft : dft((@$dft + 0) ?: 0));
-  return radiosFld($title, $help, $dft + compact('class', 'inline'), @$labels ?: array(t('No'), t('Yes')));
+  return radiosFld($title, $help, $extra + $dft + compact('class', 'inline'), @$labels ?: array(t('No'), t('Yes')));
 }
 
 /*
@@ -749,16 +766,16 @@ function acctTypeField() {
  * @param string $field: the field name
  * @param string $question: what to ask for confirmation or disambiguation (with params %amount and %name)
  * @param string $amount: optional amount substitution for question (include quotes or formula, if not a number)
- * @param bool $askGift: <ask if this form submission is a payment that is a gift> (defaults to no, don't ask)
+ * @param bool $allowNonmember: <allow a non-member email address>
  * @return complete script including a leading "return ".
  */
-function whoFldSubmit($field, $question, $amount = '0', $askGift = '0') {
+function whoFldSubmit($field, $question, $amount = '0', $allowNonmember = '0') {
   $id = '#edit-' . strtolower($field);
   $question = addslashes($question);
 
   js('js/typeahead.bundle.min.js', 'file');
   js("suggestWho('$id');", 'inline', 'footer');
-  return "return $('$id').val() == '' ? true : who(this, '$id', '$question', $amount, $askGift);"; // amount might be 'this.amount.value'
+  return "return $('$id').val() == '' ? true : who(this, '$id', '$question', $amount, $allowNonmember);"; // amount might be 'this.amount.value'
 }
 
 /**
@@ -796,6 +813,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     }
     
     if (strpos($formName, 'Event') !== FALSE) require_once DRUPAL_ROOT . R_PATH . '/rvote/rvote-web.inc';
+    
     $form = \drupal_build_form($formName, $formSta);
     \rweb_form_alter($form, $formSta, $formName);
     
@@ -813,7 +831,6 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 
 //    if (!in_array('form-horizontal', @$form['#attributes']['class'])) $form['#attributes']['class'][] = 'form-vertical';
     $formArray = $form2 = $form; 
-flog('show');
     $rent = \render($form2);
 //    if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-radio')) js('js/radiocheck.js', 'file', 'footer');
     
@@ -1375,7 +1392,7 @@ function nameAndEmail($what, $fullName = '', $email = '', $hideEmail = FALSE, $m
  * @param assoc $defaults: initial field values (defaults to current values) - see list at "$fields ="...
  * @param bool $step0: <called from signup form>
  *   plus {partner, partnerCode, customer} for signup from partner site
- * @param acct $a: account record ID of account for which to show existing contact field values, if any
+ * @param int $myid: account record ID of account for which to show existing contact field values, if any
  */
 function contactFields($defaults = [], $step0, $myid = 0) {
   global $mya;
@@ -1456,8 +1473,10 @@ EOF;
     $state2 = selectFld(t('State:'), t(''), dft(@$state2) + $stateAttrib); // can't use required() here
     $zip2 = textFld(t('Postal Code:'), [t('Postal code'), ''], required(@$zip2) + $zipAttrib);
     
-    $source = $step0 ? textFld(t('Referred by:'), [t('How you heard about %PROJECT'), t('Where did you hear about %PROJECT? (name of company or person, web address, publication name, radio station name, or whatever)')]) : NULL;
-    $source2 = $step0 ? textFld(t('Code:'), [t('Invitation or card code'), t('If you have an invitation or card code, type it here ("B" for brochure). Otherwise leave blank.')]) : NULL;
+    if (!@$mya or !$mya->co) {
+      $source = $step0 ? textFld(t('Referred by:'), [t('How you heard about %PROJECT'), t('Where did you hear about %PROJECT? (name of company or person, web address, publication name, radio station name, or whatever)')]) : NULL;
+      $source2 = $step0 ? textFld(t('Code:'), [t('Invitation or card code'), t('If you have an invitation or card code, type it here ("B" for brochure). Otherwise leave blank.')]) : NULL;
+    }
   }
 
   if (!in_array('tenure', $fieldsToHide)) $tenure = $step0 ? textFld(t('How long:'), [t('MONTHS at current address.'), t('How long have you been at your current address, in months (roughly)')], required(@$tenure)) : NULL;
@@ -1615,15 +1634,21 @@ function directoryList($which, $region, $withButtons = FALSE) {
   $which = u\ignoreSuffix($which, 'ants ant ian es ers ing er or ion s');
   $which = str_replace(' ', '%', \db_like(" $which ")); // allow abbreviations of each word
   $rows = [];
+//    SELECT DISTINCT u.uid, IFNULL(i.industry, '~Other') AS industry, u.name AS short_name, u.fullName, u.data
+//    ORDER BY industry, u.fullName
+
   $sql = <<<EOF
-    SELECT DISTINCT u.uid, IFNULL(i.industry, '~Other') AS industry, u.name AS short_name, u.fullName, u.data
+    SELECT DISTINCT u.uid
     FROM users u 
     LEFT JOIN r_user_industries ui ON ui.uid=u.uid
     LEFT JOIN r_industries i ON i.iid=ui.iid
     WHERE :IS_CO AND u.uid>1 AND :IS_OK AND $regionCrit AND (u.fullName LIKE :which OR i.industry LIKE :which)
-    ORDER BY industry, u.fullName
+    ORDER BY u.fullName
 EOF;
+///   debug(compact(ray('region which sql')));
   $result = db\q($sql, compact(ray('region which')));
+  return r\companies($result->fetchCol(), FALSE);
+  /*
   while ($row = $result->fetchAssoc()) $rows[] = $row;
   $cat = $headed = $list = '';
   for ($i = 0; $i < count($rows); $i++) {
@@ -1649,6 +1674,7 @@ EOF;
   }
   
   return $list ? "<ul>$list</ul>" : t('There are no such %PROJECT member businesses.');
+  */
 }
 
 /**
@@ -1710,7 +1736,7 @@ function txsRpt($amt, $count, $accts, $type) {
 
 /**
  * Return markup to identify the agent of the given account.
- */
+ *//*
 function identifiers($a) {
   global $mya;
   list ($agentA, $company) = $a->proSe ? array($a, '') : array(r\acct($a->agentId), $a->fullName);
@@ -1725,6 +1751,7 @@ function identifiers($a) {
     </div id-other>
 EOF;
 }
+*/
 
 /**
  * Present simple and advanced versions of date range selection, for display with optional download.
@@ -1760,7 +1787,10 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
 ///  $actions = render($submitPeriod) . render(@$downloadPeriod) . render($showAdvanced);
   $actions = fieldSet('actionsSimple', compact('submitPeriod', 'downloadPeriod'), '', suffix($showAdvanced2));
 ///  $period = selectFld(t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
-  $period = selectFld(t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
+//  $onchange = "$('#edit-starting, #edit-ending').val('');";
+  $onchange = "var id='#edit-submitPeriod'; if (!$(id).is(':visible')) id='#edit-downloadPeriod'; $(id).click();";
+  $period = selectFld(t('For the past:'), '', dft($period) + w\onchange($onchange), $GLOBALS['TX_DAYS']);
+//  $period = selectFld(t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
   $simple = fieldSet('simple', compact('period', 'actions'), BARE);
   
   $res = compact(ray('url starting ending states')); // the easy parts of the result
@@ -1770,8 +1800,10 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   $actions = fieldSet('actionsAdvanced', compact('submitDates', 'downloadDates'), '', suffix($showSimple2));
   $starting = textFld(t('Starting:'), '', dft(u\fmtDate($starting)));
   $ending = textFld(t('Ending:'), '', dft(u\fmtDate($ending)));
-  $advanced = fieldSet('advanced', compact('starting', 'ending', 'states2', 'actions'), BARE);
-  return ray('dateRange', compact('simple', 'advanced')) + $res;
+  if ($downloadable) $downloadMsg = w\item(t('<b class="loud">TIP</b>: Tell your browser to allow popups for this site.'));
+  $advanced = fieldSet('advanced', compact(ray('starting ending states2 actions')), BARE);
+  $dateRange = compact(ray('simple advanced downloadMsg'));
+  return compact('dateRange') + $res;
 }
 
 /*
@@ -1831,7 +1863,8 @@ function dateRangeRedirect($page, &$sta) {
   if (u\starts(op($sta), 'download')) {
     w\svar("$page-downloadQuery", $query);
     say('downloading');
-  } else $sta['redirect'] = "$page/$query";
+  } else return r\go("$page/$query");
+//  } else $sta['redirect'] = "$page/$query";
 }
 
 /**
@@ -1970,10 +2003,10 @@ function whois($who, $field_name, $info, $selfMsg = 'no self-trading', $paying =
  * Transfer funds
  * @param string $op: pay, charge, grant, loan, fine, or invest
  * @param array $info: associative array indexed by field names (who, amount, goods, and purpose)
- * @param boolean $confirmed: whether the transaction request has been confirmed
+ * @param boolean $confirmed: UNUSED whether the transaction request has been confirmed
  * @return confirmation message (FALSE if confirmation not appropriate -- Note that say() returns FALSE)
  */
-function transfer($op, $info, $confirmed) {
+function transfer($op, $info) {
   global $mya;
   $myid = $mya->id;
   extract($params = just('who amount goods purpose', $info)); // used to include isGift
@@ -1993,14 +2026,14 @@ function transfer($op, $info, $confirmed) {
 //    if (r\isGiveback($myid, $a->id, $data)) list ($mya, $a, $amount, $goods) = [$a,$mya,-$amount,FOR_NONGOODS];
   } else $data = [];
 
-  list ($msg, $args, $confirm) = 
-     $txType == 'payment' ? be\transfer($txType, $mya, $a, $amount, $goods, $purpose, NULL, $confirmed, $data)
-     : ($txType == 'charge' ? be\invoice($mya, $a, $amount, $goods, $purpose, $confirmed)
-     : communityTransfer($txType, $a, $amount, $purpose, $confirmed));
+  list ($msg, $args) = 
+     $txType == 'payment' ? be\transfer($txType, $mya, $a, $amount, $goods, $purpose, NULL, $data)
+     : ($txType == 'charge' ? be\invoice($mya, $a, $amount, $goods, $purpose)
+     : communityTransfer($txType, $a, $amount, $purpose));
 
-  if ($confirm) return @$identifiers . t('confirm ' . $msg, $args);
-  if (!@$args['success']) return say($msg, $args, 'amount');
-  return say($msg, $args);
+//  if (!$ok = @$args['success']) return t('confirm ' . $msg, $args);
+//  if (!@$args['success']) return say($msg, $args, 'amount');
+  return say($msg, $args, @$args['success'] ? '' : 'amount');
 }
 
 /**
@@ -2009,20 +2042,20 @@ function transfer($op, $info, $confirmed) {
  * @param acct $acct: the account to credit or debit
  * @param int $amount: how much to transfer
  * @param string $purpose: what's the transfer for
- * @param bool $confirmed: has this transaction been confirmed by the user?
+ * @param bool $confirmed: UNUSED has this transaction been confirmed by the user?
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    parms: replacement parameters, specific to the message
- *    confirm: boolean "this needs to be confirmed"
+ *    confirm: boolean UNUSED "this needs to be confirmed"
  */
-function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
-  $success = (bool) be\fund($acct->id, u\consta('tx', $type), $amount, $purpose, $confirmed);
+function communityTransfer($type, $acct, $amount, $purpose) {
+  $success = (bool) be\fund($acct->id, u\consta('tx', $type), $amount, $purpose);
   $msg = $success ? ($confirmed ? 'report funding' : 'funding') : 'funding error'; // 'funding' not used?!
   $confirmAction = ucwords($type);
   $did = $confirmAction . 'ed';
   $otherName = $acct->fullName;
   $amount = u\fmtAmt($amount);
-  return array($msg, compact(ray('success did confirmAction amount otherName')), $success and !$confirmed);
+  return [$msg, compact(ray('success did confirmAction amount otherName'))];
 }  
 
 /**
@@ -2537,19 +2570,22 @@ function newCustomer($reid, $args) {
 
 /**
  * Handle simplified signup for second person in a joint account.
+ * @param acct $a: the account to join, if it exists (otherwise create it) -- UNUSED
  */
-function jointSignup() {
+function jointSignup($a = NULL) {
   $mya = r\acct();
   if ($mya->jid) return $mya->jid; // in case form gets run twice
-  $fields = 'fullName phone address city state zip country postalAddr source minimum achMin';
-  $args = (array) $mya->account($fields);
-  $args['fullName'] .= t(' PARTNER');
-  $a = new r\Acct($args + ['email' => t('name@') . EMAILX]);
-  u\EXPECT($a, 'cannot create account');
-  $a->update('tenure', round($mya->tenure + ($a->created - $mya->created) / (30 * DAY_SECS)));
-  if (@$mya->risk('rents')) $a->setRisk('rents');
+  if (!$a) {
+    $fields = 'fullName phone address city state zip country postalAddr source minimum achMin';
+    $args = (array) $mya->account($fields);
+    $args['fullName'] .= t(' PARTNER');
+    $a = new r\Acct($args + ['email' => t('name@') . EMAILX]);
+    u\EXPECT($a, 'cannot create account');
+    $a->update('tenure', round($mya->tenure + ($a->created - $mya->created) / (30 * DAY_SECS)));
+    if (@$mya->risk('rents')) $a->setRisk('rents');
+    $a->newRelation(ray('other permission', $mya->id, r\perm(B_JOINT)));
+  }
   $mya->newRelation(ray('other permission', $a->id, r\perm(B_JOINT)));
-  $a->newRelation(ray('other permission', $mya->id, r\perm(B_JOINT)));
   $a->join($mya);
   return $a->id;
 }
