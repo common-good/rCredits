@@ -1,3 +1,13 @@
+2017-12-12 version 3.29
+. foreach (ray('txs:xid,usd:txid,invoices:nvid,relations:reid') as $k=>$key) {
+    $tnm = 'r_' . $k; $xtnm = 'x_' . $k;
+    db\q("CREATE TABLE $xtnm LIKE $tnm; ALTER TABLE $xtnm MODIFY $key BIGINT NOT NULL; ALTER TABLE $xtnm ADD `deleted` INT(11) NOT NULL DEFAULT '0' FIRST; ALTER TABLE $xtnm DROP PRIMARY KEY; ALTER TABLE $xtnm ADD PRIMARY KEY($key, deleted);");
+  }
+. added "once" option back in for donations from existing members who already have a repeat donation
+. DROP TABLE queue (then rebuild)
+. reworked cron without Drupal
+. added a "test" op to the rSmart API, for calling the server's behavioral tests from the app's tests
+  
 2017-11-20 version 3.26
 . added input sanitization filter to form.inc and direct $_POST submissions (rather late in the game)
 . fixed resend-verification email bug (was sending password-reset email instead of verify email

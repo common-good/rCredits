@@ -1690,9 +1690,11 @@ function eLinkAcct(&$sta, &$eLink = '', $allow = 'individual') {
   if (!$eLink) extract(just('eLink', $sta)); // verifying or submitting; get stored eLink args
   extract(just('qid ecode allow', $eLink));
   $a = r\acct($qid = @$qid); // current or specified account
-  if (!$a and $allow != 'any') return r\go('', 'requires signin');
-  if ($allow == 'individual' and $a->co) return r\go('', t('That page is for individual accounts only.'));
-  if ($qid and (!$a or @$ecode != $a->emailCode)) return w\hack('bad ecode');
+  if ($allow != 'any') {
+    if (!$a) return r\go('', 'requires signin');
+    if ($allow == 'individual' and $a->co) return r\go('', t('That page is for individual accounts only.'));
+    if ($qid and @$ecode != $a->emailCode) return w\hack('bad ecode');
+  }
   $eLink = $sta['eLink'] = "allow=$allow&qid=$qid&ecode=" . @$ecode; // remember it (cttys don't use ecode)
   return $a;
 }
@@ -2173,12 +2175,15 @@ function showCharts($whichChart, $ctty = 0) {
 
   list ($in, $out, $fees, $net, $personal, $companies) = array(t('in'), t('out'), t('fees'), t('net'), t('personal'), t('companies'));
   extract($stats = r\stats($ctty)); // careful with this (don't overwrite local vars)
-  extract(w\fundStats($stats, TRUE)); // get the formatted versions, with originals in {var}0
+  extract($stats = w\fundStats($stats, TRUE)); // get the formatted versions, with originals in {var}0
   $trade = u\fmtAmt($trade0 = $tradeOut0 + $tradeIn0); // tradeIn is negative
-  foreach (['txRewards0', 'spent0', 'trade0'] as $k) $$k = max(0, $$k); // don't display negative values
+  $usdtrade = u\fmtAmt($usdtrade0 = $usd0 + $trade0); // someone's trade is always negative, so combine with USD
+  foreach (ray('txRewards0 spent0 usdtrade0') as $k) $$k = max(0, $$k); // don't display negative values
  
   $issuedData = array(
     "['for USD',{v:$usd0,f:'$usd'}]",
+    "['trade (net)',{v:$trade0,f:'$trade'}]",
+    "['USD plus trade',{v:$usdtrade0,f:'$usd + $trade'}]",
     "['inflation offset',{v:$inflations0,f:'$inflations'}]",
     "['signup bonuses',{v:$signups0,f:'$signups'}]",
     "['purchase reward',{v:$txRewards0,f:'$txRewards'}]",
@@ -2188,8 +2193,11 @@ function showCharts($whichChart, $ctty = 0) {
     "['loans',{v:$loans0,f:'$loans'}]",
     "['invested',{v:$invests0,f:'$invests'}]",
 //   "['fees',{v:$usd0,f:'$usd'}$fines]" think of a way to handle negatives (separate pie?)
-    "['trade (net)',{v:$trade0,f:'$trade'}]",
   );
+  if ($trade0 < 0 or $usd0 < 0) {
+    unset($issuedData[0]); unset($issuedData[1]);
+  } else unset($issuedData[2]);
+  
   $totalR = u\fmtAmt($r0); // was u\fmtAmt($r0 + $usd0);
   $totalUsd = u\fmtAmt($usd0);
 
@@ -2292,7 +2300,7 @@ EOF;
 function fundStats($stats, $includeRaw = FALSE, $format = 's$') {
   extract($stats);
 //  list ($r0, $usd0) = array($r, $usd);
-  $trade = $tradeIn + $tradeOut; // tradeIn is negative
+  $trade = $tradeIn + $tradeOut; // UNUSED HERE (tradeIn is negative)
   $spent = $cttyBuys + $cttyIncomes; // cttyIncomes is negative
   $txRewards = $rebates + $bonuss;
   $usd = $bankIn - $bankOut;

@@ -1001,7 +1001,7 @@ function noticeArgs($uid, $where = '0', $weekly = FALSE, $monthly = FALSE, $at =
   $savings = u\fmtAmt($a->rewards);
   list ($rewards, $ourEmail) = array(u\fmtAmt($a->rewards), $a->cttyA->email);
   $companies = \variable_get('companies');
-  $companies = $companies[u\test() ? r\serverUid() : $a->community];
+  $companies = $companies[u\test() ? r\serverUid() : (int) $a->community];
   return compact(ray('messages unit range yestertime balance savings return ourEmail companies'));
 }
 
@@ -1014,7 +1014,7 @@ function companies($ctty, $email = FALSE) {
   $model = $email 
   ? '<tr><td width="200">%name</td><td style="margin-left:10px;">%desc</td></tr>'
   : '<div class="row"><div class="cmpy-name">%name</div><div class="cmpy-does">%desc</div></div>';
-  $where = (is_integer($ctty) and strlen($ctty) > 9) ? 'community=:ctty' : 'zip REGEXP :ctty';
+  $where = (is_numeric($ctty) and strlen($ctty) > 9) ? 'community=:ctty' : 'zip REGEXP :ctty';
   if ($email) $where .= ' AND activated>:REQUEST_TIME-9*:WEEK_SECS'; // show only new companies in emails
   
   $uids = is_array($ctty) 

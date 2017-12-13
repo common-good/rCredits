@@ -785,11 +785,15 @@ function statement($month = '') {
     }
   }
   
-  $pdf->finish(str_replace(' ', '', PROJECT) . '-' . strftime('%Y-%m', $start)); //Close and output PDF document
+  $pdf->finish(str_replace(' ', '', PROJECT) . '-' . strftime('%Y-%m', $start) . '.pdf'); //Close and output PDF document
 }
 
 define('R_GIFT_SHOWHIDE', "var other = jQuery('.form-item-amount'); if(jQuery('#edit-gift').val() == -1) {other.show();} else other.hide();");
 
+/*
+  Give the person a chance to donate to CG from the current account.
+  If they haven't chosen a recurring donation yet, a recurring donation is the only option
+*/
 function formDonate($form, &$sta) {
   global $mya;
   $donated = @$mya->stepsDone['donate'] ? t('<p>You have already made a donation. Thank you! Please feel free to donate again.</p>') : '';
@@ -810,13 +814,14 @@ function formDonate($form, &$sta) {
 //       5 => t('Cloth ........ $5'),
   );
   $oftens = [0 => t('when?')] + ray(OFTENS);
+  if (!$mya->ok or !db\exists('r_gifts', "uid=:id AND often<>'1'", ['id' => $mya->id])) unset($oftens['1']);
   $honors = array('-' => '(optional)', 'honor' => 'in honor of', 'memory' => 'in memory of', 'other' => 'other');
   $giftAttrib = w\onchange(str_replace('show()', "show(); jQuery('#edit-amount').focus()", R_GIFT_SHOWHIDE));
    
 //  $inSetup = $mya->ok ? '' : t(' The amount you choose will come from your account once it is activated and has enough funds.</p><p>Also choose a percentage of your ongoing incentive rewards to share with Common Good Finance.');
   $title = item(t('Donate to %PROJECT'));
   $amountTip = $mya->co ? '' : t('The most common amounts chosen are $50 and $25.');
-  $subtext = item($donated . t('<p>Make a tax-deductible gift of any size: monthly, quarterly, or yearly.</p></p><p>Half of your gift supports whatever projects you decide on together in your community; half supports the operation of the %PROJECT system (to donate zero, choose "Water"). %amountTip</p><p><b class="loud">NOTE: This is a donation, not a deposit.</b> Thank you for your support!</p>', compact('amountTip')));
+  $subtext = item($donated . t('<p>(optional) Make a tax-deductible gift of any size: monthly, quarterly, or yearly.</p></p><p>Half of your gift supports whatever projects you decide on together in your community; half supports the operation of the %PROJECT system (to donate zero, choose "Water"). %amountTip</p><p><b class="loud">NOTE: This is a donation, not a deposit.</b> Thank you for your support!</p>', compact('amountTip')));
   $gift = selectFld(t('Donation:'), '', required($mya->co ? R_COMPANY_GIFT : R_INDIVIDUAL_GIFT) + $giftAttrib, $giftLevels);
   $amount = textFld(t('Other amount $'), '');
   $often = selectFld(t('When:'), '', required(), $oftens);
@@ -2199,7 +2204,7 @@ function formBuy($form, &$sta, $doCode = '') {
   $required = 'company code';
   $fields = $required . ' item amount name account zip verb return cancel err';
 //  $_POST = ray($fields, 'Cool Item #1 with a really REALLY long description', '12.34', 'NEWZZC', 'cCode', 'Pay', 'http://google.com', '01330', 'wspademan@gmail.com');
-  extract(u\sanitizeInput($args = just($fields, $doCode ? r\doCode($doCode) : (@$sta['input'] ?: $_POST))));
+  extract(u\sanitizeInput($args = just($fields, $doCode ? r\doCode($doCode) : (@$sta['input'] ?: ($_POST ?: $_GET)))));
   foreach (ray($required) as $k) if (!@$$k) return r\go('empty', t('missing field', 'field', $k), 'err'); // handle hackers gracefully
   if (!u\isQid(@$company) or !$co = r\acct($company) or !$co->co) return r\go('empty', 'bad account id', 'err');
   if ($code != $co->emailCode) { // not testing
@@ -3518,7 +3523,7 @@ function formResetPassword($form, &$sta, $args = '') {
   noFlood($sta);
   
   $title = item(t('Choose a New Password'));
-  $subtitle = item(t('Mixed-case, digits, punctuation, and plain old length make your password strong.'));
+  $subtitle = item(t('Your password must have at least 8 characters, including one uppercase, one lowercase, one digit, and one punctuation mark.'));
   $uid = hidFld($uid);
   $submit = w\submit(t('Save'));
   return labeled(compact('title', 'subtitle') + w\pickPassword() + compact(ray('submit uid')));
@@ -3564,7 +3569,7 @@ function formChangePassword_validate($form, &$sta) {
   extract(just('pass1 pass2 strong pass', $sta['input']));
 
   if (!$mya or !$mya->admin) {
-    if (!$strong) return say('weak pass', 'pass1');
+    if (!$strong and u\weakPass(@$pass1)) return say('weak pass', 'pass1');
     if (isset($pass) and !$mya->passwordOkay($pass, 'pass', $err)) return w\say($err, 'pass');
   }
   if ($pass1 != $pass2) return say('mismatch', ['thing' => t('password')], 'pass1');

@@ -180,23 +180,22 @@ function q($sql, $subs = [], $log = FALSE) {return f('db.q', $sql, $subs, $log);
  * f('u.func arg1 arg2') OR f('u.func', arg1, arg2)
  */
 function f($func) {
-  global $cronOp; $cronOp = ONE_CRON_OP; // just in case we use cr.
-  if (substr($func, 0, 2) == 'a.') include_once __DIR__ . '/admin/admin.inc';
-  if (substr($func, 0, 2) == 'y.') include_once __DIR__ . '/rcredits-yearly.inc';
-  if (substr($func, 0, 2) == 'w.') require_once __DIR__ . '/rweb/rweb.inc';
-  if (substr($func, 0, 3) == 'cr.') include_once __DIR__ . '/rcron/rcron.inc'; // required here by cron
-  if (substr($func, 0, 3) == 'be.') require_once __DIR__ . '/rcredits-backend.inc';
+  global $cronOp; 
+  list ($prefix, $funcName) = explode('.', $func);
+  $incs = ray('a:admin/admin.inc,y:rcredits-yearly.inc,w:rweb/rweb.inc,cr:rcron/rcron.inc,be:rcredits-backend.inc,s:rsmart/rsmart.inc');
+  if ($flnm = @$incs[$prefix]) require_once __DIR__ . "/$flnm";
 
-  if (substr($func, 0, 2) == 'v.') {
+  if ($prefix == 'v') {
     include_once __DIR__ . '/rvote/rvote.inc';
     include_once __DIR__ . '/rvote/rvote-ballot.inc';
     include_once __DIR__ . '/rvote/rvote-results.inc';
   }
-  if (substr($func, 0, 2) == 's.') include_once __DIR__ . '/rsmart/rsmart.inc';
   
   $args = func_get_args();
   if (strpos($func, ' ') and count($args) == 1) $args = ray($args[0]);
-  $func = array_shift($args);
+//  $func = array_shift($args);
+  array_shift($args);
+  if ($prefix == 'cr') $cronOp = $funcName; // $args ? $args[0] : ONE_CRON_OP;
   return call_user_func_array(funcNickname($func), $args);
 }
 /**/ function d($s) {debug($result = call_user_func_array('f', func_get_args()));} // debug(f(...))

@@ -11,13 +11,14 @@ use rCredits\DB as db;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 use rCredits\Admin as a;
-use rCredits\Cron as cron;
+use rCredits\Cron as cr;
 
 global $base_path;
 define('BASE_PATH', $base_path);
 define('T_BALANCE_FIELDS', 'id balance floor rewards savingsAdd saveWeekly minimum share committed');
 define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to partner myid reid main agent other');
 define('T_MSG_FILE', 'test-messages.txt');
+if (!isDEV or isPRODUCTION) die('only on development machine');
 
 /**
  * Allow mnemonic and abbreviated data in test scenario columns.
@@ -79,8 +80,8 @@ function doRecords($list, $type) {
 //  $list = array_values((array) json_decode($list));
 //  foreach ($list as $k => $v) if (is_object($v)) $list[$k] = (array) $v;
 /**/    if ($testOnly) t\output("Expect $type: " . print_r($list, 1), 'expect');
-/**/  u\EXPECT(!is_numeric(key($list[0])), 'doThing should be an assoc: ' . print_r($list, 1));
-
+  if (is_object($list)) $list = (array) $list;
+  /**/  u\EXPECT(is_array(@$list) and !is_numeric(@key(@$list[0])), 'doThing object should be an assoc: ' . print_r($list, 1));
   $function = 'rCredits\\Testing\\do';
   $function .= function_exists($function . $type) ? $type : 'Thing';
   foreach ($list as $one) if (!$function($one, $type)) return FALSE;
@@ -131,6 +132,7 @@ function doBoxe($info = []) {
 function doAccount($info = []) {
   global $testOnly;
 
+  if (is_object($info)) $info = (array) $info;
 /**/  if (!is_array($info)) {echo 'not array'; print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
   extract($info); // any user table fields
   $id0 = @$id;
@@ -530,6 +532,7 @@ function phoneField($field, $number) {
 }
 
 function usdTransferCount($where = '1') {
+  if (!isDEV or isPRODUCTION) die('only on development machine');
   global $testOnly;
   
   if($testOnly) {
@@ -572,21 +575,17 @@ function cronRuns($op) {
   global $testOnly; if(@$testOnly) return FALSE;
   global $cronOp; $cronOp = $op;
   include_once __DIR__ . '/rcron/rcron.inc';
-
+  
   $now = r\rTime();
   \variable_set('r_last_cron', ray('day week month', $now, $now, $now)); // normally don't run periodics
+
   if ($op == 'ALL') { //  or strpos(R_DAILY_TASKS, " $op ")
 /**/  if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
-    db\q("DELETE FROM queue WHERE name='q'");
+    db\q('TRUNCATE queue');
     \variable_set('r_last_cron', ray('day week month', $now - DAY_SECS, 0, 0));
-    \drupal_cron_run();
-  } elseif ($op == '') {
-    \drupal_cron_run();
-  } elseif ($op == 'everyWeek') {
-    f("cr.$op"); // queue up weekly tasks
-    \drupal_cron_run();
-  } else f("cr.$op");
-
+  } elseif ($op) cr\doTask(compact('op'));
+  cr\run();
+  
   return TRUE;
 }
 
@@ -1209,6 +1208,7 @@ function output($msg, $color = 'error') {
  * @param int $ch: the channel (web, sms, etc.)
  */
 function clear($ch = 0) {
+  if (!isDEV or isPRODUCTION) die('clear only on development machine');
   include_once __DIR__ . '/admin/admin.inc';
   global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation, $tChecked, $tRadios, $testEmails;
   global $nextCode; $nextCode = NULL;

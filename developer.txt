@@ -327,3 +327,6 @@ useful SQL queries:
 SELECT SUM(-amount)/10 AS weeklyAmt, AVG(-amount) AS avgAmt, COUNT(amount)/10 AS weeklyACHs FROM r_usd WHERE created>UNIX_TIMESTAMP()-10*7*24*3600 AND amount<0 (ACHs over past 10 weeks)
 
 to shrink db dump for import into test server, replace all /(.?26742000000...), 0x[0-9a-f]+,/ with '\1, 0,'
+
+to create a graph of Greenfield CttyFund/PerMo by quarter (for presentation):
+SELECT FLOOR((1514782800-created)/(60*60*24*90)) AS quarter, AVG((ABS(ABS(bankOut)-ABS(bankIn))+tradeOut-tradeIn)/perMo) AS ratio FROM `r_stats` WHERE ctty=-26742000000002 AND perMo>1 GROUP BY FLOOR((1514782800-created)/(60*60*24*90)) ORDER BY created

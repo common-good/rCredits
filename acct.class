@@ -1268,7 +1268,8 @@ EOF;
     if ($info = db\lookup('amount,often,giftDate', 'r_gifts', "uid=:id AND giftDate<:REQUEST_TIME AND (NOT honor<=>'share') ORDER BY donid DESC", ['id' => $a->id])) {
       extract($info);
       $oftens = ray(OFTENS);
-      list ($often, $amount, $giftDate) = [$oftens[$often], u\fmtAmt($amount), u\fmtDate($giftDate, TRUE)];
+      unset($oftens['1']);
+      list ($often, $amount, $giftDate) = [@$oftens[$often], u\fmtAmt($amount), u\fmtDate($giftDate, TRUE)];
       $lastGift = t('Last') . ": $giftDate <%b>$amount</b> $often";
       if ($info = db\lookup('honor,honored', 'r_gifts', "uid=:id AND (NOT honor<=>'' AND honor<>'share') ORDER BY donid DESC", ['id' => $a->id])) {
         extract($info);

@@ -99,7 +99,7 @@ function bankingChart() {
   var options = {
     title: 'Monthly USD Transfers: ' + netUsdIn,
     width: chartWidth, height: chartHeight,
-    colors: ['blue', 'yellow', 'green', 'orange'],
+    colors: ['blue', 'orange', 'green', 'yellow'],
     series: {
       1: {areaOpacity: 1},
       2: {areaOpacity: 0},
@@ -151,6 +151,10 @@ function issuedChart() {
              2: {offset: 0.1},
              3: {offset: 0.1},
              4: {offset: 0.2},
+             5: {offset: 0.2},
+             6: {offset: 0.2},
+             7: {offset: 0.2},
+             8: {offset: 0.2},
     },    
     is3D: true,
     legend: {position: 'right'}

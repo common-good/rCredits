@@ -165,7 +165,7 @@ EOF;
     if ($mya->superAdmin or ($mya->cAdmin and $mya->activated)) $rTrader = ($mya->isCtty)
     ? boolFld(t('Active?'), '', $mya->ok)
     : boolFld(t('Active?'), t('Is account approved to use %PROJECT?', '_a', w\atag('/settings/photo?' . rand())), $mya->ok);
-    
+
     if ($mya->member and !$mya->co and $mya->superAdmin) $ssnShow = item(a\ssnShow($mya));
     if ($mya->admin) {
       $dba = ($mya->co and $owner = r\relation('other', 'main=:uid', compact('uid')) and r\acct($owner)->federalId == $mya->federalId);
@@ -231,7 +231,7 @@ EOF;
 //    $preNote = item($tip);
 
     if ($mya->superAdmin) {
-      $notes = areaFld(t('Notes:'), '', dft($mya->notes));
+      $notes = areaFld(t('Notes:'), '', dft(u\unplain($mya->notes))); // only needed for default in areaFld
     } else $notes = item(str_replace("\n", '<br>', $mya->notes), t('Notes:'));
 
     $note = areaFld(t('New Note:'), [t('Type a Note Here'), t('Abbreviations: PM=phone msg EM=email msg. Be sure to say what you left a message <i>about</i> (for example "PM setup")')]);

@@ -607,6 +607,7 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 /* Photo */
 #rcreditswebformphoto .btn-secondary {background-color:silver;}
 #rcreditswebformphoto #edit-progress .control-data {padding:0 0 20px 0; border-bottom:3px darkgreen double;}
+#rcreditswebformphoto #emailPhoto a {color:white;}
 
 #photoUp {
   position: relative;  /* MANDATORY */

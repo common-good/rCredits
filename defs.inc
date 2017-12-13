@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.26'); // software version
+define('R_VERSION', '3.29'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -140,7 +140,7 @@ define('ORGANIZER_GRANT_MIN', 10); // minimum number of individuals to recruit, 
 define('ORGANIZER_GRANT_MAX', '$5,000'); // maximum organizer grant amount
 define('TICKLE_WELCOME', 2 * 7); // number of days to wait after activation, before followup
 define('TICKLE_DELAYED', 6 * 7); // number of days to wait after activation, before followup if no gift or no CGC
-define('OFTENS', 'M:Monthly,Q:Quarterly,Y:Yearly');
+define('OFTENS', 'M:Monthly,Q:Quarterly,Y:Yearly,1:Once (now)');
 
 define('ICARD_EXPIRES', 14); // how many days until invitation card expires, after account is activated
 define('ICARD_CODELEN_MIN', 10); // minimum length for an invitation code

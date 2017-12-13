@@ -1384,3 +1384,5 @@ function similar($s1, $s2, $chars = 5, $pct0 = .1) {return (similar_text($s1, $s
 function unite($a, $b, $m = '') {return ($a and $b) ? tr('%a%m%b', '_a _m _b', $a, $m ?: t(' and '), $b) : ($a ?: $b);}
 function honorDesc($honor) {return $honor == 'other' ? ' ' : t(' in %honor of ', compact('honor'));}
 function inList($needle, $hay) {return (strpos(" $hay ", " $needle ") !== FALSE or strpos(",$hay,", ",$needle,") !== FALSE);}
+function unplain($text) {return htmlspecialchars_decode($text, ENT_QUOTES);} // reverse \check_plain
+function weakPass($pw) {return (strlen($pw) < 8 or !preg_match('/\d/', $pw) or !preg_match('/[A-Z]/', $pw) or !preg_match('/[a-z]/', $pw) or !preg_match('/[^0-9A-Za-z]/', $pw));}

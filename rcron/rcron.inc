@@ -6,7 +6,7 @@ use rCredits\Util as u;
 use rCredits\Testing as t;
 use rCredits\Backend as be;
 use rCredits\Risk as k;
-use rCredits\Cron as cron;
+use rCredits\Cron as cr;
 
 /**
  * @file
@@ -20,7 +20,11 @@ use rCredits\Cron as cron;
  
  * = written
  ** = tested
- 
+
+TODO:
+- identify pending joint accounts and alert both parties (with link to complete or cancel) select reid, u1.fullName, u2.fullName FROM r_relations r LEFT JOIN users u1 ON r.main=u1.uid LEFT JOIN users u2 ON u2.uid=r.other WHERE (SELECT reid FROM r_relations WHERE main=r.other AND other=r.main) IS NULL AND r.permission=7 
+
+
 DAILY (every 5 mins for 5 mins, starting at 2am)
 - * usdTxsThere() rollback lost USD transactions, mark completed deposits/withdrawals
 - ** recache() check / recalc cached r, rewards, and usd
@@ -70,11 +74,57 @@ define('R_DAILY_TASKS', 'START recache checkAccts requests setNear acctStats ctt
 include_once __DIR__ . '/rcron-subs.inc';
 
 /**
+ * Execute a cron run when called.
+ */
+function run() {
+  u\log('running cron');
+  // Allow execution to continue even if the request gets canceled.
+  @ignore_user_abort(TRUE);
+
+  // Prevent session information from being saved while cron is running.
+  $original_session_saving = \drupal_save_session();
+  \drupal_save_session(FALSE);
+
+  // Force the current user to anonymous to ensure consistent permissions on cron runs.
+  $original_user = $GLOBALS['user'];
+  $GLOBALS['user'] = \drupal_anonymous_user();
+
+  \drupal_set_time_limit(4 * 60);
+
+  // Try to acquire cron lock.
+  if (!\lock_acquire('cron', 240.0)) {
+    u\log(t('Attempting to re-run cron while it is already running.')); // Cron is still running normally.
+  } else { // Make sure every queue exists. There is no harm in trying to recreate an existing queue.
+    cr\periodic();
+    \lock_release('cron');
+  }
+
+  $end = time() + R_CRON_PERIOD - R_MAX_TASK_TIME;
+  $sql = 'SELECT id,item FROM queue ORDER BY id';
+  $q = db\q($sql);
+  
+  while (time() < $end and $row = $q->fetchAssoc()) {
+    extract($row);
+    try {
+      cr\doTask(unserialize($item));
+      db\q('DELETE FROM queue WHERE id=:id', compact('id'));
+    }
+    catch (Exception $e) {
+      u\log('cron task failed'); // In case of exception log it and leave the item in the queue to be processed again later.
+    }
+  }
+  // Restore the user.
+  $GLOBALS['user'] = $original_user;
+  \drupal_save_session($original_session_saving);
+}
+
+/**
  * Do a queued task
  * @param assoc $item: task arguments, including 'op' -- the function to handle the task
  */
 function doTask($item) {
   global $channel; $channel = TX_CRON;
+///  print_r(debug_backtrace());
   $func = array_shift($item);
   $op = 'rCredits\\Cron\\' . $func;
 // (too often)  u\log(t('starting cron.') . $func, 'state', $item);
@@ -86,7 +136,7 @@ function doTask($item) {
  *  Check to see if it's time for a less-often periodic activity (and if so do it).
  */
 function periodic() {
-  if ($row = db\q('SELECT * FROM queue WHERE expire<>0 LIMIT 1')->fetchAssoc()) {
+  if ($row = db\q('SELECT * FROM queue WHERE created<:NOW-:DAY_SECS/2 LIMIT 1')->fetchAssoc()) {
     r\tellAdmin('task timed out', $row); // shouldn't happen. Drupal's queue processing hangs until we delete.
     db\q('DELETE FROM queue WHERE item_id=:item_id', just('item_id', $row));
   }
@@ -111,11 +161,11 @@ function everyHour() {
   // stuff to do every hour
   queueEach('acctHourly', "SELECT uid FROM users WHERE uid<>0");
   if (strftime('%H') + 0 == (R_DAILY_HOUR + 6) % 24) {
-    $lastCron = \variable_get('r_last_cron', []);
-    $lastTime = @$lastCron['day'];
-    if (r\rTime() - $lastTime > DAY_SECS) r\tellAdmin('daily cron FAILED');
+    $lastDaily = \variable_get('last_daily_cron', 0);
+    if (NOW - $lastDaily > DAY_SECS) r\tellAdmin('daily cron FAILED');
   }
-  db\q('DELETE FROM cache_form WHERE created<:REQUEST_TIME-:HOUR_SECS');
+  
+  db\q('DELETE FROM cache_form WHERE created<:REQUEST_TIME-:HOUR_SECS'); // clean up form cache
 
   // r\tellAdmin('hourly cron');
 }
@@ -130,21 +180,20 @@ function acctHourly($item) {
 //  $a->shortfall(FOR_GOODS, PHP_INT_MAX); // notice recent deposits, if any
 }
 
+/**
+ * Do miscellaneous stuff that needs doing every day
+ */
 function everyDay() {
-  // miscellaneous quick stuff to do every day
-  $time = r\rTime() - 7 * DAY_SECS;
-//  db\q('DELETE FROM r_log WHERE time<:time', compact('time')); // zap log except for the past few days
-  db\q('DELETE FROM r_do WHERE completed<0 AND :now>-completed', ['now'=>r\rTime()]); // completed<0 is -expiry time
+  queueNext('START'); // eachA seems to interfere with this and processing the queue is vital, so launch it first
+  db\q('DELETE FROM r_do WHERE completed<0 AND :NOW>-completed'); // completed<0 is -expiry time
 
-  $where = "RIGHT(fullName, 8)=' PARTNER' COLLATE utf8_bin AND pass='' AND NOT :IS_CO AND activated=0";
-  eachA(function ($a) {if ($jA = $a->jA and $jA->jid == $a->id) $jA->update('jid', '');}, $where);
-  db\del('users', $where); // abandoned new joint acct
-
-  $companies = \variable_get('companies', []);
   $cttys = db\q('SELECT uid AS ctty FROM users WHERE uid<0')->fetchCol();
   foreach ($cttys as $ctty) $companies[$ctty] = r\companies($ctty, TRUE);  
-  \variable_set('companies', $companies);
-  queueNext('START');
+  \variable_set('companies', @$companies ?: []);
+
+  $where = "RIGHT(fullName, 8)=' PARTNER' COLLATE utf8_bin AND pass='' AND NOT :IS_CO AND activated=0";
+  eachA(function ($a) {if ($jA = $a->jA and $jA->jid == $a->id) $jA->update('jid', '');}, $where); // acts weird; do this last
+  db\del('users', $where); // abandoned new joint acct (must postcede setting jids)
 }
 
 /**
@@ -843,8 +892,10 @@ function notice($item) {
  */
 function END() {
   global $mya; $mya = NULL; // don't tell Admin the last current member
+  if (db\exists('queue')) r\tellAdmin('queue has dingleberries'); else db\q('TRUNCATE queue'); // reset serial field
+  \variable_set('last_daily_cron', NOW);
   $lastCron = \variable_get('r_last_cron', []);
-  $elapsed = r\rTime() - @$lastCron['day'];
+  $elapsed = NOW - @$lastCron['day'];
   $time = strftime('%I:%M%P');
   $msg = t('At %time, after %elapsed secs, daily cron ended successfully.', compact(ray('time elapsed')));
   $topic = t('cron end');

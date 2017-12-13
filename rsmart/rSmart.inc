@@ -68,6 +68,7 @@ $GLOBALS['tStrings'] += array(
   'bad icard' => t('The customer has not yet activated his or her %PROJECT Account.'),
   'expired icard' => t('That invitation card has expired. The customer can use their %PROJECT Card instead.'),
   'bad pin' => t('That is not your correct PIN.'), // self-service error
+  'no such test' => t('That test function does not exist.'),
 );
 
 /**
@@ -85,14 +86,17 @@ function pos($args = FALSE) {
   
   if (!r\up()) exit('system down'); // app does not (and should not) distinguish this from system failure
   if (is_object($args)) $args = (array) $args; // this helps with debugging when passing json_decoded args
+  if (is_string($args)) $args = urlq2ray($args); // convert from query string to array
 //  if (!$args) $args = t\POST(); else t\POST($args);
   if ($args) t\POST($args); else $args = t\POST();
   u\loga('in', $args);
-  $args = u\sanitizeInput($args);
+  $args = u\sanitizeInput($args0 = $args);
   extract(just('op device agent member version', $args));
-  $args['version'] = (int) $version;
+  $args['version'] = (int) @$version;
   
-  if (!$op or !in_array($op, ray('time identify photo charge payment undo'))) return posErr('bad op');
+  if (!@$op or !in_array($op, ray('time identify photo charge test'))) return posErr('bad op');
+  
+  if (isDEV and $op == 'test') return test($args0);
   
   $mya = getAgent($agent ?: @$member, $agentErr);
 
@@ -140,6 +144,33 @@ function ok($args, $ok = "1") {
 function posErr($message, $subs = [], $extra = []) {
   $message = t($message, $subs);
   return ok(compact('message') + $extra, "0");
+}
+
+/**
+ * Return information from a test function.
+ */
+function test($args) {
+  global $testOnly;
+
+  if ($err = missingArg($keys = 'function testOnly args', $args)) return posErr($err); 
+  extract(just($keys, $args));
+  $args = [json_decode($args)];
+
+  require_once __DIR__ . '/rsmart.steps';
+  $func = "\\$function";
+  if (function_exists($func)) {
+    $res = call_user_func_array($func, $args);
+    //$reflFunc = new \ReflectionFunction($func);
+    //print "\n" . $reflFunc->getFileName() . ':' . $reflFunc->getStartLine();
+  } else {
+    require_once __DIR__ . '/../rcredits-testing.inc';
+    $func = "\\rCredits\\Testing\\$function";
+    if (function_exists($func)) $res = call_user_func_array($func, $args);
+  } 
+  
+  if (!isset($res)) return posErr('no such test');
+
+  return $res ? ok([], '1') : posErr('step failed', [], \drupal_get_messages());
 }
 
 /**

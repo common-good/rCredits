@@ -214,7 +214,7 @@ function rweb_menu($submenu = '') {
 
 //    'savings' => ['call', t('Savings'), 'ChooseSavings', ANY], // temporary until 12/15/2015 or so
     'accept' => ['call', 'Accept Invitation', 'Accept 1', ANY], // called from promo site
-    'pos' => ['call', 'POS', '', ANY, 'rCredits\\Smart\\pos'], // called from the rPOS app
+    'pos' => ['call', 'POS', '1', ANY, 'rCredits\\Smart\\pos'], // called from the rPOS app
     'ajax' => ['call', 'AJAX', '1', ANY, 'ajax'], // called from the rPOS app
     'whosin' => ['call', t('Who\'s in?'), '1', ANY, 'whosin'], // called from promo site
     'secret' => ['call', 'Secret', '', ANY, 'secrets'],

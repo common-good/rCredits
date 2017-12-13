@@ -538,7 +538,7 @@ function deleteCell($number) {
  *
  * @param string $who: how the user referred to the trader (name, phone, email, uid, or temporary code)
  * @param int $myid: current user's account record ID
- * @param bool $paying: <we're preparing to pay this person> (in which case the persn has to have an active account)
+ * @param bool $paying: <we're preparing to pay this person> (in which case the person has to have an active account)
  * @param string $self_message: index to error message for identifying oneself
  *   If true, the other trader will be created only if specified by email or phone
  * @return one of the following:
@@ -576,7 +576,7 @@ EOF;
   // QID? if not, maybe first word is a QID if this is from a list showing QID and fullName
   $qid = trim(($i = strpos($who, ':')) ? substr($who, 0, $i) : strtoupper($who));
   if ($a = r\acct($qid)) $result[$a->id] = $a->fullName; // explicit QID is a result, regardless of community
-
+//$self_message = print_r(compact(ray('sql result qid myid i who short')), 1);
   if (count($result) == 1 and @$result[$myid]) return [$self_message, [], []];
   unset($result[$myid]); // self is one of many results, so ignore it
   if (!$result) return [($mya->admin ? 'unknown member' : 'unknown ctty member') . ("$cphone$cmail" == '--' ? '' : '|no search'), $subs, []];

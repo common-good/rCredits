@@ -125,6 +125,16 @@ function tableDefs($schema = []) {
   $schema['r_notes'] = setupTable('notes about accounts', $fields, 'id', $foreignKeys, $indexes);
   */
   
+  // table queue
+  $fields = array(
+    'id' => setupField('primary key: Unique item ID', 'serial big'),
+    'item' => setupField('arbitrary data for the item.', 'blob big'),
+    'created' => setupField('Unixtime record was created', 'int 11'),
+  );
+  $foreignKeys = [];
+  $indexes = [];
+  $schema['queue'] = setupTable('Cron queue', $fields, 'id', $foreignKeys, $indexes);
+  
   // table r_stats
   $fields = array(
     'id' => setupField('statistics record id', 'serial big'),
