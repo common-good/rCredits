@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.29'); // software version
+define('R_VERSION', '3.31'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -28,7 +28,8 @@ define('DEV_ROOT', '/cgMembers'); // path to drupal root on DEV machine
 define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
 define('DEFAULT_PROXIES', '2, 3'); // account record IDs for place-holder proxies
-define('TRACK_DELETED', 'r_invoices r_relations r_txs r_usd users'); // remember rows in these tables if we delete them
+define('TRACK_DELETED', 'r_invoices r_photos r_relations r_txs r_usd users'); // remember rows in these tables if we delete them
+define('DEV_ONLY_MSG', 'only on development machine');
 
 $host = strtolower(@$_SERVER['HTTP_HOST']);
 if (!isDEV) if (strlen($host) > 30 or !preg_match('/^\[?([a-zA-Z0-9-:\]_]+\.?)+$/', $host)) {header('HTTP 400 Bad Request'); exit();}
@@ -90,7 +91,7 @@ define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty
 define('R_REGION_FIELDS', 'region,fullName,st,zip,federalId,hasServer');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
 // isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 
-define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx jid source getAppData appData'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx source getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('MASTER_NUMERIC_FIELDS', 'minimum achMin savingsAdd saveWeekly');
 define('MASTER_FIELDS', MASTER_NUMERIC_FIELDS . ' hasBank bankAccount last4bank refill'); // only in master, for joint accounts
 define('R_MONEY_FIELDS', 'balance rewards floor committed'); // financial amount fields in account record
@@ -185,7 +186,7 @@ define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a mu
 define('R_MIN_DEFAULT', 100); // suggested minimum amount to hold in rCredits
 define('R_ACHMIN', 10); // minimum granularity of withdrawals from bank account
 define('R_ACHMIN_DEFAULT', 50); // suggested achMin
-define('R_ACH_TRIES', 3); // how many times to retry an ACH
+//define('R_ACH_TRIES', 3); // how many times to retry an ACH
 define('CASHOUT_MIN', 100); // minimum dollar amount to cash out automatically
 
 define('R_SUGGEST_BUMP', 1.25); // suggested minimum multiplier, so as not to overdraw
@@ -293,7 +294,7 @@ define('B_u19', 19); //
 define('B_DEBT', 20); // member chose to permit sub-zero balances
 define('B_DRAWS', 21); // this account draws on one or more others
 define('B_SAVINGS', 22); // the connected bank account is a savings or money market account
-define('B_JOINED', 23); // account is a joint account
+define('B_u23', 23); // account is a joint account
 define('B_u24', 24); //
 define('B_u25', 25); // 
 define('B_u26', 26); // was "account is closed"
@@ -303,7 +304,7 @@ define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
 define('B_ADMINABLE', 'confirmed member cAdmin cAdmin2 nonudge cgc invites rewardy noneg'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok u3 ided refill co cashout roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings joined u24 u25 u26 admin2 cAdmin2 cAdmin admin');
+define('B_LIST', 'member confirmed ok u3 ided refill co cashout roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings u23 u24 u25 u26 admin2 cAdmin2 cAdmin admin');
 
 // community-specific flags
 define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)

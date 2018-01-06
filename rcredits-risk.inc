@@ -3,7 +3,6 @@ namespace rCredits\Risk; // typically abbreviated as "k"
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 
 /**
  * @file

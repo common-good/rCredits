@@ -9,7 +9,6 @@ namespace rCredits\Backend; // typically abbreviated as "be"
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 use rCredits\Backend as be;
 
 define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows'); // used?
@@ -142,20 +141,11 @@ function updateRelations($updates) {
     extract(just('main other fullName', $data['original'])); 
     unset($data['original']);
 
-    $reidSub = $subs = compact('reid');
-    $changes = '';
-    foreach ($data as $field => $value) {
-      $changes .= ($changes ? ',' : '') . "$field=:$field";
-      $subs += array($field => $value);
-      if ($field == 'draw' and $value) {
-        r\acct($other)->setBit(B_DRAWS);
-      }
-    }
-    $where = 'reid=:reid';
-    $sql = "UPDATE r_relations SET $changes WHERE $where";
-    if (!empty($data)) db\q($sql, $subs);
+    $reidSub = compact('reid');
+    if (@$data) db\update('r_relations', $data + $reidSub, 'reid');
+    if (@$data['draw']) r\acct($other)->setBit(B_DRAWS);
 
-    if (!r\relation('permission>0 OR employee OR isOwner OR draw', $where, $reidSub)) {
+    if (!r\relation('permission>0 OR employee OR isOwner OR isCustomer OR draw', $where = 'reid=:reid', $reidSub)) {
       db\q("DELETE FROM r_relations WHERE $where", $reidSub);
       $msg = 'deleted relation';
     } else $msg = 'updated relation';
@@ -246,7 +236,10 @@ function reverse($xid, $amounts, $what, $acct, $data, $old_goods, $tid, $type, $
         data=:old_data
       WHERE xid=:xid
 EOF;
-    db\q($sql, compact(ray('payerFor payeeFor xid old_data')));
+    $subs = compact(ray('payerFor payeeFor xid old_data'));
+    db\logSql(compact(ray('sql subs')));
+    db\q($sql, $subs);
+    
     $message = 'report undo|' . $message;
     $args['solution'] = 'reversed';
   }
@@ -269,7 +262,8 @@ function payInvoice($nvid, &$msg = '') {
   $purpose .= ' (' . PROJECT . " inv#$nvid)";
   $data['inv'] = $nvid;
   list ($index, $subs) = be\transfer('payment', r\acct($payer), r\acct($payee), $amount, $goods, $purpose, NULL, $data);
-  if ($ok = @$subs['success']) db\q('UPDATE r_invoices SET status=:xid WHERE nvid=:nvid', ray('xid nvid', @$subs['xid'], $nvid));
+  if ($ok = @$subs['success']) //db\q('UPDATE r_invoices SET status=:xid WHERE nvid=:nvid', ray('xid nvid', @$subs['xid'], $nvid));
+  db\update('r_invoices', ray('status nvid', @$subs['xid'], $nvid), 'nvid');
   unset($DBTX);
   
   $msg = t($index, $subs);
@@ -576,7 +570,6 @@ EOF;
   // QID? if not, maybe first word is a QID if this is from a list showing QID and fullName
   $qid = trim(($i = strpos($who, ':')) ? substr($who, 0, $i) : strtoupper($who));
   if ($a = r\acct($qid)) $result[$a->id] = $a->fullName; // explicit QID is a result, regardless of community
-//$self_message = print_r(compact(ray('sql result qid myid i who short')), 1);
   if (count($result) == 1 and @$result[$myid]) return [$self_message, [], []];
   unset($result[$myid]); // self is one of many results, so ignore it
   if (!$result) return [($mya->admin ? 'unknown member' : 'unknown ctty member') . ("$cphone$cmail" == '--' ? '' : '|no search'), $subs, []];

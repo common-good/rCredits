@@ -302,7 +302,7 @@ function uSDPaymentByMemberIsNotRecorded($id) {
 /**
  * usd transfer count is (ARG)
  *
- * in: 
+ * in: TEST Invoices UnpaidInvoicesGetHandled
  */
 function usdTransferCountIs($count) {return (t\usdTransferCount() == $count);}
 

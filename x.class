@@ -4,7 +4,6 @@ use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Backend as be;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 
 /**
  * @file
@@ -84,11 +83,11 @@ class X {
    */
   private function save($xray) {
     if (!$xid = db\insert('r_txs', $xray)) return FALSE;
-    if (!@$xray['serial']) { // main transaction needs some touching up, now that we know the xid
+    if (!@$xray['serial'] or @$xray['rewards']['xfee']) { // main and fee transactions need some touching up
       extract(just('payer payee', $xray));
       $payerTid = $payer > 0 ? r\xid2tid($xid, $payer) : 0;
       $payeeTid = $payee > 0 ? r\xid2tid($xid, $payee) : 0;
-      $serial = $xid; // set serial for this and remember it for dependents
+      if (!@$xray['serial']) $serial = $xid; // set serial for this (main transaction) and remember it for dependents
       $info = compact(ray('xid serial payerTid payeeTid'));
       if (!db\update('r_txs', $info, 'xid')) return FALSE;
     } else $info = [];
@@ -219,7 +218,7 @@ class X {
 
     if ($goods == FOR_USD and !isset($data['xfee']) and $channel == TX_POS) {
       $xfee = r\xfee($for, $amount);
-      if ($xfee) $data += compact('xfee');
+      if ($xfee > 0) $data += compact('xfee');
     }
     
     unset($data['preapproved']); // don't need these (but keep 'undoes', if any)

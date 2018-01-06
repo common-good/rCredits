@@ -4,7 +4,6 @@ use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Backend as be;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 use rCredits\Web as w;
 
 /**
@@ -432,9 +431,9 @@ function labeled($form, $onSubmit = '', $labeled = TRUE, $level = 0) {
   foreach ($form as $k => $v) if (substr($k, 0, 1) != '#') {
     $type = @$v['#type'];
     $params = [$k => @$v['#value']];
-    if ($type == 'hidden') t\POST($params); // fake post for tests
+    if ($type == 'hidden') f('t.POST', $params); // fake post for tests
     if ($type == 'fieldset') $form[$k] = labeled($form[$k], '', $labeled, $level + 1);
-    if ($labeled) $form[$k]['#tabled'] = TRUE; // remember that form is laid out in a table (labels in left column)
+    if ($labeled and is_array($form[$k])) $form[$k]['#tabled'] = TRUE; // remember that form is laid out in a table (labels in left column)
   }
   return $form;
 }
@@ -786,7 +785,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formArray, $formSta, $rUrl;
   setAcct(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
   if (!@$formSta['confirm'] and !in_array($function, ray(R_NOLOG_FORMS))) {
-    if ($logs = t\POST()) {
+    if ($logs = $_POST) {
       u\loga('in', $logs);
     } else {
       $formName = str_replace(base_path(), '', $_SERVER['REQUEST_URI']);
@@ -2065,7 +2064,7 @@ function communityTransfer($type, $acct, $amount, $purpose) {
  * @param string $msg: the message or message index
  */
 function doSay($msg, $ok = FALSE) {
-  if (isDEV) @file_put_contents(t\dosayFilename($ok ? 'status' : 'error'), $msg); // no way to know if actually testing
+  if (isDEV) @file_put_contents(f('t.dosayFilename', $ok ? 'status' : 'error'), $msg); // no way to know if actually testing
   return r\go('empty/say=1', $msg, !$ok);
 }
 

@@ -3,7 +3,6 @@ namespace rCredits\Cron;
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 use rCredits\Backend as be;
 use rCredits\Risk as k;
 use rCredits\Cron as cr;

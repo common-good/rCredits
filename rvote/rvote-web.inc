@@ -4,7 +4,6 @@ use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Backend as be;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 use rCredits\Web as w;
 use rCredits\Vote as v;
 

@@ -12,7 +12,6 @@
 namespace rCredits; // typically abbreviated as "r"
 use rCredits as r;
 use rCredits\DB as db;
-use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 use rCredits\Web as w; // use only in rTime (for the game)
@@ -266,10 +265,11 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   // log
   $message = str_replace("\r\n", '', strtr($body, $logSubs)); // easier reading for log and tests
   $erInfo = compact(ray('index toEmail subject message'));
-/**/ t\output('Actual (in rMail) ' . print_r($erInfo, 1), 'email');
+/**/ f('t.output', 'Actual (in rMail) ' . print_r($erInfo, 1), 'email');
   u\loga('email', $erInfo + ['toUid' => @$toA->id]);
 
   if (isPRODUCTION !== TRUE) { // make sure we never send rogue emails from test server even if constant isn't set
+  /**/  if (!isDEV) debug(compact(ray('subject to body')));
     return; // no emails unless real!!
     if ($toEmail != r\regionField('email') and $toEmail != R_ADMIN_EMAIL) return TRUE;
     if (isDEV) return TRUE; // otherwise cURL error 60: SSL certificate problem: unable to get local issuer certificate
@@ -294,7 +294,6 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
 
   if ($reply) $m->setReplyTo($reply);
   if (@$sms) $m->setSubject('')->setTo($toEmail); // send as text message
-  
   $success = $mailer->send($m);
   u\EXPECT($success, 'cannot send email');
   return TRUE;
@@ -358,7 +357,7 @@ function notify($uid, $index, $subs = [], $force = FALSE) {
     $mailed = r\rMail($index, $a, $subs, 'ctty');
   } else { //if ($a->can(B_NOTIFY_EMAIL)) {
     list ($message, $created) = array(t($index, $subs), r\rTime());
-    t\output("Actual Notice to $fullName: $message");
+    f('t.output', "Actual Notice to $fullName: $message");
     db\insert('r_notices', compact(ray('uid message created')));
   }
   
@@ -683,13 +682,14 @@ function uniqueName($fullName, $info = []) {
 
 /**
  * Return the uid for the given qid or (short) name or email.
+ * If $id is an email and more than one account has that same email address, the first non-company account is assumed.
  * @todo later: when regional prefix is required for signin, this function will ignore it in matching name field
  * @return the uid (FALSE if unsuccessful)
  */
 function loginString($id) {
   if (u\isQid($id = trim(strtoupper($id))) and $acct = r\acct($id)) return $acct->id; // try to interpret as a qid
   $mail = u\cryptN(strtolower($id));
-  return db\lookup('uid', 'users', 'name=:id OR mail=:mail', compact('id', 'mail'));
+  return db\lookup('uid', 'users', 'name=:id OR mail=:mail ORDER BY :IS_CO', compact('id', 'mail'));
 }
   
 /**
@@ -863,6 +863,7 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_usd:payee',
     'r_user_industries:uid:D',
   // r_votes
+    'users:jid',
     'users:uid:D',
     'users:helper',
     'users:community',
@@ -876,9 +877,7 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
   foreach ($subs as $one) {
     list ($table, $field, $deletable) = explode(':', $one); // if deleting and not deletable, set to zero
     if ($delete and deletable) {
-      if (in_array($table, ray(TRACK_DELETED))) {
-        db\del($table, $oldUid);
-      } else db\q("DELETE FROM $table WHERE $field=:oldUid", compact('oldUid'));
+      db\del($table, "$field=:oldUid", compact('oldUid'));
     } else db\q("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
   }
   $oldQid = r\qid($oldUid);
@@ -948,8 +947,8 @@ function go($page, $msg = '', $field = '') {
 
   if (u\test()) {
     $_POST = []; // make sure it doesn't act like we submitted the target page
-    t\output("Going to page $page (page0=$lastGo msg=$msg field=$field)");
-    return strpos($page, 'http://') === FALSE ? t\pageForm($page, $msg, $field) : '';
+    f('t.output', "Going to page $page (page0=$lastGo msg=$msg field=$field)");
+    return strpos($page, 'http://') === FALSE ? f('t.pageForm', $page, $msg, $field) : '';
   }
 
   /*

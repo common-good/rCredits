@@ -817,6 +817,8 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebforminvoices #edit-list .control-label,
 #rcreditswebforminvoices #edit-title .control-label {display:none;}
 #rcreditswebforminvoices #edit-list .control-data {width:100%; max-width:100%; text-align:center;}
+#rcreditswebforminvoices #edit-title {margin-bottom:0;}
+#rcreditswebforminvoices #edit-subtext label {display:none;}
 
 /* Statements / Notices */
 #statements th, #statements td,

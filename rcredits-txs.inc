@@ -2,7 +2,6 @@
 namespace rCredits\Txs; // typically abbreviated as "x"
 use rCredits\Backend as be;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Txs as x;
@@ -18,10 +17,17 @@ define('TX_TID_MAX', 100000000); // zero-filler
  
 /**
  * Get a formatted list of transaction records.
+ * @param int $starting: starting date
+ * @param int $ending: ending date
+ * @param assoc $options: miscellaneous filters and flags
+ * @param string $url0: original URL for the page, including parameters
+ * @param numeric $run: (also RETURNED) running total
  * @return [$header, $classes, $rows, $totals]
  */
-function getTxRows($starting, $ending, $options = [], $url0 = '', $maxRows = PHP_INT_MAX) {
+function getTxRows($starting, $ending, $options = [], $url0 = '', &$run = '') {
   global $mya;
+  $maxRows = PHP_INT_MAX;
+  
   extract(just('download agents channels boxes descending', $options));
   if ($mya->jid) $agents = TRUE; // show which partner did it, on joint account
   list ($classes, $header, $downloadHeader) = txFields(@$download, @$agents, @$channels, @$boxes);
@@ -41,11 +47,11 @@ function getTxRows($starting, $ending, $options = [], $url0 = '', $maxRows = PHP
   $rows = [];
   
 //    $q = $func($starting, $ending, $report ? 'ctty' : $mya->id, $txOpts);
-  $q = be\myTransactions($starting, $ending, $mya->id, $mya->jid ?: 0);
+  $q = be\myTransactions($starting, $ending, $mya->id, $mya->jid);
   while (count($rows) < $maxRows and $tx = $q->fetchAssoc()) {
-    doRow($rows, $tx, $totDone, $classes, @$download, @$agents, @$channels, @$boxes, $url0);
+    doRow($rows, $tx, $totDone, $classes, @$download, @$agents, @$channels, @$boxes, $url0, $run);
   }
-  
+
   if (@$tx and $q->fetchAssoc()) r\Web\say('transaction list truncated'); // there was more than we could show
   if (@$download) {
     unset($totDone['roundups']); // donated change doesn't show in downloaded data
@@ -55,6 +61,7 @@ function getTxRows($starting, $ending, $options = [], $url0 = '', $maxRows = PHP
     $totDone['name'] = 'TOTALS';
     foreach(just(TX_DOWNLOAD_MONEY_FIELDS, $totDone) as $key => $value) $totDone[$key] = round($value, 2);
     //if ($value === FALSE) $totDone[$key] = '-';
+    if (!$mya->cttyRewardy) $totDone['reward'] = ''; // this is running balance when not rewards
     u\csv(array_values($totDone));
     
     global $testCSV; if (u\test()) return FALSE;
@@ -69,7 +76,7 @@ function getTxRows($starting, $ending, $options = [], $url0 = '', $maxRows = PHP
  * Prepare one transaction row for output (or download) and add it to the rows array.
  * @param assoc $tx: the transaction record
  */
-function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE, $channels = FALSE, $boxes = FALSE, $url0 = '') {
+function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE, $channels = FALSE, $boxes = FALSE, $url0 = '', &$run = '') {
   global $rUrl, $mya;
   
 //  foreach (ray('xid amount byMe toMe reallyToMe agent data sharing tid') as $k) $$k = $myx->$k;
@@ -126,8 +133,9 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   $date = strftime($download ? '%Y-%m-%d' : '%m/%d/%y', $created); // %d-%b
   if (strlen($tid) > 4) $tid = "<small>$tid</small>";
 
+  if (!$mya->cttyRewardy) list ($reward, $run) = [$run, $run - $amt];
   foreach (ray('amt fromyou toyou reward') as $k) $$k = $$k ? number_format($$k, 2) : R_NONE;
-  if (strpos($reward, '-') === FALSE) $reward = '+' . $reward;
+  if ($mya->cttyRewardy) if (strpos($reward, '-') === FALSE) $reward = '+' . $reward;
   $row = array($tid, $date, @$name, $description, $amt, $fromyou, $toyou, $reward, $net, $buttons);
 //  $row = array($tid, strftime($download ? '%Y-%m-%d' : '%d-%b', $myx->created), @$myx->name2, $fromYou, $toYou, $state, $buttons, $myx->for, $reward, $net);
 

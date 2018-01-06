@@ -9,6 +9,8 @@ use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Util as u;
 
+define('NO_LOGSQL_TABLES', 'r_do queue sessions r_invites r_log r_near r_nonmembers r_request cache_form r_stats'); // don't log deletions from these files
+
 /**
  * Do a database query with easy substitutions.
  * @param string $sql: the raw query with substitution markers preceded by ':'
@@ -25,6 +27,7 @@ function q($sql, $subs = [], $retId = FALSE, $log = FALSE) {
   u\EXPECT(compact(ray('sql subs')), 'notempty assoc');
 //  if (strpos($sql, 'INSERT INTO') !== FALSE and strpos($sql, ' VALUES (')) $return = \Database::RETURN_INSERT_ID;
   if ($retId) $return = \Database::RETURN_INSERT_ID;
+  if (preg_match('/^DELETE FROM ([^ ]+)( |$)/', $sql, $match) and !in(NO_LOGSQL_TABLES, @$match)) logSql(compact(ray('sql subs retId')));
   if ($log and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs + compact('sql'));
   try {
     return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
@@ -68,6 +71,7 @@ function lookup($fieldName, $table, $where = '1', $subs = []) {
  * @return: if inserting, then the id of the inserted record, else TRUE (FALSE on failure)
  */
 function update($table, $info, $key, $either = FALSE) {
+  logSql(compact(ray('table info key either')));
   //if ($table != 'r_log') u\loga('db', $info, "$table:$key" . ($either ? ' EITHER' : ''));
   if ($either) if (!isset($info[$key]) or !db\exists($table, "$key=:$key", [$key => $info[$key]])) $key = '';
   $command = $key ? 'UPDATE' : 'INSERT INTO';
@@ -136,6 +140,18 @@ function lst($field, $table, $where = '1', $subs = []) { // lst because "list" i
 }
 
 /**
+ * Log the given update, insert, or delete query
+ */
+function logSql($args) {
+  global $mya;
+  $args = date('d') . ' ' . @$mya->mainQid . ': ' . u\jsonEncode($args);
+  $args = strtr($args, ['\\"' => '', '"' => '', '\\n' => '|', ';}' => '}', ';' => '; ', ',' => ', ']);
+  $fileName = DRUPAL_ROOT . '/rlogs/' . date('Ym') . '.logsql'; // new log file every month
+  file_put_contents($fileName, "$args\n", FILE_APPEND);
+  return $fileName;
+}  
+
+/**
  * Set new values in the data field of a record.
  * @param string $table: what record the table is in
  * @param string $id: the record ID
@@ -174,7 +190,7 @@ function setFlag($table, $id, $bit, $bool = TRUE) {
 }
 
 /**
- * Make a backup copy of the record before deleting it (then delete it).
+ * Make a backup copy of the record before deleting it if appropriate (then delete it).
  * @param string $table: delete a record from this table
  * @param mixed $id: integer id of record to delete OR criteria
  * @param assoc $subs: parameters for selection criteria
@@ -186,8 +202,11 @@ function del($table, $id, $subs = []) {
     $where = "$idnm=$id";
   } else $where = $id;
   $now = time();
-  $q = db\q("INSERT INTO $xtable SELECT :now AS deleted,a.* FROM $table a WHERE $where", compact('now'));
-  if ($q->rowCount()) db\q("DELETE FROM $table WHERE $where");
+  if (in_array($table, ray(TRACK_DELETED))) {
+    $q = db\q("INSERT INTO $xtable SELECT :now AS deleted,a.* FROM $table a WHERE $where", compact('now') + $subs);
+    $ok = ($q->rowCount() > 0);
+  } else $ok = TRUE;
+  if ($ok) db\q("DELETE FROM $table WHERE $where", $subs);
 }
 
 /**

@@ -329,4 +329,13 @@ SELECT SUM(-amount)/10 AS weeklyAmt, AVG(-amount) AS avgAmt, COUNT(amount)/10 AS
 to shrink db dump for import into test server, replace all /(.?26742000000...), 0x[0-9a-f]+,/ with '\1, 0,'
 
 to create a graph of Greenfield CttyFund/PerMo by quarter (for presentation):
-SELECT FLOOR((1514782800-created)/(60*60*24*90)) AS quarter, AVG((ABS(ABS(bankOut)-ABS(bankIn))+tradeOut-tradeIn)/perMo) AS ratio FROM `r_stats` WHERE ctty=-26742000000002 AND perMo>1 GROUP BY FLOOR((1514782800-created)/(60*60*24*90)) ORDER BY created
+SELECT FLOOR((1514782800-created)/(60*60*24*90)) AS quarter, ABS(ABS(bankOut)-ABS(bankIn))+tradeOut+tradeIn AS cttyFund, AVG(perMo)*3 AS trade, AVG((ABS(ABS(bankOut)-ABS(bankIn))+tradeOut+tradeIn)/perMo/3) AS ratio FROM `r_stats` WHERE ctty=-26742000000002 AND perMo>1 GROUP BY FLOOR((1514782800-created)/(60*60*24*90)) ORDER BY created
+
+SELECT FLOOR((1514782800-created)/(60*60*24*30)) AS month, AVG(ABS(ABS(bankOut)-ABS(bankIn))+tradeOut+tradeIn) AS cttyFund, AVG(perMo) AS trade, AVG((ABS(ABS(bankOut)-ABS(bankIn))+tradeOut+tradeIn)/perMo) AS ratio FROM `r_stats` WHERE ctty=-26742000000002 AND perMo>1 GROUP BY FLOOR((1514782800-created)/(60*60*24*30)) ORDER BY created
+
+SELECT FLOOR((1514782800-created)/(60*60*24*30)) AS month, AVG(ABS(ABS(bankOut)-ABS(bankIn))+tradeOut+tradeIn)/1000 AS cttyFundK, pAccts, bAccts, AVG(perMo)/1000 AS tradeK, AVG((ABS(ABS(bankOut)-ABS(bankIn))+tradeOut+tradeIn)/1000/(pAccts+bAccts)) AS ratio FROM `r_stats` WHERE ctty=-26742000000002 GROUP BY FLOOR((1514782800-created)/(60*60*24*30)) ORDER BY created
+
+how does periodic p2b tx volume grow with number of members? tx$/mo/m/m = avg 1.76 all, 0.11 gfld as of 12/24/2017
+SELECT FLOOR(t.created/(60*60*24*30)) AS month, COUNT(DISTINCT payer) AS members, COUNT(amount)/COUNT(DISTINCT payer) FROM r_txs t JOIN users u ON u.uid=t.payer WHERE u.flags&(1<<6)=0 AND u.community=-26742000000002 GROUP BY FLOOR(t.created/(60*60*24*30))
+
+SELECT DISTINCT u.fullName,t.* FROM r_usd t JOIN r_invoices i ON i.payer=t.payee JOIN users u ON u.uid=t.payee WHERE i.amount=25 AND i.payee=26742000000220 AND t.created>=i.created ORDER BY t.payee,t.created

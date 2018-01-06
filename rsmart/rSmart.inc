@@ -4,7 +4,6 @@ use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Util as u;
 use rCredits\Backend as be;
-use rCredits\Testing as t;
 
 /**
  * @file
@@ -88,7 +87,7 @@ function pos($args = FALSE) {
   if (is_object($args)) $args = (array) $args; // this helps with debugging when passing json_decoded args
   if (is_string($args)) $args = urlq2ray($args); // convert from query string to array
 //  if (!$args) $args = t\POST(); else t\POST($args);
-  if ($args) t\POST($args); else $args = t\POST();
+  if ($args) f('t.POST', $args); else $args = $_POST;
   u\loga('in', $args);
   $args = u\sanitizeInput($args0 = $args);
   extract(just('op device agent member version', $args));
@@ -322,7 +321,7 @@ function photoReturn($pic) {
     $picNone = file_get_contents($filename);
     if (u\starts(bin2hex(substr($picNone, 0, $max)), $message)) $message = 'no photo';
 //    if ($pic === '') $message = 'no photo';
-    t\output($message); 
+    f('t.output', $message); 
     return $message;
   }
 
@@ -380,7 +379,7 @@ function charge($args, $type = 'charge') {
   if ($version > 216) if ($proof != $hashOfTx) if (!$force or $a->badOldProof($proof, $wanted, $created)) {
     r\tellAdmin('bad proof', compact(ray('version proof hashOfTx agent amount member code created force')));
     if (u\test() or $version > 218 ) {
-      if (u\test()) t\output("Should be proof of $wanted");
+      if (u\test()) f('t.output', "Should be proof of $wanted");
       $err = u\test() ? t('bad proof') : t('bad proof (wanted %hashOfTx as hash of %wanted', compact('hashOfTx', 'wanted'));
       return badTx($args, $name, $err);
     }

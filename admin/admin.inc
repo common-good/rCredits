@@ -12,7 +12,6 @@ namespace rCredits\Admin;
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Backend as be;
-use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Admin as a;
 use rCredits\Web as w;
@@ -116,7 +115,10 @@ function makeTestAccounts() {
   a\photoFromFile($a);
   
   foreach (ray(TEST_ACCTS) as $k) a($k)->update('email phone', 'test@example.com', '+14130000000'); // prevent accidental texts and emails to real accts
-  foreach (ray(TEST_ACCTS . ' ' . DEV_ACCTS) as $k) a($k)->update('community', -2); // isolate everyone into a bogus community
+
+  new r\Acct(ray('uid community name fullName email flags', -2, -2, 'example', t('Common Good Example'), 'ctty@example.com', u\bit([B_CO, B_CGC, B_UP]))); // create a bogus community
+  foreach (ray(TEST_ACCTS . ' ' . DEV_ACCTS) as $k) a($k)->update('community', -2); // isolate everyone into it
+  
   a\makeTestAdmins();
 }
 
@@ -207,7 +209,7 @@ define('ID_KEYS', 'id uid t.uid myid payer payee main other inviter invitee prox
  */
 function formatField($k, $v, $flagsField = B_LIST) {
   $v = $v . ''; // convert to string
-  if ($k == 'bankAccount' and u\starts($v, '~')) $v = 'c' . $v; // FUDGE to repair broken crypt flag (?)
+//  if ($k == 'bankAccount' and u\starts($v, '~')) $v = 'c' . $v; // FUDGE to repair broken crypt flag (?)
   while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
   if ($v and in_array($k, ray(ID_KEYS)) and strlen($v) >= strlen(r\cgfId())) {
     if ($a = r\acct($v)) $v = $a->name; else $v .= t(' (missing)'); // eg, when uid is changed
@@ -630,17 +632,22 @@ function adminSignin() {
   $pw2 = @$_COOKIE['pw2'];
   u\EXPECT($pw2, 'no pw2!');
   
-  $q = db\q("SELECT txid,payee,bankAccount FROM r_usd WHERE bankAccount<>'' and bankAccount NOT LIKE ':CRYPT_FLAG%'");
+  $q = db\q("SELECT txid,payee,bankAccount FROM r_usd WHERE bankAccount NOT LIKE ':CRYPT_FLAG%'");
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    $bankAccount = u\crypt($bankAccount . '', 0, $pw2);
-    db\update('r_usd', compact('txid', 'bankAccount'), 'txid');
-    w\say(t('bank account encrypted in exchange record #%txid.', compact('txid')));
+    if (substr($bankAccount, 0, 2) == 'US') {
+      $bankAccount = u\crypt($bankAccount . '', 0, $pw2);
+      db\update('r_usd', compact('txid', 'bankAccount'), 'txid');
+      w\say(t('bank account super-encrypted in exchange record #%txid.', compact('txid')));
+    } else r\tellAdmin('bad bank account in exchange record', ray('txid b0 hex', $txid, $b0, bin2hex($b0)));
+
     $a = r\acct($payee);
-    if ($bankAccount = $a->bankAccount and !u\starts($bankAccount, CRYPT_FLAG)) {
-      $bankAccount = u\crypt($bankAccount . '', 0, $pw2); // might be different (newer) than in r_usd
-      $a->update(compact('bankAccount'));
-      w\say(t('bank account encrypted for user %user', 'user', $a->fullName));
+    if ($b0 = $bankAccount = $a->bankAccount and !u\starts($a->secure['bankAccount'], CRYPT_FLAG)) {
+      if (substr($bankAccount, 0, 2) == 'US') {
+//        $bankAccount = u\crypt($bankAccount . '', 0, $pw2);
+        $a->update(compact('bankAccount')); // might be different (newer) than in r_usd (super-encryption is automatic)
+        w\say(t('bank account super-encrypted for user %user', 'user', $a->fullName));
+      } else r\tellAdmin('bad bank account', ray('b0 hex', $b0, bin2hex($b0)));
     }
   }
 }

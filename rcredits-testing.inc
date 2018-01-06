@@ -17,8 +17,6 @@ global $base_path;
 define('BASE_PATH', $base_path);
 define('T_BALANCE_FIELDS', 'id balance floor rewards savingsAdd saveWeekly minimum share committed');
 define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to partner myid reid main agent other');
-define('T_MSG_FILE', 'test-messages.txt');
-if (!isDEV or isPRODUCTION) die('only on development machine');
 
 /**
  * Allow mnemonic and abbreviated data in test scenario columns.
@@ -532,7 +530,7 @@ function phoneField($field, $number) {
 }
 
 function usdTransferCount($where = '1') {
-  if (!isDEV or isPRODUCTION) die('only on development machine');
+/**/  if (!isDEV or isPRODUCTION) die('usdTransferCount ' . DEV_ONLY_MSG);
   global $testOnly;
   
   if($testOnly) {
@@ -968,7 +966,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
     $formSta['confirm'] = TRUE;
   }
 
-  t\POST($values);
+  $values = t\POST($values);
 
   if (!$form = t\pageForm(t\fixPageArgs($page), FALSE)) return FALSE; // probably access error
 
@@ -1157,13 +1155,13 @@ function eq($a, $b, $offBy = .0001) {
 function SERVER($key, $value = NULL) {
   if (!u\test()) return $_SERVER[$key];
   global $T_SERVER;
-  if (isset($value)) $T_SERVER[$key] = $value; else return $T_SERVER[$key];
+  if (isset($value)) $_SERVER[$key] = $T_SERVER[$key] = $value; else return $T_SERVER[$key];
 }
 
 /**
  * Fake $_POST params for testing
  */
-function POST(&$values = NULL) {
+function POST($values = NULL) {
   if (!u\test()) return $_POST;
   global $T_POST;
   if (isset($values)) {
@@ -1208,7 +1206,7 @@ function output($msg, $color = 'error') {
  * @param int $ch: the channel (web, sms, etc.)
  */
 function clear($ch = 0) {
-  if (!isDEV or isPRODUCTION) die('clear only on development machine');
+/**/  if (!isDEV or isPRODUCTION) die('clear ' . DEV_ONLY_MSG);
   include_once __DIR__ . '/admin/admin.inc';
   global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation, $tChecked, $tRadios, $testEmails;
   global $nextCode; $nextCode = NULL;

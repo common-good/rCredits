@@ -2,7 +2,6 @@
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Web as w;
-use rCredits\Testing as t;
 
 /**
  * @file
@@ -413,7 +412,7 @@ function rcredits_radio($variables) {
   $type = 'radio';
   $class[] = 'form-radio';
   $tribs = u\tribs(compact(ray('type class checked')) + $attributes);
-  if (@$checked) t\setRadio($parents[0], $title);
+  if (@$checked) f('t.setRadio', $parents[0], $title);
 
   return "<input $tribs />";
 }
@@ -453,7 +452,7 @@ function rcredits_checkbox($variables) {
 
   $type = 'checkbox';
   if (@$checked or @$default_value) $checked = 'checked'; else unset($checked);
-  if (@$checked) t\setChecked($title);
+  if (@$checked) f('t.setChecked', $title);
   $tribs = u\tribs(compact('type', 'checked', 'class') + $attributes);
   return "<input $tribs />";
 }

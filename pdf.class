@@ -2,7 +2,6 @@
 namespace rCredits;
 use rCredits as r;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 
 /**
  * @file

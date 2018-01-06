@@ -3,7 +3,6 @@ namespace rCredits\Cron;
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 use rCredits\Backend as be;
 use rCredits\Risk as k;
 use rCredits\Cron as cr;
@@ -191,8 +190,9 @@ function everyDay() {
   foreach ($cttys as $ctty) $companies[$ctty] = r\companies($ctty, TRUE);  
   \variable_set('companies', @$companies ?: []);
 
-  $where = "RIGHT(fullName, 8)=' PARTNER' COLLATE utf8_bin AND pass='' AND NOT :IS_CO AND activated=0";
-  eachA(function ($a) {if ($jA = $a->jA and $jA->jid == $a->id) $jA->update('jid', '');}, $where); // acts weird; do this last
+//  $where = "RIGHT(fullName, 8)=' PARTNER' COLLATE utf8_bin AND pass='' AND NOT :IS_CO AND activated=0";
+  $where = "BINARY RIGHT(fullName, 8)=' PARTNER' AND pass='' AND NOT :IS_CO AND activated=0";
+  eachA(function ($a) {if ($jA = $a->jA and $jA->jid == $a->id) $jA->update('jid', 0);}, $where); // acts weird; do this last
   db\del('users', $where); // abandoned new joint acct (must postcede setting jids)
 }
 
@@ -508,13 +508,19 @@ function recache1($item) {
  * Check accounts for consistency, scams, whatever.
  */
 function checkAccts() {
-  queueEach('checkAcct', "SELECT uid, minimum, rewards FROM users WHERE uid<>0");
+  $sql = <<<EOF
+SELECT u.uid,u.fullName,u.jid,u2.jid AS partnerJid,r.reid,r.other AS relatedId FROM users u
+LEFT JOIN r_relations r ON r.main=u.uid
+LEFT JOIN users u2 ON u2.uid=u.jid
+WHERE u.uid<>0 AND u.jid AND r.permission=:B_JOINT-:B_RELATED
+EOF;
+  queueEach('checkAcct', $sql);
   queueNext();
 }
 
 function checkAcct($item) {
-  extract($item); // (prepared for additional tasks)
-  $a = r\acct($uid);
+  extract($item);
+  if (!$reid or !$partnerJid or $partnerJid != $uid or $relatedId != $jid) r\tellAdmin('bad relation', $item);
   //look at agreement date and first transaction date and last transaction date. queue appropriate funcs
 }
 
@@ -736,7 +742,7 @@ function bank() {
   }
   
 //  $where = ':IS_REFILL AND (:IS_JOINED OR r-rewards-savingsAdd<minimum) AND uid>1 AND :IS_OK';
-  $where = ':IS_REFILL AND (:IS_JOINED OR balance<minimum) AND uid>1 AND :IS_OK';
+  $where = ':IS_REFILL AND (jid OR balance<minimum) AND uid>1 AND :IS_OK';
   $sql = <<<EOF
   SELECT uid
   FROM users 
@@ -840,13 +846,16 @@ function invoice($item) {
     $short = round($amount - $a->avail(), 2);
     if ($short <= 0) {
       if (!$ok = be\payInvoice($nvid, $msg)) r\tellAdmin(t('invoice payment failed in cron'), compact('msg') + $item);
-    } elseif ($masterA->hasBank) {
-      if ($masterA->refill) $amount += getHowMuchR($masterA);
-      if ($amount < 0.01) return; // (avoid floating point equality errors by using <)
-      if (!$checkNum = $masterA->bank($amount)) return; // may never happen, but if mysql is unavailable just redo next day
-      list ($amount, $action) = [u\fmtAmt($amount), t('draw from')];
-      r\notify($payer, 'banked|bank tx number', compact(ray('action amount checkNum')));
-    } elseif ($a->waitingFromBank() <= 0) r\notify($payer, 'short invoice|when funded', ray('short payeeName', u\fmtAmt($short), $payeeName));
+    } else {
+      $waiting = $a->waitingFromBank();
+      if ($masterA->hasBank and $waiting <= $short) { // we can get it from the bank and haven't requested it yet
+        if ($masterA->refill) $amount += getHowMuchR($masterA);
+        if ($amount < 0.01) return; // (avoid floating point equality errors by using <)
+        if (!$checkNum = $masterA->bank($amount)) return; // may never happen, but if mysql is unavailable just redo next day
+        list ($amount, $action) = [u\fmtAmt($amount), t('draw from')];
+        r\notify($payer, 'banked|bank tx number', compact(ray('action amount checkNum')));
+      } elseif ($waiting <= 0) r\notify($payer, 'short invoice|when funded', ray('short payeeName', u\fmtAmt($short), $payeeName));
+    }
   }
   
   if ($status == TX_PENDING) {

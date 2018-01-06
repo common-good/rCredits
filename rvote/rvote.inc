@@ -4,7 +4,6 @@ use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Backend as be;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 use rCredits\Web as w;
 use rCredits\Vote as v;
 
@@ -199,7 +198,7 @@ function getresults($question) {
 //. goform($community_id, $voter_id, 'overview.php', 'Back to Overview');
 }
 
-function setdbfield($k, $v) {$_POST[$k] = $v; t\POST([$k => $v]);}
+function setdbfield($k, $v) {$_POST[$k] = $v; f('t.POST', [$k => $v]);}
 
 function formatdate($dt='') {
 	$fmt = 'Y-m-d H:i:s';

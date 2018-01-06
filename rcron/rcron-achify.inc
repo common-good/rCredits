@@ -1,41 +1,78 @@
-CURRENTLY UNUSED (Dec 2014)
+<?php
+use rCredits as r;
+use rCredits\Util as u;
+use rCredits\DB as db;
+
+define('F_FILEHDR', 'recType:1, priority:2, destNum:10, originNum:10, datetime:10, fileIdModifier:1, recSize:3, blocking:2, format:1, destName:23, originName:23, ref:8'); // header format
+define('F_BATCHHDR', 'recType:1, class:3, originName:16, data:20, originNum:10, secCode:3, purpose:10, when:6, entryDate:6, settle:3, status:1, destNum:8, batchNum:7'); // batch header format
+define('F_PPD', 'recType:1, txCode:2, routing:9, account:17, amount:10, id:15, name:22, data:2, addendaFlag:1, destNum:8, count:7'); // PPD (Prearranged Payment and Deposit) entry detail format
+define('F_BATCHFTR', 'recType:1, class:3, count:6, hash:10, debits:12, credits:12, originNum:10, auth:19, reserve:6, destNum:8, batchNum:7'); // end of batch (control record)
+define('F_FILEFTR', 'recType:1, batches:6, blocks:6, entries:8, hash:10, debits:12, credits:12, reserve:39'); // end of file (control record)
+define('DEST_NUM', '011500120'); // usually a routing number for the bank providing ACH service
 
 /**
  * Create an ACH request file (debits only, for now).
  */
 function achify() {
+  $reserve = ''; // leave reserved fields empty
   $count = $hash = $credits = $debits = 0;
+
+  list ($recType, $priority, $recSize, $blocking, $format) = [1, 1, 94, 10, 1];
+  $fileIdModifier = 'A'; // distinguishes files on the same date and between the same participants (A-Z, 0-9); never send two files on the same day, so this can be static
+  list ($destNum, $destName) = [' ' . DEST_NUM, 'Citizens Bank'];
+  $datetime = strftime('%y%m%d%H%M');
+  list ($originNum, $originName, $ref) = ['1' . CGF_EIN, PROJECT, ''];
+  $recs[] = achRecord(compact(array_keys($ray = ray(F_FILEHDR))), $ray);
   
+  $destNum = substr(DEST_NUM, 0, 8);
+  list ($recType, $class, $secCode, $settle, $status) = [5, 200, 'PPD', '', 1]; // 200=mixed (maybe), 225=debits, 220=credits
+  $entryDate = strftime('%y%m%d', strtotime('tomorrow'));
+  $batchNum = 1; // batch (company) number within file
+  list ($data, $purpose, $when) = ['', t('CG Credits'), strftime('%b%d')];
+  $recs[] = achRecord(compact(array_keys($ray = ray(F_BATCHHDR))), $ray);
+
+/*
   $tdRoute = '21127445'; // sending bank's routing number without the final "0"
   $now = strftime('%y%m%d%H%M');
   $fileId = 'A'; // distinguishes files on the same date and between the same participants (A-Z, 0-9)
-  $dest = pad('TD BANK NA', 23);
-  $source = pad('SOC TO BENEFIT EVERYONE', 23);
+  $dest = pad('RBS CITIZENS NA', 23);
+  $source = pad(PROJECT, 23);
   $ref = pad('', 8);
   $recs[] = "101 {$tdRoute}0" . '1' . CGF_EIN . "$now{$fileId}094101$dest$source$ref"; // file header
   
   $class = '200'; // mixed credits and debits (225 for debits only, 220 for credits only)
-  $coName = pad(strtoupper('RCREDITS SYSTEM'), 16); // 'SOC BENFT EVRYON'? 'COM GOOD FINANCE'? 'COMMON GOOD FIN'?
+  $coName = pad(strtoupper(PROJECT), 16); // 'SOC BENFT EVRYON'? 'COM GOOD FINANCE'? 'COMMON GOOD FIN'?
   $extra = pad('', 20); // discretionary (we can use this space for anything)
   $code = 'PPD'; // prearranged payment and deposit
   //$purpose = pad($amount > 0 ? t('rCredits') : t('money out'), 10);
-  $purpose = pad(t('rCredits+-'), 10);
+  $purpose = pad(t('CG Credits'), 10);
   $when = pad(strftime('%b %d'), 6); // descriptive date
   $effective = strftime('%y%m%d'); // requested settlement date
-  $batch = u\lpad(1, 7); // should this be unique for all our batches ever? or just within the file?
+  $batch = u\lpad(1, 7); // batch (company) number within file
   $recs[] = "5$class$coName$extra" . '1' . CGF_EIN . "$code$purpose$when$effective" . "0001$tdRoute$batch"; // co batch header
+*/
 
-  $longAgo = REQUEST_TIME - DAY_SECS * 10;
-  db\q('UPDATE r_ach SET completed=-9 WHERE created<=:longAgo', compact('longAgo')); // stop trying if too old
-  $q = db\q('SELECT txid,uid,amount FROM r_ach WHERE completed<=0 AND completed>-:R_ACH_TRIES ORDER BY txid');
+  $where = TRUE ? 1 : 'amount<=0';
+  $q = db\q("SELECT txid,payee,amount FROM r_usd WHERE $where AND deposit=0 ORDER BY txid");
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    if ($amount < 0) continue; // ignore these while the system is young (admin may want to dissuade the member)
-    $a = r\acct($uid);
-    if (!$a->bank or !$a->ok) continue;
-    extract(just('bankAccount bankAccountType', $a->secure));
-    if (!@$bankAccount) continue;
-    list ($route, $account) = u\parseBankAccount($bankAccount);
+    $a = r\acct($payee);
+    $bankAccountType = 'checking'; // we handle only checking accounts at this time
+    if ($a->mainQid == 'NEWAFX') $bankAccountType = 'savings';
+    $count++;
+    list ($recType, $id, $name, $addendaFlag) = [6, $a->mainQid, $a->legalName, 0];
+    list ($routing, $account) = u\parseBankAccount($a->bankAccount);
+    if ($a->mainQid == 'NEWAIO') $amount = 0; // debug(
+    if ($amount <= 0) $credits += $amount; else $debits += $amount;
+    $txCode = $amount == 0 ? 23 
+    : (@$bankAccountType == 'checking' ? ($amount < 0 ? 22 : 27) : ($amount < 0 ? 32 : 37));
+    $recs[] = achRecord(compact(array_keys($ray = ray(F_PPD))), $ray);
+
+    $hash += substr($routing, 0, 8);
+    
+    /*    
+    list ($route, $account) = u\parseBankAccount($a->bankAccount);
+    $bankAccountType = 'checking'; // we handle only checking accounts at this time
     $code = @$bankAccountType == 'checking' ? ($amount < 0 ? 22 : 27) : ($amount < 0 ? 32 : 37);
     $account = pad($account, 17);
     if ($amount < 0) $credits -= $amount; else $debits += $amount;
@@ -47,10 +84,19 @@ function achify() {
     $recs[] = "6$code$route$account$amount$acctId$name$extra" . "0$trace"; // one ach request
     $count += 1;
     $hash = substr($hash + $route, 10);
+    */
   }
   
-  if (!$count) return; // must be separate line from padding
+  if (!$count) return 0;
   
+  list ($recType, $auth) = [8, ''];
+  $recs[] = achRecord(compact(array_keys($ray = ray(F_BATCHFTR))), $ray);
+
+  list ($recType, $batches, $entries) = [9, 1, $count];
+  $blocks = ceil((2 + $count + 2) / 10); // how many blocks of 10 lines, rounded up (2 hdrs, "count" entries, 2 ftrs)
+  $recs[] = achRecord(compact(array_keys($ray = ray(F_FILEFTR))), $ray);
+
+  /*
   $count = u\lpad($count, 6);
   $hash = u\lpad($hash, 10);
   $debits = padnum($debits, 12);
@@ -64,13 +110,28 @@ function achify() {
   $count = u\lpad($count, 8);
   $b39 = u\lpad('', 39);
   $recs[] = "9$batches$blocks$count$hash$debits$credits$b39"; // file control
-  
-  //foreach ($recs as $line) u\EXPECT(strlen($line) == 94, 'bad ach line len: ' . $line);
-  foreach ($recs as $line) if (strlen($line) != 94) deburg('bad ach line len: ' . strlen($line) . " - $line");
-  file_put_contents(__DIR__ . "/../ach-$now.txt", join("\n", $recs));
-  r\tellStaff('ach ready');
+  */
+/**/  foreach ($recs as $line) if (strlen($line) != $recSize) debug('bad ach line len: ' . strlen($line) . " - $line");
+  header('Content-type: text/plain');
+  header("Content-Disposition: attachment; filename=ach-$datetime.txt");
+  echo join("\n", $recs);
+  exit();
+}
+
+/**
+ * Return an ACH record for the given data and format.
+ * @param assoc $values: field values, in order
+ * @param assoc $lens: field lengths, in order
+ * @return the field values, justified / filled / truncated appropriately, then concatenated.
+ */
+function achRecord($values, $lens) {
+  $res = '';
+  foreach ($lens as $k => $len) {
+    $v = $values[$k];
+    $res .= is_numeric($v) ? padnum($v, $len) : pad($v, $len);
+  }
+  return $res;
 }
 
 function pad($s, $n) {return substr(str_pad($s, $n), 0, $n);}
 function padnum($n, $len) {return u\lpad(str_replace('.', '', abs($n)), $len);}
-/**/ function log($msg) {file_put_contents('cron.log', print_r($msg, 1) . "\n" . @file_get_contents('cron.log'));}

@@ -9,7 +9,6 @@ namespace rCredits\Util; // typically abbreviated as "u"
 use rCredits as r; // get rid of this
 use rCredits\DB as db;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 
 define ('URL_CHARS', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_~'); // 66 valid URLchars
 define ('HEX_CHARS', '0123456789abcdef');
@@ -829,7 +828,7 @@ function crypt($data, $how = 0, $key = R_WORD, $encrypt = TRUE, $noIV = FALSE) {
     $iv = mcrypt_create_iv($ivSize, MCRYPT_RAND);
   } else {
     $flagLen = strlen(CRYPT_FLAG . $how);
-    if (!u\starts($data, CRYPT_FLAG . $how)) return $data; // temporary fudge, to get data out
+//    if (!u\starts($data, CRYPT_FLAG . $how)) return $data; // temporary fudge, to get data out
     u\EXPECT(u\starts($data, CRYPT_FLAG . $how), 'wrong encryption');
     list ($iv, $data) = [substr($data, $flagLen, $ivSize), substr($data, $flagLen + $ivSize)];
   }
@@ -1367,7 +1366,7 @@ function rayv($a, $i) {return $a[$i];} // useful when $a is returned from a func
 function strip($a) {foreach ($a as $i => $v) $a[$i] = strip_tags($v); return $a;}
 function initials($s) {return preg_replace('/[^A-Z]/', '', ucwords(strtr($s, ray('Jr', ''))));}
 function roughName($name) {return preg_replace("/[^A-Z '\-]/", '', strtoupper(trim(str_replace('  ', ' ', $name))));}
-function urlArgs() {return basename(u\test() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);}
+function urlArgs() {return basename($_SERVER['REQUEST_URI']);}
 function in($a, $b) {return (strpos(" $b ", " $a ") !== FALSE);} // needle in space-delimited hay
 function uc1($s) {return ucwords(substr($s, 0, 1)) . substr($s, 1);}
 function nextAfter($needle, $hay) {return ($i = array_search($needle, $hay)) === FALSE ? NULL : $hay[$i + 1];}

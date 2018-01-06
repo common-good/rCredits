@@ -41,6 +41,7 @@ function tableDefs($schema = []) {
     
     // additions to Drupal fields
     'flags' => setupField('boolean permissions and state flags', 'int big', 0, TRUE),
+    'jid' => setupfield('account ID of joined account (0 if none)', 'int big', 0),
     'changes' => setupField('changes made to the account', 'blob big'),
     'community' => setupField("uid of this account's Common Good Community", 'int big'),
 //    'question' => setupField('security question', 'varchar 255'),
@@ -55,7 +56,6 @@ function tableDefs($schema = []) {
     'state' => setupField('state/province index', 'int 5'),
     'zip' => setupField('postal code for physical address (no punctuation)', 'varchar 255'),
     'country' => setupField('country index', 'int 4'),
-    'postalAddr' => setupField('complete postal address', 'varchar 255'),
     'notes' => setupField('miscellaneous notes about the user or the account', 'text big'),
     'tickle' => setupField('Unixtime to tickle an admin about this account', 'int 11', 0),
     'activated' => setupField('when was the account activated', 'int 11', 0),

@@ -39,7 +39,6 @@ require_once 'rcredits.inc';
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\DB as db;
-use rCredits\Testing as t;
 use rCredits\Web as w;
 use rCredits\Admin as a;
 use rCredits\Cron as cr;
@@ -182,7 +181,7 @@ function q($sql, $subs = [], $log = FALSE) {return f('db.q', $sql, $subs, $log);
 function f($func) {
   global $cronOp; 
   list ($prefix, $funcName) = explode('.', $func);
-  $incs = ray('a:admin/admin.inc,y:rcredits-yearly.inc,w:rweb/rweb.inc,cr:rcron/rcron.inc,be:rcredits-backend.inc,s:rsmart/rsmart.inc');
+  $incs = ray('a:admin/admin.inc,y:rcredits-yearly.inc,w:rweb/rweb.inc,cr:rcron/rcron.inc,be:rcredits-backend.inc,s:rsmart/rsmart.inc,t:rcredits-testing.inc');
   if ($flnm = @$incs[$prefix]) require_once __DIR__ . "/$flnm";
 
   if ($prefix == 'v') {

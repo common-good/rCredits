@@ -8,13 +8,13 @@ namespace rCredits\Web;
 use rCredits as r;
 use rCredits\Backend as be;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 use rCredits\db as db;
 use rCredits\Admin as a;
 use rCredits\Web as w;
 
 include_once __DIR__ . '/admin.inc';
 include_once __DIR__ . '/admin-web.inc';
+define('T_MSG_FILE', 'test-messages.txt');
 
 /**
  * Display top level Admin options.
@@ -371,8 +371,10 @@ function formFollowup($form, &$sta, $args = '') {
   $by = @$recent
   ? "notes IS NULL OR notes='' OR MID(notes,1,6)='knows ', (MID(notes,6,4)*37+LOCATE(MID(notes,3,3),'JanFebMarAprMayJunJulAugSepOctNovDec'))*32+MID(notes,1,2) DESC"
   : "($todayEnd - IF(tickle>0, tickle, u.created)) * IF(tickle>$todayEnd, -5 * 366 * :DAY_SECS, 1)"; // today's calls first, then yesterday, 2 days ago etc., then tomorrow, the next day, etc.
+  if ($mya->superAdmin) $by = "(notes LIKE '%ZAP%' AND BINARY notes LIKE '%ZAP%') OR (!activated AND :IS_MEMBER) DESC, " . $by;
+  
   $sql = <<<EOF
-    SELECT DISTINCT uid, community, tickle, fullName, phone, u.data, u.created, activated, notes, :IS_CO AS co, t.created AS lastTx, :IS_MEMBER AS member
+    SELECT DISTINCT uid, community, tickle, fullName, phone, u.data, u.created, activated, notes, :IS_CO AS co, t.created AS lastTx, :IS_MEMBER AS member, :IS_OK AS ok
     FROM users u LEFT JOIN (SELECT created,payer,payee FROM r_txs ORDER BY created DESC LIMIT 1) t ON uid IN (payer, payee)
     WHERE uid>3 AND NOT :IS_NONUDGE AND NOT (activated and NOT :IS_OK) AND $where2 AND (tickle>0 OR NOT :IS_MEMBER
       OR t.created<$now-60*:DAY_SECS OR t.created IS NULL)
@@ -389,22 +391,29 @@ EOF;
   }
   $list = "<table id=\"memberlist\"><tr>$heads</tr>\n";
   $emails = '';
+  $whities = ray('red black'); // use white font for these backgrounds
+  
   while ($row = $q->fetchAssoc()) {
     extract($row);
     foreach (['tickle', 'activated'] as $k) if ($$k) $$k = strtotime('today', $$k); // round down to nearest day
     $days = round(($tickle - $activated) / DAY_SECS); // tickle: days since activation
     list ($type, $color) = !$activated 
-    ? ($member ? [t('activate'), 'red'] : (strpos($data, '"signup";b:0') ? [t('pre'), '#ff4d4d'] : [t('setup'), 'yellow']))
+    ? (strpos($notes, 'ZAP') 
+      ? [t('DELETE'), 'red']
+      : ($member ? [t('activate'), 'red'] : (strpos($data, '"signup";b:0') ? [t('pre'), 'orange'] : [t('setup'), 'yellow']))
+      )
 //    : (round(($activated + TICKLE_WELCOME - $tickle) / DAY_SECS) == 0 ? [t('welcome2'), 'lime']
 //    : (round(($activated + TICKLE_DELAYED - $tickle) / DAY_SECS) == 0 ? [t('welcome6'), 'lime']
+    : (strpos($notes, 'ZAP') ? [t('DEACTIVATE'), 'red']
     : (between($days, TICKLE_WELCOME - 1, TICKLE_WELCOME + 14) ? [t('welcome2'), 'lime']
     : (between($days, TICKLE_DELAYED - 1, TICKLE_DELAYED + 14) ? [t('welcome6'), 'lime']
     : (($activated < strtotime('9/2/2017') and $tickle < $activated + 90 * DAY_SECS and !$notes) ? [t('welcome'), 'lime']
     : (($tickle and $days % 365 < 30) ? [t('annual'), 'violet'] // +/-:2/29
 //    in_array(($tickle - $activated) % DAY_SECS, [0, 1, DAY_SECS - 1])) ? [t('annual'), 'violet'] // +/-:2/29
     : (($lastTx < $now - 60 * DAY_SECS and $now - $activated > 60 * DAY_SECS) ? [t('dormant'), 'silver']
-    : ($tickle ? [t('followup'), 'orange']
-    : ( [t('other'), 'black'] )))))));
+    : ($tickle ? [t('followup'), 'black']
+    : ( [t('other'), 'black'] ))))))));
+    if (in_array($color, $whities)) $color .= '; color:white';
     $type = "<span style=\"background-color:$color;\">$type</span>";
     $call = u\fmtDate($tickle ?: $created);
     $name = w\lnk("$base_url/summary/$uid", $fullName ?: $uid);
@@ -547,14 +556,15 @@ function formPhp_submit($form, &$sta) {
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Backend as be;
-use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Admin as a;
 use rCredits\Web as w;  
 use rCredits\Cron as cr;
+use rCredits\Smart as s;
 $code
 EOF;
   
+  if (!isPRODUCTION) $code = "use rCredits\Testing as t;\n" . $code;
   ob_start();
   eval($code);
   $res = ob_get_clean();
@@ -873,7 +883,7 @@ function util($arg) {
   if ($arg == 'rebuild') {
     require_once __DIR__ . '/../rcredits-install.inc';
     r\rebuildDb();
-    if (isDEV) t\clear(); else a\setupBasicAccounts();
+    if (isDEV) f('t.clear'); else a\setupBasicAccounts();
   /*    $modules = ray('rcredits rsms rsmart rweb');
     \module_disable($modules, FALSE);
     foreach ($modules as $module) {

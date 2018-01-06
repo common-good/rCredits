@@ -22,7 +22,7 @@ define('R_MAX_REBATE', 500); // cap on rebate for a single transaction (max bonu
 define('R_MIN_REWARD_PCT', 1); // minimum reward percentage
 define('R_REWARD_STEP', 100); // how much rewards can the member get before their reward percentage goes down by 1%
 define('R_XFEE_CARD', .03); // percentage fee for exchanges of USD for Common Good Credits using a credit/debit card
-define('R_XFEE_CHECK', 3.00); // flat fee for exchanges of USD for Common Good Credits with a check
+define('R_XFEE_CHECK', 0); // flat fee for exchanges of USD for Common Good Credits with a check (was 3.00)
 define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller limits also apply)
 define('R_SIGNUP_BONUS', 20); // how much people start with at this time
 define('R_HELPER_BONUS', 20); // how much you get for inviting and assisting someone with account opening

@@ -8,7 +8,6 @@ namespace rCredits\Web;
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Backend as be;
-use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Admin as a;
 use rCredits\Web as w;

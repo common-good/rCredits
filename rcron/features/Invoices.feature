@@ -34,6 +34,7 @@ Setup:
   Then transactions: 
   | xid | created | type     | amount | from | to   | purpose             | taking |*
   |   4 | %today  | transfer |    100 | .ZZA | .ZZC | one (%PROJECT inv#1) | 0      |
+  And usd transfer count is 1
   And usd transfers:
   | txid | payee | amount | created | completed |*
   |    1 | .ZZA  |    800 | %today  |         0 |
@@ -60,3 +61,9 @@ Setup:
   | .ZZA |    -100 |     255 |
   | .ZZB |       0 |     250 |
   | .ZZC |     100 |     260 |
+  
+  When cron runs "invoices"
+  Then usd transfer count is 1
+  And usd transfers:
+  | txid | payee | amount | created | completed |*
+  |    1 | .ZZA  |    800 | %today  |         0 |

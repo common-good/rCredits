@@ -3,7 +3,6 @@ namespace rCredits\Web;
 use rCredits as r;
 use rCredits\Backend as be;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 use rCredits\Db as db;
 use rCredits\Txs as x;
 use rCredits\Admin as a;
@@ -23,7 +22,7 @@ require_once __DIR__ . '/rweb-subs.inc';
 require_once __DIR__ . '/../rcredits-backend.inc';
 include_once __DIR__ . '/rweb-txs.inc'; // treat this as an extension of this file, just to make menu ['file'] consistent
 // FAILS (WHY?) include_once __DIR__ . (u\test() ? '/../rcredits-testing.inc' : '/../testing-stub.inc'); // else fail in showForm()
-include_once __DIR__ . '/../rcredits-testing.inc'; // else fail in showForm()
+//include_once __DIR__ . '/../rcredits-testing.inc'; // else fail in showForm()
 
 define('UPLOAD_DIR', dirname($_SERVER['DOCUMENT_ROOT']) . '/public_ftp/incoming');
 
@@ -50,7 +49,7 @@ function formPageNotFound($form, &$sta, $arg = '') {
 
 function ajax() {
   global $channel; $channel = TX_AJAX; // tell log and tellAdmin our environment
-  extract(just('op sid data', t\POST() ?: $_GET)); // don't sanitize this, it only comes from us!
+  extract(just('op sid data', $_POST ?: $_GET)); // don't sanitize this, it only comes from us!
   header('Content-Type: application/json');
 
   if (!@$sid or !$vars = w\sessionVars($sid)) ajaxErr('bad sid');
@@ -125,7 +124,7 @@ function ajaxRet($data, $ok = 1) {
  */
 function rdo($code, $args = '') {
   global $channel;
-  if (isDEV) foreach (['error', 'status'] as $k) unlink(t\dosayFilename($type)); // clear tests (no way to know if testing)
+  if (isDEV) foreach (['error', 'status'] as $k) unlink(f('t.dosayFilename', $type)); // clear tests (no way to see if testing)
   if (time() < strtotime('6/1/2017')) u\loga('rdo', compact('code', 'args'));
   if (strpos($code, ' ')) return doSay($code);
   if ($i = strpos($code, '~') and $i < 15) { // mailChimp-type action
@@ -1617,7 +1616,7 @@ function photoUpload($uid = '', $sid = '') {
   global $base_url;
   $f0 = ray('imgUrl imgInitW imgInitH imgW imgH imgY1 imgX1 cropH cropW rotation uid sid');
   $f = ray('url w0 h0 w h y1 x1 cropH cropW angle uid sid');
-  $params = t\POST(); // don't sanitize this, it only comes from us!
+  $params = $_POST; // don't sanitize this, it only comes from us!
   foreach ($params2 = array_combine($f0, $f) as $k0 => $k) $$k = $params[$k0];
   
   if (!@$uid or !@$sid or !$sessionVars = w\sessionVars($sid)) return w\photoRet(t('bad sid'));
@@ -1685,7 +1684,7 @@ function formPhoto($form, &$sta, $arg = '') {
     ? t('<p>1. Choose a picture to represent your company in %PROJECT promotions.</p>')
     : t('<p>1. Choose a recent color picture of yourself for your photo-ID %PROJECT Card. Your photo will be encrypted and will not be visible to other members (unless you show it to them).<%b>Requirements</b>:
     <ul>
-    <li>It should be a photo of you and only you (you can crop other people out).</li>
+    <li>It should be a color photo of you and only you (you can crop other people out).</li>
     <li>It must show clearly your full face (no sunglasses, eyes open).</li>
     <li>Your head should fill most of the frame (no shoulders needed).</li></ul>', '_b', 'b class="loud"');    
     $desc .= t('<p>2. Play with the buttons to adjust the position, size, and rotation, then click the <img src="%rUrl/images/icons/crop.png" height="20" />button to upload the image. Please feel free to %emailIt, if that is easier for you.', '_b _emailIt rUrl', 'b style="color:lightgreen; background-color:darkgray;"', $emailIt, $rUrl);
@@ -2067,7 +2066,9 @@ function formInvoiceUpload_submit($form, &$sta) {
     list ($cust, $amt, $desc) = $row;
     if ($err = u\badAmount($amt, '>0')) return say('bad csv|' . $err . $atLine, 'invoices');
 //    $isCustomer = exists('r_relations', 'main=:myid AND other=:cust', compact('myid', 'cust')) ?
-    if (!$custA = r\acct($cust) or !db\relation($myid, $custA->id)) return say(t('Bad customer account ID') . $atLine, 'invoices');
+    $subs = compact('atLine', 'cust');
+    if (!$custA = r\acct($cust)) return say(t('Bad customer account ID %atLine: %cust'), $subs, 'invoices');
+    if (!r\relation(1, $myid, $custA->id)) return say(t('Account ID is not a customer of yours %atLine: %cust'), $subs, 'invoices');
     $txs[] = [$custA->id, $amt, $desc, FOR_GOODS];
     $total += $amt;
     $cust = $amt = '';
@@ -2077,9 +2078,12 @@ function formInvoiceUpload_submit($form, &$sta) {
   
   foreach ($txs as $one) {
     list ($uid, $amt, $desc, $goods) = $one;
-    list ($msg, $subs) = be\transfer('charge', $mya, r\acct($uid), $amt, $goods, $desc);
-    say($msg, $subs);
+    $a2 = r\acct($uid);
+    list ($msg, $subs) = be\invoice($mya, $a2, $amt, $goods, $desc);
     if (!@$subs['success']) $err = TRUE;
+    $msg = str_replace('|balance unchanged', '', $msg); // otherwise this gets tiresome, repeated over and over
+    if (!$err and !$a2->ok) $msg .= '|' . t('<b class="loud">NOTE: </b>%otherName will need to finish opening a %PROJECT account.');
+    say($msg, $subs);
   }
   
   if (!@$err) {
@@ -2383,7 +2387,8 @@ function formHandleInvoice_submit($form, &$sta) {
     $msg = 'invoice delete done';
   } elseif ($op == 'deny' or @$whyNot) {
     $data = serialize(compact('whyNot') + (@$data ? unserialize($data) : []));
-    db\q('UPDATE r_invoices SET status=:TX_DENIED, data=:data WHERE nvid=:nvid', compact('nvid', 'data'));
+//    db\q('UPDATE r_invoices SET status=:TX_DENIED, data=:data WHERE nvid=:nvid', compact('nvid', 'data'));
+    db\update('r_invoices', ray('status data nvid', TX_DENIED, $data, $nvid), 'nvid');
     r\notify($payee, 'invoice denied', $subs);
     $msg = 'denial done';
   } else $msg = ''; // default: canceled
@@ -2608,14 +2613,14 @@ function formSignupCo_submit($form, &$sta) {
  *   helper: uid of account creating this one -- non null (same as $inviter) means created with formSignupCo
  */
 function formSignup($form, &$sta, $args = '') {
-  if (!$args) $args = @$_POST ?: basename(t\SERVER('REQUEST_URI')); // because menu_execute_active_handler fails
+  if (!$args) $args = @$_POST ?: basename($_SERVER['REQUEST_URI']); // because menu_execute_active_handler fails
   u\sanitizeInput($args);
   $contactDefaults = 'phone address city zip address2 city2 zip2 state2 postalAddr partner partnerCode customer source';
   extract(just('joint reid inviter code personal fullName state email helper ' . $contactDefaults, $args));
   extract(just('hidCountry hidState', $sta['input']));
 
   if (@$reid) { // continuing signup of a partner's customer
-    if (u\test()) $reid = t\uid($reid);
+    if (u\test()) $reid = f('t.uid', $reid);
     if ($args2 = w\continuePartnerSignup($reid, @$customer)) extract($args = $args2);
   } elseif (@$customer and @$partner and @$partnerCode) {
     $myid = w\partnerSignup($args); // info passed from partner signup
@@ -2775,7 +2780,7 @@ function formSignup_submit($form, &$sta) {
   $dbFields = 'fullName legalName email flags phone federalId dob pin country zip address city state postalAddr helper iCode notes wants calling signupCo tenure source';
   extract(just('myid confirmed acctType args company ats owns partner customer source2 ' . $dbFields, $sta['input']));
 
-  if (u\test() and !@$args) $args = basename(t\SERVER('REQUEST_URI'));
+  if (u\test() and !@$args) $args = basename($_SERVER['REQUEST_URI']);
 
   u\EXPECT((bool) $args, 'no args');
   extract(just('code', $args));
@@ -3921,7 +3926,8 @@ function formCompany_submit($form, &$sta) {
   $DBTX = db_transaction();
   db\q('DELETE FROM r_user_industries WHERE uid=:id', compact('id')); // out with the old
   if (@$categories) foreach ($categories as $iid) {
-    db\q("INSERT INTO r_user_industries (uid, iid) VALUES (:id, :iid)", compact('id', 'iid')); // in with the new
+    db\insert('r_user_industries', ray('uid iid', $id, $iid));
+//    db\q("INSERT INTO r_user_industries (uid, iid) VALUES (:id, :iid)", compact('id', 'iid')); // in with the new
   }
   unset($DBTX); // commit
 
@@ -3989,7 +3995,7 @@ function formPrefs($form, &$sta) {
 
   $noticeRadios = array(t('daily'), t('weekly'), t('monthly'));
   $dft = $mya->can(B_WEEKLY) ? 1 : ($mya->can(B_MONTHLY) ? 2 : 0);
-  $notices = radiosFld(t('Email Notices:'), t('How often, at most, do you want an email digest of your %PROJECT messages? (No email if no messages.)'), dft($dft), $noticeRadios);
+  $notices = radiosFld(t('Email Notices:'), t('How often, at most, do you want an email digest of your %PROJECT notices? (No email if no notices.)'), dft($dft), $noticeRadios);
 //  $smsNotices2 = boxFld('smsNotices', t('SMS notices:'), t('Send me a text message when I receive a payment, charge, or invoice (requires a <a href="' . $base_url . '/settings/boxes">connected cell phone</a>).'), $mya->can(B_BYSMS)); // (currently disabled)
 
   $secretBal2 = boxFld('secretBal', t('Secret Balance:'), t("Don't let merchants see my balance, even if I ask."), $mya->can(B_SECRET));

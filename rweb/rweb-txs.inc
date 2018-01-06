@@ -2,7 +2,6 @@
 namespace rCredits\Web; // typically abbreviated as "rWeb"
 use rCredits\Backend as be;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Txs as x;
@@ -56,7 +55,8 @@ function formTxs($form, &$sta, $args = '') {
   $descending = TRUE;
   $optionSet = compact(ray('download agents channels boxes descending'));
 //  list ($header, $classes, $rows, $totals) = x\getTxRows($starting, $ending, $optionSet, $url, $maxRows);
-  $txRows = x\getTxRows($starting, $ending, $optionSet, $url);
+  $summary = fld('markup', '', '', array('markup' => txSummary($starting, $ending, $run)));
+  $txRows = x\getTxRows($starting, $ending, $optionSet, $url, $run);
   if (u\test() and @$download) return; // simulate exit, for tests
   list ($header, $classes, $rows, $totals) = $txRows;
   
@@ -64,7 +64,6 @@ function formTxs($form, &$sta, $args = '') {
   
   $list = '';
   $count = -2;
-  $summary = fld('markup', '', '', array('markup' => txSummary($starting, $ending, $run)));
   
   foreach ($rows as $row) {
     $count++;
@@ -75,8 +74,8 @@ function formTxs($form, &$sta, $args = '') {
     $class .= ' page-' . floor($count / MIN_TX_ROWS);
     $class .= ' PAGE-' . floor($count / NORMAL_TX_ROWS);
 //    list ($c1, $c2, $c3, $c4, $reward) = $mya->cttyRewardy ? [6, 3, 7, 5, $reward] : [7, 2, 12, 0, ''];
-    list ($c1, $c2, $c3, $c4, $last) = [6, 3, 5, 7, (!$list or $mya->cttyRewardy) ? $reward : number_format($run, 2)];
-    if ($list) $run -= u\cleanAmount($amount);
+    list ($c1, $c2, $c3, $c4) = [6, 3, 5, 7];
+//    if ($list) $run -= u\cleanAmount($amount);
     
     $list .= <<<EOF
 <div class="$class">
@@ -90,7 +89,7 @@ function formTxs($form, &$sta, $args = '') {
   </div>
   <div class="amount-reward col-xs-$c2">
     <div class="amount col-sm-$c3">$amount</div>
-    <div class="reward col-sm-$c4">$last</div>
+    <div class="reward col-sm-$c4">$reward</div>
   </div>
   <div class="buttons col-xs-1">
     $buttons
@@ -436,10 +435,11 @@ function formInvoices($form, &$sta, $toFrom, $args = '') {
   $list = item(invoiceList($toMe, $starting, $ending, $states, $url, @$download)); // must precede starting & ending
 
   $title = item(t('Invoices ') . ($toMe ? t('TO You') : t('FROM You')));
+  $subtext = item(t('(pending invoices are listed first)'));
   $toFrom = hidFld($toFrom);
 
   //simple advanced
-  $form = compact('title') + $dateRange + compact(ray('list toFrom'));
+  $form = compact('title', 'subtext') + $dateRange + compact(ray('list toFrom'));
   if (@$downloaded) js("window.open(\"$url&download=1\", \"download\");", 'inline', 'footer');
   return labeled($form);
 }
@@ -486,8 +486,9 @@ function invoiceList($toMe, $starting, $ending, $states, $url, $download) {
     LEFT JOIN users u ON u.uid=i.$yu
     LEFT JOIN r_txs t ON t.xid=i.status
     WHERE $where
-    ORDER BY (i.status=:TX_PENDING OR i.status=:TX_APPROVED), nvid DESC
+    ORDER BY (i.status=:TX_PENDING) DESC, nvid DESC
 EOF;
+//    ORDER BY (i.status=:TX_PENDING OR i.status=:TX_APPROVED) DESC, nvid DESC
 
   global $mya;
   $q = db\q($sql, ray('uid starting ending', $mya->id, $starting, $ending));
@@ -518,7 +519,10 @@ EOF;
   }
   if ($tx and $q->fetchAssoc()) say('transaction list truncated'); // there was more than we could show
 
-  if (@$download) {if (u\test()) return; else exit();}
+  if (@$download) {
+    foreach ($rows as $row) u\csv($row);
+    if (u\test()) return; else exit();
+  }
 
   // prepare screen display
   $classes = u\prefixValues('tx-', $classes);

@@ -4,7 +4,6 @@ use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Backend as be;
 use rCredits\Util as u;
-use rCredits\Testing as t;
 use rCredits\Web as w;
 use rCredits\Admin as a;
 
@@ -176,7 +175,6 @@ class Acct {
     if (u\in($field, B_LIST . ' ' . B_CTTY_BITS)) $nick = 'can';
     if ($nick == 'can') return $a->can(u\consta('b', $field));
     if ($nick == 'ctt' and $field != 'cttyA') return $a->cttyA->can(u\consta('b', substr($field, 4))); // ctty bit
-    
     if ($field == 'mainQid') return $a->qo->mainQid;
     if ($field == 'isAdmin2') return (bool) ($a->agentA->flags & u\bit(B_ADMIN2)); // not ->can() included by cAdmin etc. (see note in can())
 //    u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
@@ -468,7 +466,7 @@ class Acct {
       $secure = $set ? $info['secure'] : ($sFlds + $a->secure);
       $info['secure'] = u\crypt(u\crypt(serialize($secure), 0), 1);
     }
-    if (isset($info['pass'])) $info['pass'] = r\passHash($info['pass']);
+    if (isset($info['pass']) and $info['pass'] !== '') $info['pass'] = r\passHash($info['pass']);
 
     u\preray($info, self::$rs[$a->id]); // cache the new field values
     $info = justNOT(R_SECURE_FIELDS . ' email ' . R_DATA_FIELDS, $info); // don't pass these
@@ -837,7 +835,7 @@ EOF;
         $ai->setRisk('hasBank');
         $ai->setBit(B_REFILL, $aj->o_refill);
       }
-      $ai->setBit(B_JOINED);
+//      $ai->setBit(B_JOINED);
       foreach ($fields as $k) $$k = @$$k + $ai->o($k);
     }
     $achMin = max($a->o_achMin, $b->o_achMin); // one of the $fields
@@ -859,9 +857,9 @@ EOF;
     if ($jid = $a->jid) { // unravel a consummated join
       $b = r\acct($jid); // ignore param (actual joined account will be unjoined and any join requests zapped)
       foreach ([$a, $b] as $ai) {
-        $ai->update1('jid minimum', '', max($a->o_minimum, $b->o_minimum));
+        $ai->update1('jid minimum', 0, max($a->o_minimum, $b->o_minimum));
         $ai->cacheOk(); // make sure each account is left with its proper cached amounts
-        $ai->setBit(B_JOINED, FALSE);
+//        $ai->setBit(B_JOINED, FALSE);
       }
       list ($a1, $a2) = u\order($b->o_balance > $a->o_balance, $b, $a);
       if ($a1->ok and $a2->ok) { // no need to settle with closed or not-yet-open account
@@ -874,6 +872,7 @@ EOF;
       $subs += ['other' => $b->id];
     }
     
+    db\logSql(compact(ray('sql subs')));
     db\q($sql, $subs); // zap one or more joins (or requested joins) for this account
     unset($DBTX);
   }
@@ -1022,10 +1021,11 @@ EOF;
    */
   public function fixTxBankAccount(&$bankAccount, $txid) {
     $a = $this;
-    $bankAccount = ($pw2 = @$_COOKIE['pw2']) ? u\decrypt($bankAccount, 0, $pw2) : '';
-    if (substr($bankAccount, 0, 2) <> 'US' and ($bankAccount = $a->bankAccount) and $pw2) { // bank account got screwed up somehow -- probably double-encrypted (happened again on 2/10/2016)
+    $ba1 = $bankAccount = ($pw2 = @$_COOKIE['pw2']) ? u\decrypt($ba0 = $bankAccount, 0, $pw2) : '';
+    if (substr($bankAccount, 0, 2) <> 'US' and ($ba2 = $bankAccount = $a->bankAccount) and $pw2) { // bank account got screwed up somehow -- probably double-encrypted (happened again 12/7/2017 7:27am and 12/21/2017 10:05. Fixed?)
+      r\tellAdmin('screwed up bank account', ray('who ba0 ba1 ba2 hex0', $a->fullName, $ba0, $ba1, $ba2, bin2hex($ba0)));
       db\update('r_usd', ray('txid bankAccount', $txid, u\crypt($bankAccount, 0, $pw2)), 'txid');
-      w\say('fixed bankAccount for ' . $a->fullName);
+      w\say(t('fixed bankAccount for %name txid #%txid', 'name txid', $a->fullName, $txid));
     }
   }
   
@@ -1142,7 +1142,7 @@ EOF;
   }
 
   /**
-   * Return the total waiting to be credited as a transfer FROM or (if negative result) TO the member's bank.
+   * Return the total waiting to be credited as a transfer FROM (or if negative result, TO) the member's bank.
    * @param numeric $combinable: (RETURNED) how much is waiting and checks haven't been printed yet
    */
   public function waitingFromBank(&$combinable = 0) {
@@ -1606,9 +1606,9 @@ function acct($uid = '', $agent = '', &$error = '') {
   global $mya; // use this ONLY in this class file
   if (!$uid) return $mya ?: (!$error = 'There is no current account.');
   if (strpos($uid, '@')) {
-    $uid = db\lookup('uid', 'users', 'mail=:mail', ['mail' => u\cryptN($uid)]);
+    $uid = db\lookup('uid', 'users', 'mail=:mail ORDER BY :IS_CO', ['mail' => u\cryptN($uid)]);
   } elseif (FALSE and preg_match('/[0-9]( |-|\\)) ?[0-9]{4}/', $uid)) {
-    $uid = db\lookup('uid', 'users', 'phone=:phone', ['phone' => u\cryptN(u\fmtPhone($uid, '+n'))]);
+    $uid = db\lookup('uid', 'users', 'phone=:phone ORDER BY :IS_CO', ['phone' => u\cryptN(u\fmtPhone($uid, '+n'))]);
   }
 //  if (!$ua = r\Acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   if (!$ua = r\Acct::viable($uid, $agent, $error, TRUE)) return FALSE;

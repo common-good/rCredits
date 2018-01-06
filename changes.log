@@ -1,3 +1,23 @@
+2018-01-05
+. ALTER TABLE `users` DROP `postalAddr`;
+. removed B_JOINED: eachA(function ($a) {$a->setBit(23, FALSE);});
+. created real jid field:
+  eachA(function ($a) {
+    $data = $a->data;
+    if ($jid = @$data['jid']) {
+      db\update('users', ray('uid jid', $a->id, $jid), 'uid'); 
+      unset($data['jid']);
+      $a->update(compact('data'));
+/**/  debug($a->fullName);
+    }
+  });
+. fixed bug that was causing corruption of bankAccount in both users and r_usd
+. changed R_XFEE_CHECK to zero
+. list ($k, $key) = ['photos', 'uid'];
+    $tnm = 'r_' . $k; $xtnm = 'x_' . $k;
+    db\q("CREATE TABLE $xtnm LIKE $tnm; ALTER TABLE $xtnm MODIFY $key BIGINT NOT NULL; ALTER TABLE $xtnm ADD `deleted` INT(11) NOT NULL DEFAULT '0' FIRST; ALTER TABLE $xtnm DROP PRIMARY KEY; ALTER TABLE $xtnm ADD PRIMARY KEY($key, deleted);");
+  }
+
 2017-12-12 version 3.29
 . foreach (ray('txs:xid,usd:txid,invoices:nvid,relations:reid') as $k=>$key) {
     $tnm = 'r_' . $k; $xtnm = 'x_' . $k;
