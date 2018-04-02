@@ -17,9 +17,19 @@ function seeSecure($a) {
   $secure = $a->secure;
   foreach (ray(R_SECURE_FIELDS) as $k) if (isset($secure[$k])) {
     $new[$k] = $secure[$k]; // reorder
-    if ($mya->superAdmin or ($k != 'pw2' and !u\inList($k, R_VSECURE_FIELDS))) $show[$k] = $a->$k; // some need decrypting
+    $show[$k] = $a->$k; // some need decrypting
   }
   $a->update('secure', @$new ?: []);
+
+	if ($mya->superAdmin) {
+	  $vsecure = $a->vsecure;
+		foreach (ray(R_VSECURE_FIELDS) as $k) if (isset($vsecure[$k])) {
+			$vnew[$k] = $vsecure[$k]; // reorder
+			$show[$k] = $a->$k; // some need decrypting
+		}
+    $a->update('vsecure', @$vnew ?: '');
+  }
+
   say(u\rayTable($show, FALSE));
 }
 
@@ -95,29 +105,10 @@ EOF;
 
     if ($mya->admin and !$mya->proSe) {
       $community = r\cttys($mya->region, $ctty);
-      $js = <<<EOF
-$('#edit-community').on('change', function() {
-  var newCtty = this.value;
-  changeCtty(newCtty, false);
-//  yesno('Change rewards transactions retroactively?', 
-//    function() {changeCtty(newCtty, true);},
-//    function() {changeCtty(newCtty, false);}
-//  );
-});
-
-function changeCtty(newCtty, retro) {
-  post('changeCtty', {uid:$uid, newCtty:newCtty, retro:retro}, function(j) {
-//    var jo = JSON.parse(j);
-    if (!j.ok) $.alert(j.message, 'Error');
-    //JSON.stringify(j, null, 2)
-  });
-}
-EOF;
-      js($js);
+      jsx('change-ctty', compact('uid'));
     }
 
     if ($mya->cAdmin and !$mya->proSe) {
-      if (showSecureMessages()) $secureMsgs = submit(t('Show secure messages'));
       $html = $mya->photoHtml(TRUE, TRUE);
       $photo = item("<a href=$base_url/settings/photo>$html</a>");
 
@@ -161,9 +152,10 @@ EOF;
     $legalName = textFld(t('Legal Name:'), '', required($mya->legalName));    
     $shortName = textFld(t('Short Name:'), t('Shortest usable version of full name.'), dft($mya->shortName));
     
-    if ($mya->superAdmin or ($mya->cAdmin and $mya->activated)) $rTrader = ($mya->isCtty)
+//    if ($mya->superAdmin or ($mya->cAdmin and $mya->activated)) $rTrader = ($mya->isCtty)
+    if ($mya->cAdmin) $rTrader = ($mya->isCtty)
     ? boolFld(t('Active?'), '', $mya->ok)
-    : boolFld(t('Active?'), t('Is account approved to use %PROJECT?', '_a', w\atag('/settings/photo?' . rand())), $mya->ok);
+    : boolFld(t('Active?'), t('Is account approved to use %PROJECT?'), $mya->ok);
 
     if ($mya->member and !$mya->co and $mya->superAdmin) $ssnShow = item(a\ssnShow($mya));
     if ($mya->admin) {
@@ -234,7 +226,7 @@ EOF;
     } else $notes = item(str_replace("\n", '<br>', $mya->notes), t('Notes:'));
 
     $note = areaFld(t('New Note:'), [t('Type a Note Here'), t('Abbreviations: PM=phone msg EM=email msg. Be sure to say what you left a message <i>about</i> (for example "PM setup")')]);
-    $suffix = submitTickle(1, t('Wait a day')) . submitTickle(2, t('2 days')) . submitTickle(7, '7') . submitTickle(30, '30') . submitTickle('', t('Auto')) . ' &nbsp; ' . w\btn("$$('#rcreditswebformsummary').submit();", t('Save'), 'primary', 'md');
+    $suffix = submitTickle(1, t('Wait a day')) . submitTickle(2, t('2 days')) . submitTickle(7, '7') . submitTickle(30, '30') . submitTickle('', t('Auto')) . ' &nbsp; ' . submitTickle('NONE', t('Save'), 'sm');
     $tickle = textFld(t('Tickle:'), [t('Followup Date'), t('When to follow up ("Auto" sets an automatic Welcome or Annual date)')], dft($mya->tickle ? u\fmtDate($mya->tickle, TRUE) : '') + w\suffix($suffix));
     $source = w\item($mya->source, t('Source:'));
   }
@@ -242,19 +234,21 @@ EOF;
 //  $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
 
   $uid = hidFld($uid); // must postcede js (which uses uid)
+  w\jsx('tickle');
   
   $bigFields = $mya->ok ? 'adminable risks ssnShow' : 'ssnShow adminable risks';
-  return compact(ray("photo details notes note tickle donations rTrader activity relations source helper secureMsgs $bigFields community balance cgfDonations legalName shortName calling signupCo tenure steps dwInfo invited invitedBy proxies proxyFor moves floor minimum achMin risk trust mediaConx count back uid"));
+  return compact(ray("photo details notes note tickle donations rTrader activity relations source helper $bigFields community balance cgfDonations legalName shortName calling signupCo tenure steps dwInfo invited invitedBy proxies proxyFor moves floor minimum achMin risk trust mediaConx count back uid"));
 }
 
 /**
  * Return a button for setting the tickle field and submitting the form.
- * @param mixed $v: what to set tickle to -- empty or number of days hence
+ * @param mixed $v: what to set tickle to -- empty or number of days hence or "NONE" (meaning don't set the tickle)
  * @param string $text: what the button says
+ * @param string $size: size of button (defaults to sm)
  */
-function submitTickle($v, $text) {
+function submitTickle($v, $text, $size = 'xs') {
   if ($v) $v = u\fmtDate(strtotime("+$v days"), TRUE);
-  return '&nbsp;' . w\btn("$$('#edit-tickle').val('$v'); $('#rcreditswebformsummary').submit();", $text);
+  return '&nbsp;' . w\btn('', $text, 'primary', $size, ray('class tickle', 'tickle', $v));
 }
 
 /**
@@ -295,7 +289,7 @@ function export($params) {
       $address = $city = $state = $ecode = $special = '';
 //      $type = $ctty == 0 ? '' : 'member';
       $type = '';
-      foreach (ray('phone email') as $k) $$k = u\decryptN($$k);
+      foreach (ray('phone email') as $k) $$k = u\decry('P', $$k);
       if (strpos($email, '@' . EMAILX)) continue;
 //      $cttyName = $ctty ? trim(str_replace(PROJECT, '', r\acct($ctty)->fullName)) : '';
       $cttyName = ($zip and $ctty = r\communityUid($zip)) ? r\cttyName($ctty, TRUE) : '';

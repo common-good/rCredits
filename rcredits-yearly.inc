@@ -31,8 +31,8 @@ function do1099bs($testMode = FALSE, $badNames = [], $badTINs = [], $year = NULL
   putRec(recT($year, $testMode));
   
   $uids = array_keys($badNames + $badTINs);
-  $where = ($uids = join(',', $uids ?: [])) ? "WHERE uid IN ($uids)" : ''; // making :uids a parameter fails 
-  $sql = "SELECT uid FROM users $where ORDER BY uid";
+  $where = ($uids = join(',', $uids ?: [])) ? "uid IN ($uids)" : 'activated'; // making :uids a parameter fails 
+  $sql = "SELECT uid FROM users WHERE $where ORDER BY uid";
 
   if ($uids) { // show bad old data first if correcting
     doPayer($year, $sql, $totals, 'G', $badNames, $badTINs);
@@ -43,7 +43,7 @@ function do1099bs($testMode = FALSE, $badNames = [], $badTINs = [], $year = NULL
   putRec(recK($bCount * $aCount, $totals));
   putRec(recF($bCount * $aCount, $aCount));
   flush();
-  if (!@$err1099) exit(); // shouldn't we exit in any case?
+  if (@$err1099) return r\go('sadmin/panel'); else exit(); // shouldn't we exit in any case?
 }
 
 /**
@@ -51,6 +51,7 @@ function do1099bs($testMode = FALSE, $badNames = [], $badTINs = [], $year = NULL
  * @return the number of payee ("B") records.
  */
 function doPayer($year, $sql, &$totals, $mod = '', $badNames = [], $badTINs = []) {
+  global $seq1099;
   putRec(recA($year));
   $bCount = 0; // IRS instructions pub 1220 call this "number of payees", but say it means "number of B records"
   $total = 0;
@@ -58,6 +59,8 @@ function doPayer($year, $sql, &$totals, $mod = '', $badNames = [], $badTINs = []
   while ($row = $q->fetchAssoc()) {
     extract($row); // uid
     $bCount += do1099b($year, $uid, $total, $mod, $badNames, $badTINs);
+    $bFactor = ($badNames or $badTINs) ? 2 : 1; // two records for each payee, if correcting
+    if ($seq1099 + 0 != $bCount * $bFactor + 2) return err1099(t('Record count %rc at odds with payee count %pc.', 'rc pc', $seq1099, $bCount));   
   }
   $totals = u\lpad(0, 6 * 18) . u\lpad(fmtAmt($total), 18) . u\lpad(0, 9 * 18);
   putRec(recC($bCount, $totals));
@@ -75,12 +78,14 @@ function doPayer($year, $sql, &$totals, $mod = '', $badNames = [], $badTINs = []
  * @return number of B records created
  */
 function do1099b($year, $payee, &$total, $mod = '', $badNames = [], $badTINs = []) {
+//  global $amts99;
   $bCount = 0;
   while ($row = be\get1099b($payee, $year)) {
     extract(just('created amount for', $row));
-    if ($amount <= 0) continue; // IRS says do NOT report non-positive transactions
+    if ($amount <= 0) continue; // IRS says do NOT report non-positive transactions on 1099-B
     if ($mod == 'G') $amount = 0; // IRS says zero out amount when showing the bad old data
     $total += $amount;
+//    $amts99[] = $amount;
     $bCount++;
     $a = r\acct($payee); $id = $a->id;
     putRec(recB($year, $a, $created, fmtAmt($amount), $for, $mod, @$badNames[$id], @$badTINs[$id]));
@@ -117,7 +122,7 @@ function recA($year) {
   $foreign = pad(FALSE, 1); // 1 for foreign
   $payerName = pad(r\regionfield('legalName'), 80);
   $isAgent = u\lpad(0, 1); // 1 if second half of payerName is transfer agent, else 0
-  $payerAddr = pad('c/o Common Good Finance, PO Box 21', 40) . pad('Ashfield', 40) . 'MA' . pad('013300021', 9);
+  $payerAddr = pad('c/o Common Good, PO Box 21', 40) . pad('Ashfield', 40) . 'MA' . pad('013300021', 9);
   $payerPhone = pad('4136281723', 15); // was 4133765021 (maybe again someday)
   
   return 'A' . $year . $combo . sp(5) . $regionTIN . $nameControl . $lastEver . $type . $amountCodes . sp(8) . $foreign . $payerName . $isAgent . $payerAddr . $payerPhone . sp(260) . seq() . sp(241) . EOL;
@@ -135,14 +140,14 @@ function recB($year, $a, $completed, $amount, $for, $mod = '', $badName = NULL, 
   $corrected = pad($mod, 1);
   $tinType = pad($a->co ? 1 : 2, 1);
   $payeeTIN = pad(isset($badTIN) ? $badTIN : $a->federalId, 9);
-  $accountNum = pad($a->id, 20);
+  $accountNum = pad($a->mainQid, 20);
   $payerOffice = pad('', 4);
   $amt = u\lpad($amount, 12);
   $foreignPayee = pad('', 1);
   $payeeName = pad(noBreakAt(preg_replace('/[^A-Z &\-]/i', '', isset($badName) ? $badName : $a->legalNameDpy), 40), 2 * 40);
   list ($payeeFirst, $payeeLast) = u\parseName($payeeName);
-//  $nameControl = pad(preg_replace('/[^A-Z]/i', '', $a->co ? $payeeName : $payeeLast), 4);
-  $nameControl = pad(preg_replace('/[^A-Z]/i', '', ($a->co and $mod != 'G') ? $payeeName : $payeeLast), 4); // temporary for TY2014,2015
+  $nameControl = pad(preg_replace('/[^A-Z]/i', '', $a->co ? $payeeName : ($payeeLast . $payeeFirst)), 4);
+//  $nameControl = pad(preg_replace('/[^A-Z]/i', '', ($a->co and $mod != 'G') ? $payeeName : $payeeLast), 4); // temporary for TY2014,2015
   list ($address, $city, $st, $zip) = u\parseAddr($a->postalAddr);
   if ($st == 'ER' or !$zip or !$city) return err1099(t('Bad postalAddr for ') . $who);
   $payeeAddr = pad($address, 40) . sp(40) . pad($city, 40) . pad($st, 2) . pad(u\digits($zip), 9);
@@ -195,7 +200,7 @@ function noBreakAt($s, $chunk) {
  * @return the record
  */ 
 function lenCheck($rec) {
-  global $seq1099, $err1099;
+  global $seq1099;
   $type = substr($rec, 0, 1);
   $reclen = strlen($rec);
   $ideal = 750;
@@ -204,8 +209,10 @@ function lenCheck($rec) {
 }
 
 function err1099($msg) {
+  global $err1099;
   \drupal_set_message($msg);
   $err1099 = TRUE;
+/**/  echo "\n\n********* ERROR *************\n\n";
   return '';
 }
 
@@ -214,8 +221,9 @@ function err1099($msg) {
  * @param string $rec: the record
  */
 function putRec($rec) {
+  global $err1099;
   //fwrite(STDOUT, lenCheck($rec));
-/**/  echo lenCheck($rec);
+/**/  if (!@$err1099) echo lenCheck($rec);
 }
 
 /**

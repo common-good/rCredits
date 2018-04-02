@@ -183,12 +183,24 @@ function acctHourly($item) {
  * Do miscellaneous stuff that needs doing every day
  */
 function everyDay() {
+  $fin = db\lookup('uid', 'users', "name='futureisnowfestival' AND uid<0");
   queueNext('START'); // eachA seems to interfere with this and processing the queue is vital, so launch it first
   db\q('DELETE FROM r_do WHERE completed<0 AND :NOW>-completed'); // completed<0 is -expiry time
 
   $cttys = db\q('SELECT uid AS ctty FROM users WHERE uid<0')->fetchCol();
   foreach ($cttys as $ctty) $companies[$ctty] = r\companies($ctty, TRUE);  
   \variable_set('companies', @$companies ?: []);
+  
+  $sql = <<<EOF
+  SELECT u.uid, c.uid AS ctty, u.fullName AS person, c.fullName AS cttyName FROM users u LEFT JOIN users c ON u.zip RLIKE c.zip
+  WHERE u.community=:seedpack AND c.uid<1 AND c.uid<>:seedpack AND c.uid NOT IN ($fin)
+EOF;
+  $q = db\q($sql, ['seedpack' => r\serverUid()]);
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    db\update('users', ray('uid community', $uid, $ctty), 'uid');
+    r\tellAdmin(t('%person was in Seedpack; should be (now is) in %cttyName', $row));
+  }
 
 //  $where = "RIGHT(fullName, 8)=' PARTNER' COLLATE utf8_bin AND pass='' AND NOT :IS_CO AND activated=0";
   $where = "BINARY RIGHT(fullName, 8)=' PARTNER' AND pass='' AND NOT :IS_CO AND activated=0";
@@ -202,7 +214,7 @@ function everyDay() {
 function tickle() {
 //  $delays = '1,2,3,5,8,13,21,34,55,89,144'; // Fibonacci progression of delays
   $today = strtotime('today');
-  $timeSince = "(FLOOR(($today-@DATE)/:DAY_SECS))"; // $today works better in tests than :REQUEST_TIME or time()
+  $timeSince = "(ROUND(($today-@DATE)/:DAY_SECS, 0))"; // $today works better in tests than :REQUEST_TIME or time()
 
   // Remind invitee to accept
   $delays = '8';
@@ -254,7 +266,7 @@ EOF;
  */
 function tickleSignup($item) {
   extract(just('email inviter code elapsed', $item));
-  if (r\acct($email = u\decryptN($email))) return; // invitee already began to open an account
+  if (r\acct($email = u\decry('P', $email))) return; // invitee already began to open an account
   $inviterName = r\acct($inviter)->fullName;
 //  $count = $elapsed < 7 ? t('two') : ($elapsed < 14 ? t('one') : 0);
 //  $nudge = $count ? t("We will send you just @count more reminder(s)", compact('count')) : t('This is your last reminder');
@@ -353,6 +365,8 @@ function everyWeek() {
  */
 function everyMonth() {
   $cgf = r\cgfId();
+  $server = r\serverUid();
+  $bene = u\test() ? $cgf : db\lookup('uid', 'users', "name='bene' AND uid<0");
   $start = u\monthDay1($end = u\monthDay1() - 1); // mark start and end of preceding month
   if (u\test()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // test: the past 30 days
   queueEach('inflationAdjust', "SELECT uid, $start AS start, $end AS end FROM users WHERE :IS_OK AND uid>1");  
@@ -366,10 +380,12 @@ EOF;
   queueEach('crumbs', $sql); // no crumbs on rewards
 
   $sql = <<<EOF
-      SELECT $cgf AS cgf, $end AS `end`, u.community AS ctty, SUM(IF(payee=$cgf, amount, 0)) AS `in`,
-        SUM(IF(payer=$cgf AND t.created<=$end, amount, 0)) AS `out`
-      FROM r_txs t LEFT JOIN users u ON u.uid=IF(payer=$cgf, payee, payer)
-      WHERE ((payer=$cgf AND payee<0) OR payee=$cgf) AND t.:IS_GIFT GROUP BY community
+      SELECT $cgf AS cgf, $end AS `end`, u.community AS ctty, SUM(IF(t.payee=$cgf, t.amount, 0)) AS `in`,
+        SUM(IF(t.payer=$cgf AND t.created<=$end, t.amount, 0)) AS `out`,
+        (SELECT COUNT(1) FROM r_usd d LEFT JOIN users du ON du.uid=d.payee 
+         WHERE d.txid<0 AND d.amount<0 AND du.community=u.community AND d.created<=$end) AS bounces
+      FROM r_txs t LEFT JOIN users u ON u.uid=IF(t.payer=$cgf, t.payee, t.payer)
+      WHERE ((payer=$cgf AND payee<0) OR payee=$cgf) AND t.:IS_GIFT AND community NOT IN($server, $bene) GROUP BY community
 EOF;
   queueEach('cgc', $sql);
   
@@ -426,13 +442,12 @@ function crumbs($item) {
  * Kick half the donations originating in an organized CGC back to that community.
  */
 function cgc($item) {
-//  return; // no yet
-  extract(just('ctty in out cgf end', $item));
-  $kickBack = round(($in - $out) / 2, 2);
+  extract(just('ctty in out cgf end bounces', $item));
+  $kickBack = round($in / 2 - $out - R_DEPOSIT_RETURN_FEE * $bounces, 2);
   if ($kickBack > 0) {
     list ($a, $cgfA) = [r\acct($ctty), r\acct($cgf)];
     $desc = t('50% share of local donations through %dt', 'dt', u\fmtDate($end));
-    be\transfer('payment', $cgfA, $a, $kickBack, FOR_NONGOODS, $desc, u\monthDay1() - 1, ['gift' => TRUE]);
+    if ($a->ok) be\transfer('payment', $cgfA, $a, $kickBack, FOR_NONGOODS, $desc, u\monthDay1() - 1, ['gift' => TRUE]);
   }
 }  
   
@@ -465,7 +480,7 @@ function requests() {
         $row['phone'] = u\fmtPhone($phone, '+n');
         foreach (['first', 'last'] as $k) $row[$k] = u\normalizeCase($$k);
         r\tellAdmin('invitation request', $row);
-        foreach (['email', 'phone'] as $k) $row[$k] = u\cryptN($row[$k]);
+        foreach (['email', 'phone'] as $k) $row[$k] = u\cry('P', $row[$k]);
         db\update('r_request', $row, 'listid', TRUE);
       } else $header = $row + ['ctty'];
     }

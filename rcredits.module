@@ -137,14 +137,19 @@ function g($varName) {
  */
 /**/ function bs($n, $list = B_LIST) {d('a.flagsDesc', $n, $list);} // show bit numbers/names
 /**/ function tm($n = '') {debug($result = $n ? (is_numeric($n) ? date('m/d/Y H:i:s a', $n) : strtotime($n)) : time()); return $result;} // convert and display unixtime or string time
-function a($id = '', $agent = '') {global $lastA; return $lastA = f('r.acct', f('t.fullQid', strtoupper(strlen($id) == 3 ? '.' . $id : $id)), f('t.fullQid', strtoupper(strlen($agent) == 3 ? '.' . $agent : $agent)));} // return an account object
+function a($id = '', $agent = '') { // return an account object
+	global $lastA; 
+	$id = strlen($id) == 3 ? '.' . $id : $id;
+	if (!strpos($id, '@') and !preg_match('/[0-9]/', $id)) $id = strtoupper($id);
+	return $lastA = f('r.acct', f('t.fullQid', $id), f('t.fullQid', strtoupper(strlen($agent) == 3 ? '.' . $agent : $agent)));
+}
 function x($xid, $mya = '') {f('r.x', $xid, $mya);} // return a transaction object
 /**/ function da($idfield) {list ($id, $field) = ray($idfield); debug(a($id)->$field);}
 /**/ function step($a) {debug(us($a)->step());}
 function ctty($id) {return a(a($id)->community);}
 //function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
 /**/ function flog($s = '') { // log to file and return log file name
-  $fileName = DRUPAL_ROOT . '/rlogs/' . date('Ym') . '.log'; // new log file every month
+  $fileName = DRUPAL_ROOT . LOG_DIR . date('Ym') . '.log'; // new log file every month
 /**/ if (func_num_args()) file_put_contents($fileName, print_r($s, 1) . "\n", FILE_APPEND);
   return $fileName;
 }
@@ -210,6 +215,16 @@ function funcNickname($func) {
   return 'rCredits\\' . ($funcs[$n] ? $funcs[$n] . '\\' : '') . $func;
 }
 
+/**
+ * Utility to do something for each record of a table
+ */
+function eachR($tnm, $func, $where = '1', $subs = []) {
+  if (!is_callable($func)) $func = funcNickname($func);
+  if (!$q = db\q("SELECT * FROM $tnm WHERE $where", $subs)) return w\say(t('Bad query'));
+	while ($row = $q->fetchAssoc()) $func($row);
+	w\say('Done');
+}
+	
 /**
  * Utility to do something to each member account (see example below)
  * call: eachA($func);

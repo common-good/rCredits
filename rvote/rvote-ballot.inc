@@ -34,7 +34,7 @@ function ballot($mya, &$extras, $question) {
 
   $qu = v\question($question);
   $tableHeader = tableHeader($qu['type']);
-  if($qu['linkDiscussion']) $qu['linkDiscussion'] = "<div class='discussionlink'> [<a href='$qu[linkDiscussion]' target='_blank'>See discussion</a>]</div>";
+  if($qu['linkDiscussion']) $qu['linkDiscussion'] = "<div class=\"discussionlink\"> [<a href=\"$qu[linkDiscussion]\" target=\"_blank\">See discussion</a>]</div>";
   $range = formatQuestionDates($qu['start'], $qu['end'], 1);
 
   // get current voted values for this question
@@ -43,11 +43,11 @@ function ballot($mya, &$extras, $question) {
   $optCount = $defaults['optCount'];
   $opts = getOptsX($defaults['ballot'], $qu['type'], $defaults);
 
-  w\js('js/rvote/ballot.js', 'file', 'footer', 0);
+  w\js('ballot');
   
   if(strpos(' BR', $qu['type'])) {
-    w\css('css/bootstrap-slider.min.css');
-    w\js("js/rvote/bootstrap-slider.min.js", 'file', 'footer', 0);
+    w\css('x/bootstrap-slider.min.css');
+    w\js("x/bootstrap-slider.min");
   }
 
 //<form name='ballotform' id='ballotform' action='ballot.php' method='$METHOD' onsubmit="return checkform(this, $optCount, '$qu[type]');">
@@ -115,7 +115,7 @@ function showProposal($mya, &$extras, $question, $voting = FALSE) {
     $opts = getOptsX($defaults['ballot'], 'M', $defaults);
     $detail = t('Scroll down to see the proposal. Click a letter twice for X<sup>+</sup>, thrice for X<sup>-</sup>.');
 
-    w\js('js/rvote/ballot.js', 'file', 'footer', 0);
+    w\js('ballot');
     
   //<form name='ballotform' id='ballotform' action='ballot.php' method='$METHOD' onsubmit="return checkform(this, $optCount, '$qu[type]');">
 
@@ -167,7 +167,7 @@ EOF;
   ];
   
   if ($mya->cAdmin) $rows += [
-    ' ----------' => '<small style="color:silver;">' . t('for admin only:') . '</small>',
+    ' ----------' => '<small class="dim">' . t('for admin only:') . '</small>',
     t('Phone:') => $phone,
     t('Email:') => $email,
   ];
@@ -417,7 +417,7 @@ EOF;
 function getOptsR($opti, $rowclass, $opttext, $optdetail, $defaults) {
 	$slider = "slider$opti";
 	$option = "option$opti";
-  $onchange = 'changepct($opti);';
+//  $onchange = 'changepct($opti);';
 
   extract(just('min max minDft maxDft', $defaults));
   $sliderHtml = <<<EOF
@@ -487,8 +487,9 @@ function gradeInputs($opti, $defaults) {
 	for ($grade=0, $gradeinputs='', $gradehdr=''; $grade < strlen(GRADELTRS); $grade++) {
 		$dpy = $ltr = substr(GRADELTRS, $grade, 1); // default display (dpy) is unadorned grade letter
 		$checked = ''; // unchecked by default
-    $onclick = "opts[$opti].nudgeGrade(this);";
-    $vv = "<input type=\"radio\" name=\"$v\" onmousedown=\"$onclick\" value=\"$grade\" />";
+//    $onclick = "opts[$opti].nudgeGrade(this);";
+//    $vv = "<input type=\"radio\" class="grade-letter" index="$opti" name=\"$v\" onmousedown=\"$onclick\" value=\"$grade\" />";
+    $vv = "<input type=\"radio\" class=\"grade-letter\" index=\"$opti\" name=\"$v\" value=\"$grade\" />";
 //		input($v, 'r', '', "onclick=\"nudgeGrade(this,$opti);\"", $grade); $vv = vv("input_$v");
 		if (round($oldval) == $grade and $oldval >= 0) {  // this works even for E (0)
 			$val = $oldval;
@@ -510,11 +511,13 @@ function optStart($opti, $rowclass, $type, $defaults) {
   foreach (['note', 'veto'] as $k) {
     $v = "$k$opti";
     $label = $k == 'note' ? t('Comment') : t('Veto');
-    $html .= w\rendA($v, w\boxFld($v, '', "<b>$label</b>", @$defaults[$v], w\onchange("opts[$opti].noteClick();")));
+//    $html .= w\rendA($v, w\boxFld($v, '', "<b>$label</b>", @$defaults[$v], w\onchange("opts[$opti].noteClick();")));
+    $html .= w\rendA($v, w\boxFld($v, '', "<b>$label</b>", @$defaults[$v], w\attrib(ray('index', $opti))));
   }
+  w\jsx('veto');
 	return <<<EOF
 <div id="#optRow$opti" class="optRow $rowclass">
-<div class='veto'>$html</div veto>
+<div class="veto">$html</div veto>
 EOF;
 }
 
@@ -527,7 +530,7 @@ function optEnd($opti, $rowclass, $opttext, $optdetail, $defaults) {
 	return <<<EOF
 <div class="item">
   <div class="$optImgWrapClass">
-    <img id="expand$opti" class="optImg" src="$rUrl/images/rvote/expand.gif" alt="show detail" title="show detail" width="13" height="13" onclick="expandOpt($opti);" />
+    <img src="$rUrl/images/rvote/expand.gif" id="expand$opti" class="optImg expand" index="$opti" alt="show detail" title="show detail" width="13" height="13" />
   </div><!--optImgWrap-->
 $opttext</div><!--item-->
 
@@ -542,8 +545,8 @@ EOF;
 
 function tableHeader($type) {
 	global $rUrl;
-	$leftarrow = "<img src='$rUrl/images/rvote/arrow-left.gif' alt='' />";
-	$rightarrow = "<img src='$rUrl/images/rvote/arrow-right.gif' alt='' />";
+	$leftarrow = "<img src=\"$rUrl/images/rvote/arrow-left.gif" alt='' />";
+	$rightarrow = "<img src=\"$rUrl/images/rvote/arrow-right.gif\" alt='' />";
 
 	if ($type == 'M') return <<<EOF
 <div class='grades'>$leftarrow Bad | Good $rightarrow</div>
@@ -648,8 +651,8 @@ EOF;
     $line = $texts = '';
     for ($i = 0; $i < count($grade); $i++) {
       if ($isVeto[$i] or $grade[$i] == BLANKGRADE) {
-        list ($char, $color) = $isVeto[$i] ? ['V', 'red'] : ['x', 'green'];
-        $line .= "<b style=\"color:$color;\">$char</b> &nbsp;";
+        list ($char, $color) = $isVeto[$i] ? ['V', 'veto'] : ['x', 'not-veto'];
+        $line .= "<b class=\"$color;\">$char</b> &nbsp;";
       } else {
         if ($qType == 'M') $line .= v\letterGrade($grade[$i] / 3, FALSE) . ' ';
         if ($qType == 'B') $line .= number_format($grade[$i] / BPCT2INT) . '&nbsp;.&nbsp;';

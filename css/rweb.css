@@ -14,6 +14,7 @@
 .skip {margin-left:10px;}
 .positive {color:green;} /* highlights donations and other happy amounts */
 #edit-none {display:none;} /* for hidden submit button */
+iframe {border:0;}
 
 #orgname {display:none;}
 
@@ -61,6 +62,8 @@ label.submenu {display:none;}
   -ms-transform: translateY(-50%);
   transform: translateY(-50%);
 }
+
+.onechart {min-width:350px;}
 
 /* .element p {
   @include vertical-align();
@@ -168,7 +171,7 @@ td, th {padding: 4px 9px; border: 1px solid #fff; text-align: left;}
 #rcreditswebformcommunity,
 #rcreditswebformhistory,
 #rcreditswebformsettings,
-#rcreditswebformadmin {max-width:280px; margin:0 auto;}
+#rcreditswebformadmin {max-width:300px; margin:0 auto;}
 #rcreditswebformadminpanel button {margin:0 10px 20px 0;}
 
 .confirmation #edit-title .control-label {display:block !important;}
@@ -202,8 +205,6 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
 .not-logged-in #extras {display:none;}
 
 /* nav */
-.tabs {display:none;}
-
 #edit-acct-account {display:none; position:absolute; z-index:5; top:49px; width:100%;}
 #edit-acct-account.collapse.in {display:block;}
 #edit-acct-account .index-detail {display:none; position:absolute; left:0; top:30px; width:100%; height:315px; background-color:lightgray; border:2px solid darkred; font-size:11px;}
@@ -388,6 +389,17 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformhelp .b2p {color:red;}
 #rcreditswebformhelp .in {color:green;}
 #rcreditswebformhelp .out {color:orange;}
+#rcreditswebformhelp .runny-bal {color:white; background-color:magenta;}
+#rcreditswebformhelp .top5 {color:white; background-color:darkred;}
+#rcreditswebformhelp .usd {color:white; background-color:darkblue;}
+#rcreditswebformhelp .cgcredits {color:white; background-color:darkgreen;}
+#rcreditswebformhelp .in-use {color:white; background-color:orange;}
+#rcreditswebformhelp .runny-funds {color:black; background-color:yellow;}
+#rcreditswebformhelp .inuse {}
+#rcreditswebformhelp .inuse {}
+#rcreditswebformhelp .inuse {}
+#rcreditswebformhelp .inuse {}
+
 #rcreditswebformhelp ol {margin-left:20px;}
 #risk-help .goodRisk, #risk-help .badRisk, #risk-help .tagged {font-weight:bold;}
 #risk-help td {vertical-align:top;}
@@ -514,12 +526,13 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #f1099b td:first-child +td {min-width:75px;} /* amount */
 #f1099b td:first-child +td+td {min-width:200px;} /* account */
 #f1099b .num {text-align:right;}
-#rcreditswebformtaxinfo #edit-posttext p {font-size:12px; line-height:8px;}
+#rcreditswebformtaxinfo #edit-posttext p {font-size:12px;}
 #rcreditswebformtaxinfo #summary {width:auto;}
 #rcreditswebformtaxinfo #summary .count {text-align:center;}
 #rcreditswebformtaxinfo #summary .amount {text-align:right;}
 #rcreditswebformtaxinfo #taxes b {color:red;}
 #rcreditswebformtaxinfo small {color:#338333;}
+#rcreditswebformtaxinfo #edit-submit {display:none;}
 
 /* Options (Preferences) */
 /* #rcreditswebformoptions .form-item-payHow {border-top:1px solid darkgreen; padding-top:5px;} */
@@ -608,6 +621,7 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformphoto .btn-secondary {background-color:silver;}
 #rcreditswebformphoto #edit-progress .control-data {padding:0 0 20px 0; border-bottom:3px darkgreen double;}
 #rcreditswebformphoto #emailPhoto a {color:white;}
+#rcreditswebformphoto #photoUp {background-size:cover;}
 
 #photoUp {
   position: relative;  /* MANDATORY */
@@ -658,6 +672,7 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 /* Admin Deposits */
 #rcreditswebformdeposits .control-label {min-width:150px;} /* can't be more than 153px (dunno why) */
 #edit-deposits .control-label {width:50px;}
+#rcreditswebformshowdeposits a {display:none;}
 
 /* Change Password / Reset / Verify (first time or resetting password) (beginning with stuff from user.css) */
 .password-strength {width:200px; float:right;}
@@ -820,6 +835,9 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebforminvoices #edit-title {margin-bottom:0;}
 #rcreditswebforminvoices #edit-subtext label {display:none;}
 
+/* Handle Invoice */
+#rcreditswebformhandleinvoice #denySet {display:none;}
+
 /* Statements / Notices */
 #statements th, #statements td,
 #notices th, #notices td {text-align:left; vertical-align:top; border:1px solid silver;}
@@ -955,3 +973,61 @@ div.password-confirm .error {font-weight:bold; color:red;}
 .tt-suggestion p {
   margin: 0;
 }
+
+.test-highlight {background-color:yellow;}
+.test-normal {background-color:ivory;}
+.test-expect {background-color:cyan;}
+.test-email {background-color:lightblue;}
+.test-input {background-color:orange;}
+.test-output {background-color:thistle;}
+.test-screen {background-color:burlywood;}
+.test-error {background-color:salmon;}
+.test-doublesize {font-size:200%;}
+.test-success {background-color:lightgreen;}
+.test-fail {background-color:yellow;}
+.test-report-ok {color:lightgreen; font-size:250%;}
+.test-report-no {color:red; font-size:250%;}
+.test-next {font-size:20px;}
+.test-pass {background-color:darkkhaki;}
+.test-divlink {font-size:120%; margin:0 0 0 0;}
+.test-hdr {margin:18px 0 -18px 0;}
+
+.state-ok {color:green;}
+.state-disputed {color:red;}
+
+.drupal-fixed {position:fixed; top:10px;}
+.veto {color:red;}
+.not-veto {color:green;}
+.dim {color:silver;}
+.blockish {display:block;}
+
+.outgoing {color:red;}
+
+.abc {list-style-type:lower-alpha;}
+.roman {list-style-type:lower-roman;}
+
+.memberlist-line2 {font-size:70%; font-weight:normal; padding-left:20px;}
+.memberlist-bits {color:darkgreen;}
+.memberlist-notes {color:blue; font-size:130%;}
+
+.fu-whitey {color:white;}
+.fu-zap {background-color:red;}
+.fu-pre {background-color:orange;}
+.fu-setup {background-color:yellow;}
+.fu-fu {background-color:black;}
+.fu-welcome {background-color:lime;}
+.fu-annual {background-color:violet;}
+.fu-dormant {background-color:silver;}
+
+.err {color:red; font-weight:bold;}
+.format-flags {text-transform:none; font-size:7px; line-height:11px;}
+.date-field {line-height:65%;}
+.year-field {font-size:50%;}
+
+.step-done {color:silver;}
+.step-not-done {color:red;}
+
+.crop-button {color:lightgreen; background-color:darkgray;}
+
+.grant-td {padding:5px;}
+.grant-th {width:50%; text-align:left; padding:5px;}

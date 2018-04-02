@@ -6,7 +6,7 @@
  */
  
 global $base_url, $base_path, $base_root;
-global $databases, $drupal_hash_salt;
+global $databases, $drupal_hash_salt, $cryHows;
 global $cookie_domain, $conf, $is_https, $base_secure_url, $base_insecure_url;
  
 global $CGdomain;
@@ -25,11 +25,12 @@ $uri = 'I' . $_SERVER['REQUEST_URI']; // handle scanned rCard URIs
 if (isDEV) $uri = str_replace(DEV_ROOT . '/', '/', $uri);
 $_SERVER['REQUEST_URI'] = $_GET['q'] = preg_match('~^I/[A-Z]+[\.-]~', $uri) ? $uri : \request_path();
   
-$secrets = (array) json_decode(utf8_encode(file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.databases')));
+$secrets = (array) json_decode(utf8_encode(file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/cg.cnf')));
 global $db_name;
 $db_name = key($secrets); // members db must be the first db name in the file
 extract((array) $secrets[$db_name], EXTR_PREFIX_ALL, 'db');
 
+global $cryHows; $cryHows = (array) $db_encryption;
 define('R_WORD', hex2bin($db_word));
 define('DKIM_PRIVATE', $db_dkimPrivate); // DKIM private key for email signing
 define('R_INVITE_KEY', $db_inviteKey); // this value is the same for all servers (except DEV)
@@ -68,7 +69,7 @@ ini_set('error_reporting', isDEV ? E_ALL : (E_ALL & ~E_NOTICE & ~E_DEPRECATED & 
 ini_set('max_execution_time', isDEV ? 0 : 240); // don't ever timeout when developing
 ini_set('session.gc_probability', 1); // garbage collection this fraction of the time on startup (numerator)
 ini_set('session.gc_divisor', 100); // (denominator)
-define('SESSION_LIFE', @$_COOKIE['pw2'] ? 12 * HOUR_SECS : 24 * MIN_SECS); // standard 24 mins (more for admin)
+define('SESSION_LIFE', (@$_COOKIE['pkv'] or @$_POST['pkv']) ? 12 * HOUR_SECS : 24 * MIN_SECS); // standard 24 mins (more for admin)
 ini_set('session.gc_maxlifetime', SESSION_LIFE); // session timeout (and garbage collection happens)
 ini_set('session.cookie_lifetime', 0); // SESSION_LIFE); // (drupal doesn't refresh the cookie)
 
@@ -115,3 +116,33 @@ session_name($prefix . substr(hash('sha256', $session_name), 0, 32));
 if (count(explode('.', $cookie_domain)) > 2 && !is_numeric(str_replace('.', '', $cookie_domain))) {
   ini_set('session.cookie_domain', $cookie_domain);
 }
+
+define('FRAME_SOURCES', "https://cg4.us/chart.php $base_url/rcredits/misc/chart.php $base_url/sadmin/export-list/"); // base_url not self, because we use this to sanitize page too
+
+// We might want to use require-sri-for eventually for even our own scripts and style sheets
+// 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=' for inline style in spin.min.js
+// 'sha256-2EA12+9d+s6rrc0rkdIjfmjbh6p2o0ZSXs4wbZuk/tA=' for inline style in jquery-3.1.1.min.js
+// 'sha256-nX7L7GcvxmPKgeYAFQSzFcLplU7F/i/72ytdtLdJYoI=' for jquery also
+// 'sha256-+t47tgldASBy5zANml11C5vRg3a/7oPrKstKXlzZfkI=' for jquery also
+// 'sha256-+7g9GIVwIQyRW5AWmV3tOknRu/VejUoNtGLu4+COYXU=' for inline style in chartist.min.js
+\drupal_add_http_header('Content-Security-Policy', 
+    "base-uri 'self';"
+  . "block-all-mixed-content;"
+  . "default-src 'self';"
+        . "connect-src 'self';"
+        . "font-src 'self';"
+        . "frame-src " . FRAME_SOURCES . ';' // we use iframes for admin member download and for graphs
+        . "manifest-src 'none';"
+        . "media-src 'self';"
+        . "object-src 'none';"
+        . "script-src 'self' 'report-sample';" // report-sample allows script fragment to be included in CSP reports
+        . "img-src 'self' data:;" // data: is for photo upload
+        . "style-src 'self' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=' 'sha256-+t47tgldASBy5zANml11C5vRg3a/7oPrKstKXlzZfkI=' 'sha256-nX7L7GcvxmPKgeYAFQSzFcLplU7F/i/72ytdtLdJYoI=' 'sha256-2EA12+9d+s6rrc0rkdIjfmjbh6p2o0ZSXs4wbZuk/tA=';"
+        . "worker-src 'none';"
+  . "form-action 'self';"
+  . "frame-ancestors 'none';"
+  . "report-uri /csp-report.php;"
+);
+
+\drupal_add_http_header('X-Frame-Options', 'DENY');
+// Use <iframe sandbox="allow-scripts" ...> for cg4.us frame showing charts

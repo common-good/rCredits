@@ -46,7 +46,9 @@ function tableDefs($schema = []) {
     'community' => setupField("uid of this account's Common Good Community", 'int big'),
 //    'question' => setupField('security question', 'varchar 255'),
 //    'usdAccount' => setupField('USD (Dwolla) account number (hex of encrypted)', 'varchar 255'), // searchable
-    'secure' => setupField('encrypted data', 'blob'), 
+    'secure' => setupField('encrypted data', 'blob medium'), 
+    'vsecure' => setupField('hyper-encrypted data', 'blob'), 
+
 //    'offsite' => setupField('index to encrypted data stored off-site', 'int big', NULL, TRUE),
     'fullName' => setupField('full name of the individual or entity', 'varchar 255'),
     'phone' => setupField('contact phone (no country code, no punctuation)', 'varchar 255'), // encrypt/searchable
@@ -292,19 +294,6 @@ function tableDefs($schema = []) {
   $schema['r_invoices'] = setupTable('Record of all invoices in the region', $fields, 'nvid', $foreignKeys, $indexes);
   
 //  foreach (ray('type taking goods payerAgent payeeAgent payerFor payeeFor') as $one) unset($fields[$one]);
-
-  // table r_auth
-  $fields = array(
-    'id' => setupField('authorization id', 'serial big'), 
-    'payer' => setupField('user id of the payer', 'int big'), 
-    'payee' => setupField('user id of the payee', 'int big'), 
-    'amount' => setupField('maximum amount authorized', 'numeric 11,2'), 
-    'box' => setupField('on what machine was the auth request entered', 'int 11', 0), // 0 = none
-    'created' => setupField('Unixtime auth request was created', 'int 11', 0),
-  );
-  $foreignKeys = foreignKey('payer') + foreignKey('payee');
-  $indexes = index('payer') + index('payee') + index('created');
-  $schema['r_auth'] = setupTable('Record of authorized but unconsummated transactions', $fields, 'id', $foreignKeys, $indexes);
 
   // table r_usd
   $fields = array(

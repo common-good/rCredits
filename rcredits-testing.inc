@@ -68,7 +68,7 @@ function fixData(&$info, $direct = FALSE) {
  * Allow abbreviated email address like "a@" meaning a@example.com. Also avoid weird characters.
  */
 function fixEmail(&$email) {
-  $email = str_replace("'", '&#039;', htmlspecialchars($email)); // Drupal does this in user_register()
+  $email = htmlspecialchars($email, ENT_QUOTES); // Drupal does this in user_register()
   if (substr(@$email, -1, 1) == '@') $email .= EMAILX; 
   return $email;
 }
@@ -148,7 +148,7 @@ function doAccount($info = []) {
     if (trim(@$pass) === '') $pass = '123';
 
     $zza = r\qo('.ZZA')->id;
-    $mailDft = ($zza <= $uid and $uid < $zza + 26) ? chr(ord('a') + $uid - $zza) : \user_password(10);
+    $mailDft = ($zza <= $uid and $uid < $zza + 26) ? chr(ord('a') + $uid - $zza) : u\randomString(10, 'word');
     u\setDft($email, $mailDft . '@' . EMAILX); // a@example.com, etc.
 
     u\setDft($community, r\serverUid());
@@ -231,7 +231,6 @@ function doInvoice($info, $type) {return doTx($info, $type);}
  */
 function doTx($info, $thing) {
   global $testOnly, $channel;
-  
   $inv = ($thing == 'Invoice');
   extract($info);
 
@@ -552,7 +551,7 @@ function usdTransfers($txs) {
       if (!verifyRecord('r_usd', $tx)) return FALSE;
     } else {
       if (!$a = r\acct(@$payee)) return t\output('Bad payee: ' . @$payee);
-      $tx['bankAccount'] = @$a->secure['bankAccount'];
+      $tx['bankAccount'] = @$a->vsecure['bankAccount'];
       u\setDft($tx['txid'], t\seq());
       u\setDft($tx['risk'], NULL);
       u\setDft($tx['created'], @$tx['completed']);
@@ -754,7 +753,7 @@ function noEmailTo($email) {
  * @return the text with substitutions highlighted
  */
 function showSubs($s, $subs) {
-  foreach ($subs as $k=>$v) $subs[$k] = "<span style=\"background-color:yellow;\">$v</span>";
+  foreach ($subs as $k=>$v) $subs[$k] = "<span class=\"test-highlight\">$v</span>";
   return strtr($s, $subs);
 }
 
@@ -787,6 +786,7 @@ function weShowWithSubs($page, $subs) {
   global $formOut; // for testing
 
   $subs = @$subs[0] ?: []; // comes in as "" if no subs
+
   if (strpos($page, 'confirm ') !== FALSE) {
     foreach (just(R_DATE_FIELDS, $subs) as $k => $v) if (is_numeric($v)) $subs[$k] = u\fmtDate($v);
     $wanted = t($page, $subs);
@@ -815,10 +815,10 @@ function makePicture($photo, $a) {
   return $a->update(compact('photo'));
 }
 
-// UNUSED
+/* UNUSED
 function getPicture($picture) {
   return file_get_contents(DRUPAL_ROOT . R_PICTURE_DIR . "small/$picture.jpg");
-}
+}*/
 
 /**
  * Send an RPC API request to the server, for rPOS.
@@ -954,6 +954,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   global $testConfirmation; // confirmation message output, if any
   global $formSta, $lastGo;
   $xlastGo = @$lastGo; // notice whether a goto happens, so we can skip post-processing
+	$lastGo = NULL;
 ///  debug(compact(ray('id page values confirmed testOnly')));
 
   $values = @$values[0] ?: [];
@@ -983,13 +984,12 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   }
   $sta['values'] = $sta['input'] = $values + $dfts; // add to whatever status the form left off in
   $fieldErr = FALSE; // no field errors yet
-  
-  if ($validate and @$lastGo == $xlastGo) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $sta);
+  if ($validate) if (!@$lastGo or @$lastGo == $xlastGo) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $sta);
   
   $lastIdentifierTag = '</div identifiers>';
   if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
   if ($fieldErr) return TRUE; // no submit if field error
-  if (@$lastGo == $xlastGo) foreach (t\postProcess($form, $page, 'submit') as $func) $func($form, $sta);
+  if (!@$lastGo or @$lastGo == $xlastGo) foreach (t\postProcess($form, $page, 'submit') as $func) $func($form, $sta);
 
   return TRUE;
 }
@@ -1035,6 +1035,7 @@ function pageForm($page, $msg = '', $field = '') {
       : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
     t\output("page \"$page\": $result in t\\pageForm()");
   } elseif (@$lastGo == $xlastGo) setFormOut($result);
+
   return $formArray;
 }
 
@@ -1134,6 +1135,8 @@ function strip($form) {
   $form = preg_replace('~<option value="[^"]*">.*?</option>~sm', '', $form); // remove unselected options (fails for dropdowns created on the fly, eg state and country)
   $form = preg_replace('~<input type="hidden".*?/>~sm', '', $form); // remove hidden inputs
   $form = preg_replace('/<input[^>]* value=" *(.*?) *".*?>/sm', '$1', $form); // show button labels
+  $form = preg_replace('/<input[^>]* checked[^>]* data-on="([^"]*)"[^>]*>/sm', '$1', $form); // bootstrap toggle on
+  $form = preg_replace('/<input[^>]* data-off="([^"]*)"[^>]*>/sm', '$1', $form); // bootstrap toggle off
   $form = preg_replace('/> *</sm', '> <', $form); // make sure there's exactly one space between things
   $form = preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($form));
 ///     if (strpos($form, '<html') !== FALSE) die($form);
@@ -1166,7 +1169,7 @@ function POST($values = NULL) {
   global $T_POST;
   if (isset($values)) {
     t\fixData($values);
-    $_POST = $T_POST = $values + ($T_POST ?: []);
+    $_POST = $T_POST = $values;
   }
   return $T_POST;
 }
@@ -1176,19 +1179,8 @@ function POST($values = NULL) {
  * Not to be confused with the color() function in test.php
  */
 function color($msg, $color = 'normal') {
-  $colors = array(
-    '' => 'ivory',
-    'normal' => 'ivory',
-    'expect' => 'cyan',
-    'email' => 'lightblue',
-    'input' => 'orange',
-    'output' => 'thistle',
-    'screen' => 'burlywood',
-    'error' => 'salmon',
-  );
-  $color = @$colors[$color] ?: $color;
 /**/ $msg = print_r($msg, 1); // keep this
-  return "<pre style='background-color:$color;'>$msg</pre>";
+  return "<pre class=\"test-$color\">$msg</pre>";
 }
 
 /**
@@ -1227,7 +1219,7 @@ function clear($ch = 0) {
 ///   file_put_contents(flog(), ''); // clear log file on disk
 
   $cgfUid = r\cgfId();
-  $tables = 'r_auth r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
+  $tables = 'r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
   foreach (ray('bootstrap form menu') as $k) $tables .= " cache_$k";
   foreach (ray($tables) as $table) if (db\exists($table)) db\q("TRUNCATE $table");
 
@@ -1320,6 +1312,7 @@ function badEq($type, $v1, $v2, $id) {
 function shownWith($content, $type = 'text', $mustBePresent = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $formOut;
+
   $model = t\strip($formOut[$type]);
 //  if (!$model and $type == 'text') $model = file_get_contents(TEST_PDF_FLNM);
 
@@ -1337,7 +1330,7 @@ function shownWith($content, $type = 'text', $mustBePresent = TRUE) {
       t\output(t('EXPECT page %with %this', 'with this', $mustBePresent ? t('with') : t('without'), u\purify($one, '')));
       t\output(compact('xi','i','one'));
       if (!$mustBePresent) $xi = $i; // show what's found if it's not supposed to be there
-      t\output(substr($model, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($model, $xi));
+      t\output(substr($model, 0, $xi) . ' <b class="test-doublesize">[OK until here]</b> ' . substr($model, $xi));
       return !$mustBePresent;
     } else $i += strlen($one);
   }

@@ -86,6 +86,7 @@ function memberRay($myid, $aid) {
 /**
  * Return the next relevant transaction for form 1099b, for an account.
  * @param int $payee: the account record ID
+ * @param int $year: year or end-of-year date
  * @return the next relevant row (NULL if no more)
  * Note that the IRS prohibits reporting non-positive transactions (but requires all the others). So we compromise by weeding out the transactions with "undoneBy" or "undoes" in the data field. But we return other negative transactions so we can warn the member to report the total negative amount on line 2, Form C.
  * Also note that this report is always for just one account (and for just one SSN or EIN) 
@@ -95,35 +96,20 @@ function get1099b($payee, $year = NULL) {
   global $q1099, $ignore1099;
   
   if (!@$q1099) {
-    $tome = ':payee=payee';
-    u\setDft($year, date('Y') - 1);
-    $start = strtotime("january 1, $year");
-    $end = strtotime('+1 year', $start) - 1;
+    u\setDft($year, strtotime('last day of December last year'));
+    $end = strlen($year) < 6 ? strtotime('1/1/' . ($year + 1)) - 1 : strtotime('tomorrow', $year);
+    $start = strtotime('1 year ago', $end) + 1;
     $sql = <<<EOF
-      SELECT created, data, serial,
-        IF($tome, amount, -amount) AS amount, 
-        IF($tome, payer, payee) AS uid, 
-        IF($tome, payeeFor, payerFor) AS `for` ,
-        $tome AS tome
-      FROM r_txs WHERE :payee IN (payer, payee) AND created BETWEEN $start AND $end 
-      AND (goods=:FOR_GOODS OR (type<>:TX_TRANSFER AND type NOT IN (:TX_REWARDS)))
+      SELECT created, amount, payer, payeeFor AS `for`
+      FROM r_txs WHERE payee=:payee AND NOT :IS_UNDONE AND NOT :IS_UNDOES AND created BETWEEN $start AND $end 
+      AND type NOT IN (:TX_REWARDS)
       ORDER BY created
 EOF;
 //      AND (goods=:FOR_GOODS OR type<>:TX_TRANSFER)
 //      AND (goods OR (type NOT IN (:TX_TRANSFER, :TX_REFUND)))
     $q1099 = db\q($sql, compact('payee'));
   }
-
-  while ($row = $q1099->fetchAssoc()) {
-    extract(just('data serial tome', $row));
-    $data = unserialize($data);
-    if (@$data['undoneBy']) { // look at expenses, in case there's a reversed rebate, but don't return em
-      $ignore1099[] = $serial; // ignore undone txs and their rewards
-    } elseif (@$data['undoes'] or in_array($serial, @$ignore1099 ?: [])) { // (do nothing)
-    } elseif ($tome) return $row;
-  }
-
-  return $q1099 = NULL;
+  return $q1099->fetchAssoc() ?: ($q1099 = NULL);
 }
 
 /**
@@ -203,7 +189,7 @@ function undoTx($xid, $where = '1', $subs = [], $force = FALSE) {
 function reverse($xid, $amounts, $what, $acct, $data, $old_goods, $tid, $type, $otherTid, $force) {
   global $mya;
 ///    print_r(compact(ray('xid amount acct data tid toMe'))); die();
-  u\EXPECT(compact(ray('xid amounts what acct data tid type otherTid')), 'id assoc array acct assoc|empty string string int'); // otherTid may be 0 (for reversing rewards)
+  u\EXPECT(compact(ray('xid amounts what acct data tid type otherTid')), 'id assoc array acct assoc|empty int string int'); // otherTid may be 0 (for reversing rewards)
   
   if (!is_array($data)) $data = [];
   $old_data = $data; // remember original data from transaction we're reversing
@@ -233,7 +219,8 @@ function reverse($xid, $amounts, $what, $acct, $data, $old_goods, $tid, $type, $
       UPDATE r_txs SET 
         payerFor=CONCAT(payerFor, :payerFor), 
         payeeFor=CONCAT(payeeFor, :payeeFor),
-        data=:old_data
+        data=:old_data,
+        flags=flags|(1<<:B_UNDONE)
       WHERE xid=:xid
 EOF;
     $subs = compact(ray('payerFor payeeFor xid old_data'));
@@ -348,7 +335,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $dat
     if (@$force) {
       r\tellAdmin('forced without photoId', $erInfo); 
     } elseif ($gainerA->id != r\cgfId()) { // and !$gainerA->coCan(CO_FAST)
-      r\tellAdmin('tx without photoId', $erInfo); 
+//      r\tellAdmin('tx without photoId', $erInfo); 
 //      return r\txRet($a == $a1 ? 'no photoid' : 'other no photoid', $erInfo + ['who' => $a2->fullName]);
     }
   }
@@ -370,7 +357,8 @@ function transfer($ttype, $a1, $a2, $amount, $goods, $for, $created = NULL, $dat
   // disabled for now      if (!$loserA->can(B_DEBT) and $loserA->floor < 0) $msg .= '|try debt';
       }
       r\suggestMin($loserA);
-      return r\txRet($msg, compact(ray('otherName short how')));
+      $details = t('|%loser was short by %short trying to pay %gainer %amount', ray('loser short gainer amount', $loserA->fullName, $short, $gainerA->fullName, u\fmtAmt($amount)));
+      return r\txRet($msg, compact(ray('otherName short how details')));
     }
   }
 //  $roundup = (r\acct($payer)->roundup and !@$data['isGift'] and !@$data['roundups'] and $amount > 0); // payer, not a1 or loser
@@ -545,11 +533,11 @@ function identify($who, $myid, $paying, $self_message = 'no self-trading') {
   if (!$mya = r\acct($myid)) return ['search forbidden', [], []];
 
   if ($phone = u\fmtPhone($who, '+n')) {
-    $who = $phone; $cphone = u\cryptN($phone);
+    $who = $phone; $cphone = u\cry('P', $phone);
   } else $cphone = '-';
   
   if (!$short = u\shortName(" $who ", '%')) $short = '-'; // abbreviations must not be null or zeroes
-  $cmail = strpos($who, '@') ? u\cryptN($who) : '-';
+  $cmail = strpos($who, '@') ? u\cry('P', $who) : '-';
 
   $cttyCrit = $mya->admin 
   ? '1' 

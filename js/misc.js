@@ -1,3 +1,21 @@
+/**
+ * @file
+ * javascript for the bottom of every page
+ */
+
+var vs = parseQuery($('#script-misc').attr('src').replace(/^[^\?]+\??/,''));
+var baseUrl = vs['baseUrl'];
+var signoutUrl = baseUrl + '/signout/timedout';
+var ajaxUrl = baseUrl + '/ajax';
+var ajaxSid = vs['sid'];
+var sessionLife = 1000 * vs['life']; // convert to seconds
+var signoutWarningAdvance = Math.min(sessionLife / 2, 5 * 60 * 1000); // give the user a few minutes to refresh
+var sTimeout = vs['life'] != '0' ? sessionTimeout() : 0; // Warn the user before automatically signing out.
+
+$('.test-next').click(function () {
+  $('#testError' + $(this).attr('index'))[0].scrollIntoView(true); window.scrollBy(0, -100);
+});
+
 function showMore(pgFactor) {
   page = Math.floor(page * pgFactor); 
   if (more) {
@@ -41,6 +59,9 @@ jQuery('button[type="submit"]').click(function() {
   this.form.opid.value = this.id;
 //  $('<input type="hidden" name="opid" />').appendTo(this.form).val(this.form.id);
 });
+
+$('.submenu .popmenu a').click(function () {$(this).find('.glyphicon').css('color', 'darkblue');});
+$('.submenu a[data-trigger="manual"').click(function () {$('.submenu a').not($(this)).popover('hide'); $(this).popover('toggle');});
 
 var page=0;
 var more=false;
@@ -111,18 +132,18 @@ function noSubmit() {
 }
 function yesSubmit() {}
 
-function who(form, id, question, amount, allowNonmember) {
+function who(form, fid, question, amount, allowNonmember) {
   jForm = $(form);
-  var who = $(id).val();
+  var who = $(fid).val();
   if (yesSubmit) return true;
   get('who', {who:who, question:question, amount:amount}, function(j) {
     if (j.ok) {
       if (j.who) {
-        $(id).val(j.who);
+        $(fid).val(j.who);
         yesno(j.confirm, function() {
           yesSubmit = true; jForm.submit();
         }, noSubmit);
-      } else which(jForm, id, j.title, j.which);
+      } else which(jForm, fid, j.title, j.which);
     } else if (allowNonmember && who.includes('@')) {
       yesno('That email address is for a non-member (or for a member with a non-public email address). Do you want to send them an invoice anyway, with an invitation to join?', function() {
         yesSubmit = true; jForm.submit();
@@ -134,7 +155,7 @@ function who(form, id, question, amount, allowNonmember) {
   return false;
 }
 
-function which(jForm, id, title, body) {
+function which(jForm, fid, title, body) {
   $('<div id="which">' + body + '</div>').dialog({
     title: title,
     modal: true,
@@ -145,7 +166,7 @@ function which(jForm, id, title, body) {
   $('.ui-dialog-titlebar-close').click(function() {noSubmit();});
   $('#which option').click(function() {
     yesSubmit = true;
-    $(id).val($(this).val());
+    $(fid).val($(this).val());
     jForm.submit();
   });
 }
@@ -216,7 +237,7 @@ function SelectText(element) { // from http://stackoverflow.com/questions/985272
     selection.addRange(range);
   }
 }
-
+/*
 var _gaq = _gaq || [];
 _gaq.push(['_setAccount', 'UA-30262912-1']);
 _gaq.push(['_trackPageview']);
@@ -226,3 +247,4 @@ _gaq.push(['_trackPageview']);
   ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
   var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
 })();
+*/

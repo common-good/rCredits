@@ -305,7 +305,7 @@ function photo($args) {
   if (!@$code) r\tellAdmin('missing code in photo op', compact(ray('member code')));
   if (!$a = getMember($member, $code, $err, u\test() or $version > 217)) return photoReturn($err);
 
-  return photoReturn($a->agentA->photo());
+  return photoReturn($a->agentA->photo); // was photo()
 }
 
 /**
@@ -313,11 +313,12 @@ function photo($args) {
  */
 function photoReturn($pic) {
   $max = 50; // arbitrary abbreviation length for logging and testing
-  $message = strlen($pic) <= $max ? $pic : bin2hex(substr($pic, 0, $max)); // identifies pic w/out a big db hit
+  $message = strlen($pic) <= $max ? $pic : bin2hex(substr($pic, 0, $max)); // identifies pic in log w/out a big storage hit
   u\loga('out', compact('message'));
 
   if (u\test()) {
     $filename = DRUPAL_ROOT . R_PICTURE_DIR . R_DFT_PICTURE; // never a company photo
+///		echo "flnm=$filename";
     $picNone = file_get_contents($filename);
     if (u\starts(bin2hex(substr($picNone, 0, $max)), $message)) $message = 'no photo';
 //    if ($pic === '') $message = 'no photo';

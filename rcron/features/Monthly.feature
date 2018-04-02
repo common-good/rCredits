@@ -130,7 +130,7 @@ Scenario: Inflation adjustments, round up donations, and crumb donations are mad
   | list |*
   | Corner Pub (Cvil) |
 
-# distribution of shares to CGCs
-  And transactions:
-  | xid | created | type     | amount | from | to   | flags |*
-  |  20 |       ? | transfer |   2.20 |  cgf | ctty | gift  |
+# NO (Seedpack gets no distribution) distribution of shares to CGCs
+#  And transactions:
+#  | xid | created | type     | amount | from | to   | flags |*
+#  |  20 |       ? | transfer |   2.20 |  cgf | ctty | gift  |

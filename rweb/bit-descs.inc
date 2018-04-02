@@ -9,6 +9,7 @@ $flagHelp = array(
   'confirmed' => t('Whoever invited the member has confirmed the invitation OR member bought something locally in-person.'),
   'ok' => t('Account is active -- approved for transactions.'),
 //  'bona' => t('Member has received a signup bonus.'),
+  'carded' => t('A %PROJECT card and welcome letter has been mailed to the member.'),
   'ided' => t('A cashier has verified the member\'s government-issued photo ID.'),
   'refill' => t('The member refills the account automatically from their bank account.'),
   'co' => t('The account is a company, organization, club, or fund -- not a person.'),

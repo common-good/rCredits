@@ -263,13 +263,13 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   $body = u\SUBS(strtr(@$body ?: (@$noFrame ? r\emailTemplate($index) : r\emailBody($index)), $resubs), '%');
 
   // log
-  $message = str_replace("\r\n", '', strtr($body, $logSubs)); // easier reading for log and tests
+  $message = strtr($body, $logSubs + ["\r\n" => '', ' style=' => ' stylish=']); // easier reading for log and tests & evade CSP
   $erInfo = compact(ray('index toEmail subject message'));
 /**/ f('t.output', 'Actual (in rMail) ' . print_r($erInfo, 1), 'email');
   u\loga('email', $erInfo + ['toUid' => @$toA->id]);
 
   if (isPRODUCTION !== TRUE) { // make sure we never send rogue emails from test server even if constant isn't set
-  /**/  if (!isDEV) debug(compact(ray('subject to body')));
+/**/  if (!isDEV) debug(compact(ray('subject to body')));
     return; // no emails unless real!!
     if ($toEmail != r\regionField('email') and $toEmail != R_ADMIN_EMAIL) return TRUE;
     if (isDEV) return TRUE; // otherwise cURL error 60: SSL certificate problem: unable to get local issuer certificate
@@ -294,10 +294,13 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
 
   if ($reply) $m->setReplyTo($reply);
   if (@$sms) $m->setSubject('')->setTo($toEmail); // send as text message
-  $success = $mailer->send($m);
-  u\EXPECT($success, 'cannot send email');
+  try {
+    $success = $mailer->send($m);
+  } catch (Exception $e) {
+    u\EXPECT($toEmail != R_ADMIN_EMAIL, 'cannot send admin email');
+    r\tellAdmin(t('cannot send email'), $erInfo);
+  }
   return TRUE;
-// this would likely fail if we can't send email  ?: r\tellAdmin('email fail', $erInfo);
 //  ->attach(Swift_Attachment::fromPath('my-document.pdf'))  
 }
 
@@ -400,45 +403,6 @@ function suggestMin($a, $default = '', $dftMsg = '', $get = FALSE) {
   
   $args = compact(ray('suggested _a1 _a2 _a3'));
   if ($get) return t($msg, $args); else r\notify($a->id, $msg, $args);
-}
-
-/**
- * If appropriate, update an account's membership status and send the staff an alert.
- * @param acct $a: the account
- * @param string $status: what milestone or event to alert about
- * @param bool $do: prerequisite for the alert
- * @return <the membership event happened and was handled>
- * If there is an appropriate bit to set, it will be set as appropriate.
- */
-function membershipEvent($a, $status, $do = TRUE) {
-  global $channel;
-  
-  $bit = @u\consta('b', $status); // get the appropriate bit, if any
-  if (!$do or ($bit !== FALSE and $a->can($bit))) return FALSE; // do nothing or bit already set
-
-  $DBTX = \db_transaction();
-  if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
-  $fullName = $a->fullName;
-
-  if ($status == 'ok') {
-    u\EXPECT($mya = r\acct() and $mya->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
-    $inviterName = @$a->helperA->fullName;
-    $subs = compact('inviterName');
-    $msg = 'approved';
-/*    if (!$a->confirmed) {
-      $msg .= '|must be confirmed';
-      if ($channel == TX_WEB) w\say('must be confirmed', $subs);
-    } */
-    if ($a->seq >= IBY_ICARD) $msg .= '|use temporary card';
-    r\message($a->id, $msg, $subs);
-    if (!$a->lastTx) $a->update('activated', r\rTime());
-    $a->setBit(B_NONUDGE, FALSE); // just in case it's on
-  }
-  unset($DBTX);
-  
-  $qid = $a->mainQid;
-//  tellCO('event - ' . $status, compact(ray('fullName qid status')), $a->id);
-  return TRUE;
 }
 
 /**
@@ -590,13 +554,30 @@ function iCardAcct($code0, &$iCode = NULL) {
  * @param string $key: name of cookie
  * @param string $value: value of cookie
  * @param int $expires: time when cookie expires (defaults to never -- about 1000 years from now) 0=end of session
+ * @param bool $raw: <suppress URL-encoding>
  * @return: the value
  */
-function setCook($key, $value, $expires = NULL) {
+function setCook($key, $value, $expires = NULL, $raw = FALSE) {
+	u\EXPECT(($len = strlen(rawurlencode("$key=$value"))) <= 4096, "cookie too long len=$len"); // 4094 not 4096 (browser bug?)
   u\setDft($expires, r\rTime() + 365250 * DAY_SECS);
-  setcookie($key, $value, $expires, '/'); // make it easy (fails without '/')
+	$func = $raw ? 'setcookie' : 'setrawcookie';
+  $res = $func($key, $value, (int) $expires, '/'); // make it easy (fails without '/')
+	u\EXPECT($res, 'cookie failed');
   $_COOKIE[$key] = $value; // make it available also before going to a new page
   return $value;
+}
+
+function setCryptCook($k, $v) {return setCook($k, substr(u\cry('C', $v), 3), 0, TRUE);}
+function cryptCook($k) {return ($v = @$_COOKIE[$k]) ? u\decry('C', CRYPT_FLAG . 'C' . $v) : '';}
+
+/**
+ * Return the unformatted private key for highly sensitive data (use u\fmtKey() to get the formatted key).
+ */
+function vKey() {
+	global $mya, $channel;
+  u\EXPECT($channel == TX_WEB, 'wrong channel for vKey: ' . $channel);
+  if (!@$mya) w\setAcct(); // make sure we got mya
+	return ($vKeyE = r\cryptCook('vKeyE')) ? u\decry('R', $vKeyE, $mya->agentA->vKeyPw) : '';
 }
 
 /**
@@ -688,7 +669,7 @@ function uniqueName($fullName, $info = []) {
  */
 function loginString($id) {
   if (u\isQid($id = trim(strtoupper($id))) and $acct = r\acct($id)) return $acct->id; // try to interpret as a qid
-  $mail = u\cryptN(strtolower($id));
+  $mail = u\cry('P', strtolower($id));
   return db\lookup('uid', 'users', 'name=:id OR mail=:mail ORDER BY :IS_CO', compact('id', 'mail'));
 }
   
@@ -766,9 +747,9 @@ function newUid($base) {return u\firstUnusedId('uid', 'users', $base, $base + R_
  */
 function changeAcctLink($uid, $v, $class = '') {        
   global $base_url;
-  $page = urlencode($_SERVER['REQUEST_URI']);
+  $page = str_replace('/', ',', $_SERVER['REQUEST_URI']); // not urlencode because Drupal sees slashes anyway
   if ($class) $class = " class=\"$class\"";
-  return "<a href=\"$base_url/change-account?acct=$uid&page=$page\"$class>$v</a>";
+  return "<a href=\"$base_url/change-account/acct=$uid&page=$page\"$class>$v</a>";
 }
 
 /**
@@ -806,13 +787,14 @@ function makeDevice($uid, $code = '', $ch = NULL) {
  */
 function deleteAccount($a) {r\changeUid($a, 0, FALSE, TRUE);}
 function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
-  if (!$a or !$a = is_object($a) ? $a : r\acct($a)) return w\say('nope');
+  $erUrl = 'sadmin/followup'; // where to go on errors
+  if (!$a or !$a = is_object($a) ? $a : r\acct($a)) return r\go($erUrl, t('nope'), 'err');
   $oldUid = $a->id;
   if ($delete) {
     if (db\exists($table = 'r_txs', 'payer=:oldUid OR payee=:oldUid', compact('oldUid'))
       or db\exists($table = 'r_ballots', ':oldUid IN (voter, proxy)', compact('oldUid'))
       or db\exists($table = 'r_usd', 'payee=:oldUid', compact('oldUid'))) {
-      return r\Web\say('Account "%name" has records in table %table, so it cannot be deleted.', ray('name table', $a->fullName, $table), 'ERR');
+      return r\go($erUrl, t('Account "%name" has records in table %table, so it cannot be deleted.', 'name table', $a->fullName, $table), 'err');
     }
   } elseif (!$newUid) {
     $region = @$a->zip ? r\region(@$a->country, @$a->state, $a->zip) : r\communityUid();
@@ -835,8 +817,6 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_invoices:payer:D',
     'r_invoices:payee:D',
     'r_ips:uid:D',
-    'r_log:myid:D',
-    'r_log:agent:D',
     'r_near:uid1:D',
     'r_near:uid2:D',
   // r_nonces
@@ -875,9 +855,14 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
 
   $DBTX = \db_transaction();
   foreach ($subs as $one) {
-    list ($table, $field, $deletable) = explode(':', $one); // if deleting and not deletable, set to zero
-    if ($delete and deletable) {
-      db\del($table, "$field=:oldUid", compact('oldUid'));
+    list ($table, $field, $deletable) = explode(':', $one . '::'); // if deleting and not deletable, set to zero
+    if ($delete) {
+      if (!$deletable) {
+        if (db\exists($table, "$field=:oldUid", compact('oldUid'))) {
+          $DBTX->rollback(); 
+          return r\go($erUrl, t('Record in table %table cannot be deleted.', compact('table')), 'err');
+        }
+      } else db\del($table, "$field=:oldUid", compact('oldUid'));
     } else db\q("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
   }
   $oldQid = r\qid($oldUid);
@@ -919,7 +904,7 @@ function txRet($message, $info = []) {
 function invite($email, $inviter, $code = '', $subject = '', $message = '') {
   $code = $code ?: u\code();
   $invited = r\rTime();
-  $email = u\cryptN($email);
+  $email = u\cry('P', $email);
   $info = compact(ray('code invited email inviter subject message'));
   db\insert('r_invites', $info);
   return $code;
@@ -1468,8 +1453,8 @@ function realCountry($country) {return db\lookup('name', 'r_countries', 'id=:cou
 function realState($state, $country = R_COUNTRY_ID) {return db\lookup($country == US_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function perm($bit) {return $bit - B_RELATED;}
 function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}
-function doCode($code) {return @unserialize(@u\decrypt(@u\deurlify($code)));}  
-function makeDoCode($ray) {return u\urlify(u\crypt(serialize($ray)));}
+function doCode($code) {return @unserialize(@u\decry('P', $code));}  
+function makeDoCode($ray) {return u\cry('P', serialize($ray));}
 function cgfId() {return \variable_get('cgf_uid');}
 function disputeTx($xid) {return db\setFlag('r_txs', $xid, B_DISPUTED, TRUE);}
 function denyInv($nvid) {return db\setData('r_invoices', $nvid, ['denied' => TRUE]);}
@@ -1481,3 +1466,4 @@ function regionField($fld) {return ($mya = r\acct(serverUid())) ? $mya->$fld : N
 function signedIn() {return r\acct() ? TRUE : FALSE;}
 function iCodeDesc($iCode) {$iCodeDescs = ray(IBYS); return $iCodeDescs[min($iCode, IBY_ICARD) - IBY0];}
 function cttyList() {return db\q("SELECT uid,fullname FROM users WHERE uid<0 ORDER BY created,fullName")->fetchAllKeyed();}
+function allKnowing() {global $mya; return (bool) $mya->agentA->vKeyPw;}

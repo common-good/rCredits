@@ -1,5 +1,7 @@
 <?php
 
+/**/ if (preg_match('/msie [1-7][^0]/i', @$_SERVER["HTTP_USER_AGENT"])) die("\n\n\n" . t('<h2>We apologize</h2><p>The %PROJECT site does not work with your (very old) browser.</p>')); // avoid some nasty XSS holes in MSIE < 8
+
 /**
  * @file
  * Functions that need to be loaded on every request.
@@ -256,7 +258,7 @@ define('DRUPAL_PHP_FUNCTION_PATTERN', '[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*'
  *
  * Example: Sun, 06 Nov 1994 08:49:37 GMT
  */
-define('DATE_RFC7231', 'D, d M Y H:i:s \G\M\T');
+if (!defined('DATE_RFC7231')) define('DATE_RFC7231', 'D, d M Y H:i:s \G\M\T'); // if is for PHP<7.0
 
 /**
  * Provides a caching wrapper to be used in place of large array structures.
@@ -1255,7 +1257,7 @@ function t($string, $subs0 = []) {
       if ($k[0] == '!' or $k[0] == '@') { // old Drupal-style arg
         $subs[$k] = $v;
       } else {
-        if ($k[0] == '_') $k = substr($k, 1); else $v = \check_plain($v);
+        if ($k[0] == '_') $k = substr($k, 1); else $v = plain($v);
         $subs['%' . $k] = $v;
       }
     }
@@ -1277,7 +1279,7 @@ function constantSubs($string, $prefix = '%') {
 /**
  * Let a called function receive a single assoc arg or several named args, simulating a call with ray(s,...). (CGF)
  * call by extract(rayy(func_get_args(), 0));
- * The called function cannot otherwise accept an assoc as its first argument.
+ * The called function cannot otherwise accept an assoc as its (n+1)th argument.
  * @param array $args: func_get_args() from the called function
  * @param int $n: how many leading args to ignore
  * @return u\ray called with those args if viable, else []
@@ -1335,16 +1337,12 @@ function obj() {return (object) call_user_func_array('ray', func_get_args());}
  * If a key did not exist in the original array, it will not be in the returned array either.
  * @param string/array $these: array or space-delimited array of field names
  * @param array/object/string $info: possible key/value pairs to return (passed as array, object, or UrlArgString)
- * @return array of the results, trimmed
+ * @return array of the results [NOT trimmed, because values might be encrypted!]
  */
 function just($these, $info) {
-  $result = [];
   $ray = is_string($info) ? urlq2ray($info) : (array) $info;
   if (!is_array($these)) $these = ray($these);
-  $keys = array_keys($ray); // eschew isset, to include null values in result
-//  foreach ($these as $k) if (isset($ray[$k])) $result[$k] = is_string($ray[$k]) ? trim($ray[$k]) : $ray[$k];
-  foreach ($these as $k) if (in_array($k, $keys)) $result[$k] = is_string($v = @$ray[$k]) ? trim($v) : $v;
-  return $result;
+	return array_intersect_key($ray, array_flip($these));
 }
 
 /**
@@ -1461,9 +1459,8 @@ function format_string($string, array $args = array()) {
  * @see drupal_validate_utf8()
  * @ingroup sanitization
  */
-function check_plain($text) {
-  return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-}
+function plain($text) {return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');}
+function check_plain($text) {return plain($text);}
 
 /**
  * Checks whether a string is valid UTF-8.
@@ -3175,7 +3172,7 @@ function _drupal_shutdown_function() {
   chdir(DRUPAL_ROOT);
 
   try {
-    while (list($key, $callback) = each($callbacks)) {
+    foreach ($callbacks as $key => $callback) { // while (list($key, $callback) = each($callbacks)) {
       call_user_func_array($callback['callback'], $callback['arguments']);
     }
   }

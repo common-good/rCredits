@@ -37,10 +37,10 @@ Scenario: A member confirms request to charge another member
 
   When member ".ZZB" visits page "handle-invoice/nvid=1&toMe=1"
   Then we show "Confirm Payment" with:
-  | ~question | Pay $100 to Abe One for labor? |
+  | ~question | Pay $100 to Abe One for labor |
   | ~ | Pay |
-  | Why not ||
-  | ~ | Deny |
+  | Reason ||
+  | ~ | Dispute |
   
   When member ".ZZB" confirms form "handle-invoice/nvid=1&toMe=1" with values:
   | op   | ret | nvid | amount | payer | payee | purpose | created |*
@@ -70,10 +70,10 @@ Scenario: A member confirms request to charge a not-yet member
 
   When member ".ZZD" visits page "handle-invoice/nvid=1&toMe=1"
   Then we show "Confirm Payment" with:
-  | ~question | Pay $100 to Abe One for labor? |
+  | ~question | Pay $100 to Abe One for labor |
   | ~ | Pay |
-  | Why not ||
-  | ~ | Deny |
+  | Reason ||
+  | ~ | Dispute |
 
   When member ".ZZD" confirms form "handle-invoice/nvid=1&toMe=1" with values:
   | op   | ret | nvid | amount | payer | payee | purpose | created |*

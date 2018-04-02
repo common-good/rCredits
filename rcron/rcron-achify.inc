@@ -14,6 +14,7 @@ define('DEST_NUM', '011500120'); // usually a routing number for the bank provid
  * Create an ACH request file (debits only, for now).
  */
 function achify() {
+	$CGCODE = 'ASOBENE1'; // company code assigned by Citizens Bank for upload filename
   $reserve = ''; // leave reserved fields empty
   $count = $hash = $credits = $debits = 0;
 
@@ -24,7 +25,7 @@ function achify() {
   list ($originNum, $originName, $ref) = ['1' . CGF_EIN, PROJECT, ''];
   $recs[] = achRecord(compact(array_keys($ray = ray(F_FILEHDR))), $ray);
   
-  $destNum = substr(DEST_NUM, 0, 8);
+  $destNum = substr(DEST_NUM, 0, 8); // BATCHHDR, PPD, and BATCHFTR omit last digit (check digit) of routing number
   list ($recType, $class, $secCode, $settle, $status) = [5, 200, 'PPD', '', 1]; // 200=mixed (maybe), 225=debits, 220=credits
   $entryDate = strftime('%y%m%d', strtotime('tomorrow'));
   $batchNum = 1; // batch (company) number within file
@@ -62,10 +63,14 @@ function achify() {
     $count++;
     list ($recType, $id, $name, $addendaFlag) = [6, $a->mainQid, $a->legalName, 0];
     list ($routing, $account) = u\parseBankAccount($a->bankAccount);
-    if ($a->mainQid == 'NEWAIO') $amount = 0; // debug(
-    if ($amount <= 0) $credits += $amount; else $debits += $amount;
+/// TEST    if ($a->mainQid == 'NEWAIO') $amount = 0; // debug(
+		
+		$amount *= 100;
+    if ($amount <= 0) $credits -= $amount; else $debits += $amount;
     $txCode = $amount == 0 ? 23 
     : (@$bankAccountType == 'checking' ? ($amount < 0 ? 22 : 27) : ($amount < 0 ? 32 : 37));
+		$amount = abs($amount);
+
     $recs[] = achRecord(compact(array_keys($ray = ray(F_PPD))), $ray);
 
     $hash += substr($routing, 0, 8);
@@ -112,9 +117,11 @@ function achify() {
   $recs[] = "9$batches$blocks$count$hash$debits$credits$b39"; // file control
   */
 /**/  foreach ($recs as $line) if (strlen($line) != $recSize) debug('bad ach line len: ' . strlen($line) . " - $line");
+
+  $datetime = strftime('%Y%m%d%H%M'); // use full year (unlike ach record format)
   header('Content-type: text/plain');
-  header("Content-Disposition: attachment; filename=ach-$datetime.txt");
-  echo join("\n", $recs);
+  header("Content-Disposition: attachment; filename=$CGCODE.ach-$datetime.txt");
+/**/  echo join("\n", $recs);
   exit();
 }
 
@@ -128,10 +135,10 @@ function achRecord($values, $lens) {
   $res = '';
   foreach ($lens as $k => $len) {
     $v = $values[$k];
-    $res .= is_numeric($v) ? padnum($v, $len) : pad($v, $len);
+    $res .= preg_match('/^[-,\\.0-9]+$/', $v) ? padnum($v, $len) : pad($v, $len); // (is_numeric would allow numbers with spaces)
   }
   return $res;
 }
 
 function pad($s, $n) {return substr(str_pad($s, $n), 0, $n);}
-function padnum($n, $len) {return u\lpad(str_replace('.', '', abs($n)), $len);}
+function padnum($n, $len) {return u\lpad(str_replace(',', '', number_format($n, 0)), $len);}

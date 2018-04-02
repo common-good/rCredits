@@ -1,0 +1,71 @@
+$created = time() - 90 * DAY_SECS;
+
+// What fraction of new members choose to round up? 17/24
+$roundups = db\count('users', ':IS_MEMBER AND :IS_ROUNDUP AND created>:created', compact('created'));
+$newMembers = db\count('users', ':IS_MEMBER AND created>:created', compact('created'));
+$pctRoundups = $roundups / $newMembers;
+
+// How many roundable transactions per day?
+$txCount = db\lookup('IF(u.:IS_CO, 1, 0) AS co, COUNT(amount)', 'r_txs t JOIN users u ON u.uid=t.payee', 't.type=:TX_TRANSACT AND created>=:created', compact('created'));
+$txCount = db\lookup('IF(u.:IS_CO, 1, 0) AS co, SUM(amount)', 'r_txs t JOIN users u ON u.uid=t.payee', 't.type=:TX_TRANSACT AND created>=:created', compact('created'));
+
+
+SELECT fullName,crumbs,flags&64 AS co FROM users WHERE created>=1485273011 AND flags&1 AND crumbs>0
+
+// Average crumbs: co .0067  m .0086
+SELECT AVG( crumbs ) , flags &64 AS co
+FROM users
+WHERE created >=1485273011
+AND flags &1
+GROUP BY flags &64
+
+Income
+
+roundups:
+17/24 of new accounts
+50c / transaction
+590 tx/mo with 423 m and 66 co (491 accts)
+$/mo/acct 43c
+
+crumbs: 
+co .0067  m .0086
+tx/mo co 27k m 3k
+$/mo/acct co $2.74 m $0.06 (total $2.80)
+
+repeating donations
+monthly $175
+quarterly $235
+$/mo/acct 52c
+
+new members
+$24 each
+free accts/m .41
+
+SELECT COUNT(*) FROM users WHERE flags&4 AND NOT flags&64 AND helper NOT IN (26742000000001,26742000000004,26742000000299,26742000000292,26742000000215,26742000000264,25026000000160,25026000000001,17238000000001,26715000000002)
+
+SELECT AVG(u.activated-h.activated) FROM users u LEFT JOIN users h ON h.uid=u.helper WHERE u.helper NOT IN (26742000000001,26742000000004,26742000000299,26742000000292,26742000000215,26742000000264,25026000000160,25026000000001,17238000000001,26715000000002) AND u.activated>0 AND h.activated>0
+
+89 13/507=.023
+90 11/149=.074
+91 34/365=.093
+92 43/269=.160
+93 56/142=.394
+94 21/77=.273
+95 25/79=.316
+
+Average successful invitation latency: 278 days -- about 9 months (time from activation of inviter to activation of invitee)
+Current growth rate 27m/mo + 3co/mo = 30acct/mo
+
+Businesses with cards on the counter bring in a new member a month, so we will have no probably growing. Our growth rate is roughly proportional to the number of companies (and therefore to the number of accounts. 27/mo for 491 accounts is:
+Growth rate: .061/mo/acct
+
+So our total monthly income from the system is:
+roundups + crumbs + repeating donations + new member donations
+$0.43 + $2.80 + $0.52 + 0.061*$24 = $5.21
+We send have of that to the individual communities
+
+If the amount of monthly income we need, to be sustainable, is I, then the number of accounts we need is given by:
+5.21/2 * accts >= I OR
+accts >= I / 2.605
+
+For example, if we need $11,750 a month ($175,000 a year minus $34k from interest), then accts = 4,511

@@ -126,8 +126,8 @@ EOF;
   $middle = w\item(@$middle);
   $args = w\hidFld($args);
 
-  w\js('js/rvote/ballot.js', 'file', 'footer');
-  w\css('css/rvote.css');
+  w\js('ballot');
+  w\css('rvote.css');
   
   return labeled(compact(ray('args title subtitle status showVotes')) + (@$voting ?: []) + compact('middle') + (@$extraFields ?: []));
 }
@@ -394,7 +394,7 @@ function formProposalReport($form, &$sta, $args = '') {
   $form += $extra ?: [];
   $form['back'] = w\item('<p>' . u\backButton() . '</p>');
 
-  w\css('css/rvote.css');
+  w\css('rvote.css');
 
   return w\labeled($form);
 }
@@ -421,7 +421,7 @@ function formProposalNotes($form, &$sta, $args = '') {
   $project = w\item($project, t('Project:'));
   $back = w\item('<p>' . u\backButton() . '</p>');
 
-  w\css('css/rvote.css');
+  w\css('rvote.css');
   
   return w\labeled(compact(ray('title project list back')));
 }
@@ -488,11 +488,11 @@ EOF;
   
   $crit = '<div id="critChart" class="table">' . join('', $crit) . '</div>';
   $critPop = item(w\modal('criteria', t('Evaluation Criteria for Funding Proposals'), '', $crit, 'X'));
-  js("jQuery('#critLink').click(function () {jQuery('#criteria').modal('show');});", 'inline', 'footer', 9999);
+  jsx('funding-criteria');
 
   $title = item(t('Community Funding Proposal'));
   $_aInfo = u\link(PROMO_URL);
-  $_aCrit = 'a id="critLink" href="javascript:;"';
+  $_aCrit = 'a id="critLink"'; //  href="javascript:;
   
   $subtitle = item(t(<<< EOF
 <p>Complete this form by December 15, 2016, to submit a proposal for funding from the Greenfield Area %PROJECT Community. Requests can be made for up to $10,000 for projects in the following categories:</p>
@@ -541,7 +541,7 @@ function formProposal_validate($form, &$sta) {
   if ($err = u\badDate($until, $when)) return sayFieldErr($err, 'until');
   foreach (['amount', 'budgetTotal'] as $k) if ($err = amtErr($k, $sta)) return sayFieldErr($err, $k);
   if (!phoneOk($phone)) return;
-  if ($err = \user_validate_mail($email)) return say('bad email', compact('email'), 'email');
+  if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return say('bad email', compact('email'), 'email');
   u\preray(compact(ray('when until phone')), $sta['input']); // amounts get updated in $sta by amtErr()
 }
 

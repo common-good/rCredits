@@ -163,31 +163,6 @@ function fmtAmt($amount, $opt = 's$') {
 }
 
 /**
- * Return HTML for a visual calculator.
- */
-function calculator($field = 'amount') {
-  $s = '<div id="calc">';
-  $symbols = '123|456|789|c0b';
-  $field = "this.form.$field.value";
-  for ($i = 0; $i < strlen($symbols); $i++) {
-    $c = substr($symbols, $i, 1);
-    $formula = "$field=commafy(10*$field.replace(/,/, '')+.0$c);"; // default to adding a digit
-    $class = "calc$c";
-    if ($c == '|') {
-      $s .= "<br>";
-      continue;
-    } elseif ($c == 'c') {
-      $formula = "$field='0.00';";
-    } elseif ($c == 'b') {
-      $formula = "$field=commafy(parseFloat($field.slice(0, -1).replace(/,/, ''))/10);"; // remove last digit
-      $c = '&#x25C0;'; // unicode left arrow head
-    }
-    $s .= "<button id=\"$class\" type=\"button\" onclick=\"$formula\">$c</button>"; // iPhone <input> looks bad
-  }
-  return $s . '</div>';
-}
-
-/**
  * Say whether the user name is valid.
  * @param string $name: the name to test
  * @param boolean $picky: whether to allow only 2-4 word names (default TRUE)
@@ -311,9 +286,8 @@ function a22x3($s) {
  * @param assoc $ray: list of attribute names and values (value can be an array)
  */
 function tribs($ray) {
-  foreach ($ray as $k => $v) {
-///    if (is_array($v)) foreach ($v as $j) if (is_array($j)) die(print_r(debug_backtrace(), 1));
-    $tribs[$k] = "$k=\"" . (is_array($v) ? join(' ', $v) : $v) . '"';
+  foreach ($ray as $k => $v) if (!is_null($v)) {
+    $tribs[$k] = "$k=\"" . plain(is_array($v) ? join(' ', $v) : $v) . '"';
   }
   return join(' ', @$tribs ?: []);
 }
@@ -679,7 +653,7 @@ function loga($type, $info = [], $adhocChannel = FALSE) {
 function emailTag($email = NULL, $subject = '', $body = '', $name = '', $extra = '') {
   u\setDft($email, r\regionField('email'));
   if ($name) $email = urlencode("\"name\"") . ' ' . urlencode("<$email>");
-  $res = "mailto: $email";
+  $res = "mailto:$email";
   if ($subject) $res .= '?subject=' . urlencode($subject);
   if ($body) $res .= '&body=' . urlencode($body);
   return "a href=\"$res\" target=\"_blank\" $extra";
@@ -793,10 +767,10 @@ function alterImg($img0, $w, $h, $x1 = 0, $y1 = 0, $cropW = 0, $cropH = 0, $angl
 
 /**
  * Say whether a value is encrypted. This works only if the unencrypted value can never start with ! or c~.
- */
+ *//*
 function isEncrypted($s) {
   return (u\starts($s, CRYPT_FLAG) or u\starts($s, CRYPTN_FLAG));
-}
+}*/
 
 /**
  * Quicker encryption for often-used fields.
@@ -807,9 +781,10 @@ function isEncrypted($s) {
  * @param bool $noIV: <use a predictable initialization vector (only for searchable unique-valued fields)>
  * @return the encrypted string (or the decrypted string with trailing nulls deleted, if $encrypt is FALSE)
  */
-define('CRYPT_FLAG', 'c~'); // flag start of encrypted data (add single digit $how)
- 
-function crypt($data, $how = 0, $key = R_WORD, $encrypt = TRUE, $noIV = FALSE) {
+//define('OLDCRYPT_FLAG', 'c~'); // flag start of encrypted data (add single digit $how)
+define('CRYPT_FLAG', '`!'); // flag start of encrypted data (add a single type letter)
+ /*
+function cryptM($data, $how = 0, $key = R_WORD, $encrypt = TRUE, $noIV = FALSE) {
 ///  debug(($encrypt ? 'Encrypting ' : 'Decrypting ') . strlen($data) . ' chars, using method #' . $how . ' keylen=' . strlen($key));
   if (empty($data)) return FALSE;
   u\EXPECT(compact('data', 'how', 'key'), 'string int string');
@@ -827,15 +802,15 @@ function crypt($data, $how = 0, $key = R_WORD, $encrypt = TRUE, $noIV = FALSE) {
   } elseif ($encrypt) {
     $iv = mcrypt_create_iv($ivSize, MCRYPT_RAND);
   } else {
-    $flagLen = strlen(CRYPT_FLAG . $how);
-//    if (!u\starts($data, CRYPT_FLAG . $how)) return $data; // temporary fudge, to get data out
-    u\EXPECT(u\starts($data, CRYPT_FLAG . $how), 'wrong encryption');
+    $flagLen = strlen(OLDCRYPT_FLAG . $how);
+//    if (!u\starts($data, OLDCRYPT_FLAG . $how)) return $data; // temporary fudge, to get data out
+//    u\EXPECT(u\starts($data, OLDCRYPT_FLAG . $how), 'wrong encryption');
     list ($iv, $data) = [substr($data, $flagLen, $ivSize), substr($data, $flagLen + $ivSize)];
   }
   $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
   $data = $function($method, $key, $data, $mode, $iv);
   mcrypt_module_close($td);
-  return $encrypt ? ($noIV ? $data : CRYPT_FLAG . "$how$iv$data") : rtrim($data, "\0");
+  return $encrypt ? ($noIV ? $data : OLDCRYPT_FLAG . "$how$iv$data") : rtrim($data, "\0");
 } 
 
 /**
@@ -843,12 +818,129 @@ function crypt($data, $how = 0, $key = R_WORD, $encrypt = TRUE, $noIV = FALSE) {
  * @param string $data: encrypted data
  * @param int $how: encryption method number (0 or 1). Defaults to "figure out which method".
  * @param string $key: encryption key
- */  
-function decrypt($data, $how = NULL, $key = R_WORD) {
-  if (!u\starts($data, CRYPT_FLAG)) return FALSE;
-  u\setDft($how, substr($data, strlen(CRYPT_FLAG), 1));
-  return crypt($data, $how, $key, FALSE);
+ */  /*
+function decryptM($data, $how = NULL, $key = R_WORD) {
+  if (!u\starts($data, OLDCRYPT_FLAG)) return FALSE;
+  u\setDft($how, substr($data, strlen(OLDCRYPT_FLAG), 1));
+  return cryptM($data, $how, $key, FALSE);
 }
+*/
+
+/**
+ * Perform the given type of encryption (or decryption).
+ * @param char $type: purpose of the encryption / decryption, as follows (each has its own methods, password, and IV):
+ *   R regional admin private key for very secure data (the key is encrypted on the admin's flash drive)
+ *   V very secure data (SSNs, etc.)
+ *   S standard secure data
+ *   P searchable data (last step of encryption is b64)
+ *   C cookie
+ *   H photo
+ * @param string $data: the data to be encrypted / decrypted
+ * @param bool $de: <decrypt rather than encrypt>
+ * @param string $pwInstead: password to use instead of the one in the password file (for asymmetric encryption or decryption)
+ * @return the encrypted (or decrypted) data.
+ * TEST with foreach (ray('S V R C P H') as $k) print "k=$k " . u\decry($k, u\cry($k, 'abcd', FALSE, $k == 'R' ? a(1)->vKeyPw : ''), $k == 'V' ? r\vKey() : ($k == 'R' ? a(1)->vKeyPw : ''));
+ */
+function cry($type, $data, $de = FALSE, $pwInstead = '') {
+	global $cryHows, $mya;
+	
+	if ($de) u\EXPECT(u\starts($data, CRYPT_FLAG . $type), 'bad crypted');
+	if ($de) $data = substr($data, strlen(CRYPT_FLAG . $type));
+
+	$chow = $cryHows[$type];
+	foreach ($chow as $i => $v) if ($chow0 = @$cryHows[$v]) $chow[$i] = $chow0[$i]; // allow reference to other how
+	list ($hows, $pw, $iv) = $chow;
+	$pw = u\b64decode($pwInstead ?: $pw);
+	u\EXPECT($pw, 'missing pw in cry');
+	
+	if ($iv == 'NONCE') {
+		if ($de) {
+			$iv = substr($data, 1, $nonceLen = ord($data[0]));
+			$data = substr($data, 1 + $nonceLen);
+		} else {
+    	$nonceLen = 37; // arbitrary length of nonce (must be >= 32)
+			$iv = openssl_random_pseudo_bytes($nonceLen);
+			$nonce = chr($nonceLen) . $iv; // since our IVs also serve as an arbitrary length mask, record its length
+		}
+  } else $iv = u\b64decode($iv);
+	
+	$hows = $de ? array_reverse(ray($hows)) : ray($hows);
+	
+	foreach ($hows as $how) {
+    switch ($how) {
+			case 'xor': $data = strXor($data, $pw . $iv); break; // deXor is the same
+			case 'rot': $data = strRotate($data, min(PHP_INT_MAX, hexdec(bin2hex(substr($pw, 0, 4)))) * ($de ? -1 : 1)); break;
+			case 'scram': $data = strScramble($data, $pw . $iv, $de); break;
+			case 'b64': $data = $de ? u\b64decode($data) : u\b64encode($data); break; // final encrypt step if present
+			case 'pgp':
+				$trashLen = 30; // do not change this, without re-encrypting everything encrypted with its previous value
+				// NOTE: whether this number is 0 or 200 makes ZERO difference in the strlen of the encrypted value 30 is plenty
+				if ($de) { // decrypt with supplied private key
+    			$success = openssl_private_decrypt($data, $res, u\fmtKey(r\vKey(), 'PRIVATE')) ? $res : FALSE;
+///					if (!$success) die(print_r(debug_backtrace(), -1));
+  				$data = $success ? substr_replace($res, '', -$trashLen) : '';
+				} else { // encrypt with public key
+  				$data .= openssl_random_pseudo_bytes($trashLen); // add randomness
+    			$success = openssl_public_encrypt($data, $res, u\fmtKey($pw, 'PUBLIC')) ? $res : FALSE;
+					$data = $res;
+				}
+				break;
+			default: $data = crypt($data, $how, $pw, $iv, $de); // any standard AES
+		}
+	}
+
+	return $de ? $data : (CRYPT_FLAG . $type . @$nonce . $data);
+}
+
+function crypted($type, $s) {return u\starts($s, CRYPT_FLAG . $type);}
+//function oldcrypted($s) {return (u\starts($s, OLDCRYPT_FLAG) or u\starts($s, '!'));}
+
+function decry($type, $data, $pwInstead = '') {
+/*  if (u\starts($res = $data, OLDCRYPT_FLAG)) {
+		while (u\starts($res0 = $res, OLDCRYPT_FLAG)) {
+      if ($type == 'V' or !$res = decryptM($res) or (!@unserialize($res) and !ctype_print($res))) {
+///			  if (!$pw2 = r\cryptCook('pw2') or !$res = decryptM($res0, NULL, $pw2)) die('data=' . bin2hex($data) . ' ' . print_r(debug_backtrace(), 1));
+			}
+	  }
+		return $res;
+	} elseif ($type == 'P' and $data[0] == CRYPTN_FLAG and bin2hex(substr($data, 1))) return decryptN($data);
+*/
+		
+	return u\starts($data, CRYPT_FLAG) ? cry($type, $data, TRUE, $pwInstead) : $data;
+}
+
+// NEW encryption
+function crypt($data, $how, $key, $iv, $decrypt = FALSE) {
+  if (empty($data)) return FALSE;
+  u\EXPECT(compact(ray('data how key iv')), 'string string string string');
+
+//	if (!$encrypt and $how >= 4) return cryptM($data, $how - 4, $key, FALSE, $noIV); // retro
+
+//  $hows = ['aes-256-gcm', 'camellia-256-ofb']; // use no-padding modes (CTR, OFB, or CFB; not CBC)
+//	$keySizes = [32, 32]; // number of bits divided by 8
+//  list ($method, $keySize) = [$hows[$how], $keySizes[$how]];
+
+  $ivSize = openssl_cipher_iv_length($how);
+	$iv = substr($iv, 0, $ivSize);
+//    $iv = openssl_random_pseudo_bytes($ivSize);
+  $key = substr($key, 0, 32); // 32 bytes for 256 bits
+
+//  if ($noIV) { // predictable iv (for unique-valued fields)
+//    if (!$iv = \variable_get('iv', '')) \variable_set('iv', $iv = openssl_random_pseudo_bytes(256)); // intentionally overbig
+//    $iv = openssl_random_pseudo_bytes($ivSize);
+//  } else {
+//    $flagLen = strlen(CRYPT_FLAG . $how);
+//    if (!u\starts($data, CRYPT_FLAG . $how)) return $data; // temporary fudge, to get data out
+//    u\EXPECT(u\starts($data, CRYPT_FLAG . $how), 'wrong encryption');
+//    list ($iv, $data) = [substr($data, $flagLen, $ivSize), substr($data, $flagLen + $ivSize)];
+//  }
+
+//  $iv = substr($iv, 0, $ivSize);
+  $function = $decrypt ? 'openssl_decrypt' : 'openssl_encrypt';
+  $data = $function($data, $how, $key, 0, $iv);
+//  NO! return $decrypt ? rtrim($data, "\0") : $data;
+  return $data;
+} 
 
 /** 
  * Encrypt/decrypt using a known iv and hex2bin/bin2hex, so we can search the encrypted field.
@@ -856,37 +948,11 @@ function decrypt($data, $how = NULL, $key = R_WORD) {
  */
 define('CRYPTN_FLAG', '!'); // flag start of cryptN-encrypted data
 
-function cryptN($data, $encrypt = TRUE) {
-  if (!$encrypt) {
-    if (!u\starts($data, CRYPTN_FLAG)) return $data; // temporary fudge, to get data out
-    u\EXPECT(u\starts($data, CRYPTN_FLAG), 'data not cryptNd');
-    $data = hex2bin(substr($data, strlen(CRYPTN_FLAG))); // convert to binary before decrypting
-  }
-  $res = crypt($data, 0, R_WORD, $encrypt, TRUE);
-  return $encrypt ? CRYPTN_FLAG . bin2hex($res) : $res; // convert to hex after encrypting
+function decryptN($data) {
+	if (!u\starts($data, CRYPTN_FLAG)) return $data; // temporary fudge, to get data out
+	$data = hex2bin(substr($data, strlen(CRYPTN_FLAG))); // convert to binary before decrypting
+  return cryptM($data, 0, R_WORD, FALSE, TRUE);
 }
-function decryptN($data) {return cryptN($data, FALSE);}
-
-function pgpCrypt($data) {return openssl_public_encrypt($data, $res, u\pgp()) ? $res : FALSE;}
-function pgpDecrypt($data) {return openssl_private_decrypt($data, $res, u\pgp(TRUE)) ? $res : FALSE;}
-
-/**
- * Return the appropriate pgp key.
- * @param bool $private: <return the private key> (else return the public key)
- */
-function pgp($private = FALSE) {return file_get_contents($private ? PRIVATE_KEY : PUBLIC_KEY);}
-
-function OLDencrypt($data, $encrypt = TRUE) {
-  if (empty($data)) return FALSE;
-  u\EXPECT(compact('data'), 'string');
-  $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
-  $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_ECB); 
-  $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND); 
-  $data = $function(MCRYPT_RIJNDAEL_256, base64_decode(substr(R_WORD, 0, 16)), $data, MCRYPT_MODE_ECB, $iv); 
-  return $encrypt ? $data : rtrim($data, "\0");
-} 
-
-function OLDdecrypt($data) {return OLDencrypt($data, FALSE);}
 
 /**
  * Initiate CSV download.
@@ -931,9 +997,14 @@ function randomString($len = 16, $choices = '') {
   $upper = strtoupper($lower);
   $digits = '0123456789';
   $word = $lower . $upper . $digits;
+
   if (@$$choices) $choices = $$choices;
-  $s = '';
-  for ($i=0; $i < $len; $i++) $s .= $choices ? substr($choices, rand(0, strlen($choices) - 1), 1) : chr(rand(1, 255));
+  $chlen = strlen($choices);
+
+  for ($s = '', $i = 0; $i < $len; $i++) {
+    do {$c = openssl_random_pseudo_bytes(1);} while ($choices and ord($c) >= $chlen); // get a random character or index
+    $s .= $choices ? $choices[ord($c)] : $c;
+  }
   return $s;
 }
 
@@ -1038,18 +1109,9 @@ function titleCase($s) {
  */
 function sanitizeInput($args, $form = []) {
   if (!is_array($args)) $args = urlq2ray($args); // all GET args
-//  require_once DRUPAL_ROOT . '/vendor/autoload.php';
-  require_once DRUPAL_ROOT . '/vendor/zendframework/zend-filter/src/FilterInterface.php';
-  require_once DRUPAL_ROOT . '/vendor/zendframework/zend-filter/src/AbstractFilter.php';
-  require_once DRUPAL_ROOT . '/vendor/zendframework/zend-filter/src/StripTags.php';
-  $filterPlain = new \Zend\Filter\StripTags();
-  $filterHtml = new \Zend\Filter\StripTags(ray('b blockquote code del dd dl dt em h1 h2 h3 h4 i kbd li ol p pre s sup sub strong strike ul hr'));
+
   foreach ($args as $k => $v) if (!is_array($v)) {
-    if (@$form[$k]['#format'] == 'filtered_html') {
-      $v = $filterHtml->filter($v);
-      $args[$k] = w\linkify($v);
-//      $args[$k] = preg_replace('/javascript\w*:/i', '', $v);
-    } elseif (@$form[$k]['#type'] != 'password') $args[$k] = \check_plain($v);
+    if (@$form[$k]['#type'] != 'password') $args[$k] = plain($v);
   }
   return $args;
 }  
@@ -1172,7 +1234,7 @@ EOF;
 function code($upper = FALSE, $len = R_CODE_LEN) {
   global $nextCode;
   if (u\test() and @$nextCode) return $nextCode;
-  $res = \user_password($len);
+  $res = u\randomString($len, 'word');
   return $upper ? strtoupper($res) : $res;
 }
 
@@ -1305,6 +1367,61 @@ function plusMonths($n, $time = '') {
 }
 
 /**
+ * XOR a string of bits with a mask
+ */
+function strXor($a, $mask) {
+	$mlen = strlen($mask);
+	u\EXPECT($mlen, 'empty strXor mask');
+	$res = '';
+	for ($i = 0; $i < strlen($a); $i++) $res .= $a[$i] ^ $mask[$i % $mlen];
+	return $res;
+}
+
+/**
+ * Rotate a string of bits to the left
+ */
+function strRotate($s, $n) {
+	if (!$blen = strlen($s) * 8) return '';
+	$n = ($n % $blen) + ($n < 0 ? $blen : 0);
+	$chars = phpversion() >= 7 ? intdiv($n,	8) : (int) ($n / 8);
+	$s = substr($s, $chars) . substr($s, 0, $chars);
+	if (!$bits = $n & 7) return $s; // rotation fell on a character boundary
+	
+	$s .= substr($s, 0, 1);
+	$res = '';
+	for ($i = 0; $i < strlen($s) - 1; $i++) {
+		$res .= chr((ord($s[$i]) << $bits) + (ord($s[$i + 1]) >> (8 - $bits)));
+	}
+	return $res;
+}
+
+/**
+ * Scramble a string by swapping each character with one some distance to its right (0 to 255).
+ */
+function strScramble($s, $key, $un = FALSE) {
+	if (!$slen = strlen($s)) return '';
+	$klen = strlen($key);
+	u\EXPECT($klen, 'empty scramble key');
+	
+	for ($i0 = 0; $i0 < $slen; $i0++) {
+		$i = $un ? $slen - $i0 - 1 : $i0;
+		$j = ord($key[$i % $klen]) % $slen; // all modulus params in this function are >0 (no worries that in PHP -8 % 5 is -3
+		list ($s[$i], $s[$j]) = [$s[$j], $s[$i]];
+	}
+	return $s;
+}
+
+function strUnscramble($s, $key) {return strScramble($s, $key, TRUE);}
+
+/*
+function unSerialFix($s) {
+	$s = html_entity_decode($s, ENT_QUOTES, 'UTF-8');
+	$s = preg_replace('!s:(\d+):"(.*?)";!e', "'s:'.strlen('$2').':\"$2\";'", $s );
+	$s = unserialize($s);
+}
+*/
+
+/**
  * Return the value of the given bit.
  * @param mixed $bit:
  *   string - a defined bit name (lowercase without the initial B_)
@@ -1348,7 +1465,7 @@ function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back
 function digits(&$n) {return $n = preg_replace('/\D/', '', @$n);}
 function monthDay1($time = NULL) {return strtotime(strftime('1%b%Y', isset($time) ? $time : r\rTime()));}
 function prefix($prefix, &$var) {$var = $prefix . $var;}
-function preray($prefix, &$r0) {u\EXPECT($prefix !== FALSE, 'zot');$r = $prefix + (array) $r0; $r0 = is_object($r0) ? (object) $r : $r;}
+function preray($prefix, &$r0) {u\EXPECT(is_array($prefix) and (is_array($r0) or is_object($r0)), 'badray');$r = $prefix + (array) $r0; $r0 = is_object($r0) ? (object) $r : $r;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function ifSet(&$param, $value) {if (isset($param)) $param = $value;} // opposite of setDft
 function log($message, $type = 'state', $info = []) {return u\loga($type, compact('message') + $info);}
@@ -1356,7 +1473,7 @@ function consta($prefix, $var) {return constant(strtoupper(str_replace(' ', '_',
 function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}
 function jsonEncode($s) {return json_encode($s) ?: json_encode(u\purify($s));} // , JSON_UNESCAPED_SLASHES
 function redash($s) {return str_replace('—', '&mdash;', $s);}
-function backButton() {return '<button onclick="history.go(-1); return false;" class="btn btn-xs btn-primary"><big>&laquo;</big> Go Back</button>';}
+function backButton() {return '<button class="btn btn-back btn-xs btn-primary"><big>&laquo;</big> Go Back</button>';}
 function nonish($s) {return in_array(strtolower($s), array('n/a', 'nothing', 'na', 'none')); }
 function padto($s, $n) {return str_pad(substr($s, 0, $n), $n);}
 function lpad($s, $n) {return str_pad(substr($s, 0, $n), $n, '0', STR_PAD_LEFT);}
@@ -1385,3 +1502,9 @@ function honorDesc($honor) {return $honor == 'other' ? ' ' : t(' in %honor of ',
 function inList($needle, $hay) {return (strpos(" $hay ", " $needle ") !== FALSE or strpos(",$hay,", ",$needle,") !== FALSE);}
 function unplain($text) {return htmlspecialchars_decode($text, ENT_QUOTES);} // reverse \check_plain
 function weakPass($pw) {return (strlen($pw) < 8 or !preg_match('/\d/', $pw) or !preg_match('/[A-Z]/', $pw) or !preg_match('/[a-z]/', $pw) or !preg_match('/[^0-9A-Za-z]/', $pw));}
+function b64encode($data) {return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');}
+function b64decode($data) {return base64_decode(strtr($data, '-_', '+/'));}
+function fmtKey($k, $f) {$d = '-----'; $k = chunk_split(base64_encode($k), 64); return "{$d}BEGIN $f KEY$d\n$k{$d}END $f KEY$d";}
+function unfmtKey($k) {return base64_decode(preg_replace('/(-+[^-]+-+|[\r\n ])/', '', strpos($k, ':') ? file_get_contents($k) : $k));}
+function pubKey($k) {return openssl_pkey_get_details(openssl_pkey_get_private(fmtKey(unfmtKey($k), 'PRIVATE')))['key'];}
+function obj($ray = []) {return (object) $ray;} // especially for $newObj = obj();

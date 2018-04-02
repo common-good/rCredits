@@ -191,8 +191,8 @@ function formOrganizerList($form, &$sta, $where = '') {
     $q = db\q("SELECT * FROM r_request WHERE $where");
     while ($row = $q->fetchAssoc()) {
       extract(just('first last phone email zip', $row));
-      $phone = u\fmtPhone(u\decryptN($phone));
-      $email = u\decryptN($email);
+      $phone = u\fmtPhone(u\decry('P', $phone));
+      $email = u\decry('P', $email);
       $list[] = "<tr><td>$first $last</td><td>$phone</td><td>$email</td><td>$zip</td></tr>\n";
     }
     $list = join('', $list);
@@ -231,7 +231,8 @@ function formSeeChanges($form, &$sta, $qid = '') {
       foreach ($info as $k => $v) {
         $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, $a->$k);
 ///        if (is_array($v)) $v = print_r($v, 1);
-        while (substr($v, strlen(CRYPT_FLAG)) == CRYPT_FLAG) $v = u\decrypt($v); // u\starts failes here (when encrypted?)
+//        while (substr($v, strlen(CRYPT_FLAG)) == CRYPT_FLAG) $v = u\decryptM($v); // u\starts failes here (when encrypted?)
+	      if (u\crypted('V', $v . '')) $v = r\allKnowing() ? u\decry('V', $v) : t('(secret)');
         $rec[$k] = $oldValue = a\formatField($k, $v);
         $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";
       }
@@ -248,22 +249,19 @@ function formSeeChanges($form, &$sta, $qid = '') {
  * Log back in to admin automatically.
  */
 function formTestRecovery($form, &$sta, $doSay = FALSE) {
-  if (isDEV and !r\acct()) { // called after testing, in case session got destroyed
+//  if (isDEV and !r\acct()) { // called after testing, in case session got destroyed
+  if (!isDEV) return;
     //$uid = \user_authenticate('admin', DEV_ADMIN_PASS);
-    $mya = r\acct(1);
-    global $user; $user = $mya->account('uid pass timezone'); // timezone keeps Drupal happy in bootstrap.inc
-    \drupal_session_regenerate();
-    w\setAcct($mya->id);
-    if ($msgs = @unserialize(@file_get_contents(T_MSG_FILE))) {
-      unlink(T_MSG_FILE);
-      \drupal_get_messages(); // throw out any existing messages
-      $_SESSION['messages'] = $msgs;
-    }
-    r\go('sadmin');
-  }
-  
-  $title = item(t('Recover Admin'));
-  return compact(ray('title'));
+	$mya = r\acct(1);
+	global $user; $user = $mya->account('uid pass timezone'); // timezone keeps Drupal happy in bootstrap.inc
+	\drupal_session_regenerate();
+	w\setAcct($mya->id);
+	if ($msgs = @unserialize(@file_get_contents(T_MSG_FILE))) {
+		unlink(T_MSG_FILE);
+		\drupal_get_messages(); // throw out any existing messages
+		$_SESSION['messages'] = $msgs;
+	}
+	return r\go('sadmin');
 }
 
 /**
@@ -374,7 +372,7 @@ function formFollowup($form, &$sta, $args = '') {
   if ($mya->superAdmin) $by = "(notes LIKE '%ZAP%' AND BINARY notes LIKE '%ZAP%') OR (!activated AND :IS_MEMBER) DESC, " . $by;
   
   $sql = <<<EOF
-    SELECT DISTINCT uid, community, tickle, fullName, phone, u.data, u.created, activated, notes, :IS_CO AS co, t.created AS lastTx, :IS_MEMBER AS member, :IS_OK AS ok
+    SELECT DISTINCT uid, community, tickle, fullName, phone, u.data, u.created, activated, notes, :IS_CO AS co, t.created AS lastTx, :IS_MEMBER AS member, :IS_OK AS ok, :IS_CARDED AS carded
     FROM users u LEFT JOIN (SELECT created,payer,payee FROM r_txs ORDER BY created DESC LIMIT 1) t ON uid IN (payer, payee)
     WHERE uid>3 AND NOT :IS_NONUDGE AND NOT (activated and NOT :IS_OK) AND $where2 AND (tickle>0 OR NOT :IS_MEMBER
       OR t.created<$now-60*:DAY_SECS OR t.created IS NULL)
@@ -391,7 +389,7 @@ EOF;
   }
   $list = "<table id=\"memberlist\"><tr>$heads</tr>\n";
   $emails = '';
-  $whities = ray('red black'); // use white font for these backgrounds
+  $whities = ray('zap fu'); // use white font for these backgrounds
   
   while ($row = $q->fetchAssoc()) {
     extract($row);
@@ -399,26 +397,29 @@ EOF;
     $days = round(($tickle - $activated) / DAY_SECS); // tickle: days since activation
     list ($type, $color) = !$activated 
     ? (strpos($notes, 'ZAP') 
-      ? [t('DELETE'), 'red']
-      : ($member ? [t('activate'), 'red'] : (strpos($data, '"signup";b:0') ? [t('pre'), 'orange'] : [t('setup'), 'yellow']))
+      ? [t('DELETE'), 'zap']
+      : ($member ? [t('activate'), 'zap'] : (strpos($data, '"signup";b:0') ? [t('pre'), 'pre'] : [t('setup'), 'setup']))
       )
-//    : (round(($activated + TICKLE_WELCOME - $tickle) / DAY_SECS) == 0 ? [t('welcome2'), 'lime']
-//    : (round(($activated + TICKLE_DELAYED - $tickle) / DAY_SECS) == 0 ? [t('welcome6'), 'lime']
-    : (strpos($notes, 'ZAP') ? [t('DEACTIVATE'), 'red']
-    : (between($days, TICKLE_WELCOME - 1, TICKLE_WELCOME + 14) ? [t('welcome2'), 'lime']
-    : (between($days, TICKLE_DELAYED - 1, TICKLE_DELAYED + 14) ? [t('welcome6'), 'lime']
-    : (($activated < strtotime('9/2/2017') and $tickle < $activated + 90 * DAY_SECS and !$notes) ? [t('welcome'), 'lime']
-    : (($tickle and $days % 365 < 30) ? [t('annual'), 'violet'] // +/-:2/29
-//    in_array(($tickle - $activated) % DAY_SECS, [0, 1, DAY_SECS - 1])) ? [t('annual'), 'violet'] // +/-:2/29
-    : (($lastTx < $now - 60 * DAY_SECS and $now - $activated > 60 * DAY_SECS) ? [t('dormant'), 'silver']
-    : ($tickle ? [t('followup'), 'black']
-    : ( [t('other'), 'black'] ))))))));
-    if (in_array($color, $whities)) $color .= '; color:white';
-    $type = "<span style=\"background-color:$color;\">$type</span>";
+//    : (round(($activated + TICKLE_WELCOME - $tickle) / DAY_SECS) == 0 ? [t('welcome2'), 'welcome']
+//    : (round(($activated + TICKLE_DELAYED - $tickle) / DAY_SECS) == 0 ? [t('welcome6'), 'welcome']
+    : (strpos($notes, 'ZAP') ? [t('DEACTIVATE'), 'zap']
+		: (!$carded ? [t('print card'), 'print-card']
+    : (between($days, TICKLE_WELCOME - 1, TICKLE_WELCOME + 14) ? [t('welcome2'), 'welcome']
+    : (between($days, TICKLE_DELAYED - 1, TICKLE_DELAYED + 14) ? [t('welcome6'), 'welcome']
+    : (($activated < strtotime('9/2/2017') and $tickle < $activated + 90 * DAY_SECS and !$notes) ? [t('welcome'), 'welcome']
+    : (($tickle and $days % 365 < 30) ? [t('annual'), 'annual'] // +/-:2/29
+//    in_array(($tickle - $activated) % DAY_SECS, [0, 1, DAY_SECS - 1])) ? [t('annual'), 'annual'] // +/-:2/29
+    : (($lastTx < $now - 60 * DAY_SECS and $now - $activated > 60 * DAY_SECS) ? [t('dormant'), 'dormant']
+    : ($tickle ? [t('followup'), 'fu']
+    : ( [t('other'), 'fu'] )))))))));
+
+    if ($mya->superAdmin and $type == t('DELETE')) $type = w\lnk("$base_url/sadmin/delete-account/$uid", $type);
+    if (in_array($color, $whities)) $color .= ' fu-whitey';
+    $type = "<span class=\"fu-$color\">$type</span>";
     $call = u\fmtDate($tickle ?: $created);
-    $name = w\lnk("$base_url/summary/$uid", $fullName ?: $uid);
+    $name = w\lnk("$base_url/change-account/acct=$uid&page=summary", $fullName ?: $uid);
     if ($co) $name = "<span class=\"co\">$name</span>";
-    $phone = u\fmtPhone(u\decryptN($phone), '-');
+    $phone = u\fmtPhone(u\decry('P', $phone), '-');
     $notes = strtr($notes, ["\n" => '|| ', date('Y') => '']);
     if ($type == t('pre')) $notes = db\lookup('code', 'r_relations', 'other=:uid AND isCustomer', compact('uid')) . " $notes";
     $notes = substr($notes, 0, 200) . (strlen($notes) > 200 ? '...' : '');
@@ -451,22 +452,22 @@ function formMemberList($form, &$sta) {
     extract($row);
     $nameClass = $co ? 'name co' : 'name';
     $notes = str_replace("\n", "<br>\n", $notes);
-    $notes = str_replace('do:', '<b style="color:blue; font-size:130%;">do:</b>', $notes);
+    $notes = str_replace('do:', '<b class="memberlist-notes">do:</b>', $notes);
     $a = r\acct($uid);
     $phone = str_replace('+1 ', '', u\fmtPhone($phone0 = $a->phone));
     $postalAddr = $a->postalAddr;
     $email = $a->email;
-    $fullName = "<a href=\"$base_url/summary/$a->mainQid\">$fullName</a>";
+    $fullName = "<a href=\"$base_url/change-account/acct=$a->mainQid&page=summary\">$fullName</a>";
     $steps = a\showSteps($a);
     $date = u\fmtDate($a->ok ? $access : $login);
 
     if ($cAdmin) {
       $bits = []; // zap previous value
       foreach (ray('member ok bank') as $one) if ($a->can(u\consta('b', $one))) $bits[] = $one;
-      $bits = $bits ? ('<span style="color:darkgreen;"> ' . join(' ', $bits) . "</span><br>\n") : '';
+      $bits = $bits ? ('<span class="memberlist-bits"> ' . join(' ', $bits) . "</span><br>\n") : '';
     } else $bits = '';
     
-    $one = "<tr><td colspan=4 style='font-size:70%; font-weight:normal; padding-left:20px;'>$date: $steps$bits$notes</td></tr>\n";
+    $one = "<tr><td colspan=4 class=\"memberlist-line2\">$date: $steps$bits$notes</td></tr>\n";
     $list .= <<<EOF
 <tr>
 <td class="$nameClass">$fullName</td>
@@ -482,6 +483,7 @@ EOF;
   
   $list = item($list);
   $emails = $cAdmin ? item($emails, t('All emails')) : NULL;
+
   return compact(ray('title list emails'));
 }
 
@@ -497,7 +499,7 @@ function formDownloadMemberList($form, &$sta, $args = '') {
   if (@$do == 'done') {
     $do = 'export';
     $params = http_build_query(compact(ray(EXPORT_PARAMS)));
-    $download = item("<iframe class=\"hidden\" src=\"$base_url/sadmin/export-list/$params\"></iframe>");
+    $download = item("<iframe src=\"$base_url/sadmin/export-list/$params\" class=\"hidden\"></iframe>");
   }
   
   global $mya;
@@ -524,9 +526,7 @@ EOF
   
   $submit = submit(t('Download'));
   
-  $js = "$('#edit-chimp-1').click(function() { $('.form-item-chimpSet').hide();});
-         $('#edit-chimp-0').click(function() { $('.form-item-chimpSet').show();});";
-  w\js($js, 'inline', 'footer');
+  w\jsx('chimp');
   return labeled(compact(ray('title subtext chimp chimpSet submit download')));
 }
 
@@ -561,6 +561,7 @@ use rCredits\Admin as a;
 use rCredits\Web as w;  
 use rCredits\Cron as cr;
 use rCredits\Smart as s;
+use rCredits\Vote as v;
 $code
 EOF;
   
@@ -598,6 +599,8 @@ function formDeposits($form, &$sta, $deposit = '') {
   }
   
   $deposits = item(a\deposits(), ' ');
+  w\jsx('deposits');
+
   return compact('title', array_keys($ways), 'deposits');
 }
 
@@ -714,7 +717,8 @@ function achBatch($args) {
   while ($tx = $q->fetchAssoc()) {
     extract($tx);
     $a = r\acct($payee);
-    $a->fixTxBankAccount($bankAccount, $txid);
+//    $a->fixTxBankAccount($bankAccount, $txid);
+    $bankAccount = u\decry('V', $bankAccount); // 2018-03-16
     $routing = substr($bankAccount, 4, 9);
     $account = substr($bankAccount, 4 + 9);
     $fullName = substr($a->fullName, 0, 22); // Citizens Bank limits this field to 22 chars
@@ -868,33 +872,46 @@ function formSMS_submit($form, $sta) {
 }
 
 function test($arg = '') {
-  global $user;
   \drupal_get_messages(); // clear messages
   $modules = u\prefixValues('rcredits/', ray('admin rweb rcron rsmart'));
+  jsx('test');
   include_once DRUPAL_ROOT . '/vendor/gherkin/test.php';
   file_put_contents(T_MSG_FILE, serialize(\drupal_get_messages()));
-  \session_destroy();
+//  $_SESSION = [];
+  if (ini_get("session.use_cookies")) { // from PHP's session_destroy page
+    $params = session_get_cookie_params();
+    setcookie(session_name(), '', time() - 42000,
+        $params["path"], $params["domain"],
+        $params["secure"], $params["httponly"]
+    );
+  }
+  if (session_id() and $_SESSION) session_destroy();
+	db\q('DELETE FROM sessions');
   \drupal_goto('sadmin/recover'); // has to be a form available when logged out
+}
+
+/**
+ * Delete an account (superAdmin only)
+ * @param int $uid: account to delete
+ */
+function deleteAccount($uid) {
+  $nm = @r\acct($uid)->fullName;
+  r\deleteAccount($uid); // does not return, if error
+  return r\go('sadmin/followup', t('Success. Account %nm has been deleted.', 'nm', $nm));
 }
 
 function util($arg) {
 //  if ($arg == 'modal') drupal_goto('modal');
-  if ($arg == 'reset') r\reset();
-  if ($arg == 'rebuild') {
+//  if ($arg == 'reset') r\reset();
+  if ($arg == 'reset-menu') menu_rebuild();
+  if ($arg == 'rebuild-db') {
     require_once __DIR__ . '/../rcredits-install.inc';
     r\rebuildDb();
     if (isDEV) f('t.clear'); else a\setupBasicAccounts();
-  /*    $modules = ray('rcredits rsms rsmart rweb');
-    \module_disable($modules, FALSE);
-    foreach ($modules as $module) {
-      \drupal_install_schema($module);
-    }
-    \drupal_uninstall_modules($modules, FALSE);
-    \module_enable($modules, FALSE);
-    */
-//    w\say(t('Uninstalled and installed: %names.', 'names', implode(', ', $modules)));
   }
-  if ($arg == 'clear_sessions') db\q('TRUNCATE table SESSIONS');
+  if ($arg == 'clear') foreach (ray('cache cache_bootstrap cache_form cache_menu sessions') as $table) {
+    db\q("TRUNCATE TABLE $table");
+  }
   if ($arg == 'php') r\go('devel/php');
   
   \drupal_set_message("DONE with \"$arg\".");
@@ -907,16 +924,18 @@ function handyLinks() {
   $test_path = "$base_url/sites/all/modules";
 
   $links = array(
-    'devel/menu/reset?destination=sadmin|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Redo MENUS|menu-hamburger',
-    'rcredits/util/rebuild|Rebuild all project tables|REBUILD database|fast-backward',
-    'rcredits/util/clear_sessions|Empty the sessions table|Clear Sessions|unchecked',
-    
-    'devel/settings|Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the block administration page.|Devel settings|cog',
+    'rcredits/util/reset-menu|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Redo MENUS|menu-hamburger',
+    'rcredits/util/rebuild-db|Rebuild tables|REBUILD database|fast-backward',
+    'rcredits/util/clear|Empty the cache and sessions tables|Clear Cache & Sessions|unchecked',
+  );
+
+/*    'devel/settings|Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the block administration page.|Devel settings|cog',
     'devel/cache/clear?destination=sadmin|Clear the CSS cache and all database cache tables which store page, node, theme and variable caches.|Empty cache|new-window',
     'devel/reference|View a list of currently defined user functions with documentation links.|Functions|education',
     'devel/elements|View the active form/render elements for this site.|Elements|align-center',
     'devel/phpinfo|View your server&#039;s PHP configuration|PHPinfo()|queen',
     'devel/variable?destination=sadmin|Edit and delete site variables.|Variables|copy',
+    */
 //    "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
 //    'rcredits/test?menu=1|Test Menu|',
 //    'rcredits/util/changeAgent|Change Agent to Bea|',
@@ -932,7 +951,6 @@ function handyLinks() {
 //    'devel/run-cron|Run cron|Run cron',
 //    'devel/session|List the contents of SESSION.|Session viewer',
 //    'devel/theme/registry|View a list of available theme functions across the whole site.|Theme registry',
-  );
 
   foreach ($links as $link) {
     list ($url, $detail, $label, $icon) = explode('|', $link);

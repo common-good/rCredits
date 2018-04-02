@@ -1,0 +1,1705 @@
+2018-04-02
+. repaired url-encoded transaction descriptions
+  include_once __DIR__ . '/../x.class';
+  eachX(function ($x) {foreach (ray('payerFor payeeFor') as $k) {
+    if (!strpos($x->$k, ' ')) if (strpos($x->$k, '%') !== FALSE  or (strpos($x->$k, '+') and !preg_match('/[0-9]/', $x->$k))) {
+      $x->update($k, urldecode($x->$k));
+    }
+  }});
+. fixed bug that gave all donations to communities and it now subtracts bounce fees
+. gave cAdmins permission to activate accounts, added a "carded" bit to tell SuperAdmin to issue card
+. UPDATE users SET flags=flags|8 WHERE activated
+. made it work with PHP 7.2 (handled deprecated each() and always-defined DATE_RFC7231 and count(string) not defined (was 1))
+. changed each() to foreach in TCPDF also
+. rewrote page.tpl.php without embedded code
+. changed spinLink function to leave single quotes in javascript attributes unencoded
+. added a "recrop" button
+. changed some dates to include 4-digit year (changed test compiler too)
+. moved rlogs to webroot/cgLogs and photos to webroot/cgPhotoTemp
+. moved company photos to database
+. fixed bug in just() that trimmed values (breaking encryption)
+. did away with html format input fields (hence filter and filter_format tables), using markdown instead
+. ALTER TABLE x_users DROP PRIMARY KEY, ADD PRIMARY KEY(uid, deleted);
+. deleted unused tables: DROP TABLE authmap,file_managed,history,node,node_revision,users_roles,watchdog,r_auth,r_nonces,filter,filter_format
+. separated vsecure from secure (REBUILD db) [r\setCryptCook('vKeyPw', u\b64decode('thekey')); before fixing the encrypted data]
+. completely reworked encryption and renamed .databases to cg.cnf
+. local debug (u\b64encode(a(1)->vKeyPw)); ---> WS a(1)->update('vKeyPw', u\b64decode('thekey')); after fixing a(1)'s secure
+. eachR('r_usd', function ($row) {
+    $pw2 = r\cryptCook('pw2');
+    extract(just('txid bankAccount', $row));
+		if (u\oldcrypted($bankAccount)) $bankAccount = u\decryptM($bankAccount, 0, $pw2);
+		if (!u\starts($bankAccount, 'USkk')) return w\say('bad bank account(?) in txid ' . $txid . ": $bankAccount");
+		$bankAccount = u\cry('V', $bankAccount);
+    db\update('r_usd', compact(ray('txid bankAccount')), 'txid');
+  }, 'bankAccount IS NOT NULL');
+. eachR('r_photos', function ($row) {
+    extract(just('uid photo', $row));
+		if (u\oldcrypted($photo)) $photo = u\decryptM($photo);
+		if (!$photo) return w\say('bad photo uid ' . $uid);
+		$photo = u\cry('H', $photo);
+    db\update('r_photos', compact(ray('uid photo')), 'uid');
+  }, '1');
+. eachR('users', function ($row) {
+    extract(just('uid fullName phone mail', $row));
+		foreach (ray('mail phone') as $k) {
+		  $k0 = $$k;
+		  $$k = u\decry('P', $$k);
+			if ($k0 and !$$k) return w\say("bad $k for member $uid $fullName: $k0/" . $$k);  
+			$$k = u\cry('P', $$k);
+	  }
+		db\update('users', compact(ray('mail phone uid')), 'uid');
+  }, '1');	
+. eachR('users', function ($row) { 
+    $pw2 = r\cryptCook('pw2');
+    extract(just('uid fullName changes', $row));
+		if (strlen($changes)) { // do this first
+		  if (u\oldcrypted($changes)) $changes = u\decryptM(u\decryptM($changes, 1), 0);
+			if (u\crypted('S', $changes)) $changes = u\decry('S', $changes);
+			$changes = unserialize($changes) ?: [];
+			if (!is_array($changes)) return w\say('bad changes in member ' . $fullName);
+			foreach ($changes as $dt => $ch) {
+				if (is_array($ch)) foreach ($ch as $k => $v) {
+				  if (!strlen($v)) continue;
+				  if (in_array($k, ray(R_VSECURE_FIELDS))) {
+					  if (u\oldcrypted($v)) $v = u\decryptM($v, 0, $pw2);
+            if (u\crypted('V', $v)) $v = u\decry('V', $v)						;
+					  if (!$v or !ctype_print($v)) {
+						  w\say("bad change in member $fullName dt=$dt k=$k v=$v");
+							$v = '?';
+					  }
+						$ch[$k] = u\cry('V', $v);
+				  } elseif (in_array($k, ray(R_HIDE_CHANGES))) unset($ch[$k]);
+				}
+				if (!is_array($ch)) w\say('bad change array in member ' . $fullName . ': ' . $ch);
+				if (is_array($ch) and $ch) $changes[$dt] = $ch; else unset($changes[$dt]);
+			}
+			if ($changes) $changes = u\cry('S', serialize($changes)); else $changes = '';
+			db\update('users', compact('changes', 'uid'), 'uid');
+		}
+  }, '1');
+. eachR('users', function ($row) {
+    $pw2 = r\cryptCook('pw2');
+    extract(just('uid fullName activated secure', $row));
+		if (strlen($secure)) {
+		  $secure = u\crypted('S', $secure) ? u\decry('S', $secure) : u\decryptM(u\decryptM($secure, 1), 0);
+			$vsecure = [];
+			if (!$secure = unserialize($s0 = $secure)) return w\say('bad secure serial in member ' . $fullName . ' was ' . $s0);
+			if (!is_array($secure)) return w\say('bad secure array in member ' . $fullName . ': ' . $secure);
+
+			$v = $secure['ssnData'];
+			if (!is_array($v) and u\oldcrypted($v)) {
+			  if (!$v = u\decryptM($v, 0, $pw2)) return w\say('bad ssnData encryption in member ' . $fullName);
+			}
+			if ($v and !is_array($v)) $v = unserialize($v);
+			if ($v) $secure['ssnData'] = $v; else unset($secure['ssnData']);
+
+			foreach (ray(R_VSECURE_FIELDS) as $k) {
+				if (strlen($v = u\decryptM($secure[$k], 0, $pw2))) {
+				  $vsecure[$k] = $activated ? u\cry('V', $v) : $v;
+					unset($secure[$k]);
+				}
+			}
+			$secure = u\cry('S', serialize($secure));
+			$vsecure = u\cry('S', serialize($vsecure));
+			db\update('users', compact(ray('secure vsecure uid')), 'uid');
+    }
+  }, '1');	
+. renamed photos to accommodate recropping
+  $s = file_get_contents(DRUPAL_ROOT . '/photos/photos.txt');
+
+  $s = preg_replace('/\.000000000 -0[54]00 / ', ',', $s);
+  $s = explode("\n", $s);
+  foreach ($s as $i => $one) if ($one) {
+    $one = str_replace("\r", '', $one); // on DEV
+    list($k, $v) = explode(',', $one);
+    if (substr($v, 0, 3) == 'no-' or $v == 'not-valid.png') continue;
+    $new[strtotime($k)] = $v;
+  }
+  ksort($new);
+  foreach ($new as $dt => $v) {
+    $flnm = $v;
+    $v = str_replace('.jpg', '', $v);
+    if (in_array(substr($v, -4), ray('-bad -alt'))) $v = substr_replace($v, '', -4);
+    if (in_array(substr($v, -2), ray('.X .0 -0 .bad .alt'))) $v = substr_replace($v, '', -2);
+    if (in_array(substr($v, -2), ray('.X .0 -0 .bad .alt'))) $v = substr_replace($v, '', -2);
+
+    $uid = substr($v, 0, 14);
+    if (is_numeric($uid)) {
+/**/  if ($v[14] != '-') die('should be dash:' . $v);
+      $after = substr($v, 15);
+    } else {
+///      if (is_numeric($uid)) debug($v);
+      $dashes = substr_count($v, '-');
+      $parts = explode('-', $v);
+      $after = $parts[$dashes]; unset($parts[$dashes]);
+      $nm = urldecode(join('-', $parts));
+      $nm = str_replace('_', ' ', $nm);
+      $uid = db\lookup('uid', 'users', 'fullName=:nm', compact('nm'));
+    }
+    if ($uid and $a = a($uid)) {
+///      debug("uid=$uid after=$after flnm=$flnm");
+      $photo = file_get_contents(DRUPAL_ROOT . '/photos/' . $flnm);
+      if ($a->co) $a->update(compact('photo'));
+      if (!$a->carded or $a->activated > time() - 20 * DAY_SECS) { // not certainly activated so keep temp photo
+        file_put_contents(DRUPAL_ROOT . "/../cgPhotoTemp/$a->mainQid.jpg", $photo);
+      }
+/**/} //else debug("uid=$uid after=$after flnm=$flnm");
+  }
+. fixed bug that doubly serialized vsecure (and maybe secure)
+. fixed data:
+  define('FORREAL', 0);
+  eachA(function ($a) {
+    foreach (ray('secure vsecure changes') as $fld) {
+      if (!$s = db\lookup($fld, 'users', 'uid=' . $a->id)) continue;
+      if (!u\crypted('S', $s)) {
+/**/    debug("account $a->fullName $a->id has $fld not S-encrypted");
+        if (u\crypted('V', $s)) die("account $a->fullName $a->id has $fld V-encrypted: " . u\decry('V', $s));
+/**/  }
+      if (u\crypted('S', $s)) {
+        $s = u\decry('S', $s);
+        if (u\crypted('S', $s)) {
+          db\update('users', ['uid' => $a->id, $fld => $s], 'uid');
+          debug("account $a->fullName $a->id $fld is S-crypted within (fixed)"); 
+        } elseif (u\crypted('V', $s)) {
+          if (u\crypted('V', $s)) die("account $a->fullName $a->id has $fld inner V-encrypted: " . u\decry('V', $s));
+          $s = u\decry('V', $s); 
+          $s = u\cry('S', $s);
+          db\update('users', ['uid' => $a->id, $fld => $s], 'uid');
+          debug("account $a->fullName $a->id $fld is V-crypted within (fixed)"); 
+        } elseif ($s !== '' and !is_array(@unserialize($s))) {debug("account $a->fullName $a->id bad S-crypt (not a serialized array)"); continue;}
+      }
+    }
+    $secure0 = $secure = $a->secure;
+    foreach (ray(R_VSECURE_FIELDS) as $k) {
+      if ($v = @$secure[$k]) {
+/**/    if (!@$a->$k) {
+          if (FORREAL) $a->update($k, $v); 
+          debug("account $a->fullName $a->id $k wasn't in vsecure!");
+        }
+        unset($secure[$k]);
+      }
+    }
+    if ($secure != $secure0) {
+      if (FORREAL) $a->update(compact('secure'));
+      debug("account $a->fullName $a->id removing fields from secure");
+    }
+  });
+. DROP TABLE r_log
+. renamed all .tpl.php to .tpl (minimizing exposure to scripts being run on the server)
+. implemented CSP both server side and client side!! this includes chart.php on cg4.us since google charts requires unsafe-inline
+. removed a large number of unused drupal modules and other files and folders (requires clearing of cache and session)
+. DELETE FROM menu_router WHERE path LIKE 'admin/%' OR path LIKE 'node/%' OR path LIKE 'devel/%' OR path LIKE 'comment/%' OR path LIKE 'taxonomy/%' OR path LIKE 'admin/%'
+. finally fixed menu.inc to return a default page-not-found page.
+. reinstated the glyphicons, which had gotten deleted. (did not update bootstrap beyond 3.3.4, since it stops working)
+. upgraded to jquery-3.1.1
+. worked around jquery bug by rewriting a croppic image load function without using jquery
+
+2018-01-05
+. ALTER TABLE `users` DROP `postalAddr`;
+. removed B_JOINED: eachA(function ($a) {$a->setBit(23, FALSE);});
+. created real jid field:
+  eachA(function ($a) {
+    $data = $a->data;
+    if ($jid = @$data['jid']) {
+      db\update('users', ray('uid jid', $a->id, $jid), 'uid'); 
+      unset($data['jid']);
+      $a->update(compact('data'));
+/**/  debug($a->fullName);
+    }
+  });
+. fixed bug that was causing corruption of bankAccount in both users and r_usd
+. changed R_XFEE_CHECK to zero
+. list ($k, $key) = ['photos', 'uid'];
+    $tnm = 'r_' . $k; $xtnm = 'x_' . $k;
+    db\q("CREATE TABLE $xtnm LIKE $tnm; ALTER TABLE $xtnm MODIFY $key BIGINT NOT NULL; ALTER TABLE $xtnm ADD `deleted` INT(11) NOT NULL DEFAULT '0' FIRST; ALTER TABLE $xtnm DROP PRIMARY KEY; ALTER TABLE $xtnm ADD PRIMARY KEY($key, deleted);");
+  }
+
+2017-12-12 version 3.29
+. foreach (ray('txs:xid,usd:txid,invoices:nvid,relations:reid') as $k=>$key) {
+    $tnm = 'r_' . $k; $xtnm = 'x_' . $k;
+    db\q("CREATE TABLE $xtnm LIKE $tnm; ALTER TABLE $xtnm MODIFY $key BIGINT NOT NULL; ALTER TABLE $xtnm ADD `deleted` INT(11) NOT NULL DEFAULT '0' FIRST; ALTER TABLE $xtnm DROP PRIMARY KEY; ALTER TABLE $xtnm ADD PRIMARY KEY($key, deleted);");
+  }
+. added "once" option back in for donations from existing members who already have a repeat donation
+. DROP TABLE queue (then rebuild)
+. reworked cron without Drupal
+. added a "test" op to the rSmart API, for calling the server's behavioral tests from the app's tests
+  
+2017-11-20 version 3.26
+. added input sanitization filter to form.inc and direct $_POST submissions (rather late in the game)
+. fixed resend-verification email bug (was sending password-reset email instead of verify email
+. created a preJoin form to ask whether joining with an existing member and if so who
+. now shows Bank menu item always, but redirects to Bank Info page if no connection yet.
+. changed "Show more" link on Transactions page to suggest clicking the right triangle to see next page.
+. changed !isPRODUCTION to NOT_PRODUCTION to avoid typo disasters
+. fixed bug in test server showing links normally sent by email
+. added semi-automatic record of deleted users, relations, and txs records (in x_users, x_relations, etc.)
+. CREATE TABLE x_users LIKE users; ALTER TABLE x_users MODIFY uid BIGINT NOT NULL; ALTER TABLE `x_users` ADD `deleted` INT(11) NOT NULL DEFAULT '0' FIRST; ALTER TABLE x_users DROP PRIMARY KEY; ALTER TABLE x_users ADD PRIMARY KEY(uid, deleted);
+. changed txs reversal confirmation (web interface) to use JS
+. changed txs history to change dates immediately on selection of period
+. fixed bug in daterange that kept dates from getting changed
+. company reports page, with daily totals report
+. made donating zero a little harder
+. made an option for communities to turn off negative rewards ("noneg")
+. sped up transactions history page by using simpler hover text and ajax confirmation of reversals
+. ajax deletion confirmation on invoices page
+. turned page caching back on
+. in acct::adminables() fixed bug that set community CGC and UP bits off (but there's probably another such bug)
+. deleted 7 fields from users table: status, language, theme, signature, signature_format, timezone, init (leaving 44)
+  
+2017-10-26 version 3.18
+. fixed bug in justNOT (it now handles flat arrays properly), which fixed "How Long" not showing up on error
+. added an admin2 bit that parallels cAdmin2 (read only except for making notes) but for all communities (for our Work/Study students)
+. fixed a bug in acct::giftDesc() that got the last gift date wrong
+. suppressed some fields on Summary page for cAdmin2 and admin2
+. fixed a bug in the new streamlined joint account opening that created two accounts
+. improved admin calls scripts and moved them to Summary page
+. cleaned up Summary page
+. added a field to sessions to track what account each member is currently managing
+. added USE statements to formPhp
+. moved just and justNOT to bootstrap
+. created a powerful in() function and a between function
+. eachA(function($a) {
+    if (!$a->emailCode) $a->update('emailCode', r\cardCode($a->mainQid));
+  }, 'uid<>0');
+. finished formBuy for pay-with-cg buttons on member websites (limited to companies to minimize scam opportunities)
+
+2017-09-22 version 2.98
+. separated approval of invoices from payment
+. customers can now pre-approve invoices from a company or person (while paying the first)
+. first step is now "signup", not "contact"
+. partner signups get an account even if they don't complete the signup step (effective retroactively:)
+. $q = f('db.q', 'SELECT reid,code AS customer,data FROM r_relations WHERE other=0');
+  $noFrame = TRUE;
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $args = unserialize($data);
+    if (@$args['postalCode']) {
+      $args['zip'] = @$args['postalCode']; unset($args['postalCode']);
+      $args['zip2'] = @$args['postalCode2']; unset($args['postalCode2']);
+    }
+    extract(f('u.just', 'fullName email', $args));
+    if (stripos($fullName, 'test') !== FALSE) continue;
+    $other = f('w.newCustomer', $reid, $args);
+    f('db.update', 'r_relations', compact(ray('reid other')), 'reid');
+    f('r.rMail', 'partner-signup', $email, compact(ray('fullName reid customer noFrame'))); // so customer can continue
+  }
+. you can now invoice a not-yet member
+. cashout bit lets accounts cashout all but a week's worth of gross automatically (weekly)
+. admin call details are now specific to each account
+. unpaid invoices get sent a reminder (to both parties)
+. members can now open a joint account -- and make it joint -- at the same time
+
+2017-09-14 version 2.97
+. monthly notifications to admin to send paper statements
+. links in Welcome and Annual notices to suggested language and volunteer options
+. include partial month roundups in displayed and functional balance
+. use last second of previous month as roundup donation date
+. automate distribution of 50% donations monthly to official CGCs (maybe set Greenfield's percentage to 10%)
+. UPDATE r_txs SET flags=flags|(1<<10) WHERE payer=26742000000002 and payee<0
+. delay Welcome to 6 weeks if no donation or in Seedpack:
+  UPDATE users u SET tickle=activated+6*7*24*60*60 WHERE tickle=activated+2*7*24*60*60 AND (community=-26742000000001 OR (flags&(1<<8)=0 AND IFNULL(crumbs, 0)=0 AND (SELECT SUM(amount) FROM r_gifts g WHERE g.uid=u.uid) = 0))
+. invoice upload now only allows account ID
+. improved social return language and included total donations to date
+. improved Customer list, showing "NOT BEGUN" and "in process", as well as account ID
+. did away with PIN
+. did away with B_BONA
+. UPDATE users SET floor=0
+. Find and fix erroneous roundups using
+    for ($m = 1; $m < 8; $m++) {
+      $start = strtotime("$m/1/2017");
+      $end = strtotime(($m+1) . '/1/2017')-1;
+      $sql = "SELECT uid, fullName, SUM(1-MOD(amount, 1)) AS shouldDonate FROM r_txs t JOIN users u ON u.uid=t.payer WHERE t.:IS_ROUNDUP AND amount>0 AND MOD(amount, 1)>0 AND t.created BETWEEN $start AND $end GROUP BY payer";
+      $q = f('db.q', $sql);
+      while ($row = $q->fetchAssoc()) {
+        extract($row);
+        $line[] = "$m: $uid $fullName -- $$shouldDonate";
+      }
+    }
+/**/    debug(join("\n", $line));
+    DELETE FROM r_txs WHERE amount=0 AND payerReward=0 AND payeeReward=0
+    SELECT MONTH(FROM_UNIXTIME(created)) AS m,t.* FROM r_txs t WHERE flags&(1<<7) ORDER BY MONTH(FROM_UNIXTIME(created)), payer
+    (two transactions were missing:)
+    INSERT INTO `r_txs` (`xid`, `serial`, `type`, `flags`, `goods`, `amount`, `payer`, `payee`, `payerAgent`, `payeeAgent`, `payerFor`, `payeeFor`, `payerReward`, `payeeReward`, `payerTid`, `payeeTid`, `data`, `channel`, `created`, `box`, `risk`, `risks`) VALUES
+    (75043, 75043, 0, 1152, 0, '0.00', 17238000000003, 26742000000002, 17238000000003, 26742000000002, 'contribution of rounded-up payment change', 'donation: of rounded-up payment change', '0.00', '0.00', 82, 4950, '', 5, 1491023539, 0, NULL, 0),
+    (83822, 83822, 0, 1152, 0, '0.94', 17238000000036, 26742000000002, 17238000000036, 26742000000002, 'donation: of rounded-up payment change', 'donation: of rounded-up payment change', '0.09', '0.01', 11, 5172, '', 5, 1501564094, 0, -0.0630677, 2048);
+    after fixing transaction amounts and dates (last second of previous month), fix cache with $a = a($uid); $a->cacheOk();
+. Added a "Ask me in a few weeks" button to donations page
+
+2017-08-26 version 2.91
+. removed restrictions on signing up (anyone can sign up)
+. added a continuation email to partner signup people in case they don't complete the first page
+. created admin followup call page
+. created New Note field on Summary page (for cAdmins instead of editing notes field directly)
+. created tickle feature for admin calls
+. eachA(function($a) { // add 'ssn' step to not-yet-member accounts and attempt to verify SSN
+  if ($a->member or $a->co) return;
+  $stepsDoneX = $a->stepsDone;
+  if (isset($stepsDoneX['ssn'])) return;
+  $stepsDone = f('r.stepsDone0'); foreach (ray('company relations') as $k) unset($stepsDone[$k]);
+  foreach ($stepsDone as $k => $v) $stepsDone[$k] = (bool) @$stepsDoneX[$k];
+  $a->update(compact('stepsDone'));
+  $a->ssnCheck();
+});
+. eachA(function($a) { // set tickle for every active account
+  if (!$a->activated or !$a->ok) return;
+  if (time() - $a->activated < 30 * DAY_SECS) {
+    $tickle = $a->activated + TICKLE_WELCOME * DAY_SECS;
+  } else {
+    $tickle = time() - 1;
+    for ($i = 1; $tickle < time(); $i++) $tickle = strtotime("+$i years", $a->activated);
+  }
+  $a->update(compact('tickle'));
+});
+. UPDATE users u LEFT JOIN r_relations r ON r.other=u.uid SET flags=flags|(1<<21) WHERE draw
+. fixed bug that kept source field from showing
+. split Summary page into two columns for admins and rearranged fields
+
+2017-08-15
+. fixed bug that resulted in "1020" instead of "MA" in postalAddr
+. limited proxy choices to same city/state or placeholders for new seedpack members
+. limited proxy choices to active accounts (or placeholders)
+. $keys = ray('uid community name fullName email');
+  foreach (ray(t('2:PlaceHolder One,3:PlaceHolder Two')) as $k => $v) {
+    $name = str_replace(' ', '', strtolower($v));
+    $values = array($k, 0, $name, $v, 'z@o.t');
+    $info = array_combine($keys, $values);
+    new rCredits\Acct($info);
+  }
+. added a copy-ach-filename-to-clipboard button
+. changed Mailchimp export to tabs, because they stopped accepting it with commas
+. repaired risks data (dobOff, poBox, fishy) -- for n=16 to 18 (losing some minimal dobOff and fishy data)
+  UPDATE users SET risks=risks-(1<<n) where risks&(1<<n)
+. fixed bug which prevented calling setPostalAddr on signup form submission
+. stopped marking (some) r_request records as "member" in exports
+. changed area of CG Greenfield to ^013([012346789]|5[012346789]) because ^013(?!(55|66|31|68)) fails
+. changed area of CG Noho to ^010(0[2347]|11|12|26|27|3[23589]|40|5[0349]|6[01236]|7[0235]|8[248]|9[368]) but 01040 (Holyoke) might go south later and Amherst will surely split off
+. corrected individual communities accordingly (about 30):
+eachA(function($a) {
+$FIN = a('!NEWAAC')->id;
+$BENE = a('!NEVAAB')->id;
+if ($a->id > 1 and $a->community and $a->community != $FIN and $a->community != $BENE) {
+  $ctty2 = f('r.communityUid', $a->zip);
+  if ($ctty2 and $ctty2 != $a->community) {
+    $old = $a->cttyA->fullName;
+    $new = a($ctty2)->fullName;
+///    debug("$a->zip &nbsp; $a->fullName: $old >>> $new");
+    $a->update('community', $ctty2);
+  }
+}
+});
+. fixed bug in member export that failed for non-chimp exports by cAdmins
+
+2017-08-01 version 2.83
+. extensive rephrasing of agreement and its hyperlinks to accommodate Co-op Power volunteers
+. new SSN step to verify SSN or Birthdate if it can't be done automatically
+. added dobOff risk flag
+. added a Skip button to each step
+
+2017-07-14 version 2.81
+. fixed invoice link bug that crashed if wrong person was current
+. event reporting (without comments)
+. "Customers" query for partners
+. renamed postalCode field "zip" (in users, r_regions, and code) for conciseness (but it still applies to other countries' postal codes):
+    ALTER TABLE `users` CHANGE `postalCode` `zip` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL DEFAULT NULL;
+    ALTER TABLE `r_regions` CHANGE `postalCode` `zip` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;
+. reworked address input to be clearer
+. fixed bug that discarded radio buttons on error
+. put photo step last
+. fixed bug that failed to set tx flags
+. added comments to vote reports
+. added temporary backup of photos on upload (in case we need to recrop)
+. fixed bug in redirect to formEmpty when signed out, that discarded any messages
+. repaired recent tx flags:
+  use rCredits\Util as u;
+  eachX(function($x) {
+    foreach (ray('type flags') as $k) $$k = $x->$k;
+    if ($type != TX_TRANSFER) return;
+
+    if ($data = $x->data) {
+      extract($data);
+      foreach (ray(TX_FLAGS) as $k) if (@$$k) {
+        u\setBit($flags, u\consta('b', $k));
+        unset($data[$k]);
+      }
+    }
+    if (@$undoneBy) u\setBit($flags, B_UNDONE);
+    if (@$force == 1) u\setBit($flags, B_OFFLINE);
+    if (@$force != -1) unset($data['force']);
+
+///    if ($flags > 1024 and $x->flags < 1024) {print_r($x); print_r(compact(ray('flags data'))); die();}
+    $x->update(compact(ray('flags data')));
+  });
+
+2017-06-27 version 2.74
+. implemented signups with partial data directly from (and reporting to) partner site
+. fixed bug that allowed companies to vote by direct link
+. worked around PHP anomaly (crash) on use of null object return from a function (specifically @r\acct()->field)
+. added mailChimp question to admin member list export
+. gave cAdmin permission to change tx dates (within a month)
+. fixed bug that drew too much from bank when old committed field was non-zero
+. added running balance to transaction history
+
+2017-06-16 version 2.71
+. created r_events table and revised democracy page (renamed Democracy Events)
+. ALTER TABLE `r_questions` DROP `ctty`, DROP `repeats`, DROP `repeatedBy`, DROP `endIdeas`, DROP `endProposals`, DROP `endVoting`, DROP `endGrading`, DROP `linkIdeas`, DROP `linkProposals`, DROP `modified`;
+. UPDATE `r_questions` SET event=1
+. UPDATE `r_proposals` SET event=3
+
+2017-06-16
+. update includes/menu.inc
+. invoice uploads
+. co-branding partner collaborative signups
+. removed B_CLOSED (now $a->closed means: activated and !ok) and deleted never-activated closed accounts:
+  $list = f('db.col', 'uid', 'users', 'activated=0 AND flags&(1<<26)'); foreach ($list as $uid) f('r.deleteAccount', $uid);
+  UPDATE users SET activated=GREATEST(created,signed) WHERE (flags&(1<<2)) AND !activated
+  UPDATE users SET flags = flags-(1<<26) WHERE (flags&(1<<26))
+. switched domain name from new.rcredits.org to new.CommonGood.earth (finally)
+. UPDATE r_usd SET amount=-amount (reversed sign on usd exchange table)
+. ALTER TABLE `r_usd` CHANGE `payer` `payee` BIGINT(20) NULL DEFAULT NULL COMMENT 'CG account ID';
+. added CgBiz form to handle CG Business certification
+
+2017-05-11 version 2.66
+. INSERT INTO `new_rcredits`.`r_banks` (`route`, `branch`, `fedRoute`, `type`, `modified`, `newRoute`, `name`, `address`, `city`, `state`, `zip`, `phone`, `status`, `view`) VALUES ('062201601', NULL, '062201601', '0', '090215', NULL, 'BBVA Compass', '701 South 32nd Street', 'Birmingham', 'AL', '352330000', '8002667277', NULL, NULL);
+. added descriptions to flags on Summary page (but popovers are clunky)
+. rewrote rebuildDb utility on Handy menu
+. communities can set required invites -- default is OFF
+. communities can set explicit incentive rewards -- default is OFF
+. changed popovers to click rather than hover, on Summary page
+. created r_ips to track IP addresses used by CG members (for whitelisting on our server)
+. minimum donation is now zero
+. invitations are no longer required
+. update Drupal files: includes/install, cache, common, menu, module, session modules/system block node
+. remake tables
+. f('db.q', 'DROP TABLE IF EXISTS actions,authmap,batch,blocked_ips,block_custom,block_node_type,block_role,cache_block,cache_field,cache_filter,cache_page,cache_path,cache_update,date_formats,date_format_locale,date_format_type,field_config,field_config_instance,file_managed,file_usage,history,node,node_access,node_revision,node_type,offsite,role,role_permission,sequences,sms_carriers,url_alias,users_roles,watchdog');
+. eachA(function($a) {
+    if (!$a->co and ($photo = $a->photoX)) f('db.insert', 'r_photos', ray('uid photo', $a->id, $photo));
+  });
+. ALTER TABLE users DROP column photo
+. added gift bits to transaction flags field
+. updated tcpdf to version 6.2.13
+. rewrote payroll upload validation to not use file_managed
+. run "special" code to restructure transaction rewards:
+function special() {
+  if (!db\exists('r_txs', 'type<0')) return;
+  db\q('DELETE FROM r_txs WHERE type<0'); // zap rebates and bonuses
+  
+  eachX(function($x) {
+    foreach (ray('type goods flags taking amount') as $k) $$k = $x->$k;
+    if ($goods == FOR_SHARE) {
+      list ($payerReward, $payeeReward, $amount) = [-$amount, $amount, 0];
+    } elseif ($type == TX_TRANSFER) {
+      $data = $data0 = $x->data ?: [];
+      if ($data) extract($data);
+      if (@$rebate or @$bonus) list ($payerReward, $payeeReward) = [@$rebate, @$bonus];
+      unset($data['rebate']); unset($data['bonus']);
+      foreach (ray(TX_FLAGS) as $k) if (@$$k) {
+        u\setBit($flags, u\consta('b', $k));
+        unset($data[$k]);
+      }
+      if (@$undoneBy) u\setBit($flags, B_UNDONE);
+      if (@$force == 1) u\setBit($flags, B_OFFLINE);
+      if (@$force != -1) unset($data['force']);
+    } elseif ($type > 0 and $type <= TX_FINE and $amount+0) { // reward 
+      $payeeReward = $amount;
+      $amount = 0;
+    } else return; // no change needed
+
+    $x->update(compact(ray('flags amount payerReward payeeReward data')));
+  });
+}
+
+function special2() {
+  eachA(function($a) {
+    list ($balance, $rewards) = [$a->r-$a->rewards, $a->rewards]; // remember old values
+/**/    if (!$a->cacheOk(FALSE, FALSE) and (abs($a->balance - $balance) > .005 or abs($a->rewards - $rewards > 20))) debug("$a->id $a->fullName new: $a->balance+$a->rewards old: $balance+$rewards jid=$a->jid");
+  });
+}
+
+2017-03-07 version 2.65
+. in commongood.earth/whm: whmapi1 suspend_outgoing_email user=example in WHM's API Shell interface (Home >> Server Configuration >> Tweak Settings, activate API Shell, Home >> Development >> API Shell) users: cogobank, s2be, rc4, game, stage
+. name ambiguity resolution (for Pay and Charge) wasn't working since using hidden opid field for op() function
+. a('aaa')->update('special', ''); was not updating the field because special was listed as part of the data field
+. now using SwiftMailer and DKIM authentication
+. Crumbs feature (members can donate a percentage of each incoming transaction)
+. superAdmin versus admin feature
+. new CG Card design and improved conversion automation
+. (re)prepared code for team development
+. put third-party software (apart from Drupal and Drupal modules) in /vendors
+. moved /sites/all/themes/rcredits to /rcredits and renamed it "theme"
+ . moved /sites/all/modules/rcredits to root (rcredits is no longer entirely a module, for example reinstall does not work)
+ - UPDATE `system` SET `filename` = 'rcredits/theme/theme.info' WHERE `filename` = 'sites/all/themes/rcredits/rcredits.info';
+ - UPDATE system set info='a:14:{s:4:"name";s:8:"rCredits";s:11:"description";s:80:"A variation on Responsive Bartik (pre-release 2012-08), for the rCredits System.";s:7:"version";s:3:"1.0";s:4:"core";s:3:"7.x";s:11:"stylesheets";a:2:{s:3:"all";a:3:{s:14:"css/layout.css";s:29:"rcredits/theme/css/layout.css";s:13:"css/style.css";s:28:"rcredits/theme/css/style.css";s:14:"css/colors.css";s:29:"rcredits/theme/css/colors.css";}s:5:"print";a:1:{s:13:"css/print.css";s:28:"rcredits/theme/css/print.css";}}s:7:"regions";a:18:{s:6:"header";s:6:"Header";s:4:"help";s:4:"Help";s:8:"page_top";s:8:"Page top";s:11:"page_bottom";s:11:"Page bottom";s:11:"highlighted";s:11:"Highlighted";s:8:"accounts";s:16:"Account selector";s:8:"featured";s:8:"Featured";s:7:"content";s:7:"Content";s:13:"sidebar_first";s:13:"Sidebar first";s:14:"sidebar_second";s:14:"Sidebar second";s:14:"triptych_first";s:14:"Triptych first";s:15:"triptych_middle";s:15:"Triptych middle";s:13:"triptych_last";s:13:"Triptych last";s:18:"footer_firstcolumn";s:19:"Footer first column";s:19:"footer_secondcolumn";s:20:"Footer second column";s:18:"footer_thirdcolumn";s:19:"Footer third column";s:19:"footer_fourthcolumn";s:20:"Footer fourth column";s:6:"footer";s:6:"Footer";}s:8:"settings";a:1:{s:20:"shortcut_module_link";s:1:"0";}s:6:"engine";s:11:"phptemplate";s:8:"features";a:9:{i:0;s:4:"logo";i:1;s:7:"favicon";i:2;s:4:"name";i:3;s:6:"slogan";i:4;s:17:"node_user_picture";i:5;s:20:"comment_user_picture";i:6;s:25:"comment_user_verification";i:7;s:9:"main_menu";i:8;s:14:"secondary_menu";}s:10:"screenshot";s:40:"sites/all/themes/rcredits/screenshot.png";s:3:"php";s:5:"5.2.4";s:7:"scripts";a:0:{}s:5:"mtime";i:1354818426;s:14:"regions_hidden";a:2:{i:0;s:8:"page_top";i:1;s:11:"page_bottom";}}' WHERE name='rcredits' AND type='theme'
+  - UPDATE `registry_file` SET filename=REPLACE(filename, 'sites/all/modules/rcredits', 'rcredits') WHERE filename LIKE 'sites/all/modules/rcredits%';
+  - UPDATE `system` SET filename=REPLACE(filename, 'sites/all/modules/rcredits', 'rcredits') WHERE filename LIKE 'sites/all/modules/rcredits%';
+  - UPDATE `registry` SET filename=REPLACE(filename, 'sites/all/modules/rcredits', 'rcredits') WHERE filename LIKE 'sites/all/modules/rcredits%';
+  - UPDATE `menu_router` SET include_file=REPLACE(include_file, 'sites/all/modules/rcredits', 'rcredits') WHERE include_file LIKE 'sites/all/modules/rcredits%';
+  - TRUNCATE cache
+  - list_themes(TRUE);
+
+2017-01-29 version 2.60
+. Changed in the agreement: "I understand I may receive some rCredits" rather than "...will receive..." AND removed "Once my geographic area becomes a Common Good Community"
+. Changed in agreement: "before my rCredits community has declared itself ready to allow cashing out Incentive Rewards"
+. removed sharing feature
+. made rewards feature contingent on TRUE/FALSE setting of $mya->cttyRewardy (in preparation for community option to offer rewards). Default is FALSE (effectively removing the incentive rewards feature at this time, but rewards are still tracked as separate transactions, pending additional code to calculate balances differently depending on the setting)
+. when not rewarding, Pay and Charge forms show no "goods" field
+. when not rewarding, rewards are no longer shown in transaction history or statements (but still shown in downloads)
+
+2017-01-18 version 2.59
+. implemented roundup feature (donation of fractional dollars on all payments)
+. "sharing" donations are now only in advanced settings (not asked about during signup)
+. created flags field in r_txs (rather elegantly) and moved the taking field there (along with a roundup flag)
+. ALTER TABLE r_txs	CHANGE taking flags bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT 'boolean permissions and state flags'
+. ALTER TABLE r_log DROP COLUMN special
+. removed the give-back-rewards feature
+. changed 1099B function to NOT include rewards
+. fixed bug in tellCO that omitted identity
+. fixed bug in log file display for rCOs
+. moved a couple functions into x class, to simplify code
+. changed PHP form to not use drupal
+. ditched Postmark emailing service (now managing bounces directly)
+. combined t() and tt(), perhaps eliminating any outstanding opportunities for malicious cross-site scripting
+. abstracted the project name and related constants, to make it easy to rename rCredits to Common Good (or whatever)
+. fixed bug that kept anyone from completing the first page of signup
+. turned off the "step completed" message (perhaps to be replaced later by "only n steps to go")
+. reorganized boot.inc and defs.inc (and a little of rcredits-settings.inc) so more defs are available earlier (for tests)
+. reworked setGlobals() as setAcct(), now used consistently for account changes
+. moved constantSubs,atag,rayy, and ray to bootstrap.inc
+
+2016-12-20 version 2.52
+. implemented grading of proposals
+
+2016-12-15 version 2.51
+. radically revised transactions history page to work fast and cool on mobile
+. open company account now sets proper steps done
+. separated tellCO from tellAdmin
+. memberlist links to accounts now actually change the account
+. cAdmin now sees a message on Summary page saying where the member would be sent, to complete the signup.
+
+2016-11-07 version 2.49
+. sharing donations now come out of rewards (and into CGF's rewards)
+. f('db.q', "UPDATE r_txs SET goods=:FOR_SHARE WHERE payerFor=':R_SHARING_MSG' ");
+. transaction rewards now decrease by 1% for every $500 of rewards received, down to 1%
+. each signup step now leads to the next
+. f('y.do1099bs', FALSE, [a('adn')->id => 'Howland Tools', a('ahh')->id => 'New England Dental Wellness', a('afd')->id => '(?)'], [a('afx')->id => ''], 2015);
+. updated signup steps for every account: eachA(function($a) {
+  $stepsDone0 = $a->stepsDone;
+  $stepsDone = f('r.stepsDone0');
+  foreach (ray($a->co ? 'proxies connect' : 'company relations') as $k) unset($stepsDone[$k]);
+  foreach ($stepsDone0 as $k => $v) if (isset($stepsDone[$k])) $stepsDone[$k] = $v;
+  $stepsDone['verify'] = $a->member ?: ($a->co ? FALSE : (array_sum($stepsDone0) > 1));
+  $a->update(compact('stepsDone'));
+/**/  if ($stepsDone != $stepsDone0) debug(['name'=>$a->fullName] + $stepsDone + ['was' => $stepsDone0]);
+});
+. finally fixed a problem in recaching that showed up mostly with joint accounts
+. monthly cron still runs on the 1st/31st/16th sometimes
+. show sum of starting balance on statements
+. change statements to forward date order
+. put link to back of invites on invitation page and tell admin when somebody prints icards
+. UPDATE r_txs SET created=1477976400 WHERE created BETWEEN 1477886400 AND 1477972799 AND (type=3 OR goods=3) (moving 10/31 inflation and sharing transactions to 11/1)
+
+2016-10-14
+. requests optionally included in users export
+. minor adjustments for new version (2.18) of old app
+
+2016-10-08 verion 2.48
+. now sends bad card info to app
+. app can now be used by individual accounts
+. smart interface notifies device owner of failed offline transactions
+. change of cardCode allows recent offline transactions to complete
+
+2016-09-15 version 2.47
+. changed Drupal cache to version cache in rc-html.tpl page template (to assure js refresh on version change)
+. added "do" parameter to time function in app
+. added boxesFld function
+. fixed bug: photoId was not getting updated since app version 2.16
+. change photoId field to a flag bit (and not a secure field or any field at all)
+. eachA(function($a) {
+    $a->setBit(B_REFILL, $a->hasBank and $a->minimum+0!=0);
+    if ($a->savingsAdd) $a->update('savingsAdd', 0);
+    if ($bank = $a->bankAccount) $a->update('last4bank', substr($bank, -4, 4));
+  });
+. changed "Savings Reserve" to "Credit Reserve" and related changes
+. moved refill settings to Bank Info page
+. expanded acct::update to handle flag bits and hasBank
+. added last4bank field
+. changed saveWeekly to apply to minimum, not savingsAdd (savingsAdd is temporarily not used); only one member was actively using saveWeekly, so we increased zir target bal by zir savingsAdd before zeroing savingsAdd
+. fixed recordChanges
+. added correction capability to forms1099b()
+
+2016-08-17 version 2.45
+. fixed op() bug by setting an opid parameter in every form
+
+2016-08-17
+. handling hashed tx proof, hashed cardCode, and other improvements to app interface
+
+2016-08-04 version 2.44
+. minor bug fixes
+
+2016-07-06 version 2.43
+. adjusted acct.class, smart.inc, and qo.class to handle new QRs from old app (release 2.16)
+
+2016-07-02
+. Bank page shows wrong amount spendable (see Ivan's email)
+. REINSTALL
+. f('db.q', 'DROP TABLE r_vetoes');
+. upload r_questions and r_options
+. copy js\rvote, css\rvote, and images\rvote
+. created prox form (and eLinkAcct() function) for no-signin links from emails
+. added "special" field to users table (for arbitrary exports)
+. radically revised Gherkin compiler, which required reworking steps files, testing functions, and some features.
+. debugged voting process and added "range" and "essay" type votes
+. added some administrative tools for voting
+. f('v.showResults', a('aaa')->community);
+. eachA(function($a) {$a->update('special', f('v.showVotes', $a->community, $a->id, 'proxy'));});
+. changed invitation cards to say "+ rewards whenever you buy or sell with rCredits." (no "10% at member bizs")
+. unfroze companies, so they can spend their rewards as needed
+. revised preferences page to show (and modify) savingsAdd rather than savings total
+
+2016-06-09
+. don't activate the signup button on rCredits.org until something is typed in the account field (make it a required field!)
+. refactored QID handling as a qo (QID object) class
+. no explicit weekly savings is required, for negative minimum
+. replaced references to "stable and permanent" with just "stable"
+. added an "otherNum" field to relations table, so relations identifiers can include main account identifier and still be pretty short
+. created a new rCard format: no punctuation in printed account code, QR format is X.RC4.ME/WYZV, where X is the region, W is a format character, Y is the account code without region, Z is the company agent number (otherNum) if any, and V is the card security code. W, Y, and Z are coded with radix 36 (digits first, then capital letters). This higher density code is also used on the magnetic stripe. X will remain coded (for now) as radix 26, because it is visible in the URL. The smart API and qo class recognize both old and new formats. Code for generating rCards in the new format is temporarily deactivated until the new ionic app is used by all current rCredits companies.
+. fixed bug that kept A2 cAdmin from receiving invitation requests
+. refactored transaction handling as a new class MyX that looks at a transaction from one party's viewpoint
+. print QIDs with no spaces! (a 6-character company name will eventually cause ambiguity -- include QID results in choice list!)
+. extensive improvements to community democracy, including range-type voting
+
+2016-04-22
+. fixed bug that crashed on tx edit (because goods was '0' instead of 0)
+. trade deficit is now subtracted from a community's USD
+. added external trade activity to banking chart
+
+2016-04-01
+. fixed bug that crashed editTx (always): needed htmlspecialchars of hidden field
+. for companies, say "Connect to Mainstream Economy (or choose not to)"
+. revised POS interface (including use of transaction proof based on public/private key pair)
+
+2016-03-11
+. typahead any company in any region. no typeahead for nonlocal individuals, but allow paying by name
+. DROP TABLE r_votes and create tables for CG Democracy
+. added saveWeekly field (for getting slowly out of debt or building up savings)
+. added invitation stats to Summary page
+. rewrote makeTables() in rcredits-install.inc, to bypass a Drupal bug
+. unset bit B_u4
+. put a limit on savings amount
+. fixed bug in statements that left page too long to print
+. multiple choice voting demo works
+
+2016-02-16
+. version 2.33
+. added bootstrap typeahead (replacing Drupal's autocomplete) to Message and Tx forms
+. changed savings to runny and recreated all stats
+  f('db.q', 'TRUNCATE r_stats'); f('cr.cttyStats');
+. keep stats on total rewards in manual accounts (that don't refill automatically) that haven't promised to keep a positive primary balance. Also top max(5/5%) total.
+. made a clear path for admin to set up and activate a new community: create with New Ctty form, change community of everyone in that community (don't change payer in their rewards transactions unless updating statistics) 
+. reworked community bits
+. added organizer grant form
+. made a way to give rewards back to the community (TX_GIVEBACK = 2). when user pays community or any nonprofit, ask if it's a gift. Record in tx's data field. For donations to the community, redo payer/payee etc so it is a negative reward tx from donor to ctty.
+. sessions now time out, with option to keep alive
+. do not require separate email address for companies! (they can't sign in anyway)
+. tell admin who is eligible for a grant
+. disallow +whatever except for gmail (and other services where we know it works)
+. outgoing deposit slip list legalName
+. photo on Summary page is wrong when coming from Member List
+. moved all remaining settings to boot.inc and made setting.php a mere forwarder
+
+2016-01-27
+. version 2.30
+. fixed bug that kept payinvoice from working (needed urlencode)
+. fixed bug that sent "rCredits 1" as the subject for invoices
+. set "apple-mobile-web-app-capable" to no (for now) to prevent 404 errors
+. rewrote Add Community form
+. add 'Or tell your friends "To sign up for rCredits, go to rCredits.org and sign in with this invitation code: WHATEVER2ABC"' to the invitation page.
+. delete all but digits in community EIN
+. hide rTrader bit from cAdmin
+. created community dropdown on Summary page for admin
+. radically revised the way regions and communities are handled (see developer.txt) and changed data on server
+. restricted Whois choices to same community
+. new Send Message page for member-to-member communication
+. implemented ajax confirmation and choices forms for Send Message page
+. replace r_regions
+. delete all region accounts in users except NEW: DELETE FROM users where uid<0 AND name<>'NEW.'
+. create greenfield CGC, sevt, goshen, and a2 CGCs:
+  - rCredits Goshen: 615 College Ave, Goshen, IN 46526  574-202-6977  475318822  ^46|^47 goshen@in.rcredits.org (goshen@rcredits.org)
+  - Better Economics for Neighbors Everywhere: 16 N River Rd, Walpole NH 03608  6172330545  47-4965856 ^05(1|3) bene@vt.rcredits.org (vermont@)
+  - Greenfield Area rCredits / Greenfield Massachusetts rCredits: c/o Common Good Finance, PO Box 21, Ashfield, MA 013300021 413-628-1723  ^013|^010 811209155 (westernmass@)
+  - rCredits Washtenaw County: c/o A. Konner, 1005 Packard St., Ann Arbor, MI 48104  734-726-4264  465193894 ^492|^48 (later ^48(103|104|105|107|108|109|113|115|130|158|175|176|190|191|197|198) washtenaw@mi.rcredits.org (washtenaw@)
+. change accounts: NEW community to greenfield, MIW to a2, INA to goshen, NEV to sevt, and all others to seedpack
+  (in users, r_txs, and r_stats)
+  $cttys = '-26742000000001,-25026000000001,-17238000000001,-26739000000001';
+  $ctty0 = -26742000000001;
+  $map = 'r_stats:ctty,users:community,r_txs:payer,r_txs :payee,r_txs  :payerAgent,r_txs   :payeeAgent,r_boxes:uid,r_log:myid,r_log :agent,r_notices:uid,r_request:ctty';
+  foreach (ray($map) as $table=>$fld) {
+    q("UPDATE $table SET $fld=IF($fld IN ($cttys), $fld-1, $ctty0) WHERE $fld<0");
+  }
+. see who is in the "wrong" community and fix them by hand:
+  eachA(function($a) {
+    $shouldbe = f('r.communityUid', $a->zip);
+    if ($shouldbe == $a->community) return;
+    if ($a->ok) {
+      debug ("$a->fullName: ctty=$a->community should be $shouldbe (zip $a->zip)");
+    } else $a->update('community', $shouldbe);
+  });
+  
+2016-01-16
+. add extra optional column to payroll upload: description (and use it if specified)
+. rename field savings to savingsAdd
+. split everyone's balance into primary and savings reserve, emailed warning message, set minimum to zero if their current balance became negative:
+    eachA(function($a) {
+      $topic = 'balance now split (important notice)';
+      $a->update('savings', max($a->rewards, $a->savingsAdd)); $a->setBit(B_u8, FALSE);
+      $args = f('r.noticeArgs', $a->id);
+      $balMsg = f('u.tt', '<p>Your new balance is @balance.</p>', f('u.just', 'balance', $args));
+      $msg = '';
+      if ($a->minimum > 0 and $a->j_rewards > $a->j_r) {
+        $msg = f('r.suggestMin', $a, $a->minimum, "new savings balance|$balMsg|minimum zeroed", TRUE);
+        $a->update('minimum', 0);
+      } elseif ($a->j_rewards > 0) $msg = "new savings balance|$balMsg";
+/**/  if ($msg) debug("Sent " . (strpos($msg, 'zero') ? 'zeroed' : 'normal') . " msg to $a->fullName ($a->mainQid) : $balMsg");
+      if ($msg) f('r.message', $a->id, $msg, [], $topic);
+    });
+. photo is oval and squeezed horizontally on the iPad (might have fixed this)
+. don't count cron transactions as activity (don't update "access" field)
+. added a timeout to croppic.js to handle attempts to upload a non-image file
+. handle transactons summary when member changes savings amount: Add a line for Rewards and do it like the statements, but vertically.
+. fixed rounding error on bank page.
+. changed username and password field html to flout browser autofill.
+. added file size check to croppic, to keep php from crashing on out-of-memory creating image
+. fixed bug that kept company "ATM" bit from working
+. cron now considers an automatic transfer for a joined account whether or not it has a low balance (no way to tell whether it's time with SQL alone)
+. set B_JOINED on joining
+. changes field is now encrypted if it contains any secure field (former) values (changed field type to longblob)
+. fees are now included in calculation of r on ctty funds page
+. updated the general help page
+. added a don't list option for companies (CO_PRIVATE)
+. added an anonymous export option for data analysis
+. added total balance to balance line on Summary page
+. centered messages, with "puff" transition
+
+2015-12-11
+. bug fix: sort field was causing crash on bad data in transaction history
+. bug fix: opening company failed (form.inc updated on production site)
+. instant submenus on hover
+. give some businesses exemption from the cash-out restriction if they choose "reserved" and provide rCredits purchase service. (especially Upinngil and GFM and Foster's)
+. delete reference to "red" in 1099B page and add column for 990s. Then make it a "Tax Info" page and separate out the 1099B details to a separate page.
+. italicize phrase in agreement about until the community has sufficient revenue AND make "suffient revenue" a hyperlink
+. fix balance/rewards reporting on notices (for savings reserve)
+. BONA bit now gets set upon account activation
+. fixed bug (finally!) that kept country and state from sticking on signup form error
+. fixed checkbox problem on signup form
+. "which" form gave errors on ambiguous reference
+. eliminated required() from most radio groups, because it made ladda buttons stop spinning
+. change bit 31 to 26: UPDATE users SET flags = (flags | (1<<26)) - (1<<31) WHERE (flags & (1<<31))
+. fix payroll upload page formatting and accept vanilla CSV spreadsheet upload (just names and amounts), asking for dates separately, defaulting to next after previous upload
+. clean up footer and misc.js and combine them in misc.js on every page (not called from showForm)
+. set emailCode for every non-company account: eachA(function ($a) {if (!$a->co) $a->update('emailCode', f('r.cardCode', $a->mainQid));});
+
+2015-11-30
+. now using Bootstrap 3 more fully
+. added breadcrumbs
+. jQuery photo upload
+. (no password quality metrics, so this is a stepping-stone unusable update)
+. separated out theme file guts into rcredits folder, so they get tracked
+. notices now report savings reserve properly
+. fixed bug: invitation confirmation by doing first transaction with inviter now works
+. changed default sharing percentage to 25%
+. bootstrap modal "which" form
+. delete second signup bonus for everyone and set BONA flag properly upon activation. Identified with this duplicates DUP-finder query: SELECT payee, fullName, COUNT(*) c, MAX(t.created) AS dt, MAX(xid) AS xid FROM r_txs t LEFT JOIN users u ON u.uid=t.payee WHERE type=1 GROUP BY payee HAVING c>1 (also type=4 for helper bonus)
+. special admin function for printing invitation cards for old members
+
+2015-11-09
+. gave cAdmins access to secure messages from people in their area
+. fixed bug: invoice payment was complaining of duplicate transaction
+. fixed bug: uploading photo for companies gets error "tried to shrink company photo" and no check mark
+. fix javascript on relations page, so clicking yes or no shows the other setting
+. changed not-authorized patch in common.inc to redirect to signin if appropriate
+. added code for invitation cards, including scrambling of code, printing cards, accepting invitation # as a getting started signin/signup identifier, and permitting use of invitation card as a temporary rCard.
+. add federalId field to summary page for admin (entry only -- show "on file" if we have one)
+. ignoring "the" and first initial at start of account name, when selecting from click on account photo
+. elimination of submenus
+. add inviteMask to .databases
+
+2015-09-06
+. changed invoices to go out immediately
+. link for emailing invitations with later confirmation
+. removed photo upload size restriction
+. fixed invoice confirmation
+. set B_CONFIRMED for all accounts except Caitlin: UPDATE users SET flags=(flags|2)
+. "Click here to increase your minimum balance" needs base_url and should be different when not signed in (confirming invoice)
+
+2015-08-28
+. tweaks to make it easier to collaborate with another programmer
+
+2015-08-17
+. version 2.2 (new style)
+. bug fix: "disputed" shown whenever a tx had been changed
+. when we go to promo site from mem site, set a cookie to show "Members Site" instead of Sign In.
+. don't show "processing..." when clicking photo (add "nospin" class)
+. change second AND FINAL email to invitee to 8 days later
+. let companies invite (but warn on page and in code about corporate personhood)
+. give Fuzzy (and other ctty admins) inviter rewards
+. removed u\tt from help at top of rweb-subs.inc (made reinstall fail)
+. removed NULLs from rcredits-install.inc (made reinstall fail)
+. remove Toolbar module
+. REINSTALL
+. UPDATE r_txs SET goods=IF(goods=2,0,goods+1)
+. update theme, css, js, images, fonts
+. copy vendors\ and composer.*
+. disable secondary menu in rcredits theme
+. change !NEW email to westernmass@rCredits.org
+. a('miw.adg')->update('dob',strtotime('10-May-1982'));
+. search for tx data starting with "s" and unserialize it (none)
+
+2015-08-09
+. when a second bank transfer request, fix the cached r
+. when user chooses "don't connect yet", set minimum to zero (and tell them)
+. alert inviter when invitee is 8 days slow accepting or progressing
+. bug fix: invoice notices were missing the link
+. add all known US regions to users table and use the region name on rcards
+. make a way to export members for import into mailchimp (modified standard admin export)
+. add message on Bank tab for admin: "(no limit for admin)"
+. fixed bug: editing tx description changes the type to disputed (and corrected doubly-serialized tx data fields)
+. alert staff if anyone ever chooses paper statements 
+. admin signin now triggers update of unencrypted bankAccount (including in r_usd). This may eventually require an "encrypt" flag bit.
+. don't require mediaconx unless OK
+. add calling to summary page
+. add photo to Summary, for cAdmin
+. don't update access date for cAdmin access to the account
+. add a "nonmembers" (where do i shop) button on Admin page
+. don't calculate or show stats for inactive communities
+. when complaining about cashing out, suggest choosing goods and services
+. add nosearch field to options tab
+. changed !NEW email to westernmass@rCredits.org
+. fixed: reimbursement/loan/etc. was getting mis-recorded as for-USD
+. channel is now recorded in r_usd, so we can tell which transfers are automatic
+. change "exchange of US Dollars or other currency" to "exchange for US Dollars (or other currency)" without being too long on mobile (and fix tests)
+. created r\regionField() to replace several constants
+. forbid joining until both accounts are activated
+. stop consolidating incoming transfer checks for completed transfers
+. lack of photoID verification now just alerts admin (tx always goes through)
+. tasks
+	DROP TABLE r_regions and re-import
+	f('a.setupBasicAccounts');
+	test change password
+	test photo upload and re-upload
+	test (in WS) displaying foreign rCard (eg NY or VT)
+	test (in WS) admin signin auto-encryption of bank accounts
+. fixed: clicking on 1st or 4th graph gives warning: "Warning: hex2bin(): Hexadecimal input string must have an even length in rCredits\Util\deurlify() (line 354 of .../rcredits-util.inc)."  
+. on promo site: signup include "organizer" bit: "I want to help bring rCredits to my community. I will tell some friends and local business people about it and will meet locally with other interested people to plan. (You will receive an email every time someone else in your 3-digit zipcode area checks this box &mdash; until your community has selected a contact person.)
+. integrated boostrap theme from promo site
+
+2015-04-21
+. version 2.1
+. made data, secure, and vsecure more efficient
+. no usd in admin users list
+. add taking to admin tx list
+. don't show vsecure, askappdata, seeappdata for cAdmin
+. move addr and postalAddr to secure
+. encrypt phone (searchable)
+. encrypt email in invites and email & phone in requests (then bin2hex)
+. when showing old check images, use the original deposit date
+. notices now say to contact us at community's email address (not necessarily new@rcredits.org)
+. fixed: account dropdown in DEV fails (omits "devcore")
+. upload new .databases
+. disable pw2 check in formSignin_validate
+. having generated a max 512-char u\randomString for pw2, a(1)->update('pw2', f('r.passHash', hex2bin('pw2'))); 
+. reinstall
+. ALTER TABLE `users` DROP `usdAccount` , DROP `offsite` , DROP `usd`;
+. copy filter.module
+. run Special to re-encrypt and move fields around
+. ALTER TABLE `users` DROP `address` , DROP `postalAddr` , DROP `faxetc`;
+
+2015-04-20
+. added a Delete button for admin to remove photo
+. fixed bug: empty new password crashes
+. forgot to set deposit date once, so did UPDATE r_usd SET deposit=1427428800 WHERE txid BETWEEN 6124063 AND 6124086
+. added list of people waiting for invites, to Invite page
+. fixed bug: users were unable to edit company description
+. combine any undeposited transfer requests into a single request with the current date and original txid
+. if running f('cr.something') from PHP window, call just that one function, not all subsequent daily functions as well.
+. refuse first tx if no photoid yet
+. make a way for members to cancel a bank transfer request
+. make account selection give first letters and submenus, for admin (as well as full qid and/or choose ctty first)
+. add share pct to preference page
+. explain tax options on 1099-B page
+. change from ECB to CBC encryption mode
+. double encrypt secure (two different methods)
+. Use extra encryption for social security numbers, with the second key stored offsite and used only once a year for tax reporting. I don't know if anyone else does that, but it would make it pretty close to impossible to steal those numbers. Less easy than spinning a barn full of straw into gold overnight, for example. Only admin can see "very secure" fields, and signing in as admin requires a long second password, stored on a thumb drive. That password also serves as the key for encrypting the "very secure" fields.
+. set init NULL, encrypt mail (searchable), encrypt photo.
+. store encrypted bankAccount in r_usd (for a permanent record of checks actually used)
+. ALTER TABLE `users` DROP `usdAccount` , DROP `offsite` , DROP `usd` ;
+. a(1)->update('pw2', r\passHash('<pw2>'));
+
+2015-03-11
+. fix <small> sizes on notice footer
+. handle company agent photoID in rsmart
+. handle company agent photo properly in rsmart
+. handle offline transactions with inadequate permissions by messaging everyone involved
+. check rCard security code on rsmart charge requests
+. warn user they have to open a personal account first
+. make a way to ask the app to delete a record: !delete:txs,15
+. deposit total fails if there are commas in any amounts
+
+2015-02-23
+. accept first-time customers offline only if the company accepts any risk of fraud (suggest they ask for ID)
+. disabled no-connection alert in /misc/autocomplete.js
+. secure message form on Help page, including attachments
+. show expired invitations on invitation status page
+. show admin each member's invitation status page (but not their invite page)
+. fixed averageBalance bug (bad union query in function); effective APR was wrong in notices
+. fixed bug in bank info form: opting for no connection nonetheless was setting hasBank=TRUE
+. fixed bug in bank info form that kept radio buttons from working right if user toggled back and forth
+. made link to invitation status more obvious
+. did away with secret fields (use secure field instead)
+. when no SSN data is available, just show it in the error message
+. changed format of Micr font check info at bottom of checks to "C000{$txid}C A{$routing}A {$account}C"
+. set helper field for companies
+. moved oneTimePass to secure
+. fixed bug in click to pay invoice: goods field was omitted
+. added bank address to deposit slip for outgoing checks
+. inflation adjustment ($0) and other incentives should not appear as a separate category in Statement summary (happens for joint accounts)
+. list current businesses at the bottom of every notice digest and remind others to open a company account.
+. *** add totals of all, labor, dividend, and other on 1099-B page.
+. make invitee descriptions more explicit ("member", "accepted another invite", "has not yet responded", "account incomplete",...)
+. provide a "Cancel/Reverse" button for the Bank tab, to reverse just the most recent request.
+. alphabet index for members, for ctty admins
+. don't say activate account when it's closed
+. change extension of remaining .php include files to .inc
+. remake menus
+. change boot.php to boot.inc in settings.php
+
+2015-01-11
+. version 2.0
+. make ss# a password-type field
+. no cadmin email to NEW (since I get them anyway as admin)
+. chose a more secure admin pw
+. move fields around according to privacy/security policy
+. put our security/privacy policies in a footer link ("privacy")
+. remove the following fields from secure: usdType usdPhone usdEmail usdPass usdPin auth
+. inflation only for master of joint account, based on sum
+. make account field persist with last account number on Admin Panel
+. fixed bug: leaving goods blank on pay or charge form crashed
+. refactored handling of data/secure/secret fields
+. in notices and Summary, report "credit line" not "floor"
+. admin signin redirect to sadmin page
+. upgraded to Drupal 7.34 (post Drupalgeddon)
+. make sure pie chart doesn't try to show negatives
+. bona rewards (including rewards to inviter) now happen in cron
+. added B_COUNTED bit to mark employees as having triggered a reward to their company's manager's inviter
+
+2014-12-09
+. sometimes ssncheck returns an array of birthdates (see c line 237 in admin.inc -- try Maja H)
+. make a way to easily uncomplete bounced checks: On History page created offsetting record with reversed amount, txid, and tid; same everything else
+. removed payee field from r_usd
+. removed photo icon in upper right (temporarily?)
+. delete garbage from r_do daily
+. let anyone exchange unlimited cash with any other member. Just don't allow cashing out rewards via bank transfer. 
+. on Deposits page: no checks link for today unless they have been printed
+. joint accounts: implemented as a higher-level view of two personal accounts (larger groups need their own EIN)
+. default flags period to 7 days
+. made it easier to choose proxies
+. we now handle photo id numbers (id proof) from smartphone on first transaction
+. rsmart getTime() function now returns '!update' rather than a message, when appropriate
+. fixed bug: payment to region says region doesn't have permission to make sales
+. consolidated confirm and report messages
+. DELETE FROM r_do WHERE completed IS NULL OR completed<0
+. UPDATE r_txs SET goods=2 WHERE goods=1
+. UPDATE r_invoices SET goods=2 WHERE goods=1
+. fixed bug whereby app reversing a transaction with insufficient funds would retry over and over
+. on Pay tab and Charge tab, if cash/loan/etc is selected, ask if it is for USD (at Adam's urging)
+
+2014-11-14
+. UPDATE r_usd SET completed=1414728000 WHERE completed=2014 (10/31/2014, fixing the oops of 11/01)
+. banks: UPDATE r_banks SET name=REPLACE(name,'Fcu','FCU'), address=REPLACE(REPLACE(REPLACE(REPLACE(address,'Bx','Box'),'bx','Box'),'P.O.Box','PO Box'),'P O Box','PO Box');
+  UPDATE r_banks SET address=REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(address,'Box1','Box 1'),'Box2','Box 2'),'Box3','Box 3'),'Box4','Box 4'),'Box5','Box 5'),'Box6','Box 6'),'Box7','Box 7'),'Box8','Box 8'),'Box9','Box 9');
+. omit lastTx from changes
+. UPDATE users set changes=NULL where changes like '%lastTx%'
+. put bullets back in notices when there are no dates (everyday notices)
+. statements don't work (spurious output in addition to PDF)
+. in user stats field, round amounts to cents
+. created test function stubs for non-testing environment
+. in statements categorization, separate other (goods & services) from other (cash/loan/etc.)
+. in statements, add "..." to abbreviated categories
+. print escrow deposit slip automatically, with list of checks, count, and total
+. admin deposit page for printing checks in and out, with summary and detail of past deposits/checks
+. generalized check.class as pdf.class
+. did away with T_REFUND (and the Dwolla fees they refunded)
+. UPDATE users SET activated=0;
+  UPDATE users u LEFT JOIN (SELECT payer, MIN(created) AS dt1 FROM r_usd WHERE payee=0 GROUP BY payer) t ON t.payer=u.uid SET activated=dt1 WHERE dt1>0;
+  UPDATE users u LEFT JOIN (SELECT payer AS id, MIN(created) AS dt1 FROM r_txs GROUP BY payer) t ON t.id=u.uid SET activated=dt1 WHERE dt1>0 AND (activated=0 OR activated>dt1);
+  UPDATE users u LEFT JOIN (SELECT payee AS id, MIN(created) AS dt1 FROM r_txs GROUP BY payee) t ON t.id=u.uid SET activated=dt1 WHERE dt1>0 AND (activated=0 OR activated>dt1);
+  UPDATE users SET activated=signed WHERE activated=0 AND (flags&(1<<2)) AND signed>0;
+. DELETE FROM r_txs WHERE type=-3;
+  DELETE FROM r_usd WHERE payee=-1;
+  UPDATE r_usd SET deposit=1 WHERE payee=0 AND deposit<1 AND txid <=6117399;
+  UPDATE r_banks SET name=REPLACE(name, 'Rbs Citizens', 'RBS Citizens');
+. bank info for admin on Summary page
+. base member counts on activated date and redo stats
+. in stats, calculate usd right for each community and track payments out (to another community) and payments in. Redo 
+. inflation did not seem to appear on statements summary. clarified.
+. DELETE FROM `r_usd` WHERE payee<>0
+. found out why Artisan gift failed (somehow it was OK but not MEMBER)
+. balance was getting adjusted every day! (fix and delete most such notices)
+. reflect rCredits escrow amount due each community on graphs (requires fixing data)
+. in stats, company count was off
+. fix formatting of dates in notices table for weekly/monthly
+. an extra community button that lists communitys and amounts: r TOTAL,usd,trade,signup,etc. (including trade balance right after usd)
+. pay attention to the number-of-days selector on flags page (show only that many days)
+. flags shown are for the current community unless admin or not signed in
+. always show all red flags
+. describe selected flag at top of Flags help page
+. on Flags page, change labor... to labor, and automatic transfer... to automatic transfer else suppress non-rcard
+. made a() and r\acct() work with community quids (!NEW, !NEW.AAB, etc)
+. add proxies, invited by, invited, and trust score to summary
+. update users set minimum = 0 WHERE minimum IS NOT NULL AND name NOT IN ('carolgletson', 'marilynandrews')
+
+2014-11-01
+. SMS text messaging is discontinued
+. continued eliminating hooks for Dwolla
+. no longer trying to shrink company photos
+. tests are now independent of rcredits (but not Drupal)
+. set flag bits if contribution to score is 1/20 or more (make it a defined constant)
+. show Go button on memberInfo form
+. after saving summary, if any risk bits changed, rerun the risk calculation for that account
+. added a permissions bit for regulators (and bank partners) that is read-only
+. people still think they're done after the 0th step. Made it more obvious ("WAIT!" big)
+. changed TX_SMART to TX_POS (we expect to have another app or a more general app, that lets the payer initiate)
+. changed "I don't have a bank" to "no bank" on paper signup
+. show quarterly/monthly etc. for gift on summary!
+. zapped r_ach table. (replacement is being created by transforming r_usd)
+. added share % to summary even when not activating
+. added "no connected bank account for now" to Bank Info page
+. now shows a picture of where to find routing and acct numbers. Sort of like http://www.nationwide.com/routing-and-account-numbers.jsp does. Or draw a mockup of a check and put those two fields in the right places.
+. hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
+. duplicate phones no longer forbidden
+. bank account removal
+. user can see notices online
+. Summary show helper name.
+. assume any "share" less than 1% is already hundredths
+. individual notice page should be under history (history/notice)
+. not-yet-member companies should not appear on Find Co list
+. when a member draws from another for part of a purchase, leave a zero balance, if not debt okay
+. on flags page do not give links (just titles) for unprivileged users
+. allow user to select time range for Flags
+. add minimum and other settings to Summary screen (for admin)
+. When a member is short, include in the message some mention of debtok and floor, if not debtok.
+. wrote plusMonths to handle month arithmetic (strtotime does it weird)
+. on history, show bank tid as txid, not b-something
+. first admin test (for printing checks)
+. tell member the txid when banking (say or notice)
+. after creating company, sign user back in with company account selected and status page displayed
+. fixed bug: creating company account fails (creates acct but goes to sign in with no message and fails to create relation)
+. add a users changes field and TEST
+. give message to app on "time" request, when an update is needed: "You need to download the latest version of this app from the Play Store.
+. on NSF for cash/loan/etc., explain that rewards cannot be cashed out
+. in cron, set completed date for outstanding bank transfers deposited 2 business days ago. And write tests.
+. expired invites no longer count as dups
+. limit Fibonacci to 8 (just keep repeating every 8 days thereafter)
+. data tasks:
+	0. Backup NEW db and copy it to WS
+	1. Do all of the below on WS
+	. DROP TABLE r_banks
+	. upload r_banks and r_transit
+	. upload software
+	. reinstall: /devel/reinstall?destination=sadmin/handy
+	. ALTER TABLE users DROP column question, DROP column maximum;
+	  ALTER TABLE r_txs DROP column usdXid, DROP column r, DROP column completed;
+	  DROP TABLE r_ach;
+	  UPDATE users SET share=50 WHERE share>50;
+	. copy new fonts to TCPDF folder
+	. include_once __DIR__ . '/../rcredits/admin/admin.inc';
+	  f('a.eachAcct', function($a) {$a->setRisk('hasBank', (bool) $a->bankAccount); $a->setBit(1, FALSE); $a->setBit(4, FALSE); $a->setBit(8, FALSE);});
+	  a(-26742000000001)->setBit(1, FALSE);
+	  a(-25026000000001)->setBit(1, FALSE);
+	. make sure Dan's account can request a bank transfer
+	. make sure Admin users list shows no unused bits 
+	. make note of who has how much USD (11 rows):
+	  Sheila 20, scottR 40z, matthewG 10 (write this one off), CGF 8.52z, GFM 7.91z, heatherG 10z, leighR 60z, snows 6.75z, pint 6.40z, upinngil 9.85z, rWM 40,894.78
+	. make note of who has pending bank transfers, for how much (and keep track of them as they come in over the next few days) (11 rows): betsy 70xz, fred 120xz, jeffC 30xz / nancyHaz 40xz, tamaraMcK 10xz, ellenK 70xz, andyG 50xz, johnWaite 100xz / peter 190xz, mona 110xz, realpick 601.12xz
+	. a('abr')->update('bankAccount', ''); a('abr')->setRisk('hasBank', FALSE); // zap Stephen Cobb's locked account
+	. UPDATE users SET r=r+usd WHERE usd IS NOT NULL (11 rows)
+	. DELETE FROM r_usd WHERE amount<0 and NOT completed AND txid<6030837 (5 rows)
+	. UPDATE r_usd SET completed=NOW() WHERE amount<0 AND payee=0 AND completed=0 (11 rows)(oops NOW() becomes 2014)
+	. UPDATE r_usd SET deposit=1 WHERE amount<0 AND payee=0 AND completed>0 (686 rows)
+	2. Backup NEW rcredits module (in case we need to undo the update)
+	3. connect CGF's rCredits escrow account (in Dwolla)
+	4. Do #1 on NEW (except Dwolla stuff)
+		a. alert people who need to reconnect their bank account
+		b. alert people who were unable to have a connected bank account that they can now, if they want: Emi, Helen, Carol Letson, Marilyn Andrews, Ed Smith
+		c. alert people who are OK and hasBank but not old bank bit(not verified) that funds can be transferred to and from their account (and will be if they are below their minimum): Keegan Rodgers, Just Abundance, Inc., Delta Carney, Preston M. Browning, Jr., Kristie Faufaw, Christopher B Rawlings, Amylia Jackson, Henrietta M. Startup, Peter Garbus, Jennifer Ladd, Will Savitri, Just Soap, Richard G. Kelly, Daphne Bye, Clare Higgins, Artisan Beverage Cooperative
+		d. on WS:  include_once __DIR__ . '/../rcredits/admin/admin.inc'; f('a.makeTestCards');
+	
+2014-10-21 (rWeb tests do not pass -- not usable yet)
+. hidable advanced settings for Txs
+. cron now calculates the right values for trust (was giving some negative values).
+. when making a new rcard in admin, rename photo with new cardCode
+. created new r_transit table from Wikipedia's transit code page
+. UPDATE r_transit t INNER JOIN  `r_states` s ON t.location = s.name SET t.location = s.abbreviation
+. UPDATE r_banks SET name=REPLACE(REPLACE(REPLACE(name,'N.a','N.A'),'Td Bank Na','TD Bank NA'),'U.s','U.S'), address=REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(address,'P.o','P.O'),'Po B','PO B'),'U.s','U.S'),'N.e','N.E'),'N.w','N.W'),'S.e','S.E'),'S.w','S.W')
+. UPDATE r_banks SET name=REPLACE(CONCAT(name,'|'), ' Na|',' NA') WHERE RIGHT(name,3)=' Na'
+. notices are now available online
+. notices are in table format instead of <ul>
+. changed bank info form to use RCC or ACH (independent of Dwolla)
+. make users type their account number backwards too ($35 value)
+. *** add a "changes" field to users (use only after rTrader bit is set, ignore date and cache fields, ignore floor when set automatically, ignore password/risk/risks/trust/, handle data&secure only as individual virtual fields)
+. complete usd transfers (set completed field) automatically: immediately for members with enough credit (floor), 2 days after deposit for others.
+. cron send a message at about 8am if it has not completed successfully for a day or more
+
+2014-10-04
+. fixed bug in deleteUid that might have deleted some things that shouldn't be
+. calculation and display of ach risks
+. display of single transaction details
+. added risk-related fields to admin's Summary form
+. added seeData to Admin panel
+. refactored transactions as new x class
+. handle failed transaction save (txSave return FALSE)
+. share percentage limited to 50%
+. improved account not opened yet message
+. DELETE photos/small directory
+. REINSTALL
+. f('a.eachAcct',function($a) {$a->update('tenure', 12);});
+. fixed bugs in recording helper
+. on flags page: say what the transaction volumes are (for bigyear, etc) in description.
+. on company page, ask for annual gross and number of employees (both required)
+. risks: different BIG thresholds for companies, based on number of employees
+. set moreIn and moreOut in cron txRisk1 (flag unusually large receipts or expenses of an account)
+. on flags page: key to what the weights are and how each risk is calculated (linked to by risk name) And point out that green is a "good" risk.
+. removed u10, u15, and u19 on production server
+
+2014-09-13
+. fixed bug: admin Summary form was trying to shrink photo always
+. fixed bug: helper was trying to be recorded as qid rather than uid
+. bug fix to adapt to accidental API change by Dwolla: added "/" to end of fundingsources URL in dwolla.php
+. refactored integer bit array bit-setting/getting code
+. added (rough) calculation and display of account, transaction, and (not yet) ach risks (following revisions to Policy to Prevent Fraud, Money-Laundering, and Financial Crime)
+
+2014-08-26
+. in invite email, warn the potential member about the required donation "of any size -- a penny or more" and "you supply the same info as for opening a bank account"
+. relabel member and rTrader bits for ctty on Summary page
+. fixed bug: setting member bit on community gets message ~ "you must specify helper"
+. small photo is now saved in users table (account record), to accommodate replication
+. revised relations table (and related code), to eliminate reverse record (and employeeOk and amount fields)
+. moved helper field out of users:data f('a.moveFieldFrom', 'helper', 'data');
+. moved question field into users:secure f('a.moveFieldTo', 'question', 'secure');
+. queries:
+  ALTER TABLE r_relations CHANGE reid reid BIGINT(20) AUTO_INCREMENT;
+  ALTER TABLE r_relations CHANGE employerOk employee TINYINT(4);
+  ALTER TABLE r_relations DROP employeeOk;
+  ALTER TABLE r_relations DROP amount;
+  ALTER TABLE users DROP maximum;
+  f('a.fixRelations'); // to relocate relations record IDs to the appropriate number space for their region
+. RENAME photos/small directory (then DELETE)
+. ALTER TABLE users DROP question;
+
+2014-08-07 (corresponds to Android App v202)
+. support for exchange transaction fees (3% for credit card, $3 for a check)
+. monthly statements now include a summary by description category (most punctuation separates category from detail)
+. bug fix: transaction edits are handled properly (finally)
+. History now shows USD in as being from the company to the customer (instead of vice versa and negative)
+. creditInfo likewise reports USD in as debits to the company, credits to the customer
+. added a suggestion to customer to not be secretive, when s/he tries to overspend
+
+2014-08-04
+. fixed bug: homogenize crashes on "null dw number" trying to tradeR to/from 26742000000080. Require B_BANK, not just B_DW.
+. community admin can now skip the agreement step when inputting a paper signup
+. modified and added code to handle offline rPOS transactions
+. fixed bug that recorded signup helper's account rather than their qid
+. changed automatic nighttime draws to be always allowed, regardless of rewards level
+. fixed bug: don't allow pw reset for companies
+. fixed bug that allowed admin to set "ok" bit without "member" bit
+. fixed bug that ignored null state on signup
+. added email address to summary page
+. alert staff on insufficient funds and other tx failures
+. created smaller picture (in photos/small) for passing to POS: 50% (300x400 -- about 12k) ideally at 35%
+. fixed bug: "reverses #" was giving wrong tid for cust/co 
+. fixed bug: rcron now handles negative balances right, when bringing accounts up to minimum.
+. make note of all company bits and restore them after the update
+. create small pictures in photos/small ( use f('a.eachAcct', 'photoFromFile'); )
+. set helper for each ok account (use   f('a.eachAcct'); )
+
+2014-06-25
+. fixed bug: u\monthDay1 failed for other years
+. moved Txs utility functions to their own namespace (Txs aka x)
+. created a pdf class extending TCPDF
+. created function to show (calendar) monthly account statements
+. fixed bug in edit transaction description (was changing the wrong purpose field)
+. we now allow rewards and donations in not-yet-active communities
+. users are now given a revised credit line (floor) every month after their first payment transaction
+. changed TCPDF cache permissions to 777 (required for monthly statements)
+. added a "New Account" tab to admin section
+. gave region an email address (new@rCredits.org) and shortened its postal address to fit on the monthly statements
+
+2014-06-11
+. added member list export option for cAdmin2
+. cAdmin2 people now have an Admin section with just memberlist and export
+. added lists of Invoices TO You and Invoices FROM You
+. email links to pay/deny invoice
+. no-sign-in form is now standard rather than template-based (to allow multi-step processing)
+. moved photos to /photos and changed naming convention from uid-created to uid-cardCode.jpg
+. MDIR /photos
+. moved proofs to /
+. added helper reward (TX_HELPER) to stats and charts
+. user stats are now rounded to the cent
+. combined MemberInfo form into Summary form
+. fixed bugs in rdo() that kept change-minimum links from working
+. gave admin its own namespace, abbreviated "a"
+. we now use an auxiliary file for testing link results (dosay-status.txt)
+. implemented NACHA format ACH origination file creation
+
+2014-05-15
+. UPDATE r_invites SET invitee=0 WHERE invitee IS NULL
+. fixed bug: summary balance omitted usd
+. revamped "we send email" tests
+. comprehensive tests for signin and password reset
+. eliminated Contact step by including it in initial signup form, using Google's zipcode lookup api
+. anyone with refund permission now gets a "request card" link on Relations page
+. we now explain the 5% APR inflation adjustment as what we’re using until we have a realistic number.
+. we now figure savings as total of 30 day minimum balance
+. stats are now calculated in such a way that we can redo them all retroactively, using admin fixStats()
+. stats for all communities
+. improved help for charts
+. UPDATE users set r=0 WHERE uid<1
+. re-install
+. UPDATE r_txs t LEFT JOIN users u ON u.uid=t.payee
+  SET t.payer=u.community 
+  WHERE t.payer<0 AND t.payer<>u.community
+. include __DIR__ . '/../rcredits/admin/admin.inc';
+  rCredits\fixStats();
+  rCredits\fixStats(809); // where the previous run ran out of time
+. fixed bug: stepDone(dw) was looping
+  
+2014-05-02
+. asks for full name first, then legal name (if different), to discourage people from giving a nickname
+. fixed EditTx test so it handles variable link ("?")
+. added cron tickler for invitations
+. if state lookup fails in signup, state defaults to MA
+. when signed out, footer links now include community, agreement (no boxes) and help (for signing in or up)
+. don't update the access field in the users table when admin or cadmin or cadmin2 accesses the account (similar for login)
+. we now let user choose minimum size for automatic bank/draw transfers -- stored in "data" in the users table.
+. fixed signup page to clarify that full name and legal name are for the business (when they are)
+. stopped making user type one-time passwords (we now use a clickable link instead)
+. created a way to sign in from rCredits.org: formSignin
+. we now ask for PIN on signup form
+. password reset form is now separate from login form, but sends user on to summary page with no signin required
+. implemented effective minimum for unbanked accounts that can draw on one or more others
+. update user.module and user.js
+
+2014-04-17
+. added charts to help pages
+. created a page to edit transactions (lets seller adjust amount down and buyer adjust the amount up.)
+. added a tickler cron function which give people nudges for taking next steps
+. modified rCredits Agreement by adding these two clauses:
+  - Once my geographic area becomes a Common Good Community, in the event of a cash crunch I will back rCredits up to my average balance over the past six months.
+  - that I can spend but cannot cash out.
+. created B_REFUND permission
+. changed permission=5 to 6: UPDATE r_relations SET permission=6 WHERE permission=5
+. changed the way undo is handled (now creates a negative charge instead of an offsetting payment)
+
+2014-04-04
+. added date/initial stamp to notes on Summary page and Member Info page
+. revised changeUid function to accommodate account deletion
+. fixed bug: member bit not getting set in r\Acct::stepDone()
+. don't alert staff when admin invites someone
+. community admin gets an email when community's new members achieve milestones in their account opening
+. fixed $/acct for p2p on Community page
+. separated invoices from r_txs (somewhat major change)
+. changed Community page to charts
+. made Community page public (show all cttys if signed out)
+. added a payroll upload page
+. drop table r_invoices
+. duplicate r_stats for ctty=0, then:
+  UPDATE `r_stats` SET id=id-600 WHERE id >999 AND id<10000;
+  UPDATE `r_stats` SET id=id-9600 WHERE id >9999;
+. added newb field to stats
+. ran fixStats to update and correct r, usd, and newb data in stats
+. added relevant dates to MemberList form
+  
+2014-03-13
+. hide federalId and dob in $_POST in log
+. membership status page now shows Verify bank account as a not-yet-done step.
+. added tellStaff to remaining signup steps.
+. created new system for no-signin links, including one-time links, addresses, and invoices
+. removed B_PERSON bit
+. added stepsDone assoc in users table data field, to track account-opening step completion
+. removed Connect to Bank step for companies
+. moved tellStaff to stepDone function
+. changed "Owner" to "Owns 10%+" on Relations page
+. now links to memberlist on admin page
+. added notes to CGF member list
+. now allows cadmins to shut down system just for their community: made the START/STOP button work for Community Admin (for that community/region), so members there can open account, move money to and from bank, but not transact until community is activated (and Community Admin can shut it down in an emergency). It tells members to contact the ctty admin (give telephone # and email)
+. stopped showing "processing" when user clicks on a help link
+. lets cadmin invite list of emails
+. fixed bug in Dwolla registration that neglected to record the Dwolla account number. Called usd::me() for each account, to catch up on any missing account numbers.
+. moved all admin stuff to a separate folder
+. introduced cAdmin2 (community sub admin) permission, to allow assistant to see member list and modify account notes
+. changed "recurs Monthly" to "4th monthly" etc.
+. db changes:
+	new.rcredits.org/devel/menu/reset
+	ctty('aaa')->setBit(B_MEMBER);
+	ctty('aaa')->setBit(B_OK);
+	ctty('miw.aaa')->setBit(B_OK);
+
+2014-02-25
+. eliminated preemptive "dupOk" field in signup.
+. removed verifyBy from Contact page
+. changed automatic state in postal address to abbreviation
+. allowed entry of bank account info before there is a Dwolla account
+. added Admin tool to send bank account info to Dwolla
+. staff is no longer notified when admin sends an invitation
+. fixed account approval message (was sending welcome email)
+. created Invitee List link on Invite page
+. changed "From Bank" to "From Bank to Here" and "To Bank" to "From Here to Bank"
+. in notice digests, finishes with current balance, incentive rewards to date, effective return on your rCredits balance APR (averaged over the past month)
+. created admin tool to make a new region or community
+. limited community admin choices and results on Admin page
+. created new region: ^48(103|104|105|107|108|109|113|115|130|158|175|176|190|191|197|198) rCredits Washtenaw County, MI (MIW) on production server
+. fixed bug that kept Grants page from working
+. fixed bug that made community's summary page crash
+. added "recurs" note to recurring transactions
+. fixed bug: dollar sign in input caused problems on Bank page
+. now logs just i/o, not db ops
+. when administering region, Txs page no longer shows bank transfers nor everyone's transactions, distinguishing it from call on community page.
+. brought half the SMS tests up to date
+. changed region and community numbering to mirror account numbering (region is just -XXX.AAA; each community is within its region: -XXX.AAB, etc.)
+. bug fixed that created a relations record with NULL other upon signup
+. allow cadmin to print-id
+. cadmin should not have access to SeeSecure (or print-id) for out-of-region accounts
+. tells cgf how often a donation happens
+. invite email message defaults to last used (store in data)
+. changed community field in users table to BIGINT
+. queries:
+  UPDATE users set postalAddr=REPLACE(postalAddr, ', Massachusetts', ', MA');
+  UPDATE users set postalAddr=REPLACE(postalAddr, ', Ma.', ', MA') WHERE name LIKE 'gop%';
+  UPDATE users set postalAddr=REPLACE(postalAddr, ', Michigan', ', MI');
+  UPDATE users set postalAddr=REPLACE(postalAddr, ', New Hampshire', ', NH');
+  UPDATE users set postalAddr=REPLACE(postalAddr, ', Vermont', ', VT');
+  DELETE FROM r_relations WHERE other IS NULL;
+. code:
+  rCredits\changeUid(-8915, -26742000000001, FALSE);
+  rCredits\changeUid(-8321, -25026000000001, FALSE);
+  for ($i = 1; $i <= 10; $i++) rCredits\changeUid(24960000000000 + $i, 25026000000000 + $i, FALSE);
+  \variable_set('r_totals', []);
+
+2014-02-12
+. fix data (already done on production server):
+	DELETE FROM r_txs WHERE xid IN (76,77,78);
+	
+	UPDATE r_txs t0 LEFT JOIN r_txs t1 ON t1.xid=t0.serial
+	  SET t0.payerTid=t1.payerTid, t0.type=1, t0.serial=t0.xid,
+	  t0.payerFor='payment exchange rebate', t0.payeeFor='payment exchange rebate'
+	  WHERE t0.type=-1 AND t1.payerFor='payment exchange' AND t1.amount=0;
+	  
+	UPDATE r_txs t0 LEFT JOIN r_txs t1 ON t1.xid=t0.serial
+	  SET t0.payeeTid=t1.payeeTid, t0.type=1, t0.serial=t0.xid,
+	  t0.payerFor='payment exchange bonus', t0.payeeFor='payment exchange bonus' 
+	  WHERE t0.type=-2 AND t1.payeeFor='payment exchange' AND t1.amount=0;
+	  
+    DELETE FROM r_txs WHERE amount=0
+. fixed bug in cacheTotals that did not recognize when an account was BONA
+. fixed new bug in transaction logic that treated unconfirmed web/SMS transactions as confirmed (resulting in a duplicate transaction)
+. made adjustments in formMembership (see $dw0) to work around Dwolla's broken Reg API
+. fixed bug in 1099 reporting that deleted a couple characters in each person's name, when reporting to the IRS
+. adjusted 1099 reports to omit non-positive transactions, as required by the IRS
+. added "this is a donation, not a deposit" to Donation page.
+. changed default phone format separator to spaces not periods
+. fixed bug in cron notices that gave the same date for every item
+
+2014-02-04
+. clarified that when user opens another account, they will manage it (with no separate login)
+. when someone is denied for NSF, sends a notice to them suggesting a higher minimum
+. requires agent's LEGAL name, signing agreement
+. when creating postal addr, use state abbrev (only for MA so far)
+. invites people to email their photo instead of uploading it
+. non-daily digests include date of notice
+
+2014-01-31
+. made invite a primary link
+. made sign out a primary link
+. shortened transfer time from bank: when there are insuffient funds, now updates cached usd amount and retries.
+• fixed bug: "I didn’t give a security answer, but it says on file"
+. we now check hourly for deposits into the Dwolla/%PROJECT Account
+. member is now alerted immediately when funds arrive in their account for the first time (bona)
+. created 1099B reports for members and for electronic filing with IRS and state
+
+2014-01-27
+. fixed bugs in usd::rollback, injected during separation of USD transactions from r_txs
+. fixed many cosmetic problems and minor bugs discovered by Mike
+. fixed state not updating problem on Contact page
+. fixed verifyBy=SMS default not showing on Contact page
+. refactored data field to include company fields and act (virtually) like any user table field
+. added legalName field
+. accepts "none" or "n/a" in lieu of blank, for some fields (eg company and companyPhon)
+. fixed bug: now ignores spaces in bank account number and routing number
+. data changes:
+  - move companies data to data field in users table
+  - move signupCo fields (company companyPhone isOwner contractor EmployeeOk) to signupCo in data field in users table
+  - move these data fields to data['stats']: giftsEver, giftsPastMo, beneEver, benePastMo, extraEver, extraPastMo, bankedEver, bankedPastMo, avgBalPastMo, avgBalEver 
+  - set legalName equal to fullName in each account
+. delete r_companies
+. improved password strength descriptions
+
+2014-01-23
+. exchanges of r for usd are no longer in r_txs -- they are in r_usd only. All transactions between members are rCredits only. This made the "r" and usdXid fields in r_txs moot so they are gone. (Can't put this on server until data changes are ready)
+. fixed bug that kept set-password from working for admin (patched)
+. fixed bug in formGet (Bank tab) that got USD for the community instead of the member (made new test for it)
+. fixed bug in cron that reversed sign of transfers to bank
+. fixed bug in creditInfo that bumped in and out by rIn and rOut, respectively
+. fixed bug: verify bank deposits was mishandling ".01"
+. members can now open an account without a dwolla connection, if they have only one phone or if approved by admin (when Dwolla refuses to open an account for them)
+. mark transfers to bank complete immediately (as Dwolla does)
+. cache is now updated properly upon completion of transfers into the %PROJECT Account
+. account is suspended if cron discovers any cache error
+. cache is checked before manual transfers to bank
+. data changes on production server:
+  - UPDATE r_txs SET amount=r WHERE `payerFor` LIKE  '%fee%' AND amount=0 AND r=0.25;
+  - DELETE FROM r_txs WHERE amount=0 AND data = 'a:0:{}' AND usdXid IS NOT NULL;
+  - UPDATE r_txs SET type=-3 WHERE type=2;
+  - UPDATE r_usd SET tid = NULL;
+  - UPDATE  `r_usd` SET  `completed` =  '1389923856' WHERE  `r_usd`.`txid` =  '4418303';
+  - UPDATE  `users` SET  `usd` =  '50.00' WHERE  `users`.`uid` =26742000000040;
+  - remove r and usdXid fields from r_txs
+  - eachr\acct(); : renumbered bank transfers (tid field)
+  - eachr\acct() : $a->setBit(B_DW);
+. added visible URL to invite email, so text-only recipients can see it.
+. we can now give invitees simple verbal instructions to accept their invite without a link.
+. changed invite time to 30 days
+. removed "print sign-in card" from Relations page
+. added "processing" spinner
+. added "go back" button to help text for signup and community pages
+. added r_invoices table
+
+2014-01-08
+. devices are now handled consistently and elegantly on Devices page
+. firstUnusedId is used only for new users and works in all cases (r\Acct::nextId() works fine)
+. removed the "Create Agent Account" feature. 
+. released held emails 
+. invites are now allowed
+. disabled Charge tab (until invoices are implemented properly)
+. added serial id field to r_invites
+. cleaned up r_boxes (added new int fields boxnum and channel before trying to reinstall)
+. deleted all cashier accounts and fixed transactions that had those agents
+. worked around Google Chrome bug that populates Company Phone field with user's phone, on signup
+. invites now always come from agent
+. multiple invite feature for admin only (uses William's info)
+. fixed bug that showed negative returns on Summary page when average balance was negative (now shows infinite APR)
+. admin and CGF company agents can see who is a member by clicking on a link on the Community page
+. committed amount will never be displayed negative on Summary page
+. temporarily disabled "charge" on SMS
+. fixed bug in averageBalance function -- it was failing to include deposits/withdrawals (patched)
+
+2013-12-31
+. rPOS now handles default cashier (defaults to the company pro se)
+. company permission to share rPOS with other companies is now implicit in CO_REQUIRE_CASHIER
+. revamped gap finder as firstUnusedId function, but it has problems still (need tests)
+
+2013-12-24
+. new non-member cashiers got uid ZZZ.AAA etc (should be NEW.whatever). fixed.
+. usd total is now cached for communities and regions (fixes a bug in pool in rcron)
+. fixed two homogenize bugs (it was transferring USD to the least needy first, then continuing until exhausted and beyond)
+. provided a link on relations page for member companies to print their own rPOS sign-in cards (no photo)
+. fixed relations page formatting
+. can now open another %PROJECT Account before confirming bank deposits
+. for admin, we no longer try to register an account with Dwolla when visiting the summary page (you must go to the status page instead)
+. now we are notified by email whenever there are deposits or withdrawals
+. new payment notices now show both physical and postalAddr and sometimes phone number, so member can ship or thank.
+. administrator can now sign agreement for people and companies
+. made averageBalance() more efficient and accurate by looping after a single query
+. selecting "none of the above" on Open Another Account form now gives error message.
+. fixed bug that kept setBank() from working
+. fixed bug that allowed member "ready" status with no photo
+. now accepts photos in several formats (PNG etc)
+. verifyBy no longer defaults and is required
+. fixed bug: PIN "0000" didn't work
+. began changing rPOS interface to handle default cashiers
+
+2013-12-05
+. moved dwolla.php to rcredits folder
+. changed how accounts form works so changing account and logging out always work right
+. Membership tests now mostly work!
+. fixed bug that kept dobs from getting recorded right
+. change personal account opening process so last step is not required before person is a member
+. began rsmart Exchange feature tests
+. tweaked cron's homogenize1() so it trades USD for r only when inappropriate
+. changed card code len to 14 (to avoid occasional complex QRs)
+. fixed bug whereby Community page mistakenly showed rCredits as issued, that the community exchanged for USD
+. non-code changes:
+	- fixed dobs if not numeric (run eachAcct)
+	- fixed data[verifyBy] to be if ('') SMS or (if 1 or not set) Voice (run eachAcct)
+	- changed all @rcredits-org.com email addresses to @rc4.me (see util in admin.inc)
+	- changed William's cardCode2 and printed him a new Company Agent card
+
+2013-11-25
+. restored addPhone(), accidentally deleted during separation of rweb-subs.inc from rweb.inc
+. moved several functions back to rweb.inc from rweb-subs.inc that are called directly from URL
+. implemented businessStructure parameter in Dwolla registration of companies
+. eliminated "personal & commercial" account type (initial account is always personal)
+. reworked homogenizing and pooling
+
+2013-11-22
+. all relevant tests pass
+. added a notice that reward-sharing has been initiated (to precede the notice about it going through)
+. got cron tests to pass again (given that nearly all transactions are in rCredits
+. simplified formI and ScanCard tests to just go to rcredits.org or member page (for company cards)
+. made the company cards say "Company Agent"
+. non-code changes:
+  - rename structure field "coFlags" in r_companies
+  - create table r_boxes like r_boxnames; insert r_boxes select * from r_boxnames;
+  - (no need to change fieldnames)
+  - reinstall
+  - delete r_smarts, r_boxnames after reinstall
+  - add r_sms records to r_boxes (query?)
+  - change all rebate pcts to 10
+  - update dwolla.php
+
+2013-11-19
+. added Spendable: to the customer balance for rSmart
+. expanded selling field to multiple lines
+. expanded structure field to include miscellaneous company flags (renamed it coFlags)
+. wrote all automated tests for rSmart (for the new rPOS) and they all pass!
+. rWeb and rCron tests probably no longer work (address that next)
+
+2013-10-28
+. updated rsmart module to feed new POS app
+. miscellaneous refactoring
+
+2013-10-11
+. created an admin tool and retrofited old accounts on prod server, recording dwollapin, dwollaphone, etc.
+. changed r\quid to accept negative uids (quid is a single call to u\n2a() -- no dot)
+. doubleclick (instead of single) on messages to make them vanish
+. removed amount field from relations page
+. admin can remove last manager from a company account or add one to a company with none
+. clicking on photo no longer signs you out (patched on prod server)
+. catch "you changed your password" and "you changed your email" emails from Dwolla (and disable the rC account with a misbehavior note in the data field)
+. do transactions entirely in rCredits (even if the r balance goes negative). Distribute the USD evenly throughout the system (but with half in ctty account), for multiple cash-outs in one day.
+. separated database function into rcredits-db.inc, namespace rCredits\DB (db)
+. separated web subs into rweb-subs.inc
+. added personal statistics to Summary page
+. disabled soldOut function in cron (patched on production server)
+
+2013-10-01
+. don't list self as possible proxy
+. tests expect tx rewards on entire amount, not just on the rCredits amount (r)
+. no r% column
+. no r/USD columns in download
+. hover help on statistics page
+. changed Bank setting to Bank Info
+. added "skip" and "resume" to Gherkin
+. added accountInfo step to dwolla and usd classes
+. badDate function
+. homogenize and pool functions in cron
+. amount to withdraw in one day is limited to $10 from each other member
+. gave bank transactions a tid (b#)
+. transactions are now sorted (descending) by date, by tid before displaying
+
+2013-09-22
+. initialized stats on server: for ($dt = strtotime('5/23/2013'); $dt < time(); $dt += DAY_SECS) rCredits\getStats(-8915, $dt);
+. made tests check for presence of labels on weShow, with, and without.
+. allowed vertical arrays in tests
+. disabled payment exchanges (virtual payments) in cron
+. hid r% column and option to show/hide exchanges on Transactions page
+. changed usd::source() to handle Dwolla's new practice of returning Dwolla balance as a source
+
+2013-09-05
+. changed physical field to postalAddr (and fixed data on production server)
+. completed automation of dwolla account setup for companies
+. fixed problems with show/hide javascripts
+. created an "Agent Account" form
+. fixed problems with Open Another Account
+. PIN field now appears on Contact form ONLY if email changes
+. on mobile, made messages absolute position. Any platform, click the message to dismiss it
+. tell members they missed out on keeping their r (weekly) and give a clickable link to change their minimum to the suggested amount, without requiring signin
+. fixed bug which made SCAN-only cashiers unable to sell (patched on production server)
+. added an Undo tab (hidden except for mobile)
+. settings gear omitted if no permission to manage account
+. improved reports page drastically and renamed it "Statistics"
+. started a separate rCredits-theme project (see) to accommodate Undo menu item on mobile interface
+
+2013-09-02
+. simplification of options when scanning a card; for example, never any "change acct" button on formI
+. created form settings/ssn
+. created form settings/kba
+. "Not yet a member? <a>Check it out</a>!" on login
+. members can scan their own card to sign in (just add pword)
+. revised tests and usd class to use Dwolla sandbox effectively for testing
+. added verification of AuthorizedRepresentative (for that Dwolla registration step of that name)
+. passes all tests except Membership (tests need revision)
+
+2013-08-30
+. moved email (and email change) to contact form
+. require pin instead of password, to change email
+. moved password, pin, and photo change to their own pages, with links from security page
+. fixed bug in misc.js that undid all check box clicks (patched on production server)
+. added signout to account dropdown
+. re-ordered settings categories
+. changed r\go() to accept ordinary messages, not just errors
+. renamed "Get r/USD" to "Bank"
+. implemented bank addition and verification form
+. bank form shows only last four digits of bank account number
+. added committed amount to summary (on rewards line) "reserved for donations to CGF"
+. fixed bug that hid charge tab for almost everyone
+. implemented automatic phone, address, and ssn verification (for Dwolla account)
+. fixed hiding of stuff on reg page as appropriate
+. changed QR code format to allow longer cardcodes (expanded feature tests accordingly, to make sure old cards continue working)
+- in formAccount did away with Drupal basis
+- moved variable stuff from settings.php to boot.php
+- improved forward.php to parse drupal messages and send html-formatted emails
+
+2013-08-25
+. fixed creditInfo() so it handles fee amounts properly (and displays right on Transactions page)
+. fixed coverFee() so it creates a record in r_usd (and added missing reimbursements to production site)
+. assured that summary page, transactions page, and downloads all show the same amounts
+. fixed nextRBuyer bug (another bug) which mistakenly considered minimum balance (patched on production server)
+. added an admin feature to cobble up a new account while waiting for the new dwolla reg api to be done
+. system errors now email staff
+. now gives error message if repeating the amount and other person as the previous transaction from same machine.
+. fixed registration form javascript to show/hide fields depending on account type
+. fixed coverFee bug (if Dwolla was unavailable, it queued the wrong function name) (patched on production server)
+. fixed edit transaction purpose crash bug (patched on production server)
+. adjusted settings.php, dwolla.php, and usd class to handle Dwolla sandbox self-signing certificate
+. fixed tiny profile picture bug so user's photo now shows (patched on production server)
+. eliminated tabs on login screen / separated registration and password change from dwolla builtin functions
+. created new signup procedure, using Dwolla's new registration API (just the first step so far)
+. changed calculator buttons to <button> and adjusted format to work on iPhones
+
+2013-08-11
+. fixed nextRBuyer bug, which chose the same member every time (patched on production server)
+. fixed bankFollowup bug, which failed to mark transfers FROM bank completed (patched on production server and ran for each user, to fix data)
+. shortened numeric keypad so it fits better on mobile screen (patched on production server)
+. fixed bug that ran daily cron twice a day (patched on production server)
+. fixed download bug (kept downloads from working at all)
+. eliminated usdTid column in downloads
+. everything uploaded to production server
+
+2013-08-06
+. changed "virtual payments" to "payment exchanges”
+. Changed maximum bank delay to 10 days.  Patched on production server. Fixes double bank withdrawal bug. 
+. City and state zip code without using USPS API 
+. Icons on settings page 
+
+2013-07-29
+- Option to use internal Dwolla sandbox (including changes to settings.php and dwolla.php)
+- calculator for mobile amount entry
+- simplified mobile header, menus, global links, and help
+- fixed mobile formatting on Preferences page
+- added addBank() and verifyBank() to usd class
+
+2013-07-11
+- scan permission
+- popup help throughout Transaction History page
+- handle lost USD deposits/withdrawals/fees
+- monthly inflation adjustment (and tests)
+- sharing rewards with CGF (and tests)
+
+2013-07-05
+- added optional box column to Transaction History
+- changed companies field "id" to "uid" (for consistency)
+- new password not required after "Request New Password" if user logs in with valid old
+
+2013-07-04
+- changed values of tx types (needs to be updated in production database)
+- added "From Bank" and "Fees" to Transaction History
+- all Dwolla fees will now be reimbursed by the community (unless reimbursed by Dwolla). This also fixes problems with accurate USD balance caching
+- fixed bug in r\nextRBuyer() that prevented members from buying rCredits if they had transactions but had never traded USD for rCredits (patched on production server)

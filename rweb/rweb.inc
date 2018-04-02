@@ -293,7 +293,7 @@ EOF;
     extract($row); // ($uid), $display
     if (@$uid) $display = r\qid($uid) . '   ' . $display;
 // (never show email) $display .= @$email ? " ($email)" : '';
-    $matches[$display] = check_plain($display);
+    $matches[$display] = plain($display);
 //    return drupal_json_output(array('zot' => "display=$display"));
   }
   \drupal_json_output($matches);
@@ -365,8 +365,8 @@ function formGrant_submit($form, &$sta) {
   extract($i_crits, EXTR_PREFIX_ALL, 'i');
   foreach (ray('i_did10 i_meet i_report i_sayOther') as $k) $$k = @$$k ? t('YES') : t('NO');
 
-  $th = 'th style="width:50%; text-align:left; padding:5px;"';
-  $td = 'td style="padding:5px;"';
+  $th = 'th class="grant-th"';
+  $td = 'td class="grant-td"';
   $msg = <<<EOF
 
 <h4>GRANT APPLICATION</h4>
@@ -787,8 +787,6 @@ function statement($month = '') {
   $pdf->finish(str_replace(' ', '', PROJECT) . '-' . strftime('%Y-%m', $start) . '.pdf'); //Close and output PDF document
 }
 
-define('R_GIFT_SHOWHIDE', "var other = jQuery('.form-item-amount'); if(jQuery('#edit-gift').val() == -1) {other.show();} else other.hide();");
-
 /*
   Give the person a chance to donate to CG from the current account.
   If they haven't chosen a recurring donation yet, a recurring donation is the only option
@@ -815,13 +813,13 @@ function formDonate($form, &$sta) {
   $oftens = [0 => t('when?')] + ray(OFTENS);
   if (!$mya->ok or !db\exists('r_gifts', "uid=:id AND often<>'1'", ['id' => $mya->id])) unset($oftens['1']);
   $honors = array('-' => '(optional)', 'honor' => 'in honor of', 'memory' => 'in memory of', 'other' => 'other');
-  $giftAttrib = w\onchange(str_replace('show()', "show(); jQuery('#edit-amount').focus()", R_GIFT_SHOWHIDE));
+//  $giftAttrib = w\onchange(str_replace('show()', "show(); jQuery('#edit-amount').focus()", R_GIFT_SHOWHIDE));
    
 //  $inSetup = $mya->ok ? '' : t(' The amount you choose will come from your account once it is activated and has enough funds.</p><p>Also choose a percentage of your ongoing incentive rewards to share with Common Good Finance.');
   $title = item(t('Donate to %PROJECT'));
   $amountTip = $mya->co ? '' : t('The most common amounts chosen are $50 and $25.');
   $subtext = item($donated . t('<p>(optional) Make a tax-deductible gift of any size: monthly, quarterly, or yearly.</p></p><p>Half of your gift supports whatever projects you decide on together in your community; half supports the operation of the %PROJECT system (to donate zero, choose "Water"). %amountTip</p><p><b class="loud">NOTE: This is a donation, not a deposit.</b> Thank you for your support!</p>', compact('amountTip')));
-  $gift = selectFld(t('Donation:'), '', required($mya->co ? R_COMPANY_GIFT : R_INDIVIDUAL_GIFT) + $giftAttrib, $giftLevels);
+  $gift = selectFld(t('Donation:'), '', required($mya->co ? R_COMPANY_GIFT : R_INDIVIDUAL_GIFT), $giftLevels);
   $amount = textFld(t('Other amount $'), '');
   $often = selectFld(t('When:'), '', required(), $oftens);
   $honor = selectFld(t('Honoring:'), '', '', $honors);
@@ -830,7 +828,7 @@ function formDonate($form, &$sta) {
 //    $roundup = $mya->ok ? '' : w\roundupFld($mya),
 //  if (!$mya->ok) $wait = submit(t('Ask me in a few weeks'), 'info', 'xs');
 
-  js(R_GIFT_SHOWHIDE, 'inline', 'footer');
+  jsx('gift');
   return labeled(compact(ray('title subtext gift amount often honor honored')) + w\setupFoot(t('Donate')) + compact('wait'));
 }
 
@@ -892,29 +890,18 @@ function formHelp($form, &$sta, $what = '', $args = '') {
   }
   
   list ($what, $tag) = (strpos($what, '@')) ? explode('@', $what) : array($what == 'other' ? '' : $what, '');
-  $title = item($what ? str_replace('Rcredits', 'rCredits', ucwords(str_replace('-', ' ', $what))) : t('General Help'));
+  $title = item($what ? ucwords(str_replace('-', ' ', $what)) : t('General Help'));
   $stranger = t('Interested in %PROJECT? Visit <%a>%CG_DOMAIN</a> for more information or to request an invitation to participate.', '_a', w\atag(CG_DOMAIN));
   $text = fld('item', '', '', ($signedIn or $what)? helpText($what ?: 'general', $tag, $args) : $stranger);
   if ($signedIn and !$what) {
-    if ($mya->cAdmin and $msgs = showSecureMessages()) $messages = item($msgs);
     
-    $message = areaFld(t('Send a secure message to a %PROJECT Administrator:'), '', required());
-    $file = fld('file', t('Attachment:'), t('(optionally) attach a file to your message. The file will also be encrypted.'));
+    $message = areaFld(t('Send a message to a %PROJECT Administrator:'), '', required());
+    $file = fld('file', t('Secure Attachment:'), t('(optionally) attach a file to your message. The file will be encrypted.'));
     $submit = submit(t('Send'));
   }
 
-  return labeled(compact(ray('title text messages message file submit')));
-}
-
-function showSecureMessages() {
-  global $mya;
-  $q = db\q('SELECT id, message FROM r_tous WHERE uid=:uid', ['uid' => $mya->id]);
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    $messages[] = "#$id: " . u\decrypt($message);
-  }
-  return @$messages ? join("<br><br>", $messages) : t('There are no secure messages for this account.');
-//  w\say($message, t('All messages:'), t('Be sure to delete resolved messages.'));
+  if (is_array($args)) $data = $args; // include returned data, if any
+  return labeled(compact(ray('title text message file data submit')));
 }
 
 function formHelp_validate($form, &$sta) {
@@ -927,7 +914,7 @@ function formHelp_submit($form, &$sta) {
   $who = "$mya->fullName ($mya->mainQid)";
   extract(just('message file', $sta['input']));
   $time = r\rTime();
-  $msg = 'secure msg';
+  $msg = 'msg to admin';
 
   foreach ($_FILES['files'] as $k => $v) $file[$k] = $v['file'];
   if ($tmp = $file['tmp_name']) { // got an attachment
@@ -938,11 +925,11 @@ function formHelp_submit($form, &$sta) {
     $_aAttach = w\atag($link);
     if (!rename($tmp, $filename)) return say('file save error', 'file');
   }  
-  $message = u\crypt($message);
-  db\insert('r_tous', compact('uid', 'time', 'message'));
+//  $message = u\crypt($message);
+//  db\insert('r_tous', compact('uid', 'time', 'message'));
   $subs = compact(ray('who aAttach name type size'));
-  r\tellAdmin($msg, $subs, @$aAttach ? $uid : NULL); // tell CO only if there is no attachment
-  say(t('Your secure message has been sent. An administrator will respond as soon as possible.'));
+  r\tellAdmin("$msg|$message", $subs, @$aAttach ? $uid : NULL); // tell CO only if there is no attachment
+  say(t('Your message has been sent. An administrator will respond as soon as possible.'));
 }
 
 /**
@@ -988,7 +975,7 @@ EOF
   <li>[7] I agree to <%aParticipate>participate</a> in managing the Common Good Economy to the best of my ability and as my life circumstances allow.</li>
 EOF
   , '_ol1 _aParticipate _aDecision _ol2 _aOther', 
-    'ol style="list-style-type:lower-alpha;"', w\atag('/help/participate'), w\atag('/help/decision-principles'), 'ol style="list-style-type:lower-roman;"', w\atag('/help/other-decisions'));
+    'ol class="abc"', w\atag('/help/participate'), w\atag('/help/decision-principles'), 'ol class="roman"', w\atag('/help/other-decisions'));
 
   $prolog = ($mya and $mya->co) ? t('<h4>As a responsible participant in the Common Good Economy:</h4>') : t(<<<EOF
 %instructions
@@ -1009,7 +996,7 @@ EOF
   <li>[2] I will accept %RCREDITS from members of any <%aCGC>Common Good Community</a> in good standing.</li>
   <li>[3] If <%aCrunch>needed</a> I will <%aBack>back</a> %RCREDITS up to my average monthly use over the past six months.</li>
   <li>[4] Whenever I exchange %RCREDITS for US Dollars or vice versa, I will exchange them one for one, and I will price my goods and services (or labor) the same in %RCREDITS and in US Dollars. </li>
-  <li>[5] I understand I may receive from the community a credit line that I can spend but cannot <%aCashOut>cash out</a>. If I use my credit line and then stop participating (or if the system <%aGrace>closes down</a>), I will bring my negative balance up to zero as soon as possible.</li>
+  <li>[5] I understand I may receive from the community a credit line that I can spend but cannot <%aCashOut>cash out</a>. If I use my credit line and then stop participating (or if my %PROJECT Community or the entire %PROJECT System <%aGrace>closes down</a>), I will bring my negative balance up to zero as soon as possible.</li>
   <li>[6] When there is a dispute in my dealings with other %PROJECT participants, I will follow the <%aDispute>Dispute Resolution Process</a> and will honor its outcome.</li>
   %personOnly
 </ol>
@@ -1151,7 +1138,7 @@ function inviteExample() {
   global $mya;
   $s = file_get_contents("$rUrl/templates/invite.html");
   $note = str_replace("\n", '', t('invite default', 'name', ''));
-/**/  echo t($s, '_personalNote signed fullName phone', $note, u\fmtDate($mya->signed), $mya->fullName, u\fmtPhone($mya->phone));
+/**/  echo t($s, '_personalNote signed fullName phone CODE', $note, u\fmtDate($mya->signed), $mya->fullName, u\fmtPhone($mya->phone, ''));
   exit();
 }
 
@@ -1218,8 +1205,7 @@ EOF
   $messageHelp = t('Invite them to sign up, and say why. A <%a>description of %PROJECT</a> will follow your message.', '_a', atag('/community/invite/example', w\away()));
   $message = areaFld(t('Message:'), $messageHelp, required($default));
   if ($mya->proSe or !$mya->cAdmin) $submit = submit(t('Send')); // don't let cAdmins send on behalf of anyone
-  $js = "jQuery('#inviteLink').click(function () {SelectText(this.id);});"; // document.execCommand('copy');
-  js($js);
+  jsx('invite-link');
   
   $form = $nearly ? 
       labeled(compact(ray('title subtext email dupsOk trusted subject message submit')))
@@ -1268,8 +1254,9 @@ function formMessage($form, &$sta) {
   $subject = w\textFld(t('Subject:'), [t('Subject')], required(t('a message from %PROJECT member ') . r\acct()->fullName));
   $message = areaFld(t('Message:'), [t('Your message goes here.')], required());
   $submit = submit(t('Send'));
+  w\whoFldSubmit('to', t('Send to %name?'));
 
-  return labeled(compact(ray('title subtext to subject message submit')), w\whoFldSubmit('to', t('Send to %name?')));
+  return labeled(compact(ray('title subtext to subject message submit')));
 }
 
 function formMessage_validate($form, &$sta) {
@@ -1298,18 +1285,20 @@ function formUser($form, &$sta) {return \user_login($form, $sta);} // called fro
 /**
  * Show a summary of the current account.
  * This function uses jQuery code defined in misc.js
- * @param string $qid: (optional) ID or qid of the account to summarize and manage (for cAdmin)
+ * UNUSED @param string $qid: (optional) ID or qid of the account to summarize and manage (for cAdmin)
  */
-function formSummary($form, &$sta, $qid = '') {
+function formSummary($form, &$sta) {
   global $base_url;
 //  if (!$mya = r\acct($qid)) return r\go(isGAME ? 'community/game' : PROMO_URL);
   
   global $mya; $myid = $mya->id;
 
-  if (($mya->cAdmin or $mya->isAdmin2) and $qid and $a = r\acct($qid) and ($mya->admin or $mya->isAdmin2 or $a->community == $mya->agentA->community)) {
-    w\setAcct($a->id); // switch to this account until further notice
-    r\go(''); // refresh page, switching to new account
-  }
+//  if ($qid and $mya and $a = r\acct($qid, $myid)) return w\changeWho("acct=$qid");
+
+//  if (($mya->cAdmin or $mya->isAdmin2) and $qid and $a = r\acct($qid) and ($mya->admin or $mya->isAdmin2 or $a->community == $mya->agentA->community)) {
+/*    w\setAcct($a->id); // switch to this account until further notice
+    r\go('summary'); // refresh page, switching to new account
+  } */
 
   if ($mya->closed) say(t('Your account is closed, but you can still see your account history.'));
 
@@ -1329,7 +1318,7 @@ function formSummary($form, &$sta, $qid = '') {
       unset($form[$k]);
     }
 
-    if (!$mya->isCtty and $mya->cAdmin and !$mya->co) $extras .= a\cardLink($mya->id); // w\btn("/print-rcard/$mya->id", t('card'));
+    if (!$mya->isCtty and $mya->cAdmin and !$mya->co) $extras .= a\cardLink($mya->id) . ' ' . a\recropLink();
     
     if ($stepUrl == 'summary') {
       if (@$msg) w\say(t('New member is told: ') . t($msg));
@@ -1363,7 +1352,8 @@ function formSummary($form, &$sta, $qid = '') {
   }
 
   if ($mya->co) $reports = w\btn('company-reports', t('Reports'));
-  $topButtons = item(@$makeCo . @$makeJoint . @$reports);
+  if ($mya->id == r\cgfId()) $deposits = w\btn('sadmin/show-deposits', t('Deposits'));
+  $topButtons = item(@$makeCo . @$makeJoint . @$reports . @$deposits);
 
   $title = item(t('Account Summary'));
   if (isDEV and !$mya->proSe) $agentName = ' &nbsp; &nbsp; ' . t('<b>Agent: </b>') . $mya->agentA->fullName;
@@ -1371,7 +1361,7 @@ function formSummary($form, &$sta, $qid = '') {
   $address = item($mya->postalAddr . @$extras, t('Postal Addr:'));
   if (!$mya->isCtty) { // unless this is a community or region account
     $acctType = $mya->co ? t('company account') : ($mya->jid ? t('joint account') : t('personal account'));
-    $balance = u\fmtAmt($mya->balance - $mya->partRounds);
+    $balance = u\fmtAmt($mya->balDpy);
 //    $totalDesc = u\fmtAmt($mya->r);
 //    $balanceDesc = $mya->savings ? t(' plus your savings, for a total of @total', ['@total' => $totalDesc]) : '';
     $balanceDesc = '';
@@ -1379,7 +1369,7 @@ function formSummary($form, &$sta, $qid = '') {
     $balance = item($balance . "<small>$balanceDesc</small>", t('Balance:'));
 //    $savings = item(u\fmtAmt($mya->savings) . t('<small> (your total incentive rewards to date)</small>', [
     list ($rewardNote, $rewardDesc) = $mya->cttyRewardy ? [t('<small> (your total incentive rewards to date)</small>'), t('This amount will be yours to keep, once your community reaches a certain size.')] : ['', t('Some of this amount may be yours to keep, at your %PROJECT community\'s decision, once membership reaches a certain size.')];
-    $savings = item(u\fmtAmt($mya->rewards) . $rewardNote, t('Credit Reserve:'), $rewardDesc);
+    $savings = item(u\fmtAmt($mya->rewards) . $rewardNote, t('Credit Line:'), $rewardDesc);
 //    $committed = item(u\fmtAmt(max(0, $mya->committed)), t('Committed:'), t('reserved for donation to Common Good Finance'));
 
     $successes = db\count('users', 'helper=:myid AND activated<>0', compact('myid'));
@@ -1414,7 +1404,7 @@ function formSummary($form, &$sta, $qid = '') {
   } else $form = $fields;
 
   if ($mya->superAdmin and $mya->proSe) $form = just('title accountId accountName', $form);
-  return labeled($form, @$onSubmit);
+  return labeled($form);
 }
 
 function formSummary_validate($form, &$sta) {
@@ -1463,7 +1453,7 @@ function formSummary_submit($form, &$sta) {
   if (!$mya->admin2) return; // hack attempt
 
   extract($args = just('uid who legalName federalId creditLimit tickle note notes helper mediaConx moves rTrader risks adminable', $sta['input']));
-/**/  if (!$mya->cAdmin) u\EXPECT(array_keys($args) == ray('uid tickle note'), 'too many unpermitted changing fields in ' . print_r($args, 1));
+/**/  if (!$mya->cAdmin) u\EXPECT(!array_diff(array_keys($args), ray('uid tickle note')), 'too many unpermitted changing fields in ' . print_r($args, 1));
 //  $a = r\acct(@$uid); // same as $mya if no uid passed
 
   if (!@$tickle) {
@@ -1586,29 +1576,32 @@ function formTxInfo($form, &$sta, $xid = '') {
 
 /**
  * Output an account photo if the caller is authorized.
- * @param string $acct: qid for the account
- * @param string $cardCode: rCard security code
+ * @param string $qid: account letter-code
+ * @param bool $small: output a small version instead
+ * @param bool $orig: show the original photo before it was cropped
  * @return the photo if the account is a company or the cardCode is valid. Otherwise a generic picture.
  */
-function memberPhoto($acct = '', $cardCode = '') {
+function formAccountPhoto($form, &$sta, $args = '') {
+  global $mya;
+  extract(just('qid small orig', $args));
+
   header("Content-type: image/jpeg");
-  if ($a = r\acct($acct) and ($a->co ?: ($a->cardCode == $cardCode))) $photo = $a->photo();
+
+  if ($a = @$qid ? r\acct($qid, $mya->agentId) : $mya) {
+    if ($a->co or $a->can(B_READ)) $photo = @$orig ? @file_get_contents($a->tempPhotoFilename) : $a->photo;
+  }
+//      if ($a->co ?: ($a->cardCode == $cardCode)) $photo = $a->photo; // was photo()
 /**/  echo @$photo ?: \file_get_contents(DRUPAL_ROOT . R_PATH . '/images/icons/account.png');
-  exit();
+  return exit();
 }
 
-/**
- * Output a small version of the current account's photo.
- */
-function formIcon() {
-  list ($acct, $code) = ($a = r\acct()) ? [$a->mainQid, $a->cardCode] : ['', ''];
-  memberPhoto($acct, $code);
-  exit();
-}
+//function formIcon($orig = FALSE) {return memberPhoto(@r\acct()->mainQid, TRUE, $orig);} // Output a small version of the current account's photo.
 
 /**
  * Handle the uploaded photo: crop, resize, rotate, and save.
- * @param assoc $args: parameters passed from croppic
+ * @param int $uid: current account record ID
+ * @param string $sid: session ID
+ * POSTed: parameters from croppic
  * @return json success or error message            
  */
 function photoUpload($uid = '', $sid = '') {
@@ -1621,9 +1614,12 @@ function photoUpload($uid = '', $sid = '') {
   
   if (!@$uid or !@$sid or !$sessionVars = w\sessionVars($sid)) return w\photoRet(t('bad sid'));
   $mya = r\acct($uid);
+  $tempFilename = $mya->tempPhotoFilename;
   $quality = $mya->co ? 100 : 50; // jpeg compression/quality (0=worst quality, 100=best quality)
   if ($mya->co) foreach ([$cropH, $cropW] as $k) $$k *= CO_PHOTO_FACTOR; // higher quality for businesses
 
+  if ($recrop = u\starts($url, 'http')) $url = $tempFilename; // picture is already saved and is just being recropped
+        
   if (!$what = @getimagesize($url)) return w\photoRet(t('That is not an image file.'));
   list ($actualW, $actualH, $type, $zotAttr) = $what;
   if ($actualW != $w0 or $actualH != $h0) r\tellAdmin('photo problem?', $_POST + compact('actualW', 'actualH', 'uid'));
@@ -1632,29 +1628,31 @@ function photoUpload($uid = '', $sid = '') {
   $func = 'imagecreatefrom' . ($ext == 'bmp' ? 'wbmp' : $ext);
 ///   flog(compact(ray('uid sid f0 f params params2 sessionVars quality cropH cropW what actualW actualH type zotAttr ext func')));
   if (!$img0 = $func($url)) return w\photoRet(t('image creation error'));
-  if (!$mya->co) try {
-    $filename = str_replace(' ', '_', DRUPAL_ROOT . R_PICTURE_DIR . "$mya->fullName-" . u\randomString(10, 'word') . '.jpg');
-    imagejpeg($img0, $filename, 100); // save for a few days in case we have to recrop
+//  if (!$mya->co)
+  try {
+//    $filename = str_replace(' ', '_', DRUPAL_ROOT . R_PICTURE_DIR . "$mya->fullName-" . u\randomString(10, 'word') . '.jpg');
+    if (!$recrop) imagejpeg($img0, $tempFilename, 100); // save for a few days in case we have to recrop
   } catch (Exception $e) {
-/**/    lug('failed to save photo file ' . $filename);
+/**/    lug('failed to save photo file ' . $tempFilename);
   }
 
   $img = u\alterImg($img0, $w, $h, $x1, $y1, $cropW, $cropH, $angle);
 
   try {
-    if ($mya->co) {
+/*    if ($mya->co) {
       imagejpeg($img, DRUPAL_ROOT . $mya->photoFilename(TRUE), $quality);
-    } else {
+    } else { */
       ob_start();
       imagejpeg($img, NULL, $quality);
       $photo = ob_get_clean();
       $mya->update(compact('photo')); // do not combine this with line above
-    }
+//    }
   } catch (Exception $e) {
     return w\photoRet(t('Your photo could not be uploaded (%err). Try a smaller version or <%a>email it</a> to us?', ray('_err _a', $e->getMessage(), w\emailtag(NULL, t('Here is a photo for my %PROJECT card')))));
   }
   
-  return w\photoRet(str_replace(DRUPAL_ROOT, $base_url, $filename), 'success');
+//  return w\photoRet(str_replace(DRUPAL_ROOT, BASE_URL, $tempFilename), 'success');
+  return w\photoRet("$base_url/account-photo", 'success');
 }
 
 /**
@@ -1665,11 +1663,15 @@ function formPhoto($form, &$sta, $arg = '') {
   global $base_url, $rUrl;
   global $mya;
   $chooserStyle = 'btn-md btn-primary';
+	extract(just('ok err recrop', $arg));
+//	$recrop = @$recrop ? htmlspecialchars($mya->tempPhotoFilename) : '';
+	$recrop = @$recrop ? "$base_url/account-photo/orig=1/" . time() : '';
 
   $body = t('I am attaching a photo of me for my %PROJECT Card. &nbsp; - %fullName', 'fullName', $mya->fullName);
-  $emailIt = t('<%a>email one to us</a>', '_a', w\atag('mailto:' . r\regionField('email') . '?subject=photo&body=' . $body));
+  $emailIt = t('<%a>Email one to us</a>', '_a', w\atag('mailto:' . r\regionField('email') . '?subject=photo&body=' . $body));
+	$recropIt = $mya->cAdmin ? w\btn('/settings/photo/recrop=1', t('Recrop')) : '';
 
-  if ($arg == 'ok') {
+  if (@$ok) {
     say('got photo');
     $chooserStyle = 'btn-xs btn-secondary';
 // No! wait for user to be happy with the photo   $mya->stepDone('photo');
@@ -1678,7 +1680,7 @@ function formPhoto($form, &$sta, $arg = '') {
     $allSet = $mya->member ? t('you\'re all set') : t('click "%buttonName" above', compact('buttonName'));
     $desc = t('If you like this photo, %allSet. Otherwise:', compact('allSet'));
   } else {
-    if ($arg) say($arg, 'err');
+//    if ($err) say($err, 'err');
     if ($mya->hasPhoto) extract(w\setupFoot()); // be sure new member has a chance to continue
     $desc = $mya->co
     ? t('<p>1. Choose a picture to represent your company in %PROJECT promotions.</p>')
@@ -1687,7 +1689,7 @@ function formPhoto($form, &$sta, $arg = '') {
     <li>It should be a color photo of you and only you (you can crop other people out).</li>
     <li>It must show clearly your full face (no sunglasses, eyes open).</li>
     <li>Your head should fill most of the frame (no shoulders needed).</li></ul>', '_b', 'b class="loud"');    
-    $desc .= t('<p>2. Play with the buttons to adjust the position, size, and rotation, then click the <img src="%rUrl/images/icons/crop.png" height="20" />button to upload the image. Please feel free to %emailIt, if that is easier for you.', '_b _emailIt rUrl', 'b style="color:lightgreen; background-color:darkgray;"', $emailIt, $rUrl);
+    $desc .= t('<p>2. Play with the buttons to adjust the position, size, and rotation, then click the <%img>button to upload the image. Please feel free to %emailIt, if that is easier for you.', '_b _emailIt _img', 'b class="crop-button"', $emailIt, "img src=\"$rUrl/images/icons/crop.png\" height=\"20\" /");
   }
   
   $title = item(t('Photo ID Picture'));
@@ -1695,23 +1697,24 @@ function formPhoto($form, &$sta, $arg = '') {
   $rnd = u\code();
   
   if ($mya->hasPhoto) {
-    $oldPhotoFilename = BASE_URL . $mya->photoFilename();
+/*    $oldPhotoFilename = BASE_URL . $mya->photoFilename();
     //$oldPhoto = 'data:image/jpeg;base64,' . base64_encode(file_get_contents($oldPhotoFilename));
     $oldPhoto = $mya->photo ? 'data:image/jpeg;base64,' . base64_encode($mya->photo) : "$oldPhotoFilename?$rnd";
     list ($background, $choose) = ["background-image:url($oldPhoto); background-size:cover;", t('Choose a New Photo')];
+    */
+    $choose = t('Choose a New Photo');
     if (!$mya->co and $mya->ok) $desc .= '<p>' . t('triggers new card', ['field' => t('photo')]) . '</p>';
     if ($mya->superAdmin) $del = submit(t('Delete'));
-  } else list ($background, $choose) = ['', t('Choose a Photo File')];
+  } else $choose = t('Choose a Photo File');
+//  } else list ($background, $choose) = ['', t('Choose a Photo File')];
+// <style>#photoUp, #photoUp.co { $background }</style>
 
   $class = $mya->co ? ' class="co"' : '';
-//  $nextPage = $mya->ok ? ($mya->co ? 'settings/company' : 'settings/security') : 'status';
-  $nextPage = 'settings/photo';
   w\svar('userAgent', @$_SERVER['HTTP_USER_AGENT']); // for debugging spurious photo rotations
 
   $desc = item($desc);
   $newPhoto = item(<<<EOF
-<style>#photoUp, #photoUp.co { $background }</style>
-<div id="choosePhotoWrap"><div class="btn $chooserStyle btn-success" id="choosePhoto">$choose</div> <div id="emailPhoto" class="btn btn-warning btn-xs">$emailIt</div></div>
+<div id="choosePhotoWrap"><div class="btn $chooserStyle btn-success" id="choosePhoto">$choose</div> <div id="emailPhoto" class="btn btn-warning btn-xs">$emailIt</div> $recropIt</div>
 <div class="cropHeaderWrapper">
   <div id="photoUp"$class></div>
 </div>
@@ -1720,51 +1723,14 @@ EOF
   );
   
 //  $sid = db\lookup('sid', 'sessions', 'uid=:uid', ['uid' => $mya->agentA->id]);
-  $sid = session_id();
-  $failure = urlencode(t('That is not a usable image file. Try again.'));
-  $maxSize = R_MAX_UPLOAD_SIZE * 1024 * 1024;
-  $maxSizeDpy = R_MAX_UPLOAD_SIZE . 'MB';
+//  $sid = session_id();
+//  $failure = urlencode(t('That is not a usable image file. Try again.'));
+//  $maxSize = R_MAX_UPLOAD_SIZE * 1024 * 1024;
+//  $maxSizeDpy = R_MAX_UPLOAD_SIZE . 'MB';
 
-  $js = <<<EOF
-  var err = false;
-  var croppicOptions = {
-//      uploadUrl:'$base_url/settings/photo',
-    cropUrl:'$base_url/settings/photo/upload',
-    customUploadButtonId:'choosePhoto',
-    cropData:{
-      'uid':$mya->id,
-      'sid':'$sid'
-    },
-    modal:false,
-    processInline:true,
-    loaderHtml:'<div class="loader bubblingG"><span id="bubblingG_1"></span><span id="bubblingG_2"></span><span id="bubblingG_3"></span></div> ',
-    onBeforeImgUpload: function() {
-      var photoUp = jQuery('#photoUp_imgUploadField').get(0);
-      if (photoUp.files[0].size > $maxSize) {
-        croppic.err = 'That photo file is too big. The maximum file size is $maxSizeDpy. Reduce the file size and try again (or choose a smaller file).';
-      }
-    },
-    onAfterImgUpload: function() { console.log('onAfterImgUpload') }, 
-//    onImgDrag: function(){ console.log('onImgDrag') },
-//    onImgZoom: function(){ console.log('onImgZoom') },
-    onBeforeImgCrop: function() { console.log('onBeforeImgCrop'); },
-    onAfterImgCrop:function(){
-      jQuery('#photoUp').hide();
-      window.location.replace(err ? '$base_url/settings/photo' : '$base_url/$nextPage/ok/$rnd');
-    },
-//    onReset:function(){ console.log('onReset') },
-    onError:function(errormessage){
-      jQuery.alert(errormessage, 'Error');
-      err = true;
-    }
-  }	
-  var croppic = new Croppic('photoUp', croppicOptions);
-  jQuery('#choosePhoto').click(function () {jQuery('#emailPhoto').hide();});
-EOF;
-  js('js/alert.js', 'file', 'footer');
-  js('js/croppic.js', 'file', 'footer');
-  js($js);
-  css('css/croppic.css');
+  js('croppic');
+  js('crop-setup', 'recrop uid maxSize', $recrop, $mya->id, R_MAX_UPLOAD_SIZE);
+  css('x/croppic.css');
 
   $form = compact(ray('title nextStep progress desc newPhoto del'));
   return labeled($form);
@@ -1776,17 +1742,19 @@ function formPhoto_submit($form, &$sta) {
   global $mya;
   
   if (op($sta) == 'del') {
-    u\EXPECT($mya->superAdmin and $mya->hasPhoto, 'del ghost photo');
-    $pictureFilename = DRUPAL_ROOT . $mya->photoFilename(TRUE);
+    u\EXPECT($mya->cAdmin and $mya->hasPhoto, 'del ghost photo');
+/*    $pictureFilename = DRUPAL_ROOT . $mya->photoFilename(TRUE);
     $newFilename = str_replace('.jpg', '.X', $pictureFilename);
     if (file_exists($pictureFilename)) {
       rename($pictureFilename, $newFilename);
     } else imagejpeg(imagecreatefromstring($mya->photo), $newFilename, 100);
+    */
     $mya->stepDone('photo', FALSE);
     $mya->update('photo', '');
     $mya->setBit(B_MEMBER, FALSE);
     $mya->setBit(B_OK, FALSE);
-    return say(t('photo removed, step undone, person set to non-member (photo renamed to .X)'));
+    say(t('photo removed, step undone, person set to non-member'));
+    return r\go('settings/photo');
   } else return w\goNextStep('photo');
 }
 
@@ -1796,10 +1764,10 @@ function formPhoto_submit($form, &$sta) {
  */
 function formAccounts($form, &$sta) {
   global $base_url, $rUrl;
-  if (!$mya = r\acct()) return ''; //['signin' => item('<a href="' . "$base_url/signin" . '">Sign in</a>')];
+  if (!$mya = r\acct()) return []; //['signin' => item('<a href="' . "$base_url/signin" . '">Sign in</a>')];
 
   $myid = @$mya->id; // may be a non-existent account if tests are run while looking at .ZZA, for example
-  if (!$accounts = be\accountChoices()) return FALSE;
+  if (!$accounts = be\accountChoices()) return [];
 //  if (!in_array($myid, @$accounts) and $mya->can()) array_splice($accounts, 1, 0, $myid); // admin or cadmin
   $choices = $ltrs = [];
 
@@ -1857,7 +1825,6 @@ function formAccounts($form, &$sta) {
   }
   
   $form = u\prefixKeys('acct_', compact(ray('account')));
-  
   return $form;
 }
 
@@ -1870,24 +1837,30 @@ function formAccounts_submit($form, &$sta) {
 /**
  * Change the current account.
  */
-function changeWho() {
-  extract(just('acct page', $_GET));
+function changeWho($args = '') {
+  global $mya;
+  extract(just('acct page', $args));
 
   if (@$acct == 'signout') return signout();
-  $a = w\setAcct(); // get old current account
-  $mya = r\acct($acct, $a->agentId); // tentative new account
-  if (!@$a->admin and !@$a->isAdmin2 and !$mya->can()) return hack('accts');
+  if (!@$mya and !isDEV) return w\say(t('No previous account. Try again.')); // get old current account
+  $mya = r\acct($acct, @$mya->agentId); // tentative new account
+  
+  if (!@$mya or (!@$mya->admin and !@$mya->isAdmin2 and !$mya->can())) return hack('accts');
   
   w\setAcct($mya->id); // get new current account
 
-  if (isDEV) $page = str_replace(DEV_ROOT, '', @$page);
-  r\go($mya->cAdmin ? urldecode(@$page) : ''); // go to summary, unless admin
+//  if (isDEV) $page = str_replace(DEV_ROOT, '', @$page);
+  $page = str_replace(',', '/', @$page);
+  
+  r\go($mya->cAdmin ? $page : 'summary'); // go to summary, unless admin
 }
 
 /**
  * Display the member company's profile (no editable fields here)
  */
 function formProfile($form, &$sta, $company = '') {
+	require_once DRUPAL_ROOT . '/vendor/parsedown/Parsedown.php'; // normally only once per form
+
   $uid = db\lookup('uid', 'users', 'name=:company', compact('company'));
   $a = r\acct($uid);
   if (!$uid or !$a->co) return say('no such company', 'ERR');
@@ -1910,12 +1883,16 @@ function formProfile($form, &$sta, $company = '') {
 EOF;
   $cats = db\q($sql, compact('uid'))->fetchAllKeyed();
   $cats = item(empty($cats) ? '' : ('<h3>Categories:</h3>' . join('<br>', $cats)));
+  $physical = "$a->address<br>$a->city, $state $a->zip";
+  $mailing = str_replace('<br>', ', ', $physical) == $a->postalAddr ? '' : "Mailing address: $a->postalAddr<br>";
 
-  $contact = item("$a->address<br>
-    $a->city, $state $a->zip $country<br><br>
+  $contact = item("$physical $country<br>$mailing<br>
     $phone<br>
     $siteList");
-  $desc = item($a->description);
+//  $desc = item($a->description);
+	$pd = new \Parsedown();
+	$pd->setSafeMode(TRUE);
+	$desc = item($pd->text($a->description));	
 
   return labeled(compact(ray('pic title contact desc cats')));
 }
@@ -1967,9 +1944,9 @@ function formTx($form, &$sta, $args = '') {
 //  $isGift = hidfld(FALSE);
   $$type = submit(ucwords($type));
 
-  $onSubmit = w\whoFldSubmit('who', $question, 'this.amount.value', $type == 'charge');
+  w\whoFldSubmit('who', $question, NULL, $type == 'charge');
   
-  $form = labeled(compact(ray("title subtext who amount goods purpose calc $type")), $onSubmit);
+  $form = labeled(compact(ray("title subtext who amount goods purpose calc $type")));
   $form['#attributes']['class'][] = $scanClass;
 
   return keep_values($form); // get defaults from which('info')
@@ -2212,7 +2189,7 @@ function formBuy($form, &$sta, $doCode = '') {
   foreach (ray($required) as $k) if (!@$$k) return r\go('empty', t('missing field', 'field', $k), 'err'); // handle hackers gracefully
   if (!u\isQid(@$company) or !$co = r\acct($company) or !$co->co) return r\go('empty', 'bad account id', 'err');
   if ($code != $co->emailCode) { // not testing
-    if (!$cocode = substr(u\decrypt(u\deurlify($code)), 1) or $cocode != $co->emailCode) return r\go('empty', 'bad co code', 'err');
+    if (!$cocode = substr(r\decry('P', $code), 1) or $cocode != $co->emailCode) return r\go('empty', 'bad co code', 'err');
   } else $tst = t('<span class="loud">TESTING</span>');
   
   if ($amount0 = @$amount) {
@@ -2285,7 +2262,7 @@ function authcode() {
   extract($args = just('company cocode', $_GET));
   if (!@$cocode or !u\isQid(@$company) or !($co = r\acct($company)) or !$co->co or $co->emailCode != $cocode) exit(t('bad company account ID or cocode'));
   $now = time();
-  exit(u\urlify(u\crypt(u\randomString(1) . $cocode)));
+  exit(u\cry('P', u\randomString(1) . $cocode));
 }
 
 /**
@@ -2324,11 +2301,12 @@ function formHandleInvoice($form, &$sta, $args = '') {
       if (!@$webpay) $always = boxFld('always', t('Auto:'), t('Pay all invoices from %who automatically.', $subs), 0);
     } else $_warning = '';
     
-    $subtext = item(t('<p>Pay %amount to %who for %what?</p>%warning', $subs + compact('_warning')));
-    $pay = submit(t('Pay'));
+    $subtext = item(t('<p>Pay %amount to %who for %what.</p>%warning', $subs + compact('_warning')));
+    $link = w\lnk('', '&nbsp; &nbsp;' . t('dispute'), ray('id', 'dispute-it'));
+    $pay = submit(t('Pay Now'), '', '', w\suffix($link));
 
-    $whyNot = textFld(t('Why not:'));
-    $deny = submit(t('Deny'));
+    $whyNot = textFld(t('Reason for dispute:'));
+    $deny = submit(t('Dispute'));
     $denySet = fieldSet('denySet', compact('whyNot', 'deny'), BARE);
     $toMe = hidFld(TRUE);
   } else { // confirming delete by originator
@@ -2343,6 +2321,8 @@ function formHandleInvoice($form, &$sta, $args = '') {
   $hid = w\hidFlds(compact('ret') + $inv);
   $form['#validate'] = array('rCredits\\Web\\formHandleInvoice_validate');
   $form['#submit'] = array('rCredits\\Web\\formHandleInvoice_submit');
+  w\jsx('dispute');
+  
   return labeled(compact(ray('title subtext always pay denySet delSet toMe hid')) + $form);
 }
 
@@ -2421,7 +2401,7 @@ function formGet($form, &$sta, $args = '') {
 //  $minimum = textFld(t('Minimum:'), t('prompt min'), dft(u\fmtAmt(!$mya->prefsSet ? $mya->minimum : R_MINR_DEFAULT, 's')));
 //  $toSpend = u\fmtAmt($mya->avail(FOR_GOODS));
 //  $toSpend = u\fmtAmt($mya->r - $mya->committed);
-  $balance = u\fmtAmt($mya->balance);
+  $balance = u\fmtAmt($mya->balDpy);
   $rewards = u\fmtAmt($mya->rewards);
   $waiting0 = $mya->waitingFromBank();
 
@@ -2433,7 +2413,7 @@ function formGet($form, &$sta, $args = '') {
     }
   } else $avail = 0;
 
-  $cashoutable = u\fmtAmt(max(0, $avail));
+  $cashoutable = u\fmtAmt(max(0, min($mya->balDpy, $avail)));
   if ($waiting = u\fmtAmt(abs($waiting0))) {
     $where = 'payee IN (:myid, :jid) AND completed=0 AND deposit=0 ORDER BY txid DESC';
     if ($rec = db\lookup('amount, txid', 'r_usd', $where, compact('myid', 'jid'))) {
@@ -2509,10 +2489,7 @@ function formPrejoin($form, &$sta) {
   $account = textFld(t('Account:'), [t('Other Account ID'), t('Type the account ID of the account you want to join with.')]);
   $submit = w\submit(t('Go'));
 
-  $js = <<<EOF
-$('#edit-old-0').click(function() {this.form.submit();});
-EOF;
-  js($js, 'inline', 'footer');
+  jsx('prejoint');
   
   return labeled(compact(ray('title subtext old account submit')));
 }
@@ -2645,12 +2622,6 @@ function formSignup($form, &$sta, $args = '') {
 //    $onclick = $onmouseover = 
     $forother = $personal ? t('open a company account instead') : t('open a personal account instead');
     $forother = item("[<a class=\"nospin\">$forother</a>]");
-    $js = <<<EOF
-  var clarify = function() {alert('$clarify');};
-  jQuery('#edit-forother a').click(clarify);
-  //jQuery('#edit-forother a').mouseover(clarify);
-EOF;
-    js($js, 'inline', 'footer');
   }
     
   if (!@$code or $code == '%CODE') $code = 'self ()'; // can't actually tell whether this is allowable, because we don't yet know which community
@@ -2730,7 +2701,8 @@ EOF
     + compact(ray('calling companyInfo buysAt submit myid args confirmed helper iCode notes'));
 //  keep_values($form);
 //  $sponsorConfirmation = w\whoFldSubmit('sponsor', t('Your sponsoring organization is %name, yes?'));
-  return labeled($form, 'return setPostalAddr(false);');
+  jsx('signup', compact('clarify'));
+  return labeled($form);
 }
 
 function formSignup_validate($form, &$sta) {
@@ -2809,7 +2781,7 @@ function formSignup_submit($form, &$sta) {
   $qid = $mya->mainQid;
   
   if (@$iCode < 0) w\invitation($code, $myid); // mark the invitation used
-  $email = u\cryptN($email);
+  $email = u\cry('P', $email);
   db\q('UPDATE r_invites SET invitee=:myid WHERE email=:email', compact('myid', 'email')); // and all such
   if (!@$owns) $mya->setRisk('rents');
   
@@ -2818,7 +2790,7 @@ function formSignup_submit($form, &$sta) {
     $mya->update(compact('signupCo'));
   }
   if ($h = $mya->helperA and @$args and !$h->cAdmin) suCreatorRelation($helper, $args, $myid);
-  unset($DBTX); // commit    
+//  unset($DBTX); // commit    
   
   // report to staff and user
   tellStaffNewMember($info + compact(ray('acctType qid name')));
@@ -2865,13 +2837,13 @@ function formSignup_submit($form, &$sta) {
  */
 function formContact($form, &$sta) {
   global $mya;
-  focusOn('fullname');
+
   $nameDesc = t('usename desc');
   if ($mya->ok) $nameDesc .= '<br>' . ($mya->co ? t('Your username and %PROJECT webpage address') : t('triggers new card', 'field', t('name')) . t('Your username')) . t(' will also change.');
   $title = item(t('Contact Information'));
   $fullName = textFld($mya->co ? t('Company Name:') : t('Your Name:'), $nameDesc, required(@$mya->fullName));
-  $onchange = w\onchange("jQuery('.form-item-pass').show();");
-  $email = textFld(t('Email:'), '', $onchange + required(@$mya->email));
+//  $onchange = w\onchange("jQuery('.form-item-pass').show();");
+  $email = textFld(t('Email:'), '', required(@$mya->email));
   if (!$mya->cAdmin) $pass = passFld(t('Password:'), t('Required for changing email address'));
 
   $submit = submit();
@@ -2880,8 +2852,11 @@ function formContact($form, &$sta) {
   $form = compact(ray('title fullName email pass')) 
         + contactFields([], FALSE, $mya->id)
         + compact('submit');
-  
-  return labeled($form, 'return setPostalAddr(false);');
+
+        
+  jsx('contact');
+//  return labeled($form, 'return setPostalAddr(false);');
+  return labeled($form);
 }
 
 function formContact_validate($form, &$sta) {
@@ -2891,7 +2866,7 @@ function formContact_validate($form, &$sta) {
   extract(just('email pass phone country state zip', $sta['input']));
 
   // what's this doing in validate?!
-//  js('js/countries.js', 'file', 'header'); // country and state dropdowns
+//  js('countries.js', 'file', 'header'); // country and state dropdowns
 //  js("print_country(\"$country\", \"$state\");", 'inline', 'footer'); // initialize dropdowns
 
   if ($fullName != $mya->fullName) {
@@ -2967,7 +2942,7 @@ function formInvitedWhom($form, &$sta) {
   $uid = $mya->cAdmin ? $mya->id : $mya->agentId;
   
   $title = item(t('Your Invitees'));
-  $subtext = item(t('<p>If the status of someone you invited is "<span style="color:orange;">Not Complete</span>", they have not finished setting up an account and may need your help.</p><p>If the status is "<span style="color:red;">expired</span>", you may want to call them and send another invitation.</p>'));
+  $subtext = item(t('<p>If the status of someone you invited is "<span class="invite-incomplete">Not Complete</span>", they have not finished setting up an account and may need your help.</p><p>If the status is "<span class="invite-expired">expired</span>", you may want to call them and send another invitation.</p>'));
   $old = strtotime((R_INVITE_DAYS + 2) . ' days ago');
   $sql = <<<EOF
     SELECT DISTINCT IFNULL(u1.fullName, i.email) AS who, invited, invited<:old AS expired,
@@ -2981,11 +2956,11 @@ EOF;
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $invited = u\fmtDate($invited);
-    if (!$started = strpos($who, ' ')) $who = u\cryptN($who0 = $who, FALSE) ?: $who0; // decrypt email
+    if (!$started = strpos($who, ' ') and u\starts($who, CRYPT_FLAG . 'P')) $who = u\decry('P', $who); // decrypt email
     $status = ($member or $ok) ? t('is a Member!') : ($started ? t('account Not Complete') : ($expired ? t('expired') : '(no response yet)'));
-    $color = $member ? 'green' : ($started ? 'orange' : ($expired ? 'red' : 'gray'));
+    $color = $member ? 'member' : ($started ? 'incomplete' : ($expired ? 'expired' : 'other'));
     $nameClass = $co ? 'name co' : 'name';
-    $list .= "<tr><td>$invited</td><td>$who</td><td style='color:$color;'>$status</td></tr>\n";
+    $list .= "<tr><td>$invited</td><td>$who</td><td class=\"invite-$color\">$status</td></tr>\n";
   }
   $list .= "</table>\n";
   
@@ -3053,6 +3028,16 @@ function formBasic_validate($form, &$sta, $co = 'mya', $fields = R_BASIC_FIELDS)
 }
 
 /**
+ * Show Common Good's accountant (or any employee) our Deposits page, without the buttons
+ */
+function formShowDeposits($form, &$sta) {
+  global $mya;
+  if (!$mya or $mya->id != r\cgfId()) return r\go('empty', t('You are not authorized to view that page.'));
+  include_once __DIR__ . '/../admin/admin-forms.inc';
+  return w\formDeposits($form, $sta);
+}
+
+/**
  * Connect a bank account.
  */
 function formConnect($form, &$sta, $args = '') {
@@ -3078,7 +3063,6 @@ function formConnect($form, &$sta, $args = '') {
   
   $targetFields = fieldSet('targetFields2', compact(ray('target achMin saveWeekly')), BARE);
   //$bankAccountType = radiosFld(t('Type:'), '', required($mya->can(B_SAVINGS)), $typeOptions);
-  list ($connectLabel, $saveLabel) = [t('Connect'), t('Save')];
     
   if ($hasBank = $mya->hasBank) {
 //    if ($usa) list ($route, $bankAccount) = u\parseBankAccount(@$bankAccount);
@@ -3102,35 +3086,8 @@ function formConnect($form, &$sta, $args = '') {
     $fields = 'title subtext connect connectFields';
   }
 
-  $mindft = R_MIN_DEFAULT;
-  $js = <<<EOF
-function showBank(show) {
-  $('#connectFields2').toggle(show);
-  $('#edit-routingnumber, #edit-bankaccount, #edit-bankaccount2, #edit-refills-0, #edit-refills-1').attr('required', show);
-  var text = show ? '$connectLabel' : '$saveLabel';
-  $('#edit-submit').val(text);
-  $('#edit-submit .ladda-label').html(text);
-}
-if ($('#edit-connect-1')[0]) {
-  showBank($('#edit-connect-1').attr('checked') == 'checked');
-  $('#edit-connect-0').click(function() {showBank(false);});
-  $('#edit-connect-1').click(function() {showBank(true);});
-}
-
-function showTarget(show) {
-  $('#targetFields2').toggle(show);
-  $('#edit-target, #edit-achmin').attr('required', show);
-}
-showTarget($('#edit-refills-1').attr('checked') == 'checked');
-$('#edit-refills-0').click(function() {showTarget(false);});
-$('#edit-refills-1').click(function() {
-  showTarget(true); 
-  if ($('#edit-target').val() == '$0') $('#edit-target').val('$' + $mindft);
-});
-
-EOF;
-  js($js, 'inline', 'footer');
-  return labeled(compact(ray($fields)) + w\setupFoot($hasBank ? $saveLabel : $connectLabel));
+  jsx('bank-prefs', $vs = ray('connectLabel saveLabel mindft', t('Connect'), t('Save'), R_MIN_DEFAULT));
+  return labeled(compact(ray($fields)) + w\setupFoot($hasBank ? $vs['saveLabel'] : $vs['connectLabel']));
 }
 
 function formConnect_validate($form, &$sta) {
@@ -3182,8 +3139,8 @@ function formConnect_submit($form, &$sta) {
   if (@$connect or !isset($connect)) { // wants bank or has bank, not removing
     if (@$connect) { // wants bank
       if ($mya->country == US_COUNTRY_ID) $bankAccount = "USkk$routingNumber$bankAccount";
+      $last4bank = substr($bankAccount, -4, 4);
     } else list ($connect, $bankAccount) = [TRUE, $mya->bankAccount]; // has bank
-    $last4bank = substr($bankAccount, -4, 4);
     if ($refills) $minimum = $target; // change minimum only explicitly
   } else { // removing or choosing not to connect
     $bankAccount = $last4bank = '';
@@ -3206,14 +3163,17 @@ function formSecurity($form, &$sta, $arg = '') {
   global $mya;
 
   if ($arg == 'gotPhoto') say('got photo');
-  $person = !$mya->co;
-    
+
+//  button(t('password'), "$base_url/settings/security/change-password", '', 'warning'), t('Change:'), ['', $mya->ok ? t('triggers new card', 'field', 'photo') : ' ']);
+  $btns = btn("$base_url/settings/security/change-password", t('password'), 'warning')
+  . ' ' . btn("$base_url/settings/photo", t('photo'), 'warning');
+  
   $title = item(t('Security Information'));
-  $change = item(
-    button(t('password'), "$base_url/settings/security/change-password", '', 'warning'), t('Change:'), ['', $mya->ok ? t('triggers new card', 'field', 'photo') : ' ']);
+  $change = item($btns, t('Change:'), ['', $mya->ok ? t('triggers new card', 'field', 'photo') : ' ']);
   $questionDesc = t('Type a question no one but you could guess the answer to.');
-  $question = $person ? textFld(t('Question:'), [t('Choose a security question'), $questionDesc], required($mya->question)) : NULL;
-  $answer = $person ? textFld(t('Answer:'), [t('The answer to that question')], required(@$mya->answer)) : NULL;
+  $question = $mya->co ? NULL : textFld(t('Question:'), [t('Choose a security question'), $questionDesc], required($mya->question));
+  $answer = $mya->co ? NULL : textFld(t('Answer:'), [t('The answer to that question')], required(@$mya->answer));
+
   if ($mya->cAdmin and !$mya->proSe) {
     $question = item(@$mya->question, t('Question:'), $questionDesc);
     $answer = item(@$mya->answer, t('Answer:'));
@@ -3327,7 +3287,6 @@ EOF;
   $caption = $sticky = '';
   $empty = t('no relations');
   $list = theme_table(compact(ray('header rows attributes caption colgroups sticky empty')));
-  $onSubmit = w\whoFldSubmit('newperson', t('Create a new relation with %name?'));
 
   $title = item(t('Relations'));
   $subtext = item($subtext);
@@ -3338,13 +3297,15 @@ EOF;
   $form = compact(ray('title subtext showCustomers list newPerson go'));
 
   if (!$mya->member and !$mya->stepDone['relations']) $form += w\setupFoot();
-  return labeled($form, $onSubmit);
+  w\whoFldSubmit('newperson', t('Create a new relation with %name?'));
+//  w\jsx('toggle');
+
+  return labeled($form);
 }
 
 function formRelations_validate($form, &$sta) {
 //  if (confirming_v($sta)) return;
   global $mya;
-  
   if ($newPerson = @$sta['input']['newPerson']) {
     $a = whois($newPerson, 'newPerson', $sta['input'], 'no self-relation');
     $id = $a ? $a->id : '';
@@ -3362,7 +3323,7 @@ function formRelations_validate($form, &$sta) {
     } else
     */
     if ($keya == 'permission') {
-      if ($value == r\perm(B_MANAGE)) {
+      if ($value >= r\perm(B_MANAGE)) {
         $managers++;
       } else {
         $other = r\relation('other', $reid);
@@ -3386,27 +3347,33 @@ function formRelations_submit($form, &$sta) {
   extract(just('raws0 raws', $sta['rawValues']));
 ///  debug($sta['rawValues']);
   $joinPerm = r\perm(B_JOINT);
-  
+
   $DBTX = \db_transaction();
   foreach ($sta['input'] as $k => $v) { // ... be\updateRelations must check permissions and data carefully
     if (!strpos($k, '-')) continue;
     list ($k, $rawnum, $reid) = explode('-', $k); // eg split permission-2-37
-/**/ u\EXPECT(in_array($k, $ks = array_keys($raws)), "bad field in relations: $k " . print_r($ks, 1)); // hack attempt?
-
-    $v = 0 + strtr($v, array('true' => 1, 'false' => 0));
-    $oldv = 0 + $raws[$rawnum][$k];
-/// debug(compact('v','rawnum','k'));
-/// debug(0 + $raws[$rawnum][$k]);
-    if ($v != $oldv) { // changed
-      if ($k == 'permission' and ($v == $joinPerm or $oldv == $joinPerm)) {
-        if ($v == $joinPerm) {
-          if (@$gotJoin) {say('too many joins', 'err'); continue;} else $gotJoin = TRUE;
+    if ($k != 'permission') continue; // get all the fields even when they don't appear (because they're false)
+    foreach (ray('permission draw employee isOwner') as $fld) {
+///   u\EXPECT(in_array($k, $ks = array_keys($raws)), "bad field in relations: $k " . print_r($ks, 1)); // hack attempt?
+//      $v = 0 + strtr($v, ['true' => 1, 'false' => 0]);
+      $key = "$fld-$rawnum-$reid";
+///      debug(compact(ray('fld k key v oldv')));
+      if ($fld != 'permission') $v = 0 + (bool) @$sta['input'][$key];
+      $oldv = 0 + $raws[$rawnum][$fld];
+///      debug(compact(ray('fld k key v oldv')));
+///   debug(compact('v','oldv','rawnum','k'));
+///   debug(0 + $raws[$rawnum][$k]);
+      if ($v != $oldv) { // changed
+        if ($fld == 'permission' and ($v == $joinPerm or $oldv == $joinPerm)) {
+          if ($v == $joinPerm) {
+            if (@$gotJoin) {say('too many joins', 'err'); continue;} else $gotJoin = TRUE;
+          }
+          $msg = r\setJoin($reid, @$gotJoin); // handle joining or unjoining accounts
+          w\say($msg);
         }
-        $msg = r\setJoin($reid, @$gotJoin); // handle joining or unjoining accounts
-        w\say($msg);
+        $changes[$reid][$fld] = $v;
+        $changes[$reid]['original'] = @$raws0[$reid]; // save for update reporting and permission-checking
       }
-      $changes[$reid][$k] = $v;
-      $changes[$reid]['original'] = @$raws0[$reid]; // save for update reporting and permission-checking
     }
   }
 
@@ -3417,6 +3384,7 @@ function formRelations_submit($form, &$sta) {
 }
 
 /**
+ * Show a list of devices used by this account. UNUSED AT PRESENT.
  * @todo: focus on code input
  */
 function formBoxes($form, &$sta) {
@@ -3611,7 +3579,7 @@ function formSinx($form, &$sta) {
 function formSignin($form, &$sta) {
   global $base_url;
 
-  extract(just('name pw2', @$sta['input']));
+  extract(just('name pw2 vKeyE', @$sta['input']));
   if (!isset($name)) $name = @$_GET['name']; // allow links to signin (for example from app)
   //$name = 'L5MA LLDC 3MBG';
   if (strlen(str_replace(' ', '', @$name)) >= ICARD_CODELEN_MIN and !strpos($name, '.') and !db\exists('users', 'name=:name', compact('name'))) {
@@ -3625,21 +3593,22 @@ function formSignin($form, &$sta) {
 
   $title = item(t('Welcome to %PROJECT!'));
   $signup = isDEV ? "<a href=\"$base_url/signup\">Signup</a>" : '';
-  $subtext = item(t('<p>Not yet a member? <%a>Check it out</a>!</p>', '_a', w\atag(r\promoLink(''))) . $signup . t('<p><b>TIP</b>: Try not to sign in to your financial accounts on a public computer. Or if you do, be careful! Check the address bar at the top of the screen to make sure you have the right website (<b><em>%BASE_URL/</em>...</b>). And be sure to sign OUT when you\'re done!</p>'));
+  $subtext = w\item(t('<p>Not yet a member? <%a>Check it out</a>!</p>', '_a', w\atag(r\promoLink(''))) . $signup . t('<p><b>TIP</b>: Try not to sign in to your financial accounts on a public computer. Or if you do, be careful! Check the address bar at the top of the screen to make sure you have the right website (<b><em>%BASE_URL/</em>...</b>). And be sure to sign OUT when you\'re done!</p>'));
 
   $_a = w\atag('/settings/password/' . @$name, ['tabindex' => 3]); // uses $name, so must precede $name = textField
   $passDesc = t('<%a>Sign-in problems?</a>', compact('_a'));
   list ($name, $pass) = w\signinFlds(@$name, t('Your account ID or email address'), $passDesc);
   $pw2 = hidFld(@$pw2 ?: ''); // extra password for admins
+  $vKeyE = hidFld(@$vKeyE ?: ''); // extra password for admins
   
   $submit = submit(t('Sign in'));
-  $form = compact(ray('title name pass pw2 submit subtext'));
+  $form = compact(ray('title name pass pw2 vKeyE submit subtext'));
 
   $form['external_input'] = hidFld(serialize(@$sta['input'])); // pass this to rweb_user_login
 
   $form['#attributes']['class'][] = 'rweb labeled';
 //  if (TRUE) js('e:\\rCredits-admin.js', 'external', 'footer'); // get extra admin password
-//  js('js/radiocheck.js', 'file', 'footer'); // this normally gets called in showForm()
+//  js('radiocheck.js', 'file', 'footer'); // this normally gets called in showForm()
   return labeled($form);
 }
 
@@ -3651,7 +3620,7 @@ function formSignin($form, &$sta) {
  * @param string $type: 'acct', 'pw', or 'both' -- what parameters to check
  */
 function formSignin_validate($form, &$sta, $type = 'both') {
-  extract(just('name pass pw2', $sta['input']));
+  extract(just('name pass pw2 vKeyE', $sta['input']));
   if (isDEV and @$name == 'admin' and !a(1)) {
     require_once __DIR__ . '/../admin/admin.inc';
     a\setupBasicAccounts(); // happens sometimes during testing
@@ -3659,15 +3628,24 @@ function formSignin_validate($form, &$sta, $type = 'both') {
   if (!$uid = r\loginString(@$name)) return w\say('bad login', 'name');
   if (w\flooding($uid, $sta, $err)) return w\say($err, 'pass');
   $a = r\acct($uid);
-  if ($uid == 1) {
-    $pw2 = @$pw2 ? hex2bin($pw2) : (isDEV ? DEV_PW2 : '');
-    if ($pw2 and !$a->pw2) a(1)->update('pw2', r\passHash($pw2)); // first ever admin signin sets pw2
-    if (!isGAME and !$a->passwordOkay($pw2, 'pw2', $err)) return w\say(t('Admin requires second pass.'), 'pass');
-    r\setCook('pw2', $pw2, 0); // store as cookie, so pw2 is never on server
-  }
   $sta['uid'] = ((isDEV and $uid == 1) or $a->passwordOkay($pass, 'pass', $err)) ? $uid : w\say($err, 'pass'); // ignore admin pass on dev machine
-  w\updateFlood($sta, $success = (bool) $sta['uid']);
-  return $success ?: w\say('login failed', 'name'); // TRUE is used by formBuy()
+  w\updateFlood($sta, $success = (bool) $sta['uid']); // should be before pw2 and vKeyE checks
+	if (!$success) return w\say('login failed', 'name');
+
+  if ($uid == 1) { // later this should be if ($a->regAdmin) -- regional Admin permission
+    $pw2 = @$pw2 ? u\b64decode($pw2) : (isDEV ? DEV_PW2 : '');
+    if ($pw2 and !$a->pw2) a(1)->update('pw2', r\passHash($pw2)); // first ever admin signin sets pw2
+    if (!$a->passwordOkay($pw2, 'pw2', $err)) return w\say(t('Admin requires second pass.'), 'pass');
+    r\setCryptCook('pw2', $pw2); // store as cookie, so pw2 is never on server
+		if (isDEV) u\setDft($vKeyE, \variable_get('vKeyE', '')); // make it easier to sign in
+		if (@$vKeyE) { // set cookie for very-secure private key, encrypted (encrypt it further for cookie)
+			if (!$vKeyE = u\b64decode($vKeyE)) return w\hack(t('bad vKeyE'));
+		  r\setCryptCook('vKeyE', $vKeyE);
+			if (isDEV) \variable_set('vKeyE', $vKeyE); // remember new vKeyE, make it easier to sign in (this is not redundant)
+		}
+  }
+
+  return TRUE; // TRUE is used by formBuy()
 }
 
 /**
@@ -3677,7 +3655,7 @@ function formSignin_validate($form, &$sta, $type = 'both') {
  * @param string $goto: what page to start on for non-admin
  */
 function formSignin_submit($form, &$sta, $goto = 'summary') {
-  extract(just('uid input external_input', $sta));
+  extract(just('uid input external_input vKeyE', $sta));
   if (!@$uid) return hack('sign-in is not authorized');
   $mya = r\acct($uid);
   global $user; $user = $mya->account('pass timezone'); // timezone keeps Drupal happy in bootstrap.inc
@@ -3693,7 +3671,7 @@ function formSignin_submit($form, &$sta, $goto = 'summary') {
 
 //  r\setCook('loginto', '', r\rTime()-1); // no more default login
   u\loga('signin', ['name' => $mya->name]);
-  if ($mya->superAdmin) f('a.adminSignin');
+//  if ($mya->superAdmin) f('a.adminSignin');
   if (isSTAGE and !$mya->cAdmin) f('a.makeTestAdmins'); // make sure rCOs can test stuff
   return r\go($mya->admin2 ? 'sadmin/followup' : $goto);
 }
@@ -3838,7 +3816,7 @@ EOF;
   $myCats = db\q('SELECT iid FROM r_user_industries WHERE uid=:myid', compact('myid'))->fetchCol();
   $links = t('<%a>See your public %PROJECT web page</a> (in a new window)', 
     '_a', w\atag("/member/$mya->name", ['id' => 'show-webpage'] + w\away()));
-  $code = w\item($mya->emailCode, t('Secret Code:'), t('Use this code for a <%a>Pay with Common Good</a> button on your website.', w\atag('https://docs.google.com/document/d/1QpOW0WU7RiUV900PMekyH7ve3-_9yjCnQn627cWovOQ')));
+  $code = w\item($mya->emailCode, t('Secret Code:'), t('Use this code for a <%a>Pay with Common Good</a> button on your website.', '_a', w\atag('https://docs.google.com/document/d/1QpOW0WU7RiUV900PMekyH7ve3-_9yjCnQn627cWovOQ')));
 
   $canDescs = ray(APP_CAN_BIT_DESCS);
   $permissions = '';
@@ -3872,13 +3850,13 @@ EOF;
   $private = boxFld('private', t('Private:'), t('Hide this company from the public (omit from public listings)'), $mya->coCan(CO_PRIVATE) ?: 0);
   $categories = selectFld(t('Categories:'), t('Hold down the Ctrl key to select more than one'), ['multiple' => TRUE] + dft($myCats), $cats);
   $selling = areaFld(t('Selling:'), [t('Products'),t('Enter one or more <b>VERY SHORT</b> transaction descriptions (for example "food") for when you make a sale &mdash; one line for each. Put the most common one first. This will appear in the description of the transaction for both you and the customer (for example "$20 for <i>food</i> on 1/23/2014")')], required($mya->selling));
-  $can2 = item($permissions, t('Permissions:'), t('Download the CGPay app from Google Play Store. Limit app permissions here, or go to <%aRel>Relations</a> settings to limit them for each agent.', '_aRel', w\atag('/settings/relations')));
+  $can2 = item($permissions, t('App permissions:'), t('Download the CGPay app from Google Play Store. Limit app permissions here, or go to <%aRel>Relations</a> settings to limit them for each agent.', '_aRel', w\atag('/settings/relations')));
 //    $shareRpos = boolFld(t('Share rPOS:'), t('Allow other companies to use our POS device(s).'), $mya->coCan(CO_SHARE_RPOS) ?: 0);
 //    $requireCashier = boolFld(t('Must scan in:'), t('Require a cashier to sign in before using rPOS (this also allows you to share the device with another company).'), $mya->coCan(CO_REQUIRE_CASHIER) ?: 0);
   $website = textFld(t('Website:'), [t('Website address'), t('Especially if you want to accept payments on your website, be sure to list it here.')], dft($mya->website));
   $descPreface = item(t('<br>What does the company do? This description will appear on your %PROJECT web page.')); //, '', ['class'=>'help-block']);
 //  $description = fld('text_format', t('Description:'), [t('Arbitrarily complex description')], ['format' => 'filtered_html'] + dft(strtr($mya->description, ["\r" => '', "\n" => '', '<br>' => PHP_EOL, "\0" => ''])));
-  $description = htmlFld(t('Description:'), t('Arbitrarily complex description'), $mya->description);
+  $description = areaFld(t('Description:'), t('Arbitrarily complex description, using <%a>markdown</a>.', '_a', w\atag('http://commonmark.org/help/')), w\dft($mya->description));
   $shortDesc = textFld(t('Short Desc:'), [t('Short description'), t('Short description of your company\'s products and services. Maximum 35 characters.')], attrib(['maxlength'=>35]) + required($mya->shortDesc));
   $employees = textFld(t('Employees:'), [t('Employee count'), t('How many employees do you have?')], required($mya->employees));
   $gross = textFld(t('Annual Gross:'), [t('Approximate annual gross income')], required($mya->gross));
@@ -3910,8 +3888,8 @@ function formCompany_submit($form, &$sta) {
   $id = $mya->id;
   extract($info = just('private description shortDesc website selling categories can requireCashier employees gross tips fast atm', $sta['input']));
 //  $description = \check_markup($description['value']);
-  if (is_array($description)) $description = @$description['value']; // when u\test(), description is scalar
-  $description = str_ireplace([PHP_EOL, "\r", "\n", "\0", '</li><br>', '<ol><br>', '<ul><br>'], ['<br>', '', '', '', '</li>', '<ol>', '<ul>'], $description);
+//  if (is_array($description)) $description = @$description['value']; // when u\test(), description is scalar
+//  $description = str_ireplace([PHP_EOL, "\r", "\n", "\0", '</li><br>', '<ol><br>', '<ul><br>'], ['<br>', '', '', '', '</li>', '<ol>', '<ul>'], $description);
   $website = str_ireplace('http://', '', @$website);
 
   $mya->setCoCans(@$can);
@@ -4014,11 +3992,8 @@ EOF
   
 //  $submit = submit(t('Update Preferences'));
   
-  $js = <<<EOF
-toggleFields('$advancedFields', false);
-$('#edit-showAdvancet').click(function() { $(this).hide(); toggleFields('$advancedFields', true); });
-EOF;
-  js($js, 'inline', 'footer');
+
+  jsx('advanced-prefs', compact('advancedFields'));
   $form = compact(ray('title subtext roundup crumbs statements showAdvancet ' . $advancedFields)) + w\setupFoot() + compact('posttext');
   return labeled($form);
 }
@@ -4062,22 +4037,45 @@ function formPrefs_submit($form, $sta) {
 //  return $mya->ok ? say('options saved') : r\go('status', 'options saved|step completed');
 }
 
+/**
+ * Show raw data for charting.
+ * This data is typical requested by cg4.us/charts.php for display in an iframe on the community/graphs page (etc)
+ * @param string $args: URL query string with
+ *   chart   name of chart to provide data for
+ *   ctty    community to provide data for
+ *   dt0     first date to include
+ *   dt9     last date to include
+ * @return: does not return. Prints the data (json-encoded) and exits.
+ */
+function chartData($args = '') {
+  extract(just('chart ctty dt0 dt9', $args));
+  showCharts(@$chart, @$ctty, $data);
+/**/  if (!@$data) die(t('No such chart data.'));
+/**/  echo $data;
+  exit();
+}
+
 function formGraphs($form, &$sta, $args) {
   global $base_url;
   $a = w\eLinkAcct($sta, $args, 'any'); // may be called with qid=<communityUid>
   extract(just('qid', $args));
 
   $title = item(t('Community Statistics'));
-  $cttys = db\q('SELECT uid,fullName FROM users WHERE uid<0 ORDER BY fullName')->fetchAllKeyed();
-  $cttys[0] = t('ALL communities');
-  $cttys[r\acct('!' . R_SERVER_ID)->id] = t('Seedpack (no community yet)');
-  $onchange = w\onchange("window.location='$base_url/community/graphs/qid=' + $(this).val();");
+//  $cttys = db\q('SELECT uid,fullName FROM users WHERE uid<0 ORDER BY fullName')->fetchAllKeyed();
+//  $cttys[0] = t('ALL communities');
+//  $cttys[r\acct('!' . R_SERVER_ID)->id] = t('Seedpack (no community yet)');
+//  $onchange = w\onchange("window.location='$base_url/community/graphs/qid=' + $(this).val();");
   $dft = ($a and @$qid !== '0') ? $a->community : 0; $dft += 0; // + 0 for admin
-  $ctty = w\selectFld(t('Community:'), '', $onchange + dft($dft), $cttys);
-  $subtext = item(t('This page helps us keep an eye on our economy so we can manage it effectively together. <%b>Click</b> any chart for an explanation, or <%b>hover</b> for the numbers.', '_b', 'class="loud"'));
-  $charts = item(w\showCharts('all', $dft));
+//  $ctty = w\selectFld(t('Community:'), '', $onchange + dft($dft), $cttys);
+//  $ctty = w\selectFld(t('Community:'), '', dft($dft), $cttys);
+  $subtext = item(t('This page helps us keep an eye on our economy so we can manage it effectively together. Choose a chart. <%b>Hover</b> over a graph for the numbers.', '_b', 'class="loud"'));
+//  $charts = item(w\showCharts('all', $dft, $chartData));
+//  $charts = item(w\tag('iframe', '', ray('src width height', "$base_url/rcredits/chart.php?ctty=0&chart=growth", 600, 600)));
+  $url = isDEV ? "$base_url/rcredits/misc/chart.php?site=dev" : ("https://cg4.us/chart.php?site=" . str_replace('https://', '', $base_url));
+  $charts = item(w\tag('iframe', '', ray('src width height', "$url&ctty=0&chart=growth", 600, 600))); // src must be first
+  if (u\test()) $charts = w\item(w\showCharts('all', $dft, $chartData));
   
-  return compact(ray('title ctty subtext charts'));
+  return compact(ray('title subtext charts'));
 }
 
 function formGraphs_validate($form, &$sta) {
@@ -4167,7 +4165,7 @@ EOF;
 EOF
   );
 
-  if (@$downloaded) js("window.open(\"$url&download=1\", \"download\");", 'inline', 'footer');
+  if (@$downloaded) jsx('download', compact('url'));
   return labeled(compact('title') + $dateRange + compact('subtext', 'table'));
 }
 
@@ -4178,7 +4176,7 @@ function formCttyFunds($form, &$sta) {
   global $mya;
   $title = item(t('Funds By Community'));
   $rewardsDesc = @$mya->cttyRewardy ? t('Incentive Rewards') : t('an automated increase in a member\'s credit line');
-  $subtext = item(t('<p>How %RCREDITS came in or out of each community. That is, how many were used, received, and issued by each community &mdash; either in exchange for US Dollars (green), as %rewardsDesc (red), or allocated democratically (blue). A community\'s US Dollar Escrow balance is the sum of the green column amounts.</p><p>Hover over headings for more information.</p>', compact('rewardsDesc')));
+  $subtext = item(t('<p>How %RCREDITS came in or out of each community. That is, how many were used, received, and issued by each community &mdash; either in exchange for US Dollars (green), as %rewardsDesc (red), or allocated democratically (blue). A community\'s US Dollar Pool balance is the sum of the green column amounts.</p><p>Hover over headings for more information.</p>', compact('rewardsDesc')));
   $heads = ray(t('Community USD Trade-IN Trade-OUT Signup+ Purchase+ Invite+ Inflate+ Spent Grant Loan Invest Fees TOTAL'));
   $headHelps = ray(t('Community name (abbreviated),In exchange for US Dollars,Value of goods and services imported from other communities (negative because credit leaves the community),Value of goods and services exported to other communities,Signup bonuses (incentive rewards for opening a %PROJECT Account),Purchase rewards (incentive rewards for buying or selling using %PROJECT),Incentive rewards for inviting (and helping) a new member to open a %PROJECT Account,Monthly inflation adjustments,%PROJECT community spending (net),%PROJECT community grants,Zero-interest loans from the %PROJECT community,Investments by the %PROJECT community,Fees collected by the %PROJECT community,Total %RCREDITS issued to date'));
   $classes = ray(' usd usd usd reward reward reward reward ctty ctty ctty ctty ctty none');
@@ -4349,7 +4347,7 @@ function formAccept_validate($form, &$sta) {
 
 function formAccept_submit($form, &$sta) {
   extract(just('invitation friend zip', $sta['input']));
-//  $email = u\cryptN($email);
+//  $email = u\cry('P', $email);
 //  if (!$code = db\lookup('code', 'r_invites', 'email=:email ORDER BY (invitee=0) DESC, invited DESC', compact('email'))) return say('bad invite', 'email');
   say(t('Hurray! You qualify to open a %PROJECT Account.'));
   $code = @$invitation ?: "$friend ($zip)";
@@ -4357,13 +4355,16 @@ function formAccept_submit($form, &$sta) {
 }
 
 /**
- * Show forms 1099-B for the previous calendar year.
+ * Show forms 1099-B for the previous calendar (or fiscal) year.
+ * @param int $ending: date/time year ends (defaults to end of previous calendar year)
  */
-function formTaxInfo($form, &$sta) {
+function formTaxInfo($form, &$sta, $ending = '') {
   global $base_url;
   global $mya;
-  $year = date('Y') - 1;
-  $title = item(t('Your %year "Barter" Income <small>(Forms 1099-B)</small>', compact('year')));
+  
+  if (!$ending) $ending = strtotime('last day of December last year'); // can't use setDft because cmdline param is never null
+  $title = item(t('Your "Barter" Income <small>(Forms 1099-B)</small>'));
+  $endDesc = u\fmtDate($ending, TRUE);
 
   $list = "<table id='f1099b'>\n";
   $list .= "<tr><th>Date</th><th class=\"num\">Income</th><th>From</th><th>Description</th></tr>\n";
@@ -4372,8 +4373,8 @@ function formTaxInfo($form, &$sta) {
   $cats = [];
   $map = [t('rebate on') => t('rewards'), t('bonus on') => t('rewards')];
   
-  while ($row = be\get1099b($mya->id)) {
-    extract(just('created amount uid for', $row));
+  while ($row = be\get1099b($mya->id, $ending)) {
+    extract(just('created amount payer for', $row));
     if ($amount <= 0) { // do not issue 1099-B for negative amounts (per IRC 1.6041-...(c)?)
       $negatives += $amount;
       continue;
@@ -4382,7 +4383,7 @@ function formTaxInfo($form, &$sta) {
     $date = strftime('%d-%b', $created);
     $total += $amount;
     $amount = str_replace('-', '- ', number_format($amount, 2));
-    $a = r\acct($uid);
+    $a = r\acct($payer);
     $addr = str_replace(', Massachusetts', ', MA', $a->postalAddr);
     $phone = str_replace('+1 ', '', u\fmtPhone($a->phone));
     $text = htmlspecialchars("$a->fullName, $addr ($phone)");
@@ -4412,7 +4413,7 @@ EOF;
   }
   $summary = <<<EOF
 <table id="summary">
-<tr><th>$year</th><th>Count</th><th class="num">Total</th></tr>
+<tr><th>Category</th><th>Count</th><th class="num">Total</th></tr>
 $summary
 <tr><td><b>TOTAL</b></td><td class="count"></td><td class="num"><b>$total</b></td></tr>
 </table>
@@ -4424,17 +4425,28 @@ EOF;
   $negatives = $negatives ? t('<p>You also had negative (refund) transactions totaling %neg. These are not reported to the IRS, so you might include this negative transaction total on line 2 of 1040 Form C.</p>', 'neg', u\fmtAmt($negatives)) : '';
  
   $subtext = item(t(<<<EOF
-  <p>Pay taxes on %PROJECT income just as you would for US Dollar income, including income, excise, and sales taxes.</p>
+  <p>If you pay excise, sales or income taxes, include any income you receive through the %PROJECT system.</p>
   <p>The %PROJECT system is required by law to report (to the IRS and to state government) all %PROJECT payments made to you in the past calendar year (on Forms 1099-B). This page shows a list of those transactions. Each individual income transaction is reported.</p>
-  <p>Beginning with 2016, rewards and inflation adjustments are NOT included in reports to the IRS (because your %PROJECT community has not yet decided the rewards are yours to keep, so they are still just a credit reserve).</p>
-   <p>YOU are not required to file Forms 1099-B. So the information on this page is for just for your information.</p>
+  <p class="loud">YOU are not required to file Forms 1099-B. So the information on this page is for just for your information.</p>
   <p>The purpose of 1099-B is to report transactions, not total income. So don't worry if some of the payments listed here aren't income (such as reimbursements). Also, you may receive a Form W2 or 1099-MISC from your employer or customers for some of these payments. Take care not to over-report your income by counting things twice.</p>
-  <p>For more information on the tax implications, download <%aTips>%PROJECT Accounting Tips</a>.</p>
+  <p>For more information, see <%aTips>%PROJECT Payments and Accounting Tips</a>.</p>
 EOF
-  , '_aTaxHelp _aTips', w\atag('/help/taxes'), w\atag('http://rc4.me/doc/accounting.pdf')) . $negatives);
+  , '_aTaxHelp _aTips', w\atag('/help/taxes'), w\atag('http://cg4.us/doc/payments.pdf?t=' . time())) . $negatives);
   
-  $posttext = item(t('<p>This report is provided by %regName (EIN #%R_REGION_EIN). Address: %regAddr (%regPhone, %regEmail).</p><p>You can see this report here until January 1 of next year (when the report for calendar year %thisYear replaces it).</p><p>If you would rather receive reports by US Mail, you can change that setting in your <a href="settings/preferences">Preferences</a>.', ray('regName regAddr regPhone regEmail thisYear', $regName, r\regionfield('postalAddr'), $regPhone, r\regionfield('email'), date('Y'))));
-  return labeled(compact(ray('title subtext table summary list posttext')));
+  $submit = w\submit(); // display suppressed in CSS
+  $go = w\submi(t('Change')); // requires suppressed submit button (find a better way)
+  
+  $ending = w\textFld(t('For year ending:'), [t('Fiscal Year End')], w\required($endDesc) + w\suffix('&nbsp;' . \render($go)));
+  $posttext = item(t('<p>This report is provided by %regName (EIN #%R_REGION_EIN). Address: %regAddr (%regPhone, %regEmail).</p><p>If you would rather receive reports by US Mail, you can change that setting in your <a href="settings/preferences">Preferences</a>.', ray('regName regAddr regPhone regEmail thisYear', $regName, r\regionfield('postalAddr'), $regPhone, r\regionfield('email'), date('Y'))));
+  return labeled(compact(ray('title ending subtext table summary list posttext submit')));
+}
+
+function formTaxInfo_validate($form, &$sta) {
+  if ($err = u\badDate($sta['input']['ending'])) return w\say($err, 'ending');
+}
+
+function formTaxInfo_submit($form, &$sta) {
+  r\go('history/tax-info/' . $sta['input']['ending']);
 }
 
 /**
@@ -4512,29 +4524,9 @@ EOF
 
   $footerText = item($markup); // unique name for this page
 //  $sid = db\lookup('sid', 'sessions', 'uid=:uid', ['uid' => $mya ? $mya->agentA->id : 0]);
-  $sid = session_id();
-  $life = ($mya and !isDEV) ? SESSION_LIFE : 0;
-
-  $js = <<< EOF
-//$(function() { // the DOM is ready enough (this being in the footer)
-var signoutUrl = '$base_url/signout/timedout';
-var ajaxUrl = '$base_url/ajax';
-var ajaxSid = '$sid';
-var sessionLife = 1000 * $life; // convert to seconds
-var signoutWarningAdvance = Math.min(sessionLife / 2, 5 * 60 * 1000); // give the user a few minutes to refresh
-var sTimeout = $life ? sessionTimeout() : 0; // Warn the user before automatically signing out.
-EOF;
   
-  js('js/jquery-ui.min.js', 'file', 'footer', -999);
-// apparently not needed  js('js/tether.min.js', 'file', 'footer', 0);
-  js('js/bootstrap.min.js', 'file', 'footer', 0);
-  js('js/spin.min.js', 'file', 'footer', 0); // used by ladda
-  js('js/ladda.min.js', 'file', 'footer', 0);
-  js('js/ie10-viewport-bug-workaround.js', 'file', 'footer', 0); // IE10 viewport hack for Surface/desktop 
-  js('js/misc.js', 'file', 'footer', 0);
-  js('js/jquery.confirm.min.js', 'file', 'footer', 0);
-  js('js/alert.js', 'file', 'footer', 0);
-  js($js, 'inline', 'footer', 1);
+  js('parse-query');
+  js('misc', 'baseUrl sid life', BASE_URL, session_id(), ($mya and !isDEV) ? SESSION_LIFE : 0);
   return compact('footerText');
 }
 

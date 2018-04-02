@@ -83,7 +83,7 @@ class Acct {
     }
     u\setDft($emailCode, r\cardCode(r\qid($uid)));
     
-    if (isset($number)) $success = SMS\create($number, $uid);
+//    if (isset($number)) $success = SMS\create($number, $uid);
 
     list ($a->id, $a->agentId) = array($uid, $uid); // finish creating the object
 
@@ -155,7 +155,7 @@ class Acct {
    * @return the value if it exists, else NULL
    */
   public function __get($field) {
-    global $mya;
+    global $mya, $pwV;
     $a = $this;
     $a->reread(); // make sure record has been read in
 
@@ -178,8 +178,8 @@ class Acct {
     if ($field == 'mainQid') return $a->qo->mainQid;
     if ($field == 'isAdmin2') return (bool) ($a->agentA->flags & u\bit(B_ADMIN2)); // not ->can() included by cAdmin etc. (see note in can())
 //    u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
-    if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decryptN($a->mail);
-    if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decryptN($ph);
+    if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decry('P', $a->mail);
+    if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decry('P', $ph);
     if ($field == 'phoneDash') return u\fmtPhone($a->phone, '-');
     if ($field == 'st') return r\realState($a->state, $a->country);
     if ($field == 'agentA') return r\acct($a->agentId);
@@ -197,6 +197,7 @@ class Acct {
     if ($field == 'owns') return !$a->risk('rents');
     if ($field == 'closed') return ($a->activated and !$a->ok); // data[newAccount] has new qid, if any
     if ($field == 'hasBank') return $a->risk('hasBank');
+    if ($field == 'balDpy') return $a->balance - $a->partRounds; // always display balance without partial roundups
     if ($field == 'lowSecurity') return u\n2ai(substr($a->created, -5, 5), 3); // result is 3 chars long
     if ($field == 'inviteCode') return $a->mainQid . $a->lowSecurity;
     if ($field == 'slave') return ($jid = $a->jid and $jid < $a->id); // slave in a joint account
@@ -209,42 +210,32 @@ class Acct {
     if ($field == 'partRounds') return db\sum('1-MOD(amount, 1)', 'r_txs', ':IS_ROUNDUP AND payer=:id AND MOD(amount, 1)>0 AND created>=:mday1', ray('id mday1', $this->id, u\monthDay1())); // not-yet-distributed change from rounded-up payments
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
       : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
+	  if ($field == 'tempPhotoFilename') return DRUPAL_ROOT . R_PICTURE_DIR . "$a->mainQid.jpg";
       
-    if (isset(self::$rs[$a->id]->$field)) {
+    if (isset(self::$rs[$a->id]->$field)) { // actual database field?
       $result = @self::$rs[$a->id]->$field; // returns NULL if field not set
-    } else $result = $a->getSpecial($field); // set up caches and get value, if appropriate
+    } else $result = $a->getSpecial($field); // set up caches for aggregate field and get value
+
+//  	if ($field == 'ssnData' and $result) $result = @unserialize($result);
     
 //    if ($field == 'raw') return $result;
     if ($nick == 'raw') return $result;
 
-    if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
+//    if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
 //    if ($field == 'hasPhoto') return $this->photo or file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE));
 //    if ($field == 'photo') return $result ? u\decrypt($result) : '';
 
-    if ($field == 'hasPhoto') return $a->co 
-    ? file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE))
-    : db\exists('r_photos', 'uid=:id', ['id' => $a->id]);
+    if ($field == 'hasPhoto') return db\exists('r_photos', 'uid=:id', ['id' => $a->id]);
+//    $a->co ? file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE)) : 
     
-    if ($field == 'photo') return $a->co
-    ? @file_get_contents(DRUPAL_ROOT . $this->photoFilename(TRUE))
-    : (($result = db\lookup('photo', 'r_photos', 'uid=:id', ['id' => $a->id])) ? u\decrypt($result) : '');
-    
-//    if ($field == 'photoX') return ($result = @self::$rs[$a->id]->photo) ?: ''; // return encrypted
-    if (in_array($field, ray(R_VSECURE_FIELDS)) and !is_array($result) and u\starts($result, CRYPT_FLAG)) { // !is_array() is temporary, for ssnData in transition
-      if (@$mya->superAdmin and $pw2 = @$_COOKIE['pw2']) {
-        $result = u\decrypt($result, 0, $pw2);
-        if ($field == 'ssnData') $result = unserialize($result);
-        return @self::$rs[$a->id]->$field = $result;
-      }
-    }
+    if ($field == 'photo') return ($result = db\lookup('photo', 'r_photos', 'uid=:id', ['id' => $a->id])) ? u\decry('H', $result) : '';
+//      return $a->co ? @file_get_contents(DRUPAL_ROOT . $this->photoFilename(TRUE)) :
 
-    if (in_array($field, ray('data changes secure')) and !is_array($result)) { // special not yet arrayed
+    
+    if (in_array($field, ray('data changes secure vsecure')) and !is_array($result)) { // special not yet arrayed
       if (!$result) return [];
-      if ($field == 'secure') $result = u\decrypt(u\decrypt($result, 1), 0);
-      if ($field == 'changes' and u\starts($result, CRYPT_FLAG)) {
-        self::$rs[$a->id]->rawChanges = $result;
-        $result = u\decrypt(u\decrypt($result, 1), 0);
-      }
+//      if ($field == 'changes') self::$rs[$a->id]->rawChanges = $result;
+      if ($field != 'data') $result = u\decry('S', $result);
       return (self::$rs[$a->id]->$field = unserialize($result));
     }
 
@@ -258,10 +249,14 @@ class Acct {
    */
   private function getSpecial($field) {
     $a = $this;
-    foreach (['data', 'secure'] as $k) {
+    foreach (ray('data secure vsecure') as $k) {
       if ($a->special($field, strtoupper($k))) {
-        if ($set = $a->$k ?: []) u\preray($set, self::$rs[$a->id]); // cache all components of the special field
-        return @$set[$field]; // must be separate line from $a->set (PHP bug)
+///        u\EXPECT(is_array($a->$k) or !$a->$k, 'special field not ray: ' . print_r($a->$k, 1) . ' isarray:' . is_array($a->$k));
+//        if ($set = $a->$k ?: []) u\preray($set, self::$rs[$a->id]); // cache the special field
+        $set = $a->$k ?: []; // special field $k gets cached by call to $a->$k
+        $result = @$set[$field];
+        if ($k == 'vsecure' and u\crypted('V', $result)) $result = u\decry('V', $result);
+        return $result; // must be separate line from $a->set (PHP bug)
       }
     }
     return NULL;
@@ -286,34 +281,42 @@ class Acct {
    */
   public function activate($helper) {
     $a = $this;
-    include_once __DIR__ . '/admin/admin.inc';
-    if (!$a->activated) { // first time activation
-      u\EXPECT($a->superAdmin, 'initial activation is only for superadmin');
+    u\EXPECT($mya = r\acct() and $mya->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
+
+    if ($firstTime = !$a->activated) { // first time activation
+//      u\EXPECT($a->superAdmin, 'initial activation is only for superadmin');
+      $a->update('activated', time() - 1); // must precede update of vsecure, so it gets V-encrypted
+      $a->update('vsecure', $a->vsecure); // hyper-encrypt
       $a->eachPartner(function($coA, $zot, $custCode) { // tell partner: account is activated
         if ($api = $coA->api()) u\post($api, ray('partnerCode qid op name', $coA->emailCode, $a->mainQid, 'complete', $a->fullName));
       });
+      $inviterName = @$a->helperA->fullName;
+      $subs = compact('inviterName');
+      $msg = 'approved';
+      r\message($a->id, $msg, $subs);
     }
+
     $DBTX = \db_transaction();
     u\EXPECT($helper, 'no helper!');
-    $a->update(compact('helper')); // this must happen before activating account (on next line)
-    r\membershipEvent($a, 'ok', TRUE);
+    $a->update(compact('helper'));
+    $a->setBit(B_OK, TRUE, TRUE);
     $a->setBit(B_NONUDGE, FALSE, TRUE);
-
-    a\secureVery($a);
-    if ($a->co) {unset($DBTX); return;}
     
-    be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
+    if ($firstTime and !$a->co) { // no bonus or helper bonus for a company signing up
+      be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
 
-    if (!$a->helperA->co and !$a->helperA->superAdmin) { // no helper bonus for companies or superAdmin (cAdmin is okay) [don't require $a->confirmed]
-      $fullName = $a->fullName;
-      be\fund($hId = $a->helper, TX_HELPER, R_HELPER_BONUS, t('invite reward', compact('fullName')));
-      $helped = db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) + 0;
-      if ($helped == ORGANIZER_GRANT_MIN) {
-//            r\message($a->helper, 'organizer grant', ['_a' => w\atag('/community/grant')]);
-        list ($name, $topic) = [$a->helperA->fullName, t('eligible')];
-        r\tellAdmin('eligible for grant', compact(ray('name topic')));
+      if (!$a->helperA->co and !$a->helperA->superAdmin) { // no helper bonus for company referral or help by superAdmin (cAdmin is okay) [don't require $a->confirmed]
+        $fullName = $a->fullName;
+        be\fund($hId = $a->helper, TX_HELPER, R_HELPER_BONUS, t('invite reward', compact('fullName')));
+        $helped = db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) + 0;
+        if ($helped == ORGANIZER_GRANT_MIN) {
+  //            r\message($a->helper, 'organizer grant', ['_a' => w\atag('/community/grant')]);
+          list ($name, $topic) = [$a->helperA->fullName, t('eligible')];
+          r\tellAdmin('eligible for grant', compact(ray('name topic')));
+        }
       }
     }
+    
     unset($DBTX); 
   }
 
@@ -437,39 +440,53 @@ class Acct {
       $info['r'] = round($info['r'], 2);
       unset($info['balance']);
     } */
-
     foreach ($bits = just(B_LIST, $info) as $k => $v) {$a->setBit($k, $v); unset($info[$k]);}
-    if ($a->ok and !isGAME) $info += $a->recordChanges(justNOT(B_LIST, $info)); // record changes if member is active
+    if ($a->ok) $info += $a->recordChanges(justNOT(B_LIST, $info)); // record changes if member is active
     foreach (just('hasBank', $info) as $k => $v) {$a->setRisk($k, $v); unset($info[$k]);}
 
     if (isset($info['photo'])) {
       if ($info['photo']) { // setting photo
-        db\update('r_photos', ray('uid photo', $a->id, u\crypt($info['photo'])), 'uid', TRUE);
+        db\update('r_photos', ray('uid photo', $a->id, u\cry('H', $info['photo'])), 'uid', TRUE);
       } else db\q('DELETE FROM r_photos WHERE uid=:uid', ['uid' => $a->id]);
       unset($info['photo']);
     }
-    if (isset($info['email'])) $info['mail'] = u\cryptN($info['email']);
-    if (isset($info['phone'])) $info['phone'] = u\cryptN($info['phone']);
+    if (isset($info['email'])) $info['mail'] = u\cry('P', $info['email']);
+    if (isset($info['phone'])) $info['phone'] = u\cry('P', $info['phone']);
+    if (isset($info['pass']) and $info['pass'] !== '') $info['pass'] = r\passHash($info['pass']);
+    u\preray($info, self::$rs[$a->id]); // cache the new field values (before doing special fields)
     
+    foreach (ray('data secure vsecure') as $special) {
+      if (isset($info[$special])) {
+        $sFlds = $info[$special]; // can be '' for no data
+      } elseif ($sFlds = just(constant('R_' . strtoupper($special) . '_FIELDS'), $info)) {
+        $sFlds += $a->$special;
+      } else continue;
+      if ($special == 'vsecure' and $a->activated and $sFlds) foreach ($sFlds as $k => $v) {
+        if (!u\crypted('V', $v)) $sFlds[$k] = u\cry('V', $v); // hyper-encrypt when activated (when auto-access to EIN no longer needed)
+      }
+      self::$rs[$a->id]->$special = $sFlds;
+      $sFlds = serialize($sFlds);
+      $info[$special] = ($special == 'data' or !$sFlds) ? $sFlds : u\cry('S', $sFlds);
+    }
+/*    
     if (isset($info['data'])) {
       $info['data'] = serialize($info['data']);
     } elseif ($data = just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data += $a->data);
 
     if (($set = isset($info['secure'])) or $sFlds = just(R_SECURE_FIELDS, $info)) { // serialize and encrypt
-
-      if (!$set and $mya and $mya->superAdmin and $pw2 = @$_COOKIE['pw2'] and $vflds = just(R_VSECURE_FIELDS, $sFlds)) {
-        foreach ($vflds as $k => $v) if (is_array($v) or !u\starts($v, CRYPT_FLAG)) { // is_array is temporary for ssnData in transition
-          if ($k == 'ssnData') $v = serialize($v);
-          $info[$k] = $sFlds[$k] = u\crypt($v . '', 0, $pw2);
-        }
-      }
-      $secure = $set ? $info['secure'] : ($sFlds + $a->secure);
-      $info['secure'] = u\crypt(u\crypt(serialize($secure), 0), 1);
+//  			if ($v = @$sFlds['ssnData']) $sFlds['ssnData'] = serialize($v);
+      $sec = $set ? ($info['secure'] ?: []) : ($sFlds + ($a->secure ?: []));
+      $info['secure'] = u\cry('S', serialize($sec));
     }
-    if (isset($info['pass']) and $info['pass'] !== '') $info['pass'] = r\passHash($info['pass']);
 
-    u\preray($info, self::$rs[$a->id]); // cache the new field values
-    $info = justNOT(R_SECURE_FIELDS . ' email ' . R_DATA_FIELDS, $info); // don't pass these
+    if (($set = isset($info['vsecure'])) or $sFlds = just(R_VSECURE_FIELDS, $info)) { // serialize and encrypt
+      $vsec = $set ? ($info['vsecure'] ?: []) : ($sFlds + ($a->vsecure ?: []));
+			if ($a->activated) foreach ($sFlds as $k => $v) $vsec[$k] = u\cry('V', $v); // hyper-encrypt when activated 
+      $info['vsecure'] = u\cry('S', serialize($vsec));
+    }
+	*/	
+
+    $info = justNOT(R_SECURE_FIELDS . ' ' . R_VSECURE_FIELDS . ' email ' . R_DATA_FIELDS, $info); // don't pass these
     return $info ? db\update('users', $info + ['uid' => $a->id], 'uid') : TRUE;
   }
 
@@ -491,14 +508,15 @@ class Acct {
     if (!$newChanges) return [];
   
     $changes = $a->changes; // must precede ->rawChanges
-    $encrypted = u\starts($a->rawChanges, CRYPT_FLAG);
+//    $encrypted = u\starts($a->rawChanges, CRYPT_FLAG);
 //    for ($k = r\rTime(); isset($changes[$k]); $k++);
     $time = r\rTime();
     if (isset($changes[$time])) {
       $changes[$time] += $newChanges;
     } else u\preray([$time => $newChanges], $changes); // put the new changes first
     $changes = serialize($changes);
-    if ($encrypted or just(R_SECURE_FIELDS, $newChanges)) $changes = u\crypt(u\crypt($changes, 0), 1);
+//    if ($encrypted or just(R_SECURE_FIELDS, $newChanges)) 
+		$changes = u\cry('S', $changes);
     return compact('changes');
   }
   
@@ -548,29 +566,13 @@ class Acct {
     }
     return true;
   }
-  
-  /**
-   * Return specified account's profile picture, with markup
-   * @param bool $unique: should the markup force reloading the image
-   * @return: markup to display the account's picture (with a default image if none)
-   * Use result with DRUPAL_ROOT . $result OR $base_url . $result
-   */
-  public function photoHtml($small = FALSE, $unique = FALSE) {
-    $a = $this;
-    global $base_url;
-    if ($unique) $unique = '?' . r\rTime();
-    $thing = $small ? 'icon' : 'photo';
-    $qid = $a->mainQid;
-    if (!$a->co) $qid .= "/$a->cardCode";
-    return '<div id="user-picture"><img src="' . "$base_url/settings/member-photo/$qid$unique" . '" alt="profile picture" /></div>';
-  }
 
   /**
    * Return the account's name and qid, with a link to a fuller description.
    */
   public function linkedDesc() {
     global $base_url;
-    $qid = "<a href=\"$base_url/summary/$this->mainQid\">$this->mainQid</a>";
+    $qid = "<a href=\"$base_url/change-account/acct=$this->mainQid&page=summary\">$this->mainQid</a>";
     return "$this->fullName ($qid)";
   }
   
@@ -833,12 +835,14 @@ EOF;
       if (!$ai->o_hasBank and $aj->o_hasBank) {
         $ai->update('bankAccount last4bank', $aj->o_bankAccount, $aj->o_last4bank);
         $ai->setRisk('hasBank');
-        $ai->setBit(B_REFILL, $aj->o_refill);
       }
 //      $ai->setBit(B_JOINED);
       foreach ($fields as $k) $$k = @$$k + $ai->o($k);
     }
+		
+		$a->masterA->setBit(B_REFILL, $a->o_refill or $b->o_refill);
     $achMin = max($a->o_achMin, $b->o_achMin); // one of the $fields
+		$minimum = $a->o_minimum + $b->o_minimum;
     $a->update(compact($fields)); // this sets master numeric fields to the sums, slave fields to zero
     unset($DBTX);
   }
@@ -864,7 +868,7 @@ EOF;
       list ($a1, $a2) = u\order($b->o_balance > $a->o_balance, $b, $a);
       if ($a1->ok and $a2->ok) { // no need to settle with closed or not-yet-open account
         $amount = round(($a1->o_balance - $a2->o_balance) / 2, 2);
-  ///      debug("amount=$amount a1=$a1->id bal=$a1->o_balance a2=$a2->id bal=$a2->o_balance");
+///      debug("amount=$amount a1=$a1->id bal=$a1->o_balance a2=$a2->id bal=$a2->o_balance");
         if ($amount > 0) be\transfer('payment', $a1, $a2, $amount, FOR_USD, t('joint account settlement'), NULL, ['force' => 1]);
       }
     } elseif ($b) {
@@ -894,14 +898,13 @@ EOF;
   /**
    * Return the appropriate photo for the account (a "no photo available" image, if none).
    * ($this->photo without parens is empty for companies and empty if there is no photo)
-   */
+   *//*
   public function photo() {
     return $this->hasPhoto ? $this->photo : @file_get_contents(BASE_URL . $this->photoFilename());
-  }
+  }*/
   
   /**
    * Return an auxiliary filename for the account.
-   * @param string $type: picture, picture2, or proof
    * @param bool $ideal: return the ideal normal name, even if the file does not exist (default FALSE)
    * @return: the relative file path (relative to Drupal)
    */
@@ -961,7 +964,8 @@ EOF;
     $a->update(compact('stepsDone'));
     if (!$nextStep = $a->nextStep()) {
       r\tellCO(t('New Member (%name)', ['name' => $a->fullName]));
-      r\membershipEvent($a, 'member');
+      $a->setBit(B_MEMBER);
+//    r\membershipEvent($a, 'member');
       $a->update('tickle', time());
     }
     return $nextStep;
@@ -1009,16 +1013,11 @@ EOF;
   /**
    * Check SSN secretly during a signup step (normally on the verify step as soon as we get federalId, unless already verified)
    */
-  public function verifySsnInBackground() {
-    if (!$this->ssnData) {  
-      $js = "get('ssn', {}, function () {});"; // research SSN verification, in background (sets stepDone('ssn'))
-      w\js($js, 'inline', 'footer');  
-    }
-  }
+  public function verifySsnInBackground() {if (!$this->ssnData) w\jsx('get-ssn');}
 
   /**
    * Decrypt and/or fix the bankAccount in a USD/rCredits exchange record.
-   */
+   *//*
   public function fixTxBankAccount(&$bankAccount, $txid) {
     $a = $this;
     $ba1 = $bankAccount = ($pw2 = @$_COOKIE['pw2']) ? u\decrypt($ba0 = $bankAccount, 0, $pw2) : '';
@@ -1028,6 +1027,7 @@ EOF;
       w\say(t('fixed bankAccount for %name txid #%txid', 'name txid', $a->fullName, $txid));
     }
   }
+	*/
   
   /**
    * Create a once-use password and return it.
@@ -1162,7 +1162,7 @@ EOF;
     global $channel;
     $a = $this;
     $payee = $a->id;
-    $bankAccount = @$a->secure['bankAccount']; // already-encrypted bank account (@ is for testing)
+    $bankAccount = @$a->vsecure['bankAccount']; // already-encrypted bank account (@ is for testing)
     if ($tx) extract($tx);
     u\setDft($tid, r\getUsdTid($payee));
     u\setDft($created, r\rTime());
@@ -1477,6 +1477,24 @@ EOF;
     return self::$perms[$id][$a->agentId] = $cans;
   }
 
+	/**
+	 * Encrypt the highly sensitive data private key for a new regional admin's sign-in form.
+	 * @param string $vKey: key text (PEM-formatted or not) or file path with key text
+	 *   If $vKey is omitted, get it from the current administrator
+	 *   WARNING: This function invalidates an admin's flash drive sign-in form.
+	 * @return the encrypted private key (vKeyE), encrypted with the account's own password (vKeyPw).
+	 */
+	public function makeVKeyE($vKey = '') {
+		$a = $this;
+		if (!$vKey = u\unfmtKey($vKey)) if (!$vKey = r\vKey()) return t('No private key given or available.');
+		$a->update('vKeyPw', $vKeyPw = openssl_random_pseudo_bytes(32));
+    if (isDEV) \variable_set('vKeyPw', $vKeyPw); // otherwise this gets lost during testing
+		$vKeyE = u\cry('R', $vKey, FALSE, $vKeyPw);
+///		debug('pwLen=' . strlen($vKeyPw) . ' vkELen=' . strlen($vKeyE));
+//	  r\setCryptCook('vKeyE', $vKeyE); // NO! (admin should sign out after calling with $vKey arg, to test it)
+		return u\b64encode($vKeyE); // ready for signin form on flash drive
+	}
+	
   /**
    * Call a function for each co-branding partner for whom the current account is a customer.
    * @param function(coA, custA, custCode) $func: the function to call, with three parameters:
@@ -1489,7 +1507,22 @@ EOF;
     $res = q($sql, ['id' => $this->id])->fetchAllKeyed();
     foreach ($res as $main => $code) $func(r\acct($main), $this, $code);
   }
-
+  
+  /**
+   * Return specified account's profile picture, with markup
+   * @param bool $unique: should the markup force reloading the image
+   * @return: markup to display the account's picture (with a default image if none or not permitted)
+   * Use result with DRUPAL_ROOT . $result OR $base_url . $result
+   */
+  public function photoHtml($small = FALSE, $unique = FALSE) {
+    $a = $this;
+    global $base_url;
+    if ($unique) $unique = '/' . r\rTime();
+    $thing = $small ? 'icon' : 'photo';
+//    if (!$a->co) $qid .= "/$a->cardCode";
+    return '<div id="user-picture"><img src="' . "$base_url/account-photo$unique" . '" alt="profile picture" /></div>';
+  }
+  
   /**
    * Get and store SSN verification from 3rd party (in the background).
    * ssn step is marked done if all of the following are true:
@@ -1504,7 +1537,7 @@ EOF;
     $a = $this;
     if (!@$a->federalId) return t('No SSN yet.');
     if ($a->federalId == '999999999') return t('SSN is a test.');
-    if (u\isEncrypted($a->federalId)) return t('SSN available only to superAdmin');
+//    if (u\isEncrypted($a->federalId)) return t('SSN available only to superAdmin');
     if (@$a->ssnData and !u\starts(@$a->ssnData[SSN_ERR_INDEX], SSN_TIMEOUT_MSG) and !$force) return $a->ssnData;
     
     $max = 5;
@@ -1606,9 +1639,9 @@ function acct($uid = '', $agent = '', &$error = '') {
   global $mya; // use this ONLY in this class file
   if (!$uid) return $mya ?: (!$error = 'There is no current account.');
   if (strpos($uid, '@')) {
-    $uid = db\lookup('uid', 'users', 'mail=:mail ORDER BY :IS_CO', ['mail' => u\cryptN($uid)]);
+    $uid = db\lookup('uid', 'users', 'mail=:mail ORDER BY :IS_CO', ['mail' => u\cry('P', $uid)]);
   } elseif (FALSE and preg_match('/[0-9]( |-|\\)) ?[0-9]{4}/', $uid)) {
-    $uid = db\lookup('uid', 'users', 'phone=:phone ORDER BY :IS_CO', ['phone' => u\cryptN(u\fmtPhone($uid, '+n'))]);
+    $uid = db\lookup('uid', 'users', 'phone=:phone ORDER BY :IS_CO', ['phone' => u\cry('P', u\fmtPhone($uid, '+n'))]);
   }
 //  if (!$ua = r\Acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   if (!$ua = r\Acct::viable($uid, $agent, $error, TRUE)) return FALSE;

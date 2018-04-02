@@ -9,7 +9,7 @@ use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Util as u;
 
-define('NO_LOGSQL_TABLES', 'r_do queue sessions r_invites r_log r_near r_nonmembers r_request cache_form r_stats'); // don't log deletions from these files
+define('NO_LOGSQL_TABLES', 'r_do queue sessions r_invites r_near r_nonmembers r_request cache_form r_stats'); // don't log deletions from these files
 
 /**
  * Do a database query with easy substitutions.
@@ -146,7 +146,7 @@ function logSql($args) {
   global $mya;
   $args = date('d') . ' ' . @$mya->mainQid . ': ' . u\jsonEncode($args);
   $args = strtr($args, ['\\"' => '', '"' => '', '\\n' => '|', ';}' => '}', ';' => '; ', ',' => ', ']);
-  $fileName = DRUPAL_ROOT . '/rlogs/' . date('Ym') . '.logsql'; // new log file every month
+  $fileName = DRUPAL_ROOT . LOG_DIR . date('Ym') . '.logsql'; // new log file every month
   file_put_contents($fileName, "$args\n", FILE_APPEND);
   return $fileName;
 }  

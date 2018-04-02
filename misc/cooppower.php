@@ -4,6 +4,7 @@
  * @file
  * Accept data from Coop Power Community Solar Signup
  * to populate Common Good signup page, initiating account setup.
+ * Copy this to the web root.
  */
 
 define('isDEV', in_array($_SERVER['SERVER_ADDR'], ['::1', '127.0.0.1'])); // developing

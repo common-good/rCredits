@@ -104,20 +104,20 @@ EOF;
   $links = <<<EOF
 <div id="txs-links" class="row">
   <div class="showMore col-xs-3">
-    <a onclick="javascript:showMore($pgFactor);" title="Show more transactions per page"><span class="glyphicon glyphicon-plus"></span>Show more</a>
+    <a title="Show more transactions per page"><span class="glyphicon glyphicon-plus"></span>Show more</a>
   </div>
   <div class="dates col-xs-2">
-    <a onclick="javascript:$('#dateRange, #edit-submitPeriod, #edit-submitDates').show(); $('#edit-downloadPeriod, #edit-downloadDates, #edit-downloadMsg').hide();" title="Select dates to show"><span class="glyphicon glyphicon-calendar"></span>Dates</a>
+    <a title="Select dates to show"><span class="glyphicon glyphicon-calendar"></span>Dates</a>
   </div>
   <div class="download col-xs-3">
-    <a onclick="javascript:$('#dateRange, #edit-downloadPeriod, #edit-downloadDates, #edit-downloadMsg').show(); $('#edit-submitPeriod, #edit-submitDates').hide();" title="Select dates and download as CSV file"><span class="glyphicon glyphicon-download-alt"></span>Download</a>
+    <a title="Select dates and download as CSV file"><span class="glyphicon glyphicon-download-alt"></span>Download</a>
   </div>
   <div class="totals col-xs-2">
     <a data-toggle="modal" data-target="#txs-totals" title="Show totals for the selected period"><span class="glyphicon glyphicon-usd"></span>Totals</a>
   </div>
   <div class="nav col-xs-1">
-    <a class="prevPage" onclick="javascript:showPage(-1);" title="Previous Page"><span class="glyphicon glyphicon-triangle-left"></span></a>
-    <a class="nextPage" onclick="javascript:showPage(+1);" title="Next Page"><span class="glyphicon glyphicon-triangle-right"></span></a>
+    <a class="prevPage" title="Previous Page"><span class="glyphicon glyphicon-triangle-left"></span></a>
+    <a class="nextPage" title="Next Page"><span class="glyphicon glyphicon-triangle-right"></span></a>
   </div>
 </div>
 EOF;
@@ -129,6 +129,9 @@ EOF;
   extract(just('simple advanced downloadMsg', $dateRange));
   $dateRange = w\fieldSet('dateRange', compact(ray('simple advanced downloadMsg')), BARE);
   $form = compact(ray('title dateRange summary transactions states'));
+  
+  jsx('paginate', compact('pgFactor'));
+  jsx('reverse-tx', 'msg title', t('Reverse this transaction?'), t('Reverse'));
 //  $onSubmit = "return $('$id').val() == '' ? true : who(this, '$id', '$question', $amount, $askGift);"
   return labeled($form);
 }
@@ -227,7 +230,7 @@ function txEdit($xid) {
   );
 
   $purpose = $toMe ? $payeeFor : $payerFor;
-  $orig = hidFld(htmlspecialchars(serialize($myx->ray)));
+  $orig = hidFld(serialize($myx->ray));
   $title = item(t('Edit Transaction'));
   $to = item(r\acct($toMe ? $payer : $payee)->fullName, $toMe ? t('From:') : t('To:'));
   $amount = textFld(t('Amount: $'), '', dft(number_format($amount,2)));
@@ -244,7 +247,7 @@ function txEdit_validate($form, &$sta) {
   global $base_url;
   global $mya;
   extract(just('created0 created amount goods purpose orig', $sta['input']));
-  extract($orig = unserialize(htmlspecialchars_decode($orig)), EXTR_PREFIX_ALL, 'x');
+  extract($orig = unserialize($orig), EXTR_PREFIX_ALL, 'x');
   $dif = abs($amount - $x_amount);
   
   if ($goods == FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
@@ -313,10 +316,11 @@ function txSummary($starting, $ending, &$endBalance = '') {
   $endingNow = ($ending > r\rTime());
   $previous_ending = $starting - 1;
   extract($nowInfo = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'n');
-  $endBalance = round($n_balance - $n_partRounds, 2);
+  $endBalance = round($n_balance - $n_roundups, 2);
   extract($pendingInfo = (array) be\creditInfo(ray('pending asof', TRUE, $ending)), EXTR_PREFIX_ALL, 'p');
   extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'o');
 ///  debug(compact('nowInfo','oldInfo'));
+  $startBalance = round($o_balance - $o_roundups, 2);
 
   $dif = [];
   foreach (ray('inProper outProper rewards bank savings roundups') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
@@ -324,11 +328,13 @@ function txSummary($starting, $ending, &$endBalance = '') {
   $p_committed = $mya->committed; // this will include all pending commitments
   $d_savings -= $d_rewards;
   list ($toSavings, $fromSavings) = u\order($d_savings >= 0, abs($d_savings), 0);
-  $d_outProper += $toSavings;
+  $d_outProper += $toSavings + $d_roundups;
   $d_inProper += $fromSavings;
   
   $fields = 'old bank in out rewards new';
-  $values = array($o_balance - $o_partRounds, $d_bank, $d_inProper, $d_outProper + $n_partRounds, $d_rewards, $endBalance); // both
+//  $values = array($o_balance - $o_partRounds, $d_bank, $d_inProper, $d_outProper + $n_partRounds, $d_rewards, $endBalance); // both
+//  $values = array($o_balance - $o_partRounds, $d_bank, $d_inProper, $d_outProper, $d_rewards, $endBalance); // both
+  $values = array($startBalance, $d_bank, $d_inProper, $d_outProper, $d_rewards, $endBalance); // both
   $values = array_combine(ray($fields), $values);
 
   $p_inProper = $p_outProper = $p_rewards = 0; // temporary until we include unpaid invoice data here
@@ -440,7 +446,7 @@ function formInvoices($form, &$sta, $toFrom, $args = '') {
 
   //simple advanced
   $form = compact('title', 'subtext') + $dateRange + compact(ray('list toFrom'));
-  if (@$downloaded) js("window.open(\"$url&download=1\", \"download\");", 'inline', 'footer');
+  if (@$downloaded) js('download', compact('url'));
   return labeled($form);
 }
 

@@ -37,6 +37,14 @@ function rweb_block_info() {
 }
 
 /**
+ * Implements hook_theme().
+ *//*
+function rweb_theme() {
+  foreach (ray('html page') as $k) $res[$k] = ray('template path', $k, 'rcredits/theme');
+  return $res;
+}*/
+
+/**
  * Implements hook_block_view().
  */
 function rweb_block_view($delta = '') {
@@ -90,7 +98,7 @@ function rweb_menu($submenu = '') {
     'history/invoices-from' => ['sub', t('Invoices FROM You'), 'Invoices from', 'read', '', t(''), 'log-out'],
     'history/statements' => ['sub', t('Statements'), 'Statements 2', 'read', '', t(''), 'list-alt'],
     'history/notices' => ['sub', t('Notices'), 'Notices 2', 'read', '', t(''), 'envelope'],
-    'history/tax-info' => ['sub', t('Tax Info'), 'TaxInfo', 'read', '', t(''), 'pawn'],
+    'history/tax-info' => ['sub', t('Tax Info'), 'TaxInfo 2', 'read', '', t(''), 'pawn'],
     'history/changes' => ['sub', t('See Changes'), 'SeeChanges', 'cadmin', '', t(''), 'refresh'],
     'history/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
     'history/statement' => ['call', t('Statement'), '2', 'read', 'statement'],
@@ -123,6 +131,7 @@ function rweb_menu($submenu = '') {
     'community/flags' => ['sub', t('Risk Flags'), 'Flags 2', ANY, '', t(''), 'flag'],
 //    'community/game' => isGAME ? ['sub', t('Game'), 'Game', ANY) : NULL,
     'community/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
+    'community/chart-data' => ['call', t('Chart Data'), '2', ANY, 'chartData'],
     
     'settings' => ['norm', t('Settings'), 'Settings', 'manage -closed'],
 //    'settings/settings' => ['dft', t('Settings'), 'Settings', 'manage'],
@@ -143,10 +152,8 @@ function rweb_menu($submenu = '') {
     'settings/password' => ['call', t('Request New Password'), 'Pass 2', ANY],
     'settings/security/change-password' => ['call', 'Change Password', 'ChangePassword', 'manage'],
 //    'settings/security/change-pin' => ['call', 'Change PIN', 'ChangePin', 'manage'],
-    'settings/member-photo' => ['call', 'Member Photo', '2 3', ANY, 'memberPhoto'],
     'settings/photo' => ['call', 'Photo', 'Photo 2', 'manage'],
     'settings/photo/upload' => ['call', 'Photo Upload', '3 4', ANY, 'photoUpload'],
-    'settings/icon' => ['call', 'Icon', 'Icon', 'read'],
 //    'settings/verify-phone' => ['call', 'Verify Phone', 'VerifyPhone', 'manage dw'],
 //    'settings/readd-phone' => ['call', 'reAdd Phone', '', 'manage dw', 'addPhone'],
     'settings/basic' => ['call', 'Basic', 'Basic', 'manage'],
@@ -194,13 +201,17 @@ function rweb_menu($submenu = '') {
     'sadmin/organizer-list' => ['call', t('Organizer List'), 'OrganizerList 2', 'admin'],
     'rcredits/util' => ['call', 'Util', '2', 'superadmin', 'util'],
     'sadmin/recover' => ['call', t('Empty'), 'TestRecovery 1', 'dev'], // also go here manually, if needed
+    'sadmin/delete-account' => ['call', t('Delete Account'), '2', 'superadmin', 'deleteAccount'],
     'print-rcard' => ['call', t('Print ID Card'), '1 2', 'cadmin', 'memberID'],
+    'sadmin/show-deposits' => ['call', t('Show Deposits'), 'ShowDeposits', 'read'],
 
     'signout' => ['norm', t('Sign out'), '1', 'signedIn', 'signout'],
     'signin' => ['norm', t('Sign in'), 'Signin', 'signedOut'],
 //    'signin' => ['call', 'Sign in', 'Signin', ANY],
 //    'sinx' => ['call', 'Sign in from elsewhere', 'Sinx', ANY],
     
+    'account-photo' => ['call', 'Account Photo', 'AccountPhoto 1', ANY],
+    'account-icon' => ['call', 'Icon', 'AccountPhoto small=1', ANY],
     'help' => ['call', t('Help'), 'Help 1 2', ANY],
     'cgbiz' => ['call', t('Common Good Business'), 'CgBiz 1', ANY],
     'change-account' => ['call', t('Change Who'), '1', ANY, 'changeWho'],
@@ -238,14 +249,14 @@ function rweb_menu_alter(&$items) {
 }
 
 function rweb_form_alter(&$form, &$sta, $form_id) {
-  global $base_url;
+  global $base_url, $mya;
   $req = basename($_SERVER['REQUEST_URI']);
 ///  debug(compact('req','form_id'));
-  if (!\user_is_logged_in() and in_array($req, ['login', 'logout'])) return r\go(PROMO_URL); // nothing else works
+  if (!$mya and in_array($req, ['login', 'logout'])) return r\go(PROMO_URL); // nothing else works
 /*  if ($req == 'login' and !user_is_logged_in()) {header("location:$base_url/" . (isGAME ? 'community/game' : 'signin')); exit();} // nothing else works
   if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isGAME ? "$base_url/community/game" : (isDEV ? 'http://localhost' . DEV_ROOT : BASE_URL) . '/signin')); exit();} // nothing else works */
 //  if ($req == 'user' and user_is_logged_in()) return r\go(isGAME ? 'community/game' : 'summary'); // summary not ''
-  if ($req == 'user' and user_is_logged_in()) return r\go('summary'); // summary not ''
+  if ($req == 'user' and $mya) return r\go('summary'); // summary not ''
   foreach ($form as $k => $v) if (@$v['#type'] == 'submit') {$submit1 = @$v['#id'] ?: "edit-$k"; break;}
   $form['opid'] = w\hidFld(@$submit1 ?: 'none', ['name' => 'opid']); // default to first, in case submitted programmatically
 }

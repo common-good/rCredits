@@ -56,11 +56,12 @@ function questionList($eid, $question='', $doWhat='') {
 
 		$budget = $budget ? (' (total budget: ' . ($units ? '' : '$') . number_format($budget, 0) . ($units ? " $units)" : ')')) : '';
 		$phaselist = phaseDpy($id, $phase, $repeats, $repeatedBy, $linkIdeas, $linkProposals);
+// <div class="details" onclick="$('#qdetails' + $id).toggle();">
 
 		$list .= <<<EOF
 <div class="qline clearfix">
 <div class="phase">$phaselist</div phase>
-<div class="details" onclick="$('#qdetails' + $id).toggle();">
+<div class="details" data-toggle="collapse" data-target="#qdetails$id">
 	<div class="id">$id</div id>
 	<div class="text">$text$budget</div text>
 	<div class="date">$endDatedpy</div date>
@@ -75,14 +76,14 @@ EOF;
     if($endDatedpy == '?') $endDatedpy = 'not set';
 
     if($id == $question) {
-      $qstyle = " style='display:block;'";
+      $qstyle = 'blockish';
       $opts = ($doWhat == 'options') ? getOpts($id) : '';
       $results = ($doWhat == 'results' or true) ? getresults($id) : '';
     } else $qstyle = $opts = $results = '';
 
   //<div class='ballot' style='border:0;'>
     $qdivs .= <<<EOF
-<div id='qdetails$id' class='ballot qdetails'$qstyle>
+<div id="qdetails$id" class="ballot qdetails$qstyle">
 <div class='question'><b>Question #$id:</b> $text$budget</div question>
 <div class='see'><b>See:</b> $see</div see>
 <div class='date'><b>Ending date:</b> $endDatedpy</div date>
@@ -128,14 +129,16 @@ function getOpts($question) {
 function getOpt($opti, $opttext, $optdetail) {
   global $rUrl;
   
-	$expandimgstyle = $optdetail ? '' : " style='visibility:hidden;'";
+//	$expandimgstyle = $optdetail ? '' : " style='visibility:hidden;'";
+	$expandimgclass = $optdetail ? '' : " invisible";
 	$rowclass = ($opti & 1) ? 'odd' : 'even';
 //  $iDpy = $opti + 1;
+//<div class="item"><img id="expand$opti" class="expand" index="$opti" src="$rUrl/images/rvote/expand.gif" alt="show detail" title="show detail" width="13" height="13" onclick="expandOpt($opti);"$expandimgstyle />&nbsp;
   
 	return <<<EOF
 <div class="optRow $rowclass">
 <div class="rowwrapper">
-<div class="item"><img id="expand$opti" src="$rUrl/images/rvote/expand.gif" alt="show detail" title="show detail" width="13" height="13" onclick="expandOpt($opti);"$expandimgstyle />&nbsp;
+<div class="item"><img src="$rUrl/images/rvote/expand.gif" id="expand$opti" class="expand$expandimgclass" index="$opti" alt="show detail" title="show detail" width="13" height="13" />&nbsp;
 <b>Option:</b> $opttext</div item>
 <div id="optdetail$opti" class="optdetail">
 <div id="optdetailtext$opti" class="optdetailtext"><div class="optdetailheader">DETAIL:</div optdetailheader>$optdetail<br>&nbsp;</div optdetailtext$opti>
@@ -181,13 +184,17 @@ function phaseOther($ltr, $phase, $href) {
 }
 
 function phaseDpy1($ltr, $href, $class, $title) {
-	$target = strpos($href, '?') ? "target='_blank'" : '';
-	$ans = "<div class='$class' title='$title'>$ltr</div>";
+  if (is_numeric($href)) {
+    $class .= ' qdetailer';
+    $index = " index=\"$href\"";
+    $href = '';
+  } else $index = '';
+  
 	if($href) {
-		if(is_numeric($href)) $href = "javascript:$('#qdetails' + $href).toggle();";
-		$ans = "<a href=\"$href\" $target>$ans</a>";
-	}
-	return $ans;
+//		if (is_numeric($href)) $href = "javascript:$('#qdetails' + $href).toggle();";
+    $target = strpos($href, '?') ? "target=\"_blank\"" : '';
+		return "<a href=\"$href\" $target>$ans</a>";
+	} else return "<div class=\"$class\"$index title=\"$title\">$ltr</div>";
 }
 
 function getresults($question) {

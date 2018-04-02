@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.31'); // software version
+define('R_VERSION', '3.39b'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -23,6 +23,10 @@ define('PROMO_URL', isDEV ? 'http://localhost/cgPromo/_site' : 'http://' . CG_DO
 
 define('STAGE', 'ws.rcredits.org'); // staging site (for secrets, etc.)
 define('GAME_SITE', 'game.' . CG_DOMAIN);
+
+define('SCRIPTS_TOP', 'x/jquery-3.3.1.min x/jquery.once x/jquery-ui.min x/bootstrap.min x/spin.min x/ladda.min x/ie10-viewport-bug-workaround x/jquery.confirm.min x/alert');
+//define('SCRIPTS', 'form goo-jsapi misc charts chart-data download croppic crop-setup ballot x/bootstrap.slider.min countries print-country focus-on x/typeahead.bundle.min suggest-who on-submit chimp followup-email get-ssn change-ctty advanced-dates advanced-prefs bank-prefs which funding-criteria signup prejoint invite-link gift drupal user extend-settings'); // all possible scripts, in order (after SCRIPTS_TOP)
+define('SCRIPTS', 'x/bootstrap-toggle.min parse-query misc croppic crop-setup ballot x/bootstrap.slider.min countries x/typeahead.bundle.min on-submit drupal user scraps'); // all possible scripts, in order (after SCRIPTS_TOP)
 
 define('DEV_ROOT', '/cgMembers'); // path to drupal root on DEV machine
 define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)
@@ -96,9 +100,9 @@ define('MASTER_NUMERIC_FIELDS', 'minimum achMin savingsAdd saveWeekly');
 define('MASTER_FIELDS', MASTER_NUMERIC_FIELDS . ' hasBank bankAccount last4bank refill'); // only in master, for joint accounts
 define('R_MONEY_FIELDS', 'balance rewards floor committed'); // financial amount fields in account record
 define('JOINT_FIELDS', R_MONEY_FIELDS . ' savings'); // add these together for joint accounts
-define('R_VSECURE_FIELDS', 'federalId ssnData dob bankAccount'); // very secure fields (admin-encrypted)
-define('R_SECURE_FIELDS', R_VSECURE_FIELDS . ' pw2 address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass last4bank'); // non-personal encrypted fields (must be complete list)
-define('R_HIDE_CHANGES', R_MONEY_FIELDS . ' pw2 ssnData changes init login access activated data secure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank lastip tickle'); // do not record changes to these fields: anything often-changed (automatically or not)
+define('R_VSECURE_FIELDS', 'federalId dob bankAccount'); // very secure fields (pgp-encrypted)
+define('R_SECURE_FIELDS', 'pw2 vKeyPw ssnData address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass last4bank'); // non-personal encrypted fields (must be complete list)
+define('R_HIDE_CHANGES', R_MONEY_FIELDS . ' pw2 vKeyPw ssnData hasBank changes init login access activated data secure vsecure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank lastip tickle payrollStart payrollEnd'); // do not record changes to these fields: anything often-changed (automatically or not)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
 //define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_AVAIL_BUY', '(balance+rewards-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
@@ -107,15 +111,16 @@ define('R_AVAIL_CASH', '(r-GREATEST(0, floor, rewards))'); // balance available 
 define('R_SHARE_MAX', 50); // minimum sharing percentage
 define('R_SHARE_DFT', 25); // default sharing percentage
 define('R_SHARING_MSG', t('sharing rewards with CGF'));
+define('USERNAME_MAX_LENGTH', '100'); // max length of "name" field
 
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
-define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
+define('DRUPAL_UID_TABLES', 'sessions');
 define('PERSONAL_STEP_COUNT', t('seven'));
 define('COMPANY_STEP_COUNT', t('eight'));
 define('R_STEPS', 'signup:signup, verify, ssn, sign:community/agreement, donate:community/donate, proxies, prefs:settings/preferences, connect, company, relations, photo'); // membership steps
-define('R_NOLOG', R_SECURE_FIELDS . ' data secure secret oneTimeLoginUrl password pass pass1 pass2 newPass external_input'); // don't log these (external_input may contain passwords)
+define('R_NOLOG', R_SECURE_FIELDS . ' ' . R_VSECURE_FIELDS . ' data secure vsecure secret oneTimeLoginUrl password pass pass1 pass2 newPass external_input'); // don't log these (external_input may contain passwords)
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts history settings settings/icon community Summary Php'); // don't log visits to these forms
 define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin PageNotFound Sinx Pass Empty TestRecovery ChangePassword Help Community Democracy Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
 define('SSN_ERR_INDEX', 'CGerror'); // where to put/find error messages in ssnData
@@ -222,11 +227,12 @@ define('CO_API_URL', isDEV ? 'http://%website/cgapi/%etc' : 'https://%website/co
 define('R_TEMPLATE_DIR', '/templates');
 define('R_EMAIL_FRAME', 'email-frame');
 
-define('R_PICTURE_DIR', '/photos/'); // precede this by DRUPAL_ROOT (file) or $base_url (url)
-define('R_PROOF_DIR', '/proofs/');
+define('R_PICTURE_DIR', '/../cgPhotoTemp/'); // precede this by DRUPAL_ROOT (file) or $base_url (url)
+//define('R_PROOF_DIR', '/proofs/'); UNUSED
 define('R_DFT_PICTURE', 'no-photo-available.jpg'); // default profile picture
 define('R_DFT_PICTURE_WIDE', 'no-photo-available-wide.jpg'); // default profile picture
 define('R_NOT_VALID', 'not-valid.png'); // says rcard is not valid for purchases
+define('LOG_DIR', '/../cgLogs/'); // where to store log files
 
 // account type bits
 $GLOBALS['account types'] = array(t('personal'), t('sole proprietor'), t('partnership'), t('private corporation or LLC'), t('nonprofit or government'), t('publicly-traded corporation'), t('co-operative, association, or club'));
@@ -274,7 +280,7 @@ define('APP_CAN_BIT_DESCS', t('charge customers,undo last transaction,give %RCRE
 define('B_MEMBER', 0); // fulfilled membership requirements (ready to be approved).
 define('B_CONFIRMED', 1); // invitation has been confirmed (in advance by form invite OR explicitly OR implicitly by newb first buying from the inviter in person)
 define('B_OK', 2); // can use rCredits for real (set by admin when ready). Set FALSE to freeze ctty funds (NYI)
-define('B_u3', 3); //
+define('B_CARDED', 3); // card has been printed and mailed
 define('B_IDED', 4); // a cashier has verified the member's government-issued photo ID
 define('B_REFILL', 5); //
 define('B_CO', 6); // company account
@@ -303,8 +309,8 @@ define('B_CADMIN2', 28); // is a community sub-administrator (read-only except n
 define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
-define('B_ADMINABLE', 'confirmed member cAdmin cAdmin2 nonudge cgc invites rewardy noneg'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok u3 ided refill co cashout roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings u23 u24 u25 u26 admin2 cAdmin2 cAdmin admin');
+define('B_ADMINABLE', 'member confirmed carded cAdmin cAdmin2 nonudge cgc invites rewardy noneg'); // for cAdmin to set
+define('B_LIST', 'member confirmed ok carded ided refill co cashout roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings u23 u24 u25 u26 admin2 cAdmin2 cAdmin admin');
 
 // community-specific flags
 define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)

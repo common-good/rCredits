@@ -50,18 +50,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Bank AMemberMovesTooMuchToTheBank
  *     MAKE Bank AMemberTriesToGoBelowTheirMinimum
  *     MAKE Bank AMemberAsksToDoTwoTransfersOutInOneDay
- *     MAKE BankInfo AMemberConnectsABankAccount
- *     MAKE BankInfo AMemberChoosesNotToConnectABankAccount
- *     MAKE BankInfo AMemberChoosesAutomaticRefills
- *     MAKE BankInfo AMemberDisconnectsABankAccount
- *     MAKE BankInfo AMemberGivesABadRoutingNumber
- *     MAKE BankInfo AMemberGivesABadAccountNumber
- *     MAKE BankInfo AMemberGivesMismatchedAccountNumbers
- *     MAKE BankInfo AMemberGivesABadTargetAmount
- *     MAKE BankInfo AMemberGivesABadMinimumTransferAmount
- *     MAKE BankInfo AMemberChoosesTooLowATargetWithAPositiveBalance
- *     MAKE BankInfo AMemberChoosesTooLowATargetWithANegativeBalance
- *     MAKE BankInfo AMemberChoosesTooLowAnACHMinimum
  *     MAKE EditTx AMemberConfirmsOKForADisputedTransaction
  *     MAKE Exchange AMemberAsksToChargeAnotherMember
  *     MAKE Exchange AMemberAsksToPayAnotherMember
@@ -188,8 +176,6 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  * members: (ARG)
  *
  * in: MAKE Bank Setup
- *     MAKE BankInfo Setup
- *     TEST BankInfo AMemberConnectsABankAccount
  *     MAKE Community Setup
  *     MAKE Company Setup
  *     TEST Company AMemberUpdatesCompanyInfo
@@ -239,9 +225,6 @@ function members($list) {return t\members($list);}
  * transactions: (ARG)
  *
  * in: MAKE Bank Setup
- *     MAKE BankInfo Setup
- *     MAKE BankInfo AMemberChoosesTooLowATargetWithAPositiveBalance
- *     MAKE BankInfo AMemberChoosesTooLowATargetWithANegativeBalance
  *     MAKE Community Setup
  *     MAKE Download Setup
  *     MAKE EditTx Setup
@@ -286,9 +269,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Bank AMemberTriesToCashOutRewardsAndorPendingWithdrawals
  *     TEST Bank AMemberMovesTooMuchToTheBank
  *     TEST Bank AMemberAsksToDoTwoTransfersOutInOneDay
- *     TEST BankInfo AMemberGivesMismatchedAccountNumbers
- *     TEST BankInfo AMemberChoosesTooLowATargetWithAPositiveBalance
- *     TEST BankInfo AMemberChoosesTooLowATargetWithANegativeBalance
  *     TEST EditTx ABuyerTriesToDecreaseAPaymentAmount
  *     TEST EditTx AMemberConfirmsOKForADisputedTransaction
  *     TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
@@ -324,7 +304,7 @@ function weSayWithSubs($type, $index, $subs) {
   if (isset($subs['email'])) t\fixEmail($subs['email']);
   $msg0 = t($index);
   foreach ($subs as $key => $value) {
-    if ($value == '?') $wild = $subs[$key] = \user_password(); // mark the wildcard spot
+    if ($value == '?') $wild = $subs[$key] = u\randomString(20, 'word'); // mark the wildcard spot
     if (strpos($msg0, "%$key") === FALSE) return t\output("missing sub '$key' in message '$index'");
   }
   $wantMsg = t($index, $subs);
@@ -354,11 +334,6 @@ function weSayWithSubs($type, $index, $subs) {
  *
  * in: TEST Bank AMemberMovesTooLittleToTheBank
  *     TEST Bank AMemberTriesToGoBelowTheirMinimum
- *     TEST BankInfo AMemberGivesABadRoutingNumber
- *     TEST BankInfo AMemberGivesABadAccountNumber
- *     TEST BankInfo AMemberGivesABadTargetAmount
- *     TEST BankInfo AMemberGivesABadMinimumTransferAmount
- *     TEST BankInfo AMemberChoosesTooLowAnACHMinimum
  *     TEST Company AMemberUpdatesCompanyInfo
  *     TEST Contact AMemberUpdatesContactInfo
  *     TEST Contact AMemberGivesABadPhone
@@ -412,12 +387,7 @@ function weTellAdminWithSubs($topic, $subs) {return t\weTellAdmin($topic, $subs)
 /**
  * we show (ARG)
  *
- * in: TEST BankInfo AMemberVisitsTheBankInfoPageBeforeConnecting
- *     TEST BankInfo AMemberConnectsABankAccount
- *     TEST BankInfo AMemberChoosesNotToConnectABankAccount
- *     TEST BankInfo AMemberChoosesAutomaticRefills
- *     TEST BankInfo AMemberDisconnectsABankAccount
- *     TEST Membership AMemberSignsInForTheFirstTime
+ * in: TEST Membership AMemberSignsInForTheFirstTime
  *     TEST PartnerSignup ANewbieVisitsTheRegistrationPageSentByAPartner
  *     TEST Signin AMemberSignsInWithUsernameOnTheMemberSite
  *     TEST Signin AMemberSignsInWithAccountIDOnTheMemberSite
@@ -454,7 +424,6 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  * we show (ARG) with: (ARG)
  *
  * in: TEST Bank AMemberAsksToDoTwoTransfersOutInOneDay
- *     TEST BankInfo AMemberVisitsTheBankInfoPageAfterConnecting
  *     TEST Community CronCalculatesTheStatistics
  *     TEST Company AMemberVisitsTheCompanyInfoPage
  *     TEST Contact AMemberVisitsTheContactInfoPage
@@ -590,8 +559,6 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Bank AMemberMovesCreditToTheBank
  *     TEST Bank AMemberDrawsCreditFromTheBankWithZeroFloor
  *     TEST Bank AMemberDrawsCreditFromTheBankWithAdequateFloor
- *     TEST BankInfo AMemberChoosesTooLowATargetWithAPositiveBalance
- *     TEST BankInfo AMemberChoosesTooLowATargetWithANegativeBalance
  *     TEST Community Setup
  *     TEST Download Setup
  *     TEST EditTx Setup
@@ -639,10 +606,7 @@ function usd($list) {return t\usd($list);}
 /**
  * member (ARG) visits page (ARG)
  *
- * in: MAKE BankInfo AMemberVisitsTheBankInfoPageBeforeConnecting
- *     MAKE BankInfo AMemberVisitsTheBankInfoPageAfterConnecting
- *     MAKE BankInfo AMemberDisconnectsABankAccount
- *     MAKE Community CronCalculatesTheStatistics
+ * in: MAKE Community CronCalculatesTheStatistics
  *     MAKE Company AMemberVisitsTheCompanyInfoPage
  *     MAKE Contact AMemberVisitsTheContactInfoPage
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
@@ -694,9 +658,10 @@ function memberVisitsPage($id, $page) {return t\memberVisitsPage($id, $page);}
  *     MAKE Signup Setup
  */
 function memberIsLoggedOut() {
-  global $testOnly;
+  global $testOnly, $mya;
+  w\setAcct(); // make sure we notice, if signed in
   //u\deb('memberIsLoggedOut top loggedin=' . \user_is_logged_in());
-  if ($testOnly) return !r\acct();
+  if ($testOnly) return !$mya;
   w\setAcct(NULL);
   return TRUE;
 }
@@ -974,10 +939,7 @@ function statisticsGetSet($time) {
 /**
  * members have: (ARG)
  *
- * in: TEST BankInfo AMemberChoosesNotToConnectABankAccount
- *     TEST BankInfo AMemberChoosesAutomaticRefills
- *     TEST BankInfo AMemberDisconnectsABankAccount
- *     MAKE Download AMemberDownloadsTransactionsForThePastYear
+ * in: MAKE Download AMemberDownloadsTransactionsForThePastYear
  *     MAKE Invoice AMemberApprovesInvoicesForevermore
  *     TEST Joint AMemberRequestsAJointAccount
  *     BOTH Joint AJoinedAccountSlaveMemberRequestsANewMinimum
@@ -1130,8 +1092,8 @@ function aMemberPostsToWithValues($page, $values) {return memberConfirmsFormWith
  *     TEST Signin AMemberClicksALinkToResetPassword
  */
 function memberIsLoggedIn($id) {
-  global $testOnly;
-  return $testOnly ? (\user_is_logged_in() and $mya = r\acct() and t\uid($id) == $mya->id) : t\login($id);
+  global $testOnly, $mya;
+  return $testOnly ? ($mya and $mya = r\acct() and t\uid($id) == $mya->id) : t\login($id);
 }
 
 /**
@@ -1184,6 +1146,7 @@ function memberCompletesRelationsFormWithValues($id1, $list) {
       }
     }
   }
+	debug($list);
   return t\completeForm($id1, "settings/relations", $list, TRUE);
 }
 
@@ -1313,10 +1276,7 @@ function weShowUnchecked($what) {return weShowChecked($what, FALSE);}
 /**
  * radio (ARG) is (ARG)
  *
- * in: TEST BankInfo AMemberVisitsTheBankInfoPageBeforeConnecting
- *     TEST BankInfo AMemberVisitsTheBankInfoPageAfterConnecting
- *     TEST BankInfo AMemberDisconnectsABankAccount
- *     TEST Preferences AMemberVisitsThePreferencesPage
+ * in: TEST Preferences AMemberVisitsThePreferencesPage
  *     TEST Preferences AnotherMemberVisitsThePreferencesPage
  */
 function radioIs($k, $v) {

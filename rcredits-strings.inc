@@ -89,7 +89,7 @@ $GLOBALS['tStrings'] = array(
   'short invoice' => t('Your balance is %short short, to pay your invoice from %payeeName.'),
   'expect a transfer' => t('Funds will be transferred from your connected bank account to cover this payment.'),
   'finish signup' => t('<b class="loud">IMPORTANT</b>: You must sign in at %CG_DOMAIN and finish setting up your %PROJECT account before this payment can be made.'),
-  'when funded' => t('This payment will be made as soon as you put enough money in your account.'),
+  'when funded' => t('This payment will be made as soon as you put enough money in your account. To put money in your account, trade Dollars for %PROJECT Credits at a participating business or with another member OR sign in at %CG_DOMAIN and click "Bank" on the menu, to connect a bank account and transfer funds.'),
   'auto pay on' => t('From now on your invoices from %payeeName will be approved and paid automatically, drawing funds from your connected bank account as needed. (We do not expect there to be overdraft problems, of course, but if there are, you will be responsible for them.)'),
   'invoice denied' => t('<p><b>Invoice DENIED:</b> Your customer %payerName has declined to pay the following invoice:</p>
   <blockquote>%created %amount for "%purpose"</blockquote>

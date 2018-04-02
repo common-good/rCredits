@@ -276,13 +276,24 @@
 				
 				var img =$('<img src="'+ that.options.loadPicture +'">');
 				that.obj.append(img);
-				img.load(function() {
+
+/*
+  	  	img.load(function() {
 					that.imgInitW = that.imgW = this.width;
 					that.imgInitH = that.imgH = this.height;
 					that.initCropper();
 					that.hideLoader();
 					if (that.options.onAfterImgUpload) that.options.onAfterImgUpload.call(that);
 				});	
+*/
+        
+        img[0].addEventListener('load', function () { // cg 2018-04-02 because jquery-3.1.1 fails with standard call, above
+					that.imgInitW = that.imgW = this.width;
+					that.imgInitH = that.imgH = this.height;
+					that.initCropper();
+					that.hideLoader();
+					if (that.options.onAfterImgUpload) that.options.onAfterImgUpload.call(that);
+				});
 						
 			}else{					
 				that.cropControlRemoveCroppedImage.on('click',function(){ 

@@ -55,7 +55,7 @@ Setup:
   |       7 | $400   | four    |    4 | Our Pub   |
   And we message "stale invoice report" to member ".ZZC" with subs:
   | daysAgo | amount | purpose | nvid | payerName | created |*
-  |       7 | $400   | four    |    4 | Abe One   | %mdy-1w |
+  |       7 | $400   | four    |    4 | Abe One   | %mdY-1w |
   Then balances:
   | id   | balance | rewards |*
   | .ZZA |    -100 |     255 |

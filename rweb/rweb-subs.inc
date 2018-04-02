@@ -45,7 +45,7 @@ EOF
   'changed agent' => t('You successfully changed the agent to %agentName.'),
   'changed account' => t('You successfully changed the account to %accountName.'),
   'signed agreement' => t('You signed the %PROJECT Agreement on %date.'),
-  'downloading' => t('Your download will begin shortly...'),
+  'downloading' => t('Your download has begun!'),
   'changed account' => t('You are now managing the account for %newAcct.'),
   'lost old changes' => t('Any unsaved changes to account %oldAcct have been discarded.'),
 //  'take a step' => t('Your account is <b class="stopnot">not yet activated.</b> <a href="%BASE_URL/status" class="nextstep">Click here for the next step!</a>.'),
@@ -94,7 +94,7 @@ EOF
   'to scan another' => t('To scan another card, run the QR Scanner app again.'),
   'invite links' => t('<p>Here are your links, to include in your own email messages to your friends. Be sure to mention they can visit %CG_DOMAIN for more information.</p><p>%links</p>'),
   'timed out' => t('You were automatically signed out, to protect your account(s).'),
-  'secure msg' => t('%who sent you a secure message (see their Summary page).'),
+  'msg to admin' => t('%who sent you a message.'),
   'secure attach' => t('[<_%aAttach>Attachment</a>: %name type=%type size=%size bytes]'),
   'new customer welcome' => t('<h2>Congratulations!</h2><p>You have successfully completed your sign-up with %partnerName.</p><p><b class="loud">But wait!</b> You still need to sign up with %PROJECT, in order to be able to PAY %partnerName for their services.</p><p>%PROJECT is also worthwhile on its own merits. Fill out this form to get started.</p>'),
   
@@ -184,7 +184,7 @@ EOF
   'missing currency' => t('You must choose %RCREDITS, USD, or both.'),
   'download always both' => t('Note: Downloads always include both %RCREDITS and USD amounts.'),
 //  'sign in to scan' => t('You must <a href="/user/login">sign in</a> (or scan yourself in) BEFORE scanning a customer card.'),
-  'change min first' => t('That request would leave you with less than your target balance. <%a>Lower your target balance</a> first.','_a', w\atag('/settings/preferences')),
+  'change min first' => t('That request would leave you with less than your target balance. <%a>Lower your target balance</a> first.','_a', w\atag('/settings/connect')),
   'bad member id' => t('That is not a valid member ID!'),
   'bad card' => t('That is not a valid member ID.'),
   'bad card code' => t('This %PROJECT Card is not valid.'),
@@ -217,7 +217,7 @@ EOF
   'bad payroll employee' => t('%employee is mispelled, does not have an active %PROJECT Account, or is not listed as an employee on your Relations page. Click Settings, then Relations.'),
   'illegal amount change' => t('You cannot %action the original amount (%amount). <%a>Send an invoice</a> instead.'),
   'bad achmin' => t('The minimum transfer amount must be at least $%R_ACHMIN.'),
-  'say why not' => t('You must say why you are denying the invoice.'),
+  'say why not' => t('You must say why you are disputing the invoice.'),
   'no co pass' => t('Company accounts do not have passwords. Sign in to your personal account, then click your photo in the upper right corner and select %company from the dropdown.'),
   'account number mismatch' => t('You must have mistyped your account number once. Try again.'),
   'yes or no' => t('You must answer Yes or No.'),
@@ -248,28 +248,14 @@ function submitForm($form, $sta) {
 
 /**
  * Convert URLs to hyperlinks
- */
+ *//* (replaced by parsedown
 function linkify($text) {
     $text = preg_replace('`(((f|ht){1}tp://)[-a-zA-Z0-9@:%_\+.~#?&//=]+)`i', '<a href="\\1">\\1</a>', $text);
     $text = preg_replace('`([[:space:]()[{}])(www.[-a-zA-Z0-9@:%_\+.~#?&//=]+)`i', '\\1<a href="http://\\2">\\2</a>', $text);
     $text = preg_replace('`([_\.0-9a-z-]+@([0-9a-z][0-9a-z-]+\.)+[a-z]{2,3})`i', '<a href="mailto:\\1">\\1</a>', $text);
     return $text;
-} 
+} */
 
-/**
- * Return yes and no buttons.
- * Do NOT use button() here (it kills the site)
- */
-function yesNo($yesURL, $noURL = '', $yesNext = 'empty', $noNext = 'empty') {
-  svar('yesNext', $yesNext);
-  svar('noNext', $noNext);
-  return <<<EOF
-<br>
-<input type="button" name="op" onclick="document.location.href='$yesURL'" value="Yes" class="form-local form-submit">
-&nbsp;
-<input type="button" name="op" onclick="document.location.href='$noURL'" value="No" class="form-local form-submit">
-EOF;
-}
 
 /**
  * Return a list of proxy choices for the current account.
@@ -370,8 +356,8 @@ EOF;
 function htmlButton($name, $id, $value, $class, $other = []) {
   extract(just('tribs href class', $other));
   
-  if (strpos($href, 'http') === FALSE) $onclick = $href;
-  if ($href) list ($tag, $role) = ['a', 'button']; else $tag = 'button';
+  u\EXPECT(!@$href or strpos($href, 'http') !== FALSE, 'no http in html button'); // $onclick = $href;
+  if (@$href) list ($tag, $role) = ['a', 'button']; else $tag = 'button';
   return w\tag($tag, $value, (@$tribs ?: []) + compact(@$onclick ? 'onclick' : 'href', 'class', 'role'));
 }
 
@@ -423,8 +409,9 @@ function NEWlabeled($form, $onSubmit = '', $labeled = TRUE) {
 function labeled($form, $onSubmit = '', $labeled = TRUE, $level = 0) {
   if ($onSubmit) {
     list ($zot1, $zot2, $caller) = explode('\\', u\caller());
-    $formId = 'rcreditsweb' . strtolower($caller);
-    w\js("jQuery('#$formId').submit(function() { $onSubmit });", 'inline'); // spaces are required around $onSubmit
+    //$formId = 'rcreditsweb' . strtolower($caller);
+    //w\js('on-submit', "jQuery('#$formId').submit(function() { $onSubmit });"); 
+    w\jsx('on-submit', 'caller', strtolower($caller)); // spaces are required around $onSubmit
     // (Drupal kills the quotes) $form['#attributes']['onsubmit'] = $onSubmit; // eg ' return func();'; 
   }
   $form['#attributes']['class'][] = $labeled ? 'form-horizontal' : 'form-vertical';
@@ -569,7 +556,7 @@ function formatField($k, $v) {
 //  if ($v and $k == 'channel') $v = u\rayv(ray(TX_CHANNELS), $v);
 //  if ($v and in_array($k, ray(R_DATE_FIELDS))) $v = '<div style="line-height:65%;">' . strftime('%d%b', $v) . '<span style="font-size:50%;">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
 
-  if (u\starts($v, CRYPTN_FLAG)) $v = u\decryptN($v); // decrypt phone and email
+  if (u\starts($v, CRYPTN_FLAG)) $v = u\decry('P', $v); // decrypt phone and email
   if ($k == 'phone') $v = u\fmtPhone($v);
   if ($k == 'account') $v = $v ? r\qid($v) : '';
   return $v;
@@ -628,6 +615,10 @@ function buttonFld($value, $href = '', $title = NULL, $style = 'success', $size 
 function button($value, $href = '', $title = NULL, $style = 'success', $size = 'xs', $extra = []) {
   return rend([buttonFld($value, $href, $title, $style, $size, $extra)]);
 }
+function btnSubmit($value, $submit = NULL) {
+  $class = 'submit' . (@$submit ?: t('Submit'));
+  return button($value, '', NULL, 'success', 'xs', compact('class'));
+}
 function btnShowDiv($divId, $title, $style='success', $size = 'xs') {
   return "<a href=\"#$divId\" class=\"btn btn-$size btn-$style\" data-toggle=\"collapse\">$title</a>";
 }
@@ -641,11 +632,17 @@ function passFld($label = '', $desc = '', $other = []) {return fld('password', $
 function areaFld($label = '', $desc = '', $other = []) {return fld('textarea', $label, $desc, $other);}
 function radiosFld($label, $desc, $other, $options) {return fld('radios', $label, $desc, $other, $options);}
 function selectFld($label, $desc, $other, $options = []) {return fld('select', $label, $desc, $other, $options);}
-function htmlFld($label = '', $desc = '', $dft = '', $other = []) {return fld('text_format', $label, $desc, ['format' => 'filtered_html'] + dft(strtr($dft, ["\r" => '', "\n" => '', '<br>' => PHP_EOL, "\0" => ''])) + $other);}
-
+//function htmlFld($label = '', $desc = '', $dft = '', $other = []) {return fld('text_format', $label, $desc, ['format' => 'filtered_html'] + dft(strtr($dft, ["\r" => '', "\n" => '', '<br>' => PHP_EOL, "\0" => ''])) + $other);}
+//function htmlFld($label = '', $desc = '', $other = []) {return areaFld($label, $desc, $other);}
+function dataFld($id, $data) {return w\item(w\tags('div', "<!--$data-->", compact('id')));}
 function boxFld($name, $label = '', $desc = '', $dft = NULL, $other = []) {
   $fld = fld('checkbox', $desc, '', compact('name') + dft(@$dft) + $other);
   return $label ? item(@\render($fld), $label, '', ['box' => TRUE]) : $fld;
+}
+function togFld($name, $label = '', $desc = '', $dft = NULL, $other = []) {
+  js('x/bootstrap-toggle.min');
+  css('x/bootstrap-toggle.min.css');
+  return boxFld($name, $label, $desc, $dft, $other + w\attrib(ray('data-toggle:togglel,data-on:Yes,data-off:No,data-onstyle:success,data-size:mini')));
 }
 
 /**
@@ -764,17 +761,18 @@ function acctTypeField() {
  * Return onSubmit script for a typeahead member account field (and include needed script files).
  * @param string $field: the field name
  * @param string $question: what to ask for confirmation or disambiguation (with params %amount and %name)
- * @param string $amount: optional amount substitution for question (include quotes or formula, if not a number)
+ * @param string $amount: optional amount substitution for question (defaults to form.amount.value)
  * @param bool $allowNonmember: <allow a non-member email address>
  * @return complete script including a leading "return ".
  */
-function whoFldSubmit($field, $question, $amount = '0', $allowNonmember = '0') {
-  $id = '#edit-' . strtolower($field);
-  $question = addslashes($question);
+function whoFldSubmit($field, $question, $amount = NULL, $allowNonmember = '0') {
+  js('x/typeahead.bundle.min');
+  jsx('suggest-who', compact(ray('field question amount allowNonmember')));
 
-  js('js/typeahead.bundle.min.js', 'file');
-  js("suggestWho('$id');", 'inline', 'footer');
-  return "return $('$id').val() == '' ? true : who(this, '$id', '$question', $amount, $allowNonmember);"; // amount might be 'this.amount.value'
+//  $id = '#edit-' . strtolower($field);
+//  $question = addslashes($question);
+
+//  return "return $('$id').val() == '' ? true : who(this, '$id', '$question', $amount, $allowNonmember);"; // amount might be 'this.amount.value'
 }
 
 /**
@@ -785,10 +783,10 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formArray, $formSta, $rUrl;
   setAcct(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
   if (!@$formSta['confirm'] and !in_array($function, ray(R_NOLOG_FORMS))) {
+    $formName = str_replace(base_path(), '', $_SERVER['REQUEST_URI']);
     if ($logs = $_POST) {
-      u\loga('in', $logs);
+/**/  u\loga('in', $formName . print_r($logs, 1));
     } else {
-      $formName = str_replace(base_path(), '', $_SERVER['REQUEST_URI']);
       if (strpos($formName, 'sadmin/') === FALSE and strpos($formName, '/icon') === FALSE) u\loga('form', [$formName]);
     }
   }
@@ -818,33 +816,37 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
     if (!$specialForm) {
-      js("jQuery('.messages').dblclick(function() {jQuery(this).hide();});", 'inline', 'header');
-/*      if (@$form['country']) {
-        js('js/countries.js', 'file', 'header');
-//        if ($mya and \form_get_errors()) js("print_country($mya->country, $mya->state);", 'inline', 'footer');
-      }*/
       $tree = explode('/', 'home/' . str_replace(DEV_ROOT, '', $_SERVER['REQUEST_URI']));
       foreach ($tree as $k) if (preg_match('/^[a-z\-]+(\?|$)/', $k)) $crumbs[ucwords($k)] = $kk = isset($kk) ? "$kk/$k" : '';
       \drupal_set_breadcrumb($crumbs);
     }
 
-//    if (!in_array('form-horizontal', @$form['#attributes']['class'])) $form['#attributes']['class'][] = 'form-vertical';
     $formArray = $form2 = $form; 
-    $rent = \render($form2);
-//    if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-radio')) js('js/radiocheck.js', 'file', 'footer');
-    
-    if ($colgroup = @$form['#colgroup']) {
-      unset($form['#colgroup']);
-      $markup = '';
-      foreach ($colgroup as $col) {
-        $guts = '';
-        foreach ($col as $attrib => $value) $guts .= " $attrib=\"$value\"";
-        $markup .= "<col $guts>\n";
-      }
-      $markup = "<colgroup>\n$markup</colgroup>\n";
-      return str_replace('<thead>', $markup . '<thead>', $rent); // shore up Drupal lack of colgroups in tableselect
-    } else return $rent;
+    return \render($form2);
   } catch(Exception $e) {r\Web\exception_handler($e);}
+}
+
+define('FORBID_TAGS', '/......<(script|style|frame|object|embed|applet|audio|video)....../i'); // forbidden html tags
+define('FORBID_ATTRS', '/(...............\\s(href|src|style|on[a-z]+)\\s*=.........)/i'); // forbidden attributes
+
+/**
+ * Sanitize the page before displaying it. 
+ * Actually, since the page should NEVER have illegal stuff, we don't display a failed page, just detect it.
+ * @param string $page: the body of the page, not including our selected scripts
+ */
+function sanitizePage($page) {
+  $except = join('|', [
+    '<img src="' . BASE_URL, 
+    '<iframe src="(' . str_replace(' ', '|', FRAME_SOURCES) . ')',
+    'href="(mailto:|http|#|")',
+  ]);
+  
+  $page = preg_replace("~$except~", '', $page);
+//  return;
+  if ($tags = preg_match(FORBID_TAGS, $page, $matches) or preg_match(FORBID_ATTRS, $page, $matches)) {
+/**/ $msg = t('Page has a forbidden HTML %thing: %what', 'thing what', $tags ? t('tag') : t('attribute'), print_r($matches, 1));
+/**/ if (isDEV) die($msg); else w\hack($msg);
+  }
 }
 
 /**
@@ -869,7 +871,6 @@ function pickPassword($reset = TRUE) {
   $pass2 = passFld(REQ . ($reset ? t('Confirm new password:') : t('Confirm password:')), '', clas('password-confirm') + autofill('off'));
   $strong = hidFld(0, attrib(['id' => 'edit-strong']));
   focusOn('pass1');
-  js(BASE_URL . '/modules/user/user.js', 'file', 'footer');
   
   $password = [
     'strengthTitle' => 'Strength:',
@@ -895,10 +896,11 @@ function pickPassword($reset = TRUE) {
   ];
 
   $settings = json_encode(compact('password'));
-  js(BASE_URL . '/misc/drupal.js', 'file', 'footer', -999); // for password strength meter
-  js("jQuery.extend(Drupal.settings, {$settings});");
+  js('drupal'); // for password strength meter
+  js('user');
+  $settings = w\item("<!--//--><![CDATA[//><!--\njQuery.extend(Drupal.settings, {$settings});\n//--><!]]>");
 
-  return compact(ray('pass1 pass2 strong'));
+  return compact(ray('pass1 pass2 strong settings'));
 }
   
 /**
@@ -1080,13 +1082,13 @@ function which($choices = '', $resultField = '', $info = '', $question = 'Which 
   if ($choices) return [];
   
   svar('pop', NULL); // called with no args (#3)
-  $tribs['onchange'] = "this.form.elements['$pop_resultField'].value=this.options[this.selectedIndex].text; this.form.submit();";
+//  $tribs['onchange'] = "this.form.elements['$pop_resultField'].value=this.options[this.selectedIndex].text; this.form.submit();";
   $tribs['size'] = 12;
   $choice = selectFld('', '', w\attrib($tribs), $pop_choices);
   $choice = render($choice);
   $legend = t('Which one?');
   $popup = item(w\modal('which', $legend, $pop_question, $choice, t('Cancel')));
-  js('$("#which").modal("show");', 'inline', 'footer', 9999);
+  jsx('which', 'field', $pop_resultField);
   return compact('popup');
 }
 
@@ -1152,8 +1154,9 @@ function subMenuHtml($menu) {
     </h4>
     $detail
 EOF;
-    $onclick = "jQuery(this).find('.glyphicon').css('color', 'darkblue');"; // glyph looks funny when ladda-spinning
-    $list .= spinLink("/$k", $text, '', 'list-group-item', '', compact('onclick'));
+//    $onclick = "jQuery(this).find('.glyphicon').css('color', 'darkblue');"; // glyph looks funny when ladda-spinning
+//    $list .= spinLink("/$k", $text, '', 'list-group-item', '', compact('onclick'));
+    $list .= spinLink("/$k", $text, '', 'list-group-item', '');
   }
   return $list;
 }
@@ -1297,14 +1300,14 @@ function suCreatorRelation($helper, $args, $myid) {
 
 /**
  * Check email format and duplication and complain if appropriate.
- * @param string $email0: the email address to check (also returned with improvements)
+ * @param string $email0: the email address to check (also RETURNED with improvements)
  * @param bool $dupsOk: <allow duplication of another account's email address>
  * @param acct $a: current account if any
  * @return: TRUE if email is okay to use, else FALSE
  */
 function emailOkay(&$email0, $dupsOk, $a = FALSE, $suppressErr = FALSE) {
   $email = strtolower(str_replace("'", '&#039;', $email0));
-  if ($error = \user_validate_mail($email)) return $suppressErr ? FALSE : say('bad email', compact('email'), 'email');
+  if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return $suppressErr ? FALSE : say('bad email', compact('email'), 'email');
   if (!$dupsOk and emailDup($email, $a ? $a->id : 0, $suppressErr)) return FALSE;
   $email0 = $email;
   return TRUE;
@@ -1319,7 +1322,7 @@ function emailOkay(&$email0, $dupsOk, $a = FALSE, $suppressErr = FALSE) {
  */
 function emailDup($email0, $uid, $suppressErr = FALSE) {
   global $base_url;
-  $mail = u\cryptN($email0);
+  $mail = u\cry('P', $email0);
   if (!$who = db\lookup('fullName', 'users', 'mail=:mail and uid<>:uid AND NOT :IS_CO', compact('mail', 'uid'))) return FALSE;
   if (!$suppressErr) {
     $_a = w\atag("/settings/password/$email0");
@@ -1377,12 +1380,14 @@ function findCompany($company, $companyPhone) {
  */
 function nameAndEmail($what, $fullName = '', $email = '', $hideEmail = FALSE, $myid = 0) {
   $who = $what == t('Company') ? t('The company\'s') : ($what == t('Community') ? t('The community\'s') : t('Your'));
-  $onchange = w\onchange("var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);");
-  $fullName = textFld("$what:", ["$who " . t('full name'), t('usename desc')], required(@$fullName) + $onchange);
+//  $onchange = w\onchange("var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);");
+//  $fullName = textFld("$what:", ["$who " . t('full name'), t('usename desc')], required(@$fullName) + $onchange);
+  $fullName = textFld("$what:", ["$who " . t('full name'), t('usename desc')], required(@$fullName));
   $legalName = textFld(t('Legal name:'), ["$who " . t('full legal name (if different)'), $who . t('legalname desc')]);
   if ($email and !emailOkay($email, FALSE, $myid ? r\acct($myid) : '')) $hideEmail = FALSE; // make sure they can fix it
   if (strpos($email, '@' . EMAILX) and !u\test()) $hideEmail = FALSE; // handle placeholder for making joint accounts
   $email = $hideEmail ? w\hidFld(@$email) : textFld(t('Email:'), [t('Email'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>')], required(@$email));
+  jsx('legal-name');
   return compact(ray('fullName legalName email'));
 }
 
@@ -1409,7 +1414,7 @@ function contactFields($defaults = [], $step0, $myid = 0) {
   foreach (['state', 'state2'] as $k) {
     if (@$$k) $$k = db\lookup('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
   }
-  js('js/countries.js', 'file', 'footer'); // required for setPostalAddr, whether or not the fields are shown
+  js('countries'); // required for setPostalAddr, whether or not the fields are shown
 
   if ($step0 and @$address and @$city and @$state and !u\badZip($zip) and !u\poAddress($address)
     and @$address2 and @$city2 and @$state2 and !u\badZip($zip2)) { // already got a bunch of data
@@ -1436,26 +1441,19 @@ function contactFields($defaults = [], $step0, $myid = 0) {
     $hidState2 = hidFld(@$state2 + 0);
 
   //  js('http://ziplookup.googlecode.com/git/public/ziplookup/zipLookup.min.js', 'file', 'header');
-//    js('js/zipLookup.js', 'file', 'footer');
-    $js = <<<EOF
-    print_country($country, $state, $state2);
-    $('#rcreditswebformsignup, #rcreditswebformcontact').submit(function() {
-      $('#edit-hidcountry').val($('#edit-country').val());
-      $('#edit-hidstate').val($('#edit-state').val());
-      $('#edit-hidstate2').val($('#edit-state2').val());
-    });
-EOF;
-    js($js, 'inline', 'footer');
+//    js('zipLookup.js', 'file', 'footer');
+    jsx('addr', compact(ray('country state state2')));
 
-    $countryAttrib = w\onchange("
+/*    $countryAttrib = w\onchange("
       print_state(this.options[this.selectedIndex].value,'','state');
       print_state(this.options[this.selectedIndex].value,'','state2');
     ");
-
+*/
     $stateAttrib = $addressAttrib = $cityAttrib = $zipAttrib = [];
     $phone = textFld(t('Phone:'), [t('Your phone number')], required(@$phone ? u\fmtPhone($phone): ''));
     $faxetc = @$faxetc ? textFld(t('Fax etc:'), [t('Other contact info'),t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.')], dft(@$faxetc)) : NULL;
-    $country = selectFld(t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
+//    $country = selectFld(t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
+    $country = selectFld(t('Country:'), t(''), dft(@$country)); // can't use required() here
     $physical = w\item('', t('Physical Address'));
     $address = textFld(t('Street Address:'), [t('Physical address'), t('Where is your building located (physical address)?')], required(@$address) + $addressAttrib);
     $city = textFld(t('City:'), [t('City where you live')], required(@$city) + $cityAttrib);
@@ -1464,7 +1462,8 @@ EOF;
 
     $sameAddr2 = ($step0 ? @$state2 : !(@$mya and $mya->cAdmin)) // show box on signup (until mailing addr filled) & to admin
     ? w\item('', t('Mailing Address')) 
-    : w\boxFld('sameAddr', t('Mailing Address'), t('same as above'), 0, w\onchange('setPostalAddr(true)'));
+    : w\boxFld('sameAddr', t('Mailing Address'), t('same as above'), 0);
+//    : w\boxFld('sameAddr', t('Mailing Address'), t('same as above'), 0, w\onchange('setPostalAddr(true)'));
     
     $postalAddr = w\hidFld();
     $address2 = textFld(t('Street Address:'), [t('Postal street address')], required(@$address2) + $addressAttrib);
@@ -1475,7 +1474,7 @@ EOF;
     if (!@$mya or !$mya->co) {
       $source = $step0 ? textFld(t('Referred by:'), [t('How you heard about %PROJECT'), t('Where did you hear about %PROJECT? (name of company or person, web address, publication name, radio station name, or whatever)')]) : NULL;
       $source2 = $step0 ? textFld(t('Code:'), [t('Invitation or card code'), t('If you have an invitation or card code, type it here ("B" for brochure). Otherwise leave blank.')]) : NULL;
-    }
+    } else $source = w\hidFld(@$source);
   }
 
   if (!in_array('tenure', $fieldsToHide)) $tenure = $step0 ? textFld(t('How long:'), [t('MONTHS at current address.'), t('How long have you been at your current address, in months (roughly)')], required(@$tenure)) : NULL;
@@ -1533,16 +1532,22 @@ function onFile($field, $sta) {
 function dropdown($name, $value, $options, $id) {
   $name = "$name-$id";
   $zot = array('zot' => selectFld('', '', compact('value') + attrib(compact('name')), $options));
-  return render($zot);
+  return \render($zot);
 }
 
 function amountField($name, $value, $id) {
   $name = "$name-$id";
   $class = 'amount'; $class = compact('class');
   $zot = array('zot' => textFld('', '', compact('value') + attrib(compact('name', 'class'))));
-  return render($zot);
+  return \render($zot);
 }
 
+function toggle($field, $value, $id, $highlight = 'never') {
+  $name = $id = "$field-$id";
+  $zot = w\togFld($id, '', '', $value);
+  return \render($zot);
+}
+  /*
 function toggle($field, $value, $id, $highlight = 'never') {
   $path = current_path();
   $name = $id = "$field-$id";
@@ -1564,6 +1569,7 @@ function toggle($field, $value, $id, $highlight = 'never') {
     </div>
 EOF;
 }
+*/
 
 /**
  * Return the recipient of a recent invitation OR mark an invitation USED
@@ -1601,7 +1607,7 @@ function invitation($code, $invitee = '', &$inviter = '', &$iCode = -1, &$err = 
       $inviterName = r\acct($inviter)->fullName;
       w\say('expired invite converted', compact('inviterName'));
     }
-    return u\cryptN($email, FALSE); // $inviter is returned implicitly
+    return u\decry('P', $email); // $inviter is returned implicitly
   }
 }
 
@@ -1776,27 +1782,29 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
     if ($states) foreach (ray($states) as $k) $stateDfts[] = $choices[$k];
     $states2 = boxesFld(t('Show:'), '', @$stateDfts, $choices);
   }
-  $showAdvJs = 'jQuery(\'#advanced\').show(); jQuery(\'#simple\').hide();';
-  if ($states != $settings or (@$ending and $ending != strtotime('tomorrow') - 1)) js($showAdvJs, 'inline', 'footer'); // showing advanced selection
+  $showingAdv = ($states != $settings or (@$ending and $ending != strtotime('tomorrow') - 1));
+  jsx('advanced-dates', compact('showingAdv')); // showing advanced selection
   u\setDft($period, strpos($url, 'invoice') ? TX_DEFAULT_INV_PERIOD : TX_DEFAULT_PERIOD);
   list ($starting, $ending) = rangeDates(@$period, @$starting, @$ending);
   $url = BASE_URL . "/$url/period=$period&starting=$starting&ending=$ending&states=$states";
 
-  $showAdvanced2 = '<a id="showAdvanced" href="javascript:void(0);" onclick="' . $showAdvJs . '">advanced</a>';
+  $showAdvanced2 = '<a id="showAdvanced">advanced</a>';
   $submitPeriod = submi(t('Show')); // label has to be different from submitDates (see below)
   if ($downloadable) $downloadPeriod = submi(t('Download'));
 ///  $actions = render($submitPeriod) . render(@$downloadPeriod) . render($showAdvanced);
   $actions = fieldSet('actionsSimple', compact('submitPeriod', 'downloadPeriod'), '', suffix($showAdvanced2));
 ///  $period = selectFld(t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
 //  $onchange = "$('#edit-starting, #edit-ending').val('');";
-  $onchange = "var id='#edit-submitPeriod'; if (!$(id).is(':visible')) id='#edit-downloadPeriod'; $(id).click();";
-  $period = selectFld(t('For the past:'), '', dft($period) + w\onchange($onchange), $GLOBALS['TX_DAYS']);
+//  $onchange = "var id='#edit-submitPeriod'; if (!$(id).is(':visible')) id='#edit-downloadPeriod'; $(id).click();";
+//  $period = selectFld(t('For the past:'), '', dft($period) + w\onchange($onchange), $GLOBALS['TX_DAYS']);
+  $period = selectFld(t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
 //  $period = selectFld(t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
   $simple = fieldSet('simple', compact('period', 'actions'), BARE);
   
   $res = compact(ray('url starting ending states')); // the easy parts of the result
   $submitDates = submi(t('show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
-  $showSimple2 = '<a id="showSimple" href="javascript:void(0);" onclick="jQuery(\'#advanced\').hide(); jQuery(\'#simple\').show();">simpler</a>';
+//  $showSimple2 = '<a id="showSimple" href="javascript:void(0);" onclick="jQuery(\'#advanced\').hide(); jQuery(\'#simple\').show();">simpler</a>';
+  $showSimple2 = '<a id="showSimple">simpler</a>';
   if ($downloadable) $downloadDates = submi(t('download')); // must be lowercase
   $actions = fieldSet('actionsAdvanced', compact('submitDates', 'downloadDates'), '', suffix($showSimple2));
   $starting = textFld(t('Starting:'), '', dft(u\fmtDate($starting)));
@@ -1846,7 +1854,7 @@ function dateRangeValidate(&$sta, $limit = TRUE) {
 function downloadCheck($page) {
   global $base_url;
   if ($query = w\svar("$page-downloadQuery", '')) { // get value and empty it
-    js("window.open(\"$base_url/$page/$query&download=1\", \"download\");", 'inline', 'footer');
+    jsx('download', 'url', "$base_url/$page/$query");
   }
 }
 
@@ -2111,8 +2119,10 @@ function menu($title, $type, $function, $args, $perms = '') {
 
 /**
  * Return a help message for the page.
+ * @param string $args: parameters to pass to rawHelp
+ * @param assoc $args: (RETURNED) returned parameters (passed from rawHelp back to caller)
  */
-function helpText($page, $tag = '', $args = '') {
+function helpText($page, $tag = '', &$args = '') {
   include_once __DIR__ . '/rweb-help.inc';
   $page = strtolower($page);
   $help = $page == 'charge' ? strtr(rawHelp('pay', $tag, $args), ray('pay', 'charge')) : rawHelp($page, $tag, $args);
@@ -2155,7 +2165,7 @@ function say($index, $args = [], $errField = '') {
   if (is_array($index)) list ($index, $args, $errField) = array($index[0], $index[1], $args); // error returned from a function
   if (!is_array($args)) list ($args, $errField) = array($errField, $args); // allow either order, for easy 2-param calls
   $noTable = (strpos($index, '<table') === FALSE);
-  $message = $noTable ? t($index, $args) : $index;
+  $message = $noTable ? t($index, $args) : $index; 
   $fieldErr = ($errField and $errField != 'ERR');
   if ($fieldErr) \form_set_error($errField, $message); else \drupal_set_message($message, @$errField == 'ERR' ? 'error' : 'status', FALSE);
   $adminReport = ($mya and $mya->admin2 and strlen($message) > 200);
@@ -2167,9 +2177,10 @@ function say($index, $args = [], $errField = '') {
  * Display charts representing the condition of the %PROJECT system in the given community.
  * @param string $whichChart: which chart or set of charts to display
  * @param int $ctty: account record ID of community to show graphs for (defaults to all communities)
+ * @param assoc $chartData: (RETURNED) a data field containing the chart data
  * @return: html of the relevant charts, in their proper divs
  */
-function showCharts($whichChart, $ctty = 0) {
+function showCharts($whichChart, $ctty = 0, &$chartData = '') {
   global $base_url;
 
   list ($in, $out, $fees, $net, $personal, $companies) = array(t('in'), t('out'), t('fees'), t('net'), t('personal'), t('companies'));
@@ -2177,25 +2188,26 @@ function showCharts($whichChart, $ctty = 0) {
   extract($stats = w\fundStats($stats, TRUE)); // get the formatted versions, with originals in {var}0
   $trade = u\fmtAmt($trade0 = $tradeOut0 + $tradeIn0); // tradeIn is negative
   $usdtrade = u\fmtAmt($usdtrade0 = $usd0 + $trade0); // someone's trade is always negative, so combine with USD
-  foreach (ray('txRewards0 spent0 usdtrade0') as $k) $$k = max(0, $$k); // don't display negative values
+  foreach (ray('txRewards0 spent0 usdtrade0') as $k) $$k = max(0, $$k) + 0; // don't display negative values
  
-  $issuedData = array(
-    "['for USD',{v:$usd0,f:'$usd'}]",
-    "['trade (net)',{v:$trade0,f:'$trade'}]",
-    "['USD plus trade',{v:$usdtrade0,f:'$usd + $trade'}]",
-    "['inflation offset',{v:$inflations0,f:'$inflations'}]",
-    "['signup bonuses',{v:$signups0,f:'$signups'}]",
-    "['purchase reward',{v:$txRewards0,f:'$txRewards'}]",
-    "['inviter/helper',{v:$helpers0,f:'$helpers'}]",
-    "['spent (net)',{v:$spent0,f:'$spent'}]",
-    "['grants',{v:$grants0,f:'$grants'}]",
-    "['loans',{v:$loans0,f:'$loans'}]",
-    "['invested',{v:$invests0,f:'$invests'}]",
-//   "['fees',{v:$usd0,f:'$usd'}$fines]" think of a way to handle negatives (separate pie?)
-  );
+// assign individually, to assure known numeric keys
+  $issuedData[0] = [t('for USD'), ['v' => 0+$usd0, 'f' => $usd]];
+  $issuedData[1] = [t('trade (net)'), ['v' => 0+$trade0, 'f' => $trade]];
+  $issuedData[2] = [t('USD plus trade'), ['v' => 0+$usdtrade0, 'f' => $usd + $trade]];
+  $issuedData[3] = [t('inflation offset'), ['v' => 0+$inflations0, 'f' => $inflations]];
+  $issuedData[4] = [t('signup bonuses'), ['v' => 0+$signups0, 'f' => $signups]];
+  $issuedData[5] = [t('purchase reward'), ['v' => 0+$txRewards0, 'f' => $txRewards]];
+  $issuedData[6] = [t('inviter/helper'), ['v' => 0+$helpers0, 'f' => $helpers]];
+  $issuedData[7] = [t('spent (net)'), ['v' => 0+$spent0, 'f' => $spent]];
+  $issuedData[8] = [t('grants'), ['v' => 0+$grants0, 'f' => $grants]];
+  $issuedData[9] = [t('loans'), ['v' => 0+$loans0, 'f' => $loans]];
+  $issuedData[10] = [t('invested'), ['v' => 0+$invests0, 'f' => $invests]];
+  //   ['fees'), ['v' => $usd0, 'f' => $usd'}$fines]" think of a way to handle negatives (separate pie?)
+
   if ($trade0 < 0 or $usd0 < 0) {
     unset($issuedData[0]); unset($issuedData[1]);
   } else unset($issuedData[2]);
+  $issuedData = array_values($issuedData); // make sure keys stay numeric
   
   $totalR = u\fmtAmt($r0); // was u\fmtAmt($r0 + $usd0);
   $totalUsd = u\fmtAmt($usd0);
@@ -2219,16 +2231,19 @@ function showCharts($whichChart, $ctty = 0) {
 EOF;
   $q = db\q($sql, compact('created0', 'now', 'ctty'));
 
-  $charts = ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-credits');
+  $charts = ray('growth funds velocity banking volume issued', 'growth', 'dollar-pool', 'circulation-velocity', 'exchanges-for-dollars', 'transaction-volume', 'issuing-credits');
   if ($whichChart != 'all') $charts = just($whichChart, $charts);
   foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, []);
   $moneyFields = ray('funds savings runny runnyBal top5 usd bankInPerMo bankOutPerMo perMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo tradeInPerMo tradeOutPerMo');
 
   while ($row = $q->fetchAssoc()) {
     extract($row);
+     /*
     list ($y, $m, $d) = ray(strftime('%Y %m %d', $created));
     list ($m, $d) = array($m - 1, $d - 1); // javascript Date object month, day, etc. are zero-based
-    $date = "new Date($y,$m,$d)";
+//    $date = "new Date($y,$m,$d)";
+    $date = [$y, $m, $d];
+    */
     $p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
     $p2pTxsPerMo = $txsPerMo - $p2bTxsPerMo - $b2bTxsPerMo - $b2pTxsPerMo;
     $funds -= $usd;
@@ -2237,59 +2252,73 @@ EOF;
 //    $runnyBal = -$runnyBal; // for now, show runny DEBT instead of runny BAL
 //    $actives = abs($pAccts - $newbs); // active members
     foreach ($moneyFields as $k) {
-      if (!in_array($k, ray('bankOutPerMo tradeIn tradeInPerMo'))) $$k = max(0, $$k); // most can't be negative
+      if (!in_array($k, ray('bankOutPerMo tradeIn tradeInPerMo'))) $$k = max(0, $$k) + 0; // most can't be negative
       ${$k . '2'} = u\fmtAmt($$k);
     }
     $rate2 = number_format(100 * $rate, 1) . '%';
 
-    $acctsData[] = "[$date,$pAccts,$newbs,$bAccts]";
+/*    $acctsData[] = "[$date,$pAccts,$newbs,$bAccts]";
     $fundsData[] = "[$date,{v:$funds,f:'$funds2'},{v:$usd,f:'$usd2'},{v:$runny,f:'$runny2'},{v:$top5,f:'$top52'},{v:$runnyBal,f:'$runnyBal2'},{v:$perMo,f:'$perMo2'}]";
     $velocityData[] = "[$date,{v:$rate,f:'$rate2'}]";
     $bankingData[] = "[$date,{v:$bankInPerMo,f:'$bankInPerMo2'},{v:$bankOutPerMo,f:'$bankOutPerMo2'},{v:$tradeOutPerMo,f:'$tradeOutPerMo2'},{v:$tradeInPerMo,f:'$tradeInPerMo2'}]";
+*/
+    foreach (ray('created pAccts bAccts accts newbs rate bankOutPerMo tradeIn tradeInPerMo') as $k) $$k += 0; // convert to numeric
+
+    $growthData[] = [$created, $pAccts, $newbs, $bAccts];
+    $fundsData[] = [$created, ['v' => $funds, 'f' => $funds2], ['v' => $usd, 'f' => $usd2], ['v' => $runny, 'f' => $runny2], ['v' => $top5, 'f' => $top52], ['v' => $runnyBal, 'f' => $runnyBal2], ['v' => $perMo, 'f' => $perMo2]];
+    $velocityData[] = [$created, ['v' => $rate, 'f' => $rate2]];
+    $bankingData[] = [$created, ['v' => $bankInPerMo, 'f' => $bankInPerMo2], ['v' => $bankOutPerMo, 'f' => $bankOutPerMo2], ['v' => $tradeOutPerMo, 'f' => $tradeOutPerMo2], ['v' => $tradeInPerMo, 'f' => $tradeInPerMo2]];
 
     $x2x = [];
     foreach ($txTypes as $k => $desc) {
-      list ($x, $x2, $xTxs) = array(${"{$k}PerMo"}, u\fmtAmt(${"{$k}PerMo"}), ${"{$k}TxsPerMo"});
-      $x = max($x, 1); // to make the logarithmic scale look okay
+      list ($x, $x2, $xTxs) = [${"{$k}PerMo"}, u\fmtAmt(${"{$k}PerMo"}), ${"{$k}TxsPerMo"}];
+      $x = max($x, 1) + 0; // to make the logarithmic scale look okay
       $avg = $xTxs ? ' @ ' . u\fmtAmt($x / $xTxs) . ' avg' : '';
-      $x2x[] = "{v:$x,f:'$x2 ($xTxs$avg) $desc'}"; // eg "$123 (7 @ $6.25 avg)"
+//      $x2x[] = "{v:$x,f:'$x2 ($xTxs$avg) $desc'}"; // eg "$123 (7 @ $6.25 avg)"
+      $x2x[] = ['v' => $x, 'f' => "$x2 ($xTxs$avg) $desc"]; // eg "$123 (7 @ $6.25 avg)"
     }
-    $x2x = join(',', $x2x);
-    $txData[] = "[$date,$x2x]";
+//    $x2x = join(',', $x2x);
+//    $volumeData[] = "[$created,$x2x]";
+    array_unshift($x2x, $created);
+    $volumeData[] = $x2x;
   }
 
 //  $accts = "{$pAccts} members + {$bAccts} co = " . ($pAccts + $bAccts);
   $accts = "{$pAccts} members + {$bAccts} companies";
   $netUsdIn = u\fmtAmt($bankInPerMo + $bankOutPerMo + $tradeOutPerMo + $tradeInPerMo) . t(' (net)');
   $velocity = number_format(($r0+0) ? 100 * $perMo / $r0 : 0, 1) . t('% per mo.');
-  
-  $js = <<<EOF
-  var accts = '$accts';
-  var r = '$totalR';
-  var usd = '$totalUsd';
-  var velocity = '$velocity';
-  var netUsdIn = '$netUsdIn';
-  var issued = '$r';
-  var fees = '(minus $fines in fees)';
-  var txs = '$txs';
-  google.setOnLoadCallback({$whichChart}Chart);  
-EOF;
+  $fees = "(minus $fines in fees)";
+  $whichChart .= 'Chart';
 
+/*  
   foreach ($charts as $k => $zot) {
     ${$k . 'Data'} = join(',', ${$k . 'Data'});
     $js .= "var {$k}Data = [" . ${$k . 'Data'} . "];\n";
   }
+*/
+//  foreach ($charts as $k => $zot) $dataNames[] = $k . 'Data';
 
-  js('https://www.google.com/jsapi', 'external', 'header');
-  js('js/charts.js', 'file', 'footer', 8);
-  js($js, 'inline', 'footer', 9);
+//  js('goo-jsapi');
+$vs = compact(ray('accts totalR totalUsd velocity netUsdIn issued fees txs whichChart'));
+//  js('charts', $vs = compact(ray('accts totalR totalUsd velocity netUsdIn issued fees txs whichChart')));
 
   foreach($charts as $k => $help) {
-    $one = "<div id=\"{$k}Chart\" class=\"onechart\"></div>";
+    $one = "<div id=\"{$k}Chart\" class=\"onechart ct-chart ct-golden-section\"></div>";
     if (count($charts) > 1) $one = "<a href=\"$base_url/help/$help/qid=$ctty\">$one</a>";
     $charts[$k] = "<div>$one</div>";
+    $dataNames[] = $k . 'Data';
   }
-  return u\test() ? $js : join('', $charts);
+
+/*  
+  $cttys = db\q('SELECT uid,fullName FROM users WHERE uid<0 ORDER BY fullName')->fetchAllKeyed();
+  $cttys[0] = t('ALL communities');
+  $cttys[r\acct('!' . R_SERVER_ID)->id] = t('Seedpack (no community yet)');
+*/
+  
+//  $chartData = w\dataFld('chart-data', json_encode($data = compact($dataNames)));
+  $chartData = json_encode($data = compact('vs', $dataNames));
+
+  return u\test() ? $chartData : join('', $charts);
 }
 
 /**
@@ -2386,7 +2415,7 @@ function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   global $mya;
   
   if (!$dupsOk) { // applies only to community admins
-    $cemail = u\cryptN($email);
+    $cemail = u\cry('P', $email);
     $now = r\rTime();
     if (db\exists('r_invites', 'email=:cemail and :now-invited<:R_INVITE_DAYS*:DAY_SECS', compact('cemail', 'now'))) return say("NOT sent to $email (dup).");
 //     if (db\exists('users', 'email=:email', compact('email'))) return say("NOT sent to $email (already a member).");
@@ -2410,16 +2439,16 @@ function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
 function focusOn($focusFieldName) {
   u\EXPECT(!empty($focusFieldName), 'focus on null');
   $focusFieldName = str_replace('_', '-', $focusFieldName);
-  js("document.getElementById('edit-$focusFieldName').focus();", 'inline', 'footer');
+  jsx('focus-on', 'field', $focusFieldName);
 }
 
 /**
  * Return TRUE if the current account has all the required permissions.
  */
 function webAccess($perms = NULL) {
+  setAcct(); // recall who we are (DO THIS FIRST!)
   if ($perms == 'dev') return isDEV;
   if ($perms == ANY) return TRUE; // needed for submenus (see w\subMenu())
-  setAcct(); // recall who we are
   if (!$mya = r\acct()) return ($perms == 'signedOut');
   if ($perms == 'signedIn') return TRUE;
   if ($perms == 'signedOut') return FALSE;
@@ -2448,20 +2477,7 @@ function css($sheet, $weight = -99) {
   global $rUrl;
   $options = ['group' => CSS_THEME, 'preprocess' => FALSE, 'external' => TRUE] + weight($weight);
   $version = isPRODUCTION ? R_VERSION : time();
-  \drupal_add_css("$rUrl/$sheet?$version", $options);
-}
-
-/**
- * Insert a javascript file or snippet into the form
- * @param string $what: the filepath or snippet
- * @param string $type: inline, file, or external
- * @param string $scope: header or footer
- * @param int $weight: low means load sooner (-18 and up, defaults to 0)
- */
-function js($what, $type = 'inline', $scope = 'footer', $weight = 99) {
-  global $rUrl;
-  if ($type == 'file') $what = (strpos($what, 'http') !== FALSE or strpos($what, ':')) ? $what : "$rUrl/$what";
-  return \drupal_add_js($what, compact('type', 'scope', 'weight'));
+  \drupal_add_css("$rUrl/css/$sheet?$version", $options);
 }
 
 /**
@@ -2499,13 +2515,17 @@ function amtErr($field, &$sta, $restriction = '', $fractionLimit = 2) {
   return u\badAmount($sta['input'][$field], $restriction, $fractionLimit);
 }
 
+function tags($tag, $content = '', $tribs = []) {
+	$tribs = $tribs ? ' ' . u\tribs($tribs) : '';
+	return "<$tag$tribs>$content</$tag>";
+}
 
 /**
  * Return an a tag.
  */
 function atag($href, $extras = []) {
-  if ($href[0] == '/') $href = BASE_URL . $href;
-  if ($href[0] == '$') $href = 'javascript:' . substr($href, 1);
+  if (@$href[0] == '/') $href = BASE_URL . $href;
+// NO  if ($href[0] == '$') $href = 'javascript:' . substr($href, 1);
   if (!u\starts($href, BASE_URL)) {
     if (substr($href, 0, 6) == 'mailto' or substr($href, 0, 4) == 'http') $extras += w\away();
   }
@@ -2663,7 +2683,9 @@ function signupCoDisplay($info, &$company = '') {
  * Return an a tag for a non-spinning button to a new page.
  */
 function atagB($href, $style = 'primary', $size = 'xs', $extras = []) {
-  return atag($href, $extras + ray('class role', "btn btn-$size btn-$style", 'button'));
+  $class = @$extras['class'];
+  $extras['class'] =  ($class ? "$class " : '') . "btn btn-$size btn-$style";
+  return atag($href, $extras + ray('role', 'button'));
 }
 
 /**
@@ -2688,20 +2710,25 @@ function opText($sta) {
   return '';
 }
 
+function autocomplete($type = '') {
+  global $mya; 
+  w\js('autocomplete');
+  return ['autocomplete_path' => "autocomplete/$type/" . @$mya->id];
+}
+
 // one-line functions that need no explanation
 //function t($message, $subs = []) {return t($message, $subs);}
 //function block_def($info, $extra = []) {return compact(ray('info cache'));} // also status, region, visibility, pages
 function blockView($subject, $content) {return compact(ray('subject content'));}
 function disabled($value = NULL, $disabled = TRUE) {return attrib(compact('disabled')) + (is_null($value) ? compact('value') : []);}
-function on($what, $do) {return w\attrib(["on$what" => $do]);}
-function onchange($do) {return on('change', $do);}
-function dft($default_value) {return compact('default_value');}
+//function on($what, $do) {return w\attrib(["on$what" => $do]);}
+//function onchange($do) {return on('change', $do);}
+function dft($v) {return ray('default_value', $v);}
 function weight($weight) {return compact('weight');}
 function clas($class) {return ['class' => [$class]];}
 function attrib($attributes) {return compact('attributes');}
 function suffix($field_suffix = '') {return compact('field_suffix');}
 function prefix($prefix) {return compact('prefix');}
-function autocomplete($type = '') {global $mya; return ['autocomplete_path' => "autocomplete/$type/" . @$mya->id];}
 function autofill($settings = 'on') {return attrib(['autocomplete' => $settings]);}
 function required($dft = NULL) {return ['required' => TRUE] + (isset($dft) ? dft($dft) : []);}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
@@ -2712,3 +2739,5 @@ function sayFieldErr($err, $field) {return say(strtoupper($field) . ': ' . t($er
 function rent($element) {return \render($element);} // Drupal makes render hard, requires pass by reference
 function goNextStep($step, $msg = NULL, $info = []) {if ($step = r\acct()->nextStepUrl($step, $msg, $info)) r\go($step, $msg); elseif (@$msg) say($msg);}
 function away() {return ['target' => '_blank'];}
+function js($script, $args = '') {global $pageScripts; $pageScripts[$script] = http_build_query(rayy(func_get_args(), 1));} // see html.tpl
+function jsx($script, $args = '') {global $scriptScraps; $scriptScraps[$script] = http_build_query(rayy(func_get_args(), 1));} // see html.tpl

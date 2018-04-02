@@ -121,18 +121,18 @@ Scenario: A joined account member looks at transaction history and summary
   | End          |   | 1,950.00 |   | 530.00 | %dmy    |
   And with:
 #  |~tid | Date    | Name       | Purpose   | Amount | Reward | Agent | ~ |
-#  | 5   | %mdi-1d | Corner Pub | labor     | 100.00 | 10.00      | ZZA  | X |
-#  | 4   | %mdi-2d | Dee Four   |  cash     |  50.00 | --         | ZZB  | X |
-##  | 3   | %mdi-1w | Abe One    | usd       | 500.00   | 500.00 | --         | ZZB  | X |
-#  | 602 | %mdi-2w |            | from bank | 400.00 | --         | ZZA  | X |
-#  | 601 | %mdi-2w |            | from bank | 600.00 | --         | ZZB  | X |
+#  | 5   | %mdy-1d | Corner Pub | labor     | 100.00 | 10.00      | ZZA  | X |
+#  | 4   | %mdy-2d | Dee Four   |  cash     |  50.00 | --         | ZZB  | X |
+##  | 3   | %mdy-1w | Abe One    | usd       | 500.00   | 500.00 | --         | ZZB  | X |
+#  | 602 | %mdy-2w |            | from bank | 400.00 | --         | ZZA  | X |
+#  | 601 | %mdy-2w |            | from bank | 600.00 | --         | ZZB  | X |
 
   |~tid | Date    | Name       | Purpose   | Amount | Reward | ~ |
-  | 5   | %mdi-1d | Corner Pub | labor     | 100.00 | +10.00 | X |
-  | 4   | %mdi-2d | Dee Four   |  cash     |  50.00 |  +0    | X |
-#  | 3   | %mdi-1w | Abe One    | usd       | 500.00   | 500.00 |  +0    | X |
-  | 602 | %mdi-2w |            | from bank | 400.00 |  +0    |   |
-  | 601 | %mdi-2w |            | from bank | 600.00 |  +0    |   |
+  | 5   | %mdy-1d | Corner Pub | labor     | 100.00 | +10.00 | X |
+  | 4   | %mdy-2d | Dee Four   |  cash     |  50.00 |  +0    | X |
+#  | 3   | %mdy-1w | Abe One    | usd       | 500.00   | 500.00 |  +0    | X |
+  | 602 | %mdy-2w |            | from bank | 400.00 |  +0    |   |
+  | 601 | %mdy-2w |            | from bank | 600.00 |  +0    |   |
   Given cron runs "acctStats"
   When member ".ZZB" visits page "summary"
   Then we show "Account Summary" with:

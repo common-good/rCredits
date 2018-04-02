@@ -1,0 +1,26 @@
+{
+  "Common Good members db name" : {
+    "driver" : "mysql",
+    "host" : "localhost",
+    "port" : "3306",
+    "user" : "db username",
+    "pass" : "db password",
+    "salt" : "about 43 almost arbitrary characters",
+    "word" : "64 hex digits",
+		"encryption" : {
+		  "V" : ["pgp", "base64url-encoded public key for asymmetric encryption of highly sensitive data (SSNs, etc.)", ""],
+			"S" : ["methods for secure encryption", "base64url-encoded 32+-char password", "16+-char base64url-encoded IV"],
+		  "R" : ["methods for encryption of asymmetric private key", "", "another IV"],
+			"P" : ["methods for phone & email encryption, ending with b64", "another password", "another IV"],
+			"C" : ["methods for cookie encryption, ending with b64", "another password", "another IV"],
+			"H" : ["methods for photo encryption", "another password", "another IV"]
+		},
+    "dkimPrivate" : "private DKIM encryption key with EOLS replaced by spaces (not used in development)",
+    "dkimPublic" : "public DKIM encryption key with EOLS replaced by spaces (recorded here for reference)",
+    "inviteKey" : "arbitrary string of 0s and 1s (for development use 101010101)",
+   	"ssnUser" : "SSN lookup username (this and ssnPass can be left as-is on development machine)",
+    "ssnPass" : "SSN lookup password"
+  },
+
+  "_instructions" : "(1) The methods-for-encryption lists may include any sequence of openssl_get_cipher_methods strings, separated by spaces. Also allowed are xor, rot, and scram. (2) Empty values should be left empty. (3) ssnUser and ssnPass are the credentials for SSN verification service (for example nationalpublicdata.com)."
+}

@@ -50,7 +50,7 @@ function setupBasicAccounts() {
   $values = array(1, 0, 'admin', t('System Administrator'), r\regionField('email'), '', 0, 0, 0, u\bit([B_ADMIN, B_CO]));
   $info = array_combine($keys, $values);
   $a1 = new r\Acct($info); // set up system admin record (uid=1)
-  if (isDEV) $a1->update('pw2', r\passHash(DEV_PW2));
+  if (isDEV) $a1->update('pw2 vKeyPw', r\passHash(DEV_PW2), \variable_get('vKeyPw'));
 
   foreach (ray(t('2:PlaceHolder One,3:PlaceHolder Two')) as $k => $v) {
     $name = str_replace(' ', '', strtolower($v));
@@ -135,8 +135,8 @@ function makeTestAdmins() {
 function showSteps($a) {
   $steps = '';
   if (!$a->ok and $a->id != 1) foreach (($a->stepsDone ?: []) as $k => $done) {
-    $color = $done ? 'silver' : 'red';
-    if (!in_array($k, $a->co ? ['proxies'] : ['company', 'relations'])) $steps .= "<b style=\"color:$color;\">$k </b>";
+    $color = $done ? 'done' : 'not-done';
+    if (!in_array($k, $a->co ? ['proxies'] : ['company', 'relations'])) $steps .= "<b class=\"step-$color\">$k </b>";
   }
   return $steps;
 }
@@ -197,7 +197,7 @@ EOF;
         : ($permission >= B_READ ? t('can read')
         : t('probably works for')))));
     }
-    $ret .= ($ret ? ', ' : '') . "$role <a href=\"$base_url/summary/$them\">$who</a>$extra";
+    $ret .= ($ret ? ', ' : '') . "$role <a href=\"$base_url/change-account/acct=$them&page=summary\">$who</a>$extra";
   }
   return $ret;
 }
@@ -210,14 +210,14 @@ define('ID_KEYS', 'id uid t.uid myid payer payee main other inviter invitee prox
 function formatField($k, $v, $flagsField = B_LIST) {
   $v = $v . ''; // convert to string
 //  if ($k == 'bankAccount' and u\starts($v, '~')) $v = 'c' . $v; // FUDGE to repair broken crypt flag (?)
-  while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
+//  while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
   if ($v and in_array($k, ray(ID_KEYS)) and strlen($v) >= strlen(r\cgfId())) {
     if ($a = r\acct($v)) $v = $a->name; else $v .= t(' (missing)'); // eg, when uid is changed
   } // member ID. Don't include agent/payerAgent/etc. here
   if ($v and $k == 'channel') $v = u\rayv(ray(TX_CHANNELS), $v);
   if ($k == 'reid') $v = str_replace(R_MEMBER_MARK, R_AGENT_MARK, r\qid($v));
-  if ($v and in_array($k, ray(R_DATE_FIELDS))) $v = '<div style="line-height:65%;">' . strftime('%d%b', $v) . '<span style="font-size:50%;">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
-  if ($k == 'flags') $v = "<div style='text-transform:none; font-size:7px; line-height:11px;'>" . a\flagsDesc($v, $flagsField) . '</div>';
+  if ($v and in_array($k, ray(R_DATE_FIELDS))) $v = '<div class="date-field">' . strftime('%d%b', $v) . '<span class="year-field">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
+  if ($k == 'flags') $v = "<div class=\"format-flags\">" . a\flagsDesc($v, $flagsField) . '</div>';
   return $v;
 }
 
@@ -259,10 +259,10 @@ function ssnShow($a) {
   if (isDEV) return t('no SSN data');
   
   $ssnData = @$a->ssnCheck();
-  $d = @$ssnData['searchResults'] ?: []; // [] for admin without pw2
-  if ($err = @$ssnData[SSN_ERR_INDEX]) $rows[] = ["<b style=\"color:red;\">ERROR</b>", $err, '', '', ''];
+  $d = @$ssnData['searchResults'] ?: []; // [] for admin without vKeyE
+  if ($err = @$ssnData[SSN_ERR_INDEX]) $rows[] = ["<b class=\"err\">ERROR</b>", $err, '', '', ''];
   $name = $a->fullName . ($a->legalName == $a->fullName ? '' : "<br>$a->legalName");
-  $rows[] = array(t('Data Given'), $name, u\fmtDate(is_numeric($a->dob) ? $a->dob: 0), r\location($a, TRUE), '', ''); // is_numeric check for admin without pw2
+  $rows[] = array(t('Data Given'), $name, u\fmtDate(is_numeric($a->dob) ? $a->dob: 0), r\location($a, TRUE), '', ''); // is_numeric check for admin without vKeyE
   $name = u\ssnName($one = (object) @$d['ssnnames']['ssnname']);
   $dob = $one->dob ? u\fmtDate(strtotime($one->dob)) : ''; // arrives as an empty array if none
   $rows[] = array(t('Found'), $name, $dob, @$d['deathsearchresults'] ? '<h1 color="red">DEAD</h1>' : '', '', '');
@@ -507,15 +507,7 @@ EOF;
       $details = w\btn("deposit-details/way=$way&date=$deposit&total=$total&count=$count", t('details'));
       if ($way == 'Out') {
         list ($WAY, $date) = [t('OUT'), strftime('%Y%m%d', $deposit ?: strtotime('today'))];
-
-        $js = <<<EOF
-var area = document.createElement('textarea');
-area.value = 'CGach$WAY-$date.csv';
-document.body.appendChild(area);
-area.select();
-alert(document.execCommand('copy') ? 'filename copied to clipboard' : 'copy to clipboard failed');
-EOF;
-        $details = w\btn("$ $js", t('flnm'), 'default') . ' ' . $details;
+        $details = w\btn('', t('flnm'), 'default', 'xs', ray('class data-flnm', 'filename', "CGach$WAY-$date.csv")) . ' ' . $details;
       }
 
       list ($func, $label) = ($way != 'Out' or ($deposit > 0 and $deposit < strtotime('1/10/2017')))
@@ -552,8 +544,9 @@ EOF;
 function printCheck(&$ck, $pos, $tx, $mark) {
   extract(just('txid created payee amount deposit bankAccount', $tx));
   $escrow = 'USkk' . ESCROW_ROUTING . ($amount > 0 ? ESCROW_IN : ESCROW_OUT);
+	$bankAccount = u\decry('V', $bankAccount);
   $a = r\acct($payee);
-  $a->fixTxBankAccount($bankAccount, $txid);
+//  $a->fixTxBankAccount($bankAccount, $txid);
   
   list ($fromName, $addr, $phone, $fromAcct, $toName, $toAcct) = $amount > 0 // which way
 //    ? [$a->legalNameDpy, $a->postalAddr, $a->phone, $bankAccount, PROJECT, $escrow] // from bank to escrow
@@ -629,14 +622,14 @@ function printCheck(&$ck, $pos, $tx, $mark) {
  */
 function adminSignin() {
   global $box;
-  $pw2 = @$_COOKIE['pw2'];
-  u\EXPECT($pw2, 'no pw2!');
+//  $pw2 = @$_COOKIE['pw2'];
+//  u\EXPECT($pw2, 'no pw2!');
   
-  $q = db\q("SELECT txid,payee,bankAccount FROM r_usd WHERE bankAccount NOT LIKE ':CRYPT_FLAG%'");
+/*  $q = db\q("SELECT txid,payee,bankAccount FROM r_usd WHERE bankAccount NOT LIKE ':CRYPT_FLAG%'");
   while ($row = $q->fetchAssoc()) {
     extract($row);
     if (substr($bankAccount, 0, 2) == 'US') {
-      $bankAccount = u\crypt($bankAccount . '', 0, $pw2);
+      $bankAccount = r\crypt($bankAccount . '', 0, $pw2);
       db\update('r_usd', compact('txid', 'bankAccount'), 'txid');
       w\say(t('bank account super-encrypted in exchange record #%txid.', compact('txid')));
     } else r\tellAdmin('bad bank account in exchange record', ray('txid b0 hex', $txid, $b0, bin2hex($b0)));
@@ -650,6 +643,7 @@ function adminSignin() {
       } else r\tellAdmin('bad bank account', ray('b0 hex', $b0, bin2hex($b0)));
     }
   }
+	*/
 }
 
 /*
@@ -676,7 +670,7 @@ function moveFieldsToHidden() {
 
 /**
  * Make sure the very secure fields are encrypted with the admin's extra password.
- */
+ *//*
 function secureVery($a = '') {
   if (!r\acct()->superAdmin) return; // don't bother if not admin
   if ($a) {
@@ -685,7 +679,7 @@ function secureVery($a = '') {
     $q = db\q('SELECT uid FROM users WHERE :IS_OK');
     while ($row = $q->fetchAssoc()) secureVery(r\acct($row['uid']));
   }
-}
+}*/
 
 /**
  * Show sluggish accounts
@@ -796,7 +790,8 @@ function showInactive() {
   }
 }
 
-function cardLink($link) {return spinLink("/print-rcard/$link", t('card'), '', 'primary', 'xs', w\away());}
+function cardLink($link) {return spinLink("/print-rcard/$link", t('Card'), '', 'primary', 'xs', w\away());}
+function recropLink() {return spinLink('/settings/photo/recrop=1', t('Recrop Photo'), '', 'primary', 'xs');}
 
 function nextMember($id = 0) {
   $members = db\col('uid', 'users', ':IS_OK AND NOT :IS_CO AND activated<1486098000 ORDER BY community, uid');
@@ -843,13 +838,13 @@ function callDetails($type = '', $when = '') {
     list ($signupCo, $myCo) = ['', t(' (personally rather than for company "%myCo")', compact('myCo'))];
   } else $signupCo = $mya->signupCo ? t('<li><b>Company</b>. How about signing up your company: %coName? (%co)</li>', 'co coName', w\signupCoDisplay($mya->signupCo, $coName), $coName) : '';
   $notyet = t("<li><b>Want</b>. What's a place you would like to use your %PROJECT card but can't yet?</li>");
-  $how = t("<li><b>How's it going?</b> %myCo %lastTx Do you have any questions, suggestions, or concerns? Are you getting our newsletter? If you could change or improve one thing about the %PROJECT system, what would it be?</li>", '_lastTx myCo', $mya->lastTxDesc(), @$myCo) . $notyet;
+  $how = t("<li><b>How's it going?</b> %myCo %lastTx Do you have any questions, suggestions, or concerns? Are you getting our newsletter? What do you find most valuable about the %PROJECT system? If you could change or improve one thing about the %PROJECT system, what would it be?</li>", '_lastTx myCo', $mya->lastTxDesc(), @$myCo) . $notyet;
   if ($mya->paper) $how .= t('<li><b>Paper statements</b>. Do you really want paper statements? ($%R_STATEMENT_COST/month)</li>');
-  if ($mya->balance < 0) $how .= t('<li><b>Negative</b>. You have a negative balance of <%b>%bal</b>. Do you need help getting money into your account? That amount is, in effect, borrowed from your local community of %PROJECT members. So it is much better of course, for the community\'s financial health, if you bring your balance back up above zero when you can.</li>', '_b bal', 'b style="color:darkred;"', u\fmtAmt($mya->balance));
+  if ($mya->balance < 0) $how .= t('<li><b>Negative</b>. You have a negative balance of <%b>%bal</b>. Do you need help getting money into your account? That amount is, in effect, borrowed from your local community of %PROJECT members. So it is much better of course, for the community\'s financial health, if you bring your balance back up above zero when you can.</li>', '_b bal', 'b class="outgoing"', u\fmtAmt($mya->balance));
   
   $reason = $setup ? t('see if I might help you finish opening your %PROJECT account')
-  : ($type == 'welcome' ? t('welcome you to %PROJECT, check in, make sure you got your card, and ask you a couple questions')
-  : ($type == 'annual' ? t('thank you for being a member, make sure we have your address right, and ask a couple questions')
+  : ($type == 'welcome' ? t('welcome you to %PROJECT, check in, make sure you got your card, and ask you some questions')
+  : ($type == 'annual' ? t('thank you for being a member, make sure we have your address right, and ask some questions')
   : t('ERROR')));
   $intro = t('Hi, this is %name with %PROJECT. I\'m calling to %reason.', 'name reason', $mya->agentA->fullName, $reason);
   $live = $intro . t(' Is this a good time?');
@@ -866,9 +861,11 @@ function callDetails($type = '', $when = '') {
   
   if ($mya->co) { // company
     $volunteer = '';
-    $coAsk = $mya->crumbs ? '' : t('<li><b>Crumbs</b>. We particularly encourage businesses to contribute what we call "crumbs" to support the system and the common good. Do you know about this option? It means contributing a small percentage of each payment received, instead of the system charging you credit card fees. What percentage would you like to contribute?</li>');
+    $coAsk = ($mya->crumbs or TRUE) ? '' : t('<li><b>Crumbs</b>. We particularly encourage businesses to contribute what we call "crumbs" to support the system and the common good. Do you know about this option? It means contributing a small percentage of each payment received, instead of the system charging you credit card fees. What percentage would you like to contribute? [one percent is a common choice, a fraction of a percent is also wonderful]</li>'); // "or TRUE" is temporary 201801
     $coAsk .= t('<li><b>Coupons</b>. In addition to providing <i>free</i> advertising, %PROJECT can bring new customers to you with coupons. We give each new member a coupon to a %PROJECT business. Would you like to be in that rotation? (yes: we\'ll call you back about that)</li>');
-    $options = db\exists('r_usd', 'payee=:myid AND amount<0 AND created>:now-:DAY_SECS*30', ray('myid now', $mya->id, $now)) ? t('Do you know about our automatic cash-out option? If you want your company account to transfer your surplus funds to your bank account automatically every week, we can set that up.') : '';
+    $coAsk .= t('<li><b>CC Fees</b>. Since credit card companies typically charge two or three percent plus a per-transaction fee, our board has proposed charging business members a small percentage on each payment received, to make the system sustainable sooner. Do you think this is a good idea and if so what percentage would be reasonable? What rate do you currently pay for credit card transactions? Would you want to <i>donate</i> a small percentage instead? If so, how much? [one percent is a common choice, a fraction of a percent is also wonderful]</li>'); // temporary 201801
+    $options = db\exists('r_usd', 'payee=:myid AND amount<0 AND created>:now-:DAY_SECS*30', ray('myid now', $mya->id, $now)) ? t('Do you know about our automatic cash-out option? If you want your company account to transfer your surplus funds to your bank account automatically every week, we can set that up. ') : '';
+    $options .= t('If you have questions about our "Pay With %PROJECT" button for your website, our invoicing system, or accounting statements, we can help you with any of those.');
   } else { // individual
     $_volunteer = join("</li>\n<li>", explode('~', t(
       'Hand out promo cards and schedule appointments with local businesses.'
@@ -896,6 +893,8 @@ function callDetails($type = '', $when = '') {
   $options .= t('<li><b>Tell people!</b> Do you need more handout cards or brochures, to tell %who about %PROJECT?', 'who', $mya->co ? t('your customers and suppliers') : t('your friends or local businesses'));
   $addressCheck = t('<li><b>Address</b>. Are you still at %addr? (if not, ask about postal address too)</li>', 'addr', r\location($mya, TRUE));
 
+  if ($mya->co) $ask = $reask = $coAsk; // temporary 201801
+  
   $yearsIn = max(1, round(($now - $mya->activated) / DAY_SECS / 365.25)); // how many years after activation are we
   $annualAsk = '<ol><li>' . t("<b>Thanks</b>. Thank you for being a pioneer of economic democracy! (member for %yearsIn year/s) Thanks to your participation, along with other members, we were able to issue $10,000 in grants and loans this year. (Were you in on the discussions of what to fund?)", compact('yearsIn')) . "</li>\n$how\n$ask\n$addressCheck\n$signupCo\n$volunteer\n$options\n</ol>";
   
@@ -914,27 +913,10 @@ function callDetails($type = '', $when = '') {
     $links .= tr(' <a id="%k-link" href="#%k-details" data-toggle="collapse" class="btn btn-xs btn-warning">%k</a>', 'k', $k);
   }
 
-  $email = str_replace("href=\"#email-details\" data-toggle=\"collapse\"", "href=\"javascript:followupEmail();\"", $email);
+  $email = str_replace('href="#email-details" data-toggle="collapse"', '', $email); // href=\"javascript:followupEmail();\"
   $email .= '<' . u\emailTag($mya->email, t('your %PROJECT account'), '', $mya->fullName, 'id="email-do" class="collapse"') . '></a>';
   
-$js = <<<EOF
-function followupEmail() {
-  var L=$('#email-link');
-  L.html('<h3 style="color:red;">Press Ctrl-C, Enter (then Ctrl-V in email)</h3>');
-  var d=$('#email-details');
-  d.attr('tabindex', '99'); // oddly, Chrome requires this for keydown
-  d.attr('class', ''); // show
-  d.focus();
-  SelectText(d[0].id);
-  d.bind('keydown', function(event) {
-    if (event.keyCode!=13) return;
-    $('#email-do')[0].click();
-    d.attr('class', 'collapse'); // hide
-    L.html('email');
-  });
-}
-EOF;
-  w\js($js);
+  w\jsx('followup-email');
 
   return "<div class=\"well scripts\"><h3 class=\"above-details\">$head$subtext</h3><div id=\"intros\"><b class=\"loud\">$mya->phoneDash</b>$links</div>$details</div>";
 }
