@@ -16,10 +16,10 @@ Setup:
   |   2 | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |
   |   3 | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |
   Then balances:
-  | id   | balance |rewards |*
-  | .ZZA |       0 |    250 |
-  | .ZZB |       0 |    250 |
-  | .ZZC |       0 |    250 |
+  | id   | balance |*
+  | .ZZA |       0 |
+  | .ZZB |       0 |
+  | .ZZC |       0 |
 
 Scenario: A member requests a joint account
   Given relations:
@@ -84,7 +84,7 @@ Scenario: A joined account slave member requests a new minimum
 #  | .ZZB |       0 |          0 |    100 |    10 |
 
 Scenario: A joined account member looks at transaction history and summary
-  Given reward step is "1000"
+#  Given reward step is "1000"
   And members have:
   | id   | jid  | minimum |*
   | .ZZA | .ZZB |     150 |
@@ -106,19 +106,19 @@ Scenario: A joined account member looks at transaction history and summary
   |   8 | %today-2d | transfer |     50 | .ZZD | .ZZB | cash    |
   |   9 | %today-1d | transfer |    100 | .ZZC | .ZZA | labor   |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |     800 |     280 |
-  | .ZZB |    1150 |     250 |
-  | .ZZC |    -100 |     255 |
-  | .ZZD |     150 |      20 |
+  | id   | balance |*
+  | .ZZA |     800 |
+  | .ZZB |    1150 | 
+  | .ZZC |    -100 |
+  | .ZZD |     150 |
   When member ".ZZB" visits page "history/transactions/period=14"
   Then we show "Transaction History" with:
-  | Start        |   |   800.00 |   | 520.00 | %dmy-2w |
-  | From Bank    | + | 1,000.00 |   |        | -100.00 Pending |
-  | Received     | + |   650.00 |   |        |         |
-  | Out          | - |   500.00 |   |        |         |
-  | Credit Line+ |   |          | + |  10.00 |         |
-  | End          |   | 1,950.00 |   | 530.00 | %dmy    |
+  | Start        |   |   800.00 | %dmy-2w |
+  | From Bank    | + | 1,000.00 | - 100.00 Pending |
+  | Received     | + |   650.00 |         |
+  | Out          | - |   500.00 |         |
+#  | Credit Line+ |   |          |         |
+  | End          |   | 1,950.00 | %dmy    |
   And with:
 #  |~tid | Date    | Name       | Purpose   | Amount | Reward | Agent | ~ |
 #  | 5   | %mdy-1d | Corner Pub | labor     | 100.00 | 10.00      | ZZA  | X |
@@ -127,12 +127,12 @@ Scenario: A joined account member looks at transaction history and summary
 #  | 602 | %mdy-2w |            | from bank | 400.00 | --         | ZZA  | X |
 #  | 601 | %mdy-2w |            | from bank | 600.00 | --         | ZZB  | X |
 
-  |~tid | Date    | Name       | Purpose   | Amount | Reward | ~ |
-  | 5   | %mdy-1d | Corner Pub | labor     | 100.00 | +10.00 | X |
-  | 4   | %mdy-2d | Dee Four   |  cash     |  50.00 |  +0    | X |
+  |~tid | Date    | Name       | Purpose   | Amount |  Balance | ~ |
+  | 5   | %mdy-1d | Corner Pub | labor     | 100.00 | 1,950.00 | X |
+  | 4   | %mdy-2d | Dee Four   |  cash     |  50.00 | 1,850.00 | X |
 #  | 3   | %mdy-1w | Abe One    | usd       | 500.00   | 500.00 |  +0    | X |
-  | 602 | %mdy-2w |            | from bank | 400.00 |  +0    |   |
-  | 601 | %mdy-2w |            | from bank | 600.00 |  +0    |   |
+  | 602 | %mdy-2w |            | from bank | 400.00 | 1,800.00 |   |
+  | 601 | %mdy-2w |            | from bank | 600.00 | 1,400.00 |   |
   Given cron runs "acctStats"
   When member ".ZZB" visits page "summary"
   Then we show "Account Summary" with:
@@ -141,13 +141,14 @@ Scenario: A joined account member looks at transaction history and summary
   | ~             | (beatwo & abeone) |
   | Balance       | $1,950 |
 #  | Savings       | $530 |
-  | ~rewards      | $530 |
+#  | ~rewards      | $530 |
 #  | Committed     | $0.60 |
 #  | Your return   | 21.9% | (sometimes is 20.2%)
 #  | ~ever         | 136.7% | or 137.1% (depends on daylight time?) or 68.0%?!
   | Social return | $68.75 |
   | including     | $0 |
-Scenario: A joined account member unjoins the account
+
+  Scenario: A joined account member unjoins the account
   Given members have:
   | id   | jid  | minimum |*
   | .ZZA | .ZZB |     150 |
@@ -160,17 +161,17 @@ Scenario: A joined account member unjoins the account
   | xid | created   | type     | amount | from | to   | purpose |*
   |   4 | %today-1d | transfer |    100 | .ZZC | .ZZA | labor   |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |     100 |     260 |
-  | .ZZB |       0 |     250 |
-  | .ZZC |    -100 |     255 |
+  | id   | balance |*
+  | .ZZA |     100 |
+  | .ZZB |       0 | 
+  | .ZZC |    -100 |
   When member ".ZZB" completes relations form with values:
   | other | permission |*
   | .ZZA  | none       |
   Then members have:
-  | id   | jid  | minimum | balance |rewards |*
-  | .ZZA |      |     150 |      50 |    260 |
-  | .ZZB |      |     150 |      50 |    250 |
+  | id   | jid  | minimum | balance |*
+  | .ZZA |      |     150 |      50 |
+  | .ZZB |      |     150 |      50 |
   And member ".ZZA" cache is ok
   And member ".ZZB" cache is ok
   

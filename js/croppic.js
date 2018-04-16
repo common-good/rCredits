@@ -12,6 +12,7 @@
 		that.id = id;
 		that.obj = $('#' + id);
 		that.outputDiv = that.obj;
+    that.rotated = false; // cg rotated 2018-04
 
 		// DEFAULT OPTIONS
 		that.options = {
@@ -513,22 +514,37 @@
 					});
 					
 					if(that.options.imgEyecandy){ that.imgEyecandy.offset({ top:imgTop, left:imgLeft }); }
-										
-					if (that.objH < that.imgH) {
-						if (parseInt(that.img.css('top')) > 0) { that.img.css('top', 0); if (that.options.imgEyecandy) { that.imgEyecandy.css('top', 0);}}
-						var maxTop = -( that.imgH - that.objH); if (parseInt(that.img.css('top')) < maxTop) { that.img.css('top', maxTop); if (that.options.imgEyecandy) { that.imgEyecandy.css('top', maxTop); }}
-					}else{
-						if (parseInt(that.img.css('top')) < 0) { that.img.css('top', 0); if (that.options.imgEyecandy) { that.imgEyecandy.css('top', 0); }}
-						var maxTop =  that.objH - that.imgH; if (parseInt(that.img.css('top')) > maxTop) { that.img.css('top', maxTop);if (that.options.imgEyecandy) {that.imgEyecandy.css('top', maxTop); }}
-					}
+					if (!that.rotated) { // cg rotated 2018-04
+            if (that.objH < that.imgH) {
+              if (parseInt(that.img.css('top')) > 0) { 
+                that.img.css('top', 0); 
+                if (that.options.imgEyecandy) { that.imgEyecandy.css('top', 0);}
+              }
+              var maxTop = -( that.imgH - that.objH); 
+              if (parseInt(that.img.css('top')) < maxTop) {
+                that.img.css('top', maxTop); 
+                if (that.options.imgEyecandy) { that.imgEyecandy.css('top', maxTop); }
+              }
+            } else {
+              if (parseInt(that.img.css('top')) < 0) {
+                that.img.css('top', 0); 
+                if (that.options.imgEyecandy) { that.imgEyecandy.css('top', 0); }
+              }
+              var maxTop =  that.objH - that.imgH; 
+              if (parseInt(that.img.css('top')) > maxTop) {
+                that.img.css('top', maxTop);
+                if (that.options.imgEyecandy) {that.imgEyecandy.css('top', maxTop); }
+              }
+            }
 
-					if (that.objW < that.imgW) {
-						if( parseInt( that.img.css('left')) > 0 ){ that.img.css('left',0); if(that.options.imgEyecandy){ that.imgEyecandy.css('left', 0); }}
-						var maxLeft = -( that.imgW-that.objW); if( parseInt( that.img.css('left')) < maxLeft){ that.img.css('left', maxLeft); if(that.options.imgEyecandy){ that.imgEyecandy.css('left', maxLeft); } }
-					}else{
-						if( parseInt( that.img.css('left')) < 0 ){ that.img.css('left',0); if(that.options.imgEyecandy){ that.imgEyecandy.css('left', 0); }}
-						var maxLeft = ( that.objW - that.imgW); if( parseInt( that.img.css('left')) > maxLeft){ that.img.css('left', maxLeft); if(that.options.imgEyecandy){ that.imgEyecandy.css('left', maxLeft); } }
-					}
+            if (that.objW < that.imgW) {
+              if( parseInt( that.img.css('left')) > 0 ){ that.img.css('left',0); if(that.options.imgEyecandy){ that.imgEyecandy.css('left', 0); }}
+              var maxLeft = -( that.imgW-that.objW); if( parseInt( that.img.css('left')) < maxLeft){ that.img.css('left', maxLeft); if(that.options.imgEyecandy){ that.imgEyecandy.css('left', maxLeft); } }
+            }else{
+              if( parseInt( that.img.css('left')) < 0 ){ that.img.css('left',0); if(that.options.imgEyecandy){ that.imgEyecandy.css('left', 0); }}
+              var maxLeft = ( that.objW - that.imgW); if( parseInt( that.img.css('left')) > maxLeft){ that.img.css('left', maxLeft); if(that.options.imgEyecandy){ that.imgEyecandy.css('left', maxLeft); } }
+            }
+          } // cg rotated 2018-04
 					if (that.options.onImgDrag) that.options.onImgDrag.call(that);
 					
 				});
@@ -542,6 +558,7 @@
 		},
 	    rotate: function(x) {
 	        var that = this;
+          that.rotated = true; // cg rotated 2018-04
 	        that.actualRotation += x;
 	        that.img.css({
 	            '-webkit-transform': 'rotate(' + that.actualRotation + 'deg)',
@@ -630,15 +647,15 @@
 			
 			that.cropControlsCrop.hide();
 			that.showLoader();
-	
+
 			var cropData = {
 					imgUrl:that.imgUrl,
 					imgInitW:that.imgInitW,
 					imgInitH:that.imgInitH,
 					imgW:that.imgW,
 					imgH:that.imgH,
-					imgY1:Math.abs( parseInt( that.img.css('top') ) ),
-					imgX1:Math.abs( parseInt( that.img.css('left') ) ),
+					imgY1:( -parseInt( that.img.css('top') ) ),
+					imgX1:(-parseInt( that.img.css('left') ) ),
 					cropH:that.objH,
 					cropW:that.objW,
 					rotation:that.actualRotation

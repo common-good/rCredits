@@ -50,7 +50,7 @@ function setupBasicAccounts() {
   $values = array(1, 0, 'admin', t('System Administrator'), r\regionField('email'), '', 0, 0, 0, u\bit([B_ADMIN, B_CO]));
   $info = array_combine($keys, $values);
   $a1 = new r\Acct($info); // set up system admin record (uid=1)
-  if (isDEV) $a1->update('pw2 vKeyPw', r\passHash(DEV_PW2), \variable_get('vKeyPw'));
+  if (isDEV) $a1->update('pw2 vKeyPw', r\passHash(DEV_PW2), u\b64decode(DEV_VKEYPW));
 
   foreach (ray(t('2:PlaceHolder One,3:PlaceHolder Two')) as $k => $v) {
     $name = str_replace(' ', '', strtolower($v));
@@ -79,11 +79,10 @@ function setupBasicAccounts() {
 /**
  * Re-setup the test cards on the STAGING server, after importing data from the PRODUCTION server.
  * Set bogus email addresses and phones so we DEFINITELY don't accidentally email someone (happened once)
-  f('a.makeTestAccounts');
  */
  define('TEST_ACCTS', 'aaa aab aad aaq aak abb');
  define('DEV_ACCTS', ''); // developer accounts
- define('R_COS', 'CAAAAA RMCAAA MIWAAA INAAAA NEWAAD NEWAIG NEWAKH NENAAB NEWALJ NEWAKD'); // community organizers, staff, and programmers to treat as cAdmins on test server (not the superAdmin, so he can sign in as an ordinary user).
+ define('R_COS', 'CAAAAA RMCAAA MIWAAA INAAAA NEWAAD NEWAIG NEWAKH NENAAB NEWALJ NEWAKD'); // community organizers, staff, and programmers to treat as cAdmins on test server (not the superAdmin's personal account, so the superAdmin can sign in as an ordinary individual user).
  
 function makeTestAccounts() {
   if (isPRODUCTION) return; // protects us even if the constant is not set
@@ -114,9 +113,9 @@ function makeTestAccounts() {
   $a->update('name fullName cardCode', 'susanshopper', 'Susan Shopper', 'ZzhWMCq0zcBowqw');
   a\photoFromFile($a);
   
-  foreach (ray(TEST_ACCTS) as $k) a($k)->update('email phone', 'test@example.com', '+14130000000'); // prevent accidental texts and emails to real accts
+  foreach (ray(TEST_ACCTS) as $k) a($k)->update('email phone pin', 'test@example.com', '+14130000000', '1234'); // prevent accidental texts and emails to real accts
 
-  new r\Acct(ray('uid community name fullName email flags', -2, -2, 'example', t('Common Good Example'), 'ctty@example.com', u\bit([B_CO, B_CGC, B_UP]))); // create a bogus community
+  if (!db\exists('users', 'uid=-2')) new r\Acct(ray('uid community name fullName email flags', -2, -2, 'example', t('Common Good Example'), 'ctty@example.com', u\bit([B_CO, B_CGC, B_UP]))); // create a bogus community
   foreach (ray(TEST_ACCTS . ' ' . DEV_ACCTS) as $k) a($k)->update('community', -2); // isolate everyone into it
   
   a\makeTestAdmins();
@@ -294,41 +293,14 @@ EOF;
 /**
  * Redo all the stats
  * @param int $keepUpto: date of last valid stats records (redo all subsequent dates)
-include_once __DIR__ . '/../rcredits/admin/admin.inc';
-f('a.fixStats');
  */
-function fixStats($keepUpto = 0) {
-//  include_once __DIR__ . '/../rcron/rcron.inc';
-  $blockAgo = strtotime(-STATS_GRAIN, strtotime('today'));
-  
-  $sql = <<<EOF
-    SELECT community AS ctty, MIN(t.created) AS start
-    FROM users u LEFT JOIN r_txs t ON t.payee=u.uid 
-    WHERE uid>1 AND (t.created>=:R_LAUNCH OR t.created IS NULL) GROUP BY community ORDER BY -community
-EOF;
-  $cttys = db\q($sql)->fetchAllKeyed();
-  u\preray(array(0 => min($cttys)), $cttys); // show all dates overall
-
-  $now = r\rTime();
-  db\q($keepUpto ? "DELETE FROM r_stats WHERE id>$keepUpto" : 'TRUNCATE r_stats');
-  $start0 = $keepUpto ? strtotime('+' . ($keepUpto < $blockAgo ? STATS_GRAIN : 1), db\lookup('MAX(created)', 'r_stats')) : (@$cttys[0] ?: $now);
-  $created = strtotime('today', $start0); // use first moment of the day
-  
-  while ($created <= $now) {
-  /*
-    $acctQ = db\q('SELECT uid FROM users WHERE uid>1');
-    db\q('UPDATE users SET picture=0'); // clear temp field  
-    while ($row = $acctQ->fetchAssoc()) r\Cronr\acctStats1($row, $created); // set individual account stats
-    */
-    foreach ($cttys as $ctty => $start) if ($created >= $start) {
-      r\getStats($ctty, $created); // set community stats
-/// this fails on cross-community txs!  if ($ctty != 0) if ($err = badStats($ctty, $created)) return debug($err); // verify
-    }
-    $delta = $created < $blockAgo ? STATS_GRAIN : 1;
-    $created = strtotime("+$delta days", $created);
-  }
+function fixStats() {
+/*
+  db\q('TRUNCATE r_stats');
+  f('cr.cttyStats');
+*/
 }
-  
+
 function pioneerBonus($a) {
   if (!$a->ok or $a->co) return;
   if (db\exists('r_txs', "payee=:uid AND payer=-8915 AND amount=100", ray('uid', $a->id))) return;
@@ -488,6 +460,7 @@ function flagsDesc($n, $list) {
  * Return a table of deposits.
  */
 function deposits() {
+  global $base_url;
   $sql = <<<EOF
     SELECT SUM(IF(amount>0 AND txid>0, amount, 0)) AS amountIn, SUM(IF(amount>0 AND txid>0, 1, 0)) AS countIn,
       SUM(IF(amount<0 AND txid>0, amount, 0)) AS amountOut, SUM(IF(amount<0 AND txid>0, 1, 0)) AS countOut,
@@ -497,14 +470,54 @@ function deposits() {
     GROUP BY deposit ORDER BY deposit<>0, deposit DESC, amount<0
 EOF;
 
+  $today = strtotime('today');
+  $ways = ray('In Out Bad', t('IN'), t('OUT'), t('BAD')); // translate, don't use strtoupper
   $q = db\q($sql); // include today's potential deposit at the top
+
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    $dateDpy = $deposit == 1 ? t('<b>ANCIENT</b>') : ($deposit ? u\fmtDate($deposit) : t('<b>TODAY</b>'));
+    $firstline = TRUE;
+    foreach ($ways as $way => $wayDesc) {
+      list ($total, $count) = [u\fmtAmt(${"amount$way"}, ''), number_format(${"count$way"})];
+      if (!$count) continue;
+      if ($firstline) {
+        $dateDpy = $deposit == 1 ? t('<b>ANCIENT</b>') : ($deposit ? u\fmtDate($deposit) : t('<b>TODAY</b>'));
+        $date = strftime('%Y%m%d', $deposit ?: $today);
+        $details = w\btn("/sadmin/deposit-details/date=$deposit&total=$total&count=$count", t('details'));
+        if (!$deposit or $deposit >= $today - 90 * DAY_SECS) $details .=
+          ' ' . w\btn('', t('flnm'), 'default', 'xs', ray('class data-flnm', 'filename', "CGach-$date.csv"))
+        . ' ' . w\lnk("/sadmin/achs/date=$deposit&mark=0", t('download'));
+        if ($count) $details .= ' ' . w\btn("/sadmin/checks/way=In&date=$deposit&mark=0", t('checks')); 
+      } else $dateDpy = $details = '';
+
+      $deposits[] =<<<EOF
+<tr>
+  <td>$dateDpy</td>
+  <td>$wayDesc</td>
+  <td>$count</td>
+  <td>$total</td>
+  <td>$details</td>
+</tr>
+EOF;
+      $firstline = FALSE;
+    }
+  }
+  $deposits = join("\n", $deposits);
+  $header = t('<tr><th>Transfers</th><th></th><th>Count</th><th>Total</th><th></th></tr>');
+  return <<<EOF
+<table id="deposits">
+$header
+$deposits
+</table>
+EOF;
+
+}
+
+/*
     foreach (['In'=>t('IN'), 'Out'=>t('OUT'), 'Bad'=>t('BAD')] as $way => $wayDesc) {
       list ($total, $count) = [u\fmtAmt(${"amount$way"}, ''), number_format(${"count$way"})];
       if (!$count) continue;
-      $details = w\btn("deposit-details/way=$way&date=$deposit&total=$total&count=$count", t('details'));
+      $details = w\btn("/sadmin/deposit-details/way=$way&date=$deposit&total=$total&count=$count", t('details'), w\away());
       if ($way == 'Out') {
         list ($WAY, $date) = [t('OUT'), strftime('%Y%m%d', $deposit ?: strtotime('today'))];
         $details = w\btn('', t('flnm'), 'default', 'xs', ray('class data-flnm', 'filename', "CGach$WAY-$date.csv")) . ' ' . $details;
@@ -519,7 +532,7 @@ EOF;
   <td>$wayDesc</td>
   <td>$count</td>
   <td>$total</td>
-  <td>$details &nbsp; <a href="$func/way=$way&date=$deposit&mark=0" target="_blank">$label</a></td>
+  <td>$details &nbsp; <a href="$base_url/sadmin/$func/way=$way&date=$deposit&mark=0" target="_blank">$label</a></td>
 </tr>
 EOF;
     }
@@ -533,6 +546,7 @@ $deposits
 </table>
 EOF;
 }
+*/
 
 /**
  * Print a check

@@ -186,7 +186,7 @@ function q($sql, $subs = [], $log = FALSE) {return f('db.q', $sql, $subs, $log);
 function f($func) {
   global $cronOp; 
   list ($prefix, $funcName) = explode('.', $func);
-  $incs = ray('a:admin/admin.inc,y:rcredits-yearly.inc,w:rweb/rweb.inc,cr:rcron/rcron.inc,be:rcredits-backend.inc,s:rsmart/rsmart.inc,t:rcredits-testing.inc');
+  $incs = ray('a:admin/admin.inc,y:rcredits-yearly.inc,w:rweb/rweb.inc,cr:rcron/rcron.inc,be:rcredits-backend.inc,s:rsmart/rsmart.inc,t:rcredits-testing.inc,i:rcredits-install.inc');
   if ($flnm = @$incs[$prefix]) require_once __DIR__ . "/$flnm";
 
   if ($prefix == 'v') {
@@ -211,7 +211,7 @@ function f($func) {
  */
 function funcNickname($func) {
   list ($n, $func) = explode('.', $func);
-  $funcs = array_combine(ray('r w s u be db t p a cr y v'), ray(' Web Smart Util Backend DB Testing SMS Admin Cron Special Vote'));
+  $funcs = array_combine(ray('r w s u be db t p a cr y v i'), ray(' Web Smart Util Backend DB Testing SMS Admin Cron Special Vote Install'));
   return 'rCredits\\' . ($funcs[$n] ? $funcs[$n] . '\\' : '') . $func;
 }
 

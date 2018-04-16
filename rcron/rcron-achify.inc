@@ -13,7 +13,7 @@ define('DEST_NUM', '011500120'); // usually a routing number for the bank provid
 /**
  * Create an ACH request file (debits only, for now).
  */
-function achify() {
+function achify($where = 'deposit=0') {
 	$CGCODE = 'ASOBENE1'; // company code assigned by Citizens Bank for upload filename
   $reserve = ''; // leave reserved fields empty
   $count = $hash = $credits = $debits = 0;
@@ -53,8 +53,8 @@ function achify() {
   $recs[] = "5$class$coName$extra" . '1' . CGF_EIN . "$code$purpose$when$effective" . "0001$tdRoute$batch"; // co batch header
 */
 
-  $where = TRUE ? 1 : 'amount<=0';
-  $q = db\q("SELECT txid,payee,amount FROM r_usd WHERE $where AND deposit=0 ORDER BY txid");
+//  $where = TRUE ? 1 : 'amount<=0';
+  $q = db\q("SELECT txid,payee,amount,deposit FROM r_usd WHERE $where ORDER BY txid");
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $a = r\acct($payee);
@@ -74,6 +74,7 @@ function achify() {
     $recs[] = achRecord(compact(array_keys($ray = ray(F_PPD))), $ray);
 
     $hash += substr($routing, 0, 8);
+    if (!$deposit) db\update('r_usd', ray('deposit txid', strtotime('today'), $txid), 'txid');
     
     /*    
     list ($route, $account) = u\parseBankAccount($a->bankAccount);

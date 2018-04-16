@@ -5,11 +5,11 @@ SO I can buy and sell stuff.
 
 Setup:
   Given members:
-  | id   | fullName | address | city  | state  | zip   | country | postalAddr | rebate | flags           |*
-  | .ZZA | Abe One  | 1 A St. | Atown | Alaska | 01000 | US      | 1 A, A, AK |      5 | ok,confirmed    |
-  | .ZZB | Bea Two  | 2 B St. | Btown | Utah   | 02000 | US      | 2 B, B, UT |     10 | ok,confirmed    |
-  | .ZZC | Our Pub  | 3 C St. | Ctown | Cher   |       | France  | 3 C, C, FR |     10 | ok,confirmed,co |
-  | .ZZD | Dee Four | 4 D St. | Dtown | DE     | 01004 | US      |            |      0 |                 |
+  | id   | fullName | floor | flags             |*
+  | .ZZA | Abe One  |     0 | ok,confirmed      |
+  | .ZZB | Bea Two  |  -250 | ok,confirmed,debt |
+  | .ZZC | Our Pub  |     0 | ok,confirmed,co   |
+  | .ZZD | Dee Four |     0 |                   |
   And relations:
   | main | agent | permission |*
   | .ZZC | .ZZB  | buy        |
@@ -19,10 +19,10 @@ Setup:
   |   2 | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |
   |   3 | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |       0 |     250 |
-  | .ZZB |       0 |     250 |
-  | .ZZC |       0 |     250 |
+  | id   | balance |*
+  | .ZZA |       0 |
+  | .ZZB |       0 |
+  | .ZZC |       0 |
 
 Scenario: A member confirms request to charge another member
   When member ".ZZA" confirms form "charge" with values:

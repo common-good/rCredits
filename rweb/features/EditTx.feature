@@ -20,10 +20,10 @@ Setup:
   |   3 | %today-6m | signup   |      0 |      0 |   250 | ctty | .ZZC | signup       |
   |   4 | %today    | transfer |     20 |      1 |     2 | .ZZA | .ZZB | stuff        |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |     -20 |     251 |
-  | .ZZB |      20 |     252 |
-  | .ZZC |       0 |     250 |
+  | id   | balance |*
+  | .ZZA |     -20 |
+  | .ZZB |      20 |
+  | .ZZC |       0 |
 
 Scenario: A buyer changes the transaction description
   Given member ".ZZA" edits transaction "4" with values:
@@ -31,18 +31,18 @@ Scenario: A buyer changes the transaction description
   |     20 | %FOR_GOODS | things  |
   When member ".ZZA" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
-  |~tid | Date | Name    | Purpose | Amount | Reward | ~ |
-  |   2 | %mdy  | Bea Two | things  | -20.00 |   1.00 | X |
+  |~tid | Date | Name    | Purpose | Amount | ~ |
+  |   2 | %mdy  | Bea Two | things  | -20.00 | X |
 
 Scenario: A buyer increases a payment amount
   When member ".ZZA" edits transaction "4" with values:
   | amount | goods        | purpose |*
   |     40 | %FOR_GOODS | stuff   |
   Then balances:
-  | id   |  balance | rewards |*
-  | .ZZA |      -40 |     252 |
-  | .ZZB |       40 |     254 |
-  | .ZZC |        0 |     250 |
+  | id   |  balance |*
+  | .ZZA |      -40 |
+  | .ZZB |       40 |
+  | .ZZC |        0 |
   And we say "status": "info saved"
   And we notice "tx edited|new tx amount" to member ".ZZA" with subs:
   | tid | who     | amount |*
@@ -56,10 +56,10 @@ Scenario: A buyer changes the goods status
   | amount | goods      | purpose |*
   |     20 | %FOR_USD | stuff   |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |     -20 |     250 |
-  | .ZZB |      20 |     250 |
-  | .ZZC |       0 |     250 |
+  | id   | balance |*
+  | .ZZA |     -20 |
+  | .ZZB |      20 |
+  | .ZZC |       0 |
   And we say "status": "info saved"
   And we notice "tx edited|new tx goods" to member ".ZZA" with subs:
   | tid | who     | what        |*
@@ -82,8 +82,8 @@ Scenario: A buyer disputes a charge
   | 100 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | taking |
   When member ".ZZA" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
-  |~tid | Date    | Name       | Purpose | Amount | Reward | ~ |
-  |   3 | %mdy-5d | Corner Pub | this CF | -80.00 | 4.00   | X |
+  |~tid | Date    | Name       | Purpose | Amount | ~ |
+  |   3 | %mdy-5d | Corner Pub | this CF | -80.00 | X |
   # Status was %chk 
   When member ".ZZA" clicks "X" on transaction 100
   Then we show "tx desc passive|purpose|when|.|confirm tx action" with subs:
@@ -96,8 +96,8 @@ Skip (test doesn't work yet)
   | solution |*
   | marked "disputed" |
   And we show "Transaction History" with:
-  |~tid | Date   | Name       | Purpose | Amount | Reward | ~ |
-  |   3 | %mdy-5d | Corner Pub | this CF | -80.00 | 4.00   |   |
+  |~tid | Date   | Name       | Purpose | Amount | ~ |
+  |   3 | %mdy-5d | Corner Pub | this CF | -80.00 |   |
   # Status was disputed
 Resume
   
@@ -107,8 +107,8 @@ Scenario: A seller reverses a charge
   | 100 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | 1      |
   When member "C:B" visits page "history/transactions/period=5"
   Then we show "Transaction History" with:
-  |~tid | Date   | Name    | Purpose | Amount | Reward | ~ |
-  |   2 | %mdy-5d | Abe One | this CF | 80.00  |   8.00 | X |
+  |~tid | Date   | Name    | Purpose | Amount | ~ |
+  |   2 | %mdy-5d | Abe One | this CF | 80.00  | X |
   When member "C:B" clicks "X" on transaction 100
   Then we show "tx desc active|purpose|when|.|confirm tx action" with subs:
   | amount | otherName | did     | purpose   | created   | txAction            |*

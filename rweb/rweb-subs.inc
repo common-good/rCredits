@@ -70,7 +70,7 @@ EOF
   'address info' => t('<a1>Click here</a> for address information.'),
   'agent created' => t('The agent account was successfully created.'),
   'phone verified' => t('Your phone number has been verified.'),
-  'payroll done' => t('<br>Payroll upload was successful. You paid %count employees a total of %total.'),
+  'txs upload done' => t('<br>Transaction upload was successful. You %did %count accounts a total of %total.'),
   'tx edited' => t('Your transaction #%tid was edited by %who.'),
   'new tx goods' => t('It is now for %what.'),
   'new tx amount' => t('The new amount is %amount.'),
@@ -107,6 +107,8 @@ EOF
     <p>For everyone\'s protection, the %PROJECT software automatically detects and penalizes attempts to "game" the system.</p>'),
   'missing field0' => t('%field field is required.'), // Drupal's standard
   'missing field' => t('Missing a required field: %field'),
+  'nothing to do' => t('There is nothing to process.'),
+  'in csv' => t('in CSV file line %line: %row'),
   'no txs' => t('There are no transactions in that period.'),
   'no invoices' => t('There are no such invoices in that period.'),
   'no relations' => t('There are not yet any relations for this account.'),
@@ -240,11 +242,11 @@ $GLOBALS['tStrings']['flooded'] = $GLOBALS['tStrings']['bad login'];
 
 /**
  * Handle submission of form (mostly still with standard Drupal)
- */
+ *//* NO!! Don't sanitize input. Sanitize OUTPUT.
 function submitForm($form, $sta) {
   if ($form['#id'] != 'rcreditswebformphp') $sta['input'] = u\sanitizeInput($sta['input'], $form);
   return form_execute_handlers('submit', $form, $sta);
-}  
+}  */
 
 /**
  * Convert URLs to hyperlinks
@@ -328,14 +330,14 @@ EOF;
 function htmlItem($name, $id, $value, $class, $other = []) {return $value;}
 
 function htmlText($name, $id, $value, $class, $other = []) {
-  extract(just('tribs invisible id prefix suffix inline class box disabled autocomplete_path', $other));
+  extract(just('tribs invisible id prefix suffix inline class box disabled', $other));
 
   $class = [@$class];
   $class[] = 'form-control input-md';
-  if ($extra = rcAuto(@$autocomplete_path, $id)) $class[] = 'form-autocomplete';
+//  if ($extra = rcAuto(@$autocomplete_path, $id)) $class[] = 'form-autocomplete';
 
   $tribs = u\tribs(compact('type', 'class') + (@$tribs ?: []));
-  return "<input $tribs />" . $extra;
+  return "<input $tribs />";
 }
 function htmlPassword($name, $id, $value, $class, $other = []) {
   return htmlText($name, $id, $value, $class, ['type' => 'password'] + $other);
@@ -568,7 +570,7 @@ function fld($type, $title = '', $help = '', $other = [], $options = NULL) {
   if (@$label[0] == REQ) list ($required, $label) = ['yes', substr($label, 1)];
   if ($bare = (@$label[0] == BARE)) $label = substr($label, 1); // bare? (no div wrapper)
   if (@$other['wrap']) $bare = FALSE;
-  $title = $label;
+  $title = @$other['title'] ?: $label;
 
   if (!is_array($other)) $other = [$type == 'item' ? 'markup' : 'value' => $other];
   if ($type == 'select' and !isset($other['default_value'])) $other['default_value'] = $options ? key($options) : ''; // Drupal's select fails without a default
@@ -608,9 +610,8 @@ function submi($title = '', $style = '', $size = 'xs', $other = []) {
  * @param assoc $extra: other attributes (id, class, etc)
  */
 function buttonFld($value, $href = '', $title = NULL, $style = 'success', $size = 'xs', $extra = []) {
-  $title = htmlspecialchars($title);
   $class = trim(@$extra['class'] . " btn btn-$style btn-$size");
-  return NEWfld('button', BARE, ['', '', $title], compact(ray('href value class id')) + $extra);
+  return NEWfld('button', BARE, ['', '', $title], compact(ray('href value title class id')) + $extra);
 }
 function button($value, $href = '', $title = NULL, $style = 'success', $size = 'xs', $extra = []) {
   return rend([buttonFld($value, $href, $title, $style, $size, $extra)]);
@@ -632,6 +633,7 @@ function passFld($label = '', $desc = '', $other = []) {return fld('password', $
 function areaFld($label = '', $desc = '', $other = []) {return fld('textarea', $label, $desc, $other);}
 function radiosFld($label, $desc, $other, $options) {return fld('radios', $label, $desc, $other, $options);}
 function selectFld($label, $desc, $other, $options = []) {return fld('select', $label, $desc, $other, $options);}
+function fileFld($label = '', $desc = '', $extra = []) {return fld('file', $label, $desc, $extra + attrib(ray('enctype', 'multipart/form-data')));}
 //function htmlFld($label = '', $desc = '', $dft = '', $other = []) {return fld('text_format', $label, $desc, ['format' => 'filtered_html'] + dft(strtr($dft, ["\r" => '', "\n" => '', '<br>' => PHP_EOL, "\0" => ''])) + $other);}
 //function htmlFld($label = '', $desc = '', $other = []) {return areaFld($label, $desc, $other);}
 function dataFld($id, $data) {return w\item(w\tags('div', "<!--$data-->", compact('id')));}
@@ -823,11 +825,12 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 
     $formArray = $form2 = $form; 
     return \render($form2);
+    
   } catch(Exception $e) {r\Web\exception_handler($e);}
 }
 
-define('FORBID_TAGS', '/......<(script|style|frame|object|embed|applet|audio|video)....../i'); // forbidden html tags
-define('FORBID_ATTRS', '/(...............\\s(href|src|style|on[a-z]+)\\s*=.........)/i'); // forbidden attributes
+define('FORBID_TAGS', '/.{0,40}<(script|style|frame|object|embed|applet|audio|video).{0,40}/i'); // forbidden html tags
+define('FORBID_ATTRS', '/(.{0,40}\\s(href|src|style|on[a-z]+)\\s*=.{0,40})/i'); // forbidden attributes
 
 /**
  * Sanitize the page before displaying it. 
@@ -838,14 +841,17 @@ function sanitizePage($page) {
   $except = join('|', [
     '<img src="' . BASE_URL, 
     '<iframe src="(' . str_replace(' ', '|', FRAME_SOURCES) . ')',
-    'href="(mailto:|http|#|")',
+    'href="(mailto:|http|#|/|"|sadmin)',
+    '(href|src|style)=&quot',
   ]);
   
   $page = preg_replace("~$except~", '', $page);
 //  return;
   if ($tags = preg_match(FORBID_TAGS, $page, $matches) or preg_match(FORBID_ATTRS, $page, $matches)) {
 /**/ $msg = t('Page has a forbidden HTML %thing: %what', 'thing what', $tags ? t('tag') : t('attribute'), print_r($matches, 1));
-/**/ if (isDEV) die($msg); else w\hack($msg);
+/**/ if (isDEV) die($msg);
+     if (isPRODUCTION) w\hack($msg);
+/**/ die($msg);
   }
 }
 
@@ -983,7 +989,7 @@ function updateFlood($sta, $success) {
 
   if ($trigger = @$sta['flood_control_triggered']) {
     $msg = $trigger == 'user' ? t('Sorry, there have been more than :MAX_PW_FAILS failed sign-in attempts for this account. It is temporarily blocked.') : t('Sorry, too many failed login attempts from your IP address. This IP address is temporarily blocked.');
-    w\say($msg . t(' Try again later or <%a>request a new password</a>.', '_a', w\atag('user/password')), 'name');
+    w\say($msg . t(' Try again later or <%a>request a new password</a>.', '_a', w\atag('/user/password')), 'name');
   } else return w\say(t('bad login', '_a', w\atag('/settings/password')), 'name');
 }
 
@@ -2003,7 +2009,7 @@ function whois($who, $field_name, $info, $selfMsg = 'no self-trading', $paying =
   list ($msg, $args, $choices) = $result;
 //  foreach (ray('form_build_id form_token form_id op') as $one) unset($info[$one]); // just for neatness
   if (u\abbreviates('who=', $last = basename($return = \current_path()))) $return = dirname($return);
-  $info['return'] = urlencode(str_replace('/', R_URL_SLASH, $return)); // even urlencoded slashes confuse Drupal
+  $info['return'] = plain(str_replace('/', R_URL_SLASH, $return)); // even urlencoded slashes confuse Drupal
   foreach ($choices as $uid => $fullName) $choices[$uid] = r\qid($uid) . ': ' . $fullName;
   if (empty($choices)) return say($msg, $args, $field_name); else which($choices, $field_name, $info, t($msg, $args));
 }
@@ -2174,133 +2180,107 @@ function say($index, $args = [], $errField = '') {
 }
 
 /**
+ * Return a data series value, with formatting.
+ * @param string $f: the formatted value
+ * @param numeric $add: an amount to "stack" under the returned value (but not the formatted value)
+ * @return an assoc [v, f], where v is the value and f is what to display when hovering over it
+ */
+function vf($f, $add = 0) {
+  $v = strtr($f, ['$' => '', ',' => '', '%' => '']);
+  if (strpos($f, '%')) $v *= .01;
+  $v += $add; // assume add is a percentage, if v is
+  return compact('v', 'f');
+}
+ 
+define('DATA_POINTS', 50); // how many x-axis data points to show in each dataset
+
+/**
+ * Return an iframe containing a chart
+ * @param string $chart: the chart name
+ * @param int $ctty: community account ID
+ * @param bool $selectable: <show the account and community selectors> (default FALSE)
+ */
+function chartFrame($chart = 'growth', $selectable = FALSE, $ctty = NULL) {
+  global $base_url, $mya;
+  u\setDft($ctty, $mya ? $mya->community : 0);
+  list ($w, $h) = $selectable ? [600, 600]: [480, 320];
+  $url = isDEV ? "$base_url/rcredits/misc/chart.php?site=dev" : ("https://cg4.us/chart.php?site=" . str_replace('https://', '', $base_url));
+  return w\tag('iframe', '', ray('src width height', "$url&ctty=0&chart=$chart&selectable=$selectable", $w, $h)); // src must be first
+}
+
+function firstGraphDt($ctty) {  
+  $dt = db\min('created', 'r_stats', 'ctty=:ctty', compact('ctty'));
+  if ($ctty and $cttyA = r\acct($ctty)) $dt = max($dt, $cttyA->created);
+  return max(R_LAUNCH, $dt);
+}
+
+/**
  * Display charts representing the condition of the %PROJECT system in the given community.
  * @param string $whichChart: which chart or set of charts to display
  * @param int $ctty: account record ID of community to show graphs for (defaults to all communities)
  * @param assoc $chartData: (RETURNED) a data field containing the chart data
  * @return: html of the relevant charts, in their proper divs
+ * FOR DEV: http://localhost/cgMembers/rcredits/misc/chart.php?ctty=0&chart=growth&site=dev
  */
 function showCharts($whichChart, $ctty = 0, &$chartData = '') {
   global $base_url;
 
-  list ($in, $out, $fees, $net, $personal, $companies) = array(t('in'), t('out'), t('fees'), t('net'), t('personal'), t('companies'));
-  extract($stats = r\stats($ctty)); // careful with this (don't overwrite local vars)
-  extract($stats = w\fundStats($stats, TRUE)); // get the formatted versions, with originals in {var}0
-  $trade = u\fmtAmt($trade0 = $tradeOut0 + $tradeIn0); // tradeIn is negative
-  $usdtrade = u\fmtAmt($usdtrade0 = $usd0 + $trade0); // someone's trade is always negative, so combine with USD
-  foreach (ray('txRewards0 spent0 usdtrade0') as $k) $$k = max(0, $$k) + 0; // don't display negative values
- 
-// assign individually, to assure known numeric keys
-  $issuedData[0] = [t('for USD'), ['v' => 0+$usd0, 'f' => $usd]];
-  $issuedData[1] = [t('trade (net)'), ['v' => 0+$trade0, 'f' => $trade]];
-  $issuedData[2] = [t('USD plus trade'), ['v' => 0+$usdtrade0, 'f' => $usd + $trade]];
-  $issuedData[3] = [t('inflation offset'), ['v' => 0+$inflations0, 'f' => $inflations]];
-  $issuedData[4] = [t('signup bonuses'), ['v' => 0+$signups0, 'f' => $signups]];
-  $issuedData[5] = [t('purchase reward'), ['v' => 0+$txRewards0, 'f' => $txRewards]];
-  $issuedData[6] = [t('inviter/helper'), ['v' => 0+$helpers0, 'f' => $helpers]];
-  $issuedData[7] = [t('spent (net)'), ['v' => 0+$spent0, 'f' => $spent]];
-  $issuedData[8] = [t('grants'), ['v' => 0+$grants0, 'f' => $grants]];
-  $issuedData[9] = [t('loans'), ['v' => 0+$loans0, 'f' => $loans]];
-  $issuedData[10] = [t('invested'), ['v' => 0+$invests0, 'f' => $invests]];
-  //   ['fees'), ['v' => $usd0, 'f' => $usd'}$fines]" think of a way to handle negatives (separate pie?)
-
-  if ($trade0 < 0 or $usd0 < 0) {
-    unset($issuedData[0]); unset($issuedData[1]);
-  } else unset($issuedData[2]);
-  $issuedData = array_values($issuedData); // make sure keys stay numeric
-  
-  $totalR = u\fmtAmt($r0); // was u\fmtAmt($r0 + $usd0);
-  $totalUsd = u\fmtAmt($usd0);
-
+  list ($in, $out, $net, $personal, $companies) = array(t('in'), t('out'), t('net'), t('personal'), t('companies'));
   $txTypes = ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly by %PROJECT Card)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
-
-  $avg = u\fmtAmt($txsPerMo ? $perMo / $txsPerMo : 0);
-  $txs = "$txsPerMo @ $avg avg";
-
-  $now = r\rTime();
-  $created0 = db\lookup('MIN(created)', 'r_stats'); // show every n days since beginning + daily past n days
-  $sql = <<<EOF
-    SELECT created, IF(r=0, 0, perMo/r) AS rate, r AS funds, bankIn-bankOut AS usd, savings, runny, runnyBal,
-      pAccts, bAccts, pAccts+bAccts AS accts, newbs, top5,
-      bankInPerMo, bankOutPerMo,
-      perMo, p2bPerMo, b2bPerMo, b2pPerMo,
-      txsPerMo, p2bTxsPerMo, b2bTxsPerMo, b2pTxsPerMo, tradeIn, tradeOut, tradeInPerMo, tradeOutPerMo
-    FROM r_stats WHERE ctty=:ctty
-    AND (DATEDIFF(FROM_UNIXTIME(:now), FROM_UNIXTIME(created))<:STATS_GRAIN OR DATEDIFF(FROM_UNIXTIME(created), FROM_UNIXTIME(:created0))%:STATS_GRAIN=0)
-    AND created>:R_LAUNCH ORDER BY created
-EOF;
-  $q = db\q($sql, compact('created0', 'now', 'ctty'));
-
+  $today = strtotime('today');
+  $dt = $dt1 = w\firstGraphDt($ctty);
+    
+  $delta = (int) max(1, ($today - $dt) / DAY_SECS / DATA_POINTS);
   $charts = ray('growth funds velocity banking volume issued', 'growth', 'dollar-pool', 'circulation-velocity', 'exchanges-for-dollars', 'transaction-volume', 'issuing-credits');
   if ($whichChart != 'all') $charts = just($whichChart, $charts);
   foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, []);
-  $moneyFields = ray('funds savings runny runnyBal top5 usd bankInPerMo bankOutPerMo perMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo tradeInPerMo tradeOutPerMo');
 
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-     /*
-    list ($y, $m, $d) = ray(strftime('%Y %m %d', $created));
-    list ($m, $d) = array($m - 1, $d - 1); // javascript Date object month, day, etc. are zero-based
-//    $date = "new Date($y,$m,$d)";
-    $date = [$y, $m, $d];
-    */
-    $p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
-    $p2pTxsPerMo = $txsPerMo - $p2bTxsPerMo - $b2bTxsPerMo - $b2pTxsPerMo;
-    $funds -= $usd;
-    $usd += $tradeOut + $tradeIn; // tradeIn is negative
-    $bankOutPerMo = - $bankOutPerMo; // show as negative
-//    $runnyBal = -$runnyBal; // for now, show runny DEBT instead of runny BAL
-//    $actives = abs($pAccts - $newbs); // active members
-    foreach ($moneyFields as $k) {
-      if (!in_array($k, ray('bankOutPerMo tradeIn tradeInPerMo'))) $$k = max(0, $$k) + 0; // most can't be negative
-      ${$k . '2'} = u\fmtAmt($$k);
-    }
-    $rate2 = number_format(100 * $rate, 1) . '%';
-
-/*    $acctsData[] = "[$date,$pAccts,$newbs,$bAccts]";
-    $fundsData[] = "[$date,{v:$funds,f:'$funds2'},{v:$usd,f:'$usd2'},{v:$runny,f:'$runny2'},{v:$top5,f:'$top52'},{v:$runnyBal,f:'$runnyBal2'},{v:$perMo,f:'$perMo2'}]";
-    $velocityData[] = "[$date,{v:$rate,f:'$rate2'}]";
-    $bankingData[] = "[$date,{v:$bankInPerMo,f:'$bankInPerMo2'},{v:$bankOutPerMo,f:'$bankOutPerMo2'},{v:$tradeOutPerMo,f:'$tradeOutPerMo2'},{v:$tradeInPerMo,f:'$tradeInPerMo2'}]";
-*/
-    foreach (ray('created pAccts bAccts accts newbs rate bankOutPerMo tradeIn tradeInPerMo') as $k) $$k += 0; // convert to numeric
-
-    $growthData[] = [$created, $pAccts, $newbs, $bAccts];
-    $fundsData[] = [$created, ['v' => $funds, 'f' => $funds2], ['v' => $usd, 'f' => $usd2], ['v' => $runny, 'f' => $runny2], ['v' => $top5, 'f' => $top52], ['v' => $runnyBal, 'f' => $runnyBal2], ['v' => $perMo, 'f' => $perMo2]];
-    $velocityData[] = [$created, ['v' => $rate, 'f' => $rate2]];
-    $bankingData[] = [$created, ['v' => $bankInPerMo, 'f' => $bankInPerMo2], ['v' => $bankOutPerMo, 'f' => $bankOutPerMo2], ['v' => $tradeOutPerMo, 'f' => $tradeOutPerMo2], ['v' => $tradeInPerMo, 'f' => $tradeInPerMo2]];
+  while ($dt <= $today) {
+    $stats = r\stats($ctty, $dt);
+    extract(just('ctty created', $stats)); // careful with this (don't overwrite local vars)
+    if (!@$dt1) $dt1 = $created; // remember first date for this community
+    $stats30 = r\stats($ctty, strtotime('-30 days', $created)); 
+    extract(w\fundStats($stats, FALSE, $stats30)); // format, originals in {var}0, difs in d_{var}
+    $ray = ray('v f', $pAccts0 + $bAccts0, $bAccts);
+    $growthData[] = [$created, vf($bAccts, $pAccts0), $pAccts0, $newbs0, $aAccts0, $conx0, $conxLocal0];  
+    $fundsData[] = [$created, vf($balsPos), vf($usd), vf($d_txsVol), vf($topN), vf($botN), vf($floors), vf($balsNeg)]; // $bals === $usd, so not shown
+    $velocityData[] = [$created, vf($cgRate, $localRate0), vf($localRate), vf($usdRate)];
+    $bankingData[] = [$created, vf($d_usdIn), vf($d_usdOut), vf($d_cgIn), vf($d_cgOut)];
 
     $x2x = [];
     foreach ($txTypes as $k => $desc) {
-      list ($x, $x2, $xTxs) = [${"{$k}PerMo"}, u\fmtAmt(${"{$k}PerMo"}), ${"{$k}TxsPerMo"}];
-      $x = max($x, 1) + 0; // to make the logarithmic scale look okay
-      $avg = $xTxs ? ' @ ' . u\fmtAmt($x / $xTxs) . ' avg' : '';
-//      $x2x[] = "{v:$x,f:'$x2 ($xTxs$avg) $desc'}"; // eg "$123 (7 @ $6.25 avg)"
-      $x2x[] = ['v' => $x, 'f' => "$x2 ($xTxs$avg) $desc"]; // eg "$123 (7 @ $6.25 avg)"
+      $v = max(1, ${"d_{$k}0"}); // to make the logarithmic scale look okay
+      $cnt = ${"d_{$k}Count"};
+      $cnt .= $cnt ? ' @ ' . u\fmtAmt($v / $cnt) . ' avg' : '';
+      $f = ${"d_{$k}"} . " ($cnt) $desc"; // eg "$123 (7 @ $6.25 avg)"
+      $x2x[] = compact('v', 'f');
     }
-//    $x2x = join(',', $x2x);
-//    $volumeData[] = "[$created,$x2x]";
     array_unshift($x2x, $created);
     $volumeData[] = $x2x;
+    
+    // add a pie chart for p2p,... cash purchase (one for volume, one for count?)
+    // also pie for circling/explicit savings/biz required nut/other (runny)
+    // pie for admin showing channel? member activity (0 txs/mo, 1-5, etc.), where's the money, etc.
+
+    $dt = strtotime("+$delta days", $dtX = $dt);
+    if ($dt > $today and $dtX < $today) $dt = $today; // always show the latest
   }
 
-//  $accts = "{$pAccts} members + {$bAccts} co = " . ($pAccts + $bAccts);
-  $accts = "{$pAccts} members + {$bAccts} companies";
-  $netUsdIn = u\fmtAmt($bankInPerMo + $bankOutPerMo + $tradeOutPerMo + $tradeInPerMo) . t(' (net)');
-  $velocity = number_format(($r0+0) ? 100 * $perMo / $r0 : 0, 1) . t('% per mo.');
-  $fees = "(minus $fines in fees)";
-  $whichChart .= 'Chart';
+  
+//    $rate = number_format(100 * $d_txs, 1) . '%';
 
-/*  
-  foreach ($charts as $k => $zot) {
-    ${$k . 'Data'} = join(',', ${$k . 'Data'});
-    $js .= "var {$k}Data = [" . ${$k . 'Data'} . "];\n";
-  }
-*/
-//  foreach ($charts as $k => $zot) $dataNames[] = $k . 'Data';
+  $accts = "$pAccts members + $bAccts companies";
+//  $funds = "$usd + {$balsPos}cg";
+  $funds = $usd;
+//  $velocity = ($bals0 ? $txsRate : 0) . t(' per mo.'); // FAILS (wrong amount)
+  $velocity = ($bals0 ? u\fmtAmt($localRate0 + $cgRate0, '%') : 0) . t(' per mo.');
+  $usd = $d_usd . t(' (net)');
 
-//  js('goo-jsapi');
-$vs = compact(ray('accts totalR totalUsd velocity netUsdIn issued fees txs whichChart'));
-//  js('charts', $vs = compact(ray('accts totalR totalUsd velocity netUsdIn issued fees txs whichChart')));
+  $avg = u\fmtAmt($d_txsVolCount0 ? $d_txsVol0 / $d_txsVolCount0 : 0);
+  $txs = "$d_txsVolCount @ $avg avg";
+  $topPct = $aAccts0 >= 100 ? '%' : '';
+
+  $vs = compact(ray('accts funds velocity usd txs topPct dt1'));
 
   foreach($charts as $k => $help) {
     $one = "<div id=\"{$k}Chart\" class=\"onechart ct-chart ct-golden-section\"></div>";
@@ -2309,40 +2289,47 @@ $vs = compact(ray('accts totalR totalUsd velocity netUsdIn issued fees txs which
     $dataNames[] = $k . 'Data';
   }
 
-/*  
-  $cttys = db\q('SELECT uid,fullName FROM users WHERE uid<0 ORDER BY fullName')->fetchAllKeyed();
-  $cttys[0] = t('ALL communities');
-  $cttys[r\acct('!' . R_SERVER_ID)->id] = t('Seedpack (no community yet)');
-*/
-  
-//  $chartData = w\dataFld('chart-data', json_encode($data = compact($dataNames)));
   $chartData = json_encode($data = compact('vs', $dataNames));
 
   return u\test() ? $chartData : join('', $charts);
 }
 
+
 /**
- * Return an array of formatted amounts for the given statics.
+ * Return an array of formatted amounts for the given statistics.
  * Used in graphs and table of community funds
  */
-function fundStats($stats, $includeRaw = FALSE, $format = 's$') {
+function fundStats($stats, $round = FALSE, $stats30 = NULL) {
   extract($stats);
+  if ($stats30) extract($stats30, EXTR_PREFIX_ALL, 'o');
 //  list ($r0, $usd0) = array($r, $usd);
-  $trade = $tradeIn + $tradeOut; // UNUSED HERE (tradeIn is negative)
-  $spent = $cttyBuys + $cttyIncomes; // cttyIncomes is negative
-  $txRewards = $rebates + $bonuss;
-  $usd = $bankIn - $bankOut;
 
-//  foreach (ray('bankInPerMo bankOutPerMo r usd total signups inflations helpers txRewards grants loans fines') as $one) {
   if ($ctty) { // a community
     $cttyA = r\acct($ctty);
     $res['cttyName'] = $ctty == r\serverUid() ? t('Seedpack (Outliers)') : trim(strtr($cttyA->fullName, [t('Region')=>'', PROJECT=>'']));
   } else $res['cttyName'] = t('TOTAL');
 
-  foreach (ray('r usd tradeIn tradeOut signups txRewards helpers inflations spent grants loans invests fines') as $one) {
-    if ($includeRaw) $res[$one . '0'] = $$one;
-    $res[$one] = u\fmtAmt($$one, $format);
+  $scheme = f('i.scheme', 'r_stats');
+  $fields = $scheme['fields'];
+  
+  foreach ($rateFlds = ray('cg usd txs local') as $z) {
+    $stats["{$z}Rate"] = ($stats["{$z}Vol"] - $stats30["{$z}Vol"]) / ($bals ?: 1);
+    $stats30["{$z}Rate"] = 0; // just to make d_ not die
   }
+    
+  foreach (array_keys($stats) as $k) {
+    if (!in_array($k, ray('id ctty created'))) {
+      if ($stats30) $stats["d_$k"] = $stats[$k] - $stats30[$k];
+      $fmt = ($round or strpos($k, 'Count') or @$fields[$k]['type'] == 'int') ? '1' : 's$';
+      if (strpos($k, 'Rate')) $fmt = '%';
+//      if (strpos($k, 'Per')) $fmt = '';
+      foreach ($stats30 ? [$k, "d_$k"] : [$k] as $fnm) {
+        $res[$fnm . '0'] = $stats[$fnm] + 0; // not $$fnm (because that wouldn't catch rates)
+        $res[$fnm] = u\fmtAmt($stats[$fnm], $fmt);
+      }
+    }
+  }
+
   return $res;
 }
 
@@ -2355,7 +2342,7 @@ function fundStats($stats, $includeRaw = FALSE, $format = 's$') {
  * @param string $target: link target ('' or _blank)
  */
 function monthChoices($title, $things, $subtext = '', $end = -1, $target = '_blank') {
-  global $mya;
+  global $mya, $base_url;
   $start = u\monthDay1($mya->created); // start of account's first month
   $thisMo = u\monthDay1(); // start of this month
   $end = $end ? u\plusMonths($end, $thisMo) : $thisMo;
@@ -2369,7 +2356,7 @@ function monthChoices($title, $things, $subtext = '', $end = -1, $target = '_bla
          $month <= $end and date('Y', $month) == $year; 
          $month = u\plusMonths(1, $month)) {
       $mon = strftime('%b', $month);
-      $list[$year] .= $month < $start ? '.<br>' : "<a href=\"$things/$mon$year\" target=\"$target\">$mon</a><br>\n";
+      $list[$year] .= $month < $start ? '.<br>' : "<a href=\"$base_url/history/$things/$mon$year\" target=\"$target\">$mon</a><br>\n";
     }
   }
   
@@ -2406,7 +2393,7 @@ function userMenuItem($router_path, $link_title) {
 /**
  * Consolidate or extract hidden fields.
  */
-function hidFlds($ray) {return is_array($ray) ? hidFld(urlencode(serialize($ray))) : unserialize(urldecode($ray));}
+function hidFlds($ray) {return is_array($ray) ? hidFld(plain(serialize($ray))) : unserialize(unplain($ray));}
 
 /**
  * Send an invitation to the email and optionally report it.
@@ -2499,6 +2486,10 @@ function setupFoot($label = '', $extra = []) {
 
 /**
  * Return the text with a help popover and optional link.
+ * @param string $text: text to hover over
+ * @param string $help: help verbage
+ * @param string $href: where to go on click (defaults to nowhere)
+ * @param string $class: html class(es)
  */
 function popHelp($text, $help, $href = '', $class = '') {
   $trigger = $href == '#' ? 'hover' : 'hover'; // click doesn't work :(
@@ -2521,14 +2512,36 @@ function tags($tag, $content = '', $tribs = []) {
 }
 
 /**
+ * Return an HTML tag with optional attributes, surrounding optional HTML.
+ * @param string $tag: the tag
+ * @param string $html: (optional) inner HTML
+ * @param assoc $tribs: (optional) keyed-array of attributes
+ * @return the resultant HTML
+ */
+function tag($tag, $html = '', $tribs = []) {
+  $tribs = $tribs ? ' ' . u\tribs($tribs) : '';
+  return "<$tag$tribs>$html</$tag>";
+}
+function tagN($tag, $html = '', $tribs = []) {return str_replace('#', '', tag($tag, $html, $tribs));}
+
+/**
+ * Return an a tag for a non-spinning button to a new page.
+ */
+function atagB($href, $style = 'primary', $size = 'xs', $extras = []) {
+  $class = @$extras['class'];
+  $extras['class'] =  ($class ? "$class " : '') . "btn btn-$size btn-$style";
+  return atag($href, $extras + ray('role', 'button'));
+}
+
+/**
  * Return an a tag.
  */
 function atag($href, $extras = []) {
   if (@$href[0] == '/') $href = BASE_URL . $href;
 // NO  if ($href[0] == '$') $href = 'javascript:' . substr($href, 1);
-  if (!u\starts($href, BASE_URL)) {
+  if ($href and !u\starts($href, BASE_URL)) {
     if (substr($href, 0, 6) == 'mailto' or substr($href, 0, 4) == 'http') $extras += w\away();
-  }
+  } elseif (!$href) unset($href); // don't show empty href
   return 'a ' . u\tribs(compact('href') + $extras);
 }
 function emailtag($email = NULL, $subject = '', $body = '') {
@@ -2540,6 +2553,8 @@ function btn($href, $text, $style = 'primary', $size = 'xs', $extras = []) {
   return '<' . atagB($href, $style, $size, $extras) . ">$text</a>";
 }
 function lnk($href, $text, $extras = []) {return '<' . atag($href, $extras) . ">$text</a>";}
+function doLnk($class, $text, $data = NULL, $extras = []) {return w\lnk('', $text, compact('class', 'data') + $extras);}
+function doBtn($class, $text, $data = '') {return w\btn('', $text, 'primary', 'xs', compact('class', 'data'));}
 
 /**
  * Skip a setup step and save it for last. Has no effect if step is already done.
@@ -2642,7 +2657,7 @@ function partnerSignup($args) {
   $valid = ($a = r\acct($qid) and ($a->phone == u\fmtPhone(@$phone, '+n') or (u\similar($a->fullName, @$fullName, 5, .5))));
   r\tellAdmin(t('new customer of %partner: %fullName', compact('partner', 'fullName')) . (@$valid ? '' : t('(invalid)')), $args);
 
-  if (!$valid) return r\go('empty', t('That does not appear to be your correct %PROJECT member ID. But no worries. We will try to figure out who you are and match up your %PROJECT account with your account at %partnerName. If you have not yet finished opening your %PROJECT account, <%a>sign in</a> (if you have not yet begun, go to %CG_DOMAIN and click "Sign up").', 'partnerName _a', $partnerName, w\atag('signin'))); // member mistyped their qid (a royal pain in the butt)
+  if (!$valid) return r\go('empty', t('That does not appear to be your correct %PROJECT member ID. But no worries. We will try to figure out who you are and match up your %PROJECT account with your account at %partnerName. If you have not yet finished opening your %PROJECT account, <%a>sign in</a> (if you have not yet begun, go to %CG_DOMAIN and click "Sign up").', 'partnerName _a', $partnerName, w\atag('/signin'))); // member mistyped their qid (a royal pain in the butt)
 
   if ($reid) { // relation with this partner already exists
     u\EXPECT(r\relation('other', $reid) == $a->id, 'duplicate customer');
@@ -2680,28 +2695,6 @@ function signupCoDisplay($info, &$company = '') {
 }
 
 /**
- * Return an a tag for a non-spinning button to a new page.
- */
-function atagB($href, $style = 'primary', $size = 'xs', $extras = []) {
-  $class = @$extras['class'];
-  $extras['class'] =  ($class ? "$class " : '') . "btn btn-$size btn-$style";
-  return atag($href, $extras + ray('role', 'button'));
-}
-
-/**
- * Return an HTML tag with optional attributes, surrounding optional HTML.
- * @param string $tag: the tag
- * @param string $html: (optional) inner HTML
- * @param assoc $tribs: (optional) keyed-array of attributes
- * @return the resultant HTML
- */
-function tag($tag, $html = '', $tribs = []) {
-  $tribs = $tribs ? ' ' . u\tribs($tribs) : '';
-  return "<$tag$tribs>$html</$tag>";
-}
-function tagN($tag, $html = '', $tribs = []) {return str_replace('#', '', tag($tag, $html, $tribs));}
-
-/**
  * Get text from submitted submit button.
  */
 function opText($sta) {
@@ -2710,17 +2703,17 @@ function opText($sta) {
   return '';
 }
 
-function autocomplete($type = '') {
+/*function autocomplete($type = '') {
   global $mya; 
   w\js('autocomplete');
   return ['autocomplete_path' => "autocomplete/$type/" . @$mya->id];
-}
+}*/
 
 // one-line functions that need no explanation
 //function t($message, $subs = []) {return t($message, $subs);}
 //function block_def($info, $extra = []) {return compact(ray('info cache'));} // also status, region, visibility, pages
 function blockView($subject, $content) {return compact(ray('subject content'));}
-function disabled($value = NULL, $disabled = TRUE) {return attrib(compact('disabled')) + (is_null($value) ? compact('value') : []);}
+function disabled($value = NULL, $disabled = TRUE) {return attrib(compact('disabled')) + (!is_null($value) ? compact('value') : []);}
 //function on($what, $do) {return w\attrib(["on$what" => $do]);}
 //function onchange($do) {return on('change', $do);}
 function dft($v) {return ray('default_value', $v);}

@@ -183,7 +183,6 @@ function acctHourly($item) {
  * Do miscellaneous stuff that needs doing every day
  */
 function everyDay() {
-  $fin = db\lookup('uid', 'users', "name='futureisnowfestival' AND uid<0");
   queueNext('START'); // eachA seems to interfere with this and processing the queue is vital, so launch it first
   db\q('DELETE FROM r_do WHERE completed<0 AND :NOW>-completed'); // completed<0 is -expiry time
 
@@ -191,10 +190,10 @@ function everyDay() {
   foreach ($cttys as $ctty) $companies[$ctty] = r\companies($ctty, TRUE);  
   \variable_set('companies', @$companies ?: []);
   
-  $sql = <<<EOF
+  $sql = <<<X
   SELECT u.uid, c.uid AS ctty, u.fullName AS person, c.fullName AS cttyName FROM users u LEFT JOIN users c ON u.zip RLIKE c.zip
-  WHERE u.community=:seedpack AND c.uid<1 AND c.uid<>:seedpack AND c.uid NOT IN ($fin)
-EOF;
+  WHERE u.community=:seedpack AND c.uid<1 AND c.uid<>:seedpack
+X;
   $q = db\q($sql, ['seedpack' => r\serverUid()]);
   while ($row = $q->fetchAssoc()) {
     extract($row);
@@ -203,7 +202,7 @@ EOF;
   }
 
 //  $where = "RIGHT(fullName, 8)=' PARTNER' COLLATE utf8_bin AND pass='' AND NOT :IS_CO AND activated=0";
-  $where = "BINARY RIGHT(fullName, 8)=' PARTNER' AND pass='' AND NOT :IS_CO AND activated=0";
+  $where = "BINARY RIGHT(fullName, 8)=' PARTNER' AND pass IS NULL AND NOT :IS_CO AND activated=0";
   eachA(function ($a) {if ($jA = $a->jA and $jA->jid == $a->id) $jA->update('jid', 0);}, $where); // acts weird; do this last
   db\del('users', $where); // abandoned new joint acct (must postcede setting jids)
 }
@@ -219,11 +218,11 @@ function tickle() {
   // Remind invitee to accept
   $delays = '8';
   $elapsed = str_replace('@DATE', 'invited', $timeSince);
-  $sql = <<<EOF
+  $sql = <<<X
     SELECT email, inviter, code, $elapsed AS elapsed FROM r_invites i
     LEFT JOIN users u ON u.uid=i.inviter
     WHERE $elapsed IN ($delays) AND invitee=0 AND u.:IS_OK
-EOF;
+X;
 
   queueEach('tickleSignup', $sql);
 /*    SELECT i.email, inviter, code, $elapsed AS elapsed FROM r_invites i
@@ -233,11 +232,11 @@ EOF;
   // Remind newbie to take another step (or admin to activate it)
   $delays = '1,2,3,5,8'; // Fibonacci progression of delays (followed by every week)
   $elapsed = str_replace('@DATE', 'access', $timeSince);
-  $sql = <<<EOF
+  $sql = <<<X
     SELECT uid, $elapsed AS elapsed FROM users 
     WHERE ($elapsed IN ($delays) OR ($elapsed>8 AND $elapsed%7=0))
     AND uid>:CANONIC_ACCTS AND NOT activated AND NOT :IS_NONUDGE
-EOF;
+X;
   queueEach('tickleStep', $sql);
 
   // Tickle sometime after first Tx (activation date)
@@ -246,17 +245,20 @@ EOF;
   $start = strtotime('-6 months', $today);
   $day = date('d');
   $laterD = date('d', strtotime('+1'));
-  $sql = <<<EOF
-    SELECT uid, $months AS months, monthly
-    FROM users u LEFT JOIN (
-      SELECT payer, MIN(created) AS date0, SUM(IF(created<:start, 0, amount))/6 AS monthly,
-      DAY(FROM_UNIXTIME(MIN(created))) AS day0
-      FROM r_txs GROUP BY payer
-    ) t ON t.payer=u.uid
-    WHERE $elapsed>15 AND uid > 1 AND u.:IS_OK
+  $sql = <<<X
+    SELECT uid, $months AS months, GREATEST(inVol, outVol) AS monthly, 
+    $day AS day, day0, $laterD AS laterD, $elapsed AS elapsed
+    FROM (
+      SELECT uid, u.flags, MIN(t.created) AS date0, 
+      SUM(IF(t.created>=:start AND payee=uid, amount, 0))/6 AS inVol,
+      SUM(IF(t.created>=:start AND payer=uid, amount, 0))/6 AS outVol,
+      DAY(FROM_UNIXTIME(MIN(t.created))) AS day0
+      FROM users u LEFT JOIN r_txs t ON uid IN (payer, payee) GROUP BY uid
+    ) t 
+    WHERE $elapsed>15 AND uid > 1 AND :IS_OK
     AND ($day=day0 OR (day0>$day AND $laterD=1))
-EOF;
-  queueEach('tickleActive', $sql, compact('start'));
+X;
+  queueEach('tickleActive', $sql, compact('start')); // no need for jid here (floors get summed)
   
   queueNext();
 }
@@ -303,11 +305,17 @@ function tickleStep($item) {
 function tickleActive($item) {
   extract(just('uid months monthly', $item));
   $a = r\acct($uid);
-  $ratio = ($monthly+=0) ? $a->floor / $monthly : 1;
+  $floorX = $a->floor; // current floor
+  
+  // temporarily (until 2019?) limit the rate of change of the floor (while changing to new system)
+  $floor = round(min(-$monthly, .9 * $floorX), 2);
+  $a->update('floor', round($floor, 2));
+
+  $ratio = $floor ? $floorX / $floor : 1;
   if ($ratio > 1.1 or $ratio < .9) { // big change (or any change in sign)
-    $a->update('floor', round(-$monthly, 2));
     $msg = 'new floor' . ($a->can(B_DEBT) ? '' : '|no floor effect');
-// DISABLED FOR NOW    r\notify($uid, $msg, ['limit' => u\fmtAmt($monthly)]);
+    r\tellAdmin('updating floor', $item + compact(ray('msg ratio floor floorX')));
+  // DISABLED FOR NOW if (!$a->slave) r\notify($uid, $msg, ['limit' => u\fmtAmt(-$floor)]);
   }
 }
  
@@ -373,20 +381,20 @@ function everyMonth() {
 //  queueEach('shareCommitted', 'SELECT uid, committed, share FROM users WHERE :IS_OK AND committed>0');
   queueEach('roundup', "SELECT payer as uid, SUM(1-MOD(amount, 1)) AS donate FROM r_txs WHERE :IS_ROUNDUP AND amount>0 AND MOD(amount, 1)>0 AND created BETWEEN $start AND $end GROUP BY payer");
   
-  $sql = <<<EOF
+  $sql = <<<X
     SELECT $cgf AS cgf, u.uid, SUM(t.amount)*u.crumbs AS donate FROM r_txs t LEFT JOIN users u ON u.uid=t.payee 
     WHERE t.payer>0 AND u.crumbs>0 AND t.created BETWEEN $start AND $end GROUP BY t.payee
-EOF;
+X;
   queueEach('crumbs', $sql); // no crumbs on rewards
 
-  $sql = <<<EOF
+  $sql = <<<X
       SELECT $cgf AS cgf, $end AS `end`, u.community AS ctty, SUM(IF(t.payee=$cgf, t.amount, 0)) AS `in`,
         SUM(IF(t.payer=$cgf AND t.created<=$end, t.amount, 0)) AS `out`,
         (SELECT COUNT(1) FROM r_usd d LEFT JOIN users du ON du.uid=d.payee 
          WHERE d.txid<0 AND d.amount<0 AND du.community=u.community AND d.created<=$end) AS bounces
       FROM r_txs t LEFT JOIN users u ON u.uid=IF(t.payer=$cgf, t.payee, t.payer)
       WHERE ((payer=$cgf AND payee<0) OR payee=$cgf) AND t.:IS_GIFT AND community NOT IN($server, $bene) GROUP BY community
-EOF;
+X;
   queueEach('cgc', $sql);
   
   $list = db\lst("CONCAT(fullName,' (',city,')')", 'users', ':IS_OK AND :IS_PAPER');
@@ -486,7 +494,7 @@ function requests() {
     }
   }
 
-  $sql = <<<EOF
+  $sql = <<<X
   UPDATE r_request r LEFT JOIN users u 
   ON (
     (r.email<>'' AND u.mail=r.email) OR
@@ -495,7 +503,7 @@ function requests() {
   )
   LEFT JOIN r_invites AS i ON (i.email=r.email AND i.invited>r.created)
   SET done=1 WHERE NOT done AND (u.uid IS NOT NULL OR i.id IS NOT NULL)
-EOF;
+X;
   db\q($sql);
   
   queueNext();
@@ -506,7 +514,7 @@ EOF;
  * Also give signup bonus, if appropriate.
  */
 function recache() {
-  $fields = 'uid, rewards, minimum, floor';
+  $fields = 'uid, minimum, floor'; // this isn't actually used
   queueEach('recache1', "SELECT $fields FROM users WHERE :IS_OK"); // make this IS_MEMBER if early gift
   queueNext();
 }
@@ -523,12 +531,12 @@ function recache1($item) {
  * Check accounts for consistency, scams, whatever.
  */
 function checkAccts() {
-  $sql = <<<EOF
+  $sql = <<<X
 SELECT u.uid,u.fullName,u.jid,u2.jid AS partnerJid,r.reid,r.other AS relatedId FROM users u
 LEFT JOIN r_relations r ON r.main=u.uid
 LEFT JOIN users u2 ON u2.uid=u.jid
 WHERE u.uid<>0 AND u.jid AND r.permission=:B_JOINT-:B_RELATED
-EOF;
+X;
   queueEach('checkAcct', $sql);
   queueNext();
 }
@@ -551,7 +559,7 @@ function setNear() {
     'SELECT DISTINCT main AS id1, other AS id2, 1 AS w FROM r_relations',
     'SELECT DISTINCT u1.uid AS id1, u2.uid AS id2, 0.5 AS w FROM users u1 INNER JOIN users u2 ON (u2.city=u1.city OR u2.zip=u1.zip) WHERE u1.uid<>u2.uid',
   ]); // each type of relationship counts as one point
-  $sql = <<<EOF
+  $sql = <<<X
     INSERT INTO r_near
     SELECT LEAST(q.id1, q.id2) AS uid1, GREATEST(q.id1, q.id2) AS uid2, SUM(w) AS weight 
     FROM ($queries) q 
@@ -559,7 +567,7 @@ function setNear() {
     LEFT JOIN users v ON v.uid=q.id2
     WHERE NOT u.:IS_CO AND NOT v.:IS_CO
     GROUP BY LEAST(q.id1, q.id2), GREATEST(q.id1, q.id2)
-EOF;
+X;
   db\q($sql);
   queueNext();
 }
@@ -589,25 +597,25 @@ function acctStats1($item, $asof = NULL) {
 ///  debug(compact('avgBalEver','uid','asof') + ['created' => $a->created]);
   $subs = compact('uid', 'monthAgo', 'asof');
   
-  $sql = <<<EOF
+  $sql = <<<X
     SELECT SUM(amount) AS giftsEver, SUM(IF(completed<:monthAgo, 0, amount)) AS giftsPastMo
     FROM r_gifts WHERE uid=:uid AND completed AND completed<:asof
-EOF;
+X;
   $row1 = db\q($sql, $subs)->fetchAssoc() ?: []; // giftsEver, giftsPastMo
   
-  $sql = <<<EOF
+  $sql = <<<X
     SELECT SUM(IF(type=:TX_TRANSFER, payerReward+payeeReward, 0)) AS beneEver,
     SUM(IF(type=:TX_TRANSFER AND created>=:monthAgo, payerReward+payeeReward, 0)) AS benePastMo,
     SUM(IF(type IN (:TX_GRANT), amount, 0)) AS extraEver,
     SUM(IF(type IN (:TX_GRANT) AND created>=:monthAgo, amount, 0)) AS extraPastMo
     FROM r_txs WHERE :uid IN (payer, payee) AND created<:asof
-EOF;
+X;
   $row2 = db\q($sql, $subs)->fetchAssoc() ?: []; // get beneEver (purchase rewards), benePastMo, extraEver, extraPastMo
   
-  $sql = <<<EOF
+  $sql = <<<X
     SELECT SUM(-amount) AS bankedEver, SUM(IF(completed<:monthAgo, 0, -amount)) AS bankedPastMo
     FROM r_usd WHERE payee=:uid AND completed AND completed<:asof
-EOF;
+X;
   $row3 = db\q($sql, $subs)->fetchAssoc() ?: []; // get bankedEver, bankedPastMo
 
   $newData = $row1 + $row2 + $row3 + compact(ray('avgBalPastMo avgBalEver minPastMo'));
@@ -618,33 +626,32 @@ EOF;
 
 /**
  * Update system-wide and community-wide stats
+ * @param int $dt1: date to start (-1 means pick up where we left off)
  */
-function cttyStats() {
-  if (db\exists('r_stats')) {
+function cttyStats($dt1 = 0) {
+  if (db\exists('r_stats') and !$dt1) {
     r\getStats(0); // for all our communities at once
     queueEach('cttyStats1', 'SELECT DISTINCT uid AS ctty FROM users WHERE uid<0'); // and one at a time
   } else { // recreate stats data from the beginning of time
-    $grain = isDEV ? 20 : 1; // HAVE data for every day, not just every STATS_GRAIN days
-    $blockAgo = strtotime(-$grain, strtotime('today'));
-  
-    $sql = <<<EOF
+    $sql = <<<X
       SELECT community AS ctty, MIN(t.created) AS start
       FROM users u LEFT JOIN r_txs t ON t.payee=u.uid 
-      WHERE uid>1 AND (t.created>=:R_LAUNCH OR t.created IS NULL) GROUP BY community ORDER BY -community
-EOF;
+      WHERE uid>3 AND (t.created>=:R_LAUNCH OR t.created IS NULL) GROUP BY community ORDER BY -community
+X;
     $cttys = db\q($sql)->fetchAllKeyed();
     u\preray([0 => min($cttys)], $cttys); // show all dates overall
 
     $now = r\rTime();
-    $start0 = @$cttys[0] ?: $now;
-    $created = strtotime('today', $start0); // use first moment of the day
+    if ($dt1 < 0) $dt1 = db\max('created', 'r_stats'); // repeat last date to catch missing cttys
+    if (!$dt1) $dt1 = @$cttys[0] ?: $now;
+    $dt = strtotime('today', $dt1); // use first moment of the day
     
-    while ($created <= $now) {
-      foreach ($cttys as $ctty => $start) if ($created >= $start) {
-        cr\queue('cttyStats1', compact('ctty', 'created'));
+    while ($dt <= $now) {
+      foreach ($cttys as $ctty => $start) if ($start <= $dt) {
+        $item = compact('ctty', 'dt');
+        if (isPRODUCTION) cr\queue('cttyStats1', $item); else cttyStats1($item);
       }
-      $delta = $created < $blockAgo ? $grain : 1;
-      $created = strtotime("+$delta days", $created);
+      $dt = strtotime('+1 days', $dt); // every day, not just GRAIN
     }
   }
 
@@ -652,8 +659,8 @@ EOF;
 }
 
 function cttyStats1($item) {
-  extract(just('ctty created', $item));
-  r\getStats($ctty, @$created); // record stats for one community on the regional server, for the given date
+  extract(just('ctty dt', $item));
+  r\getStats($ctty, @$dt); // record stats for one community on the regional server, for the given date
   // this fails on cross-community txs!  if ($ctty != 0) if ($err = badStats($ctty, $created)) return 
 }
 
@@ -662,7 +669,7 @@ function cttyStats1($item) {
  */
 function trust() {
   db\q('UPDATE users SET trust=IF(:IS_CO,NULL,1)');
-  $sql = <<<EOF
+  $sql = <<<X
     UPDATE users u 
     INNER JOIN
       (SELECT proxy AS uid,SUM(straw) AS bale
@@ -673,7 +680,7 @@ function trust() {
        GROUP BY proxy) b
     ON b.uid=u.uid
     SET u.trust=u.trust+:weight*b.bale WHERE NOT :IS_CO
-EOF;
+X;
   for ($i = 0, $weight = 1; $i < 32; $i++, $weight /= 2) db\q($sql, compact('weight'));
   if (u\test()) db\q('UPDATE users SET trust=ROUND(trust, 2)'); // make the results easily testable
   queueNext();
@@ -758,20 +765,20 @@ function bank() {
   
 //  $where = ':IS_REFILL AND (:IS_JOINED OR r-rewards-savingsAdd<minimum) AND uid>1 AND :IS_OK';
   $where = ':IS_REFILL AND (jid OR balance<minimum) AND uid>1 AND :IS_OK';
-  $sql = <<<EOF
+  $sql = <<<X
   SELECT uid
   FROM users 
   WHERE $where AND :HAS_BANK
-EOF;
+X;
 
   queueEach('bank1', $sql); // Note: joint slave r values cannot be negative unless both are (see r\cache)
   
-  $sql = <<<EOF
+  $sql = <<<X
   SELECT uid, r.main as ma
   FROM users u INNER JOIN r_relations r ON r.other=u.uid
   WHERE $where AND NOT :HAS_BANK AND r.draw 
   AND r.permission<>:B_JOINT-:B_RELATED
-EOF;
+X;
   queueEach('draw1', $sql);
 
   queueNext();
@@ -857,28 +864,28 @@ function invoice($item) {
   $payeeName = r\acct($payee)->fullName;
   
   $masterA = $a->masterA;
+  $needed = $a->roundup ? ceil($amount) : $amount;
+  
   if ($status == TX_APPROVED) {
-    $short = round($amount - $a->avail(), 2);
+    $short = round($needed - $a->avail(), 2);
     if ($short <= 0) {
       if (!$ok = be\payInvoice($nvid, $msg)) r\tellAdmin(t('invoice payment failed in cron'), compact('msg') + $item);
     } else {
       $waiting = $a->waitingFromBank();
       if ($masterA->hasBank and $waiting <= $short) { // we can get it from the bank and haven't requested it yet
-        if ($masterA->refill) $amount += getHowMuchR($masterA);
-        if ($amount < 0.01) return; // (avoid floating point equality errors by using <)
-        if (!$checkNum = $masterA->bank($amount)) return; // may never happen, but if mysql is unavailable just redo next day
-        list ($amount, $action) = [u\fmtAmt($amount), t('draw from')];
+        if ($masterA->refill) $needed += getHowMuchR($masterA);
+        if ($needed < 0.01) return; // (avoid floating point equality errors by using <)
+        if (!$checkNum = $masterA->bank($needed)) return; // may never happen, but if mysql is unavailable just redo next day
+        list ($amount, $action) = [u\fmtAmt($needed), t('draw from')];
         r\notify($payer, 'banked|bank tx number', compact(ray('action amount checkNum')));
       } elseif ($waiting <= 0) r\notify($payer, 'short invoice|when funded', ray('short payeeName', u\fmtAmt($short), $payeeName));
     }
-  }
-  
-  if ($status == TX_PENDING) {
+  } elseif ($status == TX_PENDING) {
     $today = strtotime('today'); // not time(), because tests fail erratically
     $daysAgo = max(1, round(($today - $created) / DAY_SECS));
     if ($daysAgo % 7 == 0) {
       $subs = ray('daysAgo created amount purpose nvid _a1 payerName payeeName', $daysAgo, u\fmtDate($created, TRUE), u\fmtAmt($amount), $purpose, $nvid, $a->makeDo('inv', $nvid), $a->fullName, $payeeName);
-      r\message($payer, 'stale invoice', $subs); // tell other party by email about this invoice
+      r\message($payer, 'stale invoice', $subs + ['reply' => $payee]); // tell other party by email about this invoice
       r\message($payee, 'stale invoice report', $subs); // tell the payee we're following up on it
     }
   }
@@ -906,6 +913,7 @@ function notice($item) {
 
   $now = r\rTime();
   if ($args = r\noticeArgs($uid, 'NOT sent', $weekly, $monthly)) {
+    $args['messages'] = str_replace('stule=', 'style=', $args['messages']); // revert in emails (but CSP forbids inline online)
     r\notify($uid, 'notices', $args, TRUE);
     db\q('UPDATE r_notices SET sent=:now WHERE uid=:uid AND NOT sent', compact('uid', 'now'));
   }

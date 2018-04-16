@@ -110,7 +110,7 @@ EOF;
 
     if ($mya->cAdmin and !$mya->proSe) {
       $html = $mya->photoHtml(TRUE, TRUE);
-      $photo = item("<a href=$base_url/settings/photo>$html</a>");
+      $photo = item("<a href=\"$base_url/settings/photo\">$html</a>");
 
       $donations = item($mya->giftsDesc() ?: t('none'), t('Donations:'));
       
@@ -222,7 +222,7 @@ EOF;
 //    $preNote = item($tip);
 
     if ($mya->superAdmin) {
-      $notes = areaFld(t('Notes:'), '', dft(u\unplain($mya->notes))); // only needed for default in areaFld
+      $notes = areaFld(t('Notes:'), '', dft(unplain($mya->notes))); // only needed for default in areaFld
     } else $notes = item(str_replace("\n", '<br>', $mya->notes), t('Notes:'));
 
     $note = areaFld(t('New Note:'), [t('Type a Note Here'), t('Abbreviations: PM=phone msg EM=email msg. Be sure to say what you left a message <i>about</i> (for example "PM setup")')]);
@@ -237,7 +237,7 @@ EOF;
   w\jsx('tickle');
   
   $bigFields = $mya->ok ? 'adminable risks ssnShow' : 'ssnShow adminable risks';
-  return compact(ray("photo details notes note tickle donations rTrader activity relations source helper $bigFields community balance cgfDonations legalName shortName calling signupCo tenure steps dwInfo invited invitedBy proxies proxyFor moves floor minimum achMin risk trust mediaConx count back uid"));
+  return compact(ray("photo details notes note tickle donations rTrader activity relations source helper $bigFields community balance cgfDonations legalName shortName calling signupCo tenure steps dwInfo invited invitedBy proxies proxyFor moves floor minimum achMin risk trust mediaConx count back uid submit"));
 }
 
 /**
@@ -248,7 +248,7 @@ EOF;
  */
 function submitTickle($v, $text, $size = 'xs') {
   if ($v) $v = u\fmtDate(strtotime("+$v days"), TRUE);
-  return '&nbsp;' . w\btn('', $text, 'primary', $size, ray('class tickle', 'tickle', $v));
+  return w\rent(w\submi($text, 'primary', $size, ray('class tickle', 'tickle', $v)));
 }
 
 /**

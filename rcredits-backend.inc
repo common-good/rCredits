@@ -412,7 +412,7 @@ function invoice($a1, $a2, $amount, $goods = FOR_USD, $purpose = NULL) {
   u\EXPECT(compact(ray('a1 a2 amount goods purpose')), 'acct acct float int string');
   list ($payee, $payer) = array($a1->id, $a2->id);
   u\setDft($purpose, $why = ray(R_WHYS)[$goods]);
-  $subs = ray('myName otherName amount why purpose did op', $a1->fullName, $a2->fullName, u\fmtAmt($amount), $why, $purpose, t('charged'), t('charged'));
+  $subs = ray('myName otherName otherEmail otherPhone amount why purpose did op', $a1->fullName, $a2->fullName, $a2->email, u\fmtPhone($a2->phone), u\fmtAmt($amount), $why, $purpose, t('charged'), t('charged'));
   if ($err = u\badAmount($amount, '>0')) return r\txRet($err, $subs);
   if ($err = r\txPermErr($a1, $a2, TRUE)) return r\txRet($err, $subs);
   if (r\dupTx($payee, $payer, -$amount)) return r\txRet('duplicate transaction', $subs);
@@ -426,8 +426,9 @@ function invoice($a1, $a2, $amount, $goods = FOR_USD, $purpose = NULL) {
   $a1->update('lastTx', [$nvid, $payer - $payee, round(-$amount, 2), $created, 'inv']);
 
   if ($status == TX_PENDING) {
-    $subs['_a1'] = $a1->makeDo('inv', $nvid); // link to pay/deny
+    $link = $a1->makeDo('inv', $nvid); // link to pay/deny
     //$a2->update(ray('lastTx', array($nvid, $payee - $payer, round($amount, 2), $created, 'inv')));
+    $subs += ray('_a1 reply email phone', $link, $payee, $a1->email, u\fmtPhone($a1->phone));
     r\message($payer, 'new invoice', $subs); // tell other party by email about this invoice
   } elseif (!$ok = be\payInvoice($nvid, $msg)) r\tellAdmin(t('invoice payment failed'), compact('msg') + $subs + $info);
 
@@ -531,7 +532,6 @@ function identify($who, $myid, $paying, $self_message = 'no self-trading') {
   $who = trim($who);
   $subs = compact('who');
   if (!$mya = r\acct($myid)) return ['search forbidden', [], []];
-
   if ($phone = u\fmtPhone($who, '+n')) {
     $who = $phone; $cphone = u\cry('P', $phone);
   } else $cphone = '-';
@@ -597,6 +597,7 @@ function creditInfo($args = []) {
     SUM(IF($isPayer AND :uid>0, payerReward, payeeReward)) AS rewards,
     SUM(IF(t.:IS_ROUNDUP AND $isPayer AND MOD(amount, 1)>0, 1-MOD(amount, 1), 0)) AS roundups,
     SUM(IF(t.:IS_ROUNDUP AND $isPayer AND MOD(amount, 1)>0 AND t.created>=$mday1, 1-MOD(amount, 1), 0)) AS partRounds,
+    SUM(IF(t.:IS_ROUNDUPS AND $isPayer, amount, 0)) AS roundupsPaid,
     SUM(IF(t.goods=:FOR_SHARE, $signedAmt, 0)) AS share,
     SUM(IF(t.type=:TX_XFEE, $signedAmt, 0)) AS xfees,
     SUM(IF(:HAS_XFEE, $signedAmt, 0)) AS xin
@@ -636,7 +637,7 @@ EOF;
 //  $balance = $r - $savings;
   $savings = $rewards; // tentative savings before additions ( = oldSavings - oldSavingsAdd) (used in transaction summary)
   
-  $resultKeys = 'in out rewards share refunds fees xfees xin inProper outProper balance r bank savings roundups partRounds';
+  $resultKeys = 'in out rewards share refunds fees xfees xin inProper outProper balance r bank savings roundups partRounds roundupsPaid';
   $result = compact(ray($resultKeys));
   
   foreach ($result as $k => $v) $result[$k] = $v = round($v, 2);

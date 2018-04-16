@@ -82,6 +82,7 @@ function rweb_menu($submenu = '') {
 //    'charge/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
     'pay' => ['norm', t('Pay'), 'Tx 1', 'buy ok confirmed'],
 //    'pay/one' => ['sub', t('Pay One'), 'Tx', 'co buy ok'],
+    'pay/payments' => ['sub', t('Upload Payments'), 'Payments', 'co buy ok'],
     'pay/payroll' => ['sub', t('Upload Payroll'), 'Payroll', 'co buy ok'],
 //    'pay/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
 
@@ -125,13 +126,14 @@ function rweb_menu($submenu = '') {
     'community/message' => ['sub', t('Message a Member'), 'Message', 'member manage', '', t(''), 'envelope'],
     'community/find-company' => ['sub', t('Find a Company'), 'FindCo 2', ANY, '', t(''), 'search'],
     'community/donate' => ['sub', t('Donate'), 'Donate', 'manage', '', t(''), 'thumbs-up'],
-    'community/grant' => ['sub', t('Get Paid to Organize'), 'Grant', 'prose', '', t(''), 'apple'],
+// temporarily disabled    'community/grant' => ['sub', t('Get Paid to Organize'), 'Grant', 'prose', '', t(''), 'apple'],
     'community/funds' => ['sub', t('Funds in Each Community'), 'CttyFunds', ANY, '', t(''), 'usd'],
     'community/graphs' => ['sub', t('%PROJECT Graphs'), 'Graphs 2', ANY, '', t(''), 'stats'],
     'community/flags' => ['sub', t('Risk Flags'), 'Flags 2', ANY, '', t(''), 'flag'],
 //    'community/game' => isGAME ? ['sub', t('Game'), 'Game', ANY) : NULL,
     'community/zot' => ['sub', 'zot', '', ANY], // Drupal bug: last choice is omitted
     'community/chart-data' => ['call', t('Chart Data'), '2', ANY, 'chartData'],
+    'community/list' => ['call', t('Community List'), '', ANY, 'cttyList'], // for charts/graphs
     
     'settings' => ['norm', t('Settings'), 'Settings', 'manage -closed'],
 //    'settings/settings' => ['dft', t('Settings'), 'Settings', 'manage'],
@@ -219,7 +221,7 @@ function rweb_menu($submenu = '') {
     'signup' => ['call', t('Sign Up For %PROJECT'), 'Signup', ANY],
     'menu' => ['call', 'Main Menu', 'Menu', ANY],
     'member' => ['call', 'Company Profile', 'Profile', ANY],
-    'autocomplete' => ['call', 'Identify', '1 2 3', ANY, 'auto'],
+//    'autocomplete' => ['call', 'Identify', '1 2 3', ANY, 'auto'],
     'do' => ['call', 'Do', '1 2', ANY, 'rdo'],
     'coup' => ['call', t('Disable account'), '1', ANY, 'coup'],
 

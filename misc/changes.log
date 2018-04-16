@@ -1,3 +1,76 @@
+2018-04-11
+. fixed V-decryption to return the data unaltered, if user does not have permission
+. re-encrypted r_request and r_invites email and phone
+  $q = db\q("SELECT id,email AS old FROM r_invites WHERE email LIKE '!%'");
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $email = u\decryptN($old);
+  ///  if (strlen($old) > 1 and !ctype_print($email)) debug("$id: $email");
+    $email = u\cry('P', $email);
+    db\update('r_invites', compact(ray('email id')), 'id');
+  }
+  $q = db\q("SELECT listid,email,phone FROM r_request");
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    if ($email == '!') $email = '';
+    if ($phone == '!') $phone = '';    
+    $email = @$email[0] == '!'? u\decryptN($email) : $email;
+    $phone = @$phone[0] == '!'? u\decryptN($phone) : $phone;
+  ///  if (strlen($row['email']) > 1 and !ctype_print($email)) debug("$id: $email");
+  ///  if (strlen($row['phone ']) > 1 and !ctype_print($phone )) debug("$id: $phone ");
+    $email = u\cry('P', $email);
+    $phone = u\cry('P', $phone );
+    db\update('r_request', compact(ray('email phone listid')), 'listid');
+  }
+. removed dregs of Drupal's autocomplete (bug fix)
+. added Upload Payments option to Pay tab
+. renamed Charge tab to Request
+. changed back to using floor as credit limit (but easing people off of that)
+. redesigned stats db and charts
+. changed r\deleteAccount() to handle deleting a community (merging it back into Seedpack)
+. fixed bug whereby browser was storing a recently viewed account-photo as the default for new member
+. fixed bug that prevented background ssn check (by moving drupal and user scripts to the end
+. set everyone's floor to a compromise between what it should be and what rewards give them AND set debt bit if their balance is already negative:
+  $today = strtotime('today');
+  $timeSince = "(ROUND(($today-@DATE)/:DAY_SECS, 0))"; // $today works better in tests than :REQUEST_TIME or time()
+  $elapsed = str_replace('@DATE', 'date0', $timeSince);
+  $months = "ROUND($elapsed/:MONTH_DAYS)";
+  $start = strtotime('-6 months', $today);
+
+  $sql = <<<X
+    SELECT uid, $months AS months, GREATEST(inVol, outVol) AS monthly 
+    FROM (
+      SELECT uid, u.flags, MIN(t.created) AS date0, 
+      SUM(IF(t.created>=:start AND payee=uid, amount, 0))/6 AS inVol,
+      SUM(IF(t.created>=:start AND payer=uid, amount, 0))/6 AS outVol
+      FROM users u LEFT JOIN r_txs t ON uid IN (payer, payee) GROUP BY uid
+    ) t 
+    WHERE uid > 1 AND :IS_OK
+  X;
+  $q = db\q($sql, compact('start'));
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $a = r\acct($uid);
+    
+    $current = -$a->rewards;
+    $floor = round(min(-$monthly, .9*$current, $a->activated < time()-YEAR_SECS ? 0 : -20), 2);
+    
+    $a->update('floor', $floor);
+    $bal = $a->balance;
+    if ($bal < 0 and !$a->debt) {
+      if ($jid = $a->jid and $a2 = r\acct($jid)) $bal += $a2->balance;
+/**/  if ($bal < 0) {$a->setBit(B_DEBT); debug("setting $a->fullName to allow debt. Balance=$a->balance");}
+    }
+    
+  /**/   debug("$a->fullName: current=" . number_format($current, 2) . " new=" . number_format($floor, 2));
+  }
+. changed croppic.js and u\alterImg to rotate, drag, and crop pictures without cutting off head
+. DELETE FROM `r_stats` s LEFT JOIN r_stats s2 ON s2.created=s.created AND s2.ctty=s.ctty WHERE s2.id<s.id
+. reverted form.inc sanitization of input that was making a few things not work (don't sanitize input! sanitize storage and output!)
+. added "\" for line breaks in markdown of company descriptions
+. added reply parameter to message(), so customers can reply to invoices
+. fixed bug in orphaned incomplete (abandoned) partner account selection (so they can be deleted)
+
 2018-04-02
 . repaired url-encoded transaction descriptions
   include_once __DIR__ . '/../x.class';
@@ -153,20 +226,20 @@
       if (!$s = db\lookup($fld, 'users', 'uid=' . $a->id)) continue;
       if (!u\crypted('S', $s)) {
 /**/    debug("account $a->fullName $a->id has $fld not S-encrypted");
-        if (u\crypted('V', $s)) die("account $a->fullName $a->id has $fld V-encrypted: " . u\decry('V', $s));
+/**/    if (u\crypted('V', $s)) die("account $a->fullName $a->id has $fld V-encrypted: " . u\decry('V', $s));
 /**/  }
       if (u\crypted('S', $s)) {
         $s = u\decry('S', $s);
         if (u\crypted('S', $s)) {
           db\update('users', ['uid' => $a->id, $fld => $s], 'uid');
-          debug("account $a->fullName $a->id $fld is S-crypted within (fixed)"); 
+/**/      debug("account $a->fullName $a->id $fld is S-crypted within (fixed)"); 
         } elseif (u\crypted('V', $s)) {
-          if (u\crypted('V', $s)) die("account $a->fullName $a->id has $fld inner V-encrypted: " . u\decry('V', $s));
+/**/      if (u\crypted('V', $s)) die("account $a->fullName $a->id has $fld inner V-encrypted: " . u\decry('V', $s));
           $s = u\decry('V', $s); 
           $s = u\cry('S', $s);
           db\update('users', ['uid' => $a->id, $fld => $s], 'uid');
-          debug("account $a->fullName $a->id $fld is V-crypted within (fixed)"); 
-        } elseif ($s !== '' and !is_array(@unserialize($s))) {debug("account $a->fullName $a->id bad S-crypt (not a serialized array)"); continue;}
+/**/      debug("account $a->fullName $a->id $fld is V-crypted within (fixed)"); 
+/**/    } elseif ($s !== '' and !is_array(@unserialize($s))) {debug("account $a->fullName $a->id bad S-crypt (not a serialized array)"); continue;}
       }
     }
     $secure0 = $secure = $a->secure;
@@ -174,14 +247,14 @@
       if ($v = @$secure[$k]) {
 /**/    if (!@$a->$k) {
           if (FORREAL) $a->update($k, $v); 
-          debug("account $a->fullName $a->id $k wasn't in vsecure!");
+/**/          debug("account $a->fullName $a->id $k wasn't in vsecure!");
         }
         unset($secure[$k]);
       }
     }
     if ($secure != $secure0) {
       if (FORREAL) $a->update(compact('secure'));
-      debug("account $a->fullName $a->id removing fields from secure");
+/**/    debug("account $a->fullName $a->id removing fields from secure");
     }
   });
 . DROP TABLE r_log

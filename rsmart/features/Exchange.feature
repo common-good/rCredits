@@ -9,13 +9,13 @@ SO my company can accept cash deposits and give customers cash.
 
 Setup:
   Given members:
-  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags      |*
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,confirmed         |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,confirmed         |
-  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,confirmed,co      |
-  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,confirmed         |
-  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,confirmed,secret |
-  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,confirmed,co      |
+  | id   | fullName   | email | cc  | cc2  | floor | flags      |*
+  | .ZZA | Abe One    | a@    | ccA | ccA2 |  -350 | ok,confirmed,debt    |
+  | .ZZB | Bea Two    | b@    | ccB | ccB2 |  -150 | ok,confirmed,debt    |
+  | .ZZC | Corner Pub | c@    | ccC |      |  -250 | ok,confirmed,co,debt |
+  | .ZZD | Dee Four   | d@    | ccD | ccD2 |     0 | ok,confirmed         |
+  | .ZZE | Eve Five   | e@    | ccE | ccE2 |     0 | ok,confirmed,secret  |
+  | .ZZF | Far Co     | f@    | ccF |      |     0 | ok,confirmed,co      |
   And devices:
   | id   | code |*
   | .ZZC | devC |
@@ -40,12 +40,12 @@ Setup:
   | 5   | %today-5m | transfer |    200 | .ZZA | .ZZC | cash    |
   | 6   | %today-4m | grant    |    250 | ctty | .ZZF | stuff   |
   Then balances:
-  | id   | balance | rewards |*
-  | ctty |    -250 |       0 |
-  | .ZZA |    -200 |     350 |
-  | .ZZB |     100 |     150 |
-  | .ZZC |     100 |     250 |
-  | .ZZF |     250 |       0 |
+  | id   | balance |*
+  | ctty |    -250 |
+  | .ZZA |    -200 |
+  | .ZZB |     100 |
+  | .ZZC |     100 |
+  | .ZZF |     250 |
 
 #Variants: with/without an agent
 #  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to member |
@@ -54,9 +54,9 @@ Setup:
 Scenario: A cashier asks to charge someone for cash
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $100 for "cash": "cash out" at %now
   Then we respond ok txid 7 created %now balance 0 rewards 150
-  And with message "report tx|for why" with subs:
-  | did     | otherName | amount | why         |*
-  | charged | Bea Two   | $100   | exchange of US Dollars or other currency |
+  And with message "report tx" with subs:
+  | did     | otherName | amount |*
+  | charged | Bea Two   | $100   |
   And with did
   | did     | amount | forCash  |*
   | charged | $100   | for USD |
@@ -67,18 +67,18 @@ Scenario: A cashier asks to charge someone for cash
   | created | fullName | otherName  | amount | payerPurpose |*
   | %today  | Bea Two  | Corner Pub | $100   | cash out     |
   And balances:
-  | id   | balance | rewards |*
-  | ctty |    -250 |       0 |
-  | .ZZA |    -200 |     350 |
-  | .ZZB |       0 |     150 |
-  | .ZZC |     200 |     250 |
+  | id   | balance |*
+  | ctty |    -250 |
+  | .ZZA |    -200 |
+  | .ZZB |       0 |
+  | .ZZC |     200 |
 
 Scenario: A cashier asks to refund someone
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $-100 for "cash": "cash in" at %now
   Then we respond ok txid 7 created %now balance 200 rewards 150
-  And with message "report tx|for why" with subs:
-  | did      | otherName | amount | why         |*
-  | credited | Bea Two   | $100   | exchange of US Dollars or other currency |
+  And with message "report tx" with subs:
+  | did      | otherName | amount |*
+  | credited | Bea Two   | $100   |
   And with did
   | did      | amount | forCash  |*
   | credited | $100   | for USD |
@@ -89,11 +89,11 @@ Scenario: A cashier asks to refund someone
   | created | fullName | otherName  | amount | payeePurpose | aPayLink |*
   | %today  | Bea Two  | Corner Pub | $100   | cash in      | ?        |
   And balances:
-  | id   | balance | rewards |*
-  | ctty |    -250 |       0 |
-  | .ZZA |    -200 |     350 |
-  | .ZZB |     200 |     150 |
-  | .ZZC |       0 |     250 |
+  | id   | balance |*
+  | ctty |    -250 |
+  | .ZZA |    -200 |
+  | .ZZB |     200 |
+  | .ZZC |       0 |
 
 Scenario: A cashier asks to charge another member, with insufficient balance
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $300 for "cash": "cash out" at %now

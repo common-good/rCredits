@@ -30,8 +30,8 @@ Scenario: admin prints checks
   | 5003 | .ZZB  |    100 | %today-1d |         0 | %today    |  
   | 5004 | .ZZC  |    300 | %today    |         0 |         0 |
   When member ".ZZA" visits page "sadmin/deposits"
-  Then we show "Deposits" with:
-  | Checks IN | 3 |
+  Then we show "Bank Transfers" with:
+  | New IN | 3 |
 # UNUSED  | Include   | 1 checks from %dm-2w |
   When member ".ZZA" visits page "sadmin/checks/way=IN&date=0&mark=1"
   Then we show pdf with:

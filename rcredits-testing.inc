@@ -416,7 +416,7 @@ function notice($notice, $id, $subs = []) {
   }
   
   $map = ['&nbsp;'=>'', R_BULLET=>''];
-  $message = strtr(strip_tags(t($notice, @$subs)), $map);
+  $message = strtr(strip_tags(tr($notice, @$subs)), $map);
   $sql = 'SELECT message FROM r_notices WHERE uid=:uid AND sent=:sent ORDER BY msgid DESC';
   $info = ray('uid sent', $uid, @$subs['sent'] ?: 0);
   $msgs = db\q($sql, $info)->fetchCol();
@@ -1230,7 +1230,7 @@ function clear($ch = 0) {
 
   ctty('aab')->setBit(B_OK);
   ctty('aab')->setBit(B_UP);
-  ctty('aab')->setBit(B_REWARDY); // do rewards by default
+// NO  ctty('aab')->setBit(B_REWARDY); // do rewards by default
 
   t\log('clearing');
   r\Acct::_clear(); // empty the acct cache

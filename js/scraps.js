@@ -118,6 +118,7 @@ function doit(what, vs) {
       suggestWho(fid);
       $(fid).focus(); // must be after suggestWho
       form.submit(function (e) {
+        if ($(fid).val() == '') return true; // field is not required if we're here, so accept empty val
         return who(form, fid, vs['question'], vs['amount'] || $('input[name=amount]', form).val(), vs['allowNonmember']);
       });
       break;
@@ -138,7 +139,7 @@ function doit(what, vs) {
       function showBank(show) {
         $('#connectFields2').toggle(show);
         $('#edit-routingnumber, #edit-bankaccount, #edit-bankaccount2, #edit-refills-0, #edit-refills-1').attr('required', show);
-        var text = show ? '$connectLabel' : '$saveLabel';
+        var text = show ? vs['connectLabel'] : vs['saveLabel'];
         $('#edit-submit').val(text);
         $('#edit-submit .ladda-label').html(text);
       }
@@ -156,13 +157,13 @@ function doit(what, vs) {
       $('#edit-refills-0').click(function() {showTarget(false);});
       $('#edit-refills-1').click(function() {
         showTarget(true); 
-        if ($('#edit-target').val() == '$0') $('#edit-target').val('$' + $mindft);
+        if ($('#edit-target').val() == '$0') $('#edit-target').val('$' + vs['mindft']);
       });
       break;
 
     case 'signup':
       var form = $('#rcreditswebformsignup');
-      if (defined(vs['clarify'])) $('#edit-forother a').click(function () {alert(vs['clarify']);});
+      if (vs['clarify'] !== 'undefined') $('#edit-forother a').click(function () {alert(vs['clarify']);});
       form.submit(function (e) {return setPostalAddr(false);});
       break;
 
@@ -202,7 +203,8 @@ function doit(what, vs) {
       $('.tickle').click(function () {
         var tickle = $(this).attr('tickle');
         if (tickle != 'NONE') $('#edit-tickle').val(tickle);
-        $('#rcreditswebformsummary').submit();
+        //fform(this).submit();
+        $('#edit-submit').click();
       });
       break;
       
@@ -230,7 +232,14 @@ function doit(what, vs) {
         });
       });
       break;
-    
+
+    case 'invoices':
+      $('#txlist tr td').not('#txlist tr td:last-child').click(function () {
+        var nvid = $(this).siblings().first().html();
+        location.href = baseUrl + '/handle-invoice/nvid=' + nvid + vs['args'];
+      });
+      break;
+      
 /*    case 'relations':
       $('div.checkbox').click(function() {
         var box = $('input', this);

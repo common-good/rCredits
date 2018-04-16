@@ -229,11 +229,10 @@ function formSeeChanges($form, &$sta, $qid = '') {
     foreach ($a->changes as $dt => $info) {
       $date = u\fmtDate($dt);
       foreach ($info as $k => $v) {
-        $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, $a->$k);
+        $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, interpretV($a->$k));
 ///        if (is_array($v)) $v = print_r($v, 1);
-//        while (substr($v, strlen(CRYPT_FLAG)) == CRYPT_FLAG) $v = u\decryptM($v); // u\starts failes here (when encrypted?)
-	      if (u\crypted('V', $v . '')) $v = r\allKnowing() ? u\decry('V', $v) : t('(secret)');
-        $rec[$k] = $oldValue = a\formatField($k, $v);
+//        while (substr($v, strlen(CRYPT_FLAG)) == CRYPT_FLAG) $v = u\decryptM($v); // u\starts fails here (when encrypted?)
+        $rec[$k] = $oldValue = a\formatField($k, interpretV($v));
         $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";
       }
     }
@@ -244,6 +243,8 @@ function formSeeChanges($form, &$sta, $qid = '') {
   
   return compact(ray('title list'));
 }
+
+function interpretV($v) {return u\crypted('V', $v . '') ? (r\allKnowing() ? u\decry('V', $v) : t('(secret)')) : $v;}
 
 /**
  * Log back in to admin automatically.
@@ -578,10 +579,31 @@ EOF;
 /**
  * Offer to print checks or a deposit slip for transfers to or from member bank accounts.
  */
-function formDeposits($form, &$sta, $deposit = '') {
+function formDeposits($form, &$sta, $deposit = 0) {
+  global $mya, $base_url;
 //  if ($deposit) return r\go("sadmin/deposit/$deposit");
-  $title = item(t('Deposits'));
 
+  $title = item(t('Bank Transfers'));
+
+  $fields = <<<EOF
+    SUM(IF(amount<0, amount, 0)) AS amountOut,
+    SUM(IF(amount>0, amount, 0)) AS amountIn,
+    SUM(IF(amount<0, 1, 0)) AS countOut,
+    SUM(IF(amount>0, 1, 0)) AS countIn
+EOF;
+  $res = db\records('r_usd', "deposit=$deposit", [], $fields);
+//  if ($res[0]) {
+  extract((array) $res[0]);
+  foreach (ray('amountIn amountOut') as $k) $$k = u\fmtAmt($$k);
+  $subtext = w\item(t('<b>New IN:</b> &nbsp;%countIn (%amountIn)<b class="newout">New OUT:</b> %countOut (%amountOut)', compact(ray('countIn amountIn countOut amountOut'))));
+  if ($mya->superAdmin) {
+    $go = w\btn("/sadmin/checks/way=In&date=$deposit&mark=1", t('Print Checks'))
+    . ' ' . w\btn("$base_url/sadmin/achs/date=$deposit&mark=1", t('Download ACH file'));
+    $go = w\item($go, ' ');
+  }
+//  } else $subtext = w\item(t('There are no new transfer requests.'));
+  
+/*
   $ways = [t('IN') => '(amount>0 AND txid>0)', t('OUT') => '(amount<0 AND txid>0)']; // , t('BAD') => 'txid<0'];
   if (r\acct()->superAdmin) foreach ($ways as $way => $where) {  
     $count = db\count('r_usd', $where . ' AND deposit=0');
@@ -597,24 +619,25 @@ function formDeposits($form, &$sta, $deposit = '') {
 ///    echo "\n\n\nway=$way " . print_r(u\prefixKeys($way, compact(ray('count reprint submit previous'))), 1) . "\n\n\n";
     $$way = w\fieldSet("_$way", u\prefixKeys($way, compact(ray('count submit'))), BARE);
   }
+  */
   
   $deposits = item(a\deposits(), ' ');
   w\jsx('deposits');
 
-  return compact('title', array_keys($ways), 'deposits');
+  return compact(ray('title subtext go deposits'));
 }
-
+/*
 function formDeposits_submit($form, &$sta) {
   $op = w\op($sta);
   $way = str_replace('submit', '', $op); // cute. INsubmit or OUTsubmit -> IN or OUT
 //  $previous = @$sta['input'][$way . 'previous'];
 //  r\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1");
   $func = ($way == 'IN' or time() < strtotime('1/10/2017')) ? 'checks' : 'achs';
-  r\go("sadmin/$func/way=$way&date=0&mark=1");
+  r\go("/sadmin/$func/way=$way&date=0&mark=1");
 //  foreach (['reprint', 'previous'] as $k) $$k = @$sta['input'][$way . $k];
 //  r\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1&reprint=" . @$reprint);
 }
-
+*/
 function depositDetails($args) {
   extract(just('way date total count', $args));
   include_once __DIR__ . '/../pdf.class';
@@ -631,10 +654,13 @@ function depositDetails($args) {
   $pdf->setPrintFooter(TRUE);
 //  $pdf->setLanguageArray($l); // (eg "page" in footer)
 
-  list ($activity, $where) = $in ? [t('DEPOSIT'), '(NOT (amount<0 XOR txid<0))'] : [t('CASHOUT'), '(amount<0 XOR txid<0)'];
+//  list ($activity, $where) = $in ? [t('DEPOSIT'), '(NOT (amount<0 XOR txid<0))'] : [t('CASHOUT'), '(amount<0 XOR txid<0)'];
+  $activity = t('Bank Transfer');
+  $where = 1;
   $today = $date == 1 ? t('(Historical)') : u\fmtDate($date ?: r\rTime());
   $escrow = $in ? ESCROW_IN : ESCROW_OUT;
   $pdf->setupFooter('', BANK_DBA . " $activity $today", ['........ A5990D1155A '.$escrow.'C', 'GnuMICR;12'], 'Page @PAGE of @PAGES');
+//  $pdf->setupFooter('', BANK_DBA . " $activity $today", ['ACHes', 'GnuMICR;12'], 'Page @PAGE of @PAGES');
   $pdf->AddPage();
 
   $left = t(<<<EOF
@@ -659,9 +685,10 @@ EOF
   , compact(ray('activity today total count escrow')));
 
   $pdf->say($left, $m, 0);
+//    SELECT ABS(amount) AS amount, txid, uid, u.fullName AS name FROM r_usd t LEFT JOIN users u ON u.uid=t.payee 
 
   $sql = <<<EOF
-    SELECT ABS(amount) AS amount, txid, uid, u.fullName AS name FROM r_usd t LEFT JOIN users u ON u.uid=t.payee 
+    SELECT amount, txid, uid, u.fullName AS name FROM r_usd t LEFT JOIN users u ON u.uid=t.payee 
     WHERE $where AND deposit=$date ORDER BY txid
 EOF;
   $q = db\q($sql);
@@ -671,12 +698,14 @@ EOF;
   while ($row = $q->fetchAssoc()) {
     extract($row);
 // (needs htmlcell instead of cell)   if (!$in) $name = r\acct($uid)->bankInfoLink();
-    if (!$in) $name = r\acct($uid)->legalNameDpy;
+//    if (!$in) $name = r\acct($uid)->legalNameDpy;
     $pdf->setX($x);
+    if ($amount < 0) $pdf->SetTextColor(255, 0, 0);
     $pdf->Cell(1, 0, u\fmtAmt($amount, ''), '', 0, 'R');
+    $pdf->SetTextColor(0);
     $pdf->setX($x + $colW);
     $pdf->Cell($x - $colW, 0, "(# $txid) $name", '', 1);
-    if (!$in) { // for outgoing checks, show bank address and member's legal name
+    if (FALSE) { // !$in) { // for outgoing checks, show bank address and member's legal name
       $pdf->setX($x + $colW);
       if ($bankInfo = r\acct($uid)->bankInfo) {
         extract($bankInfo, EXTR_PREFIX_ALL, 'b');
@@ -699,13 +728,21 @@ EOF;
 
   $date = strftime('%Y%m%d', $date);
   if (u\test()) $pdf->Close(); else 
-  $pdf->Output(PROJECT . "-deposit-$way-$date.pdf", 'I'); //Close and output
+//  $pdf->Output(PROJECT . "-deposit-$way-$date.pdf", 'I'); //Close and output
+  $pdf->Output(PROJECT . "-deposit-$date.pdf", 'I'); //Close and output
 }
 
 /**
- * Create an ACH Batch file for all relevant checks.
+ * Create an ACH Batch file for all relevant transfer requests.
  */
 function achBatch($args) {
+  include DRUPAL_ROOT . '/rcredits/rcron/rcron-achify.inc';
+  extract(just('way date mark', $args));
+//  achify("deposit=$date");
+  achify("deposit=$date AND amount<0"); // temporarily only money going OUT
+  if (u\test()) return;
+}
+/*
   extract(just('way date mark', $args));
   $ways = ['IN'=>'(amount>0 AND txid>0)', 'OUT'=>'(amount<0 AND txid>0)', 'BAD'=>'txid<0'];
   $where = $ways[strtoupper($way)];
@@ -732,6 +769,7 @@ function achBatch($args) {
   if (u\test()) return;
   exit();
 }
+*/
 
 /**
  * Create a PDF of all relevant checks.
@@ -773,8 +811,9 @@ function printChecks($args) {
  * @param mixed $agent: qid or uid of agent
  */
 function memberId($id, $agent = '') {
+  global $mya;
   require_once __DIR__ . '/../pdf.class';
-  if (!$a = r\acct($id, $agent)) exit('No such account ia: ' . $id . ':' . $agent);
+  if (!$a = r\acct($id, $agent) or (!$mya->admin and $a->community != $mya->community)) exit('No such account ia: ' . $id . ':' . $agent);
   
   $a->setAgentNum(); // assign an agentCode, if appropriate (and not yet done)
   $qid = $a->qid; // get this before setting $a to agent (below)
@@ -847,6 +886,7 @@ function memberId($id, $agent = '') {
 /*  if (time() < strtotime('6/20/2017')) {
     $pdf->Output(strtolower("$qid.cgcard.pd"), 'D'); // Close and output PDF document ('I')
   } else */
+  if ($mya->superAdmin) $a->setBit(B_CARDED);
   if (u\test()) $pdf->Close(); else $pdf->Output(strtolower("$qid.cgcard.pd"), 'I'); // Close and output PDF document ('I')
 //  if (time() < strtotime('6/20/2017') and $next = nextMember($id)) r\go("print-rcard/$next");
 }
@@ -894,19 +934,14 @@ function test($arg = '') {
  * Delete an account (superAdmin only)
  * @param int $uid: account to delete
  */
-function deleteAccount($uid) {
-  $nm = @r\acct($uid)->fullName;
-  r\deleteAccount($uid); // does not return, if error
-  return r\go('sadmin/followup', t('Success. Account %nm has been deleted.', 'nm', $nm));
-}
+function deleteAccount($uid) {r\deleteAccount($uid);} // does not return
 
 function util($arg) {
 //  if ($arg == 'modal') drupal_goto('modal');
 //  if ($arg == 'reset') r\reset();
   if ($arg == 'reset-menu') menu_rebuild();
   if ($arg == 'rebuild-db') {
-    require_once __DIR__ . '/../rcredits-install.inc';
-    r\rebuildDb();
+    f('i.rebuildDb');
     if (isDEV) f('t.clear'); else a\setupBasicAccounts();
   }
   if ($arg == 'clear') foreach (ray('cache cache_bootstrap cache_form cache_menu sessions') as $table) {

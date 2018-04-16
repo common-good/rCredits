@@ -14,7 +14,19 @@
 .skip {margin-left:10px;}
 .positive {color:green;} /* highlights donations and other happy amounts */
 #edit-none {display:none;} /* for hidden submit button */
-iframe {border:0;}
+iframe {border:0; float:right; margin-right:-60px;}
+
+form ul>li {display: block;}
+
+form ul>li:before {
+    /*Using a Bootstrap glyphicon as the bullet point*/
+    content: "\e127";
+    font-family: 'Glyphicons Halflings';
+    font-size: 16px;
+    float: left;
+    margin:0 0 0 -25px;
+    color: darkgreen;
+}
 
 #orgname {display:none;}
 
@@ -387,14 +399,16 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformhelp .p2b {color:green;}
 #rcreditswebformhelp .b2b {color:blue;}
 #rcreditswebformhelp .b2p {color:red;}
-#rcreditswebformhelp .in {color:green;}
-#rcreditswebformhelp .out {color:orange;}
-#rcreditswebformhelp .runny-bal {color:white; background-color:magenta;}
-#rcreditswebformhelp .top5 {color:white; background-color:darkred;}
+#rcreditswebformhelp .in {color:white; background-color:green;}
+#rcreditswebformhelp .out {color:white; background-color:orange;}
+#rcreditswebformhelp .import {color:black; background-color:yellow;}
+#rcreditswebformhelp .export {color:black; background-color:lightblue;}
+#rcreditswebformhelp .top3 {color:white; background-color:darkred;}
+#rcreditswebformhelp .neg {color:black; background-color:orange;}
 #rcreditswebformhelp .usd {color:white; background-color:darkblue;}
 #rcreditswebformhelp .cgcredits {color:white; background-color:darkgreen;}
-#rcreditswebformhelp .in-use {color:white; background-color:orange;}
-#rcreditswebformhelp .runny-funds {color:black; background-color:yellow;}
+#rcreditswebformhelp .in-use {color:black; background-color:yellow;}
+#rcreditswebformhelp .limit {color:white; background-color:magenta;}
 #rcreditswebformhelp .inuse {}
 #rcreditswebformhelp .inuse {}
 #rcreditswebformhelp .inuse {}
@@ -464,6 +478,7 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #rcreditswebformfindco .well {padding:10px 35px;}
 #rcreditswebformfindco .cmpy-name {display:table-cell; width:auto; max-width:300px; overflow:hidden; color:darkblue;}
 #rcreditswebformfindco .cmpy-does {display:table-cell; width:auto; max-width:400px; overflow:hidden; padding-left:10px;}
+.company-listing {color:red; font-weight:bold;}
 
 /* Pay/Charge/Tx */
 
@@ -671,6 +686,7 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 
 /* Admin Deposits */
 #rcreditswebformdeposits .control-label {min-width:150px;} /* can't be more than 153px (dunno why) */
+#rcreditswebformdeposits .newout {margin-left:50px;}
 #edit-deposits .control-label {width:50px;}
 #rcreditswebformshowdeposits a {display:none;}
 
@@ -796,6 +812,7 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #txlist .row.head>div>div {background:#757575; color:white; font-weight:bold; border-right:1px solid white;}
 #txlist .row.head .buttons {color:white; background-color:white; border:0;}
 #txlist .row.head .reward {font-size:100%;}
+#txlist tr:hover {background-color:#aaffaa;}
 
 #txs-links {margin-bottom:10px;}
 #txs-links.row >div {border:0; padding:0;}
@@ -834,6 +851,8 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebforminvoices #edit-list .control-data {width:100%; max-width:100%; text-align:center;}
 #rcreditswebforminvoices #edit-title {margin-bottom:0;}
 #rcreditswebforminvoices #edit-subtext label {display:none;}
+#rcreditswebforminvoices .txs-buttons div {display:inline-block;}
+#rcreditswebforminvoices .txs-buttons a {margin-right:5px;}
 
 /* Handle Invoice */
 #rcreditswebformhandleinvoice #denySet {display:none;}
@@ -841,6 +860,7 @@ div.password-confirm .error {font-weight:bold; color:red;}
 /* Statements / Notices */
 #statements th, #statements td,
 #notices th, #notices td {text-align:left; vertical-align:top; border:1px solid silver;}
+.notice-date {vertical-align:top; margin-right:5px;}
 
 /* Deposits */
 /* #rcreditswebformdeposits {margin-left:50px;} */
@@ -867,35 +887,11 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #rcreditswebformgraphs .control-label {display:none;}
 #rcreditswebformgraphs .form-type-item {margin-top:15px; margin-bottom:0;}
 #rcreditswebformgraphs .description {clear:none;}
-#rcreditswebformgraphs #edit-charts div {float:left;}
+#rcreditswebformgraphs #edit-charts div, #rcreditswebformgraphs iframe {float:left;}
 #rcreditswebformgraphs #edit-title {margin-bottom:0; font-weight:bold;}
 /* #rcreditswebformgraphs #edit-subheader {margin-top:0px; margin-bottom:35px; font-size:110%;}  */
 #rcreditswebformgraphs #edit-subtext {margin-left:0;} 
 #rcreditswebformgraphs #edit-subtext em {font-weight:bold; font-style:normal; color:darkred;}
-#rcreditswebformgraphs .form-item-ctty .control-label {display:inline-block; min-width:0; width:auto; padding-left:0; padding-right:5px;}
-#rcreditswebformgraphs #edit-ctty {width:auto;}
-
-#rcreditswebformgraphs .form-type-checkboxes {margin-bottom:0;}
-#rcreditswebformgraphs .form-type-checkbox {width:110px;}
-#rcreditswebformgraphs .form-type-radios {border:0;}
-#rcreditswebformgraphs .form-type-radio {display:inline-block;}
-
-#rcreditswebformgraphs .form-item-period {display:inline-block;}
-#rcreditswebformgraphs .form-item-ending {display:inline-block;}
-#rcreditswebformgraphs .form-item-starting {margin-bottom:0;}
-#rcreditswebformgraphs .form-submit {margin-left:10px; max-width:120px;}
-#rcreditswebformgraphs input {max-width:110px;}
-#rcreditswebformgraphs .form-item-states,
-#rcreditswebformgraphs .form-item-states label {margin-top:15px;}
-#rcreditswebformgraphs  label {color:darkblue;}
-#rcreditswebformgraphs #edit-p2p,
-#rcreditswebformgraphs #edit-p2b,
-#rcreditswebformgraphs #edit-b2b,
-#rcreditswebformgraphs #edit-b2p {font-size:85%; margin:0 0 0 32px;}
-#rcreditswebformgraphs #edit-p2p label,
-#rcreditswebformgraphs #edit-p2b label,
-#rcreditswebformgraphs #edit-b2b label,
-#rcreditswebformgraphs #edit-b2p label {color:darkgray;}
 
 /* Relation form */
 /*#rcreditswebformrelations #edit-subtext label {width:450px;}*/

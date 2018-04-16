@@ -145,12 +145,13 @@ function poAddress($address) {
  *   $ = include initial dollar sign
  *   r = include a trailing cg
  *   u = include a trailing us
+ *   % = percentage
  * @return
  *   the formatted amount
  */
 function fmtAmt($amount, $opt = 's$') {
   $opt = ' ' . $opt; // simplify strpos check
-  $amount = cleanAmount(nn($amount, 0));
+  $amount0 = $amount = cleanAmount(nn($amount, 0));
 //  if (!is_numeric($amount)) $amount = -999999;
   u\EXPECT(compact('amount'), 'float', 'bad num');
   $amount = number_format($amount + 0, strpos($opt, '1') ? 0 : 2);
@@ -159,6 +160,7 @@ function fmtAmt($amount, $opt = 's$') {
   if (strpos($opt, 's')) $amount = str_replace('.00', '', $amount);
   if (strpos($opt, 'r')) $amount .= 'cg';
   if (strpos($opt, 'u')) $amount .= 'us';
+  if (strpos($opt, '%')) $amount = number_format(100 * $amount0, 1) . '%';
   return $amount;
 }
 
@@ -742,89 +744,27 @@ function firstUnusedId($key, $table, $start = 1, $end = 0, $where0 = '1', $subs 
 function alterImg($img0, $w, $h, $x1 = 0, $y1 = 0, $cropW = 0, $cropH = 0, $angle = 0) {
   list ($w0, $h0) = [imagesx($img0), imagesy($img0)];
   
-  if ($w0 != $w or $h0 != $h) {
+  if ($w0 != $w or $h0 != $h) { // resize
     $img1 = imagecreatetruecolor($w, $h); // resize the original image to size of editor
 	  imagecopyresampled($img1, $img0, 0, 0, 0, 0, $w, $h, $w0, $h0);
   } else $img1 = $img0;
-  
-  if ($angle) {  
-    $img1 = imagerotate($img1, -$angle, 0); // rotate the rezized image
-    list ($dx, $dy) = [imagesx($img1) - $w, imagesy($img1) - $h]; // diff between rotated & original sizes
-      
-    $img2 = imagecreatetruecolor($w, $h); // crop rotated image to fit into original rezized rectangle
-    imagecolortransparent($img2, imagecolorallocate($img2, 0, 0, 0));
-    imagecopyresampled($img2, $img1, 0, 0, $dx / 2, $dy / 2, $w, $h, $w, $h);
-  } else $img2 = $img1;
-	
-  if ($cropW or $cropH) {
-	  $img3 = imagecreatetruecolor($cropW, $cropH); // crop image into selected area
-	  imagecolortransparent($img3, imagecolorallocate($img3, 0, 0, 0));
-	  imagecopyresampled($img3, $img2, 0, 0, $x1, $y1, $cropW, $cropH, $cropW, $cropH);
-  } else $img3 = $img2;
-  
-  return $img3;
-}
 
-/**
- * Say whether a value is encrypted. This works only if the unencrypted value can never start with ! or c~.
- *//*
-function isEncrypted($s) {
-  return (u\starts($s, CRYPT_FLAG) or u\starts($s, CRYPTN_FLAG));
-}*/
-
-/**
- * Quicker encryption for often-used fields.
- * @param string $data: the plaintext data to encrypt
- * @param int $how: index to encryption method (0 or 1)
- * @param string $key: the key (generally only 32 characters are used)
- * @param bool $encrypt: <encrypt (rather than decrypt)>
- * @param bool $noIV: <use a predictable initialization vector (only for searchable unique-valued fields)>
- * @return the encrypted string (or the decrypted string with trailing nulls deleted, if $encrypt is FALSE)
- */
-//define('OLDCRYPT_FLAG', 'c~'); // flag start of encrypted data (add single digit $how)
-define('CRYPT_FLAG', '`!'); // flag start of encrypted data (add a single type letter)
- /*
-function cryptM($data, $how = 0, $key = R_WORD, $encrypt = TRUE, $noIV = FALSE) {
-///  debug(($encrypt ? 'Encrypting ' : 'Decrypting ') . strlen($data) . ' chars, using method #' . $how . ' keylen=' . strlen($key));
-  if (empty($data)) return FALSE;
-  u\EXPECT(compact('data', 'how', 'key'), 'string int string');
-  $mode = MCRYPT_MODE_CBC;
-  $hows = [MCRYPT_RIJNDAEL_256, MCRYPT_TWOFISH]; 
-  $method = $hows[$how];
-
-  $td = mcrypt_module_open($method, '', $mode, '');
-  $keySize = mcrypt_enc_get_key_size($td);
-  $key = substr($key, 0, $keySize);
-  $ivSize = mcrypt_get_iv_size($method, $mode); 
-
-  if ($noIV) { // predictable iv (for unique-valued fields)
-    if (!$iv = \variable_get('iv', '')) \variable_set('iv', $iv = mcrypt_create_iv($ivSize, MCRYPT_RAND));
-  } elseif ($encrypt) {
-    $iv = mcrypt_create_iv($ivSize, MCRYPT_RAND);
-  } else {
-    $flagLen = strlen(OLDCRYPT_FLAG . $how);
-//    if (!u\starts($data, OLDCRYPT_FLAG . $how)) return $data; // temporary fudge, to get data out
-//    u\EXPECT(u\starts($data, OLDCRYPT_FLAG . $how), 'wrong encryption');
-    list ($iv, $data) = [substr($data, $flagLen, $ivSize), substr($data, $flagLen + $ivSize)];
+  if ($angle) { // rotate
+    $img1 = imagerotate($img1, -$angle, 0); // rotate the resized image
+    $x1 += (imagesx($img1) - $w) / 2; // diff between rotated & original sizes
+    $y1 += (imagesy($img1) - $h) / 2;
   }
-  $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
-  $data = $function($method, $key, $data, $mode, $iv);
-  mcrypt_module_close($td);
-  return $encrypt ? ($noIV ? $data : OLDCRYPT_FLAG . "$how$iv$data") : rtrim($data, "\0");
-} 
-
-/**
- * Decrypt data
- * @param string $data: encrypted data
- * @param int $how: encryption method number (0 or 1). Defaults to "figure out which method".
- * @param string $key: encryption key
- */  /*
-function decryptM($data, $how = NULL, $key = R_WORD) {
-  if (!u\starts($data, OLDCRYPT_FLAG)) return FALSE;
-  u\setDft($how, substr($data, strlen(OLDCRYPT_FLAG), 1));
-  return cryptM($data, $how, $key, FALSE);
+	
+  if ($cropW or $cropH) { // crop
+	  $img2 = imagecreatetruecolor($cropW, $cropH); // crop image into selected area
+	  imagecolortransparent($img2, imagecolorallocate($img2, 0, 0, 0));
+	  imagecopyresampled($img2, $img1, 0, 0, $x1, $y1, $cropW, $cropH, $cropW, $cropH);
+  } else $img2 = $img1;
+  
+  return $img2;
 }
-*/
+
+define('CRYPT_FLAG', '`!'); // flag start of encrypted data (add a single type letter)
 
 /**
  * Perform the given type of encryption (or decryption).
@@ -845,7 +785,10 @@ function cry($type, $data, $de = FALSE, $pwInstead = '') {
 	global $cryHows, $mya;
 	
 	if ($de) u\EXPECT(u\starts($data, CRYPT_FLAG . $type), 'bad crypted');
-	if ($de) $data = substr($data, strlen(CRYPT_FLAG . $type));
+	if ($de) {
+    if ($type == 'V' and !$vKey = r\vKey()) return $data; // if we can't decrypt, return the data as is (for acct::recordChanges)
+    $data = substr($data, strlen(CRYPT_FLAG . $type));
+  }
 
 	$chow = $cryHows[$type];
 	foreach ($chow as $i => $v) if ($chow0 = @$cryHows[$v]) $chow[$i] = $chow0[$i]; // allow reference to other how
@@ -876,9 +819,9 @@ function cry($type, $data, $de = FALSE, $pwInstead = '') {
 				$trashLen = 30; // do not change this, without re-encrypting everything encrypted with its previous value
 				// NOTE: whether this number is 0 or 200 makes ZERO difference in the strlen of the encrypted value 30 is plenty
 				if ($de) { // decrypt with supplied private key
-    			$success = openssl_private_decrypt($data, $res, u\fmtKey(r\vKey(), 'PRIVATE')) ? $res : FALSE;
+  			  $success = openssl_private_decrypt($data, $res, u\fmtKey($vKey, 'PRIVATE')) ? $res : FALSE;
 ///					if (!$success) die(print_r(debug_backtrace(), -1));
-  				$data = $success ? substr_replace($res, '', -$trashLen) : '';
+				  $data = $success ? substr_replace($res, '', -$trashLen) : '';
 				} else { // encrypt with public key
   				$data .= openssl_random_pseudo_bytes($trashLen); // add randomness
     			$success = openssl_public_encrypt($data, $res, u\fmtKey($pw, 'PUBLIC')) ? $res : FALSE;
@@ -893,19 +836,8 @@ function cry($type, $data, $de = FALSE, $pwInstead = '') {
 }
 
 function crypted($type, $s) {return u\starts($s, CRYPT_FLAG . $type);}
-//function oldcrypted($s) {return (u\starts($s, OLDCRYPT_FLAG) or u\starts($s, '!'));}
 
 function decry($type, $data, $pwInstead = '') {
-/*  if (u\starts($res = $data, OLDCRYPT_FLAG)) {
-		while (u\starts($res0 = $res, OLDCRYPT_FLAG)) {
-      if ($type == 'V' or !$res = decryptM($res) or (!@unserialize($res) and !ctype_print($res))) {
-///			  if (!$pw2 = r\cryptCook('pw2') or !$res = decryptM($res0, NULL, $pw2)) die('data=' . bin2hex($data) . ' ' . print_r(debug_backtrace(), 1));
-			}
-	  }
-		return $res;
-	} elseif ($type == 'P' and $data[0] == CRYPTN_FLAG and bin2hex(substr($data, 1))) return decryptN($data);
-*/
-		
 	return u\starts($data, CRYPT_FLAG) ? cry($type, $data, TRUE, $pwInstead) : $data;
 }
 
@@ -914,45 +846,14 @@ function crypt($data, $how, $key, $iv, $decrypt = FALSE) {
   if (empty($data)) return FALSE;
   u\EXPECT(compact(ray('data how key iv')), 'string string string string');
 
-//	if (!$encrypt and $how >= 4) return cryptM($data, $how - 4, $key, FALSE, $noIV); // retro
-
-//  $hows = ['aes-256-gcm', 'camellia-256-ofb']; // use no-padding modes (CTR, OFB, or CFB; not CBC)
-//	$keySizes = [32, 32]; // number of bits divided by 8
-//  list ($method, $keySize) = [$hows[$how], $keySizes[$how]];
-
   $ivSize = openssl_cipher_iv_length($how);
 	$iv = substr($iv, 0, $ivSize);
-//    $iv = openssl_random_pseudo_bytes($ivSize);
   $key = substr($key, 0, 32); // 32 bytes for 256 bits
 
-//  if ($noIV) { // predictable iv (for unique-valued fields)
-//    if (!$iv = \variable_get('iv', '')) \variable_set('iv', $iv = openssl_random_pseudo_bytes(256)); // intentionally overbig
-//    $iv = openssl_random_pseudo_bytes($ivSize);
-//  } else {
-//    $flagLen = strlen(CRYPT_FLAG . $how);
-//    if (!u\starts($data, CRYPT_FLAG . $how)) return $data; // temporary fudge, to get data out
-//    u\EXPECT(u\starts($data, CRYPT_FLAG . $how), 'wrong encryption');
-//    list ($iv, $data) = [substr($data, $flagLen, $ivSize), substr($data, $flagLen + $ivSize)];
-//  }
-
-//  $iv = substr($iv, 0, $ivSize);
   $function = $decrypt ? 'openssl_decrypt' : 'openssl_encrypt';
   $data = $function($data, $how, $key, 0, $iv);
-//  NO! return $decrypt ? rtrim($data, "\0") : $data;
   return $data;
 } 
-
-/** 
- * Encrypt/decrypt using a known iv and hex2bin/bin2hex, so we can search the encrypted field.
- * EG, to search for email=$email, f('db.lookup', 'id', 'r_invites', 'email=:e', ['e' => f('u.cryptN', $email)]);
- */
-define('CRYPTN_FLAG', '!'); // flag start of cryptN-encrypted data
-
-function decryptN($data) {
-	if (!u\starts($data, CRYPTN_FLAG)) return $data; // temporary fudge, to get data out
-	$data = hex2bin(substr($data, strlen(CRYPTN_FLAG))); // convert to binary before decrypting
-  return cryptM($data, 0, R_WORD, FALSE, TRUE);
-}
 
 /**
  * Initiate CSV download.
@@ -1016,7 +917,10 @@ function randomString($len = 16, $choices = '') {
  */
 function badName($name) {
   if (strpos($name, '  ') !== FALSE) return 'multiple spaces';
-  if (!ctype_print($name)) return 'illegal char';
+  if (!ctype_print($name)) {
+/**/  r\tellAdmin('bad char', ['trace' => print_r(debug_backtrace(), 1)]);
+    return 'illegal char';
+  }
   if (strlen(u\shortName($name)) > USERNAME_MAX_LENGTH) return 'too long';
   return FALSE;
 }
@@ -1500,11 +1404,9 @@ function similar($s1, $s2, $chars = 5, $pct0 = .1) {return (similar_text($s1, $s
 function unite($a, $b, $m = '') {return ($a and $b) ? tr('%a%m%b', '_a _m _b', $a, $m ?: t(' and '), $b) : ($a ?: $b);}
 function honorDesc($honor) {return $honor == 'other' ? ' ' : t(' in %honor of ', compact('honor'));}
 function inList($needle, $hay) {return (strpos(" $hay ", " $needle ") !== FALSE or strpos(",$hay,", ",$needle,") !== FALSE);}
-function unplain($text) {return htmlspecialchars_decode($text, ENT_QUOTES);} // reverse \check_plain
 function weakPass($pw) {return (strlen($pw) < 8 or !preg_match('/\d/', $pw) or !preg_match('/[A-Z]/', $pw) or !preg_match('/[a-z]/', $pw) or !preg_match('/[^0-9A-Za-z]/', $pw));}
 function b64encode($data) {return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');}
 function b64decode($data) {return base64_decode(strtr($data, '-_', '+/'));}
 function fmtKey($k, $f) {$d = '-----'; $k = chunk_split(base64_encode($k), 64); return "{$d}BEGIN $f KEY$d\n$k{$d}END $f KEY$d";}
 function unfmtKey($k) {return base64_decode(preg_replace('/(-+[^-]+-+|[\r\n ])/', '', strpos($k, ':') ? file_get_contents($k) : $k));}
 function pubKey($k) {return openssl_pkey_get_details(openssl_pkey_get_private(fmtKey(unfmtKey($k), 'PRIVATE')))['key'];}
-function obj($ray = []) {return (object) $ray;} // especially for $newObj = obj();

@@ -53,7 +53,7 @@ Scenario: A member clicks the summary tab
   | Postal Addr   | 1 A St., Atown, AK 01000 |
   | Balance       | $10 |
 #  | Savings       | $256 |
-  | ~rewards      | $256 |
+#  | ~rewards      | $256 |
 #  | Credit limit  | $100 |
 #  | Committed     | $0.60 |
 # (including savings in balance)  | Your return   | 20.6% |

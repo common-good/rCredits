@@ -26,13 +26,15 @@ Scenario: Balances get out of whack
   When cron runs "recache"
   Then we tell admin "cache mismatch" with subs:
   | id   | key     | is   | shouldBe |*
-  | .ZZA | balance |    0 |       10 |
-  | .ZZA | rewards |    0 |       10 |
+#   | .ZZA | balance |    0 |       10 |
+# NO  | .ZZA | rewards |    0 |       10 |
   | .ZZB | balance |   20 |        0 |
   And balances:
   | id     | balance | rewards |*
-  | .ZZA   |       0 |      10 |
+  | .ZZA   |       0 |       0 |
   | .ZZB   |       0 |       0 |
+# (don't fix rewards)
+  
 # (we might never want this feature)
 #  And we message member ".ZZA" with topic "account suspended" and subs:
 #  | why                        |*

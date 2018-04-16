@@ -1,6 +1,7 @@
 var vs = parseQuery($('#script-crop-setup').attr('src').replace(/^[^\?]+\??/,''));
 
-$('#photoUp').css('background-image', 'url(' + baseUrl + '/account-photo)'); 
+var uniq = (new Date()).getTime(); // unique value (so default picture does not repeat a real one)
+$('#photoUp').css('background-image', 'url(' + baseUrl + '/account-photo?t=' + uniq + ')'); 
 
 var err = false;
 var croppicOptions = {

@@ -27,10 +27,10 @@ Setup:
   | 1005 |  .ZZA |    -22 |   4 | %lastm+8d | %lastm+8d |
   | 1006 |  .ZZA |    -33 |   3 | %lastm+9d | %lastm+9d |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |     956 |       0 |
-  | .ZZB |    2000 |       0 |
-  | .ZZC |    3000 |       0 |
+  | id   | balance |*
+  | .ZZA |     956 |
+  | .ZZB |    2000 |
+  | .ZZC |    3000 |
   Given transactions: 
   | xid| created   | type     | amount | from | to   | purpose | taking |*
   | 1  | %lastm+1d | signup   |    250 | ctty | .ZZA | signup  | 0      |
@@ -45,28 +45,28 @@ Setup:
 
   | 13 | %lastm+8d | transfer |    100 | .ZZA | .ZZB | cash V  | 0      |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |    1606 |     268 |
-  | .ZZB |    2280 |     274 |
-  | .ZZC |    2070 |     262 |
+  | id   | balance |*
+  | .ZZA |    1606 |
+  | .ZZB |    2280 |
+  | .ZZC |    2070 |
 
 Scenario: A member looks at a statement for previous month
   When member ".ZZA" views statement for %lastmy
   Then we show "ZZA" with:
-  | Starting | From Bank | Paid   | Received | Rewards | Ending   |
-  | 1,000.00 | -44.00    | 460.00 | 1,110.00 |         | 1,606.00 |
-  |     0.00 |           |        |        | 268.00  |   268.00 |
+  | Starting | From Bank | Paid   | Received | Ending   |
+  | 1,000.00 | -44.00    | 460.00 | 1,110.00 | 1,606.00 |
+#   |     0.00 |           |        |        | 268.00  |   268.00 |
   And with:
-  | Tx   | Date       | Name       | Purpose  | Amount  | Reward |
-  | 1    | %lastmd+1d | ZZrCred    | signup  |     0.00 | 250.00 |
-  | 2    | %lastmd+3d | Bea Two    | cash E  |    10.00 |   0.00 |
-  | 3    | %lastmd+4d | Corner Pub | usd F   | 1,100.00 |   0.00 |
-  | 4    | %lastmd+5d | Bea Two    | what G  |  -240.00 |  12.00 |
-  | 1004 | %lastmd+5d | --         | from bank |  11.00 |   0.00 |
-  | 5    | %lastmd+7d | Corner Pub | this Q  |  -120.00 |   6.00 |
-  | 6    | %lastmd+8d | Bea Two    | cash V  |  -100.00 |   0.00 |
-  | 1005 | %lastmd+8d | --         | to bank |   -22.00 |   0.00 |
-  | 1006 | %lastmd+9d | --         | to bank |   -33.00 |   0.00 |
+  | Tx   | Date       | Name       | Purpose  | Amount  |
+#  | 1    | %lastmd+1d | ZZrCred    | signup  |     0.00 |
+  | 2    | %lastmd+3d | Bea Two    | cash E  |    10.00 |
+  | 3    | %lastmd+4d | Corner Pub | usd F   | 1,100.00 |
+  | 4    | %lastmd+5d | Bea Two    | what G  |  -240.00 |
+  | 1004 | %lastmd+5d | --         | from bank |  11.00 |
+  | 5    | %lastmd+7d | Corner Pub | this Q  |  -120.00 |
+  | 6    | %lastmd+8d | Bea Two    | cash V  |  -100.00 |
+  | 1005 | %lastmd+8d | --         | to bank |   -22.00 |
+  | 1006 | %lastmd+9d | --         | to bank |   -33.00 |
   And without:
   | rebate  |
   | bonus   |

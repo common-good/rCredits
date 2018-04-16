@@ -28,14 +28,14 @@ Scenario: A newbie visits the registration page with bad invite
   | you must be invited |
 Resume
 
-Scenario: A newbie visits the invitation acceptance page with no invite
-  Given community "invites" is "on"
-  When member "?" confirms form "accept/self" with values:
-  | friend | zip |*
-  | self   | 01001      |
-  Then we say "error": "invitation required" with subs:
-  | a1 |*
-  | a href=%PROMO_URL/signup |
+#Scenario: A newbie visits the invitation acceptance page with no invite
+#  Given community "invites" is "on"
+#  When member "?" confirms form "accept/self" with values:
+#  | friend | zip |*
+#  | self   | 01001      |
+#  Then we say "error": "invitation required" with subs:
+#  | a1 |*
+#  | a href=''%PROMO_URL/signup'' |
 
 Scenario: A newbie visits the registration page with expired invite
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"

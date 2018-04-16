@@ -8,11 +8,11 @@ SO I can spend it through the rCredits system or hold it in the rCredits system 
 
 Setup:
   Given members:
-  | id   | fullName | floor | minimum | flags     | risks   |*
-  | .ZZA | Abe One  |   -50 |      10 | ok        | hasBank |
-  | .ZZB | Bea Two  |     0 |      10 | ok        | hasBank |
-  | .ZZC | Our Pub  |     0 |     100 | co,ok     |         |
-  | .ZZD | Dee Four |     0 |     100 | ok,refill | hasBank |
+  | id   | fullName | minimum | floor | flags          | risks   |*
+  | .ZZA | Abe One  |       0 |   -20 | ok,debt        | hasBank |
+  | .ZZB | Bea Two  |       0 |     0 | ok             | hasBank |
+  | .ZZC | Our Pub  |       0 |   -10 | co,ok,debt     |         |
+  | .ZZD | Dee Four |      80 |   -20 | ok,refill,debt | hasBank |
   And transactions:
   | xid | created    | type   | amount | from | to   | purpose |*
   | 1   | %today-10d | signup |     20 | ctty | .ZZA | signup  |
@@ -28,11 +28,11 @@ Setup:
   | 5005 |  .ZZC |     30 |   1 | %today-2d | %today-2d | %today-1d |
   | 5006 |  .ZZD |    140 |   1 | %today-2d | %today-2d | %today-1d |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |      86 |      20 |
-  | .ZZB |      96 |       0 |
-  | .ZZC |      30 |      10 |
-  | .ZZD |     140 |      20 |
+  | id   | balance |*
+  | .ZZA |      86 |
+  | .ZZB |      96 |
+  | .ZZC |      30 |
+  | .ZZD |     140 |
 
 Scenario: a member moves credit to the bank
   When member ".ZZA" completes form "get" with values:
@@ -82,19 +82,19 @@ Scenario: a member moves too little to the bank
   | put | %(%R_ACHMIN-.01) |
   Then we say "error": "bank too little"
 
-Scenario: a member tries to cash out rewards and/or pending withdrawals
-  When member ".ZZA" completes form "get" with values:
-  | op  | amount |*
-  | put |     87 |
-  Then we say "error": "short put|short cash help" with subs:
-  | max |*
-  | $86 |
+#Scenario: a member tries to cash out rewards and/or pending withdrawals
+#  When member ".ZZA" completes form "get" with values:
+#  | op  | amount |*
+#  | put |     87 |
+#  Then we say "error": "short put|short cash help" with subs:
+#  | max |*
+#  | $86 |
 
 Scenario: a member moves too much to the bank
   When member ".ZZB" completes form "get" with values:
   | op  | amount |*
   | put |    200 |
-  Then we say "error": "short put|short cash help" with subs:
+  Then we say "error": "short put" with subs:
   | max |*
   | $96 |
   # one chunk each from ctty, A, and D. Only $2 from C.
@@ -115,6 +115,6 @@ Scenario: a member asks to do two transfers out in one day
   Then we show "Exchange US Dollars for Common Good Credits" with:
   |~Pending |
   | You have total pending exchange requests of $6 to your bank account. |
-  And we say "error": "short put|short cash help" with subs:
+  And we say "error": "short put" with subs:
   | max |*
   | $0  |

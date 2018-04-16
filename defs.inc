@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.39b'); // software version
+define('R_VERSION', '3.4d'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -26,10 +26,11 @@ define('GAME_SITE', 'game.' . CG_DOMAIN);
 
 define('SCRIPTS_TOP', 'x/jquery-3.3.1.min x/jquery.once x/jquery-ui.min x/bootstrap.min x/spin.min x/ladda.min x/ie10-viewport-bug-workaround x/jquery.confirm.min x/alert');
 //define('SCRIPTS', 'form goo-jsapi misc charts chart-data download croppic crop-setup ballot x/bootstrap.slider.min countries print-country focus-on x/typeahead.bundle.min suggest-who on-submit chimp followup-email get-ssn change-ctty advanced-dates advanced-prefs bank-prefs which funding-criteria signup prejoint invite-link gift drupal user extend-settings'); // all possible scripts, in order (after SCRIPTS_TOP)
-define('SCRIPTS', 'x/bootstrap-toggle.min parse-query misc croppic crop-setup ballot x/bootstrap.slider.min countries x/typeahead.bundle.min on-submit drupal user scraps'); // all possible scripts, in order (after SCRIPTS_TOP)
+define('SCRIPTS', 'x/bootstrap-toggle.min parse-query misc croppic crop-setup ballot x/bootstrap.slider.min countries x/typeahead.bundle.min on-submit scraps drupal user'); // all possible scripts, in order (after SCRIPTS_TOP). drupal and user are for password.
 
 define('DEV_ROOT', '/cgMembers'); // path to drupal root on DEV machine
 define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)
+define('DEV_VKEYPW', 'wt38BqWMslj3uUHUOto7fNi5ExL9CC7S7ffjn_q6zCY'); // password for very secure key, on DEV machine
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
 define('DEFAULT_PROXIES', '2, 3'); // account record IDs for place-holder proxies
 define('TRACK_DELETED', 'r_invoices r_photos r_relations r_txs r_usd users'); // remember rows in these tables if we delete them
@@ -75,7 +76,7 @@ define('CGF_CITY', 'Ashfield');
 define('CGF_POSTALADDR', 'PO Box 21, Ashfield, MA 01330-0021');
 define('CGF_EIN', '205280780');
 define('SLOGANS', 'for truth and justice,for community power,for community democracy,for community investment,for a sustainable future,to empower communities,for community abundance,for a better future,for economic democracy,for democratic economics');
-define('R_LAUNCH', strtotime('12/15/2013'));
+define('R_LAUNCH', strtotime('12/15/2013')); // original launch date
 define('EMAIL_DOMAIN', CG_DOMAIN); // replace this with CG_DOMAIN when ready
 define('SYS_EMAIL', 'system@' . EMAIL_DOMAIN); // old address so we don't get marked as spam (later at REGION_DOMAIN)
 define('BOUNCE_EMAIL', 'bounce@' . EMAIL_DOMAIN); // old address so we don't get marked as spam (later at REGION_DOMAIN)
@@ -104,10 +105,8 @@ define('R_VSECURE_FIELDS', 'federalId dob bankAccount'); // very secure fields (
 define('R_SECURE_FIELDS', 'pw2 vKeyPw ssnData address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass last4bank'); // non-personal encrypted fields (must be complete list)
 define('R_HIDE_CHANGES', R_MONEY_FIELDS . ' pw2 vKeyPw ssnData hasBank changes init login access activated data secure vsecure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank lastip tickle payrollStart payrollEnd'); // do not record changes to these fields: anything often-changed (automatically or not)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
-//define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
-define('R_AVAIL_BUY', '(balance+rewards-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
-//define('R_AVAIL_CASH', '(r-committed-GREATEST(0, floor, rewards))'); // balance available to cash out
-define('R_AVAIL_CASH', '(r-GREATEST(0, floor, rewards))'); // balance available to cash out
+//define('R_AVAIL_BUY', '(balance+rewards-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
+define('R_AVAIL_BUY', '(balance-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_SHARE_MAX', 50); // minimum sharing percentage
 define('R_SHARE_DFT', 25); // default sharing percentage
 define('R_SHARING_MSG', t('sharing rewards with CGF'));
@@ -403,7 +402,7 @@ define('TX_FLAGS', 'taking disputed offline short undone undoes crumbs roundups 
 define('TX_DENIED', -1); // invoice rejected by the non-originator
 define('TX_PENDING', 0); // charged, waiting for confirmation
 define('TX_APPROVED', 1); // invoice is approved but not paid
-define('TX_STATUSES', t('-1:denied,0:pending,1:approved,2:paid'));
+define('TX_STATUSES', t('-1:denied,0:OPEN,1:approved,2:paid'));
 
 // Transaction channels (roughly in order of simplicity and generality of messages) (CGF)
 define('TX_SYS', 0);

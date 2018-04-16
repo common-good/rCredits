@@ -1461,6 +1461,7 @@ function format_string($string, array $args = array()) {
  */
 function plain($text) {return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');}
 function check_plain($text) {return plain($text);}
+function unplain($text) {return htmlspecialchars_decode($text, ENT_QUOTES);} // reverse \check_plain
 
 /**
  * Checks whether a string is valid UTF-8.

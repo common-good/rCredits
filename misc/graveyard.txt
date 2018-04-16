@@ -1,5 +1,717 @@
 _____________________________________________
 
+//  $description = \check_markup($description['value']);
+//  if (is_array($description)) $description = @$description['value']; // when u\test(), description is scalar
+//  $description = str_ireplace([PHP_EOL, "\r", "\n", "\0", '</li><br>', '<ol><br>', '<ul><br>'], ['<br>', '', '', '', '</li>', '<ol>', '<ul>'], $description);
+_____________________________________________
+
+//  global $fieldErr;
+//  if (confirming_s($sta)) return;
+//  if (!$fieldErr) return r\go($op); // this is especially important when skipping the confirmation (scanning)
+
+//  if (confirming_v($sta)) return;
+//  if ($err = amtErr('amount', $sta)) return say($err, 'amount'); // not needed
+//  if ($confirm = transfer(op($sta), $sta['input'], FALSE)) confirm($confirm, $sta); // op who amount goods what
+//  transfer(op($sta), $sta['input'], FALSE);
+_____________________________________________
+
+/**
+ * Say whether a value is encrypted. This works only if the unencrypted value can never start with ! or c~.
+ *//*
+function isEncrypted($s) {
+  return (u\starts($s, CRYPT_FLAG) or u\starts($s, CRYPTN_FLAG));
+}*/
+
+/**
+ * Quicker encryption for often-used fields.
+ * @param string $data: the plaintext data to encrypt
+ * @param int $how: index to encryption method (0 or 1)
+ * @param string $key: the key (generally only 32 characters are used)
+ * @param bool $encrypt: <encrypt (rather than decrypt)>
+ * @param bool $noIV: <use a predictable initialization vector (only for searchable unique-valued fields)>
+ * @return the encrypted string (or the decrypted string with trailing nulls deleted, if $encrypt is FALSE)
+ */
+//define('OLDCRYPT_FLAG', 'c~'); // flag start of encrypted data (add single digit $how)
+
+ 
+function cryptM($data, $how = 0, $key = R_WORD, $encrypt = TRUE, $noIV = FALSE) {
+///  debug(($encrypt ? 'Encrypting ' : 'Decrypting ') . strlen($data) . ' chars, using method #' . $how . ' keylen=' . strlen($key));
+  if (empty($data)) return FALSE;
+  u\EXPECT(compact('data', 'how', 'key'), 'string int string');
+  $mode = MCRYPT_MODE_CBC;
+  $hows = [MCRYPT_RIJNDAEL_256, MCRYPT_TWOFISH]; 
+  $method = $hows[$how];
+
+  $td = mcrypt_module_open($method, '', $mode, '');
+  $keySize = mcrypt_enc_get_key_size($td);
+  $key = substr($key, 0, $keySize);
+  $ivSize = mcrypt_get_iv_size($method, $mode); 
+
+  if ($noIV) { // predictable iv (for unique-valued fields)
+    if (!$iv = \variable_get('iv', '')) \variable_set('iv', $iv = mcrypt_create_iv($ivSize, MCRYPT_RAND));
+  } elseif ($encrypt) {
+    $iv = mcrypt_create_iv($ivSize, MCRYPT_RAND);
+  } else {
+    $flagLen = strlen(OLDCRYPT_FLAG . $how);
+//    if (!u\starts($data, OLDCRYPT_FLAG . $how)) return $data; // temporary fudge, to get data out
+//    u\EXPECT(u\starts($data, OLDCRYPT_FLAG . $how), 'wrong encryption');
+    list ($iv, $data) = [substr($data, $flagLen, $ivSize), substr($data, $flagLen + $ivSize)];
+  }
+  $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
+  $data = $function($method, $key, $data, $mode, $iv);
+  mcrypt_module_close($td);
+  return $encrypt ? ($noIV ? $data : OLDCRYPT_FLAG . "$how$iv$data") : rtrim($data, "\0");
+} 
+
+/**
+ * Decrypt data
+ * @param string $data: encrypted data
+ * @param int $how: encryption method number (0 or 1). Defaults to "figure out which method".
+ * @param string $key: encryption key
+ */  /*
+function decryptM($data, $how = NULL, $key = R_WORD) {
+  if (!u\starts($data, OLDCRYPT_FLAG)) return FALSE;
+  u\setDft($how, substr($data, strlen(OLDCRYPT_FLAG), 1));
+  return cryptM($data, $how, $key, FALSE);
+}
+*/
+
+/*  if (u\starts($res = $data, OLDCRYPT_FLAG)) {
+		while (u\starts($res0 = $res, OLDCRYPT_FLAG)) {
+      if ($type == 'V' or !$res = decryptM($res) or (!@unserialize($res) and !ctype_print($res))) {
+///			  if (!$pw2 = r\cryptCook('pw2') or !$res = decryptM($res0, NULL, $pw2)) die('data=' . bin2hex($data) . ' ' . print_r(debug_backtrace(), 1));
+			}
+	  }
+		return $res;
+	} elseif ($type == 'P' and $data[0] == CRYPTN_FLAG and bin2hex(substr($data, 1))) return decryptN($data);
+*/
+
+//function oldcrypted($s) {return (u\starts($s, OLDCRYPT_FLAG) or u\starts($s, '!'));}
+
+
+//	if (!$encrypt and $how >= 4) return cryptM($data, $how - 4, $key, FALSE, $noIV); // retro
+
+//  $hows = ['aes-256-gcm', 'camellia-256-ofb']; // use no-padding modes (CTR, OFB, or CFB; not CBC)
+//	$keySizes = [32, 32]; // number of bits divided by 8
+//  list ($method, $keySize) = [$hows[$how], $keySizes[$how]];
+//    $iv = openssl_random_pseudo_bytes($ivSize);
+//  if ($noIV) { // predictable iv (for unique-valued fields)
+//    if (!$iv = \variable_get('iv', '')) \variable_set('iv', $iv = openssl_random_pseudo_bytes(256)); // intentionally overbig
+//    $iv = openssl_random_pseudo_bytes($ivSize);
+//  } else {
+//    $flagLen = strlen(CRYPT_FLAG . $how);
+//    if (!u\starts($data, CRYPT_FLAG . $how)) return $data; // temporary fudge, to get data out
+//    u\EXPECT(u\starts($data, CRYPT_FLAG . $how), 'wrong encryption');
+//    list ($iv, $data) = [substr($data, $flagLen, $ivSize), substr($data, $flagLen + $ivSize)];
+//  }
+
+//  $iv = substr($iv, 0, $ivSize);
+//  NO! return $decrypt ? rtrim($data, "\0") : $data;
+/** 
+ * Encrypt/decrypt using a known iv and hex2bin/bin2hex, so we can search the encrypted field.
+ * EG, to search for email=$email, f('db.lookup', 'id', 'r_invites', 'email=:e', ['e' => f('u.cryptN', $email)]);
+ */
+define('CRYPTN_FLAG', '!'); // flag start of cryptN-encrypted data
+
+function decryptN($data) {
+	if (!u\starts($data, CRYPTN_FLAG)) return $data; // temporary fudge, to get data out
+	$data = hex2bin(substr($data, strlen(CRYPTN_FLAG))); // convert to binary before decrypting
+  return cryptM($data, 0, R_WORD, FALSE, TRUE);
+}
+_____________________________________________
+
+/*
+    $img2 = imagecreatetruecolor($cropW, $cropH); // crop rotated image to fit into original rezized rectangle
+    imagecolortransparent($img2, imagecolorallocate($img2, 0, 0, 0));
+    imagecopyresampled($img2, $img1, 0, 0, $dx / 2, $dy / 2, $w, $h, $w, $h);
+*/
+_____________________________________________
+
+      <li><p><b class="runny-funds">Runny Funds</b>. Incentive rewards simply increase your Credit Reserve. If you keep a positive balance while the system grows to become stable, then no one can cash out those rewards, shrinking the %PROJECT US Dollar Pool. Maybe you plan to spend them next month. Or maybe you are holding them in your %PROJECT Account as a hedge against inflation. But the system can't guess that. Unless you use the auto-refill feature, the system assumes you might spend your cash reserve at any moment (resulting in a negative Balance). We call those funds that might be spent at any moment "runny".</p>
+      <p>On the other hand, if you DO use the auto-refill feature, you have chosen to keep a certain Target Balance in your %PROJECT Account. That target partially offsets the runny funds in other accounts, making a cash flow crunch even less likely. The yellow line shows the total of runny funds minus the estimated total balances in accounts that use auto-refill (conservatively assuming each person's average balance is half their chosen target). The formula looks something like this:</p>
+      
+      <blockquote>Total Runniness = SUM(runny funds) - SUM(auto-refill levels / 2)</blockquote>
+      </li>
+_____________________________________________
+
+#rcreditswebformgraphs .form-item-ctty .control-label {display:inline-block; min-width:0; width:auto; padding-left:0; padding-right:5px;}
+#rcreditswebformgraphs #edit-ctty {width:auto;}
+
+#rcreditswebformgraphs .form-type-checkboxes {margin-bottom:0;}
+#rcreditswebformgraphs .form-type-checkbox {width:110px;}
+#rcreditswebformgraphs .form-type-radios {border:0;}
+#rcreditswebformgraphs .form-type-radio {display:inline-block;}
+
+#rcreditswebformgraphs .form-item-period {display:inline-block;}
+#rcreditswebformgraphs .form-item-ending {display:inline-block;}
+#rcreditswebformgraphs .form-item-starting {margin-bottom:0;}
+#rcreditswebformgraphs .form-submit {margin-left:10px; max-width:120px;}
+#rcreditswebformgraphs input {max-width:110px;}
+#rcreditswebformgraphs .form-item-states,
+#rcreditswebformgraphs .form-item-states label {margin-top:15px;}
+#rcreditswebformgraphs  label {color:darkblue;}
+#rcreditswebformgraphs #edit-p2p,
+#rcreditswebformgraphs #edit-p2b,
+#rcreditswebformgraphs #edit-b2b,
+#rcreditswebformgraphs #edit-b2p {font-size:85%; margin:0 0 0 32px;}
+#rcreditswebformgraphs #edit-p2p label,
+#rcreditswebformgraphs #edit-p2b label,
+#rcreditswebformgraphs #edit-b2b label,
+#rcreditswebformgraphs #edit-b2p label {color:darkgray;}
+_____________________________________________
+
+/*
+      <li><b style='color:white; background-color:magenta;'>Runny Debt</b>. The violet line shows how much of their incentive rewards the runny accounts have already spent. This total has already reduced the %PROJECT US Dollar Pool, so you can think of it as mitigating the yellow line (subtract it from the yellow line).</li>
+      */
+/*
+    <p>* The distinction between "savings" and %RCREDITS that are actually being used is important. The value of %RCREDITS, like any currency, is what you can get for them. When you save your %PROJECT funds for spending a month or more in the future, it probably means you are confident (1) that you will be able to spend them within the %PROJECT system OR (2) that you will be able to trade them for US Dollars because other members can spend them within the system. So savings are a <em>speculative</em> <a href="%BASE_URL/help/demand">demand</a> for %RCREDITS, rather than a demand based in current reality. The speculation may indeed be accurate, but <a href='velocity'>circulation velocity</a> and <a href='demand'>net monthly influx of US Dollars</a> are stronger measures of the system's capacity for additional %RCREDITS.</p>
+    <p>** <b style='color:white; background-color:darkred;'>Top 5</b>. Balanced participation among many members maximizes the system's predictability and protects against a cash flow crunch. Expect the "Top 5" line to level off as the system grows.</p>
+*/   
+_____________________________________________
+
+//  $cttys = db\q('SELECT uid,fullName FROM users WHERE uid<0 ORDER BY fullName')->fetchAllKeyed();
+//  $cttys[0] = t('ALL communities');
+//  $cttys[r\acct('!' . R_SERVER_ID)->id] = t('Seedpack (no community yet)');
+//  $onchange = w\onchange("window.location='$base_url/community/graphs/qid=' + $(this).val();");
+//  $ctty = w\selectFld(t('Community:'), '', $onchange + dft($dft), $cttys);
+//  $ctty = w\selectFld(t('Community:'), '', dft($dft), $cttys);
+//  $charts = item(w\showCharts('all', $dft, $chartData));
+//  $charts = item(w\tag('iframe', '', ray('src width height', "$base_url/rcredits/chart.php?ctty=0&chart=growth", 600, 600)));
+_____________________________________________
+
+//      $x2x[] = "{v:$x,f:'$x2 ($xTxs$avg) $desc'}"; // eg "$123 (7 @ $6.25 avg)"
+//    $x2x = join(',', $x2x);
+//    $volumeData[] = "[$created,$x2x]";
+_____________________________________________
+
+function issuedChart() {
+  var data = new google.visualization.DataTable();
+  data.addColumn('string', 'Type');
+  data.addColumn('number', 'Amount');
+  var dataSet = ch['issuedData'];
+  for (i in dataSet) data.addRow(dataSet[i]);
+  
+  var options = {
+    title: 'Common Good Credits Issued To-Date: ' + vs['totalR'],
+    width: chartWidth, height: chartHeight,
+//    pieStartAngle: 240,
+    pieSliceText: 'percentage',
+    slices: {0: {offset: 0.1},
+             1: {offset: 0.1},
+             2: {offset: 0.1},
+             3: {offset: 0.1},
+             4: {offset: 0.2},
+             5: {offset: 0.2},
+             6: {offset: 0.2},
+             7: {offset: 0.2},
+             8: {offset: 0.2},
+    },    
+    is3D: true,
+    legend: {position: 'right'}
+  };
+
+  var chart = new google.visualization.PieChart(document.getElementById('issuedChart'));
+  chart.draw(data, options);
+}
+_____________________________________________
+
+//    'r' => setupField(t('amount of %RCREDITS issued to date'), 'numeric 11,2'), 0), // including stand-ins for USD
+//    'usd' => setupField(t('amount of US Dollars in the system'), 'numeric 11,2', 0),
+//    'purchases' => setupField(t('amount of purchases ever'), 'numeric 11,2', 0),
+_____________________________________________
+
+function fixStats($keepUpto = 0) {
+  $blockAgo = strtotime(-STATS_GRAIN, strtotime('today'));
+  
+  $sql = <<<EOF
+    SELECT community AS ctty, MIN(t.created) AS start
+    FROM users u LEFT JOIN r_txs t ON t.payee=u.uid 
+    WHERE uid>1 AND (t.created>=:R_LAUNCH OR t.created IS NULL) GROUP BY community ORDER BY -community
+EOF;
+  $cttys = db\q($sql)->fetchAllKeyed();
+  u\preray(array(0 => min($cttys)), $cttys); // show all dates overall
+
+  $now = r\rTime();
+  db\q($keepUpto ? "DELETE FROM r_stats WHERE id>$keepUpto" : 'TRUNCATE r_stats');
+  $start0 = $keepUpto ? strtotime('+' . ($keepUpto < $blockAgo ? STATS_GRAIN : 1), db\lookup('MAX(created)', 'r_stats')) : (@$cttys[0] ?: $now);
+  $created = strtotime('today', $start0); // use first moment of the day
+  
+  while ($created <= $now) {
+  /*
+    $acctQ = db\q('SELECT uid FROM users WHERE uid>1');
+    db\q('UPDATE users SET picture=0'); // clear temp field  
+    while ($row = $acctQ->fetchAssoc()) r\Cronr\acctStats1($row, $created); // set individual account stats
+    */
+    foreach ($cttys as $ctty => $start) if ($created >= $start) {
+      cr\
+      r\getStats($ctty, $created); // set community stats
+/// this fails on cross-community txs!  if ($ctty != 0) if ($err = badStats($ctty, $created)) return debug($err); // verify
+    }
+    $delta = $created < $blockAgo ? STATS_GRAIN : 1;
+    $created = strtotime("+$delta days", $created);
+  }
+}
+_____________________________________________
+
+//  $spent = $cttyBuys + $cttyIncomes; // cttyIncomes is negative
+//  $txRewards = $rebates + $bonuss;
+//  foreach (ray('bankInPerMo bankOutPerMo r usd total signups inflations helpers txRewards grants loans fines') as $one) {
+//  foreach (ray('r usd cgIn cgOut signups txRewards helpers inflations spent grants loans invests fines') as $one) {
+_____________________________________________
+
+/**
+ * Create country and state dropdowns.
+ * This should be called just once, offline, when country/state tables change, then upload it.
+ */
+function makeGeoDropdowns() {
+  return; // WHOA! don't call this without capturing improvements made directly to countries.js
+  if (!isDEV) return;
+  $js = 'var cs = new [];'; // countries
+  $js .= "\n\nvar ss = new [];"; // states
+  $cq = \db_query('SELECT * FROM r_countries');
+  while ($crow = $cq->fetchAssoc()) {
+    $cid = $crow['id']; $cname = addslashes($crow['name']);
+    $js .= "\n\ncs[$cid] = '$cname';";
+    $js .= "\n\nss[$cid] = new [];";
+    $sq = db\q('SELECT * FROM r_states WHERE country_id=:cid', compact('cid'));
+    while ($srow = $sq->fetchAssoc()) {
+      $sid = $srow['id']; $sname = addslashes($srow['name']);
+      $js .= "\nss[$cid][$sid] = '$sname';";
+    }
+  }
+
+  // SUBS() doesn't seem to be actually used, below (?)
+  $js .= u\SUBS(<<<EOF
+\n
+$ = jQuery;
+
+var USID = cs.indexOf('United States');
+var MAID = STs.indexOf('MA');
+
+function print_country(dft_country, dft_state){
+  if (dft_country == "") {
+    dft_country = USID; // 1228 is US
+    dft_state = 0; // 1020 is MA
+  }
+  var options = $('#edit-country')[0];
+  options.length=0; // zap any previous list items
+  var x, i = 0;
+  for(x in cs) {
+    options.options[i] = new Option(cs[x], x);
+    if (dft_country == x) options.selectedIndex = i;
+    i++;
+  }
+  print_state(options[options.selectedIndex].value, dft_state);
+}
+
+function print_state(ci, dft_state){
+  var options = $('#edit-state')[0];
+  options.length=0; // zap any previous list items
+  var x, i = 0;
+  if (dft_state == 0) {options.options[i] = new Option('---', 0); i++;}
+  for(x in ss[ci]) {
+    options.options[i] = new Option(ss[ci][x], x);
+    if (dft_state == x) options.selectedIndex = i;
+    i++;
+  }
+}
+
+function setPostalAddr() {
+  var country = $('#edit-country').val();
+  var state = $('#edit-state').val();
+  var city = $('#edit-city').val();
+  var address = $('#edit-address').val();
+  var zip = $('#edit-zip').val();
+  var postalAddr = $('#edit-postaladdr');
+  if (address != '' && zip != '' && city != '' && state != 0 && postalAddr.val() == '') {
+    postalAddr.val(address + ', ' + city + ', ' + (country==USID ? STs[state] : ss[country][state]) + ' ' + zip + (country==USID ? '' : (' ' + cs[country])));
+  } // postalAddr.attr('selectionEnd',0); fails
+}
+
+function zipChange(z3s) {
+    $.zipLookupSettings.libDirPath = 'http://ziplookup.googlecode.com/git/public/ziplookup/'; 
+    $.zipLookup(
+      $('#edit-zip').val(),
+      function(cityName, stateName, stateShortName){ // success
+        $('#edit-city').val(cityName);
+//        $('#edit-state').val(stateName);
+//        $('#edit-state').val(stateShortName);
+        $('#edit-state').val(STs.indexOf(stateShortName));
+//        $('.message').html("Found Zipcode");
+      },
+      function(errMsg){ // zip couldn't be found,
+//    alert(errMsg);
+//          $('.message').html("Error: " + errMsg);
+      }
+    );
+
+//  var z3=$('#edit-zip').val().substr(0, 3);
+//  if (z3s.indexOf(z3) >= 0) $('#edit-buysat').show();
+  setPostalAddr();
+}
+EOF
+  );
+  file_put_contents(__DIR__ . '/js/countries.js', $js);
+}
+
+/**
+ * Handle adjustments to previous versions of this software
+ * @param string $version: the version number (eg 1.0)
+ * @param string $when: run "before" or "after" all other installation tasks, or on "uninstall"
+ */
+function oldVersion($version, $when) {
+  require_once 'rcredits.inc'; // must be explicit for db\lookup()
+  require_once 'rcredits-util.inc'; // must be explicit for db\lookup()
+
+  //  if ($version >= '1.0b') return;
+  
+}
+_____________________________________________
+
+/**
+ * Display charts representing the condition of the %PROJECT system in the given community.
+ * @param string $whichChart: which chart or set of charts to display
+ * @param int $ctty: account record ID of community to show graphs for (defaults to all communities)
+ * @param assoc $chartData: (RETURNED) a data field containing the chart data
+ * @return: html of the relevant charts, in their proper divs
+ */
+function showCharts($whichChart, $ctty = 0, &$chartData = '') {
+  global $base_url;
+
+  list ($in, $out, $net, $personal, $companies) = array(t('in'), t('out'), t('net'), t('personal'), t('companies'));
+  extract($stats = r\stats($ctty)); // careful with this (don't overwrite local vars)
+  $stats30 = r\stats($ctty, strtotime('today', time() - 30 * DAY_SECS)); 
+  extract(w\fundStats($stats, FALSE, $stats30)); // format, originals in {var}0, difs in d_{var}
+  $cg = u\fmtAmt($cg0 = $cgOut0 + $cgIn0); // cgIn is negative
+//  $usdtrade = u\fmtAmt($usdtrade0 = $usd0 + $trade0); // someone's trade is always negative, so combine with USD
+//  foreach (ray('txRewards0 spent0 usdtrade0') as $k) $$k = max(0, $$k) + 0; // don't display negative values
+ 
+// assign individually, to assure known numeric keys
+/*
+  $issuedData[0] = [t('for USD'), ['v' => 0+$usd0, 'f' => $usd]];
+  $issuedData[1] = [t('trade (net)'), ['v' => 0+$trade0, 'f' => $trade]];
+  $issuedData[2] = [t('USD plus trade'), ['v' => 0+$usdtrade0, 'f' => $usd + $trade]];
+  $issuedData[3] = [t('inflation offset'), ['v' => 0+$inflations0, 'f' => $inflations]];
+  $issuedData[4] = [t('signup bonuses'), ['v' => 0+$signups0, 'f' => $signups]];
+  $issuedData[5] = [t('purchase reward'), ['v' => 0+$txRewards0, 'f' => $txRewards]];
+  $issuedData[6] = [t('inviter/helper'), ['v' => 0+$helpers0, 'f' => $helpers]];
+  $issuedData[7] = [t('spent (net)'), ['v' => 0+$spent0, 'f' => $spent]];
+  $issuedData[8] = [t('grants'), ['v' => 0+$grants0, 'f' => $grants]];
+  $issuedData[9] = [t('loans'), ['v' => 0+$loans0, 'f' => $loans]];
+  $issuedData[10] = [t('invested'), ['v' => 0+$invests0, 'f' => $invests]];
+  //   ['fees'), ['v' => $usd0, 'f' => $usd'}$fines]" think of a way to handle negatives (separate pie?)
+
+  if ($trade0 < 0 or $usd0 < 0) {
+    unset($issuedData[0]); unset($issuedData[1]);
+  } else unset($issuedData[2]);
+  $issuedData = array_values($issuedData); // make sure keys stay numeric
+  $totalR = u\fmtAmt($r0); // was u\fmtAmt($r0 + $usd0);
+  $totalUsd = u\fmtAmt($usd0);
+  */
+
+  $txTypes = ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly by %PROJECT Card)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
+
+  $avg = u\fmtAmt($txsPerMo ? $perMo / $txsPerMo : 0);
+  $txs = "$txsPerMo @ $avg avg";
+
+  $now = r\rTime();
+  $created0 = db\lookup('MIN(created)', 'r_stats'); // show every n days since beginning + daily past n days
+  $sql = <<<EOF
+    SELECT created, IF(r=0, 0, perMo/r) AS rate, r AS funds, bankIn-bankOut AS usd, savings, runny, runnyBal,
+      pAccts, bAccts, pAccts+bAccts AS accts, newbs, top5,
+      bankInPerMo, bankOutPerMo,
+      perMo, p2bPerMo, b2bPerMo, b2pPerMo,
+      txsPerMo, p2bTxsPerMo, b2bTxsPerMo, b2pTxsPerMo, tradeIn, tradeOut, tradeInPerMo, tradeOutPerMo
+    FROM r_stats WHERE ctty=:ctty
+    AND (DATEDIFF(FROM_UNIXTIME(:now), FROM_UNIXTIME(created))<:STATS_GRAIN OR DATEDIFF(FROM_UNIXTIME(created), FROM_UNIXTIME(:created0))%:STATS_GRAIN=0)
+    AND created>:R_LAUNCH ORDER BY created
+EOF;
+  $q = db\q($sql, compact('created0', 'now', 'ctty'));
+
+  $charts = ray('growth funds velocity banking volume issued', 'growth', 'dollar-pool', 'circulation-velocity', 'exchanges-for-dollars', 'transaction-volume', 'issuing-credits');
+  if ($whichChart != 'all') $charts = just($whichChart, $charts);
+  foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, []);
+  $moneyFields = ray('funds savings runny runnyBal top5 usd bankInPerMo bankOutPerMo perMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo tradeInPerMo tradeOutPerMo');
+
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+     /*
+    list ($y, $m, $d) = ray(strftime('%Y %m %d', $created));
+    list ($m, $d) = array($m - 1, $d - 1); // javascript Date object month, day, etc. are zero-based
+//    $date = "new Date($y,$m,$d)";
+    $date = [$y, $m, $d];
+    */
+    $p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
+    $p2pTxsPerMo = $txsPerMo - $p2bTxsPerMo - $b2bTxsPerMo - $b2pTxsPerMo;
+    $funds -= $usd;
+    $usd += $tradeOut + $tradeIn; // tradeIn is negative
+    $bankOutPerMo = - $bankOutPerMo; // show as negative
+//    $runnyBal = -$runnyBal; // for now, show runny DEBT instead of runny BAL
+//    $actives = abs($pAccts - $newbs); // active members
+    foreach ($moneyFields as $k) {
+      if (!in_array($k, ray('bankOutPerMo tradeIn tradeInPerMo'))) $$k = max(0, $$k) + 0; // most can't be negative
+      ${$k . '2'} = u\fmtAmt($$k);
+    }
+    $rate2 = number_format(100 * $rate, 1) . '%';
+
+/*    $acctsData[] = "[$date,$pAccts,$newbs,$bAccts]";
+    $fundsData[] = "[$date,{v:$funds,f:'$funds2'},{v:$usd,f:'$usd2'},{v:$runny,f:'$runny2'},{v:$top5,f:'$top52'},{v:$runnyBal,f:'$runnyBal2'},{v:$perMo,f:'$perMo2'}]";
+    $velocityData[] = "[$date,{v:$rate,f:'$rate2'}]";
+    $bankingData[] = "[$date,{v:$bankInPerMo,f:'$bankInPerMo2'},{v:$bankOutPerMo,f:'$bankOutPerMo2'},{v:$tradeOutPerMo,f:'$tradeOutPerMo2'},{v:$tradeInPerMo,f:'$tradeInPerMo2'}]";
+*/
+    foreach (ray('created pAccts bAccts accts newbs rate bankOutPerMo tradeIn tradeInPerMo') as $k) $$k += 0; // convert to numeric
+
+    $growthData[] = [$created, $pAccts, $newbs, $bAccts];
+    $fundsData[] = [$created, ['v' => $funds, 'f' => $funds2], ['v' => $usd, 'f' => $usd2], ['v' => $runny, 'f' => $runny2], ['v' => $top5, 'f' => $top52], ['v' => $runnyBal, 'f' => $runnyBal2], ['v' => $perMo, 'f' => $perMo2]];
+    $velocityData[] = [$created, ['v' => $rate, 'f' => $rate2]];
+    $bankingData[] = [$created, ['v' => $bankInPerMo, 'f' => $bankInPerMo2], ['v' => $bankOutPerMo, 'f' => $bankOutPerMo2], ['v' => $tradeOutPerMo, 'f' => $tradeOutPerMo2], ['v' => $tradeInPerMo, 'f' => $tradeInPerMo2]];
+
+    $x2x = [];
+    foreach ($txTypes as $k => $desc) {
+      list ($x, $x2, $xTxs) = [${"{$k}PerMo"}, u\fmtAmt(${"{$k}PerMo"}), ${"{$k}TxsPerMo"}];
+      $x = max($x, 1) + 0; // to make the logarithmic scale look okay
+      $avg = $xTxs ? ' @ ' . u\fmtAmt($x / $xTxs) . ' avg' : '';
+//      $x2x[] = "{v:$x,f:'$x2 ($xTxs$avg) $desc'}"; // eg "$123 (7 @ $6.25 avg)"
+      $x2x[] = ['v' => $x, 'f' => "$x2 ($xTxs$avg) $desc"]; // eg "$123 (7 @ $6.25 avg)"
+    }
+//    $x2x = join(',', $x2x);
+//    $volumeData[] = "[$created,$x2x]";
+    array_unshift($x2x, $created);
+    $volumeData[] = $x2x;
+  }
+
+//  $accts = "{$pAccts} members + {$bAccts} co = " . ($pAccts + $bAccts);
+  $accts = "{$pAccts} members + {$bAccts} companies";
+  $netUsdIn = u\fmtAmt($bankInPerMo + $bankOutPerMo + $tradeOutPerMo + $tradeInPerMo) . t(' (net)');
+  $velocity = number_format(($r0+0) ? 100 * $perMo / $r0 : 0, 1) . t('% per mo.');
+  $fees = "(minus $fines in fees)";
+  $whichChart .= 'Chart';
+
+/*  
+  foreach ($charts as $k => $zot) {
+    ${$k . 'Data'} = join(',', ${$k . 'Data'});
+    $js .= "var {$k}Data = [" . ${$k . 'Data'} . "];\n";
+  }
+*/
+//  foreach ($charts as $k => $zot) $dataNames[] = $k . 'Data';
+
+//  js('goo-jsapi');
+$vs = compact(ray('accts totalR totalUsd velocity netUsdIn issued fees txs whichChart'));
+//  js('charts', $vs = compact(ray('accts totalR totalUsd velocity netUsdIn issued fees txs whichChart')));
+
+  foreach($charts as $k => $help) {
+    $one = "<div id=\"{$k}Chart\" class=\"onechart ct-chart ct-golden-section\"></div>";
+    if (count($charts) > 1) $one = "<a href=\"$base_url/help/$help/qid=$ctty\">$one</a>";
+    $charts[$k] = "<div>$one</div>";
+    $dataNames[] = $k . 'Data';
+  }
+
+/*  
+  $cttys = db\q('SELECT uid,fullName FROM users WHERE uid<0 ORDER BY fullName')->fetchAllKeyed();
+  $cttys[0] = t('ALL communities');
+  $cttys[r\acct('!' . R_SERVER_ID)->id] = t('Seedpack (no community yet)');
+*/
+  
+//  $chartData = w\dataFld('chart-data', json_encode($data = compact($dataNames)));
+  $chartData = json_encode($data = compact('vs', $dataNames));
+
+  return u\test() ? $chartData : join('', $charts);
+}
+
+/**
+ * Return an array of formatted amounts for the given statistics.
+ * Used in graphs and table of community funds
+ */
+function fundStats($stats, $round = FALSE, $stats30 = NULL) {
+  extract($stats);
+  if ($stats30) extract($stats30, EXTR_PREFIXALL, 'o');
+//  list ($r0, $usd0) = array($r, $usd);
+
+  if ($ctty) { // a community
+    $cttyA = r\acct($ctty);
+    $res['cttyName'] = $ctty == r\serverUid() ? t('Seedpack (Outliers)') : trim(strtr($cttyA->fullName, [t('Region')=>'', PROJECT=>'']));
+  } else $res['cttyName'] = t('TOTAL');
+
+  $scheme = f('i.scheme', 'r_stats');
+  $fields = $scheme['fields'];
+  
+  foreach (array_keys($stats) as $k) {
+    if (!in_array($k, ray('id ctty created'))) {
+      if ($stats30) ${"d_$k"} = $stats[$k] - $stats30[$k];
+      $fmt = ($round or @$fields[$k]['type'] == 'int') ? '1' : 's$';
+      if (strpos($k, 'Per')) $fmt = '';
+      foreach ($stats30 ? [$k, "d_$k"] : [$k] as $fnm) {
+        $res[$fnm . '0'] = $$fnm;
+        $res[$fnm] = u\fmtAmt($$fnm, $fmt);
+      }
+    }
+  }
+  return $res;
+}
+_____________________________________________
+
+//define('R_AVAIL_BUY', '(r-committed-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
+//define('R_AVAIL_CASH', '(r-committed-GREATEST(0, floor, rewards))'); // balance available to cash out
+//define('R_AVAIL_CASH', '(r-GREATEST(0, floor, rewards))'); // balance available to cash out
+_____________________________________________
+
+//    'savings' => setupField(t('funds held for 30 days or more'), 'numeric 11,2', 0),
+//    'savings' => setupField(t('amounts members have chosen to hold as savings'), 'numeric 11,2', 0),
+//    'tradeInPerMo' => setupField(t('transfers to this community in the past month'), 'numeric 11,2', 0),
+//    'tradeOutPerMo' => setupField(t('transfers from this community in the past month'), 'numeric 11,2', 0),
+//    'bankInPerMo' => setupField(t('amount transferred into the system in the past month'), 'numeric 11,2', 0),
+//    'bankOutPerMo' => setupField(t('amount transferred out of the system in the past month'), 'numeric 11,2', 0),
+//    'xchPerMo' => setupField(t('exchange volume within system in the past month'), 'numeric 11,2', 0),
+//    'cashPerMo' => setupField(t('exchange volume for cash in the past month'), 'numeric 11,2', 0),
+//    'perMo' => setupField(t('purchase volume in the past month'), 'numeric 11,2', 0), // omits r/USD exchanges
+//    'p2bPerMo' => setupField(t('customer purchase volume in the past month'), 'numeric 11,2', 0),
+//    'b2bPerMo' => setupField(t('b2b purchase volume in the past month'), 'numeric 11,2', 0),
+//    'b2pPerMo' => setupField(t('payroll volume in the past month'), 'numeric 11,2', 0),
+//    'bankInTxsPerMo' => setupField(t('amount transferred into the system in the past month'), 'numeric 11,2', 0),
+//    'bankOutTxsPerMo' => setupField(t('amount transferred out of the system in the past month'), 'numeric 11,2', 0),
+//    'xchTxsPerMo' => setupField(t('number of exchanges within system in the past month'), 'int medium', 0),
+//    'cashTxsPerMo' => setupField(t('number of exchanges for cash in the past month'), 'int medium', 0),
+//    'txsPerMo' => setupField(t('number of purchases in the past month'), 'int medium', 0), // omits r/USD exchanges
+//    'p2bTxsPerMo' => setupField(t('customer purchases in the past month'), 'int medium', 0),
+//    'b2bTxsPerMo' => setupField(t('b2b purchases in the past month'), 'int medium', 0),
+//    'b2pTxsPerMo' => setupField(t('payments to employees and sole proprietors in the past month'), 'int medium', 0),
+_____________________________________________
+
+//  $oldFilename = DRUPAL_ROOT . $a->photoFilename(TRUE); // get old name while account exists
+//  $newFilename = str_replace("/$oldUid-", "/$newUid-", $oldFilename);
+//  $files[$oldFilename] = $newFilename;
+  foreach ($files as $old => $new) if (file_exists($old)) {
+    if ($delete) unlink($old); else rename($old, $new);
+  }
+
+_____________________________________________
+
+//  $runny = 'IF(:HAS_BANK AND :IS_REFILL AND minimum>0, -minimum/2, IF(:IS_CO, 0, tin.rewards+tout.rewards))'; // spendable, leading to a run on the bank
+
+  // get bankIn, bankOut, bankInCount, bankOutCount
+  $in = 'amount<0 XOR txid<0';
+  $sql = <<<EOF
+    SELECT SUM(IF($in, 0, amount)) AS bankIn,
+    SUM(IF($in, -amount, 0)) AS bankOut,
+    
+    SUM(IF($in, 0, 1)) AS bankInCount,
+    SUM(IF($in, 1, 0)) AS bankOutCount
+
+    FROM r_usd t LEFT JOIN (SELECT uid,community FROM users) u ON t.payee=u.uid
+    WHERE $cttyCrit AND t.completed AND completed<=:created                                                                                                                            
+EOF;
+
+  $sql = <<<EOF
+    SELECT 
+
+    SUM(IF(goods<>:FOR_USD, 0, amount)) AS cash,
+    $tradeOutSum AS tradeOut,
+    $tradeInSum AS tradeIn,
+
+    SUM(IF(goods=:FOR_GOODS, 1, 0)) AS txs,
+    SUM(IF(goods=:FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, 1, 0)) AS p2bTxs,
+    SUM(IF(goods=:FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, 1, 0)) AS b2bTxs,
+    SUM(IF(goods=:FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, 1, 0)) AS b2pTxs,
+    SUM(IF(goods=:FOR_GOODS, 0, 1)) AS cashTxs
+
+    FROM r_txs t 
+    LEFT JOIN (SELECT uid,community FROM users) u ON u.uid=t.payer 
+    LEFT JOIN (SELECT uid,community FROM users) u2 ON u2.uid=t.payee
+    WHERE $cttysCrit AND $dtCrit
+EOF;
+  $res += db\q($sql, $subs)->fetchAssoc() ?: [];
+  
+//      SUM($runny) AS runny,
+//      SUM(IF($runny>0, 1, 0)) AS runnyCount,
+//      SUM(IF($runny>0, tin.received - tout.paid + tus.deposited, 0)) AS runnyBal,
+//      SUM(savingsAdd) AS savings
+/*
+
+  $payins = "(SELECT payee, SUM(amount) AS received, SUM(payeeReward) AS rewards FROM r_txs WHERE $created GROUP BY payee)";
+  $payouts = "(SELECT payer, SUM(amount) AS paid, SUM(payerReward) AS rewards FROM r_txs WHERE $created GROUP BY payer)";
+  $exchanges = "(SELECT payee, SUM(amount) AS deposited FROM r_usd WHERE $complete GROUP BY payee)";
+
+  
+  $sql = <<<EOF
+    SELECT SUM(runny) AS top5
+    FROM (SELECT $runny AS runny FROM users u 
+    LEFT JOIN $payins tin ON tin.payee=u.uid 
+    LEFT JOIN $payouts tout ON tout.payer=u.uid 
+      WHERE u.uid>1 AND $cttyCrit AND created<=:created
+      ORDER BY $runny DESC LIMIT $topN) u0
+EOF;
+
+    LEFT JOIN $payins tin ON tin.payee=u.uid
+    LEFT JOIN $payouts tout ON tout.payer=u.uid
+    LEFT JOIN $exchanges tus ON tus.payee=u.uid
+    
+    SELECT $sums 
+    SUM(payerReward) AS rebates, SUM(payeeReward) AS bonuss,
+    SUM(IF(type=:TX_TRANSFER AND ($payerCrit OR ($payeeCrit AND amount<0)), ABS(amount), 0)) AS cttyBuys,
+    SUM(IF(type=:TX_TRANSFER AND $payeeCrit AND amount>0, -amount, 0)) AS cttyIncomes,
+    SUM(IF(channel=:TX_CRON AND payeeFor=':R_SHARING_MSG', amount, 0)) AS shared,
+    SUM(IF(goods=:FOR_GOODS, amount, 0)) AS purchases, 
+
+  // get purchases, rewards (of all types), xfees, grants, loans, investments, community trade, shared, forcash
+  $sums = ''; // fine and giveback are negative rewards
+  foreach (ray('signup giveback inflation helper fine xfee grant loan invest') as $one) {
+    $type = u\consta('tx', $one);
+    $sums .= "SUM(IF(type=$type AND $payerCrit, amount, 0)) AS `{$one}s`, ";
+  }   
+
+  // get perMo, txsPerMo, p2b(Txs)PerMo, b2b(Txs)PerMo, b2p(Txs)PerMo, cash(Txs)PerMo
+  
+    SUM(IF(goods<>:FOR_USD AND NOT u.:IS_CO AND u2.:IS_CO, amount, 0)) AS p2b,
+    SUM(IF(goods<>:FOR_USD AND u.:IS_CO AND u2.:IS_CO, amount, 0)) AS b2b,
+    SUM(IF(goods<>:FOR_USD AND u.:IS_CO AND NOT u2.:IS_CO, amount, 0)) AS b2p,
+    SUM(IF(goods<>:FOR_USD AND NOT u.:IS_CO AND NOT u2.:IS_CO, amount, 0)) AS p2p,    
+*/
+
+_____________________________________________
+
+/*
+  $cttyInOut = $ctty == 0 ? '' : <<<EOF
+    SUM(IF(u.community=:ctty AND t.payee<>0, amount, 0)) AS usd2r,
+    SUM(IF(u2.community=:ctty, amount, 0)) AS r2usd,
+EOF;
+*/
+  /*  SUM(picture)/100 AS savings,
+    SELECT SUM(picture)/100 AS top5
+    FROM (SELECT picture FROM users WHERE uid>1 AND $cttyCrit AND created<=:created
+      ORDER BY picture DESC LIMIT 5) u0
+*/
+//  $payins1 = '(SELECT payer, SUM(amount) AS received, SUM(payerReward) AS rewards FROM r_txs WHERE created<=:created GROUP BY payer)';
+
+//  $usdNetIn = @$res['r2usd'] - @$res['usd2r'];
+//  $res2['usd'] = $res['usd'] + $usdNetIn;
+///  debug(compact('ctty','res2','res'));
+_____________________________________________
+
+<ul id="instructions">  
+  
+  $subtext = item(t(<<<EOF
+  <ul id="instructions">
+  <li><b>Create a spreadsheet</b> with one row for each customer. You need three columns:
+    <ul>
+    <li>Customer's 6-letter %PROJECT account ID, as in your <%a>Customer list</a>.</li>
+    <li>Amount to charge the customer.
+    <li>A description of the charge.
+    </ul>
+    Save the spreadsheet as a CSV file.<br>&nbsp;</li>
+  <li><p><b>Upload here</b> the CSV file you created in step one, to automatically charge each customer.</p>
+  </li>
+  </ul>
+EOF
+  , '_a', w\atag('/community/data/qName=6Customers')));
+
+  if (!$uid = r\worksForUs($employee, NULL, TRUE)) return say('bad payroll employee', $erSubs + compact('employee'), 'payroll');
+    
+    //    $isCustomer = exists('r_relations', 'main=:myid AND other=:cust', compact('myid', 'cust')) ?
+//    if (!$custA = r\acct($cust)) return say(t('Bad customer account ID %atLine: %cust'), $subs, 'invoices');
+//    if (!r\relation(1, $myid, $a->id)) return say(t('Account ID is not a customer of yours %atLine: %cust'), $subs, 'invoices');
+//    $goods = strpos($desc, R_NOREWARD) !== FALSE ? FOR_NONGOODS : FOR_GOODS;
+_____________________________________________
+
   /*    $modules = ray('rcredits rsms rsmart rweb');
     \module_disable($modules, FALSE);
     foreach ($modules as $module) {

@@ -209,19 +209,21 @@ function del($table, $id, $subs = []) {
   if ($ok) db\q("DELETE FROM $table WHERE $where", $subs);
 }
 
+//function restore($table, $id) {
+
 /**
  * Return the table's record id field name.
  * @param string $table: table name
  * @param string $field1: (RETURNED) descriptive array of first field in the table
  */
 function idnm($table, &$field1 = '') {
-  require_once __DIR__ . '/rcredits-install.inc';
-  $schema = r\tableDefs();
-  $id = $table == 'users' ? 'uid' : $schema[$table]['primary key'][0];
-  $field1 = reset($schema[$table]['fields']);
+  $scheme = f('i.scheme', $table);
+  $id = $table == 'users' ? 'uid' : $scheme['primary key'][0];
+  $field1 = reset($scheme['fields']);
   return $id;
 }
   
 function count($table, $where = '1', $subs = []) {return db\lookup('COUNT(1)', $table, $where, $subs);}
 function max($field, $table, $where = '1', $subs = []) {return db\lookup("MAX($field)", $table, $where, $subs);}
+function min($field, $table, $where = '1', $subs = []) {return db\lookup("MIN($field)", $table, $where, $subs);}
 function sum($field, $table, $where = '1', $subs = []) {return db\lookup("SUM($field)", $table, $where, $subs);}

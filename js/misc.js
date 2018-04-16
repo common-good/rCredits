@@ -4,7 +4,9 @@
  */
 
 var vs = parseQuery($('#script-misc').attr('src').replace(/^[^\?]+\??/,''));
+//alert($('#script-misc').attr('src').replace(/^[^\?]+\??/,''));
 var baseUrl = vs['baseUrl'];
+var isSafari = vs['isSafari'];
 var signoutUrl = baseUrl + '/signout/timedout';
 var ajaxUrl = baseUrl + '/ajax';
 var ajaxSid = vs['sid'];
@@ -60,8 +62,13 @@ jQuery('button[type="submit"]').click(function() {
 //  $('<input type="hidden" name="opid" />').appendTo(this.form).val(this.form.id);
 });
 
+$('[data-toggle="popover"][data-trigger="hover"]').click(function () {$(this).popover('toggle');});
 $('.submenu .popmenu a').click(function () {$(this).find('.glyphicon').css('color', 'darkblue');});
-$('.submenu a[data-trigger="manual"').click(function () {$('.submenu a').not($(this)).popover('hide'); $(this).popover('toggle');});
+$('.submenu a[data-trigger="manual"]').click(function () {
+  if (isSafari) location.href = baseUrl + '/' + $(this).parents('.submenu').attr('id').replace('menu-', ''); // work around Safari bug (doesn't show menus on hover)
+  $(this).popover('toggle');
+  $('.submenu a').not($(this)).popover('hide');
+});
 
 var page=0;
 var more=false;

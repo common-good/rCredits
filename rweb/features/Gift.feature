@@ -6,11 +6,11 @@ SO I can enjoy the rCredit system's rapid growth and be a part of that.
 Setup:
   Given members:
   | id   | fullName   | address | city  | state  | zip | postalAddr | rebate | flags   |*
-  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | 1 A, A, AK |      5 | ok,confirmed      |
+  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000 | 1 A, A, AK |      5 | ok,confirmed      |
   And balances:
-  | id     | balance | rewards |*
-  | cgf    |       0 |       0 |
-  | .ZZA   |     100 |      20 |
+  | id     | balance |*
+  | cgf    |       0 |
+  | .ZZA   |     100 |
 
 Scenario: A member donates
   Given next DO code is "whatever"
@@ -18,8 +18,8 @@ Scenario: A member donates
   | gift | amount | often | honor  | honored | share |*
   |   -1 |     10 |     1 | memory | Jane Do |    10 |
   Then transactions:
-  | xid | created | type     | amount | rebate | bonus | from | to   | purpose      |*
-  |   1 | %today  | transfer |     10 |   0.50 |  1.00 | .ZZA | cgf  | donation |
+  | xid | created | type     | amount | from | to   | purpose      |*
+  |   1 | %today  | transfer |     10 | .ZZA | cgf  | donation |
   And we say "status": "gift successful" with subs:
   | amount |*
   |    $10 |
@@ -29,9 +29,9 @@ Scenario: A member donates
   And we notice "gift sent" to member ".ZZA" with subs:
   | amount | rewardAmount |*
   |    $10 |        $0.50 | 
-  And we notice "new payment linked|reward other" to member "cgf" with subs:
-  | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount | aPayLink |*
-  | Abe One   | $10    | donation     | reward          | $1                | ?        |
+  And we notice "new payment linked" to member "cgf" with subs:
+  | otherName | amount | payeePurpose | aPayLink |*
+  | Abe One   | $10    | donation     | ?        |
   And that "notice" has link results:
   | ~name | Abe One |
   | ~postalAddr | 1 A, A, AK |

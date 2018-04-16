@@ -5,12 +5,12 @@ SO I can enjoy the rCredit system's rapid growth and be a part of that.
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | zip | country | postalAddr | rebate | flags        |*
-  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK |      5 | ok,confirmed |
+  | id   | fullName   | address | city  | state  | zip | country | postalAddr | flags        |*
+  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK | ok,confirmed |
   And balances:
-  | id   | balance | rewards |*
-  | cgf  |       0 |       0 |
-  | .ZZA |     100 |      20 |
+  | id   | balance | floor |*
+  | cgf  |       0 |     0 |
+  | .ZZA |     100 |   -20 |
 
 Scenario: A donation can be completed
   Given gifts:
@@ -18,14 +18,14 @@ Scenario: A donation can be completed
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 |         0 |
   When cron runs "gifts"
   Then transactions:
-  | xid | created | type     | amount | rebate | bonus | from      | to      | purpose      |*
-  |   1 | %today  | transfer |     10 |    .50 |  1.00 | .ZZA      | cgf     | donation |
+  | xid | created | type     | amount | from      | to      | purpose      |*
+  |   1 | %today  | transfer |     10 | .ZZA      | cgf     | donation |
   And gifts:
   | id   | giftDate   | amount | often | honor  | honored | share | completed |*
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |
-  And we notice "new payment linked|reward other" to member "cgf" with subs:
-  | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount | aPayLink |*
-  | Abe One   | $10    | donation     | reward          | $1                | ?        |
+  And we notice "new payment linked" to member "cgf" with subs:
+  | otherName | amount | payeePurpose | aPayLink |*
+  | Abe One   | $10    | donation     | ?        |
   And that "notice" has link results:
   | ~name | Abe One |
   | ~postalAddr | 1 A, A, AK |
@@ -46,8 +46,8 @@ Scenario: A donation can be completed even if the member has never yet made an r
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 |         0 |
   When cron runs "gifts"
   Then transactions:
-  | xid | created | type     | amount | rebate | bonus | from      | to      | purpose      |*
-  |   1 | %today  | transfer |     10 |    .50 |  1.00 | .ZZA      | cgf     | donation |
+  | xid | created | type     | amount | from      | to      | purpose      |*
+  |   1 | %today  | transfer |     10 | .ZZA      | cgf     | donation |
  
 Scenario: A recurring donation can be completed
   Given gifts:
@@ -55,15 +55,15 @@ Scenario: A recurring donation can be completed
   | .ZZA | %yesterday |     10 |     Q | memory | Jane Do |    10 |         0 |
   When cron runs "gifts"
   Then transactions:
-  | xid   | created | type     | amount | rebate | bonus | from | to   | purpose      |*
-  | .AAAB | %today  | transfer |     10 |    .50 |  1.00 | .ZZA | cgf  | donation (quarterly gift #1) |
+  | xid   | created | type     | amount | from | to   | purpose      |*
+  | .AAAB | %today  | transfer |     10 | .ZZA | cgf  | donation (quarterly gift #1) |
   And gifts:
   | id   | giftDate      | amount | often | honor  | honored | completed |*
   | .ZZA | %yesterday    |     10 |     Q | memory | Jane Do | %today    |
   | .ZZA | %yesterday+3m |     10 |     Q |        |         |         0 |
-  And we notice "new payment linked|reward other" to member "cgf" with subs:
-  | otherName | amount | payeePurpose                 | otherRewardType | otherRewardAmount | aPayLink |*
-  | Abe One   | $10    | donation (quarterly gift #1) | reward          | $1                | ?        |
+  And we notice "new payment linked" to member "cgf" with subs:
+  | otherName | amount | payeePurpose                 | aPayLink |*
+  | Abe One   | $10    | donation (quarterly gift #1) | ?        |
   And that "notice" has link results:
   | ~name | Abe One |
   | ~postalAddr | 1 A, A, AK |

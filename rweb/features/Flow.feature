@@ -5,19 +5,19 @@ SO I can spend up to my total credit line.
 
 Setup:
   Given members:
-  | id   | fullName   | rebate | flags      |*
+  | id   | fullName   | rebate | flags                |*
   | .ZZA | Abe One    |      5 | ok,confirmed         |
   | .ZZB | Bea Two    |     10 | ok,confirmed         |
-  | .ZZC | Corner Pub |     10 | ok,confirmed,co      |
+  | .ZZC | Corner Pub |     10 | ok,confirmed,co,debt |
   And relations:
   | main | agent | permission | draw |*
   | .ZZC | .ZZA  | manage     |    1 |
   | .ZZC | .ZZB  | sell       |    0 |
   And balances:
-  | id   | balance | rewards |*
-  | .ZZA |      10 |      10 |
-  | .ZZB |     100 |      20 |
-  | .ZZC |     100 |      20 |
+  | id   | balance | floor |*
+  | .ZZA |      10 |   -10 |
+  | .ZZB |     100 |   -20 |
+  | .ZZC |     100 |   -20 |
 
 Scenario: A member draws
   When member ".ZZA" confirms form "pay" with values:
@@ -43,6 +43,6 @@ Scenario: A member overdraws with not enough to draw on
   | pay | .ZZB |    200 | %FOR_GOODS | food    |
   Then we say "error": "short to|increase min" with subs:
   | short |*
-  | $60   |
+  | $70   |
   
 # add a scenario for drawing from two sources

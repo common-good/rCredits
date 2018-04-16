@@ -70,7 +70,7 @@ function questionList($eid, $question='', $doWhat='') {
 EOF;
 
     $see = "<a href=\"$linkIdeas\">Ideas</a>";
-    if(strpos('.PVR', $phase)) $see .= " | <a href='$linkProposals'>Proposals</a>";
+    if(strpos('.PVR', $phase)) $see .= " | <a href=\"$linkProposals\">Proposals</a>";
     if(strpos('.VR', $phase)) $see .= " | <a  href=\"$base_url/community/democracy/question=$id&do=options\">Options</a>";
     if($phase == 'R') $see .= " | <a  href=\"$base_url/community/democracy/question=$id&do=results\">Results</a>";
     if($endDatedpy == '?') $endDatedpy = 'not set';

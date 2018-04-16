@@ -121,12 +121,12 @@ function worksForUs($name, $us = NULL, $loose = TRUE) {
   $pattern = join(' ', $words);
   $where = 'r.main=:us' . ($loose ? '' : ' AND r.employee');
   
-  $sql = <<<EOF
+  $sql = <<<X
     SELECT u.uid, u.fullName FROM r_relations r
     INNER JOIN users u ON u.uid=r.other
     WHERE $where
     ORDER BY (u.fullName LIKE :pattern) DESC
-EOF;
+X;
   $q = db\q($sql, compact('us', 'pattern'));
   while ($row = $q->fetchAssoc()) {
     extract($row);
@@ -222,6 +222,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
 //  if (isGAME) return; // no emails from game site
   global $testEmails;
 
+  foreach (ray('secure vsecure') as $k) unset($subs[$k]); // show not even in error messages
   $subs['site'] = BASE_URL;
   $subs['orgPhone'] = CGF_PHONE;
   extract(just('subject body noFrame sms', $subs));
@@ -239,17 +240,12 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   
   $testEmails[] = compact(ray('index toEmail subs'));
 
-  if ($reply0 == 'region') {
-    $reply = NULL;
-  } elseif (is_array($reply0)) {
-    $reply = $reply0;
-  } else {
-    $replyA = is_object($reply0) ? $reply0 : ($reply0 == 'ctty' ? $toA->cttyA : r\acct($reply0));
-//    $reply = $replyA ? "\"$replyA->fullName\" <$replyA->email>" : $reply0;
-    $reply = $replyA ? [$replyA->email => $replyA->fullName] : $reply0;
-    if ($reply == $to) $reply = NULL;
+  if (!is_array($reply = $reply0) and !is_object($reply0)) {
+    $reply = (!@$reply0 or $reply0 == 'region') ? [CGF_EMAIL => PROJECT] // standard
+    : ($reply0 == 'ctty' ? $toA->cttyA : r\acct($reply0)); // get account object
   }
-  if (!@$reply) $reply = [CGF_EMAIL => PROJECT];
+  
+  if (is_object($replyA = $reply)) $reply = [$replyA->email => $replyA->fullName];
 
   $nolog = ray(R_NOLOG); // subs not to log (sensitive data)
   foreach ($subs as $k0 => $v) if (!is_object($v) and !is_array($v)) {
@@ -331,18 +327,19 @@ function message($uid, $index, $subs = [], $topic = '') {
   global $testMessages;
 
   $subs['otherName'] = @$subs['myName']; // messaging someone else about US, if anyone
+  $reply = @$subs['reply'];
   $message = t($index, $subs);
   $topic = $topic ?: (t(@$GLOBALS['topics'][$index], $subs) ?: $index); // index should never be used literally (wrong language) but more importantly never fail
   $testMessages[] = compact(ray('uid index subs topic'));
 ///  debug(compact('uid','index','subs','message','topic'));
-  r\notify($uid, 'message', compact('message', 'topic'), TRUE);
+  r\notify($uid, 'message', compact(ray('message topic reply')), TRUE);
 }
 
 /**
  * Notify the specified user, according to their preferences
  * @param integer $uid: account record id
  * @param string $index: message index
- * @param assoc $subs: substitutions for the message
+ * @param assoc $subs: substitutions/parameters for the message
  * @param bool $force: send by email NOW
  */
 function notify($uid, $index, $subs = [], $force = FALSE) {
@@ -357,7 +354,7 @@ function notify($uid, $index, $subs = [], $force = FALSE) {
   $warnIndexes = ray('new invoice,new offer,charge disputed');
   
   if ($force) {
-    $mailed = r\rMail($index, $a, $subs, 'ctty');
+    $mailed = r\rMail($index, $a, $subs, @$subs['reply'] ?: 'ctty');
   } else { //if ($a->can(B_NOTIFY_EMAIL)) {
     list ($message, $created) = array(t($index, $subs), r\rTime());
     f('t.output', "Actual Notice to $fullName: $message");
@@ -577,7 +574,7 @@ function vKey() {
 	global $mya, $channel;
   u\EXPECT($channel == TX_WEB, 'wrong channel for vKey: ' . $channel);
   if (!@$mya) w\setAcct(); // make sure we got mya
-	return ($vKeyE = r\cryptCook('vKeyE')) ? u\decry('R', $vKeyE, $mya->agentA->vKeyPw) : '';
+	return ($vKeyE = r\cryptCook('vKeyE') and $pw = $mya->agentA->vKeyPw) ? u\decry('R', $vKeyE, $pw) : '';
 }
 
 /**
@@ -790,6 +787,14 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
   $erUrl = 'sadmin/followup'; // where to go on errors
   if (!$a or !$a = is_object($a) ? $a : r\acct($a)) return r\go($erUrl, t('nope'), 'err');
   $oldUid = $a->id;
+  $nm = $a->fullName;
+
+  if ($delCtty = ($delete and $a->isCtty)) { // deleting a community (merge into Seedpack)
+    db\del('users', $oldUid);
+    $unusable = $delete = FALSE; // don't actually delete anything except the account record
+    $newUid = r\serverUid(); // Seedpack uid
+  }
+  
   if ($delete) {
     if (db\exists($table = 'r_txs', 'payer=:oldUid OR payee=:oldUid', compact('oldUid'))
       or db\exists($table = 'r_ballots', ':oldUid IN (voter, proxy)', compact('oldUid'))
@@ -800,7 +805,7 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     $region = @$a->zip ? r\region(@$a->country, @$a->state, $a->zip) : r\communityUid();
     $newUid = r\Acct::nextId($region);
   }
-  $subs = array( // all cg tables are listed, to be sure we don't leave any out
+  $subs = array( // all cg tables are listed, to be sure we don't leave any out (D=deletable)
   // r_areas
   // r_bad
     'r_ballots:voter',
@@ -849,13 +854,12 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'users:community',
   );
   foreach (ray(DRUPAL_UID_TABLES) as $one) $subs[] = "$one:uid";
-  $oldFilename = DRUPAL_ROOT . $a->photoFilename(TRUE); // get old name while account exists
-  $newFilename = str_replace("/$oldUid-", "/$newUid-", $oldFilename);
-  $files[$oldFilename] = $newFilename;
 
   $DBTX = \db_transaction();
   foreach ($subs as $one) {
     list ($table, $field, $deletable) = explode(':', $one . '::'); // if deleting and not deletable, set to zero
+    if ($delCtty and $table == 'users') continue; // for ctty deletion, skip users (already done)
+    
     if ($delete) {
       if (!$deletable) {
         if (db\exists($table, "$field=:oldUid", compact('oldUid'))) {
@@ -865,16 +869,16 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
       } else db\del($table, "$field=:oldUid", compact('oldUid'));
     } else db\q("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
   }
-  $oldQid = r\qid($oldUid);
+
   if ($unusable and !$delete) {
+    $oldQid = r\qid($oldUid);
     list ($uid, $name, $email) = array($oldUid, "unusable-$oldQid", "unusable$oldQid@" . CG_DOMAIN);
     db\insert('users', compact(ray('uid name email'))); // mark old uid unusable
   }
-  foreach ($files as $old => $new) if (file_exists($old)) {
-    if ($delete) unlink($old); else rename($old, $new);
-  }
+
   unset($DBTX); // commit
-  return $newUid;
+  $msg = t('Success. Account %nm has been %what.', 'nm what', $nm, $newUid ? t('changed to ') . $newUid : t('deleted'));
+  return r\go('sadmin/followup', $msg); // redirect HERE to make sure we never do this 2x
 }
 
 /**
@@ -971,7 +975,7 @@ function noticeArgs($uid, $where = '0', $weekly = FALSE, $monthly = FALSE, $at =
 
     while ($row = $q->fetch()) {
       $date = ($weekly or $monthly) ? (strftime('%b&nbsp;%d', $row->created)) : R_BULLET;
-      $messages[] = "<tr><td class=\"notice-date\" style=\"vertical-align:top; margin-right:5px;\">$date</td><td>$row->message</td></tr>";
+      $messages[] = "<tr><td class=\"notice-date\" stule=\"vertical-align:top; margin-right:5px;\">$date</td><td>$row->message</td></tr>"; // "stule" because CSP forbids inline online (rcron reverts it before emailing)
     }
     if (@$messages) $messages = join("\n", $messages); else return FALSE;
   }
@@ -1007,11 +1011,14 @@ function companies($ctty, $email = FALSE) {
   if (!$uids) return $email ? t('no new companies this month') : t('No companies there yet. Invite them!');
   
   $res = '';
+  $_newClass = $email ? 'style="color:red; font-weight:bold;"' : 'class="company-listing"';
+  $NEW = t(' <small %newClass> NEW!</small>', compact('_newClass'));
+  
   foreach ($uids as $uid) {
     $a = r\acct($uid);
     if (!$a->coCan(CO_PRIVATE)) {
       $name = $a->website ? w\lnk("http://$a->website", $a->bestName) : $a->bestName;
-      $new = ($a->activated > REQUEST_TIME - 9 * WEEK_SECS) ? ' <small style="color:red; font-weight:bold;"> NEW!</small>' : '';
+      $new = ($a->activated > REQUEST_TIME - 9 * WEEK_SECS) ? $NEW : '';
       $res .= tr($model, '_name desc', "$name$new", $a->shortDesc) . "\n";
     }
   }
@@ -1019,186 +1026,231 @@ function companies($ctty, $email = FALSE) {
 }
 
 /**
- * Return system-wide or community-wide statistics.
- * @param int $ctty: uid of community or region (0 means ALL)
- * @param int $when: latest desired statistics (defaults to now)
- *   if $when < 0, calculate the latest
- * @return assoc of named statistics (see r_stats table def)
- */
-function stats($ctty = 0, $when = NULL) {
-  u\setDft($when, r\rTime());
-  if ($when < 0) $when = r\getStats($ctty);
-
-  $sql = 'SELECT * FROM r_stats WHERE created<=:when AND ctty=:ctty ORDER BY id DESC LIMIT 1';
-  if ($info = db\q($sql, compact('ctty', 'when'))->fetchAssoc()) return $info;
-
-  $keys = db\q("SELECT column_name FROM information_schema.columns WHERE table_name='r_stats'")->fetchCol();
-  return array_fill_keys($keys, 0);
-}
-
-/**
  * Return the amount the community has ever paid out
  */
 function cttyPaidEver($ctty = 0) {
+  u\EXPECT(u\myInt($ctty), 'bad ctty');
+  return max(0, -db\sum('balance', 'users', $ctty ? "uid=$ctty" : 'uid<0'));
   $dt = db\max('created', 'r_stats', 'ctty=:ctty', compact('ctty')) ?: 0;
   return db\lookup(R_CTTY_BENE, 'r_stats', 'ctty=:ctty AND created=:dt', compact('ctty', 'dt'));
 }
+
+/**
+ * Return system-wide or community-wide statistics.
+ * @param int $ctty: uid of community or region (0 means ALL)
+ * @param int $when: latest statistics date to return
+ *   if NULL, calculate statics for today
+ * @return assoc of named statistics for one community on one date (see r_stats table def)
+ */
+function stats($ctty = 0, $when = NULL) {
+  u\setDft($when, time());
+  $sql = 'SELECT * FROM r_stats WHERE created<=:when AND ctty=:ctty ORDER BY created DESC LIMIT 1';
+
+  $info = db\q($sql, compact('ctty', 'when'))->fetchAssoc() ?: r\getStats($ctty, $when);
+//    $keys = db\q("SELECT column_name FROM information_schema.columns WHERE table_name='r_stats'")->fetchCol();
+//    $info = array_fill_keys($keys, 0);
+//  }
+
+  extract($info);
+  $info['bals'] = $bals = $balsPos + $balsNeg;
+  foreach (ray('cg usd') as $z) {
+    $info[$z] = ${$z . 'In'} + ${$z . 'Out'};
+    $info["{$z}Vol"] = ${$z . 'In'} - ${$z . 'Out'};
+    $info["{$z}VolCount"] = ${$z . 'InCount'} - ${$z . 'OutCount'};
+  }
+  foreach (['', 'In', 'Out'] as $z) {
+    if ($ctty) $info["usd$z"] += $info["cg$z"]; // settle trade imbalance with USD
+  }
+  foreach (['', 'Count'] as $z) {
+    $info["txsVol$z"] = ${"p2p$z"} + ${"b2b$z"} + ${"p2b$z"} + ${"b2p$z"} + ${"cashs$z"};
+    $info["localVol$z"] = $info["txsVol$z"] - $info[$ctty == 0 ? 'cgOut' : "cgVol$z"];
+  }
   
+  return $info;
+}
+
 /**
  * Calculate and record statistics for the given community.
  * See the "// get" lines to see what statistics are collected and returned.
  * @param int $ctty: community or region (0 means ALL)
- * @param int $created: creation date for the statistics record (defaults to current time)
- * @return $created
+ * @param int $created: creation date for the statistics record (defaults to current date)
+ * @return the created record
  * @todo: change r field to bal and include replacements for USD
  */
 function getStats($ctty, $created = NULL) {
-  u\setDft($created, r\rTime());
+  $created0 = $created;
+  u\setDft($created, time());
+  $created = strtotime('today', $created); // use start of day
   $subs = compact('created', $ctty ? 'ctty' : '');
+  $thisCtty = 'community=:ctty';
   list ($cttyCrit, $payerCrit, $payeeCrit, $cttysCrit) = $ctty ? 
-    ['community=:ctty', 'payer=:ctty', 'payee=:ctty', '(u.community=:ctty OR u2.community=:ctty)']
-  : ['1', 'payer<1', 'payee<1', '1'];
-  list ($tradeOutSum, $tradeInSum) = $ctty == 0 ? [0, 0]
-  : ["SUM(IF(u.community<>:ctty AND u2.community=:ctty, amount, 0))",
-     "SUM(IF(u2.community<>:ctty AND u.community=:ctty, -amount, 0))"];
+    [$thisCtty, 'payer=:ctty', 'payee=:ctty', "(u.$thisCtty OR u2.$thisCtty)"]
+  : ['community<>0', 'payer<1', 'payee<1', '1'];
+  $creCrit = 'created<=:created';
+  $idCrit = '(uid NOT IN (0,1,2,3))';
+  $accounts = "(SELECT uid,jid,community,flags FROM users WHERE $idCrit)";
+  $isMaster = '(jid=0 OR uid<jid)';
+  $masterBal = '(balance+IFNULL(balance2, 0))';
+  $slave = "(SELECT uid AS uid2, balance AS balance2 FROM users WHERE $idCrit) u2 ON u2.uid2=u.jid";
   
-  $runny = 'IF(:HAS_BANK AND :IS_REFILL AND minimum>0, -minimum/2, IF(:IS_CO, 0, tin.rewards+tout.rewards))'; // spendable, leading to a run on the bank
-//  $payins1 = '(SELECT payer, SUM(amount) AS received, SUM(payerReward) AS rewards FROM r_txs WHERE created<=:created GROUP BY payer)';
-  $payins = '(SELECT payee, SUM(amount) AS received, SUM(payeeReward) AS rewards FROM r_txs WHERE created<=:created GROUP BY payee)';
-  $payouts = '(SELECT payer, SUM(amount) AS paid, SUM(payerReward) AS rewards FROM r_txs WHERE created<=:created GROUP BY payer)';
-  $exchanges = '(SELECT payee, SUM(amount) AS deposited FROM r_usd WHERE created<=:created GROUP BY payee)';
+  $res = [];
   
-  // get pAccts, bAccts, newbs, savings, savingsIntent
-  $sql = <<<EOF
+  // get users table data (must happen before topN/botN)
+  $sql = <<<X
     SELECT SUM(IF(:IS_OK AND activated<=:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
       SUM(IF(:IS_OK AND activated<=:created AND :IS_CO, 1, 0)) AS bAccts,
-      SUM(IF(created<=:created AND (NOT activated OR activated>:created), 1, 0)) AS newbs,
-      SUM($runny) AS runny,
-      SUM(IF($runny>0, 1, 0)) AS runnyCount,
-      SUM(IF($runny>0, tin.received - tout.paid + tus.deposited, 0)) AS runnyBal,
-      SUM(savingsAdd) AS savings
-    FROM users u 
-    LEFT JOIN $payins tin ON tin.payee=u.uid
-    LEFT JOIN $payouts tout ON tout.payer=u.uid
-    LEFT JOIN $exchanges tus ON tus.payee=u.uid
-    WHERE u.uid>1 AND $cttyCrit AND created<=:created
-EOF;
-  $res = db\q($sql, $subs)->fetchAssoc() ?: [];
-  $topN = max(5, round(.05 * $res['runnyCount']));
-  unset($res['runnyCount']);
-
-  /*  SUM(picture)/100 AS savings,
-    SELECT SUM(picture)/100 AS top5
-    FROM (SELECT picture FROM users WHERE uid>1 AND $cttyCrit AND created<=:created
-      ORDER BY picture DESC LIMIT 5) u0
-*/
-
-  // get top5
-  $sql = <<<EOF
-    SELECT SUM(runny) AS top5
-    FROM (SELECT $runny AS runny FROM users u 
-    LEFT JOIN $payins tin ON tin.payee=u.uid 
-    LEFT JOIN $payouts tout ON tout.payer=u.uid 
-      WHERE u.uid>1 AND $cttyCrit AND created<=:created
-      ORDER BY $runny DESC LIMIT $topN) u0
-EOF;
+      SUM(IF(NOT activated OR activated>:created, 1, 0)) AS newbs,
+      SUM(IF($masterBal>0, $masterBal, 0)) AS balsPos,
+      SUM(IF($masterBal<0, $masterBal, 0)) AS balsNeg,
+      SUM(IF($masterBal>0, 1, 0)) AS balsPosCount,
+      SUM(IF($masterBal<0, 1, 0)) AS balsNegCount,
+      SUM(floor) AS floors
+    FROM users u LEFT JOIN $slave
+    WHERE $idCrit AND $isMaster AND $cttyCrit AND $creCrit
+X;
   $res += db\q($sql, $subs)->fetchAssoc() ?: [];
+
+  // get bank transfer data
+  $in = 'amount>0 XOR txid<0';
   
-  // get usd
-  $in = 'amount<0 XOR txid<0';
-  $sql = <<<EOF
+  $sql = <<<X
     SELECT
-    SUM(IF($in, amount, 0)) AS bankIn,
-    SUM(IF($in, 0, -amount)) AS bankOut
-    FROM r_usd t LEFT JOIN users u ON u.uid=t.payee
+    SUM(IF($in, amount, 0)) AS usdIn,
+    SUM(IF($in, 0, amount)) AS usdOut,
+    SUM(IF($in, 1, 0)) AS usdInCount,
+    SUM(IF($in, 0, 1)) AS usdOutCount
+    FROM r_usd t LEFT JOIN $accounts u ON u.uid=t.payee
     WHERE $cttyCrit AND t.completed AND t.completed<=:created
-EOF;
+X;
+  $res += db\q($sql, $subs)->fetchAssoc() ?: [];
+
+// get transaction table data
+  $sql = '';
+  list ($cgIn, $cgOut) = $ctty == 0 // make cgIn and cgOut selectors
+  ? ['SUM(IF(u.community=u2.community, amount, 0))',
+     'SUM(IF(u.community=u2.community, 0, amount))']
+  : ["SUM(IF(NOT u.$thisCtty AND u2.$thisCtty, amount, 0))\n",
+     "SUM(IF(u.$thisCtty AND NOT (u2.$thisCtty), -amount, 0))\n"];
+  foreach (ray('cgIn cgOut') as $k) $sql .= "${$k} AS $k,\n";
+  
+  foreach (ray('p2b:01,b2b:11,b2p:10,p2p:00') as $k => $v) { // make x2x selectors
+    foreach ([0, 1] as $i) ${'not' . $i} = $v[$i] ? '' : 'NOT';
+    $sql .= "SUM(IF(goods<>:FOR_USD AND $not0 u.:IS_CO AND $not1 u2.:IS_CO, amount, 0)) AS $k,\n";
+  }
+  $sql .= "SUM(IF(payer>1 AND goods=:FOR_USD, amount, 0)) AS cashs,\n";
+  $sql .= strtr($sql, ['-amount' => '1', 'amount' => '1', ",\n" => "Count,\n"]); // add counts
+  $sql = str_replace(",\n!", '', $sql . '!');
+  
+  $sql = <<<X
+    SELECT $sql
+    FROM r_txs t 
+    LEFT JOIN $accounts u ON u.uid=t.payer 
+    LEFT JOIN $accounts u2 ON u2.uid=t.payee
+    WHERE $cttysCrit AND $creCrit
+X;
   $res += db\q($sql, $subs)->fetchAssoc() ?: [];
   
-  // get buyers, sellers
-  // (@todo?)
+  // get aAccts
+  $recent = $created - 60 * DAY_SECS; // not n months (keep length of time consistent)
 
+  $sql = <<<X
+    SELECT COUNT(DISTINCT payer) as aAccts FROM r_txs  t
+    JOIN $accounts u ON u.uid=t.payer
+    WHERE NOT u.:IS_CO AND $cttyCrit AND $creCrit AND created>$recent
+X;
+  $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
-  // get purchases, rewards (of all types), xfees, grants, loans, investments, community trade, shared, forcash
-  $sums = ''; // fine and giveback are negative rewards
-  foreach (ray('signup giveback inflation helper fine xfee grant loan invest') as $one) {
-    $type = u\consta('tx', $one);
-    $sums .= "SUM(IF(type=$type AND $payerCrit, amount, 0)) AS `{$one}s`, ";
+  // get conx, conxLocal
+  foreach (['conx' => 1, 'conxLocal' => "u2.$thisCtty"] as $k => $crit) {
+    if (!$ctty) $crit = 1; // avoid local query when doing stats for ALL cttys
+    $sql = <<<X
+      SELECT AVG(conx) as $k FROM 
+       (SELECT COUNT(DISTINCT payee) AS conx
+        FROM r_txs t JOIN $accounts u ON u.uid=t.payer
+        LEFT JOIN $accounts u2 ON u2.uid=t.payee
+        WHERE NOT u.:IS_CO AND u.$cttyCrit AND $crit AND $creCrit) u3;
+X;
+    $res += db\q($sql, $subs)->fetchAssoc() ?: [];
   }
+  
+  if (@$created0) { // redoing stats for the past, so figure bals, floors, and topN the hard way
+    $recent = $created - 183 * DAY_SECS; // six months ago
+    $isPayer = '(payer IN (uid, jid) AND payer<>0)';
+    $isPayee = '(payee IN (uid, jid))';
 
-  $sql = <<<EOF
-    SELECT $sums 
-    SUM(payerReward) AS rebates, SUM(payeeReward) AS bonuss,
-    SUM(IF(type=:TX_TRANSFER AND ($payerCrit OR ($payeeCrit AND amount<0)), ABS(amount), 0)) AS cttyBuys,
-    SUM(IF(type=:TX_TRANSFER AND $payeeCrit AND amount>0, -amount, 0)) AS cttyIncomes,
-    $tradeOutSum AS tradeOut, 
-    $tradeInSum AS tradeIn,    
-    SUM(IF(channel=:TX_CRON AND payeeFor=':R_SHARING_MSG', amount, 0)) AS shared,
-    SUM(IF(goods=:FOR_GOODS, amount, 0)) AS purchases, 
-    SUM(IF(payer>1 AND goods=:FOR_USD, amount, 0)) AS forCashs
-    FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
-    WHERE $cttysCrit AND t.created<=:created
-EOF;
-  $res2 = db\q($sql, $subs)->fetchAssoc() ?: [];
+    // NOTE: xid and txid are needed here to prevent merging
+    $txs = <<<X
+      ((SELECT txid AS xid, 0 AS payer, payee, amount, completed AS created FROM r_usd)
+       UNION (SELECT xid, payer, payee, amount, created FROM r_txs))
+X;
 
-  // get r
-  $res2['r'] = array_sum($res2) - $res2['shared'] - $res2['purchases'] - $res2['forCashs'] - $res2['xfees'];
-  $res2['r'] += $res['bankIn'] - $res['bankOut']; // include r provided in exchange for USD
-  $res += $res2;
+    $pastTxs = <<<X
+      (SELECT DISTINCT uid,
+        SUM(IF($isPayer, -amount, amount)) AS amts,
+        SUM(IF($isPayee AND created>$recent, amount, 0)) AS amtsIn,
+        SUM(IF($isPayer AND created>$recent, amount, 0)) AS amtsOut
+        FROM $accounts u0 LEFT JOIN $txs t0 ON ($isPayer OR $isPayee)
+        WHERE amount IS NOT NULL AND $isMaster AND $cttyCrit AND $creCrit GROUP BY uid)
+X;
 
-/*
-  $cttyInOut = $ctty == 0 ? '' : <<<EOF
-    SUM(IF(u.community=:ctty AND t.payee<>0, amount, 0)) AS usd2r,
-    SUM(IF(u2.community=:ctty, amount, 0)) AS r2usd,
-EOF;
-*/
-
-//  $usdNetIn = @$res['r2usd'] - @$res['usd2r'];
-//  $res2['usd'] = $res['usd'] + $usdNetIn;
-///  debug(compact('ctty','res2','res'));
-
-  // get perMo, txsPerMo, p2b(Txs)PerMo, b2b(Txs)PerMo, b2p(Txs)PerMo, cash(Txs)PerMo
-  $subs += ray('monthAgo', u\plusMonths(-1, $created));
-
-  $sql = <<<EOF
-    SELECT 
-    SUM(IF(goods=:FOR_GOODS, amount, 0)) AS perMo,
-    SUM(IF(goods=:FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, amount, 0)) AS p2bPerMo,
-    SUM(IF(goods=:FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, amount, 0)) AS b2bPerMo,
-    SUM(IF(goods=:FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, amount, 0)) AS b2pPerMo,
-    SUM(IF(goods=:FOR_GOODS, 0, amount)) AS cashPerMo,
-    $tradeOutSum AS tradeOutPerMo,
-    $tradeInSum AS tradeInPerMo,
-
-    SUM(IF(goods=:FOR_GOODS, 1, 0)) AS txsPerMo,
-    SUM(IF(goods=:FOR_GOODS AND NOT u.:IS_CO AND u2.:IS_CO, 1, 0)) AS p2bTxsPerMo,
-    SUM(IF(goods=:FOR_GOODS AND u.:IS_CO AND u2.:IS_CO, 1, 0)) AS b2bTxsPerMo,
-    SUM(IF(goods=:FOR_GOODS AND u.:IS_CO AND NOT u2.:IS_CO, 1, 0)) AS b2pTxsPerMo,
-    SUM(IF(goods=:FOR_GOODS, 0, 1)) AS cashTxsPerMo
-
-    FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
-    WHERE $cttysCrit AND t.created>:monthAgo AND t.created<=:created
-EOF;
-  $res += db\q($sql, $subs)->fetchAssoc() ?: [];
-
-  // get bankIn(Txs)PerMo, bankOut(Txs)PerMo
-  $in = 'amount<0 XOR txid<0';
-  $sql = <<<EOF
-    SELECT SUM(IF($in, 0, amount)) AS bankInPerMo,
-    SUM(IF($in, -amount, 0)) AS bankOutPerMo,
+    // get OLD balsPos, balsNeg, floors
+    $sql = <<<X
+      SELECT 
+      SUM(IF(amts>0, amts, 0)) AS balsPos,
+      SUM(IF(amts<0, amts, 0)) AS balsNeg,
+      SUM(IF(amts>0, 1, 0)) AS balsPosCount,
+      SUM(IF(amts<0, 1, 0)) AS balsNegCount,
+      -SUM(GREATEST(amtsOut,amtsIn))/6 AS floors
+      FROM $pastTxs t
+X;
+    $res = (db\q($sql, $subs)->fetchAssoc() ?: []) + $res; // put $res 2nd so OLD takes precedence
     
-    SUM(IF($in, 0, 1)) AS bankInTxsPerMo,
-    SUM(IF($in, 1, 0)) AS bankOutTxsPerMo
+    // get OLD topN
+    $topN = topN($res); // NOTE: this line must be duplicated below because $res is different
+    $sql = <<<X
+      SELECT SUM(amts) AS topN FROM 
+        (SELECT DISTINCT uid, amts FROM $pastTxs u1 
+         WHERE uid>0 AND amts IS NOT NULL ORDER BY amts DESC LIMIT $topN) u
+X;
+    $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
-    FROM r_usd t LEFT JOIN users u ON t.payee=u.uid
-    WHERE $cttyCrit AND t.completed AND completed<=:created AND completed>:monthAgo
-EOF;
-  $res += db\q($sql, $subs)->fetchAssoc() ?: [];
+    // get OLD botN
+    $sql = strtr($sql, ray('topN DESC', 'botN', ''));
+    $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
+    $txs = <<<X
+      ((SELECT txid AS xid, 0 AS payer, payee, amount, completed AS created FROM r_usd)
+       UNION (SELECT xid, payer, payee, amount, created FROM r_txs))
+X;
+
+  } else {
+    // get topN
+    $topN = topN($res); // NOTE: this line must be duplicated above because $res is different
+    $sql = <<<X
+      SELECT SUM(bal) AS topN FROM 
+        (SELECT $masterBal AS bal FROM users u LEFT JOIN $slave
+         WHERE uid>0 AND $isMaster AND $cttyCrit AND $creCrit GROUP BY uid
+         ORDER BY $masterBal DESC LIMIT $topN) u
+X;
+    $res += db\q($sql, $subs)->fetchAssoc() ?: [];
+    
+    // get botN
+    $sql = strtr($sql, ray('topN DESC', 'botN', ''));
+    $res += db\q($sql, $subs)->fetchAssoc() ?: [];
+  }
+  
   foreach ($res as $k => $v) {if (is_null($v)) $res[$k] = 0;}
-  db\insert('r_stats', $res + compact('created', 'ctty'));
-  return $created;
+  $info = compact('created', 'ctty') + $res;
+  if ($created >= R_LAUNCH) db\insert('r_stats', $info);
+  return $info;
 }
+
+/**
+ * Return N or N% the number of active (or business) accounts, whichever is greater.
+ * Do not change the default N without recreating all statistics (with a\fixStats)
+ */
+function topN($res, $n = 3) {return max($n, round($n * array_sum(just('bAccts aAccts', $res)) / 100));}
+
 
 /**
  * Return the average balance, average credit reserve, and minimum balance for the given account (possibly joint) and period.
@@ -1228,7 +1280,7 @@ function averageBalance($uid, $start, $end = NULL, $noj = FALSE) {
   $avg = $ravg = 0;
 
   // use "1" as payee for r_usd, to avoid matching jid=0
-  $sql = <<<EOF
+  $sql = <<<X
     SELECT SUM($signedAmt) AS total,
     SUM(IF($isPayer, payerReward, payeeReward)) AS rtotal,
     SUM(IF(t.goods=:FOR_SHARE, $signedAmt, 0)) AS share,
@@ -1238,7 +1290,7 @@ function averageBalance($uid, $start, $end = NULL, $noj = FALSE) {
       UNION (SELECT :TX_BANK,-:FOR_SHARE,1 AS payer,payee,amount,0,0,completed FROM r_usd)
     ) t WHERE ($isPayer XOR $isPayee) AND completed BETWEEN $start AND $end 
     GROUP BY day
-EOF;
+X;
 
   $q = db\q($sql, compact('uid', 'jid'));
 
@@ -1426,7 +1478,7 @@ function reward($from, $to, $amount = 1, $isPayer = TRUE) {
   $step = @$testRewardStep ?: R_REWARD_STEP;
 
   $over = (($isPayer xor $amount < 0) and $a->balance + $a->rewards - abs($amount) < max(0, $a->floor)); // ignore floor<0
-  if ($over) { // member is overdrawing
+  if ($over) { // member is spending in (or into) debt
     $pct = $a->cttyNoneg ? 0 : -max($a->rebate, R_REBATE); // reduce credit line
   } else $pct = max(R_MIN_REWARD_PCT, $a->rebate * (1 - floor($a->o_rewards / $step) / R_REBATE)); // increase credit line
   if (!$isPayer) $pct *= R_BONUS_FACTOR;
@@ -1453,8 +1505,12 @@ function realCountry($country) {return db\lookup('name', 'r_countries', 'id=:cou
 function realState($state, $country = R_COUNTRY_ID) {return db\lookup($country == US_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function perm($bit) {return $bit - B_RELATED;}
 function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}
-function doCode($code) {return @unserialize(@u\decry('P', $code));}  
-function makeDoCode($ray) {return u\cry('P', serialize($ray));}
+//function doCode($code) {return @unserialize(@u\decry('P', CRYPT_FLAG . $code));} // this is how it should be
+function doCode($code) { // accommodate temporary weirdness because email clients bollix CRYPT_FLAG in an href
+  foreach ([0, 1] as $i) {if ($code[0] == CRYPT_FLAG[$i]) $code = substr($code, 1);} // delete this line after 7/1/2018
+  return @unserialize(@u\decry('P', CRYPT_FLAG . $code));
+} 
+function makeDoCode($ray) {return substr(u\cry('P', serialize($ray)), strlen(CRYPT_FLAG));}
 function cgfId() {return \variable_get('cgf_uid');}
 function disputeTx($xid) {return db\setFlag('r_txs', $xid, B_DISPUTED, TRUE);}
 function denyInv($nvid) {return db\setData('r_invoices', $nvid, ['denied' => TRUE]);}

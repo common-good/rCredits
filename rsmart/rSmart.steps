@@ -682,12 +682,14 @@ function weRespondOkTxidCreatedBalanceRewardsSaying($txid, $created, $balance, $
   
   extract($rposResult, EXTR_PREFIX_ALL, 'a'); // actual results
   $ok = '1';
-  foreach (ray('ok txid balance rewards') as $k) if (@$rposResult[$k] != $$k) $error = 1;
-  if (!t\approxTime($a_created, $created)) $error = 2;
+  // NOTE: rewards are now IGNORED
+  foreach (ray('ok txid balance') as $k) if (@$rposResult[$k] != $$k) $error = 1;
+  if (!t\approxTime(@$a_created, $created)) $error = 2;
   
   if (@$msg) {
     $msg = $msg[0];
     $index = (@$msg['solution'] ? 'report undo|' : '') . 'report tx'; // |for why
+/*
     if (t\rewarding()) {
       $index .= '|for why';
       $msg['otherRewardAmount'] = @$msg['reward']; unset($msg['reward']);
@@ -695,6 +697,7 @@ function weRespondOkTxidCreatedBalanceRewardsSaying($txid, $created, $balance, $
       $whys = ray(R_WHYS); 
       $msg['why'] = $whys[constant('FOR_' . strtoupper($msg['why']))];
     }
+    */
     $wantMsg = t($index, $msg);
     if ($a_message != $wantMsg) $error = 3;
 ///    debug(compact('a_message','wantMsg','error'));

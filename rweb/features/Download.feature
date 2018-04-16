@@ -5,10 +5,10 @@ SO I can see what happened and possbily integrate with an accounting program.
 
 Setup:
   Given members:
-  | id   | fullName | floor | acctType    | flags      | rebate |*
-  | .ZZA | Abe One  | -100  | personal    | ok         |      5 |
-  | .ZZB | Bea Two  | -200  | personal    | ok,co      |      5 |
-  | .ZZC | Our Pub  | -300  | corporation | ok,co      |     10 |
+  | id   | fullName | floor | acctType    | flags      |*
+  | .ZZA | Abe One  | -100  | personal    | ok         |
+  | .ZZB | Bea Two  | -200  | personal    | ok,co      |
+  | .ZZC | Our Pub  | -300  | corporation | ok,co      |
   And relations:
   | main | agent | permission |*
   | .ZZA | .ZZB  | buy        |
@@ -35,10 +35,10 @@ Setup:
   |  10 | %today-5d | transfer |     80 | .ZZA | .ZZC | this CF  | 1      |
   |  11 | %today-5d | transfer |    100 | .ZZC | .ZZA | cash CJ  | 1      |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |     670 |     272 |
-  | .ZZB |    2280 |     262 |
-  | .ZZC |    3050 |     270 |
+  | id   | balance |*
+  | .ZZA |     670 |
+  | .ZZB |    2280 |
+  | .ZZC |    3050 |
 
 Scenario: A member downloads transactions for the past year
   Given members have:
@@ -47,17 +47,17 @@ Scenario: A member downloads transactions for the past year
   When member ".ZZA" visits page "history/transactions/period=365&download=1"
   Then we download "%PROJECT_ID%todayn-12m-%todayn.csv" with:
   # For example rcredits20120525-20130524.csv
-  | Tx# | Date    | Name    | Purpose   | From Bank | From You | To You | Reward | Net  |*
-  | 8   | %ymd-5d | Our Pub | cash CJ   |           |          |    100 |        |  100 |
-  | 7   | %ymd-5d | Our Pub | this CF   |           |       80 |        |      4 |  -76 |
-  | 6   | %ymd-6d | Bea Two | cash V    |           |      100 |        |        | -100 |
-  | 5   | %ymd-1w | Our Pub | this Q    |           |      120 |        |      6 | -114 |
-  | 4   | %ymd-3m | Bea Two | what G    |           |      240 |        |     12 | -228 |
-  | 501 | %ymd-4m |         | from bank |      1000 |          |        |        | 1000 |
-  | 3   | %ymd-4m | Our Pub | usd F     |           |          |    100 |        |  100 |
-  | 2   | %ymd-5m | Bea Two | cash E    |           |          |     10 |        |   10 |
-  | 1   | %ymd-7m | ZZrCred | signup    |           |          |        |    250 |  250 |
-  |     |         | TOTALS  |           |      1000 |      540 |    210 |    272 |  942 |
+  | Tx# | Date    | Name    | Purpose   | From Bank | From You | To You | Balance | Net  |*
+  | 8   | %ymd-5d | Our Pub | cash CJ   |           |          |    100 |    670 |  100 |
+  | 7   | %ymd-5d | Our Pub | this CF   |           |       80 |        |    570 |  -80 |
+  | 6   | %ymd-6d | Bea Two | cash V    |           |      100 |        |    650 | -100 |
+  | 5   | %ymd-1w | Our Pub | this Q    |           |      120 |        |    750 | -120 |
+  | 4   | %ymd-3m | Bea Two | what G    |           |      240 |        |    870 | -240 |
+  | 501 | %ymd-4m |         | from bank |      1000 |          |        |   1110 | 1000 |
+  | 3   | %ymd-4m | Our Pub | usd F     |           |          |    100 |    110 |  100 |
+  | 2   | %ymd-5m | Bea Two | cash E    |           |          |     10 |     10 |   10 |
+  |     |         | TOTALS  |           |      1000 |      540 |    210 |        |  670 |
+#  | 1   | %ymd-7m | ZZrCred | signup    |           |          |        |    250 |  250 |
   And with download columns:
   | column |*
   | Date   |

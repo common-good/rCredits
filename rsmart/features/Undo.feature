@@ -13,13 +13,13 @@ Summary:
   
 Setup:
   Given members:
-  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags      |*
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |      5 | ok,confirmed         |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |      5 | ok,confirmed         |
-  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |     10 | ok,confirmed,co      |
-  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |      5 | ok,confirmed         |
-  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |      5 | ok,confirmed,secret |
-  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,confirmed,co      |
+  | id   | fullName   | email | cc  | cc2  | floor | flags                |*
+  | .ZZA | Abe One    | a@    | ccA | ccA2 |  -250 | ok,confirmed,debt    |
+  | .ZZB | Bea Two    | b@    | ccB | ccB2 |  -250 | ok,confirmed,debt    |
+  | .ZZC | Corner Pub | c@    | ccC |      |  -250 | ok,confirmed,co,debt |
+  | .ZZD | Dee Four   | d@    | ccD | ccD2 |     0 | ok,confirmed         |
+  | .ZZE | Eve Five   | e@    | ccE | ccE2 |     0 | ok,confirmed,secret  |
+  | .ZZF | Far Co     | f@    | ccF |      |     0 | ok,confirmed,co      |
   And devices:
   | id   | code |*
   | .ZZC | devC |
@@ -41,11 +41,11 @@ Setup:
   | 2   | %today-6m | signup   |    250 | ctty | .ZZB | signup       |      0 |
   | 3   | %today-6m | signup   |    250 | ctty | .ZZC | signup       |      0 |
   Then balances:
-  | id   | balance | rewards|*
-  | ctty |       0 |      0 |
-  | .ZZA |       0 |    250 |
-  | .ZZB |       0 |    250 |
-  | .ZZC |       0 |    250 |
+  | id   | balance |*
+  | ctty |       0 |
+  | .ZZA |       0 |
+  | .ZZB |       0 |
+  | .ZZC |       0 |
 
 #Variants: with/without an agent
 #  | ".ZZA" asks device "devC" | ".ZZC" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # member to member (pro se) |
@@ -62,13 +62,13 @@ Scenario: An agent asks to undo a charge
   | .ZZA   | ccA  | 80.00  |     1 | whatever    | %today-1d |
 #  When agent "C:B" asks device "devC" to undo transaction 4 code "ccA"
   Then we respond ok txid 5 created %now balance 0 rewards 250 saying:
-  | solution | did      | otherName | amount | why   | reward |*
-  | reversed | refunded | Abe One   | $80    | goods | $-4    |
+  | solution | did      | otherName | amount | why   |*
+  | reversed | refunded | Abe One   | $80    | goods |
   And with did ""
   And with undo "4"
-  And we notice "new refund|reward other" to member ".ZZA" with subs:
-  | created | otherName  | amount | payerPurpose           | otherRewardAmount |*
-  | %today  | Corner Pub | $80    | whatever (reverses #2)  | $-4               |
+  And we notice "new refund" to member ".ZZA" with subs:
+  | created | otherName  | amount | payerPurpose           |*
+  | %today  | Corner Pub | $80    | whatever (reverses #2)  |
 
 Scenario: An agent asks to undo a charge when balance is secret
   Given transactions: 
@@ -81,9 +81,9 @@ Scenario: An agent asks to undo a charge when balance is secret
   | reversed | refunded | Eve Five  | $80    | goods | $-4    |
   And with did ""
   And with undo "5"
-  And we notice "new refund|reward other" to member ".ZZE" with subs:
-  | created | otherName  | amount | payerPurpose           | otherRewardAmount |*
-  | %today  | Corner Pub | $80    | whatever (reverses #2)  | $-4               |
+  And we notice "new refund" to member ".ZZE" with subs:
+  | created | otherName  | amount | payerPurpose           |*
+  | %today  | Corner Pub | $80    | whatever (reverses #2)  |
 
 Scenario: An agent asks to undo a refund
   Given transactions: 
@@ -95,9 +95,9 @@ Scenario: An agent asks to undo a refund
   | reversed | re-charged | Abe One   | $80    | goods | $4     |
   And with did ""
   And with undo "4"
-  And we notice "new charge|reward other" to member ".ZZA" with subs:
-  | created | otherName  | amount | payerPurpose         | otherRewardAmount |*
-  | %today  | Corner Pub | $80    | refund (reverses #2)  | $4                |
+  And we notice "new charge" to member ".ZZA" with subs:
+  | created | otherName  | amount | payerPurpose         |*
+  | %today  | Corner Pub | $80    | refund (reverses #2)  |
 
 Scenario: An agent asks to undo a cash-out charge
   Given transactions: 
@@ -134,19 +134,19 @@ Scenario: An agent asks to undo a charge, with insufficient balance
   | 5   | %today    | transfer |    300 | .ZZC | .ZZB | cash out     | %FOR_USD   |      0 |
   When agent "C:B" asks device "devC" to undo transaction 4 code "ccA"
   Then we respond ok txid 6 created %now balance 0 rewards 250 saying:
-  | solution | did      | otherName | amount | why   | reward |*
-  | reversed | refunded | Abe One   | $80    | goods | $-4    |
+  | solution | did      | otherName | amount | why   |*
+  | reversed | refunded | Abe One   | $80    | goods |
   And with did ""
   And with undo "4"
-  And we notice "new refund|reward other" to member ".ZZA" with subs:
-  | created | otherName  | amount | payerPurpose           | otherRewardAmount |*
-  | %today  | Corner Pub | $80    | whatever (reverses #2)  | $-4               |
+  And we notice "new refund" to member ".ZZA" with subs:
+  | created | otherName  | amount | payerPurpose           |*
+  | %today  | Corner Pub | $80    | whatever (reverses #2)  |
   And balances:
-  | id   | balance | rewards |*
-  | ctty |       0 |       0 |
-  | .ZZA |       0 |     250 |
-  | .ZZB |     300 |     250 |
-  | .ZZC |    -300 |     250 |
+  | id   | balance |*
+  | ctty |       0 |
+  | .ZZA |       0 |
+  | .ZZB |     300 |
+  | .ZZC |    -300 |
 
 Scenario: An agent asks to undo a refund, with insufficient balance  
   Given transactions: 
@@ -155,19 +155,19 @@ Scenario: An agent asks to undo a refund, with insufficient balance
   | 5   | %today    | transfer |    300 | .ZZA | .ZZB | cash out     | %FOR_USD   |      0 |
   When agent "C:B" asks device "devC" to undo transaction 4 code "ccA"
   Then we respond ok txid 6 created %now balance -300 rewards 250 saying:
-  | solution | did        | otherName | amount | why   | reward |*
-  | reversed | re-charged | Abe One   | $80    | goods | $4     |
+  | solution | did        | otherName | amount | why   |*
+  | reversed | re-charged | Abe One   | $80    | goods |
   And with did ""
   And with undo "4"
-  And we notice "new charge|reward other" to member ".ZZA" with subs:
-  | created | otherName  | amount | payerPurpose | otherRewardAmount |*
-  | %today  | Corner Pub | $80    | refund (reverses #2)  | $4                     |
+  And we notice "new charge" to member ".ZZA" with subs:
+  | created | otherName  | amount | payerPurpose         |*
+  | %today  | Corner Pub | $80    | refund (reverses #2)  |
   And balances:
-  | id   | balance | rewards |*
-  | ctty |       0 |       0 |
-  | .ZZA |    -300 |     250 |
-  | .ZZB |     300 |     250 |
-  | .ZZC |       0 |     250 |
+  | id   | balance |*
+  | ctty |       0 |
+  | .ZZA |    -300 |
+  | .ZZB |     300 |
+  | .ZZC |       0 |
 
 Scenario: An agent asks to undo a charge, without permission
   Given transactions: 
@@ -175,8 +175,8 @@ Scenario: An agent asks to undo a charge, without permission
   | 4   | %today-1d | transfer |     80 | .ZZB | .ZZC | whatever     | %FOR_GOODS |      1 |
   When agent "C:A" asks device "devC" to undo transaction 4 code "ccB"
   Then we respond ok txid 5 created %now balance 0 rewards 250 saying:
-  | solution | did      | otherName | amount | why   | reward |*
-  | reversed | refunded | Bea Two   | $80    | goods | $-4    |
+  | solution | did      | otherName | amount | why   |*
+  | reversed | refunded | Bea Two   | $80    | goods |
 #  Then we return error "no perm" with subs:
 #  | what    |*
 #  | refunds |
@@ -190,8 +190,8 @@ Scenario: An agent asks to undo a refund, without permission
   | 4   | %today-1d | transfer |    -80 | .ZZB | .ZZC | refund       | %FOR_GOODS |      1 |
   When agent "C:D" asks device "devC" to undo transaction 4 code "ccB"
   Then we respond ok txid 5 created %now balance 0 rewards 250 saying:
-  | solution | did        | otherName | amount | why   | reward |*
-  | reversed | re-charged | Bea Two   | $80    | goods | $4     |
+  | solution | did        | otherName | amount | why   |*
+  | reversed | re-charged | Bea Two   | $80    | goods |
 #  Then we return error "no perm" with subs:
 #  | what  |*
 #  | sales |

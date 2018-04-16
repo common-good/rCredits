@@ -8,13 +8,13 @@ SO my company can sell stuff, give refunds, and trade rCredits for US Dollars.
 
 Setup:
   Given members:
-  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags             | helper |*
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,confirmed      | 0      |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,confirmed      | 0      |
-  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,confirmed   | .ZZA   |
-  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,confirmed      | 0      |
-  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,secret,roundup | .ZZD   |
-  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,confirmed   | 0      |
+  | id   | fullName   | email | cc  | cc2  | floor | flags             | helper |*
+  | .ZZA | Abe One    | a@    | ccA | ccA2 |  -250 | ok,confirmed,debt | 0      |
+  | .ZZB | Bea Two    | b@    | ccB | ccB2 |  -250 | ok,confirmed,debt | 0      |
+  | .ZZC | Corner Pub | c@    | ccC |      |     0 | ok,co,confirmed   | .ZZA   |
+  | .ZZD | Dee Four   | d@    | ccD | ccD2 |     0 | ok,confirmed      | 0      |
+  | .ZZE | Eve Five   | e@    | ccE | ccE2 |  -250 | ok,secret,roundup,debt | .ZZD   |
+  | .ZZF | Far Co     | f@    | ccF |      |     0 | ok,co,confirmed   | 0      |
   And devices:
   | id   | code |*
   | .ZZC | devC |
@@ -38,13 +38,13 @@ Setup:
   | 4   | %today-6m | signup |    250 | ctty | .ZZE | signup  |
   | 5   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |
   Then balances:
-  | id   | balance | rewards |*
-  | ctty |    -500 |       0 |
-  | .ZZA |       0 |     250 |
-  | .ZZB |       0 |     250 |
-  | .ZZC |     250 |       0 |
-  | .ZZE |       0 |     250 |
-  | .ZZF |     250 |       0 |
+  | id   | balance |*
+  | ctty |    -500 |
+  | .ZZA |       0 |
+  | .ZZB |       0 |
+  | .ZZC |     250 |
+  | .ZZE |       0 |
+  | .ZZF |     250 |
 
 #Variants: with/without an agent
 #  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to member |
@@ -54,44 +54,44 @@ Scenario: A cashier asks to charge someone
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $100 for "goods": "food" at %now
   # cash exchange would be for "cash": "cash out"
   Then we respond ok txid 6 created %now balance -100 rewards 260 saying:
-  | did     | otherName | amount | why   | reward |*
-  | charged | Bea Two   | $100   | goods | $10    |
+  | did     | otherName | amount | why   |*
+  | charged | Bea Two   | $100   | goods |
   And with did
   | did     | amount | forCash |*
   | charged | $100   |         |
   And with undo
   | created | amount | tofrom | otherName |*
   | %dmy    | $100   | from   | Bea Two   |
-  And we notice "new charge|reward other" to member ".ZZB" with subs:
-  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
-  | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
+  And we notice "new charge" to member ".ZZB" with subs:
+  | created | fullName | otherName  | amount | payerPurpose |*
+  | %today  | Bea Two  | Corner Pub | $100   | food         |
   And balances:
-  | id   | balance | rewards |*
-  | ctty |    -500 |       0 |
-  | .ZZA |       0 |     250 |
-  | .ZZB |    -100 |     260 |
-  | .ZZC |     350 |       5 |
+  | id   | balance |*
+  | ctty |    -500 |
+  | .ZZA |       0 |
+  | .ZZB |    -100 |
+  | .ZZC |     350 |
 
 Scenario: A cashier asks to refund someone
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $-100 for "goods": "food" at %now
   Then we respond ok txid 6 created %now balance 100 rewards 240 saying:
-  | did      | otherName | amount | why   | reward |*
-  | refunded | Bea Two   | $100   | goods | $-10   |
+  | did      | otherName | amount | why   |*
+  | refunded | Bea Two   | $100   | goods |
   And with did
   | did      | amount | forCash |*
   | refunded | $100   |         |
   And with undo
   | created | amount | tofrom | otherName |*
   | %dmy    | $100   | to     | Bea Two   |
-  And we notice "new refund|reward other" to member ".ZZB" with subs:
-  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
-  | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $-10              |
+  And we notice "new refund" to member ".ZZB" with subs:
+  | created | fullName | otherName  | amount | payerPurpose |*
+  | %today  | Bea Two  | Corner Pub | $100   | food         |
   And balances:
-  | id   | balance | rewards |*
-  | ctty |    -500 |       0 |
-  | .ZZA |       0 |     250 |
-  | .ZZB |     100 |     240 |
-  | .ZZC |     150 |      -5 |
+  | id   | balance |*
+  | ctty |    -500 |
+  | .ZZA |       0 |
+  | .ZZB |     100 |
+  | .ZZC |     150 |
 
 Scenario: A cashier asks to charge another member, with insufficient balance
   When agent "C:A" asks device "devC" to charge ".ZZB,ccB" $300 for "goods": "food" at %now

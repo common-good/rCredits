@@ -232,12 +232,26 @@ function formProx($form, &$sta, $args) {
 }
 
 /**
- * Generate choices for a member autocomplete field
+ * Print a JSON array of communities
+ */
+function cttyList() {
+  $cttys = db\q('SELECT uid,fullName FROM users WHERE uid<0 ORDER BY fullName')->fetchAllKeyed();
+  $cttys[0] = t('ALL communities');
+  foreach ($cttys as $k => $v) $cttys[$k] = trim(str_replace(PROJECT, '', $v));
+  asort($cttys);
+  unset($cttys[$seed = r\serverUid()]);
+  $cttys[$seed] = t('Seedpack (no community yet)'); // last
+/**/ echo json_encode($cttys);
+  exit();
+}
+
+/**
+ * Generate choices for a member typeahead field
  * @param string $string: what the user has typed so far
  * @param string $role: 'payer', 'payee', 'industry', 'company', or '' (other), depending on the role of the user
  * @param int $myid: the current account (globals and session variables are inappropriate here)
  * @todo: ditch this altogether or make it efficient with separate rCredits backend (put it in the api)
- *    maybe even use .htaccess to redirect the autocomplete URL to the backend? privacy is not crucial here
+ *    maybe even use .htaccess to redirect the typeahead URL to the backend? privacy is not crucial here
  * @patched: Drupal bug which gets Ajax error on any input that matches (.*)/?.([^\.]|\..)
  */
 function auto($role = '', $myid = 0, $string = '') {
@@ -672,7 +686,7 @@ function statement($month = '') {
   }
   $fields[1] = explode('; ', "/balTitle/15/; Starting/bal0/28/R; /plus/$w/R; From Bank/frombank/23/R; /minus/$w/C; Paid*/fromyou/23/R; /plus/$w/R; Received/toyou/23/R;$rew1 /equals/$w/R; Ending/bal9/28/R");
   $pdf->colHeads($fields[1]);
-  $fields[2] = explode('; ', "/savingsTitle/15/; /savings0/28/R; //$w/R; //23/R; /minus/$w/C; /$fromRew/23/R; /plus/$w/R; /toSavings/23/R;$rew2 //$w/R; /savings9/28/R");
+//  $fields[2] = explode('; ', "/savingsTitle/15/; /savings0/28/R; //$w/R; //23/R; /minus/$w/C; /$fromRew/23/R; /plus/$w/R; /toSavings/23/R;$rew2 //$w/R; /savings9/28/R");
 //  $fields[3] = explode('; ', "//15; /underline0/28/R; //$w; //23; //$w; //23; //$w; //23;$rew34 //$w; /underline9/28/R");
 //  $fields[4] = explode('; ', "//15; /total0/28/R; //$w; //23; //$w; //23; //$w; //23;$rew34 //$w; /total9/28/R");
   
@@ -693,7 +707,7 @@ function statement($month = '') {
 //  u\prefix('+ ', $savings9);
   
   $pdf->setFontSize(.9 * $size);
-  for ($i = 1; $i <= 2; $i++) foreach ($fields[$i] as $one) {
+  for ($i = 1; $i <= 1; $i++) foreach ($fields[$i] as $one) {
     list ($head, $fldName, $width, $align) = explode('/', "$one/");
     foreach (ray('fromyou fromSavings reward', 1, 1, 3) as $k => $v) if ($fldName == $k) $$k .= str_repeat(' ', $v); // footnote alignment
     $pdf->Cell($width, 0, @$fldName ? @$$fldName : '', '', @$fldName[strlen(@$fldName) - 1] == '9' ? 1 : 0, $align);
@@ -891,12 +905,12 @@ function formHelp($form, &$sta, $what = '', $args = '') {
   
   list ($what, $tag) = (strpos($what, '@')) ? explode('@', $what) : array($what == 'other' ? '' : $what, '');
   $title = item($what ? ucwords(str_replace('-', ' ', $what)) : t('General Help'));
-  $stranger = t('Interested in %PROJECT? Visit <%a>%CG_DOMAIN</a> for more information or to request an invitation to participate.', '_a', w\atag(CG_DOMAIN));
-  $text = fld('item', '', '', ($signedIn or $what)? helpText($what ?: 'general', $tag, $args) : $stranger);
+  $stranger = t('Interested in %PROJECT? Visit <%a>%CG_DOMAIN</a> for more information or to request an invitation to participate.', '_a', w\atag(PROMO_URL));
+  $text = w\item(($signedIn or $what)? helpText($what ?: 'general', $tag, $args) : $stranger);
   if ($signedIn and !$what) {
     
     $message = areaFld(t('Send a message to a %PROJECT Administrator:'), '', required());
-    $file = fld('file', t('Secure Attachment:'), t('(optionally) attach a file to your message. The file will be encrypted.'));
+    $file = fileFld(t('Secure Attachment:'), t('(optionally) attach a file to your message. The file will be encrypted.'));
     $submit = submit(t('Send'));
   }
 
@@ -1084,12 +1098,12 @@ function formProxy_submit($form, &$sta) {
 //  w\say('info saved');
 
   if (!r\acct()) { // called from email link
-    return $priority == 1 ? r\go("prox/page=Proxy&priority=2&$args") : w\doSay(t('Success!'), 'ok');
+    return $priority == 1 ? r\go("/prox/page=Proxy&priority=2&$args") : w\doSay(t('Success!'), 'ok');
   } elseif ($mya->proxy(1+2 - $priority)) { // do we already have the other proxy?
-//    return r\go($mya->ok ? 'settings/proxies' : 'status');
+//    return r\go($mya->ok ? '/settings/proxies' : 'status');
   } else say('proxy to go');
 
-  return r\go('settings/proxies', 'info saved');
+  return r\go('/settings/proxies', 'info saved');
 }
 
 /**
@@ -1160,7 +1174,7 @@ function formInvite($form, &$sta) {
   $where = r\location($mya->cttyA); // currently UNUSED
   $inviteCode = $mya->iCardCode(IBY_EMAIL);
   $_inviteLink = PROMO_URL . "/signup/code=$inviteCode";
-  $warning = $mya->co ? t('<p>Note that you are sending an invitation on behalf of a company. Companies are not people and there is a danger in giving companies permission to act like people. The company is "trusting" whoever you invite -- a sentiment usually reserved for humans.</p>') : '';
+  $warning = $mya->co ? t('<p>Note you are sending an invitation on behalf of a company. The company is "trusting" whoever you invite. We at %PROJECT recognize that companies are not people, and that it\'s a bit odd to allow them a sentiment usually reserved for humans.</p>') : '';
   //Plus $@R_COUNTED_BONUSr for each employee, if they open a company account. 
   $subtext1 = t('We\'re sorry, you cannot invite someone to sign up until you have signed the <%aSign>Agreement</a> and made a <%aDonate>donation</a>.', '_aSign _aDonate', w\atag('/community/agreement'), w\atag('/community/donate'));
   //<br><br>Return to the <a href=\"%BASE_URL/status\">Membership Steps</a> page to see where you stand.
@@ -1181,7 +1195,7 @@ function formInvite($form, &$sta) {
   
   $subtext2 = $mya->cttyRewardy ? t('<p>Get a $%R_HELPER_BONUS reward for each %friend you invite, who signs up!</p>', compact('friend')) : '';
   $subtext2 .= t(<<<EOF
-<p>Your friends and business associates can join %PROJECT <b>only if you invite them</b>. You may need to help or remind the people you invite.</p><p>Invite <b>only people you trust</b> who live, shop, or work in your community. <%a2>Who you have invited</a> <%a1>People waiting to be invited</a></p>
+<p>Invite <b>only people you trust</b> who live, shop, or work in your community. You may need to help or nudge the people you invite. <%a2>Who you have invited</a> <%a1>People waiting to be invited</a></p>
   <br>
   <p>Here are three different ways to invite someone:</p>
     <ul>
@@ -1322,7 +1336,7 @@ function formSummary($form, &$sta) {
     
     if ($stepUrl == 'summary') {
       if (@$msg) w\say(t('New member is told: ') . t($msg));
-    } elseif ($stepUrl) w\say(t('New member will be sent <a href="%stepUrl">there</a> upon signing in.', compact('stepUrl')));
+    } elseif ($stepUrl) w\say(t('New member will be sent <a href="%stepUrl">there</a> upon signing in.', 'stepUrl', "$base_url/$stepUrl"));
     
   } else { // normal
     if ($stepUrl and $stepUrl != 'summary') return r\go($stepUrl);
@@ -1340,19 +1354,19 @@ function formSummary($form, &$sta) {
 //  $cttyBene = item("$cttyBeneMo " . t('over the past month') . "<br>$cttyBene " . t('overall (ever), including %gifts in contributions', compact('gifts')), t('Social return:'), t('Financial benefit to your community to date, from your participation together with other members, empowering economic democracy! [<%a>details</a>]', '_a', w\atag('/help/social-return')));  
   $cttyBene = item("$cttyBene " . t('overall, including your %gifts in contributions', compact('gifts')), t('Social return:'), t('Financial benefit to your community to date, from your participation together with other members, empowering economic democracy! [<%a>details</a>]', '_a', w\atag('/help/social-return')));  
     
-  // $showCustomers = w\item(w\btn('community/data/qName=6Customers', t('Customer List')));
+  // $showCustomers = w\item(w\btn('/community/data/qName=6Customers', t('Customer List')));
 
   if ($mya->canManage) {
     $hasMultipleAccounts = ($mya->co or db\exists('r_relations r LEFT JOIN users u ON u.uid=r.main', 'other=:id AND permission>0 AND u.:IS_CO', ['id' => $mya->agentId]));
     $another = $hasMultipleAccounts ? t('Another') : t('a');
-    $makeCo = w\btn('signup-company', t('Open %another Company Account', compact('another')), 'primary', 'xs');
-//    if (!$mya->jid and !$mya->co) $makeJoint = w\btn('signup/joint=1', t('Make this a joint account'), 'primary', 'xs');
+    $makeCo = w\btn('/signup-company', t('Open %another Company Account', compact('another')), 'primary', 'xs');
+//    if (!$mya->jid and !$mya->co) $makeJoint = w\btn('/signup/joint=1', t('Make this a joint account'), 'primary', 'xs');
     if ($mya->member and !$mya->jid and !$mya->co) $makeJoint = w\btn('/prejoin', t('Make this a joint account'), 'primary', 'xs');
     if (!$mya->co and $hasMultipleAccounts) $clickPhoto = item(t('Click your photo to manage your other account(s).'));
   }
 
-  if ($mya->co) $reports = w\btn('company-reports', t('Reports'));
-  if ($mya->id == r\cgfId()) $deposits = w\btn('sadmin/show-deposits', t('Deposits'));
+  if ($mya->co) $reports = w\btn('/company-reports', t('Reports'));
+  if ($mya->id == r\cgfId()) $deposits = w\btn('/sadmin/show-deposits', t('Deposits'));
   $topButtons = item(@$makeCo . @$makeJoint . @$reports . @$deposits);
 
   $title = item(t('Account Summary'));
@@ -1368,8 +1382,9 @@ function formSummary($form, &$sta) {
     if ($mya->rewards) $balanceDesc .= t(' (see <%a>History</a>)', '_a', w\atag('/history'));
     $balance = item($balance . "<small>$balanceDesc</small>", t('Balance:'));
 //    $savings = item(u\fmtAmt($mya->savings) . t('<small> (your total incentive rewards to date)</small>', [
-    list ($rewardNote, $rewardDesc) = $mya->cttyRewardy ? [t('<small> (your total incentive rewards to date)</small>'), t('This amount will be yours to keep, once your community reaches a certain size.')] : ['', t('Some of this amount may be yours to keep, at your %PROJECT community\'s decision, once membership reaches a certain size.')];
-    $savings = item(u\fmtAmt($mya->rewards) . $rewardNote, t('Credit Line:'), $rewardDesc);
+//    list ($rewardNote, $rewardDesc) = $mya->cttyRewardy ? [t('<small> (your total incentive rewards to date)</small>'), t('This amount will be yours to keep, once your community reaches a certain size.')] : ['', t('Some of this amount may be yours to keep, at your %PROJECT community\'s decision, once membership reaches a certain size.')];
+//    $savings = item(u\fmtAmt($mya->rewards) . $rewardNote, t('Credit Line:'), $rewardDesc);
+    $creditLine = item(u\fmtAmt(-$mya->floor), t('Credit Line:'), t('Based on your account\'s average monthly activity over the past 6 months.'));
 //    $committed = item(u\fmtAmt(max(0, $mya->committed)), t('Committed:'), t('reserved for donation to Common Good Finance'));
 
     $successes = db\count('users', 'helper=:myid AND activated<>0', compact('myid'));
@@ -1388,9 +1403,9 @@ function formSummary($form, &$sta) {
       $extra .= ' ' . w\popHelp(t('bank info'), $bankInfo, '#'); //strtr(t(' <@a>bank info</a>'), ['@a'=>$bankInfo]); // strtr circumvents Drupal crap
     }
   } else $extra = '';
-  $accountId = fld('item', t('ID:'), '', ($mya->mainQid ?: 'N/A') . ' (' . $acctType . ')' . $extra);
+  $accountId = w\item(($mya->mainQid ?: 'N/A') . ' (' . $acctType . ')' . $extra, t('ID:'));
 
-  $fields = 'photo title clickPhoto showCustomers topButtons accountId accountName details address legalName shortName federalId community balance savings creditLimit committed invites cttyBene';
+  $fields = 'photo title clickPhoto showCustomers topButtons accountId accountName details address legalName shortName federalId community balance creditLine creditLimit committed invites cttyBene';
   foreach (ray('details') as $k) $$k = @$form[$k]; unset($form[$k]); // put these on the left if admin
   $fields = compact(ray($fields));
   
@@ -1490,8 +1505,8 @@ function formSummary_submit($form, &$sta) {
   if (isset($rTrader)) $mya->setBit(B_OK, @$rTrader, TRUE);
   if ($mya->cAdmin or $mya->admin) setRisksAndFlags($mya, @$risks, @$adminable); // don't test for isset (allow turning off all bits)
   if ($mya->helper and ($mya->ok or !@$helper)) unset($helper); // don't overwrite if too late or empty
-//  $floor = -$creditLimit;
-  $mya->update(compact(ray('legalName federalId floor tickle notes helper mediaConx moves')));
+//  $floor = -$creditLimit; // floor is calculated automatically
+  $mya->update(compact(ray('legalName federalId tickle notes helper mediaConx moves')));
   
   unset($DBTX);
   
@@ -1754,7 +1769,7 @@ function formPhoto_submit($form, &$sta) {
     $mya->setBit(B_MEMBER, FALSE);
     $mya->setBit(B_OK, FALSE);
     say(t('photo removed, step undone, person set to non-member'));
-    return r\go('settings/photo');
+    return r\go('/settings/photo');
   } else return w\goNextStep('photo');
 }
 
@@ -1892,7 +1907,9 @@ EOF;
 //  $desc = item($a->description);
 	$pd = new \Parsedown();
 	$pd->setSafeMode(TRUE);
-	$desc = item($pd->text($a->description));	
+  $desc = $pd->text($a->description);
+  $desc = strtr($desc, ["\\\n" => "<br>", '\\' => "<br>"]);
+	$desc = item($desc);	
 
   return labeled(compact(ray('pic title contact desc cats')));
 }
@@ -1923,10 +1940,15 @@ function formTx($form, &$sta, $args = '') {
 
   // set up form fields
   $title = item(ucwords($type));
-  if ($mya->co) {
-    list ($thing, $url) = $type == 'pay' ? [t('Payroll'), '/pay/payroll'] : [t('Invoices'), '/charge/invoices'];
-    $subtext = item('<small>[' . t('<%a>Upload %thing</a>', '_a thing', w\atag($url), $thing) . ']</small>');
-  }
+  $subtext = $type == 'pay' ? w\btn('/pay/payments', t('Upload Payments'), 'default') : '';
+  if ($mya->co) $subtext .= ' ' . ($type == 'pay' 
+    ? w\btn('/pay/payroll', t('Upload Payroll'), 'default')
+    : w\btn('/charge/invoices', t('Upload Invoices'), 'default')
+  );
+  $subtext = w\item($subtext);
+//    list ($thing, $url) = $type == 'pay' ? [t('Payroll'), '/pay/payroll'] : [t('Invoices'), '/charge/invoices'];
+//    $subtext = item('<small>[' . t('<%a>Upload %thing</a>', '_a thing', w\atag($url), $thing) . ']</small>');
+//  }
 
   $whoLabel = ($type == 'loan' ? t('Lend to') : ucwords($type)) . t(' whom:');
   $question = ($type == 'loan' ? t('Lend') : ucwords($type)) . t(' %amount to %name?'); 
@@ -1955,19 +1977,12 @@ function formTx($form, &$sta, $args = '') {
 function formTx_validate($form, &$sta) {
   extract(just('who', $sta['input']));
   if (strpos($who, '@') and $err = !\valid_email_address($email = $who)) return w\say('bad email', compact('email'), 'who');
-//  if (confirming_v($sta)) return;
-//  if ($err = amtErr('amount', $sta)) return say($err, 'amount'); // not needed
-//  if ($confirm = transfer(op($sta), $sta['input'], FALSE)) confirm($confirm, $sta); // op who amount goods what
-//  transfer(op($sta), $sta['input'], FALSE);
 }
 
 function formTx_submit($form, &$sta) {
   extract($info = just('who amount goods purpose', $sta['input']));
   if (strpos($who, '@')) return r\go('charge/nonmember/' . u\urlify(serialize($info)));
-//  global $fieldErr;
-//  if (confirming_s($sta)) return;
   w\transfer($op = op($sta), $info); // op who amount goods what
-//  if (!$fieldErr) return r\go($op); // this is especially important when skipping the confirmation (scanning)
 }
 
 /**
@@ -1994,89 +2009,151 @@ function formTxNonmember_submit($form, &$sta) {
 
 /**
  * Upload invoices spreadsheet to create invoices.
+ * The validate and submit functions are also called by PaymentsUpload and Payroll.
  */
 function formInvoiceUpload($form, &$sta) {
-  global $base_url;
-  global $mya;
+  global $base_url, $mya;
+
   $title = item(t('Upload Invoices'));
-  $subtext = item(t(<<<EOF
-  <ol>
-  <li><b>Create a spreadsheet</b> with one row for each customer. You need three columns:
-    <ul>
-    <li>Customer's 6-letter %PROJECT account ID, as in your <%a>Customer list</a>.</li>
-    <li>Amount to charge the customer.
-    <li>A description of the charge.
-    </ul>
-    Save the spreadsheet as a CSV file.<br>&nbsp;</li>
-  <li><p><b>Upload here</b> the CSV file you created in step one, to automatically charge each customer.</p>
-  </li>
-  </ol>
-EOF
-  , '_a', w\atag('/community/data/qName=6Customers')));
-  $invoices = fld('file', '', '', attrib(ray('enctype', "multipart/form-data")));
+  $selling = explode("\n", $mya->selling);
+  $instructions = csvUploadInstructions(t('invoice'), $selling[0]);
+  $subtext = item("<ul id=\"instructions\">$instructions</ul>");
+  $file = fileFld();
   $submit = submit('Upload and Invoice');
 
-  return labeled(compact(ray('title subtext invoices submit')));
+  return labeled(compact(ray('title subtext file submit')));
 }
 
-function formInvoiceUpload_validate($form, &$sta, $type = 'invoices') {
-  if (!@$_FILES['files']['name'][$type]) return say('upload required', $type);
+function formInvoiceUpload_validate($form, &$sta) {
+  if (!@$_FILES['files']['name']['file']) return say('upload required', 'file');
   $file = new \stdClass();
-  foreach ($_FILES['files'] as $k => $v) $file->$k = $v[$type];
+  foreach ($_FILES['files'] as $k => $v) $file->$k = $v['file'];
   if (function_exists('mime_content_type') and $filetype = mime_content_type($file->tmp_name)) {
-    if (!in_array($filetype, ['text/csv', 'text/plain'])) return say('bad file type', compact('filetype'), $type);
+    if (!in_array($filetype, ['text/csv', 'text/plain'])) return say('bad file type', compact('filetype'), 'file');
   }
-  if ($file->size > R_MAX_UPLOAD_SIZE * 1024000) return say(t('That file is too big'), $type);
+  if ($file->size > R_MAX_UPLOAD_SIZE * 1024000) return say(t('That file is too big'), 'file');
   $sta['input']['rows'] = w\uploadRows($file->tmp_name);
 }
 
-function formInvoiceUpload_submit($form, &$sta) {
+function formInvoiceUpload_submit($form, &$sta, $args = NULL) {
+  global $mya;
+
+  $fields = 'inv dftDesc did map onSuccess';
+  $selling = explode("\n", $mya->selling);
+  u\setDft($args, ray($fields, TRUE, $selling[0], t('invoiced'), [], NULL));
+  extract(just($fields, $args));
   extract(just('rows', $sta['input']));
 //  $rows = uploadRows($filename);
-  global $mya; $myid = $mya->id;
   
   $total = 0;
 
-  foreach ($rows as $i => $row) {
-    $atLine = t(' at line ') . ($i + 1); // for error messages
-    if (count($row) < 3) return say(t('Incomplete row') . $atLine);
-    list ($cust, $amt, $desc) = $row;
-    if ($err = u\badAmount($amt, '>0')) return say('bad csv|' . $err . $atLine, 'invoices');
-//    $isCustomer = exists('r_relations', 'main=:myid AND other=:cust', compact('myid', 'cust')) ?
-    $subs = compact('atLine', 'cust');
-    if (!$custA = r\acct($cust)) return say(t('Bad customer account ID %atLine: %cust'), $subs, 'invoices');
-    if (!r\relation(1, $myid, $custA->id)) return say(t('Account ID is not a customer of yours %atLine: %cust'), $subs, 'invoices');
-    $txs[] = [$custA->id, $amt, $desc, FOR_GOODS];
+  if (@$rows) foreach ($rows as $i => $row) {
+    if ($i == 0 and !strpos(@$row[0], '@')) {w\say(t('The header row (line 1) will be ignored.')); continue;}
+
+    $erSubs = ray('did line row', $did, $i + 1, join(' | ', $row));
+    if (count($row) < 3) return say(t('Incomplete row|in csv'), $erSubs, 'file');
+    @list ($account, $email, $amt, $desc) = $row; // desc is optional
+    if (!$account or u\starts(strtoupper($account), t('TOTAL'))) break; // should never happen unless user has a total line
+    if ($err = u\badAmount($amt, '>=0')) return say("$err|in csv", $erSubs, 'file');
+    if (!$amt) {w\say(t('The amount for this account is zero so it will not be %did:|in csv'), $erSubs); continue;}
+//    if (!($account or $email) or !$a = r\acct($account ?: $email)) return say(t('Bad account|in csv'), $erSubs, 'file');
+    if (!$account or !$a = r\acct($account)) return say(t('Bad account|in csv'), $erSubs, 'file');
+    if (!$a->ok) return say(t('This account is not yet activated:|in csv'), $erSubs, 'file');
+    $a->setBit(B_CONFIRMED); // count this as equivalent to an invitation to the person
+    if (!$email = strtolower($email) or $a->email != $email) return say(t('Bad email|in csv'), $erSubs, 'file');
+    $txs[] = [$a->id, $email, $amt, $desc ? strtr($desc, $map) : $dftDesc]; // someday we wlll allow paying and invoicing non-members by email and name
     $total += $amt;
-    $cust = $amt = '';
   }      
 
-  if (!@$txs) return say('empty invoice list', 'invoices');
+  if (!@$txs) return say('nothing to do', 'file');
+  
+  if ($inv) {
+    if ($shortfall = $mya->shortfall(FOR_GOODS, $total)) return say('short to', ray('short', u\fmtAmt($shortfall)), 'file');
+  }  
   
   foreach ($txs as $one) {
-    list ($uid, $amt, $desc, $goods) = $one;
+    list ($uid, $email, $amt, $desc) = $one;
     $a2 = r\acct($uid);
-    list ($msg, $subs) = be\invoice($mya, $a2, $amt, $goods, $desc);
+    list ($msg, $subs) = $inv 
+    ? be\invoice($mya, $a2, $amt, FOR_GOODS, $desc)
+    : be\transfer('payment', $mya, $a2, $amt, FOR_GOODS, $desc);
     if (!@$subs['success']) $err = TRUE;
-    $msg = str_replace('|balance unchanged', '', $msg); // otherwise this gets tiresome, repeated over and over
-    if (!$err and !$a2->ok) $msg .= '|' . t('<b class="loud">NOTE: </b>%otherName will need to finish opening a %PROJECT account.');
+    if ($inv) {
+      $msg = str_replace('|balance unchanged', '', $msg); // otherwise this gets tiresome, repeated over and over
+      if (!$err and !$a2->ok) $msg .= '|' . t('<b class="loud">NOTE: </b>%otherName will need to finish opening a %PROJECT account.');
+    }
     say($msg, $subs);
   }
   
   if (!@$err) {
-    $mya->update('payrollStart payrollEnd', u\s2t($startDate), u\s2t($endDate));
-    return r\go('history', t('payroll done', 'total count', u\fmtAmt($total), count($txs)));
+    if (is_callable($onSuccess)) $onSuccess($total);
+    return r\go('/history', t('txs upload done', 'did total count', $did, u\fmtAmt($total), count($txs)));
   }
 }
 
 /**
- * Upload payroll spreadsheet to create partial payments in rCredits.
+ * Upload a spreadsheet of payments.
  */
-function formPayroll($form, &$sta) {
+function formPayments($form, &$sta) {
   global $base_url;
   global $mya;
-  $title = item(t('Payroll Upload'));
-  $subtext = item(t(<<<EOF
+
+  $title = item(t('Payments Upload'));
+  $instructions = csvUploadInstructions(t('pay'), t('payment'));
+  $subtext = item("<ul id=\"instructions\">$instructions</ul>");
+
+  $file = fileFld();
+  $submit = submit('Upload and Pay');
+
+  return labeled(compact(ray('title subtext file submit')));
+}
+
+function formPayments_validate($form, &$sta) {
+  return formInvoiceUpload_validate($form, $sta);
+}
+
+function formPayments_submit($form, &$sta) {
+  $args = ray('inv dftDesc did map onSuccess', FALSE, t('payment'), t('paid'), [], NULL);
+  return formInvoiceUpload_submit($form, $sta, $args);
+}
+  
+/*
+  extract(just('rows', $sta['input']));
+  global $mya;
+
+  $total = 0;
+
+  if (@$rows) foreach ($rows as $i => $row) {
+    if ($i == 0 and !strpos(@$row[0], '@')) {w\say(t('The header row (line 1) will be ignored.')); continue;}
+
+    $erSubs = ['line' => $i + 1]; // for error messages
+    if (count($row) < 2) say(t('Empty row at line %line.', $ersubs));
+    @list ($account, $email, $amt, $desc) = $row; // desc is optional
+    if (!$account or u\starts(strtoupper($account), t('TOTAL'))) break; // should never happen unless user has a total line
+    if ($err = u\badAmount($amt, '>0')) return say('bad payments csv|' . $err, $erSubs, 'payments');
+    if (!@$account) return say('bad payments csv|' . t('Missing account.'), $erSubs, 'payments');
+    if (!$a = r\acct($account)) return say('bad payments account', $erSubs + compact('account'), 'payroll');
+
+    $toPay[] = [$a->id, $amt, $desc ?: t('payment'), FOR_GOODS];
+    $total += $amt;
+    $account = $amt = '';
+  }      
+
+  if (!@$toPay) return say('empty payments', 'payments');
+  if ($shortfall = $mya->shortfall(FOR_GOODS, $total)) return say('short to', ray('short', u\fmtAmt($shortfall)), 'payments');
+  
+  foreach ($toPay as $one) {
+    list ($uid, $amt, $desc, $goods) = $one;
+    list ($msg, $subs) = be\transfer('payment', $mya, r\acct($uid), $amt, $goods, $desc);
+    say($msg, $subs);
+    if (!@$subs['success']) $err = TRUE;
+  }
+  
+  if (!@$err) return r\go('history', t('txs upload done', 'did total count', t('paid'), u\fmtAmt($total), count($toPay)));
+}
+*/
+
+/*
   <ol>
   <li><b>Ask your participating employees</b> how many %RCREDITS they can receive each pay period, without having to cash them out (how many can they easily spend in two weeks, for example). Put those amounts in a two-column spreadsheet with name* in the first column and amount in the second. Save the spreadsheet as a CSV file.</li>
   <li><b>In your accounting software</b>, create an after-tax payroll deduction called "%PROJECT" (you need do this only once). Set that deduction for each employee to the amount of %RCREDITS they asked to be paid. Run payroll, to pay the US Dollar part of their wages.</li>
@@ -2084,8 +2161,29 @@ function formPayroll($form, &$sta) {
   </ol>
   <p><b>* NOTE:</b> Names in your spreadsheet must match names on the <%a>Relations page</a>. And make sure the amounts on the spreadsheet match the deduction amounts in your accounting software!!!</p>
 EOF
-  , '_a', w\atag('/settings/relations')));
-  $payroll = fld('file', '', '', attrib(ray('enctype', "multipart/form-data")));
+*/
+
+/**
+ * Upload payroll spreadsheet to create partial payments in rCredits.
+ */
+function formPayroll($form, &$sta) {
+  global $base_url;
+  global $mya;
+  
+  $title = item(t('Payroll Upload'));
+  $instructions = csvUploadInstructions(t('pay'), t('labor: <startdate> to <enddate>'));
+
+  $subtext = item(t(<<<EOF
+  <ul id="instructions">
+  <li><b>Ask your participating employees</b> how many %RCREDITS they can receive each pay period, without having to cash them out (how many can they easily spend in two weeks, for example). Or pay them entirely in %RCREDITS (your choice*).</li>
+  <li><b>In your accounting software</b>, create an after-tax payroll deduction called "%PROJECT" (you need do this only once). Set the %PROJECT deduction for each employee to the amount of %RCREDITS they asked to be paid. Use that same amount for the employee's account line in the spreadsheet you will create, as described below. Run payroll, to pay the US Dollar part of their wages, calculate taxes, etc.</li>
+%instructions
+  </ul>
+  <p><b>* NOTE:</b> You cannot require an employee to participate in %PROJECT. But if they ARE a %PROJECT member, they have agreed to accept %RCREDITS (without limit) as payment for their goods and services.</p>
+EOF
+  , '_a _instructions', w\atag('/settings/relations'), $instructions));
+
+  $file = fileFld();
   if ($end = $mya->payrollEnd) { // get date(s) from previous payroll
     $start = strtotime('tomorrow', $end); // start the day after previous period ends
     $end = $start + ($end - $mya->payrollStart); // same period length as last time
@@ -2097,19 +2195,33 @@ EOF
   $endDate = textFld(t('Ending:'), [t('Pay period end')], required(u\fmtDate($end, TRUE)));
   $submit = submit('Upload and Pay');
 
-  return labeled(compact(ray('title subtext startDate endDate payroll submit')));
+  return labeled(compact(ray('title subtext startDate endDate file submit')));
 }
 
 function formPayroll_validate($form, &$sta) {
   extract(just('startDate endDate', $sta['input']));
   list ($min, $max) = [strtotime('-2 months'), strtotime('+7 days')];
   foreach (['startDate', 'endDate'] as $k) if ($err = u\badDate($$k, $min, $max)) return sayFieldErr($err, $k);
-  return formInvoiceUpload_validate($form, $sta, 'payroll');
+  return formInvoiceUpload_validate($form, $sta);
 }
 
-define('R_NOREWARD', '<noreward>'); // "no rewards" flag in description
+//define('R_NOREWARD', '<noreward>'); // "no rewards" flag in description
 
 function formPayroll_submit($form, &$sta) {
+  global $startDate, $endDate;
+  extract(just('startDate endDate', $sta['input']));
+
+  $inv = FALSE;
+  $did = t('paid');
+  $map = ray('<startdate> <enddate>', $startDate, $endDate);
+  $dftDesc = strtr(t('labor: <startdate> to <enddate>'), $map);
+  $onSuccess = function ($total) {
+    global $startDate, $endDate, $mya;
+    $mya->update('payrollStart payrollEnd', u\s2t($startDate), u\s2t($endDate));
+  };
+  return formInvoiceUpload_submit($form, $sta, compact(ray('inv dftDesc did map onSuccess')));
+}
+/*
   extract(just('startDate endDate rows', $sta['input']));
   global $mya;
 
@@ -2143,8 +2255,25 @@ function formPayroll_submit($form, &$sta) {
   
   if (!@$err) {
     $mya->update('payrollStart payrollEnd', u\s2t($startDate), u\s2t($endDate));
-    return r\go('history', t('payroll done', 'total count', u\fmtAmt($total), count($toPay)));
+    return r\go('history', t('txs upload done', 'did total count', t('paid'), u\fmtAmt($total), count($toPay)));
   }
+}
+*/
+
+function csvUploadInstructions($do, $dftDesc) {
+  return t(<<<EOF
+  <li><b>Create a 4-column spreadsheet</b> with or without headers, with this information in each row, in this order (any additional columns will be ignored):
+    <ol>
+    <li>The %PROJECT account ID to %do.</li>
+    <li>The account's email address.</li>
+    <li>The amount to %do that account.</li>
+    <li>A short description of what the transaction is for (like "groceries" or "inv #7"). If you omit this, the description will be "%dftDesc".</li>
+    </ol>
+  </li>
+  <li><b>Save</b> the spreadsheet as a CSV file.</li>
+  <li><b>Upload</b> the CSV file here, to automatically %do that amount of %RCREDITS to each listed account.</li>
+EOF
+  , compact(ray('do dftDesc')));
 }
 
 function formMenu($form, &$sta) {return array('title' => item('Menu'));}
@@ -2295,22 +2424,25 @@ function formHandleInvoice($form, &$sta, $args = '') {
     $a = r\acct($payer);
     $title = item(t('Confirm Payment'));
     $subs += ray('who', r\acct($payee)->fullName);
-    
+
     if ($a->hasBank) {
       $_warning = t('<p><b>IMPORTANT:</b> To avoid insufficient funds charges, be sure there are enough funds in your bank account to cover any automatic transfer that may result from approving payment of this invoice (and future invoices, if you check the "Auto" box).</p>');
       if (!@$webpay) $always = boxFld('always', t('Auto:'), t('Pay all invoices from %who automatically.', $subs), 0);
+    } elseif ($a->balance <= 0) {
+      $_warning = t('You cannot approved this invoice until you have money in your account. Sign in at %CG_DOMAIN and click "Bank" on the menu.');
+      $disabled = w\disabled();
     } else $_warning = '';
-    
-    $subtext = item(t('<p>Pay %amount to %who for %what.</p>%warning', $subs + compact('_warning')));
-    $link = w\lnk('', '&nbsp; &nbsp;' . t('dispute'), ray('id', 'dispute-it'));
-    $pay = submit(t('Pay Now'), '', '', w\suffix($link));
 
+    $subtext = item(t('<p>Pay %amount to %who for %what.</p>%warning', $subs + compact('_warning')));
+    $link = '&nbsp; &nbsp;' . w\lnk('', t('dispute'), ray('id', 'dispute-it'));
+    $pay = submit(t('Pay Now'), '', '', w\suffix($link) + (@$disabled ?: []));
+    
     $whyNot = textFld(t('Reason for dispute:'));
     $deny = submit(t('Dispute'));
     $denySet = fieldSet('denySet', compact('whyNot', 'deny'), BARE);
     $toMe = hidFld(TRUE);
   } else { // confirming delete by originator
-    $title = item(t('Confirm Deletion'));
+    $title = item(t('Delete?'));
     $subs += ray('who', r\acct($payer)->fullName);
     $subtext = item(t('Delete invoice charging %who %amount for %what?', $subs));
     $delete = submit(t('Delete'));
@@ -2323,12 +2455,13 @@ function formHandleInvoice($form, &$sta, $args = '') {
   $form['#submit'] = array('rCredits\\Web\\formHandleInvoice_submit');
   w\jsx('dispute');
   
-  return labeled(compact(ray('title subtext always pay denySet delSet toMe hid')) + $form);
+  return labeled(compact(ray('title subtext always pay dispute denySet delSet toMe hid')) + $form);
 }
 
 function formHandleInvoice_validate($form, &$sta) {
   extract(just('whyNot toMe', $sta['input']));
-  if (@$toMe and op($sta) == 'deny' and !$whyNot) return say('say why not', 'whyNot');
+  $deny = (op($sta) == 'deny');
+  if (@$toMe and $deny and !$whyNot) return say('say why not', 'whyNot');
 }
 
 function formHandleInvoice_submit($form, &$sta) {
@@ -2384,7 +2517,7 @@ function formGet($form, &$sta, $args = '') {
   global $mya;
   global $base_url;
   
-  if (!$mya->hasBank) return r\go('settings/connect');
+  if (!$mya->hasBank) return r\go('/settings/connect');
   
   \drupal_page_is_cacheable(false); // suppress caching, so buttons work right
   $myid = $mya->id;
@@ -2419,7 +2552,7 @@ function formGet($form, &$sta, $args = '') {
     if ($rec = db\lookup('amount, txid', 'r_usd', $where, compact('myid', 'jid'))) {
       extract($rec);
       $text = t('Cancel') . (($amount == $waiting0) ? '' : (' ' . u\fmtAmt(abs($amount)) . t(' request')));
-      $link = " <a class=\"buttino\" href=\"get/cancel=$txid\">$text</a>";
+      $link = " <a class=\"buttino\" href=\"$base_url/get/cancel=$txid\">$text</a>";
     }
   }
   $way = $waiting0 < 0 ? t('to') : ('from');
@@ -2641,7 +2774,7 @@ function formSignup($form, &$sta, $args = '') {
   $count = $personal ? PERSONAL_STEP_COUNT : COMPANY_STEP_COUNT;
   $proxyInfo = w\lnk('help/proxies', t('more about proxies'), w\away());
   $proxyInfo = "<small>[$proxyInfo]</small>";
-  $proxyInfo = w\btn('help/proxies', t('more about proxies'), 'default', 'xs', w\away());
+  $proxyInfo = w\btn('/help/proxies', t('more about proxies'), 'default', 'xs', w\away());
   
   $subtext = item(@$joint ? t('From here on, "you" means the person for whom you are creating a new account, which will be joined to an existing account (creating a joint account).') : t(<<<EOF
 <p>Opening a %PROJECT Account takes 10-15 minutes and is very much like opening an online bank account. For example, you will be asked for your social security number or tax ID.</p>
@@ -2673,7 +2806,8 @@ EOF
 
     $companyInfo = array(
       'company_text' => item(t('Are you an owner and/or employee of a local company, or of any %PROJECT member company? Otherwise leave this part blank.')),
-      'company' => textFld(t('Company: '), [t('Your company')], autocomplete('company')),
+//      'company' => textFld(t('Company: '), [t('Your company')], autocomplete('company')),
+      'company' => textFld(t('Company: '), [t('Your company')]),
       'companyPhon' => textFld(t('Company Ph<span>&nbsp;</span>one:'), [t('Company phone number')]), // Google Chrome bug require obfuscation of "phone"
       'companyOptions' => boxesFld('', '', @$copts, $companyOptions), 
     );
@@ -3140,7 +3274,7 @@ function formConnect_submit($form, &$sta) {
     if (@$connect) { // wants bank
       if ($mya->country == US_COUNTRY_ID) $bankAccount = "USkk$routingNumber$bankAccount";
       $last4bank = substr($bankAccount, -4, 4);
-    } else list ($connect, $bankAccount) = [TRUE, $mya->bankAccount]; // has bank
+    } else list ($connect, $bankAccount) = [TRUE, 'no change']; // has bank
     if ($refills) $minimum = $target; // change minimum only explicitly
   } else { // removing or choosing not to connect
     $bankAccount = $last4bank = '';
@@ -3148,7 +3282,9 @@ function formConnect_submit($form, &$sta) {
   }
 
   list ($hasBank, $refill) = [$connect, $connect and $refills];
-  $mya->update(compact(ray('hasBank bankAccount last4bank refill minimum achMin saveWeekly')));
+  $fields = ray('hasBank last4bank refill minimum achMin saveWeekly');
+  if ($bankAccount != 'no change') $fields[] = 'bankAccount'; // avoid overwriting v-encrypted value
+  $mya->update(compact($fields));
 //    if ($saveWeekly < 0) say(t('@amount will be moved every week from your Savings Reserve to your Primary Account, until your Savings Reserve reaches its minimum.', ['@amount' => u\fmtAmt($saveWeekly)]));
   return w\goNextStep('connect');
 //  say('info saved' . ($mya->ok ? '' : '|return to membership'));
@@ -3225,8 +3361,8 @@ function formRelations($form, &$sta, $args = '') {
   }
 
   if ($mya->hasCustomers) $showCustomers = @$customers
-  ? w\item(w\btn("$base_url/settings/relations", t('Hide Customers')))
-  : w\item(w\btn('relations/customers=1', t('Show Customers')));
+  ? w\item(w\btn("/settings/relations", t('Hide Customers')))
+  : w\item(w\btn('/relations/customers=1', t('Show Customers')));
   
   $where = @$customers ? '1' : '(NOT isCustomer OR s.permission OR s.employee OR s.isOwner OR s.draw)';
   $sql = <<<EOF
@@ -3338,33 +3474,27 @@ function formRelations_submit($form, &$sta) {
 //  if (confirming_s($sta)) return;
   global $mya;
 
-  if ($other = @$sta['input']['newPerson']) { // adding a new relation
+  $vs = $sta['input'];
+  if ($other = @$vs['newPerson']) { // adding a new relation
     $mya->newRelation(compact('other'));
     $who = r\acct($other)->fullName;
     say('report new relation', compact('who'));
   }
   $changes = [];
   extract(just('raws0 raws', $sta['rawValues']));
-///  debug($sta['rawValues']);
   $joinPerm = r\perm(B_JOINT);
 
   $DBTX = \db_transaction();
-  foreach ($sta['input'] as $k => $v) { // ... be\updateRelations must check permissions and data carefully
-    if (!strpos($k, '-')) continue;
-    list ($k, $rawnum, $reid) = explode('-', $k); // eg split permission-2-37
-    if ($k != 'permission') continue; // get all the fields even when they don't appear (because they're false)
+
+  // handle all fields even when they don't appear (because they're false)
+  foreach (array_keys($raws0) as $i => $reid) {
     foreach (ray('permission draw employee isOwner') as $fld) {
-///   u\EXPECT(in_array($k, $ks = array_keys($raws)), "bad field in relations: $k " . print_r($ks, 1)); // hack attempt?
-//      $v = 0 + strtr($v, ['true' => 1, 'false' => 0]);
-      $key = "$fld-$rawnum-$reid";
-///      debug(compact(ray('fld k key v oldv')));
-      if ($fld != 'permission') $v = 0 + (bool) @$sta['input'][$key];
-      $oldv = 0 + $raws[$rawnum][$fld];
-///      debug(compact(ray('fld k key v oldv')));
-///   debug(compact('v','oldv','rawnum','k'));
-///   debug(0 + $raws[$rawnum][$k]);
-      if ($v != $oldv) { // changed
-        if ($fld == 'permission' and ($v == $joinPerm or $oldv == $joinPerm)) {
+      $k = "$fld-$i-$reid"; // rawnum
+      $v = 0 + ($fld == 'permission' ? @$vs[$k] : (bool) @$vs[$k]);
+      $vX = 0 + $raws[$i][$fld];
+
+      if ($v != $vX) { // changed
+        if ($fld == 'permission' and ($v == $joinPerm or $vX == $joinPerm)) {
           if ($v == $joinPerm) {
             if (@$gotJoin) {say('too many joins', 'err'); continue;} else $gotJoin = TRUE;
           }
@@ -3475,7 +3605,7 @@ function formBoxes_submit($form, &$sta) {
   if ($op == 'verify') {
     step_one($sta); // no next step (back to original form)
     say(be\addCell($new));
-    $sta['redirect'] = 'settings/boxes';
+    $sta['redirect'] = '/settings/boxes';
   }
     
   if ($op == 'delete') {
@@ -3553,7 +3683,7 @@ function formChangePassword_submit($form, &$sta) {
   global $mya;
   $mya->update('pass', $pass1);
   say(t('Your new password has been saved.'));
-  return r\go('settings/security');
+  return r\go('/settings/security');
 }
 
 /**
@@ -3711,7 +3841,7 @@ function formPass_submit($form, &$sta, $goto = '') {
   r\notify($myid, $goto ? 'verify' : 'password-reset', compact(ray('name qid code')), TRUE);
 /**/  if (isDEV or (NOT_PRODUCTION and $a->cAdmin)) w\say(t('Attention admin: code=%code Link: <a href="%BASE_URL/reset/id=%name&code=%code">reset</a>', compact(ray('name code'))));
 //  r\tellAdmin('password reset', compact(ray('name myid code')));
-  return r\go($goto ?: 'empty', $goto ? t('Email sent') : 'password reset');
+  return r\go($goto ?: '/empty', $goto ? t('Email sent') : 'password reset');
 }
 
 /**
@@ -3730,7 +3860,8 @@ function formFindCo($form, &$sta, $args = '') {
   $form = array(
     'title' => item(t('Find companies in your region')), // should be 'Find member businesses in your region'
 //    'subtext' => item(t('for a country name or postal code...')),
-    'which' => textFld(t('Search for:'), [t('Whatever'), t('Type part of company name or industry category')], dft(@$cos) + autocomplete('industry')),
+//    'which' => textFld(t('Search for:'), [t('Whatever'), t('Type part of company name or industry category')], dft(@$cos) + autocomplete('industry')),
+    'which' => textFld(t('Search for:'), [t('Whatever'), t('Type part of company name or industry category')], dft(@$cos)),
     'region' => textFld(t('Where:'), [t('Start of postal code'), t('Type the first few characters of your postal code<br>For example, use 013 for Franklin County, Massachusetts; 05 for Vermont, etc.')], dft(@$where)), // or country name
     'submit' => submit(t('Find')),
     'list' => w\item($list),
@@ -3799,7 +3930,7 @@ function formResend_submit($form, &$sta) {
   global $mya;
   extract(just('email', $sta['input']));
   $mya->update('email', $email);
-  return formPass_submit($form, $sta, 'settings/verify');
+  return formPass_submit($form, $sta, '/settings/verify');
 }
 
 function formCompany($form, &$sta, $arg = '') {
@@ -3856,7 +3987,7 @@ EOF;
   $website = textFld(t('Website:'), [t('Website address'), t('Especially if you want to accept payments on your website, be sure to list it here.')], dft($mya->website));
   $descPreface = item(t('<br>What does the company do? This description will appear on your %PROJECT web page.')); //, '', ['class'=>'help-block']);
 //  $description = fld('text_format', t('Description:'), [t('Arbitrarily complex description')], ['format' => 'filtered_html'] + dft(strtr($mya->description, ["\r" => '', "\n" => '', '<br>' => PHP_EOL, "\0" => ''])));
-  $description = areaFld(t('Description:'), t('Arbitrarily complex description, using <%a>markdown</a>.', '_a', w\atag('http://commonmark.org/help/')), w\dft($mya->description));
+  $description = areaFld(t('Description:'), t('Arbitrarily complex description, using <%a>markdown</a>. Use "\\" for line breaks.', '_a', w\atag('http://commonmark.org/help/')), w\dft($mya->description));
   $shortDesc = textFld(t('Short Desc:'), [t('Short description'), t('Short description of your company\'s products and services. Maximum 35 characters.')], attrib(['maxlength'=>35]) + required($mya->shortDesc));
   $employees = textFld(t('Employees:'), [t('Employee count'), t('How many employees do you have?')], required($mya->employees));
   $gross = textFld(t('Annual Gross:'), [t('Approximate annual gross income')], required($mya->gross));
@@ -3887,9 +4018,7 @@ function formCompany_submit($form, &$sta) {
   global $mya;
   $id = $mya->id;
   extract($info = just('private description shortDesc website selling categories can requireCashier employees gross tips fast atm', $sta['input']));
-//  $description = \check_markup($description['value']);
-//  if (is_array($description)) $description = @$description['value']; // when u\test(), description is scalar
-//  $description = str_ireplace([PHP_EOL, "\r", "\n", "\0", '</li><br>', '<ol><br>', '<ul><br>'], ['<br>', '', '', '', '</li>', '<ol>', '<ul>'], $description);
+  
   $website = str_ireplace('http://', '', @$website);
 
   $mya->setCoCans(@$can);
@@ -4056,23 +4185,14 @@ function chartData($args = '') {
 }
 
 function formGraphs($form, &$sta, $args) {
-  global $base_url;
   $a = w\eLinkAcct($sta, $args, 'any'); // may be called with qid=<communityUid>
   extract(just('qid', $args));
 
   $title = item(t('Community Statistics'));
-//  $cttys = db\q('SELECT uid,fullName FROM users WHERE uid<0 ORDER BY fullName')->fetchAllKeyed();
-//  $cttys[0] = t('ALL communities');
-//  $cttys[r\acct('!' . R_SERVER_ID)->id] = t('Seedpack (no community yet)');
-//  $onchange = w\onchange("window.location='$base_url/community/graphs/qid=' + $(this).val();");
   $dft = ($a and @$qid !== '0') ? $a->community : 0; $dft += 0; // + 0 for admin
-//  $ctty = w\selectFld(t('Community:'), '', $onchange + dft($dft), $cttys);
-//  $ctty = w\selectFld(t('Community:'), '', dft($dft), $cttys);
   $subtext = item(t('This page helps us keep an eye on our economy so we can manage it effectively together. Choose a chart. <%b>Hover</b> over a graph for the numbers.', '_b', 'class="loud"'));
-//  $charts = item(w\showCharts('all', $dft, $chartData));
-//  $charts = item(w\tag('iframe', '', ray('src width height', "$base_url/rcredits/chart.php?ctty=0&chart=growth", 600, 600)));
-  $url = isDEV ? "$base_url/rcredits/misc/chart.php?site=dev" : ("https://cg4.us/chart.php?site=" . str_replace('https://', '', $base_url));
-  $charts = item(w\tag('iframe', '', ray('src width height', "$url&ctty=0&chart=growth", 600, 600))); // src must be first
+  
+  $charts = item(w\chartFrame('growth', TRUE, @$a->community ?: 0)); // src must be first
   if (u\test()) $charts = w\item(w\showCharts('all', $dft, $chartData));
   
   return compact(ray('title subtext charts'));
@@ -4192,7 +4312,7 @@ function formCttyFunds($form, &$sta) {
   $q = db\q("SELECT DISTINCT ctty FROM r_stats s LEFT JOIN users u ON u.uid=ctty ORDER BY ctty=0, u.name NOT LIKE '%.', u.fullName");
   while ($row = $q->fetchAssoc()) { // not fetchField because one value is 0
     extract($row);
-    $stats = w\fundStats(r\stats($ctty), FALSE, '1');
+    $stats = []; // GET FROM each ctty's stats field NOT w\fundStats(r\stats($ctty), FALSE, '1');
     $stats['TOTAL'] = $stats['r']; unset($stats['r']); // change column name and move to end
     $list[] = '<tr><td>' . join('</td><td>', $stats) . '</td></tr>';
   }
@@ -4437,7 +4557,7 @@ EOF
   $go = w\submi(t('Change')); // requires suppressed submit button (find a better way)
   
   $ending = w\textFld(t('For year ending:'), [t('Fiscal Year End')], w\required($endDesc) + w\suffix('&nbsp;' . \render($go)));
-  $posttext = item(t('<p>This report is provided by %regName (EIN #%R_REGION_EIN). Address: %regAddr (%regPhone, %regEmail).</p><p>If you would rather receive reports by US Mail, you can change that setting in your <a href="settings/preferences">Preferences</a>.', ray('regName regAddr regPhone regEmail thisYear', $regName, r\regionfield('postalAddr'), $regPhone, r\regionfield('email'), date('Y'))));
+  $posttext = item(t('<p>This report is provided by %regName (EIN #%R_REGION_EIN). Address: %regAddr (%regPhone, %regEmail).</p><p>If you would rather receive reports by US Mail, you can change that setting in your <%aPrefs>Preferences</a>.', 'regName regAddr regPhone regEmail thisYear _aPrefs', $regName, r\regionfield('postalAddr'), $regPhone, r\regionfield('email'), date('Y'), w\atag('/settings/preferences')));
   return labeled(compact(ray('title ending subtext table summary list posttext submit')));
 }
 
@@ -4526,7 +4646,7 @@ EOF
 //  $sid = db\lookup('sid', 'sessions', 'uid=:uid', ['uid' => $mya ? $mya->agentA->id : 0]);
   
   js('parse-query');
-  js('misc', 'baseUrl sid life', BASE_URL, session_id(), ($mya and !isDEV) ? SESSION_LIFE : 0);
+  js('misc', 'baseUrl sid life isSafari', BASE_URL, session_id(), ($mya and !isDEV) ? SESSION_LIFE : 0, isSAFARI);
   return compact('footerText');
 }
 

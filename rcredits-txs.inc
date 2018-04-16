@@ -87,6 +87,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   if (u\getBit(@$flags, B_ROUNDUPS) and !$toMe) return; // don't show contributions of roundups except to recipient (CGF)
 
   $change = ceil($fromyou) - $fromyou;
+  $fromyou0 = $fromyou;
   if (@$roundup and !$toMe and $change > .005) $fromyou = ceil($fromyou); else $change = 0;
   $tx['amount'] = $amt = $toMe ? $toyou : -$fromyou; // this may be different from $tx[$amount]
   
@@ -118,7 +119,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
 //  list ($toYou, $fromYou) = u\order($toMe, $amount, R_NONE);
   
   $url = "$url0&xid=" . ($banking ? 'b' : '') . $xid;
-  $button1 = ($mya->can(@$reallyToMe ? B_SELL : B_BUY) and !$isExtra and !$banking) ? "<a href='$url&do=edit' title='Edit Transaction'><img src=\"$rUrl/images/icons/edit.png\" width=16 height=16 border=0 /></a>" : '';
+  $button1 = ($mya->can(@$reallyToMe ? B_SELL : B_BUY) and !$isExtra and !$banking) ? "<a href=\"$url&do=edit\" title=\"Edit Transaction\"><img src=\"$rUrl/images/icons/edit.png\" width=16 height=16 border=0 /></a>" : '';
 //  list ($msg, $title) = [t('Reverse this transaction?'), t('Reverse')];
   $title = t('Reverse');
 //  $onclick = "yesno('$msg', function () {location.href='$url&do=no';}); return false;";
@@ -136,8 +137,9 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   if (strlen($tid) > 4) $tid = "<small>$tid</small>";
 
   if (!$mya->cttyRewardy) list ($reward, $run) = [$run, $run - $amt];
-  foreach (ray('amt fromyou toyou reward') as $k) $$k = $$k ? number_format($$k, 2) : R_NONE;
+  foreach (ray('amt fromyou fromyou0 toyou reward') as $k) $$k = $$k ? number_format($$k, 2) : R_NONE;
   if ($mya->cttyRewardy) if (strpos($reward, '-') === FALSE) $reward = '+' . $reward;
+  if ($change and !$download) $amt = w\popHelp($amt, t('Rounded up from %fromyou0', compact('fromyou0')));
   $row = array($tid, $date, @$name, $description, $amt, $fromyou, $toyou, $reward, $net, $buttons);
 //  $row = array($tid, strftime($download ? '%Y-%m-%d' : '%d-%b', $myx->created), @$myx->name2, $fromYou, $toYou, $state, $buttons, $myx->for, $reward, $net);
 

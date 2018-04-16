@@ -1,18 +1,15 @@
 /**
  * @file
  * Display one or all Common Good data graphs
- * @param string whichChart "all" or the name of a specific chart to display
- * @param string growth
- * @param string totalR
- * @param string totalUsd
+ * @param string accts
+ * @param string funds
  * @param string velocity
- * @param string netUsdIn
- * @param string txs
- * @param string fees
+ * @param string usd
+ * @param string txs 
+ * @param string topPct: a percent sign if Top 3 means top 3 percent, otherwise empty
  * A JSON-encoded data object is embedded in the page (see var ch below). Each element is a data object for one graph.
  * NOTE!: This script is used in an iframe of cg4.us/chart.php, which in turn includes this script (here for version control)
  */
-
 var getv = parseQuery($('#script-charts').attr('src').replace(/^[^\?]+\??/,''));
 //alert($('#script-charts').attr('src').replace(/^[^\?]+\??/,''));
 var ctty = getv['ctty'];
@@ -23,6 +20,7 @@ var ch = $('#chart-data').html();
 ch = ch.substr(4, ch.length - 7); // trim off the comment markers
 ch = JSON.parse(ch);
 var vs = ch['vs'];
+var dt1 = vs['dt1'];
 
 $('#ctty').change(function () {recall(chart, $(this).val());});
 $('#chart').change(function () {
@@ -31,14 +29,14 @@ $('#chart').change(function () {
 );
 fixChartClass($('#chart'));
 
-var usd = vs['totalUsd']; // unused (yet)
-var fees = vs['fees']; // unused
-var chartWidth = 600;
-var chartHeight = 400;
+var chartAreaW = '50%'; // leave room for yAxis labels and legend
+var chartW = 480;
+var chartH = 300;
+if (getv['selectable']) {chartW = 600; chartH = 400;}
 
 // (should be on member site instead) $('#edit-ctty').change(function () {window.location = baseUrl + '/community/graphs/qid=' + $(this).val();});
 
-google.setOnLoadCallback(window[vs['whichChart']]);  
+google.setOnLoadCallback(window[chart + 'Chart']);  
 
 google.load('visualization', '1.0', {'packages':['corechart']});
 
@@ -48,13 +46,22 @@ function allChart() {
   velocityChart();
   bankingChart();
   volumeChart();
-  issuedChart();
+//  issuedChart();
 }
 
-function myRows(table, dataName) {
+function dtFmt() {return (((new Date()).getTime() - dt1 * 1000) /1000/60/60/24/365.25 < 4) ? 'yyyy-MM' : 'yyyy';}
+
+/**
+ * Add a row to the table.
+ * @param obj table: the gChart table object
+ * @param string dataName: name of the dataset, embedded in the html
+ * @param int remove: index of column to remove, if any
+ */
+function myRows(table, dataName, remove) {
   var dataSet = ch[dataName];
   for (i in dataSet) {
     dataSet[i][0] = new Date(dataSet[i][0] * 1000);
+    if (remove) dataSet[i].splice(remove, 1); 
     table.addRow(dataSet[i]);    
   }
 };
@@ -62,24 +69,33 @@ function myRows(table, dataName) {
 function growthChart() {
   var data = new google.visualization.DataTable();
   data.addColumn('date', 'Date');
-  data.addColumn('number', 'Members');
-  data.addColumn('number', 'In process');
   data.addColumn('number', 'Companies');
+  data.addColumn('number', 'Members');
+  data.addColumn('number', 'Joining');
+  data.addColumn('number', 'Active');
+  data.addColumn('number', 'Conx');
+  data.addColumn('number', 'Local Conx');
   myRows(data, 'growthData');
   
   //ch['growthData']);
 
+//seriesType:'bars',
+//series: {5:{type:'line'}}
+        
   var options = {
-    title: 'Accounts: ' + vs['growth'],
-    width: chartWidth, height: chartHeight,
-    colors: ['green', 'orange', 'blue'],
-    series: {
-      0: {areaOpacity: 0},
-      1: {areaOpacity: 0},
-      2: {areaOpacity: 0}
-    },
-    hAxis: {format: 'yyyy', gridlines: {count: 5}, title: '', titleTextStyle: {color: 'darkgray'}},
-    legend: {position: 'bottom'}
+    title:'Accounts: ' + vs['accts'],
+    width:chartW, height:chartH,
+    series: [
+      {areaOpacity:1, color:'blue'}, // bAccts
+      {areaOpacity:1, color:'green'}, // pAccts
+      {areaOpacity:0 , color:'silver'}, // newbs
+      {areaOpacity:0, color:'red'}, // aAccts
+      {areaOpacity:0, color:'yellow'}, // conx/aAcct
+      {areaOpacity:0, color:'orange'} // conxLocal/aAcct
+    ],
+    hAxis: {viewWindow: {min:new Date(dt1 * 1000)}, format:dtFmt(), gridlines: {count:5}, title:'', titleTextStyle: {color:'darkgray'}},
+    chartArea: {width:chartAreaW},
+    legend: {position:'right'}
   };
 
   var chart = new google.visualization.AreaChart(document.getElementById('growthChart'));
@@ -89,27 +105,34 @@ function growthChart() {
 function fundsChart() {
   var data = new google.visualization.DataTable();
   data.addColumn('date', 'Date');
-  data.addColumn('number', 'Credit');
-  data.addColumn('number', 'USD');
-  data.addColumn('number', 'Runny');
-  data.addColumn('number', 'Top 5');
-  data.addColumn('number', 'Runny Balance');
+//  data.addColumn('number', 'Bals > 0');
+  data.addColumn('number', 'CG Credits');
+  data.addColumn('number', 'Dollar Pool');
   data.addColumn('number', 'In Use');
+  data.addColumn('number', 'Top 3' + vs['topPct']);
+  data.addColumn('number', 'Bottom 3' + vs['topPct']);
+  data.addColumn('number', 'Limits');
+  data.addColumn('number', 'Bals < 0');
 //  data.addRows(ch['fundsData']);
   myRows(data, 'fundsData');
 
   var options = {
-    title: 'Total Funds in the System: ' + vs['totalR'],
-    width: chartWidth, height: chartHeight,
-    colors: ['green', 'blue', 'yellow', 'red', 'magenta', 'orange'],
-    series: {
-      2: {areaOpacity: 0},
-      3: {areaOpacity: 0},
-      4: {areaOpacity: 0},
-      5: {areaOpacity: 0}
-    },
-    hAxis: {format: 'yyyy', gridlines: {count: 5}, title: '', titleTextStyle: {color: 'darkgray'}},
-    legend: {position: 'right'}
+    title:'Dollar Pool Total: ' + vs['funds'],
+    width:chartW, height:chartH,
+    series: [
+//      {areaOpacity:0, color:'lime'}, // Bals > 0
+      {areaOpacity:1, color:'#00cc00'}, // CG Credits (lighter green)
+      {areaOpacity:0, color:'blue'}, // Dollar Pool
+      {areaOpacity:0, color:'yellow'}, // In use
+      {areaOpacity:0, color:'red'}, // Top 3
+      {areaOpacity:0, color:'red'}, // Bottom 3
+      {areaOpacity:0, color:'magenta'},  // Limits
+      {areaOpacity:1, color:'orange'} // Bals < 0
+    ],
+    hAxis: {format:dtFmt(), gridlines: {count:5}, title:'', titleTextStyle: {color:'darkgray'}},
+    vAxis: {format:'short'},
+    chartArea: {width:chartAreaW},
+    legend: {position:'right'}
   };
 
   var chart = new google.visualization.AreaChart(document.getElementById('fundsChart'));
@@ -119,23 +142,33 @@ function fundsChart() {
 function velocityChart() {
   var data = new google.visualization.DataTable();
   data.addColumn('date', 'Date');
-  data.addColumn('number', 'Velocity');
+  data.addColumn('number', 'Inter-cmty');
+  data.addColumn('number', 'Local');
+  data.addColumn('number', 'USD Exchanges');
 //  data.addRows(ch['velocityData']);
   myRows(data, 'velocityData');
 
   var options = {
-    title: 'Circulation Velocity: ' + vs['velocity'],
-    width: chartWidth, height: chartHeight,
+    title:'Circulation Velocity: ' + vs['velocity'],
+    width:chartW, height:chartH,
+    series: [
+      {areaOpacity:1, color:'yellow'}, // Inter-cmty
+      {areaOpacity:1, color:'#00cc00'}, // Local
+      {areaOpacity:0, color:'blue'} // USD Exchanges
+    ],
     hAxis: {
-      format: 'yyyy',
-      gridlines: {count: 5},
-      title: 'What fraction of Common Good Credits turn over monthly', 
-      titleTextStyle: {color: 'darkgray'}
+      format:dtFmt(),
+      gridlines: {count:5},
+//      title:'What fraction of Common Good Credits turn over monthly', 
+      titleTextStyle: {color:'darkgray'}
     },
-    legend: 'none'
+    vAxis: {format:'percent', viewWindow:{min:0, max:1.5}},
+    isStacked:false, // doesn't work
+    chartArea: {width:chartAreaW},
+    legend: {position:'right'}
   };
 
-  var chart = new google.visualization.LineChart(document.getElementById('velocityChart'));
+  var chart = new google.visualization.AreaChart(document.getElementById('velocityChart'));
   chart.draw(data, options);
 }
 
@@ -144,23 +177,27 @@ function bankingChart() {
   data.addColumn('date', 'Date');
   data.addColumn('number', 'FROM Bank');
   data.addColumn('number', 'TO Bank');
-  data.addColumn('number', 'Trade OUT');
-  data.addColumn('number', 'Trade IN');
-//  data.addRows(ch['bankingData']);
-  myRows(data, 'bankingData');
+  if (ctty != 0) data.addColumn('number', 'Exports');
+  data.addColumn('number', ctty == 0 ? 'Inter-cmty Trade' : 'Imports');
+
+  myRows(data, 'bankingData', ctty == 0 ? 3 : 0);
 
   var options = {
-    title: 'Monthly USD Transfers: ' + vs['netUsdIn'],
-    width: chartWidth, height: chartHeight,
-    colors: ['blue', 'orange', 'green', 'yellow'],
-    series: {
-      1: {areaOpacity: 1},
-      2: {areaOpacity: 0},
-      3: {areaOpacity: 0}
-    },
-    hAxis: {format: 'yyyy', gridlines: {count: 5}, title: '', titleTextStyle: {color: 'darkgray'}},
-    legend: {position: 'right'}
+    title:'Monthly USD Transfers: ' + vs['usd'],
+    width:chartW, height:chartH,
+    series: [
+      {areaOpacity:1, color:'green'},
+      {areaOpacity:1, color:'orange'},
+      {areaOpacity:0, color:'lightblue'},
+      {areaOpacity:0, color:'yellow'}
+    ],
+    hAxis: {format:dtFmt(), gridlines: {count:5}, title:'', titleTextStyle: {color:'darkgray'}},
+    vAxis: {format:'short'},
+    chartArea: {width:chartAreaW},
+    legend: {position:'right'}
   };
+
+  if (ctty == 0) options['series'].splice(3, 1); // remove "Exports", which actually means intra
 
   var chart = new google.visualization.AreaChart(document.getElementById('bankingChart'));
   chart.draw(data, options);
@@ -177,51 +214,22 @@ function volumeChart() {
   myRows(data, 'volumeData');
 
   var options = {
-    title: 'Monthly Transactions: ' + vs['txs'],
-    width: chartWidth, height: chartHeight,
+    title:'Monthly Transactions: ' + vs['txs'],
+    width:chartW, height:chartH,
     colors: ['orange', 'green', 'blue', 'red'],
-    hAxis: {format: 'yyyy', gridlines: {count: 5}, title: '(logarithmic scale)', titleTextStyle: {color: 'darkgray'}},
-    vAxis: {logScale: true},
-    legend: {position: 'bottom'}
+    hAxis: {format:dtFmt(), gridlines: {count:5}, title:'(logarithmic scale)', titleTextStyle: {color:'darkgray'}},
+    vAxis: {logScale:true},
+    chartArea: {width:chartAreaW},
+    legend: {position:'right'}
   };
 
   var chart = new google.visualization.LineChart(document.getElementById('volumeChart'));
   chart.draw(data, options);
 }
 
-function issuedChart() {
-  var data = new google.visualization.DataTable();
-  data.addColumn('string', 'Type');
-  data.addColumn('number', 'Amount');
-  var dataSet = ch['issuedData'];
-  for (i in dataSet) data.addRow(dataSet[i]);
-  
-  var options = {
-    title: 'Common Good Credits Issued To-Date: ' + vs['totalR'],
-    width: chartWidth, height: chartHeight,
-//    pieStartAngle: 240,
-    pieSliceText: 'percentage',
-    slices: {0: {offset: 0.1},
-             1: {offset: 0.1},
-             2: {offset: 0.1},
-             3: {offset: 0.1},
-             4: {offset: 0.2},
-             5: {offset: 0.2},
-             6: {offset: 0.2},
-             7: {offset: 0.2},
-             8: {offset: 0.2},
-    },    
-    is3D: true,
-    legend: {position: 'right'}
-  };
-
-  var chart = new google.visualization.PieChart(document.getElementById('issuedChart'));
-  chart.draw(data, options);
-}
-
 function recall(chart, ctty) {
   var myUrl = site == 'dev' ? 'http://localhost/cgMembers/rcredits/misc' : 'https://cg4.us';
-  window.location = myUrl + '/chart.php?chart=' + chart + '&ctty=' + ctty + '&site=' + site;
+  window.location = myUrl + '/chart.php?selectable=1&chart=' + chart + '&ctty=' + ctty + '&site=' + site;
 };
 
 function fixChartClass(context) {

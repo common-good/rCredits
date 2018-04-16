@@ -65,13 +65,12 @@ Scenario: cron calculates the statistics
   And member ".ZZA" visits page "community/graphs"
   Then we show "Statistics" with:
 #  | Community: | Seedpack |
-  |~CG Accounts: | 2 members + 2 co |
-  |~CG Credits Issued To-Date | $6,823.70 |
-  |~Total Dollars in the Dollar Pool: | $6,000 |
-  |~CG Credits Circulation Velocity: | 4.0% per mo. |
+  |~CG Growth: | 2 members + 1 co |
+  |~Dollar Pool: | $6,000 |
+#  |~CG | $6,002 |
+  |~Circulation Velocity: | 107.8% per mo. |
   |~Monthly Bank Transfers | $6,000 (net) |
-  |~fees | $-6 |
-  |~Monthly Transactions | 4 @ $67.75 |
+  |~Monthly Transactions | 5 @ $74.20 |
 # only 2 members and 1 company -- CGF and WWS are not counted because they have no transactions before today
   
 #  | Accounts        | 5 (3 personal, 2 companies) — up 5 from a month ago |

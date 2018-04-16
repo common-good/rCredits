@@ -15,7 +15,7 @@ $title = 'Charts | Common Good Western Massachusetts';
 //$site = 'https://ws.rcredits.org';
 //$site = 'http://localhost/cgMembers';
 
-foreach (ray('ctty chart site') as $k) $$k = urlencode($_GET[$k]); // encode to sanitize output
+foreach (ray('ctty chart site selectable') as $k) $$k = urlencode(@$_GET[$k]); // encode to sanitize output
 if (!$site0 = @$site) {
   $site = 'https://new.commongood.earth';
 } else if (@$site == 'dev') {
@@ -23,29 +23,34 @@ if (!$site0 = @$site) {
 } else $site = 'https://' . $site;
 
 $data = file_get_contents("$site/community/chart-data/ctty=$ctty&chart=$chart");
-if ($site0 != 'dev' and strlen($data) < 200) die($data);
+/**/ if ($site0 != 'dev' and strlen($data) < 200) die($data);
 $version = time();
 
-$cttys = [
-  -26739000000002 => 'BENE',
-  -17238000000002 => 'Common Good Goshen',
-  -26742000000002 => 'Common Good Greenfield',
-  -26742000000004 => 'Common Good Northampton',
-  -25026000000002 => 'Common Good Washtenaw',
-  -26742000000001 => 'Seedpack (no community yet)',
-  0 => 'ALL communities',
-];
-$cttys = opts($cttys, $ctty);
+if ($selectable) {
+  $cttys = file_get_contents("$site/community/list");
+  $cttys = (array) json_decode($cttys);
+  $cttys = opts($cttys, $ctty);
 
-$charts = [
-  'funds' => 'Dollar Pool',
-  'growth' => 'Growth',
-  'banking' => 'Exchanges for Dollars',
-  'volume' => 'Transaction Volume',
-  'velocity' => 'Circulation Velocity',
-];
-$help = str_replace(' ', '-', strtolower($charts[$chart]));
-$charts = opts($charts, $chart);
+  $charts = [
+    'funds' => 'Dollar Pool',
+    'growth' => 'Growth',
+    'banking' => 'Exchanges for Dollars',
+    'volume' => 'Transaction Volume',
+    'velocity' => 'Circulation Velocity',
+  ];
+
+  $help = str_replace(' ', '-', strtolower($charts[$chart]));
+  $help = "<div id=\"help-line\"><a href=\"$site/help/$help/qid=$ctty\">More information</a></div>";
+
+  $charts = opts($charts, $chart);
+
+  $controls = <<<X
+    <div>
+    <select id="ctty" class="form-control">$cttys</select><br>
+    <select id="chart" class="form-control">$charts</select>
+    </div>
+X;
+} else $controls = $help = '';
 
 echo <<<EOF
  
@@ -88,20 +93,15 @@ echo <<<EOF
 </head>
 
 <body>
-
-<div>
-<select id="ctty" class="form-control">$cttys</select><br>
-<select id="chart" class="form-control">$charts</select>
-</div>
-  
+$controls
 <div id="{$chart}Chart" class="onechart"></div>
 <div id="chart-data"><!--$data--></div>
-<div id="help-line"><a href="$site/help/$help/qid=$ctty">More information</a></div>
+$help
 
 <script src="$site/rcredits/js/x/jquery-3.3.1.min.js"></script>
 <script id="script-goo-jsapi" src="https://www.google.com/jsapi"></script>
 <script id="script-parse-query" src="$site/rcredits/js/parse-query.js?v=$version"></script>
-<script id="script-charts" src="$site/rcredits/js/charts.js?ctty=$ctty&chart=$chart&site=$site0&v=$version"></script>
+<script id="script-charts" src="$site/rcredits/js/charts.js?selectable=$selectable&ctty=$ctty&chart=$chart&site=$site0&v=$version"></script>
 
 </body>
 </html>

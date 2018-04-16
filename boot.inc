@@ -117,6 +117,9 @@ if (count(explode('.', $cookie_domain)) > 2 && !is_numeric(str_replace('.', '', 
   ini_set('session.cookie_domain', $cookie_domain);
 }
 
+$agt = $_SERVER['HTTP_USER_AGENT'];
+define('isSAFARI', stripos($agt, 'Chrome') === FALSE and stripos($agt, 'Safari') !== FALSE);
+
 define('FRAME_SOURCES', "https://cg4.us/chart.php $base_url/rcredits/misc/chart.php $base_url/sadmin/export-list/"); // base_url not self, because we use this to sanitize page too
 
 // We might want to use require-sri-for eventually for even our own scripts and style sheets

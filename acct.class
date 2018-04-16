@@ -283,6 +283,12 @@ class Acct {
     $a = $this;
     u\EXPECT($mya = r\acct() and $mya->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
 
+    $DBTX = \db_transaction();
+    u\EXPECT($helper, 'no helper!');
+    $a->update(compact('helper')); // must precede welcome message
+    $a->setBit(B_OK, TRUE, TRUE); // must precede welcome message
+    $a->setBit(B_NONUDGE, FALSE, TRUE);
+    
     if ($firstTime = !$a->activated) { // first time activation
 //      u\EXPECT($a->superAdmin, 'initial activation is only for superadmin');
       $a->update('activated', time() - 1); // must precede update of vsecure, so it gets V-encrypted
@@ -296,12 +302,6 @@ class Acct {
       r\message($a->id, $msg, $subs);
     }
 
-    $DBTX = \db_transaction();
-    u\EXPECT($helper, 'no helper!');
-    $a->update(compact('helper'));
-    $a->setBit(B_OK, TRUE, TRUE);
-    $a->setBit(B_NONUDGE, FALSE, TRUE);
-    
     if ($firstTime and !$a->co) { // no bonus or helper bonus for a company signing up
       be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
 
@@ -462,7 +462,7 @@ class Acct {
         $sFlds += $a->$special;
       } else continue;
       if ($special == 'vsecure' and $a->activated and $sFlds) foreach ($sFlds as $k => $v) {
-        if (!u\crypted('V', $v)) $sFlds[$k] = u\cry('V', $v); // hyper-encrypt when activated (when auto-access to EIN no longer needed)
+        if (!u\crypted('V', $v)) $sFlds[$k] = u\cry('V', $v); // hyper-encrypt when activated (when auto-access to EIN no longer needed). This is the ONLY place we do u\cry('V', ) !!
       }
       self::$rs[$a->id]->$special = $sFlds;
       $sFlds = serialize($sFlds);
@@ -680,8 +680,9 @@ class Acct {
   public function avail($goods = FOR_GOODS) {
     $a = $this;
     $floor = ($a->can(B_DEBT) and $goods != FOR_USD) ? $a->floor : max($a->floor, 0); // no going into debt without permission
-    if ($goods == FOR_USD or (COMPANY_FREEZE and $a->co)) $floor = max($floor, $a->rewards); // no exchanging rewards for cash (and companies temporarily can't spend rewards)
-    return round($a->balance + $a->rewards - $floor, 2);
+//    if ($goods == FOR_USD or (COMPANY_FREEZE and $a->co)) $floor = max($floor, $a->rewards); // no exchanging rewards for cash (and companies temporarily can't spend rewards)
+//    return round($a->balance + $a->rewards - $floor, 2);
+    return round($a->balance - $floor, 2);
   }
   
   /**
@@ -753,7 +754,7 @@ EOF;
     $calc = be\creditInfo(ray('uid noj', $uid, TRUE));
     if ($jA) $jCalc = be\creditInfo(compact('uid')); // for joint account get joint info
     
-    foreach (['balance', 'rewards'] as $k) {
+    foreach (['balance'] as $k) {
       list ($is, $shouldBe) = [$a->o($k), round($calc->$k, 2)];
 
       if ($jA and $k == 'balance') {
@@ -1486,7 +1487,7 @@ EOF;
 	 */
 	public function makeVKeyE($vKey = '') {
 		$a = $this;
-		if (!$vKey = u\unfmtKey($vKey)) if (!$vKey = r\vKey()) return t('No private key given or available.');
+    if (!$vKey = u\unfmtKey($vKey) and !$vKey = r\vKey()) return t('No private key given or available.');
 		$a->update('vKeyPw', $vKeyPw = openssl_random_pseudo_bytes(32));
     if (isDEV) \variable_set('vKeyPw', $vKeyPw); // otherwise this gets lost during testing
 		$vKeyE = u\cry('R', $vKey, FALSE, $vKeyPw);

@@ -8,7 +8,6 @@ use rCredits\Web as w;
  * rCredits template functions, called from the rCredits theme's template.php stub
  * (run Handy|Empty Cache to activate a new function here)
  */
-//die(print_r(debug_backtrace(), 1)); 
 function rcredits_preprocess_html(&$variables) {
   // Add variables for path to theme.
   $variables['base_path'] = base_path();
@@ -363,7 +362,8 @@ EOF;
 
 function rcredits_textfield($variables, $type = 'text') {
   \element_set_attributes($variables['element'], ray('id name value size maxlength'));
-  extract(rcElement($variables, 'attributes autocomplete_path required help class submitButton'));
+//  extract(rcElement($variables, 'attributes autocomplete_path required help class submitButton'));
+  extract(rcElement($variables, 'attributes required help class submitButton'));
 
   if (@$submitButton) return rcredits_submit($variables);
   if (@$required) $attributes['required'] = 'yes'; // don't add this in unless it is yes
@@ -375,10 +375,11 @@ function rcredits_textfield($variables, $type = 'text') {
     }
   }    
 
-  if ($extra = rcAuto(@$autocomplete_path, @$attributes['id'])) $class[] = 'form-autocomplete';
+//  if ($extra = rcAuto(@$autocomplete_path, @$attributes['id'])) $class[] = 'form-autocomplete';
 
   $tribs = u\tribs(compact('type', 'class') + $attributes);
-  return "<input $tribs />" . $extra;
+//  return "<input $tribs />" . $extra;
+  return "<input $tribs />";
 }
 
 function rcredits_textarea($variables) {
@@ -445,7 +446,7 @@ function rcredits_button($variables) {
   extract(rcElement($variables, 'tabled value href button_type class'));
   if ($button_type == 'submit') return rcredits_submit($variables);
   
-  if (strpos($href, 'http') === FALSE) die('no http in button'); // $onclick = $href;
+/**/ if (strpos($href, 'http') === FALSE) die('no http in button'); // $onclick = $href;
   return w\tag(@$href ? 'a' : 'button', $value, compact(@$onclick ? 'onclick' : 'href', 'class'));
 }
 
@@ -541,10 +542,10 @@ function rcElement($variables, $fields) {
  * @param string $path: autocomplete URL, if any
  * @param string $id: id of the associated text input element
  * @return HTML (empty if path is empty)
- */ 
+ */ /*
 function rcAuto($path, $id) {
   if (!$path) return '';
-  \drupal_add_library('system', 'drupal.autocomplete');
+//  \drupal_add_library('system', 'drupal.autocomplete');
 
   $type = 'hidden';
   $id .= '-autocomplete';
@@ -553,7 +554,7 @@ function rcAuto($path, $id) {
   $class = 'autocomplete';
   $tribs = u\tribs(compact(ray('type id value disabled class')));
   return "<input $tribs />";
-}
+}*/
 
 /**
  * Return HTML for a button-like link with a spinner.
@@ -575,7 +576,7 @@ function spinLink($href, $text, $id = '', $style = 'primary', $size = 'md', $oth
     if (!$size) $class = $style;
   }
 
-  if ($class2 = @$other['class']) {$class .= ' ' . join(' ', $class2); unset($other['class']);}
+  if ($class2 = @$other['class']) {$class .= ' ' . (is_array($class2) ? join(' ', $class2) : $class2); unset($other['class']);}
   if (!@$other['target']) $class .= ' ladda-button'; // don't spin if opening a window
 
 //  foreach ($other + compact(ray($attrs)) as $k => $v) if ($v = htmlspecialchars($v)) $attrs2 = @$attrs2 . " $k=\"$v\"";

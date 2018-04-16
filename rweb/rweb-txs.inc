@@ -316,11 +316,11 @@ function txSummary($starting, $ending, &$endBalance = '') {
   $endingNow = ($ending > r\rTime());
   $previous_ending = $starting - 1;
   extract($nowInfo = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'n');
-  $endBalance = round($n_balance - $n_roundups, 2);
+  $endBalance = round($n_balance - ($n_roundups - $n_roundupsPaid), 2);
   extract($pendingInfo = (array) be\creditInfo(ray('pending asof', TRUE, $ending)), EXTR_PREFIX_ALL, 'p');
   extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'o');
 ///  debug(compact('nowInfo','oldInfo'));
-  $startBalance = round($o_balance - $o_roundups, 2);
+  $startBalance = round($o_balance - ($o_roundups - $o_roundupsPaid), 2);
 
   $dif = [];
   foreach (ray('inProper outProper rewards bank savings roundups') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
@@ -363,7 +363,7 @@ function txSummary($starting, $ending, &$endBalance = '') {
   $ENDING = w\popHelp(t('Ending Balance'), t('Your %PROJECT Account balance at the end of this time period'));
   $SAVINGS = w\popHelp(t('Credit Reserve'), t('Amount in your Credit Reserve, to spend in a pinch (once your %PROJECT community declares itself stable, this additional amount is yours to keep)'));
   $PENDING = w\popHelp(t('pending'), t('Pending transfers from your bank account to your %PROJECT Account'));
-  if ($p_bank) $p_bank = $endingNow ? "+ $p_bank $PENDING" : '';
+  if ($p_bank) $p_bank = str_replace('+ -', '- ', $endingNow ? "+ $p_bank $PENDING" : '');
   
   $p_balance = u\starts($p_balance, '-') ? '- ' . substr($p_balance, 1) : "+ $p_balance";
 /*  
@@ -396,7 +396,7 @@ function txSummary($starting, $ending, &$endBalance = '') {
   : [
     ray("||$PRIMARY|"),
     ray("$STARTING||$old|$starting"),
-    ray("$BANK|+|$bank|"),
+    ray("$BANK|+|$bank|$p_bank"),
     ray("$IN|+|$in|"),
     ray("$OUT|-|$out|"),
     ray("$ENDING||$new|$ending"),
@@ -434,19 +434,22 @@ function formInvoices($form, &$sta, $toFrom, $args = '') {
 
   $choices = array(t('open'), t('paid'), t('denied'));
   extract(just('dateRange url starting ending states', dateRange($args, "history/invoices-$toFrom", $choices, '0,1,2')));
-
+/*
   if (@$do == 'ok') {$ok = be\payInvoice($nvid, $msg); say($msg, $ok ? '' : 'ERR');}
   if (@$do == 'no') return r\go("handle-invoice/nvid=$nvid&toMe=$toMe&ret=" . u\urlify($url));
+*/
   
   $list = item(invoiceList($toMe, $starting, $ending, $states, $url, @$download)); // must precede starting & ending
 
   $title = item(t('Invoices ') . ($toMe ? t('TO You') : t('FROM You')));
-  $subtext = item(t('(pending invoices are listed first)'));
+  $subtext = item(t('(unpaid invoices are listed first)'));
   $toFrom = hidFld($toFrom);
 
   //simple advanced
   $form = compact('title', 'subtext') + $dateRange + compact(ray('list toFrom'));
   if (@$downloaded) js('download', compact('url'));
+  
+  w\jsx('invoices', ray('args', "&toMe=$toMe&ret=" . u\urlify($url)));
   return labeled($form);
 }
 
@@ -487,12 +490,12 @@ function invoiceList($toMe, $starting, $ending, $states, $url, $download) {
   if (strpos($states, '2') === FALSE) $where .= ' AND i.status<>:TX_DENIED';
   */
   $sql = <<<EOF
-    SELECT nvid, i.created, u.fullName AS other, i.purpose, i.amount, i.status, t.{$me}Tid AS tid
+    SELECT nvid, i.created, u.fullName AS other, i.purpose, i.amount, i.status, i.data, t.{$me}Tid AS tid
     FROM r_invoices i 
     LEFT JOIN users u ON u.uid=i.$yu
     LEFT JOIN r_txs t ON t.xid=i.status
     WHERE $where
-    ORDER BY (i.status=:TX_PENDING) DESC, nvid DESC
+    ORDER BY (i.status>2), nvid DESC
 EOF;
 //    ORDER BY (i.status=:TX_PENDING OR i.status=:TX_APPROVED) DESC, nvid DESC
 
@@ -506,19 +509,23 @@ EOF;
     
     $do = @"$url&nvid=$nvid&do";
 
-    if ($status > 0) {
-      $button1 = $button2 = $button3 = '';
+    if ($status > 1) {
+//      $button1 = $button2 = $button3 = '';
       $status = t('paid') . " (Tx#$tid)";
     } else {
-      $button1 = $toMe ? button(t(' PAY '), "$do=ok", t('Pay this invoice')) : '';
-      $button2 = (!$toMe ?: $status == TX_PENDING) ? button(' X ', "$do=no", $toMe ? t('Deny this invoice') : t('Delete this invoice')) : '';
+//      $button1 = $toMe ? button(t(' PAY '), "$do=ok", t('Pay this invoice')) : '';
+//      $button2 = (!$toMe ?: $status == TX_PENDING) ? button(' X ', "$do=no", $toMe ? t('Deny this invoice') : t('Delete this invoice')) : '';
 //    $button3 = (!$toMe and $status == TX_PENDING) ? "<input type='image' title='Edit this invoice' src='$rUrl/images/icons/edit.png' />" : '';
-      $button3 = '';
+//      $button3 = '';
       $statuses = ray(TX_STATUSES);
-      $status = $statuses[$status];
+      $data = unserialize($data);
+      $status = ucfirst($statuses[$status0 = $status]);
+//      $status = $status == TX_DENIED ? w\doLnk('reason', $statuses[$status], '', ray('title', t('Why: ') . @$data['whyNot'])) : ucfirst($statuses[$status]);
+      $status = $status0 == TX_DENIED ? tags('a', w\popHelp($status, t('Reason: ') . @$data['whyNot'])) : $status;
     }
 
-    $buttons = "<div class='txs-buttons'><div>$status</div><div>$button1</div><div>$button2</div><div>$button3</div></div>";
+//    $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$status</div></div>";
+    $buttons = "<div class='txs-buttons'>$status</div>";
     
     if (!@$download) $row[] = $buttons;
     $rows[] = $row;

@@ -5,10 +5,10 @@ SO I can buy and sell stuff.
 
 Setup:
   Given members:
-  | id   | fullName | address | city  | state      | risks   | rebate | minimum | flags               |*
-  | .ZZA | Abe One  | 1 A St. | Atown | Alaska     | hasBank | 5      |     500 | ok,confirmed,refill |
-  | .ZZB | Bea Two  | 2 B St. | Btown | Utah       |         | 10     |     100 | ok,confirmed        |
-  | .ZZC | Our Pub  | 3 C St. | Ctown | California |         | 10     |       0 | ok,confirmed,co     |
+  | id   | fullName | risks   | floor | minimum | flags                    |*
+  | .ZZA | Abe One  | hasBank |  -250 |     500 | ok,confirmed,refill,debt |
+  | .ZZB | Bea Two  |         |  -250 |     100 | ok,confirmed,debt        |
+  | .ZZC | Our Pub  |         |  -250 |       0 | ok,confirmed,co,debt     |
   And relations:
   | main | agent | permission |*
   | .ZZC | .ZZB  | buy        |
@@ -24,10 +24,10 @@ Setup:
   |    3 | %today    | %TX_APPROVED |    300 | .ZZB | .ZZC | three |
   |    4 | %today-1w | %TX_PENDING  |    400 | .ZZA | .ZZC | four  |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |       0 |     250 |
-  | .ZZB |       0 |     250 |
-  | .ZZC |       0 |     250 |
+  | id   | balance |*
+  | .ZZA |       0 |
+  | .ZZB |       0 |
+  | .ZZC |       0 |
 
   Scenario: Unpaid invoices get handled
   When cron runs "invoices"
@@ -57,10 +57,10 @@ Setup:
   | daysAgo | amount | purpose | nvid | payerName | created |*
   |       7 | $400   | four    |    4 | Abe One   | %mdY-1w |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |    -100 |     255 |
-  | .ZZB |       0 |     250 |
-  | .ZZC |     100 |     260 |
+  | id   | balance |*
+  | .ZZA |    -100 |
+  | .ZZB |       0 |
+  | .ZZC |     100 |
   
   When cron runs "invoices"
   Then usd transfer count is 1
