@@ -14,48 +14,6 @@ var sessionLife = 1000 * vs['life']; // convert to seconds
 var signoutWarningAdvance = Math.min(sessionLife / 2, 5 * 60 * 1000); // give the user a few minutes to refresh
 var sTimeout = vs['life'] != '0' ? sessionTimeout() : 0; // Warn the user before automatically signing out.
 
-$('.test-next').click(function () {
-  $('#testError' + $(this).attr('index'))[0].scrollIntoView(true); window.scrollBy(0, -100);
-});
-
-function showMore(pgFactor) {
-  page = Math.floor(page * pgFactor); 
-  if (more) {
-    $.alert('Click &#9654; (far right) to see the next page', 'Tip');
-  } else {
-    more = true;
-    if ($('.PAGE-' + (page + 1)).length) {
-      $('.showMore a').css('color','silver'); 
-    } else $('.showMore').css('visibility','hidden'); 
-  }
-  showPage(0);
-}
-
-function showPage(add) {
-  page += add;
-  var pghd = more ? '.PAGE-' : '.page-'; 
-  $('.prevPage').css('visibility', page < 1 ? 'hidden' : 'visible'); 
-  $('.nextPage').css('visibility', $(pghd + (page + 1)).length ? 'visible' : 'hidden'); 
-  $('.txRow').hide(); 
-  $('.txRow.head, ' + pghd + page).show();
-}
-
-function deleteCookie(name) {
-  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-}
-
-function toggleFields(fields, show) {
-  fields.split(' ').forEach(function(e) {$('.form-item-' + e).toggle(show); });
-}
-
-function toggle(field) {
-  field = "#" + field;
-  jQuery(field + "-YES, " + field + "-NO").toggle().toggleClass("visible invisible");
-  jQuery(field).val(jQuery(field + "-YES").is(":visible"));
-}
-
-function commafy(n) {return isNaN(n) ? '0.00' : n.toLocaleString();}
-
 jQuery("#which, #help").addClass("popup");
 jQuery('button[type="submit"]').click(function() {
   this.form.opid.value = this.id;
@@ -105,6 +63,48 @@ if (!mobile) jQuery('.navbar-nav > li > a').hover(function() {
 });
 if (!mobile) jQuery('form div').hover(function() {jQuery('* [data-toggle="popover"]').popover('hide');});
 
+$('.test-next').click(function () {
+  $('#testError' + $(this).attr('index'))[0].scrollIntoView(true); window.scrollBy(0, -100);
+});
+
+function showMore(pgFactor) {
+  page = Math.floor(page * pgFactor); 
+  if (more) {
+    $.alert('Click &#9654; (far right) to see the next page', 'Tip');
+  } else {
+    more = true;
+    if ($('.PAGE-' + (page + 1)).length) {
+      $('.showMore a').css('color','silver'); 
+    } else $('.showMore').css('visibility','hidden'); 
+  }
+  showPage(0);
+}
+
+function showPage(add) {
+  page += add;
+  var pghd = more ? '.PAGE-' : '.page-'; 
+  $('.prevPage').css('visibility', page < 1 ? 'hidden' : 'visible'); 
+  $('.nextPage').css('visibility', $(pghd + (page + 1)).length ? 'visible' : 'hidden'); 
+  $('.txRow').hide(); 
+  $('.txRow.head, ' + pghd + page).show();
+}
+
+function deleteCookie(name) {
+  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+}
+
+function toggleFields(fields, show) {
+  fields.split(' ').forEach(function(e) {$('.form-item-' + e).toggle(show); });
+}
+
+function toggle(field) {
+  field = "#" + field;
+  jQuery(field + "-YES, " + field + "-NO").toggle().toggleClass("visible invisible");
+  jQuery(field).val(jQuery(field + "-YES").is(":visible"));
+}
+
+function commafy(n) {return isNaN(n) ? '0.00' : n.toLocaleString();}
+
 /**
  * post or get data to/from the server
  * @param string op: what to get
@@ -112,12 +112,12 @@ if (!mobile) jQuery('form div').hover(function() {jQuery('* [data-toggle="popove
  * @param function success(jsonObject): what to do upon success (do nothing on failure)
  */
 function get(op, data, success) {
-  data = {op:op, sid:ajaxSid, data:data};
+  data = {op:op, sid:ajaxSid, data:JSON.stringify(data)}; // sub-objects must be stringified
   jQuery.get(ajaxUrl, data, success);
 }
 
 function post(op, data, success) {
-  data = {op:op, sid:ajaxSid, data:data};
+  data = {op:op, sid:ajaxSid, data:JSON.stringify(data)};
   jQuery.post(ajaxUrl, data, success); // jQuery not $, because drupal.js screws it up on formVerify
 }
 
@@ -139,11 +139,11 @@ function noSubmit() {
 }
 function yesSubmit() {}
 
-function who(form, fid, question, amount, allowNonmember) {
+function who(form, fid, question, amount, allowNonmember, coOnly) {
   jForm = $(form);
   var who = $(fid).val();
   if (yesSubmit) return true;
-  get('who', {who:who, question:question, amount:amount}, function(j) {
+  get('who', {who:who, question:question, amount:amount, coOnly:coOnly}, function(j) {
     if (j.ok) {
       if (j.who) {
         $(fid).val(j.who);
@@ -152,7 +152,7 @@ function who(form, fid, question, amount, allowNonmember) {
         }, noSubmit);
       } else which(jForm, fid, j.title, j.which);
     } else if (allowNonmember && who.includes('@')) {
-      yesno('That email address is for a non-member (or for a member with a non-public email address). Do you want to send them an invoice anyway, with an invitation to join?', function() {
+      yesno('The email address (' + who + ') is for a non-member (or for a member with a non-public email address). Do you want to send them an invoice anyway, with an invitation to join?', function() {
         yesSubmit = true; jForm.submit();
       }, noSubmit);
     } else {
@@ -176,37 +176,6 @@ function which(jForm, fid, title, body) {
     $(fid).val($(this).val());
     jForm.submit();
   });
-}
-
-function suggestWho(sel) {
-  var members = new Bloodhound({
-  //  datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
-    datumTokenizer: Bloodhound.tokenizers.whitespace,
-    queryTokenizer: Bloodhound.tokenizers.whitespace,
-    prefetch: {
-      url: ajaxUrl + '?op=typeWho&data=&sid=' + ajaxSid,
-      cache: false
-    }
-  /*  remote: {
-      url: ajaxUrl + '?op=typeWho&data=%QUERY&sid=' + ajaxSid,
-      wildcard: '%QUERY'
-    } */
-  });
-
-  $(sel).wrap('<div></div>').typeahead(
-    {
-      minLength: 3,
-      highlight: true
-    },
-    {
-      name: 'rMembers',
-  //    display: 'value',
-      source: members
-    }
-  );
-  /*$(sel).bind('typeahead:select', function(ev, suggestion) {
-    console.log('Selection: ' + suggestion);
-  }); */
 }
 
 var signoutWarning = 'You still there? (otherwise we\'ll sign you out, to protect your account)';

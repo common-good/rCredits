@@ -15,19 +15,19 @@
  *
  * You may also add statements just below this header (for example "use" and "require_once").
  */
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Testing as t;
-use rCredits\Util as u;
-use rCredits\Backend as be;
-use rCredits\Cron as cr;
+use CG as r;
+use CG\DB as db;
+use CG\Testing as t;
+use CG\Util as u;
+use CG\Backend as be;
+use CG\Cron as cr;
 
 require_once __DIR__ . '/../defs.inc';
 define('IAOY', t('inflation adjustment on your'));
 
 if (basename($_SERVER['SCRIPT_FILENAME']) != 'compile.php') {
-  require_once __DIR__ . '/../rcredits.inc';
-  require_once __DIR__ . '/../rcredits-testing.inc';
+  require_once __DIR__ . '/../cg.inc';
+  require_once __DIR__ . '/../cg-testing.inc';
 }
 
 /**
@@ -43,6 +43,7 @@ function extraSetup($feature) {
  * in: MAKE Bank Setup
  *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
  *     MAKE Bank AMemberIsUnderMinimumOnlyBecauseRewardsAreReserved
+ *     MAKE CommunityBits Setup
  *     MAKE Gifts Setup
  *     MAKE Invoices Setup
  *     MAKE Joint Setup
@@ -75,6 +76,7 @@ function members($list) {return t\members($list);}
  *     MAKE Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
  *     MAKE Bank AnAccountHasAMinimumButNoRefills
+ *     MAKE CommunityBits Setup
  *     MAKE Gifts Setup
  *     TEST Invoices Setup
  *     TEST Invoices UnpaidInvoicesGetHandled
@@ -108,6 +110,7 @@ function balances($list) {return t\balances($list);}
  *     MAKE Bank AnUnbankedMemberWithZeroMinimumHasBalanceBelowMinimum
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
  *     MAKE Bank AnAccountHasAMinimumButNoRefills
+ *     MAKE CommunityBits CommunityBansSpendingBelowZero
  *     MAKE Gifts ADonationCanBeCompleted
  *     MAKE Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
  *     MAKE Gifts ARecurringDonationCanBeCompleted
@@ -244,6 +247,13 @@ function gifts($gifts) {return t\gifts($gifts);}
 function weTellAdminWithSubs($topic, $subs) {return t\weTellAdmin($topic, $subs);}
 
 /**
+ * we tell (ARG) CO (ARG) with subs: (ARG)
+ *
+ * in: TEST CommunityBits CommunityBansSpendingBelowZero
+ */
+function weTellCOWithSubs($id, $topic, $subs) {return t\weTellAdmin($topic, $subs, t\uid($id));}
+
+/**
  * notices: (ARG)
  *
  * in: BOTH Notices AMemberGetsSomeNotices
@@ -277,7 +287,7 @@ function noticeCountIs($count) {
 function memberChargesMemberFor($payee, $payer, $amount, $for) {
   global $testOnly; if ($testOnly) return FALSE;
   global $scanned; $scanned = TRUE;
-  be\transfer('charge', acct(t\uid($payee)), acct(t\uid($payer)), $amount, TRUE, $for);
+  be\transfer('charge', acct(t\uid($payee)), acct(t\uid($payer)), $amount, $for);
   return TRUE;
 }
 
@@ -345,8 +355,10 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
  * members have: (ARG)
  *
  * in: MAKE Bank AnAccountHasAMinimumButNoRefills
+ *     MAKE CommunityBits CommunityBansSpendingBelowZero
  *     BOTH Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     MAKE Weekly AMemberBuildsUpSavings
+ *     MAKE Weekly AMemberCashesOutAutomatically
  */
 function membersHave($list) {return t\membersHave($list);}
 
@@ -496,3 +508,10 @@ function invoices($list) {return t\invoices($list);}
  * in: TEST Invoices UnpaidInvoicesGetHandled
  */
 function weMessageToMemberWithSubs($index, $id, $subs) {return t\weMessage($index, $id, $subs);}
+
+/**
+ * stats: (ARG)
+ *
+ * in: MAKE CommunityBits CommunityBansSpendingBelowZero
+ */
+function stats($list) {return t\stats($list);}

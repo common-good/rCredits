@@ -1,7 +1,7 @@
 <?php
-use rCredits as r;
-use rCredits\Util as u;
-use rCredits\Web as w;
+use CG as r;
+use CG\Util as u;
+use CG\Web as w;
 
 /**
  * @file
@@ -183,6 +183,7 @@ function rcredits_form($variables) {
     $element['#attributes']['action'] = drupal_strip_dangerous_protocols($element['#action']);
   }
 
+  $element['#id'] = str_replace('cgwebform', 'frm-', $element['#id']); // CGF
   element_set_attributes($element, array('method', 'id'));
   if (empty($element['#attributes']['accept-charset'])) {
     $element['#attributes']['accept-charset'] = "UTF-8";
@@ -224,7 +225,7 @@ EOF;
     $i++;
   }
 
-  if (function_exists('\\rCredits\\acct') and $mya = r\acct()) {
+  if (function_exists('\\CG\\acct') and $mya = r\acct()) {
     $acctName = "$mya->fullName ($mya->mainQid)";
     $co = $mya->co ? ' co' : '';
   } else $acctName = $co = '';
@@ -384,7 +385,7 @@ function rcredits_textfield($variables, $type = 'text') {
 
 function rcredits_textarea($variables) {
   \element_set_attributes($variables['element'], array('id', 'name'));
-  extract(rcElement($variables, 'attributes name help class default_value value'));
+  extract(rcElement($variables, 'attributes required name help class default_value value'));
 
   u\setDft($value, @$default_value); // allow either val or dft(val) in w\areaFld()
   $value = plain(@$value);
@@ -579,7 +580,7 @@ function spinLink($href, $text, $id = '', $style = 'primary', $size = 'md', $oth
   if ($class2 = @$other['class']) {$class .= ' ' . (is_array($class2) ? join(' ', $class2) : $class2); unset($other['class']);}
   if (!@$other['target']) $class .= ' ladda-button'; // don't spin if opening a window
 
-//  foreach ($other + compact(ray($attrs)) as $k => $v) if ($v = htmlspecialchars($v)) $attrs2 = @$attrs2 . " $k=\"$v\"";
+//  foreach ($other + compact(ray($attrs)) as $k => $v) if ($v = plain($v)) $attrs2 = @$attrs2 . " $k=\"$v\"";
   $attrs2 = u\tribs($other + compact('class', ray($attrs)));
   //$attrs2 = \drupal_attributes($other + compact(ray($attrs)));
 

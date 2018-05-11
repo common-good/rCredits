@@ -1,11 +1,11 @@
 <?php
-namespace rCredits\Vote;
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Backend as be;
-use rCredits\Util as u;
-use rCredits\Web as w;
-use rCredits\Vote as v;
+namespace CG\Vote;
+use CG as r;
+use CG\DB as db;
+use CG\Backend as be;
+use CG\Util as u;
+use CG\Web as w;
+use CG\Vote as v;
 
 define('ISDEMO', FALSE);
 define('GRADELTRS', 'EDCBA');

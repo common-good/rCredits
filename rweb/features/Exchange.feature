@@ -90,6 +90,6 @@ Scenario: A member asks to cash out too much
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
   | pay | Bea Two | 300    | %FOR_USD | paper   |
-  Then we say "error": "short to|increase min" with subs:
+  Then we say "error": "short to" with subs:
   | short |*
   | $100  |

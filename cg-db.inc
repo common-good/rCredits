@@ -4,10 +4,12 @@
  * Database functions.
  */
 
-namespace rCredits\DB; // typically abbreviated as "db"
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Util as u;
+namespace CG\DB; // typically abbreviated as "db"
+use CG as r;
+use CG\DB as db;
+use CG\Util as u;
+
+require_once __DIR__ . '/cg-util.inc';
 
 define('NO_LOGSQL_TABLES', 'r_do queue sessions r_invites r_near r_nonmembers r_request cache_form r_stats'); // don't log deletions from these files
 
@@ -45,6 +47,7 @@ function q($sql, $subs = [], $retId = FALSE, $log = FALSE) {
  * @param assoc $subs: optional substitutions -- keys will be prefixed by ':'
  * @return: the value of what was looked up -- an assoc of values if a list of fields was requested
  *   FALSE if none
+ * @see also: db\records()
  */
 function lookup($fieldName, $table, $where = '1', $subs = []) {
   u\EXPECT(compact(ray('fieldName table where subs')), 'notempty notempty notempty assoc');
@@ -124,8 +127,9 @@ function exists($table, $where = '1', $subs = []) {
 
 /**
  * Return an array of record objects.
+ * @param string $fields: comma-separated list of fields (actual or calculated) -- use * for all
  */
-function records($table, $where = '1', $subs = [], $fields = '*') {
+function records($fields, $table, $where = '1', $subs = []) {
   return db\q("SELECT $fields FROM $table WHERE $where", $subs)->fetchAll(); // fetchAll means fetchAllObject
 }
 

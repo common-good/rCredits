@@ -35,13 +35,13 @@
  * a companion module, rDemocracy, handles participatory financial decision-making
  */
 
-require_once 'rcredits.inc';
-use rCredits as r;
-use rCredits\Util as u;
-use rCredits\DB as db;
-use rCredits\Web as w;
-use rCredits\Admin as a;
-use rCredits\Cron as cr;
+require_once 'cg.inc';
+use CG as r;
+use CG\Util as u;
+use CG\DB as db;
+use CG\Web as w;
+use CG\Admin as a;
+use CG\Cron as cr;
 
 define('R_SYS_ERR', t('The %PROJECT system has detected an unusual problem. If your activity was interrupted, please feel free to try again.') . "<br>\n");
 define('ONE_CRON_OP', 'one cron op'); // flags a call of f('cr. in PHP window, to prevent side-effects
@@ -123,7 +123,7 @@ function rcredits_cron_queue_info() {
   return compact('q');
 }
 
-function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
+function makeQueue($callback, $time = 15) {return array('worker callback' => "CG\\Cron\\$callback", 'time' => $time);}
 
 /**
  * Set or return a global variable.
@@ -147,7 +147,7 @@ function x($xid, $mya = '') {f('r.x', $xid, $mya);} // return a transaction obje
 /**/ function da($idfield) {list ($id, $field) = ray($idfield); debug(a($id)->$field);}
 /**/ function step($a) {debug(us($a)->step());}
 function ctty($id) {return a(a($id)->community);}
-//function ray() {return call_user_func_array('\\rCredits\\Util\\ray', func_get_args());}
+//function ray() {return call_user_func_array('\\CG\\Util\\ray', func_get_args());}
 /**/ function flog($s = '') { // log to file and return log file name
   $fileName = DRUPAL_ROOT . LOG_DIR . date('Ym') . '.log'; // new log file every month
 /**/ if (func_num_args()) file_put_contents($fileName, print_r($s, 1) . "\n", FILE_APPEND);
@@ -180,13 +180,13 @@ function q($sql, $subs = [], $log = FALSE) {return f('db.q', $sql, $subs, $log);
 
 /**
  * Return a function result, for a nicknamed namespace function.
- * For example, f('u.fmtAmt 35.2') returns rCredits\Util\fmtAmt(35.2) = "$35.20".
+ * For example, f('u.fmtAmt 35.2') returns CG\Util\fmtAmt(35.2) = "$35.20".
  * f('u.func arg1 arg2') OR f('u.func', arg1, arg2)
  */
 function f($func) {
   global $cronOp; 
   list ($prefix, $funcName) = explode('.', $func);
-  $incs = ray('a:admin/admin.inc,y:rcredits-yearly.inc,w:rweb/rweb.inc,cr:rcron/rcron.inc,be:rcredits-backend.inc,s:rsmart/rsmart.inc,t:rcredits-testing.inc,i:rcredits-install.inc');
+  $incs = ray('a:admin/admin.inc,y:cg-yearly.inc,w:rweb/rweb.inc,cr:rcron/rcron.inc,be:cg-backend.inc,s:rsmart/rsmart.inc,t:cg-testing.inc,i:cg-install.inc');
   if ($flnm = @$incs[$prefix]) require_once __DIR__ . "/$flnm";
 
   if ($prefix == 'v') {
@@ -212,7 +212,7 @@ function f($func) {
 function funcNickname($func) {
   list ($n, $func) = explode('.', $func);
   $funcs = array_combine(ray('r w s u be db t p a cr y v i'), ray(' Web Smart Util Backend DB Testing SMS Admin Cron Special Vote Install'));
-  return 'rCredits\\' . ($funcs[$n] ? $funcs[$n] . '\\' : '') . $func;
+  return 'CG\\' . ($funcs[$n] ? $funcs[$n] . '\\' : '') . $func;
 }
 
 /**
@@ -230,7 +230,7 @@ function eachR($tnm, $func, $where = '1', $subs = []) {
  * call: eachA($func);
  * or    eachA(function($a) {...});
  */
-function eachA($func = 'a.changeIt', $where = 'uid>1') {
+function eachA($func = 'a.changeIt', $where = 'uid>:CANONIC_ACCTS') {
   $result = q("SELECT uid FROM users WHERE $where ORDER BY uid")->fetchCol();
   if (!is_callable($func)) $func = funcNickname($func);
   foreach ($result as $uid) $func(a($uid));

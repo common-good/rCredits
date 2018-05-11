@@ -98,13 +98,13 @@ Scenario: Inflation adjustments, round up donations, and crumb donations are mad
   | xid| created| type      | amount | bonus                               | from | to   | purpose |*
   | 12 | %today | inflation |      0 | %(round(%R_INFLATION_RATE*29.2, 2)) | ctty | .ZZA | %IAOY average balance |
   # 29.6?
-  | 13 | %today | inflation |      0 | %(round(%R_INFLATION_RATE *8.8, 2)) | ctty | .ZZA | %IAOY credit reserve  |
-  | 14 | %today | inflation |      0 | %(round(%R_INFLATION_RATE*13.6, 2)) | ctty | .ZZB | %IAOY average balance |
+#  | 13 | %today | inflation |      0 | %(round(%R_INFLATION_RATE *8.8, 2)) | ctty | .ZZA | %IAOY credit reserve  |
+  | 13 | %today | inflation |      0 | %(round(%R_INFLATION_RATE*13.6, 2)) | ctty | .ZZB | %IAOY average balance |
   # 14.2?
-  | 15 | %today | inflation |      0 | %(round(%R_INFLATION_RATE *9.0, 2)) | ctty | .ZZB | %IAOY credit reserve  |
-  | 16 | %today | inflation |      0 | %(round(%R_INFLATION_RATE*22.8, 2)) | ctty | .ZZC | %IAOY average balance |
+#  | 15 | %today | inflation |      0 | %(round(%R_INFLATION_RATE *9.0, 2)) | ctty | .ZZB | %IAOY credit reserve  |
+  | 14 | %today | inflation |      0 | %(round(%R_INFLATION_RATE*22.8, 2)) | ctty | .ZZC | %IAOY average balance |
   # 23.0?
-  | 17 | %today | inflation |      0 | %(round(%R_INFLATION_RATE *8.6, 2)) | ctty | .ZZC | %IAOY credit reserve  |
+#  | 17 | %today | inflation |      0 | %(round(%R_INFLATION_RATE *8.6, 2)) | ctty | .ZZC | %IAOY credit reserve  |
   And member ".ZZA" cache is ok
   And member ".ZZB" cache is ok
   And member ".ZZC" cache is ok
@@ -120,10 +120,10 @@ Scenario: Inflation adjustments, round up donations, and crumb donations are mad
 # roundups (creation date is last second of previous month)
   And transactions:
   | xid | created | type     | amount | rebate | bonus | from | to  | purpose       | flags         |*
-  | 18  |       ? | transfer |   1.00 |    .05 |   .10 | .ZZA | cgf | roundups desc | gift,roundups |
+  | 15  |       ? | transfer |   1.00 |    .05 |   .10 | .ZZA | cgf | roundups desc | gift,roundups |
  
 # crumbs (creation date is last second of previous month)
-  | 19  |       ? | transfer |   3.40 |    .34 |   .34 | .ZZC | cgf | crumbs desc   | gift,crumbs   |
+  | 16  |       ? | transfer |   3.40 |    .34 |   .34 | .ZZC | cgf | crumbs desc   | gift,crumbs   |
 
 # alerting admin about paper statements
   And we tell admin "Send paper statements" with subs:

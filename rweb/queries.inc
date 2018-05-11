@@ -1,7 +1,7 @@
 <?php
 
-use rCredits as r;
-use rCredits\Util as u;
+use CG as r;
+use CG\Util as u;
 
 /**
  * @file
@@ -39,11 +39,11 @@ $queries = [
   
   'Company and Member Balances and Credit Lines' =>
     "SELECT c.fullName AS community,
-    SUM(IF(u.:IS_CO, 0, u.balance)) AS memBalances, SUM(IF(u.:IS_CO, 0, u.rewards)) AS memCredit, 
+    SUM(IF(u.:IS_CO, 0, u.balance)) AS memBalances, SUM(IF(u.:IS_CO, 0, -u.floor)) AS memCredit, 
       SUM(IF(u.:IS_CO, 0, IF(u.:IS_REFILL, u.minimum, 0))) AS memTargetBalances,
-    SUM(IF(u.:IS_CO, u.balance, 0)) AS coBalances, SUM(IF(u.:IS_CO, u.rewards, 0)) AS coCredit, 
+    SUM(IF(u.:IS_CO, u.balance, 0)) AS coBalances, SUM(IF(u.:IS_CO, -u.floor, 0)) AS coCredit, 
       SUM(IF(u.:IS_CO, IF(u.:IS_REFILL, u.minimum, 0), 0)) AS coTargetBalances 
-    FROM users u LEFT JOIN users c ON c.uid=u.community WHERE c.uid IS NOT NULL GROUP BY c.fullName",
+    FROM users u LEFT JOIN users c ON c.uid=u.community WHERE c.uid<0 GROUP BY c.fullName",
 
 //     SUM(IF(t.:IS_GIFT OR t.:IS_ROUNDUPS OR t.:IS_CRUMBS OR t.:IS_PATRONAGE,0,amount)) AS `payments to CG`
   'Donations to Common Good and Community' =>

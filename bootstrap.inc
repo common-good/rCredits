@@ -1306,7 +1306,7 @@ function ray($s, $value1 = NULL) {
   if (func_num_args() > 1) { // multi-argument call -- return an associative array
     $args = func_get_args();
     $keys = ray(array_shift($args));
-//    u\EXPECT(count($keys) == count($args), 'assoc arg count mismatch');
+///    if (count($keys) != count($args)) die('assoc arg count mismatch ' . print_r(debug_backtrace(), 1));
     return array_combine($keys, $args);
   }
 
@@ -1335,14 +1335,18 @@ function obj() {return (object) call_user_func_array('ray', func_get_args());}
  * Return just the specified key/value pairs from the given array, trimmed.
  * Typical use: extract(just('key2 key4 key 7', $info));
  * If a key did not exist in the original array, it will not be in the returned array either.
- * @param string/array $these: array or space-delimited array of field names
+ * @param string/array $these: flat array or space-delimited array of field names
  * @param array/object/string $info: possible key/value pairs to return (passed as array, object, or UrlArgString)
+ * @param bool $ordered: <order the returned keys as in $these>
  * @return array of the results [NOT trimmed, because values might be encrypted!]
  */
-function just($these, $info) {
+function just($these, $info, $ordered = FALSE) {
   $ray = is_string($info) ? urlq2ray($info) : (array) $info;
   if (!is_array($these)) $these = ray($these);
-	return array_intersect_key($ray, array_flip($these));
+  if ($ordered) {
+    foreach ($these as $k) if (isset($info[$k])) $res[$k] = $info[$k];
+    return $res;
+  } else return array_intersect_key($ray, array_flip($these));
 }
 
 /**
@@ -2110,6 +2114,9 @@ function drupal_bootstrap() {
   _drupal_bootstrap_variables();
   require_once DRUPAL_ROOT . '/includes/session.inc';
   drupal_session_initialize();
+  
+  setCSP(); // must come after drupal_session_initialize
+  
   _drupal_bootstrap_page_header();
   drupal_language_initialize();
   require_once DRUPAL_ROOT . '/includes/common.inc';

@@ -1,7 +1,7 @@
 <?php
-use rCredits as r;
-use rCredits\Util as u;
-use rCredits\DB as db;
+use CG as r;
+use CG\Util as u;
+use CG\DB as db;
 
 define('F_FILEHDR', 'recType:1, priority:2, destNum:10, originNum:10, datetime:10, fileIdModifier:1, recSize:3, blocking:2, format:1, destName:23, originName:23, ref:8'); // header format
 define('F_BATCHHDR', 'recType:1, class:3, originName:16, data:20, originNum:10, secCode:3, purpose:10, when:6, entryDate:6, settle:3, status:1, destNum:8, batchNum:7'); // batch header format

@@ -1,9 +1,9 @@
 <?php
-namespace rCredits;
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Backend as be;
-use rCredits\Util as u;
+namespace CG;
+use CG as r;
+use CG\DB as db;
+use CG\Backend as be;
+use CG\Util as u;
 
 /**
  * @file
@@ -104,30 +104,25 @@ class X {
     extract(just('type serial goods payer payee data payerTid payeeTid created payeeFor', $xrays[0]));
     
     if ($type != TX_TRANSFER) return TRUE;
-    $rewards = unserialize($data);
+    $data = unserialize($data);
     
-    if (FALSE and $goods == FOR_GOODS) {
-    /*
-      foreach (['rebate', 'bonus'] as $type) {
-      // u\EXPECT(isset($rewards[$type]), 'nope!'); NO! pay to owners, for example, has no reward
-        $amount = @$rewards[$type]; // @ for empty rewards to owners, for example
-        $type = u\consta('tx', $type);
-        list ($to, $tid, $for) = $type == TX_REBATE
-          ? array($payer, $payerTid, t('reward')) 
-          : array($payee, $payeeTid, t('reward'));
-        $for .= t( ' on #') . $tid;
-        if ($amount and $to > 0) { // not a transfer to a community or region
-          if ($xray = $this->save($this->rewardSetup($serial, $type, $to, $amount, $for, $created))) $xrays[] = $xray; else return FALSE;
-        }
-      }
-      */
-    } elseif ($amount = @$rewards['xfee']) {
+    if ($amount = @$data['xfee']) {
       list ($type, $goods, $payerAgent, $payeeAgent, $taking) = array(TX_XFEE, FOR_USD, $payer, $payee, TRUE);
       $for = ($amount == R_XFEE_CHECK and !strpos($payeeFor, BY_CARD)) ? t('check fee') : t('card fee');
       if ($xray = $this->save($this->setup(compact(ray(TX_FIELDS))))) {
         $xrays[] = $xray;
       } else return FALSE;
     }
+
+    if ($amount = -@$data['coupon']) {
+      list ($goods, $payerAgent, $payeeAgent, $taking) = array(FOR_USD, $payer, $payee, TRUE);
+      $for = t('discount rebate (on #%tid)');
+      $for = [tr($for, 'tid', $payerTid), tr($for, 'tid', $payeeTid)];
+      if ($xray = $this->save($this->setup(compact(ray(TX_FIELDS))))) {
+        $xrays[] = $xray;
+      } else return FALSE;
+    }
+    
     return TRUE;
   }
 

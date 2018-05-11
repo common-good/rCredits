@@ -1,11 +1,11 @@
 <?php
-namespace rCredits\Txs; // typically abbreviated as "x"
-use rCredits\Backend as be;
-use rCredits\Util as u;
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Txs as x;
-use rCredits\Web as w;
+namespace CG\Txs; // typically abbreviated as "x"
+use CG\Backend as be;
+use CG\Util as u;
+use CG as r;
+use CG\DB as db;
+use CG\Txs as x;
+use CG\Web as w;
 
 /**
  * @file
@@ -15,6 +15,14 @@ use rCredits\Web as w;
 define('DT_MAX', 100000000000); // bigger than any date
 define('TX_TID_MAX', 100000000); // zero-filler
  
+define('TX_OPT_KEYS' , 'agents channels boxes exchanges pexchanges'); // these are all placeholders now
+define('TX_URL_OPTS', 'states ' . TX_OPT_KEYS);
+define('TX_OPT_AGENTS', 1);
+define('TX_OPT_CHANNELS', 2);
+define('TX_OPT_BOXES', 3);
+define('TX_OPT_EXCHANGES', 4);
+define('TX_OPT_PEXCHANGES', 5);
+
 /**
  * Get a formatted list of transaction records.
  * @param int $starting: starting date
@@ -68,7 +76,6 @@ function getTxRows($starting, $ending, $options = [], $url0 = '', &$run = '') {
     exit();
   }
   
-//  return array($header, $classes, @$download ? $rows : sortRows($rows, @$descending), $totDone);
   return [$header, $classes, sortRows($rows, @$descending), $totDone];
 }
 
@@ -151,7 +158,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   if ($download) return u\csv($csvRow); // not STDOUT
 //  finishCsvRow($csv, array_combine($classes, $row), $tx, $tot);
   
-  $sort = (DT_MAX + $created) . (TX_TID_MAX + $tid) . ($banking ? 5 : 0) . u\randomFloat(.0001, .9999); // make it a string so as not to lose precision
+  $sort = (string) (DT_MAX + $created) . (TX_TID_MAX + $tid) . ($banking ? 5 : 0) . u\randomFloat(.0001, .9999); // make it a string so as not to lose precision
 //  array_unshift($row, $sort); // sort by date (fails around the year 2260), then by tid
   
   $rows[$sort] = $row;
@@ -162,17 +169,12 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
  * @param array $rows: the unsorted rows
  * @return array: those rows without the sort column, sorted
  */
-function sortRows($rows, $descending = FALSE) {
+function sortRows($rows, $descending) {
   if (!@$rows) return []; // no records
   $count = count($rows);
-  /*
-  foreach ($rows as $i => $row) {
-    $keys[] = array_shift($rows[$i]); // assume we never will list more than a million at once
-  }
-  $rows = array_combine($keys, $rows);
-  */
   
-  if ($descending) krsort($rows, SORT_STRING); else ksort($rows, SORT_STRING);
+  $func = $descending ? 'krsort' : 'ksort';
+  $func($rows, SORT_STRING); // SORT_STRING is a PHP constant
   u\EXPECT(count($rows) == $count, "ksort lost rows: was $count, now " . count($rows));
   return array_values($rows);
 }

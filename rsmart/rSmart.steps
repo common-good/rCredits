@@ -16,17 +16,17 @@
  * You may also add statements just below this header (for example "use" and "require_once").
  */
 
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Testing as t;
-use rCredits\Util as u;
-use rCredits\Backend as be;
+use CG as r;
+use CG\DB as db;
+use CG\Testing as t;
+use CG\Util as u;
+use CG\Backend as be;
 
 require_once __DIR__ . '/../defs.inc';
 
 if (basename($_SERVER['SCRIPT_FILENAME']) != 'compile.php') {
-  require_once __DIR__ . '/../rcredits.inc';
-  require_once __DIR__ . '/../rcredits-testing.inc';
+  require_once __DIR__ . '/../cg.inc';
+  require_once __DIR__ . '/../cg-testing.inc';
   require_once __DIR__ . '/../rsmart/rsmart.inc';
 }
 
@@ -40,7 +40,8 @@ function extraSetup() {
 /**
  * members: (ARG)
  *
- * in: MAKE Exchange Setup
+ * in: MAKE Coupons Setup
+ *     MAKE Exchange Setup
  *     MAKE Identify Setup
  *     MAKE Joint Setup
  *     MAKE Offline Setup
@@ -54,7 +55,8 @@ function members($list) {return t\members($list);}
 /**
  * relations: (ARG)
  *
- * in: MAKE Exchange Setup
+ * in: MAKE Coupons Setup
+ *     MAKE Exchange Setup
  *     MAKE Identify Setup
  *     MAKE Joint Setup
  *     MAKE Offline Setup
@@ -68,7 +70,8 @@ function relations($relations) {return t\relations($relations);}
 /**
  * transactions: (ARG)
  *
- * in: MAKE Exchange Setup
+ * in: TEST Coupons AMemberRedeemsAGiftCoupon
+ *     MAKE Exchange Setup
  *     MAKE Identify Setup
  *     MAKE Joint Setup
  *     MAKE Offline Setup
@@ -207,7 +210,8 @@ function memberHasNoPicture($id) {
 /**
  * devices: (ARG)
  *
- * in: MAKE Exchange Setup
+ * in: MAKE Coupons Setup
+ *     MAKE Exchange Setup
  *     MAKE Identify Setup
  *     MAKE Joint Setup
  *     MAKE Offline Setup
@@ -273,7 +277,8 @@ function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
 /**
  * agent (ARG) asks device (ARG) to undo transaction with subs: (ARG)
  *
- * in: MAKE Undo AnAgentAsksToUndoACharge
+ * in: MAKE Coupons AMemberRedeemsAGiftCoupon
+ *     MAKE Undo AnAgentAsksToUndoACharge
  *     MAKE Undo AnAgentAsksToUndoANonexistentTransaction
  */
 function agentAsksDeviceToUndoTransactionWithSubs($agent, $device, $subs) {
@@ -397,7 +402,8 @@ function weReturnError($msg) {return weReturnErrorWithSubs($msg, array());}
 /**
  * selling: (ARG)
  *
- * in: MAKE Exchange Setup
+ * in: MAKE Coupons Setup
+ *     MAKE Exchange Setup
  *     MAKE Identify Setup
  *     MAKE Joint Setup
  *     MAKE Offline Setup
@@ -410,7 +416,8 @@ function selling($selling) {return t\selling($selling);}
 /**
  * company flags: (ARG)
  *
- * in: MAKE Exchange Setup
+ * in: MAKE Coupons Setup
+ *     MAKE Exchange Setup
  *     MAKE Identify Setup
  *     MAKE Joint Setup
  *     MAKE Offline Setup
@@ -460,7 +467,8 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
 /**
  * agent (ARG) asks device (ARG) to charge (ARG) $(ARG) for (ARG): (ARG) at (ARG)
  *
- * in: MAKE Exchange ACashierAsksToChargeSomeoneForCash
+ * in: MAKE Coupons AMemberRedeemsAGiftCoupon
+ *     MAKE Exchange ACashierAsksToChargeSomeoneForCash
  *     MAKE Exchange ACashierAsksToRefundSomeone
  *     MAKE Exchange ACashierAsksToChargeAnotherMemberWithInsufficientBalance
  *     MAKE Exchange ACashierAsksToRefundAnotherMemberWithInsufficientBalance
@@ -722,3 +730,16 @@ function weChangeMemberCardCode($id) {
   a(t\uid($id))->makeCardCode();
   return TRUE;
 }
+
+/**
+ * coupons: (ARG)
+ *
+ * in: MAKE Coupons AMemberRedeemsAGiftCoupon
+ */
+function coupons($list) {return t\coupons($list);}
+/**
+ * transaction count is (ARG)
+ *
+ * in: TEST Coupons AMemberRedeemsAGiftCoupon
+ */
+function transactionCountIs($n) {return t\txCountIs($n);}

@@ -4,12 +4,13 @@
  * Set general environment and operational settings
  * Also used by /do.php, for no-sign-in database changes
  */
+
+strip($_POST); strip($_GET); // No HTML input EVER (unless encoded in a way we expect)
  
-global $base_url, $base_path, $base_root;
+global $base_url, $base_path, $base_root, $styleNonce;
 global $databases, $drupal_hash_salt, $cryHows;
 global $cookie_domain, $conf, $is_https, $base_secure_url, $base_insecure_url;
- 
-global $CGdomain;
+ global $CGdomain;
 
 require __DIR__ . '/defs.inc';
 
@@ -20,7 +21,6 @@ if (NOT_PRODUCTION) {
   ini_set('display_errors', 'On');
 }
 
-global $R_POST; $R_POST = $_POST;
 $uri = 'I' . $_SERVER['REQUEST_URI']; // handle scanned rCard URIs
 if (isDEV) $uri = str_replace(DEV_ROOT . '/', '/', $uri);
 $_SERVER['REQUEST_URI'] = $_GET['q'] = preg_match('~^I/[A-Z]+[\.-]~', $uri) ? $uri : \request_path();
@@ -120,32 +120,51 @@ if (count(explode('.', $cookie_domain)) > 2 && !is_numeric(str_replace('.', '', 
 $agt = $_SERVER['HTTP_USER_AGENT'];
 define('isSAFARI', stripos($agt, 'Chrome') === FALSE and stripos($agt, 'Safari') !== FALSE);
 
+/**
+ * Remove any (potentially hazardous) HTML from input.
+ * Specifically, remove <, followed by ! or any letter, through the closing > or end of string.
+ */
+function strip(&$v) {
+  if (is_array($v)) {
+    foreach ($v as $k => $v2) strip($v[$k]);
+  } else $v = preg_replace('~<[!/a-z][^>]*(>|$)~i', '', $v); // not strip_tags, which zaps <3, etc.
+}
+
 define('FRAME_SOURCES', "https://cg4.us/chart.php $base_url/rcredits/misc/chart.php $base_url/sadmin/export-list/"); // base_url not self, because we use this to sanitize page too
 
-// We might want to use require-sri-for eventually for even our own scripts and style sheets
-// 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=' for inline style in spin.min.js
-// 'sha256-2EA12+9d+s6rrc0rkdIjfmjbh6p2o0ZSXs4wbZuk/tA=' for inline style in jquery-3.1.1.min.js
-// 'sha256-nX7L7GcvxmPKgeYAFQSzFcLplU7F/i/72ytdtLdJYoI=' for jquery also
-// 'sha256-+t47tgldASBy5zANml11C5vRg3a/7oPrKstKXlzZfkI=' for jquery also
-// 'sha256-+7g9GIVwIQyRW5AWmV3tOknRu/VejUoNtGLu4+COYXU=' for inline style in chartist.min.js
-\drupal_add_http_header('Content-Security-Policy', 
-    "base-uri 'self';"
-  . "block-all-mixed-content;"
-  . "default-src 'self';"
-        . "connect-src 'self';"
-        . "font-src 'self';"
-        . "frame-src " . FRAME_SOURCES . ';' // we use iframes for admin member download and for graphs
-        . "manifest-src 'none';"
-        . "media-src 'self';"
-        . "object-src 'none';"
-        . "script-src 'self' 'report-sample';" // report-sample allows script fragment to be included in CSP reports
-        . "img-src 'self' data:;" // data: is for photo upload
-        . "style-src 'self' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=' 'sha256-+t47tgldASBy5zANml11C5vRg3a/7oPrKstKXlzZfkI=' 'sha256-nX7L7GcvxmPKgeYAFQSzFcLplU7F/i/72ytdtLdJYoI=' 'sha256-2EA12+9d+s6rrc0rkdIjfmjbh6p2o0ZSXs4wbZuk/tA=';"
-        . "worker-src 'none';"
-  . "form-action 'self';"
-  . "frame-ancestors 'none';"
-  . "report-uri /csp-report.php;"
-);
+/** Set Content-Security-Policy
+ * We might want to use require-sri-for eventually for even our own scripts and style sheets
+ * 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=' for inline style in spin.min.js
+ * 'sha256-2EA12+9d+s6rrc0rkdIjfmjbh6p2o0ZSXs4wbZuk/tA=' for inline style in jquery-3.1.1.min.js
+ * 'sha256-nX7L7GcvxmPKgeYAFQSzFcLplU7F/i/72ytdtLdJYoI=' for jquery also
+ * 'sha256-+t47tgldASBy5zANml11C5vRg3a/7oPrKstKXlzZfkI=' for jquery also
+ * 'sha256-+7g9GIVwIQyRW5AWmV3tOknRu/VejUoNtGLu4+COYXU=' for inline style in chartist.min.js
+ * nonces are for spin.min.js on iPhone (but it doesn't work)
+ */
+function setCSP() {
+  $styleNonce = base64_encode(substr(hash('sha256', PROJECT . time(), TRUE), 0, 32));
+  $sid = session_id();
 
-\drupal_add_http_header('X-Frame-Options', 'DENY');
-// Use <iframe sandbox="allow-scripts" ...> for cg4.us frame showing charts
+  \drupal_add_http_header('Content-Security-Policy', 
+      "base-uri 'self';"
+    . "block-all-mixed-content;"
+    . "default-src 'self';"
+          . "connect-src 'self';"
+          . "font-src 'self';"
+          . "frame-src " . FRAME_SOURCES . ';' // we use iframes for admin member download and for graphs
+          . "manifest-src 'self';"
+          . "media-src 'self';"
+          . "object-src 'none';"
+          . "script-src 'self' 'nonce-$styleNonce' 'report-sample';" // report-sample allows script fragment to be included in CSP reports
+          . "img-src 'self' data:;" // data: is for photo upload
+          . "style-src 'self' 'nonce-$styleNonce' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=' 'sha256-+t47tgldASBy5zANml11C5vRg3a/7oPrKstKXlzZfkI=' 'sha256-nX7L7GcvxmPKgeYAFQSzFcLplU7F/i/72ytdtLdJYoI=' 'sha256-2EA12+9d+s6rrc0rkdIjfmjbh6p2o0ZSXs4wbZuk/tA=';"
+          . "worker-src 'none';"
+    . "form-action 'self';"
+    . "frame-ancestors 'none';"
+    . "report-uri /csp-report.php?sid=$sid;"
+  );
+
+  \drupal_add_http_header('X-Frame-Options', 'DENY');
+  // Use <iframe sandbox="allow-scripts" ...> for cg4.us frame showing charts
+
+}

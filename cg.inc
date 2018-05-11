@@ -5,19 +5,19 @@
  * (SMS, web, smartphone, etc.)
  * EXCEPT:
  *   - the Drupalish callbacks, which are in rcredits.module
- *   - application interfaces to the user interfaces, which are in rcredits-backend.inc (i)
- *   - utilities, which are in rcredits-util.inc (u)
+ *   - application interfaces to the user interfaces, which are in cg-backend.inc (i)
+ *   - utilities, which are in cg-util.inc (u)
  */
  
-namespace rCredits; // typically abbreviated as "r"
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Util as u;
-use rCredits\Backend as be;
-use rCredits\Web as w; // use only in rTime (for the game)
+namespace CG; // typically abbreviated as "r"
+use CG as r;
+use CG\DB as db;
+use CG\Util as u;
+use CG\Backend as be;
+use CG\Web as w; // use only in rTime (for the game)
 
-require_once __DIR__ . '/rcredits-strings.inc';
-require_once __DIR__ . '/rcredits-db.inc';
+require_once __DIR__ . '/cg-strings.inc';
+require_once __DIR__ . '/cg-db.inc';
 require_once __DIR__ . '/acct.class';
 require_once __DIR__ . '/x.class';
 require_once __DIR__ . '/qo.class';
@@ -247,11 +247,11 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   
   if (is_object($replyA = $reply)) $reply = [$replyA->email => $replyA->fullName];
 
-  $nolog = ray(R_NOLOG); // subs not to log (sensitive data)
+//  $nolog = ray(R_NOLOG); // subs not to log (sensitive data)
   foreach ($subs as $k0 => $v) if (!is_object($v) and !is_array($v)) {
     $k = "%$k0"; // '{' . $k0 . '}';
     $resubs[$k] = $v;
-    $logSubs[$k] = in_array($k0, $nolog) ? '(?)' : $v; // hide personal info and secrets
+//    $logSubs[$k] = in($k0, R_NOLOG) ? '(?)' : $v; // hide personal info and secrets
   }
 
 //  $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
@@ -259,7 +259,8 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   $body = u\SUBS(strtr(@$body ?: (@$noFrame ? r\emailTemplate($index) : r\emailBody($index)), $resubs), '%');
 
   // log
-  $message = strtr($body, $logSubs + ["\r\n" => '', ' style=' => ' stylish=']); // easier reading for log and tests & evade CSP
+  $logSubs = u\noSecrets($resubs) + ["\r\n" => '', ' style=' => ' stylish=']; // easier reading for log and tests & evade CSP
+  $message = strtr($body, $logSubs);
   $erInfo = compact(ray('index toEmail subject message'));
 /**/ f('t.output', 'Actual (in rMail) ' . print_r($erInfo, 1), 'email');
   u\loga('email', $erInfo + ['toUid' => @$toA->id]);
@@ -424,9 +425,10 @@ function acceptGift($info) {
     $data['patronage'] = 1;
   }
 
-  $sharing = (@$honor == 'share');
-  list ($goods, $purpose) = $sharing ? [FOR_SHARE, R_SHARING_MSG] : [FOR_GOODS, t('donation') . @$recurring];
-  list ($msg, $args) = be\transfer('payment', $a, $cgf, $amount, $goods, $purpose, NULL, $data);
+//  $sharing = (@$honor == 'share');
+//  list ($goods, $purpose) = $sharing ? [FOR_SHARE, R_SHARING_MSG] : [FOR_GOODS, t('donation') . @$recurring];
+  $purpose = t('donation') . @$recurring;
+  list ($msg, $args) = $a->pay($cgf, $amount, $purpose, $data);
   if (@$args['success']) {
     $completed = r\rTime();
     db\update('r_gifts', compact('donid', 'completed'), 'donid');
@@ -452,7 +454,7 @@ function acceptGift($info) {
  */
 function tellAdmin($index, $subs = [], $uid = NULL) {
 /**/  if (isDEV and !u\test()) return debug(['tellingStaff' => $index] + $subs + compact('uid'));
-  foreach (ray(R_SECURE_FIELDS) as $k) unset($subs[$k]); // secret stuff
+  foreach (ray(R_NOLOG) as $k) unset($subs[$k]); // secret stuff
   ksort($subs); // put the keys in a predictable order, for testing and easy reading
 
   if (!$tellCO = isset($uid)) $uid = @$subs['uid'];
@@ -539,11 +541,9 @@ function iCardAcct($code0, &$iCode = NULL) {
   $tail = u\n2a(bindec(substr($b, ILEN_REGION, ILEN_TAIL)), -3);
   $security = u\n2ai(bindec(substr($b, -ILEN_SECURITY)), 3);
 ///  debug("code=$code iCode=$iCode b=$b region=$region tail=$tail security=$security");
+///  debug(r\acct("$region.$tail")->lowSecurity);
 
-  if (!$a = r\acct("$region.$tail")) { 
-  // temporarily allow '1' for 'I' (until June 2016 or so) -- not forever because we now use Verdana
-    return strpos($code, '1') === FALSE ? FALSE : iCardAcct(str_replace('1', 'I', $code0, $iCode));
-  } else return ($security == $a->lowSecurity) ? $a : FALSE;
+  return ($a = r\acct("$region.$tail") and $security == $a->lowSecurity) ? $a : FALSE;
 }
 
 /**
@@ -813,10 +813,14 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
   // r_banks
     'r_boxes:uid:D',
   // r_countries
+    'r_coupated:uid',
+    'r_coupons:fromId',
     'r_do:uid:D',
     'r_events:ctty',
     'r_gifts:uid:D',
   // r_industries
+    'r_investments:coid',
+    'r_investments:clubid',
     'r_invites:inviter',
     'r_invites:invitee:D',
     'r_invoices:payer:D',
@@ -833,11 +837,15 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_proxies:person:D',
     'r_proxies:proxy:D',
   // r_questions
+    'r_ratings:uid',
   // r_regions
     'r_relations:main:D',
     'r_relations:other:D',
   // r_request
   // r_states
+  // r_shares:clubid',
+    'r_stakes:uid',
+    'r_stakes:clubid',
     'r_stats:ctty:D',
     'r_tous:uid:D',
   // r_transit
@@ -930,7 +938,7 @@ function go($page, $msg = '', $field = '') {
 /*    if (u\starts($page, 'empty')) {
       list ($page, $msg) = strpos($page, '/') ? ["$page&msg=$msg", ''] : ["$page/msg=$msg", '']; 
     } else */
-    r\Web\say($msg, $field);
+    r\Web\say(strip_tags($msg), $field);
   }
 //  else $page .= "/field=$field&msg=" . urlencode($msg); // say() fails if signed out
 
@@ -985,12 +993,12 @@ function noticeArgs($uid, $where = '0', $weekly = FALSE, $monthly = FALSE, $at =
   $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
   extract(just('return', $a->j_stats()));
   $balance = u\fmtAmt($a->balance);
-//  $savings = u\fmtAmt($a->savings);
-  $savings = u\fmtAmt($a->rewards);
+//  $savings = u\fmtAmt($a->rewards);
+  $creditLine = u\fmtAmt(-$a->floor);
   list ($rewards, $ourEmail) = array(u\fmtAmt($a->rewards), $a->cttyA->email);
   $companies = \variable_get('companies');
   $companies = $companies[u\test() ? r\serverUid() : (int) $a->community];
-  return compact(ray('messages unit range yestertime balance savings return ourEmail companies'));
+  return compact(ray('messages unit range yestertime balance creditLine return ourEmail companies'));
 }
 
 /**
@@ -1007,7 +1015,7 @@ function companies($ctty, $email = FALSE) {
   
   $uids = is_array($ctty) 
   ? $ctty
-  : db\q("SELECT DISTINCT uid FROM users WHERE :IS_CO AND :IS_OK AND uid>1 AND $where ORDER BY fullName", compact('ctty'))->fetchCol();
+  : db\q("SELECT DISTINCT uid FROM users WHERE :IS_CO AND :IS_OK AND uid>:CANONIC_ACCTS AND $where ORDER BY fullName", compact('ctty'))->fetchCol();
   if (!$uids) return $email ? t('no new companies this month') : t('No companies there yet. Invite them!');
   
   $res = '';
@@ -1043,13 +1051,10 @@ function cttyPaidEver($ctty = 0) {
  * @return assoc of named statistics for one community on one date (see r_stats table def)
  */
 function stats($ctty = 0, $when = NULL) {
-  u\setDft($when, time());
-  $sql = 'SELECT * FROM r_stats WHERE created<=:when AND ctty=:ctty ORDER BY created DESC LIMIT 1';
+  u\setDft($when, strtotime('today'));
+  $sql = 'SELECT * FROM r_stats WHERE created>=:when AND ctty=:ctty ORDER BY created LIMIT 1';
 
   $info = db\q($sql, compact('ctty', 'when'))->fetchAssoc() ?: r\getStats($ctty, $when);
-//    $keys = db\q("SELECT column_name FROM information_schema.columns WHERE table_name='r_stats'")->fetchCol();
-//    $info = array_fill_keys($keys, 0);
-//  }
 
   extract($info);
   $info['bals'] = $bals = $balsPos + $balsNeg;
@@ -1087,14 +1092,13 @@ function getStats($ctty, $created = NULL) {
     [$thisCtty, 'payer=:ctty', 'payee=:ctty', "(u.$thisCtty OR u2.$thisCtty)"]
   : ['community<>0', 'payer<1', 'payee<1', '1'];
   $creCrit = 'created<=:created';
-  $idCrit = '(uid NOT IN (0,1,2,3))';
-  $accounts = "(SELECT uid,jid,community,flags FROM users WHERE $idCrit)";
+  $nonCtty = 'uid>:CANONIC_ACCTS';
+  $accounts = "(SELECT uid,jid,community,flags FROM users WHERE $nonCtty)";
   $isMaster = '(jid=0 OR uid<jid)';
   $masterBal = '(balance+IFNULL(balance2, 0))';
-  $slave = "(SELECT uid AS uid2, balance AS balance2 FROM users WHERE $idCrit) u2 ON u2.uid2=u.jid";
+  $slave = "(SELECT uid AS uid2, balance AS balance2 FROM users WHERE $nonCtty) u2 ON u2.uid2=u.jid";
   
   $res = [];
-  
   // get users table data (must happen before topN/botN)
   $sql = <<<X
     SELECT SUM(IF(:IS_OK AND activated<=:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
@@ -1104,9 +1108,9 @@ function getStats($ctty, $created = NULL) {
       SUM(IF($masterBal<0, $masterBal, 0)) AS balsNeg,
       SUM(IF($masterBal>0, 1, 0)) AS balsPosCount,
       SUM(IF($masterBal<0, 1, 0)) AS balsNegCount,
-      SUM(floor) AS floors
+      SUM(IF(:IS_OK, floor, 0)) AS floors
     FROM users u LEFT JOIN $slave
-    WHERE $idCrit AND $isMaster AND $cttyCrit AND $creCrit
+    WHERE $nonCtty AND $isMaster AND $cttyCrit AND $creCrit
 X;
   $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
@@ -1161,20 +1165,27 @@ X;
   $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
   // get conx, conxLocal
-  foreach (['conx' => 1, 'conxLocal' => "u2.$thisCtty"] as $k => $crit) {
+  foreach (ray('conx conxLocal', 1, "u2.$thisCtty") as $k => $crit) {
     if (!$ctty) $crit = 1; // avoid local query when doing stats for ALL cttys
     $sql = <<<X
-      SELECT AVG(conx) as $k FROM 
-       (SELECT COUNT(DISTINCT payee) AS conx
-        FROM r_txs t JOIN $accounts u ON u.uid=t.payer
-        LEFT JOIN $accounts u2 ON u2.uid=t.payee
-        WHERE NOT u.:IS_CO AND u.$cttyCrit AND $crit AND $creCrit) u3;
+      SELECT AVG(conx) as $k FROM (
+        SELECT me, COUNT(DISTINCT other) AS conx, SUM(isRecentPayer) AS recentPays, u2.community
+        FROM (
+          SELECT u0.uid AS me, 
+            IF(u0.uid=payer AND t0.created>$recent, 1, 0) as isRecentPayer,
+            IF(u0.uid=payer, payee, payer) AS other 
+          FROM users u0
+          JOIN r_txs t0 ON u0.uid in (payer, payee) 
+          WHERE t0.$creCrit AND u0.$nonCtty and NOT u0.:IS_CO AND u0.$cttyCrit
+        ) t LEFT JOIN users u2 ON u2.uid=other WHERE $crit AND u2.$nonCtty
+        GROUP BY t.me
+      ) u3 WHERE recentPays>0        
 X;
     $res += db\q($sql, $subs)->fetchAssoc() ?: [];
   }
   
-  if (@$created0) { // redoing stats for the past, so figure bals, floors, and topN the hard way
-    $recent = $created - 183 * DAY_SECS; // six months ago
+  if (@$created0 and $created < strtotime('today')) { // redoing stats for the past, so figure bals, floors, and topN the hard way
+    $recent = strtotime(-FLOOR_DAYS . ' days', $created); // six months ago
     $isPayer = '(payer IN (uid, jid) AND payer<>0)';
     $isPayee = '(payee IN (uid, jid))';
 
@@ -1204,13 +1215,13 @@ X;
       FROM $pastTxs t
 X;
     $res = (db\q($sql, $subs)->fetchAssoc() ?: []) + $res; // put $res 2nd so OLD takes precedence
-    
+   
     // get OLD topN
     $topN = topN($res); // NOTE: this line must be duplicated below because $res is different
     $sql = <<<X
       SELECT SUM(amts) AS topN FROM 
         (SELECT DISTINCT uid, amts FROM $pastTxs u1 
-         WHERE uid>0 AND amts IS NOT NULL ORDER BY amts DESC LIMIT $topN) u
+         WHERE $nonCtty AND amts IS NOT NULL ORDER BY amts DESC LIMIT $topN) u
 X;
     $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
@@ -1229,7 +1240,7 @@ X;
     $sql = <<<X
       SELECT SUM(bal) AS topN FROM 
         (SELECT $masterBal AS bal FROM users u LEFT JOIN $slave
-         WHERE uid>0 AND $isMaster AND $cttyCrit AND $creCrit GROUP BY uid
+         WHERE $nonCtty AND $isMaster AND $cttyCrit AND $creCrit GROUP BY uid
          ORDER BY $masterBal DESC LIMIT $topN) u
 X;
     $res += db\q($sql, $subs)->fetchAssoc() ?: [];
@@ -1324,7 +1335,7 @@ function rTime() {
   if (isGAME) {
     extract(w\gameVars());
     return mktime(0, 0, 0, $week, 4 * $day, date('Y'));
-  } else return u\test() ? REQUEST_TIME : time();
+  } else return u\test() ? strtotime('today') : time(); // so times in tests are reliable
 }
 
 /**
@@ -1370,7 +1381,7 @@ function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
     if (!$a->confirmed and $other->id > 0 and $other->id != r\cgfId()) { // communities and CG can transact with anyone
       if ($a1->community != $a2->community or $channel != TX_POS) { // first tx must be in-person at home
         return FALSE ? ['not confirmed', ray('youName inviterName', $a->fullName, $a->helperA->fullName), FALSE]
-        : ['first at home', [], FALSE]; // "FALSE ?" should be $a1->cttyA->invites ?
+        : ['first at home', ray('whose', $a == $a1 ? t('Your') : "$a->fullName's"), FALSE]; // "FALSE ?" should be $a1->cttyA->invites ?
       }
     }
   }
@@ -1479,12 +1490,39 @@ function reward($from, $to, $amount = 1, $isPayer = TRUE) {
 
   $over = (($isPayer xor $amount < 0) and $a->balance + $a->rewards - abs($amount) < max(0, $a->floor)); // ignore floor<0
   if ($over) { // member is spending in (or into) debt
-    $pct = $a->cttyNoneg ? 0 : -max($a->rebate, R_REBATE); // reduce credit line
-  } else $pct = max(R_MIN_REWARD_PCT, $a->rebate * (1 - floor($a->o_rewards / $step) / R_REBATE)); // increase credit line
+//    $pct = $a->cttyNoreduce ? 0 : -max($a->rebate, R_REBATE); // reduce rewards
+    $pct = -max($a->rebate, R_REBATE); // reduce rewards
+  } else $pct = max(R_MIN_REWARD_PCT, $a->rebate * (1 - floor($a->o_rewards / $step) / R_REBATE)); // increase rewards
   if (!$isPayer) $pct *= R_BONUS_FACTOR;
 ///   debug(compact(ray('from to amount pct step over res')) + ['new bal' => $a->balance + $a->rewards + ($isPayer ? -$amount : $amount)]);
   return round(min(R_MAX_REBATE, $pct * $amount / 100), 2);
 //  return '' . round(min(R_MAX_REBATE, $amount * $a->rebate / 100), 2); // ''. to avoid serializing a long float
+}
+
+/**
+ * Handle the investment request for one account in one club.
+ * @param int $stakeid: record ID of the account's stake
+ * @param string $msg: (RETURNED) a message, if any, resulting from the attempt
+ * @return <successful>
+ */
+function handleInvestmentRequest($stakeid, &$msg) {
+  if (!$res = db\lookup('stake,request,uid,clubid', 'r_stakes', compact('stakeid'))) return !$msg = t('bad stakeid');
+  extract($res);
+  
+  if ($request <= 0) return (bool) $msg = t('No additional investment is requested.');
+  $a = r\acct($uid);
+  $clubA = r\acct($clubid);
+  $stake += $request;
+  
+  $DBTX = \db_transaction();
+  list ($index, $subs) = $a->pay($clubA, $request, t('investment'), ray('investment goods', 1, FOR_USD));
+  $msg = t($index, $subs);
+  if ($ok = $subs['success']) {
+    db\update('r_stakes', ray('stakeid stake request', $stakeid, $stake, 0), 'stakeid');
+    $msg .= t('Your investment in %clubName has been successfully increased to %stake.', 'clubName stake', $clubA->fullName, u\fmtAmt($stake));
+  }
+  unset($DBTX);
+  return $ok;
 }
 
 /**
@@ -1508,6 +1546,7 @@ function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}
 //function doCode($code) {return @unserialize(@u\decry('P', CRYPT_FLAG . $code));} // this is how it should be
 function doCode($code) { // accommodate temporary weirdness because email clients bollix CRYPT_FLAG in an href
   foreach ([0, 1] as $i) {if ($code[0] == CRYPT_FLAG[$i]) $code = substr($code, 1);} // delete this line after 7/1/2018
+  if (substr(u\b64decode($code), 0, 2) == 'c~') return FALSE; // signal archaic link
   return @unserialize(@u\decry('P', CRYPT_FLAG . $code));
 } 
 function makeDoCode($ray) {return substr(u\cry('P', serialize($ray)), strlen(CRYPT_FLAG));}
@@ -1523,3 +1562,4 @@ function signedIn() {return r\acct() ? TRUE : FALSE;}
 function iCodeDesc($iCode) {$iCodeDescs = ray(IBYS); return $iCodeDescs[min($iCode, IBY_ICARD) - IBY0];}
 function cttyList() {return db\q("SELECT uid,fullname FROM users WHERE uid<0 ORDER BY created,fullName")->fetchAllKeyed();}
 function allKnowing() {global $mya; return (bool) $mya->agentA->vKeyPw;}
+function clubid() {return r\serverUid();} // temporarily use the region as the club

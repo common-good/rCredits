@@ -1,11 +1,11 @@
 <?php
-namespace rCredits\Cron;
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Util as u;
-use rCredits\Backend as be;
-use rCredits\Risk as k;
-use rCredits\Cron as cr;
+namespace CG\Cron;
+use CG as r;
+use CG\DB as db;
+use CG\Util as u;
+use CG\Backend as be;
+use CG\Risk as k;
+use CG\Cron as cr;
 
 /**
  * @file
@@ -69,17 +69,9 @@ function timeFor($time, $period, $chosen) {
 
 function queue($op, $item = []) {
   global $cronOp; // this is set when calling cron() from PHP window on test server
-  global $mya;
 
-  $info = $item;
-  if ($uid = @$info['uid']) $mya = r\acct($uid); // fudge current account
-//  if (!strpos($op, '1')) {
-
-  if (!in_array($op, ray('acctHourly recache1 checkAcct acctStats acctStats1 acctRisk acctRisk1'))) u\log($op, 'cr', justNOT('uid', $item));
-  
   $item = compact('op') + $item;
   if (@$cronOp or u\test()) {
     cr\doTask($item);
   } else db\insert('queue', ray('item created', serialize($item), time()));
-  // else \DrupalQueue::get('q')->createItem(compact('op') + $item);
 }

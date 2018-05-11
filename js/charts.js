@@ -73,8 +73,8 @@ function growthChart() {
   data.addColumn('number', 'Members');
   data.addColumn('number', 'Joining');
   data.addColumn('number', 'Active');
-  data.addColumn('number', 'Conx');
-  data.addColumn('number', 'Local Conx');
+//  data.addColumn('number', 'Conx');
+//  data.addColumn('number', 'Local Conx');
   myRows(data, 'growthData');
   
   //ch['growthData']);
@@ -89,9 +89,9 @@ function growthChart() {
       {areaOpacity:1, color:'blue'}, // bAccts
       {areaOpacity:1, color:'green'}, // pAccts
       {areaOpacity:0 , color:'silver'}, // newbs
-      {areaOpacity:0, color:'red'}, // aAccts
-      {areaOpacity:0, color:'yellow'}, // conx/aAcct
-      {areaOpacity:0, color:'orange'} // conxLocal/aAcct
+      {areaOpacity:0, color:'red'} // aAccts
+//      {areaOpacity:0, color:'yellow'}, // conx/aAcct
+//      {areaOpacity:0, color:'orange'} // conxLocal/aAcct
     ],
     hAxis: {viewWindow: {min:new Date(dt1 * 1000)}, format:dtFmt(), gridlines: {count:5}, title:'', titleTextStyle: {color:'darkgray'}},
     chartArea: {width:chartAreaW},
@@ -108,10 +108,10 @@ function fundsChart() {
 //  data.addColumn('number', 'Bals > 0');
   data.addColumn('number', 'CG Credits');
   data.addColumn('number', 'Dollar Pool');
-  data.addColumn('number', 'In Use');
+  data.addColumn('number', 'Savings');
   data.addColumn('number', 'Top 3' + vs['topPct']);
   data.addColumn('number', 'Bottom 3' + vs['topPct']);
-  data.addColumn('number', 'Limits');
+  data.addColumn('number', 'Credit Limits');
   data.addColumn('number', 'Bals < 0');
 //  data.addRows(ch['fundsData']);
   myRows(data, 'fundsData');
@@ -122,8 +122,8 @@ function fundsChart() {
     series: [
 //      {areaOpacity:0, color:'lime'}, // Bals > 0
       {areaOpacity:1, color:'#00cc00'}, // CG Credits (lighter green)
-      {areaOpacity:0, color:'blue'}, // Dollar Pool
-      {areaOpacity:0, color:'yellow'}, // In use
+      {areaOpacity:1, color:'blue'}, // Dollar Pool
+      {areaOpacity:0, color:'yellow'}, // Savings
       {areaOpacity:0, color:'red'}, // Top 3
       {areaOpacity:0, color:'red'}, // Bottom 3
       {areaOpacity:0, color:'magenta'},  // Limits
@@ -144,7 +144,7 @@ function velocityChart() {
   data.addColumn('date', 'Date');
   data.addColumn('number', 'Inter-cmty');
   data.addColumn('number', 'Local');
-  data.addColumn('number', 'USD Exchanges');
+  data.addColumn('number', 'Dollar Exchanges');
 //  data.addRows(ch['velocityData']);
   myRows(data, 'velocityData');
 
@@ -217,8 +217,9 @@ function volumeChart() {
     title:'Monthly Transactions: ' + vs['txs'],
     width:chartW, height:chartH,
     colors: ['orange', 'green', 'blue', 'red'],
-    hAxis: {format:dtFmt(), gridlines: {count:5}, title:'(logarithmic scale)', titleTextStyle: {color:'darkgray'}},
-    vAxis: {logScale:true},
+    hAxis: {format:dtFmt(), gridlines: {count:5}},
+//    hAxis: {format:dtFmt(), gridlines: {count:5}, title:'(logarithmic scale)', titleTextStyle: {color:'darkgray'}},
+//    vAxis: {logScale:true},
     chartArea: {width:chartAreaW},
     legend: {position:'right'}
   };

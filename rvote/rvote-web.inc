@@ -1,11 +1,15 @@
 <?php
-namespace rCredits\Web;
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Backend as be;
-use rCredits\Util as u;
-use rCredits\Web as w;
-use rCredits\Vote as v;
+namespace CG\Web;
+use CG as r;
+use CG\DB as db;
+use CG\Backend as be;
+use CG\Util as u;
+use CG\Web as w;
+use CG\Vote as v;
+
+include_once __DIR__ . '/rvote.inc';
+include_once __DIR__ . '/rvote-ballot.inc';
+include_once __DIR__ . '/rvote-results.inc';
 
 /**
  * Provide infrastructure for members to discuss and vote.
@@ -41,17 +45,14 @@ SELECT fullName, b.id, COUNT(v.id) as votes FROM `users` u INNER JOIN r_ballots 
  */
 function formEvents($form, &$sta, $args = '') {
   global $base_url;
-  include_once __DIR__ . '/rvote.inc';
-  include_once __DIR__ . '/rvote-ballot.inc';
-  include_once __DIR__ . '/rvote-results.inc';
   
   extract(just('question do results noProxies', $args));
 
   $mya = w\eLinkAcct($sta, $args, r\acct() ? 'acct' : 'individual'); // allow any signed in account, so user can switch to personal account, below
   $cttyA = $mya->cttyA;
 
-  $title = w\item(t('Community Democracy') . "<br><small>$cttyA->fullName</small>");
-//  $subtitle = w\item($cttyA->fullName);
+  $title = item(t('Community Democracy') . "<br><small>$cttyA->fullName</small>");
+//  $subtitle = item($cttyA->fullName);
 
   if ($event = v\getCurrentEvent($cttyA->id)) {
     extract($event); // this overwrites $event with short name of event (for example "Voting on 3 questions")
@@ -123,13 +124,13 @@ EOF;
 //  } else $middle = t('There is no vote in progress in your community.');
 //  } else $middle = t('There are no questions pending in your community.');
   
-  $middle = w\item(@$middle);
-  $args = w\hidFld($args);
+  $middle = item(@$middle);
+  $args = hidFld($args);
 
   w\js('ballot');
   w\css('rvote.css');
   
-  return labeled(compact(ray('args title subtitle status showVotes')) + (@$voting ?: []) + compact('middle') + (@$extraFields ?: []));
+  return cgform(compact(ray('args title subtitle status showVotes')) + (@$voting ?: []) + compact('middle') + (@$extraFields ?: []));
 }
 
 function formEvents_validate($form, &$sta) {
@@ -188,14 +189,14 @@ function formEvent($form, &$sta, $eid = NULL, $do = 'edit') {
     $fields = 'type,event,details,start,end';
     if (is_numeric($eid) and $event = v\event($fields, $eid)) {
       extract($event); 
-      $subtitle = w\item(t('for vote ending ') . u\fmtDate($end));
+      $subtitle = item(t('for vote ending ') . u\fmtDate($end));
     } else $do = 'add';
   } else $do = 'add';
 
   
   if ($do == 'report') {
     include_once __DIR__ . '/rvote-results.inc';
-    $title = w\item($typeDescs[$type] . t(' Results'));
+    $title = item($typeDescs[$type] . t(' Results'));
     if (strpos('.VG', $type)) {
       $results = v\showResults($eid);
     } else {
@@ -205,7 +206,7 @@ function formEvent($form, &$sta, $eid = NULL, $do = 'edit') {
         $results = $purifier->purify($results);    
       } else $results = t('There is no report yet for this event.');
     }
-    $results = w\item($results);
+    $results = item($results);
     return compact(ray('title subtitle results'));
   } elseif ($do == 'details') {
 
@@ -238,22 +239,22 @@ $list
 EOF;
       } else $list = t('no questions yet');
       
-      $list = w\item('<h4>' . $header . '</h4>' . $list);
+      $list = item('<h4>' . $header . '</h4>' . $list);
     }
-    $id = w\hidFld($eid);
+    $id = hidFld($eid);
   }
   
   // add or edit
-  $title = w\item($do == 'add' ? t('Add Event') : t('Edit Event'));
+  $title = item($do == 'add' ? t('Add Event') : t('Edit Event'));
   $types = ray(' :Choose Type,I:In-person,V:Vote,G:Grade Proposals,P:Request For Proposals');
-  $type = w\selectFld(t('Type:'), '', required(@$type), $types);
-  $event = w\textFld(t('Event name:'), [t('Short Descriptive Event Name'), t('For example, "Voting on 3 questions".')], required(@$event));
-  $details = w\areaFld(t('Details:'), [t('Event Details')], dft(@$details));
-  $start = w\textFld(t('Start:'), [t('Start Date')], required(@$start ? u\fmtDate($start, TRUE) : ''));
-  $end = w\textFld(t('End:'), [t('End Date')], required(@$end ? u\fmtDate($end, TRUE) : ''));
-  if ($mya->cAdmin) $submit = w\submit();
+  $type = selectFld(t('Type:'), '', required(@$type), $types);
+  $event = textFld(t('Event name:'), [t('Short Descriptive Event Name'), t('For example, "Voting on 3 questions".')], required(@$event));
+  $details = areaFld(t('Details:'), [t('Event Details')], dft(@$details));
+  $start = textFld(t('Start:'), [t('Start Date')], required(@$start ? u\fmtDate($start, TRUE) : ''));
+  $end = textFld(t('End:'), [t('End Date')], required(@$end ? u\fmtDate($end, TRUE) : ''));
+  if ($mya->cAdmin) $submit = submit();
   
-  return w\labeled(compact(ray('title id type event details start end submit list')));
+  return cgform(compact(ray('title id type event details start end submit list')));
 }
 
 function formEvent_validate($form, &$sta) {
@@ -286,7 +287,7 @@ function formQuestion($form, &$sta, $args = '') {
     if (is_numeric($qid) and $question = db\lookup($fields, 'r_questions q LEFT JOIN r_events e ON e.id=q.event', 'q.id=:qid', compact('qid'))) extract($question); else $add = FALSE;
     if ($ctty != $mya->community) return r\go('', t('Wrong community.'));
 
-    $id = w\hidFld($qid);
+    $id = hidFld($qid);
 
     $header = t('Options');
     if ($mya->cAdmin) $header .= ' ' . button(t('Add'), "$base_url/community/events/option/qid=$qid", '', 'warning');
@@ -302,24 +303,24 @@ function formQuestion($form, &$sta, $args = '') {
       $list = "<table><tr><th>Option</th></tr>$list</table>";
     } else $list = t('no options yet');
     
-    $list = w\item('<h4>' . $header . '</h4>' . $list);    
+    $list = item('<h4>' . $header . '</h4>' . $list);    
   } elseif (empty($eid)) return r\go('', t('Missing event id.'));
 
-  $title = w\item($add ? t('Add Question') : t('Edit Question'));
-  $event = w\hidFld($eid);
-  $text = w\textFld(t('Question:'), [t('Question Text')], required(@$text));
-  $detail = w\areaFld(t('Detail:'), [t('Question Detail')], dft(@$detail));
-  $linkDiscussion = w\textFld(t('Discussion Link:'), [t('Link to Discussion')], dft(@$linkDiscussion));
+  $title = item($add ? t('Add Question') : t('Edit Question'));
+  $event = hidFld($eid);
+  $text = textFld(t('Question:'), [t('Question Text')], required(@$text));
+  $detail = areaFld(t('Detail:'), [t('Question Detail')], dft(@$detail));
+  $linkDiscussion = textFld(t('Discussion Link:'), [t('Link to Discussion')], dft(@$linkDiscussion));
   $types = ray(' :Choose Type,M:Multiple choice,B:Budget (penny vote among various options),R:Range,E:Essay');
-  $type = w\selectFld(t('Type:'), '', required(@$type), $types);
-//  $units = w\textFld(t('Units:'), [t('Units'), t('Units for Budget or Range question. Defaults to dollars.'), dft(@$units));
-  $budget = w\textfld(t('Budget:'), [t('Budget Amount'), t('If this is a Budget question, how much (money) is to be budgeted.')], dft(@$budget));
+  $type = selectFld(t('Type:'), '', required(@$type), $types);
+//  $units = textFld(t('Units:'), [t('Units'), t('Units for Budget or Range question. Defaults to dollars.'), dft(@$units));
+  $budget = textFld(t('Budget:'), [t('Budget Amount'), t('If this is a Budget question, how much (money) is to be budgeted.')], dft(@$budget));
   $optOrders = ray(' :Choose Option Order,S:Shuffle (randomize),Z:Reverse sometimes,N:No change (static)');
-  $optOrder = w\selectFld(t('Option order:'), ['', t('In a Multiple choic or Budget question, how to scramble the options, if at all')], dft(@$optOrder), $optOrders);
+  $optOrder = selectFld(t('Option order:'), ['', t('In a Multiple choic or Budget question, how to scramble the options, if at all')], dft(@$optOrder), $optOrders);
   
-  if ($mya->cAdmin) $submit = w\submit();
+  if ($mya->cAdmin) $submit = submit();
   
-  return w\labeled(compact(ray('title id event text detail linkDiscussion type budget optOrder submit list')));
+  return cgform(compact(ray('title id event text detail linkDiscussion type budget optOrder submit list')));
 }
 
 function formQuestion_validate($form, &$sta) {
@@ -351,17 +352,17 @@ function formOption($form, &$sta, $args = '') {
     if (is_numeric($oid) and $option = db\lookup($fields, 'r_options o LEFT JOIN r_questions q ON q.id=o.question LEFT JOIN r_events e ON e.id=q.event', 'o.id=:oid', compact('oid'))) extract($option); else $add = FALSE;
     if ($ctty != $mya->community) return r\go('', t('Wrong community.'));
 
-    $id = w\hidFld($oid);
+    $id = hidFld($oid);
   } elseif (empty($qid)) return r\go('', t('Missing question id.'));
 
-  $title = w\item($add ? t('Add Option') : t('Edit Option'));
-  $question = w\hidFld($qid);
-  $text = w\textFld(t('Option:'), [t('Option Text')], required(@$text));
-  $detail = w\areaFld(t('Detail:'), [t('Option Detail')], dft(@$detail));
+  $title = item($add ? t('Add Option') : t('Edit Option'));
+  $question = hidFld($qid);
+  $text = textFld(t('Option:'), [t('Option Text')], required(@$text));
+  $detail = areaFld(t('Detail:'), [t('Option Detail')], dft(@$detail));
   
-  if ($mya->cAdmin) $submit = w\submit();
+  if ($mya->cAdmin) $submit = submit();
   
-  return w\labeled(compact(ray('title id question text detail submit')));
+  return cgform(compact(ray('title id question text detail submit')));
 }
 
 function formOption_validate($form, &$sta) {
@@ -388,15 +389,15 @@ function formProposalReport($form, &$sta, $args = '') {
   
   v\showProposal($mya, $extra, -$p);
 
-  $form['title'] = w\item(t('Project Proposal Details'));
-  $form['project'] = w\item($project, t('Project:'));
+  $form['title'] = item(t('Project Proposal Details'));
+  $form['project'] = item($project, t('Project:'));
 //  for ($i = 0; isset($extra["f$i"]); $i++) $form["f$i"] = $extra["f$i"];
   $form += $extra ?: [];
-  $form['back'] = w\item('<p>' . u\backButton() . '</p>');
+  $form['back'] = item('<p>' . backButton() . '</p>');
 
   w\css('rvote.css');
 
-  return w\labeled($form);
+  return cgform($form);
 }
 
 /**
@@ -415,15 +416,15 @@ function formProposalNotes($form, &$sta, $args = '') {
   foreach ($notes as $note) $list .= '<li>' . $note . '</li>';
   foreach ($questions as $i => $q) $map['(q' . ($i+1) . ')'] = "<b>$q?</b>";
   $list = strtr($list, $map);
-  $list = w\item("<ul id=\"proposalNotesList\">$list</ul>"); // , t('Comments:')
+  $list = item("<ul id=\"proposalNotesList\">$list</ul>"); // , t('Comments:')
 
-  $title = w\item(t('Project Proposal Comments'));
-  $project = w\item($project, t('Project:'));
-  $back = w\item('<p>' . u\backButton() . '</p>');
+  $title = item(t('Project Proposal Comments'));
+  $project = item($project, t('Project:'));
+  $back = item('<p>' . backButton() . '</p>');
 
   w\css('rvote.css');
   
-  return w\labeled(compact(ray('title project list back')));
+  return cgform(compact(ray('title project list back')));
 }
 
 /**
@@ -531,7 +532,7 @@ EOF;
   $email = textFld(t('Email:'), [t('Contact Email Address')], required());
   $sponsor = textFld(t('Sponsor:'), [t('%PROJECT Member(s) Sponsoring this Funding Proposal'), t('Name(s) of %PROJECT member(s) sponsoring this funding proposal (or "self")')], required());
   $submitProposal = submit(t('Submit Proposal'));
-  return labeled(compact(ray('title subtitle project categories overview purpose where when until how amount type budgetTotal budget contingency qualifications evaluation name contact phone email sponsor submitProposal critPop')));
+  return cgform(compact(ray('title subtitle project categories overview purpose where when until how amount type budgetTotal budget contingency qualifications evaluation name contact phone email sponsor submitProposal critPop')));
 } 
   
 function formProposal_validate($form, &$sta) {
@@ -541,7 +542,7 @@ function formProposal_validate($form, &$sta) {
   if ($err = u\badDate($until, $when)) return sayFieldErr($err, 'until');
   foreach (['amount', 'budgetTotal'] as $k) if ($err = amtErr($k, $sta)) return sayFieldErr($err, $k);
   if (!phoneOk($phone)) return;
-  if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return say('bad email', compact('email'), 'email');
+  if (!u\validEmail($email)) return say('bad email', compact('email'), 'email');
   u\preray(compact(ray('when until phone')), $sta['input']); // amounts get updated in $sta by amtErr()
 }
 

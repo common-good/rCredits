@@ -5,12 +5,12 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.4d'); // software version
+define('R_VERSION', '3.40r'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
 define('isDEV', in_array($_SERVER['SERVER_ADDR'], ['::1', '127.0.0.1'])); // developing
-require_once __DIR__ . '/rcredits-settings.inc'; // custom settings for this community's rCredits server
+require_once __DIR__ . '/cg-settings.inc'; // custom settings for this community's rCredits server
 // require .module and -util.inc at bottom
 
 define('PROJECT', t('Common Good')); // project name
@@ -63,6 +63,7 @@ define('WEEK_SECS', 7 * DAY_SECS);
 define('WEEK7_SECS', 52 * DAY_SECS);
 define('MONTH_DAYS', 30.4368);
 define('YEAR_SECS', round(12 * MONTH_DAYS * DAY_SECS));
+define('FLOOR_DAYS', 183); // how many days to consider for credit line calculation
 
 define('REGION_DOMAIN', R_SERVER_ID . '.' . CG_DOMAIN);
 define('EMAILX', 'example.com'); // domain for unknown, placeholder, test, or example emails
@@ -96,10 +97,10 @@ define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty
 define('R_REGION_FIELDS', 'region,fullName,st,zip,federalId,hasServer');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
 // isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 
-define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants website description shortDesc selling coFlags gross employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx source getAppData appData'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants giftPot giftCoupons website description shortDesc selling coFlags gross serviceArea employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx source getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('MASTER_NUMERIC_FIELDS', 'minimum achMin savingsAdd saveWeekly');
 define('MASTER_FIELDS', MASTER_NUMERIC_FIELDS . ' hasBank bankAccount last4bank refill'); // only in master, for joint accounts
-define('R_MONEY_FIELDS', 'balance rewards floor committed'); // financial amount fields in account record
+define('R_MONEY_FIELDS', 'balance rewards floor giftPot committed'); // financial amount fields in account record
 define('JOINT_FIELDS', R_MONEY_FIELDS . ' savings'); // add these together for joint accounts
 define('R_VSECURE_FIELDS', 'federalId dob bankAccount'); // very secure fields (pgp-encrypted)
 define('R_SECURE_FIELDS', 'pw2 vKeyPw ssnData address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass last4bank'); // non-personal encrypted fields (must be complete list)
@@ -119,7 +120,7 @@ define('DRUPAL_UID_TABLES', 'sessions');
 define('PERSONAL_STEP_COUNT', t('seven'));
 define('COMPANY_STEP_COUNT', t('eight'));
 define('R_STEPS', 'signup:signup, verify, ssn, sign:community/agreement, donate:community/donate, proxies, prefs:settings/preferences, connect, company, relations, photo'); // membership steps
-define('R_NOLOG', R_SECURE_FIELDS . ' ' . R_VSECURE_FIELDS . ' data secure vsecure secret oneTimeLoginUrl password pass pass1 pass2 newPass external_input'); // don't log these (external_input may contain passwords)
+define('R_NOLOG', R_SECURE_FIELDS . ' ' . R_VSECURE_FIELDS . ' data secure vsecure secret oneTimeLoginUrl password pass pass1 pass2 vKeyE newPass external_input form_build_id'); // don't log these (external_input may contain passwords and is duplicated as individual fields)
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts history settings settings/icon community Summary Php'); // don't log visits to these forms
 define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin PageNotFound Sinx Pass Empty TestRecovery ChangePassword Help Community Democracy Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
 define('SSN_ERR_INDEX', 'CGerror'); // where to put/find error messages in ssnData
@@ -185,6 +186,7 @@ define('FOR_GOODS', 0); // index into R_WHYS for goods
 define('FOR_USD', 1); // index into R_WHYS for USD exchange
 define('FOR_NONGOODS', 2); // index into R_WHYS for loan, etc.
 define('FOR_SHARE', 3); // "sharing" gift to CGF (comes out of rewards)
+define('FOR_INVESTMENT', 4); // only in invoices (use B_INVESTMENT in txs)
 
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_MIN_DEFAULT', 100); // suggested minimum amount to hold in rCredits
@@ -281,9 +283,9 @@ define('B_CONFIRMED', 1); // invitation has been confirmed (in advance by form i
 define('B_OK', 2); // can use rCredits for real (set by admin when ready). Set FALSE to freeze ctty funds (NYI)
 define('B_CARDED', 3); // card has been printed and mailed
 define('B_IDED', 4); // a cashier has verified the member's government-issued photo ID
-define('B_REFILL', 5); //
+define('B_REFILL', 5); // refill the account automatically (up to a target amount)
 define('B_CO', 6); // company account
-define('B_CASHOUT', 7); // automatic weekly cashout
+define('B_u7', 7); //
 define('B_ROUNDUP', 8); // round payments up to nearest dollar, donate the cents to the community fund
 define('B_NONUDGE', 9); // don't send reminders
 define('B_NOSEARCH', 10); // user wants to be not findable by other members, by phone or email
@@ -299,17 +301,17 @@ define('B_u19', 19); //
 define('B_DEBT', 20); // member chose to permit sub-zero balances
 define('B_DRAWS', 21); // this account draws on one or more others
 define('B_SAVINGS', 22); // the connected bank account is a savings or money market account
-define('B_u23', 23); // account is a joint account
-define('B_u24', 24); //
-define('B_u25', 25); // 
-define('B_u26', 26); // was "account is closed"
+define('B_CASHOUTW', 23); // cash out automatically every 7 days
+define('B_CASHOUTM', 24); // cash out automatically every 30 days
+define('B_BETA', 25); // beta tester
+define('B_ICADMIN', 26); // investment club admin
 define('B_ADMIN2', 27); // is an overall admin assistant or bank partner or government regulator (read-only except notes)
 define('B_CADMIN2', 28); // is a community sub-administrator (read-only except notes)
 define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
-define('B_ADMINABLE', 'member confirmed carded cAdmin cAdmin2 nonudge cgc invites rewardy noneg'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok carded ided refill co cashout roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings u23 u24 u25 u26 admin2 cAdmin2 cAdmin admin');
+define('B_ADMINABLE', 'member confirmed carded beta icAdmin cAdmin cAdmin2 nonudge cgc invites rewardy noneg'); // for cAdmin to set
+define('B_LIST', 'member confirmed ok carded ided refill co u7 roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings cashoutW cashoutM beta icAdmin admin2 cAdmin2 cAdmin admin');
 
 // community-specific flags
 define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)
@@ -317,7 +319,7 @@ define('B_UP', 1); // ctty: is operational (up) (see also B_CTTYUP)
 // B_CO (see above)
 define('B_INVITES', 3); // require invitations
 define('B_REWARDY', 4); // community issues rewards explicitly
-define('B_NONEG', 5); // community does not reduce credit line no matter what (even for overdrafts)
+define('B_NONEG', 5); // temporary ban on accounts going negative (set automatically in r\stats)
 define('B_CTTY_BITS', 'cgc up co invites rewardy noneg');
 define('B_ADMIN_BITS', 'member:cgc,confirmed:up,co:co,u3:invites,ided:rewardy,refill:noneg');
 
@@ -386,7 +388,7 @@ define('FLOW_BOTH', 3);
 // Transaction flags (for flags field in transaction records)
 define('B_TAKING', 0); // payee initiated the transaction
 define('B_DISPUTED', 1); // non-originator disputes the transaction
-define('B_OFFLINE', 2); // transaction was taken offline
+define('B_OFFLINE', 2); // transaction was taken offline (or was forced?)
 define('B_SHORT', 3); // transaction was taken (offline) despite credit shortfall
 define('B_UNDONE', 4); // undone by another transaction
 define('B_UNDOES', 5); // undoes another transaction
@@ -394,9 +396,13 @@ define('B_CRUMBS', 6); // monthly donation of percentage of receipts
 define('B_ROUNDUPS', 7); // monthly donation of rounded up cents
 // B_ROUNDUP is 8 (defined above) // payer donated the change to the community fund
 define('B_PATRONAGE', 9); // recurring gift
-define('B_GIFT', 10); // gift (of any type)
-define('B_NOASK', 11); // transaction was taken with ID checking OFF
-define('TX_FLAGS', 'taking disputed offline short undone undoes crumbs roundups roundup patronage gift noask'); // tx flags (position means nothing)
+define('B_GIFT', 10); // grant or gift (of any type)
+define('B_LOAN', 11); // community loan
+define('B_INVESTMENT', 12); // community investment or investment club investment
+define('B_FINE', 13); // community fine
+define('B_u14', 14); // 
+define('B_NOASK', 15); // transaction was taken with ID checking OFF
+define('TX_FLAGS', 'taking disputed offline short undone undoes crumbs roundups roundup patronage gift loan investment fine u14 noask');
 
 // Invoice status (use data['disputed'] for txs) (set to txid>1 if paid)
 define('TX_DENIED', -1); // invoice rejected by the non-originator
@@ -482,7 +488,7 @@ if (@TESTING == 1) {
   global $specialSubs;
   foreach (explode(' ', B_PERMISSIONS) as $k) {
     $perm = constant('B_' . strtoupper($k));
-    $specialSubs["%can_$k"] = htmlspecialchars($GLOBALS['share permissions'][$perm - B_RELATED]);
+    $specialSubs["%can_$k"] = $GLOBALS['share permissions'][$perm - B_RELATED];
   }
   $specialSubs["%can_none"] = $GLOBALS['share permissions'][0];
   $specialSubs['%chk'] = '&#10004;';

@@ -8,7 +8,7 @@
  */
 
 $title = 'Charts | Common Good Western Massachusetts';
-//echo "<h1>$title</h1>";
+///   echo "<h1>$title</h1>";
 //exit();
 
 //$site = 'https://new.commongood.earth';
@@ -52,7 +52,7 @@ if ($selectable) {
 X;
 } else $controls = $help = '';
 
-echo <<<EOF
+/**/ echo <<<EOF
  
 <!DOCTYPE html>
 <html lang="en" dir="ltr">

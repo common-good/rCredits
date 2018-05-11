@@ -15,17 +15,17 @@
  *
  * You may also add statements just below this header (for example "use" and "require_once").
  */
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Testing as t;
-use rCredits\Util as u;
-use rCredits\Backend as be;
+use CG as r;
+use CG\DB as db;
+use CG\Testing as t;
+use CG\Util as u;
+use CG\Backend as be;
 
 require_once __DIR__ . '/../defs.inc';
 
 if (basename($_SERVER['SCRIPT_FILENAME']) != 'compile.php') {
-  require_once __DIR__ . '/../rcredits.inc';
-  require_once __DIR__ . '/../rcredits-testing.inc';
+  require_once __DIR__ . '/../cg.inc';
+  require_once __DIR__ . '/../cg-testing.inc';
 }
 
 /**

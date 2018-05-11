@@ -36,6 +36,14 @@ function doit(what, vs) {
       });
       break;
 
+    case 'summary':
+      $('#activate-credit').click(function () {
+        post('setBit', {bit:'debt', on:1}, function (j) {
+          $.alert(j.message, 'Success');
+        });
+      });
+      break;
+
     case 'change-ctty':
       $('#edit-community').on('change', function() {
         var newCtty = this.value;
@@ -43,10 +51,9 @@ function doit(what, vs) {
       });
 
       function changeCtty(newCtty, retro) {
-        post('changeCtty', {uid:vs['uid'], newCtty:newCtty, retro:retro}, function(j) {
+        post('changeCtty', {newCtty:newCtty, retro:retro}, function(j) {
       //    var jo = JSON.parse(j);
           if (!j.ok) $.alert(j.message, 'Error');
-          //JSON.stringify(j, null, 2)
         });
       }
       break;
@@ -85,7 +92,7 @@ function doit(what, vs) {
 
     case 'addr':
       print_country(vs['country'], vs['state'], vs['state2']);
-      $('#rcreditswebformsignup, #rcreditswebformcontact').submit(function() {
+      $('#frm-signup, #frm-contact').submit(function() {
         $('#edit-hidcountry').val($('#edit-country').val());
         $('#edit-hidstate').val($('#edit-state').val());
         $('#edit-hidstate2').val($('#edit-state2').val());
@@ -115,20 +122,55 @@ function doit(what, vs) {
     case 'suggest-who':
       var fid = fid('field');
       var form = fform(fid);
-      suggestWho(fid);
+      suggestWho(fid, vs['coOnly']);
       $(fid).focus(); // must be after suggestWho
       form.submit(function (e) {
         if ($(fid).val() == '') return true; // field is not required if we're here, so accept empty val
-        return who(form, fid, vs['question'], vs['amount'] || $('input[name=amount]', form).val(), vs['allowNonmember']);
+        return who(form, fid, vs['question'], vs['amount'] || $('input[name=amount]', form).val(), vs['allowNonmember'], vs['coOnly']);
       });
+      
+      function suggestWho(sel, coOnly) {
+        var members = new Bloodhound({
+        //  datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
+          datumTokenizer: Bloodhound.tokenizers.whitespace,
+          queryTokenizer: Bloodhound.tokenizers.whitespace,
+          prefetch: {
+            url: ajaxUrl + '?op=typeWho&data=' + coOnly + '&sid=' + ajaxSid,
+            cache: false
+          }
+        });
+
+        $(sel).wrap('<div></div>').typeahead(
+          {
+            minLength: 3,
+            highlight: true
+          },
+          {
+            name: 'rMembers',
+        //    display: 'value',
+            source: members
+          }
+        );
+      }
+      
       break;
 
+    case 'invest-proposal':
+      $('#add-co').click(function () {
+        $('.form-item-fullName, .form-item-city, .form-item-serviceArea, .form-item-dob, .form-item-gross, .form-item-bizCats').show();
+        $('#edit-fullname, #edit-city, #edit-servicearea, #edit-dob, #edit-gross, #edit-bizcats').attr('required', 'yes');
+        $('.form-item-company').hide();
+        $('#edit-company').removeAttr('required');
+        $('#edit-fullname').focus();
+      });
+      break;
+      
     case 'on-submit':
       var formid = '#rcreditsweb' + vs[caller];
       switch (caller) {
         case '': $(formid).submit(function() {}); break;
       }
-       break;
+      break;
 
     case 'advanced-prefs':
       toggleFields(vs['advancedFields'], false);
@@ -162,7 +204,7 @@ function doit(what, vs) {
       break;
 
     case 'signup':
-      var form = $('#rcreditswebformsignup');
+      var form = $('#frm-signup');
       if (vs['clarify'] !== 'undefined') $('#edit-forother a').click(function () {alert(vs['clarify']);});
       form.submit(function (e) {return setPostalAddr(false);});
       break;
@@ -175,16 +217,21 @@ function doit(what, vs) {
       var other = jQuery('.form-item-amount'); 
       var gift = jQuery('#edit-gift');
       if (gift.val() == -1) other.show(); else other.hide();
+      
       gift.change(function () {
         if(gift.val() == -1) {
           other.show(); 
           jQuery('#edit-amount').focus();
         } else other.hide();
       });
+      
+      $('#edit-amount').change(function () {
+        if ($(this).val() == 0) $('#edit-often').val('Y');
+      });
       break;
  
     case 'contact':
-      var form = $('#rcreditswebformcontact');
+      var form = $('#frm-contact');
       $('#edit-fullname', form).focus();
       $('#edit-email', form).change(function () {$('.form-item-pass').show();}); // currently fails because no pw field
       form.submit(function (e) {return setPostalAddr(false);});
@@ -205,6 +252,15 @@ function doit(what, vs) {
         if (tickle != 'NONE') $('#edit-tickle').val(tickle);
         //fform(this).submit();
         $('#edit-submit').click();
+      });
+      break;
+      
+    case 'coupons':
+      $('#edit-automatic-0').click(function() {
+        $('.form-item-automatic').hide();
+        var min = $('#edit-minimum').val();
+        $('.form-item-on').show();
+        $('#edit-on').val(min > 0 ? 'your purchase of $' + min + ' or more' : 'any purchase');
       });
       break;
       

@@ -1,9 +1,9 @@
 <?php
-namespace rCredits\Smart;
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Util as u;
-use rCredits\Backend as be;
+namespace CG\Smart;
+use CG as r;
+use CG\DB as db;
+use CG\Util as u;
+use CG\Backend as be;
 
 /**
  * @file
@@ -34,18 +34,18 @@ use rCredits\Backend as be;
  *
  * To create json for app demo, do this from PHP window on STAGE server:
    include_once __DIR__ . '/../rcredits/rsmart/rsmart.inc';
-   $args = rCredits\Util\ray('op device agent version member code', 'identify', '3i2ifsapEjwev3CwBCV7', 'NEW.AAB', RPOS_VERSION, 'NEW.ABB', 'ZzhWMCq0zcBowqw'); // cust
-   //$args = rCredits\Util\ray('op device agent version member code', 'identify', '3i2ifsapEjwev3CwBCV7', '', RPOS_VERSION, 'NEW:AAB', 'WeHlioM5JZv1O9G'); // agent login
-   //$args = rCredits\Util\ray('op device agent version member amount goods description', 'charge', '3i2ifsapEjwev3CwBCV7', 'NEW:AAB', RPOS_VERSION, 'NEW.ABB', AMOUNT, 1, 'zot');
-   //$args = rCredits\Util\ray('op device agent version txid', 'undo', '3i2ifsapEjwev3CwBCV7', 'NEW:AAB', RPOS_VERSION, '4069');
-///     debug(rCredits\Smart\pos($args));
+   $args = CG\Util\ray('op device agent version member code', 'identify', '3i2ifsapEjwev3CwBCV7', 'NEW.AAB', RPOS_VERSION, 'NEW.ABB', 'ZzhWMCq0zcBowqw'); // cust
+   //$args = CG\Util\ray('op device agent version member code', 'identify', '3i2ifsapEjwev3CwBCV7', '', RPOS_VERSION, 'NEW:AAB', 'WeHlioM5JZv1O9G'); // agent login
+   //$args = CG\Util\ray('op device agent version member amount goods description', 'charge', '3i2ifsapEjwev3CwBCV7', 'NEW:AAB', RPOS_VERSION, 'NEW.ABB', AMOUNT, 1, 'zot');
+   //$args = CG\Util\ray('op device agent version txid', 'undo', '3i2ifsapEjwev3CwBCV7', 'NEW:AAB', RPOS_VERSION, '4069');
+///     debug(CG\Smart\pos($args));
  */
 
 define('RPOS_VERSION', 221); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first (and make sure it is available in Google Play Store), before bumping the number up here.)
 define('R_QR_HEADER', 'HTTP://RC2.ME/I/'); // for transient QR IDs
 define('R_TRANSIENCE', 60); // number of seconds for device's transient QR to be valid
 
-require_once __DIR__ . '/../rcredits-strings.inc';
+require_once __DIR__ . '/../cg-strings.inc';
 
 $GLOBALS['tStrings'] += array(
   'bad proof' => t('That transaction is not valid.'),
@@ -89,7 +89,8 @@ function pos($args = FALSE) {
 //  if (!$args) $args = t\POST(); else t\POST($args);
   if ($args) f('t.POST', $args); else $args = $_POST;
   u\loga('in', $args);
-  $args = u\sanitizeInput($args0 = $args);
+//  $args = u\sanitizeInput($args0 = $args);
+  $args = $args0 = $args;
   extract(just('op device agent member version', $args));
   $args['version'] = (int) @$version;
   
@@ -113,7 +114,7 @@ function pos($args = FALSE) {
   
   if (!$mya->cttyUp) return posErr('your community down', ray('contact', $mya->cAdminContact()));
 
-  $op = 'rCredits\\Smart\\' . $op;
+  $op = 'CG\\Smart\\' . $op;
   return $op($args);
 }
 
@@ -162,8 +163,8 @@ function test($args) {
     //$reflFunc = new \ReflectionFunction($func);
     //print "\n" . $reflFunc->getFileName() . ':' . $reflFunc->getStartLine();
   } else {
-    require_once __DIR__ . '/../rcredits-testing.inc';
-    $func = "\\rCredits\\Testing\\$function";
+    require_once __DIR__ . '/../cg-testing.inc';
+    $func = "\\CG\\Testing\\$function";
     if (function_exists($func)) $res = call_user_func_array($func, $args);
   } 
   
@@ -359,7 +360,7 @@ function charge($args, $type = 'charge') {
   if (@$description === '') return posErr('missing description');
   if (strpos($description, ' ') !== FALSE) {
     r\tellAdmin(t('POS tx description not urlencoded'), $args);
-  } else $description = urldecode($description);
+  } // else $description = urldecode($description);
   if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
 
   if (!$a = getMember($member, '', $err, FALSE)) { // proof is proof enough (no cardCode needed)
@@ -412,7 +413,7 @@ function charge($args, $type = 'charge') {
   } else { // doesn't exist and should (forcing or not)
     if (@$amount < 0 and $a->co and $a->proSe) return badTx($args, $name, $msg, $subs);
     if (@$amount < 0 and !$mya->co) list ($type, $amount) = ['payment', -$amount];
-    list ($msg, $subs) = be\transfer($type, $mya, $a, @$amount, @$goods, @$description, $created, compact('force'));
+    list ($msg, $subs) = be\transfer($type, $mya, $a, @$amount, @$description, compact(ray('goods created force')));
     if (!@$subs['success']) return badTx($args, $name, $msg, $subs);
 
     if (!@$force and $aa = $a->agentA and $mya->co and !$aa->ided) $aa->setBit(B_IDED);

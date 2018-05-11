@@ -1,11 +1,11 @@
 <?php
-namespace rCredits\Vote;
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Backend as be;
-use rCredits\Util as u;
-use rCredits\Web as w;
-use rCredits\Vote as v;
+namespace CG\Vote;
+use CG as r;
+use CG\DB as db;
+use CG\Backend as be;
+use CG\Util as u;
+use CG\Web as w;
+use CG\Vote as v;
 
 /* Note that vetoing costs the voter a proportionate share of their votes. 
 For example, if there are 10 items to choose from, vetoing any one of them reduces the voter's say in the other 9 by 10%
@@ -379,7 +379,7 @@ function getOptsX($ballot, $type, $defaults) {
 	for($opti = 0, $opts=''; $row = $q->fetchAssoc(); $opti++) {
 		extract($row);
   	$rowclass = ($opti&1) ? 'odd' : 'even';
-		$opts .= call_user_func("rCredits\\Vote\\getOpts$type", $opti, $rowclass, $text, $detail, $defaults);
+		$opts .= call_user_func("CG\\Vote\\getOpts$type", $opti, $rowclass, $text, $detail, $defaults);
 	}
 	return $opts;
 }
@@ -545,7 +545,7 @@ EOF;
 
 function tableHeader($type) {
 	global $rUrl;
-	$leftarrow = "<img src=\"$rUrl/images/rvote/arrow-left.gif" alt='' />";
+	$leftarrow = "<img src=\"$rUrl/images/rvote/arrow-left.gif\" alt='' />";
 	$rightarrow = "<img src=\"$rUrl/images/rvote/arrow-right.gif\" alt='' />";
 
 	if ($type == 'M') return <<<EOF
@@ -758,5 +758,5 @@ EOF
     $agree = w\item(str_replace('<input ', '<input required="required" ', w\rendA('agree', $agree)));
   }
   $gradeIt = w\submit(t('Grade a Proposal'), 'success', 'lg', w\suffix(' &nbsp; ' . t('Grading ends at midnight on %date.', 'date', $endDate)));
-  return w\labeled(compact(ray('title showVotes noVote noDirect results resultsNoProx subtext agree gradeIt args')));
+  return w\cgform(compact(ray('title showVotes noVote noDirect results resultsNoProx subtext agree gradeIt args')));
 } 

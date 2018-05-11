@@ -22,8 +22,8 @@ Scenario: A member changes some settings
   | roundup | notices | statements | secretBal | crumbs |*
   |       0 |  weekly |      paper |         0 |      1 |
   And member ".ZZA" completes form "settings/connect" with values:
-  | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
-  |       1 |     211870281 |         123 |          123 |       1 |    100 |     11 |          0 |
+  | connect | routingNumber | bankAccount | bankAccount2 | cashout | refills | target | achMin | saveWeekly |*
+  |       1 |     211870281 |         123 |          123 |       0 |       1 |    100 |     11 |          0 |
   When member ".ZZD" visits page "sadmin/changes/NEW.ZZA"
   Then we show "Account Changes for Abe One" with:
   | Date | Field       | Old Value | New Value |

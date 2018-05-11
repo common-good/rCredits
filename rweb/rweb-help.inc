@@ -6,10 +6,10 @@
  * This file contains a single function that returns a help message.
  */
  
-namespace rCredits\Web;
-use rCredits as r;
-use rCredits\Util as u;
-use rCredits\Web as w;
+namespace CG\Web;
+use CG as r;
+use CG\Util as u;
+use CG\Web as w;
 
 /**
  * Return the appropriate raw help text.
@@ -30,8 +30,8 @@ function rawHelp($i, $tag = '', &$args = '') {
   $cttyName = @$mya->cttyA->fullName;
   
   $site = str_replace('https://', '', BASE_URL);
-  $_aPage = w\atag("/member/$username", w\away());
-  $_aInfo = w\atag('/account/company');
+  $_aPage = atag("/member/$username", w\away());
+  $_aInfo = atag('/account/company');
   $regEmail = r\regionField('email');
  
   $companyAccount = $company ? '' : t(<<<X
@@ -40,8 +40,8 @@ X
   , compact('_aPage', '_aInfo', 'username', 'site'));
   
   //Help is also available for the <a href="%BASE_URL/help/sms">Text Messaging Interface</a>.
-  $back = '<p>' . u\backButton() . '</p>';
-  jsx('back-button');
+  $back = '<p>' . 
+  w\backButton() . '</p>';
   
   if ($i == 'general') return t(<<<X
     <p>Here's what to click, to find what you want:</p>
@@ -69,7 +69,7 @@ X
     <p>Participation in %PROJECT is by invitation. Ask a friend to invite you or <%aPromo>request an invitation here</a> and we will let you know when the %PROJECT Economy comes to your community.</p>
     <p>%PROJECT is a 501(c)(3) Massachusetts-based nonprofit.</p>
 X
-  , 'username _aForgot _aCtty _aAgree _aPromo', $username, w\atag("/account/password/%username"), w\atag('/community'), w\atag('/agreement'), w\atag(PROMO_URL));
+  , 'username _aForgot _aCtty _aAgree _aPromo', $username, atag("/account/password/%username"), atag('/community'), atag('/agreement'), atag(PROMO_URL));
 
   if ($i == 'smartphone') return t(<<<X
     <p>To use the smartphone interface, you will need to install an app to read QR codes (for example QRDroid on Android phones or Qrafter for iPhones). You can pay participating businesses by scanning their QR code, then visiting the scanned URL.</p>
@@ -77,13 +77,13 @@ X
 X
   );
 
-  if ($i == 'sms') return t('The Text Message Interface is intended to be easy enough that you can just muddle your way through the first time. Give it a shot. You can even <i>sign up</i> with Text Messaging. Send your texts to +1 413.285.2867 OR use the <%aSMS>Test SMS form</a> to simulate sending a text.', '_aSMS', w\atag('/sms'));
+  if ($i == 'sms') return t('The Text Message Interface is intended to be easy enough that you can just muddle your way through the first time. Give it a shot. You can even <i>sign up</i> with Text Messaging. Send your texts to +1 413.285.2867 OR use the <%aSMS>Test SMS form</a> to simulate sending a text.', '_aSMS', atag('/sms'));
 
   if ($i == 'summary') return t(<<<X
     <p>This page shows an overview of your %PROJECT Account.</p>
     <p><b>Account ID</b> has two parts. The part before the period is a 3-character identifier for your region (%regName). The part after the period uniquely identifies your account, within your region. If you have several accounts, this part will be different for each one.</p>
   <p><b>Balance</b> is the amount in your %PROJECT Account.</p>
-  <p><b>Credit Reserve</b> is how far negative your account balance is allowed to go. Your credit limit increases a little at a time, based on your how much you receive and spend each month and how many friends and neighbors you invite (who then sign up).</p>
+  <p><b>Credit line</b> is how far negative your account balance is allowed to go. Your credit limit increases a little at a time, based on your how much you receive and spend each month.</p>
 X
   , 'regName', $cttyName);
 
@@ -139,7 +139,7 @@ X
   if ($i == 'account/company') return t(<<<X
     <p>All of the information from this form goes automatically on your <%aPage>%PROJECT webpage</a>, along with your company name and profile picture. Your email address will not be included unless you put it in the description explicitly. click the link, to see the results (after saving your changes).</p>
 X
-  , 'username _aPage', $username, w\atag("/member/$username"));
+  , 'username _aPage', $username, atag("/member/$username"));
 
   if ($i == 'account/preferences') return t(<<<X
     <p>These settings start out as what most people prefer. Feel free to adjust them as you like. You can always come back and change them again later.</p>
@@ -170,7 +170,7 @@ X
     <hr class="narrow">
     <p><small>* There are no specific requirements for a group of members to become a sovereign %PROJECT Community. But <%aClearness>these Clearness Questions</a> will help you get ready for that responsibility.</small></p>
 X
-  , '_aClearness', w\atag('https://docs.google.com/document/d/1-lBTNHTxIPrTSrIK18ZdbcMeEPS5g5jFhST34VGkR8E')) . $back;
+  , '_aClearness', atag('https://docs.google.com/document/d/1-lBTNHTxIPrTSrIK18ZdbcMeEPS5g5jFhST34VGkR8E')) . $back;
   
   if ($i == 'cashflow') return t(<<<X
     <p>As a %PROJECT Community you and other members decide together when to spend, grant, lend, and/or invest some of the US Dollars members have put into their %PROJECT accounts, which are held in a Community Fund US Dollar Pool in a bank.</p>
@@ -179,21 +179,21 @@ X
     
     <p>If you misjudge and use too much of the Community's US Dollar Pool, you will have a short-term cash flow challenge until more US Dollars come in. The "<%aBack>backing</a>" clause in the %PROJECT Agreement provides stability, so your %PROJECT Community can handle such challenges smoothly.</p>
 X
-  , '_aCashout _aBack', w\atag('/cashing-out'), w\atag('/backing-common-good-credits')) . $back;
+  , '_aCashout _aBack', atag('/cashing-out'), atag('/backing-common-good-credits')) . $back;
 
   if ($i == 'backing-common-good-credits') return t(<<<X
     <p>To ensure that %RCREDITS maintain their value, you (and every other member) agree to accept however many you typically spend and/or receive in a month, even if your %PROJECT Community is unable to redeem them immediately for US Dollars.</p>
 
     <p>Like the Federal Reserve's backing for US Dollars held as bank deposits, backing for %RCREDITS helps prevent unfounded fears from causing a "<%aCrunch>run on the bank</a>". All members agree to back %RCREDITS so your %PROJECT Community can continue to run smoothly.</p>
 X
-  , '_aCrunch', w\atag('/cashflow')) . $back;
+  , '_aCrunch', atag('/cashflow')) . $back;
 
   if ($i == 'cashing-out') return t(<<<X
     <p>%RCREDITS have value and act like money because we agree to accept them as payment for our good and services, so they move from member to member to member as a token of exchange. When someone pays you in %RCREDITS, you can spend those funds &mdash; OR you can "cash them out" by transferring them to your bank account or exchanging them for US Dollars.</p>
     <p>You can cash out %RCREDITS that someone <i>pays</i> you, but any %RCREDITS you borrow, using your credit line, must continue to circulate within the %PROJECT system. You cannot cash them out &mdash; you can only spend them.</p>
     <p>You can help keep the %PROJECT system healthy by maintaining a positive balance most of the time.</p>  
 X
-, '_aReserve', w\atag('/credit-reserve')) . $back;
+, '_aReserve', atag('/credit-reserve')) . $back;
 
 /*  if ($i == 'credit-reserve') return t(<<<X
     <p><b>Background.</b> It is crucial to the success of the %PROJECT system that most members maintain a positive account balance, so there are some %RCREDITS to circulate in the community. While the system is small, it is a bit frail in that regard, so we need to be extra careful to make sure there is no "<%aCrunch>cash flow crunch</a>" at least until we are ready to handle it as a strong, well-functioning democratic %PROJECT community.</p>
@@ -204,7 +204,7 @@ X
     
     <p>Remember, we issue %RCREDITS together as a commmunity, so it is up to all of us to protect their value. Most people choose to keep a positive Balance, by setting a Target Balance on the Preferences settings page. Keeping most of the %RCREDITS we issue in the system helps the system stay healthy while it grows more and more robust.</p>
 X
-  , '_aCrunch', w\atag('/cashflow')) . $back; */
+  , '_aCrunch', atag('/cashflow')) . $back; */
   
   if ($i == 'closing-down') return t(<<<X
      <p>%PROJECT staff and advisers have put great care into designing the %PROJECT System so that it will continue to flourish. In the unlikely event your %PROJECT Community or the %PROJECT System needs to close down, the %PROJECT Agreement gives us a way to end gracefully.</p>
@@ -236,7 +236,7 @@ X
      <p>Having enough throughput to be able to issue incentive rewards is a small step along that path. Nobody knows yet when we will have a fully-functioning %PROJECT Community, capable of making that judgment. One of our community organizers predicts it will be when there are about 3,000 %PROJECT members. Time will tell.</p>
      <p>In the meantime, you are encouraged to maintain a positive account balance, treating your incentive rewards (if any) as a <%aReserve>Credit Reserve</a>, so those %RCREDITS can keep circulating among the participants as much as possible, while we grow.</p>
 X
-  , '_aCGC _aReserve', w\atag('/common-good-community'), w\atag('/credit-reserve')) . $back; */
+  , '_aCGC _aReserve', atag('/common-good-community'), atag('/credit-reserve')) . $back; */
   
   if ($i == 'ethics') return t(<<<X
     <p>A %PROJECT Community relies on its members to show a high level of ethical behavior, as the basis for creating a culture of trust and possibility. Of course it is always possible for someone to "game" the system and we will continue to develop software that brings such misbehavior to the attention of the community.</p>
@@ -271,7 +271,7 @@ X
   
   <p>Similarly, participatory economic democracy works only if you participate in your community's <%aProcess>decision process</a> to set funding priorities and make <%aOther>other decisions</a> from time to time, as needed.</p>
 X
-  , '_aProcess _aOther', w\atag('/decision-principles'), w\atag('/other-decisions')) . $back;
+  , '_aProcess _aOther', atag('/decision-principles'), atag('/other-decisions')) . $back;
 
   if ($i == 'decision-principles') return t(<<<X
     <p>Each %PROJECT Community must decide for itself how to manage its decision making. %PROJECT staff are developing recommendations for best practices to value and encourage active participation by all members.</p>
@@ -316,17 +316,17 @@ X
   if ($i == 'proxies') return t('proxy help');
 
   if ($i == 'demand' or $i == 'exchanges-for-dollars') return w\chartFrame('banking') . t(<<<X
-    <p>This chart show the amount of Dollars flowing into and out of the Dollar Pool &mdash; either through transfers <b class="out">to</b> or <b class="in">from</b> a participant's bank account OR through trade with another community. <b class="export">Exports</b> bring Dollars into the community. <b class="import">Imports</b> send Dollars to another %PROJECT community.</p>
+    <p>This chart show the amount of Dollars flowing into and out of the Dollar Pool &mdash; either through transfers <b class="out">to</b> or <b class="in">from</b> a participant's bank account OR through trade with another community. <b class="export">Exports</b> bring Dollars in from another %PROJECT Community. <b class="import">Imports</b> send Dollars out to another %PROJECT community.</p>
     <p>The "demand" for %RCREDITS is the net amount of US Dollars people want to trade for %RCREDITS. As long as people have plenty of places to spend within the %PROJECT system, they will generally keep moving money in. So the demand gives us a pretty reliable measure of the system's soundness.</p>
-    <p>We can keep issuing %RCREDITS as long as there is a net inflow of US Dollars (more <b class="in">green</b> than <b class="out">orange</b> on the chart &mdash; an increasing demand). If members need to make more purchases outside the %PROJECT network and are taking more US Dollars <b class="out">out</b> of the system than they are putting <b class="in">in</b> (a decreasing demand), then we must temporarily stop <i>issuing</i> %RCREDITS. Of course, we can keep <i>using</i> the %RCREDITS already in circulation.</p>
+    <p>We can keep issuing %RCREDITS (in exchange for Dollars or as negative account balances) as long as there is a net inflow of US Dollars (more <b class="in">green</b> than <b class="out">orange</b> on the chart &mdash; an increasing demand). If members need to make more purchases outside the %PROJECT network and are taking more US Dollars <b class="out">out</b> of the system than they are putting <b class="in">in</b> (a decreasing demand), then we must temporarily slow down <i>issuing</i> %RCREDITS. So when the community's demand is negative three months in a row, the system automatically alerts the %PROJECT Community's administrators, who can put a temporary ban on spending below a zero balance.</p>
     <p>Transfers from a %PROJECT Account to a bank account often reflect an incomplete <%aCircles>economic circle</a>. That is, the individual or company moving %RCREDITS to a bank account does not yet have enough places to spend them. Generally, this means they are spending them outside the community (and outside the %PROJECT system). This is an opportunity for import-replacement &mdash; starting new local businesses (or expanding existing businesses) to supply goods or services not currently produced in our region.</p>
     <p>How low our total monthly volume of outward transfers is, is a measure of how well we are doing as a community in our progress toward a sustainable local economy.</p>
     <p>As an individual, you can help by finding ways to spend within the %PROJECT system, instead of transferring your funds to a bank account. For all the money that circulates within the system, we can use %RCREDITS, freeing up that many US Dollars to use for something else. So, in effect, when you can keep money in the system, we are all that much richer.</p>
 X
-  , '_aCircles', w\atag('/help/economic-circles')) . $back;
+  , '_aCircles', atag('/help/economic-circles')) . $back;
 
   if ($i == 'growth') {
-    $_helpus = @$mya ? t('You can help! <%aInvite>Click here to invite</a> your friends and local businesses where you want to spend your %RCREDITS. Sit with your friends while they sign up &mdash; it takes only half an hour, but without a nudge most people spend several weeks putting it off.', '_aInvite', w\atag('/community/invite')) : t('<%aSignup>Join us</a>!', '_aSignup', w\atag('/signup'));
+    $_helpus = @$mya ? t('You can help! Invite your friends and all the local businesses where you want to spend your %RCREDITS. Sit with your friends while they sign up &mdash; it takes only half an hour, but without a nudge most people spend several weeks putting it off.', '_aInvite', atag('/community/invite')) : t('<%aSignup>Join us</a>!', '_aSignup', atag('/signup'));
     
     return w\chartFrame('growth') . t(<<<X
       <p>The real power and purpose of the %PROJECT system is in our gathering as a community to decide what our funding priorities should be &mdash;</p>
@@ -336,43 +336,46 @@ X
         <li>for ensuring everyone in our community has access to healthy food, a home, health care, cultural enrichment, and satisfying work</li>
       </ul>
       <p>&mdash; then issuing %RCREDITS to fund our decisions.</p>
-      <p>That community-level sovereignty requires <i>broad participation</i>. This growth chart shows how many we are today.</p>
+      <p><b class="cos">Companies</b> and <b class="members">Members</b>. That community-level sovereignty requires <i>broad participation</i>. This growth chart shows how many we are today.</p>
       <p>%helpus</p>
+      <p><b class="active">Active members</b> (red line) are the number who made a purchase in the past 30 days.</p>
 X
     , compact('_helpus')) . $back;
   }
+//      <p><b class="conx">Connections</b> ("conx") are the number of other members and participating businesses each active member has transacted with in the %PROJECT System.</p>
 
   if ($i == 'dollar-pool') return w\chartFrame('funds') . t(<<<X
     <p>There are two kinds of funds in the %PROJECT system:</p>
     <ul>
-      <li><b class="cgcredits">%RCREDITS</b>. These are the funds we issue together as a community, by agreeing to accept them as payment for our goods and services (or labor). We issue %RCREDITS in two ways: (1) in exchange for US Dollars AND (2) by allowing member accounts to have a negative balance. The orange area shows the total negative balances. The amount of %RCREDITS is exactly that much higher than the Dollar Pool amount (blue line).</li>
+      <li><b class="cgcredits">%RCREDITS</b>. These are the funds we issue together as a community, by agreeing to accept them as payment for our goods and services (or labor). We issue %RCREDITS in two ways: (1) in exchange for US Dollars AND (2) by allowing member accounts to have a negative balance. The orange area shows the total negative balances. The amount of %RCREDITS is exactly equal to the Dollar Pool amount (blue line) plus the amount of negative balances.</li>
       <li><p><b class="usd">US Dollars</b>. When you transfer funds from bank account to your %PROJECT Account, that money goes into the %PROJECT Community Fund Dollar Pool &mdash; a bank account owned by the community. You get an equal amount of %RCREDITS to use instead, to buy something from a participating business.</p>
       
       <p>The business can then use those %RCREDITS to pay its employees and suppliers, those suppliers pay their employees and suppliers, then all those employees become customers again and use those same %RCREDITS to buy things again from participating businesses. The credits go around and around.</p>
 
-      <p>Meanwhile, the Dollars you put in have <i>not</i> been used for purchases, so the Dollar Pool accumulates more and more US Dollars as the system grows, waiting to be used. From time to time when someone can't easily spend all their credits within the %PROJECT System, they trade some back in for US Dollars from the %PROJECT US Dollar Pool. So the amount in the Dollar Pool goes up and down a little as it grows.</p>
+      <p>Meanwhile, the Dollars you put in have <i>not</i> been used for purchases, so as participation grows the Dollar Pool accumulates more and more US Dollars, waiting to be used. From time to time when someone can't easily spend all their credits within the %PROJECT System, they trade some back in for US Dollars from the US Dollar Pool. So the amount in the Dollar Pool goes up and down a little as it grows.</p>
       
       <p>Once we have enough active participation, we can decide together, as a community, how best to use the Dollar Pool funds &mdash; for strategic incentives, grants, zero-interest loans, and equity investments for sustainability and the common good.</p></li>
     </ul>
 
     <p>The chart also shows several measures to help you manage your community's %PROJECT economy without putting it in danger of a <%aCrunch>cash flow crunch</a>:</p>
     <ul>
-      <li><b class="in-use">In Use</b>. This line shows how much money is being used each month. Money in consistent use tends to stay in the system.</li>
+      <li><b class="savings">Savings</b>. This line shows how much of the money in circulation is not actually being used each month for purchases. Money in use tends to stay in the system, whereas participants are more likely to cash out any extra money in their accounts beyond what they use regularly for purchases.</li>
       <li><b class="top3">Top 3(%)</b>. For accounts with the highest balance (the top 3 or top 3%, whichever is higher), those balances are totaled and shown as a red line. It is unlikely that 3% of the account-holders would decide all at once to spend (or cash out) their entire balance.</li>
       <li><b class="top3">Bottom 3(%)</b>. The accounts with the lowest balances are also shown with a red line. Encourage members to bring these balances up to zero or more, to increase the size of the community's Dollar Pool (blue line).</li>
-      <li><b class="neg">Negative Balances</b>. The orange area shows the total of all negative balances. This is money borrowed by members and participating businesses, that would otherwise be in the Dollar Pool.</li>
-      <li><b class="limit">Credit Limits</b>. Each account has a credit line, equal to its average monthly activity over the past 6 months. The pink line totals those credit lines for all accounts.</li>
+      <li><b class="neg">Negative Balances</b>. The orange area shows the total of all negative balances. This is money borrowed by members and participating businesses, that would otherwise be in the Dollar Pool. Every time you spend money you don't have (resulting in a negative balance), you are <i>creating money</i>. As a community, we have a limit to how much money we can create. When your balance goes negative, we have that much less ability as a community to fund the common good. So the system encourages you to use your credit line only as a temporary convenience, bringing it back above zero as soon as possible.</li>
+      <li><b class="limit">Credit Limits</b>. Each account has a credit line, equal to its average monthly activity over the past 6 months. For example, if your credit limit is $100, your account balance is allowed to go as low as negative $100 and no lower*. The pink line totals those credit limits for all accounts.</li>
     </ul>
+    <p>* Your balance is not allowed to go below zero unless you choose that setting in your Preferences (on the Settings menu).</p>
 X
-  , '_aCrunch', w\atag('/cashflow')) . $back;
+  , '_aCrunch', atag('/help/cashflow')) . $back;
   
   if ($i == 'velocity' or $i == 'circulation-velocity') return w\chartFrame('velocity') . t(<<<X
     <p>In our society at large, how fast the money moves is an indicator of the health of our economy. Faster velocity implies more people spending more money per month.</p>
     <p>More spending is not necessarily a good thing, if we all already have what we need. But when there are unmet needs, increased economic activity can be a sign of things getting better. In the %PROJECT system, economic activity means people are finding the %PROJECT system useful, which is always a good thing.</p>
     <p>Notice that the faster money circulates, the less money we need, to buy the same stuff. Velocity is a money-stretcher! For example, suppose there are $1 million worth of %RCREDITS in circulation. Let's say the velocity is 1 in April (the whole million gets spent) and 2 in May (the whole million gets spent twice). In May we used the same amount of money to buy twice as much.</p>
     <p>For comparison, the velocity of M2 money stock in the United States over the past half century has fluctuated between .25 and .45 per month (as you can see on the chart, %RCREDITS circulation velocity is quite a bit higher).
-    <p>The local and inter-community rates are shown separately. When either rate is high, it reflects healthy trade within the community or between %PROJECT Communities.</p>
-    <p>The Dollar exchange velocity is also show (blue line), to reflect opportunities for import-replacement (buying things within the %PROJECT System that currently are being bought elsewhere).</p>
+    <p>The <b class="local">local</b> and <b class="inter">inter-community</b> rates are shown separately. When either rate is high, it reflects healthy trade (within the community or between %PROJECT Communities).</p>
+    <p>The Dollar <b class="usd">exchange</b> velocity is also shown (blue line), to reflect opportunities for import-replacement &mdash; buying things within the %PROJECT System that currently are being bought elsewhere.</p>
 X
   ) . $back;
 
@@ -383,7 +386,7 @@ X
     <p>This chart shows four types of transactions. For strong economic circles, we should see the volume of person-to-business (<b class='p2b'>p2b</b>) transactions matching the volume of business-to-person (<b class='b2p'>b2p</b>) transactions. More <b class='p2b'>p2b</b> than <b class='b2p'>b2p</b> means business are not paying enough local employees (or other local businesses). More <b class='b2p'>b2p</b> than <b class='p2b'>p2b</b> means people are shopping elsewhere. As you see (in red), several member businesses have begun paying their employees in %RCREDITS (see our <%aFB>FaceBook post</a> on how we solved the payroll challenge).</p>
     <p>The <%aDemand>Monthly Bank Transfers</a> chart also measures how well we are doing as a community, at keeping money in the system.</p>
 X
-  , '_aFB _aDemand', w\atag('http://rc4.me/fb'), w\atag('/help/demand')) . $back;
+  , '_aFB _aDemand', atag('http://rc4.me/fb'), atag('/help/demand')) . $back;
 
   if ($i == 'your-return') return t(<<<X
     <p>Your effective return is calculated as your monthly inflation adjustment (currently based on %R_INFLATION_RATE% APR) plus any incentive rewards you got in the period, all divided by your average balance for the period. The result is then annualized to give you an APR (annual percentage rate). Regular financial institutions give you interest on your <em>minimum</em> balance for the month, which is nearly always lower than your <em>average</em> balance.</p>
@@ -404,6 +407,11 @@ X
 X
   ) . $back;
 
+/*
+  <p>We recommend you NOT report %PROJECT rewards or inflation adjustments as income, because your %PROJECT community has not yet decided you can keep them &mdash; they are still just a credit reserve.</p>
+  
+  <p>However, if you prefer to count rewards and inflation adjustments as income NOW, rather than when the community makes that decision, you have that option. The chart below suggests some tax form lines you might choose, for reporting your %PROJECT activity. It also suggests how you might report your monthly tax-deductible "sharing" contributions to the %PROJECT project.</p>
+*/  
   if ($i == 'taxes') {
     $taxhead = ray('Tax Form:;1120;990;990EZ;990-A;1040;1040A;1040 Sched C');
     $taxline[] = ray('Sales / Other Income,1a,varies,varies,varies,7 or 21 ("barter"),7,1');
@@ -417,17 +425,13 @@ X
     return t(<<<X
   <p>Pay taxes on %PROJECT income just as you would for US Dollar income, including income, excise, and sales taxes.</p>
 
-  <p>We recommend you NOT report %PROJECT rewards or inflation adjustments as income, because your %PROJECT community has not yet decided you can keep them &mdash; they are still just a credit reserve.</p>
-  
-  <p>However, if you prefer to count rewards and inflation adjustments as income NOW, rather than when the community makes that decision, you have that option. The chart below suggests some tax form lines you might choose, for reporting your %PROJECT activity. It also suggests how you might report your monthly tax-deductible "sharing" contributions to the %PROJECT project.</p>
-
   <p>If you follow the <%a1>accounting practices recommended</a> by %PROJECT staff, your software already includes your %PROJECT income, properly categorized, in your accounting records and reports.</p>
 
       <table id="taxes">
 $taxes
       </table>
 X
-    , '_a1', w\atag('http://rc4.me/doc/accounting.pdf'));
+    , '_a1', atag('http://rc4.me/doc/accounting.pdf'));
   }
   
   if ($i == 'bits') {

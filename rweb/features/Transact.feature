@@ -93,6 +93,7 @@ Scenario: A member confirms request to pay another member
   | .ZZA |    -100 |
   | .ZZB |     100 |
   | .ZZC |       0 |
+  
 Scenario: A member confirms request to pay another member a lot
   Given balances:
   | id   | balance       |*
@@ -180,7 +181,9 @@ Scenario: A member confirms request to pay before making a Common Good Card purc
   Given member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
   | pay | Bea Two | 100    | %FOR_GOODS | labor   |  
-  Then we say "error": "first at home"
+  Then we say "error": "first at home" with subs:
+  | whose |*
+  | Your  |
   
 Resume
 Skip (not sure about this feature)

@@ -7,14 +7,14 @@
 
    include_once __DIR__ . '/../rcredits/admin/admin.inc';
  */
-namespace rCredits\Admin;
+namespace CG\Admin;
 
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Backend as be;
-use rCredits\Util as u;
-use rCredits\Admin as a;
-use rCredits\Web as w;
+use CG as r;
+use CG\DB as db;
+use CG\Backend as be;
+use CG\Util as u;
+use CG\Admin as a;
+use CG\Web as w;
 
 /**
  * Set up the basic user accounts and relations on the server.
@@ -61,10 +61,11 @@ function setupBasicAccounts() {
 
   $server = r\serverUid();
   if ($server == r\serverUid('NEW')) { // no need to set up CGF unless in Western Mass (or testing)
-    if (db\exists('users', "name='cgf'")) return; // already done
+    r\acct($server)->update('created', R_LAUNCH); // a date in the past makes tests work better
+    if (db\exists('users', 'uid=' . r\cgfId())) return; // already done
     if (NOT_PRODUCTION and db\exists('users', "name='cornerstore'")) return; // already done
 
-    $values = array(r\qo('NEWAAB')->id, $server, 'cgf', PROJECT, CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO]));
+    $values = array(r\qo('NEWAAB')->id, $server, u\shortName(PROJECT), PROJECT, CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO, B_ICADMIN]));
     $info = array_combine($keys, $values);
     list ($phone, $address, $city, $state) = array(u\fmtPhone(CGF_PHONE, '+n'), CGF_ADDRESS, CGF_CITY, R_STATE_ID);
     $helper = 1; //$wws->id;
@@ -247,7 +248,7 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
   } else $fields = str_replace('t.', '', $fields);
 
   if ($order) $where .= " ORDER BY $order";
-  return w\showRecords(db\q("SELECT $fields FROM $table WHERE $where LIMIT $limit")->fetchAll(), 'rCredits\\Admin\\formatField', $flagsField);
+  return w\showRecords(db\q("SELECT $fields FROM $table WHERE $where LIMIT $limit")->fetchAll(), 'CG\\Admin\\formatField', $flagsField);
 }
 
 /**
@@ -373,7 +374,7 @@ function photoFromFile($a, $filename = '', &$err = '') {
   f('a.moveFieldFrom', 'helper', 'data');
  */
 function moveFieldFrom($field, $from = 'data') {
-  $uids = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
+  $uids = db\q('SELECT uid FROM users WHERE uid<0 OR uid>:CANONIC_ACCTS')->fetchCol();
   foreach ($uids as $uid) {
     $a = r\acct($uid);
     $ray = $a->$from;
@@ -393,7 +394,7 @@ function moveFieldFrom($field, $from = 'data') {
   f('a.moveFieldTo', 'question', 'secure');
  */
 function moveFieldTo($field, $to = 'data') {
-  $q = db\q("SELECT uid,$field FROM users WHERE uid>1");
+  $q = db\q("SELECT uid,$field FROM users WHERE uid<0 OR uid>:CANONIC_ACCTS");
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $a = r\acct($uid);
@@ -502,7 +503,7 @@ EOF;
       $firstline = FALSE;
     }
   }
-  $deposits = join("\n", $deposits);
+  $deposits = join("\n", @$deposits ?: []);
   $header = t('<tr><th>Transfers</th><th></th><th>Count</th><th>Total</th><th></th></tr>');
   return <<<EOF
 <table id="deposits">
@@ -789,7 +790,7 @@ $q = f('db.q','SELECT * FROM r_request WHERE created>:cutoff ORDER BY listid DES
     foreach (['phone', 'email'] as $k) $$k = f('u.decryptN',$$k);
     $list[] = "req$listid\t$first\t$last\t$phone\t$email\t$created";
   }
-  w\say(join("\n", $list));
+  w\say(plain(join("\n", $list)));
 }
 
 function showInactive() {

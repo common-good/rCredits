@@ -3,14 +3,14 @@
  * @file
  * rCredits admin
  */
-namespace rCredits\Web;
+namespace CG\Web;
 
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Backend as be;
-use rCredits\Util as u;
-use rCredits\Admin as a;
-use rCredits\Web as w;
+use CG as r;
+use CG\DB as db;
+use CG\Backend as be;
+use CG\Util as u;
+use CG\Admin as a;
+use CG\Web as w;
 
 function seeSecure($a) {
   global $mya;
@@ -75,7 +75,7 @@ function adminSummary() {
   if ($mya->proSe and !$mya->superAdmin) return []; // nothing special on admin's own account
   
   if ($others = db\lst('fullName', 'sessions s JOIN users u ON u.uid=s.uid', ':uid=IFNULL(s.acct, s.uid) AND s.uid<>:agentId', ray('uid agentId', $uid, $mya->agentId))) {
-    w\say(t('<b class="loud">Other people</b> signed in to this account: ') . $others);
+    w\say(t('<b class="loud">Other people</b> signed in to this account: %others', compact('others')));
   }
   
   if ($mya->isCtty) { // managing a community itself
@@ -161,7 +161,7 @@ EOF;
     if ($mya->admin) {
       $dba = ($mya->co and $owner = r\relation('other', 'main=:uid', compact('uid')) and r\acct($owner)->federalId == $mya->federalId);
       $ssnDft = $mya->federalId ? ($dba ? t('SSN') : R_ON_FILE) : '';
-      $federalId = $mya->superAdmin ? textFld(t('EIN/SSN:'), '', $ssnDft) : w\item($ssnDft);
+      $federalId = $mya->superAdmin ? textFld(t('EIN/SSN:'), '', $ssnDft) : item($ssnDft);
     }
   
     $acctRisks = ray(K_ACCT_RISKS);
@@ -218,7 +218,7 @@ EOF;
 
   if (!$mya->proSe) {
     list ($tickleType, $zot) = $mya->nextTickle();
-    $details = w\item(a\callDetails($tickleType, $mya->tickle));
+    $details = item(a\callDetails($tickleType, $mya->tickle));
 //    $preNote = item($tip);
 
     if ($mya->superAdmin) {
@@ -228,7 +228,7 @@ EOF;
     $note = areaFld(t('New Note:'), [t('Type a Note Here'), t('Abbreviations: PM=phone msg EM=email msg. Be sure to say what you left a message <i>about</i> (for example "PM setup")')]);
     $suffix = submitTickle(1, t('Wait a day')) . submitTickle(2, t('2 days')) . submitTickle(7, '7') . submitTickle(30, '30') . submitTickle('', t('Auto')) . ' &nbsp; ' . submitTickle('NONE', t('Save'), 'sm');
     $tickle = textFld(t('Tickle:'), [t('Followup Date'), t('When to follow up ("Auto" sets an automatic Welcome or Annual date)')], dft($mya->tickle ? u\fmtDate($mya->tickle, TRUE) : '') + w\suffix($suffix));
-    $source = w\item($mya->source, t('Source:'));
+    $source = item($mya->source, t('Source:'));
   }
 
 //  $back = item('<a href="' . $base_url . '/sadmin/member-list">Go to Member List</a>', ' ');
@@ -305,7 +305,7 @@ function export($params) {
   if (@$types == 0) $where .= ' AND NOT :IS_CO';
   if (@$types == 1) $where .= ' AND :IS_CO';
 
-  $sql = "SELECT uid AS id, fullName FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND (NOT activated OR :IS_OK) AND $where ORDER BY :IS_OK, -signed, -created";
+  $sql = "SELECT uid AS id, fullName FROM users WHERE uid>:CANONIC_ACCTS AND NOT :IS_NONUDGE AND (NOT activated OR :IS_OK) AND $where ORDER BY :IS_OK, -signed, -created";
 
   $q = db\q($sql, ray('cttyId', $cttyA->id));
   while ($row = $q->fetchAssoc()) {
@@ -342,53 +342,3 @@ function export($params) {
   
   exit();
 }
-
-/*
-function showCardCode($a) {
-  $len = strlen(@$a->cardCode);
-  if ($len == 14 or $a->co) return;
-/// if ($a->ok) debug("$a->fullName\t" . $a->cardCode . " (" . $len . ')');
-}*/
-
-/**
- * Show information about a specific transaction and its risks.
- */
-function txInfo($xid) {
-  global $base_url;
-  $x = r\x($xid);
-  extract($x->ray);
-  extract(just('xfee force undoes undoneBy', $x->data));
-  
-  $title = item(t('Transaction #') . $xid);
-  $when = item(u\fmtDate($created) . t(' at ') . u\fmtTime($created) . (@$force ? t(' (created offline)') : ''), t('Date/Time:'));
-  $amountDesc = item(u\fmtAmt($amount), t('Amount:'));
-  $from = item(txInfoParty($payer, $payerAgent, $payerTid), t('From:'));
-  $to = item(txInfoParty($payee, $payeeAgent, $payeeTid), t('To:'));
-  $same = ($payerFor == $payeeFor);
-  $goodsDesc = ' (' . ray(R_WHYS)[$goods] . ')';
-  $for1 = item($payerFor . $goodsDesc, $same ? t('For:') : t('Payer Desc:'));
-  if (!$same) $for2 = item($payeeFor, t('Payee Desc:'));
-  $by = item($x->taking ? t('by payee') : t('by payer'), t('Initiated:'));
-  $channels = ray(TX_CHANNELS);
-  $where = item($channels[$channel] . t(' (Device #box)', compact('box')), t('Method:'));
-  // related transactions (xfer/undoes/undoneBy
-  if (@$undoes) $rel[] = t('undoes tx#') . txLink($undoes);
-  if (@$undoneBy) $rel[] = t('undone by tx#') . txLink($undoneBy);
-  if (@$xfee) $rel[] = u\fmtAmt($xfee) . ' xfee';
-
-  if (@$rel) $related = item(join(', ', $rel), t('Related Txs:'));
-  $riskDesc = $risk < K_RED ? t('low') : ($risk < 2 * K_RED ? t('moderate') : t('high'));
-  $risks = r\riskList($risks0 = $risks, K_TX_RISKS); 
-  $risk = item(round($risk) . button(t('Recalculate'), "$base_url/rerisk/tx/$xid/1") . " ($riskDesc): $risks", t('Risk:'));
-  $adminOk = boolFld(t('Risk Ok?'), '', $risks0 & 1);
-  $submit = submit();
-  return labeled(compact(ray('title when amountDesc from to for1 for2 by where risk $adminOk related submit')));
-}
-
-function txInfoParty($uid, $agent, $tid) {
-  $desc = r\acct($uid)->linkedDesc();
-  $by = $agent == $uid ? t('pro se') : (t('by ') . r\acct($agent)->linkedDesc());
-  return "$desc $by (#$tid)";
-}
-  
-function txLink($xid) {global $base_url; return "<a href=\"$base_url/sadmin/tx-info/$xid\">$xid</a>";}

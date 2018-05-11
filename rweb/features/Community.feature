@@ -37,7 +37,7 @@ Setup:
   |   4 | %today-3m | transfer  |     10 | .ZZB | .ZZA | cash E  | %FOR_USD |
   |   5 | %today-3m | transfer  |    100 | .ZZC | .ZZA | usd F   | %FOR_USD |
   |   6 | %today-3m | transfer  |    240 | .ZZA | .ZZB | what G  | %FOR_GOODS |
-  And statistics get set "%tomorrow-1m"
+#  And statistics get set "%tomorrow-1m"
   And transactions: 
   | xid | created   | type      | amount | from | to   | purpose | goods      | channel  |*
   |  15 | %today-2w | transfer  |     50 | .ZZB | .ZZC | p2b     | %FOR_GOODS | %TX_WEB  |
@@ -60,18 +60,19 @@ Setup:
   # total rewards < total r, because we made a grant, a loan, and a fine.
   
 Scenario: cron calculates the statistics
-  When cron runs "acctStats"
-  And cron runs "cttyStats"
+#  When cron runs "acctStats"
+  Given statistics get set "%today-30d"
+  When cron runs "cttyStats"
   And member ".ZZA" visits page "community/graphs"
   Then we show "Statistics" with:
 #  | Community: | Seedpack |
-  |~CG Growth: | 2 members + 1 co |
+  |~CG Growth: | 2 members + 2 co |
   |~Dollar Pool: | $6,000 |
 #  |~CG | $6,002 |
-  |~Circulation Velocity: | 107.8% per mo. |
+  |~Circulation Velocity: | 6.2% per mo. |
   |~Monthly Bank Transfers | $6,000 (net) |
   |~Monthly Transactions | 5 @ $74.20 |
-# only 2 members and 1 company -- CGF and WWS are not counted because they have no transactions before today
+# 2 members and 2 companies -- including CGF
   
 #  | Accounts        | 5 (3 personal, 2 companies) — up 5 from a month ago |
 #  | rCredits issued | $835.90r — up $835.90r from a month ago |

@@ -1,4 +1,77 @@
-2018-04-11
+2018-05-11 v3.40r
+. reviewed all calls to w\say and w\doSay, and u\rayTable, a\showQuery, be\addCell to assure sanity
+. strip_tags from all $_POST and $_GET parameters
+. added a link on summary page to activate credit line
+. repaired ajax system flaws
+. ban on spending below zero implemented and automatically recommended to organizers when a ctty has negative demand 3 months in a row
+. improved descriptions of charts
+. set Yearly as default when donation amount is zero
+. don't log secret input (!)
+. changed historic floors in stats to total rewards and recent floors to match tail of that
+  db\q('DELETE FROM r_stats WHERE id BETWEEN 17318 AND 17322 OR id BETWEEN 17296 AND 17310 OR id BETWEEN 11820 AND 12574');
+
+  $q = db\q('SELECT id,created,ctty FROM r_stats WHERE id < 17311 ORDER BY id DESC');
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    if ($ctty == 0) $ctty = 'community';
+    
+    $table = <<< X
+        (SELECT 
+         SUM(IF(payer=uid, payerReward, payeeReward)) AS reward
+         FROM users u LEFT JOIN r_txs t0 ON uid IN (payer, payee)
+         WHERE community=$ctty AND t0.created<$created AND uid>:CANONIC_ACCTS) t
+X;
+    $floors = 0 - db\sum('reward', $table);
+///    flog(compact(ray('id ctty created floors')));
+    db\update('r_stats', compact(ray('floors id')), 'id');
+  }
+$max = db\max('id', 'r_stats');
+for ($id = 17358; $id <= $max; $id++) {
+  $floors = db\lookup('floors', 'r_stats', "id=$id-7");
+  db\update('r_stats', compact(ray('floors id')), 'id');
+}
+. changed historic conx and conxLocal:
+  $q = db\q('SELECT id,created,ctty FROM r_stats ORDER BY id DESC');
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $cttyCrit = $ctty ? "u0.community=$ctty" : '1';
+
+    $recent = $created - 60 * DAY_SECS; // not n months (keep length of time consistent)
+    foreach (ray('conx conxLocal', 1, "u2.community=$ctty") as $k => $crit) {
+      if (!$ctty) $crit = 1; // avoid local query when doing stats for ALL cttys
+      $table = <<< X
+        (SELECT me, COUNT(DISTINCT other) AS conx, SUM(isRecentPayer) AS recentPays, u2.community
+          FROM (
+            SELECT u0.uid AS me, 
+              IF(u0.uid=payer AND t0.created>$recent, 1, 0) as isRecentPayer,
+              IF(u0.uid=payer, payee, payer) AS other 
+            FROM users u0
+            JOIN r_txs t0 ON u0.uid in (payer, payee) 
+            WHERE t0.created<=$created AND u0.uid>:CANONIC_ACCTS and NOT u0.:IS_CO AND $cttyCrit
+          ) t LEFT JOIN users u2 ON u2.uid=other WHERE $crit AND u2.uid>:CANONIC_ACCTS
+          GROUP BY t.me
+        ) u3
+X;
+      $$k = db\lookup('AVG(conx)', $table, 'recentPays>0') + 0;
+    }
+    db\update('r_stats', compact(ray('conx conxLocal id')), 'id');
+    if (rand(0, 100)==20) die('now');
+  }
+. reactivated B_DEBT on advanced preferences
+. update r_stats SET conxLocal=0 where conxLocal is null
+. implemented coupons! (gift, discount pct, discount amount, automatic / custom)
+. added cashout option to Banking Settings page
+. eliminated the need for wrapping common form fields in item()
+. changed rCredits namespaces to CG
+. implemented most of investment club forms
+. changed typeWho to restrict results to user's community (unless admin or co)
+. added whoami ajax op, for csp-report.php
+. UPDATE menu_router SET access_callback=REPLACE(access_callback, 'rCredits\\', 'CG\\'), page_callback=REPLACE(page_callback, 'rCredits\\', 'CG\\')
+. separated most form functions out each into its own file in forms/
+. fixed timezone problem in gherkin compiler
+. to update: copy all files, DROP TABLE menu_router, and import it from DEV
+
+2018-04-15 version 3.40d
 . fixed V-decryption to return the data unaltered, if user does not have permission
 . re-encrypted r_request and r_invites email and phone
   $q = db\q("SELECT id,email AS old FROM r_invites WHERE email LIKE '!%'");
@@ -436,7 +509,7 @@
     $name = str_replace(' ', '', strtolower($v));
     $values = array($k, 0, $name, $v, 'z@o.t');
     $info = array_combine($keys, $values);
-    new rCredits\Acct($info);
+    new CG\Acct($info);
   }
 . added a copy-ach-filename-to-clipboard button
 . changed Mailchimp export to tabs, because they stopped accepting it with commas
@@ -483,7 +556,7 @@ if ($a->id > 1 and $a->community and $a->community != $FIN and $a->community != 
 . added temporary backup of photos on upload (in case we need to recrop)
 . fixed bug in redirect to formEmpty when signed out, that discarded any messages
 . repaired recent tx flags:
-  use rCredits\Util as u;
+  use CG\Util as u;
   eachX(function($x) {
     foreach (ray('type flags') as $k) $$k = $x->$k;
     if ($type != TX_TRANSFER) return;
@@ -960,7 +1033,7 @@ function special2() {
 	test photo upload and re-upload
 	test (in WS) displaying foreign rCard (eg NY or VT)
 	test (in WS) admin signin auto-encryption of bank accounts
-. fixed: clicking on 1st or 4th graph gives warning: "Warning: hex2bin(): Hexadecimal input string must have an even length in rCredits\Util\deurlify() (line 354 of .../rcredits-util.inc)."  
+. fixed: clicking on 1st or 4th graph gives warning: "Warning: hex2bin(): Hexadecimal input string must have an even length in CG\Util\deurlify() (line 354 of .../rcredits-util.inc)."  
 . on promo site: signup include "organizer" bit: "I want to help bring rCredits to my community. I will tell some friends and local business people about it and will meet locally with other interested people to plan. (You will receive an email every time someone else in your 3-digit zipcode area checks this box &mdash; until your community has selected a contact person.)
 . integrated boostrap theme from promo site
 
@@ -1340,8 +1413,8 @@ function special2() {
   SET t.payer=u.community 
   WHERE t.payer<0 AND t.payer<>u.community
 . include __DIR__ . '/../rcredits/admin/admin.inc';
-  rCredits\fixStats();
-  rCredits\fixStats(809); // where the previous run ran out of time
+  CG\fixStats();
+  CG\fixStats(809); // where the previous run ran out of time
 . fixed bug: stepDone(dw) was looping
   
 2014-05-02
@@ -1451,9 +1524,9 @@ function special2() {
   UPDATE users set postalAddr=REPLACE(postalAddr, ', Vermont', ', VT');
   DELETE FROM r_relations WHERE other IS NULL;
 . code:
-  rCredits\changeUid(-8915, -26742000000001, FALSE);
-  rCredits\changeUid(-8321, -25026000000001, FALSE);
-  for ($i = 1; $i <= 10; $i++) rCredits\changeUid(24960000000000 + $i, 25026000000000 + $i, FALSE);
+  CG\changeUid(-8915, -26742000000001, FALSE);
+  CG\changeUid(-8321, -25026000000001, FALSE);
+  for ($i = 1; $i <= 10; $i++) CG\changeUid(24960000000000 + $i, 25026000000000 + $i, FALSE);
   \variable_set('r_totals', []);
 
 2014-02-12
@@ -1647,7 +1720,7 @@ function special2() {
 . clicking on photo no longer signs you out (patched on prod server)
 . catch "you changed your password" and "you changed your email" emails from Dwolla (and disable the rC account with a misbehavior note in the data field)
 . do transactions entirely in rCredits (even if the r balance goes negative). Distribute the USD evenly throughout the system (but with half in ctty account), for multiple cash-outs in one day.
-. separated database function into rcredits-db.inc, namespace rCredits\DB (db)
+. separated database function into rcredits-db.inc, namespace CG\DB (db)
 . separated web subs into rweb-subs.inc
 . added personal statistics to Summary page
 . disabled soldOut function in cron (patched on production server)
@@ -1668,7 +1741,7 @@ function special2() {
 . transactions are now sorted (descending) by date, by tid before displaying
 
 2013-09-22
-. initialized stats on server: for ($dt = strtotime('5/23/2013'); $dt < time(); $dt += DAY_SECS) rCredits\getStats(-8915, $dt);
+. initialized stats on server: for ($dt = strtotime('5/23/2013'); $dt < time(); $dt += DAY_SECS) CG\getStats(-8915, $dt);
 . made tests check for presence of labels on weShow, with, and without.
 . allowed vertical arrays in tests
 . disabled payment exchanges (virtual payments) in cron

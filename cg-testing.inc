@@ -4,19 +4,19 @@
  * Subroutines for testing steps, for all interfaces.
  */
 
-namespace rCredits\Testing;
-use rCredits\Testing as t;
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Util as u;
-use rCredits\Backend as be;
-use rCredits\Admin as a;
-use rCredits\Cron as cr;
+namespace CG\Testing;
+use CG\Testing as t;
+use CG as r;
+use CG\DB as db;
+use CG\Util as u;
+use CG\Backend as be;
+use CG\Admin as a;
+use CG\Cron as cr;
 
 global $base_path;
 define('BASE_PATH', $base_path);
 define('T_BALANCE_FIELDS', 'id balance floor rewards savingsAdd saveWeekly minimum share committed');
-define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to partner myid reid main agent other');
+define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to partner myid reid main agent other ctty fromId');
 
 /**
  * Allow mnemonic and abbreviated data in test scenario columns.
@@ -57,7 +57,7 @@ function fixData(&$info, $direct = FALSE) {
   }
 
   foreach (just(T_ID_FIELDS, $info) as $k => $v) {
-    if (preg_match('/^(\.|[A-Z]{3})[A-Z]{3}$/', $v)) $info[$k] = t\uid($v) ?: 0;
+    if (preg_match('/^(\.|[A-Z]{3})[A-Z]{3}$/', $v) or $v == 'ctty') $info[$k] = t\uid($v) ?: 0;
   }
   if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
   
@@ -68,9 +68,8 @@ function fixData(&$info, $direct = FALSE) {
  * Allow abbreviated email address like "a@" meaning a@example.com. Also avoid weird characters.
  */
 function fixEmail(&$email) {
-  $email = htmlspecialchars($email, ENT_QUOTES); // Drupal does this in user_register()
   if (substr(@$email, -1, 1) == '@') $email .= EMAILX; 
-  return $email;
+  return plain($email);
 }
 
 function doRecords($list, $type) {
@@ -80,7 +79,7 @@ function doRecords($list, $type) {
 /**/    if ($testOnly) t\output("Expect $type: " . print_r($list, 1), 'expect');
   if (is_object($list)) $list = (array) $list;
   /**/  u\EXPECT(is_array(@$list) and !is_numeric(@key(@$list[0])), 'doThing object should be an assoc: ' . print_r($list, 1));
-  $function = 'rCredits\\Testing\\do';
+  $function = 'CG\\Testing\\do';
   $function .= function_exists($function . $type) ? $type : 'Thing';
   foreach ($list as $one) if (!$function($one, $type)) return FALSE;
   return TRUE;
@@ -107,9 +106,11 @@ function devices($list) {return doRecords($list, 'Boxe');}
 function relations($list) {return doRecords($list, 'Relation');}
 function transactions($list) {return doRecords($list, 'Tx');}
 function balances($list) {return doRecords($list, 'Balance');}
-function membersHave($list) {return doRecords($list, 'MemberFields');}
+function membersHave($list) {return doRecords($list, 'MembersHave');}
 function selling($list) {return doRecords($list, 'Selling');}
 function companyFlags($list) {return doRecords($list, 'CompanyFlags');}
+function coupons($list) {return doRecords($list, 'Coupon');}
+function stats($list) {return doRecords($list, 'Stat');}
 
 /**
  * Create device (box) records.
@@ -205,10 +206,11 @@ function doAccount($info = []) {
  */
 function fixFlags($flags) {
   global $testOnly;
-  
+
+  if (!@$flags or is_numeric($flags)) return $flags + 0;  
   $res = 0;
-  if (@$flags) foreach (ray($flags) as $one) $res |= u\bit(u\consta('b', $one));
-  if (!$testOnly) if ($res & u\bit(B_OK)) $res |= u\bit(B_MEMBER);
+  foreach (ray($flags) as $one) $res |= u\bit(u\consta('b', $one));
+  if ($res & u\bit(B_OK)) $res |= u\bit(B_MEMBER);
   return $res;
 }    
 
@@ -452,14 +454,13 @@ function doneStep($id, $step) {
  * Make the member fields be thus and such OR test to see if they ARE thus and such.
  * "?" in a field means ignore its value when testing
  */
-function doMemberFields($info) {
+function doMembersHave($info) {
   global $testOnly;
   if ($balFields = just(T_BALANCE_FIELDS, $info) and !doBalance($balFields, TRUE)) return FALSE;
 
   $a = r\acct($id = t\uid($info['id']));
   $info = justNOT(T_BALANCE_FIELDS, $info); // don't rehandle balance fields, and already got id
   fixData($info, TRUE);
-
   if ($testOnly) {
     foreach ($info as $k => $v) if ($v != '?') {
       if (t\badEq("db $k", $a->o($k), $v, $id)) return FALSE;
@@ -565,7 +566,7 @@ function usdTransfers($txs) {
 
 /**
  * Run the op in the background, return TRUE.
-   include_once __DIR__ . '/../rcredits/rcredits-testing.inc';
+   include_once __DIR__ . '/../rcredits/cg-testing.inc';
    f('t.cronRuns', 'op');
  */
 function cronRuns($op) {
@@ -690,7 +691,7 @@ function findEmail($index, $email, $subs) {
   }
   $message = @$subs['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
   $message = str_replace("\r\n", '', $message);
-  $messageDpy = t\showSubs($message, $esubs);
+  $messageDpy = strtr(t\showSubs($message, $esubs), ray('href= style= src=', 'hrref=', 'styyle=', 'srrc='));
   $esubs['{companies}'] = ''; // don't test this
   $message = strtr($message, $esubs);
   $subject = @$info['subject'] ?: $GLOBALS['emailSubjects'][$index];
@@ -824,7 +825,7 @@ function getPicture($picture) {
  * Send an RPC API request to the server, for rPOS.
  * @todo: after everyone is up to version 217, add penultimate param: $proof = 'calc'
  */
-function hitServer($op, $extra = [], $agent, $device = '', $version = 218) {
+function hitServer($op, $extra = [], $agent, $device = '', $version = 221) {
   global $rposResult;
   if ($agent) $agent = t\fullQid2($agent);
   extract(just('amount member code created proof goods', $extra));
@@ -838,7 +839,7 @@ function hitServer($op, $extra = [], $agent, $device = '', $version = 218) {
     t\output("proof is hash of $hashOf", 'normal');
     unset($extra['code']);
   }
-  if (@$goods) $goods = t\goodsBit($goods);
+  if (@$goods and !is_numeric($goods)) $goods = t\goodsBit($goods);
 
   $input = compact(ray('op agent device version amount member proof goods')) + $extra;
 /**/ t\output('request: ' . print_r($input, 1), 'input'); // keep this
@@ -846,6 +847,11 @@ function hitServer($op, $extra = [], $agent, $device = '', $version = 218) {
   if ($op != 'photo') $rposResult = (array) json_decode($rposResult);
 /**/ t\output('answer: ' . print_r($rposResult, 1), 'output');
   return TRUE;
+}
+
+function txCountIs($n) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  return (db\count('r_txs') == $n);
 }
 
 /**
@@ -1018,7 +1024,7 @@ function pageForm($page, $msg = '', $field = '') {
     $sta = @$formSta ?: [];
     list ($form, $function) = FALSE ? array('user_register_form', 'formSignup')
       : ($login ? array('user_login', 'formSignin') : []);
-    $function = 'rCredits\\Web\\' . $function;
+    $function = 'CG\\Web\\' . $function;
     // (FAILS for user_login) $form = \drupal_get_form($form, $args);
     $form = $login ? [] : \drupal_get_form($form, $args);
     $function($form, $sta, $args);
@@ -1066,7 +1072,7 @@ function getSteps($out, $set = NULL) {
 function postProcess($form, $formName, $type) {
   $functions = @$form["#$type"];
   if (!@$functions or @($functions == '<')) {
-    $function = "rCredits\\Web\\form{$formName}_$type";
+    $function = "CG\\Web\\form{$formName}_$type";
     $functions = function_exists($function) ? array($function) : [];
   }
   return $functions;
@@ -1219,7 +1225,7 @@ function clear($ch = 0) {
 ///   file_put_contents(flog(), ''); // clear log file on disk
 
   $cgfUid = r\cgfId();
-  $tables = 'r_bad r_ballots r_boxes r_do r_gifts r_invites r_invoices r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_request r_relations r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
+  $tables = 'r_bad r_ballots r_boxes r_stakes r_coupons r_coupated r_do r_gifts r_investments r_invites r_invoices r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_ratings r_request r_relations r_shares r_stats r_tous r_txs r_usd r_user_industries queue sessions cache';
   foreach (ray('bootstrap form menu') as $k) $tables .= " cache_$k";
   foreach (ray($tables) as $table) if (db\exists($table)) db\q("TRUNCATE $table");
 
@@ -1325,7 +1331,10 @@ function shownWith($content, $type = 'text', $mustBePresent = TRUE) {
     if ($one === '' or substr($one, 0, 1) == '~') continue; // ignore ~labels
 //    if (u\in($one, '%')) $one = t\lastMinuteSubs(htmlspecialchars($one));
     $one = t($one); // translate constants in member
-    if (($one = u\redash($one)) !== '') $i = strpos($model, $one, $xi = $i);
+    if (($one = u\redash($one)) === '') continue;
+    $i = strpos($model, $one, $xi = $i);
+///    debug(compact(ray('model one xi i')));
+    if ($i === FALSE) $i = strpos($model, plain($one), $xi);
     if ($i === FALSE xor !$mustBePresent) {
       t\output(t('EXPECT page %with %this', 'with this', $mustBePresent ? t('with') : t('without'), u\purify($one, '')));
       t\output(compact('xi','i','one'));

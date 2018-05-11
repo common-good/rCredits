@@ -1,11 +1,11 @@
 <?php
-namespace rCredits;
-use rCredits as r;
-use rCredits\Util as u;
+namespace CG;
+use CG as r;
+use CG\Util as u;
 
 /**
  * @file
- * rCredits pdf class
+ * Common Good pdf class
  * Extends the TCPDF class -- especially for custom headers and footer.
  */
 
@@ -15,12 +15,12 @@ require_once DRUPAL_ROOT . '/vendor/tcpdf/tcpdf.php';
 class Statement extends \TCPDF {
   public $regionName; // name of region
   public $regionInfo; // addr, phone, email of region
-  public $qid; // rCredits account in header
+  public $qid; // Common Good account in header
   public $period; // statement period
   
   /**
-   * Create a pdf object for the given rCredits account.
-   * @param acct $a: the rCredits account object
+   * Create a pdf object for the given Common Good account.
+   * @param acct $a: the Common Good account object
    * @param int $period: period date (for account statements) (defaults to current period)
    */
 	public function __construct($a = NULL, $period) {

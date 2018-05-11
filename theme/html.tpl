@@ -1,6 +1,6 @@
 <?php
-use rCredits\Web as w;
-use rCredits\Util as u;
+use CG\Web as w;
+use CG\Util as u;
 
 /**
  * @file
@@ -43,7 +43,7 @@ use rCredits\Util as u;
  * @see template_process()
  */
 
-global $rUrl, $base_url, $pageScripts, $scriptScraps, $mya;
+global $rUrl, $base_url, $pageScripts, $scriptScraps, $mya, $styleNonce;
 $version = isPRODUCTION ? R_VERSION : time();
 $styles = preg_replace('~<style.*</style>~ms', '', $styles); // zap all the drupal styles
 
@@ -58,12 +58,15 @@ foreach ($s as $id => $v) {
   $id0 = $id;
   $src = "$rUrl/js/$id.js";
   if (!strpos($src, 'x/') or $v) {
-    if (u\starts($id, 'goo-')) $src = 'https://www.google.com/' . substr($id, 4); else $src .= "?v=$tm&$v";
+    if (u\starts($id, 'goo-')) $src = 'https://www.google.com/' . substr($id, 4); else $src .= "?v=$tm&$v"; // $v is either a small integer (from array_flip) or all script arguments
     $id = "script-$id";
   } else unset($id); // no id for 3rd-party scripts
+  
+  if (strpos($src, 'spin.min')) $nonce = $styleNonce; else unset($nonce); // external nonce fails in Edge as of 12/14/2017
+  
   if (strpos($v, ';')) { // temporary for inline
     $scripts .= w\tags('script', $v, compact('id')) . "\n";
-  } else $scripts .= w\tags('script', '', compact('id', 'src')) . "\n";
+  } else $scripts .= w\tags('script', '', compact(ray('id src nonce'))) . "\n";
 }
 
 w\sanitizePage($page); // assure no HTML insertion of script, styles, etc.

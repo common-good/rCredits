@@ -1,5 +1,5 @@
 <?php
-use rCredits\Util as u;
+use CG\Util as u;
 /**
  * @file
  * Set up the risk descriptions for HTML hover titles

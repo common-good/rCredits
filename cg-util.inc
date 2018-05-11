@@ -5,25 +5,15 @@
  * This file may be both on the core VPS and the user interface VPS
  */
 
-namespace rCredits\Util; // typically abbreviated as "u"
-use rCredits as r; // get rid of this
-use rCredits\DB as db;
-use rCredits\Util as u;
+namespace CG\Util; // typically abbreviated as "u"
+use CG as r; // get rid of this
+use CG\DB as db;
+use CG\Util as u;
 
 define ('URL_CHARS', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_~'); // 66 valid URLchars
 define ('HEX_CHARS', '0123456789abcdef');
 
 // Some useful Drupal db methods: fetchAllKeyed(m, n), fetchAssoc and fetchAllAssoc(fld), fetchObject and fetchAll(), fetchCol(n), fetchField()
-
-/* this is probably a bad idea
-function preK($prefix, $s) {
-  if (is_array($s)) {
-    $new = [];
-    foreach ($s as $key => $value) $new[$prefix . ucwords($key)] = $value;
-    return $new;
-  } else return $prefix . ucwords($s);
-}
-*/
 
 /**
  * array_splice() for associative arrays.
@@ -152,15 +142,16 @@ function poAddress($address) {
 function fmtAmt($amount, $opt = 's$') {
   $opt = ' ' . $opt; // simplify strpos check
   $amount0 = $amount = cleanAmount(nn($amount, 0));
+  if ($pct = strpos($opt, '%')) $amount *= 100;
 //  if (!is_numeric($amount)) $amount = -999999;
   u\EXPECT(compact('amount'), 'float', 'bad num');
-  $amount = number_format($amount + 0, strpos($opt, '1') ? 0 : 2);
+  $amount = number_format($amount + 0, strpos($opt, '1') ? 0 : ($pct ? 1 : 2));
   if ($amount == '-0.00') $amount = strpos($opt, '1') ? '0' : '0.00'; // this happens, for small negative amounts
   if (strpos($opt, '$')) $amount = '$' . $amount;
-  if (strpos($opt, 's')) $amount = str_replace('.00', '', $amount);
+  if (strpos($opt, 's')) $amount = preg_replace('/\\.0+$/', '', $amount);
   if (strpos($opt, 'r')) $amount .= 'cg';
   if (strpos($opt, 'u')) $amount .= 'us';
-  if (strpos($opt, '%')) $amount = number_format(100 * $amount0, 1) . '%';
+  if ($pct) $amount .= '%';
   return $amount;
 }
 
@@ -483,6 +474,7 @@ This function uses the ignore_errors context parameter. Without this set (the de
 When using POST with REST, take care: PHP's HTTP redirection handler will drop your POST payload if the endpoint issues a redirect. If you experience problems using POST with the function below, it might be due to redirects. Most of the POST calls I've run into issue redirects if the URL is missing a trailing '/' character. In other words, if you experience problems where it seems like your parameters are not being sent in, try appending a '/' to the end of the URL and try it again.
  */
 function post($url, $content = FALSE, $responseFormat = 'raw', $extra_headers = [], $method = 'POST', $request_format = 'url') {
+  flog(compact(ray('url content')));
   $ignore_errors = TRUE;
   $headers = array('Content-Type' => $request_format == 'json' ? 'application/json' : 'application/x-www-form-urlencoded') + $extra_headers;
 
@@ -606,7 +598,7 @@ function expect1($arg, $value, $type, $ret) {
     case 'qid': return EXPECT(isQid($value), $msg, $ret);
     case 'string': return EXPECT(is_string($value), $msg, $ret);
     case 'zid': return EXPECT(isZid($value), $msg, $ret);
-    default: return EXPECT(is_object($value) and strtolower(get_class($value)) == "rcredits\\$type", $msg, $ret);
+    default: return EXPECT(is_object($value) and strtolower(get_class($value)) == "cg\\$type", $msg, $ret);
   }
   throw new \Exception("bad type \"$type\" ($msg)");
 }
@@ -639,12 +631,12 @@ function loga($type, $info = [], $adhocChannel = FALSE) {
   if (is_array($info)) {
     $map = ["\r" => '', "\n" => '', '    ' => ' '];
     if ($msg = @$info['message']) $info['message'] = strtr(strip_tags(str_replace('>', '>|', $msg)), $map);
-    if (@$info['form_id']) {$type .= str_replace('rCredits\\Web\\form', '', $info['form_id']);}
+    if (@$info['form_id']) {$type .= str_replace('CG\\Web\\form', '', $info['form_id']);}
     if (@$info['toEmail']) $info = just('index subject', $info); // don't show whole email
     foreach (ray('form_id form_build_id form_token orig') as $k) unset($info[$k]);
-    foreach (ray(R_NOLOG) as $k) if ($k != 'email' and @$info[$k]) $info[$k] = '(?)';
+//    foreach (ray(R_NOLOG) as $k) if ($k != 'email' and @$info[$k]) $info[$k] = '(?)';
   //  $record = compact(ray('time channel type myid agent info'));
-    $info = json_encode($info, JSON_UNESCAPED_SLASHES);
+    $info = json_encode(u\noSecrets($info), JSON_UNESCAPED_SLASHES);
   }
 /**/ flog("$qid/$time/$ch/$type/$info");
 }  
@@ -944,6 +936,20 @@ function badDate(&$s, $min = '', $max = PHP_INT_MAX) {
 }
 
 /**
+ * Return a table row with the given data (header or not).
+ * @param mixed $row: an array with field names or assoc with field names and values
+ */
+function tableRow($row) {
+  if ($th = is_numeric(key($row))) $row = array_flip($row);
+  $m = $th ? 'th' : 'td';
+  $res = '';
+  foreach ($row as $k => $v) {
+    $res .= tr('<%m class="k-%k">%v</%m>', 'm k _v', $m, $k, $th ? ucwords($k) : $v);
+  }
+  return "<tr>$res</tr>\n";
+}
+  
+/**
  * Parse the name, returning the first and last names separately. Underlines in last name are treated as spaces.
  * @param string $name: the name to parse
  * @param bool $withMiddles: <separate out the middle name(s)>
@@ -1007,18 +1013,6 @@ define('R_SMALL_WORDS', 'of|a|the|and|an|or|nor|but|is|if|then|else|when|at|from
 function titleCase($s) {
   return preg_replace_callback('/\b(' . R_SMALL_WORDS . ')\b/i', function ($m) {return strtolower($m[0]);}, ucwords(strtolower($s)));
 }
-
-/**
- * Prevent XSS
- */
-function sanitizeInput($args, $form = []) {
-  if (!is_array($args)) $args = urlq2ray($args); // all GET args
-
-  foreach ($args as $k => $v) if (!is_array($v)) {
-    if (@$form[$k]['#type'] != 'password') $args[$k] = plain($v);
-  }
-  return $args;
-}  
 
 function gzdecode($data){
     $g=tempnam('./','gz');
@@ -1100,6 +1094,7 @@ function rayTable($ray, $across = TRUE, $recurse = FALSE) {
   $heads = $values = $lines = '';
   foreach ($ray as $k => $v) {
     if (is_array($v) and $recurse) $v = rayTable($v, !$across, TRUE);
+    $v = plain($v);
     if ($across) {
       $heads .= "<th>$k</th>";
       $values .= "<td>$v</td>";
@@ -1317,6 +1312,14 @@ function strScramble($s, $key, $un = FALSE) {
 
 function strUnscramble($s, $key) {return strScramble($s, $key, TRUE);}
 
+/**
+ * Return the array with secret values hidden.
+ */
+function noSecrets($ray) {
+  foreach ($ray as $k => $v) if (in($k, R_NOLOG)) $ray[$k] = '(?)';
+  return $ray;
+}
+
 /*
 function unSerialFix($s) {
 	$s = html_entity_decode($s, ENT_QUOTES, 'UTF-8');
@@ -1360,7 +1363,7 @@ function isNonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
 function isVarname($value) {return preg_match('/^[a-z_][a-z_\-0-9]*$/i', $value);}
 function isName($value) {return preg_match('/^[ \\x{00c0}-\\x{01ff}a-zA-Z0-9\,\.\'\\-]+$/u', $value);}
 ///function isName($value) {return preg_match('/^([ \\p{InCJK_Radicals_Supplement}\\p{InKangxi_Radicals}\\p{InIdeographic_Description_Characters}\\p{InCJK_Symbols_and_Punctuation}\\p{InHiragana}\\p{InKatakana}\\p{InBopomofo}\\p{InHangul_Compatibility_Jamo}\\p{InKanbun}\\p{InBopomofo_Extended}\\p{InKatakana_Phonetic_Extensions}\\p{InEnclosed_CJK_Letters_and_Months}\\p{InCJK_Compatibility}\\p{InCJK_Unified_Ideographs_Extension_A}\\p{InYijing_Hexagram_Symbols}\\p{InCJK_Unified_Ideographs}a-zA-Z\'\\-])+$/', $value);}
-function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\\Acct');}
+function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'CG\\Acct');}
 function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);} // deprecated
 function s2t($s) {return strtotime(preg_match('/[A-Z]/i', $s) ? $s : str_replace('-', '/', $s));}
 function fmtDate($time = NULL, $numeric = FALSE) {return strftime($numeric ? '%m/%d/%Y' : '%d%b%Y', isset($time) ? $time : r\rTime());}
@@ -1377,12 +1380,11 @@ function consta($prefix, $var) {return constant(strtoupper(str_replace(' ', '_',
 function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}
 function jsonEncode($s) {return json_encode($s) ?: json_encode(u\purify($s));} // , JSON_UNESCAPED_SLASHES
 function redash($s) {return str_replace('—', '&mdash;', $s);}
-function backButton() {return '<button class="btn btn-back btn-xs btn-primary"><big>&laquo;</big> Go Back</button>';}
 function nonish($s) {return in_array(strtolower($s), array('n/a', 'nothing', 'na', 'none')); }
 function padto($s, $n) {return str_pad(substr($s, 0, $n), $n);}
 function lpad($s, $n) {return str_pad(substr($s, 0, $n), $n, '0', STR_PAD_LEFT);}
 function similarEmail($e1, $e2) {return (strtolower(preg_replace('/\+.*@/', '@', $e1)) == strtolower(preg_replace('/\+.*@/', '@', $e1)));}
-//function rayo() {return (object) call_user_func_array('rCredits\\Util\\ray', func_get_args());}
+//function rayo() {return (object) call_user_func_array('CG\\Util\\ray', func_get_args());}
 function rayv($a, $i) {return $a[$i];} // useful when $a is returned from a function
 function strip($a) {foreach ($a as $i => $v) $a[$i] = strip_tags($v); return $a;}
 function initials($s) {return preg_replace('/[^A-Z]/', '', ucwords(strtr($s, ray('Jr', ''))));}
@@ -1410,3 +1412,4 @@ function b64decode($data) {return base64_decode(strtr($data, '-_', '+/'));}
 function fmtKey($k, $f) {$d = '-----'; $k = chunk_split(base64_encode($k), 64); return "{$d}BEGIN $f KEY$d\n$k{$d}END $f KEY$d";}
 function unfmtKey($k) {return base64_decode(preg_replace('/(-+[^-]+-+|[\r\n ])/', '', strpos($k, ':') ? file_get_contents($k) : $k));}
 function pubKey($k) {return openssl_pkey_get_details(openssl_pkey_get_private(fmtKey(unfmtKey($k), 'PRIVATE')))['key'];}
+function validEmail($email) {return filter_var($email, FILTER_VALIDATE_EMAIL);}

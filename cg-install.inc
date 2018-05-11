@@ -1,9 +1,9 @@
 <?php
 
-namespace rCredits\Install;
-use rCredits as r;
-use rCredits\Util as u;
-use rCredits\DB as db;
+namespace CG\Install;
+use CG as r;
+use CG\Util as u;
+use CG\DB as db;
 
 /**
  * @file
@@ -17,9 +17,9 @@ use rCredits\DB as db;
  * @param assoc $schema: the schema to modify or empty, if creating from scratch
  */
 function tableDefs($schema = []) {
-  require_once 'rcredits.inc'; // Drupal bug. hook_schema needs these explicit, both uninstalling and installing.
-  require_once 'rcredits-settings.inc';
-  require_once 'rcredits-util.inc';
+  require_once 'cg.inc'; // Drupal bug. hook_schema needs these explicit, both uninstalling and installing.
+  require_once 'cg-settings.inc';
+  require_once 'cg-util.inc';
   // fix uid size in all Drupal tables
   foreach (ray(DRUPAL_UID_TABLES) as $table) {
     $desc = @$schema[$table]['fields']['uid']['description'] ?: 'users record id';
@@ -147,8 +147,8 @@ function tableDefs($schema = []) {
     'bAccts' => setupField(t('number of company accounts'), 'int medium', 0),
     'newbs' => setupField(t('number of not-yet-active accounts'), 'int medium', 0),
     'aAccts' => setupField(t('number of active personal accounts'), 'int medium', 0),
-    'conx' => setupField(t('number of connections per personal account'), 'int medium', 0),
-    'conxLocal' => setupField(t('number of local connections per personal account'), 'int medium', 0),
+    'conx' => setupField(t('number of connections per personal account'), 'numeric 10,3', 0),
+    'conxLocal' => setupField(t('number of local connections per personal account'), 'numeric 10,3', 0),
     
     'balsPos' => setupField(t('amount of positive balances'), 'numeric 11,2', 0),
     'balsNeg' => setupField(t('amount of negative balances'), 'numeric 11,2', 0),
@@ -322,6 +322,69 @@ function tableDefs($schema = []) {
   $foreignKeys = [];
   $indexes = index('newroute');
   $schema['r_banks'] = setupTable(t('Bank routing numbers'), $fields, 'route', $foreignKeys, $indexes);
+  
+  // table r_stakes
+  $fields = array(
+    'stakeid' => setupField(t('record ID'), 'serial big'),
+    'uid' => setupField(t('member record ID'), 'int big'), 
+    'clubid' => setupField(t('investment club record ID'), 'int big'), 
+    'stake' => setupField(t('member stake in the club'), 'numeric 11,2', 0),
+    'request' => setupField(t('request to change stake by this amount'), 'numeric 11,2', 0),
+    'joined' => setupField(t('when this member joined the club'), 'int big'),
+  );
+  $foreignKeys = foreignKey('uid') + foreignKey('clubid');
+  $indexes = index('uid');
+  $schema['r_stakes'] = setupTable(t('member stakes in an investment club'), $fields, 'stakeid', $foreignKeys, $indexes);
+  
+  // table r_shares
+  $fields = array(
+    'shid' => setupField(t('record ID'), 'serial big'),
+    'vestid' => setupField(t('investment record ID'), 'int'), 
+    'shares' => setupField(t('club shares in the investment'), 'int 11'), 
+    'sell' => setupField(t('number of shares to sell ASAP'), 'int 11'),
+    'bought' => setupField(t('Unixtime investment made'), 'int 11'),
+    'sold' => setupField(t('Unixtime investment totally sold'), 'int 11'),
+  );
+  $foreignKeys = foreignKey('vestid');
+  $indexes = index('vestid');
+  $schema['r_shares'] = setupTable(t('club stakes in investments'), $fields, 'shid', $foreignKeys, $indexes);
+  
+  // table r_investments
+  $fields = array(
+    'vestid' => setupField(t('record ID'), 'serial big'),
+    'coid' => setupField(t('member company record ID'), 'int big'), 
+    'clubid' => setupField(t('investment club record ID'), 'int big'), 
+    'proposedBy' => setupField(t('account record ID of proposer'), 'int big'),
+    'investment' => setupField(t('description of investment'), 'text medium'),
+    'return' => setupField(t('predicted or actual APR'), 'numeric 10,3'), // see flags
+    'terms' => setupField(t('investment terms'), 'text'),
+    'assets' => setupField(t('company assets, bond, or collateral'), 'numeric 11,2'), 
+    'offering' => setupField(t('size of offering'), 'numeric 11,2'), 
+    'price' => setupField(t('price per share'), 'numeric 11,2'), 
+    'character' => setupField(t('assessment of the integrity and determination of the owners'), 'text medium'),
+    'strength' => setupField(t('company\'s financial strength (0 to 100)'), 'int tiny'), 
+    'web' => setupField(t('impression on the web (0 to 100)'), 'int tiny'),
+    'history' => setupField(t('past repayment success (0 to 100)'), 'int tiny'), // 50=none
+    'soundness' => setupField(t('overall how sound is this investment (0 to 100)'), 'int tiny'), 
+// NO use only r_shares:bought    'approved' => setupField(t('Unixtime investment approved (negative if rejected)'), 'int 11', 0),
+  );
+  $foreignKeys = foreignKey('coid') + foreignKey('clubid') + foreignKey('proposedBy');
+  $indexes = index('coid') + index('proposedBy');
+  $schema['r_investments'] = setupTable(t('potential and actual investments'), $fields, 'vestid', $foreignKeys, $indexes);
+
+  // table r_ratings
+  $fields = array(
+    'ratingid' => setupField(t('record ID'), 'serial big'),
+    'vestid' => setupField(t('investment record ID'), 'int'), 
+    'uid' => setupField(t('member record ID'), 'int big'), 
+    'good' => setupField(t('how well this investment serves the common good (0-100)'), 'int tiny'), 
+//    'internet' => setupField(t('how good the company looks on the web (0-100)'), 'int tiny'), 
+    'patronage' => setupField(t('how much the member will spend here monthly'), 'numeric 11,2'),
+    'comments' => setupField(t('description of investment'), 'text medium'),
+  );
+  $foreignKeys = foreignKey('vestid') + foreignKey('uid');
+  $indexes = index('vestid') + index('uid');
+  $schema['r_ratings'] = setupTable(t('how a member rates an investment'), $fields, 'ratingid', $foreignKeys, $indexes);
 
   // table r_ips
   $fields = array(
@@ -379,29 +442,33 @@ function tableDefs($schema = []) {
   $indexes = index('main') + index('other');
   $schema['r_relations'] = setupTable(t('Who can manage which accounts, and how'), $fields, 'reid', $foreignKeys, $indexes);
     
-  // table r_candidates (almost same as r_relations, but with extra fields -- used for candidates in rcredits-circles.inc)
-  /*
+  // table r_coupons
   $fields = array(
-    'uid' => setupField(t('candidate record id'), 'serial'),
-    'isCompany' => setupField(t('is this a company'), 'int tiny', 0),
-    'ignor' => setupField(t('temporarily omit this record from consideration'), 'int tiny', 0), // IGNORE is reserved in MySQL
-    'score' => setupField(t('how good is this candidate'), 'int 11', 0),
+    'coupid' => setupField(t('record id'), 'serial big'),
+    'fromId' => setupField(t('account ID of company offering the coupon'), 'int big', 0),
+    'start' => setupField(t('Unixtime coupon is first valid'), 'int 11', 0),
+    'end' => setupField(t('Unixtime after which coupon is no longer valid'), 'int 11', 0),
+    'amount' => setupField(t('amount of discount'), 'numeric 11,2'), // amount or percentage (if < 0)
+    'minimum' => setupField(t('minimum purchase amount to get the discount'), 'numeric 11,2'),
+    'ulimit' => setupField(t('maximum number of uses per member'), 'int 11', 0),
+    'flags' => setupField(t('boolean type flags'), 'int big', 0, TRUE),
   );
-  $foreignKeys = foreignKey('uid');
-  $schema['r_candidates'] = setupTable(t('Candidates to become rTraders'), $fields, 'uid', $foreignKeys);
-  */
-  
-/*
-  $fields = array(
-    'ignore' => setupField(t('temporarily omit this record from consideration'), 'int tiny'),
-    'employeeIsRTrader' => setupField(t('this employee is an rTrader'), 'int tiny'),
-    'score' => setupField(t('how good is this candidate'), 'int 11'),
-  );
-  $schema['r_candidates'] = $schema['r_relations'];
-  $schema['r_candidates']['fields'] += $fields;
-  $schema['r_candidates']['description] = 'Candidates to become rTraders';
-*/
+  $foreignKeys = foreignKey('fromId');
+  $indexes = index('fromId');
+  $schema['r_coupons'] = setupTable(t('Coupons'), $fields, 'coupid', $foreignKeys, $indexes);
 
+  // table r_coupated
+  $fields = array(
+    'id' => setupField(t('record id'), 'serial big'),
+    'uid' => setupField(t('account ID of account that used the coupon'), 'int big', 0),
+    'coupid' => setupField(t('coupon ID'), 'int big', 0),
+    'uses' => setupField(t('number of times this account has used this coupon OR iCode'), 'int', 0), // gift card uses this field for iCode of the card code
+    'when' => setupField(t('Unixtime the coupon was used'), 'int 11', 0),
+  );
+  $foreignKeys = foreignKey('uid') + foreignKey('coupid');
+  $indexes = index('uid') + index('coupid');
+  $schema['r_coupated'] = setupTable(t('Coupons used'), $fields, 'id', $foreignKeys, $indexes);
+  
   // table r_invites
   $fields = array(
     'id' => setupField(t('record id'), 'serial big'),

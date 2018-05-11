@@ -5,12 +5,12 @@
  * Assume that Common Good Finance is the report transmitter.
  */
 
-namespace rCredits\Special; // typically abbreviated as "y"
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Util as u;
-use rCredits\Backend as be;
-use rCredits\Web as w;
+namespace CG\Special; // typically abbreviated as "y"
+use CG as r;
+use CG\DB as db;
+use CG\Util as u;
+use CG\Backend as be;
+use CG\Web as w;
 
 define('EOL', "\r\n"); // must be two characters long (make sure download doesn't change it)
 define('STATE_CODE', '25'); // Massachusetts code, for combined Federal/State filing
@@ -47,7 +47,7 @@ function do1099bs($testMode = FALSE, $badNames = [], $badTINs = [], $year = NULL
 }
 
 /**
- * Handle all appropriate payees for the payer (that is the rCredits regional server).
+ * Handle all appropriate payees for the payer (that is the Common Good regional server).
  * @return the number of payee ("B") records.
  */
 function doPayer($year, $sql, &$totals, $mod = '', $badNames = [], $badTINs = []) {

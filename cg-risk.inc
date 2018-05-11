@@ -1,8 +1,8 @@
 <?php
-namespace rCredits\Risk; // typically abbreviated as "k"
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Util as u;
+namespace CG\Risk; // typically abbreviated as "k"
+use CG as r;
+use CG\DB as db;
+use CG\Util as u;
 
 /**
  * @file

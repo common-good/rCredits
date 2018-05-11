@@ -15,18 +15,18 @@
  *
  * You may also add statements just below this header (for example "use" and "require_once").
  */
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Testing as t;
-use rCredits\Util as u;
-use rCredits\Backend as be;
-use rCredits\Web as w;
+use CG as r;
+use CG\DB as db;
+use CG\Testing as t;
+use CG\Util as u;
+use CG\Backend as be;
+use CG\Web as w;
 
 require_once __DIR__ . '/../defs.inc';
 
 if (basename($_SERVER['SCRIPT_FILENAME']) != 'compile.php') {
-  require_once __DIR__ . '/../rcredits.inc';
-  require_once __DIR__ . '/../rcredits-testing.inc';
+  require_once __DIR__ . '/../cg.inc';
+  require_once __DIR__ . '/../cg-testing.inc';
 }
 
 /**
@@ -49,6 +49,8 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Bank AMemberMovesTooMuchToTheBank
  *     MAKE Bank AMemberTriesToGoBelowTheirMinimum
  *     MAKE Bank AMemberAsksToDoTwoTransfersOutInOneDay
+ *     MAKE Coupons AMemberRedeemsAGiftCoupon
+ *     MAKE Coupons AMemberRedeemsADiscountCouponForADollarAmount
  *     MAKE EditTx AMemberConfirmsOKForADisputedTransaction
  *     MAKE Exchange AMemberAsksToChargeAnotherMember
  *     MAKE Exchange AMemberAsksToPayAnotherMember
@@ -86,6 +88,7 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Contact AMemberGivesABadEmail
  *     MAKE Contact AMemberUpdatesToADifferentState
  *     MAKE Contact AMemberUpdatesToADifferentName
+ *     MAKE Coupons AMemberRedeemsADiscountCouponForADollarAmount
  *     MAKE Exchange AMemberConfirmsRequestToChargeAnotherMember
  *     MAKE Exchange AMemberConfirmsRequestToPayAnotherMember
  *     MAKE Flow AMemberDraws
@@ -181,6 +184,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     TEST Contact AMemberUpdatesContactInfo
  *     TEST Contact AMemberUpdatesToADifferentState
  *     TEST Contact AMemberUpdatesToADifferentName
+ *     MAKE Coupons Setup
  *     MAKE Download Setup
  *     MAKE EditTx Setup
  *     MAKE Exchange Setup
@@ -294,7 +298,7 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Transact AMemberLeavesGoodsBlank
  */
 function weSayWithSubs($type, $index, $subs) {
-  global $testOnly;
+  global $testOnly, $testJSMsgs;
 
   $subs = @$subs[0] ?: array();
   if (isset($subs['email'])) t\fixEmail($subs['email']);
@@ -304,7 +308,7 @@ function weSayWithSubs($type, $index, $subs) {
     if (strpos($msg0, "%$key") === FALSE) return t\output("missing sub '$key' in message '$index'");
   }
   $wantMsg = t($index, $subs);
-  $msgs = \drupal_get_messages($type ?: NULL, FALSE);
+  $msgs = array_merge(\drupal_get_messages($type ?: NULL, FALSE), $testJSMsgs ?: []);
   if (@$wild) {
     $i = strpos($wantMsg, $wild);
     $tailLen = strlen($wantMsg) - $i - strlen($wild);
@@ -336,6 +340,7 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST Contact AMemberGivesABadEmail
  *     TEST Contact AMemberUpdatesToADifferentState
  *     TEST Contact AMemberUpdatesToADifferentName
+ *     TEST Coupons AMemberRedeemsAGiftCoupon
  *     TEST EditTx ABuyerIncreasesAPaymentAmount
  *     TEST EditTx ABuyerChangesTheGoodsStatus
  *     TEST Invoice AMemberConfirmsRequestToChargeANotyetMember
@@ -556,6 +561,8 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Bank AMemberDrawsCreditFromTheBankWithZeroFloor
  *     TEST Bank AMemberDrawsCreditFromTheBankWithAdequateFloor
  *     TEST Community Setup
+ *     TEST Coupons AMemberRedeemsAGiftCoupon
+ *     TEST Coupons AMemberRedeemsADiscountCouponForADollarAmount
  *     TEST Download Setup
  *     TEST EditTx Setup
  *     TEST EditTx ABuyerIncreasesAPaymentAmount
@@ -605,6 +612,7 @@ function usd($list) {return t\usd($list);}
  * in: MAKE Community CronCalculatesTheStatistics
  *     MAKE Company AMemberVisitsTheCompanyInfoPage
  *     MAKE Contact AMemberVisitsTheContactInfoPage
+ *     MAKE Coupons AMemberRedeemsAGiftCoupon
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
  *     MAKE EditTx ABuyerChangesTheTransactionDescription
  *     MAKE EditTx ABuyerDisputesACharge
@@ -925,7 +933,7 @@ function cronRuns($op) {return t\cronRuns($op);}
 /**
  * statistics get set (ARG)
  *
- * in: MAKE Community Setup
+ * in: MAKE Community CronCalculatesTheStatistics
  */
 function statisticsGetSet($time) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -935,7 +943,8 @@ function statisticsGetSet($time) {
 /**
  * members have: (ARG)
  *
- * in: MAKE Download AMemberDownloadsTransactionsForThePastYear
+ * in: BOTH Coupons AMemberRedeemsAGiftCoupon
+ *     MAKE Download AMemberDownloadsTransactionsForThePastYear
  *     MAKE Invoice AMemberApprovesInvoicesForevermore
  *     TEST Joint AMemberRequestsAJointAccount
  *     BOTH Joint AJoinedAccountSlaveMemberRequestsANewMinimum
@@ -956,7 +965,7 @@ function membersHave($list) {return t\membersHave($list);}
 function weRedirectTo($page) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $lastGo;
-  $lastGo = preg_replace('/&tm=[0-9]+/', '', $lastGo); // ignore time, when redirecting to rcredits.org
+  $lastGo = preg_replace('/&tm=[0-9]+/', '', $lastGo); // ignore time, when redirecting to promo site
   if (!$res = ($lastGo == $page)) t\output(compact('lastGo', 'page'));
   return $res;
 }
@@ -1331,6 +1340,7 @@ function proxies($list) {return t\proxies($list);}
  * in: MAKE Statement AMemberLooksAtAStatementForPreviousMonth
  */
 function memberViewsStatementFor($id, $month) {
+  include_once R_ROOT . '/forms/statement.inc';
   global $base_url;
   global $testOnly; if ($testOnly) return FALSE;
 
@@ -1376,3 +1386,11 @@ function weTellCO($arg1, $arg2) {
  *     MAKE PartnerSignup AMemberVisitsTheRegistrationPageSentByAPartner
  */
 function someonePostsToPageWith($page, $args) {return t\postToPage($page, $args);}
+
+/**
+ * coupons: (ARG)
+ *
+ * in: TEST Coupons AMemberRedeemsAGiftCoupon
+ *     TEST Coupons AMemberRedeemsADiscountCouponForADollarAmount
+ */
+function coupons($list) {return t\coupons($list);}

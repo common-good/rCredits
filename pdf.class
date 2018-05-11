@@ -1,11 +1,11 @@
 <?php
-namespace rCredits;
-use rCredits as r;
-use rCredits\Util as u;
+namespace CG;
+use CG as r;
+use CG\Util as u;
 
 /**
  * @file
- * rCredits PDF class
+ * Common Good PDF class
  * Extends the TCPDF class -- for printing checks, statements, deposit details, etc.
  */
 

@@ -8,25 +8,25 @@ Setup:
   | id   | fullName | email | flags   | access    | floor |*
   | .ZZA | Abe One  | a@    |         | %today-1d |     0 |
   | .ZZB | Bea Two  | b@    |         | %today-2d |     0 |
-  | .ZZD | Dee Four | d@    |         | %today-8d |     0 |
+  | .ZZD | Dee Four | d@    |         | %today-9d |     0 |
   | .ZZE | Eve Five | e@    | ok      | %today-3m |     0 |
   | .ZZF | Flo Six  | f@    | ok      | %today-3m |     0 |
 
 Scenario: A newbie has not taken the first step
   Given invites:
-  | email | inviter | code   | invited   | invitee |*
-  | d@    | .ZZE    | codeD1 | %today-8d | .ZZD    |
+  | email | inviter | code   | invited    | invitee |*
+  | d@    | .ZZE    | codeD1 | %today-11d | .ZZD    |
   And member ".ZZD" has done step "signup"
   When cron runs "tickle"
-  Then we notice "do step one|sign in" to member ".ZZD"
+  Then we notice "do step one|sign in|daily messages" to member ".ZZD"
   And we notice "invitee slow" to member ".ZZE" with subs:
   | fullName | elapsed | step   |*
-  | Dee Four |       8 | verify |
+  | Dee Four |       9 | verify |
   
 Scenario: A newbie has taken some steps but not all
   Given member ".ZZA" has done step "signup verify sign donate proxies prefs photo"
   When cron runs "tickle"
-  Then we notice "take another step|sign in" to member ".ZZA"
+  Then we notice "take another step|sign in|daily messages" to member ".ZZA"
 
 #Scenario: A newbie is on the verify step
 #  Given member ".ZZA" has done step "sign contact donate proxies prefs photo connect"

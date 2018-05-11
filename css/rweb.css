@@ -17,6 +17,9 @@
 iframe {border:0; float:right; margin-right:-60px;}
 
 form ul>li {display: block;}
+.btn-back {height:22px; margin-right:10px;}
+.btn-back div:first-child {display:inline-block; padding-top:0px; font-size:160%; margin-bottom:5px; margin-top:-7px;}
+.btn-back div:first-child + div {display:inline-block;}
 
 form ul>li:before {
     /*Using a Bootstrap glyphicon as the bullet point*/
@@ -126,17 +129,17 @@ nav.navbar.navbar-inverse .container {max-height:50px;}
 #main #content {width:100%; float:none; margin:0;}
 #edit-all {margin:0; padding:0;}
 textarea.form-control {height:100px;}
-#rcreditswebformphp .form-type-textarea { margin-top:40px;}
-#rcreditswebformphp textarea {height:500px;}
-#rcreditswebformphp #edit-res {margin-top:20px;}
-#rcreditswebformphp #edit-res label,
+#frm-php .form-type-textarea { margin-top:40px;}
+#frm-php textarea {height:500px;}
+#frm-php #edit-res {margin-top:20px;}
+#frm-php #edit-res label,
 .page-sadmin-php .breadcrumb {display:none;}
 
 .control-label {min-width:184px;}
 .control-data {max-width:650px;}
-#rcreditswebformcontact .control-data,
-#rcreditswebformtx .control-data,
-#rcreditswebformdonate .control-data {max-width:450px;}
+#frm-contact .control-data,
+#frm-tx .control-data,
+#frm-donate .control-data {max-width:450px;}
 #edit-subtext .control-data {max-width:650px;}
 
 .form-vertical .control-label {width:100%; padding-left:15px; text-align:left;}
@@ -148,12 +151,12 @@ textarea.form-control {height:100px;}
   .control-data {width:100%; padding-top:0 !important;}
   .ladda-button {margin-left:0;}
   .control-label[for="agreement"],
-  #rcreditswebformhelp .control-label {display:none !important;}
+  #frm-help .control-label {display:none !important;}
   #edit-agreement .control-data,
-  #rcreditswebformhelp .control-data {width:100% !important;}
-  #rcreditswebformbuy .control-label {display:none;}
-  #rcreditswebformbuy .control-data {text-align:center;}
-  #rcreditswebformbuy #edit-account {margin:0 auto;}
+  #frm-help .control-data {width:100% !important;}
+  #frm-buy .control-label {display:none;}
+  #frm-buy .control-data {text-align:center;}
+  #frm-buy #edit-account {margin:0 auto;}
   
   .page-pay-with-cg {background-color:white !important;}
   .page-pay-with-cg #page-wrapper {margin-top:0 !important; max-width:100% !important; max-height:200% !important; border:0 !important; box-shadow:none !important;}
@@ -180,11 +183,11 @@ td, th {padding: 4px 9px; border: 1px solid #fff; text-align: left;}
 .box1 .checkbox, .form-horizontal .checkbox {padding-top:0;}
 .form-horizontal .radio, .form-horizontal .radio-inline {margin-left:0; margin-right:15px;}
 
-#rcreditswebformcommunity,
-#rcreditswebformhistory,
-#rcreditswebformsettings,
-#rcreditswebformadmin {max-width:300px; margin:0 auto;}
-#rcreditswebformadminpanel button {margin:0 10px 20px 0;}
+#frm-community,
+#frm-history,
+#frm-settings,
+#frm-admin {max-width:300px; margin:0 auto;}
+#frm-adminpanel button {margin:0 10px 20px 0;}
 
 .confirmation #edit-title .control-label {display:block !important;}
 /*.confirmation #actions .form-type-submit {display:inline-block; width:180px;}*/
@@ -309,7 +312,7 @@ body.logged-in.one-sidebar #content {width:100%;}
 #accounts #edit-acct-icon {float:right; margin:0 5px 0 0;} 
 #accounts #edit-acct-icon img {height:24px; border:1px solid white;}
 /*#accounts #edit-acct-account {float:right; padding:0 2px; width:auto; height:27px; margin:0; font-size:100%; border:0; background-color:white;} */
-#rcreditswebformaccounts #edit-acct-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
+#frm-accounts #edit-acct-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
 #edit-acct-showmenu, #edit-acct-showhelp {display:none;}
 
 /* Multiple Forms */
@@ -318,22 +321,22 @@ body.logged-in.one-sidebar #content {width:100%;}
 #edit-showSimple, #edit-showAdvanced {display:inline-block; padding-left:35px;}
 
 /* Empty */
-#rcreditswebformempty #edit-title {display:none;}
+#frm-empty #edit-title {display:none;}
 .page-empty div.status  {margin:20px; padding:10px; background-image:none;} 
 .page-empty div.error {margin:20px;} 
 
 /* Verify */
-#rcreditswebformverify #edit-verify {display:inline-block;}
+#frm-verify #edit-verify {display:inline-block;}
 
 /* Security */
-#rcreditswebformsecurity #edit-change a {margin-right:10px;}
+#frm-security #edit-change a {margin-right:10px;}
 
 /* Grant */
-#rcreditswebformgrant li {margin-bottom:10px;}
-#rcreditswebformgrant .inline {display:inline; max-width:100px;}
-#rcreditswebformgrant #edit-getPartners {max-width:250px;}
-#rcreditswebformgrant #edit-getOther {max-width:500px;}
-#rcreditswebformgrant #edit-sayWhat {max-width:300px;}
+#frm-grant li {margin-bottom:10px;}
+#frm-grant .inline {display:inline; max-width:100px;}
+#frm-grant #edit-getPartners {max-width:250px;}
+#frm-grant #edit-getOther {max-width:500px;}
+#frm-grant #edit-sayWhat {max-width:300px;}
 
 /* Invite */
 #inviteLink {border:1px solid silver; background-color:lightyellow; color:silver;}
@@ -343,141 +346,188 @@ body.logged-in.one-sidebar #content {width:100%;}
 
 /* Democracy */
 body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
-#rcreditswebformdemocracy #edit-title .control-data {padding-left:0;}
+#frm-democracy #edit-title .control-data {padding-left:0;}
 
 /* Funding Proposal */
-#rcreditswebformproposal #edit-subtitle .table {margin-left:25px;}
-#rcreditswebformproposal #edit-subtitle .row {display:table-row; margin:0;}
-#rcreditswebformproposal #edit-subtitle .row div {display:table-cell; width:230px;}
+#frm-proposal #edit-subtitle .table {margin-left:25px;}
+#frm-proposal #edit-subtitle .row {display:table-row; margin:0;}
+#frm-proposal #edit-subtitle .row div {display:table-cell; width:230px;}
 
 #critChart  .row {margin:10px;}
 #critChart .row div {display:table-cell}
 #critChart .row div:first-child {width:50px; font-weight:bold; text-align:center;}
 
+/* Invest */
+#frm-invest .btn {margin-right:10px;}
+#frm-invest #edit-buy {margin-right:100px;}
+
+/* Invest List */
+#frm-investlist th,
+#frm-investlist td {text-align:right;}
+#frm-investlist .k-investment {text-align:left;}
+
+/* Invest Propose */
+#frm-investpropose .form-item-fullName,
+#frm-investpropose .form-item-city,
+#frm-investpropose .form-item-serviceArea,
+#frm-investpropose .form-item-dob,
+#frm-investpropose .form-item-gross,
+#frm-investpropose .form-item-bizCats {display:none;}
+#frm-investpropose #edit-dob,
+#frm-investpropose #edit-assets,
+#frm-investpropose #edit-soundness,
+#frm-investpropose #edit-strength,
+#frm-investpropose #edit-offering,
+#frm-investpropose #edit-price,
+#frm-investpropose #edit-web,
+#frm-investpropose #edit-repayments,
+#frm-investpropose #edit-return {width:150px; display:inline-block; margin-right:5px;}
+
+/* Invest Rate */
+#frm-investrate .form-group {margin-bottom:0;}
+#frm-investrate .form-item-soundness,
+#frm-investrate .form-item-good,
+#frm-investrate .form-item-patronage,
+#frm-investrate .form-item-comments {margin-bottom:15px;}
+#frm-investrate input#edit-good,
+#frm-investrate input#edit-patronage {width:150px;}
+
+/* Invest Buy or Sell */
+#frm-investbuysell #edit-buy {margin-right:100px;}
+#frm-investbuysell #edit-amount {width:150px;}
+
 /* Flags (AML Risks) */
-#rcreditswebformflags .risky {font-weight:bold; color:red;}
-#rcreditswebformflags .safe {font-weight:bold; color:green;}
-#rcreditswebformflags th, #rcreditswebformflags td {text-align:center;}
-#rcreditswebformflags .k-risks {text-align:left;}
-#rcreditswebformflags .k-amount, #rcreditswebformflags .k-score {text-align:right;}
-#rcreditswebformflags .k-created {min-width:60px;}
+#frm-flags .risky {font-weight:bold; color:red;}
+#frm-flags .safe {font-weight:bold; color:green;}
+#frm-flags th, #frm-flags td {text-align:center;}
+#frm-flags .k-risks {text-align:left;}
+#frm-flags .k-amount, #frm-flags .k-score {text-align:right;}
+#frm-flags .k-created {min-width:60px;}
 
 /* Notifications */
-#rcreditswebformnotifications .header .vertical {font-weight:bold; margin:35px 0 20px -10px;}
+#frm-notifications .header .vertical {font-weight:bold; margin:35px 0 20px -10px;}
 
 /* Ctty Funds */
-#rcreditswebformcttyfunds .usd {background-color:darkgreen;}
-#rcreditswebformcttyfunds .reward {background-color:darkred;}
-#rcreditswebformcttyfunds .ctty {background-color:darkblue;}
-#rcreditswebformcttyfunds label {display:none;}
+#frm-cttyfunds .usd {background-color:darkgreen;}
+#frm-cttyfunds .reward {background-color:darkred;}
+#frm-cttyfunds .ctty {background-color:darkblue;}
+#frm-cttyfunds label {display:none;}
 
 /* Admin Followup Calls */
-#rcreditswebformfollowup label {display:none;}
-#rcreditswebformfollowup #memberlist th.hd-type,
-#rcreditswebformfollowup #memberlist th.hd-call {width:85px;}
-#rcreditswebformfollowup #memberlist th.hd-name {width:170px;}
-#rcreditswebformfollowup #memberlist th.hd-ctty,
-#rcreditswebformfollowup #memberlist th.hd-phone {width:95px;}
+#frm-followup label {display:none;}
+#frm-followup #memberlist th.hd-type,
+#frm-followup #memberlist th.hd-call {width:85px;}
+#frm-followup #memberlist th.hd-name {width:170px;}
+#frm-followup #memberlist th.hd-ctty,
+#frm-followup #memberlist th.hd-phone {width:95px;}
 
 /* Member List */
 #memberlist .name a {font-weight:bold;}
 #memberlist .co a {color:darkred;}
 
 /* Help */
-#rcreditswebformhelp em {font-style:normal; font-weight:bold; color:dimgray;}
-#rcreditswebformhelp .control-label {width:10%; max-width:100px; min-width:0;}
-#rcreditswebformhelp .control-data {width:80%; max-width:1500px; min-width:0;}
-/*#rcreditswebformhelp #edit-text .control-label {display:none;}*/
+#frm-help em {font-style:normal; font-weight:bold; color:dimgray;}
+#frm-help .control-label {width:10%; max-width:100px; min-width:0;}
+#frm-help .control-data {width:80%; max-width:1500px; min-width:0;}
+/*#frm-help #edit-text .control-label {display:none;}*/
 /*#help-link label {width:10em; font-size:.8em; float:right; text-align:left; padding-left:2em; background-image:url(../images/icons/question-mark.gif); background-repeat:no-repeat;} */
-#rcreditswebformhelp #edit-title {font-weight:normal;}
-/*#rcreditswebformhelp #edit-text {font-size:85%;}*/
-#rcreditswebformhelp h2 {font-weight:normal; color:darkblue;}
-#rcreditswebformhelp b {color:darkgreen;}
-#rcreditswebformhelp i {color:darkblue;}
-#rcreditswebformhelp .onechart {float:right; max-width:50%;} /* for charts */
-#rcreditswebformhelp .p2p {color:orange;}
-#rcreditswebformhelp .p2b {color:green;}
-#rcreditswebformhelp .b2b {color:blue;}
-#rcreditswebformhelp .b2p {color:red;}
-#rcreditswebformhelp .in {color:white; background-color:green;}
-#rcreditswebformhelp .out {color:white; background-color:orange;}
-#rcreditswebformhelp .import {color:black; background-color:yellow;}
-#rcreditswebformhelp .export {color:black; background-color:lightblue;}
-#rcreditswebformhelp .top3 {color:white; background-color:darkred;}
-#rcreditswebformhelp .neg {color:black; background-color:orange;}
-#rcreditswebformhelp .usd {color:white; background-color:darkblue;}
-#rcreditswebformhelp .cgcredits {color:white; background-color:darkgreen;}
-#rcreditswebformhelp .in-use {color:black; background-color:yellow;}
-#rcreditswebformhelp .limit {color:white; background-color:magenta;}
-#rcreditswebformhelp .inuse {}
-#rcreditswebformhelp .inuse {}
-#rcreditswebformhelp .inuse {}
-#rcreditswebformhelp .inuse {}
+#frm-help #edit-title {font-weight:normal;}
+/*#frm-help #edit-text {font-size:85%;}*/
+#frm-help h2 {font-weight:normal; color:darkblue;}
+#frm-help b {color:darkgreen;}
+#frm-help i {color:darkblue;}
+#frm-help .onechart {float:right; max-width:50%;} /* for charts */
+#frm-help .p2p {color:orange;}
+#frm-help .p2b {color:green;}
+#frm-help .b2b {color:blue;}
+#frm-help .b2p {color:red;}
+#frm-help .in {color:white; background-color:green;}
+#frm-help .out {color:white; background-color:orange;}
+#frm-help .import {color:black; background-color:yellow;}
+#frm-help .export {color:black; background-color:lightblue;}
+#frm-help .top3 {color:white; background-color:darkred;}
+#frm-help .neg {color:black; background-color:orange;}
+#frm-help .usd {color:white; background-color:darkblue;}
+#frm-help .cgcredits {color:white; background-color:darkgreen;}
+#frm-help .savings {color:black; background-color:yellow;}
+#frm-help .limit {color:white; background-color:magenta;}
+#frm-help .cos {color:white; background-color:darkgreen;}
+#frm-help .members {color:white; background-color:darkblue;}
+#frm-help .active {color:white; background-color:darkred;}
+#frm-help .conx {color:white; background-color:orange;}
+#frm-help .local {color:white; background-color:green;}
+#frm-help .inter {color:black; background-color:yellow;}
 
-#rcreditswebformhelp ol {margin-left:20px;}
+#frm-help ol {margin-left:20px;}
 #risk-help .goodRisk, #risk-help .badRisk, #risk-help .tagged {font-weight:bold;}
 #risk-help td {vertical-align:top;}
 #risk-help .weight {text-align:center;}
-#rcreditswebformhelp #bit-help td:first-child {color:darkgreen; font-weight:bold;}
+#frm-help #bit-help td:first-child {color:darkgreen; font-weight:bold;}
 #taxes th, #taxes td {text-align:center;}
 #taxes th:first-child,
 #taxes td:first-child {font-weight:bold; text-align:left;}
-#rcreditswebformhelp #special-flag {font-size:100%; margin-bottom:20px;}
+#frm-help #special-flag {font-size:100%; margin-bottom:20px;}
 
 /* Honors */
-#rcreditswebformhonors .well {display:inline-block; width:200px; margin:3px 10px;}
-#rcreditswebformhonors #edit-list {width:100%;}
-#rcreditswebformhonors .honor-type {width:300px; text-align:center; font-weight:bold; font-size:30px; color:darkgreen; margin:35px auto 20px auto; padding-right:100px;}
+#frm-honors .well {display:inline-block; width:200px; margin:3px 10px;}
+#frm-honors #edit-list {width:100%;}
+#frm-honors .honor-type {width:300px; text-align:center; font-weight:bold; font-size:30px; color:darkgreen; margin:35px auto 20px auto; padding-right:100px;}
 
 /* Summary / Member Info / Account Info */
-#rcreditswebformsummary .form-item-left {float:left; width:50%;}
-#rcreditswebformsummary .form-item-right {float:right; width:50%;}
-#rcreditswebformsummary .form-item-right>label,
-#rcreditswebformsummary .form-item-left>label {display:none;}
-#rcreditswebformsummary .form-item-right .control-data,
-#rcreditswebformsummary .form-item-left .control-data {width:auto;}
-#rcreditswebformsummary .form-item-left h3.above-details {text-align:center; line-height:18px;}
-#rcreditswebformsummary .form-item-left h3.above-details span {font-size:50%; font-weight:normal; color:gray;}
-#rcreditswebformsummary #intros {text-align:center; margin-bottom:10px;}
-#rcreditswebformsummary #intros div {text-align:left;}
-#rcreditswebformsummary #email-details {background-color:lightyellow; padding:10px; margin:5px 0;}
-#rcreditswebformsummary .admin label {min-width:100px;}
-#rcreditswebformsummary .admin .control-data {width:auto; max-width:auto;}
-#rcreditswebformsummary #left2.admin .control-data,
-#rcreditswebformsummary #right2.admin .control-data {width:450px; max-width:500px;}
-#rcreditswebformsummary #left2.admin #edit-details .control-data {width:auto; max-width:650px;}
-#rcreditswebformsummary #left2.admin #edit-details>.control-data,
-#rcreditswebformsummary #left2.admin .scripts {width:100%; max-width:100%;}
-#rcreditswebformsummary .admin textarea {width:450px;}
-#rcreditswebformsummary .admin .form-checkboxes {width:500px; max-width:500px;}
-#rcreditswebformsummary #edit-notes .control-data {width:450px; max-height:150px; overflow-x:hidden; overflow-y:scroll; overflow-wrap:break-word}
-#rcreditswebformsummary #edit-tickle {max-width:120px; display:inline-block;}
-#rcreditswebformsummary #edit-photo img {max-width:100px;}
-#rcreditswebformsummary #edit-creditlimit .help-block,
-#rcreditswebformsummary #edit-committed .help-block,
-#rcreditswebformsummary #edit-balance .help-block,
-#rcreditswebformsummary #edit-rewards .help-block {display:inline-block; margin:0;}
-#rcreditswebformsummary #edit-topButtons a {margin-right:10px;}
-/*#rcreditswebformsummary .admin #user-picture {position:fixed; top:80px; right:50%; z-index:99;}*/
-#rcreditswebformsummary .admin #edit-photo {position:absolute; top:5px; right:15px; z-index:1;}
-#rcreditswebformsummary .admin #edit-photo .control-label {display:none;}
-#rcreditswebformsummary .admin #edit-photo .control-data {width:auto;}
+#frm-summary .form-item-left {float:left; width:50%;}
+#frm-summary .form-item-right {float:right; width:50%;}
+#frm-summary .form-item-right>label,
+#frm-summary .form-item-left>label {display:none;}
+#frm-summary .form-item-right .control-data,
+#frm-summary .form-item-left .control-data {width:auto;}
+#frm-summary .form-item-left h3.above-details {text-align:center; line-height:18px;}
+#frm-summary .form-item-left h3.above-details span {font-size:50%; font-weight:normal; color:gray;}
+#frm-summary #intros {text-align:center; margin-bottom:10px;}
+#frm-summary #intros div {text-align:left;}
+#frm-summary #email-details {background-color:lightyellow; padding:10px; margin:5px 0;}
+#frm-summary .admin label {min-width:100px;}
+#frm-summary .admin .control-data {width:auto; max-width:auto;}
+#frm-summary #left2.admin .control-data,
+#frm-summary #right2.admin .control-data {width:450px; max-width:500px;}
+#frm-summary #left2.admin #edit-details .control-data {width:auto; max-width:650px;}
+#frm-summary #left2.admin #edit-details>.control-data,
+#frm-summary #left2.admin .scripts {width:100%; max-width:100%;}
+#frm-summary .admin textarea {width:450px;}
+#frm-summary .admin .form-checkboxes {width:500px; max-width:500px;}
+#frm-summary #edit-notes .control-data {width:450px; max-height:150px; overflow-x:hidden; overflow-y:scroll; overflow-wrap:break-word}
+#frm-summary #edit-tickle {max-width:120px; display:inline-block;}
+#frm-summary #edit-photo img {max-width:100px;}
+#frm-summary #edit-creditlimit .help-block,
+#frm-summary #edit-committed .help-block,
+#frm-summary #edit-balance .help-block,
+#frm-summary #edit-rewards .help-block {display:inline-block; margin:0;}
+#frm-summary #edit-topButtons a {margin-right:10px;}
+/*#frm-summary .admin #user-picture {position:fixed; top:80px; right:50%; z-index:99;}*/
+#frm-summary .admin #edit-photo {position:absolute; top:5px; right:15px; z-index:1;}
+#frm-summary .admin #edit-photo .control-label {display:none;}
+#frm-summary .admin #edit-photo .control-data {width:auto;}
 
-#rcreditswebformsummary .form-type-item {margin-bottom:0;}
+#frm-summary .form-type-item {margin-bottom:0;}
 
-#rcreditswebformsummary  .checkbox {width:110px; font-size:85%;}
-#rcreditswebformsummary  .checkbox div {margin-top:2px;}
-#rcreditswebformsummary #edit-risks, #rcreditswebformsummary #edit-adminable {margin-top:0px;}
-#rcreditswebformsummary  label[for="edit-risks"],
-#rcreditswebformsummary  label[for="edit-adminable"] {display:inline-block;}
-#rcreditswebformsummary .noEdit {margin-left:-7px; padding-left:7px; background-color:#e0e0ff;}
-#rcreditswebformsummary #edit-clickPhoto .control-data {font-size:78%; background-color:lightcyan; width:auto; border-radius:15px;}
+#frm-summary  .checkbox {width:110px; font-size:85%;}
+#frm-summary  .checkbox div {margin-top:2px;}
+#frm-summary #edit-risks, #frm-summary #edit-adminable {margin-top:0px;}
+#frm-summary  label[for="edit-risks"],
+#frm-summary  label[for="edit-adminable"] {display:inline-block;}
+#frm-summary .noEdit {margin-left:-7px; padding-left:7px; background-color:#e0e0ff;}
+#frm-summary #edit-clickPhoto .control-data {font-size:78%; background-color:lightcyan; width:auto; border-radius:15px;}
+
+/* Coupons */
+#frm-coupons #edit-buttons a.btn {margin:0 100% 10px 0;}
+#frm-coupons #edit-subtext li {margin-bottom:2px;}
+#frm-coupons #edit-limit {max-width:50px; display:inline-block;}
+#frm-coupons .form-item-on {display:none;}
 
 /* Find Company */
-#rcreditswebformfindco .row {display:table-row; max-width:700px;}
-#rcreditswebformfindco .well {padding:10px 35px;}
-#rcreditswebformfindco .cmpy-name {display:table-cell; width:auto; max-width:300px; overflow:hidden; color:darkblue;}
-#rcreditswebformfindco .cmpy-does {display:table-cell; width:auto; max-width:400px; overflow:hidden; padding-left:10px;}
+#frm-findco .row {display:table-row; max-width:700px;}
+#frm-findco .well {padding:10px 35px;}
+#frm-findco .cmpy-name {display:table-cell; width:auto; max-width:300px; overflow:hidden; color:darkblue;}
+#frm-findco .cmpy-does {display:table-cell; width:auto; max-width:400px; overflow:hidden; padding-left:10px;}
 .company-listing {color:red; font-weight:bold;}
 
 /* Pay/Charge/Tx */
@@ -497,80 +547,80 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 .page-pay-with-cg #messages {margin:0 0 0 0; padding-bottom:0;}
 .page-pay-with-cg #messages .messages {display block; width:100%; box-shadow:none; -webkit-border-radius:0; border-radius:0; margin-bottom:0; border:0;}
 
-#rcreditswebformbuy .control-label {width:100px; min-width:0; text-align:right;}
-#rcreditswebformbuy .control-data {width:70%;}
-#rcreditswebformbuy #edit-subtext {margin-bottom:0px;}
-#rcreditswebformbuy #edit-subtext h4 {margin:0;}
-#rcreditswebformbuy #edit-payment {vertical-align:top; margin-top:0px;}
-#rcreditswebformbuy #edit-payment .control-data label {display:none;}
-#rcreditswebformbuy #edit-payment .control-data .form-type-textfield {display:inline-block; max-width:50px; margin:0;}
-#rcreditswebformbuy #edit-amount {height:20px; padding:0 2px;}
-#rcreditswebformbuy #edit-account {width:210px;}
-#rcreditswebformbuy #edit-title .control-label {width:0;}
-#rcreditswebformbuy #edit-title .control-data {width:100%; text-align:center;}
-#rcreditswebformbuy .form-horizontal .form-group {margin-left:0; margin-right:0;}
-#rcreditswebformbuy .form-item-submit button {margin-right:5px;}
+#frm-buy .control-label {width:100px; min-width:0; text-align:right;}
+#frm-buy .control-data {width:70%;}
+#frm-buy #edit-subtext {margin-bottom:0px;}
+#frm-buy #edit-subtext h4 {margin:0;}
+#frm-buy #edit-payment {vertical-align:top; margin-top:0px;}
+#frm-buy #edit-payment .control-data label {display:none;}
+#frm-buy #edit-payment .control-data .form-type-textfield {display:inline-block; max-width:50px; margin:0;}
+#frm-buy #edit-amount {height:20px; padding:0 2px;}
+#frm-buy #edit-account {width:210px;}
+#frm-buy #edit-title .control-label {width:0;}
+#frm-buy #edit-title .control-data {width:100%; text-align:center;}
+#frm-buy .form-horizontal .form-group {margin-left:0; margin-right:0;}
+#frm-buy .form-item-submit button {margin-right:5px;}
 
 /* Agreement */
-#rcreditswebformagreement #instructions {background:lightyellow;}
-#rcreditswebformagreement .checkbox {display:inline-block; width:0; position:relative; left:-37px; top:5px; z-index:1;}
-#rcreditswebformagreement #edit-agreement .control-label {max-width:8.3%; min-width:0; margin:0; padding:0;} 
-#rcreditswebformagreement #edit-agreement .control-data {max-width:900px; width:80%;}
-#rcreditswebformagreement #agreement ul,
-#rcreditswebformagreement #agreement ol {margin-left:25px;}
-#rcreditswebformagreement #agreement li {margin-top:10px;}
-#rcreditswebformagreement.form-horizontal .checkbox {min-height:0;}
+#frm-agreement #instructions {background:lightyellow;}
+#frm-agreement .checkbox {display:inline-block; width:0; position:relative; left:-37px; top:5px; z-index:1;}
+#frm-agreement #edit-agreement .control-label {max-width:8.3%; min-width:0; margin:0; padding:0;} 
+#frm-agreement #edit-agreement .control-data {max-width:900px; width:80%;}
+#frm-agreement #agreement ul,
+#frm-agreement #agreement ol {margin-left:25px;}
+#frm-agreement #agreement li {margin-top:10px;}
+#frm-agreement.form-horizontal .checkbox {min-height:0;}
 
 /* Bank Info */
-#rcreditswebformbankinfo #connectFields2 {margin:20px 0; background:silver; padding:10px;}
-#rcreditswebformbankinfo #connectFields2 .fieldset-wrapper {background:url(../images/check-hint.png) no-repeat right top; background-size:25%;}
-#rcreditswebformbankinfo #edit-checkHint {position:absolute; left:850px;}
-#rcreditswebformbankinfo #edit-checkHint img {width:300px;}
-#rcreditswebformbankinfo #connectFields2 .help-block {display:inline-block; color:black;}
-#rcreditswebformbankinfo #edit-routingnumber,
-#rcreditswebformbankinfo input#edit-bankAccount,
-#rcreditswebformbankinfo input#edit-bankAccount2 {width:250px;} 
-#rcreditswebformbankinfo .form-item-bankAccount .help-block span {background-color:yellow;}
-#rcreditswebformbankinfo #edit-remove {margin-left:10px;}
+#frm-bankinfo #connectFields2 {margin:20px 0; background:silver; padding:10px;}
+#frm-bankinfo #connectFields2 .fieldset-wrapper {background:url(../images/check-hint.png) no-repeat right top; background-size:25%;}
+#frm-bankinfo #edit-checkHint {position:absolute; left:850px;}
+#frm-bankinfo #edit-checkHint img {width:300px;}
+#frm-bankinfo #connectFields2 .help-block {display:inline-block; color:black;}
+#frm-bankinfo #edit-routingnumber,
+#frm-bankinfo input#edit-bankAccount,
+#frm-bankinfo input#edit-bankAccount2 {width:250px;} 
+#frm-bankinfo .form-item-bankAccount .help-block span {background-color:yellow;}
+#frm-bankinfo #edit-remove {margin-left:10px;}
 
 /* Bank (Get) */
-#rcreditswebformget #edit-get {margin-right:70px;}
+#frm-get #edit-get {margin-right:70px;}
 
 /* TaxInfo 1099-B */
 #f1099b td:first-child {width:60px;} /* date */
 #f1099b td:first-child +td {min-width:75px;} /* amount */
 #f1099b td:first-child +td+td {min-width:200px;} /* account */
 #f1099b .num {text-align:right;}
-#rcreditswebformtaxinfo #edit-posttext p {font-size:12px;}
-#rcreditswebformtaxinfo #summary {width:auto;}
-#rcreditswebformtaxinfo #summary .count {text-align:center;}
-#rcreditswebformtaxinfo #summary .amount {text-align:right;}
-#rcreditswebformtaxinfo #taxes b {color:red;}
-#rcreditswebformtaxinfo small {color:#338333;}
-#rcreditswebformtaxinfo #edit-submit {display:none;}
+#frm-taxinfo #edit-posttext p {font-size:12px;}
+#frm-taxinfo #summary {width:auto;}
+#frm-taxinfo #summary .count {text-align:center;}
+#frm-taxinfo #summary .amount {text-align:right;}
+#frm-taxinfo #taxes b {color:red;}
+#frm-taxinfo small {color:#338333;}
+#frm-taxinfo #edit-submit {display:none;}
 
 /* Options (Preferences) */
-/* #rcreditswebformoptions .form-item-payHow {border-top:1px solid darkgreen; padding-top:5px;} */
-#rcreditswebformprefs #edit-posttext .control-data {font-size:80%; border-top:1px solid silver;}
+/* #frm-options .form-item-payHow {border-top:1px solid darkgreen; padding-top:5px;} */
+#frm-prefs #edit-posttext .control-data {font-size:80%; border-top:1px solid silver;}
 
 /* Proxy */
-/*#rcreditswebformproxy button {display:none;}*/
-#rcreditswebformproxy .btn,
-#rcreditswebformprox #edit-list .btn {margin:0px 2px 3px;}
-#rcreditswebformproxy tr,
-#rcreditswebformprox #edit-list tr {background-color:#dddddd;}
+/*#frm-proxy button {display:none;}*/
+#frm-proxy .btn,
+#frm-prox #edit-list .btn {margin:0px 2px 3px;}
+#frm-proxy tr,
+#frm-prox #edit-list tr {background-color:#dddddd;}
 
 /* Login (Signin) */
-#rcreditswebformsignin #edit-tip label {font-weight:normal; width:100%; text-align:left;}
-#rcreditswebformsignin #edit-subtext em {font-style:normal; color:red;}
+#frm-signin #edit-tip label {font-weight:normal; width:100%; text-align:left;}
+#frm-signin #edit-subtext em {font-style:normal; color:red;}
 
 /* Company Info */
-#rcreditswebformcompany fieldset#edit-help-block-format {background-color:lightblue; max-width:45em;}
-#rcreditswebformcompany #permissions {display:inline-block;}
-#rcreditswebformcompany #permissions table {width:auto;}
-#rcreditswebformcompany #permissions td {text-align:center;}
-#rcreditswebformcompany #permissions #perm-head td {background-color:white;}
-#rcreditswebformcompany .form-item-description label {margin-right:15px;}
+#frm-company fieldset#edit-help-block-format {background-color:lightblue; max-width:45em;}
+#frm-company #permissions {display:inline-block;}
+#frm-company #permissions table {width:auto;}
+#frm-company #permissions td {text-align:center;}
+#frm-company #permissions #perm-head td {background-color:white;}
+#frm-company .form-item-description label {margin-right:15px;}
 .filter-wrapper {
   /*margin:-15px auto 20px auto;*/
   max-width:500px; width:500px;
@@ -587,56 +637,56 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 .filter-wrapper li {font-size:90%; margin-left:-10px;}
 .filter-wrapper .control-label {min-width:112px; padding:0 12px 0;}
 @media (max-width:768px) {
-  #rcreditswebformcompany .filter-wrapper {margin-left:15px;}
+  #frm-company .filter-wrapper {margin-left:15px;}
  .filter-wrapper .control-label {min-width:auto; width:auto;}
 }
 
 /* Profile (member web page) */
-#rcreditswebformprofile {font-family:Arial;}
-#rcreditswebformprofile #member-details {min-width:200px; font-weight:normal;}
-#rcreditswebformprofile #user-picture img {max-height:300px;}
+#frm-profile {font-family:Arial;}
+#frm-profile #member-details {min-width:200px; font-weight:normal;}
+#frm-profile #user-picture img {max-height:300px;}
 
 /* Community and Money Data */
-#rcreditswebformdata .form-type-submit {margin-bottom:4px;}
-#rcreditswebformdata button {width:300px; text-align:left; background-image: linear-gradient(#fff, #ddd 60%, #ddd);}
+#frm-data .form-type-submit {margin-bottom:4px;}
+#frm-data button {width:300px; text-align:left; background-image: linear-gradient(#fff, #ddd 60%, #ddd);}
 /*linear-gradient(#fff, #fff 60%, #f5f5f5);*/
-#rcreditswebformdata #edit-subtext div {display:inline-block;}
+#frm-data #edit-subtext div {display:inline-block;}
 
 /* Event */
-#rcreditswebformevent .detail {font-size:14px; color:darkgreen;}
-#rcreditswebformevent .comment {font-size:14px; color:saddlebrown;}
+#frm-event .detail {font-size:14px; color:darkgreen;}
+#frm-event .comment {font-size:14px; color:saddlebrown;}
 
 /* Membership / Status */
-/* #rcreditswebformmembership #next-steps {width:500px; margin:-13px;} */
-#rcreditswebformmembership #edit-title {display:none;}
-#rcreditswebformmembership #edit-steps,
-#rcreditswebformmembership #edit-addendum {margin-left:3.2em;}
-#rcreditswebformmembership #edit-steps table {margin-top:-12px;}
-#rcreditswebformmembership #edit-steps h2 {color:darkblue; font-weight:bold;}
-#rcreditswebformmembership #edit-steps td {vertical-align:top; background-color:white; font-size:1.15em; padding:0;}
-#rcreditswebformmembership #edit-steps .done div {width:29px; height:39px; background-repeat:no-repeat; }
-#rcreditswebformmembership #edit-steps .done.state div {background-image:url(../images/NONE.gif);}
-#rcreditswebformmembership #edit-steps .done.state1 div {background-image:url(../images/checkmark.gif);}
-#rcreditswebformmembership #edit-steps .step div {font-size:0; width:38px; height:37px; margin-right:8px; margin-top:8px; background:url(../images/steps-green50.gif) no-repeat; background-position:99px 99px;}
-#rcreditswebformmembership #edit-steps .step0 div {background-image:url(../images/zero50.gif); background-position:0 0;}
-#rcreditswebformmembership #edit-steps .step1 div {background-position:left top;}
-#rcreditswebformmembership #edit-steps .step2 div {background-position:center top;}
-#rcreditswebformmembership #edit-steps .step3 div {background-position:right top;}
-#rcreditswebformmembership #edit-steps .step4 div {background-position:left center;}
-#rcreditswebformmembership #edit-steps .step5 div {background-position:center center;}
-#rcreditswebformmembership #edit-steps .step6 div {background-position:right center;}
-#rcreditswebformmembership #edit-steps .step7 div {background-position:left bottom;}
-#rcreditswebformmembership #edit-steps .step8 div {background-position:center bottom;}
-#rcreditswebformmembership #edit-steps .step9 div {background-position:right bottom;}
-#rcreditswebformmembership #edit-steps .text div {padding-top:18px; margin-left:0px;}
-#rcreditswebformmembership .pending {color:red;}
-#rcreditswebformmembership #edit-steps em {color:darkgreen; font-style:normal; font-weight:bold;}
+/* #frm-membership #next-steps {width:500px; margin:-13px;} */
+#frm-membership #edit-title {display:none;}
+#frm-membership #edit-steps,
+#frm-membership #edit-addendum {margin-left:3.2em;}
+#frm-membership #edit-steps table {margin-top:-12px;}
+#frm-membership #edit-steps h2 {color:darkblue; font-weight:bold;}
+#frm-membership #edit-steps td {vertical-align:top; background-color:white; font-size:1.15em; padding:0;}
+#frm-membership #edit-steps .done div {width:29px; height:39px; background-repeat:no-repeat; }
+#frm-membership #edit-steps .done.state div {background-image:url(../images/NONE.gif);}
+#frm-membership #edit-steps .done.state1 div {background-image:url(../images/checkmark.gif);}
+#frm-membership #edit-steps .step div {font-size:0; width:38px; height:37px; margin-right:8px; margin-top:8px; background:url(../images/steps-green50.gif) no-repeat; background-position:99px 99px;}
+#frm-membership #edit-steps .step0 div {background-image:url(../images/zero50.gif); background-position:0 0;}
+#frm-membership #edit-steps .step1 div {background-position:left top;}
+#frm-membership #edit-steps .step2 div {background-position:center top;}
+#frm-membership #edit-steps .step3 div {background-position:right top;}
+#frm-membership #edit-steps .step4 div {background-position:left center;}
+#frm-membership #edit-steps .step5 div {background-position:center center;}
+#frm-membership #edit-steps .step6 div {background-position:right center;}
+#frm-membership #edit-steps .step7 div {background-position:left bottom;}
+#frm-membership #edit-steps .step8 div {background-position:center bottom;}
+#frm-membership #edit-steps .step9 div {background-position:right bottom;}
+#frm-membership #edit-steps .text div {padding-top:18px; margin-left:0px;}
+#frm-membership .pending {color:red;}
+#frm-membership #edit-steps em {color:darkgreen; font-style:normal; font-weight:bold;}
 
 /* Photo */
-#rcreditswebformphoto .btn-secondary {background-color:silver;}
-#rcreditswebformphoto #edit-progress .control-data {padding:0 0 20px 0; border-bottom:3px darkgreen double;}
-#rcreditswebformphoto #emailPhoto a {color:white;}
-#rcreditswebformphoto #photoUp {background-size:cover;}
+#frm-photo .btn-secondary {background-color:silver;}
+#frm-photo #edit-progress .control-data {padding:0 0 20px 0; border-bottom:3px darkgreen double;}
+#frm-photo #emailPhoto a {color:white;}
+#frm-photo #photoUp {background-size:cover;}
 
 #photoUp {
   position: relative;  /* MANDATORY */
@@ -685,10 +735,10 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 .page-sadmin-panel #messages .status > ul {padding:0;}
 
 /* Admin Deposits */
-#rcreditswebformdeposits .control-label {min-width:150px;} /* can't be more than 153px (dunno why) */
-#rcreditswebformdeposits .newout {margin-left:50px;}
+#frm-deposits .control-label {min-width:150px;} /* can't be more than 153px (dunno why) */
+#frm-deposits .newout {margin-left:50px;}
 #edit-deposits .control-label {width:50px;}
-#rcreditswebformshowdeposits a {display:none;}
+#frm-showdeposits a {display:none;}
 
 /* Change Password / Reset / Verify (first time or resetting password) (beginning with stuff from user.css) */
 .password-strength {width:200px; float:right;}
@@ -698,93 +748,93 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 .password-indicator div {height:100%; width:0%; background-color:#47C965;}
 input.password-confirm,
 input.password-field,
-#rcreditswebformverify #edit-verify,
-#rcreditswebformchangepassword #edit-pass {width:200px; margin-bottom:10px;}
+#frm-verify #edit-verify,
+#frm-changepassword #edit-pass {width:200px; margin-bottom:10px;}
 div.password-confirm {float:right; margin-top:12px; visibility:hidden; font-size:11px;}
 div.password-confirm .ok {font-weight:bold; color:green;}
 div.password-confirm .error {font-weight:bold; color:red;}
-#rcreditswebformchangepassword .control-label,
-#rcreditswebformresetpassword .control-label {min-width:184px;}
-#rcreditswebformchangepassword .control-data,
-#rcreditswebformresetpassword  .control-data {width:450px;}
+#frm-changepassword .control-label,
+#frm-resetpassword .control-label {min-width:184px;}
+#frm-changepassword .control-data,
+#frm-resetpassword  .control-data {width:450px;}
 /* #edit-tip label {font-weight:normal; width:100%; text-align:left;} */
 .password-suggestions.description {display:none !important; float:right; background-color:lightyellow; width:240px;}
-#rcreditswebformchangepassword #edit-subtext em {font-style:normal; color:red;}
+#frm-changepassword #edit-subtext em {font-style:normal; color:red;}
 
 /* Login (Signin) */
-#rcreditswebformsignin #edit-forgot {display:inline-block; margin:5px 0 0 15px;}
+#frm-signin #edit-forgot {display:inline-block; margin:5px 0 0 15px;}
 
 /* Signup (New account) */
-#rcreditswebformsignup  #edit-title {margin-bottom:0;}
-#rcreditswebformsignup  #edit-forother .control-data {padding-top:0; font-size:80%;}
-#rcreditswebformsignup  #companyInfo {top:0; margin:0 0 10px 0; padding:0 15px; border:1px solid darkgreen; background-color:lightyellow;}
-#rcreditswebformsignup .form-item-companyPhon label span {display:none;}
-/* #rcreditswebformsignup #edit-buysat .checkbox {width:150px;} */
-.form-item-dob {margin-top:60px;}
+#frm-signup  #edit-title {margin-bottom:0;}
+#frm-signup  #edit-forother .control-data {padding-top:0; font-size:80%;}
+#frm-signup  #companyInfo {top:0; margin:0 0 10px 0; padding:0 15px; border:1px solid darkgreen; background-color:lightyellow;}
+#frm-signup .form-item-companyPhon label span {display:none;}
+/* #frm-signup #edit-buysat .checkbox {width:150px;} */
+#frm-signup .form-item-dob {margin-top:60px;}
 .form-item-physical, .form-item-sameAddr2 {margin-top:30px;}
 .form-item-physical>label, .form-item-sameAddr2>label {color:darkgreen; font-size:130%;}
-#rcreditswebformsignup .form-item-sponsor {display:none;}
+#frm-signup .form-item-sponsor {display:none;}
 
 /* Contact Info (labeled) */
-#rcreditswebformcontact .form-item-pin {display:none; margin-left:180px;}
+#frm-contact .form-item-pin {display:none; margin-left:180px;}
 
 /* Transactions History */
-#rcreditswebformtxs .virtual {color:LightSteelBlue; font-weight:normal;}
-#rcreditswebformtxs #edit-title .control-data {width:100%; max-width:100%; text-align:center;}
-#rcreditswebformtxs #edit-reports {text-align:right;}
+#frm-txs .virtual {color:LightSteelBlue; font-weight:normal;}
+#frm-txs #edit-title .control-data {width:100%; max-width:100%; text-align:center;}
+#frm-txs #edit-reports {text-align:right;}
 
-#rcreditswebformtxs #edit-downloadMsg .control-data {max-width:none; width:100%;}
-#rcreditswebformtxs #edit-downloadMsg .control-label,
-#rcreditswebformtxs #edit-transactions .control-label {display:none;}
-#rcreditswebformtxs #edit-transactions .control-data,
-#rcreditswebformtxs .form-type-checkboxes {margin-bottom:0;}
-#rcreditswebformtxs .form-type-checkbox {width:110px;}
-#rcreditswebformtxs .form-type-radios {border:0;}
-#rcreditswebformtxs .form-type-radio {display:inline-block;}
-#rcreditswebformtxs .form-item-starting {margin-bottom:0;}
-#rcreditswebformtxs input {max-width:110px;}
-#rcreditswebformtxs .form-submit:not([value="Update"]) {margin-left:10px; max-width:120px;}
-#rcreditswebformtxs .form-item-tx-period {margin-top:2em; display:inline-block;}
-#rcreditswebformtxs .txs-buttons div {display:inline-block; width:2em; text-align:center; vertical-align:middle;}
-#rcreditswebformtxs .txs-buttons div:first-child +div input {color:red; font-weight:bold;}
-#rcreditswebformtxs .form-item-opts-4,
-#rcreditswebformtxs .form-item-opts-5 {display:none;}
+#frm-txs #edit-downloadMsg .control-data {max-width:none; width:100%;}
+#frm-txs #edit-downloadMsg .control-label,
+#frm-txs #edit-transactions .control-label {display:none;}
+#frm-txs #edit-transactions .control-data,
+#frm-txs .form-type-checkboxes {margin-bottom:0;}
+#frm-txs .form-type-checkbox {width:110px;}
+#frm-txs .form-type-radios {border:0;}
+#frm-txs .form-type-radio {display:inline-block;}
+#frm-txs .form-item-starting {margin-bottom:0;}
+#frm-txs input {max-width:110px;}
+#frm-txs .form-submit:not([value="Update"]) {margin-left:10px; max-width:120px;}
+#frm-txs .form-item-tx-period {margin-top:2em; display:inline-block;}
+#frm-txs .txs-buttons div {display:inline-block; width:2em; text-align:center; vertical-align:middle;}
+#frm-txs .txs-buttons div:first-child +div input {color:red; font-weight:bold;}
+#frm-txs .form-item-opts-4,
+#frm-txs .form-item-opts-5 {display:none;}
 
-#rcreditswebformtxs .tx-selector {width:1em;}
+#frm-txs .tx-selector {width:1em;}
 /* for IE; text-align in <col> should have no effect according to CSS 2.1 */ 
-#rcreditswebformtxs .tx-tid {width:5%; text-align:right;} /* 1 # */
-#rcreditswebformtxs .tx-date {width:7.5%; text-align:right;} /* 2 date */
-#rcreditswebformtxs .tx-fromyou {width:9.5%; text-align:right;} /* 4 from you */
-#rcreditswebformtxs .tx-toyou {width:9.5%; text-align:right;} /* 5 to you */
-#rcreditswebformtxs .tx-state {width:5%; text-align:right;} /* 6 status */
-#rcreditswebformtxs .tx-buttons {width:12%; text-align:right;} /* 7 buttons */
-#rcreditswebformtxs .tx-reward {width:7.5%; text-align:right;} /* 9 rewards */
-#rcreditswebformtxs .tx-net {width:0; display:none;} /* 10 net */
+#frm-txs .tx-tid {width:5%; text-align:right;} /* 1 # */
+#frm-txs .tx-date {width:7.5%; text-align:right;} /* 2 date */
+#frm-txs .tx-fromyou {width:9.5%; text-align:right;} /* 4 from you */
+#frm-txs .tx-toyou {width:9.5%; text-align:right;} /* 5 to you */
+#frm-txs .tx-state {width:5%; text-align:right;} /* 6 status */
+#frm-txs .tx-buttons {width:12%; text-align:right;} /* 7 buttons */
+#frm-txs .tx-reward {width:7.5%; text-align:right;} /* 9 rewards */
+#frm-txs .tx-net {width:0; display:none;} /* 10 net */
 
-#rcreditswebformtxs th,
-#rcreditswebformtxs td {text-align:right;}
+#frm-txs th,
+#frm-txs td {text-align:right;}
 
-/* #rcreditswebformtxs th:first-child {text-align:right;} /* col 1: tid */
-/* #rcreditswebformtxs th:first-child +th {text-align:right;} /* col 2: date */
-#rcreditswebformtxs th:first-child +th+th {text-align:left;} /* col 3: name */
-/* #rcreditswebformtxs th:first-child +th+th+th {text-align:right;} /* col 4: amount */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th {text-align:right;} /* col 5: state */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th {text-align:right;} /* col 6: buttons */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {text-align:right;} /* col 7: purpose */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {text-align:right;} /* col 8: reward */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {display:none;} /* col 9: net */
+/* #frm-txs th:first-child {text-align:right;} /* col 1: tid */
+/* #frm-txs th:first-child +th {text-align:right;} /* col 2: date */
+#frm-txs th:first-child +th+th {text-align:left;} /* col 3: name */
+/* #frm-txs th:first-child +th+th+th {text-align:right;} /* col 4: amount */
+/* #frm-txs th:first-child +th+th+th+th+th {text-align:right;} /* col 5: state */
+/* #frm-txs th:first-child +th+th+th+th+th+th {text-align:right;} /* col 6: buttons */
+/* #frm-txs th:first-child +th+th+th+th+th+th+th {text-align:right;} /* col 7: purpose */
+#frm-txs th:first-child +th+th+th+th+th+th+th {text-align:right;} /* col 8: reward */
+#frm-txs th:first-child +th+th+th+th+th+th+th+th {display:none;} /* col 9: net */
 
-/* #rcreditswebformtxs td:first-child {text-align:right;} /* col 1 */
-/* #rcreditswebformtxs td:first-child +td {text-align:right;} /* col 2 */
-#rcreditswebformtxs td:first-child +td+td {text-align:left;} /* col 3 */
-/* #rcreditswebformtxs td:first-child +td+td+td {text-align:right;} /* col 4 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td {text-align:right;} /* col 5 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td {text-align:right;} /* col 6 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td {text-align:right;} /* col 7 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td {text-align:right;} /* col 8 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {display:none;} /* col 9 */
+/* #frm-txs td:first-child {text-align:right;} /* col 1 */
+/* #frm-txs td:first-child +td {text-align:right;} /* col 2 */
+#frm-txs td:first-child +td+td {text-align:left;} /* col 3 */
+/* #frm-txs td:first-child +td+td+td {text-align:right;} /* col 4 */
+/* #frm-txs td:first-child +td+td+td+td {text-align:right;} /* col 5 */
+/* #frm-txs td:first-child +td+td+td+td+td {text-align:right;} /* col 6 */
+/* #frm-txs td:first-child +td+td+td+td+td+td {text-align:right;} /* col 7 */
+#frm-txs td:first-child +td+td+td+td+td+td+td {text-align:right;} /* col 8 */
+#frm-txs td:first-child +td+td+td+td+td+td+td+td {display:none;} /* col 9 */
 
-#rcreditswebformtxs #edit-transactions .control-data {margin:0 auto; width:100%; max-width:100%;}
+#frm-txs #edit-transactions .control-data {margin:0 auto; width:100%; max-width:100%;}
 #txlist {border:1px solid silver; padding:10px; width:100%; max-width:1024px; margin:10px auto; font-size:85%;}
 #txlist-title {width:100%; margin-top:0px;}
 #txlist div.row {margin-left:0; margin-right:0;}
@@ -825,7 +875,7 @@ div.password-confirm .error {font-weight:bold; color:red;}
 /* #txsum td {text-align:right !important; border:0px;} */
 #txsum tr#txsum-dates {background:none; line-height:.9; border:0px;}
 #txsum tr#txsum-headers {font-weight:bold; background:none; border-bottom:1px solid black;}
-#rcreditswebformtxs #txsum th, #rcreditswebformtxs #txsum td {display:table-cell;}
+#frm-txs #txsum th, #frm-txs #txsum td {display:table-cell;}
 /*one tosign toyou fromsign fromyou rewardssign rewards balancesign balance*/
 /* .txsum-one, .txsum-balance {width:120px;} */
 .txsum-banksign, .txsum-tosign, .txsum-fromsign, .txsum-feessign, .txsum-rewardssign, .txsum-sharesign, .txsum-balancesign {min-width:1em;}
@@ -840,22 +890,22 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #txsum tr:first-child {font-weight:bold;}
 #txsum tr:last-child td:first-child +td+td,
 #txsum tr:last-child td:first-child +td+td+td+td {border-top:2px solid silver;} /* 1px fails in Chrome */
-#rcreditswebformtxs #txsum tr td {text-align:right; border-left:1px solid silver;}
-#rcreditswebformtxs #txsum tr td:first-child {text-align:left; font-weight:bold; background-color:#757575; color:white;}
-#rcreditswebformtxs #txsum tr td:last-child {text-align:left;}
+#frm-txs #txsum tr td {text-align:right; border-left:1px solid silver;}
+#frm-txs #txsum tr td:first-child {text-align:left; font-weight:bold; background-color:#757575; color:white;}
+#frm-txs #txsum tr td:last-child {text-align:left;}
 
 /* Invoices */
-#rcreditswebforminvoices .form-item-states2 {display:none;} /* disabled until invoices are more used */
-#rcreditswebforminvoices #edit-list .control-label,
-#rcreditswebforminvoices #edit-title .control-label {display:none;}
-#rcreditswebforminvoices #edit-list .control-data {width:100%; max-width:100%; text-align:center;}
-#rcreditswebforminvoices #edit-title {margin-bottom:0;}
-#rcreditswebforminvoices #edit-subtext label {display:none;}
-#rcreditswebforminvoices .txs-buttons div {display:inline-block;}
-#rcreditswebforminvoices .txs-buttons a {margin-right:5px;}
+#frm-invoices .form-item-states2 {display:none;} /* disabled until invoices are more used */
+#frm-invoices #edit-list .control-label,
+#frm-invoices #edit-title .control-label {display:none;}
+#frm-invoices #edit-list .control-data {width:100%; max-width:100%; text-align:center;}
+#frm-invoices #edit-title {margin-bottom:0;}
+#frm-invoices #edit-subtext label {display:none;}
+#frm-invoices .txs-buttons div {display:inline-block;}
+#frm-invoices .txs-buttons a {margin-right:5px;}
 
 /* Handle Invoice */
-#rcreditswebformhandleinvoice #denySet {display:none;}
+#frm-handleinvoice #denySet {display:none;}
 
 /* Statements / Notices */
 #statements th, #statements td,
@@ -863,19 +913,19 @@ div.password-confirm .error {font-weight:bold; color:red;}
 .notice-date {vertical-align:top; margin-right:5px;}
 
 /* Deposits */
-/* #rcreditswebformdeposits {margin-left:50px;} */
-#rcreditswebformdeposits fieldset {width:290px; display:inline-block;}
-#rcreditswebformdeposits .form-item-reprint label {text-align:right;}
-#rcreditswebformdeposits  #deposits {width:auto; display:inline-block;}
-#rcreditswebformdeposits  #deposits td {text-align:right;}
-#rcreditswebformdeposits  #deposits td:first-child {text-align:left;}
-#rcreditswebformdeposits  #edit-count {margin-bottom:3px;}
+/* #frm-deposits {margin-left:50px;} */
+#frm-deposits fieldset {width:290px; display:inline-block;}
+#frm-deposits .form-item-reprint label {text-align:right;}
+#frm-deposits  #deposits {width:auto; display:inline-block;}
+#frm-deposits  #deposits td {text-align:right;}
+#frm-deposits  #deposits td:first-child {text-align:left;}
+#frm-deposits  #edit-count {margin-bottom:3px;}
 
 /* Donate */
-#rcreditswebformdonate .form-item-wait {margin-top:30px;}
-#rcreditswebformdonate #edit-gift {font-family:"Lucida Console",Menlo,Monaco,"Courier New",monospace;}
-#rcreditswebformdonate .form-item-share .control-data {max-width:650px;}
-#rcreditswebformdonate .form-item-share input {max-width:100px;}
+#frm-donate .form-item-wait {margin-top:30px;}
+#frm-donate #edit-gift {font-family:"Lucida Console",Menlo,Monaco,"Courier New",monospace;}
+#frm-donate .form-item-share .control-data {max-width:650px;}
+#frm-donate .form-item-share input {max-width:100px;}
 
 /* Community Funds */
 #cttyFunds {width:100%;}
@@ -883,43 +933,43 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #cttyFunds td:first-child {text-align:left;}
 
 /* Reports (Community Statistics/Graphs) */
-#rcreditswebformgraphs {clear:both;}
-#rcreditswebformgraphs .control-label {display:none;}
-#rcreditswebformgraphs .form-type-item {margin-top:15px; margin-bottom:0;}
-#rcreditswebformgraphs .description {clear:none;}
-#rcreditswebformgraphs #edit-charts div, #rcreditswebformgraphs iframe {float:left;}
-#rcreditswebformgraphs #edit-title {margin-bottom:0; font-weight:bold;}
-/* #rcreditswebformgraphs #edit-subheader {margin-top:0px; margin-bottom:35px; font-size:110%;}  */
-#rcreditswebformgraphs #edit-subtext {margin-left:0;} 
-#rcreditswebformgraphs #edit-subtext em {font-weight:bold; font-style:normal; color:darkred;}
+#frm-graphs {clear:both;}
+#frm-graphs .control-label {display:none;}
+#frm-graphs .form-type-item {margin-top:15px; margin-bottom:0;}
+#frm-graphs .description {clear:none;}
+#frm-graphs #edit-charts div, #frm-graphs iframe {float:left;}
+#frm-graphs #edit-title {margin-bottom:0; font-weight:bold;}
+/* #frm-graphs #edit-subheader {margin-top:0px; margin-bottom:35px; font-size:110%;}  */
+#frm-graphs #edit-subtext {margin-left:0;} 
+#frm-graphs #edit-subtext em {font-weight:bold; font-style:normal; color:darkred;}
 
 /* Relation form */
-/*#rcreditswebformrelations #edit-subtext label {width:450px;}*/
-#rcreditswebformrelations #edit-list,
-#rcreditswebformrelations #edit-list .control-data,
+/*#frm-relations #edit-subtext label {width:450px;}*/
+#frm-relations #edit-list,
+#frm-relations #edit-list .control-data,
 #relations {width:100%; max-width:100%;}
-#rcreditswebformrelations #edit-list .control-label {display:none;}
-#rcreditswebformrelations .form-type-submit {display:inline-block; width:400px;}
-#rcreditswebformrelations .form-type-submit label {display:none;}
-#rcreditswebformrelations #edit-go {margin-left:212px;}
-#rcreditswebformrelations #edit-nextStep {margin-left:50px;}
+#frm-relations #edit-list .control-label {display:none;}
+#frm-relations .form-type-submit {display:inline-block; width:400px;}
+#frm-relations .form-type-submit label {display:none;}
+#frm-relations #edit-go {margin-left:212px;}
+#frm-relations #edit-nextStep {margin-left:50px;}
 
-#rcreditswebformrelations .form-item-new-person {display:inline-block;}
-#rcreditswebformrelations .form-item-newPerson label {margin-left:2px; padding-left:0;}
-#rcreditswebformrelations .form-type-select {margin:0;}
-#rcreditswebformrelations select {padding:0; height:24px; font-size:12px;}
-#rcreditswebformrelations .form-type-select label,
+#frm-relations .form-item-new-person {display:inline-block;}
+#frm-relations .form-item-newPerson label {margin-left:2px; padding-left:0;}
+#frm-relations .form-type-select {margin:0;}
+#frm-relations select {padding:0; height:24px; font-size:12px;}
+#frm-relations .form-type-select label,
 .form-yes a, .form-no a {transform:scale(.7);}
-#rcreditswebformrelations #account-label {font-weight:bold;}
-#rcreditswebformrelations .amount {width:50px;}
-/*#rcreditswebformrelations {max-width:800px;} */
-#rcreditswebformrelations .rel-person {width:auto;}
-#rcreditswebformrelations .rel-draw {width:68px;}
-#rcreditswebformrelations .rel-employee {width:120px;}
-#rcreditswebformrelations .rel-owner {width:68px;}
-#rcreditswebformrelations .rel-permission {width:18%;}
-#rcreditswebformrelations .rel-link {width:auto;}
-#rcreditswebformrelations .highlight input {background-image:url(../images/icons/buttons-highlight.png);}
+#frm-relations #account-label {font-weight:bold;}
+#frm-relations .amount {width:50px;}
+/*#frm-relations {max-width:800px;} */
+#frm-relations .rel-person {width:auto;}
+#frm-relations .rel-draw {width:68px;}
+#frm-relations .rel-employee {width:120px;}
+#frm-relations .rel-owner {width:68px;}
+#frm-relations .rel-permission {width:18%;}
+#frm-relations .rel-link {width:auto;}
+#frm-relations .highlight input {background-image:url(../images/icons/buttons-highlight.png);}
 
 /* typeahead */
 .twitter-typeahead {width:100%;}

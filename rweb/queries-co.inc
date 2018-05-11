@@ -1,7 +1,7 @@
 <?php
 
-use rCredits as r;
-use rCredits\Util as u;
+use CG as r;
+use CG\Util as u;
 
 /**
  * @file

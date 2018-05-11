@@ -1,11 +1,11 @@
 <?php
-namespace rCredits;
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Backend as be;
-use rCredits\Util as u;
-use rCredits\Web as w;
-use rCredits\Admin as a;
+namespace CG;
+use CG as r;
+use CG\DB as db;
+use CG\Backend as be;
+use CG\Util as u;
+use CG\Web as w;
+use CG\Admin as a;
 
 /**
  * @file
@@ -44,7 +44,7 @@ class Acct {
 
   /**
    * Create a new account record in the database.
-   * @param assoc $info: array of field values for new account
+   * @param assoc $info: array of field values for new account (only fullName is required)
    */
   private function createNew($info) {
     $a = $this;
@@ -130,7 +130,7 @@ class Acct {
   private static function getRecord($id, $reread = FALSE) {
 /// if (@self::$rs[$id] and !property_exists(self::$rs[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$rs, 1)); // keep this
     if (@self::$rs[$id] and !$reread) return self::$rs[$id];
-    if (!$records = db\records('users', "uid=:id LIMIT 1", compact('id'))) { // no such record here
+    if (!$records = db\records('*', 'users', "uid=:id LIMIT 1", compact('id'))) { // no such record here
       if (TRUE) return FALSE; // not foreign either
       // contact other server here, for a subset of the record
     }
@@ -195,6 +195,7 @@ class Acct {
     if ($field == 'url') return ($a->isRegion ? '' : strtr($a->fullName, [PROJECT=>'', ' '=>'']) . $a->st . '.') . CG_DOMAIN; // applies only to communities (->cttyUrl)
     if ($field == 'legalNameDpy') return str_replace('_', ' ', $a->legalName); // for u\parseName of names like Jay di_Fiori
     if ($field == 'owns') return !$a->risk('rents');
+    if ($field == 'creditLine') return -$a->floor;
     if ($field == 'closed') return ($a->activated and !$a->ok); // data[newAccount] has new qid, if any
     if ($field == 'hasBank') return $a->risk('hasBank');
     if ($field == 'balDpy') return $a->balance - $a->partRounds; // always display balance without partial roundups
@@ -303,6 +304,7 @@ class Acct {
     }
 
     if ($firstTime and !$a->co) { // no bonus or helper bonus for a company signing up
+      if ($a->ssnData['CGerror'] and !$a->risk('ssnOff') and !$a->risk('dobOff')) $a->setRisk('ssnOff'); // make SURE this bit gets set (might not if admin signs the person up
       be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
 
       if (!$a->helperA->co and !$a->helperA->superAdmin) { // no helper bonus for company referral or help by superAdmin (cAdmin is okay) [don't require $a->confirmed]
@@ -320,6 +322,16 @@ class Acct {
     unset($DBTX); 
   }
 
+  /**
+   * Set the company categories.
+   */
+  function setCategories($cats) {
+    $a = $this;
+    $DBTX = db_transaction();
+    db\q('DELETE FROM r_user_industries WHERE uid=:id', ray('id', $a->id)); // out with the old
+    foreach ($cats as $iid) db\insert('r_user_industries', ray('uid iid', $a->id, $iid));
+    unset($DBTX); // commit
+  }  
   
   /**
    * Handle joint field request (for example $a->j_r)
@@ -335,7 +347,7 @@ class Acct {
   }*/
 
   /**
-   * Return a printable (scrambled) invitation card code 
+   * Return a printable (scrambled) invitation card code or gift coupon code 
    * @param int $iCode: sequence number (0 to 35^3-1)
    */
   public function iCardCode($iCode = 0) {
@@ -434,12 +446,6 @@ class Acct {
     $a = $this;
     if (!is_array($info)) $info = rayy(func_get_args());
 
-/*    if (isset($info['balance'])) {
-      $info['r'] = $info['balance'];
-      foreach (['rewards', 'savingsAdd'] as $k) $info['r'] += isset($info[$k]) ? $info[$k] : $a->o($k);
-      $info['r'] = round($info['r'], 2);
-      unset($info['balance']);
-    } */
     foreach ($bits = just(B_LIST, $info) as $k => $v) {$a->setBit($k, $v); unset($info[$k]);}
     if ($a->ok) $info += $a->recordChanges(justNOT(B_LIST, $info)); // record changes if member is active
     foreach (just('hasBank', $info) as $k => $v) {$a->setRisk($k, $v); unset($info[$k]);}
@@ -546,9 +552,31 @@ class Acct {
     db\update('r_relations', compact('otherNum', 'reid'), 'reid');
     return $otherNum;
   }
+
+  /**
+   * Apply a discount coupon to the current purchase, if any exists.
+   * @param acct $sellerA: account that issued the coupon
+   * @param numeric $price: original price to be paid
+   * @param numeric $rebate: (RETURNED) how much rebate the customer gets
+   * @param int $coupid: coupon id
+   * @return the final effective price to be paid
+   */
+  public function applyCoupon($sellerA, $price, &$rebate = '', &$coupid = '') {
+    $a = $this;
+    $table = 'r_coupons c LEFT JOIN r_coupated d ON (d.coupid=c.coupid AND d.uid=:myid)';
+    $where = 'fromId=:id AND :now BETWEEN start AND end AND :price>=minimum AND NOT flags ORDER BY (ulimit=0 OR uses<ulimit) DESC, (uses IS NULL), end DESC'; // not a gift
+    $subs = ray('id now price myid', $sellerA->id, time(), $price, $a->id);
+    if (!$res = db\lookup('c.coupid,amount,ulimit,id,uses', $table, $where, $subs)) return $price;
+    extract($res);
+    if ($ulimit and $uses >= $ulimit) return $price;
+    $rebate = $amount < 0 ? -$price * $amount * .01 : $amount;
+// NO do this in x.class   be\transfer('charge', $sellerA, $a, $rebate, FOR_GOODS, t('rebate (discount coupon #%coupid)', compact('coupid')));
+    db\update('r_coupated', ray('id coupid uid uses when', $id, $coupid, $a->id, $uses + 1, time()), 'id', TRUE);
+    return max(0, $price - $rebate); // effective price (for potential gift certificate)
+  }
   
   /**
-   * Say whether the wanted transaction proof really wrong, not just a delayed transaction with a cardcode that got changed.
+   * Say whether the wanted transaction proof is really wrong, not just a delayed transaction with a cardcode that got changed.
    * @param string $proof: tx proof supplied by the app
    * @param string $wanted: proof we expected
    * @param int $created: transaction creation date/time
@@ -679,7 +707,9 @@ class Acct {
    */
   public function avail($goods = FOR_GOODS) {
     $a = $this;
-    $floor = ($a->can(B_DEBT) and $goods != FOR_USD) ? $a->floor : max($a->floor, 0); // no going into debt without permission
+    $floor = ($a->can(B_DEBT) and !$a->cttyA->noneg and $goods != FOR_USD) ? $a->floor : max($a->floor, 0); // no going into debt without permission
+    if ($goods == FOR_USD) $floor += $a->giftPot; // can't cash out gifts
+
 //    if ($goods == FOR_USD or (COMPANY_FREEZE and $a->co)) $floor = max($floor, $a->rewards); // no exchanging rewards for cash (and companies temporarily can't spend rewards)
 //    return round($a->balance + $a->rewards - $floor, 2);
     return round($a->balance - $floor, 2);
@@ -821,6 +851,31 @@ EOF;
   }
 
   /**
+   * Return the company's description.
+   * @param bool $subtle: <make the categories a subtle last line>
+   */
+  public function coDesc($subtle = FALSE) {
+    $a = $this; $uid = $a->id;
+  	require_once DRUPAL_ROOT . '/vendor/parsedown/Parsedown.php'; // normally only once per form
+
+    $pd = new \Parsedown();
+    $pd->setSafeMode(TRUE);
+    $desc = strtr($pd->text($a->description), ["\\\n" => "<br>", '\\' => "<br>"]);
+
+    $sql = <<<EOF
+      SELECT i.iid, i.industry FROM r_industries i 
+      INNER JOIN r_user_industries ui ON ui.iid=i.iid 
+      WHERE ui.uid=:uid ORDER BY i.industry
+EOF;
+    $cats = db\q($sql, compact('uid'))->fetchAllKeyed();
+    $cats = empty($cats) ? '' : ($subtle
+    ? ('<h3>Categories:</h3>' . join('<br>', $cats))
+    : (t('Categories: ') . join(', ', $cats)) );
+    
+    return "$desc<br>$cats";    
+  }
+  
+  /**
    * Mark two accounts joined (a joint account)
    * @param acct $b: the other account
    * Note we cannot split rewards and floor because they are recalculated in cron.
@@ -870,7 +925,7 @@ EOF;
       if ($a1->ok and $a2->ok) { // no need to settle with closed or not-yet-open account
         $amount = round(($a1->o_balance - $a2->o_balance) / 2, 2);
 ///      debug("amount=$amount a1=$a1->id bal=$a1->o_balance a2=$a2->id bal=$a2->o_balance");
-        if ($amount > 0) be\transfer('payment', $a1, $a2, $amount, FOR_USD, t('joint account settlement'), NULL, ['force' => 1]);
+        if ($amount > 0) $a1->pay($a2, $amount, t('joint account settlement'), ray('force goods', 1, FOR_USD));
       }
     } elseif ($b) {
       $sql .= ' AND other=:other';
@@ -1191,6 +1246,21 @@ EOF;
     return $txid;
   }
 
+  /**
+   * Automatically cashout accounts that choose to, leaving average weekly gross (over past 6 months) in the account. Weekly gross is figured as -6/26th of the floor (because there are 26 weeks in 6 months and floor is based on 1/6 of 6 months' gross).
+   */
+  public function cashout() {
+    $a = $this;
+    $waiting = $a->waitingFromBank($combinable); // net amount already requested from bank (if any)
+    if ($waiting > 0) return; // no cashout if waiting to bring some in
+    $cashout = round($a->balance - -$a->floor * 6 / 26 + $waiting, -1); // (waiting is negative)
+    if ($cashout < R_ACHMIN) return;
+    $action = t('deposit to');
+    if (!$checkNum = $a->bank(-$cashout)) return;
+    $amount = u\fmtAmt($cashout);
+    r\notify($a->id, 'banked|bank tx number', compact(ray('action amount checkNum')));
+  }
+  
   /**
    * Mark an incoming USD transfer complete, update cache, and report.
    * @param int $txid: the transfer record ID (if empty, no need to mark it complete)
@@ -1617,6 +1687,9 @@ EOF;
     $res = ray(B_ADMINABLE . ($this->admin ? ' admin2' : '') . ($this->superAdmin ? ' admin' : ''));
     return array_values($this->isCtty ? array_intersect($res, ray(B_CTTY_BITS)) : array_diff($res, ray(B_CTTY_BITS)));
   }
+  public function pay($a2, $amt, $for, $extra = []) {return be\transfer('payment', $this, $a2, $amt, $for, $extra);}
+  public function charge($a2, $amt, $for, $extra = []) {return be\transfer('charge', $this, $a2, $amt, $for, $extra);}  
+  public function invoice($a2, $amt, $for = NULL, $extra = []) {return be\invoice($this, $a2, $amt, $for, $extra);}
   
 } // end of class
 

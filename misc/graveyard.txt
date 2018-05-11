@@ -1,5 +1,490 @@
 _____________________________________________
 
+//  debug("rstats ctty=$ctty when=" . u\fmtDate($when));
+//  debug($info + ['t'=>rand(0,9999999), 'ctty0' => $ctty, 'when'=>u\fmtDate($when)]);
+//    $keys = db\q("SELECT column_name FROM information_schema.columns WHERE table_name='r_stats'")->fetchCol();
+//    $info = array_fill_keys($keys, 0);
+//  }
+_____________________________________________
+
+  /*
+  foreach ($rows as $i => $row) {
+    $keys[] = array_shift($rows[$i]); // assume we never will list more than a million at once
+  }
+  $rows = array_combine($keys, $rows);
+  */
+_____________________________________________
+
+/**
+ * Return markup to identify the agent of the given account.
+ *//*
+function identifiers($a) {
+  global $mya;
+  list ($agentA, $company) = $a->proSe ? array($a, '') : array(r\acct($a->agentId), $a->fullName);
+  $location = r\location($a);
+  $pic = ($mya and $mya->co) ? $a->agentA->photoHtml() : ''; // let companies see the picture
+  return <<<EOF
+    $pic
+    <div id="id-other">
+      <div id="id-name">$agentA->fullName</div>
+      <div id="id-company">$company</div>
+      <div id="id-location">$location</div>
+    </div id-other>
+EOF;
+}
+*/
+_____________________________________________
+
+/*function autocomplete($type = '') {
+  global $mya; 
+  w\js('autocomplete');
+  return ['autocomplete_path' => "autocomplete/$type/" . @$mya->id];
+}*/
+_____________________________________________
+
+  // Setup option array, including defaults and help
+  /*
+  $optDefaults = $opts = [];
+  $optHelp = array_combine($keys = ray(TX_OPT_KEYS), ray($optHelp));
+  foreach ($keys as $one) {
+    $value = $opts[u\consta('tx_opt', $one)] = w\popHelp($one, $optHelp[$one]); // set TX_OPT_CHANNELS etc.
+    if (@$$one) $optDefaults[] = $value; // set up option field values
+  }
+  */
+//    if ($confirm = txConfirm($do, $xid, $sta)) return $confirm;
+//    if (!$sta['rebuild']) txOKorNO($do, $xid); // don't do anything if canceling
+//  $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
+//  list ($header, $classes, $rows, $totals) = x\getTxRows($starting, $ending, $optionSet, $url, $maxRows);  $descending = TRUE;
+
+
+//  $values = array($o_balance - $o_partRounds, $d_bank, $d_inProper, $d_outProper + $n_partRounds, $d_rewards, $endBalance); // both
+//  $values = array($o_balance - $o_partRounds, $d_bank, $d_inProper, $d_outProper, $d_rewards, $endBalance); // both
+//  $classes = u\prefixValues('txsum-', ray('one banksign bank fromsign fromyou tosign toyou sharesign share balancesign balance'));
+
+/*
+  $heads = ray(t('Starting balance,,From Bank,,From You,,To You,,To CGF,,Ending balance'));
+  $headHelp = ray(t('Your account balance at the start of this time period||How much was transferred from your bank account to your %PROJECT Account||How much you spent||How much you received||Amount of rewards you committed to share with Common Good Finance||Your account balance at the end of this time period'));
+  foreach ($heads as $key => $value) if ($value) $heads[$key] = w\popHelp($value, $headHelp[$key]);
+  */
+/*  
+  $rows = array(
+    array('id' => 'txsum-dates', 'data' => ray("$starting,,,,,,,,,,$ending")),
+    array('id' => 'txsum-headers', 'data' => $heads),
+    array(
+      'id' => 'txsum-now', 
+      'data' => ray("$$old | + | $bank | - | $out | + | $in |  |  | = | $$new"),
+    ),
+    ['id' => 'txsum-savings', 'data' => ray("<b>$SAVINGS:</b> + $o_savings||||| + | $rewards |($REWARDS)|||+ $n_savings")],
+    array(
+      'id' => 'txsum-pending',
+      'data' => ray("<b>$PENDING:</b> || $p_bank || || | - | $p_committed || $p_balance"),
+    ),
+  );
+  */
+/*
+    ray("||$PRIMARY||$SAVINGS|"),
+    ray("$STARTING||$old|+|$o_savings|$starting"),
+    ray("$BANK|+|$bank|||$p_bank"),
+    ray("$IN|+|$in|+|$toSavings|"),
+    ray("$OUT|-|$out|-|$fromSavings|"),
+    ray("$REWARDS|||+|$rewards|"),
+    ray("$ENDING||$new|+|$n_savings|$ending"),
+*/ 
+_____________________________________________
+
+/*
+function txBal($bal, $plus = '', $minus = '- ') {
+  $bal = str_replace(',', '', $bal);
+  return ($bal < 0 ? $minus : $plus) . '$' . number_format(abs($bal), 2);
+}
+*/
+_____________________________________________
+
+/**
+ * Login from elsewhere.
+ *//*
+function formSinx($form, &$sta) {
+  extract(just('id pw pw2', t\POST())); // posted from promo site or admin computer
+
+  if (flooding($uid = r\loginString(@$id), $sta)) return r\go('', 'flooded', 'ERR'); // getting hammered
+///  if (!\user_authenticate($name = r\acct($uid)->name, @$pw)) return r\go('', 'bad login', 'ERR');
+  $a = r\acct($uid);
+  // if admin, check pw2 against $a->pw2 (a datafield hash)
+  $sta['uid'] = ((isDEV and $uid == 1) or $a->passwordOkay(@$pw, 'pass', $err)) ? $uid : say($err, 'pass');
+  if (!$sta['uid']) return r\go('', 'bad login', 'ERR');
+  noFlood($sta);
+  $input = ['name' => $a->name];
+  formSignin_submit('', compact('uid', 'input'));
+}*/
+_____________________________________________
+
+/*
+  extract(just('startDate endDate rows', $sta['input']));
+  global $mya;
+
+  $desc0 = t('labor: ') . $startDate . t(' to ') . $endDate;
+  $map = ['<startdate>' => $startDate, '<enddate>' => $endDate, R_NOREWARD => ''];
+  $total = 0;
+
+  if (@$rows) foreach ($rows as $i => $row) {
+    $erSubs = ['line' => $i + 1]; // for error messages
+    if (count($row) < 2) say(t('Empty row at line %line.', $ersubs));
+    @list ($employee, $amt, $desc) = $row; // desc is optional
+    if (!$employee or u\starts(strtoupper($employee), t('TOTAL'))) break; // should never happen unless user has a total line
+    if ($err = u\badAmount($amt, '>0')) return say('bad payroll csv|' . $err, $erSubs, 'payroll');
+    if (!@$employee) return say('bad payroll csv|' . t('Missing employee name.'), $erSubs, 'payroll');
+    if (!$uid = r\worksForUs($employee, NULL, TRUE)) return say('bad payroll employee', $erSubs + compact('employee'), 'payroll');
+    $goods = strpos($desc, R_NOREWARD) !== FALSE ? FOR_NONGOODS : FOR_GOODS;
+    $toPay[] = [$uid, $amt, $desc ? strtr($desc, $map) : $desc0, $goods];
+    $total += $amt;
+    $employee = $amt = '';
+  }      
+
+  if (!@$toPay) return say('empty payroll', 'payroll');
+  if ($shortfall = $mya->shortfall(FOR_GOODS, $total)) return say('short to', ray('short', u\fmtAmt($shortfall)), 'payroll');
+  
+  foreach ($toPay as $one) {
+    list ($uid, $amt, $desc, $goods) = $one;
+    list ($msg, $subs) = be\transfer('payment', $mya, r\acct($uid), $amt, $goods, $desc);
+    say($msg, $subs);
+    if (!@$subs['success']) $err = TRUE;
+  }
+  
+  if (!@$err) {
+    $mya->update('payrollStart payrollEnd', u\s2t($startDate), u\s2t($endDate));
+    return r\go('history', t('txs upload done', 'did total count', t('paid'), u\fmtAmt($total), count($toPay)));
+  }
+}
+*/
+_____________________________________________
+
+//  return r\go(isDEV ? 'http://rPromo/_sites?region=x' : 'http://CommonGood.earth/control.html?region=x');
+_____________________________________________
+
+//  $cgfId = r\cgfId();
+//  $regionCrit = "($regionCrit OR u.uid=$cgfId)"; // always include CGF
+//    SELECT DISTINCT u.uid, IFNULL(i.industry, '~Other') AS industry, u.name AS short_name, u.fullName, u.data
+//    ORDER BY industry, u.fullName  
+
+  /*
+  while ($row = $result->fetchAssoc()) $rows[] = $row;
+  $cat = $headed = $list = '';
+  for ($i = 0; $i < count($rows); $i++) {
+    extract($rows[$i]); // uid, industry, short_name, fullName, data
+    $a = r\acct($uid);
+    if ($a->coCan(CO_PRIVATE)) continue;
+
+    $data = unserialize($data);
+    $website = @$data['website'];
+    if ($industry != $cat) { // new category
+      $cat = $industry;
+      $headed = (@$rows[$i+1]['industry'] == $industry); // header for 2 or more businesses in the same industry
+      $headed = TRUE; // always show the category (but keep the option to disable this choice)
+      $list .= $headed ? ($list ? '</ul>' : '') . "<h4>$cat</h4>\n<ul>\n" : '<li>&nbsp;</li>';
+    }
+    $pay = $canBuy ? button('pay', "$base_url/pay/who=$short_name") : '';
+    $chg = $canSell ? button('chg', "$base_url/charge/who=$short_name") : '';
+    $fullName = "<a href='$base_url/member/$short_name'>$fullName</a>";
+//    list ($selling) = explode("\n", $a->selling);
+    $item = "$pay$chg <div class=\"company\">$fullName</div><div class=\"selling\">$a->shortDesc</div>";
+    if (!$headed) $item = "- $item <span>($industry)</span>";
+    $list .= "<li>$item</li>\n";
+  }
+  
+  return $list ? "<ul>$list</ul>" : t('There are no such %PROJECT member businesses.');
+  */
+
+//    'subtext = item(t('for a country name or postal code...')),
+//    'which = textFld(t('Search for:'), [t('Whatever'), t('Type part of company name or industry category')], dft(@$cos) + autocomplete('industry')),
+_____________________________________________
+
+/**
+ * Handle submission of form (mostly still with standard Drupal)
+ *//* NO!! Don't sanitize input. Sanitize OUTPUT.
+function submitForm($form, $sta) {
+  if ($form['#id'] != 'frm-php') $sta['input'] = u\sanitizeInput($sta['input'], $form);
+  return form_execute_handlers('submit', $form, $sta);
+}  */
+
+/**
+ * Convert URLs to hyperlinks
+ *//* (replaced by parsedown
+function linkify($text) {
+    $text = preg_replace('`(((f|ht){1}tp://)[-a-zA-Z0-9@:%_\+.~#?&//=]+)`i', '<a href="\\1">\\1</a>', $text);
+    $text = preg_replace('`([[:space:]()[{}])(www.[-a-zA-Z0-9@:%_\+.~#?&//=]+)`i', '\\1<a href="http://\\2">\\2</a>', $text);
+    $text = preg_replace('`([_\.0-9a-z-]+@([0-9a-z][0-9a-z-]+\.)+[a-z]{2,3})`i', '<a href="mailto:\\1">\\1</a>', $text);
+    return $text;
+} */
+_____________________________________________
+
+/* this is probably a bad idea
+function preK($prefix, $s) {
+  if (is_array($s)) {
+    $new = [];
+    foreach ($s as $key => $value) $new[$prefix . ucwords($key)] = $value;
+    return $new;
+  } else return $prefix . ucwords($s);
+}
+*/
+_____________________________________________
+
+//  global $testJSMsgs;
+// NO! only on submit  $testJSMsgs[] = tr($question, compact('amount'));
+//  $id = '#edit-' . strtolower($field);
+//  $question = addslashes($question);
+
+//  return "return $('$id').val() == '' ? true : who(this, '$id', '$question', $amount, $allowNonmember);"; // amount might be 'this.amount.value'
+_____________________________________________
+
+        /*  remote: {
+            url: ajaxUrl + '?op=typeWho&data=%QUERY&sid=' + ajaxSid,
+            wildcard: '%QUERY'
+          } */
+
+        /*$(sel).bind('typeahead:select', function(ev, suggestion) {
+          console.log('Selection: ' + suggestion);
+        }); */
+_____________________________________________
+
+/*      $perm = 'can' . $perm;
+      if ($not ? $mya->$perm : !$mya->perm) return FALSE;
+/*      if ($mya->$perm) return FALSE;
+    } elseif (!$mya->$perm) return FALSE;*/
+    
+/*///*          if ($mya->$perm) {debug(compact(ray('perms perm'))); return FALSE;}
+///    } elseif (!$mya->$perm) {debug(compact(ray('perms perm'))); return FALSE;} */
+_____________________________________________
+
+    if ($goods == FOR_GOODS) {
+      foreach (['rebate', 'bonus'] as $type) {
+      // u\EXPECT(isset($rewards[$type]), 'nope!'); NO! pay to owners, for example, has no reward
+        $amount = @$rewards[$type]; // @ for empty rewards to owners, for example
+        $type = u\consta('tx', $type);
+        list ($to, $tid, $for) = $type == TX_REBATE
+          ? array($payer, $payerTid, t('reward')) 
+          : array($payee, $payeeTid, t('reward'));
+        $for .= t( ' on #') . $tid;
+        if ($amount and $to > 0) { // not a transfer to a community or region
+          if ($xray = $this->save($this->rewardSetup($serial, $type, $to, $amount, $for, $created))) $xrays[] = $xray; else return FALSE;
+        }
+      }
+    }
+_____________________________________________
+
+/*  attempt to show recently used members first (add myid to dbQ query subs)
+   AND (t.$role IS NULL OR t.$role=:myid) ORDER BY t.created DESC, u.fullName
+    $selection = <<<EOF
+      u.uid, u.fullName AS display, u.email 
+      FROM users u LEFT JOIN r_txs t ON t.$other=u.uid 
+      WHERE (u.name LIKE :string OR u.email LIKE :string)
+      AND (t.$role IS NULL OR :myid IN (t.payer, t.payee))
+      ORDER BY t.created DESC, u.fullName
+*/
+_____________________________________________
+
+  // else \DrupalQueue::get('q')->createItem(compact('op') + $item);
+_____________________________________________
+
+  if (!$a = r\acct("$region.$tail")) { 
+  // temporarily allow '1' for 'I' (until June 2016 or so) -- not forever because we now use Verdana
+    return strpos($code, '1') === FALSE ? FALSE : iCardAcct(str_replace('1', 'I', $code0, $iCode));
+  } else return ($security == $a->lowSecurity) ? $a : FALSE;
+_____________________________________________
+
+/*
+//  u\setBit($flags, B_BYSMS, @$smsNotices);
+  u\setBit($flags, B_WEEKLY, @$notices == 1);
+  u\setBit($flags, B_MONTHLY, @$notices == 2);
+  u\setBit($flags, B_PAPER, @$statements);
+  u\setBit($flags, B_DEBT, @$debtOk);
+  u\setBit($flags, B_SECRET, @$secretBal);
+  u\setBit($flags, B_NOSEARCH, @$nosearch);
+*/
+_____________________________________________
+
+/*
+  extract(just('rows', $sta['input']));
+  global $mya;
+
+  $total = 0;
+
+  if (@$rows) foreach ($rows as $i => $row) {
+    if ($i == 0 and !strpos(@$row[0], '@')) {w\say(t('The header row (line 1) will be ignored.')); continue;}
+
+    $erSubs = ['line' => $i + 1]; // for error messages
+    if (count($row) < 2) say(t('Empty row at line %line.', $ersubs));
+    @list ($account, $email, $amt, $desc) = $row; // desc is optional
+    if (!$account or u\starts(strtoupper($account), t('TOTAL'))) break; // should never happen unless user has a total line
+    if ($err = u\badAmount($amt, '>0')) return say('bad payments csv|' . $err, $erSubs, 'payments');
+    if (!@$account) return say('bad payments csv|' . t('Missing account.'), $erSubs, 'payments');
+    if (!$a = r\acct($account)) return say('bad payments account', $erSubs + compact('account'), 'payroll');
+
+    $toPay[] = [$a->id, $amt, $desc ?: t('payment'), FOR_GOODS];
+    $total += $amt;
+    $account = $amt = '';
+  }      
+
+  if (!@$toPay) return say('empty payments', 'payments');
+  if ($shortfall = $mya->shortfall(FOR_GOODS, $total)) return say('short to', ray('short', u\fmtAmt($shortfall)), 'payments');
+  
+  foreach ($toPay as $one) {
+    list ($uid, $amt, $desc, $goods) = $one;
+    list ($msg, $subs) = be\transfer('payment', $mya, r\acct($uid), $amt, $goods, $desc);
+    say($msg, $subs);
+    if (!@$subs['success']) $err = TRUE;
+  }
+  
+  if (!@$err) return r\go('history', t('txs upload done', 'did total count', t('paid'), u\fmtAmt($total), count($toPay)));
+}
+*/
+
+/*
+  <ol>
+  <li><b>Ask your participating employees</b> how many %RCREDITS they can receive each pay period, without having to cash them out (how many can they easily spend in two weeks, for example). Put those amounts in a two-column spreadsheet with name* in the first column and amount in the second. Save the spreadsheet as a CSV file.</li>
+  <li><b>In your accounting software</b>, create an after-tax payroll deduction called "%PROJECT" (you need do this only once). Set that deduction for each employee to the amount of %RCREDITS they asked to be paid. Run payroll, to pay the US Dollar part of their wages.</li>
+  <li><b>Upload here</b> the CSV file you created in step one, to automatically pay the amount of %RCREDITS each employee requested.</li>
+  </ol>
+  <p><b>* NOTE:</b> Names in your spreadsheet must match names on the <%a>Relations page</a>. And make sure the amounts on the spreadsheet match the deduction amounts in your accounting software!!!</p>
+EOF
+*/
+_____________________________________________
+
+/**
+ * Implements hook_theme().
+ *//*
+function rweb_theme() {
+  foreach (ray('html page') as $k) $res[$k] = ray('template path', $k, 'rcredits/theme');
+  return $res;
+}*/
+
+// $menu['user/password'] = $menu['settings/password']; // duplicates user/password (handles built-in Drupal link)
+
+///  debug(compact('req','form_id'));
+/*  if ($req == 'login' and !user_is_logged_in()) {header("location:$base_url/" . (isGAME ? 'community/game' : 'signin')); exit();} // nothing else works
+  if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isGAME ? "$base_url/community/game" : (isDEV ? 'http://localhost' . DEV_ROOT : BASE_URL) . '/signin')); exit();} // nothing else works */
+//  if ($req == 'user' and user_is_logged_in()) return r\go(isGAME ? 'community/game' : 'summary'); // summary not ''
+
+//function rweb_form_user_register_form_alter(&$form, &$sta, $form_id) {r\Web\formRegister($form, $sta);}
+//function rweb_form_user_login_block_alter(&$form, &$sta, $form_id) {return r\Web\formLogin($form, $sta, FALSE);}
+// (has no effect, keep as comment) function rweb_form_user_login_form_alter(&$form, &$sta, $form_id) {return r\Web\formLogin($form, $sta);}
+//function rweb_user_login(&$edit, $account) {r\Web\loginFollowup($edit, $account->uid);}
+//function rweb_form_user_pass_alter(&$form, &$sta) {return r\Web\passAlter($form, $sta);}
+
+/*function rweb_form_user_profile_form_alter(&$form, &$sta, $form_id) {
+  $form['account']['pass']['#process'] = array('expand_password_confirm', 'yourmodule_password_confirm');
+}*/
+_____________________________________________
+
+  // table r_candidates (almost same as r_relations, but with extra fields -- used for candidates in rcredits-circles.inc)
+  /*
+  $fields = array(
+    'uid' => setupField(t('candidate record id'), 'serial'),
+    'isCompany' => setupField(t('is this a company'), 'int tiny', 0),
+    'ignor' => setupField(t('temporarily omit this record from consideration'), 'int tiny', 0), // IGNORE is reserved in MySQL
+    'score' => setupField(t('how good is this candidate'), 'int 11', 0),
+  );
+  $foreignKeys = foreignKey('uid');
+  $schema['r_candidates'] = setupTable(t('Candidates to become rTraders'), $fields, 'uid', $foreignKeys);
+  */
+  
+/*
+  $fields = array(
+    'ignore' => setupField(t('temporarily omit this record from consideration'), 'int tiny'),
+    'employeeIsRTrader' => setupField(t('this employee is an rTrader'), 'int tiny'),
+    'score' => setupField(t('how good is this candidate'), 'int 11'),
+  );
+  $schema['r_candidates'] = $schema['r_relations'];
+  $schema['r_candidates']['fields'] += $fields;
+  $schema['r_candidates']['description] = 'Candidates to become rTraders';
+*/
+_____________________________________________
+
+  $elapsed = str_replace('@DATE', 'date0', $timeSince);
+  $months = "ROUND($elapsed/:MONTH_DAYS)";
+  $start = strtotime(-FLOOR_DAYS . ' days', $today);
+  $day = date('d');
+  $laterD = date('d', strtotime('+1'));
+  $sql = <<<X
+    SELECT uid, $months AS months, GREATEST(inVol, outVol) AS monthly, 
+    $day AS day, day0, $laterD AS laterD, $elapsed AS elapsed
+    FROM (
+      SELECT uid, u.flags, MIN(t.created) AS date0, 
+      SUM(IF(t.created>=:start AND payee=uid, amount, 0))/6 AS inVol,
+      SUM(IF(t.created>=:start AND payer=uid, amount, 0))/6 AS outVol,
+      DAY(FROM_UNIXTIME(MIN(t.created))) AS day0
+      FROM users u LEFT JOIN r_txs t ON uid IN (payer, payee) GROUP BY uid
+    ) t 
+    WHERE $elapsed>15 AND uid > 1 AND :IS_OK
+    AND ($day=day0 OR (day0>$day AND $laterD=1))
+X;
+  queueEach('tickleActive', $sql, compact('start')); // no need for jid here (floors get summed)
+_____________________________________________
+
+  $today = strtotime('today');
+  $start = strtotime('-7 weeks', $today);
+  $sql = "SELECT uid, SUM(t.amount) AS total, balance, $today AS today FROM users u LEFT JOIN r_txs t ON t.payee=u.uid WHERE u.:IS_OK AND u.:IS_CASHOUT AND u.:HAS_BANK AND t.created BETWEEN $start AND $today GROUP BY t.payee";
+  
+  extract(just('uid total today start', $item));
+  if (!$first = db\lookup('created', 'r_txs', 'payee=:uid ORDER BY created LIMIT 1', compact('uid'))) return;
+  $days = round(($today - max($start, $first)) / DAY_SECS); // number of days over which to find weekly average gross
+  $avg = 7 * $total / $days;
+
+  $a = r\acct($uid);
+  $waiting = $a->waitingFromBank($combinable); // net amount already requested from bank (if any)
+  if ($waiting > 0) return; // no cashout if waiting to bring some in
+  $cashout = round($a->balance + $waiting - $avg, 2); // (waiting is negative)
+  if ($cashout < CASHOUT_MIN) return;
+  $action = t('deposit to');
+  if (!$checkNum = $a->bank(-$cashout)) return;
+  $amount = u\fmtAmt($cashout);
+  r\notify($uid, 'banked|bank tx number', compact(ray('action amount checkNum')));
+  
+_____________________________________________
+
+/**
+ * Prevent XSS (NO! sanitize output instead, except strip tags from POST and GET)
+ */
+function sanitizeInput($args, $form = []) {
+  if (!is_array($args)) $args = urlq2ray($args); // all GET args
+
+  foreach ($args as $k => $v) if (!is_array($v)) {
+    if (@$form[$k]['#type'] != 'password') $args[$k] = plain($v);
+  }
+  return $args;
+}  
+_____________________________________________
+
+/**
+ * Return a form to confirm the transaction operation.
+ * @param string $do: the action to confirm
+ * @param int $xid: record id of transaction to confirm an operation on
+ * @param assoc $sta: Drupal's status array (gets member 'confirm' set)
+ * @return: the form (FALSE on error or if already confirming)
+ *//*
+function txConfirm($do, $xid, &$sta) {
+  die('txConfirm');
+  global $mya;
+  if (u\test() and @$sta['confirm']) return FALSE;
+  if (confirming_v($sta)) return FALSE;
+  if (!$myx = r\MyX::lastTx($mya, 'xid=:xid', compact('xid'), TRUE)) return 'bad tx id'; // bail on hack attempt
+//  $myx = r\x($xid, $mya);
+  $txAction = $do == 'ok' ? t('accept this charge') : $myx->msg('reverse');
+  $summary = $myx->msg('actor', 'full', TRUE);
+//  $summary = $byMe ? 'tx desc active' : 'tx desc passive';
+  confirm("$summary. " . t('Okay to') . " $txAction?", $sta); // sets 'confirm'
+  return sureForm($sta);
+}
+*/
+_____________________________________________
+
+/*    if (isset($info['balance'])) {
+      $info['r'] = $info['balance'];
+      foreach (['rewards', 'savingsAdd'] as $k) $info['r'] += isset($info[$k]) ? $info[$k] : $a->o($k);
+      $info['r'] = round($info['r'], 2);
+      unset($info['balance']);
+    } */
+_____________________________________________
+
 //  $description = \check_markup($description['value']);
 //  if (is_array($description)) $description = @$description['value']; // when u\test(), description is scalar
 //  $description = str_ireplace([PHP_EOL, "\r", "\n", "\0", '</li><br>', '<ol><br>', '<ul><br>'], ['<br>', '', '', '', '</li>', '<ol>', '<ul>'], $description);
@@ -134,30 +619,30 @@ _____________________________________________
       </li>
 _____________________________________________
 
-#rcreditswebformgraphs .form-item-ctty .control-label {display:inline-block; min-width:0; width:auto; padding-left:0; padding-right:5px;}
-#rcreditswebformgraphs #edit-ctty {width:auto;}
+#frm-graphs .form-item-ctty .control-label {display:inline-block; min-width:0; width:auto; padding-left:0; padding-right:5px;}
+#frm-graphs #edit-ctty {width:auto;}
 
-#rcreditswebformgraphs .form-type-checkboxes {margin-bottom:0;}
-#rcreditswebformgraphs .form-type-checkbox {width:110px;}
-#rcreditswebformgraphs .form-type-radios {border:0;}
-#rcreditswebformgraphs .form-type-radio {display:inline-block;}
+#frm-graphs .form-type-checkboxes {margin-bottom:0;}
+#frm-graphs .form-type-checkbox {width:110px;}
+#frm-graphs .form-type-radios {border:0;}
+#frm-graphs .form-type-radio {display:inline-block;}
 
-#rcreditswebformgraphs .form-item-period {display:inline-block;}
-#rcreditswebformgraphs .form-item-ending {display:inline-block;}
-#rcreditswebformgraphs .form-item-starting {margin-bottom:0;}
-#rcreditswebformgraphs .form-submit {margin-left:10px; max-width:120px;}
-#rcreditswebformgraphs input {max-width:110px;}
-#rcreditswebformgraphs .form-item-states,
-#rcreditswebformgraphs .form-item-states label {margin-top:15px;}
-#rcreditswebformgraphs  label {color:darkblue;}
-#rcreditswebformgraphs #edit-p2p,
-#rcreditswebformgraphs #edit-p2b,
-#rcreditswebformgraphs #edit-b2b,
-#rcreditswebformgraphs #edit-b2p {font-size:85%; margin:0 0 0 32px;}
-#rcreditswebformgraphs #edit-p2p label,
-#rcreditswebformgraphs #edit-p2b label,
-#rcreditswebformgraphs #edit-b2b label,
-#rcreditswebformgraphs #edit-b2p label {color:darkgray;}
+#frm-graphs .form-item-period {display:inline-block;}
+#frm-graphs .form-item-ending {display:inline-block;}
+#frm-graphs .form-item-starting {margin-bottom:0;}
+#frm-graphs .form-submit {margin-left:10px; max-width:120px;}
+#frm-graphs input {max-width:110px;}
+#frm-graphs .form-item-states,
+#frm-graphs .form-item-states label {margin-top:15px;}
+#frm-graphs  label {color:darkblue;}
+#frm-graphs #edit-p2p,
+#frm-graphs #edit-p2b,
+#frm-graphs #edit-b2b,
+#frm-graphs #edit-b2p {font-size:85%; margin:0 0 0 32px;}
+#frm-graphs #edit-p2p label,
+#frm-graphs #edit-p2b label,
+#frm-graphs #edit-b2b label,
+#frm-graphs #edit-b2p label {color:darkgray;}
 _____________________________________________
 
 /*
@@ -2299,8 +2784,8 @@ function printInvite1OLD($a, &$pdf) {
   /*$form['name']['#title'] = t('Account:');
   $form['name']['#description'] = t('Username, Email, or Account ID');
   $form['name']['#default_value'] = u\neq($id, 'password', '');*/
-//  $form['#validate'] = array('rCredits\\Web\\formPass_validate');
-//  $form['#submit'] = array('rCredits\\Web\\formPass_submit');
+//  $form['#validate'] = array('CG\\Web\\formPass_validate');
+//  $form['#submit'] = array('CG\\Web\\formPass_submit');
 //  $form['#attributes']['class'] = array('rweb', 'labeled');
 //  t\snapShot($form);
 
@@ -3019,6 +3504,6 @@ function mergeAccounts($oldUid) {
 function memberHasADwollaAccountStep($id, $step) {
   global $testOnly; if (!$testOnly) return FALSE;
   $a = r\acct(r\fullQid($id));
-  $us = new rCredits\usd($a);
+  $us = new CG\usd($a);
   return ($us->step() == $step);
 }

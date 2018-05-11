@@ -70,6 +70,7 @@ $GLOBALS['tStrings'] = array(
   'call bank' => t('Remember to check your bank account online or call your bank %when and ask them for the two tiny deposit amounts to your account (both under 20 cents). Then sign in to your account and follow the links to enter those amounts, so we can send you your %PROJECT Card!'),
   'do step one' => t('Remember to sign back in to %PROJECT, to complete your account setup (you have several steps left to go).'),
   'take another step' => t('Your %PROJECT Account setup is not yet complete!'),
+  'daily messages' => t('You will continue to receive reminders until your account is complete. (If you changed your mind, please click the "unsubscribe" link below.)'),
   'sign in' => t('Go to %CG_DOMAIN and click "Sign in" in the upper right corner.'),
   'invitation required' => t('You must be invited, to participate in %PROJECT. Ask someone to invite you or <%a1>click here</a> to request an invitation.'),
   'confirm invite' => t('Your friend %fullName has accepted your invitation to %PROJECT or named you as a reference. <%a1>Click here to confirm</a> you trust this person (for example, if you lent them $250 you would trust them to pay it back).</p><p>The %PROJECT community is a network built on mutual trust, so it is important that you invite (and confirm) only people you know and trust.</p>'),
@@ -80,8 +81,8 @@ $GLOBALS['tStrings'] = array(
   'new refund' => t('<b>Refund:</b> %otherName refunded you %amount for "%payerPurpose".'),
   'new payment' => t('<b>Payment:</b> %otherName paid you %amount for "%payeePurpose".'),
   'new payment linked' => t('<b>Payment:</b> <%aPayLink>%otherName</a> paid you %amount for "%payeePurpose".'),
-  'new invoice' => t('<b>Invoice:</b> %myName invoiced you %amount for "%purpose". <%a1>Click here to pay or deny this invoice</a>. Or sign in at %CG_DOMAIN and click "Invoices TO You" on the History menu. If you have any questions or concerns about this invoice, please contact %myName at %email or %phone.'),
-  'stale invoice' => t('<b>Invoice Reminder:</b> %daysAgo days ago we emailed you an invoice from %payeeName for %amount. <%a1>Click here to pay or deny this invoice</a>.'),
+  'new invoice' => t('<b>Invoice:</b> %myName invoiced you %amount for "%purpose". <%a1>Click here to pay or deny this invoice</a>. Or sign in at %CG_DOMAIN and click "Invoices TO You" on the History menu. If you have any questions or concerns about this invoice, please contact %myName at %email or %phone.'), // can't separate out 'invoice concerns'
+  'stale invoice' => t('<b>Invoice Reminder:</b> %daysAgo days ago we emailed you an invoice from %payeeName for %amount. <%a1>Click here to pay or deny this invoice</a>. Or sign in at %CG_DOMAIN and click "Invoices TO You" on the History menu. If you have any questions or concerns about this invoice, please contact %payeeName at %email or %phone.'),
   'stale invoice report' => t('<b>Invoice Update:</b> %daysAgo days ago you invoiced %payerName %amount for %purpose (invoice #%nvid, %created). That invoice is still marked "pending", so we sent %payerName a reminder. If this invoice is no longer valid, sign in at %CG_DOMAIN and choose "Invoices FROM You" on the History menu to cancel it.'),
   //  'new invoice' => t('<b>Invoice:</b> %otherName invoiced you %amount for "%purpose". To pay (or deny) this invoice, <%a>click here</a>.'),
   'new customer done' => t('<h2>Congratulations!</h2>Your sign-up with %partnerName is complete. Expect a confirmation note from them by email.'),
@@ -114,7 +115,7 @@ $GLOBALS['tStrings'] = array(
   'payment exchange received' => t('You received from %fullName a payment exchange of %amount -- that is, you traded that much US Dollars for %RCREDITS, receiving a bonus of %bonus on the exchange.'),
   'payment exchanges offered' => t('You made payment exchanges to %offers %whom, totaling %total.'),
   'card ordered' => t('A card for %otherName will be US mailed to %company.'),
-  'balances' => t('%balance with a Credit Reserve of %rewards (you can <%a>cash out</a> up to %cashoutable today).', '_a', 'a href="' . BASE_URL . '/help/cashing-out"'),
+  'balances' => t('%balance with a Credit Line of %credit (you can <%a>cash out</a> up to %cashoutable today).', '_a', 'a href="' . BASE_URL . '/help/cashing-out"'),
 //  'you sold out' => t('This week you traded %total worth of %RCREDITS for US Dollars, missing an opportunity for %rebates worth of rebates. To keep this from happening so much, <%a1>click here</a> to change your settings to the recommended minimum balance of %suggested.'),
   'new floor' => t('Your credit limit has been changed to %limit, based on your average use of %RCREDITS over the past 6 months.'),
   'no floor effect' => t('This currently has no effect, because you chose not to let your balance go negative. To change this setting, sign in at %CG_DOMAIN, click the Settings gear, then the Preferences tab. Put a check mark next to "Debt Okay" and save your preferences.'),
@@ -135,6 +136,12 @@ $GLOBALS['tStrings'] = array(
     <p>There is no way to tell who has chosen you as their proxy. <i>Your proxy does NOT have access to your %PROJECT account, bank account, or personal information.</i></p>
 EOF
   ),
+  'credit ban on' => t('Maybe spending below a zero balance should be temporarily banned because demand for %RCREDITS has been negative %months months in a row.'),
+  'credit ban off' => t('Temporary ban on spending below a zero balance should be lifted because demand for %RCREDITS has been positive %months months in a row.'),
+  'coupon redeemed' => t('Success! %amount has been added to your balance, as a gift from %giver.'),
+  'bad coupon' => t('That is not a valid coupon type.'),
+  'invalid gift card' => t('That is not a valid gift card code. Try again.'),
+  'already redeemed' => t('That coupon has already been redeemed.'),
 
   // questions
   "what's your name?" => t("To set up your %PROJECT Account, we need your full name and email address. First, what's your name?"),
@@ -154,6 +161,8 @@ EOF
   'confirm funding' => t('%confirmAction %amount to %otherName?'),
   'please confirm' => t('To confirm, type: %nonce'),
   'verification code' => t('Your verification code for using %PROJECT online is: %nonce'), // used in rWeb
+  'whats up' => t('You have not had any %PROJECT transactions in the past month. What\'s up with that? Please email or call us if you have any problems or questions.'),
+  'co promo' => t('And if you need more promotional cards to hand out to customers, just let us know!'),
   
   // error messages
   'syntax' => t('Wrong syntax!'),
@@ -185,17 +194,17 @@ EOF
   'ambiguous other2' => t('You can identify a member by phone, email, fullname (no punctuation or spaces), or account ID.'),
   'what relationship' => t('You forgot to say whether you are an employee, owner, or both.'),
   'short put' => t('The most you can transfer to your bank at this time is %max.'),
-//  'short cash to' => t('You are %short short, for that transaction.'),
+//  'short cash to' => t('You are %short short for that transaction.'),
 //  'short cash from' => t('%otherName is %short short for that transaction.'),
 //  'short cash from vague' => t('%otherName does not have enough rCredits for that transaction.'),
-  'short to' => t('You are %short short, for that transaction. Increase your target balance!'),
+  'short to' => t('You are %short short for that transaction. Maybe increase your target balance?'),
   'short from' => t('%otherName is %short short for this request (do NOT try again).'),
   'short from vague' => t('%otherName does not have enough funds for this request (do NOT try again).'),
   'min too low' => t('Your target balance is set too low, causing conflicting deposits and withdrawals from your bank account. To increase your target balance to %suggestion, visit the %page page (under Settings).'),
 //  'you were short' => t('You tried to make a purchase but did not have enough funds in your account. A higher "minimum" setting might keep this from happening again. To increase your minimum to the recommended setting of %suggested, <%a1>click here</a>.'), // Arghh! some email programs apparently click this link automatically
   'you were short' => t('You tried to make a purchase but did not have enough funds in your account. Automatic refills or a higher "target balance" might keep this from happening again. To set automatic refills or to increase your target balance, sign in at %CG_DOMAIN and click "Bank Info" on the Settings menu.'),
   'be not secretive' => t('Also, you have chosen to keep your balance secret. <%a2>Click here to change that</a> and let the cashier tell you how much you are short next it happens.'),
-  'try debt' => t('You might also want to select "Debt Okay" in your Preferences (there is no charge for using reserve credit as long as you bring your balance back up within 30 days). <%a3>Click here to select "Debt Okay".</a> '),
+  'try debt' => t('You might also want to <%aDebt>select "Debt Okay" in your Preferences</a> (there is no charge for using reserve credit as long as you bring your balance back up within 30 days).'),
   'join accounts' => t('You are invited to create a joint account with %name. To accept that invitation, <%atag>click here</a>. Once your accounts are joined, you sign in to either account to view your combined transactions. Both %PROJECT Cards will remain valid.'),
   'click option' => t('OR <a href="%url">click here</a>'),
 //  'shortr to' => t('You do not have enough rCredits, for that transaction. Type "get r <amount>" to get more rCredits.'),
@@ -243,11 +252,11 @@ EOF
   'tx save err' => t('The transaction could not be saved. Try again!'),
   'share too big' => t('You are not allowed to donate more than half your transaction rewards. Here\'s why: The %PROJECT system aligns your personal financial benefit with benefit to the community, so you can do what is best for the community just by doing what is best for you. If your personal benefit percentage is too small, you lose that convenient compass.'),
   'no photoid' => t('You must make a purchase in person using your %PROJECT Card and show your driver\'s license or state ID, before any other transaction.'),
-  'other no photoid' => t('%who must make a purchase in person to verify zir identity, before you can pay or charge them.'),
+  'other no photoid' => t('%who must make a purchase in person to verify their identity, before you can pay or charge them.'),
   'duplicate transaction' => t('You already just %op that member that much. Wait a few minutes or type a different amount.'),
   'no search' => t('OR that member has chosen not to be identified by email or phone number.'),
   'must confirm' => t('%youName: membership must be approved by %inviterName OR you must do a transaction with %inviterName FIRST.'),
-  'first at home' => t('Your first transaction must be in person in your home community.'),
+  'first at home' => t('%whose first transaction must be in person in your home community.'),
   'zero transaction' => t('The transaction amount cannot be zero.'),
   'bad birthdate' => t('Birth date does not match.'),
   

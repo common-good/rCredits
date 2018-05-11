@@ -1,11 +1,11 @@
 <?php
-namespace rCredits\Cron;
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Util as u;
-use rCredits\Backend as be;
-use rCredits\Risk as k;
-use rCredits\Cron as cr;
+namespace CG\Cron;
+use CG as r;
+use CG\DB as db;
+use CG\Util as u;
+use CG\Backend as be;
+use CG\Risk as k;
+use CG\Cron as cr;
 
 /**
  * @file
@@ -15,7 +15,7 @@ use rCredits\Cron as cr;
  f('cr.zot', arg1,...);
  
  To run all the daily functions starting with a particular function "zot", use:
- rCredits\Cron\zot(arg1,...); // to run all daily functions, zot=everyDay
+ CG\Cron\zot(arg1,...); // to run all daily functions, zot=everyDay
  
  * = written
  ** = tested
@@ -76,7 +76,8 @@ include_once __DIR__ . '/rcron-subs.inc';
  * Execute a cron run when called.
  */
 function run() {
-  u\log('running cron');
+  global $channel; $channel = TX_CRON; // set this even if called from PHP window by admin
+// NO (happens too often)  u\log('running cron');
   // Allow execution to continue even if the request gets canceled.
   @ignore_user_abort(TRUE);
 
@@ -90,13 +91,10 @@ function run() {
 
   \drupal_set_time_limit(4 * 60);
 
-  // Try to acquire cron lock.
-  if (!\lock_acquire('cron', 240.0)) {
-    u\log(t('Attempting to re-run cron while it is already running.')); // Cron is still running normally.
-  } else { // Make sure every queue exists. There is no harm in trying to recreate an existing queue.
+  if (\lock_acquire('cron', 240.0)) {
     cr\periodic();
     \lock_release('cron');
-  }
+  } else u\log(t('Attempted to run cron while it was already running.'));
 
   $end = time() + R_CRON_PERIOD - R_MAX_TASK_TIME;
   $sql = 'SELECT id,item FROM queue ORDER BY id';
@@ -107,8 +105,7 @@ function run() {
     try {
       cr\doTask(unserialize($item));
       db\q('DELETE FROM queue WHERE id=:id', compact('id'));
-    }
-    catch (Exception $e) {
+    } catch (Exception $e) {
       u\log('cron task failed'); // In case of exception log it and leave the item in the queue to be processed again later.
     }
   }
@@ -123,11 +120,15 @@ function run() {
  */
 function doTask($item) {
   global $channel; $channel = TX_CRON;
-///  print_r(debug_backtrace());
-  $func = array_shift($item);
-  $op = 'rCredits\\Cron\\' . $func;
-// (too often)  u\log(t('starting cron.') . $func, 'state', $item);
-  $op($item);
+  global $mya;
+  
+  $op = array_shift($item);
+  $func = 'CG\\Cron\\' . $op;
+
+  if ($uid = @$item['uid']) $mya = r\acct($uid); // fudge current account
+  if (!in_array($op, ray('acctHourly checkAcct acctStats acctRisk')) and substr($op, -1, 1) != '1') u\log($op, 'cr', justNOT('uid', $item));
+    
+  $func($item);
 }
 
 /**
@@ -137,7 +138,7 @@ function doTask($item) {
 function periodic() {
   if ($row = db\q('SELECT * FROM queue WHERE created<:NOW-:DAY_SECS/2 LIMIT 1')->fetchAssoc()) {
     r\tellAdmin('task timed out', $row); // shouldn't happen. Drupal's queue processing hangs until we delete.
-    db\q('DELETE FROM queue WHERE item_id=:item_id', just('item_id', $row));
+    db\q('DELETE FROM queue WHERE id=:id', just('id', $row));
   }
 
   often('hour', '00');
@@ -158,7 +159,7 @@ function periodic() {
 
 function everyHour() {
   // stuff to do every hour
-  queueEach('acctHourly', "SELECT uid FROM users WHERE uid<>0");
+//  queueEach('acctHourly', "SELECT uid FROM users WHERE uid<>0");
   if (strftime('%H') + 0 == (R_DAILY_HOUR + 6) % 24) {
     $lastDaily = \variable_get('last_daily_cron', 0);
     if (NOW - $lastDaily > DAY_SECS) r\tellAdmin('daily cron FAILED');
@@ -230,7 +231,8 @@ X;
     WHERE $elapsed IN ($delays) AND u.uid IS NULL AND invitee=0 */
     
   // Remind newbie to take another step (or admin to activate it)
-  $delays = '1,2,3,5,8'; // Fibonacci progression of delays (followed by every week)
+//  $delays = '1,2,3,5,8'; // Fibonacci progression of delays (followed by every week)
+  $delays = '1,4,9'; // delays proposed by staff (ultimately every week)
   $elapsed = str_replace('@DATE', 'access', $timeSince);
   $sql = <<<X
     SELECT uid, $elapsed AS elapsed FROM users 
@@ -239,26 +241,23 @@ X;
 X;
   queueEach('tickleStep', $sql);
 
-  // Tickle sometime after first Tx (activation date)
-  $elapsed = str_replace('@DATE', 'date0', $timeSince);
-  $months = "ROUND($elapsed/:MONTH_DAYS)";
-  $start = strtotime('-6 months', $today);
-  $day = date('d');
-  $laterD = date('d', strtotime('+1'));
+  $sinceActivated = 'DATEDIFF(CURDATE(), FROM_UNIXTIME(activated))';
+  // Do every 30 days after activation date
+  $start = strtotime(-FLOOR_DAYS . ' days', $today);
   $sql = <<<X
-    SELECT uid, $months AS months, GREATEST(inVol, outVol) AS monthly, 
-    $day AS day, day0, $laterD AS laterD, $elapsed AS elapsed
+    SELECT uid, GREATEST(inVol, outVol) AS monthly, $sinceActivated/30 AS months
     FROM (
-      SELECT uid, u.flags, MIN(t.created) AS date0, 
-      SUM(IF(t.created>=:start AND payee=uid, amount, 0))/6 AS inVol,
-      SUM(IF(t.created>=:start AND payer=uid, amount, 0))/6 AS outVol,
-      DAY(FROM_UNIXTIME(MIN(t.created))) AS day0
-      FROM users u LEFT JOIN r_txs t ON uid IN (payer, payee) GROUP BY uid
+      SELECT uid, u.flags, activated,
+      SUM(IF(payee=uid, amount, 0))/6 AS inVol,
+      SUM(IF(payer=uid, amount, 0))/6 AS outVol
+      FROM users u LEFT JOIN r_txs t ON uid IN (payer, payee) 
+      WHERE t.created>=$start AND $sinceActivated % 30 = 0 GROUP BY uid
     ) t 
-    WHERE $elapsed>15 AND uid > 1 AND :IS_OK
-    AND ($day=day0 OR (day0>$day AND $laterD=1))
+    WHERE $sinceActivated>0 AND uid > 1 AND :IS_OK
 X;
-  queueEach('tickleActive', $sql, compact('start')); // no need for jid here (floors get summed)
+  queueEach('activeMonthly', $sql); // no need for jid here (floors get summed)
+  
+  queueEach('activeWeekly', "SELECT uid, $sinceActivated/7 AS weeks FROM users");
   
   queueNext();
 }
@@ -285,8 +284,8 @@ function tickleStep($item) {
   $a = r\acct($uid);
   if (!$a->member and $step = $a->nextStep()) {
     $msg = ($step == 'signup' or $step == 'verify') ? 'do step one' : 'take another step';
-    r\notify($uid, "$msg|sign in");
-    if ($elapsed >= 8 and $elapsed < 30) {
+    r\notify($uid, "$msg|sign in|daily messages");
+    if ($elapsed >= 9 and $elapsed < 30) {
       $sql = 'SELECT DISTINCT inviter FROM r_invites i LEFT JOIN users u ON u.uid=i.inviter WHERE invitee=:uid AND u.:IS_OK';
       $q = db\q($sql, compact('uid'));
       while ($row = $q->fetchAssoc()) {
@@ -300,11 +299,15 @@ function tickleStep($item) {
 }
 
 /**
- * Calculate credit line (for overdrafts etc.): give the member (r)credit up to their average monthly throughput over the past 6 months (which comes to 1/6 their monthly throughput if they've been in for a month, 2/6 for 2 months, etc, up to 100% at 6 months)
+ * Do stuff monthly (every 30 days) since member has been active:
+ * . Calculate credit line (for overdrafts etc.): give the member (cg)credit up to their average monthly throughput over the past 6 months (which comes to 1/6 their monthly throughput if they've been in for a month, 2/6 for 2 months, etc, up to 100% at 6 months)
+ * . Cashout automatically if account chose that monthly option.
  */
-function tickleActive($item) {
-  extract(just('uid months monthly', $item));
+function activeMonthly($item) {
+  extract(just('uid monthly', $item));
   $a = r\acct($uid);
+  
+  // adjust credit line
   $floorX = $a->floor; // current floor
   
   // temporarily (until 2019?) limit the rate of change of the floor (while changing to new system)
@@ -314,9 +317,16 @@ function tickleActive($item) {
   $ratio = $floor ? $floorX / $floor : 1;
   if ($ratio > 1.1 or $ratio < .9) { // big change (or any change in sign)
     $msg = 'new floor' . ($a->can(B_DEBT) ? '' : '|no floor effect');
-    r\tellAdmin('updating floor', $item + compact(ray('msg ratio floor floorX')));
   // DISABLED FOR NOW if (!$a->slave) r\notify($uid, $msg, ['limit' => u\fmtAmt(-$floor)]);
   }
+  
+  if ($a->cashoutM) $a->cashout();
+}
+
+function activeWeekly($item) {
+  extract(just('uid', $item));
+  $a = r\acct($uid);
+  if ($a->cashoutW) $a->cashout();
 }
  
 /**
@@ -344,7 +354,7 @@ function often($period, $chosen) {
   $lastCron = \variable_get('r_last_cron');
   $lastCron[$period] = r\rTime();
   \variable_set('r_last_cron', $lastCron); // remember that this periodic activity has been done
-  $function = 'rCredits\\Cron\\every' . ucwords($period);
+  $function = 'CG\\Cron\\every' . ucwords($period);
   $topic = t('cron period', compact('period'));
   $time = strftime('%I:%M%P', r\rTime());
   $msg = t('Running cron for the %period, at %time', compact('period', 'time'));
@@ -362,10 +372,6 @@ function everyWeek() {
   db\q("UPDATE users SET minimum=IF(ABS($newMin)<.01, .01, $newMin) WHERE $refillable AND minimum<GREATEST(0, floor)"); // crawl out of debt
   db\q("UPDATE users SET minimum=minimum+saveWeekly WHERE $refillable AND saveWeekly>0 AND minimum>=GREATEST(0, floor)"); // build up savings
 //  db\q('UPDATE users SET savingsAdd=GREATEST(0, savingsAdd+saveWeekly) WHERE :IS_OK AND :HAS_BANK AND saveWeekly<>0'); // save or unsave
-  $today = strtotime('today');
-  $start = strtotime('-7 weeks', $today);
-  $sql = "SELECT uid, SUM(t.amount) AS total, balance, $today AS today, $start AS start FROM users u LEFT JOIN r_txs t ON t.payee=u.uid WHERE u.:IS_OK AND u.:IS_CASHOUT AND u.:HAS_BANK AND t.created BETWEEN $start AND $today GROUP BY t.payee";
-  queueEach('cashout', $sql);
 }
 
 /**
@@ -377,7 +383,8 @@ function everyMonth() {
   $bene = u\test() ? $cgf : db\lookup('uid', 'users', "name='bene' AND uid<0");
   $start = u\monthDay1($end = u\monthDay1() - 1); // mark start and end of preceding month
   if (u\test()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // test: the past 30 days
-  queueEach('inflationAdjust', "SELECT uid, $start AS start, $end AS end FROM users WHERE :IS_OK AND uid>1");  
+  queueEach('whatsup', "SELECT uid, u.:IS_CO as co, MAX(t.created) AS lastTx from users u LEFT JOIN r_txs t ON uid IN (payer, payee) WHERE uid>:CANONIC_ACCTS GROUP BY uid HAVING lastTx IS NULL OR lastTx < $start");
+  queueEach('inflationAdjust', "SELECT uid, $start AS start, $end AS end FROM users WHERE :IS_OK AND uid>:CANONIC_ACCTS");  
 //  queueEach('shareCommitted', 'SELECT uid, committed, share FROM users WHERE :IS_OK AND committed>0');
   queueEach('roundup', "SELECT payer as uid, SUM(1-MOD(amount, 1)) AS donate FROM r_txs WHERE :IS_ROUNDUP AND amount>0 AND MOD(amount, 1)>0 AND created BETWEEN $start AND $end GROUP BY payer");
   
@@ -402,6 +409,15 @@ X;
 }
 
 /**
+ * Ask the member what's up, if they haven't done anything for a month or more.
+ */
+function whatsup($item) {
+  extract(just('uid lastTx co', $item));
+  $msg = 'whats up' . ($co ? '|co promo' : '');
+  r\notify($uid, $msg, ray('lastTx', u\fmtDate($lastTx)));
+}
+
+/**
  * Yearly
  */
 function everyYear() {
@@ -419,7 +435,8 @@ function inflationAdjust($item) {
   if (db\exists('r_txs', 'payee=:uid AND type=:TX_INFLATION AND created>=:end', compact('uid', 'end'))) return;
   list ($avg, $min, $ravg) = r\averageBalance($uid, $start, $end);
 //  if ($adjustment > 0)  // don't adjust debts
-  foreach ([t('average balance') => $avg, t('credit reserve') => $ravg] as $k => $v) {
+//  foreach ([t('average balance') => $avg, t('credit reserve') => $ravg] as $k => $v) {
+  foreach ([t('average balance') => $avg] as $k => $v) {
     $adjustment = round($v * R_INFLATION_RATE / 12, 2);
     if ($adjustment) be\fund($uid, TX_INFLATION, $adjustment, INFLATION_DESC . t(' on your ') . $k);
   }
@@ -432,7 +449,7 @@ function inflationAdjust($item) {
 function roundup($item) {
   extract(just('uid donate', $item));
   $a = r\acct($uid);
-  if ($donate > 0) be\transfer('payment', $a, r\acct(r\cgfId()), $donate, FOR_GOODS, t('roundups desc'), u\monthDay1() - 1, ['roundups' => TRUE, 'gift' => TRUE]);
+  if ($donate > 0 and $a->ok) $a->pay(r\acct(r\cgfId()), $donate, t('roundups desc'), ray('created roundups gift', u\monthDay1() - 1, TRUE, TRUE));
 }
 
 /**
@@ -441,9 +458,8 @@ function roundup($item) {
  */
 function crumbs($item) {
   extract(just('uid donate cgf', $item));
-  $flags = ray('crumbs gift', TRUE, TRUE);
   list ($a, $cgfA) = [r\acct($uid), r\acct($cgf)];
-  if ($donate > 0) be\transfer('payment', $a, $cgfA, $donate, FOR_GOODS, t('crumbs desc'), u\monthDay1() - 1, $flags);
+  if ($donate > 0 and $a->ok) $a->pay($cgfA, $donate, t('crumbs desc'), ray('created crumbs gift', u\monthDay1() - 1, TRUE, TRUE));
 }
 
 /**
@@ -455,7 +471,7 @@ function cgc($item) {
   if ($kickBack > 0) {
     list ($a, $cgfA) = [r\acct($ctty), r\acct($cgf)];
     $desc = t('50% share of local donations through %dt', 'dt', u\fmtDate($end));
-    if ($a->ok) be\transfer('payment', $cgfA, $a, $kickBack, FOR_NONGOODS, $desc, u\monthDay1() - 1, ['gift' => TRUE]);
+    if ($a->ok) $cgfA->pay($a, $kickBack, $desc, ray('goods created gift', FOR_NONGOODS, u\monthDay1() - 1, TRUE));
   }
 }  
   
@@ -577,7 +593,7 @@ X;
  */
 function acctStats() {
   db\q('UPDATE users SET picture=0'); // clear temp field
-  queueEach('acctStats1', 'SELECT uid FROM users WHERE uid>1 AND :IS_OK');
+  queueEach('acctStats1', 'SELECT uid FROM users WHERE uid>:CANONIC_ACCTS AND :IS_OK');
   queueNext();
 }
 
@@ -629,14 +645,14 @@ X;
  * @param int $dt1: date to start (-1 means pick up where we left off)
  */
 function cttyStats($dt1 = 0) {
-  if (db\exists('r_stats') and !$dt1) {
-    r\getStats(0); // for all our communities at once
+  if (!$dt1) { // normally this is called without a date
+    cttyStats1(['ctty' => 0]); // for all our communities total
     queueEach('cttyStats1', 'SELECT DISTINCT uid AS ctty FROM users WHERE uid<0'); // and one at a time
   } else { // recreate stats data from the beginning of time
     $sql = <<<X
       SELECT community AS ctty, MIN(t.created) AS start
       FROM users u LEFT JOIN r_txs t ON t.payee=u.uid 
-      WHERE uid>3 AND (t.created>=:R_LAUNCH OR t.created IS NULL) GROUP BY community ORDER BY -community
+      WHERE uid>:CANONIC_ACCTS AND (t.created>=:R_LAUNCH OR t.created IS NULL) GROUP BY community ORDER BY -community
 X;
     $cttys = db\q($sql)->fetchAllKeyed();
     u\preray([0 => min($cttys)], $cttys); // show all dates overall
@@ -645,7 +661,7 @@ X;
     if ($dt1 < 0) $dt1 = db\max('created', 'r_stats'); // repeat last date to catch missing cttys
     if (!$dt1) $dt1 = @$cttys[0] ?: $now;
     $dt = strtotime('today', $dt1); // use first moment of the day
-    
+
     while ($dt <= $now) {
       foreach ($cttys as $ctty => $start) if ($start <= $dt) {
         $item = compact('ctty', 'dt');
@@ -658,10 +674,27 @@ X;
   queueNext();
 }
 
+define('BAN_MONTHS', 3); // number of months in a row to have + or - demand, to set credit ban on/off
+
 function cttyStats1($item) {
   extract(just('ctty dt', $item));
-  r\getStats($ctty, @$dt); // record stats for one community on the regional server, for the given date
-  // this fails on cross-community txs!  if ($ctty != 0) if ($err = badStats($ctty, $created)) return 
+  u\setDft($dt, $today = strtotime('today'));
+
+  $stats = r\stats($ctty, $dt); // record stats for one community on the regional server, for the given date
+  if ($dt == $today and $ctty) { // check demand for CG in the ctty
+    $allPos = $allNeg = TRUE;
+    for ($i = 0; $i <= BAN_MONTHS; $i++) {
+      $usdX = @$usd; // following month's Dollar Pool total
+      $ago = -30 * $i;
+      if ($i > 0) $stats = r\stats($ctty, strtotime($ago . ' days', $dt)); // 0 is already done
+      $usd = $stats['usdIn'] - $stats['usdOut']; // this month's Dollar Pool total
+      if ($i > 0) {if ($usdX - $usd < 0) $allPos = FALSE; else $allNeg = FALSE;}
+    }
+    $cttyA = r\acct($ctty);
+    $subs = ray('months', BAN_MONTHS);
+    if ($allNeg and !$cttyA->noneg) r\tellCo('credit ban on', $subs, $ctty);
+    if ($allPos and $cttyA->noneg) r\tellCo('credit ban off', $subs, $ctty);
+  }
 }
 
 /**
@@ -700,7 +733,7 @@ function acctRisk() {
 }
 
 function acctRisk1($item) {
-  include_once __DIR__ . '/../rcredits-risk.inc';
+  include_once __DIR__ . '/../cg-risk.inc';
   k\acctRisk1($item['uid']);
 }
 
@@ -714,7 +747,7 @@ function txRisk() {
 }
 
 function txRisk1($item) {
-  include_once __DIR__ . '/../rcredits-risk.inc';
+  include_once __DIR__ . '/../cg-risk.inc';
   k\txRisk1($item);
 }
 
@@ -727,7 +760,7 @@ function achRisk() {
 }
 
 function achRisk1($item) {
-  include_once __DIR__ . '/../rcredits-risk.inc';
+  include_once __DIR__ . '/../cg-risk.inc';
   k\achRisk1($item);
 }
 
@@ -764,7 +797,7 @@ function bank() {
   }
   
 //  $where = ':IS_REFILL AND (:IS_JOINED OR r-rewards-savingsAdd<minimum) AND uid>1 AND :IS_OK';
-  $where = ':IS_REFILL AND (jid OR balance<minimum) AND uid>1 AND :IS_OK';
+  $where = ':IS_REFILL AND (jid OR balance<minimum) AND uid>:CANONIC_ACCTS AND :IS_OK';
   $sql = <<<X
   SELECT uid
   FROM users 
@@ -789,26 +822,6 @@ function completeUsdTx($item) {
   $realAmt = db\lookup('amount', 'r_usd', 'txid=:txid', compact('txid'));
   if ($amount != $realAmt) r\tellAdmin('bad completeUsdTx amount', $item + compact('realAmt'));
   r\acct($payee)->completeUsdTx($txid, $amount, @$channel == TX_CRON);
-}
-
-/**
- * Automatically cashout accounts that choose to, leaving average weekly gross (over past 7 weeks) in the account.
- */
-function cashout($item) {
-  extract(just('uid total today start', $item));
-  if (!$first = db\lookup('created', 'r_txs', 'payee=:uid ORDER BY created LIMIT 1', compact('uid'))) return;
-  $days = round(($today - max($start, $first)) / DAY_SECS); // number of days over which to find weekly average gross
-  $avg = 7 * $total / $days;
-
-  $a = r\acct($uid);
-  $waiting = $a->waitingFromBank($combinable); // net amount already requested from bank (if any)
-  if ($waiting > 0) return; // no cashout if waiting to bring some in
-  $cashout = round($a->balance + $waiting - $avg, 2); // (waiting is negative)
-  if ($cashout < CASHOUT_MIN) return;
-  $action = t('deposit to');
-  if (!$checkNum = $a->bank(-$cashout)) return;
-  $amount = u\fmtAmt($cashout);
-  r\notify($uid, 'banked|bank tx number', compact(ray('action amount checkNum')));
 }
 
 function bank1($item) {
@@ -861,7 +874,8 @@ function invoices() {
 function invoice($item) {
   extract(just('nvid payer payee amount purpose status created', $item));
   $a = r\acct($payer);
-  $payeeName = r\acct($payee)->fullName;
+  $a2 = r\acct($payee);
+  $payeeName = $a2->fullName;
   
   $masterA = $a->masterA;
   $needed = $a->roundup ? ceil($amount) : $amount;
@@ -878,13 +892,13 @@ function invoice($item) {
         if (!$checkNum = $masterA->bank($needed)) return; // may never happen, but if mysql is unavailable just redo next day
         list ($amount, $action) = [u\fmtAmt($needed), t('draw from')];
         r\notify($payer, 'banked|bank tx number', compact(ray('action amount checkNum')));
-      } elseif ($waiting <= 0) r\notify($payer, 'short invoice|when funded', ray('short payeeName', u\fmtAmt($short), $payeeName));
+      } elseif ($waiting <= $short) r\notify($payer, 'short invoice|when funded', ray('short payeeName', u\fmtAmt($short), $payeeName));
     }
   } elseif ($status == TX_PENDING) {
     $today = strtotime('today'); // not time(), because tests fail erratically
     $daysAgo = max(1, round(($today - $created) / DAY_SECS));
     if ($daysAgo % 7 == 0) {
-      $subs = ray('daysAgo created amount purpose nvid _a1 payerName payeeName', $daysAgo, u\fmtDate($created, TRUE), u\fmtAmt($amount), $purpose, $nvid, $a->makeDo('inv', $nvid), $a->fullName, $payeeName);
+      $subs = ray('daysAgo created amount purpose nvid _a1 payerName payeeName email phone', $daysAgo, u\fmtDate($created, TRUE), u\fmtAmt($amount), $purpose, $nvid, $a->makeDo('inv', $nvid), $a->fullName, $payeeName, $a2->email, $a2->phone);
       r\message($payer, 'stale invoice', $subs + ['reply' => $payee]); // tell other party by email about this invoice
       r\message($payee, 'stale invoice report', $subs); // tell the payee we're following up on it
     }

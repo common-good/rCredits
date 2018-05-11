@@ -68,12 +68,12 @@ Scenario: A member signs in for the first time
   When member ".AAA" completes form "settings/preferences" with values:
   | roundup | crumbs | notices | statements | nosearch | secretBal |*
   |       1 |      2 | monthly | electronic |        0 |         1 |
-  Then we show "Bank Information"
+  Then we show "Banking Settings"
   And we say "status": "info saved|step completed"
 
   When member ".AAA" completes form "settings/connect" with values:
-  | op     | connect | routingNumber | bankAccount | bankAccount2 | refills | target | achMin | saveWeekly |*
-  | submit |       1 |     053000196 |         123 |          123 |       0 |     $0 |    $20 |         $0 |  
+  | op     | connect | routingNumber | bankAccount | bankAccount2 | cashout | refills | target | achMin | saveWeekly |*
+  | submit |       1 |     053000196 |         123 |          123 |       0 |       0 |     $0 |    $20 |         $0 |  
   Then we show "Photo ID Picture"
   And we say "status": "info saved|step completed"
 
