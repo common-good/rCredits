@@ -45,4 +45,4 @@ Scenario: A member changes preferences
   |       1 |      3 | monthly | electronic |        0 |         1 |
   Then members:
   | id   | crumbs |  flags   |*
-  | .ZZA |    .03 | member,ok,confirmed,monthly,secret,roundup |
+  | .ZZA |    .03 | ok,confirmed,monthly,secret,roundup |

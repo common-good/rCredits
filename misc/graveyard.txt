@@ -1,5 +1,191 @@
 _____________________________________________
 
+  /**
+   * Calculate updated r, rewards, and committed caches for a transaction (but do not write to db)
+   * @param assoc $tx: the transaction record (or at least these fields: payer, payee, amount, type)
+   * @param int $type: transaction type
+   * @param stdObject $c: the cached fields:
+   *   float $r: (UPDATED) the account's r balance
+   *   float $rewards: (UPDATED) the account's rewards ever
+   *   float $committed: (UPDATED) the account's reserve for sharing rewards with CGF
+   *//*
+  public function recache3($amount, $type, &$c) {
+    $c->r = round($c->r + $amount, 2);
+    if ($c->r < 0 and $this->slave) { // Don't let joint account slave balance go negative, so cron can handle banking right.
+      $this->jA->update('r', $this->jA->o_r + $c->r); // send the negative balance to the master
+      $c->r = 0;
+    }
+    if (r\isReward($type)) {
+      if ($type == TX_REBATE or $type == TX_BONUS) $c->committed = round($c->committed + $amount * $this->share / 100, 2);
+      $c->rewards = round($c->rewards + $amount, 2);
+    }
+  }*/
+_____________________________________________
+
+      <p>In <b>Brattleboro and Putney, Vermont</b> a group met weekly for over a year. Known as "BENE" (Better Economics for Neighbors Everywhere), the group launched Common Good in Southeastern Vermont in November 2015. For more information, contact Jesse de la Rosa at <a href="mailto:SEVT@CommonGood.earth">SEVT@CommonGood.earth</a>.</p>
+_____________________________________________
+
+    <p>You can cash out Common Good Credits you receive as payment for your goods or services, but you cannot cash out your tentative Incentive Rewards (if your community offers them). You can only spend them &mdash; as a community currency, they must continue to circulate in the community.</p>
+  
+  <p>As a Common Good member, you may receive tentative Incentive Rewards, if your community chooses to offer them. Communities may offer incentives for signing up, for buying or selling through the Common Good system, or as a monthly "inflation adjustment" to offset the shrinking value of the US Dollar. Spend these rewards at any participating business.</p>
+  
+  <p>These rewards are a form of community currency, issued automatically and managed by your local community. As an autonomous, self-governing Common Good Community, you can also issue Common Good Credits together more deliberately as investments, grants, and strategic incentives (for example to subsidize buying local organic food or renewable energy).</p>
+  
+  
+    <p>In the meantime, until then, %RCREDITS are issued automatically:</p>
+    <ol>
+      <li>as a stand-in for US Dollars, which are held unused in a separate account, and</li>
+      <li>as an increase in your credit line (or in some %PROJECT communities &mdash; as tentative incentive rewards*) to encourage doing what makes the system stronger.</li>
+    </ol>
+    
+    <p>* Any incentive rewards you receive (signup bonuses, purchase rewards, inviter/helper rewards, and inflation offset) are yours to keep once your %PROJECT community says so. Meanwhile you can borrow them interest-free.</p>    
+_____________________________________________
+
+function fixRelations() {
+  $q = db\q('SELECT reid, main, other, permission, flags, :IS_OWNER AS owner, :IS_DRAW AS draw, :IS_EMPLOYEE AS employee, :IS_CUSTOMER AS customer FROM r_relations');
+
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    list ($mainName, $otherName) = array(r\acct($main)->fullName, r\acct($other)->fullName);
+    if (!$permission and !$flags) {
+      db\q('DELETE FROM r_relations WHERE reid=:reid', compact('reid'));
+/**/  debug("Record DELETED: $mainName -- $otherName");
+    } else if ($reid < 999999) {
+      $region = r\acct($main)->region;
+      if ($region == r\serverUid()) {
+        $newReid = -$region + $reid;
+        db\q('UPDATE r_relations SET reid=:newReid WHERE reid=:reid', compact('reid', 'newReid'));
+      } else { // foreign region
+        $newReid = r\acct($main)->newRelation(compact(ray('other permission employee owner customer draw')));
+        db\q('DELETE FROM r_relations WHERE reid=:reid', compact('reid'));
+      }
+/**/  debug("Record MOVED: $reid to $newReid ($mainName -- $otherName)");
+    }
+  }
+}
+_____________________________________________
+
+# (requirement relaxed)
+#Scenario: A member registers with a missing company
+#  Given invitation to email "a@" from member ".ZZZ" is "c0D3"
+#  When member "?" confirms form "signup/code=c0D3" with values:
+#  | fullName | email | phone   | zip | federalId   | dob      | acctType | company  | companyPhon | companyOptions | tenure | owns | helper |*
+#  | Abe One  | a@    | 413-253-0002 | 01001 | 111-22-3333 | 1/2/1990 | %R_PERSONAL |       | (413)628-0000 | owner=>1     |     18 |    1 | .ZZZ   |
+#  Then we say "error": "missing field" with subs:
+#  | field   |*
+#  | company |
+
+#Scenario: A member registers with a missing company phone
+#  Given invitation to email "a@" from member ".ZZZ" is "c0D3"
+#  When member "?" confirms form "signup/code=c0D3" with values:
+#  | fullName | email | phone     | zip | federalId   | dob      | acctType    | company  | companyPhon | companyOptions | tenure | owns | helper |*
+#  | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co |             | owner=>1     |     18 |    1 | .ZZZ   |
+#  Then we say "error": "missing field" with subs:
+#  | field   |*
+#  | companyPhon |
+
+Scenario: A member registers with a bad company
+  Given invitation to email "a@" from member ".ZZZ" is "c0D3"
+  When member "?" confirms form "signup/code=c0D3" with values:
+  | fullName | email | phone     | zip | federalId   | dob      | acctType    | company  | companyPhon | companyOptions | tenure | owns | helper |*
+  | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | 2sp  ces | (413)628-0000 | owner=>1   |     18 |    1 | .ZZZ   |
+  Then we say "error": "multiple spaces" with subs:
+  | field   |*
+  | Company |
+_____________________________________________
+
+//  return $info ? $info['company'] . ' (' . $info['companyPhone'] . ') ' . (@$info['isOwner'] ?: '') . (@$info['isEmployee'] ?: ''), t('Signup Co:') : '';
+_____________________________________________
+
+/*    $reid = r\relation('reid', $a->id, $a->agentId);
+    db\update('r_relations', compact('otherNum', 'reid'), 'reid');
+    */
+_____________________________________________
+
+  /**
+   * Return full account name, including the other's name in a joint account.
+   *//*
+  function j_acctName() {
+    $a = $this;
+    $name = "$a->fullName ($a->name)";
+    $sql = 'main=:main AND permission=:joint';
+    $subs = ['main'=>$a->id, 'joint'=>r\perm(B_JOINT)];
+    if ($a->can(B_JOINED) and $other = r\relation('other', $sql, $subs)) {
+      $a2 = r\acct($other);
+      $name .= " & $a2->fullName ($a2->name)";
+    }
+    return $name;
+  }*/
+_____________________________________________
+
+//  if (!$a1->co and !$a1->photoId) return r\txRet('no photoid');
+//  if (!$a2->co and !$a2->photoId) return r\txRet('other no photoid', ['who' => $a2->fullName]);
+_____________________________________________
+
+/*  if (strpos($id, R_AGENT_MARK) !== FALSE) {
+    $reid = t\uid(str_replace(R_AGENT_MARK, R_MEMBER_MARK, $id));
+    extract(r\relation('main,other', $reid));
+  } else $main = $other = t\uid($id); */
+_____________________________________________
+
+/*    if ($keya == 'amount') {
+      $amount = $value;
+      if ($err = u\badAmount($amount)) return say($err, compact('amount'), 'amount');
+      if (($sta['input'][$key] = round($amount, 0)) != $amount) say('amount rounded', compact('amount'));
+    } else
+    */
+    
+//      if ($co) array_splice($thisRow, 1, 1, $amount); // companies can't be employees
+
+//  if (@$id) $reid = t\uid(str_replace(R_AGENT_MARK, R_MEMBER_MARK, $id)); // deprecated
+//  u\num($id, u\a2n(substr($id, -3)));
+//  if (!$mainAcct = r\acct(t\uid($main))) return output("main:$main is not an id");
+//  if (!$agtAcct = r\acct(t\uid($agent))) return output("agent:$agent is not an id");
+  //u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
+//  u\EXPECT($mainA->proSe and $agtA->proSe, "not proSe: $mainA->proSe or $agtA->proSe");
+//  list ($main, $other, $otherNum) = array($mainA->id, $agtA->id, @$num);  u\setDft($other, @$agent);
+_____________________________________________
+
+  if ($reid) { // relation with this partner already exists
+    u\EXPECT(r\relation('other', $reid) == $a->id, 'duplicate customer');
+    db\update('r_relations', ray('reid isCustomer code', $reid, TRUE, $customer), 'reid'); // just update the customer
+  } else $reid = $partnerA->newRelation(ray('other isCustomer code', $a->id, TRUE, $customer)); // create the relation
+
+  $sql = <<<EOF
+    SELECT DISTINCT s.reid, s.main, s.other, IF(:myid=s.main, v.fullName, u.fullName) AS fullName,
+      s.permission, s.employee, s.isOwner, s.draw
+    FROM ((r_relations s LEFT JOIN users u ON u.uid=s.main)
+      LEFT JOIN users v ON v.uid=s.other)
+    WHERE s.main=:myid AND $where
+    ORDER BY fullName, IF(:myid=s.main, s.other, s.main), (:myid=s.other)
+EOF;
+   
+      if ($reid = r\relation('reid', $payee, $payer)) {
+        db\update('r_relations', ray('reid isCustomer', $reid, AUTOPAY_FLAG), 'reid');
+      } else $toA->newRelation(ray('other isCustomer', $payer, AUTOPAY_FLAG));
+
+      if ($reid = r\relation('reid', $a->id, $otherId)) {
+        $info = ['permission'=>$joint, 'draw'=>0] + compact('reid');
+      } else $info = ray('main other permission draw', $a->id, $otherId, $joint, 0);
+      // (already in a transaction) $DBTX = \db_transaction();
+      db\update('r_relations', $info, 'reid', TRUE); // create relation or just set permission
+_____________________________________________
+
+//  $lastDaily = \variable_get('daily', 0);
+//  if (strftime('%H') >= R_DAILY_HOUR and strftime('%d') != strftime('%d', $lastDaily)) everyDay();
+//  if (strftime('%M') == '00') everyHour();
+_____________________________________________
+
+  //define('R_AVAIL_BUY', '(balance+rewards-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
+_____________________________________________
+
+//function rayo() {return (object) call_user_func_array('CG\\Util\\ray', func_get_args());}
+//function in($a, $b) {return (strpos(" $b ", " $a ") !== FALSE);} // needle in space-delimited hay
+_____________________________________________
+
+//I understand there may be a fee (currently $%R_DEBT_FEE plus %R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within %R_DEBT_DAYS days.', 'limit', u\fmtAmt(-$mya->floor)), $mya->can(B_DEBT));  
+_____________________________________________
+
 //  debug("rstats ctty=$ctty when=" . u\fmtDate($when));
 //  debug($info + ['t'=>rand(0,9999999), 'ctty0' => $ctty, 'when'=>u\fmtDate($when)]);
 //    $keys = db\q("SELECT column_name FROM information_schema.columns WHERE table_name='r_stats'")->fetchCol();
@@ -425,7 +611,7 @@ _____________________________________________
   $sql = "SELECT uid, SUM(t.amount) AS total, balance, $today AS today FROM users u LEFT JOIN r_txs t ON t.payee=u.uid WHERE u.:IS_OK AND u.:IS_CASHOUT AND u.:HAS_BANK AND t.created BETWEEN $start AND $today GROUP BY t.payee";
   
   extract(just('uid total today start', $item));
-  if (!$first = db\lookup('created', 'r_txs', 'payee=:uid ORDER BY created LIMIT 1', compact('uid'))) return;
+  if (!$first = db\get('created', 'r_txs', 'payee=:uid ORDER BY created LIMIT 1', compact('uid'))) return;
   $days = round(($today - max($start, $first)) / DAY_SECS); // number of days over which to find weekly average gross
   $avg = 7 * $total / $days;
 
@@ -462,7 +648,7 @@ _____________________________________________
  * @return: the form (FALSE on error or if already confirming)
  *//*
 function txConfirm($do, $xid, &$sta) {
-  die('txConfirm');
+/**/          die('txConfirm');
   global $mya;
   if (u\test() and @$sta['confirm']) return FALSE;
   if (confirming_v($sta)) return FALSE;
@@ -612,7 +798,7 @@ _____________________________________________
 */
 _____________________________________________
 
-      <li><p><b class="runny-funds">Runny Funds</b>. Incentive rewards simply increase your Credit Reserve. If you keep a positive balance while the system grows to become stable, then no one can cash out those rewards, shrinking the %PROJECT US Dollar Pool. Maybe you plan to spend them next month. Or maybe you are holding them in your %PROJECT Account as a hedge against inflation. But the system can't guess that. Unless you use the auto-refill feature, the system assumes you might spend your cash reserve at any moment (resulting in a negative Balance). We call those funds that might be spent at any moment "runny".</p>
+      <li><p><b class="runny-funds">Runny Funds</b>. Incentive rewards simply increase your Credit Reserve. If you keep a positive balance while the system grows to become stable, then no one can cash out those rewards, shrinking the %PROJECT Dollar Pool. Maybe you plan to spend them next month. Or maybe you are holding them in your %PROJECT Account as a hedge against inflation. But the system can't guess that. Unless you use the auto-refill feature, the system assumes you might spend your cash reserve at any moment (resulting in a negative Balance). We call those funds that might be spent at any moment "runny".</p>
       <p>On the other hand, if you DO use the auto-refill feature, you have chosen to keep a certain Target Balance in your %PROJECT Account. That target partially offsets the runny funds in other accounts, making a cash flow crunch even less likely. The yellow line shows the total of runny funds minus the estimated total balances in accounts that use auto-refill (conservatively assuming each person's average balance is half their chosen target). The formula looks something like this:</p>
       
       <blockquote>Total Runniness = SUM(runny funds) - SUM(auto-refill levels / 2)</blockquote>
@@ -646,7 +832,7 @@ _____________________________________________
 _____________________________________________
 
 /*
-      <li><b style='color:white; background-color:magenta;'>Runny Debt</b>. The violet line shows how much of their incentive rewards the runny accounts have already spent. This total has already reduced the %PROJECT US Dollar Pool, so you can think of it as mitigating the yellow line (subtract it from the yellow line).</li>
+      <li><b style='color:white; background-color:magenta;'>Runny Debt</b>. The violet line shows how much of their incentive rewards the runny accounts have already spent. This total has already reduced the %PROJECT Dollar Pool, so you can think of it as mitigating the yellow line (subtract it from the yellow line).</li>
       */
 /*
     <p>* The distinction between "savings" and %RCREDITS that are actually being used is important. The value of %RCREDITS, like any currency, is what you can get for them. When you save your %PROJECT funds for spending a month or more in the future, it probably means you are confident (1) that you will be able to spend them within the %PROJECT system OR (2) that you will be able to trade them for US Dollars because other members can spend them within the system. So savings are a <em>speculative</em> <a href="%BASE_URL/help/demand">demand</a> for %RCREDITS, rather than a demand based in current reality. The speculation may indeed be accurate, but <a href='velocity'>circulation velocity</a> and <a href='demand'>net monthly influx of US Dollars</a> are stronger measures of the system's capacity for additional %RCREDITS.</p>
@@ -718,7 +904,7 @@ EOF;
 
   $now = r\rTime();
   db\q($keepUpto ? "DELETE FROM r_stats WHERE id>$keepUpto" : 'TRUNCATE r_stats');
-  $start0 = $keepUpto ? strtotime('+' . ($keepUpto < $blockAgo ? STATS_GRAIN : 1), db\lookup('MAX(created)', 'r_stats')) : (@$cttys[0] ?: $now);
+  $start0 = $keepUpto ? strtotime('+' . ($keepUpto < $blockAgo ? STATS_GRAIN : 1), db\get('MAX(created)', 'r_stats')) : (@$cttys[0] ?: $now);
   $created = strtotime('today', $start0); // use first moment of the day
   
   while ($created <= $now) {
@@ -845,8 +1031,8 @@ EOF
  * @param string $when: run "before" or "after" all other installation tasks, or on "uninstall"
  */
 function oldVersion($version, $when) {
-  require_once 'rcredits.inc'; // must be explicit for db\lookup()
-  require_once 'rcredits-util.inc'; // must be explicit for db\lookup()
+  require_once 'rcredits.inc'; // must be explicit for db\get()
+  require_once 'rcredits-util.inc'; // must be explicit for db\get()
 
   //  if ($version >= '1.0b') return;
   
@@ -900,7 +1086,7 @@ function showCharts($whichChart, $ctty = 0, &$chartData = '') {
   $txs = "$txsPerMo @ $avg avg";
 
   $now = r\rTime();
-  $created0 = db\lookup('MIN(created)', 'r_stats'); // show every n days since beginning + daily past n days
+  $created0 = db\get('MIN(created)', 'r_stats'); // show every n days since beginning + daily past n days
   $sql = <<<EOF
     SELECT created, IF(r=0, 0, perMo/r) AS rate, r AS funds, bankIn-bankOut AS usd, savings, runny, runnyBal,
       pAccts, bAccts, pAccts+bAccts AS accts, newbs, top5,
@@ -1775,7 +1961,7 @@ _____________________________________________
 
 _____________________________________________
 
-//    if (${$k . '0'} = @$$k) $$k = db\lookup('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
+//    if (${$k . '0'} = @$$k) $$k = db\get('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
 ///  if (@$state2 == '1020') r\tellAdmin('state2 1020: ' . print_r(debug_backtrace(), 1));
 
 //  if (@$partner) r\tellAdmin(t('%partner sent new member', compact('partner')), ['address1' => @$address] + compact(ray($fields . $partnerExtras)) + $_POST); // temporary (tellAdmin strips off address along with other secure fields)
@@ -1874,7 +2060,7 @@ function checkBona($uid) {
   $acct = r\acct($uid);
   if ($acct->can(B_BONA)) return FALSE;
   if (!db\exists('r_txs', 'payee=:uid and r>0 and payer>0', compact('uid'))) return FALSE;
-  if (!db\lookup('COUNT(DISTINCT payee)', 'r_txs', 'payer=:uid and goods', compact('uid')) >= R_BUYS_BEFORE_BONUS) return FALSE;
+  if (!db\get('COUNT(DISTINCT payee)', 'r_txs', 'payer=:uid and goods', compact('uid')) >= R_BUYS_BEFORE_BONUS) return FALSE;
   return TRUE;
 }*/
 
@@ -2035,7 +2221,7 @@ function badStats($ctty, $asof) {
     $r = $info->r;
     $total = @$total + $r;
   }
-  $rStat = db\lookup('r', 'r_stats', 'ctty=:ctty AND created=:asof', compact('ctty', 'asof'));
+  $rStat = db\get('r', 'r_stats', 'ctty=:ctty AND created=:asof', compact('ctty', 'asof'));
   if ($rStat == round($total, 2)) return FALSE;
   return ['STATS_ERROR' => compact(ray('ctty asof rStat total'))];
 }*/
@@ -2047,14 +2233,14 @@ function badStats($ctty, $asof) {
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $crit = 'BETWEEN :created AND :created+:DAY_SECS-1';
-    //$r += db\lookup('SUM(amount)', 'r_txs', 'payer<0 AND created ' . $crit, compact('created'));
-    //$usd += db\lookup('-SUM(amount)', 'r_usd', 'payee=0 AND completed ' . $crit, compact('created'));
+    //$r += db\get('SUM(amount)', 'r_txs', 'payer<0 AND created ' . $crit, compact('created'));
+    //$usd += db\get('-SUM(amount)', 'r_usd', 'payee=0 AND completed ' . $crit, compact('created'));
     //$newbs = db\count('users', 'created<:created', compact('created')) - $pAccts - $bAccts;
 ///    debug(compact(ray('id created r usd newbs users'))); break;
 //    db\update('r_stats', compact(ray('r usd newbs id')), 'id');
 
     $newbs = db\count('users', 'created<:created AND community=:new', compact('created', 'new')) - $pAccts - $bAccts;
-    $id = db\lookup('id', 'r_stats', 'created=:created AND ctty<>0', compact('created'));
+    $id = db\get('id', 'r_stats', 'created=:created AND ctty<>0', compact('created'));
     db\update('r_stats', compact(ray('newbs id')), 'id');
   }
 */
@@ -2134,7 +2320,7 @@ function badStats($ctty, $asof) {
     }
     $find = t($find, compact(ray('index subject regionEmail')));
     foreach ($one as $k => $value) $find .= "$value%";
-    if (!$last = db\lookup('info', 'r_log', "info LIKE '$find' ORDER BY logid DESC")) {
+    if (!$last = db\get('info', 'r_log', "info LIKE '$find' ORDER BY logid DESC")) {
       if (count($subs) > 1) output("tell-staff can't find $find");
       return FALSE;
     }
@@ -2184,7 +2370,7 @@ function constants($list) {return t\constants($list);}
 function weTellAdminNothing() {
   global $testOnly; if (!$testOnly) return FALSE;
   $info = '%"index":"tell-staff"%';
-  return !db\lookup('info', 'r_log', "info LIKE '$info' ORDER BY logid DESC");
+  return !db\get('info', 'r_log', "info LIKE '$info' ORDER BY logid DESC");
 }
 
 /**
@@ -2225,7 +2411,7 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = []) {
 -----------------------------------------------------
 
 function error($logid) {
-  if ($info0 = db\lookup('info', 'r_log', 'logid=:logid', compact('logid'))) {
+  if ($info0 = db\get('info', 'r_log', 'logid=:logid', compact('logid'))) {
     if (!$info = json_decode(utf8_encode($info0))) $info = $info0; // probably too big for json
   }
   r\go('signin/err=' . R_SYS_ERR);
@@ -2469,7 +2655,7 @@ function undo($args) {
   list ($msg, $subs) = be\undoTx($txid, ':myid IN (payer, payee)', compact('myid'));
   if (!@$subs['success']) return posErr($msg, $subs);
   
-  $id = db\lookup('IF(payer=:myid, payee, payer)', 'r_txs', 'xid=:txid', compact('myid', 'txid'));
+  $id = db\get('IF(payer=:myid, payee, payer)', 'r_txs', 'xid=:txid', compact('myid', 'txid'));
   $a = r\acct($id);
   extract(balrew($a));
   $message = u\tt($msg, $subs);
@@ -3271,7 +3457,7 @@ function usdTransferDone($tx) {
   if (!$payer = r\whoseUsd($Type == 'deposit' ? $DestinationId : $SourceId, $omit)) return FALSE; // tester
   $info = u\ray('txid amount completed', $Id, $Amount, strtotime($ClearingDate));
 
-  $old = db\lookup('completed', 'r_usd', 'txid=:txid', u\ray('txid', $Id)); // existing completion date
+  $old = db\get('completed', 'r_usd', 'txid=:txid', u\ray('txid', $Id)); // existing completion date
   if (is_null($old)) { // no record: system crashed before it got recorded
     $info += u\ray('created payer payee', strtotime($Date), $payer, 0); // create whole record
   } elseif ($old == $info['completed']) return TRUE; // already recorded and correctly dated complete
@@ -3373,7 +3559,7 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
   return (object) ($totals[$ctty] + compact('fancy'));
 
   /*
-  $result = db\lookup('SUM(minimum)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty')); // minima
+  $result = db\get('SUM(minimum)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty')); // minima
   $result -= -r\balance($ctty); // less how many rCredits are in circulation
   $result -= r\totalUSD($ctty); // less how much official currency is in play
   *//*

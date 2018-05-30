@@ -6,7 +6,7 @@ SO we can share our finances, as for a typical "joint account" at a bank.
 Setup:
   Given members:
   | id   | fullName   | acctType    | flags                     | rebate | minimum | created   |*
-  | .ZZA | Abe One    | personal    | ok,confirmed,ided         |     10 |     100 | %today-6m |
+  | .ZZA | Abe One    | personal    | ok,member,confirmed,ided  |     10 |     100 | %today-6m |
   | .ZZB | Bea Two    | personal    | ok,confirmed,ided         |     10 |      50 | %today-6m |
   | .ZZC | Corner Pub | corporation | ok,confirmed,ided,co      |      5 |       0 | %today-6m |
   | .ZZD | Dee Four   | personal    | ok,confirmed,ided         |     10 |       0 | %today-6m |
@@ -23,7 +23,7 @@ Setup:
 
 Scenario: A member requests a joint account
   Given relations:
-  | id | main | agent | permission | employee | isOwner | draw |*
+  | id | main | agent | permission | employee | owner | draw |*
   | 1  | .ZZA | .ZZB  | none       |        0 |       0 |    0 |
   | 2  | .ZZB | .ZZA  | none       |        0 |       0 |    0 |
   When member ".ZZA" completes relations form with values:
@@ -33,8 +33,9 @@ Scenario: A member requests a joint account
   | otherName |*
   | Bea Two   |
   And we show "Relations" with:
-  | other      | Draw | My employee? | Family? | Permission |~requests      |
-  | Bea Two    | No   | No           | No      | %can_joint | --            |
+  | other      | Draw | Employee | Family | Permission |
+  | Bea Two    | No   | No       | No     | %can_joint |
+  Skip
   And members have:
   | id   | jid | minimum |*
   | .ZZA |     |     100 |
@@ -90,7 +91,7 @@ Scenario: A joined account member looks at transaction history and summary
   | .ZZA | .ZZB |     150 |
   | .ZZB | .ZZA |       0 |
   And relations:
-  | id | main | agent | permission | employee | isOwner | draw |*
+  | id | main | agent | permission | employee | owner | draw |*
   | 1  | .ZZA | .ZZB  | joint      |        0 |       0 |    0 |
   | 2  | .ZZB | .ZZA  | joint      |        0 |       0 |    0 |
   And usd transfers:
@@ -145,8 +146,8 @@ Scenario: A joined account member looks at transaction history and summary
 #  | Committed     | $0.60 |
 #  | Your return   | 21.9% | (sometimes is 20.2%)
 #  | ~ever         | 136.7% | or 137.1% (depends on daylight time?) or 68.0%?!
-  | Social return | $68.75 |
-  | including     | $0 |
+#  | Social return | $68.75 |
+#  | including     | $0 |
 
   Scenario: A joined account member unjoins the account
   Given members have:
@@ -154,7 +155,7 @@ Scenario: A joined account member looks at transaction history and summary
   | .ZZA | .ZZB |     150 |
   | .ZZB | .ZZA |       0 |
   And relations:
-  | id | main | agent | permission | employee | isOwner | draw |*
+  | id | main | agent | permission | employee | owner | draw |*
   | 1  | .ZZA | .ZZB  | joint      |        0 |       0 |    0 |
   | 2  | .ZZB | .ZZA  | joint      |        0 |       0 |    0 |
   And transactions: 
@@ -177,7 +178,7 @@ Scenario: A joined account member looks at transaction history and summary
   
 Scenario: A member requests two joins at once
   Given relations:
-  | id | main | agent | permission | employee | isOwner | draw |*
+  | id | main | agent | permission | employee | owner | draw |*
   | 1  | .ZZA | .ZZB  | none       |        0 |       0 |    0 |
   | 2  | .ZZA | .ZZD  | none       |        0 |       0 |    0 |
   When member ".ZZA" completes relations form with values:
@@ -189,6 +190,6 @@ Scenario: A member requests two joins at once
   | Bea Two   |
 # (actually does this, but test can't find it. why?)  And we say "error": "too many joins"
   And we show "Relations" with:
-  | other      | Draw | My employee? | Family? | Permission |~requests      |
-  | Bea Two    | No   | No           | No      | %can_joint | --            |
-  | Dee Four   | No   | No           | No      | %can_none  | --            |
+  | other      | Draw | My employee? | Family? | Permission |
+  | Bea Two    | No   | No           | No      | %can_joint |
+  | Dee Four   | No   | No           | No      | %can_none  |

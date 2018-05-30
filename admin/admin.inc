@@ -30,21 +30,21 @@ function setupBasicAccounts() {
     extract($row);
     if (!$hasServer) continue;
 //    if (isDEV and !in_array($region, [R_SERVER_ID])) continue; // don't slow the tests down
-    if ($uid = db\lookup('uid', 'users', "name=CONCAT(:region, '.')", compact('region'))) {
+    if ($uid = db\get('uid', 'users', "name=CONCAT(:region, '.')", compact('region'))) {
       r\acct($uid)->update(compact(ray('zip federalId flags')));
     } else {
-      $fullName = $fullName ?: db\lookup('name', 'r_states', 'abbreviation=:st', compact('st'));
+      $fullName = $fullName ?: db\get('name', 'r_states', 'abbreviation=:st', compact('st'));
       $email = u\shortName($fullName) . '@' . CG_DOMAIN;
       $fullName = PROJECT . ' ' . $fullName;
       $uid = r\serverUid($region);
-      $state = db\lookup('id', 'r_states', 'abbreviation=:st', compact('st'));
+      $state = db\get('id', 'r_states', 'abbreviation=:st', compact('st'));
       $values = array($uid, $uid, $region . '.', $fullName, $email, $zip, R_COUNTRY_ID, 0, 0, $flags);
       $info = array_combine($keys, $values);
       $info += compact(ray('postalAddr state federalId'));
       new r\Acct($info);
     }
   }
-  //$region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
+  //$region = db\get("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
   if (!isDEV) return; // don't mess with existing members on stage or production server
   
   $values = array(1, 0, 'admin', t('System Administrator'), r\regionField('email'), '', 0, 0, 0, u\bit([B_ADMIN, B_CO]));
@@ -136,7 +136,7 @@ function showSteps($a) {
   $steps = '';
   if (!$a->ok and $a->id != 1) foreach (($a->stepsDone ?: []) as $k => $done) {
     $color = $done ? 'done' : 'not-done';
-    if (!in_array($k, $a->co ? ['proxies'] : ['company', 'relations'])) $steps .= "<b class=\"step-$color\">$k </b>";
+    if (!in($k, $a->co ? 'proxies' : 'company relations')) $steps .= "<b class=\"step-$color\">$k </b>";
   }
   return $steps;
 }
@@ -167,35 +167,36 @@ function showRelations($a) {
   $ret = '';
   $sql = <<<EOF
     SELECT IF(r.main=:uid, other, main) AS them, main, IF(r.main=:uid, u2.fullName, u1.fullName) as who, 
-      permission, employee, isOwner, draw,
-      u1.:IS_CO AS iCo, u2.:IS_CO AS uCo
+      permission, r.:IS_EMPLOYEE AS employee, r.:IS_OWNER AS owner, r.:IS_DRAW AS draw,
+      r.:IS_CUSTOMER AS customer, r.:IS_AUTOPAY AS autopay, u1.:IS_CO AS iCo, u2.:IS_CO AS uCo
     FROM r_relations r LEFT JOIN users u1 ON u1.uid=r.main LEFT JOIN users u2 ON u2.uid=r.other
-    WHERE :uid IN (r.main, r.other) AND :uid<>:jid AND (permission OR employee OR isOwner OR draw OR isCustomer=0)
+    WHERE :uid IN (r.main, r.other) AND :uid<>:jid AND (permission OR r.:IS_EMPLOYEE OR r.:IS_OWNER OR r.:IS_DRAW OR NOT r.:IS_CUSTOMER)
 EOF;
   $q = db\q($sql, compact('uid', 'jid'));
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $permission += B_RELATED; // shift to use bit names
     $extra = '';
-    if ($isOwner and !$iCo and !$uCo) { // family
+    if ($owner and !$iCo and !$uCo) { // family
       $role = t('related to');
       if ($draw) $role .= $uid == $main ? t(' and drawn on by') : t(' and draws on');
     } elseif ($uid == $main) {
       $qo = r\qo($main, $them);
       $extra = '<small> (' . r\qid($them) . ' / ' . a\cardLink("$main/$them") . ')</small>';
-      $role = $isOwner ? t('owned by')
+      $role = $owner ? t('owned by')
         : ($draw ? t('drawn on by')
         : ($permission >= B_MANAGE ? t('managed by')
         : (($permission >= B_SCAN or $employee) ? t('employs')
         : ($permission >= B_READ ? t('readable by')
         : t('probably employs')))));
     } else {
-      $role = $isOwner ? t('owns')
+      $role = $owner ? t('owns')
         : ($draw ? t('draws from')
         : ($permission >= B_MANAGE ? t('manages')
         : (($permission >= B_SCAN or $employee) ? t('works for')
         : ($permission >= B_READ ? t('can read')
-        : t('probably works for')))));
+        : ($customer ? t('buys from')
+        : t('probably works for'))))));
     }
     $ret .= ($ret ? ', ' : '') . "$role <a href=\"$base_url/change-account/acct=$them&page=summary\">$who</a>$extra";
   }
@@ -211,12 +212,12 @@ function formatField($k, $v, $flagsField = B_LIST) {
   $v = $v . ''; // convert to string
 //  if ($k == 'bankAccount' and u\starts($v, '~')) $v = 'c' . $v; // FUDGE to repair broken crypt flag (?)
 //  while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
-  if ($v and in_array($k, ray(ID_KEYS)) and strlen($v) >= strlen(r\cgfId())) {
+  if ($v and in($k, ID_KEYS) and strlen($v) >= strlen(r\cgfId())) {
     if ($a = r\acct($v)) $v = $a->name; else $v .= t(' (missing)'); // eg, when uid is changed
   } // member ID. Don't include agent/payerAgent/etc. here
   if ($v and $k == 'channel') $v = u\rayv(ray(TX_CHANNELS), $v);
   if ($k == 'reid') $v = str_replace(R_MEMBER_MARK, R_AGENT_MARK, r\qid($v));
-  if ($v and in_array($k, ray(R_DATE_FIELDS))) $v = '<div class="date-field">' . strftime('%d%b', $v) . '<span class="year-field">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
+  if ($v and in($k, R_DATE_FIELDS)) $v = '<div class="date-field">' . strftime('%d%b', $v) . '<span class="year-field">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
   if ($k == 'flags') $v = "<div class=\"format-flags\">" . a\flagsDesc($v, $flagsField) . '</div>';
   return $v;
 }
@@ -419,29 +420,6 @@ function changeIt($a) {
   $a->setBit(4, FALSE);
 }
 
-function fixRelations() {
-  $q = db\q('SELECT reid, main, other, permission, isOwner, draw, employee FROM r_relations');
-
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    list ($mainName, $otherName) = array(r\acct($main)->fullName, r\acct($other)->fullName);
-    if (!$permission and !$isOwner and !$draw and !$employee) {
-      db\q('DELETE FROM r_relations WHERE reid=:reid', compact('reid'));
-/**/  debug("Record DELETED: $mainName -- $otherName");
-    } else if ($reid < 999999) {
-      $region = r\acct($main)->region;
-      if ($region == r\serverUid()) {
-        $newReid = -$region + $reid;
-        db\q('UPDATE r_relations SET reid=:newReid WHERE reid=:reid', compact('reid', 'newReid'));
-      } else { // foreign region
-        $newReid = r\acct($main)->newRelation(compact(ray('other permission employee isOwner draw')));
-        db\q('DELETE FROM r_relations WHERE reid=:reid', compact('reid'));
-      }
-/**/  debug("Record MOVED: $reid to $newReid ($mainName -- $otherName)");
-    }
-  }
-}
-
 /**
  * Return a readable list of names of bits set in the given integer bit array.
  * @param int $n: the bit array
@@ -582,13 +560,13 @@ function printCheck(&$ck, $pos, $tx, $mark) {
   $routing = substr($fromAcct, 4, 9);
   $account = substr($fromAcct, 4 + 9);
   
-  $bankInfo = db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
+  $bankInfo = db\get('*', 'r_banks', 'route=:routing', compact('routing'));
   if (!$bankInfo) {w\say("Skipped transaction #$txid for $a->fullName (no bank info)"); return;}
   //u\EXPECT((bool) $bankInfo, 'no bank info');
   extract($bankInfo, EXTR_PREFIX_ALL, 'b');
   if (strlen($b_zip) > 5) $b_zip = substr($b_zip, 0, 5) . '-' . substr($b_zip, 5);
-  if (!$prefix = db\lookup('id', 'r_transit', 'location=:location', ray('location', "$b_city, $b_state"))) {
-    $prefix = db\lookup('id', 'r_transit', 'location=:b_state', compact('b_state'));
+  if (!$prefix = db\get('id', 'r_transit', 'location=:location', ray('location', "$b_city, $b_state"))) {
+    $prefix = db\get('id', 'r_transit', 'location=:b_state', compact('b_state'));
     //u\EXPECT((bool) $prefix, 'no transit prefix');
   }
   $transit = $prefix . '-' . substr($routing, 4, 4) . '/' . substr($routing, 0, 4);
@@ -827,7 +805,7 @@ function callDetails($type = '', $when = '') {
   $heads = ray(t('No call,Just beginning,Setup,Activate,Welcome,Annual'));
   $heads = array_combine($keys, $heads);
   $head = $heads[$type ?: 'nocall'];
-  $setup = in_array($type, ray('pre setup'));
+  $setup = in($type, 'pre setup');
   $late = round(($now - $when) / DAY_SECS);
   $subtext = $now < $when ? t('in %days days', 'days', -$late) : t('%late days overdue', compact('late'));
   $subtext = !$when ? '' : "<br><span>$subtext</span>";
@@ -868,7 +846,7 @@ function callDetails($type = '', $when = '') {
   $msg2 = "$intro $callback" . t(' &mdash; I\'ll also send you an email.');
   $email = t('<p>Dear %name,</p><p>Following up on my phone message, I\'m writing to %reason. %callback &mdash; or reply to this email.</p>', 'name email reason callback', $mya->fullName, $mya->email, $reason, $callback);
   if ($setup) {
-    if ($info = db\lookup('reid,code', 'r_relations', 'other=:myid AND isCustomer', ['myid' => $mya->id])) {
+    if ($info = db\get('reid,code', 'r_relations', 'other=:myid AND :IS_CUSTOMER', ['myid' => $mya->id])) {
       $_how = t('using <%a>this link</a>', '_a', w\atag(tr('%BASE_URL/signup/reid=%reid&customer=%code', $info)));
     } else $_how = t('by signing in at %CG_DOMAIN with account ID "%acct" (then click "Sign-in problems" if you don\'t remember your password)', 'acct', $mya->mainQid);
     $email .= t('<p>Or you can complete the account on your own, %how. But please feel free to ask for help if you run into any problems at all.</p>', compact('_how'));

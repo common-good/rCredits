@@ -12,6 +12,7 @@ use CG\Util as u;
 use CG\Backend as be;
 use CG\Admin as a;
 use CG\Cron as cr;
+use CG\Web as w;
 
 global $base_path;
 define('BASE_PATH', $base_path);
@@ -45,8 +46,8 @@ function fixData(&$info, $direct = FALSE) {
     u\setDft($country, 'US');
     if ($country == 'US' or $country == US_COUNTRY_ID) u\setDft($state, 'MA');
   }
-  if (@$country) $country = db\lookup('id', 'r_countries', ':country IN (name, iso_code)', compact('country'));
-  if (@$state) $state = db\lookup('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country'));
+  if (@$country) $country = db\get('id', 'r_countries', ':country IN (name, iso_code)', compact('country'));
+  if (@$state) $state = db\get('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country'));
 //  if (@$mail) t\fixEmail($mail);
   if (@$email) t\fixEmail($email);
   if (strlen(@$phone) == 1) u\prefix('+1413772000', $phone);
@@ -210,7 +211,7 @@ function fixFlags($flags) {
   if (!@$flags or is_numeric($flags)) return $flags + 0;  
   $res = 0;
   foreach (ray($flags) as $one) $res |= u\bit(u\consta('b', $one));
-  if ($res & u\bit(B_OK)) $res |= u\bit(B_MEMBER);
+// NO! fails for r_txs and r_relations flags  if ($res & u\bit(B_OK)) $res |= u\bit(B_MEMBER);
   return $res;
 }    
 
@@ -268,28 +269,25 @@ function doTx($info, $thing) {
         u\setDft($payeeReward, r\reward($payer, $payee, $amount, FALSE));
       }
     }
-    if (u\in(@$purpose, 'offline')) $data['force'] = 1;
-    if (u\in(@$purpose, 'undoneBy:') or u\in(@$purpose, 'undoes:')) {
+    if (in(@$purpose, 'offline')) $data['force'] = 1;
+    if (in(@$purpose, 'undoneBy:') or in(@$purpose, 'undoes:')) {
       list ($k, $v) = explode(':', @$purpose);
       $data += array($k => $v);
     }
     if (@$fromAgent or @$from) $payerAgent = t\agent(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
     if (@$toAgent or @$to) $payeeAgent = t\agent(@$toAgent ?: $to );
-    u\setDft($taking, 0);
     unset($info['purpose']);
+    u\setDft($taking, 0);
+    if (!$flags0 = @$flags) $flags = 0;
+    foreach (ray(TX_FLAGS) as $k) if (@$$k or $$k = in($k, $flags0)) u\setBit($flags, $k, $$k);
   }
   
   $fields = 'xid payer payerAgent payee payeeAgent amount payerReward payeeReward type goods data risk risks';
   if (!$testOnly) $fields .= $inv ? ' created' : ' created channel'; // when creating, add these if not already explicit
-
-  if (!$inv) {  
-    $fields .= ' flags';
-    $flagRay = ray(@$flags);
-    $flags = 0;
-    foreach (ray(TX_FLAGS) as $k) if (@$$k or in_array($k, $flagRay)) u\setBit($flags, $k);
-  }
+  if (!$inv) $fields .= ' flags';
   
   $info = compact(ray($fields)) + $info; // apply modifications
+
   foreach (ray('from to for rebate bonus ' . TX_FLAGS) as $one) unset($info[$one]);
 
   if (!@$inv) {
@@ -319,10 +317,6 @@ function doTx($info, $thing) {
  */
 function txUid($id, &$main, &$other) {
   list ($main, $other) = [t\uid($id), t\agent($id)];
-/*  if (strpos($id, R_AGENT_MARK) !== FALSE) {
-    $reid = t\uid(str_replace(R_AGENT_MARK, R_MEMBER_MARK, $id));
-    extract(r\relation('main,other', $reid));
-  } else $main = $other = t\uid($id); */
 }
 
 /**
@@ -335,29 +329,27 @@ function doRelation($info) {
 
   t\fixData($info);
   extract($info);
-//  if (@$id) $reid = t\uid(str_replace(R_AGENT_MARK, R_MEMBER_MARK, $id)); // deprecated
-//  u\num($id, u\a2n(substr($id, -3)));
-//  if (!$mainAcct = r\acct(t\uid($main))) return output("main:$main is not an id");
-//  if (!$agtAcct = r\acct(t\uid($agent))) return output("agent:$agent is not an id");
-  u\setDft($other, @$agent);
-  list ($mainA, $agtA) = [r\acct($main), r\acct($other)];
+  if (@$agent) {
+    $info['other'] = $other = $agent;
+    unset($info['agent']);
+  }
+
+  list ($mainA, $agtA) = [r\acct($main), r\acct(@$other)];
   foreach ([$main => $mainA, $other => $agtA] as $i => $a) if (!$a or !$a->proSe) return t\output("bad rel acct: $i");
-  //u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
-//  u\EXPECT($mainA->proSe and $agtA->proSe, "not proSe: $mainA->proSe or $agtA->proSe");
-//  list ($main, $other, $otherNum) = array($mainA->id, $agtA->id, @$num);
+
   if (isset($id) and !@$reid) $reid = $id;
   u\setDft($otherNum, @$num);
   $info['permission'] = @$permission ? u\consta('b', $permission) - B_RELATED : 0;
 
   if (@$draw) $agtA->setBit(B_DRAWS);
+  foreach (ray(REL_FLAGS) as $k) if (@$$k) u\setBit($flags, $k);
   
-  foreach (ray('id agent num rCard') as $k) unset($info[$k]);
-  $info += compact(ray('reid main other otherNum'));
+  foreach (ray('id agent num rCard ' . REL_FLAGS) as $k) unset($info[$k]);
+  $info += compact(ray('reid main other otherNum flags'));
   
   if ($testOnly) {
     return verifyRecord('r_relations', $info);
   } else {
-//    db\insert('r_relations', $info);
     $mainA->newRelation($info);
     if (@$rCard == 'yes') {
       if (!$agtA->cardCode2) r\acct($main, $other)->makeCardCode();
@@ -386,10 +378,9 @@ function doCompanyFlags($info) {
   global $testOnly;
   extract(just('id flags', $info));
   $coFlags = 0;
-  $canBitNames = ray(APP_CAN_BIT_NAMES);
   if ($flags) foreach (ray($flags) as $one) {
     $flag = u\bit(u\consta('co', $one));
-    if (in_array($one, $canBitNames)) $flag <<= APP_CANS;
+    if (in($one, APP_CAN_BIT_NAMES)) $flag <<= APP_CANS;
     $coFlags |= $flag;
   }
   if (!$a = r\acct(t\uid($id))) return t\output("Not an account: $id");
@@ -927,9 +918,9 @@ function verifyRecord($table, $info) {
   foreach ($info as $key => $value) {
     if ($value == '?') {unset($info[$key]); continue;}
     $crit[] = $value === '' ? "($key IS NULL or $key=:$key)"
-    : ((in_array($key, ray(R_DATE_FIELDS)) or stripos($key, 'date') !== FALSE) ? 
+    : ((in($key, R_DATE_FIELDS) or stripos($key, 'date') !== FALSE) ? 
       "DATE(FROM_UNIXTIME($key))<=>DATE(FROM_UNIXTIME(:$key))" 
-    : (in_array($key, ray('trust risk')) ? "CAST(ROUND($key, 2) AS CHAR)<=>:$key"
+    : (in($key, 'trust risk') ? "CAST(ROUND($key, 2) AS CHAR)<=>:$key"
     : "$key<=>:$key")); // null-safe ==
   }
 
@@ -991,7 +982,6 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   $sta['values'] = $sta['input'] = $values + $dfts; // add to whatever status the form left off in
   $fieldErr = FALSE; // no field errors yet
   if ($validate) if (!@$lastGo or @$lastGo == $xlastGo) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $sta);
-  
   $lastIdentifierTag = '</div identifiers>';
   if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
   if ($fieldErr) return TRUE; // no submit if field error
@@ -1020,7 +1010,7 @@ function pageForm($page, $msg = '', $field = '') {
 
 /*
   if (u\abbreviates('/user/', $page)) {
-//    $login = u\in($page, 'user/login');
+//    $login = in($page, 'user/login');
     $sta = @$formSta ?: [];
     list ($form, $function) = FALSE ? array('user_register_form', 'formSignup')
       : ($login ? array('user_login', 'formSignin') : []);
@@ -1329,7 +1319,7 @@ function shownWith($content, $type = 'text', $mustBePresent = TRUE) {
   $xi = $i = 0;
   foreach ($ray as $one) {
     if ($one === '' or substr($one, 0, 1) == '~') continue; // ignore ~labels
-//    if (u\in($one, '%')) $one = t\lastMinuteSubs(htmlspecialchars($one));
+//    if (in($one, '%')) $one = t\lastMinuteSubs(htmlspecialchars($one));
     $one = t($one); // translate constants in member
     if (($one = u\redash($one)) === '') continue;
     $i = strpos($model, $one, $xi = $i);

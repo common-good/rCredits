@@ -1,27 +1,25 @@
-rCredits Software
+NO LONGER USED. See the Google Drive "Developers Manual" instead: https://docs.google.com/document/d/14e-FNokP0MYsUvMeEOqBpQ9UalWNYIC4jf7ianONfD0/edit
+
+
+
+Common Good Server Software
 Notes for developers
 
-    UPDATE PROCEDURE (for upgrading software on the production server new.rcredits.org)
+    UPDATE PROCEDURE (for upgrading software on the production server new.commongood.earth)
     - Run all tests before upload. No upload if not 100% pass. 
       Exceptions: 
       . new feature failure, if new feature is disabled.
-      . admin.inc can normally be uploaded without testing
+      . admin.inc and admin-forms.inc can normally be uploaded without testing
       . temporary debugging statements can be added if they are first tested on ws.rcredits.org
-      . cut and paste bug fixes on prod server when they are in just one or two clumps of 6 lines or less AND the functions being patched have not otherwise changed (on the DEV system) since the last update
+      . cut and paste bug fixes on production server when they are in just one or two clumps of 6 lines or less AND the functions being patched have not otherwise changed (on the DEV system) since the last update
     - Find and delete all temporary debugging statements:
-///       . Search for debug(, die(, print_r(, flog( and echo. Such lines should begin with /// or if keepers /**/ 
+///       . Search for debug(, die(, print_r(, flog( and echo. Any such lines to KEEP should begin with /// (inactive) or /**/ (active)
             Sometime write a macro to do the finding. 
-      . Make sure debugMode in dwolla.php is FALSE.
-    - Upload first to ws.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works
-    - When updating data directly through phpMyAdmin or the PHP window or other admin tools, back up the database or relevant tables first.
-    - Upload to new.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works.
+    - Upload to the test site: ws.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works
+    - When modifying data on the server (through phpMyAdmin or the PHP window or other admin tools), first back up the database or relevant tables.
+    - Upload to new.commongood.earth, rebuild menus (and maybe reinstall) and make sure something works.
+    - Push to github.
     ***
-
-  MEMBERSHIP PROCEDURE:
-    . wait for READY status (once all steps are done, including Dwolla account and bank connection REQUEST)
-    . make sure the photo is adequate
-    . mark the account as an rTrader (OK) (before printing card)
-    . print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
 **************************************************
 
@@ -29,18 +27,23 @@ A. Development environment
  - See https://docs.google.com/document/d/1oQU-PPown2TV02Xg9htxByzOhUopGH-areUrlZ94Te0/edit
    for Step by Step Development Environment Setup Instructions
  - Use Notepad++ for viewing and editing .feature files (makes it a LOT more pleasant).
-   View/User-Defined Dialogue/Import gherkin-format-notepad++.xml from the Gherkin folder
+   View/User-Defined Dialogue/Import gherkin-format-notepad++.xml from the vendors/gherkin folder
    If you use Notepad++ for PHP, Go to Settings/Style Configurator/Language, select php, add the following list to User Ext.:
       inc module test class install steps
    Also go to Settings/Preferences/Tab Settings and set the tab size to 2, replace with spaces
  - TESTING:
    . offline (isDEV): The only place to run the feature tests (sign in as admin with any password then click Tests).
-   . staging server (!isDEV and !isPRODUCTION): copy production database to the staging server (for example ws.rcredits.org), then do something to see what will happen when it happens for real on the production server. Ideally, we should have (1) an API that allows a list of events to be automated and (2) a "what happened since xxx" report. Emails are disabled except to the organization and the tester. 
+   . test server (!isDEV and !isPRODUCTION): from time to time copy production database to the test server (ws.rcredits.org), sign in, run a\makeTestAccounts(); on the PHP page, then do something to see what will happen when it happens for real on the production server. Ideally, we should have (1) an API that allows a list of events to be automated and (2) a "what happened since xxx" report (but we don't yet). Emails other than to the organization and the tester are disabled on the test server. 
    . production server (isPRODUCTION): keep an eye on results, but don't mess with it
  
-B. Coding style and strategies:
-  - isDEV (defined at the top of rcredits.inc) is TRUE only under Windows
-  - Mostly follow generally-accepted coding practices (For example, all of the Eclipse's defaults.)
+B. Coding strategies and style:
+  - Rule #1: Keep the code as short as possible without losing clarity.
+  - In particular, avoid redundant code patterns, by creating small, low-level functions.
+  - Make the tools easy to use -- that is, allow variations in number and type of arguments if that is convenient for the caller.
+  - Avoid high-level Drupal functions -- for example don't use Views, Fields, and complex modules. Eventually we expect to
+    drop Drupal, so avoid unnecessary dependency and entanglement.
+
+    - Mostly follow generally-accepted coding practices (For example, all of Eclipse's defaults.)
   - Exceptions: 
     . Indent two spaces instead of one tab.
     . A simple if-then can go all on one line.
@@ -49,13 +52,8 @@ B. Coding style and strategies:
   - Use camelCase for all internal variables and function names.
   - Use lowercase-and-hyphens for filenames and URLs.
   - Use lowercase_and_underscores only where necessary to keep Drupal happy.
-  - Keep the code as short as possible without losing clarity.
-  - In particular, avoid redundant code patterns, by creating small, low-level functions.
-  - Make the tools easy to use -- that is, allow variations in number and type of arguments if that is convenient for the caller.
-  - Avoid high-level Drupal functions -- for example don't use Views, Fields, and complex modules. Eventually we expect to
-    drop Drupal, so avoid unnecessary dependency and entanglement.
 
-C. rCredits module structure
+C. Module structure
    There are at least three distinct interfaces to rCredits, all sharing business logic code in the main rcredits folder.
    Each interface (rWeb, rSmart, rSMS, and rCron) has its sub-module in its own folder, with its own features and tests. Actually rCron is not a Drupal module and rSmart and rSMS probably don't need to be either.
    Code that is unlikely ever to apply to more than one interface, should not go in the main rcredits folder and vice versa.
@@ -76,9 +74,9 @@ D. rCredits namespaces and how they are abbreviated in calling files. Functions 
    \   Drupal functions are marked with a (technically superfluous) leading backslash
  
 E. Database clues
-  - Download table with latest zipcodes, counties, etc. at unitedstateszipcodes.org/zip-code-database/
-  - get countries/states table from CiviCRM db.
-  - All rCredits tables begin with "r_", except `offsite` and `users`.
+  - Download table with latest zipcodes, counties, etc. at unitedstateszipcodes.org/zip-code-database/ (last done in 2014)
+  - get countries/states table from CiviCRM db. (last done in 2014)
+  - All rCredits tables begin with "r_", except `users`.
   - Uid fields in every table are bigint (unlike standard Drupal)
   - users (we use this as a table of accounts, not of users, and added many new fields)
     . Common Good Communities (CGCs) and regional servers have uid < 0.

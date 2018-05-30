@@ -128,9 +128,13 @@ function makeQueue($callback, $time = 15) {return array('worker callback' => "CG
 /**
  * Set or return a global variable.
  */
-function g($varName) {
-
+function g($k, $v = NULL) {
+  global $$k;
+  if (isset($v)) $$k = $v;
+  return $$k;
 }
+
+function trace() {return print_r(debug_backtrace(), 1);}
 
 /** Miscellaneous functions for debugging
  *

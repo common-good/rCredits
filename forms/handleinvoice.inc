@@ -28,7 +28,7 @@ function formHandleInvoice($form, &$sta, $args = '') {
     if (@$mya and $payer != $mya->id) w\signout(FALSE); // make sure we're signed out of any possibly different acct
   } elseif (!$mya) {
     return hack(t('attempt to handle invoice not signed in'));
-  } else if (!in_array($mya->id, [$payer, $payee]) or ($mya->id == $payer xor $toMe)) return hack(t('bad person in invoice payment'));
+  } else if (!in($mya->id, [$payer, $payee]) or ($mya->id == $payer xor $toMe)) return hack(t('bad person in invoice payment'));
 
   $subs = ray('amount what', u\fmtAmt($amount), $purpose);
   
@@ -41,7 +41,7 @@ function formHandleInvoice($form, &$sta, $args = '') {
       $_warning = t('<p><b>IMPORTANT:</b> To avoid insufficient funds charges, be sure there are enough funds in your bank account to cover any automatic transfer that may result from approving payment of this invoice (and future invoices, if you check the "Auto" box).</p>');
       if (!@$webpay) $always = boxFld('always', t('Auto:'), t('Pay all invoices from %who automatically.', $subs), 0);
     } elseif ($a->balance <= 0) {
-      $_warning = t('You cannot approved this invoice until you have money in your account. Sign in at %CG_DOMAIN and click "Bank" on the menu.');
+      $_warning = t('You cannot approve this invoice until you have money in your account. Sign in at %CG_DOMAIN and click "Bank" on the menu to transfer funds from (or to) your bank account.');
       $disabled = w\disabled();
     } else $_warning = '';
 
@@ -101,9 +101,7 @@ function formHandleInvoice_submit($form, &$sta) {
     }
     
     if (@$always) {
-      if ($reid = r\relation('reid', $payee, $payer)) {
-        db\update('r_relations', ray('reid isCustomer', $reid, AUTOPAY_FLAG), 'reid');
-      } else $toA->newRelation(ray('other isCustomer', $payer, AUTOPAY_FLAG));
+      r\acct($payee, $payer)->setRel('customer autopay', TRUE, TRUE);
       $msg .= '|' . t('auto pay on', compact('payeeName'));
     }
   } elseif ($op == 'delete') {

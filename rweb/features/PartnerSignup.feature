@@ -33,8 +33,8 @@ Scenario: A newbie visits the registration page sent by a partner
   | id   | fullName | email | phone        | zip   | flags | address | city   | state | postalAddr              |*
   | .AAA | Abe One  | a@    | +14132530000 | 01001 |       | 1 A St. | Agawam | MA    | POB 1, Agawam, MA 01001 |
   And relations:
-  | reid | main | agent | isCustomer |*
-  | .AAA | .ZZC | .AAA  |          1 |
+  | reid | main | agent | flags    |*
+  | .AAA | .ZZC | .AAA  | customer |
   And we say "status": "new customer welcome" with subs:
   | partnerName |*
   | Our Pub     |
@@ -89,8 +89,8 @@ Scenario: A member visits the registration page sent by a partner
   | source | radio |
   | qid | NEWAAA |
   Then relations:
-  | reid | main | agent | isCustomer |*
-  | .AAA | .ZZC | .AAA  |          1 |
+  | reid | main | agent | flags    |*
+  | .AAA | .ZZC | .AAA  | customer |
   And we say "status": "new customer done" with subs:
   | partnerName |*
   | Our Pub     |

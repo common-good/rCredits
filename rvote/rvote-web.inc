@@ -148,7 +148,7 @@ function formEvents_submit($form, &$sta) {
 
   $op = (w\op($sta) == 'prev' and strpos($op, t('Previous')) === FALSE) ? 'doneWithQ' : w\op($sta);
   if ($op == 'showVotes') return w\say(v\showVotes($ctty));
-  if (in_array($op, ['noDirect', 'noVote'])) return w\say(v\showNonVoters($ctty, $op == 'noDirect'));
+  if (in($op, 'noDirect noVote')) return w\say(v\showNonVoters($ctty, $op == 'noDirect'));
   if ($op == 'results') return r\go("prox/page=Events&$args&results=1");
   if ($op == 'resultsNoProx') return r\go("prox/page=Events&$args&results=1&noProxies=1");
   
@@ -284,7 +284,7 @@ function formQuestion($form, &$sta, $args = '') {
   global $mya;
   if (!$add = empty($qid)) {
     $fields = 'e.id AS eid, e.ctty, q.text, q.detail, q.linkDiscussion, q.type, q.units, q.budget, q.optOrder';
-    if (is_numeric($qid) and $question = db\lookup($fields, 'r_questions q LEFT JOIN r_events e ON e.id=q.event', 'q.id=:qid', compact('qid'))) extract($question); else $add = FALSE;
+    if (is_numeric($qid) and $question = db\get($fields, 'r_questions q LEFT JOIN r_events e ON e.id=q.event', 'q.id=:qid', compact('qid'))) extract($question); else $add = FALSE;
     if ($ctty != $mya->community) return r\go('', t('Wrong community.'));
 
     $id = hidFld($qid);
@@ -349,7 +349,7 @@ function formOption($form, &$sta, $args = '') {
   global $mya;
   if (!$add = empty($oid)) {
     $fields = 'e.id AS eid, e.ctty, q.id AS qid, o.text, o.detail';
-    if (is_numeric($oid) and $option = db\lookup($fields, 'r_options o LEFT JOIN r_questions q ON q.id=o.question LEFT JOIN r_events e ON e.id=q.event', 'o.id=:oid', compact('oid'))) extract($option); else $add = FALSE;
+    if (is_numeric($oid) and $option = db\get($fields, 'r_options o LEFT JOIN r_questions q ON q.id=o.question LEFT JOIN r_events e ON e.id=q.event', 'o.id=:oid', compact('oid'))) extract($option); else $add = FALSE;
     if ($ctty != $mya->community) return r\go('', t('Wrong community.'));
 
     $id = hidFld($oid);
@@ -385,7 +385,7 @@ function formProposalReport($form, &$sta, $args = '') {
   
   $mya = w\eLinkAcct($sta, $args, 'acct'); // allow any signed in account, so user can switch to personal account, below
 
-  if (!@$p or !$project = db\lookup('project', 'r_proposals', 'id=:p', compact('p'))) return r\go('empty', t('No such proposal.'));
+  if (!@$p or !$project = db\get('project', 'r_proposals', 'id=:p', compact('p'))) return r\go('empty', t('No such proposal.'));
   
   v\showProposal($mya, $extra, -$p);
 
@@ -407,7 +407,7 @@ function formProposalNotes($form, &$sta, $args = '') {
   include_once __DIR__ . '/../rvote/rvote.inc';
   extract(just('p', $args));
 
-  if (!@$p or !$project = db\lookup('project', 'r_proposals', 'id=:p', compact('p'))) return r\go('empty', t('No such proposal.'));
+  if (!@$p or !$project = db\get('project', 'r_proposals', 'id=:p', compact('p'))) return r\go('empty', t('No such proposal.'));
 
   $notes = v\proposalComments($p) ?: [];
 //  $notes = ['note1', 'note2'];

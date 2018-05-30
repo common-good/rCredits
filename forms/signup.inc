@@ -18,8 +18,8 @@ include_once R_ROOT . '/forms/signin.inc';
  *   personal: opening a personal account (default TRUE)
  *   fullName: the likely name of the account to create
  *   phone: the account's likely phone number
- *   isOwner: is the inviter an owner (these last four params are processed by suCreatorRelation())
- *   employeeOk: is the inviter an employee
+ *   owner: is the inviter an owner (these last four params are processed by suCreatorRelation())
+ *   employee: is the inviter an employee
  *   flow: which way credit can flow (be drawn)
  *   helper: uid of account creating this one -- non null (same as $inviter) means created with formSignupCo
  */
@@ -102,8 +102,8 @@ EOF
 //    $pin = passFld(t('PIN:'), [t('Choose a PIN (any 4 digits)'), t('Your security code for online purchases.')]); // first time logging in, get PIN
     $calling = textFld(t('Life Calling:'), [t('Your calling in life (optional)'), t('One of the main purposes of %PROJECT is to provide you the opportunity to do what you feel called to do in life. What would bring you joy to do, to earn %RCREDITS (maybe something you\'re not doing yet)? What might you have to offer?')]);
     $companyOptions = array(
-      'isOwner' => t('owner'),
-      'employeeOk' => t('employee'),
+      'owner' => t('owner'),
+      'employee' => t('employee'),
       'contractor' => t('other worker (contractor, supplier, etc.)'),
     );
     $copts = boxOpt('companyOptions', $companyOptions, $sta);
@@ -159,8 +159,8 @@ function formSignup_validate($form, &$sta) {
 //  if (@$pin === '') return say('pin required', 'pin');
 //  if (@$pin and strlen($pin) != 4) return say('wrong pin len', 'pin');
   
-  if (@$companyOptions) extract(just('isOwner employeeOk contractor', $companyOptions));
-  $gotrelation = (@$employeeOk or @$isOwner or @$contractor);
+  if (@$companyOptions) extract(just('owner employee contractor', $companyOptions));
+  $gotrelation = (@$employee or @$owner or @$contractor);
   if (@$company or @$companyPhon) { // NOT or $gotrelation (let user get by without)
     foreach (ray('company companyPhon') as $one) {
       if (u\nonish(@$$one)) $$one = '';
@@ -169,7 +169,7 @@ function formSignup_validate($form, &$sta) {
     if (@$company and $err = u\badName($company)) return say($err, array('field' => 'Company'), 'company');
     if (@$companyPhon and !$companyPhone = u\fmtPhone($companyPhon, '+n')) return say('bad company phone', compact('companyPhone'), 'companyPhone');
     if (!$gotrelation) return say('what relation', 'company');
-    $signupCo = compact(ray('company companyPhone employeeOk isOwner contractor'));
+    $signupCo = compact(ray('company companyPhone employee owner contractor'));
   }
   
   if (!@$legalName) $legalName = $fullName;
@@ -188,7 +188,7 @@ function formSignup_validate($form, &$sta) {
 
 function formSignup_submit($form, &$sta) {
   $dbFields = 'fullName legalName email flags phone federalId dob pin country zip address city state postalAddr helper iCode notes wants calling signupCo tenure source';
-  extract(just('myid confirmed acctType args company ats owns partner customer source2 ' . $dbFields, $sta['input']));
+  extract(just('myid confirmed acctType args ats owns partner customer source2 ' . $dbFields, $sta['input']));
 
   if (u\test() and !@$args) $args = basename($_SERVER['REQUEST_URI']);
 
@@ -298,7 +298,7 @@ function jointSignup($a = NULL) {
  *   we also redirect if all that needs to be done is to display a message (including if the person is already a member)
  */
 function partnerSignup($args) {
-  foreach ($args as $k => $v) $args[$k] = trim(str_replace('  ', ' ', $v)); // avoid complaint about double spaces
+  foreach ($args as $k => $v) u\badName($args[$k]); // fix double spaces and leading or trailing
   extract(just('partner partnerCode customer qid phone fullName email', $args));
   if (!$partnerA = r\acct($partner) or $partnerA->emailCode != $partnerCode) return NULL;
   $partnerName = $partnerA->fullName;
@@ -316,10 +316,7 @@ function partnerSignup($args) {
 
   if (!$valid) return r\go('empty', t('That does not appear to be your correct %PROJECT member ID. But no worries. We will try to figure out who you are and match up your %PROJECT account with your account at %partnerName. If you have not yet finished opening your %PROJECT account, <%a>sign in</a> (if you have not yet begun, go to %CG_DOMAIN and click "Sign up").', 'partnerName _a', $partnerName, atag('/signin'))); // member mistyped their qid (a royal pain in the butt)
 
-  if ($reid) { // relation with this partner already exists
-    u\EXPECT(r\relation('other', $reid) == $a->id, 'duplicate customer');
-    db\update('r_relations', ray('reid isCustomer code', $reid, TRUE, $customer), 'reid'); // just update the customer
-  } else $reid = $partnerA->newRelation(ray('other isCustomer code', $a->id, TRUE, $customer)); // create the relation
+  r\acct($partnerA->id, $a->id)->setRel('customer code', TRUE, $customer);
   tellPartner($partnerA, $a, 'complete', $customer);
   return r\go($a->member ? 'empty' : "signin?name=$qid"); // finish account setup or report success
 }
@@ -344,9 +341,9 @@ function newCustomer($reid, $args) {
   $a = new r\Acct(just('fullName phone email address city state zip country postalAddr source', $args));
   u\EXPECT($a, 'cannot create account');
   if (!$reid) {
-    extract(just('partner customer email', $args));
+    extract(just('partner customer email autopay', $args));
     $partnerA = r\acct($partner);
-    $reid = $partnerA->newRelation(ray('other isCustomer code data', $a->id, TRUE, $customer, serialize($args)));
+    $reid = $partnerA->newRelation(ray('other customer code autopay data', $a->id, TRUE, $customer, (bool) @$autopay, serialize($args))); // (bool) is required to avoid NULL
     w\say('new customer welcome', ['partnerName' => $partnerA->fullName]);
     try { // give them a way to continue, even if they haven't completed the first page
       $noFrame = TRUE;
@@ -372,4 +369,17 @@ function continuePartnerSignup(&$reid, $customer) {
   if ($a->federalId) return r\go("signin?name=$a->mainQid", t('Sign in to continue your account set-up.'));
 
   return unserialize($data) + ['myid' => @$a ? $a->id : 0];
+}
+
+/**
+ * Gather the just-submitted checkbox values as which-boxes-to-check for boxesFld.
+ * @param string $field: name of boxesFld field
+ * @param assoc $opts: display names of the boxes, keyed by their index
+ * @param assoc $sta: form status
+ * @return flat array of values (not display names) of checked boxes
+ */
+function boxOpt($field, $opts, $sta) {
+///   debug(compact('field','opts','sta'));
+  foreach ((@$sta['input'][$field] ?: []) as $k => $v) $res[] = $k; // $opts[$k]; // note that k==v
+  return @$res ?: [];
 }

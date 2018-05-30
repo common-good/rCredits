@@ -58,7 +58,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Flow AMemberOverdrawsWithNotEnoughToDrawOn
  *     MAKE Gift AMemberDonates
  *     MAKE Gift AMemberDonatesWithInsufficientFunds
- *     MAKE Joint AJoinedAccountSlaveMemberRequestsANewMinimum
  *     MAKE Membership AMemberSignsInForTheFirstTime
  *     MAKE Preferences AMemberChangesPreferences
  *     MAKE Reimburse AMemberAsksToChargeAnotherMember
@@ -99,7 +98,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Invoice AMemberApprovesAnInvoiceWithInsufficientFunds
  *     MAKE Invoice AMemberApprovesInvoicesForevermore
  *     MAKE Invoice AMemberApprovesAnInvoiceToATrustingCustomer
- *     MAKE Joint AMemberRequestsAJointAccount
  *     MAKE Membership AMemberSignsInForTheFirstTime
  *     MAKE PartnerSignup ANewbieVisitsTheRegistrationPageSentByAPartner
  *     MAKE Reimburse AMemberConfirmsRequestToChargeAnotherMember
@@ -125,7 +123,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Signup AMemberRegistersWithAnExistingCompany
  *     MAKE Signup AMemberRegistersWithAnUnknownCompany
  *     MAKE Signup AMemberRegistersWithACompanyWithNoRelation
- *     MAKE Signup AMemberRegistersWithABadCompany
  *     MAKE Signup AMemberRegistersWithABadCompanyPhone
  *     MAKE SignupCo AMemberRegistersACompany
  *     MAKE SignupCo AMemberRegistersACompanyWhileManagingAnotherAccount
@@ -242,8 +239,6 @@ function members($list) {return t\members($list);}
  *     TEST Invoice AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Invoice AMemberApprovesAnInvoiceToATrustingCustomer
  *     MAKE Joint Setup
- *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
- *     MAKE Joint AJoinedAccountMemberUnjoinsTheAccount
  *     MAKE Preferences Setup
  *     MAKE Preferences AMemberChangesPreferences
  *     MAKE Reimburse Setup
@@ -280,7 +275,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Gift AMemberDonatesWithInsufficientFunds
  *     TEST Invoice AMemberApprovesAnInvoiceWithInsufficientFunds
  *     TEST Joint AMemberRequestsAJointAccount
- *     TEST Joint AMemberRequestsTwoJoinsAtOnce
  *     TEST PartnerSignup ANewbieVisitsTheRegistrationPageSentByAPartner
  *     TEST PartnerSignup AMemberVisitsTheRegistrationPageSentByAPartner
  *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
@@ -290,7 +284,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Signin AMemberAsksForANewPasswordForACompany
  *     TEST Signup AMemberRegistersBadName
  *     TEST Signup AMemberRegistersAgain
- *     TEST Signup AMemberRegistersWithABadCompany
  *     TEST Signup AMemberRegistersWithABadCompanyPhone
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
@@ -312,7 +305,7 @@ function weSayWithSubs($type, $index, $subs) {
   if (@$wild) {
     $i = strpos($wantMsg, $wild);
     $tailLen = strlen($wantMsg) - $i - strlen($wild);
-    foreach ($msgs[$type] as $actual) {
+    foreach (@$msgs[$type] ?: [] as $actual) {
       if (substr($actual, 0, $i) == substr($wantMsg, 0, $i) and substr($actual, -$tailLen) == substr($wantMsg, -$tailLen)) {$res = TRUE; break;}
     }
   } else {
@@ -434,8 +427,6 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST Invoice AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Invoice AMemberConfirmsRequestToChargeANotyetMember
  *     TEST Joint AMemberRequestsAJointAccount
- *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
- *     TEST Joint AMemberRequestsTwoJoinsAtOnce
  *     TEST PartnerSignup ANewbieVisitsTheRegistrationPageSentByAPartner
  *     TEST Preferences AMemberVisitsThePreferencesPage
  *     TEST Preferences AnotherMemberVisitsThePreferencesPage
@@ -466,8 +457,7 @@ function weShowWith($title, $content = FALSE, $debug = TRUE) {return t\weShowWit
 /**
  * with: (ARG)
  *
- * in: TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
- *     TEST Relations ItsComplicated
+ * in: TEST Relations ItsComplicated
  *     TEST SignupCo AMemberRegistersACompany
  *     TEST Statement AMemberLooksAtAStatementForPreviousMonth
  *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
@@ -525,9 +515,6 @@ function withoutOptions($options) {
  *     TEST Invoice AMemberApprovesInvoicesForevermore
  *     MAKE Invoice AMemberApprovesAnInvoiceToATrustingCustomer
  *     MAKE Joint AMemberRequestsAJointAccount
- *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
- *     MAKE Joint AJoinedAccountMemberUnjoinsTheAccount
- *     MAKE Joint AMemberRequestsTwoJoinsAtOnce
  *     MAKE Membership Setup
  *     TEST PartnerSignup ANewbieVisitsTheRegistrationPageSentByAPartner
  *     TEST PartnerSignup AMemberVisitsTheRegistrationPageSentByAPartner
@@ -578,8 +565,6 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Invoice AMemberApprovesAnInvoiceWithInsufficientFunds
  *     TEST Invoice AMemberApprovesAnInvoiceToATrustingCustomer
  *     TEST Joint Setup
- *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
- *     TEST Joint AJoinedAccountMemberUnjoinsTheAccount
  *     TEST Reimburse Setup
  *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
@@ -612,14 +597,12 @@ function usd($list) {return t\usd($list);}
  * in: MAKE Community CronCalculatesTheStatistics
  *     MAKE Company AMemberVisitsTheCompanyInfoPage
  *     MAKE Contact AMemberVisitsTheContactInfoPage
- *     MAKE Coupons AMemberRedeemsAGiftCoupon
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
  *     MAKE EditTx ABuyerChangesTheTransactionDescription
  *     MAKE EditTx ABuyerDisputesACharge
  *     MAKE EditTx ASellerReversesACharge
  *     MAKE Invoice AMemberConfirmsRequestToChargeAnotherMember
  *     MAKE Invoice AMemberConfirmsRequestToChargeANotyetMember
- *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     MAKE Membership AMemberSignsInForTheFirstTime
  *     MAKE PartnerSignup ANewbieVisitsTheRegistrationPageSentByAPartner
  *     MAKE Preferences AMemberVisitsThePreferencesPage
@@ -687,7 +670,6 @@ function memberIsLoggedOut() {
  *     MAKE Signup AMemberRegistersWithAnExistingCompany
  *     MAKE Signup AMemberRegistersWithAnUnknownCompany
  *     MAKE Signup AMemberRegistersWithACompanyWithNoRelation
- *     MAKE Signup AMemberRegistersWithABadCompany
  *     MAKE Signup AMemberRegistersWithABadCompanyPhone
  *     MAKE SignupCo AMemberRegistersACompany
  */
@@ -695,7 +677,7 @@ function invitationToEmailFromMemberIs($email, $id, $code) {
   global $testOnly; if ($testOnly) return FALSE;
   $email = t\fixEmail($email);
   $uid = t\uid($id);
-  if ($iid = db\lookup('id', 'r_invites', 'email=:email AND inviter=:uid', compact('email', 'uid'))) {
+  if ($iid = db\get('id', 'r_invites', 'email=:email AND inviter=:uid', compact('email', 'uid'))) {
     db\q('UPDATE r_invites SET code=:code WHERE id=:iid', compact('code', 'iid'));
   } elseif ($code) r\invite($email, $uid, $code);
 //  t\SERVER('REQUEST_URI', "whatever/$code"); // fake the URI
@@ -721,7 +703,7 @@ function noRelation($relations) {
 function memberSignsInTheFirstTime($uid) {
   global $testOnly; if (!$testOnly) return FALSE;
   memberVisitsPage($uid, 'summary');
-  return db\lookup('created=login', 'users', 'uid=' . t\uid($uid));
+  return db\get('created=login', 'users', 'uid=' . t\uid($uid));
 }
 
 /**
@@ -871,7 +853,6 @@ function withDownloadColumns($columns) {
  *     MAKE Bank AMemberAsksToDoTwoTransfersOutInOneDay
  *     MAKE Community Setup
  *     MAKE Download Setup
- *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     MAKE Statement Setup
  *     MAKE Summary Setup
  *     MAKE Transactions Setup
@@ -925,7 +906,6 @@ function agentCardCodeIs($id, $cardCode2) {
  * cron runs (ARG)
  *
  * in: MAKE Community CronCalculatesTheStatistics
- *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     MAKE Summary Setup
  */
 function cronRuns($op) {return t\cronRuns($op);}
@@ -946,10 +926,6 @@ function statisticsGetSet($time) {
  * in: BOTH Coupons AMemberRedeemsAGiftCoupon
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
  *     MAKE Invoice AMemberApprovesInvoicesForevermore
- *     TEST Joint AMemberRequestsAJointAccount
- *     BOTH Joint AJoinedAccountSlaveMemberRequestsANewMinimum
- *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
- *     BOTH Joint AJoinedAccountMemberUnjoinsTheAccount
  *     MAKE Statement Setup
  *     MAKE Summary Setup
  *     MAKE Summary MembersAccountIsNotActive
@@ -1133,8 +1109,6 @@ function weSayErrorInField($field, $index) {
  * member (ARG) completes relations form with values: (ARG)
  *
  * in: MAKE Joint AMemberRequestsAJointAccount
- *     MAKE Joint AJoinedAccountMemberUnjoinsTheAccount
- *     MAKE Joint AMemberRequestsTwoJoinsAtOnce
  *     MAKE Relations AMemberAddsARelation
  *     MAKE Relations AMemberTriesToAddARelationWithSelf
  *     MAKE Relations AMemberTriesToAddARelationAgain
@@ -1145,21 +1119,19 @@ function memberCompletesRelationsFormWithValues($id1, $list) {
       $reid = r\relation('reid', t\uid($id1), t\uid($rec['other'])); // compound qid
       u\EXPECT($reid, "missing relation record for $id1,".$rec['other']);
       unset($list[$i]['other']);
-      foreach (ray('draw permission employee isOwner') as $k) if (isset($rec[$k])) {
+      foreach (ray('draw permission employee owner customer') as $k) if (isset($rec[$k])) {
         $list[$i]["$k-$i-$reid"] = $k == 'permission' ? u\consta('b', $rec[$k]) - B_RELATED : $rec[$k];
         unset($list[$i][$k]);
       }
     }
   }
-	debug($list);
   return t\completeForm($id1, "settings/relations", $list, TRUE);
 }
 
 /**
  * member (ARG) cache is ok
  *
- * in: TEST Joint AMemberRequestsAJointAccount
- *     TEST Joint AJoinedAccountMemberUnjoinsTheAccount
+ * in: 
  */
 function memberCacheIsOk($id) {return r\acct(t\uid($id))->cacheOk();}
 

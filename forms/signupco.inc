@@ -41,20 +41,20 @@ function formSignupCo_submit($form, &$sta) {
 
   extract(just('relation flow', $sta['input']));
 
-  $employeeOk = $relation < 2; // let signupCo info override this
+  $employee = $relation < 2; // let signupCo info override this
   $personal = ($relation > 1);
   if (!$personal) {
     if ($a->cAdmin) $a = r\acct(); // let admins open company accounts on behalf of others
-    extract(just('company companyPhone isOwner employeeOk', $a->signupCo)); // predict co name
+    extract(just('company companyPhone owner employee', $a->signupCo)); // predict co name
     if (!findCompany(@$company, @$companyPhone)) list ($fullName, $phone) = [@$company, @$companyPhone];
   }
-  $isOwner = $relation == 0; // don't let signupCo info influence this
+  $owner = $relation == 0; // don't let signupCo info influence this
 
   $helper = $a->mainQid;
   $code = r\invite($a->email, $a->id);
   $flow += 0;
 
-  $signupArgs = compact(ray('code personal isOwner employeeOk flow helper fullName phone'));
+  $signupArgs = compact(ray('code personal owner employee flow helper fullName phone'));
   $args = http_build_query($signupArgs);
 ///  debug($args); return;
   if ($personal) \session_destroy();

@@ -1117,7 +1117,7 @@ function drupal_serve_page_from_cache(stdClass $cache) {
     // remaining may not (see RFC 2616, section 10.3.5). Do not override
     // headers set in hook_boot().
     $name_lower = strtolower($name);
-    if (in_array($name_lower, array('content-location', 'expires', 'cache-control', 'vary')) && !isset($hook_boot_headers[$name_lower])) {
+    if (in($name_lower, 'content-location expires cache-control vary') && !isset($hook_boot_headers[$name_lower])) {
       drupal_add_http_header($name, $value);
       unset($cache->data['headers'][$name]);
     }
@@ -1369,7 +1369,7 @@ function justNot($these, $info) {
   if (!is_array($these)) $these = ray($these);
   $info = (array) $info;
   if ($assoc = isset($info[0])) {
-    foreach ($info as $v) if (!in_array($v, $these)) $res[] = $v;
+    foreach ($info as $v) if (!in($v, $these)) $res[] = $v;
     return @$res ?: [];
   } else {
     foreach ($these as $field) unset($info[$field]);
@@ -1684,7 +1684,7 @@ function drupal_set_message($message = NULL, $type = 'status', $repeat = TRUE) {
     }
 
 //    if ($repeat || !in_array($message, $_SESSION['messages'][$type])) {
-    if (!in_array($message, $_SESSION['messages'][$type])) { // cg 7/15/2017
+    if (!in($message, $_SESSION['messages'][$type])) { // cg 7/15/2017
       $_SESSION['messages'][$type][] = $message;
     }
 
@@ -1809,7 +1809,7 @@ function drupal_is_denied($ip) {
   $blocked_ips = variable_get('blocked_ips');
   $denied = FALSE;
   if (isset($blocked_ips) && is_array($blocked_ips)) {
-    $denied = in_array($ip, $blocked_ips);
+    $denied = in($ip, $blocked_ips);
   }
   // Only check if database.inc is loaded already. If
   // $conf['page_cache_without_database'] = TRUE; is set in settings.php,
@@ -2481,13 +2481,9 @@ function language_list($field = 'language') {
   if (!isset($languages[$field])) {
     $languages[$field] = [];
     foreach ($languages['language'] as $lang) {
-      // Some values should be collected into an array
-      if (in_array($field, array('enabled', 'weight'))) {
+      if (in($field, 'enabled weight')) { // Some values should be collected into an array
         $languages[$field][$lang->$field][$lang->language] = $lang;
-      }
-      else {
-        $languages[$field][$lang->$field] = $lang;
-      }
+      } else $languages[$field][$lang->$field] = $lang;
     }
   }
   return $languages[$field];

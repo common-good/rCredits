@@ -25,8 +25,8 @@ Scenario: A member redeems a gift coupon
   Then coupons:
   | coupid | fromId | amount | ulimit | flags | start | end |*
   |      1 |   .ZZC |     10 |      1 |     1 |     8 |  28 |
-  When member ".ZZC" visits page "community/coupons/print/type=gift&amount=10&count=20"
-  Then members have:
+#  And member ".ZZC" visits page "community/coupons/print/type=gift&amount=10&count=20", which results in:
+  And members have:
   | id   | giftCoupons |*
   | .ZZC |          28 |
   When member ".ZZA" completes form "community/coupons/gift" with values:

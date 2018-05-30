@@ -6,9 +6,6 @@ use CG\Backend as be;
 use CG\Util as u;
 use CG\Db as db;
 
-//define('R_REL_EMPLOYER_COL', 2); // number of amount/employer column
-define('R_REL_OWNER_COL', 3); // number of family/owner column
-
 /**
  * Give someone access to the current account or mark them as an employee or owner.
  */
@@ -16,25 +13,27 @@ function formRelations($form, &$sta, $args = '') {
   global $base_url;
   global $mya;
   $myid = $mya->id;
-  extract(just('customers', $args)); // linked from an email
+  extract(just('showCustomers', $args)); // linked from an email
 
   //  if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
   $acctIdentifiers = be\accountName($myid);
-  $header = ray('The other account,Draw,My employee?,Family?,Permission,');
-  $classes = u\prefixValues('rel-', ray('person draw employee owner permission link'));
-  if ($co = $mya->co) {
-    $header[R_REL_OWNER_COL] = 'Owns 10%+';
-//    if (!$mya->ok) $mya->stepDone('relations');
+  $header = ray('The other account,Draw,Employee,Family,Permission');
+  if ($co = $mya->co) $header[3] = 'Owns 10%+';
+  $classes = ray('person draw employee owner permission');
+  if (@$showCustomers) {
+    $header[] = t('Customer');
+    $classes[] = 'customer';
   }
+  $classes = u\prefixValues('rel-', $classes);
 
-  if ($mya->hasCustomers) $showCustomers = @$customers
+  if ($mya->hasCustomers) $buttons = @$showCustomers
   ? item(w\btn("/settings/relations", t('Hide Customers')))
-  : item(w\btn('/relations/customers=1', t('Show Customers')));
+  : item(w\btn('/settings/relations/showCustomers=1', t('Show Customers Too')));
   
-  $where = @$customers ? '1' : '(NOT isCustomer OR s.permission OR s.employee OR s.isOwner OR s.draw)';
+  $where = @$showCustomers ? '1' : '(NOT s.:IS_CUSTOMER OR s.permission OR s.:IS_EMPLOYEE OR s.:IS_OWNER OR s.:IS_DRAW)';
   $sql = <<<EOF
     SELECT DISTINCT s.reid, s.main, s.other, IF(:myid=s.main, v.fullName, u.fullName) AS fullName,
-      s.permission, s.employee, s.isOwner, s.draw
+      s.permission, s.:IS_EMPLOYEE AS employee, s.:IS_OWNER AS owner, s.:IS_CUSTOMER AS customer, s.:IS_DRAW AS draw
     FROM ((r_relations s LEFT JOIN users u ON u.uid=s.main)
       LEFT JOIN users v ON v.uid=s.other)
     WHERE s.main=:myid AND $where
@@ -45,6 +44,7 @@ EOF;
   while ($row = $result->fetchAssoc()) {
     extract($row);
     $raws0[$reid] = $row; // original ("0") raw values from table
+    $raws[] = compact(ray('draw employee owner customer permission')); // original conceptual ("raw") values for what's show on screen
     $a = r\acct($other);
     $otherCo = $a->co;
     $otherPerson = !$otherCo;
@@ -58,27 +58,25 @@ EOF;
     $ii = count($rows) . "-$reid"; // "row-reid"
     $drawn = toggle('draw', $draw, $ii);
 //    $employer = toggle('employeeOk', @$employeeOk2, $ii, @$employeeOk2 xor @$employee2);
-    $isEmployee = !$otherCo ? toggle('employee', $employee, $ii) : R_NONE;
-    $Owner = toggle('isOwner', $isOwner, $ii);
+    $employee = !$otherCo ? toggle('employee', $employee, $ii) : R_NONE;
+    $owner = toggle('owner', $owner, $ii);
+    $customer = toggle('customer', $customer, $ii);
     $permissions = $GLOBALS['share permissions'];
 // NO    if (!$mya->can(B_JOINED)) $permissions[$permission = B_JOINT] .= '?'; // pending agreement
     if ($co or $otherCo or !$mya->ok or !$a->ok) unset($permissions[r\perm(B_JOINT)]); // no joint accounts with a company or nonmember
     $perm = $otherPerson ? dropdown('permission', $permission, $permissions, $ii) : R_NONE;
     $amountValue = ''; // was amountField('amount', number_format($amount,0), $ii);
 
-    $thisRow = array($fullName, $drawn, $isEmployee, $Owner, $perm, $idLink);
-    $thisRaw = compact(ray('draw employee isOwner permission'));
-//      if ($co) array_splice($thisRow, 1, 1, $amount); // companies can't be employees
-    
-    $rows[] = $thisRow; // what to show on screen
-    $raws[] = $thisRaw; // original conceptual ("raw") values for what's show on screen
+    $rows[] = @$showCustomers
+    ? [$fullName, $drawn, $employee, $owner, $perm, $customer] // what to show on screen
+    : [$fullName, $drawn, $employee, $owner, $perm];
   }
   $sta['rawValues'] = compact('raws0', 'raws');
   
   $aExact = "a href=\"$base_url/help/payment-exchanges\"";
   $_aInvite = atag('/community/invite');
   $aAgent = "a href=\"$base_url/agent\"";
-  $help = t('Connect individual %PROJECT participants to your account &mdash; either as owners, employees, or others, with limited or full access to the account. If they don\'t have an account yet, <%aInvite>invite them</a>! Each permission includes all the permissions above it.', compact(ray('aExact _aInvite aAgent')));
+  $help = t('Connect individual %PROJECT participants to your account &mdash; either as owners, employees, customer, or others, with limited or full access to the account. If they don\'t have an account yet, <%aInvite>invite them</a>! Each permission includes all the permissions above it.', compact(ray('aExact _aInvite aAgent')));
   //If they wish NOT to open a real account, create an <@aAgent>rPOS Sign-in Account</a> for them.
 
   $subtext = '<span id="account-label">' . t('Current Account') . ":</span> <span id='account-identifiers'>$acctIdentifiers</span><br><br>$help";
@@ -96,7 +94,9 @@ EOF;
 //    'newPerson' => textFld(t('Add Someone:'), t('name, id, email, or phone')), // autocomplete causes problems
   $newPerson = textFld(t('Add Someone:'), [t('Name, id, email, or phone')]);
   $go = submit(t('Save Changes'));
-  $form = compact(ray('title subtext showCustomers list newPerson go'));
+  $showCustomers = hidFld(@$showCustomers);
+
+  $form = compact(ray('title subtext buttons list newPerson go showCustomers'));
 
   if (!$mya->member and !$mya->stepDone['relations']) $form += w\setupFoot();
   w\whoFldSubmit('newperson', t('Create a new relation with %name?'));
@@ -111,19 +111,14 @@ function formRelations_validate($form, &$sta) {
   if ($newPerson = @$sta['input']['newPerson']) {
     $a = whois($newPerson, 'newPerson', $sta['input'], 'no self-relation');
     $id = $a ? $a->id : '';
-    if ($id and r\relation(1, $mya->id, $id)) return say('already related', 'newPerson');
-    $sta['input']['newPerson'] = $id; // save for submission handling
+    if ($id and r\relation(1, $mya->id, $id)) {
+      say('already related', 'newPerson');
+    } else $sta['input']['newPerson'] = $id; // save for submission handling
   }
   $managers = 0; // for company accounts there needs to be at least one manager
   foreach ($sta['input'] as $key => $value) {
     if (!strpos($key, '-')) continue;
     list ($keya, $rawnum, $reid) = explode('-', $key);
-/*    if ($keya == 'amount') {
-      $amount = $value;
-      if ($err = u\badAmount($amount)) return say($err, compact('amount'), 'amount');
-      if (($sta['input'][$key] = round($amount, 0)) != $amount) say('amount rounded', compact('amount'));
-    } else
-    */
     if ($keya == 'permission') {
       if ($value >= r\perm(B_MANAGE)) {
         $managers++;
@@ -154,7 +149,7 @@ function formRelations_submit($form, &$sta) {
 
   // handle all fields even when they don't appear (because they're false)
   foreach (array_keys($raws0) as $i => $reid) {
-    foreach (ray('permission draw employee isOwner') as $fld) {
+    foreach (ray('permission draw employee owner customer') as $fld) {
       $k = "$fld-$i-$reid"; // rawnum
       $v = 0 + ($fld == 'permission' ? @$vs[$k] : (bool) @$vs[$k]);
       $vX = 0 + $raws[$i][$fld];
@@ -176,5 +171,6 @@ function formRelations_submit($form, &$sta) {
   if (!empty($changes)) say(be\updateRelations($changes));
   unset($DBTX);
   
-  return w\goNextStep('relations');
+  $show = @$vs['showCustomers'] ? 'showCustomers=1' : '';
+  return ($mya->ok or $other) ? r\go("/settings/relations/$show") : w\goNextStep('relations');
 }

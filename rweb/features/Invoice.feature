@@ -135,13 +135,13 @@ Scenario: A member approves invoices forevermore
   | nvid | created | status       | amount | from | to   | for   |*
   |    1 | %today  | %TX_APPROVED |    300 | .ZZB | .ZZA | labor |
   And relations:
-  | main | agent | isCustomer    |*
-  | .ZZA | .ZZB  | %AUTOPAY_FLAG |
+  | main | agent | flags            |*
+  | .ZZA | .ZZB  | customer,autopay |
 
 Scenario: A member approves an invoice to a trusting customer
   Given relations:
-  | main | agent | isCustomer    |*
-  | .ZZA | .ZZB  | %AUTOPAY_FLAG |
+  | main | agent | flags            |*
+  | .ZZA | .ZZB  | customer,autopay |
   When member ".ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods      | purpose |*
   | charge | Bea Two | 100    | %FOR_GOODS | labor   |

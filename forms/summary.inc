@@ -6,6 +6,7 @@ use CG\Backend as be;
 use CG\Util as u;
 use CG\Db as db;
 use CG\Admin as a;
+use CG\Risk as k;
 
 /**
  * Show a summary of the current account.
@@ -28,7 +29,7 @@ function formSummary($form, &$sta) {
   if ($mya->closed) say(t('Your account is closed, but you can still see your account history.'));
 
   $stepUrl = $mya->nextStepUrl('', $msg);
-  if ($stepUrl == 'signup' and $info = r\relation('reid,code', "other=:myid AND isCustomer AND code<>''", compact('myid'))) {
+  if ($stepUrl == 'signup' and $info = r\relation('reid,code', "other=:myid AND :IS_CUSTOMER AND code<>''", compact('myid'))) {
     extract($info);
     $stepUrl .= "/reid=$reid&customer=$code";
   }
@@ -63,7 +64,8 @@ function formSummary($form, &$sta) {
   extract(just('returnMo return cttyBeneMo cttyBene', $mya->j_stats()));
   $gifts = u\fmtAmt($mya->totalGifts());
 //  $cttyBene = item("$cttyBeneMo " . t('over the past month') . "<br>$cttyBene " . t('overall (ever), including %gifts in contributions', compact('gifts')), t('Social return:'), t('Financial benefit to your community to date, from your participation together with other members, empowering economic democracy! [<%a>details</a>]', '_a', atag('/help/social-return')));  
-  $cttyBene = item("$cttyBene " . t('overall, including your %gifts in contributions', compact('gifts')), t('Social return:'), t('Financial benefit to your community to date, from your participation together with other members, empowering economic democracy! [<%a>details</a>]', '_a', atag('/help/social-return')));  
+  $cttyBene = NULL;
+//  $cttyBene = item("$cttyBene " . t('overall, including your %gifts in contributions', compact('gifts')), t('Social return:'), t('Financial benefit to your community to date, from your participation together with other members, empowering economic democracy! [<%a>details</a>]', '_a', atag('/help/social-return')));  
     
   // $showCustomers = item(w\btn('/community/data/qName=6Customers', t('Customer List')));
 
@@ -139,7 +141,7 @@ function formSummary($form, &$sta) {
 
 function formSummary_validate($form, &$sta) {
 //  if (!r\acct()->cAdmin2) return hack('non-admin submitted summary form');
-  if (in_array(op($sta), ['openCompany', 'openJoint'])) return;
+  if (in(op($sta), 'openCompany openJoint')) return;
 
   extract(just('uid legalName federalId creditLimit rTrader helper mediaConx moves tickle adminable', $sta['input']));
 //  $a = r\acct(@$uid);

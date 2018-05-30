@@ -32,7 +32,7 @@ function showResults($eid, $noProxies = FALSE) { // called from ballot if ISDEMO
 function showResult($ctty, $qi, $question, $noProxies, $withheader = TRUE) {
 	global $thisvoter; // only if ISDEMO
 //    u\loga("0-$question", 'top');
-	$qu = db\lookup('id, type, text, detail, budget, minveto, result', 'r_questions', 'id=:question', compact('question'));
+	$qu = db\get('id, type, text, detail, budget, minveto, result', 'r_questions', 'id=:question', compact('question'));
   extract($qu);
   
   if (!@$result) {

@@ -30,10 +30,10 @@ Setup:
   | .ZZD   | .ZZA  |        1 |
   | .ZZD   | .ZZB  |        2 |
   And relations:
-  | main | agent | permission | employee | isOwner | draw |*
-  | .ZZC | .ZZA  | scan       |        1 |       0 |    0 |
-  | .ZZC | .ZZB  |            |          |         |      |
-  | .ZZC | .ZZD  |            |          |         |      |
+  | main | agent | permission | employee | owner | draw |*
+  | .ZZC | .ZZA  | scan       |        1 |     0 |    0 |
+  | .ZZC | .ZZB  |            |          |       |      |
+  | .ZZC | .ZZD  |            |          |       |      |
   And gifts:
   | id   | amount | often | share |*
   | .ZZA |     10 |     1 |     0 |

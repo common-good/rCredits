@@ -1,6 +1,6 @@
 <?php
-use rCredits\Util as u;
-use rCredits\Cron as cr;
+use CG\Util as u;
+use CG\Cron as cr;
 
 /**
  * @file

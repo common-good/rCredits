@@ -51,7 +51,7 @@ function formAccept_validate($form, &$sta) {
 function formAccept_submit($form, &$sta) {
   extract(just('invitation friend zip', $sta['input']));
 //  $email = u\cry('P', $email);
-//  if (!$code = db\lookup('code', 'r_invites', 'email=:email ORDER BY (invitee=0) DESC, invited DESC', compact('email'))) return say('bad invite', 'email');
+//  if (!$code = db\get('code', 'r_invites', 'email=:email ORDER BY (invitee=0) DESC, invited DESC', compact('email'))) return say('bad invite', 'email');
   say(t('Hurray! You qualify to open a %PROJECT Account.'));
   $code = @$invitation ?: "$friend ($zip)";
   return r\go("signup/code=$code");

@@ -60,7 +60,7 @@ function formInvestPropose_validate($form, &$sta) {
   }
   $toRate = 'strength web history soundness';
   foreach (ray('offering price return assets ' . $toRate) as $k) {
-    $max = in_array($$k, ray($toRate)) ? 100 : ''; // '' not NULL (no limit)
+    $max = in($$k, $toRate) ? 100 : ''; // '' not NULL (no limit)
     if ($err = u\badAmount($$k, '>=0', 2, $max)) return sayFieldErr($err, $k);
   }
   u\preray(compact(ray(INVEST_ALLFLDS)), $sta['input']); // update changed fields

@@ -27,7 +27,7 @@ Scenario: A member changes some settings
   When member ".ZZD" visits page "sadmin/changes/NEW.ZZA"
   Then we show "Account Changes for Abe One" with:
   | Date | Field       | Old Value | New Value |
-  | %dmy | flags       | member ok ided | member ok ided refill weekly paper |
+  | %dmy | flags       |   ok ided | ok ided refill weekly paper |
   | %dmy | crumbs      |      0.02 | 0.01 |
   | %dmy | achMin      |        10 | 11 |
   | %dmy | bankAccount |           | USkk211870281123 |    

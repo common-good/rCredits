@@ -15,6 +15,7 @@
 .positive {color:green;} /* highlights donations and other happy amounts */
 #edit-none {display:none;} /* for hidden submit button */
 iframe {border:0; float:right; margin-right:-60px;}
+.form-type-checkboxes > .control-label {padding-top:0;}
 
 form ul>li {display: block;}
 .btn-back {height:22px; margin-right:10px;}
@@ -572,16 +573,17 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #frm-agreement.form-horizontal .checkbox {min-height:0;}
 
 /* Bank Info */
-#frm-bankinfo #connectFields2 {margin:20px 0; background:silver; padding:10px;}
-#frm-bankinfo #connectFields2 .fieldset-wrapper {background:url(../images/check-hint.png) no-repeat right top; background-size:25%;}
-#frm-bankinfo #edit-checkHint {position:absolute; left:850px;}
-#frm-bankinfo #edit-checkHint img {width:300px;}
-#frm-bankinfo #connectFields2 .help-block {display:inline-block; color:black;}
-#frm-bankinfo #edit-routingnumber,
-#frm-bankinfo input#edit-bankAccount,
-#frm-bankinfo input#edit-bankAccount2 {width:250px;} 
-#frm-bankinfo .form-item-bankAccount .help-block span {background-color:yellow;}
-#frm-bankinfo #edit-remove {margin-left:10px;}
+#frm-connect #connectFields2 {margin:20px 0; background:silver; padding:10px;}
+#frm-connect #connectFields2 .fieldset-wrapper {background:url(../images/check-hint.png) no-repeat right top; background-size:25%;}
+#frm-connect #edit-checkHint {position:absolute; left:850px;}
+#frm-connect #edit-checkHint img {width:300px;}
+#frm-connect #connectFields2 .help-block {display:inline-block; color:black;}
+#frm-connect #edit-routingnumber,
+#frm-connect input#edit-bankAccount,
+#frm-connect input#edit-bankAccount2 {width:250px;} 
+#frm-connect .form-item-bankAccount .help-block span {background-color:yellow;}
+#frm-connect #edit-remove {margin-left:10px;}
+#frm-connect #edit-autopay > div.checkbox {display:block;}
 
 /* Bank (Get) */
 #frm-get #edit-get {margin-right:70px;}

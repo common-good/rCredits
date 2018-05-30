@@ -44,8 +44,8 @@ function formBuy($form, &$sta, $doCode = '') {
 
 // NO (return omits domain)  if (!\valid_url($return, TRUE)) return r\go('', 'bad url', 'zot');
 
-  $verbs = ray(t('Donate, Donate, Pay'));
-  $verb = in_array(ucwords(@$verb), $verbs) ? ucwords($verb) : t('Pay');
+  $verbs = t('Donate, Donate, Pay');
+  $verb = in(ucwords(@$verb), $verbs) ? ucwords($verb) : t('Pay');
   if (@$item) $item = t('for ') . $item;
   $payment = item(t('%amount to %who<br>%what', '_amount who what', $amount, @$co->fullName ?: t('co'), @$item), "$verb:");
 //  if (@$zip and substr($zip, 0, 5) != substr($a->zip, 0, 3)) $answer = textFld(t('Answer:'), $a->question, required());

@@ -24,8 +24,9 @@ list ($partner, $partnerCode, $action) = isDEV
 ? ['NEWAAB', '1495kJHm0h145PHh2345h', 'http://localhost/cgMembers/signup'] 
 : ['NEWAIL', '5aCnXTQvwRoqKu3YGUvp', 'signup'];
 $customer = @$m_number;
+$autopay = TRUE;
 
-$fields = ray('fullName email phone address city state zip address2 city2 state2 zip2 partner partnerCode customer source qid');
+$fields = ray('fullName email phone address city state zip address2 city2 state2 zip2 partner partnerCode customer source qid autopay');
 
 $guts = '';
 foreach ($fields as $k) {

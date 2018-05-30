@@ -37,7 +37,7 @@ function formGet($form, &$sta, $args = '') {
   if (!db\exists('r_usd', 'payee IN (:myid,:jid) AND amount<0 AND created>:dayAgo', ray('myid jid dayAgo', $myid, $jid, strtotime('-1 day')))) { // limit to one withdrawal request per 24 hours
     $avail = $mya->avail(FOR_USD); // drawing from connected accounts not allowed
     foreach (ray(R_EXCHANGE_LIMITS) as $days => $limit) {
-      $sofar = $days == 1 ? 0 : db\lookup('-SUM(amount)', 'r_usd', 'payee=:myid AND amount<0 AND created>:date', ray('myid date', $myid, strtotime("-$days days")));
+      $sofar = $days == 1 ? 0 : db\get('-SUM(amount)', 'r_usd', 'payee=:myid AND amount<0 AND created>:date', ray('myid date', $myid, strtotime("-$days days")));
       $avail = min($avail, $limit - $sofar);
     }
   } else $avail = 0;
@@ -45,7 +45,7 @@ function formGet($form, &$sta, $args = '') {
   $cashoutable = u\fmtAmt(max(0, min($mya->balDpy, $avail)));
   if ($waiting = u\fmtAmt(abs($waiting0))) {
     $where = 'payee IN (:myid, :jid) AND completed=0 AND deposit=0 ORDER BY txid DESC';
-    if ($rec = db\lookup('amount, txid', 'r_usd', $where, compact('myid', 'jid'))) {
+    if ($rec = db\get('amount, txid', 'r_usd', $where, compact('myid', 'jid'))) {
       extract($rec);
       $text = t('Cancel') . (($amount == $waiting0) ? '' : (' ' . u\fmtAmt(abs($amount)) . t(' request')));
       $link = " <a class=\"buttino\" href=\"$base_url/get/cancel=$txid\">$text</a>";
@@ -90,13 +90,7 @@ function formGet_submit($form, &$sta) {
 //  $us = new r\usd($mya = r\acct());
   extract(just('amount', $sta['input']));
 
-  list ($action, $amount) = op($sta) == 'put' ? [t('deposit to'), -$amount] : [t('draw from'), $amount];
-  
-  $checkNum = $mya->bank($amount, $completed);
-  if ($amount > 0) {
-    $extra = '|bank tx number' . ($completed ? '|available now' : '');
-  } else $extra = '';
-  $amount = u\fmtAmt(abs(@$amount));
-  say('banked' . $extra, $subs = compact(ray('action amount checkNum')));
+  $mya->bank($amount, $msg);
+  say($msg);
 //  r\tellAdmin('banked' . $extra, $subs);
 }

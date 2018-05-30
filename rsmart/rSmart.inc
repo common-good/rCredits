@@ -94,7 +94,7 @@ function pos($args = FALSE) {
   extract(just('op device agent member version', $args));
   $args['version'] = (int) @$version;
   
-  if (!@$op or !in_array($op, ray('time identify photo charge test'))) return posErr('bad op');
+  if (!@$op or !in($op, 'time identify photo charge test')) return posErr('bad op');
   
   if (isDEV and $op == 'test') return test($args0);
   
@@ -263,7 +263,7 @@ function identify($args) {
     if (!$a->can(B_SCAN)) return posErr('agent cannot scan', [], $companyInfo);
     if (!@$deviceId) {
 /*      if ($device) {
-        if ($owner = db\lookup('uid', 'r_boxes', 'code=:device', compact('device')) and !r\acct($owner)->coCan(CO_REQUIRE_CASHIER)) return posErr('restricted');
+        if ($owner = db\get('uid', 'r_boxes', 'code=:device', compact('device')) and !r\acct($owner)->coCan(CO_REQUIRE_CASHIER)) return posErr('restricted');
       } else $device = u\code(); */
       if (!$device) $device = u\code();
       r\makeDevice($a->id, $device, TX_POS); // card is legit, so use device's code, if any
@@ -360,7 +360,7 @@ function charge($args, $type = 'charge') {
   if (@$description === '') return posErr('missing description');
   if (strpos($description, ' ') !== FALSE) {
     r\tellAdmin(t('POS tx description not urlencoded'), $args);
-  } // else $description = urldecode($description);
+  } else $description = urldecode($description);
   if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
 
   if (!$a = getMember($member, '', $err, FALSE)) { // proof is proof enough (no cardCode needed)
@@ -372,7 +372,7 @@ function charge($args, $type = 'charge') {
   $goods = $goods == "3" ? FOR_NONGOODS : ($goods == "0" ? FOR_USD : FOR_GOODS); // selfhelp is FOR_GOODS
   if (@$force) {
     $subs = ray('created payer payee amount goods payeeFor', $created, $a->id, $mya->id, $amount, $goods, $description);
-    if ($q = db\lookup('xid,data', 'r_txs', $subs)) extract($q);
+    if ($q = db\get('xid,data', 'r_txs', $subs)) extract($q);
   }
   
   $amount = str_replace(',', '', number_format($amount, 2)); // make sure both cents digits are included
@@ -395,7 +395,7 @@ function charge($args, $type = 'charge') {
     $undo = $xid;
     $data = unserialize($data);
     if ($txid = @$data['undoneBy']) { // already got reversed
-      $created = db\lookup('created', 'r_txs', 'xid=:txid', compact('txid'));
+      $created = db\get('created', 'r_txs', 'xid=:txid', compact('txid'));
       $message = "Transaction has been reversed.";
     } else {
       list ($msg, $subs) = be\undoTx($xid, (@$amount < 0 and !$mya->co) ? 'payer=:myid' : 'payee=:myid', ['myid' => $mya->id], $force);
@@ -516,7 +516,7 @@ function getAgent($agent, &$err = '') {
 function getMember($qid, $code, &$err = '', $requireCode = TRUE) {
 /*  if (substr($customer, -1, 1) == ':') { // invitation card -- get real account
     if (!$inviter = r\iCardAcct($code, $seq)) return !$err = 'bad member';
-    if (!$uid = db\lookup('uid', 'users', 'helper=:inviter AND seq=:seq', compact('inviter', 'seq'))) return !$err = 'bad icard';
+    if (!$uid = db\get('uid', 'users', 'helper=:inviter AND seq=:seq', compact('inviter', 'seq'))) return !$err = 'bad icard';
     $a = r\acct($uid);
     if (time() - $a->activated > ICARD_EXPIRES * DAY_SECS) return !$err = 'expired icard';
     $code = $a->cardCode; // no need for function here
@@ -533,12 +533,12 @@ function getMember($qid, $code, &$err = '', $requireCode = TRUE) {
 //  if (!$a->can(B_BUY)) return !$err = 'customer cannot buy';
   return $a;
   
-//    if (!$smartInfo = db\lookup('owner,defaultAgent,transientId,access', 'r_boxes', 'code=:q_code', compact('q_code'))) return be\error('unknown device');
+//    if (!$smartInfo = db\get('owner,defaultAgent,transientId,access', 'r_boxes', 'code=:q_code', compact('q_code'))) return be\error('unknown device');
 
 /*    if ($account_id != $q_account_id) { // this is a transient id scanned from the other party's smart device
       $transientId = basename(dirname($q_account_id));
       $recent = r\rTime() - R_TRANSIENCE;
-      if (db\lookup('transientId', 'r_boxes', 'code=:code AND access>=:recent') != $transientId) return be\error('bad transient id');
+      if (db\get('transientId', 'r_boxes', 'code=:code AND access>=:recent') != $transientId) return be\error('bad transient id');
     } */
 }
 
@@ -584,7 +584,7 @@ function fixNegative(&$msg, $phrase, $rephrase) {
  * Return the record id for the record of this company using this device.
  */
 function getDevice($code, $uid) {
-  return db\lookup('id', 'r_boxes', 'code=:code AND uid=:uid', compact('code', 'uid'));
+  return db\get('id', 'r_boxes', 'code=:code AND uid=:uid', compact('code', 'uid'));
 }
 
 /**

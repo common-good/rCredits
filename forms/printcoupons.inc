@@ -8,6 +8,7 @@ use CG\Db as db;
 
 /**
  * Print a sheet of coupons for the current account.
+ type amount minimum ulimit count automatic start end on
  */
 function printCoupons($args = '') {
   global $mya;
@@ -16,21 +17,23 @@ function printCoupons($args = '') {
   if (!u\test())
   $args = u\deurlify($args);
 
-  extract(just('type amount count automatic start end on', $args));
+  extract(just('type amount minimum ulimit count automatic start end on', $args));
   
   if (!$gift = (@$type == 'gift') and @$type != 'discount') return w\hack('bad coupon args');
   $auto = @$automatic ? t('automatically') : '';
-  $amount =  u\fmtAmt($amount, $amount < 1 ? '%s' : 's$');
-  u\setDft($count, 1);
+  $coGift = ($amount == @$minimum);
+  $amount =  $amount < 0 ? u\fmtAmt(-$amount / 100, '%s') : u\fmtAmt($amount, 's$');
+  u\setDft($count, 8);
 
   if (@$start == strtotime('today')) $start = '';
   if (@$end) {
     $end = u\fmtDate(@$end, TRUE);
-    $dates = @$start ? u\fmtDate($start, TRUE) . t(' through ') . $end : (t('expires ') . $end);
+    $dates = @$start ? u\fmtDate($start, TRUE) . t(' to ') . $end : (t('expires ') . $end);
   } else {
     $dates = @$start ? t('beginning ') . u\fmtDate($start, TRUE) : '';
     $dates .= t(' (offer does not expire)');
   }
+  if (@$ulimit) $dates .= t(' &mdash; Limit: %ulimit uses per member', compact('ulimit'));
   
   $pdf = new r\Pdf();
 //  $pdf->addTTFfont(__DIR__ . '/../../tcpdf/fonts/verdana.ttf'); // do just once on DEV, then upload font
@@ -39,13 +42,13 @@ function printCoupons($args = '') {
   $pdf->SetAutoPageBreak(FALSE);
 
   $name = $mya->bestName;
-  $coup = t('%PROJECT %type Coupon', 'type', $gift ? t('GIFT') : t('Discount'));
+  $coup = t('%PROJECT %type', 'type', ($gift or $coGift) ? t('Gift Certificate') : t('Discount Coupon'));
 //  $iCode = $mya->iCardCode(IBY_EMAIL);
   
   list ($mT, $mR, $mB, $mL) = [0, 0, 0, 0]; // margins
   list ($hLogo, $dySite, $ptSite, $sSite) = [.9, 2.3, 14, 'semi-expanded'];
   list ($dxHeart, $dyHeart, $hHeart) = [2.5, 1.6, .4];
-  list ($y0, $dy, $ptDetails, $ptCode) = [.2, .23, 12.5, 13];
+  list ($y0, $dy, $ptDetails, $ptSlogan, $ptCode) = [.2, .23, 12.5, 11, 13];
   $dyDetails = $y0 + 1.15;
   list ($x0, $wLogo, $wHeart) = [$y0, $hLogo, 1.9*$hHeart]; // left card margin, logo widths
   list ($wCard, $hCard, $tx0) = [4.25, 2.75, $x0+.04]; // card dimensions, text indent
@@ -87,23 +90,22 @@ function printCoupons($args = '') {
       if ($gift) { // gift coupon
         $pdf->say(t('at any member business', compact('name')), $x+$dxCoup, $y+$dyAt, $wCoup, '', "$ptCoup;font-stretch:semi-expanded;color:darkred", 'L');
         $pdf->say(t('when you pay with <b>%PROJECT</b>') . '<sup style="font-size:50%;">&trade;</sup>', $x, $y+$dyDetails, $wCard, '', $ptDetails, 'C'); // text, x, y, w, h, format, align, borders
-        $pdf->say($slogan, $x, $y+$dyDetails+$dy, $wCard, '', "$ptDetails;I;Verdana;font-stretch:normal;color:darkgray", 'C'); // text, x, y, w, h, fmt, align, borders
+        $pdf->say($slogan, $x, $y+$dyDetails+$dy, $wCard, '', "$ptSlogan;I;Verdana;font-stretch:normal;color:darkgray", 'C'); // text, x, y, w, h, fmt, align, borders
   //      $pdf->Image(__DIR__ . '/../images/heart+$70.png', $x+$dxHeart, $y+$dyHeart, $wHeart, $hHeart, '', '', '', true); // file, x, y, w, h, type, link, align, resize
 
         $iCode = $mya->iCardCode($mya->giftCoupons + $cardi);
         $iCode = substr($iCode, 0, 4) . ' &nbsp;' . substr($iCode, 4, 4) . ' &nbsp;' . substr($iCode, 8);
-        $pdf->say(t('Redeem at Community/Coupons: <b>%iCode</b>', '_iCode', $iCode), $x, $y+$dyDetails+$dy*2.5, $wCard, '', "$ptDetails;Verdana;font-stretch:semi-condensed;color:#404040", 'C'); // text, x, y, w, h, fmt, align, borders
-
-        $cardi++; // how many cards have been completed
-        if ($cardi >= @$count) {$y = 999; break;} elseif ($cardi % 8 == 0) $pdf->AddPage();
+        $pdf->say(t('Redeem at Community > Coupons: <b>%iCode</b>', '_iCode', $iCode), $x, $y+$dyDetails+$dy*2.5, $wCard, '', "$ptDetails;Verdana;font-stretch:semi-condensed;color:#404040", 'C'); // text, x, y, w, h, fmt, align, borders
       } else { // discount coupon
-        $pdf->say($auto, $x+$wLogo, $y+$dyOff+.14, $wCoup-.5, '', '9;color:darkgray', 'R'); // .24 for baseline
+        $pdf->say($auto, $x+$wLogo, $y+$dyOff+.14, $wCoup-.3, '', '9;color:darkgray', 'R'); // .24 for baseline
         $pdf->say(t('at <b>%name</b>', compact('name')), $x+$dxCoup, $y+$dyAt, $wCoup, '', "$ptCoup;font-stretch:semi-condensed;color:black", 'L');
         $pdf->say(t('on ') . $on, $x, $y+$dyDetails, $wCard, '', $ptDetails, 'C'); // text, x, y, w, h, format, align, borders
         $pdf->say(t('when you pay with <b>%PROJECT</b>'), $x, $y+$dyDetails+$dy, $wCard, '', $ptDetails, 'C'); // text, x, y, w, h, format, align, borders
-        $pdf->say($slogan, $x, $y+$dyDetails+$dy*2, $wCard, '', "$ptDetails;I;Verdana;font-stretch:normal;color:darkgray", 'C'); // text, x, y, w, h, fmt, align, borders
+        $pdf->say($slogan, $x, $y+$dyDetails+$dy*2, $wCard, '', "$ptSlogan;I;Verdana;font-stretch:normal;color:darkgray", 'C'); // text, x, y, w, h, fmt, align, borders
         $pdf->say($dates, $x, $y+$dyDetails+$dy*3, $wCard, '', "10;color:darkgray", 'C'); // text, x, y, w, h, format, align, borders
       }
+      $cardi++; // how many cards have been completed
+      if ($cardi >= @$count) {$y = 999; break;} elseif ($cardi % 8 == 0) $pdf->AddPage();
     }
   }
 

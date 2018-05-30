@@ -49,7 +49,7 @@ function q($sql, $subs = [], $retId = FALSE, $log = FALSE) {
  *   FALSE if none
  * @see also: db\records()
  */
-function lookup($fieldName, $table, $where = '1', $subs = []) {
+function get($fieldName, $table, $where = '1', $subs = []) {
   u\EXPECT(compact(ray('fieldName table where subs')), 'notempty notempty notempty assoc');
   
   if (is_array($where)) list ($where, $subs) = [u\where($where), $where];
@@ -98,7 +98,7 @@ function update($table, $info, $key, $either = FALSE) {
       if ($hasSerial = ($field1['type'] == 'serial')) return FALSE; // record ID would have been returned above
     }
     
-    return db\lookup($id, $table, "`$id`=:id", ray('id', $info[$id])); // return the supplied id if success
+    return db\get($id, $table, "`$id`=:id", ray('id', $info[$id])); // return the supplied id if success
   } catch (PDOException $e) {u\EXPECT(FALSE, "PDOException: $e->message");} 
 }
 
@@ -122,7 +122,7 @@ function exists($table, $where = '1', $subs = []) {
     foreach ($where as $key => $value) $where[$key] = "$key=:$key";
     $where = join(' AND ', $where);
   }
-  return db\lookup(1, $table, $where, $subs);
+  return db\get(1, $table, $where, $subs);
 }
 
 /**
@@ -165,7 +165,7 @@ function setData($table, $id, $values) {
   $keys = ray('users r_txs r_invoices', 'uid', 'xid', 'nvid');
   $key = $keys[$table];
   u\EXPECT($key, 'bad table');
-  $data = db\lookup('data', $table, "$key=:id", compact('id'));
+  $data = db\get('data', $table, "$key=:id", compact('id'));
   $data = $values + ($data ? unserialize($data) : []);
   if ($table == 'users') {
     return r\acct($id)->update(compact('data'));
@@ -188,7 +188,7 @@ function setFlag($table, $id, $bit, $bool = TRUE) {
   $keys = ray('users r_txs r_invoices', 'uid', 'xid', 'nvid');
   $key = $keys[$table];
   u\EXPECT($key, 'bad table');
-  $flags = db\lookup('flags', $table, "$key=:id", compact('id'));
+  $flags = db\get('flags', $table, "$key=:id", compact('id'));
   u\setBit($flags, $bit, $bool);
   return db\update($table, ray("flags $key", $flags, $id), $key);
 }
@@ -206,7 +206,7 @@ function del($table, $id, $subs = []) {
     $where = "$idnm=$id";
   } else $where = $id;
   $now = time();
-  if (in_array($table, ray(TRACK_DELETED))) {
+  if (in($table, TRACK_DELETED)) {
     $q = db\q("INSERT INTO $xtable SELECT :now AS deleted,a.* FROM $table a WHERE $where", compact('now') + $subs);
     $ok = ($q->rowCount() > 0);
   } else $ok = TRUE;
@@ -227,7 +227,7 @@ function idnm($table, &$field1 = '') {
   return $id;
 }
   
-function count($table, $where = '1', $subs = []) {return db\lookup('COUNT(1)', $table, $where, $subs);}
-function max($field, $table, $where = '1', $subs = []) {return db\lookup("MAX($field)", $table, $where, $subs);}
-function min($field, $table, $where = '1', $subs = []) {return db\lookup("MIN($field)", $table, $where, $subs);}
-function sum($field, $table, $where = '1', $subs = []) {return db\lookup("SUM($field)", $table, $where, $subs);}
+function count($table, $where = '1', $subs = []) {return db\get('COUNT(1)', $table, $where, $subs);}
+function max($field, $table, $where = '1', $subs = []) {return db\get("MAX($field)", $table, $where, $subs);}
+function min($field, $table, $where = '1', $subs = []) {return db\get("MIN($field)", $table, $where, $subs);}
+function sum($field, $table, $where = '1', $subs = []) {return db\get("SUM($field)", $table, $where, $subs);}

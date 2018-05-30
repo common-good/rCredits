@@ -331,7 +331,7 @@ define('MIN_PHONE_DIGITS', 7);
 function fmtPhone($phone, $how = '+') {
   $sep = $how == '-' ? '-' : ' '; // digit group separator
   $foreign = ''; // set to 'n' format if the phone is outside US
-  $phone = (preg_replace('/[\(\) \-\.]/', '', $phone)); // ignore typical punctuation
+  $phone = (preg_replace('~[\(\) \-\./]~', '', $phone)); // ignore typical punctuation
   if (substr($phone, 0, 2) == '+1') {
     $phone = substr($phone, 2);
   } elseif (substr($phone, 0, 1) == '1') {
@@ -441,8 +441,8 @@ function t($message, $subs = [], $adhocChannel = '', $mark = '@') {
  */
 function nonce($minLen = 1) {
   list ($where, $subs) = array('LENGTH(nonce)>=:minLen', compact('minLen'));
-  $offset = db\lookup('FLOOR(RAND() * COUNT(1))', 'r_nonces', $where, $subs);
-  $nonce = db\lookup('nonce', 'r_nonces', "$where LIMIT $offset, 1", $subs);
+  $offset = db\get('FLOOR(RAND() * COUNT(1))', 'r_nonces', $where, $subs);
+  $nonce = db\get('nonce', 'r_nonces', "$where LIMIT $offset, 1", $subs);
 
   $impossible = join(' ', $GLOBALS['SMS not a nonce']);
   if (strpos(". $impossible ", " $nonce ")) return nonce(); // reserved word? try again
@@ -519,13 +519,13 @@ function randomInt($len = NULL) {
  * Constants of the form "IS_WHATEVER" are a special case. They are taken to mean the corresponding
  *   bit number B_WHATEVER in a field called $flagField. Identifiers of the form x.:IS_WHATEVER are permitted.
  *   NOTE to developer: this could be expanded later to handle a second flag field named {$flagField}2
- *     by changing the expression to "IF(:B_$1<32,$flagField&(1<<:B_$1),{$flagField}2&(1<<(:B_$1-32)))".
+ *     by changing the expression to "IF(:B_$1<32,$flagField&(1<<:B_$1)<>0,{$flagField}2&(1<<(:B_$1-32))<>0)".
  * @param string $string: the string to fix
  * @param string $flagField: name of the flags field for bit constants
  * @return string: the string with constant names replaced by their values
  */
 function SUBS($string, $prefix = ':', $flagField = 'flags') {
-  if ($prefix == ':') $string = preg_replace("/([a-z]+[0-9]?\.)?{$prefix}IS_([A-Z0-9_]*)/ms", "($1$flagField&(1<<:B_$2))", $string); // only for queries
+  if ($prefix == ':') $string = preg_replace("/([a-z]+[0-9]?\.)?{$prefix}IS_([A-Z0-9_]*)/ms", "($1$flagField&(1<<:B_$2)<>0)", $string); // only for queries
 //  $string = preg_replace("/\\{$prefix}IS_([A-Z0-9_]*)/ms", "($flagField&(1<<:B_$1))", $string);
   $subs = constantSubs($string, $prefix);
   return $subs ? strtr($string, $subs) : $string;
@@ -720,7 +720,7 @@ function firstUnusedId($key, $table, $start = 1, $end = 0, $where0 = '1', $subs 
   list ($DESC, $le, $offset) = $start > $end ? ['DESC', '>=', -1] : ['', '<=', 1];    
   $where = "$where0 AND $start $le t1.$key AND t1.$key $le $end AND t2.$key IS NULL ORDER BY t1.$key $DESC";
   $beyond = $DESC ? "-1+" : "1+";
-  $prev = db\lookup("t1.$key", "$table t1 LEFT JOIN $table t2 ON t2.$key=(t1.$key + $offset)", $where, $subs);
+  $prev = db\get("t1.$key", "$table t1 LEFT JOIN $table t2 ON t2.$key=(t1.$key + $offset)", $where, $subs);
   return $prev ? ($prev + $offset) : NULL;
 }
  
@@ -904,13 +904,13 @@ function randomString($len = 16, $choices = '') {
 /**
  * Verify the syntax of the given name. (replacement for \user_validate_name() )
  * Accept any printable character.
- * @param string $name: the field to test
+ * @param string $name: the field to test (RETURNED) field with minor errors fixed
  * @return: the error message (FALSE if $name is okay)
  */
-function badName($name) {
-  if (strpos($name, '  ') !== FALSE) return 'multiple spaces';
-  if (!ctype_print($name)) {
-/**/  r\tellAdmin('bad char', ['trace' => print_r(debug_backtrace(), 1)]);
+function badName(&$name) {
+  $name = trim(preg_replace('/ +/', ' ', $name));
+  if ($name and !ctype_print($name)) {
+/**/  r\tellAdmin('bad char', ray('name trace', bin2hex($name), print_r(debug_backtrace(), 1)));
     return 'illegal char';
   }
   if (strlen(u\shortName($name)) > USERNAME_MAX_LENGTH) return 'too long';
@@ -1335,10 +1335,10 @@ function unSerialFix($s) {
  *   int - return the numeric value of that bit number (power of 2)
  *   ray - return the array of bit numbers as an integer bit array (recursively)
  */
-function bit($bit) {return is_array($bit) ? (bit(array_shift($bit)) | ($bit ? bit($bit) : 0)) : (1 << (is_numeric($bit) ? $bit : u\consta('b', $bit)));}
+function bit($b) {return is_array($b) ? (bit(array_shift($b)) | ($b ? bit($b) : 0)) : (1 << (is_numeric($b) ? $b : u\consta('b', $b)));}
 
-function getBit($n, $bit = NULL) {return is_null($bit) ? $n : (bool) ($n & u\bit($bit));}
-function setBit(&$n, $bit, $on = TRUE) {return $n = $on ? ($n | u\bit($bit)) : ($n & ~u\bit($bit));}
+function getBit($n, $b = NULL) {return is_null($b) ? $n : (bool) ($n & u\bit($b));}
+function setBit(&$n, $b, $on = TRUE) {return $n = $on ? (@$n | u\bit($b)) : (@$n & ~u\bit($b));}
 
 // Single line functions that need little or no explanation
 function test() {return (@TESTING == 1);} // set in test.php (when running an acceptance test)
@@ -1380,17 +1380,15 @@ function consta($prefix, $var) {return constant(strtoupper(str_replace(' ', '_',
 function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}
 function jsonEncode($s) {return json_encode($s) ?: json_encode(u\purify($s));} // , JSON_UNESCAPED_SLASHES
 function redash($s) {return str_replace('—', '&mdash;', $s);}
-function nonish($s) {return in_array(strtolower($s), array('n/a', 'nothing', 'na', 'none')); }
+function nonish($s) {return in(strtolower($s), 'n/a nothing na none'); }
 function padto($s, $n) {return str_pad(substr($s, 0, $n), $n);}
 function lpad($s, $n) {return str_pad(substr($s, 0, $n), $n, '0', STR_PAD_LEFT);}
 function similarEmail($e1, $e2) {return (strtolower(preg_replace('/\+.*@/', '@', $e1)) == strtolower(preg_replace('/\+.*@/', '@', $e1)));}
-//function rayo() {return (object) call_user_func_array('CG\\Util\\ray', func_get_args());}
 function rayv($a, $i) {return $a[$i];} // useful when $a is returned from a function
 function strip($a) {foreach ($a as $i => $v) $a[$i] = strip_tags($v); return $a;}
 function initials($s) {return preg_replace('/[^A-Z]/', '', ucwords(strtr($s, ray('Jr', ''))));}
 function roughName($name) {return preg_replace("/[^A-Z '\-]/", '', strtoupper(trim(str_replace('  ', ' ', $name))));}
 function urlArgs() {return basename($_SERVER['REQUEST_URI']);}
-function in($a, $b) {return (strpos(" $b ", " $a ") !== FALSE);} // needle in space-delimited hay
 function uc1($s) {return ucwords(substr($s, 0, 1)) . substr($s, 1);}
 function nextAfter($needle, $hay) {return ($i = array_search($needle, $hay)) === FALSE ? NULL : $hay[$i + 1];}
 function caller($depth = 1) {return debug_backtrace()[$depth + 1]['function'];}

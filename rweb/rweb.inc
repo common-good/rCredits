@@ -31,7 +31,7 @@ function formProx($form, &$sta, $args) {
   foreach (ray('Event Democracy Proposal') as $k) {
     if (strpos($page, $k) !== FALSE) include_once DRUPAL_ROOT . R_PATH . '/rvote/rvote-web.inc';
   }
-  $file = __DIR__ . "/../forms/$page.inc";
+  $file = strtolower(R_ROOT . "/forms/$page.inc");
   if (file_exists($file)) include_once $file;
   
   $func = 'CG\\Web\\form' . ucwords($page);
@@ -322,7 +322,7 @@ function changeWho($args = '') {
  * Display the member company's profile (no editable fields here)
  */
 function formProfile($form, &$sta, $company = '') {
-  $uid = db\lookup('uid', 'users', 'name=:company', compact('company'));
+  $uid = db\get('uid', 'users', 'name=:company', compact('company'));
   $a = r\acct($uid);
   if (!$uid or !$a->co) return say('no such company', 'ERR');
 
@@ -441,7 +441,7 @@ function formWaiting($form, &$sta) {
   if ($mya->community == r\serverUid()) $lines['01301'] = (@$lines['01301'] ? $lines['01301'] . ', ' : '') . 'Caitlin Sullivan';
   if (@$lines) {
     foreach ($lines as $zip => $zipList) {
-      if ($city = db\lookup('city', 'users', 'MID(zip, 1, 5)=:zip', compact('zip'))) $zip = $city;
+      if ($city = db\get('city', 'users', 'MID(zip, 1, 5)=:zip', compact('zip'))) $zip = $city;
       $list[] = "<tr><th>$zip</th><td>$zipList</td></tr>\n";
     }
   } else $list = [t('No one in your area is currently waiting to be invited.')];
@@ -515,27 +515,6 @@ function formShowDeposits($form, &$sta) {
   if (!$mya or $mya->id != r\cgfId()) return r\go('empty', t('You are not authorized to view that page.'));
   include_once __DIR__ . '/../admin/admin-forms.inc';
   return w\formDeposits($form, $sta);
-}
-
-function formResend($form, &$sta) {
-  global $mya;
-  $title = t('Resend Verification Email');
-  $email = textFld(t('Email:'), [t('Email'), t('Type carefully.')], required($mya->email));
-  $submit = t('Resend');
-  return cgform(compact(ray('title email submit')));
-}
-
-function formResend_validate($form, &$sta) {
-  global $mya;
-  extract(just('email', $sta['input']));
-  if (!emailOkay($email, $mya->co, $mya)) return;
-}
-
-function formResend_submit($form, &$sta) {
-  global $mya;
-  extract(just('email', $sta['input']));
-  $mya->update('email', $email);
-  return formPass_submit($form, $sta, '/settings/verify');
 }
 
 /**
@@ -645,7 +624,7 @@ EOF
 //    <%aCttys>Communities</a> |
 
   $footerText = item($markup); // unique name for this page
-//  $sid = db\lookup('sid', 'sessions', 'uid=:uid', ['uid' => $mya ? $mya->agentA->id : 0]);
+//  $sid = db\get('sid', 'sessions', 'uid=:uid', ['uid' => $mya ? $mya->agentA->id : 0]);
   
   js('parse-query');
   js('misc', 'baseUrl sid life isSafari', BASE_URL, session_id(), ($mya and !isDEV) ? SESSION_LIFE : 0, isSAFARI);
@@ -656,7 +635,7 @@ EOF
  * Return a display of participating companies (for promo site)
  */
 function whosin($ctty = '') {
-//  if (!$uid = db\lookup('uid', 'users', 'name=:ctty', ['ctty' => "$ctty."])) return '';
+//  if (!$uid = db\get('uid', 'users', 'name=:ctty', ['ctty' => "$ctty."])) return '';
   $ctty = '!' . $ctty; // promo site omits the leading '!' from the community's QID
   if (!$uid = r\qo($ctty)->id or !$list = r\companies($uid, FALSE)) return '';
   $map = [

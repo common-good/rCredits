@@ -28,7 +28,7 @@ function formInvoiceUpload_validate($form, &$sta) {
   $file = new \stdClass();
   foreach ($_FILES['files'] as $k => $v) $file->$k = $v['file'];
   if (function_exists('mime_content_type') and $filetype = mime_content_type($file->tmp_name)) {
-    if (!in_array($filetype, ['text/csv', 'text/plain'])) return say('bad file type', compact('filetype'), 'file');
+    if (!in($filetype, 'text/csv text/plain')) return say('bad file type', compact('filetype'), 'file');
   }
   if ($file->size > R_MAX_UPLOAD_SIZE * 1024000) return say(t('That file is too big'), 'file');
   $sta['input']['rows'] = w\uploadRows($file->tmp_name);
@@ -59,7 +59,11 @@ function formInvoiceUpload_submit($form, &$sta, $args = NULL) {
     if (!$account or !$a = r\acct($account)) return say(t('Bad account|in csv'), $erSubs, 'file');
     if (!$a->ok) return say(t('This account is not yet activated:|in csv'), $erSubs, 'file');
     $a->setBit(B_CONFIRMED); // count this as equivalent to an invitation to the person
-    if (!$email = trim(strtolower($email)) or $a->email != $email) return say(t('Bad email|in csv'), $erSubs, 'file');
+    if (!$email = trim(strtolower($email)) or $a->email != $email) { // not the right email
+      if ($a->phone != u\fmtPhone($email, 'n')) { // not the right phone number
+        if (r\acct($mya->id, $a->id)->relCode != $email) return say(t('Bad email, phone, or account identifier|in csv'), $erSubs, 'file'); // not the right customer ID
+      }
+    }
     $txs[] = [$a->id, $email, $amt, $desc ? strtr($desc, $map) : $dftDesc]; // someday we wlll allow paying and invoicing non-members by email and name
     $total += $amt;
   }      
@@ -95,7 +99,7 @@ function csvUploadInstructions($do, $dftDesc) {
   <li><b>Create a 4-column spreadsheet</b> with or without headers, with this information in each row, in this order (any additional columns will be ignored):
     <ol>
     <li>The %PROJECT account ID to %do.</li>
-    <li>The account's email address.</li>
+    <li>The account's email address or phone number, or your identifier for them.</li>
     <li>The amount to %do that account.</li>
     <li>A short description of what the transaction is for (like "groceries" or "inv #7"). If you omit this, the description will be "%dftDesc".</li>
     </ol>

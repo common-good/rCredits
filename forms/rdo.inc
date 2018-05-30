@@ -42,7 +42,7 @@ function rdo($code, $args = '') {
     if (!$info = r\doCode($code)) return doSay(t('That link is archaic.'));
 ///  print_r($info);
     if ($once = is_numeric($doid = @$info['op'])) {
-      if (!$row = db\lookup('uid,data,expires', 'r_do', 'doid=:doid', compact('doid'))) return doSay(t('That link is no longer valid.')); // already used OR deleted because it expired
+      if (!$row = db\get('uid,data,expires', 'r_do', 'doid=:doid', compact('doid'))) return doSay(t('That link is no longer valid.')); // already used OR deleted because it expired
       extract($row);
       $info = unserialize($data) + $row; // get new op, etc.
       $a = r\acct($uid);
@@ -90,7 +90,7 @@ function rdo($code, $args = '') {
     extract(just('yes no', $args));
     $vote = @$yes ? 1 : 0;
     $info = compact(ray('uid issue vote'));
-    $vid = db\lookup('vid', 'r_votes', 'uid=:uid AND issue=:issue', compact('uid', 'issue'));
+    $vid = db\get('vid', 'r_votes', 'uid=:uid AND issue=:issue', compact('uid', 'issue'));
 //    $vid = 0;
 ///  debug(compact(ray('op args issue yes no vote info vid')));
     if ($vid) db\update('r_votes', $info + compact('vid'), 'vid'); else db\insert('r_votes', $info);
@@ -105,13 +105,8 @@ function rdo($code, $args = '') {
     $joint = r\perm(B_JOINT);
     if  (r\relation(1, $otherId, $a->id, 'permission=:joint', compact('joint'))) { // inviter still wants it?
       $a->unjoin(); // zap any other joins or join requests
-      if ($reid = r\relation('reid', $a->id, $otherId)) {
-        $info = ['permission'=>$joint, 'draw'=>0] + compact('reid');
-      } else $info = ray('main other permission draw', $a->id, $otherId, $joint, 0);
-      // (already in a transaction) $DBTX = \db_transaction();
-      db\update('r_relations', $info, 'reid', TRUE); // create relation or just set permission
+      r\acct($a->id, $otherId)->setRel('permission draw', $joint, 0);
       $a->join(r\acct($otherId)); // remember who is joined
-      // unset($DBTX); // commit
       $res = TRUE;
     }
   }

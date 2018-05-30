@@ -23,7 +23,7 @@ function statement($month = '') {
 
   if (is_numeric($year = substr($month, 2))) {  
     if (substr($type, 0, 1) == 'Q') {
-      list ($endMo, $endDay) = [3 * substr($type, 1), in_array($type, ['Q1', 'Q4']) ? 31 : 30];
+      list ($endMo, $endDay) = [3 * substr($type, 1), in($type, 'Q1 Q4') ? 31 : 30];
       $lastDay = "$endMo/$endDay/$year";
     } else $lastDay = $type == 'CY' ? "12/31/$year" : "$mya->fyEnd/$year";
     $end = strtotime($lastDay) + DAY_SECS - 1; // fails if FY ends on clock change day
@@ -125,7 +125,7 @@ function statement($month = '') {
 //  $pdf->Cell(0, 0, " (Effective yield $yield APR)", '', 1, 'L');
 
   if ($mya->id == CGF_ID) {
-//    $shared = db\lookup('SUM(amount)', 'r_txs', "payee=:CGF_ID AND payeeFor=':R_SHARING_MSG' AND created<=:end", compact('end'));
+//    $shared = db\get('SUM(amount)', 'r_txs', "payee=:CGF_ID AND payeeFor=':R_SHARING_MSG' AND created<=:end", compact('end'));
 //    $pdf->Cell($labelWidth, 0, 'Sharing Donations Ever:');  
 //    $pdf->Cell($numWidth, 0, number_format($shared, 2), '', 1, 'R');
   } elseif ($start == u\monthDay1()) { // committed amount is not available retroactively
@@ -161,7 +161,7 @@ function statement($month = '') {
       if (!$fldName) $fldName = strtolower($head);
       $debit = ($align == 'R' and is_numeric($n = str_replace(',', '', $$fldName)) and $n < 0);
       if ($debit) $pdf->SetTextColor(128, 0, 0); else $pdf->SetTextColor();
-      if (in_array($fldName, $numFields) and $$fldName != $none) $$fldName = number_format($$fldName, 2);
+      if (in($fldName, $numFields) and $$fldName != $none) $$fldName = number_format($$fldName, 2);
       $pdf->Cell($width, 0, $$fldName, '', $head == $lastHead ? 1 : 0, $align, '', '', 1);
     }
     foreach (['amount', 'reward'] as $k) $$k = $$k == R_NONE ? 0 : (str_replace(',', '', $$k) + 0); // convert from string

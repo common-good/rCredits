@@ -16,7 +16,7 @@ function formInvestRate($form, &$sta, $args = '') {
   $title = t('View or Rate Investment #%vestid', compact('vestid'));
   $subtext = t('Numeric ratings are on a scale of 0-100');
 
-  $res = db\lookup('*', 'r_investments', compact('vestid'));
+  $res = db\get('*', 'r_investments', compact('vestid'));
   extract($res);
   $coA = r\acct($coid);
 
@@ -31,10 +31,10 @@ function formInvestRate($form, &$sta, $args = '') {
   foreach (ray('gross assets offering') as $k) $vs[$k] = u\fmtAmt($vs[$k]);
   foreach ($vs as $k => $v) $ds[$k] = item($vs[$k], $ds[$k] . ':');
 
-  if ($shares = db\lookup('shares', 'r_shares', compact('vestid'))) { // already invested
+  if ($shares = db\get('shares', 'r_shares', compact('vestid'))) { // already invested
     $value = item(u\fmtAmt($shares * $price), t('Value:'));
     $shares = item(u\fmtAmt($shares), t('Club\'s stake:'));
-  } elseif ($good = db\lookup('good', 'r_ratings', ray('vestid uid', $vestid, $mya->id))) { // rated
+  } elseif ($good = db\get('good', 'r_ratings', ray('vestid uid', $vestid, $mya->id))) { // rated
     $good = item($good, t('Your rating:'));
   } else { // not rated yet
     $good = textFld(t('Common Goodness:'), [t('Common Goodness'), t('Rate this investment\'s benefit to the community and the common good (0-100)')], required());

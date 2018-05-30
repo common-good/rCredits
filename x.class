@@ -27,7 +27,7 @@ class X {
   function __construct($xid = [], $save = TRUE) {
     if (is_array($info = $xid)) { // referring to existing db record
       $this->ray0 = $this->createNew($info, $save); // create new record
-    } else $this->ray0 = db\lookup('*', 'r_txs', 'xid=:xid', compact('xid'));
+    } else $this->ray0 = db\get('*', 'r_txs', 'xid=:xid', compact('xid'));
   }    
 
   /**
@@ -254,7 +254,7 @@ class X {
 
     foreach ($xrays as $xray) {
       extract(just('payer payee amount type', $xray));
-      if (!in_array($uid, [$payer, $payee])) continue;
+      if (!in($uid, [$payer, $payee])) continue;
       if ($payer == $uid) $amount = -$amount;
       $balance = round($balance + $amount, 2);
 ///      debug(compact('uid','r','balance'));
@@ -438,7 +438,7 @@ class MyX extends x {
 
     if ($msgType == 'reverse') {
       if ($goods == FOR_USD) {
-        return in_array($index, [0,3,4,7]) ? t('request a reversal of this charge') : t('reverse this exchange');
+        return in($index, [0,3,4,7]) ? t('request a reversal of this charge') : t('reverse this exchange');
       } else return $action;
     } 
     

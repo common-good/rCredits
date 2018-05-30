@@ -23,7 +23,7 @@ $queries = [
     IF(u.uid IS NULL OR u.activated=0,
       IF(u.uid IS NULL OR u.uid=0, 'NOT BEGUN', 'in process'), 
       FROM_UNIXTIME(u.activated, '%m/%d/%Y')) AS completed
-  FROM r_relations r LEFT JOIN users u ON u.uid=r.other WHERE r.main=:myid AND isCustomer ORDER BY u.activated,r.created"
+  FROM r_relations r LEFT JOIN users u ON u.uid=r.other WHERE r.main=:myid AND r.:IS_CUSTOMER ORDER BY u.activated,r.created"
   . t('~<p>A list of your customers who joined through a shared sign-up, showing progress opening their %PROJECT account.</p>'),
 
   t('Daily Totals') =>

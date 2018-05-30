@@ -18,8 +18,8 @@ function formTx($form, &$sta, $args = '') {
   if (!$mya->can(B_SELL)) return r\go('summary');
 
   $type = $args === '' ? basename(current_path()) : basename(dirname(current_path())); // pay, charge, etc.
-  $role = in_array($type, ray('charge fine')) ? 'payee' : 'payer';
-  $incentive = in_array($type, ray('fine grant loan invest'));
+  $role = in($type, 'charge fine') ? 'payee' : 'payer';
+  $incentive = in($type, 'fine grant loan invest');
   $selling = explode("\n", $mya->selling);
   $purpose = @$purpose ?: ($type == 'charge' ? @$selling[0] : ($type == 'pay' ? '' : $type));
   

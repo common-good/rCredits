@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.40r'); // software version
+define('R_VERSION', '3.40s'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -106,8 +106,7 @@ define('R_VSECURE_FIELDS', 'federalId dob bankAccount'); // very secure fields (
 define('R_SECURE_FIELDS', 'pw2 vKeyPw ssnData address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass last4bank'); // non-personal encrypted fields (must be complete list)
 define('R_HIDE_CHANGES', R_MONEY_FIELDS . ' pw2 vKeyPw ssnData hasBank changes init login access activated data secure vsecure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank lastip tickle payrollStart payrollEnd'); // do not record changes to these fields: anything often-changed (automatically or not)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
-//define('R_AVAIL_BUY', '(balance+rewards-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
-define('R_AVAIL_BUY', '(balance-IF(:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
+//  define('R_AVAIL_BUY', '(balance-IF(u.:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_SHARE_MAX', 50); // minimum sharing percentage
 define('R_SHARE_DFT', 25); // default sharing percentage
 define('R_SHARING_MSG', t('sharing rewards with CGF'));
@@ -285,7 +284,7 @@ define('B_CARDED', 3); // card has been printed and mailed
 define('B_IDED', 4); // a cashier has verified the member's government-issued photo ID
 define('B_REFILL', 5); // refill the account automatically (up to a target amount)
 define('B_CO', 6); // company account
-define('B_u7', 7); //
+define('B_DRAWS', 7); // this account draws on one or more others
 define('B_ROUNDUP', 8); // round payments up to nearest dollar, donate the cents to the community fund
 define('B_NONUDGE', 9); // don't send reminders
 define('B_NOSEARCH', 10); // user wants to be not findable by other members, by phone or email
@@ -299,7 +298,7 @@ define('B_PAPER', 17); // will not accept electronic statements
 define('B_SECRET', 18); // don't let merchants tell me my balance on request
 define('B_u19', 19); //
 define('B_DEBT', 20); // member chose to permit sub-zero balances
-define('B_DRAWS', 21); // this account draws on one or more others
+define('B_u21', 21); // 
 define('B_SAVINGS', 22); // the connected bank account is a savings or money market account
 define('B_CASHOUTW', 23); // cash out automatically every 7 days
 define('B_CASHOUTM', 24); // cash out automatically every 30 days
@@ -311,7 +310,7 @@ define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
 define('B_ADMINABLE', 'member confirmed carded beta icAdmin cAdmin cAdmin2 nonudge cgc invites rewardy noneg'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok carded ided refill co u7 roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt draws savings cashoutW cashoutM beta icAdmin admin2 cAdmin2 cAdmin admin');
+define('B_LIST', 'member confirmed ok carded ided refill co draws roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt u21 savings cashoutW cashoutM beta icAdmin admin2 cAdmin2 cAdmin admin');
 
 // community-specific flags
 define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)
@@ -325,6 +324,19 @@ define('B_ADMIN_BITS', 'member:cgc,confirmed:up,co:co,u3:invites,ided:rewardy,re
 
 define('R_CTTY_BENE', 'cttyBuys+signups+rebates+bonuss+inflations+givebacks+grants+loans+invests+fines+tradeOut'); // benefit (ever) to the community (fines and givebacks are negative)
 
+// Relationship flags
+define('B_EMPLOYEE', 0); // is employed by main account
+define('B_OWNER', 1); // is employed by main account
+define('B_CUSTOMER', 2); // is employed by main account
+define('B_AUTOPAY', 3); // is employed by main account
+define('B_r4', 4); // is employed by main account
+define('B_r5', 5); // is employed by main account
+define('B_r6', 6); // is employed by main account
+define('B_DRAW', 7); // can draw funds from main account (same number as B_DRAWS in the users table)
+define('REL_FLAGS', 'employee owner customer autopay r4 r5 r6 draw');
+define('REL_FIELDS', 'main other otherNum permission code');
+define('REL_DATA_FIELDS', 'fullName email phone address city state zip address2 city2 state2 zip2 partner partnerCode customer source qid country postalAddr'); // pseudo-fields typically stored in data field
+
 // Relationship permissions used in calls to r\Acct::can() -- stored (less B_RELATED) in r_relations
 define('B_RELATED', 100); // has a relationship record
 define('B_NONE', 100); // no access
@@ -337,7 +349,6 @@ define('B_MANAGE', 106); // can manage all aspects of the account
 define('B_JOINT', 107); // make this a joint account (subsuming the other, with permission) -- no companies!
 $GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept %PROJECT Card payments'), t('give refunds & give USD for %RCREDITS'), t('send invoices'), t('make purchases'), t('manage account'), t('joint account'));
 define('B_PERMISSIONS', 'related read scan refund sell buy manage joint');
-define('AUTOPAY_FLAG', 2); // set isCustomer to this value in r_relations if customer allows automatic payments to the payee
 
 // Other special pseudo-bit values for r\Acct::can() and rweb.module menus
 define('B_MANAGING_CTTY', 120); // cadmin is actually managing a qualified account

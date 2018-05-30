@@ -29,6 +29,6 @@ class optTotals {
 	public function __construct($thisid, $opts) {
 		foreach($opts as $optid) $this->prefs[$optid] = 0;
 		list ($this->id, $this->opttext, $this->optdetail, $this->minimum, $this->maximum, $this->mandatory) 
-			= array_values(db\lookup('id, text, detail, minimum, maximum, mandatory', 'r_options', 'id=:thisid', compact('thisid')));
+			= array_values(db\get('id, text, detail, minimum, maximum, mandatory', 'r_options', 'id=:thisid', compact('thisid')));
 	}
 }

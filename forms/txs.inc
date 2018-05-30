@@ -123,9 +123,9 @@ function txEdit($xid) {
   global $mya;
   if (!$myx = r\MyX::lastTx($mya, 'xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
   extract(just('taking toMe payer payee amount goods payerFor payeeFor created', $myx->ray));
-  
+
   if (!$mya->can($taking ? B_SELL : B_BUY)) return FALSE;
-  
+
   $form = array(    
     '#validate' => array('CG\\Web\\txEdit_validate'),
     '#submit' => array('CG\\Web\\txEdit_submit'),
@@ -155,7 +155,6 @@ function txEdit_validate($form, &$sta) {
   if ($goods == FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($dif and $err = u\badAmount($amount, $mya->cAdmin ? '' : '>0')) return say($err, 'amount');
   if (isset($created) and $err = u\badDate($created, $created0 - 30 * DAY_SECS, time() + 7 * DAY_SECS)) return say($err, 'created');
-///  debug(compact('x_toMe','amount','x_amount'));
   if (!$mya->cAdmin and ($x_toMe ? ($amount > $x_amount) : ($amount < $x_amount))) {
     $who = r\acct($x_toMe ? $x_payer : $x_payee)->name;
     $action = $x_toMe ? t('increase') : t('decrease');
@@ -204,7 +203,7 @@ function handleTx($do, $xid, &$sta, $args) {
     global $mya;
     if (!$mya->superAdmin) return FALSE; // only top admin can do this currently
     u\EXPECT($do == 'no', 'trying to edit bank transfer');
-    $tx = db\lookup('*', 'r_usd', 'txid=:xid', ['xid'=>substr($xid, 1)]);
+    $tx = db\get('*', 'r_usd', 'txid=:xid', ['xid'=>substr($xid, 1)]);
     foreach (just('txid amount tid', $tx) as $k => $v) $tx[$k] = -$v; // reverse transfer
     extract($tx);
     if (!$deposit) { // transfer request has not been processed yet

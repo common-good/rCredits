@@ -242,74 +242,6 @@ EOF
 );
 $GLOBALS['tStrings']['flooded'] = $GLOBALS['tStrings']['bad login'];
 
-/**
- * Return a list of proxy choices for the current account.
- * @param acct $a: the "current" account (whether signed in or not)
- * @param int $dfts: the current proxy choices, if any
- * @param array $choiceList: (RETURNED) array of account record IDs to choose from, not including current choice
- */
-function proxyChoices($a, $dfts, &$choiceList) {
-  $uid = $a->id;
-  $table = <<<EOF
-    (SELECT DISTINCT IF(inviter=:uid, invitee, inviter) AS uid FROM r_invites 
-      WHERE :uid IN (inviter, invitee) AND invitee>0
-    UNION SELECT DISTINCT IF(person=:uid, proxy, person) AS uid FROM r_proxies 
-      WHERE :uid IN (person, proxy)) q
-EOF;
-
-  $cttyCrit = $a->cttyA->isRegion  // must have same params either way (hence :ctty=:ctty)
-  ? "((:ctty=:ctty AND city='$a->city' AND state=$a->state AND :IS_OK) OR u.uid IN (:DEFAULT_PROXIES))"
-  : '(community=:ctty AND :IS_OK)';
-  
-  if (!$friends = db\lst('uid', $table, 1, compact('uid'))) $friends = '0'; // list of account's friends
-  $sql = <<<EOF
-    SELECT u.uid, fullName, city, state, SUM(w) AS weight FROM (
-      SELECT uid, :PHP_INT_MAX/2 AS w FROM users 
-      WHERE uid IN ($friends)
-      UNION
-      SELECT uid, :PHP_INT_MAX/4 AS w FROM users 
-      WHERE (state=:state AND city=:city) OR zip=:zip
-      UNION
-      SELECT IF(uid1 IN ($friends), uid2, uid1) AS uid, weight AS w FROM r_near
-      WHERE uid1 IN ($friends) OR uid2 IN ($friends)
-      UNION
-      SELECT uid, 0 AS w FROM users
-    ) n LEFT JOIN users u ON u.uid=n.uid
-    WHERE $cttyCrit AND u.uid>:CANONIC_ACCTS AND u.uid<>:uid AND NOT :IS_CO
-    GROUP BY u.uid, u.state, u.city 
-    ORDER BY state, city, fullName
-EOF;
-//    ORDER BY GREATEST(SUM(w), :PHP_INT_MAX/4) DESC, state<>:state, state, city, SUM(w) DESC, fullName
-  $q = db\q($sql, ray('uid state city zip ctty', $uid, $a->state, $a->city, $a->zip, $a->community));
-  $res = '';
-  $cityX = '(none)'; // required for placeholders to work right
-  while ($row = $q->fetchAssoc()) { // show choices in reverse order, so inviter(s) are at top
-    extract($row);
-    if (!$current = in_array($uid, $dfts)) $choiceList[] = $uid;
-    $state = ($state == $a->state or !$state) ? '' : (', ' . r\realState($state));
-/*    if ($weight < PHP_INT_MAX / 2) { // show city and maybe state
-      $state = $state == $a->state ? '' : (', ' . r\realState($state));
-    } else list ($city, $state) = [t('Top Suggestions'), '']; */
-    if ($city <> $cityX) {
-      if ($cityX) $res .= "</td></tr>\n"; // finish previous line
-      $res .= "<tr><th>$city$state</th><td>";
-      $cityX = $city;
-    }
-    $style = $weight < PHP_INT_MAX / 4 ? 'default'
-    : ($weight == PHP_INT_MAX / 4 ? 'slight'
-    : ($weight <= PHP_INT_MAX / 2 ? 'primary'
-    : 'success' ));
-    if ($current) $style = 'warning';
-///    debug(compact('row','city','cityX','friends') + ['max/2-w'=>PHP_INT_MAX / 2 - $weight]);
-    $res .= <<<EOF
-<button type="submit" name="i-$uid" class="btn btn-xs btn-$style ladda-button" data-style="zoom-out">
-    <span class="ladda-label">$fullName</span></button>    
-EOF;
-  }
-  if ($res) $res .= '</td></tr>'; // finish last line
-  return "<div class=\"well\"><table>$res</table></div>";
-}
-
 function htmlItem($name, $id, $value, $class, $other = []) {return $value;}
 
 function htmlText($name, $id, $value, $class, $other = []) {
@@ -444,7 +376,7 @@ function wrap($name, $html, $ray) {
   if ($for == 'title') $html = "<h3>$html</h3>";
   $html = @$field_prefix . $html . @$field_suffix;
 
-  $boxy = in_array($type, ['radio', 'checkbox']) ? $type : '';
+  $boxy = in($type, 'radio checkbox') ? $type : '';
 
   $class = [@$class];
   $class[] = $boxy ? 'option' : 'control-label col-sm-offset-1 col-xs-2';
@@ -521,10 +453,10 @@ function showRecords($ray, $formatFunc = 'CG\\Web\\formatField', $flagsField = B
     foreach ($row as $k => $v) {
       $v = $formatFunc($k, plain($v), $flagsField);
       if ($k == 'for2' and $v == $row->for1) $v = 'same'; // admin uses this for conciseness
-      $align = in_array($k, ray(ALIGN_RIGHT)) ? 'R' : (in_array($k, ray(ALIGN_CENTER)) ? 'C' : 'L');
+      $align = in($k, ALIGN_RIGHT) ? 'R' : (in($k, ALIGN_CENTER) ? 'C' : 'L');
       foreach (ray('balance credit trust count total $') as $w) if (stripos($k, $w) !== FALSE) {
         $align = 'R';
-        if ($v !== '' and is_numeric($v)) $v = number_format($v, in_array($w, ray(FMT_INT)) ? 0 : 2);
+        if ($v !== '' and is_numeric($v)) $v = number_format($v, in($w, FMT_INT) ? 0 : 2);
       }
 //      if (in_array($k, ray(FMT_INT))) $v = round($v);
 //      if (in_array($k, ray(FMT_2D)) or strpos($k, '$') !== FALSE) if ($v != '') $v = number_format($v, 2);
@@ -660,7 +592,7 @@ function fieldSet($id, $flds, $label = '', $other = []) {return fld('fieldset', 
  * Return a form field for sharing percentage.
  *//*
 function shareFld($a) {
-  $sharePct = round(db\lookup('AVG(share)', 'r_gifts', 'share>=0'), 1);
+  $sharePct = round(db\get('AVG(share)', 'r_gifts', 'share>=0'), 1);
   $shareDft = $a->prefsSet ? (($a->share + 0) ?: 0) : R_SHARE_DFT;
   return textFld(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the %PROJECT system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the %PROJECT community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes %PROJECT and handles administration of your %PROJECT community until the community can take over that responsibility.</p>', compact('sharePct')), required($shareDft . '%'));
 }
@@ -705,9 +637,9 @@ function boolFld($title = '', $help = '', $dft = NULL, $labels = NULL, $extra = 
  * Create a rendered checkboxes field
  * @param string $title:
  * @param string $desc:
- * @param array $defaults: simple array of names of already-checked boxes
- * @param array $choices: name for each checkbox
- * @param array $aliases: name to display for each checkbox (defaults to choice name)
+ * @param array $defaults: simple array of indexes of already-checked boxes
+ * @param assoc $choices: name for each checkbox (indexed)
+ * @param assoc $aliases: name to display for each checkbox (defaults to choice name)
  * @see also boxFlds()
  */
 function boxesFld($title, $desc, $defaults, $choices, $aliases = NULL) {
@@ -732,7 +664,7 @@ function bitsFld($label, $bitRay, $prefix, $bits, $aliases = []) {
     if ($prefix) $bit = u\consta($prefix, $bitName);
     $bitNames[$bit] = $bitName;
     $bitAliases[$bit] = @$aliases ? strtr($bitName, $aliases) : $bitName;
-    if (u\getBit($bitRay, $bit)) $defaults[] = $bitName;
+    if (u\getBit($bitRay, $bit)) $defaults[] = $bit;
   }
   return boxesFld($label, '', $defaults, $bitNames, $bitAliases);
 }
@@ -789,7 +721,7 @@ function whoFldSubmit($field, $question, $extra = []) {
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formArray, $formSta, $rUrl;
   setAcct(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
-  if (!@$formSta['confirm'] and !in_array($function, ray(R_NOLOG_FORMS))) {
+  if (!@$formSta['confirm'] and !in($function, R_NOLOG_FORMS)) {
     $formName = str_replace(base_path(), '', $_SERVER['REQUEST_URI']);
     if ($logs = $_POST) {
 /**/  u\loga('in', $formName . substr(print_r(u\noSecrets($logs), 1), 5)); // without "Array"
@@ -802,8 +734,8 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     global $mya;
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "CG\\Web\\form$function";
-    $specialForm = in_array($function, ray('Help Empty footer accounts Login'));
-    $adminForm = in_array($function, ray('Admin MemberList MemberInfo'));
+    $specialForm = in($function, 'Help Empty footer accounts Login');
+    $adminForm = in($function, 'Admin MemberList MemberInfo');
     $args = func_get_args(); // this and next few lines are from \drupal_get_form()
     array_shift($args); // Remove $function from the arguments.
     $formSta['build_info'] = compact('args');
@@ -821,7 +753,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $form = \drupal_build_form($formName, $formSta);
 
     $req = basename($_SERVER['REQUEST_URI']);
-    if (!$mya and in_array($req, ['login', 'logout'])) return r\go(PROMO_URL); // nothing else works
+    if (!$mya and in($req, 'login logout')) return r\go(PROMO_URL); // nothing else works
     if ($req == 'user' and $mya) return r\go('summary'); // summary not ''
     foreach ($form as $k => $v) if (@$v['#type'] == 'submit') {$submit1 = @$v['#id'] ?: "edit-$k"; break;}
     $form['opid'] = hidFld(@$submit1 ?: 'none', ['name' => 'opid']); // default to first, in case submitted programmatically
@@ -935,7 +867,7 @@ function box() {
  */
 function boxUser($code, $uid) {
   if ($id = @$_COOKIE[$cookid = 'boxnum' . $uid] and !u\test()) return $id; // we only get this if last set today
-  if ($id = db\lookup('id', 'r_boxes', 'code=:code AND uid=:uid', compact(ray('code uid')))) {
+  if ($id = db\get('id', 'r_boxes', 'code=:code AND uid=:uid', compact(ray('code uid')))) {
     db\update('r_boxes', ray('id access', $id, r\rTime()), 'id');
   } else $id = r\makeDevice($uid, $code, TX_WEB);
   return r\setCook($cookid, $id, r\rTime() + SESSION_LIFE);
@@ -1043,7 +975,7 @@ function setAcct($myid = '') {
  * @param string $sid: the session ID
  */
 function sessionVars($sid) {
-  if (!$both = db\lookup('uid,session', 'sessions', 'sid=:sid', compact('sid'))) return [];
+  if (!$both = db\get('uid,session', 'sessions', 'sid=:sid', compact('sid'))) return [];
   extract($both);
   $res['uid'] = $uid;
   
@@ -1257,12 +1189,6 @@ function goButtonIf($perms, $label, $goto, $title) {
   return goButton($label, $goto, $title);
 }
 
-function boxOpt($field, $opts, $sta) {
-///   debug(compact('field','opts','sta'));
-  foreach ((@$sta['input'][$field] ?: []) as $key => $value) $result[] = $opts[$key]; // note that key==value
-  return @$result ?: [];
-}
-
 function wants($ats) {  
   $wants = 0; // store a bit for each bought-at company
   if ($ats) foreach ($ats as $one) if (@$one) {
@@ -1295,9 +1221,9 @@ function acctType($acctType) {
  * @return TRUE if there is a formal relationship
  */
 function suCompanyRelation($other, $data) {
-  extract(just('company companyPhone isOwner employeeOk contractor', $data));
+  extract(just('company companyPhone owner employee contractor', $data));
   if ($main = findCompany($company, @$companyPhone)) { // company account exists
-    return r\acct($main)->newRelation(ray('other employee isOwner', $other, @$employeeOk, @$isOwner)); // no permissions/draw (for security)
+    return r\acct($main)->newRelation(compact(ray('other employee owner'))); // no permissions/draw (for security)
   } else return FALSE;
 }
 
@@ -1305,11 +1231,11 @@ function suCompanyRelation($other, $data) {
  * Set up relationship of this new account with the account that created it (if any).
  */
 function suCreatorRelation($helper, $args, $myid) {
-  extract($params = just('isOwner employeeOk flow', $args));
-  if (!@$isOwner and !@$employeeOk and !@$flow) return; // no useful relation (for example by true invitation)
+  extract($params = just('owner employee flow', $args));
+  if (!@$owner and !@$employee and !@$flow) return; // no useful relation (for example by true invitation)
 
   $draw = ($flow & 2) ? 1 : 0;
-  r\acct($myid)->newRelation(ray('other permission employee isOwner draw', $helper, r\perm(B_MANAGE), $employeeOk, $isOwner, $draw));
+  r\acct($myid)->newRelation(ray('other permission employee owner draw', $helper, r\perm(B_MANAGE), $employee, $owner, $draw));
   if ($flow & 1) r\acct($helper)->newRelation(ray('other draw', $myid, TRUE));
 //  } else r\tellAdmin("bad params in formSignup: $error -- ", $params);
 } 
@@ -1339,7 +1265,7 @@ function emailOkay(&$email0, $dupsOk, $a = FALSE, $suppressErr = FALSE) {
 function emailDup($email0, $uid, $suppressErr = FALSE) {
   global $base_url;
   $mail = u\cry('P', $email0);
-  if (!$who = db\lookup('fullName', 'users', 'mail=:mail and uid<>:uid AND NOT :IS_CO', compact('mail', 'uid'))) return FALSE;
+  if (!$who = db\get('fullName', 'users', 'mail=:mail and uid<>:uid AND NOT :IS_CO', compact('mail', 'uid'))) return FALSE;
   if (!$suppressErr) {
     $_a = atag("/settings/password/$email0");
     $emailTagged = str_replace('@', '+whatever@', $email0);
@@ -1376,11 +1302,11 @@ function tellStaffNewMember($params) {
 function findCompany($company, $companyPhone) {
   if (!$company and !$companyPhone) return FALSE;
   $companyShortName = u\shortName($company);
-  $companyUid = db\lookup('uid', 'users', ':IS_CO AND phone=:companyPhone', compact('companyPhone'));
-  if (!$companyUid) $companyUid = db\lookup('uid', 'users', ':IS_CO AND name=:companyShortName', compact('companyShortName'));
+  $companyUid = db\get('uid', 'users', ':IS_CO AND phone=:companyPhone', compact('companyPhone'));
+  if (!$companyUid) $companyUid = db\get('uid', 'users', ':IS_CO AND name=:companyShortName', compact('companyShortName'));
   if (!$companyUid and strlen($companyShortName) > 8 ) {
     $companyShortName .= '%';
-    $companyUid = db\lookup('uid', 'users', ':IS_CO AND name LIKE :companyShortName', compact('companyShortName'));
+    $companyUid = db\get('uid', 'users', ':IS_CO AND name LIKE :companyShortName', compact('companyShortName'));
   }
   return $companyUid;
 }
@@ -1428,7 +1354,7 @@ function contactFields($defaults = [], $step0, $myid = 0) {
   if (!@$country) $country = US_COUNTRY_ID;
 
   foreach (['state', 'state2'] as $k) {
-    if (@$$k) $$k = db\lookup('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
+    if (@$$k) $$k = db\get('id', 'r_states', ":$k IN (id, name, abbreviation) and country_id=:country", compact($k, 'country'));
   }
   js('countries'); // required for setPostalAddr, whether or not the fields are shown
 
@@ -1493,8 +1419,8 @@ function contactFields($defaults = [], $step0, $myid = 0) {
     } else $source = hidFld(@$source);
   }
 
-  if (!in_array('tenure', $fieldsToHide)) $tenure = $step0 ? textFld(t('How long:'), [t('MONTHS at current address.'), t('How long have you been at your current address, in months (roughly)')], required(@$tenure)) : NULL;
-  if (!in_array('owns', $fieldsToHide)) $owns = boolFld('', '', $step0 ? @$owns : $a->owns, [t('Rent'), t('Own')]); // default fails
+  if (!in('tenure', $fieldsToHide)) $tenure = $step0 ? textFld(t('How long:'), [t('MONTHS at current address.'), t('How long have you been at your current address, in months (roughly)')], required(@$tenure)) : NULL;
+  if (!in('owns', $fieldsToHide)) $owns = boolFld('', '', $step0 ? @$owns : $a->owns, [t('Rent'), t('Own')]); // default fails
 
   return compact(ray($fields));
 }  
@@ -1623,7 +1549,7 @@ function invitation($code, $invitee = '', &$inviter = '', &$iCode = -1, &$err = 
     return TRUE;
   } else {
     $fields = 'id,email,inviter,invitee,invited';
-    if (!$result = db\lookup($fields, 'r_invites', 'code=:code', compact('code'))) return !$err = 'bad invite';
+    if (!$result = db\get($fields, 'r_invites', 'code=:code', compact('code'))) return !$err = 'bad invite';
     $id = $result['id']; // don't extract yet
     if (@$invitee) return db\update('r_invites', compact('id', 'invitee'), 'id'); // mark it used
     
@@ -1758,7 +1684,7 @@ function dateRange($args, $url, $choices = [], $settings = '', $downloadable = T
   u\setDft($states, $settings);
 ///  debug($states);
   if ($choices) {
-    if ($states) foreach (ray($states) as $k) $stateDfts[] = $choices[$k];
+    if ($states) $stateDfts[] = ray($states);
     $states2 = boxesFld(t('Show:'), '', @$stateDfts, $choices);
   }
   $showingAdv = ($states != $settings or (@$ending and $ending != strtotime('tomorrow') - 1));
@@ -2242,7 +2168,7 @@ function fundStats($stats, $round = FALSE, $stats30 = NULL) {
   }
     
   foreach (array_keys($stats) as $k) {
-    if (!in_array($k, ray('id ctty created'))) {
+    if (!in($k, 'id ctty created')) {
       if ($stats30) $stats["d_$k"] = $stats[$k] - $stats30[$k];
       $fmt = ($round or strpos($k, 'Count') or @$fields[$k]['type'] == 'int') ? '1' : 's$';
       if (strpos($k, 'Rate')) $fmt = '%';
@@ -2505,10 +2431,9 @@ function signinFlds($acct, $acctDesc = '', $passDesc = '') {
  * @param string $company: (RETURNED) the company name
  */
 function signupCoDisplay($info, &$company = '') {
-//  return $info ? $info['company'] . ' (' . $info['companyPhone'] . ') ' . (@$info['isOwner'] ?: '') . (@$info['isEmployee'] ?: ''), t('Signup Co:') : '';
   if (!@$info) return '';
   extract($info);
-  return @$isOwner . ' ' . @$isEmployee . ': ' . @$company;
+  return @$owner . ' ' . @$employee . ': ' . @$company;
 }
 
 /**

@@ -70,7 +70,7 @@ function isGiveback($payer, $payee, $data) {
  */
 function badUnpaidInv($nvid, &$inv = '') {
   $fields = 'nvid,status,amount,payer,payee,goods,purpose,data,created';
-  if (!$inv = db\lookup($fields, 'r_invoices', 'nvid=:nvid', compact('nvid'))) return 'no matching invoice';
+  if (!$inv = db\get($fields, 'r_invoices', 'nvid=:nvid', compact('nvid'))) return 'no matching invoice';
   if ($inv['status'] > TX_APPROVED) return 'already paid';
 }
 
@@ -85,7 +85,7 @@ function xid2tid($xid, $uid) {
   $isIt = ' IN (:uid, :jid)';
   $where = "(payer$isIt OR payee$isIt) AND xid<:xid AND type>=0";
   $max = "MAX(GREATEST(IF(payee$isIt, payeeTid, 0), IF(payer$isIt, payerTid, 0)))";
-  return db\lookup($max, 'r_txs', $where, compact('uid', 'xid', 'jid')) + 1;
+  return db\get($max, 'r_txs', $where, compact('uid', 'xid', 'jid')) + 1;
 }
 
 /**
@@ -119,7 +119,7 @@ function worksForUs($name, $us = NULL, $loose = TRUE) {
     for ($i = 1; $i < count($words) - 1; $i++) $words[$i] = substr($words[$i], 0, 1) . '%';
   }
   $pattern = join(' ', $words);
-  $where = 'r.main=:us' . ($loose ? '' : ' AND r.employee');
+  $where = 'r.main=:us' . ($loose ? '' : ' AND r.:IS_EMPLOYEE');
   
   $sql = <<<X
     SELECT u.uid, u.fullName FROM r_relations r
@@ -597,8 +597,8 @@ function region($country = '', $state = '', $zip = '', &$raw = '') {
   if (!$state) $state =  R_STATE_ID;
   $where = "IF(zip='', country_id=:country AND s.id=:state, :zip RLIKE zip) ORDER BY (zip='') LIMIT 1";
   $table = 'r_regions r LEFT JOIN r_states s ON s.abbreviation=r.st';
-  if (!$region = db\lookup('region', $table, $where, compact(ray('state zip country')))) {
-    $region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
+  if (!$region = db\get('region', $table, $where, compact(ray('state zip country')))) {
+    $region = db\get("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
   }
   return r\qo('!' . ($raw = $region ?: 'ZZZ') . 'AAA')->id;
 }
@@ -607,16 +607,16 @@ function region($country = '', $state = '', $zip = '', &$raw = '') {
  * Say whether one of the accounts owns the other (or can draw from it).
  */
 function owning($uid1, $uid2) {
-  $where = '(isOwner or draw) AND ((main=:uid1 AND other=:uid2) OR (main=:uid2 AND other=:uid1))';
+  $where = '(:IS_OWNER or :IS_DRAW) AND ((main=:uid1 AND other=:uid2) OR (main=:uid2 AND other=:uid1))';
   return $uid1 == $uid2 ?: relation(1, $where, compact('uid1', 'uid2'));
 }
 
 /**
- * Say whether the first account is an employee of the second
- * @param int $company: defaults to current uid
+ * Say whether the first account is an employee of the second (or of the current account)
+ * @param int $company: defaults to current account ID
  */
 function isEmployee($uid, $company = '') {
-  return relation(1, $company ?: r\acct()->id, $uid, 'employee');
+  return relation(1, $company ?: @r\acct()->id, $uid, ':IS_EMPLOYEE');
 }
 
 /**
@@ -627,7 +627,7 @@ function isEmployee($uid, $company = '') {
 function communityUid($zip = '', $defaultZero = FALSE) {
   if (!$zip) return serverUid();
   $where = "country=:R_COUNTRY_ID AND :zip RLIKE zip AND uid<1";
-  return db\lookup('uid', 'users', $where, compact('zip')) ?: ($defaultZero ? 0 : serverUid());
+  return db\get('uid', 'users', $where, compact('zip')) ?: ($defaultZero ? 0 : serverUid());
 }
 
 /**
@@ -667,7 +667,7 @@ function uniqueName($fullName, $info = []) {
 function loginString($id) {
   if (u\isQid($id = trim(strtoupper($id))) and $acct = r\acct($id)) return $acct->id; // try to interpret as a qid
   $mail = u\cry('P', strtolower($id));
-  return db\lookup('uid', 'users', 'name=:id OR mail=:mail ORDER BY :IS_CO', compact('id', 'mail'));
+  return db\get('uid', 'users', 'name=:id OR mail=:mail ORDER BY :IS_CO', compact('id', 'mail'));
 }
   
 /**
@@ -675,7 +675,7 @@ function loginString($id) {
  */
 function employees() {
   $myid = r\acct()->id;
-  return db\q('SELECT other FROM r_relations WHERE main=:myid AND employee', compact('myid'))->fetchCol();
+  return db\q('SELECT other FROM r_relations WHERE main=:myid AND :IS_EMPLOYEE', compact('myid'))->fetchCol();
 }
 
 /**
@@ -685,31 +685,37 @@ function employees() {
  *   relation(field, where, subs)
  *   relation(field, reid)
  *   relation(field, qid)
- * @param string $field: what field value(s) to return (see varieties at db\lookup())
+ * @param string $field: what field value(s) to return (see varieties at db\get())
  * @param int $main: uid of main account
- * @param int $other: uid of other (agent) account
+ * @param int $other: uid of other (agent) account (changed to zero if same as main)
  * @param string $where: SQL criteria
  * @param assoc $subs: criteria parameters
  * @param int $reid: relations record id
- * @param string $qid: (NYI)
+ * @param string $qid: QID for a compound account
  */
 function relation($field, $main, $other = [], $where = 'TRUE', $subs = []) {
   if (is_numeric($main)) {
-    if (empty($other)) {
+    if (empty($other)) { // reid
       if (is_numeric($reid = $main)) {
         $where = "reid=:reid";
         $subs += compact('reid');
-      } else {
+      } else { // main, other, where, subs
         list ($main, $otherNum) = explode('-', $main);
         list ($main, $otherNum) = [r\qo($main)->id, u\a2n($otherNum)];
         list ($where, $subs) = ['main=:main AND otherNum=:otherNum', compact('main', 'otherNum')];
       }
     } else {
+      if ($main == $other) $other = 0; // handle tentative proSe relation with future customer
       $where = "main=:main AND other=:other AND ($where)";
       $subs += compact('main', 'other');
     }
-  } else list ($where, $subs) = array($main, $other); // called with alternate form
-  return db\lookup($field, 'r_relations', $where, $subs);
+  } elseif ($other) { // where, subs
+    list ($where, $subs) = array($main, $other);
+  } else { // qid
+    $a = r\acct($qid = $main);
+    list ($where, $subs) = [ray('main other', $a->id, $a->agentId), []];
+  }
+  return db\get($field, 'r_relations', $where, $subs);
 }
 
 /**
@@ -730,7 +736,7 @@ function passSalt($acct = '') {
 function newUid($base) {return u\firstUnusedId('uid', 'users', $base, $base + R_REGION_MAX - 1);}
 
 /*  $where = 'u.uid>=:base and u.uid <:base+:R_REGION_MAX AND u2.uid IS NULL ORDER BY u.uid';
-  $previous = db\lookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where, compact('base'));
+  $previous = db\get('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where, compact('base'));
   return $previous ? ($previous + 1) : $base;
 }*/
 
@@ -769,7 +775,7 @@ function makeDevice($uid, $code = '', $ch = NULL) {
   } else */
   //if (!$boxName) $boxName = $code; // code serves as boxName for dumb cell phones
   $created = $access = r\rTime();
-  $boxnum = db\lookup('MAX(boxnum)', 'r_boxes', 'uid=:uid', compact('uid')) + 1;
+  $boxnum = db\get('MAX(boxnum)', 'r_boxes', 'uid=:uid', compact('uid')) + 1;
   $info = ray('channel', $ch) + compact(ray('uid code boxnum access created'));
   return @db\insert('r_boxes', $info);
 }
@@ -941,22 +947,21 @@ function go($page, $msg = '', $field = '') {
     r\Web\say(strip_tags($msg), $field);
   }
 //  else $page .= "/field=$field&msg=" . urlencode($msg); // say() fails if signed out
-
+  if (substr($page, 0, 1) == '/') $page = substr($page, 1); // supplying the slash is preferred, to agree with w\atag()
+    
   if (u\test()) {
     $_POST = []; // make sure it doesn't act like we submitted the target page
     f('t.output', "Going to page $page (page0=$lastGo msg=$msg field=$field)");
     return strpos($page, 'http://') === FALSE ? f('t.pageForm', $page, $msg, $field) : '';
   }
 
+  if (!u\starts($page, 'http')) $page = "$base_url/$page";
+
   /*
   foreach (ray('login signup password reset') as $one) if (strpos($page, "user/$one") !== FALSE) {
     if (\drupal_session_started()) session_destroy();
   }
   */
-  if (!u\starts($page, 'http')) {
-    if (substr($page, 0, 1) == '/') $page = substr($page, 1); // supplying the slash is preferred, to agree with w\atag()
-    $page = "$base_url/$page";
-  }
   \drupal_session_commit();
   header("Location: $page", TRUE, 302); 
   exit();
@@ -1040,7 +1045,7 @@ function cttyPaidEver($ctty = 0) {
   u\EXPECT(u\myInt($ctty), 'bad ctty');
   return max(0, -db\sum('balance', 'users', $ctty ? "uid=$ctty" : 'uid<0'));
   $dt = db\max('created', 'r_stats', 'ctty=:ctty', compact('ctty')) ?: 0;
-  return db\lookup(R_CTTY_BENE, 'r_stats', 'ctty=:ctty AND created=:dt', compact('ctty', 'dt'));
+  return db\get(R_CTTY_BENE, 'r_stats', 'ctty=:ctty AND created=:dt', compact('ctty', 'dt'));
 }
 
 /**
@@ -1419,7 +1424,7 @@ function passHash($pass) {
 function median($field, $table = 'users', $where = 1, $subs = []) {
   $middle = db\count($table, $where, $subs) / 2;
   $limit = floor($middle) . (is_int($middle) ? ', 1' : ', 2');
-  return db\lookup('AVG($field)', 'users', "$where ORDER BY $field LIMIT $limit", $subs);
+  return db\get('AVG($field)', 'users', "$where ORDER BY $field LIMIT $limit", $subs);
 }
 
 /**
@@ -1428,7 +1433,7 @@ function median($field, $table = 'users', $where = 1, $subs = []) {
  * @return int: the next unused positive integer (1 if there are no bank transfers yet)
  */
 function getUsdTid($payee) {
-  return db\lookup('MAX(tid)+1', 'r_usd', 'payee=:payee', compact('payee')) ?: 1;
+  return db\get('MAX(tid)+1', 'r_usd', 'payee=:payee', compact('payee')) ?: 1;
 }
 
 /**
@@ -1482,8 +1487,8 @@ function up($up = NULL) {
  */
 function reward($from, $to, $amount = 1, $isPayer = TRUE) {
   global $testRewardStep;
-  if (relation(1, $to, $from, 'isOwner OR draw')) return 0;
-  if (relation(1, $from, $to, 'isOwner OR draw')) return 0;
+  if (relation(1, $to, $from, ':IS_OWNER OR :IS_DRAW')) return 0;
+  if (relation(1, $from, $to, ':IS_OWNER OR :IS_DRAW')) return 0;
   $a = r\acct($isPayer ? $from : $to);
 //  $pct = u\test() ? $a->rebate : max(R_MIN_REWARD_PCT, R_REBATE - floor($a->rewards / R_REWARD_STEP));
   $step = @$testRewardStep ?: R_REWARD_STEP;
@@ -1506,7 +1511,7 @@ function reward($from, $to, $amount = 1, $isPayer = TRUE) {
  * @return <successful>
  */
 function handleInvestmentRequest($stakeid, &$msg) {
-  if (!$res = db\lookup('stake,request,uid,clubid', 'r_stakes', compact('stakeid'))) return !$msg = t('bad stakeid');
+  if (!$res = db\get('stake,request,uid,clubid', 'r_stakes', compact('stakeid'))) return !$msg = t('bad stakeid');
   extract($res);
   
   if ($request <= 0) return (bool) $msg = t('No additional investment is requested.');
@@ -1539,8 +1544,8 @@ function xfee($for, $amount) {
 function serverUid($regionId = R_SERVER_ID) {return -1 - R_REGION_MAX * u\a2n($regionId);} // -u\a2n($regionId) - 1;}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('%body', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
-function realCountry($country) {return db\lookup('name', 'r_countries', 'id=:country', compact('country'));}
-function realState($state, $country = R_COUNTRY_ID) {return db\lookup($country == US_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
+function realCountry($country) {return db\get('name', 'r_countries', 'id=:country', compact('country'));}
+function realState($state, $country = R_COUNTRY_ID) {return db\get($country == US_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function perm($bit) {return $bit - B_RELATED;}
 function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}
 //function doCode($code) {return @unserialize(@u\decry('P', CRYPT_FLAG . $code));} // this is how it should be
@@ -1554,7 +1559,7 @@ function cgfId() {return \variable_get('cgf_uid');}
 function disputeTx($xid) {return db\setFlag('r_txs', $xid, B_DISPUTED, TRUE);}
 function denyInv($nvid) {return db\setData('r_invoices', $nvid, ['denied' => TRUE]);}
 function stepsDone0() {return array_fill_keys(array_keys(ray(R_STEPS)), FALSE);}
-function isReward($type) {return in_array($type, ray(TX_REWARDS));}
+function isReward($type) {return in($type, TX_REWARDS);}
 //function usdin($for) {return u\abbreviates('usd in (', strtolower(is_array($for) ? $for[1] : $for));}
 function usdin($for) {return u\abbreviates(S_USD_IN, is_array($for) ? $for[1] : $for, TRUE);}
 function regionField($fld) {return ($mya = r\acct(serverUid())) ? $mya->$fld : NULL;}

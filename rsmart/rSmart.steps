@@ -263,7 +263,7 @@ function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
   global $testOnly; if ($testOnly) return FALSE;
   
   $fields = 'member amount goods description created force code proof';
-  if ($q = db\lookup('payer, payerAgent, amount, goods, payeeFor AS description, created', 'r_txs', 'xid=:txid', compact('txid'))) {
+  if ($q = db\get('payer, payerAgent, amount, goods, payeeFor AS description, created', 'r_txs', 'xid=:txid', compact('txid'))) {
     extract($q);
     $member = r\qid($payer, $payerAgent);
     list ($goods, $force, $proof) = [(int) ($goods == FOR_GOODS), -1, 'calc'];

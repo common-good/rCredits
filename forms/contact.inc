@@ -48,7 +48,7 @@ function formContact_validate($form, &$sta) {
   if ($fullName != $mya->fullName) {
     if ($err = u\badName($fullName)) return say($err, ['field' => 'fullName'], 'fullName');
     $name = u\shortName($fullName);
-    $otherName = db\lookup('fullName', 'users', 'name=:name AND uid<>:myid', compact('name', 'myid'));
+    $otherName = db\get('fullName', 'users', 'name=:name AND uid<>:myid', compact('name', 'myid'));
     if ($otherName) return say('shortname taken', compact('otherName'), 'fullName');
   }
 

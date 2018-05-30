@@ -83,7 +83,7 @@ function showProposal($mya, &$extras, $question, $voting = FALSE) {
   /*
   // This new logic may be good:
   $crit = "endProposals<>0 AND type='R' AND ctty=:ctty ORDER BY endProposals DESC";
-  if (!$res = db\lookup('id AS fundingId,endProposals AS endDate', 'r_questions', $crit, compact('ctty'))) return $noneErr;
+  if (!$res = db\get('id AS fundingId,endProposals AS endDate', 'r_questions', $crit, compact('ctty'))) return $noneErr;
   extract($res);
   
   if ($endDate < time()) return showProposalGrades($fundingId, $extras);
@@ -96,7 +96,7 @@ function showProposal($mya, &$extras, $question, $voting = FALSE) {
   if (!$qcount = count($quids)) return $noneErr;
   u\setDft($question, -$quids[0]);
   
-  $row = db\lookup('*', 'r_proposals', 'id=-:question', compact('question'));
+  $row = db\get('*', 'r_proposals', 'id=-:question', compact('question'));
 //  if (!@$row['id']) return t('There are no more proposals to grade.');
   
   extract(just('project categories overview purpose where when until how amount type budgetTotal budget contingency qualifications evaluation name contact phone email sponsor', $row));
@@ -273,7 +273,7 @@ function processvote($args, $type) {
     db\update('r_votes', compact(ray('id grade gradeMax text isVeto modified')), 'id');
 	}
 	$ballot = $args['ballot'];
-  $voter = db\lookup('voter', 'r_ballots', 'id=:ballot', compact('ballot'));
+  $voter = db\get('voter', 'r_ballots', 'id=:ballot', compact('ballot'));
   db\update('r_ballots', ray('id proxy modified', $ballot, $voter, time()), 'id');
 }
 
@@ -288,7 +288,7 @@ function processvote($args, $type) {
  */
 function getCurrentVote($mya, &$extras, $question, $type, $optOrder) {
   $voter = $mya->id;
-	if (!$ballot = db\lookup('id', 'r_ballots', 'question=:question AND voter=:voter', compact('question', 'voter'))) {
+	if (!$ballot = db\get('id', 'r_ballots', 'question=:question AND voter=:voter', compact('question', 'voter'))) {
     $created = time();
     $ballot = db\insert('r_ballots', compact(ray('question voter created')));
   }
@@ -572,7 +572,7 @@ function done($mya) {
   include_once __DIR__ . '/rvote-results.inc';
 
 	if(ISDEMO) {
-    $proxyCount = db\lookup('COUNT (DISTINCT voter)', 'r_ballots', 'proxy=:myid', ['myid' => $mya->id]) - 1;
+    $proxyCount = db\get('COUNT (DISTINCT voter)', 'r_ballots', 'proxy=:myid', ['myid' => $mya->id]) - 1;
     
 		$bodymiddle = t(<<<EOF
 <h2>Thank You for Voting!</h2>
@@ -629,7 +629,7 @@ EOF;
   $qvQ = db\q($sql, $subs);
   while ($qvRow = $qvQ->fetchAssoc()) {
     extract($qvRow); // qId, bId, voter, qType, fullName, trust, question
-    if ($voter != $proxy) $bId = db\lookup('id', 'r_ballots', 'voter=:proxy AND question=:question', compact('proxy', 'question')); // this could be incorporated into query for efficiency
+    if ($voter != $proxy) $bId = db\get('id', 'r_ballots', 'voter=:proxy AND question=:question', compact('proxy', 'question')); // this could be incorporated into query for efficiency
     if (!@$qId1) $qId1 = $qId; // remember first question number
     $grade = $gradeMax = $text = $isVeto = [];
     $sql = <<<EOF

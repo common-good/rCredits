@@ -74,7 +74,7 @@ function formPhoto($form, &$sta, $arg = '') {
 EOF
   );
   
-//  $sid = db\lookup('sid', 'sessions', 'uid=:uid', ['uid' => $mya->agentA->id]);
+//  $sid = db\get('sid', 'sessions', 'uid=:uid', ['uid' => $mya->agentA->id]);
 //  $sid = session_id();
 //  $failure = urlencode(t('That is not a usable image file. Try again.'));
 //  $maxSize = R_MAX_UPLOAD_SIZE * 1024 * 1024;

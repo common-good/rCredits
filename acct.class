@@ -60,7 +60,7 @@ class Acct {
     $co = ($flags & u\bit(B_CO));
     u\setDft($rebate, R_REBATE);
     if (@$state and !is_numeric($state)) { // allow state abbrevs within US
-      $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
+      $state = db\get('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
     u\setDft($community, r\communityUid(@$zip)); // defaults to current server
     u\setDft($created, r\rTime());
@@ -165,16 +165,19 @@ class Acct {
       $field = substr($field, 2);
       return $a->o($field) . ($a->jid ? ' & ' . $a->jA->o($field) : '');
     } else { // tests for field must precede tests for jid or slave (else loop)
-      if (u\in($field, JOINT_FIELDS) and $a->jid) return round($a->o($field) + $a->jA->o($field), 2); // sum joint fields
-      if (u\in($field, MASTER_FIELDS) and $a->slave) return $a->jA->o($field); // master only
+      if (in($field, JOINT_FIELDS) and $a->jid) return round($a->o($field) + $a->jA->o($field), 2); // sum joint fields
+      if (in($field, MASTER_FIELDS) and $a->slave) return $a->jA->o($field); // master only
     }
 
     // From here down, everything should be for "own" account
-    $nick = substr($field, 0, 3); // possibly meaningful prefix
-    if (in_array($nick, ['can', 'raw']) and $field != 'rawChanges') $field = lcfirst(substr($field, 3));
-    if (u\in($field, B_LIST . ' ' . B_CTTY_BITS)) $nick = 'can';
+    $nick = substr($field, 0, 3); // possibly meaningful prefix (ctt if the prefix is ctty)
+    if (in($nick, 'can raw rel') and $field != 'rawChanges') $field = lcfirst(substr($field, 3));
+    if (in($field, REL_FIELDS . ' ' . REL_FLAGS)) $nick = 'rel';
+    if (in($field, B_LIST . ' ' . B_CTTY_BITS)) $nick = 'can';
     if ($nick == 'can') return $a->can(u\consta('b', $field));
+    if ($nick == 'rel') return $a->proSe ? NULL : $a->relFld($field);
     if ($nick == 'ctt' and $field != 'cttyA') return $a->cttyA->can(u\consta('b', substr($field, 4))); // ctty bit
+//    if (in($field, REL_FIELDS . ' ' . REL_FLAGS)) return $a->proSe ? NULL : $a->relFld($field);
     if ($field == 'mainQid') return $a->qo->mainQid;
     if ($field == 'isAdmin2') return (bool) ($a->agentA->flags & u\bit(B_ADMIN2)); // not ->can() included by cAdmin etc. (see note in can())
 //    u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
@@ -191,7 +194,7 @@ class Acct {
     if ($field == 'cttyA') return r\acct($a->community);
     if ($field == 'region') return r\uidRegion($a->id);
     if ($field == 'regionA') return r\acct($a->region);
-    if ($field == 'regionName') return ($regionA = $a->regionA) ? $regionA->fullName : (PROJECT . ' ' . db\lookup('name', 'r_regions r INNER JOIN r_states s ON s.abbreviation=r.st', 's.country_id=:US_COUNTRY_ID AND r.region=:reg', ['reg' => $a->qo->region]));
+    if ($field == 'regionName') return ($regionA = $a->regionA) ? $regionA->fullName : (PROJECT . ' ' . db\get('name', 'r_regions r INNER JOIN r_states s ON s.abbreviation=r.st', 's.country_id=:US_COUNTRY_ID AND r.region=:reg', ['reg' => $a->qo->region]));
     if ($field == 'url') return ($a->isRegion ? '' : strtr($a->fullName, [PROJECT=>'', ' '=>'']) . $a->st . '.') . CG_DOMAIN; // applies only to communities (->cttyUrl)
     if ($field == 'legalNameDpy') return str_replace('_', ' ', $a->legalName); // for u\parseName of names like Jay di_Fiori
     if ($field == 'owns') return !$a->risk('rents');
@@ -206,11 +209,11 @@ class Acct {
     if ($field == 'masterA') return $a->slave ? $a->jA : $a;
     if ($field == 'helperA') return $a->helper ? r\acct($a->helper) : '';
     if ($field == 'prefsSet') return !is_null($a->o_minimum); // preferences have been set at least once
-    if ($field == 'hasCustomers') return db\exists('r_relations', 'main=:id AND isCustomer', ['id' => $a->id]);
+    if ($field == 'hasCustomers') return db\exists('r_relations', 'main=:id AND :IS_CUSTOMER', ['id' => $a->id]);
     if ($field == 'superAdmin') return ($a->agentId == 1) ?: (u\test() and $a->admin and $a->agentA->name == 'abeone');
     if ($field == 'partRounds') return db\sum('1-MOD(amount, 1)', 'r_txs', ':IS_ROUNDUP AND payer=:id AND MOD(amount, 1)>0 AND created>=:mday1', ray('id mday1', $this->id, u\monthDay1())); // not-yet-distributed change from rounded-up payments
     if ($field == 'bankInfo') return (!$routing = substr($a->bankAccount, 4, 9)) ? NULL
-      : db\lookup('*', 'r_banks', 'route=:routing', compact('routing'));
+      : db\get('*', 'r_banks', 'route=:routing', compact('routing'));
 	  if ($field == 'tempPhotoFilename') return DRUPAL_ROOT . R_PICTURE_DIR . "$a->mainQid.jpg";
       
     if (isset(self::$rs[$a->id]->$field)) { // actual database field?
@@ -229,11 +232,11 @@ class Acct {
     if ($field == 'hasPhoto') return db\exists('r_photos', 'uid=:id', ['id' => $a->id]);
 //    $a->co ? file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE)) : 
     
-    if ($field == 'photo') return ($result = db\lookup('photo', 'r_photos', 'uid=:id', ['id' => $a->id])) ? u\decry('H', $result) : '';
+    if ($field == 'photo') return ($result = db\get('photo', 'r_photos', 'uid=:id', ['id' => $a->id])) ? u\decry('H', $result) : '';
 //      return $a->co ? @file_get_contents(DRUPAL_ROOT . $this->photoFilename(TRUE)) :
 
     
-    if (in_array($field, ray('data changes secure vsecure')) and !is_array($result)) { // special not yet arrayed
+    if (in($field, 'data changes secure vsecure') and !is_array($result)) { // special not yet arrayed
       if (!$result) return [];
 //      if ($field == 'changes') self::$rs[$a->id]->rawChanges = $result;
       if ($field != 'data') $result = u\decry('S', $result);
@@ -276,6 +279,39 @@ class Acct {
     : (bool) array_intersect(ray($fields), ray($specials)));
   }
 
+  /**
+   * Return the value of a relationship field for this compound account.
+   */
+  private function relFld($k) {
+    $a = $this;
+    if ($a->proSe) return NULL;
+    if (in($k, REL_FLAGS)) {
+      $flags = r\relation('flags', $a->id, $a->agentId);
+      return u\getBit($flags, u\consta('b', $k));
+    } else return r\relation($k, $a->id, $a->agentId); // not $a->qid because it depends on otherNum
+  }
+  
+  /**
+   * Set a relation field.
+   */
+  public function setRel($info) {
+    $a = $this;
+    u\EXPECT(!$a->proSe, 'setting relation on proSe');
+    if (!is_array($info)) $info = rayy(func_get_args());
+
+    if ($set = just(REL_FLAGS, $info)) {
+      $flags = $a->relFld('flags') + 0;
+      foreach ($set as $k => $v) {
+        u\setBit($flags, $k, $v);
+        unset($info[$k]);
+      }
+      u\preray(compact('flags'), $info);
+    }
+    if ($reid = $a->relfld('reid')) {
+      return db\update('r_relations', $info + compact('reid'), 'reid', TRUE);
+    } else $a->newRelation($info + ray('other', $a->agentId));
+  }      
+  
   /**
    * Activate the account.
    * @param int $helper: account record ID of account that invited this one
@@ -447,6 +483,8 @@ class Acct {
     if (!is_array($info)) $info = rayy(func_get_args());
 
     foreach ($bits = just(B_LIST, $info) as $k => $v) {$a->setBit($k, $v); unset($info[$k]);}
+    foreach (just(REL_FIELDS . ' ' . REL_FLAGS, $info) as $k => $v) {$a->setRel($k, $v); unset($info[$k]);}
+
     if ($a->ok) $info += $a->recordChanges(justNOT(B_LIST, $info)); // record changes if member is active
     foreach (just('hasBank', $info) as $k => $v) {$a->setRisk($k, $v); unset($info[$k]);}
 
@@ -535,8 +573,12 @@ class Acct {
    * @return: the record ID of the new relationship record
    */
   function newRelation($info) {
-    u\EXPECT(@$info['other'] or @$info['data'], 'missing other in new relation'); // placeholder for "other" ok if there's data
-    foreach (['employee', 'isOwner', 'draw'] as $k) $info[$k] = (int) @$info[$k];
+    u\EXPECT($info['other'] or @$info['data'], 'missing other in new relation'); // placeholder for "other" ok if there's data
+    foreach (ray(REL_FLAGS) as $k) if (isset($info[$k])) {
+      u\setBit($info['flags'], $k, $info[$k]);
+      unset($info[$k]);
+    }
+//      $info[$k] = (int) @$info[$k];
     $info['created'] = time();
     return r\regionalInsert('r_relations', 'reid', $info + ['main' => $this->id], -$this->region);
   }
@@ -548,8 +590,7 @@ class Acct {
     $a = $this;
     if ($a->proSe or r\qo($a->qid)->agentCode) return;
     $otherNum = db\max('otherNum', 'r_relations', 'main=:main', ['main' => $a->id]) + 1;
-    $reid = r\relation('reid', $a->id, $a->agentId);
-    db\update('r_relations', compact('otherNum', 'reid'), 'reid');
+    $a->setRel(compact('otherNum'));
     return $otherNum;
   }
 
@@ -566,7 +607,7 @@ class Acct {
     $table = 'r_coupons c LEFT JOIN r_coupated d ON (d.coupid=c.coupid AND d.uid=:myid)';
     $where = 'fromId=:id AND :now BETWEEN start AND end AND :price>=minimum AND NOT flags ORDER BY (ulimit=0 OR uses<ulimit) DESC, (uses IS NULL), end DESC'; // not a gift
     $subs = ray('id now price myid', $sellerA->id, time(), $price, $a->id);
-    if (!$res = db\lookup('c.coupid,amount,ulimit,id,uses', $table, $where, $subs)) return $price;
+    if (!$res = db\get('c.coupid,amount,ulimit,id,uses', $table, $where, $subs)) return $price;
     extract($res);
     if ($ulimit and $uses >= $ulimit) return $price;
     $rebate = $amount < 0 ? -$price * $amount * .01 : $amount;
@@ -604,27 +645,6 @@ class Acct {
     return "$this->fullName ($qid)";
   }
   
-  /**
-   * Calculate updated r, rewards, and committed caches for a transaction (but do not write to db)
-   * @param assoc $tx: the transaction record (or at least these fields: payer, payee, amount, type)
-   * @param int $type: transaction type
-   * @param stdObject $c: the cached fields:
-   *   float $r: (UPDATED) the account's r balance
-   *   float $rewards: (UPDATED) the account's rewards ever
-   *   float $committed: (UPDATED) the account's reserve for sharing rewards with CGF
-   *//*
-  public function recache3($amount, $type, &$c) {
-    $c->r = round($c->r + $amount, 2);
-    if ($c->r < 0 and $this->slave) { // Don't let joint account slave balance go negative, so cron can handle banking right.
-      $this->jA->update('r', $this->jA->o_r + $c->r); // send the negative balance to the master
-      $c->r = 0;
-    }
-    if (r\isReward($type)) {
-      if ($type == TX_REBATE or $type == TX_BONUS) $c->committed = round($c->committed + $amount * $this->share / 100, 2);
-      $c->rewards = round($c->rewards + $amount, 2);
-    }
-  }*/
-
   /**
    * Set the bit in the flags field to the given value.
    * @param int $bit: number of bit to set (0 - 31)
@@ -720,18 +740,28 @@ class Acct {
    * Repairs the B_DRAWS bit if all such relations have ended.
    */
   private function canDraw() {
-    if (!$this->can(B_DRAWS)) return FALSE;
+    $a = $this;
+    if (!$a->can(B_DRAWS)) return FALSE;
     
-    $id = $this->id;
-    $availBuy = R_AVAIL_BUY; // R_AVAIL_BUY contains a constant, so can't use :R_AVAIL_BUY
-    $sql = <<<EOF
-      SELECT SUM($availBuy) AS avail, COUNT(*) as count
-      FROM users u INNER JOIN r_relations r ON r.main=u.uid
-      WHERE r.other=:id AND r.draw
-EOF;
-    if (!$row = db\q($sql, compact('id'))->fetchAssoc()) return 0;
-    if (!$row['count']) $this->setBit(B_DRAWS, FALSE); // doesn't really have any drawable accounts
+    if (!$row = $a->drawSources(TRUE)->fetchAssoc()) return 0;
+    if (!$row['count']) $a->setBit(B_DRAWS, FALSE); // doesn't really have any drawable accounts
     return $row['avail'];
+  }
+  
+  /**
+   * Return rows of accounts to draw from or just the amount sum and count of them.
+   * @param bool $sum: <sum and count> (otherwise return all drawables)
+   * @return the account and amounts OR (if sum) the sum and count of them
+   */
+  private function drawSources($sum) {
+    $avail = '(balance-IF(u.:IS_DEBT, floor, GREATEST(floor, 0)))';
+    $fields = $sum ? "SUM($avail) AS avail, COUNT(*) as count" : "u.uid, $avail AS avail";
+    $sql = <<< X
+      SELECT $fields
+      FROM users u INNER JOIN r_relations r ON r.main=u.uid
+      WHERE r.other=:id AND r.:IS_DRAW
+X;
+    return db\q($sql, ray('id', $this->id));
   }
   
   /**
@@ -740,27 +770,23 @@ EOF;
    * @return float: the amount drawn
    */
   public function draw($need) {
-    if (!$this->can(B_DRAWS)) return 0;
+    $a = $this;
+    if (!$a->can(B_DRAWS)) return 0;
     list ($from, $to, $auto) = array(t(' from '), t(' to '), t('automatic transfer'));
     $left = $need; // how much left to be drawn
-    $id = $this->id;
-    $availBuy = R_AVAIL_BUY; // R_AVAIL_BUY contains a constant, so can't use :R_AVAIL_BUY
-    $sql = <<<EOF
-      SELECT u.uid,$availBuy AS avail FROM users u INNER JOIN r_relations r ON r.main=u.uid
-      WHERE r.other=:id AND r.draw
-EOF;
 ///   debug(compact(ray('type need from to auto left id fields sql')));
-    $result = db\q($sql, compact('id'));
-    while ($row = $result->fetchAssoc()) {
+    $q = $a->drawSources(FALSE);
+    while ($row = $q->fetchAssoc()) {
       extract($row);
       $amount = round(min($left, $avail), 2);
 ///      debug(compact('row','avail','amount','left','need','id'));
       if ($amount > 0) {
-        list ($fromQid, $toQid) = [r\qid($uid), $this->mainQid];
-        list ($payer, $payee) = [$uid, $this->id];
+        list ($fromQid, $toQid) = [r\qid($uid), $a->mainQid];
+        list ($payer, $payee) = [$uid, $a->id];
         $for = [$auto . $to . $toQid, $auto . $from . $fromQid];
         $goods = FOR_NONGOODS;
-        if (new r\X(compact(ray('amount payer payee goods for')))) $left -= $amount;
+        $taking = TRUE;
+        if (new r\X(compact(ray('amount payer payee goods for taking')))) $left -= $amount;
         if ($left <= 0) break;
       }
       
@@ -825,26 +851,11 @@ EOF;
   */
 
   /**
-   * Return full account name, including the other's name in a joint account.
-   *//*
-  function j_acctName() {
-    $a = $this;
-    $name = "$a->fullName ($a->name)";
-    $sql = 'main=:main AND permission=:joint';
-    $subs = ['main'=>$a->id, 'joint'=>r\perm(B_JOINT)];
-    if ($a->can(B_JOINED) and $other = r\relation('other', $sql, $subs)) {
-      $a2 = r\acct($other);
-      $name .= " & $a2->fullName ($a2->name)";
-    }
-    return $name;
-  }*/
-
-  /**
    * Set or return the proxy for the person
    */
   public function proxy($priority = 1, $proxy = NULL) {
     $person = $this->id;
-    if (!@$proxy) return db\lookup('proxy', 'r_proxies', 'person=:person AND priority=:priority', compact('person', 'priority'));
+    if (!@$proxy) return db\get('proxy', 'r_proxies', 'person=:person AND priority=:priority', compact('person', 'priority'));
     db\q('DELETE FROM r_proxies WHERE person=:person AND priority=:priority', compact('person', 'priority'));
     $info = compact(ray('person priority proxy'));
     db\insert('r_proxies', $info);
@@ -1132,7 +1143,7 @@ EOF;
    * Return the Community Admin's account record ID.
    */
   function cAdminUid() {
-    return db\lookup('uid', 'users', 'community=:ctty AND :IS_CADMIN', ray('ctty', $this->community));
+    return db\get('uid', 'users', 'community=:ctty AND :IS_CADMIN', ray('ctty', $this->community));
   }
   
   /**
@@ -1147,6 +1158,7 @@ EOF;
   /**
    * Return an assoc of individual (or joint) account statistics.
    * @return [returnMo, return, cttyBeneMo, cttyBene]
+   * OUT OF DATE and NOT CURRENTLY USED
    */
   public function j_stats() {
     $a = $this;
@@ -1174,8 +1186,9 @@ EOF;
     $return = ($years > 0 and @$avgBalEver > 0) ? 
         number_format(100 * @$extraEver / $avgBalEver / $years, 1)
       : (@$extraEver > 0 ? '&infin;' : number_format(100 * R_INFLATION_RATE, 1));
-    $cttyBeneMo = u\fmtAmt(@$giftsPastMo + $a->rebate ? max(0, @$bankedPastMo) + @$benePastMo * (1 + R_CC_RATE / $a->rebate) : 0);
-    $cttyBene = u\fmtAmt(@$giftsEver + $a->rebate ? max(0, @$bankedEver) + @$beneEver * (1 + R_CC_RATE / $a->rebate) + r\cttyPaidEver($a->community) / (@$pAccts ?: 1) : 0);
+    $cttyBeneMo = u\fmtAmt(@$giftsPastMo + max(0, @$bankedPastMo) + @$benePastMo * (1 + R_CC_RATE / 100));
+///    debug(compact(ray('giftsEver bankedEver beneEver')));
+    $cttyBene = u\fmtAmt(@$giftsEver + max(0, @$bankedEver) + @$beneEver * (1 + R_CC_RATE / 100) + r\cttyPaidEver($a->community) / (@$pAccts ?: 1));
 
     return compact(ray($fields));
   }
@@ -1194,7 +1207,7 @@ EOF;
    */
   public function smsNumber() {  
     $id = $this->id;
-    return db\lookup('code', 'r_boxes', "uid=:id AND code REGEX '+[:digit:]{7,15}'", compact('id')); // was status=:SMS_PRIMARY
+    return db\get('code', 'r_boxes', "uid=:id AND code REGEX '+[:digit:]{7,15}'", compact('id')); // was status=:SMS_PRIMARY
   }
 
   /**
@@ -1206,15 +1219,15 @@ EOF;
     extract(db\q("SELECT SUM(amount) AS amt, SUM(IF(deposit, 0, amount)) AS combinable FROM r_usd WHERE payee IN ($id) AND NOT completed")->fetchAssoc());
     return $amt;
   }
-  
+   
   /**
-   * Request a transfer of funds to or from a connected bank account.
+   * Transfer funds to or from a connected bank account.
    * @param numeric $amount0: the amount to transfer FROM or (if negative) TO the bank
-   * @param int $completed: (also RETURNED) the completion date
+   * @param string $msg: (RETURNED) a message about the result
    * @param assoc $tx: forced field values, if any
    * @return the transaction number (FALSE if failure)
    */
-  public function bank($amount0, &$completed = '', $tx = []) {
+  public function bank($amount0, &$msg = '', $tx = []) {
     global $channel;
     $a = $this;
     $payee = $a->id;
@@ -1226,7 +1239,7 @@ EOF;
 
     $DBTX = \db_transaction();
     $where = 'payee=:payee AND NOT deposit AND amount' . ($amount0 < 0 ? '<0' : '>0 AND NOT completed');
-    if ($res = db\lookup('txid,amount', 'r_usd', $where, compact('payee'))) { // found another the same direction
+    if ($res = db\get('txid,amount', 'r_usd', $where, compact('payee'))) { // found another the same direction
       extract($res);
       $amount += $amount0;
       db\update('r_usd', compact(ray('txid amount completed bankAccount')), 'txid');
@@ -1237,12 +1250,18 @@ EOF;
       u\EXPECT((bool) $txid, 'saving usd record');
     }
 
-    if ($amount0 < 0) { // outgoing - tell staff to transfer the funds using BillPay or check
+    if ($amount0 < 0) { // outgoing - tell staff to transfer the funds using ACH or check
       $a->update('balance', $a->o_balance + $amount0);
       if ($txid > 0) r\tellAdmin(t('outgoing bank transfer'), ['amount' => -$amount0]);
     } elseif ($completed) $a->completeUsdTx(0, $amount0, TRUE);
 
     unset($DBTX);
+    
+    $msg = 'banked';
+    if ($amount > 0) $msg .= '|bank tx number' . ($completed ? '|available now' : '');
+    $action = $amount < 0 ? t('deposit to') : t('draw from');
+    $msg = tr($msg, ray('action amount checkNum', $action, u\fmtAmt(abs(@$amount)), $txid));
+
     return $txid;
   }
 
@@ -1255,10 +1274,8 @@ EOF;
     if ($waiting > 0) return; // no cashout if waiting to bring some in
     $cashout = round($a->balance - -$a->floor * 6 / 26 + $waiting, -1); // (waiting is negative)
     if ($cashout < R_ACHMIN) return;
-    $action = t('deposit to');
-    if (!$checkNum = $a->bank(-$cashout)) return;
-    $amount = u\fmtAmt($cashout);
-    r\notify($a->id, 'banked|bank tx number', compact(ray('action amount checkNum')));
+    if (!$a->bank(-$cashout, $msg)) return;
+    r\notify($a->id, $msg);
   }
   
   /**
@@ -1274,7 +1291,7 @@ EOF;
     $DBTX = \db_transaction();
 
     if ($txid) { // unless transfer is already marked complete
-      $realAmt = db\lookup('amount', 'r_usd', 'txid=:txid', compact('txid'));
+      $realAmt = db\get('amount', 'r_usd', 'txid=:txid', compact('txid'));
       if ($amount != $realAmt) r\tellAdmin(t('bad completeUsdTx amt'), compact(ray('txid amount realAmt automatic')));
       if (!db\update('r_usd', ['txid'=>$txid, 'completed'=>r\rTime()], 'txid')) return FALSE;
     }
@@ -1335,14 +1352,14 @@ EOF;
    */
   public function giftsDesc(&$often = '', &$totalGifts = '') {
     $a = $this;
-//      db\lookup($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
-    if ($info = db\lookup('amount,often,giftDate', 'r_gifts', "uid=:id AND giftDate<:REQUEST_TIME AND (NOT honor<=>'share') ORDER BY donid DESC", ['id' => $a->id])) {
+//      db\get($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
+    if ($info = db\get('amount,often,giftDate', 'r_gifts', "uid=:id AND giftDate<:REQUEST_TIME AND (NOT honor<=>'share') ORDER BY donid DESC", ['id' => $a->id])) {
       extract($info);
       $oftens = ray(OFTENS);
       unset($oftens['1']);
       list ($often, $amount, $giftDate) = [@$oftens[$often], u\fmtAmt($amount), u\fmtDate($giftDate, TRUE)];
       $lastGift = t('Last') . ": $giftDate <%b>$amount</b> $often";
-      if ($info = db\lookup('honor,honored', 'r_gifts', "uid=:id AND (NOT honor<=>'' AND honor<>'share') ORDER BY donid DESC", ['id' => $a->id])) {
+      if ($info = db\get('honor,honored', 'r_gifts', "uid=:id AND (NOT honor<=>'' AND honor<>'share') ORDER BY donid DESC", ['id' => $a->id])) {
         extract($info);
         $lastGift .= u\honorDesc($honor) . $honored;
       }
@@ -1496,7 +1513,7 @@ EOF;
     $a = $this;
     if ($bit <= B_MAX) { // ordinary bits
       $can = (bool) ($a->flags & (1 << $bit)); // these are easy. be efficient.
-      if (in_array($bit, [B_ADMIN2, B_CADMIN2, B_CADMIN, B_ADMIN])) {
+      if (in($bit, [B_ADMIN2, B_CADMIN2, B_CADMIN, B_ADMIN])) {
         if ($a->id == 1) return TRUE; // this didn't use to be necessary (9/20/2017)
         if (!$a->proSe) return ($aa = $a->agentA and $aa->can($bit)); // admin permissions are for agent instead (in tests, agent sometimes doesn't exist)
         if (!$can and $bit < (R_ADMIN_CAN_MANAGE_CTTYS ? B_ADMIN : B_CADMIN)) return $a->can($bit + 1); // not this admin bit, maybe the next higher? IMPORTANT NOTE: this gives cAdmin2 Admin2 permission, so always use ->isAdmin2 rather than ->admin2 unless you WANT cAdmin2 to have the permission in question
@@ -1528,14 +1545,14 @@ EOF;
     : ($a->proSe ? B_MANAGE
     : (($aa->can(B_CADMIN) and $a->community == $aa->community) ? B_MANAGE : 0) );
       
-    if (!$perm) $perm = max(B_RELATED + relation('permission', $id, $aa->id),
-      ($aa->can(B_ADMIN2) ? B_READ : ($aa->can(B_CADMIN2) and $a->community == $aa->community) ? B_READ : 0));
+    if (!$perm) $perm = max(B_RELATED + $a->permission,
+      ($aa->can(B_ADMIN2) or ($aa->can(B_CADMIN2) and $a->community == $aa->community)) ? B_READ : 0);
       
     for ($i = B_RELATED; $i <= B_MANAGE; $i++) $cans[$i] = ($i <= $perm); // set all, even the false ones
 
     if (!$a->can(B_OK)) $cans[B_SELL] = $cans[B_BUY] = FALSE; // (read here kills acct dropdown)
 
-    if (!$a->can(B_MEMBER)) $cans[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
+//    if (!$a->can(B_MEMBER)) $cans[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
     
     if ($aa->can(B_ADMIN) and R_ADMIN_CAN_MANAGE_CTTYS) { // temporary extra power, until communities are independent
       $cans[B_READ] = $cans[B_SCAN] = $cans[B_SELL] = $cans[B_BUY] = $cans[B_MANAGE] = TRUE;
@@ -1574,7 +1591,7 @@ EOF;
    *   custCode: the company's identifier for the customer
    */
   public function eachPartner($func) {
-    $sql = 'SELECT main, code FROM r_relations WHERE other=:id AND isCustomer ORDER BY code';
+    $sql = 'SELECT main, code FROM r_relations WHERE other=:id AND :IS_CUSTOMER ORDER BY code';
     $res = q($sql, ['id' => $this->id])->fetchAllKeyed();
     foreach ($res as $main => $code) $func(r\acct($main), $this, $code);
   }
@@ -1650,7 +1667,7 @@ EOF;
     if (!array_intersect([$first1, $first2, $mid1, $mid2], $Fs)) return $a->ssnErr(t('First name does not match.'), $ssnData);
 
     if ($DOBs) {
-      if (!in_array($a->dob, $DOBs)) return $a->ssnErr(t('bad birthdate'), $ssnData);
+      if (!in($a->dob, $DOBs)) return $a->ssnErr(t('bad birthdate'), $ssnData);
     } else {
       $a->ssnErr(t('Cannot verify birthdate'), $ssnData);
       $a->setRisk('dobOff'); // nothing to compare, so don't ask member to retype dob
@@ -1682,7 +1699,7 @@ EOF;
   public function o($k) {return $this->{'o_' . $k};}
   public function api($etc = '') {return $this->website ? tr(CO_API_URL, 'website etc', $this->website, $etc) : '';}
   public function lastTxDesc() {return ($tx = $this->lastTx) ? t(' (Last tx: %dt)', 'dt', u\fmtDate($tx[3], TRUE)) : '';}
-  public function firstCo() {return db\lookup('fullName', 'r_relations r INNER JOIN users u ON r.main=u.uid', 'r.permission>0 AND r.other=:id AND u.:IS_CO ORDER BY r.created LIMIT 1', ['id' => $this->id]);}
+  public function firstCo() {return db\get('fullName', 'r_relations r INNER JOIN users u ON r.main=u.uid', 'r.permission>0 AND r.other=:id AND u.:IS_CO ORDER BY r.created LIMIT 1', ['id' => $this->id]);}
   public function adminables() {
     $res = ray(B_ADMINABLE . ($this->admin ? ' admin2' : '') . ($this->superAdmin ? ' admin' : ''));
     return array_values($this->isCtty ? array_intersect($res, ray(B_CTTY_BITS)) : array_diff($res, ray(B_CTTY_BITS)));
@@ -1713,9 +1730,9 @@ function acct($uid = '', $agent = '', &$error = '') {
   global $mya; // use this ONLY in this class file
   if (!$uid) return $mya ?: (!$error = 'There is no current account.');
   if (strpos($uid, '@')) {
-    $uid = db\lookup('uid', 'users', 'mail=:mail ORDER BY :IS_CO', ['mail' => u\cry('P', $uid)]);
+    $uid = db\get('uid', 'users', 'mail=:mail ORDER BY :IS_CO', ['mail' => u\cry('P', $uid)]);
   } elseif (FALSE and preg_match('/[0-9]( |-|\\)) ?[0-9]{4}/', $uid)) {
-    $uid = db\lookup('uid', 'users', 'phone=:phone ORDER BY :IS_CO', ['phone' => u\cry('P', u\fmtPhone($uid, '+n'))]);
+    $uid = db\get('uid', 'users', 'phone=:phone ORDER BY :IS_CO', ['phone' => u\cry('P', u\fmtPhone($uid, '+n'))]);
   }
 //  if (!$ua = r\Acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   if (!$ua = r\Acct::viable($uid, $agent, $error, TRUE)) return FALSE;

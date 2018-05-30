@@ -102,7 +102,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   $banking = ($type == TX_BANK);
 //  if ($banking and ($amount < 0 xor $xid < 0)) $amount = -$amount; // show as positive unless reversing
 //  $isExtra = ($mya->cttyRewardy and $type != TX_TRANSFER and !$banking);
-  $isExtra = (in_array($type, ray(TX_REWARDS)) and !$banking);
+  $isExtra = (in($type, TX_REWARDS) and !$banking);
   if ($isExtra or $sharing += 0) {
     if (!$mya->cttyRewardy) {
       return;
@@ -153,7 +153,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   if (@$agents) $row[] = (!@$agent or ($mya->isMe($agent) and $mya->co) or $agent < 0) ? R_NONE 
   : ($download ? r\qid($agent) : substr(r\qid($agent), 3));
   if (@$channels and $txChannels = ray(TX_CHANNELS)) $row[] = $txChannels[$channel];
-  if (@$boxes) $row[] = db\lookup('boxnum', 'r_boxes', 'id=:tx_box', compact('tx_box'));
+  if (@$boxes) $row[] = db\get('boxnum', 'r_boxes', 'id=:tx_box', compact('tx_box'));
   addRow($tot, array_combine($classes, $row), $tx, $change, $csvRow);
   if ($download) return u\csv($csvRow); // not STDOUT
 //  finishCsvRow($csv, array_combine($classes, $row), $tx, $tot);
@@ -239,7 +239,7 @@ function addRow(&$tot, $row, $tx, $change, &$csvRow = '') {
     $row['fromyou'] = $row['toyou'] = '';
   } else {
     $frombank = '';
-    if (in_array($type, ray(TX_REWARDS))) $row['fromyou'] = $row['toyou'] = '';
+    if (in($type, TX_REWARDS)) $row['fromyou'] = $row['toyou'] = '';
   }
   
   unset($row['buttons']); // don't download status or buttons

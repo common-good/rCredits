@@ -14,12 +14,13 @@ function formCoupons($form, &$sta, $args = '') {
   extract(just('discount gift redeem', $args));
   
   if ($args == 'redeem') {
-    $title = t('Redeem a Gift Coupon');
-    $code = textFld(t('Coupon Code:'), [t('Code')], required());
+    $title = t('Redeem a General Gift Certificate');
+    $subtext = t('Find the code on your gift certificate. If the the certificate is just for one company, there is no code &mdash; just go buy something at that business.');
+    $code = textFld(t('Certificate Code:'), [t('Code')], required());
     $submit = t('Redeem');
   } elseif ($args == 'gift') {
-    $title = t('Create a Gift Coupon');
-    $subtext = t('Each coupon is unique, so don\'t make a copy or print more than once.');
+    $title = t('Create a Gift Certificate');
+    $subtext = t('Each gift certificate is assigned a <b class="loud">unique code</b>, so print this sheet only once and do not photocopy it.');
     $amount = textFld(t('Amount:'), [t('Gift amount')], required());
     $count = textFld(t('Count:'), [t('How many?'), t('Print how many coupons? (8 to a sheet, to be cut in half 3 times)')], required());
     $submit = t('Create');
@@ -33,14 +34,14 @@ function formCoupons($form, &$sta, $args = '') {
         <li>You charge less when they present the coupon.</li>
         </ul>
       </li>
-      <li>Print a sheet of coupons (or copy and paste into a print ad or newsletter).</li>
+      <li>Print a sheet of coupons (or copy and paste into a print ad or newsletter). Cut the sheet exactly in half three times.</li>
       </ol>
-      <p>%PROJECT will also distribute your coupon to each %PROJECT member!</p>
+      <p>%PROJECT will also distribute your coupon electronically to each %PROJECT member!</p>
 X
     );
   
     $amount = textFld(t('Discount:'), [t('Amount or Percentage'), t('For example $20 or 10%')], required());
-    $minimum = textFld(t('Minimum:'), [t('Minimum purchase'), t('Minimum purchase amount, to get the discount')], required(0));
+    $minimum = textFld(t('Minimum:'), [t('Minimum purchase'), t('Minimum purchase amount, to get the discount. If this amount equals the discount amount, your coupons will be labeled "Gift Certificate".')], required(0));
     $start = textFld(t('Valid from:'), [t('Start date')], required(u\fmtDate(time(), TRUE)));
     $end = textFld(t('Valid until:'), [t('End date'), t('An end date is strongly encouraged.')]);
     $ulimit = textFld(t('Limit:'), t('Leave this blank for unlimited uses.'), suffix(t(' uses per member')));
@@ -48,11 +49,12 @@ X
     $on = textFld(t('Discount on:'), [t('Discount on what')]);
     $submit = t('Create Coupon');
   } else {
-    $title = t('Coupons');
+    $title = t('Coupons and Gift Certificates');
+    $subtext = t('<p>A <b>Discount Coupon</b> is redeemable only at your business. If the minimum purchase amount equals the discount amount, it is equivalent to a traditional gift certificate.</p><p>A <b>General Gift Certificate</b> is redeemable at any %PROJECT business.</p>');
     $buttons = 
       w\btn('/community/coupons/discount', t('Create a Discount Coupon'))
-    . w\btn('/community/coupons/gift', t('Create a Gift Coupon'))
-    . w\btn('/community/coupons/redeem', t('Redeem a Gift Coupon'));
+    . w\btn('/community/coupons/gift', t('Create a General Gift Certificate'))
+    . w\btn('/community/coupons/redeem', t('Redeem a General Gift Certificate'));
   }
   
   $type = hidFld($args);
@@ -69,7 +71,7 @@ function formCoupons_validate($form, &$sta) {
   if ($type == 'gift') {
     if ($err = u\badAmount($amount, '>0')) return w\sayFieldErr($err, 'amount');
     if ($err = u\badAmount($count, '>0')) return w\sayFieldErr($err, 'count');
-    if ($mya->creditLine < $amount * $count) return say(t('You cannot issue more gift coupons than your credit Line allows (%max).', ray('max', u\fmtAmt($amount * $count))), 'err');
+    if ($mya->creditLine < $amount * $count) return say(t('You cannot issue more Gift Certificates than your credit line allows (%max).', ray('max', u\fmtAmt($amount * $count))), 'err');
     $ulimit = 1;
   } elseif ($type == 'discount') {
     $amt0 = trim($amount);
@@ -87,8 +89,8 @@ function formCoupons_validate($form, &$sta) {
   } elseif ($type == 'redeem') {
     if (!$a = r\iCardAcct($code, $iCode)) return say('invalid gift card', 'code');
     if ($a->id == $mya->id) return say(t('You cannot redeem your own gift card.'), 'err');
-    $coupid = db\lookup('coupid', 'r_coupons', 'fromId=:id AND :iCode BETWEEN start AND end-1', ray('id iCode', $a->id, $iCode)) ?: 0;
-    if (db\lookup('id', 'r_coupated', 'uses=:iCode AND coupid=:coupid', compact(ray('iCode coupid')))) return say('already redeemed', 'err');
+    $coupid = db\get('coupid', 'r_coupons', 'fromId=:id AND :iCode BETWEEN start AND end-1', ray('id iCode', $a->id, $iCode)) ?: 0;
+    if (db\get('id', 'r_coupated', 'uses=:iCode AND coupid=:coupid', compact(ray('iCode coupid')))) return say('already redeemed', 'err');
     u\preray(compact(ray('coupid iCode')), $sta['input']); // pass the results to submit function
   } else return say(t('bad coupon'), 'err');
   
@@ -98,27 +100,29 @@ function formCoupons_validate($form, &$sta) {
 function formCoupons_submit($form, &$sta) {
   global $mya; $myid = $mya->id;
   extract(just('type amount coupid iCode count minimum start end ulimit automatic on', $sta['input']));
-  
-  $gift = ($type == 'gift');
-  if ($gift or $type == 'discount') {
-    $flags = $gift ?: 0; // set gift flag
-// NO! only automatics get recorded   $flags |= ((bool) @$automatic) << 1;
-    if ($gift) {
-      list ($start, $end) = [$mya->giftCoupons, $coups = $mya->giftCoupons + $count];
-// NO! do this in printCoupons()     $mya->update('giftCoupons', $coups);
-    } elseif (!@$on) $on = $minimum ? t('your purchase of %min or more', 'min', u\fmtAmt($minimum)) : t('any purchase');
-    if ($gift or $automatic) db\insert('r_coupons', compact(ray('amount minimum start end ulimit flags')) + ray('fromId', $myid));
-//    say(t('Your coupon has been successfully created!'));
-    $args = u\urlify(http_build_query(compact(ray('type amount count on start end automatic'))));
-    if (u\test()) $args = u\deurlify($args);
-    return r\go("/community/coupons/print/$args");
-  } elseif ($type == 'redeem') {
-    $res = db\lookup('fromId,amount', 'r_coupons', 'coupid=:coupid', compact('coupid'));
+
+  if ($type == 'redeem') {
+    $res = db\get('fromId,amount', 'r_coupons', 'coupid=:coupid', compact('coupid'));
     extract($res);
     $fromA = r\acct($fromId);
     $fromA->pay($mya, $amount, t('gift'), ray('force', 1));
     db\insert('r_coupated', ray('uid coupid uses when', $myid, $coupid, $iCode, time()));
     $mya->update('giftPot', $mya->giftPot + $amount);
-    say(t('coupon redeemed', 'amount giver', u\fmtAmt($amount), $fromA->fullName));
+    return say(t('coupon redeemed', 'amount giver', u\fmtAmt($amount), $fromA->fullName));
   }
+
+  // gift or discount  
+  $gift = ($type == 'gift');
+  $flags = $gift ?: 0; // set gift flag
+
+  if ($gift) {
+    list ($start, $end) = [$mya->giftCoupons + 0, $coups = $mya->giftCoupons + $count];
+  } elseif (!@$on) $on = $minimum ? t('your purchase of %min or more', 'min', u\fmtAmt($minimum)) : t('any purchase');
+
+  if ($gift or $automatic) db\insert('r_coupons', compact(ray('amount minimum start end ulimit flags')) + ray('fromId', $myid));
+  if ($gift) {unset($start); unset($end);} // don't pass these to printCoupons()
+
+  $args = u\urlify(http_build_query(compact(ray('type amount minimum ulimit count on start end automatic'))));
+  if (u\test()) $args = u\deurlify($args);
+  return r\go("/community/coupons/print/$args");
 }

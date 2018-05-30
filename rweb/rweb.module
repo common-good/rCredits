@@ -40,7 +40,7 @@ function rweb_block_info() {
  * Implements hook_block_view().
  */
 function rweb_block_view($delta = '') {
-  if (in_array($delta, ray(RWEB_BLOCKS))) return ray('subject content', NULL, r\Web\showForm($delta)); // no subject for blocks
+  if (in($delta, RWEB_BLOCKS)) return ray('subject content', NULL, r\Web\showForm($delta)); // no subject for blocks
 }
 
 /**
@@ -85,13 +85,13 @@ function rweb_menu($submenu = '') {
 
     'get' => ['norm', t('Bank'), 'Get 1', 'manage ok'],
     
-//    'invest' => ['norm', t('Invest'), 'Invest 1', 'manage ok'],
+    'invest' => ['norm', t('Invest'), 'Invest 1', 'manage ok'],
     'invest/list' => ['call', t('List Investments'), 'InvestList 2', 'manage ok investor'],
     'invest/propose' => ['call', t('Propose an Investment'), 'InvestPropose 2', 'manage ok investor icadmin'],
     'invest/rate' => ['call', t('Rate an Investment'), 'InvestRate 2', 'manage ok investor'],
     'invest/buy-or-sell' => ['call', t('Buy or Sell a Club Investment'), 'InvestBuySell 2', 'manage ok investor icadmin'],
     
-    'history' => ['norm', t('History'), 'History', 'read member'],
+    'history' => ['norm', t('History'), 'History', 'read'],
     'history/transactions' => ['sub', t('Transactions'), 'Txs 2', 'read', '', t(''), 'list'],
     'history/invoices-to' => ['sub', t('Invoices TO You'), 'Invoices to', 'read', '', t(''), 'log-in'],
     'history/invoices-from' => ['sub', t('Invoices FROM You'), 'Invoices from', 'read', '', t(''), 'log-out'],

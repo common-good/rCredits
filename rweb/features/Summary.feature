@@ -60,8 +60,8 @@ Scenario: A member clicks the summary tab
 #  | Your return   | 72.1% |
 #  | ~ever         | 544.1% |
 #  or 541.4% (depends on daylight time?) or 280.9%?!
-  | Social return | $27 |
-  | including     | $0 |
+#  | Social return | $27 |
+#  | including     | $0 |
   
 Scenario: A member clicks the summary tab with roundups
   Given transactions:

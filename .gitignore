@@ -2,5 +2,8 @@ GoogChart.class.php
 *.test
 doSay.txt
 *.crt
-old/
+OLD/
 GnuMICR.ttf
+unminified/
+x/
+test/

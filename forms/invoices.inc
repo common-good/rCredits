@@ -28,7 +28,8 @@ function formInvoices($form, &$sta, $toFrom, $args = '') {
   $list = item(invoiceList($toMe, $starting, $ending, $states, $url, @$download)); // must precede starting & ending
 
   $title = t('Invoices ') . ($toMe ? t('TO You') : t('FROM You'));
-  $subtext = t('(unpaid invoices are listed first)');
+  $subtext =  $toMe ? t('pay or deny an invoice') : t('edit or delete an invoice');
+  $subtext = t('Click on a row to %subtext (unpaid invoices are listed first).', compact('subtext'));
   $toFrom = hidFld($toFrom);
 
   //simple advanced

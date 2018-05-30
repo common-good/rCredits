@@ -155,13 +155,13 @@ function setCSP() {
           . "manifest-src 'self';"
           . "media-src 'self';"
           . "object-src 'none';"
-          . "script-src 'self' 'nonce-$styleNonce' 'report-sample';" // report-sample allows script fragment to be included in CSP reports
+          . "script-src 'self' 'nonce-$styleNonce' 'report-sample';" // 'report-sample' allows script fragment to be included in CSP reports
           . "img-src 'self' data:;" // data: is for photo upload
           . "style-src 'self' 'nonce-$styleNonce' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=' 'sha256-+t47tgldASBy5zANml11C5vRg3a/7oPrKstKXlzZfkI=' 'sha256-nX7L7GcvxmPKgeYAFQSzFcLplU7F/i/72ytdtLdJYoI=' 'sha256-2EA12+9d+s6rrc0rkdIjfmjbh6p2o0ZSXs4wbZuk/tA=';"
           . "worker-src 'none';"
     . "form-action 'self';"
     . "frame-ancestors 'none';"
-    . "report-uri /csp-report.php?sid=$sid;"
+//    . "report-uri /csp-report.php?sid=$sid;"
   );
 
   \drupal_add_http_header('X-Frame-Options', 'DENY');

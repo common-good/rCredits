@@ -68,7 +68,7 @@ NOTES:
   where <star> means * (not the same as for the production site) 
  */
 
-define('R_DAILY_TASKS', 'START recache checkAccts requests setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank invoices notices END'); // had homogenize, pool 
+define('R_DAILY_TASKS', 'START recache checkAccts requests setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank invoices invest notices END'); // had homogenize, pool 
 //define ('R_DAILY_TASKS', 'START redistribute END');
 include_once __DIR__ . '/rcron-subs.inc';
 
@@ -126,7 +126,7 @@ function doTask($item) {
   $func = 'CG\\Cron\\' . $op;
 
   if ($uid = @$item['uid']) $mya = r\acct($uid); // fudge current account
-  if (!in_array($op, ray('acctHourly checkAcct acctStats acctRisk')) and substr($op, -1, 1) != '1') u\log($op, 'cr', justNOT('uid', $item));
+  if (!in($op, 'acctHourly checkAcct acctStats acctRisk') and substr($op, -1, 1) != '1') u\log($op, 'cr', justNOT('uid', $item));
     
   $func($item);
 }
@@ -152,13 +152,9 @@ function periodic() {
       $a->setBit($bit);
     }
   }
-//  $lastDaily = \variable_get('daily', 0);
-//  if (strftime('%H') >= R_DAILY_HOUR and strftime('%d') != strftime('%d', $lastDaily)) everyDay();
-//  if (strftime('%M') == '00') everyHour();
 }
 
-function everyHour() {
-  // stuff to do every hour
+function everyHour() { // stuff to do every hour
 //  queueEach('acctHourly', "SELECT uid FROM users WHERE uid<>0");
   if (strftime('%H') + 0 == (R_DAILY_HOUR + 6) % 24) {
     $lastDaily = \variable_get('last_daily_cron', 0);
@@ -380,7 +376,7 @@ function everyWeek() {
 function everyMonth() {
   $cgf = r\cgfId();
   $server = r\serverUid();
-  $bene = u\test() ? $cgf : db\lookup('uid', 'users', "name='bene' AND uid<0");
+  $bene = u\test() ? $cgf : db\get('uid', 'users', "name='bene' AND uid<0");
   $start = u\monthDay1($end = u\monthDay1() - 1); // mark start and end of preceding month
   if (u\test()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // test: the past 30 days
   queueEach('whatsup', "SELECT uid, u.:IS_CO as co, MAX(t.created) AS lastTx from users u LEFT JOIN r_txs t ON uid IN (payer, payee) WHERE uid>:CANONIC_ACCTS GROUP BY uid HAVING lastTx IS NULL OR lastTx < $start");
@@ -490,7 +486,7 @@ function bankFollowup($tx) {
  */
 function requests() {
   $dlm = db\max('created', 'r_request') + 0;
-  $secret = urlencode(db\lookup('last', 'r_request', 'listid=3894'));
+  $secret = urlencode(db\get('last', 'r_request', 'listid=3894'));
 
   if ($s = file_get_contents(PROMO_URL . "/inc/requests.php?dlm=$dlm&secret=$secret")) {
     foreach ($rows = explode("\n", $s) as $row) {
@@ -590,10 +586,13 @@ X;
 
 /**
  * Update individual account stats
+ * DISABLED
  */
 function acctStats() {
+  /*
   db\q('UPDATE users SET picture=0'); // clear temp field
   queueEach('acctStats1', 'SELECT uid FROM users WHERE uid>:CANONIC_ACCTS AND :IS_OK');
+  */
   queueNext();
 }
 
@@ -789,7 +788,7 @@ function gift1($item) {r\acceptGift($item);}
 function bank() {
 //  $excess = 'LEAST(usd, :R_EXCESS)';
   $weekday = strftime('%w'); // 0-6 Sun-Sat (use %w because %u fails on Windows and maybe linux)
-  if (u\test() or in_array($weekday, [2, 3, 4, 5])) { // no completions on Saturday, Sunday, or Monday
+  if (u\test() or in($weekday, [2, 3, 4, 5])) { // no completions on Saturday, Sunday, or Monday
     $now = r\rTime();
     $sql = 'SELECT * FROM r_usd WHERE amount>0 AND NOT completed AND (amount<=:R_USDTX_QUICK OR :now>=created+:R_USDTX_DAYS*:DAY_SECS)'; // this allows us to wait arbitrarily long to deposit chks
 //    $sql = 'SELECT * FROM r_usd WHERE amount<0 AND NOT completed AND deposit AND :REQUEST_TIME>=deposit+:R_USDTX_DAYS*:DAY_SECS'; // this depends on deposits almost every day
@@ -797,10 +796,10 @@ function bank() {
   }
   
 //  $where = ':IS_REFILL AND (:IS_JOINED OR r-rewards-savingsAdd<minimum) AND uid>1 AND :IS_OK';
-  $where = ':IS_REFILL AND (jid OR balance<minimum) AND uid>:CANONIC_ACCTS AND :IS_OK';
+  $where = 'u.:IS_REFILL AND (jid OR balance<minimum) AND uid>:CANONIC_ACCTS AND u.:IS_OK';
   $sql = <<<X
   SELECT uid
-  FROM users 
+  FROM users u
   WHERE $where AND :HAS_BANK
 X;
 
@@ -809,7 +808,7 @@ X;
   $sql = <<<X
   SELECT uid, r.main as ma
   FROM users u INNER JOIN r_relations r ON r.other=u.uid
-  WHERE $where AND NOT :HAS_BANK AND r.draw 
+  WHERE $where AND NOT :HAS_BANK AND r.:IS_DRAW 
   AND r.permission<>:B_JOINT-:B_RELATED
 X;
   queueEach('draw1', $sql);
@@ -819,7 +818,7 @@ X;
 
 function completeUsdTx($item) {
   extract(just('txid payee amount channel', $item));
-  $realAmt = db\lookup('amount', 'r_usd', 'txid=:txid', compact('txid'));
+  $realAmt = db\get('amount', 'r_usd', 'txid=:txid', compact('txid'));
   if ($amount != $realAmt) r\tellAdmin('bad completeUsdTx amount', $item + compact('realAmt'));
   r\acct($payee)->completeUsdTx($txid, $amount, @$channel == TX_CRON);
 }
@@ -829,10 +828,8 @@ function bank1($item) {
   $a = r\acct($uid);
   if ($a->slave) return; // slaves don't have automatic refills
   if (!$amount = getHowMuchR($a)) return; // check shortfall here NOT in query, balance may change
-  $action = 'draw from';
-  if (!$checkNum = $a->bank($amount)) return; // may never happen, but if mysql is unavailable just redo next day
-  $amount = u\fmtAmt($amount);
-  r\notify($uid, 'under min|banked|bank tx number', compact(ray('action amount checkNum')));
+  if (!$a->bank($amount, $msg)) return; // may never happen, but if mysql is unavailable just redo next day
+  r\notify($uid, $msg);
 }
 
 function draw1($item) {
@@ -848,10 +845,10 @@ function draw1($item) {
 }
 
 /**
- * Given an account's shortfall, return how much to actually transfer from wherever to the %PROJECT Account.
+ * Given an account's shortfall, return how much to actually transfer to the CG Account.
  * @param acct $a: which account
  * @param bool $banky: the account has a connected bank account
- * @return: amount to transfer from the connected bank account or draw from other %PROJECT Accounts (0 if none).
+ * @return: positive amount to draw from the connected bank account or elsewhere (0 if none).
  */
 function getHowMuchR($a, $banky = TRUE) {
   if (!$need = max(0, $a->minimum - $a->balance)) return 0; // + $a->committed
@@ -889,9 +886,8 @@ function invoice($item) {
       if ($masterA->hasBank and $waiting <= $short) { // we can get it from the bank and haven't requested it yet
         if ($masterA->refill) $needed += getHowMuchR($masterA);
         if ($needed < 0.01) return; // (avoid floating point equality errors by using <)
-        if (!$checkNum = $masterA->bank($needed)) return; // may never happen, but if mysql is unavailable just redo next day
-        list ($amount, $action) = [u\fmtAmt($needed), t('draw from')];
-        r\notify($payer, 'banked|bank tx number', compact(ray('action amount checkNum')));
+        if (!$masterA->bank($needed, $msg)) return; // may never happen, but if mysql is unavailable just redo next day
+        r\notify($payer, $msg);
       } elseif ($waiting <= $short) r\notify($payer, 'short invoice|when funded', ray('short payeeName', u\fmtAmt($short), $payeeName));
     }
   } elseif ($status == TX_PENDING) {
@@ -903,6 +899,26 @@ function invoice($item) {
       r\message($payee, 'stale invoice report', $subs); // tell the payee we're following up on it
     }
   }
+}
+
+/**
+ * Handle requests to invest in an investment club.
+ */
+function invest() {
+  queueEach('invest1', 'SELECT stakeid,uid,request FROM r_stakes WHERE request>0');
+  queueNext();
+}
+
+function invest1($item) {
+  extract(just('uid,stakeid,request', $item));
+  $a = r\acct($uid);
+  if ($a->avail($request)) {
+    r\handleInvestmentRequest($stakeid, $msg);
+  } elseif (!$a->waitingFromBank()) {
+    $a->bank($request, $msg);
+    $msg .= t('|(to fulfill your recent investment request)'); // whether success or failure
+  }
+  r\notify($uid, $msg);
 }
 
 /**

@@ -152,14 +152,9 @@ X
 
   if ($i == 'issuing-credits') return t(<<<X
     <p>%RCREDITS are a type of credit. Like any medium of exchange, they represent value. They make it possible for us to trade goods and services with each other in our community, without having to trade something directly with whoever has what we want, and without having to give them something of precisely the same value ("barter"). The medium of exchange lets us give any amount of our goods or services to any participant in the economy, then receive the same value of goods or services from some other participant(s). If everyone both buys and sells, the credits move through the community in interconnected circles of exchange.</p>
-    <p>Issuing %RCREDITS is a community responsibility. This is the key to creating a %PROJECT Economy. We must issue as much credit as we need, to enable our exchanges of goods and services -- but no more than the value we as a community are capable of producing.</p>
-    <p>Once %RCREDITS become well-established and popular in a community, we can issue them together, with careful planning, as grants, zero-interest loans, equity investments, and incentives for doing the right thing. Together we can fund whatever enterprises and activities we decide would be best -- for our community, for communities elsewhere, and for the world.</p>
-    <p>In the meantime, until then, %RCREDITS are issued automatically:</p>
-    <ol>
-      <li>as a stand-in for US Dollars, which are held unused in a separate account, and</li>
-      <li>as an increase in your credit line (or in some %PROJECT communities &mdash; as tentative incentive rewards*) to encourage doing what makes the system stronger.</li>
-    </ol>
-    <p>* Any incentive rewards you receive (signup bonuses, purchase rewards, inviter/helper rewards, and inflation offset) are yours to keep once your %PROJECT community says so. Meanwhile you can borrow them interest-free.</p>
+    <p>From the start, %RCREDITS are issued as a one-to-one stand-in for US Dollars.</p>
+    <p>Once %RCREDITS become well-established and popular in a community, we can also issue them together, with careful planning, as grants, zero-interest loans, equity investments, and incentives for doing the right thing. Together we can fund whatever enterprises and activities we decide would be best -- for our community, for communities elsewhere, and for the world.</p>
+    <p>Issuing %RCREDITS is a community responsibility. This is the key to creating a %PROJECT Economy. We must issue as much credit as we need, to fund our priorities -- but no more than the value we as a community are capable of producing.</p>
 X
   ) . $back;
   
@@ -173,11 +168,11 @@ X
   , '_aClearness', atag('https://docs.google.com/document/d/1-lBTNHTxIPrTSrIK18ZdbcMeEPS5g5jFhST34VGkR8E')) . $back;
   
   if ($i == 'cashflow') return t(<<<X
-    <p>As a %PROJECT Community you and other members decide together when to spend, grant, lend, and/or invest some of the US Dollars members have put into their %PROJECT accounts, which are held in a Community Fund US Dollar Pool in a bank.</p>
+    <p>As a %PROJECT Community you and other members decide together when to spend, grant, lend, and/or invest some of the US Dollars members have put into their %PROJECT accounts, which are held in a Community Fund Dollar Pool in a bank.</p>
     
-    <p>Your %PROJECT Community must take care to keep enough money in the Community US Dollar Pool to cover requests by members to <%aCashout>move funds to their bank account</a>, trading some of their %RCREDITS for US Dollars.</p>
+    <p>Your %PROJECT Community must take care to keep enough money in the Community Dollar Pool to cover requests by members to <%aCashout>move funds to their bank account</a>, trading some of their %RCREDITS for US Dollars.</p>
     
-    <p>If you misjudge and use too much of the Community's US Dollar Pool, you will have a short-term cash flow challenge until more US Dollars come in. The "<%aBack>backing</a>" clause in the %PROJECT Agreement provides stability, so your %PROJECT Community can handle such challenges smoothly.</p>
+    <p>If you misjudge and use too much of the Community's Dollar Pool, you will have a short-term cash flow challenge until more US Dollars come in. The "<%aBack>backing</a>" clause in the %PROJECT Agreement provides stability, so your %PROJECT Community can handle such challenges smoothly.</p>
 X
   , '_aCashout _aBack', atag('/cashing-out'), atag('/backing-common-good-credits')) . $back;
 
@@ -352,7 +347,7 @@ X
       
       <p>The business can then use those %RCREDITS to pay its employees and suppliers, those suppliers pay their employees and suppliers, then all those employees become customers again and use those same %RCREDITS to buy things again from participating businesses. The credits go around and around.</p>
 
-      <p>Meanwhile, the Dollars you put in have <i>not</i> been used for purchases, so as participation grows the Dollar Pool accumulates more and more US Dollars, waiting to be used. From time to time when someone can't easily spend all their credits within the %PROJECT System, they trade some back in for US Dollars from the US Dollar Pool. So the amount in the Dollar Pool goes up and down a little as it grows.</p>
+      <p>Meanwhile, the Dollars you put in have <i>not</i> been used for purchases, so as participation grows the Dollar Pool accumulates more and more US Dollars, waiting to be used. From time to time when someone can't easily spend all their credits within the %PROJECT System, they trade some back in for US Dollars from the Dollar Pool. So the amount in the Dollar Pool goes up and down a little as it grows.</p>
       
       <p>Once we have enough active participation, we can decide together, as a community, how best to use the Dollar Pool funds &mdash; for strategic incentives, grants, zero-interest loans, and equity investments for sustainability and the common good.</p></li>
     </ul>
@@ -460,14 +455,14 @@ X
       if ($k == 'new') $extra = t('This risk factor is divided by the number of years the member (individual or company) has been at its current address.');
       if ($k == 'moves') $extra = t('This risk factor is multiplied by the number of times the member has moved, over the past decade (if known)');
       if ($k == 'bigDay') $extra = t('For individual accounts, the number of "employees" is 1.');
-      if (in_array($k, array('bigWeek', 'big7Week', 'bigYear'))) $extra = t('(see bigDay)');
+      if (in($k, 'bigWeek big7Week bigYear')) $extra = t('(see bigDay)');
       $acctRisks .= ($line = riskHelpLine($k, $weight, $extra, $tag));
       if ($tag == $k) $_special = $line;
     }
     foreach (ray(K_TX_RISKS) as $k => $weight) {
       $extra = '';
       if ($k == 'origins') $extra = t('This risk factor is multiplied by the average risk of the payer\'s receiving transactions over the past year.');
-      if (in_array($k, ray('fromSuspect toSuspect suspectOut suspectIn'))) $extra = t('This risk factor is multiplied by the suspicious account risk, divided by the "unusually large" threshold ($%K_THRESHOLD).');
+      if (in($k, 'fromSuspect toSuspect suspectOut suspectIn')) $extra = t('This risk factor is multiplied by the suspicious account risk, divided by the "unusually large" threshold ($%K_THRESHOLD).');
       if ($k == 'invoiceless') $extra = t('And no mention of an invoice in the transaction description.');
       $txRisks .= ($line = riskHelpLine($k, $weight, $extra, $tag));
       if ($tag == $k) $_special = $line;

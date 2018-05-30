@@ -125,19 +125,25 @@ function updateRelations($updates) {
   $myid = r\acct()->id;
   $report = '';
   foreach ($updates as $reid => $data) {
-    extract(just('main other fullName', $data['original'])); 
+    extract(just('main other fullName permission flags', $data['original']));
+    $wasEmpty = (!@$permission and !@$flags);
     unset($data['original']);
+    extract(just('permission flags', $data));
+//    foreach (ray('employee owner customer draws') as $k) u\setBit($flags, $k, @$data[$k]);
+    foreach (ray('employee owner customer draw') as $k) u\setBit($flags, $k, @$data[$k]); // drawS?
+    if (!u\getBit($flags, 'customer')) u\setbit($flags, 'autopay', FALSE);
 
-    $reidSub = compact('reid');
-    if (@$data) db\update('r_relations', $data + $reidSub, 'reid');
-    if (@$data['draw']) r\acct($other)->setBit(B_DRAWS);
-
-    if (!r\relation('permission>0 OR employee OR isOwner OR isCustomer OR draw', $where = 'reid=:reid', $reidSub)) {
-      db\q("DELETE FROM r_relations WHERE $where", $reidSub);
+    if (!@$permission and !@$flags and !$wasEmpty) { // empty now and wasn't before
+      db\del('r_relations', $reid);
       $msg = 'deleted relation';
-    } else $msg = 'updated relation';
+    } else {
+      $a = r\acct($main, $other);
+      if (@$data) $a->setRel($data); // db\update('r_relations', $data + $reidSub, 'reid');
+      if (@$data['draw']) r\acct($other)->setBit(B_DRAWS);
+      $msg = 'updated relation';
+    }
     $otherName = $fullName;
-    $report .= t($msg, compact('otherName')) . '<br>';
+    $report .= tr($msg, compact('otherName')) . '<br>';
   }
   return $report;
 }
@@ -250,13 +256,25 @@ EOF;
  */
 function payInvoice($nvid, &$msg = '') {
   if ($msg = r\badUnpaidInv($nvid, $inv)) return FALSE;
-  extract(just('payer payee amount goods purpose', $inv));
+  extract(just('payer payee amount goods purpose data', $inv));
+  $payerA = r\acct($payer);
+  $payeeA = r\acct($payee);
   
   $DBTX = \db_transaction();
   $purpose .= ' (' . PROJECT . " inv#$nvid)";
-  list ($index, $subs) = r\acct($payer)->pay(r\acct($payee), $amount, $purpose, ray('inv goods', $nvid, $goods));
+  list ($index, $subs) = $payerA->pay($payeeA, $amount, $purpose, ray('inv goods', $nvid, $goods));
   if ($ok = @$subs['success']) //db\q('UPDATE r_invoices SET status=:xid WHERE nvid=:nvid', ray('xid nvid', @$subs['xid'], $nvid));
   db\update('r_invoices', ray('status nvid', @$subs['xid'], $nvid), 'nvid');
+  if ($goods == FOR_INVESTMENT) { // investment club reclaiming an investment
+/*
+    $res = db\get('shid,vestid', 'r_shares s LEFT JOIN r_investments i ON i.vestid=s.vestid', 'coid=:coid AND clubid=:clubid AND pending<0', ray('coid clubid', $payer, $payee));
+    if ($res) {
+      extract($res); // shid vestid
+      */
+    if ($data = unserialize($data) and $shid = $data('shid')) { // record the sale
+      db\update('r_shares', ray('shid shares pending when', $shid, -$amount, 0, NOW), 'shid');
+    } else r\tellCo(t('Invoice payment marked as "for investment (repayment)" has no corresponding SELL request in shares table.'), $inv, $payee);
+  }
   unset($DBTX);
   
   $msg = t($index, $subs);
@@ -416,6 +434,7 @@ function transfer($ttype, $a1, $a2, $amount, $for, $data = []) {
  * @param string $purpose: description of the transaction's purpose (user input)
  * @param assoc $extra:
  *    goods: FOR_GOODS, etc.
+ *    shid: record id of related record in r_shares
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    subs: replacement parameters, specific to the message (in particular, success=TRUE or FALSE)
@@ -424,7 +443,7 @@ function invoice($a1, $a2, $amount, $purpose = NULL, $extra = []) {
   global $channel;
   
   u\EXPECT(compact(ray('a1 a2 amount purpose')), 'acct acct float string');
-  extract(just('goods', $extra));
+  extract(just('goods shid', $extra));
   list ($payee, $payer) = array($a1->id, $a2->id);
   u\setDft($goods, FOR_GOODS);
   u\setDft($purpose, $why = ray(R_WHYS)[$goods]);
@@ -432,12 +451,11 @@ function invoice($a1, $a2, $amount, $purpose = NULL, $extra = []) {
   if ($err = u\badAmount($amount, '>0')) return r\txRet($err, $subs);
   if ($err = r\txPermErr($a1, $a2, TRUE)) return r\txRet($err, $subs);
   if (r\dupTx($payee, $payer, -$amount)) return r\txRet('duplicate transaction', $subs);
-//  if (!$a1->co and !$a1->photoId) return r\txRet('no photoid');
-//  if (!$a2->co and !$a2->photoId) return r\txRet('other no photoid', ['who' => $a2->fullName]);
   
   $created = r\rTime();
-  $status = ($channel != TX_FOREIGN and r\relation('isCustomer=:AUTOPAY_FLAG', $payee, $payer)) ? TX_APPROVED : TX_PENDING;
-  $info = compact(ray('amount status payer payee goods purpose created'));
+  $status = ($channel != TX_FOREIGN and r\relation(':IS_AUTOPAY', $payee, $payer)) ? TX_APPROVED : TX_PENDING;
+  if (@$shid) $data = serialize(compact('shid'));
+  $info = compact(ray('amount status payer payee goods purpose created data'));
   $nvid = db\insert('r_invoices', $info);
   $a1->update('lastTx', [$nvid, $payer - $payee, round(-$amount, 2), $created, 'inv']);
 
@@ -702,7 +720,7 @@ EOF;
  */
 function todo($number, $todo = 'nothing', $nonce = 'whatever') {
   if ($todo == 'nothing') {
-    return (object) db\lookup('nonce,todo', 'r_boxes', 'code=:number', compact('number'));
+    return (object) db\get('nonce,todo', 'r_boxes', 'code=:number', compact('number'));
   } else {
     $nonce = $nonce == 'whatever' ? u\nonce() : $nonce;
     \db_update('r_boxes')->fields(compact('nonce', 'todo'))->condition('code', $number)->execute();

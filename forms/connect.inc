@@ -20,7 +20,9 @@ function formConnect($form, &$sta, $args = '') {
   $title = t('Banking Settings');
 
   $refills = boolFld(t('Refills:'), t('Refill your %PROJECT Account automatically when it goes below a chosen "Target Balance"? Say no if you tend to bounce checks or live close to the wire.'), $mya->refill);
-  if ($mya->co) $cashout = radiosFld(t('Cashout:'), t('Automatic transfers to your bank account leave an amount in your %PROJECT account equal to your average weekly gross (in %PROJECT payments) over the past six months.'), required(), ray('0 1 2', t('when I say so'), t('weekly'), t('monthly')));
+  if ($mya->co) $cashout = radiosFld(t('Cashout:'), t('If you choose weekly or monthly automatic transfers to your bank account, the system will leave a balance in your %PROJECT account equal to your average weekly payments received, over the past six months.'), required(), ray('0 1 2', t('no automatic cashout'), t('weekly (automatic)'), t('monthly (automatic)')));
+  $autopay = autopays($orig);
+  $autoboxes = hidFld(serialize($orig));
   $minDesc = t('How much to keep in your %PROJECT Account, for purchases. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days.');
   $minDescNegative = $mya->balance < 0 ? t(' <b>If you choose a negative amount</b>, it will be increased by %bump a week until it is greater than zero.', 'bump', u\fmtAmt(MIN_WEEKLY_BUMP)) : '';
   $minWarning = t('note|ach warning');
@@ -39,7 +41,7 @@ function formConnect($form, &$sta, $args = '') {
     $remove = submi(t('Remove connection'), '', 'xs', ['parents' => ['remove']]);
     $bankAccount = item("xxxxxx$mya->last4bank &nbsp; &nbsp;", t('Account:'), '', w\suffix(\render($remove)));
 //    $submit = submit();
-    $fields = 'title bankAccount refills targetFields';
+    $fields = 'title bankAccount cashout autopay autoboxes refills targetFields';
   } else { // no connected account yet
 //    $doConnect = (int) !@$mya->stepsDone['connect'];
     $securityLink = r\promoLink('security.html');
@@ -51,7 +53,7 @@ function formConnect($form, &$sta, $args = '') {
     $bankAccount = passFld(t('Account:'), t('Type <b class="loud">carefully</b> your <b>checking</b> account number. The bank charges us $20 if you get this wrong. <span>Savings accounts will not work, at this time.</span>'));
     $bankAccount2 = passFld(t('Again:'), t('Type your account number again.<br>(we need to be REALLY SURE we don\'t connect to the wrong account)'));
   
-    $connectFields = fieldSet('connectFields2', compact(ray('checkHint routingNumber bankAccount bankAccount2 cashout refills targetFields')), BARE);
+    $connectFields = fieldSet('connectFields2', compact(ray('checkHint routingNumber bankAccount bankAccount2 cashout autopay autoboxes refills targetFields')), BARE);
 //    $submit = submit(t('Connect'));
     $fields = 'title subtext connect connectFields';
   }
@@ -102,7 +104,7 @@ function formConnect_validate($form, &$sta) {
 function formConnect_submit($form, &$sta) {
   global $mya;
 
-  extract(just('connect routingNumber bankAccount cashout refills target achMin saveWeekly', $sta['input']));
+  extract(just('connect routingNumber bankAccount cashout autopay autoboxes refills target achMin saveWeekly', $sta['input']));
   if (op($sta) == 'remove') $connect = FALSE;
   $minimum = $mya->minimum;
 
@@ -122,7 +124,34 @@ function formConnect_submit($form, &$sta) {
   $fields = ray('hasBank last4bank refill cashoutW cashoutM minimum achMin saveWeekly');
   if ($bankAccount != 'no change') $fields[] = 'bankAccount'; // avoid overwriting v-encrypted value
   $mya->update(compact($fields));
+  
+  if (@$autoboxes and $orig = unserialize($autoboxes)) foreach ($orig as $uid => $wasSet) {
+    $setNow = isset($autopay[$uid]);
+    if ($setNow xor $wasSet) r\acct($uid, $mya->id)->setRel('autopay', $setNow);
+  }
+  
 //    if ($saveWeekly < 0) say(t('@amount will be moved every week from your Savings Reserve to your Primary Account, until your Savings Reserve reaches its minimum.', ['@amount' => u\fmtAmt($saveWeekly)]));
   return w\goNextStep('connect');
 //  say('info saved' . ($mya->ok ? '' : '|return to membership'));
+}
+
+/**
+ * Return a set of automatic payment checkboxes, if appropriate.
+ * @param array $orig: (RETURNED) list of the autopayable account IDs (if any) and original setting
+ * @return the checkbox fields or NULL if none.
+ */
+function autopays(&$orig = '') {
+  global $mya;
+
+  $rows = db\q('SELECT uid,fullName,r.:IS_AUTOPAY AS auto FROM r_relations r LEFT JOIN users u ON u.uid=r.main WHERE other=:myid AND r.:IS_CUSTOMER', ray('myid', $mya->id))->fetchAll();
+  if (!$rows) return NULL;
+  
+  foreach ($rows as $i => $one) {
+    extract((array) $one); // uid fullName auto
+    $nms[$uid] = t('Autopay ') . $fullName;
+    if ($orig[$uid] = $auto) $dfts[] = $uid;
+  }
+  if (!@$dfts) return NULL; // no autopays, so don't show choices
+  $help = t('When you choose automatic invoice payment for a particular company, funds will be drawn from your bank account as needed. Leave the box(es) unchecked if you tend to bounce checks or live close to the wire.');
+  return boxesFld(t('Invoices:'), $help, @$dfts ?: [], $nms);
 }

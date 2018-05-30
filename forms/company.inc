@@ -73,7 +73,7 @@ function formCompany_validate($form, &$sta) {
   $selling = explode("\n", $selling);
   foreach ($selling as $one) {
     $one = trim($one); // don't allow empty or reserved values
-    if (!u\nonish($one) and !in_array($one, array('', S_REFUND, S_USD_OUT)) and !r\usdin($one)) $new[] = strtolower($one);
+    if (!u\nonish($one) and !in($one, ['', S_REFUND, S_USD_OUT]) and !r\usdin($one)) $new[] = strtolower($one);
   }
   if (!@$new) return say('missing field', ray('field', 'selling'), 'selling');
   $selling = join("\n", $new);

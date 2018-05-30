@@ -175,7 +175,7 @@ EOF;
   if ($op == 'invites') return say(a\showQuery('r_invites', 1, 'invited DESC', 'invited, inviter, invitee, email', 'inviter'));
   if ($op == 'notices') return say(a\showQuery('r_notices', 1, 'msgid DESC'));
   if ($op == 'proxies') return say(a\showQuery('r_proxies', 1, 'id DESC', 'person, proxy, priority', 'person'));
-  if ($op == 'relations') return say(a\showQuery('r_relations', 1, 'main DESC, reid', 'reid,main,other,otherNum,draw,permission,employee,isOwner,code', 'main'));
+  if ($op == 'relations') return say(a\showQuery('r_relations', 1, 'main DESC, reid', 'reid,main,other,otherNum,:IS_DRAW AS draw,permission,:IS_EMPLOYEE AS employee,:IS_OWNER AS owner,:IS_CUSTOMER AS customer,:IS_AUTOPAY AS autopay,code', 'main'));
   if ($op == 'usd') return say(a\showQuery('r_usd', 1, 'created DESC'));
   foreach (ray('boxes do stats nonmembers') as $one) if ($op == $one) return say(a\showQuery("r_$one"));
 }
@@ -304,14 +304,14 @@ function formMakeCtty_validate($form, &$sta) {
   if (!phoneOk($phone)) return;
 //  $name = strtolower(substr($email, 0, strpos($email, '@')));
   $name = u\shortName($fullName);
-  if ($otherName = db\lookup('fullName', 'users', 'name=:name', compact('name'))) return say('shortname taken', compact('otherName'), 'fullName');
+  if ($otherName = db\get('fullName', 'users', 'name=:name', compact('name'))) return say('shortname taken', compact('otherName'), 'fullName');
 //  $name = r\uniqueName($fullName);
 
   if ($err = u\badSsn($federalId)) return say($err, ['what' => 'federalId'], 'federalId');
   
   list ($address, $city, $state) = u\parseAddr($postalAddr); // zip doesn't apply, since it is used for defining the territory
   if (!$address) return say('Bad postal address', 'postalAddr');
-  if (!$state = db\lookup('id', 'r_states', 'abbreviation=:state', compact('state'))) return say('Bad state', 'postalAddr');
+  if (!$state = db\get('id', 'r_states', 'abbreviation=:state', compact('state'))) return say('Bad state', 'postalAddr');
 
   $region = strtoupper($region);
   if (!db\exists('r_regions', 'region=:region', compact('region'))) return say(t('That region does not exist.'), 'region');
@@ -415,14 +415,14 @@ EOF;
     : ( [t('other'), 'fu'] )))))))));
 
     if ($mya->superAdmin and $type == t('DELETE')) $type = w\lnk("$base_url/sadmin/delete-account/$uid", $type);
-    if (in_array($color, $whities)) $color .= ' fu-whitey';
+    if (in($color, $whities)) $color .= ' fu-whitey';
     $type = "<span class=\"fu-$color\">$type</span>";
     $call = u\fmtDate($tickle ?: $created);
     $name = w\lnk("$base_url/change-account/acct=$uid&page=summary", $fullName ?: $uid);
     if ($co) $name = "<span class=\"co\">$name</span>";
     $phone = u\fmtPhone(u\decry('P', $phone), '-');
     $notes = strtr($notes, ["\n" => '|| ', date('Y') => '']);
-    if ($type == t('pre')) $notes = db\lookup('code', 'r_relations', 'other=:uid AND isCustomer', compact('uid')) . " $notes";
+    if ($type == t('pre')) $notes = db\get('code', 'r_relations', 'other=:uid AND :IS_CUSTOMER', compact('uid')) . " $notes";
     $notes = substr($notes, 0, 200) . (strlen($notes) > 200 ? '...' : '');
     $ctty = $cttys[$community];
     $list .= strtr("<tr>$guts</tr>\n", compact($fields));
@@ -605,7 +605,7 @@ EOF;
   $ways = [t('IN') => '(amount>0 AND txid>0)', t('OUT') => '(amount<0 AND txid>0)']; // , t('BAD') => 'txid<0'];
   if (r\acct()->superAdmin) foreach ($ways as $way => $where) {  
     $count = db\count('r_usd', $where . ' AND deposit=0');
-//    $previous = db\lookup('MAX(deposit)', 'r_usd', $where);
+//    $previous = db\get('MAX(deposit)', 'r_usd', $where);
 //    if ($previous == 1) $previous = 0; // handle transition from Dwolla
 //    $oldCount = $previous ? db\count('r_usd', $where . ' AND deposit=:previous', compact('previous')) : 0;
     $count = item(t('Checks') . " $way: $count");

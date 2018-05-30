@@ -211,7 +211,7 @@ function rcredits_links($variables) {
     if ($i == $num_links) $class .= ' last';
     if ($m_href == $_GET['q'] or ($m_href == '<front>' && \drupal_is_front_page())) $class .= ' active';
     
-    if (in_array($m_href, ['history', 'settings', 'community', 'sadmin'])) {
+    if (in($m_href, 'history settings community sadmin')) {
       $class .= ' submenu';
       $menu = w\subMenuHtml($m_href);
       $link = <<<EOF
@@ -328,7 +328,7 @@ function rcredits_form_element($variables) {
 
   u\setDft($title_display, 'before');
 //  $boxy = in_array($type, ['radio', 'checkbox']) ? ($type . (@$inline ? '-inline' : '')) : '';
-  $boxy = in_array($type, ['radio', 'checkbox']) ? $type : '';
+  $boxy = in($type, 'radio checkbox') ? $type : '';
 
   $class[] = $boxy ? 'option' : 'control-label col-sm-offset-1 col-xs-2';
   if ($title_display == 'invisible') $class[] = 'sr-only';
@@ -474,7 +474,8 @@ function rcredits_checkboxes($variables) {
   foreach ($choices as $k => $v) {
     $name = "{$for}[$k]";
     $value = $k;
-    $checked = in_array($v, $defaults);
+    $checked = in($k, $defaults);
+///    debug(compact(ray('k v defaults checked')));
     $title = $aliases[$k];
     $chn .= @\render(w\fld('checkbox', '', '', compact($fields)));
   }
@@ -497,10 +498,10 @@ function rcredits_fieldset($variables) {
   $class[] = 'form-wrapper';
   u\preray(compact('class'), $attributes);
   if (@$legend) $legend = w\tag('legend', w\tag('span', $legend, ['class'=>'fieldset-legend']));
-  if (@$help) $help = w\tag('div', $help, ['class'=>'fieldset-help']);
-  $wrapper = w\tag('div', @$help . $children . @$value, ['class'=>'fieldset-wrapper']);
+//  if (@$help) $help = w\tag('div', $help, ['class'=>'fieldset-help']);
+  $wrapper = w\tag('div', $children . @$value, ['class'=>'fieldset-wrapper']);
 //  return w\tag('fieldset', @$title . $wrapper, $attributes + compact('class'));
-  $variables['element']['#children'] = $res = w\tag('fieldset', @$legend . $wrapper, $attributes);
+  $variables['element']['#children'] = w\tag('fieldset', @$legend . $wrapper, $attributes);
   return rcredits_form_element($variables);
 }
 

@@ -6,8 +6,8 @@ $newMembers = db\count('users', ':IS_MEMBER AND created>:created', compact('crea
 $pctRoundups = $roundups / $newMembers;
 
 // How many roundable transactions per day?
-$txCount = db\lookup('IF(u.:IS_CO, 1, 0) AS co, COUNT(amount)', 'r_txs t JOIN users u ON u.uid=t.payee', 't.type=:TX_TRANSACT AND created>=:created', compact('created'));
-$txCount = db\lookup('IF(u.:IS_CO, 1, 0) AS co, SUM(amount)', 'r_txs t JOIN users u ON u.uid=t.payee', 't.type=:TX_TRANSACT AND created>=:created', compact('created'));
+$txCount = db\get('IF(u.:IS_CO, 1, 0) AS co, COUNT(amount)', 'r_txs t JOIN users u ON u.uid=t.payee', 't.type=:TX_TRANSACT AND created>=:created', compact('created'));
+$txCount = db\get('IF(u.:IS_CO, 1, 0) AS co, SUM(amount)', 'r_txs t JOIN users u ON u.uid=t.payee', 't.type=:TX_TRANSACT AND created>=:created', compact('created'));
 
 
 SELECT fullName,crumbs,flags&64 AS co FROM users WHERE created>=1485273011 AND flags&1 AND crumbs>0

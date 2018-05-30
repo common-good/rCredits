@@ -14,12 +14,12 @@ function formInvest($form, &$sta, $args) {
 
   $title = t('Investment Club');
   
-  if (!$clubid = db\lookup('uid', 'users', ':IS_CO AND community=:ctty AND :IS_ICADMIN', ray('ctty', $mya->community))) {
+  if (!$clubid = db\get('uid', 'users', ':IS_CO AND community=:ctty AND :IS_ICADMIN', ray('ctty', $mya->community))) {
     $subtext = t('There is no investment club in your community at this time. Consider starting one! Your %PROJECT community administrator can set it up for you.');
     return cgform(compact(ray('title subtext')));
   }
   
-  if ($res = db\lookup('*', 'r_stakes', compact(ray('uid clubid')))) { // member!
+  if ($res = db\get('*', 'r_stakes', compact(ray('uid clubid')))) { // member!
     extract(just('request stake', $res));
     $old = hidFld(serialize(just('stakeid clubid stake request', $res)));
     $request += 0; // enable if($request)
@@ -89,10 +89,11 @@ function formInvest_submit($form, &$sta) {
   if ($buy) {
     if (@$short) {
       say(t('You do not currently have enough funds in your %PROJECT account for that investment, so %short will be drawn automatically from your bank account. Once that transfer is complete, your requested investment will be made automatically.', 'short', u\fmtAmt($short)));
+      $mya->bank($short, $msg);
     } elseif ($request > 0) {
       r\handleInvestmentRequest($stakeid, $msg);
-      say($msg);
-    } else say(t('Your request has been adjusted accordingly.'));
+    } else $msg = t('Your request has been adjusted accordingly.');
+    say($msg);
   } else say(t('Your request to reclaim some of your investment will be attempted upon the next investment cycle.'));
 }
 

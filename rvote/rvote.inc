@@ -303,13 +303,13 @@ function goDemocracy() {
 EOF;
 }
 
-function getCurrentEvent($ctty) {return db\lookup('id AS eid, type, event, details, start, end', 'r_events', 'ctty=:ctty AND end>:now ORDER BY end LIMIT 1', ray('ctty now', $ctty, time()));}
+function getCurrentEvent($ctty) {return db\get('id AS eid, type, event, details, start, end', 'r_events', 'ctty=:ctty AND end>:now ORDER BY end LIMIT 1', ray('ctty now', $ctty, time()));}
 
 /**
  * Return fields from an event record.
  * @param string $fields: fields to return
  * @param int $eid: event record ID
  */
-function event($fields, $eid) {return db\lookup($fields, 'r_events', 'id=:eid', compact('eid'));}
+function event($fields, $eid) {return db\get($fields, 'r_events', 'id=:eid', compact('eid'));}
 
-function question($question) {return db\lookup('q.id AS question, q.text, q.detail, q.linkDiscussion, q.type, q.budget, q.minVeto, q.optOrder, e.start, e.end', 'r_questions q LEFT JOIN r_events e ON e.id=q.event', 'q.id=:question', compact('question'));}
+function question($question) {return db\get('q.id AS question, q.text, q.detail, q.linkDiscussion, q.type, q.budget, q.minVeto, q.optOrder, e.start, e.end', 'r_questions q LEFT JOIN r_events e ON e.id=q.event', 'q.id=:question', compact('question'));}

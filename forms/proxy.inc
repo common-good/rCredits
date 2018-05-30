@@ -67,3 +67,71 @@ function formProxy_submit($form, &$sta) {
 
   return r\go('/settings/proxies', 'info saved');
 }
+
+/**
+ * Return a list of proxy choices for the current account.
+ * @param acct $a: the "current" account (whether signed in or not)
+ * @param int $dfts: the current proxy choices, if any
+ * @param array $choiceList: (RETURNED) array of account record IDs to choose from, not including current choice
+ */
+function proxyChoices($a, $dfts, &$choiceList) {
+  $uid = $a->id;
+  $table = <<<EOF
+    (SELECT DISTINCT IF(inviter=:uid, invitee, inviter) AS uid FROM r_invites 
+      WHERE :uid IN (inviter, invitee) AND invitee>0
+    UNION SELECT DISTINCT IF(person=:uid, proxy, person) AS uid FROM r_proxies 
+      WHERE :uid IN (person, proxy)) q
+EOF;
+
+  $cttyCrit = $a->cttyA->isRegion  // must have same params either way (hence :ctty=:ctty)
+  ? "((:ctty=:ctty AND city='$a->city' AND state=$a->state AND :IS_OK) OR u.uid IN (:DEFAULT_PROXIES))"
+  : '(community=:ctty AND :IS_OK)';
+  
+  if (!$friends = db\lst('uid', $table, 1, compact('uid'))) $friends = '0'; // list of account's friends
+  $sql = <<<EOF
+    SELECT u.uid, fullName, city, state, SUM(w) AS weight FROM (
+      SELECT uid, :PHP_INT_MAX/2 AS w FROM users 
+      WHERE uid IN ($friends)
+      UNION
+      SELECT uid, :PHP_INT_MAX/4 AS w FROM users 
+      WHERE (state=:state AND city=:city) OR zip=:zip
+      UNION
+      SELECT IF(uid1 IN ($friends), uid2, uid1) AS uid, weight AS w FROM r_near
+      WHERE uid1 IN ($friends) OR uid2 IN ($friends)
+      UNION
+      SELECT uid, 0 AS w FROM users
+    ) n LEFT JOIN users u ON u.uid=n.uid
+    WHERE $cttyCrit AND u.uid>1 AND u.uid<>:uid AND NOT :IS_CO
+    GROUP BY u.uid, u.state, u.city 
+    ORDER BY state, city, fullName
+EOF;
+//    ORDER BY GREATEST(SUM(w), :PHP_INT_MAX/4) DESC, state<>:state, state, city, SUM(w) DESC, fullName
+  $q = db\q($sql, ray('uid state city zip ctty', $uid, $a->state, $a->city, $a->zip, $a->community));
+  $res = '';
+  $cityX = '(none)'; // required for placeholders to work right
+  while ($row = $q->fetchAssoc()) { // show choices in reverse order, so inviter(s) are at top
+    extract($row);
+    if (!$current = in($uid, $dfts)) $choiceList[] = $uid;
+    $state = ($state == $a->state or !$state) ? '' : (', ' . r\realState($state));
+/*    if ($weight < PHP_INT_MAX / 2) { // show city and maybe state
+      $state = $state == $a->state ? '' : (', ' . r\realState($state));
+    } else list ($city, $state) = [t('Top Suggestions'), '']; */
+    if ($city <> $cityX) {
+      if ($cityX) $res .= "</td></tr>\n"; // finish previous line
+      $res .= "<tr><th>$city$state</th><td>";
+      $cityX = $city;
+    }
+    $style = $weight < PHP_INT_MAX / 4 ? 'default'
+    : ($weight == PHP_INT_MAX / 4 ? 'slight'
+    : ($weight <= PHP_INT_MAX / 2 ? 'primary'
+    : 'success' ));
+    if ($current) $style = 'warning';
+///    debug(compact('row','city','cityX','friends') + ['max/2-w'=>PHP_INT_MAX / 2 - $weight]);
+    $res .= <<<EOF
+<button type="submit" name="i-$uid" class="btn btn-xs btn-$style ladda-button" data-style="zoom-out">
+    <span class="ladda-label">$fullName</span></button>    
+EOF;
+  }
+  if ($res) $res .= '</td></tr>'; // finish last line
+  return "<div class=\"well\"><table>$res</table></div>";
+}

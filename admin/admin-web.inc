@@ -47,7 +47,7 @@ function seeHidden($a) {
  * @param float $newAmt: what the amount should be
  */ /*
 function changeTxAmt($xid, $oldAmt, $newAmt) {
-  if (!$rec = db\lookup('payer,payee,amount,created,goods', 'r_txs', 'xid=:xid', compact('xid'))) return say(t('No such transaction.'), 'ERR');
+  if (!$rec = db\get('payer,payee,amount,created,goods', 'r_txs', 'xid=:xid', compact('xid'))) return say(t('No such transaction.'), 'ERR');
   extract($rec);
   if ($amount != $oldAmt) return say(t('The existing amount of that transaction is different.'), 'ERR');
   if (u\fmtDate($created) != u\fmtDate(r\rTime())) return say(t('That transaction is not from today.'), 'ERR');
@@ -132,7 +132,7 @@ EOF;
       if (!$mya->co) $trust = item(number_format($mya->trust, 1), t('Trust:'));
 
     if (!$mya->ok) { // don't show helper field if it's moot (too late -- somebody already got credit)
-        if ($helper = $mya->helper ?: ($mya->co ? $mya->by : db\lookup('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
+        if ($helper = $mya->helper ?: ($mya->co ? $mya->by : db\get('inviter', 'r_invites', 'invitee=:uid', compact('uid')))) {
           $hA = r\acct($helper);
           $helper = "$hA->mainQid: $hA->fullName";
         }
@@ -180,7 +180,7 @@ EOF;
 
     foreach (ray($mya->isCtty ? B_CTTY_BITS : B_LIST) as $k) if (!preg_match('/u[0-9]+/', $k)) { // ignore undefined bits
       $blist[] = $k0 = $k;
-      $class = in_array($k, $adminable) ? '' : 'noEdit';
+      $class = in($k, $adminable) ? '' : 'noEdit';
       if ($mya->isCtty) $k = strtr($k, ray(B_ADMIN_BITS));
       $dpy = w\popHelp($k, $flagHelp[$k0], '#');
       $aliases[$k0] = "<div class=\"$class\">$dpy</div>";
@@ -319,7 +319,7 @@ function export($params) {
       $notices = $monthly ? t('monthly') : ($weekly ? t('weekly') : t('daily'));
       $state = r\realstate($state);
       if ($routing = substr($a->bankAccount, 4, 9)) {
-        $bankName = db\lookup('name', 'r_banks', 'route=:routing', compact('routing'));
+        $bankName = db\get('name', 'r_banks', 'route=:routing', compact('routing'));
       } else $bankName = '';
     } else {
       list ($first_name, $last_name) = u\parseName($fullName);

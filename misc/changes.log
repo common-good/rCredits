@@ -1,3 +1,20 @@
+2018-05 v3.40s
+. make autopay an optional default for third-party signups (TRUE for Co-op Power)
+. move the DRAWS bit: UPDATE users SET flags=(flags|(1<<7))-(1<<21) WHERE flags&(1<<21)
+. combine relations fields into a flags field (first REBUILD DB)
+. $q = db\q('SELECT * FROM r_relations');
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $flags = ($draw << B_DRAW) | ($employee << B_EMPLOYEE) | ($isOwner << B_OWNER) | (($isCustomer == 2) << B_AUTOPAY) | (($isCustomer > 0) << B_CUSTOMER);
+    db\update('r_relations', compact('flags', 'reid'), 'reid');
+  }
+  ALTER TABLE r_relations DROP `draw`, DROP `employee`, DROP `isOwner`, DROP `isCustomer`;
+  ALTER TABLE x_relations DROP `draw`, DROP `employee`, DROP `isOwner`, DROP `isCustomer`;
+. modified form.inc to include form file when called from formProx
+. fixed bug in be\updateRelations that deleted all records instead of just one
+  INSERT INTO r_relations SELECT reid,main,other,otherNum,permission,code,data,flags,created FROM x_relations WHERE deleted=1527079924; DELETE FROM x_relations WHERE deleted=1527079924
+. cleaned some things up and moved developer.txt to gDrive
+
 2018-05-11 v3.40r
 . reviewed all calls to w\say and w\doSay, and u\rayTable, a\showQuery, be\addCell to assure sanity
 . strip_tags from all $_POST and $_GET parameters
@@ -27,7 +44,7 @@ X;
   }
 $max = db\max('id', 'r_stats');
 for ($id = 17358; $id <= $max; $id++) {
-  $floors = db\lookup('floors', 'r_stats', "id=$id-7");
+  $floors = db\get('floors', 'r_stats', "id=$id-7");
   db\update('r_stats', compact(ray('floors id')), 'id');
 }
 . changed historic conx and conxLocal:
@@ -52,10 +69,10 @@ for ($id = 17358; $id <= $max; $id++) {
           GROUP BY t.me
         ) u3
 X;
-      $$k = db\lookup('AVG(conx)', $table, 'recentPays>0') + 0;
+      $$k = db\get('AVG(conx)', $table, 'recentPays>0') + 0;
     }
     db\update('r_stats', compact(ray('conx conxLocal id')), 'id');
-    if (rand(0, 100)==20) die('now');
+/**/     if (rand(0, 100)==20) die('now');
   }
 . reactivated B_DEBT on advanced preferences
 . update r_stats SET conxLocal=0 where conxLocal is null
@@ -280,7 +297,7 @@ X;
       $after = $parts[$dashes]; unset($parts[$dashes]);
       $nm = urldecode(join('-', $parts));
       $nm = str_replace('_', ' ', $nm);
-      $uid = db\lookup('uid', 'users', 'fullName=:nm', compact('nm'));
+      $uid = db\get('uid', 'users', 'fullName=:nm', compact('nm'));
     }
     if ($uid and $a = a($uid)) {
 ///      debug("uid=$uid after=$after flnm=$flnm");
@@ -296,7 +313,7 @@ X;
   define('FORREAL', 0);
   eachA(function ($a) {
     foreach (ray('secure vsecure changes') as $fld) {
-      if (!$s = db\lookup($fld, 'users', 'uid=' . $a->id)) continue;
+      if (!$s = db\get($fld, 'users', 'uid=' . $a->id)) continue;
       if (!u\crypted('S', $s)) {
 /**/    debug("account $a->fullName $a->id has $fld not S-encrypted");
 /**/    if (u\crypted('V', $s)) die("account $a->fullName $a->id has $fld V-encrypted: " . u\decry('V', $s));

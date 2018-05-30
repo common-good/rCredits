@@ -34,9 +34,9 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
   setRisk('rents', $a);
   
   $trusted = $a->trust - 1; // how well trusted (trust is always >=1)
-  $inviteTrust = db\lookup('SUM(trust - 1)', 'users u INNER JOIN r_invites i ON i.inviter=u.uid', 'i.invitee=:id OR i.email=:email', ray('id email', $a->id, $a->mail)); // trustedness of accounts that invited this one
+  $inviteTrust = db\get('SUM(trust - 1)', 'users u INNER JOIN r_invites i ON i.inviter=u.uid', 'i.invitee=:id OR i.email=:email', ray('id email', $a->id, $a->mail)); // trustedness of accounts that invited this one
   $trusted += $inviteTrust; // invited by trusted people
-  $relations = db\count('r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND NOT r.isOwner AND r.other=:id AND u.risk<:K_GREEN', $idSub);
+  $relations = db\count('r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND NOT r.:IS_OWNER AND r.other=:id AND u.risk<:K_GREEN', $idSub);
   $trusted += $relations; // access to (trusted by) non-suspect businesses
   setRisk('trusted', $trusted, $trusted > 1.5);
   
@@ -51,7 +51,7 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
   setRisk('shady', $a); // no substantial internet search results and/or no SSN history
 //  if ($a->can(B_BANK)) setRisk('hasBank'); // has a connected bank account
   setRisk('hasBank', $a); // has a connected bank account
-  if ($uid != r\cgfId() and db\lookup('SUM(amount*IF(often=1,1,12))', 'r_gifts', 'share>=0 AND uid=:id', $idSub) + 0 < K_MISER_DONATION and !$a->roundup and !$a->crumbs) setRisk('miser'); // unusually small donation to CGF
+  if ($uid != r\cgfId() and db\get('SUM(amount*IF(often=1,1,12))', 'r_gifts', 'share>=0 AND uid=:id', $idSub) + 0 < K_MISER_DONATION and !$a->roundup and !$a->crumbs) setRisk('miser'); // unusually small donation to CGF
   //  and $a->share < K_MISER_SHARE
   
   setRisk('photoOff', $a); // photo mismatches ID or DOB
@@ -88,7 +88,7 @@ function txRisk1($tx, &$risk = 0, &$calc = 0) {
   list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
   
   if ($risks & u\bit(K_ADMINOK)) setRisk('txAdminOk'); // administrator blessed this transaction
-  if (@$undoes and $undoneData = @unserialize(db\lookup('data', 'r_txs', 'xid=:undoes', compact('undoes')))) {
+  if (@$undoes and $undoneData = @unserialize(db\get('data', 'r_txs', 'xid=:undoes', compact('undoes')))) {
     if (@$undoneData['undoes']) setRisk('redo');
   }
   
@@ -243,7 +243,7 @@ EOF;
   if (max($in, $out) > $threshold * max(1, $a->employees)) setRisk($bitName);
   if ($ago == YEAR_SECS) list ($bigYearIn, $bigYearOut) = array($in, $out);
   if ($ago == WEEK7_SECS) {
-    $firstTxDate = db\lookup('MIN(created)', 'r_txs', ':uid IN (payer, payee)', compact('uid')) ?: $now;
+    $firstTxDate = db\get('MIN(created)', 'r_txs', ':uid IN (payer, payee)', compact('uid')) ?: $now;
     if ($yearLen = min(YEAR_SECS, $now - $firstTxDate)) {
       if ($in > (1 + K_UNUSUAL_BUMP / 100) * $bigYearIn * $ago / $yearLen) setRisk('moreIn');
       if ($out > (1 + K_UNUSUAL_BUMP / 100) * $bigYearOut * $ago / $yearLen) setRisk('moreOut');
@@ -305,7 +305,7 @@ function setOriginRisk($uid, $created, $amount) {
   $since = $created - YEAR_SECS;
   $table = 'SELECT IF(amount<0,payer,payee) AS uid,risk,created,amount FROM r_txs';
   $where = 'uid=:uid AND risk IS NOT NULL AND created BETWEEN :since AND :created';
-  $avgRisk = db\lookup('AVG(risk/ABS(amount))', "($table) t", $where, compact(ray('uid since created'))) / (K_RED / K_THRESHOLD);
+  $avgRisk = db\get('AVG(risk/ABS(amount))', "($table) t", $where, compact(ray('uid since created'))) / (K_RED / K_THRESHOLD);
 ///  debug(compact('uid','amount','since','table','where','avgRisk'));
   if ($avgRisk > 0) setRisk('origins', $multiplier = $avgRisk, $multiplier > 1/2);
 }
