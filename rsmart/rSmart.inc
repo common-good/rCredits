@@ -49,13 +49,13 @@ require_once __DIR__ . '/../cg-strings.inc';
 
 $GLOBALS['tStrings'] += array(
   'bad proof' => t('That transaction is not valid.'),
-  'bad member' => t('That is not a valid account. The customer used a lost, stolen, or fraudulent %PROJECT Card.'),
-//  'card deactivated' => t('The %PROJECT Card has been de-activated.'),
-  'bad agent' => t('That is not a valid agent %PROJECT Card.'),
+  'bad member' => t('That is not a valid account. The customer used a lost, stolen, or fraudulent %PROJECT card.'),
+//  'card deactivated' => t('The %PROJECT card has been de-activated.'),
+  'bad agent' => t('That is not a valid %PROJECT company card.'),
   'agent cannot scan' => t('That agent is not authorized to charge customers.'),
   'scan in first' => t('You have to scan yourself in before charging a customer.'),
   'already scanned in' => t('You are already scanned in.'),
-  'wrong company' => t('That %PROJECT Card is for a different company.'),
+  'wrong company' => t('That %PROJECT card is for a different company.'),
   'company inactive' => t('That company is not an active participant.'),
 //  'customer balance' => t("Customer: %name\n\nBalance: %balance%spendable\nTradable for cash: %cashable"),
   'customer balance' => "Customer: %name\n\nBalance: %balance\nRewards to date: %rewards\n", // (parseable)
@@ -65,7 +65,7 @@ $GLOBALS['tStrings'] += array(
   'confirm undo' => t('Undo transfer of %amount %tofrom %otherName? (Press OK for Yes, Cancel for No.)'), // no creation date, unlike web and SMS
   'member inactive' => t('That account is not yet activated.'),
   'bad icard' => t('The customer has not yet activated his or her %PROJECT Account.'),
-  'expired icard' => t('That invitation card has expired. The customer can use their %PROJECT Card instead.'),
+  'expired icard' => t('That invitation card has expired. The customer can use their %PROJECT card instead.'),
   'bad pin' => t('That is not your correct PIN.'), // self-service error
   'no such test' => t('That test function does not exist.'),
 );
@@ -98,7 +98,8 @@ function pos($args = FALSE) {
   
   if (isDEV and $op == 'test') return test($args0);
   
-  $mya = getAgent($agent ?: @$member, $agentErr);
+  $mya = getAgent(@$agent ?: @$member, $agentErr);
+///     print_r(compact(ray('mya agent member agentErr')));
 
   if (@$device) { // device was specified, substitute its record id, herein
     if (!$mya) return posErr($agentErr);

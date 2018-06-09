@@ -55,8 +55,8 @@ Scenario: A recurring donation can be completed
   | .ZZA | %yesterday |     10 |     Q | memory | Jane Do |    10 |         0 |
   When cron runs "gifts"
   Then transactions:
-  | xid   | created | type     | amount | from | to   | purpose      |*
-  | .AAAB | %today  | transfer |     10 | .ZZA | cgf  | donation (quarterly gift #1) |
+  | xid | created | type     | amount | from | to   | purpose      |*
+  |   1 | %today  | transfer |     10 | .ZZA | cgf  | donation (quarterly gift #1) |
   And gifts:
   | id   | giftDate      | amount | often | honor  | honored | completed |*
   | .ZZA | %yesterday    |     10 |     Q | memory | Jane Do | %today    |

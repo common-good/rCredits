@@ -18,14 +18,14 @@ Scenario: A member redeems a gift coupon
   | id   | giftCoupons | created |*
   | .ZZC |           8 | 0039200 |
 # created determines 3-letter lowSecurity code (7AA), which is used in coupon code
-
   When member ".ZZC" completes form "community/coupons/gift" with values:
   | type | amount | count |*
   | gift |     10 |    20 |
   Then coupons:
   | coupid | fromId | amount | ulimit | flags | start | end |*
   |      1 |   .ZZC |     10 |      1 |     1 |     8 |  28 |
-#  And member ".ZZC" visits page "community/coupons/print/type=gift&amount=10&count=20", which results in:
+#  And member ".ZZC" visits page "community/coupons/print/type=gift&amount=10&ulimit=1&count=20", which results in:
+#  When member ".ZZC" visits page "community/coupons/print/type=gift&amount=10&count=20"
   And members have:
   | id   | giftCoupons |*
   | .ZZC |          28 |

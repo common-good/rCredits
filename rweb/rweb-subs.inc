@@ -53,18 +53,18 @@ EOF
 //  'take a step' => t('Your account is <b class="stopnot">not yet activated.</b> <a href="%BASE_URL/status" class="nextstep">Click here for the next step!</a>.'),
   'got token' => t('Your %RCREDITS and US Dollar accounts have been successfully connected!'),
   'got photo' => t('Your photo was successfully uploaded.'),
-  'company rcard' => t('Send a <%a>company %PROJECT Card</a> for %otherName to %manager at %address.'),
+  'company rcard' => t('Send a <%a>company %PROJECT card</a> for %otherName to %manager at %address.'),
   'amount rounded' => t('"%amount" was rounded to the nearest integer value.'),
   'invite sent' => t('Your invitation has been sent.'),
   'repeat invite' => t('Come back any time, to send more invitations (click "Invite Someone" at the bottom of any page).'),
   'gift transfer later' => t('<br><br>Funds will be transferred when you have money in your account.'),
   'repeat gift' => t('If you wish to make a donation again sometime, click "Membership" in the upper right corner, then on "Donate".'),
-//  'setup complete' => t('<p>Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Your %PROJECT Card will arrive by US Mail within a few days. Thank you for joining!</p>'),
+//  'setup complete' => t('<p>Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Your %PROJECT card will arrive by US Mail within a few days. Thank you for joining!</p>'),
   'setup complete' => t('<h2>Your Account Setup Is Complete</h2>You have done everything you need to do.'),
-  'individual approval' => t('Once a staff member has approved your account, you can expect to receive your %PROJECT Card in the mail soon'),
-  'company approval' => t('Once a staff member has approved your account, you can begin accepting %PROJECT payments'),
+  'individual approval' => t('Once a staff member has approved your account, you can expect to receive your %PROJECT card in the mail soon.'),
+  'company approval' => t('Once a staff member has approved your account, you can begin accepting %PROJECT payments.'),
   'join thanks' => t('Thank you for joining us!'),
-  'use temporary card' => t('<p>While you wait for your %PROJECT Card to arrive, you can use your invitation card to make purchases at any member business (beginning with your inviter).</p>'),
+  'use temporary card' => t('<p>While you wait for your %PROJECT card to arrive, you can use your invitation card to make purchases at any member business (beginning with your inviter).</p>'),
   'must be confirmed' => t('An email has been sent to %inviterName, who will need to confirm the invitation before you can use your %PROJECT Account. Or you can do your first rCard transaction with %inviterName as confirmation.'),
   //  Meanwhile, click the "<a href="%BASE_URL/community/invite">Invite</a>" tab to invite anyone you know and trust &mdash; you get a $%R_HELPER_BONUSr reward when they make their first purchase.<br><br>
   'ready to charge' => t('<p>You successfully scanned in as "%agentName" to charge customers on behalf of %companyName.</p><p>Now go back to your scanning app, to scan a customer\'s card. Sign out only when your shift ends.</p>'),
@@ -191,7 +191,7 @@ EOF
   'change min first' => t('That request would leave you with less than your target balance. <%a>Lower your target balance</a> first.','_a', atag('/settings/connect')),
   'bad member id' => t('That is not a valid member ID!'),
   'bad card' => t('That is not a valid member ID.'),
-  'bad card code' => t('This %PROJECT Card is not valid.'),
+  'bad card code' => t('This %PROJECT card is not valid.'),
   'upload required' => t('You must upload a file.'),
 //  'missing contact info' => t("<h2>Missing Contact Information</h2><p>Please complete your <%a1>Contact Information</a> before continuing.</p>"),
   'correct and retry' => t('Please correct the problem and resubmit this form.'),
@@ -202,7 +202,7 @@ EOF
   'pin required' => t('You must choose a PIN.'),
   'only us banks' => t('Unfortunately, at this time, we can handle only U.S. banks.'),
 //  'bad deposit cents' => t('Each deposit is a number less than %DW_VERIFY_ROOF.'),
-  'no can scan' => t('You do not have permission to scan an individual\'s %PROJECT Card.'),
+  'no can scan' => t('You do not have permission to scan an individual\'s %PROJECT card.'),
   'must opt' => t('You must not create a limited account for this person without giving them the opportunity to open a real %PROJECT Account. <%a>Invite them</a>!', '_a', atag('/community/invite')),
   'must agree' => t('Accept Terms checkbox field is required.'), // drupal shows this
   'redo info' => t('We could not verify your personal information. Please try again, carefully.'),
@@ -211,7 +211,7 @@ EOF
   'bank too little' => t('The amount you asked to transfer is less than the minimum ($%R_ACHMIN).'),
   'members only' => t('You must be a member, to use this feature.'),
   'dwolla terms required' => t("Please accept Dwolla's terms before you click Continue."),
-  'no card ordered' => t('No %PROJECT Card was ordered.'),
+  'no card ordered' => t('No %PROJECT card was ordered.'),
   'bad buy info' => t('To pay with %RCREDITS, you must use the same %thing for the purchase as you use for your %PROJECT Account.'),
   'must be signed out' => t('You are already signed in.'),
   'wrong payroll co' => t('The company name in cell A1 must match your company name exactly (%coName)'),
@@ -233,7 +233,7 @@ EOF
   'login failed' => t('Your attempt to sign in failed. Click the "Password problems" link if you need a new password.'),
   'bad file type' => t('Bad file type: %filetype'),
   'file save error' => t('Your file upload did not succeed.'),
-  'forced without perm' => t('<p>An unauthorized transaction was made using a Company %PROJECT Card.</p><ul><li>Date: %date</li><li>Customer: %a2 (by %agent2)</li><li>Company: %a1 (by %agent1)</li><li>Amount: %amount</li><li>For: %for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
+  'forced without perm' => t('<p>An unauthorized transaction was made using a Company %PROJECT card.</p><ul><li>Date: %date</li><li>Customer: %a2 (by %agent2)</li><li>Company: %a1 (by %agent1)</li><li>Amount: %amount</li><li>For: %for</li></ul><p>This transaction was taken offline, so there was no way to know the agent lacked authorization.</p>'),
   'bad invite num' => t('That is not a valid username or invitation number.'),
   'negative saveWeekly' => t('Your discretionary savings are already at their minimum, so your weekly savings addition cannot be negative.'),
   'requires signin' => t('You must be signed in, to use that page.'),
@@ -2073,7 +2073,7 @@ function showCharts($whichChart, $ctty = 0, &$chartData = '') {
   global $base_url;
 
   list ($in, $out, $net, $personal, $companies) = array(t('in'), t('out'), t('net'), t('personal'), t('companies'));
-  $txTypes = ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly by %PROJECT Card)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
+  $txTypes = ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly by %PROJECT card)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
   $today = strtotime('today');
   $dt1 = w\firstGraphDt($ctty);
     

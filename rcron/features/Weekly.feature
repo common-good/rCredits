@@ -53,6 +53,9 @@ Scenario: A member cashes out automatically
   Then usd transfers:
   | txid | payee | amount |*
   |    1 | .ZZB  |   -680 |
-  And we notice "banked|bank tx number" to member ".ZZB" with subs:
-  | action     | amount | checkNum |*
-  | deposit to | $680   |        1 |
+#  And we notice "banked|bank tx number" to member ".ZZB" with subs:
+#  | action     | amount | checkNum |*
+#  | deposit to | $680   |        1 |
+  And we notice "banked" to member ".ZZB" with subs:
+  | action     | amount |*
+  | deposit to | $680   |

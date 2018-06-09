@@ -1,4 +1,10 @@
-2018-05 v3.40s
+2018-06-09 v3.40t
+. fixed bug in get.inc that interpreted put requests as get requests (yikes)
+. UPDATE r_relations SET otherNum=0 WHERE otherNum IS NULL
+. UPDATE x_relations SET otherNum=0 WHERE otherNum IS NULL
+. fixed bug in a() that required archaic qid format
+
+2018-05-20 v3.40s
 . make autopay an optional default for third-party signups (TRUE for Co-op Power)
 . move the DRAWS bit: UPDATE users SET flags=(flags|(1<<7))-(1<<21) WHERE flags&(1<<21)
 . combine relations fields into a flags field (first REBUILD DB)

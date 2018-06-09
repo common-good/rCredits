@@ -35,7 +35,6 @@ Scenario: A member requests a joint account
   And we show "Relations" with:
   | other      | Draw | Employee | Family | Permission |
   | Bea Two    | No   | No       | No     | %can_joint |
-  Skip
   And members have:
   | id   | jid | minimum |*
   | .ZZA |     |     100 |
@@ -190,6 +189,6 @@ Scenario: A member requests two joins at once
   | Bea Two   |
 # (actually does this, but test can't find it. why?)  And we say "error": "too many joins"
   And we show "Relations" with:
-  | other      | Draw | My employee? | Family? | Permission |
-  | Bea Two    | No   | No           | No      | %can_joint |
-  | Dee Four   | No   | No           | No      | %can_none  |
+  | other      | Draw | Employee | Family | Permission |
+  | Bea Two    | No   | No       | No     | %can_joint |
+  | Dee Four   | No   | No       | No     | %can_none  |

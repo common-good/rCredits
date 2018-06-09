@@ -910,7 +910,7 @@ function randomString($len = 16, $choices = '') {
 function badName(&$name) {
   $name = trim(preg_replace('/ +/', ' ', $name));
   if ($name and !ctype_print($name)) {
-/**/  r\tellAdmin('bad char', ray('name trace', bin2hex($name), print_r(debug_backtrace(), 1)));
+/**/  r\tellAdmin('bad char', ray('name trace', bin2hex($name), trace()));
     return 'illegal char';
   }
   if (strlen(u\shortName($name)) > USERNAME_MAX_LENGTH) return 'too long';
@@ -1357,7 +1357,8 @@ function wargs($s, $args, $prefix = '') {return strtr($s, prefixKeys($prefix, $a
 function myInt($n) {return (is_numeric($n) and $n == (int) $n);}
 function myFloat($n) {return (is_numeric($n) and $n == (float) $n);}
 function isId($id) {return (myInt($id) and $id > 0);}
-function isQid($qid) {return preg_match('/(^[A-Z]{6,8}(-[A-Z]{1,8})?$)|(^[A-Z]{3}' . R_MARKS . '[A-Z]{3,}$)|(^![A-Z]{3}(\.?[A-Z]{3,})?$)/', $qid);} // middle choice is deprecated (gone after 2016)
+//function isQid($qid) {return preg_match('/(^[A-Z]{6,8}(-[A-Z]{1,8})?$)|(^[A-Z]{3}' . R_MARKS . '[A-Z]{3,}$)|(^![A-Z]{3}(\.?[A-Z]{3,})?$)/', $qid);} // middle choice is deprecated (gone after 2016)
+function isQid($qid) {return preg_match('/(^[A-Z]{6,8}(-[A-Z]{1,8})?$)|(^![A-Z]{3}(\.?[A-Z]{3,})?$)/', $qid);}
 function isZid($zid) {return (myInt($zid) and $zid !== 0);}
 function isNonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
 function isVarname($value) {return preg_match('/^[a-z_][a-z_\-0-9]*$/i', $value);}

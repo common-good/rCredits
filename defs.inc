@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.40s'); // software version
+define('R_VERSION', '3.40t'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -205,13 +205,12 @@ define('R_COMPANY_GIFT', 250); // suggested donation for companies
 define('R_BUYS_BEFORE_BONUS', 1); // number of purchases required before signup bonus (should probably be 3)
 define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
 define('R_ACCT_REGION', '(-FLOOR((uid-1)/' . R_REGION_MAX . ')-1)'); // SQL region expression
-define('R_DW_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // (credits CGF for referral)
 define('R_SIGNIN_HOURS', 24); // window for signing in after registering or resetting password
 define('R_MEMBER_MARK', '.'); // divides region from specific identifier in member IDs
-define('R_AGENT_MARK', ':'); // divides region from specific identifier in relational IDs
+//define('R_AGENT_MARK', ':'); // divides region from specific identifier in relational IDs
 define('AGT_MARK', '-'); // divides main QID from agent code
-define('R_AGENT_URL_MARK', '-'); // use this as a substitute for R_AGENT_MARK in URLs (else domain forwarding fails)
-define('R_MARKS', '[\\' . R_MEMBER_MARK . '\\' . R_AGENT_MARK . '\\' . R_AGENT_URL_MARK . ']'); // any of those
+//define('R_AGENT_URL_MARK', '-'); // use this as a substitute for R_AGENT_MARK in URLs (else domain forwarding fails)
+//define('R_MARKS', '[\\' . R_MEMBER_MARK . '\\' . R_AGENT_MARK . '\\' . R_AGENT_URL_MARK . ']'); // any of those
 define('R_ANCIENT_EFT', 10); // how long, at most, an EFT might take (transferring funds to/from bank)
 define('R_REQUIRED', ' <span class="form-required" title="This field is required.">*</span>');
 define('R_CC_RATE', 2.5); // typical credit card percentage rate
@@ -347,7 +346,7 @@ define('B_SELL', 104); // can send invoices (or scan or view)
 define('B_BUY', 105); // can make purchase for the account (or sell or scan or view)
 define('B_MANAGE', 106); // can manage all aspects of the account
 define('B_JOINT', 107); // make this a joint account (subsuming the other, with permission) -- no companies!
-$GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept %PROJECT Card payments'), t('give refunds & give USD for %RCREDITS'), t('send invoices'), t('make purchases'), t('manage account'), t('joint account'));
+$GLOBALS['share permissions'] = array(t('no access'), t('view transactions'), t('accept %PROJECT card payments'), t('give refunds & give USD for %RCREDITS'), t('send invoices'), t('make purchases'), t('manage account'), t('joint account'));
 define('B_PERMISSIONS', 'related read scan refund sell buy manage joint');
 
 // Other special pseudo-bit values for r\Acct::can() and rweb.module menus

@@ -59,7 +59,7 @@ EOF;
   $shortDesc = textFld(t('Short Desc:'), [t('Short description'), t('Short description of your company\'s products and services. Maximum 35 characters.')], attrib(['maxlength'=>35]) + required($mya->shortDesc));
   $employees = textFld(t('Employees:'), [t('Employee count'), t('How many employees do you have?')], required($mya->employees));
   $gross = textFld(t('Annual Gross:'), [t('Approximate annual gross income')], required($mya->gross));
-  $tips = boolFld(t('Tips:'), t('After each %PROJECT Card sale, ask the customer to choose a tip percentage (or no tip)'), $mya->coCan(CO_TIP) ?: 0);
+  $tips = boolFld(t('Tips:'), t('After each %PROJECT card sale, ask the customer to choose a tip percentage (or no tip)'), $mya->coCan(CO_TIP) ?: 0);
   if ($mya->cAdmin) {
     if (FALSE) $fast = boolFld(t('No ID Chk:'), t('Never ask customer for photo ID (set by admin)'), $mya->coCan(CO_FAST) ?: 0); // no exemptions
     $atm = boolFld(t('ATM service:'), t('Allow company to trade %RCREDITS for cash even if their balance is less than their rewards (in-person only).'), $mya->coCan(CO_ATM) ?: 0);
@@ -87,7 +87,7 @@ function formCompany_submit($form, &$sta) {
 
   extract($info = just('private description shortDesc website selling categories can requireCashier employees gross tips fast atm', $sta['input']));
   
-  $website = str_ireplace('http://', '', @$website);
+  $website = preg_replace('~https?://~i', '', @$website);
 
   $mya->setCoCans(@$can);
   //$mya->setBits(APP_CAN_BITS, $can, 'co');

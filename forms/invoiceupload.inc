@@ -60,8 +60,8 @@ function formInvoiceUpload_submit($form, &$sta, $args = NULL) {
     if (!$a->ok) return say(t('This account is not yet activated:|in csv'), $erSubs, 'file');
     $a->setBit(B_CONFIRMED); // count this as equivalent to an invitation to the person
     if (!$email = trim(strtolower($email)) or $a->email != $email) { // not the right email
-      if ($a->phone != u\fmtPhone($email, 'n')) { // not the right phone number
-        if (r\acct($mya->id, $a->id)->relCode != $email) return say(t('Bad email, phone, or account identifier|in csv'), $erSubs, 'file'); // not the right customer ID
+      if ($a->phone != u\fmtPhone($email, '+n')) { // not the right phone number
+        if (strtolower(r\acct($mya->id, $a->id)->relCode) != $email) return say(t('Bad email, phone, or account identifier|in csv'), $erSubs, 'file'); // not the right customer ID
       }
     }
     $txs[] = [$a->id, $email, $amt, $desc ? strtr($desc, $map) : $dftDesc]; // someday we wlll allow paying and invoicing non-members by email and name

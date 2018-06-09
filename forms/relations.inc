@@ -51,7 +51,7 @@ EOF;
 
     $idLink = R_NONE; // default to no link
     if ($mya->co and !$otherCo and $permission >= r\perm(B_SCAN) and $permission != r\perm(B_JOINT)) {
-      $text = str_replace(' ', '&nbsp;', $permission >= r\perm(B_BUY) ? t('request %PROJECT Card') : t('request Cashier Card'));
+      $text = str_replace(' ', '&nbsp;', $permission >= r\perm(B_BUY) ? t('request %PROJECT card') : t('request Cashier Card'));
       $idLink = "<a href=\"$base_url/request-employee-rcard/$other\">$text</a>";
     }
 
@@ -137,7 +137,8 @@ function formRelations_submit($form, &$sta) {
 
   $vs = $sta['input'];
   if ($other = @$vs['newPerson']) { // adding a new relation
-    $mya->newRelation(compact('other'));
+    $permission = r\perm(B_READ);
+    $mya->newRelation(compact('other', 'permission'));
     $who = r\acct($other)->fullName;
     say('report new relation', compact('who'));
   }

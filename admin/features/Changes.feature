@@ -24,7 +24,7 @@ Scenario: A member changes some settings
   And member ".ZZA" completes form "settings/connect" with values:
   | connect | routingNumber | bankAccount | bankAccount2 | cashout | refills | target | achMin | saveWeekly |*
   |       1 |     211870281 |         123 |          123 |       0 |       1 |    100 |     11 |          0 |
-  When member ".ZZD" visits page "sadmin/changes/NEW.ZZA"
+  When member ".ZZD" visits page "sadmin/changes/NEWZZA"
   Then we show "Account Changes for Abe One" with:
   | Date | Field       | Old Value | New Value |
   | %dmy | flags       |   ok ided | ok ided refill weekly paper |

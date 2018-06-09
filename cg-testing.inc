@@ -133,7 +133,7 @@ function doAccount($info = []) {
   global $testOnly;
 
   if (is_object($info)) $info = (array) $info;
-/**/  if (!is_array($info)) {echo 'not array'; print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
+/**/  if (!is_array($info)) {echo 'not array'; print_r($info); die(trace()); } // keep for now
   extract($info); // any user table fields
   $id0 = @$id;
   u\setDft($id, r\Acct::nextId()); // default to first available number
@@ -160,7 +160,7 @@ function doAccount($info = []) {
     u\setDft($postalAddr, @$address2 ? "$address2, $city2, $state2 $zip2" : @$address . ', ' . @$city . ", $state $zip");
 //    u\setDft($photoId, "$state-{$zip}999");
     u\setDft($helper, '.AAB'); // everyone but .AAB should have a helper
-/**/  if ($helper === '') die(print_r(debug_backtrace(), 1)); // set helper to zero if none, never blank
+/**/  if ($helper === '') die(trace()); // set helper to zero if none, never blank
     u\setDft($last4bank, @substr(@$bankAccount, -4, 4));
 
     $moneyFields = 'share committed floor rewards'; // not minimum because NULL means not set, in Membership page
@@ -253,7 +253,8 @@ function doTx($info, $thing) {
   } else {
     $data = [];
     if (!$testOnly) u\setDft($risk, NULL); // indicates that risk has not been calculated yet
-    if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
+//    if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
+//    if (@$xid and !is_numeric($xid)) $xid = u\a2n($xid);
     u\setDft($type, TX_TRANSFER);
     foreach (ray('type') as $one) if (!is_numeric($$one)) $$one = u\consta('tx', $$one);
     if (r\isReward($type) and $amount) list ($payerReward, $payeeReward, $amount) = [0, $amount, 0];
@@ -338,7 +339,7 @@ function doRelation($info) {
   foreach ([$main => $mainA, $other => $agtA] as $i => $a) if (!$a or !$a->proSe) return t\output("bad rel acct: $i");
 
   if (isset($id) and !@$reid) $reid = $id;
-  u\setDft($otherNum, @$num);
+  u\setDft($otherNum, @$num ?: 0);
   $info['permission'] = @$permission ? u\consta('b', $permission) - B_RELATED : 0;
 
   if (@$draw) $agtA->setBit(B_DRAWS);
@@ -607,7 +608,7 @@ function fullQid($q) {
   if (is_numeric($q) or !$q) return $q;
   if (substr($q, 0, 1) == '.') $q = r\qo($q)->qid;
 
-  return ($channel == TX_POS and !strpos($q, '.')) ? substr($q, 0, 3) . '.' . substr($q, 3) : $q;
+  return ($channel == TX_POS and !strpos($q, '.')) ? substr($q, 0, 3) . substr($q, 3) : $q;
 }
 
 /**
@@ -913,7 +914,7 @@ function logIn($id) {
  */
 function verifyRecord($table, $info) {
 ///  debug(compact('table','info'));
-/**/  if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1)); // keep
+/**/  if (!is_array($info)) die('in verifyRecord: ' . trace()); // keep
   unset($info['data']);
   foreach ($info as $key => $value) {
     if ($value == '?') {unset($info[$key]); continue;}
@@ -1235,7 +1236,7 @@ function clear($ch = 0) {
 
 function fixPageArgs($page) {
   $special = array(
-    '(by|id)=([A-Z]{3}?' . R_MARKS . '[A-Z]{3})',
+//    '(by|id)=([A-Z]{3}?' . R_MARKS . '[A-Z]{3})',
     '(flow)=(.*?)',
   );
   foreach ($special as $one) if (preg_match($pat = "`(/|&)$one(&|$)`", $page, $matches)) {

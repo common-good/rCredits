@@ -134,7 +134,7 @@ Scenario: It's complicated
   When member "C:A" visits page "settings/relations"
   Then we show "Relations" with:
   | other   | Employee | Owns | Permission  |
-  | Abe One | Yes          | No   | %can_scan |
+  | Abe One | Yes      | No   | %can_scan |
 #  | Abe One | Yes          | No   | %can_scan | request Cashier Card |
 
 Scenario: A member adds a relation
@@ -147,7 +147,7 @@ Scenario: A member adds a relation
   | Bea Two |
   And we show "Relations" with:
   | other      | Draw | Employee | Family | Permission |
-  | Bea Two    | No   | No           | No      | %can_none  |
+  | Bea Two    | No   | No       | No     | %can_read  |
 
 Scenario: A member tries to add a relation with self
   When member ".ZZA" completes relations form with values:

@@ -134,7 +134,7 @@ function g($k, $v = NULL) {
   return $$k;
 }
 
-function trace() {return print_r(debug_backtrace(), 1);}
+/**/ function trace() {return print_r(debug_backtrace(), 1);}
 
 /** Miscellaneous functions for debugging
  *
@@ -150,8 +150,7 @@ function a($id = '', $agent = '') { // return an account object
 function x($xid, $mya = '') {f('r.x', $xid, $mya);} // return a transaction object
 /**/ function da($idfield) {list ($id, $field) = ray($idfield); debug(a($id)->$field);}
 /**/ function step($a) {debug(us($a)->step());}
-function ctty($id) {return a(a($id)->community);}
-//function ray() {return call_user_func_array('\\CG\\Util\\ray', func_get_args());}
+/**/ function ctty($id) {if (!$id or !a($id)) die(trace()); return a(a($id)->community);}
 /**/ function flog($s = '') { // log to file and return log file name
   $fileName = DRUPAL_ROOT . LOG_DIR . date('Ym') . '.log'; // new log file every month
 /**/ if (func_num_args()) file_put_contents($fileName, print_r($s, 1) . "\n", FILE_APPEND);

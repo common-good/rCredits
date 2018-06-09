@@ -1306,7 +1306,7 @@ function ray($s, $value1 = NULL) {
   if (func_num_args() > 1) { // multi-argument call -- return an associative array
     $args = func_get_args();
     $keys = ray(array_shift($args));
-///    if (count($keys) != count($args)) die('assoc arg count mismatch ' . print_r(debug_backtrace(), 1));
+///    if (count($keys) != count($args)) die('assoc arg count mismatch ' . trace());
     return array_combine($keys, $args);
   }
 

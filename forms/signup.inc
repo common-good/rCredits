@@ -86,7 +86,7 @@ function formSignup($form, &$sta, $args = '') {
 <p>After this page we will guide you through <%b>several short steps</b>. Here are some highlights:</p>
 <ul>
   <li>You will be asked to <b>sign</b> the short but ESSENTIAL %PROJECT Agreement.</li>
-  <li>You will need to upload a <b>photo</b> for your %PROJECT Card. Your photo will be encrypted and will not be visible to other members (unless you show it to them).</li>
+  <li>You will need to upload a <b>photo</b> for your %PROJECT card. Your photo will be encrypted and will not be visible to other members (unless you show it to them).</li>
   <li>You will be invited (but not required) to make a <b>donation</b> <i>of any size</i> to support the project. You decide how much (%PROJECT is a nonprofit).</li>
   <li>Your name and city will be visible to other members who may wish to select you as their <b>proxy</b> in the community's democratic process. %proxyInfo</li>
   <li>You will need your <b>bank</b> account information if you choose to connect it. Connecting a bank account makes it easier to transfer funds into and out of your %PROJECT account.</li>
@@ -187,6 +187,7 @@ function formSignup_validate($form, &$sta) {
 }
 
 function formSignup_submit($form, &$sta) {
+  global $mya;
   $dbFields = 'fullName legalName email flags phone federalId dob pin country zip address city state postalAddr helper iCode notes wants calling signupCo tenure source';
   extract(just('myid confirmed acctType args ats owns partner customer source2 ' . $dbFields, $sta['input']));
 

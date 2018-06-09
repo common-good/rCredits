@@ -26,7 +26,7 @@ Scenario: A member signs in with username on the member site
 Scenario: A member signs in with account ID on the member site
   When member "?" confirms form "signin" with values:
   | name    | pass |*
-  | new.zza | a1   |
+  | newzza | a1   |
   Then member ".ZZA" is logged in
   And we show "Account Summary"
 
@@ -64,7 +64,7 @@ Scenario: A member asks for a new password for account ID
   Given next random code is "wHatEveR"
   When member "?" completes form "settings/password" with values:
   | name    |*
-  | new.zza |
+  | newzza |
   Then we email "password-reset" to member "a@example.com" with subs:
   | fullName | site        | name   | code     |*
   | Abe One  | %BASE_URL | abeone | wHatEveR |
@@ -90,7 +90,7 @@ Scenario: A member asks for a new password for a company
   | .ZZC | Our Pub  | c1   | c@    | co    |
   When member "?" completes form "settings/password" with values:
   | name    |*
-  | new.zzc |
+  | newzzc |
   Then we say "error": "no co pass" with subs:
   | company |*
   | Our Pub |

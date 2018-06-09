@@ -335,7 +335,7 @@ function transfer($ttype, $a1, $a2, $amount, $for, $data = []) {
   $erInfo = compact(ray('ttype amount goods for force')) + ray('a1 a2 op', $a1->fullName, $a2->fullName, $taking ? t('charged') : t('paid'));
   $amount = round($amount, 2); // ignore fractions of cents
   if (!@$amount) {
-/**/  r\tellAdmin('zero transaction', $erInfo + ['stack' => print_r(debug_backtrace(), 1)]);
+/**/  r\tellAdmin('zero transaction', $erInfo + ['stack' => trace()]);
     return r\txRet('zero transaction', $erInfo);
   }
   $reallyTaking = ($taking xor $amount < 0); // not taking if charging a negative amount
@@ -580,12 +580,12 @@ function identify($who, $myid, $paying, $self_message = 'no self-trading') {
 
   $cttyCrit = $mya->admin 
   ? '1' 
-  : (($paying ? ':IS_OK AND ' : '') . "community=$mya->community"); // restrict to own community and approved (as of 7/6/2017)
+  : (($paying ? ':IS_OK AND ' : '') . "(:IS_CO OR community=$mya->community)"); // restrict to own community and approved (as of 7/6/2017)
   
   $sql = <<<EOF
     SELECT DISTINCT uid,fullName
     FROM users 
-    WHERE (fullName LIKE :short OR (!:IS_NOSEARCH AND (:cphone=phone OR :cmail=mail)))
+    WHERE (name LIKE :short OR (!:IS_NOSEARCH AND (:cphone=phone OR :cmail=mail)))
     AND $cttyCrit
     ORDER BY fullName
 EOF;

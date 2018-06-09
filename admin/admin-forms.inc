@@ -110,7 +110,7 @@ function formAdminPanel_submit($form, &$sta) {
   } else $a = $mya;
   
   if (@$a and $op == 'printId') {
-    if ($a->co and $a->proSe) return say(t('A company cannot have a %PROJECT Card (only its agents have %PROJECT Cards).'));
+    if ($a->co and $a->proSe) return say(t('A company cannot have a %PROJECT card (only its agents have %PROJECT cards).'));
     if (@$make) {
       $oldFile = DRUPAL_ROOT . $a->photoFilename(TRUE); // get this before makeCardCode
       $a->makeCardCode(); // this changes photo filename

@@ -468,8 +468,9 @@ function tellAdmin($index, $subs = [], $uid = NULL) {
   $noFrame = TRUE;
   $topic = strlen($index) < 50 ? strip_tags($index) : '';
   $subs = compact(ray('who email message topic noFrame uid')) + $subs;
-  r\rMail('tell-staff', $email, $subs, $uid);
-  if ($email != R_ADMIN_EMAIL) r\rMail('tell-staff', SYS_EMAIL, $subs, $uid); // always tell one or more staff (for now)
+  $replyTo = (@$uid and $a = r\acct($uid) and $a->email) ? [$a->email => $a->fullName] : NULL;
+  r\rMail('tell-staff', $email, $subs, $replyTo);
+  if ($email != R_ADMIN_EMAIL) r\rMail('tell-staff', SYS_EMAIL, $subs, $replyTo); // always tell one or more staff (for now)
   return FALSE;
 }
 
@@ -541,9 +542,9 @@ function iCardAcct($code0, &$iCode = NULL) {
   $tail = u\n2a(bindec(substr($b, ILEN_REGION, ILEN_TAIL)), -3);
   $security = u\n2ai(bindec(substr($b, -ILEN_SECURITY)), 3);
 ///  debug("code=$code iCode=$iCode b=$b region=$region tail=$tail security=$security");
-///  debug(r\acct("$region.$tail")->lowSecurity);
+///  debug(r\acct("$region$tail")->lowSecurity);
 
-  return ($a = r\acct("$region.$tail") and $security == $a->lowSecurity) ? $a : FALSE;
+  return ($a = r\acct("$region$tail") and $security == $a->lowSecurity) ? $a : FALSE;
 }
 
 /**
@@ -696,21 +697,22 @@ function employees() {
 function relation($field, $main, $other = [], $where = 'TRUE', $subs = []) {
   if (is_numeric($main)) {
     if (empty($other)) { // reid
-      if (is_numeric($reid = $main)) {
+      list ($where, $subs) = [ray('reid', $main), []];
+/*      if (is_numeric($reid = $main)) {
         $where = "reid=:reid";
         $subs += compact('reid');
-      } else { // main, other, where, subs
+      } else { // 
         list ($main, $otherNum) = explode('-', $main);
         list ($main, $otherNum) = [r\qo($main)->id, u\a2n($otherNum)];
         list ($where, $subs) = ['main=:main AND otherNum=:otherNum', compact('main', 'otherNum')];
-      }
-    } else {
+      } */
+    } else { // field, main, other, where, subs
       if ($main == $other) $other = 0; // handle tentative proSe relation with future customer
       $where = "main=:main AND other=:other AND ($where)";
       $subs += compact('main', 'other');
     }
   } elseif ($other) { // where, subs
-    list ($where, $subs) = array($main, $other);
+    list ($where, $subs) = [$main, $other];
   } else { // qid
     $a = r\acct($qid = $main);
     list ($where, $subs) = [ray('main other', $a->id, $a->agentId), []];

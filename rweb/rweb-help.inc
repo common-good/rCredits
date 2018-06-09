@@ -125,7 +125,7 @@ X
     ) . ($company ? t('<p>If you give the person at least "Sell" permission (and save the record), you can request a Member ID Card for them to use on behalf of this account.</p>') : '');
     
   if ($i == 'account/contact') return t(<<<X
-    <p><b>Full name</b> should be your full legal name. If you change the name on the account, you will need to buy a new %PROJECT Card and your account will be disabled until you supply new proof of identity. For companies, your %PROJECT website address will also change.</p>
+    <p><b>Full name</b> should be your full legal name. If you change the name on the account, you will need to buy a new %PROJECT card and your account will be disabled until you supply new proof of identity. For companies, your %PROJECT website address will also change.</p>
     <p><b>Postal code:</b> Your postal code determines what %PROJECT Community you are in.</p>
     <p><b>All other settings on this page</b> are private for individual accounts, public for company accounts.</p>
 X

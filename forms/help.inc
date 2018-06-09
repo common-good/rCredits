@@ -10,7 +10,7 @@ use CG\Db as db;
  * Show general or specific help. For members seeking general help, provide a secure communications channel.
  */
 function formHelp($form, &$sta, $what = '', $args = '') {
-  include_once __DIR__ . '/rweb-help.inc';
+  include_once R_ROOT . '/rweb/rweb-help.inc';
 
   $signedIn = ($mya = r\acct()) ? TRUE : FALSE; // no need to use eLinkAcct here, just pass args on to help()
   if ($signedIn and $mya->cAdmin and $what and strpos($what2 = @u\deurlify($what), '&')) {

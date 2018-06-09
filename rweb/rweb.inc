@@ -536,6 +536,7 @@ function formShowDeposits($form, &$sta) {
  *   must match the cardCode (for pro se) or cardCode2 (for agent) stored in the account's secure field.
  */
 function formI($form, &$sta, $who = '') {
+  /*
   $parts = preg_split('/(' . R_MARKS . ')/', $who, 0, PREG_SPLIT_DELIM_CAPTURE);
   $count = count($parts);
   
@@ -548,7 +549,7 @@ function formI($form, &$sta, $who = '') {
       if ($a and $a->co) return r\go("member/$a->name");
     }
   } 
-  
+  */
   return r\go(r\promoLink(''));
 }
 

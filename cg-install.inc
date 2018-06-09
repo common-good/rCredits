@@ -342,7 +342,7 @@ function tableDefs($schema = []) {
     'vestid' => dbFld(t('investment record ID'), 'int'), 
     'shares' => dbFld(t('club shares in the investment bought or (if <0) sold'), 'int 11', 0), 
     'pending' => dbFld(t('number of shares to buy or (if <0) sell ASAP'), 'int 11', 0),
-    'when ' => dbFld(t('Unixtime investment made'), 'int 11'),
+    'when' => dbFld(t('Unixtime investment made'), 'int 11'),
 //    'sold' => dbFld(t('Unixtime investment totally sold'), 'int 11'),
   );
   $foreignKeys = foreignKey('vestid');
@@ -427,7 +427,7 @@ function tableDefs($schema = []) {
     'reid' => dbFld(t('relationship record id'), 'serial big'),
     'main' => dbFld(t('uid of the account to which others are related'), 'int big'),
     'other' => dbFld(t('uid of an other account related to this account'), 'int big'), // eg owner, agent, employee, supplier (0 for a partner's customer with no account yet)
-    'otherNum' => dbFld(t('sequence number of the other (starts with 1)'), 'int'), // used only for company cards, otherwise 0
+    'otherNum' => dbFld(t('sequence number of the other (starts with 1)'), 'int', 0), // used only for company cards, otherwise 0
 //    'amount' => dbFld(t('average monthly amount paid to other'), 'numeric 11,2', 0), // typically to employee or supplier
 //    'draw' => dbFld(t('whether credit can flow from main to other account'), 'int tiny', 0),
     'permission' => dbFld(t('what type of permission the other has on the main account'), 'int tiny', 0),

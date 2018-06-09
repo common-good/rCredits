@@ -148,7 +148,7 @@ function periodic() {
   foreach ($cttys as $ctty) { // should never happen, but it does. figure out where.
     $a = r\acct($ctty);
     foreach ([B_UP, B_CGC] as $bit) if (!$a->can($bit)) {
-/**/  r\tellAdmin(t('Community bits got unset!'), ray('ctty bit time trace', $ctty, $bit, time(), print_r(debug_backtrace(), 1)));
+/**/  r\tellAdmin(t('Community bits got unset!'), ray('ctty bit time trace', $ctty, $bit, time(), trace()));
       $a->setBit($bit);
     }
   }
@@ -289,7 +289,7 @@ function tickleStep($item) {
         r\notify($inviter, 'invitee slow', ray('fullName elapsed step', $a->fullName, $elapsed, $step));
       }
     }
-  } elseif (!$a->ok) {
+  } elseif ($a->member and !$a->ok) {
     return r\tellAdmin('activate account', compact('uid'));
   }
 }
@@ -379,7 +379,7 @@ function everyMonth() {
   $bene = u\test() ? $cgf : db\get('uid', 'users', "name='bene' AND uid<0");
   $start = u\monthDay1($end = u\monthDay1() - 1); // mark start and end of preceding month
   if (u\test()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // test: the past 30 days
-  queueEach('whatsup', "SELECT uid, u.:IS_CO as co, MAX(t.created) AS lastTx from users u LEFT JOIN r_txs t ON uid IN (payer, payee) WHERE uid>:CANONIC_ACCTS GROUP BY uid HAVING lastTx IS NULL OR lastTx < $start");
+  queueEach('whatsup', "SELECT uid, u.:IS_CO as co, MAX(t.created) AS lastTx from users u LEFT JOIN r_txs t ON uid IN (payer, payee) WHERE uid>:CANONIC_ACCTS AND u.:IS_OK GROUP BY uid HAVING lastTx IS NULL OR lastTx < $start");
   queueEach('inflationAdjust', "SELECT uid, $start AS start, $end AS end FROM users WHERE :IS_OK AND uid>:CANONIC_ACCTS");  
 //  queueEach('shareCommitted', 'SELECT uid, committed, share FROM users WHERE :IS_OK AND committed>0');
   queueEach('roundup', "SELECT payer as uid, SUM(1-MOD(amount, 1)) AS donate FROM r_txs WHERE :IS_ROUNDUP AND amount>0 AND MOD(amount, 1)>0 AND created BETWEEN $start AND $end GROUP BY payer");
@@ -829,7 +829,7 @@ function bank1($item) {
   if ($a->slave) return; // slaves don't have automatic refills
   if (!$amount = getHowMuchR($a)) return; // check shortfall here NOT in query, balance may change
   if (!$a->bank($amount, $msg)) return; // may never happen, but if mysql is unavailable just redo next day
-  r\notify($uid, $msg);
+r\notify($uid, "under min|$msg");
 }
 
 function draw1($item) {

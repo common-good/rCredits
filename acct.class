@@ -110,7 +110,7 @@ class Acct {
 
     if ($error = u\EXPECT(compact(ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
     if ($error = u\EXPECT((bool) $id0, 'null uid in new r\Acct()', $test)) return FALSE;
-    if ($error = u\EXPECT(!(strpos($id0, R_AGENT_MARK) and $agent0), 'agent already specified in qid', $test)) return FALSE;
+//    if ($error = u\EXPECT(!(strpos($id0, R_AGENT_MARK) and $agent0), 'agent already specified in qid', $test)) return FALSE;
     list ($id, $agent) = u\isZid($id0) ? [$id0, $agent0 ?: $id0] : r\qo($id00)->ia; // handle
 
     if (u\isQid($agent0)) {
@@ -1069,7 +1069,7 @@ EOF;
       $approval = $a->co ? 'company approval' : 'individual approval';
 // fails with sysadmin as helper  if (!$a->confirmed) $approval .= '|' . t('must be confirmed', 'inviterName', @$a->helperA->fullName);
       
-      $msg = "setup complete|$approval" . ($stepDone ? '|join thanks' : '');
+      if ($stepDone) $msg = "setup complete|$approval|join thanks";
       return 'summary'; // go nowhere if not completing a step
     } elseif (!$a->member) $msg .= '|step completed';
 
@@ -1235,7 +1235,7 @@ EOF;
     if ($tx) extract($tx);
     u\setDft($tid, r\getUsdTid($payee));
     u\setDft($created, r\rTime());
-    if (!$completed) $completed = ($amount0 < 0 or $amount0 <= -$a->floor) ? $created : 0;
+    if (!@$completed) $completed = ($amount0 < 0 or $amount0 <= -$a->floor) ? $created : 0;
 
     $DBTX = \db_transaction();
     $where = 'payee=:payee AND NOT deposit AND amount' . ($amount0 < 0 ? '<0' : '>0 AND NOT completed');
