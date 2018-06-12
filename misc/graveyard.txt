@@ -1,5 +1,108 @@
 _____________________________________________
 
+//  if ($confirm = sureForm($sta)) return $confirm;
+//  $type = $args === '' ? basename(current_path()) : basename(dirname(current_path())); // pay, charge, etc.
+//  $role = in($type, 'charge fine') ? 'payee' : 'payer';
+//  $incentive = in($type, 'fine grant loan invest');
+//  $purpose = @$purpose ?: ($type == 'charge' ? @$selling[0] : ($paying ? '' : $type));
+//    list ($thing, $url) = $paying ? [t('Payroll'), '/pay/payroll'] : [t('Invoices'), '/charge/invoices'];
+//    $subtext = item('<small>[' . t('<%a>Upload %thing</a>', '_a thing', atag($url), $thing) . ']</small>');
+//  }
+
+/*  $whoLabel = ($type == 'loan' ? t('Lend to') : $opDesc) . t(' whom:');
+  $question = ($type == 'loan' ? t('Lend') : $opDesc) . t(' %amount to %name?'); 
+  $who = textFld($whoLabel, [t('name, id, email, or phone')], required(@$who));*/
+/*  if ($mya->cttyRewardy) {
+    $goods = $incentive ? hidFld(FOR_NONGOODS) : radiosFld(t('For:'), '', dft((int) @$goods), $goodsOpts); // required() fails here
+  } else $goods = hidFld($incentive ? FOR_NONGOODS : FOR_GOODS);
+  */
+  
+// (keep this for a while)  $calc = item(u\calculator('amount'));
+//  $isGift = hidfld(FALSE);
+
+  extract($params = just('who amount purpose goods', $info)); // used to include isGift
+  w\transfer($op = op($sta), $info); // op who amount goods what
+/**
+ * Transfer funds
+ * @param string $op: pay, charge, grant, loan, fine, or invest
+ * @param array $info: associative array indexed by field names (who, amount, goods, and purpose)
+ * @param boolean $confirmed: UNUSED whether the transaction request has been confirmed
+ * @return confirmation message (FALSE if confirmation not appropriate -- Note that say() returns FALSE)
+ */
+function transfer($op, $info) {//  : $mya->invoice($a, $amount, $purpose, compact('goods'));
+//  if (@$isGift) { // tag gifts to nonprofits and handle special case of "giving back" rewards to the community
+    $data = compact('isGift');
+  } else $data = [];
+///NO!  if (!in_array($op, ['pay', 'charge'])) $goods = FOR_USD; // make sure this is set, for blank_field check
+  if (!isset($goods) or $goods === '') return say('required field', ['field'=>'"For"'], 'ERR'); // '' is for test
+//  $txType = $op == 'pay' ? 'payment' : strtolower($op);
+//  if (blank_field($params)) return FALSE;
+//  if ($goods == FOR_GOODS and trim($purpose) == '') return say('missing purpose', 'purpose');
+//  $op = $op == 'pay' ? t('paid') : ($op == 'charge' ? 'charged' : $op . 'ed'); // for possible error message
+//  if (u\forCash($purpose)) $goods = FOR_USD;
+//    if (r\isGiveback($myid, $a->id, $data)) list ($mya, $a, $amount, $goods) = [$a,$mya,-$amount,FOR_NONGOODS];
+//     : ($txType == 'charge' ? $mya->invoice($a, $amount, $purpose, compact('goods'))
+//     : communityTransfer($txType, $a, $amount, $purpose));
+
+//  if (!$ok = @$args['success']) return t('confirm ' . $msg, $args);
+//  if (!@$args['success']) return say($msg, $args, 'amount');
+/**
+ * Record a transfer to or from the community.
+ * @param int $type: what type of transfer
+ * @param acct $acct: the account to credit or debit
+ * @param int $amount: how much to transfer
+ * @param string $purpose: what's the transfer for
+ * @param bool $confirmed: UNUSED has this transaction been confirmed by the user?
+ * @return simple array: 
+ *    index: index to result message string (if success, the index begins with "report ")
+ *    parms: replacement parameters, specific to the message
+ *    confirm: boolean UNUSED "this needs to be confirmed"
+ *//*
+function communityTransfer($type, $acct, $amount, $purpose) {
+  $success = (bool) be\fund($acct->id, u\consta('tx', $type), $amount, $purpose);
+  $msg = $success ? ($confirmed ? 'report funding' : 'funding') : 'funding error'; // 'funding' not used?!
+  $confirmAction = ucwords($type);
+  $did = $confirmAction . 'ed';
+  $otherName = $acct->fullName;
+  $amount = u\fmtAmt($amount);
+  return [$msg, compact(ray('success did confirmAction amount otherName'))];
+}  
+*/
+_____________________________________________
+
+  /*
+ * Cases:
+ *   Curious about someone's card (not signed in, scanned person) also give a link to the promo site
+ *   Agent looking at a business (signed in, scanned company) - show Site button (to company's rCredits page)
+ *   Person looking at a business (signed in, scanned company) - show Site button on the Pay page (NYI)
+ 
+ UNUSED:
+ *   Scanning in (not signed in, scanned agent)
+ *   Signing in (not signed in, scanned person) - show login page with account ID filled in
+ *   Agent charging a customer (signed in, scanned any) - show photo and Charge button
+ *   Agent paying someone (signed in, scanned any) - show Pay button
+ *   Person paying someone (signed in, scanned any) - go to Pay page
+
+ * @param string $who: the part of a scanned card's QR code after the domain and '/I/':
+ *   the account's qid tail, then "." (pro se) or "-" (agent), then an rCard security code:
+ *   must match the cardCode (for pro se) or cardCode2 (for agent) stored in the account's secure field.
+ 
+  $parts = preg_split('/(' . R_MARKS . ')/', $who, 0, PREG_SPLIT_DELIM_CAPTURE);
+  $count = count($parts);
+  
+  if ($count == 3) { // new format: DEF.whatever or DEF-whatever (agent)
+    list ($tail, $mark, $code) = $parts;
+    $region = R_SERVER_ID;
+    if ($mark == R_AGENT_URL_MARK and $qo = r\qo($region . $tail) and $info = r\relation('main,other', $qo->id)) {
+      extract($info);
+      $a = r\acct($main, $other);
+      if ($a and $a->co) return r\go("member/$a->name");
+    }
+  } 
+  return r\go(r\promoLink(''));
+  */
+_____________________________________________
+
   /**
    * Calculate updated r, rewards, and committed caches for a transaction (but do not write to db)
    * @param assoc $tx: the transaction record (or at least these fields: payer, payee, amount, type)

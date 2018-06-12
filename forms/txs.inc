@@ -7,7 +7,7 @@ use CG as r;
 use CG\DB as db;
 use CG\Txs as x;
 
-include __DIR__ . '/../cg-txs.inc';
+include_once __DIR__ . '/../cg-txs.inc';
 
 /**
  * List Transactions
@@ -193,7 +193,7 @@ function txEdit_submit($form, &$sta) {
       r\notify($uid, $msg, compact(ray('who tid amount what')));
     }
   }
-  return r\go('history', 'info saved');
+  return w\go('history', 'info saved');
 }
 
 function handleTx($do, $xid, &$sta, $args) {
@@ -211,14 +211,14 @@ function handleTx($do, $xid, &$sta, $args) {
       db\update('r_usd', compact(ray('xid deposit')), 'xid');
     }
     $mya->bank($amount, $zot, $tx);
-    r\go($url, t('Reversed %amount bank transfer for %who.', 'amount who', u\fmtAmt(-$amount), $mya->fullName));
+    w\go($url, t('Reversed %amount bank transfer for %who.', 'amount who', u\fmtAmt(-$amount), $mya->fullName));
   }
   
   if (!$xid = (int) @$xid) return FALSE;
   if ($do == 'edit') return txEdit($xid);
   if ($do == 'ok' or $do == 'no') {
     txOKorNO($do, $xid);
-    return r\go($url); // back to the normal form
+    return w\go($url); // back to the normal form
   }
   return FALSE;
 }

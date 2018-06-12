@@ -18,11 +18,11 @@ Setup:
   | .ZZB | .ZZC | .ZZB  | read       |
 
 Scenario: Someone scans a member card
-  When member "?" visits page "I/ZZB.ccB"
+  When member "?" visits page "I/NEWZZB"
   Then we redirect to "%PROMO_URL/?region=NEW"
 
 Scenario: Someone scans a company agent card
-  When member "?" visits page "I/ZZB-ccB2"
+  When member "?" visits page "I/NEWZZC"
   Then we show "Corner Pub" with:
 #  |~Address  |~phone        | ~Button |*
 #  | Cton     | 200.000.0003 | Pay     |

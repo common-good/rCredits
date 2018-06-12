@@ -238,9 +238,64 @@ EOF
   'negative saveWeekly' => t('Your discretionary savings are already at their minimum, so your weekly savings addition cannot be negative.'),
   'requires signin' => t('You must be signed in, to use that page.'),
   'too many days' => t('You cannot view more than 18 months at a time on screen (but you can download any period).'),
+  'co code timeout' => t('That form has expired. Refresh your page and try again.'),
+  
 //  'saveWeekly too low' => t('With a negative "target balance", your weekly savings addition must be at least %min.'),
 );
 $GLOBALS['tStrings']['flooded'] = $GLOBALS['tStrings']['bad login'];
+
+/**
+ * Go to the specified page
+ * Accommodate testing, if that's what's happening.
+ * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out.
+ * @param string $page: page to go to
+ * @param string $msg: message to output, if any
+ * @param string $field: error field, if any ('err' is typical, triggering error message rather than status message)
+ */
+function go($page, $msg = '', $field = '') {
+  global $base_url;
+  global $lastGo; $lastGo = $page; // for testing
+
+  if ($msg) {
+/*    if (u\starts($page, 'empty')) {
+      list ($page, $msg) = strpos($page, '/') ? ["$page&msg=$msg", ''] : ["$page/msg=$msg", '']; 
+    } else */
+    r\Web\say(strip_tags($msg), $field);
+  }
+//  else $page .= "/field=$field&msg=" . urlencode($msg); // say() fails if signed out
+  if (substr($page, 0, 1) == '/') $page = substr($page, 1); // supplying the slash is preferred, to agree with w\atag()
+    
+  if (u\test()) {
+    $_POST = []; // make sure it doesn't act like we submitted the target page
+    f('t.output', "Going to page $page (page0=$lastGo msg=$msg field=$field)");
+    return strpos($page, 'http://') === FALSE ? f('t.pageForm', $page, $msg, $field) : '';
+  }
+
+  if (!u\starts($page, 'http')) $page = "$base_url/$page";
+
+  /*
+  foreach (ray('login signup password reset') as $one) if (strpos($page, "user/$one") !== FALSE) {
+    if (\drupal_session_started()) session_destroy();
+  }
+  */
+  \drupal_session_commit();
+
+  header("Location: $page", TRUE, 302); 
+  exit();
+//  session_write_close();
+//  exit();
+//  \drupal_goto(substr($page, 0, 1) == '/' ? substr($page, 1) : $page);
+}
+
+/**
+ * Sometimes when redirecting offsite, we just hang. This works.
+ * @param string $url: URL to go to
+ */
+function goFar($url, $params = '') {
+  $mark = strpos($url, '?') ? '&' : '?';
+  $url = urlencode("$url$mark$params");
+  return w\go(BASE_URL . '/rcredits/relay.php?goto=' . $url);
+}
 
 function htmlItem($name, $id, $value, $class, $other = []) {return $value;}
 
@@ -753,8 +808,8 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $form = \drupal_build_form($formName, $formSta);
 
     $req = basename($_SERVER['REQUEST_URI']);
-    if (!$mya and in($req, 'login logout')) return r\go(PROMO_URL); // nothing else works
-    if ($req == 'user' and $mya) return r\go('summary'); // summary not ''
+    if (!$mya and in($req, 'login logout')) return w\go(PROMO_URL); // nothing else works
+    if ($req == 'user' and $mya) return w\go('summary'); // summary not ''
     foreach ($form as $k => $v) if (@$v['#type'] == 'submit') {$submit1 = @$v['#id'] ?: "edit-$k"; break;}
     $form['opid'] = hidFld(@$submit1 ?: 'none', ['name' => 'opid']); // default to first, in case submitted programmatically
   
@@ -1020,7 +1075,7 @@ function which($choices = '', $resultField = '', $info = '', $question = 'Which 
   
   if (is_array($choices)) { // called with all args (#1)
     svar('pop', compact(ray('formName choices resultField info question')));
-    r\go($formName); // reload page
+    w\go($formName); // reload page
   }
 
   if (!is_array($pop = svar('pop'))) return [];
@@ -1622,8 +1677,8 @@ function eLinkAcct(&$sta, &$eLink = '', $allow = 'individual') {
   extract(just('qid ecode allow', $eLink));
   $a = r\acct($qid = @$qid); // current or specified account
   if ($allow != 'any') {
-    if (!$a) return r\go('', 'requires signin');
-    if ($allow == 'individual' and $a->co) return r\go('', t('That page is for individual accounts only.'));
+    if (!$a) return w\go('', 'requires signin');
+    if ($allow == 'individual' and $a->co) return w\go('', t('That page is for individual accounts only.'));
     if ($qid and @$ecode != $a->emailCode) return w\hack('bad ecode');
   }
   $eLink = $sta['eLink'] = "allow=$allow&qid=$qid&ecode=" . @$ecode; // remember it (cttys don't use ecode)
@@ -1633,7 +1688,7 @@ function eLinkAcct(&$sta, &$eLink = '', $allow = 'individual') {
 function hack($message, $info = []) {
   u\loga('hack', $_SERVER + compact('message'));
   r\tellAdmin($message, $info);
-  return r\signedIn() ? signout() : r\go('');
+  return r\signedIn() ? signout() : w\go('');
 }
 
 /**
@@ -1642,8 +1697,8 @@ function hack($message, $info = []) {
  */
 function signout($goPromo = TRUE) {
   @\session_destroy();
-  if (isDEV and !u\test()) r\go('signin');
-  if ($goPromo) return r\go(PROMO_URL . '?region=x');
+  if (isDEV and !u\test()) w\go('signin');
+  if ($goPromo) return w\go(PROMO_URL . '?region=x');
 }
 
 function fundRpt($now, $then, $type = '') {
@@ -1777,7 +1832,7 @@ function dateRangeRedirect($page, &$sta) {
   if (u\starts(op($sta), 'download')) {
     w\svar("$page-downloadQuery", $query);
     say('downloading');
-  } else return r\go("$page/$query");
+  } else return w\go("$page/$query");
 //  } else $sta['redirect'] = "$page/$query";
 }
 
@@ -1920,7 +1975,7 @@ function whois($who, $field_name, $info, $selfMsg = 'no self-trading', $paying =
  */
 function doSay($msg, $ok = FALSE) {
   if (isDEV) @file_put_contents(f('t.dosayFilename', $ok ? 'status' : 'error'), $msg); // no way to know if actually testing
-  return r\go('empty/say=1', $msg, !$ok);
+  return w\go('empty/say=1', $msg, !$ok);
 }
 
 /**
@@ -2413,7 +2468,7 @@ function skipStep($step0 = '') {
   unset($stepsDone[$step]);
   $stepsDone[$step] = FALSE; // put this step at the end
   $mya->update(compact('stepsDone'));
-  if (!$step0) return r\go($mya->nextStepUrl());
+  if (!$step0) return w\go($mya->nextStepUrl());
 }
 
 /**
@@ -2469,7 +2524,9 @@ function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}
 //function blurbLink() {global $rUrl; return "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">" . t('description of %PROJECT') . '</a>';}
 function sayFieldErr($err, $field) {return say(strtoupper($field) . ': ' . t($err), $field);}
 function rent($element) {return \render($element);} // Drupal makes render hard, requires pass by reference
-function goNextStep($step, $msg = NULL, $info = []) {if ($step = r\acct()->nextStepUrl($step, $msg, $info)) r\go($step, $msg); elseif (@$msg) say($msg);}
+function goNextStep($step, $msg = NULL, $info = []) {if ($step = r\acct()->nextStepUrl($step, $msg, $info)) w\go($step, $msg); elseif (@$msg) say($msg);}
 function away() {return ['target' => '_blank'];}
 function js($script, $args = '') {global $pageScripts; $pageScripts[$script] = http_build_query(rayy(func_get_args(), 1));} // see html.tpl
 function jsx($script, $args = '') {global $scriptScraps; $scriptScraps[$script] = http_build_query(rayy(func_get_args(), 1));} // see html.tpl
+function softErr($msg) {return w\go('empty', $msg, 'ERR');}
+function clearHeaders() {if (!headers_sent()) header_remove();}

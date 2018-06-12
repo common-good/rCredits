@@ -39,6 +39,7 @@ function formAdminPanel($form, &$sta, $args = '') {
   
   $inviteeStatus = submi(t('Invitee Status'));
   $organizerList = submi(t('Local Requests'));
+  $signupCos = submi(t('Connections to Companies'));
   $queries = selectFld(t('Query:'), '', '', $queries);
   $account = textFld(t('Account:'), t('Account to do something to'), dft(@$qid ?: svar('adminingAcct')));
   
@@ -77,7 +78,7 @@ EOF;
   }
 
   foreach (ray($tables) as $one) $do[$one] = submi($one);
-  $do += compact(ray('inviteeStatus organizerList do1099btest do1099b special stop start stopCtty startCtty'));
+  $do += compact(ray('inviteeStatus organizerList signupCos do1099btest do1099b special stop start stopCtty startCtty'));
   $do = fieldSet('do', $do);
   
   $acctSet = fieldSet('acctSet', compact(ray('account make2 printId seeData seeChanges ssnLink seeSecure resetSSN askForAppData seeAppData')));
@@ -119,7 +120,7 @@ function formAdminPanel_submit($form, &$sta) {
         rename($oldFile, $newFile);
       }
     }
-    return r\go('print-rcard/' . $a->id . ($a->co ? "/$a->agentId" : ''));
+    return w\go('print-rcard/' . $a->id . ($a->co ? "/$a->agentId" : ''));
   } elseif ($op == 'askForAppData') {
     $a->update('getAppData appData', '!report', []);
     say(t('Request for app data sent to ') . $a->fullName);
@@ -138,16 +139,28 @@ function formAdminPanel_submit($form, &$sta) {
 /*  } elseif ($op == 'connectBank') {
     r\Web\connectBank($a); */
   } elseif ($op == 'seeChanges') {
-    r\go("sadmin/changes/$a->mainQid");
+    w\go("sadmin/changes/$a->mainQid");
   } elseif ($op == 'ssnLink') {
     w\say($a->fullName. t(' SSN Link:<br><br> &nbsp; %PROMO_URL/do/doSsn~%qid~%code &nbsp; ', 'qid code', $a->mainQid, $a->emailCode));
   } elseif ($op == 'do1099b' or $test1099 = ($op == 'do1099btest')) {
     include_once __DIR__ . '/../cg-yearly.inc';
     r\Special\do1099bs(@$test1099);
   } elseif ($op == 'inviteeStatus') {
-    return r\go('community/invite/invited-whom');
+    return w\go('community/invite/invited-whom');
   } elseif ($op == 'organizerList') {
-    return r\go('sadmin/organizer-list');
+    return w\go('sadmin/organizer-list');
+  } elseif ($op == 'signupCos') {
+    global $signupCos; $signupCos = [];
+    $crit = $mya->admin ? '1' : 'community=' . $mya->community;
+    eachA(function ($a) {
+      global $signupCos;
+      if ($signupCo = $a->signupCo) {
+        extract($signupCo);
+        $signupCos[strtolower("$a->community$company$a->id")] = ray('acct fullName relation company', $a->mainQid, $a->fullName, @$isOwner ? t('owner') : ((@$employee or @$employeeOk) ? t('employee') : (@$contractor ? t('contractor') : '')), $company);
+      }
+    }, $crit . ' ORDER BY community');
+    ksort($signupCos);
+    w\say($signupCos ? w\showRecords($signupCos) : t('No such companies.'));
   }
   
   // handle all other buttons with showQuery()
@@ -212,7 +225,7 @@ EOF
 }
 
 function formOrganizerList_submit($form, &$sta) {
-  r\go('sadmin/organizer-list/' . $sta['input']['zips']);
+  w\go('sadmin/organizer-list/' . $sta['input']['zips']);
 }
 
 /**
@@ -262,7 +275,7 @@ function formTestRecovery($form, &$sta, $doSay = FALSE) {
 		\drupal_get_messages(); // throw out any existing messages
 		$_SESSION['messages'] = $msgs;
 	}
-	return r\go('sadmin');
+	return w\go('sadmin');
 }
 
 /**
@@ -532,7 +545,7 @@ EOF
 function formDownloadMemberList_submit($form, &$sta) {
   extract(just(EXPORT_PARAMS, $sta['input']));
   $do = 'done';
-  return r\go('sadmin/export-list/' . http_build_query(compact(ray(EXPORT_PARAMS))), t('Download initiated.'));
+  return w\go('sadmin/export-list/' . http_build_query(compact(ray(EXPORT_PARAMS))), t('Download initiated.'));
 }
 
 /**
@@ -569,7 +582,7 @@ EOF;
   eval($code);
   $res = ob_get_clean();
 /**/  \drupal_set_message(print_r($res, 1));
-//  r\go('sadmin/php/');
+//  w\go('sadmin/php/');
 }
 
 //define('DEPOSIT_DATE1', 1411517529); // first deposit date
@@ -579,7 +592,7 @@ EOF;
  */
 function formDeposits($form, &$sta, $deposit = 0) {
   global $mya, $base_url;
-//  if ($deposit) return r\go("sadmin/deposit/$deposit");
+//  if ($deposit) return w\go("sadmin/deposit/$deposit");
 
   $title = t('Bank Transfers');
 
@@ -629,11 +642,11 @@ function formDeposits_submit($form, &$sta) {
   $op = w\op($sta);
   $way = str_replace('submit', '', $op); // cute. INsubmit or OUTsubmit -> IN or OUT
 //  $previous = @$sta['input'][$way . 'previous'];
-//  r\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1");
+//  w\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1");
   $func = ($way == 'IN' or time() < strtotime('1/10/2017')) ? 'checks' : 'achs';
-  r\go("/sadmin/$func/way=$way&date=0&mark=1");
+  w\go("/sadmin/$func/way=$way&date=0&mark=1");
 //  foreach (['reprint', 'previous'] as $k) $$k = @$sta['input'][$way . $k];
-//  r\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1&reprint=" . @$reprint);
+//  w\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1&reprint=" . @$reprint);
 }
 */
 function depositDetails($args) {
@@ -746,7 +759,7 @@ function achBatch($args) {
   $ways = ['IN'=>'(amount>0 AND txid>0)', 'OUT'=>'(amount<0 AND txid>0)', 'BAD'=>'txid<0'];
   $where = $ways[strtoupper($way)];
   $q = db\q("SELECT txid,created,payee,amount,deposit,bankAccount FROM r_usd WHERE deposit=:date AND $where ORDER BY created, txid", compact('date'));
-  if (!$q->rowCount()) return r\go('sadmin/deposits', t('There are no transactions for that ACH batch.'));
+  if (!$q->rowCount()) return w\go('sadmin/deposits', t('There are no transactions for that ACH batch.'));
 
   $date = strftime('%Y%m%d', $date ?: time());
   u\csvStart("CGach$way-$date.csv");
@@ -887,7 +900,7 @@ function memberId($id, $agent = '') {
   } else */
   if ($mya->superAdmin) $a->setBit(B_CARDED);
   if (u\test()) $pdf->Close(); else $pdf->Output(strtolower("$qid.cgcard.pd"), 'I'); // Close and output PDF document ('I')
-//  if (time() < strtotime('6/20/2017') and $next = nextMember($id)) r\go("print-rcard/$next");
+//  if (time() < strtotime('6/20/2017') and $next = nextMember($id)) w\go("print-rcard/$next");
 }
 
 function formSMS($form, &$sta) {
@@ -949,10 +962,10 @@ function util($arg) {
   if ($arg == 'clear') foreach (ray('cache cache_bootstrap cache_form cache_menu sessions') as $table) {
     db\q("TRUNCATE TABLE $table");
   }
-  if ($arg == 'php') r\go('devel/php');
+  if ($arg == 'php') w\go('devel/php');
   
   say("DONE with \"$arg\".");
-  return r\go('sadmin');
+  return w\go('sadmin');
 }
 
 function handyLinks() {

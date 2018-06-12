@@ -54,5 +54,5 @@ function formAccept_submit($form, &$sta) {
 //  if (!$code = db\get('code', 'r_invites', 'email=:email ORDER BY (invitee=0) DESC, invited DESC', compact('email'))) return say('bad invite', 'email');
   say(t('Hurray! You qualify to open a %PROJECT Account.'));
   $code = @$invitation ?: "$friend ($zip)";
-  return r\go("signup/code=$code");
+  return w\go("signup/code=$code");
 }

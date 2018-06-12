@@ -111,11 +111,11 @@ Scenario: A cashier canceled offline a supposedly offline charge that actually w
   | created | fullName | otherName  | amount | payerPurpose       | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | food (reverses #2)  | reward          | $-10              |
   And balances:
-  | id   | balance | rewards |*
-  | ctty |    -250 |       0 |
-  | .ZZA |       0 |     250 |
-  | .ZZB |       0 |     250 |
-  | .ZZC |       0 |     250 |
+  | id   | balance |*
+  | ctty |    -250 |
+  | .ZZA |       0 |
+  | .ZZB |       0 |
+  | .ZZC |       0 |
 
 Scenario: A cashier canceled offline a supposedly offline charge that actually went through, but customer is broke
   Given transactions: 

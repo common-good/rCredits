@@ -1,7 +1,18 @@
+2018-06-11 v3.41u
+. stopped recording rewards in transactions
+. DELETE FROM r_txs WHERE amount=0 (29,960 rows deleted)
+. simplified a lot of code dealing with rewards, since they will be handled as regular txs, if ever
+. fixed bug in unused PARTNER account deletion that left orphaned relations
+. deleted relations for 17238000000080,25026000000170,26742000000521,26742000000242
+. to prevent errors when deleting a user with same name as a previously deleted user:
+  ALTER TABLE users DROP INDEX name, ADD KEY `name` (name);
+  ALTER TABLE x_users DROP INDEX name, ADD KEY `name` (name);
+. buy.inc was not redirecting properly to an arbitrary URL, so I created a goFar() function that relays to the URL via a javascript. A stopgap measure, probably.
+
 2018-06-09 v3.40t
 . fixed bug in get.inc that interpreted put requests as get requests (yikes)
-. UPDATE r_relations SET otherNum=0 WHERE otherNum IS NULL
-. UPDATE x_relations SET otherNum=0 WHERE otherNum IS NULL
+  UPDATE r_relations SET otherNum=0 WHERE otherNum IS NULL;
+  UPDATE x_relations SET otherNum=0 WHERE otherNum IS NULL
 . fixed bug in a() that required archaic qid format
 
 2018-05-20 v3.40s
@@ -1803,7 +1814,7 @@ function special2() {
 . fixed bug in misc.js that undid all check box clicks (patched on production server)
 . added signout to account dropdown
 . re-ordered settings categories
-. changed r\go() to accept ordinary messages, not just errors
+. changed w\go() to accept ordinary messages, not just errors
 . renamed "Get r/USD" to "Bank"
 . implemented bank addition and verification form
 . bank form shows only last four digits of bank account number

@@ -43,7 +43,7 @@ function do1099bs($testMode = FALSE, $badNames = [], $badTINs = [], $year = NULL
   putRec(recK($bCount * $aCount, $totals));
   putRec(recF($bCount * $aCount, $aCount));
   flush();
-  if (@$err1099) return r\go('sadmin/panel'); else exit(); // shouldn't we exit in any case?
+  if (@$err1099) return w\go('sadmin/panel'); else exit(); // shouldn't we exit in any case?
 }
 
 /**

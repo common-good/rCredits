@@ -35,9 +35,12 @@ Scenario: A member asks to charge another member
   When member ".ZZA" completes form "charge" with values:
   | op     | who     | amount | goods      | purpose |*
   | charge | Bea Two | 100    | %FOR_USD | cash    |
-  Then we show "confirm charge" with subs:
-  | amount | otherName |*
-  | $100   | Bea Two   |
+  Then we scrip "suggest-who" with subs:
+  | question                 | allowNonmember |*
+  | Charge %amount to %name? |              1 |
+#  Then we show "confirm charge" with subs:
+#  | amount | otherName |*
+#  | $100   | Bea Two   |
 
 Scenario: A member confirms request to charge another member
   When member ".ZZA" confirms form "charge" with values:
@@ -63,9 +66,12 @@ Scenario: A member asks to pay another member
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods      | purpose |*
   | pay | Bea Two | 100    | %FOR_USD | paper   |
-  Then we show "confirm payment" with subs:
-  | amount | otherName |*
-  | $100   | Bea Two   |
+  Then we scrip "suggest-who" with subs:
+  | question              | allowNonmember |*
+  | Pay %amount to %name? |                |
+#  Then we show "confirm payment" with subs:
+#  | amount | otherName |*
+#  | $100   | Bea Two   |
   
 Scenario: A member confirms request to pay another member
   When member ".ZZA" confirms form "pay" with values:

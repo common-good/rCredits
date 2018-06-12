@@ -36,7 +36,7 @@ foreach ($fields as $k) {
 EOF;
   }
 
-  echo <<<EOF
+/**/  echo <<<EOF
 <html style="height:100%; width:100%; display:table;">
 <body style="display:table-cell; text-align:center; vertical-align:middle;">
   <div style="border:2px solid darkgreen; color:darkblue; font-family:Arial; width:200px; height:100px; margin:auto; padding:10px;">

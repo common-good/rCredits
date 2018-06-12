@@ -124,5 +124,5 @@ function formCoupons_submit($form, &$sta) {
 
   $args = u\urlify(http_build_query(compact(ray('type amount minimum ulimit count on start end automatic'))));
   if (u\test()) $args = u\deurlify($args);
-  return r\go("/community/coupons/print/$args");
+  return w\go("/community/coupons/print/$args");
 }

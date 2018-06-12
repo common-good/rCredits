@@ -20,7 +20,7 @@ function formHandleInvoice($form, &$sta, $args = '') {
   extract(just('nvid ret code toMe webpay', $args));
   $ret = @$ret ? @u\deurlify($ret) : 'empty/1';
   
-  if ($err = r\badUnpaidInv(@$nvid, $inv)) return r\go($ret, $err, 'ERR');
+  if ($err = r\badUnpaidInv(@$nvid, $inv)) return w\go($ret, $err, 'ERR');
 
   extract(just('nvid amount payer payee purpose created data', $inv));
   if (@$code) {
@@ -116,6 +116,6 @@ function formHandleInvoice_submit($form, &$sta) {
     $msg = 'denial done';
   } else $msg = ''; // default: canceled
 
-//  if ($toMe and !r\acct()) return r\go('do/code=' . ($msg ?: 'nothing done', $ok ? 'status' : 'error');
-  return r\go($ret, $msg ?: 'nothing done', $ok ? '' : 'ERR');
+//  if ($toMe and !r\acct()) return w\go('do/code=' . ($msg ?: 'nothing done', $ok ? 'status' : 'error');
+  return w\go($ret, $msg ?: 'nothing done', $ok ? '' : 'ERR');
 }

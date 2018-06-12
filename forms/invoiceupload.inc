@@ -90,7 +90,7 @@ function formInvoiceUpload_submit($form, &$sta, $args = NULL) {
   
   if (!@$err) {
     if (is_callable($onSuccess)) $onSuccess($total);
-    return r\go('/history', t('txs upload done', 'did total count', $did, u\fmtAmt($total), count($txs)));
+    return w\go('/history', t('txs upload done', 'did total count', $did, u\fmtAmt($total), count($txs)));
   }
 }
 

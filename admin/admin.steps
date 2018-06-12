@@ -48,8 +48,7 @@ function members($list) {return t\members($list);}
 /**
  * transactions: (ARG)
  *
- * in: TEST Activate AdminActivatesAnAccount
- *     MAKE Checks Setup
+ * in: MAKE Checks Setup
  */
 function transactions($list) {return t\transactions($list);}
 
@@ -108,8 +107,7 @@ function weShowPdfWith($list) {
 /**
  * balances: (ARG)
  *
- * in: TEST Activate AdminActivatesAnAccount
- *     TEST Checks AdminPrintsChecks
+ * in: TEST Checks AdminPrintsChecks
  */
 function balances($list) {return t\balances($list);}
 

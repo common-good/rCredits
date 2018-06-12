@@ -28,6 +28,7 @@ Scenario: Admin activates an account
   Then members:
   | id   | flags               | helper |*
   | .ZZD | member,confirmed,ok |   .ZZB |
+Skip rewards no more
   And transactions: 
   | xid | created | type       | amount          | from | to   | purpose      |*
   |   1 | %today  | %TX_SIGNUP | %R_SIGNUP_BONUS | ctty | .ZZD | signup bonus |
@@ -36,3 +37,4 @@ Scenario: Admin activates an account
   | id   | balance | rewards         |*
   | .ZZB |       0 | %R_HELPER_BONUS |
   | .ZZD |       0 | %R_SIGNUP_BONUS |
+Resume

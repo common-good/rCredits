@@ -106,6 +106,6 @@ function formPhoto_submit($form, &$sta) {
     $mya->setBit(B_MEMBER, FALSE);
     $mya->setBit(B_OK, FALSE);
     say(t('photo removed, step undone, person set to non-member'));
-    return r\go('/settings/photo');
+    return w\go('/settings/photo');
   } else return w\goNextStep('photo');
 }

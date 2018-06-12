@@ -788,12 +788,10 @@ function makeDevice($uid, $code = '', $ch = NULL) {
  * @param int $newUid: the new record ID to give the account (defaults to next available)
  * @param bool $unusable: whether to mark the old account record ID as unusuable
  * @param bool $delete: whether to delete the account rather than giving it a new ID (called by deleteAccount)
- * @return the new uid
  */
 function deleteAccount($a) {r\changeUid($a, 0, FALSE, TRUE);}
 function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
-  $erUrl = 'sadmin/followup'; // where to go on errors
-  if (!$a or !$a = is_object($a) ? $a : r\acct($a)) return r\go($erUrl, t('nope'), 'err');
+  if (!$a or !$a = is_object($a) ? $a : r\acct($a)) return w\say(t('nope'), 'err');
   $oldUid = $a->id;
   $nm = $a->fullName;
 
@@ -807,7 +805,7 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     if (db\exists($table = 'r_txs', 'payer=:oldUid OR payee=:oldUid', compact('oldUid'))
       or db\exists($table = 'r_ballots', ':oldUid IN (voter, proxy)', compact('oldUid'))
       or db\exists($table = 'r_usd', 'payee=:oldUid', compact('oldUid'))) {
-      return r\go($erUrl, t('Account "%name" has records in table %table, so it cannot be deleted.', 'name table', $a->fullName, $table), 'err');
+      return w\say(t('Account "%name" has records in table %table, so it cannot be deleted.', 'name table', $a->fullName, $table), 'err');
     }
   } elseif (!$newUid) {
     $region = @$a->zip ? r\region(@$a->country, @$a->state, $a->zip) : r\communityUid();
@@ -880,7 +878,7 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
       if (!$deletable) {
         if (db\exists($table, "$field=:oldUid", compact('oldUid'))) {
           $DBTX->rollback(); 
-          return r\go($erUrl, t('Record in table %table cannot be deleted.', compact('table')), 'err');
+          return w\say(t('Record in table %table cannot be deleted.', compact('table')), 'err');
         }
       } else db\del($table, "$field=:oldUid", compact('oldUid'));
     } else db\q("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
@@ -893,8 +891,7 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
   }
 
   unset($DBTX); // commit
-  $msg = t('Success. Account %nm has been %what.', 'nm what', $nm, $newUid ? t('changed to ') . $newUid : t('deleted'));
-  return r\go('sadmin/followup', $msg); // redirect HERE to make sure we never do this 2x
+  w\say(t('Success. Account %nm has been %what.', 'nm what', $nm, $newUid ? t('changed to ') . $newUid : t('deleted')));
 }
 
 /**
@@ -928,48 +925,6 @@ function invite($email, $inviter, $code = '', $subject = '', $message = '') {
   $info = compact(ray('code invited email inviter subject message'));
   db\insert('r_invites', $info);
   return $code;
-}
-
-/**
- * Go to the specified page
- * Accommodate testing, if that's what's happening.
- * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out.
- * @param string $page: page to go to
- * @param string $msg: message to output, if any
- * @param string $field: error field, if any ('err' is typical, triggering error message rather than status message)
- */
-function go($page, $msg = '', $field = '') {
-  global $base_url;
-  global $lastGo; $lastGo = $page; // for testing
-
-  if ($msg) {
-/*    if (u\starts($page, 'empty')) {
-      list ($page, $msg) = strpos($page, '/') ? ["$page&msg=$msg", ''] : ["$page/msg=$msg", '']; 
-    } else */
-    r\Web\say(strip_tags($msg), $field);
-  }
-//  else $page .= "/field=$field&msg=" . urlencode($msg); // say() fails if signed out
-  if (substr($page, 0, 1) == '/') $page = substr($page, 1); // supplying the slash is preferred, to agree with w\atag()
-    
-  if (u\test()) {
-    $_POST = []; // make sure it doesn't act like we submitted the target page
-    f('t.output', "Going to page $page (page0=$lastGo msg=$msg field=$field)");
-    return strpos($page, 'http://') === FALSE ? f('t.pageForm', $page, $msg, $field) : '';
-  }
-
-  if (!u\starts($page, 'http')) $page = "$base_url/$page";
-
-  /*
-  foreach (ray('login signup password reset') as $one) if (strpos($page, "user/$one") !== FALSE) {
-    if (\drupal_session_started()) session_destroy();
-  }
-  */
-  \drupal_session_commit();
-  header("Location: $page", TRUE, 302); 
-  exit();
-//  session_write_close();
-//  exit();
-//  \drupal_goto(substr($page, 0, 1) == '/' ? substr($page, 1) : $page);
 }
 
 /**

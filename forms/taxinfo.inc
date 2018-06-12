@@ -101,5 +101,5 @@ function formTaxInfo_validate($form, &$sta) {
 }
 
 function formTaxInfo_submit($form, &$sta) {
-  r\go('history/tax-info/' . $sta['input']['ending']);
+  w\go('history/tax-info/' . $sta['input']['ending']);
 }

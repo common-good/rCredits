@@ -149,11 +149,11 @@ function formEvents_submit($form, &$sta) {
   $op = (w\op($sta) == 'prev' and strpos($op, t('Previous')) === FALSE) ? 'doneWithQ' : w\op($sta);
   if ($op == 'showVotes') return w\say(v\showVotes($ctty));
   if (in($op, 'noDirect noVote')) return w\say(v\showNonVoters($ctty, $op == 'noDirect'));
-  if ($op == 'results') return r\go("prox/page=Events&$args&results=1");
-  if ($op == 'resultsNoProx') return r\go("prox/page=Events&$args&results=1&noProxies=1");
+  if ($op == 'results') return w\go("prox/page=Events&$args&results=1");
+  if ($op == 'resultsNoProx') return w\go("prox/page=Events&$args&results=1&noProxies=1");
   
-  if ($op == 'gradeIt') return r\go("prox/page=Events&do=grade&$args");
-  if (@$agree) return r\go("prox/page=Events&do=ballot&$args");
+  if ($op == 'gradeIt') return w\go("prox/page=Events&do=grade&$args");
+  if (@$agree) return w\go("prox/page=Events&do=ballot&$args");
   
   // process ballot submission
   if (@$question <= -1) {
@@ -170,7 +170,7 @@ function formEvents_submit($form, &$sta) {
 
   if ($question == 'done') w\say(t('That was the last proposal. Thank you bigly for grading!'));
   if ($question != 'before') $args .= $question == 'done' ? '&do=done' : "&do=$do&question=$question";
-  return r\go("prox/page=Events&$args"); 
+  return w\go("prox/page=Events&$args"); 
 }
 
 /**
@@ -270,7 +270,7 @@ function formEvent_submit($form, &$sta) {
   global $mya;
   $info['end'] = strtotime('+1 day', $end) - 1; // just before the start of the next day
   db\update('r_events', $info + ['ctty' => $mya->community], @$id ? 'id' : '', TRUE);
-  r\go('community/events', 'info saved');
+  w\go('community/events', 'info saved');
 }
 
 /**
@@ -285,7 +285,7 @@ function formQuestion($form, &$sta, $args = '') {
   if (!$add = empty($qid)) {
     $fields = 'e.id AS eid, e.ctty, q.text, q.detail, q.linkDiscussion, q.type, q.units, q.budget, q.optOrder';
     if (is_numeric($qid) and $question = db\get($fields, 'r_questions q LEFT JOIN r_events e ON e.id=q.event', 'q.id=:qid', compact('qid'))) extract($question); else $add = FALSE;
-    if ($ctty != $mya->community) return r\go('', t('Wrong community.'));
+    if ($ctty != $mya->community) return w\go('', t('Wrong community.'));
 
     $id = hidFld($qid);
 
@@ -304,7 +304,7 @@ function formQuestion($form, &$sta, $args = '') {
     } else $list = t('no options yet');
     
     $list = item('<h4>' . $header . '</h4>' . $list);    
-  } elseif (empty($eid)) return r\go('', t('Missing event id.'));
+  } elseif (empty($eid)) return w\go('', t('Missing event id.'));
 
   $title = item($add ? t('Add Question') : t('Edit Question'));
   $event = hidFld($eid);
@@ -335,7 +335,7 @@ function formQuestion_submit($form, &$sta) {
   global $base_url;
   extract($info = just('id event text detail linkDiscussion type budget optOrder', $sta['input']));
   db\update('r_questions', $info, @$id ? 'id' : '', TRUE);
-  r\go("community/events/event/$event", 'info saved');
+  w\go("community/events/event/$event", 'info saved');
 }
 
 /**
@@ -350,10 +350,10 @@ function formOption($form, &$sta, $args = '') {
   if (!$add = empty($oid)) {
     $fields = 'e.id AS eid, e.ctty, q.id AS qid, o.text, o.detail';
     if (is_numeric($oid) and $option = db\get($fields, 'r_options o LEFT JOIN r_questions q ON q.id=o.question LEFT JOIN r_events e ON e.id=q.event', 'o.id=:oid', compact('oid'))) extract($option); else $add = FALSE;
-    if ($ctty != $mya->community) return r\go('', t('Wrong community.'));
+    if ($ctty != $mya->community) return w\go('', t('Wrong community.'));
 
     $id = hidFld($oid);
-  } elseif (empty($qid)) return r\go('', t('Missing question id.'));
+  } elseif (empty($qid)) return w\go('', t('Missing question id.'));
 
   $title = item($add ? t('Add Option') : t('Edit Option'));
   $question = hidFld($qid);
@@ -372,7 +372,7 @@ function formOption_submit($form, &$sta) {
   global $base_url;
   extract($info = just('id question text detail', $sta['input']));
   db\update('r_options', $info, @$id ? 'id' : '', TRUE);
-  r\go("community/events/question/qid=$question", 'info saved');
+  w\go("community/events/question/qid=$question", 'info saved');
 }
 
 /**
@@ -385,7 +385,7 @@ function formProposalReport($form, &$sta, $args = '') {
   
   $mya = w\eLinkAcct($sta, $args, 'acct'); // allow any signed in account, so user can switch to personal account, below
 
-  if (!@$p or !$project = db\get('project', 'r_proposals', 'id=:p', compact('p'))) return r\go('empty', t('No such proposal.'));
+  if (!@$p or !$project = db\get('project', 'r_proposals', 'id=:p', compact('p'))) return w\softErr(t('No such proposal.'));
   
   v\showProposal($mya, $extra, -$p);
 
@@ -407,7 +407,7 @@ function formProposalNotes($form, &$sta, $args = '') {
   include_once __DIR__ . '/../rvote/rvote.inc';
   extract(just('p', $args));
 
-  if (!@$p or !$project = db\get('project', 'r_proposals', 'id=:p', compact('p'))) return r\go('empty', t('No such proposal.'));
+  if (!@$p or !$project = db\get('project', 'r_proposals', 'id=:p', compact('p'))) return w\softErr(t('No such proposal.'));
 
   $notes = v\proposalComments($p) ?: [];
 //  $notes = ['note1', 'note2'];
@@ -446,7 +446,7 @@ function bumpQnum($question, $quids, $op) {
 function formProposal($form, &$sta) {
   global $base_url;
   
-  r\go('empty', t('We\'re very sorry. The deadline for submitting proposals has passed. Try again in the next funding cycle!'));
+  w\softErr(t('We\'re very sorry. The deadline for submitting proposals has passed. Try again in the next funding cycle!'));
   
   $options = [
     t('Renewable Energy') => 2366.69,
@@ -554,5 +554,5 @@ function formProposal_submit($form, &$sta) {
   $input['categories'] = join(' ', array_keys($input['cats']));
   db\insert('r_proposals', $info = just($dbFields, $input));
   r\tellCO('funding proposal received', $info);
-  r\go('community', t('Your funding application has been submitted! The process of evaluating proposals may take several weeks. You will hear from us whether or not your proposal is chosen for funding.'));
+  w\go('community', t('Your funding application has been submitted! The process of evaluating proposals may take several weeks. You will hear from us whether or not your proposal is chosen for funding.'));
 }

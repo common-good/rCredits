@@ -204,7 +204,7 @@ EOF
 //  'you were short' => t('You tried to make a purchase but did not have enough funds in your account. A higher "minimum" setting might keep this from happening again. To increase your minimum to the recommended setting of %suggested, <%a1>click here</a>.'), // Arghh! some email programs apparently click this link automatically
   'you were short' => t('You tried to make a purchase but did not have enough funds in your account. Automatic refills or a higher "target balance" might keep this from happening again. To set automatic refills or to increase your target balance, sign in at %CG_DOMAIN and click "Bank Info" on the Settings menu.'),
   'be not secretive' => t('Also, you have chosen to keep your balance secret. <%a2>Click here to change that</a> and let the cashier tell you how much you are short next it happens.'),
-  'try debt' => t('You might also want to <%aDebt>select "Debt Okay" in your Preferences</a> (there is no charge for using reserve credit as long as you bring your balance back up within 30 days).'),
+  'try debt' => t('You might also want to <%aDebt>select "Debt Okay" in your Preferences</a> (there is no charge for using your credit line as long as you bring your balance back up within 30 days).'),
   'join accounts' => t('You are invited to create a joint account with %name. To accept that invitation, <%atag>click here</a>. Once your accounts are joined, you sign in to either account to view your combined transactions. Both %PROJECT cards will remain valid.'),
   'click option' => t('OR <a href="%url">click here</a>'),
 //  'shortr to' => t('You do not have enough rCredits, for that transaction. Type "get r <amount>" to get more rCredits.'),

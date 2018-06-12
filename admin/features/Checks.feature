@@ -45,7 +45,7 @@ Scenario: admin prints checks
   | 5003 | %today    |
   | 5004 | %today    |
   And balances:
-  | id   | balance | rewards |*
-  | .ZZA |     500 |     100 |
-  | .ZZB |     100 |     100 |
-  | .ZZC |       0 |     100 |
+  | id   | balance |*
+  | .ZZA |     500 |
+  | .ZZB |     100 |
+  | .ZZC |       0 |

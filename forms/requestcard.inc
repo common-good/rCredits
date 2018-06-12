@@ -45,5 +45,5 @@ function formRequestRCard_submit($form, &$sta) {
     r\tellAdmin($mya->can(B_BUY) ? t('company rcard') : t('cashier card'), compact(ray('main other _a manager otherName address')));
     say('card ordered', compact('otherName', 'company'));
   } else say('no card ordered');
-  return r\go('settings/relations');
+  return w\go('settings/relations');
 }

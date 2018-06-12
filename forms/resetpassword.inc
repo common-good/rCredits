@@ -16,10 +16,10 @@ include_once __DIR__ . '/signin.inc';
 function formResetPassword($form, &$sta, $args = '') {
   extract(just('id code', $args)); // linked from an email
 
-  if (flooding($uid = r\loginString(@$id), $sta, $err)) return r\go('', $err, 'ERR'); // getting hammered
+  if (flooding($uid = r\loginString(@$id), $sta, $err)) return w\softErr($err); // getting hammered
   $mya = r\acct($uid);
 
-  if (!$mya->passwordOkay(@$code, 'pass', $err)) return r\go('empty', $err, 'ERR');
+  if (!$mya->passwordOkay(@$code, 'pass', $err)) return w\softErr($err);
   noFlood($sta);
   
   $title = t('Choose a New Password');

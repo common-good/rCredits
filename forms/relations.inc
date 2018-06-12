@@ -173,5 +173,5 @@ function formRelations_submit($form, &$sta) {
   unset($DBTX);
   
   $show = @$vs['showCustomers'] ? 'showCustomers=1' : '';
-  return ($mya->ok or $other) ? r\go("/settings/relations/$show") : w\goNextStep('relations');
+  return ($mya->ok or $other) ? w\go("/settings/relations/$show") : w\goNextStep('relations');
 }

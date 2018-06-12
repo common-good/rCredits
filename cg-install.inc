@@ -342,7 +342,7 @@ function tableDefs($schema = []) {
     'vestid' => dbFld(t('investment record ID'), 'int'), 
     'shares' => dbFld(t('club shares in the investment bought or (if <0) sold'), 'int 11', 0), 
     'pending' => dbFld(t('number of shares to buy or (if <0) sell ASAP'), 'int 11', 0),
-    'when' => dbFld(t('Unixtime investment made'), 'int 11'),
+    'whefn' => dbFld(t('Unixtime investment made'), 'int 11'),
 //    'sold' => dbFld(t('Unixtime investment totally sold'), 'int 11'),
   );
   $foreignKeys = foreignKey('vestid');
@@ -439,7 +439,7 @@ function tableDefs($schema = []) {
     'flags' => dbFld(t('boolean type flags'), 'int big', 0, TRUE),
     'created' => dbFld(t('Unixtime record created'), 'int 11'),
   );
-  $foreignKeys = foreignKey('main') + foreignKey('other') + foreignKey('foreignUid');
+  $foreignKeys = foreignKey('main') + foreignKey('other');
   $indexes = index('main') + index('other');
   $schema['r_relations'] = dbTable(t('Who can manage which accounts, and how'), $fields, 'reid', $foreignKeys, $indexes);
     

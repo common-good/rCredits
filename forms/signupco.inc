@@ -13,7 +13,7 @@ use CG\Db as db;
  */
 function formSignupCo($form, &$sta) {
   $a = r\agent();
-  if (!$a->cAdmin and !$a->can(B_MEMBER)) return r\go('', 'members only', 'ERR');
+  if (!$a->cAdmin and !$a->can(B_MEMBER)) return w\go('', 'members only', 'ERR');
   
   w\focusOn('fullname');
   //t('an additional personal account that I will manage'), 
@@ -58,5 +58,5 @@ function formSignupCo_submit($form, &$sta) {
   $args = http_build_query($signupArgs);
 ///  debug($args); return;
   if ($personal) \session_destroy();
-  r\go('signup/' . $args);
+  w\go('signup/' . $args);
 }

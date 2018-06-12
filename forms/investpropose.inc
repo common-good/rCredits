@@ -15,7 +15,7 @@ define('INVEST_ALLFLDS', 'company ' . INVEST_COFLDS . ' bizCats ' . INVEST_FLDS)
  */
 function formInvestPropose($form, &$sta, $args = '') {
   extract(just('clubid', $args));
-  if (!@$clubid) return r\go('/invest', t('bad clubid'));
+  if (!@$clubid) return w\go('/invest', t('bad clubid'));
   
   $title = t('Propose a new Investment');
   $subtext = t('Complete this form if you have been assigned by your Investment Club steering committee to research the soundness of a proposed investment. <%a>Here is a printable worksheet</a> you can use to gather the necessary information.', '_a', atag('http://cg4.us/docs/investment-worksheet.pdf'));
@@ -77,5 +77,5 @@ function formInvestPropose_submit($form, &$sta) {
 
   list ($coid, $proposedBy) = [$a->id, $mya->id];
   db\insert('r_investments', compact(ray('coid proposedBy ' . INVEST_FLDS)));
-  r\go("/invest/list/clubid=$clubid", t('Your proposed investment has been saved.'));
+  w\go("/invest/list/clubid=$clubid", t('Your proposed investment has been saved.'));
 }

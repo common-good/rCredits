@@ -39,10 +39,10 @@ Setup:
   |   7 | %today-2d | transfer |      5 |           0 |           0 | .ZZB | .ZZC | cash J       |
   |   8 | %today-1d | transfer |     80 |           4 |           8 | .ZZA | .ZZC | whatever54   |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |      10 |     256 |
-  | .ZZB |     225 |     254 |
-  | .ZZC |     365 |     258 |
+  | id   | balance |*
+  | .ZZA |      10 |
+  | .ZZB |     225 |
+  | .ZZC |     365 |
   Given cron runs "acctStats"
 
 Scenario: A member clicks the summary tab
@@ -69,8 +69,8 @@ Scenario: A member clicks the summary tab with roundups
   |   9 | %today  | transfer |  80.02 |           4 |           8 | .ZZB | .ZZC | goodies |
   When member ".ZZB" visits page "summary"
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZB |  144.98 |     258 |  
+  | id   | balance |*
+  | .ZZB |  144.98 |
   And we show "Account Summary" with:
   | Name          | Bea Two (beatwo) |
   | Balance       | $144 |

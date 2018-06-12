@@ -83,5 +83,5 @@ function formPrefs_submit($form, $sta) {
   $mya->update($info);
 //  $mya->stepDone('prefs', $details = $old + $info + ['flags' => u\bits($mya->flags)]);
   return w\goNextStep('prefs');
-//  return $mya->ok ? say('options saved') : r\go('status', 'options saved|step completed');
+//  return $mya->ok ? say('options saved') : w\go('status', 'options saved|step completed');
 }

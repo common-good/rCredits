@@ -36,7 +36,7 @@ function formSignup($form, &$sta, $args = '') {
   } elseif (@$customer and @$partner and @$partnerCode) {
     $myid = w\partnerSignup($args); // info passed from partner signup
   } elseif (@$joint and $a = r\acct() and $a->canManage) {
-    if (!$a->co) $myid = w\jointSignup(); else return r\go('', t('A company cannot have a joint account.'), 'err');
+    if (!$a->co) $myid = w\jointSignup(); else return w\go('', t('A company cannot have a joint account.'), 'err');
   }
   if (u\test() and is_array(@$myid)) return; // array means returned r\go
     
@@ -146,7 +146,7 @@ EOF
 function formSignup_validate($form, &$sta) {
   if (!isset($sta['buttons'])) $sta['buttons'] = []; // for testing (keep Drupal from griping)
   extract(just('myid confirmed acctType email phone country tenure pin company companyPhon companyOptions fullName legalName zip address city state postalAddr', $sta['input']));
-//  if (!$inviteOk) return r\go('signup'); // in case user resubmits
+//  if (!$inviteOk) return w\go('signup'); // in case user resubmits
   //and @$code != bin2hex(R_WORD)
 
   \variable_set('signupData', ray('time phone state companyOptions', time(), @$phone, @$state, @$companyOptions));
@@ -315,18 +315,18 @@ function partnerSignup($args) {
   $valid = ($a = r\acct($qid) and ($a->phone == u\fmtPhone(@$phone, '+n') or (u\similar($a->fullName, @$fullName, 5, .5))));
   r\tellAdmin(t('new customer of %partner: %fullName', compact('partner', 'fullName')) . (@$valid ? '' : t('(invalid)')), $args);
 
-  if (!$valid) return r\go('empty', t('That does not appear to be your correct %PROJECT member ID. But no worries. We will try to figure out who you are and match up your %PROJECT account with your account at %partnerName. If you have not yet finished opening your %PROJECT account, <%a>sign in</a> (if you have not yet begun, go to %CG_DOMAIN and click "Sign up").', 'partnerName _a', $partnerName, atag('/signin'))); // member mistyped their qid (a royal pain in the butt)
+  if (!$valid) return w\softErr(t('That does not appear to be your correct %PROJECT member ID. But no worries. We will try to figure out who you are and match up your %PROJECT account with your account at %partnerName. If you have not yet finished opening your %PROJECT account, <%a>sign in</a> (if you have not yet begun, go to %CG_DOMAIN and click "Sign up").', 'partnerName _a', $partnerName, atag('/signin'))); // member mistyped their qid (a royal pain in the butt)
 
   r\acct($partnerA->id, $a->id)->setRel('customer code', TRUE, $customer);
   tellPartner($partnerA, $a, 'complete', $customer);
-  return r\go($a->member ? 'empty' : "signin?name=$qid"); // finish account setup or report success
+  return w\go($a->member ? 'empty' : "signin?name=$qid"); // finish account setup or report success
 }
 
 /**
  * Tell the partner about this signup.
  */
 function tellPartner($pA, $a, $op, $customer = NULL) {
-  if (!$pA->website) return r\go('empty', t('Partner has no website. Fix it on the Company Info settings page.')); // partner should always have a website
+  if (!$pA->website) return w\softErr(t('Partner has no website. Fix it on the Company Info settings page.')); // partner should always have a website
 
   if ($a->member) w\say('new customer done', ray('partnerName', $pA->fullName));
   $fields = ray('op partnerCode qid name email customer', $op, $pA->emailCode, $a->mainQid, $a->fullName, $a->email, $customer);
@@ -367,7 +367,7 @@ function continuePartnerSignup(&$reid, $customer) {
   if (!$info = r\relation('other,data', 'reid=:reid AND code=:customer', compact('reid', 'customer'))) return $reid = NULL;
   extract($info);
   $a = r\acct($other);
-  if ($a->federalId) return r\go("signin?name=$a->mainQid", t('Sign in to continue your account set-up.'));
+  if ($a->federalId) return w\go("signin?name=$a->mainQid", t('Sign in to continue your account set-up.'));
 
   return unserialize($data) + ['myid' => @$a ? $a->id : 0];
 }

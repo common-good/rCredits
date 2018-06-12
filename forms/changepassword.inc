@@ -39,5 +39,5 @@ function formChangePassword_submit($form, &$sta) {
   global $mya;
   $mya->update('pass', $pass1);
   say(t('Your new password has been saved.'));
-  return r\go('/settings/security');
+  return w\go('/settings/security');
 }

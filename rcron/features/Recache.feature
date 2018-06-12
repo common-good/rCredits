@@ -11,18 +11,18 @@ Setup:
   | .ZZB | Bea Two    | b@    | ok      |
   | .ZZC | Corner Pub | c@    | ok,co   |
   And transactions: 
-  | xid | created   | type       | amount | payerReward | payeeReward | from | to   | purpose | taking |*
-  |   1 | %today-6m | %TX_SIGNUP |      0 |           0 |          10 | ctty | .ZZA | signup  | 0      |
+  | xid | created   | type       | amount | from | to   | purpose | taking |*
+  |   1 | %today-6m | %TX_SIGNUP |      0 | ctty | .ZZA | signup  | 0      |
   Then balances:
-  | id   | balance | rewards |*
-  | .ZZA |       0 |      10 |
-  | .ZZB |       0 |       0 |
+  | id   | balance |*
+  | .ZZA |       0 |
+  | .ZZB |       0 |
 
 Scenario: Balances get out of whack
   Given balances:
-  | id     | balance |rewards |*
-  | .ZZA   |       0 |      0 |
-  | .ZZB   |      20 |      0 |
+  | id     | balance |*
+  | .ZZA   |       0 |
+  | .ZZB   |      20 |
   When cron runs "recache"
   Then we tell admin "cache mismatch" with subs:
   | id   | key     | is   | shouldBe |*
@@ -30,9 +30,9 @@ Scenario: Balances get out of whack
 # NO  | .ZZA | rewards |    0 |       10 |
   | .ZZB | balance |   20 |        0 |
   And balances:
-  | id     | balance | rewards |*
-  | .ZZA   |       0 |       0 |
-  | .ZZB   |       0 |       0 |
+  | id     | balance |*
+  | .ZZA   |       0 |
+  | .ZZB   |       0 |
 # (don't fix rewards)
   
 # (we might never want this feature)

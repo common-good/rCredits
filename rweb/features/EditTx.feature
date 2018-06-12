@@ -86,9 +86,12 @@ Scenario: A buyer disputes a charge
   |   3 | %mdy-5d | Corner Pub | this CF | -80.00 | X |
   # Status was %chk 
   When member ".ZZA" clicks "X" on transaction 100
-  Then we show "tx desc passive|purpose|when|.|confirm tx action" with subs:
-  | amount | otherName  | otherDid | purpose     | created   | txAction                        |*
-  | $80    | Corner Pub | charged  | "this CF" | %today-5d | request a refund of this charge |
+  Then we scrip "reverse-tx" with subs:
+  | title   |  msg                      |*
+  | Reverse | Reverse this transaction? |
+#  Then we show "tx desc passive|purpose|when|.|confirm tx action" with subs:
+#  | amount | otherName  | otherDid | purpose     | created   | txAction                        |*
+#  | $80    | Corner Pub | charged  | "this CF" | %today-5d | request a refund of this charge |
   When member ".ZZA" confirms "X" on transaction 100
 #  When member ".ZZA" confirms form "history/transactions/period=5&do=no&xid=100" with values: ""
 Skip (test doesn't work yet)
@@ -110,10 +113,14 @@ Scenario: A seller reverses a charge
   |~tid | Date   | Name    | Purpose | Amount | ~ |
   |   2 | %mdy-5d | Abe One | this CF | 80.00  | X |
   When member "C:B" clicks "X" on transaction 100
-  Then we show "tx desc active|purpose|when|.|confirm tx action" with subs:
-  | amount | otherName | did     | purpose   | created   | txAction            |*
-  | $80    | Abe One   | charged | "this CF" | %today-5d | reverse this charge |
-  
+  Then we scrip "reverse-tx" with subs:
+  | title   |  msg                      |*
+  | Reverse | Reverse this transaction? |
+#  Then we show "tx desc active|purpose|when|.|confirm tx action" with subs:
+#  | amount | otherName | did     | purpose   | created   | txAction            |*
+#  | $80    | Abe One   | charged | "this CF" | %today-5d | reverse this charge |
+
+Skip no dispute feature at the moment  
 Scenario: A member confirms OK for a disputed transaction
   Given transactions:
   | xid | created   | type     | flags    | amount | from | to   | purpose  | taking |*
@@ -122,7 +129,7 @@ Scenario: A member confirms OK for a disputed transaction
   Then we say "status": "confirm accept" with subs:
   | who        | did     | amount | for       | date    | do                  |*
   | Corner Pub | charged | $80    | "this CF" | %dmy-5d | accept this charge? |
-
+Resume
 # This test doesn't work yet.
 #  When member ".ZZA" confirms form "history/transactions/period=5&do=ok&xid=100" with values: ""
 #  Then we show "Transaction History" with:

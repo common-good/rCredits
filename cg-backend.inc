@@ -177,7 +177,8 @@ function undoTx($xid, $where = '1', $subs = [], $force = FALSE) {
     r\notify($myx->them, 'charge disputed', $myx->reportArgs());
   } else {
     $type = $myx->toMe ? 'charge' : 'payment';
-    $amounts = just('amount payerReward payeeReward', $myx->ray);
+//    $amounts = just('amount payerReward payeeReward', $myx->ray);
+    $amounts = just('amount', $myx->ray);
     $what = [$myx->payerFor, $myx->payeeFor];
     return reverse($xid, $amounts, $what, $myx->a2, $data, $myx->goods, $myx->tid, $type, $myx->tid2, $force); // create an offsetting transaction
   }
@@ -324,7 +325,8 @@ function transfer($ttype, $a1, $a2, $amount, $for, $data = []) {
   u\setDft($for, ray(R_WHYS)[$goods]);
 
   $type = TX_TRANSFER;
-  if (is_array($amount)) extract(just('amount payerReward payeeReward', $amount));
+//  if (is_array($amount)) extract(just('amount payerReward payeeReward', $amount));
+  if (is_array($amount)) extract(just('amount', $amount));
   list ($myid, $uid) = array($a1->id, $a2->id);
   foreach (just('force offline investment created goods', $data) as $k => $v) {
     $$k = $v;
@@ -382,7 +384,7 @@ function transfer($ttype, $a1, $a2, $amount, $for, $data = []) {
         if ($goods == FOR_GOODS) {
           if (!$loserA->can(B_DEBT) and $loserA->floor < 0 and $channel == TX_WEB) $msg .= '|try debt';
           $_aDebt = w\atag('/settings/preferences');
-        } elseif ($a1->cttyRewardy) $msg .= '|short cash help|maybe not cash';
+        } //elseif ($a1->cttyRewardy) $msg .= '|short cash help|maybe not cash';
       }
       r\suggestMin($loserA);
       $details = t('|%loser was short by %short trying to pay %gainer %amount', ray('loser short gainer amount', $loserA->fullName, $short, $gainerA->fullName, u\fmtAmt($amount)));
@@ -397,7 +399,8 @@ function transfer($ttype, $a1, $a2, $amount, $for, $data = []) {
     if ($pot = $loserA->giftPot) $loserA->update('giftPot', max(0, $pot - $price)); // use up gift coupons, if any (if tx gets reversed, gift recipient can cash it out, but that's no biggie)
   }
   
-  $info = compact(ray('type created amount payer payee payerReward payeeReward payerAgent payeeAgent for data taking roundup goods force offline investment short'));
+//  $info = compact(ray('type created amount payer payee payerReward payeeReward payerAgent payeeAgent for data taking roundup goods force offline investment short'));
+  $info = compact(ray('type created amount payer payee payerAgent payeeAgent for data taking roundup goods force offline investment short'));
   if (!$myx = new r\MyX($info, $a1, TRUE)) return r\txRet('tx save err', $erInfo);
   
   // Report results
@@ -412,13 +415,13 @@ function transfer($ttype, $a1, $a2, $amount, $for, $data = []) {
     $args['_aPayLink'] = $a2->makeDo('addr', $myid, 0); // link to address, so merchant can ship or nonprofit can thank
 //      "<$atag>" . check_plain($args['myName']) . '</a>';
   }
-  if (@$args['otherRewardAmount'] and $a1->cttyRewardy) $notice .= '|reward other';
+//  if (@$args['otherRewardAmount'] and $a1->cttyRewardy) $notice .= '|reward other';
   r\notify($uid, $notice, $args);
   $msg = 'report tx';
-  if ($a1->cttyRewardy) {
+/*  if ($a1->cttyRewardy) {
     $msg .= '|for why';
     if ($goods == FOR_GOODS) $msg .=  ($channel == TX_POS and $a1->co) ? '|reward customer' : '|the reward';
-  }
+  } */
 //  } else $msg = $ttype;
 
 //  if (isPRODUCTION) r\tellAdmin('tx', compact('msg') + $args); // a backup record of all txs (until the backup server works)
@@ -472,7 +475,7 @@ function invoice($a1, $a2, $amount, $purpose = NULL, $extra = []) {
   }
 
   $msg = 'report tx';
-  if ($a1->cttyRewardy) $msg .= '|for why';
+//  if ($a1->cttyRewardy) $msg .= '|for why';
   if ($amount > 0) $msg .= '|balance unchanged';
   return array($msg, $subs + ['success'=>TRUE]);
 }
@@ -495,7 +498,7 @@ function invoiceNonmember($name, $info) {
  * @param string $for: purpose of funding
  * @param bool $oked: TRUE actually do it? (otherwise just see if it can be done)
  * @return int: the incentive amount (FALSE on failure)
- */
+ *//*
 function fund($uid, $type, $amount, $for) {
   $payeeAgent = $payee = $uid;
   global $mya; // (null, if just registering or running as cron)
@@ -519,6 +522,7 @@ function fund($uid, $type, $amount, $for) {
   if ($a->cttyRewardy or !$isReward) r\notify($uid, $index, $subs); // don't report rewards unless rewarding
   return $amount;
 }
+*/
 
 /**
  * @return FALSE if success; else array($error_message, $subs)

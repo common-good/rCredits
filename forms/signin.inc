@@ -17,8 +17,8 @@ function formSignin($form, &$sta) {
   //$name = 'L5MA LLDC 3MBG';
   if (strlen(str_replace(' ', '', @$name)) >= ICARD_CODELEN_MIN and !strpos($name, '.') and !db\exists('users', 'name=:name', compact('name'))) {
     \drupal_get_messages(); // drop previous errors
-    if (r\iCardAcct($name)) return r\go("signup/code=$name"); // invitation card manual signup!
-    return r\go('accept', 'bad invite num', 'err');
+    if (r\iCardAcct($name)) return w\go("signup/code=$name"); // invitation card manual signup!
+    return w\go('accept', 'bad invite num', 'err');
   }
   unset($form['actions']);
   unset($form['pass']);
@@ -106,5 +106,5 @@ function formSignin_submit($form, &$sta, $goto = 'summary') {
   u\loga('signin', ['name' => $mya->name]);
 //  if ($mya->superAdmin) f('a.adminSignin');
   if (isSTAGE and !$mya->cAdmin) f('a.makeTestAdmins'); // make sure rCOs can test stuff
-  return r\go($mya->admin2 ? 'sadmin/followup' : $goto);
+  return w\go($mya->admin2 ? 'sadmin/followup' : $goto);
 }

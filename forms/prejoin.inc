@@ -37,9 +37,9 @@ function formPrejoin_validate($form, &$sta) {
 function formPrejoin_submit($form, &$sta) {
   global $mya;
   extract(just('old account', $sta['input']));
-  if (!$old) return r\go('signup/joint=1');
+  if (!$old) return w\go('signup/joint=1');
 
   if (!$reid = r\relation('reid', $mya->id, $account)) $reid = $mya->newRelation(ray('other permission', $account, r\perm(B_JOINT)));
   $msg = r\setJoin($reid, TRUE);
-  return r\go('', $msg);
+  return w\go('', $msg);
 }

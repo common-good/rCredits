@@ -341,12 +341,12 @@ class Acct {
 
     if ($firstTime and !$a->co) { // no bonus or helper bonus for a company signing up
       if ($a->ssnData['CGerror'] and !$a->risk('ssnOff') and !$a->risk('dobOff')) $a->setRisk('ssnOff'); // make SURE this bit gets set (might not if admin signs the person up
-      be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
+//      be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
 
       if (!$a->helperA->co and !$a->helperA->superAdmin) { // no helper bonus for company referral or help by superAdmin (cAdmin is okay) [don't require $a->confirmed]
         $fullName = $a->fullName;
-        be\fund($hId = $a->helper, TX_HELPER, R_HELPER_BONUS, t('invite reward', compact('fullName')));
-        $helped = db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', compact('hId')) + 0;
+//        be\fund($hId = $a->helper, TX_HELPER, R_HELPER_BONUS, t('invite reward', compact('fullName')));
+        $helped = db\count('users', ':IS_OK AND NOT :IS_CO AND helper=:hId', ray('hId', $a->helper)) + 0;
         if ($helped == ORGANIZER_GRANT_MIN) {
   //            r\message($a->helper, 'organizer grant', ['_a' => w\atag('/community/grant')]);
           list ($name, $topic) = [$a->helperA->fullName, t('eligible')];
@@ -1069,7 +1069,7 @@ EOF;
       $approval = $a->co ? 'company approval' : 'individual approval';
 // fails with sysadmin as helper  if (!$a->confirmed) $approval .= '|' . t('must be confirmed', 'inviterName', @$a->helperA->fullName);
       
-      if ($stepDone) $msg = "setup complete|$approval|join thanks";
+      if (!$stepDone) $msg = "setup complete|$approval|join thanks"; // show on display, not on done
       return 'summary'; // go nowhere if not completing a step
     } elseif (!$a->member) $msg .= '|step completed';
 

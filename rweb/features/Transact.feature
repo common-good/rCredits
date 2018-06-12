@@ -36,9 +36,12 @@ Scenario: A member asks to charge another member for goods
   When member ".ZZA" completes form "charge" with values:
   | op     | who     | amount | goods | purpose |*
   | charge | Bea Two | 100    | %FOR_GOODS     | labor   |
-  Then we show "confirm charge" with subs:
-  | amount | otherName | why                |*
-  | $100   | Bea Two   | goods and services |
+  Then we scrip "suggest-who" with subs:
+  | question                 | allowNonmember |*
+  | Charge %amount to %name? |              1 |
+#  Then we show "confirm charge" with subs:
+#  | amount | otherName | why                |*
+#  | $100   | Bea Two   | goods and services |
 
 Scenario: A member confirms request to charge another member
   When member ".ZZA" confirms form "charge" with values:
@@ -63,17 +66,23 @@ Scenario: A member asks to pay another member for goods
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods | purpose |*
   | pay | Bea Two | 100    | %FOR_GOODS     | labor   |
-  Then we show "confirm payment" with subs:
-  | amount | otherName | why                |*
-  | $100   | Bea Two   | goods and services |
+  Then we scrip "suggest-who" with subs:
+  | question              | allowNonmember |*
+  | Pay %amount to %name? |                |
+#  Then we show "confirm payment" with subs:
+#  | amount | otherName | why                |*
+#  | $100   | Bea Two   | goods and services |
 
 Scenario: A member asks to pay another member for loan/reimbursement
   When member ".ZZA" completes form "pay" with values:
   | op  | who     | amount | goods | purpose |*
   | pay | Bea Two | 100    | %FOR_NONGOODS | loan    |
-  Then we show "confirm payment" with subs:
-  | amount | otherName | why                     |*
-  | $100   | Bea Two   | loan/reimbursement/etc. |
+  Then we scrip "suggest-who" with subs:
+  | question              | allowNonmember |*
+  | Pay %amount to %name? |                |
+#  Then we show "confirm payment" with subs:
+#  | amount | otherName | why                     |*
+#  | $100   | Bea Two   | loan/reimbursement/etc. |
   
 Scenario: A member confirms request to pay another member
   When member ".ZZA" confirms form "pay" with values:
@@ -152,15 +161,15 @@ Scenario: A member confirms request to pay a member company
 #  | op      |*
 #  | charged |
 
-Scenario: A member leaves goods blank
-  Given member ".ZZA" confirms form "pay" with values:
-  | op  | who     | amount | goods | purpose |*
-  | pay | Bea Two | 100    |       | labor   |  
-  Then we say "error": "required field" with subs:
-  | field |*
-  | "For" |
+#Scenario: A member leaves goods blank
+#  Given member ".ZZA" confirms form "pay" with values:
+#  | op  | who     | amount | goods | purpose |*
+#  | pay | Bea Two | 100    |       | labor   |  
+#  Then we say "error": "required field" with subs:
+#  | field |*
+#  | "For" |
 
-Skip  
+Skip this is now allowed, so the other member can confirm someone they invited
 Scenario: A member asks to charge another member before making an rCard purchase
   Given member ".ZZA" has no photo ID recorded
   When member ".ZZA" completes form "charge" with values:

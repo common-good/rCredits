@@ -87,7 +87,7 @@ Scenario: A member signs in for the first time
 
   When member ".AAA" visits page "summary"
   Then we show "Account Summary"
-# (haven't figured how to do this without duplicating just after completion)  And we say "status": "setup complete|individual approval"
+  And we say "status": "setup complete|individual approval|join thanks"
   
   When member ".ZZC" has permission "ok"
 # then what?  

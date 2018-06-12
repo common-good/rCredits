@@ -61,7 +61,7 @@ function rdo($code, $args = '') {
 //  if ($op == 'min') $res = $a->update('minimum', $v); // not used (rewrite as a confirmation form)
   if ($op == 'nosecret') $res = $a->setBit(B_SECRET, FALSE);
   if ($op == 'debtok') $res = $a->setBit(B_DEBT, TRUE);
-  if ($op == 'rsv') {return r\go("savings/qid=$qid&ecode=$ecode");}
+  if ($op == 'rsv') {return w\go("savings/qid=$qid&ecode=$ecode");}
   if ($op == 'sql') $res = db\q($sql, $subs);
 
   if ($op == 'addr') {
@@ -73,7 +73,7 @@ function rdo($code, $args = '') {
   
   if ($op == 'inv') {
     if ($err = r\badUnpaidInv($v)) return doSay($err);
-    return r\go("/handle-invoice/nvid=$v&toMe=1&code=$code");
+    return w\go("/handle-invoice/nvid=$v&toMe=1&code=$code");
   } 
   
   if ($op == 'confirmInvite') {

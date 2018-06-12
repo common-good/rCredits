@@ -13,7 +13,7 @@ function formGet($form, &$sta, $args = '') {
   global $mya;
   global $base_url;
   
-  if (!$mya->hasBank) return r\go('/settings/connect');
+  if (!$mya->hasBank) return w\go('/settings/connect');
   
   \drupal_page_is_cacheable(false); // suppress caching, so buttons work right
   $myid = $mya->id;

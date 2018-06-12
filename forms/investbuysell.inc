@@ -12,7 +12,7 @@ use CG\Db as db;
 function formInvestBuySell($form, &$sta, $args = '') {
   global $mya;
   extract(just('vestid', $args));
-  if (!@$vestid) return r\go('/page-not-found');
+  if (!@$vestid) return w\go('/page-not-found');
   $q = db\q('SELECT i.coid, i.clubid, COUNT(shid) AS `count`, SUM(shares) AS shares, SUM(pending) AS pending FROM r_investments i LEFT JOIN r_shares s ON s.vestid=i.vestid WHERE i.vestid=:vestid', compact('vestid'));
   if ($res = $q->fetchAssoc()) {
     extract($res);
@@ -72,5 +72,5 @@ function formInvestBuySell_submit($form, &$sta) {
   unset($DBTX);
 
   say($index . @$extraMsg, $subs, @$subs['success'] ? NULL : 'err');
-  return r\go("/invest/list/actual=1&clubid=$clubid");
+  return w\go("/invest/list/actual=1&clubid=$clubid");
 }

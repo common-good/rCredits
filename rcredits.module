@@ -234,7 +234,8 @@ function eachR($tnm, $func, $where = '1', $subs = []) {
  * or    eachA(function($a) {...});
  */
 function eachA($func = 'a.changeIt', $where = 'uid>:CANONIC_ACCTS') {
-  $result = q("SELECT uid FROM users WHERE $where ORDER BY uid")->fetchCol();
+  if (strpos($where, 'ORDER BY') === FALSE) $where .= ' ORDER BY uid';
+  $result = q("SELECT uid FROM users WHERE $where")->fetchCol();
   if (!is_callable($func)) $func = funcNickname($func);
   foreach ($result as $uid) $func(a($uid));
 }
@@ -269,7 +270,7 @@ function patch($name) {
     if ($mya->cAdmin) return 'sadmin';
     f('w.say', t('You do not have permission to visit that page.'), 'err');
     return 'summary';
-    //$click = " <a href=\"$base_url\signin\">" . t('Click here to sign in.') . '</a>'; // r\go('signout') fails
+    //$click = " <a href=\"$base_url\signin\">" . t('Click here to sign in.') . '</a>'; // w\go('signout') fails
     //return t('You are not authorized to access this page.') . (isDEV ? $args[1] : '') . @$click;
   }
   // user.module

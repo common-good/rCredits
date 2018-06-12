@@ -15,7 +15,7 @@ use CG\Risk as k;
  */
 function formSummary($form, &$sta) {
   global $base_url;
-//  if (!$mya = r\acct($qid)) return r\go(isGAME ? 'community/game' : PROMO_URL);
+//  if (!$mya = r\acct($qid)) return w\go(isGAME ? 'community/game' : PROMO_URL);
   
   global $mya; $myid = $mya->id;
 
@@ -23,7 +23,7 @@ function formSummary($form, &$sta) {
 
 //  if (($mya->cAdmin or $mya->isAdmin2) and $qid and $a = r\acct($qid) and ($mya->admin or $mya->isAdmin2 or $a->community == $mya->agentA->community)) {
 /*    w\setAcct($a->id); // switch to this account until further notice
-    r\go('summary'); // refresh page, switching to new account
+    w\go('summary'); // refresh page, switching to new account
   } */
 
   if ($mya->closed) say(t('Your account is closed, but you can still see your account history.'));
@@ -51,7 +51,7 @@ function formSummary($form, &$sta) {
     } elseif ($stepUrl) say(t('New member will be sent <a href="%stepUrl">there</a> upon signing in.', 'stepUrl', "$base_url/$stepUrl"));
     
   } else { // normal
-    if ($stepUrl and $stepUrl != 'summary') return r\go($stepUrl);
+    if ($stepUrl and $stepUrl != 'summary') return w\go($stepUrl);
     if (@$msg) say($msg);
     
     if ($mya->legalName != $mya->fullName) $legalName = item($mya->legalName, t('Legal Name:'));    
@@ -181,7 +181,7 @@ function formSummary_submit($form, &$sta) {
   global $mya;
   $op = op($sta);
 
-  if ($op == 'secureMsgs') return r\go('', showSecureMessages());
+  if ($op == 'secureMsgs') return w\go('', showSecureMessages());
   if (!$mya->admin2) return; // hack attempt
 
   extract($args = just('uid who legalName federalId creditLimit tickle note notes helper mediaConx moves rTrader risks adminable', $sta['input']));

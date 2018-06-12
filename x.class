@@ -148,7 +148,8 @@ class X {
   private function setup($info) {
     global $channel, $boxUser; // through what medium was the transaction requested (web, SMS, etc.), what machine
 //    $fields = 'type data flags goods amount payer payee payerFor payerAgent payeeAgent created rebate bonus';
-    $fields = 'type data flags goods amount payer payee payerReward payeeReward payerFor payerAgent payeeAgent created';
+//    $fields = 'type data flags goods amount payer payee payerReward payeeReward payerFor payerAgent payeeAgent created';
+    $fields = 'type data flags goods amount payer payee payerFor payerAgent payeeAgent created';
     extract(just($fields . ' for ' . TX_FLAGS, $info)); // flags including offline, short, etc.
     u\setDft($type, TX_TRANSFER);
 
@@ -173,7 +174,7 @@ class X {
     $goods += 0;
     $box = @$boxUser ?: 0;
 //    if (r\isGiveback($payee, $payer, @$data)) $type = TX_GIVEBACK;
-    if (!isset($payerReward) and !isset($payeeReward)) extract($this->getRewards($info)); // payerReward and payeeReward
+//    if (!isset($payerReward) and !isset($payeeReward)) extract($this->getRewards($info)); // payerReward and payeeReward
 
     $data = $this->dataSetup($payer, $payee, $amount, $goods, @$payerFor, @$data, $channel);
     extract(just(TX_FLAGS, $data));
@@ -193,14 +194,14 @@ class X {
 
   /**
    * Return the appropriate reward amounts for the given data.
-   */
+   *//*
   private static function getRewards($info) {
     extract(just('payer payee amount goods', $info));
     $fields = 'payerReward payeeReward';
     if (@$goods != FOR_GOODS or r\owning($payer, $payee)) {
       return ray($fields, 0, 0); // no rewards for an incestuous tx
     } else return ray($fields, r\reward($payer, $payee, $amount, TRUE), r\reward($payer, $payee, $amount, FALSE));
-  }
+  }*/
   
   /**
    * Set up and return the data field for a transaction.
@@ -237,19 +238,21 @@ class X {
    */
   private function cacheTotals($uid, $xrays) {
     global $channel;
-    extract(just('amount type xid payer payee payerReward payeeReward created data', $xrays[0]), EXTR_PREFIX_ALL, 't');
+//    extract(just('amount type xid payer payee payerReward payeeReward created data', $xrays[0]), EXTR_PREFIX_ALL, 't');
+    extract(just('amount type xid payer payee created data', $xrays[0]), EXTR_PREFIX_ALL, 't');
   //  if ($t_state < TX_DONE) return; // don't change totals if transaction doesn't count (yet)
 //    if ($uid <= 0) return TRUE; // cache only usd for community and region
 
     if (!$a = r\acct($uid)) return FALSE;
-    extract((array) $a->account($cacheFields = 'balance rewards committed lastTx access'));
+//    extract((array) $a->account($cacheFields = 'balance rewards committed lastTx access'));
+    extract((array) $a->account($cacheFields = 'balance committed lastTx access'));
 
     if ($channel != TX_CRON) $access = r\rTime(); // track last transaction or login (just major access)
 
     $toMe = $uid == $t_payee ? -1 : 1;
     if ($t_payer > 0) $lastTx = array($t_xid, $toMe * ($t_payee - $t_payer), round($toMe * $t_amount, 2), $t_created);
-    $reward = $uid == $t_payee ? @$t_payeeReward : @$t_payerReward;
-    $rewards = round($rewards + $reward, 2);
+//    $reward = $uid == $t_payee ? @$t_payeeReward : @$t_payerReward;
+//    $rewards = round($rewards + $reward, 2);
 ///    debug(compact(ray('uid xrays rewards reward toMe')));
 
     foreach ($xrays as $xray) {
@@ -321,7 +324,8 @@ class X {
     $x = $this; $xid = $x->xid; $xray = $x->ray0;
     global $mya;
     
-    extract(just('data payer payee amount goods payerFor payeeFor payerReward payeeReward created channel', $xray));
+//    extract(just('data payer payee amount goods payerFor payeeFor payerReward payeeReward created channel', $xray));
+    extract(just('data payer payee amount goods payerFor payeeFor created channel', $xray));
     extract($toChange, EXTR_PREFIX_ALL, 'ch');
     $chKeys = array_keys($toChange);
     $dataRay = unserialize($data);
@@ -329,10 +333,11 @@ class X {
     $DBTX = \db_transaction();
 
     if (isset($ch_goods) or isset($ch_amount)) { // financial info changed
-      foreach (ray('amount payerReward payeeReward') as $k) $xrayNeg[$k] = -$$k; // negate the transaction and rewards amounts
+//      foreach (ray('amount payerReward payeeReward') as $k) $xrayNeg[$k] = -$$k; // negate the transaction and rewards amounts
+      $xrayNeg['amount'] = -$amount;
       $x->cacheBothTotals([$xrayNeg + $xray]); // subtract old values from cache
 
-      $toChange += $this->getRewards($toChange + $xray);
+//      $toChange += $this->getRewards($toChange + $xray);
       $x->cacheBothTotals([$toChange + $xray]); // cache values for the revised transaction
     }
 
@@ -472,7 +477,8 @@ class MyX extends x {
     $x2 = $x1->themX;
     $a2 = r\acct($otherUid = $x1->them);
     $tx = $x1->ray0;
-    $fields = 'data amount goods payer payee payerReward payeeReward toMe payerPurpose payeePurpose payerTid payeeTid created';
+//    $fields = 'data amount goods payer payee payerReward payeeReward toMe payerPurpose payeePurpose payerTid payeeTid created';
+    $fields = 'data amount goods payer payee toMe payerPurpose payeePurpose payerTid payeeTid created';
     foreach (ray($fields) as $k) $$k = $x1->$k;
 //    extract(just('rebate bonus', $data));
 
@@ -500,11 +506,12 @@ class MyX extends x {
       if ($a1->can(B_BUY)) $balance = u\fmtAmt($a1->avail(FOR_GOODS));
     }
     
-    if ($goods == FOR_GOODS) {
+/*    if ($goods == FOR_GOODS) {
   //    u\both($tx, 'rewardType', $toMe, t('bonus'), t('rebate'));
-      u\both($tx, 'rewardType', $toMe, t('reward'), t('reward'));
-      u\both($tx, 'rewardAmount', $toMe, u\fmtAmt(@$payeeReward + 0), u\fmtAmt(@$payerReward + 0));
+//      u\both($tx, 'rewardType', $toMe, t('reward'), t('reward'));
+//      u\both($tx, 'rewardAmount', $toMe, u\fmtAmt(@$payeeReward + 0), u\fmtAmt(@$payerReward + 0));
     }
+    */
     $myName = $a1->fullName;
     $otherName = $a2->fullName;
     $created = u\fmtDate($created0 = $created);

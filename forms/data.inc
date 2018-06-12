@@ -39,7 +39,7 @@ function formData_submit($form, &$sta) {
   $d = substr(op($sta), 0, 1);
   if (strpos('0123456789', $d) !== FALSE) $op = $d . $op; // leading digit, if any
   $url = $isco ? '/company-reports' : '/community/data';
-  r\go("$url/qName=" . urlencode($op));
+  w\go("$url/qName=" . urlencode($op));
 }
 
 function queryFile($isco) {return R_ROOT . ($isco ? '/rweb/queries-co.inc' : '/rweb/queries.inc');}

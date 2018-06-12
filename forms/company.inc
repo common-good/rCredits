@@ -101,6 +101,6 @@ function formCompany_submit($form, &$sta) {
   if (@$categories) $mya->setCategories($categories);
 
 //  $mya->stepDone('company', $info);
-//  return $mya->ok ? say('options saved') : r\go('status', 'options saved|step completed');
+//  return $mya->ok ? say('options saved') : w\go('status', 'options saved|step completed');
   return w\goNextStep('company', NULL, $info);
 }

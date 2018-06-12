@@ -32,7 +32,7 @@ function formFindCo_validate($form, &$sta) {
 
 function formFindCo_submit($form, &$sta) {
   extract($sta['input']);
-  r\go("community/find-company/where=$region&cos=$which");
+  w\go("community/find-company/where=$region&cos=$which");
 //  svar('which_companies', trim($which));
 //  svar('region', trim($region));
 }

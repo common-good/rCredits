@@ -41,5 +41,5 @@ function formPass_submit($form, &$sta, $goto = '') {
   r\notify($myid, $goto ? 'verify' : 'password-reset', compact(ray('name qid code')), TRUE);
 /**/  if (isDEV or (NOT_PRODUCTION and $a->cAdmin)) say(t('Attention admin: code=%code Link: <a href="%BASE_URL/reset/id=%name&code=%code">reset</a>', compact(ray('name code'))));
 //  r\tellAdmin('password reset', compact(ray('name myid code')));
-  return r\go($goto ?: '/empty', $goto ? t('Email sent') : 'password reset');
+  return w\go($goto ?: '/empty', $goto ? t('Email sent') : 'password reset');
 }

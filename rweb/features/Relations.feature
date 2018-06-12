@@ -10,16 +10,6 @@ Setup:
   | .ZZB | Bea Two    | personal    | ok         |
   | .ZZC | Corner Pub | corporation | ok,co      |
   | .ZZD | Dee Four   | personal    | ok         |
-  And transactions: 
-  | xid | created   | type       | amount | from      | to   | purpose | taking |*
-  |   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |
-  |   2 | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |
-  |   3 | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |
-  Then balances:
-  | id        | balance | rewards |*
-  | .ZZA      |       0 |     250 |
-  | .ZZB      |       0 |     250 |
-  | .ZZC      |       0 |     250 |
 
 Scenario: Member has an employee, confirmed
   Given relations:

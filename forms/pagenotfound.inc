@@ -13,7 +13,7 @@ function formPageNotFound($form, &$sta, $arg = '') {
   $page = $_SERVER['REQUEST_URI'];
 
   $page = isDEV ? basename($page) : substr($page, 1); // ignore leading slash
-//  if ($page == 'timedout') return r\go(PROMO_URL); // something weird went wrong (only on DEV?)
+//  if ($page == 'timedout') return w\go(PROMO_URL); // something weird went wrong (only on DEV?)
   header_remove(); // prevent 404 circle (doesn't help)
   
   if ($page[0] == '-') {

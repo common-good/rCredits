@@ -7,7 +7,7 @@ use CG\Util as u;
 use CG\Db as db;
 use CG\Txs as x;
 
-include __DIR__ . '/../cg-txs.inc';
+include_once __DIR__ . '/../cg-txs.inc';
 
 /**
  * Generate an account statement for the given month or year.
@@ -17,7 +17,7 @@ function statement($month = '') {
   include_once __DIR__ . '/../cg-txs.inc';
   $purposeLenMax = 60; // maximum number of characters in purpose field, not including added "..."
 
-  if (!$mya = r\acct()) return r\go('', t('You must first sign in.'), 'ERR');
+  if (!$mya = r\acct()) return w\go('', t('You must first sign in.'), 'ERR');
 
   $type = substr($month, 0, 2); // CY, FY, Q<n>, or other
 
@@ -29,7 +29,7 @@ function statement($month = '') {
     $end = strtotime($lastDay) + DAY_SECS - 1; // fails if FY ends on clock change day
     list ($start, $period) = [u\plusMonths(-12, $end + 1), "$type $year"];
   } else {
-    if (!$start = strtotime("1$month")) return r\go('empty', t('That is not a recognizable month.'), 'ERR');
+    if (!$start = strtotime("1$month")) return w\softErr(t('That is not a recognizable month.'));
     $start = u\monthDay1($start);
     list ($end, $period) = [u\plusMonths(1, $start) - 1, strftime('%B %Y', $start)];
   }
@@ -79,7 +79,7 @@ function statement($month = '') {
 
   list ($bal9, $rewardsEver) = array($info->balance - $info->partRounds, $info->rewards);
 //  u\EXPECT($bal9 == round($bal0 + @$frombank - @$fromyou + @$toyou + @$reward, 2), 'balance mismatch');
-///**/    if (round($bal9, 2) != round($bal0 + @$frombank - @$fromyou + @$toyou, 2)) return r\go('empty', 'balance mismatch: ' . print_r(compact('tot', 'bal0', 'bal9'), 1));
+///**/    if (round($bal9, 2) != round($bal0 + @$frombank - @$fromyou + @$toyou, 2)) return w\softErr('balance mismatch: ' . print_r(compact('tot', 'bal0', 'bal9'), 1));
   
   $pdf->barHead('SUMMARY');
   if ($mya->cttyRewardy) {

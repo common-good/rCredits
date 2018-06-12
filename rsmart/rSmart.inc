@@ -552,7 +552,8 @@ function balrew($a) {
   global $mya;
   if (!$mya->co) $a = $mya;
   $balance = (($a->can(B_SECRET) and $mya->co) ? '*' : '') . round($a->balance - $a->partRounds, 2);
-  $rewards = $a->rewards;
+//  $rewards = $a->rewards;
+  $rewards = -$a->floor;
   return compact('balance', 'rewards');
 }
 

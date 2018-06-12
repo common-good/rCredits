@@ -22,7 +22,7 @@ function formInvoices($form, &$sta, $toFrom, $args = '') {
   extract(just('dateRange url starting ending states', dateRange($args, "history/invoices-$toFrom", $choices, '0,1,2')));
 /*
   if (@$do == 'ok') {$ok = be\payInvoice($nvid, $msg); say($msg, $ok ? '' : 'ERR');}
-  if (@$do == 'no') return r\go("handle-invoice/nvid=$nvid&toMe=$toMe&ret=" . u\urlify($url));
+  if (@$do == 'no') return w\go("handle-invoice/nvid=$nvid&toMe=$toMe&ret=" . u\urlify($url));
 */
   
   $list = item(invoiceList($toMe, $starting, $ending, $states, $url, @$download)); // must precede starting & ending

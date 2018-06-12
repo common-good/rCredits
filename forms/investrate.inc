@@ -12,7 +12,7 @@ use CG\Db as db;
 function formInvestRate($form, &$sta, $args = '') {
   global $mya;
   extract(just('vestid clubid', $args));
-  if (!@$vestid or !@$clubid) return r\go('/page-not-found');
+  if (!@$vestid or !@$clubid) return w\go('/page-not-found');
   $title = t('View or Rate Investment #%vestid', compact('vestid'));
   $subtext = t('Numeric ratings are on a scale of 0-100');
 
@@ -64,5 +64,5 @@ function formInvestRate_submit($form, &$sta) {
   $vs = just('vestid good patronage comments', $sta['input']);
   db\insert('r_ratings', $vs + ray('uid', $mya->id));
   $clubid = $sta['input']['clubid'];
-  return r\go("/invest/list/clubid=$clubid", t('You have successfully rated investment #%vestid', just('vestid', $vs)));
+  return w\go("/invest/list/clubid=$clubid", t('You have successfully rated investment #%vestid', just('vestid', $vs)));
 }

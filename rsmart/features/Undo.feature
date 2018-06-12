@@ -224,9 +224,9 @@ Scenario: A cashier reverses a transaction with insufficient funds
   | created | fullName | otherName  | amount | payerPurpose          |*
   | %today  | Bea Two  | Corner Pub | $100   | cash in (reverses #2)  |
   And balances:
-  | id   | balance | rewards|*
-  | ctty |    -100 |      0 |
-  | .ZZA |      -1 |    250 |
-  | .ZZB |       1 |    250 |
-  | .ZZC |     100 |    250 |
+  | id   | balance |*
+  | ctty |    -100 |
+  | .ZZA |      -1 |
+  | .ZZB |       1 |
+  | .ZZC |     100 |
   

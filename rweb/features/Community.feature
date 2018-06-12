@@ -50,13 +50,13 @@ Setup:
   |  28 | %today-2d | loan      |      5 | ctty | .ZZB | loan    | %FOR_USD | %TX_WEB  |
   |  29 | %today-2d | fine      |     -6 | ctty | .ZZC | fine    | %FOR_USD | %TX_WEB  |
   |  30 | %today-1d | transfer  |    100 | .ZZC | .ZZA | payroll | %FOR_GOODS | %TX_WEB  |
-  |  33 | %today-1d | transfer  |      1 | .ZZC | .AAB | sharing rewards with CGF | %FOR_GOODS | %TX_CRON |
+  |  33 | %today-1d | transfer  |      1 | .ZZC | .AAB | gift    | %FOR_GOODS | %TX_CRON |
   Then balances:
-  | id   | balance | rewards | committed |*
-  | .ZZA |  754.00 |  274.00 |      2.30 |
-  | .ZZB | 2285.00 |  266.50 |      2.90 |
-  | .ZZC | 2963.00 |  280.10 |      8.13 |
-  | .AAB |    1.00 |    0.10 |         0 |
+  | id   | balance | committed |*
+  | .ZZA |  754.00 |      2.30 |
+  | .ZZB | 2285.00 |      2.90 |
+  | .ZZC | 2963.00 |      8.13 |
+  | .AAB |    1.00 |         0 |
   # total rewards < total r, because we made a grant, a loan, and a fine.
   
 Scenario: cron calculates the statistics

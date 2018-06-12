@@ -18,7 +18,7 @@ function formNotices($form, $sta, $month = '') {
  * @param string $month: mmmyyyy
  */
 function notice($month = '') {
-  if (!$start = strtotime("1$month")) return r\go('empty', t('That is not a recognizable month.' . $month), 'ERR');
+  if (!$start = strtotime("1$month")) return w\softErr(t('That is not a recognizable month.' . $month));
   $start = u\monthDay1($start);
   $end = strtotime('+1 month', $start) - 1;
 

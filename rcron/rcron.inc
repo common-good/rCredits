@@ -200,8 +200,11 @@ X;
 
 //  $where = "RIGHT(fullName, 8)=' PARTNER' COLLATE utf8_bin AND pass='' AND NOT :IS_CO AND activated=0";
   $where = "BINARY RIGHT(fullName, 8)=' PARTNER' AND pass IS NULL AND NOT :IS_CO AND activated=0";
-  eachA(function ($a) {if ($jA = $a->jA and $jA->jid == $a->id) $jA->update('jid', 0);}, $where); // acts weird; do this last
-  db\del('users', $where); // abandoned new joint acct (must postcede setting jids)
+  eachA(function ($a) { // acts weird; do this last
+    if ($jA = $a->jA and $jA->jid == $a->id) $jA->update('jid', 0);
+    r\deleteAccount($a);
+  } , $where);
+//  db\del('users', $where); // abandoned new joint acct (must postcede setting jids)
 }
 
 /**
@@ -425,6 +428,7 @@ function everyYear() {
  * Calculate and credit inflation adjustment to each member account.
  */
 function inflationAdjust($item) {
+  return; // UNUSED
   extract(just('uid start end', $item));
   $a = r\acct($uid);
   if ($a->slave) return; // slave in joint account gets no inflation (master gets inflation for both)
@@ -434,7 +438,7 @@ function inflationAdjust($item) {
 //  foreach ([t('average balance') => $avg, t('credit reserve') => $ravg] as $k => $v) {
   foreach ([t('average balance') => $avg] as $k => $v) {
     $adjustment = round($v * R_INFLATION_RATE / 12, 2);
-    if ($adjustment) be\fund($uid, TX_INFLATION, $adjustment, INFLATION_DESC . t(' on your ') . $k);
+//    if ($adjustment) be\fund($uid, TX_INFLATION, $adjustment, INFLATION_DESC . t(' on your ') . $k);
   }
 }
 

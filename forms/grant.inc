@@ -102,5 +102,5 @@ function formGrant_submit($form, &$sta) {
 EOF;
 
   r\tellAdmin('organizer grant request', $params + compact('msg'));
-  return r\go('', t('Your grant request has been submitted! You will be hearing from %PROJECT within a week or two.'));
+  return w\go('', t('Your grant request has been submitted! You will be hearing from %PROJECT within a week or two.'));
 }

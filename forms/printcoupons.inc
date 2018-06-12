@@ -14,13 +14,10 @@ function printCoupons($args = '') {
   global $mya;
   require_once __DIR__ . '/../pdf.class';
   
-  lug('printCoupons top ' . $args);
   if (strpos($args, 'type=') === FALSE) $args = u\deurlify($args);
-lug($args);
   extract(just('type amount minimum ulimit count automatic start end on', $args));
 
   if (!$gift = (@$type == 'gift') and @$type != 'discount') return w\hack('bad coupon args');
-  lug('after hack in printCoupons');
   $auto = @$automatic ? t('automatically') : '';
   $coGift = ($amount == @$minimum);
   $amount =  $amount < 0 ? u\fmtAmt(-$amount / 100, '%s') : u\fmtAmt($amount, 's$');
@@ -111,7 +108,7 @@ lug($args);
   }
 
   if ($gift) $mya->update('giftCoupons', $mya->giftCoupons + $count);
-lug('before end');
+
   if (!u\test())
   $pdf->output('cgCoupons.pdf', 'I'); //Close and output PDF document
 }

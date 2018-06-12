@@ -10,14 +10,14 @@ SO I can charge customers on behalf of my company.
 
 Setup:
   Given members:
-  | id   | fullName   | email | city  | state | cc  | cc2  | flags      |*
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 | ok         |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 | ok         |
-  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      | ok,co      |
-  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 | ok         |
-  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 | ok,secret |
-  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      | ok,co      |
-  | .ZZG | Gil Seven  | g@    | Gtown | GA    | ccG |      |            |
+  | id   | fullName   | email | city  | state | cc  | cc2  | flags      | floor |*
+  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 | ok         |     0 |
+  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 | ok         |     0 |
+  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      | ok,co      |     0 |
+  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 | ok         |  -444 |
+  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 | ok,secret  |  -555 |
+  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      | ok,co      |     0 |
+  | .ZZG | Gil Seven  | g@    | Gtown | GA    | ccG |      |            |     0 |
   And devices:
   | id   | code |*
   | .ZZC | devC |
@@ -73,13 +73,13 @@ Scenario: a cashier scans a customer card
   When agent "C:B" asks device "devC" to identify ".ZZD,ccD"
   Then we respond with:
   | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
-  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 0       | 250     |
+  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 0       | 444     |
 
 Scenario: the default cashier scans a customer card
   When agent ".ZZC" asks device "devC" to identify ".ZZD,ccD"
   Then we respond with:
   | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
-  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 0       | 250     |
+  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 0       | 444     |
 
 Scenario: a customer scans their own card for self-service
   Given members have:
@@ -88,7 +88,7 @@ Scenario: a customer scans their own card for self-service
   When agent ".ZZC" asks device "devC" to identify ".ZZD,ccD" with PIN "4444"
   Then we respond with:
   | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
-  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 0       | 250     |
+  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | 0     | 0       | 444     |
 
 Scenario: a customer scans their own card for self-service with wrong PIN
   Given members have:
@@ -120,7 +120,7 @@ Scenario: a cashier scans a customer card whose balance is secret
   When agent "C:B" asks device "devC" to identify ".ZZE,ccE"
   Then we respond with:
   | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
-  | 1  | Eve Five | this,that,other | refund,r4usd |     | Etown, IL |         | 0     | *0      | 250     |
+  | 1  | Eve Five | this,that,other | refund,r4usd |     | Etown, IL |         | 0     | *0      | 555     |
 
 Scenario: a cashier scans a company customer card
   When agent "C:B" asks device "devC" to identify "F:E,ccE2"
@@ -154,7 +154,7 @@ Scenario: A member makes a purchase for the first time
   When agent ".ZZC" asks device "devC" to identify ".ZZD,ccD"
   Then we respond with:
   | ok | name     | descriptions    | can          | bad | place     | company | logon | balance | rewards |*
-  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | -1    | 0       | 250     |
+  | 1  | Dee Four | this,that,other | refund,r4usd |     | Dtown, DE |         | -1    | 0       | 444     |
 
 # disabled because "fast" bit is no longer used  
 #Scenario: A member makes a purchase for the first time from an exempt company

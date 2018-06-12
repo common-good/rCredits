@@ -18,7 +18,7 @@ function formProxy($form, &$sta, $args = '') {
   $mya = w\eLinkAcct($sta, $args);
   $dft = $mya->proxy($priority);
   $dftOther = $mya->proxy(3 - $priority);
-  if (!$choices = w\proxyChoices($mya, [$dft, $dftOther], $choiceList)) return r\go("prox/page=Proxies&$args", 'no local proxy');
+  if (!$choices = w\proxyChoices($mya, [$dft, $dftOther], $choiceList)) return w\go("prox/page=Proxies&$args", 'no local proxy');
   if (!$mya->member and count($choiceList) <= 2) { // no real choices, so don't make the member choose
     if (!$dft) $mya->proxy($priority, $choiceList[0]);
     if (!$dftOther) $mya->proxy(3 - $priority, $choiceList[$dft ? 0 : 1]);
@@ -46,7 +46,7 @@ function formProxy_validate($form, &$sta) {
   u\EXPECT(substr($choice, 0, 2) == 'i-', 'missing proxy choice');
   $proxyChoice = substr($choice, 2);
   if (@$proxyChoice == $mya->proxy(1+2 - $priority)) {
-    return r\go("prox/page=Proxies&$args", 'doubled proxy', 'err');
+    return w\go("prox/page=Proxies&$args", 'doubled proxy', 'err');
   }
   $sta['input'] += compact('proxyChoice');
   return formProxy_submit($form, $sta); // oddly, _submit never gets called otherwise
@@ -60,12 +60,12 @@ function formProxy_submit($form, &$sta) {
 //  say('info saved');
 
   if (!r\acct()) { // called from email link
-    return $priority == 1 ? r\go("/prox/page=Proxy&priority=2&$args") : w\doSay(t('Success!'), 'ok');
+    return $priority == 1 ? w\go("/prox/page=Proxy&priority=2&$args") : w\doSay(t('Success!'), 'ok');
   } elseif ($mya->proxy(1+2 - $priority)) { // do we already have the other proxy?
-//    return r\go($mya->ok ? '/settings/proxies' : 'status');
+//    return w\go($mya->ok ? '/settings/proxies' : 'status');
   } else say('proxy to go');
 
-  return r\go('/settings/proxies', 'info saved');
+  return w\go('/settings/proxies', 'info saved');
 }
 
 /**

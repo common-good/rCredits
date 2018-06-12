@@ -82,7 +82,7 @@ function formVideos($form, &$sta) {
   return cgform($form);
 }
 
-function formUser($form, &$sta) {return \user_login($form, $sta);} // called from r\go() in Summary
+function formUser($form, &$sta) {return \user_login($form, $sta);} // called from w\go() in Summary
 
 /**
  * Recalculate risk.
@@ -116,7 +116,7 @@ function formRerisk($form, &$sta, $type = '', $id = '', $show = FALSE) {
   </table>
 EOF;
   say($showRiskCalc);
-  r\go("sadmin/$type-info/$id", t('info saved'));
+  w\go("sadmin/$type-info/$id", t('info saved'));
 }
 
 /**
@@ -294,7 +294,7 @@ function formAccounts($form, &$sta) {
 function formAccounts_submit($form, &$sta) {
   extract(just('op acct_account', $sta['input']));
   $op = op($sta);
-  if ($op == 'Menu') return r\go('menu'); 
+  if ($op == 'Menu') return w\go('menu'); 
 }
 
 /**
@@ -315,7 +315,7 @@ function changeWho($args = '') {
 //  if (isDEV) $page = str_replace(DEV_ROOT, '', @$page);
   $page = str_replace(',', '/', @$page);
   
-  r\go($mya->cAdmin ? $page : 'summary'); // go to summary, unless admin
+  w\go($mya->cAdmin ? $page : 'summary'); // go to summary, unless admin
 }
 
 /**
@@ -358,9 +358,9 @@ function formSystemDown($form, &$sta) {return array('zot' => item(t('system down
  * Pay or charge a nonmember (continued from Charge page)
  */
 function formTxNonmember($form, &$sta, $args = '') {
-  if (!$args or !$info = unserialize(u\deurlify($args))) return r\go('', t('Url Error'), 'err');
+  if (!$args or !$info = unserialize(u\deurlify($args))) return w\go('', t('Url Error'), 'err');
   extract($info = just('who amount goods purpose', $info));
-  if (count($info) != 4) return r\go('', t('Url Error'), 'err');
+  if (count($info) != 4) return w\go('', t('Url Error'), 'err');
   
   $title = t('Invoice a Non-member');
   $subtext = t('Sending an invoice to %email (%amount for %purpose)', 'email amount purpose', $who, u\fmtAmt($amount), $purpose);
@@ -395,31 +395,21 @@ function formEmpty($form, &$sta = '', $args = '') {
 }
 
 /**
- * Show an error or success message on the Pay-with-CG page.
- * @param string $msg: message to show
- * @param mixed $info: '' or 'err' (in which case show just the message) or assoc of parameters (allows retry)
- */
-function buySay($msg, $info) {
-  list ($code, $info) = is_array($info) ? [r\makeDoCode($info), 'err'] : ['done', $info];
-  return r\go("pay-with-cg/$code", $msg, $info);
-}
-
-/**
  * Return a one-use auth code
  */
 function authcode() {
   extract($args = just('company cocode', $_GET));
   if (!@$cocode or !u\isQid(@$company) or !($co = r\acct($company)) or !$co->co or $co->emailCode != $cocode) exit(t('bad company account ID or cocode'));
   $now = time();
-  exit(u\cry('P', u\randomString(1) . $cocode));
+  exit(substr(u\cry('P', u\randomString(1) . serialize(compact('cocode', 'now'))), 2));
 }
 
 /**
  * Certify that a business is indeed a Common Good participant.
  */
 function formCgBiz($form, &$sta, $id) {
-  if (!@$id or !$a = r\acct(strtoupper($id)) or !$a->ok) return r\go('', t('That is not a %PROJECT Business.'));
-  r\go('member/' . $a->name, t('<big><b>%fullName</b> is a %PROJECT Business since %activated.</big> For more information about Common Good, <%a>click here</a>.', 'fullName activated _a', $a->fullName, u\fmtDate($a->activated), atag(r\promoLink(''))));
+  if (!@$id or !$a = r\acct(strtoupper($id)) or !$a->ok) return w\go('', t('That is not a %PROJECT Business.'));
+  w\go('member/' . $a->name, t('<big><b>%fullName</b> is a %PROJECT Business since %activated.</big> For more information about Common Good, <%a>click here</a>.', 'fullName activated _a', $a->fullName, u\fmtDate($a->activated), atag(r\promoLink(''))));
 }
 
 //function toggler($sel) {return w\attrib(['onclick' => "$('$sel').toggle(this.checked)"]);}
@@ -512,45 +502,18 @@ function formBasic_validate($form, &$sta, $co = 'mya', $fields = R_BASIC_FIELDS)
  */
 function formShowDeposits($form, &$sta) {
   global $mya;
-  if (!$mya or $mya->id != r\cgfId()) return r\go('empty', t('You are not authorized to view that page.'));
+  if (!$mya or $mya->id != r\cgfId()) return w\softErr(t('You are not authorized to view that page.'));
   include_once __DIR__ . '/../admin/admin-forms.inc';
   return w\formDeposits($form, $sta);
 }
 
 /**
- * Show a page when someone scans an account ID QR, for example with QRDroid.
- * Cases:
- *   Curious about someone's card (not signed in, scanned person) also give a link to the promo site
- *   Agent looking at a business (signed in, scanned company) - show Site button (to company's rCredits page)
- *   Person looking at a business (signed in, scanned company) - show Site button on the Pay page (NYI)
- 
- UNUSED:
- *   Scanning in (not signed in, scanned agent)
- *   Signing in (not signed in, scanned person) - show login page with account ID filled in
- *   Agent charging a customer (signed in, scanned any) - show photo and Charge button
- *   Agent paying someone (signed in, scanned any) - show Pay button
- *   Person paying someone (signed in, scanned any) - go to Pay page
-
- * @param string $who: the part of a scanned rCard's QR code after the domain and '/I/':
- *   the account's qid tail, then "." (pro se) or "-" (agent), then an rCard security code:
- *   must match the cardCode (for pro se) or cardCode2 (for agent) stored in the account's secure field.
+ * Show a page when someone scans an Common Good not with the CGPay app, for example with QRDroid.
+ * RC4.ME and RC2.ME must do some interpretation and redirection (NYI on those sites)
  */
 function formI($form, &$sta, $who = '') {
-  /*
-  $parts = preg_split('/(' . R_MARKS . ')/', $who, 0, PREG_SPLIT_DELIM_CAPTURE);
-  $count = count($parts);
-  
-  if ($count == 3) { // new format: DEF.whatever or DEF-whatever (agent)
-    list ($tail, $mark, $code) = $parts;
-    $region = R_SERVER_ID;
-    if ($mark == R_AGENT_URL_MARK and $qo = r\qo($region . $tail) and $info = r\relation('main,other', $qo->id)) {
-      extract($info);
-      $a = r\acct($main, $other);
-      if ($a and $a->co) return r\go("member/$a->name");
-    }
-  } 
-  */
-  return r\go(r\promoLink(''));
+  $a = r\acct($who);
+  return w\go(($a and $a->co) ? "member/$a->name" : r\promoLink(''));
 }
 
 /**

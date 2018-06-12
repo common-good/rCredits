@@ -51,7 +51,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Bank AMemberAsksToDoTwoTransfersOutInOneDay
  *     MAKE Coupons AMemberRedeemsAGiftCoupon
  *     MAKE Coupons AMemberRedeemsADiscountCouponForADollarAmount
- *     MAKE EditTx AMemberConfirmsOKForADisputedTransaction
  *     MAKE Exchange AMemberAsksToChargeAnotherMember
  *     MAKE Exchange AMemberAsksToPayAnotherMember
  *     MAKE Exchange AMemberAsksToCashOutTooMuch
@@ -61,8 +60,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Joint AJoinedAccountSlaveMemberRequestsANewMinimum
  *     MAKE Membership AMemberSignsInForTheFirstTime
  *     MAKE Preferences AMemberChangesPreferences
- *     MAKE Reimburse AMemberAsksToChargeAnotherMember
- *     MAKE Reimburse AMemberAsksToPayAnotherMember
  *     MAKE Signin AMemberAsksForANewPasswordForUsername
  *     MAKE Signin AMemberAsksForANewPasswordForAccountID
  *     MAKE Signin AMemberAsksForANewPasswordForEmail
@@ -102,9 +99,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Joint AMemberRequestsAJointAccount
  *     MAKE Membership AMemberSignsInForTheFirstTime
  *     MAKE PartnerSignup ANewbieVisitsTheRegistrationPageSentByAPartner
- *     MAKE Reimburse AMemberConfirmsRequestToChargeAnotherMember
- *     MAKE Reimburse AMemberConfirmsRequestToPayAnotherMember
- *     MAKE Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
  *     MAKE Signin AMemberSignsInWithUsernameOnTheMemberSite
  *     MAKE Signin AMemberSignsInWithAccountIDOnTheMemberSite
  *     MAKE Signin AMemberSignsInWithEmailOnTheMemberSite
@@ -133,7 +127,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Transact AMemberConfirmsRequestToPayAnotherMember
  *     MAKE Transact AMemberConfirmsRequestToPayAnotherMemberALot
  *     MAKE Transact AMemberConfirmsRequestToPayAMemberCompany
- *     MAKE Transact AMemberLeavesGoodsBlank
  */
 function memberConfirmsFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values, TRUE);}
 
@@ -198,7 +191,6 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     MAKE PartnerSignup AMemberVisitsTheRegistrationPageSentByAPartner
  *     MAKE Preferences Setup
  *     TEST Preferences AMemberChangesPreferences
- *     MAKE Reimburse Setup
  *     MAKE Relations Setup
  *     MAKE ScanCard Setup
  *     MAKE Signin Setup
@@ -231,7 +223,6 @@ function members($list) {return t\members($list);}
  *     MAKE EditTx Setup
  *     MAKE EditTx ABuyerDisputesACharge
  *     MAKE EditTx ASellerReversesACharge
- *     MAKE EditTx AMemberConfirmsOKForADisputedTransaction
  *     MAKE Exchange Setup
  *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
  *     TEST Flow AMemberDraws
@@ -245,10 +236,6 @@ function members($list) {return t\members($list);}
  *     MAKE Joint AJoinedAccountMemberUnjoinsTheAccount
  *     MAKE Preferences Setup
  *     MAKE Preferences AMemberChangesPreferences
- *     MAKE Reimburse Setup
- *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
- *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
- *     MAKE Relations Setup
  *     MAKE Statement Setup
  *     MAKE Summary Setup
  *     MAKE Summary AMemberClicksTheSummaryTabWithRoundups
@@ -270,7 +257,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Bank AMemberMovesTooMuchToTheBank
  *     TEST Bank AMemberAsksToDoTwoTransfersOutInOneDay
  *     TEST EditTx ABuyerTriesToDecreaseAPaymentAmount
- *     TEST EditTx AMemberConfirmsOKForADisputedTransaction
  *     TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
  *     TEST Exchange AMemberAsksToCashOutTooMuch
@@ -282,9 +268,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Joint AMemberRequestsTwoJoinsAtOnce
  *     TEST PartnerSignup ANewbieVisitsTheRegistrationPageSentByAPartner
  *     TEST PartnerSignup AMemberVisitsTheRegistrationPageSentByAPartner
- *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
- *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
- *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
  *     TEST Relations AMemberAddsARelation
  *     TEST Signin AMemberAsksForANewPasswordForACompany
  *     TEST Signup AMemberRegistersBadName
@@ -293,7 +276,6 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
- *     TEST Transact AMemberLeavesGoodsBlank
  */
 function weSayWithSubs($type, $index, $subs) {
   global $testOnly, $testJSMsgs;
@@ -407,15 +389,7 @@ function weShow($what, $show = TRUE) {return t\weShow($what, $show);}
 /**
  * we show (ARG) with subs: (ARG)
  *
- * in: TEST EditTx ABuyerDisputesACharge
- *     TEST EditTx ASellerReversesACharge
- *     TEST Exchange AMemberAsksToChargeAnotherMember
- *     TEST Exchange AMemberAsksToPayAnotherMember
- *     TEST Reimburse AMemberAsksToChargeAnotherMember
- *     TEST Reimburse AMemberAsksToPayAnotherMember
- *     TEST Transact AMemberAsksToChargeAnotherMemberForGoods
- *     TEST Transact AMemberAsksToPayAnotherMemberForGoods
- *     TEST Transact AMemberAsksToPayAnotherMemberForLoanreimbursement
+ * in: 
  */
 function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
 
@@ -529,7 +503,6 @@ function withoutOptions($options) {
  *     MAKE Membership Setup
  *     TEST PartnerSignup ANewbieVisitsTheRegistrationPageSentByAPartner
  *     TEST PartnerSignup AMemberVisitsTheRegistrationPageSentByAPartner
- *     MAKE Reimburse Setup
  *     MAKE Relations MemberHasAnEmployeeConfirmed
  *     MAKE Relations MemberHasAnEmployeeUnconfirmed
  *     MAKE Relations MemberHasARelationWithAContractor
@@ -578,11 +551,6 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Joint Setup
  *     TEST Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     TEST Joint AJoinedAccountMemberUnjoinsTheAccount
- *     TEST Reimburse Setup
- *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
- *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
- *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
- *     TEST Relations Setup
  *     TEST SignupCo AMemberRegistersACompany
  *     TEST Statement Setup
  *     TEST Summary Setup
@@ -797,8 +765,6 @@ function memberOnetimePasswordIs($id, $pass) {
  *     TEST Exchange AMemberConfirmsRequestToPayAnotherMember
  *     TEST Gift AMemberDonates
  *     TEST Invoice AMemberDeniesAnInvoice
- *     TEST Reimburse AMemberConfirmsRequestToPayAnotherMember
- *     TEST Reimburse AMemberRepaysSomeoneDrawingFromAnotherAccount
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
  */
@@ -1032,7 +998,6 @@ function devices($list) {return t\devices($list);}
  *     TEST Invoice AMemberApprovesAnInvoiceWithInsufficientFunds
  *     TEST Invoice AMemberApprovesInvoicesForevermore
  *     TEST Invoice AMemberApprovesAnInvoiceToATrustingCustomer
- *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  */
 function invoices($list) {return t\invoices($list);}
@@ -1225,7 +1190,6 @@ function memberConfirmsOnTransaction($id, $do, $xid) {
  * in: TEST Exchange AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Invoice AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Invoice AMemberConfirmsRequestToChargeANotyetMember
- *     TEST Reimburse AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Signup ANewbieRegistersWithAnUnconfirmedIcardInvitation
  *     TEST Signup ANewbieRegistersWithAnUnconfirmedSelfinvitation
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
@@ -1389,3 +1353,24 @@ function someonePostsToPageWith($page, $args) {return t\postToPage($page, $args)
  *     TEST Coupons AMemberRedeemsADiscountCouponForADollarAmount
  */
 function coupons($list) {return t\coupons($list);}
+
+/**
+ * we scrip (ARG) with subs: (ARG)
+ *
+ * in: TEST EditTx ABuyerDisputesACharge
+ *     TEST EditTx ASellerReversesACharge
+ *     TEST Exchange AMemberAsksToChargeAnotherMember
+ *     TEST Exchange AMemberAsksToPayAnotherMember
+ *     TEST Transact AMemberAsksToChargeAnotherMemberForGoods
+ *     TEST Transact AMemberAsksToPayAnotherMemberForGoods
+ *     TEST Transact AMemberAsksToPayAnotherMemberForLoanreimbursement
+ */
+function weScripWithSubs($script, $args = []) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  global $scriptScraps;
+  if (!isset($scriptScraps[$script])) return FALSE;
+  $args = $args[0];
+  $got = just(array_keys($args), $scriptScraps[$script]);
+  foreach ($args as $k => $v) if (!t\eq(@$got[$k], $v)) return FALSE;
+  return TRUE;
+}
