@@ -97,7 +97,7 @@ Scenario: We calculate risks
   | id   | risks |*
   | .ZZA | adminOk,trusted,geography,badConx,moreOut,big7Week |
   | .ZZB | trusted,socialConx,moves,rents,moreIn,moreOut |
-  | .ZZC | cashCo,homeCo,miser,bigDay,bigWeek,big7Week |
+  | .ZZC | cashCo,homeCo,miser,bigDay |
   | .ZZD | trusted,hasBank |
   | .ZZE | new,shady,poBox,moreIn |
   | .ZZF | miser,photoOff,bigDay,bigWeek |

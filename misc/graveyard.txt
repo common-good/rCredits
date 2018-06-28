@@ -1,5 +1,42 @@
 _____________________________________________
 
+//    say('your account is ready');
+//    $region = strtolower(R_SERVER_ID);
+  // @todo: try this 2 or 3 times (in case someone else was trying to register the same name       // NO. Do this upon completion of steps      say('must be confirmed', ['inviterName' => $h->fullName]);
+/*    svar('myid', $myid);
+    setAcct($myid, TRUE); // be signed in (must be outside $DBTX transaction)
+  */  
+_____________________________________________
+
+//    u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
+//  	if ($field == 'ssnData' and $result) $result = @unserialize($result);
+    
+//    if ($field == 'raw') return $result;
+//    if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
+//    if ($field == 'hasPhoto') return $this->photo or file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE));
+//    if ($field == 'photo') return $result ? u\decrypt($result) : '';
+//    $a->co ? file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE)) : 
+//      return $a->co ? @file_get_contents(DRUPAL_ROOT . $this->photoFilename(TRUE)) :
+//      if ($field == 'changes') self::$rs[$a->id]->rawChanges = $result;
+_____________________________________________
+
+      ajaxRet(ray('who confirm isNonprofit', $whoA->mainQid, t($question, 'name amount', $whoA->fullName, $amtDpy), $whoA->isCtty or $whoA->coCan(CO_NONPROFIT)));
+_____________________________________________
+
+  // table r_notes (NO. use users fields instead)
+/*  $fields = array(
+    'id' => dbFld(t('record id'), 'serial big'),
+    'uid' => dbFld(t('id of account the note is about'), 'int big'),
+    'agent' => dbFld(t('id of account for the note writer'), 'int big'),
+    'tickle' => dbFld(t('Unixtime to tickle an admin about this note (or negative the date/time completed)'), 'int 11'),
+    'created' => dbFld(t('Unixtime record was created'), 'int 11'),
+  );
+  $foreignKeys = [];
+  $indexes = [];
+  $schema['r_notes'] = dbTable('notes about accounts'), $fields, 'id', $foreignKeys, $indexes);
+  */
+_____________________________________________
+
 //  if ($confirm = sureForm($sta)) return $confirm;
 //  $type = $args === '' ? basename(current_path()) : basename(dirname(current_path())); // pay, charge, etc.
 //  $role = in($type, 'charge fine') ? 'payee' : 'payer';

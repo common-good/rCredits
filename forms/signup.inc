@@ -98,7 +98,7 @@ EOF
 //Opening a %PROJECT Account is very much like opening an online bank account. After this long signup page there are <%b>some short steps</b> we will guide you through. If you need help, please don't hesitate to ask (<%a>click here to send us an email</a>).
   
   if ($personal) {
-    $acctType = hidFld(R_PERSONAL);
+    $acctType = hidFld(CO_PERSONAL);
 //    $pin = passFld(t('PIN:'), [t('Choose a PIN (any 4 digits)'), t('Your security code for online purchases.')]); // first time logging in, get PIN
     $calling = textFld(t('Life Calling:'), [t('Your calling in life (optional)'), t('One of the main purposes of %PROJECT is to provide you the opportunity to do what you feel called to do in life. What would bring you joy to do, to earn %RCREDITS (maybe something you\'re not doing yet)? What might you have to offer?')]);
     $companyOptions = array(
@@ -117,7 +117,10 @@ EOF
     );
     $companyInfo = fieldSet('companyInfo', $companyInfo, BARE);
   } else { // company
-    $acctType = w\acctTypeField();
+    $coTypes = ray(CO_TYPES);
+    unset($coTypes[CO_PERSONAL]);
+    $acctType = radiosFld(t('Account type:'), '', required(), $coTypes);
+    // if custodian, subtype field should appear with all these same choices: $custodianFor = ...
   }
 
 //  $buysAts = db\q('SELECT id, company FROM r_nonmembers')->fetchAllKeyed();
@@ -150,11 +153,11 @@ function formSignup_validate($form, &$sta) {
   //and @$code != bin2hex(R_WORD)
 
   \variable_set('signupData', ray('time phone state companyOptions', time(), @$phone, @$state, @$companyOptions));
-  if (!emailOkay($email, $acctType != R_PERSONAL, @$myid ? r\acct($myid) : '')) return;
+  if (!emailOkay($email, $acctType != CO_PERSONAL, @$myid ? r\acct($myid) : '')) return;
   if (!phoneOk($phone, $country)) return;
   if ($err = u\badZip($zip)) return say($err, 'zip');
   if (!@$state) return say('bad state', 'state');
-  if (!formBasic_validate($form, $sta, $acctType != R_PERSONAL)) return;
+  if (!formBasic_validate($form, $sta, $acctType != CO_PERSONAL)) return;
   if ($err = u\badAmount($tenure, '>=0')) return say(t('How-long: ') . t($err), 'tenure');
 //  if (@$pin === '') return say('pin required', 'pin');
 //  if (@$pin and strlen($pin) != 4) return say('wrong pin len', 'pin');
@@ -179,7 +182,7 @@ function formSignup_validate($form, &$sta) {
   }
   if (u\poAddress($address)) return say('po in location', 'address');
 
-  $flags = $acctType == R_PERSONAL ? 0 : u\bit(B_CO);
+  $flags = $acctType == CO_PERSONAL ? 0 : u\bit(B_CO);
   if (@$confirmed) $flags |= u\bit(B_CONFIRMED); // companies are always pre-confirmed, because the company account is opened by a member
 //  $administer_users = FALSE; // for testing (keep Drupal from griping)
   $status = 1;
@@ -201,7 +204,8 @@ function formSignup_submit($form, &$sta) {
   if (@$notes) list ($source, $notes) = [trim("$notes $source"), ''];
   if (@$source2) $source = trim(strtoupper($source2) . "-$source");
 
-  $info = compact(ray($dbFields)) + acctType($acctType);
+  $info = compact(ray($dbFields));
+  if ($acctType != CO_PERSONAL) $info += ray('coType', $acctType);
   
 //  $DBTX = \db_transaction();
 
@@ -236,10 +240,16 @@ function formSignup_submit($form, &$sta) {
 
   $pw1 = $mya->oneTimePass($name, TRUE);
   
-  if ($acctType == R_PERSONAL) {
-//    say('your account is ready');
-//    $region = strtolower(R_SERVER_ID);
-  // @todo: try this 2 or 3 times (in case someone else was trying to register the same name
+  if ($mya->co) {
+    say('company is ready', compact('qid'));
+    //if (@$helper) $qid = r\qid($helper); // "if" for dev faked code HUH?
+    if (!@$h) hack('company no helper');
+    if ($mya->email == $h->email) {
+      $mya->stepDone('verify');
+    } else r\notify($myid, 'verifyCo', ['code' => $pw1], TRUE); 
+    return w\goNextStep('signup');  
+  } else { // non-personal company (no independent login)
+
     r\notify($myid, 'verify', ray('name qid code', $name, $qid, $pw1), TRUE); 
 
     if (!@$confirmed) {
@@ -248,24 +258,12 @@ function formSignup_submit($form, &$sta) {
         $_a1 = $h->makeDo('confirmInvite', $myid); // link to confirm invitedness
         r\message($helper, 'confirm invite', compact('_a1', 'fullName')); // ask inviter to confirm
       }
-       // NO. Do this upon completion of steps      say('must be confirmed', ['inviterName' => $h->fullName]);
     }
     
-/*    svar('myid', $myid);
-    setAcct($myid, TRUE); // be signed in (must be outside $DBTX transaction)
-  */  
     $sta2['uid'] = $myid; // tell Drupal we're signed in
     $nextStepUrl = $mya->nextStepUrl('signup', $msg);
     say($msg);
-    formSignin_submit($form, $sta2, $nextStepUrl); // lead user to next step  
-  } else { // non-personal company (no independent login)
-    say('company is ready', compact('qid'));
-    //if (@$helper) $qid = r\qid($helper); // "if" for dev faked code HUH?
-    if (!@$h) hack('company no helper');
-    if ($mya->email == $h->email) {
-      $mya->stepDone('verify');
-    } else r\notify($myid, 'verifyCo', ['code' => $pw1], TRUE); 
-    return w\goNextStep('signup');
+    formSignin_submit($form, $sta2, $nextStepUrl); // lead user to next step 
   } 
 }
 

@@ -818,6 +818,7 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_ballots:proxy',
   // r_banks
     'r_boxes:uid:D',
+		'r_company:uid:D',
   // r_countries
     'r_coupated:uid',
     'r_coupons:fromId',
@@ -849,7 +850,7 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_relations:other:D',
   // r_request
   // r_states
-  // r_shares:clubid',
+  // r_shares',
     'r_stakes:uid',
     'r_stakes:clubid',
     'r_stats:ctty:D',
@@ -862,12 +863,12 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_usd:payee',
     'r_user_industries:uid:D',
   // r_votes
+    'sessions:uid:D',
     'users:jid',
     'users:uid:D',
     'users:helper',
     'users:community',
   );
-  foreach (ray(DRUPAL_UID_TABLES) as $one) $subs[] = "$one:uid";
 
   $DBTX = \db_transaction();
   foreach ($subs as $one) {
@@ -1477,11 +1478,11 @@ function handleInvestmentRequest($stakeid, &$msg) {
   $stake += $request;
   
   $DBTX = \db_transaction();
-  list ($index, $subs) = $a->pay($clubA, $request, t('investment'), ray('investment goods', 1, FOR_USD));
+  list ($index, $subs) = $a->pay($clubA, $request, t('investment'), ray('stake goods', 1, FOR_USD));
   $msg = t($index, $subs);
   if ($ok = $subs['success']) {
     db\update('r_stakes', ray('stakeid stake request', $stakeid, $stake, 0), 'stakeid');
-    $msg .= t('Your investment in %clubName has been successfully increased to %stake.', 'clubName stake', $clubA->fullName, u\fmtAmt($stake));
+    $msg .= t('Your investment in %clubName has been successfully increased by %request.', 'clubName request', $clubA->fullName, u\fmtAmt($request));
   }
   unset($DBTX);
   return $ok;

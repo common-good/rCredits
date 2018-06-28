@@ -341,10 +341,11 @@ function formMakeCtty_submit($form, &$sta) {
   $rebate = 0;
   $country = R_COUNTRY_ID;
   $region = r\qo("!$region")->id;
-  $fields .= ' zip flags rebate region address state country';
+  $type = CO_PARTNERSHIP;
+  $fields .= ' zip flags rebate region address state country type';
 
   $DBTX = \db_transaction();
-  $info = compact(ray($fields)) + acctType(CO_PARTNERSHIP);
+  $info = compact(ray($fields));
   
   if (!$a = new r\Acct($info)) return say('cannot create account', 'zot');
   $a->update('community', $a->id);
@@ -923,6 +924,9 @@ function formSMS_submit($form, $sta) {
   \rsms_sms_incoming('process', $number, $message);
 }
 
+/**
+ * Run acceptance tests.
+ */
 function test($arg = '') {
   \drupal_get_messages(); // clear messages
   $modules = u\prefixValues('rcredits/', ray('admin rweb rcron rsmart'));
@@ -946,7 +950,10 @@ function test($arg = '') {
  * Delete an account (superAdmin only)
  * @param int $uid: account to delete
  */
-function deleteAccount($uid) {r\deleteAccount($uid);} // does not return
+function deleteAccount($uid) {
+	r\deleteAccount($uid);
+	return w\go('/sadmin/followup');
+}
 
 function util($arg) {
 //  if ($arg == 'modal') drupal_goto('modal');

@@ -20,11 +20,11 @@ function tableDefs($schema = []) {
   require_once 'cg.inc'; // Drupal bug. hook_schema needs these explicit, both uninstalling and installing.
   require_once 'cg-settings.inc';
   require_once 'cg-util.inc';
+
   // fix uid size in all Drupal tables
-  foreach (ray(DRUPAL_UID_TABLES) as $table) {
-    $desc = @$schema[$table]['fields']['uid']['description'] ?: 'users record id';
-    $schema[$table]['fields']['uid'] = dbFld($desc, 'int big');
-  }
+  $table = 'sessions';
+  $desc = @$schema[$table]['fields']['uid']['description'] ?: 'users record id';
+  $schema[$table]['fields']['uid'] = dbFld($desc, 'int big');
   
   // table users
   $fields = array(
@@ -114,18 +114,24 @@ function tableDefs($schema = []) {
   $indexes = [];
   $schema['r_photos'] = dbTable(t('one photo for each account'), $fields, 'uid', $foreignKeys, $indexes);
 
-  // table r_notes (NO. use users fields instead)
-/*  $fields = array(
-    'id' => dbFld(t('record id'), 'serial big'),
-    'uid' => dbFld(t('id of account the note is about'), 'int big'),
-    'agent' => dbFld(t('id of account for the note writer'), 'int big'),
-    'tickle' => dbFld(t('Unixtime to tickle an admin about this note (or negative the date/time completed)'), 'int 11'),
-    'created' => dbFld(t('Unixtime record was created'), 'int 11'),
+  // table r_company
+  $fields = array(
+    'uid' => dbFld(t('account record ID'), 'serial big'),
+    'coType' => dbFld(t('type of entity'), 'int tiny'),
+    'website' => dbFld(t('company website domain'), 'text tiny'),
+    'description' => dbFld(t('long markdown description'), 'text medium'),
+    'shortDesc' => dbFld(t('one line description'), 'text tiny'),
+    'selling' => dbFld(t('list of typical transaction descriptions'), 'text medium'),
+    'coFlags' => dbFld(t('miscellaneous flag bits'), 'int big', 0, TRUE),
+    'gross' => dbFld(t('average annual gross receipts'), 'numeric 11,2', 0),
+    'serviceArea' => dbFld(t('geographic region the company serves'), 'text tiny'),
+    'employees' => dbFld(t('number of employees'), 'int 11', 0),
+    'payrollStart' => dbFld(t('Unixtime date last payroll started'), 'int 11', 0),
+    'payrollEnd' => dbFld(t('Unixtime date last payroll ended'), 'int 11', 0),
   );
-  $foreignKeys = [];
+  $foreignKeys = foreignKey('uid');
   $indexes = [];
-  $schema['r_notes'] = dbTable('notes about accounts'), $fields, 'id', $foreignKeys, $indexes);
-  */
+  $schema['r_company'] = dbTable(t('Companies'), $fields, 'uid', $foreignKeys, $indexes);
   
   // table queue
   $fields = array(
@@ -326,14 +332,15 @@ function tableDefs($schema = []) {
   // table r_stakes
   $fields = array(
     'stakeid' => dbFld(t('record ID'), 'serial big'),
-    'uid' => dbFld(t('member record ID'), 'int big'), 
-    'clubid' => dbFld(t('investment club record ID'), 'int big'), 
+    'uid' => dbFld(t('member record ID'), 'int big', 0), 
+    'clubid' => dbFld(t('investment club record ID'), 'int big', 0), 
     'stake' => dbFld(t('member stake in the club'), 'numeric 11,2', 0),
     'request' => dbFld(t('request to change stake by this amount'), 'numeric 11,2', 0),
-    'joined' => dbFld(t('when this member joined the club'), 'int big'),
+    'joined' => dbFld(t('when this member joined the club'), 'int 11', 0),
+    'requestedOut' => dbFld(t('when this member last requested cash out'), 'int 11', 0),
   );
   $foreignKeys = foreignKey('uid') + foreignKey('clubid');
-  $indexes = index('uid');
+  $indexes = index('uid') + index('requestedOut');
   $schema['r_stakes'] = dbTable(t('member stakes in an investment club'), $fields, 'stakeid', $foreignKeys, $indexes);
   
   // table r_shares
@@ -342,7 +349,7 @@ function tableDefs($schema = []) {
     'vestid' => dbFld(t('investment record ID'), 'int'), 
     'shares' => dbFld(t('club shares in the investment bought or (if <0) sold'), 'int 11', 0), 
     'pending' => dbFld(t('number of shares to buy or (if <0) sell ASAP'), 'int 11', 0),
-    'whefn' => dbFld(t('Unixtime investment made'), 'int 11'),
+    'when' => dbFld(t('Unixtime investment made'), 'int 11'),
 //    'sold' => dbFld(t('Unixtime investment totally sold'), 'int 11'),
   );
   $foreignKeys = foreignKey('vestid');
@@ -357,6 +364,7 @@ function tableDefs($schema = []) {
     'proposedBy' => dbFld(t('account record ID of proposer'), 'int big'),
     'investment' => dbFld(t('description of investment'), 'text medium'),
     'return' => dbFld(t('predicted or actual APR'), 'numeric 10,3'), // see flags
+    'types' => dbFld(t('D=dividends I=interest T=tax-exempt interest'), 'varchar 4'),
     'terms' => dbFld(t('investment terms'), 'text'),
     'assets' => dbFld(t('company assets, bond, or collateral'), 'numeric 11,2'), 
     'offering' => dbFld(t('size of offering'), 'numeric 11,2'), 

@@ -57,6 +57,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Flow AMemberOverdrawsWithNotEnoughToDrawOn
  *     MAKE Gift AMemberDonates
  *     MAKE Gift AMemberDonatesWithInsufficientFunds
+ *     MAKE Invest AMemberJoinsTheInvestmentClub
  *     MAKE Joint AJoinedAccountSlaveMemberRequestsANewMinimum
  *     MAKE Membership AMemberSignsInForTheFirstTime
  *     MAKE Preferences AMemberChangesPreferences
@@ -182,6 +183,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     MAKE Exchange Setup
  *     MAKE Flow Setup
  *     MAKE Gift Setup
+ *     MAKE Invest Setup
  *     MAKE Invoice Setup
  *     MAKE Joint Setup
  *     MAKE Membership Setup
@@ -368,7 +370,8 @@ function weTellAdminWithSubs($topic, $subs) {return t\weTellAdmin($topic, $subs)
 /**
  * we show (ARG)
  *
- * in: TEST Membership AMemberSignsInForTheFirstTime
+ * in: TEST Invest AMemberJoinsTheInvestmentClub
+ *     TEST Membership AMemberSignsInForTheFirstTime
  *     TEST PartnerSignup ANewbieVisitsTheRegistrationPageSentByAPartner
  *     TEST Signin AMemberSignsInWithUsernameOnTheMemberSite
  *     TEST Signin AMemberSignsInWithAccountIDOnTheMemberSite
@@ -403,6 +406,7 @@ function weShowWithSubs($page, $subs) {return t\weShowWithSubs($page, $subs);}
  *     TEST EditTx ABuyerChangesTheTransactionDescription
  *     TEST EditTx ABuyerDisputesACharge
  *     TEST EditTx ASellerReversesACharge
+ *     TEST Invest AMemberJoinsTheInvestmentClub
  *     TEST Invoice AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Invoice AMemberConfirmsRequestToChargeANotyetMember
  *     TEST Joint AMemberRequestsAJointAccount
@@ -582,6 +586,7 @@ function usd($list) {return t\usd($list);}
  *     MAKE EditTx ABuyerChangesTheTransactionDescription
  *     MAKE EditTx ABuyerDisputesACharge
  *     MAKE EditTx ASellerReversesACharge
+ *     MAKE Invest AMemberJoinsTheInvestmentClub
  *     MAKE Invoice AMemberConfirmsRequestToChargeAnotherMember
  *     MAKE Invoice AMemberConfirmsRequestToChargeANotyetMember
  *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary

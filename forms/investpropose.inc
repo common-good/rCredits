@@ -7,7 +7,7 @@ use CG\Util as u;
 use CG\Db as db;
 
 define('INVEST_COFLDS', 'fullName city serviceArea dob gross'); // investment flds in users table
-define('INVEST_FLDS', 'clubid investment offering price return terms assets character strength web history soundness'); // investment flds in r_investments
+define('INVEST_FLDS', 'clubid investment offering price return types terms assets character strength web history soundness'); // investment flds in r_investments
 define('INVEST_ALLFLDS', 'company ' . INVEST_COFLDS . ' bizCats ' . INVEST_FLDS);
 
 /**
@@ -30,6 +30,7 @@ function formInvestPropose($form, &$sta, $args = '') {
   $offering = textFld(t('Offering size:'), [t('Offering size'), t('Total size of offering, in dollars')], required());
   $price = textFld(t('Share price:'), [t('Price per share')], required());
   $return = textFld(t('Return:'), [t('Predicted APR')], required() + suffix('%'));
+  $types = textFld(t('Types:'), [t('Type codes'), t('D=dividends I=interest T=tax-exempt interest')], required());
   $terms = areaFld(t('Terms:'), [t('Terms of the investment'), t('Minimum investment, minimum length of time, and any other details about the deal.')], required());
   $assets = textFld(t('Company assets:'), [t('Company assets'), t('Company assets, bond, or collateral (dollar value)')], required());
   $character = textFld(t('Owner character:'), [t('Character of owners'), t('What is your assessment of the integrity and determination of the owners')], required());

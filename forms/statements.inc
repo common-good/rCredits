@@ -1,6 +1,6 @@
 <?php
 namespace CG\Web;
-use CG as r;
+use CG\Web as w;
 
 /**
  * List the available account statement dates, with links.

@@ -170,17 +170,14 @@ class Acct {
     }
 
     // From here down, everything should be for "own" account
-    $nick = substr($field, 0, 3); // possibly meaningful prefix (ctt if the prefix is ctty)
-    if (in($nick, 'can raw rel') and $field != 'rawChanges') $field = lcfirst(substr($field, 3));
-    if (in($field, REL_FIELDS . ' ' . REL_FLAGS)) $nick = 'rel';
-    if (in($field, B_LIST . ' ' . B_CTTY_BITS)) $nick = 'can';
+    $nick = $a->getNick($field);
     if ($nick == 'can') return $a->can(u\consta('b', $field));
     if ($nick == 'rel') return $a->proSe ? NULL : $a->relFld($field);
+    if ($nick == 'coy') return $a->co ? $a->coFld($field) : NULL;
     if ($nick == 'ctt' and $field != 'cttyA') return $a->cttyA->can(u\consta('b', substr($field, 4))); // ctty bit
-//    if (in($field, REL_FIELDS . ' ' . REL_FLAGS)) return $a->proSe ? NULL : $a->relFld($field);
+    
     if ($field == 'mainQid') return $a->qo->mainQid;
     if ($field == 'isAdmin2') return (bool) ($a->agentA->flags & u\bit(B_ADMIN2)); // not ->can() included by cAdmin etc. (see note in can())
-//    u\EXPECT($field != 'savings', 'tried to get savings field'); // return ($a->rewards + ($a->savingsAdd ?: 0));
     if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decry('P', $a->mail);
     if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decry('P', $ph);
     if ($field == 'phoneDash') return u\fmtPhone($a->phone, '-');
@@ -208,6 +205,7 @@ class Acct {
     if ($field == 'jA') return $a->jid ? r\acct($a->jid) : NULL;
     if ($field == 'masterA') return $a->slave ? $a->jA : $a;
     if ($field == 'helperA') return $a->helper ? r\acct($a->helper) : '';
+		if ($field == 'iclubid') return $a->state == 1020 ? db\get('uid', 'users', ':IS_CO AND (community=:ctty OR 1) AND :IS_ICADMIN', ray('ctty', $a->community)) : NULL; // investment club uid
     if ($field == 'prefsSet') return !is_null($a->o_minimum); // preferences have been set at least once
     if ($field == 'hasCustomers') return db\exists('r_relations', 'main=:id AND :IS_CUSTOMER', ['id' => $a->id]);
     if ($field == 'superAdmin') return ($a->agentId == 1) ?: (u\test() and $a->admin and $a->agentA->name == 'abeone');
@@ -220,30 +218,32 @@ class Acct {
       $result = @self::$rs[$a->id]->$field; // returns NULL if field not set
     } else $result = $a->getSpecial($field); // set up caches for aggregate field and get value
 
-//  	if ($field == 'ssnData' and $result) $result = @unserialize($result);
-    
-//    if ($field == 'raw') return $result;
     if ($nick == 'raw') return $result;
-
-//    if ($field == 'language') return \user_preferred_language((object) ['language' => $result]);
-//    if ($field == 'hasPhoto') return $this->photo or file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE));
-//    if ($field == 'photo') return $result ? u\decrypt($result) : '';
-
     if ($field == 'hasPhoto') return db\exists('r_photos', 'uid=:id', ['id' => $a->id]);
-//    $a->co ? file_exists(DRUPAL_ROOT . $this->photoFilename(TRUE)) : 
-    
     if ($field == 'photo') return ($result = db\get('photo', 'r_photos', 'uid=:id', ['id' => $a->id])) ? u\decry('H', $result) : '';
-//      return $a->co ? @file_get_contents(DRUPAL_ROOT . $this->photoFilename(TRUE)) :
-
     
     if (in($field, 'data changes secure vsecure') and !is_array($result)) { // special not yet arrayed
       if (!$result) return [];
-//      if ($field == 'changes') self::$rs[$a->id]->rawChanges = $result;
       if ($field != 'data') $result = u\decry('S', $result);
       return (self::$rs[$a->id]->$field = unserialize($result));
     }
 
     return $result;
+  }
+
+  /**
+   * Return the 3-character field prefix, if any, and remove it from the field name.
+   */
+  private function getNick(&$field) {
+    $nick = substr($field, 0, 3); // possibly meaningful prefix (ctt if the prefix is ctty)
+    if (in($nick, 'can raw rel coy') and $field != 'rawChanges') {
+      $field = lcfirst(substr($field, 3));
+      return $nick;
+    }
+    if (in($field, REL_FIELDS . ' ' . REL_FLAGS)) return 'rel';
+    if (in($field, CO_FIELDS)) return 'coy';
+    if (in($field, B_LIST . ' ' . B_CTTY_BITS)) return 'can';
+    return $nick;
   }
 
   /**
@@ -279,6 +279,24 @@ class Acct {
     : (bool) array_intersect(ray($fields), ray($specials)));
   }
 
+  /**
+   * Return the value of a company field.
+   */
+  private function coFld($k) {
+    $a = $this;
+    if (!$a->co) return NULL;
+		$subs = ray('uid', $a->id);
+    if (!$info = db\get('*', 'r_company', 'uid=:uid', $subs)) {
+      db\insert('r_company', $subs);
+      return @$subs[$k]; // NULL unless $k is 'uid'
+    } else return $info[$k];
+  }
+  
+  /**
+   * Set one or more company fields
+   */
+  private function setCo($info) {db\update('r_company', $info + ray('uid', $this->id), 'uid', TRUE);}
+  
   /**
    * Return the value of a relationship field for this compound account.
    */
@@ -484,6 +502,7 @@ class Acct {
 
     foreach ($bits = just(B_LIST, $info) as $k => $v) {$a->setBit($k, $v); unset($info[$k]);}
     foreach (just(REL_FIELDS . ' ' . REL_FLAGS, $info) as $k => $v) {$a->setRel($k, $v); unset($info[$k]);}
+    if ($coFlds = just(CO_FIELDS, $info)) {$a->setCo($coFlds); $info = justNOT(CO_FIELDS, $info);}
 
     if ($a->ok) $info += $a->recordChanges(justNOT(B_LIST, $info)); // record changes if member is active
     foreach (just('hasBank', $info) as $k => $v) {$a->setRisk($k, $v); unset($info[$k]);}
@@ -564,7 +583,7 @@ class Acct {
     return compact('changes');
   }
   
-  public function isNonprofit() {return (bool) ($this->coFlags & u\bit(CO_NONPROFIT));}
+//  public function isNonprofit() {return (bool) ($this->coFlags & u\bit(CO_NONPROFIT));}
   
   /**
    * Create a new relationship record for the current account (as "main") relating to some agent.
@@ -1605,10 +1624,11 @@ EOF;
   public function photoHtml($small = FALSE, $unique = FALSE) {
     $a = $this;
     global $base_url;
-    if ($unique) $unique = '/' . r\rTime();
+    if ($unique) $unique = '&t=' . r\rTime();
     $thing = $small ? 'icon' : 'photo';
+		$qid = $a->co ? "qid=$a->mainQid" : '';
 //    if (!$a->co) $qid .= "/$a->cardCode";
-    return '<div id="user-picture"><img src="' . "$base_url/account-photo$unique" . '" alt="profile picture" /></div>';
+    return '<div id="user-picture"><img src="' . "$base_url/account-photo/$qid$unique" . '" alt="profile picture" /></div>';
   }
   
   /**

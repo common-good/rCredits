@@ -45,7 +45,7 @@ function ajax() {
     extract(just('who question amount', $data));
     $amtDpy = u\fmtAmt($amount);
     if (!is_array($whoA = be\identify($who, $myid, stripos(" $question", t(' pay ')) !== FALSE, 'no self-trading'))) {
-      ajaxRet(ray('who confirm isNonprofit', $whoA->mainQid, t($question, 'name amount', $whoA->fullName, $amtDpy), $whoA->isCtty or $whoA->coCan(CO_NONPROFIT)));
+      ajaxRet(ray('who confirm', $whoA->mainQid, t($question, 'name amount', $whoA->fullName, $amtDpy)));
     }
     list ($msg, $args, $choices) = $whoA;
     $message = t($msg, $args);

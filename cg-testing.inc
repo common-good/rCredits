@@ -171,7 +171,7 @@ function doAccount($info = []) {
     $fixFields = 'rebate fullName legalName name pass email secure community zip country postalAddr cardCode cardCode2 ' . $moneyFields;
   } else $fixFields = '';
 
-  if (isset($flags) and isset($acctType) and $acctType !== R_PERSONAL and $acctType != 'personal') $flags .= ',co';
+  if (isset($flags) and isset($acctType) and $acctType !== CO_PERSONAL and $acctType != 'personal') $flags .= ',co';
 
 //  if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
   

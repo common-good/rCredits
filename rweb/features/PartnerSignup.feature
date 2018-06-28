@@ -57,7 +57,7 @@ Scenario: A newbie visits the registration page sent by a partner
   Given next random code is "WHATEVER"
   When member "?" confirms form "signup/reid=.AAA&customer=Abc-12345" with values:
   | fullName | email | phone     | country | zip   | federalId   | dob      | acctType     | address | city   | state | postalAddr          | tenure | owns | helper |*
-  | Abe One  | a@ | 413-253-0000 | US      | 01001 | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | 1 A St. | Agawam | MA    | POB 1, Agawam, MA 01001 |     18 |    1 | .ZZC |
+  | Abe One  | a@ | 413-253-0000 | US      | 01001 | 111-22-3333 | 1/2/1990 | %CO_PERSONAL  | 1 A St. | Agawam | MA    | POB 1, Agawam, MA 01001 |     18 |    1 | .ZZC |
   Then members:
   | id   | fullName | legalName | email | phone        | zip   | country | state | city   | flags     | floor | address | postalAddr               | tenure | owns | helper |*
   | .AAA | Abe One  | Abe One   | a@    | +14132530000 | 01001 | US      | MA    | Agawam |           | 0     |    1 A St. | POB 1, Agawam, MA 01001 |     18 |    1 | .ZZC   |

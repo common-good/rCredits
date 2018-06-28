@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.40u'); // software version
+define('R_VERSION', '3.40w'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -96,8 +96,8 @@ define('US', '<span class="us">us</span>');
 define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty,Vacant Lot,Land,Cinema,Printing & Office Supply,Car Repair,Health Club/Gym,Restaurant,Hardware & Supply,Grocer,Farm,Food Processing,Department Store,Electric Company,Oil Company,Town Government,Community College,Hospital');
 define('R_REGION_FIELDS', 'region,fullName,st,zip,federalId,hasServer');
 define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
-// isGAME ? 'legalName usd toBona autoInvite locus boughtAt lastTx' : 
-define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants giftPot giftCoupons website description shortDesc selling coFlags gross serviceArea employees payrollStart payrollEnd notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx source getAppData appData'); // fields stored in the account's "data" array field (serialized)
+define('CO_FIELDS', 'coType website description shortDesc selling coFlags gross serviceArea employees payrollStart payrollEnd'); // account fields stored in r_company
+define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants giftPot giftCoupons notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx source getAppData appData'); // fields stored in the account's "data" array field (serialized)
 define('MASTER_NUMERIC_FIELDS', 'minimum achMin savingsAdd saveWeekly');
 define('MASTER_FIELDS', MASTER_NUMERIC_FIELDS . ' hasBank bankAccount last4bank refill'); // only in master, for joint accounts
 define('R_MONEY_FIELDS', 'balance rewards floor giftPot committed'); // financial amount fields in account record
@@ -110,12 +110,12 @@ define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from 
 define('R_SHARE_MAX', 50); // minimum sharing percentage
 define('R_SHARE_DFT', 25); // default sharing percentage
 define('R_SHARING_MSG', t('sharing rewards with CGF'));
+define('ICLUB_TITHE', .1); // fraction of profits that go to the community and the common good
 define('USERNAME_MAX_LENGTH', '100'); // max length of "name" field
 
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
-define('DRUPAL_UID_TABLES', 'sessions');
 define('PERSONAL_STEP_COUNT', t('seven'));
 define('COMPANY_STEP_COUNT', t('eight'));
 define('R_STEPS', 'signup:signup, verify, ssn, sign:community/agreement, donate:community/donate, proxies, prefs:settings/preferences, connect, company, relations, photo'); // membership steps
@@ -186,6 +186,7 @@ define('FOR_USD', 1); // index into R_WHYS for USD exchange
 define('FOR_NONGOODS', 2); // index into R_WHYS for loan, etc.
 define('FOR_SHARE', 3); // "sharing" gift to CGF (comes out of rewards)
 define('FOR_INVESTMENT', 4); // only in invoices (use B_INVESTMENT in txs)
+//define('FOR_STAKE', 5); // only in invoices (use B_STAKE in txs)
 
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_MIN_DEFAULT', 100); // suggested minimum amount to hold in rCredits
@@ -234,24 +235,25 @@ define('R_NOT_VALID', 'not-valid.png'); // says rcard is not valid for purchases
 define('LOG_DIR', '/../cgLogs/'); // where to store log files
 
 // account type bits
-$GLOBALS['account types'] = array(t('personal'), t('sole proprietor'), t('partnership'), t('private corporation or LLC'), t('nonprofit or government'), t('publicly-traded corporation'), t('co-operative, association, or club'));
+//$GLOBALS['account types']
+define('CO_TYPES', t('personal, sole proprietor, partnership, LLC, private corporation, publicly-traded corporation, tax-exempt nonprofit, government, co-operative, unincorporated association or club, estate, trust, custodian'));
 
 // Company Account flags (bits)
-define('R_PERSONAL', 0);
-define('CO_SOLE_PROPRIETOR', 1);
-define('CO_PARTNERSHIP', 2);
-define('CO_CORPORATION', 3);
-define('CO_NONPROFIT', 4);
-define('CO_WORKER_COOP', 5);
-define('CO_CONSUMER_COOP', 6);
-define('CO_GOVERNMENT', 7);
-define('CO_PUBLICLY_TRADED', 8);
-define('CO_COOP', 9);
-define('CO_U10', 10); //
-define('CO_U11', 11); //
-define('CO_U12', 12); //
-define('CO_PRIVATE', 13); // company should not be listed (
-define('CO_ATM', 14); // can trade rCredits for cash, even if balance is less than rewards
+define('CO_PERSONAL', 0); // phase out (use type field in r_company instead)
+define('CO_SOLE_PROPRIETOR', 1); // phase out (use type field in r_company instead)
+define('CO_PARTNERSHIP', 2); // phase out (use type field in r_company instead)
+define('CO_CORPORATION', 3); // phase out (use type field in r_company instead)
+define('CO_NONPROFIT', 4); // phase out (use type field in r_company instead)
+define('CO_CUSTODIAN', 5); // keep
+define('CO_u6', 6); //
+define('CO_u7', 7); //
+define('CO_PUBLICLY_TRADED', 8); // phase out (use type field in r_company instead)
+define('CO_u9', 9); //
+define('CO_u10', 10); //
+define('CO_u11', 11); //
+define('CO_u12', 12); //
+define('CO_PRIVATE', 13); // company is not to be listed publicly (on promo site, etc.)
+define('CO_ATM', 14); // can trade cgCredits for cash, even if balance is less than floor
 
 define('APP_CANS', 15); // company permission bits when signed OUT: bits 15-21
 define('CO_CHARGE', 0);
@@ -409,10 +411,10 @@ define('B_PATRONAGE', 9); // recurring gift
 define('B_GIFT', 10); // grant or gift (of any type)
 define('B_LOAN', 11); // community loan
 define('B_INVESTMENT', 12); // community investment or investment club investment
-define('B_FINE', 13); // community fine
-define('B_u14', 14); // 
+define('B_STAKE', 13); // member buying or selling stake in investment club
+define('B_FINE', 14); // community fine
 define('B_NOASK', 15); // transaction was taken with ID checking OFF
-define('TX_FLAGS', 'taking disputed offline short undone undoes crumbs roundups roundup patronage gift loan investment fine u14 noask');
+define('TX_FLAGS', 'taking disputed offline short undone undoes crumbs roundups roundup patronage gift loan investment stake fine noask');
 
 // Invoice status (use data['disputed'] for txs) (set to txid>1 if paid)
 define('TX_DENIED', -1); // invoice rejected by the non-originator

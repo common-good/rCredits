@@ -44,7 +44,7 @@ function formInvestRate($form, &$sta, $args = '') {
   }
 
   $buttons = backButton();
-  if ($mya->icAdmin or $mya->cAdmin) $buttons .= btn("/invest/buy-or-sell/vestid=$vestid", t('Buy or Sell This'), 'success');
+  if ($mya->icAdmin or $mya->cAdmin) $buttons .= btn("/invest/buy-or-sell/vestid=$vestid", t('Buy or Sell This'), 'warning');
   $vestid = hidFld($vestid);
   $clubid = hidFld($clubid);
   

@@ -324,7 +324,7 @@ function changeWho($args = '') {
 function formProfile($form, &$sta, $company = '') {
   $uid = db\get('uid', 'users', 'name=:company', compact('company'));
   $a = r\acct($uid);
-  if (!$uid or !$a->co) return say('no such company', 'ERR');
+  if (!$uid or !$a->co) return w\softErr(t('That is not a %PROJECT company profile page.'));
 
   $pic = item($a->photoHtml());
   $state = r\realState($a->state);
@@ -337,7 +337,6 @@ function formProfile($form, &$sta, $company = '') {
     
   $title = $a->fullName;
   $phone = 'Phone: ' . u\fmtPhone($a->phone, '+');
-  $cats = item($a->coDesc());
   $physical = "$a->address<br>$a->city, $state $a->zip";
   $mailing = str_replace('<br>', ', ', $physical) == $a->postalAddr ? '' : "Mailing address: $a->postalAddr<br>";
 
@@ -346,7 +345,7 @@ function formProfile($form, &$sta, $company = '') {
     $siteList");
 	$desc = item($a->coDesc());	
 
-  return cgform(compact(ray('pic title contact desc cats')));
+  return cgform(compact(ray('pic title contact desc')));
 }
 
 /**

@@ -85,8 +85,9 @@ function rweb_menu($submenu = '') {
 
     'get' => ['norm', t('Bank'), 'Get 1', 'manage ok'],
     
-    'invest' => ['norm', t('Invest'), 'Invest 1', 'manage ok'],
+    'invest' => ['norm', t('Invest'), 'Invest 1', 'manage ok icadmin'], // icadmin is temporary
     'invest/list' => ['call', t('List Investments'), 'InvestList 2', 'manage ok investor'],
+    'invest/cashout' => ['call', t('Handle Requests to Cash Out Investments'), 'InvestCashout 2', 'manage ok investor icadmin'],
     'invest/propose' => ['call', t('Propose an Investment'), 'InvestPropose 2', 'manage ok investor icadmin'],
     'invest/rate' => ['call', t('Rate an Investment'), 'InvestRate 2', 'manage ok investor'],
     'invest/buy-or-sell' => ['call', t('Buy or Sell a Club Investment'), 'InvestBuySell 2', 'manage ok investor icadmin'],

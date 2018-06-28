@@ -1,4 +1,29 @@
-2018-06-11 v3.41u
+2018-06-25 v3.40w
+. separated company fields out into r_company
+  eachA(function ($a) {
+    if (db\exists('r_company', 'uid=' . $a->id)) return;
+    $data = $a->data;
+    $info = just(CO_FIELDS, $data);
+    $data = justNOT(CO_FIELDS, $data);
+    $coFlags = $info['coFlags'];
+    foreach (ray('1:1,2:2,3:4,4:6,8:5') as $k=>$v) {
+      if (u\getBit($coFlags, $k)) {
+        u\setBit($coFlags, $k, FALSE);
+        $coType = $v;
+      }
+    }
+    if (!isset($coType)) debug("ERROR no type: coType=$coType $a->fullName");
+    if ($coFlags & (u\bit(CO_PRIVATE) - 1)) debug("ERROR leftover: coType=$coType $a->fullName");
+    $info['coFlags'] = $coFlags;
+    if (isset($info['payrollStart'])) {$info['payrollStart'] += 0; $info['payrollEnd'] += 0;}
+//    debug(compact('data', 'coType') + $info);
+    $a->update(compact('data', 'coType') + $info);
+  }, ':IS_CO');
+. added the missing "Requests to Cash Out" button/feature on the Invest page (and the corresponding functionality). 
+. fixed a couple bugs in the company profile page (showed wrong photo when signed in, doubled descriptions)
+. fixed bug in account deletion that ended with a blank screen
+
+2018-06-11 v3.40u
 . stopped recording rewards in transactions
 . DELETE FROM r_txs WHERE amount=0 (29,960 rows deleted)
 . simplified a lot of code dealing with rewards, since they will be handled as regular txs, if ever

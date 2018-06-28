@@ -725,23 +725,12 @@ function bitsFld($label, $bitRay, $prefix, $bits, $aliases = []) {
 }
 
 /**
- * Return a radio selection for account type.
- */
-function acctTypeField() {
-  $coAcctTypes = $GLOBALS['account types'];
-  unset($coAcctTypes[R_PERSONAL]);
-//  $onclick = "attrClick(this);";
-//  $acctTypeAttrib = attrib(compact('onclick'));  
-  return radiosFld(t('Account type:'), '', required(), $coAcctTypes);
-}
-
-/**
  * Return a "signed by" field.
  */
 function signedBy() {
   global $mya;
   $behalf = $mya->co ? t('(on behalf of %co) ', 'co', $mya->fullName) : '';
-  $signerA = $mya->cAdmin ? ($mya->co ? r\acct($mya->helper) : $mya) : $mya->agentA;
+  $signerA = $mya->cAdmin ? ($mya->co ? $mya->helperA : $mya) : $mya->agentA;
   return textFld(t('Signed:'), $behalf . t('Type your full name here ') . "($signerA->legalName)", required($mya->cAdmin ? $signerA->legalNameDpy : ''));
 }
 
@@ -1255,11 +1244,12 @@ function wants($ats) {
 
 /**
  * Return an array of flags and coFlags, appropriate to the given account type.
+ UNUSED, but keep for migrating data to r_company
  */
 function acctType($acctType) {  
-  $flags = ($acctType == R_PERSONAL ? 0 : u\bit(B_CO));
+  $flags = ($acctType == CO_PERSONAL ? 0 : u\bit(B_CO));
     
-  if ($acctType != R_PERSONAL) { // company
+  if ($acctType != CO_PERSONAL) { // company
     $type = $GLOBALS['account types'][$acctType];
     $coFlags =
         ($acctType == CO_SOLE_PROPRIETOR ? u\bit(CO_SOLE_PROPRIETOR)
@@ -1340,7 +1330,8 @@ function tellStaffNewMember($params) {
   $phone = u\fmtPhone(@$phone);
   $state = @$state ? r\realState($state, $country) : 'state lookup failed';
   $country = r\realCountry($country);
-  $acctType = $GLOBALS['account types'][$acctType];
+  $coTypes = ray(CO_TYPES);
+  $acctType = $coTypes[$acctType];
   $helper = @$helper ? r\acct($helper)->fullName : 'unknown';
   $copts = u\jsonEncode(@$copts);
   $ats = @join(',', array_values($ats));
@@ -2351,7 +2342,7 @@ function webAccess($perms = NULL) {
     : ($perm == 'superadmin' ? ($mya and $mya->superAdmin)
     : ($perm == 'superadminORdev' ? (($mya and $mya->superAdmin) or isDEV)
     : ($perm == 'prose' ? ($mya and $mya->proSe)
-    : ($perm == 'investor' ? db\exists('r_stakes', 'uid=:id', ray('id', $mya->id))
+    : ($perm == 'investor' ? ($mya and db\exists('r_stakes', 'uid=:id', ray('id', $mya->id)))
     : ($mya and $mya->can(u\consta('b', $perm))) ))))));
 
     if ($not ? $pass : !$pass) return FALSE;

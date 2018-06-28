@@ -21,7 +21,7 @@ Scenario: A member signs in for the first time
   And next random code is "WHATEVER"
   When member "?" confirms form "signup/code=c0D3" with values:
   | fullName  | email | phone | country | zip | federalId | dob | acctType    | code | address | city    | state | tenure | owns | postalAddr                |*
-  | Dee Four  | d@ | 413-253-0000 | US | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 | 1 A St. | Amherst | MA    |     25 |    0 | 1 A St., Amherst, MA 01002 |
+  | Dee Four  | d@ | 413-253-0000 | US | 01002    | 123-45-6789 | 1/2/1993 | %CO_PERSONAL | c0D3 | 1 A St. | Amherst | MA    |     25 |    0 | 1 A St., Amherst, MA 01002 |
   Then members:
   | id   | fullName | email   | country | zip | state | city    | flags     | tenure | risks | helper |*
   | .AAA | Dee Four | d@      | US      | 01002      | MA    | Amherst | confirmed |     25 | rents | .ZZA   |
