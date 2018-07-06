@@ -38,10 +38,10 @@ function extraSetup() {
 /**
  * members: (ARG)
  *
- * in: MAKE Activate Setup
+ * in: MAKE Checks Setup
+ *     MAKE Activate Setup
  *     TEST Activate AdminActivatesAnAccount
  *     MAKE Changes Setup
- *     MAKE Checks Setup
  */
 function members($list) {return t\members($list);}
 
@@ -62,16 +62,16 @@ function usdTransfers($tx) {return t\usdTransfers($tx);}
 /**
  * member (ARG) visits page (ARG)
  *
- * in: MAKE Changes AMemberChangesSomeSettings
- *     MAKE Checks AdminPrintsChecks
+ * in: MAKE Checks AdminPrintsChecks
+ *     MAKE Changes AMemberChangesSomeSettings
  */
 function memberVisitsPage($id, $page) {return t\memberVisitsPage($id, $page);}
 
 /**
  * we show (ARG) with: (ARG)
  *
- * in: TEST Changes AMemberChangesSomeSettings
- *     TEST Checks AdminPrintsChecks
+ * in: TEST Checks AdminPrintsChecks
+ *     TEST Changes AMemberChangesSomeSettings
  */
 function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
   return t\weShowWith($title, $content, $showDebugs);
