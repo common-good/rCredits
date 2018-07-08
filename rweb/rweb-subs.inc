@@ -288,6 +288,29 @@ function go($page, $msg = '', $field = '') {
 }
 
 /**
+ * Redirect to a new page AND open a new tab with a different URL, with focus on the first new page.
+ */
+function go2($url1, $url2) {
+  global $base_url;
+	
+  global $lastGo; $lastGo = $url1; // for testing
+
+  foreach (ray('url1 url2') as $k) {
+    if (substr($$k, 0, 1) == '/') $$k = substr($$k, 1); // supplying the slash is preferred, to agree with w\atag()
+		if (!u\starts($$k, 'http')) $$k = "$base_url/" . $$k;
+	}
+	
+	header_remove();
+	echo <<<X
+<html><script>
+  window.open('$url2', '_blank');
+  location.href = '$url1';
+</script></html>
+X;
+  exit();
+}
+
+/**
  * Sometimes when redirecting offsite, we just hang. This works.
  * @param string $url: URL to go to
  */
@@ -792,7 +815,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
       } else $formName = 'CG\\Web\\formSystemDown';
     }
     
-    if (strpos($formName, 'Event') !== FALSE) require_once DRUPAL_ROOT . R_PATH . '/rvote/rvote-web.inc';                       
+//    if (strpos($formName, 'Event') !== FALSE) require_once DRUPAL_ROOT . R_PATH . '/rvote/rvote-web.inc';                       
     
     $form = \drupal_build_form($formName, $formSta);
 
@@ -1987,7 +2010,7 @@ function menu($path, $title, $type, $function, $args, $perms = '') {
   $adminPerms = (stripos($perms, 'admin') !== FALSE and stripos($perms, 'icadmin') === FALSE);
   $admin = (u\starts($path, 'sadmin') or $perms == 'dev' or $adminPerms);
   $smart = ($path == 'pos');
-  $dem = u\starts($path, 'community/events');
+//  $dem = u\starts($path, 'community/events');
   $dir = $smart ? '../rsmart/' : (@$dem ? '../rvote/' : ($admin ? '../admin/' : ''));
 
   $formName = ($args and !is_numeric($args[0])) ? $args[0] : $function;
@@ -1995,9 +2018,9 @@ function menu($path, $title, $type, $function, $args, $perms = '') {
 
   if (!file_exists(__DIR__ . "/$file")) $file = $dir . 
       ($smart ? 'rsmart.inc' 
-    : (@$dem ? 'rvote-web.inc' 
+//    : (@$dem ? 'rvote-web.inc' 
     : ($admin ? 'admin-forms.inc' // must be after smart and dem
-    : 'rweb.inc')));
+    : 'rweb.inc'));
   
   $item = array(
     'title' => $title,

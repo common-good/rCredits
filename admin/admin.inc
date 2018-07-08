@@ -913,7 +913,32 @@ function callDetails($type = '', $when = '') {
 
   return "<div class=\"well scripts\"><h3 class=\"above-details\">$head$subtext</h3><div id=\"intros\"><b class=\"loud\">$mya->phoneDash</b>$links</div>$details</div>";
 }
-  
+
+/**
+ * Return statistics about member donations for members signed up after a certain date.
+ */
+function donationTrend($since = 0, $co = FALSE) {
+	$co = $co ? 'u.:IS_CO' : 'NOT u.:IS_CO';
+	$where = "$co AND u.:IS_OK";
+	
+	$sql =<<<X
+	  SELECT AVG(IF(g.amount IS NULL, 0, g.amount*IF(often='M', 12, IF(often='Q', 4, IF(often='Y', 1, 0))))) AS regular,
+		  AVG(u.:IS_ROUNDUP) AS roundupRatio,
+			AVG(u.crumbs) AS crumbs,
+			COUNT(*) AS accounts
+		FROM users u 
+		LEFT JOIN r_gifts g ON u.uid=g.uid 
+		WHERE NOT g.completed AND $where AND u.created>:since
+X;
+	$res = db\q($sql, compact('since'))->fetchAssoc();
+	
+	$where .= ' AND t.created>:NOW-:MONTH_DAYS*:DAY_SECS'; // look at the past month
+	$txCount = 12 * db\q("SELECT COUNT(t.*) FROM r_txs t JOIN users u ON u.uid=t.payer WHERE $where")->fetchField();
+	$txTotal = 12 * db\q("SELECT SUM(t.amount) FROM r_txs t JOIN users u ON u.uid=t.payee WHERE $where")->fetchField();
+	
+	return $res + compact('txCount', 'txTotal');
+}
+
 /**
  * Return an eloquent statement of the member's gifts to date, to follow "Thank you ".
  */

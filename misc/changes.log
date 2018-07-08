@@ -1,3 +1,9 @@
+2018-07-07 v3.40y
+. added buttons for listing "my coupons" and all discounts
+. created a "goto 2 pages" function (used, for example, when generating coupons)
+. changed donation descriptions, to track regular, roundups, and crumbs separately
+. repaired voting so it works again (after eliminating in-line scripts several months ago)
+
 2018-06-25 v3.40w
 . separated company fields out into r_company
   eachA(function ($a) {
@@ -12,11 +18,11 @@
         $coType = $v;
       }
     }
-    if (!isset($coType)) debug("ERROR no type: coType=$coType $a->fullName");
-    if ($coFlags & (u\bit(CO_PRIVATE) - 1)) debug("ERROR leftover: coType=$coType $a->fullName");
+/**/    if (!isset($coType)) debug("ERROR no type: coType=$coType $a->fullName");
+/**/    if ($coFlags & (u\bit(CO_PRIVATE) - 1)) debug("ERROR leftover: coType=$coType $a->fullName");
     $info['coFlags'] = $coFlags;
     if (isset($info['payrollStart'])) {$info['payrollStart'] += 0; $info['payrollEnd'] += 0;}
-//    debug(compact('data', 'coType') + $info);
+///    debug(compact('data', 'coType') + $info);
     $a->update(compact('data', 'coType') + $info);
   }, ':IS_CO');
 . added the missing "Requests to Cash Out" button/feature on the Invest page (and the corresponding functionality). 
@@ -194,7 +200,7 @@ X;
 /**/  if ($bal < 0) {$a->setBit(B_DEBT); debug("setting $a->fullName to allow debt. Balance=$a->balance");}
     }
     
-  /**/   debug("$a->fullName: current=" . number_format($current, 2) . " new=" . number_format($floor, 2));
+/**/   debug("$a->fullName: current=" . number_format($current, 2) . " new=" . number_format($floor, 2));
   }
 . changed croppic.js and u\alterImg to rotate, drag, and crop pictures without cutting off head
 . DELETE FROM `r_stats` s LEFT JOIN r_stats s2 ON s2.created=s.created AND s2.ctty=s.ctty WHERE s2.id<s.id

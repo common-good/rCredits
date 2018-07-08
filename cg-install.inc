@@ -458,6 +458,7 @@ function tableDefs($schema = []) {
     'start' => dbFld(t('Unixtime coupon is first valid'), 'int 11', 0),
     'end' => dbFld(t('Unixtime after which coupon is no longer valid'), 'int 11', 0),
     'amount' => dbFld(t('amount of discount'), 'numeric 11,2'), // amount or percentage (if < 0)
+		'on' => dbFld(t('discount on what'), 'varchar 255'),
     'minimum' => dbFld(t('minimum purchase amount to get the discount'), 'numeric 11,2', 0),
     'ulimit' => dbFld(t('maximum number of uses per member'), 'int 11', 0),
     'flags' => dbFld(t('boolean type flags'), 'int big', 0, TRUE),

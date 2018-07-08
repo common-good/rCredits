@@ -3,11 +3,11 @@
  * javascript for the bottom of every page
  */
 
-var vs = parseQuery($('#script-scraps').attr('src').replace(/^[^\?]+\??/,''));
+var vs = parseUrlQuery($('#script-scraps').attr('src').replace(/^[^\?]+\??/,'').replace('&amp;', '&'));
 args = decodeURIComponent(vs['args']);
 //alert(args);
 args = JSON.parse(args);
-for (var what in args) doit(what, parseQuery(args[what]));
+for (var what in args) doit(what, parseUrlQuery(args[what]));
  
 function doit(what, vs) {
   function fid(field) {return '#edit-' + vs[field].toLowerCase();}

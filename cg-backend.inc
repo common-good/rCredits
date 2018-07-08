@@ -589,14 +589,14 @@ function identify($who, $myid, $paying, $self_message = 'no self-trading') {
   $sql = <<<EOF
     SELECT DISTINCT uid,fullName
     FROM users 
-    WHERE (name LIKE :short OR (!:IS_NOSEARCH AND (:cphone=phone OR :cmail=mail)))
+    WHERE (name LIKE :short OR :who=fullName OR (!:IS_NOSEARCH AND (:cphone=phone OR :cmail=mail)))
     AND $cttyCrit
     ORDER BY fullName
 EOF;
 
 // LEFT JOIN r_boxes s ON u.uid = s.uid ... OR :who=s.code (search for cell not allowed if it isn't the account's primary phone)
 
-  $result = db\q($sql, compact(ray('short cphone cmail')))->fetchAllKeyed(0, 1);
+  $result = db\q($sql, compact(ray('who short cphone cmail')))->fetchAllKeyed(0, 1);
   
   // QID? if not, maybe first word is a QID if this is from a list showing QID and fullName
   $qid = trim(($i = strpos($who, ':')) ? substr($who, 0, $i) : strtoupper($who));

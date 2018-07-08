@@ -5,20 +5,20 @@ var opts = [];
 $('.optRow').each(function() {
   opti = optI($(this).attr('id'));
   opts[opti] = new Opt(opti, $(this).find('.gliss input'));
-  if (opts[opti].slider != null) opts[opti].slider.bootstrapSlider('refresh'); // rerun slider formatter
+  if (opts[opti].jSlider != null) opts[opti].jSlider.bootstrapSlider('refresh'); // rerun slider formatter
 });
 
-$('.optImg.expand').click(function () {expandOpt(this.attrib('index'));});
-$('.grade-letter').mousedown(function () {opts[this.attrib('index')].nudgeGrade(this);}
-$('.optRow .veto input[type="checkbox"]').change(function () {opts[this.attrib('index')].noteClick();});
-$('.qdetailer').click(function () {$('#qdetails' + this.attr('index')).toggle();}
+$('.optImg.expand').click(function () {expandOpt($(this).attr('index'));});
+$('.grade-letter').mousedown(function () {opts[$(this).attr('index')].nudgeGrade(this);});
+$('.optRow .veto input[type="checkbox"]').change(function () {opts[$(this).attr('index')].noteClick();});
+$('.qdetailer').click(function () {$('#qdetails' + $(this).attr('index')).toggle();});
 
 /**
  * Construct an option for a Budget-type question.
  * @param int i: the (internal) option number
- * @param DOM element: jQuery input element for BootstrapSlider slider (or null)
+ * @param DOM element: jQuery input element for slider slider (or null)
  */
-function Opt(i, slider) {
+function Opt(i, sliderInput) {
   this.i = i;
   this.veto = $('#edit-veto' + i);
   this.note = $('#edit-note' + i);
@@ -96,12 +96,12 @@ function Opt(i, slider) {
 
   if (this.optdetail.val() == '') this.optdetail.find('.optdetailheader, #optdetailtext' + i).hide();
   
-  if (slider.length > 0) {
-    this.slider = slider.bootstrapSlider({
+  if (sliderInput.length > 0) {
+    this.jSlider = sliderInput.bootstrapSlider({
       tooltip: 'always',
       tooltip_split: this.type == 'R',
       formatter: function(v) {
-        var me = opts[optI(this.id)]; // "this" is the slider, not the Opt object
+        var me = opts[optI(this.id)]; // "this" is the slider here, not the Opt object
         v = roundTo(v, 2);
         if (me != null && me.type == 'B') v += '%'; else v = v.toLocaleString(); // maybe use accounting.js here (don't add $)
         return v;
@@ -113,7 +113,7 @@ function Opt(i, slider) {
      */
     this.setSlider = function(v0, setTime) {
       v = Math.round(Math.max(0, Math.min(100, v0)));
-      this.slider.bootstrapSlider('setValue', v);
+      this.jSlider.bootstrapSlider('setValue', v);
       this.input.val(v);
       if (setTime == null || setTime || v != v0) this.lastMod = now();
 
@@ -127,7 +127,7 @@ function Opt(i, slider) {
     /**
      * Handle a change in a slider setting.
      */
-    this.slider.on('slideStop', function(slideEvt) {
+    this.jSlider.on('slideStop', function(slideEvt) {
       var me = opts[optI(this.id)]; // "this" is the slider, not the Opt object
       me.lastMod = now();
       me.clearVeto(); // clear veto, if grading

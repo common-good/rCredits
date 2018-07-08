@@ -18,7 +18,7 @@ Scenario: A member redeems a gift coupon
   | id   | giftCoupons | created |*
   | .ZZC |           8 | 0039200 |
 # created determines 3-letter lowSecurity code (7AA), which is used in coupon code
-  When member ".ZZC" completes form "community/coupons/gift" with values:
+  When member ".ZZC" completes form "community/coupons/type=gift" with values:
   | type | amount | count |*
   | gift |     10 |    20 |
   Then coupons:
@@ -29,7 +29,7 @@ Scenario: A member redeems a gift coupon
   And members have:
   | id   | giftCoupons |*
   | .ZZC |          28 |
-  When member ".ZZA" completes form "community/coupons/gift" with values:
+  When member ".ZZA" completes form "community/coupons/type=gift" with values:
   | type   | code          |*
   | redeem | DD7K CLJW EAI |
   Then balances:
@@ -39,18 +39,18 @@ Scenario: A member redeems a gift coupon
   And members have:
   | id   | giftPot |*
   | .ZZA |      10 |
-  When member ".ZZB" completes form "community/coupons/gift" with values:
+  When member ".ZZB" completes form "community/coupons/type=gift" with values:
   | type   | code          |*
   | redeem | DD7K CLJW EAI |
   Then we say "error": "already redeemed"
 
 Scenario: A member redeems a discount coupon for a dollar amount
-  When member ".ZZC" completes form "community/coupons/discount" with values:
+  When member ".ZZC" completes form "community/coupons/type=discount" with values:
   | type     | amount | minimum | start | end     | ulimit | automatic |*
   | discount |     12 |      20 | %mdY  | %mdY+9d |      1 |         1 |
   Then coupons:
   | coupid | amount | minimum | ulimit | flags | start  | end       |*
-  |      1 |     12 |      20 |      1 |     0 | %today | %today+9d |
+  |      1 |     12 |      20 |      1 |     0 | %today | %(%today+10d-1) |
   When member ".ZZA" confirms form "pay" with values:
   | op  | who        | amount | purpose |*
   | pay | Corner Pub | 100    | fun     |
@@ -75,12 +75,12 @@ Scenario: A member redeems a discount coupon for a dollar amount
   | .ZZC |     128 |
 
 Scenario: A member redeems a discount coupon for a dollar amount
-  When member ".ZZC" completes form "community/coupons/discount" with values:
+  When member ".ZZC" completes form "community/coupons/type=discount" with values:
   | type     | amount | minimum | start | end     | ulimit | automatic |*
   | discount |    12% |      20 | %mdY  | %mdY+9d |      2 |         1 |
   Then coupons:
   | coupid | amount | minimum | ulimit | flags | start  | end       |*
-  |      1 |    -12 |      20 |      2 |     0 | %today | %today+9d |
+  |      1 |    -12 |      20 |      2 |     0 | %today | %(%today+10d-1) |
   When member ".ZZA" confirms form "pay" with values:
   | op  | who        | amount | purpose |*
   | pay | Corner Pub | 50     | fun     |

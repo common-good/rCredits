@@ -3,7 +3,7 @@
  * javascript for the bottom of every page
  */
 
-var vs = parseQuery($('#script-misc').attr('src').replace(/^[^\?]+\??/,''));
+var vs = parseUrlQuery($('#script-misc').attr('src').replace(/^[^\?]+\??/,''));
 //alert($('#script-misc').attr('src').replace(/^[^\?]+\??/,''));
 var baseUrl = vs['baseUrl'];
 var isSafari = vs['isSafari'];
@@ -12,7 +12,7 @@ var ajaxUrl = baseUrl + '/ajax';
 var ajaxSid = vs['sid'];
 var sessionLife = 1000 * vs['life']; // convert to seconds
 var signoutWarningAdvance = Math.min(sessionLife / 2, 5 * 60 * 1000); // give the user a few minutes to refresh
-var sTimeout = vs['life'] != '0' ? sessionTimeout() : 0; // Warn the user before automatically signing out.
+if (ajaxSid) var sTimeout = vs['life'] != '0' ? sessionTimeout() : 0; // Warn the user before automatically signing out.
 
 jQuery("#which, #help").addClass("popup");
 jQuery('button[type="submit"]').click(function() {
@@ -54,10 +54,10 @@ jQuery('.submenu [data-toggle="popover"]').each(function(index) {
 jQuery('#main .list-group-item.ladda-button').attr('data-spinner-color', '#191970').click(function() {
   jQuery(this).find('.glyphicon').css('color', 'white');
 });
-Ladda.bind('.ladda-button');
+if (Ladda != null) Ladda.bind('.ladda-button');
 if (!mobile) jQuery('.navbar-nav > li > a').hover(function() {
   jQuery(this).popover('show');
-  Ladda.bind('.ladda-button'); // these buttons are not available to Ladda until now
+  if (Ladda != null) Ladda.bind('.ladda-button'); // these buttons are not available to Ladda until now
   // ('#' + jQuery(this).parent().parent().attr('id') + ' > li > a') doesn't work
   jQuery('.submenu > a').not(jQuery(this)).popover('hide');
 });

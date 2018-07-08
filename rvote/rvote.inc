@@ -198,7 +198,7 @@ function phaseDpy1($ltr, $href, $class, $title) {
 }
 
 function getresults($question) {
-	include_once __DIR__ . '/rvote-results.inc';
+	include_once R_ROOT . '/rvote/rvote-results.inc';
 
 	$blurb = '';
 	return $blurb . v\showResult($question);

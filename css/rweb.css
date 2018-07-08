@@ -524,6 +524,11 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #frm-coupons #edit-limit {max-width:50px; display:inline-block;}
 #frm-coupons .form-item-on {display:none;}
 
+/* Coupons List */
+#frm-couponslist #edit-title {margin-bottom:0;}
+#coupons th, #coupons td {text-align:center;}
+#coupons span[data-toggle="popover"] {color:#2fa4e7;}
+
 /* Find Company */
 #frm-findco .row {display:table-row; max-width:700px;}
 #frm-findco .well {padding:10px 35px;}

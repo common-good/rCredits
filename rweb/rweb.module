@@ -7,6 +7,7 @@
  *
  * Note: to display one of the blocks defined herein on a page, use
  * print render(rweb_block_view('blockname'));)
+ * @todo: eliminate rweb_block_info and rweb_block_view by integrating calls to the accounts and footer sections into theme\html.tpl
  */
 
 use CG as r;
@@ -129,7 +130,8 @@ function rweb_menu($submenu = '') {
 // temporarily disabled    'community/grant' => ['sub', t('Get Paid to Organize'), 'Grant', 'prose', '', t(''), 'apple'],
 //    'community/funds' => ['sub', t('Funds in Each Community'), 'CttyFunds', ANY, '', t(''), 'usd'],
     'community/coupons' => ['sub', t('Coupons and Gift Cards'), 'Coupons 2', 'ok manage', '', t(''), 'usd'],
-    'community/coupons/print' => ['call', t('Print Coupons'), '3', 'ok manage', 'printCoupons'],
+    'community/coupons/print' => ['call', t('Print Coupons'), '3', 'ok manage', 'couponsPrint'],
+    'community/coupons/list' => ['call', t('Print Coupons'), 'CouponsList 3', 'ok manage'],
     'community/graphs' => ['sub', t('%PROJECT Graphs'), 'Graphs 2', ANY, '', t(''), 'stats'],
     'community/flags' => ['sub', t('Risk Flags'), 'Flags 2', ANY, '', t(''), 'flag'],
 //    'community/game' => isGAME ? ['sub', t('Game'), 'Game', ANY) : NULL,
@@ -235,7 +237,7 @@ function rweb_menu($submenu = '') {
     'secret' => ['call', 'Secret', '', ANY, 'secrets'],
     'error' => ['call', 'System Error', '1', ANY, 'error'],
     'page-not-found' => ['call', t('Page Not Found'), 'PageNotFound', ANY],
-    
+    'go2' => ['call', t('Go to 2 pages'), '1', ANY, 'go2'],
     'pay-with-cg' => ['call', t('Pay With %RCREDITS'), 'Buy 1', ANY],
     'authcode' => ['call', t('Supply a one-use auth code'), '', ANY, 'authcode'],
   );

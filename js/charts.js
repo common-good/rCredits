@@ -10,7 +10,7 @@
  * A JSON-encoded data object is embedded in the page (see var ch below). Each element is a data object for one graph.
  * NOTE!: This script is used in an iframe of cg4.us/chart.php, which in turn includes this script (here for version control)
  */
-var getv = parseQuery($('#script-charts').attr('src').replace(/^[^\?]+\??/,''));
+var getv = parseUrlQuery($('#script-charts').attr('src').replace(/^[^\?]+\??/,''));
 //alert($('#script-charts').attr('src').replace(/^[^\?]+\??/,''));
 var ctty = getv['ctty'];
 var chart = getv['chart'];

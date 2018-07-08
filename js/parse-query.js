@@ -1,7 +1,7 @@
 /**
  * Parse query string parameters into an object.
  */
-function parseQuery(query) {
+function parseUrlQuery(query) { 
 	var re = /([^&=]+)=?([^&]*)/g;
 	var decodeRE = /\+/g;  // Regex for replacing addition symbol with a space
 	var decode = function (str) {return decodeURIComponent( str.replace(decodeRE, " ") );};

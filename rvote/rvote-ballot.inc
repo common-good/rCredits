@@ -569,7 +569,7 @@ function specialhdrs($question_type) {
 
 function done($mya) {
   global $proxiesForThisVoter;
-  include_once __DIR__ . '/rvote-results.inc';
+  include_once R_ROOT . '/rvote/rvote-results.inc';
 
 	if(ISDEMO) {
     $proxyCount = db\get('COUNT (DISTINCT voter)', 'r_ballots', 'proxy=:myid', ['myid' => $mya->id]) - 1;

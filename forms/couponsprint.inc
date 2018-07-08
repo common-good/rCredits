@@ -10,13 +10,13 @@ use CG\Db as db;
  * Print a sheet of coupons for the current account.
  type amount minimum ulimit count automatic start end on
  */
-function printCoupons($args = '') {
+function couponsPrint($args = '') {
   global $mya;
   require_once __DIR__ . '/../pdf.class';
   
   if (strpos($args, 'type=') === FALSE) $args = u\deurlify($args);
   extract(just('type amount minimum ulimit count automatic start end on', $args));
-
+	
   if (!$gift = (@$type == 'gift') and @$type != 'discount') return w\hack('bad coupon args');
   $auto = @$automatic ? t('automatically') : '';
   $coGift = ($amount == @$minimum);
@@ -41,6 +41,8 @@ function printCoupons($args = '') {
 
   $name = $mya->bestName;
   $coup = t('%PROJECT %type', 'type', ($gift or $coGift) ? t('Gift Certificate') : t('Discount Coupon'));
+	$off = ($gift or $coGift) ? '' : t(' OFF');
+	$goodFor = $off ? '' : t('Good for ');
 //  $iCode = $mya->iCardCode(IBY_EMAIL);
   
   list ($mT, $mR, $mB, $mL) = [0, 0, 0, 0]; // margins
@@ -55,7 +57,7 @@ function printCoupons($args = '') {
   list ($dxCoup, $dyCoup, $ptCoup, $dyGoodFor) = [$x0+$wLogo+.08, $y0+.07, 12.5, .95];
   list ($dxOff, $dyOff, $ptOff, $dyAt) = [$dxCoup-.02, $y0+.29, 24, $y0+.7];
   list ($dxLine, $dyLine) = [$x0, 1.25];
-  list ($goodFor) = [t('This card good for')];
+//  list ($goodFor) = [t('This card good for')];
   list ($wPage, $hPage) = [8.5, 11]; // page dimensions
   $gLen = .1; // cutting guide length from card corner (for pluses in each corner of each card)
   $gStyle = ['color' => [192,192,192]];
@@ -80,7 +82,7 @@ function printCoupons($args = '') {
   //  { // uncomment this line and comment out the preceding one, to test the format of just one card (much faster)
       $pdf->Image(__DIR__ . '/../images/' . PROJECT_LOGO, $x+$x0, $y+$y0, $hLogo, $hLogo, '', '', '', true); // file, x, y, w, h, type, link, align, resize
       $pdf->say($coup, $x+$dxCoup, $y+$dyCoup, $wCoup, '', "$ptCoup;color: #404040", 'L');
-      $pdf->say($amount . t(' OFF'), $x+$dxCoup, $y+$dyOff, $wCoup, '', "$ptOff;B;color:darkred;font-stretch:$sOff", 'L');
+      $pdf->say("$goodFor$amount$off", $x+$dxCoup, $y+$dyOff, $wCoup, '', "$ptOff;B;color:darkred;font-stretch:$sOff", 'L');
       $sSite = 'normal'; // looks better
       $pdf->say(t('Join us! at ') . '<span style="font-weight:bold; color:darkgreen; font-size:120%">' . CG_DOMAIN . '</span>', $x, $y+$dySite, $wCard, '', "$ptSite;font-stretch:$sSite", 'C');
         $pdf->Line($x+$dxLine, $y+$dyLine, $x+$wCard-$dxLine, $y+$dyLine, $gStyle); // x1, y1, x2, y2, style

@@ -47,14 +47,15 @@ global $rUrl, $base_url, $pageScripts, $scriptScraps, $mya, $styleNonce;
 $version = isPRODUCTION ? R_VERSION : time();
 $styles = preg_replace('~<style.*</style>~ms', '', $styles); // zap all the drupal styles
 
-if (@$scriptScraps) w\js('scraps', 'args', urlencode(json_encode($scriptScraps)));
-
-$s = array_flip(ray(SCRIPTS_TOP));
-$s += just(array_keys($pageScripts), array_merge(array_flip(ray(SCRIPTS)), $pageScripts)); // select and reorder
+// handle scripts
+if (@$scriptScraps) w\js('scraps', 'args', urlencode(json_encode($scriptScraps))); // fragments
+$s = array_flip(ray(SCRIPTS_TOP)); // standard (included first on every page)
+$s += just(array_keys($pageScripts), array_merge(array_flip(ray(SCRIPTS)), $pageScripts)); // select and reorder ad hoc scripts
 /**/ if (count($s) < count(ray(SCRIPTS_TOP)) + count($pageScripts)) die('scripts! ' . print_r(justNOT(ray(SCRIPTS_TOP . ' ' . SCRIPTS), ray($pageScripts)), 1) . print_r($pageScripts, 1));
 $scripts = '';
 $tm = time();
-foreach ($s as $id => $v) {
+
+foreach ($s as $id => $v) { // having selected the scripts, format for inclusion in page
   $id0 = $id;
   $src = "$rUrl/js/$id.js";
   if (!strpos($src, 'x/') or $v) {
@@ -83,7 +84,8 @@ $favicon = <<<EOF
   <meta name="theme-color" content="#ffffff">
 EOF;
 //  : '  <link rel="shortcut icon" href="' . $rUrl . '/images/icons/rFavicon.ico" type="image/vnd.microsoft.icon" />';
-//   <link rel="stylesheet" href="$rUrl/css/x/bootstrap-glyphicons.css?$version" />  
+//   <link rel="stylesheet" href="$rUrl/css/x/bootstrap-glyphicons.css?$version" /> 
+ 
 /**/ echo <<<EOF
 <!DOCTYPE html>
 <html lang="$language->language" dir="$language->dir"

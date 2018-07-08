@@ -56,14 +56,14 @@ Scenario: A recurring donation can be completed
   When cron runs "gifts"
   Then transactions:
   | xid | created | type     | amount | from | to   | purpose      |*
-  |   1 | %today  | transfer |     10 | .ZZA | cgf  | donation (quarterly gift #1) |
+  |   1 | %today  | transfer |     10 | .ZZA | cgf  | regular donation (quarterly gift #1) |
   And gifts:
   | id   | giftDate      | amount | often | honor  | honored | completed |*
   | .ZZA | %yesterday    |     10 |     Q | memory | Jane Do | %today    |
   | .ZZA | %yesterday+3m |     10 |     Q |        |         |         0 |
   And we notice "new payment linked" to member "cgf" with subs:
   | otherName | amount | payeePurpose                 | aPayLink |*
-  | Abe One   | $10    | donation (quarterly gift #1) | ?        |
+  | Abe One   | $10    | regular donation (quarterly gift #1) | ?        |
   And that "notice" has link results:
   | ~name | Abe One |
   | ~postalAddr | 1 A, A, AK |

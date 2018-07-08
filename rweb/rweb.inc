@@ -28,9 +28,9 @@ define('UPLOAD_DIR', dirname($_SERVER['DOCUMENT_ROOT']) . '/public_ftp/incoming'
  */
 function formProx($form, &$sta, $args) {
   extract(just('page', $args0 = $args));
-  foreach (ray('Event Democracy Proposal') as $k) {
+/*  foreach (ray('Event Democracy Proposal') as $k) {
     if (strpos($page, $k) !== FALSE) include_once DRUPAL_ROOT . R_PATH . '/rvote/rvote-web.inc';
-  }
+  } */
   $file = strtolower(R_ROOT . "/forms/$page.inc");
   if (file_exists($file)) include_once $file;
   

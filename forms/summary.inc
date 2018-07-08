@@ -75,7 +75,7 @@ function formSummary($form, &$sta) {
     $makeCo = w\btn('/signup-company', t('Open %another Company Account', compact('another')), 'primary', 'xs');
 //    if (!$mya->jid and !$mya->co) $makeJoint = w\btn('/signup/joint=1', t('Make this a joint account'), 'primary', 'xs');
     if ($mya->member and !$mya->jid and !$mya->co) $makeJoint = w\btn('/prejoin', t('Make this a joint account'), 'primary', 'xs');
-    if (!$mya->co and $hasMultipleAccounts) $clickPhoto = item(t('Click your photo to manage your other account(s).'));
+    if (!$mya->co and $hasMultipleAccounts) $clickPhoto = item(t('Click your photo%where to manage your other account(s).', 'where', $mya->cAdmin ? t(' in the upper right corner') : ''));
   }
 
   if ($mya->co) $reports = w\btn('/company-reports', t('Reports'));

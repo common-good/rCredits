@@ -421,13 +421,12 @@ function acceptGift($info) {
     $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
     $recurs = ray(t('once monthly quarterly yearly'));
     $count = db\count('r_gifts', 'uid=:uid AND often=:often', compact('uid', 'often'));
-    $recurring = t(' (%how gift #%count)', 'how count', $recurs[strpos('1MQY', $often)], $count);
+    $purpose = t('regular donation (%how gift #%count)', 'how count', $recurs[strpos('1MQY', $often)], $count);
     $data['patronage'] = 1;
-  }
+  } else $purpose = t('donation');
 
 //  $sharing = (@$honor == 'share');
 //  list ($goods, $purpose) = $sharing ? [FOR_SHARE, R_SHARING_MSG] : [FOR_GOODS, t('donation') . @$recurring];
-  $purpose = t('donation') . @$recurring;
   list ($msg, $args) = $a->pay($cgf, $amount, $purpose, $data);
   if (@$args['success']) {
     $completed = r\rTime();

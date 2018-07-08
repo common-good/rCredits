@@ -1,4 +1,4 @@
-var vs = parseQuery($('#script-crop-setup').attr('src').replace(/^[^\?]+\??/,''));
+var vs = parseUrlQuery($('#script-crop-setup').attr('src').replace(/^[^\?]+\??/,''));
 
 var uniq = (new Date()).getTime(); // unique value (so default picture does not repeat a real one)
 $('#photoUp').css('background-image', 'url(' + baseUrl + '/account-photo?t=' + uniq + ')'); 
