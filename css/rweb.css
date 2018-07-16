@@ -272,10 +272,12 @@ a.buttino {font-size:70%; display:inline-block; background-color:lightgray; bord
 #messages ul {list-style-type:none;}
 
 @media (max-width:768px) {
+	body.page-community-events #messages,
+	body.page-prox #messages {position:absolute; z-index:999;} /* not ideal for some pages, but better than hidden */
   #messages .messages {margin-bottom:0px;}
 }
 
-div#shout {position:absolute; z-level:2; left:300px; top:100px; background-color:yellow; color:darkgreen; font-size:500%;}
+div#shout {position:absolute; z-index:2; left:300px; top:100px; background-color:yellow; color:darkgreen; font-size:500%;}
 #site-name {visibility:hidden;}
 
 #main-menu-links  {display:none;}

@@ -1103,9 +1103,9 @@ X;
     foreach ([0, 1] as $i) ${'not' . $i} = $v[$i] ? '' : 'NOT';
     $sql .= "SUM(IF(goods<>:FOR_USD AND $not0 u.:IS_CO AND $not1 u2.:IS_CO, amount, 0)) AS $k,\n";
   }
-  $sql .= "SUM(IF(payer>1 AND goods=:FOR_USD, amount, 0)) AS cashs,\n";
+  $sql .= "SUM(IF(payer>1 AND goods=:FOR_USD, ABS(amount), 0)) AS cashs,\n";
   $sql .= strtr($sql, ['-amount' => '1', 'amount' => '1', ",\n" => "Count,\n"]); // add counts
-  $sql = str_replace(",\n!", '', $sql . '!');
+  $sql = str_replace(",\n!", '', $sql . '!'); // remove final comma in field list
   
   $sql = <<<X
     SELECT $sql

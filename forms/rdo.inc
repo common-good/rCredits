@@ -31,12 +31,14 @@ use CG\Db as db;
  * @see also r\makeDo()
  */
 function rdo($code, $args = '') {
+/**/	u\log(print_r(compact(ray('code args')), 1));
   global $channel;
   if (isDEV) foreach (['error', 'status'] as $k) unlink(f('t.dosayFilename', $type)); // clear tests (no way to see if testing)
   if (time() < strtotime('6/1/2017')) u\loga('rdo', compact('code', 'args'));
   if (strpos($code, ' ')) return doSay(plain($code));
   if ($i = strpos($code, '~') and $i < 15) { // mailChimp-type action
     @list ($op, $qid, $ecode, $mo, $v) = explode('~', $code . '~~~~~~');
+/**/		u\log(print_r(compact(ray('op qid ecode mo v code')), 1));
     if (!@$op or !@$qid or !@$a = r\acct($qid) or @$ecode != $a->emailCode) return doSay(t('That is not a valid link.'));
   } else {
     if (!$info = r\doCode($code)) return doSay(t('That link is archaic.'));
@@ -56,6 +58,8 @@ function rdo($code, $args = '') {
   $channel = TX_LINK;
   
   if (u\starts($op, 'do') and $formName = substr($op, 2)) {
+    $file = strtolower(R_ROOT . "/forms/$formName.inc");
+    if (file_exists($file)) include_once $file;		
     return w\showForm($formName, "qid=$a->mainQid&ecode=$ecode&$v");
   }
 //  if ($op == 'min') $res = $a->update('minimum', $v); // not used (rewrite as a confirmation form)

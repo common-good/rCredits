@@ -886,11 +886,7 @@ X;
    */
   public function coDesc($subtle = FALSE) {
     $a = $this; $uid = $a->id;
-  	require_once DRUPAL_ROOT . '/vendor/parsedown/Parsedown.php'; // normally only once per form
-
-    $pd = new \Parsedown();
-    $pd->setSafeMode(TRUE);
-    $desc = strtr($pd->text($a->description), ["\\\n" => "<br>", '\\' => "<br>"]);
+		$desc = u\parseUp($a->description);
 
     $sql = <<<EOF
       SELECT i.iid, i.industry FROM r_industries i 
@@ -918,10 +914,11 @@ EOF;
     foreach ([$a, $b] as $i => $ai) {
       $aj = $i == 0 ? $b : $a; // the other account
       $ai->update('jid', $aj->id);
+			/* NO! bankAccount is available only to regional admins
       if (!$ai->o_hasBank and $aj->o_hasBank) {
         $ai->update('bankAccount last4bank', $aj->o_bankAccount, $aj->o_last4bank);
         $ai->setRisk('hasBank');
-      }
+      } */
 //      $ai->setBit(B_JOINED);
       foreach ($fields as $k) $$k = @$$k + $ai->o($k);
     }

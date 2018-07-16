@@ -1,6 +1,6 @@
 <?php
-namespace rCredits\Vote;
-use rCredits\DB as db;
+namespace CG\Vote;
+use CG\DB as db;
 
 class optTotals {
 	public $id; // what option is this for?

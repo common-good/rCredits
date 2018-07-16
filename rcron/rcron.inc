@@ -307,15 +307,16 @@ function activeMonthly($item) {
   $a = r\acct($uid);
   
   // adjust credit line
-  $floorX = $a->floor; // current floor
+  $floorX = $a->o_floor; // current floor (of just this account, not summed with joint)
   
   // temporarily (until 2019?) limit the rate of change of the floor (while changing to new system)
   $floor = round(min(-$monthly, .9 * $floorX), 2);
-  $a->update('floor', round($floor, 2));
+  $a->update('floor', $floor, 2);
 
   $ratio = $floor ? $floorX / $floor : 1;
-  if ($ratio > 1.1 or $ratio < .9) { // big change (or any change in sign)
+  if ($ratio > 1.2 or $ratio < .8) { // big change (or any change in sign)
     $msg = 'new floor' . ($a->can(B_DEBT) ? '' : '|no floor effect');
+	  r\tellAdmin('new floor', compact(ray('floor floorX ratio msg')));
   // DISABLED FOR NOW if (!$a->slave) r\notify($uid, $msg, ['limit' => u\fmtAmt(-$floor)]);
   }
   

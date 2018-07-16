@@ -18,7 +18,6 @@ function couponsPrint($args = '') {
   extract(just('type amount minimum ulimit count automatic start end on', $args));
 	
   if (!$gift = (@$type == 'gift') and @$type != 'discount') return w\hack('bad coupon args');
-  $auto = @$automatic ? t('automatically') : '';
   $coGift = ($amount == @$minimum);
   $amount =  $amount < 0 ? u\fmtAmt(-$amount / 100, '%s') : u\fmtAmt($amount, 's$');
   u\setDft($count, 8);
@@ -44,6 +43,7 @@ function couponsPrint($args = '') {
 	$off = ($gift or $coGift) ? '' : t(' OFF');
 	$goodFor = $off ? '' : t('Good for ');
 //  $iCode = $mya->iCardCode(IBY_EMAIL);
+  $auto = (@$automatic and $off) ? t('automatically') : '';
   
   list ($mT, $mR, $mB, $mL) = [0, 0, 0, 0]; // margins
   list ($hLogo, $dySite, $ptSite, $sSite) = [.9, 2.3, 14, 'semi-expanded'];
@@ -99,7 +99,7 @@ function couponsPrint($args = '') {
       } else { // discount coupon
         $pdf->say($auto, $x+$wLogo, $y+$dyOff+.14, $wCoup-.3, '', '9;color:darkgray', 'R'); // .24 for baseline
         $pdf->say(t('at <b>%name</b>', compact('name')), $x+$dxCoup, $y+$dyAt, $wCoup, '', "$ptCoup;font-stretch:semi-condensed;color:black", 'L');
-        $pdf->say(t('on ') . $on, $x, $y+$dyDetails, $wCard, '', $ptDetails, 'C'); // text, x, y, w, h, format, align, borders
+        if (!$goodFor) $pdf->say(t('on ') . $on, $x, $y+$dyDetails, $wCard, '', $ptDetails, 'C'); // text, x, y, w, h, format, align, borders
         $pdf->say(t('when you pay with <b>%PROJECT</b>'), $x, $y+$dyDetails+$dy, $wCard, '', $ptDetails, 'C'); // text, x, y, w, h, format, align, borders
         $pdf->say($slogan, $x, $y+$dyDetails+$dy*2, $wCard, '', "$ptSlogan;I;Verdana;font-stretch:normal;color:darkgray", 'C'); // text, x, y, w, h, fmt, align, borders
         $pdf->say($dates, $x, $y+$dyDetails+$dy*3, $wCard, '', "10;color:darkgray", 'C'); // text, x, y, w, h, format, align, borders

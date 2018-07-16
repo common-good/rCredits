@@ -43,19 +43,26 @@ function questionList($eid, $question='', $doWhat='') {
 
 //	$q = db\q("SELECT id, (CASE WHEN (endGrading<>0 AND :now>endVoting) then 'G' WHEN :now>endVoting THEN 'R' WHEN :now>endProposals THEN 'V' WHEN :now>endIdeas THEN 'P' ELSE 'I' END) AS phase, repeats, repeatedBy, text, detail,  linkIdeas, linkProposals, created, (CASE WHEN endVoting=0 THEN 0 WHEN (endGrading<>0 AND :now>endVoting) THEN endGrading WHEN :now>endVoting THEN endVoting-:now WHEN :now>endProposals THEN endVoting WHEN :now>endIdeas THEN endProposals ELSE endIdeas END) AS endDate, budget, units FROM r_questions WHERE ctty IN (:ctty, 0) AND endIdeas<>0 ORDER BY endDate, id", ray('ctty now', $cttyA->id, $now = time()));
 
-	$q = db\q("SELECT id, (CASE WHEN (endGrading<>0 AND :now>endVoting) then 'G' WHEN :now>endVoting THEN 'R' WHEN :now>endProposals THEN 'V' WHEN :now>endIdeas THEN 'P' ELSE 'I' END) AS phase, repeats, repeatedBy, text, detail,  linkIdeas, linkProposals, created, (CASE WHEN endVoting=0 THEN 0 WHEN (endGrading<>0 AND :now>endVoting) THEN endGrading WHEN :now>endVoting THEN endVoting-:now WHEN :now>endProposals THEN endVoting WHEN :now>endIdeas THEN endProposals ELSE endIdeas END) AS endDate, budget, units FROM r_questions WHERE e.id=:eid AND endIdeas<>0 ORDER BY endDate, id", ray('ctty now', $cttyA->id, $now = time()));
+  $sql = <<<X
+		SELECT q.id, repeats, repeatedBy, text, detail, linkDiscussion, q.created, budget, units,
+			e.type AS phase, e.end AS endDate
+    FROM r_questions q LEFT JOIN r_events e ON e.id=q.event 
+		WHERE e.id=:eid AND e.end<>0 ORDER BY e.end, q.id
+X;
+
+	$q = db\q($sql, compact('eid'));
 
 	$voting = false;
 	$qdivs = $list = '';
 	while($row = $q->fetchAssoc()) {
 		extract($row); // get parms
-		if($endDate < 0) $endDate = $now - $endDate; // correct for reverse sorting of closed votes (negative means number of days ago)
+		if($endDate < 0) $endDate = NOW - $endDate; // correct for reverse sorting of closed votes (negative means number of days ago)
 
 		if($phase == 'V') $voting = ($voting and $endDate) ? min($voting, $endDate) : $endDate; // report soonest closing date
 		$endDatedpy = $endDate ? u\fmtDate($endDate) : '?';
 
 		$budget = $budget ? (' (total budget: ' . ($units ? '' : '$') . number_format($budget, 0) . ($units ? " $units)" : ')')) : '';
-		$phaselist = phaseDpy($id, $phase, $repeats, $repeatedBy, $linkIdeas, $linkProposals);
+		$phaselist = phaseDpy($id, $phase, $repeats, $repeatedBy, $linkDiscussion);
 // <div class="details" onclick="$('#qdetails' + $id).toggle();">
 
 		$list .= <<<EOF
@@ -69,8 +76,8 @@ function questionList($eid, $question='', $doWhat='') {
 </div qline>\n
 EOF;
 
-    $see = "<a href=\"$linkIdeas\">Ideas</a>";
-    if(strpos('.PVR', $phase)) $see .= " | <a href=\"$linkProposals\">Proposals</a>";
+    $see = "<a href=\"$linkDiscussion\">Ideas</a>";
+    if(strpos('.PVR', $phase)) $see .= " | Proposals";
     if(strpos('.VR', $phase)) $see .= " | <a  href=\"$base_url/community/democracy/question=$id&do=options\">Options</a>";
     if($phase == 'R') $see .= " | <a  href=\"$base_url/community/democracy/question=$id&do=results\">Results</a>";
     if($endDatedpy == '?') $endDatedpy = 'not set';
@@ -148,10 +155,10 @@ EOF;
 
 }
 
-function phaseDpy($qid, $phase, $repeats, $repeatedBy, $linkIdeas, $linkProposals) {
+function phaseDpy($qid, $phase, $repeats, $repeatedBy, $linkDiscussion) {
 	return phaseRepeat($repeats, 'repeats')
-			 . phaseOther('i', $phase, $linkIdeas)
-			 . phaseOther('p', $phase, $linkProposals)
+			 . phaseOther('i', $phase, $linkDiscussion)
+			 . phaseOther('p', $phase, $linkDiscussion)
 			 . phaseOther('v', $phase, $qid)
 			 . phaseOther('r', $phase, $qid)
 			 . phaseRepeat($repeatedBy, 'reconsidered in');
@@ -254,7 +261,7 @@ function getQuestions($eid, $mya = NULL) {
     extract(just('eid', $event));
   }
   $now = time();
-//  $crit = 'ctty IN (:ctty, 0) AND :now>endProposals AND (:now<endVoting OR endVoting=0)';
+//  $crit = 'ctty IN (:ctty, 0) AND :NOW>endProposals AND (:NOW<endVoting OR endVoting=0)';
 	$q = db\q('SELECT id AS question, type FROM r_questions WHERE event=:eid', compact('eid'));
 
 	while($row = $q->fetchAssoc()) {
@@ -303,7 +310,7 @@ function goDemocracy() {
 EOF;
 }
 
-function getCurrentEvent($ctty) {return db\get('id AS eid, type, event, details, start, end', 'r_events', 'ctty=:ctty AND end>:now ORDER BY end LIMIT 1', ray('ctty now', $ctty, time()));}
+function getCurrentEvent($ctty) {return db\get('id AS eid, type, event, details, start, end', 'r_events', 'ctty=:ctty AND end>:NOW ORDER BY end LIMIT 1', ray('ctty', $ctty));}
 
 /**
  * Return fields from an event record.
@@ -313,3 +320,4 @@ function getCurrentEvent($ctty) {return db\get('id AS eid, type, event, details,
 function event($fields, $eid) {return db\get($fields, 'r_events', 'id=:eid', compact('eid'));}
 
 function question($question) {return db\get('q.id AS question, q.text, q.detail, q.linkDiscussion, q.type, q.budget, q.minVeto, q.optOrder, e.start, e.end', 'r_questions q LEFT JOIN r_events e ON e.id=q.event', 'q.id=:question', compact('question'));}
+function realOpts($type) {return !in($type, 'E R Y');} // options records for this question type are not just details

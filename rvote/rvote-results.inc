@@ -1,16 +1,19 @@
 <?php
-namespace rCredits\Vote;
-use rCredits as r;
-use rCredits\DB as db;
-use rCredits\Backend as be;
-use rCredits\Util as u;
-use rCredits\Web as w;
-use rCredits\Vote as v;
+namespace CG\Vote;
+use CG as r;
+use CG\DB as db;
+use CG\Backend as be;
+use CG\Util as u;
+use CG\Web as w;
+use CG\Vote as v;
 
 /**
  * Return a display of Vote or Grading results for one event.
+ * @param int $eid: event record ID OR community record ID (negative)
+ * @return formatted event results
  */
 function showResults($eid, $noProxies = FALSE) { // called from ballot if ISDEMO
+  if ($eid < 0 and !$eid = db\max('id', 'r_events', ray('ctty', $eid))) return t('This community has no events');
   list($quids, $qutypes) = getQuestions($eid); 
 	$ans = '';
   if (@$quids) {
@@ -30,12 +33,12 @@ function showResults($eid, $noProxies = FALSE) { // called from ballot if ISDEMO
  * @return HTML for the voting results on the given question
  */
 function showResult($ctty, $qi, $question, $noProxies, $withheader = TRUE) {
-	global $thisvoter; // only if ISDEMO
+	global $thisvoter, $mya; // only if ISDEMO
 //    u\loga("0-$question", 'top');
 	$qu = db\get('id, type, text, detail, budget, minveto, result', 'r_questions', 'id=:question', compact('question'));
   extract($qu);
   
-  if (!@$result) {
+  if ($mya->superAdmin and !@$result) {
 //    if ($type == 'E') return ''; // don't show essay results (and don't create ballots for them)
     
     $opts = optList($question);
@@ -76,6 +79,7 @@ function getResult($qi, $quText, $quDetail, $quType, $budget, $tot, $votesDirect
   'B' => "<th class='resultOption'></th><th></th><th></th><th>Percent</th><th colspan='2'>Budget</th><th class='resultAverage'>Average</th><th></th>",
   'R' => "<th colspan='2'>Range</th><th></th><th></th><th>Average</th><th>Average</th><th colspan='2'>Vetoed by 5%</th>",
   'E' => "",
+	'Y' => "<th class='resultOption'>Yes</th><th>No</th>",
   ];
   
   $prefHeads[2] = [
@@ -83,6 +87,7 @@ function getResult($qi, $quText, $quDetail, $quType, $budget, $tot, $votesDirect
   'B' => "<th class='resultOption'>Option</th><th>Result</th><th>Amount</th><th>of total</th><th>Min</th><th>Max</th><th class='resultVote'>Vote</th><th>Vetos</th>",
   'R' => "<th>Min</th><th>Max</th><th>Result</th><th>Acceptance</th><th>Min Chosen</th><th>Max Chosen</th><th>Min</th><th>Max</th>",
   'E' => "",
+  'Y' => "",
   ];
 
   foreach ([1, 2] as $i) $prefHead[$i] = $prefHeads[$i][$quType];
@@ -104,7 +109,7 @@ function getResult($qi, $quText, $quDetail, $quType, $budget, $tot, $votesDirect
     } else $showDetail = '';
     
     if ($quType != 'E' or $showComments) {
-      $prefix = $quType == 'E' ? '' : "<b>$inum:</b> ";
+      $prefix = in($quType, 'E Y') ? '' : "<b>$inum:</b> ";
 		  if($separateOptTexts) $optTexts .= "$prefix$otx $showDetail $showComments<br>\n$detail$comments"; else $optlinehdr .= ": $otx";
     }
 
@@ -135,7 +140,14 @@ function getResult($qi, $quText, $quDetail, $quType, $budget, $tot, $votesDirect
       }
       $middle = "<tr>$middle</tr>\n";
       $optTexts = '';
-    }
+    } elseif ($quType == 'Y') {
+			foreach (ray('yes no') as $k) {
+				$v = $toti->$k;
+				$pct = $votesAll ? u\fmtAmt($v / $votesAll, '%') : '0%';
+				$v = number_format($v);
+				$middle .= "<td>$v ($pct)</td>";
+			}
+		}
 	}
   
   if ($quType == 'M') $prefHead[2] .= "<th class='resultVote'>Vote</th><th>Vetos</th>";
@@ -286,8 +298,13 @@ EOF;
     if ($res = db\q($sql)->fetchAssoc()) extract($res); else $lowVeto = '';
     
     u\preray(compact(ray('result acceptance lowAvg highAvg lowVeto highVeto qminveto')), $newtot[0]);
-  }
-
+  } elseif ($qtype == 'Y') {
+    if ($voters) {
+			$sql = 'SELECT SUM(IF(grade=1, 1, 0)) AS yes, SUM(IF(grade=0, 1, 0)) AS no FROM r_votes WHERE `option`=:opt';
+			$res = db\q($sql, ray('opt', $optlist))->fetchAssoc(); // only one option record
+			u\preray($res, $newtot[0]);
+		}
+	}
 	return $newtot;
 }
 

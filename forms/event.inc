@@ -18,12 +18,13 @@ include_once R_ROOT . '/rvote/rvote-results.inc';
  */
 function formEvent($form, &$sta, $args='') {
   include_once R_ROOT . '/rvote/rvote.inc';
+  include_once R_ROOT . '/rvote/rvote-results.inc';
   global $base_url, $mya;
 	
 	extract(just('do eid', $args));
 
   $typeDescs = ray(t('I:Meeting,V:Vote,G:Grading,P:RFP'));
-  if (strpos($eid, '=')) extract(just('eid do', $eid)); // passed from rdo()
+  if (strpos(@$eid, '=')) extract(just('eid do', $eid)); // passed from rdo()
   
   if (isset($eid)) {
     $fields = 'type,event,details,start,end';
@@ -96,8 +97,9 @@ EOF;
   $start = textFld(t('Start:'), [t('Start Date')], required(@$start ? u\fmtDate($start, TRUE) : ''));
   $end = textFld(t('End:'), [t('End Date')], required(@$end ? u\fmtDate($end, TRUE) : ''));
   if ($mya->cAdmin) $submit = submit();
+	$back = button(t('Back to Events'), "$base_url/community/events");
   
-  return cgform(compact(ray('title id type event details start end submit list')));
+  return cgform(compact(ray('title back id list type event details start end submit')));
 }
 
 function formEvent_validate($form, &$sta) {

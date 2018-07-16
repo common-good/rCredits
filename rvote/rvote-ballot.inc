@@ -35,11 +35,11 @@ function ballot($mya, &$extras, $question) {
   $qu = v\question($question);
   $tableHeader = tableHeader($qu['type']);
   if($qu['linkDiscussion']) $qu['linkDiscussion'] = "<div class=\"discussionlink\"> [<a href=\"$qu[linkDiscussion]\" target=\"_blank\">See discussion</a>]</div>";
-  $range = formatQuestionDates($qu['start'], $qu['end'], 1);
+  $range = formatQuestionDates($qu['start'], $qu['end'], 0);
 
   // get current voted values for this question
   $defaults = getCurrentVote($mya, $extras, $question, $qu['type'], $qu['optOrder']);
-///  debug(compact('defaults'));
+///    debug(compact('defaults'));
   $optCount = $defaults['optCount'];
   $opts = getOptsX($defaults['ballot'], $qu['type'], $defaults);
 
@@ -51,7 +51,7 @@ function ballot($mya, &$extras, $question) {
   }
 
 //<form name='ballotform' id='ballotform' action='ballot.php' method='$METHOD' onsubmit="return checkform(this, $optCount, '$qu[type]');">
-  $qu['detail'] = u\lf2br($qu['detail']);
+  $qu['detail'] = u\parseUp($qu['detail']);
 
   $bodymiddle = <<<EOF
 <div class='ballot well q$qu[type]'>
@@ -379,7 +379,7 @@ function getOptsX($ballot, $type, $defaults) {
 	for($opti = 0, $opts=''; $row = $q->fetchAssoc(); $opti++) {
 		extract($row);
   	$rowclass = ($opti&1) ? 'odd' : 'even';
-		$opts .= call_user_func("CG\\Vote\\getOpts$type", $opti, $rowclass, $text, $detail, $defaults);
+		$opts .= call_user_func("CG\\Vote\\getOpts$type", $opti, $rowclass, $text, u\parseUp($detail), $defaults);
 	}
 	return $opts;
 }
@@ -395,7 +395,7 @@ function getOptsB($opti, $rowclass, $opttext, $optdetail, $defaults) {
 EOF;
   $optionHtml = w\rendA($option, w\hidFld($dft));
 
-	$optStart = optStart($opti, $rowclass, 'B', $defaults);
+	$optStart = optStart($opti, $rowclass, $defaults);
 	$optEnd = optEnd($opti, $rowclass, $opttext, $optdetail, $defaults);
 
 	return <<<EOF
@@ -426,7 +426,7 @@ EOF;
   $optionHtml = w\rendA($option, w\hidFld($minDft))
               . w\rendA('max', w\hidFld($maxDft));
 
-	$optStart = optStart($opti, $rowclass, 'B', $defaults);
+	$optStart = optStart($opti, $rowclass, $defaults);
 	$optEnd = optEnd($opti, $rowclass, $opttext, $optdetail, $defaults);
 
 	return <<<EOF
@@ -447,7 +447,7 @@ EOF;
  */
 function getOptsE($opti, $rowclass, $opttext, $optdetail, $defaults) {
 	$votenote = "votenote$opti";	
-  $votenoteHtml = w\rendA($votenote, w\areaFld(BARE, '', @$defaults[$votenote]));
+  $votenoteHtml = w\rendA($votenote, w\areaFld(BARE, '', w\dft(@$defaults[$votenote])));
 
 	return <<<EOF
 <div class="optdetailE">
@@ -456,19 +456,50 @@ function getOptsE($opti, $rowclass, $opttext, $optdetail, $defaults) {
 EOF;
 }
 
-function getOptsM($opti, $rowclass, $opttext, $optdetail, $defaults) {
-	$optStart = optStart($opti, $rowclass, 'M', $defaults);
+function getOptsY($opti, $rowclass, $opttext, $optdetail, $defaults) {
+	$optStart = optStart($opti, $rowclass, $defaults);
 	$optEnd = optEnd($opti, $rowclass, $opttext, $optdetail, $defaults);
-	list ($gradeinputs, $gradehdr) = gradeInputs($opti, $defaults);
+	$yesnoinputs = yesnoinputs($opti, $defaults);
+
+	return <<<EOF
+$optStart
+<div class='yesnoinputs'>
+$yesnoinputs
+</div yesnoinputs>
+<nothing />
+$optEnd
+EOF;
+}
+
+function yesnoinputs($opti, $defaults) {
+	$v = "option$opti";
+	$oldval = $defaults[$v]; 
+	$yChecked = $nChecked = '';
+	if ($oldval != -1) {
+	  if ($oldval) $yChecked = ' selected'; else $nChecked = ' selected';
+	}
+
+	return <<<X
+	<div id="gY$opti" class="gY$yChecked" index="$opti"></div>
+	<div id="gN$opti" class="gN$nChecked" index="$opti"></div>
+	<input type="hidden" id="opt$opti" name="$v" value="$oldval">
+X;
+}
+
+function getOptsM($opti, $rowclass, $opttext, $optdetail, $defaults) {
+	$optStart = optStart($opti, $rowclass, $defaults);
+	$optEnd = optEnd($opti, $rowclass, $opttext, $optdetail, $defaults);
+	$gradeinputs = gradeInputs($opti, $defaults);
+	
+	/*
+<div class='gradeheader'><table><tr>
+$gradehdr
+</tr></table></div gradeheader>
+*/
 
 	return <<<EOF
 $optStart
 <div id='grades$opti' class='grades'>
-
-<div class='gradeheader'><table><tr>
-$gradehdr
-</tr></table></div gradeheader>
-
 <div class='gradeinputs'>
 $gradeinputs
 </div gradeinputs>
@@ -482,31 +513,26 @@ EOF;
 function gradeInputs($opti, $defaults) {
 	$v = "option$opti";
 	$oldval = $defaults[$v]; 
-//  $oldvalint = ($oldval !== '') ? round(3 * $oldval) + 0 : '';
+  $optGrade = ''; // no grade yet
 
-	for ($grade=0, $gradeinputs='', $gradehdr=''; $grade < strlen(GRADELTRS); $grade++) {
-		$dpy = $ltr = substr(GRADELTRS, $grade, 1); // default display (dpy) is unadorned grade letter
-		$checked = ''; // unchecked by default
-//    $onclick = "opts[$opti].nudgeGrade(this);";
-//    $vv = "<input type=\"radio\" class="grade-letter" index="$opti" name=\"$v\" onmousedown=\"$onclick\" value=\"$grade\" />";
-    $vv = "<input type=\"radio\" class=\"grade-letter\" index=\"$opti\" name=\"$v\" value=\"$grade\" />";
-//		input($v, 'r', '', "onclick=\"nudgeGrade(this,$opti);\"", $grade); $vv = vv("input_$v");
+	for ($grade=0, $gradeinputs=''; $grade < strlen(GRADELTRS); $grade++) {
+		$ltr = substr(GRADELTRS, $grade, 1); // default display (dpy) is unadorned grade letter
 		if (round($oldval) == $grade and $oldval >= 0) {  // this works even for E (0)
-			$val = $oldval;
-			$checked = ' CHECKED';
-			if ($sign = $val - $grade) $dpy .= '<sup>' . ($sign > 0 ? '+' : '<b>&ndash;</b>') . '</sup>';
-		} else $val = $grade;
-		$vv = str_replace("value=\"$grade\"", "value='$val'$checked", $vv);
-///    debug(compact(ray('v oldval oldvalint grade val checked sign dpy vv')));
-//<input type='radio' name='option$opti' value='$grade' />
-	//	$gradehdr .= "<div class='g$ltr'>$dpy</div>\n"; // div table-cell fails in IE
-		$gradehdr .= "<td id='g$ltr$opti' class='g$ltr'>$dpy</td>\n";
-		$gradeinputs .= "<div>$vv</div>\n";
+			$checked = ' selected';
+			$dpy = ($sign = $oldval - $grade) ? $dpy = '<div>' . ($sign > 0 ? '+' : '<b>&ndash;</b>') . '</div>' : '';
+			$optGrade = $grade;
+		} else $dpy = $checked = '';
+		$gradeinputs .= <<<X
+	<div id="g$ltr$opti" class="g$ltr$checked" index="$opti">$dpy</div>
+X;
 	}
-	return array($gradeinputs, $gradehdr);
+	$gradeinputs .= <<<X
+	<input type="hidden" id="opt$opti" index="$optGrade" name="$v" value="$oldval">
+X;
+	return $gradeinputs;
 }
 
-function optStart($opti, $rowclass, $type, $defaults) {
+function optStart($opti, $rowclass, $defaults) {
   $html = '';
   foreach (['note', 'veto'] as $k) {
     $v = "$k$opti";
@@ -548,7 +574,7 @@ function tableHeader($type) {
 	$leftarrow = "<img src=\"$rUrl/images/rvote/arrow-left.gif\" alt='' />";
 	$rightarrow = "<img src=\"$rUrl/images/rvote/arrow-right.gif\" alt='' />";
 
-	if ($type == 'M') return <<<EOF
+	if (FALSE and $type == 'M') return <<<EOF
 <div class='grades'>$leftarrow Bad | Good $rightarrow</div>
 EOF;
   return '';
@@ -569,9 +595,9 @@ function specialhdrs($question_type) {
 
 function done($mya) {
   global $proxiesForThisVoter;
-  include_once R_ROOT . '/rvote/rvote-results.inc';
 
 	if(ISDEMO) {
+    include_once R_ROOT . '/rvote/rvote-results.inc';
     $proxyCount = db\get('COUNT (DISTINCT voter)', 'r_ballots', 'proxy=:myid', ['myid' => $mya->id]) - 1;
     
 		$bodymiddle = t(<<<EOF
@@ -607,23 +633,27 @@ EOF;
  *
  * @todo: For nonvoters maybe return <br>(You did not vote yet and neither did your proxy or alternate proxy, because they are not members of Greenfield rCredits.) 
  */
-function showVotes($ctty, $byVoter = TRUE, $proxies = 'both') {
+function showVotes($ctty, $byVoter = TRUE, $proxies = 'direct') {
   $subs = compact('ctty');
   $crit = $proxies == 'direct' ? ' AND b.proxy=b.voter' : ($proxies == 'proxy' ? ' AND b.proxy<>b.voter' : '');
   if ($byVoter > 1) { // specifying a single voter
     $crit .= ' AND b.voter=:byVoter';
     $subs += compact('byVoter');
-  } else v\showResults($ctty); // refigure results if showing more than one
+  } else {
+    include_once R_ROOT . '/rvote/rvote-results.inc';
+		v\showResults($ctty); // refigure results if showing more than one
+	}
   
   $order = $byVoter ? 'u.fullName,q.id' : 'q.id,u.fullName';
 //  $ballots = $byVoter > 1 ? '(SELECT b2.id, b1.voter, b2.question FROM r_ballots b1 INNER JOIN r_ballots b2 ON (b2.voter=b1.proxy AND b2.question=b1.question))' : 'r_ballots';
+  $event = db\max('event', 'r_questions');
 
   $sql = <<<EOF
     SELECT DISTINCT q.id AS qId, b.id AS bId, b.voter, b.proxy, q.type AS qType, u.fullName, u.trust, b.question
     FROM r_questions q 
     INNER JOIN r_ballots b ON b.question=q.id 
     INNER JOIN users u ON u.uid=b.voter
-    WHERE ctty IN (:ctty, 0)$crit ORDER BY $order
+    WHERE event=$event AND community IN (:ctty, 0)$crit ORDER BY $order
 EOF;
 
   $qvQ = db\q($sql, $subs);
@@ -695,21 +725,22 @@ EOF;
 /**
  * Return the welcome page for voting.
  */
-function votingWelcome($endDate) {
-  include_once __DIR__ . '/../rvote/rvote-results.inc';
+function votingWelcome($endDate, $proxLink) {
+  include_once R_ROOT . '/rvote/rvote-results.inc';
+	
   $subtext = w\item(t(<<<EOF
   Before you vote, please make sure you are happy with your <%a>proxy choices</a> and adjust them as needed.<br><br>
   
   Please keep in mind that you are acting on behalf of the community. You have a responsibility to vote according to what best serves the greater good. In most cases, your interests will be aligned with those of the community. But if there is a conflict, the community comes first.
 EOF
-  , '_a', w\atag('/settings/proxies')));
+  , '_a', w\atag($proxLink)));
   
   if ($mya = r\acct() and $mya->superAdmin) {
     $showVotes = w\submit(t('Show votes'));
     $noVote = w\submit(t('Didn\'t vote yet'));
     $noDirect = w\submit(t('Didn\'t vote directly'));
-    $results = @$results ? w\item(v\showResults($mya->community, $noProxies)) : w\submit(t('Results'));
-    $resultsNoProx = w\submit(t('Results (no proxies)'));
+//    $results = @$results ? w\item(v\showResults($mya->community, $noProxies)) : w\submit(t('Results'));
+//    $resultsNoProx = w\submit(t('Results (no proxies)'));
     $agree = w\hidFld(TRUE);
   } else {
     $agree = w\boxFld('agree', '', t('I agree.'), '', w\required());
@@ -722,7 +753,7 @@ EOF
 /**
  * Return the welcome page for grading.
  */
-function gradingWelcome($endDate) {
+function gradingWelcome($endDate, $proxLink) {
   global $base_url;
 
   $title = w\item(t('Grade Funding Proposals'));
@@ -742,7 +773,7 @@ function gradingWelcome($endDate) {
   
   Please keep in mind you are acting on behalf of the community. You have a responsibility to grade the proposals according to what best serves the greater good. In most cases, your interests will be aligned with those of the community. But if there is a conflict, the community comes first.
 EOF
-  , '_a', w\atag('/settings/proxies')));
+  , '_a', w\atag($proxLink)));
   
   if ($mya = r\acct() and $mya->admin) {
   /*

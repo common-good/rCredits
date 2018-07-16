@@ -1319,6 +1319,17 @@ function noSecrets($ray) {
   return $ray;
 }
 
+/**
+ * Return formatted parsedown text.
+ */
+function parseUp($s) {
+	require_once DRUPAL_ROOT . '/vendor/parsedown/Parsedown.php'; // normally only once per form
+
+	$pd = new \Parsedown();
+	$pd->setSafeMode(TRUE);
+	return strtr($pd->text($s), ["\\\n" => "<br>", '\\' => "<br>"]);
+}
+
 /*
 function unSerialFix($s) {
 	$s = html_entity_decode($s, ENT_QUOTES, 'UTF-8');

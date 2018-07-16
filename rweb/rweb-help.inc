@@ -401,6 +401,38 @@ X
     <p><b>Control.</b> Of course your participation benefits the community far beyond mere money. The commmunity benefits by all of us together having greater control over our local economy, so we can plan and decide together how to use the power of money to make a better life for everyone.</p>
 X
   ) . $back;
+	
+	if ($i == '2018-question-1') return u\parseUp(t(<<<X
+**Investments, grants, and incentives.** Investment terms can be whatever we negotiate with the recipient -- ranging from a zero-interest loan to a full-ownership stake with regular dividends indefinitely. 
+
+Incentives are a sort of diffuse grant. **Made-up Examples:** Get a 10% rebate on any purchase with your Common Good card during the month of December, while funds last. Or donate to a member nonprofit this month and Common Good Greenfield increases your donation by 50%.
+
+**Arguments for $20,000.** Growth of the Dollar Pool since last year has been very steady, so repeating what worked last year, but in proportion to our current size, follows from common sense. Funding community projects contributes to growth in participation by new members and businesses, while also continuing to inspire hope, which many new members are seeking.
+
+**Arguments for MORE than $20,000.** Our Dollar Pool has grown steadily since the end of 2015, with no dips of more than $8,000, before resuming the steady climb. If that trend continues, we could use as much as $93,000 this year ($101,000 minus $8,000).
+![CGG July 2018 Dollar Pool](%BASE_URL/rcredits/images/rvote/CGG-2018-07-dollar-pool.png)
+**Arguments for LESS than $20,000.** The red line on the chart shows the total in the top 10 Common Good accounts: $94,000. If all 10 at once try to transfer their Common Good Credits to their bank accounts it would be like a “run on the bank” and some people would have to wait for more money to come in, before they could take money out.
+
+Similarly, the yellow line on the chart shows the total amount members are saving to spend later**: $84,000. If everyone at once tried to transfer these savings to a bank account, it would be like a “run on the bank” and some people would have to wait before they could take money out.
+
+* ** The amount members are saving is the amount NOT used last month for transactions.
+
+Our Coordinating Committee thinks the risk of either of these events is very, very small and believes we are capable, as a community, of handling any such crunch in a way that minimizes the financial inconvenience to any participant; for example, by borrowing funds until the system has time to grow again. But it is important that you judge this risk for yourself and vote accordingly.
+
+There is also one argument for using nothing at all: Some people may choose not to participate in Common Good unless every Common Good Credit is backed by a US Dollar, so once we use ANY of the Dollar Pool, we would miss out on their participation. Our Coordinating Committee believes the number of participants attracted by our funding of worthwhile projects (a key part of our mission) will outweigh the number who shy away.
+X
+  )) . $back;
+	
+	if ($i == '2018-question-2') return u\parseUp(t(<<<X
+**About Grants.** Grant funding can make a huge difference to community-spirited projects. Grants are harder to get than loans, so they make a bigger publicity splash, which could more quickly propel the Common Good movement forward in the public eye, bringing in many new members and businesses. When we make a grant, we are permanently trading our financial assets for short-term publicity and one-shot support of something worthwhile.
+
+Once we grant funds from the Dollar Pool, the system can no longer end without someone losing out. When we make grants (or incentives) we are saying we are very confident the Common Good System will continue indefinitely -- and in the very unlikely event it fails, we would each pay our fair share of the grants we made together.
+
+**About Incentives.** Offering incentives to people to make different everyday choices can also make a big difference—reshaping society locally according to our local values. This might also make a splash (we haven’t tried it yet, so we don’t know). 
+
+**About Investments.** Fewer applicants wanted investment funds last year than wanted grants, so we might have to work harder to find such applicants this year. When we invest, we are temporarily trading our financial assets for incoming-producing assets, plus some publicity (but probably less than with grants). Investments help the Common Good system become financially sustainable by providing ongoing interest or dividends to cover administrative costs, and eventually a possible [Social Dividend](https://en.wikipedia.org/wiki/Social_dividend).
+X
+  )) . $back;
 
 /*
   <p>We recommend you NOT report %PROJECT rewards or inflation adjustments as income, because your %PROJECT community has not yet decided you can keep them &mdash; they are still just a credit reserve.</p>

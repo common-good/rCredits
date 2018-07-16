@@ -78,6 +78,11 @@ function update($table, $info, $key, $either = FALSE) {
   //if ($table != 'r_log') u\loga('db', $info, "$table:$key" . ($either ? ' EITHER' : ''));
   if ($either) if (!isset($info[$key]) or !db\exists($table, "$key=:$key", [$key => $info[$key]])) $key = '';
   $command = $key ? 'UPDATE' : 'INSERT INTO';
+
+  foreach (ray('created modified') as $k) if (!isset($info[$k]) and hasField($table, $k)) {
+		if ($k == 'modified' or !$key) $info[$k] = NOW; // set these automatically
+	}
+	
   $sql = '';
   foreach ($info as $field => $v) {
     if ($field != $key) $sql .= ",`$field`=:$field";
@@ -221,12 +226,14 @@ function del($table, $id, $subs = []) {
  * @param string $field1: (RETURNED) descriptive array of first field in the table
  */
 function idnm($table, &$field1 = '') {
-  $scheme = f('i.scheme', $table);
+  $scheme = scheme($table);
   $id = $table == 'users' ? 'uid' : $scheme['primary key'][0];
   $field1 = reset($scheme['fields']);
   return $id;
 }
   
+function scheme($table) {return f('i.scheme', $table);}
+function hasField($table, $field) {return ($scheme = scheme($table) and @$scheme['fields'][$field]);}
 function count($table, $where = '1', $subs = []) {return db\get('COUNT(1)', $table, $where, $subs);}
 function max($field, $table, $where = '1', $subs = []) {return db\get("MAX($field)", $table, $where, $subs);}
 function min($field, $table, $where = '1', $subs = []) {return db\get("MIN($field)", $table, $where, $subs);}

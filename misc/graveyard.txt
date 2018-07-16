@@ -1,5 +1,25 @@
 _____________________________________________
 
+//  $oldvalint = ($oldval !== '') ? round(3 * $oldval) + 0 : '';
+//	for ($grade=0, $gradeinputs='', $gradehdr=''; $grade < strlen(GRADELTRS); $grade++) {
+//		$dpy = $ltr = substr(GRADELTRS, $grade, 1); // default display (dpy) is unadorned grade letter
+//    $onclick = "opts[$opti].nudgeGrade(this);";
+//    $vv = "<input type=\"radio\" class="grade-letter" index="$opti" name=\"$v\" onmousedown=\"$onclick\" value=\"$grade\" />";
+//    $vv = "<input type=\"radio\" class=\"grade-letter\" index=\"$opti\" name=\"$v\" value=\"$grade\" />";
+//		input($v, 'r', '', "onclick=\"nudgeGrade(this,$opti);\"", $grade); $vv = vv("input_$v");
+//			$val = $oldval;
+//			$checked = ' CHECKED';
+//			if ($sign = $val - $grade) $dpy .= '<sup>' . ($sign > 0 ? '+' : '<b>&ndash;</b>') . '</sup>';
+//		} else $val = $grade;
+//		$vv = str_replace("value=\"$grade\"", "value=\"$val\"$checked", $vv);
+///    debug(compact(ray('v oldval oldvalint grade val checked sign dpy vv')));
+//<input type='radio' name='option$opti' value='$grade' />
+	//	$gradehdr .= "<div class='g$ltr'>$dpy</div>\n"; // div table-cell fails in IE
+//		$gradehdr .= "<td id='g$ltr$opti' class='g$ltr'>$dpy</td>\n";
+//		$gradeinputs .= "<div id='g$ltr$opti' class='g$ltr'>$dpy</div>\n";
+//		$gradeinputs .= "<div>$vv</div>\n";
+_____________________________________________
+
 //    say('your account is ready');
 //    $region = strtolower(R_SERVER_ID);
   // @todo: try this 2 or 3 times (in case someone else was trying to register the same name       // NO. Do this upon completion of steps      say('must be confirmed', ['inviterName' => $h->fullName]);

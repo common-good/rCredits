@@ -9,12 +9,14 @@ $('.optRow').each(function() {
 });
 
 $('.optImg.expand').click(function () {expandOpt($(this).attr('index'));});
-$('.grade-letter').mousedown(function () {opts[$(this).attr('index')].nudgeGrade(this);});
+//$('.grade-letter').mousedown(function () {opts[$(this).attr('index')].nudgeGrade(this);});
+$('.gradeinputs>div').mousedown(function () {opts[$(this).attr('index')].nudgeGrade($(this));});
+$('.yesnoinputs>div').mousedown(function () {opts[$(this).attr('index')].nudgeYesNo($(this));});
 $('.optRow .veto input[type="checkbox"]').change(function () {opts[$(this).attr('index')].noteClick();});
 $('.qdetailer').click(function () {$('#qdetails' + $(this).attr('index')).toggle();});
 
 /**
- * Construct an option for a Budget-type question.
+ * Construct an option for a Multiple-choice or Budget-type question.
  * @param int i: the (internal) option number
  * @param DOM element: jQuery input element for slider slider (or null)
  */
@@ -35,37 +37,57 @@ function Opt(i, sliderInput) {
     if ($('.ballot.q' + t).length > 0) this.type = t;
   }
 
+	this.nudgeYesNo = function(me) {
+    this.lastMod = now();
+    this.clearVeto(); // clear veto, if grading
+
+		var ltr = me.attr('id').charAt(1);
+		var optObj = $('#opt' + this.i);
+    var ltrObj = $('#g' + ltr + this.i);
+    optObj.val(ltr == 'Y' ? 1 : 0);
+
+    $('.yesnoinputs > div').removeClass('selected');
+    ltrObj.addClass('selected');
+	}
+	
   /**
    * Toggle between grades: X, X+, and X-.
-   * @param DOMelement me: the DOM input element of the current option
-   * @param int opti: the option number
+   * @param DOMelement me: the jQuery object clicked (a div with a smiley background)
    */
   this.nudgeGrade = function(me) {
     this.lastMod = now();
     this.clearVeto(); // clear veto, if grading
-    var prevValue = this.grades.find('input:checked').val();
-    if (prevValue == null) return; // no previous value, nothing to nudge
 
-    var oneletter;
-    var basevalue = Math.round(me.value);
-    var oldsign = (Math.round(prevValue) == basevalue) ? me.value - basevalue : -.333; // pretend X- if new letter
-    var baseletter = letters.substr(basevalue, 1);
-    var letter = $('#g' + baseletter + this.i);
+		var ltr = me.attr('id').charAt(1);
+		var basevalue = letters.indexOf(ltr);
+//    var basevalue = Math.round(me.value);
+		//    var prevValue = this.grades.find('input:checked').val();
+//    if (prevValue == null) return; // no previous value, nothing to nudge
+		var optObj = $('#opt' + this.i);
+    var prevValue = optObj.val();
+    var oldsign = (Math.round(prevValue) == basevalue) ? prevValue - basevalue : -.333; // pretend X- if new letter
+//    var ltr = letters.substr(basevalue, 1);
+    var ltrObj = $('#g' + ltr + this.i);
+
+    newsign = (oldsign < 0 ? 0 : (oldsign == 0 ? .333 : (basevalue == 0 ? 0 : -.333))); // toggle sign (no E-)
+//    me.value = basevalue + newsign;
+    optObj.val(basevalue + newsign);
+//    ltrObj.html(baseletter + (newsign < 0 ? '<sup><b>&ndash;</b></sup>' : (newsign == 0 ? '' : '<sup>+</sup>')));
 
     this.resetGrades(); // reset all the letters before fixing this one
-    newsign = (oldsign < 0 ? 0 : (oldsign == 0 ? .333 : (basevalue == 0 ? 0 : -.333))); // toggle sign (no E-)
-    me.value = basevalue + newsign;
-    letter.html(baseletter + (newsign < 0 ? '<sup><b>&ndash;</b></sup>' : (newsign == 0 ? '' : '<sup>+</sup>')));
+    ltrObj.html((newsign < 0 ? '<div><b>&ndash;</b></div>' : (newsign == 0 ? '' : '<div>+</div>')));
+		ltrObj.addClass('selected');
   }
     
   /**
-   * Reset all grade values to their unplused, unminused value.
+   * Reset all grade values to their unplused, unminused value, unselected.
    */
   this.resetGrades = function() {
     for (i=0; i<letters.length; i++) {
 // fails (missing id) but not needed      $('#edit-option' + this.i + '_' + i).val(i); // restore start value
       oneletter = letters.substr(i, 1);
-      $('#g' + oneletter + this.i).html(oneletter);
+//      $('#g' + oneletter + this.i).html(oneletter);
+      $('#g' + oneletter + this.i).html('').removeClass('selected');
     }
   }
 

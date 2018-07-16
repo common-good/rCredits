@@ -50,6 +50,7 @@ function formEvents($form, &$sta, $args = '') {
 
   $mya = w\eLinkAcct($sta, $args, r\acct() ? 'acct' : 'individual'); // allow any signed in account, so user can switch to personal account, below
   $cttyA = $mya->cttyA;
+	if ($aA = r\acct()) list ($cAdmin, $superAdmin) = [$aA->cAdmin, $aA->superAdmin]; // get signed-in account, if any
 
   $title = item(t('Community Democracy') . "<br><small>$cttyA->fullName</small>");
 //  $subtitle = item($cttyA->fullName);
@@ -64,11 +65,12 @@ function formEvents($form, &$sta, $args = '') {
       if (!$mya->proSe or $mya->co) { // "or" is necessary if a voting link is accidentally sent to a company
         $switch = r\changeAcctLink($mya->agentId, t('Switch to your personal account'));
         $msg = $mya->co ? t('Companies cannot vote.') : t('You cannot vote on behalf of someone else.');
-        w\say("$msg|$switch.", $mya->superAdmin ? '' : 'err');
-        if (!$mya->superAdmin) return compact('title');
+        w\say("$msg|$switch.", $superAdmin ? '' : 'err');
+        if (!$superAdmin) return compact('title');
       }
 
-      if (!@$do) $voting = $type == 'V' ? v\votingWelcome($end) : v\gradingWelcome($end); // end is displayable end date
+			$proxLink = $aA == $mya ? '/settings/proxies' : "/prox/page=Proxy&priority=1&allow=individual&qid=$mya->mainQid&ecode=$mya->emailCode";
+      if (!@$do) $voting = $type == 'V' ? v\votingWelcome($end, $proxLink) : v\gradingWelcome($end, $proxLink); // end is displayable end date
     }
 
     $start = $start <= time() ? t('NOW') : u\fmtDate($start);
@@ -78,17 +80,15 @@ function formEvents($form, &$sta, $args = '') {
   
   if (!@$do) $status = item($status0);
 
-  if (@$do == 'options' or @$do == 'results') {  
-    list($questionList, $phase, $endDate) = v\questionList(@$eid, @$question, @$do);
-  }
-  
   if (FALSE and $mya->community == -26742000000002) {
     $middle = file_get_contents(__DIR__ . '/greenfieldma2017.html');
 //    $middle = v\showProposalGrades($mya, $args); // FUDGE for 19 Jan 2017 (pending reworking the overall flow and logic of voting phases)
   } elseif (@$do == 'proposals') {
-    
-  } elseif (@$do == 'options' or @$do == 'results') {
-    $middle = $questionlist;
+		
+  } elseif (@$do == 'results') {
+		$middle = v\showResults(@$eid, !@$noProxies);
+  } elseif (@$do == 'options') { // UNUSED
+    list($middle, $phase, $endDate) = v\questionList(@$eid, @$question, @$do);
   } elseif (@$do == 'ballot') {
     $middle = v\ballot($mya, $extraFields, @$question);
   } elseif (@$do == 'done' and @$eid) { // @todo: handle proposals too
@@ -101,7 +101,7 @@ function formEvents($form, &$sta, $args = '') {
     $middle = v\showProposal($mya, $extraFields, @$question, TRUE);
   } else {
     $middle = t('Event History');
-    if ($mya->cAdmin) $middle .= ' ' . button(t('Add'), "$base_url/community/events/event/do=add", '', 'warning');
+    if ($cAdmin) $middle .= ' ' . button(t('Add'), "$base_url/community/events/event/do=add", '', 'warning');
     $middle = "<h4>$middle</h4>";
     $sql = <<<EOF
       SELECT id, end, event FROM r_events ORDER BY end DESC, id DESC
@@ -110,8 +110,12 @@ EOF;
     $list = '';
     while ($row = $q->fetchAssoc()) {
       extract($row, EXTR_PREFIX_ALL, 'e');
-      $buttons = $mya->cAdmin ? button(t('Edit'), "$base_url/community/events/event/do=edit&eid=$e_id", '', 'warning') : '';
-      if ($e_end < time()) $buttons .= ' &nbsp; ' . button(t('Results'), "$base_url/community/events/event/do=report&eid=$e_id", '', 'success');
+      $buttons = $cAdmin ? button(t('Edit'), "$base_url/community/events/event/do=edit&eid=$e_id", '', 'warning') : '';
+      if ($cAdmin or $e_end < time()) {
+				$btn = button('%text', "$base_url/community/events/do=results&eid=$e_id%noprox", '', 'success');
+				$buttons .= ' &nbsp; ' . tr($btn, 'text noprox', t('Results'), '');
+				if ($cAdmin) $buttons .= ' ' . tr($btn, 'text noprox', t('Without Proxies'), '&noProxies=1');
+			}
       $e_end = u\fmtDate($e_end);
       $list .= <<<EOF
 <tr><td>$e_end</td><td>$e_event</td><td>$buttons</td></tr>
@@ -149,8 +153,8 @@ function formEvents_submit($form, &$sta) {
   $op = (w\op($sta) == 'prev' and strpos($op, t('Previous')) === FALSE) ? 'doneWithQ' : w\op($sta);
   if ($op == 'showVotes') return w\say(v\showVotes($ctty));
   if (in($op, 'noDirect noVote')) return w\say(v\showNonVoters($ctty, $op == 'noDirect'));
-  if ($op == 'results') return w\go("prox/page=Events&$args&results=1");
-  if ($op == 'resultsNoProx') return w\go("prox/page=Events&$args&results=1&noProxies=1");
+//  if ($op == 'results') return w\go("prox/page=Events&$args&results=1");
+//  if ($op == 'resultsNoProx') return w\go("prox/page=Events&$args&results=1&noProxies=1");
   
   if ($op == 'gradeIt') return w\go("prox/page=Events&do=grade&$args");
   if (@$agree) return w\go("prox/page=Events&do=ballot&$args");
@@ -168,7 +172,7 @@ function formEvents_submit($form, &$sta) {
   }
   v\processvote($sta['input'], $type); // any errors are handled by javaScript (only the user suffers if no JS)
 
-  if ($question == 'done') w\say(t('That was the last proposal. Thank you bigly for grading!'));
+// redundant  if ($question == 'done') w\say(t('That was the last item. Thank you for participating!'));
   if ($question != 'before') $args .= $question == 'done' ? '&do=done' : "&do=$do&question=$question";
   return w\go("prox/page=Events&$args"); 
 }

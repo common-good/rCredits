@@ -300,7 +300,7 @@ function go2($url1, $url2) {
 		if (!u\starts($$k, 'http')) $$k = "$base_url/" . $$k;
 	}
 	
-	header_remove();
+	header_remove('Content-Security-Policy'); // allow the script
 	echo <<<X
 <html><script>
   window.open('$url2', '_blank');
@@ -1702,6 +1702,7 @@ function eLinkAcct(&$sta, &$eLink = '', $allow = 'individual') {
 function hack($message, $info = []) {
   u\loga('hack', $_SERVER + compact('message'));
   r\tellAdmin($message, $info);
+/**/	if (isDEV) debug("$message: " . print_r($info, 1));
   return r\signedIn() ? signout() : w\go('');
 }
 
@@ -2010,17 +2011,11 @@ function menu($path, $title, $type, $function, $args, $perms = '') {
   $adminPerms = (stripos($perms, 'admin') !== FALSE and stripos($perms, 'icadmin') === FALSE);
   $admin = (u\starts($path, 'sadmin') or $perms == 'dev' or $adminPerms);
   $smart = ($path == 'pos');
-//  $dem = u\starts($path, 'community/events');
-  $dir = $smart ? '../rsmart/' : (@$dem ? '../rvote/' : ($admin ? '../admin/' : ''));
 
   $formName = ($args and !is_numeric($args[0])) ? $args[0] : $function;
+  $alt = $smart ? 'rsmart/rsmart.inc' : ($admin ? 'admin/admin-forms.inc' : 'rweb/rweb.inc');
   $file = strtolower("../forms/$formName.inc");
-
-  if (!file_exists(__DIR__ . "/$file")) $file = $dir . 
-      ($smart ? 'rsmart.inc' 
-//    : (@$dem ? 'rvote-web.inc' 
-    : ($admin ? 'admin-forms.inc' // must be after smart and dem
-    : 'rweb.inc'));
+  if (!file_exists(R_ROOT . "/rweb/$file")) $file = "../$alt";
   
   $item = array(
     'title' => $title,

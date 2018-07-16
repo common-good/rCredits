@@ -917,26 +917,29 @@ function callDetails($type = '', $when = '') {
 /**
  * Return statistics about member donations for members signed up after a certain date.
  */
-function donationTrend($since = 0, $co = FALSE) {
+function donationTrend($co = FALSE, $since = NULL) {
+	u\setDft($since, NOW - YEAR_SECS);
 	$co = $co ? 'u.:IS_CO' : 'NOT u.:IS_CO';
-	$where = "$co AND u.:IS_OK";
+	$where = "$co AND u.:IS_OK AND u.created>:since";
 	
 	$sql =<<<X
-	  SELECT AVG(IF(g.amount IS NULL, 0, g.amount*IF(often='M', 12, IF(often='Q', 4, IF(often='Y', 1, 0))))) AS regular,
-		  AVG(u.:IS_ROUNDUP) AS roundupRatio,
-			AVG(u.crumbs) AS crumbs,
-			COUNT(*) AS accounts
-		FROM users u 
-		LEFT JOIN r_gifts g ON u.uid=g.uid 
-		WHERE NOT g.completed AND $where AND u.created>:since
+	  SELECT AVG(g.amount*IF(often='M', 12, IF(often='Q', 4, IF(often='Y', 1, 0)))) AS regular
+		FROM r_gifts g LEFT JOIN users u ON u.uid=g.uid 
+		WHERE g.completed=0 AND $where
 X;
-	$res = db\q($sql, compact('since'))->fetchAssoc();
+  $subs = compact('since');
+	$res = db\q($sql, $subs)->fetchAssoc();
 	
-	$where .= ' AND t.created>:NOW-:MONTH_DAYS*:DAY_SECS'; // look at the past month
-	$txCount = 12 * db\q("SELECT COUNT(t.*) FROM r_txs t JOIN users u ON u.uid=t.payer WHERE $where")->fetchField();
-	$txTotal = 12 * db\q("SELECT SUM(t.amount) FROM r_txs t JOIN users u ON u.uid=t.payee WHERE $where")->fetchField();
+	$sql = "SELECT AVG(u.:IS_ROUNDUP) AS roundupRatio, AVG(u.crumbs) AS crumbs FROM users u WHERE $where";
+	$res += db\q($sql, $subs)->fetchAssoc();
 	
-	return $res + compact('txCount', 'txTotal');
+	$accts = db\count('users u', $where, $subs);
+	
+	$sql = "SELECT COUNT(*) AS txCount,AVG(amount%1) AS cents FROM r_txs t JOIN users u ON u.uid=t.payer WHERE $where";
+	$res += db\q($sql, $subs)->fetchAssoc();
+	$txTotal = db\q("SELECT SUM(t.amount) FROM r_txs t JOIN users u ON u.uid=t.payee WHERE $where", $subs)->fetchField();
+	
+	return $res + compact(ray('accts txCount txTotal'));
 }
 
 /**
