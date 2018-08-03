@@ -1,4 +1,0 @@
-CREATE TABLE IF NOT EXISTS `r_nonces` (
-  `nonce` varchar(23) NOT NULL DEFAULT '',
-  PRIMARY KEY (`nonce`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;

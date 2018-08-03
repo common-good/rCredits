@@ -1,4 +1,4 @@
-<?php
+<?php
 namespace CG\Web;
 use CG\Web as w;
 use CG as r;

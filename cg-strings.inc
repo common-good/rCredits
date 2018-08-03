@@ -161,7 +161,7 @@ EOF
   'confirm funding' => t('%confirmAction %amount to %otherName?'),
   'please confirm' => t('To confirm, type: %nonce'),
   'verification code' => t('Your verification code for using %PROJECT online is: %nonce'), // used in rWeb
-  'whats up' => t('You have not had any %PROJECT transactions in the past month. What\'s up with that? Please email or call us if you have any problems or questions.'),
+  'whats up' => t('You have not had any %PROJECT transactions in the past month. Most members have at least one transaction per month, so this is a little unusual and we hope all is well with you. Please email or call us if you have any problems or questions.'),
   'co promo' => t('And if you need more promotional cards to hand out to customers, just let us know!'),
   
   // error messages

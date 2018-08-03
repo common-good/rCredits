@@ -1,0 +1,237 @@
+<?php
+namespace CG;
+use CG as r;
+use CG\DB as db;
+use CG\Backend as be;
+use CG\Util as u;
+
+/**
+ * @file
+ * Relationship class
+ */
+
+//define('TX_FIELDS', 'serial type amount goods payer payee payerAgent payeeAgent for flags created');
+ 
+class R {
+  var $ray0; // an assoc of all the relation's fields (including the data field, still serialized)
+  
+  /**
+   * Instantiate (create or retrieve) a relationship record
+   * Call by:
+   *   new R(info) [saves a new relation] OR
+   *   r(reid) (see the r() function below)
+   * @param int reid: the record ID
+   * @param assoc $info: initial field values for the relation, to be created and saved
+   * @param bool $save: <save the record in the database>
+   */
+  function __construct($reid = [], $save = TRUE) {
+    if (is_array($info = $reid)) { // referring to existing db record
+      $this->ray0 = $this->createNew($info, $save); // create new record
+    } else $this->ray0 = db\lookup('*', 'r_relations', 'reid=:reid', compact('reid'));
+  }    
+
+  /**
+   * Return the value of the specified field that is not a simple property of the class.
+   * @param string $field: name of field value to get
+   * @return the value if it exists, else NULL
+   */
+  public function __get($f) {
+    $r = $this;
+    $res = @$r->ray0[$f];
+    if (u\inList($f, REL_FLAGS)) return u\getBit($r->flags, $f);
+    if ($f == 'data') return $res ? unserialize($res) : [];
+//    if ($f == 'ray') return $x->ray0;
+    return $res;
+  }
+
+  /**
+   * Create a new relations record set in the database.
+   * @param assoc $info: array of field values for new relation
+   *   main: (required) account ID of who the relation is to
+   *   other: (required) account ID of who is relation to main
+   *   etc.
+   * @param bool $save: <save the record in the database>
+   * @return the record assoc (FALSE if saving fails)
+   */
+  private function createNew($info, $save) {
+    extract($info);
+    if (@$data and !is_array($data)) $data = unserialize($data);
+    if ($data2 = just(REL_DATA_FIELDS, $info)) foreach ($data2 as $k => $zot) unset($info[$k]);
+    $info['data'] = (@$data ?: []) + (@$data2 ?: []);
+    $ray = $this->setup($info);
+    if ($save and !db\insert('r_relations', $ray)) return FALSE;
+    return $ray;
+  }
+
+  /**
+   * Create a new relation and set up all the important fields.
+   * @param assoc $info: relation info.
+   * @return the array, with some extra field information added
+   */
+  private function setup($info) {
+    $fields = 'main other otherNum permission code flags data created';
+    extract(just($fields, $info)); // flags including employee, etc.
+    u\EXPECT(compact(ray('main other')), 'zid zid');
+    
+    u\setDft($otherNum, 0);
+    u\setDft($permission, 0);
+    u\setDft($code, '');
+    u\setDft($flags, 0);
+    u\setDft($data, @$data ? serialize($data) : '');
+    u\setDft($created, r\rTime());
+
+    foreach (ray(REL_FLAGS) as $k) {
+      if (@$info[$k]) u\setBit($flags, $k);
+      unset($info[$k]);
+    }
+
+    return compact(ray($fields)) + $info;
+  }
+
+  /**
+   * Update the saved record in the database with the given data.
+   * Call by:
+   *   update($info, $just); OR
+   *   update($fields, $value1, ...)
+   * @param assoc $info: data to update
+   * @param string $just: update only these fields (update all if NULL, none if '')
+   * @param string $fields: space-delimited list of field names
+   * @param mixed $value1 (etc): new values for those fields
+   * @return: TRUE if update succeeds, FALSE if update fails
+   */
+  public function update($info, $just = NULL) {
+    $x = $this;
+    if (!is_array($info)) { // second syntax
+      $args = func_get_args();
+      $keys = ray(array_shift($args));
+      u\EXPECT(count($keys) == count($args), 'assoc arg count mismatch');
+      return $x->update(array_combine($keys, $args));
+    }
+    if (isset($just)) $info = just($just, $info);
+
+    if (isset($info['data'])) { // allow setting data to empty
+      $info['data'] = ($data = $info['data']) ? serialize($data) : '';
+    } elseif ($data = just(TX_DATA_FIELDS, $info)) $info['data'] = serialize($data + ($x->data ?: []));
+
+    if ($flagFields = just(TX_FLAGS, $info)) {
+      $flags = isset($info['flags']) ? $info['flags'] : $x->flags;
+      foreach ($flagFields as $k => $v) {
+        u\setBit($flags, u\consta('b', $k), $v);
+        unset($info[$k]);
+      }
+    }
+//NO! makes themX fail!   foreach ($info as $k => $v) $x->ray0[$k] = $v; // update internal cache
+    $info['xid'] = $x->xid; // make sure db\update gets this
+    return db\update('r_txs', $info, 'xid');
+  }
+
+  /**
+   * Set a field of an old transaction for the user and update their cache.
+   * @param assoc $toChange: $fieldName => $newValue
+   *   $fieldName: the field to update
+   *   $newValue: what to update it to
+   * NOTE: tx data['changes'][time agent][] = [field, oldValue] (this gives a complete history of the transaction)
+   *     (prefixes added to the payerFor or payeeFor fields when changing state will not be included in changes)
+   */
+  public function setFields($toChange) {
+    $x = $this; $xid = $x->xid; $xray = $x->ray0;
+    global $mya;
+    
+    extract(just('data payer payee amount goods payerFor payeeFor payerReward payeeReward created channel', $xray));
+    extract($toChange, EXTR_PREFIX_ALL, 'ch');
+    $chKeys = array_keys($toChange);
+    $dataRay = unserialize($data);
+
+    $DBTX = \db_transaction();
+
+    if (isset($ch_goods) or isset($ch_amount)) { // financial info changed
+      foreach (ray('amount payerReward payeeReward') as $k) $xrayNeg[$k] = -$$k; // negate the transaction and rewards amounts
+      $x->cacheBothTotals([$xrayNeg + $xray]); // subtract old values from cache
+
+      $toChange += $this->getRewards($toChange + $xray);
+      $x->cacheBothTotals([$toChange + $xray]); // cache values for the revised transaction
+    }
+
+    $agt = $mya->proSe ? '' : (' ' . $mya->agentA->mainQid); // don't record agent if proSe
+    $dataRay['changes'][r\rTime() . $agt] = just($chKeys, $xray);
+    $toChange['data'] = $dataRay;
+    $x->update($toChange);
+
+    unset($DBTX); // commit
+  }
+
+  /**
+   * Set the bit in the given integer bit collection field to the given value.
+   * @param int $bit: number of bit to set (0 - 31)
+   * @param bool $on: whether to set it ON or OFF
+   */
+  private function setBitx($bit, $on = TRUE, $field = 'risks') {
+    $n = $this->$field;
+    u\setBit($n, $bit, $on);
+    $this->update($field, $n);
+  }
+  
+  public function risk($bit) {return u\getBit($this->risks, $bit);}
+  public function setRisk($bit, $on = TRUE) {$this->setBitx($bit, $on, 'risks');}
+
+} // end of class x
+
+class MyX extends x {
+  var $a;
+  
+  function __construct($xid = [], $a = 0, $save = TRUE) {
+    parent::__construct($xid, $save);
+    $this->a = $a;
+  }    
+
+  public function __get($f) {
+    $x = $this;
+
+    if ($f == 'ray') {
+      u\EXPECT((bool) $x->ray0, 'no xray!');
+      foreach (ray('toMe byMe tid otherTid otherUid taking') as $k) $extras[$k] = $x->$k;
+      return $x->ray0 + $extras;
+    }
+// NO! Makes ...2 fields fail if tx is created from ->ray (as in themX)   if (isset($x->ray0[$f])) return parent::__get($f);
+
+    foreach (ray('a xid banking toMe amount') as $k) $$k = @$x->$k;
+    foreach (['amount', 'xid'] as $k) $$k += 0;
+    if (substr($f, -1, 1) == '2' and $f = str_replace('2', '', $f)) return $banking ? '' : $x->themX->$f;
+    if (strpos($f, 'Purpose') and $f = str_replace('Purpose', 'For', $f)) return $x->$f;
+    if ($f == 'banking') return ($x->type == TX_BANK);
+    if ($f == 'toMe') return $banking ? ($amount < 0 xor $xid < 0) : $a->isMe($x->payee);
+    if ($f == 'fromMe') return $banking ? !$toMe : $a->isMe($x->payer);
+    if ($f == 'byMe') return $banking ?: ($x->taking xor !$toMe);
+    if ($f == 'reallyToMe') return ($toMe xor $amount < 0);
+    if ($f == 'name') return $a->fullName;
+
+    if ($f == 'for' or $f == 'purpose') return $banking // ?
+    ? ($xid < 0 ? t('bank transfer failed') : ($amount < 0 ? t('from bank') : t('to bank')))
+    : ($toMe ? $x->payeeFor : $x->payerFor);
+    
+    if ($f == 'agent') return $banking // ?
+    ? ($a->co ? '' : $x->payer)
+    : ($toMe ? $x->payeeAgent : $x->payerAgent);
+    
+    if ($f == 'tid') return ($banking or $a->id < 0) ? $xid : ($toMe ? $x->payeeTid : $x->payerTid);
+    if ($f == 'otherTid') return ($banking or $a->id < 0) ? $xid : ($toMe ? $x->payerTid : $x->payeeTid);
+    if ($f == 'them' or $f == 'otherUid') return $banking ? 0 : ($toMe ? $x->payer : $x->payee);
+    if ($f == 'themAgent') return $banking ? 0 : ($toMe ? $x->payerAgent : $x->payeeAgent);
+    if ($f == 'themX') return r\x($x->ray, r\acct($x->them, $x->themAgent));
+    return parent::__get($f);
+  }
+}
+
+/**
+ * Return an existing transaction object or MyX.
+ * Call by:
+ *   x(info, a) OR x(xid, a) [returns a MyX object] OR
+ *   x(info) OR x(xid)
+ * @param int $xid: transaction record ID
+ * @param int $a: associated account
+ * @param assoc $info: initial field values for the transaction, to be created and saved in the database
+ */
+function x($xid, $a = '') {
+  $x = $a ? new MyX($xid, $a, FALSE) : new X($xid, FALSE);
+  return @$x->xid ? $x : FALSE;
+}
