@@ -237,10 +237,8 @@ function identify($args) {
         if ($a == $mya) return posErr('already scanned in', [], $companyInfo);
         if ($a->id != $mya->id) return posErr('wrong company', [], $companyInfo);
       }
-    } else {
-      if (!@$agent) return posErr('scan in first', [], $companyInfo);
-      $first = $a->agentA->ided ? '0' : '1'; // regular or first-time transaction 
-    }
+    } elseif (!@$agent) return posErr('scan in first', [], $companyInfo);
+    $first = $a->agentA->ided ? '0' : '1'; // regular or first-time transaction 
   } else {
     $logon = '1'; // assume logging in
     if (@$agent) {
@@ -307,7 +305,8 @@ function photo($args) {
   if (!@$code) r\tellAdmin('missing code in photo op', compact(ray('member code')));
   if (!$a = getMember($member, $code, $err, u\test() or $version > 217)) return photoReturn($err);
 
-  return photoReturn($a->agentA->photo); // was photo()
+	$signingIn = (bool) strpos($member, '-'); // allow agents with no photo by faking a photo (>= 100 chars)
+  return photoReturn($a->agentA->photo ?: ($signingIn ? file_get_contents(R_ROOT . '/images/idcard/no-photo.jpg') : ''));
 }
 
 /**

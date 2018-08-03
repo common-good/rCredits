@@ -1,4 +1,9 @@
-2018-07-
+2018-08-03
+. fixed stats bug that undercounted members by omitting slaves in joint accounts (284 vs 275)
+. fixed bug that kept non-member representatives from a participating business sign in with their card
+. revised RFP (r_proposals and formProposal) to handle multiple communities and variable data
+
+2018-07-18
 . `created` and `modified` fields now get updated automatically in cg-db.inc
 . changed multiple choice voting ratings to use icons
 . added a yes/no question type in voting
@@ -159,7 +164,7 @@ X;
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $email = u\decryptN($old);
-  ///  if (strlen($old) > 1 and !ctype_print($email)) debug("$id: $email");
+///    if (strlen($old) > 1 and !ctype_print($email)) debug("$id: $email");
     $email = u\cry('P', $email);
     db\update('r_invites', compact(ray('email id')), 'id');
   }
@@ -170,8 +175,8 @@ X;
     if ($phone == '!') $phone = '';    
     $email = @$email[0] == '!'? u\decryptN($email) : $email;
     $phone = @$phone[0] == '!'? u\decryptN($phone) : $phone;
-  ///  if (strlen($row['email']) > 1 and !ctype_print($email)) debug("$id: $email");
-  ///  if (strlen($row['phone ']) > 1 and !ctype_print($phone )) debug("$id: $phone ");
+///  if (strlen($row['email']) > 1 and !ctype_print($email)) debug("$id: $email");
+///  if (strlen($row['phone ']) > 1 and !ctype_print($phone )) debug("$id: $phone ");
     $email = u\cry('P', $email);
     $phone = u\cry('P', $phone );
     db\update('r_request', compact(ray('email phone listid')), 'listid');
@@ -191,7 +196,7 @@ X;
   $months = "ROUND($elapsed/:MONTH_DAYS)";
   $start = strtotime('-6 months', $today);
 
-  $sql = <<<X
+  $sql = <<< X
     SELECT uid, $months AS months, GREATEST(inVol, outVol) AS monthly 
     FROM (
       SELECT uid, u.flags, MIN(t.created) AS date0, 

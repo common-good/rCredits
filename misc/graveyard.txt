@@ -1,5 +1,10 @@
 _____________________________________________
 
+    $v = u\fmtAmt($v, '$');
+//    $list[] = "<div class=\"row\"><div>$k</div><div>$v</div></div>\n";
+//  $_list = '<div class="table">' . join('', $_list) . '</div>';
+_____________________________________________
+
 //  $oldvalint = ($oldval !== '') ? round(3 * $oldval) + 0 : '';
 //	for ($grade=0, $gradeinputs='', $gradehdr=''; $grade < strlen(GRADELTRS); $grade++) {
 //		$dpy = $ltr = substr(GRADELTRS, $grade, 1); // default display (dpy) is unadorned grade letter

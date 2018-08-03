@@ -922,7 +922,7 @@ function donationTrend($co = FALSE, $since = NULL) {
 	$co = $co ? 'u.:IS_CO' : 'NOT u.:IS_CO';
 	$where = "$co AND u.:IS_OK AND u.created>:since";
 	
-	$sql =<<<X
+	$sql =<<< X
 	  SELECT AVG(g.amount*IF(often='M', 12, IF(often='Q', 4, IF(often='Y', 1, 0)))) AS regular
 		FROM r_gifts g LEFT JOIN users u ON u.uid=g.uid 
 		WHERE g.completed=0 AND $where

@@ -121,7 +121,7 @@ function worksForUs($name, $us = NULL, $loose = TRUE) {
   $pattern = join(' ', $words);
   $where = 'r.main=:us' . ($loose ? '' : ' AND r.:IS_EMPLOYEE');
   
-  $sql = <<<X
+  $sql = <<< X
     SELECT u.uid, u.fullName FROM r_relations r
     INNER JOIN users u ON u.uid=r.other
     WHERE $where
@@ -1061,11 +1061,19 @@ function getStats($ctty, $created = NULL) {
   $slave = "(SELECT uid AS uid2, balance AS balance2 FROM users WHERE $nonCtty) u2 ON u2.uid2=u.jid";
   
   $res = [];
-  // get users table data (must happen before topN/botN)
-  $sql = <<<X
-    SELECT SUM(IF(:IS_OK AND activated<=:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
+  // get account counts (can't be combined with financial data because of joint accounts
+  $sql = <<< X
+	  SELECT SUM(IF(:IS_OK AND activated<=:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
       SUM(IF(:IS_OK AND activated<=:created AND :IS_CO, 1, 0)) AS bAccts,
-      SUM(IF(NOT activated OR activated>:created, 1, 0)) AS newbs,
+      SUM(IF(NOT activated OR activated>:created, 1, 0)) AS newbs
+    FROM users u
+    WHERE $nonCtty AND $cttyCrit AND $creCrit	
+X;
+  $res += db\q($sql, $subs)->fetchAssoc() ?: [];
+
+  // get users table financial data (must happen before topN/botN)
+  $sql = <<< X
+    SELECT 
       SUM(IF($masterBal>0, $masterBal, 0)) AS balsPos,
       SUM(IF($masterBal<0, $masterBal, 0)) AS balsNeg,
       SUM(IF($masterBal>0, 1, 0)) AS balsPosCount,
@@ -1079,7 +1087,7 @@ X;
   // get bank transfer data
   $in = 'amount>0 XOR txid<0';
   
-  $sql = <<<X
+  $sql = <<< X
     SELECT
     SUM(IF($in, amount, 0)) AS usdIn,
     SUM(IF($in, 0, amount)) AS usdOut,
@@ -1107,7 +1115,7 @@ X;
   $sql .= strtr($sql, ['-amount' => '1', 'amount' => '1', ",\n" => "Count,\n"]); // add counts
   $sql = str_replace(",\n!", '', $sql . '!'); // remove final comma in field list
   
-  $sql = <<<X
+  $sql = <<< X
     SELECT $sql
     FROM r_txs t 
     LEFT JOIN $accounts u ON u.uid=t.payer 
@@ -1119,7 +1127,7 @@ X;
   // get aAccts
   $recent = $created - 60 * DAY_SECS; // not n months (keep length of time consistent)
 
-  $sql = <<<X
+  $sql = <<< X
     SELECT COUNT(DISTINCT payer) as aAccts FROM r_txs  t
     JOIN $accounts u ON u.uid=t.payer
     WHERE NOT u.:IS_CO AND $cttyCrit AND $creCrit AND created>$recent
@@ -1129,7 +1137,7 @@ X;
   // get conx, conxLocal
   foreach (ray('conx conxLocal', 1, "u2.$thisCtty") as $k => $crit) {
     if (!$ctty) $crit = 1; // avoid local query when doing stats for ALL cttys
-    $sql = <<<X
+    $sql = <<< X
       SELECT AVG(conx) as $k FROM (
         SELECT me, COUNT(DISTINCT other) AS conx, SUM(isRecentPayer) AS recentPays, u2.community
         FROM (
@@ -1152,12 +1160,12 @@ X;
     $isPayee = '(payee IN (uid, jid))';
 
     // NOTE: xid and txid are needed here to prevent merging
-    $txs = <<<X
+    $txs = <<< X
       ((SELECT txid AS xid, 0 AS payer, payee, amount, completed AS created FROM r_usd)
        UNION (SELECT xid, payer, payee, amount, created FROM r_txs))
 X;
 
-    $pastTxs = <<<X
+    $pastTxs = <<< X
       (SELECT DISTINCT uid,
         SUM(IF($isPayer, -amount, amount)) AS amts,
         SUM(IF($isPayee AND created>$recent, amount, 0)) AS amtsIn,
@@ -1167,7 +1175,7 @@ X;
 X;
 
     // get OLD balsPos, balsNeg, floors
-    $sql = <<<X
+    $sql = <<< X
       SELECT 
       SUM(IF(amts>0, amts, 0)) AS balsPos,
       SUM(IF(amts<0, amts, 0)) AS balsNeg,
@@ -1180,7 +1188,7 @@ X;
    
     // get OLD topN
     $topN = topN($res); // NOTE: this line must be duplicated below because $res is different
-    $sql = <<<X
+    $sql = <<< X
       SELECT SUM(amts) AS topN FROM 
         (SELECT DISTINCT uid, amts FROM $pastTxs u1 
          WHERE $nonCtty AND amts IS NOT NULL ORDER BY amts DESC LIMIT $topN) u
@@ -1191,7 +1199,7 @@ X;
     $sql = strtr($sql, ray('topN DESC', 'botN', ''));
     $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
-    $txs = <<<X
+    $txs = <<< X
       ((SELECT txid AS xid, 0 AS payer, payee, amount, completed AS created FROM r_usd)
        UNION (SELECT xid, payer, payee, amount, created FROM r_txs))
 X;
@@ -1199,7 +1207,7 @@ X;
   } else {
     // get topN
     $topN = topN($res); // NOTE: this line must be duplicated above because $res is different
-    $sql = <<<X
+    $sql = <<< X
       SELECT SUM(bal) AS topN FROM 
         (SELECT $masterBal AS bal FROM users u LEFT JOIN $slave
          WHERE $nonCtty AND $isMaster AND $cttyCrit AND $creCrit GROUP BY uid
@@ -1253,7 +1261,7 @@ function averageBalance($uid, $start, $end = NULL, $noj = FALSE) {
   $avg = $ravg = 0;
 
   // use "1" as payee for r_usd, to avoid matching jid=0
-  $sql = <<<X
+  $sql = <<< X
     SELECT SUM($signedAmt) AS total,
     SUM(IF($isPayer, payerReward, payeeReward)) AS rtotal,
     SUM(IF(t.goods=:FOR_SHARE, $signedAmt, 0)) AS share,

@@ -12,7 +12,7 @@ use CG\Vote as v;
  * @param int $eid: event record ID OR community record ID (negative)
  * @return formatted event results
  */
-function showResults($eid, $noProxies = FALSE) { // called from ballot if ISDEMO
+function showResults($eid, $noProxies = FALSE) {
   if ($eid < 0 and !$eid = db\max('id', 'r_events', ray('ctty', $eid))) return t('This community has no events');
   list($quids, $qutypes) = getQuestions($eid); 
 	$ans = '';
@@ -31,6 +31,7 @@ function showResults($eid, $noProxies = FALSE) { // called from ballot if ISDEMO
  * @param bool $noProxies: <don't include proxy votes>
  * @param bool $withheader: <show a header above results for each question> (do we ever not want this?)
  * @return HTML for the voting results on the given question
+ * to test: SELECT fullName,b2.proxy,COUNT(b2.id) AS weight,grade,gradeMax,grade*COUNT(b2.id)/287 AS low,gradeMax*COUNT(b2.id)/287 AS hi FROM r_ballots b JOIN r_votes v ON v.ballot=b.id LEFT JOIN users u ON u.uid=b.voter LEFT JOIN r_ballots b2 ON (b2.proxy=b.voter AND b2.question=b.question) WHERE v.option=31 GROUP BY b2.proxy
  */
 function showResult($ctty, $qi, $question, $noProxies, $withheader = TRUE) {
 	global $thisvoter, $mya; // only if ISDEMO
@@ -38,7 +39,7 @@ function showResult($ctty, $qi, $question, $noProxies, $withheader = TRUE) {
 	$qu = db\get('id, type, text, detail, budget, minveto, result', 'r_questions', 'id=:question', compact('question'));
   extract($qu);
   
-  if ($mya->superAdmin and !@$result) {
+  if ($mya->superAdmin or !@$result) {
 //    if ($type == 'E') return ''; // don't show essay results (and don't create ballots for them)
     
     $opts = optList($question);
@@ -47,6 +48,7 @@ function showResult($ctty, $qi, $question, $noProxies, $withheader = TRUE) {
 
   //	global $proxiesForThisVoter; if(ISDEMO) if($thisvoter) $voters[$thisvoter] = $proxiesForThisVoter;
     $votesDirect = count($voters);
+///		debug(compact(ray('votesDirect ctty question noProxies')));
     $votesAll = array_sum($voters); // total weights. not necessarily equal to total weight used, since vetos reduce effective weight
     $newtot = tallyResults($voters, $type, $budget, $minveto, $opts);
 //    u\loga("1-$question", compact(ray('question text')));
@@ -71,8 +73,8 @@ function getResult($qi, $quText, $quDetail, $quType, $budget, $tot, $votesDirect
 		$otxlen = strlen($tot[$i]->opttext);
 		if($otxlen > $optTextMaxLen) $optTextMaxLen = $otxlen;
 	}
-	$separateOptTexts = ($optTextMaxLen + $optCount * 7 > 100); // keep lines short by separating out the descriptions
-  $separateOptTexts = TRUE; // FAILS otherwise
+//	$separateOptTexts = ($optTextMaxLen + $optCount * 7 > 100); // keep lines short by separating out the descriptions
+//  $separateOptTexts = TRUE; // FAILS otherwise
   
   $prefHeads[1] = [
   'M' => "<th class='resultOption'></th><th colspan='$optCount'>Preferred Over:</th><th class='resultAverage'>Average</th><th></th>",
@@ -99,7 +101,7 @@ function getResult($qi, $quText, $quDetail, $quType, $budget, $tot, $votesDirect
 		$optlinehdr = "<b>#$inum</b>";
 		$vetos = number_format($toti->vetos, $quType == 'M' ? 0 : 1);
 
-    if ($comments = join('</li><li>', (@$toti->canceled_vetotexts ?: []) + (@$toti->vetotexts ?: []))) {
+    if ($comments = join('</li><li>', array_merge(@$toti->canceled_vetotexts ?: [], @$toti->veto_texts ?: []))) {
       $showComments = w\btnShowDiv("comments$qi-$inum", t('comments'), 'warning');
       $comments = "<div id=\"comments$qi-$inum\" class=\"comment collapse\"><ul><li>$comments</li></ul></div>";
     } else $showComments = '';
@@ -107,12 +109,11 @@ function getResult($qi, $quText, $quDetail, $quType, $budget, $tot, $votesDirect
       $showDetail = w\btnShowDiv("detail$qi-$inum", t('detail'), 'success');
       $detail = "<div id=\"detail$qi-$inum\" class=\"detail collapse\">$detail</div>";
     } else $showDetail = '';
-    
-    if ($quType != 'E' or $showComments) {
-      $prefix = in($quType, 'E Y') ? '' : "<b>$inum:</b> ";
-		  if($separateOptTexts) $optTexts .= "$prefix$otx $showDetail $showComments<br>\n$detail$comments"; else $optlinehdr .= ": $otx";
-    }
 
+//		  if($separateOptTexts) $optTexts .= "$prefix$otx $showDetail $showComments<br>\n$detail$comments"; else $optlinehdr .= ": $otx";
+		$prefix = in($quType, 'E Y R') ? '' : "<b>$inum:</b> "; // don't number a single option
+    $optTexts .= "$prefix$otx $showDetail $showComments<br>\n$detail$comments";
+	
     $budgetdpy = '';
 
 		if ($quType == 'M') {
@@ -139,7 +140,6 @@ function getResult($qi, $quText, $quDetail, $quType, $budget, $tot, $votesDirect
         $middle .= "<td>$v</td>";
       }
       $middle = "<tr>$middle</tr>\n";
-      $optTexts = '';
     } elseif ($quType == 'Y') {
 			foreach (ray('yes no') as $k) {
 				$v = $toti->$k;
@@ -381,8 +381,9 @@ function getVoters($ctty, $question, $noProxies = FALSE) {
   global $proxiesForThisVoter, $thisvoter;
 
   // clear any proxies and blank votes
-  db\q('DELETE FROM r_ballots WHERE proxy<>voter AND question=:question', compact('question'));
-  db\q("DELETE r_votes FROM r_votes LEFT JOIN r_ballots ON ballot=r_ballots.id WHERE grade=:BLANKGRADE AND (text='' OR text IS NULL) AND question=:question", compact('question'));
+  db\q('DELETE FROM r_ballots WHERE proxy<>voter AND question=:question', compact('question')); // remove proxy votes
+  db\q("DELETE r_votes FROM r_votes LEFT JOIN r_ballots ON ballot=r_ballots.id WHERE grade=:BLANKGRADE AND (text='' OR text IS NULL) AND question=:question", compact('question')); // remove blank votes
+	db\q('DELETE b FROM r_ballots b LEFT JOIN r_votes v ON v.ballot=b.id WHERE b.proxy=b.voter AND question=:question AND v.id IS NULL', compact('question')); // remove unused ballots
   
   // Create ballots for all nonvoters whose proxy has voted (first level proxy first, if both proxies have voted)
   $proxiesTable = <<<EOF
@@ -403,7 +404,7 @@ EOF;
 
   $priority = 1; // start with first choice
   $failsInARow = 0;
-  do {
+  if (!$noProxies) do {
     $justCreated = ($priority == 1) ? time() + 999 : $now; // "now" is time of previous query
     $now = time();
     $q = db\q($sql, $subs = compact(ray('question now justCreated priority ctty')));

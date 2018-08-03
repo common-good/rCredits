@@ -46,7 +46,7 @@ SELECT fullName, b.id, COUNT(v.id) as votes FROM `users` u INNER JOIN r_ballots 
 function formEvents($form, &$sta, $args = '') {
   global $base_url;
   
-  extract(just('question do results noProxies', $args));
+  extract(just('question do results eid noProxies', $args));
 
   $mya = w\eLinkAcct($sta, $args, r\acct() ? 'acct' : 'individual'); // allow any signed in account, so user can switch to personal account, below
   $cttyA = $mya->cttyA;
@@ -86,7 +86,7 @@ function formEvents($form, &$sta, $args = '') {
   } elseif (@$do == 'proposals') {
 		
   } elseif (@$do == 'results') {
-		$middle = v\showResults(@$eid, !@$noProxies);
+		$middle = v\showResults(@$eid, @$noProxies);
   } elseif (@$do == 'options') { // UNUSED
     list($middle, $phase, $endDate) = v\questionList(@$eid, @$question, @$do);
   } elseif (@$do == 'ballot') {
@@ -104,9 +104,9 @@ function formEvents($form, &$sta, $args = '') {
     if ($cAdmin) $middle .= ' ' . button(t('Add'), "$base_url/community/events/event/do=add", '', 'warning');
     $middle = "<h4>$middle</h4>";
     $sql = <<<EOF
-      SELECT id, end, event FROM r_events ORDER BY end DESC, id DESC
+      SELECT id, end, event FROM r_events WHERE ctty=:ctty ORDER BY end DESC, id DESC
 EOF;
-    $q = db\q($sql);
+    $q = db\q($sql, ray('ctty', $cttyA->id));
     $list = '';
     while ($row = $q->fetchAssoc()) {
       extract($row, EXTR_PREFIX_ALL, 'e');
@@ -114,14 +114,14 @@ EOF;
       if ($cAdmin or $e_end < time()) {
 				$btn = button('%text', "$base_url/community/events/do=results&eid=$e_id%noprox", '', 'success');
 				$buttons .= ' &nbsp; ' . tr($btn, 'text noprox', t('Results'), '');
-				if ($cAdmin) $buttons .= ' ' . tr($btn, 'text noprox', t('Without Proxies'), '&noProxies=1');
+//				if ($cAdmin) $buttons .= ' ' . tr($btn, 'text noprox', t('Without Proxies'), '&noProxies=1');
 			}
       $e_end = u\fmtDate($e_end);
       $list .= <<<EOF
 <tr><td>$e_end</td><td>$e_event</td><td>$buttons</td></tr>
 EOF;
     }
-    if ($list) $list = "<table><tr><th>Ends</th><th>Event</th></tr>\n$list</table>";
+    if ($list) $list = "<table id=\"event-history\"><tr><th>Ends</th><th>Event</th></tr>\n$list</table>";
     $middle .= $list ?: t('There have not yet been any %PROJECT events in your community.');
   }
   

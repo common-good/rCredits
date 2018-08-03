@@ -301,7 +301,7 @@ function go2($url1, $url2) {
 	}
 	
 	header_remove('Content-Security-Policy'); // allow the script
-	echo <<<X
+	echo <<< X
 <html><script>
   window.open('$url2', '_blank');
   location.href = '$url1';

@@ -34,7 +34,7 @@ function formInvest($form, &$sta, $args) {
 //    $togAttrs = ray('on off offstyle', t('Sell'), t('Buy'), 'warning');
 //    $buyorsell = togFld('buysell', t('Buy or Sell:'), '', 1, $togAttrs);
     $buy = submi(t('Buy'), '', 'md');
-    if ($stake) $sell = submi(t('Sell'), '', 'md');
+    if ($stake or $request) $sell = submi(t('Sell'), '', 'md');
     //$myStake = item(u\fmtAmt($stake, ''), t('Your investment:'));
     $clubVal = clubVal($investments, $liquid, $reserve);
 		$myVal = myClubVal($clubVal);
@@ -143,7 +143,7 @@ function myClubVal($clubVal) {
 	  FROM r_txs WHERE :clubid IN (payer, payee) AND :IS_STAKE
 X;
   extract(db\q($sql, ray('myid clubid', $mya->id, $mya->iclubid))->fetchAssoc());
-	$share = $totalShare ? $myShare / $totalShare : 0;
+	$share = ($totalShare + 0) ? $myShare / $totalShare : 0;
 	if ($clubVal > $totalStake) $share *= (1 - ICLUB_TITHE); // reserve some profit for community and CG
 	return round($myStake + $share * ($clubVal - $totalStake), 2);
 }

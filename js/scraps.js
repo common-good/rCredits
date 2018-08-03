@@ -15,7 +15,7 @@ function doit(what, vs) {
 
   switch(what) {
 
-    case 'funding-criteria': jQuery('#critLink').click(function () {jQuery('#criteria').modal('show');}); break;
+    case 'funding-criteria': jQuery('.critLink').click(function () {jQuery('#criteria').modal('show');}); break;
     case 'download': window.open(vs['url'] + '&download=1', 'download'); break;
 
     case 'chimp':

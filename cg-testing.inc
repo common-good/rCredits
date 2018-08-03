@@ -79,7 +79,7 @@ function doRecords($list, $type) {
 //  foreach ($list as $k => $v) if (is_object($v)) $list[$k] = (array) $v;
 /**/    if ($testOnly) t\output("Expect $type: " . print_r($list, 1), 'expect');
   if (is_object($list)) $list = (array) $list;
-  /**/  u\EXPECT(is_array(@$list) and !is_numeric(@key(@$list[0])), 'doThing object should be an assoc: ' . print_r($list, 1));
+/**/  u\EXPECT(is_array(@$list) and !is_numeric(@key(@$list[0])), 'doThing object should be an assoc: ' . print_r($list, 1));
   $function = 'CG\\Testing\\do';
   $function .= function_exists($function . $type) ? $type : 'Thing';
   foreach ($list as $one) if (!$function($one, $type)) return FALSE;

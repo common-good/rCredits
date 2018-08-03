@@ -43,7 +43,7 @@ function questionList($eid, $question='', $doWhat='') {
 
 //	$q = db\q("SELECT id, (CASE WHEN (endGrading<>0 AND :now>endVoting) then 'G' WHEN :now>endVoting THEN 'R' WHEN :now>endProposals THEN 'V' WHEN :now>endIdeas THEN 'P' ELSE 'I' END) AS phase, repeats, repeatedBy, text, detail,  linkIdeas, linkProposals, created, (CASE WHEN endVoting=0 THEN 0 WHEN (endGrading<>0 AND :now>endVoting) THEN endGrading WHEN :now>endVoting THEN endVoting-:now WHEN :now>endProposals THEN endVoting WHEN :now>endIdeas THEN endProposals ELSE endIdeas END) AS endDate, budget, units FROM r_questions WHERE ctty IN (:ctty, 0) AND endIdeas<>0 ORDER BY endDate, id", ray('ctty now', $cttyA->id, $now = time()));
 
-  $sql = <<<X
+  $sql = <<< X
 		SELECT q.id, repeats, repeatedBy, text, detail, linkDiscussion, q.created, budget, units,
 			e.type AS phase, e.end AS endDate
     FROM r_questions q LEFT JOIN r_events e ON e.id=q.event 

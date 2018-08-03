@@ -479,7 +479,7 @@ function yesnoinputs($opti, $defaults) {
 	  if ($oldval) $yChecked = ' selected'; else $nChecked = ' selected';
 	}
 
-	return <<<X
+	return <<< X
 	<div id="gY$opti" class="gY$yChecked" index="$opti"></div>
 	<div id="gN$opti" class="gN$nChecked" index="$opti"></div>
 	<input type="hidden" id="opt$opti" name="$v" value="$oldval">
@@ -522,11 +522,11 @@ function gradeInputs($opti, $defaults) {
 			$dpy = ($sign = $oldval - $grade) ? $dpy = '<div>' . ($sign > 0 ? '+' : '<b>&ndash;</b>') . '</div>' : '';
 			$optGrade = $grade;
 		} else $dpy = $checked = '';
-		$gradeinputs .= <<<X
+		$gradeinputs .= <<< X
 	<div id="g$ltr$opti" class="g$ltr$checked" index="$opti">$dpy</div>
 X;
 	}
-	$gradeinputs .= <<<X
+	$gradeinputs .= <<< X
 	<input type="hidden" id="opt$opti" index="$optGrade" name="$v" value="$oldval">
 X;
 	return $gradeinputs;

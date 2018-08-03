@@ -48,7 +48,7 @@ X;
 
 		$amount = $amount < 0 ? u\fmtAmt(-$amount/100, '%') : u\fmtAmt($amount);
 		$minimum = $minimum ? u\fmtAmt($minimum) : t('none');
-		$ulimit = number_format($ulimit);
+		$ulimit = ($ulimit + 0) ? number_format($ulimit) : t('no limit');
 
     $rows[] = u\tableRow(compact($fields));
   }
@@ -91,6 +91,7 @@ X;
   	$amount = $amount < 0 ? u\fmtAmt(-$amount/100, '%') : u\fmtAmt($amount);
  		$end = $end ? u\fmtDate($end) : t('--');
   	$on = t('on ') . $on;
+		$ulimit = ($ulimit + 0) ? number_format($ulimit) : t('no limit');
     $rows[] = u\tableRow(compact($fields));
   }
 

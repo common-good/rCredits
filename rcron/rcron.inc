@@ -187,7 +187,7 @@ function everyDay() {
   foreach ($cttys as $ctty) $companies[$ctty] = r\companies($ctty, TRUE);  
   \variable_set('companies', @$companies ?: []);
   
-  $sql = <<<X
+  $sql = <<< X
   SELECT u.uid, c.uid AS ctty, u.fullName AS person, c.fullName AS cttyName FROM users u LEFT JOIN users c ON u.zip RLIKE c.zip
   WHERE u.community=:seedpack AND c.uid<1 AND c.uid<>:seedpack
 X;
@@ -218,7 +218,7 @@ function tickle() {
   // Remind invitee to accept
   $delays = '8';
   $elapsed = str_replace('@DATE', 'invited', $timeSince);
-  $sql = <<<X
+  $sql = <<< X
     SELECT email, inviter, code, $elapsed AS elapsed FROM r_invites i
     LEFT JOIN users u ON u.uid=i.inviter
     WHERE $elapsed IN ($delays) AND invitee=0 AND u.:IS_OK
@@ -233,7 +233,7 @@ X;
 //  $delays = '1,2,3,5,8'; // Fibonacci progression of delays (followed by every week)
   $delays = '1,4,9'; // delays proposed by staff (ultimately every week)
   $elapsed = str_replace('@DATE', 'access', $timeSince);
-  $sql = <<<X
+  $sql = <<< X
     SELECT uid, $elapsed AS elapsed FROM users 
     WHERE ($elapsed IN ($delays) OR ($elapsed>8 AND $elapsed%7=0))
     AND uid>:CANONIC_ACCTS AND NOT activated AND NOT :IS_NONUDGE
@@ -243,7 +243,7 @@ X;
   $sinceActivated = 'DATEDIFF(CURDATE(), FROM_UNIXTIME(activated))';
   // Do every 30 days after activation date
   $start = strtotime(-FLOOR_DAYS . ' days', $today);
-  $sql = <<<X
+  $sql = <<< X
     SELECT uid, GREATEST(inVol, outVol) AS monthly, $sinceActivated/30 AS months
     FROM (
       SELECT uid, u.flags, activated,
@@ -311,13 +311,14 @@ function activeMonthly($item) {
   
   // temporarily (until 2019?) limit the rate of change of the floor (while changing to new system)
   $floor = round(min(-$monthly, .9 * $floorX), 2);
-  $a->update('floor', $floor, 2);
+  $a->update('floor', $floor);
 
   $ratio = $floor ? $floorX / $floor : 1;
   if ($ratio > 1.2 or $ratio < .8) { // big change (or any change in sign)
+		$limit = u\fmtAmt(-$a->floor); // (report total to master of joint accounts)
     $msg = 'new floor' . ($a->can(B_DEBT) ? '' : '|no floor effect');
-	  r\tellAdmin('new floor', compact(ray('floor floorX ratio msg')));
-  // DISABLED FOR NOW if (!$a->slave) r\notify($uid, $msg, ['limit' => u\fmtAmt(-$floor)]);
+	  r\tellAdmin('new floor', compact(ray('limit monthly floor floorX ratio msg')));
+  // DISABLED FOR NOW if (!$a->slave) r\notify($uid, $msg, compact('limit'));
   }
   
   if ($a->cashoutM) $a->cashout();
@@ -388,13 +389,13 @@ function everyMonth() {
 //  queueEach('shareCommitted', 'SELECT uid, committed, share FROM users WHERE :IS_OK AND committed>0');
   queueEach('roundup', "SELECT payer as uid, SUM(1-MOD(amount, 1)) AS donate FROM r_txs WHERE :IS_ROUNDUP AND amount>0 AND MOD(amount, 1)>0 AND created BETWEEN $start AND $end GROUP BY payer");
   
-  $sql = <<<X
+  $sql = <<< X
     SELECT $cgf AS cgf, u.uid, SUM(t.amount)*u.crumbs AS donate FROM r_txs t LEFT JOIN users u ON u.uid=t.payee 
     WHERE t.payer>0 AND u.crumbs>0 AND t.created BETWEEN $start AND $end GROUP BY t.payee
 X;
   queueEach('crumbs', $sql); // no crumbs on rewards
 
-  $sql = <<<X
+  $sql = <<< X
       SELECT $cgf AS cgf, $end AS `end`, u.community AS ctty, SUM(IF(t.payee=$cgf, t.amount, 0)) AS `in`,
         SUM(IF(t.payer=$cgf AND t.created<=$end, t.amount, 0)) AS `out`,
         (SELECT COUNT(1) FROM r_usd d LEFT JOIN users du ON du.uid=d.payee 
@@ -511,7 +512,7 @@ function requests() {
     }
   }
 
-  $sql = <<<X
+  $sql = <<< X
   UPDATE r_request r LEFT JOIN users u 
   ON (
     (r.email<>'' AND u.mail=r.email) OR
@@ -548,7 +549,7 @@ function recache1($item) {
  * Check accounts for consistency, scams, whatever.
  */
 function checkAccts() {
-  $sql = <<<X
+  $sql = <<< X
 SELECT u.uid,u.fullName,u.jid,u2.jid AS partnerJid,r.reid,r.other AS relatedId FROM users u
 LEFT JOIN r_relations r ON r.main=u.uid
 LEFT JOIN users u2 ON u2.uid=u.jid
@@ -576,7 +577,7 @@ function setNear() {
     'SELECT DISTINCT main AS id1, other AS id2, 1 AS w FROM r_relations',
     'SELECT DISTINCT u1.uid AS id1, u2.uid AS id2, 0.5 AS w FROM users u1 INNER JOIN users u2 ON (u2.city=u1.city OR u2.zip=u1.zip) WHERE u1.uid<>u2.uid',
   ]); // each type of relationship counts as one point
-  $sql = <<<X
+  $sql = <<< X
     INSERT INTO r_near
     SELECT LEAST(q.id1, q.id2) AS uid1, GREATEST(q.id1, q.id2) AS uid2, SUM(w) AS weight 
     FROM ($queries) q 
@@ -617,13 +618,13 @@ function acctStats1($item, $asof = NULL) {
 ///  debug(compact('avgBalEver','uid','asof') + ['created' => $a->created]);
   $subs = compact('uid', 'monthAgo', 'asof');
   
-  $sql = <<<X
+  $sql = <<< X
     SELECT SUM(amount) AS giftsEver, SUM(IF(completed<:monthAgo, 0, amount)) AS giftsPastMo
     FROM r_gifts WHERE uid=:uid AND completed AND completed<:asof
 X;
   $row1 = db\q($sql, $subs)->fetchAssoc() ?: []; // giftsEver, giftsPastMo
   
-  $sql = <<<X
+  $sql = <<< X
     SELECT SUM(IF(type=:TX_TRANSFER, payerReward+payeeReward, 0)) AS beneEver,
     SUM(IF(type=:TX_TRANSFER AND created>=:monthAgo, payerReward+payeeReward, 0)) AS benePastMo,
     SUM(IF(type IN (:TX_GRANT), amount, 0)) AS extraEver,
@@ -632,7 +633,7 @@ X;
 X;
   $row2 = db\q($sql, $subs)->fetchAssoc() ?: []; // get beneEver (purchase rewards), benePastMo, extraEver, extraPastMo
   
-  $sql = <<<X
+  $sql = <<< X
     SELECT SUM(-amount) AS bankedEver, SUM(IF(completed<:monthAgo, 0, -amount)) AS bankedPastMo
     FROM r_usd WHERE payee=:uid AND completed AND completed<:asof
 X;
@@ -653,7 +654,7 @@ function cttyStats($dt1 = 0) {
     cttyStats1(['ctty' => 0]); // for all our communities total
     queueEach('cttyStats1', 'SELECT DISTINCT uid AS ctty FROM users WHERE uid<0'); // and one at a time
   } else { // recreate stats data from the beginning of time
-    $sql = <<<X
+    $sql = <<< X
       SELECT community AS ctty, MIN(t.created) AS start
       FROM users u LEFT JOIN r_txs t ON t.payee=u.uid 
       WHERE uid>:CANONIC_ACCTS AND (t.created>=:R_LAUNCH OR t.created IS NULL) GROUP BY community ORDER BY -community
@@ -706,7 +707,7 @@ function cttyStats1($item) {
  */
 function trust() {
   db\q('UPDATE users SET trust=IF(:IS_CO,NULL,1)');
-  $sql = <<<X
+  $sql = <<< X
     UPDATE users u 
     INNER JOIN
       (SELECT proxy AS uid,SUM(straw) AS bale
@@ -802,7 +803,7 @@ function bank() {
   
 //  $where = ':IS_REFILL AND (:IS_JOINED OR r-rewards-savingsAdd<minimum) AND uid>1 AND :IS_OK';
   $where = 'u.:IS_REFILL AND (jid OR balance<minimum) AND uid>:CANONIC_ACCTS AND u.:IS_OK';
-  $sql = <<<X
+  $sql = <<< X
   SELECT uid
   FROM users u
   WHERE $where AND :HAS_BANK
@@ -810,7 +811,7 @@ X;
 
   queueEach('bank1', $sql); // Note: joint slave r values cannot be negative unless both are (see r\cache)
   
-  $sql = <<<X
+  $sql = <<< X
   SELECT uid, r.main as ma
   FROM users u INNER JOIN r_relations r ON r.other=u.uid
   WHERE $where AND NOT :HAS_BANK AND r.:IS_DRAW 

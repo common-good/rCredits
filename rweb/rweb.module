@@ -113,7 +113,7 @@ function rweb_menu($submenu = '') {
     'community/events/event' => ['call', t('Add/Edit Event'), 'Event 3 4', 'member'],
     'community/events/question' => ['call', t('Add/Edit Question'), 'Question 3', 'cadmin'],
     'community/events/option' => ['call', t('Add/Edit Option'), 'Option 3', 'cadmin'],
-    'community/events/proposal' => ['call', t('Funding Proposal'), 'Proposal', ANY],
+    'community/events/proposal' => ['call', t('Funding Proposal'), 'Proposal 3', ANY],
     'community/events/proposal-report' => ['call', t('Proposal Report'), 'ProposalReport 3', 'manage'],
     'community/events/proposal-notes' => ['call', t('Proposal Notes'), 'ProposalNotes 3', 'manage'],
     
@@ -189,7 +189,7 @@ function rweb_menu($submenu = '') {
 
     'sadmin' => ['norm', t('Admin'), 'Admin', 'admin2'],
     'sadmin/panel' => ['sub', t('Panel'), 'AdminPanel 2', 'cadmin'],
-    'sadmin/followup' => ['sub', t('Admin Calls to Make'), 'Followup', 'admin2'],
+    'sadmin/followup' => ['sub', t('Admin Action Page'), 'Followup', 'admin2'],
     'sadmin/member-list' => ['sub', t('Member List'), 'MemberList', 'cadmin2'],
     'sadmin/export-list' => ['sub', t('Export'), 'DownloadMemberList 2', 'cadmin2'],
     'sadmin/deposits' => ['sub', t('Deposits'), 'Deposits', 'superadmin'],

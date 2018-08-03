@@ -60,17 +60,18 @@ function formInvestBuySell_submit($form, &$sta) {
   $DBTX = \db_transaction();
   if (op($sta) == 'buy') {
     list ($index, $subs) = $clubA->pay($coA, $total, t('investment'), ray('investment goods', 1, FOR_USD));
-    $extraMsg = @$subs['success'] ? t('|You successfully purchased %amt shares of %co at %price.', 'amt co price', $sharesDpy, $coA->fullName, $priceDpy) : t('|No shares were purchased.');
-    db\insert('r_shares', ray('vestid shares when', $vestid, $shares, NOW));
+    $extraMsg = @$subs['success'] ? t('You successfully purchased %amt shares of %co at %price.', 'amt co price', $sharesDpy, $coA->fullName, $priceDpy) : t('No shares were purchased.');
+    if (@$subs['success']) db\insert('r_shares', ray('vestid shares when', $vestid, $shares, NOW));
   } else { // sell
 //    $shid = db\min('shid', 'r_shares', compact('vestid'));
     $shid = db\insert('r_shares', ray('vestid shares pending when', $vestid, 0, -$shares, NOW));
     $for = t('reclaim investment: %amt at %price', 'amt price', $sharesDpy, $priceDpy);
     list ($index, $subs) = $clubA->invoice($coA, $total, $for, ray('goods shid', FOR_INVESTMENT, $shid));
 //    if (@$count + 0 == 1) { // the usual case -- one shares record
+    $extraMsg = '';
   }
   unset($DBTX);
 
-  say($index . @$extraMsg, $subs, @$subs['success'] ? NULL : 'err');
+  say("$index|$extraMsg", $subs, @$subs['success'] ? NULL : 'err');
   return w\go("/invest/list/actual=1&clubid=$clubid");
 }

@@ -364,6 +364,7 @@ function formFollowup($form, &$sta, $args = '') {
   global $base_url;
   global $mya;
   
+	if (!$mya or !$mya->cAdmin) return w\go('');
   extract(just('uid one recent', $args));
   
   if (@$uid) {
@@ -371,7 +372,7 @@ function formFollowup($form, &$sta, $args = '') {
     return formSummary($form, $sta);
   }
 
-  $title = t('Standard Calls to Members');
+  $title = t('Admin Action Page');
   $subtitle = item(t('<p>Start with today and work backward. Click an account name.</p><ul><li><b>Live Person.</b> If you get a live person, click "live" for a script. Then, if no followup is needed, make a note about your conversation and click "Auto".</li><li><b>Message #1.</b> If you get a machine, click "msg1" for a Phone Message script, type "PM setup" or "PM welcome" or whatever as a note, and click the "2 days" button.</li><li><b>Message #2.</b> If you already left one message, try 3 more times to catch them live. If you still don\'t catch them click "msg2" for a Phone Message script, then click "email" to send them an Email Message. Type "EM setup" or whatever and click the "7" button if this is for a Setup or Annual check-in or the "Auto" button if it is for a Welcome.</li><li><b>After Setup Help Email.</b> If the email gets no response for a setup help call, keep phoning or emailing at 1-, 2-, or 7-day intervals until you reach them or we close the account.</li><li><b>After Annual Check-in Email.</b> If the email gets no response for an Annual check-in, send a US Mail fund appeal/check-in.</li></ul><p>(comments on this standard procedure are welcome)</p>') . w\btn('/sadmin/followup/one=1', t('Show just my community')) . ' &nbsp; ' . w\btn('/sadmin/followup', t('Show ALL')) . ' &nbsp; ' . w\btn('/sadmin/followup/recent=1', t('Recent notes first')));
   
   $now = time();
@@ -712,7 +713,7 @@ EOF;
 // (needs htmlcell instead of cell)   if (!$in) $name = r\acct($uid)->bankInfoLink();
 //    if (!$in) $name = r\acct($uid)->legalNameDpy;
     $pdf->setX($x);
-    if (@$only and ($amount < 0 xor $in)) continue;
+    if (@$only and ($amount > 0 xor $in)) continue;
     if ($amount < 0) $pdf->SetTextColor(255, 0, 0);
     $pdf->Cell(1, 0, u\fmtAmt($amount, ''), '', 0, 'R');
     $pdf->SetTextColor(0);

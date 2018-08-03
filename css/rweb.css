@@ -355,6 +355,7 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #frm-proposal #edit-subtitle .table {margin-left:25px;}
 #frm-proposal #edit-subtitle .row {display:table-row; margin:0;}
 #frm-proposal #edit-subtitle .row div {display:table-cell; width:230px;}
+#frm-proposal .form-item-recovery div.checkbox {display:block;}
 
 #critChart  .row {margin:10px;}
 #critChart .row div {display:table-cell}
@@ -660,6 +661,9 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #frm-data button {width:300px; text-align:left; background-image: linear-gradient(#fff, #ddd 60%, #ddd);}
 /*linear-gradient(#fff, #fff 60%, #f5f5f5);*/
 #frm-data #edit-subtext div {display:inline-block;}
+
+/* Events */
+#event-history td:last-child {width:120px;}
 
 /* Event */
 #frm-event .detail {font-size:14px; color:darkgreen;}

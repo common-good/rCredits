@@ -34,7 +34,7 @@ function rawHelp($i, $tag = '', &$args = '') {
   $_aInfo = atag('/account/company');
   $regEmail = r\regionField('email');
  
-  $companyAccount = $company ? '' : t(<<<X
+  $companyAccount = $company ? '' : t(<<< X
   <p>For companies, upload a picture to represent your business. This picture will appear on your automatic %PROJECT webpage: <%aPage>%site/member/%username</a> &mdash; so choose wisely. See also the <%aInfo>Company Info</a> form.</p>
 X
   , compact('_aPage', '_aInfo', 'username', 'site'));
@@ -43,7 +43,7 @@ X
   $back = '<p>' . 
   w\backButton() . '</p>';
   
-  if ($i == 'general') return t(<<<X
+  if ($i == 'general') return t(<<< X
     <p>Here's what to click, to find what you want:</p>
     <ul>
       <li><b>Summary</b>: See an overview of your account or open a %PROJECT Account for your company.</li>
@@ -59,7 +59,7 @@ X
 X
   , '_aEmail', u\emailTag($regEmail, t('help with %PROJECT')));
 
-  if ($i == 'other') return t(<<<X
+  if ($i == 'other') return t(<<< X
     <h2>Need Help Signing In?</h2>
     <p>If your username and password aren't working, no worries. Just click "<%aForgot>Forgot it</a>" here or on the sign-in page, to get an email for choosing a new password.</p>
     <h2>About %RCREDITS&reg;</h2>
@@ -71,7 +71,7 @@ X
 X
   , 'username _aForgot _aCtty _aAgree _aPromo', $username, atag("/account/password/%username"), atag('/community'), atag('/agreement'), atag(PROMO_URL));
 
-  if ($i == 'smartphone') return t(<<<X
+  if ($i == 'smartphone') return t(<<< X
     <p>To use the smartphone interface, you will need to install an app to read QR codes (for example QRDroid on Android phones or Qrafter for iPhones). You can pay participating businesses by scanning their QR code, then visiting the scanned URL.</p>
     <p>Your customers (or employer) can pay you by scanning the QR code on your member ID card. You can print an Advance ID card for your individual account, using the link on the Summary page.</p>
 X
@@ -79,7 +79,7 @@ X
 
   if ($i == 'sms') return t('The Text Message Interface is intended to be easy enough that you can just muddle your way through the first time. Give it a shot. You can even <i>sign up</i> with Text Messaging. Send your texts to +1 413.285.2867 OR use the <%aSMS>Test SMS form</a> to simulate sending a text.', '_aSMS', atag('/sms'));
 
-  if ($i == 'summary') return t(<<<X
+  if ($i == 'summary') return t(<<< X
     <p>This page shows an overview of your %PROJECT Account.</p>
     <p><b>Account ID</b> has two parts. The part before the period is a 3-character identifier for your region (%regName). The part after the period uniquely identifies your account, within your region. If you have several accounts, this part will be different for each one.</p>
   <p><b>Balance</b> is the amount in your %PROJECT Account.</p>
@@ -87,36 +87,36 @@ X
 X
   , 'regName', $cttyName);
 
-  if ($i == 'txs') return t(<<<X
+  if ($i == 'txs') return t(<<< X
     <p>Select the period you want to see transactions for. Both the Summary and Transactions sections will reflect just the transactions in that period. However, the "Pending" line will reflect all your not-yet-accepted invoices and offers EVER. The Ending balance in the Summary is always your current balance.</p>
     <p>If the status is "pending", either you or the other party will need to click "OK" to complete the deal. click the "X" to reject an invoice, dispute a charge, reject an offer, or cancel or undo something you did. click the pencil to edit the description. The description is just for you &mdash; the other party will not see it.</p>
 X
   );
 
-  if ($i == 'pay' and $whys = ray(R_WHYS)) return t(<<<X
+  if ($i == 'pay' and $whys = ray(R_WHYS)) return t(<<< X
     <p><b>Whom:</b> Type all or part of the full name of the account you want to pay. You can leave out the punctuation, spaces, and capitals. Or you can type their phone number or email address or their account ID.</p>
     <p><b>Amount:</b> The amount of the transaction, measured in dollars, to be paid in %RCREDITS.</p>
     <p><b>Purpose:</b> If this is a purely financial transaction, click "%forMoney" or "%forNongoods". Otherwise, a description is required (for purchases and sales of real goods and services). Donations to nonprofit organizations count as purchases of real services &mdash; services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank &mdash; your statements will call the purpose "cash".</p>
 X
   , 'forMoney forNongoods', $whys[FOR_USD], $whys[FOR_NONGOODS]);
 
-  if ($i == 'directory') return t(<<<X
+  if ($i == 'directory') return t(<<< X
     <p>This is where you can find out who takes %RCREDITS for what you want. click a business name to see its %PROJECT webpage.</p>
     <p>You can limit the results to a specific industry or a specific business by typing all or part of the industry or business name. Currently, if you limit the results geographically, there won't be any results unless you choose the United States "01" postal code region.</p>
 X
   );
 
-  if ($i == 'account/basic') return t(<<<X
+  if ($i == 'account/basic') return t(<<< X
     <p><b>Current password:</b> To change your email address or password, you must supply your current password, as a security precaution.</p>
 X
   );
 
-  if ($i == 'account/cells') return t(<<<X
+  if ($i == 'account/cells') return t(<<< X
     <p>Add one or more cell phones to your account so you can use Text Messaging to buy and sell things with %RCREDITS. The form will send a secret word to your phone, which you can then enter here to confirm the connection.</p>
 X
   );
 
-  if ($i == 'account/relations') return t(<<<X
+  if ($i == 'account/relations') return t(<<< X
     <p>Relations let you connect individual %PROJECT participants to your account &mdash; as owners, employees, suppliers, or others, with limited or full access to the account. This is useful for authorizing sales clerks or setting up joint accounts. Or you might give your accountant "read" permission. Company accounts are managed only by an individual agent.</p>
     <p>Yellow highlights show settings that need to be confirmed &mdash; either by you or by the other party.</p>
     <p>To change settings in a Yes/No column, click + or -. To remove someone from the list, make them all "No"s, and no permissions (if they are already that way, change something and change it back). Be sure to "Save Changes".</p>
@@ -124,24 +124,24 @@ X
 X
     ) . ($company ? t('<p>If you give the person at least "Sell" permission (and save the record), you can request a Member ID Card for them to use on behalf of this account.</p>') : '');
     
-  if ($i == 'account/contact') return t(<<<X
+  if ($i == 'account/contact') return t(<<< X
     <p><b>Full name</b> should be your full legal name. If you change the name on the account, you will need to buy a new %PROJECT card and your account will be disabled until you supply new proof of identity. For companies, your %PROJECT website address will also change.</p>
     <p><b>Postal code:</b> Your postal code determines what %PROJECT Community you are in.</p>
     <p><b>All other settings on this page</b> are private for individual accounts, public for company accounts.</p>
 X
   );
 
-  if ($i == 'account/photo') return t(<<<X
+  if ($i == 'account/photo') return t(<<< X
     <p>For an individual account you will need to upload a clear photo of your face, for identification. This is the photo that will appear on your Member ID card. If you have trouble coming up with a photo in a format that works, have a youngster take picture of you with their cell phone or tablet. Ask them to email you the picture, save that attachment to your desktop, then upload it here. If you still have trouble, email a description of your predicament to us at <%a>%regEmail</a> and we will help.</p>
 X
   , '_a regEmail', u\emailTag($regEmail, t('photo trouble'))) . $companyAccount;
 
-  if ($i == 'account/company') return t(<<<X
+  if ($i == 'account/company') return t(<<< X
     <p>All of the information from this form goes automatically on your <%aPage>%PROJECT webpage</a>, along with your company name and profile picture. Your email address will not be included unless you put it in the description explicitly. click the link, to see the results (after saving your changes).</p>
 X
   , 'username _aPage', $username, atag("/member/$username"));
 
-  if ($i == 'account/preferences') return t(<<<X
+  if ($i == 'account/preferences') return t(<<< X
     <p>These settings start out as what most people prefer. Feel free to adjust them as you like. You can always come back and change them again later.</p>
     <ul>
       <li><b>Target.</b> You will want to keep enough in your account to cover the total amount you expect to spend at %PROJECT member businesses in a typical 3-day period. Add to this however much you want to hold as inflation-protected savings (the inflation adjustment is a monthly credit to your account).</li>
@@ -150,7 +150,7 @@ X
 X
     );
 
-  if ($i == 'issuing-credits') return t(<<<X
+  if ($i == 'issuing-credits') return t(<<< X
     <p>%RCREDITS are a type of credit. Like any medium of exchange, they represent value. They make it possible for us to trade goods and services with each other in our community, without having to trade something directly with whoever has what we want, and without having to give them something of precisely the same value ("barter"). The medium of exchange lets us give any amount of our goods or services to any participant in the economy, then receive the same value of goods or services from some other participant(s). If everyone both buys and sells, the credits move through the community in interconnected circles of exchange.</p>
     <p>From the start, %RCREDITS are issued as a one-to-one stand-in for US Dollars.</p>
     <p>Once %RCREDITS become well-established and popular in a community, we can also issue them together, with careful planning, as grants, zero-interest loans, equity investments, and incentives for doing the right thing. Together we can fund whatever enterprises and activities we decide would be best -- for our community, for communities elsewhere, and for the world.</p>
@@ -158,7 +158,7 @@ X
 X
   ) . $back;
   
-  if ($i == 'common-good-community') return t(<<<X
+  if ($i == 'common-good-community') return t(<<< X
     <p>The purpose of the %PROJECT system is to create and fund community-centered participatory democracy. In a %PROJECT Community* you decide together how many %RCREDITS to issue (within safe limits) and what to fund with them.</p>
     
     <p>A %PROJECT Community is in "Good Standing" when it is issuing %RCREDITS responsibly, so they accurately represent the potential of its members to produce corresponding goods and services in the short term. A %PROJECT Community may lose its good standing if it runs a trade deficit with other %PROJECT Communities and fails to redeem it in a timely manner. %PROJECT staff and the other %PROJECT Communities will provide ongoing feedback, to prevent this from happening accidentally.</p>
@@ -167,7 +167,7 @@ X
 X
   , '_aClearness', atag('https://docs.google.com/document/d/1-lBTNHTxIPrTSrIK18ZdbcMeEPS5g5jFhST34VGkR8E')) . $back;
   
-  if ($i == 'cashflow') return t(<<<X
+  if ($i == 'cashflow') return t(<<< X
     <p>As a %PROJECT Community you and other members decide together when to spend, grant, lend, and/or invest some of the US Dollars members have put into their %PROJECT accounts, which are held in a Community Fund Dollar Pool in a bank.</p>
     
     <p>Your %PROJECT Community must take care to keep enough money in the Community Dollar Pool to cover requests by members to <%aCashout>move funds to their bank account</a>, trading some of their %RCREDITS for US Dollars.</p>
@@ -176,21 +176,21 @@ X
 X
   , '_aCashout _aBack', atag('/cashing-out'), atag('/backing-common-good-credits')) . $back;
 
-  if ($i == 'backing-common-good-credits') return t(<<<X
+  if ($i == 'backing-common-good-credits') return t(<<< X
     <p>To ensure that %RCREDITS maintain their value, you (and every other member) agree to accept however many you typically spend and/or receive in a month, even if your %PROJECT Community is unable to redeem them immediately for US Dollars.</p>
 
     <p>Like the Federal Reserve's backing for US Dollars held as bank deposits, backing for %RCREDITS helps prevent unfounded fears from causing a "<%aCrunch>run on the bank</a>". All members agree to back %RCREDITS so your %PROJECT Community can continue to run smoothly.</p>
 X
   , '_aCrunch', atag('/cashflow')) . $back;
 
-  if ($i == 'cashing-out') return t(<<<X
+  if ($i == 'cashing-out') return t(<<< X
     <p>%RCREDITS have value and act like money because we agree to accept them as payment for our good and services, so they move from member to member to member as a token of exchange. When someone pays you in %RCREDITS, you can spend those funds &mdash; OR you can "cash them out" by transferring them to your bank account or exchanging them for US Dollars.</p>
     <p>You can cash out %RCREDITS that someone <i>pays</i> you, but any %RCREDITS you borrow, using your credit line, must continue to circulate within the %PROJECT system. You cannot cash them out &mdash; you can only spend them.</p>
     <p>You can help keep the %PROJECT system healthy by maintaining a positive balance most of the time.</p>  
 X
 , '_aReserve', atag('/credit-reserve')) . $back;
 
-/*  if ($i == 'credit-reserve') return t(<<<X
+/*  if ($i == 'credit-reserve') return t(<<< X
     <p><b>Background.</b> It is crucial to the success of the %PROJECT system that most members maintain a positive account balance, so there are some %RCREDITS to circulate in the community. While the system is small, it is a bit frail in that regard, so we need to be extra careful to make sure there is no "<%aCrunch>cash flow crunch</a>" at least until we are ready to handle it as a strong, well-functioning democratic %PROJECT community.</p>
 
     <p><b>Your Credit Reserve.</b> So we divide your account into two pieces: your Balance and your Credit Reserve. Your incentive rewards go into the Credit Reserve, to encourage you to keep them in the system until you need them. This is like a traditional reserve credit line that kicks in whenever you would otherwise overdraw your checking account &mdash; except there are no fees here. You can spend those reserved funds any time, simply by letting your Balance go negative.</p>
@@ -201,7 +201,7 @@ X
 X
   , '_aCrunch', atag('/cashflow')) . $back; */
   
-  if ($i == 'closing-down') return t(<<<X
+  if ($i == 'closing-down') return t(<<< X
      <p>%PROJECT staff and advisers have put great care into designing the %PROJECT System so that it will continue to flourish. In the unlikely event your %PROJECT Community or the %PROJECT System needs to close down, the %PROJECT Agreement gives us a way to end gracefully.</p>
      <p>As part of the %PROJECT Agreement, you promise to bring your balance up to zero if it is negative. You can either:</p>
      <ul><li>continue to accept %RCREDITS until you are square OR</li>
@@ -218,7 +218,7 @@ X
 X
   ) . $back;
 
-/*  if ($i == 'ready') return t(<<<X
+/*  if ($i == 'ready') return t(<<< X
      <p>There is no magic formula (yet) for deciding when a %PROJECT Community is ready to allow cashing out incentive rewards. The important question is: who gets to decide such things?</p>
      <p>The %PROJECT system was invented for a single, critically important purpose: to create an opportunity for the community to take responsibility for its own economy. In a <%aCGC>%PROJECT Community</a> you decide, along with your friends and neighbors, how many %RCREDITS to issue as incentive rewards, and how many as grants, loans, and investments. You decide what to incentivize:</p>
      <ul>
@@ -233,13 +233,13 @@ X
 X
   , '_aCGC _aReserve', atag('/common-good-community'), atag('/credit-reserve')) . $back; */
   
-  if ($i == 'ethics') return t(<<<X
+  if ($i == 'ethics') return t(<<< X
     <p>A %PROJECT Community relies on its members to show a high level of ethical behavior, as the basis for creating a culture of trust and possibility. Of course it is always possible for someone to "game" the system and we will continue to develop software that brings such misbehavior to the attention of the community.</p>
     <p>Sometimes what looks like unethical behavior is in reality a desperate bid to escape from poverty. It is our responsibility as a community to think well about what our members need and want, and use the funding power of %PROJECT accordingly, so that such desperation is never necessary.</p>
 X
   ) . $back;
 
-  if ($i == 'dispute-resolution-process') return t(<<<X
+  if ($i == 'dispute-resolution-process') return t(<<< X
     <p>Disputes between %PROJECT members will be resolved as follows:</p>
       <ol>
         <li>The members work together cooperatively in good faith to attempt to resolve the matter themselves, amicably.</li>
@@ -259,7 +259,7 @@ X
 X
   ) . $back;
 
-  if ($i == 'participate') return t(<<<X
+  if ($i == 'participate') return t(<<< X
   <p>%PROJECT staff and the %PROJECT system will give you regular feedback on how your actions impact your finances and the well being of the community. For this feedback to be effective, you have to pay attention to it.</p>
 
   <p>The %PROJECT system needs feedback too! Please make suggestions when you see something that could be improved.</p>
@@ -268,49 +268,49 @@ X
 X
   , '_aProcess _aOther', atag('/decision-principles'), atag('/other-decisions')) . $back;
 
-  if ($i == 'decision-principles') return t(<<<X
+  if ($i == 'decision-principles') return t(<<< X
     <p>Each %PROJECT Community must decide for itself how to manage its decision making. %PROJECT staff are developing recommendations for best practices to value and encourage active participation by all members.</p>
 X
   ) . $back;
 
-  if ($i == 'other-decisions') return t(<<<X
+  if ($i == 'other-decisions') return t(<<< X
     <p>From time to time, members will need to make a variety of non-financial decisions. A governing board may need to be elected. Policies and procedures occasionally need to be created or revised. Other issues may arise.</p>
 X
   ) . $back;
 
-  if ($i == 'common-good-community-requirements') return t(<<<X
+  if ($i == 'common-good-community-requirements') return t(<<< X
     <p>Requirements for certification as a %PROJECT Community are not yet finalized. They may include such things as qualified leadership, minimum size, experience using the %PROJECT system, diversity of participants, and successful completion of a training program.</p>
 X
   ) . $back;
 
-  if ($i == 'agreement') return t(<<<X
+  if ($i == 'agreement') return t(<<< X
     <p>The %PROJECT Agreement is at the heart of the the %PROJECT system. It is our agreement to accept %RCREDITS from each other that gives them value. Please read each section carefully and click the checkboxes to indicate your agreement. For more specific information, click the hyperlinks in the text.</p>
 X
   );
 
-  if ($i == 'donate') return t(<<<X
+  if ($i == 'donate') return t(<<< X
     <p>Your donation helps fund administration and promotion of the %PROJECT system during the pilot phase. It is also a formal "sealing" of your signature on the %PROJECT Agreement.</p>
 X
   );
 
-  if ($i == 'account/proxies') return t(<<<X
+  if ($i == 'account/proxies') return t(<<< X
     <p>During the pilot phase, it may be hard to choose two proxies from among the other members, unless you invite them to join first. You can change your selections at any time, so no worries.</p>
 X
   );
 
-  if ($i == 'invite') return t(<<<X
+  if ($i == 'invite') return t(<<< X
     <p>The %PROJECT system is designed to be community-centered, so our relationships with friends and neighbors in our own geographical community is important. We can work better together for the well being of everyone in our community and our region, if we know we can trust one another.</p>
     <p>Invite as many people as you like, but only people you trust.</p>
 X
   );
 
-  if ($i == 'transactions') return t(<<<X
+  if ($i == 'transactions') return t(<<< X
     Hover over any option or column header for an explanation of what it means. Select some options, and the period or specific date range that interests you, then click either "Show" or "Download". The downloaded spreadsheet (in CSV format) has more complete information, including column totals.
 X
   );
   if ($i == 'proxies') return t('proxy help');
 
-  if ($i == 'demand' or $i == 'exchanges-for-dollars') return w\chartFrame('banking') . t(<<<X
+  if ($i == 'demand' or $i == 'exchanges-for-dollars') return w\chartFrame('banking') . t(<<< X
     <p>This chart show the amount of Dollars flowing into and out of the Dollar Pool &mdash; either through transfers <b class="out">to</b> or <b class="in">from</b> a participant's bank account OR through trade with another community. <b class="export">Exports</b> bring Dollars in from another %PROJECT Community. <b class="import">Imports</b> send Dollars out to another %PROJECT community.</p>
     <p>The "demand" for %RCREDITS is the net amount of US Dollars people want to trade for %RCREDITS. As long as people have plenty of places to spend within the %PROJECT system, they will generally keep moving money in. So the demand gives us a pretty reliable measure of the system's soundness.</p>
     <p>We can keep issuing %RCREDITS (in exchange for Dollars or as negative account balances) as long as there is a net inflow of US Dollars (more <b class="in">green</b> than <b class="out">orange</b> on the chart &mdash; an increasing demand). If members need to make more purchases outside the %PROJECT network and are taking more US Dollars <b class="out">out</b> of the system than they are putting <b class="in">in</b> (a decreasing demand), then we must temporarily slow down <i>issuing</i> %RCREDITS. So when the community's demand is negative three months in a row, the system automatically alerts the %PROJECT Community's administrators, who can put a temporary ban on spending below a zero balance.</p>
@@ -323,7 +323,7 @@ X
   if ($i == 'growth') {
     $_helpus = @$mya ? t('You can help! Invite your friends and all the local businesses where you want to spend your %RCREDITS. Sit with your friends while they sign up &mdash; it takes only half an hour, but without a nudge most people spend several weeks putting it off.', '_aInvite', atag('/community/invite')) : t('<%aSignup>Join us</a>!', '_aSignup', atag('/signup'));
     
-    return w\chartFrame('growth') . t(<<<X
+    return w\chartFrame('growth') . t(<<< X
       <p>The real power and purpose of the %PROJECT system is in our gathering as a community to decide what our funding priorities should be &mdash;</p>
       <ul>
         <li>for sustainable agriculture and energy systems,</li>
@@ -339,7 +339,7 @@ X
   }
 //      <p><b class="conx">Connections</b> ("conx") are the number of other members and participating businesses each active member has transacted with in the %PROJECT System.</p>
 
-  if ($i == 'dollar-pool') return w\chartFrame('funds') . t(<<<X
+  if ($i == 'dollar-pool') return w\chartFrame('funds') . t(<<< X
     <p>There are two kinds of funds in the %PROJECT system:</p>
     <ul>
       <li><b class="cgcredits">%RCREDITS</b>. These are the funds we issue together as a community, by agreeing to accept them as payment for our goods and services (or labor). We issue %RCREDITS in two ways: (1) in exchange for US Dollars AND (2) by allowing member accounts to have a negative balance. The orange area shows the total negative balances. The amount of %RCREDITS is exactly equal to the Dollar Pool amount (blue line) plus the amount of negative balances.</li>
@@ -364,7 +364,7 @@ X
 X
   , '_aCrunch', atag('/help/cashflow')) . $back;
   
-  if ($i == 'velocity' or $i == 'circulation-velocity') return w\chartFrame('velocity') . t(<<<X
+  if ($i == 'velocity' or $i == 'circulation-velocity') return w\chartFrame('velocity') . t(<<< X
     <p>In our society at large, how fast the money moves is an indicator of the health of our economy. Faster velocity implies more people spending more money per month.</p>
     <p>More spending is not necessarily a good thing, if we all already have what we need. But when there are unmet needs, increased economic activity can be a sign of things getting better. In the %PROJECT system, economic activity means people are finding the %PROJECT system useful, which is always a good thing.</p>
     <p>Notice that the faster money circulates, the less money we need, to buy the same stuff. Velocity is a money-stretcher! For example, suppose there are $1 million worth of %RCREDITS in circulation. Let's say the velocity is 1 in April (the whole million gets spent) and 2 in May (the whole million gets spent twice). In May we used the same amount of money to buy twice as much.</p>
@@ -374,7 +374,7 @@ X
 X
   ) . $back;
 
-  if ($i == 'economic-circles' or $i == 'transaction-volume') return w\chartFrame('volume') . t(<<<X
+  if ($i == 'economic-circles' or $i == 'transaction-volume') return w\chartFrame('volume') . t(<<< X
     <p>Economic circles are crucial to a healthy regional economy. The more we can keep money circulating locally, the richer we are. Why? Because we can use that money over and over &mdash; in effect turning each dollar into millions.</p>
     <p>In a typical economic circle, you buy something from a local store or pay for local services. That business then pays its local suppliers and its local employees. Those employees in turn become consumers like you &mdash; they buy something from a local store, etc. When at any point in this circle we lose the "local" and pay someone or some company outside our region, that money is gone. It has leaked out of our community and we are that much poorer.</p>
     <p>The %PROJECT system gives us an easy way to track our economic circles and opportunities for improvement.</p>
@@ -383,12 +383,12 @@ X
 X
   , '_aFB _aDemand', atag('http://rc4.me/fb'), atag('/help/demand')) . $back;
 
-  if ($i == 'your-return') return t(<<<X
+  if ($i == 'your-return') return t(<<< X
     <p>Your effective return is calculated as your monthly inflation adjustment (currently based on %R_INFLATION_RATE% APR) plus any incentive rewards you got in the period, all divided by your average balance for the period. The result is then annualized to give you an APR (annual percentage rate). Regular financial institutions give you interest on your <em>minimum</em> balance for the month, which is nearly always lower than your <em>average</em> balance.</p>
 X
   ) . $back;
 
-  if ($i == 'social-return') return t(<<<X
+  if ($i == 'social-return') return t(<<< X
     <p>The community's financial benefit from your participation is very loosely calculated as the sum of:</p>
     <ul>
       <li><b>Donations.</b> Your gifts to the %PROJECT project.</li>
@@ -402,7 +402,7 @@ X
 X
   ) . $back;
 	
-	if ($i == '2018-question-1') return u\parseUp(t(<<<X
+	if ($i == '2018-question-1') return u\parseUp(t(<<< X
 **Investments, grants, and incentives.** Investment terms can be whatever we negotiate with the recipient -- ranging from a zero-interest loan to a full-ownership stake with regular dividends indefinitely. 
 
 Incentives are a sort of diffuse grant. **Made-up Examples:** Get a 10% rebate on any purchase with your Common Good card during the month of December, while funds last. Or donate to a member nonprofit this month and Common Good Greenfield increases your donation by 50%.
@@ -423,7 +423,7 @@ There is also one argument for using nothing at all: Some people may choose not 
 X
   )) . $back;
 	
-	if ($i == '2018-question-2') return u\parseUp(t(<<<X
+	if ($i == '2018-question-2') return u\parseUp(t(<<< X
 **About Grants.** Grant funding can make a huge difference to community-spirited projects. Grants are harder to get than loans, so they make a bigger publicity splash, which could more quickly propel the Common Good movement forward in the public eye, bringing in many new members and businesses. When we make a grant, we are permanently trading our financial assets for short-term publicity and one-shot support of something worthwhile.
 
 Once we grant funds from the Dollar Pool, the system can no longer end without someone losing out. When we make grants (or incentives) we are saying we are very confident the Common Good System will continue indefinitely -- and in the very unlikely event it fails, we would each pay our fair share of the grants we made together.
@@ -449,7 +449,7 @@ X
     foreach ($taxline as $line) $taxes .= '<tr><td class="cat">' . join('</td><td>', $line) . "</td></tr>\n";
     $taxes = strtr($taxes, ['<td></td><td>' => '<td colspan="2">', ';' => ',']);
     
-    return t(<<<X
+    return t(<<< X
   <p>Pay taxes on %PROJECT income just as you would for US Dollar income, including income, excise, and sales taxes.</p>
 
   <p>If you follow the <%a1>accounting practices recommended</a> by %PROJECT staff, your software already includes your %PROJECT income, properly categorized, in your accounting records and reports.</p>
@@ -465,7 +465,7 @@ X
     include_once __DIR__ . '/bit-descs.inc';
     foreach ($flagHelp as $k => $v) $res[] = "<tr><td>$k</td><td>$v</td></tr>";
     $res = join("\n", $res);
-    return t(<<<X
+    return t(<<< X
       <div id="bit-help">
       <p>Community Administrators can see and set/unset most of these bits on each account's Summary page.</p>
       <table>$res</table>
@@ -505,7 +505,7 @@ X
     $_score = number_format(K_RED*300*8/15/K_THRESHOLD, 0);
     $_score = "<span class=\"badRisk\">$_score</span>";
 //    if ($_special) $_special = preg_replace('/^(.*)\[(.*)\](.*)/', '<div id="special-flag"><big style="color:red;">$1</big> (weight:$2) $3</div>', $_special);
-    return t(<<<X
+    return t(<<< X
       <div id="risk-help">
       <table id="special-flag">%special</table>
       <p>Suspicious Activity Risk Scores (flags) are calculated based on a weight divisor assigned to each type of risk. That divisor (shown in square brackets for each item below) is an assessment of how many same-sized risks would together make an account or transaction suspicious -- a higher divisor means less risk. <span class="goodRisk">Risk factors with a negative divisor</span> (shown in green) are mitigating.</p>
@@ -527,7 +527,7 @@ function riskHelpLine($k, $weight, $extra = '', $tag) {
 /*
 <p>"$/mo" is the most important column. Type the amount you pay each employee or supplier in a month &mdash; more or less. Then, if you select the payment exchange option on the preferences page, your rCredits will get distributed every night to those employees and suppliers in exchange for US Dollars.</p>
 
-    'why-wait') return t(<<<X
+    'why-wait') return t(<<< X
     <p>Exchanges of rCredits for US Dollars reflect an incomplete economic circle. That is, the individual or company selling the rCredits does not yet have enough places to spend them.</p>
     <p>The 2-week delay in spending rCredits that you buy takes that amount out of circulation temporarily, giving the seller time to find more places to spend rCredits, without meanwhile having to sell more and more of them.</p>
 X

@@ -8,16 +8,19 @@ SO I can see how well the rCredits system is doing for myself, for my ctty, and 
 
 Setup:
   Given members:
-  | id   | fullName   | rebate | flags      | minimum | floor | share | created   | activated |*
-  | .ZZA | Abe One    |      5 | ok         |       5 |     0 |    10 | %today-6m | %today-5m |
-  | .ZZB | Bea Two    |      5 | ok         |    1000 |   -20 |    20 | %today-5w | %today-4w |
-  | .ZZC | Corner Pub |     10 | ok,co      |    2000 |    10 |    30 | %today-4w | %today-3w |
+  | id   | fullName   | rebate | flags | jid   | minimum | floor | share | created   | activated |*
+  | .ZZA | Abe One    |      5 | ok    | 0     |       5 |     0 |    10 | %today-6m | %today-5m |
+  | .ZZB | Bea Two    |      5 | ok    | .ZZD  |    1000 |   -20 |    20 | %today-5w | %today-4w |
+  | .ZZC | Corner Pub |     10 | ok,co | 0     |    2000 |    10 |    30 | %today-4w | %today-3w |
+  | .ZZD | Dee Four   |      5 | ok    | .ZZB  |    1000 |   -20 |    20 | %today-5w | %today-4w |
   And relations:
   | main | agent | permission |*
   | .ZZA | .ZZB  | buy        |
   | .ZZB | .ZZA  | read       |
   | .ZZC | .ZZB  | buy        |
   | .ZZC | .ZZA  | sell       |
+  | .ZZB | .ZZD  | joint      |
+  | .ZZD | .ZZB  | joint      |
   And usd transfers:
   | txid | payee | amount | completed |*
   |  100 | .ZZA  |   1000 | %today-3d |
@@ -66,7 +69,7 @@ Scenario: cron calculates the statistics
   And member ".ZZA" visits page "community/graphs"
   Then we show "Statistics" with:
 #  | Community: | Seedpack |
-  |~CG Growth: | 2 members + 2 co |
+  |~CG Growth: | 3 members + 2 co |
   |~Dollar Pool: | $6,000 |
 #  |~CG | $6,002 |
   |~Circulation Velocity: | 6.2% per mo. |
