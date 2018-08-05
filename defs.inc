@@ -227,12 +227,12 @@ define('CO_API_URL', isDEV ? 'http://%website/cgapi/%etc' : 'https://%website/co
 define('R_TEMPLATE_DIR', '/templates');
 define('R_EMAIL_FRAME', 'email-frame');
 
-define('R_PICTURE_DIR', '/../cgPhotoTemp/'); // precede this by DRUPAL_ROOT (file) or $base_url (url)
+define('R_PICTURE_DIR', '/cgPhotoTemp/'); // precede this by DRUPAL_ROOT (file) or $base_url (url)
 //define('R_PROOF_DIR', '/proofs/'); UNUSED
 define('R_DFT_PICTURE', 'no-photo-available.jpg'); // default profile picture
 define('R_DFT_PICTURE_WIDE', 'no-photo-available-wide.jpg'); // default profile picture
 define('R_NOT_VALID', 'not-valid.png'); // says rcard is not valid for purchases
-define('LOG_DIR', '/../cgLogs/'); // where to store log files
+define('LOG_DIR', '/cgLogs/'); // where to store log files
 
 // account type bits
 //$GLOBALS['account types']
