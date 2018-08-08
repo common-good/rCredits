@@ -50,11 +50,9 @@ function extraSetup($feature) {
  *     MAKE Monthly Setup
  *     MAKE Notices Setup
  *     MAKE Recache Setup
- *     BOTH Risk Setup
- *     TEST Risk WeCalculateRisks
+ *     MAKE Risk Setup
  *     MAKE Tickle Setup
  *     MAKE Trust Setup
- *     TEST Trust WeCalculateTrust
  *     MAKE Weekly Setup
  */
 function members($list) {return t\members($list);}
@@ -111,9 +109,9 @@ function balances($list) {return t\balances($list);}
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
  *     MAKE Bank AnAccountHasAMinimumButNoRefills
  *     MAKE CommunityBits CommunityBansSpendingBelowZero
- *     MAKE Gifts ADonationCanBeCompleted
- *     MAKE Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
- *     MAKE Gifts ARecurringDonationCanBeCompleted
+ *     MAKE Gifts ABrandNewRecurringDonationCanBeCompleted
+ *     MAKE Gifts ASecondRecurringDonationCanBeCompleted
+ *     MAKE Gifts ADonationInvoiceCanBeCompleted
  *     MAKE Invoices UnpaidInvoicesGetHandled
  *     MAKE Joint AJointAccountNeedsRefilling
  *     MAKE Joint AJointAccountDoesNotNeedRefilling
@@ -185,9 +183,9 @@ function relations($relations) {return t\relations($relations);}
  * transactions: (ARG)
  *
  * in: TEST Bank AnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount
- *     TEST Gifts ADonationCanBeCompleted
- *     TEST Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
- *     TEST Gifts ARecurringDonationCanBeCompleted
+ *     TEST Gifts ABrandNewRecurringDonationCanBeCompleted
+ *     BOTH Gifts ASecondRecurringDonationCanBeCompleted
+ *     TEST Gifts ADonationInvoiceCanBeCompleted
  *     MAKE Invoices Setup
  *     TEST Invoices UnpaidInvoicesGetHandled
  *     MAKE Joint Setup
@@ -207,9 +205,9 @@ function transactions($list) {return t\transactions($list);}
  * in: TEST Bank AMemberIsBarelyBelowMinimum
  *     TEST Bank AMemberHasANegativeBalance
  *     TEST Bank AnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount
+ *     TEST Bank AnUnbankedMemberBarelyBelowMinimumCannotDrawOnAnotherAccount
  *     TEST Bank AMemberIsWellBelowMinimum
- *     TEST Gifts ADonationCanBeCompleted
- *     TEST Gifts ARecurringDonationCanBeCompleted
+ *     TEST Gifts ABrandNewRecurringDonationCanBeCompleted
  *     TEST Invoices UnpaidInvoicesGetHandled
  *     TEST Joint AJointAccountNeedsRefilling
  *     TEST Tickle ANewbieHasNotTakenTheFirstStep
@@ -221,8 +219,7 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
 /**
  * we notice (ARG) to member (ARG)
  *
- * in: TEST Bank AnUnbankedMemberBarelyBelowMinimumCannotDrawOnAnotherAccount
- *     TEST Tickle ANewbieHasNotTakenTheFirstStep
+ * in: TEST Tickle ANewbieHasNotTakenTheFirstStep
  *     TEST Tickle ANewbieHasTakenSomeStepsButNotAll
  */
 function weNoticeToMember($notice, $id) {return t\notice($notice, $id);}
@@ -230,10 +227,7 @@ function weNoticeToMember($notice, $id) {return t\notice($notice, $id);}
 /**
  * gifts: (ARG)
  *
- * in: BOTH Gifts ADonationCanBeCompleted
- *     MAKE Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
- *     BOTH Gifts ARecurringDonationCanBeCompleted
- *     MAKE Risk Setup
+ * in: 
  */
 function gifts($gifts) {return t\gifts($gifts);}
 
@@ -356,7 +350,10 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
  *
  * in: MAKE Bank AnAccountHasAMinimumButNoRefills
  *     MAKE CommunityBits CommunityBansSpendingBelowZero
+ *     TEST Risk Setup
+ *     TEST Risk WeCalculateRisks
  *     BOTH Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
+ *     TEST Trust WeCalculateTrust
  *     MAKE Weekly AMemberBuildsUpSavings
  *     MAKE Weekly AMemberCashesOutAutomatically
  */
@@ -365,8 +362,7 @@ function membersHave($list) {return t\membersHave($list);}
 /**
  * that (ARG) has link results: (ARG)
  *
- * in: TEST Gifts ADonationCanBeCompleted
- *     TEST Gifts ARecurringDonationCanBeCompleted
+ * in: TEST Gifts ABrandNewRecurringDonationCanBeCompleted
  */
 function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $info);}
 
@@ -425,7 +421,7 @@ function memberFieldValues($list) {return t\memberFieldValues($list);}
 /**
  * member (ARG) has no photo ID recorded
  *
- * in: MAKE Gifts ADonationCanBeCompletedEvenIfTheMemberHasNeverYetMadeAnRCardPurchase
+ * in: MAKE Gifts ADonationInvoiceCanBeCompleted
  */
 function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
 
@@ -497,7 +493,8 @@ function weDoNotEmail($email) {return t\noEmailTo($email);}
 /**
  * invoices: (ARG)
  *
- * in: MAKE Invoices Setup
+ * in: BOTH Gifts ADonationInvoiceCanBeCompleted
+ *     MAKE Invoices Setup
  *     TEST Invoices UnpaidInvoicesGetHandled
  */
 function invoices($list) {return t\invoices($list);}
@@ -515,3 +512,12 @@ function weMessageToMemberWithSubs($index, $id, $subs) {return t\weMessage($inde
  * in: MAKE CommunityBits CommunityBansSpendingBelowZero
  */
 function stats($list) {return t\stats($list);}
+
+/**
+ * these (ARG): (ARG)
+ *
+ * in: MAKE Gifts ABrandNewRecurringDonationCanBeCompleted
+ *     MAKE Gifts ASecondRecurringDonationCanBeCompleted
+ *     MAKE Risk Setup
+ */
+function these($thing, $list) {return t\these($thing, $list);}

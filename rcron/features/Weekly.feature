@@ -57,5 +57,5 @@ Scenario: A member cashes out automatically
 #  | action     | amount | checkNum |*
 #  | deposit to | $680   |        1 |
   And we notice "banked" to member ".ZZB" with subs:
-  | action     | amount |*
-  | deposit to | $680   |
+  | action     | amount | why |*
+  | deposit to | $680   |     |

@@ -66,7 +66,7 @@ function formInvestBuySell_submit($form, &$sta) {
 //    $shid = db\min('shid', 'r_shares', compact('vestid'));
     $shid = db\insert('r_shares', ray('vestid shares pending when', $vestid, 0, -$shares, NOW));
     $for = t('reclaim investment: %amt at %price', 'amt price', $sharesDpy, $priceDpy);
-    list ($index, $subs) = $clubA->invoice($coA, $total, $for, ray('goods shid', FOR_INVESTMENT, $shid));
+    list ($index, $subs) = $clubA->invoice($coA, $total, $for, ray('investment goods shid', 1, FOR_USD, $shid));
 //    if (@$count + 0 == 1) { // the usual case -- one shares record
     $extraMsg = '';
   }

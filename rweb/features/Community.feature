@@ -55,11 +55,11 @@ Setup:
   |  30 | %today-1d | transfer  |    100 | .ZZC | .ZZA | payroll | %FOR_GOODS | %TX_WEB  |
   |  33 | %today-1d | transfer  |      1 | .ZZC | .AAB | gift    | %FOR_GOODS | %TX_CRON |
   Then balances:
-  | id   | balance | committed |*
-  | .ZZA |  754.00 |      2.30 |
-  | .ZZB | 2285.00 |      2.90 |
-  | .ZZC | 2963.00 |      8.13 |
-  | .AAB |    1.00 |         0 |
+  | id   | balance |*
+  | .ZZA |  754.00 |
+  | .ZZB | 2285.00 |
+  | .ZZC | 2963.00 |
+  | .AAB |    1.00 |
   # total rewards < total r, because we made a grant, a loan, and a fine.
   
 Scenario: cron calculates the statistics

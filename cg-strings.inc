@@ -47,7 +47,7 @@ $GLOBALS['tStrings'] = array(
   'not saved' => t('No change has been made to your information.'),
 //  'payment accepted' => t('%RCREDITS payment accepted. In exchange, us%amount will be refunded to the payer, from your account.'), // UNUSED
   'charge accepted' => t('Your charge to %who\'s account has been approved (it is no longer in dispute). No action is necessary.'),
-  'gift successful' => t('Your donation of %amount is successful. Thank you!'),
+  'gift successful' => t('Thank you for your donation!'),
   'nothing done' => t('Nothing was done.'),
   'nothing undone' => t('Nothing undone.'),
   'event' => t('Account %fullName (%qid) is now %status.'),
@@ -87,10 +87,11 @@ $GLOBALS['tStrings'] = array(
   //  'new invoice' => t('<b>Invoice:</b> %otherName invoiced you %amount for "%purpose". To pay (or deny) this invoice, <%a>click here</a>.'),
   'new customer done' => t('<h2>Congratulations!</h2>Your sign-up with %partnerName is complete. Expect a confirmation note from them by email.'),
 
-  'short invoice' => t('Your balance is %short short, to pay your invoice from %payeeName.'),
+  'short invoice' => t('Your balance is %short short, to pay your invoice from %payeeName (#%nvid).'),
   'expect a transfer' => t('Funds will be transferred from your connected bank account to cover this payment.'),
   'finish signup' => t('<b class="loud">IMPORTANT</b>: You must sign in at %CG_DOMAIN and finish setting up your %PROJECT account before this payment can be made.'),
-  'when funded' => t('This payment will be made as soon as you put enough money in your account. To put money in your account, trade Dollars for %PROJECT Credits at a participating business or with another member OR sign in at %CG_DOMAIN and click "Bank" on the menu, to connect a bank account and transfer funds.'),
+  'when funded' => t('This payment will be made as soon as you have enough money in your account.'),
+	'how to fund' => t('To put money in your account, trade Dollars for %PROJECT Credits at a participating business or with another member OR sign in at %CG_DOMAIN and click "Bank" on the menu, to connect a bank account and transfer funds.'),
   'auto pay on' => t('From now on your invoices from %payeeName will be approved and paid automatically, drawing funds from your connected bank account as needed. (We do not expect there to be overdraft problems, of course, but if there are, you will be responsible for them.)'),
   'invoice denied' => t('<p><b>Invoice DENIED:</b> Your customer %payerName has declined to pay the following invoice:</p>
   <blockquote>%created %amount for "%purpose"</blockquote>
@@ -108,10 +109,14 @@ $GLOBALS['tStrings'] = array(
   'offer refused' => t('%otherName has declined to accept your %created offer of %amount for "%payerPurpose".'),
   'offer canceled' => t('NYI'),
   'over max' => t('Your balance is over the maximum you set.'),
-  'under min' => t('Your balance has fallen below the target you set.'),
-  'banked' => t('A request has been made to %action your bank a total of %amount. This request may take up to 5 days to go through.'),
+//  'under min' => t('Your balance has fallen below the target you set.'),
+  'to target' => t('to bring your balance up to the target you set'),
+	'for invoice' => t('to pay invoice #%nvid'),
+	'for investment' => t('for an increased stake in the investment club'),
+  'banked' => t('A request has been made to %action your bank a total of %amount %why. This transfer may take up to 6 business days to go through.'),
+	'as needed' => t('Funds will be transferred from your bank account as needed.'),
   'bank tx number' => t('The transaction will appear on your bank statement as check #%checkNum.'),
-  'drew' => t('A total of %amount has been drawn from your connected account(s).'),
+  'drew' => t('A total of %amount has been drawn from your connected account(s) %why.'),
   'payment exchange received' => t('You received from %fullName a payment exchange of %amount -- that is, you traded that much US Dollars for %RCREDITS, receiving a bonus of %bonus on the exchange.'),
   'payment exchanges offered' => t('You made payment exchanges to %offers %whom, totaling %total.'),
   'card ordered' => t('A card for %otherName will be US mailed to %company.'),
@@ -161,7 +166,7 @@ EOF
   'confirm funding' => t('%confirmAction %amount to %otherName?'),
   'please confirm' => t('To confirm, type: %nonce'),
   'verification code' => t('Your verification code for using %PROJECT online is: %nonce'), // used in rWeb
-  'whats up' => t('You have not had any %PROJECT transactions in the past month. What\'s up with that? Please email or call us if you have any problems or questions.'),
+  'whats up' => t('You have not had any %PROJECT transactions in the past month. Most members have at least one transaction per month, so this is a little unusual and we hope all is well with you. Please email or call us if you have any problems or questions.'),
   'co promo' => t('And if you need more promotional cards to hand out to customers, just let us know!'),
   
   // error messages
@@ -202,8 +207,10 @@ EOF
   'short from vague' => t('%otherName does not have enough funds for this request (do NOT try again).'),
   'min too low' => t('Your target balance is set too low, causing conflicting deposits and withdrawals from your bank account. To increase your target balance to %suggestion, visit the %page page (under Settings).'),
 //  'you were short' => t('You tried to make a purchase but did not have enough funds in your account. A higher "minimum" setting might keep this from happening again. To increase your minimum to the recommended setting of %suggested, <%a1>click here</a>.'), // Arghh! some email programs apparently click this link automatically
-  'you were short' => t('You tried to make a purchase but did not have enough funds in your account. Automatic refills or a higher "target balance" might keep this from happening again. To set automatic refills or to increase your target balance, sign in at %CG_DOMAIN and click "Bank Info" on the Settings menu.'),
-  'be not secretive' => t('Also, you have chosen to keep your balance secret. <%a2>Click here to change that</a> and let the cashier tell you how much you are short next it happens.'),
+  'you were short' => t('You tried to make a purchase but did not have enough funds in your account.'),
+	'suggest refills' => t('Automatic refills might keep this from happening again. To set automatic refills, sign in at %CG_DOMAIN and click "Bank Info" on the Settings menu.'),
+	'suggest higher target' => t('A higher "target balance" might keep this from happening again. To increase your target balance, sign in at %CG_DOMAIN and click "Bank Info" on the Settings menu.'),
+  'be not secretive' => t('Also, you have chosen to keep your balance secret. <%aSecret>Click here to change that</a> and let the cashier tell you how much you are short next time it happens.'),
   'try debt' => t('You might also want to <%aDebt>select "Debt Okay" in your Preferences</a> (there is no charge for using your credit line as long as you bring your balance back up within 30 days).'),
   'join accounts' => t('You are invited to create a joint account with %name. To accept that invitation, <%atag>click here</a>. Once your accounts are joined, you sign in to either account to view your combined transactions. Both %PROJECT cards will remain valid.'),
   'click option' => t('OR <a href="%url">click here</a>'),
@@ -242,8 +249,8 @@ EOF
   'bad phone code' => t('That is not the correct verification code.'),
   'cannot offload' => t('A temporary technical problem prevented some of your excess %RCREDITS from being exchanged for US Dollars. The system will try again tomorrow.'),
   'usd failed' => t('A temporary technical problem prevented the transfer of US Dollars. No transaction took place.'),
-  'cannot bank' => t('The %PROJECT system was unable to %action your bank: %error'),
-  'cannot draw' => t('But the %PROJECT system was unable to draw from your connected account(s).'),
+  'cannot bank' => t('The %PROJECT system was unable to %action your bank %why: %error'),
+  'cannot draw' => t('The %PROJECT system was unable to draw from your connected account(s) %why.'),
   'no source' => t('there is no valid funding source'),
 //  'not verified' => t('you have not yet verified the connection to your bank account. Check your bank statement online or call your bank (2-5 days after giving your routing and account numbers). There will be two small deposits made to your account, each less than %DW_VERIFY_ROOF cents. Sign in to rCredits.org, then follow the instructions there to supply those two deposit amounts.'),
   'year is 4 digits' => t('Be sure to type all four digits of the year.'),

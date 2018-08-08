@@ -254,7 +254,7 @@ $GLOBALS['tStrings']['flooded'] = $GLOBALS['tStrings']['bad login'];
  */
 function go($page, $msg = '', $field = '') {
   global $base_url;
-  global $lastGo; $lastGo = $page; // for testing
+  global $lastGo, $x0lastGo; list ($xlastGo, $lastGo) = [@$lastGo, $page]; // for testing
 
   if ($msg) {
 /*    if (u\starts($page, 'empty')) {
@@ -292,8 +292,7 @@ function go($page, $msg = '', $field = '') {
  */
 function go2($url1, $url2) {
   global $base_url;
-	
-  global $lastGo; $lastGo = $url1; // for testing
+  global $lastGo, $x0lastGo; list ($xlastGo, $lastGo) = [@$lastGo, $page]; // for testing
 
   foreach (ray('url1 url2') as $k) {
     if (substr($$k, 0, 1) == '/') $$k = substr($$k, 1); // supplying the slash is preferred, to agree with w\atag()
@@ -301,7 +300,7 @@ function go2($url1, $url2) {
 	}
 	
 	header_remove('Content-Security-Policy'); // allow the script
-	echo <<< X
+/**/	echo <<< X
 <html><script>
   window.open('$url2', '_blank');
   location.href = '$url1';
@@ -667,16 +666,6 @@ EOF;
 function fieldSet($id, $flds, $label = '', $other = []) {return fld('fieldset', $label, '', compact('id') + $other) + $flds;}
 
 /**
- * Return a form field for sharing percentage.
- *//*
-function shareFld($a) {
-  $sharePct = round(db\get('AVG(share)', 'r_gifts', 'share>=0'), 1);
-  $shareDft = $a->prefsSet ? (($a->share + 0) ?: 0) : R_SHARE_DFT;
-  return textFld(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the %PROJECT system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the %PROJECT community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes %PROJECT and handles administration of your %PROJECT community until the community can take over that responsibility.</p>', compact('sharePct')), required($shareDft . '%'));
-}
-*/
-
-/**
  * Return a form field for donating fractional dollars.
  */
 function roundupFld($a) {
@@ -851,7 +840,7 @@ function sanitizePage($page) {
     '<img src="' . BASE_URL, 
     '<iframe src="(' . str_replace(' ', '|', FRAME_SOURCES) . ')',
     'href="(mailto:|http|#|/|"|sadmin)',
-    '(href|src|style)=&quot',
+    '(href|src|style)=(&quot;|&amp;)', // our tests output stuff like this
   ]);
   
   $page = preg_replace("~$except~", '', $page);

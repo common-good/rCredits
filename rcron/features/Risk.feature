@@ -5,16 +5,16 @@ SO I can handle those risks appropriately
 
 Setup:
   Given members:
-  | id   | fullName   | rebate | address | zip   | flags   | risks    | tenure | moves | share |*
-  | .ZZA | Abe One    |      5 | 1 A St. | 01001 | ok      | adminOk  | 21     | 0     |    10 |
-  | .ZZB | Bea Two    |     10 | 2 A St. | 01001 | ok      | rents    | 43     | 1     |    20 |
-  | .ZZC | Corner Pub |     10 | 3 C St. | 01003 | ok,co   | cashCo   | 18     |       |     1 |
-  | .ZZD | Dee Four   |     10 | 3 C St. | 01003 | ok      | hasBank  | 25     | 0     |     5 |
-  | .ZZE | Eve Five   |     10 | 5 A St. | 01001 | ok      | shady    | 1      | 0     |     8 |
-  | .ZZF | Flo Six    |     10 | 6 A St. | 01001 | ok      | photoOff | 32     | 0     |    50 |
-  | .ZZG | Guy Seven  |     10 | 7 A St. | 01001 | ok      | addrOff  | 11     | 5     |    25 |
-  | .ZZH | Hal Eight  |     10 | 8 A St. | 01001 | ok      | ssnOff   | 100    | 10    |    25 |
-  | .ZZI | Ida Nine   |     10 | 9 A St. | 01001 | ok      | fishy    | 3      | 20    |    25 |
+  | id   | fullName   | rebate | address | zip   | flags      | risks    | tenure | moves | share |*
+  | .ZZA | Abe One    |      5 | 1 A St. | 01001 | ok         | adminOk  | 21     | 0     |    10 |
+  | .ZZB | Bea Two    |     10 | 2 A St. | 01001 | ok         | rents    | 43     | 1     |    20 |
+  | .ZZC | Corner Pub |     10 | 3 C St. | 01003 | ok,co      | cashCo   | 18     |       |     1 |
+  | .ZZD | Dee Four   |     10 | 3 C St. | 01003 | ok         | hasBank  | 25     | 0     |     5 |
+  | .ZZE | Eve Five   |     10 | 5 A St. | 01001 | ok         | shady    | 1      | 0     |     8 |
+  | .ZZF | Flo Six    |     10 | 6 A St. | 01001 | ok,roundup | photoOff | 32     | 0     |    50 |
+  | .ZZG | Guy Seven  |     10 | 7 A St. | 01001 | ok         | addrOff  | 11     | 5     |    25 |
+  | .ZZH | Hal Eight  |     10 | 8 A St. | 01001 | ok         | ssnOff   | 100    | 10    |    25 |
+  | .ZZI | Ida Nine   |     10 | 9 A St. | 01001 | ok         | fishy    | 3      | 20    |    25 |
   And invites:
   | inviter | invitee | email |*
   | .ZZA    | .ZZD    | d2@   |
@@ -31,20 +31,20 @@ Setup:
   | .ZZD   | .ZZB  |        2 |
   And relations:
   | main | agent | permission | employee | owner | draw |*
-  | .ZZC | .ZZA  | scan       |        1 |     0 |    0 |
+  | .ZZC | .ZZA  | scan       |        Y |     0 |    0 |
   | .ZZC | .ZZB  |            |          |       |      |
   | .ZZC | .ZZD  |            |          |       |      |
-  And gifts:
-  | id   | amount | often | share |*
-  | .ZZA |     10 |     1 |     0 |
-  | .ZZB |      5 |     1 |     0 |
-  | .ZZC |      1 |     1 |     0 |
-  | .ZZD |      1 |     Q |     0 |
-  | .ZZE |      1 |     M |     0 |
-  | .ZZF |      1 |     1 |     0 |
-  | .ZZG |      5 |     1 |     0 |
-  | .ZZH |      5 |     1 |     0 |
-  | .ZZI |      5 |     1 |     0 |
+  And these "recurs":
+  | payer | payee | amount | period |*
+  | .ZZA  |   cgf |     10 |     Y |
+  | .ZZB  |   cgf |      5 |     Y |
+  | .ZZC  |   cgf |      1 |     Y |
+  | .ZZD  |   cgf |      1 |     Q |
+  | .ZZE  |   cgf |      1 |     M |
+  | .ZZF  |   cgf |      1 |     Y |
+  | .ZZG  |   cgf |      5 |     Y |
+  | .ZZH  |   cgf |      5 |     Y |
+  | .ZZI  |   cgf |      5 |     Y |
 # share is irrelevant here as long as it is non-negative
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose | channel |*
@@ -80,7 +80,7 @@ Setup:
   | .ZZE | postalAddr | Box 5 |
 # don't set community to -2 until after transactions  
   When cron runs "trust"
-  Then members:
+  Then members have:
   | id   | trust |*
   | .ZZA |  8.57 |
   | .ZZB |  8.57 |
@@ -93,14 +93,14 @@ Setup:
 
 Scenario: We calculate risks
   When cron runs "acctRisk"
-  Then members:
+  Then members have:
   | id   | risks |*
   | .ZZA | adminOk,trusted,geography,badConx,moreOut,big7Week |
   | .ZZB | trusted,socialConx,moves,rents,moreIn,moreOut |
   | .ZZC | cashCo,homeCo,miser,bigDay |
-  | .ZZD | trusted,hasBank |
+  | .ZZD | trusted,hasBank,miser |
   | .ZZE | new,shady,poBox,moreIn |
-  | .ZZF | miser,photoOff,bigDay,bigWeek |
+  | .ZZF | photoOff,bigDay,bigWeek |
   | .ZZG | new,moves,badConx,addrOff |
   | .ZZH | moves,ssnOff |
   | .ZZI | new,moves,fishy |

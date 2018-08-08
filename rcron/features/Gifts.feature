@@ -5,27 +5,24 @@ SO I can enjoy the rCredit system's rapid growth and be a part of that.
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | zip | country | postalAddr | flags        |*
-  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK | ok,confirmed |
+  | id   | fullName   | address | city  | state | zip   | country | postalAddr | flags        |*
+  | .ZZA | Abe One    | 1 A St. | Atown | AK    | 01000 | US      | 1 A, A, AK | ok,confirmed |
   And balances:
   | id   | balance | floor |*
   | cgf  |       0 |     0 |
   | .ZZA |     100 |   -20 |
 
-Scenario: A donation can be completed
-  Given gifts:
-  | id   | giftDate   | amount | often | honor  | honored | share | completed |*
-  | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 |         0 |
+Scenario: A brand new recurring donation can be completed
+  Given these "recurs":
+  | created    | payer | payee | amount | period |*
+  | %yesterday | .ZZA  | cgf   |     10 |      M |
   When cron runs "gifts"
   Then transactions:
-  | xid | created | type     | amount | from      | to      | purpose      |*
-  |   1 | %today  | transfer |     10 | .ZZA      | cgf     | donation |
-  And gifts:
-  | id   | giftDate   | amount | often | honor  | honored | share | completed |*
-  | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |
+  | xid | created | type     | amount | from | to  | purpose                            | flags          |*
+  |   1 | %today  | transfer |     10 | .ZZA | cgf | regular donation (monthly gift #1) | gift,patronage |
   And we notice "new payment linked" to member "cgf" with subs:
-  | otherName | amount | payeePurpose | aPayLink |*
-  | Abe One   | $10    | donation     | ?        |
+  | otherName | amount | payeePurpose                       | aPayLink |*
+  | Abe One   | $10    | regular donation (monthly gift #1) | ?        |
   And that "notice" has link results:
   | ~name | Abe One |
   | ~postalAddr | 1 A, A, AK |
@@ -39,36 +36,28 @@ Scenario: A donation can be completed
 #  |     10 | Abe One |     1 | reward     |
   # and many other fields
 
-Scenario: A donation can be completed even if the member has never yet made an rCard purchase
-  Given member ".ZZA" has no photo ID recorded
-  And gifts:
-  | id   | giftDate   | amount | often | honor  | honored | share | completed |*
-  | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 |         0 |
+Scenario: A second recurring donation can be completed
+  Given these "recurs":
+  | created   | payer | payee | amount | period |*
+  | %today-3m | .ZZA  | cgf   |     10 |      M |
+  And transactions:
+  | xid | created    | type     | amount | from | to  | purpose                            | flags          |*
+  |   1 | %today-32d | transfer |     10 | .ZZA | cgf | regular donation (monthly gift #1) | gift,patronage |
   When cron runs "gifts"
   Then transactions:
-  | xid | created | type     | amount | from      | to      | purpose      |*
-  |   1 | %today  | transfer |     10 | .ZZA      | cgf     | donation |
- 
-Scenario: A recurring donation can be completed
-  Given gifts:
-  | id   | giftDate   | amount | often | honor  | honored | share | completed |*
-  | .ZZA | %yesterday |     10 |     Q | memory | Jane Do |    10 |         0 |
-  When cron runs "gifts"
-  Then transactions:
-  | xid | created | type     | amount | from | to   | purpose      |*
-  |   1 | %today  | transfer |     10 | .ZZA | cgf  | regular donation (quarterly gift #1) |
-  And gifts:
-  | id   | giftDate      | amount | often | honor  | honored | completed |*
-  | .ZZA | %yesterday    |     10 |     Q | memory | Jane Do | %today    |
-  | .ZZA | %yesterday+3m |     10 |     Q |        |         |         0 |
-  And we notice "new payment linked" to member "cgf" with subs:
-  | otherName | amount | payeePurpose                 | aPayLink |*
-  | Abe One   | $10    | regular donation (quarterly gift #1) | ?        |
-  And that "notice" has link results:
-  | ~name | Abe One |
-  | ~postalAddr | 1 A, A, AK |
-  | Physical address: | 1 A St., Atown, AK 01000 |
-#  And we tell admin "gift accepted" with subs:
-#  | amount | myName  | often | rewardType |*
-#  |     10 | Abe One |     Q | reward     |
-  # and many other fields
+  | xid | created | type     | amount | from | to  | purpose                            | flags          |*
+  |   2 | %today  | transfer |     10 | .ZZA | cgf | regular donation (monthly gift #2) | gift,patronage |
+	
+Scenario: A donation invoice can be completed
+# even if the member has never yet made an rCard purchase
+  Given invoices:
+  | nvid | created   | status       | amount | from | to  | for      | flags |*
+  |    2 | %today    | %TX_APPROVED |     50 | .ZZA | cgf | donation | gift  |
+  And member ".ZZA" has no photo ID recorded
+  When cron runs "invoices"
+  Then transactions: 
+  | xid | created | type     | amount | from | to  | purpose                      | flags |*
+  |   1 | %today  | transfer |     50 | .ZZA | cgf | donation (Common Good inv#2) | gift  |
+	And invoices:
+  | nvid | created   | status | amount | from | to  | for      | flags |*
+  |    2 | %today    | 1      |     50 | .ZZA | cgf | donation | gift  |	

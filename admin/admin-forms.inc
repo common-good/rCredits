@@ -184,7 +184,7 @@ EOF;
     return say(a\showQuery('r_txs', 1, 'xid DESC', $fields, ['payer', 'payee']));
   }
 
-  if ($op == 'gifts') return say(a\showQuery('r_gifts', "honor<>'share'", 'donid DESC', 'donid,giftDate,t.uid,amount,often,honor,honored,t.share,completed', 'uid'));
+  if ($op == 'gifts') return say(a\showQuery('r_recurs', '', 'id DESC', 'id,created,payer,payee,amount,period,ended', ray('payer payee')));
   if ($op == 'invites') return say(a\showQuery('r_invites', 1, 'invited DESC', 'invited, inviter, invitee, email', 'inviter'));
   if ($op == 'notices') return say(a\showQuery('r_notices', 1, 'msgid DESC'));
   if ($op == 'proxies') return say(a\showQuery('r_proxies', 1, 'id DESC', 'person, proxy, priority', 'person'));

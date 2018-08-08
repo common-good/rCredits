@@ -202,8 +202,8 @@ SELECT p.id, p.project, CONCAT_WS(', ', p.name, p.contact) AS who,
   MID(p.sponsor, 0, 2) AS sponsor,
   IF(MID(`where`, 0, 5)='01301', 12, 9) AS local,
   IF(type=1, 12, 0) AS goodType,
-  GREATEST(0, 12-ABS(`when`-$nowish)/:MONTH_DAYS/:DAY_SECS) AS goodTime1,
-  GREATEST(0, 12-ABS(until-$nowish)/:MONTH_DAYS/:DAY_SECS) AS goodTime2,
+  GREATEST(0, 12-ABS(`when`-$nowish)/:MONTH_SECS) AS goodTime1,
+  GREATEST(0, 12-ABS(until-$nowish)/:MONTH_SECS) AS goodTime2,
   12 * IF(amount<$bestAmt, amount/$bestAmt, 1-GREATEST(0, amount-$bestAmt)/($maxAmt-$bestAmt)) AS rightAmt,
   12 * IF(amount/budgetTotal<$bestPct, amount/budgetTotal/$bestPct, 1-(amount/budgetTotal-$bestPct)/(1-$bestPct)) AS rightPct, budgetTotal, until
 FROM r_proposals p

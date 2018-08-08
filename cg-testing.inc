@@ -16,8 +16,8 @@ use CG\Web as w;
 
 global $base_path;
 define('BASE_PATH', $base_path);
-define('T_BALANCE_FIELDS', 'id balance floor rewards savingsAdd saveWeekly minimum share committed');
-define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to partner myid reid main agent other ctty fromId');
+define('T_BALANCE_FIELDS', 'id balance floor rewards savingsAdd saveWeekly minimum');
+define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper fromId payer payee from to fromAgent toAgent partner myid reid main agent other ctty');
 
 /**
  * Allow mnemonic and abbreviated data in test scenario columns.
@@ -26,28 +26,25 @@ define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper from to pa
  */
 function fixData(&$info, $direct = FALSE) {
   global $rUrl, $testVars;
-  $fields = 'zip country state email phone dob federalId idProof flags adminable notices statements who rewards risks toEmail';
+  $fields = 'email phone dob federalId idProof flags adminable notices statements who rewards risks toEmail why error country state';
   if (@$testVars) foreach ($info as $k => $v) if (strpos($v, '@') !== FALSE) {
     foreach ($testVars as $varName => $var) $info[$k] = str_replace("@$varName", $var, $v);
   }
   extract(just($fields, $info));
 
   if (@$who) $who = t\fullQid($who);
-  foreach (['flags', 'adminable'] as $k) if (isset($$k)) $$k = t\fixFlags($$k);
+  foreach (ray('flags adminable') as $k) if (isset($$k)) $$k = t\fixFlags($$k);
   if (isset($adminable)) {
     for ($i = 0; $i < B_MAX; $i++) if (u\getBit($adminable, $i)) $adminable2[$i] = TRUE;
     $adminable = @$adminable2 ?: [];
   }
+ 	extract(fixState(@$state, @$country));
+
+	foreach (ray('why error') as $k) if (isset($$k)) $$k = tr($$k); // convert embedded message references to actual text
   foreach (['rewards'] as $k) if (isset($$k)) $$k += 0; // make sure numeric fields are numeric.
   if (@$notices) $notices = array_search($notices, ray('daily weekly monthly'), TRUE);
   if (@$statements) $statements = array_search($statements, ray('electronic paper'), TRUE);
   if (@$email) $info['email'] = t\fixEmail($email);
-  if (@$zip or @$country or @$state) {
-    u\setDft($country, 'US');
-    if ($country == 'US' or $country == US_COUNTRY_ID) u\setDft($state, 'MA');
-  }
-  if (@$country) $country = db\get('id', 'r_countries', ':country IN (name, iso_code)', compact('country'));
-  if (@$state) $state = db\get('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country'));
 //  if (@$mail) t\fixEmail($mail);
   if (@$email) t\fixEmail($email);
   if (strlen(@$phone) == 1) u\prefix('+1413772000', $phone);
@@ -58,12 +55,27 @@ function fixData(&$info, $direct = FALSE) {
   }
 
   foreach (just(T_ID_FIELDS, $info) as $k => $v) {
-    if (preg_match('/^(\.|[A-Z]{3})[A-Z]{3}$/', $v) or $v == 'ctty') $info[$k] = t\uid($v) ?: 0;
+    if (preg_match('/^(\.|[A-Z]{3})[A-Z]{3}$/', $v) or in($v, 'ctty cgf')) $info[$k] = t\uid($v) ?: 0;
   }
-  if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
-  
+	foreach (ray('from:payer,to:payee,fromAgent:payerAgent,toAgent:payeeAgent') as $k => $k2) if (isset($info[$k])) {
+		$info[$k2] = $info[$k];
+		unset($info[$k]);
+	}
   $info = compact(ray($fields)) + $info;
 }
+
+/**
+ * Interpret flag names
+ */
+function fixFlags($flags) {
+  global $testOnly;
+
+  if (!@$flags or is_numeric($flags)) return $flags + 0;  
+  $res = 0;
+  foreach (ray($flags) as $one) $res |= u\bit(u\consta('b', $one));
+// NO! fails for r_txs and r_relations flags  if ($res & u\bit(B_OK)) $res |= u\bit(B_MEMBER);
+  return $res;
+}    
 
 /**
  * Allow abbreviated email address like "a@" meaning a@example.com. Also avoid weird characters.
@@ -73,30 +85,33 @@ function fixEmail(&$email) {
   return plain($email);
 }
 
-function doRecords($list, $type) {
+function doRecords($list, $thing) {
   global $testOnly;
 //  $list = array_values((array) json_decode($list));
 //  foreach ($list as $k => $v) if (is_object($v)) $list[$k] = (array) $v;
-/**/    if ($testOnly) t\output("Expect $type: " . print_r($list, 1), 'expect');
+/**/    if ($testOnly) t\output("Expect $thing: " . print_r($list, 1), 'expect');
   if (is_object($list)) $list = (array) $list;
 /**/  u\EXPECT(is_array(@$list) and !is_numeric(@key(@$list[0])), 'doThing object should be an assoc: ' . print_r($list, 1));
-  $function = 'CG\\Testing\\do';
-  $function .= function_exists($function . $type) ? $type : 'Thing';
-  foreach ($list as $one) if (!$function($one, $type)) return FALSE;
+  $func = 'CG\\Testing\\do';
+  $func .= function_exists($func . $thing) ? $thing : 'Thing';
+  foreach ($list as $one) {
+    fixData($one, TRUE);
+		if (!$func($one, $thing)) return FALSE;
+	}
   return TRUE;
 }
 
 /*
  * Generic record-maker/record-tester.
  */
-function doThing($info, $type) {
+function doThing($info, $thing) {
   global $testOnly;
-  $table = 'r_' . strtolower($type) . 's';
-  fixData($info);
+  $table = 'r_' . strtolower($thing) . 's';
   if (@$info['id']) {$info['uid'] = $info['id']; unset($info['id']);}
   return $testOnly ? verifyRecord($table, $info) : db\insert($table, $info);
 }
 
+function these($thing, $list) {return doRecords($list, ucwords(substr($thing, 0, strlen($thing) - 1)));}
 function invites($list) {return doRecords($list, 'Invite');}
 function gifts($list) {return doRecords($list, 'Gift');}
 function notices($list) {return doRecords($list, 'Notice');}
@@ -125,12 +140,17 @@ function doBoxe($info = []) {
 }
 
 /**
+ * Set some defaults for users record before calling fixData.
+ */
+//function preAccount(&$info) {}
+	
+/**
  * Fabricate a bogus account.
  * Minimum parameters: none
  * @return uid
  */
 function doAccount($info = []) {
-  global $testOnly;
+  global $testOnly; if ($testOnly) return doMembersHave($info);
 
   if (is_object($info)) $info = (array) $info;
 /**/  if (!is_array($info)) {echo 'not array'; print_r($info); die(trace()); } // keep for now
@@ -141,7 +161,7 @@ function doAccount($info = []) {
 
   if (@$jid) $jid = t\uid($jid);
 
-  if (!$testOnly) { // when making, set many defaults and mods
+//  if (!$testOnly) { // when making, set many defaults and mods
     $nmMap = ray('ZZA:Abe One,ZZB:Bea Two,ZZC:Cat Pub,ZZD:Dee Four,ZZE:Eve Five,ZZF:Fin Corp,ZZG:Glo Seven');
     u\setDft($fullName, substr($id, 0, 2) == 'ZZ' ? strtr($nmMap) : 'doAccount ' . u\randomString(20, 'word'));
     $name = u\shortName($fullName);
@@ -156,28 +176,34 @@ function doAccount($info = []) {
     u\setDft($community, r\serverUid());
     u\setDft($zip, '01301');
     u\setDft($country, 'US');
-    $state = r\realState(@$state, $country);
-    u\setDft($postalAddr, @$address2 ? "$address2, $city2, $state2 $zip2" : @$address . ', ' . @$city . ", $state $zip");
+   	extract(fixState(@$state, @$country));
+
+		u\setDft($address, '1 My Street');
+		u\setDft($city, 'Mytown');
+    u\setDft($postalAddr, @$address2 ? "$address2, $city2, $state2 $zip2" : "$address, $city, $state $zip");
+
 //    u\setDft($photoId, "$state-{$zip}999");
-    u\setDft($helper, '.AAB'); // everyone but .AAB should have a helper
+    u\setDft($helper, t\uid('.AAB')); // everyone but .AAB should have a helper
 /**/  if ($helper === '') die(trace()); // set helper to zero if none, never blank
     u\setDft($last4bank, @substr(@$bankAccount, -4, 4));
 
-    $moneyFields = 'share committed floor rewards'; // not minimum because NULL means not set, in Membership page
+    $moneyFields = 'committed floor rewards'; // not minimum because NULL means not set, in Membership page
     foreach (ray($moneyFields) as $one) u\setDft($$one, 0);
     if (@$cc) $cardCode = $cc;
     if (@$cc2) $cardCode2 = $cc2;
+    if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
 
     $fixFields = 'rebate fullName legalName name pass email secure community zip country postalAddr cardCode cardCode2 ' . $moneyFields;
-  } else $fixFields = '';
+//  } else $fixFields = '';
 
-  if (isset($flags) and isset($acctType) and $acctType !== CO_PERSONAL and $acctType != 'personal') $flags .= ',co';
+//  if (isset($flags) and isset($acctType) and $acctType !== CO_PERSONAL and $acctType != 'personal') $flags .= ',co';
 
 //  if (isset($risks)) $risks = getRisks($risks, K_ACCT_RISKS);
   
   foreach (ray('id acctType dw cc cc2') as $one) unset($info[$one]); // these are not real fields
   u\preray(compact(ray('uid jid helper flags risks last4bank ' . $fixFields)), $info); // add in changed fields
-  fixData($info, TRUE);
+	
+//  fixData($info, TRUE);
 
   if ($testOnly) {
     if (!$a = r\acct($uid)) return output("No such uid: $uid");
@@ -203,19 +229,6 @@ function doAccount($info = []) {
 }
 
 /**
- * Interpret flag names
- */
-function fixFlags($flags) {
-  global $testOnly;
-
-  if (!@$flags or is_numeric($flags)) return $flags + 0;  
-  $res = 0;
-  foreach (ray($flags) as $one) $res |= u\bit(u\consta('b', $one));
-// NO! fails for r_txs and r_relations flags  if ($res & u\bit(B_OK)) $res |= u\bit(B_MEMBER);
-  return $res;
-}    
-
-/**
  * Fabricate a bogus invoice.
  * Minimum parameters: amount, from, to
  * @return:
@@ -238,8 +251,9 @@ function doTx($info, $thing) {
   extract($info);
 
   u\setDft($created, r\rTime());
-  if (@$from) txUid($from, $payer, $fromAgent);
-  if (@$to) txUid($to, $payee, $toAgent);
+	foreach (ray('payer payee') as $k) if (@$$k) txUid($$k, $$k, ${$k . 'Agent'});
+//  if (@$payer) txUid($from, $payer, $fromAgent);
+//  if (@$payee) txUid($to, $payee, $toAgent);
   
 //  u\setDft($r, $amount);
 //  if ($amount != $r) u\setDft($usdXid, 10000 + $xid);
@@ -275,17 +289,17 @@ function doTx($info, $thing) {
       list ($k, $v) = explode(':', @$purpose);
       $data += array($k => $v);
     }
-    if (@$fromAgent or @$from) $payerAgent = t\agent(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
-    if (@$toAgent or @$to) $payeeAgent = t\agent(@$toAgent ?: $to );
+//    if (@$fromAgent or @$from) $payerAgent = t\agent(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
+//    if (@$toAgent or @$to) $payeeAgent = t\agent(@$toAgent ?: $to );
     unset($info['purpose']);
     u\setDft($taking, 0);
     if (!$flags0 = @$flags) $flags = 0;
     foreach (ray(TX_FLAGS) as $k) if (@$$k or $$k = in($k, $flags0)) u\setBit($flags, $k, $$k);
   }
   
-  $fields = 'xid payer payerAgent payee payeeAgent amount payerReward payeeReward type goods data risk risks';
+  $fields = 'xid payer payee amount payerReward payeeReward type goods flags data risk risks';
   if (!$testOnly) $fields .= $inv ? ' created' : ' created channel'; // when creating, add these if not already explicit
-  if (!$inv) $fields .= ' flags';
+  if (!$inv) $fields .= ' payerAgent payeeAgent';
   
   $info = compact(ray($fields)) + $info; // apply modifications
 
@@ -328,7 +342,7 @@ function doRelation($info) {
   include_once __DIR__ . '/admin/admin-forms.inc';
   global $testOnly, $memberIdCalled;
 
-  t\fixData($info);
+//  t\fixData($info);
   extract($info);
   if (@$agent) {
     $info['other'] = $other = $agent;
@@ -377,15 +391,16 @@ function doSelling($info) {
  */
 function doCompanyFlags($info) {
   global $testOnly;
-  extract(just('id flags', $info));
-  $coFlags = 0;
-  if ($flags) foreach (ray($flags) as $one) {
+
+  extract(just('id coFlags', $info));
+  if (!$a = r\acct(t\uid($id))) return t\output("Not an account: $id");
+  $res = 0;
+  foreach (ray($coFlags) as $one) {
     $flag = u\bit(u\consta('co', $one));
     if (in($one, APP_CAN_BIT_NAMES)) $flag <<= APP_CANS;
-    $coFlags |= $flag;
+    $res |= $flag;
   }
-  if (!$a = r\acct(t\uid($id))) return t\output("Not an account: $id");
-  return $a->update(compact('coFlags'));
+  return $a->update('coFlags', $res);
 }
 
 /**
@@ -420,7 +435,7 @@ function notice($notice, $id, $subs = []) {
       $thatThing['notice'] = $msg; // remember for "And that <thing> blah blah blah"
       return TRUE;
     }
-    t\output("GOT notice: $msg");
+    t\output("GOT notice to $id: $msg");
   }
 
 /**/  t\output('EXPECTED (but did not get) notice ' . print_r($info + compact('message'), 1));
@@ -452,7 +467,8 @@ function doMembersHave($info) {
 
   $a = r\acct($id = t\uid($info['id']));
   $info = justNOT(T_BALANCE_FIELDS, $info); // don't rehandle balance fields, and already got id
-  fixData($info, TRUE);
+  if (isset($info['risks'])) $info['risks'] = getRisks($info['risks'], K_ACCT_RISKS);
+//  fixData($info, TRUE);
   if ($testOnly) {
     foreach ($info as $k => $v) if ($v != '?') {
       if (t\badEq("db $k", $a->o($k), $v, $id)) return FALSE;
@@ -490,8 +506,8 @@ function doBalance($info) {
   if (!$a = r\acct($id)) return t\output("account $id0 does not exist");
   $a->reread(TRUE); // otherwise db updates are invisible
 
-  if (isset($info['r']) and !isset($info['balance'])) $info['balance'] = $info['r'] - @$info['rewards']; // 20170515
-  t\fixData($info);
+//  if (isset($info['r']) and !isset($info['balance'])) $info['balance'] = $info['r'] - @$info['rewards']; // 20170515
+//  t\fixData($info);
 /// print_r(compact('a','id','id0'));
   if (!$testOnly) { // setting the values
     unset($info['id']);
@@ -763,7 +779,7 @@ function postToPage($page, $args) {
 function memberVisitsPage($id, $page) { // pass options in URL
   global $testOnly; if ($testOnly) return FALSE;
   if (!t\login($id)) return FALSE;
-  t\pageForm(t\fixPageArgs($page), FALSE);
+  t\pageForm($page, FALSE);
   return TRUE;
 }
 
@@ -957,6 +973,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
 
   $values = @$values[0] ?: [];
 
+	
   t\logIn($id);
 
   $validate = TRUE;
@@ -967,7 +984,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
 
   $values = t\POST($values);
 
-  if (!$form = t\pageForm(t\fixPageArgs($page), FALSE)) return FALSE; // probably access error
+  if (!$form = t\pageForm($page, FALSE)) return FALSE; // probably access error
 
   $sta = $formSta; $formSta = NULL; // don't let $formSta influence other forms that get invoked
   
@@ -1001,6 +1018,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
 function pageForm($page, $msg = '', $field = '') {
   global $formArray, $formSta, $lastGo, $formOut;
   
+	$page = t\fixPageArgs($page);
   $formArray = $formSta = $formOut = NULL; // start with a clean slate
 
   if (!$page) $page = 'summary';
@@ -1216,7 +1234,7 @@ function clear($ch = 0) {
 ///   file_put_contents(flog(), ''); // clear log file on disk
 
   $cgfUid = r\cgfId();
-  $tables = 'r_bad r_ballots r_boxes r_stakes r_coupons r_coupated r_do r_gifts r_investments r_invites r_invoices r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_ratings r_request r_relations r_shares r_stats r_tous r_txs r_usd r_user_industries x_users x_relations x_invoices x_txs x_usd x_photos queue sessions cache';
+  $tables = 'r_bad r_ballots r_boxes r_stakes r_coupons r_coupated r_do r_honors r_investments r_invites r_invoices r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_ratings r_recurs r_request r_relations r_shares r_stats r_tous r_txs r_usd r_user_industries x_users x_relations x_invoices x_txs x_usd x_photos queue sessions cache';
   foreach (ray('bootstrap form menu') as $k) $tables .= " cache_$k";
   foreach (ray($tables) as $table) if (db\exists($table)) db\q("TRUNCATE $table");
 
@@ -1408,6 +1426,20 @@ function seq($table = 'r_usd') {
   u\EXPECT(!db\exists('r_usd', "$k=:id", compact('id')), "duplicate seq: $id in table $table");
 ///  print_r(compact('table','testSeq','id','k'));
   return $id;
+}
+
+/**
+ * Return the state and country, defaulted (if any) and fixed.
+ */
+function fixState($state, $country) {
+	if (!@$state and !@$country) return [];
+	u\setDft($country, 'US');
+	if ($country == 'US' or $country == US_COUNTRY_ID) u\setDft($state, 'MA');
+
+	if (!$country or !is_numeric($country)) $country = db\get('id', 'r_countries', ':country IN (name, iso_code)', compact('country'));
+	if (!$state or !is_numeric($state)) $state = db\get('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country'));
+	u\EXPECT($state and $country, 'no state or no country');
+	return compact(ray('state country'));
 }
 
 function log($msg) {if (u\test()) u\log($msg, 'debug');}

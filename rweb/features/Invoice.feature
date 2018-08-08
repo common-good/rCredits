@@ -5,11 +5,11 @@ SO I can buy and sell stuff.
 
 Setup:
   Given members:
-  | id   | fullName | floor | flags             |*
-  | .ZZA | Abe One  |     0 | ok,confirmed      |
-  | .ZZB | Bea Two  |  -250 | ok,confirmed,debt |
-  | .ZZC | Our Pub  |     0 | ok,confirmed,co   |
-  | .ZZD | Dee Four |     0 |                   |
+  | id   | fullName | floor | flags             | risks   |*
+  | .ZZA | Abe One  |     0 | ok,confirmed      |         |
+  | .ZZB | Bea Two  |  -250 | ok,confirmed,debt |         |
+  | .ZZC | Our Pub  |     0 | ok,confirmed,co   | hasBank |
+  | .ZZD | Dee Four |     0 |                   |         |
   And relations:
   | main | agent | permission |*
   | .ZZC | .ZZB  | buy        |
@@ -56,6 +56,17 @@ Scenario: A member confirms request to charge another member
   | .ZZA |     100 |
   | .ZZB |    -100 |
   | .ZZC |       0 |
+	
+Scenario: A member confirms request to charge another member who has a bank account
+  When member ".ZZA" confirms form "charge" with values:
+  | op     | who     | amount | goods      | purpose |*
+  | charge | Our Pub | 100    | %FOR_GOODS | stuff   |
+  Then invoices:
+  | nvid | created | status      | amount | from | to   | for   |*
+  |    1 | %today  | %TX_PENDING |    100 | .ZZC | .ZZA | stuff |
+  And we message "new invoice" to member ".ZZC" with subs:
+  | otherName | amount | purpose |*
+  | Abe One   | $100   | stuff   |
 
 Scenario: A member confirms request to charge a not-yet member
   When member ".ZZA" confirms form "charge" with values:
@@ -112,9 +123,9 @@ Scenario: A member approves an invoice with insufficient funds
   Then invoices:
   | nvid | created | status       | amount | from | to   | for   |*
   |    1 | %today  | %TX_APPROVED |    300 | .ZZB | .ZZA | labor |
-  And we say "status": "short invoice|when funded" with subs:
-  | short | payeeName |*
-  | $50   | Abe One   |
+  And we say "status": "short invoice|when funded|how to fund" with subs:
+  | short | payeeName | nvid |*
+  | $50   | Abe One   |    1 |
   And balances:
   | id   | balance |*
   | .ZZA |       0 |

@@ -41,7 +41,7 @@ Scenario: A member overdraws with not enough to draw on
   When member ".ZZA" completes form "pay" with values:
   | op  | who  | amount | goods        | purpose |*
   | pay | .ZZB |    200 | %FOR_GOODS | food    |
-  Then we say "error": "short to|try debt" with subs:
+  Then we say "error": "short to" with subs:
   | short |*
   | $70   |
   

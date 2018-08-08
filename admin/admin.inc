@@ -815,7 +815,10 @@ function callDetails($type = '', $when = '') {
 //    return "<div class=\"well\"><h3>$head$body</h3></div>";
   }
 
-  $gifts = $mya->giftsDesc() ?: db\sum('amount', 'r_gifts', 'uid=:id', ['id' => $mya->id]); // a promised gift counts here
+	$subs = ray('id cg', $mya->id, r\cgfId());
+  $gifts = $mya->giftsDesc() 
+	?: (db\sum('amount', 'r_txs', 'payer=:id AND payee=:cg AND :IS_GIFT', $subs)
+	?: db\get('amount', 'r_recurs', 'payer=:id AND payee=:cg AND ended=0', $subs)); // a promised gift counts here, if none yet
   
 /*        $help = $gifts ? 'thanks' : 'ask';
         $msg = t('<span class="loud">%when <b>Welcome</b></span> to %PROJECT, How\'s it going%lastTx? %help donation(s), %signupCo volunteer? [<%a>details</a>]', 'when lastTx help signupCo _a', u\fmtDate($when, TRUE), $a->lastTxDesc(), ucfirst($help), @$signupCo, w\atag("/help/welcome/gifts=$gifts"));
@@ -924,11 +927,11 @@ function donationTrend($co = FALSE, $since = NULL) {
 	
 	$sql =<<< X
 	  SELECT AVG(g.amount*IF(often='M', 12, IF(often='Q', 4, IF(often='Y', 1, 0)))) AS regular
-		FROM r_gifts g LEFT JOIN users u ON u.uid=g.uid 
-		WHERE g.completed=0 AND $where
+		FROM r_recurs g LEFT JOIN users u ON u.uid=g.payer
+		WHERE g.payee=:cg AND $where
 X;
   $subs = compact('since');
-	$res = db\q($sql, $subs)->fetchAssoc();
+	$res = db\q($sql, $subs + ray('cg', r\cgfId()))->fetchAssoc();
 	
 	$sql = "SELECT AVG(u.:IS_ROUNDUP) AS roundupRatio, AVG(u.crumbs) AS crumbs FROM users u WHERE $where";
 	$res += db\q($sql, $subs)->fetchAssoc();

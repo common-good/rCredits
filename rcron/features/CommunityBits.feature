@@ -5,8 +5,8 @@ SO I can enjoy the rCredit system's rapid growth and be a part of that.
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | zip | country | postalAddr | flags        |*
-  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK | ok,confirmed |
+  | id   | fullName   | address | city  | state | zip   | country | postalAddr | flags        |*
+  | .ZZA | Abe One    | 1 A St. | Atown | AL    | 01000 | US      | 1 A, A, AK | ok,confirmed |
   And balances:
   | id   | balance | floor |*
   | cgf  |       0 |     0 |

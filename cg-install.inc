@@ -273,13 +273,13 @@ function tableDefs($schema = []) {
   // table r_invoices
   $fields = array(
     'nvid' => dbFld(t('the unique invoice ID'), 'serial big'), 
-    'status' => dbFld(t('transaction record ID or status (pending or denied)'), 'int 11', TX_PENDING), // positive values are record IDs in r_txs (for paid invoices), non-positive values are status
+    'status' => dbFld(t('transaction record ID or status (approved, pending, denied, or paid)'), 'int 11', TX_PENDING), // values>1 are paid invoice record IDs in r_txs
     'amount' => dbFld(t('amount to charge'), 'numeric 11,2'), 
     'payer' => dbFld(t('user id of the payer'), 'int big'), 
     'payee' => dbFld(t('user id of the payee'), 'int big'), 
     'goods' => dbFld(t('is this an invoice for real goods and services?'), 'int tiny', 0), 
     'purpose' => dbFld("payee's description", 'text big'), 
-// not needed yet    'flags' => dbFld(t('boolean characteristics and state flags'), 'int big', 0, TRUE),
+    'flags' => dbFld(t('boolean characteristics and state flags'), 'int big', 0, TRUE),
     'data' => dbFld(t('miscellaneous non-searchable data (serialized array)'), 'text big'), 
     'created' => dbFld(t('Unixtime invoice was created'), 'int 11', 0),
   );
@@ -405,7 +405,7 @@ function tableDefs($schema = []) {
   $schema['r_ips'] = dbTable(t('IP addresses of approved accounts'), $fields, 'ip', $foreignKeys, $indexes);
   
   // table r_gifts
-  $fields = array(
+/*  $fields = array(
     'donid' => dbFld(t('gift record id'), 'serial'),
     'uid' => dbFld(t('uid of account that made the gift'), 'int big'),
     'amount' => dbFld(t('amount of gift'), 'numeric 11,2'),
@@ -419,6 +419,33 @@ function tableDefs($schema = []) {
   $foreignKeys = foreignKey('uid');
   $indexes = index('uid');
   $schema['r_gifts'] = dbTable(t('Membership gift details'), $fields, 'donid', $foreignKeys, $indexes);
+*/
+
+  // table r_recurs (gifts only)
+  $fields = array(
+    'id' => dbFld(t('record id'), 'serial'),
+    'payer' => dbFld(t('uid of account making the recurring gifts'), 'int big'),
+    'payee' => dbFld(t('uid of account receiving the gifts'), 'int big'),
+    'amount' => dbFld(t('amount of gift'), 'numeric 11,2'),
+    'period' => dbFld(t('recurring how often (Y, Q, M, W)'), 'varchar 1'),
+    'created' => dbFld(t('Unixtime of gift'), 'int 11', 0),
+    'ended' => dbFld(t('Unixtime of gift'), 'int 11', 0),
+  );
+  $foreignKeys = foreignKey('payer') + foreignKey('payee');
+  $indexes = index('payer') + index('payee');
+  $schema['r_recurs'] = dbTable(t('recurring gifts'), $fields, 'id', $foreignKeys, $indexes);
+
+  // table r_honors
+  $fields = array(
+    'id' => dbFld(t('record id'), 'serial'),
+    'uid' => dbFld(t('uid of account making the gift to %PROJECT'), 'int big'),
+    'honor' => dbFld(t('what type of honor'), 'varchar 10'),
+    'honored' => dbFld(t('who is honored'), 'text medium'),
+    'created' => dbFld(t('Unixtime of first associated gift'), 'int 11', 0),
+  );
+  $foreignKeys = foreignKey('uid');
+  $indexes = index('uid');
+  $schema['r_honors'] = dbTable(t('gifts in honor or memory'), $fields, 'id', $foreignKeys, $indexes);
 
   // table r_user_industries
   $fields = array(

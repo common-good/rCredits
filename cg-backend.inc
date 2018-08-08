@@ -257,16 +257,19 @@ EOF;
  */
 function payInvoice($nvid, &$msg = '') {
   if ($msg = r\badUnpaidInv($nvid, $inv)) return FALSE;
-  extract(just('payer payee amount goods purpose data', $inv));
+  extract(just('payer payee amount goods purpose data flags', $inv));
   $payerA = r\acct($payer);
   $payeeA = r\acct($payee);
   
   $DBTX = \db_transaction();
   $purpose .= ' (' . PROJECT . " inv#$nvid)";
-  list ($index, $subs) = $payerA->pay($payeeA, $amount, $purpose, ray('inv goods', $nvid, $goods));
+	$extra = ray('inv goods', $nvid, $goods);
+	if ($flags) foreach (ray('gift patronage investment') as $k) if (u\getBit($flags, $k)) $extra[$k] = 1;
+  list ($index, $subs) = $payerA->pay($payeeA, $amount, $purpose, $extra);
   if ($ok = @$subs['success']) //db\q('UPDATE r_invoices SET status=:xid WHERE nvid=:nvid', ray('xid nvid', @$subs['xid'], $nvid));
   db\update('r_invoices', ray('status nvid', @$subs['xid'], $nvid), 'nvid');
-  if ($goods == FOR_INVESTMENT) { // investment club reclaiming an investment
+
+	if (u\getBit(@$flags, B_INVESTMENT)) { // club reclaiming an investment
 /*
     $res = db\get('shid,vestid', 'r_shares s LEFT JOIN r_investments i ON i.vestid=s.vestid', 'coid=:coid AND clubid=:clubid AND pending<0', ray('coid clubid', $payer, $payee));
     if ($res) {
@@ -381,12 +384,13 @@ function transfer($ttype, $a1, $a2, $amount, $for, $data = []) {
       $msg = $reallyTaking ? ($a2->can(B_SECRET) ? 'short from vague' : 'short from') : 'short to';
       if ($channel == TX_WEB) {
 // to complex        if ($msg == 'short to' and $channel == TX_WEB and r\signedIn()) $msg .= '|increase min';
-        if ($goods == FOR_GOODS) {
+/*        if ($goods == FOR_GOODS) {
           if (!$loserA->can(B_DEBT) and $loserA->floor < 0 and $channel == TX_WEB) $msg .= '|try debt';
           $_aDebt = w\atag('/settings/preferences');
         } //elseif ($a1->cttyRewardy) $msg .= '|short cash help|maybe not cash';
+				*/
       }
-      r\suggestMin($loserA);
+      $loserA->suggestAuto();
       $details = t('|%loser was short by %short trying to pay %gainer %amount', ray('loser short gainer amount', $loserA->fullName, $short, $gainerA->fullName, u\fmtAmt($amount)));
       return r\txRet($msg, compact(ray('otherName short how details _aDebt')));
     }
@@ -446,7 +450,8 @@ function invoice($a1, $a2, $amount, $purpose = NULL, $extra = []) {
   global $channel;
   
   u\EXPECT(compact(ray('a1 a2 amount purpose')), 'acct acct float string');
-  extract(just('goods shid', $extra));
+  extract(just($ks = 'goods shid status', $extra));
+	foreach (justNOT($ks, $extra) as $k => $v) u\setBit($flags, $k, $v);
   list ($payee, $payer) = array($a1->id, $a2->id);
   u\setDft($goods, FOR_GOODS);
   u\setDft($purpose, $why = ray(R_WHYS)[$goods]);
@@ -456,9 +461,9 @@ function invoice($a1, $a2, $amount, $purpose = NULL, $extra = []) {
   if (r\dupTx($payee, $payer, -$amount)) return r\txRet('duplicate transaction', $subs);
   
   $created = r\rTime();
-  $status = ($channel != TX_FOREIGN and r\relation(':IS_AUTOPAY', $payee, $payer)) ? TX_APPROVED : TX_PENDING;
+  u\setDft($status, ($channel != TX_FOREIGN and r\relation(':IS_AUTOPAY', $payee, $payer)) ? TX_APPROVED : TX_PENDING);
   if (@$shid) $data = serialize(compact('shid'));
-  $info = compact(ray('amount status payer payee goods purpose created data'));
+  $info = compact(ray('amount status payer payee goods purpose created flags data'));
   $nvid = db\insert('r_invoices', $info);
   $a1->update('lastTx', [$nvid, $payer - $payee, round(-$amount, 2), $created, 'inv']);
 

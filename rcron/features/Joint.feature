@@ -27,18 +27,18 @@ Scenario: a joint account needs refilling
   | id   | balance |*
   | .ZZA |   50.00 |
   | .ZZB |   49.99 |
-  When cron runs "bank"
+  When cron runs "getFunds"
   Then usd transfers:
   | txid | payee | amount |*
   |    1 | .ZZA  |  30    |
-  And we notice "under min|banked|bank tx number" to member ".ZZA" with subs:
-  | action    | amount | checkNum |*
-  | draw from | $30    |        1 |
+  And we notice "banked|bank tx number|available now" to member ".ZZA" with subs:
+  | action    | amount | checkNum | why       |*
+  | draw from | $30    |        1 | to bring your balance up to the target you set |
 
 Scenario: a joint account does not need refilling
   Given balances:
   | id   | balance |*
   | .ZZA |   50.01 |
   | .ZZB |   49.99 |
-  When cron runs "bank"
+  When cron runs "getFunds"
   Then bank transfer count is 0

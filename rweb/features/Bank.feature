@@ -11,8 +11,11 @@ Setup:
   | id   | fullName | minimum | floor | flags          | risks   |*
   | .ZZA | Abe One  |       0 |   -20 | ok,debt        | hasBank |
   | .ZZB | Bea Two  |       0 |     0 | ok             | hasBank |
-  | .ZZC | Our Pub  |       0 |   -10 | co,ok,debt     |         |
+  | .ZZC | Our Pub  |      40 |   -10 | co,ok,debt     | hasBank |
   | .ZZD | Dee Four |      80 |   -20 | ok,refill,debt | hasBank |
+	And relations:
+	| main | other | permission |*
+	| .ZZC | .ZZB  |     manage |
   And transactions:
   | xid | created    | type   | amount | from | to   | purpose |*
   | 1   | %today-10d | signup |     20 | ctty | .ZZA | signup  |
@@ -42,8 +45,8 @@ Scenario: a member moves credit to the bank
   | payee | amount | tid | created   | completed | channel |*
   |  .ZZA |    -86 |   4 | %today    | %today    | %TX_WEB |
   And we say "status": "banked" with subs:
-  | action     | amount |*
-  | deposit to | $86    |
+  | action     | amount | why             |*
+  | deposit to | $86    | at your request |
   And balances:
   | id   | balance |*
   | .ZZA |       0 |
@@ -54,27 +57,27 @@ Scenario: a member draws credit from the bank with zero floor
   | get | %R_ACHMIN |
   Then usd transfers:
   | txid | payee | amount    | tid | created | completed | channel |*
-  | 5007 |  .ZZB | %R_ACHMIN |   2 | %today  |         0 | %TX_WEB |
+  | 5007 |  .ZZB | %R_ACHMIN |   2 | %today  | %today    | %TX_WEB |
   And balances:
   | id   | balance |*
   | .ZZA |      86 |
-  And we say "status": "banked|bank tx number" with subs:
-  | action     | amount     | checkNum |*
-  | draw from  | $%R_ACHMIN |     5007 |
+  And we say "status": "banked|bank tx number|available now" with subs:
+  | action     | amount     | checkNum | why             |*
+  | draw from  | $%R_ACHMIN |     5007 | at your request |
 
 Scenario: a member draws credit from the bank with adequate floor
-  When member ".ZZA" completes form "get" with values:
-  | op  | amount    |*
-  | get | %R_ACHMIN |
+  When member "C:B" completes form "get" with values:
+  | op  | amount |*
+  | get |     10 |
   Then usd transfers:
-  | txid | payee | amount    | tid | created | completed | channel |*
-  | 5007 |  .ZZA | %R_ACHMIN |   4 | %today  |    %today | %TX_WEB |
+  | txid | payee | amount | tid | created | completed | channel |*
+  | 5007 |  .ZZC |     10 |   2 | %today  |    %today | %TX_WEB |
   And balances:
-  | id   | balance         |*
-  | .ZZA | %(86+%R_ACHMIN) |
+  | id   | balance |*
+  | .ZZC | 40      |
   And we say "status": "banked|bank tx number|available now" with subs:
-  | action     | amount     | checkNum |*
-  | draw from  | $%R_ACHMIN |     5007 |
+  | action     | amount | checkNum | why             |*
+  | draw from  |    $10 |     5007 | at your request |
   
 Scenario: a member moves too little to the bank
   When member ".ZZA" completes form "get" with values:

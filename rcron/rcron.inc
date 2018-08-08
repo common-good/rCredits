@@ -68,7 +68,7 @@ NOTES:
   where <star> means * (not the same as for the production site) 
  */
 
-define('R_DAILY_TASKS', 'START recache checkAccts requests setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts bank invoices invest notices END'); // had homogenize, pool 
+define('R_DAILY_TASKS', 'START recache checkAccts requests setNear acctStats cttyStats trust acctRisk txRisk achRisk tickle lessOften gifts invoices getFunds invest notices END'); // had homogenize, pool 
 //define ('R_DAILY_TASKS', 'START redistribute END');
 include_once __DIR__ . '/rcron-subs.inc';
 
@@ -403,7 +403,7 @@ X;
       FROM r_txs t LEFT JOIN users u ON u.uid=IF(t.payer=$cgf, t.payee, t.payer)
       WHERE ((payer=$cgf AND payee<0) OR payee=$cgf) AND t.:IS_GIFT AND community NOT IN($server, $bene) GROUP BY community
 X;
-  queueEach('cgc', $sql);
+// Not until cgc means signed the CG/CGC agreement (and then not retroactive) queueEach('cgc', $sql);
   
   $list = db\lst("CONCAT(fullName,' (',city,')')", 'users', ':IS_OK AND :IS_PAPER');
   r\tellAdmin(t('Send paper statements'), compact('list'));
@@ -619,10 +619,10 @@ function acctStats1($item, $asof = NULL) {
   $subs = compact('uid', 'monthAgo', 'asof');
   
   $sql = <<< X
-    SELECT SUM(amount) AS giftsEver, SUM(IF(completed<:monthAgo, 0, amount)) AS giftsPastMo
-    FROM r_gifts WHERE uid=:uid AND completed AND completed<:asof
+    SELECT SUM(amount) AS giftsEver, SUM(IF(created<:monthAgo, 0, amount)) AS giftsPastMo
+    FROM r_txs WHERE payer=:uid AND payee=:cg AND :IS_GIFT AND created<:asof
 X;
-  $row1 = db\q($sql, $subs)->fetchAssoc() ?: []; // giftsEver, giftsPastMo
+  $row1 = db\q($sql, $subs + ray('cg', r\cgfId()))->fetchAssoc() ?: []; // giftsEver, giftsPastMo
   
   $sql = <<< X
     SELECT SUM(IF(type=:TX_TRANSFER, payerReward+payeeReward, 0)) AS beneEver,
@@ -773,34 +773,57 @@ function achRisk1($item) {
  * Handle one-time and recurring gifts that it's time to handle.
  */
 function gifts() {
-  $now = r\rTime();
-  queueEach('gift1', 'SELECT g.* FROM r_gifts g INNER JOIN users u ON u.uid=g.uid WHERE NOT completed and giftDate<=:now AND :IS_OK', compact('now'));
+//  queueEach('gift1', 'SELECT g.* FROM r_gifts g INNER JOIN users u ON u.uid=g.uid WHERE NOT completed and giftDate<=:now AND :IS_OK', compact('now'));
+  $sql = <<< X
+    SELECT DISTINCT r.payer,r.payee,r.period,r.amount,r.created,
+		  (SELECT 1 FROM r_invoices i WHERE i.payer=r.payer AND i.payee=r.payee AND i.:IS_PATRONAGE AND status=:TX_APPROVED LIMIT 1) AS invoiced,
+  		(SELECT MAX(t.created) FROM r_txs t WHERE t.payer=r.payer AND t.payee=r.payee AND t.:IS_PATRONAGE) AS lastTx
+		FROM r_recurs r	INNER JOIN users u1 ON u1.uid=r.payer INNER JOIN users u2 ON u2.uid=r.payee
+		WHERE (u1.:IS_OK OR NOT u1.activated) AND u2.:IS_OK AND r.ended=0
+X;
+  queueEach('gift1', $sql);
   queueNext();
 }
 
 /**
- * Handle a gift, if possible.
- * Repeating gifts happen on the same day each month (but earlier for gifts on the 29th-31st)
- * Each instance of a repeating gift creates a repeating post-dated gift record.
- * Gifts happen as soon as the money is there, on or after the gift date.
+ * Handle a recurring gift, if it's time.
+ * If funds are insufficient, an approved invoice is created instead (which tries to get money as a next step).
  */
-function gift1($item) {r\acceptGift($item);}
+function gift1($item) {
+	extract(just('period lastTx created invoiced', $item));
+	if (!$invoiced and giveNow($period, $lastTx, $created)) r\acceptGift($item);
+}
+
+/**
+ * Say whether it's time to make a recurring gift.
+ * @param char $period: how often (M, Q, Y)
+ * @param int $lastGift: Unixtime of last relevant gift
+ * @param int $firstGift: Unixtime of first relevant gift
+ */
+function giveNow($period, $lastGift, $firstGift) {
+	if (!$lastGift) return TRUE;
+  $m = $period == 'M' ? 1 : ($period == 'Q' ? 3 : 12);
+	$window = NOW - MONTH_SECS * $m / 3; // should be at least a third of a period since the last gift
+	if ($lastGift > $window) return FALSE;
+	$lastTrigger = $firstGift + (MONTH_SECS * $m) * floor((NOW - $firstGift) / (MONTH_SECS * $m));
+	return ($lastTrigger > $lastGift); // last Trigger must be after last gift
+}
 
 /**
  * 1. Mark deposited transfers complete R_USDTX_DAYS business days after deposit (if not already marked complete)
- * 2. Transfer funds from member bank accounts to rCredits or vice versa, according to account's settings
- * 3. Transfer funds from a connected account, if appropriate.
+ * 2. Get funds from a connected bank account or drawable CG account, as needed
  */
-function bank() {
+function getFunds() {
 //  $excess = 'LEAST(usd, :R_EXCESS)';
   $weekday = strftime('%w'); // 0-6 Sun-Sat (use %w because %u fails on Windows and maybe linux)
   if (u\test() or in($weekday, [2, 3, 4, 5])) { // no completions on Saturday, Sunday, or Monday
-    $now = r\rTime();
-    $sql = 'SELECT * FROM r_usd WHERE amount>0 AND NOT completed AND (amount<=:R_USDTX_QUICK OR :now>=created+:R_USDTX_DAYS*:DAY_SECS)'; // this allows us to wait arbitrarily long to deposit chks
+    $sql = 'SELECT * FROM r_usd WHERE amount>0 AND NOT completed AND :NOW-created>=:HOUR_SECS AND (amount<=:R_USDTX_QUICK OR :NOW-created>=:R_USDTX_DAYS*:DAY_SECS)'; // this allows us to wait arbitrarily long to deposit chks
 //    $sql = 'SELECT * FROM r_usd WHERE amount<0 AND NOT completed AND deposit AND :REQUEST_TIME>=deposit+:R_USDTX_DAYS*:DAY_SECS'; // this depends on deposits almost every day
-    queueEach('completeUsdTx', $sql, compact('now'));
+    queueEach('completeUsdTx', $sql);
   }
   
+	queueEach('getFunds1', 'SELECT uid FROM users WHERE IF(jid,:MASTER,balance<minimum) AND uid>:CANONIC_ACCTS AND :IS_OK');
+	/*
 //  $where = ':IS_REFILL AND (:IS_JOINED OR r-rewards-savingsAdd<minimum) AND uid>1 AND :IS_OK';
   $where = 'u.:IS_REFILL AND (jid OR balance<minimum) AND uid>:CANONIC_ACCTS AND u.:IS_OK';
   $sql = <<< X
@@ -818,6 +841,7 @@ X;
   AND r.permission<>:B_JOINT-:B_RELATED
 X;
   queueEach('draw1', $sql);
+	*/
 
   queueNext();
 }
@@ -829,73 +853,49 @@ function completeUsdTx($item) {
   r\acct($payee)->completeUsdTx($txid, $amount, @$channel == TX_CRON);
 }
 
-function bank1($item) {
+function getFunds1($item) {
   extract(just('uid', $item));
   $a = r\acct($uid);
   if ($a->slave) return; // slaves don't have automatic refills
-  if (!$amount = getHowMuchR($a)) return; // check shortfall here NOT in query, balance may change
-  if (!$a->bank($amount, $msg)) return; // may never happen, but if mysql is unavailable just redo next day
-r\notify($uid, "under min|$msg");
-}
-
-function draw1($item) {
-  extract(just('uid ma', $item)); // ma is UNUSED
-  $a = r\acct($uid);
-  if ($a->jid) return; // don't draw within a joint account
-  if (!$amount = getHowMuchR($a, FALSE)) return;
-
-  if ($a->draw($amount)) {
-    $amount = u\fmtAmt($amount);
-    r\notify($uid, 'under min|drew', compact('amount'));
-  } else r\notify($uid, 'under min|cannot draw');
-}
-
-/**
- * Given an account's shortfall, return how much to actually transfer to the CG Account.
- * @param acct $a: which account
- * @param bool $banky: the account has a connected bank account
- * @return: positive amount to draw from the connected bank account or elsewhere (0 if none).
- */
-function getHowMuchR($a, $banky = TRUE) {
-  if (!$need = max(0, $a->minimum - $a->balance)) return 0; // + $a->committed
-  if ($banky) {
-    $waiting = $a->waitingFromBank($combinable); // net amount already requested from bank (if any)
-    $need = round($need - $waiting, 2); // avoid a re-request
-  }
-  return ($need <= 0 ? 0 : max(@$combinable + 0 > 0 ? 0 : $a->achMin, round(R_ACHMIN * ceil($need / R_ACHMIN))));
+	$amount = $a->minimum - $a->balance;
+	if ($a->hasBank) $amount += db\sum('amount', 'r_invoices', 'status=:TX_APPROVED AND :IS_FUNDING AND payer=:uid', compact('uid')) - $a->waitingFromBank();
+	$a->getFunds($amount, t('to target'));
 }
 
 /**
  * Handle pending invoices.
  */
 function invoices() {
-  $sql = 'SELECT * FROM r_invoices WHERE status=:TX_PENDING OR status=:TX_APPROVED';
+  $sql = 'SELECT *,:IS_FUNDING AS funding FROM r_invoices WHERE status IN (:TX_PENDING,:TX_APPROVED) ORDER BY nvid';
   queueEach('invoice', $sql);
   queueNext();
 }
 
 function invoice($item) {
-  extract(just('nvid payer payee amount purpose status created', $item));
+  extract(just('nvid payer payee amount purpose status created funding', $item));
   $a = r\acct($payer);
   $a2 = r\acct($payee);
   $payeeName = $a2->fullName;
   
-  $masterA = $a->masterA;
-  $needed = $a->roundup ? ceil($amount) : $amount;
-  
   if ($status == TX_APPROVED) {
-    $short = round($needed - $a->avail(), 2);
-    if ($short <= 0) {
+		if ($a->roundup) $amount = ceil($amount);
+		$amtFld = $a->roundup ? 'CEILING(amount)' : 'amount';
+    $short = round($a->advances() + $amount - $a->avail(), 2); //	consider credit already used for advances from the bank
+
+    if ($short <= 0) { // pay the invoice if we have enough funds
       if (!$ok = be\payInvoice($nvid, $msg)) r\tellAdmin(t('invoice payment failed in cron'), compact('msg') + $item);
-    } else {
-      $waiting = $a->waitingFromBank();
-      if ($masterA->hasBank and $waiting <= $short) { // we can get it from the bank and haven't requested it yet
-        if ($masterA->refill) $needed += getHowMuchR($masterA);
-        if ($needed < 0.01) return; // (avoid floating point equality errors by using <)
-        if (!$masterA->bank($needed, $msg)) return; // may never happen, but if mysql is unavailable just redo next day
-        r\notify($payer, $msg);
-      } elseif ($waiting <= $short) r\notify($payer, 'short invoice|when funded', ray('short payeeName', u\fmtAmt($short), $payeeName));
-    }
+    } else $ok = FALSE;
+		
+		if ((!$ok or $a->balance < 0) and !$funding) {
+			$DBTX = db_transaction();
+			if ($a->getFunds($amount, t('for invoice', compact('nvid')))) {
+			  db\setFlag('r_invoices', $nvid, B_FUNDING, TRUE);
+			} else { // almost always because no bank account is connected
+				$msg = 'short invoice' . ($a->hasBank ? '|expect a transfer' : '|when funded|how to fund');
+				r\notify($payer, $msg, ray('short payeeName nvid', u\fmtAmt($short), $payeeName, $nvid));
+			}
+			unset($DBTX);
+		}
   } elseif ($status == TX_PENDING) {
     $today = strtotime('today'); // not time(), because tests fail erratically
     $daysAgo = max(1, round(($today - $created) / DAY_SECS));
@@ -920,11 +920,10 @@ function invest1($item) {
   $a = r\acct($uid);
   if ($a->avail($request)) {
     r\handleInvestmentRequest($stakeid, $msg);
+    r\notify($uid, $msg);
   } elseif (!$a->waitingFromBank()) {
-    $a->bank($request, $msg);
-    $msg .= t('|(to fulfill your recent investment request)'); // whether success or failure
+    $a->getFunds($request, t('to fulfill your recent investment request'));
   }
-  r\notify($uid, $msg);
 }
 
 /**

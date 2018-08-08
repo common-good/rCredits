@@ -90,7 +90,8 @@ function formGet_submit($form, &$sta) {
 //  $us = new r\usd($mya = r\acct());
   extract(just('amount', $sta['input']));
 
-  $mya->bank(op($sta) == 'get' ? $amount : -$amount, $msg);
-  say($msg);
+	$why = t('at your request');
+  $mya->bank(op($sta) == 'get' ? $amount : -$amount, $why);
+  say($why); // expanded message
 //  r\tellAdmin('banked' . $extra, $subs);
 }

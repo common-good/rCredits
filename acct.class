@@ -743,6 +743,7 @@ class Acct {
   /**
    * Return how much is available in this account for the given operation, without drawing on other accounts.
    * @param string $goods: purpose of the potential expenditure: FOR_GOODS or FOR_USD - see r\Acct::shortfall())
+	 * Do NOT take into account any advances from bank account (that would confuse the member's understanding of their credit line)
    */
   public function avail($goods = FOR_GOODS) {
     $a = $this;
@@ -778,17 +779,18 @@ class Acct {
     $sql = <<< X
       SELECT $fields
       FROM users u INNER JOIN r_relations r ON r.main=u.uid
-      WHERE r.other=:id AND r.:IS_DRAW
+      WHERE r.other IN (:id, :jid) AND r.:IS_DRAW AND u.jid<>:id
 X;
-    return db\q($sql, ray('id', $this->id));
+    return db\q($sql, ray('id jid', $this->id, $this->jid ?: -1));
   }
   
   /**
    * Draw the wanted amount from other accounts, usually to make a purchase and maintain a non-negative balance.
    * @param float $want: the amount wanted
+	 * @param string $why: purpose of transfer
    * @return float: the amount drawn
    */
-  public function draw($need) {
+  public function draw($need, $why = '') {
     $a = $this;
     if (!$a->can(B_DRAWS)) return 0;
     list ($from, $to, $auto) = array(t(' from '), t(' to '), t('automatic transfer'));
@@ -810,6 +812,10 @@ X;
       }
       
     }
+		$msg = $left == $need ? 'cannot draw' : 'drew';
+		$msg = tr($msg, 'amount', u\fmtAmt($need - $left));
+    r\notify($a->id, tr($msg, compact('why')));
+
     return round($need - $left, 2);
   }
 
@@ -818,7 +824,7 @@ X;
    * @param bool $testOnly: <don't fix anything>
    * @return TRUE if the cached amounts are correct.
    * Otherwise maybe deactivate the account, tell the staff, and return FALSE.
-   * Tricky: for joint accounts, r may be wrong (slave r is never negative), but the sum should be correct.
+   * Tricky: for joint accounts, balance may be wrong (slave balance is never negative), but the sum should be correct.
    */
   public function cacheOk($testOnly = FALSE, $report = TRUE) {
     $a = $this;
@@ -1228,40 +1234,65 @@ EOF;
 
   /**
    * Return the total waiting to be credited as a transfer FROM (or if negative result, TO) the member's bank.
-   * @param numeric $combinable: (RETURNED) how much is waiting and checks haven't been printed yet
+   * @param numeric $combinable: (RETURNED) how much is waiting and checks haven't been printed yet (incoming only)
    */
   public function waitingFromBank(&$combinable = 0) {
     $id = ($jid = $this->jid) ? "$this->id,$jid" : $this->id;
-    extract(db\q("SELECT SUM(amount) AS amt, SUM(IF(deposit, 0, amount)) AS combinable FROM r_usd WHERE payee IN ($id) AND NOT completed")->fetchAssoc());
+    extract(db\q("SELECT SUM(amount) AS amt, SUM(IF(deposit OR amount<0, 0, amount)) AS combinable FROM r_usd WHERE payee IN ($id) AND NOT completed")->fetchAssoc());
     return $amt;
   }
+	
+	public function advances() {
+    $id = ($jid = $this->jid) ? "$this->id,$jid" : $this->id;
+    return db\sum('amount', 'r_usd', "payee IN ($id) AND amount>0 AND :NOW-created<:DAY_SECS*:R_USDTX_DAYS");
+  }
    
+	/**
+	 * Transfer funds to an account from a connected bank account or drawable Common Good account.
+	 * Always bring the balance up to balance up to zero or (if autorefill is yes) the target balance PLUS the requested amount.
+	 * Called for investments, gifts, invoice payment, and autorefills. So the only way to stay negative is not to do any of these.
+   * @param numeric $amount: the amount needed
+	 * @param string $why: purpose of transfer
+   * @return the transaction number (FALSE if failure)
+	 */
+  public function getFunds($amount, $why) {
+		$a = $this;
+		if ($amount <= 0) return FALSE;
+		if ($a->hasBank) {
+			$waiting = $a->waitingFromBank($combinable);
+//			$target = $a->refill ? $a->minimum : 0;
+//			$amount += max(0, $target - $waiting);
+  		if ($a->refill) $amount = max($a->achMin - $combinable, round(R_ACHMIN * ceil($amount / R_ACHMIN)));
+			return $a->bank($amount, $why);
+		} else return $a->draw($amount, $why);
+  }
+
   /**
    * Transfer funds to or from a connected bank account.
    * @param numeric $amount0: the amount to transfer FROM or (if negative) TO the bank
-   * @param string $msg: (RETURNED) a message about the result
-   * @param assoc $tx: forced field values, if any
+	 * @param string $why: purpose of transfer
+	 *                     (RETURNED) message about transfer
+   * @param assoc $tx: forced field values, if any (when reversing an unsuccessful request)
    * @return the transaction number (FALSE if failure)
    */
-  public function bank($amount0, &$msg = '', $tx = []) {
+  public function bank($amount, &$why = '', $tx = []) {
     global $channel;
+		$amount0 = $amount; // remember original amount requested
+		
     $a = $this;
     $payee = $a->id;
     $bankAccount = @$a->vsecure['bankAccount']; // already-encrypted bank account (@ is for testing)
     if ($tx) extract($tx);
     u\setDft($tid, r\getUsdTid($payee));
     u\setDft($created, r\rTime());
-    if (!@$completed) $completed = ($amount0 < 0 or $amount0 <= -$a->floor) ? $created : 0;
+    u\setDft($completed, $created);
 
     $DBTX = \db_transaction();
-    $where = 'payee=:payee AND NOT deposit AND amount' . ($amount0 < 0 ? '<0' : '>0 AND NOT completed');
-    if ($res = db\get('txid,amount', 'r_usd', $where, compact('payee'))) { // found another the same direction
-      extract($res);
-      $amount += $amount0;
+
+		if ($txid = $a->combineUsdTx($amount, $completed)) { // modify existing tx
       db\update('r_usd', compact(ray('txid amount completed bankAccount')), 'txid');
     } else {
-      $amount = $amount0;
-      if (isGAME) $tx += ['members' => $a->members];
+//      if (isGAME) $tx += ['members' => $a->members];
       $txid = db\insert('r_usd', $tx += compact(ray('amount payee created completed tid bankAccount channel')));
       u\EXPECT((bool) $txid, 'saving usd record');
     }
@@ -1274,12 +1305,32 @@ EOF;
     unset($DBTX);
     
     $msg = 'banked';
-    if ($amount > 0) $msg .= '|bank tx number' . ($completed ? '|available now' : '');
-    $action = $amount < 0 ? t('deposit to') : t('draw from');
-    $msg = tr($msg, ray('action amount checkNum', $action, u\fmtAmt(abs(@$amount)), $txid));
+    if ($amount0 > 0) $msg .= '|bank tx number' . ($completed ? '|available now' : '');
+    $action = $amount0 < 0 ? t('deposit to') : t('draw from');
+    $msg = tr($msg, ray('action amount checkNum', $action, u\fmtAmt(abs(@$amount0)), $txid));
+    r\notify($a->id, $why = tr($msg, compact('why')));
 
     return $txid;
   }
+	
+	/**
+	 * Return information about a same-direction request to combine with.
+	 * @param numeric $amount: amount requested
+	 *                         (RETURNED) amount, modified as appropriate
+   * @param int $completed: desired completion date (NULL if none)
+	 * @param int $completed: (RETURNED) completion date of new or modified request (0 if not yet)
+	 * @return $txid transaction ID of transaction to modify (FALSE if none)
+	 */
+	private function combineUsdTx(&$amount, &$completed) {
+		$a = $this;
+    if ($amount > 0 and $amount + $a->advances() - $a->balance > -$a->floor) $completed = 0; // only 0 if bringing in beyond credit line
+    $where = 'payee=:id AND amount>0 AND NOT deposit AND NOT completed';
+    if ($res = db\get('txid,amount AS oldAmount', 'r_usd', $where, ray('id', $a->id))) {
+			extract($res);
+			$amount += $oldAmount;
+		} else $txid = FALSE;
+    return $txid;
+	}
 
   /**
    * Automatically cashout accounts that choose to, leaving average weekly gross (over past 6 months) in the account. Weekly gross is figured as -6/26th of the floor (because there are 26 weeks in 6 months and floor is based on 1/6 of 6 months' gross).
@@ -1290,8 +1341,7 @@ EOF;
     if ($waiting > 0) return; // no cashout if waiting to bring some in
     $cashout = round($a->balance - -$a->floor * 6 / 26 + $waiting, -1); // (waiting is negative)
     if ($cashout < R_ACHMIN) return;
-    if (!$a->bank(-$cashout, $msg)) return;
-    r\notify($a->id, $msg);
+    if (!$a->bank(-$cashout, $zot)) return;
   }
   
   /**
@@ -1323,6 +1373,39 @@ EOF;
     return TRUE;
   }
 
+	/**
+	 * Suggest autorrefills or a higher minimum, etc. (because of a failed purchase).
+	 * This might make sense to use on the WEB interface also (just change the $channel line below), but the message would need to be added AFTER the basic error message.
+	 */
+	public function suggestAuto() {
+		$a = $this;
+		global $channel; if (!in_array($channel, [TX_POS])) return;
+		
+		$web = ($channel == TX_WEB);
+
+		if (!$web) $msg[] = 'you were short';
+		$msg[] = $a->hasBank ? ($a->refill ? 'suggest higher target' : 'suggest refills') : 'how to fund';
+
+/*		
+		$suggested0 = max(R_ACHMIN, (R_SUGGEST_BUMP * $a->minimum) ?: 100);
+		$suggested = u\fmtAmt($suggested0);
+		$_a1 = $a->makeDo('min', $suggested0);
+	*/	
+		
+		if ($a->secret) {
+			$_aSecret = $web ? w\atag('/settings/preferences') : $a->makeDo('nosecret');
+			$msg[] = 'be not secretive';
+		}
+		if (!$a->debt and $a->floor < 0) {
+			$_aDebt = $web ? w\atag('/settings/preferences') : $a->makeDo('debtok');
+			$msg[] = 'try debt';
+		}
+		
+		$msg = join('|', $msg);
+		$args = compact(ray('suggested _a1 _aSecret _aDebt'));
+		if ($web) return t($msg, $args); else r\notify($a->id, $msg, $args);
+	}
+	
   /**
    * Return the next suggested date, type, and description to contact this member for a standard checkin.
    * @param mixed $done: <asking because a checkin was just completed> or "activate"
@@ -1362,30 +1445,40 @@ EOF;
 
   /**
    * Return a description of the members gift history. The total gifts include first planned gift, if none completed yet.
-   * @param string $often: (RETURNED) frequency of latest gift
+   * @param string $period: (RETURNED) frequency of latest gift
    * @param string $totalGifts: (RETURNED) total gifts with no mention of latest
    * @return: description of gifts (FALSE if none)
    */
-  public function giftsDesc(&$often = '', &$totalGifts = '') {
+  public function giftsDesc(&$period = '', &$totalGifts = '') {
     $a = $this;
+		$gift = '';
 //      db\get($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
-    if ($info = db\get('amount,often,giftDate', 'r_gifts', "uid=:id AND giftDate<:REQUEST_TIME AND (NOT honor<=>'share') ORDER BY donid DESC", ['id' => $a->id])) {
+    $fields = 'r.created AS recurStart,r.amount AS recurAmt,r.period,h.honor,h.honored,t.created AS lastGiftDate,t.amount AS lastGift';
+		$table = <<< X
+		  users u LEFT JOIN r_recurs r ON r.payer=u.uid AND r.payee=:cg AND r.ended=0
+			LEFT JOIN r_honors h ON h.uid=u.uid
+			LEFT JOIN (SELECT payer,created,amount from r_txs x WHERE x.payer=:id AND x.payee=:cg AND x.:IS_GIFT ORDER BY created DESC LIMIT 1) t 
+			  ON t.payer=u.uid
+X;
+    if ($info = db\get($fields, $table, 'u.uid=:id', ray('id cg', $a->id, r\cgfId()))) {
       extract($info);
-      $oftens = ray(OFTENS);
-      unset($oftens['1']);
-      list ($often, $amount, $giftDate) = [@$oftens[$often], u\fmtAmt($amount), u\fmtDate($giftDate, TRUE)];
-      $lastGift = t('Last') . ": $giftDate <%b>$amount</b> $often";
-      if ($info = db\get('honor,honored', 'r_gifts', "uid=:id AND (NOT honor<=>'' AND honor<>'share') ORDER BY donid DESC", ['id' => $a->id])) {
+			if ($period) {
+        $oftens = ray(OFTENS);
+        list ($period, $recurAmt, $recurStart) = [@$oftens[$period], u\fmtAmt($recurAmt), u\fmtDate($recurStart, TRUE)];
+        $gift = "<%b>$recurAmt</b> $period";
+			}
+      $gift = u\unite($gift, t('Last: %lastGift (%lastGiftDate)', 'lastGift lastGiftDate', u\fmtAmt($lastGift), u\fmtDate($lastGiftDate, TRUE)));
+      if ($info = db\get('honor,honored', 'r_honors', "uid=:id AND honor<>'' ORDER BY id DESC", ['id' => $a->id])) {
         extract($info);
-        $lastGift .= u\honorDesc($honor) . $honored;
+        $gift = u\unite($gift, u\honorDesc($honor) . $honored);
       }
-    } else $lastGift = '';
+    }
 
     if ($totalGifts = ($amt = $a->totalGifts()) ? u\fmtAmt($amt) : (@$amount ?: '')) $totalGifts = t('<%b>%totalGifts</b> to date', compact('totalGifts'));
     $totalGifts .= trim(($a->roundup ? t(' +<%b>roundups</b>') : '') . ($a->crumbs > 0 ? t(' +<%b>%crumbs% crumbs</b>', 'crumbs', $a->crumbs * 100) : ''));
-    foreach (ray('totalGifts lastGift') as $k) $$k = tr($$k, '_b', 'b class="positive"'); // must do to each, not together
+    foreach (ray('totalGifts gift') as $k) $$k = tr($$k, '_b', 'b class="positive"'); // must do to each, not together
 
-    return u\unite($totalGifts, $lastGift, ', ');
+    return u\unite($totalGifts, $gift, ', ');
   }
 
   /**
@@ -1698,7 +1791,7 @@ EOF;
    * Return the account's total gifts to the Common Good.
    */
   function totalGifts() {
-    return db\sum('amount', 'r_txs', 'payer=:payer AND :IS_GIFT', ray('payer', $this->id));
+    return db\sum('amount', 'r_txs', 'payer=:payer AND payee=:cg AND :IS_GIFT', ray('payer cg', $this->id, r\cgfId()));
   }
   
   /**

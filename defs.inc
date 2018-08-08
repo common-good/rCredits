@@ -61,8 +61,8 @@ define('HOUR_SECS', 60 * MIN_SECS);
 define('DAY_SECS', 24 * HOUR_SECS);
 define('WEEK_SECS', 7 * DAY_SECS);
 define('WEEK7_SECS', 52 * DAY_SECS);
-define('MONTH_DAYS', 30.4368);
-define('YEAR_SECS', round(12 * MONTH_DAYS * DAY_SECS));
+define('MONTH_SECS', 30.4368 * DAY_SECS);
+define('YEAR_SECS', round(12 * MONTH_SECS));
 define('FLOOR_DAYS', 183); // how many days to consider for credit line calculation
 
 define('REGION_DOMAIN', R_SERVER_ID . '.' . CG_DOMAIN);
@@ -185,7 +185,7 @@ define('FOR_GOODS', 0); // index into R_WHYS for goods
 define('FOR_USD', 1); // index into R_WHYS for USD exchange
 define('FOR_NONGOODS', 2); // index into R_WHYS for loan, etc.
 define('FOR_SHARE', 3); // "sharing" gift to CGF (comes out of rewards)
-define('FOR_INVESTMENT', 4); // only in invoices (use B_INVESTMENT in txs)
+//define('FOR_INVESTMENT', 4); // only in invoices (use B_INVESTMENT in txs)
 //define('FOR_STAKE', 5); // only in invoices (use B_STAKE in txs)
 
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
@@ -391,6 +391,7 @@ define('K_TX_RISKS', 'txAdminOk:-0.3,redo:2,exchange:2,cashIn:5,cashOut:2,fromBa
 define('K_ADMINOK', 0); // community admin blessed the account or transaction
 define('K_HASBANK', 3); // account has a connected bank account
 define('HAS_BANK', 'risks&(1<<' . K_HASBANK . ')'); // mysql criterion (not surrounding parens, so we can do u.:HAS_BANK)
+define('MASTER', '(uid<jid)'); // account is the master in a joint account
 
 define('FLOW_NONE', 0); // which way can credit flow, with another account
 define('FLOW_TO', 1);
@@ -414,7 +415,8 @@ define('B_INVESTMENT', 12); // community investment or investment club investmen
 define('B_STAKE', 13); // member buying or selling stake in investment club
 define('B_FINE', 14); // community fine
 define('B_NOASK', 15); // transaction was taken with ID checking OFF
-define('TX_FLAGS', 'taking disputed offline short undone undoes crumbs roundups roundup patronage gift loan investment stake fine noask');
+define('B_FUNDING', 16); // invoice has already instigated an appropriate bank transfer request
+define('TX_FLAGS', 'taking disputed offline short undone undoes crumbs roundups roundup patronage gift loan investment stake fine noask funding');
 
 // Invoice status (use data['disputed'] for txs) (set to txid>1 if paid)
 define('TX_DENIED', -1); // invoice rejected by the non-originator

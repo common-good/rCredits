@@ -155,15 +155,15 @@ Scenario: A newbie registers with no case
 Scenario: A member registers bad email
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" confirms form "signup/code=c0D3" with values:
-  | fullName | email     | zip | acctType    |*
-  | Abe One  | %whatever | 01001      | %CO_PERSONAL |
+  | fullName | email     | zip | state | acctType    |*
+  | Abe One  | %whatever | 01001 |  MA | %CO_PERSONAL |
   Then we say "error": "bad email"
 
 Scenario: A member registers bad name
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" confirms form "signup/code=c0D3" with values:
-  | fullName  | email | phone     | zip | federalId   | dob      | acctType     | tenure |*
-  | ™ %random | a@ | 413-253-0000 | 01001-3829 | 111-22-3333 | 1/2/1990 | %CO_PERSONAL  |     18 |
+  | fullName  | email | phone     | zip | state     | federalId   | dob      | acctType     | tenure |*
+  | ™ %random | a@ | 413-253-0000 | 01001-3829 | MA | 111-22-3333 | 1/2/1990 | %CO_PERSONAL  |     18 |
   Then we say "error": "illegal char" with subs:
   | field    |*
   | fullName |
@@ -223,13 +223,13 @@ Scenario: A member registers with an unknown company
 Scenario: A member registers with a company with no relation
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" confirms form "signup/code=c0D3" with values:
-  | fullName | email | phone        | zip | federalId  | dob  | acctType    | company  | companyPhon  | companyOptions | tenure | owns | helper |*
-  | Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %CO_PERSONAL | AAAme Co | (413)628-0000 |               |     18 |    1 | .ZZZ   |
+  | fullName | email | phone        | zip | state | federalId  | dob  | acctType    | company  | companyPhon  | companyOptions | tenure | owns | helper |*
+  | Abe One  | a@    | 413-253-0002 | 01002 | MA  | 111-22-3333 | 1/2/1990 | %CO_PERSONAL | AAAme Co | (413)628-0000 |               |     18 |    1 | .ZZZ   |
   Then we say "error": "what relation"
 
 Scenario: A member registers with a bad company phone
   Given invitation to email "a@" from member ".ZZZ" is "c0D3"
   When member "?" confirms form "signup/code=c0D3" with values:
-  | fullName | email  | phone    | zip | federalId   | dob      | acctType    | company  | companyPhon | companyOptions | tenure | owns | helper |*
-  | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %CO_PERSONAL | AAAme Co | %random      | owner=>1    |     18 |    1 | .ZZZ   |
+  | fullName | email  | phone    | zip | state | federalId   | dob      | acctType    | company  | companyPhon | companyOptions | tenure | owns | helper |*
+  | Abe One  | a@ | 413-253-9876 | 01001 | MA  | 111-22-3333 | 1/2/1990 | %CO_PERSONAL | AAAme Co | %random      | owner=>1    |     18 |    1 | .ZZZ   |
   Then we say "error": "bad company phone" with subs: ""

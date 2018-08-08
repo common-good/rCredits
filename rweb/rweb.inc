@@ -120,27 +120,6 @@ EOF;
 }
 
 /**
- * List the people honored or remembered with contributions to Common Good.
- */
-function formHonors($form, &$sta) {
-  $title = t('Honored and Remembered');
-  $subtext = t('Listed here are the people and principles honored and remembered with a <%a>contribution</a> to %PROJECT.', '_a', atag('/community/donate'));
-  $oftens = ray(OFTENS);
-  $q = db\q("SELECT DISTINCT honor,honored FROM r_gifts WHERE honored<>'' ORDER BY honor,honored");
-  $list = '';
-  $type = 'none';
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    if ($honor != $type) {
-      $list .= '<div class="honor-type">' . (trim(u\honorDesc($honor)) ?: t('other')) . "</div>\n";
-      $type = $honor;
-    }
-    $list .= "<div class=\"well\">$honored</div>\n";
-  }
-  return cgform(compact(ray('title subtext list')));
-}
-
-/**
  * Output an account photo if the caller is authorized.
  * @param string $qid: account letter-code
  * @param bool $small: output a small version instead

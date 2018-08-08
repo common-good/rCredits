@@ -69,7 +69,7 @@ function isGiveback($payer, $payee, $data) {
  * @return the error message (FALSE if no error)
  */
 function badUnpaidInv($nvid, &$inv = '') {
-  $fields = 'nvid,status,amount,payer,payee,goods,purpose,data,created';
+  $fields = 'nvid,status,amount,payer,payee,goods,purpose,flags,data,created';
   if (!$inv = db\get($fields, 'r_invoices', 'nvid=:nvid', compact('nvid'))) return 'no matching invoice';
   if ($inv['status'] > TX_APPROVED) return 'already paid';
 }
@@ -173,7 +173,7 @@ function setJoin($reid, $join) {
  */
 function rdoMonth($time = NULL) {
   u\setDft($time, r\rTime());
-  return round(($time - strtotime('12/1/2014')) / (MONTH_DAYS * DAY_SECS));
+  return round(($time - strtotime('12/1/2014')) / (MONTH_SECS));
 }
 
 /**
@@ -377,71 +377,47 @@ function notify($uid, $index, $subs = [], $force = FALSE) {
 }
 
 /**
- * Suggest a higher minimum (because of a failed purchase).
- * @param acct $a: the account that needs a higher minimum
- * @param int $default: the default minimum, if special
- * @param string $dftMst: default message, if any
- * @param bool $get: <just return the message>
- */
-function suggestMin($a, $default = '', $dftMsg = '', $get = FALSE) {
-  $suggested0 = $default ?: max(R_ACHMIN, (R_SUGGEST_BUMP * $a->minimum) ?: 100);
-  $suggested = u\fmtAmt($suggested0);
-
-  $_a1 = $a->makeDo('min', $suggested0);
-  $msg = $dftMsg ?: 'you were short';
-  
-  if ($a->can(B_SECRET)) {
-    $_a2 = $a->makeDo('nosecret');
-    $msg .= '|be not secretive';
-  }
-/* DISABLE FOR NOW  if (!$a->can(B_DEBT) and $a->floor < 0) {
-    $_a3 = $a->makeDo('debtok');
-    $msg .= '|try debt';
-  } */
-  
-  $args = compact(ray('suggested _a1 _a2 _a3'));
-  if ($get) return t($msg, $args); else r\notify($a->id, $msg, $args);
-}
-
-/**
  * Try to transfer funds from donor to CGF.
  * @param assoc $info: the gift record data
- * @return TRUE if the funds were successfully transferred.
+ *    payee is expected to be an active account, but payer can be a not-yet-activated account
+ * @return TRUE if the funds were successfully transferred (otherwise the payer is invoiced).
  */
 function acceptGift($info) {
-  extract(just('donid uid giftDate amount often honor', $info));
-  $a = r\acct($uid);
-  if ($a->shortfall(FOR_GOODS, $amount)) return FALSE; // wait until tomorrow, if not enough
+  extract(just('payer,payee,period,amount,created,lastTx,invoiced', $info));
+	foreach (ray('a1 a2', $payer, $payee) as $k => $v) $$k = r\acct($v);
+	u\EXPECT($a2->ok, 'inactive gift recipient');
+//    if (!$$k->ok) return !$msg = t('Account %who is not active.', 'who', $$k->fullName);
+	
+  if ($period != 1) {
+    $recurs = ray(t('once monthly quarterly yearly'));
+    $count = db\count('r_txs', 'payer=:payer AND payee=:payee AND :IS_PATRONAGE AND created>=:created', compact(ray('payer payee created')));
+    $purpose = t('regular donation (%how gift #%count)', 'how count', $recurs[strpos('1MQY', $period)], $count + 1);
+    $data['patronage'] = 1;
+  } else list ($recurs, $purpose) = ['', t('donation')];
+	
+  /*if ($a->shortfall(FOR_GOODS, $amount)) {
+		// create invoice
+		return FALSE; // wait until tomorrow, if not enough
+	}
   if ($a->shortfall(FOR_GOODS, $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
-  $cgf = r\acct(r\cgfId());
+	*/
   $data['gift'] = 1;
 
-//  r\usd::beginAtom();
-  if ($often != 1) {
-    $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
-    $recurs = ray(t('once monthly quarterly yearly'));
-    $count = db\count('r_gifts', 'uid=:uid AND often=:often', compact('uid', 'often'));
-    $purpose = t('regular donation (%how gift #%count)', 'how count', $recurs[strpos('1MQY', $often)], $count);
-    $data['patronage'] = 1;
-  } else $purpose = t('donation');
+  if ($a1->ok) {
+		list ($msg, $args) = $a1->pay($a2, $amount, $purpose, $data);
+		$success = @$args['success'];
+	} else $success = FALSE;
 
-//  $sharing = (@$honor == 'share');
-//  list ($goods, $purpose) = $sharing ? [FOR_SHARE, R_SHARING_MSG] : [FOR_GOODS, t('donation') . @$recurring];
-  list ($msg, $args) = $a->pay($cgf, $amount, $purpose, $data);
-  if (@$args['success']) {
-    $completed = r\rTime();
-    db\update('r_gifts', compact('donid', 'completed'), 'donid');
-    if ($often != 1) {
-      $giftDate = u\plusMonths($months, $giftDate);
-      $share = -1; // mark this field N/A (irrelevant)
-      db\insert('r_gifts', compact(ray('uid giftDate amount often share')));
-    };
-//    r\usd::commit();
-//    r\tellAdmin('gift accepted', $info + $args);
-    r\notify($uid, 'gift sent', $args);
-    return TRUE;
-  } //else r\usd::rollback();
-  return FALSE;
+	if ($success) {
+		r\notify($payer, 'gift sent', $args);
+	} else {
+		$data['status'] = TX_APPROVED;
+	  list ($msg, $args) = $a2->invoice($a1, $amount, $purpose, $data);
+	}
+/*  r\notify($uid, $success ? 'gift sent' : 'cannot give', $args + compact('purpose', 'msg'));
+	'cannot give' => t('Cannot transfer funds for your %purpose to %payeeName (%msg)'),
+	*/
+  return $success;
 }
 
 /**
@@ -823,7 +799,8 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_coupons:fromId',
     'r_do:uid:D',
     'r_events:ctty',
-    'r_gifts:uid:D',
+//    'r_gifts:uid:D',
+    'r_honors:uid:D', // honors are deletable if donation never completed
   // r_industries
     'r_investments:coid',
     'r_investments:clubid',
@@ -844,6 +821,8 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_proxies:proxy:D',
   // r_questions
     'r_ratings:uid',
+		'r_recurs:payer:D',
+		'r_recurs:payee:D',
   // r_regions
     'r_relations:main:D',
     'r_relations:other:D',
@@ -1521,6 +1500,7 @@ function doCode($code) { // accommodate temporary weirdness because email client
 } 
 function makeDoCode($ray) {return substr(u\cry('P', serialize($ray)), strlen(CRYPT_FLAG));}
 function cgfId() {return \variable_get('cgf_uid');}
+function cgA() {return r\acct(r\cgfId());}
 function disputeTx($xid) {return db\setFlag('r_txs', $xid, B_DISPUTED, TRUE);}
 function denyInv($nvid) {return db\setData('r_invoices', $nvid, ['denied' => TRUE]);}
 function stepsDone0() {return array_fill_keys(array_keys(ray(R_STEPS)), FALSE);}

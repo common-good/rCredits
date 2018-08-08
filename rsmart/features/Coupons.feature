@@ -19,7 +19,7 @@ Setup:
   | id   | selling         |*
   | .ZZC | this,that,other |
   And company flags:
-  | id   | flags        |*
+  | id   | coFlags      |*
   | .ZZC | refund,r4usd |
   And relations:
   | reid | main | agent | num | permission |*

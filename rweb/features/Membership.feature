@@ -50,8 +50,8 @@ Scenario: A member signs in for the first time
   And we say "status": "info saved|step completed"
 
   When member ".AAA" completes form "community/donate" with values:
-  | gift | often | honor | honored | share |*
-  |   50 |     M |     - |         |    25 |
+  | gift | period | honor | honored |*
+  |   50 |      M |     - |         |
   Then we show "Proxies"
   And we say "status": "info saved|step completed"
   

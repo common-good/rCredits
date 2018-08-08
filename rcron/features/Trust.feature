@@ -37,7 +37,7 @@ Setup:
   
 Scenario: we calculate trust
   When cron runs "trust"
-  Then members:
+  Then members have:
   | id   | trust |*
   | .ZZA | 12.98 |
   | .ZZB |  9.47 |

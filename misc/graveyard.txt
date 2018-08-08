@@ -1,5 +1,77 @@
 _____________________________________________
 
+/**
+ * Return a form field for sharing percentage.
+ *//*
+function shareFld($a) {
+  $sharePct = round(db\get('AVG(share)', 'r_gifts', 'share>=0'), 1);
+  $shareDft = $a->prefsSet ? (($a->share + 0) ?: 0) : R_SHARE_DFT;
+  return textFld(t('Share:'), t('<p>What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (CGF), to support the %PROJECT system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 50%. For example, if you choose 30%, then when you make a $10 purchase and get your $1 reward, your "sharing" contribution is 30 cents (30% of $1). The current average sharing percentage chosen by members is sharePct%.</p><p>Note that this is not "giving back" part of your rewards to the %PROJECT community &mdash; rather it is an optional extra donation to CGF. CGF is a nonprofit member company, not the system itself. CGF promotes %PROJECT and handles administration of your %PROJECT community until the community can take over that responsibility.</p>', compact('sharePct')), required($shareDft . '%'));
+}
+*/
+_____________________________________________
+
+function acceptGift($info) {
+  extract(just('donid uid giftDate amount often', $info));
+  $a = r\acct($uid);
+  if ($a->shortfall(FOR_GOODS, $amount)) return FALSE; // wait until tomorrow, if not enough
+  if ($a->shortfall(FOR_GOODS, $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
+  $cgf = r\acct(r\cgfId());
+  $data['gift'] = 1;
+
+  if ($often != 1) {
+    $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
+    $recurs = ray(t('once monthly quarterly yearly'));
+    $count = db\count('r_gifts', 'uid=:uid AND often=:often', compact('uid', 'often'));
+    $purpose = t('regular donation (%how gift #%count)', 'how count', $recurs[strpos('1MQY', $often)], $count);
+    $data['patronage'] = 1;
+  } else $purpose = t('donation');
+
+  list ($msg, $args) = $a->pay($cgf, $amount, $purpose, $data);
+  if (@$args['success']) {
+    $completed = r\rTime();
+    db\update('r_gifts', compact('donid', 'completed'), 'donid');
+    if ($often != 1) {
+      $giftDate = u\plusMonths($months, $giftDate);
+      $share = -1; // mark this field N/A (irrelevant)
+      db\insert('r_gifts', compact(ray('uid giftDate amount often share')));
+    };
+    r\notify($uid, 'gift sent', $args);
+    return TRUE;
+  return FALSE;
+}
+_____________________________________________
+
+function draw1($item) {
+  extract(just('uid ma', $item)); // ma is UNUSED
+  $a = r\acct($uid);
+  if ($a->jid) return; // don't draw within a joint account
+  if (!$amount = getHowMuchR($a, FALSE)) return;
+
+  if ($a->draw($amount, $msg)) {
+    $amount = u\fmtAmt($amount);
+    r\notify($uid, 'under min|drew', compact('amount'));
+  } else r\notify($uid, 'under min|cannot draw');
+}
+
+	/**
+	 * Given an account's shortfall, return how much to actually transfer to the CG Account.
+	 * @param acct $a: which account
+	 * @param bool $banky: the account has a connected bank account
+	 * @return: positive amount to draw from the connected bank account or elsewhere (0 if none).
+	 */
+	function getHowMuch($a) {
+		$a = $this;
+		if (!$need = max(0, $a->minimum - $a->balance)) return 0; // + $a->committed
+		if ($a->hasBank) {
+			$waiting = $a->waitingFromBank($combinable); // net amount already requested from bank (if any)
+			$need = round($need - $waiting, 2); // avoid a re-request
+		}
+		return ($need <= 0 ? 0 : max(@$combinable + 0 > 0 ? 0 : $a->achMin, round(R_ACHMIN * ceil($need / R_ACHMIN))));
+	}
+		
+_____________________________________________
+
     $v = u\fmtAmt($v, '$');
 //    $list[] = "<div class=\"row\"><div>$k</div><div>$v</div></div>\n";
 //  $_list = '<div class="table">' . join('', $_list) . '</div>';

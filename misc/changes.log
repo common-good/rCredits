@@ -1,3 +1,40 @@
+2018-08-08
+. generalized getting of funds as needed (acct::getFunds())
+. created r_honors and r_recurs tables, reworking how donations are handled, generalizing to allow recurring gifts to other organizations
+. INSERT INTO r_honors (uid,honor,honored,created) SELECT uid,IF(honor='other','honor',honor) AS honor,honored,giftDate AS created FROM r_gifts WHERE honored<>'';
+  INSERT INTO r_recurs (payer,payee,amount,period,created,ended) 
+	  SELECT g.uid AS payer,26742000000002 AS payee,g.amount,g.often AS period,MIN(g2.giftDate) AS created,
+	  IF(MIN(g.completed)=0,0,MAX(g.completed)) AS ended
+		FROM r_gifts g LEFT JOIN r_gifts g2 ON g2.uid=g.uid AND g2.often=g.often
+		WHERE g.often IN ('Y','Q','M')
+		GROUP BY g.uid,g.often
+		ORDER BY MIN(g2.giftDate)
+. $q = db\q('SELECT g.uid FROM r_gifts g JOIN users u ON u.uid=g.uid WHERE often=1 AND activated=0');
+	while ($row = $q->fetchAssoc()) {
+		extract($row);
+		$a = a($uid);
+		$a->stepDone('donate', FALSE); // force re-donate (regular or not at all)
+	}
+. find r_recurs dups and delete the oldest
+  SELECT * FROM r_recurs r WHERE (SELECT COUNT(id) FROM r_recurs r2 WHERE r2.payer=r.payer)>1 ORDER BY id
+. find givers in r_gifts w no actual non-roundup non-crumb donation, with hasBank and no refill. Warn them about impending bank withdrawal to fund their chosen donation. Create an invoice for those with no regular donation or abandon them. Subject: IMPORTANT: your Common Good account
+  $sql = 'SELECT g.uid,u.fullName,g.amount,g.often,g.honor,g.honored,g.giftDate FROM r_gifts g JOIN users u ON u.uid=g.uid LEFT JOIN r_txs t ON t.payer=u.uid AND t.payee=26742000000002 AND t.:IS_GIFT AND NOT t.:IS_ROUNDUPS AND NOT t.:IS_CRUMBS WHERE t.xid IS NULL AND u.:HAS_BANK AND NOT u.:IS_REFILL AND NOT completed AND u.:IS_OK';
+	$q = db\q($sql); $s = '';
+	while ($row = $q->fetchAssoc()) {
+		extract($row);
+		$a = a($uid);
+		$created = u\fmtDate($giftDate);
+		$gift = u\fmtAmt($amt0 = $amount) . ($often == 'M' ? ' Monthly' : ($often == 'Q' ? ' Quarterly' : ($often == 'Y' ? ' Yearly' : '')));
+		if ($honored) $gift .= '[i] in ' . ($honor == 'memory' ? $honor : 'honor') . " of $honored [/i]";
+		$s .= "$fullName &lt;$a->email&gt;: [p]Dear $fullName,[/p][p]Due to a glitch in our Common Good donation system, your chosen contribution of $gift was never transferred from your bank account. We have fixed that problem, but I wanted to give you a heads-up before the transfer request takes effect.[/p][p]If for any reason this completion of your intended donation is problematic this week, please just let us know before Friday 8/10.[/p][p]With many thanks again for your support,[br]William[/p][br]\r\n\r\n";
+		if ($often == '1') {
+			$info = ray('payer,payee,amount,period,created,lastTx,invoiced', $a->id, r\cgfId(), $amt0, $often, NOW, 0, 0);
+/**/      debug($fullName . ': ' . (r\acceptGift($info) ? 'accepted NOW' : 'later'));
+		}
+	}
+	echo $s;
+. 
+
 2018-08-03
 . fixed stats bug that undercounted members by omitting slaves in joint accounts (284 vs 275)
 . fixed bug that kept non-member representatives from a participating business sign in with their card

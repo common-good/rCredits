@@ -33,7 +33,7 @@ use CG\Db as db;
 function rdo($code, $args = '') {
 /**/	u\log(print_r(compact(ray('code args')), 1));
   global $channel;
-  if (isDEV) foreach (['error', 'status'] as $k) unlink(f('t.dosayFilename', $type)); // clear tests (no way to see if testing)
+  if (isDEV) foreach (['error', 'status'] as $k) @unlink(f('t.dosayFilename', $k)); // clear tests (no way to see if testing)
   if (time() < strtotime('6/1/2017')) u\loga('rdo', compact('code', 'args'));
   if (strpos($code, ' ')) return doSay(plain($code));
   if ($i = strpos($code, '~') and $i < 15) { // mailChimp-type action

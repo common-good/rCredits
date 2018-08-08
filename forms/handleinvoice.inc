@@ -38,7 +38,7 @@ function formHandleInvoice($form, &$sta, $args = '') {
     $subs += ray('who', r\acct($payee)->fullName);
 
     if ($a->hasBank) {
-      $_warning = t('<p><b>IMPORTANT:</b> To avoid insufficient funds charges, be sure there are enough funds in your bank account to cover any automatic transfer that may result from approving payment of this invoice (and future invoices, if you check the "Auto" box).</p>');
+      $_warning = t('<p><b>IMPORTANT:</b> To avoid insufficient funds charges, be sure there are enough funds in your bank account to cover any transfer that may result from approving payment of this invoice (and future invoices, if you check the "Auto" box).</p>');
       if (!@$webpay) $always = boxFld('always', t('Auto:'), t('Pay all invoices from %who automatically.', $subs), 0);
     } elseif ($a->balance <= 0) {
       $_warning = t('You cannot approve this invoice until you have money in your account. Sign in at %CG_DOMAIN and click "Bank" on the menu to transfer funds from (or to) your bank account.');
@@ -95,8 +95,8 @@ function formHandleInvoice_submit($form, &$sta) {
     } else {
       db\update('r_invoices', ray('nvid status', $nvid, TX_APPROVED), 'nvid');
       if ($fromA->ok) {
-        $msg = $fromA->hasBank ? 'expect a transfer' : 'when funded';
-        $msg = t('short invoice', ray('short payeeName', u\fmtAmt($short), $payeeName)) . "|$msg";
+        $msg = $fromA->hasBank ? 'expect a transfer' : 'when funded|how to fund';
+        $msg = t('short invoice', ray('short payeeName nvid', u\fmtAmt($short), $payeeName, $nvid)) . "|$msg";
       } else $msg = t('finish signup|when funded');
     }
     
