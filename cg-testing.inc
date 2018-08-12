@@ -443,6 +443,16 @@ function notice($notice, $id, $subs = []) {
 }
 
 /**
+ * Say whether the record count in a table is correct.
+ */
+function count($what, $count) {
+	global $testOnly; if (!$testOnly) return FALSE;
+	
+	$what = $what == 'accounts' ? 'users' : "r_$what";
+	return (db\count($what) == $count);
+}
+
+/**
  * Pretend the account has complete the given steps.
  */ 
 function doneStep($id, $step) {

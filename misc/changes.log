@@ -1,3 +1,9 @@
+2018-08-12
+. fixed minor mistakes in previous commit
+. fixed bug that resulted in getting funds from banks automatically for short accounts even with no refills flag
+. fixed bug that resulted in attempts to donate from non members in cron
+. fixed order of transactions in transaction history
+
 2018-08-08
 . generalized getting of funds as needed (acct::getFunds())
 . created r_honors and r_recurs tables, reworking how donations are handled, generalizing to allow recurring gifts to other organizations

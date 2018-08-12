@@ -656,7 +656,7 @@ function depositDetails($args) {
   include_once __DIR__ . '/../pdf.class';
   $pdf = new r\Pdf();
 
-  if (!$in = (strtoupper($way) == 'IN')) $total = str_replace('-', '', $total);
+  if (!$in = (!isset($way) or strtoupper($way) == 'IN')) $total = str_replace('-', '', $total);
 
   $m = .5; // left/right margin size
   $colW = 1.25; // amount column width

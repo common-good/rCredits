@@ -779,7 +779,7 @@ function gifts() {
 		  (SELECT 1 FROM r_invoices i WHERE i.payer=r.payer AND i.payee=r.payee AND i.:IS_PATRONAGE AND status=:TX_APPROVED LIMIT 1) AS invoiced,
   		(SELECT MAX(t.created) FROM r_txs t WHERE t.payer=r.payer AND t.payee=r.payee AND t.:IS_PATRONAGE) AS lastTx
 		FROM r_recurs r	INNER JOIN users u1 ON u1.uid=r.payer INNER JOIN users u2 ON u2.uid=r.payee
-		WHERE (u1.:IS_OK OR NOT u1.activated) AND u2.:IS_OK AND r.ended=0
+		WHERE u1.:IS_OK AND u2.:IS_OK AND r.ended=0
 X;
   queueEach('gift1', $sql);
   queueNext();
@@ -822,7 +822,7 @@ function getFunds() {
     queueEach('completeUsdTx', $sql);
   }
   
-	queueEach('getFunds1', 'SELECT uid FROM users WHERE IF(jid,:MASTER,balance<minimum) AND uid>:CANONIC_ACCTS AND :IS_OK');
+	queueEach('getFunds1', 'SELECT uid,jid FROM users WHERE IF(jid,:MASTER,balance<minimum) AND uid>:CANONIC_ACCTS AND :IS_OK AND :IS_REFILL');
 	/*
 //  $where = ':IS_REFILL AND (:IS_JOINED OR r-rewards-savingsAdd<minimum) AND uid>1 AND :IS_OK';
   $where = 'u.:IS_REFILL AND (jid OR balance<minimum) AND uid>:CANONIC_ACCTS AND u.:IS_OK';
@@ -854,11 +854,10 @@ function completeUsdTx($item) {
 }
 
 function getFunds1($item) {
-  extract(just('uid', $item));
+  extract(just('uid jid', $item));
   $a = r\acct($uid);
-  if ($a->slave) return; // slaves don't have automatic refills
 	$amount = $a->minimum - $a->balance;
-	if ($a->hasBank) $amount += db\sum('amount', 'r_invoices', 'status=:TX_APPROVED AND :IS_FUNDING AND payer=:uid', compact('uid')) - $a->waitingFromBank();
+	if ($a->hasBank) $amount += db\sum('amount', 'r_invoices', 'status=:TX_APPROVED AND :IS_FUNDING AND payer IN (:uid,:jid)', $item) - $a->waitingFromBank(); // subtract out other non-invoice-related transfers
 	$a->getFunds($amount, t('to target'));
 }
 

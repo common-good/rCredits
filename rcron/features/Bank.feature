@@ -8,11 +8,12 @@ Setup:
   | id   | fullName | floor | minimum | flags        | achMin | risks   |*
   | .ZZA | Abe One  |     0 |     100 | co,ok,refill | 30     | hasBank |
   | .ZZB | Bea Two  |   -50 |     100 | ok,refill    | 30     |         |
+  | .ZZC | Our Pub  |   -50 |     100 | ok,co        | 50     | hasBank |
   And relations:
   | main | agent | draw |*
   |.ZZA | .ZZB  | 1    |
   
-Scenario: a member is barely below minimum
+Scenario: a member is barely below target
   Given balances:
   | id   | rewards | savingsAdd | balance |*
   | .ZZA |      20 |          0 | 99.99   |
@@ -20,6 +21,7 @@ Scenario: a member is barely below minimum
   Then usd transfers:
   | txid | payee | amount | channel  |*
   |    1 | .ZZA  |     30 | %TX_CRON |
+  Then bank transfer count is 1
   And we notice "banked|bank tx number|available now" to member ".ZZA" with subs:
   | action    | amount | checkNum | why       |*
   | draw from | $30    |        1 | to bring your balance up to the target you set |
@@ -36,7 +38,7 @@ Scenario: a member has a negative balance
   | action    | amount | checkNum | why       |*
   | draw from | $150   |        1 | to bring your balance up to the target you set |
 
-Scenario: an unbanked member barely below minimum draws on another account
+Scenario: an unbanked member barely below target draws on another account
   Given balances:
   | id   | balance |*
   | .ZZA | 200   |
@@ -49,7 +51,7 @@ Scenario: an unbanked member barely below minimum draws on another account
   | amount | why       |*
   | $0.01  | to bring your balance up to the target you set |
   
-Scenario: an unbanked member barely below minimum cannot draw on another account
+Scenario: an unbanked member barely below target cannot draw on another account
   Given balances:
   | id   | balance |*
   | .ZZA | 0      |
@@ -59,14 +61,14 @@ Scenario: an unbanked member barely below minimum cannot draw on another account
 	| why       |*
 	| to bring your balance up to the target you set |
 
-Scenario: a member is at minimum
+Scenario: a member is at target
   Given balances:
   | id   | rewards | savingsAdd | balance |*
   | .ZZA |      20 |          0 |     100 |
   When cron runs "getFunds"
   Then bank transfer count is 0
   
-Scenario: a member is well below minimum
+Scenario: a member is well below target
   Given balances:
   | id   | rewards | savingsAdd | balance | minimum |*
   | .ZZA |      25 |          0 |      50 |     151 |
@@ -78,7 +80,7 @@ Scenario: a member is well below minimum
   | action    | amount              | checkNum | why       |*
   | draw from | $%(100 + %R_ACHMIN) |        1 | to bring your balance up to the target you set |
 
-Scenario: a member is under minimum but already requested barely enough funds from the bank
+Scenario: a member is under target but already requested barely enough funds from the bank
   Given balances:
   | id   | rewards | savingsAdd | balance |*
   | .ZZA |      20 |          0 |      20 |
@@ -91,8 +93,8 @@ Scenario: a member is under minimum but already requested barely enough funds fr
 # (again)  
   Then bank transfer count is 1
   
-Scenario: a member is under minimum and has requested insufficient funds from the bank
-# This works only if member requests more than R_USDTX_QUICK the first time (hence ZZD, whose minimum is 300)
+Scenario: a member is under target and has requested insufficient funds from the bank
+# This works only if member requests more than R_USDTX_QUICK the first time (hence ZZD, whose target is 300)
   Given members:
   | id   | fullName | floor | minimum | flags     | achMin | risks   |*
   | .ZZD | Dee Four |   -50 |     300 | ok,refill | 30     | hasBank |
@@ -111,7 +113,7 @@ Scenario: a member is under minimum and has requested insufficient funds from th
   | payee | amount |*
   | .ZZD  | %(280+R_ACHMIN) |
 
-Scenario: a member is under minimum only because rewards are reserved
+Scenario: a member is under target only because rewards are reserved
   Given members:
   | id   | fullName | minimum | flags     | achMin | risks   |*
   | .ZZD | Dee Four |     100 | ok,refill | 10     | hasBank |
@@ -123,7 +125,7 @@ Scenario: a member is under minimum only because rewards are reserved
   | payee | amount |*
   | .ZZD  |     20 |
   
-Scenario: a member member with zero minimum has balance below minimum
+Scenario: a member member with zero target has balance below target
   Given balances:
   | id   | minimum | balance |*
   | .ZZA |       0 | -10     |
@@ -132,7 +134,7 @@ Scenario: a member member with zero minimum has balance below minimum
   | payee | amount |*
   | .ZZA  |     30 |
   
-Scenario: an unbanked member with zero minimum has balance below minimum
+Scenario: an unbanked member with zero target has balance below target
   Given balances:
   | id   | minimum | balance |*
   | .ZZA |       0 |   0 |
@@ -152,7 +154,7 @@ Scenario: a member has a deposited but not completed transfer
   When cron runs "getFunds"
   Then bank transfer count is 1
 
-Scenario: an account has a minimum but no refills
+Scenario: an account has a target but no refills
   Given members have:
   | id   | flags |*
   | .ZZB | ok    |
@@ -162,3 +164,15 @@ Scenario: an account has a minimum but no refills
   | .ZZB |      20 |     -50 |
   When cron runs "getFunds"
   Then bank transfer count is 0
+
+Scenario: a non-member has a target and refills
+  Given members:
+  | id   | fullName | floor | minimum | flags  | achMin | risks   |*
+  | .ZZE | Eve Five |     0 |     100 | refill | 30     | hasBank |
+	When cron runs "getFunds"
+  Then usd transfers:
+  | txid | payee | amount | channel  |*
+  |    1 | .ZZA  |    100 | %TX_CRON |
+	And count "txs" is 0
+	And count "usd" is 1
+	And count "invoices" is 0

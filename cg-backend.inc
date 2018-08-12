@@ -66,7 +66,7 @@ EOF;
         (SELECT $txFields, u.fullName AS name FROM r_txs t1
          LEFT JOIN users u ON uid=IF($iPay, payee, payer)
          UNION SELECT $usdFields, ':R_NONE' AS name FROM r_usd) t
-      WHERE $where ORDER BY created DESC, xid DESC;
+      WHERE $where ORDER BY created DESC, xid>0, xid DESC;
 EOF;
   }
   return db\q($sql, $subs); 

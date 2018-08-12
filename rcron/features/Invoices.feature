@@ -9,6 +9,7 @@ Setup:
   | .ZZA | Abe One  | hasBank |  -250 |     500 | ok,confirmed,refill,debt |
   | .ZZB | Bea Two  |         |  -250 |     100 | ok,confirmed,debt        |
   | .ZZC | Our Pub  |         |  -250 |       0 | ok,confirmed,co,debt     |
+  | .ZZE | Eve Five | hasBank |  -250 |     200 |                          |
   And relations:
   | main | agent | permission |*
   | .ZZC | .ZZB  | buy        |
@@ -30,12 +31,17 @@ Setup:
   | .ZZC |       0 |
 
   Scenario: Unpaid invoices get handled
-  When cron runs "invoices"
+	Given balances:
+  | id   | balance |*
+  | .ZZE |     500 |
+ When cron runs "invoices"
   Then transactions: 
   | xid | created | type     | amount | from | to   | purpose             | taking |*
   |   4 | %today  | transfer |    100 | .ZZA | .ZZC | one (%PROJECT inv#1) | 0      |
-  And usd transfer count is 2
-  And usd transfers:
+	Then count "txs" is 4
+	And count "usd" is 2
+	And count "invoices" is 4
+	And usd transfers:
   | txid | payee | amount | created | completed |*
   |    1 | .ZZA  |    100 | %today  |    %today |
   |    2 | .ZZA  |    200 | %today  |         0 |
@@ -80,4 +86,12 @@ Setup:
   |    1 | .ZZA  |    100 | %today  |    %today |
   |    2 | .ZZA  |    200 | %today  |    %today |
   |    3 | .ZZA  |    500 | %today  |         0 |
-	
+
+Scenario: Non-member unpaid invoice does not generate a transfer request
+  Given invoices:
+  | nvid | created   | status       | amount | from | to   | for   |*
+  |    5 | %today    | %TX_APPROVED |    100 | .ZZE | .ZZC | one   |
+  When cron runs "invoices"
+	Then count "txs" is 4
+	And count "usd" is 2
+	And count "invoices" is 5

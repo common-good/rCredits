@@ -5,8 +5,8 @@ SO I can enjoy the rCredit system's rapid growth and be a part of that.
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state | zip   | country | postalAddr | flags        |*
-  | .ZZA | Abe One    | 1 A St. | Atown | AK    | 01000 | US      | 1 A, A, AK | ok,confirmed |
+  | id   | fullName   | address | city  | state | zip   | country | postalAddr | flags        | risks   |*
+  | .ZZA | Abe One    | 1 A St. | Atown | AK    | 01000 | US      | 1 A, A, AK | ok,confirmed | hasBank |
   And balances:
   | id   | balance | floor |*
   | cgf  |       0 |     0 |
@@ -35,6 +35,13 @@ Scenario: A brand new recurring donation can be completed
 #  | amount | myName  | often | rewardType | *
 #  |     10 | Abe One |     1 | reward     |
   # and many other fields
+	And count "txs" is 1
+	And count "usd" is 0
+	And count "invoices" is 0
+	When cron runs "gifts"
+	Then count "txs" is 1
+	And count "usd" is 0
+	And count "invoices" is 0
 
 Scenario: A second recurring donation can be completed
   Given these "recurs":
@@ -61,3 +68,44 @@ Scenario: A donation invoice can be completed
 	And invoices:
   | nvid | created   | status | amount | from | to  | for      | flags |*
   |    2 | %today    | 1      |     50 | .ZZA | cgf | donation | gift  |	
+	
+Scenario: A recurring donation cannot be completed
+  Given these "recurs":
+  | created   | payer | payee | amount | period |*
+  | %today-3m | .ZZA  | cgf   |    200 |      M |
+  When cron runs "gifts"
+	Then invoices:
+  | nvid | created   | status       | amount | from | to  | for                                | flags          |*
+  |    1 | %today    | %TX_APPROVED |    200 | .ZZA | cgf | regular donation (monthly gift #1) | gift,patronage |	
+	And count "txs" is 0
+	And count "usd" is 0
+	And count "invoices" is 1
+
+  When cron runs "invoices"
+	Then count "txs" is 0
+  And count "usd" is 1
+  And count "invoices" is 1
+  And	invoices:
+  | nvid | created   | status       | amount | from | to  | for                                | flags                  |*
+  |    1 | %today    | %TX_APPROVED |    200 | .ZZA | cgf | regular donation (monthly gift #1) | gift,patronage,funding |	
+
+	When cron runs "gifts"
+	Then count "txs" is 0
+  And count "usd" is 1
+  And count "invoices" is 1
+
+Scenario: A non-member chooses a donation
+  Given members:
+  | id   | fullName | flags  | risks   | activated | balance |*
+  | .ZZD | Dee Four |        | hasBank |         0 |       0 |
+  | .ZZE | Eve Five | refill | hasBank | %today-9m |     200 |
+  Given these "recurs":
+  | created   | payer | payee | amount | period |*
+  | %today-3y | .ZZD  | cgf   |      1 |      Y |
+  | %today-3m | .ZZE  | cgf   |    200 |      M |
+  When cron runs "gifts"
+	Then count "txs" is 0
+	And count "usd" is 0
+	And count "invoices" is 0
+	
+	

@@ -141,7 +141,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   $buttons = "<div class=\"col-xs-6\">$button1</div><div class=\"col-xs-6\">$button2</div>";
 //    $row = array($tid, strftime('%d-%b', $tx_created), @$myx->name, $fromYou, $toYou, $rpct, $amount, $usd, $buttons, $myx->for, $reward, $net);
   $date = strftime($download ? '%Y-%m-%d' : '%m/%d/%y', $created); // %d-%b
-  if (strlen($tid) > 4) $tid = "<small>$tid</small>";
+  if (strlen($tid0 = $tid) > 4) $tid = "<small>$tid</small>";
 
   if (!$mya->cttyRewardy) list ($reward, $run) = [$run, $run - $amt];
   foreach (ray('amt fromyou fromyou0 toyou reward') as $k) $$k = $$k ? number_format($$k, 2) : R_NONE;
@@ -158,7 +158,7 @@ function doRow(&$rows, $tx, &$tot, $classes, $download = FALSE, $agents = FALSE,
   if ($download) return u\csv($csvRow); // not STDOUT
 //  finishCsvRow($csv, array_combine($classes, $row), $tx, $tot);
   
-  $sort = (string) (DT_MAX + $created) . (TX_TID_MAX + $tid) . ($banking ? 5 : 0) . u\randomFloat(.0001, .9999); // make it a string so as not to lose precision
+  $sort = (string) (DT_MAX + $created) . ($tid0 > 0 ? '0' : '1') . (TX_TID_MAX + $tid0) . u\randomFloat(.0001, .9999); // make it a string so as not to lose precision
 //  array_unshift($row, $sort); // sort by date (fails around the year 2260), then by tid
   
   $rows[$sort] = $row;
