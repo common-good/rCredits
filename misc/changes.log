@@ -1,3 +1,23 @@
+2018-08-16 v3.42
+. ALTER TABLE r_usd DROP COLUMN tid;
+	ALTER TABLE x_usd DROP COLUMN tid;
+. reorder r_usd and x_usd columns to agree with cg-install.inc and REBUILD
+. created a bankOk flag bit, set automatically after verifying connected bank account with a zero ACH
+. $q = db\q('SELECT DISTINCT uid FROM r_usd t JOIN users u ON u.uid=t.payee WHERE deposit>0 AND u.:HAS_BANK');
+	while ($row = $q->fetchAssoc()) {
+		$a = r\acct($row['uid']);
+		$a->setBit(B_BANKOK);
+	}
+. $q = db\q('SELECT DISTINCT txid,uid FROM r_usd t JOIN users u ON u.uid=t.payee WHERE deposit=0 AND NOT u.:IS_BANKOK');
+	while ($row = $q->fetchAssoc()) {
+	  extract($row);
+		$a = r\acct($uid);
+    $a->verifyBank();
+		db\update('r_usd', ray('txid created', $txid, NOW + DAY_SECS), 'txid');
+	}
+. fixed bug that duplicated recurring gift if invoice was pending
+. fixed bug that kept current cashout setting from being shown on Connect page
+
 2018-08-12
 . fixed minor mistakes in previous commit
 . fixed bug that resulted in getting funds from banks automatically for short accounts even with no refills flag

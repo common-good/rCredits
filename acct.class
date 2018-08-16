@@ -1283,9 +1283,11 @@ EOF;
     $payee = $a->id;
     $bankAccount = @$a->vsecure['bankAccount']; // already-encrypted bank account (@ is for testing)
     if ($tx) extract($tx);
-    u\setDft($tid, r\getUsdTid($payee));
-    u\setDft($created, r\rTime());
-    u\setDft($completed, $created);
+//    u\setDft($tid, r\getUsdTid($payee));
+		$okNow = ($amount < 0 or $a->bankOk); // "okay to create the request NOW"
+		if (!$okNow) $a->verifyBank();
+    u\setDft($created, $okNow ? NOW : NOW + DAY_SECS);
+    u\setDft($completed, $a->bankOk ? $created : 0);
 
     $DBTX = \db_transaction();
 
@@ -1293,7 +1295,7 @@ EOF;
       db\update('r_usd', compact(ray('txid amount completed bankAccount')), 'txid');
     } else {
 //      if (isGAME) $tx += ['members' => $a->members];
-      $txid = db\insert('r_usd', $tx += compact(ray('amount payee created completed tid bankAccount channel')));
+      $txid = db\insert('r_usd', $tx += compact(ray('amount payee created completed bankAccount channel')));
       u\EXPECT((bool) $txid, 'saving usd record');
     }
 
@@ -1323,6 +1325,7 @@ EOF;
 	 */
 	private function combineUsdTx(&$amount, &$completed) {
 		$a = $this;
+		if (!$a->bankOk) return FALSE;
     if ($amount > 0 and $amount + $a->advances() - $a->balance > -$a->floor) $completed = 0; // only 0 if bringing in beyond credit line
     $where = 'payee=:id AND amount>0 AND NOT deposit AND NOT completed';
     if ($res = db\get('txid,amount AS oldAmount', 'r_usd', $where, ray('id', $a->id))) {
@@ -1331,6 +1334,18 @@ EOF;
 		} else $txid = FALSE;
     return $txid;
 	}
+
+	/**
+	 * Create a zero USD transfer record to verify the bank account.
+	 */
+  public function verifyBank($channel = TX_SYS, $amount = 0) {
+		list ($bankAccount, $payee) = [@$this->vsecure['bankAccount'], $this->id];
+		for ($txid = 1; $txid < 999999; $txid++) { // actual transfers start sometime after 999,999
+			if (db\exists('r_usd', 'txid=:txid', compact('txid'))) continue;
+			if ($txid = db\insert('r_usd', compact(ray('txid amount payee bankAccount channel')))) break;
+		}
+		u\EXPECT($txid, 'ran out of low txids');
+	}			
 
   /**
    * Automatically cashout accounts that choose to, leaving average weekly gross (over past 6 months) in the account. Weekly gross is figured as -6/26th of the floor (because there are 26 weeks in 6 months and floor is based on 1/6 of 6 months' gross).
@@ -1733,6 +1748,7 @@ X;
    */
   public function ssnCheck($force = FALSE) {
     $a = $this;
+		if ($a->federalId == '000000000') return t('Nonmember SSN.');
     if (!@$a->federalId) return t('No SSN yet.');
     if ($a->federalId == '999999999') return t('SSN is a test.');
 //    if (u\isEncrypted($a->federalId)) return t('SSN available only to superAdmin');

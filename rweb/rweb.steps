@@ -922,6 +922,7 @@ function statisticsGetSet($time) {
  *     BOTH Joint AJoinedAccountSlaveMemberRequestsANewMinimum
  *     MAKE Joint AJoinedAccountMemberLooksAtTransactionHistoryAndSummary
  *     BOTH Joint AJoinedAccountMemberUnjoinsTheAccount
+ *     TEST Membership AMemberSignsInForTheFirstTime
  *     MAKE Statement Setup
  *     MAKE Summary Setup
  *     MAKE Summary MembersAccountIsNotActive
@@ -1396,3 +1397,4 @@ function weScripWithSubs($script, $args = []) {
  *     TEST Gift AMemberDonatesWithInsufficientFunds
  */
 function these($thing, $list) {return t\these($thing, $list);}
+

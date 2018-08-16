@@ -210,9 +210,8 @@ function del($table, $id, $subs = []) {
     $idnm = db\idnm($table, $field1); // $field1 not used
     $where = "$idnm=$id";
   } else $where = $id;
-  $now = time();
   if (in($table, TRACK_DELETED)) {
-    $q = db\q("INSERT INTO $xtable SELECT :now AS deleted,a.* FROM $table a WHERE $where", compact('now') + $subs);
+    $q = db\q("INSERT INTO $xtable SELECT :NOW AS deleted,a.* FROM $table a WHERE $where", $subs);
     $ok = ($q->rowCount() > 0);
   } else $ok = TRUE;
   if ($ok) db\q("DELETE FROM $table WHERE $where", $subs);

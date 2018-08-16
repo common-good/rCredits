@@ -5,10 +5,10 @@ SO I can spend it with my rCard.
 
 Setup:
   Given members:
-  | id   | fullName | floor | minimum | flags        | achMin | risks   |*
-  | .ZZA | Abe One  |     0 |     100 | co,ok,refill | 30     | hasBank |
-  | .ZZB | Bea Two  |   -50 |     100 | ok,refill    | 30     |         |
-  | .ZZC | Our Pub  |   -50 |     100 | ok,co        | 50     | hasBank |
+  | id   | fullName | floor | minimum | flags               | achMin | risks   |*
+  | .ZZA | Abe One  |     0 |     100 | co,ok,refill,bankOk | 30     | hasBank |
+  | .ZZB | Bea Two  |   -50 |     100 | ok,refill           | 30     |         |
+  | .ZZC | Our Pub  |   -50 |     100 | ok,co               | 50     | hasBank |
   And relations:
   | main | agent | draw |*
   |.ZZA | .ZZB  | 1    |
@@ -96,8 +96,8 @@ Scenario: a member is under target but already requested barely enough funds fro
 Scenario: a member is under target and has requested insufficient funds from the bank
 # This works only if member requests more than R_USDTX_QUICK the first time (hence ZZD, whose target is 300)
   Given members:
-  | id   | fullName | floor | minimum | flags     | achMin | risks   |*
-  | .ZZD | Dee Four |   -50 |     300 | ok,refill | 30     | hasBank |
+  | id   | fullName | floor | minimum | flags            | achMin | risks   |*
+  | .ZZD | Dee Four |   -50 |     300 | ok,refill,bankOk | 30     | hasBank |
   And balances:
   | id   | rewards | savingsAdd | balance |*
   | .ZZD |      20 |          0 |      20 |
@@ -113,18 +113,6 @@ Scenario: a member is under target and has requested insufficient funds from the
   | payee | amount |*
   | .ZZD  | %(280+R_ACHMIN) |
 
-Scenario: a member is under target only because rewards are reserved
-  Given members:
-  | id   | fullName | minimum | flags     | achMin | risks   |*
-  | .ZZD | Dee Four |     100 | ok,refill | 10     | hasBank |
-  And balances:
-  | id   | balance | rewards | savingsAdd |*
-  | .ZZD | 80      |      30 |          0 |
-  When cron runs "getFunds"
-  Then usd transfers:
-  | payee | amount |*
-  | .ZZD  |     20 |
-  
 Scenario: a member member with zero target has balance below target
   Given balances:
   | id   | minimum | balance |*
@@ -156,8 +144,8 @@ Scenario: a member has a deposited but not completed transfer
 
 Scenario: an account has a target but no refills
   Given members have:
-  | id   | flags |*
-  | .ZZB | ok    |
+  | id   | flags     |*
+  | .ZZB | ok,bankOk |
   And balances:
   | id   | rewards | balance |*
   | .ZZA |       0 |     100 |
@@ -167,8 +155,8 @@ Scenario: an account has a target but no refills
 
 Scenario: a non-member has a target and refills
   Given members:
-  | id   | fullName | floor | minimum | flags  | achMin | risks   |*
-  | .ZZE | Eve Five |     0 |     100 | refill | 30     | hasBank |
+  | id   | fullName | floor | minimum | flags         | achMin | risks   |*
+  | .ZZE | Eve Five |     0 |     100 | refill,bankOk | 30     | hasBank |
 	When cron runs "getFunds"
   Then usd transfers:
   | txid | payee | amount | channel  |*
@@ -176,3 +164,27 @@ Scenario: a non-member has a target and refills
 	And count "txs" is 0
 	And count "usd" is 1
 	And count "invoices" is 0
+	
+Scenario: member's bank account has not been verified
+  Given members have:
+  | id   | balance | flags     |*
+  | .ZZA |      10 | ok,refill |
+  When cron runs "getFunds"
+  Then usd transfers:
+  | txid | payee | amount | created           | completed | deposit |*
+  |    1 | .ZZA  |      0 | %today            |         0 |       0 |
+	|    2 | .ZZA  |     90 | %(%NOW+%DAY_SECS) |         0 |       0 |
+
+Scenario: a member's bank account gets verified
+  Given members have:
+  | id   | balance | flags     |*
+  | .ZZA |       0 | ok,refill |
+  And usd transfers:
+  | txid | payee | amount | created   | completed | deposit   |*
+  |    1 | .ZZA  |      0 | %today-2d |         0 | %today-1d |
+	When cron runs "everyDay"
+  Then count "usd" is 0
+	And members have:
+  | id   | balance | flags            |*
+  | .ZZA |       0 | ok,refill,bankOk |
+	

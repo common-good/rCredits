@@ -233,7 +233,7 @@ function setBigRisk($uid, $ago, $threshold, $bitName) {
       SUM(IF(:DEPOSIT_SQL,amount,0)) AS `in`, 
       SUM(IF(:DEPOSIT_SQL,0,-amount)) AS `out`
     FROM (SELECT txid,amount,created FROM r_usd 
-      WHERE payee=:uid AND completed>=created
+      WHERE payee=:uid AND completed>=created AND amount<>0
     UNION SELECT 0 AS txid,IF(payee=:uid, amount, -amount) AS amount,created FROM r_txs 
        WHERE payer=:uid OR payee=:uid) t
     WHERE created BETWEEN :since AND :now

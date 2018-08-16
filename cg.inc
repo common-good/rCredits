@@ -1073,7 +1073,7 @@ X;
     SUM(IF($in, 1, 0)) AS usdInCount,
     SUM(IF($in, 0, 1)) AS usdOutCount
     FROM r_usd t LEFT JOIN $accounts u ON u.uid=t.payee
-    WHERE $cttyCrit AND t.completed AND t.completed<=:created
+    WHERE $cttyCrit AND t.completed AND t.completed<=:created AND t.amount<>0
 X;
   $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
@@ -1140,7 +1140,7 @@ X;
 
     // NOTE: xid and txid are needed here to prevent merging
     $txs = <<< X
-      ((SELECT txid AS xid, 0 AS payer, payee, amount, completed AS created FROM r_usd)
+      ((SELECT txid AS xid, 0 AS payer, payee, amount, completed AS created FROM r_usd WHERE amount<>0)
        UNION (SELECT xid, payer, payee, amount, created FROM r_txs))
 X;
 
@@ -1179,7 +1179,7 @@ X;
     $res += db\q($sql, $subs)->fetchAssoc() ?: [];
 
     $txs = <<< X
-      ((SELECT txid AS xid, 0 AS payer, payee, amount, completed AS created FROM r_usd)
+      ((SELECT txid AS xid, 0 AS payer, payee, amount, completed AS created FROM r_usd WHERE amount<>0)
        UNION (SELECT xid, payer, payee, amount, created FROM r_txs))
 X;
 
@@ -1240,14 +1240,14 @@ function averageBalance($uid, $start, $end = NULL, $noj = FALSE) {
   $avg = $ravg = 0;
 
   // use "1" as payee for r_usd, to avoid matching jid=0
+//    SUM(IF($isPayer, payerReward, payeeReward)) AS rtotal,
+//    SUM(IF(t.goods=:FOR_SHARE, $signedAmt, 0)) AS share,
   $sql = <<< X
     SELECT SUM($signedAmt) AS total,
-    SUM(IF($isPayer, payerReward, payeeReward)) AS rtotal,
-    SUM(IF(t.goods=:FOR_SHARE, $signedAmt, 0)) AS share,
     FLOOR((t.completed-$start)/:DAY_SECS) AS day 
     FROM (
-      (SELECT type,goods,payer,payee,amount,payerReward,payeeReward,created AS completed FROM r_txs)
-      UNION (SELECT :TX_BANK,-:FOR_SHARE,1 AS payer,payee,amount,0,0,completed FROM r_usd)
+      (SELECT type,payer,payee,amount,payerReward,payeeReward,created AS completed FROM r_txs)
+      UNION (SELECT :TX_BANK,1 AS payer,payee,amount,0,0,completed FROM r_usd)
     ) t WHERE ($isPayer XOR $isPayee) AND completed BETWEEN $start AND $end 
     GROUP BY day
 X;
@@ -1256,25 +1256,26 @@ X;
 
   while($row = $q->fetchAssoc()) {
     $dayx = $day;
-    extract($row); // total, rewards, share, day
+    extract($row); // total, day
 
-    $rtotal += $share;
-    $total -= $rtotal; // don't include rewards in balance
+//    $rtotal += $share;
+//    $total -= $rtotal; // don't include rewards in balance
     $avg += $bal * ($day - $dayx) / $days;
-    $ravg += $rbal * ($day - $dayx) / $days;
+//    $ravg += $rbal * ($day - $dayx) / $days;
 /// debug(compact('uid','day','dayx','days','bal','avg','total', 'start','end'));
     $bal += $total;
-    $rbal += $rtotal;
+//    $rbal += $rtotal;
     $min = min($min, $bal);
   }
   $dayx = $day;
   $day = round(($end - $start) / DAY_SECS); // end of period
   $avg += $bal * ($day - $dayx) / $days;
-  $ravg += $rbal * ($day - $dayx) / $days;
+//  $ravg += $rbal * ($day - $dayx) / $days;
   $min = round($min, 2);
 /// debug(compact('uid','day','dayx','bal','avg'));
 
-  return [$avg, $min, $ravg, $days];
+//  return [$avg, $min, $ravg, $days];
+  return [$avg, $min, $days];
 }
 
 /**
@@ -1375,10 +1376,11 @@ function median($field, $table = 'users', $where = 1, $subs = []) {
  * Return the next sequential bank transfer number for an account.
  * @param int $payee: the account uid
  * @return int: the next unused positive integer (1 if there are no bank transfers yet)
- */
+ * UNUSED
+ *//*
 function getUsdTid($payee) {
   return db\get('MAX(tid)+1', 'r_usd', 'payee=:payee', compact('payee')) ?: 1;
-}
+}*/
 
 /**
  * Send the account a notice for the suggested action, with a direct link to do it.

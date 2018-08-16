@@ -58,7 +58,7 @@ EOF;
   $sql = <<<EOF
     SELECT t.risk AS score,txid,t.created,ABS(t.amount) AS amount,payee,IF(t.amount>0,'in','out') AS way,t.risks 
     FROM r_usd t LEFT JOIN users u ON u.uid=payee
-    WHERE t.created BETWEEN :starting AND :ending AND $cttyCrit
+    WHERE t.created BETWEEN :starting AND :ending AND amount<>0 AND $cttyCrit
     ORDER BY t.risk DESC LIMIT :K_LINES
 EOF;
   $q = db\q($sql, $subs);

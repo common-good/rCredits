@@ -292,7 +292,7 @@ function tableDefs($schema = []) {
   // table r_usd
   $fields = array(
     'txid' => dbFld(t('the unique transaction ID'), 'serial big'), 
-    'tid' => dbFld("payer's transaction ID", 'int 11'), // set, but currently UNUSED
+//    'tid' => dbFld("payer's transaction ID", 'int 11', 0), // set, but currently UNUSED
     'amount' => dbFld(t('amount of transfer'), 'numeric 11,2'), 
     'payee' => dbFld(t('CG account record ID'), 'int big'), 
     'created' => dbFld(t('Unixtime transaction was created'), 'int 11', 0),

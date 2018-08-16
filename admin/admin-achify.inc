@@ -1,4 +1,5 @@
 <?php
+namespace CG\Web;
 use CG as r;
 use CG\Util as u;
 use CG\DB as db;

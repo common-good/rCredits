@@ -8,11 +8,11 @@ SO I can spend it through the rCredits system or hold it in the rCredits system 
 
 Setup:
   Given members:
-  | id   | fullName | minimum | floor | flags          | risks   |*
-  | .ZZA | Abe One  |       0 |   -20 | ok,debt        | hasBank |
-  | .ZZB | Bea Two  |       0 |     0 | ok             | hasBank |
-  | .ZZC | Our Pub  |      40 |   -10 | co,ok,debt     | hasBank |
-  | .ZZD | Dee Four |      80 |   -20 | ok,refill,debt | hasBank |
+  | id   | fullName | minimum | floor | flags             | risks   |*
+  | .ZZA | Abe One  |       0 |   -20 | ok,debt,bankOk    | hasBank |
+  | .ZZB | Bea Two  |       0 |     0 | ok                | hasBank |
+  | .ZZC | Our Pub  |      40 |   -10 | co,ok,debt,bankOk | hasBank |
+  | .ZZD | Dee Four |      80 |   -20 | ok,refill,debt    | hasBank |
 	And relations:
 	| main | other | permission |*
 	| .ZZC | .ZZB  |     manage |
@@ -23,13 +23,13 @@ Setup:
   | 3   | %today-10d | signup |     10 | ctty | .ZZC | signup  |
   | 4   | %today-10d | signup |     20 | ctty | .ZZD | signup  |
   And usd transfers:
-  | txid | payee | amount | tid | created   | completed | deposit   |*
-  | 5001 |  .ZZA |     99 |   1 | %today-7d | %today-5d | %today-1d |
-  | 5002 |  .ZZA |    100 |   2 | %today-5d |         0 | %today-1d |
-  | 5003 |  .ZZA |    -13 |   3 | %today-2d | %today-2d | %today-1d |
-  | 5004 |  .ZZB |     -4 |   1 | %today-2d | %today-2d | %today-1d |
-  | 5005 |  .ZZC |     30 |   1 | %today-2d | %today-2d | %today-1d |
-  | 5006 |  .ZZD |    140 |   1 | %today-2d | %today-2d | %today-1d |
+  | txid | payee | amount | created   | completed | deposit   |*
+  | 5001 |  .ZZA |     99 | %today-7d | %today-5d | %today-1d |
+  | 5002 |  .ZZA |    100 | %today-5d |         0 | %today-1d |
+  | 5003 |  .ZZA |    -13 | %today-2d | %today-2d | %today-1d |
+  | 5004 |  .ZZB |     -4 | %today-2d | %today-2d | %today-1d |
+  | 5005 |  .ZZC |     30 | %today-2d | %today-2d | %today-1d |
+  | 5006 |  .ZZD |    140 | %today-2d | %today-2d | %today-1d |
   Then balances:
   | id   | balance |*
   | .ZZA |      86 |
@@ -42,8 +42,8 @@ Scenario: a member moves credit to the bank
   | op  | amount |*
   | put |     86 |
   Then usd transfers:
-  | payee | amount | tid | created   | completed | channel |*
-  |  .ZZA |    -86 |   4 | %today    | %today    | %TX_WEB |
+  | payee | amount | created   | completed | channel |*
+  |  .ZZA |    -86 | %today    | %today    | %TX_WEB |
   And we say "status": "banked" with subs:
   | action     | amount | why             |*
   | deposit to | $86    | at your request |
@@ -56,12 +56,12 @@ Scenario: a member draws credit from the bank with zero floor
   | op  | amount    |*
   | get | %R_ACHMIN |
   Then usd transfers:
-  | txid | payee | amount    | tid | created | completed | channel |*
-  | 5007 |  .ZZB | %R_ACHMIN |   2 | %today  | %today    | %TX_WEB |
+  | txid | payee | amount    | created   | completed | channel |*
+  | 5007 |  .ZZB | %R_ACHMIN | %tomorrow |         0 | %TX_WEB |
   And balances:
   | id   | balance |*
   | .ZZA |      86 |
-  And we say "status": "banked|bank tx number|available now" with subs:
+  And we say "status": "banked|bank tx number" with subs:
   | action     | amount     | checkNum | why             |*
   | draw from  | $%R_ACHMIN |     5007 | at your request |
 
@@ -70,8 +70,8 @@ Scenario: a member draws credit from the bank with adequate floor
   | op  | amount |*
   | get |     10 |
   Then usd transfers:
-  | txid | payee | amount | tid | created | completed | channel |*
-  | 5007 |  .ZZC |     10 |   2 | %today  |    %today | %TX_WEB |
+  | txid | payee | amount | created | completed | channel |*
+  | 5007 |  .ZZC |     10 | %today  |    %today | %TX_WEB |
   And balances:
   | id   | balance |*
   | .ZZC | 40      |
@@ -110,8 +110,8 @@ Scenario: a member tries to go below their minimum
 
 Scenario: a member asks to do two transfers out in one day
   Given usd transfers:
-  | payee | amount | tid | created   |*
-  |  .ZZD |     -6 |   0 | %today    |
+  | payee | amount | created   |*
+  |  .ZZD |     -6 | %today    |
   When member ".ZZD" completes form "get" with values:
   | op  | amount |*
   | put |     10 |

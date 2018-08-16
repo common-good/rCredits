@@ -20,7 +20,7 @@ function formConnect($form, &$sta, $args = '') {
   $title = t('Banking Settings');
 
   $refills = boolFld(t('Refills:'), t('Refill your %PROJECT Account automatically when it goes below a chosen "Target Balance"? Say no if you tend to bounce checks or live close to the wire.'), $mya->refill);
-  if ($mya->co) $cashout = radiosFld(t('Cashout:'), t('If you choose weekly or monthly automatic transfers to your bank account, the system will leave a balance in your %PROJECT account equal to your average weekly payments received, over the past six months.'), required(), ray('0 1 2', t('no automatic cashout'), t('weekly (automatic)'), t('monthly (automatic)')));
+  if ($mya->co) $cashout = radiosFld(t('Cashout:'), t('If you choose weekly or monthly automatic transfers to your bank account, the system will leave a balance in your %PROJECT account equal to your average weekly payments received, over the past six months.'), required($mya->cashoutW ? 1 : ($mya->cashoutM ? 2 : 0)), ray('0 1 2', t('no automatic cashout'), t('weekly (automatic)'), t('monthly (automatic)')));
   $autopay = autopays($orig);
   $autoboxes = hidFld(serialize($orig));
   $minDesc = t('How much to keep in your %PROJECT Account, for purchases. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days.');
@@ -122,7 +122,11 @@ function formConnect_submit($form, &$sta) {
   list ($hasBank, $refill) = [$connect, $connect and $refills];
   list ($cashoutW, $cashoutM) = [$connect and @$cashout == 1, $connect and @$cashout == 2];
   $fields = ray('hasBank last4bank refill cashoutW cashoutM minimum achMin saveWeekly');
-  if ($bankAccount != 'no change') $fields[] = 'bankAccount'; // avoid overwriting v-encrypted value
+  if ($bankAccount != 'no change') { // bank account changed. update and reverify.
+		$fields[] = 'bankAccount'; // avoid overwriting v-encrypted value
+		$mya->setBit(B_BANKOK, FALSE);
+    if (!$connect) db\del('r_usd', 'deposit=0 AND payee=:id', ray('id', $mya->id)); // no transfers for a deleted bank connection
+	}
   $mya->update(compact($fields));
   
   if (@$autoboxes and $orig = unserialize($autoboxes)) foreach ($orig as $uid => $wasSet) {

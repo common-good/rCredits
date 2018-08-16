@@ -42,7 +42,6 @@ function extraSetup($feature) {
  *
  * in: MAKE Bank Setup
  *     MAKE Bank AMemberIsUnderTargetAndHasRequestedInsufficientFundsFromTheBank
- *     MAKE Bank AMemberIsUnderTargetOnlyBecauseRewardsAreReserved
  *     MAKE Bank ANonmemberHasATargetAndRefills
  *     MAKE CommunityBits Setup
  *     MAKE Gifts Setup
@@ -71,7 +70,6 @@ function members($list) {return t\members($list);}
  *     MAKE Bank AMemberIsWellBelowTarget
  *     MAKE Bank AMemberIsUnderTargetButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     MAKE Bank AMemberIsUnderTargetAndHasRequestedInsufficientFundsFromTheBank
- *     MAKE Bank AMemberIsUnderTargetOnlyBecauseRewardsAreReserved
  *     MAKE Bank AMemberMemberWithZeroTargetHasBalanceBelowTarget
  *     MAKE Bank AnUnbankedMemberWithZeroTargetHasBalanceBelowTarget
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
@@ -105,12 +103,13 @@ function balances($list) {return t\balances($list);}
  *     MAKE Bank AMemberIsWellBelowTarget
  *     MAKE Bank AMemberIsUnderTargetButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     MAKE Bank AMemberIsUnderTargetAndHasRequestedInsufficientFundsFromTheBank
- *     MAKE Bank AMemberIsUnderTargetOnlyBecauseRewardsAreReserved
  *     MAKE Bank AMemberMemberWithZeroTargetHasBalanceBelowTarget
  *     MAKE Bank AnUnbankedMemberWithZeroTargetHasBalanceBelowTarget
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
  *     MAKE Bank AnAccountHasATargetButNoRefills
  *     MAKE Bank ANonmemberHasATargetAndRefills
+ *     MAKE Bank MembersBankAccountHasNotBeenVerified
+ *     MAKE Bank AMembersBankAccountGetsVerified
  *     MAKE CommunityBits CommunityBansSpendingBelowZero
  *     MAKE Gifts ABrandNewRecurringDonationCanBeCompleted
  *     MAKE Gifts ASecondRecurringDonationCanBeCompleted
@@ -150,10 +149,11 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     TEST Bank AMemberIsWellBelowTarget
  *     TEST Bank AMemberIsUnderTargetButAlreadyRequestedBarelyEnoughFundsFromTheBank
  *     TEST Bank AMemberIsUnderTargetAndHasRequestedInsufficientFundsFromTheBank
- *     TEST Bank AMemberIsUnderTargetOnlyBecauseRewardsAreReserved
  *     TEST Bank AMemberMemberWithZeroTargetHasBalanceBelowTarget
  *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
  *     TEST Bank ANonmemberHasATargetAndRefills
+ *     TEST Bank MembersBankAccountHasNotBeenVerified
+ *     MAKE Bank AMembersBankAccountGetsVerified
  *     TEST Invoices UnpaidInvoicesGetHandled
  *     TEST Joint AJointAccountNeedsRefilling
  *     MAKE Monthly Setup
@@ -357,6 +357,8 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
  * members have: (ARG)
  *
  * in: MAKE Bank AnAccountHasATargetButNoRefills
+ *     MAKE Bank MembersBankAccountHasNotBeenVerified
+ *     BOTH Bank AMembersBankAccountGetsVerified
  *     MAKE CommunityBits CommunityBansSpendingBelowZero
  *     TEST Risk Setup
  *     TEST Risk WeCalculateRisks
@@ -538,6 +540,7 @@ function these($thing, $list) {return t\these($thing, $list);}
  * count (ARG) is (ARG)
  *
  * in: TEST Bank ANonmemberHasATargetAndRefills
+ *     TEST Bank AMembersBankAccountGetsVerified
  *     TEST Gifts ABrandNewRecurringDonationCanBeCompleted
  *     TEST Gifts ARecurringDonationCannotBeCompleted
  *     TEST Gifts ANonmemberChoosesADonation

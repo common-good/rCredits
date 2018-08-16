@@ -205,6 +205,15 @@ X;
     r\deleteAccount($a);
   } , $where);
 //  db\del('users', $where); // abandoned new joint acct (must postcede setting jids)
+
+  // Notice which bank accounts have been verified
+	$where = 'amount=0 AND deposit<>0 AND deposit<:NOW-:DAY_SECS';
+	$q = db\q("SELECT payee FROM r_usd WHERE $where");
+	$DBTX = db_transaction();
+	while ($row = $q->fetchAssoc()) r\acct($row['payee'])->setBit(B_BANKOK);
+	db\del('r_usd', $where);
+	unset($DBTX);
+	db\q('DELETE FROM x_usd WHERE amount=0'); // no need to track these
 }
 
 /**
@@ -395,6 +404,7 @@ function everyMonth() {
 X;
   queueEach('crumbs', $sql); // no crumbs on rewards
 
+	// figure amount to share with each official Common Good Community
   $sql = <<< X
       SELECT $cgf AS cgf, $end AS `end`, u.community AS ctty, SUM(IF(t.payee=$cgf, t.amount, 0)) AS `in`,
         SUM(IF(t.payer=$cgf AND t.created<=$end, t.amount, 0)) AS `out`,
@@ -435,7 +445,7 @@ function inflationAdjust($item) {
   $a = r\acct($uid);
   if ($a->slave) return; // slave in joint account gets no inflation (master gets inflation for both)
   if (db\exists('r_txs', 'payee=:uid AND type=:TX_INFLATION AND created>=:end', compact('uid', 'end'))) return;
-  list ($avg, $min, $ravg) = r\averageBalance($uid, $start, $end);
+  list ($avg, $min) = r\averageBalance($uid, $start, $end);
 //  if ($adjustment > 0)  // don't adjust debts
 //  foreach ([t('average balance') => $avg, t('credit reserve') => $ravg] as $k => $v) {
   foreach ([t('average balance') => $avg] as $k => $v) {
@@ -635,7 +645,7 @@ X;
   
   $sql = <<< X
     SELECT SUM(-amount) AS bankedEver, SUM(IF(completed<:monthAgo, 0, -amount)) AS bankedPastMo
-    FROM r_usd WHERE payee=:uid AND completed AND completed<:asof
+    FROM r_usd WHERE payee=:uid AND completed AND completed<:asof AND amount<>0
 X;
   $row3 = db\q($sql, $subs)->fetchAssoc() ?: []; // get bankedEver, bankedPastMo
 
@@ -760,7 +770,7 @@ function txRisk1($item) {
  * Calculate risks of financial misbehavior for each recent ACH.
  */
 function achRisk() {
-  queueEach('achRisk1', 'SELECT * FROM r_usd WHERE risk IS NULL ORDER BY created');
+  queueEach('achRisk1', 'SELECT * FROM r_usd WHERE risk IS NULL AND amount<>0 ORDER BY created');
   queueNext();
 }
 
@@ -776,7 +786,7 @@ function gifts() {
 //  queueEach('gift1', 'SELECT g.* FROM r_gifts g INNER JOIN users u ON u.uid=g.uid WHERE NOT completed and giftDate<=:now AND :IS_OK', compact('now'));
   $sql = <<< X
     SELECT DISTINCT r.payer,r.payee,r.period,r.amount,r.created,
-		  (SELECT 1 FROM r_invoices i WHERE i.payer=r.payer AND i.payee=r.payee AND i.:IS_PATRONAGE AND status=:TX_APPROVED LIMIT 1) AS invoiced,
+		  (SELECT 1 FROM r_invoices i WHERE i.payer=r.payer AND i.payee=r.payee AND i.:IS_PATRONAGE AND status<=:TX_APPROVED LIMIT 1) AS invoiced,
   		(SELECT MAX(t.created) FROM r_txs t WHERE t.payer=r.payer AND t.payee=r.payee AND t.:IS_PATRONAGE) AS lastTx
 		FROM r_recurs r	INNER JOIN users u1 ON u1.uid=r.payer INNER JOIN users u2 ON u2.uid=r.payee
 		WHERE u1.:IS_OK AND u2.:IS_OK AND r.ended=0
@@ -877,6 +887,7 @@ function invoice($item) {
   $payeeName = $a2->fullName;
   
   if ($status == TX_APPROVED) {
+		if (!$a->ok) return; // don't try to pay from an inactive account (we can delay collection by temporarily deactivating)
 		if ($a->roundup) $amount = ceil($amount);
 		$amtFld = $a->roundup ? 'CEILING(amount)' : 'amount';
     $short = round($a->advances() + $amount - $a->avail(), 2); //	consider credit already used for advances from the bank

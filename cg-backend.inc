@@ -59,13 +59,13 @@ EOF;
     list ($fromBank, $toBank) = [t('from bank'), t('to bank')];
     $txFields = "xid, amount, t1.flags, IF($iPay, amount, 0) AS fromyou, IF($iPay, 0, amount) AS toyou, IF($iPay, payerReward, payeeReward) AS reward, payer, payee, type, t1.created, t1.data, $iPay XOR t1.:IS_TAKING AS byMe, t1.:IS_ROUNDUP AS roundup, t1.:IS_DISPUTED AS disputed, $iGet AS toMe, IF($iPay, payerFor, payeeFor) AS description, IF($iPay, payerAgent, payeeAgent) AS agent, IF(:uid<0, xid, IF($iPay, payerTid, payeeTid)) AS tid, goods, (goods=:FOR_SHARE) AS sharing, channel";
     $usdFields = "txid AS xid, amount, 0 AS flags, IF(:DEPOSIT_SQL, 0, -amount) AS fromyou, IF(:DEPOSIT_SQL, amount, 0) AS toyou, 0 AS reward, 0 AS payer, payee, :TX_BANK AS type, completed AS created, '' AS data, TRUE AS byMe, FALSE AS roundup, FALSE AS disputed, IF(:DEPOSIT_SQL, 1, 0) AS toMe, IF(:DEPOSIT_SQL, '$fromBank', '$toBank') AS description, '' AS agent, txid AS tid, :FOR_USD AS goods, 0 AS sharing, channel";
-    $where = "created BETWEEN :starting AND :ending AND type>=0 AND ($iPay XOR $iGet)"; // omit invisible transactions
+    $where = "created BETWEEN :starting AND :ending AND amount<>0 AND type>=0 AND ($iPay XOR $iGet)"; // omit invisible transactions
 
     $sql = <<<EOF
       SELECT * FROM
         (SELECT $txFields, u.fullName AS name FROM r_txs t1
          LEFT JOIN users u ON uid=IF($iPay, payee, payer)
-         UNION SELECT $usdFields, ':R_NONE' AS name FROM r_usd) t
+         UNION SELECT $usdFields, ':R_NONE' AS name FROM r_usd WHERE amount<>0) t
       WHERE $where ORDER BY created DESC, xid>0, xid DESC;
 EOF;
   }
@@ -656,7 +656,7 @@ EOF;
   $sums = @$pending ? ray('in out rewards share xfees xin', 0, 0, 0, 0, 0, 0) : db\q($sql, $subs)->fetchAssoc();
 
   $where = @$pending ? 'created<=:asof AND NOT completed' : 'completed AND completed<=:asof';
-  $sql = "SELECT SUM(amount) AS bank FROM r_usd t WHERE $isPayee AND $where";
+  $sql = "SELECT SUM(amount) AS bank FROM r_usd t WHERE $isPayee AND amount<>0 AND $where";
   $sums += db\q($sql, $subs)->fetchAssoc();
 
   foreach ($sums as $k => $v) $sums[$k] = $v + 0; // no nulls

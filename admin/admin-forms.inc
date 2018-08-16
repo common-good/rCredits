@@ -604,7 +604,7 @@ function formDeposits($form, &$sta, $deposit = 0) {
     SUM(IF(amount<0, 1, 0)) AS countOut,
     SUM(IF(amount>0, 1, 0)) AS countIn
 EOF;
-  $res = db\records($fields, 'r_usd', "deposit=$deposit");
+  $res = db\records($fields, 'r_usd', "deposit=$deposit AND amount<>0 AND created<=:NOW");
 //  if ($res[0]) {
   extract((array) $res[0]);
   foreach (ray('amountIn amountOut') as $k) $$k = u\fmtAmt($$k);
@@ -702,7 +702,7 @@ EOF
 
   $sql = <<<EOF
     SELECT amount, txid, uid, u.fullName AS name FROM r_usd t LEFT JOIN users u ON u.uid=t.payee 
-    WHERE $where AND deposit=$date ORDER BY txid
+    WHERE $where AND deposit=$date AND amount<>0 AND t.created<=:NOW ORDER BY txid
 EOF;
   $q = db\q($sql);
   $x = $pdf->pageW / 2 - 1;
@@ -750,10 +750,10 @@ EOF;
  * Create an ACH Batch file for all relevant transfer requests.
  */
 function achBatch($args) {
-  include DRUPAL_ROOT . '/rcredits/rcron/rcron-achify.inc';
+  include DRUPAL_ROOT . '/rcredits/admin/admin-achify.inc';
   extract(just('way date mark', $args));
 //  achify("deposit=$date");
-  achify("deposit=$date AND amount<0"); // temporarily only money going OUT
+  w\achify("deposit=$date AND amount<=0 AND created<=:NOW"); // temporarily only money going OUT or verifying bank account
   if (u\test()) return;
 }
 /*
@@ -803,9 +803,9 @@ function printChecks($args) {
 //  $ck->SetMargins(0, 0, 0); // left/top/right margin
   $ck->SetAutoPageBreak(FALSE);
 
-  $ways = ['IN'=>'(amount>0 AND txid>0)', 'OUT'=>'(amount<0 AND txid>0)', 'BAD'=>'txid<0'];
+  $ways = ['IN'=>'(amount>0 AND txid>0)', 'OUT'=>'(amount<0 AND txid>0)', 'BAD'=>'txid<0', 'VERIFY'=>'amount=0'];
   $where = $ways[strtoupper($way)];
-  $q = db\q("SELECT txid,created,payee,amount,deposit,bankAccount FROM r_usd WHERE deposit=:date AND $where ORDER BY created, txid", compact('date'));
+  $q = db\q("SELECT txid,created,payee,amount,deposit,bankAccount FROM r_usd WHERE deposit=:date AND created<=:NOW AND $where ORDER BY created, txid", compact('date'));
   $pos = 3; // before first position of 3, on 3-up check paper
   $count = 0;
   while ($tx = $q->fetchAssoc()) {

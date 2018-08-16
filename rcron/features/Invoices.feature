@@ -5,11 +5,11 @@ SO I can buy and sell stuff.
 
 Setup:
   Given members:
-  | id   | fullName | risks   | floor | minimum | flags                    |*
-  | .ZZA | Abe One  | hasBank |  -250 |     500 | ok,confirmed,refill,debt |
-  | .ZZB | Bea Two  |         |  -250 |     100 | ok,confirmed,debt        |
-  | .ZZC | Our Pub  |         |  -250 |       0 | ok,confirmed,co,debt     |
-  | .ZZE | Eve Five | hasBank |  -250 |     200 |                          |
+  | id   | fullName | risks   | floor | minimum | flags                           |*
+  | .ZZA | Abe One  | hasBank |  -250 |     500 | ok,confirmed,refill,debt,bankOk |
+  | .ZZB | Bea Two  |         |  -250 |     100 | ok,confirmed,debt               |
+  | .ZZC | Our Pub  |         |  -250 |       0 | ok,confirmed,co,debt            |
+  | .ZZE | Eve Five | hasBank |  -250 |     200 | bankOk                          |
   And relations:
   | main | agent | permission |*
   | .ZZC | .ZZB  | buy        |
@@ -80,12 +80,11 @@ Setup:
   |    1 | .ZZA  |    100 | %today  |    %today |
   |    2 | .ZZA  |    200 | %today  |         0 |
   When cron runs "getFunds"
-	Then usd transfer count is 3
+	Then usd transfer count is 2
   And usd transfers:
   | txid | payee | amount | created | completed |*
   |    1 | .ZZA  |    100 | %today  |    %today |
-  |    2 | .ZZA  |    200 | %today  |    %today |
-  |    3 | .ZZA  |    500 | %today  |         0 |
+  |    2 | .ZZA  |    700 | %today  |         0 |
 
 Scenario: Non-member unpaid invoice does not generate a transfer request
   Given invoices:

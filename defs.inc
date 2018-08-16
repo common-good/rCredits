@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.41f'); // software version
+define('R_VERSION', '3.42'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -290,7 +290,7 @@ define('B_ROUNDUP', 8); // round payments up to nearest dollar, donate the cents
 define('B_NONUDGE', 9); // don't send reminders
 define('B_NOSEARCH', 10); // user wants to be not findable by other members, by phone or email
 define('B_u11', 11); // 
-define('B_PAYROLL', 12); // NYI automatically pay employees their total daily salary - employer chooses pay period
+define('B_BANKOK', 12); // connected bank account has been verified
 define('B_WEEKLY', 13); // send notices only weekly
 define('B_MONTHLY', 14); // send notices only monthly
 define('B_u15', 15); //
@@ -311,7 +311,7 @@ define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_MAX', 30); // maximum bit number on testing machine
 define('B_ADMINABLE', 'member confirmed carded beta icAdmin cAdmin cAdmin2 nonudge cgc invites rewardy noneg'); // for cAdmin to set
-define('B_LIST', 'member confirmed ok carded ided refill co draws roundup nonudge nosearch u11 payroll weekly monthly u15 bysms paper secret u19 debt u21 savings cashoutW cashoutM beta icAdmin admin2 cAdmin2 cAdmin admin');
+define('B_LIST', 'member confirmed ok carded ided refill co draws roundup nonudge nosearch u11 bankOk weekly monthly u15 bysms paper secret u19 debt u21 savings cashoutW cashoutM beta icAdmin admin2 cAdmin2 cAdmin admin');
 
 // community-specific flags
 define('B_CGC', 0); // ctty: is an official CGC (currently has no effect)

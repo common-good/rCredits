@@ -73,9 +73,12 @@ Scenario: A member signs in for the first time
 
   When member ".AAA" completes form "settings/connect" with values:
   | op     | connect | routingNumber | bankAccount | bankAccount2 | cashout | refills | target | achMin | saveWeekly |*
-  | submit |       1 |     053000196 |         123 |          123 |       0 |       0 |     $0 |    $20 |         $0 |  
+  | submit |       1 |     053000196 |         123 |          123 |       0 |       1 |     $0 |    $20 |         $0 |  
   Then we show "Photo ID Picture"
   And we say "status": "info saved|step completed"
+	And members have:
+	| id   | risks                |*
+	| .AAA | hasBank,rents,ssnOff |
 
   When member ".AAA" completes form "settings/photo" with values:
   | op       |*

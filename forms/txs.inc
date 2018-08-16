@@ -203,14 +203,16 @@ function handleTx($do, $xid, &$sta, $args) {
     global $mya;
     if (!$mya->superAdmin) return FALSE; // only top admin can do this currently
     u\EXPECT($do == 'no', 'trying to edit bank transfer');
-    $tx = db\get('*', 'r_usd', 'txid=:xid', ['xid'=>substr($xid, 1)]);
+		$txid = substr($xid, 1);
+    $tx = db\get('*', 'r_usd', 'txid=:txid', compact('txid'));
     foreach (just('txid amount tid', $tx) as $k => $v) $tx[$k] = -$v; // reverse transfer
     extract($tx);
     if (!$deposit) { // transfer request has not been processed yet
-      $deposit = $tx['deposit'] = r\rTime(); // mark both done
-      db\update('r_usd', compact(ray('xid deposit')), 'xid');
+		  u\EXPECT($completed, 'incomplete bank tx should not be on list');
+      $deposit = $tx['deposit'] = NOW; // mark both done
+      db\update('r_usd', compact(ray('txid deposit')), 'txid');
     }
-    $mya->bank($amount, t('to reverse failed transfer #%xid', compact('xid')), $tx);
+    $mya->bank($amount, t('to reverse failed transfer #%xid', compact('txid')), $tx);
     w\go($url, t('Reversed %amount bank transfer for %who.', 'amount who', u\fmtAmt(-$amount), $mya->fullName));
   }
   

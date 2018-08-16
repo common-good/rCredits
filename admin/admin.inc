@@ -445,7 +445,7 @@ function deposits() {
       SUM(IF(amount<0 AND txid>0, amount, 0)) AS amountOut, SUM(IF(amount<0 AND txid>0, 1, 0)) AS countOut,
       SUM(IF(txid<0, amount, 0)) AS amountBad, SUM(IF(txid<0, 1, 0)) AS countBad,
       deposit
-    FROM r_usd
+    FROM r_usd WHERE amount<>0 and created<=:NOW
     GROUP BY deposit ORDER BY deposit<>0, deposit DESC, amount<0
 EOF;
 
@@ -957,7 +957,7 @@ function giftsToDate() {
   list ($total, $x1, $x2) = explode('+', "$all++");
   if ($x = u\unite(trim($x1), $x2)) $x = t('for choosing %x', '_x', $x);
   if ($total) $total = t('for your contributions, totaling ') . $total;
-  return u\unite($total, $x, t(', and '));
+  return u\unite($total, $x, ', ');
 }
 
 /*
