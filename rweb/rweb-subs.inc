@@ -110,7 +110,7 @@ EOF
   'missing field0' => t('%field field is required.'), // Drupal's standard
   'missing field' => t('Missing a required field: %field'),
   'nothing to do' => t('There is nothing to process.'),
-  'in csv' => t('in CSV file line %line: %row'),
+  'csv error' => t('Line %line: %msg (%row)'),
   'no txs' => t('There are no transactions in that period.'),
   'no invoices' => t('There are no such invoices in that period.'),
   'no relations' => t('There are not yet any relations for this account.'),

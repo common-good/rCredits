@@ -35,39 +35,39 @@ function formInvoiceUpload_validate($form, &$sta) {
 }
 
 function formInvoiceUpload_submit($form, &$sta, $args = NULL) {
-  global $mya;
+  global $mya, $iuErrs;
 
   $fields = 'inv dftDesc did map onSuccess';
   $selling = explode("\n", $mya->selling);
   u\setDft($args, ray($fields, TRUE, $selling[0], t('invoiced'), [], NULL));
   extract(just($fields, $args));
   extract(just('rows', $sta['input']));
-//  $rows = uploadRows($filename);
   
   $total = 0;
 
   if (@$rows) foreach ($rows as $i => $row) {
     if ($i == 0 and !strpos(@$row[0], '@')) {say(t('The header row (line 1) will be ignored.')); continue;}
 
-    $erSubs = ray('did line row', $did, $i + 1, join(' | ', $row));
-    if (count($row) < 3) return say(t('Incomplete row|in csv'), $erSubs, 'file');
+    $e = ray('did line row', $did, $i + 1, join(' | ', $row)); // params for error message(s)
+    if (count($row) < 3) return say('csv error', $e + ray('msg', t('Incomplete row')), 'file');
     @list ($account, $email, $amt, $desc) = $row; // desc is optional
     if (!$account or u\starts(strtoupper($account), t('TOTAL'))) break; // should never happen unless user has a total line
-    if ($err = u\badAmount($amt, '>=0')) return say("$err|in csv", $erSubs, 'file');
-    if (!$amt) {say(t('The amount for this account is zero so it will not be %did:|in csv'), $erSubs); continue;}
-//    if (!($account or $email) or !$a = r\acct($account ?: $email)) return say(t('Bad account|in csv'), $erSubs, 'file');
-    if (!$account or !$a = r\acct($account)) return say(t('Bad account|in csv'), $erSubs, 'file');
-    if (!$a->ok) return say(t('This account is not yet activated:|in csv'), $erSubs, 'file');
+    if ($err = u\badAmount($amt, '>=0')) {iuErr($err, $e); continue;}
+    if (!$amt) {iuErr(t('The amount for this account is zero so it will not be %did', $e), $e); continue;}
+	  if (!$account or !$a = r\acct($account)) {iuErr(t('Bad account ID'), $e); continue;} // not 'bad account'
+    if (!$a->ok) {iuErr(t('This account is not yet activated'), $e); continue;}
     $a->setBit(B_CONFIRMED); // count this as equivalent to an invitation to the person
     if (!$email = trim(strtolower($email)) or $a->email != $email) { // not the right email
       if ($a->phone != u\fmtPhone($email, '+n')) { // not the right phone number
-        if (strtolower(r\acct($mya->id, $a->id)->relCode) != $email) return say(t('Bad email, phone, or account identifier|in csv'), $erSubs, 'file'); // not the right customer ID
+        if (strtolower(r\acct($mya->id, $a->id)->relCode) != $email) {iuErr(t('Wrong email, phone, or account ID'), $e); continue;} // not the right customer ID
       }
     }
     $txs[] = [$a->id, $email, $amt, $desc ? strtr($desc, $map) : $dftDesc]; // someday we wlll allow paying and invoicing non-members by email and name
     $total += $amt;
   }      
 
+	if (@$iuErrs) return say(join('<br>', $iuErrs), 'file');
+	
   if (!@$txs) return say('nothing to do', 'file');
   
   if (!$inv) {
@@ -109,3 +109,5 @@ function csvUploadInstructions($do, $dftDesc) {
 EOF
   , compact(ray('do dftDesc')));
 }
+
+function iuErr($msg, $e) {global $iuErrs;	$iuErrs[] = t('csv error', $e + compact('msg'));}

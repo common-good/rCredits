@@ -1,3 +1,6 @@
+2018-08-21 v3.42a
+. in CSV file uploads, all lines with errors are now reported
+
 2018-08-16 v3.42
 . ALTER TABLE r_usd DROP COLUMN tid;
 	ALTER TABLE x_usd DROP COLUMN tid;
