@@ -106,7 +106,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Contact AMemberGivesABadEmail
  *     MAKE Contact AMemberUpdatesToADifferentState
  *     MAKE Contact AMemberUpdatesToADifferentName
- 
  *     MAKE Signin AMemberSignsInWithUsernameOnTheMemberSite
  *     MAKE Signin AMemberSignsInWithAccountIDOnTheMemberSite
  *     MAKE Signin AMemberSignsInWithEmailOnTheMemberSite
@@ -516,6 +515,7 @@ function withoutOptions($options) {
  * in: MAKE Bank Setup
  *     MAKE Community Setup
  *     MAKE ScanCard Setup
+ * in: MAKE ScanCard Setup
  *     MAKE Statement Setup
  *     MAKE Community Setup
  *     MAKE SignupCo Setup
@@ -1026,6 +1026,7 @@ function devices($list) {return t\devices($list);}
  *     TEST Gift AMemberDonatesWithInsufficientFunds
  *     TEST Invoice AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Invoice AMemberConfirmsRequestToChargeAnotherMemberWhoHasABankAccount
+ * in: TEST Invoice AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Invoice AMemberConfirmsRequestToChargeANotyetMember
  *     TEST Invoice AMemberDeniesAnInvoice
  *     TEST Invoice AMemberApprovesAnInvoiceWithInsufficientFunds
