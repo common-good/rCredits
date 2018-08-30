@@ -824,7 +824,6 @@ function rebuildDb() {
   global $db_name;
   $schema = tableDefs();
   foreach ($schema as $table => $scheme) {
-      echo $table, "\n";
     if (\db_table_exists($table)) {
       $previous = '';
       foreach ($scheme['fields'] as $field => $spec) {

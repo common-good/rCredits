@@ -221,8 +221,11 @@ class Acct {
     if ($nick == 'raw') return $result;
     if ($field == 'hasPhoto') return db\exists('r_photos', 'uid=:id', ['id' => $a->id]);
     if ($field == 'photo') return ($result = db\get('photo', 'r_photos', 'uid=:id', ['id' => $a->id])) ? u\decry('H', $result) : '';
-    
-    if (in($field, 'data changes secure vsecure') and !is_array($result)) { // special not yet arrayed
+    if ($field == 'changes') {
+        return db\get('*', 'r_member_change', 'uid=:id', ['id' => $a->id]);
+        die('There is no longer a changes field in acct');
+    }
+    if (in($field, 'data secure vsecure') and !is_array($result)) { // special not yet arrayed
       if (!$result) return [];
       if ($field != 'data') $result = u\decry('S', $result);
       return (self::$rs[$a->id]->$field = unserialize($result));

@@ -38,10 +38,10 @@ function extraSetup() {
 /**
  * members: (ARG)
  *
- * in: MAKE Checks Setup
+ * in: MAKE Changes Setup
+ *     MAKE Checks Setup
  *     MAKE Activate Setup
  *     TEST Activate AdminActivatesAnAccount
- *     MAKE Changes Setup
  */
 function members($list) {return t\members($list);}
 
@@ -62,16 +62,16 @@ function usdTransfers($tx) {return t\usdTransfers($tx);}
 /**
  * member (ARG) visits page (ARG)
  *
- * in: MAKE Checks AdminPrintsChecks
- *     MAKE Changes AMemberChangesSomeSettings
+ * in: MAKE Changes AMemberChangesSomeSettings
+ *     MAKE Checks AdminPrintsChecks
  */
 function memberVisitsPage($id, $page) {return t\memberVisitsPage($id, $page);}
 
 /**
  * we show (ARG) with: (ARG)
  *
- * in: TEST Checks AdminPrintsChecks
- *     TEST Changes AMemberChangesSomeSettings
+ * in: TEST Changes AMemberChangesSomeSettings
+ *     TEST Checks AdminPrintsChecks
  */
 function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
   return t\weShowWith($title, $content, $showDebugs);
@@ -80,8 +80,8 @@ function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
 /**
  * member (ARG) completes form (ARG) with values: (ARG)
  *
- * in: MAKE Activate AdminActivatesAnAccount
- *     MAKE Changes AMemberChangesSomeSettings
+ * in: MAKE Changes AMemberChangesSomeSettings
+ *     MAKE Activate AdminActivatesAnAccount
  */
 function memberCompletesFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values);}
 

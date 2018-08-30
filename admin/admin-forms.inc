@@ -235,60 +235,67 @@ function formOrganizerList_submit($form, &$sta) {
 function formSeeChanges($form, &$sta, $qid = '') {
   $a = r\acct($qid);
   $title = t('Account Changes for ') . $a->fullName;
-  $list[] = '<tr><th>Date</th><th>Field</th><th>Old Value</th><th>New Value</th><th>Changed by</th>';
-  $rec = []; // track historical field values
+  $list[] = '<tr><th>Date</th><th>Field</th><th>Old Value</th><th>New Value</th><th>Changed by</th></tr>';
+  // $rec = []; // track historical field values
 
-  $sql = 'SELECT timestamp, field, old_value, new_value, who_made_change FROM r_member_changes WHERE uid = :qid ORDER BY timestamp';
-  $q = db\q($sql, ray('qid', $qid));
+  $sql = 'SELECT timestamp, field, old_value, new_value, who_made_change, changer.name AS changer_name FROM r_member_change, users AS changer WHERE r_member_change.uid = :qid AND who_made_change = changer.uid ORDER BY timestamp';
+  $q = db\q($sql, ray('qid', $a->uid));
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    $nameClass = $co ? 'name co' : 'name';
-    $notes = str_replace("\n", "<br>\n", $notes);
-    $notes = str_replace('do:', '<b class="memberlist-notes">do:</b>', $notes);
-    $a = r\acct($uid);
-    $phone = str_replace('+1 ', '', u\fmtPhone($phone0 = $a->phone));
-    $postalAddr = $a->postalAddr;
-    $email = $a->email;
-    $fullName = "<a href=\"$base_url/change-account/acct=$a->mainQid&page=summary\">$fullName</a>";
-    $steps = a\showSteps($a);
-    $date = u\fmtDate($a->ok ? $access : $login);
+    $date = a\formatField('created', $timestamp);
+    $old = a\formatField($field, interpretS($old_value));
+    $new = a\formatField($field, interpretS($new_value));
+    $changed_by = $changer_name ?: "($who_made_change)";
+    $list[] = "<tr><td>$date</td><td>$field</td><td>$old</td><td>$new</td><td>$changed_by</td></tr>";
+//     $date = u\fmtDate($a->ok ? $access : $login);
+//     $nameClass = $a->co ? 'name co' : 'name';
+//     $notes = str_replace("\n", "<br>\n", $a->notes);
+//     $notes = str_replace('do:', '<b class="memberlist-notes">do:</b>', $notes);
+//     debug($uid);
+//     $a = r\acct($uid);
+//     debug($a->name);
+//     $phone = str_replace('+1 ', '', u\fmtPhone($phone0 = $a->phone));
+//     $postalAddr = $a->postalAddr;
+//     $email = $a->email;
+//     $fullName = "<a href=\"$base_url/change-account/acct=$a->mainQid&page=summary\">$fullName</a>";
+//     $steps = a\showSteps($a);
 
-    if ($cAdmin) {
-      $bits = []; // zap previous value
-      foreach (ray('member ok bank') as $one) if ($a->can(u\consta('b', $one))) $bits[] = $one;
-      $bits = $bits ? ('<span class="memberlist-bits"> ' . join(' ', $bits) . "</span><br>\n") : '';
-    } else $bits = '';
+//     if ($cAdmin) {
+//       $bits = []; // zap previous value
+//       foreach (ray('member ok bank') as $one) if ($a->can(u\consta('b', $one))) $bits[] = $one;
+//       $bits = $bits ? ('<span class="memberlist-bits"> ' . join(' ', $bits) . "</span><br>\n") : '';
+//     } else $bits = '';
     
-    $one = "<tr><td colspan=4 class=\"memberlist-line2\">$date: $steps$bits$notes</td></tr>\n";
-    $list .= <<<EOF
-<tr>
-<td class="$nameClass">$fullName</td>
-<td><a href="mailto:$email" target="_blank">$email</a></td>
-<td>$phone</td>
-<td>$postalAddr</td>
-</tr>
-$one
-EOF;
-    $emails .= "$email, ";
-  }
-  $list .= "</table>\n";
+//     $one = "<tr><td colspan=4 class=\"memberlist-line2\">$date: $steps$bits$notes</td></tr>\n";
+//     $list .= <<<EOF
+// <tr>
+// <td class="$nameClass">$fullName</td>
+// <td><a href="mailto:$email" target="_blank">$email</a></td>
+// <td>$phone</td>
+// <td>$postalAddr</td>
+// </tr>
+// $one
+// EOF;
+//     $emails .= "$email, ";
+//   }
+//   $list .= "</table>\n";
   
-  $emails = $cAdmin ? item($emails, t('All emails')) : NULL;
+//   $emails = $cAdmin ? item($emails, t('All emails')) : NULL;
 
-  return cgform(compact(ray('title list emails')), '', FALSE);
-
-  if ($a->changes) {
-    foreach ($a->changes as $dt => $info) {
-      $date = u\fmtDate($dt);
-      foreach ($info as $k => $v) {
-        $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, interpretV($a->$k));
-///        if (is_array($v)) $v = print_r($v, 1);
-//        while (substr($v, strlen(CRYPT_FLAG)) == CRYPT_FLAG) $v = u\decryptM($v); // u\starts fails here (when encrypted?)
-        $rec[$k] = $oldValue = a\formatField($k, interpretV($v));
-        $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";
-      }
-    }
-  } else $list[] = '<tr><td colspan=4>No changes</td></tr>';
+//  return cgform(compact(ray('title list emails')), '', FALSE);
+//   if ($a->changes) {
+//     foreach ($a->changes as $dt => $info) {
+//       $date = u\fmtDate($dt);
+//       foreach ($info as $k => $v) {
+//         $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, interpretV($a->$k));
+// ///        if (is_array($v)) $v = print_r($v, 1);
+// //        while (substr($v, strlen(CRYPT_FLAG)) == CRYPT_FLAG) $v = u\decryptM($v); // u\starts fails here (when encrypted?)
+//         $rec[$k] = $oldValue = a\formatField($k, interpretV($v));
+//         $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";
+//       }
+//     }
+  }
+//   } else $list[] = '<tr><td colspan=4>No changes</td></tr>';
   
   $list = join("\n", $list);
   $list = item("<table>$list</table>");
@@ -297,6 +304,8 @@ EOF;
 }
 
 function interpretV($v) {return u\crypted('V', $v . '') ? (r\allKnowing() ? u\decry('V', $v) : t('(secret)')) : $v;}
+
+function interpretS($v) {return u\crypted('S', $v . '') ? u\decry('S', $v) : $v;}
 
 /**
  * Log back in to admin automatically.
