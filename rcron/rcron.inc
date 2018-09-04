@@ -5,6 +5,7 @@ use CG\DB as db;
 use CG\Util as u;
 use CG\Backend as be;
 use CG\Risk as k;
+use CG\Web as w;
 use CG\Cron as cr;
 
 /**
@@ -266,6 +267,18 @@ X;
   queueEach('activeMonthly', $sql); // no need for jid here (floors get summed)
   
   queueEach('activeWeekly', "SELECT uid, $sinceActivated/7 AS weeks FROM users");
+	
+	$when = ':NOW+:WEEK_SECS';
+	$mod = NOW < strtotime('9/9/2018') ? 6 : 0;
+	$sql = <<< X
+	  SELECT u.uid,r.amount,$when AS `when`
+		FROM users u LEFT JOIN r_recurs r ON r.payer=u.uid AND r.payee=:CGID AND r.ended=0
+		WHERE u.:IS_OK AND (r.period='Y' OR r.id IS NULL)
+		AND FLOOR((:NOW-IFNULL(r.created, u.activated)) / :DAY_SECS) MOD 365 < 7
+X;
+//		AND FLOOR(($when-IFNULL(r.created, u.activated)) / :DAY_SECS) MOD 365 = 0
+
+  queueEach('warnAnnualGift', $sql);
   
   queueNext();
 }
@@ -340,6 +353,18 @@ function activeWeekly($item) {
 }
  
 /**
+ * Warn member about upcoming annual donation (or lack thereof) -- about a week before it's due.
+ */
+function warnAnnualGift($item) {
+	extract(just('uid amount when', $item));
+	
+	$a = r\acct($uid);
+	$aDonate = w\atag("/do/doDonate~$a->mainQid~$a->emailCode");
+  r\notify($uid, 'annual-gift', $ray = ray('amount when aDonate', u\fmtAmt($amount), u\fmtDate($when, TRUE), $aDonate), TRUE);
+	r\tellAdmin('annual gift warning', $ray, $uid);
+}
+
+/**
  * Do periodic activities where the period is longer than a day.
  */
 function lessOften() {
@@ -388,9 +413,8 @@ function everyWeek() {
  * Do monthly tasks.
  */
 function everyMonth() {
-  $cgf = r\cgfId();
   $server = r\serverUid();
-  $bene = u\test() ? $cgf : db\get('uid', 'users', "name='bene' AND uid<0");
+  $bene = u\test() ? CGID : db\get('uid', 'users', "name='bene' AND uid<0");
   $start = u\monthDay1($end = u\monthDay1() - 1); // mark start and end of preceding month
   if (u\test()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // test: the past 30 days
   queueEach('whatsup', "SELECT uid, u.:IS_CO as co, MAX(t.created) AS lastTx from users u LEFT JOIN r_txs t ON uid IN (payer, payee) WHERE uid>:CANONIC_ACCTS AND u.:IS_OK GROUP BY uid HAVING lastTx IS NULL OR lastTx < $start");
@@ -399,19 +423,19 @@ function everyMonth() {
   queueEach('roundup', "SELECT payer as uid, SUM(1-MOD(amount, 1)) AS donate FROM r_txs WHERE :IS_ROUNDUP AND amount>0 AND MOD(amount, 1)>0 AND created BETWEEN $start AND $end GROUP BY payer");
   
   $sql = <<< X
-    SELECT $cgf AS cgf, u.uid, SUM(t.amount)*u.crumbs AS donate FROM r_txs t LEFT JOIN users u ON u.uid=t.payee 
+    SELECT u.uid, SUM(t.amount)*u.crumbs AS donate FROM r_txs t LEFT JOIN users u ON u.uid=t.payee 
     WHERE t.payer>0 AND u.crumbs>0 AND t.created BETWEEN $start AND $end GROUP BY t.payee
 X;
   queueEach('crumbs', $sql); // no crumbs on rewards
 
 	// figure amount to share with each official Common Good Community
   $sql = <<< X
-      SELECT $cgf AS cgf, $end AS `end`, u.community AS ctty, SUM(IF(t.payee=$cgf, t.amount, 0)) AS `in`,
-        SUM(IF(t.payer=$cgf AND t.created<=$end, t.amount, 0)) AS `out`,
+      SELECT $end AS `end`, u.community AS ctty, SUM(IF(t.payee=:CGID, t.amount, 0)) AS `in`,
+        SUM(IF(t.payer=:CGID AND t.created<=$end, t.amount, 0)) AS `out`,
         (SELECT COUNT(1) FROM r_usd d LEFT JOIN users du ON du.uid=d.payee 
          WHERE d.txid<0 AND d.amount<0 AND du.community=u.community AND d.created<=$end) AS bounces
-      FROM r_txs t LEFT JOIN users u ON u.uid=IF(t.payer=$cgf, t.payee, t.payer)
-      WHERE ((payer=$cgf AND payee<0) OR payee=$cgf) AND t.:IS_GIFT AND community NOT IN($server, $bene) GROUP BY community
+      FROM r_txs t LEFT JOIN users u ON u.uid=IF(t.payer=:CGID, t.payee, t.payer)
+      WHERE ((payer=:CGID AND payee<0) OR payee=:CGID) AND t.:IS_GIFT AND community NOT IN($server, $bene) GROUP BY community
 X;
 // Not until cgc means signed the CG/CGC agreement (and then not retroactive) queueEach('cgc', $sql);
   
@@ -461,7 +485,7 @@ function inflationAdjust($item) {
 function roundup($item) {
   extract(just('uid donate', $item));
   $a = r\acct($uid);
-  if ($donate > 0 and $a->ok) $a->pay(r\acct(r\cgfId()), $donate, t('roundups desc'), ray('created roundups gift', u\monthDay1() - 1, TRUE, TRUE));
+  if ($donate > 0 and $a->ok) $a->pay(r\acct(CGID), $donate, t('roundups desc'), ray('created roundups gift', u\monthDay1() - 1, TRUE, TRUE));
 }
 
 /**
@@ -469,19 +493,19 @@ function roundup($item) {
  * Allow this even if account is inactive (donation has already been made, from member's point of view).
  */
 function crumbs($item) {
-  extract(just('uid donate cgf', $item));
-  list ($a, $cgfA) = [r\acct($uid), r\acct($cgf)];
-  if ($donate > 0 and $a->ok) $a->pay($cgfA, $donate, t('crumbs desc'), ray('created crumbs gift', u\monthDay1() - 1, TRUE, TRUE));
+  extract(just('uid donate', $item));
+  $a = r\acct($uid);
+  if ($donate > 0 and $a->ok) $a->pay(r\cgA(), $donate, t('crumbs desc'), ray('created crumbs gift', u\monthDay1() - 1, TRUE, TRUE));
 }
 
 /**
  * Kick half the donations originating in an organized CGC back to that community.
  */
 function cgc($item) {
-  extract(just('ctty in out cgf end bounces', $item));
+  extract(just('ctty in out end bounces', $item));
   $kickBack = round($in / 2 - $out - R_DEPOSIT_RETURN_FEE * $bounces, 2);
   if ($kickBack > 0) {
-    list ($a, $cgfA) = [r\acct($ctty), r\acct($cgf)];
+    list ($a, $cgfA) = [r\acct($ctty), r\cgA()];
     $desc = t('50% share of local donations through %dt', 'dt', u\fmtDate($end));
     if ($a->ok) $cgfA->pay($a, $kickBack, $desc, ray('goods created gift', FOR_NONGOODS, u\monthDay1() - 1, TRUE));
   }
@@ -630,9 +654,9 @@ function acctStats1($item, $asof = NULL) {
   
   $sql = <<< X
     SELECT SUM(amount) AS giftsEver, SUM(IF(created<:monthAgo, 0, amount)) AS giftsPastMo
-    FROM r_txs WHERE payer=:uid AND payee=:cg AND :IS_GIFT AND created<:asof
+    FROM r_txs WHERE payer=:uid AND payee=:CGID AND :IS_GIFT AND created<:asof
 X;
-  $row1 = db\q($sql, $subs + ray('cg', r\cgfId()))->fetchAssoc() ?: []; // giftsEver, giftsPastMo
+  $row1 = db\q($sql, $subs)->fetchAssoc() ?: []; // giftsEver, giftsPastMo
   
   $sql = <<< X
     SELECT SUM(IF(type=:TX_TRANSFER, payerReward+payeeReward, 0)) AS beneEver,
@@ -980,4 +1004,4 @@ function END() {
 }
 
 
-//function realId($uid) {return ($uid <= r\cgfId());}
+//function realId($uid) {return ($uid <= CGID);}

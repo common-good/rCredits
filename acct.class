@@ -706,7 +706,7 @@ class Acct {
    */
   public function invitationBack() {
     $a = $this;
-    $forCG = ($a->id == r\cgfId() and $a->superAdmin);
+    $forCG = ($a->id == CGID and $a->superAdmin);
     $filename = ($a->co and !$forCG) ? 'InvitationCardsBackCo.pdf' : 'InvitationCardsBack.pdf';
     return 'http://cg4.us/doc/' . $filename;
   }
@@ -1470,22 +1470,22 @@ EOF;
 //      db\get($a->ok ? 'SUM(amount)' : 'amount', 'r_gifts', 'uid=:uid', compact('uid')) ?: 0;
     $fields = 'r.created AS recurStart,r.amount AS recurAmt,r.period,h.honor,h.honored,t.created AS lastGiftDate,t.amount AS lastGift';
 		$table = <<< X
-		  users u LEFT JOIN r_recurs r ON r.payer=u.uid AND r.payee=:cg AND r.ended=0
+		  users u LEFT JOIN r_recurs r ON r.payer=u.uid AND r.payee=:CGID AND r.ended=0
 			LEFT JOIN r_honors h ON h.uid=u.uid
-			LEFT JOIN (SELECT payer,created,amount from r_txs x WHERE x.payer=:id AND x.payee=:cg AND x.:IS_GIFT ORDER BY created DESC LIMIT 1) t 
+			LEFT JOIN (SELECT payer,created,amount from r_txs x WHERE x.payer=:id AND x.payee=:CGID AND x.:IS_GIFT AND NOT x.:IS_UNDONE AND NOT x.:IS_UNDOES ORDER BY created DESC LIMIT 1) t 
 			  ON t.payer=u.uid
 X;
-    if ($info = db\get($fields, $table, 'u.uid=:id', ray('id cg', $a->id, r\cgfId()))) {
+    if ($info = db\get($fields, $table, 'u.uid=:id', ray('id', $a->id))) {
       extract($info);
 			if ($period) {
         $oftens = ray(OFTENS);
         list ($period, $recurAmt, $recurStart) = [@$oftens[$period], u\fmtAmt($recurAmt), u\fmtDate($recurStart, TRUE)];
         $gift = "<%b>$recurAmt</b> $period";
 			}
-      $gift = u\unite($gift, t('Last: %lastGift (%lastGiftDate)', 'lastGift lastGiftDate', u\fmtAmt($lastGift), u\fmtDate($lastGiftDate, TRUE)));
+      $gift = u\unite($gift, t('Last: %lastGift (%lastGiftDate)', 'lastGift lastGiftDate', u\fmtAmt($lastGift), u\fmtDate($lastGiftDate, TRUE)), ', ');
       if ($info = db\get('honor,honored', 'r_honors', "uid=:id AND honor<>'' ORDER BY id DESC", ['id' => $a->id])) {
         extract($info);
-        $gift = u\unite($gift, u\honorDesc($honor) . $honored);
+        $gift = u\unite($gift, u\honorDesc($honor) . $honored, ', ');
       }
     }
 
@@ -1807,7 +1807,7 @@ X;
    * Return the account's total gifts to the Common Good.
    */
   function totalGifts() {
-    return db\sum('amount', 'r_txs', 'payer=:payer AND payee=:cg AND :IS_GIFT', ray('payer cg', $this->id, r\cgfId()));
+    return db\sum('amount', 'r_txs', 'payer=:payer AND payee=:CGID AND :IS_GIFT AND NOT :IS_UNDONE AND NOT :IS_UNDOES', ray('payer', $this->id));
   }
   
   /**

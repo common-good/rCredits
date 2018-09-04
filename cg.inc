@@ -22,8 +22,6 @@ require_once __DIR__ . '/acct.class';
 require_once __DIR__ . '/x.class';
 require_once __DIR__ . '/qo.class';
 
-define('CGF_ID', r\cgfId()); // Common Good Finance record ID
-
 /**
  * Save a record in the given table, in the appropriate regional section of the id field's number space.
  * @param string $table: table to save in (users or r_relations)
@@ -266,7 +264,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   u\loga('email', $erInfo + ['toUid' => @$toA->id]);
 
   if (isPRODUCTION !== TRUE) { // make sure we never send rogue emails from test server even if constant isn't set
-/**/  if (!isDEV) debug(compact(ray('subject to body')));
+/**/  debug(compact(ray('subject to body')));
     return; // no emails unless real!!
     if ($toEmail != r\regionField('email') and $toEmail != R_ADMIN_EMAIL) return TRUE;
     if (isDEV) return TRUE; // otherwise cURL error 60: SSL certificate problem: unable to get local issuer certificate
@@ -1328,7 +1326,7 @@ function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
     $other = $a == $a1 ? $a2 : $a1; // if neither confirmed nor confirming icard by tx with inviter
 //    if (!$a->confirmed and !($a->iCode == IBY_ICARD and $a->helper == $other->id)) { 
 //    if (!$a->confirmed and $a->helper != $other->id) { 
-    if (!$a->confirmed and $other->id > 0 and $other->id != r\cgfId()) { // communities and CG can transact with anyone
+    if (!$a->confirmed and $other->id > 0 and $other->id != CGID) { // communities and CG can transact with anyone
       if ($a1->community != $a2->community or $channel != TX_POS) { // first tx must be in-person at home
         return FALSE ? ['not confirmed', ray('youName inviterName', $a->fullName, $a->helperA->fullName), FALSE]
         : ['first at home', ray('whose', $a == $a1 ? t('Your') : "$a->fullName's"), FALSE]; // "FALSE ?" should be $a1->cttyA->invites ?
@@ -1346,7 +1344,7 @@ function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
 //  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", ray('otherName', $a2->agentA->fullName), FALSE);
 
 /*
-  if ($a1->id > 0 and $a2->id != r\cgfId()) { // allow rewards and donations in not-yet-active communities
+  if ($a1->id > 0 and $a2->id != CGID) { // allow rewards and donations in not-yet-active communities
     if (!$a1->cttyActive) return array('community not active', ray('whose', t('Your')), FALSE);
     if (!$a2->cttyActive) return array('community not active', ray('whose', t('That account\'s')), FALSE);
   }
@@ -1494,15 +1492,14 @@ function realCountry($country) {return db\get('name', 'r_countries', 'id=:countr
 function realState($state, $country = R_COUNTRY_ID) {return db\get($country == US_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function perm($bit) {return $bit - B_RELATED;}
 function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}
-//function doCode($code) {return @unserialize(@u\decry('P', CRYPT_FLAG . $code));} // this is how it should be
+//function doCode($code) {return @unserialize(@u\decry('P', CRYPT_FLAG . $code));} // this is how it should be (see forms/rdo.inc)
 function doCode($code) { // accommodate temporary weirdness because email clients bollix CRYPT_FLAG in an href
-  foreach ([0, 1] as $i) {if ($code[0] == CRYPT_FLAG[$i]) $code = substr($code, 1);} // delete this line after 7/1/2018
+//  foreach ([0, 1] as $i) {if ($code[0] == CRYPT_FLAG[$i]) $code = substr($code, 1);} // delete this line after 7/1/2018
   if (substr(u\b64decode($code), 0, 2) == 'c~') return FALSE; // signal archaic link
   return @unserialize(@u\decry('P', CRYPT_FLAG . $code));
 } 
 function makeDoCode($ray) {return substr(u\cry('P', serialize($ray)), strlen(CRYPT_FLAG));}
-function cgfId() {return \variable_get('cgf_uid');}
-function cgA() {return r\acct(r\cgfId());}
+function cgA() {return r\acct(CGID);}
 function disputeTx($xid) {return db\setFlag('r_txs', $xid, B_DISPUTED, TRUE);}
 function denyInv($nvid) {return db\setData('r_invoices', $nvid, ['denied' => TRUE]);}
 function stepsDone0() {return array_fill_keys(array_keys(ray(R_STEPS)), FALSE);}

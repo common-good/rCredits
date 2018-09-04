@@ -775,8 +775,8 @@ define('CRYPT_FLAG', '`!'); // flag start of encrypted data (add a single type l
 function cry($type, $data, $de = FALSE, $pwInstead = '') {
 	global $cryHows, $mya;
 	
-	if ($de) u\EXPECT(u\starts($data, CRYPT_FLAG . $type), 'bad crypted');
 	if ($de) {
+    u\EXPECT(u\starts($data, CRYPT_FLAG . $type), 'bad crypted');
     if ($type == 'V' and !$vKey = r\vKey()) return $data; // if we can't decrypt, return the data as is (for acct::recordChanges)
     $data = substr($data, strlen(CRYPT_FLAG . $type));
   }

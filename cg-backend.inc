@@ -365,7 +365,7 @@ function transfer($ttype, $a1, $a2, $amount, $for, $data = []) {
   foreach ([$a1, $a2] as $a) if (!$a->co and !($channel == TX_POS ? $a->agentA->ided : $a->ided)) {
     if (@$force) {
       r\tellAdmin('forced without photoId', $erInfo); 
-    } elseif ($gainerA->id != r\cgfId()) { // and !$gainerA->coCan(CO_FAST)
+    } elseif ($gainerA->id != CGID) { // and !$gainerA->coCan(CO_FAST)
 //      r\tellAdmin('tx without photoId', $erInfo); 
 //      return r\txRet($a == $a1 ? 'no photoid' : 'other no photoid', $erInfo + ['who' => $a2->fullName]);
     }
@@ -668,7 +668,7 @@ EOF;
 //  $in -= $xin; $out -= $xin;
   $outProper = $out;
   $inProper = $in; // - $rewards;
-  if ($uid == r\cgfId()) $inProper -= $share; else $outProper += $share;
+  if ($uid == CGID) $inProper -= $share; else $outProper += $share;
   $rewards += $share; // share is negative for everyone but CGF
   
   // figure savings

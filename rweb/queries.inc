@@ -13,7 +13,6 @@ use CG\Util as u;
  * Note: query names cannot contain any of the following characters: /&? (because they confuse the url).
  */
 
-$cgf = r\cgfId();
 $bizQ = 'SELECT payee, goods, SUM(amount) AS tot, COUNT(*) AS cnt FROM r_txs WHERE goods=:FOR_GOODS AND created BETWEEN';
 
 $queries = [
@@ -53,7 +52,7 @@ $queries = [
     SUM(IF(t.:IS_PATRONAGE,amount,0)) AS recurring,
     SUM(IF(t.:IS_GIFT AND NOT t.:IS_ROUNDUPS AND NOT t.:IS_CRUMBS AND NOT t.:IS_PATRONAGE,amount,0)) AS other
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer
-    WHERE u.community=:ctty AND (t.:IS_GIFT OR t.:IS_ROUNDUPS OR t.:IS_CRUMBS OR t.:IS_PATRONAGE) AND t.payee=$cgf
+    WHERE u.community=:ctty AND (t.:IS_GIFT OR t.:IS_ROUNDUPS OR t.:IS_CRUMBS OR t.:IS_PATRONAGE) AND t.payee=:CGID
     GROUP BY YEAR(FROM_UNIXTIME(t.created)) DESC, MONTH(FROM_UNIXTIME(t.created)) DESC",
 
 ];

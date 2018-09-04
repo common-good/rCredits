@@ -1,3 +1,8 @@
+2018-09-03 v3.42b
+. fixed formatting error on donate page
+. donate page now uses eLinkAcct() so we can include a donate link in emails (for annual donation warning)
+. added annual donation warning to cron
+
 2018-08-21 v3.42a
 . in CSV file uploads, all lines with errors are now reported
 
@@ -57,7 +62,7 @@
 		if ($honored) $gift .= '[i] in ' . ($honor == 'memory' ? $honor : 'honor') . " of $honored [/i]";
 		$s .= "$fullName &lt;$a->email&gt;: [p]Dear $fullName,[/p][p]Due to a glitch in our Common Good donation system, your chosen contribution of $gift was never transferred from your bank account. We have fixed that problem, but I wanted to give you a heads-up before the transfer request takes effect.[/p][p]If for any reason this completion of your intended donation is problematic this week, please just let us know before Friday 8/10.[/p][p]With many thanks again for your support,[br]William[/p][br]\r\n\r\n";
 		if ($often == '1') {
-			$info = ray('payer,payee,amount,period,created,lastTx,invoiced', $a->id, r\cgfId(), $amt0, $often, NOW, 0, 0);
+			$info = ray('payer,payee,amount,period,created,lastTx,invoiced', $a->id, CGID, $amt0, $often, NOW, 0, 0);
 /**/      debug($fullName . ': ' . (r\acceptGift($info) ? 'accepted NOW' : 'later'));
 		}
 	}

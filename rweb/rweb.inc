@@ -480,7 +480,7 @@ function formBasic_validate($form, &$sta, $co = 'mya', $fields = R_BASIC_FIELDS)
  */
 function formShowDeposits($form, &$sta) {
   global $mya;
-  if (!$mya or $mya->id != r\cgfId()) return w\softErr(t('You are not authorized to view that page.'));
+  if (!$mya or $mya->id != CGID) return w\softErr(t('You are not authorized to view that page.'));
   include_once __DIR__ . '/../admin/admin-forms.inc';
   return w\formDeposits($form, $sta);
 }

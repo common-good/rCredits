@@ -195,7 +195,7 @@ EOF;
 //    $who = textFld(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($admin ? '' : 'ctty')); // keep this for when we need it (just add to returned fields)
   }      
 
-  if ($mya->id == r\cgfId()) {
+  if ($mya->id == CGID) {
     $sql = <<<EOF
       SELECT u.community AS ctty, SUM(IF(payee=:uid, amount, 0)) AS `in`,
         SUM(IF(payer=:uid, amount, 0)) AS `out`

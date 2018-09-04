@@ -124,8 +124,8 @@ function statement($month = '') {
 //  $pdf->Cell($numWidth, 0, $rewardsEver, '', 0, 'R');
 //  $pdf->Cell(0, 0, " (Effective yield $yield APR)", '', 1, 'L');
 
-  if ($mya->id == CGF_ID) {
-//    $shared = db\get('SUM(amount)', 'r_txs', "payee=:CGF_ID AND payeeFor=':R_SHARING_MSG' AND created<=:end", compact('end'));
+  if ($mya->id == CGID) {
+//    $shared = db\get('SUM(amount)', 'r_txs', "payee=:CGID AND payeeFor=':R_SHARING_MSG' AND created<=:end", compact('end'));
 //    $pdf->Cell($labelWidth, 0, 'Sharing Donations Ever:');  
 //    $pdf->Cell($numWidth, 0, number_format($shared, 2), '', 1, 'R');
   } elseif ($start == u\monthDay1()) { // committed amount is not available retroactively
@@ -165,7 +165,7 @@ function statement($month = '') {
       $pdf->Cell($width, 0, $$fldName, '', $head == $lastHead ? 1 : 0, $align, '', '', 1);
     }
     foreach (['amount', 'reward'] as $k) $$k = $$k == R_NONE ? 0 : (str_replace(',', '', $$k) + 0); // convert from string
-    if ($mya->id == CGF_ID and $purpose == R_SHARING_MSG) list ($amount, $reward) = [$reward, $amount];
+    if ($mya->id == CGID and $purpose == R_SHARING_MSG) list ($amount, $reward) = [$reward, $amount];
     if ($reward and $mya->cttyRewardy) {
       $catDesc = r\usdin($purpose) 
       ? t('exchange fees') // this is not a reward and should be moved out of this block
