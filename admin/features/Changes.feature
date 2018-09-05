@@ -27,10 +27,10 @@ Scenario: A member changes some settings
   When member ".ZZD" visits page "sadmin/changes/NEWZZA"
   Then we show "Account Changes for Abe One" with:
   | Date   | Field       | Old Value            | New Value                   | Changed by |
-  | %dm'%y | flags       | ok ided              | ok ided weekly              | abeone     |
-  | %dm'%y | flags       | ok ided weekly       | ok ided weekly paper        | abeone     |
-  | %dm'%y | crumbs      |                 0.02 |                        0.01 | abeone     |
-  | %dm'%y | flags       | ok ided weekly paper | ok ided refill weekly paper | abeone     |
-  | %dm'%y | achMin      |                   10 |                          11 | abeone     |
-  | %dm'%y | bankAccount |                      | USkk211870281123            | abeone     |
+  | %dmy | flags       | ok ided              | ok ided weekly              | abeone     |
+  | %dmy | flags       | ok ided weekly       | ok ided weekly paper        | abeone     |
+  | %dmy | crumbs      |                 0.02 |                        0.01 | abeone     |
+  | %dmy | flags       | ok ided weekly paper | ok ided refill weekly paper | abeone     |
+  | %dmy | achMin      |                   10 |                          11 | abeone     |
+  | %dmy | bankAccount |                      | USkk211870281123            | abeone     |
 #  | %dmy | flags   | member ok bona | member ok bona weekly debt |

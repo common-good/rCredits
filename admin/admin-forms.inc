@@ -242,7 +242,7 @@ function formSeeChanges($form, &$sta, $qid = '') {
   $q = db\q($sql, ray('qid', $a->uid));
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    $date = a\formatField('created', $timestamp);
+    $date = u\fmtDate($timestamp);
     $old = a\formatField($field, interpretS($old_value));
     $new = a\formatField($field, interpretS($new_value));
     $changed_by = $changer_name ?: "($who_made_change)";
