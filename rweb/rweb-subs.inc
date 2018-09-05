@@ -2120,7 +2120,7 @@ function firstGraphDt($ctty) {
  * @param int $ctty: account record ID of community to show graphs for (defaults to all communities)
  * @param assoc $chartData: (RETURNED) a data field containing the chart data
  * @return: html of the relevant charts, in their proper divs
- * FOR DEV: http://localhost/cgMembers/rcredits/misc/chart.php?ctty=0&chart=growth&site=dev
+ * FOR DEV: http://localhost/cgmembers/rcredits/misc/chart.php?ctty=0&chart=growth&site=dev
  */
 function showCharts($whichChart, $ctty = 0, &$chartData = '') {
   global $base_url;
