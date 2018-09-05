@@ -99,7 +99,7 @@ Scenario: A non-member chooses a donation
   | id   | fullName | flags  | risks   | activated | balance |*
   | .ZZD | Dee Four |        | hasBank |         0 |       0 |
   | .ZZE | Eve Five | refill | hasBank | %today-9m |     200 |
-  Given these "recurs":
+  And these "recurs":
   | created   | payer | payee | amount | period |*
   | %today-3y | .ZZD  | cgf   |      1 |      Y |
   | %today-3m | .ZZE  | cgf   |    200 |      M |
@@ -108,4 +108,21 @@ Scenario: A non-member chooses a donation
 	And count "usd" is 0
 	And count "invoices" is 0
 	
-	
+Scenario: It's time to warn about an upcoming annual donation
+  Given members:
+  | id   | fullName | flags  | risks   | activated               |*
+  | .ZZD | Dee Four | ok     | hasBank | %today-1y               |
+  | .ZZE | Eve Five | ok     | hasBank | %(%today-1y+7*DAY_SECS) |
+  And these "recurs":
+  | created                 | payer | payee | amount | period |*
+  | %(%today-1y+7*DAY_SECS) | .ZZD  | cgf   |      1 |      Y |
+	And transactions:
+  | xid | created                 | type     | amount | from | to  | purpose                            | flags          |*
+  |   1 | %(%today-1y+7*DAY_SECS) | transfer |     10 | .ZZD | cgf | regular donation (monthly gift #1) | gift,patronage |
+  When cron runs "tickle"
+	Then we email "annual-gift" to member "d@example.com" with subs:
+	| amount | when    | aDonate |*
+	|     $1 | %mdY+7d |       ? |
+	And we email "annual-gift" to member "e@example.com" with subs:
+	| amount | when    | aDonate |*
+	|     $0 | %mdY+7d |       ? |	

@@ -30,7 +30,7 @@ function couponsPrint($args = '') {
     $dates = @$start ? t('beginning ') . u\fmtDate($start, TRUE) : '';
     $dates .= t(' (offer does not expire)');
   }
-  if (@$ulimit) $dates .= t(' &mdash; Limit: %ulimit uses per member', compact('ulimit'));
+  if (@$ulimit) $dates .= t(' &mdash; Limit: %ulimit %uses per member', 'ulimit uses', $ulimit, $ulimit > 1 ? t('uses') : t('use'));
   
   $pdf = new r\Pdf();
 //  $pdf->addTTFfont(__DIR__ . '/../../tcpdf/fonts/verdana.ttf'); // do just once on DEV, then upload font
@@ -99,7 +99,7 @@ function couponsPrint($args = '') {
       } else { // discount coupon
         $pdf->say($auto, $x+$wLogo, $y+$dyOff+.14, $wCoup-.3, '', '9;color:darkgray', 'R'); // .24 for baseline
         $pdf->say(t('at <b>%name</b>', compact('name')), $x+$dxCoup, $y+$dyAt, $wCoup, '', "$ptCoup;font-stretch:semi-condensed;color:black", 'L');
-        if (!$goodFor) $pdf->say(t('on ') . $on, $x, $y+$dyDetails, $wCard, '', $ptDetails, 'C'); // text, x, y, w, h, format, align, borders
+        if (!$goodFor) $pdf->say($on, $x, $y+$dyDetails, $wCard, '', $ptDetails, 'C'); // text, x, y, w, h, format, align, borders
         $pdf->say(t('when you pay with <b>%PROJECT</b>'), $x, $y+$dyDetails+$dy, $wCard, '', $ptDetails, 'C'); // text, x, y, w, h, format, align, borders
         $pdf->say($slogan, $x, $y+$dyDetails+$dy*2, $wCard, '', "$ptSlogan;I;Verdana;font-stretch:normal;color:darkgray", 'C'); // text, x, y, w, h, fmt, align, borders
         $pdf->say($dates, $x, $y+$dyDetails+$dy*3, $wCard, '', "10;color:darkgray", 'C'); // text, x, y, w, h, format, align, borders

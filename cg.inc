@@ -264,7 +264,7 @@ function rMail($index, $to0, $subs, $reply0 = NULL) {
   u\loga('email', $erInfo + ['toUid' => @$toA->id]);
 
   if (isPRODUCTION !== TRUE) { // make sure we never send rogue emails from test server even if constant isn't set
-/**/  debug(compact(ray('subject to body')));
+/**/  if (!u\test()) debug(compact(ray('subject to body')));
     return; // no emails unless real!!
     if ($toEmail != r\regionField('email') and $toEmail != R_ADMIN_EMAIL) return TRUE;
     if (isDEV) return TRUE; // otherwise cURL error 60: SSL certificate problem: unable to get local issuer certificate

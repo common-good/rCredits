@@ -269,16 +269,16 @@ X;
   queueEach('activeWeekly', "SELECT uid, $sinceActivated/7 AS weeks FROM users");
 	
 	$when = ':NOW+:WEEK_SECS';
-	$mod = NOW < strtotime('9/9/2018') ? 6 : 0;
 	$sql = <<< X
-	  SELECT u.uid,r.amount,$when AS `when`
+	  SELECT u.uid,r.amount,$when AS `when`,r.created,r.period,
+		  (SELECT 1 FROM r_invoices i WHERE i.payer=r.payer AND i.payee=r.payee AND i.:IS_PATRONAGE AND status<=:TX_APPROVED LIMIT 1) AS invoiced,
+  	  (SELECT MAX(t.created) FROM r_txs t WHERE t.payer=r.payer AND t.payee=r.payee AND t.:IS_PATRONAGE AND NOT t.:IS_UNDONE AND NOT t.:IS_UNDOES) AS lastTx
 		FROM users u LEFT JOIN r_recurs r ON r.payer=u.uid AND r.payee=:CGID AND r.ended=0
-		WHERE u.:IS_OK AND (r.period='Y' OR r.id IS NULL)
-		AND FLOOR((:NOW-IFNULL(r.created, u.activated)) / :DAY_SECS) MOD 365 < 7
+		WHERE u.:IS_OK AND (r.period='Y' OR (r.id IS NULL AND FLOOR(($when-u.activated) / :DAY_SECS) MOD 365 = 0))
 X;
-//		AND FLOOR(($when-IFNULL(r.created, u.activated)) / :DAY_SECS) MOD 365 = 0
+//		AND FLOOR((:NOW-IFNULL(r.created, u.activated)) / :DAY_SECS) MOD 365 <= 365 - 7
 
-  queueEach('warnAnnualGift', $sql);
+  queueEach('warnAnnualGift', $sql); // call at the right time for members with no recurring donation OR for any member with an annual donation
   
   queueNext();
 }
@@ -354,14 +354,17 @@ function activeWeekly($item) {
  
 /**
  * Warn member about upcoming annual donation (or lack thereof) -- about a week before it's due.
+ * This is called at the right time for members with no recurring donation OR for any member with an annual donation (whether it's time or not).
  */
 function warnAnnualGift($item) {
-	extract(just('uid amount when', $item));
+	extract(just('uid amount when created period invoiced lastTx', $item));
 	
 	$a = r\acct($uid);
+	if (@$amount) if ($invoiced or !giveNow($period, $lastTx, $created, $when) or giveNow($period, $lastTx, $created, $when - DAY_SECS)) return; // not time yet for annual (or it was also time yesterday)
+	
 	$aDonate = w\atag("/do/doDonate~$a->mainQid~$a->emailCode");
   r\notify($uid, 'annual-gift', $ray = ray('amount when aDonate', u\fmtAmt($amount), u\fmtDate($when, TRUE), $aDonate), TRUE);
-	r\tellAdmin('annual gift warning', $ray, $uid);
+	r\tellAdmin('annual gift warning', $ray + ray('who', $a->fullName));
 }
 
 /**
@@ -811,7 +814,7 @@ function gifts() {
   $sql = <<< X
     SELECT DISTINCT r.payer,r.payee,r.period,r.amount,r.created,
 		  (SELECT 1 FROM r_invoices i WHERE i.payer=r.payer AND i.payee=r.payee AND i.:IS_PATRONAGE AND status<=:TX_APPROVED LIMIT 1) AS invoiced,
-  		(SELECT MAX(t.created) FROM r_txs t WHERE t.payer=r.payer AND t.payee=r.payee AND t.:IS_PATRONAGE) AS lastTx
+  		(SELECT MAX(t.created) FROM r_txs t WHERE t.payer=r.payer AND t.payee=r.payee AND t.:IS_PATRONAGE AND NOT t.:IS_UNDONE AND NOT t.:IS_UNDOES) AS lastTx
 		FROM r_recurs r	INNER JOIN users u1 ON u1.uid=r.payer INNER JOIN users u2 ON u2.uid=r.payee
 		WHERE u1.:IS_OK AND u2.:IS_OK AND r.ended=0
 X;
@@ -833,13 +836,15 @@ function gift1($item) {
  * @param char $period: how often (M, Q, Y)
  * @param int $lastGift: Unixtime of last relevant gift
  * @param int $firstGift: Unixtime of first relevant gift
+ * @param int $now: is it time as of what "now" (if not NOW, don't return true for first gift)
  */
-function giveNow($period, $lastGift, $firstGift) {
-	if (!$lastGift) return TRUE;
+function giveNow($period, $lastGift, $firstGift, $now = NOW) {
+	if ($now == NOW) if (!$lastGift) return TRUE;
   $m = $period == 'M' ? 1 : ($period == 'Q' ? 3 : 12);
-	$window = NOW - MONTH_SECS * $m / 3; // should be at least a third of a period since the last gift
-	if ($lastGift > $window) return FALSE;
-	$lastTrigger = $firstGift + (MONTH_SECS * $m) * floor((NOW - $firstGift) / (MONTH_SECS * $m));
+	$window = $now - MONTH_SECS * $m / 3; // should be at least a third of a period since the last gift
+	
+	if ($lastGift + 0 > $window) return FALSE;
+	$lastTrigger = $firstGift + (MONTH_SECS * $m) * floor(($now - $firstGift) / (MONTH_SECS * $m));
 	return ($lastTrigger > $lastGift); // last Trigger must be after last gift
 }
 

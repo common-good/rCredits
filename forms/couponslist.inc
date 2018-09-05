@@ -40,7 +40,6 @@ X;
       if (u\test()) $args = u\deurlify($args);
   		$start = u\fmtDate($start);
   		$end = $end ? u\fmtDate($end) : t('indefinite');
-			$on = t('on ') . $on;
 //  		$on = $on ? w\popHelp(t(' on'), $on) : '';
 		}
 
@@ -90,7 +89,6 @@ X;
 		$company = $a->bestName;
   	$amount = $amount < 0 ? u\fmtAmt(-$amount/100, '%') : u\fmtAmt($amount);
  		$end = $end ? u\fmtDate($end) : t('--');
-  	$on = t('on ') . $on;
 		$ulimit = ($ulimit + 0) ? number_format($ulimit) : t('no limit');
     $rows[] = u\tableRow(compact($fields));
   }

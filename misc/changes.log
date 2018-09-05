@@ -1,3 +1,7 @@
+2018-09-04
+. fixed bug in annual donation warning timing
+. minor changes in coupons
+
 2018-09-03 v3.42b
 . fixed formatting error on donate page
 . donate page now uses eLinkAcct() so we can include a donate link in emails (for annual donation warning)
