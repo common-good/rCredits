@@ -292,7 +292,7 @@ function go($page, $msg = '', $field = '') {
  */
 function go2($url1, $url2) {
   global $base_url;
-  global $lastGo, $x0lastGo; list ($xlastGo, $lastGo) = [@$lastGo, $page]; // for testing
+  global $lastGo, $xlastGo; list ($xlastGo, $lastGo) = [@$lastGo, $url1]; // for testing
 
   foreach (ray('url1 url2') as $k) {
     if (substr($$k, 0, 1) == '/') $$k = substr($$k, 1); // supplying the slash is preferred, to agree with w\atag()
@@ -2120,7 +2120,7 @@ function firstGraphDt($ctty) {
  * @param int $ctty: account record ID of community to show graphs for (defaults to all communities)
  * @param assoc $chartData: (RETURNED) a data field containing the chart data
  * @return: html of the relevant charts, in their proper divs
- * FOR DEV: http://localhost/cgMembers/rcredits/misc/chart.php?ctty=0&chart=growth&site=dev
+ * FOR DEV: http://localhost/cgmembers/rcredits/misc/chart.php?ctty=0&chart=growth&site=dev
  */
 function showCharts($whichChart, $ctty = 0, &$chartData = '') {
   global $base_url;
@@ -2370,7 +2370,7 @@ function css($sheet, $weight = -99) {
  */
 function setupFoot($label = '', $extra = []) {
   global $mya, $base_url;
-  if (!$mya->member) {
+  if ($mya and !$mya->member) {
     if ($remains = $mya->stepsRemaining() - 1) { // don't count current step
       $skip = button(t('Skip for now'), "$base_url/settings/skip", t('Leave this step for last'), 'warning', 'xs', ['class' => 'skip']);
       $nextStep = submit(t('Next ') . '&raquo;', '', '', w\suffix($skip));

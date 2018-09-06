@@ -30,13 +30,12 @@ function formCoupons($form, &$sta, $args = '') {
       <p>How it works:</p>
       <ol><li>Fill out the form.</li>
       <li>You choose:
-        <ul><li>%PROJECT members get an automatic rebate when they pay you OR</li>
-        <li>You charge less when they present the coupon.</li>
+        <ul><li><b>Automatic. </b>%PROJECT members get an <i>automatic</i> rebate when they pay you. %PROJECT will promote your coupon to each %PROJECT member. You can also print and distribute (or copy and paste into a print ad or newsletter).</li>
+        <li><b>NOT automatic. </b>You charge less when members present the coupon. No electronic version of the coupon is saved. You must print and distribute them yourself and/or ask %PROJECT to distribute them to members.</li>
         </ul>
       </li>
-      <li>Print a sheet of coupons (or copy and paste into a print ad or newsletter). Cut the sheet exactly in half three times.</li>
       </ol>
-      <p>%PROJECT will also distribute your coupon electronically to each %PROJECT member!</p>
+      <p>After you print a sheet of coupons, cut the sheet exactly in half three times.</p>
 X
     );
   
@@ -46,7 +45,7 @@ X
     $end = textFld(t('Valid until:'), [t('End date'), t('An end date is strongly encouraged.')]);
     $ulimit = textFld(t('Limit:'), t('Leave this blank for unlimited uses.'), suffix(t(' uses per member')));
     $automatic = w\boolFld(t('Automatic?'), t('If the discount is not automatic, you will need to do the math each time.'), TRUE);
-    $on = textFld(t('Discount on:'), [t('Discount on what')]);
+    $on = textFld(t('Description:'), [t('Discount on what')]);
     $submit = t('Create Coupon');
   } else {
     $title = t('Coupons and Gift Certificates');
@@ -120,7 +119,7 @@ function formCoupons_submit($form, &$sta) {
   if ($gift) {
     list ($start, $end) = [$mya->giftCoupons + 0, $coups = $mya->giftCoupons + $count];
   } else {
-		if (!@$on) $on = $minimum ? t('your purchase of %min or more', 'min', u\fmtAmt($minimum)) : t('any purchase');
+		if (!@$on) $on = $minimum ? t('on your purchase of %min or more', 'min', u\fmtAmt($minimum)) : t('on any purchase');
 		if ($end) $end = strtotime('tomorrow', $end) - 1; // last second of the day
 	}
 

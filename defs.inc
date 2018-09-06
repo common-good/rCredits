@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.42a'); // software version
+define('R_VERSION', '3.42b'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -28,7 +28,7 @@ define('SCRIPTS_TOP', 'x/jquery-3.3.1.min x/jquery.once x/jquery-ui.min x/bootst
 //define('SCRIPTS', 'form goo-jsapi misc charts chart-data download croppic crop-setup ballot x/bootstrap.slider.min countries print-country focus-on x/typeahead.bundle.min suggest-who on-submit chimp followup-email get-ssn change-ctty advanced-dates advanced-prefs bank-prefs which funding-criteria signup prejoint invite-link gift drupal user extend-settings'); // all possible scripts, in order (after SCRIPTS_TOP)
 define('SCRIPTS', 'x/bootstrap-toggle.min parse-query misc croppic crop-setup x/bootstrap-slider.min ballot countries x/typeahead.bundle.min on-submit scraps drupal user'); // all possible scripts, in order (after SCRIPTS_TOP). drupal and user are for password.
 
-define('DEV_ROOT', '/cgMembers'); // path to drupal root on DEV machine
+define('DEV_ROOT', '/cgmembers'); // path to drupal root on DEV machine
 define('DEV_PW2', 'devPassword#two!'); // second password on DEV machine (len must be 16, 24, or 32)
 define('DEV_VKEYPW', 'wt38BqWMslj3uUHUOto7fNi5ExL9CC7S7ffjn_q6zCY'); // password for very secure key, on DEV machine
 define('DEV_ADMIN_PASS', '123'); // admin password when isDEV
@@ -145,7 +145,7 @@ define('ORGANIZER_GRANT_MIN', 10); // minimum number of individuals to recruit, 
 define('ORGANIZER_GRANT_MAX', '$5,000'); // maximum organizer grant amount
 define('TICKLE_WELCOME', 2 * 7); // number of days to wait after activation, before followup
 define('TICKLE_DELAYED', 6 * 7); // number of days to wait after activation, before followup if no gift or no CGC
-define('OFTENS', 'M:Monthly,Q:Quarterly,Y:Yearly,1:Once (now)');
+define('OFTENS', 'Y:Yearly,Q:Quarterly,M:Monthly,1:Once (now)');
 
 define('ICARD_EXPIRES', 14); // how many days until invitation card expires, after account is activated
 define('ICARD_CODELEN_MIN', 10); // minimum length for an invitation code
@@ -480,11 +480,12 @@ $GLOBALS['emailSubjects'] = array(
   'nonmember' => t('%PROJECT invitation followup'),
   'partner-signup' => t('Continue your %PROJECT sign-up'),
   'verify' => t('%PROJECT NEXT STEP: Verify your email address.'),
-  'verifyCo' => t('%PROJECT NEXT STEP: Verify your company email address.'),
+  'verify-co' => t('%PROJECT NEXT STEP: Verify your company email address.'),
   'password-reset' => t('New %PROJECT PASSWORD'),
   'tell-staff' => t('%PROJECT STAFF ALERT: %topic'),
   'notices' => t('%PROJECT Notices for %qid for %range'),
   'message' => t('%PROJECT %topic'),
+	'annual-gift' => t('your chosen annual gift to %PROJECT'),
 );
 
 $GLOBALS['topics'] = array( // topics for 'message' email

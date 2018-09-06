@@ -260,7 +260,7 @@ function doit(what, vs) {
         $('.form-item-automatic').hide();
         var min = $('#edit-minimum').val();
         $('.form-item-on').show();
-        $('#edit-on').val(min > 0 ? 'your purchase of $' + min + ' or more' : 'any purchase');
+        $('#edit-on').val(min > 0 ? 'on your purchase of $' + min + ' or more' : 'on any purchase');
       });
       break;
       

@@ -31,7 +31,7 @@ function printInvite($accts = '') {
  * @param object $pdf: the pdf object in process
  */
 function printInvite1($a, &$pdf) {
-  $forCG = ($a->id == r\cgfId() and $a->superAdmin);
+  $forCG = ($a->id == CGID and $a->superAdmin);
   require_once __DIR__ . '/../pdf.class';
   $slogans = ray(SLOGANS);
   $cardi = 0;

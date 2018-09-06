@@ -939,6 +939,8 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #frm-donate #edit-gift {font-family:"Lucida Console",Menlo,Monaco,"Courier New",monospace;}
 #frm-donate .form-item-share .control-data {max-width:650px;}
 #frm-donate .form-item-share input {max-width:100px;}
+/*#frm-donate #edit-period {display:block; float:left;}*/
+#frm-donate .form-item-period {display:block;}
 
 /* Community Funds */
 #cttyFunds {width:100%;}

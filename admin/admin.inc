@@ -62,7 +62,7 @@ function setupBasicAccounts() {
   $server = r\serverUid();
   if ($server == r\serverUid('NEW')) { // no need to set up CGF unless in Western Mass (or testing)
     r\acct($server)->update('created', R_LAUNCH); // a date in the past makes tests work better
-    if (db\exists('users', 'uid=' . r\cgfId())) return; // already done
+    if (db\exists('users', 'uid=' . CGID)) return; // already done
     if (NOT_PRODUCTION and db\exists('users', "name='cornerstore'")) return; // already done
 
     $values = array(r\qo('NEWAAB')->id, $server, u\shortName(PROJECT), PROJECT, CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit([B_MEMBER, B_CONFIRMED, B_OK, B_CO, B_ICADMIN]));
@@ -146,10 +146,9 @@ function showSteps($a) {
  */
 function showActivity($a) {
   $uid = $a->id;
-  $cgf = r\cgfId();
   $when = u\plusMonths(-3);
   $count = $a->co ? db\count('r_txs', 'payee=:uid AND created>:when', compact('uid', 'when'))
-    : db\count('r_txs', 'payer=:uid AND payee<>:cgf AND created>:when', compact(ray('uid cgf when')));
+    : db\count('r_txs', 'payer=:uid AND payee<>:CGID AND created>:when', compact(ray('uid cgf when')));
   $ret = t('%count %what', 'count what', $count, $a->co ? t('sales') : t('purchases'));
   foreach (ray('created activated signed') as $k) $subs[$k] = $a->$k ? u\fmtDate($a->$k) : t('NO');
   $subs['use'] = u\fmtDate($a->ok ? $a->access : $a->login);
@@ -212,7 +211,7 @@ function formatField($k, $v, $flagsField = B_LIST) {
   $v = $v . ''; // convert to string
 //  if ($k == 'bankAccount' and u\starts($v, '~')) $v = 'c' . $v; // FUDGE to repair broken crypt flag (?)
 //  while (u\starts($v, CRYPT_FLAG)) $v = u\decrypt($v);
-  if ($v and in($k, ID_KEYS) and strlen($v) >= strlen(r\cgfId())) {
+  if ($v and in($k, ID_KEYS) and strlen($v) >= strlen(CGID)) {
     if ($a = r\acct($v)) $v = $a->name; else $v .= t(' (missing)'); // eg, when uid is changed
   } // member ID. Don't include agent/payerAgent/etc. here
   if ($v and $k == 'channel') $v = u\rayv(ray(TX_CHANNELS), $v);
@@ -696,15 +695,14 @@ function showSlugs() {
 function special() {
 return;
   eachX(function($x) {
-    $cgf = 26742000000002;
     foreach (ray('type payer payee goods flags taking amount payeeFor') as $k) $$k = $x->$k;
-    if ($payeeFor == 'contribution (percentage of past month receipts)' and ($payee < 0 or $payee == $cgf)) {
+    if ($payeeFor == 'contribution (percentage of past month receipts)' and ($payee < 0 or $payee == CGID)) {
       foreach ([B_GIFT, B_CRUMBS] as $k) u\setBit($flags, $k);
-      $payee = $cgf;
-    } elseif ($payeeFor == 'contribution of rounded-up payment change' and ($payee < 0 or $payee == $cgf)) {
+      $payee = CGID;
+    } elseif ($payeeFor == 'contribution of rounded-up payment change' and ($payee < 0 or $payee == CGID)) {
       foreach ([B_GIFT, B_ROUNDUPS] as $k) u\setBit($flags, $k);
-      $payee = $cgf;
-    } elseif ($payee == $cgf and $payer > 0) {
+      $payee = CGID;
+    } elseif ($payee == CGID and $payer > 0) {
       foreach (ray('ontribution onation everses') as $k) if (strpos($payeeFor, $k)) {
         if (strpos($payeeFor, 'everses')) u\setBit($flags, B_UNDOES);
         if (strpos($payeeFor, 'eversed')) u\setBit($flags, B_UNDONE);
@@ -815,10 +813,10 @@ function callDetails($type = '', $when = '') {
 //    return "<div class=\"well\"><h3>$head$body</h3></div>";
   }
 
-	$subs = ray('id cg', $mya->id, r\cgfId());
+	$subs = ray('id', $mya->id);
   $gifts = $mya->giftsDesc() 
-	?: (db\sum('amount', 'r_txs', 'payer=:id AND payee=:cg AND :IS_GIFT', $subs)
-	?: db\get('amount', 'r_recurs', 'payer=:id AND payee=:cg AND ended=0', $subs)); // a promised gift counts here, if none yet
+	?: (db\sum('amount', 'r_txs', 'payer=:id AND payee=:CGID AND :IS_GIFT', $subs)
+	?: db\get('amount', 'r_recurs', 'payer=:id AND payee=:CGID AND ended=0', $subs)); // a promised gift counts here, if none yet
   
 /*        $help = $gifts ? 'thanks' : 'ask';
         $msg = t('<span class="loud">%when <b>Welcome</b></span> to %PROJECT, How\'s it going%lastTx? %help donation(s), %signupCo volunteer? [<%a>details</a>]', 'when lastTx help signupCo _a', u\fmtDate($when, TRUE), $a->lastTxDesc(), ucfirst($help), @$signupCo, w\atag("/help/welcome/gifts=$gifts"));
@@ -928,10 +926,10 @@ function donationTrend($co = FALSE, $since = NULL) {
 	$sql =<<< X
 	  SELECT AVG(g.amount*IF(often='M', 12, IF(often='Q', 4, IF(often='Y', 1, 0)))) AS regular
 		FROM r_recurs g LEFT JOIN users u ON u.uid=g.payer
-		WHERE g.payee=:cg AND $where
+		WHERE g.payee=:CGID AND $where
 X;
   $subs = compact('since');
-	$res = db\q($sql, $subs + ray('cg', r\cgfId()))->fetchAssoc();
+	$res = db\q($sql, $subs)->fetchAssoc();
 	
 	$sql = "SELECT AVG(u.:IS_ROUNDUP) AS roundupRatio, AVG(u.crumbs) AS crumbs FROM users u WHERE $where";
 	$res += db\q($sql, $subs)->fetchAssoc();

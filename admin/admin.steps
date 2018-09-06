@@ -38,40 +38,40 @@ function extraSetup() {
 /**
  * members: (ARG)
  *
- * in: MAKE Activate Setup
- *     TEST Activate AdminActivatesAnAccount
- *     MAKE Checks Setup
- *     MAKE Changes Setup
+ * in: MAKE activate Setup
+ *     TEST activate AdminActivatesAnAccount
+ *     MAKE changes Setup
+ *     MAKE checks Setup
  */
 function members($list) {return t\members($list);}
 
 /**
  * transactions: (ARG)
  *
- * in: MAKE Checks Setup
+ * in: MAKE checks Setup
  */
 function transactions($list) {return t\transactions($list);}
 
 /**
  * usd transfers: (ARG)
  *
- * in: BOTH Checks AdminPrintsChecks
+ * in: BOTH checks AdminPrintsChecks
  */
 function usdTransfers($tx) {return t\usdTransfers($tx);}
 
 /**
  * member (ARG) visits page (ARG)
  *
- * in: MAKE Checks AdminPrintsChecks
- *     MAKE Changes AMemberChangesSomeSettings
+ * in: MAKE changes AMemberChangesSomeSettings
+ *     MAKE checks AdminPrintsChecks
  */
 function memberVisitsPage($id, $page) {return t\memberVisitsPage($id, $page);}
 
 /**
  * we show (ARG) with: (ARG)
  *
- * in: TEST Checks AdminPrintsChecks
- *     TEST Changes AMemberChangesSomeSettings
+ * in: TEST changes AMemberChangesSomeSettings
+ *     TEST checks AdminPrintsChecks
  */
 function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
   return t\weShowWith($title, $content, $showDebugs);
@@ -80,15 +80,15 @@ function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
 /**
  * member (ARG) completes form (ARG) with values: (ARG)
  *
- * in: MAKE Activate AdminActivatesAnAccount
- *     MAKE Changes AMemberChangesSomeSettings
+ * in: MAKE activate AdminActivatesAnAccount
+ *     MAKE changes AMemberChangesSomeSettings
  */
 function memberCompletesFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values);}
 
 /**
  * we show pdf with: (ARG)
  *
- * in: TEST Checks AdminPrintsChecks
+ * in: TEST checks AdminPrintsChecks
  */
 function weShowPdfWith($list) {
   global $testOnly, $pdfSays;
@@ -107,14 +107,14 @@ function weShowPdfWith($list) {
 /**
  * balances: (ARG)
  *
- * in: TEST Checks AdminPrintsChecks
+ * in: TEST checks AdminPrintsChecks
  */
 function balances($list) {return t\balances($list);}
 
 /**
  * relations: (ARG)
  *
- * in: MAKE Activate Setup
+ * in: MAKE activate Setup
  */
 function relations($relations) {return t\relations($relations);}
 
@@ -128,7 +128,7 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
 /**
  * member (ARG) has no photo ID recorded
  *
- * in: MAKE Activate AdminActivatesAnAccount
+ * in: MAKE activate AdminActivatesAnAccount
  */
 function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
 

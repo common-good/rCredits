@@ -49,6 +49,7 @@ function extraSetup($feature) {
  *     MAKE Bank Setup
  *     MAKE Bank AMemberIsUnderTargetAndHasRequestedInsufficientFundsFromTheBank
  *     MAKE Bank ANonmemberHasATargetAndRefills
+ *     MAKE Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
  *     MAKE Invoices Setup
  *     MAKE Monthly Setup
  *     MAKE Trust Setup
@@ -127,6 +128,13 @@ function balances($list) {return t\balances($list);}
  *     MAKE Bank ANonmemberHasATargetAndRefills
  *     MAKE Bank MembersBankAccountHasNotBeenVerified
  *     MAKE Bank AMembersBankAccountGetsVerified
+ *     MAKE CommunityBits CommunityBansSpendingBelowZero
+ *     MAKE Gifts ABrandNewRecurringDonationCanBeCompleted
+ *     MAKE Gifts ASecondRecurringDonationCanBeCompleted
+ *     MAKE Gifts ADonationInvoiceCanBeCompleted
+ *     MAKE Gifts ARecurringDonationCannotBeCompleted
+ *     MAKE Gifts ANonmemberChoosesADonation
+ *     MAKE Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
  *     MAKE Invoices UnpaidInvoicesGetHandled
  *     MAKE Invoices NonmemberUnpaidInvoiceDoesNotGenerateATransferRequest
  *     MAKE Monthly InflationAdjustmentsRoundUpDonationsAndCrumbDonationsAreMade
@@ -196,6 +204,7 @@ function relations($relations) {return t\relations($relations);}
  *     BOTH Gifts ASecondRecurringDonationCanBeCompleted
  *     TEST Gifts ADonationInvoiceCanBeCompleted
  *     TEST Bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
+ *     MAKE Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
  *     MAKE Invoices Setup
  *     TEST Invoices UnpaidInvoicesGetHandled
  *     MAKE Monthly Setup
@@ -266,7 +275,8 @@ function notices($list) {return t\notices($list);}
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: TEST Notices AMemberGetsSomeNotices
+ * in: TEST Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
+ *     TEST Notices AMemberGetsSomeNotices
  *     TEST Notices AMemberGetsSomeWeeklyNotices
  *     TEST Tickle ANonmemberHasNotAcceptedTheInvitation
  */
@@ -532,6 +542,7 @@ function stats($list) {return t\stats($list);}
  *     MAKE Gifts ASecondRecurringDonationCanBeCompleted
  *     MAKE Gifts ARecurringDonationCannotBeCompleted
  *     MAKE Gifts ANonmemberChoosesADonation
+ *     MAKE Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
  *     MAKE Risk Setup
  */
 function these($thing, $list) {return t\these($thing, $list);}
