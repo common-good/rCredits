@@ -1287,7 +1287,7 @@ EOF;
 		$okNow = ($amount < 0 or $a->bankOk); // "okay to create the request NOW"
 		if (!$okNow) $a->verifyBank();
     u\setDft($created, $okNow ? NOW : NOW + DAY_SECS);
-    u\setDft($completed, $a->bankOk ? $created : 0);
+    u\setDft($completed, ($amount < 0 or $a->bankOk) ? $created : 0);
 
     $DBTX = \db_transaction();
 
@@ -1340,6 +1340,7 @@ EOF;
 	 */
   public function verifyBank($channel = TX_SYS, $amount = 0) {
 		list ($bankAccount, $payee) = [@$this->vsecure['bankAccount'], $this->id];
+		if (db\exists('r_usd', compact(ray('amount payee bankAccount')))) return; // already being verified
 		for ($txid = 1; $txid < 999999; $txid++) { // actual transfers start sometime after 999,999
 			if (db\exists('r_usd', 'txid=:txid', compact('txid'))) continue;
 			if ($txid = db\insert('r_usd', compact(ray('txid amount payee bankAccount channel')))) break;

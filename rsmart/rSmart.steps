@@ -40,77 +40,77 @@ function extraSetup() {
 /**
  * members: (ARG)
  *
- * in: MAKE Coupons Setup
- *     MAKE Exchange Setup
- *     MAKE Identify Setup
- *     MAKE Joint Setup
- *     MAKE Offline Setup
- *     MAKE Startup Setup
- *     MAKE Time Setup
- *     MAKE Transact Setup
- *     MAKE Undo Setup
+ * in: MAKE coupons Setup
+ *     MAKE exchange Setup
+ *     MAKE identify Setup
+ *     MAKE joint Setup
+ *     MAKE offline Setup
+ *     MAKE startup Setup
+ *     MAKE time Setup
+ *     MAKE transact Setup
+ *     MAKE undo Setup
  */
 function members($list) {return t\members($list);}
 
 /**
  * relations: (ARG)
  *
- * in: MAKE Coupons Setup
- *     MAKE Exchange Setup
- *     MAKE Identify Setup
- *     MAKE Joint Setup
- *     MAKE Offline Setup
- *     MAKE Startup Setup
- *     MAKE Time Setup
- *     MAKE Transact Setup
- *     MAKE Undo Setup
+ * in: MAKE coupons Setup
+ *     MAKE exchange Setup
+ *     MAKE identify Setup
+ *     MAKE joint Setup
+ *     MAKE offline Setup
+ *     MAKE startup Setup
+ *     MAKE time Setup
+ *     MAKE transact Setup
+ *     MAKE undo Setup
  */
 function relations($relations) {return t\relations($relations);}
 
 /**
  * transactions: (ARG)
  *
- * in: TEST Coupons AMemberRedeemsAGiftCoupon
- *     MAKE Exchange Setup
- *     MAKE Identify Setup
- *     MAKE Joint Setup
- *     MAKE Offline Setup
- *     MAKE Offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
- *     MAKE Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
- *     MAKE Transact Setup
- *     MAKE Undo Setup
- *     MAKE Undo AnAgentAsksToUndoACharge
- *     MAKE Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
- *     MAKE Undo AnAgentAsksToUndoARefund
- *     MAKE Undo AnAgentAsksToUndoACashoutCharge
- *     MAKE Undo AnAgentAsksToUndoACashinPayment
- *     MAKE Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
- *     MAKE Undo AnAgentAsksToUndoARefundWithInsufficientBalance
- *     MAKE Undo AnAgentAsksToUndoAChargeWithoutPermission
- *     MAKE Undo AnAgentAsksToUndoARefundWithoutPermission
- *     BOTH Undo ACashierReversesATransactionWithInsufficientFunds
+ * in: TEST coupons AMemberRedeemsAGiftCoupon
+ *     MAKE exchange Setup
+ *     MAKE identify Setup
+ *     MAKE joint Setup
+ *     MAKE offline Setup
+ *     MAKE offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
+ *     MAKE offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
+ *     MAKE transact Setup
+ *     MAKE undo Setup
+ *     MAKE undo AnAgentAsksToUndoACharge
+ *     MAKE undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
+ *     MAKE undo AnAgentAsksToUndoARefund
+ *     MAKE undo AnAgentAsksToUndoACashoutCharge
+ *     MAKE undo AnAgentAsksToUndoACashinPayment
+ *     MAKE undo AnAgentAsksToUndoAChargeWithInsufficientBalance
+ *     MAKE undo AnAgentAsksToUndoARefundWithInsufficientBalance
+ *     MAKE undo AnAgentAsksToUndoAChargeWithoutPermission
+ *     MAKE undo AnAgentAsksToUndoARefundWithoutPermission
+ *     BOTH undo ACashierReversesATransactionWithInsufficientFunds
  */
 function transactions($list) {return t\transactions($list);}
 
 /**
  * agent (ARG) asks device (ARG) to identify (ARG)
  *
- * in: MAKE Identify ACashierSignsIn
- *     MAKE Identify DeviceHasNoIdentifierYet
- *     MAKE Identify DeviceShouldHaveAnIdentifier
- *     MAKE Identify ACashierSignsInSigningAnotherCashierOut
- *     MAKE Identify AManagerSignsIn
- *     MAKE Identify ACashierScansACustomerCard
- *     MAKE Identify TheDefaultCashierScansACustomerCard
- *     MAKE Identify TheDefaultCashierScansADeactivatedCard
- *     MAKE Identify AnUnauthorizedCashierScansIn
- *     MAKE Identify ACashierScansACustomerCardBeforeSigningIn
- *     MAKE Identify ACashierAsksUsToIdentifyTheCashiersOwnCard
- *     MAKE Identify ACashierScansACustomerCardWhoseBalanceIsSecret
- *     MAKE Identify ACashierScansACompanyCustomerCard
- *     MAKE Identify ANonyetactiveMemberCardIsScanned
- *     MAKE Identify AMemberMakesAPurchaseForTheFirstTime
- *     MAKE Time ACashierSignsIn
+ * in: MAKE identify ACashierSignsIn
+ *     MAKE identify DeviceHasNoIdentifierYet
+ *     MAKE identify DeviceShouldHaveAnIdentifier
+ *     MAKE identify ACashierSignsInSigningAnotherCashierOut
+ *     MAKE identify AManagerSignsIn
+ *     MAKE identify ACashierScansACustomerCard
+ *     MAKE identify TheDefaultCashierScansACustomerCard
+ *     MAKE identify TheDefaultCashierScansADeactivatedCard
+ *     MAKE identify AnUnauthorizedCashierScansIn
+ *     MAKE identify ACashierScansACustomerCardBeforeSigningIn
+ *     MAKE identify ACashierAsksUsToIdentifyTheCashiersOwnCard
+ *     MAKE identify ACashierScansACustomerCardWhoseBalanceIsSecret
+ *     MAKE identify ACashierScansACompanyCustomerCard
+ *     MAKE identify ANonyetactiveMemberCardIsScanned
+ *     MAKE identify AMemberMakesAPurchaseForTheFirstTime
+ *     MAKE time ACashierSignsIn
  */
 function agentAsksDeviceToIdentify($agent, $device, $qr) {
   return agentAsksDeviceToIdentifyWithPIN($agent, $device, $qr);
@@ -119,18 +119,18 @@ function agentAsksDeviceToIdentify($agent, $device, $qr) {
 /**
  * we respond with: (ARG)
  *
- * in: TEST Identify ACashierSignsIn
- *     TEST Identify DeviceHasNoIdentifierYet
- *     TEST Identify ACashierSignsInSigningAnotherCashierOut
- *     TEST Identify AManagerSignsIn
- *     TEST Identify ACashierScansACustomerCard
- *     TEST Identify TheDefaultCashierScansACustomerCard
- *     TEST Identify ACustomerScansTheirOwnCardForSelfservice
- *     TEST Identify ACashierScansACustomerCardWhoseBalanceIsSecret
- *     TEST Identify ACashierScansACompanyCustomerCard
- *     TEST Identify AMemberMakesAPurchaseForTheFirstTime
- *     TEST Time TheDeviceAsksForTheTime
- *     TEST Time ACashierSignsIn
+ * in: TEST identify ACashierSignsIn
+ *     TEST identify DeviceHasNoIdentifierYet
+ *     TEST identify ACashierSignsInSigningAnotherCashierOut
+ *     TEST identify AManagerSignsIn
+ *     TEST identify ACashierScansACustomerCard
+ *     TEST identify TheDefaultCashierScansACustomerCard
+ *     TEST identify ACustomerScansTheirOwnCardForSelfservice
+ *     TEST identify ACashierScansACustomerCardWhoseBalanceIsSecret
+ *     TEST identify ACashierScansACompanyCustomerCard
+ *     TEST identify AMemberMakesAPurchaseForTheFirstTime
+ *     TEST time TheDeviceAsksForTheTime
+ *     TEST time ACashierSignsIn
  */
 function weRespondWith($args) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -160,9 +160,9 @@ function weRespondWith($args) {
 /**
  * agent (ARG) asks device (ARG) for a picture of member (ARG) with card code (ARG)
  *
- * in: MAKE Identify DeviceAsksForAPictureToGoWithTheQR
- *     MAKE Identify DeviceAsksForAPictureButThereIsntOne
- *     MAKE Identify DeviceAsksForAPictureWithTheWrongCardCode
+ * in: MAKE identify DeviceAsksForAPictureToGoWithTheQR
+ *     MAKE identify DeviceAsksForAPictureButThereIsntOne
+ *     MAKE identify DeviceAsksForAPictureWithTheWrongCardCode
  */
 function agentAsksDeviceForAPictureOfMemberWithCardCode($agent, $device, $member, $code) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -172,8 +172,8 @@ function agentAsksDeviceForAPictureOfMemberWithCardCode($agent, $device, $member
 /**
  * member (ARG) has picture (ARG)
  *
- * in: MAKE Identify DeviceAsksForAPictureToGoWithTheQR
- *     MAKE Identify DeviceAsksForAPictureWithTheWrongCardCode
+ * in: MAKE identify DeviceAsksForAPictureToGoWithTheQR
+ *     MAKE identify DeviceAsksForAPictureWithTheWrongCardCode
  */
 function memberHasPicture($id, $picture) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -184,9 +184,9 @@ function memberHasPicture($id, $picture) {
 /**
  * we respond with picture (ARG)
  *
- * in: TEST Identify DeviceAsksForAPictureToGoWithTheQR
- *     TEST Identify DeviceAsksForAPictureButThereIsntOne
- *     TEST Identify DeviceAsksForAPictureWithTheWrongCardCode
+ * in: TEST identify DeviceAsksForAPictureToGoWithTheQR
+ *     TEST identify DeviceAsksForAPictureButThereIsntOne
+ *     TEST identify DeviceAsksForAPictureWithTheWrongCardCode
  */
 function weRespondWithPicture($picture) {
   global $testOnly;
@@ -197,7 +197,7 @@ function weRespondWithPicture($picture) {
 /**
  * member (ARG) has no picture
  *
- * in: MAKE Identify DeviceAsksForAPictureButThereIsntOne
+ * in: MAKE identify DeviceAsksForAPictureButThereIsntOne
  */
 function memberHasNoPicture($id) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -210,54 +210,54 @@ function memberHasNoPicture($id) {
 /**
  * devices: (ARG)
  *
- * in: MAKE Coupons Setup
- *     MAKE Exchange Setup
- *     MAKE Identify Setup
- *     MAKE Joint Setup
- *     MAKE Offline Setup
- *     MAKE Startup Setup
- *     MAKE Time Setup
- *     MAKE Transact Setup
- *     MAKE Undo Setup
+ * in: MAKE coupons Setup
+ *     MAKE exchange Setup
+ *     MAKE identify Setup
+ *     MAKE joint Setup
+ *     MAKE offline Setup
+ *     MAKE startup Setup
+ *     MAKE time Setup
+ *     MAKE transact Setup
+ *     MAKE undo Setup
  */
 function devices($list) {return t\devices($list);}
 
 /**
  * balances: (ARG)
  *
- * in: TEST Exchange Setup
- *     TEST Exchange ACashierAsksToChargeSomeoneForCash
- *     TEST Exchange ACashierAsksToRefundSomeone
- *     TEST Joint Setup
- *     TEST Joint ACashierAsksToChargeSomeone
- *     TEST Offline Setup
- *     TEST Offline ACashierChargedSomeoneOffline
- *     TEST Offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
- *     TEST Offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
- *     TEST Offline ACashierDeclinedToChargeSomeoneOfflineAndItDidntGoThrough
- *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
- *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
- *     TEST Transact Setup
- *     TEST Transact ACashierAsksToChargeSomeone
- *     TEST Transact ACashierAsksToRefundSomeone
- *     TEST Undo Setup
- *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
- *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
- *     TEST Undo ACashierReversesATransactionWithInsufficientFunds
+ * in: TEST exchange Setup
+ *     TEST exchange ACashierAsksToChargeSomeoneForCash
+ *     TEST exchange ACashierAsksToRefundSomeone
+ *     TEST joint Setup
+ *     TEST joint ACashierAsksToChargeSomeone
+ *     TEST offline Setup
+ *     TEST offline ACashierChargedSomeoneOffline
+ *     TEST offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
+ *     TEST offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
+ *     TEST offline ACashierDeclinedToChargeSomeoneOfflineAndItDidntGoThrough
+ *     TEST offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
+ *     TEST offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
+ *     TEST transact Setup
+ *     TEST transact ACashierAsksToChargeSomeone
+ *     TEST transact ACashierAsksToRefundSomeone
+ *     TEST undo Setup
+ *     TEST undo AnAgentAsksToUndoAChargeWithInsufficientBalance
+ *     TEST undo AnAgentAsksToUndoARefundWithInsufficientBalance
+ *     TEST undo ACashierReversesATransactionWithInsufficientFunds
  */
 function balances($list) {return t\balances($list);}
 
 /**
  * agent (ARG) asks device (ARG) to undo transaction (ARG) code (ARG)
  *
- * in: MAKE Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
- *     MAKE Undo AnAgentAsksToUndoARefund
- *     MAKE Undo AnAgentAsksToUndoACashoutCharge
- *     MAKE Undo AnAgentAsksToUndoACashinPayment
- *     MAKE Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
- *     MAKE Undo AnAgentAsksToUndoARefundWithInsufficientBalance
- *     MAKE Undo AnAgentAsksToUndoAChargeWithoutPermission
- *     MAKE Undo AnAgentAsksToUndoARefundWithoutPermission
+ * in: MAKE undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
+ *     MAKE undo AnAgentAsksToUndoARefund
+ *     MAKE undo AnAgentAsksToUndoACashoutCharge
+ *     MAKE undo AnAgentAsksToUndoACashinPayment
+ *     MAKE undo AnAgentAsksToUndoAChargeWithInsufficientBalance
+ *     MAKE undo AnAgentAsksToUndoARefundWithInsufficientBalance
+ *     MAKE undo AnAgentAsksToUndoAChargeWithoutPermission
+ *     MAKE undo AnAgentAsksToUndoARefundWithoutPermission
  */
 function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -277,9 +277,9 @@ function agentAsksDeviceToUndoTransactionCode($agent, $device, $txid, $code) {
 /**
  * agent (ARG) asks device (ARG) to undo transaction with subs: (ARG)
  *
- * in: MAKE Coupons AMemberRedeemsAGiftCoupon
- *     MAKE Undo AnAgentAsksToUndoACharge
- *     MAKE Undo AnAgentAsksToUndoANonexistentTransaction
+ * in: MAKE coupons AMemberRedeemsAGiftCoupon
+ *     MAKE undo AnAgentAsksToUndoACharge
+ *     MAKE undo AnAgentAsksToUndoANonexistentTransaction
  */
 function agentAsksDeviceToUndoTransactionWithSubs($agent, $device, $subs) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -308,22 +308,22 @@ function withBalance($subs) {
 /**
  * with undo (ARG)
  *
- * in: TEST Exchange ACashierAsksToChargeSomeoneForCash
- *     TEST Exchange ACashierAsksToRefundSomeone
- *     TEST Joint ACashierAsksToChargeSomeone
- *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
- *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
- *     TEST Transact ACashierAsksToChargeSomeone
- *     TEST Transact ACashierAsksToRefundSomeone
- *     TEST Undo AnAgentAsksToUndoACharge
- *     TEST Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
- *     TEST Undo AnAgentAsksToUndoARefund
- *     TEST Undo AnAgentAsksToUndoACashoutCharge
- *     TEST Undo AnAgentAsksToUndoACashinPayment
- *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
- *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
- *     TEST Undo AnAgentAsksToUndoANonexistentTransaction
- *     TEST Undo ACashierReversesATransactionWithInsufficientFunds
+ * in: TEST exchange ACashierAsksToChargeSomeoneForCash
+ *     TEST exchange ACashierAsksToRefundSomeone
+ *     TEST joint ACashierAsksToChargeSomeone
+ *     TEST offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
+ *     TEST offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
+ *     TEST transact ACashierAsksToChargeSomeone
+ *     TEST transact ACashierAsksToRefundSomeone
+ *     TEST undo AnAgentAsksToUndoACharge
+ *     TEST undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
+ *     TEST undo AnAgentAsksToUndoARefund
+ *     TEST undo AnAgentAsksToUndoACashoutCharge
+ *     TEST undo AnAgentAsksToUndoACashinPayment
+ *     TEST undo AnAgentAsksToUndoAChargeWithInsufficientBalance
+ *     TEST undo AnAgentAsksToUndoARefundWithInsufficientBalance
+ *     TEST undo AnAgentAsksToUndoANonexistentTransaction
+ *     TEST undo ACashierReversesATransactionWithInsufficientFunds
  */
 function withUndo($subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -343,20 +343,20 @@ function withUndo($subs) {
 /**
  * we return error (ARG) with subs: (ARG)
  *
- * in: TEST Exchange ACashierAsksToChargeAnotherMemberWithInsufficientBalance
- *     TEST Exchange ACashierAsksToRefundAnotherMemberWithInsufficientBalance
- *     TEST Exchange DeviceGivesTooBigAnAmount
- *     TEST Exchange SellerAgentLacksPermissionToBuy
- *     TEST Exchange SellerAgentLacksPermissionToScanAndSell
- *     TEST Exchange BuyerAgentLacksPermissionToBuy
- *     TEST Identify ANonyetactiveMemberCardIsScanned
- *     TEST Transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance
- *     TEST Transact ACashierAsksToRefundAnotherMemberWithInsufficientBalance
- *     TEST Transact DeviceGivesTooBigAnAmount
- *     TEST Transact SellerAgentLacksPermissionToBuy
- *     TEST Transact SellerAgentLacksPermissionToScanAndSell
- *     TEST Transact BuyerAgentLacksPermissionToBuy
- *     TEST Transact SellerTriesToChargeTheCustomerTwice
+ * in: TEST exchange ACashierAsksToChargeAnotherMemberWithInsufficientBalance
+ *     TEST exchange ACashierAsksToRefundAnotherMemberWithInsufficientBalance
+ *     TEST exchange DeviceGivesTooBigAnAmount
+ *     TEST exchange SellerAgentLacksPermissionToBuy
+ *     TEST exchange SellerAgentLacksPermissionToScanAndSell
+ *     TEST exchange BuyerAgentLacksPermissionToBuy
+ *     TEST identify ANonyetactiveMemberCardIsScanned
+ *     TEST transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance
+ *     TEST transact ACashierAsksToRefundAnotherMemberWithInsufficientBalance
+ *     TEST transact DeviceGivesTooBigAnAmount
+ *     TEST transact SellerAgentLacksPermissionToBuy
+ *     TEST transact SellerAgentLacksPermissionToScanAndSell
+ *     TEST transact BuyerAgentLacksPermissionToBuy
+ *     TEST transact SellerTriesToChargeTheCustomerTwice
  */
 function weReturnErrorWithSubs($msg, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -370,70 +370,70 @@ function weReturnErrorWithSubs($msg, $subs) {
 /**
  * we return error (ARG)
  *
- * in: TEST Exchange ACashierAsksToPaySelf
- *     TEST Exchange DeviceGivesNoMemberId
- *     TEST Exchange DeviceGivesBadAccountId
- *     TEST Exchange DeviceGivesNoAmount
- *     TEST Exchange DeviceGivesBadAmount
- *     TEST Exchange DeviceGivesNoPurposeForGoodsAndServices
- *     TEST Exchange DeviceSendsWrongProof
- *     TEST Identify DeviceShouldHaveAnIdentifier
- *     TEST Identify ACustomerScansTheirOwnCardForSelfserviceWithWrongPIN
- *     TEST Identify TheDefaultCashierScansADeactivatedCard
- *     TEST Identify AnUnauthorizedCashierScansIn
- *     TEST Identify ACashierScansACustomerCardBeforeSigningIn
- *     TEST Identify ACashierAsksUsToIdentifyTheCashiersOwnCard
- *     TEST Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOnline
- *     TEST Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithTxDateAfterTheChange
- *     TEST Startup DeviceRequestsABadOp
- *     TEST Startup DeviceShouldHaveAnIdentifier
- *     TEST Startup DeviceGivesABadCode
- *     TEST Startup AnAgentForAnInactiveCompanyTriesAnOp
- *     TEST Transact ACashierAsksToPaySelf
- *     TEST Transact DeviceGivesNoMemberId
- *     TEST Transact DeviceGivesBadAccountId
- *     TEST Transact DeviceGivesNoAmount
- *     TEST Transact DeviceGivesBadAmount
- *     TEST Transact DeviceGivesNoPurposeForGoodsAndServices
- *     TEST Transact DeviceSendsWrongProof
+ * in: TEST exchange ACashierAsksToPaySelf
+ *     TEST exchange DeviceGivesNoMemberId
+ *     TEST exchange DeviceGivesBadAccountId
+ *     TEST exchange DeviceGivesNoAmount
+ *     TEST exchange DeviceGivesBadAmount
+ *     TEST exchange DeviceGivesNoPurposeForGoodsAndServices
+ *     TEST exchange DeviceSendsWrongProof
+ *     TEST identify DeviceShouldHaveAnIdentifier
+ *     TEST identify ACustomerScansTheirOwnCardForSelfserviceWithWrongPIN
+ *     TEST identify TheDefaultCashierScansADeactivatedCard
+ *     TEST identify AnUnauthorizedCashierScansIn
+ *     TEST identify ACashierScansACustomerCardBeforeSigningIn
+ *     TEST identify ACashierAsksUsToIdentifyTheCashiersOwnCard
+ *     TEST offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOnline
+ *     TEST offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithTxDateAfterTheChange
+ *     TEST startup DeviceRequestsABadOp
+ *     TEST startup DeviceShouldHaveAnIdentifier
+ *     TEST startup DeviceGivesABadCode
+ *     TEST startup AnAgentForAnInactiveCompanyTriesAnOp
+ *     TEST transact ACashierAsksToPaySelf
+ *     TEST transact DeviceGivesNoMemberId
+ *     TEST transact DeviceGivesBadAccountId
+ *     TEST transact DeviceGivesNoAmount
+ *     TEST transact DeviceGivesBadAmount
+ *     TEST transact DeviceGivesNoPurposeForGoodsAndServices
+ *     TEST transact DeviceSendsWrongProof
  */
 function weReturnError($msg) {return weReturnErrorWithSubs($msg, array());}
 
 /**
  * selling: (ARG)
  *
- * in: MAKE Coupons Setup
- *     MAKE Exchange Setup
- *     MAKE Identify Setup
- *     MAKE Joint Setup
- *     MAKE Offline Setup
- *     MAKE Time Setup
- *     MAKE Transact Setup
- *     MAKE Undo Setup
+ * in: MAKE coupons Setup
+ *     MAKE exchange Setup
+ *     MAKE identify Setup
+ *     MAKE joint Setup
+ *     MAKE offline Setup
+ *     MAKE time Setup
+ *     MAKE transact Setup
+ *     MAKE undo Setup
  */
 function selling($selling) {return t\selling($selling);}
 
 /**
  * company flags: (ARG)
  *
- * in: MAKE Coupons Setup
- *     MAKE Exchange Setup
- *     MAKE Identify Setup
- *     MAKE Joint Setup
- *     MAKE Offline Setup
- *     MAKE Time Setup
- *     MAKE Transact Setup
- *     MAKE Undo Setup
+ * in: MAKE coupons Setup
+ *     MAKE exchange Setup
+ *     MAKE identify Setup
+ *     MAKE joint Setup
+ *     MAKE offline Setup
+ *     MAKE time Setup
+ *     MAKE transact Setup
+ *     MAKE undo Setup
  */
 function companyFlags($flags) {return t\companyFlags($flags);}
 
 /**
  * agent (ARG) asks device (ARG) for op (ARG) with: (ARG)
  *
- * in: MAKE Startup DeviceRequestsABadOp
- *     MAKE Startup DeviceShouldHaveAnIdentifier
- *     MAKE Startup DeviceGivesABadCode
- *     MAKE Startup AnAgentForAnInactiveCompanyTriesAnOp
+ * in: MAKE startup DeviceRequestsABadOp
+ *     MAKE startup DeviceShouldHaveAnIdentifier
+ *     MAKE startup DeviceGivesABadCode
+ *     MAKE startup AnAgentForAnInactiveCompanyTriesAnOp
  */
 function agentAsksDeviceForOpWith($agent, $device, $op, $extra) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -444,66 +444,66 @@ function agentAsksDeviceForOpWith($agent, $device, $op, $extra) {
 /**
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
- * in: TEST Exchange ACashierAsksToChargeSomeoneForCash
- *     TEST Exchange ACashierAsksToRefundSomeone
- *     TEST Joint ACashierAsksToChargeSomeone
- *     TEST Offline ACashierChargedSomeoneOffline
- *     TEST Offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
- *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
- *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
- *     TEST Transact ACashierAsksToChargeSomeone
- *     TEST Transact ACashierAsksToRefundSomeone
- *     TEST Undo AnAgentAsksToUndoACharge
- *     TEST Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
- *     TEST Undo AnAgentAsksToUndoARefund
- *     TEST Undo AnAgentAsksToUndoACashoutCharge
- *     TEST Undo AnAgentAsksToUndoACashinPayment
- *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
- *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
- *     TEST Undo ACashierReversesATransactionWithInsufficientFunds
+ * in: TEST exchange ACashierAsksToChargeSomeoneForCash
+ *     TEST exchange ACashierAsksToRefundSomeone
+ *     TEST joint ACashierAsksToChargeSomeone
+ *     TEST offline ACashierChargedSomeoneOffline
+ *     TEST offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
+ *     TEST offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
+ *     TEST offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
+ *     TEST transact ACashierAsksToChargeSomeone
+ *     TEST transact ACashierAsksToRefundSomeone
+ *     TEST undo AnAgentAsksToUndoACharge
+ *     TEST undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
+ *     TEST undo AnAgentAsksToUndoARefund
+ *     TEST undo AnAgentAsksToUndoACashoutCharge
+ *     TEST undo AnAgentAsksToUndoACashinPayment
+ *     TEST undo AnAgentAsksToUndoAChargeWithInsufficientBalance
+ *     TEST undo AnAgentAsksToUndoARefundWithInsufficientBalance
+ *     TEST undo ACashierReversesATransactionWithInsufficientFunds
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 
 /**
  * agent (ARG) asks device (ARG) to charge (ARG) $(ARG) for (ARG): (ARG) at (ARG)
  *
- * in: MAKE Coupons AMemberRedeemsAGiftCoupon
- *     MAKE Exchange ACashierAsksToChargeSomeoneForCash
- *     MAKE Exchange ACashierAsksToRefundSomeone
- *     MAKE Exchange ACashierAsksToChargeAnotherMemberWithInsufficientBalance
- *     MAKE Exchange ACashierAsksToRefundAnotherMemberWithInsufficientBalance
- *     MAKE Exchange ACashierAsksToPaySelf
- *     MAKE Exchange DeviceGivesNoMemberId
- *     MAKE Exchange DeviceGivesBadAccountId
- *     MAKE Exchange DeviceGivesNoAmount
- *     MAKE Exchange DeviceGivesBadAmount
- *     MAKE Exchange DeviceGivesTooBigAnAmount
- *     MAKE Exchange DeviceGivesNoPurposeForGoodsAndServices
- *     MAKE Exchange SellerAgentLacksPermissionToBuy
- *     MAKE Exchange SellerAgentLacksPermissionToScanAndSell
- *     MAKE Exchange BuyerAgentLacksPermissionToBuy
- *     MAKE Exchange DeviceSendsWrongProof
- *     MAKE Joint ACashierAsksToChargeSomeone
- *     MAKE Offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
- *     MAKE Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
- *     MAKE Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
- *     MAKE Transact ACashierAsksToChargeSomeone
- *     MAKE Transact ACashierAsksToRefundSomeone
- *     MAKE Transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance
- *     MAKE Transact ACashierAsksToRefundAnotherMemberWithInsufficientBalance
- *     MAKE Transact ACashierAsksToPaySelf
- *     MAKE Transact DeviceGivesNoMemberId
- *     MAKE Transact DeviceGivesBadAccountId
- *     MAKE Transact DeviceGivesNoAmount
- *     MAKE Transact DeviceGivesBadAmount
- *     MAKE Transact DeviceGivesTooBigAnAmount
- *     MAKE Transact DeviceGivesNoPurposeForGoodsAndServices
- *     MAKE Transact SellerAgentLacksPermissionToBuy
- *     MAKE Transact SellerAgentLacksPermissionToScanAndSell
- *     MAKE Transact BuyerAgentLacksPermissionToBuy
- *     MAKE Transact SellerTriesToChargeTheCustomerTwice
- *     MAKE Transact DeviceSendsWrongProof
- *     MAKE Transact ACashierInTheSameCommunityAsksToChargeSomeoneUnconfirmed
+ * in: MAKE coupons AMemberRedeemsAGiftCoupon
+ *     MAKE exchange ACashierAsksToChargeSomeoneForCash
+ *     MAKE exchange ACashierAsksToRefundSomeone
+ *     MAKE exchange ACashierAsksToChargeAnotherMemberWithInsufficientBalance
+ *     MAKE exchange ACashierAsksToRefundAnotherMemberWithInsufficientBalance
+ *     MAKE exchange ACashierAsksToPaySelf
+ *     MAKE exchange DeviceGivesNoMemberId
+ *     MAKE exchange DeviceGivesBadAccountId
+ *     MAKE exchange DeviceGivesNoAmount
+ *     MAKE exchange DeviceGivesBadAmount
+ *     MAKE exchange DeviceGivesTooBigAnAmount
+ *     MAKE exchange DeviceGivesNoPurposeForGoodsAndServices
+ *     MAKE exchange SellerAgentLacksPermissionToBuy
+ *     MAKE exchange SellerAgentLacksPermissionToScanAndSell
+ *     MAKE exchange BuyerAgentLacksPermissionToBuy
+ *     MAKE exchange DeviceSendsWrongProof
+ *     MAKE joint ACashierAsksToChargeSomeone
+ *     MAKE offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
+ *     MAKE offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
+ *     MAKE offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
+ *     MAKE transact ACashierAsksToChargeSomeone
+ *     MAKE transact ACashierAsksToRefundSomeone
+ *     MAKE transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance
+ *     MAKE transact ACashierAsksToRefundAnotherMemberWithInsufficientBalance
+ *     MAKE transact ACashierAsksToPaySelf
+ *     MAKE transact DeviceGivesNoMemberId
+ *     MAKE transact DeviceGivesBadAccountId
+ *     MAKE transact DeviceGivesNoAmount
+ *     MAKE transact DeviceGivesBadAmount
+ *     MAKE transact DeviceGivesTooBigAnAmount
+ *     MAKE transact DeviceGivesNoPurposeForGoodsAndServices
+ *     MAKE transact SellerAgentLacksPermissionToBuy
+ *     MAKE transact SellerAgentLacksPermissionToScanAndSell
+ *     MAKE transact BuyerAgentLacksPermissionToBuy
+ *     MAKE transact SellerTriesToChargeTheCustomerTwice
+ *     MAKE transact DeviceSendsWrongProof
+ *     MAKE transact ACashierInTheSameCommunityAsksToChargeSomeoneUnconfirmed
  */
 function agentAsksDeviceToChargeForAt($agent, $device, $member, $amount, $goods, $description, $created) {
   return reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $description, $created, 0);
@@ -512,7 +512,7 @@ function agentAsksDeviceToChargeForAt($agent, $device, $member, $amount, $goods,
 /**
  * agent (ARG) asks device (ARG) to charge (ARG) $(ARG) for (ARG): (ARG) at (ARG) force (ARG)
  *
- * in: MAKE Undo ACashierReversesATransactionWithInsufficientFunds
+ * in: MAKE undo ACashierReversesATransactionWithInsufficientFunds
  */
 function agentAsksDeviceToChargeForAtForce($agent, $device, $member, $amount, $goods, $desc, $created, $force) {
   return reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $desc, $created, $force);
@@ -521,15 +521,15 @@ function agentAsksDeviceToChargeForAtForce($agent, $device, $member, $amount, $g
 /**
  * reconciling (ARG) on (ARG) charging (ARG) $(ARG) for (ARG): (ARG) at (ARG) force (ARG)
  *
- * in: MAKE Offline ACashierChargedSomeoneOffline
- *     MAKE Offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
- *     MAKE Offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
- *     MAKE Offline ACashierDeclinedToChargeSomeoneOfflineAndItDidntGoThrough
- *     MAKE Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
- *     MAKE Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
- *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
- *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOnline
- *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithTxDateAfterTheChange
+ * in: MAKE offline ACashierChargedSomeoneOffline
+ *     MAKE offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
+ *     MAKE offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
+ *     MAKE offline ACashierDeclinedToChargeSomeoneOfflineAndItDidntGoThrough
+ *     MAKE offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
+ *     MAKE offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
+ *     MAKE offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
+ *     MAKE offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOnline
+ *     MAKE offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithTxDateAfterTheChange
  */
 function reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goods, $description, $created, $force) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -542,19 +542,19 @@ function reconcilingOnChargingForAtForce($agent, $device, $member, $amount, $goo
 /**
  * with did (ARG)
  *
- * in: TEST Exchange ACashierAsksToChargeSomeoneForCash
- *     TEST Exchange ACashierAsksToRefundSomeone
- *     TEST Joint ACashierAsksToChargeSomeone
- *     TEST Transact ACashierAsksToChargeSomeone
- *     TEST Transact ACashierAsksToRefundSomeone
- *     TEST Undo AnAgentAsksToUndoACharge
- *     TEST Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
- *     TEST Undo AnAgentAsksToUndoARefund
- *     TEST Undo AnAgentAsksToUndoACashoutCharge
- *     TEST Undo AnAgentAsksToUndoACashinPayment
- *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
- *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
- *     TEST Undo AnAgentAsksToUndoANonexistentTransaction
+ * in: TEST exchange ACashierAsksToChargeSomeoneForCash
+ *     TEST exchange ACashierAsksToRefundSomeone
+ *     TEST joint ACashierAsksToChargeSomeone
+ *     TEST transact ACashierAsksToChargeSomeone
+ *     TEST transact ACashierAsksToRefundSomeone
+ *     TEST undo AnAgentAsksToUndoACharge
+ *     TEST undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
+ *     TEST undo AnAgentAsksToUndoARefund
+ *     TEST undo AnAgentAsksToUndoACashoutCharge
+ *     TEST undo AnAgentAsksToUndoACashinPayment
+ *     TEST undo AnAgentAsksToUndoAChargeWithInsufficientBalance
+ *     TEST undo AnAgentAsksToUndoARefundWithInsufficientBalance
+ *     TEST undo AnAgentAsksToUndoANonexistentTransaction
  */
 function withDid($subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -566,15 +566,15 @@ function withDid($subs) {
 /**
  * we respond ok txid (ARG) created (ARG) balance (ARG) rewards (ARG)
  *
- * in: TEST Exchange ACashierAsksToChargeSomeoneForCash
- *     TEST Exchange ACashierAsksToRefundSomeone
- *     TEST Offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
- *     TEST Offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
- *     TEST Offline ACashierDeclinedToChargeSomeoneOfflineAndItDidntGoThrough
- *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
- *     TEST Offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
- *     TEST Undo AnAgentAsksToUndoANonexistentTransaction
- *     TEST Undo ACashierReversesATransactionWithInsufficientFunds
+ * in: TEST exchange ACashierAsksToChargeSomeoneForCash
+ *     TEST exchange ACashierAsksToRefundSomeone
+ *     TEST offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
+ *     TEST offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
+ *     TEST offline ACashierDeclinedToChargeSomeoneOfflineAndItDidntGoThrough
+ *     TEST offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThrough
+ *     TEST offline ACashierCanceledOfflineASupposedlyOfflineChargeThatActuallyWentThroughButCustomerIsBroke
+ *     TEST undo AnAgentAsksToUndoANonexistentTransaction
+ *     TEST undo ACashierReversesATransactionWithInsufficientFunds
  */
 function weRespondOkTxidCreatedBalanceRewards($txid, $created, $balance, $rewards) {
   return weRespondOkTxidCreatedBalanceRewardsSaying($txid, $created, $balance, $rewards);
@@ -583,8 +583,8 @@ function weRespondOkTxidCreatedBalanceRewards($txid, $created, $balance, $reward
 /**
  * with message (ARG) with subs: (ARG)
  *
- * in: TEST Exchange ACashierAsksToChargeSomeoneForCash
- *     TEST Exchange ACashierAsksToRefundSomeone
+ * in: TEST exchange ACashierAsksToChargeSomeoneForCash
+ *     TEST exchange ACashierAsksToRefundSomeone
  */
 function withMessageWithSubs($msg, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -596,7 +596,7 @@ function withMessageWithSubs($msg, $subs) {
 /**
  * agent (ARG) on device (ARG) asks for the time
  *
- * in: MAKE Time TheDeviceAsksForTheTime
+ * in: MAKE time TheDeviceAsksForTheTime
  */
 function agentOnDeviceAsksForTheTime($agent, $device) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -607,26 +607,26 @@ function agentOnDeviceAsksForTheTime($agent, $device) {
 /**
  * member (ARG) has no photo ID recorded
  *
- * in: MAKE Identify AMemberMakesAPurchaseForTheFirstTime
+ * in: MAKE identify AMemberMakesAPurchaseForTheFirstTime
  */
 function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
 
 /**
  * members have: (ARG)
  *
- * in: MAKE Identify ACustomerScansTheirOwnCardForSelfservice
- *     MAKE Identify ACustomerScansTheirOwnCardForSelfserviceWithWrongPIN
- *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
- *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOnline
- *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithTxDateAfterTheChange
+ * in: MAKE identify ACustomerScansTheirOwnCardForSelfservice
+ *     MAKE identify ACustomerScansTheirOwnCardForSelfserviceWithWrongPIN
+ *     MAKE offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
+ *     MAKE offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOnline
+ *     MAKE offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithTxDateAfterTheChange
  */
 function membersHave($list) {return t\membersHave($list);}
 
 /**
  * agent (ARG) asks device (ARG) to identify (ARG) with PIN (ARG)
  *
- * in: MAKE Identify ACustomerScansTheirOwnCardForSelfservice
- *     MAKE Identify ACustomerScansTheirOwnCardForSelfserviceWithWrongPIN
+ * in: MAKE identify ACustomerScansTheirOwnCardForSelfservice
+ *     MAKE identify ACustomerScansTheirOwnCardForSelfserviceWithWrongPIN
  */
 function agentAsksDeviceToIdentifyWithPIN($agent, $device, $qr, $pin = NULL) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -637,7 +637,7 @@ function agentAsksDeviceToIdentifyWithPIN($agent, $device, $qr, $pin = NULL) {
 /**
  * bad codes (ARG)
  *
- * in: TEST Identify TheDefaultCashierScansADeactivatedCard
+ * in: TEST identify TheDefaultCashierScansADeactivatedCard
  */
 function badCodes($bad) {
   global $testOnly; 
@@ -668,21 +668,21 @@ function withProofOfAgentAmountCreatedMemberCode($agent, $amount, $created, $mem
 /**
  * we respond ok txid (ARG) created (ARG) balance (ARG) rewards (ARG) saying: (ARG)
  *
- * in: TEST Joint ACashierAsksToChargeSomeone
- *     TEST Offline ACashierChargedSomeoneOffline
- *     TEST Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
- *     TEST Transact ACashierAsksToChargeSomeone
- *     TEST Transact ACashierAsksToRefundSomeone
- *     TEST Transact ACashierInTheSameCommunityAsksToChargeSomeoneUnconfirmed
- *     TEST Undo AnAgentAsksToUndoACharge
- *     TEST Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
- *     TEST Undo AnAgentAsksToUndoARefund
- *     TEST Undo AnAgentAsksToUndoACashoutCharge
- *     TEST Undo AnAgentAsksToUndoACashinPayment
- *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
- *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
- *     TEST Undo AnAgentAsksToUndoAChargeWithoutPermission
- *     TEST Undo AnAgentAsksToUndoARefundWithoutPermission
+ * in: TEST joint ACashierAsksToChargeSomeone
+ *     TEST offline ACashierChargedSomeoneOffline
+ *     TEST offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
+ *     TEST transact ACashierAsksToChargeSomeone
+ *     TEST transact ACashierAsksToRefundSomeone
+ *     TEST transact ACashierInTheSameCommunityAsksToChargeSomeoneUnconfirmed
+ *     TEST undo AnAgentAsksToUndoACharge
+ *     TEST undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
+ *     TEST undo AnAgentAsksToUndoARefund
+ *     TEST undo AnAgentAsksToUndoACashoutCharge
+ *     TEST undo AnAgentAsksToUndoACashinPayment
+ *     TEST undo AnAgentAsksToUndoAChargeWithInsufficientBalance
+ *     TEST undo AnAgentAsksToUndoARefundWithInsufficientBalance
+ *     TEST undo AnAgentAsksToUndoAChargeWithoutPermission
+ *     TEST undo AnAgentAsksToUndoARefundWithoutPermission
  */
 function weRespondOkTxidCreatedBalanceRewardsSaying($txid, $created, $balance, $rewards, $msg = NULL) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -723,7 +723,7 @@ function weRespondOkTxidCreatedBalanceRewardsSaying($txid, $created, $balance, $
 /**
  * we change member (ARG) cardCode
  *
- * in: MAKE Identify TheDefaultCashierScansADeactivatedCard
+ * in: MAKE identify TheDefaultCashierScansADeactivatedCard
  */
 function weChangeMemberCardCode($id) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -734,12 +734,12 @@ function weChangeMemberCardCode($id) {
 /**
  * coupons: (ARG)
  *
- * in: MAKE Coupons AMemberRedeemsAGiftCoupon
+ * in: MAKE coupons AMemberRedeemsAGiftCoupon
  */
 function coupons($list) {return t\coupons($list);}
 /**
  * transaction count is (ARG)
  *
- * in: TEST Coupons AMemberRedeemsAGiftCoupon
+ * in: TEST coupons AMemberRedeemsAGiftCoupon
  */
 function transactionCountIs($n) {return t\txCountIs($n);}

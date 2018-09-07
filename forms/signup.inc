@@ -246,7 +246,7 @@ function formSignup_submit($form, &$sta) {
     if (!@$h) hack('company no helper');
     if ($mya->email == $h->email) {
       $mya->stepDone('verify');
-    } else r\notify($myid, 'verifyCo', ['code' => $pw1], TRUE); 
+    } else r\notify($myid, 'verify-co', ['code' => $pw1], TRUE); 
     return w\goNextStep('signup');  
   } else { // non-personal company (no independent login)
 

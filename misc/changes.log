@@ -1,3 +1,9 @@
+2018-09-06
+. fixed bug that left outgoing transfer requests uncompleted
+. fixed bug that created more than one bank verification request sometimes
+. fixed bug that tried to save null in recovery field of r_proposals
+. bug fix: recurring gift of zero now cancels previous recurring gift
+
 2018-09-04
 . made all filenames lowercase except README.md
 
